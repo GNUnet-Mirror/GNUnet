@@ -1381,7 +1381,7 @@ AC_DEFINE_UNQUOTED([ENABLE_MALICIOUS], [$malicious],
 # never start by default and it is up to the service/module developer to decide
 # by having "START_ON_DEMAND = NO" instead of "START_ON_DEMAND = @START_ON_DEMAND@"
 # in the service/module's conf.in file.
-# See also FORCESTART for an unconditional immediate start.
+# See also IMMEDIATE_START for an unconditional immediate start.
 START_ON_DEMAND="YES"
 AC_MSG_CHECKING(whether to start peer's services on demand by default)
 AC_ARG_ENABLE([autostart],

@@ -7,7 +7,7 @@ OPERATION_TIMEOUT = 5 s
 [testbed-underlay]
 START_ON_DEMAND = NO
 DBFILE = /will/be/overwritten/by/testcase
-FORCESTART = YES
+IMMEDIATE_START = YES
 
 [dv]
 START_ON_DEMAND = NO

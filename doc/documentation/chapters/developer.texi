@@ -2297,15 +2297,15 @@ is to set
 
 @example
 [core]
-FORCESTART = YES
+IMMEDIATE_START = YES
 @end example
 
 @noindent
 in the configuration file.
 Alternatively, having any service that directly or indirectly depends on
-@code{CORE} being started with @code{FORCESTART} will also do.
+@code{CORE} being started with @code{IMMEDIATE_START} will also do.
 This issue largely arises if users try to over-optimize by not
-starting any services with @code{FORCESTART}.
+starting any services with @code{IMMEDIATE_START}.
 
 @c ***********************************************************************
 @node ATS must want the connections
@@ -3705,7 +3705,7 @@ running a service with "valgrind" or "gdb"
 @item START_ON_DEMAND ARM will listen to UNIX domain socket and/or TCP port of
 the service and start the service on-demand.
 
-@item FORCESTART ARM will always start this service when the peer
+@item IMMEDIATE_START ARM will always start this service when the peer
 is started.
 
 @item ACCEPT_FROM IPv4 addresses the service accepts connections from.

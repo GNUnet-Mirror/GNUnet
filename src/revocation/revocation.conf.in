@@ -1,6 +1,6 @@
 [revocation]
 START_ON_DEMAND = @START_ON_DEMAND@
-FORCESTART = YES
+IMMEDIATE_START = YES
 @JAVAPORT@PORT = 2112
 HOSTNAME = localhost
 BINARY = gnunet-service-revocation

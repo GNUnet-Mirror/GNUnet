@@ -2062,7 +2062,7 @@ setup_service (void *cls,
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (cfg,
                                             section,
-                                            "FORCESTART"))
+                                            "IMMEDIATE_START"))
   {
     sl->force_start = GNUNET_YES;
     if (GNUNET_YES ==

@@ -1,6 +1,6 @@
 [gns]
 START_ON_DEMAND = @START_ON_DEMAND@
-FORCESTART = YES
+IMMEDIATE_START = YES
 HOSTNAME = localhost
 BINARY = gnunet-service-gns
 UNIXPATH = $GNUNET_USER_RUNTIME_DIR/gnunet-service-gns.sock

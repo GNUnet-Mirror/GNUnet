@@ -3703,7 +3703,7 @@ gnunet-arm -c ~/.config/gnunet.conf -k fs
 @noindent
 Assuming that you want certain services (like file-sharing) to be always
 automatically started whenever you start GNUnet, you can activate them by
-setting "FORCESTART=YES" in the respective section of the configuration
+setting "IMMEDIATE_START=YES" in the respective section of the configuration
 file (for example, "[fs]"). Then GNUnet with file-sharing support would
 be started whenever you@ enter:
 
