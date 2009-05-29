@@ -13,6 +13,47 @@ Util:
 * Should "server" argument be given in event callbacks?
 * consider adding "get_time" to "configuration" API
 
+TESTCASES WANTED:
+For these functions, it would be nice if we had testcases ("make check")
+that would cause them to be executed and check that they are working:
+* gnunet-service-peerinfo:
+  - change_host_trust / flush_trust 
+  - remove_garbage / 
+  - discard_hosts_helper / cron_clean_data_hosts
+* gnunet-service-transport:
+  - try_unvalidated_addresses
+  - lookup_address_callback
+  - lookup_hello_callback
+  - plugin_env_lookup_address
+  - notify_clients_disconnect
+  - list_validated_addresses
+  - cleanup_validation
+  - disconnect_neighbour
+  - handle_set_quota
+* plugin_transport_tcp.c:
+  - tcp_plugin_cancel
+  - tcp_plugin_address_pretty_printer / append_port
+  - tcp_plugin_set_receive_quota
+  - delayed_done
+* transport_api:
+  - GNUNET_TRANSPORT_set_qutoa / send_set_quota
+  - hello_wait_timeout 
+  - transmit_ready
+  - transmit_timeout
+  - remove_from_any_list / remove_neighbour
+  - GNUNET_TRANSPORT_notify_transmit_ready_cancel
+* core_api:
+  - timeout_request
+  - solicit_traffic / copy_and_free
+  - GNUNET_CORE_peer_configure / produce_configure_message
+* gnunet-service-core:
+  - update_window
+  - find_client
+  - handle_client_request_configure
+  - set_key_retry_task
+  - align_and_deliver
+  - handle_transport_notify_disconnect
+
 
 PHASE #2: (Goal: recover basic core functionality)
 
