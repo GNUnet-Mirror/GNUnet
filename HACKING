@@ -1,0 +1,57 @@
+Naming conventions:
+
+include files:
+- _lib: library without need for a process
+- _service: library that needs a service process
+- _plugin: plugin definition
+- _protocol: structs used in network protocol
+- exceptions:
+  * GNUNET_config.h      --- generated // FIXME: decapitalize
+  * platform.h           --- first included
+  * plibc.h              --- external library
+  * gnunet_common.h      --- fundamental routines
+  * gnunet_directories.h --- generated
+  * gettext.h            --- external library
+
+
+exported symbols:
+- must start with "GNUNET_modulename_" and be defined in "modulename.c"
+- exceptions: those defined in gnunet_common.h
+
+
+testcases:
+- must be called "test_module-under-test_case-description.c"
+- "case-description" maybe omitted if there is only one test
+
+
+performance tests:
+- must be called "perf_module-under-test_case-description.c"
+- "case-description" maybe omitted if there is only one test
+
+
+
+src/ directories:
+- apps: end-user applications (i.e., gnunet-search)
+- connectors: libraries requiring services (i.e., libgnunetstatistics)
+- libs: standalone libraries (i.e., libgnunetecrs, etc.)
+- plugins: loadable plugins (i.e., TCP transport, MySQL backend)
+  * transports: udp/tcp/http/dv???
+- services: arm-controlled applications (i.e., gnunet-service-statistics)
+- util: library for everyone
+
+For each directory in services, there should be one
+in connectors and vice-versa.
+
+For each entry in apps, there should be one in libs.
+
+
+
+Minimum file-sharing system (in order of dependency):
+gnunet-arm
+gnunet-transport (name?)
+gnunet-core (name?)
+gnunet-datastore
+gnunet-statistics (integrate traffic?)
+gnunet-dv
+gnunet-dht
+gnunet-fs

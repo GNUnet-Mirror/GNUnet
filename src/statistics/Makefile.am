@@ -1,0 +1,59 @@
+INCLUDES = -I$(top_srcdir)/src/include
+
+if MINGW
+ WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols 
+endif
+
+if USE_COVERAGE
+  AM_CFLAGS = -fprofile-arcs -ftest-coverage
+endif
+
+
+lib_LTLIBRARIES = libgnunetstatistics.la
+
+libgnunetstatistics_la_SOURCES = \
+  statistics_api.c statistics.h
+libgnunetstatistics_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+libgnunetstatistics_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
+  -version-info 0:0:0
+
+
+bin_PROGRAMS = \
+ gnunet-statistics \
+ gnunet-service-statistics
+
+gnunet_statistics_SOURCES = \
+ gnunet-statistics.c         
+gnunet_statistics_LDADD = \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+
+gnunet_service_statistics_SOURCES = \
+ gnunet-service-statistics.c         
+gnunet_service_statistics_LDADD = \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+
+
+check_PROGRAMS = \
+ test_statistics_api
+
+TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
+
+test_statistics_api_SOURCES = \
+ test_statistics_api.c
+test_statistics_api_LDADD = \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la  
+
+EXTRA_DIST = \
+  test_statistics_api_data.conf 
+
+check_SCRIPTS = \
+  test_gnunet_statistics.sh
+

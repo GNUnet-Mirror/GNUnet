@@ -1,0 +1,57 @@
+.TH GNUNET\-ARM 1 "Mar 7, 2009" "GNUnet"
+
+.SH NAME
+gnunet\-arm \- control GNUnet services
+
+.SH SYNOPSIS
+.B gnunet-arm
+.RI [ options ]
+.br
+
+.SH DESCRIPTION
+\fBgnunet\-arm\fP can be used to start or stop GNUnet services, including the ARM service itself.
+
+.SH OPTIONS
+
+.TP
+.IP "\-c FILENAME,  \-\-config=FILENAME"
+Use the configuration file FILENAME.
+
+.TP
+.IP "\-e, \-\-end"
+Shutdown all GNUnet services (including ARM).
+
+.TP
+.IP "\-h, \-\-help"
+Print short help on options.
+
+.TP
+.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
+Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
+
+.TP
+.IP "\-i SERVICE,  \-\-init=SERVICE"
+Starts the specified SERVICE if it is not already running.
+
+.TP
+.IP "\-k SERVICE,  \-\-kill=SERVICE"
+Stop the specified SERVICE if it is running.
+
+.TP
+.IP "\-s, \-\-start"
+Start all GNUnet default services on this system (including ARM).
+
+.TP
+.IP "\-t SERVICE,  \-\-test=SERVICE"
+Report if the specified SERVICE is running.
+
+.TP
+.IP "\-v, \-\-version"
+Print GNUnet version number.
+
+
+.SH BUGS
+Report bugs by using Mantis <https://gnunet.org/mantis/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+
+.SH SEE ALSO
+gnunet\-service\-arm(1)

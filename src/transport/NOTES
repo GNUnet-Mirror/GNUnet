@@ -1,0 +1,46 @@
+KEY DESIGN CHOICES:
+ - who decides which connections to keep/create?
+   => higher level session/key management!
+ - who enforces things like F2F topology, etc?
+   => higher level session/key management!
+ - who tracks all known HELLOs & validates? 
+   => We validate, PEERINFO tracks!
+ - who advertises our HELLO?
+   => us! (need background job; previously: advertising)
+ - who advertises other peers HELLOs?
+   => higher level (core?)
+ - who does bootstrapping?
+   => bootstrap service (external!)
+ - who enforces inbound bandwidth limits?
+   => transport-service and plugins! (previously: core); 
+      either by limiting reads (TCP) or discarding packets 
+      (transport-service)
+ - who enforces outbound bandwidth limits?
+   => transport_api!
+ - who decides outbound bandwidth limits?
+   => other peer, via core (need authenticated limits!)
+ - who decides inbound bandwidth limits?
+   => core / apps above core (need trust info)
+ - cost function for transports is latency estimate in ms
+   => plugin provides latency data, transport-service
+      selects plugin(s) for transmission
+ - who is responsible for fragmentation?
+   => plugins! (may use common shared library)
+ - should we require UDP to be reliable?
+   => NO.  There are other places that may (rarely)
+      use messages that we can not fix
+ - how do we access the 50% of service that we need for TCP/UDP
+   from service.c without code replication or getting 50%
+   that we do not want (i.e. shutdown, pid-file-writing, etc.)
+   => use GNUNET_SERVICE_start/stop functions!
+ - At what level do we manage timeouts? 
+   => At the plugin (TCP connections),
+      transport-service (neighbours) and 
+      core (sessions) level!
+   => All plugins have to disconnect before service-level
+      disconnect occurs
+   => We can have a plugin-connection die, but the session
+      survives!
+   => We can have a session die (no further authenticated
+      communication) even if the plugin thinks it is still
+      up!

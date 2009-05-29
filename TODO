@@ -1,0 +1,150 @@
+PHASE #1: (Goal: settle key design questions)
+
+Core:
+* API review: should "bpm" and "last_activity" arguments be 
+  included in the ClientEventHandler?
+* Internal: topology
+* Internal: bandwidth allocation (inbound limits, trust)
+* Internal: advertising (propagate other peers' HELLOs, find new ones)
+* Internal: bootstrapping
+  => bootstrap should use plugins, possible multiple at the same time!
+
+Util:
+* Should "server" argument be given in event callbacks?
+* consider adding "get_time" to "configuration" API
+
+
+PHASE #2: (Goal: recover basic core functionality)
+
+Datastores:
+* implement sqlite-based sqstore/datastore service
+  + implement library (talks to service)
+  + implement service (datastore + talks to plugin)
+  + implement sqlite plugin (talks to DB)
+* implement sqlite-based dstore services
+  + implement library (talks to service)
+  + implement service (talks to plugin)
+  + implement sqlite plugin (talks to DB)
+
+Applications:
+* implement hostlist service (need to bootstrap!)
+* DHT, DV
+* FS / fs-libs
+
+Databases:
+* mysql & postgres backend
+
+Transports:
+* UDP backend (need LIBRARY to support (de)fragmentation!)
+* HTTP backend
+* Testing:
+  +  Testcases for set_quota, timeouts, disconnects, transmit_ready_cancel
+  + Better coverage of gnunet-service-transport (hello validation)
+  + direct test of plugins compliance to plugin API
+
+
+PHASE #3: (Goal: ready for pre-release) [completion-goal: end of 2009]
+
+* testing
+* setup
+* gtk, qt GUIs
+* tbench
+* tracekit
+* vpn
+
+
+
+Minor TODO items:
+* SERVER:
+  - inefficient memmove
+* TRANSPORT:
+  - transport_api: support forcing disconnects through low quotas!
+  - API: consider having core provide priority and possibly
+    deadline information for each message
+    (likely important for DV plugin which wants to loop back!)
+  - implement transport API to pretty-print transport address 
+    + transport_api extension (API extension!)
+    + service-transport extension (protocol extension)
+  - add calls to statistics in various places
+  - implement gnunet-transport (transport configurator / tester)
+  - UPnP-based IP detection
+    (Note: build library always, build service when libxml2/etc. are available)
+  - instantly filter addresses from *other* peers that 
+    are *equal* to our own address + port (i.e., localhost:2086).  We 
+    no longer filter those for outgoing (helps with loopback testing
+    and keeps the code clean), but we should filter strictly *impossible*
+    incoming addresses!  This is for efficiency, not correctness.
+  - We currently are happy to take any address told to us in a WELCOME
+    to our set of addresses; we should have some minimal threshold-based
+    scheme, limiting both the total number of addresses that we accept 
+    this way as well as requiring multiple confirmations; also, we
+    should possibly try to confirm that the given address works for
+    us ourselves (loopback-style) before adding it to the list
+    [SECURITY issue]
+  - not sure current way of doing ACKs works well-enough 
+    with unreliable transports where the ACK maybe lost;
+    the "is_new" check would then possibly prevent future
+    ACKs to be delivered, all while we're happily 
+    receiving messages from that peer!  Worse, the other
+    peer won't generate another ACK since it thinks we're
+    connected just fine...
+    Key questions:
+    + How necessary is ACKing in the first place? (alternatives?)
+    + Should we transmit ACKs in response to every HELLO? (would that 
+      fully address the problem?)
+  - latency measurements implemented in the transport
+    plugins makes it only work for bi-di transports
+    and results in code replication
+  - should latency be included in the ReceiveCallback and
+    NotifyConnect or passed on request?
+* SETUP:
+  - auto-generate "defaults.conf" using gnunet-setup from "config.scm"
+  - integrate all options into "config.scm"
+  - change config-file writing to exclude options set to default values
+* ARM:
+  - implement exponential back-off for service restarts
+  - better tracking of which config changes actually need to cause process restarts by ARM.
+  - have way to specify dependencies between services (to manage ARM restarts better)
+* PEERINFO:
+  - have gnunet-peerinfo print actual host addresses again
+  - add option to gnunet-peerinfo to modify trust value
+* POSTGRES-DB:
+  - finish postgres implementation; simplify other SQLs using new stats
+* HTTPS transport
+  - PolariSSL for MHD?
+  - https integration
+* GAP improvements:
+  - active reply route caching design & implementation of service,
+    gap extension!
+
+=> PRE-RELEASE
+
+PHASE #4: [completion-goal: mid 2010]
+* Documentation
+* new webpage
+
+
+
+
+Stuff to remember:
+* Features eliminated from util:
+  - threading (goal: good riddance!)
+  - complex logging features [ectx-passing, target-kinds] (goal: good riddance!)
+  - complex configuration features [defaults, notifications] (goal: good riddance!)
+  - network traffic monitors (goal: eliminate)
+  - IPC semaphores (goal: d-bus? / eliminate?)
+  - second timers
+  - DNS lookup (goal: have async service; issue: still need synchronous resolution in places, current code may not be portable)
+  => code shrunk from 61 files to 34, 22k LOC to 15k LOC, 470k to 330k (with symbols)
+* New features in util:
+  - scheduler
+  - service and program boot-strap code
+* Major changes in util:
+  - more expressive server (replaces selector)
+* Open questions: 
+  - how to integrate scheduler with GTK event loop!
+
+
+
+Test coverage:
+* UTIL: 75%, 4914 out of 6463

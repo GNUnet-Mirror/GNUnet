@@ -1,0 +1,238 @@
+/*
+     This file is part of GNUnet.
+     (C) 2006, 2008, 2009 Christian Grothoff (and other contributing authors)
+
+     GNUnet is free software; you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published
+     by the Free Software Foundation; either version 2, or (at your
+     option) any later version.
+
+     GNUnet is distributed in the hope that it will be useful, but
+     WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     General Public License for more details.
+
+     You should have received a copy of the GNU General Public License
+     along with GNUnet; see the file COPYING.  If not, write to the
+     Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+     Boston, MA 02111-1307, USA.
+*/
+
+/**
+ * @file include/gnunet_configuration_lib.h
+ * @brief configuration API
+ *
+ * @author Christian Grothoff
+ */
+
+#ifndef GNUNET_CONFIGURATION_LIB_H
+#define GNUNET_CONFIGURATION_LIB_H
+
+
+#ifdef __cplusplus
+extern "C"
+{
+#if 0                           /* keep Emacsens' auto-indent happy */
+}
+#endif
+#endif
+
+#include "gnunet_common.h"
+
+/**
+ * A configuration object.
+ */
+struct GNUNET_CONFIGURATION_Handle;
+
+/**
+ * Create a new configuration object.
+ *
+ * @param component name of responsible component
+ */
+struct GNUNET_CONFIGURATION_Handle *GNUNET_CONFIGURATION_create (void);
+
+/**
+ * Destroy configuration object.
+ */
+void GNUNET_CONFIGURATION_destroy (struct GNUNET_CONFIGURATION_Handle *cfg);
+
+/**
+ * Load configuration.  This function will first parse the
+ * defaults and then parse the specific configuration file
+ * to overwrite the defaults.
+ *
+ * @param filename name of the configuration file
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int GNUNET_CONFIGURATION_load (struct GNUNET_CONFIGURATION_Handle *cfg,
+                               const char *filename);
+
+/**
+ * Parse a configuration file, add all of the options in the
+ * file to the configuration environment.
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
+                                const char *filename);
+
+/**
+ * Write configuration file.
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *cfg,
+                                const char *filename);
+
+/**
+ * Test if there are configuration options that were
+ * changed since the last save.
+ * @return GNUNET_NO if clean, GNUNET_YES if dirty, GNUNET_SYSERR on error (i.e. last save failed)
+ */
+int GNUNET_CONFIGURATION_is_dirty (struct GNUNET_CONFIGURATION_Handle *cfg);
+
+/**
+ * Get a configuration value that should be a number.
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int GNUNET_CONFIGURATION_get_value_number (struct GNUNET_CONFIGURATION_Handle
+                                           *cfg, const char *section,
+                                           const char *option,
+                                           unsigned long long *number);
+
+/**
+ * Test if we have a value for a particular option
+ * @return GNUNET_YES if so, GNUNET_NO if not.
+ */
+int GNUNET_CONFIGURATION_have_value (struct GNUNET_CONFIGURATION_Handle *cfg,
+                                     const char *section, const char *option);
+
+/**
+ * Get a configuration value that should be a string.
+ * @param value will be set to a freshly allocated configuration
+ *        value, or NULL if option is not specified
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int GNUNET_CONFIGURATION_get_value_string (struct GNUNET_CONFIGURATION_Handle
+                                           *cfg, const char *section,
+                                           const char *option, char **value);
+
+/**
+ * Get a configuration value that should be the name of a file
+ * or directory.
+ *
+ * @param value will be set to a freshly allocated configuration
+ *        value, or NULL if option is not specified
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int GNUNET_CONFIGURATION_get_value_filename (struct
+                                             GNUNET_CONFIGURATION_Handle *cfg,
+                                             const char *section,
+                                             const char *option,
+                                             char **value);
+
+/**
+ * Iterate over the set of filenames stored in a configuration value.
+ *
+ * @return number of filenames iterated over, -1 on error
+ */
+int GNUNET_CONFIGURATION_iterate_value_filenames (struct
+                                                  GNUNET_CONFIGURATION_Handle
+                                                  *cfg,
+                                                  const char *section,
+                                                  const char *option,
+                                                  GNUNET_FileNameCallback
+                                                  cb, void *cls);
+
+/**
+ * Get a configuration value that should be in a set of
+ * predefined strings
+ *
+ * @param choices NULL-terminated list of legal values
+ * @param value will be set to an entry in the legal list,
+ *        or NULL if option is not specified and no default given
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int GNUNET_CONFIGURATION_get_value_choice (struct GNUNET_CONFIGURATION_Handle
+                                           *cfg, const char *section,
+                                           const char *option,
+                                           const char **choices,
+                                           const char **value);
+
+/**
+ * Get a configuration value that should be in a set of
+ * "YES" or "NO".
+ *
+ * @return GNUNET_YES, GNUNET_NO or if option has no valid value, GNUNET_SYSERR
+ */
+int GNUNET_CONFIGURATION_get_value_yesno (struct GNUNET_CONFIGURATION_Handle
+                                          *cfg, const char *section,
+                                          const char *option);
+
+/**
+ * Expand an expression of the form "$FOO/BAR" to "DIRECTORY/BAR"
+ * where either in the "PATHS" section or the environtment
+ * "FOO" is set to "DIRECTORY".
+
+ * @param old string to $-expand (will be freed!)
+ * @return $-expanded string
+ */
+char *GNUNET_CONFIGURATION_expand_dollar (struct GNUNET_CONFIGURATION_Handle
+                                          *cfg, char *old);
+
+/**
+ * Set a configuration value that should be a number.
+ */
+void
+GNUNET_CONFIGURATION_set_value_number (struct GNUNET_CONFIGURATION_Handle
+                                       *cfg,
+                                       const char *section,
+                                       const char *option,
+                                       unsigned long long number);
+
+
+/**
+ * Set a configuration value that should be a string.
+ * @param value
+ */
+void
+GNUNET_CONFIGURATION_set_value_string (struct GNUNET_CONFIGURATION_Handle
+                                       *cfg,
+                                       const char *section,
+                                       const char *option, const char *value);
+
+/**
+ * Remove a filename from a configuration value that
+ * represents a list of filenames
+ *
+ * @param value filename to remove
+ * @return GNUNET_OK on success,
+ *         GNUNET_SYSERR if the filename is not in the list
+ */
+int GNUNET_CONFIGURATION_remove_value_filename (struct
+                                                GNUNET_CONFIGURATION_Handle
+                                                *cfg,
+                                                const char *section,
+                                                const char *option,
+                                                const char *value);
+
+/**
+ * Append a filename to a configuration value that
+ * represents a list of filenames
+ *
+ * @param value filename to append
+ * @return GNUNET_OK on success,
+ *         GNUNET_SYSERR if the filename already in the list
+ */
+int GNUNET_CONFIGURATION_append_value_filename (struct
+                                                GNUNET_CONFIGURATION_Handle
+                                                *cfg, const char *section,
+                                                const char *option,
+                                                const char *value);
+
+#if 0                           /* keep Emacsens' auto-indent happy */
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
+
+#endif

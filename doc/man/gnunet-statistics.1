@@ -1,0 +1,50 @@
+.TH GNUNET\-STATISTICS 1 "Mar 6, 2009" "GNUnet"
+
+.SH NAME
+gnunet\-statistics \- Display statistics about your GNUnet system
+
+.SH SYNOPSIS
+.B gnunet-statistics
+.RI [ options ] [ VALUE ]
+.br
+
+.SH DESCRIPTION
+\fBgnunet\-statistics\fP is used to display detailed information about various aspect of GNUnet's operation.  This tool only works if the "statistics" service is available.
+gnunet\-statistics can be used to set a value by giving the options \-n, \-s and also a VALUE.
+
+.SH OPTIONS
+
+.TP
+.IP "\-c FILENAME,  \-\-config=FILENAME"
+Use the configuration file FILENAME.
+
+.TP
+.IP "\-h, \-\-help"
+Print short help on options.
+
+.TP
+.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
+Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
+
+.TP
+.IP "\-n NAME,  \-\-name=NAME"
+Each statistic has a name that is unique with in its subsystem.  With this option, the output can be restricted to statistics that have a particular name.
+
+.TP
+.IP "\-p,  \-\-persistent"
+When setting a value, make the value persistent.  If the value used to be persistent and this flag is not given, it will be marked as non\-persistent.
+
+.TP
+.IP "\-s SUBSYSTEM,  \-\-subsystem=SUBSYSTEM"
+Statistics are kept for various subsystems.  With this option, the output can be restricted to a particular subsystem only.
+
+.TP
+.IP "\-v, \-\-version"
+Print GNUnet version number.
+
+
+.SH BUGS
+Report bugs by using Mantis <https://gnunet.org/mantis/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+
+.SH SEE ALSO
+gnunet\-service\-statistics(1)

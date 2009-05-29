@@ -1,0 +1,202 @@
+/*
+     This file is part of GNUnet.
+     (C) 2009 Christian Grothoff (and other contributing authors)
+
+     GNUnet is free software; you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published
+     by the Free Software Foundation; either version 2, or (at your
+     option) any later version.
+
+     GNUnet is distributed in the hope that it will be useful, but
+     WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     General Public License for more details.
+
+     You should have received a copy of the GNU General Public License
+     along with GNUnet; see the file COPYING.  If not, write to the
+     Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+     Boston, MA 02111-1307, USA.
+*/
+
+/**
+ * @file util/program.c
+ * @brief standard code for GNUnet startup and shutdown
+ * @author Christian Grothoff
+ */
+
+#include "platform.h"
+#include "gnunet_common.h"
+#include "gnunet_configuration_lib.h"
+#include "gnunet_crypto_lib.h"
+#include "gnunet_directories.h"
+#include "gnunet_getopt_lib.h"
+#include "gnunet_os_lib.h"
+#include "gnunet_program_lib.h"
+#include "gnunet_scheduler_lib.h"
+#include <gcrypt.h>
+
+/**
+ * Context for the command.
+ */
+struct CommandContext
+{
+  /**
+   * Argv argument.
+   */
+  char *const *args;
+
+  /**
+   * Name of the configuration file used, can be NULL!
+   */
+  char *cfgfile;
+
+  /**
+   * Main function to run.
+   */
+  GNUNET_PROGRAM_Main task;
+
+  /**
+   * Closure for task.
+   */
+  void *task_cls;
+
+  /**
+   * Configuration to use.
+   */
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+
+};
+
+
+/**
+ * Initial task called by the scheduler for each
+ * program.  Runs the program-specific main task.
+ */
+static void
+program_main (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct CommandContext *cc = cls;
+
+  cc->task (cc->task_cls, tc->sched, cc->args, cc->cfgfile, cc->cfg);
+}
+
+
+/**
+ * Compare function for 'qsort' to sort command-line arguments by the
+ * short option.
+ */
+static int
+cmd_sorter (const void *a1, const void *a2)
+{
+  const struct GNUNET_GETOPT_CommandLineOption *c1 = a1;
+  const struct GNUNET_GETOPT_CommandLineOption *c2 = a2;
+  if (toupper (c1->shortName) > toupper (c2->shortName))
+    return 1;
+  if (toupper (c1->shortName) < toupper (c2->shortName))
+    return -1;
+  if (c1->shortName > c2->shortName)
+    return 1;
+  if (c1->shortName < c2->shortName)
+    return -1;
+  return 0;
+}
+
+
+/**
+ * Run a standard GNUnet command startup sequence (initialize loggers
+ * and configuration, parse options).
+ *
+ * @param argc number of command line arguments
+ * @param argv command line arguments
+ * @param binaryName our expected name
+ * @param options command line options
+ * @param task main function to run
+ * @param task_cls closure for task
+ * @return GNUNET_SYSERR on error, GNUNET_OK on success
+ */
+int
+GNUNET_PROGRAM_run (int argc,
+                    char *const *argv,
+                    const char *binaryName,
+                    const char *binaryHelp,
+                    const struct GNUNET_GETOPT_CommandLineOption *options,
+                    GNUNET_PROGRAM_Main task, void *task_cls)
+{
+  struct CommandContext cc;
+  char *path;
+  char *loglev;
+  int ret;
+  unsigned int cnt;
+  struct GNUNET_GETOPT_CommandLineOption defoptions[] = {
+    GNUNET_GETOPT_OPTION_CFG_FILE (&cc.cfgfile),
+    GNUNET_GETOPT_OPTION_HELP (binaryHelp),
+    GNUNET_GETOPT_OPTION_LOGLEVEL (&loglev),
+    GNUNET_GETOPT_OPTION_VERSION (PACKAGE_VERSION)
+  };
+  struct GNUNET_GETOPT_CommandLineOption *allopts;
+
+  memset (&cc, 0, sizeof (cc));
+  loglev = NULL;
+  cc.task = task;
+  cc.task_cls = task_cls;
+  cc.cfg = GNUNET_CONFIGURATION_create ();
+
+  /* prepare */
+#if ENABLE_NLS
+  setlocale (LC_ALL, "");
+  path = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_LOCALEDIR);
+  if (path != NULL)
+    {
+      BINDTEXTDOMAIN ("GNUnet", path);
+      GNUNET_free (path);
+    }
+  textdomain ("GNUnet");
+#endif
+  cnt = 0;
+  while (options[cnt].name != NULL)
+    cnt++;
+  allopts =
+    GNUNET_malloc ((cnt +
+                    1) * sizeof (struct GNUNET_GETOPT_CommandLineOption) +
+                   sizeof (defoptions));
+  memcpy (allopts, defoptions, sizeof (defoptions));
+  memcpy (&allopts
+          [sizeof (defoptions) /
+           sizeof (struct GNUNET_GETOPT_CommandLineOption)], options,
+          (cnt + 1) * sizeof (struct GNUNET_GETOPT_CommandLineOption));
+  cnt +=
+    sizeof (defoptions) / sizeof (struct GNUNET_GETOPT_CommandLineOption);
+  qsort (allopts, cnt, sizeof (struct GNUNET_GETOPT_CommandLineOption),
+         &cmd_sorter);
+  loglev = GNUNET_strdup ("WARNING");
+  if ((-1 == (ret = GNUNET_GETOPT_run (binaryName,
+                                       cc.cfg,
+                                       allopts,
+                                       (unsigned int) argc, argv))) ||
+      ((GNUNET_OK !=
+        GNUNET_log_setup (binaryName,
+                          loglev,
+                          NULL)) ||
+       (GNUNET_OK != GNUNET_CONFIGURATION_load (cc.cfg, cc.cfgfile))))
+
+    {
+      GNUNET_free_non_null (cc.cfgfile);
+      GNUNET_free (loglev);
+      GNUNET_free (allopts);
+      return GNUNET_SYSERR;
+    }
+  GNUNET_free (allopts);
+
+  /* run */
+  cc.args = &argv[ret];
+  GNUNET_SCHEDULER_run (&program_main, &cc);
+
+  /* clean up */
+  GNUNET_CONFIGURATION_destroy (cc.cfg);
+  GNUNET_free_non_null (cc.cfgfile);
+  GNUNET_free (loglev);
+  return GNUNET_OK;
+}
+
+
+/* end of program.c */

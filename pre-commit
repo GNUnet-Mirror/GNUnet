@@ -1,0 +1,17 @@
+#!/bin/sh
+# NOTE: "touch mydir/no-indent" to make the tree starting at mydir untouchable
+l=""
+for n in `find . -name "no-indent"`
+do
+  n=`dirname "$n"`
+  l="-and -not -path \"$n/*\" $l"
+done
+indent -nut `echo $l | xargs find . -name "*.c"`
+indent -nut `echo $l | xargs find . -name "*.h"`
+if test -x "`which 'dos2unix'`"
+then
+  dos2unix -ko `echo $l | xargs find . -name "*.c"`
+  dos2unix -ko `echo $l | xargs find . -name "*.h"`
+  rm `echo $l | xargs find . -name "*.?~"`
+fi
+

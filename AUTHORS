@@ -1,0 +1,85 @@
+Primary developers (0.9.x series):
+Christian Grothoff <christian@grothoff.org>
+Heikki Lindholm <holindho@cs.helsinki.fi>
+Nils Durner <durner@gnunet.org>
+Milan Bouchet-Valat <nalimilan@club.fr>
+
+Code contributions also came from:
+Adam Warrington [ UPnP ]
+Alex Harper [ OS X CPU load ]
+Andrew McDonald <andrew@mcdonald.org.uk> [ SHA-512]
+Antti Salonen
+Blake Matheny <bmatheny@mobocracy.net>
+Clytie Siddall <clytie@riverland.net.au>
+David Kuehling <dvdkhlng@gmx.de>
+Enrico Scholz <enrico.scholz@informatik.tu-chemnitz.de>
+Eric Haumant
+Eric Noack <corvus-gnunet@cybertrench.com>
+Felix von Leitner [ diet libc snprintf for win32 ]
+Gerd Knorr <kraxel@bytesex.org>
+Glenn McGrath <bug1@iinet.net.au>
+Hendrik Pagenhardt <Hendrik.Pagenhardt@gmx.net>
+Heikki Lindholm <holindho@cs.helsinki.fi>
+Igor Wronsky <iwronsky@users.sourceforge.net>
+Ioana Patrascu <ioanapatrascu@yahoo.com>
+<january@hushmail.com>
+Jake Dust <jakedust@gmail.com>
+James Blackwell <jblack@linuxguru.net>
+Jean-Luc Cooke <jlcooke@certainkey.com> [ SHA-512]
+Jussi Eloranta <eloranta@cc.jyu.fi>
+Jürgen Appel <jappel@linux01.gwdg.de>
+Kevin Vandersloot <kfv101@psu.edu> [original code of gnome-system-monitor]
+Krista Bennett Grothoff <krista@grothoff.org>
+Kyle McMartin <kyle@debian.org> [ SHA-512]
+Larry Waldo
+Ludovic Courtès <ludo@chbouib.org>
+Marko Räihä
+Michael John Wensley <michael@wensley.org.uk>
+Nathan Evans <nevans6@du.edu>
+Paul Ruth <ruth@cs.purdue.edu>
+Renaldo Ferreira <rf@cs.purdue.edu>
+Risto Saarelma
+Roman Zippel
+Romain Lievin
+sheda <uc.sheda@laposte.net>
+Simo Viitanen
+Tiberius Stef <tstef@cs.purdue.edu>
+Tomi Tukiainen
+Tuomas Toivonen
+Tzvetan Horozov <chorozov@gmail.com>
+Uli Luckas <luckas@musoft.de>
+Vasil Dimov <vd@datamax.bg>
+Werner Koch <libgcrypt@g10code.com> [original code of libgcrypt]
+
+Translations (webpage, documentation, as far as known):
+Chinese    : Di Ma
+Danish     : Jens Palsberg <palsberg@cs.ucla.edu>
+Deutsch    : Christian Grothoff <christian@grothoff.org>,
+             Nils Durner <durner@gnunet.org>
+French     : Mathieu <mollo@bghflt.org>,
+             Eric Haumant
+             Milan <nalimilan@club-internet.fr> 
+Japanese   : Hiroshi Yamauchi <yamauchi@cs.purdue.edu>
+Polish     : Adam Welc <welc@cs.purdue.edu>
+Romaneste  : Bogdan Carbunar <carbunar@cs.purdue.edu>
+Kinyarwanda: Steven Michael Murphy <murf@e-tools.com>
+Vietnamese : Phan Vinh Thinh <teppi82@gmail.com> and Clytie Siddall <clytie@riverland.net.au>
+Swedish    : Daniel Nylander <po@danielnylander.se>
+Spanish    : Miguel Angel Arruga Vivas <miguel.13@telefonica.net> 
+Turkish    : Nilgün Belma Bugüner <nilgun@buguner.name.tr>
+
+Logos:
+GNU in Net    : Christian Muellner <chris@flop.de>
+GNU with Net  : Christian Muellner <chris@flop.de>
+AFS Face      : Alex Jones <alexrjones@ntlworld.com>
+new GNU in Net: Nicklas Larsson <whybill@gmail.com>
+
+Maintainers:
+FreeBSD         : Kirill Ponomarew <ponomarew@oberon.net>
+Debian GNU/Linux: Daniel Baumann <daniel.baumann@panthera-systems.net> and
+                  Arnaud Kyheng <Arnaud.Kyheng@free.fr>
+OS X            : Jussi Eloranta <eloranta@cc.jyu.fi>
+
+
+If you have contributed and are not listed here, please
+notify one of the maintainers in order to be added.

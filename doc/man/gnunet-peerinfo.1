@@ -1,0 +1,42 @@
+.TH GNUNET-PEERINFO 1 "Mar 15, 2009" "GNUnet"
+
+.SH NAME
+gnunet\-peerinfo \- Display information about other peers.
+
+.SH SYNOPSIS
+.B gnunet\-peerinfo
+.RI [ options ]
+.br
+
+.SH DESCRIPTION
+.PP
+\fBgnunet\-peerinfo\fP display the known addresses and trust of known peers.
+
+.SH OPTIONS
+.B
+.IP "\-c FILENAME, \-\-config=FILENAME"
+Load config file (default: /etc/gnunet.conf)
+.B
+.IP "\-h, \-\-help"
+Print help page
+.B
+.IP "\-n, \-\-numeric"
+Disable resolution of IPs to hostnames
+.B
+.IP "\-q, \-\-quiet"
+Do not print anything but the peer identities
+.B
+.IP "\-s, \-\-self"
+Print only our own identity (together with "\-q", this is the exact line that other peers would have to put in to their friends file in order to consider this peer one of their friends in F2F mode).
+.B
+.IP "\-v, \-\-version"
+Print the version number
+.B
+.IP "\-L LOGLEVEL, \-\-loglelvel=LOGLEVEL"
+Set the loglevel
+
+.SH BUGS
+Report bugs by using mantis <https://gnunet.org/mantis/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+
+.SH SEE ALSO
+gnunet.conf(5)
