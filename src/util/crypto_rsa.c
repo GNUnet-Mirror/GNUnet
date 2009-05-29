@@ -219,8 +219,8 @@ GNUNET_CRYPTO_rsa_key_get_public (const struct GNUNET_CRYPTO_RsaPrivateKey
     GNUNET_CRYPTO_RSA_KEY_LENGTH - GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH;
   GNUNET_assert (0 ==
                  gcry_mpi_print (GCRYMPI_FMT_USG,
-                                 &result->
-                                 key[GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH],
+                                 &result->key
+                                 [GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH],
                                  size, &size, skey[1]));
   adjust (&result->key[GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH], size,
           GNUNET_CRYPTO_RSA_KEY_LENGTH -
@@ -704,6 +704,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
   enc = GNUNET_malloc (sbuf.st_size);
   GNUNET_assert (sbuf.st_size == READ (fd, enc, sbuf.st_size));
   len = ntohs (enc->len);
+  ret = NULL;
   if ((len != sbuf.st_size) || (NULL == (ret = rsa_decode_key (enc))))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

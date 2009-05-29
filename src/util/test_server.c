@@ -40,7 +40,6 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 
 static void
 recv_fin_cb (void *cls,
-             struct GNUNET_SERVER_Handle *server,
              struct GNUNET_SERVER_Client *client,
              const struct GNUNET_MessageHeader *message)
 {
@@ -177,7 +176,6 @@ copy_msg (void *cls, size_t size, void *buf)
 
 static void
 recv_cb (void *cls,
-         struct GNUNET_SERVER_Handle *server,
          struct GNUNET_SERVER_Client *argclient,
          const struct GNUNET_MessageHeader *message)
 {

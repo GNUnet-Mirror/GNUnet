@@ -1632,9 +1632,8 @@ cleanup_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                   GNUNET_NO,
                                   GNUNET_SCHEDULER_PRIORITY_IDLE,
                                   GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
-                                  GNUNET_TIME_absolute_get_remaining (pos->
-                                                                      timeout),
-                                  &cleanup_validation, NULL);
+                                  GNUNET_TIME_absolute_get_remaining
+                                  (pos->timeout), &cleanup_validation, NULL);
 }
 
 
@@ -1725,7 +1724,9 @@ check_hello_validated (void *cls,
     {
       first_call = GNUNET_YES;
       chvc->e = GNUNET_malloc (sizeof (struct ValidationList));
-      GNUNET_HELLO_get_key (h != NULL ? h : chvc->hello, &chvc->e->publicKey);
+      GNUNET_assert (GNUNET_OK ==
+                     GNUNET_HELLO_get_key (h != NULL ? h : chvc->hello,
+                                           &chvc->e->publicKey));
       chvc->e->timeout =
         GNUNET_TIME_relative_to_absolute (HELLO_VERIFICATION_TIMEOUT);
       chvc->e->next = pending_validations;
@@ -1777,10 +1778,9 @@ check_hello_validated (void *cls,
                                   GNUNET_NO,
                                   GNUNET_SCHEDULER_PRIORITY_IDLE,
                                   GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
-                                  GNUNET_TIME_absolute_get_remaining (chvc->
-                                                                      e->
-                                                                      timeout),
-                                  &cleanup_validation, NULL);
+                                  GNUNET_TIME_absolute_get_remaining
+                                  (chvc->e->timeout), &cleanup_validation,
+                                  NULL);
   GNUNET_free (chvc);
 }
 
@@ -1935,6 +1935,11 @@ process_ping (struct TransportPlugin *plugin,
               "Trying to transmit PONG using inbound connection\n");
 #endif
   n = find_neighbour (sender);
+  if (n == NULL)
+    {
+      GNUNET_break (0);
+      return;
+    }
   transmit_to_peer (NULL, &vcr.header, GNUNET_YES, n);
 }
 
@@ -2350,13 +2355,11 @@ plugin_env_receive (void *cls,
  * by any client which causes us to add it to our list.
  *
  * @param cls closure (always NULL)
- * @param server the server handling the message
  * @param client identification of the client
  * @param message the actual message
  */
 static void
 handle_start (void *cls,
-              struct GNUNET_SERVER_Handle *server,
               struct GNUNET_SERVER_Client *client,
               const struct GNUNET_MessageHeader *message)
 {
@@ -2429,13 +2432,11 @@ handle_start (void *cls,
  * Handle HELLO-message.
  *
  * @param cls closure (always NULL)
- * @param server the server handling the message
  * @param client identification of the client
  * @param message the actual message
  */
 static void
 handle_hello (void *cls,
-              struct GNUNET_SERVER_Handle *server,
               struct GNUNET_SERVER_Client *client,
               const struct GNUNET_MessageHeader *message)
 {
@@ -2454,13 +2455,11 @@ handle_hello (void *cls,
  * Handle SEND-message.
  *
  * @param cls closure (always NULL)
- * @param server the server handling the message
  * @param client identification of the client
  * @param message the actual message
  */
 static void
 handle_send (void *cls,
-             struct GNUNET_SERVER_Handle *server,
              struct GNUNET_SERVER_Client *client,
              const struct GNUNET_MessageHeader *message)
 {
@@ -2515,13 +2514,11 @@ handle_send (void *cls,
  * Handle SET_QUOTA-message.
  *
  * @param cls closure (always NULL)
- * @param server the server handling the message
  * @param client identification of the client
  * @param message the actual message
  */
 static void
 handle_set_quota (void *cls,
-                  struct GNUNET_SERVER_Handle *server,
                   struct GNUNET_SERVER_Client *client,
                   const struct GNUNET_MessageHeader *message)
 {
@@ -2562,13 +2559,11 @@ handle_set_quota (void *cls,
  * Handle TRY_CONNECT-message.
  *
  * @param cls closure (always NULL)
- * @param server the server handling the message
  * @param client identification of the client
  * @param message the actual message
  */
 static void
 handle_try_connect (void *cls,
-                    struct GNUNET_SERVER_Handle *server,
                     struct GNUNET_SERVER_Client *client,
                     const struct GNUNET_MessageHeader *message)
 {

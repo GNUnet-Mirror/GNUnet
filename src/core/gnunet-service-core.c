@@ -834,7 +834,6 @@ send_to_all_clients (const struct GNUNET_MessageHeader *msg, int can_drop)
  */
 static void
 handle_client_init (void *cls,
-                    struct GNUNET_SERVER_Handle *server,
                     struct GNUNET_SERVER_Client *client,
                     const struct GNUNET_MessageHeader *message)
 {
@@ -948,7 +947,6 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
  */
 static void
 handle_client_request_configure (void *cls,
-                                 struct GNUNET_SERVER_Handle *server,
                                  struct GNUNET_SERVER_Client *client,
                                  const struct GNUNET_MessageHeader *message)
 {
@@ -1102,8 +1100,9 @@ process_encrypted_neighbour_queue (struct Neighbour *n)
               "Asking transport for transmission of %u bytes to `%4s' in next %llu ms\n",
               n->encrypted_head->size,
               GNUNET_i2s (&n->peer),
-              GNUNET_TIME_absolute_get_remaining (n->encrypted_head->
-                                                  deadline).value);
+              GNUNET_TIME_absolute_get_remaining (n->
+                                                  encrypted_head->deadline).
+              value);
   n->th =
     GNUNET_TRANSPORT_notify_transmit_ready (transport, &n->peer,
                                             n->encrypted_head->size,
@@ -1307,6 +1306,7 @@ select_messages (struct Neighbour *n,
         }
       if (discard_low_prio)
         {
+          GNUNET_assert (min != NULL);
           /* remove lowest-priority entry from consideration */
           min->do_transmit = GNUNET_YES;        /* means: discard (for now) */
         }
@@ -1580,7 +1580,6 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
  */
 static void
 handle_client_send (void *cls,
-                    struct GNUNET_SERVER_Handle *server,
                     struct GNUNET_SERVER_Client *client,
                     const struct GNUNET_MessageHeader *message);
 
@@ -1612,7 +1611,7 @@ send_connect_continuation (void *cls, size_t size, void *buf)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Connection to peer `%4s' succeeded, retrying original send request\n",
               GNUNET_i2s (&sm->peer));
-  handle_client_send (NULL, NULL, NULL, &sm->header);
+  handle_client_send (NULL, NULL, &sm->header);
   GNUNET_free (sm);
   return 0;
 }
@@ -1623,7 +1622,6 @@ send_connect_continuation (void *cls, size_t size, void *buf)
  */
 static void
 handle_client_send (void *cls,
-                    struct GNUNET_SERVER_Handle *server,
                     struct GNUNET_SERVER_Client *client,
                     const struct GNUNET_MessageHeader *message)
 {

@@ -1350,9 +1350,8 @@ request_connect (void *cls, size_t size, void *buf)
                                     GNUNET_NO,
                                     GNUNET_SCHEDULER_PRIORITY_KEEP,
                                     GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
-                                    GNUNET_TIME_absolute_get_remaining (th->
-                                                                        timeout),
-                                    &transmit_timeout, th);
+                                    GNUNET_TIME_absolute_get_remaining
+                                    (th->timeout), &transmit_timeout, th);
   insert_transmit_handle (&h->connect_wait_head, th);
   return sizeof (struct TryConnectMessage);
 }
@@ -1653,9 +1652,8 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _
-                  ("Received unexpected message of type %u from `%4s' in %s:%u\n"),
-                  ntohs (msg->type), GNUNET_i2s (&im->peer), __FILE__,
-                  __LINE__);
+                  ("Received unexpected message of type %u in %s:%u\n"),
+                  ntohs (msg->type), __FILE__, __LINE__);
       GNUNET_break (0);
       break;
     }

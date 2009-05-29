@@ -565,7 +565,7 @@ GNUNET_SERVER_inject (struct GNUNET_SERVER_Handle *server,
                 }
               if (sender != NULL)
                 sender->suspended++;
-              mh->callback (mh->callback_cls, server, sender, message);
+              mh->callback (mh->callback_cls, sender, message);
               found = GNUNET_YES;
             }
           i++;

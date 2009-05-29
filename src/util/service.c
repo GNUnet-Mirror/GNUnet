@@ -545,13 +545,11 @@ write_test (void *cls, size_t size, void *buf)
  * Handler for TEST message.
  *
  * @param cls closure (refers to service)
- * @param server the server handling the message
  * @param client identification of the client
  * @param message the actual message
  */
 static void
 handle_test (void *cls,
-             struct GNUNET_SERVER_Handle *server,
              struct GNUNET_SERVER_Client *client,
              const struct GNUNET_MessageHeader *message)
 {
@@ -569,13 +567,11 @@ handle_test (void *cls,
  * Handler for SHUTDOWN message.
  *
  * @param cls closure (refers to service)
- * @param server the server handling the message
  * @param client identification of the client
  * @param message the actual message
  */
 static void
 handle_shutdown (void *cls,
-                 struct GNUNET_SERVER_Handle *server,
                  struct GNUNET_SERVER_Client *client,
                  const struct GNUNET_MessageHeader *message)
 {
@@ -805,8 +801,7 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
     {
       if (GNUNET_SYSERR ==
           (disablev6 = GNUNET_CONFIGURATION_get_value_yesno (sctx->cfg,
-                                                             sctx->
-                                                             serviceName,
+                                                             sctx->serviceName,
                                                              "DISABLEV6")))
         return GNUNET_SYSERR;
     }

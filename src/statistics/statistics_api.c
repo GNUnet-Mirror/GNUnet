@@ -369,9 +369,8 @@ receive_stats (void *cls, const struct GNUNET_MessageHeader *msg)
           GNUNET_CLIENT_receive (h->client,
                                  &receive_stats,
                                  h,
-                                 GNUNET_TIME_absolute_get_remaining (h->
-                                                                     current->
-                                                                     timeout));
+                                 GNUNET_TIME_absolute_get_remaining
+                                 (h->current->timeout));
           return;
         }
       GNUNET_break (0);
@@ -422,8 +421,8 @@ transmit_get (struct GNUNET_STATISTICS_Handle *handle, size_t size, void *buf)
   GNUNET_CLIENT_receive (handle->client,
                          &receive_stats,
                          handle,
-                         GNUNET_TIME_absolute_get_remaining (handle->current->
-                                                             timeout));
+                         GNUNET_TIME_absolute_get_remaining (handle->
+                                                             current->timeout));
   return msize;
 }
 

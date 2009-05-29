@@ -83,8 +83,8 @@ testEncryptDecrypt ()
     }
   printf ("%d RSA encrypt/decrypt operations %llums (%d failures)\n",
           ITER,
-          (unsigned long long) GNUNET_TIME_absolute_get_duration (start).
-          value, ok);
+          (unsigned long long)
+          GNUNET_TIME_absolute_get_duration (start).value, ok);
   GNUNET_CRYPTO_rsa_key_free (hostkey);
   if (ok == 0)
     return GNUNET_OK;
@@ -123,8 +123,8 @@ testEncryptPerformance ()
     }
   printf ("%d RSA encrypt operations %llu ms (%d failures)\n",
           ITER,
-          (unsigned long long) GNUNET_TIME_absolute_get_duration (start).
-          value, ok);
+          (unsigned long long)
+          GNUNET_TIME_absolute_get_duration (start).value, ok);
   GNUNET_CRYPTO_rsa_key_free (hostkey);
   if (ok != 0)
     return GNUNET_SYSERR;
@@ -182,8 +182,8 @@ testEncryptDecryptSK ()
     }
   printf ("%d RSA encrypt/decrypt SK operations %llus (%d failures)\n",
           ITER,
-          (unsigned long long) GNUNET_TIME_absolute_get_duration (start).
-          value, ok);
+          (unsigned long long)
+          GNUNET_TIME_absolute_get_duration (start).value, ok);
   GNUNET_CRYPTO_rsa_key_free (hostkey);
   if (ok != 0)
     return GNUNET_SYSERR;
@@ -237,8 +237,8 @@ testSignVerify ()
     }
   printf ("%d RSA sign/verify operations %llums\n",
           ITER,
-          (unsigned long long) GNUNET_TIME_absolute_get_duration (start).
-          value);
+          (unsigned long long)
+          GNUNET_TIME_absolute_get_duration (start).value);
   GNUNET_CRYPTO_rsa_key_free (hostkey);
   return ok;
 }

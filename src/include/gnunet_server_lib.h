@@ -64,13 +64,10 @@ struct GNUNET_SERVER_Client;
  * received.
  *
  * @param cls closure
- * @param server the server handling the message
  * @param client identification of the client
  * @param message the actual message
  */
 typedef void (*GNUNET_SERVER_MessageCallback) (void *cls,
-                                               struct GNUNET_SERVER_Handle *
-                                               server,
                                                struct GNUNET_SERVER_Client *
                                                client,
                                                const struct

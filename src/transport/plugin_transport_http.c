@@ -1006,8 +1006,9 @@ receiveContentCallback (void *ptr, size_t size, size_t nmemb, void *ctx)
           cpy = sizeof (GNUNET_MessageHeader) - httpSession->cs.client.rpos1;
           if (cpy > have)
             cpy = have;
-          memcpy (&httpSession->cs.client.
-                  rbuff1[httpSession->cs.client.rpos1], &inbuf[poff], cpy);
+          memcpy (&httpSession->cs.
+                  client.rbuff1[httpSession->cs.client.rpos1], &inbuf[poff],
+                  cpy);
           httpSession->cs.client.rpos1 += cpy;
           have -= cpy;
           poff += cpy;
@@ -1027,8 +1028,9 @@ receiveContentCallback (void *ptr, size_t size, size_t nmemb, void *ctx)
             httpSession->cs.client.rpos2;
           if (cpy > have)
             cpy = have;
-          memcpy (&httpSession->cs.client.
-                  rbuff2[httpSession->cs.client.rpos2], &inbuf[poff], cpy);
+          memcpy (&httpSession->cs.
+                  client.rbuff2[httpSession->cs.client.rpos2], &inbuf[poff],
+                  cpy);
           have -= cpy;
           poff += cpy;
           httpSession->cs.client.rpos2 += cpy;

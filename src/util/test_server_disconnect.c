@@ -67,7 +67,6 @@ server_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 recv_cb (void *cls,
-         struct GNUNET_SERVER_Handle *server,
          struct GNUNET_SERVER_Client *argclient,
          const struct GNUNET_MessageHeader *message)
 {

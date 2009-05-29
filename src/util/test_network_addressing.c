@@ -117,6 +117,7 @@ run_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   expect.sin_port = v4->sin_port;
   expect.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
   GNUNET_assert (0 == memcmp (&expect, v4, alen));
+  GNUNET_free (addr);
   GNUNET_NETWORK_socket_destroy (lsock);
   GNUNET_NETWORK_receive (asock,
                           1024,

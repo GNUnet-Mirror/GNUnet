@@ -874,8 +874,8 @@ GNUNET_SCHEDULER_add_select (struct GNUNET_SCHEDULER_Handle * sched,
   task->timeout = GNUNET_TIME_relative_to_absolute (delay);
   task->priority =
     check_priority ((prio ==
-                     GNUNET_SCHEDULER_PRIORITY_KEEP) ? sched->
-                    current_priority : prio);
+                     GNUNET_SCHEDULER_PRIORITY_KEEP) ? sched->current_priority
+                    : prio);
   task->nfds = nfds;
   task->run_on_shutdown = run_on_shutdown;
   task->next = sched->pending;

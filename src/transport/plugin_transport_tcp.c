@@ -620,14 +620,16 @@ process_pending_messages (struct Session *session)
     return;
   session->transmit_handle
     = GNUNET_SERVER_notify_transmit_ready (session->client,
-                                           htons (session->pending_messages->
-                                                  msg->size) +
-                                           (session->pending_messages->
-                                            is_welcome ? 0 : sizeof (struct
-                                                                     DataMessage)),
+                                           htons (session->
+                                                  pending_messages->msg->
+                                                  size) +
+                                           (session->
+                                            pending_messages->is_welcome ? 0 :
+                                            sizeof (struct DataMessage)),
                                            GNUNET_TIME_absolute_get_remaining
-                                           (session->pending_messages[0].
-                                            timeout), &do_transmit, session);
+                                           (session->
+                                            pending_messages[0].timeout),
+                                           &do_transmit, session);
 }
 
 
@@ -1354,13 +1356,11 @@ tcp_plugin_address_suggested (void *cls, const void *addr, size_t addrlen)
  * our welcome.
  *
  * @param cls closure
- * @param server the server handling the message
  * @param client identification of the client
  * @param message the actual message
  */
 static void
 handle_tcp_welcome (void *cls,
-                    struct GNUNET_SERVER_Handle *server,
                     struct GNUNET_SERVER_Client *client,
                     const struct GNUNET_MessageHeader *message)
 {
@@ -1464,13 +1464,11 @@ delayed_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * compute latency and forward.
  *
  * @param cls closure
- * @param server the server handling the message
  * @param client identification of the client
  * @param message the actual message
  */
 static void
 handle_tcp_data (void *cls,
-                 struct GNUNET_SERVER_Handle *server,
                  struct GNUNET_SERVER_Client *client,
                  const struct GNUNET_MessageHeader *message)
 {

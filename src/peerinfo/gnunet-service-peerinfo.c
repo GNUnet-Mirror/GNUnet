@@ -385,9 +385,7 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
  */
 static void
 send_to_each_host (const struct GNUNET_PeerIdentity *only,
-                   int trust_change,
-                   struct GNUNET_SERVER_Client *client,
-                   struct GNUNET_SERVER_Handle *server)
+                   int trust_change, struct GNUNET_SERVER_Client *client)
 {
   struct HostEntry *pos;
   struct InfoMessage *im;
@@ -550,13 +548,11 @@ cron_clean_data_hosts (void *cls,
  * Handle ADD-message.
  *
  * @param cls closure
- * @param server the server handling the message
  * @param client identification of the client
  * @param message the actual message
  */
 static void
 handle_add (void *cls,
-            struct GNUNET_SERVER_Handle *server,
             struct GNUNET_SERVER_Client *client,
             const struct GNUNET_MessageHeader *message)
 {
@@ -589,20 +585,18 @@ handle_add (void *cls,
  * Handle GET-message.
  *
  * @param cls closure
- * @param server the server handling the message
  * @param client identification of the client
  * @param message the actual message
  */
 static void
 handle_get (void *cls,
-            struct GNUNET_SERVER_Handle *server,
             struct GNUNET_SERVER_Client *client,
             const struct GNUNET_MessageHeader *message)
 {
   const struct ListPeerMessage *lpm;
 
   lpm = (const struct ListPeerMessage *) message;
-  send_to_each_host (&lpm->peer, ntohl (lpm->trust_change), client, server);
+  send_to_each_host (&lpm->peer, ntohl (lpm->trust_change), client);
 }
 
 
@@ -610,20 +604,18 @@ handle_get (void *cls,
  * Handle GET-ALL-message.
  *
  * @param cls closure
- * @param server the server handling the message
  * @param client identification of the client
  * @param message the actual message
  */
 static void
 handle_get_all (void *cls,
-                struct GNUNET_SERVER_Handle *server,
                 struct GNUNET_SERVER_Client *client,
                 const struct GNUNET_MessageHeader *message)
 {
   const struct ListAllPeersMessage *lpm;
 
   lpm = (const struct ListAllPeersMessage *) message;
-  send_to_each_host (NULL, ntohl (lpm->trust_change), client, server);
+  send_to_each_host (NULL, ntohl (lpm->trust_change), client);
 }
 
 

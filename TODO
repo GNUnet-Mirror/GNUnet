@@ -10,7 +10,6 @@ Core:
   => bootstrap should use plugins, possible multiple at the same time!
 
 Util:
-* Should "server" argument be given in event callbacks?
 * consider adding "get_time" to "configuration" API
 
 TESTCASES WANTED:

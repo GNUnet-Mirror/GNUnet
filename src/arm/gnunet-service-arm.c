@@ -327,8 +327,7 @@ start_process (struct ServiceList *sl)
  * Start the specified service.
  */
 static void
-start_service (struct GNUNET_SERVER_Handle *server,
-               struct GNUNET_SERVER_Client *client, const char *servicename)
+start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
 {
   struct ServiceList *sl;
   char *binary;
@@ -368,6 +367,7 @@ start_service (struct GNUNET_SERVER_Handle *server,
                   config, servicename);
       signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
       GNUNET_free (binary);
+      GNUNET_free (config);
       return;
     }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -403,8 +403,7 @@ free_and_signal (void *cls, struct ServiceList *pos)
  * Stop the specified service.
  */
 static void
-stop_service (struct GNUNET_SERVER_Handle *server,
-              struct GNUNET_SERVER_Client *client, const char *servicename)
+stop_service (struct GNUNET_SERVER_Client *client, const char *servicename)
 {
   struct ServiceList *pos;
   struct GNUNET_CLIENT_Connection *sc;
@@ -412,7 +411,7 @@ stop_service (struct GNUNET_SERVER_Handle *server,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Preparing to stop `%s'\n", servicename);
   pos = find_name (servicename);
-  if (pos->kill_continuation != NULL)
+  if ((pos != NULL) && (pos->kill_continuation != NULL))
     {
       /* killing already in progress */
       signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
@@ -453,7 +452,6 @@ stop_service (struct GNUNET_SERVER_Handle *server,
  * Handle START-message.
  *
  * @param cls closure (always NULL)
- * @param server the server handling the message
  * @param client identification of the client
  * @param message the actual message
  * @return GNUNET_OK to keep the connection open,
@@ -461,7 +459,6 @@ stop_service (struct GNUNET_SERVER_Handle *server,
  */
 static void
 handle_start (void *cls,
-              struct GNUNET_SERVER_Handle *server,
               struct GNUNET_SERVER_Client *client,
               const struct GNUNET_MessageHeader *message)
 {
@@ -477,7 +474,7 @@ handle_start (void *cls,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
-  start_service (server, client, servicename);
+  start_service (client, servicename);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -486,7 +483,6 @@ handle_start (void *cls,
  * Handle STOP-message.
  *
  * @param cls closure (always NULL)
- * @param server the server handling the message
  * @param client identification of the client
  * @param message the actual message
  * @return GNUNET_OK to keep the connection open,
@@ -494,7 +490,6 @@ handle_start (void *cls,
  */
 static void
 handle_stop (void *cls,
-             struct GNUNET_SERVER_Handle *server,
              struct GNUNET_SERVER_Client *client,
              const struct GNUNET_MessageHeader *message)
 {
@@ -510,7 +505,7 @@ handle_stop (void *cls,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
-  stop_service (server, client, servicename);
+  stop_service (client, servicename);
 }
 
 
@@ -669,7 +664,7 @@ run (void *cls,
       pos = strtok (defaultservices, " ");
       while (pos != NULL)
         {
-          start_service (server, NULL, pos);
+          start_service (NULL, pos);
           pos = strtok (NULL, " ");
         }
       GNUNET_free (defaultservices);

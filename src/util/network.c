@@ -294,8 +294,9 @@ GNUNET_NETWORK_socket_create_from_accept (struct GNUNET_SCHEDULER_Handle
                       inet_ntop (fam,
                                  (fam == AF_INET6)
                                  ? (const void *) &((struct sockaddr_in6 *)
-                                                    &addr)->
-                                 sin6_addr : (const void *)
+                                                    &addr)->sin6_addr : (const
+                                                                         void
+                                                                         *)
                                  &((struct sockaddr_in *) &addr)->sin_addr,
                                  msg, sizeof (msg)));
         }

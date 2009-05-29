@@ -259,7 +259,6 @@ matches (const struct StatsEntry *e, const char *service, const char *name)
  * Handle GET-message.
  *
  * @param cls closure
- * @param server the server handling the message
  * @param client identification of the client
  * @param message the actual message
  * @return GNUNET_OK to keep the connection open,
@@ -267,7 +266,6 @@ matches (const struct StatsEntry *e, const char *service, const char *name)
  */
 static void
 handle_get (void *cls,
-            struct GNUNET_SERVER_Handle *server,
             struct GNUNET_SERVER_Client *client,
             const struct GNUNET_MessageHeader *message)
 {
@@ -308,13 +306,11 @@ handle_get (void *cls,
  * Handle SET-message.
  *
  * @param cls closure
- * @param server the server handling the message
  * @param client identification of the client
  * @param message the actual message
  */
 static void
 handle_set (void *cls,
-            struct GNUNET_SERVER_Handle *server,
             struct GNUNET_SERVER_Client *client,
             const struct GNUNET_MessageHeader *message)
 {

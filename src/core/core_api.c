@@ -732,8 +732,8 @@ transmit_start (void *cls, size_t size, void *buf)
   GNUNET_CLIENT_receive (h->client,
                          &init_reply_handler,
                          h,
-                         GNUNET_TIME_absolute_get_remaining (h->
-                                                             startup_timeout));
+                         GNUNET_TIME_absolute_get_remaining
+                         (h->startup_timeout));
   return sizeof (struct InitMessage) + h->hcnt * sizeof (uint16_t);
 }
 
