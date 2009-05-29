@@ -160,7 +160,9 @@
 
 #include "plibc.h"
 
+#undef HAVE_CONFIG_H
 #include <pthread.h>
+#define HAVE_CONFIG_H 1
 #include <locale.h>
 #ifndef FRAMEWORK_BUILD
 #include "gettext.h"

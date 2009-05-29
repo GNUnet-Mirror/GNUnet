@@ -44,8 +44,7 @@
 #include <Ntsecapi.h>
 #include <lm.h>
 #include <Aclapi.h>
-#include "gnunet_util.h"
-#include "platform.h"
+
 
 #ifdef __cplusplus
 extern "C"

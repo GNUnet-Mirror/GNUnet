@@ -123,6 +123,8 @@ static struct CustomLogger *loggers;
  */
 static unsigned int skip_log;
 
+static FILE *GNUNET_stderr;
+
 /**
  * Convert a textual description of a loglevel
  * to the respective GNUNET_GE_KIND.
@@ -163,9 +165,9 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", logfile);
       return GNUNET_SYSERR;
     }
-  if (stderr != NULL)
-    fclose (stderr);
-  stderr = altlog;
+  if (GNUNET_stderr != NULL)
+    fclose (GNUNET_stderr);
+  GNUNET_stderr = altlog;
   return GNUNET_OK;
 }
 
@@ -220,8 +222,8 @@ output_message (enum GNUNET_ErrorType kind,
                 const char *comp, const char *datestr, const char *msg)
 {
   struct CustomLogger *pos;
-  if (stderr != NULL)
-    fprintf (stderr, "%s %s %s %s", datestr, comp,
+  if (GNUNET_stderr != NULL)
+    fprintf (GNUNET_stderr, "%s %s %s %s", datestr, comp,
              GNUNET_error_type_to_string (kind), msg);
   pos = loggers;
   while (pos != NULL)
@@ -396,6 +398,13 @@ GNUNET_i2s (const struct GNUNET_PeerIdentity *pid)
   return (const char *) ret.encoding;
 }
 
-
+/**
+ * Initializer
+ */
+void __attribute__ ((constructor))
+GNUNET_util_cl_init()
+{
+  GNUNET_stderr = stderr;
+}
 
 /* end of common_logging.c */
