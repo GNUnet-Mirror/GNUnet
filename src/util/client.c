@@ -287,16 +287,22 @@ receive_task (void *scls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   cmsg = (const struct GNUNET_MessageHeader *) sock->received_buf;
   msize = ntohs (cmsg->size);
   GNUNET_assert (sock->received_pos >= msize);
-  msg = GNUNET_malloc (msize);
-  memcpy (msg, cmsg, msize);
-  memmove (sock->received_buf,
-           &sock->received_buf[msize], sock->received_pos - msize);
+  if (handler != NULL)
+    {
+      msg = GNUNET_malloc (msize);
+      memcpy (msg, cmsg, msize);
+      memmove (sock->received_buf,
+	       &sock->received_buf[msize], sock->received_pos - msize);
+    }
   sock->received_pos -= msize;
   sock->msg_complete = GNUNET_NO;
   sock->receiver_handler = NULL;
   check_complete (sock);
-  handler (cls, msg);
-  GNUNET_free (msg);
+  if (handler != NULL)
+    {
+      handler (cls, msg);
+      GNUNET_free (msg);
+    }
 }
 
 
