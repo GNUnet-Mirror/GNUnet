@@ -1004,7 +1004,7 @@ tcp_plugin_send (void *cls,
   struct PendingMessage *pme;
 
   if (session == NULL)
-    session = find_session_by_target (plugin, target);
+    session = find_session_by_target (plugin, target);  
   pm = GNUNET_malloc (sizeof (struct PendingMessage) + ntohs (msg->size));
   pm->msg = (struct GNUNET_MessageHeader *) &pm[1];
   memcpy (pm->msg, msg, ntohs (msg->size));
@@ -1029,6 +1029,7 @@ tcp_plugin_send (void *cls,
       session->expecting_welcome = GNUNET_YES;
       session->still_connecting = GNUNET_YES;
       session->pending_messages = pm;
+      session->service_context = service_context;
       GNUNET_PEERINFO_for_all (plugin->env->cfg,
                                plugin->env->sched,
                                target,
@@ -1037,6 +1038,7 @@ tcp_plugin_send (void *cls,
     }
   GNUNET_assert (session != NULL);
   GNUNET_assert (session->still_connecting == GNUNET_NO);
+  session->service_context = service_context;
   /* append pm to pending_messages list */
   pme = session->pending_messages;
   if (pme == NULL)

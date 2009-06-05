@@ -915,6 +915,7 @@ transmit_send_continuation (void *cls,
 
   GNUNET_assert (mq != NULL);
   n = mq->neighbour;
+  GNUNET_assert (n != NULL);
   GNUNET_assert (0 ==
                  memcmp (&n->id, target,
                          sizeof (struct GNUNET_PeerIdentity)));
@@ -2299,6 +2300,7 @@ plugin_env_receive (void *cls,
                   _
                   ("Dropping incoming message due to repeated bandwidth quota violations.\n"));
       /* TODO: call stats */
+      GNUNET_assert (NULL != service_context->neighbour);
       return service_context;
     }
   switch (ntohs (message->type))
@@ -2346,6 +2348,7 @@ plugin_env_receive (void *cls,
         }
       GNUNET_free (im);
     }
+  GNUNET_assert (NULL != service_context->neighbour);
   return service_context;
 }
 
