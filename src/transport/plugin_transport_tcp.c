@@ -38,7 +38,7 @@
 #include "plugin_transport.h"
 #include "transport.h"
 
-#define DEBUG_TCP GNUNET_NO
+#define DEBUG_TCP GNUNET_YES
 
 /**
  * After how long do we expire an address that we
@@ -440,8 +440,6 @@ connect_and_create_session (struct Plugin *plugin,
   struct GNUNET_NETWORK_SocketHandle *conn;
   struct Session *session;
   int af;
-  char buf[INET6_ADDRSTRLEN];
-  uint16_t port;
 
   session = plugin->sessions;
   while (session != NULL)
@@ -456,20 +454,9 @@ connect_and_create_session (struct Plugin *plugin,
     }
 
   if (addrlen == sizeof (struct sockaddr_in))
-    {
-      af = AF_INET;
-      inet_ntop (af,
-                 &((struct sockaddr_in *) addr)->sin_addr, buf, sizeof (buf));
-      port = ntohs (((struct sockaddr_in *) addr)->sin_port);
-    }
+    af = AF_INET;
   else if (addrlen == sizeof (struct sockaddr_in6))
-    {
-      af = AF_INET6;
-      inet_ntop (af,
-                 &((struct sockaddr_in6 *) addr)->sin6_addr,
-                 buf, sizeof (buf));
-      port = ntohs (((struct sockaddr_in6 *) addr)->sin6_port);
-    }
+    af = AF_INET6;    
   else
     {
       GNUNET_break_op (0);
@@ -485,8 +472,8 @@ connect_and_create_session (struct Plugin *plugin,
 #if DEBUG_TCP
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                        "tcp",
-                       "Failed to create connection to peer at `%s:%u'.\n",
-                       buf, port);
+                       "Failed to create connection to peer at `%s'.\n",
+		       GNUNET_a2s(addr, addrlen));
 #endif
       return NULL;
     }
@@ -499,8 +486,10 @@ connect_and_create_session (struct Plugin *plugin,
 #if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "tcp",
-                   "Creating new session %p with `%s:%u' based on `%s' request.\n",
-                   session, buf, port, "send_to");
+                   "Creating new session %p with `%s' based on `%s' request.\n",
+                   session, 
+		   GNUNET_a2s(addr, addrlen),
+		   "send_to");
 #endif
   return session;
 }
@@ -541,7 +530,9 @@ do_transmit (void *cls, size_t size, void *buf)
     {
 #if DEBUG_TCP
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                       "tcp", "Timeout trying to transmit\n");
+                       "tcp", 
+		       "Timeout trying to transmit to peer `%4s', discarding message queue.\n",
+		       GNUNET_i2s(&session->target));
 #endif
       /* timeout */
       while (NULL != (pm = session->pending_messages))
@@ -1095,7 +1086,11 @@ tcp_plugin_cancel (void *cls,
   struct PendingMessage *pm;
   struct Session *session;
   struct Session *next;
-
+  
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		   "tcp",
+		   "Asked to close session with `%4s'\n",
+		   GNUNET_i2s(target));
   session = plugin->sessions;
   while (session != NULL)
     {
@@ -1315,8 +1310,6 @@ tcp_plugin_address_suggested (void *cls, const void *addr, size_t addrlen)
   char buf[sizeof (struct sockaddr_in6)];
   struct sockaddr_in *v4;
   struct sockaddr_in6 *v6;
-  char dst[INET6_ADDRSTRLEN];
-  uint16_t port;
 
   if ((addrlen != sizeof (struct sockaddr_in)) &&
       (addrlen != sizeof (struct sockaddr_in6)))
@@ -1329,21 +1322,17 @@ tcp_plugin_address_suggested (void *cls, const void *addr, size_t addrlen)
     {
       v4 = (struct sockaddr_in *) buf;
       v4->sin_port = htons (check_port (plugin, ntohs (v4->sin_port)));
-      inet_ntop (AF_INET, &v4->sin_addr, dst, sizeof (dst));
-      port = ntohs (v4->sin_port);
     }
   else
     {
       v6 = (struct sockaddr_in6 *) buf;
       v6->sin6_port = htons (check_port (plugin, ntohs (v6->sin6_port)));
-      inet_ntop (AF_INET6, &v6->sin6_addr, dst, sizeof (dst));
-      port = ntohs (v6->sin6_port);
     }
 #if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "tcp",
-                   "Informing transport service about my address `%s:%u'.\n",
-                   dst, port);
+                   "Informing transport service about my address `%s'.\n",
+                   GNUNET_a2s(addr, addrlen));
 #endif
   plugin->env->notify_address (plugin->env->cls,
                                "tcp",
@@ -1627,7 +1616,6 @@ process_interfaces (void *cls,
                     const struct sockaddr *addr, socklen_t addrlen)
 {
   struct Plugin *plugin = cls;
-  char dst[INET6_ADDRSTRLEN];
   int af;
   struct sockaddr_in *v4;
   struct sockaddr_in6 *v6;
@@ -1636,19 +1624,18 @@ process_interfaces (void *cls,
   if (af == AF_INET)
     {
       v4 = (struct sockaddr_in *) addr;
-      inet_ntop (AF_INET, &v4->sin_addr, dst, sizeof (dst));
       v4->sin_port = htons (plugin->adv_port);
     }
   else
     {
       GNUNET_assert (af == AF_INET6);
       v6 = (struct sockaddr_in6 *) addr;
-      inet_ntop (AF_INET6, &v6->sin6_addr, dst, sizeof (dst));
       v6->sin6_port = htons (plugin->adv_port);
     }
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO |
                    GNUNET_ERROR_TYPE_BULK,
-                   "tcp", _("Found address `%s' (%s)\n"), dst, name);
+                   "tcp", _("Found address `%s' (%s)\n"), 
+		   GNUNET_a2s(addr, addrlen), name);
   plugin->env->notify_address (plugin->env->cls,
                                "tcp",
                                addr, addrlen, GNUNET_TIME_UNIT_FOREVER_REL);

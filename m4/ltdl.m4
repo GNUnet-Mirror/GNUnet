@@ -7,7 +7,7 @@
 # unlimited permission to copy and/or distribute it, with or without
 # modifications, as long as this notice is preserved.
 
-# serial 15 LTDL_INIT
+# serial 17 LTDL_INIT
 
 # LT_CONFIG_LTDL_DIR(DIRECTORY, [LTDL-MODE])
 # ------------------------------------------
@@ -212,24 +212,8 @@ m4_define([$0], [])
 # of into LIBOBJS.
 AC_DEFUN([_LT_LIBOBJ], [
   m4_pattern_allow([^_LT_LIBOBJS$])
-  AS_LITERAL_IF([$1], [_LT_LIBSOURCES([$1.c])])dnl
   _LT_LIBOBJS="$_LT_LIBOBJS $1.$ac_objext"
 ])# _LT_LIBOBJS
-
-
-# _LT_LIBSOURCES(MODULE_NAMES)
-# ----------------------------
-# Like AC_LIBSOURCES, except the directory where the libltdl source files
-# are expected is distinct from the user LIBOBJ directory.
-AC_DEFUN([_LT_LIBSOURCES], [
-  m4_foreach([_LTNAME], [$1], [
-    m4_syscmd([test -r "$lt_libobj_prefix]_LTNAME[" ||
-		test -z "$lt_libobj_prefix" ||
-		test ! -d "$lt_libobj_prefix"])dnl
-    m4_if(m4_sysval, [0], [],
-      [AC_FATAL([missing $lt_libobj_prefix/]_LTNAME)])
-  ])
-])# _LT_LIBSOURCES
 
 
 # LTDL_INIT([OPTIONS])
@@ -245,9 +229,9 @@ _LT_SET_OPTIONS([$0], [$1])
 
 dnl We need to keep our own list of libobjs separate from our parent project,
 dnl and the easiest way to do that is redefine the AC_LIBOBJs macro while
-dnl we look for our own LIBOBJs. Definitions in ltdl-libobj.m4.
+dnl we look for our own LIBOBJs.
 m4_pushdef([AC_LIBOBJ], m4_defn([_LT_LIBOBJ]))
-m4_pushdef([AC_LIBSOURCES], m4_defn([_LT_LIBSOURCES]))
+m4_pushdef([AC_LIBSOURCES])
 
 dnl If not otherwise defined, default to the 1.5.x compatible subproject mode:
 m4_if(_LTDL_MODE, [],
@@ -264,7 +248,7 @@ if test "x$with_included_ltdl" != xyes; then
   # decide whether there is a useful installed version we can use.
   AC_CHECK_HEADER([ltdl.h],
       [AC_CHECK_DECL([lt_dlinterface_register],
-	   [AC_CHECK_LIB([ltdl], [lt_dlinterface_register],
+	   [AC_CHECK_LIB([ltdl], [lt_dladvise_preload],
 	       [with_included_ltdl=no],
 	       [with_included_ltdl=yes])],
 	   [with_included_ltdl=yes],
@@ -396,12 +380,6 @@ m4_require([_LT_HEADER_DLFCN])dnl
 m4_require([_LT_CHECK_DLPREOPEN])dnl
 m4_require([_LT_DECL_SED])dnl
 
-# lt_cv_dlopen_self gets defined by LT_SYS_DLOPEN_SELF, called by LT_INIT
-if test "$lt_cv_dlopen_self" = yes; then
-  AC_DEFINE([LTDL_DLOPEN_SELF_WORKS], [1],
-    [Define if dlopen(NULL) is able to resolve symbols from the main program.])
-fi
-
 dnl Don't require this, or it will be expanded earlier than the code
 dnl that sets the variables it relies on:
 _LT_ENABLE_INSTALL
@@ -428,6 +406,8 @@ AC_CHECK_HEADERS([unistd.h dl.h sys/dl.h dld.h mach-o/dyld.h dirent.h],
 
 AC_CHECK_FUNCS([closedir opendir readdir], [], [AC_LIBOBJ([lt__dirent])])
 AC_CHECK_FUNCS([strlcat strlcpy], [], [AC_LIBOBJ([lt__strl])])
+
+AC_DEFINE_UNQUOTED([LT_LIBEXT],["$libext"],[The archive extension])
 
 name=ltdl
 LTDLOPEN=`eval "\\$ECHO \"$libname_spec\""`

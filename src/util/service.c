@@ -620,34 +620,26 @@ check_access (void *cls, const struct sockaddr *addr, socklen_t addrlen)
   const struct sockaddr_in *i4;
   const struct sockaddr_in6 *i6;
   int ret;
-  char buf[INET6_ADDRSTRLEN];
-  uint16_t port;
 
   switch (addr->sa_family)
     {
     case AF_INET:
       GNUNET_assert (addrlen == sizeof (struct sockaddr_in));
       i4 = (const struct sockaddr_in *) addr;
-      port = ntohs (i4->sin_port);
       ret = ((sctx->v4_allowed == NULL) ||
              (check_ipv4_listed (sctx->v4_allowed,
                                  &i4->sin_addr)))
         && ((sctx->v4_denied == NULL) ||
             (!check_ipv4_listed (sctx->v4_denied, &i4->sin_addr)));
-      if (ret != GNUNET_OK)
-        inet_ntop (AF_INET, &i4->sin_addr, buf, sizeof (buf));
       break;
     case AF_INET6:
       GNUNET_assert (addrlen == sizeof (struct sockaddr_in6));
       i6 = (const struct sockaddr_in6 *) addr;
-      port = ntohs (i6->sin6_port);
       ret = ((sctx->v6_allowed == NULL) ||
              (check_ipv6_listed (sctx->v6_allowed,
                                  &i6->sin6_addr)))
         && ((sctx->v6_denied == NULL) ||
             (!check_ipv6_listed (sctx->v6_denied, &i6->sin6_addr)));
-      if (ret != GNUNET_OK)
-        inet_ntop (AF_INET6, &i6->sin6_addr, buf, sizeof (buf));
       break;
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -657,8 +649,8 @@ check_access (void *cls, const struct sockaddr *addr, socklen_t addrlen)
   if (ret != GNUNET_OK)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("Access from `%s:%u' denied to service `%s'\n"),
-                  buf, port, sctx->serviceName);
+                  _("Access from `%s' denied to service `%s'\n"),
+                  GNUNET_a2s(addr, addrlen), sctx->serviceName);
     }
   return ret;
 }

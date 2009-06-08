@@ -217,6 +217,20 @@ void GNUNET_logger_remove (GNUNET_Logger logger, void *logger_cls);
  */
 const char *GNUNET_i2s (const struct GNUNET_PeerIdentity *pid);
 
+
+/**
+ * Convert a "struct sockaddr*" (IPv4 or IPv6 address) to a string
+ * (for printing debug messages).  This is one of the very few calls
+ * in the entire API that is NOT reentrant!
+ *
+ * @param addr the address
+ * @param addrlen the length of the address
+ * @return nicely formatted string for the address
+ *  will be overwritten by next call to GNUNET_a2s.
+ */
+const char *GNUNET_a2s (const struct sockaddr *addr,
+			socklen_t addrlen);
+
 /**
  * Convert error type to string.
  *

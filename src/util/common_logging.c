@@ -398,6 +398,52 @@ GNUNET_i2s (const struct GNUNET_PeerIdentity *pid)
   return (const char *) ret.encoding;
 }
 
+
+
+/**
+ * Convert a "struct sockaddr*" (IPv4 or IPv6 address) to a string
+ * (for printing debug messages).  This is one of the very few calls
+ * in the entire API that is NOT reentrant!
+ *
+ * @param addr the address
+ * @param addrlen the length of the address
+ * @return nicely formatted string for the address
+ *  will be overwritten by next call to GNUNET_a2s.
+ */
+const char *GNUNET_a2s (const struct sockaddr *addr,
+			socklen_t addrlen)
+{
+  static char buf[INET6_ADDRSTRLEN+8];
+  static char b2[6];
+  const struct sockaddr_in * v4;
+  const struct sockaddr_in6 *v6;
+  switch (addr->sa_family)
+    {
+    case AF_INET:
+      v4 = (const struct sockaddr_in*)addr;
+      inet_ntop(AF_INET, &v4->sin_addr, buf, INET_ADDRSTRLEN);
+      if (0 == ntohs(v4->sin_port))
+	return buf;	
+      strcat (buf, ":");
+      sprintf (b2, "%u", ntohs(v4->sin_port));
+      strcat (buf, b2);
+      return buf;
+    case AF_INET6:
+      v6 = (const struct sockaddr_in6*)addr;
+      buf[0] = '[';
+      inet_ntop(AF_INET6, &v6->sin6_addr, &buf[1], INET6_ADDRSTRLEN);
+      if (0 == ntohs(v6->sin6_port))
+	return &buf[1];	
+      strcat (buf, "]:");
+      sprintf (b2, "%u", ntohs(v6->sin6_port));
+      strcat (buf, b2);
+      return buf;      
+    default:
+      return _("invalid address");
+    }
+}
+
+
 /**
  * Initializer
  */

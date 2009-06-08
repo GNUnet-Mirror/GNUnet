@@ -26,7 +26,7 @@
 #include "gnunet_crypto_lib.h"
 #include "gnunet_time_lib.h"
 
-#define DEBUG_CORE GNUNET_NO
+#define DEBUG_CORE GNUNET_YES
 
 /**
  * Definition of bits in the InitMessage's options field that specify

@@ -1564,16 +1564,17 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
       remove_neighbour (h, &dim->peer);
       break;
     case GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK:
-#if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Receiving `%s' message.\n", "SEND_OK");
-#endif
       if (size != sizeof (struct SendOkMessage))
         {
           GNUNET_break (0);
           break;
         }
       okm = (const struct SendOkMessage *) msg;
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Receiving `%s' message, transmission %s.\n", "SEND_OK",
+		  ntohl(okm->success) == GNUNET_OK ? "succeeded" : "failed");
+#endif
       n = find_neighbour (h, &okm->peer);
       GNUNET_assert (n != NULL);
       n->transmit_ok = GNUNET_YES;

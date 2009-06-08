@@ -40,7 +40,7 @@
 #include "gnunet_network_lib.h"
 #include "gnunet_scheduler_lib.h"
 
-#define DEBUG_NETWORK GNUNET_NO
+#define DEBUG_NETWORK GNUNET_YES
 
 struct GNUNET_NETWORK_TransmitHandle
 {
@@ -234,9 +234,7 @@ GNUNET_NETWORK_socket_create_from_accept (struct GNUNET_SCHEDULER_Handle
 {
   struct GNUNET_NETWORK_SocketHandle *ret;
   char addr[32];
-  char msg[INET6_ADDRSTRLEN];
   socklen_t addrlen;
-  int fam;
   int fd;
   int aret;
   struct sockaddr_in *v4;
@@ -287,19 +285,9 @@ GNUNET_NETWORK_socket_create_from_accept (struct GNUNET_SCHEDULER_Handle
       (GNUNET_YES != (aret = access (access_cls, uaddr, addrlen))))
     {
       if (aret == GNUNET_NO)
-        {
-          fam = ((struct sockaddr *) addr)->sa_family;
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                      _("Access denied to `%s'\n"),
-                      inet_ntop (fam,
-                                 (fam == AF_INET6)
-                                 ? (const void *) &((struct sockaddr_in6 *)
-                                                    &addr)->sin6_addr : (const
-                                                                         void
-                                                                         *)
-                                 &((struct sockaddr_in *) &addr)->sin_addr,
-                                 msg, sizeof (msg)));
-        }
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		    _("Access denied to `%s'\n"),
+		    GNUNET_a2s(uaddr, addrlen));        
       GNUNET_break (0 == SHUTDOWN (fd, SHUT_RDWR));
       GNUNET_break (0 == CLOSE (fd));
       GNUNET_free (uaddr);
@@ -493,12 +481,22 @@ connect_continuation (void *cls,
       (0 != getsockopt (sock->sock, SOL_SOCKET, SO_ERROR, &error, &len)) ||
       (error != 0) || (errno != 0))
     {
+#if DEBUG_NETWORK
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Failed to establish TCP connection to `%s'\n",
+		  GNUNET_a2s(sock->addr, sock->addrlen));
+#endif
       /* connect failed / timed out */
       GNUNET_break (0 == CLOSE (sock->sock));
       sock->sock = -1;
       if (GNUNET_SYSERR == try_connect (sock))
         {
           /* failed for good */
+#if DEBUG_NETWORK
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Failed to establish TCP connection, no further addresses to try.\n");
+#endif
+	  /* connect failed / timed out */
           GNUNET_break (sock->ai_pos == NULL);
           freeaddrinfo (sock->ai);
           sock->ai = NULL;
@@ -1052,10 +1050,6 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ssize_t ret;
   size_t have;
 
-#if DEBUG_NETWORK
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmit ready called --- will try to send\n");
-#endif
   GNUNET_assert (sock->write_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK);
   sock->write_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
   if (sock->connect_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
@@ -1091,6 +1085,10 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
       goto SCHEDULE_WRITE;
     }
+#if DEBUG_NETWORK
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Transmit ready called --- will try to send\n");
+#endif
   GNUNET_assert (sock->write_buffer_off >= sock->write_buffer_pos);
   process_notify (sock);
   have = sock->write_buffer_off - sock->write_buffer_pos;

@@ -753,6 +753,8 @@ transmit_to_client_callback (void *cls, size_t size, void *buf)
 
   if (buf == NULL)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Transmission to client failed, closing connection.\n");
       /* fatal error with client, free message queue! */
       while (NULL != (q = client->message_queue_head))
         {
@@ -927,9 +929,15 @@ transmit_send_continuation (void *cls,
       GNUNET_assert (rl != NULL);
     }
   if (result == GNUNET_OK)
-    rl->timeout = GNUNET_TIME_relative_to_absolute (IDLE_CONNECTION_TIMEOUT);
+    {
+      rl->timeout = GNUNET_TIME_relative_to_absolute (IDLE_CONNECTION_TIMEOUT);
+    }
   else
-    rl->connected = GNUNET_NO;
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Transmission failed, marking connection as down.\n");
+      rl->connected = GNUNET_NO;
+    }
   if (!mq->internal_msg)
     rl->transmit_ready = GNUNET_YES;
   if (mq->client != NULL)
@@ -1389,7 +1397,8 @@ plugin_env_notify_address (void *cls,
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Plugin `%s' informs us about a new address\n", name);
+              "Plugin `%s' informs us about a new address `%s'\n", name,
+	      GNUNET_a2s(addr, addrlen));
 #endif
   abex = GNUNET_TIME_relative_to_absolute (expires);
   GNUNET_assert (p == find_transport (name));
@@ -1618,7 +1627,7 @@ cleanup_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           else
             pos = prev->next;
           continue;
-        }
+	}
       prev = pos;
       pos = pos->next;
     }
@@ -1654,6 +1663,7 @@ struct CheckHelloValidatedContext
    * Validation list being build.
    */
   struct ValidationList *e;
+
 };
 
 
@@ -1671,6 +1681,7 @@ run_validation (void *cls,
   struct TransportPlugin *tp;
   struct ValidationAddress *va;
   struct ValidationChallengeMessage *vcm;
+  struct GNUNET_PeerIdentity id;
 
   tp = find_transport (tname);
   if (tp == NULL)
@@ -1682,6 +1693,16 @@ run_validation (void *cls,
                   tname);
       return GNUNET_OK;
     }
+  GNUNET_CRYPTO_hash (&e->publicKey,
+		      sizeof (struct
+			      GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+		      &id.hashPubKey);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Scheduling validation of address `%s' via `%s' for `%4s'\n",
+	      GNUNET_a2s(addr, addrlen),
+	      tname,
+	      GNUNET_i2s(&id));
+
   va = GNUNET_malloc (sizeof (struct ValidationAddress) +
                       sizeof (struct ValidationChallengeMessage) + addrlen);
   va->next = e->addresses;
@@ -1699,7 +1720,7 @@ run_validation (void *cls,
   vcm->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_HELLO);
   vcm->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                              (unsigned int) -1);
-  /* Note: vcm->target is set in check_hello_validated */
+  vcm->target = id;
   memcpy (&vcm[1], addr, addrlen);
   return GNUNET_OK;
 }
@@ -1752,10 +1773,6 @@ check_hello_validated (void *cls,
   va = chvc->e->addresses;
   while (va != NULL)
     {
-      GNUNET_CRYPTO_hash (&chvc->e->publicKey,
-                          sizeof (struct
-                                  GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                          &va->msg->target.hashPubKey);
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Establishing `%s' connection to validate `%s' of `%4s' (sending our `%s')\n",
@@ -1841,6 +1858,11 @@ process_hello (struct TransportPlugin *plugin,
                                GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)))
         {
           /* TODO: call to stats? */
+#if DEBUG_TRANSPORT
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "`%s' message for peer `%4s' is already pending; ignoring new message\n",
+		      "HELLO", GNUNET_i2s (&target));
+#endif	  
           return GNUNET_OK;
         }
       e = e->next;

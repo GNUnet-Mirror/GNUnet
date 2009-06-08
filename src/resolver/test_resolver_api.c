@@ -44,26 +44,9 @@ check_hostname (void *cls, const struct sockaddr *sa, socklen_t salen)
       (*ok) &= ~8;
       return;
     }
-  if (salen == sizeof (struct sockaddr_in))
-    {
-      struct sockaddr_in *in = (struct sockaddr_in *) sa;
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("Got IP address `%s' for our host.\n"),
-                  inet_ntop (AF_INET, &in->sin_addr, buf, sizeof (buf)));
-    }
-  else if (salen == sizeof (struct sockaddr_in6))
-    {
-      struct sockaddr_in6 *in6 = (struct sockaddr_in6 *) sa;
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("Got IP address `%s' for our host.\n"),
-                  inet_ntop (AF_INET6, &in6->sin6_addr, buf, sizeof (buf)));
-    }
-  else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Got address of bogus length %u\n"), salen);
-      GNUNET_assert (0);
-    }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      _("Got IP address `%s' for our host.\n"),
+	      GNUNET_a2s (sa, salen));
 }
 
 

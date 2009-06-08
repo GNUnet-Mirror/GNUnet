@@ -1606,6 +1606,8 @@ send_connect_continuation (void *cls, size_t size, void *buf)
                   "Asked to send message to disconnected peer `%4s' and connection failed.  Discarding message.\n",
                   GNUNET_i2s (&sm->peer));
       GNUNET_free (sm);
+      /* FIXME: do we need to do something here to let the
+	 client know about the failure!? */
       return 0;
     }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1659,8 +1661,9 @@ handle_client_send (void *cls,
   if (n == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Not yet connected to `%4s', will try to establish connection\n",
-                  GNUNET_i2s (&sm->peer));
+                  "Not yet connected to `%4s', will try to establish connection within %llu ms\n",
+                  GNUNET_i2s (&sm->peer),
+		  sm->deadline.value);
       msize += sizeof (struct SendMessage);
       /* ask transport to connect to the peer */
       /* FIXME: this code does not handle the
