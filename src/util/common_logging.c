@@ -417,6 +417,9 @@ const char *GNUNET_a2s (const struct sockaddr *addr,
   static char b2[6];
   const struct sockaddr_in * v4;
   const struct sockaddr_in6 *v6;
+
+  if (addr == NULL)
+    return _("unknown address");
   switch (addr->sa_family)
     {
     case AF_INET:

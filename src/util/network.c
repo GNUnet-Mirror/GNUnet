@@ -40,7 +40,7 @@
 #include "gnunet_network_lib.h"
 #include "gnunet_scheduler_lib.h"
 
-#define DEBUG_NETWORK GNUNET_YES
+#define DEBUG_NETWORK GNUNET_NO
 
 struct GNUNET_NETWORK_TransmitHandle
 {
@@ -606,6 +606,7 @@ GNUNET_NETWORK_socket_create_from_sockaddr (struct GNUNET_SCHEDULER_Handle
                                             socklen_t addrlen, size_t maxbuf)
 {
   int s;
+  struct GNUNET_NETWORK_SocketHandle *ret;
 
   s = SOCKET (af_family, SOCK_STREAM, 0);
   if (s == -1)
@@ -633,7 +634,11 @@ GNUNET_NETWORK_socket_create_from_sockaddr (struct GNUNET_SCHEDULER_Handle
       GNUNET_break (0 == CLOSE (s));
       return NULL;
     }
-  return GNUNET_NETWORK_socket_create_from_existing (sched, s, maxbuf);
+  ret = GNUNET_NETWORK_socket_create_from_existing (sched, s, maxbuf);
+  ret->addr = GNUNET_malloc (addrlen);
+  memcpy (ret->addr, serv_addr, addrlen);
+  ret->addrlen = addrlen;
+  return ret;
 }
 
 
