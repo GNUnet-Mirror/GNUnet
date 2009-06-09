@@ -282,7 +282,7 @@ start_process (struct ServiceList *sl)
               "Starting service `%s' using binary `%s' and configuration `%s'\n",
               sl->name, sl->binary, sl->config);
 #endif
-  argv_size = 5;
+  argv_size = 6;
   if (use_debug)
     argv_size += 2;
   lopos = loprefix;
@@ -303,6 +303,7 @@ start_process (struct ServiceList *sl)
   argv = GNUNET_malloc (argv_size * sizeof (char *));
   argv_size = 0;
   lopos = loprefix;
+
   while ('\0' != *lopos)
     {
       while (*lopos == ' ')
@@ -348,6 +349,7 @@ start_process (struct ServiceList *sl)
   sl->pid = GNUNET_OS_start_process_v (firstarg, argv);
   GNUNET_free (argv);
   GNUNET_free (loprefix);
+  GNUNET_free (options);
 }
 
 
