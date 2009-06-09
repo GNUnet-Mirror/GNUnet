@@ -26,7 +26,15 @@
 #include "gnunet_crypto_lib.h"
 #include "gnunet_time_lib.h"
 
+/**
+ * General core debugging.
+ */
 #define DEBUG_CORE GNUNET_YES
+
+/**
+ * Debugging interaction core-clients.
+ */
+#define DEBUG_CORE_CLIENT GNUNET_NO
 
 /**
  * Definition of bits in the InitMessage's options field that specify

@@ -728,12 +728,16 @@ do_client_transmit (void *cls, size_t size, void *buf)
   size_t ret;
 
   client->th = NULL;
+#if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client ready to receive %u bytes.\n", size);
+#endif
   if (buf == NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Failed to transmit data to client (disconnect)?\n");
+#endif
       return 0;                 /* we'll surely get a disconnect soon... */
     }
   tgt = buf;
@@ -749,8 +753,10 @@ do_client_transmit (void *cls, size_t size, void *buf)
   GNUNET_assert (ret > 0);
   if (client->event_head == NULL)
     client->event_tail = NULL;
+#if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transmitting %u bytes to client\n", ret);
+#endif
   request_transmit (client);
   return ret;
 }
@@ -769,9 +775,11 @@ request_transmit (struct Client *client)
     return;                     /* already pending */
   if (NULL == client->event_head)
     return;                     /* no more events pending */
+#if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking server to transmit %u bytes to client\n",
               client->event_head->size);
+#endif
   client->th
     = GNUNET_SERVER_notify_transmit_ready (client->client_handle,
                                            client->event_head->size,
@@ -794,9 +802,11 @@ send_to_client (struct Client *client,
   struct Event *e;
   uint16_t msize;
 
+#if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Preparing to send message of type %u to client.\n",
               ntohs (msg->type));
+#endif
   msize = ntohs (msg->size);
   e = GNUNET_malloc (sizeof (struct Event) + msize);
   /* append */
@@ -845,9 +855,11 @@ handle_client_init (void *cls,
   struct Neighbour *n;
   struct ConnectNotifyMessage cnm;
 
+#if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client connecting to core service with `%s' message\n",
               "INIT");
+#endif
   /* check that we don't have an entry already */
   c = clients;
   while (c != NULL)
@@ -885,8 +897,10 @@ handle_client_init (void *cls,
   memcpy (&irm.publicKey,
           &my_public_key,
           sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+#if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending `%s' message to client.\n", "INIT_REPLY");
+#endif
   send_to_client (c, &irm.header, GNUNET_NO);
   /* notify new client about existing neighbours */
   cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
@@ -894,8 +908,10 @@ handle_client_init (void *cls,
   n = neighbours;
   while (n != NULL)
     {
+#if DEBUG_CORE_CLIENT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Sending `%s' message to client.\n", "NOTIFY_CONNECT");
+#endif
       cnm.bpm_available = htonl (n->bpm_out);
       cnm.last_activity = GNUNET_TIME_absolute_hton (n->last_activity);
       cnm.peer = n->peer;
@@ -918,8 +934,10 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   struct Client *pos;
   struct Client *prev;
 
+#if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client has disconnected from core service.\n");
+#endif
   prev = NULL;
   pos = clients;
   while (pos != NULL)
@@ -956,8 +974,10 @@ handle_client_request_configure (void *cls,
   struct Client *c;
   int reserv;
 
+#if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core service receives `%s' request.\n", "CONFIGURE");
+#endif
   rcm = (const struct RequestConfigureMessage *) message;
   n = find_neighbour (&rcm->peer);
   memset (&cim, 0, sizeof (cim));
@@ -997,8 +1017,10 @@ handle_client_request_configure (void *cls,
       GNUNET_break (0);
       return;
     }
+#if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending `%s' message to client.\n", "CONFIGURATION_INFO");
+#endif
   send_to_client (c, &cim.header, GNUNET_NO);
 }
 
@@ -1031,9 +1053,6 @@ notify_encrypted_transmit_ready (void *cls, size_t size, void *buf)
   char *cbuf;
 
   n->th = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transport ready to receive %u bytes for `%4s'\n",
-              size, GNUNET_i2s (&n->peer));
   GNUNET_assert (NULL != (m = n->encrypted_head));
   n->encrypted_head = m->next;
   if (m->next == NULL)
@@ -1053,7 +1072,7 @@ notify_encrypted_transmit_ready (void *cls, size_t size, void *buf)
     }
   else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Transmission for message of type %u and size %u failed\n",
                   ntohs (((struct GNUNET_MessageHeader *) &m[1])->type),
                   m->size);
@@ -1084,15 +1103,10 @@ static void
 process_encrypted_neighbour_queue (struct Neighbour *n)
 {
   if (n->th != NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Asked to process encrypted queue, but request already pending.\n");
-      return;                   /* already pending */
-    }
+    return;  /* request already pending */
   if (n->encrypted_head == NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Encrypted queue empty, trying plaintext queue instead.\n");
+      /* encrypted queue empty, try plaintext instead */
       process_plaintext_neighbour_queue (n);
       return;
     }
@@ -1473,9 +1487,6 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
   struct GNUNET_TIME_Absolute deadline;
   struct GNUNET_TIME_Relative retry_time;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Processing plaintext message queue for `%4s', scheduling messages.\n",
-              GNUNET_i2s (&n->peer));
   if (n->retry_plaintext_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
     {
       GNUNET_SCHEDULER_cancel (sched, n->retry_plaintext_task);
@@ -1486,19 +1497,22 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
     case PEER_STATE_DOWN:
       send_key (n);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Not yet connected, deferring processing of plaintext messages.\n");
+                  "Not yet connected to `%4s', deferring processing of plaintext messages.\n",
+		  GNUNET_i2s(&n->peer));
       return;
     case PEER_STATE_KEY_SENT:
       GNUNET_assert (n->retry_set_key_task !=
                      GNUNET_SCHEDULER_NO_PREREQUISITE_TASK);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Not yet connected, deferring processing of plaintext messages.\n");
+                  "Not yet connected to `%4s', deferring processing of plaintext messages.\n",
+		  GNUNET_i2s(&n->peer));
       return;
     case PEER_STATE_KEY_RECEIVED:
       GNUNET_assert (n->retry_set_key_task !=
                      GNUNET_SCHEDULER_NO_PREREQUISITE_TASK);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Not yet connected, deferring processing of plaintext messages.\n");
+                  "Not yet connected to `%4s', deferring processing of plaintext messages.\n",
+		  GNUNET_i2s(&n->peer));
       return;
     case PEER_STATE_KEY_CONFIRMED:
       /* ready to continue */
@@ -1507,14 +1521,16 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
   if (n->messages == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Plaintext message queue is empty.\n");
+                  "Plaintext message queue for `%4s' is empty.\n",
+		  GNUNET_i2s(&n->peer));
       return;                   /* no pending messages */
     }
   discard_expired_messages (n);
   if (n->encrypted_head != NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Encrypted message queue is still full, delaying plaintext processing.\n");
+                  "Encrypted message queue for `%4s' is still full, delaying plaintext processing.\n",
+		  GNUNET_i2s(&n->peer));
       return;                   /* wait for messages already encrypted to be
                                    processed first! */
     }
@@ -1530,7 +1546,8 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
   if (used == sizeof (struct EncryptedMessage))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "No messages selected for processing at this time, will try again later.\n");
+                  "No messages selected for transmission to `%4s' at this time, will try again later.\n",
+		  GNUNET_i2s(&n->peer));
       /* no messages selected for sending, try again later... */
       n->retry_plaintext_task =
         GNUNET_SCHEDULER_add_delayed (sched,
@@ -1559,7 +1576,9 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
   GNUNET_CRYPTO_hash (&ph->sequence_number, esize, &em->plaintext_hash);
   /* encrypt */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Encrypting plaintext messages for transmission.\n");
+              "Encrypting %u bytes of plaintext messages for `%4s' for transmission.\n",
+	      esize,
+	      GNUNET_i2s(&n->peer));
   GNUNET_assert (GNUNET_OK ==
                  do_encrypt (n,
                              &em->plaintext_hash,
@@ -1602,7 +1621,7 @@ send_connect_continuation (void *cls, size_t size, void *buf)
 
   if (buf == NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "Asked to send message to disconnected peer `%4s' and connection failed.  Discarding message.\n",
                   GNUNET_i2s (&sm->peer));
       GNUNET_free (sm);
@@ -1611,7 +1630,7 @@ send_connect_continuation (void *cls, size_t size, void *buf)
       return 0;
     }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connection to peer `%4s' succeeded, retrying original send request\n",
+              "Connection to peer `%4s' succeeded, retrying original transmission request\n",
               GNUNET_i2s (&sm->peer));
   handle_client_send (NULL, NULL, &sm->header);
   GNUNET_free (sm);
@@ -1636,8 +1655,6 @@ handle_client_send (void *cls,
   struct MessageEntry *e;
   uint16_t msize;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core service receives `%s' request.\n", "SEND");
   msize = ntohs (message->size);
   if (msize <
       sizeof (struct SendMessage) + sizeof (struct GNUNET_MessageHeader))
@@ -1661,7 +1678,8 @@ handle_client_send (void *cls,
   if (n == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Not yet connected to `%4s', will try to establish connection within %llu ms\n",
+                  "Core received `%s' request for `%4s', will try to establish connection within %llu ms\n",
+		  "SEND",
                   GNUNET_i2s (&sm->peer),
 		  sm->deadline.value);
       msize += sizeof (struct SendMessage);
@@ -1685,8 +1703,10 @@ handle_client_send (void *cls,
       return;
     }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core queues %u bytes of plaintext data for transmission to `%4s'.\n",
-              msize, GNUNET_i2s (&sm->peer));
+              "Core received `%s' request, queueing %u bytes of plaintext data for transmission to `%4s'.\n",
+	      "SEND",
+              msize, 
+	      GNUNET_i2s (&sm->peer));
   /* FIXME: consider bounding queue size */
   e = GNUNET_malloc (sizeof (struct MessageEntry) + msize);
   e->deadline = GNUNET_TIME_absolute_ntoh (sm->deadline);
@@ -1758,7 +1778,8 @@ process_hello_retry_send_key (void *cls,
   if (n->public_key != NULL)
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received new HELLO for `%4s', initiating key exchange.\n",
+              "Received new `%s' message for `%4s', initiating key exchange.\n",
+	      "HELLO",
               GNUNET_i2s (peer));
   n->public_key =
     GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
@@ -1897,8 +1918,6 @@ send_key (struct Neighbour *n)
       break;
     }
   /* trigger queue processing */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Triggering processing of encrypted message queue.\n");
   process_encrypted_neighbour_queue (n);
   if (n->status != PEER_STATE_KEY_CONFIRMED)
     n->retry_set_key_task
@@ -1946,9 +1965,6 @@ process_hello_retry_handle_set_key (void *cls,
       GNUNET_free (sm);
       return;
     }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Looking for peer `%4s' to handle `%s' message.\n",
-              GNUNET_i2s (peer), "SET_KEY");
   n = find_neighbour (peer);
   if (n == NULL)
     {
@@ -1961,6 +1977,7 @@ process_hello_retry_handle_set_key (void *cls,
     GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
   if (GNUNET_OK != GNUNET_HELLO_get_key (hello, n->public_key))
     {
+      GNUNET_break_op (0);
       GNUNET_free (n->public_key);
       n->public_key = NULL;
       return;
@@ -2251,7 +2268,8 @@ send_p2p_message_to_client (struct Neighbour *sender,
   struct NotifyTrafficMessage *ntm;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core service passes P2P message of type %u to client.\n",
+              "Core service passes message from `%4s' of type %u to client.\n",
+	      GNUNET_i2s(&sender->peer),
               ntohs (((const struct GNUNET_MessageHeader *) m)->type));
   ntm = (struct NotifyTrafficMessage *) buf;
   ntm->header.size = htons (msize + sizeof (struct NotifyTrafficMessage));
@@ -2279,8 +2297,6 @@ deliver_message (struct Neighbour *sender,
   unsigned int tpos;
   int deliver_full;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Passing decrypted P2P message to interested clients.\n");
   type = ntohs (m->type);
   cpos = clients;
   while (cpos != NULL)
@@ -2343,9 +2359,6 @@ deliver_messages (struct Neighbour *sender,
   uint16_t msize;
   int need_align;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Delivering %u bytes of plaintext to interested clients.\n",
-              buffer_size);
   while (offset + sizeof (struct GNUNET_MessageHeader) <= buffer_size)
     {
       if (0 != offset % sizeof (uint16_t))
@@ -2425,7 +2438,7 @@ handle_encrypted_message (struct Neighbour *n,
   snum = ntohl (pt->sequence_number);
   if (n->last_sequence_number_received == snum)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "Received duplicate message, ignoring.\n");
       /* duplicate, ignore */
       return;
@@ -2433,7 +2446,7 @@ handle_encrypted_message (struct Neighbour *n,
   if ((n->last_sequence_number_received > snum) &&
       (n->last_sequence_number_received - snum > 32))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "Received ancient out of sequence message, ignoring.\n");
       /* ancient out of sequence, ignore */
       return;
@@ -2444,7 +2457,7 @@ handle_encrypted_message (struct Neighbour *n,
         1 << (n->last_sequence_number_received - snum - 1);
       if ((n->last_packets_bitmap & rotbit) != 0)
         {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                       "Received duplicate message, ignoring.\n");
           /* duplicate, ignore */
           return;
@@ -2604,8 +2617,6 @@ handle_transport_notify_connect (void *cls,
   struct GNUNET_TIME_Absolute now;
   struct ConnectNotifyMessage cnm;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received connection from `%4s'.\n", GNUNET_i2s (peer));
   n = find_neighbour (peer);
   if (n != NULL)
     {
@@ -2631,7 +2642,7 @@ handle_transport_notify_connect (void *cls,
   n->ping_challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                                 (uint32_t) - 1);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Created entry for new neighbour `%4s'.\n",
+              "Received connection from `%4s'.\n",
               GNUNET_i2s (&n->peer));
   cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
   cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
@@ -2725,7 +2736,8 @@ handle_transport_notify_disconnect (void *cls,
 static void
 cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Core service shutting down.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Core service shutting down.\n");
   GNUNET_assert (transport != NULL);
   GNUNET_TRANSPORT_disconnect (transport);
   transport = NULL;

@@ -361,14 +361,14 @@ transport_notify_ready (void *cls, size_t size, void *buf)
   size_t ret;
   char *cbuf;
 
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Ready to transmit %u bytes to transport service\n", size);
-#endif
   h->network_handle = NULL;
   h->transmission_scheduled = GNUNET_NO;
   if (buf == NULL)
     {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  "Could not transmit to transport service, cancelling pending requests\n");
+#endif
       th = h->connect_ready_head;
       if (th->next != NULL)
         th->next->prev = NULL;
@@ -381,7 +381,11 @@ transport_notify_ready (void *cls, size_t size, void *buf)
       GNUNET_assert (0 == th->notify (th->notify_cls, 0, NULL));
       GNUNET_free (th);
       return 0;
-    }
+    } 
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Ready to transmit %u bytes to transport service\n", size);
+#endif
   cbuf = buf;
   ret = 0;
   h->network_handle = NULL;
@@ -427,28 +431,11 @@ schedule_transmission (struct GNUNET_TRANSPORT_Handle *h)
 
   GNUNET_assert (NULL == h->network_handle);
   if (h->client == NULL)
-    {
-#if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Not yet connected to transport service, need to wait.\n");
-#endif
-      return;
-    }
+    return; /* not yet connected */
   th = h->connect_ready_head;
   if (th == NULL)
-    {
-#if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Schedule transmission called, but no request is pending.\n");
-#endif
-      return;
-    }
+    return; /* no request pending */
   h->transmission_scheduled = GNUNET_YES;
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Asking client API for transmission of %u bytes\n",
-              th->notify_size);
-#endif
   h->network_handle = GNUNET_CLIENT_notify_transmit_ready (h->client,
                                                            th->notify_size,
                                                            GNUNET_TIME_absolute_get_remaining
@@ -518,10 +505,7 @@ schedule_control_transmit (struct GNUNET_TRANSPORT_Handle *h,
                            void *notify_cls)
 {
   struct GNUNET_TRANSPORT_TransmitHandle *th;
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Queueing %u bytes control transmission request.\n", size);
-#endif
+
   th = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_TransmitHandle));
   th->handle = h;
   th->notify = notify;
@@ -770,7 +754,7 @@ send_hello (void *cls, size_t size, void *buf)
   if (buf == NULL)
     {
 #if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Timeout while trying to transmit `%s' request.\n",
                   "HELLO");
 #endif
@@ -807,7 +791,7 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
   if (handle->client == NULL)
     {
 #if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "Not connected to transport service, dropping offered HELLO\n");
 #endif
       return;
@@ -835,7 +819,14 @@ send_start (void *cls, size_t size, void *buf)
   struct GNUNET_MessageHeader *s = buf;
 
   if (buf == NULL)
-    return 0;
+    {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Timeout while trying to transmit `%s' request.\n",
+                  "START");
+#endif
+      return 0;
+    }
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transmitting `%s' request.\n", "START");
@@ -984,7 +975,9 @@ transmit_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (th->neighbour != NULL)
     th->neighbour->transmit_handle = NULL;
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmission request timed out.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+	      "Request for transmission to peer `%s' timed out.\n",
+	      GNUNET_i2s(&th->target));
 #endif
   th->notify_delay_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
   remove_from_wait_list (th);
@@ -1034,8 +1027,9 @@ schedule_request (struct GNUNET_TRANSPORT_TransmitHandle *th)
           /* signal timeout! */
 #if DEBUG_TRANSPORT
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Would need %llu ms before bandwidth is available for delivery, that is too long.  Signaling timeout.\n",
-                      duration.value);
+                      "Would need %llu ms before bandwidth is available for delivery to `%4s', that is too long.  Signaling timeout.\n",
+                      duration.value,
+		      GNUNET_i2s(&th->target));
 #endif
           remove_from_wait_list (th);
           th->notify (th->notify_cls, 0, NULL);
@@ -1044,7 +1038,8 @@ schedule_request (struct GNUNET_TRANSPORT_TransmitHandle *th)
         }
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Need more bandwidth, delaying delivery by %llu ms\n",
+                  "Need more bandwidth, delaying delivery to `%4s' by %llu ms\n",
+		  GNUNET_i2s(&th->target),
                   duration.value);
 #endif
       th->notify_delay_task
@@ -1081,7 +1076,8 @@ schedule_request (struct GNUNET_TRANSPORT_TransmitHandle *th)
   n->transmit_ok = GNUNET_NO;
   remove_from_wait_list (th);
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Moving message to ready list\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Moving message for `%4s' to ready list\n",
+	      GNUNET_i2s(&n->id));
 #endif
   insert_transmit_handle (&h->connect_ready_head, th);
   if (GNUNET_NO == h->transmission_scheduled)
@@ -1127,55 +1123,39 @@ add_neighbour (struct GNUNET_TRANSPORT_Handle *h,
   while (pos != NULL)
     {
       next = pos->next;
-#if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Found entry in connect_wait_head for `%4s'.\n",
-                  GNUNET_i2s (&pos->target));
-#endif
       if (0 == memcmp (pid,
                        &pos->target, sizeof (struct GNUNET_PeerIdentity)))
         {
-#if DEBUG_TRANSPORT
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Found pending request for new connection, will trigger now.\n");
-#endif
           pos->neighbour = n;
-          if (pos->notify_delay_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
-            {
-              GNUNET_SCHEDULER_cancel (h->sched, pos->notify_delay_task);
-              pos->notify_delay_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
-            }
           GNUNET_assert (NULL == n->transmit_handle);
           n->transmit_handle = pos;
+          if (prev == NULL)
+            h->connect_wait_head = next;
+          else
+            prev->next = next;
           if (GNUNET_YES == n->received_ack)
             {
 #if DEBUG_TRANSPORT
-              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                          "`%s' already received, scheduling request\n",
-                          "ACK");
+	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+			  "Found pending request for `%4s' will trigger it now.\n",
+			  GNUNET_i2s (&pos->target));
 #endif
+	      if (pos->notify_delay_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
+		{
+		  GNUNET_SCHEDULER_cancel (h->sched, pos->notify_delay_task);
+		  pos->notify_delay_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+		}
               schedule_request (pos);
             }
           else
             {
 #if DEBUG_TRANSPORT
-              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                          "Still need to wait to receive `%s' message\n",
-                          "ACK");
+	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+			  "Found pending request for `%4s' but still need `%s' before proceeding.\n",
+			  GNUNET_i2s (&pos->target),
+			  "ACK");
 #endif
-              pos->notify_delay_task
-                = GNUNET_SCHEDULER_add_delayed (h->sched,
-                                                GNUNET_NO,
-                                                GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                                GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
-                                                GNUNET_TIME_absolute_get_remaining
-                                                (pos->timeout),
-                                                &transmit_timeout, pos);
             }
-          if (prev == NULL)
-            h->connect_wait_head = next;
-          else
-            prev->next = next;
           break;
         }
       prev = pos;
@@ -1282,8 +1262,8 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
       handle->hwl_head = hwl->next;
       GNUNET_SCHEDULER_cancel (handle->sched, hwl->task);
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _
-                  ("Disconnect while trying to obtain HELLO from transport service.\n"));
+                  _("Disconnect while trying to obtain `%s' from transport service.\n"),
+		  "HELLO");
       if (hwl->rec != NULL)
         hwl->rec (hwl->rec_cls, GNUNET_TIME_UNIT_ZERO, NULL, NULL);
       GNUNET_free (hwl);
@@ -1328,7 +1308,9 @@ request_connect (void *cls, size_t size, void *buf)
     {
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Failed to transmit connect request to service.\n");
+                  "Failed to transmit `%s' request for `%4s' to service.\n",
+		  "TRY_CONNECT",
+		  GNUNET_i2s(&th->target));
 #endif
       th->notify (th->notify_cls, 0, NULL);
       GNUNET_free (th);
@@ -1471,7 +1453,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
       if (h->client != NULL)
         {
 #if DEBUG_TRANSPORT
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                       "Error receiving from transport service, disconnecting temporarily.\n");
 #endif
           if (h->network_handle != NULL)
@@ -1759,7 +1741,10 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
 
   if (size + sizeof (struct OutboundMessage) >=
       GNUNET_SERVER_MAX_MESSAGE_SIZE)
-    return NULL;
+    {
+      GNUNET_break (0);
+      return NULL;
+    }
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking transport service for transmission of %u bytes to peer `%4s'.\n",
@@ -1780,10 +1765,6 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
   th->neighbour = n;
   if (NULL == n)
     {
-#if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Transmission request could not be satisfied (not yet connected), adding it to pending request list.\n");
-#endif
       pos = handle->connect_wait_head;
       while (pos != NULL)
         {
@@ -1797,39 +1778,37 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
                   "Will now try to connect to `%4s'.\n", GNUNET_i2s (target));
 #endif
       try_connect (th);
+      return th;
     }
-  else
+
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmission request queued for transmission to transport service.\n");
+#endif
+  GNUNET_assert (NULL == n->transmit_handle);
+  n->transmit_handle = th;
+  if (GNUNET_YES != n->received_ack)
     {
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Transmission request queued for transmission to transport service.\n");
+		  "Connection to `%4s' is not yet confirmed connected, scheduling timeout (%llu ms) only.\n",
+		  GNUNET_i2s (target), timeout.value);
 #endif
-      GNUNET_assert (NULL == n->transmit_handle);
-      n->transmit_handle = th;
-      if (GNUNET_YES == n->received_ack)
-        {
-#if DEBUG_TRANSPORT
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Peer `%4s' is connected, scheduling for delivery now.\n",
-                      GNUNET_i2s (target));
-#endif
-          schedule_request (th);
-        }
-      else
-        {
-#if DEBUG_TRANSPORT
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Connection to `%4s' is not yet confirmed connected, scheduling timeout (%llums) only.\n",
-                      GNUNET_i2s (target), timeout.value);
-#endif
-          th->notify_delay_task
-            = GNUNET_SCHEDULER_add_delayed (handle->sched,
-                                            GNUNET_NO,
-                                            GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                            GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
-                                            timeout, &transmit_timeout, th);
-        }
+      th->notify_delay_task
+	= GNUNET_SCHEDULER_add_delayed (handle->sched,
+					GNUNET_NO,
+					GNUNET_SCHEDULER_PRIORITY_KEEP,
+					GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+					timeout, &transmit_timeout, th);
+      return th;
     }
+  
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Peer `%4s' is ready to receive, scheduling message for delivery now.\n",
+	      GNUNET_i2s (target));
+#endif
+  schedule_request (th);
   return th;
 }
 
@@ -1845,6 +1824,12 @@ GNUNET_TRANSPORT_notify_transmit_ready_cancel (struct
 {
   struct GNUNET_TRANSPORT_Handle *h;
 
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmission request of %u bytes to `%4s' was cancelled.\n",
+	      th->notify_size - sizeof(struct OutboundMessage),
+	      GNUNET_i2s (&th->target));
+#endif
   GNUNET_assert (th->notify == &client_notify_wrapper);
   remove_from_any_list (th);
   h = th->handle;
