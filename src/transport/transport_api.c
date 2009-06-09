@@ -206,9 +206,11 @@ struct GNUNET_TRANSPORT_TransmitHandle
   void *notify_cls;
 
   /**
-   * transmit_ready task Id.  The task is used to introduce
-   * the artificial delay that may be required to maintain
-   * the bandwidth limits.
+   * transmit_ready task Id.  The task is used to introduce the
+   * artificial delay that may be required to maintain the bandwidth
+   * limits.  Later, this will be the ID of the "transmit_timeout"
+   * task which is used to signal a timeout if the transmission could
+   * not be done in a timely fashion.
    */
   GNUNET_SCHEDULER_TaskIdentifier notify_delay_task;
 
@@ -393,6 +395,14 @@ transport_notify_ready (void *cls, size_t size, void *buf)
   do
     {
       th = h->connect_ready_head;
+      if (th->notify_delay_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
+	{
+	  /* remove existing time out task (only applies if
+	     this is not the first iteration of the loop) */
+	  GNUNET_SCHEDULER_cancel (h->sched,
+				   th->notify_delay_task);
+	  th->notify_delay_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+	}
       GNUNET_assert (th->notify_size <= size);
       if (th->next != NULL)
         th->next->prev = NULL;
@@ -431,10 +441,22 @@ schedule_transmission (struct GNUNET_TRANSPORT_Handle *h)
 
   GNUNET_assert (NULL == h->network_handle);
   if (h->client == NULL)
-    return; /* not yet connected */
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  "Could not yet schedule transmission: we are not yet connected to the transport service!\n");
+      return; /* not yet connected */
+    }
   th = h->connect_ready_head;
   if (th == NULL)
     return; /* no request pending */
+  if (th->notify_delay_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
+    {
+      /* remove existing time out task, will be integrated
+	 with transmit_ready notification! */
+      GNUNET_SCHEDULER_cancel (h->sched,
+			       th->notify_delay_task);
+      th->notify_delay_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+    }
   h->transmission_scheduled = GNUNET_YES;
   h->network_handle = GNUNET_CLIENT_notify_transmit_ready (h->client,
                                                            th->notify_size,
@@ -486,6 +508,66 @@ insert_transmit_handle (struct GNUNET_TRANSPORT_TransmitHandle **head,
 
 
 /**
+ * Cancel a pending notify delay task (if pending) and also remove the
+ * given transmit handle from whatever list is on.
+ *
+ * @param th handle for the transmission request to manipulate
+ */
+static void
+remove_from_any_list (struct GNUNET_TRANSPORT_TransmitHandle *th)
+{
+  struct GNUNET_TRANSPORT_Handle *h;
+
+  h = th->handle;
+  if (th->notify_delay_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (h->sched, th->notify_delay_task);
+      th->notify_delay_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+    }
+  if (th->prev == NULL)
+    {
+      if (th == h->connect_wait_head)
+        h->connect_wait_head = th->next;
+      else
+        h->connect_ready_head = th->next;
+    }
+  else
+    {
+      th->prev->next = th->next;
+    }
+  if (th->next != NULL)
+    th->next->prev = th->prev;
+}
+
+
+/**
+ * Called when our transmit request timed out before any transport
+ * reported success connecting to the desired peer or before the
+ * transport was ready to receive.  Signal error and free
+ * TransmitHandle.
+ */
+static void
+transmit_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_TRANSPORT_TransmitHandle *th = cls;
+
+  th->notify_delay_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+  if (th->neighbour != NULL)
+    th->neighbour->transmit_handle = NULL;
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+	      "Request for transmission to peer `%s' timed out.\n",
+	      GNUNET_i2s(&th->target));
+#endif
+  remove_from_any_list (th);
+  th->notify (th->notify_cls, 0, NULL);
+  GNUNET_free (th);
+}
+
+
+
+
+/**
  * Queue control request for transmission to the transport
  * service.
  *
@@ -512,6 +594,13 @@ schedule_control_transmit (struct GNUNET_TRANSPORT_Handle *h,
   th->notify_cls = notify_cls;
   th->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   th->notify_size = size;
+  th->notify_delay_task 
+    = GNUNET_SCHEDULER_add_delayed (h->sched,
+				    GNUNET_NO,
+				    GNUNET_SCHEDULER_PRIORITY_KEEP,
+				    GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+				    timeout,
+				    &transmit_timeout, th);    
   if (at_head)
     {
       th->next = h->connect_ready_head;
@@ -839,6 +928,117 @@ send_start (void *cls, size_t size, void *buf)
 
 
 /**
+ * We're ready to transmit the request that the transport service
+ * should connect to a new peer.  In addition to sending the
+ * request, schedule the next phase for the transmission processing
+ * that caused the connect request in the first place.
+ */
+static size_t
+request_connect (void *cls, size_t size, void *buf)
+{
+  struct GNUNET_TRANSPORT_TransmitHandle *th = cls;
+  struct TryConnectMessage *tcm;
+  struct GNUNET_TRANSPORT_Handle *h;
+
+  GNUNET_assert (th->notify_delay_task == GNUNET_SCHEDULER_NO_PREREQUISITE_TASK);
+  h = th->handle;
+  if (buf == NULL)
+    {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Failed to transmit `%s' request for `%4s' to service.\n",
+		  "TRY_CONNECT",
+		  GNUNET_i2s(&th->target));
+#endif
+      th->notify (th->notify_cls, 0, NULL);
+      GNUNET_free (th);
+      return 0;
+    }
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Transmitting `%s' message for `%4s'.\n",
+              "TRY_CONNECT", GNUNET_i2s (&th->target));
+#endif
+  GNUNET_assert (size >= sizeof (struct TryConnectMessage));
+  tcm = buf;
+  tcm->header.size = htons (sizeof (struct TryConnectMessage));
+  tcm->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_TRY_CONNECT);
+  tcm->reserved = htonl (0);
+  memcpy (&tcm->peer, &th->target, sizeof (struct GNUNET_PeerIdentity));
+  th->notify_delay_task
+    = GNUNET_SCHEDULER_add_delayed (h->sched,
+                                    GNUNET_NO,
+                                    GNUNET_SCHEDULER_PRIORITY_KEEP,
+                                    GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                    GNUNET_TIME_absolute_get_remaining
+                                    (th->timeout), &transmit_timeout, th);
+  insert_transmit_handle (&h->connect_wait_head, th);
+  return sizeof (struct TryConnectMessage);
+}
+
+
+/**
+ * Schedule a request to connect to the given
+ * neighbour (and if successful, add the specified
+ * handle to the wait list).
+ *
+ * @param th handle for a request to transmit once we
+ *        have connected
+ */
+static void
+try_connect (struct GNUNET_TRANSPORT_TransmitHandle *th)
+{
+  GNUNET_assert (th->notify_delay_task == GNUNET_SCHEDULER_NO_PREREQUISITE_TASK);  
+  schedule_control_transmit (th->handle,
+                             sizeof (struct TryConnectMessage),
+                             GNUNET_NO,
+                             GNUNET_TIME_absolute_get_remaining (th->timeout),
+                             &request_connect, th);
+}
+
+
+/**
+ * Remove neighbour from our list
+ */
+static void
+remove_neighbour (struct GNUNET_TRANSPORT_Handle *h,
+                  const struct GNUNET_PeerIdentity *peer)
+{
+  struct NeighbourList *prev;
+  struct NeighbourList *pos;
+  struct GNUNET_TRANSPORT_TransmitHandle *th;
+
+  prev = NULL;
+  pos = h->neighbours;
+  while ((pos != NULL) &&
+         (0 != memcmp (peer, &pos->id, sizeof (struct GNUNET_PeerIdentity))))
+    {
+      prev = pos;
+      pos = pos->next;
+    }
+  if (pos == NULL)
+    {
+      GNUNET_break (0);
+      return;
+    }
+  if (prev == NULL)
+    h->neighbours = pos->next;
+  else
+    prev->next = pos->next;
+  if (NULL != (th = pos->transmit_handle))
+    {
+      pos->transmit_handle = NULL;
+      th->neighbour = NULL;
+      remove_from_any_list (th);
+      try_connect (th);
+    }
+  if (h->nc_cb != NULL)
+    h->nd_cb (h->cls, peer);
+  GNUNET_free (pos);
+}
+
+
+/**
  * Try again to connect to transport service.
  */
 static void
@@ -848,22 +1048,10 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_TRANSPORT_TransmitHandle *pos;
   struct NeighbourList *n;
 
+  /* Forget about all neighbours that we used to be connected
+     to */
   while (NULL != (n = h->neighbours))
-    {
-      h->neighbours = n->next;
-      pos = n->transmit_handle;
-      if (pos != NULL)
-        {
-          pos->neighbour = NULL;
-          pos->next = h->connect_wait_head;
-          h->connect_wait_head = pos;
-          if (pos->next != NULL)
-            pos->next->prev = pos;
-          pos->prev = NULL;
-        }
-      GNUNET_free (n);
-    }
-  h->connect_ready_head = NULL;
+    remove_neighbour (h, &n->id);
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to transport service.\n");
 #endif
@@ -924,22 +1112,6 @@ schedule_reconnect (struct GNUNET_TRANSPORT_Handle *h)
 
 
 /**
- * Remove the given transmit handle from the wait list.  Does NOT free
- * it.
- */
-static void
-remove_from_wait_list (struct GNUNET_TRANSPORT_TransmitHandle *th)
-{
-  if (th->prev == NULL)
-    th->handle->connect_wait_head = th->next;
-  else
-    th->prev->next = th->next;
-  if (th->next != NULL)
-    th->next->prev = th->prev;
-}
-
-
-/**
  * We are connected to the respective peer, check the
  * bandwidth limits and schedule the transmission.
  */
@@ -962,27 +1134,18 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Called when our transmit request timed out before any transport
- * reported success connecting to the desired peer or before the
- * transport was ready to receive.  Signal error and free
- * TransmitHandle.
+ * Remove the given transmit handle from the wait list.  Does NOT free
+ * it.
  */
 static void
-transmit_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+remove_from_wait_list (struct GNUNET_TRANSPORT_TransmitHandle *th)
 {
-  struct GNUNET_TRANSPORT_TransmitHandle *th = cls;
-
-  if (th->neighbour != NULL)
-    th->neighbour->transmit_handle = NULL;
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-	      "Request for transmission to peer `%s' timed out.\n",
-	      GNUNET_i2s(&th->target));
-#endif
-  th->notify_delay_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
-  remove_from_wait_list (th);
-  th->notify (th->notify_cls, 0, NULL);
-  GNUNET_free (th);
+  if (th->prev == NULL)
+    th->handle->connect_wait_head = th->next;
+  else
+    th->prev->next = th->next;
+  if (th->next != NULL)
+    th->next->prev = th->prev;
 }
 
 
@@ -1291,142 +1454,6 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
 
 
 /**
- * We're ready to transmit the request that the transport service
- * should connect to a new peer.  In addition to sending the
- * request, schedule the next phase for the transmission processing
- * that caused the connect request in the first place.
- */
-static size_t
-request_connect (void *cls, size_t size, void *buf)
-{
-  struct GNUNET_TRANSPORT_TransmitHandle *th = cls;
-  struct TryConnectMessage *tcm;
-  struct GNUNET_TRANSPORT_Handle *h;
-
-  h = th->handle;
-  if (buf == NULL)
-    {
-#if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Failed to transmit `%s' request for `%4s' to service.\n",
-		  "TRY_CONNECT",
-		  GNUNET_i2s(&th->target));
-#endif
-      th->notify (th->notify_cls, 0, NULL);
-      GNUNET_free (th);
-      return 0;
-    }
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmitting `%s' message for `%4s'.\n",
-              "TRY_CONNECT", GNUNET_i2s (&th->target));
-#endif
-  GNUNET_assert (size >= sizeof (struct TryConnectMessage));
-  tcm = buf;
-  tcm->header.size = htons (sizeof (struct TryConnectMessage));
-  tcm->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_TRY_CONNECT);
-  tcm->reserved = htonl (0);
-  memcpy (&tcm->peer, &th->target, sizeof (struct GNUNET_PeerIdentity));
-  th->notify_delay_task
-    = GNUNET_SCHEDULER_add_delayed (h->sched,
-                                    GNUNET_NO,
-                                    GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                    GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
-                                    GNUNET_TIME_absolute_get_remaining
-                                    (th->timeout), &transmit_timeout, th);
-  insert_transmit_handle (&h->connect_wait_head, th);
-  return sizeof (struct TryConnectMessage);
-}
-
-
-/**
- * Schedule a request to connect to the given
- * neighbour (and if successful, add the specified
- * handle to the wait list).
- */
-static void
-try_connect (struct GNUNET_TRANSPORT_TransmitHandle *th)
-{
-  schedule_control_transmit (th->handle,
-                             sizeof (struct TryConnectMessage),
-                             GNUNET_NO,
-                             GNUNET_TIME_absolute_get_remaining (th->timeout),
-                             &request_connect, th);
-}
-
-
-/**
- * Cancel a pending notify transmit task
- * and also remove the given transmit handle
- * from whatever list is on.
- */
-static void
-remove_from_any_list (struct GNUNET_TRANSPORT_TransmitHandle *th)
-{
-  struct GNUNET_TRANSPORT_Handle *h;
-
-  h = th->handle;
-  if (th->notify_delay_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (h->sched, th->notify_delay_task);
-      th->notify_delay_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
-    }
-  if (th->prev == NULL)
-    {
-      if (th == h->connect_wait_head)
-        h->connect_wait_head = th->next;
-      else
-        h->connect_ready_head = th->next;
-    }
-  else
-    th->prev->next = th->next;
-  if (th->next != NULL)
-    th->next->prev = th->prev;
-}
-
-
-/**
- * Remove neighbour from our list
- */
-static void
-remove_neighbour (struct GNUNET_TRANSPORT_Handle *h,
-                  const struct GNUNET_PeerIdentity *peer)
-{
-  struct NeighbourList *prev;
-  struct NeighbourList *pos;
-  struct GNUNET_TRANSPORT_TransmitHandle *th;
-
-  prev = NULL;
-  pos = h->neighbours;
-  while ((pos != NULL) &&
-         (0 != memcmp (peer, &pos->id, sizeof (struct GNUNET_PeerIdentity))))
-    {
-      prev = pos;
-      pos = pos->next;
-    }
-  if (pos == NULL)
-    {
-      GNUNET_break (0);
-      return;
-    }
-  if (prev == NULL)
-    h->neighbours = pos->next;
-  else
-    prev->next = pos->next;
-  if (NULL != (th = pos->transmit_handle))
-    {
-      pos->transmit_handle = NULL;
-      th->neighbour = NULL;
-      remove_from_any_list (th);
-      try_connect (th);
-    }
-  if (h->nc_cb != NULL)
-    h->nd_cb (h->cls, peer);
-  GNUNET_free (pos);
-}
-
-
-/**
  * Type of a function to call when we receive a message
  * from the service.
  *
@@ -1446,6 +1473,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
   struct NeighbourList *n;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
   struct GNUNET_PeerIdentity me;
+  struct GNUNET_TRANSPORT_TransmitHandle *th;
   uint16_t size;
 
   if ((msg == NULL) || (h->client == NULL))
@@ -1461,6 +1489,17 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
               GNUNET_NETWORK_notify_transmit_ready_cancel (h->network_handle);
               h->network_handle = NULL;
               h->transmission_scheduled = GNUNET_NO;
+	      th = h->connect_ready_head;
+	      /* add timeout again, we cancelled the transmit_ready task! */
+	      GNUNET_assert (th->notify_delay_task == GNUNET_SCHEDULER_NO_PREREQUISITE_TASK);
+	      th->notify_delay_task 
+		= GNUNET_SCHEDULER_add_delayed (h->sched,
+						GNUNET_NO,
+						GNUNET_SCHEDULER_PRIORITY_KEEP,
+						GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+						GNUNET_TIME_absolute_get_remaining(th->timeout),
+						&transmit_timeout, 
+						th);    
             }
           GNUNET_CLIENT_disconnect (h->client);
           h->client = NULL;
