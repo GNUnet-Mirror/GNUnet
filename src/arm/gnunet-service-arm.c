@@ -257,9 +257,11 @@ static void
 start_process (struct ServiceList *sl)
 {
   char *loprefix;
+  char *options;
   char **argv;
   unsigned int argv_size;
   char *lopos;
+  char *optpos;
   const char *firstarg;
   int use_debug;
 
@@ -268,6 +270,10 @@ start_process (struct ServiceList *sl)
       GNUNET_CONFIGURATION_get_value_string (cfg,
                                              sl->name, "PREFIX", &loprefix))
     loprefix = GNUNET_strdup (prefix_command);
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             sl->name, "OPTIONS", &options))
+    options = GNUNET_strdup ("");
   use_debug = GNUNET_CONFIGURATION_get_value_yesno (cfg, sl->name, "DEBUG");
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Starting service `%s'\n"), sl->name);
@@ -285,6 +291,13 @@ start_process (struct ServiceList *sl)
       if (*lopos == ' ')
         argv_size++;
       lopos++;
+    }
+  optpos = options;
+  while ('\0' != *optpos)
+    {
+      if (*optpos == ' ')
+        argv_size++;
+      optpos++;
     }
   firstarg = NULL;
   argv = GNUNET_malloc (argv_size * sizeof (char *));
@@ -315,6 +328,21 @@ start_process (struct ServiceList *sl)
     {
       argv[argv_size++] = "-L";
       argv[argv_size++] = "DEBUG";
+    }
+  optpos = options;
+  while ('\0' != *optpos)
+    {
+      while (*optpos == ' ')
+        optpos++;
+      if (*optpos == '\0')
+        continue;
+      argv[argv_size++] = optpos;
+      while (('\0' != *optpos) && (' ' != *optpos))
+        optpos++;
+      if ('\0' == *optpos)
+        continue;
+      *optpos = '\0';
+      optpos++;
     }
   argv[argv_size++] = NULL;
   sl->pid = GNUNET_OS_start_process_v (firstarg, argv);
