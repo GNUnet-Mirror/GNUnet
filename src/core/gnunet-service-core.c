@@ -23,10 +23,8 @@
  * @brief high-level P2P messaging
  * @author Christian Grothoff
  *
- * TODO:
  * POST-TESTING:
  * - revisit API (which arguments are used, needed)?
- * - add code to bound message queue size when passing messages to clients
  * - add code to re-transmit key if first attempt failed
  *   + timeout on connect / key exchange, etc.
  *   + timeout for automatic re-try, etc.
@@ -40,7 +38,6 @@
  *   know for sure!
  * - check that hostkey used by transport (for HELLOs) is the
  *   same as the hostkey that we are using!
- * - free list of clients on exit
  * - topology management:
  *   + bootstrapping (transport offer hello, plugins)
  *   + internal neighbour selection
@@ -131,6 +128,12 @@
  * How many messages do we queue per peer at most?
  */
 #define MAX_PEER_QUEUE_SIZE 16
+
+
+/**
+ * How many non-mandatory messages do we queue per client at most?
+ */
+#define MAX_CLIENT_QUEUE_SIZE 32
 
 
 /**
@@ -723,6 +726,7 @@ static void request_transmit (struct Client *client);
 
 /**
  * Client is ready to receive data, provide it.
+ *
  * @param cls closure
  * @param size number of bytes available in buf
  * @param buf where the callee should write the message
@@ -809,6 +813,7 @@ send_to_client (struct Client *client,
                 const struct GNUNET_MessageHeader *msg, int can_drop)
 {
   struct Event *e;
+  unsigned int queue_size;
   uint16_t msize;
 
 #if DEBUG_CORE_CLIENT
@@ -816,6 +821,17 @@ send_to_client (struct Client *client,
               "Preparing to send message of type %u to client.\n",
               ntohs (msg->type));
 #endif
+  queue_size = 0;
+  e = client->event_head;
+  while (e != NULL)
+    {
+      queue_size++;
+      e = e->next;
+    }
+  if ( (queue_size >= MAX_CLIENT_QUEUE_SIZE) &&
+       (can_drop == GNUNET_YES) )
+    return;
+
   msize = ntohs (msg->size);
   e = GNUNET_malloc (sizeof (struct Event) + msize);
   /* append */
