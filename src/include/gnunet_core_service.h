@@ -219,7 +219,7 @@ typedef void
                                                 unsigned int bpm_out,
                                                 struct GNUNET_TIME_Relative
                                                 latency, int amount,
-                                                double preference);
+                                                unsigned long long preference);
 
 
 /**
@@ -251,7 +251,7 @@ GNUNET_CORE_peer_configure (struct GNUNET_CORE_Handle *handle,
                             struct GNUNET_TIME_Relative timeout,
                             unsigned int bpm_out,
                             int amount,
-                            double preference,
+                            unsigned long long preference,
                             GNUNET_CORE_PeerConfigurationInfoCallback info,
                             void *info_cls);
 

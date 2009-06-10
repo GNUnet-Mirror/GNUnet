@@ -25,11 +25,7 @@
  *
  * POST-TESTING:
  * - revisit API (which arguments are used, needed)?
- * - add code to re-transmit key if first attempt failed
- *   + timeout on connect / key exchange, etc.
- *   + timeout for automatic re-try, etc.
- * - add code to give up re-transmission of key if many attempts fail
- * - add code to send PINGs if we are about to time-out otherwise
+ * - add code to send PINGs if we are about to time-out otherwise (?)
  * ? add heuristic to do another send_key in "handle_set_key"
  *   in case previous attempt failed / didn't work / persist
  *   (but don't do it always to avoid storm of SET_KEY's going
@@ -47,6 +43,7 @@
  *   could ideally be changed to O(1) hash map lookups)
  */
 #include "platform.h"
+#include "gnunet_constants.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_peerinfo_service.h"
@@ -63,14 +60,18 @@
  */
 #define MAX_WINDOW_TIME (5 * 60 * 1000)
 
+/**
+ * Minimum of bytes per minute (out) to assign to any connected peer.
+ * Should be rather low; values larger than DEFAULT_BPM_IN_OUT make no
+ * sense.
+ */
+#define MIN_BPM_PER_PEER GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT
 
 /**
- * Amount of bytes per minute (in/out) to assume initially
- * (before either peer has communicated any particular
- * preference).  Should be rather low.
+ * What is the smallest change (in number of bytes per minute)
+ * that we consider significant enough to bother triggering?
  */
-#define DEFAULT_BPM_IN_OUT 2048
-
+#define MIN_BPM_CHANGE 32
 
 /**
  * After how much time past the "official" expiration time do
@@ -81,60 +82,55 @@
  */
 #define PAST_EXPIRATION_DISCARD_TIME GNUNET_TIME_UNIT_SECONDS
 
-
 /**
  * What is the maximum delay for a SET_KEY message?
  */
 #define MAX_SET_KEY_DELAY GNUNET_TIME_UNIT_SECONDS
-
 
 /**
  * What how long do we wait for SET_KEY confirmation initially?
  */
 #define INITIAL_SET_KEY_RETRY_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
 
-
 /**
  * What is the maximum delay for a PING message?
  */
 #define MAX_PING_DELAY GNUNET_TIME_UNIT_SECONDS
-
 
 /**
  * What is the maximum delay for a PONG message?
  */
 #define MAX_PONG_DELAY GNUNET_TIME_UNIT_SECONDS
 
+/**
+ * How often do we recalculate bandwidth quotas?
+ */
+#define QUOTA_UPDATE_FREQUENCY GNUNET_TIME_UNIT_SECONDS
 
 /**
  * What is the priority for a SET_KEY message?
  */
 #define SET_KEY_PRIORITY 0xFFFFFF
 
-
 /**
  * What is the priority for a PING message?
  */
 #define PING_PRIORITY 0xFFFFFF
-
 
 /**
  * What is the priority for a PONG message?
  */
 #define PONG_PRIORITY 0xFFFFFF
 
-
 /**
  * How many messages do we queue per peer at most?
  */
 #define MAX_PEER_QUEUE_SIZE 16
 
-
 /**
  * How many non-mandatory messages do we queue per client at most?
  */
 #define MAX_CLIENT_QUEUE_SIZE 32
-
 
 /**
  * What is the maximum age of a message for us to consider
@@ -145,7 +141,6 @@
  * from connecting to us.
  */
 #define MAX_MESSAGE_AGE GNUNET_TIME_UNIT_DAYS
-
 
 /**
  * What is the maximum size for encrypted messages?  Note that this
@@ -178,6 +173,7 @@ enum PeerStateMachine
  * that are NOT encrypted.
  */
 #define ENCRYPTED_HEADER_SIZE (sizeof(struct GNUNET_MessageHeader) + sizeof(uint32_t) + sizeof(GNUNET_HashCode))
+
 
 /**
  * Encapsulation for encrypted messages exchanged between
@@ -403,6 +399,11 @@ struct Neighbour
   GNUNET_SCHEDULER_TaskIdentifier retry_set_key_task;
 
   /**
+   * ID of task used for updating bandwidth quota for this neighbour.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier quota_update_task;
+
+  /**
    * At what time did we generate our encryption key?
    */
   struct GNUNET_TIME_Absolute encrypt_key_created;
@@ -430,7 +431,7 @@ struct Neighbour
   struct GNUNET_TIME_Relative last_latency;
 
   /**
-   * At what frequency are we currently re-trying SET KEY messages?
+   * At what frequency are we currently re-trying SET_KEY messages?
    */
   struct GNUNET_TIME_Relative set_key_retry_frequency;
 
@@ -465,7 +466,7 @@ struct Neighbour
   /**
    * How valueable were the messages of this peer recently?
    */
-  double current_preference;
+  unsigned long long current_preference;
 
   /**
    * Bit map indicating which of the 32 sequence numbers before the last
@@ -501,7 +502,7 @@ struct Neighbour
 
   /**
    * Internal bandwidth limit set for this peer (initially
-   * typcially set to "-1").  "bpm_out" is MAX of
+   * typically set to "-1").  "bpm_out" is MAX of
    * "bpm_out_internal_limit" and "bpm_out_external_limit".
    */
   uint32_t bpm_out_internal_limit;
@@ -641,14 +642,63 @@ static struct GNUNET_SERVER_Handle *server;
 static struct GNUNET_TRANSPORT_Handle *transport;
 
 /**
+ * Linked list of our clients.
+ */
+static struct Client *clients;
+
+/**
  * We keep neighbours in a linked list (for now).
  */
 static struct Neighbour *neighbours;
 
 /**
- * Linked list of our clients.
+ * Sum of all preferences among all neighbours.
  */
-static struct Client *clients;
+static unsigned long long preference_sum;
+
+/**
+ * Total number of neighbours we have.
+ */
+static unsigned int neighbour_count;
+
+/**
+ * How much inbound bandwidth are we supposed to be using?
+ */
+static unsigned long long bandwidth_target_in;
+
+/**
+ * How much outbound bandwidth are we supposed to be using?
+ */
+static unsigned long long bandwidth_target_out;
+
+
+
+/**
+ * A preference value for a neighbour was update.  Update
+ * the preference sum accordingly.
+ *
+ * @param inc how much was a preference value increased?
+ */
+static void
+update_preference_sum (unsigned long long inc)
+{
+  struct Neighbour *n;
+  unsigned long long os;
+
+  os = preference_sum;
+  preference_sum += inc;
+  if (preference_sum >= os)
+    return; /* done! */
+  /* overflow! compensate by cutting all values in half! */
+  preference_sum = 0;
+  n = neighbours;
+  while (n != NULL)
+    {
+      n->current_preference /= 2;
+      preference_sum += n->current_preference;
+      n = n->next;
+    }    
+}
 
 
 /**
@@ -1010,6 +1060,7 @@ handle_client_request_configure (void *cls,
   struct ConfigurationInfoMessage cim;
   struct Client *c;
   int reserv;
+  unsigned long long old_preference;
 
 #if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1036,9 +1087,14 @@ handle_client_request_configure (void *cls,
             reserv = n->available_recv_window;
           n->available_recv_window -= reserv;
         }
-      n->current_preference += rcm->preference_change;
-      if (n->current_preference < 0)
-        n->current_preference = 0;
+      old_preference = n->current_preference;
+      n->current_preference += GNUNET_ntohll(rcm->preference_change);
+      if (old_preference > n->current_preference) 
+	{
+	  /* overflow; cap at maximum value */
+	  n->current_preference = (unsigned long long) -1;
+	}
+      update_preference_sum (n->current_preference - old_preference);
       cim.reserved_amount = htonl (reserv);
       cim.bpm_in = htonl (n->bpm_in);
       cim.bpm_out = htonl (n->bpm_out);
@@ -2800,6 +2856,87 @@ handle_transport_receive (void *cls,
 
 
 /**
+ * Function that recalculates the bandwidth quota for the
+ * given neighbour and transmits it to the transport service.
+ * 
+ * @param cls neighbour for the quota update
+ * @param tc context
+ */
+static void
+neighbour_quota_update (void *cls,
+			const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
+ * Schedule the task that will recalculate the bandwidth
+ * quota for this peer (and possibly force a disconnect of
+ * idle peers by calculating a bandwidth of zero).
+ */
+static void
+schedule_quota_update (struct Neighbour *n)
+{
+  GNUNET_assert (n->quota_update_task ==
+		 GNUNET_SCHEDULER_NO_PREREQUISITE_TASK);
+  n->quota_update_task
+    = GNUNET_SCHEDULER_add_delayed (sched,
+				    GNUNET_NO,
+				    GNUNET_SCHEDULER_PRIORITY_IDLE,
+				    GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+				    QUOTA_UPDATE_FREQUENCY,
+				    &neighbour_quota_update,
+				    n);
+}
+
+
+/**
+ * Function that recalculates the bandwidth quota for the
+ * given neighbour and transmits it to the transport service.
+ * 
+ * @param cls neighbour for the quota update
+ * @param tc context
+ */
+static void
+neighbour_quota_update (void *cls,
+			const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Neighbour *n = cls;
+  uint32_t q_in;
+  double pref_rel;
+  double share;
+  unsigned long long distributable;
+  
+  n->quota_update_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+  /* calculate relative preference among all neighbours;
+     divides by a bit more to avoid division by zero AND to
+     account for possibility of new neighbours joining any time 
+     AND to convert to double... */
+  pref_rel = n->current_preference / (1.0 + preference_sum);
+  share = 0;
+  distributable = 0;
+  if (bandwidth_target_out > neighbour_count * MIN_BPM_PER_PEER)
+    distributable = bandwidth_target_out - neighbour_count * MIN_BPM_PER_PEER;
+  share = distributable * pref_rel;
+  q_in = MIN_BPM_PER_PEER + (unsigned long long) share;
+  /* check if we want to disconnect for good due to inactivity */
+  if ( (GNUNET_TIME_absolute_get_duration (n->last_activity).value > GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.value) &&
+       (GNUNET_TIME_absolute_get_duration (n->time_established).value > GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.value) )
+    q_in = 0; /* force disconnect */
+  if ( (n->bpm_in + MIN_BPM_CHANGE < q_in) ||
+       (n->bpm_in - MIN_BPM_CHANGE > q_in) ) 
+    {
+      n->bpm_in = q_in;
+      GNUNET_TRANSPORT_set_quota (transport,
+				  &n->peer,
+				  n->bpm_in, 
+				  n->bpm_out,
+				  GNUNET_TIME_UNIT_FOREVER_REL,
+				  NULL, NULL);
+    }
+  schedule_quota_update (n);
+}
+
+
+/**
  * Function called by transport to notify us that
  * a peer connected to us (on the network level).
  *
@@ -2827,6 +2964,7 @@ handle_transport_notify_connect (void *cls,
   n = GNUNET_malloc (sizeof (struct Neighbour));
   n->next = neighbours;
   neighbours = n;
+  neighbour_count++;
   n->peer = *peer;
   n->last_latency = latency;
   GNUNET_CRYPTO_aes_create_session_key (&n->encrypt_key);
@@ -2834,10 +2972,10 @@ handle_transport_notify_connect (void *cls,
   n->set_key_retry_frequency = INITIAL_SET_KEY_RETRY_FREQUENCY;
   n->last_asw_update = now;
   n->last_arw_update = now;
-  n->bpm_in = DEFAULT_BPM_IN_OUT;
-  n->bpm_out = DEFAULT_BPM_IN_OUT;
+  n->bpm_in = GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT;
+  n->bpm_out = GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT;
   n->bpm_out_internal_limit = (uint32_t) - 1;
-  n->bpm_out_external_limit = DEFAULT_BPM_IN_OUT;
+  n->bpm_out_external_limit = GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT;
   n->ping_challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                                 (uint32_t) - 1);
 #if DEBUG_CORE
@@ -2845,9 +2983,10 @@ handle_transport_notify_connect (void *cls,
               "Received connection from `%4s'.\n",
               GNUNET_i2s (&n->peer));
 #endif
+  schedule_quota_update (n);
   cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
   cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
-  cnm.bpm_available = htonl (DEFAULT_BPM_IN_OUT);
+  cnm.bpm_available = htonl (n->bpm_out);
   cnm.peer = *peer;
   cnm.last_activity = GNUNET_TIME_absolute_hton (now);
   send_to_all_clients (&cnm.header, GNUNET_YES);
@@ -2857,6 +2996,7 @@ handle_transport_notify_connect (void *cls,
 /**
  * Free the given entry for the neighbour (it has
  * already been removed from the list at this point).
+ *
  * @param n neighbour to free
  */
 static void
@@ -2880,6 +3020,8 @@ free_neighbour (struct Neighbour *n)
     GNUNET_SCHEDULER_cancel (sched, n->retry_plaintext_task);
   if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
     GNUNET_SCHEDULER_cancel (sched, n->retry_set_key_task);
+  if (n->quota_update_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
+    GNUNET_SCHEDULER_cancel (sched, n->quota_update_task);
   GNUNET_free_non_null (n->public_key);
   GNUNET_free_non_null (n->pending_ping);
   GNUNET_free (n);
@@ -2922,6 +3064,8 @@ handle_transport_notify_disconnect (void *cls,
     neighbours = n->next;
   else
     p->next = n->next;
+  GNUNET_assert (neighbour_count > 0);
+  neighbour_count--;
   cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
   cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT);
   cnm.bpm_available = htonl (0);
@@ -2952,6 +3096,8 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   while (NULL != (n = neighbours))
     {
       neighbours = n->next;
+      GNUNET_assert (neighbour_count > 0);
+      neighbour_count--;
       free_neighbour (n);
     }
   while (NULL != (c = clients))
@@ -2983,12 +3129,17 @@ run (void *cls,
   cfg = c;
   /* parse configuration */
   if (
-#if 0
        (GNUNET_OK !=
         GNUNET_CONFIGURATION_get_value_number (c,
                                                "CORE",
-                                               "XX",
-                                               &qin)) ||
+                                               "TOTAL_QUOTA_IN",
+                                               &bandwidth_target_in)) ||
+       (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_number (c,
+                                               "CORE",
+                                               "TOTAL_QUOTA_OUT",
+                                               &bandwidth_target_out)) ||
+#if 0
        (GNUNET_OK !=
         GNUNET_CONFIGURATION_get_value_number (c,
                                                "CORE",
@@ -3052,8 +3203,6 @@ run (void *cls,
 static void
 cleanup (void *cls, struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-
-
   if (my_private_key != NULL)
     GNUNET_CRYPTO_rsa_key_free (my_private_key);
 }

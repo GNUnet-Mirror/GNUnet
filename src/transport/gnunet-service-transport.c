@@ -29,6 +29,7 @@
  */
 #include "platform.h"
 #include "gnunet_client_lib.h"
+#include "gnunet_constants.h"
 #include "gnunet_getopt_lib.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_os_lib.h"
@@ -81,12 +82,6 @@
  * for our own addresses when we create a HELLO.
  */
 #define HELLO_ADDRESS_EXPIRATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 12)
-
-/**
- * After how long do we consider a connection to a peer dead
- * if we don't receive messages from the peer?
- */
-#define IDLE_CONNECTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 
 /**
@@ -356,7 +351,7 @@ struct NeighbourList
   uint64_t last_received;
 
   /**
-   * Global quota for outbound traffic for the neighbour in bytes/ms.
+   * Global quota for inbound traffic for the neighbour in bytes/ms.
    */
   uint32_t quota_in;
 
@@ -641,16 +636,6 @@ static struct GNUNET_SERVER_Handle *server;
 static struct NeighbourList *neighbours;
 
 /**
- * Default bandwidth quota for receiving for new peers in bytes/ms.
- */
-static uint32_t default_quota_in;
-
-/**
- * Default bandwidth quota for sending for new peers in bytes/ms.
- */
-static uint32_t default_quota_out;
-
-/**
  * Number of neighbours we'd like to have.
  */
 static uint32_t max_connect_per_transport;
@@ -930,7 +915,7 @@ transmit_send_continuation (void *cls,
     }
   if (result == GNUNET_OK)
     {
-      rl->timeout = GNUNET_TIME_relative_to_absolute (IDLE_CONNECTION_TIMEOUT);
+      rl->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
     }
   else
     {
@@ -1139,7 +1124,7 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
                              rl,
                              &neighbour->id,
                              mq->message,
-                             IDLE_CONNECTION_TIMEOUT,
+                             GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                              &transmit_send_continuation, mq);
 }
 
@@ -1510,7 +1495,7 @@ notify_clients_connect (const struct GNUNET_PeerIdentity *peer,
 #endif
   cim.header.size = htons (sizeof (struct ConnectInfoMessage));
   cim.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
-  cim.quota_out = htonl (default_quota_out);
+  cim.quota_out = htonl (GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT / (60*1000));
   cim.latency = GNUNET_TIME_relative_hton (latency);
   memcpy (&cim.id, peer, sizeof (struct GNUNET_PeerIdentity));
   cpos = clients;
@@ -2196,15 +2181,15 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer)
   n->id = *peer;
   n->last_quota_update = GNUNET_TIME_absolute_get ();
   n->peer_timeout =
-    GNUNET_TIME_relative_to_absolute (IDLE_CONNECTION_TIMEOUT);
-  n->quota_in = default_quota_in;
+    GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+  n->quota_in = (GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT + 59999) / (60 * 1000);
   add_plugins (n);
   n->hello_version_sent = our_hello_version;
   n->timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
                                                   GNUNET_NO,
                                                   GNUNET_SCHEDULER_PRIORITY_IDLE,
                                                   GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
-                                                  IDLE_CONNECTION_TIMEOUT,
+                                                  GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                                   &neighbour_timeout_task, n);
   transmit_to_peer (NULL,
                     (const struct GNUNET_MessageHeader *) our_hello,
@@ -2297,7 +2282,7 @@ plugin_env_receive (void *cls,
           service_context->connect_attempts++;
         }
       service_context->timeout
-        = GNUNET_TIME_relative_to_absolute (IDLE_CONNECTION_TIMEOUT);
+        = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
       service_context->plugin_handle = plugin_context;
       service_context->latency = latency;
     }
@@ -2306,12 +2291,12 @@ plugin_env_receive (void *cls,
   n->last_received += msize;
   GNUNET_SCHEDULER_cancel (sched, n->timeout_task);
   n->peer_timeout =
-    GNUNET_TIME_relative_to_absolute (IDLE_CONNECTION_TIMEOUT);
+    GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
   n->timeout_task =
     GNUNET_SCHEDULER_add_delayed (sched, GNUNET_NO,
                                   GNUNET_SCHEDULER_PRIORITY_IDLE,
                                   GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
-                                  IDLE_CONNECTION_TIMEOUT,
+                                  GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                   &neighbour_timeout_task, n);
   update_quota (n);
   if (n->quota_violation_count > QUOTA_VIOLATION_DROP_THRESHOLD)
@@ -2426,7 +2411,7 @@ handle_start (void *cls,
       /* tell new client about all existing connections */
       cim.header.size = htons (sizeof (struct ConnectInfoMessage));
       cim.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
-      cim.quota_out = htonl (default_quota_out);
+      cim.quota_out = htonl (GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT / (60 * 1000));
       cim.latency = GNUNET_TIME_relative_hton (GNUNET_TIME_UNIT_ZERO);  /* FIXME? */
       im = GNUNET_malloc (sizeof (struct InboundMessage) +
                           sizeof (struct GNUNET_MessageHeader));
@@ -2639,7 +2624,7 @@ create_environment (struct TransportPlugin *plug)
   plug->env.receive = &plugin_env_receive;
   plug->env.lookup = &plugin_env_lookup_address;
   plug->env.notify_address = &plugin_env_notify_address;
-  plug->env.default_quota_in = default_quota_in;
+  plug->env.default_quota_in = (GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT + 59999) / (60 * 1000);
   plug->env.max_connections = max_connect_per_transport;
 }
 
@@ -2738,8 +2723,6 @@ run (void *cls,
   char *plugs;
   char *pos;
   int no_transports;
-  unsigned long long qin;
-  unsigned long long qout;
   unsigned long long tneigh;
   char *keyfile;
 
@@ -2747,16 +2730,6 @@ run (void *cls,
   cfg = c;
   /* parse configuration */
   if ((GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_number (c,
-                                              "TRANSPORT",
-                                              "DEFAULT_QUOTA_IN",
-                                              &qin)) ||
-      (GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_number (c,
-                                              "TRANSPORT",
-                                              "DEFAULT_QUOTA_OUT",
-                                              &qout)) ||
-      (GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_number (c,
                                               "TRANSPORT",
                                               "NEIGHBOUR_LIMIT",
@@ -2773,8 +2746,6 @@ run (void *cls,
       return;
     }
   max_connect_per_transport = (uint32_t) tneigh;
-  default_quota_in = (uint32_t) qin;
-  default_quota_out = (uint32_t) qout;
   my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
   if (my_private_key == NULL)

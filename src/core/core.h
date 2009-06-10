@@ -198,7 +198,7 @@ struct RequestConfigureMessage
    * the specified amont.  The traffic preference is used to determine
    * the share of bandwidth this peer will typcially be assigned.
    */
-  double preference_change GNUNET_PACKED;
+  uint64_t preference_change GNUNET_PACKED;
 
   /**
    * Identity of the peer being configured.

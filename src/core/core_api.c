@@ -904,7 +904,7 @@ GNUNET_CORE_peer_configure (struct GNUNET_CORE_Handle *handle,
                             struct GNUNET_TIME_Relative timeout,
                             unsigned int bpm_out,
                             int amount,
-                            double preference,
+                            unsigned long long preference,
                             GNUNET_CORE_PeerConfigurationInfoCallback info,
                             void *info_cls)
 {
@@ -938,7 +938,7 @@ GNUNET_CORE_peer_configure (struct GNUNET_CORE_Handle *handle,
   rcm->reserved = htonl (0);
   rcm->limit_outbound_bpm = htonl (bpm_out);
   rcm->reserve_inbound = htonl (amount);
-  rcm->preference_change = preference;
+  rcm->preference_change = GNUNET_htonll(preference);
   rcm->peer = *peer;
   if (handle->pending_head == th)
     trigger_next_request (handle);

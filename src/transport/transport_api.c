@@ -92,7 +92,7 @@ struct NeighbourList
   uint64_t last_sent;
 
   /**
-   * Global quota for outbound traffic to the neighbour in bytes/ms.
+   * Quota for outbound traffic to the neighbour in bytes/ms.
    */
   uint32_t quota_out;
 

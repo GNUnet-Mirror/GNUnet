@@ -15,6 +15,7 @@ gnunetinclude_HEADERS = \
   gnunet_arm_service.h \
   gnunet_client_lib.h \
   gnunet_common.h \
+  gnunet_constants.h \
   gnunet_configuration_lib.h \
   gnunet_container_lib.h \
   gnunet_core_service.h \
