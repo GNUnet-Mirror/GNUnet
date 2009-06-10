@@ -293,9 +293,11 @@ GNUNET_NETWORK_socket_create_from_accept (struct GNUNET_SCHEDULER_Handle
       GNUNET_free (uaddr);
       return NULL;
     }
+#if DEBUG_NETWORK
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("Accepting connection from `%s'\n"),
 	      GNUNET_a2s(uaddr, addrlen));
+#endif
   ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_SocketHandle) + maxbuf);
   ret->write_buffer = (char *) &ret[1];
   ret->write_buffer_size = maxbuf;
@@ -439,10 +441,12 @@ try_connect (struct GNUNET_NETWORK_SocketHandle *sock)
           GNUNET_break (0 == CLOSE (s));
           return GNUNET_SYSERR;
         }
+#if DEBUG_NETWORK
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  _("Trying to connect to `%s'\n"),
 		  GNUNET_a2s(sock->ai_pos->ai_addr,
 			     sock->ai_pos->ai_addrlen));
+#endif
       if ((0 != CONNECT (s,
                          sock->ai_pos->ai_addr,
                          sock->ai_pos->ai_addrlen)) && (errno != EINPROGRESS))
@@ -624,9 +628,11 @@ GNUNET_NETWORK_socket_create_from_sockaddr (struct GNUNET_SCHEDULER_Handle
       GNUNET_break (0 == CLOSE (s));
       return NULL;
     }
+#if DEBUG_NETWORK
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("Trying to connect to `%s'\n"),
 	      GNUNET_a2s(serv_addr, addrlen));
+#endif
   if ((0 != CONNECT (s, serv_addr, addrlen)) && (errno != EINPROGRESS))
     {
       /* maybe refused / unsupported address, try next */
@@ -1057,8 +1063,10 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
   if (sock->sock == -1)
     {
+#if DEBUG_NETWORK
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   _("Could not satisfy pending transmission request, socket closed or connect failed.\n"));
+#endif
       transmit_error (sock);
       return;                   /* connect failed for good, we're finished */
     }
