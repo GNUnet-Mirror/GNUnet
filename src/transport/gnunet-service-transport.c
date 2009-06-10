@@ -2811,7 +2811,10 @@ run (void *cls,
     }
   if (no_transports)
     refresh_hello ();
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Transport service ready.\n"));
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      _("Transport service ready.\n"));
+#endif
   /* process client requests */
   GNUNET_SERVER_add_handlers (server, handlers);
 }

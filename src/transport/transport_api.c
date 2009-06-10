@@ -1403,7 +1403,6 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
       th->notify (th->notify_cls, 0, NULL);
       GNUNET_free (th);
     }
-
   while (NULL != (th = handle->connect_wait_head))
     {
       handle->connect_wait_head = th->next;

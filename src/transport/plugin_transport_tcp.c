@@ -38,7 +38,7 @@
 #include "plugin_transport.h"
 #include "transport.h"
 
-#define DEBUG_TCP GNUNET_YES
+#define DEBUG_TCP GNUNET_NO
 
 /**
  * After how long do we expire an address that we
@@ -587,7 +587,7 @@ do_transmit (void *cls, size_t size, void *buf)
         = GNUNET_TIME_absolute_get ();
     }
   process_pending_messages (session);
-#if DEBUG_TCP || 1
+#if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "tcp", "Transmitting %u bytes\n", ret);
 #endif
