@@ -36,7 +36,6 @@
 static void
 check_hostname (void *cls, const struct sockaddr *sa, socklen_t salen)
 {
-  char buf[INET6_ADDRSTRLEN];
   int *ok = cls;
 
   if (salen == 0)
