@@ -427,9 +427,11 @@ main_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       return;
     }
   msize = ntohs (msg->size);
+#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Processing message of type %u and size %u from core service\n",
               ntohs (msg->type), msize);
+#endif
   switch (ntohs (msg->type))
     {
     case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT:
@@ -468,9 +470,11 @@ main_handler (void *cls, const struct GNUNET_MessageHeader *msg)
         }
       ntm = (const struct NotifyTrafficMessage *) msg;
       em = (const struct GNUNET_MessageHeader *) &ntm[1];
+#if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Received message of type %u from peer `%4s'\n",
                   ntohs (em->type), GNUNET_i2s (&ntm->peer));
+#endif
       if ((GNUNET_NO == h->inbound_hdr_only) &&
           (msize != ntohs (em->size) + sizeof (struct NotifyTrafficMessage)))
         {
@@ -620,9 +624,11 @@ init_reply_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     }
   m = (const struct InitReplyMessage *) msg;
   /* start our message processing loop */
+#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               _
               ("Successfully connected to core service, starting processing loop.\n"));
+#endif
   h->currently_down = GNUNET_NO;
   trigger_next_request (h);
   GNUNET_CLIENT_receive (h->client,
@@ -631,8 +637,10 @@ init_reply_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     {
       /* mark so we don't call init on reconnect */
       h->init = NULL;
+#if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   _("Successfully connected to core service.\n"));
+#endif
       GNUNET_CRYPTO_hash (&m->publicKey,
                           sizeof (struct
                                   GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
@@ -800,9 +808,11 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
   GNUNET_assert (h->hcnt <
                  (GNUNET_SERVER_MAX_MESSAGE_SIZE -
                   sizeof (struct InitMessage)) / sizeof (uint16_t));
+#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Trying to connect to core service in next %llu ms.\n",
               timeout.value);
+#endif
   h->th =
     GNUNET_CLIENT_notify_transmit_ready (h->client,
                                          sizeof (struct InitMessage) +
