@@ -37,3 +37,9 @@ Linux tripwire 2.6.27-14-generic #1 SMP Wed Apr 15 18:59:16 UTC 2009 i686 GNU/Li
 At revision 8519.
 Success
 ================END====================
+================START===================
+Linux tripwire 2.6.27-14-generic #1 SMP Wed Apr 15 18:59:16 UTC 2009 i686 GNU/Linux
+Wed Jun 10 00:02:39 MDT 2009
+At revision 8523.
+Success
+================END====================
