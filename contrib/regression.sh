@@ -1,8 +1,10 @@
 #!/bin/sh
 cd
 cd gnunet
+svn up
 echo "================START===================" >> regression.txt
 uname -a >> regression.txt
+date >> regression.txt
 svn up >> regression.txt
 export GNUNET_PREFIX=$HOME
 export PATH=$HOME/bin:$PATH
