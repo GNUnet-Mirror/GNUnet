@@ -1789,6 +1789,8 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
               size, GNUNET_i2s (target));
 #endif
   n = find_neighbour (handle, target);
+  if (n->transmit_handle != NULL)
+    return NULL; /* already have a request pending for this peer! */
   ctw = GNUNET_malloc (sizeof (struct ClientTransmitWrapper));
   th = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_TransmitHandle));
   ctw->notify = notify;
