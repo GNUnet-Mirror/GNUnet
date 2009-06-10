@@ -10,6 +10,7 @@ Core:
 
 Util:
 * consider adding "get_time" to "configuration" API
+* improve disk API [Nils]
 
 TESTCASES WANTED:
 For these functions, it would be nice if we had testcases ("make check")
