@@ -4,7 +4,6 @@ Core:
 * API review: should "bpm" and "last_activity" arguments be 
   included in the ClientEventHandler?
 * Internal: topology
-* Internal: bandwidth allocation (inbound limits, trust)
 * Internal: advertising (propagate other peers' HELLOs, find new ones)
 * Internal: bootstrapping
   => bootstrap should use plugins, possible multiple at the same time!
