@@ -14,3 +14,8 @@ At revision 8509.
 Failed
 Success
 ================END====================
+================START===================
+Linux tripwire 2.6.27-14-generic #1 SMP Wed Apr 15 18:59:16 UTC 2009 i686 GNU/Linux
+At revision 8519.
+Success
+================END====================
