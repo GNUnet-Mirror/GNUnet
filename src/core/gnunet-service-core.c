@@ -1381,7 +1381,7 @@ select_messages (struct Neighbour *n,
     }
   /* guard against sending "tiny" messages with large headers without
      urgent deadlines */
-  if ((slack > 1000) && (size > 4 * off))
+  if ( (slack > 1000) && (size > 4 * off) )
     {
       /* less than 25% of message would be filled with
          deadlines still being met if we delay by one
@@ -1496,19 +1496,23 @@ discard_expired_messages (struct Neighbour *n)
   struct MessageEntry *prev;
   struct MessageEntry *next;
   struct MessageEntry *pos;
-  struct GNUNET_TIME_Absolute cutoff;
+  struct GNUNET_TIME_Absolute now;
+  struct GNUNET_TIME_Relative delta;
 
-  cutoff = GNUNET_TIME_relative_to_absolute(PAST_EXPIRATION_DISCARD_TIME);
+  now = GNUNET_TIME_absolute_get ();
   prev = NULL;
   pos = n->messages;
   while (pos != NULL) 
     {
       next = pos->next;
-      if (pos->deadline.value < cutoff.value)
+      delta = GNUNET_TIME_absolute_get_difference (pos->deadline, now);
+      if (delta.value > PAST_EXPIRATION_DISCARD_TIME.value)
 	{
+#if DEBUG_CORE
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		      "Message is %llu ms past due, discarding.\n",
-		      cutoff.value - pos->deadline.value);
+		      delta.value);
+#endif
 	  if (prev == NULL)
 	    n->messages = next;
 	  else
@@ -1781,7 +1785,8 @@ handle_client_send (void *cls,
                   "Core received `%s' request for `%4s', will try to establish connection within %llu ms\n",
 		  "SEND",
                   GNUNET_i2s (&sm->peer),
-		  sm->deadline.value);
+		  GNUNET_TIME_absolute_get_remaining
+		  (GNUNET_TIME_absolute_ntoh(sm->deadline)).value);
 #endif
       msize += sizeof (struct SendMessage);
       /* ask transport to connect to the peer */
@@ -2248,8 +2253,10 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
 #endif
   if (n->public_key == NULL)
     {
+#if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Lacking public key for peer, trying to obtain one.\n");
+#endif
       m_cpy = GNUNET_malloc (sizeof (struct SetKeyMessage));
       memcpy (m_cpy, m, sizeof (struct SetKeyMessage));
       /* lookup n's public key, then try again */
