@@ -400,8 +400,6 @@ start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
       GNUNET_free (config);
       return;
     }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Preparing to start `%s'\n"), servicename);
   sl = GNUNET_malloc (sizeof (struct ServiceList));
   sl->name = GNUNET_strdup (servicename);
   sl->next = running;
