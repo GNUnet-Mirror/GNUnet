@@ -157,7 +157,7 @@ GNUNET_DISK_get_blocks_available (const char *part)
   szDrive[3] = 0;
   if (!GetDiskFreeSpace (szDrive, &dwDummy, &dwDummy, &dwBlocks, &dwDummy))
     {
-      GNUNET_GE_LOG (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                      _("`%s' failed for drive `%s': %u\n"),
                      "GetDiskFreeSpace", szDrive, GetLastError ());
 

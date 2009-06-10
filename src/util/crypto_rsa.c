@@ -559,7 +559,10 @@ rsa_decode_key (const struct RsaPrivateKeyBinaryEncoded *encoding)
 struct GNUNET_CRYPTO_RsaPrivateKey *
 GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
 {
+#ifndef MINGW
+  // FIXME NILS
   struct flock fl;
+#endif
   struct GNUNET_CRYPTO_RsaPrivateKey *ret;
   struct RsaPrivateKeyBinaryEncoded *enc;
   struct stat sbuf;
@@ -581,11 +584,13 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
                                     "open", filename);
           return NULL;
         }
+#ifndef MINGW
       memset (&fl, 0, sizeof (struct flock));
       fl.l_type = F_WRLCK;
       fl.l_whence = SEEK_SET;
       fl.l_len = sizeof (struct RsaPrivateKeyBinaryEncoded);
       cnt = 0;
+
       while (0 != fcntl (fd, F_SETLK, &fl))
         {
           sleep (1);
@@ -604,6 +609,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
           fl.l_whence = SEEK_SET;
           fl.l_len = sizeof (struct RsaPrivateKeyBinaryEncoded);
         }
+#endif
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   _("Creating a new private key.  This may take a while.\n"));
       ret = GNUNET_CRYPTO_rsa_key_create ();
@@ -612,6 +618,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
       GNUNET_assert (enc != NULL);
       GNUNET_assert (ntohs (enc->len) == WRITE (fd, enc, ntohs (enc->len)));
       GNUNET_free (enc);
+#ifndef MINGW
       fdatasync (fd);
       memset (&fl, 0, sizeof (struct flock));
       fl.l_type = F_UNLCK;
@@ -621,6 +628,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
       if (0 != fcntl (fd, F_SETLK, &fl))
         GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
                                   "fcntl", filename);
+#endif
       GNUNET_assert (0 == CLOSE (fd));
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   _("Stored new private key in `%s'.\n"), filename);
@@ -636,6 +644,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
   cnt = 0;
   while (1)
     {
+#ifndef MINGW
       memset (&fl, 0, sizeof (struct flock));
       fl.l_type = F_RDLCK;
       fl.l_whence = SEEK_SET;
@@ -658,11 +667,13 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
           sleep (1);
           continue;
         }
+#endif
       if (0 != STAT (filename, &sbuf))
         {
           /* eh, what!? File we opened is now gone!? */
           GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
                                     "stat", filename);
+#ifndef MINGW
           memset (&fl, 0, sizeof (struct flock));
           fl.l_type = F_UNLCK;
           fl.l_whence = SEEK_SET;
@@ -671,10 +682,12 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
             GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
                                       "fcntl", filename);
           GNUNET_assert (0 == CLOSE (fd));
+#endif
           return NULL;
         }
       if (sbuf.st_size < sizeof (struct RsaPrivateKeyBinaryEncoded))
         {
+#ifndef MINGW
           /* maybe we got the read lock before the hostkey generating
              process had a chance to get the write lock; give it up! */
           memset (&fl, 0, sizeof (struct flock));
@@ -698,6 +711,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
             }
           sleep (2);            /* wait a bit longer! */
           continue;
+#endif
         }
       break;
     }
@@ -713,12 +727,14 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
                   filename);
       GNUNET_free (enc);
     }
+#ifndef MINGW
   memset (&fl, 0, sizeof (struct flock));
   fl.l_type = F_UNLCK;
   fl.l_whence = SEEK_SET;
   fl.l_len = sizeof (struct RsaPrivateKeyBinaryEncoded);
   if (0 != fcntl (fd, F_SETLK, &fl))
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "fcntl", filename);
+#endif
   GNUNET_assert (0 == CLOSE (fd));
   return ret;
 }

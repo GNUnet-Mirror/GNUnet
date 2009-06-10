@@ -4,6 +4,7 @@ plugindir = $(libdir)/gnunet
 
 if MINGW
  WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols -lole32 -lshell32 -luuid -liconv -lstdc++ -lcomdlg32 -lgdi32
+ WINSRC = win.cc winproc.c
 endif
 
 if USE_COVERAGE
@@ -45,7 +46,8 @@ libgnunetutil_la_SOURCES = \
   service.c \
   signal.c \
   strings.c \
-  time.c
+  time.c \
+  $(WINSRC)
 
 
 libgnunetutil_la_LIBADD = \

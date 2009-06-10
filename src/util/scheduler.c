@@ -470,10 +470,12 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *cls)
   struct Task *tpos;
 
   sig_shutdown = 0;
+#ifndef MINGW
   shc_int = GNUNET_SIGNAL_handler_install (SIGINT, &sighandler_shutdown);
   shc_term = GNUNET_SIGNAL_handler_install (SIGTERM, &sighandler_shutdown);
   shc_quit = GNUNET_SIGNAL_handler_install (SIGQUIT, &sighandler_shutdown);
   shc_hup = GNUNET_SIGNAL_handler_install (SIGHUP, &sighandler_shutdown);
+#endif
   memset (&sched, 0, sizeof (sched));
   sched.current_priority = GNUNET_SCHEDULER_PRIORITY_DEFAULT;
   GNUNET_SCHEDULER_add_continuation (&sched,

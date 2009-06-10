@@ -379,9 +379,12 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
       return -1;
     }
+#ifndef MINGW
+  // FIXME NILS
   if (0 != fcntl (fd, F_SETFD, fcntl (fd, F_GETFD) | FD_CLOEXEC))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                          "fcntl");
+#endif
   if (SETSOCKOPT (fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) < 0)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                          "setsockopt");

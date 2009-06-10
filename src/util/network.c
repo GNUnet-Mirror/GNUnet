@@ -249,9 +249,12 @@ GNUNET_NETWORK_socket_create_from_accept (struct GNUNET_SCHEDULER_Handle
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "accept");
       return NULL;
     }
+#ifndef MINGW
+  // FIXME NILS
   if (0 != fcntl (fd, F_SETFD, fcntl (fd, F_GETFD) | FD_CLOEXEC))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                          "fcntl");
+#endif
   if (addrlen > sizeof (addr))
     {
       GNUNET_break (0);
@@ -287,7 +290,7 @@ GNUNET_NETWORK_socket_create_from_accept (struct GNUNET_SCHEDULER_Handle
       if (aret == GNUNET_NO)
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		    _("Access denied to `%s'\n"),
-		    GNUNET_a2s(uaddr, addrlen));        
+		    GNUNET_a2s(uaddr, addrlen));
       GNUNET_break (0 == SHUTDOWN (fd, SHUT_RDWR));
       GNUNET_break (0 == CLOSE (fd));
       GNUNET_free (uaddr);
@@ -432,9 +435,12 @@ try_connect (struct GNUNET_NETWORK_SocketHandle *sock)
           sock->ai_pos = sock->ai_pos->ai_next;
           continue;
         }
+#ifndef MINGW
+      // FIXME NILS
       if (0 != fcntl (s, F_SETFD, fcntl (s, F_GETFD) | FD_CLOEXEC))
         GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                              "fcntl");
+#endif
       if (GNUNET_SYSERR == socket_set_blocking (s, GNUNET_NO))
         {
           /* we'll treat this one as fatal */
@@ -524,7 +530,7 @@ connect_continuation (void *cls,
     }
   /* connect succeeded! clean up "ai" */
 #if DEBUG_NETWORK
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Connection to `%s' succeeded!\n",
 	      GNUNET_a2s(sock->addr, sock->addrlen));
 #endif
@@ -619,9 +625,11 @@ GNUNET_NETWORK_socket_create_from_sockaddr (struct GNUNET_SCHEDULER_Handle
                            GNUNET_ERROR_TYPE_BULK, "socket");
       return NULL;
     }
+#ifndef MINGW
   if (0 != fcntl (s, F_SETFD, fcntl (s, F_GETFD) | FD_CLOEXEC))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                          "fcntl");
+#endif
   if (GNUNET_SYSERR == socket_set_blocking (s, GNUNET_NO))
     {
       /* we'll treat this one as fatal */
@@ -712,7 +720,7 @@ destroy_continuation (void *cls,
         }
     }
   if (sock->sock != -1)
-    GNUNET_break (0 == CLOSE (sock->sock));    
+    GNUNET_break (0 == CLOSE (sock->sock));
   GNUNET_free_non_null (sock->addr);
   if (sock->ai != NULL)
     freeaddrinfo (sock->ai);
@@ -810,7 +818,14 @@ receive_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
   GNUNET_assert (FD_ISSET (sh->sock, tc->read_ready));
 RETRY:
-  ret = RECV (sh->sock, buffer, sh->max, MSG_DONTWAIT);
+  ret = RECV (sh->sock, buffer, sh->max,
+#ifndef MINGW
+      // FIXME MINGW
+      MSG_DONTWAIT
+#else
+      0
+#endif
+      );
   if (ret == -1)
     {
       if (errno == EINTR)
@@ -825,7 +840,7 @@ RETRY:
 #if DEBUG_NETWORK
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "receive_ready read %u/%u bytes from `%s'!\n",
-	      (unsigned int) ret, 
+	      (unsigned int) ret,
 	      sh->max,
 	      GNUNET_a2s(sh->addr, sh->addrlen));
 #endif
@@ -889,7 +904,7 @@ receive_again (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 					     GNUNET_TIME_absolute_get_remaining
 					     (sh->receive_timeout),
 					     sh->sock, &receive_ready,
-					     sh);   
+					     sh);
 }
 
 
@@ -1086,7 +1101,14 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 RETRY:
   ret = SEND (sock->sock,
               &sock->write_buffer[sock->write_buffer_pos],
-              have, MSG_DONTWAIT | MSG_NOSIGNAL);
+              have,
+#ifndef MINGW
+              // FIXME NILS
+              MSG_DONTWAIT | MSG_NOSIGNAL
+#else
+              0
+#endif
+  );
   if (ret == -1)
     {
       if (errno == EINTR)

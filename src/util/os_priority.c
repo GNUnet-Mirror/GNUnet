@@ -123,9 +123,11 @@ GNUNET_OS_set_process_priority (pid_t proc,
 pid_t
 GNUNET_OS_start_process (const char *filename, ...)
 {
+  va_list ap;
+
+#ifndef MINGW
   pid_t ret;
   char **argv;
-  va_list ap;
   int argc;
 
   ret = fork ();
@@ -149,6 +151,42 @@ GNUNET_OS_start_process (const char *filename, ...)
   execvp (filename, argv);
   GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "execvp", filename);
   exit (1);
+#else
+  char *arg;
+  unsigned int cmdlen;
+  char *cmd, *idx;
+  STARTUPINFO start;
+  PROCESS_INFORMATION proc;
+
+  cmdlen = 0;
+  va_start (ap, filename);
+  while (NULL != (arg = va_arg (ap, char *)))
+    cmdlen = cmdlen + strlen (arg) + 3;
+  va_end (ap);
+
+  cmd = idx = GNUNET_malloc (sizeof(char) * cmdlen);
+  va_start (ap, filename);
+  while (NULL != (arg = va_arg (ap, char *)))
+    idx += sprintf (idx, "\"%s\" ", arg);
+  va_end (ap);
+
+  memset (&start, 0, sizeof(start));
+  start.cb = sizeof(start);
+
+  if (!CreateProcess (filename, cmd, NULL, NULL, FALSE, DETACHED_PROCESS, NULL,
+      NULL, &start, &proc))
+  {
+    SetErrnoFromWinError (GetLastError ());
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "fork");
+    return -1;
+  }
+  CloseHandle (proc.hProcess);
+  CloseHandle (proc.hThread);
+
+  GNUNET_free(cmd);
+
+  return proc.dwProcessId;
+#endif
 }
 
 
@@ -164,6 +202,7 @@ GNUNET_OS_start_process (const char *filename, ...)
 pid_t
 GNUNET_OS_start_process_v (const char *filename, char *const argv[])
 {
+#ifndef MINGW
   pid_t ret;
 
   ret = fork ();
@@ -176,6 +215,46 @@ GNUNET_OS_start_process_v (const char *filename, char *const argv[])
   execvp (filename, argv);
   GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "execvp", filename);
   exit (1);
+#else
+  char **arg;
+  unsigned int cmdlen;
+  char *cmd, *idx;
+  STARTUPINFO start;
+  PROCESS_INFORMATION proc;
+
+  cmdlen = 0;
+  arg = argv;
+  while (*arg)
+  {
+    cmdlen = cmdlen + strlen (*arg) + 3;
+    arg++;
+  }
+
+  cmd = idx = GNUNET_malloc (sizeof(char) * cmdlen);
+  arg = argv;
+  while (*arg)
+  {
+    idx += sprintf (idx, "\"%s\" ", *arg);
+    arg++;
+  }
+
+  memset (&start, 0, sizeof(start));
+  start.cb = sizeof(start);
+
+  if (!CreateProcess (filename, cmd, NULL, NULL, FALSE, DETACHED_PROCESS, NULL,
+      NULL, &start, &proc))
+  {
+    SetErrnoFromWinError (GetLastError ());
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "fork");
+    return -1;
+  }
+  CloseHandle (proc.hProcess);
+  CloseHandle (proc.hThread);
+
+  GNUNET_free(cmd);
+
+  return proc.dwProcessId;
+#endif
 }
 
 
