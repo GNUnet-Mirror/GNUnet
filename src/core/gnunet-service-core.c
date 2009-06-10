@@ -1500,6 +1500,9 @@ discard_expired_messages (struct Neighbour *n)
       next = pos->next;
       if (pos->deadline.value < cutoff.value)
 	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		      "Message is %llu ms past due, discarding.\n",
+		      cutoff.value - pos->deadline.value);
 	  if (prev == NULL)
 	    n->messages = next;
 	  else
@@ -1595,6 +1598,7 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
       /* ready to continue */
       break;
     }
+  discard_expired_messages (n);
   if (n->messages == NULL)
     {
 #if DEBUG_CORE
@@ -1604,7 +1608,6 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
 #endif
       return;                   /* no pending messages */
     }
-  discard_expired_messages (n);
   if (n->encrypted_head != NULL)
     {
 #if DEBUG_CORE
@@ -1619,7 +1622,6 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
   deadline = GNUNET_TIME_UNIT_FOREVER_ABS;
   priority = 0;
   used = sizeof (struct EncryptedMessage);
-
   used += batch_message (n,
                          &pbuf[used],
                          MAX_ENCRYPTED_MESSAGE_SIZE - used,
