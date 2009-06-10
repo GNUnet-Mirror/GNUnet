@@ -830,7 +830,13 @@ send_to_client (struct Client *client,
     }
   if ( (queue_size >= MAX_CLIENT_QUEUE_SIZE) &&
        (can_drop == GNUNET_YES) )
-    return;
+    {
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  "Too many messages in queue for the client, dropping the new message.\n");
+#endif
+      return;
+    }
 
   msize = ntohs (msg->size);
   e = GNUNET_malloc (sizeof (struct Event) + msize);
