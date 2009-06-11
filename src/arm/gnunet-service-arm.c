@@ -549,7 +549,6 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ServiceList *pos;
   pid_t pid;
-  int status;
   const char *statstr;
   int statcode;
   struct stat sbuf;
@@ -562,7 +561,7 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           running = pos->next;
           if (0 != PLIBC_KILL (pos->pid, SIGTERM))
             GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-          if (pos->pid != waitpid (pos->pid, NULL, 0))
+          if (GNUNET_OK != GNUNET_OS_process_wait(pos->pid))
             GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
           free_entry (pos);
         }
@@ -575,25 +574,28 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                 MAINT_FREQUENCY, &maint, cfg);
 
   /* check for services that died (WAITPID) */
-  while (0 < (pid = waitpid (0, &status, WNOHANG)))
+  for (pos = running; pos != NULL; pos = pos->next)
     {
-      if (WIFSTOPPED (status) || WIFCONTINUED (status))
+      enum GNUNET_OS_ProcessStatusType statusType;
+      unsigned long statusCode;
+
+      if (GNUNET_OS_process_status(pos->pid, &statusType, &statusCode) != GNUNET_OK)
+      {
+        GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR, "GNUNET_OS_process_status");
         continue;
-      pos = find_pid (pid);
-      if (pos == NULL)
-        {
-          /* we killed the service */
-          continue;
-        }
-      if (WIFEXITED (status))
+      }
+
+      if (statusType == GNUNET_OS_PROCESS_STOPPED || statusType == GNUNET_OS_PROCESS_RUNNING)
+        continue;
+      else if (statusType == GNUNET_OS_PROCESS_EXITED)
         {
           statstr = _( /* process termination method */ "exit");
-          statcode = WEXITSTATUS (status);
+          statcode = statusCode;
         }
-      else if (WTERMSIG (status))
+      else if (statusType == GNUNET_OS_PROCESS_SIGNALED)
         {
           statstr = _( /* process termination method */ "signal");
-          statcode = WTERMSIG (status);
+          statcode = statusCode;
         }
       else
         {

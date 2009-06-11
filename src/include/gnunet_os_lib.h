@@ -60,6 +60,19 @@ enum GNUNET_OS_InstallationPathKind
 
 
 /**
+ * Process status types
+ */
+enum GNUNET_OS_ProcessStatusType
+{
+  GNUNET_OS_PROCESS_UNKNOWN,
+  GNUNET_OS_PROCESS_RUNNING,
+  GNUNET_OS_PROCESS_STOPPED,
+  GNUNET_OS_PROCESS_EXITED,
+  GNUNET_OS_PROCESS_SIGNALED
+};
+
+
+/**
  * Get the path to a specific GNUnet installation directory or, with
  * GNUNET_OS_IPK_SELF_PREFIX, the current running apps installation
  * directory.
@@ -144,6 +157,23 @@ pid_t GNUNET_OS_start_process (const char *filename, ...);
  * @return process ID of the new process, -1 on error
  */
 pid_t GNUNET_OS_start_process_v (const char *filename, char *const argv[]);
+
+/**
+ * Retrieve the status of a process
+ * @param proc process ID
+ * @param type status type
+ * @param code return code/signal number
+ * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ */
+int GNUNET_OS_process_status (pid_t proc, enum GNUNET_OS_ProcessStatusType *type,
+    unsigned long *code);
+
+/**
+ * Wait for a process
+ * @param proc process ID to wait for
+ * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ */
+int GNUNET_OS_process_wait (pid_t proc);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

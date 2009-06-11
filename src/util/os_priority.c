@@ -257,9 +257,114 @@ GNUNET_OS_start_process_v (const char *filename, char *const argv[])
 #endif
 }
 
+/**
+ * Retrieve the status of a process
+ * @param proc process ID
+ * @param type status type
+ * @param code return code/signal number
+ * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ */
+int
+GNUNET_OS_process_status (pid_t proc, enum GNUNET_OS_ProcessStatusType *type,
+    unsigned long *code)
+{
+#ifndef MINGW
+  int status;
 
+  if (proc != waitpid (0, &status, WNOHANG))
+    return GNUNET_SYSERR;
+  if (WIFEXITED (status))
+  {
+    *type = GNUNET_OS_PROCESS_EXITED;
+    *code = WEXITSTATUS (status);
+  }
+  else if (WIFSIGNALED (status))
+  {
+    *type = GNUNET_OS_PROCESS_SIGNALED;
+    *code = WTERMSIG (status);
+  }
+  else if (WIFSTOPPED (status))
+  {
+    *type = GNUNET_OS_PROCESS_SIGNALED;
+    *code = WSTOPSIG (status);
+  }
+  else if (WIFCONTINUED (status))
+  {
+    *type = GNUNET_OS_PROCESS_RUNNING;
+    *code = 0;
+  }
+  else
+  {
+    *type = GNUNET_OS_PROCESS_UNKNOWN;
+    *code = 0;
+  }
+#else
+  HANDLE h;
+  DWORD c;
 
+  h = OpenProcess (PROCESS_QUERY_INFORMATION, FALSE, proc);
+  if (INVALID_HANDLE_VALUE == h)
+  {
+    SetErrnoFromWinError (GetLastError ());
+    return GNUNET_SYSERR;
+  }
 
+  c = GetExitCodeProcess (proc, &c);
+  if (STILL_ACTIVE == c)
+  {
+    *type = GNUNET_OS_PROCESS_RUNNING;
+    *code = 0;
+  }
+  else
+  {
+    *type = GNUNET_OS_PROCESS_EXITED;
+    *code = c;
+  }
+
+  CloseHandle (h);
+#endif
+
+  return GNUNET_OK;
+}
+
+/**
+ * Wait for a process
+ * @param proc process ID to wait for
+ * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ */
+int
+GNUNET_OS_process_wait (pid_t proc)
+{
+#ifndef MINGW
+  if (proc != waitpid (proc, NULL, 0))
+    return GNUNET_SYSERR;
+
+  return GNUNET_OK;
+#else
+  HANDLE h;
+  DWORD c;
+  int ret;
+
+  h = OpenProcess (PROCESS_QUERY_INFORMATION, FALSE, proc);
+  if (INVALID_HANDLE_VALUE == h)
+  {
+    SetErrnoFromWinError (GetLastError ());
+    return GNUNET_SYSERR;
+  }
+
+  if (WAIT_OBJECT_0 != WaitForSingleObject (h, INFINITE))
+  {
+    SetErrnoFromWinError (GetLastError ());
+    ret = GNUNET_SYSERR;
+  }
+  else
+    ret = GNUNET_OK;
+
+  CloseHandle (h);
+
+  return ret;
+#endif
+}
 
 
 /* end of os_priority.c */
