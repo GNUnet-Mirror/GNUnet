@@ -27,7 +27,6 @@
  * - topology management:
  *   + bootstrapping (transport offer hello, plugins)
  *   + internal neighbour selection
- *   + update (and use!) bandwidth usage statistics
  *
  * Considerations for later:
  * - check that hostkey used by transport (for HELLOs) is the
@@ -446,7 +445,7 @@ struct Neighbour
    * bandwidth-hogs are sampled at a frequency of about 78s!);
    * may get negative if we have VERY high priority content.
    */
-  long long available_send_window; // USE!
+  long long available_send_window; 
 
   /**
    * How much downstream capacity of this peer has been reserved for
@@ -455,7 +454,7 @@ struct Neighbour
    * make sure that this reserved amount of bandwidth is actually
    * available).
    */
-  long long available_recv_window; // USE!
+  long long available_recv_window; 
 
   /**
    * How valueable were the messages of this peer recently?
@@ -699,19 +698,22 @@ update_preference_sum (unsigned long long inc)
  * Recalculate the number of bytes we expect to
  * receive or transmit in a given window.
  *
+ * @param force force an update now (even if not much time has passed)
  * @param window pointer to the byte counter (updated)
  * @param ts pointer to the timestamp (updated)
  * @param bpm number of bytes per minute that should
  *        be added to the window.
  */
 static void
-update_window (long long *window,
+update_window (int force,
+	       long long *window,
                struct GNUNET_TIME_Absolute *ts, unsigned int bpm)
 {
   struct GNUNET_TIME_Relative since;
 
   since = GNUNET_TIME_absolute_get_duration (*ts);
-  if (since.value < 60 * 1000)
+  if ( (force == GNUNET_NO) &&
+       (since.value < 60 * 1000) )
     return;                     /* not even a minute has passed */
   *ts = GNUNET_TIME_absolute_get ();
   *window += (bpm * since.value) / 60 / 1000;
@@ -1065,6 +1067,10 @@ handle_client_request_configure (void *cls,
   memset (&cim, 0, sizeof (cim));
   if ((n != NULL) && (n->status == PEER_STATE_KEY_CONFIRMED))
     {
+      update_window (GNUNET_YES,
+		     &n->available_send_window,
+		     &n->last_asw_update,
+		     n->bpm_out);
       n->bpm_out_internal_limit = ntohl (rcm->limit_outbound_bpm);
       n->bpm_out = GNUNET_MAX (n->bpm_out_internal_limit,
                                n->bpm_out_external_limit);
@@ -1075,7 +1081,8 @@ handle_client_request_configure (void *cls,
         }
       else if (reserv > 0)
         {
-          update_window (&n->available_recv_window,
+          update_window (GNUNET_NO,
+			 &n->available_recv_window,
                          &n->last_arw_update, n->bpm_in);
           if (n->available_recv_window < reserv)
             reserv = n->available_recv_window;
@@ -1151,6 +1158,7 @@ notify_encrypted_transmit_ready (void *cls, size_t size, void *buf)
       GNUNET_assert (size >= m->size);
       memcpy (cbuf, &m[1], m->size);
       ret = m->size;
+      n->available_send_window -= m->size;
       process_encrypted_neighbour_queue (n);
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1364,7 +1372,11 @@ select_messages (struct Neighbour *n,
       min = NULL;
       min_prio = -1;
       discard_low_prio = GNUNET_NO;
-      /* number of bytes available for transmission at time "t" */
+      /* calculate number of bytes available for transmission at time "t" */
+      update_window (GNUNET_NO,
+		     &n->available_send_window,
+		     &n->last_asw_update,
+		     n->bpm_out);
       avail = n->available_send_window;
       t = n->last_asw_update;
       /* how many bytes have we (hypothetically) scheduled so far */
@@ -2660,7 +2672,7 @@ handle_encrypted_message (struct Neighbour *n,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core service receives `%s' request from `%4s'.\n",
               "ENCRYPTED_MESSAGE", GNUNET_i2s (&n->peer));
-#endif
+#endif  
   /* decrypt */
   if (GNUNET_OK !=
       do_decrypt (n,
@@ -2728,6 +2740,10 @@ handle_encrypted_message (struct Neighbour *n,
     }
 
   /* process decrypted message(s) */
+  update_window (GNUNET_YES,
+		 &n->available_send_window,
+		 &n->last_asw_update,
+		 n->bpm_out);
   n->bpm_out_external_limit = ntohl (pt->inbound_bpm_limit);
   n->bpm_out = GNUNET_MAX (n->bpm_out_external_limit,
                            n->bpm_out_internal_limit);
