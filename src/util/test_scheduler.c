@@ -114,7 +114,7 @@ task5 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   int *ok = cls;
   GNUNET_assert (5 == *ok);
   (*ok) = 6;
-  GNUNET_assert (0 == pipe (fds));
+  GNUNET_assert (0 == PIPE (fds));
   GNUNET_SCHEDULER_add_read (tc->sched,
                              GNUNET_NO,
                              GNUNET_SCHEDULER_PRIORITY_DEFAULT,

@@ -43,7 +43,9 @@ main (int argc, char *argv[])
   unsigned int logs = 0;
 
   fclose (stderr);
+#ifndef MINGW
   stderr = NULL;
+#endif
   GNUNET_logger_add (&my_log, &logs);
   GNUNET_logger_add (&my_log, &logs);
   GNUNET_log (GNUNET_ERROR_TYPE_BULK, "Testing...\n");

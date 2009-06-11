@@ -120,7 +120,7 @@ load (struct GNUNET_SERVER_Handle *server,
       GNUNET_free (fn);
       return;
     }
-  buf = mmap (NULL, sb.st_size, PROT_READ, MAP_SHARED, fd, 0);
+  buf = MMAP (NULL, sb.st_size, PROT_READ, MAP_SHARED, fd, 0);
   if (MAP_FAILED == buf)
     {
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "mmap", fn);
@@ -143,7 +143,7 @@ load (struct GNUNET_SERVER_Handle *server,
         }
       off += ntohs (msg->size);
     }
-  GNUNET_break (0 == munmap (buf, sb.st_size));
+  GNUNET_break (0 == MUNMAP (buf, sb.st_size));
   GNUNET_break (0 == CLOSE (fd));
   GNUNET_free (fn);
 }

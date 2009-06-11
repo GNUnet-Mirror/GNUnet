@@ -202,7 +202,7 @@ stop_arm (struct PeerContext *p)
 #if START_ARM
   if (0 != PLIBC_KILL (p->arm_pid, SIGTERM))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  if (p->arm_pid != waitpid (p->arm_pid, NULL, 0))
+  if (GNUNET_OS_process_wait(p->arm_pid) != GNUNET_OK)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "ARM process %u stopped\n", p->arm_pid);

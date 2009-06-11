@@ -220,7 +220,14 @@ getaddrinfo_resolve (struct GNUNET_SERVER_TransmitContext *tc,
                    AF_INET) ? "IPv4" : ((domain ==
                                          AF_INET6) ? "IPv6" : "any"),
                   gai_strerror (s));
-      if ((s == EAI_BADFLAGS) || (s == EAI_MEMORY) || (s == EAI_SYSTEM))
+      if ((s == EAI_BADFLAGS) || (s == EAI_MEMORY) ||
+#ifndef MINGW
+          (s == EAI_SYSTEM)
+#else
+          // FIXME NILS
+          1
+#endif
+      )
         return GNUNET_NO;       /* other function may still succeed */
       return GNUNET_SYSERR;
     }

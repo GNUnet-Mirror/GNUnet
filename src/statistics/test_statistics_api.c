@@ -141,7 +141,7 @@ check ()
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
       ok = 1;
     }
-  waitpid (pid, NULL, 0);
+  GNUNET_OS_process_wait(pid);
   if (ok != 0)
     return ok;
   ok = 1;
@@ -160,7 +160,7 @@ check ()
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
       ok = 1;
     }
-  waitpid (pid, NULL, 0);
+  GNUNET_OS_process_wait(pid);
   return ok;
 }
 
