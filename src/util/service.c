@@ -754,7 +754,7 @@ static int
 setup_service (struct GNUNET_SERVICE_Context *sctx)
 {
   unsigned long long maxbuf;
-  unsigned long long idleout;
+  struct GNUNET_TIME_Relative idleout;
   char *hostname;
   unsigned long long port;
   int disablev6;
@@ -768,12 +768,12 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
                                        sctx->serviceName, "TIMEOUT"))
     {
       if (GNUNET_OK !=
-          GNUNET_CONFIGURATION_get_value_number (sctx->cfg,
-                                                 sctx->serviceName,
-                                                 "TIMEOUT", &idleout))
+          GNUNET_CONFIGURATION_get_value_time (sctx->cfg,
+					       sctx->serviceName,
+					       "TIMEOUT", &idleout))
         return GNUNET_SYSERR;
 
-      sctx->timeout.value = idleout;
+      sctx->timeout = idleout;
     }
   else
     sctx->timeout = GNUNET_TIME_UNIT_FOREVER_REL;

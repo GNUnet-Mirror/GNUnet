@@ -402,6 +402,24 @@ GNUNET_CONFIGURATION_get_value_number (struct GNUNET_CONFIGURATION_Handle
 }
 
 int
+GNUNET_CONFIGURATION_get_value_time (struct GNUNET_CONFIGURATION_Handle
+				     *cfg, const char *section,
+				     const char *option,
+				     struct GNUNET_TIME_Relative *time)
+{
+  unsigned long long num;
+  int ret;
+
+  ret = GNUNET_CONFIGURATION_get_value_number (cfg,
+					       section,
+					       option,
+					       &num);
+  if (ret == GNUNET_OK)
+    time->value = (uint64_t) num;
+  return ret;
+}
+
+int
 GNUNET_CONFIGURATION_get_value_string (struct GNUNET_CONFIGURATION_Handle
                                        *cfg, const char *section,
                                        const char *option, char **value)

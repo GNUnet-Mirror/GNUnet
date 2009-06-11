@@ -7,7 +7,6 @@ Core:
   => bootstrap should use plugins, possible multiple at the same time!
 
 Util:
-* consider adding "get_time" to "configuration" API
 * improve disk API [Nils]
 
 TESTCASES WANTED:
@@ -52,7 +51,7 @@ that would cause them to be executed and check that they are working:
   - handle_transport_notify_disconnect
 
 
-PHASE #2: (Goal: recover basic core functionality)
+PHASE #2: (Goal: recover basic file-sharing functionality)
 
 Datastores:
 * implement sqlite-based sqstore/datastore service
@@ -70,15 +69,7 @@ Applications:
 * FS / fs-libs
 
 Databases:
-* mysql & postgres backend
-
-Transports:
-* UDP backend (need LIBRARY to support (de)fragmentation!)
-* HTTP backend
-* Testing:
-  +  Testcases for set_quota, timeouts, disconnects, transmit_ready_cancel
-  + Better coverage of gnunet-service-transport (hello validation)
-  + direct test of plugins compliance to plugin API
+* have ONE backend working
 
 
 PHASE #3: (Goal: ready for pre-release) [completion-goal: end of 2009]
@@ -89,6 +80,17 @@ PHASE #3: (Goal: ready for pre-release) [completion-goal: end of 2009]
 * tbench
 * tracekit
 * vpn
+
+Transports:
+* UDP backend (need LIBRARY to support (de)fragmentation!)
+* HTTP backend
+* Testing:
+  +  Testcases for set_quota, timeouts, disconnects, transmit_ready_cancel
+  + Better coverage of gnunet-service-transport (hello validation)
+  + direct test of plugins compliance to plugin API
+
+Databases:
+* sqlite, mysql & postgres backend
 
 
 

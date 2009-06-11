@@ -38,6 +38,7 @@ extern "C"
 #endif
 
 #include "gnunet_common.h"
+#include "gnunet_time_lib.h"
 
 /**
  * A configuration object.
@@ -97,6 +98,17 @@ int GNUNET_CONFIGURATION_get_value_number (struct GNUNET_CONFIGURATION_Handle
                                            *cfg, const char *section,
                                            const char *option,
                                            unsigned long long *number);
+
+/**
+ * Get a configuration value that should be a relative time.
+ *
+ * @param time set to the time value stored in the configuration
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int GNUNET_CONFIGURATION_get_value_time (struct GNUNET_CONFIGURATION_Handle
+					 *cfg, const char *section,
+					 const char *option,
+					 struct GNUNET_TIME_Relative *time);
 
 /**
  * Test if we have a value for a particular option
