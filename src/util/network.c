@@ -460,6 +460,7 @@ try_connect (struct GNUNET_NETWORK_SocketHandle *sock)
           /* maybe refused / unsupported address, try next */
           GNUNET_log_strerror (GNUNET_ERROR_TYPE_INFO, "connect");
           GNUNET_break (0 == CLOSE (s));
+          sock->ai_pos = sock->ai_pos->ai_next;
           continue;
         }
       break;
