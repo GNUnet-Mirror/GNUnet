@@ -1,8 +1,6 @@
 PHASE #1: (Goal: settle key design questions)
 
 Core:
-* API review: should "bpm" and "last_activity" arguments be 
-  included in the ClientEventHandler?
 * Internal: topology
 * Internal: advertising (propagate other peers' HELLOs, find new ones)
 * Internal: bootstrapping

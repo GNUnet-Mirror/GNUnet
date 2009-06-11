@@ -90,21 +90,18 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 connect_notify (void *cls,
-                const struct GNUNET_PeerIdentity *peer,
-                unsigned int bpm, struct GNUNET_TIME_Absolute last_activity)
+                const struct GNUNET_PeerIdentity *peer)
 {
   GNUNET_assert ((ok == 5) || (ok == 6));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Encrypted connection established to peer `%4s' (%u bpm)\n",
-              GNUNET_i2s (peer), bpm);
+              "Encrypted connection established to peer `%4s'\n",
+              GNUNET_i2s (peer));
 }
 
 
 static void
 disconnect_notify (void *cls,
-                   const struct GNUNET_PeerIdentity *peer,
-                   unsigned int bpm,
-                   struct GNUNET_TIME_Absolute last_activity)
+                   const struct GNUNET_PeerIdentity *peer)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Encrypted connection to `%4s' cut\n", GNUNET_i2s (peer));

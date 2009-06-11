@@ -71,17 +71,14 @@ static int ok;
 
 static void
 connect_notify (void *cls,
-                const struct GNUNET_PeerIdentity *peer,
-                unsigned int bpm, struct GNUNET_TIME_Absolute last_activity)
+                const struct GNUNET_PeerIdentity *peer)
 {
 }
 
 
 static void
 disconnect_notify (void *cls,
-                   const struct GNUNET_PeerIdentity *peer,
-                   unsigned int bpm,
-                   struct GNUNET_TIME_Absolute last_activity)
+                   const struct GNUNET_PeerIdentity *peer)
 {
 }
 

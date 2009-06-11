@@ -989,8 +989,7 @@ handle_client_init (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Sending `%s' message to client.\n", "NOTIFY_CONNECT");
 #endif
-      cnm.bpm_available = htonl (n->bpm_out);
-      cnm.last_activity = GNUNET_TIME_absolute_hton (n->last_activity);
+      cnm.reserved = htonl (0);
       cnm.peer = n->peer;
       send_to_client (c, &cnm.header, GNUNET_NO);
       n = n->next;
@@ -2997,9 +2996,8 @@ handle_transport_notify_connect (void *cls,
   schedule_quota_update (n);
   cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
   cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
-  cnm.bpm_available = htonl (n->bpm_out);
+  cnm.reserved = htonl (0);
   cnm.peer = *peer;
-  cnm.last_activity = GNUNET_TIME_absolute_hton (now);
   send_to_all_clients (&cnm.header, GNUNET_YES);
 }
 
@@ -3079,9 +3077,8 @@ handle_transport_notify_disconnect (void *cls,
   neighbour_count--;
   cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
   cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT);
-  cnm.bpm_available = htonl (0);
+  cnm.reserved = htonl (0);
   cnm.peer = *peer;
-  cnm.last_activity = GNUNET_TIME_absolute_hton (n->last_activity);
   send_to_all_clients (&cnm.header, GNUNET_YES);
   free_neighbour (n);
 }

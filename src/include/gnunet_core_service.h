@@ -56,17 +56,10 @@ struct GNUNET_CORE_Handle;
  *
  * @param cls closure
  * @param peer peer identity this notification is about
- * @param bpm how much bandwidth is available
- *            (for sending) to this peer
- * @param last_activity when did we last
- *            receive anything from this peer?
  */
 typedef void (*GNUNET_CORE_ClientEventHandler) (void *cls,
                                                 const struct
-                                                GNUNET_PeerIdentity * peer,
-                                                unsigned int bpm,
-                                                struct GNUNET_TIME_Absolute
-                                                last_activity);
+                                                GNUNET_PeerIdentity * peer);
 
 
 /**

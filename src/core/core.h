@@ -112,23 +112,14 @@ struct ConnectNotifyMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Available bandwidth to this peer; zero for disconnect.
-   * [TODO: currently set to hard-coded constant and hence
-   * not really useful, right?]
+   * Always zero.
    */
-  uint32_t bpm_available GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * Identity of the connecting peer.
    */
   struct GNUNET_PeerIdentity peer;
-
-  /**
-   * Time of our last interaction with the peer; close
-   * to "now" for connect messages.
-   * [TODO: is this useful?]
-   */
-  struct GNUNET_TIME_AbsoluteNBO last_activity;
 
 };
 
