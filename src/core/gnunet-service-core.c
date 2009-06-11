@@ -24,21 +24,15 @@
  * @author Christian Grothoff
  *
  * POST-TESTING:
- * - revisit API (which arguments are used, needed)?
- * - add code to send PINGs if we are about to time-out otherwise (?)
- * ? add heuristic to do another send_key in "handle_set_key"
- *   in case previous attempt failed / didn't work / persist
- *   (but don't do it always to avoid storm of SET_KEY's going
- *   back and forth!) --- alternatively, add "status" field
- *   of the other peer to the set key message, that way we'd
- *   know for sure!
- * - check that hostkey used by transport (for HELLOs) is the
- *   same as the hostkey that we are using!
  * - topology management:
  *   + bootstrapping (transport offer hello, plugins)
  *   + internal neighbour selection
- *   + update bandwidth usage statistics
- *   + bandwidth allocation (transport set quota)
+ *   + update (and use!) bandwidth usage statistics
+ *
+ * Considerations for later:
+ * - check that hostkey used by transport (for HELLOs) is the
+ *   same as the hostkey that we are using!
+ * - add code to send PINGs if we are about to time-out otherwise
  * - optimize lookup (many O(n) list traversals
  *   could ideally be changed to O(1) hash map lookups)
  */
@@ -452,7 +446,7 @@ struct Neighbour
    * bandwidth-hogs are sampled at a frequency of about 78s!);
    * may get negative if we have VERY high priority content.
    */
-  long long available_send_window;
+  long long available_send_window; // USE!
 
   /**
    * How much downstream capacity of this peer has been reserved for
@@ -461,7 +455,7 @@ struct Neighbour
    * make sure that this reserved amount of bandwidth is actually
    * available).
    */
-  long long available_recv_window;
+  long long available_recv_window; // USE!
 
   /**
    * How valueable were the messages of this peer recently?
@@ -515,7 +509,7 @@ struct Neighbour
   uint32_t bpm_out_external_limit;
 
   /**
-   * What was our PING challenge number?
+   * What was our PING challenge number (for this peer)?
    */
   uint32_t ping_challenge;
 
@@ -1219,6 +1213,7 @@ process_encrypted_neighbour_queue (struct Neighbour *n)
   n->th =
     GNUNET_TRANSPORT_notify_transmit_ready (transport, &n->peer,
                                             n->encrypted_head->size,
+					    n->encrypted_head->priority,
                                             GNUNET_TIME_absolute_get_remaining
                                             (n->encrypted_head->deadline),
                                             &notify_encrypted_transmit_ready,
@@ -1372,7 +1367,7 @@ select_messages (struct Neighbour *n,
       /* number of bytes available for transmission at time "t" */
       avail = n->available_send_window;
       t = n->last_asw_update;
-      /* how many bytes have we (hyptothetically) scheduled so far */
+      /* how many bytes have we (hypothetically) scheduled so far */
       off = 0;
       /* maximum time we can wait before transmitting anything
          and still make all of our deadlines */
@@ -1851,7 +1846,7 @@ handle_client_send (void *cls,
       if (NULL ==
 	  GNUNET_TRANSPORT_notify_transmit_ready (transport,
 						  &sm->peer,
-						  0,
+						  0, 0,
 						  GNUNET_TIME_absolute_get_remaining
 						  (GNUNET_TIME_absolute_ntoh
 						   (sm->deadline)),

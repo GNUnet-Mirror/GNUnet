@@ -168,6 +168,7 @@ struct GNUNET_TRANSPORT_TransmitHandle;
  * @param handle connection to transport service
  * @param target who should receive the message
  * @param size how big is the message we want to transmit?
+ * @param priority how important is the message?
  * @param timeout after how long should we give up (and call
  *        notify with buf NULL and size 0)?
  * @param notify function to call when we are ready to
@@ -182,6 +183,7 @@ struct GNUNET_TRANSPORT_TransmitHandle
                                            *handle,
                                            const struct GNUNET_PeerIdentity
                                            *target, size_t size,
+					   unsigned int priority,
                                            struct GNUNET_TIME_Relative
                                            timeout,
                                            GNUNET_NETWORK_TransmitReadyNotify

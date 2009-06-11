@@ -632,6 +632,7 @@ process_pending_messages (struct Session *session)
  *
  * @param cls closure
  * @param target who should receive this message
+ * @param priority how important is the message
  * @param msg1 first message to transmit
  * @param msg2 second message to transmit (can be NULL)
  * @param timeout how long should we try to transmit these?
@@ -643,6 +644,7 @@ process_pending_messages (struct Session *session)
 static void *
 tcp_plugin_send_to (void *cls,
                     const struct GNUNET_PeerIdentity *target,
+		    unsigned int priority,
                     const struct GNUNET_MessageHeader *msg1,
                     const struct GNUNET_MessageHeader *msg2,
                     struct GNUNET_TIME_Relative timeout,
@@ -971,6 +973,7 @@ session_try_connect (void *cls,
  * @param service_context value passed to the transport-service
  *        to identify the neighbour
  * @param target who should receive this message
+ * @param priority how important is the message
  * @param msg the message to transmit
  * @param cont continuation to call once the message has
  *        been transmitted (or if the transport is ready
@@ -984,7 +987,8 @@ static void *
 tcp_plugin_send (void *cls,
                  void *plugin_context,
                  struct ReadyList *service_context,
-                 const struct GNUNET_PeerIdentity *target,
+                 const struct GNUNET_PeerIdentity *target,   
+		 unsigned int priority,
                  const struct GNUNET_MessageHeader *msg,
                  struct GNUNET_TIME_Relative timeout,
                  GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)

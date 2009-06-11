@@ -224,6 +224,11 @@ struct GNUNET_TRANSPORT_TransmitHandle
    */
   size_t notify_size;
 
+  /**
+   * How important is this message?
+   */
+  unsigned int priority;
+
 };
 
 
@@ -1737,7 +1742,7 @@ client_notify_wrapper (void *cls, size_t size, void *buf)
   ret += sizeof (struct OutboundMessage);
   obm->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SEND);
   obm->header.size = htons (ret);
-  obm->reserved = htonl (0);
+  obm->priority = htonl (ctw->th->priority);
   obm->peer = ctw->th->target;
   GNUNET_free (ctw);
   return ret;
@@ -1754,6 +1759,7 @@ client_notify_wrapper (void *cls, size_t size, void *buf)
  * @param handle connection to transport service
  * @param target who should receive the message
  * @param size how big is the message we want to transmit?
+ * @param priority how important is the message?
  * @param timeout after how long should we give up (and call
  *        notify with buf NULL and size 0)?
  * @param notify function to call when we are ready to
@@ -1768,6 +1774,7 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
                                         *handle,
                                         const struct GNUNET_PeerIdentity
                                         *target, size_t size,
+					unsigned int priority,
                                         struct GNUNET_TIME_Relative timeout,
                                         GNUNET_NETWORK_TransmitReadyNotify
                                         notify, void *notify_cls)
@@ -1798,12 +1805,13 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
   ctw->notify_cls = notify_cls;
   ctw->th = th;
   th->handle = handle;
+  th->neighbour = n;
   th->target = *target;
   th->notify = &client_notify_wrapper;
   th->notify_cls = ctw;
-  th->notify_size = size + sizeof (struct OutboundMessage);
   th->timeout = GNUNET_TIME_relative_to_absolute (timeout);
-  th->neighbour = n;
+  th->notify_size = size + sizeof (struct OutboundMessage);
+  th->priority = priority;
   if (NULL == n)
     {
       pos = handle->connect_wait_head;

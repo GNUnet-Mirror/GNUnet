@@ -214,6 +214,11 @@ struct MessageQueue
    */
   int internal_msg;
 
+  /**
+   * How important is the message?
+   */
+  unsigned int priority;
+  
 };
 
 
@@ -1038,6 +1043,7 @@ try_unvalidated_addresses (struct NeighbourList *n)
       rl->plugin = plugin;
       rl->plugin_handle = plugin->api->send_to (plugin->api->cls,
                                                 &n->id,
+						0,
                                                 NULL,
                                                 NULL,
                                                 GNUNET_TIME_UNIT_ZERO,
@@ -1123,6 +1129,7 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
                              rl->plugin_handle,
                              rl,
                              &neighbour->id,
+			     mq->priority,
                              mq->message,
                              GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                              &transmit_send_continuation, mq);
@@ -1133,12 +1140,14 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
  * Send the specified message to the specified peer.
  *
  * @param client source of the transmission request (can be NULL)
+ * @param priority how important is the message
  * @param msg message to send
  * @param is_internal is this an internal message
  * @param neighbour handle to the neighbour for transmission
  */
 static void
 transmit_to_peer (struct TransportClient *client,
+		  unsigned int priority,
                   const struct GNUNET_MessageHeader *msg,
                   int is_internal, struct NeighbourList *neighbour)
 {
@@ -1174,6 +1183,7 @@ transmit_to_peer (struct TransportClient *client,
   mq->message = m;
   mq->neighbour = neighbour;
   mq->internal_msg = is_internal;
+  mq->priority = priority;
 
   /* find tail */
   mqe = neighbour->messages;
@@ -1259,7 +1269,7 @@ refresh_hello ()
   npos = neighbours;
   while (npos != NULL)
     {
-      transmit_to_peer (NULL,
+      transmit_to_peer (NULL, 0,
                         (const struct GNUNET_MessageHeader *) our_hello,
                         GNUNET_YES, npos);
       npos = npos->next;
@@ -1769,6 +1779,7 @@ check_hello_validated (void *cls,
       if (NULL ==
           tp->api->send_to (tp->api->cls,
                             &va->msg->target,
+			    0,
                             (const struct GNUNET_MessageHeader *) our_hello,
                             &va->msg->header,
                             HELLO_VERIFICATION_TIMEOUT,
@@ -1948,7 +1959,7 @@ process_ping (struct TransportPlugin *plugin,
       GNUNET_break (0);
       return;
     }
-  transmit_to_peer (NULL, &vcr.header, GNUNET_YES, n);
+  transmit_to_peer (NULL, 0, &vcr.header, GNUNET_YES, n);
 }
 
 
@@ -2191,7 +2202,7 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer)
                                                   GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
                                                   GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                                   &neighbour_timeout_task, n);
-  transmit_to_peer (NULL,
+  transmit_to_peer (NULL, 0,
                     (const struct GNUNET_MessageHeader *) our_hello,
                     GNUNET_YES, n);
   notify_clients_connect (peer, GNUNET_TIME_UNIT_FOREVER_REL);
@@ -2322,7 +2333,7 @@ plugin_env_receive (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Sending `%s' message to connecting peer.\n", "ACK");
 #endif
-      transmit_to_peer (NULL, &ack, GNUNET_YES, n);
+      transmit_to_peer (NULL, 0, &ack, GNUNET_YES, n);
       break;
     case GNUNET_MESSAGE_TYPE_TRANSPORT_PING:
       process_ping (plugin, peer, plugin_context, message);
@@ -2515,7 +2526,7 @@ handle_send (void *cls,
               ntohs (obmm->size),
               ntohs (obmm->type), GNUNET_i2s (&obm->peer));
 #endif
-  transmit_to_peer (tc, obmm, GNUNET_NO, n);
+  transmit_to_peer (tc, ntohl(obm->priority), obmm, GNUNET_NO, n);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 

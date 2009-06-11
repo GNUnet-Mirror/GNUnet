@@ -204,7 +204,7 @@ exchange_hello_last (void *cls,
   /* both HELLOs exchanged, get ready to test transmission! */
   GNUNET_TRANSPORT_notify_transmit_ready (p1.th,
                                           &p2.id,
-                                          256, TIMEOUT, &notify_ready, &p1);
+                                          256, 0, TIMEOUT, &notify_ready, &p1);
 }
 
 

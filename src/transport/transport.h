@@ -219,9 +219,9 @@ struct OutboundMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Always zero.
+   * Message priority.
    */
-  uint32_t reserved GNUNET_PACKED;
+  uint32_t priority GNUNET_PACKED;
 
   /**
    * Which peer should receive the message?

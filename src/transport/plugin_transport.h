@@ -213,6 +213,7 @@ struct GNUNET_TRANSPORT_PluginEnvironment
  *
  * @param cls closure
  * @param target who should receive this message
+ * @param priority how important is the message
  * @param msg1 first message to transmit
  * @param msg2 second message to transmit (can be NULL)
  * @param timeout how long should we try to transmit these?
@@ -225,6 +226,7 @@ typedef void *
   (*GNUNET_TRANSPORT_TransmitToAddressFunction) (void *cls,
                                                  const struct
                                                  GNUNET_PeerIdentity * target,
+						 unsigned int priority,
                                                  const struct
                                                  GNUNET_MessageHeader * msg1,
                                                  const struct
@@ -271,6 +273,7 @@ typedef void
  *        scheduled for immediate transmission, the plugin is to
  *        call the continuation with failure immediately
  * @param target who should receive this message
+ * @param priority how important is the message?
  * @param msg the message to transmit
  * @param timeout how long to wait at most for the transmission
  * @param cont continuation to call once the message has
@@ -287,6 +290,7 @@ typedef void *
                                         struct ReadyList * service_context,
                                         const struct GNUNET_PeerIdentity *
                                         target,
+					unsigned int priority,
                                         const struct GNUNET_MessageHeader *
                                         msg,
                                         struct GNUNET_TIME_Relative timeout,
