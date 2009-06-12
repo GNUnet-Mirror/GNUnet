@@ -157,7 +157,7 @@ check ()
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
       ok = 1;
     }
-  GNUNET_OS_process_wait(p->arm_pid);
+  GNUNET_OS_process_wait(pid);
   return ok;
 }
 
