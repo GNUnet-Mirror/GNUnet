@@ -529,6 +529,7 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   const char *statstr;
   int statcode;
   struct stat sbuf;
+  int ret;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     {
@@ -556,15 +557,13 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       enum GNUNET_OS_ProcessStatusType statusType;
       unsigned long statusCode;
 
-      if (GNUNET_OS_process_status(pos->pid, &statusType, &statusCode) != GNUNET_OK)
-      {
-        GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR, "GNUNET_OS_process_status");
+      if (GNUNET_SYSERR == (ret = GNUNET_OS_process_status(pos->pid, &statusType, &statusCode)))
         continue;
-      }
-
-      if (statusType == GNUNET_OS_PROCESS_STOPPED || statusType == GNUNET_OS_PROCESS_RUNNING)
+      if ( (ret == GNUNET_NO) ||
+	   (statusType == GNUNET_OS_PROCESS_STOPPED) || 
+	   (statusType == GNUNET_OS_PROCESS_RUNNING) )
         continue;
-      else if (statusType == GNUNET_OS_PROCESS_EXITED)
+      if (statusType == GNUNET_OS_PROCESS_EXITED)
         {
           statstr = _( /* process termination method */ "exit");
           statcode = statusCode;

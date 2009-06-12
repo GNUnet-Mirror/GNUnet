@@ -163,7 +163,7 @@ pid_t GNUNET_OS_start_process_v (const char *filename, char *const argv[]);
  * @param proc process ID
  * @param type status type
  * @param code return code/signal number
- * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ * @return GNUNET_OK on success, GNUNET_NO if the process is still running, GNUNET_SYSERR otherwise
  */
 int GNUNET_OS_process_status (pid_t proc, enum GNUNET_OS_ProcessStatusType *type,
     unsigned long *code);

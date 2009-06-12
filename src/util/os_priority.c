@@ -262,7 +262,7 @@ GNUNET_OS_start_process_v (const char *filename, char *const argv[])
  * @param proc process ID
  * @param type status type
  * @param code return code/signal number
- * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ * @return GNUNET_OK on success, GNUNET_NO if the process is still running, GNUNET_SYSERR otherwise
  */
 int
 GNUNET_OS_process_status (pid_t proc, enum GNUNET_OS_ProcessStatusType *type,
@@ -270,9 +270,22 @@ GNUNET_OS_process_status (pid_t proc, enum GNUNET_OS_ProcessStatusType *type,
 {
 #ifndef MINGW
   int status;
+  int ret;
 
-  if (proc != waitpid (0, &status, WNOHANG))
-    return GNUNET_SYSERR;
+  ret = waitpid (0, &status, WNOHANG);
+  if ( (0 == ret) ||
+       ( (-1 == ret) &&
+	 (ECHILD == errno) ) )
+    {
+      *type = GNUNET_OS_PROCESS_RUNNING;
+      *code = 0;
+      return GNUNET_NO;
+    }
+  if (proc != ret)
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
+      return GNUNET_SYSERR;
+    }
   if (WIFEXITED (status))
   {
     *type = GNUNET_OS_PROCESS_EXITED;
@@ -306,6 +319,7 @@ GNUNET_OS_process_status (pid_t proc, enum GNUNET_OS_ProcessStatusType *type,
   if (INVALID_HANDLE_VALUE == h)
   {
     SetErrnoFromWinError (GetLastError ());
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "OpenProcess");
     return GNUNET_SYSERR;
   }
 
@@ -314,13 +328,11 @@ GNUNET_OS_process_status (pid_t proc, enum GNUNET_OS_ProcessStatusType *type,
   {
     *type = GNUNET_OS_PROCESS_RUNNING;
     *code = 0;
+    CloseHandle (h);
+    return GNUNET_NO;
   }
-  else
-  {
-    *type = GNUNET_OS_PROCESS_EXITED;
-    *code = c;
-  }
-
+  *type = GNUNET_OS_PROCESS_EXITED;
+  *code = c;
   CloseHandle (h);
 #endif
 
