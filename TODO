@@ -17,6 +17,7 @@ ARM:
 
 Util:
 * improve disk API [Nils]
+* Windows: use events instead of pipes to signal select()s [Nils]
 
 TESTCASES WANTED:
 For these functions, it would be nice if we had testcases ("make check")
