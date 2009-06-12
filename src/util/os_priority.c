@@ -274,9 +274,7 @@ GNUNET_OS_process_status (pid_t proc, enum GNUNET_OS_ProcessStatusType *type,
 
   GNUNET_assert (0 != proc);
   ret = waitpid (proc, &status, WNOHANG);
-  if ( (0 == ret) ||
-       ( (-1 == ret) &&
-	 (ECHILD == errno) ) )
+  if (0 == ret) 
     {
       *type = GNUNET_OS_PROCESS_RUNNING;
       *code = 0;

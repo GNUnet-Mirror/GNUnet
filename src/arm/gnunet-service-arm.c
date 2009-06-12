@@ -396,7 +396,6 @@ free_and_signal (void *cls, struct ServiceList *pos)
 {
   struct GNUNET_SERVER_Client *client = cls;
   /* find_name will remove "pos" from the list! */
-  GNUNET_assert (pos == find_name (pos->name));
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Service `%s' stopped\n", pos->name);
   signal_result (client, pos->name, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -526,6 +525,8 @@ static void
 maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ServiceList *pos;
+  struct ServiceList *prev;
+  struct ServiceList *next;
   const char *statstr;
   int statcode;
   struct stat sbuf;
@@ -552,45 +553,66 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                 MAINT_FREQUENCY, &maint, cfg);
 
   /* check for services that died (WAITPID) */
-  for (pos = running; pos != NULL; pos = pos->next)
+  prev = NULL;
+  next = running;
+  while (NULL != (pos = next))
     {
       enum GNUNET_OS_ProcessStatusType statusType;
       unsigned long statusCode;
-
-      if (GNUNET_SYSERR == (ret = GNUNET_OS_process_status(pos->pid, &statusType, &statusCode)))
-        continue;
-      if ( (ret == GNUNET_NO) ||
-	   (statusType == GNUNET_OS_PROCESS_STOPPED) || 
-	   (statusType == GNUNET_OS_PROCESS_RUNNING) )
-        continue;
+     
+      next = pos->next;
+      if (pos->pid == 0)
+	{
+	  if (NULL != pos->kill_continuation)
+	    {
+	      if (prev == NULL)
+		running = next;
+	      else
+		prev->next = next;
+	      pos->kill_continuation (pos->kill_continuation_cls, pos);	    
+	    }
+	  continue;
+	}
+      if ( (GNUNET_SYSERR == (ret = GNUNET_OS_process_status(pos->pid, 
+							     &statusType,
+							     &statusCode))) ||
+	   ( (ret == GNUNET_NO) ||
+	     (statusType == GNUNET_OS_PROCESS_STOPPED) || 
+	     (statusType == GNUNET_OS_PROCESS_RUNNING) ) )
+	{
+	  prev = pos;
+	  continue;
+	}
       if (statusType == GNUNET_OS_PROCESS_EXITED)
-        {
-          statstr = _( /* process termination method */ "exit");
-          statcode = statusCode;
-        }
+	{
+	  statstr = _( /* process termination method */ "exit");
+	  statcode = statusCode;
+	}
       else if (statusType == GNUNET_OS_PROCESS_SIGNALED)
-        {
-          statstr = _( /* process termination method */ "signal");
-          statcode = statusCode;
-        }
+	{
+	  statstr = _( /* process termination method */ "signal");
+	  statcode = statusCode;
+	}
       else
-        {
-          statstr = _( /* process termination method */ "unknown");
-          statcode = 0;
-        }
+	{
+	  statstr = _( /* process termination method */ "unknown");
+	  statcode = 0;
+	}    
       if (NULL != pos->kill_continuation)
         {
-          pos->kill_continuation (pos->kill_continuation_cls, pos);
+	  if (prev == NULL)
+	    running = next;
+	  else
+	    prev->next = next;
+	  pos->kill_continuation (pos->kill_continuation_cls, pos);
+	  continue;
         }
-      else
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                      _
-                      ("Service `%s' terminated with status %s/%d, will try to restart it!\n"),
-                      pos->name, statstr, statcode);
-          /* schedule restart */
-          pos->pid = 0;
-        }
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Service `%s' terminated with status %s/%d, will try to restart it!\n"),
+		  pos->name, statstr, statcode);
+      /* schedule restart */
+      pos->pid = 0;
+      prev = pos;
     }
 
   /* check for services that need to be restarted due to
@@ -601,8 +623,7 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       if ((0 == STAT (pos->config, &sbuf)) && (pos->mtime < sbuf.st_mtime))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                      _
-                      ("Restarting service `%s' due to configuration file change.\n"));
+                      _("Restarting service `%s' due to configuration file change.\n"));
           if (0 != PLIBC_KILL (pos->pid, SIGTERM))
             GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
         }
