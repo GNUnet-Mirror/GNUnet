@@ -1,7 +1,5 @@
 INCLUDES = -I$(top_srcdir)/src/include
 
-plugindir = $(libdir)/gnunet
-
 if MINGW
   WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
 endif

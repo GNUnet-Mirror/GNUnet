@@ -2,6 +2,11 @@
 #  INTLEMU_SUBDIRS = intlemu
 #endif
 
+
+if HAVE_MHD
+ HOSTLIST_DIR = hostlist
+endif
+
 SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
   util \
@@ -13,5 +18,7 @@ SUBDIRS = \
   statistics \
   template \
   transport \
-  core
+  core \
+  $(HOSTLIST_DIR) \
+  topology 
 

@@ -183,28 +183,6 @@ signal_result (struct GNUNET_SERVER_Client *client,
 
 
 /**
- * Find the process with the given PID in the
- * given list.
- *
- * @return NULL if it was not found
- */
-static struct ServiceList *
-find_pid (pid_t pid)
-{
-  struct ServiceList *pos;
-
-  pos = running;
-  while (pos != NULL)
-    {
-      if (pos->pid == pid)
-        return pos;
-      pos = pos->next;
-    }
-  return NULL;
-}
-
-
-/**
  * Find the process with the given service
  * name in the given list, remove it and return it.
  *
@@ -548,7 +526,6 @@ static void
 maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ServiceList *pos;
-  pid_t pid;
   const char *statstr;
   int statcode;
   struct stat sbuf;

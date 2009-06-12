@@ -37,6 +37,7 @@ AC_PROG_OBJC
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
+AM_PROG_CC_C_O
 LT_CONFIG_LTDL_DIR([libltdl])
 AC_CANONICAL_HOST
 LT_INIT([disable-static dlopen win32-dll])
@@ -760,10 +761,12 @@ src/include/gnunet_directories.h
 src/util/Makefile
 src/fragmentation/Makefile
 src/hello/Makefile
+src/hostlist/Makefile
 src/peerinfo/Makefile
 src/resolver/Makefile
 src/statistics/Makefile
 src/template/Makefile
+src/topology/Makefile
 src/transport/Makefile
 ])
 AC_OUTPUT

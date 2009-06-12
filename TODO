@@ -1,10 +1,19 @@
 PHASE #1: (Goal: settle key design questions)
 
-Core:
-* Internal: topology
-* Internal: advertising (propagate other peers' HELLOs, find new ones)
-* Internal: bootstrapping
-  => bootstrap should use plugins, possible multiple at the same time!
+Hostlist:
+* hostlist server (MHD-side)
+* hostlist client (CURL-side); monitoring of number of active connections (to establish need for bootstrapping)
+* hostlist server URL advertising & learning via P2P
+
+Topology:
+* Selecting peers from peerinfo for connects; blacklisting
+* Managing connections, F2F configuration obedience, rejecting prohibited connections
+* Forwarding of known HELLOs to neighbours (advertising)
+  [ Inbound HELLOs are processed by transport, right?  
+    But what about inbound encrypted HELLOs? ]
+
+ARM:
+* Make sure ARM supports daemons (non-service background processes, see hostlist/topology)
 
 Util:
 * improve disk API [Nils]
