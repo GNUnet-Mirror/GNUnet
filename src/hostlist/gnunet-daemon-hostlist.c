@@ -26,12 +26,15 @@
 
 #include <stdlib.h>
 #include "platform.h"
+#include "hostlist-client.h"
+#include "gnunet_core_service.h"
 #include "gnunet_getopt_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_program_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_strings_lib.h"
 #include "gnunet_time_lib.h"
+#include "gnunet_util_lib.h"
 
 
 /**
@@ -51,6 +54,10 @@ static int learning;
  */
 static int provide_hostlist;
 
+/**
+ * Statistics handle.
+ */
+static struct GNUNET_STATISTICS_Handle *stats;
 
 /**
  * gnunet-daemon-hostlist command line options.
@@ -65,6 +72,33 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
   GNUNET_GETOPT_OPTION_END
 };
 
+
+static void
+core_init (void *cls,
+	   struct GNUNET_CORE_Handle * server,
+	   const struct GNUNET_PeerIdentity *
+	   my_identity,
+	   const struct
+	   GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *
+	   publicKey)
+{
+  /* TODO: provide "server" to 'hostlist' module (if applicable) */
+}
+
+
+/**
+ * Last task run during shutdown.  Disconnects us from
+ * the other services.
+ */
+static void
+cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if (stats != NULL)
+    {
+      GNUNET_STATISTICS_destroy (stats);
+      stats = NULL;
+    }
+}
 
 
 /**
@@ -83,6 +117,13 @@ run (void *cls,
      const char *cfgfile,
      struct GNUNET_CONFIGURATION_Handle * cfg)
 {
+  GNUNET_CORE_ClientEventHandler ch = NULL;
+  GNUNET_CORE_ClientEventHandler dh = NULL;
+  struct GNUNET_CORE_MessageHandler handlers[] = 
+    {
+      { NULL, 0, 0 }
+    };
+
   if ( (! bootstrapping) &&
        (! learning) &&
        (! provide_hostlist) )
@@ -91,6 +132,7 @@ run (void *cls,
 		  _("None of the functions for the hostlist daemon were enabled.  I have no reason to run!\n"));
       return;
     }
+  stats = GNUNET_STATISTICS_create (sched, "hostlist", cfg);
   if (learning)
     {
       // FIXME!
@@ -98,10 +140,8 @@ run (void *cls,
     }
   if (bootstrapping)
     {
-      // FIXME!
-      // (register handler with core to monitor number of active
-      //  connections; trigger hostlist download via CURL if
-      //  number is low)
+      GNUNET_HOSTLIST_client_start (cfg, sched, stats,
+				    &ch, &dh);
     }
   if (provide_hostlist)
     {      
@@ -109,6 +149,21 @@ run (void *cls,
       // (initialize MHD server and run using scheduler;
       //  use peerinfo to gather HELLOs)
     }
+  GNUNET_CORE_connect (sched, cfg,
+		       GNUNET_TIME_UNIT_FOREVER_REL,
+		       NULL,
+		       &core_init,
+		       ch, dh,
+		       NULL,
+		       NULL, GNUNET_NO,
+		       NULL, GNUNET_NO,
+		       handlers);
+  GNUNET_SCHEDULER_add_delayed (sched,
+                                GNUNET_YES,
+                                GNUNET_SCHEDULER_PRIORITY_IDLE,
+                                GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                GNUNET_TIME_UNIT_FOREVER_REL,
+                                &cleaning_task, NULL);
 }
 
 

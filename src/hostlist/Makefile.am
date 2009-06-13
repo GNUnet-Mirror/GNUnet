@@ -9,14 +9,15 @@ bin_PROGRAMS = \
  gnunet-daemon-hostlist
 
 gnunet_daemon_hostlist_SOURCES = \
- gnunet-daemon-hostlist.c
-#
+ gnunet-daemon-hostlist.c \
+ hostlist-client.c hostlist-client.h
 # hostlist-server.c hostlist-server.h 
-# hostlist-client.c hostlist-client.h
+
 gnunet_daemon_hostlist_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   -lmicrohttpd \
