@@ -22,6 +22,11 @@
  * @file hostlist/gnunet-daemon-hostlist.c
  * @brief code for bootstrapping via hostlist servers
  * @author Christian Grothoff
+ *
+ * TODO:
+ * - implement -a and -e switches (send P2P messages about our hostlist URL,
+ *   receive such messages and automatically update our hostlist URL config
+ *   value).
  */
 
 #include <stdlib.h>
@@ -96,7 +101,7 @@ core_init (void *cls,
 {
   if (advertising && (NULL != server))
     {    
-      /* TODO: provide "server" to 'hostlist' module */
+      /* FIXME: provide "server" to 'hostlist' module */
     }
 }
 
@@ -150,8 +155,7 @@ run (void *cls,
   stats = GNUNET_STATISTICS_create (sched, "hostlist", cfg);
   if (learning)
     {
-      // FIXME!
-      // (register handler with core for hostlist ads)
+      /* FIXME (register handler with core for hostlist ads) */
     }
   if (bootstrapping)
     {

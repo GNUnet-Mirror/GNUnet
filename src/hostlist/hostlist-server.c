@@ -51,6 +51,11 @@ static struct GNUNET_CONFIGURATION_Handle *cfg;
 static struct GNUNET_SCHEDULER_Handle *sched;
 
 /**
+ * Our primary task.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier hostlist_task;
+
+/**
  * Our canonical response.
  */
 static struct MHD_Response *response;
@@ -190,6 +195,10 @@ static void
 prepare_daemon (void);
 
 
+/**
+ * Call MHD to process pending requests and then go back
+ * and schedule the next run.
+ */
 static void
 run_daemon (void *cls,
 	    const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -229,16 +238,17 @@ prepare_daemon ()
     tv.value = (uint64_t) timeout;
   else
     tv = GNUNET_TIME_UNIT_FOREVER_REL;
-  GNUNET_SCHEDULER_add_select (sched,
-			       GNUNET_NO,
-			       GNUNET_SCHEDULER_PRIORITY_HIGH,
-			       GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
-			       tv,
-			       max,
-			       &rs,
-			       &ws,
-			       &run_daemon,
-			       NULL);
+  hostlist_task 
+    = GNUNET_SCHEDULER_add_select (sched,
+				   GNUNET_NO,
+				   GNUNET_SCHEDULER_PRIORITY_HIGH,
+				   GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+				   tv,
+				   max,
+				   &rs,
+				   &ws,
+				   &run_daemon,
+				   NULL);
 }
 
 
@@ -290,6 +300,8 @@ GNUNET_HOSTLIST_server_start (struct GNUNET_CONFIGURATION_Handle *c,
 void
 GNUNET_HOSTLIST_server_stop ()
 {
+  GNUNET_SCHEDULER_cancel (sched, hostlist_task);
+  hostlist_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
   MHD_stop_daemon (daemon_handle);
   daemon_handle = NULL;
 }
