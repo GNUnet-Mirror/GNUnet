@@ -10,8 +10,8 @@ bin_PROGRAMS = \
 
 gnunet_daemon_hostlist_SOURCES = \
  gnunet-daemon-hostlist.c \
- hostlist-client.c hostlist-client.h
-# hostlist-server.c hostlist-server.h 
+ hostlist-client.c hostlist-client.h \
+ hostlist-server.c hostlist-server.h 
 
 gnunet_daemon_hostlist_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la \

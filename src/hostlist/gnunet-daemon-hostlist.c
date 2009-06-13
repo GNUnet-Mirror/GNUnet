@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include "platform.h"
 #include "hostlist-client.h"
+#include "hostlist-server.h"
 #include "gnunet_core_service.h"
 #include "gnunet_getopt_lib.h"
 #include "gnunet_protocols.h"
@@ -36,6 +37,11 @@
 #include "gnunet_time_lib.h"
 #include "gnunet_util_lib.h"
 
+
+/**
+ * Set if we are allowed to advertise our hostlist to others.
+ */
+static int advertising;
 
 /**
  * Set if we are allowed to learn about peers by accessing
@@ -63,6 +69,8 @@ static struct GNUNET_STATISTICS_Handle *stats;
  * gnunet-daemon-hostlist command line options.
  */
 static struct GNUNET_GETOPT_CommandLineOption options[] = {
+  { 'a', "advertise", NULL, gettext_noop ("advertise our hostlist to other peers"),
+    GNUNET_NO, &GNUNET_GETOPT_set_one, &advertising },
   { 'b', "bootstrap", NULL, gettext_noop ("bootstrap using hostlists (it is highly recommended that you always use this option)"),
     GNUNET_NO, &GNUNET_GETOPT_set_one, &bootstrapping },
   { 'e', "enable-learning", NULL, gettext_noop ("enable learning about hostlist servers from other peers"),
@@ -82,7 +90,10 @@ core_init (void *cls,
 	   GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *
 	   publicKey)
 {
-  /* TODO: provide "server" to 'hostlist' module (if applicable) */
+  if (advertising && (NULL != server))
+    {    
+      /* TODO: provide "server" to 'hostlist' module */
+    }
 }
 
 
@@ -145,9 +156,7 @@ run (void *cls,
     }
   if (provide_hostlist)
     {      
-      // FIXME!
-      // (initialize MHD server and run using scheduler;
-      //  use peerinfo to gather HELLOs)
+      GNUNET_HOSTLIST_server_start (cfg, sched, stats);
     }
   GNUNET_CORE_connect (sched, cfg,
 		       GNUNET_TIME_UNIT_FOREVER_REL,
