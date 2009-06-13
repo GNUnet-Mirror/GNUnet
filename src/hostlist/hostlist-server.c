@@ -142,7 +142,9 @@ update_response (void *cls,
 }
 
 
-
+/**
+ * Hostlist access policy (very permissive, allows everything).
+ */
 static int
 accept_policy_callback (void *cls,
                         const struct sockaddr *addr, socklen_t addrlen)
@@ -151,6 +153,9 @@ accept_policy_callback (void *cls,
 }
 
 
+/**
+ * Main request handler.
+ */
 static int
 access_handler_callback (void *cls,
                          struct MHD_Connection *connection,
@@ -178,6 +183,67 @@ access_handler_callback (void *cls,
 
 
 /**
+ * Function that queries MHD's select sets and
+ * starts the task waiting for them.
+ */
+static void 
+prepare_daemon (void);
+
+
+static void
+run_daemon (void *cls,
+	    const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_assert (MHD_YES == MHD_run (daemon_handle));
+  prepare_daemon ();
+}
+
+
+/**
+ * Function that queries MHD's select sets and
+ * starts the task waiting for them.
+ */
+static void 
+prepare_daemon ()
+{
+  fd_set rs;
+  fd_set ws;
+  fd_set es;
+  int max;
+  unsigned long long timeout;
+  int haveto;
+  struct GNUNET_TIME_Relative tv;
+  
+  FD_ZERO(&rs);
+  FD_ZERO(&ws);
+  FD_ZERO(&es);
+  max = -1;
+  GNUNET_assert (MHD_YES ==
+		 MHD_get_fdset (daemon_handle,
+				&rs,
+				&ws,
+				&es,
+				&max));
+  haveto = MHD_get_timeout (daemon_handle, &timeout);
+  if (haveto == MHD_YES)
+    tv.value = (uint64_t) timeout;
+  else
+    tv = GNUNET_TIME_UNIT_FOREVER_REL;
+  GNUNET_SCHEDULER_add_select (sched,
+			       GNUNET_NO,
+			       GNUNET_SCHEDULER_PRIORITY_HIGH,
+			       GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+			       tv,
+			       max,
+			       &rs,
+			       &ws,
+			       &run_daemon,
+			       NULL);
+}
+
+
+
+/**
  * Start server offering our hostlist.
  *
  * @return GNUNET_OK on success
@@ -196,9 +262,7 @@ GNUNET_HOSTLIST_server_start (struct GNUNET_CONFIGURATION_Handle *c,
 						   "PORT", 
 						   &port))
     return GNUNET_SYSERR;
-  /* FIXME: must use *external* SELECT mode since our
-     code is NOT thread safe!  Integrate with scheduler! */
-  daemon_handle = MHD_start_daemon (MHD_USE_SELECT_INTERNALLY | MHD_USE_IPv6,
+  daemon_handle = MHD_start_daemon (MHD_USE_IPv6,
                                     (unsigned short) port,
                                     &accept_policy_callback,
                                     NULL,
@@ -216,6 +280,7 @@ GNUNET_HOSTLIST_server_start (struct GNUNET_CONFIGURATION_Handle *c,
 		  (unsigned short) port);
       return GNUNET_SYSERR;    
     }
+  prepare_daemon ();
   return GNUNET_OK;
 }
 

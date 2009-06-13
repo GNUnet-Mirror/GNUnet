@@ -69,13 +69,17 @@ static struct GNUNET_STATISTICS_Handle *stats;
  * gnunet-daemon-hostlist command line options.
  */
 static struct GNUNET_GETOPT_CommandLineOption options[] = {
-  { 'a', "advertise", NULL, gettext_noop ("advertise our hostlist to other peers"),
+  { 'a', "advertise", NULL, 
+    gettext_noop ("advertise our hostlist to other peers"),
     GNUNET_NO, &GNUNET_GETOPT_set_one, &advertising },
-  { 'b', "bootstrap", NULL, gettext_noop ("bootstrap using hostlists (it is highly recommended that you always use this option)"),
+  { 'b', "bootstrap", NULL, 
+    gettext_noop ("bootstrap using hostlists (it is highly recommended that you always use this option)"),
     GNUNET_NO, &GNUNET_GETOPT_set_one, &bootstrapping },
-  { 'e', "enable-learning", NULL, gettext_noop ("enable learning about hostlist servers from other peers"),
+  { 'e', "enable-learning", NULL,
+    gettext_noop ("enable learning about hostlist servers from other peers"),
     GNUNET_NO, &GNUNET_GETOPT_set_one, &learning},
-  { 'p', "provide-hostlist", NULL, gettext_noop ("provide a hostlist server"),
+  { 'p', "provide-hostlist", NULL, 
+    gettext_noop ("provide a hostlist server"),
     GNUNET_NO, &GNUNET_GETOPT_set_one, &provide_hostlist},
   GNUNET_GETOPT_OPTION_END
 };
