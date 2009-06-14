@@ -301,7 +301,7 @@ unsigned long long GNUNET_htonll (unsigned long long n);
 /**
  * Maximum allocation with GNUNET_malloc macro.
  */
-#define GNUNET_MAX_GNUNET_MALLOC_CHECKED (1024 * 1024 * 40)
+#define GNUNET_MAX_MALLOC_CHECKED (1024 * 1024 * 40)
 
 /**
  * Wrapper around malloc. Allocates size bytes of memory.

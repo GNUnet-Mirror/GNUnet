@@ -48,7 +48,7 @@ GNUNET_xmalloc_ (size_t size, const char *filename, int linenumber)
 {
   /* As a security precaution, we generally do not allow very large
      allocations using the default 'GNUNET_malloc' macro */
-  GNUNET_assert_at (size <= GNUNET_MAX_GNUNET_MALLOC_CHECKED, filename,
+  GNUNET_assert_at (size <= GNUNET_MAX_MALLOC_CHECKED, filename,
                     linenumber);
   return GNUNET_xmalloc_unchecked_ (size, filename, linenumber);
 }

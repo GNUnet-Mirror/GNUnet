@@ -1,13 +1,6 @@
 PHASE #1: (Goal: settle key design questions)
 
-Hostlist:
-* hostlist server (MHD-side)
-* hostlist client (CURL-side); monitoring of number of active connections (to establish need for bootstrapping)
-* hostlist server URL advertising & learning via P2P
-
 Topology:
-* Selecting peers from peerinfo for connects; blacklisting
-* Managing connections, F2F configuration obedience, rejecting prohibited connections
 * Forwarding of known HELLOs to neighbours (advertising)
   [ Inbound HELLOs are processed by transport, right?  
     But what about inbound encrypted HELLOs? ]
@@ -61,6 +54,9 @@ that would cause them to be executed and check that they are working:
   - set_key_retry_task
   - align_and_deliver
   - handle_transport_notify_disconnect
+* hostlist (everything)
+* topology (everything)
+
 
 
 PHASE #2: (Goal: recover basic file-sharing functionality)
@@ -167,6 +163,11 @@ Minor TODO items:
 * GAP improvements:
   - active reply route caching design & implementation of service,
     gap extension!
+* HOSTLIST:
+  - implement advertising of hostlist URL
+  - implement learning of hostlist URLs
+
+
 
 => PRE-RELEASE
 

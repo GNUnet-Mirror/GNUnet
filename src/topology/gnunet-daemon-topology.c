@@ -22,11 +22,6 @@
  * @file topology/gnunet-daemon-topology.c
  * @brief code for bootstrapping via topology servers
  * @author Christian Grothoff
- *
- * TODO: 
- * - blacklisting & respect for blacklist
- * - calculate target_connection_count!
- * - calculate peer_search retry delay 
  */
 
 #include <stdlib.h>
@@ -39,17 +34,29 @@
 
 #define DEBUG_TOPOLOGY GNUNET_NO
 
+/**
+ * For how long do we blacklist a peer after a failed
+ * connection attempt?
+ */ 
+#define BLACKLIST_AFTER_ATTEMPT GNUNET_TIME_UNIT_HOURS
 
 /**
- * List of neighbours and friends.
+ * For how long do we blacklist a friend after a failed
+ * connection attempt?
+ */ 
+#define BLACKLIST_AFTER_ATTEMPT_FRIEND GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
+
+
+/**
+ * List of neighbours, friends and blacklisted peers.
  */
-struct FriendList
+struct PeerList
 {
 
   /**
    * This is a linked list.
    */
-  struct FriendList *next;
+  struct PeerList *next;
 
   /**
    * Is this peer listed here because he is a friend?
@@ -99,7 +106,7 @@ static struct GNUNET_PeerIdentity my_identity;
  * Linked list of all of our friends and all of our current
  * neighbours.
  */
-static struct FriendList *friends;
+static struct PeerList *friends;
 
 /**
  * Flag to disallow non-friend connections (pure F2F mode).
@@ -170,9 +177,28 @@ ready_callback (void *cls,
  */
 static void
 attempt_connect (const struct GNUNET_PeerIdentity *peer,
-		 struct FriendList *pos)
+		 struct PeerList *pos)
 {
-  /* FIXME: do blacklist! */
+  if (pos == NULL)
+    {
+      pos = friends;
+      while (pos != NULL)
+	{
+	  if (0 == memcmp (&pos->id, peer, sizeof (struct GNUNET_PeerIdentity)))
+	    break;
+	}
+    }
+  if (pos == NULL)
+    {
+      pos = GNUNET_malloc (sizeof(struct PeerList));
+      pos->id = *peer;
+      pos->next = friends;
+      friends = pos;
+    }
+  if (GNUNET_YES == pos->is_friend)
+    pos->blacklisted_until = GNUNET_TIME_relative_to_absolute (BLACKLIST_AFTER_ATTEMPT_FRIEND);
+  else
+    pos->blacklisted_until = GNUNET_TIME_relative_to_absolute (BLACKLIST_AFTER_ATTEMPT);
   GNUNET_CORE_notify_transmit_ready (handle,
 				     0 /* priority */,
 				     GNUNET_TIME_UNIT_MINUTES,
@@ -189,7 +215,7 @@ attempt_connect (const struct GNUNET_PeerIdentity *peer,
 static int
 is_friend (const struct GNUNET_PeerIdentity * peer)
 {
-  struct FriendList *pos;
+  struct PeerList *pos;
 
   pos = friends;
   while (pos != NULL)
@@ -231,7 +257,7 @@ static void connect_notify (void *cls,
 			    const struct
 			    GNUNET_PeerIdentity * peer)
 {
-  struct FriendList *pos;
+  struct PeerList *pos;
 
   connection_count++;
   pos = friends;
@@ -242,12 +268,13 @@ static void connect_notify (void *cls,
 	{
 	  GNUNET_assert (GNUNET_NO == pos->is_connected);
 	  pos->is_connected = GNUNET_YES;
+	  pos->blacklisted_until.value = 0; /* remove blacklisting */
 	  friend_count++;	  
 	  return;
 	}
       pos = pos->next;
     }
-  pos = GNUNET_malloc (sizeof(struct FriendList));
+  pos = GNUNET_malloc (sizeof(struct PeerList));
   pos->id = *peer;
   pos->is_connected = GNUNET_YES;
   pos->next = friends;
@@ -263,7 +290,7 @@ static void connect_notify (void *cls,
 static void 
 drop_non_friends () 
 {
-  struct FriendList *pos;
+  struct PeerList *pos;
 
   pos = friends;
   while (pos != NULL)
@@ -288,8 +315,8 @@ static void disconnect_notify (void *cls,
 			       const struct
 			       GNUNET_PeerIdentity * peer)
 {
-  struct FriendList *pos;
-  struct FriendList *prev;
+  struct PeerList *pos;
+  struct PeerList *prev;
 
   connection_count--;
   pos = friends;
@@ -327,6 +354,7 @@ static void disconnect_notify (void *cls,
   GNUNET_break (0);
 }
 
+
 /**
  * Find more peers that we should connect to and ask the
  * core to establish connections.
@@ -345,9 +373,16 @@ schedule_peer_search ()
 {
   struct GNUNET_TIME_Relative delay;
   
-  /* FIXME: calculate reasonable delay here */
-  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES,
-					 42);
+  /* Typically, we try again every 15 minutes; the minimum period is
+     15s; if we are above the connection target, we reduce re-trying
+     by the square of how much we are above; so for example, with 200%
+     of the connection target we would only look for more peers once
+     every hour (after all, we're quite busy processing twice as many
+     connections as we intended to have); similarly, if we are at only
+     25% of our connectivity goal, we will try 16x as hard to connect
+     (so roughly once a minute, plus the 15s minimum delay */
+  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+					 15 + 15 * 60 * connection_count * connection_count / target_connection_count / target_connection_count);
   GNUNET_SCHEDULER_add_delayed (sched,
 				GNUNET_NO,
 				GNUNET_SCHEDULER_PRIORITY_DEFAULT,
@@ -368,7 +403,7 @@ process_peer (void *cls,
 	      const struct GNUNET_HELLO_Message * hello,
 	      uint32_t trust)
 {
-  struct FriendList *pos;
+  struct PeerList *pos;
 
   if (peer == NULL)
     {
@@ -392,7 +427,8 @@ process_peer (void *cls,
 	{
 	  if (GNUNET_YES == pos->is_connected)
 	    return;
-	  /* FIXME: check blacklisted... */
+	  if (GNUNET_TIME_absolute_get_remaining (pos->blacklisted_until).value > 0)
+	    return; /* peer still blacklisted */
 	  if (GNUNET_YES == pos->is_friend)
 	    {
 	      attempt_connect (peer, pos);
@@ -415,16 +451,51 @@ process_peer (void *cls,
 static void
 try_add_friends ()
 {
-  struct FriendList *pos;
+  struct PeerList *pos;
 
   pos = friends;
   while (pos != NULL)
     {
-      /* FIXME: check friends for blacklisting... */
-      if ( (GNUNET_YES == pos->is_friend) &&
+      if ( (GNUNET_TIME_absolute_get_remaining (pos->blacklisted_until).value == 0) &&
+	   (GNUNET_YES == pos->is_friend) &&
 	   (GNUNET_YES != pos->is_connected) )
 	attempt_connect (&pos->id, pos);
       pos = pos->next;
+    }
+}
+
+
+/**
+ * Discard peer entries for blacklisted peers
+ * where the blacklisting has expired.
+ */
+static void
+discard_old_blacklist_entries ()
+{
+  struct PeerList *pos;
+  struct PeerList *next;
+  struct PeerList *prev;
+
+  next = friends;
+  prev = NULL;
+  while (NULL != (pos = next))
+    {
+      next = pos->next;
+      if ( (GNUNET_NO == pos->is_friend) &&
+	   (GNUNET_NO == pos->is_connected) &&
+	   (0 == GNUNET_TIME_absolute_get_remaining (pos->blacklisted_until).value) )
+	{
+	  /* delete 'pos' from list */
+	  if (prev == NULL)
+	    friends = next;
+	  else
+	    prev->next = next;
+	  GNUNET_free (pos);
+	}
+      else
+	{
+	  prev = pos;
+	}
     }
 }
 
@@ -437,6 +508,7 @@ static void
 find_more_peers (void *cls,
 		 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  discard_old_blacklist_entries ();
   if (target_connection_count <= connection_count)
     {
       schedule_peer_search ();
@@ -515,7 +587,7 @@ read_friends_file (struct GNUNET_CONFIGURATION_Handle *cfg)
   struct stat frstat;
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
   unsigned int entries_found;
-  struct FriendList *fl;
+  struct PeerList *fl;
 
   fn = NULL;
   GNUNET_CONFIGURATION_get_value_filename (cfg,
@@ -581,7 +653,7 @@ read_friends_file (struct GNUNET_CONFIGURATION_Handle *cfg)
       else
 	{
 	  entries_found++;
-	  fl = GNUNET_malloc (sizeof(struct FriendList));
+	  fl = GNUNET_malloc (sizeof(struct PeerList));
 	  fl->is_friend = GNUNET_YES;
 	  fl->id.hashPubKey = hc;
 	  fl->next = friends;
@@ -644,6 +716,12 @@ run (void *cls,
 					 "MINIMUM-FRIENDS",
 					 &opt);
   minimum_friend_count = (unsigned int) opt;
+  opt = 16;
+  GNUNET_CONFIGURATION_get_value_number (cfg,
+					 "TOPOLOGY",
+					 "TARGET-CONNECTION-COUNT",
+					 &opt);
+  target_connection_count = (unsigned int) opt;
 
   if ( (friends_only == GNUNET_YES) ||
        (minimum_friend_count > 0) )
