@@ -10,7 +10,6 @@ Util:
   [Nils: I'm not sure what you mean by this; fresh sockets are always
    ready for connect(), just 'write' after connect needs select AFAIK;
    please clarify. --Christian]
-* crypto_hash: use libgcrypt (supports SHA-512 since 2003)
 
 TESTCASES WANTED:
 For these functions, it would be nice if we had testcases ("make check")
@@ -101,6 +100,8 @@ Databases:
 
 
 Minor TODO items:
+* UTIL:
+  - crypto_hash: use libgcrypt (supports SHA-512 since 2003)
 * SERVER:
   - inefficient memmove
 * TRANSPORT:
