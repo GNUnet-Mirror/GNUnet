@@ -984,14 +984,14 @@ GNUNET_DISK_file_open (const char *fn, int flags, ...)
       oflags |= O_CREAT;
 
       va_list arg;
-      va_start (arg, oflag);
+      va_start (arg, flags);
       mode = va_arg (arg, int);
       va_end (arg);
     }
   if (flags & GNUNET_DISK_OPEN_APPEND)
     oflags = O_APPEND;
 
-  fd = open (expfn, oflag | O_LARGEFILE, perm, mode);
+s  fd = open (expfn, oflag | O_LARGEFILE, perm, mode);
   if (fd == -1)
   {
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "open", fn);
@@ -1212,13 +1212,13 @@ GNUNET_DISK_file_map (const struct GNUNET_IO_Handle *h, struct GNUNET_IO_Handle 
 #else
   int prot;
 
-  prot = flags = 0;
+  prot = 0;
   if (access & GNUNET_DISK_MAP_READ)
     prot = PROT_READ;
   if (access & GNUNET_DISK_MAP_WRITE)
     prot |= PROT_WRITE;
 
-  return mmap (NULL, len, prot, MAP_SHARED, h->h, 0);
+  return mmap (NULL, len, prot, MAP_SHARED, h->fd, 0);
 #endif
 }
 
