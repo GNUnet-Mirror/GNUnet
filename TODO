@@ -105,6 +105,7 @@ Minor TODO items:
   - inefficient memmove
 * TRANSPORT:
   - transport_api: support forcing disconnects through low quotas!
+    (required for working F2F support!)
   - API: consider having core provide deadline information for each message
     (likely important for DV plugin which wants to loop back!)
   - implement transport API to pretty-print transport address 
