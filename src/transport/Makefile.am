@@ -38,7 +38,7 @@ gnunet_transport_LDADD = \
   $(GN_LIBINTL)
 
 gnunet_service_transport_SOURCES = \
- gnunet-service-transport.c 
+ gnunet-service-transport.c plugin_transport.h
 gnunet_service_transport_LDADD = \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/util/libgnunetutil.la \

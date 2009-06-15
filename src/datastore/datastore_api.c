@@ -19,61 +19,22 @@
 */
 
 /**
- * @file include/gnunet_datastore_service.h
- * @brief API that can be used manage the
- *   datastore for files stored on a GNUnet node;
- *   note that the datastore is NOT responsible for
- *   on-demand encoding, that is achieved using
- *   a special kind of entry.
+ * @file datastore/datastore_api.c
+ * @brief Management for the datastore for files stored on a GNUnet node
  * @author Christian Grothoff
  */
 
-#ifndef GNUNET_DATASTORE_SERVICE_H
-#define GNUNET_DATASTORE_SERVICE_H
-
-#include "gnunet_util_lib.h"
-
-#ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
-}
-#endif
-#endif
-
+#include "platform.h"
+#include "gnunet_datastore_service.h"
+#include "datastore.h"
 
 /**
  * Handle to the datastore service.
  */
-struct GNUNET_DATASTORE_Handle;
+struct GNUNET_DATASTORE_Handle
+{
+};
 
-
-/**
- * An iterator over a set of items stored in the datastore.
- *
- * @param cls closure
- * @param key key for the content
- * @param size number of bytes in data
- * @param data content stored
- * @param type type of the content
- * @param priority priority of the content
- * @param anonymity anonymity-level for the content
- * @param expiration expiration time for the content
- * @param uid unique identifier for the datum;
- *        maybe 0 if no unique identifier is available
- *
- * @return GNUNET_SYSERR to abort the iteration, GNUNET_OK to continue,
- *         GNUNET_NO to delete the item and continue (if supported)
- */
-typedef int (*GNUNET_DATASTORE_Iterator) (void *cls,
-                                          const GNUNET_HashCode * key,
-                                          uint32_t size,
-                                          const void *data,
-                                          uint32_t type,
-                                          uint32_t priority,
-                                          uint32_t anonymity,
-                                          struct GNUNET_TIME_Absolute
-                                          expiration, unsigned long long uid);
 
 /**
  * Connect to the datastore service.
@@ -87,7 +48,10 @@ struct GNUNET_DATASTORE_Handle *GNUNET_DATASTORE_connect (struct
                                                           *cfg,
                                                           struct
                                                           GNUNET_SCHEDULER_Handle
-                                                          *sched);
+                                                          *sched)
+{
+  return NULL;
+}
 
 
 /**
@@ -98,7 +62,9 @@ struct GNUNET_DATASTORE_Handle *GNUNET_DATASTORE_connect (struct
  * @param drop set to GNUNET_YES to delete all data in datastore (!)
  */
 void GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
-				  int drop);
+				  int drop)
+{
+}
 
 
 /**
@@ -106,7 +72,10 @@ void GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
  * @param h handle to the datastore
  * @return size estimate, -1 if datastore is not available (yet)
  */
-unsigned long long GNUNET_DATASTORE_size (struct GNUNET_DATASTORE_Handle *h);
+unsigned long long GNUNET_DATASTORE_size (struct GNUNET_DATASTORE_Handle *h)
+{
+  return 0;
+}
 
 
 /**
@@ -131,7 +100,10 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
                       uint32_t type,
                       uint32_t priority,
                       uint32_t anonymity,
-                      struct GNUNET_TIME_Absolute expiration);
+                      struct GNUNET_TIME_Absolute expiration)
+{
+}
+
 
 /**
  * Iterate over the results for a particular key
@@ -148,7 +120,9 @@ void
 GNUNET_DATASTORE_get (struct GNUNET_DATASTORE_Handle *h,
                       const GNUNET_HashCode * key,
                       uint32_t type,
-                      GNUNET_DATASTORE_Iterator iter, void *iter_cls);
+                      GNUNET_DATASTORE_Iterator iter, void *iter_cls)
+{
+}
 
 
 /**
@@ -162,7 +136,9 @@ GNUNET_DATASTORE_get (struct GNUNET_DATASTORE_Handle *h,
  */
 void
 GNUNET_DATASTORE_get_random (struct GNUNET_DATASTORE_Handle *h,
-                             GNUNET_DATASTORE_Iterator iter, void *iter_cls);
+                             GNUNET_DATASTORE_Iterator iter, void *iter_cls)
+{
+}
 
 
 /**
@@ -176,15 +152,9 @@ GNUNET_DATASTORE_get_random (struct GNUNET_DATASTORE_Handle *h,
 void
 GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
                          const GNUNET_HashCode * key,
-                         uint32_t size, const void *data);
-
-
-#if 0                           /* keep Emacsens' auto-indent happy */
+                         uint32_t size, const void *data)
 {
-#endif
-#ifdef __cplusplus
 }
-#endif
 
-/* end of gnunet_datastore_service.h */
-#endif
+
+/* end of datastore_api.c */

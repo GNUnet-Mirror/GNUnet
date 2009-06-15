@@ -439,7 +439,7 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
 
 
 /**
- * Process statistics requests.
+ * Process resolver requests.
  *
  * @param cls closure
  * @param sched scheduler to use

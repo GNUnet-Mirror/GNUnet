@@ -11,6 +11,7 @@ SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
   util \
   arm \
+  datastore \
   fragmentation \
   hello \
   peerinfo \

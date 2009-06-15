@@ -79,7 +79,7 @@ typedef void
                            const GNUNET_HashCode * key,
                            uint32_t size,
                            const void *data,
-                           unit32_t type,
+                           uint32_t type,
                            uint32_t priority,
                            uint32_t anonymity,
                            struct GNUNET_TIME_Absolute expiration);
@@ -175,7 +175,7 @@ struct GNUNET_DATASTORE_PluginFunctions
    * Get the current on-disk size of the SQ store.  Estimates are
    * fine, if that's the only thing available.
    */
-  GNUNET_DATASTORE_GetSize size;
+  GNUNET_DATASTORE_GetSize get_size;
 
   /**
    * Function to store an item in the datastore.
@@ -213,7 +213,7 @@ struct GNUNET_DATASTORE_PluginFunctions
    * Iterate over the items in the datastore in ascending
    * order of expiration time.
    */
-  GNUNET_DATSTORE_Selector iter_ascending_expiration;
+  GNUNET_DATASTORE_Selector iter_ascending_expiration;
 
   /**
    * Iterate over the items in the datastore in migration

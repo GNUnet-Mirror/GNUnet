@@ -26,7 +26,7 @@ testcases:
 
 performance tests:
 - must be called "perf_module-under-test_case-description.c"
-- "case-description" maybe omitted if there is only one test
+- "case-description" maybe omitted if there is only one performance test
 
 
 

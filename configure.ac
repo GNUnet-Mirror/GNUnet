@@ -750,17 +750,19 @@ AM_CONDITIONAL([USE_COVERAGE], [test "x$use_gcov" = "xyes"])
 
 
 
-AC_CONFIG_FILES([ po/Makefile.in m4/Makefile
+AC_CONFIG_FILES([ 
 Makefile
 contrib/Makefile
+m4/Makefile
+po/Makefile.in 
 src/Makefile
 src/arm/Makefile
 src/core/Makefile
-src/include/Makefile
-src/include/gnunet_directories.h
-src/util/Makefile
+src/datastore/Makefile
 src/fragmentation/Makefile
 src/hello/Makefile
+src/include/Makefile
+src/include/gnunet_directories.h
 src/hostlist/Makefile
 src/peerinfo/Makefile
 src/resolver/Makefile
@@ -768,6 +770,7 @@ src/statistics/Makefile
 src/template/Makefile
 src/topology/Makefile
 src/transport/Makefile
+src/util/Makefile
 ])
 AC_OUTPUT
 
