@@ -155,9 +155,9 @@ GNUNET_DATASTORE_get (struct GNUNET_DATASTORE_Handle *h,
  * Get a random value from the datastore.
  *
  * @param h handle to the datastore
- * @param iter function to call on each matching value;
- *        will be called exactly once; if no values
- *        are available, the value will be NULL.
+ * @param iter function to call on a random value; it
+ *        will be called once with a value (if available)
+ *        and always once with a value of NULL.
  * @param iter_cls closure for iter
  */
 void
@@ -175,7 +175,7 @@ GNUNET_DATASTORE_get_random (struct GNUNET_DATASTORE_Handle *h,
  */
 void
 GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
-                         const GNUNET_HashCode * key,
+                         const GNUNET_HashCode *key,
                          uint32_t size, const void *data);
 
 

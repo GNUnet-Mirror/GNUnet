@@ -303,11 +303,59 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CORE_HANGUP 84
 
 
+/**
+ * Message sent by datastore client on join.
+ */
+#define GNUNET_MESSAGE_TYPE_DATASTORE_INIT 92
+
+/**
+ * Message sent by datastore to client informing about size.
+ * (in response to JOIN, PUT and REMOVE requests).
+ */
+#define GNUNET_MESSAGE_TYPE_DATASTORE_SIZE 93
+
+/**
+ * Message sent by datastore client to store data.
+ */
+#define GNUNET_MESSAGE_TYPE_DATASTORE_PUT 94
+
+/**
+ * Message sent by datastore client to get data.
+ */
+#define GNUNET_MESSAGE_TYPE_DATASTORE_GET 95
+
+/**
+ * Message sent by datastore client to get random data.
+ */
+#define GNUNET_MESSAGE_TYPE_DATASTORE_GET_RANDOM 96
+
+/**
+ * Message sent by datastore to client providing requested data
+ * (in response to GET or GET_RANDOM request).
+ */
+#define GNUNET_MESSAGE_TYPE_DATASTORE_DATA 97
+
+/**
+ * Message sent by datastore to client signaling end of matching data.
+ * This message will also be sent for "GET_RANDOM", even though
+ * "GET_RANDOM" returns at most one data item.
+ */
+#define GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END 98
+
+/**
+ * Message sent by datastore client to remove data.
+ */
+#define GNUNET_MESSAGE_TYPE_DATASTORE_REMOVE 99
+
+/**
+ * Message sent by datastore client to drop the database.
+ */
+#define GNUNET_MESSAGE_TYPE_DATASTORE_DROP 100
+
 /*
   TODO:
   - DV
   - DHT
-  - datastores
   - applications (FS, VPN, CHAT, TRACEKIT, TBENCH)
 */
 
