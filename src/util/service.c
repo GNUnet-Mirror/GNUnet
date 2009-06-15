@@ -1154,7 +1154,7 @@ detach_terminal (struct GNUNET_SERVICE_Context *sctx)
   GNUNET_break (0 == CLOSE (0));
   GNUNET_break (0 == CLOSE (1));
   GNUNET_break (0 == CLOSE (filedes[0]));
-  nullfd = GNUNET_DISK_file_open ("/dev/null", O_RDWR | O_APPEND);
+  nullfd = OPEN ("/dev/null", O_RDWR | O_APPEND);
   if (nullfd < 0)
     return GNUNET_SYSERR;
   /* set stdin/stdout to /dev/null */

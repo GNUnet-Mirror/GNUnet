@@ -429,7 +429,7 @@ struct FileHashContext
   /**
    * File descriptor.
    */
-  int fd;
+  struct GNUNET_IO_Handle *fh;
 
 };
 
@@ -443,8 +443,8 @@ file_hash_finish (struct FileHashContext *fhc, const GNUNET_HashCode * res)
 {
   fhc->callback (fhc->callback_cls, res);
   GNUNET_free (fhc->filename);
-  if (fhc->fd != -1)
-    GNUNET_break (0 == CLOSE (fhc->fd));
+  if (!GNUNET_IO_handle_invalid (fhc->fh))
+    GNUNET_break (0 == GNUNET_DISK_file_close (&fhc->fh));
   GNUNET_free (fhc);            /* also frees fhc->buffer */
 }
 
@@ -466,7 +466,7 @@ file_hash_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   delta = fhc->bsize;
   if (fhc->fsize - fhc->offset < delta)
     delta = fhc->fsize - fhc->offset;
-  if (delta != READ (fhc->fd, fhc->buffer, delta))
+  if (delta != GNUNET_DISK_file_read (fhc->fh, fhc->buffer, delta))
     {
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
                                 "read", fhc->filename);
@@ -517,7 +517,7 @@ GNUNET_CRYPTO_hash_file (struct GNUNET_SCHEDULER_Handle *sched,
   fhc->callback_cls = callback_cls;
   fhc->buffer = (unsigned char *) &fhc[1];
   fhc->filename = GNUNET_strdup (filename);
-  fhc->fd = -1;
+  fhc->fh = NULL;
   sha512_init (&fhc->hctx);
   fhc->bsize = blocksize;
   if (GNUNET_OK != GNUNET_DISK_file_size (filename, &fhc->fsize, GNUNET_NO))
@@ -526,8 +526,9 @@ GNUNET_CRYPTO_hash_file (struct GNUNET_SCHEDULER_Handle *sched,
       return;
     }
   fhc->run_on_shutdown = run_on_shutdown;
-  fhc->fd = GNUNET_DISK_file_open (filename, O_RDONLY | O_LARGEFILE);
-  if (fhc->fd == -1)
+  fhc->fh = GNUNET_DISK_file_open (filename,
+      GNUNET_DISK_OPEN_READ);
+  if (!fhc->fh)
     {
       file_hash_finish (fhc, NULL);
       return;

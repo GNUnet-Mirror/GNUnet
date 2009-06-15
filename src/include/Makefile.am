@@ -24,6 +24,7 @@ gnunetinclude_HEADERS = \
   gnunet_fragmentation_lib.h \
   gnunet_getopt_lib.h \
   gnunet_hello_lib.h \
+  gnunet_io_lib.h \
   gnunet_network_lib.h \
   gnunet_peerinfo_service.h \
   gnunet_program_lib.h \

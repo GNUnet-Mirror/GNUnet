@@ -38,26 +38,26 @@
 /**
  * For how long do we blacklist a peer after a failed
  * connection attempt?
- */ 
+ */
 #define BLACKLIST_AFTER_ATTEMPT GNUNET_TIME_UNIT_HOURS
 
 /**
  * For how long do we blacklist a friend after a failed
  * connection attempt?
- */ 
+ */
 #define BLACKLIST_AFTER_ATTEMPT_FRIEND GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
 
 /**
  * How frequently are we allowed to ask PEERINFO for more
  * HELLO's to advertise (at most)?
- */ 
+ */
 #define MIN_HELLO_GATHER_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 27)
 
 /**
  * How often do we at most advertise the same HELLO to the same peer?
  * Also used to remove HELLOs of peers that PEERINFO no longer lists
  * from our cache.
- */ 
+ */
 #define HELLO_ADVERTISEMENT_MIN_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 12)
 
 
@@ -97,7 +97,7 @@ struct PeerList
    * ID of the peer.
    */
   struct GNUNET_PeerIdentity id;
-  
+
 };
 
 
@@ -122,12 +122,12 @@ struct HelloList
    * this HELLO.
    */
   struct GNUNET_CONTAINER_BloomFilter *filter;
-  
+
   /**
    * What peer is this HELLO for?
    */
   struct GNUNET_PeerIdentity id;
- 
+
   /**
    * When should we remove this entry from the linked list (either
    * resetting the filter or possibly eliminating it for good because
@@ -152,12 +152,12 @@ static struct GNUNET_SCHEDULER_Handle * sched;
  * Our configuration.
  */
 static struct GNUNET_CONFIGURATION_Handle * cfg;
-   
+
 /**
  * Handle to the core API.
  */
 static struct GNUNET_CORE_Handle *handle;
-   
+
 /**
  * Handle to the transport API.
  */
@@ -167,7 +167,7 @@ static struct GNUNET_TRANSPORT_Handle *transport;
  * Identity of this peer.
  */
 static struct GNUNET_PeerIdentity my_identity;
-	 
+
 /**
  * Linked list of all of our friends and all of our current
  * neighbours.
@@ -194,17 +194,17 @@ static unsigned int minimum_friend_count;
  * Number of peers (friends and others) that we are currently connected to.
  */
 static unsigned int connection_count;
- 
+
 /**
  * Target number of connections.
  */
 static unsigned int target_connection_count;
- 
+
 /**
  * Number of friends that we are currently connected to.
  */
 static unsigned int friend_count;
- 
+
 /**
  * Should the topology daemon try to establish connections?
  */
@@ -239,7 +239,7 @@ force_disconnect (const struct GNUNET_PeerIdentity *peer)
  * Function called by core when our attempt to connect
  * succeeded.  Does nothing.
  */
-static size_t 
+static size_t
 ready_callback (void *cls,
 		size_t size, void *buf)
 {
@@ -346,7 +346,7 @@ static void connect_notify (void *cls,
 	  GNUNET_assert (GNUNET_NO == pos->is_connected);
 	  pos->is_connected = GNUNET_YES;
 	  pos->blacklisted_until.value = 0; /* remove blacklisting */
-	  friend_count++;	  
+	  friend_count++;
 	  return;
 	}
       pos = pos->next;
@@ -364,8 +364,8 @@ static void connect_notify (void *cls,
 /**
  * Disconnect from all non-friends (we're below quota).
  */
-static void 
-drop_non_friends () 
+static void
+drop_non_friends ()
 {
   struct PeerList *pos;
 
@@ -427,7 +427,7 @@ static void disconnect_notify (void *cls,
 	}
       prev = pos;
       pos = pos->next;
-    } 
+    }
   GNUNET_break (0);
 }
 
@@ -444,12 +444,12 @@ find_more_peers (void *cls,
 /**
  * Determine when we should try again to find more peers and
  * schedule the task.
- */ 
+ */
 static void
 schedule_peer_search ()
 {
   struct GNUNET_TIME_Relative delay;
-  
+
   /* Typically, we try again every 15 minutes; the minimum period is
      15s; if we are above the connection target, we reduce re-trying
      by the square of how much we are above; so for example, with 200%
@@ -473,8 +473,8 @@ schedule_peer_search ()
 
 
 /**
- * Iterator called on each address. 
- * 
+ * Iterator called on each address.
+ *
  * @param cls flag that we will set if we see any addresses.
  */
 static int
@@ -526,18 +526,18 @@ consider_for_advertising (const struct GNUNET_HELLO_Message *hello)
   memcpy (&pos->msg, hello, size);
   pos->id = pid;
   pos->expiration = GNUNET_TIME_relative_to_absolute (HELLO_ADVERTISEMENT_MIN_FREQUENCY);
-  /* 2^{-5} chance of not sending a HELLO to a peer is 
-     acceptably small (if the filter is 50% full); 
+  /* 2^{-5} chance of not sending a HELLO to a peer is
+     acceptably small (if the filter is 50% full);
      64 bytes of memory are small compared to the rest
      of the data structure and would only really become
      "useless" once a HELLO has been passed on to ~100
-     other peers, which is likely more than enough in 
+     other peers, which is likely more than enough in
      any case; hence 64, 5 as bloomfilter parameters. */
   pos->filter = GNUNET_CONTAINER_bloomfilter_load (NULL, 64, 5);
   /* never send a peer its own HELLO */
   GNUNET_CONTAINER_bloomfilter_add (pos->filter, &pos->id.hashPubKey);
   pos->next = hellos;
-  hellos = pos;  
+  hellos = pos;
 }
 
 
@@ -585,7 +585,7 @@ process_peer (void *cls,
 	    }
 	}
       pos = pos->next;
-    }  
+    }
   if (GNUNET_YES == friends_only)
     return;
   if (friend_count < minimum_friend_count)
@@ -700,7 +700,7 @@ core_init (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Failed to connect to core service, can not manage topology!\n"));
-      return; 
+      return;
     }
   handle = server;
   my_identity = *my_id;
@@ -744,7 +744,7 @@ read_friends_file (struct GNUNET_CONFIGURATION_Handle *cfg)
 					   "FRIENDS",
 					   &fn);
   if (GNUNET_OK != GNUNET_DISK_file_test (fn))
-    GNUNET_DISK_file_write (fn, NULL, 0, "600");
+    GNUNET_DISK_fn_write (fn, NULL, 0, "600");
   if (0 != STAT (fn, &frstat))
     {
       if ((friends_only) || (minimum_friend_count > 0))
@@ -761,11 +761,11 @@ read_friends_file (struct GNUNET_CONFIGURATION_Handle *cfg)
 		  _("Friends file `%s' is empty.\n"),
 		  fn);
       GNUNET_free (fn);
-      return; 
+      return;
     }
   data = GNUNET_malloc_large (frstat.st_size);
   if (frstat.st_size !=
-      GNUNET_DISK_file_read (fn, frstat.st_size, data))
+      GNUNET_DISK_fn_read (fn, data, frstat.st_size))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Failed to read friends list from `%s'\n"), fn);
@@ -914,10 +914,10 @@ hello_advertising (void *cls,
   while (NULL != (pos = next))
     {
       next = pos->next;
-      if (GNUNET_NO == 
+      if (GNUNET_NO ==
 	  GNUNET_CONTAINER_bloomfilter_test (pos->filter,
 					     &receiver->hashPubKey))
-	break;  
+	break;
       if (0 == GNUNET_TIME_absolute_get_remaining (pos->expiration).value)
 	{
 	  /* time to discard... */
@@ -947,11 +947,11 @@ hello_advertising (void *cls,
 	  size = 0;
 	}
       return size;
-    }  
+    }
   if ( (GNUNET_NO == hello_gathering_active) &&
        (GNUNET_TIME_absolute_get_duration (last_hello_gather_time).value >
 	MIN_HELLO_GATHER_DELAY.value) )
-    {     
+    {
       hello_gathering_active = GNUNET_YES;
       last_hello_gather_time = GNUNET_TIME_absolute_get();
       GNUNET_PEERINFO_for_all (cfg,
@@ -994,14 +994,14 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param c configuration
  */
-static void 
+static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle * s,
      char *const *args,
      const char *cfgfile,
      struct GNUNET_CONFIGURATION_Handle * c)
 {
-  struct GNUNET_CORE_MessageHandler handlers[] = 
+  struct GNUNET_CORE_MessageHandler handlers[] =
     {
       { &handle_encrypted_hello, GNUNET_MESSAGE_TYPE_HELLO, 0},
       { NULL, 0, 0 }
@@ -1012,7 +1012,7 @@ run (void *cls,
   cfg = c;
   autoconnect = GNUNET_CONFIGURATION_get_value_yesno (cfg,
 						      "TOPOLOGY",
-						      "AUTOCONNECT"); 
+						      "AUTOCONNECT");
   friends_only = GNUNET_CONFIGURATION_get_value_yesno (cfg,
 						       "TOPOLOGY",
 						       "FRIENDS-ONLY");
@@ -1050,7 +1050,7 @@ run (void *cls,
 		       NULL, GNUNET_NO,
 		       NULL, GNUNET_NO,
 		       handlers);
-  
+
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_YES,
                                 GNUNET_SCHEDULER_PRIORITY_IDLE,
@@ -1075,7 +1075,7 @@ main (int argc, char *const *argv)
   ret = (GNUNET_OK ==
          GNUNET_PROGRAM_run (argc,
                              argv,
-                             "topology", 
+                             "topology",
 			     _("GNUnet topology control (maintaining P2P mesh and F2F constraints)"),
 			     options,
 			     &run, NULL)) ? 0 : 1;

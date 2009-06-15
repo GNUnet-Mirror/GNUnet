@@ -197,14 +197,14 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
   entry->identity = *identity;
   fn = get_trust_filename (identity);
   if ((GNUNET_DISK_file_test (fn) == GNUNET_YES) &&
-      (sizeof (trust) == GNUNET_DISK_file_read (fn, sizeof (trust), &trust)))
+      (sizeof (trust) == GNUNET_DISK_fn_read (fn, &trust, sizeof (trust))))
     entry->disk_trust = entry->trust = ntohl (trust);
   GNUNET_free (fn);
 
   fn = get_host_filename (identity);
   if (GNUNET_DISK_file_test (fn) == GNUNET_YES)
     {
-      size = GNUNET_DISK_file_read (fn, sizeof (buffer), buffer);
+      size = GNUNET_DISK_fn_read (fn, buffer, sizeof (buffer));
       hello = (const struct GNUNET_HELLO_Message *) buffer;
       now = GNUNET_TIME_absolute_get ();
       hello_clean = GNUNET_HELLO_iterate_addresses (hello,
@@ -371,7 +371,9 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
       host->hello = mrg;
     }
   fn = get_host_filename (peer);
-  GNUNET_DISK_file_write (fn, host->hello, GNUNET_HELLO_size (hello), "644");
+  GNUNET_DISK_fn_write (fn, host->hello, GNUNET_HELLO_size (hello),
+      GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE
+          | GNUNET_DISK_PERM_GROUP_READ | GNUNET_DISK_PERM_OTHER_READ);
   GNUNET_free (fn);
 }
 
@@ -455,8 +457,9 @@ flush_trust (struct HostEntry *host)
   else
     {
       trust = htonl (host->trust);
-      if (GNUNET_OK ==
-          GNUNET_DISK_file_write (fn, &trust, sizeof (uint32_t), "644"))
+      if (GNUNET_OK == GNUNET_DISK_fn_write (fn, &trust, sizeof(uint32_t),
+          GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE
+              | GNUNET_DISK_PERM_GROUP_READ | GNUNET_DISK_PERM_OTHER_READ))
         host->disk_trust = host->trust;
     }
   GNUNET_free (fn);
@@ -497,7 +500,7 @@ discard_hosts_helper (void *cls, const char *fn)
   struct GNUNET_HELLO_Message *new_hello;
   int size;
 
-  size = GNUNET_DISK_file_read (fn, sizeof (buffer), buffer);
+  size = GNUNET_DISK_fn_read (fn, buffer, sizeof (buffer));
   if ((size < sizeof (struct GNUNET_MessageHeader)) && (0 != UNLINK (fn)))
     {
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING |
@@ -513,9 +516,9 @@ discard_hosts_helper (void *cls, const char *fn)
                               GNUNET_ERROR_TYPE_BULK, "unlink", fn);
   if (new_hello != NULL)
     {
-      GNUNET_DISK_file_write (fn,
-                              new_hello,
-                              GNUNET_HELLO_size (new_hello), "644");
+      GNUNET_DISK_fn_write (fn, new_hello, GNUNET_HELLO_size (new_hello),
+          GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE
+              | GNUNET_DISK_PERM_GROUP_READ | GNUNET_DISK_PERM_OTHER_READ);
       GNUNET_free (new_hello);
     }
   return GNUNET_OK;

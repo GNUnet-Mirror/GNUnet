@@ -99,7 +99,7 @@ static int
 testdisk ()
 {
   int ret;
-  int fd;
+  struct GNUNET_IO_Handle *fh;
   char buf[65536];
   struct GNUNET_TIME_Absolute start;
   struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -132,20 +132,20 @@ testdisk ()
       return 0;
     }
   memset (buf, 42, sizeof (buf));
-  fd =
-    GNUNET_DISK_file_open (".loadfile", O_WRONLY | O_CREAT,
-                           S_IRUSR | S_IWUSR);
-  GNUNET_assert (fd != -1);
+  fh = GNUNET_DISK_file_open (".loadfile", GNUNET_DISK_OPEN_WRITE
+      | GNUNET_DISK_OPEN_CREATE, GNUNET_DISK_PERM_USER_READ
+      | GNUNET_DISK_PERM_USER_WRITE);
+  GNUNET_assert (GNUNET_NO == GNUNET_IO_handle_invalid(fh));
   while (GNUNET_TIME_absolute_get_duration (start).value < 60 * 1000)
     {
-      LSEEK (fd, GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                           1024 * 1024 * 1024), SEEK_SET);
-      GNUNET_assert (sizeof (buf) == WRITE (fd, buf, sizeof (buf)));
-      fsync (fd);
+      GNUNET_DISK_file_seek (fh, GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                           1024 * 1024 * 1024), GNUNET_SEEK_SET);
+      GNUNET_assert (sizeof (buf) == GNUNET_DISK_file_write (fh, buf, sizeof (buf)));
+      GNUNET_DISK_file_sync (fh);
       if (ret < GNUNET_OS_load_disk_get (cfg))
         break;
     }
-  GNUNET_break (0 == CLOSE (fd));
+  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (&fh));
   GNUNET_break (0 == UNLINK (".loadfile"));
   if (ret >= GNUNET_OS_load_disk_get (cfg))
     {

@@ -99,7 +99,7 @@ load (struct GNUNET_SERVER_Handle *server,
       struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char *fn;
-  int fd;
+  struct GNUNET_IO_Handle *fh, *mh;
   struct stat sb;
   char *buf;
   size_t off;
@@ -114,17 +114,17 @@ load (struct GNUNET_SERVER_Handle *server,
       GNUNET_free (fn);
       return;
     }
-  fd = GNUNET_DISK_file_open (fn, O_RDONLY);
-  if (fd == -1)
+  fh = GNUNET_DISK_file_open (fn, GNUNET_DISK_OPEN_READ);
+  if (!fh)
     {
       GNUNET_free (fn);
       return;
     }
-  buf = MMAP (NULL, sb.st_size, PROT_READ, MAP_SHARED, fd, 0);
-  if (MAP_FAILED == buf)
+  buf = GNUNET_DISK_file_map (fh, &mh, GNUNET_DISK_MAP_READ, sb.st_size);
+  if (NULL == buf)
     {
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "mmap", fn);
-      GNUNET_break (0 == CLOSE (fd));
+      GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (&fh));
       GNUNET_free (fn);
       return;
     }
@@ -143,8 +143,8 @@ load (struct GNUNET_SERVER_Handle *server,
         }
       off += ntohs (msg->size);
     }
-  GNUNET_break (0 == MUNMAP (buf, sb.st_size));
-  GNUNET_break (0 == CLOSE (fd));
+  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_unmap (&mh, buf, sb.st_size));
+  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (&fh));
   GNUNET_free (fn);
 }
 
@@ -160,39 +160,37 @@ save (void *cls, struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct StatsEntry *pos;
   char *fn;
-  int fd;
+  struct GNUNET_IO_Handle *fh;
   uint16_t size;
   unsigned long long total;
 
-  fd = -1;
   fn = GNUNET_DISK_get_home_filename (cfg,
                                       "statistics", "statistics.data", NULL);
   if (fn != NULL)
-    fd =
-      GNUNET_DISK_file_open (fn, O_WRONLY | O_CREAT | O_TRUNC,
-                             S_IRUSR | S_IWUSR);
+    fh = GNUNET_DISK_file_open (fn, GNUNET_DISK_OPEN_WRITE
+        | GNUNET_DISK_OPEN_CREATE | GNUNET_DISK_OPEN_TRUNCATE,
+        GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
   total = 0;
   while (NULL != (pos = start))
     {
       start = pos->next;
-      if ((pos->persistent) && (fd != -1))
+      if ((pos->persistent) && fh)
         {
           size = htons (pos->msg->header.size);
-          if (size != WRITE (fd, pos->msg, size))
+          if (size != GNUNET_DISK_file_write (fh, pos->msg, size))
             {
               GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
                                         "write", fn);
-              GNUNET_DISK_file_close (fn, fd);
-              fd = -1;
+              GNUNET_DISK_file_close (&fh);
             }
           else
             total += size;
         }
       GNUNET_free (pos);
     }
-  if (fd != -1)
+  if (fh)
     {
-      GNUNET_DISK_file_close (fn, fd);
+      GNUNET_DISK_file_close (&fh);
       if (total == 0)
         GNUNET_break (0 == UNLINK (fn));
       else

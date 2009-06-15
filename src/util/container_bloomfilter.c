@@ -60,7 +60,7 @@ struct GNUNET_CONTAINER_BloomFilter
   /**
    * The bit counter file on disk
    */
-  int fd;
+  struct GNUNET_IO_Handle *fh;
 
   /**
    * How many bits we set for each stored element
@@ -139,10 +139,10 @@ testBit (char *bitArray, unsigned int bitIdx)
  *
  * @param bitArray memory area to set the bit in
  * @param bitIdx which bit to test
- * @param fd A file to keep the 4 bit address usage counters in
+ * @param fh A file to keep the 4 bit address usage counters in
  */
 static void
-incrementBit (char *bitArray, unsigned int bitIdx, int fd)
+incrementBit (char *bitArray, unsigned int bitIdx, const struct GNUNET_IO_Handle *fh)
 {
   unsigned int fileSlot;
   unsigned char value;
@@ -151,14 +151,14 @@ incrementBit (char *bitArray, unsigned int bitIdx, int fd)
   unsigned int targetLoc;
 
   setBit (bitArray, bitIdx);
-  if (fd == -1)
+  if (GNUNET_IO_handle_invalid (fh))
     return;
   /* Update the counter file on disk */
   fileSlot = bitIdx / 2;
   targetLoc = bitIdx % 2;
 
-  GNUNET_assert (fileSlot == (unsigned int) LSEEK (fd, fileSlot, SEEK_SET));
-  if (1 != READ (fd, &value, 1))
+  GNUNET_assert (fileSlot == (unsigned int) GNUNET_DISK_file_seek (fh, fileSlot, GNUNET_SEEK_SET));
+  if (1 != GNUNET_DISK_file_read (fh, &value, 1))
     value = 0;
   low = value & 0xF;
   high = (value & (~0xF)) >> 4;
@@ -174,8 +174,8 @@ incrementBit (char *bitArray, unsigned int bitIdx, int fd)
         high++;
     }
   value = ((high << 4) | low);
-  GNUNET_assert (fileSlot == (unsigned int) LSEEK (fd, fileSlot, SEEK_SET));
-  GNUNET_assert (1 == WRITE (fd, &value, 1));
+  GNUNET_assert (fileSlot == (unsigned int) GNUNET_DISK_file_seek (fh, fileSlot, GNUNET_SEEK_SET));
+  GNUNET_assert (1 == GNUNET_DISK_file_write (fh, &value, 1));
 }
 
 /**
@@ -184,10 +184,10 @@ incrementBit (char *bitArray, unsigned int bitIdx, int fd)
  *
  * @param bitArray memory area to set the bit in
  * @param bitIdx which bit to test
- * @param fd A file to keep the 4bit address usage counters in
+ * @param fh A file to keep the 4bit address usage counters in
  */
 static void
-decrementBit (char *bitArray, unsigned int bitIdx, int fd)
+decrementBit (char *bitArray, unsigned int bitIdx, const struct GNUNET_IO_Handle *fh)
 {
   unsigned int fileSlot;
   unsigned char value;
@@ -195,13 +195,13 @@ decrementBit (char *bitArray, unsigned int bitIdx, int fd)
   unsigned int low;
   unsigned int targetLoc;
 
-  if (fd == -1)
+  if (GNUNET_IO_handle_invalid (fh))
     return;                     /* cannot decrement! */
   /* Each char slot in the counter file holds two 4 bit counters */
   fileSlot = bitIdx / 2;
   targetLoc = bitIdx % 2;
-  LSEEK (fd, fileSlot, SEEK_SET);
-  if (1 != READ (fd, &value, 1))
+  GNUNET_DISK_file_seek (fh, fileSlot, GNUNET_SEEK_SET);
+  if (1 != GNUNET_DISK_file_read (fh, &value, 1))
     value = 0;
   low = value & 0xF;
   high = (value & 0xF0) >> 4;
@@ -226,8 +226,8 @@ decrementBit (char *bitArray, unsigned int bitIdx, int fd)
         }
     }
   value = ((high << 4) | low);
-  LSEEK (fd, fileSlot, SEEK_SET);
-  GNUNET_assert (1 == WRITE (fd, &value, 1));
+  GNUNET_DISK_file_seek (fh, fileSlot, GNUNET_SEEK_SET);
+  GNUNET_assert (1 == GNUNET_DISK_file_write (fh, &value, 1));
 }
 
 #define BUFFSIZE 65536
@@ -235,36 +235,36 @@ decrementBit (char *bitArray, unsigned int bitIdx, int fd)
 /**
  * Creates a file filled with zeroes
  *
- * @param fd the file handle
+ * @param fh the file handle
  * @param size the size of the file
  * @return GNUNET_OK if created ok, GNUNET_SYSERR otherwise
  */
 static int
-makeEmptyFile (int fd, unsigned int size)
+makeEmptyFile (const struct GNUNET_IO_Handle *fh, unsigned int size)
 {
   char *buffer;
   unsigned int bytesleft = size;
   int res = 0;
 
-  if (fd == -1)
+  if (GNUNET_IO_handle_invalid (fh))
     return GNUNET_SYSERR;
   buffer = GNUNET_malloc (BUFFSIZE);
   memset (buffer, 0, BUFFSIZE);
-  LSEEK (fd, 0, SEEK_SET);
+  GNUNET_DISK_file_seek (fh, 0, GNUNET_SEEK_SET);
 
   while (bytesleft > 0)
     {
       if (bytesleft > BUFFSIZE)
         {
-          res = WRITE (fd, buffer, BUFFSIZE);
+          res = GNUNET_DISK_file_write (fh, buffer, BUFFSIZE);
           bytesleft -= BUFFSIZE;
         }
       else
         {
-          res = WRITE (fd, buffer, bytesleft);
+          res = GNUNET_DISK_file_write (fh, buffer, bytesleft);
           bytesleft = 0;
         }
-      GNUNET_assert (res != -1);
+      GNUNET_assert (res != GNUNET_SYSERR);
     }
   GNUNET_free (buffer);
   return GNUNET_OK;
@@ -338,7 +338,7 @@ static void
 incrementBitCallback (struct GNUNET_CONTAINER_BloomFilter *bf,
                       unsigned int bit, void *arg)
 {
-  incrementBit (bf->bitArray, bit, bf->fd);
+  incrementBit (bf->bitArray, bit, bf->fh);
 }
 
 /**
@@ -352,7 +352,7 @@ static void
 decrementBitCallback (struct GNUNET_CONTAINER_BloomFilter *bf,
                       unsigned int bit, void *arg)
 {
-  decrementBit (bf->bitArray, bit, bf->fd);
+  decrementBit (bf->bitArray, bit, bf->fh);
 }
 
 /**
@@ -406,14 +406,10 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, unsigned int size,
   /* Try to open a bloomfilter file */
   if (filename != NULL)
     {
-#ifndef _MSC_VER
-      bf->fd = GNUNET_DISK_file_open (filename, O_RDWR | O_CREAT,
-                                      S_IRUSR | S_IWUSR);
-#else
-      bf->fd = GNUNET_DISK_file_open (filename,
-                                      O_WRONLY | O_CREAT, S_IREAD | S_IWRITE);
-#endif
-      if (-1 == bf->fd)
+      bf->fh = GNUNET_DISK_file_open (filename,
+          GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
+          GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
+      if (!bf->fh)
         {
           GNUNET_free (bf);
           return NULL;
@@ -422,8 +418,8 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, unsigned int size,
     }
   else
     {
-      bf->fd = -1;
       bf->filename = NULL;
+      bf->fh = NULL;
     }
   /* Alloc block */
   bf->bitArray = GNUNET_malloc_large (size);
@@ -431,7 +427,7 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, unsigned int size,
   bf->addressesPerElement = k;
   memset (bf->bitArray, 0, bf->bitArraySize);
 
-  if (bf->fd != -1)
+  if (bf->filename != NULL)
     {
       /* Read from the file what bits we can */
       rbuff = GNUNET_malloc (BUFFSIZE);
@@ -440,7 +436,7 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, unsigned int size,
         {
           int res;
 
-          res = READ (bf->fd, rbuff, BUFFSIZE);
+          res = GNUNET_DISK_file_read (bf->fh, rbuff, BUFFSIZE);
           if (res == 0)
             break;              /* is ok! we just did not use that many bits yet */
           for (i = 0; i < res; i++)
@@ -491,8 +487,8 @@ GNUNET_CONTAINER_bloomfilter_init (const char *data, unsigned int size,
       return NULL;
     }
   bf = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_BloomFilter));
-  bf->fd = -1;
   bf->filename = NULL;
+  bf->fh = NULL;
   bf->bitArray = GNUNET_malloc_large (size);
   bf->bitArraySize = size;
   bf->addressesPerElement = k;
@@ -537,9 +533,11 @@ GNUNET_CONTAINER_bloomfilter_free (struct GNUNET_CONTAINER_BloomFilter *bf)
 {
   if (NULL == bf)
     return;
-  if (bf->fd != -1)
-    GNUNET_DISK_file_close (bf->filename, bf->fd);
-  GNUNET_free_non_null (bf->filename);
+  if (bf->filename != NULL)
+    {
+      GNUNET_DISK_file_close (&bf->fh);
+      GNUNET_free (bf->filename);
+    }
   GNUNET_free (bf->bitArray);
   GNUNET_free (bf);
 }
@@ -556,8 +554,8 @@ GNUNET_CONTAINER_bloomfilter_clear (struct GNUNET_CONTAINER_BloomFilter *bf)
     return;
 
   memset (bf->bitArray, 0, bf->bitArraySize);
-  if (bf->fd != -1)
-    makeEmptyFile (bf->fd, bf->bitArraySize * 4);
+  if (bf->filename != NULL)
+    makeEmptyFile (bf->fh, bf->bitArraySize * 4);
 }
 
 
@@ -634,7 +632,7 @@ GNUNET_CONTAINER_bloomfilter_remove (struct GNUNET_CONTAINER_BloomFilter *bf,
 {
   if (NULL == bf)
     return;
-  if (bf->fd == -1)
+  if (bf->filename == NULL)
     return;
   iterateBits (bf, &decrementBitCallback, NULL, e);
 }
@@ -668,8 +666,8 @@ GNUNET_CONTAINER_bloomfilter_resize (struct GNUNET_CONTAINER_BloomFilter *bf,
   bf->bitArraySize = size;
   bf->bitArray = GNUNET_malloc (size);
   memset (bf->bitArray, 0, bf->bitArraySize);
-  if (bf->fd != -1)
-    makeEmptyFile (bf->fd, bf->bitArraySize * 4);
+  if (bf->filename != NULL)
+    makeEmptyFile (bf->fh, bf->bitArraySize * 4);
   while (GNUNET_YES == iterator (&hc, iterator_arg))
     GNUNET_CONTAINER_bloomfilter_add (bf, &hc);
 }
