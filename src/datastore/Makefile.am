@@ -55,15 +55,29 @@ libgnunet_plugin_datastore_template_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 
-#check_PROGRAMS = \
-# test_datastore_api 
-#
-#TESTS = $(check_PROGRAMS)
-#
-#test_datastore_api_SOURCES = \
-# test_datastore_api.c
-#test_datastore_api_LDADD = \
-# $(top_builddir)/src/datastore/libgnunetdatastore.la \
-# $(top_builddir)/src/util/libgnunetutil.la  
+check_PROGRAMS = \
+ test_datastore_api \
+ perf_datastore_api \
+ perf_datastore_api_iterators
+
+TESTS = $(check_PROGRAMS)
+
+test_datastore_api_SOURCES = \
+ test_datastore_api.c
+test_datastore_api_LDADD = \
+ $(top_builddir)/src/datastore/libgnunetdatastore.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+perf_datastore_api_SOURCES = \
+ perf_datastore_api.c
+perf_datastore_api_LDADD = \
+ $(top_builddir)/src/datastore/libgnunetdatastore.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+perf_datastore_api_iterators_SOURCES = \
+ perf_datastore_api_iterators.c
+perf_datastore_api_iterators_LDADD = \
+ $(top_builddir)/src/datastore/libgnunetdatastore.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
 
 
