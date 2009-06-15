@@ -7,6 +7,9 @@ Util:
 * improve disk API [Nils]
 * Windows: use events instead of pipes to signal select()s [Nils]
 * only connect() sockets that are ready (select())
+  [Nils: I'm not sure what you mean by this; fresh sockets are always
+   ready for connect(), just 'write' after connect needs select AFAIK;
+   please clarify. --Christian]
 * crypto_hash: use libgcrypt (supports SHA-512 since 2003)
 
 TESTCASES WANTED:
