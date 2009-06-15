@@ -23,11 +23,6 @@
  * @brief high-level P2P messaging
  * @author Christian Grothoff
  *
- * POST-TESTING:
- * - topology management:
- *   + bootstrapping (transport offer hello, plugins)
- *   + internal neighbour selection
- *
  * Considerations for later:
  * - check that hostkey used by transport (for HELLOs) is the
  *   same as the hostkey that we are using!

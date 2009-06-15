@@ -361,12 +361,6 @@ struct NeighbourList
   uint32_t quota_in;
 
   /**
-   * What is the latest version of our HELLO that we have
-   * sent to this neighbour?
-   */
-  unsigned int hello_version_sent;
-
-  /**
    * How often has the other peer (recently) violated the
    * inbound traffic limit?  Incremented by 10 per violation,
    * decremented by 1 per non-violation (for each
@@ -2195,7 +2189,6 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer)
     GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
   n->quota_in = (GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT + 59999) / (60 * 1000);
   add_plugins (n);
-  n->hello_version_sent = our_hello_version;
   n->timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
                                                   GNUNET_NO,
                                                   GNUNET_SCHEDULER_PRIORITY_IDLE,

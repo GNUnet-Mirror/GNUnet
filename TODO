@@ -1,10 +1,5 @@
 PHASE #1: (Goal: settle key design questions)
 
-Topology:
-* Forwarding of known HELLOs to neighbours (advertising)
-  [ Inbound HELLOs are processed by transport, right?  
-    But what about inbound encrypted HELLOs? ]
-
 ARM:
 * Make sure ARM supports daemons (non-service background processes, see hostlist/topology)
 

@@ -29,6 +29,7 @@
 #include "gnunet_core_service.h"
 #include "gnunet_protocols.h"
 #include "gnunet_peerinfo_service.h"
+#include "gnunet_transport_service.h"
 #include "gnunet_util_lib.h"
 
 
@@ -45,6 +46,19 @@
  * connection attempt?
  */ 
 #define BLACKLIST_AFTER_ATTEMPT_FRIEND GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
+
+/**
+ * How frequently are we allowed to ask PEERINFO for more
+ * HELLO's to advertise (at most)?
+ */ 
+#define MIN_HELLO_GATHER_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 27)
+
+/**
+ * How often do we at most advertise the same HELLO to the same peer?
+ * Also used to remove HELLOs of peers that PEERINFO no longer lists
+ * from our cache.
+ */ 
+#define HELLO_ADVERTISEMENT_MIN_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 12)
 
 
 /**
@@ -75,12 +89,59 @@ struct PeerList
   struct GNUNET_TIME_Absolute blacklisted_until;
 
   /**
+   * Last time we transmitted a HELLO to this peer?
+   */
+  struct GNUNET_TIME_Absolute last_hello_sent;
+
+  /**
    * ID of the peer.
    */
   struct GNUNET_PeerIdentity id;
   
 };
 
+
+/**
+ * List of HELLOs we may consider for advertising.
+ */
+struct HelloList
+{
+  /**
+   * This is a linked list.
+   */
+  struct HelloList *next;
+
+  /**
+   * Pointer to the HELLO message.  Memory allocated as part
+   * of the "struct HelloList" --- do not free!
+   */
+  struct GNUNET_HELLO_Message *msg;
+
+  /**
+   * Bloom filter used to mark which peers already got
+   * this HELLO.
+   */
+  struct GNUNET_CONTAINER_BloomFilter *filter;
+  
+  /**
+   * What peer is this HELLO for?
+   */
+  struct GNUNET_PeerIdentity id;
+ 
+  /**
+   * When should we remove this entry from the linked list (either
+   * resetting the filter or possibly eliminating it for good because
+   * we no longer consider the peer to be participating in the
+   * network)?
+   */
+  struct GNUNET_TIME_Absolute expiration;
+};
+
+
+/**
+ * Linked list of HELLOs for advertising.
+ */
+static struct HelloList *hellos;
 
 /**
  * Our scheduler.
@@ -96,6 +157,11 @@ static struct GNUNET_CONFIGURATION_Handle * cfg;
  * Handle to the core API.
  */
 static struct GNUNET_CORE_Handle *handle;
+   
+/**
+ * Handle to the transport API.
+ */
+static struct GNUNET_TRANSPORT_Handle *transport;
 
 /**
  * Identity of this peer.
@@ -107,6 +173,11 @@ static struct GNUNET_PeerIdentity my_identity;
  * neighbours.
  */
 static struct PeerList *friends;
+
+/**
+ * Timestamp from the last time we tried to gather HELLOs.
+ */
+static struct GNUNET_TIME_Absolute last_hello_gather_time;
 
 /**
  * Flag to disallow non-friend connections (pure F2F mode).
@@ -138,6 +209,12 @@ static unsigned int friend_count;
  * Should the topology daemon try to establish connections?
  */
 static int autoconnect;
+
+/**
+ * Are we currently having a request pending with
+ * PEERINFO asking for HELLOs for advertising?
+ */
+static int hello_gathering_active;
 
 
 
@@ -393,14 +470,85 @@ schedule_peer_search ()
 }
 
 
+
+
+/**
+ * Iterator called on each address. 
+ * 
+ * @param cls flag that we will set if we see any addresses.
+ */
+static int
+address_iterator (void *cls,
+		  const char *tname,
+		  struct GNUNET_TIME_Absolute expiration,
+		  const void *addr, size_t addrlen)
+{
+  int *flag = cls;
+  *flag = GNUNET_YES;
+  return GNUNET_SYSERR;
+}
+
+
+/**
+ * We've gotten a HELLO from another peer.
+ * Consider it for advertising.
+ */
+static void
+consider_for_advertising (const struct GNUNET_HELLO_Message *hello)
+{
+  int have_address;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
+  struct GNUNET_PeerIdentity pid;
+  struct HelloList *pos;
+  uint16_t size;
+
+  have_address = GNUNET_NO;
+  GNUNET_HELLO_iterate_addresses (hello,
+				  GNUNET_NO,
+				  &address_iterator,
+				  &have_address);
+  if (GNUNET_NO == have_address)
+    return; /* no point in advertising this one... */
+  GNUNET_HELLO_get_key (hello, &pkey);
+  GNUNET_CRYPTO_hash (&pkey, sizeof (pkey), &pid.hashPubKey);
+  pos = hellos;
+  while (pos != NULL)
+    {
+      if (0 == memcmp (&pos->id,
+		       &pid,
+		       sizeof(struct GNUNET_PeerIdentity)))
+	return; /* duplicate, at least "mostly" */
+      pos = pos->next;
+    }
+  size = GNUNET_HELLO_size (hello);
+  pos = GNUNET_malloc (sizeof(struct HelloList) + size);
+  pos->msg = (struct GNUNET_HELLO_Message*) &pos[1];
+  memcpy (&pos->msg, hello, size);
+  pos->id = pid;
+  pos->expiration = GNUNET_TIME_relative_to_absolute (HELLO_ADVERTISEMENT_MIN_FREQUENCY);
+  /* 2^{-5} chance of not sending a HELLO to a peer is 
+     acceptably small (if the filter is 50% full); 
+     64 bytes of memory are small compared to the rest
+     of the data structure and would only really become
+     "useless" once a HELLO has been passed on to ~100
+     other peers, which is likely more than enough in 
+     any case; hence 64, 5 as bloomfilter parameters. */
+  pos->filter = GNUNET_CONTAINER_bloomfilter_load (NULL, 64, 5);
+  /* never send a peer its own HELLO */
+  GNUNET_CONTAINER_bloomfilter_add (pos->filter, &pos->id.hashPubKey);
+  pos->next = hellos;
+  hellos = pos;  
+}
+
+
 /**
  * Peerinfo calls this function to let us know about a
  * possible peer that we might want to connect to.
  */
 static void
 process_peer (void *cls,
-	      const struct GNUNET_PeerIdentity * peer,
-	      const struct GNUNET_HELLO_Message * hello,
+	      const struct GNUNET_PeerIdentity *peer,
+	      const struct GNUNET_HELLO_Message *hello,
 	      uint32_t trust)
 {
   struct PeerList *pos;
@@ -420,6 +568,7 @@ process_peer (void *cls,
                    peer, sizeof (struct GNUNET_PeerIdentity)))
     return;  /* that's me! */
 
+  consider_for_advertising (hello);
   pos = friends;
   while (pos != NULL)
     {
@@ -436,7 +585,7 @@ process_peer (void *cls,
 	    }
 	}
       pos = pos->next;
-    }
+    }  
   if (GNUNET_YES == friends_only)
     return;
   if (friend_count < minimum_friend_count)
@@ -681,6 +830,162 @@ read_friends_file (struct GNUNET_CONFIGURATION_Handle *cfg)
 
 
 /**
+ * This function is called whenever an encrypted HELLO message is
+ * received.
+ *
+ * @param cls closure
+ * @param peer the other peer involved (sender or receiver, NULL
+ *        for loopback messages where we are both sender and receiver)
+ * @param message the actual HELLO message
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+static int
+handle_encrypted_hello (void *cls,
+			const struct GNUNET_PeerIdentity * other,
+			const struct GNUNET_MessageHeader *
+			message)
+{
+  if (transport != NULL)
+    GNUNET_TRANSPORT_offer_hello (transport,
+				  message);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Peerinfo calls this function to let us know about a
+ * possible peer that we might want to connect to.
+ */
+static void
+gather_hello_callback (void *cls,
+		       const struct GNUNET_PeerIdentity *peer,
+		       const struct GNUNET_HELLO_Message *hello,
+		       uint32_t trust)
+{
+  if (peer == NULL)
+    {
+      hello_gathering_active = GNUNET_NO;
+      return;
+    }
+  if (hello != NULL)
+    consider_for_advertising (hello);
+}
+
+
+/**
+ * Function to fill send buffer with HELLO.
+ *
+ * @param receiver the receiver of the message
+ * @param position is the reference to the
+ *        first unused position in the buffer where GNUnet is building
+ *        the message
+ * @param padding is the number of bytes left in that buffer.
+ * @return the number of bytes written to
+ *   that buffer (must be a positive number).
+ */
+static unsigned int
+hello_advertising (void *cls,
+		   const struct GNUNET_PeerIdentity *
+		   receiver,
+		   void *position, unsigned int padding)
+{
+  struct PeerList *pl;
+  struct HelloList *pos;
+  struct HelloList *prev;
+  struct HelloList *next;
+  uint16_t size;
+
+  pl = friends;
+  while (pl != NULL)
+    {
+      if (0 == memcmp (&pl->id, receiver, sizeof (struct GNUNET_PeerIdentity)))
+	break;
+      pl = pl->next;
+    }
+  if (pl == NULL)
+    {
+      GNUNET_break (0);
+      return 0;
+    }
+  /* find applicable HELLOs */
+  prev = NULL;
+  next = hellos;
+  while (NULL != (pos = next))
+    {
+      next = pos->next;
+      if (GNUNET_NO == 
+	  GNUNET_CONTAINER_bloomfilter_test (pos->filter,
+					     &receiver->hashPubKey))
+	break;  
+      if (0 == GNUNET_TIME_absolute_get_remaining (pos->expiration).value)
+	{
+	  /* time to discard... */
+	  if (prev == NULL)
+	    prev->next = next;
+	  else
+	    hellos = next;
+	  GNUNET_CONTAINER_bloomfilter_free (pos->filter);
+	  GNUNET_free (pos);
+	}
+      else
+	{
+	  prev = pos;
+	}
+    }
+  if (pos != NULL)
+    {
+      size = GNUNET_HELLO_size (pos->msg);
+      if (size < padding)
+	{
+	  memcpy (position, pos->msg, size);
+	  GNUNET_CONTAINER_bloomfilter_add (pos->filter,
+					    &receiver->hashPubKey);
+	}
+      else
+	{
+	  size = 0;
+	}
+      return size;
+    }  
+  if ( (GNUNET_NO == hello_gathering_active) &&
+       (GNUNET_TIME_absolute_get_duration (last_hello_gather_time).value >
+	MIN_HELLO_GATHER_DELAY.value) )
+    {     
+      hello_gathering_active = GNUNET_YES;
+      last_hello_gather_time = GNUNET_TIME_absolute_get();
+      GNUNET_PEERINFO_for_all (cfg,
+			       sched,
+			       NULL,
+			       0, GNUNET_TIME_UNIT_FOREVER_REL,
+			       &gather_hello_callback, NULL);
+    }
+  return 0;
+}
+
+
+/**
+ * Last task run during shutdown.  Disconnects us from
+ * the transport and core.
+ */
+static void
+cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct PeerList *pl;
+
+  GNUNET_TRANSPORT_disconnect (transport);
+  transport = NULL;
+  GNUNET_CORE_disconnect (handle);
+  handle = NULL;
+  while (NULL != (pl = friends))
+    {
+      friends = pl->next;
+      GNUNET_free (pl);
+    }
+}
+
+
+/**
  * Main function that will be run.
  *
  * @param cls closure
@@ -698,6 +1003,7 @@ run (void *cls,
 {
   struct GNUNET_CORE_MessageHandler handlers[] = 
     {
+      { &handle_encrypted_hello, GNUNET_MESSAGE_TYPE_HELLO, 0},
       { NULL, 0, 0 }
     };
   unsigned long long opt;
@@ -726,6 +1032,13 @@ run (void *cls,
   if ( (friends_only == GNUNET_YES) ||
        (minimum_friend_count > 0) )
     read_friends_file (cfg);
+
+  transport = GNUNET_TRANSPORT_connect (sched,
+					cfg,
+					NULL,
+					NULL,
+					NULL,
+					NULL);
   GNUNET_CORE_connect (sched,
 		       cfg,
 		       GNUNET_TIME_UNIT_FOREVER_REL,
@@ -733,10 +1046,17 @@ run (void *cls,
 		       &core_init,
 		       &connect_notify,
 		       &disconnect_notify,
-		       NULL,
+		       &hello_advertising,
 		       NULL, GNUNET_NO,
 		       NULL, GNUNET_NO,
 		       handlers);
+  
+  GNUNET_SCHEDULER_add_delayed (sched,
+                                GNUNET_YES,
+                                GNUNET_SCHEDULER_PRIORITY_IDLE,
+                                GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                GNUNET_TIME_UNIT_FOREVER_REL,
+                                &cleaning_task, NULL);
 }
 
 
