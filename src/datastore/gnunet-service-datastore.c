@@ -22,6 +22,18 @@
  * @file datastore/gnunet-service-datastore.c
  * @brief Management for the datastore for files stored on a GNUnet node
  * @author Christian Grothoff
+ *
+ * TODO:
+ * 1) transmit and transmit flow-control (when do we signal client 'success'?
+ *    ALSO: async transmit will need to address ref-counting issues on client!
+ * 2) efficient "update" for client to raise priority / expiration
+ *    (not possible with current datastore API, but plugin API has support!);
+ *    [ maybe integrate desired priority/expiration updates directly
+ *      with 'GET' request? ]
+ * 3) semantics of "PUT" (plugin) if entry exists (should likely
+ *   be similar to "UPDATE" (need to specify in PLUGIN API!)
+ * 4) quota management code!
+ * 5) add bloomfilter for efficiency!
  */
 
 #include "platform.h"
@@ -41,7 +53,7 @@ struct DatastorePlugin
    * API of the transport as returned by the plugin's
    * initialization function.
    */
-  struct GNUNET_DATSTORE_PluginFunctions *api;
+  struct GNUNET_DATASTORE_PluginFunctions *api;
 
   /**
    * Short name for the plugin (i.e. "sqlite").
@@ -69,11 +81,314 @@ static struct DatastorePlugin *plugin;
 
 
 /**
+ * Transmit the given message to the client.
+ */
+static void
+transmit (struct GNUNET_SERVER_Client *client,
+	  const struct GNUNET_MessageHeader *msg)
+{
+  /* FIXME! */
+}
+
+
+/**
+ * Transmit the size of the current datastore to the client.
+ */
+static void
+transmit_size (struct GNUNET_SERVER_Client *client)
+{
+  struct SizeMessage sm;
+  
+  sm.header.size = htons(sizeof(struct SizeMessage));
+  sm.header.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_SIZE);
+  sm.reserved = htonl(0);
+  sm.size = GNUNET_htonll(plugin->api->get_size (plugin->api->cls));
+  transmit (client, &sm.header);
+}
+
+
+/**
+ * Function that will transmit the given datastore entry
+ * to the client.
+ *
+ * @param cls closure, pointer to the client (of type GNUNET_SERVER_Client).
+ * @param key key for the content
+ * @param size number of bytes in data
+ * @param data content stored
+ * @param type type of the content
+ * @param priority priority of the content
+ * @param anonymity anonymity-level for the content
+ * @param expiration expiration time for the content
+ * @param uid unique identifier for the datum;
+ *        maybe 0 if no unique identifier is available
+ *
+ * @return GNUNET_SYSERR to abort the iteration, GNUNET_OK to continue,
+ *         GNUNET_NO to delete the item and continue (if supported)
+ */
+static int
+transmit_item (void *cls,
+	       const GNUNET_HashCode * key,
+	       uint32_t size,
+	       const void *data,
+	       uint32_t type,
+	       uint32_t priority,
+	       uint32_t anonymity,
+	       struct GNUNET_TIME_Absolute
+	       expiration, unsigned long long uid)
+{
+  struct GNUNET_SERVER_Client *client = cls;
+  struct GNUNET_MessageHeader end;
+  struct DataMessage *dm;
+
+  if (key == NULL)
+    {
+      /* transmit 'DATA_END' */
+      end.size = htons(sizeof(struct GNUNET_MessageHeader));
+      end.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END);
+      transmit (client, &end);
+      return GNUNET_OK;
+    }
+  /* FIXME: make use of 'uid' for efficient priority/expiration update! */
+  dm = GNUNET_malloc (sizeof(struct DataMessage) + size);
+  dm->header.size = htons(sizeof(struct DataMessage) + size);
+  dm->header.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_DATA);
+  dm->reserved = htonl(0);
+  dm->size = htonl(size);
+  dm->type = htonl(type);
+  dm->priority = htonl(priority);
+  dm->anonymity = htonl(anonymity);
+  dm->expiration = GNUNET_TIME_absolute_hton(expiration);
+  dm->key = *key;
+  memcpy (&dm[1], data, size);
+  transmit (client, &dm->header);
+  GNUNET_free (dm);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Handle INIT-message.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_init (void *cls,
+	     struct GNUNET_SERVER_Client *client,
+	     const struct GNUNET_MessageHeader *message)
+{
+  transmit_size (client);
+  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+}
+
+
+/**
+ * Check that the given message is a valid data message.
+ *
+ * @return NULL if the message is not well-formed, otherwise the message
+ */
+static const struct DataMessage *
+check_data (const struct GNUNET_MessageHeader *message)
+{
+  uint16_t size;
+  uint32_t dsize;
+  const struct DataMessage *dm;
+
+  size = ntohs(message->size);
+  if (size < sizeof(struct DataMessage))
+    { 
+      GNUNET_break (0);
+      return NULL;
+    }
+  dm = (const struct DataMessage *) message;
+  dsize = ntohl(dm->size);
+  if (size != dsize + sizeof(struct DataMessage))
+    {
+      GNUNET_break (0);
+      return NULL;
+    }
+  if ( (ntohl(dm->type) == 0) ||
+       (ntohl(dm->reserved) != 0) )
+    {
+      GNUNET_break (0);
+      return NULL;
+    }
+  return dm;
+}
+
+
+/**
+ * Handle PUT-message.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_put (void *cls,
+	    struct GNUNET_SERVER_Client *client,
+	    const struct GNUNET_MessageHeader *message)
+{
+  const struct DataMessage *dm = check_data (message);
+  if (dm == NULL)
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+  plugin->api->put (plugin->api->cls,
+		    &dm->key,
+		    ntohl(dm->size),
+		    &dm[1],
+		    ntohl(dm->type),
+		    ntohl(dm->priority),
+		    ntohl(dm->anonymity),
+		    GNUNET_TIME_absolute_ntoh(dm->expiration));
+  transmit_size (client);
+  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+}
+
+
+/**
+ * Handle GET-message.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_get (void *cls,
+	     struct GNUNET_SERVER_Client *client,
+	     const struct GNUNET_MessageHeader *message)
+{
+  const struct GetMessage *msg;
+  uint16_t size;
+
+  size = ntohs(message->size);
+  if ( (size != sizeof(struct GetMessage)) &&
+       (size != sizeof(struct GetMessage) - sizeof(GNUNET_HashCode)) )
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+  msg = (const struct GetMessage*) message;
+  plugin->api->get (plugin->api->cls,
+		    ((size == sizeof(struct GetMessage)) ? &msg->key : NULL),
+		    NULL,
+		    ntohl(msg->type),
+		    &transmit_item,
+		    client);    
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
+ * Handle GET_RANDOM-message.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_get_random (void *cls,
+		   struct GNUNET_SERVER_Client *client,
+		   const struct GNUNET_MessageHeader *message)
+{
+  plugin->api->iter_migration_order (plugin->api->cls,
+				     0,
+				     &transmit_item,
+				     client);  
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
+ * Callback function that will cause the item that is passed
+ * in to be deleted (by returning GNUNET_NO).
+ */
+static int
+remove_callback (void *cls,
+		 const GNUNET_HashCode * key,
+		 uint32_t size,
+		 const void *data,
+		 uint32_t type,
+		 uint32_t priority,
+		 uint32_t anonymity,
+		 struct GNUNET_TIME_Absolute
+		 expiration, unsigned long long uid)
+{
+  return GNUNET_NO;
+}
+
+
+/**
+ * Handle REMOVE-message.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_remove (void *cls,
+	     struct GNUNET_SERVER_Client *client,
+	     const struct GNUNET_MessageHeader *message)
+{
+  const struct DataMessage *dm = check_data (message);
+  GNUNET_HashCode vhash;
+
+  if (dm == NULL)
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+  GNUNET_CRYPTO_hash (&dm[1],
+		      ntohl(dm->size),
+		      &vhash);
+  plugin->api->get (plugin->api->cls,
+		    &dm->key,
+		    &vhash,
+		    ntohl(dm->type),
+		    &remove_callback,
+		    NULL);
+  transmit_size (client);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
+ * Handle DROP-message.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_drop (void *cls,
+	     struct GNUNET_SERVER_Client *client,
+	     const struct GNUNET_MessageHeader *message)
+{
+  plugin->api->drop (plugin->api->cls);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
  * List of handlers for the messages understood by this
  * service.
  */
 static struct GNUNET_SERVER_MessageHandler handlers[] = {
-  /*  {&handle_xxx, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_XXX, 0}, */
+  {&handle_init, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_INIT, 
+   sizeof(struct GNUNET_MessageHeader) }, 
+  {&handle_put, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_PUT, 0 }, 
+  {&handle_get, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_GET, 0 }, 
+  {&handle_get_random, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_GET_RANDOM, 
+   sizeof(struct GNUNET_MessageHeader) }, 
+  {&handle_remove, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_REMOVE, 0 }, 
+  {&handle_drop, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_DROP, 
+   sizeof(struct GNUNET_MessageHeader) }, 
   {NULL, NULL, 0, 0}
 };
 

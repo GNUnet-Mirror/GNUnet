@@ -22,17 +22,88 @@
  * @file datastore/datastore_api.c
  * @brief Management for the datastore for files stored on a GNUnet node
  * @author Christian Grothoff
+ *
+ * TODO:
+ * 1) clarify API (wrt. efficient UPDATE of priority/expiration after GET)
+ * 2) implement INIT
+ * 3) implement SIZE handling (=> API impact?)
+ * 4) implement DROP
+ * 5) implement PUT
+ * 6) implement GET
+ * 7) implement GET_RANDOM
+ * 8) implement REMOVE
  */
 
 #include "platform.h"
 #include "gnunet_datastore_service.h"
 #include "datastore.h"
 
+
+struct MessageQueue
+{
+  /**
+   * This is a linked list.
+   */
+  struct MessageQueue *next;
+
+  /**
+   * Message we will transmit (allocated at the end
+   * of this struct; do not free!).
+   */
+  struct GNUNET_MessageHeader *msg;
+
+  /**
+   * Function to call on the response.
+   */
+  GNUNET_CLIENT_MessageHandler response_processor;
+  
+  /**
+   * Closure for response_processor.
+   */
+  void *response_processor_cls;
+
+};
+
+
 /**
  * Handle to the datastore service.
  */
 struct GNUNET_DATASTORE_Handle
 {
+
+  /**
+   * Current connection to the datastore service.
+   */
+  struct GNUNET_CLIENT_Connection *client;
+  
+  /**
+   * Linked list of messages waiting to be transmitted.
+   */
+  struct MessageQueue *messages;
+
+  /**
+   * Current response processor (NULL if we are not waiting
+   * for a response).  Largely used only to know if we have
+   * a 'receive' request pending.
+   */
+  GNUNET_CLIENT_MessageHandler response_proc;
+  
+  /**
+   * Closure for response_proc.
+   */
+  void *response_proc_cls;
+
+  /**
+   * Current size of the datastore (cached).
+   */ 
+  unsigned long long size;
+
+  /**
+   * Set to GNUNET_YES if we have received the size
+   * from the datastore.
+   */
+  int ready;
+
 };
 
 
@@ -50,7 +121,16 @@ struct GNUNET_DATASTORE_Handle *GNUNET_DATASTORE_connect (struct
                                                           GNUNET_SCHEDULER_Handle
                                                           *sched)
 {
-  return NULL;
+  struct GNUNET_CLIENT_Connection *c;
+  struct GNUNET_DATASTORE_Handle *h;
+  
+  c = GNUNET_CLIENT_connect (sched, "datastore", cfg);
+  if (c == NULL)
+    return NULL; /* oops */
+  h = GNUNET_malloc (sizeof(struct GNUNET_DATASTORE_Handle));
+  h->client = c;
+  /* FIXME: send 'join' request */
+  return h;
 }
 
 
@@ -64,6 +144,12 @@ struct GNUNET_DATASTORE_Handle *GNUNET_DATASTORE_connect (struct
 void GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
 				  int drop)
 {
+  if (GNUNET_YES == drop)
+    {
+      /* FIXME: send 'drop' request */
+    }
+  GNUNET_CLIENT_disconnect (h->client);
+  GNUNET_free (h);
 }
 
 
@@ -74,7 +160,9 @@ void GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
  */
 unsigned long long GNUNET_DATASTORE_size (struct GNUNET_DATASTORE_Handle *h)
 {
-  return 0;
+  if (GNUNET_YES != h->ready)
+    return (unsigned long long) -1LL;
+  return h->size;
 }
 
 
@@ -129,7 +217,7 @@ GNUNET_DATASTORE_get (struct GNUNET_DATASTORE_Handle *h,
  * Get a random value from the datastore.
  *
  * @param h handle to the datastore
- * @param iter function to call on each matching value;
+ * @param iter function to call on a random value; it
  *        will be called exactly once; if no values
  *        are available, the value will be NULL.
  * @param iter_cls closure for iter
@@ -138,6 +226,10 @@ void
 GNUNET_DATASTORE_get_random (struct GNUNET_DATASTORE_Handle *h,
                              GNUNET_DATASTORE_Iterator iter, void *iter_cls)
 {
+  static struct GNUNET_TIME_Absolute zero;
+  
+  iter (iter_cls,
+	NULL, 0, NULL, 0, 0, 0, zero, 0);
 }
 
 

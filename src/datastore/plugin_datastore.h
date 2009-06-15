@@ -210,14 +210,16 @@ struct GNUNET_DATASTORE_PluginFunctions
   GNUNET_DATASTORE_Selector iter_zero_anonymity;
 
   /**
-   * Iterate over the items in the datastore in ascending
-   * order of expiration time.
+   * Iterate over the items in the datastore in ascending order of
+   * expiration time. 
    */
   GNUNET_DATASTORE_Selector iter_ascending_expiration;
 
   /**
    * Iterate over the items in the datastore in migration
-   * order.
+   * order.  Call the given function on the next item only
+   * (and then signal 'end' with a second call).  This is
+   * a significant difference from all the other iterators!
    */
   GNUNET_DATASTORE_Selector iter_migration_order;
 
