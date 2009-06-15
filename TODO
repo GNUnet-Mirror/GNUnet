@@ -102,6 +102,7 @@ Databases:
 Minor TODO items:
 * UTIL:
   - crypto_hash: use libgcrypt (supports SHA-512 since 2003)
+  - container_bloomfilter: improve efficiency (see FIXME)
 * SERVER:
   - inefficient memmove
 * TRANSPORT:
