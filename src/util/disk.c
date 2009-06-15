@@ -981,17 +981,39 @@ GNUNET_DISK_file_open (const char *fn, int flags, ...)
     oflags |= O_TRUNC;
   if (flags & GNUNET_DISK_OPEN_CREATE)
     {
+      int perm;
+
       oflags |= O_CREAT;
 
       va_list arg;
       va_start (arg, flags);
-      mode = va_arg (arg, int);
+      perm = va_arg (arg, int);
       va_end (arg);
+
+      mode = 0;
+      if (perm & GNUNET_DISK_PERM_USER_READ)
+        mode = S_IRUSR;
+      if (perm & GNUNET_DISK_PERM_USER_WRITE)
+        mode |= S_IWUSR;
+      if (perm & GNUNET_DISK_PERM_USER_EXEC)
+        mode |= S_IXUSR;
+      if (perm & GNUNET_DISK_PERM_GROUP_READ)
+        mode = S_IRGRP;
+      if (perm & GNUNET_DISK_PERM_GROUP_WRITE)
+        mode |= S_IWGRP;
+      if (perm & GNUNET_DISK_PERM_GROUP_EXEC)
+        mode |= S_IXGRP;
+      if (perm & GNUNET_DISK_PERM_OTHER_READ)
+        mode = S_IROTH;
+      if (perm & GNUNET_DISK_PERM_OTHER_WRITE)
+        mode |= S_IWOTH;
+      if (perm & GNUNET_DISK_PERM_OTHER_EXEC)
+        mode |= S_IXOTH;
     }
   if (flags & GNUNET_DISK_OPEN_APPEND)
     oflags = O_APPEND;
 
-s  fd = open (expfn, oflag | O_LARGEFILE, perm, mode);
+  fd = open (expfn, oflags | O_LARGEFILE, mode);
   if (fd == -1)
   {
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "open", fn);
