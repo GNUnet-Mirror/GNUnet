@@ -199,12 +199,17 @@ Stuff to remember:
 
 
 Test coverage:
-* UTIL: 75%, 4914 out of 6463
-* HELLO:
-* ARM:
-* RESOLVER:
-* STATISTICS:
-* TRANSPORT:
-* CORE:
-* HOSTLIST: 0%
-* TOPOLOGY: 0%
+* UTIL      : 78.7%
+* HELLO     : 93.7%
+* ARM       : 69.9%
+* RESOLVER  : 60.4%
+* STATISTICS: 82.8%
+* PEERINFO  : 71.5%
+* TRANSPORT : 70.9%
+* CORE      : 65.8%
+===================
+* TOTAL     : 74.9%
+
+Not yet tested:
+* HOSTLIST  :  0.0%
+* TOPOLOGY  :  0.0%
