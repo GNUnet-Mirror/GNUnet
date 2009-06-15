@@ -1,8 +1,5 @@
 PHASE #1: (Goal: settle key design questions)
 
-ARM:
-* Make sure ARM supports daemons (non-service background processes, see hostlist/topology)
-
 Util:
 * improve disk API [Nils]
 * Windows: use events instead of pipes to signal select()s [Nils]

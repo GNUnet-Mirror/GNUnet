@@ -95,9 +95,14 @@ extern "C"
 
 /**
  * Response from ARM: service is now down.
- * (failed to start it).
+ * (failed to start it or shut it down).
  */
 #define GNUNET_MESSAGE_TYPE_ARM_IS_DOWN 11
+
+/**
+ * Response from ARM: service status is unknown.
+ */
+#define GNUNET_MESSAGE_TYPE_ARM_IS_UNKNOWN 12
 
 
 /**

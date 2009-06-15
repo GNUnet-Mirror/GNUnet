@@ -412,6 +412,7 @@ stop_service (struct GNUNET_SERVER_Client *client, const char *servicename)
 {
   struct ServiceList *pos;
   struct GNUNET_CLIENT_Connection *sc;
+  unsigned long long port;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Preparing to stop `%s'\n", servicename);
@@ -444,10 +445,21 @@ stop_service (struct GNUNET_SERVER_Client *client, const char *servicename)
     }
   else
     {
-      sc = GNUNET_CLIENT_connect (sched, servicename, cfg);
-      GNUNET_CLIENT_service_shutdown (sc);
-      GNUNET_CLIENT_disconnect (sc);
-      signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
+      if ( (GNUNET_OK ==
+	    GNUNET_CONFIGURATION_get_value_number (cfg,
+						   servicename,
+						   "PORT",
+						   &port)) &&
+	   (NULL != (sc = GNUNET_CLIENT_connect (sched, servicename, cfg))) )
+	{
+	  GNUNET_CLIENT_service_shutdown (sc);
+	  GNUNET_CLIENT_disconnect (sc);
+	  signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
+	}
+      else
+	{
+	  signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_UNKNOWN);
+	}
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
     }
 }

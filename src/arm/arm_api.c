@@ -129,6 +129,9 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
     case GNUNET_MESSAGE_TYPE_ARM_IS_DOWN:
       ret = GNUNET_NO;
       break;
+    case GNUNET_MESSAGE_TYPE_ARM_IS_UNKNOWN:
+      ret = GNUNET_SYSERR;
+      break;
     default:
       GNUNET_break (0);
       ret = GNUNET_SYSERR;

@@ -51,7 +51,8 @@ extern "C"
  * @param cls closure
  * @param success GNUNET_YES if we think the service is running
  *                GNUNET_NO if we think the service is stopped
- *                GNUNET_SYSERR if we think ARM was not running
+ *                GNUNET_SYSERR if we think ARM was not running or
+ *                          if the service status is unknown
  */
 typedef void (*GNUNET_ARM_Callback) (void *cls, int success);
 
