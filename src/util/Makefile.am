@@ -8,7 +8,8 @@ if MINGW
 endif
 
 if USE_COVERAGE
-  AM_CFLAGS = --coverage
+  AM_CFLAGS = --coverage -O0
+  XLIB = -lgcov
 endif
 
 lib_LTLIBRARIES = libgnunetutil.la
@@ -53,7 +54,7 @@ libgnunetutil_la_SOURCES = \
 libgnunetutil_la_LIBADD = \
   $(GCLIBADD) \
   $(LIBGCRYPT_LIBS) \
-  -lgmp -lltdl -lz -lextractor
+  -lgmp -lltdl -lz -lextractor $(XLIB)
 
 libgnunetutil_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \

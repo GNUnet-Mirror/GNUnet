@@ -69,7 +69,6 @@ Datastores:
   + implement sqlite plugin (talks to DB)
 
 Applications:
-* implement hostlist service (need to bootstrap!)
 * DHT, DV
 * FS / fs-libs
 
@@ -201,3 +200,11 @@ Stuff to remember:
 
 Test coverage:
 * UTIL: 75%, 4914 out of 6463
+* HELLO:
+* ARM:
+* RESOLVER:
+* STATISTICS:
+* TRANSPORT:
+* CORE:
+* HOSTLIST: 0%
+* TOPOLOGY: 0%

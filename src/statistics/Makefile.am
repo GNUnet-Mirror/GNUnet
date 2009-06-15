@@ -5,7 +5,8 @@ if MINGW
 endif
 
 if USE_COVERAGE
-  AM_CFLAGS = -fprofile-arcs -ftest-coverage
+  AM_CFLAGS = --coverage -O0
+  XLIB = -lgcov
 endif
 
 
@@ -15,7 +16,7 @@ libgnunetstatistics_la_SOURCES = \
   statistics_api.c statistics.h
 libgnunetstatistics_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(GN_LIBINTL)
+  $(GN_LIBINTL) $(XLIB)
 libgnunetstatistics_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
   -version-info 0:0:0

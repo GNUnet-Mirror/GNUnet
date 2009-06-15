@@ -1,7 +1,7 @@
 INCLUDES = -I$(top_srcdir)/src/include
 
 if USE_COVERAGE
-  AM_CFLAGS = -fprofile-arcs -ftest-coverage
+  AM_CFLAGS = --coverage -O0
 endif
 
 

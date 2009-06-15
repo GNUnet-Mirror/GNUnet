@@ -5,7 +5,8 @@ if MINGW
 endif
 
 if USE_COVERAGE
-  AM_CFLAGS = -fprofile-arcs -ftest-coverage
+  AM_CFLAGS = --coverage -O0
+  XLIB = -lgcov
 endif
 
 lib_LTLIBRARIES = libgnunetarm.la
@@ -14,7 +15,7 @@ libgnunetarm_la_SOURCES = \
   arm_api.c arm.h
 libgnunetarm_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(GN_LIBINTL)
+  $(GN_LIBINTL) $(XLIB)
 libgnunetarm_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
   -version-info 0:0:0

@@ -5,7 +5,8 @@ if MINGW
 endif
 
 if USE_COVERAGE
-  AM_CFLAGS = -fprofile-arcs -ftest-coverage
+  AM_CFLAGS = --coverage -O0
+  XLIB = -lgcov
 endif
 
 lib_LTLIBRARIES = libgnunetpeerinfo.la
@@ -14,7 +15,8 @@ libgnunetpeerinfo_la_SOURCES = \
   peerinfo_api.c peerinfo.h
 libgnunetpeerinfo_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
-  $(top_builddir)/src/util/libgnunetutil.la 
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(XLIB)
 libgnunetpeerinfo_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:0:0

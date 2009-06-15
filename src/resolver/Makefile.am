@@ -5,7 +5,8 @@ if MINGW
 endif
 
 if USE_COVERAGE
-  AM_CFLAGS = -fprofile-arcs -ftest-coverage
+  AM_CFLAGS = --coverage -O0
+  XLIB = -lgcov
 endif
 
 
@@ -15,7 +16,7 @@ libgnunetresolver_la_SOURCES = \
   resolver_api.c resolver.h
 libgnunetresolver_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(GN_LIBINTL)
+  $(GN_LIBINTL) $(XLIB)
 libgnunetresolver_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
   -version-info 0:0:0

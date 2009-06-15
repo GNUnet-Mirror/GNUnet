@@ -5,7 +5,8 @@ if MINGW
 endif
 
 if USE_COVERAGE
-  AM_CFLAGS = --coverage
+  AM_CFLAGS = --coverage -O0
+  XLIB = -lgcov
 endif
 
 lib_LTLIBRARIES = libgnunethello.la
@@ -13,7 +14,7 @@ lib_LTLIBRARIES = libgnunethello.la
 libgnunethello_la_SOURCES = \
   hello.c 
 libgnunethello_la_LIBADD = \
- $(top_builddir)/src/util/libgnunetutil.la  
+ $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
 
 check_PROGRAMS = \
  test_hello
