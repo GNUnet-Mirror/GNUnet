@@ -24,10 +24,12 @@
  * @author Christian Grothoff
  *
  * TODO:
- * 1) semantics of "PUT" (plugin) if entry exists (should likely
- *    be similar to "UPDATE" (need to specify in PLUGIN API!)
- * 4) quota management code!
- * 5) add bloomfilter for efficiency!
+ * quota management code:
+ * - track storage use
+ * - track reservations
+ * - refuse above-quota
+ * - content expiration job
+ * - near-quota low-priority content discard job
  */
 
 #include "platform.h"
@@ -116,6 +118,11 @@ static struct DatastorePlugin *plugin;
  * Linked list of space reservations made by clients.
  */
 static struct ReservationList *reservations;
+
+/**
+ * Bloomfilter to quickly tell if we don't have the content.
+ */
+static struct GNUNET_CONTAINER_BloomFilter *filter;
 
 /**
  * Static counter to produce reservation identifiers.
@@ -504,7 +511,12 @@ handle_put (void *cls,
 			  ntohl(dm->anonymity),
 			  GNUNET_TIME_absolute_ntoh(dm->expiration),
 			  &msg);
-  transmit_status (client, ret, msg);
+  if (GNUNET_OK == ret)
+    GNUNET_CONTAINER_bloomfilter_add (filter,
+				      &dm->key);
+  transmit_status (client, 
+		   GNUNET_SYSERR == ret ? GNUNET_SYSERR : GNUNET_OK, 
+		   msg);
   GNUNET_free_non_null (msg);
 }
 
@@ -521,6 +533,7 @@ handle_get (void *cls,
 	     struct GNUNET_SERVER_Client *client,
 	     const struct GNUNET_MessageHeader *message)
 {
+  static struct GNUNET_TIME_Absolute zero;
   const struct GetMessage *msg;
   uint16_t size;
 
@@ -533,6 +546,15 @@ handle_get (void *cls,
       return;
     }
   msg = (const struct GetMessage*) message;
+  if ( (size == sizeof(struct GetMessage)) &&
+       (GNUNET_YES != GNUNET_CONTAINER_bloomfilter_test (filter,
+							 &msg->key)) )
+    {
+      /* don't bother database... */
+      transmit_item (client,
+		     NULL, NULL, 0, NULL, 0, 0, 0, zero, 0);
+      return;
+    }
   GNUNET_SERVER_client_drop (client);
   plugin->api->get (plugin->api->cls,
 		    ((size == sizeof(struct GetMessage)) ? &msg->key : NULL),
@@ -628,15 +650,17 @@ remove_callback (void *cls,
   if (key == NULL)
     {
       if (GNUNET_YES == rc->found)
-	transmit_status (rc->client, GNUNET_OK, NULL);
+	transmit_status (rc->client, GNUNET_OK, NULL);       
       else
-	transmit_status (rc->client, GNUNET_SYSERR, _("Content not found"));       
+	transmit_status (rc->client, GNUNET_SYSERR, _("Content not found"));       	
       GNUNET_SERVER_client_drop (rc->client);
       GNUNET_free (rc);
       return GNUNET_OK; /* last item */
     }
   rc->found = GNUNET_YES;
   plugin->api->next_request (next_cls, GNUNET_YES);
+  GNUNET_CONTAINER_bloomfilter_remove (filter,
+				       key);
   return GNUNET_NO;
 }
 
@@ -825,6 +849,9 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  char *fn;
+  unsigned int bf_size;
+
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg,
                                              "DATASTORE", "QUOTA", &quota))
@@ -835,9 +862,36 @@ run (void *cls,
 		  "DATASTORE");
       return;
     }
+  bf_size = quota / 32; /* 8 bit per entry, 1 bit per 32 kb in DB */
+  fn = NULL;
+  if ( (GNUNET_OK !=
+	GNUNET_CONFIGURATION_get_value_filename (cfg,
+						 "DATASTORE",
+						 "BLOOMFILTER",
+						 &fn)) ||
+       (GNUNET_OK !=
+	GNUNET_DISK_directory_create_for_file (fn)) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Could not use specified filename `%s' for bloomfilter.\n"),
+		  fn != NULL ? fn : "");
+      GNUNET_free_non_null (fn);
+      fn = NULL;
+    }
+  filter = GNUNET_CONTAINER_bloomfilter_load (fn, bf_size, 5);  /* approx. 3% false positives at max use */  
+  GNUNET_free_non_null (fn);
+  if (filter == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Failed to initialize bloomfilter.\n"));
+      return;
+    }
   plugin = load_plugin (cfg, sched);
   if (NULL == plugin)
-    return;
+    {
+      GNUNET_CONTAINER_bloomfilter_free (filter);
+      return;
+    }
   GNUNET_SERVER_disconnect_notify (server, &cleanup_reservations, NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SCHEDULER_add_delayed (sched,
