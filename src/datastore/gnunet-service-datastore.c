@@ -24,14 +24,8 @@
  * @author Christian Grothoff
  *
  * TODO:
- * 1) transmit and transmit flow-control (when do we signal client 'success'?
- *    ALSO: async transmit will need to address ref-counting issues on client!
- * 2) efficient "update" for client to raise priority / expiration
- *    (not possible with current datastore API, but plugin API has support!);
- *    [ maybe integrate desired priority/expiration updates directly
- *      with 'GET' request? ]
- * 3) semantics of "PUT" (plugin) if entry exists (should likely
- *   be similar to "UPDATE" (need to specify in PLUGIN API!)
+ * 1) semantics of "PUT" (plugin) if entry exists (should likely
+ *    be similar to "UPDATE" (need to specify in PLUGIN API!)
  * 4) quota management code!
  * 5) add bloomfilter for efficiency!
  */
@@ -41,6 +35,11 @@
 #include "gnunet_protocols.h"
 #include "plugin_datastore.h"
 #include "datastore.h"
+
+/**
+ * How many messages do we queue at most per client?
+ */
+#define MAX_PENDING 1024
 
 
 /**
@@ -75,19 +74,182 @@ struct DatastorePlugin
 
 
 /**
+ * Linked list of active reservations.
+ */
+struct ReservationList 
+{
+
+  /**
+   * This is a linked list.
+   */
+  struct ReservationList *next;
+
+  /**
+   * Client that made the reservation.
+   */
+  struct GNUNET_SERVER_Client *client;
+
+  /**
+   * Number of bytes (still) reserved.
+   */
+  uint64_t size;
+
+  /**
+   * Number of items (still) reserved.
+   */
+  uint64_t items;
+
+  /**
+   * Reservation identifier.
+   */
+  int32_t rid;
+
+};
+
+
+/**
  * Our datastore plugin (NULL if not available).
  */
 static struct DatastorePlugin *plugin;
 
+/**
+ * Linked list of space reservations made by clients.
+ */
+static struct ReservationList *reservations;
+
+/**
+ * Static counter to produce reservation identifiers.
+ */
+static int reservation_gen;
+
+/**
+ * How much space are we allowed to use?
+ */
+static unsigned long long quota;
+
+
+/**
+ * Function called once the transmit operation has
+ * either failed or succeeded.
+ *
+ * @param cls closure
+ * @param status GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+typedef void (*TransmitContinuation)(void *cls,
+				     int status);
+
+struct TransmitCallbackContext 
+{
+  /**
+   * The message that we're asked to transmit.
+   */
+  struct GNUNET_MessageHeader *msg;
+
+  /**
+   * Client that we are transmitting to.
+   */
+  struct GNUNET_SERVER_Client *client;
+
+  /**
+   * Function to call once msg has been transmitted
+   * (or at least added to the buffer).
+   */
+  TransmitContinuation tc;
+
+  /**
+   * Closure for tc.
+   */
+  void *tc_cls;
+
+  /**
+   * GNUNET_YES if we are supposed to signal the server
+   * completion of the client's request.
+   */
+  int end;
+};
+
+
+/**
+ * Function called to notify a client about the socket
+ * begin ready to queue more data.  "buf" will be
+ * NULL and "size" zero if the socket was closed for
+ * writing in the meantime.
+ *
+ * @param cls closure
+ * @param size number of bytes available in buf
+ * @param buf where the callee should write the message
+ * @return number of bytes written to buf
+ */
+static size_t
+transmit_callback (void *cls,
+		   size_t size, void *buf)
+{
+  struct TransmitCallbackContext *tcc = cls;
+  size_t msize;
+  
+  msize = ntohs(tcc->msg->size);
+  if (size == 0)
+    {
+      if (tcc->tc != NULL)
+	tcc->tc (tcc->tc_cls, GNUNET_SYSERR);
+      if (GNUNET_YES == tcc->end)
+	GNUNET_SERVER_receive_done (tcc->client, GNUNET_SYSERR);
+      GNUNET_free (tcc->msg);
+      GNUNET_free (tcc);
+      return 0;
+    }
+  GNUNET_assert (size >= msize);
+  memcpy (buf, tcc->msg, msize);
+  if (tcc->tc != NULL)
+    tcc->tc (tcc->tc_cls, GNUNET_OK);
+  if (GNUNET_YES == tcc->end)
+    GNUNET_SERVER_receive_done (tcc->client, GNUNET_OK);     
+  GNUNET_free (tcc->msg);
+  GNUNET_free (tcc);
+  return msize;
+}
+
 
 /**
  * Transmit the given message to the client.
+ *
+ * @param client target of the message
+ * @param msg message to transmit, will be freed!
+ * @param end is this the last response (and we should
+ *        signal the server completion accodingly after
+ *        transmitting this message)?
  */
 static void
 transmit (struct GNUNET_SERVER_Client *client,
-	  const struct GNUNET_MessageHeader *msg)
+	  struct GNUNET_MessageHeader *msg,
+	  TransmitContinuation tc,
+	  void *tc_cls,
+	  int end)
 {
-  /* FIXME! */
+  struct TransmitCallbackContext *tcc;
+
+  tcc = GNUNET_malloc (sizeof(struct TransmitCallbackContext));
+  tcc->msg = msg;
+  tcc->client = client;
+  tcc->tc = tc;
+  tcc->tc_cls = tc_cls;
+  tcc->end = end;
+
+  if (NULL ==
+      GNUNET_SERVER_notify_transmit_ready (client,
+					   ntohs(msg->size),
+					   GNUNET_TIME_UNIT_FOREVER_REL,
+					   &transmit_callback,
+					   tcc))
+    {
+      GNUNET_break (0);
+      if (GNUNET_YES == end)
+	GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      if (NULL != tc)
+	tc (tc_cls, GNUNET_SYSERR);
+      GNUNET_free (msg);
+      GNUNET_free (tcc);
+    }
 }
 
 
@@ -112,8 +274,29 @@ transmit_status (struct GNUNET_SERVER_Client *client,
   sm->header.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_STATUS);
   sm->status = htonl(code);
   memcpy (&sm[1], msg, slen);  
-  transmit (client, &sm->header);
-  GNUNET_free (sm);
+  transmit (client, &sm->header, NULL, NULL, GNUNET_YES);
+}
+
+
+/**
+ * Function called once the transmit operation has
+ * either failed or succeeded.
+ *
+ * @param cls closure
+ * @param status GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+static void 
+get_next(void *next_cls,
+	 int status)
+{
+  if (status != GNUNET_OK)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Failed to transmit an item to the client; aborting iteration.\n"));    
+      plugin->api->next_request (next_cls, GNUNET_YES);
+      return;
+    }
+  plugin->api->next_request (next_cls, GNUNET_NO);
 }
 
 
@@ -122,6 +305,7 @@ transmit_status (struct GNUNET_SERVER_Client *client,
  * to the client.
  *
  * @param cls closure, pointer to the client (of type GNUNET_SERVER_Client).
+ * @param next_cls closure to use to ask for the next item
  * @param key key for the content
  * @param size number of bytes in data
  * @param data content stored
@@ -137,6 +321,7 @@ transmit_status (struct GNUNET_SERVER_Client *client,
  */
 static int
 transmit_item (void *cls,
+	       void *next_cls,
 	       const GNUNET_HashCode * key,
 	       uint32_t size,
 	       const void *data,
@@ -147,15 +332,17 @@ transmit_item (void *cls,
 	       expiration, unsigned long long uid)
 {
   struct GNUNET_SERVER_Client *client = cls;
-  struct GNUNET_MessageHeader end;
+  struct GNUNET_MessageHeader *end;
   struct DataMessage *dm;
 
   if (key == NULL)
     {
       /* transmit 'DATA_END' */
-      end.size = htons(sizeof(struct GNUNET_MessageHeader));
-      end.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END);
-      transmit (client, &end);
+      end = GNUNET_malloc (sizeof(struct GNUNET_MessageHeader));
+      end->size = htons(sizeof(struct GNUNET_MessageHeader));
+      end->type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END);
+      transmit (client, end, NULL, NULL, GNUNET_YES);
+      GNUNET_SERVER_client_drop (client);
       return GNUNET_OK;
     }
   dm = GNUNET_malloc (sizeof(struct DataMessage) + size);
@@ -170,8 +357,7 @@ transmit_item (void *cls,
   dm->uid = GNUNET_htonll(uid);
   dm->key = *key;
   memcpy (&dm[1], data, size);
-  transmit (client, &dm->header);
-  GNUNET_free (dm);
+  transmit (client, &dm->header, &get_next, next_cls, GNUNET_NO);
   return GNUNET_OK;
 }
 
@@ -188,8 +374,20 @@ handle_reserve (void *cls,
 	     struct GNUNET_SERVER_Client *client,
 	     const struct GNUNET_MessageHeader *message)
 {
-  transmit_status (client, GNUNET_SYSERR, "not implemented");
-  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+  const struct ReserveMessage *msg = (const struct ReserveMessage*) message;
+  struct ReservationList *e;
+
+  /* FIXME: check if we have that much space... */
+  e = GNUNET_malloc (sizeof(struct ReservationList));
+  e->next = reservations;
+  reservations = e;
+  e->client = client;
+  e->size = GNUNET_ntohll(msg->size);
+  e->items = GNUNET_ntohll(msg->items);
+  e->rid = ++reservation_gen;
+  if (reservation_gen < 0)
+    reservation_gen = 0; /* wrap around */
+  transmit_status (client, e->rid, NULL);
 }
 
 
@@ -205,8 +403,32 @@ handle_release_reserve (void *cls,
 			struct GNUNET_SERVER_Client *client,
 			const struct GNUNET_MessageHeader *message)
 {
-  transmit_status (client, GNUNET_SYSERR, "not implemented");
-  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+  const struct ReleaseReserveMessage *msg = (const struct ReleaseReserveMessage*) message;
+  struct ReservationList *pos;
+  struct ReservationList *prev;
+  struct ReservationList *next;
+  
+  int rid = ntohl(msg->rid);
+  next = reservations;
+  prev = NULL;
+  while (NULL != (pos = next))
+    {
+      next = pos->next;
+      if (rid == pos->rid)
+	{
+	  if (prev == NULL)
+	    reservations = next;
+	  else
+	    prev->next = next;
+	  /* FIXME: released remaining reserved space! */
+	  GNUNET_free (pos);
+	  transmit_status (client, GNUNET_OK, NULL);
+	  return;
+	}       
+      prev = pos;
+      pos = next;
+    }
+  transmit_status (client, GNUNET_SYSERR, "Could not find matching reservation");
 }
 
 
@@ -284,7 +506,6 @@ handle_put (void *cls,
 			  &msg);
   transmit_status (client, ret, msg);
   GNUNET_free_non_null (msg);
-  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
 }
 
 
@@ -312,13 +533,13 @@ handle_get (void *cls,
       return;
     }
   msg = (const struct GetMessage*) message;
+  GNUNET_SERVER_client_drop (client);
   plugin->api->get (plugin->api->cls,
 		    ((size == sizeof(struct GetMessage)) ? &msg->key : NULL),
 		    NULL,
 		    ntohl(msg->type),
 		    &transmit_item,
 		    client);    
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -347,7 +568,6 @@ handle_update (void *cls,
 			     &emsg);
   transmit_status (client, ret, emsg);
   GNUNET_free_non_null (emsg);
-  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
 }
 
 
@@ -363,12 +583,29 @@ handle_get_random (void *cls,
 		   struct GNUNET_SERVER_Client *client,
 		   const struct GNUNET_MessageHeader *message)
 {
+  GNUNET_SERVER_client_drop (client);
   plugin->api->iter_migration_order (plugin->api->cls,
 				     0,
 				     &transmit_item,
 				     client);  
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
+
+
+/**
+ * Context for the 'remove_callback'.
+ */
+struct RemoveContext 
+{
+  /**
+   * Client for whom we're doing the remvoing.
+   */
+  struct GNUNET_SERVER_Client *client;
+
+  /**
+   * GNUNET_YES if we managed to remove something.
+   */
+  int found;
+};
 
 
 /**
@@ -377,6 +614,7 @@ handle_get_random (void *cls,
  */
 static int
 remove_callback (void *cls,
+		 void *next_cls,
 		 const GNUNET_HashCode * key,
 		 uint32_t size,
 		 const void *data,
@@ -386,8 +624,19 @@ remove_callback (void *cls,
 		 struct GNUNET_TIME_Absolute
 		 expiration, unsigned long long uid)
 {
-  int *found = cls;
-  *found = GNUNET_YES;
+  struct RemoveContext *rc = cls;
+  if (key == NULL)
+    {
+      if (GNUNET_YES == rc->found)
+	transmit_status (rc->client, GNUNET_OK, NULL);
+      else
+	transmit_status (rc->client, GNUNET_SYSERR, _("Content not found"));       
+      GNUNET_SERVER_client_drop (rc->client);
+      GNUNET_free (rc);
+      return GNUNET_OK; /* last item */
+    }
+  rc->found = GNUNET_YES;
+  plugin->api->next_request (next_cls, GNUNET_YES);
   return GNUNET_NO;
 }
 
@@ -406,7 +655,7 @@ handle_remove (void *cls,
 {
   const struct DataMessage *dm = check_data (message);
   GNUNET_HashCode vhash;
-  int found;
+  struct RemoveContext *rc;
 
   if (dm == NULL)
     {
@@ -414,7 +663,9 @@ handle_remove (void *cls,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
-  found = GNUNET_NO;
+  rc = GNUNET_malloc (sizeof(struct RemoveContext));
+  GNUNET_SERVER_client_keep (client);
+  rc->client = client;
   GNUNET_CRYPTO_hash (&dm[1],
 		      ntohl(dm->size),
 		      &vhash);
@@ -423,12 +674,7 @@ handle_remove (void *cls,
 		    &vhash,
 		    ntohl(dm->type),
 		    &remove_callback,
-		    &found);
-  if (GNUNET_YES == found)
-    transmit_status (client, GNUNET_OK, NULL);
-  else
-    transmit_status (client, GNUNET_SYSERR, _("Content not found"));
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+		    rc);
 }
 
 
@@ -549,6 +795,23 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Function that removes all active reservations made
+ * by the given client and releases the space for other
+ * requests.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ */
+static void
+cleanup_reservations (void *cls,
+		      struct GNUNET_SERVER_Client
+		      * client)
+{
+  /* FIXME */
+}
+
+
+/**
  * Process datastore requests.
  *
  * @param cls closure
@@ -562,9 +825,20 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg,
+                                             "DATASTORE", "QUOTA", &quota))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("No `%s' specified for `%s' in configuration!\n"),
+		  "QUOTA",
+		  "DATASTORE");
+      return;
+    }
   plugin = load_plugin (cfg, sched);
   if (NULL == plugin)
     return;
+  GNUNET_SERVER_disconnect_notify (server, &cleanup_reservations, NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_YES,

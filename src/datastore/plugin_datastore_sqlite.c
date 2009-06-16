@@ -51,6 +51,26 @@ static unsigned long long sqlite_plugin_get_size (void *cls)
 }
 
 
+
+/**
+ * Function invoked on behalf of a "PluginIterator"
+ * asking the database plugin to call the iterator
+ * with the next item.
+ *
+ * @param next_cls whatever argument was given
+ *        to the PluginIterator as "next_cls".
+ * @param end_it set to GNUNET_YES if we
+ *        should terminate the iteration early
+ *        (iterator should be still called once more
+ *         to signal the end of the iteration).
+ */
+static void 
+sqlite_next_request (void *next_cls,
+		     int end_it)
+{
+}
+
+
 /**
  * Store an item in the datastore.
  *
@@ -103,10 +123,10 @@ sqlite_plugin_get (void *cls,
 		   const GNUNET_HashCode * key,
 		   const GNUNET_HashCode * vhash,
 		   uint32_t type,
-		   GNUNET_DATASTORE_Iterator iter, void *iter_cls)
+		   PluginIterator iter, void *iter_cls)
 {
   static struct GNUNET_TIME_Absolute zero;
-  iter (iter_cls, NULL, 0, NULL, 0, 0, 0, zero, 0);
+  iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, zero, 0);
 }
 
 
@@ -155,12 +175,12 @@ sqlite_plugin_update (void *cls,
  */
 static void
 sqlite_plugin_iter_low_priority (void *cls,
-			uint32_t type,
-			GNUNET_DATASTORE_Iterator iter,
-			void *iter_cls)
+				 uint32_t type,
+				 PluginIterator iter,
+				 void *iter_cls)
 {
   static struct GNUNET_TIME_Absolute zero;
-  iter (iter_cls, NULL, 0, NULL, 0, 0, 0, zero, 0);
+  iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, zero, 0);
 }
 
 
@@ -176,12 +196,12 @@ sqlite_plugin_iter_low_priority (void *cls,
  */
 static void
 sqlite_plugin_iter_zero_anonymity (void *cls,
-			uint32_t type,
-			GNUNET_DATASTORE_Iterator iter,
-			void *iter_cls)
+				   uint32_t type,
+				   PluginIterator iter,
+				   void *iter_cls)
 {
   static struct GNUNET_TIME_Absolute zero;
-  iter (iter_cls, NULL, 0, NULL, 0, 0, 0, zero, 0);
+  iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, zero, 0);
 }
 
 
@@ -198,12 +218,12 @@ sqlite_plugin_iter_zero_anonymity (void *cls,
  */
 static void
 sqlite_plugin_iter_ascending_expiration (void *cls,
-			uint32_t type,
-			GNUNET_DATASTORE_Iterator iter,
-			void *iter_cls)
+					 uint32_t type,
+					 PluginIterator iter,
+					 void *iter_cls)
 {
   static struct GNUNET_TIME_Absolute zero;
-  iter (iter_cls, NULL, 0, NULL, 0, 0, 0, zero, 0);
+  iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, zero, 0);
 }
 
 
@@ -220,12 +240,12 @@ sqlite_plugin_iter_ascending_expiration (void *cls,
  */
 static void
 sqlite_plugin_iter_migration_order (void *cls,
-			uint32_t type,
-			GNUNET_DATASTORE_Iterator iter,
-			void *iter_cls)
+				    uint32_t type,
+				    PluginIterator iter,
+				    void *iter_cls)
 {
   static struct GNUNET_TIME_Absolute zero;
-  iter (iter_cls, NULL, 0, NULL, 0, 0, 0, zero, 0);
+  iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, zero, 0);
 }
 
 
@@ -242,12 +262,12 @@ sqlite_plugin_iter_migration_order (void *cls,
  */
 static void
 sqlite_plugin_iter_all_now (void *cls,
-			uint32_t type,
-			GNUNET_DATASTORE_Iterator iter,
-			void *iter_cls)
+			    uint32_t type,
+			    PluginIterator iter,
+			    void *iter_cls)
 {
   static struct GNUNET_TIME_Absolute zero;
-  iter (iter_cls, NULL, 0, NULL, 0, 0, 0, zero, 0);
+  iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, zero, 0);
 }
 
 
@@ -276,6 +296,7 @@ libgnunet_plugin_datastore_sqlite_init (void *cls)
   api->cls = plugin;
   api->get_size = &sqlite_plugin_get_size;
   api->put = &sqlite_plugin_put;
+  api->next_request = &sqlite_next_request;
   api->get = &sqlite_plugin_get;
   api->update = &sqlite_plugin_update;
   api->iter_low_priority = &sqlite_plugin_iter_low_priority;

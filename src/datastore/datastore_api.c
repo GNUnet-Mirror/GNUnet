@@ -22,15 +22,6 @@
  * @file datastore/datastore_api.c
  * @brief Management for the datastore for files stored on a GNUnet node
  * @author Christian Grothoff
- *
- * TODO:
- * 1) clarify API (wrt. efficient UPDATE of priority/expiration after GET)
- * 2) implement INIT
- * 4) implement DROP
- * 5) implement PUT
- * 6) implement GET
- * 7) implement GET_RANDOM
- * 8) implement REMOVE
  */
 
 #include "platform.h"

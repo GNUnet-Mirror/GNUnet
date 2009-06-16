@@ -55,15 +55,64 @@ struct GNUNET_DATASTORE_PluginEnvironment
 
 
 /**
+ * Function invoked on behalf of a "PluginIterator"
+ * asking the database plugin to call the iterator
+ * with the next item.
+ *
+ * @param next_cls whatever argument was given
+ *        to the PluginIterator as "next_cls".
+ * @param end_it set to GNUNET_YES if we
+ *        should terminate the iteration early
+ *        (iterator should be still called once more
+ *         to signal the end of the iteration).
+ */
+typedef void (*PluginNextRequest)(void *next_cls,
+				  int end_it);
+
+
+/**
+ * An iterator over a set of items stored in the datastore.
+ *
+ * @param cls closure
+ * @param next_cls closure to pass to the "next" function.
+ * @param key key for the content
+ * @param size number of bytes in data
+ * @param data content stored
+ * @param type type of the content
+ * @param priority priority of the content
+ * @param anonymity anonymity-level for the content
+ * @param expiration expiration time for the content
+ * @param uid unique identifier for the datum;
+ *        maybe 0 if no unique identifier is available
+ *
+ * @return GNUNET_SYSERR to abort the iteration, GNUNET_OK to continue
+ *         (continue on call to "next", of course),
+ *         GNUNET_NO to delete the item and continue (if supported)
+ */
+typedef int (*PluginIterator) (void *cls,
+			       void *next_cls,
+			       const GNUNET_HashCode * key,
+			       uint32_t size,
+			       const void *data,
+			       uint32_t type,
+			       uint32_t priority,
+			       uint32_t anonymity,
+			       struct GNUNET_TIME_Absolute
+			       expiration, 
+			       uint64_t uid);
+
+/**
  * Get an estimate of how much space the database is
  * currently using.
  * @return number of bytes used on disk
  */
-typedef unsigned long long (*GNUNET_DATASTORE_GetSize) (void *cls);
+typedef unsigned long long (*PluginGetSize) (void *cls);
 
 
 /**
- * Store an item in the datastore.
+ * Store an item in the datastore.  If the item is already present,
+ * the priorities are summed up and the higher expiration time and
+ * lower anonymity level is used.
  *
  * @param cls closure
  * @param key key for the item
@@ -76,15 +125,14 @@ typedef unsigned long long (*GNUNET_DATASTORE_GetSize) (void *cls);
  * @param msg set to an error message (on failure)
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-typedef int
-  (*GNUNET_DATASTORE_Put) (void *cls,
-                           const GNUNET_HashCode * key,
-                           uint32_t size,
-                           const void *data,
-                           uint32_t type,
-                           uint32_t priority,
-                           uint32_t anonymity,
-                           struct GNUNET_TIME_Absolute expiration,
+typedef int (*PluginPut) (void *cls,
+			  const GNUNET_HashCode * key,
+			  uint32_t size,
+			  const void *data,
+			  uint32_t type,
+			  uint32_t priority,
+			  uint32_t anonymity,
+			  struct GNUNET_TIME_Absolute expiration,
 			   char **msg);
 
 
@@ -101,16 +149,19 @@ typedef int
  *        there may be!
  * @param type entries of which type are relevant?
  *     Use 0 for any type.
- * @param iter function to call on each matching value;
- *        will be called once with a NULL value at the end
+ * @param iter function to call on each matching value; however,
+ *        after the first call to "iter", the plugin must wait
+ *        until "NextRequest" was called before giving the iterator
+ *        the next item; finally, the "iter" should be called once
+ *        once with a NULL value at the end ("next_cls" should be NULL
+ *        for that last call)
  * @param iter_cls closure for iter
  */
-typedef void
-  (*GNUNET_DATASTORE_Get) (void *cls,
-                           const GNUNET_HashCode * key,
-                           const GNUNET_HashCode * vhash,
-                           uint32_t type,
-                           GNUNET_DATASTORE_Iterator iter, void *iter_cls);
+typedef void (*PluginGet) (void *cls,
+			   const GNUNET_HashCode * key,
+			   const GNUNET_HashCode * vhash,
+			   uint32_t type,
+			   PluginIterator iter, void *iter_cls);
 
 
 /**
@@ -135,11 +186,10 @@ typedef void
  * @param msg set to an error message (on error)
  * @return GNUNET_OK on success
  */
-typedef int
-  (*GNUNET_DATASTORE_Update) (void *cls,
-                              unsigned long long uid,
-                              int delta, struct GNUNET_TIME_Absolute expire,
-			      char **msg);
+typedef int (*PluginUpdate) (void *cls,
+			     uint64_t uid,
+			     int delta, struct GNUNET_TIME_Absolute expire,
+			     char **msg);
 
 
 /**
@@ -148,20 +198,23 @@ typedef int
  *
  * @param type entries of which type should be considered?
  *        Use 0 for any type.
- * @param iter function to call on each matching value;
- *        will be called once with a NULL value at the end
+ * @param iter function to call on each matching value; however,
+ *        after the first call to "iter", the plugin must wait
+ *        until "NextRequest" was called before giving the iterator
+ *        the next item; finally, the "iter" should be called once
+ *        once with a NULL value at the end ("next_cls" should be NULL
+ *        for that last call)
  * @param iter_cls closure for iter
  */
-typedef void
-  (*GNUNET_DATASTORE_Selector) (void *cls,
+typedef void (*PluginSelector) (void *cls,
                                 uint32_t type,
-                                GNUNET_DATASTORE_Iterator iter,
+                                PluginIterator iter,
                                 void *iter_cls);
 
 /**
  * Drop database.
  */
-typedef void (*GNUNET_DATASTORE_Drop) (void *cls);
+typedef void (*PluginDrop) (void *cls);
 
 
 
@@ -173,7 +226,8 @@ struct GNUNET_DATASTORE_PluginFunctions
 {
 
   /**
-   * Closure to use for all of the following callbacks.
+   * Closure to use for all of the following callbacks
+   * (except "next_request").
    */
   void *cls;
 
@@ -181,18 +235,26 @@ struct GNUNET_DATASTORE_PluginFunctions
    * Get the current on-disk size of the SQ store.  Estimates are
    * fine, if that's the only thing available.
    */
-  GNUNET_DATASTORE_GetSize get_size;
+  PluginGetSize get_size;
 
   /**
    * Function to store an item in the datastore.
    */
-  GNUNET_DATASTORE_Put put;
+  PluginPut put;
+
+  /**
+   * Function called by iterators whenever they want the next value;
+   * note that unlike all of the other callbacks, this one does get a
+   * the "next_cls" closure which is usually different from the "cls"
+   * member of this struct!
+   */
+  PluginNextRequest next_request;
 
   /**
    * Function to iterate over the results for a particular key
    * in the datastore.
    */
-  GNUNET_DATASTORE_Get get;
+  PluginGet get;
 
   /**
    * Update the priority for a particular key in the datastore.  If
@@ -202,24 +264,24 @@ struct GNUNET_DATASTORE_PluginFunctions
    * priority should be added to the existing priority, ignoring the
    * priority in value.
    */
-  GNUNET_DATASTORE_Update update;
+  PluginUpdate update;
 
   /**
    * Iterate over the items in the datastore in ascending
    * order of priority.
    */
-  GNUNET_DATASTORE_Selector iter_low_priority;
+  PluginSelector iter_low_priority;
 
   /**
    * Iterate over content with anonymity zero.
    */
-  GNUNET_DATASTORE_Selector iter_zero_anonymity;
+  PluginSelector iter_zero_anonymity;
 
   /**
    * Iterate over the items in the datastore in ascending order of
    * expiration time. 
    */
-  GNUNET_DATASTORE_Selector iter_ascending_expiration;
+  PluginSelector iter_ascending_expiration;
 
   /**
    * Iterate over the items in the datastore in migration
@@ -227,7 +289,7 @@ struct GNUNET_DATASTORE_PluginFunctions
    * (and then signal 'end' with a second call).  This is
    * a significant difference from all the other iterators!
    */
-  GNUNET_DATASTORE_Selector iter_migration_order;
+  PluginSelector iter_migration_order;
 
   /**
    * Iterate over all the items in the datastore
@@ -235,13 +297,13 @@ struct GNUNET_DATASTORE_PluginFunctions
    * (can lock datastore while this happens, focus
    * is on doing it fast).
    */
-  GNUNET_DATASTORE_Selector iter_all_now;
+  PluginSelector iter_all_now;
 
   /**
    * Delete the database.  The next operation is
    * guaranteed to be unloading of the module.
    */
-  GNUNET_DATASTORE_Drop drop;
+  PluginDrop drop;
 
 };
 

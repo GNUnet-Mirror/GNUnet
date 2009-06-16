@@ -189,19 +189,16 @@ GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h,
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
- *
- * @return GNUNET_SYSERR to abort the iteration, GNUNET_OK to continue,
- *         GNUNET_NO to delete the item and continue (if supported)
  */
-typedef int (*GNUNET_DATASTORE_Iterator) (void *cls,
-                                          const GNUNET_HashCode * key,
-                                          uint32_t size,
-                                          const void *data,
-                                          uint32_t type,
-                                          uint32_t priority,
-                                          uint32_t anonymity,
-                                          struct GNUNET_TIME_Absolute
-                                          expiration, unsigned long long uid);
+typedef void (*GNUNET_DATASTORE_Iterator) (void *cls,
+					   const GNUNET_HashCode * key,
+					   uint32_t size,
+					   const void *data,
+					   uint32_t type,
+					   uint32_t priority,
+					   uint32_t anonymity,
+					   struct GNUNET_TIME_Absolute
+					   expiration, uint64_t uid);
 
 
 /**

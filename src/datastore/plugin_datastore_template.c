@@ -82,6 +82,25 @@ template_plugin_put (void *cls,
 
 
 /**
+ * Function invoked on behalf of a "PluginIterator"
+ * asking the database plugin to call the iterator
+ * with the next item.
+ *
+ * @param next_cls whatever argument was given
+ *        to the PluginIterator as "next_cls".
+ * @param end_it set to GNUNET_YES if we
+ *        should terminate the iteration early
+ *        (iterator should be still called once more
+ *         to signal the end of the iteration).
+ */
+static void 
+template_next_request (void *next_cls,
+		       int end_it)
+{
+}
+
+
+/**
  * Iterate over the results for a particular key
  * in the datastore.
  *
@@ -100,10 +119,10 @@ template_plugin_put (void *cls,
  */
 static void
 template_plugin_get (void *cls,
-		   const GNUNET_HashCode * key,
-		   const GNUNET_HashCode * vhash,
-		   uint32_t type,
-		   GNUNET_DATASTORE_Iterator iter, void *iter_cls)
+		     const GNUNET_HashCode * key,
+		     const GNUNET_HashCode * vhash,
+		     uint32_t type,
+		     PluginIterator iter, void *iter_cls)
 {
 }
 
@@ -153,9 +172,9 @@ template_plugin_update (void *cls,
  */
 static void
 template_plugin_iter_low_priority (void *cls,
-			uint32_t type,
-			GNUNET_DATASTORE_Iterator iter,
-			void *iter_cls)
+				   uint32_t type,
+				   PluginIterator iter,
+				   void *iter_cls)
 {
 }
 
@@ -174,7 +193,7 @@ template_plugin_iter_low_priority (void *cls,
 static void
 template_plugin_iter_zero_anonymity (void *cls,
 			uint32_t type,
-			GNUNET_DATASTORE_Iterator iter,
+			PluginIterator iter,
 			void *iter_cls)
 {
 }
@@ -194,7 +213,7 @@ template_plugin_iter_zero_anonymity (void *cls,
 static void
 template_plugin_iter_ascending_expiration (void *cls,
 			uint32_t type,
-			GNUNET_DATASTORE_Iterator iter,
+			PluginIterator iter,
 			void *iter_cls)
 {
 }
@@ -214,7 +233,7 @@ template_plugin_iter_ascending_expiration (void *cls,
 static void
 template_plugin_iter_migration_order (void *cls,
 			uint32_t type,
-			GNUNET_DATASTORE_Iterator iter,
+			PluginIterator iter,
 			void *iter_cls)
 {
 }
@@ -234,7 +253,7 @@ template_plugin_iter_migration_order (void *cls,
 static void
 template_plugin_iter_all_now (void *cls,
 			uint32_t type,
-			GNUNET_DATASTORE_Iterator iter,
+			PluginIterator iter,
 			void *iter_cls)
 {
 }
@@ -265,6 +284,7 @@ libgnunet_plugin_datastore_template_init (void *cls)
   api->cls = plugin;
   api->get_size = &template_plugin_get_size;
   api->put = &template_plugin_put;
+  api->next_request = &template_next_request;
   api->get = &template_plugin_get;
   api->update = &template_plugin_update;
   api->iter_low_priority = &template_plugin_iter_low_priority;
