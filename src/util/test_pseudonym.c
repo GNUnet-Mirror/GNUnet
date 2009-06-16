@@ -81,7 +81,7 @@ main (int argc, char *argv[])
   char *name2;
   int notiCount;
 
-  GNUNET_log_setup ("test-psuedonym", "WARNING", NULL);
+  GNUNET_log_setup ("test-pseudonym", "WARNING", NULL);
   ok = GNUNET_YES;
   GNUNET_CRYPTO_random_disable_entropy_gathering ();
   GNUNET_DISK_directory_remove ("/tmp/gnunet-pseudonym-test");

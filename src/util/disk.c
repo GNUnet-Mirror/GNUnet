@@ -533,8 +533,10 @@ GNUNET_DISK_fn_write (const char * const fn, const void *buffer,
   struct GNUNET_IO_Handle *fh;
   int ret;
 
-  fh = GNUNET_DISK_file_open (fn, GNUNET_DISK_OPEN_WRITE
-      | GNUNET_DISK_OPEN_CREATE, mode);
+  fh = GNUNET_DISK_file_open (fn, 
+			      GNUNET_DISK_OPEN_WRITE 
+			      | GNUNET_DISK_OPEN_TRUNCATE
+			      | GNUNET_DISK_OPEN_CREATE, mode);
   if (!fh)
     return GNUNET_SYSERR;
   ret = (n == GNUNET_DISK_file_write (fh, buffer, n)) ? GNUNET_OK : GNUNET_SYSERR;
@@ -844,9 +846,9 @@ GNUNET_DISK_file_copy (const char *src, const char *dst)
   if (!in)
     return GNUNET_SYSERR;
   out = GNUNET_DISK_file_open (dst, GNUNET_DISK_OPEN_WRITE
-      | GNUNET_DISK_OPEN_CREATE | GNUNET_DISK_OPEN_FAILIFEXISTS,
-      GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE
-          | GNUNET_DISK_PERM_GROUP_READ | GNUNET_DISK_PERM_GROUP_WRITE);
+			       | GNUNET_DISK_OPEN_CREATE | GNUNET_DISK_OPEN_FAILIFEXISTS,
+			       GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE
+			       | GNUNET_DISK_PERM_GROUP_READ | GNUNET_DISK_PERM_GROUP_WRITE);
   if (!out)
     {
       GNUNET_DISK_file_close (&in);
@@ -990,14 +992,23 @@ GNUNET_DISK_file_open (const char *fn, int flags, ...)
 
 #ifndef MINGW
   oflags = 0;
-  if (flags & GNUNET_DISK_OPEN_READ)
+  if (GNUNET_DISK_OPEN_READWRITE == (flags & GNUNET_DISK_OPEN_READWRITE))
+    oflags = O_RDWR; /* note: O_RDWR is NOT always O_RDONLY | O_WRONLY */
+  else if (flags & GNUNET_DISK_OPEN_READ)
     oflags = O_RDONLY;
-  if (flags & GNUNET_DISK_OPEN_WRITE)
-    oflags |= O_WRONLY;
+  else if (flags & GNUNET_DISK_OPEN_WRITE)
+    oflags = O_WRONLY;
+  else
+    {
+      GNUNET_break (0);
+      return NULL;
+    }
   if (flags & GNUNET_DISK_OPEN_FAILIFEXISTS)
     oflags |= (O_CREAT & O_EXCL);
   if (flags & GNUNET_DISK_OPEN_TRUNCATE)
     oflags |= O_TRUNC;
+  if (flags & GNUNET_DISK_OPEN_APPEND)
+    oflags |= O_APPEND;
   if (flags & GNUNET_DISK_OPEN_CREATE)
     {
       int perm;
@@ -1011,26 +1022,24 @@ GNUNET_DISK_file_open (const char *fn, int flags, ...)
 
       mode = 0;
       if (perm & GNUNET_DISK_PERM_USER_READ)
-        mode = S_IRUSR;
+        mode |= S_IRUSR;
       if (perm & GNUNET_DISK_PERM_USER_WRITE)
         mode |= S_IWUSR;
       if (perm & GNUNET_DISK_PERM_USER_EXEC)
         mode |= S_IXUSR;
       if (perm & GNUNET_DISK_PERM_GROUP_READ)
-        mode = S_IRGRP;
+        mode |= S_IRGRP;
       if (perm & GNUNET_DISK_PERM_GROUP_WRITE)
         mode |= S_IWGRP;
       if (perm & GNUNET_DISK_PERM_GROUP_EXEC)
         mode |= S_IXGRP;
       if (perm & GNUNET_DISK_PERM_OTHER_READ)
-        mode = S_IROTH;
+        mode |= S_IROTH;
       if (perm & GNUNET_DISK_PERM_OTHER_WRITE)
         mode |= S_IWOTH;
       if (perm & GNUNET_DISK_PERM_OTHER_EXEC)
         mode |= S_IXOTH;
     }
-  if (flags & GNUNET_DISK_OPEN_APPEND)
-    oflags = O_APPEND;
 
   fd = open (expfn, oflags | O_LARGEFILE, mode);
   if (fd == -1)
@@ -1074,7 +1083,7 @@ GNUNET_DISK_file_open (const char *fn, int flags, ...)
     }
 #endif
 
-  ret = (struct GNUNET_IO_Handle *) GNUNET_malloc(sizeof(struct GNUNET_IO_Handle));
+  ret = GNUNET_malloc(sizeof(struct GNUNET_IO_Handle));
 #ifdef MINGW
   ret->h = h;
 #else

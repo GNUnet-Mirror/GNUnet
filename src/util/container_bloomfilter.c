@@ -406,10 +406,10 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, unsigned int size,
   /* Try to open a bloomfilter file */
   if (filename != NULL)
     {
-      bf->fh = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_WRITE
-          | GNUNET_DISK_OPEN_READ | GNUNET_DISK_OPEN_CREATE,
+      bf->fh = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READWRITE
+				      | GNUNET_DISK_OPEN_CREATE,
           GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
-      if (!bf->fh)
+      if (NULL == bf->fh)
         {
           GNUNET_free (bf);
           return NULL;
@@ -437,6 +437,12 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, unsigned int size,
           int res;
 
           res = GNUNET_DISK_file_read (bf->fh, rbuff, BUFFSIZE);
+	  if (res == -1)
+	    {
+	      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+					"read",
+					bf->filename);
+	    }
           if (res == 0)
             break;              /* is ok! we just did not use that many bits yet */
           for (i = 0; i < res; i++)
