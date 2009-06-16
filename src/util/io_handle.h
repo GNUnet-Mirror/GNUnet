@@ -19,7 +19,7 @@
 */
 
 /**
- * @file util/io_handle.c
+ * @file util/io_handle.h
  * @brief wrapper structure for file handles, sockets, ...
  */
 

@@ -57,8 +57,8 @@ PHASE #2: (Goal: recover basic file-sharing functionality)
 
 Datastores:
 * implement sqlite-based sqstore/datastore service
-  + implement library (talks to service)
   + implement service (datastore + talks to plugin)
+  + implement library (talks to service)
   + implement sqlite plugin (talks to DB)
 * implement sqlite-based dstore services
   + implement library (talks to service)
@@ -69,8 +69,6 @@ Applications:
 * DHT, DV
 * FS / fs-libs
 
-Databases:
-* have ONE backend working
 
 
 PHASE #3: (Goal: ready for pre-release) [completion-goal: end of 2009]
@@ -149,6 +147,8 @@ Minor TODO items:
   - implement exponential back-off for service restarts
   - better tracking of which config changes actually need to cause process restarts by ARM.
   - have way to specify dependencies between services (to manage ARM restarts better)
+  - client-API is inefficient since it opens a TCP connection per service that is started
+    (instead of re-using connections).
 * PEERINFO:
   - have gnunet-peerinfo print actual host addresses again
   - add option to gnunet-peerinfo to modify trust value
