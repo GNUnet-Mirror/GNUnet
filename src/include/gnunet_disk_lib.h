@@ -153,7 +153,7 @@ int GNUNET_DISK_file_read (const struct GNUNET_IO_Handle *h, void *result, int l
  * @param fn file name
  * @param result the buffer to write the result to
  * @param len the maximum number of bytes to read
- * @return the number of bytes read on success, GNUNET_SYSERR on failure
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int GNUNET_DISK_fn_read (const char * const fn, void *result, int len);
 
@@ -163,7 +163,7 @@ int GNUNET_DISK_fn_read (const char * const fn, void *result, int len);
  * @param h handle to open file
  * @param buffer the data to write
  * @param n number of bytes to write
- * @return number of bytes written on success, GNUNET_SYSERR on error
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int GNUNET_DISK_file_write (const struct GNUNET_IO_Handle *h, const void *buffer,
     unsigned int n);

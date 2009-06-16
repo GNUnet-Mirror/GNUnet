@@ -435,7 +435,7 @@ GNUNET_DISK_file_read (const struct GNUNET_IO_Handle *h, void *result, int len)
  * @param fn file name
  * @param result the buffer to write the result to
  * @param len the maximum number of bytes to read
- * @return the number of bytes read on success, GNUNET_SYSERR on failure
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
 GNUNET_DISK_fn_read (const char * const fn, void *result, int len)
@@ -446,7 +446,7 @@ GNUNET_DISK_fn_read (const char * const fn, void *result, int len)
   fh = GNUNET_DISK_file_open (fn, GNUNET_DISK_OPEN_READ);
   if (!fh)
     return GNUNET_SYSERR;
-  ret = GNUNET_DISK_file_read (fh, result, len);
+  ret = (len == GNUNET_DISK_file_read (fh, result, len)) ? GNUNET_OK : GNUNET_SYSERR;
   GNUNET_assert(GNUNET_OK == GNUNET_DISK_file_close(&fh));
 
   return ret;
@@ -505,7 +505,7 @@ GNUNET_DISK_file_write (const struct GNUNET_IO_Handle *h, const void *buffer,
  * @param fn file name
  * @param buffer the data to write
  * @param n number of bytes to write
- * @return number of bytes written on success, GNUNET_SYSERR on error
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
 GNUNET_DISK_fn_write (const char * const fn, const void *buffer,
@@ -518,7 +518,7 @@ GNUNET_DISK_fn_write (const char * const fn, const void *buffer,
       | GNUNET_DISK_OPEN_CREATE, mode);
   if (!fh)
     return GNUNET_SYSERR;
-  ret = GNUNET_DISK_file_write (fh, buffer, n);
+  ret = (n == GNUNET_DISK_file_write (fh, buffer, n)) ? GNUNET_OK : GNUNET_SYSERR;
   GNUNET_assert(GNUNET_OK == GNUNET_DISK_file_close(&fh));
 
   return ret;
