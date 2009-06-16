@@ -443,7 +443,7 @@ file_hash_finish (struct FileHashContext *fhc, const GNUNET_HashCode * res)
 {
   fhc->callback (fhc->callback_cls, res);
   GNUNET_free (fhc->filename);
-  if (!GNUNET_IO_handle_invalid (fhc->fh))
+  if (!GNUNET_DISK_handle_invalid (fhc->fh))
     GNUNET_break (0 == GNUNET_DISK_file_close (&fhc->fh));
   GNUNET_free (fhc);            /* also frees fhc->buffer */
 }

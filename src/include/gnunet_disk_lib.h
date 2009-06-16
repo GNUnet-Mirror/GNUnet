@@ -28,7 +28,6 @@
 
 #include "gnunet_configuration_lib.h"
 #include "gnunet_scheduler_lib.h"
-#include "gnunet_io_lib.h"
 
 /* we need size_t, and since it can be both unsigned int
    or unsigned long long, this IS platform dependent;
@@ -75,6 +74,8 @@ extern "C"
 
 enum GNUNET_DISK_Seek {GNUNET_SEEK_SET, GNUNET_SEEK_CUR, GNUNET_SEEK_END};
 
+struct GNUNET_IO_Handle;
+
 /**
  * Get the number of blocks that are left on the partition that
  * contains the given file (for normal users).
@@ -83,6 +84,14 @@ enum GNUNET_DISK_Seek {GNUNET_SEEK_SET, GNUNET_SEEK_CUR, GNUNET_SEEK_END};
  * @return -1 on errors, otherwise the number of free blocks
  */
 long GNUNET_DISK_get_blocks_available (const char *part);
+
+
+/**
+ * Checks whether a handle is invalid
+ * @param h handle to check
+ * @return GNUNET_YES if invalid, GNUNET_NO if valid
+ */
+int GNUNET_DISK_handle_invalid (const struct GNUNET_IO_Handle *h);
 
 
 /**
@@ -153,7 +162,7 @@ int GNUNET_DISK_file_read (const struct GNUNET_IO_Handle *h, void *result, int l
  * @param fn file name
  * @param result the buffer to write the result to
  * @param len the maximum number of bytes to read
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return number of bytes read, GNUNET_SYSERR on failure
  */
 int GNUNET_DISK_fn_read (const char * const fn, void *result, int len);
 

@@ -151,7 +151,7 @@ incrementBit (char *bitArray, unsigned int bitIdx, const struct GNUNET_IO_Handle
   unsigned int targetLoc;
 
   setBit (bitArray, bitIdx);
-  if (GNUNET_IO_handle_invalid (fh))
+  if (GNUNET_DISK_handle_invalid (fh))
     return;
   /* Update the counter file on disk */
   fileSlot = bitIdx / 2;
@@ -195,7 +195,7 @@ decrementBit (char *bitArray, unsigned int bitIdx, const struct GNUNET_IO_Handle
   unsigned int low;
   unsigned int targetLoc;
 
-  if (GNUNET_IO_handle_invalid (fh))
+  if (GNUNET_DISK_handle_invalid (fh))
     return;                     /* cannot decrement! */
   /* Each char slot in the counter file holds two 4 bit counters */
   fileSlot = bitIdx / 2;
@@ -246,7 +246,7 @@ makeEmptyFile (const struct GNUNET_IO_Handle *fh, unsigned int size)
   unsigned int bytesleft = size;
   int res = 0;
 
-  if (GNUNET_IO_handle_invalid (fh))
+  if (GNUNET_DISK_handle_invalid (fh))
     return GNUNET_SYSERR;
   buffer = GNUNET_malloc (BUFFSIZE);
   memset (buffer, 0, BUFFSIZE);

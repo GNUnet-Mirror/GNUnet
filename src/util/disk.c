@@ -26,10 +26,8 @@
  */
 
 #include "platform.h"
-#include "io_handle.h"
 #include "gnunet_common.h"
 #include "gnunet_directories.h"
-#include "gnunet_io_lib.h"
 #include "gnunet_disk_lib.h"
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_strings_lib.h"
@@ -76,6 +74,15 @@ typedef struct
   int include_sym_links;
 } GetFileSizeData;
 
+struct GNUNET_IO_Handle
+{
+#if MINGW
+  HANDLE h;
+#else
+  int fd;
+#endif
+};
+
 static int
 getSizeRec (void *ptr, const char *fn)
 {
@@ -111,6 +118,34 @@ getSizeRec (void *ptr, const char *fn)
   return GNUNET_OK;
 }
 
+/**
+ * Checks whether a handle is invalid
+ * @param h handle to check
+ * @return GNUNET_YES if invalid, GNUNET_NO if valid
+ */
+int
+GNUNET_DISK_handle_invalid (const struct GNUNET_IO_Handle *h)
+{
+#ifdef MINGW
+  return !h || h->h == INVALID_HANDLE_VALUE ? GNUNET_YES : GNUNET_NO;
+#else
+  return !h || h->fd == -1 ? GNUNET_YES : GNUNET_NO;
+#endif
+}
+
+/**
+ * Mark a handle as invalid
+ * @param h file handle
+ */
+static void
+GNUNET_DISK_handle_invalidate (struct GNUNET_IO_Handle *h)
+{
+#ifdef MINGW
+  h->h = INVALID_HANDLE_VALUE;
+#else
+  h->fd = -1;
+#endif
+}
 
 /**
  * Move the read/write pointer in a file
@@ -435,7 +470,7 @@ GNUNET_DISK_file_read (const struct GNUNET_IO_Handle *h, void *result, int len)
  * @param fn file name
  * @param result the buffer to write the result to
  * @param len the maximum number of bytes to read
- * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ * @return number of bytes read, GNUNET_SYSERR on failure
  */
 int
 GNUNET_DISK_fn_read (const char * const fn, void *result, int len)
@@ -446,7 +481,7 @@ GNUNET_DISK_fn_read (const char * const fn, void *result, int len)
   fh = GNUNET_DISK_file_open (fn, GNUNET_DISK_OPEN_READ);
   if (!fh)
     return GNUNET_SYSERR;
-  ret = (len == GNUNET_DISK_file_read (fh, result, len)) ? GNUNET_OK : GNUNET_SYSERR;
+  ret = GNUNET_DISK_file_read (fh, result, len);
   GNUNET_assert(GNUNET_OK == GNUNET_DISK_file_close(&fh));
 
   return ret;
@@ -1094,7 +1129,7 @@ GNUNET_DISK_file_close (struct GNUNET_IO_Handle **h)
   }
 #endif
 
-  GNUNET_IO_handle_invalidate (*h);
+  GNUNET_DISK_handle_invalidate (*h);
   free(*h);
   *h = NULL;
 
@@ -1272,7 +1307,7 @@ GNUNET_DISK_file_unmap (struct GNUNET_IO_Handle **h, void *addr, size_t len)
       SetErrnoFromWinError (GetLastError ());
     }
 
-  GNUNET_IO_handle_invalidate (*h);
+  GNUNET_DISK_handle_invalidate (*h);
   GNUNET_free (*h);
   h = NULL;
 
@@ -1280,7 +1315,7 @@ GNUNET_DISK_file_unmap (struct GNUNET_IO_Handle **h, void *addr, size_t len)
 #else
   int ret;
   ret = munmap (addr, len) != -1 ? GNUNET_OK : GNUNET_SYSERR;
-  GNUNET_IO_handle_invalidate (h);
+  GNUNET_DISK_handle_invalidate (*h);
   return ret;
 #endif
 }

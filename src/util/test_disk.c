@@ -92,7 +92,7 @@ testOpenClose ()
   fh = GNUNET_DISK_file_open (".testfile", GNUNET_DISK_OPEN_READWRITE
       | GNUNET_DISK_OPEN_CREATE, GNUNET_DISK_PERM_USER_READ
       | GNUNET_DISK_PERM_USER_WRITE);
-  GNUNET_assert (GNUNET_NO == GNUNET_IO_handle_invalid (fh));
+  GNUNET_assert (GNUNET_NO == GNUNET_DISK_handle_invalid (fh));
   GNUNET_break (5 == GNUNET_DISK_file_write (fh, "Hello", 5));
   GNUNET_DISK_file_close (&fh);
   GNUNET_break (GNUNET_OK ==
@@ -108,7 +108,7 @@ testOpenClose ()
   fh = GNUNET_DISK_file_open (".testfile", GNUNET_DISK_OPEN_READWRITE
       | GNUNET_DISK_OPEN_CREATE, GNUNET_DISK_PERM_USER_WRITE
       | GNUNET_DISK_PERM_USER_READ);
-  GNUNET_assert (GNUNET_NO == GNUNET_IO_handle_invalid (fh));
+  GNUNET_assert (GNUNET_NO == GNUNET_DISK_handle_invalid (fh));
   while ((avail == GNUNET_DISK_get_blocks_available (".testfile")) &&
          (avail != -1))
     if (16 != GNUNET_DISK_file_write (fh, "HelloWorld123456", 16))

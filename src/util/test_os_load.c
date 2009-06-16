@@ -135,7 +135,7 @@ testdisk ()
   fh = GNUNET_DISK_file_open (".loadfile", GNUNET_DISK_OPEN_WRITE
       | GNUNET_DISK_OPEN_CREATE, GNUNET_DISK_PERM_USER_READ
       | GNUNET_DISK_PERM_USER_WRITE);
-  GNUNET_assert (GNUNET_NO == GNUNET_IO_handle_invalid(fh));
+  GNUNET_assert (GNUNET_NO == GNUNET_DISK_handle_invalid(fh));
   while (GNUNET_TIME_absolute_get_duration (start).value < 60 * 1000)
     {
       GNUNET_DISK_file_seek (fh, GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
