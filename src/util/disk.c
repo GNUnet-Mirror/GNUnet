@@ -489,22 +489,6 @@ GNUNET_DISK_fn_read (const char * const fn, void *result, int len)
 
 
 /**
- * Convert string to value ('755' for chmod-call)
- */
-static int
-atoo (const char *s)
-{
-  int n = 0;
-
-  while (('0' <= *s) && (*s < '8'))
-    {
-      n <<= 3;
-      n += *s++ - '0';
-    }
-  return n;
-}
-
-/**
  * Write a buffer to a file.
  * @param h handle to open file
  * @param buffer the data to write
