@@ -306,51 +306,62 @@ extern "C"
 /**
  * Message sent by datastore client on join.
  */
-#define GNUNET_MESSAGE_TYPE_DATASTORE_INIT 92
+#define GNUNET_MESSAGE_TYPE_DATASTORE_RESERVE 92
 
 /**
- * Message sent by datastore to client informing about size.
- * (in response to JOIN, PUT and REMOVE requests).
+ * Message sent by datastore client on join.
  */
-#define GNUNET_MESSAGE_TYPE_DATASTORE_SIZE 93
+#define GNUNET_MESSAGE_TYPE_DATASTORE_RELEASE_RESERVE 93
+
+/**
+ * Message sent by datastore to client informing about status
+ * processing a request
+ * (in response to RESERVE, RELEASE_RESERVE, PUT, UPDATE and REMOVE requests).
+ */
+#define GNUNET_MESSAGE_TYPE_DATASTORE_STATUS 94
 
 /**
  * Message sent by datastore client to store data.
  */
-#define GNUNET_MESSAGE_TYPE_DATASTORE_PUT 94
+#define GNUNET_MESSAGE_TYPE_DATASTORE_PUT 95
+
+/**
+ * Message sent by datastore client to update data.
+ */
+#define GNUNET_MESSAGE_TYPE_DATASTORE_UPDATE 96
 
 /**
  * Message sent by datastore client to get data.
  */
-#define GNUNET_MESSAGE_TYPE_DATASTORE_GET 95
+#define GNUNET_MESSAGE_TYPE_DATASTORE_GET 97
 
 /**
  * Message sent by datastore client to get random data.
  */
-#define GNUNET_MESSAGE_TYPE_DATASTORE_GET_RANDOM 96
+#define GNUNET_MESSAGE_TYPE_DATASTORE_GET_RANDOM 98
 
 /**
  * Message sent by datastore to client providing requested data
  * (in response to GET or GET_RANDOM request).
  */
-#define GNUNET_MESSAGE_TYPE_DATASTORE_DATA 97
+#define GNUNET_MESSAGE_TYPE_DATASTORE_DATA 99
 
 /**
  * Message sent by datastore to client signaling end of matching data.
  * This message will also be sent for "GET_RANDOM", even though
  * "GET_RANDOM" returns at most one data item.
  */
-#define GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END 98
+#define GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END 100
 
 /**
  * Message sent by datastore client to remove data.
  */
-#define GNUNET_MESSAGE_TYPE_DATASTORE_REMOVE 99
+#define GNUNET_MESSAGE_TYPE_DATASTORE_REMOVE 101
 
 /**
  * Message sent by datastore client to drop the database.
  */
-#define GNUNET_MESSAGE_TYPE_DATASTORE_DROP 100
+#define GNUNET_MESSAGE_TYPE_DATASTORE_DROP 102
 
 /*
   TODO:

@@ -62,8 +62,10 @@ static unsigned long long sqlite_plugin_get_size (void *cls)
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
  * @param expiration expiration time for the content
+ * @param msg set to an error message
+ * @return GNUNET_OK on success
  */
-static void
+static int
 sqlite_plugin_put (void *cls,
 		   const GNUNET_HashCode * key,
 		   uint32_t size,
@@ -71,8 +73,11 @@ sqlite_plugin_put (void *cls,
 		   uint32_t type,
 		   uint32_t priority,
 		   uint32_t anonymity,
-		   struct GNUNET_TIME_Absolute expiration)
+		   struct GNUNET_TIME_Absolute expiration,
+		   char ** msg)
 {
+  *msg = GNUNET_strdup("not implemented");
+  return GNUNET_SYSERR;
 }
 
 
@@ -100,6 +105,8 @@ sqlite_plugin_get (void *cls,
 		   uint32_t type,
 		   GNUNET_DATASTORE_Iterator iter, void *iter_cls)
 {
+  static struct GNUNET_TIME_Absolute zero;
+  iter (iter_cls, NULL, 0, NULL, 0, 0, 0, zero, 0);
 }
 
 
@@ -122,12 +129,17 @@ sqlite_plugin_get (void *cls,
  * @param expire new expiration time should be the
  *     MAX of any existing expiration time and
  *     this value
+ * @param msg set to an error message
+ * @return GNUNET_OK on success
  */
-static void
+static int
 sqlite_plugin_update (void *cls,
 		      unsigned long long uid,
-		      int delta, struct GNUNET_TIME_Absolute expire)
+		      int delta, struct GNUNET_TIME_Absolute expire,
+		      char **msg)
 {
+  *msg = GNUNET_strdup ("not implemented");
+  return GNUNET_SYSERR;
 }
 
 
@@ -147,8 +159,9 @@ sqlite_plugin_iter_low_priority (void *cls,
 			GNUNET_DATASTORE_Iterator iter,
 			void *iter_cls)
 {
+  static struct GNUNET_TIME_Absolute zero;
+  iter (iter_cls, NULL, 0, NULL, 0, 0, 0, zero, 0);
 }
-
 
 
 /**
@@ -167,6 +180,8 @@ sqlite_plugin_iter_zero_anonymity (void *cls,
 			GNUNET_DATASTORE_Iterator iter,
 			void *iter_cls)
 {
+  static struct GNUNET_TIME_Absolute zero;
+  iter (iter_cls, NULL, 0, NULL, 0, 0, 0, zero, 0);
 }
 
 
@@ -187,6 +202,8 @@ sqlite_plugin_iter_ascending_expiration (void *cls,
 			GNUNET_DATASTORE_Iterator iter,
 			void *iter_cls)
 {
+  static struct GNUNET_TIME_Absolute zero;
+  iter (iter_cls, NULL, 0, NULL, 0, 0, 0, zero, 0);
 }
 
 
@@ -207,6 +224,8 @@ sqlite_plugin_iter_migration_order (void *cls,
 			GNUNET_DATASTORE_Iterator iter,
 			void *iter_cls)
 {
+  static struct GNUNET_TIME_Absolute zero;
+  iter (iter_cls, NULL, 0, NULL, 0, 0, 0, zero, 0);
 }
 
 
@@ -227,6 +246,8 @@ sqlite_plugin_iter_all_now (void *cls,
 			GNUNET_DATASTORE_Iterator iter,
 			void *iter_cls)
 {
+  static struct GNUNET_TIME_Absolute zero;
+  iter (iter_cls, NULL, 0, NULL, 0, 0, 0, zero, 0);
 }
 
 

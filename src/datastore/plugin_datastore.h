@@ -73,8 +73,10 @@ typedef unsigned long long (*GNUNET_DATASTORE_GetSize) (void *cls);
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
  * @param expiration expiration time for the content
+ * @param msg set to an error message (on failure)
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-typedef void
+typedef int
   (*GNUNET_DATASTORE_Put) (void *cls,
                            const GNUNET_HashCode * key,
                            uint32_t size,
@@ -82,7 +84,8 @@ typedef void
                            uint32_t type,
                            uint32_t priority,
                            uint32_t anonymity,
-                           struct GNUNET_TIME_Absolute expiration);
+                           struct GNUNET_TIME_Absolute expiration,
+			   char **msg);
 
 
 /**
@@ -129,11 +132,14 @@ typedef void
  * @param expire new expiration time should be the
  *     MAX of any existing expiration time and
  *     this value
+ * @param msg set to an error message (on error)
+ * @return GNUNET_OK on success
  */
-typedef void
+typedef int
   (*GNUNET_DATASTORE_Update) (void *cls,
                               unsigned long long uid,
-                              int delta, struct GNUNET_TIME_Absolute expire);
+                              int delta, struct GNUNET_TIME_Absolute expire,
+			      char **msg);
 
 
 /**

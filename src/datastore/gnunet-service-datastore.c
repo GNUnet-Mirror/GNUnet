@@ -92,18 +92,28 @@ transmit (struct GNUNET_SERVER_Client *client,
 
 
 /**
- * Transmit the size of the current datastore to the client.
+ * Transmit a status code to the client.
+ *
+ * @param client receiver of the response
+ * @param code status code
+ * @param msg optional error message (can be NULL)
  */
 static void
-transmit_size (struct GNUNET_SERVER_Client *client)
+transmit_status (struct GNUNET_SERVER_Client *client,
+		 int code,
+		 const char *msg)
 {
-  struct SizeMessage sm;
-  
-  sm.header.size = htons(sizeof(struct SizeMessage));
-  sm.header.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_SIZE);
-  sm.reserved = htonl(0);
-  sm.size = GNUNET_htonll(plugin->api->get_size (plugin->api->cls));
-  transmit (client, &sm.header);
+  struct StatusMessage *sm;
+  size_t slen;
+
+  slen = (msg == NULL) ? 0 : strlen(msg) + 1;  
+  sm = GNUNET_malloc (sizeof(struct StatusMessage) + slen);
+  sm->header.size = htons(sizeof(struct StatusMessage) + slen);
+  sm->header.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_STATUS);
+  sm->status = htonl(code);
+  memcpy (&sm[1], msg, slen);  
+  transmit (client, &sm->header);
+  GNUNET_free (sm);
 }
 
 
@@ -148,16 +158,16 @@ transmit_item (void *cls,
       transmit (client, &end);
       return GNUNET_OK;
     }
-  /* FIXME: make use of 'uid' for efficient priority/expiration update! */
   dm = GNUNET_malloc (sizeof(struct DataMessage) + size);
   dm->header.size = htons(sizeof(struct DataMessage) + size);
   dm->header.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_DATA);
-  dm->reserved = htonl(0);
+  dm->rid = htonl(0);
   dm->size = htonl(size);
   dm->type = htonl(type);
   dm->priority = htonl(priority);
   dm->anonymity = htonl(anonymity);
   dm->expiration = GNUNET_TIME_absolute_hton(expiration);
+  dm->uid = GNUNET_htonll(uid);
   dm->key = *key;
   memcpy (&dm[1], data, size);
   transmit (client, &dm->header);
@@ -167,18 +177,35 @@ transmit_item (void *cls,
 
 
 /**
- * Handle INIT-message.
+ * Handle RESERVE-message.
  *
  * @param cls closure
  * @param client identification of the client
  * @param message the actual message
  */
 static void
-handle_init (void *cls,
+handle_reserve (void *cls,
 	     struct GNUNET_SERVER_Client *client,
 	     const struct GNUNET_MessageHeader *message)
 {
-  transmit_size (client);
+  transmit_status (client, GNUNET_SYSERR, "not implemented");
+  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+}
+
+
+/**
+ * Handle RELEASE_RESERVE-message.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_release_reserve (void *cls,
+			struct GNUNET_SERVER_Client *client,
+			const struct GNUNET_MessageHeader *message)
+{
+  transmit_status (client, GNUNET_SYSERR, "not implemented");
   GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
 }
 
@@ -208,8 +235,7 @@ check_data (const struct GNUNET_MessageHeader *message)
       GNUNET_break (0);
       return NULL;
     }
-  if ( (ntohl(dm->type) == 0) ||
-       (ntohl(dm->reserved) != 0) )
+  if (ntohl(dm->type) == 0) 
     {
       GNUNET_break (0);
       return NULL;
@@ -231,21 +257,33 @@ handle_put (void *cls,
 	    const struct GNUNET_MessageHeader *message)
 {
   const struct DataMessage *dm = check_data (message);
+  char *msg;
+  int ret;
+  int rid;
+
   if (dm == NULL)
     {
       GNUNET_break (0);
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
-  plugin->api->put (plugin->api->cls,
-		    &dm->key,
-		    ntohl(dm->size),
-		    &dm[1],
-		    ntohl(dm->type),
-		    ntohl(dm->priority),
-		    ntohl(dm->anonymity),
-		    GNUNET_TIME_absolute_ntoh(dm->expiration));
-  transmit_size (client);
+  rid = ntohl(dm->rid);
+  if (rid > 0)
+    {
+      /* FIXME: find reservation, update remaining! */
+    }
+  msg = NULL;
+  ret = plugin->api->put (plugin->api->cls,
+			  &dm->key,
+			  ntohl(dm->size),
+			  &dm[1],
+			  ntohl(dm->type),
+			  ntohl(dm->priority),
+			  ntohl(dm->anonymity),
+			  GNUNET_TIME_absolute_ntoh(dm->expiration),
+			  &msg);
+  transmit_status (client, ret, msg);
+  GNUNET_free_non_null (msg);
   GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
 }
 
@@ -285,6 +323,35 @@ handle_get (void *cls,
 
 
 /**
+ * Handle UPDATE-message.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_update (void *cls,
+	       struct GNUNET_SERVER_Client *client,
+	       const struct GNUNET_MessageHeader *message)
+{
+  const struct UpdateMessage *msg;
+  int ret;
+  char *emsg;
+
+  msg = (const struct UpdateMessage*) message;
+  emsg = NULL;
+  ret = plugin->api->update (plugin->api->cls,
+			     GNUNET_ntohll(msg->uid),
+			     (int32_t) ntohl(msg->priority),
+			     GNUNET_TIME_absolute_ntoh(msg->expiration),
+			     &emsg);
+  transmit_status (client, ret, emsg);
+  GNUNET_free_non_null (emsg);
+  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+}
+
+
+/**
  * Handle GET_RANDOM-message.
  *
  * @param cls closure
@@ -319,6 +386,8 @@ remove_callback (void *cls,
 		 struct GNUNET_TIME_Absolute
 		 expiration, unsigned long long uid)
 {
+  int *found = cls;
+  *found = GNUNET_YES;
   return GNUNET_NO;
 }
 
@@ -337,6 +406,7 @@ handle_remove (void *cls,
 {
   const struct DataMessage *dm = check_data (message);
   GNUNET_HashCode vhash;
+  int found;
 
   if (dm == NULL)
     {
@@ -344,6 +414,7 @@ handle_remove (void *cls,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
+  found = GNUNET_NO;
   GNUNET_CRYPTO_hash (&dm[1],
 		      ntohl(dm->size),
 		      &vhash);
@@ -352,8 +423,11 @@ handle_remove (void *cls,
 		    &vhash,
 		    ntohl(dm->type),
 		    &remove_callback,
-		    NULL);
-  transmit_size (client);
+		    &found);
+  if (GNUNET_YES == found)
+    transmit_status (client, GNUNET_OK, NULL);
+  else
+    transmit_status (client, GNUNET_SYSERR, _("Content not found"));
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -380,9 +454,13 @@ handle_drop (void *cls,
  * service.
  */
 static struct GNUNET_SERVER_MessageHandler handlers[] = {
-  {&handle_init, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_INIT, 
-   sizeof(struct GNUNET_MessageHeader) }, 
+  {&handle_reserve, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_RESERVE, 
+   sizeof(struct ReserveMessage) }, 
+  {&handle_release_reserve, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_RELEASE_RESERVE, 
+   sizeof(struct ReleaseReserveMessage) }, 
   {&handle_put, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_PUT, 0 }, 
+  {&handle_update, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_UPDATE, 
+   sizeof (struct UpdateMessage) }, 
   {&handle_get, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_GET, 0 }, 
   {&handle_get_random, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_GET_RANDOM, 
    sizeof(struct GNUNET_MessageHeader) }, 

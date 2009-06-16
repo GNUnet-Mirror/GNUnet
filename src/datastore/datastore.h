@@ -33,10 +33,10 @@
  * Message from datastore service informing client about
  * the current size of the datastore.
  */
-struct SizeMessage
+struct ReserveMessage
 {
   /**
-   * Type is GNUNET_MESSAGE_TYPE_DATASTORE_SIZE.
+   * Type is GNUNET_MESSAGE_TYPE_DATASTORE_RESERVE.
    */
   struct GNUNET_MessageHeader header;
 
@@ -46,9 +46,55 @@ struct SizeMessage
   uint32_t reserved GNUNET_PACKED;
 
   /**
-   * Size of the datastore in bytes.
+   * Number of bytes to reserve.
    */
   uint64_t size GNUNET_PACKED;
+
+  /**
+   * Number of items to reserve.
+   */
+  uint64_t items GNUNET_PACKED;
+};
+
+
+/**
+ * Message from datastore service informing client about
+ * the success or failure of a requested operation.
+ * This header is optionally followed by a variable-size,
+ * 0-terminated error message.
+ */
+struct StatusMessage
+{
+  /**
+   * Type is GNUNET_MESSAGE_TYPE_DATASTORE_STATUS.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Status code.
+   */
+  int32_t status GNUNET_PACKED;
+
+};
+
+
+/**
+ * Message from datastore client informing service that
+ * the remainder of the reserved bytes can now be released
+ * for other requests.
+ */
+struct ReleaseReserveMessage
+{
+  /**
+   * Type is GNUNET_MESSAGE_TYPE_DATASTORE_RELEASE_RESERVE.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Reservation id.
+   */
+  int32_t rid GNUNET_PACKED;
+
 };
 
 
@@ -80,6 +126,35 @@ struct GetMessage
 
 
 /**
+ * Message to the datastore service requesting an update
+ * to the priority or expiration for some content.
+ */
+struct UpdateMessage
+{
+  /**
+   * Type is GNUNET_MESSAGE_TYPE_DATASTORE_UPDATE.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Desired priority increase.
+   */
+  int32_t priority GNUNET_PACKED;
+
+  /**
+   * Desired new expiration time.
+   */
+  struct GNUNET_TIME_AbsoluteNBO expiration;
+
+  /**
+   * Unique ID for the content.
+   */
+  uint64_t uid;
+
+};
+
+
+/**
  * Message transmitting content from or to the datastore
  * service.
  */
@@ -94,9 +169,9 @@ struct DataMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Always zero.
+   * Reservation ID to use; use zero for none.
    */
-  uint32_t reserved GNUNET_PACKED;
+  uint32_t rid GNUNET_PACKED;
 
   /**
    * Number of bytes in the item (NBO).
@@ -117,6 +192,11 @@ struct DataMessage
    * Desired anonymity level (NBO), zero for remove.
    */
   uint32_t anonymity GNUNET_PACKED;
+
+  /**
+   * Unique ID for the content (can be used for UPDATE).
+   */
+  uint64_t uid;
   
   /**
    * Expiration time (NBO); zero for remove.

@@ -62,8 +62,10 @@ static unsigned long long template_plugin_get_size (void *cls)
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
  * @param expiration expiration time for the content
+ * @param msg set to error message
+ * @return GNUNET_OK on success
  */
-static void
+static int
 template_plugin_put (void *cls,
 		   const GNUNET_HashCode * key,
 		   uint32_t size,
@@ -71,8 +73,11 @@ template_plugin_put (void *cls,
 		   uint32_t type,
 		   uint32_t priority,
 		   uint32_t anonymity,
-		   struct GNUNET_TIME_Absolute expiration)
+		     struct GNUNET_TIME_Absolute expiration,
+		     char **msg)
 {
+  *msg = GNUNET_strdup ("not implemented");
+  return GNUNET_SYSERR;
 }
 
 
@@ -122,12 +127,17 @@ template_plugin_get (void *cls,
  * @param expire new expiration time should be the
  *     MAX of any existing expiration time and
  *     this value
+ * @param msg set to error message
+ * @return GNUNET_OK on success
  */
-static void
+static int
 template_plugin_update (void *cls,
-		      unsigned long long uid,
-		      int delta, struct GNUNET_TIME_Absolute expire)
+			unsigned long long uid,
+			int delta, struct GNUNET_TIME_Absolute expire,
+			char **msg)
 {
+  *msg = GNUNET_strdup ("not implemented");
+  return GNUNET_SYSERR;
 }
 
 

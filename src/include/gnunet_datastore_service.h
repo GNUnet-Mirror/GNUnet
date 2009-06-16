@@ -49,33 +49,6 @@ struct GNUNET_DATASTORE_Handle;
 
 
 /**
- * An iterator over a set of items stored in the datastore.
- *
- * @param cls closure
- * @param key key for the content
- * @param size number of bytes in data
- * @param data content stored
- * @param type type of the content
- * @param priority priority of the content
- * @param anonymity anonymity-level for the content
- * @param expiration expiration time for the content
- * @param uid unique identifier for the datum;
- *        maybe 0 if no unique identifier is available
- *
- * @return GNUNET_SYSERR to abort the iteration, GNUNET_OK to continue,
- *         GNUNET_NO to delete the item and continue (if supported)
- */
-typedef int (*GNUNET_DATASTORE_Iterator) (void *cls,
-                                          const GNUNET_HashCode * key,
-                                          uint32_t size,
-                                          const void *data,
-                                          uint32_t type,
-                                          uint32_t priority,
-                                          uint32_t anonymity,
-                                          struct GNUNET_TIME_Absolute
-                                          expiration, unsigned long long uid);
-
-/**
  * Connect to the datastore service.
  *
  * @param cfg configuration to use
@@ -102,11 +75,36 @@ void GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
 
 
 /**
- * Get the current on-disk size of the datastore.
- * @param h handle to the datastore
- * @return size estimate, -1 if datastore is not available (yet)
+ * Continuation called to notify client about result of the
+ * operation.
+ *
+ * @param cls closure
+ * @param success GNUNET_SYSERR on failure
+ * @param msg NULL on success, otherwise an error message
  */
-unsigned long long GNUNET_DATASTORE_size (struct GNUNET_DATASTORE_Handle *h);
+typedef void (*GNUNET_DATASTORE_ContinuationWithStatus)(void *cls,
+							int success,
+							const char *msg);
+
+
+/**
+ * Reserve space in the datastore.  This function should be used
+ * to avoid "out of space" failures during a longer sequence of "put"
+ * operations (for example, when a file is being inserted).
+ *
+ * @param h handle to the datastore
+ * @param amount how much space (in bytes) should be reserved (for content only)
+ * @param entries how many entries will be created (to calculate per-entry overhead)
+ * @param cont continuation to call when done; "success" will be set to
+ *             a positive reservation value if space could be reserved.
+ * @param cont_cls closure for cont
+ */
+void
+GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h,
+			  uint64_t amount,
+			  uint64_t entries,
+			  GNUNET_DATASTORE_ContinuationWithStatus cont,
+			  void *cont_cls);
 
 
 /**
@@ -115,6 +113,8 @@ unsigned long long GNUNET_DATASTORE_size (struct GNUNET_DATASTORE_Handle *h);
  * lower anonymity level is used.
  *
  * @param h handle to the datastore
+ * @param rid reservation ID to use (from "reserve"); use 0 if no
+ *            prior reservation was made
  * @param key key for the value
  * @param size number of bytes in data
  * @param data content stored
@@ -122,16 +122,87 @@ unsigned long long GNUNET_DATASTORE_size (struct GNUNET_DATASTORE_Handle *h);
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
  * @param expiration expiration time for the content
+ * @param cont continuation to call when done
+ * @param cont_cls closure for cont
  */
 void
 GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
+		      int rid,
                       const GNUNET_HashCode * key,
                       uint32_t size,
                       const void *data,
                       uint32_t type,
                       uint32_t priority,
                       uint32_t anonymity,
-                      struct GNUNET_TIME_Absolute expiration);
+                      struct GNUNET_TIME_Absolute expiration,
+		      GNUNET_DATASTORE_ContinuationWithStatus cont,
+		      void *cont_cls);
+
+
+/**
+ * Signal that all of the data for which a reservation was made has
+ * been stored and that whatever excess space might have been reserved
+ * can now be released.
+ *
+ * @param h handle to the datastore
+ * @param rid reservation ID (value of "success" in original continuation
+ *        from the "reserve" function).
+ * @param cont continuation to call when done
+ * @param cont_cls closure for cont
+ */
+void
+GNUNET_DATASTORE_release_reserve (struct GNUNET_DATASTORE_Handle *h,
+				  int rid,
+				  GNUNET_DATASTORE_ContinuationWithStatus cont,
+				  void *cont_cls);
+
+
+/**
+ * Update a value in the datastore.
+ *
+ * @param h handle to the datastore
+ * @param uid identifier for the value
+ * @param priority how much to increase the priority of the value
+ * @param expiration new expiration value should be MAX of existing and this argument
+ * @param cont continuation to call when done
+ * @param cont_cls closure for cont
+ */
+void
+GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h,
+			 unsigned long long uid,
+			 uint32_t priority,
+			 struct GNUNET_TIME_Absolute expiration,
+			 GNUNET_DATASTORE_ContinuationWithStatus cont,
+			 void *cont_cls);
+
+
+/**
+ * An iterator over a set of items stored in the datastore.
+ *
+ * @param cls closure
+ * @param key key for the content
+ * @param size number of bytes in data
+ * @param data content stored
+ * @param type type of the content
+ * @param priority priority of the content
+ * @param anonymity anonymity-level for the content
+ * @param expiration expiration time for the content
+ * @param uid unique identifier for the datum;
+ *        maybe 0 if no unique identifier is available
+ *
+ * @return GNUNET_SYSERR to abort the iteration, GNUNET_OK to continue,
+ *         GNUNET_NO to delete the item and continue (if supported)
+ */
+typedef int (*GNUNET_DATASTORE_Iterator) (void *cls,
+                                          const GNUNET_HashCode * key,
+                                          uint32_t size,
+                                          const void *data,
+                                          uint32_t type,
+                                          uint32_t priority,
+                                          uint32_t anonymity,
+                                          struct GNUNET_TIME_Absolute
+                                          expiration, unsigned long long uid);
+
 
 /**
  * Iterate over the results for a particular key
@@ -172,11 +243,15 @@ GNUNET_DATASTORE_get_random (struct GNUNET_DATASTORE_Handle *h,
  * @param key key for the value
  * @param size number of bytes in data
  * @param data content stored
+ * @param cont continuation to call when done
+ * @param cont_cls closure for cont
  */
 void
 GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
                          const GNUNET_HashCode *key,
-                         uint32_t size, const void *data);
+                         uint32_t size, const void *data,
+			 GNUNET_DATASTORE_ContinuationWithStatus cont,
+			 void *cont_cls);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

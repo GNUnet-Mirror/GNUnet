@@ -26,7 +26,6 @@
  * TODO:
  * 1) clarify API (wrt. efficient UPDATE of priority/expiration after GET)
  * 2) implement INIT
- * 3) implement SIZE handling (=> API impact?)
  * 4) implement DROP
  * 5) implement PUT
  * 6) implement GET
@@ -93,17 +92,6 @@ struct GNUNET_DATASTORE_Handle
    */
   void *response_proc_cls;
 
-  /**
-   * Current size of the datastore (cached).
-   */ 
-  unsigned long long size;
-
-  /**
-   * Set to GNUNET_YES if we have received the size
-   * from the datastore.
-   */
-  int ready;
-
 };
 
 
@@ -129,7 +117,6 @@ struct GNUNET_DATASTORE_Handle *GNUNET_DATASTORE_connect (struct
     return NULL; /* oops */
   h = GNUNET_malloc (sizeof(struct GNUNET_DATASTORE_Handle));
   h->client = c;
-  /* FIXME: send 'join' request */
   return h;
 }
 
@@ -154,19 +141,6 @@ void GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
 
 
 /**
- * Get the current on-disk size of the datastore.
- * @param h handle to the datastore
- * @return size estimate, -1 if datastore is not available (yet)
- */
-unsigned long long GNUNET_DATASTORE_size (struct GNUNET_DATASTORE_Handle *h)
-{
-  if (GNUNET_YES != h->ready)
-    return (unsigned long long) -1LL;
-  return h->size;
-}
-
-
-/**
  * Store an item in the datastore.  If the item is already present,
  * the priorities are summed up and the higher expiration time and
  * lower anonymity level is used.
@@ -179,17 +153,89 @@ unsigned long long GNUNET_DATASTORE_size (struct GNUNET_DATASTORE_Handle *h)
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
  * @param expiration expiration time for the content
+ * @param cont continuation to call when done
+ * @param cont_cls closure for cont
  */
 void
 GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
+		      int rid,
                       const GNUNET_HashCode * key,
                       uint32_t size,
                       const void *data,
                       uint32_t type,
                       uint32_t priority,
                       uint32_t anonymity,
-                      struct GNUNET_TIME_Absolute expiration)
+                      struct GNUNET_TIME_Absolute expiration,
+		      GNUNET_DATASTORE_ContinuationWithStatus cont,
+		      void *cont_cls)
 {
+  cont (cont_cls, GNUNET_SYSERR, "not implemented");
+}
+
+
+/**
+ * Reserve space in the datastore.  This function should be used
+ * to avoid "out of space" failures during a longer sequence of "put"
+ * operations (for example, when a file is being inserted).
+ *
+ * @param h handle to the datastore
+ * @param amount how much space (in bytes) should be reserved (for content only)
+ * @param entries how many entries will be created (to calculate per-entry overhead)
+ * @param cont continuation to call when done; "success" will be set to
+ *             a positive reservation value if space could be reserved.
+ * @param cont_cls closure for cont
+ */
+void
+GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h,
+			  uint64_t amount,
+			  uint64_t entries,
+			  GNUNET_DATASTORE_ContinuationWithStatus cont,
+			  void *cont_cls)
+{
+  cont (cont_cls, GNUNET_SYSERR, "not implemented");
+}
+
+
+/**
+ * Signal that all of the data for which a reservation was made has
+ * been stored and that whatever excess space might have been reserved
+ * can now be released.
+ *
+ * @param h handle to the datastore
+ * @param rid reservation ID (value of "success" in original continuation
+ *        from the "reserve" function).
+ * @param cont continuation to call when done
+ * @param cont_cls closure for cont
+ */
+void
+GNUNET_DATASTORE_release_reserve (struct GNUNET_DATASTORE_Handle *h,
+				  int rid,
+				  GNUNET_DATASTORE_ContinuationWithStatus cont,
+				  void *cont_cls)
+{
+  cont (cont_cls, GNUNET_OK, NULL);
+}
+
+
+/**
+ * Update a value in the datastore.
+ *
+ * @param h handle to the datastore
+ * @param uid identifier for the value
+ * @param priority how much to increase the priority of the value
+ * @param expiration new expiration value should be MAX of existing and this argument
+ * @param cont continuation to call when done
+ * @param cont_cls closure for cont
+ */
+void
+GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h,
+			 unsigned long long uid,
+			 uint32_t priority,
+			 struct GNUNET_TIME_Absolute expiration,
+			 GNUNET_DATASTORE_ContinuationWithStatus cont,
+			 void *cont_cls)
+{
+  cont (cont_cls, GNUNET_SYSERR, "not implemented");
 }
 
 
@@ -210,6 +256,9 @@ GNUNET_DATASTORE_get (struct GNUNET_DATASTORE_Handle *h,
                       uint32_t type,
                       GNUNET_DATASTORE_Iterator iter, void *iter_cls)
 {
+  static struct GNUNET_TIME_Absolute zero;
+  iter (iter_cls,
+	NULL, 0, NULL, 0, 0, 0, zero, 0);
 }
 
 
@@ -240,12 +289,17 @@ GNUNET_DATASTORE_get_random (struct GNUNET_DATASTORE_Handle *h,
  * @param key key for the value
  * @param size number of bytes in data
  * @param data content stored
+ * @param cont continuation to call when done
+ * @param cont_cls closure for cont
  */
 void
 GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
                          const GNUNET_HashCode * key,
-                         uint32_t size, const void *data)
+                         uint32_t size, const void *data,
+			 GNUNET_DATASTORE_ContinuationWithStatus cont,
+			 void *cont_cls)
 {
+  cont (cont_cls, GNUNET_SYSERR, "not implemented");
 }
 
 
