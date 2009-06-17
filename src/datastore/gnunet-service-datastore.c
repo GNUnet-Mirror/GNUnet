@@ -789,8 +789,7 @@ load_plugin (struct GNUNET_CONFIGURATION_Handle *cfg,
  * Function called when the service shuts
  * down.  Unloads our datastore plugin.
  *
- * @param cls closure
- * @param cfg configuration to use
+ * @param plug plugin to unload
  */
 static void
 unload_plugin (struct DatastorePlugin *plug)

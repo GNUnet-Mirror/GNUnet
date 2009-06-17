@@ -31,14 +31,6 @@
  * strategy alternates between "lowest priority" and "earliest expiration".
  * Priorities and expiration dates are set using a pseudo-random value
  * within a realistic range.
- * <p>
- *
- * Note that the disk overhead calculations are not very sane for
- * MySQL: we take the entire /var/lib/mysql directory (best we can
- * do for ISAM), which may contain other data and which never
- * shrinks.  The scanning of the entire mysql directory during
- * each report is also likely to be the cause of a minor
- * slowdown compared to sqlite.<p>
  */
 
 #include "platform.h"
@@ -103,13 +95,6 @@ static struct GNUNET_DATASTORE_Handle *datastore;
  */
 #define ITERATIONS 100
 
-/**
- * Name of the database on disk.
- * You may have to adjust this path and the access
- * permission to the respective directory in order
- * to obtain all of the performance information.
- */
-#define DB_NAME "/tmp/gnunet-datastore-test/data/fs/"
 
 static unsigned long long stored_bytes;
 
@@ -186,12 +171,12 @@ run (void *cls,
 {
   int j;
   unsigned long long size;
-  int have_file;
-  struct stat sbuf;
   int i;
 
   datastore = GNUNET_DATASTORE_connect (cfg, sched);
-  have_file = 0 == stat (DB_NAME, &sbuf);
+  /* FIXME: change loop to use CPS; current
+     datastore API will likely react negative to
+     us ignoring the callbacks... */
   for (i = 0; i < ITERATIONS; i++)
     {
 #if REPORT_ID
@@ -205,22 +190,15 @@ run (void *cls,
       if ((i % 2) == 0)
         GNUNET_DATASTORE_get_random (datastore, &iterate_delete, NULL);
       size = 0;
-      if (have_file)
-        GNUNET_disk_file_size (NULL, DB_NAME, &size, GNUNET_NO);
       printf (
 #if REPORT_ID
                "\n"
 #endif
-               "Useful %llu, disk %llu (%.2f%%) / %lluk ops / %llu ops/s\n", 
+               "Stored %llu kB / %lluk ops / %llu ops/s\n", 
 	       stored_bytes / 1024,     /* used size in k */
-               size / 1024,     /* disk size in kb */
-               (100.0 * size / stored_bytes) - 100,     /* overhead */
                (stored_ops * 2 - stored_entries) / 1024,        /* total operations (in k) */
-               1000 * (stored_ops * 2 - stored_entries) / (1 + GNUNET_get_time () - start_time));       /* operations per second */
-      if (GNUNET_shutdown_test () == GNUNET_YES)
-        break;
+               1000 * (stored_ops * 2 - stored_entries) / (1 + GNUNET_TIME_absolute_get_duration(start_time).value));       /* operations per second */
     }
-
   GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
 }
 
@@ -246,7 +224,7 @@ check ()
 #if VERBOSE
                                  "-L", "DEBUG",
 #endif
-                                 "-c", "perf_datastore_api_data.conf", NULL);
+                                 "-c", "test_datastore_api_data.conf", NULL);
   sleep (1);
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "perf-datastore-api", "nohelp",
@@ -279,9 +257,6 @@ main (int argc, char *argv[])
 
   return ret;
 }
-
-
-
 
 
 /* end of perf_datastore_api.c */
