@@ -18,8 +18,8 @@
      Boston, MA 02111-1307, USA.
 */
 /*
- * @file applications/sqstore_sqlite/sqlitetest2.c
- * @brief Test for the sqstore implementations.
+ * @file datastore/perf_datastore_api.c
+ * @brief performance measurement for the datastore implementation
  * @author Christian Grothoff
  *
  * This testcase inserts a bunch of (variable size) data and then deletes
@@ -42,12 +42,11 @@
  */
 
 #include "platform.h"
-#include "gnunet_util.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
-#include "gnunet_sqstore_service.h"
-#include "core.h"
+#include "gnunet_datastore_service.h"
 
-#define ASSERT(x) do { if (! (x)) { printf("Error at %s:%d\n", __FILE__, __LINE__); goto FAILURE;} } while (0)
+static struct GNUNET_DATASTORE_Handle *datastore;
 
 /**
  * Target datastore size (in bytes).
@@ -110,7 +109,7 @@
  * permission to the respective directory in order
  * to obtain all of the performance information.
  */
-#define DB_NAME "/tmp/gnunet-sqlite-sqstore-test/data/fs/"
+#define DB_NAME "/tmp/gnunet-datastore-test/data/fs/"
 
 static unsigned long long stored_bytes;
 
@@ -118,93 +117,81 @@ static unsigned long long stored_entries;
 
 static unsigned long long stored_ops;
 
-static GNUNET_CronTime start_time;
+static struct GNUNET_TIME_Absolute start_time;
 
 static int
-putValue (GNUNET_SQstore_ServiceAPI * api, int i, int k)
+putValue (int i, int k)
 {
-  GNUNET_DatastoreValue *value;
   size_t size;
   static GNUNET_HashCode key;
   static int ic;
+  static char data[65536];
 
   /* most content is 32k */
-  size = sizeof (GNUNET_DatastoreValue) + 32 * 1024;
-  if (GNUNET_random_u32 (GNUNET_RANDOM_QUALITY_WEAK, 16) == 0)  /* but some of it is less! */
-    size =
-      sizeof (GNUNET_DatastoreValue) +
-      GNUNET_random_u32 (GNUNET_RANDOM_QUALITY_WEAK, 32 * 1024);
+  size = 32 * 1024;
+  if (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16) == 0)  /* but some of it is less! */
+    size = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 32 * 1024);
   size = size - (size & 7);     /* always multiple of 8 */
 
-  /* generate random key */
-  GNUNET_hash (&key, sizeof (GNUNET_HashCode), &key);
-  value = GNUNET_malloc (size);
-  value->size = htonl (size);
-  value->type = htonl (i);
-  value->priority =
-    htonl (GNUNET_random_u32 (GNUNET_RANDOM_QUALITY_WEAK, 100));
-  value->anonymity_level = htonl (i);
-  value->expiration_time =
-    GNUNET_htonll (GNUNET_get_time () +
-                   GNUNET_random_u32 (GNUNET_RANDOM_QUALITY_WEAK, 1000));
-  memset (&value[1], i, size - sizeof (GNUNET_DatastoreValue));
+  GNUNET_CRYPTO_hash (&key, sizeof (GNUNET_HashCode), &key);
+  memset (data, i, size);
   if (i > 255)
-    memset (&value[1], i - 255, (size - sizeof (GNUNET_DatastoreValue)) / 2);
-  ((char *) &value[1])[0] = k;
-  if (GNUNET_OK != api->put (&key, value))
-    {
-      GNUNET_free (value);
-      fprintf (stderr, "E");
-      return GNUNET_SYSERR;
-    }
+    memset (data, i - 255, size / 2);
+  data[0] = k;
+  GNUNET_DATASTORE_put (datastore,
+			0,
+			&key,
+			size,
+			data,
+			i,
+			GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100),
+			i,
+			GNUNET_TIME_relative_to_absolute 
+			(GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+							GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 1000))),
+			NULL, NULL);
   ic++;
 #if REPORT_ID
   if (ic % REP_FREQ == 0)
     fprintf (stderr, "I");
 #endif
-  stored_bytes += ntohl (value->size);
+  stored_bytes += size;
   stored_ops++;
   stored_entries++;
-  GNUNET_free (value);
   return GNUNET_OK;
 }
 
-static int
-iterateDelete (const GNUNET_HashCode * key,
-               const GNUNET_DatastoreValue * val, void *cls,
-               unsigned long long uid)
-{
-  GNUNET_SQstore_ServiceAPI *api = cls;
-  static int dc;
 
-  if (api->getSize () < MAX_SIZE)
-    return GNUNET_SYSERR;
-  if (GNUNET_shutdown_test () == GNUNET_YES)
-    return GNUNET_SYSERR;
-  dc++;
-#if REPORT_ID
-  if (dc % REP_FREQ == 0)
-    fprintf (stderr, "D");
-#endif
-  stored_bytes -= ntohl (val->size);
-  stored_entries--;
-  return GNUNET_NO;
+static void
+iterate_delete (void *cls,
+		const GNUNET_HashCode * key,
+		uint32_t size,
+		const void *data,
+		uint32_t type,
+		uint32_t priority,
+		uint32_t anonymity,
+		struct GNUNET_TIME_Absolute
+		expiration, uint64_t uid)
+{
+  GNUNET_DATASTORE_remove (datastore, key, size, data, NULL, NULL);
 }
 
-/**
- * Add testcode here!
- */
-static int
-test (GNUNET_SQstore_ServiceAPI * api)
+
+
+static void
+run (void *cls,
+     struct GNUNET_SCHEDULER_Handle *sched,
+     char *const *args,
+     const char *cfgfile, struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  int i;
   int j;
   unsigned long long size;
   int have_file;
   struct stat sbuf;
+  int i;
 
+  datastore = GNUNET_DATASTORE_connect (cfg, sched);
   have_file = 0 == stat (DB_NAME, &sbuf);
-
   for (i = 0; i < ITERATIONS; i++)
     {
 #if REPORT_ID
@@ -212,18 +199,11 @@ test (GNUNET_SQstore_ServiceAPI * api)
 #endif
       /* insert data equivalent to 1/10th of MAX_SIZE */
       for (j = 0; j < PUT_10; j++)
-        {
-          ASSERT (GNUNET_OK == putValue (api, j, i));
-          if (GNUNET_shutdown_test () == GNUNET_YES)
-            break;
-        }
+	GNUNET_assert (GNUNET_OK == putValue (j, i));
 
       /* trim down below MAX_SIZE again */
       if ((i % 2) == 0)
-        api->iterateLowPriority (0, &iterateDelete, api);
-      else
-        api->iterateExpirationTime (0, &iterateDelete, api);
-
+        GNUNET_DATASTORE_get_random (datastore, &iterate_delete, NULL);
       size = 0;
       if (have_file)
         GNUNET_disk_file_size (NULL, DB_NAME, &size, GNUNET_NO);
@@ -231,8 +211,8 @@ test (GNUNET_SQstore_ServiceAPI * api)
 #if REPORT_ID
                "\n"
 #endif
-               "Useful %llu, API %llu, disk %llu (%.2f%%) / %lluk ops / %llu ops/s\n", stored_bytes / 1024,     /* used size in k */
-               api->getSize () / 1024,  /* API-reported size in k */
+               "Useful %llu, disk %llu (%.2f%%) / %lluk ops / %llu ops/s\n", 
+	       stored_bytes / 1024,     /* used size in k */
                size / 1024,     /* disk size in kb */
                (100.0 * size / stored_bytes) - 100,     /* overhead */
                (stored_ops * 2 - stored_entries) / 1024,        /* total operations (in k) */
@@ -240,45 +220,68 @@ test (GNUNET_SQstore_ServiceAPI * api)
       if (GNUNET_shutdown_test () == GNUNET_YES)
         break;
     }
-  api->drop ();
-  return GNUNET_OK;
 
-FAILURE:
-  api->drop ();
-  return GNUNET_SYSERR;
+  GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
 }
+
+
+static int
+check ()
+{
+  int ok = 1 + 2 + 4 + 8;
+  pid_t pid;
+  char *const argv[] = { "perf-datastore-api",
+    "-c",
+    "test_datastore_api_data.conf",
+#if VERBOSE
+    "-L", "DEBUG",
+#endif
+    NULL
+  };
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_END
+  };
+  pid = GNUNET_OS_start_process ("gnunet-service-datastore",
+                                 "gnunet-service-datastore",
+#if VERBOSE
+                                 "-L", "DEBUG",
+#endif
+                                 "-c", "perf_datastore_api_data.conf", NULL);
+  sleep (1);
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
+                      argv, "perf-datastore-api", "nohelp",
+                      options, &run, &ok);
+  if (0 != PLIBC_KILL (pid, SIGTERM))
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+      ok = 1;
+    }
+  GNUNET_OS_process_wait(pid);
+  if (ok != 0)
+    fprintf (stderr, "Missed some testcases: %u\n", ok);
+  return ok;
+}
+
 
 int
 main (int argc, char *argv[])
 {
-  GNUNET_SQstore_ServiceAPI *api;
-  int ok;
-  struct GNUNET_GC_Configuration *cfg;
-  struct GNUNET_CronManager *cron;
+  int ret;
 
-  cfg = GNUNET_GC_create ();
-  if (-1 == GNUNET_GC_parse_configuration (cfg, "check.conf"))
-    {
-      GNUNET_GC_free (cfg);
-      return -1;
-    }
-  cron = GNUNET_cron_create (NULL);
-  GNUNET_CORE_init (NULL, cfg, cron, NULL);
-  api = GNUNET_CORE_request_service ("sqstore");
-  if (api != NULL)
-    {
-      start_time = GNUNET_get_time ();
-      ok = test (api);
-      GNUNET_CORE_release_service (api);
-    }
-  else
-    ok = GNUNET_SYSERR;
-  GNUNET_CORE_done ();
-  GNUNET_cron_destroy (cron);
-  GNUNET_GC_free (cfg);
-  if (ok == GNUNET_SYSERR)
-    return 1;
-  return 0;
+  GNUNET_log_setup ("perf-datastore-api",
+#if VERBOSE
+                    "DEBUG",
+#else
+                    "WARNING",
+#endif
+                    NULL);
+  ret = check ();
+
+  return ret;
 }
 
-/* end of mysqltest2.c */
+
+
+
+
+/* end of perf_datastore_api.c */

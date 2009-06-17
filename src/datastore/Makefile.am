@@ -81,3 +81,4 @@ perf_datastore_api_iterators_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 
+EXTRA_DIST = test_datastore_api_data.conf
