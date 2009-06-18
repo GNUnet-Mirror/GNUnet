@@ -122,13 +122,3 @@ GNUNET_TESTING_testbed_churn (struct GNUNET_TESTING_Testbed *tb,
 			      void *cb_cls)
 {
 }
-
-
-#if 0                           /* keep Emacsens' auto-indent happy */
-{
-#endif
-#ifdef __cplusplus
-}
-#endif
-
-#endif

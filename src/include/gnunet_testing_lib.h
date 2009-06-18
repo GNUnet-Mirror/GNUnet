@@ -144,6 +144,41 @@ void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
  * @param cbe function to call at the end
  * @param cbe_cls closure for cbe
  * @param hostname where to run the peers; can be NULL (to run
+ *        everything on localhost).
+ * @param va Additional hosts can be specified using a NULL-terminated list of
+ *        varargs, hosts will then be used round-robin from that
+ *        list; va only contains anything if hostname != NULL.
+ */
+void
+GNUNET_TESTING_daemons_start_Va (struct GNUNET_SCHEDULER_Handle *sched,
+				 struct GNUNET_CONFIGURATION_Handle *cfg,
+				 unsigned int total,
+				 const char *service_home_prefix,
+				 const char *transports,
+				 const char *applications,
+				 GNUNET_TESTING_NotifyDaemonRunning cb,
+				 void *cb_cls,
+				 GNUNET_TESTING_NotifyCompletion cbe,
+				 void *cbe_cls,
+				 const char *hostname,
+				 va_list va);
+
+/**
+ * Start count gnunetd processes with the same set of
+ * transports and applications.  The port numbers will
+ * be computed by adding delta each time (zero
+ * times for the first peer).
+ *
+ * @param total number of daemons to start
+ * @param service_home_prefix path to use as the prefix for the home of the services
+ * @param transports which transports should all peers use
+ * @param applications which applications should be used?
+ * @param timeout how long is this allowed to take?
+ * @param cb function to call on each daemon that was started
+ * @param cb_cls closure for cb
+ * @param cbe function to call at the end
+ * @param cbe_cls closure for cbe
+ * @param hostname where to run the peers; can be NULL (to run
  *        everything on localhost). Additional
  *        hosts can be specified using a NULL-terminated list of
  *        varargs, hosts will then be used round-robin from that
@@ -254,40 +289,6 @@ GNUNET_TESTING_testbed_start (struct GNUNET_SCHEDULER_Handle *sched,
 			      ...);
 
 
-/**
- * Start count GNUnet daemons with a particular
- * topology.
- *
- * @param size number of peers the testbed should have
- * @param topology desired topology (enforced via F2F)
- * @param service_home_prefix path to use as the prefix for the home of the services
- * @param transports which transports should all peers use
- * @param applications which applications should be used?
- * @param timeout how long is this allowed to take?
- * @param cb function to call on each daemon that was started
- * @param cb_cls closure for cb
- * @param cte function to call at the end
- * @param cte_cls closure for cbe
- * @param hostname where to run the peers; can be NULL (to run
- *        everything on localhost).
- * @param va Additional hosts can be specified using a NULL-terminated list of
- *        varargs, hosts will then be used round-robin from that
- *        list; va only contains anything if hostname != NULL.
- */
-void
-GNUNET_TESTING_testbed_start_va (struct GNUNET_SCHEDULER_Handle *sched,
-				 struct GNUNET_CONFIGURATION_Handle *cfg,
-				 unsigned int size,
-				 enum GNUNET_TESTING_Topology topology,
-				 const char *service_home_prefix,
-				 const char *transports,
-				 const char *applications,
-				 GNUNET_TESTING_NotifyDaemonRunning cb,
-				 void *cb_cls,
-				 GNUNET_TESTING_NotifyTestbedRunning cte,
-				 void *cte_cls,
-				 const char *hostname,
-				 va_list ap);
 
 
 /**
