@@ -22,10 +22,6 @@
  * @brief test for hello.c
  * @author Christian Grothoff
  */
-
-/**
- * Testcase for HELLO code.
- */
 #include "platform.h"
 #include "gnunet_hello_lib.h"
 

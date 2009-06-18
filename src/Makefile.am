@@ -18,6 +18,7 @@ SUBDIRS = \
   resolver \
   statistics \
   template \
+  testing \
   transport \
   core \
   $(HOSTLIST_DIR) \

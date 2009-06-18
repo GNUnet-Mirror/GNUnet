@@ -37,6 +37,7 @@ gnunetinclude_HEADERS = \
   gnunet_signatures.h \
   gnunet_statistics_service.h \
   gnunet_strings_lib.h \
+  gnunet_testing_lib.h \
   gnunet_time_lib.h \
   gnunet_transport_service.h \
   gnunet_upnp_service.h \

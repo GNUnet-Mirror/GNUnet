@@ -28,3 +28,19 @@ gnunet_daemon_hostlist_CPPFLAGS = \
  @LIBCURL_CPPFLAGS@ 
 
 
+
+check_PROGRAMS = \
+ test_gnunet_daemon_hostlist
+
+TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
+
+test_gnunet_daemon_hostlist_SOURCES = \
+ test_gnunet_daemon_hostlist.c
+test_gnunet_daemon_hostlist_LDADD = \
+  $(top_builddir)/src/arm/libgnunetarm.la \
+  $(top_builddir)/src/util/libgnunetutil.la  
+
+EXTRA_DIST = \
+  test_gnunet_daemon_hostlist_data_peer1.conf \
+  test_gnunet_daemon_hostlist_data_peer2.conf 
+

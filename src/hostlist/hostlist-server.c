@@ -269,7 +269,7 @@ GNUNET_HOSTLIST_server_start (struct GNUNET_CONFIGURATION_Handle *c,
   cfg = c;
   if (-1 == GNUNET_CONFIGURATION_get_value_number (cfg,
 						   "HOSTLIST",
-						   "PORT", 
+						   "HTTPPORT", 
 						   &port))
     return GNUNET_SYSERR;
   daemon_handle = MHD_start_daemon (MHD_USE_IPv6,
