@@ -150,7 +150,7 @@ void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
  *        list; va only contains anything if hostname != NULL.
  */
 void
-GNUNET_TESTING_daemons_start_Va (struct GNUNET_SCHEDULER_Handle *sched,
+GNUNET_TESTING_daemons_start_va (struct GNUNET_SCHEDULER_Handle *sched,
 				 struct GNUNET_CONFIGURATION_Handle *cfg,
 				 unsigned int total,
 				 const char *service_home_prefix,

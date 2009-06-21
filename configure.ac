@@ -768,6 +768,7 @@ src/peerinfo/Makefile
 src/resolver/Makefile
 src/statistics/Makefile
 src/template/Makefile
+src/testing/Makefile
 src/topology/Makefile
 src/transport/Makefile
 src/util/Makefile
