@@ -207,6 +207,17 @@ void GNUNET_logger_remove (GNUNET_Logger logger, void *logger_cls);
 
 
 /**
+ * Convert a hash value to a string (for printing debug messages).
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant!
+ *
+ * @param hc the hash code
+ * @return string 
+ */
+const char *GNUNET_h2s (const GNUNET_HashCode *hc);
+
+
+/**
  * Convert a peer identity to a string (for printing debug messages).
  * This is one of the very few calls in the entire API that is
  * NOT reentrant!

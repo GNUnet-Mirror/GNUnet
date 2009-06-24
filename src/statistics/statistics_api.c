@@ -587,7 +587,8 @@ GNUNET_STATISTICS_get (struct GNUNET_STATISTICS_Handle *handle,
                   "Failed to connect to statistics service, can not get value `%s:%s'.\n",
                   strlen (subsystem) ? subsystem : "*",
                   strlen (name) ? name : "*");
-      cont (cls, GNUNET_SYSERR);
+      if (cont != NULL)
+	cont (cls, GNUNET_SYSERR);
       return;
     }
   if (subsystem == NULL)

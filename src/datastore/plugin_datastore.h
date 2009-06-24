@@ -34,6 +34,14 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_datastore_service.h"
 
+
+/**
+ * How many bytes of overhead will we assume per entry
+ * in the SQlite DB?
+ */
+#define GNUNET_DATASTORE_ENTRY_OVERHEAD 256
+
+
 /**
  * The datastore service will pass a pointer to a struct
  * of this type as the first and only argument to the

@@ -244,3 +244,25 @@ SOLUTION (draft, not done yet, details missing...):
   => Open question: how to do this without 
      compromising state/scalability?
 
+PROBLEM GROUP 7 (User experience):
+* Searches often do not return a sufficient / significant number of
+  results
+* Sharing a directory with thousands of similar files (image/jpeg)
+  creates thousands of search results for the mime-type keyword
+  (problem with DB performance, network transmission, caching,
+   end-user display, etc.)
+
+SOLUTION (draft, not done yet, details missing...):
+* Canonicalize keywords (see suggestion on mailinglist end of
+  June 2009: keep consonants and sort those alphabetically);
+  while I think we must have an option to disable this feature
+  (for more private sharing), I do think it would make a reasonable
+  default
+* When sharing directories, extract keywords first and then
+  push keywords that are common in all files up to the
+  directory level; when processing an AND-ed query and a directory
+  is found to match the result, do an inspection on the metadata
+  of the files in the directory to possibly produce further results
+  (requires downloading of the directory in the background)
+
+
