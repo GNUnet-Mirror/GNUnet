@@ -52,6 +52,9 @@ static unsigned long long stored_ops;
 static struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static struct GNUNET_SCHEDULER_Handle *sched;
+
+static int ok;
+
 	     
 static int
 putValue (struct GNUNET_DATASTORE_PluginFunctions * api, int i, int k)
@@ -271,7 +274,6 @@ run (void *cls,
 static int
 check ()
 {
-  int ok = 1 + 2 + 4 + 8;
   char *const argv[] = { "perf-datastore-api-iterators",
     "-c",
     "test_datastore_api_data.conf",
@@ -285,7 +287,7 @@ check ()
   };
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "perf-datastore-api-iterators", "nohelp",
-                      options, &run, &ok);
+                      options, &run, NULL);
   if (ok != 0)
     fprintf (stderr, "Missed some testcases: %u\n", ok);
   return ok;

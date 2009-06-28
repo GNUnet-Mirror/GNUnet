@@ -113,6 +113,32 @@ struct GNUNET_DATASTORE_Handle *GNUNET_DATASTORE_connect (struct
 
 
 /**
+ * Transmit DROP message to Database service.
+ */
+static size_t
+transmit_drop (void *cls,
+	       size_t size, void *buf)
+{
+  struct GNUNET_DATASTORE_Handle *h = cls;
+  struct GNUNET_MessageHeader *hdr;
+
+  if (buf == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Failed to transmit request to drop database.\n"));
+      GNUNET_DATASTORE_disconnect (h, GNUNET_NO);
+      return 0;
+    }
+  GNUNET_assert (size >= sizeof(struct GNUNET_MessageHeader));
+  hdr = buf;
+  hdr->size = htons(sizeof(struct GNUNET_MessageHeader));
+  hdr->type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_DROP));
+  GNUNET_DATASTORE_disconnect (h, GNUNET_NO);
+  return sizeof(struct GNUNET_MessageHeader);
+}
+
+
+/**
  * Disconnect from the datastore service (and free
  * associated resources).
  *
@@ -124,10 +150,56 @@ void GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
 {
   if (GNUNET_YES == drop)
     {
-      /* FIXME: send 'drop' request */
+      if (NULL != 
+	  GNUNET_CLIENT_notify_transmit_ready (h->client,
+					       sizeof(struct GNUNET_MessageHeader),
+					       GNUNET_TIME_UNIT_MINUTES,
+					       &transmit_drop,
+					       h))
+	return;
+      GNUNET_break (0);
     }
   GNUNET_CLIENT_disconnect (h->client);
   GNUNET_free (h);
+}
+
+
+/**
+ * The closure is followed by the data message.
+ */
+struct PutClosure
+{
+  struct GNUNET_DATASTORE_Handle *h;
+  GNUNET_DATASTORE_ContinuationWithStatus cont;
+  void *cont_cls;
+};
+
+
+/**
+ * Transmit PUT message to Database service.
+ */
+static size_t
+transmit_put (void *cls,
+	      size_t size, void *buf)
+{
+  struct PutClosure *pc = cls;
+  struct DataMessage *dm;
+  uint16_t msize;
+
+  if (buf == NULL)
+    {
+      pc->cont (pc->cont_cls, GNUNET_SYSERR,
+		gettext_noop ("Error transmitting `PUT' message to datastore service.\n"));
+      GNUNET_free (pc);
+      return 0;
+    }
+  dm = (struct DataMessage*) &pc[1];
+  msize = ntohs(dm->size);
+  GNUNET_assert (msize <= size);
+  memcpy (buf, dm, msize);
+  /* FIXME: wait for response from datastore, then
+     call our continuation! */
+  return msize;
 }
 
 
@@ -144,6 +216,7 @@ void GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
  * @param expiration expiration time for the content
+ * @param timeout timeout for the operation
  * @param cont continuation to call when done
  * @param cont_cls closure for cont
  */
@@ -157,10 +230,41 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
                       uint32_t priority,
                       uint32_t anonymity,
                       struct GNUNET_TIME_Absolute expiration,
+                      struct GNUNET_TIME_Relative timeout,
 		      GNUNET_DATASTORE_ContinuationWithStatus cont,
 		      void *cont_cls)
 {
-  cont (cont_cls, GNUNET_SYSERR, "not implemented");
+  struct PutClosure *pc;
+  struct DataMessage *dm;
+
+  pc = GNUNET_malloc (sizeof(struct PutClosure) + 
+		      sizeof(struct DataMessage) + 
+		      size);
+  dm = (struct DataMessage*) &pc[1];
+  pc->h = h;
+  pc->cont = cont;
+  pc->cont_cls = cont_cls;
+  dm->header.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_PUT);
+  dm->header.size = htons(sizeof(struct DataMessage) + size);
+  dm->rid = htonl(rid);
+  dm->size = htonl(size);
+  dm->type = htonl(type);
+  dm->priority = htonl(priority);
+  dm->anonymity = htonl(anonymity);
+  dm->uid = GNUNET_htonll(0);
+  dm->expiration = GNUNET_htonll(expiration);
+  dm->key = *key;
+  memcpy (&dm[1], data, size);
+  if (NULL == GNUNET_CLIENT_notify_transmit_ready (h->client,
+						   sizeof(struct DataMessage) + size,
+						   timeout,
+						   &transmit_put,
+						   pc))
+    {
+      GNUNET_break (0);
+      cont (cont_cls, GNUNET_SYSERR,
+	    gettext_noop ("Not ready to transmit request to datastore service"));
+    }
 }
 
 

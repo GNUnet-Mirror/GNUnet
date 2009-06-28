@@ -1,4 +1,4 @@
-/*
+ /*
      This file is part of GNUnet
      (C) 2009 Christian Grothoff (and other contributing authors)
 
@@ -63,11 +63,11 @@
   "ORDER BY prio ASC, hash ASC LIMIT 1"
 
 #define SELECT_IT_NON_ANONYMOUS_1 \
-  "SELECT size,type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn080 WHERE (prio = ? AND hash < ? AND anonLevel = 0) "\
+  "SELECT size,type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn080 WHERE (prio = ? AND hash < ? AND anonLevel = 0 AND expire > %llu) "\
   " ORDER BY hash DESC LIMIT 1"
 
 #define SELECT_IT_NON_ANONYMOUS_2 \
-  "SELECT size,type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn080 WHERE (prio < ? AND anonLevel = 0)"\
+  "SELECT size,type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn080 WHERE (prio < ? AND anonLevel = 0 AND expire > %llu)"\
   " ORDER BY prio DESC, hash DESC LIMIT 1"
 
 #define SELECT_IT_EXPIRATION_TIME_1 \
@@ -83,7 +83,7 @@
   " ORDER BY hash DESC LIMIT 1"
 
 #define SELECT_IT_MIGRATION_ORDER_2 \
-  "SELECT size,type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn080 WHERE (expire < ?) "\
+  "SELECT size,type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn080 WHERE (expire < ? AND expire > %llu) "\
   " ORDER BY expire DESC, hash DESC LIMIT 1"
 
 /**
@@ -220,7 +220,6 @@ database_setup (struct GNUNET_CONFIGURATION_Handle *cfg,
 		struct Plugin *plugin)
 {
   sqlite3_stmt *stmt;
-  char *dir;
   char *afsdir;
 #if ENULL_DEFINED
   char *e;
@@ -228,33 +227,31 @@ database_setup (struct GNUNET_CONFIGURATION_Handle *cfg,
   
   if (GNUNET_OK != 
       GNUNET_CONFIGURATION_get_value_filename (cfg,
-					       "FS",
-					       "DIR",
+					       "datastore-sqlite",
+					       "FILENAME",
 					       &afsdir))
     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
 		       "sqlite",
 		       _("Option `%s' in section `%s' missing in configuration!\n"),
-		       "DIR",
-		       "FS");
+		       "FILENAME",
+		       "datastore-sqlite");
       return GNUNET_SYSERR;
     }
-  GNUNET_asprintf (&dir, "%s/content/gnunet.dat", afsdir);
-  GNUNET_free (afsdir);
-  if (GNUNET_OK != GNUNET_DISK_directory_create_for_file (dir))
+  if (GNUNET_OK != GNUNET_DISK_directory_create_for_file (afsdir))
     {
       GNUNET_break (0);
-      GNUNET_free (dir);
+      GNUNET_free (afsdir);
       return GNUNET_SYSERR;
     }
-  plugin->fn = GNUNET_STRINGS_to_utf8 (dir, strlen (dir),
+  plugin->fn = GNUNET_STRINGS_to_utf8 (afsdir, strlen (afsdir),
 #ifdef ENABLE_NLS
 					      nl_langinfo (CODESET)
 #else
 					      "UTF-8"   /* good luck */
 #endif
 					      );
-  GNUNET_free (dir);
+  GNUNET_free (afsdir);
   
   /* Open database and precompile statements */
   if (sqlite3_open (plugin->fn, &plugin->dbh) != SQLITE_OK)
@@ -794,7 +791,7 @@ iter_next_prepare (void *cls,
 {
   struct IterContext *ic = cls;
   struct Plugin *plugin = nc->plugin;
-  struct GNUNET_TIME_Absolute now;
+  int ret;
 
   if (nc == NULL)
     {
@@ -802,7 +799,6 @@ iter_next_prepare (void *cls,
       sqlite3_finalize (ic->stmt_2);
       return GNUNET_SYSERR;
     }
-  now = GNUNET_TIME_absolute_get ();
   if (ic->is_prio)
     {
       sqlite3_bind_int (ic->stmt_1, 1, nc->lastPriority);
@@ -817,13 +813,7 @@ iter_next_prepare (void *cls,
 		     &ic->key, 
 		     sizeof (GNUNET_HashCode),
 		     SQLITE_TRANSIENT);
-  datum_1 = NULL;
-  datum_2 = last_datum_2;
-  last_datum_2 = NULL;
-
-  if ( (SQLITE_ROW == (ret = sqlite3_step (stmt_1))) &&
-       ( (GNUNET_NO == ic->is_migr) || 
-	 (sqlite3_column_int64 (stmt_1, 4) >= now.value) ) )
+  if (SQLITE_ROW == (ret = sqlite3_step (ic->stmt_1)))
     {
       nc->stmt = ic->stmt_1;
       return GNUNET_OK;
@@ -836,117 +826,30 @@ iter_next_prepare (void *cls,
 		  "sqlite3_step");
       return GNUNET_SYSERR;
     }
-  if (SQLITE_OK != sqlite3_reset (stmt_1))
-    LOG_SQLITE (handle, NULL,
+  if (SQLITE_OK != sqlite3_reset (ic->stmt_1))
+    LOG_SQLITE (plugin, NULL,
 		GNUNET_ERROR_TYPE_ERROR | 
 		GNUNET_ERROR_TYPE_BULK, 
 		"sqlite3_reset");
-  
-  if (datum_2 == NULL)
+  if (SQLITE_ROW == (ret = sqlite3_step (ic->stmt_2))) 
     {
-      if ( (SQLITE_ROW == (ret = sqlite3_step (ic->stmt_2))) && 
-	   ( (GNUNET_NO == ic->is_migr) ||
-	     sqlite3_column_int64 (stmt_2, 4) >= now.value) )
-	{
-	  nc->stmt = ic->stmt_2;
-	  return GNUNET_OK;
-	}
-      if (ret != SQLITE_DONE)
-	{
-	  LOG_SQLITE (plugin, NULL,
-		      GNUNET_ERROR_TYPE_ERROR |
-		      GNUNET_ERROR_TYPE_BULK,
-		      "sqlite3_step");
-	  return GNUNET_SYSERR;
-	}
-      if (SQLITE_OK != sqlite3_reset (stmt_2))
-	LOG_SQLITE (plugin, NULL,
-		    GNUNET_ERROR_TYPE_ERROR |
-		    GNUNET_ERROR_TYPE_BULK,
-		    "sqlite3_reset");
+      nc->stmt = ic->stmt_2;
+      return GNUNET_OK;
     }
-  datum = NULL;
-  if (datum_1 == NULL)
+  if (ret != SQLITE_DONE)
     {
-      datum = datum_2;
-      rowid = rowid_2;
-      key = key_2;
+      LOG_SQLITE (plugin, NULL,
+		  GNUNET_ERROR_TYPE_ERROR |
+		  GNUNET_ERROR_TYPE_BULK,
+		  "sqlite3_step");
+      return GNUNET_SYSERR;
     }
-  else if (datum_2 == NULL)
-    {
-      datum = datum_1;
-      rowid = rowid_1;
-      key = key_1;
-    }
-  else
-    {
-      /* have to pick between 1 and 2 */
-      if (is_prio)
-	{
-	  if ((ntohl (datum_1->priority) < ntohl (datum_2->priority)) ==
-	      is_asc)
-	    {
-	      datum = datum_1;
-	      rowid = rowid_1;
-	      key = key_1;
-	      last_datum_2 = datum_2;
-	    }
-	  else
-	    {
-	      datum = datum_2;
-	      rowid = rowid_2;
-	      key = key_2;
-	      GNUNET_free (datum_1);
-	    }
-	}
-      else
-	{
-	  if ((GNUNET_ntohll (datum_1->expiration_time) <
-	       GNUNET_ntohll (datum_2->expiration_time)) == is_asc)
-	    {
-	      datum = datum_1;
-	      rowid = rowid_1;
-	      key = key_1;
-	      last_datum_2 = datum_2;
-	    }
-	  else
-	    {
-	      datum = datum_2;
-	      rowid = rowid_2;
-	      key = key_2;
-	      GNUNET_free (datum_1);
-	    }
-	}
-    }
-  if (datum == NULL)
-    break;
-#if 0
-  printf ("FOUND %4u prio %4u exp %20llu old: %4u, %20llu\n",
-	  (ntohl (datum->size) - sizeof (GNUNET_DatastoreValue)),
-	  ntohl (datum->priority),
-	  GNUNET_ntohll (datum->expiration_time), lastPrio, lastExp);
-#endif
-  if (((GNUNET_NO == limit_nonanonymous) ||
-       (ntohl (datum->anonymity_level) == 0)) &&
-      ((type == GNUNET_ECRS_BLOCKTYPE_ANY) ||
-       (type == ntohl (datum->type))))
-    {
-      count++;
-      if (iter != NULL)
-	{
-	  ret = iter (&key, datum, closure, rowid);
-	  if (ret == GNUNET_SYSERR)
-	    {
-	      GNUNET_free (datum);
-	      break;
-	    }
-	  if (ret == GNUNET_NO)
-	    {
-	      payload -= getContentDatastoreSize (datum);
-	      delete_by_rowid (handle, rowid);
-	    }
-	}
-    }
+  if (SQLITE_OK != sqlite3_reset (ic->stmt_2))
+    LOG_SQLITE (plugin, NULL,
+		GNUNET_ERROR_TYPE_ERROR |
+		GNUNET_ERROR_TYPE_BULK,
+		"sqlite3_reset");
+  return GNUNET_NO;
 }
 
 
@@ -1070,8 +973,13 @@ sqlite_plugin_iter_zero_anonymity (void *cls,
 				   PluginIterator iter,
 				   void *iter_cls)
 {
-  static struct GNUNET_TIME_Absolute zero;
-  iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, zero, 0);
+  basic_iter (cls,
+	      type, 
+	      GNUNET_NO, GNUNET_YES, 
+	      GNUNET_NO, GNUNET_YES,
+	      SELECT_IT_NON_ANONYMOUS_1,
+	      SELECT_IT_NON_ANONYMOUS_2, 
+	      iter, iter_cls);
 }
 
 
@@ -1092,10 +1000,24 @@ sqlite_plugin_iter_ascending_expiration (void *cls,
 					 PluginIterator iter,
 					 void *iter_cls)
 {
-  static struct GNUNET_TIME_Absolute zero;
-  iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, zero, 0);
-}
+  struct GNUNET_TIME_Absolute now;
+  char *q1;
+  char *q2;
 
+  now = GNUNET_TIME_absolute_get ();
+  GNUNET_asprintf (&q1, SELECT_IT_EXPIRATION_TIME_1,
+		   now.value);
+  GNUNET_asprintf (&q2, SELECT_IT_EXPIRATION_TIME_2,
+		   now.value);
+  basic_iter (cls,
+	      type, 
+	      GNUNET_YES, GNUNET_NO, 
+	      GNUNET_NO, GNUNET_NO,
+	      q1, q2,
+	      iter, iter_cls);
+  GNUNET_free (q1);
+  GNUNET_free (q2);
+}
 
 
 /**
@@ -1114,8 +1036,20 @@ sqlite_plugin_iter_migration_order (void *cls,
 				    PluginIterator iter,
 				    void *iter_cls)
 {
-  static struct GNUNET_TIME_Absolute zero;
-  iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, zero, 0);
+  struct GNUNET_TIME_Absolute now;
+  char *q;
+
+  now = GNUNET_TIME_absolute_get ();
+  GNUNET_asprintf (&q, SELECT_IT_MIGRATION_ORDER_2,
+		   now.value);
+  basic_iter (cls,
+	      type, 
+	      GNUNET_NO, GNUNET_NO, 
+	      GNUNET_YES, GNUNET_NO,
+	      SELECT_IT_MIGRATION_ORDER_1,
+	      q,
+	      iter, iter_cls);
+  GNUNET_free (q);
 }
 
 

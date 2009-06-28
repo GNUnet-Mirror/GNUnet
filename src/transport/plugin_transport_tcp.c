@@ -1683,7 +1683,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   unsigned long long aport;
   unsigned long long bport;
 
-  service = GNUNET_SERVICE_start ("tcp", env->sched, env->cfg);
+  service = GNUNET_SERVICE_start ("transport-tcp", env->sched, env->cfg);
   if (service == NULL)
     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
@@ -1696,13 +1696,13 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   aport = 0;
   if ((GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_number (env->cfg,
-                                              "tcp",
+                                              "transport-tcp",
                                               "PORT",
                                               &bport)) ||
       (bport > 65535) ||
       ((GNUNET_OK ==
         GNUNET_CONFIGURATION_get_value_number (env->cfg,
-                                               "tcp",
+                                               "transport-tcp",
                                                "ADVERTISED-PORT",
                                                &aport)) && (aport > 65535)))
     {
@@ -1710,7 +1710,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
                        "tcp",
                        _
                        ("Require valid port number for service `%s' in configuration!\n"),
-                       "tcp");
+                       "transport-tcp");
       GNUNET_SERVICE_stop (service);
       return NULL;
     }

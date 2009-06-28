@@ -104,6 +104,9 @@ static unsigned long long stored_ops;
 
 static struct GNUNET_TIME_Absolute start_time;
 
+static int ok;
+
+
 static int
 putValue (int i, int k)
 {
@@ -206,7 +209,6 @@ run (void *cls,
 static int
 check ()
 {
-  int ok = 1 + 2 + 4 + 8;
   pid_t pid;
   char *const argv[] = { "perf-datastore-api",
     "-c",
@@ -228,7 +230,7 @@ check ()
   sleep (1);
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "perf-datastore-api", "nohelp",
-                      options, &run, &ok);
+                      options, &run, NULL);
   if (0 != PLIBC_KILL (pid, SIGTERM))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");

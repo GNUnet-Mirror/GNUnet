@@ -13,6 +13,15 @@ include files:
   * gnunet_directories.h --- generated
   * gettext.h            --- external library
 
+configuration:
+- paths (that are substituted in all filenames) are in PATHS (have as few as possible)
+- globals for the daemon are in [gnunetd] (for now, have as few as possible!)
+- all options for a particular module (src/MODULE) are under [MODULE]
+- options for a plugin of a module are under [MODULE-PLUGINNAME]
+- options only for debugging / testing / profiling are under [TESTING],
+  together with the options for the testing module itself
+
+
 
 exported symbols:
 - must start with "GNUNET_modulename_" and be defined in "modulename.c"

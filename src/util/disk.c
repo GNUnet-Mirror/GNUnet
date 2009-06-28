@@ -981,16 +981,19 @@ GNUNET_DISK_file_open (const char *fn, int flags, ...)
   char *expfn;
   struct GNUNET_IO_Handle *ret;
 #ifdef MINGW
-  DWORD access, disp;
+  DWORD access;
+  DWORD disp;
   HANDLE h;
 #else
-  int oflags, mode;
+  int oflags;
+  int mode;
   int fd;
 #endif
 
   expfn = GNUNET_STRINGS_filename_expand (fn);
 
 #ifndef MINGW
+  mode = 0;
   oflags = 0;
   if (GNUNET_DISK_OPEN_READWRITE == (flags & GNUNET_DISK_OPEN_READWRITE))
     oflags = O_RDWR; /* note: O_RDWR is NOT always O_RDONLY | O_WRONLY */
@@ -1020,7 +1023,6 @@ GNUNET_DISK_file_open (const char *fn, int flags, ...)
       perm = va_arg (arg, int);
       va_end (arg);
 
-      mode = 0;
       if (perm & GNUNET_DISK_PERM_USER_READ)
         mode |= S_IRUSR;
       if (perm & GNUNET_DISK_PERM_USER_WRITE)

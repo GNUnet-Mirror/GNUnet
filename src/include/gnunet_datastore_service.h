@@ -122,6 +122,7 @@ GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h,
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
  * @param expiration expiration time for the content
+ * @param timeout timeout for the operation
  * @param cont continuation to call when done
  * @param cont_cls closure for cont
  */
@@ -135,6 +136,7 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
                       uint32_t priority,
                       uint32_t anonymity,
                       struct GNUNET_TIME_Absolute expiration,
+                      struct GNUNET_TIME_Relative timeout,
 		      GNUNET_DATASTORE_ContinuationWithStatus cont,
 		      void *cont_cls);
 
