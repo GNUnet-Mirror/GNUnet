@@ -489,6 +489,10 @@ transmit_action (void *cls, size_t size, void *buf)
     case ACTION_UPDATE:
       ret = transmit_set (handle, size, buf);
       break;
+    default:
+      ret = 0;
+      GNUNET_break (0);
+      break; 
     }
   return ret;
 }

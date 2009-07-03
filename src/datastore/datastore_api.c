@@ -132,7 +132,7 @@ transmit_drop (void *cls,
   GNUNET_assert (size >= sizeof(struct GNUNET_MessageHeader));
   hdr = buf;
   hdr->size = htons(sizeof(struct GNUNET_MessageHeader));
-  hdr->type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_DROP));
+  hdr->type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_DROP);
   GNUNET_DATASTORE_disconnect (h, GNUNET_NO);
   return sizeof(struct GNUNET_MessageHeader);
 }
@@ -252,7 +252,7 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
   dm->priority = htonl(priority);
   dm->anonymity = htonl(anonymity);
   dm->uid = GNUNET_htonll(0);
-  dm->expiration = GNUNET_htonll(expiration);
+  dm->expiration = GNUNET_TIME_absolute_hton(expiration);
   dm->key = *key;
   memcpy (&dm[1], data, size);
   if (NULL == GNUNET_CLIENT_notify_transmit_ready (h->client,

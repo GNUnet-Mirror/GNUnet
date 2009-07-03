@@ -1881,6 +1881,8 @@ handle_client_send (void *cls,
   /* bound queue size */
   discard_expired_messages (n);
   min_prio = (unsigned int) -1;
+  min_prio_entry = NULL;
+  min_prio_prev = NULL;
   queue_size = 0;
   prev = NULL;
   pos = n->messages;
