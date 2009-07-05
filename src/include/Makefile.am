@@ -22,7 +22,7 @@ gnunetinclude_HEADERS = \
   gnunet_crypto_lib.h \
   gnunet_disk_lib.h \
   gnunet_fragmentation_lib.h \
-  gnunet_fs_lib.h \
+  gnunet_fs_service.h \
   gnunet_getopt_lib.h \
   gnunet_hello_lib.h \
   gnunet_network_lib.h \

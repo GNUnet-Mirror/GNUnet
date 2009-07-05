@@ -299,6 +299,9 @@ os_get_gnunet_path ()
   if (ret != NULL)
     return ret;
   /* other attempts here */
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      _("Could not determine installation path for GNUnet.  Set `%s' environment variable.\n"),
+	      "GNUNET_PREFIX");
   return NULL;
 }
 
