@@ -900,7 +900,8 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
       if (pos == NULL)
         {
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                      _("Failed to find IPv4 address for `%s'.\n"), hostname);
+                      _("Failed to find %saddress for `%s'.\n"),
+		      disablev6 ? "IPv4 " : "", hostname);
           freeaddrinfo (res);
           GNUNET_free (hostname);
           return GNUNET_SYSERR;
@@ -924,6 +925,7 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
           GNUNET_assert (pos->ai_addrlen == sizeof (struct sockaddr_in6));
           sctx->addrlen = pos->ai_addrlen;
           sctx->addr = GNUNET_malloc (sctx->addrlen);
+          memcpy (sctx->addr, res->ai_addr, sctx->addrlen);
           GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                       _
                       ("Configured to bind to %s address; %s connections to this service will fail!\n"),
