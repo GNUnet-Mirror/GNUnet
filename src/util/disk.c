@@ -1243,7 +1243,7 @@ GNUNET_DISK_file_map (const struct GNUNET_IO_Handle *h, struct GNUNET_IO_Handle 
       return NULL;
     }
 
-  *m = (struct GNUNET_IO_Handle *) GNUNET_malloc (sizeof (struct GNUNET_IO_Handle));
+  *m = GNUNET_malloc (sizeof (struct GNUNET_IO_Handle));
   (*m)->h = CreateFileMapping (h->h, NULL, protect, 0, 0, NULL);
   if ((*m)->h == INVALID_HANDLE_VALUE)
     {
@@ -1269,7 +1269,7 @@ GNUNET_DISK_file_map (const struct GNUNET_IO_Handle *h, struct GNUNET_IO_Handle 
     prot = PROT_READ;
   if (access & GNUNET_DISK_MAP_WRITE)
     prot |= PROT_WRITE;
-
+  *m = NULL;
   return mmap (NULL, len, prot, MAP_SHARED, h->fd, 0);
 #endif
 }
@@ -1287,7 +1287,7 @@ GNUNET_DISK_file_unmap (struct GNUNET_IO_Handle **h, void *addr, size_t len)
 #ifdef MINGW
   int ret;
 
-  if (h == NULL || *h == NULL)
+  if  ( (h == NULL) || (*h == NULL) )
     {
       errno = EINVAL;
       return GNUNET_SYSERR;
@@ -1308,10 +1308,7 @@ GNUNET_DISK_file_unmap (struct GNUNET_IO_Handle **h, void *addr, size_t len)
 
   return ret;
 #else
-  int ret;
-  ret = munmap (addr, len) != -1 ? GNUNET_OK : GNUNET_SYSERR;
-  GNUNET_DISK_handle_invalidate (*h);
-  return ret;
+  return munmap (addr, len) != -1 ? GNUNET_OK : GNUNET_SYSERR;
 #endif
 }
 
