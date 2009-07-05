@@ -42,6 +42,13 @@
 
 #define DEBUG_NETWORK GNUNET_NO
 
+/**
+ * List of address families to give as hints to
+ * getaddrinfo, in reverse order of  preference.
+ */
+static int address_families[] = 
+  { AF_INET, AF_INET6, AF_UNSPEC };
+
 struct GNUNET_NETWORK_TransmitHandle
 {
 
@@ -106,6 +113,12 @@ struct GNUNET_NETWORK_SocketHandle
   struct sockaddr *addr;
 
   /**
+   * Pointer to the hostname if socket was
+   * created using DNS lookup, otherwise NULL.
+   */
+  char *hostname;
+
+  /**
    * Pointer to our write buffer.
    */
   char *write_buffer;
@@ -131,6 +144,12 @@ struct GNUNET_NETWORK_SocketHandle
    * Length of addr.
    */
   socklen_t addrlen;
+
+  /**
+   * Offset in our address family list
+   * that we used last.
+   */
+  int af_fam_offset;
 
   /**
    * Connect task that we may need to wait for.
@@ -390,6 +409,37 @@ socket_set_blocking (int handle, int doBlock)
 
 
 /**
+ * Perform a DNS lookup for the hostname associated
+ * with the current socket, iterating over the address
+ * families as specified in the "address_families" array.
+ */
+static void
+try_lookup (struct GNUNET_NETWORK_SocketHandle *sock)
+{
+  struct addrinfo hints;
+  int ec;
+
+  while ( (sock->ai_pos == NULL) &&
+	  (sock->af_fam_offset > 0) )
+    {
+      if (sock->ai != NULL)
+	freeaddrinfo (sock->ai);
+      memset (&hints, 0, sizeof (hints));
+      hints.ai_family = address_families[--sock->af_fam_offset];
+      hints.ai_socktype = SOCK_STREAM;
+      if (0 != (ec = getaddrinfo (sock->hostname, NULL, &hints, &sock->ai)))
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
+		      "`%s' failed for hostname `%s': %s\n",
+		      "getaddrinfo", sock->hostname, gai_strerror (ec));
+	  sock->ai = NULL;
+	}
+      sock->ai_pos = sock->ai;
+    }
+}
+
+
+/**
  * Initiate asynchronous TCP connect request.
  *
  * @param sock what socket to connect
@@ -408,6 +458,8 @@ try_connect (struct GNUNET_NETWORK_SocketHandle *sock)
     }
   while (1)
     {
+      if (sock->ai_pos == NULL)
+	try_lookup (sock);
       if (sock->ai_pos == NULL)
         {
           /* no more addresses to try, fatal! */
@@ -559,8 +611,6 @@ GNUNET_NETWORK_socket_create_from_connect (struct GNUNET_SCHEDULER_Handle
                                            uint16_t port, size_t maxbuf)
 {
   struct GNUNET_NETWORK_SocketHandle *ret;
-  struct addrinfo hints;
-  int ec;
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_SocketHandle) + maxbuf);
   ret->sock = -1;
@@ -568,21 +618,13 @@ GNUNET_NETWORK_socket_create_from_connect (struct GNUNET_SCHEDULER_Handle
   ret->write_buffer = (char *) &ret[1];
   ret->write_buffer_size = maxbuf;
   ret->port = port;
-  memset (&hints, 0, sizeof (hints));
-  hints.ai_family = AF_UNSPEC;
-  hints.ai_socktype = SOCK_STREAM;
-  if (0 != (ec = getaddrinfo (hostname, NULL, &hints, &ret->ai)))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
-                  "`%s' failed for hostname `%s': %s\n",
-                  "getaddrinfo", hostname, gai_strerror (ec));
-      GNUNET_free (ret);
-      return NULL;
-    }
-  ret->ai_pos = ret->ai;
+  ret->af_fam_offset = sizeof (address_families) / sizeof(address_families[0]);
+  ret->hostname = GNUNET_strdup (hostname);
   if (GNUNET_SYSERR == try_connect (ret))
     {
-      freeaddrinfo (ret->ai);
+      if (NULL != ret->ai)
+	freeaddrinfo (ret->ai);
+      GNUNET_free (ret->hostname);
       GNUNET_free (ret);
       return NULL;
     }
@@ -724,7 +766,8 @@ destroy_continuation (void *cls,
     GNUNET_break (0 == CLOSE (sock->sock));
   GNUNET_free_non_null (sock->addr);
   if (sock->ai != NULL)
-    freeaddrinfo (sock->ai);
+    freeaddrinfo (sock->ai);      
+  GNUNET_free_non_null (sock->hostname);
   GNUNET_free (sock);
 }
 

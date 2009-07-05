@@ -58,6 +58,7 @@ open_listen_socket ()
 
   memset (&sa, 0, sizeof (sa));
   sa.sin_port = htons (PORT);
+  sa.sin_family = AF_INET;
   fd = SOCKET (AF_INET, SOCK_STREAM, 0);
   GNUNET_assert (fd >= 0);
   if (SETSOCKOPT (fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) < 0)
