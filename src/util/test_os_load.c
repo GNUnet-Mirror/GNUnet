@@ -99,7 +99,7 @@ static int
 testdisk ()
 {
   int ret;
-  struct GNUNET_IO_Handle *fh;
+  struct GNUNET_DISK_FileHandle *fh;
   char buf[65536];
   struct GNUNET_TIME_Absolute start;
   struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -145,7 +145,7 @@ testdisk ()
       if (ret < GNUNET_OS_load_disk_get (cfg))
         break;
     }
-  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (&fh));
+  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fh));
   GNUNET_break (0 == UNLINK (".loadfile"));
   if (ret >= GNUNET_OS_load_disk_get (cfg))
     {

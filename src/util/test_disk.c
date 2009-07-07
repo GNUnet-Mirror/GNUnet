@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2005, 2006 Christian Grothoff (and other contributing authors)
+     (C) 2001, 2002, 2003, 2005, 2006, 2009 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -85,7 +85,7 @@ testReadWrite ()
 static int
 testOpenClose ()
 {
-  struct GNUNET_IO_Handle *fh;
+  struct GNUNET_DISK_FileHandle *fh;
   unsigned long long size;
   long avail;
 
@@ -94,7 +94,7 @@ testOpenClose ()
       | GNUNET_DISK_PERM_USER_WRITE);
   GNUNET_assert (GNUNET_NO == GNUNET_DISK_handle_invalid (fh));
   GNUNET_break (5 == GNUNET_DISK_file_write (fh, "Hello", 5));
-  GNUNET_DISK_file_close (&fh);
+  GNUNET_DISK_file_close (fh);
   GNUNET_break (GNUNET_OK ==
                 GNUNET_DISK_file_size (".testfile", &size, GNUNET_NO));
   if (size != 5)
@@ -113,11 +113,11 @@ testOpenClose ()
          (avail != -1))
     if (16 != GNUNET_DISK_file_write (fh, "HelloWorld123456", 16))
       {
-        GNUNET_DISK_file_close (&fh);
+        GNUNET_DISK_file_close (fh);
         GNUNET_break (0 == UNLINK (".testfile"));
         return 1;
       }
-  GNUNET_DISK_file_close (&fh);
+  GNUNET_DISK_file_close (fh);
   GNUNET_break (0 == UNLINK (".testfile"));
 
   return 0;
