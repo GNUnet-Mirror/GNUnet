@@ -371,9 +371,11 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
       host->hello = mrg;
     }
   fn = get_host_filename (peer);
-  GNUNET_DISK_fn_write (fn, host->hello, GNUNET_HELLO_size (hello),
-      GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE
-          | GNUNET_DISK_PERM_GROUP_READ | GNUNET_DISK_PERM_OTHER_READ);
+  GNUNET_DISK_fn_write (fn, 
+			host->hello, 
+			GNUNET_HELLO_size (host->hello),
+			GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE
+			| GNUNET_DISK_PERM_GROUP_READ | GNUNET_DISK_PERM_OTHER_READ);
   GNUNET_free (fn);
 }
 
@@ -516,9 +518,11 @@ discard_hosts_helper (void *cls, const char *fn)
                               GNUNET_ERROR_TYPE_BULK, "unlink", fn);
   if (new_hello != NULL)
     {
-      GNUNET_DISK_fn_write (fn, new_hello, GNUNET_HELLO_size (new_hello),
-          GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE
-              | GNUNET_DISK_PERM_GROUP_READ | GNUNET_DISK_PERM_OTHER_READ);
+      GNUNET_DISK_fn_write (fn, 
+			    new_hello,
+			    GNUNET_HELLO_size (new_hello),
+			    GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE
+			    | GNUNET_DISK_PERM_GROUP_READ | GNUNET_DISK_PERM_OTHER_READ);
       GNUNET_free (new_hello);
     }
   return GNUNET_OK;
