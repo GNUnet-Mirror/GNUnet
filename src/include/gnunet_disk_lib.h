@@ -74,7 +74,7 @@ extern "C"
 
 enum GNUNET_DISK_Seek {GNUNET_SEEK_SET, GNUNET_SEEK_CUR, GNUNET_SEEK_END};
 
-struct GNUNET_IO_Handle;
+struct GNUNET_DISK_FileHandle;
 
 /**
  * Get the number of blocks that are left on the partition that
@@ -91,7 +91,7 @@ long GNUNET_DISK_get_blocks_available (const char *part);
  * @param h handle to check
  * @return GNUNET_YES if invalid, GNUNET_NO if valid
  */
-int GNUNET_DISK_handle_invalid (const struct GNUNET_IO_Handle *h);
+int GNUNET_DISK_handle_invalid (const struct GNUNET_DISK_FileHandle *h);
 
 
 /**
@@ -112,7 +112,7 @@ int GNUNET_DISK_file_test (const char *fil);
  * @return the new position on success, GNUNET_SYSERR otherwise
  */
 off_t
-GNUNET_DISK_file_seek (const struct GNUNET_IO_Handle *h, off_t offset,
+GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h, off_t offset,
     enum GNUNET_DISK_Seek whence);
 
 
@@ -136,15 +136,16 @@ int GNUNET_DISK_file_size (const char *filename,
  * @param perm permissions for the newly created file
  * @return IO handle on success, NULL on error
  */
-struct GNUNET_IO_Handle *GNUNET_DISK_file_open (const char *fn, int flags, ...);
+struct GNUNET_DISK_FileHandle *GNUNET_DISK_file_open (const char *fn, int flags, ...);
 
 
 /**
- * Close an open file
+ * Close an open file.
+ *
  * @param h file handle
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
-int GNUNET_DISK_file_close (struct GNUNET_IO_Handle **h);
+int GNUNET_DISK_file_close (struct GNUNET_DISK_FileHandle *h);
 
 
 /**
@@ -154,7 +155,8 @@ int GNUNET_DISK_file_close (struct GNUNET_IO_Handle **h);
  * @param len the maximum number of bytes to read
  * @return the number of bytes read on success, GNUNET_SYSERR on failure
  */
-int GNUNET_DISK_file_read (const struct GNUNET_IO_Handle *h, void *result, int len);
+ssize_t GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle *h, void *result, 
+			       size_t len);
 
 
 /**
@@ -164,29 +166,36 @@ int GNUNET_DISK_file_read (const struct GNUNET_IO_Handle *h, void *result, int l
  * @param len the maximum number of bytes to read
  * @return number of bytes read, GNUNET_SYSERR on failure
  */
-int GNUNET_DISK_fn_read (const char * const fn, void *result, int len);
+ssize_t GNUNET_DISK_fn_read (const char * const fn, void *result, 
+			     size_t len);
 
 
 /**
  * Write a buffer to a file.
+ *
  * @param h handle to open file
  * @param buffer the data to write
  * @param n number of bytes to write
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int GNUNET_DISK_file_write (const struct GNUNET_IO_Handle *h, const void *buffer,
-    unsigned int n);
+ssize_t GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle *h, 
+				const void *buffer,
+				size_t n);
 
 
 /**
- * Write a buffer to a file.
+ * Write a buffer to a file.  If the file is longer than
+ * the given buffer size, it will be truncated.
+ *
  * @param fn file name
  * @param buffer the data to write
  * @param n number of bytes to write
  * @return number of bytes written on success, GNUNET_SYSERR on error
  */
-int GNUNET_DISK_fn_write (const char * const fn, const void *buffer,
-    unsigned int n, int mode);
+ssize_t GNUNET_DISK_fn_write (const char * fn, 
+			      const void *buffer,
+			      size_t n, 
+			      int mode);
 
 
 /**
@@ -317,7 +326,7 @@ int GNUNET_DISK_directory_create (const char *dir);
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
-GNUNET_DISK_file_lock(struct GNUNET_IO_Handle *fh, off_t lockStart,
+GNUNET_DISK_file_lock(struct GNUNET_DISK_FileHandle *fh, off_t lockStart,
     off_t lockEnd);
 
 
@@ -353,32 +362,38 @@ int GNUNET_DISK_file_change_owner (const char *filename, const char *user);
 char *GNUNET_DISK_get_home_filename (struct GNUNET_CONFIGURATION_Handle *cfg,
                                      const char *serviceName, ...);
 
+
+/**
+ * Opaque handle for a memory-mapping operation.
+ */
+struct GNUNET_DISK_MapHandle;
+
 /**
  * Map a file into memory
  * @param h open file handle
- * @param m handle to the new mapping
+ * @param m handle to the new mapping (will be set)
  * @param access access specification, GNUNET_DISK_MAP_xxx
  * @param len size of the mapping
  * @return pointer to the mapped memory region, NULL on failure
  */
-void *GNUNET_DISK_file_map (const struct GNUNET_IO_Handle *h, struct GNUNET_IO_Handle **m,
-    int access, size_t len);
+void *GNUNET_DISK_file_map (const struct GNUNET_DISK_FileHandle *h, 
+			    struct GNUNET_DISK_MapHandle **m,
+			    int access, size_t len);
 
 /**
  * Unmap a file
+ *
  * @param h mapping handle
- * @param addr pointer to the mapped memory region
- * @param len size of the mapping
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
-int GNUNET_DISK_file_unmap (struct GNUNET_IO_Handle **h, void *addr, size_t len);
+int GNUNET_DISK_file_unmap (struct GNUNET_DISK_MapHandle *h);
 
 /**
  * Write file changes to disk
  * @param h handle to an open file
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
-int GNUNET_DISK_file_sync (const struct GNUNET_IO_Handle *h);
+int GNUNET_DISK_file_sync (const struct GNUNET_DISK_FileHandle *h);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

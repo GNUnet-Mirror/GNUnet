@@ -99,7 +99,8 @@ load (struct GNUNET_SERVER_Handle *server,
       struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char *fn;
-  struct GNUNET_IO_Handle *fh, *mh;
+  struct GNUNET_DISK_FileHandle *fh;
+  struct GNUNET_DISK_MapHandle *mh;
   struct stat sb;
   char *buf;
   size_t off;
@@ -124,7 +125,7 @@ load (struct GNUNET_SERVER_Handle *server,
   if (NULL == buf)
     {
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "mmap", fn);
-      GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (&fh));
+      GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fh));
       GNUNET_free (fn);
       return;
     }
@@ -143,8 +144,8 @@ load (struct GNUNET_SERVER_Handle *server,
         }
       off += ntohs (msg->size);
     }
-  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_unmap (&mh, buf, sb.st_size));
-  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (&fh));
+  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_unmap (mh));
+  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fh));
   GNUNET_free (fn);
 }
 
@@ -160,10 +161,11 @@ save (void *cls, struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct StatsEntry *pos;
   char *fn;
-  struct GNUNET_IO_Handle *fh;
+  struct GNUNET_DISK_FileHandle *fh;
   uint16_t size;
   unsigned long long total;
 
+  fh = NULL;
   fn = GNUNET_DISK_get_home_filename (cfg,
                                       "statistics", "statistics.data", NULL);
   if (fn != NULL)
@@ -174,23 +176,24 @@ save (void *cls, struct GNUNET_CONFIGURATION_Handle *cfg)
   while (NULL != (pos = start))
     {
       start = pos->next;
-      if ((pos->persistent) && fh)
+      if ((pos->persistent) && (NULL != fh))
         {
           size = htons (pos->msg->header.size);
           if (size != GNUNET_DISK_file_write (fh, pos->msg, size))
             {
               GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
                                         "write", fn);
-              GNUNET_DISK_file_close (&fh);
+              GNUNET_DISK_file_close (fh);
+	      fh = NULL;
             }
           else
             total += size;
         }
       GNUNET_free (pos);
     }
-  if (fh)
+  if (NULL != fh)
     {
-      GNUNET_DISK_file_close (&fh);
+      GNUNET_DISK_file_close (fh);
       if (total == 0)
         GNUNET_break (0 == UNLINK (fn));
       else

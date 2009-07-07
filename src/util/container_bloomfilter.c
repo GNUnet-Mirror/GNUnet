@@ -60,7 +60,7 @@ struct GNUNET_CONTAINER_BloomFilter
   /**
    * The bit counter file on disk
    */
-  struct GNUNET_IO_Handle *fh;
+  struct GNUNET_DISK_FileHandle *fh;
 
   /**
    * How many bits we set for each stored element
@@ -142,7 +142,7 @@ testBit (char *bitArray, unsigned int bitIdx)
  * @param fh A file to keep the 4 bit address usage counters in
  */
 static void
-incrementBit (char *bitArray, unsigned int bitIdx, const struct GNUNET_IO_Handle *fh)
+incrementBit (char *bitArray, unsigned int bitIdx, const struct GNUNET_DISK_FileHandle *fh)
 {
   unsigned int fileSlot;
   unsigned char value;
@@ -187,7 +187,7 @@ incrementBit (char *bitArray, unsigned int bitIdx, const struct GNUNET_IO_Handle
  * @param fh A file to keep the 4bit address usage counters in
  */
 static void
-decrementBit (char *bitArray, unsigned int bitIdx, const struct GNUNET_IO_Handle *fh)
+decrementBit (char *bitArray, unsigned int bitIdx, const struct GNUNET_DISK_FileHandle *fh)
 {
   unsigned int fileSlot;
   unsigned char value;
@@ -240,7 +240,7 @@ decrementBit (char *bitArray, unsigned int bitIdx, const struct GNUNET_IO_Handle
  * @return GNUNET_OK if created ok, GNUNET_SYSERR otherwise
  */
 static int
-makeEmptyFile (const struct GNUNET_IO_Handle *fh, unsigned int size)
+makeEmptyFile (const struct GNUNET_DISK_FileHandle *fh, unsigned int size)
 {
   char *buffer;
   unsigned int bytesleft = size;
@@ -541,7 +541,7 @@ GNUNET_CONTAINER_bloomfilter_free (struct GNUNET_CONTAINER_BloomFilter *bf)
     return;
   if (bf->filename != NULL)
     {
-      GNUNET_DISK_file_close (&bf->fh);
+      GNUNET_DISK_file_close (bf->fh);
       GNUNET_free (bf->filename);
     }
   GNUNET_free (bf->bitArray);

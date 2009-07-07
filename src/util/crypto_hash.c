@@ -429,7 +429,7 @@ struct FileHashContext
   /**
    * File descriptor.
    */
-  struct GNUNET_IO_Handle *fh;
+  struct GNUNET_DISK_FileHandle *fh;
 
 };
 
@@ -444,7 +444,7 @@ file_hash_finish (struct FileHashContext *fhc, const GNUNET_HashCode * res)
   fhc->callback (fhc->callback_cls, res);
   GNUNET_free (fhc->filename);
   if (!GNUNET_DISK_handle_invalid (fhc->fh))
-    GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (&fhc->fh));
+    GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fhc->fh));
   GNUNET_free (fhc);            /* also frees fhc->buffer */
 }
 

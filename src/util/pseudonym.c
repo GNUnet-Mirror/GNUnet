@@ -281,7 +281,7 @@ GNUNET_PSEUDONYM_id_to_name (struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_HashCode nh;
   char *fn;
   unsigned long long len;
-  struct GNUNET_IO_Handle *fh;
+  struct GNUNET_DISK_FileHandle *fh;
   unsigned int i;
   unsigned int idx;
   char *ret;
@@ -342,7 +342,7 @@ GNUNET_PSEUDONYM_id_to_name (struct GNUNET_CONFIGURATION_Handle *cfg,
           GNUNET_DISK_file_write (fh, nsid, sizeof (GNUNET_HashCode)))
         GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "write", fn);
     }
-  GNUNET_DISK_file_close (&fh);
+  GNUNET_DISK_file_close (fh);
   ret = GNUNET_malloc (strlen (name) + 32);
   GNUNET_snprintf (ret, strlen (name) + 32, "%s-%u", name, idx);
   GNUNET_free (name);
@@ -365,7 +365,7 @@ GNUNET_PSEUDONYM_name_to_id (struct GNUNET_CONFIGURATION_Handle *cfg,
   char *name;
   GNUNET_HashCode nh;
   char *fn;
-  struct GNUNET_IO_Handle *fh;
+  struct GNUNET_DISK_FileHandle *fh;
 
   idx = -1;
   slen = strlen (ns_uname);
@@ -394,10 +394,10 @@ GNUNET_PSEUDONYM_name_to_id (struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_DISK_file_seek (fh, idx * sizeof (GNUNET_HashCode), GNUNET_SEEK_SET);
   if (sizeof (GNUNET_HashCode) != GNUNET_DISK_file_read (fh, nsid, sizeof (GNUNET_HashCode)))
     {
-      GNUNET_DISK_file_close (&fh);
+      GNUNET_DISK_file_close (fh);
       return GNUNET_SYSERR;
     }
-  GNUNET_DISK_file_close (&fh);
+  GNUNET_DISK_file_close (fh);
   return GNUNET_OK;
 }
 
