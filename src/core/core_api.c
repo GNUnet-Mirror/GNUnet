@@ -274,6 +274,8 @@ timeout_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_CORE_TransmitHandle *th = cls;
   struct GNUNET_CORE_Handle *h;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmission request timed out.\n");
   h = th->ch;
   th->timeout_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
   GNUNET_assert (0 == th->get_message (th->get_message_cls, 0, NULL));
@@ -966,12 +968,22 @@ produce_send (void *cls, size_t size, void *buf)
   if (buf == NULL)
     {
       /* timeout or error */
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "P2P transmission request for `%4s' timed out.\n",
+		  GNUNET_i2s(&th->peer));
+#endif
       GNUNET_assert (0 == th->notify (th->notify_cls, 0, NULL));
       if (th->timeout_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
         GNUNET_CORE_notify_transmit_ready_cancel (th);
       trigger_next_request (h);
       return 0;
     }
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Preparing for P2P transmission to `%4s'.\n",
+	      GNUNET_i2s(&th->peer));
+#endif
   GNUNET_assert (th->timeout_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK);
   sm = (struct SendMessage *) buf;
   sm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_SEND);
@@ -1046,7 +1058,7 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
   /* was the request queue previously empty? */
   if (handle->pending_head == th)
     trigger_next_request (handle);
-  return NULL;
+  return th;
 }
 
 
