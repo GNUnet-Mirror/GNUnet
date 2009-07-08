@@ -106,6 +106,7 @@ main (int argc, char **argv)
 
   GNUNET_CONTAINER_heap_iterate (myHeap, iterator_callback, NULL);
   fprintf (stdout, "\n");
+  GNUNET_CONTAINER_heap_destroy (myHeap);
   return 0;
 }
 
