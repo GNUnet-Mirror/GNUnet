@@ -336,7 +336,7 @@ transmit_item (void *cls,
 	       uint32_t priority,
 	       uint32_t anonymity,
 	       struct GNUNET_TIME_Absolute
-	       expiration, unsigned long long uid)
+	       expiration, uint64_t uid)
 {
   struct GNUNET_SERVER_Client *client = cls;
   struct GNUNET_MessageHeader *end;
@@ -644,7 +644,7 @@ remove_callback (void *cls,
 		 uint32_t priority,
 		 uint32_t anonymity,
 		 struct GNUNET_TIME_Absolute
-		 expiration, unsigned long long uid)
+		 expiration, uint64_t uid)
 {
   struct RemoveContext *rc = cls;
   if (key == NULL)

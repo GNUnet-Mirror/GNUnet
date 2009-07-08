@@ -103,7 +103,7 @@ struct GNUNET_CLIENT_Connection
   /**
    * Size of received_buf.
    */
-  size_t received_size;
+  unsigned int received_size;
 
   /**
    * Do we have a complete response in received_buf?
