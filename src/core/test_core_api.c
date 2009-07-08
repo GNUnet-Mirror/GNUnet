@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file transport/test_core_api.c
+ * @file core/test_core_api.c
  * @brief testcase for core_api.c
  *
  * FIXME:
@@ -34,7 +34,7 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_transport_service.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define START_ARM GNUNET_YES
 
