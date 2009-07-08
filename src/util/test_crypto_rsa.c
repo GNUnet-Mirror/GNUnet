@@ -76,7 +76,9 @@ testEncryptDecrypt ()
       if (strncmp (TESTSTRING, result, strlen (TESTSTRING)) != 0)
         {
           printf ("%s != %.*s - testEncryptDecrypt failed!\n",
-                  TESTSTRING, MAX_TESTVAL, result);
+                  TESTSTRING, 
+		  (int) MAX_TESTVAL,
+		  result);
           ok++;
           continue;
         }
@@ -273,7 +275,7 @@ testSignPerformance ()
         }
     }
   printf ("%d RSA sign operations %llu ms\n", ITER,
-          GNUNET_TIME_absolute_get_duration (start).value);
+          (unsigned long long) GNUNET_TIME_absolute_get_duration (start).value);
   GNUNET_CRYPTO_rsa_key_free (hostkey);
   return ok;
 }
