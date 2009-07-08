@@ -1107,6 +1107,11 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
     {
       rl->connect_attempts++;
       rl->connected = GNUNET_YES;
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Establishing fresh connection with `%4s' via plugin `%s'\n",
+              GNUNET_i2s (&neighbour->id), rl->plugin->short_name);
+#endif
     }
   neighbour->messages = mq->next;
   mq->plugin = rl->plugin;
@@ -1242,7 +1247,8 @@ refresh_hello ()
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-              "Refreshing my HELLO\n");
+              "Refreshing my `%s'\n",
+	      "HELLO");
 #endif
   gc.plug_pos = plugins;
   gc.addr_pos = plugins != NULL ? plugins->addresses : NULL;
@@ -1263,6 +1269,12 @@ refresh_hello ()
   npos = neighbours;
   while (npos != NULL)
     {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+		  "Transmitting updated `%s' to neighbour `%4s'\n",
+		  "HELLO",
+		  GNUNET_i2s(&npos->id));
+#endif
       transmit_to_peer (NULL, 0,
                         (const struct GNUNET_MessageHeader *) our_hello,
                         GNUNET_YES, npos);
@@ -1384,11 +1396,6 @@ plugin_env_notify_address (void *cls,
   struct AddressList *al;
   struct GNUNET_TIME_Absolute abex;
 
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Plugin `%s' informs us about a new address `%s'\n", name,
-	      GNUNET_a2s(addr, addrlen));
-#endif
   abex = GNUNET_TIME_relative_to_absolute (expires);
   GNUNET_assert (p == find_transport (name));
 
@@ -1403,6 +1410,11 @@ plugin_env_notify_address (void *cls,
         }
       al = al->next;
     }
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Plugin `%s' informs us about a new address `%s'\n", name,
+	      GNUNET_a2s(addr, addrlen));
+#endif
   al = GNUNET_malloc (sizeof (struct AddressList) + addrlen);
   al->addr = &al[1];
   al->next = p->addresses;
@@ -2319,12 +2331,14 @@ plugin_env_receive (void *cls,
     case GNUNET_MESSAGE_TYPE_HELLO:
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Receiving `%s' message from other peer.\n", "HELLO");
+                  "Receiving `%s' message from `%4s'.\n", "HELLO",
+		  GNUNET_i2s(peer));
 #endif
       process_hello (plugin, message);
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Sending `%s' message to connecting peer.\n", "ACK");
+                  "Sending `%s' message to connecting peer `%4s'.\n", "ACK",
+		  GNUNET_i2s(peer));
 #endif
       transmit_to_peer (NULL, 0, &ack, GNUNET_YES, n);
       break;
@@ -2340,8 +2354,9 @@ plugin_env_receive (void *cls,
     default:
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Received message of type %u from other peer, sending to all clients.\n",
-                  ntohs (message->type));
+                  "Received message of type %u from `%4s', sending to all clients.\n",
+                  ntohs (message->type),
+		  GNUNET_i2s(peer));
 #endif
       /* transmit message to all clients */
       im = GNUNET_malloc (sizeof (struct InboundMessage) + msize);

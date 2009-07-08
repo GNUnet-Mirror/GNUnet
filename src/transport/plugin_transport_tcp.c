@@ -38,7 +38,7 @@
 #include "plugin_transport.h"
 #include "transport.h"
 
-#define DEBUG_TCP GNUNET_NO
+#define DEBUG_TCP GNUNET_YES
 
 /**
  * After how long do we expire an address that we
@@ -1368,11 +1368,6 @@ handle_tcp_welcome (void *cls,
   void *vaddr;
   const struct sockaddr *addr;
 
-#if DEBUG_TCP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "tcp",
-                   "Received `%s' message from %p.\n", "WELCOME", client);
-#endif
   msize = ntohs (message->size);
   if (msize < sizeof (struct WelcomeMessage))
     {
@@ -1381,6 +1376,13 @@ handle_tcp_welcome (void *cls,
       return;
     }
   wm = (const struct WelcomeMessage *) message;
+#if DEBUG_TCP
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                   "tcp",
+                   "Received `%s' message from `%4s/%p'.\n", "WELCOME",
+		   GNUNET_i2s(&wm->clientIdentity),
+		   client);
+#endif
   session_c = find_session_by_client (plugin, client);
   if (session_c == NULL)
     {
@@ -1478,10 +1480,6 @@ handle_tcp_data (void *cls,
   struct GNUNET_TIME_Relative delay;
   uint64_t ack_in;
 
-#if DEBUG_TCP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "tcp", "Receiving data from other peer.\n");
-#endif
   msize = ntohs (message->size);
   if ((msize <
        sizeof (struct DataMessage) + sizeof (struct GNUNET_MessageHeader)))
@@ -1497,6 +1495,12 @@ handle_tcp_data (void *cls,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
+#if DEBUG_TCP
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                   "tcp", "Receiving %u bytes from `%4s'.\n",
+		   msize,
+		   GNUNET_i2s(&session->target));
+#endif
   dm = (const struct DataMessage *) message;
   session->max_in_msg_counter = GNUNET_MAX (session->max_in_msg_counter,
                                             GNUNET_ntohll (dm->ack_out));
