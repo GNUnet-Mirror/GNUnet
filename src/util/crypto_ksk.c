@@ -35,6 +35,7 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_crypto_lib.h"
+#include "gnunet_os_lib.h"
 #include <gmp.h>
 #include <gcrypt.h>
 
@@ -761,6 +762,50 @@ GNUNET_CRYPTO_rsa_key_create_from_hash (const GNUNET_HashCode * hc)
   return ksk_decode_key (line->pke);
 }
 
+
+/* Used to register a progress callback.  This needs to be called
+   before any threads are created. */
+void
+_gcry_register_random_progress (void (*cb)(void *,const char*,int,int,int),
+                                void *cb_data );
+
+
+/**
+ * Function called by libgcrypt whenever we are
+ * blocked gathering entropy.
+ */
+static void
+entropy_generator (void *cls, 
+		   const char *what,
+		   int printchar,
+		   int current,
+		   int total)
+{
+  static pid_t genproc;
+  if (0 != strcmp (what, "need_entropy"))
+    return;
+  if (current == total)
+    {
+      if (genproc != 0)
+	{
+	  PLIBC_KILL(genproc, SIGKILL);
+	  GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (genproc));
+	  genproc = 0;
+	}
+      return;
+    }
+  genproc = GNUNET_OS_start_process ("find",
+				     "find",
+				     "-type",
+				     "s",
+				     "-fprint",
+				     "/dev/null",
+				     NULL);
+				    
+
+}
+
+
 void __attribute__ ((constructor)) GNUNET_CRYPTO_ksk_init ()
 {
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
@@ -775,17 +820,20 @@ void __attribute__ ((constructor)) GNUNET_CRYPTO_ksk_init ()
 #ifdef gcry_fast_random_poll
   gcry_fast_random_poll ();
 #endif
+  _gcry_register_random_progress (&entropy_generator, NULL);
 }
 
 void __attribute__ ((destructor)) GNUNET_CRYPTO_ksk_fini ()
 {
   int i;
+
   for (i = 0; i < cacheSize; i++)
     {
       GNUNET_free (cache[i]->pke);
       GNUNET_free (cache[i]);
     }
   GNUNET_array_grow (cache, cacheSize, 0);
+  _gcry_register_random_progress (NULL, NULL);
 }
 
 /* end of kblockkey.c */
