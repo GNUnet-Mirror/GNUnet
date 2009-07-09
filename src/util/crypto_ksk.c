@@ -763,7 +763,12 @@ GNUNET_CRYPTO_rsa_key_create_from_hash (const GNUNET_HashCode * hc)
 }
 
 
-#ifdef gcry_register_random_progress
+/**
+ * Process ID of the "find" process that we use for
+ * entropy gathering.
+ */
+static pid_t genproc;
+
 /**
  * Function called by libgcrypt whenever we are
  * blocked gathering entropy.
@@ -775,28 +780,58 @@ entropy_generator (void *cls,
 		   int current,
 		   int total)
 {
-  static pid_t genproc;
+  unsigned long code;
+  enum GNUNET_OS_ProcessStatusType type;
+  int ret;
+
   if (0 != strcmp (what, "need_entropy"))
     return;
   if (current == total)
     {
       if (genproc != 0)
 	{
-	  PLIBC_KILL(genproc, SIGKILL);
+	  PLIBC_KILL(genproc, SIGTERM);
 	  GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (genproc));
 	  genproc = 0;
 	}
       return;
     }
-  genproc = GNUNET_OS_start_process ("find",
-				     "find",
-				     "-type",
-				     "s",
-				     "-fprint",
-				     "/dev/null",
+  if (genproc != 0)
+    {
+      ret = GNUNET_OS_process_status (genproc,
+				      &type,
+				      &code);
+      if (ret == GNUNET_NO)
+	return; /* still running */
+      if (ret == GNUNET_SYSERR)
+	{
+	  GNUNET_break (0);
+	  return;
+	}
+      PLIBC_KILL(genproc, SIGTERM);
+      GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (genproc));
+      genproc = 0;     
+    }
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+	     _("Starting `%s' process to generate entropy\n"),
+	     "find");
+  genproc = GNUNET_OS_start_process ("sh",
+				     "sh",
+				     "-c",
+				     "exec find / -type f -exec cp {} /dev/null \\; 2>/dev/null",
 				     NULL);				   
 }
-#endif
+
+
+static void 
+killfind ()
+{
+  if (genproc != 0)
+    {
+      PLIBC_KILL(genproc, SIGKILL);
+      genproc = 0;
+    }
+}
 
 
 void __attribute__ ((constructor)) GNUNET_CRYPTO_ksk_init ()
@@ -813,10 +848,10 @@ void __attribute__ ((constructor)) GNUNET_CRYPTO_ksk_init ()
 #ifdef gcry_fast_random_poll
   gcry_fast_random_poll ();
 #endif
-#ifdef gcry_register_random_progress
-  gcry_register_random_progress (&entropy_generator, NULL);
-#endif
+  gcry_set_progress_handler (&entropy_generator, NULL);
+  atexit (&killfind);
 }
+
 
 void __attribute__ ((destructor)) GNUNET_CRYPTO_ksk_fini ()
 {
@@ -828,9 +863,7 @@ void __attribute__ ((destructor)) GNUNET_CRYPTO_ksk_fini ()
       GNUNET_free (cache[i]);
     }
   GNUNET_array_grow (cache, cacheSize, 0);
-#ifdef gcry_register_random_progress
-  gcry_register_random_progress (NULL, NULL);
-#endif
+  gcry_set_progress_handler (NULL, NULL);
 }
 
 /* end of kblockkey.c */
