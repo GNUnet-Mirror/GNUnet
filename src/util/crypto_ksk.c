@@ -763,13 +763,7 @@ GNUNET_CRYPTO_rsa_key_create_from_hash (const GNUNET_HashCode * hc)
 }
 
 
-/* Used to register a progress callback.  This needs to be called
-   before any threads are created. */
-void
-_gcry_register_random_progress (void (*cb)(void *,const char*,int,int,int),
-                                void *cb_data );
-
-
+#ifdef gcry_register_random_progress
 /**
  * Function called by libgcrypt whenever we are
  * blocked gathering entropy.
@@ -800,10 +794,9 @@ entropy_generator (void *cls,
 				     "s",
 				     "-fprint",
 				     "/dev/null",
-				     NULL);
-				    
-
+				     NULL);				   
 }
+#endif
 
 
 void __attribute__ ((constructor)) GNUNET_CRYPTO_ksk_init ()
@@ -820,7 +813,9 @@ void __attribute__ ((constructor)) GNUNET_CRYPTO_ksk_init ()
 #ifdef gcry_fast_random_poll
   gcry_fast_random_poll ();
 #endif
-  _gcry_register_random_progress (&entropy_generator, NULL);
+#ifdef gcry_register_random_progress
+  gcry_register_random_progress (&entropy_generator, NULL);
+#endif
 }
 
 void __attribute__ ((destructor)) GNUNET_CRYPTO_ksk_fini ()
@@ -833,7 +828,9 @@ void __attribute__ ((destructor)) GNUNET_CRYPTO_ksk_fini ()
       GNUNET_free (cache[i]);
     }
   GNUNET_array_grow (cache, cacheSize, 0);
-  _gcry_register_random_progress (NULL, NULL);
+#ifdef gcry_register_random_progress
+  gcry_register_random_progress (NULL, NULL);
+#endif
 }
 
 /* end of kblockkey.c */
