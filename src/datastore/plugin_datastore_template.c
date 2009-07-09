@@ -151,7 +151,7 @@ template_plugin_get (void *cls,
  */
 static int
 template_plugin_update (void *cls,
-			unsigned long long uid,
+			uint64_t uid,
 			int delta, struct GNUNET_TIME_Absolute expire,
 			char **msg)
 {
