@@ -818,7 +818,7 @@ entropy_generator (void *cls,
   genproc = GNUNET_OS_start_process ("sh",
 				     "sh",
 				     "-c",
-				     "exec find / -type f -exec cp {} /dev/null \\; 2>/dev/null",
+				     "exec find / -mount -type f -exec cp {} /dev/null \\; 2>/dev/null",
 				     NULL);				   
 }
 
