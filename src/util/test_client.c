@@ -61,6 +61,8 @@ copy_msg (void *cls, size_t size, void *buf)
   GNUNET_SERVER_receive_done (ctx->client, GNUNET_OK);
   GNUNET_free (cpy);
   GNUNET_free (ctx);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Message bounced back to client\n");
   return sizeof (struct GNUNET_MessageHeader);
 }
 
@@ -76,6 +78,8 @@ echo_cb (void *cls,
   struct CopyContext *cc;
   struct GNUNET_MessageHeader *cpy;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Receiving message from client, bouncing back\n");
   GNUNET_assert (sizeof (struct GNUNET_MessageHeader) ==
                  ntohs (message->size));
   cc = GNUNET_malloc (sizeof (struct CopyContext));
@@ -104,9 +108,11 @@ recv_bounce (void *cls, const struct GNUNET_MessageHeader *got)
   struct GNUNET_MessageHeader msg;
 
   GNUNET_assert (got != NULL);  /* timeout */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Receiving bounce, checking content\n");
   msg.type = htons (MY_TYPE);
-  msg.size = htons (sizeof (msg));
-  GNUNET_assert (0 == memcmp (got, &msg, sizeof (msg)));
+  msg.size = htons (sizeof (struct GNUNET_MessageHeader));
+  GNUNET_assert (0 == memcmp (got, &msg, sizeof (struct GNUNET_MessageHeader)));
   GNUNET_CLIENT_disconnect (client);
   client = NULL;
   GNUNET_SERVER_destroy (server);
@@ -121,7 +127,9 @@ make_msg (void *cls, size_t size, void *buf)
   struct GNUNET_MessageHeader *msg = buf;
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   msg->type = htons (MY_TYPE);
-  msg->size = htons (sizeof (msg));
+  msg->size = htons (sizeof (struct GNUNET_MessageHeader));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Creating message for transmission\n");
   return sizeof (struct GNUNET_MessageHeader);
 }
 
@@ -185,7 +193,13 @@ main (int argc, char *argv[])
 {
   int ret = 0;
 
-  GNUNET_log_setup ("test_client", "WARNING", NULL);
+  GNUNET_log_setup ("test_client", 
+#if VERBOSE
+		    "DEBUG",
+#else
+		    "WARNING",
+#endif
+		    NULL);
   ret += check ();
 
   return ret;

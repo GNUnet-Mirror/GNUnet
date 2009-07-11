@@ -40,7 +40,7 @@
 #include "gnunet_network_lib.h"
 #include "gnunet_scheduler_lib.h"
 
-#define DEBUG_NETWORK GNUNET_NO
+#define DEBUG_NETWORK GNUNET_YES
 
 /**
  * List of address families to give as hints to

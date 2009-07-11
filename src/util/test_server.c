@@ -83,8 +83,8 @@ my_receive (void *cls,
     case 1:
       *ok = 2;                  /* report success */
       msg.type = htons (MY_TYPE2);
-      msg.size = htons (sizeof (msg));
-      receiver (receiver_cls, &msg, sizeof (msg), NULL, 0, 0);
+      msg.size = htons (sizeof (struct GNUNET_MessageHeader));
+      receiver (receiver_cls, &msg, sizeof (struct GNUNET_MessageHeader), NULL, 0, 0);
       break;
     case 3:
       /* called after first receive instantly
@@ -130,7 +130,7 @@ my_transmit_ready_cb (void *cls,
   GNUNET_assert (size == sizeof (struct GNUNET_MessageHeader));
   notify (notify_cls, size, buf);
   msg.type = htons (MY_TYPE);
-  msg.size = htons (sizeof (msg));
+  msg.size = htons (sizeof (struct GNUNET_MessageHeader));
   GNUNET_assert (0 == memcmp (&msg, buf, size));
   *ok = 5;                      /* report success */
   return &non_null_addr;
@@ -250,9 +250,9 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   handlers[1].callback_cls = cls;
   GNUNET_SERVER_add_handlers (server, handlers);
   msg.type = htons (MY_TYPE);
-  msg.size = htons (sizeof (msg));
+  msg.size = htons (sizeof (struct GNUNET_MessageHeader));
   GNUNET_SERVER_inject (server, NULL, &msg);
-  memset (&msg, 0, sizeof (msg));
+  memset (&msg, 0, sizeof (struct GNUNET_MessageHeader));
 }
 
 
