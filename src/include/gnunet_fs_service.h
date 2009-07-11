@@ -432,24 +432,35 @@ GNUNET_FS_getopt_configure_set_metadata (GNUNET_GETOPT_CommandLineProcessorConte
  */
 enum GNUNET_FS_Status
 {
-  GNUNET_FS_STATUS_UPLOAD_START,
-  GNUNET_FS_STATUS_UPLOAD_PROGRESS,
-  GNUENT_FS_STATUS_UPLOAD_ERROR,
-  GNUNET_FS_STATUS_UPLOAD_COMPLETED,
-  GNUNET_FS_STATUS_UPLOAD_STOPPED,
+  GNUNET_FS_STATUS_SHARE_START,
+  GNUNET_FS_STATUS_SHARE_RESUME,
+  GNUNET_FS_STATUS_SHARE_SUSPEND,
+  GNUNET_FS_STATUS_SHARE_PROGRESS,
+  GNUNET_FS_STATUS_SHARE_ERROR,
+  GNUNET_FS_STATUS_SHARE_COMPLETED,
+  GNUNET_FS_STATUS_SHARE_STOPPED,
   GNUNET_FS_STATUS_DOWNLOAD_START,
+  GNUNET_FS_STATUS_DOWNLOAD_RESUME,
+  GNUNET_FS_STATUS_DOWNLOAD_SUSPEND,
   GNUNET_FS_STATUS_DOWNLOAD_PROGRESS,
   GNUNET_FS_STATUS_DOWNLOAD_ERROR,
   GNUNET_FS_STATUS_DOWNLOAD_COMPLETED,
   GNUNET_FS_STATUS_DOWNLOAD_STOPPED,
   GNUNET_FS_STATUS_SEARCH_START,
-  GNUNET_FS_STATUS_SEARCH_PROGRESS,
+  GNUNET_FS_STATUS_SEARCH_RESUME,
+  GNUNET_FS_STATUS_SEARCH_RESUME_RESULT,
+  GNUNET_FS_STATUS_SEARCH_SUSPEND,
+  GNUNET_FS_STATUS_SEARCH_RESULT,
+  GNUNET_FS_STATUS_SEARCH_UPDATE,
   GNUNET_FS_STATUS_SEARCH_ERROR,
   GNUNET_FS_STATUS_SEARCH_STOPPED,
   GNUNET_FS_STATUS_UNINDEX_START,
+  GNUNET_FS_STATUS_UNINDEX_RESUME,
+  GNUNET_FS_STATUS_UNINDEX_SUSPEND,
   GNUNET_FS_STATUS_UNINDEX_PROGRESS,
   GNUNET_FS_STATUS_UNINDEX_ERROR,
-  GNUNET_FS_STATUS_UNINDEX_STOPPED
+  GNUNET_FS_STATUS_UNINDEX_STOPPED,
+  GNUNET_FS_STATUS_NAMESPACE_DISCOVERED
 };
 
 
@@ -460,6 +471,9 @@ enum GNUNET_FS_Status
  * in their meaning on the context in which the callback is used.
  *
  * @param cls closure
+ * @param cctx client-context (for the next progress call
+ *        for this operation; should be set to NULL for
+ *        SUSPEND and STOPPED events)
  * @param ctx location where the callback can store a context pointer
  *        to keep track of things for this specific operation
  * @param pctx context pointer set by the callback for the parent operation
@@ -469,7 +483,6 @@ enum GNUNET_FS_Status
  *        be used whenever availability/certainty or metadata values change)
  * @param filename name of the file that this update is about, NULL for 
  *        searches
- * @param status specific status code
  * @param availability value between 0 and 100 indicating how likely
  *        we think it is that this search result is actually available
  *        in the network (or, in the case of a download, that the download 
@@ -502,6 +515,10 @@ enum GNUNET_FS_Status
  */
 typedef int (*GNUNET_FS_ProgressCallback)
   (void *cls,
+   void **cctx,
+   const struct GNUNET_FS_ProgressInfo *info);
+
+
    void **ctx,
    void *pctx,
    const char *filename,
@@ -514,6 +531,450 @@ typedef int (*GNUNET_FS_ProgressCallback)
    struct GNUNET_FS_Uri **uri,
    struct GNUNET_CONTAINER_MetaData *meta,
    size_t bsize, const void *buffer);
+
+
+
+/**
+ * Handle to one of our namespaces.
+ */
+struct GNUNET_FS_Namespace;
+
+
+/**
+ * Handle for controlling an upload.
+ */
+struct GNUNET_FS_ShareContext;
+
+
+/**
+ * Handle for controlling an unindexing operation.
+ */
+struct GNUNET_FS_UnindexContext;
+
+
+/**
+ * Handle for controlling a search.
+ */
+struct GNUNET_FS_SearchContext;
+
+
+/**
+ * Context for controlling a download.
+ */
+struct GNUNET_FS_DownloadContext;
+
+
+/**
+ * Handle for detail information about a file that is being shared.
+ * Specifies metadata, keywords, how to get the contents of the file
+ * (i.e. data-buffer in memory, filename on disk) and other options.
+ */
+struct GNUNET_FS_FileInformation;
+
+
+/**
+ * Argument given to the progress callback with
+ * information about what is going on.
+ */
+struct GNUNET_FS_ProgressInfo
+{  
+
+  /**
+   * Values that depend on the event type.
+   */
+  union {
+    
+    /**
+     * Values for all "GNUNET_FS_STATUS_SHARE_*" events.
+     */
+    struct {
+
+      /**
+       * Context for controlling the upload.
+       */
+      struct GNUNET_FS_ShareContext *sc;
+
+      /**
+       * Information about the file that is being shared.
+       */
+      struct GNUNET_FS_FileInformation *fi;
+
+      /**
+       * Client context pointer (set the last time
+       * by the client for this operation; initially
+       * NULL on START/RESUME events).
+       */
+      void *cctx;
+
+      /**
+       * Client context pointer for the parent operation
+       * (if this is a file in a directory or a subdirectory).
+       */
+      void *pctx;
+      
+      /**
+       * How large is the file overall?  For directories,
+       * this is only the size of the directory itself,
+       * not of the other files contained within the 
+       * directory.
+       */
+      uint64_t size;
+
+      /**
+       * At what time do we expect to finish the upload?
+       * (will be a value in the past for completed
+       * uploads).
+       */ 
+      struct GNUNET_TIME_Absolute eta;
+
+      /**
+       * How many bytes have we completed?
+       */
+      uint64_t completed;
+
+      /**
+       * Additional values for specific events.
+       */
+      union {
+
+	/**
+	 * These values are only valid for
+	 * GNUNET_FS_STATUS_SHARE_PROGRESS events.
+	 */
+	struct {
+	  
+	  /**
+	   * Data block we just published.
+	   */
+	  const void *data;
+	  
+	  /**
+	   * At what offset in the file is "data"?
+	   */
+	  uint64_t offset;
+	  
+	  /**
+	   * Length of the data block.
+	   */
+	  uint64_t data_len;
+
+	} progress;
+
+	/**
+	 * These values are only valid for
+	 * GNUNET_FS_STATUS_SHARE_ERROR events.
+	 */
+	struct {
+	  
+	  /**
+	   * Error message.
+	   */
+	  const char *message;
+
+	} error;
+
+      } specifics;
+
+    } share;
+
+    
+    /**
+     * Values for all "GNUNET_FS_STATUS_DOWNLOAD_*" events.
+     */
+    struct {
+
+      /**
+       * Context for controlling the download.
+       */
+      struct GNUNET_FS_DownloadContext *dc;
+
+      /**
+       * Client context pointer (set the last time
+       * by the client for this operation; initially
+       * NULL on START/RESUME events).
+       */
+      void *cctx;
+
+      /**
+       * Client context pointer for the parent operation
+       * (if this is a file in a directory or a subdirectory).
+       */
+      void *pctx;
+      
+      /**
+       * How large is the file overall?  For directories,
+       * this is only the size of the directory itself,
+       * not of the other files contained within the 
+       * directory.
+       */
+      uint64_t size;
+
+      /**
+       * At what time do we expect to finish the upload?
+       * (will be a value in the past for completed
+       * uploads).
+       */ 
+      struct GNUNET_TIME_Absolute eta;
+
+      /**
+       * How many bytes have we completed?
+       */
+      uint64_t completed;
+
+      /**
+       * Additional values for specific events.
+       */
+      union {
+	
+	/**
+	 * These values are only valid for
+	 * GNUNET_FS_STATUS_DOWNLOAD_PROGRESS events.
+	 */
+	struct {
+  
+	  /**
+	   * Data block we just obtained.
+	   */
+	  const void *data;
+	  
+	  /**
+	   * At what offset in the file is "data"?
+	   */
+	  uint64_t offset;
+	  
+	  /**
+	   * Length of the data block.
+	   */
+	  uint64_t data_len;
+
+	  /**
+	   * Amount of trust we offered to get the block.
+	   */
+	  unsigned int trust_offered;	  
+
+	} progress;
+
+	/**
+	 * These values are only valid for
+	 * GNUNET_FS_STATUS_DOWNLOAD_ERROR events.
+	 */
+	struct {
+
+	  /**
+	   * Error message.
+	   */
+	  const char *message;
+
+	} error;
+
+      } specifics;
+
+    } download;
+
+    /**
+     * Values for all "GNUNET_FS_STATUS_SEARCH_*" events.
+     */
+    struct {
+
+      /**
+       * Context for controlling the search.
+       */
+      struct GNUNET_FS_SearchContext *sc;
+
+      /**
+       * Client context pointer (set the last time by the client for
+       * this operation; initially NULL on START/RESUME events).  Note
+       * that this value can only be set on START/RESUME; setting
+       * "cctx" on RESULT/RESUME_RESULT will actually update the
+       * private context for "UPDATE" events.
+       */
+      void *cctx;
+
+      /**
+       * Additional values for specific events.
+       */
+      union {
+	
+	/**
+	 * These values are only valid for
+	 * GNUNET_FS_STATUS_SEARCH_RESULT events.
+	 */
+	struct {
+	  
+	  /**
+	   * Metadata for the search result.
+	   */
+	  struct GNUNET_MetaData *meta;
+	  // FIXME...
+
+	} result;
+	
+	/**
+	 * These values are only valid for
+	 * GNUNET_FS_STATUS_SEARCH_RESUME_RESULT events.
+	 */
+	struct {
+	  
+	  /**
+	   * Metadata for the search result.
+	   */
+	  struct GNUNET_MetaData *meta;
+	  // FIXME...
+	  
+	} resume_result;
+	
+	/**
+	 * These values are only valid for
+	 * GNUNET_FS_STATUS_SEARCH_UPDATE events.
+	 */
+	struct {
+
+	  /**
+	   * Private context set for for this result
+	   * during the "RESULT" event.
+	   */
+	  void *cctx;
+	  // FIXME...
+
+	} update;
+
+	/**
+	 * These values are only valid for
+	 * GNUNET_FS_STATUS_SEARCH_ERROR events.
+	 */
+	struct {
+
+	  /**
+	   * Error message.
+	   */
+	  const char *message;
+
+	} error;
+
+      } specifics;
+
+    } search;
+
+    /**
+     * Values for all "GNUNET_FS_STATUS_UNINDEX_*" events.
+     */
+    struct {
+
+      /**
+       * Context for controlling the unindexing.
+       */
+      struct GNUNET_FS_UnindexContext *uc;
+
+      /**
+       * Client context pointer (set the last time
+       * by the client for this operation; initially
+       * NULL on START/RESUME events).
+       */
+      void *cctx;
+
+      /**
+       * How large is the file overall?
+       */
+      uint64_t size;
+
+      /**
+       * At what time do we expect to finish unindexing?
+       * (will be a value in the past for completed
+       * unindexing opeations).
+       */ 
+      struct GNUNET_TIME_Absolute eta;
+
+      /**
+       * How many bytes have we completed?
+       */
+      uint64_t completed;
+
+      /**
+       * Additional values for specific events.
+       */
+      union {
+
+	/**
+	 * These values are only valid for
+	 * GNUNET_FS_STATUS_UNINDEX_PROGRESS events.
+	 */
+	struct {
+  
+	  /**
+	   * Data block we just unindexed.
+	   */
+	  const void *data;
+	  
+	  /**
+	   * At what offset in the file is "data"?
+	   */
+	  uint64_t offset;
+	  
+	  /**
+	   * Length of the data block.
+	   */
+	  uint64_t data_len;
+
+	} progress;
+
+	/**
+	 * These values are only valid for
+	 * GNUNET_FS_STATUS_UNINDEX_ERROR events.
+	 */
+	struct {
+
+	  /**
+	   * Error message.
+	   */
+	  const char *message;
+
+	} error;
+
+      } specifics;
+
+    } unindex;
+
+    
+    /**
+     * Values for all "GNUNET_FS_STATUS_NAMESPACE_*" events.
+     */
+    struct {
+      /**
+       * Handle to the namespace (NULL if it is not a local
+       * namespace).
+       */
+      struct GNUNET_FS_Namespace *ns;
+
+      /**
+       * Short, human-readable name of the namespace.
+       */
+      const char *name;
+
+      /**
+       * Root identifier for the namespace, can be NULL.
+       */
+      const char *root;
+
+      /**
+       * Metadata for the namespace.
+       */
+      struct GNUNET_CONTAINER_MetaData *meta;
+
+      /**
+       * Hash-identifier for the namespace.
+       */
+      struct GNUNET_HashCode id;      
+
+    } namespace;
+
+  } value;
+
+  /**
+   * Specific status code (determines the event type).
+   */  
+  enum GNUNET_FS_Status status;
+
+};
 
 
 /**
@@ -548,18 +1009,6 @@ GNUNET_FS_start (struct GNUNET_SCHEDULER_Handle *sched,
  */                    
 void 
 GNUNET_FS_stop (struct GNUNET_FS_Handle *h); 
-
-
-/**
- * Handle to one of our namespaces.
- */
-struct GNUNET_FS_Namespace;
-
-
-/**
- * Handle for controlling an upload.
- */
-struct GNUNET_FS_ShareContext;
 
 
 /**
@@ -631,15 +1080,29 @@ GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
 			     void *iterator_cls);
 
 
+
+
+
 /**
  * Unindex a file.
  *
  * @param h handle to the file sharing subsystem
  * @param filename file to unindex
+ * @return NULL on error, otherwise handle 
  */
-void
+struct GNUNET_FS_UnindexContext *
 GNUNET_FS_unindex (struct GNUNET_FS_Handle *h,
 		   const char *filename);
+
+
+/**
+ * Clean up after completion of an unindex operation.
+ *
+ * @param uc handle
+ */
+void
+GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc);
+
 
 
 /**
@@ -760,12 +1223,6 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
 
 
 /**
- * Handle for controlling a search.
- */
-struct GNUNET_FS_SearchContext;
-
-
-/**
  * Start search for content.
  *
  * @param h handle to the file sharing subsystem
@@ -805,12 +1262,6 @@ GNUNET_FS_search_resume (struct GNUNET_FS_SearchContext *sc);
  */
 void 
 GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc);
-
-
-/**
- * Context for controlling a download.
- */
-struct GNUNET_FS_DownloadContext;
 
 
 /**
