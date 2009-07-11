@@ -62,7 +62,7 @@ build_msg (void *cls, size_t size, void *buf)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client connected, transmitting\n");
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   msg->type = htons (MY_TYPE);
-  msg->size = htons (sizeof (msg));
+  msg->size = htons (sizeof (struct GNUNET_MessageHeader));
   GNUNET_SCHEDULER_add_continuation (sched,
                                      GNUNET_YES,
                                      &end_it,
