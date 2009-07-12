@@ -170,20 +170,10 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_TRY_CONNECT 27
 
 /**
- * Request to other peer to confirm receipt.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_PING 28
-
-/**
- * Message from other peer confirming receipt.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_PONG 29
-
-/**
  * Response to another peer confirming that communication was
  * established.
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_ACK 30
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_ACK 28
 
 
 /**
@@ -213,14 +203,28 @@ extern "C"
 
 
 /**
- * Welcome message between TCP transports.
+ * Message by which a TCP transport notifies
+ * the other that it wants to check an address
+ * (and not initiate a persistent connection).
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME 40
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_PING 40
+
+/**
+ * Message by which a TCP transport confirms
+ * the other that the address used worked.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_PONG 41
+
+/**
+ * Welcome message between TCP transports
+ * (for a persistent connection).
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME 42
 
 /**
  * Data message between TCP transports.
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_DATA 41
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_DATA 43
 
 
 /**

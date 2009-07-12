@@ -4,30 +4,9 @@ core:
 - test fails with fresh /tmp directory (but passes when run a second time)
   problem seems to be caused by HELLO validation (unvalidated 
   HELLO not used to connect for good, then somehow SETKEY never happens);
-  * double-check crypto involved in HELLO validation (PONG signature check; 
-    what about MiM?  Might be trivial right now; adding source IP-address
-    to PONG signature might help?  How would we validate that (given that
-    we may be learning our source IP address(es) the same way...))
-    + if we add address to transport-level PONG, we may be able to simplify
-      WELCOME messages (no need to add addresses there anymore, right?);
-    + we probably want some kind of voting/counting for learning IP addresses
-      (maybe including IP addresses in ads proportional to how often others
-       report them? we at least need some protection against >64k HELLOs!),
-    + provide a way to give the user a list of "learned" IP addresses and
-      a way to easily "veto" addresses off the list!
-      => If MiM attacker uses vetoed address, blacklist the specific IP for
-         the presumed neighbour!
- * Use special, non-WELCOMEing TCP-connection for HELLO/address validation;
-    that way, we can avoid confusion between a dozen parallel validating connections
-    and the real one, avoid queueing messages on validating connections and
-    shut those down immediately after sending/receiving the PONG
-    (and maybe avoid some signalling about connections to the other layers)
-  * core notifies clients about "encrypted" connections being up well before
-    we get the encrypted PONG; sometimes this may be OK (for topology killing
-    unwanted connnections), but of course not in general.  I suspect we want
-    to signal on PONG and have topology hook directly into transport to
-    kill plaintext connections before they have a chance to become encrypted
-    (may require minor hack in transport API)
+  I suspect the code simply drops messages that happen while no validated
+  HELLO is available; this maybe OK, but I need to find the spot and
+  add at least an INFO-log message; also should then fix testcase to retry.
 
 Util:
 * improve disk API [Nils] (Nils, is this done? -Christian)
@@ -153,6 +132,15 @@ Minor TODO items:
     should possibly try to confirm that the given address works for
     us ourselves (loopback-style) before adding it to the list
     [SECURITY issue]
+    + we may be able to simplify WELCOME messages (no need to add 
+      addresses there anymore, but may help to learn them there anyway...).
+    + we probably want some kind of voting/counting for learning IP addresses
+      (maybe including IP addresses in ads proportional to how often others
+       report them? we at least need some protection against >64k HELLOs!),
+    + provide a way to give the user a list of "learned" IP addresses and
+      a way to easily "veto" addresses off the list!
+      => If MiM attacker uses vetoed address, blacklist the specific IP for
+         the presumed neighbour!
   - not sure current way of doing ACKs works well-enough 
     with unreliable transports where the ACK maybe lost;
     the "is_new" check would then possibly prevent future
@@ -179,6 +167,13 @@ Minor TODO items:
   - have way to specify dependencies between services (to manage ARM restarts better)
   - client-API is inefficient since it opens a TCP connection per service that is started
     (instead of re-using connections).
+* CORE: 
+  - code currently notifies clients about "encrypted" connections being up well before
+    we get the encrypted PONG; sometimes this may be OK (for topology killing
+    unwanted connnections), but of course not in general.  I suspect we want
+    to signal on PONG and have topology hook directly into transport to
+    kill plaintext connections before they have a chance to become encrypted
+    (may require minor hack in transport API)
 * PEERINFO:
   - have gnunet-peerinfo print actual host addresses again
   - add option to gnunet-peerinfo to modify trust value

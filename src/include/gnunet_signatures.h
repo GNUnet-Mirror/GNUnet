@@ -43,9 +43,9 @@ extern "C"
 #define GNUNET_SIGNATURE_PURPOSE_TEST 0
 
 /**
- * Signature for confirming HELLOs.
+ * Signature for confirming HELLOs for TCP plugins.
  */
-#define GNUNET_SIGNATURE_PURPOSE_TRANSPORT_HELLO 1
+#define GNUNET_SIGNATURE_PURPOSE_TRANSPORT_TCP_PING 1
 
 
 /**
