@@ -169,7 +169,7 @@ testSignVerify (struct GNUNET_CRYPTO_RsaPrivateKey *hostkey)
           continue;
         }
       if (GNUNET_SYSERR !=
-          GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_HELLO,
+          GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_TCP_PING,
                                     &purp, &sig, &pkey))
         {
           printf ("GNUNET_CRYPTO_rsa_verify failed to fail!\n");
