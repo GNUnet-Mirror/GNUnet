@@ -694,7 +694,7 @@ connect_and_create_validation_session (struct Plugin *plugin,
                    "Creating new session %p with `%s' based on `%s' request.\n",
                    session, 
 		   GNUNET_a2s(addr, addrlen),
-		   "send_to");
+		   "validate");
 #endif
   return session;
 }
@@ -1592,7 +1592,7 @@ handle_tcp_pong (void *cls,
   plugin->env->notify_validation (plugin->env->cls,
 				  "tcp",
 				  &peer,
-				  ntohs(vcr->challenge),
+				  ntohl(vcr->challenge),
 				  sender_addr);
   GNUNET_free (sender_addr);
   /* after a PONG, we always close the connection */
