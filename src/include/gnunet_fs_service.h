@@ -19,7 +19,6 @@
 */
 - review:
 * directory creation/inspection API
-* unindex start/stop API
 * resume notifications 
 * ProgressCallback: struct/union instead of tons of args?
 * download options (no temporary files -- what about no files at all?)
@@ -432,11 +431,38 @@ GNUNET_FS_getopt_configure_set_metadata (GNUNET_GETOPT_CommandLineProcessorConte
  */
 enum GNUNET_FS_Status
 {
+  /**
+   * Notification that we have started to share a file structure.
+   */
   GNUNET_FS_STATUS_SHARE_START,
+
+  /**
+   * Notification that we have resumed sharing a file structure.
+   */
   GNUNET_FS_STATUS_SHARE_RESUME,
+
+  /**
+   * Notification that we have suspended sharing a file structure.
+   */
   GNUNET_FS_STATUS_SHARE_SUSPEND,
+
+  /**
+   * Notification that we are making progress sharing a file structure.
+   */
   GNUNET_FS_STATUS_SHARE_PROGRESS,
+
+  /**
+   * Notification that an error was encountered  sharing a file structure.
+   * The application will continue to receive resume/suspend events for
+   * this structure until "GNUNET_FS_share_stop" is called.
+   */
   GNUNET_FS_STATUS_SHARE_ERROR,
+
+  /**
+   * Notification that we completed sharing a file structure.
+   * The application will continue to receive resume/suspend events for
+   * this structure until "GNUNET_FS_share_stop" is called.
+   */
   GNUNET_FS_STATUS_SHARE_COMPLETED,
   GNUNET_FS_STATUS_SHARE_STOPPED,
   GNUNET_FS_STATUS_DOWNLOAD_START,
@@ -597,7 +623,7 @@ struct GNUNET_FS_ProgressInfo
       /**
        * Information about the file that is being shared.
        */
-      struct GNUNET_FS_FileInformation *fi;
+      const struct GNUNET_FS_FileInformation *fi;
 
       /**
        * Client context pointer (set the last time
@@ -628,9 +654,20 @@ struct GNUNET_FS_ProgressInfo
       struct GNUNET_TIME_Absolute eta;
 
       /**
+       * How long has this upload been actively running
+       * (excludes times where the upload was suspended).
+       */
+      struct GNUNET_TIME_Relative duration;
+
+      /**
        * How many bytes have we completed?
        */
       uint64_t completed;
+
+      /**
+       * What anonymity level is used for this upload?
+       */
+      unsigned int anonymity;
 
       /**
        * Additional values for specific events.
@@ -662,12 +699,25 @@ struct GNUNET_FS_ProgressInfo
 
 	/**
 	 * These values are only valid for
+	 * GNUNET_FS_STATUS_SHARE_RESUME events.
+	 */
+	struct {
+	  
+	  /**
+	   * Error message, NULL if no error was encountered so far.
+	   */
+	  const char *message;
+
+	} resume;
+
+	/**
+	 * These values are only valid for
 	 * GNUNET_FS_STATUS_SHARE_ERROR events.
 	 */
 	struct {
 	  
 	  /**
-	   * Error message.
+	   * Error message, never NULL.
 	   */
 	  const char *message;
 
@@ -702,6 +752,11 @@ struct GNUNET_FS_ProgressInfo
       void *pctx;
       
       /**
+       * URI used for this download.
+       */
+      const struct GNUNET_FS_Uri *uri;
+      
+      /**
        * How large is the file overall?  For directories,
        * this is only the size of the directory itself,
        * not of the other files contained within the 
@@ -710,16 +765,26 @@ struct GNUNET_FS_ProgressInfo
       uint64_t size;
 
       /**
-       * At what time do we expect to finish the upload?
+       * At what time do we expect to finish the download?
        * (will be a value in the past for completed
        * uploads).
        */ 
       struct GNUNET_TIME_Absolute eta;
 
       /**
+       * How long has this download been active?
+       */ 
+      struct GNUNET_TIME_Relative duration;
+
+      /**
        * How many bytes have we completed?
        */
       uint64_t completed;
+
+      /**
+       * What anonymity level is used for this download?
+       */
+      unsigned int anonymity;
 
       /**
        * Additional values for specific events.
@@ -756,6 +821,37 @@ struct GNUNET_FS_ProgressInfo
 
 	/**
 	 * These values are only valid for
+	 * GNUNET_FS_STATUS_DOWNLOAD_START events.
+	 */
+	struct {
+
+	  /**
+	   * Known metadata for the download.
+	   */
+	  const struct GNUNET_MetaData *meta;
+
+	} start;
+
+	/**
+	 * These values are only valid for
+	 * GNUNET_FS_STATUS_DOWNLOAD_RESUME events.
+	 */
+	struct {
+
+	  /**
+	   * Known metadata for the download.
+	   */
+	  const struct GNUNET_MetaData *meta;
+
+	  /**
+	   * Error message, NULL if we have not encountered any error yet.
+	   */
+	  const char *message;
+
+	} resume;
+
+	/**
+	 * These values are only valid for
 	 * GNUNET_FS_STATUS_DOWNLOAD_ERROR events.
 	 */
 	struct {
@@ -777,7 +873,10 @@ struct GNUNET_FS_ProgressInfo
     struct {
 
       /**
-       * Context for controlling the search.
+       * Context for controlling the search, NULL for
+       * searches that were not explicitly triggered
+       * by the client (i.e., searches for updates in
+       * namespaces).
        */
       struct GNUNET_FS_SearchContext *sc;
 
@@ -789,6 +888,37 @@ struct GNUNET_FS_ProgressInfo
        * private context for "UPDATE" events.
        */
       void *cctx;
+
+      /**
+       * Client parent-context pointer; NULL for top-level searches,
+       * non-NULL for automatically triggered searches for updates in
+       * namespaces.
+       */
+      void *pctx;
+
+      /**
+       * What query is used for this search
+       * (list of keywords or SKS identifier).
+       */
+      const struct GNUNET_FS_Uri *query;
+
+      /**
+       * How long has this search been actively running
+       * (excludes times where the search was paused or
+       * suspended).
+       */
+      struct GNUNET_TIME_Relative duration;
+
+      /**
+       * What anonymity level is used for this search?
+       */
+      unsigned int anonymity;
+
+      /**
+       * How much trust have we been offering for this search
+       * so far?
+       */
+      unsigned int trust_offered;
 
       /**
        * Additional values for specific events.
@@ -804,8 +934,12 @@ struct GNUNET_FS_ProgressInfo
 	  /**
 	   * Metadata for the search result.
 	   */
-	  struct GNUNET_MetaData *meta;
-	  // FIXME...
+	  const struct GNUNET_MetaData *meta;
+
+	  /**
+	   * URI for the search result.
+	   */
+	  const struct GNUNET_FS_Uri *uri;
 
 	} result;
 	
@@ -818,8 +952,31 @@ struct GNUNET_FS_ProgressInfo
 	  /**
 	   * Metadata for the search result.
 	   */
-	  struct GNUNET_MetaData *meta;
-	  // FIXME...
+	  const struct GNUNET_MetaData *meta;
+
+	  /**
+	   * URI for the search result.
+	   */
+	  const struct GNUNET_FS_Uri *uri;
+
+	  /**
+	   * Current availability rank (negative:
+	   * unavailable, positive: available)
+	   */
+	  int availability_rank;
+ 
+	  /**
+	   * On how many total queries is the given
+	   * availability_rank based?
+	   */
+	  unsigned int availabiliy_certainty;
+
+	  /**
+	   * Updated applicability rank (the larger,
+	   * the better the result fits the search
+	   * criteria).
+	   */
+ 	  unsigned int applicabiliy_rank;	  
 	  
 	} resume_result;
 	
@@ -834,9 +991,55 @@ struct GNUNET_FS_ProgressInfo
 	   * during the "RESULT" event.
 	   */
 	  void *cctx;
-	  // FIXME...
+	  
+	  /**
+	   * Metadata for the search result.
+	   */
+	  const struct GNUNET_MetaData *meta;
+
+	  /**
+	   * URI for the search result.
+	   */
+	  const struct GNUNET_FS_Uri *uri;
+
+	  /**
+	   * Current availability rank (negative:
+	   * unavailable, positive: available)
+	   */
+	  int availability_rank;
+ 
+	  /**
+	   * On how many total queries is the given
+	   * availability_rank based?
+	   */
+	  unsigned int availabiliy_certainty;
+
+	  /**
+	   * Updated applicability rank (the larger,
+	   * the better the result fits the search
+	   * criteria).
+	   */
+ 	  unsigned int applicabiliy_rank;
 
 	} update;
+
+	/**
+	 * These values are only valid for
+	 * GNUNET_FS_STATUS_SEARCH_RESUME events.
+	 */
+	struct {
+
+	  /**
+	   * Error message, NULL if we have not encountered any error yet.
+	   */
+	  const char *message;
+
+	  /**
+	   * Is this search currently paused?
+	   */
+	  int is_paused;
+
+	} resume;
 
 	/**
 	 * These values are only valid for
@@ -873,6 +1076,11 @@ struct GNUNET_FS_ProgressInfo
       void *cctx;
 
       /**
+       * Name of the file that is being unindexed.
+       */
+      const char *filename;
+
+      /**
        * How large is the file overall?
        */
       uint64_t size;
@@ -883,6 +1091,12 @@ struct GNUNET_FS_ProgressInfo
        * unindexing opeations).
        */ 
       struct GNUNET_TIME_Absolute eta;
+
+      /**
+       * How long has this upload been actively running
+       * (excludes times where the upload was suspended).
+       */
+      struct GNUNET_TIME_Relative duration;
 
       /**
        * How many bytes have we completed?
@@ -919,6 +1133,19 @@ struct GNUNET_FS_ProgressInfo
 
 	/**
 	 * These values are only valid for
+	 * GNUNET_FS_STATUS_UNINDEX_RESUME events.
+	 */
+	struct {
+
+	  /**
+	   * Error message, NULL if we have not encountered any error yet.
+	   */
+	  const char *message;
+
+	} resume;
+
+	/**
+	 * These values are only valid for
 	 * GNUNET_FS_STATUS_UNINDEX_ERROR events.
 	 */
 	struct {
@@ -939,6 +1166,7 @@ struct GNUNET_FS_ProgressInfo
      * Values for all "GNUNET_FS_STATUS_NAMESPACE_*" events.
      */
     struct {
+
       /**
        * Handle to the namespace (NULL if it is not a local
        * namespace).
@@ -958,7 +1186,7 @@ struct GNUNET_FS_ProgressInfo
       /**
        * Metadata for the namespace.
        */
-      struct GNUNET_CONTAINER_MetaData *meta;
+      const struct GNUNET_CONTAINER_MetaData *meta;
 
       /**
        * Hash-identifier for the namespace.
@@ -1010,13 +1238,11 @@ GNUNET_FS_start (struct GNUNET_SCHEDULER_Handle *sched,
 void 
 GNUNET_FS_stop (struct GNUNET_FS_Handle *h); 
 
-
 /**
- * Share a file or directory.
+ * Create an entry for a file in a share-structure.
  *
- * @param h handle to the file sharing subsystem
- * @param ctx initial value to use for the '*ctx' in the callback
  * @param filename name of the file or directory to share
+ * @param meta metadata for the file
  * @param do_index GNUNET_YES for index, GNUNET_NO for insertion,
  *                GNUNET_SYSERR for simulation
  * @param anonymity what is the desired anonymity level for sharing?
@@ -1024,22 +1250,45 @@ GNUNET_FS_stop (struct GNUNET_FS_Handle *h);
  *   keep this file available?  Use 0 for maximum anonymity and
  *   minimum reliability...
  * @param expirationTime when should this content expire?
+ * @return share structure entry for the file
+ */
+struct GNUNET_FS_FileInformation *
+GNUNET_FS_file_information_create (const char *filename,
+				   const struct GNUNET_CONTAINER_MetaData *meta,
+				   int do_index,
+				   unsigned int anonymity,
+				   unsigned int priority,
+				   struct GNUNET_TIME_Absolute expirationTime);
+
+// FIXME: broaden API to include directory creation, 
+// introspection, modification, auto-creation, etc.
+
+
+/**
+ * Destroy share-structure.
+ */
+void
+GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi);
+
+
+/**
+ * Share a file or directory.
+ *
+ * @param h handle to the file sharing subsystem
+ * @param ctx initial value to use for the '*ctx'
+ *        in the callback (for the GNUNET_FS_STATUS_SHARE_START event).
+ * @param fi information about the file or directory structure to share
  * @param namespace namespace to share the file in, NULL for no namespace
  * @param nid identifier to use for the shared content in the namespace
  *        (can be NULL, must be NULL if namespace is NULL)
  * @param nuid update-identifier that will be used for future updates 
  *        (can be NULL, must be NULL if namespace or nid is NULL)
- * @deprecated API not powerful enough to share complex directory structures
- *         with metadata in general (need to pre-build tree)
+ * @return context that can be used to control the share operation
  */
 struct GNUNET_FS_ShareContext *
 GNUNET_FS_share_start (struct GNUNET_FS_Handle *h,
 		       void *ctx,
-		       const char *filename,
-		       int do_index,
-		       unsigned int anonymity,
-		       unsigned int priority,
-		       struct GNUNET_TIME_Absolute expirationTime,
+		       const struct GNUNET_FS_FileInformation *fi,
 		       struct GNUNET_FS_Namespace *namespace
 		       const char *nid,
 		       const char *nuid);
@@ -1080,9 +1329,6 @@ GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
 			     void *iterator_cls);
 
 
-
-
-
 /**
  * Unindex a file.
  *
@@ -1102,7 +1348,6 @@ GNUNET_FS_unindex (struct GNUNET_FS_Handle *h,
  */
 void
 GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc);
-
 
 
 /**
@@ -1378,7 +1623,7 @@ GNUNET_FS_collection_start (struct GNUNET_FS_Handle *h,
  * @return GNUNET_OK on success, GNUNET_SYSERR if no collection is active
  */
 int 
-GNUNET_CO_collection_stop (struct GNUNET_FS_Handle *h);
+GNUNET_FS_collection_stop (struct GNUNET_FS_Handle *h);
 
 
 /**
