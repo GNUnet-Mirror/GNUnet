@@ -1,13 +1,5 @@
 PHASE #1: (Goal: settle key design questions)
 
-core:
-- test fails with fresh /tmp directory (but passes when run a second time)
-  problem seems to be caused by HELLO validation (unvalidated 
-  HELLO not used to connect for good, then somehow SETKEY never happens);
-  I suspect the code simply drops messages that happen while no validated
-  HELLO is available; this maybe OK, but I need to find the spot and
-  add at least an INFO-log message; also should then fix testcase to retry.
-
 Util:
 * improve disk API [Nils] (Nils, is this done? -Christian)
 * Windows: use events instead of pipes to signal select()s [Nils]
