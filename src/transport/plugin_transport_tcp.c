@@ -33,6 +33,7 @@
 #include "gnunet_resolver_service.h"
 #include "gnunet_server_lib.h"
 #include "gnunet_service_lib.h"
+#include "gnunet_signatures.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
 #include "plugin_transport.h"
@@ -61,6 +62,84 @@
  * For how many messages back to we keep transmission times?
  */
 #define ACK_LOG_SIZE 32
+
+
+
+/**
+ * Message used to ask a peer to validate receipt (to check an address
+ * from a HELLO).  Followed by the address used.  Note that the
+ * recipients response does not affirm that he has this address,
+ * only that he got the challenge message.
+ */
+struct ValidationChallengeMessage
+{
+
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_PING
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Random challenge number (in network byte order).
+   */
+  uint32_t challenge GNUNET_PACKED;
+
+  /**
+   * Who is the intended recipient?
+   */
+  struct GNUNET_PeerIdentity target;
+
+};
+
+
+/**
+ * Message used to validate a HELLO.  The challenge is included in the
+ * confirmation to make matching of replies to requests possible.  The
+ * signature signs the original challenge number, our public key, the
+ * sender's address (so that the sender can check that the address we
+ * saw is plausible for him and possibly detect a MiM attack) and a
+ * timestamp (to limit replay).<p>
+ *
+ * This message is followed by the address of the
+ * client that we are observing (which is part of what
+ * is being signed).
+ */
+struct ValidationChallengeResponse
+{
+
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_PONG
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * For padding, always zero.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * Signature.
+   */
+  struct GNUNET_CRYPTO_RsaSignature signature;
+
+  /**
+   * What are we signing and why?
+   */
+  struct GNUNET_CRYPTO_RsaSignaturePurpose purpose;
+
+  /**
+   * Random challenge number (in network byte order).
+   */
+  uint32_t challenge GNUNET_PACKED;
+
+  /**
+   * Who signed this message?
+   */
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded signer;
+
+};
+
+
 
 /**
  * Initial handshake message for a session.  This header
@@ -625,35 +704,30 @@ process_pending_messages (struct Session *session)
 
 
 /**
- * Function that can be used by the transport service to transmit
- * a message using the plugin using a fresh connection (even if
- * we already have a connection to this peer, this function is
- * required to establish a new one).
+ * Function that can be used by the transport service to validate that
+ * another peer is reachable at a particular address (even if we
+ * already have a connection to this peer, this function is required
+ * to establish a new one).
  *
  * @param cls closure
  * @param target who should receive this message
- * @param priority how important is the message
- * @param msg1 first message to transmit
- * @param msg2 second message to transmit (can be NULL)
- * @param timeout how long should we try to transmit these?
+ * @param challenge challenge code to use
  * @param addrlen length of the address
  * @param addr the address
- * @return session if the transmission has been scheduled
- *         NULL if the address format is invalid
+ * @param timeout how long should we try to transmit these?
+ * @return GNUNET_OK if the transmission has been scheduled
  */
-static void *
-tcp_plugin_send_to (void *cls,
-                    const struct GNUNET_PeerIdentity *target,
-		    unsigned int priority,
-                    const struct GNUNET_MessageHeader *msg1,
-                    const struct GNUNET_MessageHeader *msg2,
-                    struct GNUNET_TIME_Relative timeout,
-                    const void *addr, size_t addrlen)
+static int
+tcp_plugin_validate (void *cls,
+		     const struct GNUNET_PeerIdentity *target,
+		     uint32_t challenge,
+		     struct GNUNET_TIME_Relative timeout,
+		     const void *addr, size_t addrlen)
 {
   struct Plugin *plugin = cls;
   struct Session *session;
-  struct PendingMessage *pl;
   struct PendingMessage *pm;
+  struct ValidationChallengeMessage *vcm;
 
   session = connect_and_create_session (plugin, target, addr, addrlen);
   if (session == NULL)
@@ -662,44 +736,24 @@ tcp_plugin_send_to (void *cls,
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                        "tcp", "Failed to create fresh session.\n");
 #endif
-      return NULL;
+      return GNUNET_SYSERR;
     }
-  pl = NULL;
-  if (msg2 != NULL)
-    {
-      pm = GNUNET_malloc (sizeof (struct PendingMessage) +
-                          ntohs (msg2->size));
-      pm->msg = (struct GNUNET_MessageHeader *) &pm[1];
-      memcpy (pm->msg, msg2, ntohs (msg2->size));
-      pm->timeout = GNUNET_TIME_relative_to_absolute (timeout);
-      pm->is_welcome = GNUNET_NO;
-      pl = pm;
-    }
-  if (msg1 != NULL)
-    {
-      pm = GNUNET_malloc (sizeof (struct PendingMessage) +
-                          ntohs (msg1->size));
-      pm->msg = (struct GNUNET_MessageHeader *) &pm[1];
-      memcpy (pm->msg, msg1, ntohs (msg1->size));
-      pm->timeout = GNUNET_TIME_relative_to_absolute (timeout);
-      pm->is_welcome = GNUNET_NO;
-      pm->next = pl;
-      pl = pm;
-    }
-  /* append */
-  if (session->pending_messages != NULL)
-    {
-      pm = session->pending_messages;
-      while (pm->next != NULL)
-        pm = pm->next;
-      pm->next = pl;
-    }
-  else
-    {
-      session->pending_messages = pl;
-    }
+  pm = GNUNET_malloc (sizeof (struct PendingMessage) +
+		      sizeof (struct ValidationChallengeMessage) + addrlen);
+  pm->msg = (struct GNUNET_MessageHeader *) &pm[1];
+  pm->timeout = GNUNET_TIME_relative_to_absolute (timeout);
+  pm->is_welcome = GNUNET_YES;
+  vcm = (struct ValidationChallengeMessage*) &pm[1];
+  vcm->header.size =
+    htons (sizeof (struct ValidationChallengeMessage) + addrlen);
+  vcm->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_PING);
+  vcm->challenge = htonl(challenge);
+  vcm->target = *target;
+  memcpy (&vcm[1], addr, addrlen);
+  GNUNET_assert (session->pending_messages == NULL);
+  session->pending_messages = pm;
   process_pending_messages (session);
-  return session;
+  return GNUNET_OK;
 }
 
 
@@ -1346,6 +1400,210 @@ tcp_plugin_address_suggested (void *cls, const void *addr, size_t addrlen)
 
 
 /**
+ * Send a validation challenge response.
+ */
+static size_t
+send_vcr (void *cls,
+	  size_t size,
+	  void *buf)
+{
+  struct ValidationChallengeResponse *vcr = cls;
+  uint16_t msize;
+
+  if (NULL == buf)
+    {
+      GNUNET_free (vcr);
+      return 0;
+    }
+  msize = ntohs(vcr->header.size);
+  GNUNET_assert (size >= msize);
+  memcpy (buf, vcr, msize);
+  GNUNET_free (vcr);
+  return msize;
+}
+
+
+/**
+ * We've received a PING from this peer via TCP.
+ * Send back our PONG.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_tcp_ping (void *cls,
+		 struct GNUNET_SERVER_Client *client,
+		 const struct GNUNET_MessageHeader *message)
+{
+  struct Plugin *plugin = cls;
+  const struct ValidationChallengeMessage *vcm;
+  struct ValidationChallengeResponse *vcr;
+  uint16_t msize;
+  size_t addrlen;
+  void *addr;
+
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+              "Processing PING\n");
+#endif
+  msize = ntohs (message->size);
+  if (msize < sizeof (struct ValidationChallengeMessage))
+    {
+      GNUNET_break_op (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);  
+      return;
+    }
+  vcm = (const struct ValidationChallengeMessage *) message;
+  if (0 != memcmp (&vcm->target,
+                   plugin->env->my_identity, sizeof (struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Received `%s' message not destined for me!\n"), "PING");
+      /* TODO: call statistics */
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);  
+      return;
+    }
+  msize -= sizeof (struct ValidationChallengeMessage);
+  if (GNUNET_OK !=
+      tcp_plugin_address_suggested (plugin, &vcm[1], msize))
+    {
+      GNUNET_break_op (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);  
+      return;
+    }
+  if (GNUNET_OK !=
+      GNUNET_SERVER_client_get_address (client,
+					&addr,
+					&addrlen))
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);  
+      return;
+    }
+  vcr = GNUNET_malloc (sizeof (struct ValidationChallengeResponse) + addrlen);
+  vcr->header.size = htons (sizeof (struct ValidationChallengeResponse) + addrlen);
+  vcr->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_PONG);
+  vcr->purpose.size =
+    htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) +
+	   sizeof (uint32_t) +
+	   sizeof ( struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) +
+	   addrlen);
+  vcr->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_TCP_PING);
+  vcr->challenge = vcm->challenge;
+  vcr->signer = *plugin->env->my_public_key;
+  memcpy (&vcr[1],
+	  addr,
+	  addrlen);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CRYPTO_rsa_sign (plugin->env->my_private_key,
+                                         &vcr->purpose,
+					 &vcr->signature));
+#if EXTRA_CHECKS
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CRYPTO_rsa_verify
+                 (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_TCP_PING,
+		  &vcr->purpose,
+                  &vcr->signature,
+		  plugin->env->my_public_key));
+#endif
+  GNUNET_free (addr);
+  if (NULL ==
+      GNUNET_SERVER_notify_transmit_ready (client,
+					   sizeof (struct ValidationChallengeResponse) + addrlen,
+					   GNUNET_TIME_UNIT_SECONDS,
+					   &send_vcr,
+					   vcr))
+    {
+      GNUNET_break (0);
+      GNUNET_free (vcr);
+    }
+  /* after a PING, we always close the connection */
+  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);  
+}
+
+
+/**
+ * Handle PING-message.  If the plugin that gave us the message is
+ * able to queue the PONG immediately, we only queue one PONG.
+ * Otherwise we send at most TWO PONG messages, one via an unconfirmed
+ * transport and one via a confirmed transport.  Both addresses are
+ * selected randomly among those available.
+ *
+ * @param plugin plugin that gave us the message
+ * @param sender claimed sender of the PING
+ * @param plugin_context context that might be used to send response
+ * @param message the actual message
+ */
+/**
+ * We've received a PING from this peer via TCP.
+ * Send back our PONG.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_tcp_pong (void *cls,
+		 struct GNUNET_SERVER_Client *client,
+		 const struct GNUNET_MessageHeader *message)
+{
+  struct Plugin *plugin = cls;
+  const struct ValidationChallengeResponse *vcr;
+  struct GNUNET_PeerIdentity peer;
+  char *sender_addr;
+  size_t addrlen;
+
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+              "Processing PONG\n");
+#endif
+  if (ntohs(message->size) < sizeof(struct ValidationChallengeResponse))
+    {
+      GNUNET_break_op (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);  
+      return;
+    }
+  addrlen = ntohs(message->size) - sizeof(struct ValidationChallengeResponse);
+  vcr = (const struct ValidationChallengeResponse *) message;
+  if ( (ntohs(vcr->purpose.size) !=
+	sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) +
+	sizeof (uint32_t) +
+	sizeof ( struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) +
+	addrlen))
+    {
+      GNUNET_break_op (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);  
+      return;
+    }
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_rsa_verify
+      (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_TCP_PING, 
+       &vcr->purpose,
+       &vcr->signature, 
+       &vcr->signer))
+    {
+      GNUNET_break_op (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);  
+      return;
+    }
+  GNUNET_CRYPTO_hash (&vcr->signer,
+		      sizeof(  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+		      &peer.hashPubKey);
+  sender_addr = GNUNET_strdup (GNUNET_a2s((const struct sockaddr*) &vcr[1],
+					  addrlen));
+  plugin->env->notify_validation (plugin->env->cls,
+				  "tcp",
+				  &peer,
+				  ntohs(vcr->challenge),
+				  sender_addr);
+  GNUNET_free (sender_addr);
+  /* after a PONG, we always close the connection */
+  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);  
+}
+
+
+/**
  * We've received a welcome from this peer via TCP.
  * Possibly create a fresh client record and send back
  * our welcome.
@@ -1562,6 +1820,8 @@ handle_tcp_data (void *cls,
  * Handlers for the various TCP messages.
  */
 static struct GNUNET_SERVER_MessageHandler my_handlers[] = {
+  {&handle_tcp_ping, NULL, GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_PING, 0},
+  {&handle_tcp_pong, NULL, GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_PONG, 0},
   {&handle_tcp_welcome, NULL, GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME, 0},
   {&handle_tcp_data, NULL, GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_DATA, 0},
   {NULL, NULL, 0, 0}
@@ -1728,7 +1988,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   plugin->statistics = NULL;
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
-  api->send_to = &tcp_plugin_send_to;
+  api->validate = &tcp_plugin_validate;
   api->send = &tcp_plugin_send;
   api->cancel = &tcp_plugin_cancel;
   api->address_pretty_printer = &tcp_plugin_address_pretty_printer;

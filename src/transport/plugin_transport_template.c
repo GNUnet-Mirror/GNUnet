@@ -132,33 +132,29 @@ struct Plugin
 
 
 /**
- * Function that can be used by the transport service to transmit
- * a message using the plugin using a fresh connection (even if
- * we already have a connection to this peer, this function is
- * required to establish a new one).
+ * Function that can be used by the transport service to validate that
+ * another peer is reachable at a particular address (even if we
+ * already have a connection to this peer, this function is required
+ * to establish a new one).
  *
  * @param cls closure
  * @param target who should receive this message
- * @param priority how important is the message
- * @param msg1 first message to transmit
- * @param msg2 second message to transmit (can be NULL)
- * @param timeout how long until we give up?
- * @param addr the address
+ * @param challenge challenge code to use
  * @param addrlen length of the address
- * @return non-null session if the transmission has been scheduled
- *         NULL if the address format is invalid
+ * @param addr the address
+ * @param timeout how long should we try to transmit these?
+ * @return GNUNET_OK if the transmission has been scheduled
  */
-static void *
-template_plugin_send_to (void *cls,
-                         const struct GNUNET_PeerIdentity *target,
-			 unsigned int priority,
-                         const struct GNUNET_MessageHeader *msg1,
-                         const struct GNUNET_MessageHeader *msg2,
-                         struct GNUNET_TIME_Relative timeout,
-                         const void *addr, size_t addrlen)
+static int
+template_plugin_validate (void *cls,
+			  const struct GNUNET_PeerIdentity *target,
+			  uint32_t challenge,
+			  struct GNUNET_TIME_Relative timeout,
+			  const void *addr,
+			  size_t addrlen)
 {
   // FIXME
-  return NULL;
+  return GNUNET_SYSERR;
 }
 
 
@@ -311,7 +307,7 @@ gnunet_plugin_transport_template_init (void *cls)
   plugin->statistics = NULL;
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
-  api->send_to = &template_plugin_send_to;
+  api->validate = &template_plugin_validate;
   api->send = &template_plugin_send;
   api->cancel = &template_plugin_cancel;
   api->address_pretty_printer = &template_plugin_address_pretty_printer;

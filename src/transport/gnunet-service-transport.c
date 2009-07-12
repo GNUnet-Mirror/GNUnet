@@ -437,70 +437,6 @@ struct TransportClient
 
 
 /**
- * Message used to ask a peer to validate receipt (to check an address
- * from a HELLO).  Followed by the address used.  Note that the
- * recipients response does not affirm that he has this address,
- * only that he got the challenge message.
- */
-struct ValidationChallengeMessage
-{
-
-  /**
-   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_PING
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * What are we signing and why?
-   */
-  struct GNUNET_CRYPTO_RsaSignaturePurpose purpose;
-
-  /**
-   * Random challenge number (in network byte order).
-   */
-  uint32_t challenge GNUNET_PACKED;
-
-  /**
-   * Who is the intended recipient?
-   */
-  struct GNUNET_PeerIdentity target;
-};
-
-
-/**
- * Message used to validate a HELLO.  If this was
- * the right recipient, the response is a signature
- * of the original validation request.  The
- * challenge is included in the confirmation to make
- * matching of replies to requests possible.
- */
-struct ValidationChallengeResponse
-{
-
-  /**
-   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_PONG
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Random challenge number (in network byte order).
-   */
-  uint32_t challenge GNUNET_PACKED;
-
-  /**
-   * Who signed this message?
-   */
-  struct GNUNET_PeerIdentity sender;
-
-  /**
-   * Signature.
-   */
-  struct GNUNET_CRYPTO_RsaSignature signature;
-
-};
-
-
-/**
  * For each HELLO, we may have to validate multiple addresses;
  * each address gets its own request entry.
  */
@@ -510,12 +446,6 @@ struct ValidationAddress
    * This is a linked list.
    */
   struct ValidationAddress *next;
-
-  /**
-   * Our challenge message.  Points to after this
-   * struct, so this field should not be freed.
-   */
-  struct ValidationChallengeMessage *msg;
 
   /**
    * Name of the transport.
@@ -531,6 +461,11 @@ struct ValidationAddress
    * Length of the address we are validating.
    */
   size_t addr_len;
+
+  /**
+   * Challenge number we used.
+   */
+  uint32_t challenge;
 
   /**
    * Set to GNUNET_YES if the challenge was met,
@@ -940,115 +875,6 @@ transmit_send_continuation (void *cls,
 }
 
 
-
-
-/**
- * We could not use an existing (or validated) connection to
- * talk to a peer.  Try addresses that have not yet been
- * validated.
- *
- * @param n neighbour we want to communicate with
- * @return plugin ready to talk, or NULL if none is available
- */
-static struct ReadyList *
-try_unvalidated_addresses (struct NeighbourList *n)
-{
-  struct ValidationList *vl;
-  struct ValidationAddress *va;
-  struct GNUNET_PeerIdentity id;
-  struct GNUNET_TIME_Absolute now;
-  unsigned int total;
-  unsigned int cnt;
-  struct ReadyList *rl;
-  struct TransportPlugin *plugin;
-
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Trying to connect to `%4s' using unvalidated addresses\n",
-              GNUNET_i2s (&n->id));
-#endif
-  /* NOTE: this function needs to not only identify the
-     plugin but also setup "plugin_handle", binding it to the
-     right address using the plugin's "send_to" API */
-  now = GNUNET_TIME_absolute_get ();
-  vl = pending_validations;
-  while (vl != NULL)
-    {
-      GNUNET_CRYPTO_hash (&vl->publicKey,
-                          sizeof (struct
-                                  GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                          &id.hashPubKey);
-      if (0 == memcmp (&id, &n->id, sizeof (struct GNUNET_PeerIdentity)))
-        break;
-      vl = vl->next;
-    }
-  if (vl == NULL)
-    {
-#if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "No unvalidated address found for peer `%4s'\n",
-                  GNUNET_i2s (&n->id));
-#endif
-      return NULL;
-    }
-  total = 0;
-  cnt = 0;
-  va = vl->addresses;
-  while (va != NULL)
-    {
-      cnt++;
-      if (va->expiration.value > now.value)
-        total++;
-      va = va->next;
-    }
-  if (total == 0)
-    {
-#if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "All %u unvalidated addresses for peer have expired\n",
-                  cnt);
-#endif
-      return NULL;
-    }
-  total = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, total);
-  for (va = vl->addresses; va != NULL; va = va->next)
-    {
-      if (va->expiration.value <= now.value)
-        continue;
-      if (total > 0)
-        {
-          total--;
-          continue;
-        }
-#if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-                  "Trying unvalidated address of `%s' transport\n",
-                  va->transport_name);
-#endif
-      plugin = find_transport (va->transport_name);
-      if (plugin == NULL)
-        {
-          GNUNET_break (0);
-          break;
-        }
-      rl = GNUNET_malloc (sizeof (struct ReadyList));
-      rl->next = n->plugins;
-      n->plugins = rl;
-      rl->plugin = plugin;
-      rl->plugin_handle = plugin->api->send_to (plugin->api->cls,
-                                                &n->id,
-						0,
-                                                NULL,
-                                                NULL,
-                                                GNUNET_TIME_UNIT_ZERO,
-                                                &va->msg[1], va->addr_len);
-      rl->transmit_ready = GNUNET_YES;
-      return rl;
-    }
-  return NULL;
-}
-
-
 /**
  * Check the ready list for the given neighbour and
  * if a plugin is ready for transmission (and if we
@@ -1093,8 +919,6 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
         }
       pos = pos->next;
     }
-  if (rl == NULL)
-    rl = try_unvalidated_addresses (neighbour);
   if (rl == NULL)
     {
 #if DEBUG_TRANSPORT
@@ -1568,7 +1392,7 @@ list_validated_addresses (void *cls, size_t max, void *buf)
     return 0;
   ret = GNUNET_HELLO_add_address ((*va)->transport_name,
                                   (*va)->expiration,
-                                  &(*va)->msg[1], (*va)->addr_len, buf, max);
+                                  &(*va)[1], (*va)->addr_len, buf, max);
   *va = (*va)->next;
   return ret;
 }
@@ -1648,6 +1472,101 @@ cleanup_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+
+
+/**
+ * Function that will be called if we receive a validation
+ * of an address challenge that we transmitted to another
+ * peer.  Note that the validation should only be considered
+ * acceptable if the challenge matches AND if the sender
+ * address is at least a plausible address for this peer
+ * (otherwise we may be seeing a MiM attack).
+ *
+ * @param cls closure
+ * @param name name of the transport that generated the address
+ * @param peer who responded to our challenge
+ * @param challenge the challenge number we presumably used
+ * @param sender_addr string describing our sender address (as observed
+ *         by the other peer in human-readable format)
+ */
+static void
+plugin_env_notify_validation (void *cls,
+			      const char *name,
+			      const struct GNUNET_PeerIdentity *peer,
+			      uint32_t challenge,
+			      const char *sender_addr)
+{
+  int all_done;
+  int matched;
+  struct ValidationList *pos;
+  struct ValidationAddress *va;
+  struct GNUNET_PeerIdentity id;
+
+  pos = pending_validations;
+  while (pos != NULL)
+    {
+      GNUNET_CRYPTO_hash (&pos->publicKey,
+                          sizeof (struct
+                                  GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                          &id.hashPubKey);
+      if (0 ==
+          memcmp (peer, &id, sizeof (struct GNUNET_PeerIdentity)))
+        break;
+      pos = pos->next;
+    }
+  if (pos == NULL)
+    {
+      /* TODO: call statistics (unmatched PONG) */
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  _
+                  ("Received validation response but have no record of a matching validation request. Ignoring.\n"));
+      return;
+    }
+  all_done = GNUNET_YES;
+  matched = GNUNET_NO;
+  va = pos->addresses;
+  while (va != NULL)
+    {
+      if (va->challenge == challenge)
+	{
+#if DEBUG_TRANSPORT
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Confirmed validity of peer address.\n");
+#endif
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
+		      _("Another peer saw us using the address `%s' via `%s'. If this is not plausible, this address should be listed in the configuration as implausible to avoid MiM attacks.\n"),
+		      sender_addr, 
+		      name);
+	  va->ok = GNUNET_YES;
+	  va->expiration =
+	    GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
+	  matched = GNUNET_YES;
+	}        
+      if (va->ok != GNUNET_YES)
+        all_done = GNUNET_NO;
+      va = va->next;
+    }
+  if (GNUNET_NO == matched)
+    {
+      /* TODO: call statistics (unmatched PONG) */
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  _
+                  ("Received `%s' message but have no record of a matching `%s' message. Ignoring.\n"),
+                  "PONG", "PING");
+    }
+  if (GNUNET_YES == all_done)
+    {
+      pos->timeout.value = 0;
+      GNUNET_SCHEDULER_add_delayed (sched,
+                                    GNUNET_NO,
+                                    GNUNET_SCHEDULER_PRIORITY_IDLE,
+                                    GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                    GNUNET_TIME_UNIT_ZERO,
+                                    &cleanup_validation, NULL);
+    }
+}
+
+
 struct CheckHelloValidatedContext
 {
   /**
@@ -1681,7 +1600,6 @@ run_validation (void *cls,
   struct ValidationList *e = cls;
   struct TransportPlugin *tp;
   struct ValidationAddress *va;
-  struct ValidationChallengeMessage *vcm;
   struct GNUNET_PeerIdentity id;
 
   tp = find_transport (tname);
@@ -1704,25 +1622,14 @@ run_validation (void *cls,
 	      tname,
 	      GNUNET_i2s(&id));
 
-  va = GNUNET_malloc (sizeof (struct ValidationAddress) +
-                      sizeof (struct ValidationChallengeMessage) + addrlen);
+  va = GNUNET_malloc (sizeof (struct ValidationAddress) + addrlen);
   va->next = e->addresses;
   e->addresses = va;
-  vcm = (struct ValidationChallengeMessage *) &va[1];
-  va->msg = vcm;
   va->transport_name = GNUNET_strdup (tname);
   va->addr_len = addrlen;
-  vcm->header.size =
-    htons (sizeof (struct ValidationChallengeMessage) + addrlen);
-  vcm->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_PING);
-  vcm->purpose.size =
-    htonl (sizeof (struct ValidationChallengeMessage) + addrlen -
-           sizeof (struct GNUNET_MessageHeader));
-  vcm->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_HELLO);
-  vcm->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                             (unsigned int) -1);
-  vcm->target = id;
-  memcpy (&vcm[1], addr, addrlen);
+  va->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+					    (unsigned int) -1);
+  memcpy (&va[1], addr, addrlen);
   return GNUNET_OK;
 }
 
@@ -1735,7 +1642,8 @@ run_validation (void *cls,
 static void
 check_hello_validated (void *cls,
                        const struct GNUNET_PeerIdentity *peer,
-                       const struct GNUNET_HELLO_Message *h, uint32_t trust)
+                       const struct GNUNET_HELLO_Message *h, 
+		       uint32_t trust)
 {
   struct CheckHelloValidatedContext *chvc = cls;
   struct ValidationAddress *va;
@@ -1776,20 +1684,19 @@ check_hello_validated (void *cls,
     {
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Establishing `%s' connection to validate `%s' of `%4s' (sending our `%s')\n",
+                  "Establishing `%s' connection to validate `%s' of `%4s'\n",
                   va->transport_name,
-                  "HELLO", GNUNET_i2s (&va->msg->target), "HELLO");
+                  "HELLO", GNUNET_i2s (peer));
 #endif
       tp = find_transport (va->transport_name);
       GNUNET_assert (tp != NULL);
-      if (NULL ==
-          tp->api->send_to (tp->api->cls,
-                            &va->msg->target,
-			    0,
-                            (const struct GNUNET_MessageHeader *) our_hello,
-                            &va->msg->header,
-                            HELLO_VERIFICATION_TIMEOUT,
-                            &va->msg[1], va->addr_len))
+      if (GNUNET_OK !=
+          tp->api->validate (tp->api->cls,
+			     peer,
+			     va->challenge,
+			     HELLO_VERIFICATION_TIMEOUT,
+			     &va[1],
+			     va->addr_len))
         va->ok = GNUNET_SYSERR;
       va = va->next;
     }
@@ -1884,186 +1791,6 @@ process_hello (struct TransportPlugin *plugin,
   return GNUNET_OK;
 }
 
-
-/**
- * Handle PING-message.  If the plugin that gave us the message is
- * able to queue the PONG immediately, we only queue one PONG.
- * Otherwise we send at most TWO PONG messages, one via an unconfirmed
- * transport and one via a confirmed transport.  Both addresses are
- * selected randomly among those available.
- *
- * @param plugin plugin that gave us the message
- * @param sender claimed sender of the PING
- * @param plugin_context context that might be used to send response
- * @param message the actual message
- */
-static void
-process_ping (struct TransportPlugin *plugin,
-              const struct GNUNET_PeerIdentity *sender,
-              void *plugin_context,
-              const struct GNUNET_MessageHeader *message)
-{
-  const struct ValidationChallengeMessage *vcm;
-  struct ValidationChallengeResponse vcr;
-  uint16_t msize;
-  struct NeighbourList *n;
-
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-              "Processing PING\n");
-#endif
-  msize = ntohs (message->size);
-  if (msize < sizeof (struct ValidationChallengeMessage))
-    {
-      GNUNET_break_op (0);
-      return;
-    }
-  vcm = (const struct ValidationChallengeMessage *) message;
-  if (0 != memcmp (&vcm->target,
-                   &my_identity, sizeof (struct GNUNET_PeerIdentity)))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("Received `%s' message not destined for me!\n"), "PING");
-      /* TODO: call statistics */
-      return;
-    }
-  if ((ntohl (vcm->purpose.size) !=
-       msize - sizeof (struct GNUNET_MessageHeader))
-      || (ntohl (vcm->purpose.purpose) !=
-          GNUNET_SIGNATURE_PURPOSE_TRANSPORT_HELLO))
-    {
-      GNUNET_break_op (0);
-      return;
-    }
-  msize -= sizeof (struct ValidationChallengeMessage);
-  if (GNUNET_OK !=
-      plugin->api->address_suggested (plugin->api->cls, &vcm[1], msize))
-    {
-      GNUNET_break_op (0);
-      return;
-    }
-  vcr.header.size = htons (sizeof (struct ValidationChallengeResponse));
-  vcr.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_PONG);
-  vcr.challenge = vcm->challenge;
-  vcr.sender = my_identity;
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_rsa_sign (my_private_key,
-                                         &vcm->purpose, &vcr.signature));
-#if EXTRA_CHECKS
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_rsa_verify
-                 (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_HELLO, &vcm->purpose,
-                  &vcr.signature, &my_public_key));
-#endif
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-              "Trying to transmit PONG using inbound connection\n");
-#endif
-  n = find_neighbour (sender);
-  if (n == NULL)
-    {
-      GNUNET_break (0);
-      return;
-    }
-  transmit_to_peer (NULL, 0, &vcr.header, GNUNET_YES, n);
-}
-
-
-/**
- * Handle PONG-message.
- *
- * @param message the actual message
- */
-static void
-process_pong (struct TransportPlugin *plugin,
-              const struct GNUNET_MessageHeader *message)
-{
-  const struct ValidationChallengeResponse *vcr;
-  struct ValidationList *pos;
-  struct GNUNET_PeerIdentity peer;
-  struct ValidationAddress *va;
-  int all_done;
-  int matched;
-
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-              "Processing PONG\n");
-#endif
-  vcr = (const struct ValidationChallengeResponse *) message;
-  pos = pending_validations;
-  while (pos != NULL)
-    {
-      GNUNET_CRYPTO_hash (&pos->publicKey,
-                          sizeof (struct
-                                  GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                          &peer.hashPubKey);
-      if (0 ==
-          memcmp (&peer, &vcr->sender, sizeof (struct GNUNET_PeerIdentity)))
-        break;
-      pos = pos->next;
-    }
-  if (pos == NULL)
-    {
-      /* TODO: call statistics (unmatched PONG) */
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _
-                  ("Received `%s' message but have no record of a matching `%s' message. Ignoring.\n"),
-                  "PONG", "PING");
-      return;
-    }
-  all_done = GNUNET_YES;
-  matched = GNUNET_NO;
-  va = pos->addresses;
-  while (va != NULL)
-    {
-      if (va->msg->challenge == vcr->challenge)
-        {
-          if (GNUNET_OK !=
-              GNUNET_CRYPTO_rsa_verify
-              (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_HELLO, &va->msg->purpose,
-               &vcr->signature, &pos->publicKey))
-            {
-              /* this could rarely happen if we used the same
-                 challenge number for the peer for two different
-                 transports / addresses, but the likelihood is
-                 very small... */
-              GNUNET_break_op (0);
-            }
-          else
-            {
-#if DEBUG_TRANSPORT
-              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                          "Confirmed validity of peer address.\n");
-#endif
-              va->ok = GNUNET_YES;
-              va->expiration =
-                GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
-              matched = GNUNET_YES;
-            }
-        }
-      if (va->ok != GNUNET_YES)
-        all_done = GNUNET_NO;
-      va = va->next;
-    }
-  if (GNUNET_NO == matched)
-    {
-      /* TODO: call statistics (unmatched PONG) */
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _
-                  ("Received `%s' message but have no record of a matching `%s' message. Ignoring.\n"),
-                  "PONG", "PING");
-    }
-  if (GNUNET_YES == all_done)
-    {
-      pos->timeout.value = 0;
-      GNUNET_SCHEDULER_add_delayed (sched,
-                                    GNUNET_NO,
-                                    GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                    GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
-                                    GNUNET_TIME_UNIT_ZERO,
-                                    &cleanup_validation, NULL);
-    }
-}
 
 
 /**
@@ -2341,12 +2068,6 @@ plugin_env_receive (void *cls,
 		  GNUNET_i2s(peer));
 #endif
       transmit_to_peer (NULL, 0, &ack, GNUNET_YES, n);
-      break;
-    case GNUNET_MESSAGE_TYPE_TRANSPORT_PING:
-      process_ping (plugin, peer, plugin_context, message);
-      break;
-    case GNUNET_MESSAGE_TYPE_TRANSPORT_PONG:
-      process_pong (plugin, message);
       break;
     case GNUNET_MESSAGE_TYPE_TRANSPORT_ACK:
       n->saw_ack = GNUNET_YES;
@@ -2639,10 +2360,13 @@ create_environment (struct TransportPlugin *plug)
   plug->env.cfg = cfg;
   plug->env.sched = sched;
   plug->env.my_public_key = &my_public_key;
+  plug->env.my_private_key = my_private_key;
+  plug->env.my_identity = &my_identity;
   plug->env.cls = plug;
   plug->env.receive = &plugin_env_receive;
   plug->env.lookup = &plugin_env_lookup_address;
   plug->env.notify_address = &plugin_env_notify_address;
+  plug->env.notify_validation = &plugin_env_notify_validation;
   plug->env.default_quota_in = (GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT + 59999) / (60 * 1000);
   plug->env.max_connections = max_connect_per_transport;
 }

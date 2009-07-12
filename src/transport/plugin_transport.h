@@ -91,6 +91,29 @@ typedef struct ReadyList *
 
 
 /**
+ * Function that will be called if we receive a validation
+ * of an address challenge that we transmitted to another
+ * peer.  Note that the validation should only be considered
+ * acceptable if the challenge matches AND if the sender
+ * address is at least a plausible address for this peer
+ * (otherwise we may be seeing a MiM attack).
+ *
+ * @param cls closure
+ * @param name name of the transport that generated the address
+ * @param peer who responded to our challenge
+ * @param challenge the challenge number we presumably used
+ * @param sender_addr string describing our sender address (as observed
+ *         by the other peer in human-readable format)
+ */
+typedef void (*GNUNET_TRANSPORT_ValidationNotification) (void *cls,
+							 const char *name,
+							 const struct GNUNET_PeerIdentity *peer,
+							 uint32_t challenge,
+							 const char *sender_addr);
+
+
+
+/**
  * Function that will be called for each address the transport
  * is aware that it might be reachable under.
  *
@@ -167,6 +190,16 @@ struct GNUNET_TRANSPORT_PluginEnvironment
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *my_public_key;
 
   /**
+   * Our private key.
+   */
+  struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
+
+  /**
+   * Identity of this peer.
+   */
+  const struct GNUNET_PeerIdentity *my_identity;
+
+  /**
    * Closure for the various callbacks.
    */
   void *cls;
@@ -190,6 +223,14 @@ struct GNUNET_TRANSPORT_PluginEnvironment
   GNUNET_TRANSPORT_AddressNotification notify_address;
 
   /**
+   * Function that must be called by each plugin to notify the
+   * transport service about a successful validation of an
+   * address of another peer (or at least likely successful
+   * validation).
+   */
+  GNUNET_TRANSPORT_ValidationNotification notify_validation;
+
+  /**
    * What is the default quota (in terms of incoming bytes per
    * ms) for new connections?
    */
@@ -206,34 +247,28 @@ struct GNUNET_TRANSPORT_PluginEnvironment
 
 
 /**
- * Function that can be used by the transport service to transmit
- * a message using the plugin using a fresh connection (even if
+ * Function that can be used by the transport service to validate
+ * the address of another peer.  Even if
  * we already have a connection to this peer, this function is
- * required to establish a new one).
+ * required to establish a new one.
  *
  * @param cls closure
  * @param target who should receive this message
- * @param priority how important is the message
- * @param msg1 first message to transmit
- * @param msg2 second message to transmit (can be NULL)
+ * @param challenge challenge code to use
  * @param timeout how long should we try to transmit these?
  * @param addrlen length of the address
  * @param addr the address
- * @return session instance if the transmission has been scheduled
- *         NULL if the address format is invalid
+ * @return GNUNET_OK on success, GNUNET_SYSERR if the address
+ *         format is invalid
  */
-typedef void *
-  (*GNUNET_TRANSPORT_TransmitToAddressFunction) (void *cls,
-                                                 const struct
-                                                 GNUNET_PeerIdentity * target,
-						 unsigned int priority,
-                                                 const struct
-                                                 GNUNET_MessageHeader * msg1,
-                                                 const struct
-                                                 GNUNET_MessageHeader * msg2,
-                                                 struct GNUNET_TIME_Relative
-                                                 timeout, const void *addr,
-                                                 size_t addrlen);
+typedef int
+  (*GNUNET_TRANSPORT_ValidationFunction) (void *cls,
+					  const struct
+					  GNUNET_PeerIdentity * target,
+					  uint32_t challenge,
+					  struct GNUNET_TIME_Relative
+					  timeout, const void *addr,
+					  size_t addrlen);
 
 /**
  * Function called by the GNUNET_TRANSPORT_TransmitFunction
@@ -415,7 +450,7 @@ struct GNUNET_TRANSPORT_PluginFunctions
    * peer using the specified address.  Used to validate
    * HELLOs.
    */
-  GNUNET_TRANSPORT_TransmitToAddressFunction send_to;
+  GNUNET_TRANSPORT_ValidationFunction validate;
 
   /**
    * Function that the transport service will use to transmit data to
