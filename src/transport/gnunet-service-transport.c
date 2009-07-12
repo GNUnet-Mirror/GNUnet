@@ -1649,6 +1649,7 @@ check_hello_validated (void *cls,
   struct ValidationAddress *va;
   struct TransportPlugin *tp;
   int first_call;
+  struct GNUNET_PeerIdentity apeer;
 
   first_call = GNUNET_NO;
   if (chvc->e == NULL)
@@ -1679,6 +1680,9 @@ check_hello_validated (void *cls,
   if (h != NULL)
     return;                     /* wait for next call */
   /* finally, transmit validation attempts */
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_HELLO_get_id (chvc->hello,
+				      &apeer));
   va = chvc->e->addresses;
   while (va != NULL)
     {
@@ -1686,13 +1690,14 @@ check_hello_validated (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Establishing `%s' connection to validate `%s' of `%4s'\n",
                   va->transport_name,
-                  "HELLO", GNUNET_i2s (peer));
+                  "HELLO",
+		  GNUNET_i2s (&apeer));
 #endif
       tp = find_transport (va->transport_name);
       GNUNET_assert (tp != NULL);
       if (GNUNET_OK !=
           tp->api->validate (tp->api->cls,
-			     peer,
+			     &apeer,
 			     va->challenge,
 			     HELLO_VERIFICATION_TIMEOUT,
 			     &va[1],

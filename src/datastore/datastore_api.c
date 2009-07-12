@@ -29,6 +29,9 @@
 #include "datastore.h"
 
 
+/**
+ *
+ */
 struct MessageQueue
 {
   /**
@@ -113,7 +116,7 @@ struct GNUNET_DATASTORE_Handle *GNUNET_DATASTORE_connect (struct
 
 
 /**
- * Transmit DROP message to Database service.
+ * Transmit DROP message to datastore service.
  */
 static size_t
 transmit_drop (void *cls,

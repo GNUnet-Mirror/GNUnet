@@ -497,7 +497,6 @@ static void
 consider_for_advertising (const struct GNUNET_HELLO_Message *hello)
 {
   int have_address;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
   struct GNUNET_PeerIdentity pid;
   struct HelloList *pos;
   uint16_t size;
@@ -509,8 +508,7 @@ consider_for_advertising (const struct GNUNET_HELLO_Message *hello)
 				  &have_address);
   if (GNUNET_NO == have_address)
     return; /* no point in advertising this one... */
-  GNUNET_HELLO_get_key (hello, &pkey);
-  GNUNET_CRYPTO_hash (&pkey, sizeof (pkey), &pid.hashPubKey);
+  GNUNET_HELLO_get_id (hello, &pid);
   pos = hellos;
   while (pos != NULL)
     {

@@ -195,6 +195,18 @@ GNUNET_HELLO_get_key (const struct GNUNET_HELLO_Message *hello,
                       *publicKey);
 
 
+/**
+ * Get the peer identity from a HELLO message.
+ *
+ * @param hello the hello message
+ * @param peer where to store the peer's identity
+ * @return GNUNET_SYSERR if the HELLO was malformed
+ */
+int
+GNUNET_HELLO_get_id (const struct GNUNET_HELLO_Message *hello,
+		     struct GNUNET_PeerIdentity *peer);
+
+
 
 /* ifndef GNUNET_HELLO_LIB_H */
 #endif

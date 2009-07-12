@@ -1475,7 +1475,6 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
   const struct SendOkMessage *okm;
   struct HelloWaitList *hwl;
   struct NeighbourList *n;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
   struct GNUNET_PeerIdentity me;
   struct GNUNET_TRANSPORT_TransmitHandle *th;
   uint16_t size;
@@ -1524,16 +1523,12 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
     {
     case GNUNET_MESSAGE_TYPE_HELLO:
       if (GNUNET_OK !=
-          GNUNET_HELLO_get_key ((const struct GNUNET_HELLO_Message *) msg,
-                                &pkey))
+          GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *) msg,
+			       &me))
         {
           GNUNET_break (0);
           break;
         }
-      GNUNET_CRYPTO_hash (&pkey,
-                          sizeof (struct
-                                  GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                          &me.hashPubKey);
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Receiving (my own) `%s' message, I am `%4s'.\n",

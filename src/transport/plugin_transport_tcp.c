@@ -337,6 +337,8 @@ struct Session
 
   /**
    * Are we still expecting the welcome message? (GNUNET_YES/GNUNET_NO)
+   * GNUNET_SYSERR is used to mark non-welcoming connections (HELLO
+   * validation only).
    */
   int expecting_welcome;
 
@@ -501,80 +503,6 @@ create_session (struct Plugin *plugin,
 
 
 /**
- * Create a new session connecting to the specified
- * target at the specified address.
- *
- * @param plugin us
- * @param target peer to connect to
- * @param addrlen IPv4 or IPv6
- * @param addr either struct sockaddr_in or struct sockaddr_in6
- * @return NULL connection failed / invalid address
- */
-static struct Session *
-connect_and_create_session (struct Plugin *plugin,
-                            const struct GNUNET_PeerIdentity *target,
-                            const void *addr, size_t addrlen)
-{
-  struct GNUNET_SERVER_Client *client;
-  struct GNUNET_NETWORK_SocketHandle *conn;
-  struct Session *session;
-  int af;
-
-  session = plugin->sessions;
-  while (session != NULL)
-    {
-      if ((0 == memcmp (target,
-                        &session->target,
-                        sizeof (struct GNUNET_PeerIdentity))) &&
-          (session->connect_alen == addrlen) &&
-          (0 == memcmp (session->connect_addr, addr, addrlen)))
-        return session;         /* already exists! */
-      session = session->next;
-    }
-
-  if (addrlen == sizeof (struct sockaddr_in))
-    af = AF_INET;
-  else if (addrlen == sizeof (struct sockaddr_in6))
-    af = AF_INET6;    
-  else
-    {
-      GNUNET_break_op (0);
-      return NULL;              /* invalid address */
-    }
-  conn = GNUNET_NETWORK_socket_create_from_sockaddr (plugin->env->sched,
-                                                     af,
-                                                     addr,
-                                                     addrlen,
-                                                     GNUNET_SERVER_MAX_MESSAGE_SIZE);
-  if (conn == NULL)
-    {
-#if DEBUG_TCP
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                       "tcp",
-                       "Failed to create connection to peer at `%s'.\n",
-		       GNUNET_a2s(addr, addrlen));
-#endif
-      return NULL;
-    }
-  client = GNUNET_SERVER_connect_socket (plugin->server, conn);
-  GNUNET_assert (client != NULL);
-  session = create_session (plugin, target, client, addr, addrlen);
-  session->connect_alen = addrlen;
-  session->connect_addr = GNUNET_malloc (addrlen);
-  memcpy (session->connect_addr, addr, addrlen);
-#if DEBUG_TCP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "tcp",
-                   "Creating new session %p with `%s' based on `%s' request.\n",
-                   session, 
-		   GNUNET_a2s(addr, addrlen),
-		   "send_to");
-#endif
-  return session;
-}
-
-
-/**
  * If we have pending messages, ask the server to
  * transmit them (schedule the respective tasks, etc.)
  *
@@ -703,6 +631,75 @@ process_pending_messages (struct Session *session)
 }
 
 
+
+/**
+ * Create a new session connecting to the specified
+ * target at the specified address.  The session will
+ * be used to verify an address in a HELLO and should
+ * not expect to receive a WELCOME.
+ *
+ * @param plugin us
+ * @param target peer to connect to
+ * @param addrlen IPv4 or IPv6
+ * @param addr either struct sockaddr_in or struct sockaddr_in6
+ * @return NULL connection failed / invalid address
+ */
+static struct Session *
+connect_and_create_validation_session (struct Plugin *plugin,
+				       const struct GNUNET_PeerIdentity *target,
+				       const void *addr, size_t addrlen)
+{
+  struct GNUNET_SERVER_Client *client;
+  struct GNUNET_NETWORK_SocketHandle *conn;
+  struct Session *session;
+  int af;
+
+  if (addrlen == sizeof (struct sockaddr_in))
+    af = AF_INET;
+  else if (addrlen == sizeof (struct sockaddr_in6))
+    af = AF_INET6;    
+  else
+    {
+      GNUNET_break_op (0);
+      return NULL;              /* invalid address */
+    }
+  conn = GNUNET_NETWORK_socket_create_from_sockaddr (plugin->env->sched,
+                                                     af,
+                                                     addr,
+                                                     addrlen,
+                                                     GNUNET_SERVER_MAX_MESSAGE_SIZE);
+  if (conn == NULL)
+    {
+#if DEBUG_TCP
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                       "tcp",
+                       "Failed to create connection to peer at `%s'.\n",
+		       GNUNET_a2s(addr, addrlen));
+#endif
+      return NULL;
+    }
+  client = GNUNET_SERVER_connect_socket (plugin->server, conn);
+  GNUNET_assert (client != NULL);
+  session = create_session (plugin, target, client, addr, addrlen);
+  /* kill welcome */
+  GNUNET_free (session->pending_messages);
+  session->pending_messages = NULL;
+  session->connect_alen = addrlen;
+  session->connect_addr = GNUNET_malloc (addrlen);
+  session->expecting_welcome = GNUNET_SYSERR;  
+  memcpy (session->connect_addr, addr, addrlen);
+#if DEBUG_TCP
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                   "tcp",
+                   "Creating new session %p with `%s' based on `%s' request.\n",
+                   session, 
+		   GNUNET_a2s(addr, addrlen),
+		   "send_to");
+#endif
+  return session;
+}
+
+
 /**
  * Function that can be used by the transport service to validate that
  * another peer is reachable at a particular address (even if we
@@ -729,7 +726,7 @@ tcp_plugin_validate (void *cls,
   struct PendingMessage *pm;
   struct ValidationChallengeMessage *vcm;
 
-  session = connect_and_create_session (plugin, target, addr, addrlen);
+  session = connect_and_create_validation_session (plugin, target, addr, addrlen);
   if (session == NULL)
     {
 #if DEBUG_TCP
@@ -1566,7 +1563,7 @@ handle_tcp_pong (void *cls,
     }
   addrlen = ntohs(message->size) - sizeof(struct ValidationChallengeResponse);
   vcr = (const struct ValidationChallengeResponse *) message;
-  if ( (ntohs(vcr->purpose.size) !=
+  if ( (ntohl(vcr->purpose.size) !=
 	sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) +
 	sizeof (uint32_t) +
 	sizeof ( struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) +
@@ -1658,6 +1655,12 @@ handle_tcp_welcome (void *cls,
       GNUNET_free_non_null (vaddr);
       process_pending_messages (session_c);
     }
+  if (session_c->expecting_welcome != GNUNET_YES)
+    {
+      GNUNET_break_op (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
   session_c->expecting_welcome = GNUNET_NO;
   if (0 < (addrlen = msize - sizeof (struct WelcomeMessage)))
     {
@@ -1747,7 +1750,7 @@ handle_tcp_data (void *cls,
       return;
     }
   session = find_session_by_client (plugin, client);
-  if ((NULL == session) || (GNUNET_YES == session->expecting_welcome))
+  if ((NULL == session) || (GNUNET_NO != session->expecting_welcome))
     {
       GNUNET_break_op (0);
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);

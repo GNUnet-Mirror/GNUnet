@@ -185,7 +185,6 @@ exchange_hello_last (void *cls,
                      const struct GNUNET_MessageHeader *message)
 {
   struct PeerContext *me = cls;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pk;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Exchanging HELLO with peer (%p)!\n", cls);
@@ -193,11 +192,8 @@ exchange_hello_last (void *cls,
   OKPP;
   GNUNET_assert (message != NULL);
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_HELLO_get_key ((const struct GNUNET_HELLO_Message *)
-                                       message, &pk));
-  GNUNET_CRYPTO_hash (&pk,
-                      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                      &me->id.hashPubKey);
+                 GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
+				      message, &me->id));
   GNUNET_TRANSPORT_offer_hello (p1.th, message);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Finished exchanging HELLOs, now waiting for transmission!\n");
@@ -215,7 +211,6 @@ exchange_hello (void *cls,
                 const struct GNUNET_MessageHeader *message)
 {
   struct PeerContext *me = cls;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pk;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Exchanging HELLO with peer (%p)!\n", cls);
@@ -223,11 +218,8 @@ exchange_hello (void *cls,
   OKPP;
   GNUNET_assert (message != NULL);
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_HELLO_get_key ((const struct GNUNET_HELLO_Message *)
-                                       message, &pk));
-  GNUNET_CRYPTO_hash (&pk,
-                      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                      &me->id.hashPubKey);
+                 GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
+				      message, &me->id));
   GNUNET_TRANSPORT_get_hello (p2.th, GNUNET_TIME_UNIT_MINUTES,
                               &exchange_hello_last, &p2);
 }
