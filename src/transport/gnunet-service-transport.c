@@ -1410,6 +1410,7 @@ cleanup_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_TIME_Absolute now;
   struct GNUNET_HELLO_Message *hello;
   struct GNUNET_PeerIdentity pid;
+  struct NeighbourList *n;
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
@@ -1439,6 +1440,9 @@ cleanup_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                       "HELLO", GNUNET_i2s (&pid));
 #endif
           GNUNET_PEERINFO_add_peer (cfg, sched, &pid, hello);
+	  n = find_neighbour (&pid);
+	  if (NULL != n)
+	    try_transmission_to_peer (n);	    
           GNUNET_free (hello);
           while (NULL != (va = pos->addresses))
             {
@@ -1519,7 +1523,8 @@ plugin_env_notify_validation (void *cls,
       /* TODO: call statistics (unmatched PONG) */
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   _
-                  ("Received validation response but have no record of a matching validation request. Ignoring.\n"));
+                  ("Received validation response but have no record of any validation request for `%4s'. Ignoring.\n"),
+		  GNUNET_i2s(peer));
       return;
     }
   all_done = GNUNET_YES;
