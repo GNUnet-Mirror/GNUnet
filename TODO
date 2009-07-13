@@ -1,5 +1,8 @@
 PHASE #1: (Goal: settle key design questions)
 
+TRANSPORT:
+* testcase fails the first time when run with fresh /tmp\
+
 Util:
 * improve disk API [Nils] (Nils, is this done? -Christian)
 * Windows: use events instead of pipes to signal select()s [Nils]
