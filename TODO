@@ -1,18 +1,5 @@
 PHASE #1: (Goal: settle key design questions)
 
-TRANSPORT:
-* testcase fails the first time when run with fresh /tmp
-  1) CONNECT fails because no validated HELLO is available
-     (actual validations are scheduled a few cycles later)
-  2) client waits for SEND_OK, which never comes (due to
-     CONNECT request failing; TCP signals error, but
-     "transmit_send_continuation" in gnunet-service-transport.c
-     does not (and currently has no way to) signal this to
-     the test-process => test-process eventually times out with
-     fatal error
-  3) in the meantime, gnunet-service-transport validates the
-     HELLOs => testcase passes next time...
-
 Util:
 * improve disk API [Nils] (Nils, is this done? -Christian)
 * Windows: use events instead of pipes to signal select()s [Nils]

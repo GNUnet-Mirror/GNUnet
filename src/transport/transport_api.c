@@ -80,7 +80,6 @@ struct NeighbourList
    */
   struct GNUNET_TRANSPORT_TransmitHandle *transmit_handle;
 
-
   /**
    * Identity of this neighbour.
    */
@@ -1034,13 +1033,7 @@ try_connect_task (void *cls,
 {
   struct GNUNET_TRANSPORT_TransmitHandle *th = cls;  
 
-  th->notify_delay_task
-    = GNUNET_SCHEDULER_add_delayed (th->handle->sched,
-				    GNUNET_NO,
-				    GNUNET_SCHEDULER_PRIORITY_KEEP,
-				    GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
-				    GNUNET_TIME_absolute_get_remaining
-				    (th->timeout), &transmit_timeout, th);
+  th->notify_delay_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
   try_connect (th);
 }
 
@@ -1085,18 +1078,16 @@ remove_neighbour (struct GNUNET_TRANSPORT_Handle *h,
       pos->transmit_handle = NULL;
       th->neighbour = NULL;
       remove_from_any_list (th);
-      if (GNUNET_TIME_absolute_get_remaining (th->timeout).value > CONNECT_RETRY_TIMEOUT.value)
+      if (GNUNET_TIME_absolute_get_remaining (th->timeout).value <= CONNECT_RETRY_TIMEOUT.value)
 	{
 	  /* signal error */
-	  GNUNET_SCHEDULER_cancel (h->sched,
-				   th->notify_delay_task);
+	  GNUNET_assert (GNUNET_SCHEDULER_NO_PREREQUISITE_TASK == th->notify_delay_task);
 	  transmit_timeout (th, NULL);	  
 	}
       else
 	{
 	  /* try again in a bit */
-	  GNUNET_SCHEDULER_cancel (h->sched,
-				   th->notify_delay_task);
+	  GNUNET_assert (GNUNET_SCHEDULER_NO_PREREQUISITE_TASK == th->notify_delay_task);
 	  th->notify_delay_task 
 	    = GNUNET_SCHEDULER_add_delayed (h->sched,
 					    GNUNET_NO,
@@ -1665,8 +1656,6 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
                   "Receiving `%s' message, transmission %s.\n", "SEND_OK",
 		  ntohl(okm->success) == GNUNET_OK ? "succeeded" : "failed");
 #endif
-      /* FIXME: need to check status code and change action accordingly,
-	 especially if the error was for CONNECT */
       n = find_neighbour (h, &okm->peer);
       GNUNET_assert (n != NULL);
       n->transmit_ok = GNUNET_YES;
@@ -1674,7 +1663,8 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
         {
 #if DEBUG_TRANSPORT
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Processing pending message\n");
+                      "Processing pending message for `%4s'\n",
+		      GNUNET_i2s(&n->id));
 #endif
           GNUNET_SCHEDULER_cancel (h->sched,
                                    n->transmit_handle->notify_delay_task);

@@ -2183,7 +2183,8 @@ handle_start (void *cls,
     {
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Sending our own HELLO to new client\n");
+                  "Sending our own `%s' to new client\n",
+		  "HELLO");
 #endif
       transmit_to_client (c,
                           (const struct GNUNET_MessageHeader *) our_hello,
