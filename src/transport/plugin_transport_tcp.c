@@ -1330,6 +1330,8 @@ tcp_plugin_set_receive_quota (void *cls,
   struct Session *session;
 
   session = find_session_by_target (plugin, target);
+  if (session == NULL)
+    return; /* peer must have disconnected, ignore */
   if (session->quota_in != quota_in)
     {
       update_quota (session, GNUNET_YES);
