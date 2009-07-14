@@ -1,5 +1,16 @@
 PHASE #1: (Goal: settle key design questions)
 
+TRANSPORT:
+* testcase currently fails; primary cause is that HELLO validation
+  fails (again).  I suspect that what is going on is that the
+  first connection attempt (which fails because HELLOs are not yet 
+  validated) causes a 'disconnect' (intentionally, to trigger 
+  another round of TRY_CONNECT 750ms later) which as a side-effect
+  somehow kills HELLO validation (at least that's my best guess;
+  somewhere someone somehow manages to close the HELLO-validation
+  connections before they have a chance to succeed with the PING
+  PONG game...)
+
 Util:
 * improve disk API [Nils] (Nils, is this done? -Christian)
 * Windows: use events instead of pipes to signal select()s [Nils]

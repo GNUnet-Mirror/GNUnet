@@ -885,8 +885,6 @@ transmit_send_continuation (void *cls,
      another message (if available) */
   if (result == GNUNET_OK)
     try_transmission_to_peer (n);
-  else
-    disconnect_neighbour (n);
 }
 
 
@@ -2049,6 +2047,7 @@ plugin_env_receive (void *cls,
           service_context->plugin_handle = NULL;
         }
       /* TODO: call stats */
+      disconnect_neighbour (n);
       return NULL;
     }
 #if DEBUG_TRANSPORT

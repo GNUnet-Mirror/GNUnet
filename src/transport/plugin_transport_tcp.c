@@ -686,10 +686,11 @@ connect_and_create_validation_session (struct Plugin *plugin,
 #if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "tcp",
-                   "Creating new session %p with `%s' based on `%s' request.\n",
+                   "Creating new session %p with `%s' for `%4s' based on `%s' request.\n",
                    session, 
-		   GNUNET_a2s(addr, addrlen),
-		   "validate");
+		   GNUNET_a2s (addr, addrlen),
+		   GNUNET_i2s (&session->target),
+		   "VALIDATE");
 #endif
   return session;
 }
@@ -1869,22 +1870,18 @@ disconnect_notify (void *cls, struct GNUNET_SERVER_Client *client)
   struct Plugin *plugin = cls;
   struct Session *session;
 
-#if DEBUG_TCP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "tcp",
-                   "Notified about network-level disconnect from peer `%4s' at %s (%p).\n",
-		   GNUNET_i2s(&session->target),
-		   (session->connect_addr != NULL) ? 
-		   GNUNET_a2s(session->connect_addr,
-			      session->connect_alen) : "*",
-                   client);
-#endif
   session = find_session_by_client (plugin, client);
   if (session == NULL)
     return;                     /* unknown, nothing to do */
 #if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "tcp", "Will now destroy session %p.\n", session);
+                   "tcp",
+                   "Destroying session of `%4s' with %s (%p) due to network-level disconnect.\n",
+		   GNUNET_i2s(&session->target),
+		   (session->connect_addr != NULL) ? 
+		   GNUNET_a2s(session->connect_addr,
+			      session->connect_alen) : "*",
+                   client);
 #endif
   disconnect_session (session);
 }
