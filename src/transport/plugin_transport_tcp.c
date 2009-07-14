@@ -771,7 +771,9 @@ disconnect_session (struct Session *session)
 #if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "tcp",
-                   "Disconnecting from other peer (session %p).\n", session);
+                   "Disconnecting from `%4s' (session %p).\n", 
+		   GNUNET_i2s(&session->target),
+		   session);
 #endif
   /* remove from session list */
   prev = NULL;
@@ -903,7 +905,9 @@ try_connect_to_address (void *cls,
                                                     GNUNET_SERVER_MAX_MESSAGE_SIZE);
 #if DEBUG_TCP
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                       "tcp", "Connected to other peer.\n");
+                       "tcp", 
+		       "Connecting using address %s.\n",
+		       GNUNET_a2s(addr, addrlen));
 #endif
       return GNUNET_SYSERR;
     }
@@ -939,7 +943,8 @@ session_try_connect (void *cls,
 #if DEBUG_TCP
           GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                            "tcp",
-                           "Connected to other peer, now processing messages.\n");
+                           "Connected to , now processing messages.\n",
+			   GNUNET_i2s(&session->target));
 #endif
           process_pending_messages (session);
         }
@@ -948,7 +953,9 @@ session_try_connect (void *cls,
 #if DEBUG_TCP
           GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                            "tcp",
-                           "Failed to connect to other peer, now closing session.\n");
+                           "Failed to connect to `%4s' (no working `%s'), closing session.\n",
+			   GNUNET_i2s(&session->target),
+			   "HELLO");
 #endif
           disconnect_session (session);
         }
@@ -967,7 +974,8 @@ session_try_connect (void *cls,
 #if DEBUG_TCP
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                        "tcp",
-                       "Asked to connect, but have no addresses to try.\n");
+                       "Asked to connect to `%4s', but have no addresses to try.\n",
+		       GNUNET_i2s(&session->target));
 #endif
       return;
     }
@@ -991,7 +999,9 @@ session_try_connect (void *cls,
                                                   cctx.sa);
 #if DEBUG_TCP
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connected getting client address %p\n", session->client);
+              "Connected to `%4s' for session %p\n",
+	      GNUNET_i2s(&session->target),
+	      session->client);
 #endif
   if (session->client == NULL)
     {
@@ -1007,7 +1017,8 @@ session_try_connect (void *cls,
 #if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "tcp",
-                   "Connected to other peer, now sending `%s' message.\n",
+                   "Connected to `%4s', now sending `%s' message.\n",
+		   GNUNET_i2s(&session->target),
                    "WELCOME");
 #endif
 }

@@ -31,7 +31,7 @@
 #include "gnunet_transport_service.h"
 #include "transport.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define START_ARM GNUNET_YES
 
@@ -118,7 +118,10 @@ notify_connect (void *cls,
                 const struct GNUNET_PeerIdentity *peer,
                 struct GNUNET_TIME_Relative latency)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer connected to us (%p)!\n", cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Peer `%4s' connected to us (%p)!\n", 
+	      GNUNET_i2s(peer),
+	      cls);
   GNUNET_assert ((ok >= 1) && (ok <= 6));
   OKPP;
 }

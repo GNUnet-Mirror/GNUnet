@@ -854,7 +854,8 @@ transmit_send_continuation (void *cls,
   else
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Transmission failed, marking connection as down.\n");
+		  "Transmission to peer `%s' failed, marking connection as down.\n",
+		  GNUNET_i2s(target));
       rl->connected = GNUNET_NO;
     }
   if (!mq->internal_msg)
