@@ -39,7 +39,7 @@
 #include "plugin_transport.h"
 #include "transport.h"
 
-#define DEBUG_TCP GNUNET_YES
+#define DEBUG_TCP GNUNET_NO
 
 /**
  * After how long do we expire an address that we
@@ -791,8 +791,9 @@ disconnect_session (struct Session *session)
   if (session->client != NULL)
     {
 #if DEBUG_TCP
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Disconnecting from client address %p\n", session->client);
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		       "tcp",
+		       "Disconnecting from client address %p\n", session->client);
 #endif
       GNUNET_SERVER_client_drop (session->client);
       session->client = NULL;
