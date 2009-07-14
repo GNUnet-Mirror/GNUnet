@@ -44,6 +44,12 @@
 #define OFFER_HELLO_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 /**
+ * After how long do we give automatically retry an unsuccessful
+ * CONNECT request?
+ */
+#define CONNECT_RETRY_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 750)
+
+/**
  * How long should ARM wait when starting up the
  * transport service before reporting back?
  */
@@ -546,6 +552,18 @@ remove_from_any_list (struct GNUNET_TRANSPORT_TransmitHandle *th)
 
 
 /**
+ * Schedule a request to connect to the given
+ * neighbour (and if successful, add the specified
+ * handle to the wait list).
+ *
+ * @param th handle for a request to transmit once we
+ *        have connected
+ */
+static void
+try_connect (struct GNUNET_TRANSPORT_TransmitHandle *th);
+
+
+/**
  * Called when our transmit request timed out before any transport
  * reported success connecting to the desired peer or before the
  * transport was ready to receive.  Signal error and free
@@ -975,8 +993,9 @@ request_connect (void *cls, size_t size, void *buf)
                                     GNUNET_NO,
                                     GNUNET_SCHEDULER_PRIORITY_KEEP,
                                     GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
-                                    GNUNET_TIME_absolute_get_remaining
-                                    (th->timeout), &transmit_timeout, th);
+				    GNUNET_TIME_absolute_get_remaining
+				    (th->timeout),
+				    &transmit_timeout, th);
   insert_transmit_handle (&h->connect_wait_head, th);
   return sizeof (struct TryConnectMessage);
 }
@@ -1003,7 +1022,36 @@ try_connect (struct GNUNET_TRANSPORT_TransmitHandle *th)
 
 
 /**
- * Remove neighbour from our list
+ * Task for delayed attempts to reconnect to a peer.
+ *
+ * @param cls must be a transmit handle that determines the peer
+ *        to which we will try to connect
+ * @param tc scheduler information about why we were triggered (not used)
+ */
+static void
+try_connect_task (void *cls,
+		  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_TRANSPORT_TransmitHandle *th = cls;  
+
+  th->notify_delay_task
+    = GNUNET_SCHEDULER_add_delayed (th->handle->sched,
+				    GNUNET_NO,
+				    GNUNET_SCHEDULER_PRIORITY_KEEP,
+				    GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+				    GNUNET_TIME_absolute_get_remaining
+				    (th->timeout), &transmit_timeout, th);
+  try_connect (th);
+}
+
+
+/**
+ * Remove neighbour from our list.  Will automatically
+ * trigger a re-connect attempt if we have messages pending
+ * for this peer.
+ * 
+ * @param h our state
+ * @param peer the peer to remove
  */
 static void
 remove_neighbour (struct GNUNET_TRANSPORT_Handle *h,
@@ -1016,7 +1064,9 @@ remove_neighbour (struct GNUNET_TRANSPORT_Handle *h,
   prev = NULL;
   pos = h->neighbours;
   while ((pos != NULL) &&
-         (0 != memcmp (peer, &pos->id, sizeof (struct GNUNET_PeerIdentity))))
+         (0 != memcmp (peer, 
+		       &pos->id, 
+		       sizeof (struct GNUNET_PeerIdentity))))
     {
       prev = pos;
       pos = pos->next;
@@ -1035,7 +1085,27 @@ remove_neighbour (struct GNUNET_TRANSPORT_Handle *h,
       pos->transmit_handle = NULL;
       th->neighbour = NULL;
       remove_from_any_list (th);
-      try_connect (th);
+      if (GNUNET_TIME_absolute_get_remaining (th->timeout).value > CONNECT_RETRY_TIMEOUT.value)
+	{
+	  /* signal error */
+	  GNUNET_SCHEDULER_cancel (h->sched,
+				   th->notify_delay_task);
+	  transmit_timeout (th, NULL);	  
+	}
+      else
+	{
+	  /* try again in a bit */
+	  GNUNET_SCHEDULER_cancel (h->sched,
+				   th->notify_delay_task);
+	  th->notify_delay_task 
+	    = GNUNET_SCHEDULER_add_delayed (h->sched,
+					    GNUNET_NO,
+					    GNUNET_SCHEDULER_PRIORITY_KEEP,
+					    GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+					    CONNECT_RETRY_TIMEOUT,
+					    &try_connect_task,
+					    th);
+	}
     }
   if (h->nc_cb != NULL)
     h->nd_cb (h->cls, peer);
@@ -1595,6 +1665,8 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
                   "Receiving `%s' message, transmission %s.\n", "SEND_OK",
 		  ntohl(okm->success) == GNUNET_OK ? "succeeded" : "failed");
 #endif
+      /* FIXME: need to check status code and change action accordingly,
+	 especially if the error was for CONNECT */
       n = find_neighbour (h, &okm->peer);
       GNUNET_assert (n != NULL);
       n->transmit_ok = GNUNET_YES;

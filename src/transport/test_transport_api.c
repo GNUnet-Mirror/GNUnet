@@ -138,7 +138,7 @@ notify_connect (void *cls,
 static void
 notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
-  GNUNET_assert (0);
+  ok--;
 }
 
 

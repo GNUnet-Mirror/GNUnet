@@ -808,6 +808,17 @@ static void try_transmission_to_peer (struct NeighbourList *neighbour);
 
 
 /**
+ * The peer specified by the given neighbour has timed-out.  Update
+ * our state and do the necessary notifications.  Also notifies
+ * our clients that the neighbour is now officially gone.
+ *
+ * @param n the neighbour list entry for the peer
+ */
+static void
+disconnect_neighbour (struct NeighbourList *n);
+
+
+/**
  * Function called by the GNUNET_TRANSPORT_TransmitFunction
  * upon "completion" of a send request.  This tells the API
  * that it is now legal to send another message to the given
@@ -872,7 +883,10 @@ transmit_send_continuation (void *cls,
   GNUNET_free (mq);
   /* one plugin just became ready again, try transmitting
      another message (if available) */
-  try_transmission_to_peer (n);
+  if (result == GNUNET_OK)
+    try_transmission_to_peer (n);
+  else
+    disconnect_neighbour (n);
 }
 
 
@@ -1028,6 +1042,9 @@ transmit_to_peer (struct TransportClient *client,
 }
 
 
+/**
+ * FIXME: document.
+ */
 struct GeneratorContext
 {
   struct TransportPlugin *plug_pos;
@@ -1036,6 +1053,9 @@ struct GeneratorContext
 };
 
 
+/**
+ * FIXME: document.
+ */
 static size_t
 address_generator (void *cls, size_t max, void *buf)
 {
@@ -1251,6 +1271,9 @@ plugin_env_notify_address (void *cls,
 }
 
 
+/**
+ * FIXME: document.
+ */
 struct LookupHelloContext
 {
   GNUNET_TRANSPORT_AddressCallback iterator;
@@ -1259,6 +1282,9 @@ struct LookupHelloContext
 };
 
 
+/**
+ * FIXME: document.
+ */
 static int
 lookup_address_callback (void *cls,
                          const char *tname,
@@ -1271,6 +1297,9 @@ lookup_address_callback (void *cls,
 }
 
 
+/**
+ * FIXME: document.
+ */
 static void
 lookup_hello_callback (void *cls,
                        const struct GNUNET_PeerIdentity *peer,
@@ -1803,7 +1832,6 @@ process_hello (struct TransportPlugin *plugin,
 }
 
 
-
 /**
  * The peer specified by the given neighbour has timed-out.  Update
  * our state and do the necessary notifications.  Also notifies
@@ -1821,7 +1849,8 @@ disconnect_neighbour (struct NeighbourList *n)
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-              "Disconnecting from neighbour\n");
+              "Disconnecting from `%4s'\n",
+	      GNUNET_i2s(&n->id));
 #endif
   /* remove n from neighbours list */
   nprev = NULL;
@@ -1903,12 +1932,12 @@ neighbour_timeout_task (void *cls,
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-              "Neighbour has timed out!\n");
+              "Neighbour `%4s' has timed out!\n",
+	      GNUNET_i2s(&n->id));
 #endif
   n->timeout_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
   disconnect_neighbour (n);
 }
-
 
 
 /**
@@ -2338,6 +2367,13 @@ handle_try_connect (void *cls,
 #endif
   if (NULL == find_neighbour (&tcm->peer))
     setup_new_neighbour (&tcm->peer);
+#if DEBUG_TRANSPORT
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		"Client asked to connect to `%4s', but connection already exists\n",
+		"TRY_CONNECT", 
+		GNUNET_i2s (&tcm->peer));
+#endif    
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
