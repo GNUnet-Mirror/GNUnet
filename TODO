@@ -85,8 +85,8 @@ Transports:
 * UDP backend (need LIBRARY to support (de)fragmentation!)
 * HTTP backend
 * Testing:
-  +  Testcases for set_quota, timeouts, disconnects, transmit_ready_cancel
-  + Better coverage of gnunet-service-transport (hello validation)
+  + Testcases for set_quota, timeouts, disconnects, transmit_ready_cancel
+  + Better coverage of gnunet-service-transport (HELLO validation)
   + direct test of plugins compliance to plugin API
 
 Databases:
@@ -149,6 +149,7 @@ Minor TODO items:
     and results in code replication
   - should latency be included in the ReceiveCallback and
     NotifyConnect or passed on request?
+  - FIXME's with latency being simply set to 0 in a few places
 * SETUP:
   - auto-generate "defaults.conf" using gnunet-setup from "config.scm"
   - integrate all options into "config.scm"
