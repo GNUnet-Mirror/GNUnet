@@ -766,8 +766,11 @@ disconnect_session (struct Session *session)
 #if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "tcp",
-                   "Disconnecting from `%4s' (session %p).\n", 
+                   "Disconnecting from `%4s' at %s (session %p).\n", 
 		   GNUNET_i2s(&session->target),
+		   (session->connect_addr != NULL) ? 
+		   GNUNET_a2s(session->connect_addr,
+			      session->connect_alen) : "*",
 		   session);
 #endif
   /* remove from session list */
@@ -1869,7 +1872,11 @@ disconnect_notify (void *cls, struct GNUNET_SERVER_Client *client)
 #if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "tcp",
-                   "Notified about network-level disconnect of client %p.\n",
+                   "Notified about network-level disconnect from peer `%4s' at %s (%p).\n",
+		   GNUNET_i2s(&session->target),
+		   (session->connect_addr != NULL) ? 
+		   GNUNET_a2s(session->connect_addr,
+			      session->connect_alen) : "*",
                    client);
 #endif
   session = find_session_by_client (plugin, client);
