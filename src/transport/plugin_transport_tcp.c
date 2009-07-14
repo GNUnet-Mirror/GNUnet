@@ -39,7 +39,7 @@
 #include "plugin_transport.h"
 #include "transport.h"
 
-#define DEBUG_TCP GNUNET_NO
+#define DEBUG_TCP GNUNET_YES
 
 /**
  * After how long do we expire an address that we
@@ -341,11 +341,6 @@ struct Session
    * validation only).
    */
   int expecting_welcome;
-
-  /**
-   * Are we still trying to connect?
-   */
-  int still_connecting;
 
 };
 
@@ -939,12 +934,12 @@ session_try_connect (void *cls,
     {
       /* last call, destroy session if we are still not
          connected */
-      if (session->still_connecting == GNUNET_NO)
+      if (session->client != NULL)
         {
 #if DEBUG_TCP
           GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                            "tcp",
-                           "Connected to , now processing messages.\n",
+                           "Now connected to `%4s', now processing messages.\n",
 			   GNUNET_i2s(&session->target));
 #endif
           process_pending_messages (session);
@@ -1014,7 +1009,6 @@ session_try_connect (void *cls,
   /* prepend (!) */
   pm->next = session->pending_messages;
   session->pending_messages = pm;
-  session->still_connecting = GNUNET_NO;
 #if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "tcp",
@@ -1085,7 +1079,6 @@ tcp_plugin_send (void *cls,
       session->last_quota_update = GNUNET_TIME_absolute_get ();
       session->quota_in = plugin->env->default_quota_in;
       session->expecting_welcome = GNUNET_YES;
-      session->still_connecting = GNUNET_YES;
       session->pending_messages = pm;
       session->service_context = service_context;
       GNUNET_PEERINFO_for_all (plugin->env->cfg,
@@ -1095,7 +1088,7 @@ tcp_plugin_send (void *cls,
       return session;
     }
   GNUNET_assert (session != NULL);
-  GNUNET_assert (session->still_connecting == GNUNET_NO);
+  GNUNET_assert (session->client != NULL);
   session->service_context = service_context;
   /* append pm to pending_messages list */
   pme = session->pending_messages;
