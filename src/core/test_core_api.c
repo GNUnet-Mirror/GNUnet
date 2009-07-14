@@ -34,7 +34,7 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_transport_service.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define START_ARM GNUNET_YES
 
@@ -85,6 +85,20 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_ARM_stop_service ("core", p1.cfg, sched, TIMEOUT, NULL, NULL);
   GNUNET_ARM_stop_service ("core", p2.cfg, sched, TIMEOUT, NULL, NULL);
   ok = 0;
+}
+
+
+static void
+terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_break (0);
+  GNUNET_CORE_disconnect (p1.ch);
+  GNUNET_CORE_disconnect (p2.ch);
+  GNUNET_TRANSPORT_disconnect (p1.th);
+  GNUNET_TRANSPORT_disconnect (p2.th);
+  GNUNET_ARM_stop_service ("core", p1.cfg, sched, TIMEOUT, NULL, NULL);
+  GNUNET_ARM_stop_service ("core", p2.cfg, sched, TIMEOUT, NULL, NULL);
+  ok = 42;
 }
 
 
@@ -143,6 +157,9 @@ outbound_notify (void *cls,
 }
 
 
+static GNUNET_SCHEDULER_TaskIdentifier err_task;
+
+
 static int
 process_mtype (void *cls,
                const struct GNUNET_PeerIdentity *peer,
@@ -152,6 +169,7 @@ process_mtype (void *cls,
               "Receiving message from `%4s'.\n", GNUNET_i2s (peer));
   GNUNET_assert (ok == 5);
   OKPP;
+  GNUNET_SCHEDULER_cancel (sched, err_task);
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_NO,
                                 GNUNET_SCHEDULER_PRIORITY_KEEP,
@@ -180,6 +198,13 @@ transmit_ready (void *cls, size_t size, void *buf)
   m = (struct GNUNET_MessageHeader *) buf;
   m->type = htons (MTYPE);
   m->size = htons (sizeof (struct GNUNET_MessageHeader));
+  err_task = 
+    GNUNET_SCHEDULER_add_delayed (sched,
+				  GNUNET_NO,
+				  GNUNET_SCHEDULER_PRIORITY_KEEP,
+				  GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+				  GNUNET_TIME_UNIT_MINUTES, &terminate_task_error, NULL);
+
   return sizeof (struct GNUNET_MessageHeader);
 }
 

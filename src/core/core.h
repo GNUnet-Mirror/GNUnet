@@ -29,12 +29,12 @@
 /**
  * General core debugging.
  */
-#define DEBUG_CORE GNUNET_NO
+#define DEBUG_CORE GNUNET_YES
 
 /**
  * Debugging interaction core-clients.
  */
-#define DEBUG_CORE_CLIENT GNUNET_NO
+#define DEBUG_CORE_CLIENT GNUNET_YES
 
 /**
  * Definition of bits in the InitMessage's options field that specify
