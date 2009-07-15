@@ -1,15 +1,18 @@
 PHASE #1: (Goal: settle key design questions)
 
 TRANSPORT:
-* testcase currently fails; primary cause is that HELLO validation
-  fails (again).  I suspect that what is going on is that the
-  first connection attempt (which fails because HELLOs are not yet 
-  validated) causes a 'disconnect' (intentionally, to trigger 
-  another round of TRY_CONNECT 750ms later) which as a side-effect
-  somehow kills HELLO validation (at least that's my best guess;
-  somewhere someone somehow manages to close the HELLO-validation
-  connections before they have a chance to succeed with the PING
-  PONG game...)
+* Make sure that the service does not go bezerk
+  on all plugins and all sessions on disconnects,
+  specifically, whenever disconnect_neighbour is called.
+  (We may have other sessions, in particular through other transports,
+   that are active for the same peer; clearly we should
+   not immediately discard all messages and stop all
+   plugins); the call is fine in the various places where it is; but except in the
+   timeout case, we should check the status of the other plugins before killing all.
+
+* "Another peer saw us using..." messages for TCP
+  use the (random, high) sender port instead of the
+  adjusted port; this will be confusing to users...
 
 Util:
 * improve disk API [Nils] (Nils, is this done? -Christian)
