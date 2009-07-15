@@ -873,6 +873,10 @@ transmit_send_continuation (void *cls,
     rl->transmit_ready = GNUNET_YES;
   if (mq->client != NULL)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Notifying client %p about failed transission to peer `%4s'.\n",
+		  mq->client,
+		  GNUNET_i2s(target));
       send_ok_msg.header.size = htons (sizeof (send_ok_msg));
       send_ok_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
       send_ok_msg.success = htonl (result);
@@ -885,6 +889,8 @@ transmit_send_continuation (void *cls,
      another message (if available) */
   if (result == GNUNET_OK)
     try_transmission_to_peer (n);
+  else
+    disconnect_neighbour (n); 
 }
 
 
@@ -1867,13 +1873,15 @@ disconnect_neighbour (struct NeighbourList *n)
   /* notify all clients about disconnect */
   notify_clients_disconnect (&n->id);
 
-  /* clean up all plugins, cancel connections & pending transmissions */
+  /* clean up all plugins, cancel connections and pending transmissions */
   while (NULL != (rpos = n->plugins))
     {
       n->plugins = rpos->next;
       GNUNET_assert (rpos->neighbour == n);
       rpos->plugin->api->cancel (rpos->plugin->api->cls,
-                                 rpos->plugin_handle, rpos, &n->id);
+                                 rpos->plugin_handle,
+				 rpos,
+				 &n->id);
       GNUNET_free (rpos);
     }
 
@@ -2040,14 +2048,19 @@ plugin_env_receive (void *cls,
     }
   if (message == NULL)
     {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+		  "Receive failed from `%4s', triggering disconnect\n",
+		  GNUNET_i2s(&n->id));
+#endif
+      /* TODO: call stats */
+      disconnect_neighbour (n);
       if ((service_context != NULL) &&
           (service_context->plugin_handle == plugin_context))
         {
           service_context->connected = GNUNET_NO;
           service_context->plugin_handle = NULL;
         }
-      /* TODO: call stats */
-      disconnect_neighbour (n);
       return NULL;
     }
 #if DEBUG_TRANSPORT
@@ -2362,8 +2375,10 @@ handle_try_connect (void *cls,
   tcm = (const struct TryConnectMessage *) message;
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' request from client asking to connect to `%4s'\n",
-              "TRY_CONNECT", GNUNET_i2s (&tcm->peer));
+              "Received `%s' request from client %p asking to connect to `%4s'\n",
+              "TRY_CONNECT",
+	      client,
+	      GNUNET_i2s (&tcm->peer));
 #endif
   if (NULL == find_neighbour (&tcm->peer))
     setup_new_neighbour (&tcm->peer);

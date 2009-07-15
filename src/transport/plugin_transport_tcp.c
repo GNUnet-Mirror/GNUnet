@@ -216,7 +216,6 @@ struct PendingMessage
    */
   struct GNUNET_MessageHeader *msg;
 
-
   /**
    * Continuation function to call once the message
    * has been sent.  Can be  NULL if there is no
@@ -540,10 +539,17 @@ do_transmit (void *cls, size_t size, void *buf)
       while (NULL != (pm = session->pending_messages))
         {
           session->pending_messages = pm->next;
+#if DEBUG_TCP
+	  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+			   "tcp", 
+			   "Failed to transmit message of type %u to `%4s'.\n",
+			   ntohs(pm->msg->type),
+			   GNUNET_i2s(&session->target));
+#endif
           if (pm->transmit_cont != NULL)
-            pm->transmit_cont (pm->transmit_cont_cls,
-                               session->service_context,
-                               &session->target, GNUNET_SYSERR);
+	    pm->transmit_cont (pm->transmit_cont_cls,
+			       session->service_context,
+			       &session->target, GNUNET_SYSERR);	    
           GNUNET_free (pm);
         }
       return 0;
@@ -787,16 +793,6 @@ disconnect_session (struct Session *session)
   else
     prev->next = session->next;
   /* clean up state */
-  if (session->client != NULL)
-    {
-#if DEBUG_TCP
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		       "tcp",
-		       "Disconnecting from client address %p\n", session->client);
-#endif
-      GNUNET_SERVER_client_drop (session->client);
-      session->client = NULL;
-    }
   if (session->transmit_handle != NULL)
     {
       GNUNET_NETWORK_notify_transmit_ready_cancel (session->transmit_handle);
@@ -804,6 +800,15 @@ disconnect_session (struct Session *session)
     }
   while (NULL != (pm = session->pending_messages))
     {
+#if DEBUG_TCP
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		       "tcp",
+		       pm->transmit_cont != NULL 
+		       ? "Could not deliver message of type %u to `%4s'.\n" 
+		       : "Could not deliver message of type %u to `%4s', notifying.\n",
+		       ntohs(pm->msg->type),		       
+		       GNUNET_i2s(&session->target));
+#endif
       session->pending_messages = pm->next;
       if (NULL != pm->transmit_cont)
         pm->transmit_cont (pm->transmit_cont_cls,
@@ -811,12 +816,24 @@ disconnect_session (struct Session *session)
                            &session->target, GNUNET_SYSERR);
       GNUNET_free (pm);
     }
-  /* notify transport service about disconnect */
-  session->plugin->env->receive (session->plugin->env->cls,
-                                 session,
-                                 session->service_context,
-                                 GNUNET_TIME_UNIT_ZERO,
-                                 &session->target, NULL);
+  if (GNUNET_NO == session->expecting_welcome)
+    {
+#if DEBUG_TCP
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		       "tcp",
+		       "Notifying transport service about loss of data connection with `%4s'.\n",
+		       GNUNET_i2s(&session->target));
+#endif
+      /* Data session that actually went past the 
+	 initial handshake; transport service may
+	 know about this one, so we need to 
+	 notify transport service about disconnect */
+      session->plugin->env->receive (session->plugin->env->cls,
+				     session,
+				     session->service_context,
+				     GNUNET_TIME_UNIT_ZERO,
+				     &session->target, NULL);
+    }
   GNUNET_free_non_null (session->connect_addr);
   GNUNET_free (session);
 }
@@ -1132,7 +1149,11 @@ tcp_plugin_send (void *cls,
  * @param plugin_context value we were asked to pass to this plugin
  *        to respond to the given peer (use is optional,
  *        but may speed up processing), can be NULL (if
- *        NULL was returned from the transmit function)
+ *        NULL was returned from the transmit function); note
+ *        that use of NULL is dangerous since then this call may
+ *        cancel any session with the target peer (including
+ *        HELLO validation sessions), which is likely not what
+ *        is intended.
  * @param service_context must correspond to the service context
  *        of the corresponding Transmit call; the plugin should
  *        not cancel a send call made with a different service
@@ -1147,35 +1168,47 @@ tcp_plugin_cancel (void *cls,
                    const struct GNUNET_PeerIdentity *target)
 {
   struct Plugin *plugin = cls;
+  struct Session *session = plugin_context;
   struct PendingMessage *pm;
-  struct Session *session;
-  struct Session *next;
   
+  if (session == NULL)
+    {
+#if DEBUG_TCP
+      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
+		       "tcp",
+		       "Asked to cancel with `%4s' without specification of specifics; will try to find an applicable session\n",
+		       GNUNET_i2s(target));
+#endif
+      session = find_session_by_target (plugin, target);
+    }
+  if (session == NULL)
+    {
+      GNUNET_break (0);
+      return;
+    }
+#if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "tcp",
-		   "Asked to close session with `%4s'\n",
+		   "Asked to cancel session %p with `%4s'\n",
+		   plugin_context,
 		   GNUNET_i2s(target));
-  session = plugin->sessions;
-  while (session != NULL)
+#endif
+  pm = session->pending_messages;
+  while (pm != NULL)
     {
-      next = session->next;
-      if (0 == memcmp (target,
-                       &session->target, sizeof (struct GNUNET_PeerIdentity)))
-        {
-          pm = session->pending_messages;
-          while (pm != NULL)
-            {
-              pm->transmit_cont = NULL;
-              pm->transmit_cont_cls = NULL;
-              pm = pm->next;
-            }
-          session->service_context = NULL;
-          GNUNET_SERVER_client_disconnect (session->client);
-          /* rest of the clean-up of the session will be done as part of
-             disconnect_notify which should be triggered any time now */
-        }
-      session = next;
+      pm->transmit_cont = NULL;
+      pm->transmit_cont_cls = NULL;
+      pm = pm->next;
     }
+  session->service_context = NULL;
+  if (session->client != NULL)
+    {
+      GNUNET_SERVER_client_drop (session->client);
+      session->client = NULL;
+    }
+  /* rest of the clean-up of the session will be done as part of
+     disconnect_notify which should be triggered any time now 
+     (or which may be triggering this call in the first place) */
 }
 
 

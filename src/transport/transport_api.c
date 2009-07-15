@@ -1054,6 +1054,11 @@ remove_neighbour (struct GNUNET_TRANSPORT_Handle *h,
   struct NeighbourList *pos;
   struct GNUNET_TRANSPORT_TransmitHandle *th;
 
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Removing neighbour `%s' from list of connected peers.\n",
+	      GNUNET_i2s (peer));
+#endif
   prev = NULL;
   pos = h->neighbours;
   while ((pos != NULL) &&

@@ -349,7 +349,11 @@ typedef void *
  * @param plugin_context value we were asked to pass to this plugin
  *        to respond to the given peer (use is optional,
  *        but may speed up processing), can be NULL (if
- *        NULL was returned from the transmit function)
+ *        NULL was returned from the transmit function); note
+ *        that use of NULL is dangerous since then this call may
+ *        cancel any session with the target peer (including
+ *        HELLO validation sessions), which is likely not what
+ *        is intended.
  * @param service_context must correspond to the service context
  *        of the corresponding Transmit call; the plugin should
  *        not cancel a send call made with a different service
