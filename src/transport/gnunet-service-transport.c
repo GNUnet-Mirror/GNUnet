@@ -798,24 +798,32 @@ try_alternative_plugins (struct NeighbourList *neighbour)
 
 
 /**
+ * The peer specified by the given neighbour has timed-out or a plugin
+ * has disconnected.  We may either need to do nothing (other plugins
+ * still up), or trigger a full disconnect and clean up.  This
+ * function updates our state and do the necessary notifications.
+ * Also notifies our clients that the neighbour is now officially
+ * gone.
+ *
+ * @param n the neighbour list entry for the peer
+ * @param check should we just check if all plugins
+ *        disconnected or must we ask all plugins to
+ *        disconnect?
+ */
+static void
+disconnect_neighbour (struct NeighbourList *n,
+		      int check);
+
+
+/**
  * Check the ready list for the given neighbour and
  * if a plugin is ready for transmission (and if we
  * have a message), do so!
  *
  * @param neighbour target peer for which to check the plugins
  */
-static void try_transmission_to_peer (struct NeighbourList *neighbour);
-
-
-/**
- * The peer specified by the given neighbour has timed-out.  Update
- * our state and do the necessary notifications.  Also notifies
- * our clients that the neighbour is now officially gone.
- *
- * @param n the neighbour list entry for the peer
- */
-static void
-disconnect_neighbour (struct NeighbourList *n);
+static void 
+try_transmission_to_peer (struct NeighbourList *neighbour);
 
 
 /**
@@ -868,6 +876,7 @@ transmit_send_continuation (void *cls,
 		  "Transmission to peer `%s' failed, marking connection as down.\n",
 		  GNUNET_i2s(target));
       rl->connected = GNUNET_NO;
+      rl->plugin_handle = NULL;
     }
   if (!mq->internal_msg)
     rl->transmit_ready = GNUNET_YES;
@@ -889,8 +898,8 @@ transmit_send_continuation (void *cls,
      another message (if available) */
   if (result == GNUNET_OK)
     try_transmission_to_peer (n);
-  else
-    disconnect_neighbour (n); 
+  else    
+    disconnect_neighbour (n, GNUNET_YES); 
 }
 
 
@@ -1837,19 +1846,37 @@ process_hello (struct TransportPlugin *plugin,
 
 
 /**
- * The peer specified by the given neighbour has timed-out.  Update
- * our state and do the necessary notifications.  Also notifies
- * our clients that the neighbour is now officially gone.
+ * The peer specified by the given neighbour has timed-out or a plugin
+ * has disconnected.  We may either need to do nothing (other plugins
+ * still up), or trigger a full disconnect and clean up.  This
+ * function updates our state and do the necessary notifications.
+ * Also notifies our clients that the neighbour is now officially
+ * gone.
  *
  * @param n the neighbour list entry for the peer
+ * @param check should we just check if all plugins
+ *        disconnected or must we ask all plugins to
+ *        disconnect?
  */
 static void
-disconnect_neighbour (struct NeighbourList *n)
+disconnect_neighbour (struct NeighbourList *n,
+		      int check)
 {
   struct ReadyList *rpos;
   struct NeighbourList *npos;
   struct NeighbourList *nprev;
   struct MessageQueue *mq;
+  
+  if (GNUNET_YES == check)
+    {
+      rpos = n->plugins;
+      while (NULL != rpos)
+	{
+	  if (GNUNET_YES == rpos->connected)
+	    return; /* still connected */
+	  rpos = rpos->next;
+	}
+    }
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
@@ -1945,7 +1972,7 @@ neighbour_timeout_task (void *cls,
 	      GNUNET_i2s(&n->id));
 #endif
   n->timeout_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
-  disconnect_neighbour (n);
+  disconnect_neighbour (n, GNUNET_NO);
 }
 
 
@@ -2063,7 +2090,7 @@ plugin_env_receive (void *cls,
           service_context->connected = GNUNET_NO;
           service_context->plugin_handle = NULL;
         }
-      disconnect_neighbour (n);
+      disconnect_neighbour (n, GNUNET_YES);
       return NULL;
     }
 #if DEBUG_TRANSPORT

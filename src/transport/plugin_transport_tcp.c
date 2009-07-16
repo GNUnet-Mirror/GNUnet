@@ -1600,6 +1600,9 @@ handle_tcp_pong (void *cls,
   struct GNUNET_PeerIdentity peer;
   char *sender_addr;
   size_t addrlen;
+  const struct sockaddr *addr;
+  struct sockaddr_in v4;
+  struct sockaddr_in6 v6;
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
@@ -1637,8 +1640,27 @@ handle_tcp_pong (void *cls,
   GNUNET_CRYPTO_hash (&vcr->signer,
 		      sizeof(  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
 		      &peer.hashPubKey);
-  sender_addr = GNUNET_strdup (GNUNET_a2s((const struct sockaddr*) &vcr[1],
-					  addrlen));
+  addr = (const struct sockaddr*) &vcr[1];
+  if (addrlen == sizeof (struct sockaddr_in))
+    {
+      memcpy (&v4, addr, sizeof (struct sockaddr_in));
+      v4.sin_port = htons(check_port (plugin, ntohs (v4.sin_port)));
+      sender_addr = GNUNET_strdup (GNUNET_a2s((const struct sockaddr*) &v4,
+					      addrlen));
+    }
+  else if (addrlen == sizeof (struct sockaddr_in6))
+    {
+      memcpy (&v6, addr, sizeof (struct sockaddr_in6));
+      v6.sin6_port = htons(check_port (plugin, ntohs (v6.sin6_port)));
+      sender_addr = GNUNET_strdup (GNUNET_a2s((const struct sockaddr*) &v6,
+					      addrlen));
+    }
+  else
+    {
+      GNUNET_break_op (0); 
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);  
+      return;
+    }
   plugin->env->notify_validation (plugin->env->cls,
 				  "tcp",
 				  &peer,

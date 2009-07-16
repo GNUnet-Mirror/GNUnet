@@ -27,7 +27,7 @@
 #include "gnunet_time_lib.h"
 #include "gnunet_transport_service.h"
 
-#define DEBUG_TRANSPORT GNUNET_YES
+#define DEBUG_TRANSPORT GNUNET_NO
 
 /**
  * For how long do we allow unused bandwidth

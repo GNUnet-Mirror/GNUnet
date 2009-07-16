@@ -1,80 +1,5 @@
 PHASE #1: (Goal: settle key design questions)
 
-TRANSPORT:
-* Make sure that the service does not go bezerk
-  on all plugins and all sessions on disconnects,
-  specifically, whenever disconnect_neighbour is called.
-  (We may have other sessions, in particular through other transports,
-   that are active for the same peer; clearly we should
-   not immediately discard all messages and stop all
-   plugins); the call is fine in the various places where it is; but except in the
-   timeout case, we should check the status of the other plugins before killing all.
-
-* "Another peer saw us using..." messages for TCP
-  use the (random, high) sender port instead of the
-  adjusted port; this will be confusing to users...
-
-==9033== Invalid read of size 8
-==9033==    at 0x4042FA: plugin_env_receive (gnunet-service-transport.c:2058)
-==9033==    by 0x7287643: disconnect_session (plugin_transport_tcp.c:831)
-==9033==    by 0x7289539: disconnect_notify (plugin_transport_tcp.c:1919)
-==9033==    by 0x524BE24: ??? (server.c:645)
-==9033==    by 0x524C040: ??? (server.c:752)
-==9033==    by 0x5245734: ??? (network.c:810)
-==9033==    by 0x5245881: ??? (network.c:850)
-==9033==    by 0x524A497: ??? (scheduler.c:425)
-==9033==    by 0x524A77A: GNUNET_SCHEDULER_run (scheduler.c:520)
-==9033==    by 0x524FF5C: GNUNET_SERVICE_run (service.c:1326)
-==9033==    by 0x4054F4: main (gnunet-service-transport.c:2644)
-==9033==  Address 0x6edaec0 is 24 bytes inside a block of size 64 free'd
-==9033==    at 0x4C2130F: free (vg_replace_malloc.c:323)
-==9033==    by 0x523453A: GNUNET_xfree_ (common_allocation.c:109)
-==9033==    by 0x403DC8: disconnect_neighbour (gnunet-service-transport.c:1885)
-==9033==    by 0x4042EE: plugin_env_receive (gnunet-service-transport.c:2057)
-==9033==    by 0x7287643: disconnect_session (plugin_transport_tcp.c:831)
-==9033==    by 0x7289539: disconnect_notify (plugin_transport_tcp.c:1919)
-==9033==    by 0x524BE24: ??? (server.c:645)
-==9033==    by 0x524C040: ??? (server.c:752)
-==9033==    by 0x5245734: ??? (network.c:810)
-==9033==    by 0x5245881: ??? (network.c:850)
-==9033==    by 0x524A497: ??? (scheduler.c:425)
-==9033==    by 0x524A77A: GNUNET_SCHEDULER_run (scheduler.c:520)
-==9033==
-
-
-==9033== Invalid write of size 4
-==9033==    at 0x404308: plugin_env_receive (gnunet-service-transport.c:2061)
-==9033==    by 0x7287643: disconnect_session (plugin_transport_tcp.c:831)
-==9033==    by 0x7289539: disconnect_notify (plugin_transport_tcp.c:1919)
-==9033==    by 0x524BE24: ??? (server.c:645)
-==9033==    by 0x524C040: ??? (server.c:752)
-==9033==    by 0x5245734: ??? (network.c:810)
-==9033==    by 0x5245881: ??? (network.c:850)
-==9033==    by 0x524A497: ??? (scheduler.c:425)
-==9033==    by 0x524A77A: GNUNET_SCHEDULER_run (scheduler.c:520)
-==9033==    by 0x524FF5C: GNUNET_SERVICE_run (service.c:1326)
-==9033==    by 0x4054F4: main (gnunet-service-transport.c:2644)
-==9033==  Address 0x6edaed8 is 48 bytes inside a block of size 64 free'd
-==9033==    at 0x4C2130F: free (vg_replace_malloc.c:323)
-==9033==    by 0x523453A: GNUNET_xfree_ (common_allocation.c:109)
-==9033==    by 0x403DC8: disconnect_neighbour (gnunet-service-transport.c:1885)
-==9033==    by 0x4042EE: plugin_env_receive (gnunet-service-transport.c:2057)
-==9033==    by 0x7287643: disconnect_session (plugin_transport_tcp.c:831)
-==9033==    by 0x7289539: disconnect_notify (plugin_transport_tcp.c:1919)
-==9033==    by 0x524BE24: ??? (server.c:645)
-==9033==    by 0x524C040: ??? (server.c:752)
-==9033==    by 0x5245734: ??? (network.c:810)
-==9033==    by 0x5245881: ??? (network.c:850)
-==9033==    by 0x524A497: ??? (scheduler.c:425)
-==9033==    by 0x524A77A: GNUNET_SCHEDULER_run (scheduler.c:520)
-==9033==
-
-
-
-CORE:
-* fails non-deterministically with empty /tmp directory
-
-
 
 Util:
 * improve disk API [Nils] (Nils, is this done? -Christian)
@@ -226,6 +151,25 @@ Minor TODO items:
   - should latency be included in the ReceiveCallback and
     NotifyConnect or passed on request?
   - FIXME's with latency being simply set to 0 in a few places
+  - Memory leak (running valgrind --trace-children=yes on test_transport_api:   
+    ==28393== 16 bytes in 1 blocks are indirectly lost in loss record 1 of 5
+    ==28393==    at 0x4C2260E: malloc (vg_replace_malloc.c:207)
+    ==28393==    by 0x52343E3: GNUNET_xmalloc_unchecked_ (common_allocation.c:62)
+    ==28393==    by 0x5234389: GNUNET_xmalloc_ (common_allocation.c:53)
+    ==28393==    by 0x524458A: GNUNET_NETWORK_socket_create_from_accept (network.c:289)
+    ==28393==    by 0x524B2DA: ??? (server.c:332)
+    ==28393==    by 0x524A4C7: ??? (scheduler.c:425)
+    ==28393==    by 0x524A73D: GNUNET_SCHEDULER_run (scheduler.c:510)
+    ==28393==    by 0x524FF8C: GNUNET_SERVICE_run (service.c:1326)
+    ==28393==    by 0x405500: main (gnunet-service-transport.c:2645)
+    And also:
+    ==28393== 65,744 (65,728 direct, 16 indirect) bytes in 1 blocks are definitely lost in loss record 5 of 5
+    ==28393==    at 0x4C2260E: malloc (vg_replace_malloc.c:207)
+    ==28393==    by 0x52343E3: GNUNET_xmalloc_unchecked_ (common_allocation.c:62)
+    ==28393==    by 0x5234389: GNUNET_xmalloc_ (common_allocation.c:53)
+    ==28393==    by 0x524473E: GNUNET_NETWORK_socket_create_from_accept (network.c:323)
+    (rest of trace identical)
+
 * SETUP:
   - auto-generate "defaults.conf" using gnunet-setup from "config.scm"
   - integrate all options into "config.scm"
