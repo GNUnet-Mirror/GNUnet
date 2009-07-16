@@ -1039,7 +1039,8 @@ GNUNET_DISK_file_open (const char *fn, int flags, ...)
   fd = open (expfn, oflags | O_LARGEFILE, mode);
   if (fd == -1)
   {
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "open", fn);
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "open", expfn);
+    GNUNET_free (expfn);
     return NULL;
   }
 #else
@@ -1064,7 +1065,8 @@ GNUNET_DISK_file_open (const char *fn, int flags, ...)
   if (h == INVALID_HANDLE_VALUE)
   {
     SetErrnoFromWinError (GetLastError ());
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "open", fn);
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "open", expfn);
+    GNUNET_free (expfn);
     return NULL;
   }
 
@@ -1072,8 +1074,9 @@ GNUNET_DISK_file_open (const char *fn, int flags, ...)
     if (SetFilePointer (h, 0, 0, FILE_END) == INVALID_SET_FILE_POINTER)
     {
       SetErrnoFromWinError (GetLastError ());
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "SetFilePointer", fn);
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "SetFilePointer", expfn);
       CloseHandle (h);
+      GNUNET_free (expfn);
       return NULL;
     }
 #endif
@@ -1084,7 +1087,7 @@ GNUNET_DISK_file_open (const char *fn, int flags, ...)
 #else
   ret->fd = fd;
 #endif
-
+  GNUNET_free (expfn);
   return ret;
 }
 
