@@ -378,7 +378,7 @@ transport_notify_ready (void *cls, size_t size, void *buf)
   if (buf == NULL)
     {
 #if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  "Could not transmit to transport service, cancelling pending requests\n");
 #endif
       th = h->connect_ready_head;
@@ -785,6 +785,27 @@ hello_wait_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct HelloWaitList *pos;
   struct HelloWaitList *prev;
 
+  hwl->task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+  if (GNUNET_TIME_absolute_get_remaining (hwl->timeout).value > 0)
+    {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  _("First attempt to obtain `%s' from transport service failed, will try again for %llums.\n"),
+		  "HELLO",
+		  GNUNET_TIME_absolute_get_remaining (hwl->timeout).value);
+#endif
+      hwl->task = GNUNET_SCHEDULER_add_delayed (hwl->handle->sched,
+                                                GNUNET_YES,
+                                                GNUNET_SCHEDULER_PRIORITY_KEEP,
+                                                GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                                GNUNET_TIME_absolute_get_remaining (hwl->timeout),
+                                                &hello_wait_timeout, hwl);
+      return;      
+    }
+  /* signal timeout */
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              _("Timeout trying to obtain `%s' from transport service.\n"),
+              "HELLO");
   prev = NULL;
   pos = hwl->handle->hwl_head;
   while (pos != hwl)
@@ -797,10 +818,6 @@ hello_wait_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     hwl->handle->hwl_head = hwl->next;
   else
     prev->next = hwl->next;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              _("Timeout trying to obtain `%s' from transport service.\n"),
-              "HELLO");
-  /* signal timeout */
   if (hwl->rec != NULL)
     hwl->rec (hwl->rec_cls, GNUNET_TIME_UNIT_ZERO, NULL, NULL);
   GNUNET_free (hwl);
@@ -932,7 +949,7 @@ send_start (void *cls, size_t size, void *buf)
   if (buf == NULL)
     {
 #if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Timeout while trying to transmit `%s' request.\n",
                   "START");
 #endif
@@ -1152,7 +1169,8 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   schedule_control_transmit (h,
                              sizeof (struct GNUNET_MessageHeader),
                              GNUNET_YES,
-                             GNUNET_TIME_UNIT_FOREVER_REL, &send_start, NULL);
+                             GNUNET_TIME_UNIT_FOREVER_REL, 
+			     &send_start, NULL);
   GNUNET_CLIENT_receive (h->client,
                          &demultiplexer, h, GNUNET_TIME_UNIT_FOREVER_REL);
 }

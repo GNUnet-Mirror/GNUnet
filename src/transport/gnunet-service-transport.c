@@ -1878,10 +1878,11 @@ disconnect_neighbour (struct NeighbourList *n)
     {
       n->plugins = rpos->next;
       GNUNET_assert (rpos->neighbour == n);
-      rpos->plugin->api->cancel (rpos->plugin->api->cls,
-                                 rpos->plugin_handle,
-				 rpos,
-				 &n->id);
+      if (GNUNET_YES == rpos->connected)
+	rpos->plugin->api->cancel (rpos->plugin->api->cls,
+				   rpos->plugin_handle,
+				   rpos,
+				   &n->id);
       GNUNET_free (rpos);
     }
 
@@ -1892,7 +1893,9 @@ disconnect_neighbour (struct NeighbourList *n)
       GNUNET_assert (mq->neighbour == n);
       GNUNET_free (mq);
     }
-
+  if (n->timeout_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
+    GNUNET_SCHEDULER_cancel (sched,
+			     n->timeout_task);
   /* finally, free n itself */
   GNUNET_free (n);
 }
@@ -2054,13 +2057,13 @@ plugin_env_receive (void *cls,
 		  GNUNET_i2s(&n->id));
 #endif
       /* TODO: call stats */
-      disconnect_neighbour (n);
       if ((service_context != NULL) &&
           (service_context->plugin_handle == plugin_context))
         {
           service_context->connected = GNUNET_NO;
           service_context->plugin_handle = NULL;
         }
+      disconnect_neighbour (n);
       return NULL;
     }
 #if DEBUG_TRANSPORT
@@ -2628,6 +2631,7 @@ unload_plugins (void *cls, struct GNUNET_CONFIGURATION_Handle *cfg)
     }
   if (my_private_key != NULL)
     GNUNET_CRYPTO_rsa_key_free (my_private_key);
+  GNUNET_free_non_null (our_hello);
 }
 
 
@@ -2642,10 +2646,10 @@ int
 main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc,
-                              argv,
-                              "transport",
-                              &run, NULL, &unload_plugins, NULL)) ? 0 : 1;
+	  GNUNET_SERVICE_run (argc,
+			      argv,
+			      "transport",
+			      &run, NULL, &unload_plugins, NULL)) ? 0 : 1;
 }
 
 /* end of gnunet-service-transport.c */

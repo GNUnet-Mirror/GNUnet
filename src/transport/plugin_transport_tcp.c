@@ -415,8 +415,9 @@ find_session_by_target (struct Plugin *plugin,
 
   ret = plugin->sessions;
   while ((ret != NULL) &&
-         (0 != memcmp (target,
-                       &ret->target, sizeof (struct GNUNET_PeerIdentity))))
+	 ( (GNUNET_SYSERR == ret->expecting_welcome) ||
+	   (0 != memcmp (target,
+			 &ret->target, sizeof (struct GNUNET_PeerIdentity)))))
     ret = ret->next;
   return ret;
 }
@@ -833,6 +834,11 @@ disconnect_session (struct Session *session)
 				     session->service_context,
 				     GNUNET_TIME_UNIT_ZERO,
 				     &session->target, NULL);
+    }
+  if (session->client != NULL)
+    {
+      GNUNET_SERVER_client_drop (session->client);
+      session->client = NULL;
     }
   GNUNET_free_non_null (session->connect_addr);
   GNUNET_free (session);
@@ -2073,7 +2079,10 @@ libgnunet_plugin_transport_tcp_done (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
+  struct Session *session;
 
+  while (NULL != (session = plugin->sessions))
+    disconnect_session (session);    
   GNUNET_SERVICE_stop (plugin->service);
   GNUNET_free (plugin->handlers);
   GNUNET_free (plugin);
