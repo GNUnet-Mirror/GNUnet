@@ -697,10 +697,15 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc,
-                              argv,
+  int ret;
+
+  ret = (GNUNET_OK ==
+	 GNUNET_SERVICE_run (argc,
+			     argv,
                               "peerinfo", &run, NULL, NULL, NULL)) ? 0 : 1;
+  GNUNET_free_non_null (networkIdDirectory);
+  GNUNET_free_non_null (trustDirectory);
+  return ret;
 }
 
 
