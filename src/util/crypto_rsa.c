@@ -725,8 +725,8 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
                   _
                   ("File `%s' does not contain a valid private key.  You should delete it.\n"),
                   filename);
-      GNUNET_free (enc);
     }
+  GNUNET_free (enc);
 #ifndef MINGW
   memset (&fl, 0, sizeof (struct flock));
   fl.l_type = F_UNLCK;
