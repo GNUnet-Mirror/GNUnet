@@ -41,6 +41,11 @@
 static struct GNUNET_DATASTORE_Handle *datastore;
 
 /**
+ * How long until we give up on transmitting the message?
+ */
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+
+/**
  * Target datastore size (in bytes).
  * <p>
  * Example impact of total size on the reported number
@@ -137,6 +142,7 @@ putValue (int i, int k)
 			GNUNET_TIME_relative_to_absolute 
 			(GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
 							GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 1000))),
+			TIMEOUT,
 			NULL, NULL);
   ic++;
 #if REPORT_ID

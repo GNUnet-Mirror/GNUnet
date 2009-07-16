@@ -141,32 +141,33 @@ test (struct GNUNET_DATASTORE_PluginFunctions * api)
             break;
         }
       end = GNUNET_TIME_absolute_get ();
-      printf ("%3u insertion              took %20llums\n", i, end.value - start.value);
+      printf ("%3u insertion              took %20llums\n", i,
+	      (unsigned long long) (end.value - start.value));
       start = end;
       api->iter_low_priority (api->cls, 0, &iterateDummy, api);
       end = GNUNET_TIME_absolute_get ();
       printf ("%3u low priority iteration took %20llums\n", i,
-              end.value - start.value);
+              (unsigned long long) (end.value - start.value));
       start = end;
       api->iter_ascending_expiration (api->cls, 0, &iterateDummy, api);
       end = GNUNET_TIME_absolute_get ();
       printf ("%3u expiration t iteration took %20llums\n", i,
-              end.value - start.value);
+              (unsigned long long) (end.value - start.value));
       start = end;
       api->iter_zero_anonymity (api->cls, 0, &iterateDummy, api);
       end = GNUNET_TIME_absolute_get ();
       printf ("%3u non anonymou iteration took %20llums\n", i,
-              end.value - start.value);
+              (unsigned long long) (end.value - start.value));
       start = end;
       api->iter_migration_order (api->cls, 0, &iterateDummy, api);
       end = GNUNET_TIME_absolute_get ();
       printf ("%3u migration or iteration took %20llums\n", i,
-              end.value - start.value);
+              (unsigned long long) (end.value - start.value));
       start = end;
       api->iter_all_now (api->cls, 0, &iterateDummy, api);
       end = GNUNET_TIME_absolute_get ();
       printf ("%3u all now      iteration took %20llums\n", i,
-              end.value - start.value);
+              (unsigned long long) (end.value - start.value));
     }
   api->drop (api->cls);
   return GNUNET_OK;

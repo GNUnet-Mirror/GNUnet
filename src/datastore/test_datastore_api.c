@@ -33,6 +33,11 @@
 #include "gnunet_protocols.h"
 #include "gnunet_datastore_service.h"
 
+/**
+ * How long until we give up on transmitting the message?
+ */
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+
 static struct GNUNET_DATASTORE_Handle *datastore;
 
 static struct GNUNET_TIME_Absolute now;
@@ -253,6 +258,7 @@ run_continuation (void *cls,
 			    get_priority (crc->i),
 			    get_anonymity (crc->i),
 			    get_expiration (crc->i),
+			    TIMEOUT,
 			    &check_success,
 			    crc);
       crc->i++;
