@@ -31,15 +31,22 @@
 #include "gnunet_peerinfo_service.h"
 #include "gnunet_plugin_lib.h"
 #include "gnunet_protocols.h"
-#include "gnunet_service_lib.h"
+#include "gnunet_program_lib.h"
 #include "gnunet_signatures.h"
 #include "plugin_transport.h"
 #include "transport.h"
 
+#define VERBOSE GNUNET_YES
+
+/**
+ * How long until we give up on transmitting the message?
+ */
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+
 /**
  * Our public key.
  */
-static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *my_public_key;
+static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded my_public_key;
 
 /**
  * Our identity.
@@ -61,20 +68,6 @@ struct GNUNET_SCHEDULER_Handle *sched;
  */
 struct GNUNET_CONFIGURATION_Handle *cfg;
 
-
-
-/**
- * All loaded plugins.
- */
-static struct TransportPlugin *plugins;
-
-/**
- * Our server.
- */
-static struct GNUNET_SERVER_Handle *server;
-
-
-
 /**
  * Number of neighbours we'd like to have.
  */
@@ -89,6 +82,11 @@ struct GNUNET_TRANSPORT_PluginEnvironment env;
  *handle for the api provided by this plugin
  */
 struct GNUNET_TRANSPORT_PluginFunctions *api;
+
+/**
+ * Did the test pass or fail?
+ */
+static int ok;
 
 /**
  * Initialize Environment for this plugin
@@ -128,31 +126,136 @@ void lookup (void *cls,
 }
 
 
+/**
+ * Function called when the service shuts
+ * down.  Unloads our plugins.
+ *
+ * @param cls closure
+ * @param cfg configuration to use
+ */
+static void
+unload_plugins (void *cls, struct GNUNET_CONFIGURATION_Handle *cfg)
+{  
+  GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_tcp",api));
+  if (my_private_key != NULL)
+    GNUNET_CRYPTO_rsa_key_free (my_private_key);
+  
+}
+
+
+static GNUNET_SCHEDULER_TaskIdentifier validation_timeout_task;
+
+
+static void 
+validation_notification (void *cls,
+			 const char *name,
+			 const struct GNUNET_PeerIdentity *peer,
+			 uint32_t challenge,
+			 const char *sender_addr)
+{
+  /* Sailor: 'test_validation' should get here
+     if the validation worked; so we cancel the
+     "delayed" task that will cause failure */
+  if (validation_timeout_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (sched, validation_timeout_task);
+      validation_timeout_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+    }
+
+  GNUNET_assert (challenge == 42);
+  
+  /* Sailor: if this is the last test, calling this function
+     here will end the process. */
+  ok = 0; /* if the last test succeeded, report success */
+  unload_plugins (NULL, cfg);
+}
+
+
+static void
+validation_failed (void *cls,
+		   const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  validation_timeout_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+  GNUNET_break (0); /* output error */
+  /* the "validation_notification" was not called
+     in a timely fashion; we should set an error
+     code for main and shut down */  
+  unload_plugins (NULL, cfg);
+}
+
+
+/**
+ * Simple example test that invokes
+ * the "validate" function of the plugin
+ * and tries to see if the plugin would
+ * succeed to validate its own address.
+ * (This test is not well-written since
+ *  we hand-compile the address which
+ *  kind-of works for TCP but would not
+ *  work for other plugins; we should ask
+ *  the plugin about its address instead...).
+ */
+static void
+test_validation ()
+{
+  struct sockaddr_in soaddr;
+  
+  memset (&soaddr, 0, sizeof(soaddr));
+  soaddr.sin_family = AF_INET;
+  /* Sailor: set this port to 2367 to see the
+     testcase fail after 30s (because validation
+     fails); obviously the test should be
+     modified to test both successful and
+     unsuccessful validation in the end... */
+  soaddr.sin_port = htons(2368 /* FIXME: get from config! */);
+  soaddr.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
+  api->validate (api->cls,
+		 &my_identity,
+		 42,
+		 TIMEOUT,
+		 &soaddr,
+		 sizeof(soaddr));		 
+  /* add job to catch failure (timeout) */
+  validation_timeout_task =
+    GNUNET_SCHEDULER_add_delayed (sched,
+				  GNUNET_NO,
+				  GNUNET_SCHEDULER_PRIORITY_KEEP,
+				  GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+				  TIMEOUT,
+				  &validation_failed,
+				  NULL);
+}
+
+
 static void setup_plugin_environment()
 {
   env.cfg  = cfg;
   env.sched = sched;
-  env.my_public_key = my_public_key;
+  env.my_public_key = &my_public_key;
+  env.my_private_key = my_private_key;
+  env.my_identity = &my_identity;
   env.cls=&env;
   env.receive=&receive;
   env.lookup=&lookup;
   env.notify_address=&notify_address;
+  env.notify_validation = &validation_notification;
   env.max_connections = max_connect_per_transport;       
 }	
 
 
 /**
- * Initiate transport service.
+ * Runs the test.
  *
  * @param cls closure
  * @param s scheduler to use
- * @param serv the initialized server
  * @param c configuration to use
  */
 static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
-     struct GNUNET_SERVER_Handle *serv, struct GNUNET_CONFIGURATION_Handle *c)
+     char *const *args,
+     const char *cfgfile,
+     struct GNUNET_CONFIGURATION_Handle *c)
 { 
   unsigned long long tneigh;
   char *keyfile;
@@ -160,7 +263,6 @@ run (void *cls,
 
   sched = s;
   cfg = c;
-  server = serv;
   /* parse configuration */
   if ((GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_number (c,
@@ -187,9 +289,11 @@ run (void *cls,
       GNUNET_SCHEDULER_shutdown (s);
       return;
     }
-  GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
+  GNUNET_CRYPTO_rsa_key_get_public (my_private_key, 
+				    &my_public_key);
   GNUNET_CRYPTO_hash (&my_public_key,
-                      sizeof (my_public_key), &my_identity.hashPubKey);
+                      sizeof (my_public_key),
+		      &my_identity.hashPubKey);
   
 
   
@@ -204,25 +308,21 @@ run (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Failed to load transport plugin for tcp\n"));
+      /* FIXME: set some error code for main */
+      return;
     } 
-  
-}
-
-
-/**
- * Function called when the service shuts
- * down.  Unloads our plugins.
- *
- * @param cls closure
- * @param cfg configuration to use
- */
-static void
-unload_plugins (void *cls, struct GNUNET_CONFIGURATION_Handle *cfg)
-{  
-  GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_tcp",api));
-  if (my_private_key != NULL)
-    GNUNET_CRYPTO_rsa_key_free (my_private_key);
-  
+  /* Sailor: if we had no real tests, we
+     could call this function
+     here to end the process; instead, I'll
+     show how one could run a single test below. 
+     Note that the test is not particularly well-written,
+     it just serves to illustrate (also,
+     the "validation_notification" function above is
+     part of the test.*/
+  if (0)
+    unload_plugins (NULL, cfg);
+  else
+    test_validation ();
 }
 
 
@@ -236,18 +336,36 @@ unload_plugins (void *cls, struct GNUNET_CONFIGURATION_Handle *cfg)
 int
 main (int argc, char *const *argv)
 {
-  GNUNET_log_setup ("test-puglin-transport",
+  static struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_END
+  };
+  char *const argv_prog[] = {
+    "test_plugin_transport",
+    "-c",
+    "test_plugin_transport_data.conf",
+    "-L",
+#if VERBOSE
+    "DEBUG",
+#else
+    "WARNING",
+#endif
+    NULL
+  };  
+  GNUNET_log_setup ("test-plugin-transport",
 #if VERBOSE
                     "DEBUG",
 #else
                     "WARNING",
 #endif
                     NULL);       
+  ok = 1; /* set to fail */
   return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc,
-                              argv,
-                              "transport",
-                              &run, NULL, &unload_plugins, NULL)) ? 0 : 1;
+          GNUNET_PROGRAM_run (5,
+                              argv_prog,
+                              "test-plugin-transport",
+			      "testcase",
+			      options,
+                              &run, NULL)) ? ok : 1;
 }
 
 /* end of test_plugin_transport.c */

@@ -93,4 +93,5 @@ test_plugin_transport_LDADD = \
 EXTRA_DIST = \
   test_transport_api_data.conf \
   test_transport_api_peer1.conf \
-  test_transport_api_peer2.conf
+  test_transport_api_peer2.conf \
+  test_plugin_transport_data.conf
