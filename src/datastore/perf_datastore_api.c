@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2004, 2005, 2006, 2007 Christian Grothoff (and other contributing authors)
+     (C) 2004, 2005, 2006, 2007, 2009 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -22,15 +22,14 @@
  * @brief performance measurement for the datastore implementation
  * @author Christian Grothoff
  *
- * This testcase inserts a bunch of (variable size) data and then deletes
- * data until the (reported) database size drops below a given threshold.
- * This is iterated 10 times, with the actual size of the content stored,
- * the database size reported and the file size on disk being printed for
- * each iteration.  The code also prints a "I" for every 40 blocks
+ * This testcase inserts a bunch of (variable size) data and then
+ * deletes data until the (reported) database size drops below a given
+ * threshold.  This is iterated 10 times, with the actual size of the
+ * content stored and the number of operations performed being printed
+ * for each iteration.  The code also prints a "I" for every 40 blocks
  * inserted and a "D" for every 40 blocks deleted.  The deletion
- * strategy alternates between "lowest priority" and "earliest expiration".
- * Priorities and expiration dates are set using a pseudo-random value
- * within a realistic range.
+ * strategy uses the "random" iterator.  Priorities and expiration
+ * dates are set using a pseudo-random value within a realistic range.
  */
 
 #include "platform.h"
@@ -128,6 +127,10 @@ struct CpsRunContext
   int j;
   unsigned long long size;
   int i;
+
+  GNUNET_HashCode key;
+  uint32_t esize;
+  char data[65536];
 };
 
 
@@ -190,30 +193,51 @@ remove_next(void *cls,
 	    int success,
 	    const char *msg)
 {
+  static int dc;
+  dc++;
+#if REPORT_ID
+  if (dc % REP_FREQ == 0)
+    fprintf (stderr, "D");
+#endif
   GNUNET_assert (GNUNET_OK == success);
 }
 
 
-static void 
-delete_value (void *cls,
-	     const GNUNET_HashCode * key,
-	     uint32_t size,
-	     const void *data,
-	     uint32_t type,
-	     uint32_t priority,
-	     uint32_t anonymity,
-	     struct GNUNET_TIME_Absolute
-	     expiration, uint64_t uid)
+
+static void
+do_delete (void *cls,
+	   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct CpsRunContext *crc = cls;
 
-  /* FIXME: should probably abort deletion iteration
-     earlier (to not delete everything...) */
+  GNUNET_DATASTORE_remove (datastore,
+			   &crc->key,
+			   crc->esize,
+			   crc->data,
+			   &remove_next,
+			   crc);
+}
+
+
+
+static void 
+delete_value (void *cls,
+	      const GNUNET_HashCode * key,
+	      uint32_t size,
+	      const void *data,
+	      uint32_t type,
+	      uint32_t priority,
+	      uint32_t anonymity,
+	      struct GNUNET_TIME_Absolute
+	      expiration, uint64_t uid)
+{
+  struct CpsRunContext *crc = cls;
+
+  if (stored_bytes < MAX_SIZE)
+    return;     
   if (key == NULL)
     {
       crc->phase = RP_REPORT;
-      /* FIXME: should wait for all "remove_next" calls
-	 to complete before going back to the run_continuation */
       GNUNET_SCHEDULER_add_continuation (crc->sched,
 					 GNUNET_NO,
 					 &run_continuation,
@@ -221,14 +245,18 @@ delete_value (void *cls,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       return;
     }
-  GNUNET_DATASTORE_remove (datastore,
-			   key,
-			   size,
-			   data,
-			   &remove_next,
-			   crc);
+  stored_bytes -= size;
+  stored_entries--;
+  crc->key = *key;
+  crc->esize = size;
+  memcpy (crc->data, data, size);
+  GNUNET_SCHEDULER_add_after (crc->sched,
+			      GNUNET_NO,
+			      GNUNET_SCHEDULER_PRIORITY_HIGH,
+			      GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+			      &do_delete,
+			      crc);
 }
-
 
 
 static void
@@ -276,19 +304,9 @@ run_continuation (void *cls,
       break;
     case RP_CUT:
       /* trim down below MAX_SIZE again */
-      if ((i % 2) == 0)
-	{
-	  GNUNET_DATASTORE_get_random (datastore, 
-				       &delete_value,
-				       crc);
-	  break;
-	}
-      crc->phase = RP_REPORT;
-      GNUNET_SCHEDULER_add_continuation (crc->sched,
-					 GNUNET_NO,
-					 &run_continuation,
-					 crc,
-					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      GNUNET_DATASTORE_get_random (datastore, 
+				   &delete_value,
+				   crc);
       break;
     case RP_REPORT:
       size = 0;
@@ -341,7 +359,8 @@ static int
 check ()
 {
   pid_t pid;
-  char *const argv[] = { "perf-datastore-api",
+  char *const argv[] = { 
+    "perf-datastore-api",
     "-c",
     "test_datastore_api_data.conf",
 #if VERBOSE
@@ -368,8 +387,6 @@ check ()
       ok = 1;
     }
   GNUNET_OS_process_wait(pid);
-  if (ok != 0)
-    fprintf (stderr, "Missed some testcases: %u\n", ok);
   return ok;
 }
 
