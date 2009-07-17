@@ -693,7 +693,7 @@ sqlite_plugin_put (void *cls,
       (SQLITE_OK != sqlite3_bind_int (stmt, 2, type)) ||
       (SQLITE_OK != sqlite3_bind_int (stmt, 3, priority)) ||
       (SQLITE_OK != sqlite3_bind_int (stmt, 4, anonymity)) ||
-      (SQLITE_OK != sqlite3_bind_int64 (stmt, 5, expiration.value)) ||
+      (SQLITE_OK != sqlite3_bind_int64 (stmt, 5, (sqlite3_int64) expiration.value)) ||
       (SQLITE_OK !=
        sqlite3_bind_blob (stmt, 6, key, sizeof (GNUNET_HashCode),
                           SQLITE_TRANSIENT)) ||
