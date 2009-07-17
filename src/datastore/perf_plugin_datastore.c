@@ -28,7 +28,7 @@
 #include "gnunet_protocols.h"
 #include "plugin_datastore.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 /**
  * Target datastore size (in bytes).  Realistic sizes are
@@ -36,10 +36,9 @@
  * those take too long to run them in the usual "make check"
  * sequence.  Hence the value used for shipping is tiny.
  */
-#define MAX_SIZE 1024LL * 1024 / 4
-// * 128
+#define MAX_SIZE 1024LL * 1024 * 128
 
-#define ITERATIONS 2
+#define ITERATIONS 10
 
 /**
  * Number of put operations equivalent to 1/10th of MAX_SIZE
