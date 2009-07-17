@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /*
- * @file perf_datastore_api_iterators.c
+ * @file perf_plugin_datastore.c
  * @brief Profile database plugin directly, focusing on iterators.
  * @author Christian Grothoff
  */
@@ -27,6 +27,8 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
 #include "plugin_datastore.h"
+
+#define VERBOSE GNUNET_YES
 
 /**
  * Target datastore size (in bytes).  Realistic sizes are
@@ -49,14 +51,35 @@ static unsigned long long stored_entries;
 
 static unsigned long long stored_ops;
 
-static struct GNUNET_CONFIGURATION_Handle *cfg;
-
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static int ok;
 
+enum RunPhase
+  {
+    RP_DONE = 0,
+    RP_PUT,
+    RP_LP_GET,
+    RP_AE_GET,
+    RP_ZA_GET,
+    RP_MO_GET,
+    RP_AN_GET
+  };
+
+
+struct CpsRunContext
+{
+  int i;
+  struct GNUNET_TIME_Absolute start;
+  struct GNUNET_TIME_Absolute end;
+  struct GNUNET_SCHEDULER_Handle *sched;
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+  struct GNUNET_DATASTORE_PluginFunctions * api;
+  const char *msg;
+  enum RunPhase phase;
+};
+
+
 	     
-static int
+static void
 putValue (struct GNUNET_DATASTORE_PluginFunctions * api, int i, int k)
 {
   char value[65536];
@@ -91,18 +114,16 @@ putValue (struct GNUNET_DATASTORE_PluginFunctions * api, int i, int k)
 			     (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
 							     60 * 60 * 60 * 1000 +
 							     GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 1000))),
-			     &msg));
+			     &msg))
     {
-      fprintf (stderr, "E: `%s'", msg);
+      fprintf (stderr, "ERROR: `%s'\n", msg);
       GNUNET_free_non_null (msg);
-      return GNUNET_SYSERR;
+      return;
     }
   ic++;
   stored_bytes += size;
   stored_ops++;
   stored_entries++;
-  GNUNET_free (value);
-  return GNUNET_OK;
 }
 
 
@@ -119,58 +140,94 @@ iterateDummy (void *cls,
 	      expiration, 
 	      uint64_t uid)
 {
+  struct CpsRunContext *crc = cls;
+  
+  if (key == NULL)
+    {
+      crc->end = GNUNET_TIME_absolute_get();
+      printf (crc->msg,
+	      (unsigned long long) (crc->end.value - crc->start.value));
+      if (crc->phase != RP_AN_GET)
+	{
+	  crc->phase++;
+	}
+      else
+	{
+	  if (crc->i == ITERATIONS)
+	    crc->phase = RP_DONE;
+	  else
+	    crc->phase = RP_PUT;
+	}
+      return GNUNET_OK;
+    }
+  crc->api->next_request (next_cls,
+			  GNUNET_NO);
   return GNUNET_OK;
 }
 
-static int
-test (struct GNUNET_DATASTORE_PluginFunctions * api)
+static void
+test (void *cls,
+      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {  
-  int i;
+  struct CpsRunContext *crc = cls;
   int j;
-  struct GNUNET_TIME_Absolute start;
-  struct GNUNET_TIME_Absolute end;
 
-  /* FIXME: CPS the loop! */
-  for (i = 0; i < ITERATIONS; i++)
+  switch (crc->phase)
     {
-      /* insert data equivalent to 1/10th of MAX_SIZE */
-      start = GNUNET_TIME_absolute_get ();
-      for (j = 0; j < PUT_10; j++)
-        {
-          if (GNUNET_OK != putValue (api, j, i))
-            break;
-        }
-      end = GNUNET_TIME_absolute_get ();
-      printf ("%3u insertion              took %20llums\n", i,
-	      (unsigned long long) (end.value - start.value));
-      start = end;
-      api->iter_low_priority (api->cls, 0, &iterateDummy, api);
-      end = GNUNET_TIME_absolute_get ();
-      printf ("%3u low priority iteration took %20llums\n", i,
-              (unsigned long long) (end.value - start.value));
-      start = end;
-      api->iter_ascending_expiration (api->cls, 0, &iterateDummy, api);
-      end = GNUNET_TIME_absolute_get ();
-      printf ("%3u expiration t iteration took %20llums\n", i,
-              (unsigned long long) (end.value - start.value));
-      start = end;
-      api->iter_zero_anonymity (api->cls, 0, &iterateDummy, api);
-      end = GNUNET_TIME_absolute_get ();
-      printf ("%3u non anonymou iteration took %20llums\n", i,
-              (unsigned long long) (end.value - start.value));
-      start = end;
-      api->iter_migration_order (api->cls, 0, &iterateDummy, api);
-      end = GNUNET_TIME_absolute_get ();
-      printf ("%3u migration or iteration took %20llums\n", i,
-              (unsigned long long) (end.value - start.value));
-      start = end;
-      api->iter_all_now (api->cls, 0, &iterateDummy, api);
-      end = GNUNET_TIME_absolute_get ();
-      printf ("%3u all now      iteration took %20llums\n", i,
-              (unsigned long long) (end.value - start.value));
+    case RP_PUT:      
+      crc->start = GNUNET_TIME_absolute_get ();
+      for (j=0;j<PUT_10;j++)
+	putValue (crc->api, j, crc->i);
+      crc->end = GNUNET_TIME_absolute_get ();
+      printf ("%3u insertion              took %20llums\n", crc->i,
+	      (unsigned long long) (crc->end.value - crc->start.value));
+      crc->i++;
+      crc->phase = RP_LP_GET;
+      GNUNET_SCHEDULER_add_after (crc->sched,
+				  GNUNET_NO,
+				  GNUNET_SCHEDULER_PRIORITY_KEEP,
+				  GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+				  &test, crc);
+      break;
+    case RP_LP_GET:
+      crc->start = GNUNET_TIME_absolute_get ();      
+      crc->msg = "%3u low priority iteration took %20llums\n";
+      crc->api->iter_low_priority (crc->api->cls, 0, 
+				   &iterateDummy,
+				   crc);
+      break;
+    case RP_AE_GET:
+      crc->start = GNUNET_TIME_absolute_get ();      
+      crc->msg = "%3u ascending expiration iteration took %20llums\n";
+      crc->api->iter_ascending_expiration (crc->api->cls, 0, 
+				      &iterateDummy,
+				      crc);
+      break;
+    case RP_ZA_GET:
+      crc->start = GNUNET_TIME_absolute_get ();      
+      crc->msg = "%3u zero anonymity iteration took %20llums\n";
+      crc->api->iter_zero_anonymity (crc->api->cls, 0, 
+				     &iterateDummy,
+				     crc);
+      break;
+    case RP_MO_GET:
+      crc->start = GNUNET_TIME_absolute_get ();      
+      crc->msg = "%3u migration order iteration took %20llums\n";
+      crc->api->iter_migration_order (crc->api->cls, 0, 
+				      &iterateDummy,
+				      crc);
+      break;
+    case RP_AN_GET:
+      crc->start = GNUNET_TIME_absolute_get ();      
+      crc->msg = "%3u all now iteration took %20llums\n";
+      crc->api->iter_all_now (crc->api->cls, 0,
+			      &iterateDummy,
+			      crc);
+      break;
+    case RP_DONE:
+      crc->api->drop (crc->api->cls);
+      break;
     }
-  api->drop (api->cls);
-  return GNUNET_OK;
 }
 
 
@@ -178,7 +235,8 @@ test (struct GNUNET_DATASTORE_PluginFunctions * api)
  * Load the datastore plugin.
  */
 static struct GNUNET_DATASTORE_PluginFunctions *
-load_plugin ()
+load_plugin (struct GNUNET_CONFIGURATION_Handle *cfg,
+	     struct GNUNET_SCHEDULER_Handle *sched)
 {
   static struct GNUNET_DATASTORE_PluginEnvironment env;
   struct GNUNET_DATASTORE_PluginFunctions * ret; 
@@ -214,7 +272,8 @@ load_plugin ()
  * @param api api to unload
  */
 static void
-unload_plugin (struct GNUNET_DATASTORE_PluginFunctions * api)
+unload_plugin (struct GNUNET_DATASTORE_PluginFunctions * api,
+	       struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char *name;
   char *libname;
@@ -244,9 +303,10 @@ unload_plugin (struct GNUNET_DATASTORE_PluginFunctions * api)
 static void
 cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_DATASTORE_PluginFunctions *api = cls;
+  struct CpsRunContext *crc = cls;
 
-  unload_plugin (api);
+  unload_plugin (crc->api, crc->cfg);
+  GNUNET_free (crc);
 }
 
 
@@ -255,29 +315,40 @@ static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
-     const char *cfgfile, struct GNUNET_CONFIGURATION_Handle *c)
+     const char *cfgfile,
+     struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_DATASTORE_PluginFunctions *api;
+  struct CpsRunContext *crc;
 
-  cfg = c;
-  sched = s;
-  api = load_plugin ();
-  test(api);
-  GNUNET_SCHEDULER_add_delayed (sched,
+  api = load_plugin (c, s);
+  GNUNET_assert (api != NULL);
+  crc = GNUNET_malloc(sizeof(struct CpsRunContext));
+  crc->api = api;
+  crc->sched = s;
+  crc->cfg = c;
+  crc->phase = RP_PUT;
+  GNUNET_SCHEDULER_add_after (s,
+			      GNUNET_YES,
+			      GNUNET_SCHEDULER_PRIORITY_KEEP,
+			      GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+			      &test, crc);
+  GNUNET_SCHEDULER_add_delayed (s,
                                 GNUNET_YES,
                                 GNUNET_SCHEDULER_PRIORITY_IDLE,
                                 GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
-                                &cleaning_task, api);
+                                &cleaning_task, crc);
 }
 
 
 static int
 check ()
 {
-  char *const argv[] = { "perf-datastore-api-iterators",
+  char *const argv[] = { 
+    "perf-plugin-datastore",
     "-c",
-    "test_datastore_api_data.conf",
+    "perf_plugin_datastore_data.conf",
 #if VERBOSE
     "-L", "DEBUG",
 #endif
@@ -287,7 +358,7 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "perf-datastore-api-iterators", "nohelp",
+                      argv, "perf-plugin-datastore", "nohelp",
                       options, &run, NULL);
   if (ok != 0)
     fprintf (stderr, "Missed some testcases: %u\n", ok);
@@ -300,7 +371,7 @@ main (int argc, char *argv[])
 {
   int ret;
 
-  GNUNET_log_setup ("perf-datastore-api-iterators",
+  GNUNET_log_setup ("perf-plugin-datastore",
 #if VERBOSE
                     "DEBUG",
 #else
@@ -313,6 +384,6 @@ main (int argc, char *argv[])
 }
 
 
-/* end of perf_datastore_api_iterators.c */
+/* end of perf_plugin_datastore.c */
 
 

@@ -59,7 +59,7 @@ libgnunet_plugin_datastore_template_la_LDFLAGS = \
 check_PROGRAMS = \
  test_datastore_api \
  perf_datastore_api \
- perf_datastore_api_iterators
+ perf_plugin_datastore
 
 TESTS = $(check_PROGRAMS)
 
@@ -75,11 +75,12 @@ perf_datastore_api_LDADD = \
  $(top_builddir)/src/datastore/libgnunetdatastore.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
-perf_datastore_api_iterators_SOURCES = \
- perf_datastore_api_iterators.c
-perf_datastore_api_iterators_LDADD = \
- $(top_builddir)/src/datastore/libgnunetdatastore.la \
+perf_plugin_datastore_SOURCES = \
+ perf_plugin_datastore.c
+perf_plugin_datastore_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 
-EXTRA_DIST = test_datastore_api_data.conf
+EXTRA_DIST = \
+ test_datastore_api_data.conf \
+ perf_plugin_datastore_data.conf

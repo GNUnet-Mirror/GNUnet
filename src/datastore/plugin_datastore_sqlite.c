@@ -685,7 +685,6 @@ sqlite_plugin_put (void *cls,
                     GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "sqlite3_reset");
       return GNUNET_SYSERR;
     }
-
   n = sqlite3_step (stmt);
   if (n != SQLITE_DONE)
     {
@@ -710,11 +709,6 @@ sqlite_plugin_put (void *cls,
   plugin->payload += size + GNUNET_DATASTORE_ENTRY_OVERHEAD;
   if (plugin->lastSync >= MAX_STAT_SYNC_LAG)
     sync_stats (plugin);
-#if DEBUG_SQLITE
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		   "sqlite",
-		   "done writing content\n");
-#endif
   return GNUNET_OK;
 }
 
