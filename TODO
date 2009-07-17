@@ -169,7 +169,6 @@ Minor TODO items:
     ==28393==    by 0x5234389: GNUNET_xmalloc_ (common_allocation.c:53)
     ==28393==    by 0x524473E: GNUNET_NETWORK_socket_create_from_accept (network.c:323)
     (rest of trace identical)
-    => SVN 8727 may fix this; should test it again!
 
 * SETUP:
   - auto-generate "defaults.conf" using gnunet-setup from "config.scm"
