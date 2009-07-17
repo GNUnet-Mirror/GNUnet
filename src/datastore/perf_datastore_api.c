@@ -213,7 +213,7 @@ run_continuation (void *cls,
     case RP_PUT:
       memset (&crc->key, 256 - crc->i, sizeof (GNUNET_HashCode));
 
-      GNUNET_assert (GNUNET_OK == putValue (j, i));
+      GNUNET_assert (GNUNET_OK == putValue (crc->j, crc->i));
       GNUNET_DATASTORE_put (datastore,
 			    0,
 			    &crc->key,
