@@ -40,7 +40,7 @@
 #include "gnunet_network_lib.h"
 #include "gnunet_scheduler_lib.h"
 
-#define DEBUG_NETWORK GNUNET_NO
+#define DEBUG_NETWORK GNUNET_YES
 
 /**
  * List of address families to give as hints to
@@ -1120,18 +1120,29 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                       sock);
       return;
     }
-  if (sock->sock == -1)
+  if ( (sock->sock == -1) ||
+       ( (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT)) &&
+	 (0 == (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE)) &&
+	 (!FD_ISSET (sock->sock, tc->write_ready)))  )
     {
 #if DEBUG_NETWORK
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   _("Could not satisfy pending transmission request, socket closed or connect failed.\n"));
 #endif
+      if (-1 != sock->sock)
+	{
+	  SHUTDOWN (sock->sock, SHUT_RDWR);
+	  GNUNET_break (0 == CLOSE (sock->sock));
+	  sock->sock = -1;
+	}
       transmit_error (sock);
       return;                   /* connect failed for good, we're finished */
     }
-  if ((tc->write_ready == NULL) || (!FD_ISSET (sock->sock, tc->write_ready)))
+ if ((tc->write_ready == NULL) || (!FD_ISSET (sock->sock, tc->write_ready)))
     {
-      /* special circumstances: not yet ready to write */
+      /* special circumstances (in particular,
+	 PREREQ_DONE after connect): not yet ready to write,
+	 but no "fatal" error either.  Hence retry.  */
       goto SCHEDULE_WRITE;
     }
   GNUNET_assert (sock->write_buffer_off >= sock->write_buffer_pos);
@@ -1190,7 +1201,7 @@ SCHEDULE_WRITE:
                                   GNUNET_NO,
                                   GNUNET_SCHEDULER_PRIORITY_KEEP,
                                   GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
-                                  GNUNET_TIME_UNIT_FOREVER_REL,
+                                  GNUNET_TIME_absolute_get_remaining (sock->nth.transmit_timeout),
                                   sock->sock, &transmit_ready, sock);
 }
 
@@ -1247,12 +1258,23 @@ GNUNET_NETWORK_notify_transmit_ready (struct GNUNET_NETWORK_SocketHandle
                                                          &transmit_timeout,
                                                          sock);
   if (sock->write_task == GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
-    sock->write_task = GNUNET_SCHEDULER_add_delayed (sock->sched,
-                                                     GNUNET_NO,
-                                                     GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                                     sock->connect_task,
-                                                     GNUNET_TIME_UNIT_ZERO,
-                                                     &transmit_ready, sock);
+    {
+      if (sock->connect_task == GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
+	sock->write_task = GNUNET_SCHEDULER_add_write (sock->sched,
+						       GNUNET_NO,
+						       GNUNET_SCHEDULER_PRIORITY_KEEP,
+						       GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+						       GNUNET_TIME_absolute_get_remaining (sock->nth.transmit_timeout),
+						       sock->sock,
+						       &transmit_ready, sock);
+      else
+	sock->write_task = GNUNET_SCHEDULER_add_delayed (sock->sched,
+							 GNUNET_NO,
+							 GNUNET_SCHEDULER_PRIORITY_KEEP,
+							 sock->connect_task,
+							 GNUNET_TIME_UNIT_ZERO,
+							 &transmit_ready, sock);
+    }
   return &sock->nth;
 }
 
