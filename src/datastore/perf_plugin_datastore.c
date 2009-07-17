@@ -28,7 +28,7 @@
 #include "gnunet_protocols.h"
 #include "plugin_datastore.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 /**
  * Target datastore size (in bytes).  Realistic sizes are
@@ -36,10 +36,9 @@
  * those take too long to run them in the usual "make check"
  * sequence.  Hence the value used for shipping is tiny.
  */
-#define MAX_SIZE 1024LL * 1024
-/* * 128 */
+#define MAX_SIZE 1024LL * 1024 * 128
 
-#define ITERATIONS 2
+#define ITERATIONS 10
 
 /**
  * Number of put operations equivalent to 1/10th of MAX_SIZE
@@ -76,6 +75,7 @@ struct CpsRunContext
   struct GNUNET_DATASTORE_PluginFunctions * api;
   const char *msg;
   enum RunPhase phase;
+  unsigned int cnt;
 };
 
 
@@ -152,7 +152,8 @@ iterateDummy (void *cls,
       crc->end = GNUNET_TIME_absolute_get();
       printf (crc->msg,
 	      crc->i,
-	      (unsigned long long) (crc->end.value - crc->start.value));
+	      (unsigned long long) (crc->end.value - crc->start.value),
+	      crc->cnt);
       if (crc->phase != RP_AN_GET)
 	{
 	  crc->phase++;
@@ -171,7 +172,7 @@ iterateDummy (void *cls,
 				  &test, crc);
       return GNUNET_OK;
     }
-  fprintf (stderr, ".");
+  crc->cnt++;
   crc->api->next_request (next_cls,
 			  GNUNET_NO);
   return GNUNET_OK;
@@ -238,8 +239,10 @@ test (void *cls,
       for (j=0;j<PUT_10;j++)
 	putValue (crc->api, j, crc->i);
       crc->end = GNUNET_TIME_absolute_get ();
-      printf ("%3u insertion              took %20llums\n", crc->i,
-	      (unsigned long long) (crc->end.value - crc->start.value));
+      printf ("%3u insertion took                      %20llums for %u\n",
+	      crc->i,
+	      (unsigned long long) (crc->end.value - crc->start.value),
+	      (unsigned int) PUT_10);
       crc->i++;
       crc->phase = RP_LP_GET;
       GNUNET_SCHEDULER_add_after (crc->sched,
@@ -249,36 +252,41 @@ test (void *cls,
 				  &test, crc);
       break;
     case RP_LP_GET:
+      crc->cnt = 0;
       crc->start = GNUNET_TIME_absolute_get ();      
-      crc->msg = "%3u low priority iteration took %20llums\n";
+      crc->msg = "%3u low priority iteration took         %20llums for %u\n";
       crc->api->iter_low_priority (crc->api->cls, 0, 
 				   &iterateDummy,
 				   crc);
       break;
     case RP_AE_GET:
+      crc->cnt = 0;
       crc->start = GNUNET_TIME_absolute_get ();      
-      crc->msg = "%3u ascending expiration iteration took %20llums\n";
+      crc->msg = "%3u ascending expiration iteration took %20llums for %u\n";
       crc->api->iter_ascending_expiration (crc->api->cls, 0, 
 				      &iterateDummy,
 				      crc);
       break;
     case RP_ZA_GET:
+      crc->cnt = 0;
       crc->start = GNUNET_TIME_absolute_get ();      
-      crc->msg = "%3u zero anonymity iteration took %20llums\n";
+      crc->msg = "%3u zero anonymity iteration took       %20llums for %u\n";
       crc->api->iter_zero_anonymity (crc->api->cls, 0, 
 				     &iterateDummy,
 				     crc);
       break;
     case RP_MO_GET:
+      crc->cnt = 0;
       crc->start = GNUNET_TIME_absolute_get ();      
-      crc->msg = "%3u migration order iteration took %20llums\n";
+      crc->msg = "%3u migration order iteration took      %20llums for %u\n";
       crc->api->iter_migration_order (crc->api->cls, 0, 
 				      &iterateDummy,
 				      crc);
       break;
     case RP_AN_GET:
+      crc->cnt = 0;
       crc->start = GNUNET_TIME_absolute_get ();      
-      crc->msg = "%3u all now iteration took %20llums\n";
+      crc->msg = "%3u all now iteration took              %20llums for %u\n";
       crc->api->iter_all_now (crc->api->cls, 0,
 			      &iterateDummy,
 			      crc);

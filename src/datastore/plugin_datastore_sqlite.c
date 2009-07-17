@@ -29,7 +29,7 @@
 #include "plugin_datastore.h"
 #include <sqlite3.h>
 
-#define DEBUG_SQLITE GNUNET_YES
+#define DEBUG_SQLITE GNUNET_NO
 
 /**
  * After how many payload-changing operations
@@ -431,7 +431,7 @@ struct NextContext;
  *         call which gives the callback a chance to
  *         clean up the closure
  * @return GNUNET_OK on success, GNUNET_NO if there are
- *        no more values, GNUNET_SYSERR on error
+ *         no more values, GNUNET_SYSERR on error
  */
 typedef int (*PrepareFunction)(void *cls,
 			       struct NextContext *nc);
@@ -480,6 +480,11 @@ struct NextContext
   unsigned long long last_rowid;
 
   /**
+   * Key of the last result.
+   */
+  GNUNET_HashCode lastKey;  
+
+  /**
    * Expiration time of the last value visited.
    */
   struct GNUNET_TIME_Absolute lastExpiration;
@@ -502,23 +507,16 @@ struct NextContext
 
 
 /**
- * Function invoked on behalf of a "PluginIterator"
- * asking the database plugin to call the iterator
- * with the next item.
+ * Continuation of "sqlite_next_request".
  *
- * @param next_cls whatever argument was given
- *        to the PluginIterator as "next_cls".
- * @param end_it set to GNUNET_YES if we
- *        should terminate the iteration early
- *        (iterator should be still called once more
- *         to signal the end of the iteration).
+ * @param cls the next context
  */
 static void 
-sqlite_next_request (void *next_cls,
-		     int end_it)
+sqlite_next_request_cont (void *cls,
+			  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   static struct GNUNET_TIME_Absolute zero;
-  struct NextContext * nc= next_cls;
+  struct NextContext * nc= cls;
   struct Plugin *plugin;
   unsigned long long rowid;
   sqlite3_stmt *stmtd;
@@ -531,13 +529,11 @@ sqlite_next_request (void *next_cls,
   const GNUNET_HashCode *key;
   const void *data;
 
+ 
   plugin = nc->plugin;
-  sqlite3_reset (nc->stmt);
-  if ( (GNUNET_YES == end_it) ||
-       (GNUNET_YES == nc->end_it) ||
+  if ( (GNUNET_YES == nc->end_it) ||
        (GNUNET_OK != (nc->prep(nc->prep_cls,
-			       nc))) ||
-       (SQLITE_ROW != sqlite3_step (nc->stmt)) )
+			       nc))) )
     {
     END:
       nc->iter (nc->iter_cls, 
@@ -589,11 +585,12 @@ sqlite_next_request (void *next_cls,
     }
 
   priority = sqlite3_column_int (nc->stmt, 2);
-  nc->lastPriority = priority;
   anonymity = sqlite3_column_int (nc->stmt, 3);
   expiration.value = sqlite3_column_int64 (nc->stmt, 4);
-  nc->lastExpiration = expiration;
   key = sqlite3_column_blob (nc->stmt, 5);
+  nc->lastPriority = priority;
+  nc->lastExpiration = expiration;
+  memcpy (&nc->lastKey, key, sizeof(GNUNET_HashCode));
   data = sqlite3_column_blob (nc->stmt, 6);
   nc->count++;
   ret = nc->iter (nc->iter_cls,
@@ -620,6 +617,35 @@ sqlite_next_request (void *next_cls,
 	sync_stats (plugin);
     }
 }
+
+
+/**
+ * Function invoked on behalf of a "PluginIterator"
+ * asking the database plugin to call the iterator
+ * with the next item.
+ *
+ * @param next_cls whatever argument was given
+ *        to the PluginIterator as "next_cls".
+ * @param end_it set to GNUNET_YES if we
+ *        should terminate the iteration early
+ *        (iterator should be still called once more
+ *         to signal the end of the iteration).
+ */
+static void 
+sqlite_next_request (void *next_cls,
+		     int end_it)
+{
+  struct NextContext * nc= next_cls;
+
+  if (GNUNET_YES == end_it)
+    nc->end_it = GNUNET_YES;
+  GNUNET_SCHEDULER_add_continuation (nc->plugin->env->sched,
+				     GNUNET_NO,				     
+				     &sqlite_next_request_cont,
+				     nc,
+				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+}
+
 
 
 /**
@@ -776,7 +802,6 @@ struct IterContext
   int is_migr;
   int limit_nonanonymous;
   uint32_t type;
-  GNUNET_HashCode key;  
 };
 
 
@@ -790,27 +815,52 @@ iter_next_prepare (void *cls,
 
   if (nc == NULL)
     {
+#if DEBUG_SQLITE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Asked to clean up iterator state.\n");
+#endif
       sqlite3_finalize (ic->stmt_1);
       sqlite3_finalize (ic->stmt_2);
       return GNUNET_SYSERR;
     }
+  sqlite3_reset (ic->stmt_1);
+  sqlite3_reset (ic->stmt_2);
   plugin = nc->plugin;
   if (ic->is_prio)
     {
+#if DEBUG_SQLITE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Restricting to results larger than the last priority %u\n",
+		  nc->lastPriority);
+#endif
       sqlite3_bind_int (ic->stmt_1, 1, nc->lastPriority);
       sqlite3_bind_int (ic->stmt_2, 1, nc->lastPriority);
     }
   else
     {
+#if DEBUG_SQLITE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Restricting to results larger than the last expiration %llu\n",
+		  (unsigned long long) nc->lastExpiration.value);
+#endif
       sqlite3_bind_int64 (ic->stmt_1, 1, nc->lastExpiration.value);
       sqlite3_bind_int64 (ic->stmt_2, 1, nc->lastExpiration.value);
     }
+#if DEBUG_SQLITE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Restricting to results larger than the last key `%s'\n",
+	      GNUNET_h2s(&nc->lastKey));
+#endif
   sqlite3_bind_blob (ic->stmt_1, 2, 
-		     &ic->key, 
+		     &nc->lastKey, 
 		     sizeof (GNUNET_HashCode),
 		     SQLITE_TRANSIENT);
   if (SQLITE_ROW == (ret = sqlite3_step (ic->stmt_1)))
-    {
+    {      
+#if DEBUG_SQLITE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Result found using iterator 1\n");
+#endif
       nc->stmt = ic->stmt_1;
       return GNUNET_OK;
     }
@@ -829,6 +879,10 @@ iter_next_prepare (void *cls,
 		"sqlite3_reset");
   if (SQLITE_ROW == (ret = sqlite3_step (ic->stmt_2))) 
     {
+#if DEBUG_SQLITE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Result found using iterator 2\n");
+#endif
       nc->stmt = ic->stmt_2;
       return GNUNET_OK;
     }
@@ -915,13 +969,13 @@ basic_iter (struct Plugin *plugin,
     {
       nc->lastPriority = 0;
       nc->lastExpiration.value = 0;
-      memset (&ic->key, 0, sizeof (GNUNET_HashCode));
+      memset (&nc->lastKey, 0, sizeof (GNUNET_HashCode));
     }
   else
     {
       nc->lastPriority = 0x7FFFFFFF;
       nc->lastExpiration.value = 0x7FFFFFFFFFFFFFFFLL;
-      memset (&ic->key, 255, sizeof (GNUNET_HashCode));
+      memset (&nc->lastKey, 255, sizeof (GNUNET_HashCode));
     }
   sqlite_next_request (nc, GNUNET_NO);
 }
@@ -974,9 +1028,9 @@ sqlite_plugin_iter_zero_anonymity (void *cls,
   char *q2;
 
   now = GNUNET_TIME_absolute_get ();
-  GNUNET_asprintf (&q1, SELECT_IT_EXPIRATION_TIME_1,
+  GNUNET_asprintf (&q1, SELECT_IT_NON_ANONYMOUS_1,
 		   now.value);
-  GNUNET_asprintf (&q2, SELECT_IT_EXPIRATION_TIME_2,
+  GNUNET_asprintf (&q2, SELECT_IT_NON_ANONYMOUS_2,
 		   now.value);
   basic_iter (cls,
 	      type, 
@@ -1060,6 +1114,41 @@ sqlite_plugin_iter_migration_order (void *cls,
 }
 
 
+static int
+all_next_prepare (void *cls,
+		  struct NextContext *nc)
+{
+  struct Plugin *plugin;
+  int ret;
+
+  if (nc == NULL)
+    {
+#if DEBUG_SQLITE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Asked to clean up iterator state.\n");
+#endif
+      return GNUNET_SYSERR;
+    }
+  plugin = nc->plugin;
+  if (SQLITE_ROW == (ret = sqlite3_step (nc->stmt)))
+    {      
+#if DEBUG_SQLITE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Result found\n");
+#endif
+      return GNUNET_OK;
+    }
+  if (ret != SQLITE_DONE)
+    {
+      LOG_SQLITE (plugin, NULL,
+		  GNUNET_ERROR_TYPE_ERROR |
+		  GNUNET_ERROR_TYPE_BULK,
+		  "sqlite3_step");
+      return GNUNET_SYSERR;
+    }
+  return GNUNET_NO;
+}
+
 
 /**
  * Select a subset of the items in the datastore and call
@@ -1078,7 +1167,28 @@ sqlite_plugin_iter_all_now (void *cls,
 			    void *iter_cls)
 {
   static struct GNUNET_TIME_Absolute zero;
-  iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, zero, 0);
+  struct Plugin *plugin = cls;
+  struct NextContext *nc;
+  sqlite3_stmt *stmt;
+
+  if (sq_prepare (plugin->dbh, 
+		  "SELECT size,type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn080",
+		  &stmt) != SQLITE_OK)
+    {
+      LOG_SQLITE (plugin, NULL,
+                  GNUNET_ERROR_TYPE_ERROR |
+                  GNUNET_ERROR_TYPE_BULK, "sqlite3_prepare");
+      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, zero, 0);
+      return;
+    }
+  nc = GNUNET_malloc (sizeof(struct NextContext));
+  nc->plugin = plugin;
+  nc->iter = iter;
+  nc->iter_cls = iter_cls;
+  nc->stmt = stmt;
+  nc->prep = &all_next_prepare;
+  nc->prep_cls = NULL;
+  sqlite_next_request (nc, GNUNET_NO);
 }
 
 
@@ -1117,6 +1227,7 @@ get_next_prepare (void *cls,
   else
     limit_off = 0;
   sqoff = 1;
+  sqlite3_reset (nc->stmt);
   ret = sqlite3_bind_blob (nc->stmt,
 			   sqoff++,
 			   &gnc->key, 
