@@ -186,7 +186,13 @@ main (int argc, char *argv[])
 {
   int ret = 0;
 
-  GNUNET_log_setup ("test_network_addressing", "WARNING", NULL);
+  GNUNET_log_setup ("test_network_addressing", 
+#if VERBOSE
+		    "DEBUG",
+#else
+		    "WARNING", 
+#endif
+		    NULL);
   ret += check ();
   return ret;
 }
