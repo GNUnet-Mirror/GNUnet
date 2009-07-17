@@ -21,6 +21,7 @@
  * @file transport/test_transport_api.c
  * @brief testcase for transport_api.c
  * @author Sailor Siraj
+ * @author Christian Grothoff
  */
 
 #include "platform.h"
