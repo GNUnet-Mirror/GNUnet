@@ -285,11 +285,11 @@ database_setup (struct GNUNET_CONFIGURATION_Handle *cfg,
   if ( (sqlite3_step (stmt) == SQLITE_DONE) &&
        (sqlite3_exec (plugin->dbh,
 		      "CREATE TABLE gn080 ("
-		      "  size INTEGER NOT NULL DEFAULT 0,"
-		      "  type INTEGER NOT NULL DEFAULT 0,"
-		      "  prio INTEGER NOT NULL DEFAULT 0,"
-		      "  anonLevel INTEGER NOT NULL DEFAULT 0,"
-		      "  expire INTEGER NOT NULL DEFAULT 0,"
+		      "  size INT4 NOT NULL DEFAULT 0,"
+		      "  type INT4 NOT NULL DEFAULT 0,"
+		      "  prio INT4 NOT NULL DEFAULT 0,"
+		      "  anonLevel INT4 NOT NULL DEFAULT 0,"
+		      "  expire INT8 NOT NULL DEFAULT 0,"
 		      "  hash TEXT NOT NULL DEFAULT '',"
 		      "  vhash TEXT NOT NULL DEFAULT '',"
 		      "  value BLOB NOT NULL DEFAULT '')", NULL, NULL,
@@ -681,11 +681,12 @@ sqlite_plugin_put (void *cls,
 #if DEBUG_SQLITE
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "sqlite",
-		   "Storing in database block with type %u/key `%s'/priority %u/expiration %llu.\n",
+		   "Storing in database block with type %u/key `%s'/priority %u/expiration %llu (%lld).\n",
 		   type, 
 		   GNUNET_h2s(key),
 		   priority,
-		   GNUNET_TIME_absolute_get_remaining (expiration).value);
+		   (unsigned long long) GNUNET_TIME_absolute_get_remaining (expiration).value,
+		   (long long) expiration.value);
 #endif
   GNUNET_CRYPTO_hash (data, size, &vhash);
   stmt = plugin->insertContent;
