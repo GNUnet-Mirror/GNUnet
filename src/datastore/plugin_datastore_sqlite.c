@@ -969,13 +969,24 @@ sqlite_plugin_iter_zero_anonymity (void *cls,
 				   PluginIterator iter,
 				   void *iter_cls)
 {
+  struct GNUNET_TIME_Absolute now;
+  char *q1;
+  char *q2;
+
+  now = GNUNET_TIME_absolute_get ();
+  GNUNET_asprintf (&q1, SELECT_IT_EXPIRATION_TIME_1,
+		   now.value);
+  GNUNET_asprintf (&q2, SELECT_IT_EXPIRATION_TIME_2,
+		   now.value);
   basic_iter (cls,
 	      type, 
 	      GNUNET_NO, GNUNET_YES, 
 	      GNUNET_NO, GNUNET_YES,
-	      SELECT_IT_NON_ANONYMOUS_1,
-	      SELECT_IT_NON_ANONYMOUS_2, 
+	      q1,
+	      q2,
 	      iter, iter_cls);
+  GNUNET_free (q1);
+  GNUNET_free (q2);
 }
 
 

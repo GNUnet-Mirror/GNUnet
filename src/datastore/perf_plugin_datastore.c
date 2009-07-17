@@ -36,9 +36,10 @@
  * those take too long to run them in the usual "make check"
  * sequence.  Hence the value used for shipping is tiny.
  */
-#define MAX_SIZE 1024LL * 1024 * 128
+#define MAX_SIZE 1024LL * 1024
+/* * 128 */
 
-#define ITERATIONS 10
+#define ITERATIONS 2
 
 /**
  * Number of put operations equivalent to 1/10th of MAX_SIZE
@@ -170,9 +171,56 @@ iterateDummy (void *cls,
 				  &test, crc);
       return GNUNET_OK;
     }
+  fprintf (stderr, ".");
   crc->api->next_request (next_cls,
 			  GNUNET_NO);
   return GNUNET_OK;
+}
+
+
+
+/**
+ * Function called when the service shuts
+ * down.  Unloads our datastore plugin.
+ *
+ * @param api api to unload
+ */
+static void
+unload_plugin (struct GNUNET_DATASTORE_PluginFunctions * api,
+	       struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  char *name;
+  char *libname;
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             "DATASTORE", "DATABASE", &name))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("No `%s' specified for `%s' in configuration!\n"),
+		  "DATABASE",
+		  "DATASTORE");
+      return;
+    }
+  GNUNET_asprintf (&libname, "libgnunet_plugin_datastore_%s", name);
+  GNUNET_break (NULL == GNUNET_PLUGIN_unload (libname, api));
+  GNUNET_free (libname);
+  GNUNET_free (name);
+}
+
+
+
+/**
+ * Last task run during shutdown.  Disconnects us from
+ * the transport and core.
+ */
+static void
+cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct CpsRunContext *crc = cls;
+
+  unload_plugin (crc->api, crc->cfg);
+  GNUNET_free (crc);
 }
 
 
@@ -237,6 +285,12 @@ test (void *cls,
       break;
     case RP_DONE:
       crc->api->drop (crc->api->cls);
+      GNUNET_SCHEDULER_add_delayed (crc->sched,
+				    GNUNET_YES,
+				    GNUNET_SCHEDULER_PRIORITY_IDLE,
+				    GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+				    GNUNET_TIME_UNIT_ZERO,
+				    &cleaning_task, crc);
       break;
     }
 }
@@ -276,52 +330,6 @@ load_plugin (struct GNUNET_CONFIGURATION_Handle *cfg,
 }
 
 
-/**
- * Function called when the service shuts
- * down.  Unloads our datastore plugin.
- *
- * @param api api to unload
- */
-static void
-unload_plugin (struct GNUNET_DATASTORE_PluginFunctions * api,
-	       struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  char *name;
-  char *libname;
-
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             "DATASTORE", "DATABASE", &name))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("No `%s' specified for `%s' in configuration!\n"),
-		  "DATABASE",
-		  "DATASTORE");
-      return;
-    }
-  GNUNET_asprintf (&libname, "libgnunet_plugin_datastore_%s", name);
-  GNUNET_break (NULL == GNUNET_PLUGIN_unload (libname, api));
-  GNUNET_free (libname);
-  GNUNET_free (name);
-}
-
-
-
-/**
- * Last task run during shutdown.  Disconnects us from
- * the transport and core.
- */
-static void
-cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct CpsRunContext *crc = cls;
-
-  unload_plugin (crc->api, crc->cfg);
-  GNUNET_free (crc);
-}
-
-
-
 static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
@@ -344,12 +352,6 @@ run (void *cls,
 			      GNUNET_SCHEDULER_PRIORITY_KEEP,
 			      GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
 			      &test, crc);
-  GNUNET_SCHEDULER_add_delayed (s,
-                                GNUNET_YES,
-                                GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
-                                GNUNET_TIME_UNIT_FOREVER_REL,
-                                &cleaning_task, crc);
 }
 
 
