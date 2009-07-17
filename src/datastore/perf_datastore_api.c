@@ -114,43 +114,7 @@ static int ok;
 static int
 putValue (int i, int k)
 {
-  size_t size;
-  static GNUNET_HashCode key;
-  static int ic;
-  static char data[65536];
 
-  /* most content is 32k */
-  size = 32 * 1024;
-  if (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16) == 0)  /* but some of it is less! */
-    size = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 32 * 1024);
-  size = size - (size & 7);     /* always multiple of 8 */
-
-  GNUNET_CRYPTO_hash (&key, sizeof (GNUNET_HashCode), &key);
-  memset (data, i, size);
-  if (i > 255)
-    memset (data, i - 255, size / 2);
-  data[0] = k;
-  GNUNET_DATASTORE_put (datastore,
-			0,
-			&key,
-			size,
-			data,
-			i,
-			GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100),
-			i,
-			GNUNET_TIME_relative_to_absolute 
-			(GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-							GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 1000))),
-			TIMEOUT,
-			NULL, NULL);
-  ic++;
-#if REPORT_ID
-  if (ic % REP_FREQ == 0)
-    fprintf (stderr, "I");
-#endif
-  stored_bytes += size;
-  stored_ops++;
-  stored_entries++;
   return GNUNET_OK;
 }
 
@@ -202,29 +166,74 @@ run_continuation (void *cls,
 
 
 
+
+static void
+check_success (void *cls,
+	       int success,
+	       const char *msg)
+{
+  struct CpsRunContext *crc = cls;
+  if (GNUNET_OK != success)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"%s\n", msg);
+  GNUNET_assert (GNUNET_OK == success);
+  ic++;
+#if REPORT_ID
+  if (ic % REP_FREQ == 0)
+    fprintf (stderr, "I");
+#endif
+  stored_bytes += size;
+  stored_ops++;
+  stored_entries++;
+  GNUNET_SCHEDULER_add_continuation (crc->sched,
+				     GNUNET_NO,
+				     &run_continuation,
+				     crc,
+				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+}
+
 static void
 run_continuation (void *cls,
 		  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct CpsRunContext *crc = cls;
+  size_t size;
+  static GNUNET_HashCode key;
+  static int ic;
+  static char data[65536];
+  int i;
+  int k;
+
   ok = (int) crc->phase;
   switch (crc->phase)
     {
     case RP_PUT:
       memset (&crc->key, 256 - crc->i, sizeof (GNUNET_HashCode));
-
-      GNUNET_assert (GNUNET_OK == putValue (crc->j, crc->i));
+      i = crc->j;
+      k = crc->i;
+      /* most content is 32k */
+      size = 32 * 1024;
+      if (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16) == 0)  /* but some of it is less! */
+	size = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 32 * 1024);
+      size = size - (size & 7);     /* always multiple of 8 */
+      GNUNET_CRYPTO_hash (&key, sizeof (GNUNET_HashCode), &key);
+      memset (data, i, size);
+      if (i > 255)
+	memset (data, i - 255, size / 2);
+      data[0] = k;
       GNUNET_DATASTORE_put (datastore,
 			    0,
-			    &crc->key,
-			    get_size (crc->i),
-			    get_data (crc->i),
-			    get_type (crc->i),
-			    get_priority (crc->i),
-			    get_anonymity (crc->i),
-			    get_expiration (crc->i),
+			    &key,
+			    size,
+			    data,
+			    i,
+			    GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100),
+			    i,
+			    GNUNET_TIME_relative_to_absolute 
+			    (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+							    GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 1000))),
 			    TIMEOUT,
-			    &check_success,
+			    &check_success, 
 			    crc);
       crc->j++;
       if (crc->j < PUT_10)
