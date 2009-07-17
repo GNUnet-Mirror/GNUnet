@@ -1,4 +1,4 @@
-
+/*
      This file is part of GNUnet.
      (C) 2009 Christian Grothoff (and other contributing authors)
 
@@ -92,62 +92,55 @@ struct GNUNET_TRANSPORT_PluginFunctions *api;
 
 /**
  * Initialize Environment for this plugin
- *
- *
  */
-
-struct ReadyList * receive(void *cls,void *plugin_context,
-                                             struct ReadyList *
-                                             service_context,
-                                             struct GNUNET_TIME_Relative
-                                             latency,
-                                             const struct GNUNET_PeerIdentity
-                                             * peer,
-                                             const struct GNUNET_MessageHeader
-                                             * message){
-	
-	return NULL;
+struct ReadyList * 
+receive(void *cls,void *plugin_context,
+	struct ReadyList *
+	service_context,
+	struct GNUNET_TIME_Relative
+	latency,
+	const struct GNUNET_PeerIdentity
+	* peer,
+	const struct GNUNET_MessageHeader
+	* message)
+{
+  return NULL;
 }
 
 void notify_address(void *cls,
-                                                      const char *name,
-                                                      const void *addr,
-                                                      size_t addrlen,
-                                                      struct
-                                                      GNUNET_TIME_Relative
-                                                      expires)
+		    const char *name,
+		    const void *addr,
+		    size_t addrlen,
+		    struct
+		    GNUNET_TIME_Relative
+		    expires)
 {
-
-	
-	
 }
 
 void lookup (void *cls,
-                                                struct GNUNET_TIME_Relative
-                                                timeout,
-                                                const struct
-                                                GNUNET_PeerIdentity * target,
-                                                GNUNET_TRANSPORT_AddressCallback
-                                                iter, void *iter_cls){
-	
-	
+	     struct GNUNET_TIME_Relative
+	     timeout,
+	     const struct
+	     GNUNET_PeerIdentity * target,
+	     GNUNET_TRANSPORT_AddressCallback
+	     iter, void *iter_cls)
+{	
 }
 
 
 static void setup_plugin_environment()
 {
-	
-	
-	env.cfg  = cfg;
-	env.sched = sched;
-	env.my_public_key = my_public_key;
-	env.cls=&env;
-	env.receive=&receive;
-	env.lookup=&lookup;
-	env.notify_address=&notify_address;
-	env.max_connections = max_connect_per_transport;
-	
+  env.cfg  = cfg;
+  env.sched = sched;
+  env.my_public_key = my_public_key;
+  env.cls=&env;
+  env.receive=&receive;
+  env.lookup=&lookup;
+  env.notify_address=&notify_address;
+  env.max_connections = max_connect_per_transport;       
 }	
+
+
 /**
  * Initiate transport service.
  *
@@ -160,11 +153,10 @@ static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
      struct GNUNET_SERVER_Handle *serv, struct GNUNET_CONFIGURATION_Handle *c)
-{
-  
-  
+{ 
   unsigned long long tneigh;
   char *keyfile;
+  char *libname;
 
   sched = s;
   cfg = c;
@@ -181,8 +173,7 @@ run (void *cls,
                                                 "HOSTKEY", &keyfile)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _
-                  ("Transport service is lacking key configuration settings.  Exiting.\n"));
+                  _("Transport service is lacking key configuration settings.  Exiting.\n"));
       GNUNET_SCHEDULER_shutdown (s);
       return;
     }
@@ -192,8 +183,7 @@ run (void *cls,
   if (my_private_key == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _
-                  ("Transport service could not access hostkey.  Exiting.\n"));
+                  _("Transport service could not access hostkey.  Exiting.\n"));
       GNUNET_SCHEDULER_shutdown (s);
       return;
     }
@@ -203,25 +193,19 @@ run (void *cls,
   
 
   
-  /* load plugins... */
-
-
-  
+  /* load plugins... */  
   setup_plugin_environment();
-  char *libname;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Loading tcp transport plugin\n"));
   GNUNET_asprintf (&libname, "libgnunet_plugin_transport_tcp");
 
-  api = GNUNET_PLUGIN_load(libname,&env);
-
+  api = GNUNET_PLUGIN_load(libname, &env);
   if (api == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Failed to load transport plugin for tcp\n"));
-    }
+    } 
   
-
 }
 
 
@@ -234,8 +218,7 @@ run (void *cls,
  */
 static void
 unload_plugins (void *cls, struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  
+{  
   GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_tcp",api));
   if (my_private_key != NULL)
     GNUNET_CRYPTO_rsa_key_free (my_private_key);
@@ -259,10 +242,7 @@ main (int argc, char *const *argv)
 #else
                     "WARNING",
 #endif
-                    NULL);
-
-	
-
+                    NULL);       
   return (GNUNET_OK ==
           GNUNET_SERVICE_run (argc,
                               argv,
