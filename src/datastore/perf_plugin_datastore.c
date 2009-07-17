@@ -28,7 +28,7 @@
 #include "gnunet_protocols.h"
 #include "plugin_datastore.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 /**
  * Target datastore size (in bytes).  Realistic sizes are
@@ -36,9 +36,10 @@
  * those take too long to run them in the usual "make check"
  * sequence.  Hence the value used for shipping is tiny.
  */
-#define MAX_SIZE 1024LL * 1024 * 128
+#define MAX_SIZE 1024LL * 1024 / 4
+// * 128
 
-#define ITERATIONS 10
+#define ITERATIONS 2
 
 /**
  * Number of put operations equivalent to 1/10th of MAX_SIZE
@@ -88,6 +89,7 @@ putValue (struct GNUNET_DATASTORE_PluginFunctions * api, int i, int k)
   static GNUNET_HashCode key;
   static int ic;
   char *msg;
+  unsigned int prio;
 
   /* most content is 32k */
   size = 32 * 1024;
@@ -104,12 +106,13 @@ putValue (struct GNUNET_DATASTORE_PluginFunctions * api, int i, int k)
     memset (value, i - 255, size / 2);
   value[0] = k;
   msg = NULL;
+  prio = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100);
   if (GNUNET_OK != api->put (api->cls,
 			     &key, 
 			     size,
 			     value,
 			     i,
-			     GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100),
+			     prio,
 			     i,
 			     GNUNET_TIME_relative_to_absolute 
 			     (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
@@ -172,6 +175,11 @@ iterateDummy (void *cls,
 				  &test, crc);
       return GNUNET_OK;
     }
+#if VERBOSE
+  fprintf (stderr, "Found result type=%u, priority=%u, size=%u, expire=%llu\n",
+	   type, priority, size,
+	   (unsigned long long) expiration.value);
+#endif
   crc->cnt++;
   crc->api->next_request (next_cls,
 			  GNUNET_NO);

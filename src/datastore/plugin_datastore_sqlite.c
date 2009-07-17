@@ -29,7 +29,7 @@
 #include "plugin_datastore.h"
 #include <sqlite3.h>
 
-#define DEBUG_SQLITE GNUNET_NO
+#define DEBUG_SQLITE GNUNET_YES
 
 /**
  * After how many payload-changing operations
@@ -899,6 +899,10 @@ iter_next_prepare (void *cls,
 		GNUNET_ERROR_TYPE_ERROR |
 		GNUNET_ERROR_TYPE_BULK,
 		"sqlite3_reset");
+#if DEBUG_SQLITE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "No result found using either iterator\n");
+#endif
   return GNUNET_NO;
 }
 
@@ -932,6 +936,13 @@ basic_iter (struct Plugin *plugin,
   sqlite3_stmt *stmt_1;
   sqlite3_stmt *stmt_2;
 
+#if DEBUG_SQLITE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "At %llu, using queries `%s' and `%s'\n",
+	      (unsigned long long) GNUNET_TIME_absolute_get ().value,
+	      stmt_str_1,
+	      stmt_str_2);
+#endif
   if (sq_prepare (plugin->dbh, stmt_str_1, &stmt_1) != SQLITE_OK)
     {
       LOG_SQLITE (plugin, NULL,
@@ -1029,9 +1040,9 @@ sqlite_plugin_iter_zero_anonymity (void *cls,
 
   now = GNUNET_TIME_absolute_get ();
   GNUNET_asprintf (&q1, SELECT_IT_NON_ANONYMOUS_1,
-		   now.value);
+		   (unsigned long long) now.value);
   GNUNET_asprintf (&q2, SELECT_IT_NON_ANONYMOUS_2,
-		   now.value);
+		   (unsigned long long) now.value);
   basic_iter (cls,
 	      type, 
 	      GNUNET_NO, GNUNET_YES, 
@@ -1067,9 +1078,9 @@ sqlite_plugin_iter_ascending_expiration (void *cls,
 
   now = GNUNET_TIME_absolute_get ();
   GNUNET_asprintf (&q1, SELECT_IT_EXPIRATION_TIME_1,
-		   now.value);
+		   (unsigned long long) 0*now.value);
   GNUNET_asprintf (&q2, SELECT_IT_EXPIRATION_TIME_2,
-		   now.value);
+		   (unsigned long long) 0*now.value);
   basic_iter (cls,
 	      type, 
 	      GNUNET_YES, GNUNET_NO, 
@@ -1102,7 +1113,7 @@ sqlite_plugin_iter_migration_order (void *cls,
 
   now = GNUNET_TIME_absolute_get ();
   GNUNET_asprintf (&q, SELECT_IT_MIGRATION_ORDER_2,
-		   now.value);
+		   (unsigned long long) now.value);
   basic_iter (cls,
 	      type, 
 	      GNUNET_NO, GNUNET_NO, 
@@ -1132,10 +1143,6 @@ all_next_prepare (void *cls,
   plugin = nc->plugin;
   if (SQLITE_ROW == (ret = sqlite3_step (nc->stmt)))
     {      
-#if DEBUG_SQLITE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Result found\n");
-#endif
       return GNUNET_OK;
     }
   if (ret != SQLITE_DONE)
