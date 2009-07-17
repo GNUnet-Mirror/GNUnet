@@ -67,7 +67,7 @@ enum RunPhase
 
 struct CpsRunContext
 {
-  int i;
+  unsigned int i;
   struct GNUNET_TIME_Absolute start;
   struct GNUNET_TIME_Absolute end;
   struct GNUNET_SCHEDULER_Handle *sched;
@@ -126,6 +126,10 @@ putValue (struct GNUNET_DATASTORE_PluginFunctions * api, int i, int k)
   stored_entries++;
 }
 
+static void
+test (void *cls,
+      const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 
 static int
 iterateDummy (void *cls,
@@ -146,6 +150,7 @@ iterateDummy (void *cls,
     {
       crc->end = GNUNET_TIME_absolute_get();
       printf (crc->msg,
+	      crc->i,
 	      (unsigned long long) (crc->end.value - crc->start.value));
       if (crc->phase != RP_AN_GET)
 	{
@@ -158,12 +163,18 @@ iterateDummy (void *cls,
 	  else
 	    crc->phase = RP_PUT;
 	}
+      GNUNET_SCHEDULER_add_after (crc->sched,
+				  GNUNET_NO,
+				  GNUNET_SCHEDULER_PRIORITY_KEEP,
+				  GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+				  &test, crc);
       return GNUNET_OK;
     }
   crc->api->next_request (next_cls,
 			  GNUNET_NO);
   return GNUNET_OK;
 }
+
 
 static void
 test (void *cls,

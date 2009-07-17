@@ -519,7 +519,7 @@ sqlite_next_request (void *next_cls,
 {
   static struct GNUNET_TIME_Absolute zero;
   struct NextContext * nc= next_cls;
-  struct Plugin *plugin = nc->plugin;
+  struct Plugin *plugin;
   unsigned long long rowid;
   sqlite3_stmt *stmtd;
   int ret;
@@ -531,6 +531,7 @@ sqlite_next_request (void *next_cls,
   const GNUNET_HashCode *key;
   const void *data;
 
+  plugin = nc->plugin;
   sqlite3_reset (nc->stmt);
   if ( (GNUNET_YES == end_it) ||
        (GNUNET_YES == nc->end_it) ||
@@ -784,7 +785,7 @@ iter_next_prepare (void *cls,
 		   struct NextContext *nc)
 {
   struct IterContext *ic = cls;
-  struct Plugin *plugin = nc->plugin;
+  struct Plugin *plugin;
   int ret;
 
   if (nc == NULL)
@@ -793,6 +794,7 @@ iter_next_prepare (void *cls,
       sqlite3_finalize (ic->stmt_2);
       return GNUNET_SYSERR;
     }
+  plugin = nc->plugin;
   if (ic->is_prio)
     {
       sqlite3_bind_int (ic->stmt_1, 1, nc->lastPriority);
