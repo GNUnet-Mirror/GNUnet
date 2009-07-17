@@ -95,7 +95,7 @@ struct GNUNET_TIME_Absolute
 GNUNET_TIME_relative_to_absolute (struct GNUNET_TIME_Relative rel)
 {
   struct GNUNET_TIME_Absolute ret;
-  if (rel.value == (uint64_t) - 1LL)
+  if (rel.value == (uint64_t) -1LL)
     return GNUNET_TIME_absolute_get_forever ();
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
   if (rel.value + now.value < rel.value)
@@ -218,7 +218,7 @@ GNUNET_TIME_relative_multiply (struct GNUNET_TIME_Relative rel,
   struct GNUNET_TIME_Relative ret;
   if (factor == 0)
     return GNUNET_TIME_relative_get_zero ();
-  ret.value = rel.value * factor;
+  ret.value = rel.value * (unsigned long long) factor;
   if (ret.value / factor != rel.value)
     {
       GNUNET_break (0);
