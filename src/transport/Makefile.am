@@ -70,7 +70,8 @@ libgnunet_plugin_transport_template_la_LDFLAGS = \
 
 
 check_PROGRAMS = \
- test_transport_api 
+ test_transport_api \
+ test_plugin_transport
 # TODO: add tests for tcp, udp, http, nat, etc.
 
 TESTS = $(check_PROGRAMS)
@@ -78,6 +79,13 @@ TESTS = $(check_PROGRAMS)
 test_transport_api_SOURCES = \
  test_transport_api.c
 test_transport_api_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+
+test_plugin_transport_SOURCES = \
+ test_plugin_transport.c
+test_plugin_transport_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
