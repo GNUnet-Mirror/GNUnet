@@ -107,6 +107,21 @@ GNUNET_TIME_relative_to_absolute (struct GNUNET_TIME_Relative rel)
   return ret;
 }
 
+
+/**
+ * Return the minimum of two relative time values.
+ *
+ * @return timestamp that is smaller
+ */
+struct GNUNET_TIME_Relative GNUNET_TIME_relative_min (struct
+						      GNUNET_TIME_Relative
+						      t1,
+						      struct
+						      GNUNET_TIME_Relative t2)
+{
+  return (t1.value < t2.value) ? t1 : t2;
+}
+
 /**
  * Given a timestamp in the future, how much time
  * remains until then?

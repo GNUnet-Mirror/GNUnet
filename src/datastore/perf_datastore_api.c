@@ -111,7 +111,6 @@ static struct GNUNET_TIME_Absolute start_time;
 
 static int ok;
 
-
 static int
 putValue (int i, int k)
 {
@@ -171,33 +170,81 @@ iterate_delete (void *cls,
 }
 
 
+enum RunPhase
+  {
+    RP_DONE = 0,
+    RP_PUT,
+    RP_CUT,
+    RP_REPORT,
+    RP_END
+  };
 
-static void
-run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *sched,
-     char *const *args,
-     const char *cfgfile, struct GNUNET_CONFIGURATION_Handle *cfg)
+
+struct CpsRunContext
 {
+  struct GNUNET_SCHEDULER_Handle *sched;
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+  enum RunPhase phase;
   int j;
   unsigned long long size;
   int i;
 
-  datastore = GNUNET_DATASTORE_connect (cfg, sched);
-  /* FIXME: change loop to use CPS; current
-     datastore API will likely react negative to
-     us ignoring the callbacks... */
-  for (i = 0; i < ITERATIONS; i++)
-    {
-#if REPORT_ID
-      fprintf (stderr, ".");
-#endif
-      /* insert data equivalent to 1/10th of MAX_SIZE */
-      for (j = 0; j < PUT_10; j++)
-	GNUNET_assert (GNUNET_OK == putValue (j, i));
 
+  GNUNET_HashCode key;
+  int *iptr;
+};
+
+
+
+static void
+run_continuation (void *cls,
+		  const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+
+static void
+run_continuation (void *cls,
+		  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct CpsRunContext *crc = cls;
+  ok = (int) crc->phase;
+  switch (crc->phase)
+    {
+    case RP_PUT:
+      memset (&crc->key, 256 - crc->i, sizeof (GNUNET_HashCode));
+
+      GNUNET_assert (GNUNET_OK == putValue (j, i));
+      GNUNET_DATASTORE_put (datastore,
+			    0,
+			    &crc->key,
+			    get_size (crc->i),
+			    get_data (crc->i),
+			    get_type (crc->i),
+			    get_priority (crc->i),
+			    get_anonymity (crc->i),
+			    get_expiration (crc->i),
+			    TIMEOUT,
+			    &check_success,
+			    crc);
+      crc->j++;
+      if (crc->j < PUT_10)
+	break;
+      crc->j = 0;
+      crc->i++;
+      if (crc->i == ITERATIONS)
+	crc->phase = RP_DONE;
+      else
+	crc->phase = RP_CUT;
+      break;
+    case RP_CUT:
       /* trim down below MAX_SIZE again */
       if ((i % 2) == 0)
-        GNUNET_DATASTORE_get_random (datastore, &iterate_delete, NULL);
+        GNUNET_DATASTORE_get_random (datastore, 
+				     &iterate_delete,
+				     NULL);
+      crc->phase = RP_REPORT;
+      break;
+    case RP_REPORT:
       size = 0;
       printf (
 #if REPORT_ID
@@ -207,8 +254,41 @@ run (void *cls,
 	       stored_bytes / 1024,     /* used size in k */
                (stored_ops * 2 - stored_entries) / 1024,        /* total operations (in k) */
                1000 * (stored_ops * 2 - stored_entries) / (1 + GNUNET_TIME_absolute_get_duration(start_time).value));       /* operations per second */
+      crc->phase = RP_PUT;
+      // fixme: trigger next round...
+      GNUNET_SCHEDULER_add_continuation (crc->sched,
+					 GNUNET_NO,
+					 &run_continuation,
+					 crc,
+					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      break;
+    case RP_DONE:
+      GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
+      ok = 0;
+      break;
     }
-  GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
+}
+
+
+static void
+run (void *cls,
+     struct GNUNET_SCHEDULER_Handle *sched,
+     char *const *args,
+     const char *cfgfile, struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  struct CpsRunContext *crc;
+
+  datastore = GNUNET_DATASTORE_connect (cfg, sched);
+
+  crc = GNUNET_malloc(sizeof(struct CpsRunContext));
+  crc->sched = sched;
+  crc->cfg = cfg;
+  crc->phase = RP_PUT;
+  GNUNET_SCHEDULER_add_continuation (crc->sched,
+				     GNUNET_NO,
+				     &run_continuation,
+				     crc,
+				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 

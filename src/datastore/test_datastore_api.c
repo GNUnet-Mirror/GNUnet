@@ -82,7 +82,7 @@ get_anonymity(int i)
 }
 
 
-static struct GNUNET_TIME_Absolute 
+tatic struct GNUNET_TIME_Absolute 
 get_expiration (int i)
 {
   struct GNUNET_TIME_Absolute av;
