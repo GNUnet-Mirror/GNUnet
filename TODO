@@ -59,8 +59,7 @@ Datastores:
 * implement sqlite-based sqstore/datastore service
   + implement service (datastore + talks to plugin)
   + implement library (talks to service)
-  + implement sqlite plugin (talks to DB)
-  + fix testcases (make them use CPS, complete their inner workings...)
+  + get testcases to pass
 * implement sqlite-based dstore services
   + design API
   + implement library (talks to service)
