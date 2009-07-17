@@ -111,36 +111,12 @@ static struct GNUNET_TIME_Absolute start_time;
 
 static int ok;
 
-static int
-putValue (int i, int k)
-{
-
-  return GNUNET_OK;
-}
-
-
-static void
-iterate_delete (void *cls,
-		const GNUNET_HashCode * key,
-		uint32_t size,
-		const void *data,
-		uint32_t type,
-		uint32_t priority,
-		uint32_t anonymity,
-		struct GNUNET_TIME_Absolute
-		expiration, uint64_t uid)
-{
-  GNUNET_DATASTORE_remove (datastore, key, size, data, NULL, NULL);
-}
-
-
 enum RunPhase
   {
     RP_DONE = 0,
     RP_PUT,
     RP_CUT,
-    RP_REPORT,
-    RP_END
+    RP_REPORT
   };
 
 
@@ -152,10 +128,6 @@ struct CpsRunContext
   int j;
   unsigned long long size;
   int i;
-
-
-  GNUNET_HashCode key;
-  int *iptr;
 };
 
 
@@ -172,6 +144,8 @@ check_success (void *cls,
 	       int success,
 	       const char *msg)
 {
+  static int ic;
+
   struct CpsRunContext *crc = cls;
   if (GNUNET_OK != success)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -182,15 +156,80 @@ check_success (void *cls,
   if (ic % REP_FREQ == 0)
     fprintf (stderr, "I");
 #endif
-  stored_bytes += size;
+  stored_bytes += crc->size;
   stored_ops++;
   stored_entries++;
+  crc->j++;
+  if (crc->j == PUT_10)
+    {
+      crc->j = 0;
+      crc->i++;
+      if (crc->i == ITERATIONS)
+	crc->phase = RP_DONE;
+      else
+	crc->phase = RP_CUT;
+    }
   GNUNET_SCHEDULER_add_continuation (crc->sched,
 				     GNUNET_NO,
 				     &run_continuation,
 				     crc,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
+
+
+/**
+ * Continuation called to notify client about result of the
+ * operation.
+ *
+ * @param cls closure
+ * @param success GNUNET_SYSERR on failure
+ * @param msg NULL on success, otherwise an error message
+ */
+static void 
+remove_next(void *cls,
+	    int success,
+	    const char *msg)
+{
+  GNUNET_assert (GNUNET_OK == success);
+}
+
+
+static void 
+delete_value (void *cls,
+	     const GNUNET_HashCode * key,
+	     uint32_t size,
+	     const void *data,
+	     uint32_t type,
+	     uint32_t priority,
+	     uint32_t anonymity,
+	     struct GNUNET_TIME_Absolute
+	     expiration, uint64_t uid)
+{
+  struct CpsRunContext *crc = cls;
+
+  /* FIXME: should probably abort deletion iteration
+     earlier (to not delete everything...) */
+  if (key == NULL)
+    {
+      crc->phase = RP_REPORT;
+      /* FIXME: should wait for all "remove_next" calls
+	 to complete before going back to the run_continuation */
+      GNUNET_SCHEDULER_add_continuation (crc->sched,
+					 GNUNET_NO,
+					 &run_continuation,
+					 crc,
+					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      return;
+    }
+  GNUNET_DATASTORE_remove (datastore,
+			   key,
+			   size,
+			   data,
+			   &remove_next,
+			   crc);
+}
+
+
 
 static void
 run_continuation (void *cls,
@@ -199,7 +238,6 @@ run_continuation (void *cls,
   struct CpsRunContext *crc = cls;
   size_t size;
   static GNUNET_HashCode key;
-  static int ic;
   static char data[65536];
   int i;
   int k;
@@ -208,14 +246,14 @@ run_continuation (void *cls,
   switch (crc->phase)
     {
     case RP_PUT:
-      memset (&crc->key, 256 - crc->i, sizeof (GNUNET_HashCode));
+      memset (&key, 256 - crc->i, sizeof (GNUNET_HashCode));
       i = crc->j;
       k = crc->i;
       /* most content is 32k */
       size = 32 * 1024;
       if (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16) == 0)  /* but some of it is less! */
 	size = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 32 * 1024);
-      size = size - (size & 7);     /* always multiple of 8 */
+      crc->size = size = size - (size & 7);     /* always multiple of 8 */
       GNUNET_CRYPTO_hash (&key, sizeof (GNUNET_HashCode), &key);
       memset (data, i, size);
       if (i > 255)
@@ -235,23 +273,22 @@ run_continuation (void *cls,
 			    TIMEOUT,
 			    &check_success, 
 			    crc);
-      crc->j++;
-      if (crc->j < PUT_10)
-	break;
-      crc->j = 0;
-      crc->i++;
-      if (crc->i == ITERATIONS)
-	crc->phase = RP_DONE;
-      else
-	crc->phase = RP_CUT;
       break;
     case RP_CUT:
       /* trim down below MAX_SIZE again */
       if ((i % 2) == 0)
-        GNUNET_DATASTORE_get_random (datastore, 
-				     &iterate_delete,
-				     NULL);
+	{
+	  GNUNET_DATASTORE_get_random (datastore, 
+				       &delete_value,
+				       crc);
+	  break;
+	}
       crc->phase = RP_REPORT;
+      GNUNET_SCHEDULER_add_continuation (crc->sched,
+					 GNUNET_NO,
+					 &run_continuation,
+					 crc,
+					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
     case RP_REPORT:
       size = 0;
@@ -264,7 +301,6 @@ run_continuation (void *cls,
                (stored_ops * 2 - stored_entries) / 1024,        /* total operations (in k) */
                1000 * (stored_ops * 2 - stored_entries) / (1 + GNUNET_TIME_absolute_get_duration(start_time).value));       /* operations per second */
       crc->phase = RP_PUT;
-      // fixme: trigger next round...
       GNUNET_SCHEDULER_add_continuation (crc->sched,
 					 GNUNET_NO,
 					 &run_continuation,

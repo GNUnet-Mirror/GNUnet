@@ -711,20 +711,7 @@ fi
 
 GN_LIB_LDFLAGS="-export-dynamic -no-undefined"
 GN_PLUGIN_LDFLAGS="-export-dynamic -avoid-version -module -no-undefined"
-dnl TODO insert a proper check here
-AC_CACHE_CHECK([whether -export-symbols-regex works],
- gn_cv_export_symbols_regex_works, 
- [
-  case "$host_os" in
-  mingw*) gn_cv_export_symbols_regex_works=no;;
-  *) gn_cv_export_symbols_regex_works=yes;;
-  esac
- ])
-if test "x$gn_cv_export_symbols_regex_works" = "xyes"
-then
- GN_LIB_LDFLAGS="$GN_LIB_LDFLAGS -export-symbols-regex \"GNUNET_@<:@a-zA-Z0-9_@:>@*\""
- GN_PLUGIN_LDFLAGS="$GN_PLUGIN_LDFLAGS -export-symbols-regex \"@<:@a-zA-Z0-9_@:>@*\""
-fi
+
 AC_SUBST(GN_LIB_LDFLAGS)
 AC_SUBST(GN_PLUGIN_LDFLAGS)
 AC_SUBST(GN_INTLINCL)
