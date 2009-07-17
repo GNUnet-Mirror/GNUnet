@@ -40,7 +40,7 @@ GNUNET_TIME_absolute_get ()
   struct timeval tv;
 
   GETTIMEOFDAY (&tv, NULL);
-  ret.value = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+  ret.value = (uint64_t) (((uint64_t) tv.tv_sec * 1000LL) + ((uint64_t) tv.tv_usec / 1000LL));
   return ret;
 }
 
@@ -223,7 +223,7 @@ GNUNET_TIME_relative_multiply (struct GNUNET_TIME_Relative rel,
     {
       GNUNET_break (0);
       return GNUNET_TIME_relative_get_forever ();
-    }
+    }  
   return ret;
 }
 
