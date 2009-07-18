@@ -215,7 +215,8 @@ do_delete (void *cls,
 			   crc->esize,
 			   crc->data,
 			   &remove_next,
-			   crc);
+			   crc,
+			   TIMEOUT);
 }
 
 
@@ -306,7 +307,8 @@ run_continuation (void *cls,
       /* trim down below MAX_SIZE again */
       GNUNET_DATASTORE_get_random (datastore, 
 				   &delete_value,
-				   crc);
+				   crc,
+				   TIMEOUT);
       break;
     case RP_REPORT:
       size = 0;

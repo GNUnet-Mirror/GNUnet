@@ -201,14 +201,16 @@ delete_value (void *cls,
 			   size,
 			   data,
 			   &check_success,
-			   NULL);
+			   NULL,
+			   TIMEOUT);
   ((int*)key)[0]++;
   GNUNET_DATASTORE_remove (datastore,
 			   key,
 			   size,
 			   data,
 			   &check_failure,
-			   NULL);
+			   NULL,
+			   TIMEOUT);
   GNUNET_SCHEDULER_add_continuation (crc->sched,
 				     GNUNET_NO,
 				     &run_continuation,
@@ -272,7 +274,8 @@ run_continuation (void *cls,
 			    &crc->key,
 			    get_type (crc->i),
 			    &check_value,
-			    crc);
+			    crc,
+			    TIMEOUT);
       if (crc->i == 0)
 	{
 	  crc->phase = RP_DEL;
@@ -286,7 +289,8 @@ run_continuation (void *cls,
 			    &crc->key,
 			    get_type (crc->i),
 			    &delete_value,
-			    crc);
+			    crc,
+			    TIMEOUT);
       if (crc->i == 0)
 	{
 	  crc->phase = RP_DELVALIDATE;
@@ -300,7 +304,8 @@ run_continuation (void *cls,
 			    &crc->key,
 			    get_type (crc->i),
 			    &check_nothing,
-			    crc);
+			    crc,
+			    TIMEOUT);
       if (crc->i == 0)
 	{
 	  crc->phase = RP_DONE;	  

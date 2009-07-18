@@ -94,12 +94,12 @@ struct ReservationList
   /**
    * Number of bytes (still) reserved.
    */
-  uint64_t size;
+  uint64_t amount;
 
   /**
    * Number of items (still) reserved.
    */
-  uint64_t items;
+  uint64_t entries;
 
   /**
    * Reservation identifier.
@@ -389,8 +389,8 @@ handle_reserve (void *cls,
   e->next = reservations;
   reservations = e;
   e->client = client;
-  e->size = GNUNET_ntohll(msg->size);
-  e->items = GNUNET_ntohll(msg->items);
+  e->amount = GNUNET_ntohll(msg->amount);
+  e->entries = GNUNET_ntohll(msg->entries);
   e->rid = ++reservation_gen;
   if (reservation_gen < 0)
     reservation_gen = 0; /* wrap around */

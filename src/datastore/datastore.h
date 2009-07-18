@@ -48,12 +48,12 @@ struct ReserveMessage
   /**
    * Number of bytes to reserve.
    */
-  uint64_t size GNUNET_PACKED;
+  uint64_t amount GNUNET_PACKED;
 
   /**
    * Number of items to reserve.
    */
-  uint64_t items GNUNET_PACKED;
+  uint64_t entries GNUNET_PACKED;
 };
 
 
@@ -71,7 +71,7 @@ struct StatusMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Status code.
+   * Status code, -1 for errors.
    */
   int32_t status GNUNET_PACKED;
 
@@ -194,7 +194,10 @@ struct DataMessage
   uint32_t anonymity GNUNET_PACKED;
 
   /**
-   * Unique ID for the content (can be used for UPDATE).
+   * Unique ID for the content (can be used for UPDATE);
+   * can be zero for remove (which indicates that
+   * the datastore should use whatever UID matches
+   * the key and content).
    */
   uint64_t uid;
   

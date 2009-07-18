@@ -98,13 +98,15 @@ typedef void (*GNUNET_DATASTORE_ContinuationWithStatus)(void *cls,
  * @param cont continuation to call when done; "success" will be set to
  *             a positive reservation value if space could be reserved.
  * @param cont_cls closure for cont
+ * @param timeout how long to wait at most for a response
  */
 void
 GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h,
 			  uint64_t amount,
 			  uint64_t entries,
 			  GNUNET_DATASTORE_ContinuationWithStatus cont,
-			  void *cont_cls);
+			  void *cont_cls,
+			  struct GNUNET_TIME_Relative timeout);
 
 
 /**
@@ -151,12 +153,14 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
  *        from the "reserve" function).
  * @param cont continuation to call when done
  * @param cont_cls closure for cont
+ * @param timeout how long to wait at most for a response
  */
 void
 GNUNET_DATASTORE_release_reserve (struct GNUNET_DATASTORE_Handle *h,
 				  int rid,
 				  GNUNET_DATASTORE_ContinuationWithStatus cont,
-				  void *cont_cls);
+				  void *cont_cls,
+				  struct GNUNET_TIME_Relative timeout);
 
 
 /**
@@ -168,6 +172,7 @@ GNUNET_DATASTORE_release_reserve (struct GNUNET_DATASTORE_Handle *h,
  * @param expiration new expiration value should be MAX of existing and this argument
  * @param cont continuation to call when done
  * @param cont_cls closure for cont
+ * @param timeout how long to wait at most for a response
  */
 void
 GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h,
@@ -175,7 +180,8 @@ GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h,
 			 uint32_t priority,
 			 struct GNUNET_TIME_Absolute expiration,
 			 GNUNET_DATASTORE_ContinuationWithStatus cont,
-			 void *cont_cls);
+			 void *cont_cls,
+			 struct GNUNET_TIME_Relative timeout);
 
 
 /**
@@ -213,12 +219,14 @@ typedef void (*GNUNET_DATASTORE_Iterator) (void *cls,
  * @param iter function to call on each matching value;
  *        will be called once with a NULL value at the end
  * @param iter_cls closure for iter
+ * @param timeout how long to wait at most for a response
  */
 void
 GNUNET_DATASTORE_get (struct GNUNET_DATASTORE_Handle *h,
                       const GNUNET_HashCode * key,
                       uint32_t type,
-                      GNUNET_DATASTORE_Iterator iter, void *iter_cls);
+                      GNUNET_DATASTORE_Iterator iter, void *iter_cls,
+		      struct GNUNET_TIME_Relative timeout);
 
 
 /**
@@ -229,10 +237,12 @@ GNUNET_DATASTORE_get (struct GNUNET_DATASTORE_Handle *h,
  *        will be called once with a value (if available)
  *        and always once with a value of NULL.
  * @param iter_cls closure for iter
+ * @param timeout how long to wait at most for a response
  */
 void
 GNUNET_DATASTORE_get_random (struct GNUNET_DATASTORE_Handle *h,
-                             GNUNET_DATASTORE_Iterator iter, void *iter_cls);
+                             GNUNET_DATASTORE_Iterator iter, void *iter_cls,
+			     struct GNUNET_TIME_Relative timeout);
 
 
 /**
@@ -244,13 +254,15 @@ GNUNET_DATASTORE_get_random (struct GNUNET_DATASTORE_Handle *h,
  * @param data content stored
  * @param cont continuation to call when done
  * @param cont_cls closure for cont
+ * @param timeout how long to wait at most for a response
  */
 void
 GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
                          const GNUNET_HashCode *key,
                          uint32_t size, const void *data,
 			 GNUNET_DATASTORE_ContinuationWithStatus cont,
-			 void *cont_cls);
+			 void *cont_cls,
+			 struct GNUNET_TIME_Relative timeout);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
