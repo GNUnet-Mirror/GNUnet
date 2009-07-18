@@ -58,7 +58,6 @@ PHASE #2: (Goal: recover basic file-sharing functionality)
 Datastores:
 * implement sqlite-based sqstore/datastore service
   + implement service (datastore + talks to plugin)
-  + implement library (talks to service)
   + get testcases to pass
 * implement sqlite-based dstore services
   + design API

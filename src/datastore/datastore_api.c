@@ -23,7 +23,6 @@
  * @brief Management for the datastore for files stored on a GNUnet node
  * @author Christian Grothoff
  */
-
 #include "platform.h"
 #include "gnunet_datastore_service.h"
 #include "datastore.h"
@@ -72,7 +71,7 @@ struct GNUNET_DATASTORE_Handle
    * this struct, 0 if we have no request pending.
    */
   size_t message_size;
-  
+
 };
 
 
@@ -194,6 +193,7 @@ with_status_response_handler (void *cls,
        (ntohs(msg->type) != GNUNET_MESSAGE_TYPE_DATASTORE_STATUS) ) 
     {
       GNUNET_break (0);
+      h->response_proc = NULL;
       GNUNET_CLIENT_disconnect (h->client);
       h->client = GNUNET_CLIENT_connect (h->sched, "datastore", h->cfg);
       cont (h->response_proc_cls, 
@@ -240,10 +240,10 @@ transmit_get_status (void *cls,
   GNUNET_DATASTORE_ContinuationWithStatus cont = h->response_proc;
   uint16_t msize;
 
-  h->response_proc = NULL;
   if (buf == NULL)
     {
       h->message_size = 0;
+      h->response_proc = NULL;
       cont (h->response_proc_cls, 
 	    GNUNET_SYSERR,
 	    gettext_noop ("Error transmitting message to datastore service.\n"));
@@ -451,6 +451,167 @@ GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h,
 }
 
 
+
+
+/**
+ * Type of a function to call when we receive a message
+ * from the service.  This specific function is used
+ * to handle messages of type "struct DataMessage".
+ *
+ * @param cls closure
+ * @param msg message received, NULL on timeout or fatal error
+ */
+static void 
+with_result_response_handler (void *cls,
+			      const struct
+			      GNUNET_MessageHeader * msg)
+{
+  static struct GNUNET_TIME_Absolute zero;
+  struct GNUNET_DATASTORE_Handle *h = cls;
+  GNUNET_DATASTORE_Iterator cont = h->response_proc;
+  const struct DataMessage *dm;
+  size_t msize;
+
+  if (msg == NULL)
+    {
+      h->response_proc = NULL;
+      GNUNET_CLIENT_disconnect (h->client);
+      h->client = GNUNET_CLIENT_connect (h->sched, "datastore", h->cfg);
+      cont (h->response_proc_cls, 
+	    NULL, 0, NULL, 0, 0, 0, zero, 0);
+      return;
+    }
+  if (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END) 
+    {
+      GNUNET_break (ntohs(msg->size) == sizeof(struct GNUNET_MessageHeader));
+      h->response_proc = NULL;
+      cont (h->response_proc_cls, 
+	    NULL, 0, NULL, 0, 0, 0, zero, 0);
+      return;
+    }
+  if ( (ntohs(msg->size) < sizeof(struct DataMessage)) ||
+       (ntohs(msg->type) != GNUNET_MESSAGE_TYPE_DATASTORE_DATA) ) 
+    {
+      GNUNET_break (0);
+      GNUNET_CLIENT_disconnect (h->client);
+      h->client = GNUNET_CLIENT_connect (h->sched, "datastore", h->cfg);
+      h->response_proc = NULL;
+      cont (h->response_proc_cls, 
+	    NULL, 0, NULL, 0, 0, 0, zero, 0);
+      return;
+    }
+  dm = (const struct DataMessage*) msg;
+  msize = ntohl(dm->size);
+  if (ntohs(msg->size) != msize + sizeof(struct DataMessage))
+    {
+      GNUNET_break (0);
+      GNUNET_CLIENT_disconnect (h->client);
+      h->client = GNUNET_CLIENT_connect (h->sched, "datastore", h->cfg);
+      h->response_proc = NULL;
+      cont (h->response_proc_cls, 
+	    NULL, 0, NULL, 0, 0, 0, zero, 0);
+      return;
+    }
+  cont (h->response_proc_cls, 
+	&dm->key,
+	msize,
+	&dm[1],
+	ntohl(dm->type),
+	ntohl(dm->priority),
+	ntohl(dm->anonymity),
+	GNUNET_TIME_absolute_ntoh(dm->expiration),	
+	GNUNET_ntohll(dm->uid));
+  GNUNET_CLIENT_receive (h->client,
+			 &with_result_response_handler,
+			 h,
+			 GNUNET_TIME_absolute_get_remaining (h->timeout));
+}
+
+
+/**
+ * Transmit message to datastore service and then
+ * read a result message.
+ *
+ * @param cls closure with handle to datastore
+ * @param size number of bytes we can transmit at most
+ * @param buf where to write transmission, NULL on
+ *        timeout
+ * @return number of bytes copied to buf
+ */
+static size_t
+transmit_get_result (void *cls,
+		     size_t size,
+		     void *buf)
+{
+  struct GNUNET_DATASTORE_Handle *h = cls;
+  GNUNET_DATASTORE_ContinuationWithStatus cont = h->response_proc;
+  uint16_t msize;
+
+  h->response_proc = NULL;
+  if (buf == NULL)
+    {
+      h->message_size = 0;
+      cont (h->response_proc_cls, 
+	    GNUNET_SYSERR,
+	    gettext_noop ("Error transmitting message to datastore service.\n"));
+      return 0;
+    }
+  GNUNET_assert (h->message_size <= size);
+  memcpy (buf, &h[1], h->message_size);
+  h->message_size = 0;
+  GNUNET_CLIENT_receive (h->client,
+			 &with_result_response_handler,
+			 h,
+			 GNUNET_TIME_absolute_get_remaining (h->timeout));
+  return msize;
+}
+
+
+/**
+ * Helper function that will initiate the
+ * transmission of a message to the datastore
+ * service.  The message must already be prepared
+ * and stored in the buffer at the end of the
+ * handle.  The message must be of a type that
+ * expects a "DataMessage" in response.
+ *
+ * @param h handle to the service with prepared message
+ * @param cont function to call with result
+ * @param cont_cls closure
+ * @param timeout timeout for the operation
+ */
+static void
+transmit_for_result (struct GNUNET_DATASTORE_Handle *h,
+		     GNUNET_DATASTORE_Iterator cont,
+		     void *cont_cls,
+		     struct GNUNET_TIME_Relative timeout)
+{
+  static struct GNUNET_TIME_Absolute zero;
+  const struct GNUNET_MessageHeader *hdr;
+  uint16_t msize;
+
+  hdr = (const struct GNUNET_MessageHeader*) &h[1];
+  msize = ntohs(hdr->size);
+  GNUNET_assert (h->response_proc == NULL);
+  h->response_proc = cont;
+  h->response_proc_cls = cont_cls;
+  h->timeout = GNUNET_TIME_relative_to_absolute (timeout);
+  h->message_size = msize;
+  if (NULL == GNUNET_CLIENT_notify_transmit_ready (h->client,
+						   msize,
+						   timeout,
+						   &transmit_get_result,
+						   h))
+    {
+      GNUNET_break (0);
+      h->response_proc = NULL;
+      h->message_size = 0;
+      cont (h->response_proc_cls, 
+	    NULL, 0, NULL, 0, 0, 0, zero, 0);
+    }
+}
+
+
 /**
  * Iterate over the results for a particular key
  * in the datastore.
@@ -470,9 +631,21 @@ GNUNET_DATASTORE_get (struct GNUNET_DATASTORE_Handle *h,
                       GNUNET_DATASTORE_Iterator iter, void *iter_cls,
 		      struct GNUNET_TIME_Relative timeout)
 {
-  static struct GNUNET_TIME_Absolute zero;
-  iter (iter_cls,
-	NULL, 0, NULL, 0, 0, 0, zero, 0);
+  struct GetMessage *gm;
+
+  gm = (struct GetMessage*) &h[1];
+  gm->header.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_GET);
+  gm->type = htonl(type);
+  if (key != NULL)
+    {
+      gm->header.size = htons(sizeof (struct GetMessage));
+      gm->key = *key;
+    }
+  else
+    {
+      gm->header.size = htons(sizeof (struct GetMessage) - sizeof(GNUNET_HashCode));
+    }
+  transmit_for_result (h, iter, iter_cls, timeout);
 }
 
 
@@ -491,10 +664,12 @@ GNUNET_DATASTORE_get_random (struct GNUNET_DATASTORE_Handle *h,
                              GNUNET_DATASTORE_Iterator iter, void *iter_cls,
 			     struct GNUNET_TIME_Relative timeout)
 {
-  static struct GNUNET_TIME_Absolute zero;
-  
-  iter (iter_cls,
-	NULL, 0, NULL, 0, 0, 0, zero, 0);
+  struct GNUNET_MessageHeader *m;
+
+  m = (struct GNUNET_MessageHeader*) &h[1];
+  m->type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_GET_RANDOM);
+  m->size = htons(sizeof (struct GNUNET_MessageHeader));
+  transmit_for_result (h, iter, iter_cls, timeout);
 }
 
 
