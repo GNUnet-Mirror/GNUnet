@@ -294,6 +294,7 @@ transmit_for_status (struct GNUNET_DATASTORE_Handle *h,
   const struct GNUNET_MessageHeader *hdr;
   uint16_t msize;
 
+  GNUNET_assert (cont != NULL);
   hdr = (const struct GNUNET_MessageHeader*) &h[1];
   msize = ntohs(hdr->size);
 #if DEBUG_DATASTORE
@@ -582,9 +583,9 @@ transmit_get_result (void *cls,
   GNUNET_DATASTORE_ContinuationWithStatus cont = h->response_proc;
   uint16_t msize;
 
-  h->response_proc = NULL;
   if (buf == NULL)
     {
+      h->response_proc = NULL;
       h->message_size = 0;
       cont (h->response_proc_cls, 
 	    GNUNET_SYSERR,
@@ -631,6 +632,7 @@ transmit_for_result (struct GNUNET_DATASTORE_Handle *h,
   const struct GNUNET_MessageHeader *hdr;
   uint16_t msize;
 
+  GNUNET_assert (cont != NULL);
   hdr = (const struct GNUNET_MessageHeader*) &h[1];
   msize = ntohs(hdr->size);
 #if DEBUG_DATASTORE
