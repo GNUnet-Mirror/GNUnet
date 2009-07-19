@@ -178,8 +178,10 @@ try_connect (struct GNUNET_STATISTICS_Handle *ret)
   ret->client = GNUNET_CLIENT_connect (ret->sched, "statistics", ret->cfg);
   if (ret->client != NULL)
     return GNUNET_YES;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+#if DEBUG_STATISTICS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               _("Failed to connect to statistics service!\n"));
+#endif
   return GNUNET_NO;
 }
 
@@ -347,9 +349,10 @@ receive_stats (void *cls, const struct GNUNET_MessageHeader *msg)
     {
       GNUNET_CLIENT_disconnect (h->client);
       h->client = NULL;
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
-                  _
-                  ("Error receiving statistics from service, is the service running?\n"));
+#if DEBUG_STATISTICS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+		  "Error receiving statistics from service, is the service running?\n" );
+#endif
       finish (h, GNUNET_SYSERR);
       return;
     }
@@ -400,8 +403,10 @@ transmit_get (struct GNUNET_STATISTICS_Handle *handle, size_t size, void *buf)
   if (buf == NULL)
     {
       /* timeout / error */
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("Transmission of request for statistics failed!\n"));
+#if DEBUG_STATISTICS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Transmission of request for statistics failed!\n");
+#endif
       finish (handle, GNUNET_SYSERR);
       return 0;
     }
@@ -535,8 +540,10 @@ schedule_action (struct GNUNET_STATISTICS_Handle *h)
                                            h->current->msize,
                                            timeout, &transmit_action, h))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+#if DEBUG_STATISTICS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Failed to transmit request to statistics service.\n");
+#endif
       finish (h, GNUNET_SYSERR);
     }
 }
@@ -587,10 +594,12 @@ GNUNET_STATISTICS_get (struct GNUNET_STATISTICS_Handle *handle,
   GNUNET_assert (proc != NULL);
   if (GNUNET_YES != try_connect (handle))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+#if DEBUG_STATISTICS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Failed to connect to statistics service, can not get value `%s:%s'.\n",
                   strlen (subsystem) ? subsystem : "*",
                   strlen (name) ? name : "*");
+#endif
       if (cont != NULL)
 	cont (cls, GNUNET_SYSERR);
       return;
