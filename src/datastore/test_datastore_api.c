@@ -350,6 +350,7 @@ run_continuation (void *cls,
 		  "Finished, disconnecting\n");
 #endif
       GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
+      GNUNET_free (crc);
       ok = 0;
     }
 }

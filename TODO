@@ -1,14 +1,16 @@
 PHASE #1: (Goal: settle key design questions)
 
-
 Util:
-* improve disk API [Nils] (Nils, is this done? -Christian)
 * Windows: use events instead of pipes to signal select()s [Nils]
 * only connect() sockets that are ready (select()) [Nils]
   [On W32, we need to select after calling socket before
    doing connect etc.]
 
+PHASE #2: (Goal: recover basic file-sharing functionality)
+
+
 TESTCASES WANTED:
+
 For these functions, it would be nice if we had testcases ("make check")
 that would cause them to be executed and check that they are working:
 * gnunet-service-peerinfo:
@@ -37,6 +39,9 @@ that would cause them to be executed and check that they are working:
   - transmit_timeout
   - remove_from_any_list / remove_neighbour
   - GNUNET_TRANSPORT_notify_transmit_ready_cancel
+  - Testcases for set_quota, timeouts, disconnects, transmit_ready_cancel
+  - gnunet-service-transport HELLO validation (how good is our coverage?)
+  - direct test of plugins compliance to plugin API
 * core_api:
   - timeout_request
   - solicit_traffic / copy_and_free
@@ -52,47 +57,113 @@ that would cause them to be executed and check that they are working:
 * topology (everything)
 
 
-
-PHASE #2: (Goal: recover basic file-sharing functionality)
-
-Datastores:
-* implement sqlite-based sqstore/datastore service
-  + complete service implementation and improve testcase coverage
-* implement sqlite-based dstore services
-  + design API
-  + implement library (talks to service)
-  + implement service (talks to plugin)
-  + implement sqlite plugin (talks to DB)
-
-Applications:
-* DHT, DV
-* FS / fs-libs
+Module features to implement:
+* Datastore (needed for FS)
+  - complete service implementation and improve testcase coverage
+* Dstore (needed for DHT)
+  - design DSTORE API
+  - design network structs
+  - design plugin API
+  - implement sqlite-based dstore plugin
+  - implement dstore service
+  - implement dstore API
+  - implement testcases for dstore API 
+  - implement testcases for dstore plugin
+  - implement performance tests
+* TESTING (needed for DV, DHT, Topology)
+  - review TESTING API
+  - implement library for local testing
+  - implement testcases for library
+  - implement library for distributed testing
+  - implement testcases for distributed testing
+* TOPOLOGY:
+  - implement testcases (needs TESTING)
+* HOSTLIST:
+  - implement testcases
+* DV (needed for DHT)
+  - write DV API
+  - implement DV service
+  - implement DV library
+  - implement DV transport plugin
+  - implement testcases
+  - implement performance tests
+* DHT (needed for FS)
+  - review DHT API
+  - implement DHT service (needs DV, DSTORE)
+  - implement DHT library
+  - implement testcases
+  - implement performance tests
+* FS
+  - review FS API
+  - design network structs (CS)
+  - implement FS library
+    + URI API
+    + getopt API
+    + persistence mechanism
+    + sharing API
+      ~ file-information
+      ~ insert
+      ~ download
+      ~ search
+      ~ unindex
+      ~ namespaces
+      ~ collection
+    + directory API
+  - design network structs (P2P)
+  - datastore request queueing mechanism
+  - implement FS service (needs DHT)
+    + insert
+    + download
+    + search
+    + unindex
+  - implement testcases 
+    + URI API
+    + getopt API
+    + sharing API (needs TESTING)
+      ~ file-information
+      ~ insert
+      ~ download
+      ~ search
+      ~ unindex
+      ~ namespaces
+      ~ collection
+    + directory API
+  - implement performance tests (needs TESTING)
+    + insert
+    + download
+    + search
+    + unindex
 
 
 
 PHASE #3: (Goal: ready for pre-release) [completion-goal: end of 2009]
 
-* testing
+Module features to implement:
 * setup
-* gtk, qt GUIs
+  - default generation
+  - need to settle basic design; do we want to keep guile?
 * tbench
+  - good to have for DV evaluation!
 * tracekit
+  - good to have for DV/DHT evaluation!
 * vpn
 
-Transports:
+
+GUIs to implement:
+* gtk
+* qt
+* fuse
+
+
+Plugins to implement:
 * UDP backend (need LIBRARY to support (de)fragmentation!)
 * HTTP backend
-* Testing:
-  + Testcases for set_quota, timeouts, disconnects, transmit_ready_cancel
-  + Better coverage of gnunet-service-transport (HELLO validation)
-  + direct test of plugins compliance to plugin API
-
-Databases:
-* sqlite, mysql & postgres backend
 
 
 
-Minor TODO items:
+
+
+Minor TODO items / known bugs:
 * UTIL:
   - crypto_hash: use libgcrypt (supports SHA-512 since 2003)
   - container_bloomfilter: improve efficiency (see FIXME)
@@ -167,6 +238,9 @@ Minor TODO items:
     ==28393==    by 0x524473E: GNUNET_NETWORK_socket_create_from_accept (network.c:323)
     (rest of trace identical)
 
+* DATASTORE:
+  - mysql backend
+  - postgres backend
 * SETUP:
   - auto-generate "defaults.conf" using gnunet-setup from "config.scm"
   - integrate all options into "config.scm"
