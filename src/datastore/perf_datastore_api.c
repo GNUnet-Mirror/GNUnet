@@ -50,7 +50,7 @@ static struct GNUNET_DATASTORE_Handle *datastore;
 /**
  * Target datastore size (in bytes).
  */
-#define MAX_SIZE 1024LL * 1024 * 16
+#define MAX_SIZE 1024LL * 1024 * 4
 
 /**
  * Report progress outside of major reports? Should probably be GNUNET_YES if
@@ -68,7 +68,7 @@ static struct GNUNET_DATASTORE_Handle *datastore;
  * PUT_10 put operations); we report full status every
  * 10 iterations.  Abort with CTRL-C.
  */
-#define ITERATIONS 10
+#define ITERATIONS 8
 
 
 static unsigned long long stored_bytes;
@@ -298,7 +298,7 @@ run_continuation (void *cls,
                stored_ops / 1024,        /* total operations (in k) */
                1000 * stored_ops / (1 + GNUNET_TIME_absolute_get_duration(start_time).value));
       crc->phase = RP_PUT;
-      crc->i = 0;
+      crc->j = 0;
       GNUNET_SCHEDULER_add_continuation (crc->sched,
 					 GNUNET_NO,
 					 &run_continuation,
@@ -385,7 +385,9 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
-
+#if REPORT_ID
+  fprintf (stderr, "\n");
+#endif
   return ret;
 }
 
