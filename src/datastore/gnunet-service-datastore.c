@@ -38,6 +38,8 @@
 #include "plugin_datastore.h"
 #include "datastore.h"
 
+#define DEBUG_DATASTORE GNUNET_YES
+
 /**
  * How many messages do we queue at most per client?
  */
@@ -197,10 +199,20 @@ transmit_callback (void *cls,
   msize = ntohs(tcc->msg->size);
   if (size == 0)
     {
+#if DEBUG_DATASTORE
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  "Transmission failed.\n");
+#endif
       if (tcc->tc != NULL)
 	tcc->tc (tcc->tc_cls, GNUNET_SYSERR);
       if (GNUNET_YES == tcc->end)
-	GNUNET_SERVER_receive_done (tcc->client, GNUNET_SYSERR);
+	{
+#if DEBUG_DATASTORE
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		      "Disconnecting client.\n");
+#endif	
+	  GNUNET_SERVER_receive_done (tcc->client, GNUNET_SYSERR);
+	}
       GNUNET_free (tcc->msg);
       GNUNET_free (tcc);
       return 0;
@@ -210,7 +222,20 @@ transmit_callback (void *cls,
   if (tcc->tc != NULL)
     tcc->tc (tcc->tc_cls, GNUNET_OK);
   if (GNUNET_YES == tcc->end)
-    GNUNET_SERVER_receive_done (tcc->client, GNUNET_OK);     
+    {
+#if DEBUG_DATASTORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Request completed, ready for the next request!\n");
+#endif
+      GNUNET_SERVER_receive_done (tcc->client, GNUNET_OK);
+    }
+  else
+    {
+#if DEBUG_DATASTORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Response transmitted, more pending!\n");
+#endif
+    }
   GNUNET_free (tcc->msg);
   GNUNET_free (tcc);
   return msize;
@@ -251,7 +276,13 @@ transmit (struct GNUNET_SERVER_Client *client,
     {
       GNUNET_break (0);
       if (GNUNET_YES == end)
-	GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+	{
+#if DEBUG_DATASTORE
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		      "Disconnecting client.\n");
+#endif	  
+	  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+	}
       if (NULL != tc)
 	tc (tc_cls, GNUNET_SYSERR);
       GNUNET_free (msg);
@@ -275,6 +306,13 @@ transmit_status (struct GNUNET_SERVER_Client *client,
   struct StatusMessage *sm;
   size_t slen;
 
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmitting `s' message with value %d and message %s\n",
+	      "STATUS",
+	      code,
+	      msg);
+#endif
   slen = (msg == NULL) ? 0 : strlen(msg) + 1;  
   sm = GNUNET_malloc (sizeof(struct StatusMessage) + slen);
   sm->header.size = htons(sizeof(struct StatusMessage) + slen);
@@ -345,6 +383,11 @@ transmit_item (void *cls,
   if (key == NULL)
     {
       /* transmit 'DATA_END' */
+#if DEBUG_DATASTORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Transmitting `%s' message\n",
+		  "DATA_END");
+#endif
       end = GNUNET_malloc (sizeof(struct GNUNET_MessageHeader));
       end->size = htons(sizeof(struct GNUNET_MessageHeader));
       end->type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END);
@@ -364,6 +407,11 @@ transmit_item (void *cls,
   dm->uid = GNUNET_htonll(uid);
   dm->key = *key;
   memcpy (&dm[1], data, size);
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmitting `%s' message\n",
+	      "DATA");
+#endif
   transmit (client, &dm->header, &get_next, next_cls, GNUNET_NO);
   return GNUNET_OK;
 }
@@ -384,7 +432,12 @@ handle_reserve (void *cls,
   const struct ReserveMessage *msg = (const struct ReserveMessage*) message;
   struct ReservationList *e;
 
-  /* FIXME: check if we have that much space... */
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Processing `%s' request\n",
+	      "RESERVE");
+#endif
+ /* FIXME: check if we have that much space... */
   e = GNUNET_malloc (sizeof(struct ReservationList));
   e->next = reservations;
   reservations = e;
@@ -414,8 +467,13 @@ handle_release_reserve (void *cls,
   struct ReservationList *pos;
   struct ReservationList *prev;
   struct ReservationList *next;
-  
   int rid = ntohl(msg->rid);
+
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Processing `%s' request\n",
+	      "RELEASE_RESERVE");
+#endif
   next = reservations;
   prev = NULL;
   while (NULL != (pos = next))
@@ -490,6 +548,11 @@ handle_put (void *cls,
   int ret;
   int rid;
 
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Processing `%s' request\n",
+	      "PUT");
+#endif
   if (dm == NULL)
     {
       GNUNET_break (0);
@@ -537,6 +600,11 @@ handle_get (void *cls,
   const struct GetMessage *msg;
   uint16_t size;
 
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Processing `%s' request\n",
+	      "GET");
+#endif
   size = ntohs(message->size);
   if ( (size != sizeof(struct GetMessage)) &&
        (size != sizeof(struct GetMessage) - sizeof(GNUNET_HashCode)) )
@@ -581,6 +649,11 @@ handle_update (void *cls,
   int ret;
   char *emsg;
 
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Processing `%s' request\n",
+	      "UPDATE");
+#endif
   msg = (const struct UpdateMessage*) message;
   emsg = NULL;
   ret = plugin->api->update (plugin->api->cls,
@@ -605,7 +678,12 @@ handle_get_random (void *cls,
 		   struct GNUNET_SERVER_Client *client,
 		   const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_SERVER_client_drop (client);
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Processing `%s' request\n",
+	      "GET_RANDOM");
+#endif
+  GNUNET_SERVER_client_drop (client); // FIXME: WTF?
   plugin->api->iter_migration_order (plugin->api->cls,
 				     0,
 				     &transmit_item,
@@ -681,6 +759,11 @@ handle_remove (void *cls,
   GNUNET_HashCode vhash;
   struct RemoveContext *rc;
 
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Processing `%s' request\n",
+	      "REMOVE");
+#endif
   if (dm == NULL)
     {
       GNUNET_break (0);
@@ -714,6 +797,11 @@ handle_drop (void *cls,
 	     struct GNUNET_SERVER_Client *client,
 	     const struct GNUNET_MessageHeader *message)
 {
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Processing `%s' request\n",
+	      "DROP");
+#endif
   plugin->api->drop (plugin->api->cls);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }

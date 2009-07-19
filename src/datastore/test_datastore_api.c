@@ -33,10 +33,14 @@
 #include "gnunet_protocols.h"
 #include "gnunet_datastore_service.h"
 
+#define VERBOSE GNUNET_YES
+
 /**
  * How long until we give up on transmitting the message?
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+
+#define ITERATIONS 256
 
 static struct GNUNET_DATASTORE_Handle *datastore;
 
@@ -250,7 +254,13 @@ run_continuation (void *cls,
   switch (crc->phase)
     {
     case RP_PUT:
-      memset (&crc->key, 256 - crc->i, sizeof (GNUNET_HashCode));
+#if VERBOSE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Executing `%s' number %u\n",
+		  "PUT",
+		  crc->i);
+#endif
+      memset (&crc->key, ITERATIONS - crc->i, sizeof (GNUNET_HashCode));
       GNUNET_DATASTORE_put (datastore,
 			    0,
 			    &crc->key,
@@ -264,12 +274,18 @@ run_continuation (void *cls,
 			    &check_success,
 			    crc);
       crc->i++;
-      if (crc->i == 256)
+      if (crc->i == ITERATIONS)
 	crc->phase = RP_GET;
       break;
     case RP_GET:
       crc->i--;
-      memset (&crc->key, 256 - crc->i, sizeof (GNUNET_HashCode));
+#if VERBOSE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Executing `%s' number %u\n",
+		  "GET",
+		  crc->i);
+#endif
+      memset (&crc->key, ITERATIONS - crc->i, sizeof (GNUNET_HashCode));
       GNUNET_DATASTORE_get (datastore, 
 			    &crc->key,
 			    get_type (crc->i),
@@ -279,12 +295,18 @@ run_continuation (void *cls,
       if (crc->i == 0)
 	{
 	  crc->phase = RP_DEL;
-	  crc->i = 256;
+	  crc->i = ITERATIONS;
 	}
       break;
     case RP_DEL:
       crc->i--;
-      memset (&crc->key, 256 - crc->i, sizeof (GNUNET_HashCode));
+#if VERBOSE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Executing `%s' number %u\n",
+		  "DEL",
+		  crc->i);
+#endif
+      memset (&crc->key, ITERATIONS - crc->i, sizeof (GNUNET_HashCode));
       GNUNET_DATASTORE_get (datastore, 
 			    &crc->key,
 			    get_type (crc->i),
@@ -294,12 +316,18 @@ run_continuation (void *cls,
       if (crc->i == 0)
 	{
 	  crc->phase = RP_DELVALIDATE;
-	  crc->i = 256;	 
+	  crc->i = ITERATIONS;	 
 	}
       break;
     case RP_DELVALIDATE:
       crc->i--;
-      memset (&crc->key, 256 - crc->i, sizeof (GNUNET_HashCode));
+#if VERBOSE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Executing `%s' number %u\n",
+		  "DEL-VALIDATE",
+		  crc->i);
+#endif
+      memset (&crc->key, ITERATIONS - crc->i, sizeof (GNUNET_HashCode));
       GNUNET_DATASTORE_get (datastore, 
 			    &crc->key,
 			    get_type (crc->i),
@@ -315,6 +343,10 @@ run_continuation (void *cls,
   /* check update */
   /* test multiple results */
     case RP_DONE:
+#if VERBOSE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Finished, disconnecting\n");
+#endif
       GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
       ok = 0;
     }

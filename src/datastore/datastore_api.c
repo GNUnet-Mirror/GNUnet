@@ -215,6 +215,12 @@ with_status_response_handler (void *cls,
 	}
     }  
   h->response_proc = NULL;
+#if VERBOSE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received status %d/%s\n",
+	      status,
+	      emsg);
+#endif
   cont (h->response_proc_cls, 
 	status,
 	emsg);
@@ -251,6 +257,11 @@ transmit_get_status (void *cls,
     }
   GNUNET_assert (h->message_size <= size);
   memcpy (buf, &h[1], h->message_size);
+#if VERBOSE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmitted %u byte message to datastore service, now waiting for status.\n",
+	      h->message_size);
+#endif
   h->message_size = 0;
   GNUNET_CLIENT_receive (h->client,
 			 &with_status_response_handler,
@@ -284,6 +295,12 @@ transmit_for_status (struct GNUNET_DATASTORE_Handle *h,
 
   hdr = (const struct GNUNET_MessageHeader*) &h[1];
   msize = ntohs(hdr->size);
+#if VERBOSE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmitting %u byte message of type %u to datastore service\n",
+	      msize,
+	      ntohs(hdr->type));
+#endif
   GNUNET_assert (h->response_proc == NULL);
   h->response_proc = cont;
   h->response_proc_cls = cont_cls;
@@ -485,6 +502,10 @@ with_result_response_handler (void *cls,
     {
       GNUNET_break (ntohs(msg->size) == sizeof(struct GNUNET_MessageHeader));
       h->response_proc = NULL;
+#if VERBOSE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Received end of result set\n");
+#endif
       cont (h->response_proc_cls, 
 	    NULL, 0, NULL, 0, 0, 0, zero, 0);
       return;
@@ -512,6 +533,14 @@ with_result_response_handler (void *cls,
 	    NULL, 0, NULL, 0, 0, 0, zero, 0);
       return;
     }
+#if VERBOSE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received result %llu with type %u and size %u with key %s\n",
+	      (unsigned long long) GNUNET_ntohll(dm->uid),
+	      ntohl(dm->type),
+	      msize,
+	      GNUNET_h2s(&dm->key));
+#endif
   cont (h->response_proc_cls, 
 	&dm->key,
 	msize,
@@ -558,6 +587,11 @@ transmit_get_result (void *cls,
     }
   GNUNET_assert (h->message_size <= size);
   memcpy (buf, &h[1], h->message_size);
+#if VERBOSE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmitted %u byte message to datastore service, now waiting for result.\n",
+	      h->message_size);
+#endif
   h->message_size = 0;
   GNUNET_CLIENT_receive (h->client,
 			 &with_result_response_handler,
@@ -592,6 +626,12 @@ transmit_for_result (struct GNUNET_DATASTORE_Handle *h,
 
   hdr = (const struct GNUNET_MessageHeader*) &h[1];
   msize = ntohs(hdr->size);
+#if VERBOSE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmitting %u byte message of type %u to datastore service\n",
+	      msize,
+	      ntohs(hdr->type));
+#endif
   GNUNET_assert (h->response_proc == NULL);
   h->response_proc = cont;
   h->response_proc_cls = cont_cls;
