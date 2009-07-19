@@ -210,7 +210,7 @@ check_complete (struct GNUNET_CLIENT_Connection *conn)
 
 /**
  * Callback function for data received from the network.  Note that
- * both "available" and "err" would be 0 if the read simply timed out.
+ * both "available" and "errCode" would be 0 if the read simply timed out.
  *
  * @param cls closure
  * @param buf pointer to received data

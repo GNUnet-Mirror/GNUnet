@@ -40,7 +40,7 @@
 #include "gnunet_network_lib.h"
 #include "gnunet_scheduler_lib.h"
 
-#define DEBUG_NETWORK GNUNET_YES
+#define DEBUG_NETWORK GNUNET_NO
 
 /**
  * List of address families to give as hints to
@@ -1237,7 +1237,8 @@ GNUNET_NETWORK_notify_transmit_ready (struct GNUNET_NETWORK_SocketHandle
     {
 #if DEBUG_NETWORK
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Transmission request fails, connection failed.\n");
+                  "Transmission request of size %u fails, connection failed.\n",
+		  size);
 #endif
       notify (notify_cls, 0, NULL);
       return &sock->nth;
