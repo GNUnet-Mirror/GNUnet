@@ -37,7 +37,7 @@
 #include "gnunet_protocols.h"
 #include "gnunet_datastore_service.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 /**
  * How long until we give up on transmitting the message?
@@ -49,33 +49,6 @@ static struct GNUNET_DATASTORE_Handle *datastore;
 
 /**
  * Target datastore size (in bytes).
- * <p>
- * Example impact of total size on the reported number
- * of operations (insert and delete) per second (once
- * roughly stabilized -- this is not "sound" experimental
- * data but just a rough idea) for a particular machine:
- * <pre>
- *    4: 60   at   7k ops total
- *    8: 50   at   3k ops total
- *   16: 48   at   8k ops total
- *   32: 46   at   8k ops total
- *   64: 61   at   9k ops total
- *  128: 89   at   9k ops total
- * 4092: 11   at 383k ops total (12 GB stored, 14.8 GB DB size on disk, 2.5 GB reported)
- * </pre>
- * Pure insertion performance into an empty DB initially peaks
- * at about 400 ops.  The performance seems to drop especially
- * once the existing (fragmented) ISAM space is filled up and
- * the DB needs to grow on disk.  This could be explained with
- * ISAM looking more carefully for defragmentation opportunities.
- * <p>
- * MySQL disk space overheads (for otherwise unused database when
- * run with 128 MB target data size; actual size 651 MB, useful
- * data stored 520 MB) are quite large in the range of 25-30%.
- * <p>
- * This kind of processing seems to be IO bound (system is roughly
- * at 90% wait, 10% CPU).  This is with MySQL 5.0.
- *
  */
 #define MAX_SIZE 1024LL * 1024 * 16
 
@@ -83,24 +56,19 @@ static struct GNUNET_DATASTORE_Handle *datastore;
  * Report progress outside of major reports? Should probably be GNUNET_YES if
  * size is > 16 MB.
  */
-#define REPORT_ID GNUNET_NO
+#define REPORT_ID GNUNET_YES
 
 /**
- * Number of put operations equivalent to 1/10th of MAX_SIZE
+ * Number of put operations equivalent to 1/3rd of MAX_SIZE
  */
-#define PUT_10 MAX_SIZE / 32 / 1024 / 10
-
-/**
- * Progress report frequency.  1/10th of a put operation block.
- */
-#define REP_FREQ PUT_10 / 10
+#define PUT_10 MAX_SIZE / 32 / 1024 / 3
 
 /**
  * Total number of iterations (each iteration doing
  * PUT_10 put operations); we report full status every
  * 10 iterations.  Abort with CTRL-C.
  */
-#define ITERATIONS 100
+#define ITERATIONS 10
 
 
 static unsigned long long stored_bytes;
@@ -150,17 +118,13 @@ check_success (void *cls,
 	       int success,
 	       const char *msg)
 {
-  static int ic;
-
   struct CpsRunContext *crc = cls;
   if (GNUNET_OK != success)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		"%s\n", msg);
   GNUNET_assert (GNUNET_OK == success);
-  ic++;
 #if REPORT_ID
-  if (ic % REP_FREQ == 0)
-    fprintf (stderr, "I");
+  fprintf (stderr, "I");
 #endif
   stored_bytes += crc->size;
   stored_ops++;
@@ -198,11 +162,8 @@ remove_next(void *cls,
 {
   struct CpsRunContext *crc = cls;
 
-  static int dc;
-  dc++;
 #if REPORT_ID
-  if (dc % REP_FREQ == 0)
-    fprintf (stderr, "D");
+  fprintf (stderr, "D");
 #endif
   GNUNET_assert (GNUNET_OK == success);
   GNUNET_SCHEDULER_add_continuation (crc->sched,
@@ -222,6 +183,7 @@ do_delete (void *cls,
 
   stored_bytes -= crc->esize;
   stored_entries--;
+  stored_ops++;
   GNUNET_DATASTORE_remove (datastore,
 			   &crc->key,
 			   crc->esize,
@@ -248,9 +210,9 @@ delete_value (void *cls,
 
   if (key == NULL)
     {
-      crc->phase = RP_REPORT;
       if (stored_bytes < MAX_SIZE)
 	{
+	  crc->phase = RP_REPORT;
 	  GNUNET_SCHEDULER_add_continuation (crc->sched,
 					     GNUNET_NO,
 					     &run_continuation,
@@ -266,6 +228,7 @@ delete_value (void *cls,
 				  crc);
       return;
     }
+  stored_ops++;
   if (stored_bytes < MAX_SIZE)
     return;     
   crc->key = *key;
@@ -332,9 +295,10 @@ run_continuation (void *cls,
 #endif
                "Stored %llu kB / %lluk ops / %llu ops/s\n", 
 	       stored_bytes / 1024,     /* used size in k */
-               (stored_ops * 2 - stored_entries) / 1024,        /* total operations (in k) */
-               1000 * (stored_ops * 2 - stored_entries) / (1 + GNUNET_TIME_absolute_get_duration(start_time).value));       /* operations per second */
+               stored_ops / 1024,        /* total operations (in k) */
+               1000 * stored_ops / (1 + GNUNET_TIME_absolute_get_duration(start_time).value));
       crc->phase = RP_PUT;
+      crc->i = 0;
       GNUNET_SCHEDULER_add_continuation (crc->sched,
 					 GNUNET_NO,
 					 &run_continuation,
@@ -358,7 +322,7 @@ run (void *cls,
   struct CpsRunContext *crc;
 
   datastore = GNUNET_DATASTORE_connect (cfg, sched);
-
+  start_time = GNUNET_TIME_absolute_get ();
   crc = GNUNET_malloc(sizeof(struct CpsRunContext));
   crc->sched = sched;
   crc->cfg = cfg;
