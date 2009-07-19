@@ -38,8 +38,6 @@
 #include "plugin_datastore.h"
 #include "datastore.h"
 
-#define DEBUG_DATASTORE GNUNET_YES
-
 /**
  * How many messages do we queue at most per client?
  */
@@ -207,10 +205,6 @@ transmit_callback (void *cls,
 	tcc->tc (tcc->tc_cls, GNUNET_SYSERR);
       if (GNUNET_YES == tcc->end)
 	{
-#if DEBUG_DATASTORE
-	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		      "Disconnecting client.\n");
-#endif	
 	  GNUNET_SERVER_receive_done (tcc->client, GNUNET_SYSERR);
 	}
       GNUNET_free (tcc->msg);
@@ -308,10 +302,10 @@ transmit_status (struct GNUNET_SERVER_Client *client,
 
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Transmitting `s' message with value %d and message %s\n",
+	      "Transmitting `%s' message with value %d and message %s\n",
 	      "STATUS",
 	      code,
-	      msg);
+	      msg != NULL ? msg : "(none)");
 #endif
   slen = (msg == NULL) ? 0 : strlen(msg) + 1;  
   sm = GNUNET_malloc (sizeof(struct StatusMessage) + slen);
@@ -578,7 +572,7 @@ handle_put (void *cls,
     GNUNET_CONTAINER_bloomfilter_add (filter,
 				      &dm->key);
   transmit_status (client, 
-		   GNUNET_SYSERR == ret ? GNUNET_SYSERR : GNUNET_OK, 
+		   (GNUNET_SYSERR == ret) ? GNUNET_SYSERR : GNUNET_OK, 
 		   msg);
   GNUNET_free_non_null (msg);
 }
@@ -619,11 +613,16 @@ handle_get (void *cls,
 							 &msg->key)) )
     {
       /* don't bother database... */
+#if DEBUG_DATASTORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Empty result set for `%s' request.\n",
+		  "GET");
+#endif	
       transmit_item (client,
 		     NULL, NULL, 0, NULL, 0, 0, 0, zero, 0);
       return;
     }
-  GNUNET_SERVER_client_drop (client);
+  GNUNET_SERVER_client_keep (client);
   plugin->api->get (plugin->api->cls,
 		    ((size == sizeof(struct GetMessage)) ? &msg->key : NULL),
 		    NULL,
@@ -683,7 +682,7 @@ handle_get_random (void *cls,
 	      "Processing `%s' request\n",
 	      "GET_RANDOM");
 #endif
-  GNUNET_SERVER_client_drop (client); // FIXME: WTF?
+  GNUNET_SERVER_client_keep (client);
   plugin->api->iter_migration_order (plugin->api->cls,
 				     0,
 				     &transmit_item,
@@ -725,8 +724,14 @@ remove_callback (void *cls,
 		 expiration, uint64_t uid)
 {
   struct RemoveContext *rc = cls;
+
   if (key == NULL)
     {
+#if DEBUG_DATASTORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "No further matches for `%s' request.\n",
+		  "REMOVE");
+#endif	
       if (GNUNET_YES == rc->found)
 	transmit_status (rc->client, GNUNET_OK, NULL);       
       else
@@ -736,9 +741,15 @@ remove_callback (void *cls,
       return GNUNET_OK; /* last item */
     }
   rc->found = GNUNET_YES;
-  plugin->api->next_request (next_cls, GNUNET_YES);
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Item %llu matches `%s' request.\n",
+	      (unsigned long long) uid,
+	      "REMOVE");
+#endif	
   GNUNET_CONTAINER_bloomfilter_remove (filter,
 				       key);
+  plugin->api->next_request (next_cls, GNUNET_YES);
   return GNUNET_NO;
 }
 
@@ -776,6 +787,7 @@ handle_remove (void *cls,
   GNUNET_CRYPTO_hash (&dm[1],
 		      ntohl(dm->size),
 		      &vhash);
+  GNUNET_SERVER_client_keep (client);
   plugin->api->get (plugin->api->cls,
 		    &dm->key,
 		    &vhash,
@@ -857,7 +869,7 @@ load_plugin (struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Loading `%s' datastore plugin\n"), name);
   GNUNET_asprintf (&libname, "libgnunet_plugin_datastore_%s", name);
-  ret->short_name = GNUNET_strdup (name);
+  ret->short_name = name;
   ret->lib_name = libname;
   ret->api = GNUNET_PLUGIN_load (libname, &ret->env);
   if (ret->api == NULL)

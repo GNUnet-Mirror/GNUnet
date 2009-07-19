@@ -215,7 +215,7 @@ with_status_response_handler (void *cls,
 	}
     }  
   h->response_proc = NULL;
-#if VERBOSE
+#if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received status %d/%s\n",
 	      status,
@@ -255,12 +255,13 @@ transmit_get_status (void *cls,
 	    gettext_noop ("Error transmitting message to datastore service.\n"));
       return 0;
     }
-  GNUNET_assert (h->message_size <= size);
-  memcpy (buf, &h[1], h->message_size);
-#if VERBOSE
+  msize = h->message_size;
+  GNUNET_assert (msize <= size);
+  memcpy (buf, &h[1], msize);
+#if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Transmitted %u byte message to datastore service, now waiting for status.\n",
-	      h->message_size);
+	      msize);
 #endif
   h->message_size = 0;
   GNUNET_CLIENT_receive (h->client,
@@ -295,7 +296,7 @@ transmit_for_status (struct GNUNET_DATASTORE_Handle *h,
 
   hdr = (const struct GNUNET_MessageHeader*) &h[1];
   msize = ntohs(hdr->size);
-#if VERBOSE
+#if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Transmitting %u byte message of type %u to datastore service\n",
 	      msize,
@@ -356,6 +357,11 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
   struct DataMessage *dm;
   size_t msize;
 
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Asked to put %u bytes of data\n",
+	      size);
+#endif
   msize = sizeof(struct DataMessage) + size;
   GNUNET_assert (msize <= GNUNET_SERVER_MAX_MESSAGE_SIZE);
   dm = (struct DataMessage*) &h[1];
@@ -502,7 +508,7 @@ with_result_response_handler (void *cls,
     {
       GNUNET_break (ntohs(msg->size) == sizeof(struct GNUNET_MessageHeader));
       h->response_proc = NULL;
-#if VERBOSE
+#if DEBUG_DATASTORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Received end of result set\n");
 #endif
@@ -533,7 +539,7 @@ with_result_response_handler (void *cls,
 	    NULL, 0, NULL, 0, 0, 0, zero, 0);
       return;
     }
-#if VERBOSE
+#if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received result %llu with type %u and size %u with key %s\n",
 	      (unsigned long long) GNUNET_ntohll(dm->uid),
@@ -585,12 +591,13 @@ transmit_get_result (void *cls,
 	    gettext_noop ("Error transmitting message to datastore service.\n"));
       return 0;
     }
-  GNUNET_assert (h->message_size <= size);
-  memcpy (buf, &h[1], h->message_size);
-#if VERBOSE
+  msize = h->message_size;
+  GNUNET_assert (msize <= size);
+  memcpy (buf, &h[1], msize);
+#if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Transmitted %u byte message to datastore service, now waiting for result.\n",
-	      h->message_size);
+	      msize);
 #endif
   h->message_size = 0;
   GNUNET_CLIENT_receive (h->client,
@@ -626,7 +633,7 @@ transmit_for_result (struct GNUNET_DATASTORE_Handle *h,
 
   hdr = (const struct GNUNET_MessageHeader*) &h[1];
   msize = ntohs(hdr->size);
-#if VERBOSE
+#if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Transmitting %u byte message of type %u to datastore service\n",
 	      msize,

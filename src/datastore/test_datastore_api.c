@@ -68,7 +68,7 @@ get_data (int i)
 static int
 get_type(int i)
 {
-  return i;
+  return i+1;
 }
 
 

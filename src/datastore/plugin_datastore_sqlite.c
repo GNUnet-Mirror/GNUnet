@@ -29,7 +29,7 @@
 #include "plugin_datastore.h"
 #include <sqlite3.h>
 
-#define DEBUG_SQLITE GNUNET_NO
+#define DEBUG_SQLITE GNUNET_YES
 
 /**
  * After how many payload-changing operations
@@ -38,14 +38,6 @@
 #define MAX_STAT_SYNC_LAG 50
 
 #define QUOTA_STAT_NAME gettext_noop ("file-sharing datastore utilization (in bytes)")
-
-
-/**
- * Die with an error message that indicates
- * a failure of the command 'cmd' with the message given
- * by strerror(errno).
- */
-#define DIE_SQLITE(db, cmd) do { GNUNET_log_from(GNUNET_ERROR_TYPE_ERROR, "sqlite", _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, sqlite3_errmsg(db->dbh)); abort(); } while(0)
 
 /**
  * Log an error message at log-level 'level' that indicates
