@@ -516,11 +516,6 @@ check_data (const struct GNUNET_MessageHeader *message)
       GNUNET_break (0);
       return NULL;
     }
-  if (ntohl(dm->type) == 0) 
-    {
-      GNUNET_break (0);
-      return NULL;
-    }
   return dm;
 }
 
@@ -547,6 +542,11 @@ handle_put (void *cls,
 	      "Processing `%s' request\n",
 	      "PUT");
 #endif
+  if (ntohl(dm->type) == 0) 
+    {
+      GNUNET_break (0);
+      dm = NULL;
+    }
   if (dm == NULL)
     {
       GNUNET_break (0);

@@ -37,12 +37,15 @@
 #include "gnunet_protocols.h"
 #include "gnunet_datastore_service.h"
 
-static struct GNUNET_DATASTORE_Handle *datastore;
+#define VERBOSE GNUNET_YES
 
 /**
  * How long until we give up on transmitting the message?
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+
+
+static struct GNUNET_DATASTORE_Handle *datastore;
 
 /**
  * Target datastore size (in bytes).
@@ -193,6 +196,8 @@ remove_next(void *cls,
 	    int success,
 	    const char *msg)
 {
+  struct CpsRunContext *crc = cls;
+
   static int dc;
   dc++;
 #if REPORT_ID
@@ -200,6 +205,11 @@ remove_next(void *cls,
     fprintf (stderr, "D");
 #endif
   GNUNET_assert (GNUNET_OK == success);
+  GNUNET_SCHEDULER_add_continuation (crc->sched,
+				     GNUNET_NO,
+				     &run_continuation,
+				     crc,
+				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
@@ -210,6 +220,8 @@ do_delete (void *cls,
 {
   struct CpsRunContext *crc = cls;
 
+  stored_bytes -= crc->esize;
+  stored_entries--;
   GNUNET_DATASTORE_remove (datastore,
 			   &crc->key,
 			   crc->esize,
@@ -234,29 +246,31 @@ delete_value (void *cls,
 {
   struct CpsRunContext *crc = cls;
 
-  if (stored_bytes < MAX_SIZE)
-    return;     
   if (key == NULL)
     {
       crc->phase = RP_REPORT;
-      GNUNET_SCHEDULER_add_continuation (crc->sched,
-					 GNUNET_NO,
-					 &run_continuation,
-					 crc,
-					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      if (stored_bytes < MAX_SIZE)
+	{
+	  GNUNET_SCHEDULER_add_continuation (crc->sched,
+					     GNUNET_NO,
+					     &run_continuation,
+					     crc,
+					     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+	  return;     
+	}
+      GNUNET_SCHEDULER_add_after (crc->sched,
+				  GNUNET_NO,
+				  GNUNET_SCHEDULER_PRIORITY_HIGH,
+				  GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+				  &do_delete,
+				  crc);
       return;
     }
-  stored_bytes -= size;
-  stored_entries--;
+  if (stored_bytes < MAX_SIZE)
+    return;     
   crc->key = *key;
   crc->esize = size;
   memcpy (crc->data, data, size);
-  GNUNET_SCHEDULER_add_after (crc->sched,
-			      GNUNET_NO,
-			      GNUNET_SCHEDULER_PRIORITY_HIGH,
-			      GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
-			      &do_delete,
-			      crc);
 }
 
 
@@ -293,7 +307,7 @@ run_continuation (void *cls,
 			    &key,
 			    size,
 			    data,
-			    i,
+			    i+1,
 			    GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100),
 			    i,
 			    GNUNET_TIME_relative_to_absolute 
@@ -398,6 +412,7 @@ main (int argc, char *argv[])
 {
   int ret;
 
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-datastore");
   GNUNET_log_setup ("perf-datastore-api",
 #if VERBOSE
                     "DEBUG",
