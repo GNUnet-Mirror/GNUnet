@@ -397,7 +397,7 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
 void
 GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h,
 			  uint64_t amount,
-			  uint64_t entries,
+			  uint32_t entries,
 			  GNUNET_DATASTORE_ContinuationWithStatus cont,
 			  void *cont_cls,
 			  struct GNUNET_TIME_Relative timeout)
@@ -407,9 +407,8 @@ GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h,
   rm = (struct ReserveMessage*) &h[1];
   rm->header.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_RESERVE);
   rm->header.size = htons(sizeof (struct ReserveMessage));
-  rm->reserved = htonl(0);
-  rm->amount = htonl(amount);
   rm->entries = htonl(entries);
+  rm->amount = htonl(amount);
   transmit_for_status (h, cont, cont_cls, timeout);
 }
 

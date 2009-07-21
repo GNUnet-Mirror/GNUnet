@@ -26,7 +26,6 @@
  * TODO:
  * quota management code:
  * - track storage use
- * - track reservations
  * - refuse above-quota
  * - content expiration job
  * - near-quota low-priority content discard job
@@ -133,6 +132,11 @@ static int reservation_gen;
  * How much space are we allowed to use?
  */
 static unsigned long long quota;
+
+/**
+ * How much space have we currently reserved?
+ */
+static unsigned long long reserved;
 
 
 /**
@@ -420,24 +424,44 @@ transmit_item (void *cls,
  */
 static void
 handle_reserve (void *cls,
-	     struct GNUNET_SERVER_Client *client,
-	     const struct GNUNET_MessageHeader *message)
+		struct GNUNET_SERVER_Client *client,
+		const struct GNUNET_MessageHeader *message)
 {
   const struct ReserveMessage *msg = (const struct ReserveMessage*) message;
   struct ReservationList *e;
+  unsigned long long used;
+  unsigned long long req;
+  uint64_t amount;
+  uint64_t entries;
 
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Processing `%s' request\n",
 	      "RESERVE");
 #endif
- /* FIXME: check if we have that much space... */
+  amount = ntohl(msg->amount);
+  entries = GNUNET_ntohll(msg->entries);
+  used = plugin->api->get_size (plugin->api->cls) + reserved;
+  req = amount + ((unsigned long long) GNUNET_DATASTORE_ENTRY_OVERHEAD) * entries;
+  if (used + req > quota)
+    {
+      if (quota < used)
+	used = quota; /* cheat a bit */
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Insufficient space (%llu bytes are available) to satisfy `%s' request for %llu bytes\n"),
+		  quota - used,
+		  "RESERVE",
+		  req);
+      transmit_status (client, 0, gettext_noop ("Insufficient space to satisfy request"));
+      return;      
+    }
+  reserved += req;
   e = GNUNET_malloc (sizeof(struct ReservationList));
   e->next = reservations;
   reservations = e;
   e->client = client;
-  e->amount = GNUNET_ntohll(msg->amount);
-  e->entries = GNUNET_ntohll(msg->entries);
+  e->amount = amount;
+  e->entries = entries;
   e->rid = ++reservation_gen;
   if (reservation_gen < 0)
     reservation_gen = 0; /* wrap around */
@@ -462,6 +486,7 @@ handle_release_reserve (void *cls,
   struct ReservationList *prev;
   struct ReservationList *next;
   int rid = ntohl(msg->rid);
+  unsigned long long rem;
 
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -479,7 +504,14 @@ handle_release_reserve (void *cls,
 	    reservations = next;
 	  else
 	    prev->next = next;
-	  /* FIXME: released remaining reserved space! */
+	  rem = pos->amount + ((unsigned long long) GNUNET_DATASTORE_ENTRY_OVERHEAD) * pos->entries;
+	  GNUNET_assert (reserved >= rem);
+	  reserved -= rem;
+#if DEBUG_DATASTORE
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Returning %llu remaining reserved bytes to storage pool\n",
+		      rem);
+#endif	  
 	  GNUNET_free (pos);
 	  transmit_status (client, GNUNET_OK, NULL);
 	  return;
@@ -487,7 +519,8 @@ handle_release_reserve (void *cls,
       prev = pos;
       pos = next;
     }
-  transmit_status (client, GNUNET_SYSERR, "Could not find matching reservation");
+  GNUNET_break (0);
+  transmit_status (client, GNUNET_SYSERR, gettext_noop ("Could not find matching reservation"));
 }
 
 
@@ -536,6 +569,8 @@ handle_put (void *cls,
   char *msg;
   int ret;
   int rid;
+  struct ReservationList *pos;
+  uint32_t size;
 
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -554,14 +589,27 @@ handle_put (void *cls,
       return;
     }
   rid = ntohl(dm->rid);
+  size = ntohl(dm->size);
   if (rid > 0)
     {
-      /* FIXME: find reservation, update remaining! */
+      pos = reservations;
+      while ( (NULL != pos) &&
+	      (rid != pos->rid) )
+	pos = pos->next;
+      GNUNET_break (pos != NULL);
+      if (NULL != pos)
+	{
+	  GNUNET_break (pos->entries > 0);
+	  GNUNET_break (pos->amount > size);
+	  pos->entries--;
+	  pos->amount -= size;
+	  reserved -= (size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
+	}
     }
   msg = NULL;
   ret = plugin->api->put (plugin->api->cls,
 			  &dm->key,
-			  ntohl(dm->size),
+			  size,
 			  &dm[1],
 			  ntohl(dm->type),
 			  ntohl(dm->priority),

@@ -43,19 +43,14 @@ struct ReserveMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Always zero.
+   * Number of items to reserve.
    */
-  uint32_t reserved GNUNET_PACKED;
+  uint32_t entries GNUNET_PACKED;
 
   /**
    * Number of bytes to reserve.
    */
   uint64_t amount GNUNET_PACKED;
-
-  /**
-   * Number of items to reserve.
-   */
-  uint64_t entries GNUNET_PACKED;
 };
 
 
