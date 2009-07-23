@@ -279,9 +279,21 @@ Minor TODO items / known bugs:
 
 PHASE #4: [completion-goal: mid 2010]
 * Documentation
-* new webpage
-
-
+  - Doxygen generation
+  - lcov generation
+  - update man pages
+  - update webpage documentation
+* new webpage:
+  - expand bibliography
+  - convert documentation pages to books
+  - update books (especially for developers)
+  - add content type for links and view
+  - create good Drupal theme for GNUnet
+  - make a NICE download page and figure out how to 
+    enable developers to publish TGZs nicely
+  - port "contact" page; add impressum
+  - add content type for "todo" items?
+  - DNS activation
 
 
 Stuff to remember:
