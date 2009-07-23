@@ -103,7 +103,7 @@ typedef void (*GNUNET_DATASTORE_ContinuationWithStatus)(void *cls,
 void
 GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h,
 			  uint64_t amount,
-			  uint64_t entries,
+			  uint32_t entries,
 			  GNUNET_DATASTORE_ContinuationWithStatus cont,
 			  void *cont_cls,
 			  struct GNUNET_TIME_Relative timeout);
