@@ -77,7 +77,7 @@ my_receive (void *cls,
   struct SignalTimeoutContext *stctx;
   GNUNET_SCHEDULER_TaskIdentifier ret;
 
-  ret = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+  ret = GNUNET_SCHEDULER_NO_TASK;
   switch (*ok)
     {
     case 1:
@@ -98,7 +98,7 @@ my_receive (void *cls,
       ret = GNUNET_SCHEDULER_add_delayed (sched,
                                           GNUNET_NO,
                                           GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                          GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                          GNUNET_SCHEDULER_NO_TASK,
                                           timeout, &signal_timeout, stctx);
       break;
     default:

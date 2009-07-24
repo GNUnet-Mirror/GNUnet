@@ -463,7 +463,7 @@ schedule_peer_search ()
   GNUNET_SCHEDULER_add_delayed (sched,
 				GNUNET_NO,
 				GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-				GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+				GNUNET_SCHEDULER_NO_TASK,
 				delay,
 				&find_more_peers,
 				NULL);
@@ -706,7 +706,7 @@ core_init (void *cls,
     GNUNET_SCHEDULER_add_delayed (sched,
 				  GNUNET_NO,
 				  GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-				  GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+				  GNUNET_SCHEDULER_NO_TASK,
 				  GNUNET_TIME_UNIT_SECONDS /* give core time to tell us about existing connections */,
 				  &find_more_peers,
 				  NULL);
@@ -1053,7 +1053,7 @@ run (void *cls,
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_YES,
                                 GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                GNUNET_SCHEDULER_NO_TASK,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &cleaning_task, NULL);
 }

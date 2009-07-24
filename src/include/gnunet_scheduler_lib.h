@@ -54,7 +54,7 @@ typedef unsigned long long GNUNET_SCHEDULER_TaskIdentifier;
  * Constant used to indicate that the scheduled
  * task has no others as prerequisites.
  */
-#define GNUNET_SCHEDULER_NO_PREREQUISITE_TASK ((GNUNET_SCHEDULER_TaskIdentifier) 0)
+#define GNUNET_SCHEDULER_NO_TASK ((GNUNET_SCHEDULER_TaskIdentifier) 0)
 
 /**
  * Reasons why the schedule may have triggered
@@ -272,7 +272,7 @@ GNUNET_SCHEDULER_add_continuation (struct GNUNET_SCHEDULER_Handle *sched,
  * @param prerequisite_task run this task after the task with the given
  *        task identifier completes (and any of our other
  *        conditions, such as delay, read or write-readyness
- *        are satisfied).  Use  GNUNET_SCHEDULER_NO_PREREQUISITE_TASK to not have any dependency
+ *        are satisfied).  Use  GNUNET_SCHEDULER_NO_TASK to not have any dependency
  *        on completion of other tasks.
  * @param main main function of the task
  * @param cls closure of task
@@ -302,7 +302,7 @@ GNUNET_SCHEDULER_add_after (struct GNUNET_SCHEDULER_Handle *sched,
  * @param prerequisite_task run this task after the task with the given
  *        task identifier completes (and any of our other
  *        conditions, such as delay, read or write-readyness
- *        are satisfied).  Use  GNUNET_SCHEDULER_NO_PREREQUISITE_TASK to not have any dependency
+ *        are satisfied).  Use  GNUNET_SCHEDULER_NO_TASK to not have any dependency
  *        on completion of other tasks.
  * @param delay how long should we wait? Use  GNUNET_TIME_UNIT_FOREVER_REL for "forever"
  * @param main main function of the task
@@ -335,7 +335,7 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_SCHEDULER_Handle *sched,
  * @param prerequisite_task run this task after the task with the given
  *        task identifier completes (and any of our other
  *        conditions, such as delay, read or write-readyness
- *        are satisfied).  Use  GNUNET_SCHEDULER_NO_PREREQUISITE_TASK to not have any dependency
+ *        are satisfied).  Use  GNUNET_SCHEDULER_NO_TASK to not have any dependency
  *        on completion of other tasks.
  * @param delay how long should we wait? Use  GNUNET_TIME_UNIT_FOREVER_REL for "forever"
  * @param rfd read file-descriptor
@@ -368,7 +368,7 @@ GNUNET_SCHEDULER_add_read (struct GNUNET_SCHEDULER_Handle *sched,
  * @param prerequisite_task run this task after the task with the given
  *        task identifier completes (and any of our other
  *        conditions, such as delay, read or write-readyness
- *        are satisfied).  Use  GNUNET_SCHEDULER_NO_PREREQUISITE_TASK to not have any dependency
+ *        are satisfied).  Use  GNUNET_SCHEDULER_NO_TASK to not have any dependency
  *        on completion of other tasks.
  * @param delay how long should we wait? Use  GNUNET_TIME_UNIT_FOREVER_REL for "forever"
  * @param wfd write file-descriptor
@@ -411,7 +411,7 @@ GNUNET_SCHEDULER_add_write (struct GNUNET_SCHEDULER_Handle *sched,
  * @param prerequisite_task run this task after the task with the given
  *        task identifier completes (and any of our other
  *        conditions, such as delay, read or write-readyness
- *        are satisfied).  Use GNUNET_SCHEDULER_NO_PREREQUISITE_TASK to not have any dependency
+ *        are satisfied).  Use GNUNET_SCHEDULER_NO_TASK to not have any dependency
  *        on completion of other tasks.
  * @param delay how long should we wait? Use GNUNET_TIME_UNIT_FOREVER_REL for "forever"
  * @param nfds highest-numbered file descriptor in any of the two sets plus one

@@ -94,7 +94,7 @@ finish_response (struct HostSet *results)
   GNUNET_SCHEDULER_add_delayed (sched,
 				GNUNET_NO,
 				GNUNET_SCHEDULER_PRIORITY_IDLE,
-				GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+				GNUNET_SCHEDULER_NO_TASK,
 				RESPONSE_UPDATE_FREQUENCY,
 				&update_response,
 				NULL);
@@ -242,7 +242,7 @@ prepare_daemon ()
     = GNUNET_SCHEDULER_add_select (sched,
 				   GNUNET_NO,
 				   GNUNET_SCHEDULER_PRIORITY_HIGH,
-				   GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+				   GNUNET_SCHEDULER_NO_TASK,
 				   tv,
 				   max,
 				   &rs,
@@ -301,7 +301,7 @@ void
 GNUNET_HOSTLIST_server_stop ()
 {
   GNUNET_SCHEDULER_cancel (sched, hostlist_task);
-  hostlist_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+  hostlist_task = GNUNET_SCHEDULER_NO_TASK;
   MHD_stop_daemon (daemon_handle);
   daemon_handle = NULL;
 }

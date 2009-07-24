@@ -336,7 +336,7 @@ cron_scan_directory_data_hosts (void *cls,
   GNUNET_SCHEDULER_add_delayed (tc->sched,
                                 GNUNET_NO,
                                 GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                GNUNET_SCHEDULER_NO_TASK,
                                 DATA_HOST_FREQ,
                                 &cron_scan_directory_data_hosts, NULL);
 }
@@ -485,7 +485,7 @@ cron_flush_trust (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_add_delayed (tc->sched,
                                   GNUNET_YES,
                                   GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                  GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                  GNUNET_SCHEDULER_NO_TASK,
                                   TRUST_FLUSH_FREQ, &cron_flush_trust, NULL);
 }
 
@@ -545,7 +545,7 @@ cron_clean_data_hosts (void *cls,
   GNUNET_SCHEDULER_add_delayed (tc->sched,
                                 GNUNET_NO,
                                 GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                GNUNET_SCHEDULER_NO_TASK,
                                 DATA_HOST_CLEAN_FREQ,
                                 &cron_clean_data_hosts, NULL);
 }
@@ -669,18 +669,18 @@ run (void *cls,
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_NO,
                                 GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                GNUNET_SCHEDULER_NO_TASK,
                                 GNUNET_TIME_UNIT_MILLISECONDS,
                                 &cron_scan_directory_data_hosts, NULL);
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_YES,
                                 GNUNET_SCHEDULER_PRIORITY_HIGH,
-                                GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                GNUNET_SCHEDULER_NO_TASK,
                                 TRUST_FLUSH_FREQ, &cron_flush_trust, NULL);
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_NO,
                                 GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                GNUNET_SCHEDULER_NO_TASK,
                                 DATA_HOST_CLEAN_FREQ,
                                 &cron_clean_data_hosts, NULL);
   GNUNET_SERVER_add_handlers (server, handlers);

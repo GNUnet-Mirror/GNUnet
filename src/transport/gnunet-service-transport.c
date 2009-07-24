@@ -1172,9 +1172,9 @@ update_addresses (struct TransportPlugin *plugin, int fresh)
   struct AddressList *next;
   int expired;
 
-  if (plugin->address_update_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
+  if (plugin->address_update_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (plugin->env.sched, plugin->address_update_task);
-  plugin->address_update_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+  plugin->address_update_task = GNUNET_SCHEDULER_NO_TASK;
   now = GNUNET_TIME_absolute_get ();
   min_remaining = GNUNET_TIME_UNIT_FOREVER_REL;
   expired = GNUNET_NO;
@@ -1209,7 +1209,7 @@ update_addresses (struct TransportPlugin *plugin, int fresh)
       = GNUNET_SCHEDULER_add_delayed (plugin->env.sched,
                                       GNUNET_NO,
                                       GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                      GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                      GNUNET_SCHEDULER_NO_TASK,
                                       min_remaining,
                                       &expire_address_task, plugin);
 
@@ -1226,7 +1226,7 @@ static void
 expire_address_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct TransportPlugin *plugin = cls;
-  plugin->address_update_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+  plugin->address_update_task = GNUNET_SCHEDULER_NO_TASK;
   update_addresses (plugin, GNUNET_NO);
 }
 
@@ -1513,7 +1513,7 @@ cleanup_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_add_delayed (sched,
                                   GNUNET_NO,
                                   GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                  GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                  GNUNET_SCHEDULER_NO_TASK,
                                   GNUNET_TIME_absolute_get_remaining
                                   (pos->timeout), &cleanup_validation, NULL);
 }
@@ -1608,7 +1608,7 @@ plugin_env_notify_validation (void *cls,
       GNUNET_SCHEDULER_add_delayed (sched,
                                     GNUNET_NO,
                                     GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                    GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                    GNUNET_SCHEDULER_NO_TASK,
                                     GNUNET_TIME_UNIT_ZERO,
                                     &cleanup_validation, NULL);
     }
@@ -1757,7 +1757,7 @@ check_hello_validated (void *cls,
     GNUNET_SCHEDULER_add_delayed (sched,
                                   GNUNET_NO,
                                   GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                  GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                  GNUNET_SCHEDULER_NO_TASK,
                                   GNUNET_TIME_absolute_get_remaining
                                   (chvc->e->timeout), &cleanup_validation,
                                   NULL);
@@ -1920,7 +1920,7 @@ disconnect_neighbour (struct NeighbourList *n,
       GNUNET_assert (mq->neighbour == n);
       GNUNET_free (mq);
     }
-  if (n->timeout_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
+  if (n->timeout_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (sched,
 			     n->timeout_task);
   /* finally, free n itself */
@@ -1971,7 +1971,7 @@ neighbour_timeout_task (void *cls,
               "Neighbour `%4s' has timed out!\n",
 	      GNUNET_i2s(&n->id));
 #endif
-  n->timeout_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+  n->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   disconnect_neighbour (n, GNUNET_NO);
 }
 
@@ -2007,7 +2007,7 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer)
   n->timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
                                                   GNUNET_NO,
                                                   GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                                  GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                                  GNUNET_SCHEDULER_NO_TASK,
                                                   GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                                   &neighbour_timeout_task, n);
   transmit_to_peer (NULL, 0,
@@ -2120,7 +2120,7 @@ plugin_env_receive (void *cls,
   n->timeout_task =
     GNUNET_SCHEDULER_add_delayed (sched, GNUNET_NO,
                                   GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                  GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                  GNUNET_SCHEDULER_NO_TASK,
                                   GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                   &neighbour_timeout_task, n);
   update_quota (n);

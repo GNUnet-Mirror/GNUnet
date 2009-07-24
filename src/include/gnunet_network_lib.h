@@ -202,7 +202,7 @@ void GNUNET_NETWORK_socket_destroy (struct GNUNET_NETWORK_SocketHandle *sock);
  * @param timeout maximum amount of time to wait
  * @param receiver function to call with received data
  * @param receiver_cls closure for receiver
- * @return scheduler task ID used for receiving, GNUNET_SCHEDULER_NO_PREREQUISITE_TASK on error
+ * @return scheduler task ID used for receiving, GNUNET_SCHEDULER_NO_TASK on error
  */
 GNUNET_SCHEDULER_TaskIdentifier
 GNUNET_NETWORK_receive (struct GNUNET_NETWORK_SocketHandle *sock,

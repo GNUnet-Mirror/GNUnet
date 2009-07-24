@@ -1595,7 +1595,7 @@ retry_plaintext_processing (void *cls,
 {
   struct Neighbour *n = cls;
 
-  n->retry_plaintext_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+  n->retry_plaintext_task = GNUNET_SCHEDULER_NO_TASK;
   process_plaintext_neighbour_queue (n);
 }
 
@@ -1628,10 +1628,10 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
   struct GNUNET_TIME_Absolute deadline;
   struct GNUNET_TIME_Relative retry_time;
 
-  if (n->retry_plaintext_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
+  if (n->retry_plaintext_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (sched, n->retry_plaintext_task);
-      n->retry_plaintext_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+      n->retry_plaintext_task = GNUNET_SCHEDULER_NO_TASK;
     }
   switch (n->status)
     {
@@ -1645,7 +1645,7 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
       return;
     case PEER_STATE_KEY_SENT:
       GNUNET_assert (n->retry_set_key_task !=
-                     GNUNET_SCHEDULER_NO_PREREQUISITE_TASK);
+                     GNUNET_SCHEDULER_NO_TASK);
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Not yet connected to `%4s', deferring processing of plaintext messages.\n",
@@ -1654,7 +1654,7 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
       return;
     case PEER_STATE_KEY_RECEIVED:
       GNUNET_assert (n->retry_set_key_task !=
-                     GNUNET_SCHEDULER_NO_PREREQUISITE_TASK);
+                     GNUNET_SCHEDULER_NO_TASK);
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Not yet connected to `%4s', deferring processing of plaintext messages.\n",
@@ -1705,7 +1705,7 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
         GNUNET_SCHEDULER_add_delayed (sched,
                                       GNUNET_NO,
                                       GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                      GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                      GNUNET_SCHEDULER_NO_TASK,
                                       retry_time,
                                       &retry_plaintext_processing, n);
       return;
@@ -2021,7 +2021,7 @@ set_key_retry_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct Neighbour *n = cls;
 
   GNUNET_assert (n->status != PEER_STATE_KEY_CONFIRMED);
-  n->retry_set_key_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+  n->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
   n->set_key_retry_frequency =
     GNUNET_TIME_relative_multiply (n->set_key_retry_frequency, 2);
   send_key (n);
@@ -2148,7 +2148,7 @@ send_key (struct Neighbour *n)
       = GNUNET_SCHEDULER_add_delayed (sched,
                                       GNUNET_NO,
                                       GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                      GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                      GNUNET_SCHEDULER_NO_TASK,
                                       n->set_key_retry_frequency,
                                       &set_key_retry_task, n);
 }
@@ -2484,10 +2484,10 @@ handle_pong (struct Neighbour *n, const struct PingMessage *m)
       return;
     case PEER_STATE_KEY_RECEIVED:
       n->status = PEER_STATE_KEY_CONFIRMED;
-      if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
+      if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
         {
           GNUNET_SCHEDULER_cancel (sched, n->retry_set_key_task);
-          n->retry_set_key_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+          n->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
         }
       process_encrypted_neighbour_queue (n);
       break;
@@ -2883,12 +2883,12 @@ static void
 schedule_quota_update (struct Neighbour *n)
 {
   GNUNET_assert (n->quota_update_task ==
-		 GNUNET_SCHEDULER_NO_PREREQUISITE_TASK);
+		 GNUNET_SCHEDULER_NO_TASK);
   n->quota_update_task
     = GNUNET_SCHEDULER_add_delayed (sched,
 				    GNUNET_NO,
 				    GNUNET_SCHEDULER_PRIORITY_IDLE,
-				    GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+				    GNUNET_SCHEDULER_NO_TASK,
 				    QUOTA_UPDATE_FREQUENCY,
 				    &neighbour_quota_update,
 				    n);
@@ -2912,7 +2912,7 @@ neighbour_quota_update (void *cls,
   double share;
   unsigned long long distributable;
   
-  n->quota_update_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+  n->quota_update_task = GNUNET_SCHEDULER_NO_TASK;
   /* calculate relative preference among all neighbours;
      divides by a bit more to avoid division by zero AND to
      account for possibility of new neighbours joining any time 
@@ -3022,11 +3022,11 @@ free_neighbour (struct Neighbour *n)
     }
   if (NULL != n->th)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (n->th);
-  if (n->retry_plaintext_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
+  if (n->retry_plaintext_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (sched, n->retry_plaintext_task);
-  if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
+  if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (sched, n->retry_set_key_task);
-  if (n->quota_update_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
+  if (n->quota_update_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (sched, n->quota_update_task);
   GNUNET_free_non_null (n->public_key);
   GNUNET_free_non_null (n->pending_ping);
@@ -3192,7 +3192,7 @@ run (void *cls,
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_YES,
                                 GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                GNUNET_SCHEDULER_NO_TASK,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &cleaning_task, NULL);
   /* process client requests */

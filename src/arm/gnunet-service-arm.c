@@ -561,7 +561,7 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_SCHEDULER_add_delayed (tc->sched,
                                 GNUNET_YES,
                                 GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                GNUNET_SCHEDULER_NO_TASK,
                                 MAINT_FREQUENCY, &maint, cfg);
 
   /* check for services that died (WAITPID) */
@@ -723,7 +723,7 @@ run (void *cls,
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_YES,
                                 GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                GNUNET_SCHEDULER_NO_TASK,
                                 MAINT_FREQUENCY, &maint, NULL);
 }
 

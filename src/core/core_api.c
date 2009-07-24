@@ -277,7 +277,7 @@ timeout_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Transmission request timed out.\n");
   h = th->ch;
-  th->timeout_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+  th->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (0 == th->get_message (th->get_message_cls, 0, NULL));
   GNUNET_CORE_notify_transmit_ready_cancel (th);
 }
@@ -310,7 +310,7 @@ request_start (void *cls, size_t size, void *buf)
   th->timeout_task = GNUNET_SCHEDULER_add_delayed (h->sched,
                                                    GNUNET_NO,
                                                    GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                                   GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                                   GNUNET_SCHEDULER_NO_TASK,
                                                    GNUNET_TIME_absolute_get_remaining
                                                    (th->timeout),
                                                    &timeout_request, th);
@@ -344,7 +344,7 @@ trigger_next_request (struct GNUNET_CORE_Handle *h)
     return;                     /* no requests pending */
   GNUNET_assert (NULL == h->th);
   GNUNET_SCHEDULER_cancel (h->sched, th->timeout_task);
-  th->timeout_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+  th->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   h->th = GNUNET_CLIENT_notify_transmit_ready (h->client,
                                                th->msize,
                                                GNUNET_TIME_absolute_get_remaining
@@ -660,7 +660,7 @@ static void
 reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CORE_Handle *h = cls;
-  h->reconnect_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+  h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   reconnect (h);
 }
 
@@ -702,7 +702,7 @@ transmit_start (void *cls, size_t size, void *buf)
           h->reconnect_task =
             GNUNET_SCHEDULER_add_delayed (h->sched, GNUNET_NO,
                                           GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                          GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                          GNUNET_SCHEDULER_NO_TASK,
                                           delay, &reconnect_task, h);
           return 0;
         }
@@ -837,7 +837,7 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
 {
   if (handle->th != NULL)
     GNUNET_NETWORK_notify_transmit_ready_cancel (handle->th);
-  if (handle->reconnect_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
+  if (handle->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (handle->sched, handle->reconnect_task);
   GNUNET_CLIENT_disconnect (handle->client);
   GNUNET_free (handle);
@@ -858,7 +858,7 @@ produce_configure_message (void *cls, size_t size, void *buf)
       /* communicate handle timeout/error! */
       if (th->info != NULL)
         th->info (th->info_cls, NULL, 0, 0, GNUNET_TIME_UNIT_ZERO, 0, 0.0);
-      if (th->timeout_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
+      if (th->timeout_task != GNUNET_SCHEDULER_NO_TASK)
         GNUNET_CORE_notify_transmit_ready_cancel (th);
       if (ch->submitted == th)
         ch->submitted = NULL;
@@ -934,7 +934,7 @@ GNUNET_CORE_peer_configure (struct GNUNET_CORE_Handle *handle,
   th->timeout_task = GNUNET_SCHEDULER_add_delayed (handle->sched,
                                                    GNUNET_NO,
                                                    GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                                   GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                                   GNUNET_SCHEDULER_NO_TASK,
                                                    timeout,
                                                    &timeout_request, th);
   th->msize = sizeof (struct RequestConfigureMessage);
@@ -974,7 +974,7 @@ produce_send (void *cls, size_t size, void *buf)
 		  GNUNET_i2s(&th->peer));
 #endif
       GNUNET_assert (0 == th->notify (th->notify_cls, 0, NULL));
-      if (th->timeout_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
+      if (th->timeout_task != GNUNET_SCHEDULER_NO_TASK)
         GNUNET_CORE_notify_transmit_ready_cancel (th);
       trigger_next_request (h);
       return 0;
@@ -984,7 +984,7 @@ produce_send (void *cls, size_t size, void *buf)
 	      "Preparing for P2P transmission to `%4s'.\n",
 	      GNUNET_i2s(&th->peer));
 #endif
-  GNUNET_assert (th->timeout_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK);
+  GNUNET_assert (th->timeout_task != GNUNET_SCHEDULER_NO_TASK);
   sm = (struct SendMessage *) buf;
   sm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_SEND);
   sm->priority = htonl (th->priority);
@@ -1050,7 +1050,7 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
   th->timeout_task = GNUNET_SCHEDULER_add_delayed (handle->sched,
                                                    GNUNET_NO,
                                                    GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                                   GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                                   GNUNET_SCHEDULER_NO_TASK,
                                                    maxdelay,
                                                    &timeout_request, th);
   th->priority = priority;
@@ -1088,7 +1088,7 @@ GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle
       else
         h->next->prev = h->prev;
     }
-  if (h->timeout_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
+  if (h->timeout_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (handle->sched, h->timeout_task);
   GNUNET_free (h);
 }

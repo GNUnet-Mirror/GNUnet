@@ -254,7 +254,7 @@ struct GNUNET_SERVER_Client *GNUNET_SERVER_connect_socket (struct
  * @param receiver function to call with received data
  * @param receiver_cls closure for receiver
  * @return task identifier that can be used to cancel the receive,
- *         GNUNET_SCHEDULER_NO_PREREQUISITE_TASK should be returned
+ *         GNUNET_SCHEDULER_NO_TASK should be returned
  *         if the receiver function was already called
  */
 typedef GNUNET_SCHEDULER_TaskIdentifier

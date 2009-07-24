@@ -484,7 +484,7 @@ file_hash_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_SCHEDULER_add_after (tc->sched,
                               fhc->run_on_shutdown,
                               GNUNET_SCHEDULER_PRIORITY_KEEP,
-                              GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                              GNUNET_SCHEDULER_NO_TASK,
                               &file_hash_task, fhc);
 }
 
@@ -536,7 +536,7 @@ GNUNET_CRYPTO_hash_file (struct GNUNET_SCHEDULER_Handle *sched,
   GNUNET_SCHEDULER_add_after (sched,
                               run_on_shutdown,
                               priority,
-                              GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                              GNUNET_SCHEDULER_NO_TASK,
                               &file_hash_task, fhc);
 }
 

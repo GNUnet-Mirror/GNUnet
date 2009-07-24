@@ -223,7 +223,7 @@ delete_value (void *cls,
       GNUNET_SCHEDULER_add_after (crc->sched,
 				  GNUNET_NO,
 				  GNUNET_SCHEDULER_PRIORITY_HIGH,
-				  GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+				  GNUNET_SCHEDULER_NO_TASK,
 				  &do_delete,
 				  crc);
       return;

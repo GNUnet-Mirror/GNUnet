@@ -399,7 +399,7 @@ run_multi ()
     = GNUNET_SCHEDULER_add_select (sched,
 				   GNUNET_NO,
 				   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-				   GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+				   GNUNET_SCHEDULER_NO_TASK,
 				   GNUNET_TIME_UNIT_MINUTES,
 				   max,
 				   &rs,
@@ -543,7 +543,7 @@ schedule_hostlist_task ()
   current_task = GNUNET_SCHEDULER_add_delayed (sched,
 					       GNUNET_NO,
 					       GNUNET_SCHEDULER_PRIORITY_IDLE,
-					       GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+					       GNUNET_SCHEDULER_NO_TASK,
 					       delay,
 					       &check_task,
 					       NULL);

@@ -223,7 +223,7 @@ struct GNUNET_SERVER_Client
 
   /**
    * Current task identifier for the receive call
-   * (or GNUNET_SCHEDULER_NO_PREREQUISITE_TASK for none).
+   * (or GNUNET_SCHEDULER_NO_TASK for none).
    */
   GNUNET_SCHEDULER_TaskIdentifier my_receive;
 
@@ -351,7 +351,7 @@ process_listen_socket (void *cls,
   GNUNET_SCHEDULER_add_select (server->sched,
                                GNUNET_YES,
                                GNUNET_SCHEDULER_PRIORITY_HIGH,
-                               GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                               GNUNET_SCHEDULER_NO_TASK,
                                GNUNET_TIME_UNIT_FOREVER_REL,
                                GNUNET_MAX (server->listen_socket,
                                            server->shutpipe[0]) + 1, &r, NULL,
@@ -483,7 +483,7 @@ GNUNET_SERVER_create (struct GNUNET_SCHEDULER_Handle *sched,
       GNUNET_SCHEDULER_add_select (sched,
                                    GNUNET_YES,
                                    GNUNET_SCHEDULER_PRIORITY_HIGH,
-                                   GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                   GNUNET_SCHEDULER_NO_TASK,
                                    GNUNET_TIME_UNIT_FOREVER_REL,
                                    GNUNET_MAX (ret->listen_socket,
                                                ret->shutpipe[0]) + 1, &r,
@@ -621,7 +621,7 @@ shutdown_incoming_processing (struct GNUNET_SERVER_Client *client)
   struct NotifyList *n;
   unsigned int rc;
 
-  GNUNET_assert (client->my_receive == GNUNET_SCHEDULER_NO_PREREQUISITE_TASK);
+  GNUNET_assert (client->my_receive == GNUNET_SCHEDULER_NO_TASK);
   rc = client->reference_count;
   if (client->server != NULL)
     {
@@ -740,7 +740,7 @@ process_incoming (void *cls,
   const char *cbuf = buf;
   size_t maxcpy;
 
-  client->my_receive = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+  client->my_receive = GNUNET_SCHEDULER_NO_TASK;
   if ((buf == NULL) ||
       (available == 0) ||
       (errCode != 0) ||
@@ -1107,9 +1107,9 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
 {
   if (client->server == NULL)
     return;                     /* already disconnected */
-  GNUNET_assert (client->my_receive != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK);
+  GNUNET_assert (client->my_receive != GNUNET_SCHEDULER_NO_TASK);
   client->receive_cancel (client->client_closure, client->my_receive);
-  client->my_receive = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+  client->my_receive = GNUNET_SCHEDULER_NO_TASK;
   shutdown_incoming_processing (client);
 }
 

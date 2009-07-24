@@ -22,13 +22,6 @@
  * @file datastore/gnunet-service-datastore.c
  * @brief Management for the datastore for files stored on a GNUnet node
  * @author Christian Grothoff
- *
- * TODO:
- * quota management code:
- * - track storage use
- * - refuse above-quota
- * - content expiration job
- * - near-quota low-priority content discard job
  */
 
 #include "platform.h"
@@ -41,6 +34,13 @@
  * How many messages do we queue at most per client?
  */
 #define MAX_PENDING 1024
+
+/**
+ * How long are we at most keeping "expired" content
+ * past the expiration date in the database?
+ */
+#define MAX_EXPIRE_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
+
 
 
 /**
@@ -134,10 +134,34 @@ static int reservation_gen;
 static unsigned long long quota;
 
 /**
+ * How much space are we using for the cache?
+ * (space available for insertions that will be
+ *  instantly reclaimed by discarding less 
+ *  important content --- or possibly whatever
+ *  we just inserted into the "cache").
+ */
+static unsigned long long cache_size;
+
+/**
  * How much space have we currently reserved?
  */
 static unsigned long long reserved;
 
+/**
+ * Identity of the task that is used to delete
+ * expired content.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier expired_kill_task;
+
+/**
+ * Our configuration.
+ */
+struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
+ * Our scheduler.
+ */
+struct GNUNET_SCHEDULER_Handle *sched; 
 
 /**
  * Function called once the transmit operation has
@@ -148,6 +172,7 @@ static unsigned long long reserved;
  */
 typedef void (*TransmitContinuation)(void *cls,
 				     int status);
+
 
 struct TransmitCallbackContext 
 {
@@ -178,6 +203,176 @@ struct TransmitCallbackContext
    */
   int end;
 };
+
+
+/**
+ * Task that is used to remove expired entries from
+ * the datastore.  This task will schedule itself
+ * again automatically to always delete all expired
+ * content quickly.
+ *
+ * @param cls not used
+ * @param tc task context
+ */ 
+static void
+delete_expired (void *cls,
+		const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
+ * Iterate over the expired items stored in the datastore.
+ * Delete all expired items; once we have processed all
+ * expired items, re-schedule the "delete_expired" task.
+ *
+ * @param cls not used
+ * @param next_cls closure to pass to the "next" function.
+ * @param key key for the content
+ * @param size number of bytes in data
+ * @param data content stored
+ * @param type type of the content
+ * @param priority priority of the content
+ * @param anonymity anonymity-level for the content
+ * @param expiration expiration time for the content
+ * @param uid unique identifier for the datum;
+ *        maybe 0 if no unique identifier is available
+ *
+ * @return GNUNET_SYSERR to abort the iteration, GNUNET_OK to continue
+ *         (continue on call to "next", of course),
+ *         GNUNET_NO to delete the item and continue (if supported)
+ */
+static int 
+expired_processor (void *cls,
+		   void *next_cls,
+		   const GNUNET_HashCode * key,
+		   uint32_t size,
+		   const void *data,
+		   uint32_t type,
+		   uint32_t priority,
+		   uint32_t anonymity,
+		   struct GNUNET_TIME_Absolute
+		   expiration, 
+		   uint64_t uid)
+{
+  struct GNUNET_TIME_Absolute now;
+
+  expired_kill_task = GNUNET_SCHEDULER_NO_TASK;
+  if (key == NULL) 
+    {
+      expired_kill_task 
+	= GNUNET_SCHEDULER_add_delayed (sched,
+					GNUNET_NO,
+					GNUNET_SCHEDULER_PRIORITY_IDLE,
+					GNUNET_SCHEDULER_NO_TASK,
+					MAX_EXPIRE_DELAY,
+					&delete_expired,
+					NULL);
+      return GNUNET_SYSERR;
+    }
+  now = GNUNET_TIME_absolute_get ();
+  if (expiration.value > now.value)
+    {
+      /* finished processing */
+      plugin->api->next_request (next_cls, GNUNET_YES);
+      return GNUNET_SYSERR;
+    }
+  plugin->api->next_request (next_cls, GNUNET_NO);
+  return GNUNET_NO; /* delete */
+}
+
+
+/**
+ * Task that is used to remove expired entries from
+ * the datastore.  This task will schedule itself
+ * again automatically to always delete all expired
+ * content quickly.
+ *
+ * @param cls not used
+ * @param tc task context
+ */ 
+static void
+delete_expired (void *cls,
+		const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  plugin->api->iter_ascending_expiration (plugin->api->cls, 
+					  0,
+					  &expired_processor,
+					  NULL);
+}
+
+
+/**
+ * An iterator over a set of items stored in the datastore.
+ *
+ * @param cls closure
+ * @param next_cls closure to pass to the "next" function.
+ * @param key key for the content
+ * @param size number of bytes in data
+ * @param data content stored
+ * @param type type of the content
+ * @param priority priority of the content
+ * @param anonymity anonymity-level for the content
+ * @param expiration expiration time for the content
+ * @param uid unique identifier for the datum;
+ *        maybe 0 if no unique identifier is available
+ *
+ * @return GNUNET_SYSERR to abort the iteration, GNUNET_OK to continue
+ *         (continue on call to "next", of course),
+ *         GNUNET_NO to delete the item and continue (if supported)
+ */
+static int 
+manage (void *cls,
+	void *next_cls,
+	const GNUNET_HashCode * key,
+	uint32_t size,
+	const void *data,
+	uint32_t type,
+	uint32_t priority,
+	uint32_t anonymity,
+	struct GNUNET_TIME_Absolute
+	expiration, 
+	uint64_t uid)
+{
+  unsigned long long *need = cls;
+
+  if (NULL == key)
+    {
+      GNUNET_free (need);
+      return GNUNET_SYSERR;
+    }
+  if (size + GNUNET_DATASTORE_ENTRY_OVERHEAD > *need)
+    *need = 0;
+  else
+    *need -= size + GNUNET_DATASTORE_ENTRY_OVERHEAD;
+  plugin->api->next_request (next_cls, 
+			     (0 == *need) ? GNUNET_YES : GNUNET_NO);
+  return GNUNET_NO;
+}
+
+
+/**
+ * Manage available disk space by running tasks
+ * that will discard content if necessary.  This
+ * function will be run whenever a request for
+ * "need" bytes of storage could only be satisfied
+ * by eating into the "cache" (and we want our cache
+ * space back).
+ *
+ * @param need number of bytes of content that were
+ *        placed into the "cache" (and hence the
+ *        number of bytes that should be removed).
+ */
+static void
+manage_space (unsigned long long need)
+{
+  unsigned long long *n;
+
+  n = GNUNET_malloc (sizeof(unsigned long long));
+  *n = need;
+  plugin->api->iter_low_priority (plugin->api->cls,
+				  0,
+				  &manage,
+				  n);
+}
 
 
 /**
@@ -446,13 +641,32 @@ handle_reserve (void *cls,
   if (used + req > quota)
     {
       if (quota < used)
-	used = quota; /* cheat a bit */
+	used = quota; /* cheat a bit for error message (to avoid negative numbers) */
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Insufficient space (%llu bytes are available) to satisfy `%s' request for %llu bytes\n"),
 		  quota - used,
 		  "RESERVE",
 		  req);
-      transmit_status (client, 0, gettext_noop ("Insufficient space to satisfy request"));
+      if (cache_size < req)
+	{
+	  /* TODO: document this in the FAQ; essentially, if this
+	     message happens, the insertion request could be blocked
+	     by less-important content from migration because it is
+	     larger than 1/8th of the overall available space, and
+	     we only reserve 1/8th for "fresh" insertions */
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		      _("The requested amount (%llu bytes) is larger than the cache size (%llu bytes)\n"),
+		      req,
+		      cache_size);
+	  transmit_status (client, 0, 
+			   gettext_noop ("Insufficient space to satisfy request and "
+					 "requested amount is larger than cache size"));
+	}
+      else
+	{
+	  transmit_status (client, 0, 
+			   gettext_noop ("Insufficient space to satisfy request"));
+	}
       return;      
     }
   reserved += req;
@@ -623,6 +837,8 @@ handle_put (void *cls,
 		   (GNUNET_SYSERR == ret) ? GNUNET_SYSERR : GNUNET_OK, 
 		   msg);
   GNUNET_free_non_null (msg);
+  if (quota - reserved - cache_size < plugin->api->get_size (plugin->api->cls))
+    manage_space (size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
 }
 
 
@@ -894,8 +1110,7 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
  * Load the datastore plugin.
  */
 static struct DatastorePlugin *
-load_plugin (struct GNUNET_CONFIGURATION_Handle *cfg,
-	     struct GNUNET_SCHEDULER_Handle *sched)
+load_plugin () 
 {
   struct DatastorePlugin *ret;
   char *libname;
@@ -978,7 +1193,30 @@ cleanup_reservations (void *cls,
 		      struct GNUNET_SERVER_Client
 		      * client)
 {
-  /* FIXME */
+  struct ReservationList *pos;
+  struct ReservationList *prev;
+  struct ReservationList *next;
+
+  prev = NULL;
+  pos = reservations;
+  while (NULL != pos)
+    {
+      next = pos->next;
+      if (pos->client == client)
+	{
+	  if (prev == NULL)
+	    reservations = next;
+	  else
+	    prev->next = next;
+	  reserved -= pos->amount + pos->entries * GNUNET_DATASTORE_ENTRY_OVERHEAD;
+	  GNUNET_free (pos);
+	}
+      else
+	{
+	  prev = pos;
+	}
+      pos = next;
+    }
 }
 
 
@@ -986,19 +1224,21 @@ cleanup_reservations (void *cls,
  * Process datastore requests.
  *
  * @param cls closure
- * @param sched scheduler to use
+ * @param s scheduler to use
  * @param server the initialized server
- * @param cfg configuration to use
+ * @param c configuration to use
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *sched,
+     struct GNUNET_SCHEDULER_Handle *s,
      struct GNUNET_SERVER_Handle *server,
-     struct GNUNET_CONFIGURATION_Handle *cfg)
+     struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *fn;
   unsigned int bf_size;
 
+  sched = s;
+  cfg = c;
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg,
                                              "DATASTORE", "QUOTA", &quota))
@@ -1009,6 +1249,7 @@ run (void *cls,
 		  "DATASTORE");
       return;
     }
+  cache_size = quota / 8; /* Or should we make this an option? */
   bf_size = quota / 32; /* 8 bit per entry, 1 bit per 32 kb in DB */
   fn = NULL;
   if ( (GNUNET_OK !=
@@ -1033,7 +1274,7 @@ run (void *cls,
 		  _("Failed to initialize bloomfilter.\n"));
       return;
     }
-  plugin = load_plugin (cfg, sched);
+  plugin = load_plugin ();
   if (NULL == plugin)
     {
       GNUNET_CONTAINER_bloomfilter_free (filter);
@@ -1041,12 +1282,20 @@ run (void *cls,
     }
   GNUNET_SERVER_disconnect_notify (server, &cleanup_reservations, NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
+  expired_kill_task
+    = GNUNET_SCHEDULER_add_delayed (sched,
+				    GNUNET_NO,
+				    GNUNET_SCHEDULER_PRIORITY_IDLE,
+				    GNUNET_SCHEDULER_NO_TASK,
+				    GNUNET_TIME_UNIT_ZERO,
+				    &delete_expired, NULL);
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_YES,
                                 GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                GNUNET_SCHEDULER_NO_TASK,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &cleaning_task, NULL);
+  
 }
 
 

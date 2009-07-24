@@ -170,7 +170,7 @@ iterateDummy (void *cls,
       GNUNET_SCHEDULER_add_after (crc->sched,
 				  GNUNET_NO,
 				  GNUNET_SCHEDULER_PRIORITY_KEEP,
-				  GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+				  GNUNET_SCHEDULER_NO_TASK,
 				  &test, crc);
       return GNUNET_OK;
     }
@@ -255,7 +255,7 @@ test (void *cls,
       GNUNET_SCHEDULER_add_after (crc->sched,
 				  GNUNET_NO,
 				  GNUNET_SCHEDULER_PRIORITY_KEEP,
-				  GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+				  GNUNET_SCHEDULER_NO_TASK,
 				  &test, crc);
       break;
     case RP_LP_GET:
@@ -303,7 +303,7 @@ test (void *cls,
       GNUNET_SCHEDULER_add_delayed (crc->sched,
 				    GNUNET_YES,
 				    GNUNET_SCHEDULER_PRIORITY_IDLE,
-				    GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+				    GNUNET_SCHEDULER_NO_TASK,
 				    GNUNET_TIME_UNIT_ZERO,
 				    &cleaning_task, crc);
       break;
@@ -365,7 +365,7 @@ run (void *cls,
   GNUNET_SCHEDULER_add_after (s,
 			      GNUNET_YES,
 			      GNUNET_SCHEDULER_PRIORITY_KEEP,
-			      GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+			      GNUNET_SCHEDULER_NO_TASK,
 			      &test, crc);
 }
 

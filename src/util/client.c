@@ -230,7 +230,7 @@ receive_helper (void *cls,
   struct GNUNET_TIME_Relative remaining;
 
   GNUNET_assert (conn->msg_complete == GNUNET_NO);
-  conn->receiver_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+  conn->receiver_task = GNUNET_SCHEDULER_NO_TASK;
 
   if ((available == 0) || (conn->sock == NULL) || (errCode != 0))
     {
@@ -284,7 +284,7 @@ receive_task (void *scls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader*) mbuf;
 
   GNUNET_assert (GNUNET_YES == sock->msg_complete);
-  sock->receiver_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+  sock->receiver_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (sock->received_pos >= msize);
   memcpy (msg, cmsg, msize);
   memmove (sock->received_buf,
@@ -320,7 +320,7 @@ GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
       return;
     }
   GNUNET_assert (sock->receiver_task ==
-                 GNUNET_SCHEDULER_NO_PREREQUISITE_TASK);
+                 GNUNET_SCHEDULER_NO_TASK);
   sock->receiver_handler = handler;
   sock->receiver_handler_cls = cls;
   sock->receive_timeout = GNUNET_TIME_relative_to_absolute (timeout);
@@ -328,7 +328,7 @@ GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
     sock->receiver_task = GNUNET_SCHEDULER_add_after (sock->sched,
                                                       GNUNET_YES,
                                                       GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                                      GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                                      GNUNET_SCHEDULER_NO_TASK,
                                                       &receive_task, sock);
   else
     sock->receiver_task = GNUNET_NETWORK_receive (sock->sock,

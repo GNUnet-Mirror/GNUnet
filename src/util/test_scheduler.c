@@ -118,13 +118,13 @@ task5 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_SCHEDULER_add_read (tc->sched,
                              GNUNET_NO,
                              GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                             GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                             GNUNET_SCHEDULER_NO_TASK,
                              GNUNET_TIME_UNIT_FOREVER_REL,
                              fds[0], &taskRd, cls);
   GNUNET_SCHEDULER_add_write (tc->sched,
                               GNUNET_NO,
                               GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                              GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                              GNUNET_SCHEDULER_NO_TASK,
                               GNUNET_TIME_UNIT_FOREVER_REL,
                               fds[1], &taskWrt, cls);
 }
@@ -144,7 +144,7 @@ task1 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   t2 = GNUNET_SCHEDULER_add_after (tc->sched,
                                    GNUNET_NO,
                                    GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                   GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                   GNUNET_SCHEDULER_NO_TASK,
                                    &task2, cls);
   /* t3 will go before t4: higher priority */
   t4 = GNUNET_SCHEDULER_add_after (tc->sched,

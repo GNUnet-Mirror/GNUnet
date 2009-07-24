@@ -86,7 +86,7 @@ recv_cb (void *cls,
       GNUNET_SCHEDULER_add_delayed (sched,
                                     GNUNET_YES,
                                     GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                    GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                    GNUNET_SCHEDULER_NO_TASK,
                                     GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_MILLISECONDS, 50),
                                     &send_done, argclient);

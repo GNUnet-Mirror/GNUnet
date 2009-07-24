@@ -173,7 +173,7 @@ process_mtype (void *cls,
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_NO,
                                 GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+                                GNUNET_SCHEDULER_NO_TASK,
                                 GNUNET_TIME_UNIT_ZERO, &terminate_task, NULL);
   return GNUNET_OK;
 }
@@ -202,7 +202,7 @@ transmit_ready (void *cls, size_t size, void *buf)
     GNUNET_SCHEDULER_add_delayed (sched,
 				  GNUNET_NO,
 				  GNUNET_SCHEDULER_PRIORITY_KEEP,
-				  GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+				  GNUNET_SCHEDULER_NO_TASK,
 				  GNUNET_TIME_UNIT_MINUTES, &terminate_task_error, NULL);
 
   return sizeof (struct GNUNET_MessageHeader);

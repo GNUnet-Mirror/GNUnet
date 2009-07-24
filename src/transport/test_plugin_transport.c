@@ -157,10 +157,10 @@ validation_notification (void *cls,
   /* Sailor: 'test_validation' should get here
      if the validation worked; so we cancel the
      "delayed" task that will cause failure */
-  if (validation_timeout_task != GNUNET_SCHEDULER_NO_PREREQUISITE_TASK)
+  if (validation_timeout_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (sched, validation_timeout_task);
-      validation_timeout_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+      validation_timeout_task = GNUNET_SCHEDULER_NO_TASK;
     }
 
   GNUNET_assert (challenge == 42);
@@ -176,7 +176,7 @@ static void
 validation_failed (void *cls,
 		   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  validation_timeout_task = GNUNET_SCHEDULER_NO_PREREQUISITE_TASK;
+  validation_timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_break (0); /* output error */
   /* the "validation_notification" was not called
      in a timely fashion; we should set an error
@@ -221,7 +221,7 @@ test_validation ()
     GNUNET_SCHEDULER_add_delayed (sched,
 				  GNUNET_NO,
 				  GNUNET_SCHEDULER_PRIORITY_KEEP,
-				  GNUNET_SCHEDULER_NO_PREREQUISITE_TASK,
+				  GNUNET_SCHEDULER_NO_TASK,
 				  TIMEOUT,
 				  &validation_failed,
 				  NULL);
