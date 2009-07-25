@@ -281,6 +281,8 @@ expired_processor (void *cls,
 	      "Deleting content that expired %llu ms ago\n",
 	      (unsigned long long) (now.value - expiration.value));
 #endif
+  GNUNET_CONTAINER_bloomfilter_remove (filter,
+				       key);
   return GNUNET_NO; /* delete */
 }
 
@@ -356,6 +358,8 @@ manage (void *cls,
 	      size + GNUNET_DATASTORE_ENTRY_OVERHEAD,
 	      *need);
 #endif
+  GNUNET_CONTAINER_bloomfilter_remove (filter,
+				       key);
   return GNUNET_NO;
 }
 
