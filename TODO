@@ -59,11 +59,8 @@ that would cause them to be executed and check that they are working:
 
 Module features to implement:
 * Dstore (needed for DHT)
-  - design DSTORE API
-  - design network structs
   - design plugin API
   - implement sqlite-based dstore plugin
-  - implement dstore service
   - implement dstore API
   - implement testcases for dstore API 
   - implement testcases for dstore plugin
