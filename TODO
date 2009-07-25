@@ -58,8 +58,6 @@ that would cause them to be executed and check that they are working:
 
 
 Module features to implement:
-* Datastore (needed for FS)
-  - complete service implementation and improve testcase coverage
 * Dstore (needed for DHT)
   - design DSTORE API
   - design network structs
