@@ -380,7 +380,7 @@ main (int argc, char *argv[])
   GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-datastore");
   GNUNET_log_setup ("perf-datastore-api",
 #if VERBOSE
-                    "DEBUG",
+		    "DEBUG",
 #else
                     "WARNING",
 #endif

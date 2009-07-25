@@ -276,6 +276,11 @@ expired_processor (void *cls,
       return GNUNET_SYSERR;
     }
   plugin->api->next_request (next_cls, GNUNET_NO);
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Deleting content that expired %llu ms ago\n",
+	      (unsigned long long) (now.value - expiration.value));
+#endif
   return GNUNET_NO; /* delete */
 }
 
@@ -345,6 +350,12 @@ manage (void *cls,
     *need -= size + GNUNET_DATASTORE_ENTRY_OVERHEAD;
   plugin->api->next_request (next_cls, 
 			     (0 == *need) ? GNUNET_YES : GNUNET_NO);
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Deleting %llu bytes of low-priority content (still trying to recover %llu bytes)\n",
+	      size + GNUNET_DATASTORE_ENTRY_OVERHEAD,
+	      *need);
+#endif
   return GNUNET_NO;
 }
 
@@ -366,6 +377,11 @@ manage_space (unsigned long long need)
 {
   unsigned long long *n;
 
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Asked to recover %llu bytes of cache space\n",
+	      need);
+#endif
   n = GNUNET_malloc (sizeof(unsigned long long));
   *n = need;
   plugin->api->iter_low_priority (plugin->api->cls,
@@ -416,10 +432,6 @@ transmit_callback (void *cls,
     tcc->tc (tcc->tc_cls, GNUNET_OK);
   if (GNUNET_YES == tcc->end)
     {
-#if DEBUG_DATASTORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Request completed, ready for the next request!\n");
-#endif
       GNUNET_SERVER_receive_done (tcc->client, GNUNET_OK);
     }
   else
