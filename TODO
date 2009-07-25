@@ -5,6 +5,8 @@ Util:
 * only connect() sockets that are ready (select()) [Nils]
   [On W32, we need to select after calling socket before
    doing connect etc.]
+* Add "DISK" API for creating of temporary files
+  (as used in datacache/ module)
 
 PHASE #2: (Goal: recover basic file-sharing functionality)
 
@@ -59,9 +61,6 @@ that would cause them to be executed and check that they are working:
 
 Module features to implement:
 * datacache (needed for DHT)
-  - design plugin API
-  - implement sqlite-based dstore plugin
-  - implement dstore API
   - implement testcases for dstore API 
   - implement testcases for dstore plugin
   - implement performance tests

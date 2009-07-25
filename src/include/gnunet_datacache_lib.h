@@ -78,12 +78,13 @@ void GNUNET_DATACACHE_destroy (struct GNUNET_DATACACHE_Handle *h);
  * @param size number of bytes in data
  * @param data content stored
  * @param type type of the content
+ * @return GNUNET_OK to continue iterating, GNUNET_SYSERR to abort
  */
-typedef void (*GNUNET_DATACACHE_Iterator) (void *cls,
-					   const GNUNET_HashCode * key,
-					   uint32_t size,
-					   const char *data,
-					   uint32_t type);
+typedef int (*GNUNET_DATACACHE_Iterator) (void *cls,
+					  const GNUNET_HashCode * key,
+					  uint32_t size,
+					  const char *data,
+					  uint32_t type);
 
 
 /**
