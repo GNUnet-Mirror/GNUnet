@@ -23,19 +23,9 @@
  * @brief template for an implementation of a database backend for the datacache
  * @author Christian Grothoff
  */
-#ifndef PLUGIN_DATACACHE_H
-#define PLUGIN_DATACACHE_H
-
+#include "platform.h"
+#include "gnunet_util_lib.h"
 #include "plugin_datacache.h"
-
-#ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
-}
-#endif
-#endif
-
 
 
 /**
@@ -46,7 +36,7 @@ struct Plugin
   /**
    * Our execution environment.
    */
-  struct GNUNET_DATASTORE_PluginEnvironment *env;
+  struct GNUNET_DATACACHE_PluginEnvironment *env;
 };
 
 

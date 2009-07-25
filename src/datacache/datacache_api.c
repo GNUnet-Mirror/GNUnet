@@ -69,11 +69,16 @@ struct GNUNET_DATACACHE_Handle
    * Name of the library (i.e. "gnunet_plugin_datacache_sqlite").
    */
   char *lib_name;
+  
+  /**
+   * Name for the bloom filter file.
+   */
+  char *bloom_name;
 
   /**
    * Environment provided to our plugin.
    */
-  struct GNUNET_DATASTORE_PluginEnvironment env;
+  struct GNUNET_DATACACHE_PluginEnvironment env;
 
   /**
    * How much space is in use right now?
@@ -116,21 +121,22 @@ GNUNET_DATACACHE_create (struct GNUNET_SCHEDULER_Handle *sched,
 			 struct GNUNET_CONFIGURATION_Handle *cfg,
 			 const char *section)
 {
+  int fd;
   unsigned int bf_size;
+  unsigned long long quota;
   struct GNUNET_DATACACHE_Handle *ret;
-  struct DatacachePlugin *ret;
   char *libname;
   char *name;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (c,
+      GNUNET_CONFIGURATION_get_value_number (cfg,
                                              section, "QUOTA", &quota))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("No `%s' specified for `%s' in configuration!\n"),
 		  "QUOTA",
 		  section);
-      return;
+      return NULL;
     }
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
@@ -146,16 +152,26 @@ GNUNET_DATACACHE_create (struct GNUNET_SCHEDULER_Handle *sched,
   bf_size = quota / 32; /* 8 bit per entry, 1 bit per 32 kb in DB */
 
   ret = GNUNET_malloc (sizeof(struct GNUNET_DATACACHE_Handle));
-  /* FIXME: create a temporary file for the bloomfilter to better
-     support deletions! */
-  ret->filter = GNUNET_CONTAINER_bloomfilter_load (NULL, bf_size, 5);  /* approx. 3% false positives at max use */  
+  ret->bloom_name = GNUNET_strdup ("/tmp/datacachebloomXXXXXX");
+  fd = mkstemp (ret->bloom_name);
+  if (fd != -1)
+    {
+      ret->filter = GNUNET_CONTAINER_bloomfilter_load (ret->bloom_name, 
+						       quota / 1024,    /* 8 bit per entry in DB, expect 1k entries */
+						       5);
+      CLOSE (fd);
+    }
+  else
+    {
+      ret->filter = GNUNET_CONTAINER_bloomfilter_load (NULL, bf_size, 5);  /* approx. 3% false positives at max use */  
+    }
   ret->section = GNUNET_strdup (section);
-  ret->env.sched = s;
+  ret->env.sched = sched;
   ret->env.cfg = cfg;
   ret->env.delete_notify = &env_delete_notify;  
   ret->env.section = ret->section;
   ret->env.cls = ret;
-  ret->env.delete_notify = &delete_notify;
+  ret->env.delete_notify = &env_delete_notify;
   ret->env.quota = quota;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Loading `%s' datacache plugin\n"), name);
@@ -187,6 +203,7 @@ void GNUNET_DATACACHE_destroy (struct GNUNET_DATACACHE_Handle *h)
   GNUNET_free (h->lib_name);
   GNUNET_free (h->short_name);
   GNUNET_free (h->section);
+  GNUNET_free (h->bloom_name);
   GNUNET_free (h);
 }
 
@@ -221,7 +238,7 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
   if (used == 0)
     return GNUNET_SYSERR;
   GNUNET_CONTAINER_bloomfilter_add (h->filter, key);
-  while (h->utilization + used > h->api.quota)
+  while (h->utilization + used > h->env.quota)
     GNUNET_assert (GNUNET_OK == h->api->del (h->api->cls));
   h->utilization += used;
   return GNUNET_OK;

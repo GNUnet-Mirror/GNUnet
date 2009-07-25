@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2006 Christian Grothoff (and other contributing authors)
+     (C) 2006, 2009 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -18,17 +18,16 @@
      Boston, MA 02111-1307, USA.
 */
 /*
- * @file applications/dstore/dstore_test.c
- * @brief Test for the dstore implementations.
+ * @file datacache/test_datacache_api.c
+ * @brief Test for the datacache implementations.
  * @author Nils Durner
  */
 
 #include "platform.h"
-#include "gnunet_util.h"
-#include "gnunet_protocols.h"
-#include "gnunet_dstore_service.h"
-#include "core.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_datacache_lib.h"
 
+#if 0
 #define ASSERT(x) do { if (! (x)) { printf("Error at %s:%d\n", __FILE__, __LINE__); goto FAILURE;} } while (0)
 
 static int error;
@@ -85,10 +84,12 @@ FAILURE:
 }
 
 #define TEST_DB "/tmp/GNUnet_dstore_test/"
+#endif
 
 int
 main (int argc, char *argv[])
 {
+#if 0
   GNUNET_Dstore_ServiceAPI *api;
   int ok;
   struct GNUNET_GC_Configuration *cfg;
@@ -115,6 +116,8 @@ main (int argc, char *argv[])
   if (ok == GNUNET_SYSERR)
     return 1;
   return error;
+#endif
+  return 0;
 }
 
-/* end of dstore_test.c */
+/* end of test_datacache_api.c */
