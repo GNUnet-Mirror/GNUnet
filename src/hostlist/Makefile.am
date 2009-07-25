@@ -37,6 +37,7 @@ TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
 test_gnunet_daemon_hostlist_SOURCES = \
  test_gnunet_daemon_hostlist.c
 test_gnunet_daemon_hostlist_LDADD = \
+  $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/arm/libgnunetarm.la \
   $(top_builddir)/src/util/libgnunetutil.la  
 

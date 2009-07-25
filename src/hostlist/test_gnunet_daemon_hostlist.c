@@ -24,12 +24,23 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_arm_lib.h"
+#include "gnunet_arm_service.h"
+#include "gnunet_transport_service.h"
 
 #define VERBOSE GNUNET_YES
 
 #define START_ARM GNUNET_YES
 
+
+/**
+ * How long until we give up on transmitting the message?
+ */
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+
+static int ok;
+
+static struct GNUNET_SCHEDULER_Handle *sched;
+    
 struct PeerContext
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -42,6 +53,37 @@ struct PeerContext
 #endif
 };
 
+static struct PeerContext p1;
+
+static struct PeerContext p2;
+
+
+
+static void
+process_hello (void *cls,
+               struct GNUNET_TIME_Relative latency,
+               const struct GNUNET_PeerIdentity *peer,
+               const struct GNUNET_MessageHeader *message)
+{
+  struct PeerContext *p = cls;
+
+  GNUNET_assert (peer != NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received (my) `%s' from transport service of `%4s'\n",
+              "HELLO", GNUNET_i2s (peer));
+  GNUNET_assert (message != NULL);
+  p->hello = GNUNET_malloc (ntohs (message->size));
+  memcpy (p->hello, message, ntohs (message->size));
+  if ((p == &p1) && (p2.th != NULL))
+    GNUNET_TRANSPORT_offer_hello (p2.th, message);
+  if ((p == &p2) && (p1.th != NULL))
+    GNUNET_TRANSPORT_offer_hello (p1.th, message);
+
+  if ((p == &p1) && (p2.hello != NULL))
+    GNUNET_TRANSPORT_offer_hello (p1.th, p2.hello);
+  if ((p == &p2) && (p1.hello != NULL))
+    GNUNET_TRANSPORT_offer_hello (p2.th, p1.hello);
+}
 
 
 static void
@@ -72,7 +114,7 @@ run (void *cls,
      const char *cfgfile, struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (ok == 1);
-  OKPP;
+  ok++;
   sched = s;
   setup_peer (&p1, "test_gnunet_daemon_hostlist_peer1.conf");
   setup_peer (&p2, "test_gnunet_daemon_hostlist_peer2.conf");
