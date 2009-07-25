@@ -20,6 +20,8 @@ gnunetinclude_HEADERS = \
   gnunet_container_lib.h \
   gnunet_core_service.h \
   gnunet_crypto_lib.h \
+  gnunet_datacache_lib.h \
+  gnunet_datastore_service.h \
   gnunet_disk_lib.h \
   gnunet_fragmentation_lib.h \
   gnunet_fs_service.h \
