@@ -60,7 +60,7 @@ that would cause them to be executed and check that they are working:
 
 
 Module features to implement:
-* datacache (needed for DHT)
+* DATACACHE (needed for DHT)
   - implement testcases for dstore API 
   - implement testcases for dstore plugin
   - implement performance tests
@@ -83,7 +83,7 @@ Module features to implement:
   - implement performance tests
 * DHT (needed for FS)
   - review DHT API
-  - implement DHT service (needs DV, DSTORE)
+  - implement DHT service (needs DV, DATACACHE)
   - implement DHT library
   - implement testcases
   - implement performance tests

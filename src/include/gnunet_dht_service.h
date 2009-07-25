@@ -37,39 +37,46 @@ extern "C"
 #endif
 #endif
 
+// FIXME: document
 struct GNUNET_DHT_GetHandle;
 
-  /**
-   * Perform an asynchronous GET operation on the DHT identified.
-   *
-   * @param type expected type of the response object
-   * @param key the key to look up
-   * @param callback function to call on each result
-   * @param closure extra argument to callback
-   * @return handle to stop the async get
-   */
-  struct GNUNET_DHT_GetHandle *
-GNUNET_DHT_get_start) (struct GNUNET_DHT_Handle *h,
-		unsigned int type,
-                                             const GNUNET_HashCode * key,
-                                             GNUNET_DHT_ResultProcessor callback,
-                                             void *callback_cls);
 
-  /**
-   * Stop async DHT-get.  Frees associated resources.
-   */
-  int GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle * record);
+/**
+ * Perform an asynchronous GET operation on the DHT identified.
+ *
+ * @param type expected type of the response object
+ * @param key the key to look up
+ * @param iter function to call on each result
+ * @param iter_cls closure for iter
+ * @return handle to stop the async get
+ */
+struct GNUNET_DHT_GetHandle *
+GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *h,
+		      uint32_t type,
+		      const GNUNET_HashCode * key,
+		      GNUNET_DHT_Iterator iter,
+		      void *iter_cls);
 
-  /**
-   * Perform a PUT operation on the DHT identified by 'table' storing
-   * a binding of 'key' to 'value'.  The peer does not have to be part
-   * of the table (if so, we will attempt to locate a peer that is!)
-   *
-   * @param key the key to store under
-   */
-  int GNUNET_DHT_put (struct GNUNET_DHT_Handle *h, 
-const GNUNET_HashCode * key,
-              unsigned int type, unsigned int size, const char *data);
+
+/**
+ * Stop async DHT-get.  Frees associated resources.
+ */
+int GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *record);
+
+
+// FIXME: add continuation? expiration?
+/**
+ * Perform a PUT operation on the DHT identified by 'table' storing
+ * a binding of 'key' to 'value'.  The peer does not have to be part
+ * of the table (if so, we will attempt to locate a peer that is!)
+ *
+ * @param key the key to store under
+ */
+int GNUNET_DHT_put (struct GNUNET_DHT_Handle *h, 
+		    const GNUNET_HashCode * key,
+		    uint32_t type, 
+		    uint32_t size, 
+		    const char *data);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
@@ -80,4 +87,5 @@ const GNUNET_HashCode * key,
 #endif
 
 
-#endif /* DHT_SERVICE_API_H */
+#endif 
+/* gnunet_dht_service.h */
