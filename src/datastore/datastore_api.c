@@ -204,16 +204,21 @@ with_status_response_handler (void *cls,
   sm = (const struct StatusMessage*) msg;
   status = ntohl(sm->status);
   emsg = NULL;
-  if (status == GNUNET_SYSERR)
+  if (ntohs(msg->size) > sizeof(struct StatusMessage))
     {
       emsg = (const char*) &sm[1];
-      if ( (ntohs(msg->size) == sizeof(struct StatusMessage)) ||
-	   (emsg[ntohs(msg->size) - sizeof(struct StatusMessage) - 1] != '\0') )
+      if (emsg[ntohs(msg->size) - sizeof(struct StatusMessage) - 1] != '\0')
 	{
 	  GNUNET_break (0);
 	  emsg = _("Invalid error message received from datastore service");
 	}
     }  
+  if ( (status == GNUNET_SYSERR) &&
+       (emsg == NULL) )
+    {
+      GNUNET_break (0);
+      emsg = _("Invalid error message received from datastore service");
+    }
   h->response_proc = NULL;
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -408,7 +413,7 @@ GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h,
   rm->header.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_RESERVE);
   rm->header.size = htons(sizeof (struct ReserveMessage));
   rm->entries = htonl(entries);
-  rm->amount = htonl(amount);
+  rm->amount = GNUNET_htonll(amount);
   transmit_for_status (h, cont, cont_cls, timeout);
 }
 

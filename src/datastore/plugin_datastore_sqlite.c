@@ -29,7 +29,7 @@
 #include "plugin_datastore.h"
 #include <sqlite3.h>
 
-#define DEBUG_SQLITE GNUNET_YES
+#define DEBUG_SQLITE GNUNET_NO
 
 /**
  * After how many payload-changing operations
@@ -44,7 +44,7 @@
  * a failure of the command 'cmd' on file 'filename'
  * with the message given by strerror(errno).
  */
-#define LOG_SQLITE(db, msg, level, cmd) do { GNUNET_log_from (level, "sqlite", _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, sqlite3_errmsg(db->dbh)); if (msg != NULL) GNUNET_asprintf(msg, _("`%s' failed with error: %s\n"), cmd, sqlite3_errmsg(db->dbh)); } while(0)
+#define LOG_SQLITE(db, msg, level, cmd) do { GNUNET_log_from (level, "sqlite", _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, sqlite3_errmsg(db->dbh)); if (msg != NULL) GNUNET_asprintf(msg, _("`%s' failed with error: %s"), cmd, sqlite3_errmsg(db->dbh)); } while(0)
 
 #define SELECT_IT_LOW_PRIORITY_1 \
   "SELECT size,type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn080 WHERE (prio = ? AND hash > ?) "\
@@ -768,7 +768,7 @@ sqlite_plugin_update (void *cls,
   sqlite3_bind_int64 (plugin->updPrio, 2, expire.value);
   sqlite3_bind_int64 (plugin->updPrio, 3, uid);
   n = sqlite3_step (plugin->updPrio);
-  if (n != SQLITE_OK)
+  if (n != SQLITE_DONE)
     LOG_SQLITE (plugin, msg,
 		GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
 		"sqlite3_step");
@@ -782,7 +782,7 @@ sqlite_plugin_update (void *cls,
 
   if (n == SQLITE_BUSY)
     return GNUNET_NO;
-  return n == SQLITE_OK ? GNUNET_OK : GNUNET_SYSERR;
+  return n == SQLITE_DONE ? GNUNET_OK : GNUNET_SYSERR;
 }
 
 

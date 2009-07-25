@@ -19,7 +19,7 @@
 */
 
 /**
- * @file datastore/datastore.hc
+ * @file datastore/datastore.h
  * @brief structs for communication between datastore service and API
  * @author Christian Grothoff
  */

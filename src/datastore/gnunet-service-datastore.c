@@ -513,7 +513,7 @@ transmit_status (struct GNUNET_SERVER_Client *client,
 
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Transmitting `%s' message with value %d and message %s\n",
+	      "Transmitting `%s' message with value %d and message `%s'\n",
 	      "STATUS",
 	      code,
 	      msg != NULL ? msg : "(none)");
@@ -639,15 +639,15 @@ handle_reserve (void *cls,
   unsigned long long used;
   unsigned long long req;
   uint64_t amount;
-  uint64_t entries;
+  uint32_t entries;
 
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Processing `%s' request\n",
 	      "RESERVE");
 #endif
-  amount = ntohl(msg->amount);
-  entries = GNUNET_ntohll(msg->entries);
+  amount = GNUNET_ntohll(msg->amount);
+  entries = ntohl(msg->entries);
   used = plugin->api->get_size (plugin->api->cls) + reserved;
   req = amount + ((unsigned long long) GNUNET_DATASTORE_ENTRY_OVERHEAD) * entries;
   if (used + req > quota)
