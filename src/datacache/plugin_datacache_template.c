@@ -1,0 +1,151 @@
+/*
+     This file is part of GNUnet
+     (C) 2006, 2009 Christian Grothoff (and other contributing authors)
+
+     GNUnet is free software; you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published
+     by the Free Software Foundation; either version 2, or (at your
+     option) any later version.
+
+     GNUnet is distributed in the hope that it will be useful, but
+     WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     General Public License for more details.
+
+     You should have received a copy of the GNU General Public License
+     along with GNUnet; see the file COPYING.  If not, write to the
+     Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+     Boston, MA 02111-1307, USA.
+*/
+
+/**
+ * @file datacache/plugin_datacache_template.c
+ * @brief template for an implementation of a database backend for the datacache
+ * @author Christian Grothoff
+ */
+#ifndef PLUGIN_DATACACHE_H
+#define PLUGIN_DATACACHE_H
+
+#include "plugin_datacache.h"
+
+#ifdef __cplusplus
+extern "C"
+{
+#if 0                           /* keep Emacsens' auto-indent happy */
+}
+#endif
+#endif
+
+
+
+/**
+ * Context for all functions in this plugin.
+ */
+struct Plugin 
+{
+  /**
+   * Our execution environment.
+   */
+  struct GNUNET_DATASTORE_PluginEnvironment *env;
+};
+
+
+/**
+ * Store an item in the datastore.
+ *
+ * @param key key to store data under
+ * @param size number of bytes in data
+ * @param data data to store
+ * @param type type of the value
+ * @param discard_time when to discard the value in any case
+ * @return 0 on error, number of bytes used otherwise
+ */
+static uint32_t 
+template_plugin_put (void *cls,
+		     const GNUNET_HashCode * key,
+		     uint32_t size,
+		     const char *data,
+		     uint32_t type,
+		     struct GNUNET_TIME_Absolute discard_time)
+{
+  GNUNET_break (0);
+  return 0;
+}
+
+
+/**
+ * Iterate over the results for a particular key
+ * in the datastore.
+ *
+ * @param key
+ * @param type entries of which type are relevant?
+ * @param iter maybe NULL (to just count)
+ * @return the number of results found
+ */
+static unsigned int 
+template_plugin_get (void *cls,
+		     const GNUNET_HashCode * key,
+		     uint32_t type,
+		     GNUNET_DATACACHE_Iterator iter,
+		     void *iter_cls)
+{
+  GNUNET_break (0);
+  return 0;
+}
+
+
+/**
+ * Delete the entry with the lowest expiration value
+ * from the datacache right now.
+ * 
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */ 
+static int 
+template_plugin_del (void *cls)
+{
+  GNUNET_break (0);
+  return GNUNET_SYSERR;
+}
+
+
+/**
+ * Entry point for the plugin.
+ */
+void *
+libgnunet_plugin_datacache_template_init (void *cls)
+{
+  struct GNUNET_DATACACHE_PluginEnvironment *env = cls;
+  struct GNUNET_DATACACHE_PluginFunctions *api;
+  struct Plugin *plugin;
+
+  plugin = GNUNET_malloc (sizeof (struct Plugin));
+  plugin->env = env;
+  api = GNUNET_malloc (sizeof (struct GNUNET_DATACACHE_PluginFunctions));
+  api->cls = plugin;
+  api->get = &template_plugin_get;
+  api->put = &template_plugin_put;
+  api->del = &template_plugin_del;
+  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
+                   "template", _("Template datacache running\n"));
+  return api;
+}
+
+
+/**
+ * Exit point from the plugin.
+ */
+void *
+libgnunet_plugin_datacache_template_done (void *cls)
+{
+  struct GNUNET_DATACACHE_PluginFunctions *api = cls;
+  struct Plugin *plugin = api->cls;
+
+  GNUNET_free (plugin);
+  GNUNET_free (api);
+  return NULL;
+}
+
+
+
+/* end of plugin_datacache_template.c */
+

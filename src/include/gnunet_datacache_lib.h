@@ -51,12 +51,14 @@ struct GNUNET_DATACACHE_Handle;
 /**
  * Create a data cache.
  *
+ * @param sched scheduler to use
  * @param cfg configuration to use
  * @param section section in the configuration that contains our options
  * @return handle to use to access the service
  */
 struct GNUNET_DATACACHE_Handle *
-GNUNET_DATACACHE_create (struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_DATACACHE_create (struct GNUNET_SCHEDULER_Handle *sched,
+			 struct GNUNET_CONFIGURATION_Handle *cfg,
 			 const char *section);
 
 
@@ -85,8 +87,9 @@ typedef void (*GNUNET_DATACACHE_Iterator) (void *cls,
 
 
 /**
- * Store an item in the datastore.
+ * Store an item in the datacache.
  *
+ * @param h handle to the datacache
  * @param key key to store data under
  * @param size number of bytes in data
  * @param data data to store
@@ -95,7 +98,8 @@ typedef void (*GNUNET_DATACACHE_Iterator) (void *cls,
  * @return GNUNET_OK on success, GNUNET_SYSERR on error (full, etc.)
  */
 int 
-GNUNET_DATACACHE_put (const GNUNET_HashCode * key,
+GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
+		      const GNUNET_HashCode * key,
 		      uint32_t size,
 		      const char *data,
 		      unsigned int type,
@@ -104,8 +108,9 @@ GNUNET_DATACACHE_put (const GNUNET_HashCode * key,
 
 /**
  * Iterate over the results for a particular key
- * in the datastore.
+ * in the datacache.
  *
+ * @param h handle to the datacache
  * @param key what to look up
  * @param type entries of which type are relevant?
  * @param iter maybe NULL (to just count)
@@ -113,7 +118,8 @@ GNUNET_DATACACHE_put (const GNUNET_HashCode * key,
  * @return the number of results found
  */
 unsigned int 
-GNUNET_DATACACHE_get (const GNUNET_HashCode * key,
+GNUNET_DATACACHE_get (struct GNUNET_DATACACHE_Handle *h,
+		      const GNUNET_HashCode * key,
 		      unsigned int type, 
 		      GNUNET_DATACACHE_Iterator iter,
 		      void *iter_cls);

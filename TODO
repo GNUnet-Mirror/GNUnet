@@ -58,7 +58,7 @@ that would cause them to be executed and check that they are working:
 
 
 Module features to implement:
-* Dstore (needed for DHT)
+* datacache (needed for DHT)
   - design plugin API
   - implement sqlite-based dstore plugin
   - implement dstore API

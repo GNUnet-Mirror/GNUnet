@@ -47,6 +47,7 @@ struct Plugin
  */
 static unsigned long long template_plugin_get_size (void *cls)
 {
+  GNUNET_break (0);
   return 0;
 }
 
@@ -76,6 +77,7 @@ template_plugin_put (void *cls,
 		     struct GNUNET_TIME_Absolute expiration,
 		     char **msg)
 {
+  GNUNET_break (0);
   *msg = GNUNET_strdup ("not implemented");
   return GNUNET_SYSERR;
 }
@@ -94,9 +96,10 @@ template_plugin_put (void *cls,
  *         to signal the end of the iteration).
  */
 static void 
-template_next_request (void *next_cls,
+template_plugin_next_request (void *next_cls,
 		       int end_it)
 {
+  GNUNET_break (0);
 }
 
 
@@ -124,6 +127,7 @@ template_plugin_get (void *cls,
 		     uint32_t type,
 		     PluginIterator iter, void *iter_cls)
 {
+  GNUNET_break (0);
 }
 
 
@@ -155,6 +159,7 @@ template_plugin_update (void *cls,
 			int delta, struct GNUNET_TIME_Absolute expire,
 			char **msg)
 {
+  GNUNET_break (0);
   *msg = GNUNET_strdup ("not implemented");
   return GNUNET_SYSERR;
 }
@@ -176,6 +181,7 @@ template_plugin_iter_low_priority (void *cls,
 				   PluginIterator iter,
 				   void *iter_cls)
 {
+  GNUNET_break (0);
 }
 
 
@@ -196,6 +202,7 @@ template_plugin_iter_zero_anonymity (void *cls,
 			PluginIterator iter,
 			void *iter_cls)
 {
+  GNUNET_break (0);
 }
 
 
@@ -216,6 +223,7 @@ template_plugin_iter_ascending_expiration (void *cls,
 			PluginIterator iter,
 			void *iter_cls)
 {
+  GNUNET_break (0);
 }
 
 
@@ -236,6 +244,7 @@ template_plugin_iter_migration_order (void *cls,
 			PluginIterator iter,
 			void *iter_cls)
 {
+  GNUNET_break (0);
 }
 
 
@@ -256,6 +265,7 @@ template_plugin_iter_all_now (void *cls,
 			PluginIterator iter,
 			void *iter_cls)
 {
+  GNUNET_break (0);
 }
 
 
@@ -265,6 +275,7 @@ template_plugin_iter_all_now (void *cls,
 static void 
 template_plugin_drop (void *cls)
 {
+  GNUNET_break (0);
 }
 
 
@@ -284,7 +295,7 @@ libgnunet_plugin_datastore_template_init (void *cls)
   api->cls = plugin;
   api->get_size = &template_plugin_get_size;
   api->put = &template_plugin_put;
-  api->next_request = &template_next_request;
+  api->next_request = &template_plugin_next_request;
   api->get = &template_plugin_get;
   api->update = &template_plugin_update;
   api->iter_low_priority = &template_plugin_iter_low_priority;

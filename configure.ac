@@ -745,6 +745,7 @@ po/Makefile.in
 src/Makefile
 src/arm/Makefile
 src/core/Makefile
+src/datacache/Makefile
 src/datastore/Makefile
 src/fragmentation/Makefile
 src/hello/Makefile

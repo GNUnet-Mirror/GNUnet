@@ -11,6 +11,8 @@ SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
   util \
   arm \
+  datacache \
+  datastore \
   fragmentation \
   hello \
   peerinfo \
@@ -19,7 +21,6 @@ SUBDIRS = \
   template \
   transport \
   core \
-  datastore \
   $(HOSTLIST_DIR) \
   topology 
 
