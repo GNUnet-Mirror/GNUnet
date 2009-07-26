@@ -170,6 +170,7 @@ sqlite_plugin_get (void *cls,
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt;
   struct GNUNET_TIME_Absolute now;
+  struct GNUNET_TIME_Absolute exp;
   unsigned int size;
   const char *dat;
   unsigned int cnt;
@@ -218,7 +219,7 @@ sqlite_plugin_get (void *cls,
       off = (off + 1) % total;
       GNUNET_snprintf (scratch, 
 		       sizeof(scratch),
-                       "SELECT value FROM ds090 WHERE key=? AND type=? AND expire >= ? LIMIT 1 OFFSET %u",
+                       "SELECT value,expire FROM ds090 WHERE key=? AND type=? AND expire >= ? LIMIT 1 OFFSET %u",
                        off);
       if (sq_prepare (plugin->dbh, scratch, &stmt) != SQLITE_OK)
         {
@@ -236,8 +237,10 @@ sqlite_plugin_get (void *cls,
         break;
       size = sqlite3_column_bytes (stmt, 0);
       dat = sqlite3_column_blob (stmt, 0);
+      exp.value = sqlite3_column_int64 (stmt, 1);
       cnt++;
       if (GNUNET_OK != iter (iter_cls,
+			     exp,
 			     key, 
 			     size,
 			     dat,

@@ -74,6 +74,7 @@ void GNUNET_DATACACHE_destroy (struct GNUNET_DATACACHE_Handle *h);
  * An iterator over a set of items stored in the datacache.
  *
  * @param cls closure
+ * @param exp when will the content expire?
  * @param key key for the content
  * @param size number of bytes in data
  * @param data content stored
@@ -81,6 +82,7 @@ void GNUNET_DATACACHE_destroy (struct GNUNET_DATACACHE_Handle *h);
  * @return GNUNET_OK to continue iterating, GNUNET_SYSERR to abort
  */
 typedef int (*GNUNET_DATACACHE_Iterator) (void *cls,
+					  struct GNUNET_TIME_Absolute exp,
 					  const GNUNET_HashCode * key,
 					  uint32_t size,
 					  const char *data,

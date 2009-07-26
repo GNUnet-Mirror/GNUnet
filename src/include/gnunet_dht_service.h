@@ -37,9 +37,58 @@ extern "C"
 #endif
 #endif
 
-// FIXME: document
+
+/**
+ * Connection to the DHT service.
+ */
+struct GNUNET_DHT_Handle;
+
+
+/**
+ * Initialize the connection with the DHT service.
+ * 
+ * @param cfg configuration to use
+ * @param sched scheduler to use
+ * @return NULL on error
+ */
+struct GNUNET_DHT_Handle *
+GNUNET_DHT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
+		    struct GNUNET_SCHEDULER_Handle *sched);
+
+
+/**
+ * Shutdown connection with the DHT service.
+ *
+ * @param h connection to shut down
+ */
+void
+GNUNET_DHT_connect (struct GNUNET_DHT_Handle *h);
+
+
+/**
+ * Handle to control a GET operation.
+ */
 struct GNUNET_DHT_GetHandle;
 
+
+/**
+ * Iterator called on each result obtained for a GET
+ * operation.
+ *
+ * @param cls closure
+ * @param exp when will this value expire
+ * @param key key of the result
+ * @param type type of the result
+ * @param size number of bytes in data
+ * @param data pointer to the result data
+ */
+typedef void (*GNUNET_DHT_Iterator)(void *cls,
+				    struct GNUNET_TIME_Absolute exp,
+				    const GNUNET_HashCode * key,
+				    uint32_t type,
+				    uint32_t size,
+				    const void *data);
+		      
 
 /**
  * Perform an asynchronous GET operation on the DHT identified.
@@ -60,23 +109,38 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *h,
 
 /**
  * Stop async DHT-get.  Frees associated resources.
+ *
+ * @param record GET operation to stop.
  */
-int GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *record);
+void
+GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *record);
 
 
-// FIXME: add continuation? expiration?
 /**
  * Perform a PUT operation on the DHT identified by 'table' storing
  * a binding of 'key' to 'value'.  The peer does not have to be part
  * of the table (if so, we will attempt to locate a peer that is!)
  *
+ * @param h handle to DHT service
  * @param key the key to store under
+ * @param type type of the value
+ * @param size number of bytes in data; must be less than 64k
+ * @param data the data to store
+ * @param exp desired expiration time for the value
+ * @param cont continuation to call when done; 
+ *             reason will be TIMEOUT on error,
+ *             reason will be PREREQ_DONE on success
+ * @param cont_cls closure for cont
+ * 
  */
 int GNUNET_DHT_put (struct GNUNET_DHT_Handle *h, 
 		    const GNUNET_HashCode * key,
-		    uint32_t type, 
+		    uint32_t type, 		    
 		    uint32_t size, 
-		    const char *data);
+		    const char *data,
+		    struct GNUNET_TIME_Relative exp,
+		    GNUNET_SCHEDULER_Task cont,
+		    void *cont_cls);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

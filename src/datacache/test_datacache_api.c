@@ -35,6 +35,7 @@ static int ok;
 
 static int
 checkIt (void *cls,
+	 struct GNUNET_TIME_Absolute exp,
 	 const GNUNET_HashCode * key,
          uint32_t size, 
 	 const char *data, 
