@@ -111,7 +111,8 @@ static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
-     const char *cfgfile, struct GNUNET_CONFIGURATION_Handle *cfg)
+     const char *cfgfile, 
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (ok == 1);
   ok++;
