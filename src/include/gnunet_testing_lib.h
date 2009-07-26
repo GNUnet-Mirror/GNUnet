@@ -151,6 +151,13 @@ void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 				     void *cb_cls);
 
 
+
+/**
+ * Handle to a group of GNUnet peers.
+ */
+struct GNUNET_TESTING_PeerGroup;
+
+
 /**
  * Start count gnunetd processes with the same set of transports and
  * applications.  The port numbers (any option called "PORT") will be
@@ -169,8 +176,9 @@ void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
  * @param va Additional hosts can be specified using a NULL-terminated list of
  *        varargs, hosts will then be used round-robin from that
  *        list; va only contains anything if hostname != NULL.
+ * @return NULL on error, otherwise handle to control peer group
  */
-void
+struct GNUNET_TESTING_PeerGroup *
 GNUNET_TESTING_daemons_start_va (struct GNUNET_SCHEDULER_Handle *sched,
 				 const struct GNUNET_CONFIGURATION_Handle *cfg,
 				 unsigned int total,
@@ -189,9 +197,6 @@ GNUNET_TESTING_daemons_start_va (struct GNUNET_SCHEDULER_Handle *sched,
  * times for the first peer).
  *
  * @param total number of daemons to start
- * @param service_home_prefix path to use as the prefix for the home of the services
- * @param transports which transports should all peers use
- * @param applications which applications should be used?
  * @param timeout how long is this allowed to take?
  * @param cb function to call on each daemon that was started
  * @param cb_cls closure for cb
@@ -202,14 +207,12 @@ GNUNET_TESTING_daemons_start_va (struct GNUNET_SCHEDULER_Handle *sched,
  *        hosts can be specified using a NULL-terminated list of
  *        varargs, hosts will then be used round-robin from that
  *        list.
+ * @return NULL on error, otherwise handle to control peer group
  */
-void
+struct GNUNET_TESTING_PeerGroup *
 GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
 			      struct GNUNET_CONFIGURATION_Handle *cfg,
 			      unsigned int total,
-			      const char *service_home_prefix,
-			      const char *transports,
-			      const char *applications,
 			      GNUNET_TESTING_NotifyDaemonRunning cb,
 			      void *cb_cls,
 			      GNUNET_TESTING_NotifyCompletion cbe,
@@ -218,10 +221,21 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
 			      ...);
 
 
+
+/**
+ * Shutdown all peers started in the given group.
+ * 
+ * @param pg handle to the peer group
+ */
+void
+GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg);
+
+
 /**
  * Handle to an entire testbed of GNUnet peers.
  */
 struct GNUNET_TESTING_Testbed;
+
 
 /**
  * Prototype of a function that will be called when 
