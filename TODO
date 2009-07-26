@@ -61,7 +61,6 @@ that would cause them to be executed and check that they are working:
 
 Module features to implement:
 * TESTING (needed for DV, DHT, Topology)
-  - review TESTING API
   - implement library for local testing
   - implement testcases for library
   - implement library for distributed testing

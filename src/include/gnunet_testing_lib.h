@@ -70,14 +70,13 @@ typedef void (*GNUNET_TESTING_NotifyDaemonRunning)(void *cls,
 
 
 /**
- * Starts a GNUnet daemon.
+ * Starts a GNUnet daemon.  GNUnet must be installed on the target
+ * system and available in the PATH.  The machine must furthermore be
+ * reachable via "ssh" (unless the hostname is "NULL") without the
+ * need to enter a password.
  *
  * @param sched scheduler to use 
  * @param cfg configuration to use
- * @param service_home directory to use as the service home directory
- * @param transports transport services that should be loaded
- * @param applications application services and daemons that should be started
- * @param port_offset offset to add to all ports for all services
  * @param hostname name of the machine where to run GNUnet
  *        (use NULL for localhost).
  * @param cb function to call with the result
@@ -87,10 +86,6 @@ typedef void (*GNUNET_TESTING_NotifyDaemonRunning)(void *cls,
 struct GNUNET_TESTING_Daemon *
 GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
 			     struct GNUNET_CONFIGURATION_Handle *cfg,
-			     const char *service_home,
-			     const char *transports,
-			     const char *applications,
-			     uint16_t port_offset,
 			     const char *hostname,
 			     GNUNET_TESTING_NotifyDaemonRunning cb,
 			     void *cb_cls);
@@ -133,7 +128,6 @@ void GNUNET_TESTING_daemon_reconfigure (struct GNUNET_TESTING_Daemon *d,
 					void * cb_cls);
 
 
-
 /**
  * Establish a connection between two GNUnet daemons.
  *
@@ -169,8 +163,6 @@ struct GNUNET_TESTING_PeerGroup;
  * @param total number of daemons to start
  * @param cb function to call on each daemon that was started
  * @param cb_cls closure for cb
- * @param cbe function to call at the end
- * @param cbe_cls closure for cbe
  * @param hostname where to run the peers; can be NULL (to run
  *        everything on localhost).
  * @param va Additional hosts can be specified using a NULL-terminated list of
@@ -184,8 +176,6 @@ GNUNET_TESTING_daemons_start_va (struct GNUNET_SCHEDULER_Handle *sched,
 				 unsigned int total,
 				 GNUNET_TESTING_NotifyDaemonRunning cb,
 				 void *cb_cls,
-				 GNUNET_TESTING_NotifyCompletion cbe,
-				 void *cbe_cls,
 				 const char *hostname,
 				 va_list va);
 
@@ -196,12 +186,12 @@ GNUNET_TESTING_daemons_start_va (struct GNUNET_SCHEDULER_Handle *sched,
  * be computed by adding delta each time (zero
  * times for the first peer).
  *
+ * @param sched scheduler to use 
+ * @param cfg configuration template to use
  * @param total number of daemons to start
  * @param timeout how long is this allowed to take?
  * @param cb function to call on each daemon that was started
  * @param cb_cls closure for cb
- * @param cbe function to call at the end
- * @param cbe_cls closure for cbe
  * @param hostname where to run the peers; can be NULL (to run
  *        everything on localhost). Additional
  *        hosts can be specified using a NULL-terminated list of
@@ -215,11 +205,8 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
 			      unsigned int total,
 			      GNUNET_TESTING_NotifyDaemonRunning cb,
 			      void *cb_cls,
-			      GNUNET_TESTING_NotifyCompletion cbe,
-			      void *cbe_cls,
 			      const char *hostname,
 			      ...);
-
 
 
 /**
@@ -235,17 +222,6 @@ GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg);
  * Handle to an entire testbed of GNUnet peers.
  */
 struct GNUNET_TESTING_Testbed;
-
-
-/**
- * Prototype of a function that will be called when 
- * a testbed is being created.
- *
- * @param cls closure
- * @param tb NULL on error
- */
-typedef void (*GNUNET_TESTING_NotifyTestbedRunning)(void *cls,
-						    struct GNUNET_TESTING_Testbed *tb);
 
 
 /**
@@ -285,57 +261,44 @@ enum GNUNET_TESTING_Topology
 };
 
 
-
 /**
- * Start count GNUnet daemons with a particular
- * topology.
+ * Start "count" GNUnet daemons with a particular topology.
  *
- * @param size number of peers the testbed should have
+ * @param sched scheduler to use 
+ * @param cfg configuration template to use
+ * @param count number of peers the testbed should have
  * @param topology desired topology (enforced via F2F)
- * @param service_home_prefix path to use as the prefix for the home of the services
- * @param transports which transports should all peers use
- * @param applications which applications should be used?
- * @param timeout how long is this allowed to take?
  * @param cb function to call on each daemon that was started
  * @param cb_cls closure for cb
- * @param cte function to call at the end
- * @param cte_cls closure for cbe
  * @param hostname where to run the peers; can be NULL (to run
  *        everything on localhost). Additional
  *        hosts can be specified using a NULL-terminated list of
  *        varargs, hosts will then be used round-robin from that
  *        list.
+ * @return handle to control the testbed
  */
-void
+struct GNUNET_TESTING_Testbed *
 GNUNET_TESTING_testbed_start (struct GNUNET_SCHEDULER_Handle *sched,
-			      struct GNUNET_CONFIGURATION_Handle *cfg,
-			      unsigned int size,
+			      const struct GNUNET_CONFIGURATION_Handle *cfg,
+			      unsigned int count,
 			      enum GNUNET_TESTING_Topology topology,
-			      const char *service_home_prefix,
-			      const char *transports,
-			      const char *applications,
 			      GNUNET_TESTING_NotifyDaemonRunning cb,
 			      void *cb_cls,
-			      GNUNET_TESTING_NotifyTestbedRunning cte,
-			      void *cte_cls,
 			      const char *hostname,
 			      ...);
-
-
 
 
 /**
  * Stop all of the daemons started with the start function.
  *
  * @param tb handle for the testbed
- * @param cb function to call at the end
+ * @param cb function to call when done
  * @param cb_cls closure for cb
  */
 void
 GNUNET_TESTING_testbed_stop (struct GNUNET_TESTING_Testbed *tb,
 			     GNUNET_TESTING_NotifyCompletion cb,
 			     void *cb_cls );
-
 
 
 /**
@@ -364,7 +327,6 @@ GNUNET_TESTING_testbed_churn (struct GNUNET_TESTING_Testbed *tb,
 			      unsigned int von,
 			      GNUNET_TESTING_NotifyCompletion cb,
 			      void *cb_cls);
-
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
