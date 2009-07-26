@@ -234,6 +234,8 @@ PROBLEM GROUP 6 (FS-APIs):
 * If GUIs die (or are not properly shutdown), state
   of current transactions is lost (FSUI only
   saves to disk on shutdown)
+* FILENAME metadata is killed by ECRS/FSUI to avoid
+  exposing HOME, but what if the user set it manually?
 
 SOLUTION (draft, not done yet, details missing...):
 * Eliminate threads from FS-APIs
@@ -243,6 +245,9 @@ SOLUTION (draft, not done yet, details missing...):
 * Store FS-state always also on disk
   => Open question: how to do this without 
      compromising state/scalability?
+* Have API to manipulate sharing tree before
+  upload; have auto-construction modify FILENAME
+  but allow user-modifications afterwards
 
 PROBLEM GROUP 7 (User experience):
 * Searches often do not return a sufficient / significant number of
@@ -266,3 +271,21 @@ SOLUTION (draft, not done yet, details missing...):
   (requires downloading of the directory in the background)
 
 
+
+
+SUMMARY:
+* Features eliminated from util:
+  - threading (goal: good riddance!)
+  - complex logging features [ectx-passing, target-kinds] (goal: good riddance!)
+  - complex configuration features [defaults, notifications] (goal: good riddance!)
+  - network traffic monitors (goal: eliminate)
+  - IPC semaphores (goal: d-bus? / eliminate?)
+  - second timers
+  - DNS lookup (goal: have async service; issue: still need synchronous 
+                resolution in places, current code may not be portable)
+  => code shrunk from 61 files to 34, 22k LOC to 15k LOC, 470k to 330k (with symbols)
+* New features in util:
+  - scheduler
+  - service and program boot-strap code
+* Major changes in util:
+  - more expressive server (replaces selector)

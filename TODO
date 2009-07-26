@@ -1,89 +1,27 @@
-PHASE #1: (Goal: settle key design questions)
-
-Util:
-* Windows: use events instead of pipes to signal select()s [Nils]
-* only connect() sockets that are ready (select()) [Nils]
-  [On W32, we need to select after calling socket before
-   doing connect etc.]
-* Add "DISK" API for creating of temporary files
-  (as used in datacache/ module)
-
 PHASE #2: (Goal: recover basic file-sharing functionality)
-
-
-TESTCASES WANTED:
-
-For these functions, it would be nice if we had testcases ("make check")
-that would cause them to be executed and check that they are working:
-* gnunet-service-peerinfo:
-  - change_host_trust / flush_trust 
-  - remove_garbage 
-  - discard_hosts_helper / cron_clean_data_hosts
-* gnunet-service-transport:
-  - try_unvalidated_addresses
-  - lookup_address_callback
-  - lookup_hello_callback
-  - plugin_env_lookup_address
-  - notify_clients_disconnect
-  - list_validated_addresses
-  - cleanup_validation
-  - disconnect_neighbour
-  - handle_set_quota
-* plugin_transport_tcp.c:
-  - tcp_plugin_cancel
-  - tcp_plugin_address_pretty_printer / append_port
-  - tcp_plugin_set_receive_quota
-  - delayed_done
-* transport_api:
-  - GNUNET_TRANSPORT_set_qutoa / send_set_quota
-  - hello_wait_timeout 
-  - transmit_ready
-  - transmit_timeout
-  - remove_from_any_list / remove_neighbour
-  - GNUNET_TRANSPORT_notify_transmit_ready_cancel
-  - Testcases for set_quota, timeouts, disconnects, transmit_ready_cancel
-  - gnunet-service-transport HELLO validation (how good is our coverage?)
-  - direct test of plugins compliance to plugin API
-* core_api:
-  - timeout_request
-  - solicit_traffic / copy_and_free
-  - GNUNET_CORE_peer_configure / produce_configure_message
-* gnunet-service-core:
-  - update_window
-  - find_client
-  - handle_client_request_configure
-  - set_key_retry_task
-  - align_and_deliver
-  - handle_transport_notify_disconnect
-* hostlist (everything)
-* topology (everything)
-
-
-Module features to implement:
 * TESTING (needed for DV, DHT, Topology)
   - implement library for local testing
   - implement testcases for library
-  - implement library for distributed testing
-  - implement testcases for distributed testing
+  - implement library for distributed testing [Nate]
+  - implement testcases for distributed testing [Nate]
 * TOPOLOGY:
   - implement testcases (needs TESTING)
 * HOSTLIST:
   - implement testcases
 * DV (needed for DHT)
-  - write DV API
-  - implement DV service
-  - implement DV library
-  - implement DV transport plugin
-  - implement testcases
-  - implement performance tests
+  - write DV API 
+  - implement DV service [Nate & CG]
+  - implement DV library [Nate]
+  - implement DV transport plugin [Nate & CG]
+  - implement testcases [Nate]
+  - implement performance tests [Nate]
 * DHT (needed for FS)
-  - review DHT API
   - implement DHT service (needs DV, DATACACHE)
   - implement DHT library
   - implement testcases
   - implement performance tests
 * FS
-  - review FS API
+  - review FS API [Nils, Amatus, CG]
   - design network structs (CS)
   - implement FS library
     + URI API
@@ -124,6 +62,8 @@ Module features to implement:
     + unindex
 
 
+=> Deploy development network
+
 
 PHASE #3: (Goal: ready for pre-release) [completion-goal: end of 2009]
 
@@ -139,132 +79,26 @@ Module features to implement:
 
 
 GUIs to implement:
-* gtk
+* gtk 
+  - how to integrate scheduler with GTK event loop!
 * qt
+  - see discussions @ FISL about integration with event loop!
 * fuse
 
 
 Plugins to implement:
-* UDP backend (need LIBRARY to support (de)fragmentation!)
+* UDP backend 
+  - Fragmentation library
+  - actual plugin
 * HTTP backend
-
-
-
-
-
-Minor TODO items / known bugs:
-* UTIL:
-  - crypto_hash: use libgcrypt (supports SHA-512 since 2003)
-  - container_bloomfilter: improve efficiency (see FIXME)
-* SERVER:
-  - inefficient memmove
-* TRANSPORT:
-  - transport_api: support forcing disconnects through low quotas!
-    (required for working F2F support!)
-  - API: consider having core provide deadline information for each message
-    (likely important for DV plugin which wants to loop back!)
-  - implement transport API to pretty-print transport address 
-    + transport_api extension (API extension!)
-    + service-transport extension (protocol extension)
-  - add calls to statistics in various places
-  - implement gnunet-transport (transport configurator / tester)
-  - UPnP-based IP detection
-    (Note: build library always, build service when libxml2/etc. are available)
-  - instantly filter addresses from *other* peers that 
-    are *equal* to our own address + port (i.e., localhost:2086).  We 
-    no longer filter those for outgoing (helps with loopback testing
-    and keeps the code clean), but we should filter strictly *impossible*
-    incoming addresses!  This is for efficiency, not correctness.
-  - We currently are happy to take any address told to us in a WELCOME
-    to our set of addresses; we should have some minimal threshold-based
-    scheme, limiting both the total number of addresses that we accept 
-    this way as well as requiring multiple confirmations; also, we
-    should possibly try to confirm that the given address works for
-    us ourselves (loopback-style) before adding it to the list
-    [SECURITY issue]
-    + we may be able to simplify WELCOME messages (no need to add 
-      addresses there anymore, but may help to learn them there anyway...).
-    + we probably want some kind of voting/counting for learning IP addresses
-      (maybe including IP addresses in ads proportional to how often others
-       report them? we at least need some protection against >64k HELLOs!),
-    + provide a way to give the user a list of "learned" IP addresses and
-      a way to easily "veto" addresses off the list!
-      => If MiM attacker uses vetoed address, blacklist the specific IP for
-         the presumed neighbour!
-  - not sure current way of doing ACKs works well-enough 
-    with unreliable transports where the ACK maybe lost;
-    the "is_new" check would then possibly prevent future
-    ACKs to be delivered, all while we're happily 
-    receiving messages from that peer!  Worse, the other
-    peer won't generate another ACK since it thinks we're
-    connected just fine...
-    Key questions:
-    + How necessary is ACKing in the first place? (alternatives?)
-    + Should we transmit ACKs in response to every HELLO? (would that 
-      fully address the problem?)
-  - latency measurements implemented in the transport
-    plugins makes it only work for bi-di transports
-    and results in code replication
-  - should latency be included in the ReceiveCallback and
-    NotifyConnect or passed on request?
-  - FIXME's with latency being simply set to 0 in a few places
-  - Memory leak (running valgrind --trace-children=yes on test_transport_api:   
-    ==28393== 16 bytes in 1 blocks are indirectly lost in loss record 1 of 5
-    ==28393==    at 0x4C2260E: malloc (vg_replace_malloc.c:207)
-    ==28393==    by 0x52343E3: GNUNET_xmalloc_unchecked_ (common_allocation.c:62)
-    ==28393==    by 0x5234389: GNUNET_xmalloc_ (common_allocation.c:53)
-    ==28393==    by 0x524458A: GNUNET_NETWORK_socket_create_from_accept (network.c:289)
-    ==28393==    by 0x524B2DA: ??? (server.c:332)
-    ==28393==    by 0x524A4C7: ??? (scheduler.c:425)
-    ==28393==    by 0x524A73D: GNUNET_SCHEDULER_run (scheduler.c:510)
-    ==28393==    by 0x524FF8C: GNUNET_SERVICE_run (service.c:1326)
-    ==28393==    by 0x405500: main (gnunet-service-transport.c:2645)
-    And also:
-    ==28393== 65,744 (65,728 direct, 16 indirect) bytes in 1 blocks are definitely lost in loss record 5 of 5
-    ==28393==    at 0x4C2260E: malloc (vg_replace_malloc.c:207)
-    ==28393==    by 0x52343E3: GNUNET_xmalloc_unchecked_ (common_allocation.c:62)
-    ==28393==    by 0x5234389: GNUNET_xmalloc_ (common_allocation.c:53)
-    ==28393==    by 0x524473E: GNUNET_NETWORK_socket_create_from_accept (network.c:323)
-    (rest of trace identical)
-
-* DATASTORE:
-  - mysql backend
-  - postgres backend
-* SETUP:
-  - auto-generate "defaults.conf" using gnunet-setup from "config.scm"
-  - integrate all options into "config.scm"
-  - change config-file writing to exclude options set to default values
-* ARM:
-  - implement exponential back-off for service restarts
-  - better tracking of which config changes actually need to cause process restarts by ARM.
-  - have way to specify dependencies between services (to manage ARM restarts better)
-  - client-API is inefficient since it opens a TCP connection per service that is started
-    (instead of re-using connections).
-* CORE: 
-  - code currently notifies clients about "encrypted" connections being up well before
-    we get the encrypted PONG; sometimes this may be OK (for topology killing
-    unwanted connnections), but of course not in general.  I suspect we want
-    to signal on PONG and have topology hook directly into transport to
-    kill plaintext connections before they have a chance to become encrypted
-    (may require minor hack in transport API)
-* PEERINFO:
-  - have gnunet-peerinfo print actual host addresses again
-  - add option to gnunet-peerinfo to modify trust value
-* POSTGRES-DB:
-  - finish postgres implementation; simplify other SQLs using new stats
-* HTTPS transport
-  - PolariSSL for MHD?
-  - https integration
-* GAP improvements:
-  - active reply route caching design & implementation of service,
-    gap extension!
-* HOSTLIST:
-  - implement advertising of hostlist URL
-  - implement learning of hostlist URLs
+* HTTPS backend
+  - improved HTTPS support in MHD
+  - actual plugin
 
 
 
 => PRE-RELEASE
+
 
 PHASE #4: [completion-goal: mid 2010]
 * Documentation
@@ -276,7 +110,6 @@ PHASE #4: [completion-goal: mid 2010]
   - expand bibliography
   - convert documentation pages to books
   - update books (especially for developers)
-  - add content type for links and view
   - create good Drupal theme for GNUnet
   - make a NICE download page and figure out how to 
     enable developers to publish TGZs nicely
@@ -285,38 +118,7 @@ PHASE #4: [completion-goal: mid 2010]
   - DNS activation
 
 
-Stuff to remember:
-* Features eliminated from util:
-  - threading (goal: good riddance!)
-  - complex logging features [ectx-passing, target-kinds] (goal: good riddance!)
-  - complex configuration features [defaults, notifications] (goal: good riddance!)
-  - network traffic monitors (goal: eliminate)
-  - IPC semaphores (goal: d-bus? / eliminate?)
-  - second timers
-  - DNS lookup (goal: have async service; issue: still need synchronous resolution in places, current code may not be portable)
-  => code shrunk from 61 files to 34, 22k LOC to 15k LOC, 470k to 330k (with symbols)
-* New features in util:
-  - scheduler
-  - service and program boot-strap code
-* Major changes in util:
-  - more expressive server (replaces selector)
-* Open questions: 
-  - how to integrate scheduler with GTK event loop!
+=> 0.9.x RELEASE
 
 
 
-Test coverage:
-* UTIL      : 78.7%
-* HELLO     : 93.7%
-* ARM       : 69.9%
-* RESOLVER  : 60.4%
-* STATISTICS: 82.8%
-* PEERINFO  : 71.5%
-* TRANSPORT : 70.9%
-* CORE      : 65.8%
-===================
-* TOTAL     : 74.9%
-
-Not yet tested:
-* HOSTLIST  :  0.0%
-* TOPOLOGY  :  0.0%

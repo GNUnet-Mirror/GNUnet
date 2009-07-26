@@ -1,0 +1,119 @@
+This file lists minor work items (also possibly called "known bugs").
+We are not tracking them in Mantis yet since there are too many and no
+sane end-user should care about this codebase yet anyway.
+
+
+* UTIL:
+  - crypto_hash: use libgcrypt (supports SHA-512 since 2003)
+  - container_bloomfilter: improve efficiency (see FIXME)
+  - Windows: use events instead of pipes to signal select()s [Nils]
+  - only connect() sockets that are ready (select()) [Nils]
+    [On W32, we need to select after calling socket before
+     doing connect etc.]
+  - Add "DISK" API for creating of temporary files
+    (as used in datacache/ module) [Nils?]
+* SERVER:
+  - inefficient memmove
+* TRANSPORT:
+  - transport_api: support forcing disconnects through low quotas!
+    (required for working F2F support!)
+  - API: consider having core provide deadline information for each message
+    (likely important for DV plugin which wants to loop back!)
+  - implement transport API to pretty-print transport address 
+    + transport_api extension (API extension!)
+    + service-transport extension (protocol extension)
+  - add calls to statistics in various places
+  - implement gnunet-transport (transport configurator / tester)
+  - UPnP-based IP detection
+    (Note: build library always, build service when libxml2/etc. are available)
+  - instantly filter addresses from *other* peers that 
+    are *equal* to our own address + port (i.e., localhost:2086).  We 
+    no longer filter those for outgoing (helps with loopback testing
+    and keeps the code clean), but we should filter strictly *impossible*
+    incoming addresses!  This is for efficiency, not correctness.
+  - We currently are happy to take any address told to us in a WELCOME
+    to our set of addresses; we should have some minimal threshold-based
+    scheme, limiting both the total number of addresses that we accept 
+    this way as well as requiring multiple confirmations; also, we
+    should possibly try to confirm that the given address works for
+    us ourselves (loopback-style) before adding it to the list
+    [SECURITY issue]
+    + we may be able to simplify WELCOME messages (no need to add 
+      addresses there anymore, but may help to learn them there anyway...).
+    + we probably want some kind of voting/counting for learning IP addresses
+      (maybe including IP addresses in ads proportional to how often others
+       report them? we at least need some protection against >64k HELLOs!),
+    + provide a way to give the user a list of "learned" IP addresses and
+      a way to easily "veto" addresses off the list!
+      => If MiM attacker uses vetoed address, blacklist the specific IP for
+         the presumed neighbour!
+  - not sure current way of doing ACKs works well-enough 
+    with unreliable transports where the ACK maybe lost;
+    the "is_new" check would then possibly prevent future
+    ACKs to be delivered, all while we're happily 
+    receiving messages from that peer!  Worse, the other
+    peer won't generate another ACK since it thinks we're
+    connected just fine...
+    Key questions:
+    + How necessary is ACKing in the first place? (alternatives?)
+    + Should we transmit ACKs in response to every HELLO? (would that 
+      fully address the problem?)
+  - latency measurements implemented in the transport
+    plugins makes it only work for bi-di transports
+    and results in code replication
+  - should latency be included in the ReceiveCallback and
+    NotifyConnect or passed on request?
+  - FIXME's with latency being simply set to 0 in a few places
+  - Memory leak (running valgrind --trace-children=yes on test_transport_api:   
+    ==28393== 16 bytes in 1 blocks are indirectly lost in loss record 1 of 5
+    ==28393==    at 0x4C2260E: malloc (vg_replace_malloc.c:207)
+    ==28393==    by 0x52343E3: GNUNET_xmalloc_unchecked_ (common_allocation.c:62)
+    ==28393==    by 0x5234389: GNUNET_xmalloc_ (common_allocation.c:53)
+    ==28393==    by 0x524458A: GNUNET_NETWORK_socket_create_from_accept (network.c:289)
+    ==28393==    by 0x524B2DA: ??? (server.c:332)
+    ==28393==    by 0x524A4C7: ??? (scheduler.c:425)
+    ==28393==    by 0x524A73D: GNUNET_SCHEDULER_run (scheduler.c:510)
+    ==28393==    by 0x524FF8C: GNUNET_SERVICE_run (service.c:1326)
+    ==28393==    by 0x405500: main (gnunet-service-transport.c:2645)
+    And also:
+    ==28393== 65,744 (65,728 direct, 16 indirect) bytes in 1 blocks are definitely lost in loss record 5 of 5
+    ==28393==    at 0x4C2260E: malloc (vg_replace_malloc.c:207)
+    ==28393==    by 0x52343E3: GNUNET_xmalloc_unchecked_ (common_allocation.c:62)
+    ==28393==    by 0x5234389: GNUNET_xmalloc_ (common_allocation.c:53)
+    ==28393==    by 0x524473E: GNUNET_NETWORK_socket_create_from_accept (network.c:323)
+    (rest of trace identical)
+
+* DATASTORE:
+  - mysql backend
+  - postgres backend
+* SETUP:
+  - auto-generate "defaults.conf" using gnunet-setup from "config.scm"
+  - integrate all options into "config.scm"
+  - change config-file writing to exclude options set to default values
+* ARM:
+  - implement exponential back-off for service restarts
+  - better tracking of which config changes actually need to cause process restarts by ARM.
+  - have way to specify dependencies between services (to manage ARM restarts better)
+  - client-API is inefficient since it opens a TCP connection per service that is started
+    (instead of re-using connections).
+* CORE: 
+  - code currently notifies clients about "encrypted" connections being up well before
+    we get the encrypted PONG; sometimes this may be OK (for topology killing
+    unwanted connnections), but of course not in general.  I suspect we want
+    to signal on PONG and have topology hook directly into transport to
+    kill plaintext connections before they have a chance to become encrypted
+    (may require minor hack in transport API)
+* PEERINFO:
+  - have gnunet-peerinfo print actual host addresses again
+  - add option to gnunet-peerinfo to modify trust value
+* POSTGRES-DB:
+  - finish postgres implementation; simplify other SQLs using new stats
+* HTTPS transport
+  - PolariSSL for MHD?
+  - https integration
+* GAP improvements:
+  - active reply route caching design & implementation of service,
+    gap extension!
+* HOSTLIST:
+  - implement advertising of hostlist URL
+  - implement learning of hostlist URLs
