@@ -58,6 +58,7 @@ struct GNUNET_TESTING_Daemon;
  *
  * @param cls closure
  * @param id identifier for the daemon, NULL on error
+ * @param cfg configuration used by this daemon
  * @param d handle for the daemon
  * @param emsg error message (NULL on success)
  */
@@ -127,7 +128,7 @@ void GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
  * @param cb_cls closure for cb
  */
 void GNUNET_TESTING_daemon_reconfigure (struct GNUNET_TESTING_Daemon *d,
-					struct GNUNET_CONFIGURATION_Handle *cfg,
+					const struct GNUNET_CONFIGURATION_Handle *cfg,
 					GNUNET_TESTING_NotifyCompletion cb,
 					void * cb_cls);
 
@@ -150,20 +151,15 @@ void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 				     void *cb_cls);
 
 
-
 /**
- * Start count gnunetd processes with the same set of
- * transports and applications.  The port numbers will
- * be computed by adding delta each time (zero
- * times for the first peer).
+ * Start count gnunetd processes with the same set of transports and
+ * applications.  The port numbers (any option called "PORT") will be
+ * adjusted to ensure that no two peers running on the same system
+ * have the same port(s) in their respective configurations.
  *
  * @param sched scheduler to use 
- * @param cfg configuration to use
+ * @param cfg configuration template to use
  * @param total number of daemons to start
- * @param service_home_prefix path to use as the prefix for the home of the services;
- *        a number will be added for the different peers
- * @param transports which transports should all peers use
- * @param applications which applications should be used?
  * @param cb function to call on each daemon that was started
  * @param cb_cls closure for cb
  * @param cbe function to call at the end
@@ -176,17 +172,15 @@ void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
  */
 void
 GNUNET_TESTING_daemons_start_va (struct GNUNET_SCHEDULER_Handle *sched,
-				 struct GNUNET_CONFIGURATION_Handle *cfg,
+				 const struct GNUNET_CONFIGURATION_Handle *cfg,
 				 unsigned int total,
-				 const char *service_home_prefix,
-				 const char *transports,
-				 const char *applications,
 				 GNUNET_TESTING_NotifyDaemonRunning cb,
 				 void *cb_cls,
 				 GNUNET_TESTING_NotifyCompletion cbe,
 				 void *cbe_cls,
 				 const char *hostname,
 				 va_list va);
+
 
 /**
  * Start count gnunetd processes with the same set of

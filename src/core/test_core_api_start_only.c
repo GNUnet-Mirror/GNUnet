@@ -45,7 +45,7 @@
 
 struct PeerContext
 {
-  const struct GNUNET_CONFIGURATION_Handle *cfg;
+  struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_CORE_Handle *ch;
   struct GNUNET_PeerIdentity id;
 #if START_ARM

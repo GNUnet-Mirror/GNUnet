@@ -39,7 +39,7 @@
 #include "plugin_transport.h"
 #include "transport.h"
 
-#define DEBUG_TCP GNUNET_YES
+#define DEBUG_TCP GNUNET_NO
 
 /**
  * After how long do we expire an address that we
