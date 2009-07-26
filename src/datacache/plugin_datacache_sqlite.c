@@ -28,7 +28,7 @@
 #include "plugin_datacache.h"
 #include <sqlite3.h>
 
-#define DEBUG_DATACACHE_SQLITE GNUNET_YES
+#define DEBUG_DATACACHE_SQLITE GNUNET_NO
 
 /**
  * How much overhead do we assume per entry in the
@@ -178,7 +178,6 @@ sqlite_plugin_get (void *cls,
   char scratch[256];
 
   now = GNUNET_TIME_absolute_get ();
-
 #if DEBUG_DATACACHE_SQLITE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Processing `%s' for key `%4s'\n",

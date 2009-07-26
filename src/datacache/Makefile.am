@@ -48,6 +48,7 @@ libgnunet_plugin_datacache_template_la_LDFLAGS = \
 
 check_PROGRAMS = \
  test_datacache_api \
+ test_datacache_api_quota \
  perf_datacache_api 
 
 TESTS = $(check_PROGRAMS)
@@ -55,6 +56,12 @@ TESTS = $(check_PROGRAMS)
 test_datacache_api_SOURCES = \
  test_datacache_api.c
 test_datacache_api_LDADD = \
+ $(top_builddir)/src/datacache/libgnunetdatacache.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+test_datacache_api_quota_SOURCES = \
+ test_datacache_api_quota.c
+test_datacache_api_quota_LDADD = \
  $(top_builddir)/src/datacache/libgnunetdatacache.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
