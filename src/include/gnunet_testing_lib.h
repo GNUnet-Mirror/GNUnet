@@ -58,16 +58,21 @@ struct GNUNET_TESTING_Daemon;
  *
  * @param cls closure
  * @param id identifier for the daemon, NULL on error
- * @param d handle to the daemon, NULL if starting the daemon failed
+ * @param d handle for the daemon
+ * @param emsg error message (NULL on success)
  */
 typedef void (*GNUNET_TESTING_NotifyDaemonRunning)(void *cls,
 						   const struct GNUNET_PeerIdentity *id,
-						   struct GNUNET_TESTING_Daemon *d);
+						   const struct GNUNET_CONFIGURATION_Handle *cfg,
+						   struct GNUNET_TESTING_Daemon *d,
+						   const char *emsg);
 
 
 /**
  * Starts a GNUnet daemon.
  *
+ * @param sched scheduler to use 
+ * @param cfg configuration to use
  * @param service_home directory to use as the service home directory
  * @param transports transport services that should be loaded
  * @param applications application services and daemons that should be started
@@ -76,8 +81,9 @@ typedef void (*GNUNET_TESTING_NotifyDaemonRunning)(void *cls,
  *        (use NULL for localhost).
  * @param cb function to call with the result
  * @param cb_cls closure for cb
+ * @return handle to the daemon (actual start will be completed asynchronously)
  */
-void
+struct GNUNET_TESTING_Daemon *
 GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
 			     struct GNUNET_CONFIGURATION_Handle *cfg,
 			     const char *service_home,
@@ -94,10 +100,10 @@ GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
  * particular operation was completed the testing library.
  *
  * @param cls closure
- * @param success GNUNET_YES on success
+ * @param emsg NULL on success
  */
 typedef void (*GNUNET_TESTING_NotifyCompletion)(void *cls,
-						int success);
+						const char *emsg);
 
 
 /**
@@ -112,17 +118,34 @@ void GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
 				 void * cb_cls);
 
 
+/**
+ * Changes the configuration of a GNUnet daemon.
+ *
+ * @param d the daemon that should be modified
+ * @param cfg the new configuration for the daemon
+ * @param cb function called once the configuration was changed
+ * @param cb_cls closure for cb
+ */
+void GNUNET_TESTING_daemon_reconfigure (struct GNUNET_TESTING_Daemon *d,
+					struct GNUNET_CONFIGURATION_Handle *cfg,
+					GNUNET_TESTING_NotifyCompletion cb,
+					void * cb_cls);
+
+
 
 /**
  * Establish a connection between two GNUnet daemons.
  *
  * @param d1 handle for the first daemon
  * @param d2 handle for the second daemon
+ * @param timeout how long is the connection attempt
+ *        allowed to take?
  * @param cb function to call at the end
  * @param cb_cls closure for cb
  */
 void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 				     struct GNUNET_TESTING_Daemon *d2,
+				     struct GNUNET_TIME_Relative timeout,
 				     GNUNET_TESTING_NotifyCompletion cb,
 				     void *cb_cls);
 
@@ -134,11 +157,13 @@ void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
  * be computed by adding delta each time (zero
  * times for the first peer).
  *
+ * @param sched scheduler to use 
+ * @param cfg configuration to use
  * @param total number of daemons to start
- * @param service_home_prefix path to use as the prefix for the home of the services
+ * @param service_home_prefix path to use as the prefix for the home of the services;
+ *        a number will be added for the different peers
  * @param transports which transports should all peers use
  * @param applications which applications should be used?
- * @param timeout how long is this allowed to take?
  * @param cb function to call on each daemon that was started
  * @param cb_cls closure for cb
  * @param cbe function to call at the end

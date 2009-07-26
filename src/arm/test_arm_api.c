@@ -38,7 +38,7 @@
 
 static struct GNUNET_SCHEDULER_Handle *sched;
 
-static struct GNUNET_CONFIGURATION_Handle *cfg;
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static int ok = 1;
 
@@ -84,7 +84,8 @@ static void
 task (void *cls,
       struct GNUNET_SCHEDULER_Handle *s,
       char *const *args,
-      const char *cfgfile, struct GNUNET_CONFIGURATION_Handle *c)
+      const char *cfgfile,
+      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   cfg = c;
   sched = s;

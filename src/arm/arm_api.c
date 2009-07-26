@@ -39,7 +39,7 @@ struct ArmContext
   void *cls;
   char *service_name;
   struct GNUNET_CLIENT_Connection *client;
-  struct GNUNET_CONFIGURATION_Handle *cfg;
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_TIME_Absolute timeout;
   uint16_t type;
 };
@@ -195,7 +195,7 @@ send_service_msg (void *cls, size_t size, void *buf)
  */
 static void
 change_service (const char *service_name,
-                struct GNUNET_CONFIGURATION_Handle *cfg,
+                const struct GNUNET_CONFIGURATION_Handle *cfg,
                 struct GNUNET_SCHEDULER_Handle *sched,
                 struct GNUNET_TIME_Relative timeout,
                 GNUNET_ARM_Callback cb, void *cb_cls, uint16_t type)
@@ -266,7 +266,7 @@ change_service (const char *service_name,
  */
 void
 GNUNET_ARM_start_service (const char *service_name,
-                          struct GNUNET_CONFIGURATION_Handle *cfg,
+                          const struct GNUNET_CONFIGURATION_Handle *cfg,
                           struct GNUNET_SCHEDULER_Handle *sched,
                           struct GNUNET_TIME_Relative timeout,
                           GNUNET_ARM_Callback cb, void *cb_cls)
@@ -308,7 +308,7 @@ GNUNET_ARM_start_service (const char *service_name,
  */
 void
 GNUNET_ARM_stop_service (const char *service_name,
-                         struct GNUNET_CONFIGURATION_Handle *cfg,
+                         const struct GNUNET_CONFIGURATION_Handle *cfg,
                          struct GNUNET_SCHEDULER_Handle *sched,
                          struct GNUNET_TIME_Relative timeout,
                          GNUNET_ARM_Callback cb, void *cb_cls)

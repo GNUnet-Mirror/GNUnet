@@ -34,7 +34,8 @@
  * @param cfg configuration to use
  */
 static void
-finish (void *cls, struct GNUNET_CONFIGURATION_Handle *cfg)
+finish (void *cls, 
+	const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   /* FIXME */
 }
@@ -61,7 +62,7 @@ static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *sched,
      struct GNUNET_SERVER_Handle *server,
-     struct GNUNET_CONFIGURATION_Handle *cfg)
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   /* FIXME: do setup here */
   GNUNET_SERVER_add_handlers (server, handlers);

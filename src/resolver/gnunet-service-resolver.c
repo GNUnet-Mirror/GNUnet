@@ -450,7 +450,7 @@ static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *sched,
      struct GNUNET_SERVER_Handle *server,
-     struct GNUNET_CONFIGURATION_Handle *cfg)
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_SERVER_add_handlers (server, handlers);
 }

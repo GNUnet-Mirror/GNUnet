@@ -135,7 +135,7 @@ run (void *cls,
      struct GNUNET_SCHEDULER_Handle * sched,
      char *const *args,
      const char *cfgfile,
-     struct GNUNET_CONFIGURATION_Handle * cfg)
+     const struct GNUNET_CONFIGURATION_Handle * cfg)
 {
   GNUNET_CORE_ClientEventHandler ch = NULL;
   GNUNET_CORE_ClientEventHandler dh = NULL;

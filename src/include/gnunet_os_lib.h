@@ -115,7 +115,8 @@ void GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor
  * @return -1 on error, otherwise load value (between 0 and 100,
  *        (100 is equivalent to full load for one CPU)
  */
-int GNUNET_OS_load_cpu_get (struct GNUNET_CONFIGURATION_Handle *cfg);
+int GNUNET_OS_load_cpu_get (const struct GNUNET_CONFIGURATION_Handle *cfg);
+
 
 /**
  * Get the current IO load.
@@ -125,7 +126,7 @@ int GNUNET_OS_load_cpu_get (struct GNUNET_CONFIGURATION_Handle *cfg);
  *       100 means that we spend all of our cycles waiting for
  *       the disk)
  */
-int GNUNET_OS_load_disk_get (struct GNUNET_CONFIGURATION_Handle *cfg);
+int GNUNET_OS_load_disk_get (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**

@@ -156,7 +156,7 @@ static GNUNET_SCHEDULER_TaskIdentifier expired_kill_task;
 /**
  * Our configuration.
  */
-struct GNUNET_CONFIGURATION_Handle *cfg;
+const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
  * Our scheduler.
@@ -1248,7 +1248,7 @@ static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
      struct GNUNET_SERVER_Handle *server,
-     struct GNUNET_CONFIGURATION_Handle *c)
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *fn;
   unsigned int bf_size;

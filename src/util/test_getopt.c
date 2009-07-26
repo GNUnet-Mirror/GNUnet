@@ -31,7 +31,6 @@
 static int
 testMinimal ()
 {
-  struct GNUNET_CONFIGURATION_Handle *cfg;
   char *const emptyargv[] = {
     "test",
     NULL
@@ -40,13 +39,8 @@ testMinimal ()
     GNUNET_GETOPT_OPTION_END
   };
 
-  cfg = GNUNET_CONFIGURATION_create ();
-  if (1 != GNUNET_GETOPT_run ("test", cfg, emptyoptionlist, 1, emptyargv))
-    {
-      GNUNET_CONFIGURATION_destroy (cfg);
-      return 1;
-    }
-  GNUNET_CONFIGURATION_destroy (cfg);
+  if (1 != GNUNET_GETOPT_run ("test", emptyoptionlist, 1, emptyargv))
+    return 1;
 
   return 0;
 }
@@ -54,7 +48,6 @@ testMinimal ()
 static int
 testVerbose ()
 {
-  struct GNUNET_CONFIGURATION_Handle *cfg;
   char *const myargv[] = {
     "test",
     "-V",
@@ -68,14 +61,11 @@ testVerbose ()
     GNUNET_GETOPT_OPTION_END
   };
 
-  cfg = GNUNET_CONFIGURATION_create ();
-  if (3 != GNUNET_GETOPT_run ("test", cfg, verboseoptionlist, 4, myargv))
+  if (3 != GNUNET_GETOPT_run ("test", verboseoptionlist, 4, myargv))
     {
       GNUNET_break (0);
-      GNUNET_CONFIGURATION_destroy (cfg);
       return 1;
     }
-  GNUNET_CONFIGURATION_destroy (cfg);
   if (vflags != 2)
     {
       GNUNET_break (0);
@@ -87,7 +77,6 @@ testVerbose ()
 static int
 testVersion ()
 {
-  struct GNUNET_CONFIGURATION_Handle *cfg;
   char *const myargv[] = {
     "test_getopt",
     "-v",
@@ -98,22 +87,18 @@ testVersion ()
     GNUNET_GETOPT_OPTION_END
   };
 
-  cfg = GNUNET_CONFIGURATION_create ();
   if (-1 != GNUNET_GETOPT_run ("test_getopt",
-                               cfg, versionoptionlist, 2, myargv))
+			       versionoptionlist, 2, myargv))
     {
       GNUNET_break (0);
-      GNUNET_CONFIGURATION_destroy (cfg);
       return 1;
     }
-  GNUNET_CONFIGURATION_destroy (cfg);
   return 0;
 }
 
 static int
 testAbout ()
 {
-  struct GNUNET_CONFIGURATION_Handle *cfg;
   char *const myargv[] = {
     "test_getopt",
     "-h",
@@ -124,22 +109,18 @@ testAbout ()
     GNUNET_GETOPT_OPTION_END
   };
 
-  cfg = GNUNET_CONFIGURATION_create ();
   if (-1 != GNUNET_GETOPT_run ("test_getopt",
-                               cfg, aboutoptionlist, 2, myargv))
+                               aboutoptionlist, 2, myargv))
     {
       GNUNET_break (0);
-      GNUNET_CONFIGURATION_destroy (cfg);
       return 1;
     }
-  GNUNET_CONFIGURATION_destroy (cfg);
   return 0;
 }
 
 static int
 testLogOpts ()
 {
-  struct GNUNET_CONFIGURATION_Handle *cfg;
   char *const myargv[] = {
     "test_getopt",
     "-l", "filename",
@@ -154,15 +135,12 @@ testLogOpts ()
     GNUNET_GETOPT_OPTION_END
   };
 
-  cfg = GNUNET_CONFIGURATION_create ();
-  if (5 != GNUNET_GETOPT_run ("test_getopt", cfg, logoptionlist, 5, myargv))
+  if (5 != GNUNET_GETOPT_run ("test_getopt", logoptionlist, 5, myargv))
     {
       GNUNET_break (0);
-      GNUNET_CONFIGURATION_destroy (cfg);
       return 1;
     }
   GNUNET_assert (fn != NULL);
-  GNUNET_CONFIGURATION_destroy (cfg);
   if ((0 != strcmp (level, "WARNING")) || (0 != strcmp (fn, "filename")))
     {
       GNUNET_break (0);
@@ -178,7 +156,6 @@ testLogOpts ()
 static int
 testFlagNum ()
 {
-  struct GNUNET_CONFIGURATION_Handle *cfg;
   char *const myargv[] = {
     "test_getopt",
     "-f",
@@ -199,14 +176,11 @@ testFlagNum ()
     GNUNET_GETOPT_OPTION_END
   };
 
-  cfg = GNUNET_CONFIGURATION_create ();
-  if (6 != GNUNET_GETOPT_run ("test_getopt", cfg, logoptionlist, 6, myargv))
+  if (6 != GNUNET_GETOPT_run ("test_getopt", logoptionlist, 6, myargv))
     {
       GNUNET_break (0);
-      GNUNET_CONFIGURATION_destroy (cfg);
       return 1;
     }
-  GNUNET_CONFIGURATION_destroy (cfg);
   if ((1 != flag) || (42 != num) || (42 != lnum))
     {
       GNUNET_break (0);

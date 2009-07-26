@@ -59,7 +59,7 @@ struct GNUNET_CLIENT_Connection *GNUNET_CLIENT_connect (struct
                                                         *sched,
                                                         const char
                                                         *service_name,
-                                                        struct
+                                                        const struct
                                                         GNUNET_CONFIGURATION_Handle
                                                         *cfg);
 
@@ -143,7 +143,7 @@ void GNUNET_CLIENT_service_shutdown (struct GNUNET_CLIENT_Connection *sock);
  */
 void GNUNET_CLIENT_service_test (struct GNUNET_SCHEDULER_Handle *sched,
                                  const char *service,
-                                 struct GNUNET_CONFIGURATION_Handle *cfg,
+                                 const struct GNUNET_CONFIGURATION_Handle *cfg,
                                  struct GNUNET_TIME_Relative timeout,
                                  GNUNET_SCHEDULER_Task task, void *task_cls);
 

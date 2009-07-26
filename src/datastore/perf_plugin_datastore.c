@@ -71,7 +71,7 @@ struct CpsRunContext
   struct GNUNET_TIME_Absolute start;
   struct GNUNET_TIME_Absolute end;
   struct GNUNET_SCHEDULER_Handle *sched;
-  struct GNUNET_CONFIGURATION_Handle *cfg;
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_DATASTORE_PluginFunctions * api;
   const char *msg;
   enum RunPhase phase;
@@ -195,7 +195,7 @@ iterateDummy (void *cls,
  */
 static void
 unload_plugin (struct GNUNET_DATASTORE_PluginFunctions * api,
-	       struct GNUNET_CONFIGURATION_Handle *cfg)
+	       const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char *name;
   char *libname;
@@ -315,7 +315,7 @@ test (void *cls,
  * Load the datastore plugin.
  */
 static struct GNUNET_DATASTORE_PluginFunctions *
-load_plugin (struct GNUNET_CONFIGURATION_Handle *cfg,
+load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg,
 	     struct GNUNET_SCHEDULER_Handle *sched)
 {
   static struct GNUNET_DATASTORE_PluginEnvironment env;
@@ -350,7 +350,7 @@ run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile,
-     struct GNUNET_CONFIGURATION_Handle *c)
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_DATASTORE_PluginFunctions *api;
   struct CpsRunContext *crc;

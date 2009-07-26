@@ -38,7 +38,7 @@
  * @return GNUNET_OK on success
  */
 int
-GNUNET_HOSTLIST_server_start (struct GNUNET_CONFIGURATION_Handle *c,
+GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 			      struct GNUNET_SCHEDULER_Handle *s,
 			      struct GNUNET_STATISTICS_Handle *st);
 

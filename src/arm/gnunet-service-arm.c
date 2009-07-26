@@ -124,7 +124,7 @@ static struct ServiceList *running;
 /**
  * Our configuration
  */
-static struct GNUNET_CONFIGURATION_Handle *cfg;
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
  * Our scheduler.
@@ -562,7 +562,7 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                 GNUNET_YES,
                                 GNUNET_SCHEDULER_PRIORITY_IDLE,
                                 GNUNET_SCHEDULER_NO_TASK,
-                                MAINT_FREQUENCY, &maint, cfg);
+                                MAINT_FREQUENCY, &maint, NULL);
 
   /* check for services that died (WAITPID) */
   prev = NULL;
@@ -675,7 +675,7 @@ static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
      struct GNUNET_SERVER_Handle *server,
-     struct GNUNET_CONFIGURATION_Handle *c)
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *defaultservices;
   char *pos;

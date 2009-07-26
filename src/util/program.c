@@ -63,7 +63,7 @@ struct CommandContext
   /**
    * Configuration to use.
    */
-  struct GNUNET_CONFIGURATION_Handle *cfg;
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 };
 
@@ -127,6 +127,7 @@ GNUNET_PROGRAM_run (int argc,
   char *loglev;
   int ret;
   unsigned int cnt;
+  struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_GETOPT_CommandLineOption defoptions[] = {
     GNUNET_GETOPT_OPTION_CFG_FILE (&cc.cfgfile),
     GNUNET_GETOPT_OPTION_HELP (binaryHelp),
@@ -139,7 +140,7 @@ GNUNET_PROGRAM_run (int argc,
   loglev = NULL;
   cc.task = task;
   cc.task_cls = task_cls;
-  cc.cfg = GNUNET_CONFIGURATION_create ();
+  cc.cfg = cfg = GNUNET_CONFIGURATION_create ();
 
   /* prepare */
 #if ENABLE_NLS
@@ -169,15 +170,14 @@ GNUNET_PROGRAM_run (int argc,
   qsort (allopts, cnt, sizeof (struct GNUNET_GETOPT_CommandLineOption),
          &cmd_sorter);
   loglev = GNUNET_strdup ("WARNING");
-  if ((-1 == (ret = GNUNET_GETOPT_run (binaryName,
-                                       cc.cfg,
+  if ((-1 == (ret = GNUNET_GETOPT_run (binaryName,                                      
                                        allopts,
                                        (unsigned int) argc, argv))) ||
       ((GNUNET_OK !=
         GNUNET_log_setup (binaryName,
                           loglev,
                           NULL)) ||
-       (GNUNET_OK != GNUNET_CONFIGURATION_load (cc.cfg, cc.cfgfile))))
+       (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cc.cfgfile))))
 
     {
       GNUNET_free_non_null (cc.cfgfile);
@@ -192,7 +192,7 @@ GNUNET_PROGRAM_run (int argc,
   GNUNET_SCHEDULER_run (&program_main, &cc);
 
   /* clean up */
-  GNUNET_CONFIGURATION_destroy (cc.cfg);
+  GNUNET_CONFIGURATION_destroy (cfg);
   GNUNET_free_non_null (cc.cfgfile);
   GNUNET_free (loglev);
   return GNUNET_OK;

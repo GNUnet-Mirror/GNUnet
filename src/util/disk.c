@@ -1132,6 +1132,7 @@ GNUNET_DISK_file_close (struct GNUNET_DISK_FileHandle *h)
  * a directory, end the last argument in '/' (or pass
  * DIR_SEPARATOR_STR as the last argument before NULL).
  *
+ * @param cfg configuration to use (determines HOME)
  * @param serviceName name of the service
  * @param varargs is NULL-terminated list of
  *                path components to append to the
@@ -1139,7 +1140,7 @@ GNUNET_DISK_file_close (struct GNUNET_DISK_FileHandle *h)
  * @return the constructed filename
  */
 char *
-GNUNET_DISK_get_home_filename (struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_DISK_get_home_filename (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                const char *serviceName, ...)
 {
   const char *c;

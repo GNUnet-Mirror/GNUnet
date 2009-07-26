@@ -47,7 +47,7 @@ struct GNUNET_DATACACHE_Handle
   /**
    * Our configuration.
    */
-  struct GNUNET_CONFIGURATION_Handle *cfg;
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
    * Configuration section to use.
@@ -118,7 +118,7 @@ env_delete_notify (void *cls,
  */
 struct GNUNET_DATACACHE_Handle *
 GNUNET_DATACACHE_create (struct GNUNET_SCHEDULER_Handle *sched,
-			 struct GNUNET_CONFIGURATION_Handle *cfg,
+			 const struct GNUNET_CONFIGURATION_Handle *cfg,
 			 const char *section)
 {
   int fd;

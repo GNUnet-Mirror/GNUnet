@@ -151,7 +151,7 @@ static struct GNUNET_SCHEDULER_Handle * sched;
 /**
  * Our configuration.
  */
-static struct GNUNET_CONFIGURATION_Handle * cfg;
+static const struct GNUNET_CONFIGURATION_Handle * cfg;
 
 /**
  * Handle to the core API.
@@ -725,7 +725,7 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
  * Read the friends file.
  */
 static void
-read_friends_file (struct GNUNET_CONFIGURATION_Handle *cfg)
+read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char *fn;
   char *data;
@@ -998,7 +998,7 @@ run (void *cls,
      struct GNUNET_SCHEDULER_Handle * s,
      char *const *args,
      const char *cfgfile,
-     struct GNUNET_CONFIGURATION_Handle * c)
+     const struct GNUNET_CONFIGURATION_Handle * c)
 {
   struct GNUNET_CORE_MessageHandler handlers[] =
     {

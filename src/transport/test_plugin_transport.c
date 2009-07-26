@@ -67,7 +67,7 @@ struct GNUNET_SCHEDULER_Handle *sched;
 /**
  * Our configuration.
  */
-struct GNUNET_CONFIGURATION_Handle *cfg;
+const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
  * Number of neighbours we'd like to have.
@@ -135,7 +135,8 @@ void lookup (void *cls,
  * @param cfg configuration to use
  */
 static void
-unload_plugins (void *cls, struct GNUNET_CONFIGURATION_Handle *cfg)
+unload_plugins (void *cls, 
+		const struct GNUNET_CONFIGURATION_Handle *cfg)
 {  
   GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_tcp",api));
   if (my_private_key != NULL)
@@ -256,7 +257,7 @@ run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile,
-     struct GNUNET_CONFIGURATION_Handle *c)
+     const struct GNUNET_CONFIGURATION_Handle *c)
 { 
   unsigned long long tneigh;
   char *keyfile;

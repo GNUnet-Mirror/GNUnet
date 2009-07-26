@@ -65,7 +65,7 @@ typedef void (*GNUNET_RESOLVER_AddressCallback) (void *cls,
  */
 void
 GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
-                        struct GNUNET_CONFIGURATION_Handle *cfg,
+                        const struct GNUNET_CONFIGURATION_Handle *cfg,
                         const char *hostname,
                         int domain,
                         struct GNUNET_TIME_Relative timeout,
@@ -84,7 +84,7 @@ GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
  */
 void
 GNUNET_RESOLVER_hostname_resolve (struct GNUNET_SCHEDULER_Handle *sched,
-                                  struct GNUNET_CONFIGURATION_Handle *cfg,
+                                  const struct GNUNET_CONFIGURATION_Handle *cfg,
                                   int domain,
                                   struct GNUNET_TIME_Relative timeout,
                                   GNUNET_RESOLVER_AddressCallback callback,
@@ -115,7 +115,7 @@ typedef void (*GNUNET_RESOLVER_HostnameCallback) (void *cls,
  * @param cls closure for callback
  */
 void GNUNET_RESOLVER_hostname_get (struct GNUNET_SCHEDULER_Handle *sched,
-                                   struct GNUNET_CONFIGURATION_Handle *cfg,
+                                   const struct GNUNET_CONFIGURATION_Handle *cfg,
                                    const struct sockaddr *sa,
                                    socklen_t salen,
                                    int do_resolve,

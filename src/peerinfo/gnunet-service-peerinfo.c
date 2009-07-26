@@ -652,7 +652,7 @@ static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *sched,
      struct GNUNET_SERVER_Handle *server,
-     struct GNUNET_CONFIGURATION_Handle *cfg)
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_filename (cfg,

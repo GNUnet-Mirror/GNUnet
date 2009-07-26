@@ -71,7 +71,7 @@ typedef void (*GNUNET_ARM_Callback) (void *cls, int success);
  */
 void
 GNUNET_ARM_start_service (const char *service_name,
-                          struct GNUNET_CONFIGURATION_Handle *cfg,
+                          const struct GNUNET_CONFIGURATION_Handle *cfg,
                           struct GNUNET_SCHEDULER_Handle *sched,
                           struct GNUNET_TIME_Relative timeout,
                           GNUNET_ARM_Callback cb, void *cb_cls);
@@ -91,7 +91,7 @@ GNUNET_ARM_start_service (const char *service_name,
  */
 void
 GNUNET_ARM_stop_service (const char *service_name,
-                         struct GNUNET_CONFIGURATION_Handle *cfg,
+                         const struct GNUNET_CONFIGURATION_Handle *cfg,
                          struct GNUNET_SCHEDULER_Handle *sched,
                          struct GNUNET_TIME_Relative timeout,
                          GNUNET_ARM_Callback cb, void *cb_cls);

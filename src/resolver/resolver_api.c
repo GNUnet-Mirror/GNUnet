@@ -187,7 +187,7 @@ transmit_get_ip (void *cls, size_t size, void *buf)
  */
 void
 GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
-                        struct GNUNET_CONFIGURATION_Handle *cfg,
+                        const struct GNUNET_CONFIGURATION_Handle *cfg,
                         const char *hostname,
                         int domain,
                         struct GNUNET_TIME_Relative timeout,
@@ -349,7 +349,7 @@ transmit_get_hostname (void *cls, size_t size, void *buf)
  */
 void
 GNUNET_RESOLVER_hostname_get (struct GNUNET_SCHEDULER_Handle *sched,
-                              struct GNUNET_CONFIGURATION_Handle *cfg,
+                              const struct GNUNET_CONFIGURATION_Handle *cfg,
                               const struct sockaddr *sa,
                               socklen_t salen,
                               int do_resolve,
@@ -439,7 +439,7 @@ GNUNET_RESOLVER_hostname_get (struct GNUNET_SCHEDULER_Handle *sched,
  */
 void
 GNUNET_RESOLVER_hostname_resolve (struct GNUNET_SCHEDULER_Handle *sched,
-                                  struct GNUNET_CONFIGURATION_Handle *cfg,
+                                  const struct GNUNET_CONFIGURATION_Handle *cfg,
                                   int domain,
                                   struct GNUNET_TIME_Relative timeout,
                                   GNUNET_RESOLVER_AddressCallback callback,

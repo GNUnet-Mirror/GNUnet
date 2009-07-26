@@ -235,7 +235,7 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
 }
 
 int
-GNUNET_CONFIGURATION_test_dirty (struct GNUNET_CONFIGURATION_Handle *cfg)
+GNUNET_CONFIGURATION_test_dirty (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   return cfg->dirty;
 }
@@ -316,7 +316,7 @@ GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *data,
 
 
 static struct ConfigSection *
-findSection (struct GNUNET_CONFIGURATION_Handle *data, const char *section)
+findSection (const struct GNUNET_CONFIGURATION_Handle *data, const char *section)
 {
   struct ConfigSection *pos;
 
@@ -328,7 +328,7 @@ findSection (struct GNUNET_CONFIGURATION_Handle *data, const char *section)
 
 
 static struct ConfigEntry *
-findEntry (struct GNUNET_CONFIGURATION_Handle *data,
+findEntry (const struct GNUNET_CONFIGURATION_Handle *data,
            const char *section, const char *key)
 {
   struct ConfigSection *sec;
@@ -386,7 +386,7 @@ GNUNET_CONFIGURATION_set_value_number (struct GNUNET_CONFIGURATION_Handle
 }
 
 int
-GNUNET_CONFIGURATION_get_value_number (struct GNUNET_CONFIGURATION_Handle
+GNUNET_CONFIGURATION_get_value_number (const struct GNUNET_CONFIGURATION_Handle
                                        *cfg, const char *section,
                                        const char *option,
                                        unsigned long long *number)
@@ -402,7 +402,7 @@ GNUNET_CONFIGURATION_get_value_number (struct GNUNET_CONFIGURATION_Handle
 }
 
 int
-GNUNET_CONFIGURATION_get_value_time (struct GNUNET_CONFIGURATION_Handle
+GNUNET_CONFIGURATION_get_value_time (const struct GNUNET_CONFIGURATION_Handle
 				     *cfg, const char *section,
 				     const char *option,
 				     struct GNUNET_TIME_Relative *time)
@@ -420,7 +420,7 @@ GNUNET_CONFIGURATION_get_value_time (struct GNUNET_CONFIGURATION_Handle
 }
 
 int
-GNUNET_CONFIGURATION_get_value_string (struct GNUNET_CONFIGURATION_Handle
+GNUNET_CONFIGURATION_get_value_string (const struct GNUNET_CONFIGURATION_Handle
                                        *cfg, const char *section,
                                        const char *option, char **value)
 {
@@ -437,7 +437,7 @@ GNUNET_CONFIGURATION_get_value_string (struct GNUNET_CONFIGURATION_Handle
 }
 
 int
-GNUNET_CONFIGURATION_get_value_choice (struct GNUNET_CONFIGURATION_Handle
+GNUNET_CONFIGURATION_get_value_choice (const struct GNUNET_CONFIGURATION_Handle
                                        *cfg, const char *section,
                                        const char *option,
                                        const char **choices,
@@ -473,7 +473,7 @@ GNUNET_CONFIGURATION_get_value_choice (struct GNUNET_CONFIGURATION_Handle
  * @return GNUNET_YES if so, GNUNET_NO if not.
  */
 int
-GNUNET_CONFIGURATION_have_value (struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_CONFIGURATION_have_value (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                  const char *section, const char *option)
 {
   struct ConfigEntry *e;
@@ -491,7 +491,7 @@ GNUNET_CONFIGURATION_have_value (struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return $-expanded string
  */
 char *
-GNUNET_CONFIGURATION_expand_dollar (struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_CONFIGURATION_expand_dollar (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                     char *orig)
 {
   int i;
@@ -543,7 +543,7 @@ GNUNET_CONFIGURATION_expand_dollar (struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
-GNUNET_CONFIGURATION_get_value_filename (struct GNUNET_CONFIGURATION_Handle
+GNUNET_CONFIGURATION_get_value_filename (const struct GNUNET_CONFIGURATION_Handle
                                          *data, const char *section,
                                          const char *option, char **value)
 {
@@ -574,7 +574,7 @@ GNUNET_CONFIGURATION_get_value_filename (struct GNUNET_CONFIGURATION_Handle
  * @return GNUNET_YES, GNUNET_NO or GNUNET_SYSERR
  */
 int
-GNUNET_CONFIGURATION_get_value_yesno (struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_CONFIGURATION_get_value_yesno (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                       const char *section, const char *option)
 {
   static const char *yesno[] = { "YES", "NO", NULL };
@@ -597,7 +597,7 @@ GNUNET_CONFIGURATION_get_value_yesno (struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return number of filenames iterated over, -1 on error
  */
 int
-GNUNET_CONFIGURATION_iterate_value_filenames (struct
+GNUNET_CONFIGURATION_iterate_value_filenames (const struct
                                               GNUNET_CONFIGURATION_Handle
                                               *cfg, const char *section,
                                               const char *option,

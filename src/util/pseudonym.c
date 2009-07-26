@@ -64,7 +64,7 @@ internal_notify (const GNUNET_HashCode * id,
  * a new pseudonym.
  */
 int
-GNUNET_PSEUDONYM_discovery_callback_register (struct
+GNUNET_PSEUDONYM_discovery_callback_register (const struct
                                               GNUNET_CONFIGURATION_Handle
                                               *cfg,
                                               GNUNET_PSEUDONYM_Iterator
@@ -115,7 +115,7 @@ GNUNET_PSEUDONYM_discovery_callback_unregister (GNUNET_PSEUDONYM_Iterator
  * pseudonym identifier and directory prefix.
  */
 static char *
-get_data_filename (struct GNUNET_CONFIGURATION_Handle
+get_data_filename (const struct GNUNET_CONFIGURATION_Handle
                    *cfg, const char *prefix, const GNUNET_HashCode * psid)
 {
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
@@ -131,7 +131,7 @@ get_data_filename (struct GNUNET_CONFIGURATION_Handle
 }
 
 static void
-write_pseudonym_info (struct GNUNET_CONFIGURATION_Handle *cfg,
+write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
                       const GNUNET_HashCode * nsid,
                       const struct GNUNET_CONTAINER_MetaData *meta,
                       int32_t ranking, const char *ns_name)
@@ -179,7 +179,7 @@ write_pseudonym_info (struct GNUNET_CONFIGURATION_Handle *cfg,
 }
 
 static int
-read_info (struct GNUNET_CONFIGURATION_Handle *cfg,
+read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
            const GNUNET_HashCode * nsid,
            struct GNUNET_CONTAINER_MetaData **meta,
            int32_t * ranking, char **ns_name)
@@ -273,7 +273,7 @@ read_info (struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return NULL on failure (should never happen)
  */
 char *
-GNUNET_PSEUDONYM_id_to_name (struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_PSEUDONYM_id_to_name (const struct GNUNET_CONFIGURATION_Handle *cfg,
                              const GNUNET_HashCode * nsid)
 {
   struct GNUNET_CONTAINER_MetaData *meta;
@@ -356,7 +356,7 @@ GNUNET_PSEUDONYM_id_to_name (struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return GNUNET_OK on success
  */
 int
-GNUNET_PSEUDONYM_name_to_id (struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
                              const char *ns_uname, GNUNET_HashCode * nsid)
 {
   size_t slen;
@@ -408,7 +408,7 @@ struct ListPseudonymClosure
 {
   GNUNET_PSEUDONYM_Iterator iterator;
   void *closure;
-  struct GNUNET_CONFIGURATION_Handle *cfg;
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
 };
 
 static int
@@ -443,7 +443,7 @@ list_pseudonym_helper (void *cls, const char *fullname)
  * List all available pseudonyms.
  */
 int
-GNUNET_PSEUDONYM_list_all (struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_PSEUDONYM_list_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
                            GNUNET_PSEUDONYM_Iterator iterator, void *closure)
 {
   struct ListPseudonymClosure cls;
@@ -470,7 +470,7 @@ GNUNET_PSEUDONYM_list_all (struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return new rating of the pseudonym
  */
 int
-GNUNET_PSEUDONYM_rank (struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
                        const GNUNET_HashCode * nsid, int delta)
 {
   struct GNUNET_CONTAINER_MetaData *meta;
@@ -513,7 +513,7 @@ merge_meta_helper (EXTRACTOR_KeywordType type, const char *data, void *cls)
  * @param id the pseudonym identifier
  */
 void
-GNUNET_PSEUDONYM_add (struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_PSEUDONYM_add (const struct GNUNET_CONFIGURATION_Handle *cfg,
                       const GNUNET_HashCode * id,
                       const struct GNUNET_CONTAINER_MetaData *meta)
 {

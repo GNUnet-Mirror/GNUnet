@@ -1368,7 +1368,7 @@ struct GNUNET_FS_Handle;
  */
 struct GNUNET_FS_Handle *
 GNUNET_FS_start (struct GNUNET_SCHEDULER_Handle *sched,
-		 struct GNUNET_CONFIGURATION_Handle *cfg,
+		 const struct GNUNET_CONFIGURATION_Handle *cfg,
 		 const char *client_name,
 		 GNUNET_FS_ProgressCallback upcb,
 		 void *upcb_cls);

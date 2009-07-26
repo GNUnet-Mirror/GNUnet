@@ -420,7 +420,7 @@ struct GNUNET_SERVICE_Context
   /**
    * Our configuration.
    */
-  struct GNUNET_CONFIGURATION_Handle *cfg;
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
    * Handle for the server.
@@ -1264,6 +1264,7 @@ GNUNET_SERVICE_run (int argc,
   char *logfile;
   int do_daemonize;
   struct GNUNET_SERVICE_Context sctx;
+  struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_GETOPT_CommandLineOption service_options[] = {
     GNUNET_GETOPT_OPTION_CFG_FILE (&cfg_fn),
     {'d', "daemonize", NULL,
@@ -1286,18 +1287,17 @@ GNUNET_SERVICE_run (int argc,
   sctx.maxbuf = GNUNET_SERVER_MAX_MESSAGE_SIZE;
   sctx.task = task;
   sctx.serviceName = serviceName;
-  sctx.cfg = GNUNET_CONFIGURATION_create ();
+  sctx.cfg = cfg = GNUNET_CONFIGURATION_create ();
   /* setup subsystems */
   if ((GNUNET_SYSERR ==
-       GNUNET_GETOPT_run (serviceName,
-                          sctx.cfg,
+       GNUNET_GETOPT_run (serviceName,                         
                           service_options,
                           argc,
                           argv)) ||
       (GNUNET_OK !=
        GNUNET_log_setup (serviceName, loglev, logfile)) ||
       (GNUNET_OK !=
-       GNUNET_CONFIGURATION_load (sctx.cfg, cfg_fn)) ||
+       GNUNET_CONFIGURATION_load (cfg, cfg_fn)) ||
       (GNUNET_OK !=
        setup_service (&sctx)) ||
       ((do_daemonize == 1) &&
@@ -1310,7 +1310,7 @@ GNUNET_SERVICE_run (int argc,
             GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "write");
           GNUNET_break (0 == CLOSE (sctx.ready_confirm_fd));
         }
-      GNUNET_CONFIGURATION_destroy (sctx.cfg);
+      GNUNET_CONFIGURATION_destroy (cfg);
       GNUNET_free_non_null (sctx.addr);
       GNUNET_free_non_null (logfile);
       GNUNET_free (loglev);
@@ -1339,7 +1339,7 @@ GNUNET_SERVICE_run (int argc,
   if (sctx.server != NULL)
     GNUNET_SERVER_destroy (sctx.server);
   GNUNET_free_non_null (sctx.my_handlers);
-  GNUNET_CONFIGURATION_destroy (sctx.cfg);
+  GNUNET_CONFIGURATION_destroy (cfg);
   GNUNET_free_non_null (sctx.addr);
   GNUNET_free_non_null (logfile);
   GNUNET_free (loglev);
@@ -1364,7 +1364,7 @@ GNUNET_SERVICE_run (int argc,
 struct GNUNET_SERVICE_Context *
 GNUNET_SERVICE_start (const char *serviceName,
                       struct GNUNET_SCHEDULER_Handle *sched,
-                      struct GNUNET_CONFIGURATION_Handle *cfg)
+                      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   int i;
   struct GNUNET_SERVICE_Context *sctx;

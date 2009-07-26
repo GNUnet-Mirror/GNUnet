@@ -70,7 +70,8 @@ static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *sched,
      char *const *args,
-     const char *cfgfile, struct GNUNET_CONFIGURATION_Handle *cfg)
+     const char *cfgfile, 
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_CRYPTO_RsaPrivateKey *priv;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;

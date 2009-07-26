@@ -79,7 +79,7 @@ copy_and_free (void *cls, size_t size, void *buf)
  * @param expiration when the HELLO will expire
  */
 void
-GNUNET_PEERINFO_add_peer (struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_PEERINFO_add_peer (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           struct GNUNET_SCHEDULER_Handle *sched,
                           const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_HELLO_Message *hello)
@@ -251,7 +251,7 @@ copy_then_receive (void *cls, size_t size, void *buf)
  * @param callback_cls closure for callback
  */
 void
-GNUNET_PEERINFO_for_all (struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_PEERINFO_for_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
                          struct GNUNET_SCHEDULER_Handle *sched,
                          const struct GNUNET_PeerIdentity *peer,
                          int trust_delta,

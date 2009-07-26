@@ -51,7 +51,7 @@ extern "C"
  * @param hello the verified (!) HELLO message
  */
 void
-GNUNET_PEERINFO_add_peer (struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_PEERINFO_add_peer (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           struct GNUNET_SCHEDULER_Handle *sched,
                           const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_HELLO_Message *hello);
@@ -90,7 +90,7 @@ typedef void
  * @param callback_cls closure for callback
  */
 void
-GNUNET_PEERINFO_for_all (struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_PEERINFO_for_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
                          struct GNUNET_SCHEDULER_Handle *sched,
                          const struct GNUNET_PeerIdentity *peer,
                          int trust_delta,

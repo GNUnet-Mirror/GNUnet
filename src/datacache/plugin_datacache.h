@@ -66,7 +66,7 @@ struct GNUNET_DATACACHE_PluginEnvironment
   /**
    * Configuration to use.
    */
-  struct GNUNET_CONFIGURATION_Handle *cfg;
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
    * Configuration section to use.

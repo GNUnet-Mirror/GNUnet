@@ -60,11 +60,6 @@ struct GNUNET_GETOPT_CommandLineProcessorContext
   const struct GNUNET_GETOPT_CommandLineOption *allOptions;
 
   /**
-   * For configuration
-   */
-  struct GNUNET_CONFIGURATION_Handle *cfg;
-
-  /**
    * Original command line
    */
   char *const *argv;
@@ -192,7 +187,6 @@ struct GNUNET_GETOPT_CommandLineOption
  * Parse the command line.
  *
  * @param binaryName name of the binary / application with options
- * @param cfg for storing/accessing configuration data
  * @param allOptions defined options and handlers
  * @param argc number of arguments
  * @param argv actual arguments
@@ -200,7 +194,6 @@ struct GNUNET_GETOPT_CommandLineOption
  *   argument, or GNUNET_SYSERR on error
  */
 int GNUNET_GETOPT_run (const char *binaryName,
-                       struct GNUNET_CONFIGURATION_Handle *cfg,
                        const struct GNUNET_GETOPT_CommandLineOption
                        *allOptions, unsigned int argc, char *const *argv);
 

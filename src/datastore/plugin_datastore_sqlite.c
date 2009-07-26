@@ -208,7 +208,7 @@ create_indices (sqlite3 * dbh)
  * @return GNUNET_OK on success
  */
 static int
-database_setup (struct GNUNET_CONFIGURATION_Handle *cfg,
+database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
 		struct Plugin *plugin)
 {
   sqlite3_stmt *stmt;

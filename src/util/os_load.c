@@ -517,7 +517,7 @@ updateUsage ()
  * that lock has already been obtained.
  */
 static void
-updateAgedLoad (struct GNUNET_CONFIGURATION_Handle *cfg)
+updateAgedLoad (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static struct GNUNET_TIME_Absolute lastCall;
 
@@ -573,7 +573,7 @@ updateAgedLoad (struct GNUNET_CONFIGURATION_Handle *cfg)
  *        (100 is equivalent to full load)
  */
 int
-GNUNET_OS_load_cpu_get (struct GNUNET_CONFIGURATION_Handle *cfg)
+GNUNET_OS_load_cpu_get (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   unsigned long long maxCPULoad;
   int ret;
@@ -596,7 +596,7 @@ GNUNET_OS_load_cpu_get (struct GNUNET_CONFIGURATION_Handle *cfg)
  *        (100 is equivalent to full load)
  */
 int
-GNUNET_OS_load_disk_get (struct GNUNET_CONFIGURATION_Handle *cfg)
+GNUNET_OS_load_disk_get (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   unsigned long long maxIOLoad;
   int ret;

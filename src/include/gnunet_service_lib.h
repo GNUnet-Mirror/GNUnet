@@ -50,7 +50,7 @@ extern "C"
 typedef void (*GNUNET_SERVICE_Main) (void *cls,
                                      struct GNUNET_SCHEDULER_Handle * sched,
                                      struct GNUNET_SERVER_Handle * server,
-                                     struct GNUNET_CONFIGURATION_Handle *
+                                     const struct GNUNET_CONFIGURATION_Handle *
                                      cfg);
 
 
@@ -62,7 +62,7 @@ typedef void (*GNUNET_SERVICE_Main) (void *cls,
  * @param cfg configuration to use
  */
 typedef void (*GNUNET_SERVICE_Term) (void *cls,
-                                     struct GNUNET_CONFIGURATION_Handle *
+                                     const struct GNUNET_CONFIGURATION_Handle *
                                      cfg);
 
 
@@ -103,7 +103,7 @@ struct GNUNET_SERVICE_Context *GNUNET_SERVICE_start (const char *serviceName,
                                                      struct
                                                      GNUNET_SCHEDULER_Handle
                                                      *sched,
-                                                     struct
+                                                     const struct
                                                      GNUNET_CONFIGURATION_Handle
                                                      *cfg);
 

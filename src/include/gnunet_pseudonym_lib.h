@@ -59,7 +59,7 @@ typedef int (*GNUNET_PSEUDONYM_Iterator) (void *cls,
  * @param delta by how much should the rating be changed?
  * @return new rating of the namespace
  */
-int GNUNET_PSEUDONYM_rank (struct GNUNET_CONFIGURATION_Handle *cfg,
+int GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
                            const GNUNET_HashCode * pseudonym, int delta);
 
 /**
@@ -67,7 +67,7 @@ int GNUNET_PSEUDONYM_rank (struct GNUNET_CONFIGURATION_Handle *cfg,
  *
  * @param pseudonym the pseudonym's identifier
  */
-void GNUNET_PSEUDONYM_add (struct GNUNET_CONFIGURATION_Handle *cfg,
+void GNUNET_PSEUDONYM_add (const struct GNUNET_CONFIGURATION_Handle *cfg,
                            const GNUNET_HashCode * pseudo,
                            const struct GNUNET_CONTAINER_MetaData *meta);
 
@@ -75,7 +75,7 @@ void GNUNET_PSEUDONYM_add (struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * List all known pseudonyms.
  */
-int GNUNET_PSEUDONYM_list_all (struct GNUNET_CONFIGURATION_Handle *cfg,
+int GNUNET_PSEUDONYM_list_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                GNUNET_PSEUDONYM_Iterator iterator,
                                void *closure);
 
@@ -83,7 +83,7 @@ int GNUNET_PSEUDONYM_list_all (struct GNUNET_CONFIGURATION_Handle *cfg,
  * Register callback to be invoked whenever we discover
  * a new pseudonym.
  */
-int GNUNET_PSEUDONYM_discovery_callback_register (struct
+int GNUNET_PSEUDONYM_discovery_callback_register (const struct
                                                   GNUNET_CONFIGURATION_Handle
                                                   *cfg,
                                                   GNUNET_PSEUDONYM_Iterator
@@ -101,7 +101,7 @@ GNUNET_PSEUDONYM_discovery_callback_unregister (GNUNET_PSEUDONYM_Iterator
  *
  * @return NULL on failure (should never happen)
  */
-char *GNUNET_PSEUDONYM_id_to_name (struct GNUNET_CONFIGURATION_Handle *cfg,
+char *GNUNET_PSEUDONYM_id_to_name (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                    const GNUNET_HashCode * pseudo);
 
 /**
@@ -109,7 +109,7 @@ char *GNUNET_PSEUDONYM_id_to_name (struct GNUNET_CONFIGURATION_Handle *cfg,
  *
  * @return GNUNET_OK on success
  */
-int GNUNET_PSEUDONYM_name_to_id (struct GNUNET_CONFIGURATION_Handle *cfg,
+int GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                  const char *hname, GNUNET_HashCode * psid);
 
 

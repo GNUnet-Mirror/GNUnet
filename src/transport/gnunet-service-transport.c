@@ -547,7 +547,7 @@ struct GNUNET_SCHEDULER_Handle *sched;
 /**
  * Our configuration.
  */
-struct GNUNET_CONFIGURATION_Handle *cfg;
+const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
  * Linked list of all clients to this service.
@@ -2553,7 +2553,8 @@ client_disconnect_notification (void *cls,
 static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
-     struct GNUNET_SERVER_Handle *serv, struct GNUNET_CONFIGURATION_Handle *c)
+     struct GNUNET_SERVER_Handle *serv, 
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *plugs;
   char *pos;
@@ -2634,7 +2635,8 @@ run (void *cls,
  * @param cfg configuration to use
  */
 static void
-unload_plugins (void *cls, struct GNUNET_CONFIGURATION_Handle *cfg)
+unload_plugins (void *cls, 
+		const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct TransportPlugin *plug;
   struct AddressList *al;

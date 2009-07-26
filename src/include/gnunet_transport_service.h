@@ -111,7 +111,7 @@ typedef void
 struct GNUNET_TRANSPORT_Handle *GNUNET_TRANSPORT_connect (struct
                                                           GNUNET_SCHEDULER_Handle
                                                           *sched,
-                                                          struct
+                                                          const struct
                                                           GNUNET_CONFIGURATION_Handle
                                                           *cfg, void *cls,
                                                           GNUNET_TRANSPORT_ReceiveCallback

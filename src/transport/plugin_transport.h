@@ -177,7 +177,7 @@ struct GNUNET_TRANSPORT_PluginEnvironment
   /**
    * Configuration to use.
    */
-  struct GNUNET_CONFIGURATION_Handle *cfg;
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
    * Scheduler to use.

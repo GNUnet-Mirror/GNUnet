@@ -55,7 +55,7 @@ struct GNUNET_DATASTORE_Handle;
  * @param sched scheduler to use
  * @return handle to use to access the service
  */
-struct GNUNET_DATASTORE_Handle *GNUNET_DATASTORE_connect (struct
+struct GNUNET_DATASTORE_Handle *GNUNET_DATASTORE_connect (const struct
                                                           GNUNET_CONFIGURATION_Handle
                                                           *cfg,
                                                           struct

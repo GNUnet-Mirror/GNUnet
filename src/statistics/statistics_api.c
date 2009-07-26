@@ -131,7 +131,7 @@ struct GNUNET_STATISTICS_Handle
   /**
    * Configuration to use.
    */
-  struct GNUNET_CONFIGURATION_Handle *cfg;
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
    * Socket (if available).
@@ -208,7 +208,7 @@ free_action_item (struct ActionItem *ai)
 struct GNUNET_STATISTICS_Handle *
 GNUNET_STATISTICS_create (struct GNUNET_SCHEDULER_Handle *sched,
                           const char *subsystem,
-                          struct GNUNET_CONFIGURATION_Handle *cfg)
+                          const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_STATISTICS_Handle *ret;
 

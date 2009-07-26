@@ -11,13 +11,13 @@ SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
   util \
   arm \
-  datacache \
-  datastore \
   fragmentation \
   hello \
   peerinfo \
   resolver \
   statistics \
+  datacache \
+  datastore \
   template \
   transport \
   core \

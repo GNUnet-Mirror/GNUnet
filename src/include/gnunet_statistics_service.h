@@ -78,7 +78,7 @@ typedef int (*GNUNET_STATISTICS_Iterator) (void *cls,
 struct GNUNET_STATISTICS_Handle
   *GNUNET_STATISTICS_create (struct GNUNET_SCHEDULER_Handle *sched,
                              const char *subsystem,
-                             struct GNUNET_CONFIGURATION_Handle *cfg);
+                             const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**

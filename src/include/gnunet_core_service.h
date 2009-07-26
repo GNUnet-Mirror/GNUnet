@@ -171,7 +171,7 @@ typedef void
  */
 void
 GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
-                     struct GNUNET_CONFIGURATION_Handle *cfg,
+                     const struct GNUNET_CONFIGURATION_Handle *cfg,
                      struct GNUNET_TIME_Relative timeout,
                      void *cls,
                      GNUNET_CORE_StartupCallback init,

@@ -313,7 +313,7 @@ struct GNUNET_TRANSPORT_Handle
   /**
    * My configuration.
    */
-  struct GNUNET_CONFIGURATION_Handle *cfg;
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
    * Linked list of the current neighbours of this peer.
@@ -1430,7 +1430,7 @@ add_neighbour (struct GNUNET_TRANSPORT_Handle *h,
  */
 struct GNUNET_TRANSPORT_Handle *
 GNUNET_TRANSPORT_connect (struct GNUNET_SCHEDULER_Handle *sched,
-                          struct GNUNET_CONFIGURATION_Handle *cfg,
+                          const struct GNUNET_CONFIGURATION_Handle *cfg,
                           void *cls,
                           GNUNET_TRANSPORT_ReceiveCallback rec,
                           GNUNET_TRANSPORT_NotifyConnect nc,

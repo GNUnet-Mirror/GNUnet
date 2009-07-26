@@ -58,7 +58,7 @@ struct GNUNET_DATACACHE_Handle;
  */
 struct GNUNET_DATACACHE_Handle *
 GNUNET_DATACACHE_create (struct GNUNET_SCHEDULER_Handle *sched,
-			 struct GNUNET_CONFIGURATION_Handle *cfg,
+			 const struct GNUNET_CONFIGURATION_Handle *cfg,
 			 const char *section);
 
 

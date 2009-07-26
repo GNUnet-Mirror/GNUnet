@@ -88,13 +88,13 @@ int GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *cfg,
  * changed since the last save.
  * @return GNUNET_NO if clean, GNUNET_YES if dirty, GNUNET_SYSERR on error (i.e. last save failed)
  */
-int GNUNET_CONFIGURATION_is_dirty (struct GNUNET_CONFIGURATION_Handle *cfg);
+int GNUNET_CONFIGURATION_is_dirty (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 /**
  * Get a configuration value that should be a number.
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int GNUNET_CONFIGURATION_get_value_number (struct GNUNET_CONFIGURATION_Handle
+int GNUNET_CONFIGURATION_get_value_number (const struct GNUNET_CONFIGURATION_Handle
                                            *cfg, const char *section,
                                            const char *option,
                                            unsigned long long *number);
@@ -105,7 +105,7 @@ int GNUNET_CONFIGURATION_get_value_number (struct GNUNET_CONFIGURATION_Handle
  * @param time set to the time value stored in the configuration
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int GNUNET_CONFIGURATION_get_value_time (struct GNUNET_CONFIGURATION_Handle
+int GNUNET_CONFIGURATION_get_value_time (const struct GNUNET_CONFIGURATION_Handle
 					 *cfg, const char *section,
 					 const char *option,
 					 struct GNUNET_TIME_Relative *time);
@@ -114,7 +114,7 @@ int GNUNET_CONFIGURATION_get_value_time (struct GNUNET_CONFIGURATION_Handle
  * Test if we have a value for a particular option
  * @return GNUNET_YES if so, GNUNET_NO if not.
  */
-int GNUNET_CONFIGURATION_have_value (struct GNUNET_CONFIGURATION_Handle *cfg,
+int GNUNET_CONFIGURATION_have_value (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                      const char *section, const char *option);
 
 /**
@@ -123,7 +123,7 @@ int GNUNET_CONFIGURATION_have_value (struct GNUNET_CONFIGURATION_Handle *cfg,
  *        value, or NULL if option is not specified
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int GNUNET_CONFIGURATION_get_value_string (struct GNUNET_CONFIGURATION_Handle
+int GNUNET_CONFIGURATION_get_value_string (const struct GNUNET_CONFIGURATION_Handle
                                            *cfg, const char *section,
                                            const char *option, char **value);
 
@@ -135,7 +135,7 @@ int GNUNET_CONFIGURATION_get_value_string (struct GNUNET_CONFIGURATION_Handle
  *        value, or NULL if option is not specified
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int GNUNET_CONFIGURATION_get_value_filename (struct
+int GNUNET_CONFIGURATION_get_value_filename (const struct
                                              GNUNET_CONFIGURATION_Handle *cfg,
                                              const char *section,
                                              const char *option,
@@ -146,7 +146,7 @@ int GNUNET_CONFIGURATION_get_value_filename (struct
  *
  * @return number of filenames iterated over, -1 on error
  */
-int GNUNET_CONFIGURATION_iterate_value_filenames (struct
+int GNUNET_CONFIGURATION_iterate_value_filenames (const struct
                                                   GNUNET_CONFIGURATION_Handle
                                                   *cfg,
                                                   const char *section,
@@ -163,7 +163,7 @@ int GNUNET_CONFIGURATION_iterate_value_filenames (struct
  *        or NULL if option is not specified and no default given
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int GNUNET_CONFIGURATION_get_value_choice (struct GNUNET_CONFIGURATION_Handle
+int GNUNET_CONFIGURATION_get_value_choice (const struct GNUNET_CONFIGURATION_Handle
                                            *cfg, const char *section,
                                            const char *option,
                                            const char **choices,
@@ -175,7 +175,7 @@ int GNUNET_CONFIGURATION_get_value_choice (struct GNUNET_CONFIGURATION_Handle
  *
  * @return GNUNET_YES, GNUNET_NO or if option has no valid value, GNUNET_SYSERR
  */
-int GNUNET_CONFIGURATION_get_value_yesno (struct GNUNET_CONFIGURATION_Handle
+int GNUNET_CONFIGURATION_get_value_yesno (const struct GNUNET_CONFIGURATION_Handle
                                           *cfg, const char *section,
                                           const char *option);
 
@@ -187,7 +187,7 @@ int GNUNET_CONFIGURATION_get_value_yesno (struct GNUNET_CONFIGURATION_Handle
  * @param old string to $-expand (will be freed!)
  * @return $-expanded string
  */
-char *GNUNET_CONFIGURATION_expand_dollar (struct GNUNET_CONFIGURATION_Handle
+char *GNUNET_CONFIGURATION_expand_dollar (const struct GNUNET_CONFIGURATION_Handle
                                           *cfg, char *old);
 
 /**

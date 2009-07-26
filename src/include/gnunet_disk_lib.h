@@ -359,7 +359,7 @@ int GNUNET_DISK_file_change_owner (const char *filename, const char *user);
  *                private directory name.
  * @return the constructed filename
  */
-char *GNUNET_DISK_get_home_filename (struct GNUNET_CONFIGURATION_Handle *cfg,
+char *GNUNET_DISK_get_home_filename (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                      const char *serviceName, ...);
 
 

@@ -109,7 +109,7 @@ struct CpsRunContext
   int i;
   int found;
   struct GNUNET_SCHEDULER_Handle *sched;
-  struct GNUNET_CONFIGURATION_Handle *cfg;
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
   void *data;
   size_t size;
   enum RunPhase phase;
@@ -298,7 +298,8 @@ static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *sched,
      char *const *args,
-     const char *cfgfile, struct GNUNET_CONFIGURATION_Handle *cfg)
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct CpsRunContext *crc;
 

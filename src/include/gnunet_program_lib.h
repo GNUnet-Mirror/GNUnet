@@ -52,7 +52,7 @@ typedef void (*GNUNET_PROGRAM_Main) (void *cls,
                                      struct GNUNET_SCHEDULER_Handle * sched,
                                      char *const *args,
                                      const char *cfgfile,
-                                     struct GNUNET_CONFIGURATION_Handle *
+                                     const struct GNUNET_CONFIGURATION_Handle *
                                      cfg);
 
 

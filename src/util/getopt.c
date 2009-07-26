@@ -997,7 +997,6 @@ GNgetopt_long (int argc,
  */
 int
 GNUNET_GETOPT_run (const char *binaryOptions,
-                   struct GNUNET_CONFIGURATION_Handle *cfg,
                    const struct GNUNET_GETOPT_CommandLineOption *allOptions,
                    unsigned int argc, char *const *argv)
 {
@@ -1017,7 +1016,6 @@ GNUNET_GETOPT_run (const char *binaryOptions,
   clpc.allOptions = allOptions;
   clpc.argv = argv;
   clpc.argc = argc;
-  clpc.cfg = cfg;
   count = 0;
   while (allOptions[count].name != NULL)
     count++;

@@ -74,7 +74,7 @@ build_msg (void *cls, size_t size, void *buf)
 static void
 ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+  const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   struct GNUNET_CLIENT_Connection *client;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Service confirmed running\n");
@@ -108,17 +108,18 @@ static void
 runner (void *cls,
         struct GNUNET_SCHEDULER_Handle *sched,
         struct GNUNET_SERVER_Handle *server,
-        struct GNUNET_CONFIGURATION_Handle *cfg)
+        const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Service initializing\n");
   GNUNET_SERVER_add_handlers (server, myhandlers);
   GNUNET_CLIENT_service_test (sched,
                               "test_service",
-                              cfg, GNUNET_TIME_UNIT_SECONDS, &ready, cfg);
+                              cfg, GNUNET_TIME_UNIT_SECONDS, &ready, (void*) cfg);
 }
 
 static void
-term (void *cls, struct GNUNET_CONFIGURATION_Handle *cfg)
+term (void *cls, 
+      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   int *ok = cls;
   *ok = 0;
@@ -157,7 +158,7 @@ check ()
 static void
 ready6 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+  const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   struct GNUNET_CLIENT_Connection *client;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "V6 ready\n");
@@ -176,13 +177,13 @@ static void
 runner6 (void *cls,
          struct GNUNET_SCHEDULER_Handle *sched,
          struct GNUNET_SERVER_Handle *server,
-         struct GNUNET_CONFIGURATION_Handle *cfg)
+         const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Initializing v6 service\n");
   GNUNET_SERVER_add_handlers (server, myhandlers);
   GNUNET_CLIENT_service_test (sched,
                               "test_service6",
-                              cfg, GNUNET_TIME_UNIT_SECONDS, &ready6, cfg);
+                              cfg, GNUNET_TIME_UNIT_SECONDS, &ready6, (void*) cfg);
 }
 
 /**
@@ -252,7 +253,8 @@ static void
 start_stop_main (void *cls,
                  struct GNUNET_SCHEDULER_Handle *sched,
                  char *const *args,
-                 const char *cfgfile, struct GNUNET_CONFIGURATION_Handle *cfg)
+                 const char *cfgfile, 
+		 const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   int *ret = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

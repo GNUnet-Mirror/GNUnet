@@ -617,7 +617,7 @@ struct GNUNET_SCHEDULER_Handle *sched;
 /**
  * Our configuration.
  */
-struct GNUNET_CONFIGURATION_Handle *cfg;
+const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
  * Our server.
@@ -3121,7 +3121,8 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
-     struct GNUNET_SERVER_Handle *serv, struct GNUNET_CONFIGURATION_Handle *c)
+     struct GNUNET_SERVER_Handle *serv,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
 #if 0
   unsigned long long qin;
@@ -3206,7 +3207,8 @@ run (void *cls,
  * Function called during shutdown.  Clean up our state.
  */
 static void
-cleanup (void *cls, struct GNUNET_CONFIGURATION_Handle *cfg)
+cleanup (void *cls, 
+	 const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   if (my_private_key != NULL)
     GNUNET_CRYPTO_rsa_key_free (my_private_key);

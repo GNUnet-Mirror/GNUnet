@@ -124,7 +124,7 @@ struct GNUNET_CLIENT_Connection
 struct GNUNET_CLIENT_Connection *
 GNUNET_CLIENT_connect (struct GNUNET_SCHEDULER_Handle *sched,
                        const char *service_name,
-                       struct GNUNET_CONFIGURATION_Handle *cfg)
+                       const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_CLIENT_Connection *ret;
   struct GNUNET_NETWORK_SocketHandle *sock;
@@ -455,7 +455,7 @@ write_test (void *cls, size_t size, void *buf)
 void
 GNUNET_CLIENT_service_test (struct GNUNET_SCHEDULER_Handle *sched,
                             const char *service,
-                            struct GNUNET_CONFIGURATION_Handle *cfg,
+                            const struct GNUNET_CONFIGURATION_Handle *cfg,
                             struct GNUNET_TIME_Relative timeout,
                             GNUNET_SCHEDULER_Task task, void *task_cls)
 {
