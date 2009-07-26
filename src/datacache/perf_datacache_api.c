@@ -18,20 +18,23 @@
      Boston, MA 02111-1307, USA.
 */
 /*
- * @file datacache/test_datacache_api.c
- * @brief Test for the datacache implementations.
+ * @file datacache/perf_datacache_api.c
+ * @brief Performance evaluation for the datacache implementations.
  * @author Nils Durner
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_datacache_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define ASSERT(x) do { if (! (x)) { printf("Error at %s:%d\n", __FILE__, __LINE__); goto FAILURE;} } while (0)
 
+#define ITERATIONS 10000
+
 static int ok;
 
+static unsigned int found;
 
 static int
 checkIt (void *cls,
@@ -40,16 +43,9 @@ checkIt (void *cls,
 	 const char *data, 
 	 uint32_t type)
 {
-  if (size != sizeof (GNUNET_HashCode))
-    {
-      printf ("ERROR: Invalid size\n");
-      ok = 2;
-    }
-  if (0 != memcmp (data, cls, size))
-    {
-      printf ("ERROR: Invalid data\n");
-      ok = 3;
-    }
+  if ( (size == sizeof (GNUNET_HashCode)) &&
+       (0 == memcmp (data, cls, size)) )
+    found++;
   return GNUNET_OK;
 }
 
@@ -64,19 +60,23 @@ run (void *cls,
   GNUNET_HashCode k;
   GNUNET_HashCode n;
   struct GNUNET_TIME_Absolute exp;
+  struct GNUNET_TIME_Absolute start;
   unsigned int i;
-
+  
   ok = 0;
   h = GNUNET_DATACACHE_create (sched,
 			       cfg,
-			       "testcache");
+			       "perfcache");
 
   ASSERT (NULL != h);
   exp = GNUNET_TIME_absolute_get ();
+  start = exp;
   exp.value += 5 * 60 * 1000;
   memset (&k, 0, sizeof (GNUNET_HashCode));
-  for (i = 0; i < 100; i++)
+  for (i = 0; i < ITERATIONS; i++)
     {
+      if (0 == i % (ITERATIONS / 80))
+	fprintf (stderr, ".");
       GNUNET_CRYPTO_hash (&k, sizeof (GNUNET_HashCode), &n);
       ASSERT (GNUNET_OK == GNUNET_DATACACHE_put (h,
 						 &k,
@@ -86,15 +86,27 @@ run (void *cls,
 						 exp));
       k = n;
     }
+  fprintf (stderr, "\n");
+  fprintf (stdout, "Stored %u items in %llums\n",
+	   ITERATIONS,
+	   (unsigned long long) GNUNET_TIME_absolute_get_duration(start).value);
+  start = GNUNET_TIME_absolute_get ();
   memset (&k, 0, sizeof (GNUNET_HashCode));
-  for (i = 0; i < 100; i++)
+  for (i = 0; i < ITERATIONS; i++)
     {
+      if (0 == i % (ITERATIONS / 80))
+	fprintf (stderr, ".");
       GNUNET_CRYPTO_hash (&k, sizeof (GNUNET_HashCode), &n);
-      ASSERT (1 == 
-	      GNUNET_DATACACHE_get (h, &k, 1+i%16,
-				    &checkIt, &n));
+      GNUNET_DATACACHE_get (h, &k, 1+i%16,
+			    &checkIt, &n);
       k = n;
     }
+  fprintf (stderr, "\n");
+  fprintf (stdout, "Found %u/%u items in %llums (%u were deleted during storage processing)\n",
+	   found, ITERATIONS,
+	   (unsigned long long) GNUNET_TIME_absolute_get_duration(start).value,
+	   ITERATIONS - found);
+	   
   GNUNET_DATACACHE_destroy (h);
   ASSERT (ok == 0);
   return;
@@ -108,9 +120,9 @@ FAILURE:
 static int
 check ()
 {
-  char *const argv[] = { "test-datacache-api",
+  char *const argv[] = { "perf-datacache-api",
     "-c",
-    "test_datacache_api_data.conf",
+    "perf_datacache_api_data.conf",
 #if VERBOSE
     "-L", "DEBUG",
 #endif
@@ -120,10 +132,10 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-datacache-api", "nohelp",
+                      argv, "perf-datacache-api", "nohelp",
                       options, &run, NULL);
   if (ok != 0)
-    fprintf (stderr, "Missed some testcases: %d\n", ok);
+    fprintf (stderr, "Missed some perfcases: %d\n", ok);
   return ok;
 }
 
@@ -133,8 +145,8 @@ main (int argc, char *argv[])
 {
   int ret;
   
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-datacache");
-  GNUNET_log_setup ("test-datacache-api",
+  GNUNET_DISK_directory_remove ("/tmp/perf-gnunetd-datacache");
+  GNUNET_log_setup ("perf-datacache-api",
 #if VERBOSE
                     "DEBUG",
 #else
@@ -146,4 +158,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of test_datacache_api.c */
+/* end of perf_datacache_api.c */

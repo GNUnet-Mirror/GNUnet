@@ -236,7 +236,7 @@ sqlite_plugin_get (void *cls,
       if (sqlite3_step (stmt) != SQLITE_ROW)
         break;
       size = sqlite3_column_bytes (stmt, 0);
-      dat = sqlite3_column_blob (stmt, 1);
+      dat = sqlite3_column_blob (stmt, 0);
       cnt++;
       if (GNUNET_OK != iter (iter_cls,
 			     key, 
@@ -279,7 +279,7 @@ sqlite_plugin_del (void *cls)
                    "SELECT type, key, value FROM ds090 ORDER BY expire ASC LIMIT 1",
                    &stmt) != SQLITE_OK) ||
       (sq_prepare (plugin->dbh,
-                   "DELETE FROM ds080 "
+                   "DELETE FROM ds090 "
                    "WHERE key=? AND value=? AND type=?",
                    &dstmt) != SQLITE_OK))
     {
@@ -398,7 +398,7 @@ libgnunet_plugin_datacache_sqlite_init (void *cls)
                 "  expire INTEGER NOT NULL DEFAULT 0,"
                 "  key BLOB NOT NULL DEFAULT '',"
                 "  value BLOB NOT NULL DEFAULT '')");
-  SQLITE3_EXEC (dbh, "CREATE INDEX idx_hashidx ON ds080 (key,type,expire)");
+  SQLITE3_EXEC (dbh, "CREATE INDEX idx_hashidx ON ds090 (key,type,expire)");
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
   plugin->dbh = dbh;

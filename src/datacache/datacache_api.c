@@ -197,13 +197,18 @@ GNUNET_DATACACHE_create (struct GNUNET_SCHEDULER_Handle *sched,
  */
 void GNUNET_DATACACHE_destroy (struct GNUNET_DATACACHE_Handle *h)
 {
-  GNUNET_CONTAINER_bloomfilter_free (h->filter);
+  if (h->filter != NULL)
+    GNUNET_CONTAINER_bloomfilter_free (h->filter);
   if (h->api != NULL)
     GNUNET_break (NULL == GNUNET_PLUGIN_unload (h->lib_name, h->api));
   GNUNET_free (h->lib_name);
   GNUNET_free (h->short_name);
   GNUNET_free (h->section);
-  GNUNET_free (h->bloom_name);
+  if (h->bloom_name != NULL)
+    {
+      UNLINK (h->bloom_name);
+      GNUNET_free (h->bloom_name);
+    }
   GNUNET_free (h);
 }
 
