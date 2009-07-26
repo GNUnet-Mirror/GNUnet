@@ -1,20 +1,21 @@
 Summary of test coverage (configure with --enable-coverage
 and run contrib/coverage.sh to generate a detailed report):
-* UTIL      : 78.7%
-* HELLO     : 93.7%
-* ARM       : 69.9%
-* RESOLVER  : 60.4%
-* STATISTICS: 82.8%
+* UTIL      : 77.8%
+* HELLO     : 93.4%
+* ARM       : 69.2%
+* RESOLVER  : 60.9%
+* STATISTICS: 84.1%
 * PEERINFO  : 71.5%
-* TRANSPORT : 70.9%
-* CORE      : 65.8%
+* TRANSPORT : 68.6%
+* CORE      : 65.3%
+* DATACACHE : 79.8%
+* DATASTORE : 78.9%
 ===================
-* TOTAL     : 74.9%
+* TOTAL     : 74.6%
 
-Not yet tested:
+Not yet tested (but presumably implemented):
 * HOSTLIST  :  0.0%
 * TOPOLOGY  :  0.0%
-
 
 
 TESTCASES WANTED:

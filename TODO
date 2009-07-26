@@ -1,26 +1,27 @@
+Implementable right now (but not necessarily important), with caveats
+(unavailable components that will limit what can be implemented right
+away), in order in which they will likely be done:
+* TESTING
+* FS (DHT not available)
+* SETUP
+* DV (distributed testing not available)
+* TBENCH (distributed testing not available)
+* TRACEKIT (distributed testing not available)
+* HTTP transport
+* FRAGMENTATION
+* MySQL / Postgres plugins (datastore, datacache)
+* UPNP
+
+
 PHASE #2: (Goal: recover basic file-sharing functionality)
 * TESTING (needed for DV, DHT, Topology)
   - implement library for local testing
   - implement testcases for library
-  - implement library for distributed testing [Nate]
-  - implement testcases for distributed testing [Nate]
 * TOPOLOGY:
   - implement testcases (needs TESTING)
 * HOSTLIST:
   - implement testcases
-* DV (needed for DHT)
-  - write DV API 
-  - implement DV service [Nate & CG]
-  - implement DV library [Nate]
-  - implement DV transport plugin [Nate & CG]
-  - implement testcases [Nate]
-  - implement performance tests [Nate]
-* DHT (needed for FS)
-  - implement DHT service (needs DV, DATACACHE)
-  - implement DHT library
-  - implement testcases
-  - implement performance tests
-* FS
+* FS (anonymous FS only)
   - review FS API [Nils, Amatus, CG]
   - design network structs (CS)
   - implement FS library
@@ -60,42 +61,48 @@ PHASE #2: (Goal: recover basic file-sharing functionality)
     + download
     + search
     + unindex
-
-
-=> Deploy development network
+* new webpage
+  - install on proper server
+  - activate as ng.gnunet.org
+=> Deploy(able) development network
 
 
 PHASE #3: (Goal: ready for pre-release) [completion-goal: end of 2009]
-
-Module features to implement:
-* setup
-  - default generation
-  - need to settle basic design; do we want to keep guile?
-* tbench
-  - good to have for DV evaluation!
-* tracekit
-  - good to have for DV/DHT evaluation!
-* vpn
-
-
-GUIs to implement:
-* gtk 
-  - how to integrate scheduler with GTK event loop!
-* qt
-  - see discussions @ FISL about integration with event loop!
-* fuse
-
-
-Plugins to implement:
-* UDP backend 
-  - Fragmentation library
-  - actual plugin
-* HTTP backend
-* HTTPS backend
-  - improved HTTPS support in MHD
-  - actual plugin
-
-
+* Module features to implement:
+  - setup (RC-pre0)
+    + default generation
+    + need to settle basic design; do we want to keep guile?
+  - testing (RC-pre0)
+    + implement library for distributed testing [Nate]
+    + implement testcases for distributed testing [Nate]
+  - tbench (RC-pre1)
+    + good to have for DV evaluation!
+  - DV (RC-pre1)
+    + write DV API 
+    + implement DV service [Nate & CG]
+    + implement DV library [Nate]
+    + implement DV transport plugin [Nate & CG]
+    + implement testcases [Nate]
+    + implement performance tests [Nate]
+  - tracekit (RC-pre2)
+    + good to have for DV/DHT evaluation!
+  - DHT (RC-pre2)
+    + implement DHT service (needs DV, DATACACHE)
+    + implement DHT library
+    + implement testcases
+    + implement performance tests
+* GUIs to implement:
+  - gtk (RC-pre1)
+    + how to integrate scheduler with GTK event loop!
+  - fuse (RC-pre2)
+  - qt (RC-pre3)
+    + see discussions @ FISL about integration with event loop!
+* Plugins to implement:
+  - UDP backend (RC-pre2)
+    + Fragmentation library 
+    + actual plugin
+  - HTTP backend (RC-pre2)
+* Determine RC bugs and fix those!
 
 => PRE-RELEASE
 
@@ -116,9 +123,23 @@ PHASE #4: [completion-goal: mid 2010]
   - port "contact" page; add impressum
   - add content type for "todo" items?
   - DNS activation
+* Plugins to implement:
+  - MySQL database backends
+    + datacache
+    + datastore
+  - Postgres database backends
+    + datacache
+    + datastore
+  - vpn
+* Determine RC bugs and fix those!
+
+=> 0.9.0 RELEASE
 
 
-=> 0.9.x RELEASE
 
 
-
+Post 0.9.0 features:
+* SMTP transport backend
+* HTTPS transport backend
+  - improved HTTPS support in MHD
+  - actual plugin
