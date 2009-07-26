@@ -17,7 +17,7 @@ For these functions, it would be nice if we had testcases ("make check")
 that would cause them to be executed and check that they are working:
 * gnunet-service-peerinfo:
   - change_host_trust / flush_trust 
-  - remove_garbage / 
+  - remove_garbage 
   - discard_hosts_helper / cron_clean_data_hosts
 * gnunet-service-transport:
   - try_unvalidated_addresses
@@ -60,10 +60,6 @@ that would cause them to be executed and check that they are working:
 
 
 Module features to implement:
-* DATACACHE (needed for DHT)
-  - implement testcases for dstore API 
-  - implement testcases for dstore plugin
-  - implement performance tests
 * TESTING (needed for DV, DHT, Topology)
   - review TESTING API
   - implement library for local testing
