@@ -33,6 +33,41 @@
  */
 struct GNUNET_TESTING_PeerGroup
 {
+  /**
+   * Our scheduler.
+   */ 
+  struct GNUNET_SCHEDULER_Handle *sched;
+
+  /**
+   * Configuration template.
+   */
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * Function to call on each started daemon.
+   */ 
+  GNUNET_TESTING_NotifyDaemonRunning cb;
+
+  /**
+   * Closure for cb.
+   */
+  void *cb_cls;
+
+  /**
+   * NULL-terminated array of hostnames.
+   */
+  char **hostnames;
+
+  /**
+   * Array of "total" peers.
+   */
+  struct GNUNET_TESTING_Daemon **peers;
+
+  /**
+   * Number of peers in this group.
+   */ 
+  unsigned int total;
+
 };
 
 
@@ -63,7 +98,10 @@ GNUNET_TESTING_daemons_start_va (struct GNUNET_SCHEDULER_Handle *sched,
 				 const char *hostname,
 				 va_list va)
 {
-  return NULL;
+  struct GNUNET_TESTING_PeerGroup *pg;
+  
+  pg = GNUNET_malloc (sizeof(struct GNUNET_TESTING_PeerGroup));
+  return pg;
 }
 
 
@@ -115,8 +153,9 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
  */
 void
 GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg)
-
 {
+  
+  GNUNET_free (pg);
 }
 
 
