@@ -27,6 +27,11 @@
  *        use functions from gnunet_{util,arm}_lib.h.  This API is
  *        ONLY for writing testcases!
  * @author Christian Grothoff
+ *
+ * TODO:
+ * - modify configuration to allow 2087-connections from
+ *   controlling host (otherwise shutdown won't work)
+ * 
  */
 #include "platform.h"
 #include "gnunet_arm_service.h"
