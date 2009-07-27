@@ -85,7 +85,7 @@ typedef void (*GNUNET_TESTING_NotifyDaemonRunning)(void *cls,
  */
 struct GNUNET_TESTING_Daemon *
 GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
-			     const struct GNUNET_CONFIGURATION_Handle *cfg,
+			     struct GNUNET_CONFIGURATION_Handle *cfg,
 			     const char *hostname,
 			     GNUNET_TESTING_NotifyDaemonRunning cb,
 			     void *cb_cls);
@@ -123,7 +123,7 @@ void GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
  * @param cb_cls closure for cb
  */
 void GNUNET_TESTING_daemon_reconfigure (struct GNUNET_TESTING_Daemon *d,
-					const struct GNUNET_CONFIGURATION_Handle *cfg,
+					struct GNUNET_CONFIGURATION_Handle *cfg,
 					GNUNET_TESTING_NotifyCompletion cb,
 					void * cb_cls);
 

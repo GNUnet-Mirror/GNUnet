@@ -33,6 +33,7 @@
 #include "gnunet_core_service.h"
 #include "gnunet_constants.h"
 #include "gnunet_testing_lib.h"
+#include "gnunet_transport_service.h"
 
 #define DEBUG_TESTING GNUNET_YES
 
@@ -59,7 +60,8 @@ enum StartPhase
     SP_START_ARMING,
     SP_START_CORE,
     SP_START_DONE,
-    SP_CLEANUP
+    SP_CLEANUP,
+    SP_CONFIG_UPDATE
   };
 
 
@@ -116,6 +118,16 @@ struct GNUNET_TESTING_Daemon
   void *dead_cb_cls;
 
   /**
+   * Arguments from "daemon_stop" call.
+   */
+  GNUNET_TESTING_NotifyCompletion update_cb;
+
+  /**
+   * Closure for 'update_cb'.
+   */
+  void *update_cb_cls;
+
+  /**
    * Identity of this peer (once started).
    */
   struct GNUNET_PeerIdentity id;
@@ -149,6 +161,10 @@ struct GNUNET_TESTING_Daemon
    */
   GNUNET_SCHEDULER_TaskIdentifier task;
 
+  /**
+   * Handle to the server.
+   */ 
+  struct GNUNET_CORE_Handle * server;
 };
 
 
@@ -197,6 +213,7 @@ testing_init (void *cls,
     GNUNET_TESTING_daemon_stop (d, d->dead_cb, d->dead_cb_cls);
   else
     cb (d->cb_cls, my_identity, d->cfg, d, NULL);
+  d->server = server;
 }
 
 
@@ -416,6 +433,50 @@ start_fsm (void *cls,
       d->dead_cb (d->dead_cb_cls, NULL);
       GNUNET_free (d);
       break;
+    case SP_CONFIG_UPDATE:
+      /* confirm copying complete */
+      if (GNUNET_OK != 
+	  GNUNET_OS_process_status (d->pid,
+				    &type,
+				    &code))
+	{
+	  d->wait_runs++;
+	  if (d->wait_runs > MAX_EXEC_WAIT_RUNS)
+	    {
+	      cb = d->cb;
+	      d->cb = NULL;
+	      cb (d->cb_cls,
+		  NULL,
+		  d->cfg,
+		  d,
+		  _("`scp' does not seem to terminate.\n"));
+	      return;
+	    }
+	  /* wait some more */
+	  d->task
+	    = GNUNET_SCHEDULER_add_delayed (d->sched, 
+					    GNUNET_NO,
+					    GNUNET_SCHEDULER_PRIORITY_KEEP,
+					    GNUNET_SCHEDULER_NO_TASK,
+					    GNUNET_CONSTANTS_EXEC_WAIT,
+					    &start_fsm,
+					    d);
+	  return;
+	}
+      if ( (type != GNUNET_OS_PROCESS_EXITED) ||
+	   (code != 0) )
+	{
+	  d->update_cb (d->update_cb_cls,
+			_("`scp' did not complete cleanly.\n"));	  
+	  return;
+	}	  
+#if DEBUG_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Successfully copied configuration file.\n");
+#endif
+      d->update_cb (d->update_cb_cls, NULL);
+      d->phase = SP_START_DONE;
+      break;
     }
 }
 
@@ -505,6 +566,7 @@ GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
 					  ret->cfgfile,
 					  arg,
 					  NULL);
+      GNUNET_free (arg);
       if (-1 == ret->pid)
 	{
 	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -528,7 +590,6 @@ GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
 					GNUNET_CONSTANTS_EXEC_WAIT,
 					&start_fsm,
 					ret);
-      GNUNET_free (arg);
       return ret;
     }
   ret->phase = SP_COPIED;
@@ -561,6 +622,17 @@ void GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
       d->dead_cb = cb;
       d->dead_cb_cls = cb_cls;
       return;
+    }
+  if (d->phase == SP_CONFIG_UPDATE)
+    {
+      GNUNET_SCHEDULER_cancel (d->sched,
+			       d->task);
+      d->phase = SP_START_DONE;
+    }
+  if (d->server != NULL)
+    {
+      GNUNET_CORE_disconnect (d->server);
+      d->server = NULL;
     }
   /* shutdown ARM process (will also terminate others) */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -635,11 +707,143 @@ void GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
  * @param cb_cls closure for cb
  */
 void GNUNET_TESTING_daemon_reconfigure (struct GNUNET_TESTING_Daemon *d,
-					const struct GNUNET_CONFIGURATION_Handle *cfg,
+					struct GNUNET_CONFIGURATION_Handle *cfg,
 					GNUNET_TESTING_NotifyCompletion cb,
 					void * cb_cls)
 {
-  cb (cb_cls, "not implemented");
+  char *arg;
+
+  if (d->phase != SP_START_DONE)
+    {
+      cb (cb_cls,
+	  _("Peer not yet running, can not change configuration at this point."));
+      return;      
+    }
+
+  /* 1) write configuration to temporary file */
+  if (GNUNET_OK != 
+      GNUNET_CONFIGURATION_write (cfg,
+				  d->cfgfile))
+    {
+      cb (cb_cls,
+	  _("Failed to write new configuration to disk."));
+      return;
+    }
+
+  /* 2) copy file to remote host (if necessary) */  
+  if (NULL == d->hostname)
+    {
+      /* signal success */
+      cb (cb_cls, NULL); 
+      return;
+    }
+  d->phase = SP_CONFIG_UPDATE;
+  if (NULL != d->username)
+    GNUNET_asprintf (&arg,
+		     "%s@%s:%s", 
+		     d->username,
+		     d->hostname,
+		     d->cfgfile);
+  else
+    GNUNET_asprintf (&arg,
+		     "%s:%s", 
+		     d->hostname,
+		     d->cfgfile);
+  d->pid = GNUNET_OS_start_process ("scp",
+				    "scp",
+				    d->cfgfile,
+				    arg,
+				    NULL);
+  GNUNET_free (arg);
+  if (-1 == d->pid)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Could not start `%s' process to copy configuration file.\n"),
+		  "scp");
+      cb (cb_cls,
+	  _("Failed to copy new configuration to remote machine."));
+      d->phase = SP_START_DONE;
+      return;
+    }
+  d->update_cb = cb;
+  d->update_cb_cls = cb_cls;
+  d->task
+    = GNUNET_SCHEDULER_add_delayed (d->sched, 
+				    GNUNET_NO,
+				    GNUNET_SCHEDULER_PRIORITY_KEEP,
+				    GNUNET_SCHEDULER_NO_TASK,
+				    GNUNET_CONSTANTS_EXEC_WAIT,
+				    &start_fsm,
+				    d);
+}
+
+
+struct ConnectContext
+{
+  struct GNUNET_TESTING_Daemon *d1;
+  struct GNUNET_TESTING_Daemon *d2;
+  struct GNUNET_TRANSPORT_Handle *d1th;
+  struct GNUNET_TRANSPORT_Handle *d2th;
+  struct GNUNET_TIME_Absolute timeout;
+  GNUNET_TESTING_NotifyCompletion cb;
+  void *cb_cls;
+};
+
+
+/**
+ * Success, connection is up.  Signal client our success.
+ */
+static size_t
+transmit_ready (void *cls, size_t size, void *buf)
+{
+  struct ConnectContext *ctx = cls;
+  if (buf == NULL)
+    ctx->cb (ctx->cb_cls, _("Peers failed to connect"));
+  else
+    ctx->cb (ctx->cb_cls, NULL);
+  GNUNET_free (ctx);
+  return 0;
+}
+
+
+/**
+ * Receive the HELLO from one peer, give it to the other
+ * and ask them to connect.
+ * 
+ * @param cls "struct ConnectContext"
+ * @param latency how fast is the connection
+ * @param peer ID of peer giving us the HELLO
+ * @param message HELLO message of peer
+ */
+static void
+process_hello (void *cls,
+               struct GNUNET_TIME_Relative latency,
+               const struct GNUNET_PeerIdentity *peer,
+               const struct GNUNET_MessageHeader *message)
+{
+  struct ConnectContext *ctx = cls;
+
+  if (peer == NULL)
+    {
+      /* signal error */
+      ctx->cb (ctx->cb_cls,
+	       _("Failed to receive `HELLO' from peer\n"));
+      GNUNET_TRANSPORT_disconnect (ctx->d1th);
+      GNUNET_TRANSPORT_disconnect (ctx->d2th);
+      GNUNET_free (ctx);
+      return;
+    }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s' from transport service of `%4s'\n",
+              "HELLO", GNUNET_i2s (peer));
+  GNUNET_assert (message != NULL);
+  GNUNET_TRANSPORT_offer_hello (ctx->d2th, message);
+  GNUNET_CORE_notify_transmit_ready (ctx->d2->server,
+				     0,
+				     GNUNET_TIME_absolute_get_remaining (ctx->timeout),
+				     &ctx->d1->id,
+				     sizeof (struct GNUNET_MessageHeader),
+				     &transmit_ready, ctx);
 }
 
 
@@ -659,7 +863,39 @@ void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 				     GNUNET_TESTING_NotifyCompletion cb,
 				     void *cb_cls)
 {
-  cb (cb_cls, "not implemented");
+  struct ConnectContext *ctx;
+
+  if ( (d1->server == NULL) ||
+       (d2->server == NULL) )
+    {
+      cb (cb_cls, _("Peers are not fully running yet, can not connect!\n"));
+      return;
+    }
+  ctx = GNUNET_malloc (sizeof(struct ConnectContext));
+  ctx->d1 = d1;
+  ctx->d2 = d2;
+  ctx->timeout = GNUNET_TIME_relative_to_absolute (timeout);
+  ctx->cb = cb;
+  ctx->cb_cls = cb_cls;
+  ctx->d1th = GNUNET_TRANSPORT_connect (d1->sched, d1->cfg, d1, NULL, NULL, NULL);
+  if (ctx->d1th == NULL)
+    {
+      GNUNET_free (ctx);
+      cb (cb_cls, _("Failed to connect to transport service!\n"));
+      return;
+    }
+  ctx->d2th = GNUNET_TRANSPORT_connect (d2->sched, d2->cfg, d2, NULL, NULL, NULL);
+  if (ctx->d2th == NULL)
+    {
+      GNUNET_TRANSPORT_disconnect (ctx->d1th);
+      GNUNET_free (ctx);
+      cb (cb_cls, _("Failed to connect to transport service!\n"));
+      return;
+    }
+  GNUNET_TRANSPORT_get_hello (ctx->d1th, 
+			      timeout,
+			      &process_hello, 
+			      ctx);
 }
 
 

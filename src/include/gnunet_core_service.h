@@ -273,25 +273,26 @@ struct GNUNET_CORE_TransmitHandle;
  *         NULL if we can not even queue the request (insufficient
  *         memory); if NULL is returned, "notify" will NOT be called.
  */
-struct GNUNET_CORE_TransmitHandle *GNUNET_CORE_notify_transmit_ready (struct
-                                                                      GNUNET_CORE_Handle
-                                                                      *handle,
-                                                                      unsigned
-                                                                      int
-                                                                      priority,
-                                                                      struct
-                                                                      GNUNET_TIME_Relative
-                                                                      maxdelay,
-                                                                      const
-                                                                      struct
-                                                                      GNUNET_PeerIdentity
-                                                                      *target,
-                                                                      size_t
-                                                                      notify_size,
-                                                                      GNUNET_NETWORK_TransmitReadyNotify
-                                                                      notify,
-                                                                      void
-                                                                      *notify_cls);
+struct GNUNET_CORE_TransmitHandle *
+GNUNET_CORE_notify_transmit_ready (struct
+				   GNUNET_CORE_Handle
+				   *handle,
+				   unsigned
+				   int
+				   priority,
+				   struct
+				   GNUNET_TIME_Relative
+				   maxdelay,
+				   const
+				   struct
+				   GNUNET_PeerIdentity
+				   *target,
+				   size_t
+				   notify_size,
+				   GNUNET_NETWORK_TransmitReadyNotify
+				   notify,
+				   void
+				   *notify_cls);
 
 
 /**
