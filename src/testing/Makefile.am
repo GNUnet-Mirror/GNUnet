@@ -13,6 +13,7 @@ lib_LTLIBRARIES = libgnunettesting.la
 
 libgnunettesting_la_SOURCES = \
   testing.c  \
+  testing_group.c \
   testing_testbed.c 
 libgnunettesting_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB)

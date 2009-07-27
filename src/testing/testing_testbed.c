@@ -42,40 +42,32 @@ struct GNUNET_TESTING_Testbed
 
 
 /**
- * Start count GNUnet daemons with a particular
- * topology.
+ * Start "count" GNUnet daemons with a particular topology.
  *
- * @param size number of peers the testbed should have
+ * @param sched scheduler to use 
+ * @param cfg configuration template to use
+ * @param count number of peers the testbed should have
  * @param topology desired topology (enforced via F2F)
- * @param service_home_prefix path to use as the prefix for the home of the services
- * @param transports which transports should all peers use
- * @param applications which applications should be used?
- * @param timeout how long is this allowed to take?
  * @param cb function to call on each daemon that was started
  * @param cb_cls closure for cb
- * @param cte function to call at the end
- * @param cte_cls closure for cbe
  * @param hostname where to run the peers; can be NULL (to run
  *        everything on localhost). Additional
  *        hosts can be specified using a NULL-terminated list of
  *        varargs, hosts will then be used round-robin from that
  *        list.
+ * @return handle to control the testbed
  */
-void
+struct GNUNET_TESTING_Testbed *
 GNUNET_TESTING_testbed_start (struct GNUNET_SCHEDULER_Handle *sched,
-			      struct GNUNET_CONFIGURATION_Handle *cfg,
-			      unsigned int size,
+			      const struct GNUNET_CONFIGURATION_Handle *cfg,
+			      unsigned int count,
 			      enum GNUNET_TESTING_Topology topology,
-			      const char *service_home_prefix,
-			      const char *transports,
-			      const char *applications,
 			      GNUNET_TESTING_NotifyDaemonRunning cb,
 			      void *cb_cls,
-			      GNUNET_TESTING_NotifyTestbedRunning cte,
-			      void *cte_cls,
 			      const char *hostname,
 			      ...)
 {
+  return NULL;
 }
 
 
@@ -83,13 +75,13 @@ GNUNET_TESTING_testbed_start (struct GNUNET_SCHEDULER_Handle *sched,
  * Stop all of the daemons started with the start function.
  *
  * @param tb handle for the testbed
- * @param cb function to call at the end
+ * @param cb function to call when done
  * @param cb_cls closure for cb
  */
 void
 GNUNET_TESTING_testbed_stop (struct GNUNET_TESTING_Testbed *tb,
 			     GNUNET_TESTING_NotifyCompletion cb,
-			     void *cb_cls )
+			     void *cb_cls)
 {
 }
 
@@ -122,3 +114,6 @@ GNUNET_TESTING_testbed_churn (struct GNUNET_TESTING_Testbed *tb,
 			      void *cb_cls)
 {
 }
+
+
+/* end of testing_testbed.c */
