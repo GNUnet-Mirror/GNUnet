@@ -116,19 +116,4 @@ void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 }
 
 
-
-
-
 /* end of testing.c */
-
-{
-  va_list va;
-  
-  va_start (va, hostname);
-  GNUNET_TESTING_daemons_start_va (sched, cfg,
-				   total, service_home_prefix,
-				   transports, applications,
-				   cb, cb_cls, cbe, cbe_cls, hostname,
-				   va);
-  va_end (va);
-}
