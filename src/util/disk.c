@@ -1298,7 +1298,7 @@ GNUNET_DISK_file_unmap (struct GNUNET_DISK_MapHandle *h)
     }
 
 #ifdef MINGW
-  ret = UnmapViewOfFile (addr) ? GNUNET_OK : GNUNET_SYSERR;
+  ret = UnmapViewOfFile (h->h) ? GNUNET_OK : GNUNET_SYSERR;
   if (ret != GNUNET_OK)
     SetErrnoFromWinError (GetLastError ());
   if (!CloseHandle (h->h) && (ret == GNUNET_OK))
