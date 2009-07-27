@@ -346,35 +346,15 @@ libgnunet_plugin_datacache_sqlite_init (void *cls)
   struct Plugin *plugin;
   char *fn;
   char *fn_utf8;
-  int fd;
   sqlite3 *dbh;
-  char *tmpl;
-  const char *tmpdir;
   char *emsg;
 
-  tmpdir = getenv ("TMPDIR");
-  tmpdir = tmpdir ? tmpdir : "/tmp";
-
-#define TEMPLATE "/gnunet-dstoreXXXXXX"
-  tmpl = GNUNET_malloc (strlen (tmpdir) + sizeof (TEMPLATE) + 1);
-  strcpy (tmpl, tmpdir);
-  strcat (tmpl, TEMPLATE);
-#undef TEMPLATE
-#ifdef MINGW
-  fn = (char *) GNUNET_malloc (MAX_PATH + 1);
-  plibc_conv_to_win_path (tmpl, fn);
-  GNUNET_free (tmpl);
-#else
-  fn = tmpl;
-#endif
-  fd = mkstemp (fn);
-  if (fd == -1)
+  fn = GNUNET_DISK_mktemp ("gnunet-datacache");
+  if (fn == NULL)
     {
       GNUNET_break (0);
-      GNUNET_free (fn);
       return NULL;
     }
-  CLOSE (fd);
   fn_utf8 = GNUNET_STRINGS_to_utf8 (fn, strlen (fn),
 #ifdef ENABLE_NLS
 				    nl_langinfo (CODESET)

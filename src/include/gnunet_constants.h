@@ -49,6 +49,12 @@ extern "C"
  */
 #define GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
+/**
+ * How long do we wait after a FORK+EXEC before testing for the
+ * resulting process to be up (port open, waitpid, etc.)?
+ */
+#define GNUNET_CONSTANTS_EXEC_WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 100)
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

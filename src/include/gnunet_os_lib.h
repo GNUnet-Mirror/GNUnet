@@ -149,6 +149,7 @@ int GNUNET_OS_set_process_priority (pid_t proc,
  */
 pid_t GNUNET_OS_start_process (const char *filename, ...);
 
+
 /**
  * Start a process.
  *
@@ -158,6 +159,7 @@ pid_t GNUNET_OS_start_process (const char *filename, ...);
  * @return process ID of the new process, -1 on error
  */
 pid_t GNUNET_OS_start_process_v (const char *filename, char *const argv[]);
+
 
 /**
  * Retrieve the status of a process
@@ -169,12 +171,14 @@ pid_t GNUNET_OS_start_process_v (const char *filename, char *const argv[]);
 int GNUNET_OS_process_status (pid_t proc, enum GNUNET_OS_ProcessStatusType *type,
     unsigned long *code);
 
+
 /**
  * Wait for a process
  * @param proc process ID to wait for
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
 int GNUNET_OS_process_wait (pid_t proc);
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

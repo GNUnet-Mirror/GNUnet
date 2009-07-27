@@ -126,7 +126,19 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h, off_t offset,
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int GNUNET_DISK_file_size (const char *filename,
-                           unsigned long long *size, int includeSymLinks);
+			   unsigned long long *size, int includeSymLinks);
+
+
+/**
+ * Create an (empty) temporary file on disk.
+ * 
+ * @param template component to use for the name;
+ *        does NOT contain "XXXXXX" or "/tmp/".
+ * @return NULL on error, otherwise name of fresh
+ *         file on disk in directory for temporary files
+ */
+char *
+GNUNET_DISK_mktemp (const char *template);
 
 
 /**

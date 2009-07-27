@@ -194,6 +194,52 @@ GNUNET_DISK_file_size (const char *filename,
 
 
 /**
+ * Create an (empty) temporary file on disk.
+ * 
+ * @param template component to use for the name;
+ *        does NOT contain "XXXXXX" or "/tmp/".
+ * @return NULL on error, otherwise name of fresh
+ *         file on disk in directory for temporary files
+ */
+char *
+GNUNET_DISK_mktemp (const char *template)
+{
+  const char *tmpdir;
+  int fd;
+  char *tmpl;
+  char *fn;
+
+  tmpdir = getenv ("TMPDIR");
+  tmpdir = tmpdir ? tmpdir : "/tmp";
+
+  GNUNET_asprintf (&tmpl,
+		   "%s%s%s%s",
+		   tmpdir,
+		   DIR_SEPARATOR_STR,
+		   template,
+		   "XXXXXX");
+#ifdef MINGW
+  fn = (char *) GNUNET_malloc (MAX_PATH + 1);
+  plibc_conv_to_win_path (tmpl, fn);
+  GNUNET_free (tmpl);
+#else
+  fn = tmpl;
+#endif
+  fd = mkstemp (fn);
+  if (fd == -1)
+    {
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+				"mkstemp",
+				fn);
+      GNUNET_free (fn);
+      return NULL;
+    }
+  CLOSE (fd);
+  return fn;
+}
+
+
+/**
  * Get the number of blocks that are left on the partition that
  * contains the given file (for normal users).
  *

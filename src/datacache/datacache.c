@@ -121,7 +121,6 @@ GNUNET_DATACACHE_create (struct GNUNET_SCHEDULER_Handle *sched,
 			 const struct GNUNET_CONFIGURATION_Handle *cfg,
 			 const char *section)
 {
-  int fd;
   unsigned int bf_size;
   unsigned long long quota;
   struct GNUNET_DATACACHE_Handle *ret;
@@ -152,14 +151,13 @@ GNUNET_DATACACHE_create (struct GNUNET_SCHEDULER_Handle *sched,
   bf_size = quota / 32; /* 8 bit per entry, 1 bit per 32 kb in DB */
 
   ret = GNUNET_malloc (sizeof(struct GNUNET_DATACACHE_Handle));
-  ret->bloom_name = GNUNET_strdup ("/tmp/datacachebloomXXXXXX");
-  fd = mkstemp (ret->bloom_name);
-  if (fd != -1)
+  ret->bloom_name = GNUNET_DISK_mktemp ("datacachebloom");
+
+  if (ret->bloom_name)
     {
       ret->filter = GNUNET_CONTAINER_bloomfilter_load (ret->bloom_name, 
 						       quota / 1024,    /* 8 bit per entry in DB, expect 1k entries */
 						       5);
-      CLOSE (fd);
     }
   else
     {
@@ -206,7 +204,10 @@ void GNUNET_DATACACHE_destroy (struct GNUNET_DATACACHE_Handle *h)
   GNUNET_free (h->section);
   if (h->bloom_name != NULL)
     {
-      UNLINK (h->bloom_name);
+      if (0 != UNLINK (h->bloom_name))
+	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+				  "unlink",
+				  h->bloom_name);
       GNUNET_free (h->bloom_name);
     }
   GNUNET_free (h);
