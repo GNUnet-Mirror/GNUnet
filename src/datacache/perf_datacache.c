@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /*
- * @file datacache/perf_datacache_api.c
+ * @file datacache/perf_datacache.c
  * @brief Performance evaluation for the datacache implementations.
  * @author Nils Durner
  */
@@ -124,7 +124,7 @@ check ()
 {
   char *const argv[] = { "perf-datacache-api",
     "-c",
-    "perf_datacache_api_data.conf",
+    "perf_datacache_data.conf",
 #if VERBOSE
     "-L", "DEBUG",
 #endif
@@ -160,4 +160,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of perf_datacache_api.c */
+/* end of perf_datacache.c */

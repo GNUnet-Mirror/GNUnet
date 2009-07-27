@@ -16,7 +16,7 @@ lib_LTLIBRARIES = \
   libgnunetdatacache.la
 
 libgnunetdatacache_la_SOURCES = \
-  datacache_api.c plugin_datacache.h
+  datacache.c plugin_datacache.h
 libgnunetdatacache_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL) 
@@ -47,30 +47,30 @@ libgnunet_plugin_datacache_template_la_LDFLAGS = \
 
 
 check_PROGRAMS = \
- test_datacache_api \
- test_datacache_api_quota \
- perf_datacache_api 
+ test_datacache \
+ test_datacache_quota \
+ perf_datacache 
 
 TESTS = $(check_PROGRAMS)
 
-test_datacache_api_SOURCES = \
- test_datacache_api.c
-test_datacache_api_LDADD = \
+test_datacache_SOURCES = \
+ test_datacache.c
+test_datacache_LDADD = \
  $(top_builddir)/src/datacache/libgnunetdatacache.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
-test_datacache_api_quota_SOURCES = \
- test_datacache_api_quota.c
-test_datacache_api_quota_LDADD = \
+test_datacache_quota_SOURCES = \
+ test_datacache_quota.c
+test_datacache_quota_LDADD = \
  $(top_builddir)/src/datacache/libgnunetdatacache.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
-perf_datacache_api_SOURCES = \
- perf_datacache_api.c
-perf_datacache_api_LDADD = \
+perf_datacache_SOURCES = \
+ perf_datacache.c
+perf_datacache_LDADD = \
  $(top_builddir)/src/datacache/libgnunetdatacache.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 EXTRA_DIST = \
- test_datacache_api_data.conf \
- perf_datacache_api_data.conf
+ test_datacache_data.conf \
+ perf_datacache_data.conf

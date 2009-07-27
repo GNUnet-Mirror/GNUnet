@@ -18,8 +18,8 @@
      Boston, MA 02111-1307, USA.
 */
 /*
- * @file datacache/test_datacache_api.c
- * @brief Test for the datacache implementations.
+ * @file datacache/test_datacache_quota.c
+ * @brief Test for the quota code of the datacache implementations.
  * @author Nils Durner
  */
 #include "platform.h"
@@ -32,41 +32,26 @@
 
 static int ok;
 
-
-static int
-checkIt (void *cls,
-	 struct GNUNET_TIME_Absolute exp,
-	 const GNUNET_HashCode * key,
-         uint32_t size, 
-	 const char *data, 
-	 uint32_t type)
-{
-  if (size != sizeof (GNUNET_HashCode))
-    {
-      printf ("ERROR: Invalid size\n");
-      ok = 2;
-    }
-  if (0 != memcmp (data, cls, size))
-    {
-      printf ("ERROR: Invalid data\n");
-      ok = 3;
-    }
-  return GNUNET_OK;
-}
-
-
+/**
+ * Quota is 1 MB.  Each iteration of the test puts in about 1 MB of
+ * data.  We do 10 iterations. Afterwards we check that the data from
+ * the first 5 iterations has all been discarded and that at least
+ * some of the data from the last iteration is still there.
+ */
 static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *sched,
      char *const *args,
-     const char *cfgfile,
+     const char *cfgfile, 
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_DATACACHE_Handle *h;
   GNUNET_HashCode k;
   GNUNET_HashCode n;
-  struct GNUNET_TIME_Absolute exp;
   unsigned int i;
+  unsigned int j;
+  char buf[3200];
+  struct GNUNET_TIME_Absolute exp;
 
   ok = 0;
   h = GNUNET_DATACACHE_create (sched,
@@ -76,29 +61,46 @@ run (void *cls,
   ASSERT (NULL != h);
   exp = GNUNET_TIME_absolute_get ();
   exp.value += 5 * 60 * 1000;
+  memset (buf, 1, sizeof (buf));
   memset (&k, 0, sizeof (GNUNET_HashCode));
-  for (i = 0; i < 100; i++)
+  for (i = 0; i < 10; i++)
     {
+      fprintf (stderr, ".");
       GNUNET_CRYPTO_hash (&k, sizeof (GNUNET_HashCode), &n);
-      ASSERT (GNUNET_OK == GNUNET_DATACACHE_put (h,
-						 &k,
-						 sizeof (GNUNET_HashCode),
-						 (const char *) &n,
-						 1+i%16,
-						 exp));
+      for (j = i; j < sizeof (buf); j += 10)
+        {
+	  exp.value++;
+          buf[j] = i;
+          ASSERT (GNUNET_OK == 
+		  GNUNET_DATACACHE_put (h,
+					&k,
+					j,
+					buf,
+					1+i,
+					exp));
+          ASSERT (0 < GNUNET_DATACACHE_get (h, 
+					    &k, 1+i, 
+					    NULL, NULL));
+        }
       k = n;
     }
+  fprintf (stderr, "\n");
   memset (&k, 0, sizeof (GNUNET_HashCode));
-  for (i = 0; i < 100; i++)
+  for (i = 0; i < 10; i++)
     {
+      fprintf (stderr, ".");
       GNUNET_CRYPTO_hash (&k, sizeof (GNUNET_HashCode), &n);
-      ASSERT (1 == 
-	      GNUNET_DATACACHE_get (h, &k, 1+i%16,
-				    &checkIt, &n));
+      if (i < 2)
+	ASSERT (0 == GNUNET_DATACACHE_get  (h, 
+					    &k, 1+i, 
+					    NULL, NULL));
+      if (i == 9)
+	ASSERT (0 < GNUNET_DATACACHE_get  (h, 
+					   &k, 1+i, 
+					   NULL, NULL));
       k = n;
     }
-  GNUNET_DATACACHE_destroy (h);
-  ASSERT (ok == 0);
+  fprintf (stderr, "\n");
   return;
 FAILURE:
   if (h != NULL)
@@ -110,9 +112,9 @@ FAILURE:
 static int
 check ()
 {
-  char *const argv[] = { "test-datacache-api",
+  char *const argv[] = { "test-datacache-api-quota",
     "-c",
-    "test_datacache_api_data.conf",
+    "test_datacache_data.conf",
 #if VERBOSE
     "-L", "DEBUG",
 #endif
@@ -122,7 +124,7 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-datacache-api", "nohelp",
+                      argv, "test-datacache-api-quota", "nohelp",
                       options, &run, NULL);
   if (ok != 0)
     fprintf (stderr, "Missed some testcases: %d\n", ok);
@@ -135,7 +137,7 @@ main (int argc, char *argv[])
 {
   int ret;
   
-  GNUNET_log_setup ("test-datacache-api",
+  GNUNET_log_setup ("test-datacache-api-quota",
 #if VERBOSE
                     "DEBUG",
 #else
@@ -147,4 +149,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of test_datacache_api.c */
+/* end of test_datacache_quota.c */
