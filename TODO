@@ -16,20 +16,21 @@ away), in order in which they will likely be done:
 PHASE #2: (Goal: recover basic file-sharing functionality)
 * TESTING (needed for DV, DHT, Topology)
   - implement library for local testing
-    + check API for hostname specification;
-      maybe use space-separated list instead?
     + modify configuration to allow controlling
       connections for non-local starts
-    + starting of groups of peers (and auto-setting
-      of PORT options)
-    + testbed creation with topology
-    + testbed with churn
+    + CORE service does not start with valid peer ID (all zeross)
+      -- testcase fails!
+    + consider changing API for peer-group termination
+      to call continuation when done
+    + testbed creation with topology (needs working F2F topology) [Nate]
+    + testbed with churn [Nate]
   - implement testcases for library
-    + test basic peer start
+    + get test for basic peer start to work!
     + test basic peer connect
     + test group start
-    + test topology creation
-    + test churn generation
+    + test basic peer re-configure [Nate]
+    + test topology creation [Nate]
+    + test churn generation [Nate]
 * TOPOLOGY:
   - implement testcases (needs TESTING)
 * HOSTLIST:

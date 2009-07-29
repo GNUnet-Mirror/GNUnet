@@ -625,11 +625,12 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   cfg = c;
   sched = s;
   stats = st;
-  proxy = NULL;
-  GNUNET_CONFIGURATION_get_value_string (cfg,
-					 "HOSTLIST",
-					 "HTTP-PROXY", 
-					 &proxy);
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+					     "HOSTLIST",
+					     "HTTP-PROXY", 
+					     &proxy))
+    proxy = NULL;
   *ch = &connect_handler;
   *dh = &disconnect_handler;
   GNUNET_STATISTICS_get (stats,

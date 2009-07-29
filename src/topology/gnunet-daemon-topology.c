@@ -508,7 +508,7 @@ consider_for_advertising (const struct GNUNET_HELLO_Message *hello)
 				  &have_address);
   if (GNUNET_NO == have_address)
     return; /* no point in advertising this one... */
-  GNUNET_HELLO_get_id (hello, &pid);
+  GNUNET_break (GNUNET_OK == GNUNET_HELLO_get_id (hello, &pid));
   pos = hellos;
   while (pos != NULL)
     {
@@ -736,11 +736,18 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
   unsigned int entries_found;
   struct PeerList *fl;
 
-  fn = NULL;
-  GNUNET_CONFIGURATION_get_value_filename (cfg,
-					   "TOPOLOGY",
-					   "FRIENDS",
-					   &fn);
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (cfg,
+					       "TOPOLOGY",
+					       "FRIENDS",
+					       &fn))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Option `%s' in section `%s' not specified!\n"),
+		  "FRIENDS",
+		  "TOPOLOGY");
+      return;
+    }
   if (GNUNET_OK != GNUNET_DISK_file_test (fn))
     GNUNET_DISK_fn_write (fn, NULL, 0, GNUNET_DISK_PERM_USER_READ
         | GNUNET_DISK_PERM_USER_WRITE);
@@ -920,7 +927,7 @@ hello_advertising (void *cls,
       if (0 == GNUNET_TIME_absolute_get_remaining (pos->expiration).value)
 	{
 	  /* time to discard... */
-	  if (prev == NULL)
+	  if (prev != NULL)
 	    prev->next = next;
 	  else
 	    hellos = next;
@@ -1015,17 +1022,19 @@ run (void *cls,
   friends_only = GNUNET_CONFIGURATION_get_value_yesno (cfg,
 						       "TOPOLOGY",
 						       "FRIENDS-ONLY");
-  opt = 0;
-  GNUNET_CONFIGURATION_get_value_number (cfg,
-					 "TOPOLOGY",
-					 "MINIMUM-FRIENDS",
-					 &opt);
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg,
+					     "TOPOLOGY",
+					     "MINIMUM-FRIENDS",
+					     &opt))
+    opt = 0;
   minimum_friend_count = (unsigned int) opt;
-  opt = 16;
-  GNUNET_CONFIGURATION_get_value_number (cfg,
-					 "TOPOLOGY",
-					 "TARGET-CONNECTION-COUNT",
-					 &opt);
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg,
+					     "TOPOLOGY",
+					     "TARGET-CONNECTION-COUNT",
+					     &opt))
+    opt = 16;
   target_connection_count = (unsigned int) opt;
 
   if ( (friends_only == GNUNET_YES) ||

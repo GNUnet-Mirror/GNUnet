@@ -47,15 +47,26 @@ struct GNUNET_CONFIGURATION_Handle;
 
 /**
  * Create a new configuration object.
- *
- * @param component name of responsible component
+ * @return fresh configuration object
  */
 struct GNUNET_CONFIGURATION_Handle *GNUNET_CONFIGURATION_create (void);
+
+
+/**
+ * Duplicate an existing configuration object.
+ *
+ * @param c configuration to duplicate
+ * @return duplicate configuration
+ */
+struct GNUNET_CONFIGURATION_Handle *
+GNUNET_CONFIGURATION_dup (const struct GNUNET_CONFIGURATION_Handle *c);
+
 
 /**
  * Destroy configuration object.
  */
 void GNUNET_CONFIGURATION_destroy (struct GNUNET_CONFIGURATION_Handle *cfg);
+
 
 /**
  * Load configuration.  This function will first parse the
@@ -68,6 +79,7 @@ void GNUNET_CONFIGURATION_destroy (struct GNUNET_CONFIGURATION_Handle *cfg);
 int GNUNET_CONFIGURATION_load (struct GNUNET_CONFIGURATION_Handle *cfg,
                                const char *filename);
 
+
 /**
  * Parse a configuration file, add all of the options in the
  * file to the configuration environment.
@@ -76,6 +88,7 @@ int GNUNET_CONFIGURATION_load (struct GNUNET_CONFIGURATION_Handle *cfg,
 int GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
                                 const char *filename);
 
+
 /**
  * Write configuration file.
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
@@ -83,12 +96,40 @@ int GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
 int GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *cfg,
                                 const char *filename);
 
+
 /**
  * Test if there are configuration options that were
  * changed since the last save.
  * @return GNUNET_NO if clean, GNUNET_YES if dirty, GNUNET_SYSERR on error (i.e. last save failed)
  */
 int GNUNET_CONFIGURATION_is_dirty (const struct GNUNET_CONFIGURATION_Handle *cfg);
+
+
+/**
+ * Function to iterate over options.
+ *
+ * @param cls closure
+ * @param section name of the section
+ * @param option name of the option
+ * @param value value of the option
+ */
+typedef void (*GNUNET_CONFIGURATION_Iterator)(void *cls,
+					      const char *section,
+					      const char *option,
+					      const char *value);
+
+
+/**
+ * Iterate over all options in the configuration.
+ *
+ * @param cfg configuration to inspect
+ * @param iter function to call on each option
+ * @param iter_cls closure for iter
+ */
+void GNUNET_CONFIGURATION_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
+				   GNUNET_CONFIGURATION_Iterator iter,
+				   void *iter_cls);
+
 
 /**
  * Get a configuration value that should be a number.
@@ -239,6 +280,7 @@ int GNUNET_CONFIGURATION_append_value_filename (struct
                                                 *cfg, const char *section,
                                                 const char *option,
                                                 const char *value);
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

@@ -234,7 +234,10 @@ GNUNET_DISK_mktemp (const char *template)
       GNUNET_free (fn);
       return NULL;
     }
-  CLOSE (fd);
+  if (0 != CLOSE (fd))
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+			      "close",
+			      fn);
   return fn;
 }
 
@@ -1043,6 +1046,7 @@ GNUNET_DISK_file_open (const char *fn, int flags, ...)
   else
     {
       GNUNET_break (0);
+      GNUNET_free (expfn);
       return NULL;
     }
   if (flags & GNUNET_DISK_OPEN_FAILIFEXISTS)

@@ -27,6 +27,58 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_testing_lib.h"
 
+/**
+ * Lowest port used for GNUnet testing.  Should be high enough to not
+ * conflict with other applications running on the hosts but be low
+ * enough to not conflict with client-ports (typically starting around
+ * 32k).
+ */
+#define LOW_PORT 10000
+
+/**
+ * Highest port used for GNUnet testing.  Should be low enough to not
+ * conflict with the port range for "local" ports (client apps; see
+ * /proc/sys/net/ipv4/ip_local_port_range on Linux for example).
+ */
+#define HIGH_PORT 32000
+
+/**
+ * Data we keep per peer.
+ */
+struct PeerData
+{
+  /**
+   * (Initial) configuration of the host.
+   * (initial because clients could change
+   *  it and we would not know about those
+   *  updates).
+   */
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+  
+  /**
+   * Handle for controlling the daemon.
+   */
+  struct GNUNET_TESTING_Daemon *daemon;
+};
+
+
+/**
+ * Data we keep per host.
+ */
+struct HostData
+{
+  /**
+   * Name of the host.
+   */
+  char *hostname;
+  
+  /**
+   * Lowest port that we have not yet used
+   * for GNUnet.
+   */
+  uint16_t minport;
+};
+
 
 /**
  * Handle to a group of GNUnet peers.
@@ -41,7 +93,7 @@ struct GNUNET_TESTING_PeerGroup
   /**
    * Configuration template.
    */
-  struct GNUNET_CONFIGURATION_Handle *cfg;
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
    * Function to call on each started daemon.
@@ -54,14 +106,15 @@ struct GNUNET_TESTING_PeerGroup
   void *cb_cls;
 
   /**
-   * NULL-terminated array of hostnames.
+   * NULL-terminated array of information about
+   * hosts.
    */
-  char **hostnames;
+  struct HostData *hosts;
 
   /**
    * Array of "total" peers.
    */
-  struct GNUNET_TESTING_Daemon **peers;
+  struct PeerData *peers;
 
   /**
    * Number of peers in this group.
@@ -69,6 +122,83 @@ struct GNUNET_TESTING_PeerGroup
   unsigned int total;
 
 };
+
+
+struct UpdateContext 
+{
+  struct GNUNET_CONFIGURATION_Handle *ret;
+  unsigned int nport;
+};
+
+/**
+ * Function to iterate over options.  Copies
+ * the options to the target configuration,
+ * updating PORT values as needed.
+ *
+ * @param cls closure
+ * @param section name of the section
+ * @param option name of the option
+ * @param value value of the option
+ */
+static void 
+update_config(void *cls,
+	      const char *section,
+	      const char *option,
+	      const char *value)
+{
+  struct UpdateContext *ctx = cls;
+  unsigned int ival;
+  char cval[12];
+
+  if ( (0 == strcmp (option, "PORT")) &&
+       (1 == sscanf (value, "%u", &ival)) )
+    {
+      GNUNET_snprintf (cval,
+		       sizeof(cval),
+		       "%u",
+		       ctx->nport++);
+      value = cval;
+    }		   
+  GNUNET_CONFIGURATION_set_value_string (ctx->ret,
+					 section,
+					 option,
+					 value);
+}
+
+
+/**
+ * Create a new configuration using the given configuration
+ * as a template; however, each PORT in the existing cfg
+ * must be renumbered by incrementing "*port".  If we run
+ * out of "*port" numbers, return NULL. 
+ * 
+ * @param cfg template configuration
+ * @param port port numbers to use, update to reflect
+ *             port numbers that were used
+ * @return new configuration, NULL on error
+ */
+static struct GNUNET_CONFIGURATION_Handle*
+make_config (const struct GNUNET_CONFIGURATION_Handle*cfg,
+	     uint16_t *port)
+{
+  struct UpdateContext uc;
+  uint16_t orig;
+
+  orig = *port;
+  uc.nport = *port;
+  uc.ret = GNUNET_CONFIGURATION_create ();
+  GNUNET_CONFIGURATION_iterate (cfg,
+				&update_config,
+				&uc);
+  if (uc.nport >= HIGH_PORT)
+    {
+      *port = orig;
+      GNUNET_CONFIGURATION_destroy (uc.ret);
+      return NULL;
+    }
+  *port = (uint16_t) uc.nport;
+  return uc.ret;
+}
 
 
 /**
@@ -82,68 +212,124 @@ struct GNUNET_TESTING_PeerGroup
  * @param total number of daemons to start
  * @param cb function to call on each daemon that was started
  * @param cb_cls closure for cb
- * @param hostname where to run the peers; can be NULL (to run
+ * @param hostnames space-separated list of hostnames to use; can be NULL (to run
  *        everything on localhost).
- * @param va Additional hosts can be specified using a NULL-terminated list of
- *        varargs, hosts will then be used round-robin from that
- *        list; va only contains anything if hostname != NULL.
- * @return NULL on error, otherwise handle to control peer group
- */
-struct GNUNET_TESTING_PeerGroup *
-GNUNET_TESTING_daemons_start_va (struct GNUNET_SCHEDULER_Handle *sched,
-				 const struct GNUNET_CONFIGURATION_Handle *cfg,
-				 unsigned int total,
-				 GNUNET_TESTING_NotifyDaemonRunning cb,
-				 void *cb_cls,
-				 const char *hostname,
-				 va_list va)
-{
-  struct GNUNET_TESTING_PeerGroup *pg;
-  
-  pg = GNUNET_malloc (sizeof(struct GNUNET_TESTING_PeerGroup));
-  return pg;
-}
-
-
-/**
- * Start count gnunetd processes with the same set of
- * transports and applications.  The port numbers will
- * be computed by adding delta each time (zero
- * times for the first peer).
- *
- * @param sched scheduler to use 
- * @param cfg configuration template to use
- * @param total number of daemons to start
- * @param timeout how long is this allowed to take?
- * @param cb function to call on each daemon that was started
- * @param cb_cls closure for cb
- * @param hostname where to run the peers; can be NULL (to run
- *        everything on localhost). Additional
- *        hosts can be specified using a NULL-terminated list of
- *        varargs, hosts will then be used round-robin from that
- *        list.
  * @return NULL on error, otherwise handle to control peer group
  */
 struct GNUNET_TESTING_PeerGroup *
 GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
-			      struct GNUNET_CONFIGURATION_Handle *cfg,
+			      const struct GNUNET_CONFIGURATION_Handle *cfg,
 			      unsigned int total,
 			      GNUNET_TESTING_NotifyDaemonRunning cb,
 			      void *cb_cls,
-			      const char *hostname,
-			      ...)
+			      const char *hostnames)
 {
-  struct GNUNET_TESTING_PeerGroup * ret;
-  va_list va;
-  
-  va_start (va, hostname);
-  ret = GNUNET_TESTING_daemons_start_va (sched, cfg,
-					 total, cb, cb_cls, hostname,
-					 va);
-  va_end (va);
-  return ret;
-}
+  struct GNUNET_TESTING_PeerGroup *pg;
+  const char *rpos;
+  char *pos;
+  char *start;
+  const char *hostname;
+  struct GNUNET_CONFIGURATION_Handle *pcfg;
+  unsigned int off;
+  unsigned int hostcnt;
+  uint16_t minport;
 
+  if (0 == total)
+    {
+      GNUNET_break (0);
+      return NULL;
+    }
+  pg = GNUNET_malloc (sizeof(struct GNUNET_TESTING_PeerGroup));
+  pg->sched = sched;
+  pg->cfg = cfg;
+  pg->cb = cb;
+  pg->cb_cls = cb_cls;
+  pg->total = total;
+  pg->peers = GNUNET_malloc (total * sizeof(struct PeerData));
+  if (NULL != hostnames)
+    {
+      off = 2;
+      /* skip leading spaces */
+      while ( (0 != *hostnames) &&
+	      (isspace(*hostnames)))
+	hostnames++;
+      rpos = hostnames;
+      while ('\0' != *rpos)
+	{
+	  if (isspace (*rpos))
+	    off++;
+	  rpos++;
+	}
+      pg->hosts = GNUNET_malloc (off * sizeof (struct HostData));
+      off = 0;
+      start = GNUNET_strdup (hostnames);
+      pos = start;
+      while ('\0' != *pos)
+	{
+	  if (isspace (*pos))
+	    {
+	      *pos = '\0';
+	      if (strlen(start) > 0)
+		{
+		  pg->hosts[off].minport = LOW_PORT;
+		  pg->hosts[off++].hostname = start;
+		}
+	      start = pos+1;
+	    }
+	  pos++;
+	}
+      if (strlen(start) > 0)
+	{
+	  pg->hosts[off].minport = LOW_PORT;
+	  pg->hosts[off++].hostname = start;
+	}
+      if (off == 0)
+	{
+	  GNUNET_free (start);
+	  GNUNET_free (pg->hosts);
+	  pg->hosts = NULL;
+	}
+      hostcnt = off;
+      minport = 0; /* make gcc happy */
+    }
+  else
+    {
+      hostcnt = 0;
+      minport = LOW_PORT;
+    }
+  for (off = 0; off < total; off++)
+    {
+      if (hostcnt > 0)
+	{
+	  hostname = pg->hosts[off % hostcnt].hostname;
+	  pcfg = make_config (cfg, &pg->hosts[off % hostcnt].minport);
+	}
+      else
+	{
+	  hostname = NULL;
+	  pcfg = make_config (cfg, &minport);
+	}
+      if (NULL == pcfg)
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
+		      _("Could not create configuration for peer number %u on `%s'!\n"),
+		      off,
+		      hostname == NULL ? "localhost" : hostname);
+	  continue;
+	}
+      pg->peers[off].cfg = pcfg;
+      pg->peers[off].daemon = GNUNET_TESTING_daemon_start (sched,
+							   pcfg,
+							   hostname,
+							   cb,
+							   cb_cls);
+      if (NULL == pg->peers[off].daemon)
+	GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
+		    _("Could not start peer number %u!\n"),
+		    off);
+    }
+  return pg;
+}
 
 
 /**
@@ -154,7 +340,26 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
 void
 GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg)
 {
-  
+  unsigned int off;
+
+  for (off = 0; off < pg->total; off++)
+    {
+      /* FIXME: should we wait for our
+	 continuations to be called here? This
+	 would require us to take a continuation
+	 as well... */
+      if (NULL != pg->peers[off].daemon)
+	GNUNET_TESTING_daemon_stop (pg->peers[off].daemon,
+				    NULL, NULL);
+      if (NULL != pg->peers[off].cfg)
+	GNUNET_CONFIGURATION_destroy (pg->peers[off].cfg);
+    }
+  GNUNET_free (pg->peers);
+  if (NULL != pg->hosts)
+    {
+      GNUNET_free (pg->hosts[0].hostname);
+      GNUNET_free (pg->hosts);
+    }
   GNUNET_free (pg);
 }
 

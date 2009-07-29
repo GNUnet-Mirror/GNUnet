@@ -2132,7 +2132,8 @@ plugin_env_receive (void *cls,
                   _
                   ("Dropping incoming message due to repeated bandwidth quota violations.\n"));
       /* TODO: call stats */
-      GNUNET_assert (NULL != service_context->neighbour);
+      GNUNET_assert ( (service_context == NULL) ||
+		      (NULL != service_context->neighbour) );
       return service_context;
     }
   switch (ntohs (message->type))

@@ -18,10 +18,10 @@ SUBDIRS = \
   statistics \
   datacache \
   datastore \
-  testing \
   template \
   transport \
   core \
+  testing \
   $(HOSTLIST_DIR) \
   topology 
 

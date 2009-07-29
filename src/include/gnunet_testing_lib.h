@@ -85,7 +85,7 @@ typedef void (*GNUNET_TESTING_NotifyDaemonRunning)(void *cls,
  */
 struct GNUNET_TESTING_Daemon *
 GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
-			     struct GNUNET_CONFIGURATION_Handle *cfg,
+			     const struct GNUNET_CONFIGURATION_Handle *cfg,
 			     const char *hostname,
 			     GNUNET_TESTING_NotifyDaemonRunning cb,
 			     void *cb_cls);
@@ -163,50 +163,17 @@ struct GNUNET_TESTING_PeerGroup;
  * @param total number of daemons to start
  * @param cb function to call on each daemon that was started
  * @param cb_cls closure for cb
- * @param hostname where to run the peers; can be NULL (to run
- *        everything on localhost).
- * @param va Additional hosts can be specified using a NULL-terminated list of
- *        varargs, hosts will then be used round-robin from that
- *        list; va only contains anything if hostname != NULL.
- * @return NULL on error, otherwise handle to control peer group
- */
-struct GNUNET_TESTING_PeerGroup *
-GNUNET_TESTING_daemons_start_va (struct GNUNET_SCHEDULER_Handle *sched,
-				 const struct GNUNET_CONFIGURATION_Handle *cfg,
-				 unsigned int total,
-				 GNUNET_TESTING_NotifyDaemonRunning cb,
-				 void *cb_cls,
-				 const char *hostname,
-				 va_list va);
-
-
-/**
- * Start count gnunetd processes with the same set of
- * transports and applications.  The port numbers will
- * be computed by adding delta each time (zero
- * times for the first peer).
- *
- * @param sched scheduler to use 
- * @param cfg configuration template to use
- * @param total number of daemons to start
- * @param timeout how long is this allowed to take?
- * @param cb function to call on each daemon that was started
- * @param cb_cls closure for cb
- * @param hostname where to run the peers; can be NULL (to run
- *        everything on localhost). Additional
- *        hosts can be specified using a NULL-terminated list of
- *        varargs, hosts will then be used round-robin from that
- *        list.
+ * @param hostnames space-separated list of hostnames to use, 
+ *        NULL to use localhost only
  * @return NULL on error, otherwise handle to control peer group
  */
 struct GNUNET_TESTING_PeerGroup *
 GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
-			      struct GNUNET_CONFIGURATION_Handle *cfg,
+			      const struct GNUNET_CONFIGURATION_Handle *cfg,
 			      unsigned int total,
 			      GNUNET_TESTING_NotifyDaemonRunning cb,
 			      void *cb_cls,
-			      const char *hostname,
-			      ...);
+			      const char *hostnames);
 
 
 /**

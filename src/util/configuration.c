@@ -315,6 +315,49 @@ GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *data,
 }
 
 
+void GNUNET_CONFIGURATION_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
+				   GNUNET_CONFIGURATION_Iterator iter,
+				   void *iter_cls)
+{
+  struct ConfigSection *spos;
+  struct ConfigEntry *epos;
+
+  spos = cfg->sections;
+  while (spos != NULL)
+    {
+      epos = spos->entries;
+      while (epos != NULL)
+	{
+	  iter (iter_cls, spos->name, epos->key, epos->val);
+	  epos = epos->next;
+	}
+      spos = spos->next;
+    }
+}
+
+
+static void
+copy_entry (void *cls,
+	    const char *section,
+	    const char *option,
+	    const char *value)
+{
+  struct GNUNET_CONFIGURATION_Handle *dst = cls;
+  GNUNET_CONFIGURATION_set_value_string (dst, section, option, value);
+}
+
+
+struct GNUNET_CONFIGURATION_Handle *
+GNUNET_CONFIGURATION_dup (const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  struct GNUNET_CONFIGURATION_Handle *ret;
+
+  ret = GNUNET_CONFIGURATION_create ();
+  GNUNET_CONFIGURATION_iterate (cfg, &copy_entry, ret);
+  return ret;
+}
+
+
 static struct ConfigSection *
 findSection (const struct GNUNET_CONFIGURATION_Handle *data, const char *section)
 {

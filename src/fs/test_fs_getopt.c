@@ -1,5 +1,5 @@
 /*
-     This file is part of GNUnet.
+     This file is part of GNUnet
      (C) 2009 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
@@ -17,16 +17,17 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
+ * @file fs/test_fs_getopt.c
+ * @brief test for fs_getopt.c
  * @author Christian Grothoff
- * @file arm/arm.h
  */
-#ifndef ARM_H
-#define ARM_H
+#include "platform.h"
+#include "gnunet_fs_lib.h"
 
-#include "gnunet_common.h"
-
-#define DEBUG_ARM GNUNET_YES
-
-#endif
+int
+main (int argc, char *argv[])
+{
+  fprintf (stderr, "WARNING: testcase not yet written.\n");
+  return 0;                     /* testcase passed */
+}

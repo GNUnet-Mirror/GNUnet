@@ -116,7 +116,10 @@ host_processor (void *cls,
   size_t s;
   
   if (peer == NULL)
-    finish_response (results);
+    {
+      finish_response (results);
+      return;
+    }
   old = results->size;
   s = GNUNET_HELLO_size(hello);
   if (old + s >= GNUNET_MAX_MALLOC_CHECKED)

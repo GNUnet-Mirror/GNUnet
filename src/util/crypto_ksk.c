@@ -790,7 +790,9 @@ entropy_generator (void *cls,
     {
       if (genproc != 0)
 	{
-	  PLIBC_KILL(genproc, SIGTERM);
+	  if (0 != PLIBC_KILL(genproc, SIGTERM))
+	    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+				 "kill");
 	  GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (genproc));
 	  genproc = 0;
 	}
@@ -808,7 +810,9 @@ entropy_generator (void *cls,
 	  GNUNET_break (0);
 	  return;
 	}
-      PLIBC_KILL(genproc, SIGTERM);
+      if (0 != PLIBC_KILL(genproc, SIGTERM))
+	GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+			     "kill");
       GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (genproc));
       genproc = 0;     
     }

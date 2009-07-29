@@ -189,11 +189,15 @@ struct GNUNET_CONTAINER_MetaData;
 
 /**
  * Iterator over meta data.
+ *
+ * @param cls closure
+ * @param type type of the meta data
+ * @param data value of the meta data
  * @return GNUNET_OK to continue to iterate, GNUNET_SYSERR to abort
  */
-typedef int (*GNUNET_CONTAINER_MetaDataProcessor) (EXTRACTOR_KeywordType type,
-                                                   const char *data,
-                                                   void *closure);
+typedef int (*GNUNET_CONTAINER_MetaDataProcessor) (void *cls,
+						   EXTRACTOR_KeywordType type,
+                                                   const char *data);
 
 /**
  * Create a fresh MetaData token.

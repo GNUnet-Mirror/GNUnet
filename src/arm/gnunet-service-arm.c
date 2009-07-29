@@ -167,6 +167,8 @@ signal_result (struct GNUNET_SERVER_Client *client,
 {
   uint16_t *res;
 
+  if (NULL == client)
+    return;
 #if DEBUG_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Telling client that service `%s' is now %s\n",
@@ -387,7 +389,8 @@ start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
   sl->mtime = sbuf.st_mtime;
   running = sl;
   start_process (sl);
-  signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_UP);
+  if (NULL != client)
+    signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_UP);
 }
 
 

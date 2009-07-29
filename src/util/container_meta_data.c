@@ -187,8 +187,9 @@ GNUNET_CONTAINER_meta_data_get_contents (const struct
       if (!EXTRACTOR_isBinaryType (md->items[i].type))
         {
           if ((iterator != NULL) &&
-              (GNUNET_OK != iterator (md->items[i].type,
-                                      md->items[i].data, closure)))
+              (GNUNET_OK != iterator (closure,
+				      md->items[i].type,
+                                      md->items[i].data)))
             return GNUNET_SYSERR;
         }
       else

@@ -527,7 +527,8 @@ transmit_status (struct GNUNET_SERVER_Client *client,
   sm->header.size = htons(sizeof(struct StatusMessage) + slen);
   sm->header.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_STATUS);
   sm->status = htonl(code);
-  memcpy (&sm[1], msg, slen);  
+  if (slen > 0)
+    memcpy (&sm[1], msg, slen);  
   transmit (client, &sm->header, NULL, NULL, GNUNET_YES);
 }
 
