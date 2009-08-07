@@ -73,8 +73,7 @@ struct Location
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded peer;
 
   /**
-   * Time when the HELLO *and* this location URI
-   * expire (they expire together!).
+   * Time when this location URI expires.
    */
   struct GNUNET_TIME_Absolute expirationTime;
 

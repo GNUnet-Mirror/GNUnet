@@ -24,11 +24,10 @@
  * @author Igor Wronsky, Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_fs_lib.h"
+#include "gnunet_fs_service.h"
+#include "fs.h"
 
-
-
-/* ******************** command-line option parsing API *********************** */
+/* ******************** command-line option parsing API ******************** */
 
 /**
  * Command-line option parser function that allows the user
@@ -43,7 +42,7 @@
  * @return GNUNET_OK on success
  */
 int
-GNUNET_FS_getopt_configure_set_keywords (GNUNET_GETOPT_CommandLineProcessorContext* ctx, 
+GNUNET_FS_getopt_configure_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext* ctx, 
 					 void *scls,
 					 const char *option,
 					 const char *value)
@@ -55,7 +54,7 @@ GNUNET_FS_getopt_configure_set_keywords (GNUNET_GETOPT_CommandLineProcessorConte
 
   if (u == NULL)
     {
-      u = GNUNET_malloc (sizeof (struct GNUNET_ECRS_URI));
+      u = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
       *uri = u;
       u->type = ksk;
       u->data.ksk.keywordCount = 0;
@@ -125,7 +124,7 @@ GNUNET_FS_getopt_configure_set_keywords (GNUNET_GETOPT_CommandLineProcessorConte
  * @return GNUNET_OK on success
  */
 int
-GNUNET_FS_getopt_configure_set_metadata (GNUNET_GETOPT_CommandLineProcessorContext* ctx, 
+GNUNET_FS_getopt_configure_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext* ctx, 
 					 void *scls,
 					 const char *option,
 					 const char *value)
@@ -145,7 +144,7 @@ GNUNET_FS_getopt_configure_set_metadata (GNUNET_GETOPT_CommandLineProcessorConte
       *mm = meta;
     }
 
-  tmp = GNUNET_STRINGS_to_utf8 (NULL, value, strlen (value),
+  tmp = GNUNET_STRINGS_to_utf8 (value, strlen (value),
 #if ENABLE_NLS
 				nl_langinfo (CODESET)
 #else

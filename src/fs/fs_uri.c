@@ -79,7 +79,7 @@
  * <p>
  */
 #include "platform.h"
-#include "gnunet_fs_lib.h"
+#include "gnunet_fs_service.h"
 #include "fs.h"
 
 
@@ -97,37 +97,27 @@ GNUNET_FS_uri_to_key (const struct GNUNET_FS_Uri *uri,
   switch (uri->type)
     {
     case chk:
-      *key = uri->data.fi.chk.query;
+      *key = uri->data.chk.chk.query;
       return;
     case sks:
-      GNUNET_hash (uri->data.sks.identifier,
-                   strlen (uri->data.sks.identifier), key);
+      GNUNET_CRYPTO_hash (uri->data.sks.identifier,
+			  strlen (uri->data.sks.identifier), key);
       break;
     case ksk:
       if (uri->data.ksk.keywordCount > 0)
-        GNUNET_hash (uri->data.ksk.keywords[0],
-                     strlen (uri->data.ksk.keywords[0]), key);
+        GNUNET_CRYPTO_hash (uri->data.ksk.keywords[0],
+			    strlen (uri->data.ksk.keywords[0]), key);
       break;
     case loc:
-      GNUNET_hash (&uri->data.loc.fi,
-                   sizeof (GNUNET_EC_FileIdentifier) +
-                   sizeof (GNUNET_RSA_PublicKey), key);
+      GNUNET_CRYPTO_hash (&uri->data.loc.fi,
+			  sizeof (struct FileIdentifier) +
+			  sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), key);
       break;
     default:
       memset (key, 0, sizeof (GNUNET_HashCode));
       break;
     }
 }
-
-
-/**
- * Convert a URI to a UTF-8 String.
- *
- * @param uri uri to convert to a string
- * @return the UTF-8 string
- */
-char *
-GNUNET_FS_uri_to_string (const struct GNUNET_FS_Uri *uri);
 
 
 /**
@@ -138,7 +128,393 @@ GNUNET_FS_uri_to_string (const struct GNUNET_FS_Uri *uri);
  * @return string with the keywords
  */
 char *
-GNUNET_FS_uri_ksk_to_string_fancy (const struct GNUNET_FS_Uri *uri);
+GNUNET_FS_uri_ksk_to_string_fancy (const struct GNUNET_FS_Uri *uri)
+{
+  size_t n;
+  char *ret;
+  unsigned int i;
+  const char *keyword;
+  char **keywords;
+  unsigned int keywordCount;
+
+  if ((uri == NULL) || (uri->type != ksk))
+    {
+      GNUNET_break (0);
+      return NULL;
+    }
+  keywords = uri->data.ksk.keywords;
+  keywordCount = uri->data.ksk.keywordCount;
+  n = keywordCount + 1;
+  for (i = 0; i < keywordCount; i++)
+    {
+      keyword = keywords[i];
+      n += strlen (keyword) - 1;
+      if (NULL != strstr (&keyword[1], " "))
+        n += 2;
+      if (keyword[0] == '+')
+        n++;
+    }
+  ret = GNUNET_malloc (n);
+  strcpy (ret, "");
+  for (i = 0; i < keywordCount; i++)
+    {
+      keyword = keywords[i];
+      if (NULL != strstr (&keyword[1], " "))
+        {
+          strcat (ret, "\"");
+          if (keyword[0] == '+')
+            strcat (ret, keyword);
+          else
+            strcat (ret, &keyword[1]);
+          strcat (ret, "\"");
+        }
+      else
+        {
+          if (keyword[0] == '+')
+            strcat (ret, keyword);
+          else
+            strcat (ret, &keyword[1]);
+        }
+      strcat (ret, " ");
+    }
+  return ret;
+}
+
+
+
+
+/**
+ * Given a keyword with %-encoding (and possibly quotes to protect
+ * spaces), return a copy of the keyword without %-encoding and
+ * without double-quotes (%22).  Also, add a space at the beginning
+ * if there is not a '+'.
+ * 
+ * @param in string with %-encoding
+ * @param emsg where to store the parser error message (if any)
+ * @return decodded string with leading space (or preserved plus)
+ */
+static char *
+percent_decode_keyword (const char *in, char **emsg)
+{
+  char *out;
+  char *ret;
+  unsigned int rpos;
+  unsigned int wpos;
+  unsigned int hx;
+
+  out = GNUNET_strdup (in);
+  rpos = 0;
+  wpos = 0;
+  while (out[rpos] != '\0')
+    {
+      if (out[rpos] == '%')
+        {
+          if (1 != sscanf (&out[rpos + 1], "%2X", &hx))
+            {
+              GNUNET_free (out);
+              return NULL;
+            }
+          rpos += 3;
+          if (hx == '"')
+            continue;           /* skip double quote */
+          out[wpos++] = (char) hx;
+        }
+      else
+        {
+          out[wpos++] = out[rpos++];
+        }
+    }
+  out[wpos] = '\0';
+  if (out[0] == '+')
+    {
+      ret = GNUNET_strdup (out);
+    }
+  else
+    {
+      /* need to prefix with space */
+      ret = GNUNET_malloc (strlen (out) + 2);
+      strcpy (ret, " ");
+      strcat (ret, out);
+    }
+  GNUNET_free (out);
+  return ret;
+}
+
+
+/**
+ * Parse a KSK URI.
+ *
+ * @param s an uri string
+ * @param emsg where to store the parser error message (if any)
+ * @return NULL on error, otherwise the KSK URI
+ */
+static struct GNUNET_FS_Uri *
+uri_ksk_parse (const char *s, char **emsg)
+{
+  struct GNUNET_FS_Uri *ret;
+  char **keywords;
+  unsigned int pos;
+  int max;
+  int iret;
+  int i;
+  size_t slen;
+  char *dup;
+  int saw_quote;
+
+  GNUNET_assert (s != NULL);
+  slen = strlen (s);
+  pos = strlen (GNUNET_FS_URI_PREFIX GNUNET_FS_URI_KSK_INFIX);
+  if ( (slen <= pos) ||
+       (0 != strncmp (s, GNUNET_FS_URI_PREFIX GNUNET_FS_URI_KSK_INFIX, 
+		      pos) ) ||
+       (s[slen - 1] == '+') ||
+       (s[pos] == '+') )
+    return NULL;       /* no keywords / malformed */
+  
+  max = 1;
+  saw_quote = 0;
+  for (i = pos; i < slen; i++)
+    {
+      if ((s[i] == '%') && (&s[i] == strstr (&s[i], "%22")))
+        {
+          saw_quote = (saw_quote + 1) % 2;
+          i += 3;
+          continue;
+        }
+      if ((s[i] == '+') && (saw_quote == 0))
+        {
+          max++;
+          if (s[i - 1] == '+')
+            return NULL;       /* "++" not allowed */
+        }
+    }
+  if (saw_quote == 1)
+    return NULL;       /* quotes not balanced */
+  iret = max;
+  dup = GNUNET_strdup (s);
+  keywords = GNUNET_malloc (max * sizeof (char *));
+  for (i = slen - 1; i >= pos; i--)
+    {
+      if ((s[i] == '%') && (&s[i] == strstr (&s[i], "%22")))
+        {
+          saw_quote = (saw_quote + 1) % 2;
+          i += 3;
+          continue;
+        }
+      if ((dup[i] == '+') && (saw_quote == 0))
+        {
+          keywords[--max] = percent_decode_keyword (&dup[i + 1], emsg);
+          if (NULL == keywords[max])
+            goto CLEANUP;
+          dup[i] = '\0';
+        }
+    }
+  keywords[--max] = percent_decode_keyword (&dup[pos], emsg);
+  if (NULL == keywords[max])
+    goto CLEANUP;
+  GNUNET_assert (max == 0);
+  GNUNET_free (dup);
+  ret = GNUNET_malloc (sizeof(struct GNUNET_FS_Uri));
+  ret->type = ksk;
+  ret->data.ksk.keywordCount = iret;
+  ret->data.ksk.keywords = keywords;
+  return ret;
+CLEANUP:
+  for (i = 0; i < max; i++)
+    GNUNET_free_non_null (keywords[i]);
+  GNUNET_free (keywords);
+  GNUNET_free (dup);
+  return NULL;
+}
+
+
+/**
+ * Parse an SKS URI.
+ *
+ * @param s an uri string
+ * @param emsg where to store the parser error message (if any)
+ * @return NULL on error, SKS URI otherwise
+ */
+static struct GNUNET_FS_Uri *
+uri_sks_parse (const char *s, char **emsg)
+{
+  struct GNUNET_FS_Uri *ret;
+  GNUNET_HashCode namespace;
+  char *identifier;
+  unsigned int pos;
+  size_t slen;
+  char enc[sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded)];
+
+  GNUNET_assert (s != NULL);
+  slen = strlen (s);
+  pos = strlen (GNUNET_FS_URI_PREFIX GNUNET_FS_URI_SKS_INFIX);
+  if ( (slen <= pos) ||
+       (0 != strncmp (s, GNUNET_FS_URI_PREFIX GNUNET_FS_URI_SKS_INFIX, 
+		      pos) ) ||
+       (slen < pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) + 1) ||
+       (s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1] != '/') )
+    return NULL;
+  memcpy (enc, &s[pos], sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded));
+  enc[sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded)-1] = '\0';
+  if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (enc, &namespace))
+    return NULL;
+  identifier = GNUNET_strdup (&s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)]);
+  ret = GNUNET_malloc (sizeof(struct GNUNET_FS_Uri));
+  ret->type = sks;
+  ret->data.sks.namespace = namespace;
+  ret->data.sks.identifier = identifier;
+  return ret;
+}
+
+
+/**
+ * Parse a CHK URI.
+ *
+ * @param s an uri string
+ * @param emsg where to store the parser error message (if any)
+ * @return NULL on error, CHK URI otherwise
+ */
+static struct GNUNET_FS_Uri *
+uri_chk_parse (const char *s, char **emsg)
+{
+  struct GNUNET_FS_Uri *ret;
+  struct FileIdentifier fi;
+  unsigned int pos;
+  size_t slen;
+  char h1[sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded)];
+  char h2[sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded)];
+
+  GNUNET_assert (s != NULL);
+
+  slen = strlen (s);
+  pos = strlen (GNUNET_FS_URI_PREFIX GNUNET_FS_URI_CHK_INFIX);
+  if ( (slen < pos + 2 * sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) + 1) ||
+       (0 != strncmp (s, GNUNET_FS_URI_PREFIX GNUNET_FS_URI_CHK_INFIX, 
+		      pos) ) ||
+       (s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1] != '.') ||
+       (s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) * 2 - 1] != '.') )
+    return NULL;
+
+  memcpy (h1,
+	  &s[pos], 
+	  sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded));
+  h1[sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded)-1] = '\0';
+  memcpy (h2,
+	  &s[pos + sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded)],
+	  sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded));
+  h2[sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded)-1] = '\0';
+  
+  if ((GNUNET_OK != GNUNET_CRYPTO_hash_from_string (h1,
+					       &fi.chk.key)) ||
+      (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (h2,
+					       &fi.chk.query)) ||
+      (1 != SSCANF (&s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) * 2],
+                    "%llu", 
+		    &fi.file_length)))
+    return NULL;
+  fi.file_length = GNUNET_htonll (fi.file_length);
+
+  ret = GNUNET_malloc (sizeof(struct GNUNET_FS_Uri));
+  ret->type = chk;
+  ret->data.chk = fi;
+  return ret;
+}
+
+
+/**
+ * Parse a LOC URI.
+ * Also verifies validity of the location URI.
+ *
+ * @param s an uri string
+ * @param emsg where to store the parser error message (if any)
+ * @return NULL on error, valid LOC URI otherwise
+ */
+static struct GNUNET_FS_Uri *
+uri_loc_parse (const char *s, char **emsg)
+{
+  struct GNUNET_FS_Uri *ret;
+  char h1[sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded)];
+  char h2[sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded)];
+  unsigned int pos;
+  unsigned int npos;
+  unsigned long long exptime;
+  int ret;
+  size_t slen;
+  char *addr;
+
+  GNUNET_assert (s != NULL);
+  slen = strlen (s);
+  pos = strlen (GNUNET_FS_URI_PREFIX GNUNET_FS_URI_LOC_INFIX);
+  if ( (slen < pos + 2 * sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) + 1) ||
+       (0 != strncmp (s, GNUNET_FS_URI_PREFIX GNUNET_FS_URI_LOC_INFIX, 
+		      pos) ) ||
+       (s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1] != '.') ||
+       (s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) * 2 - 1] != '.') )
+    return NULL;
+
+  memcpy (h1,
+	  &s[pos], 
+	  sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded));
+  h1[sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded)-1] = '\0';
+  memcpy (h2,
+	  &s[pos + sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded)],
+	  sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded));
+  h2[sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded)-1] = '\0';
+  
+  if ((GNUNET_OK != GNUNET_CRYPTO_hash_from_string (h1,
+						    &fi.chk.key)) ||
+      (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (h2,
+						    &fi.chk.query)) 
+      (1 != SSCANF (&s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) * 2],
+                    "%llu", 
+		    &fi.file_length)) )
+    return NULL;
+  fi.file_length = GNUNET_htonll (fi.file_length);
+
+  npos = pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) * 2;
+  while ((s[npos] != '\0') && (s[npos] != '.'))
+    npos++;
+  if (s[npos] == '\0')
+    goto ERR;
+  ret = enc2bin (&s[npos], 
+		 &loc->peer,
+		 sizeof (GNUNET_RSA_PublicKey));
+  if (ret == -1)
+    goto ERR;
+  npos += ret;
+  if (dup[npos++] != '.')
+    goto ERR;
+  ret = enc2bin (&s[npos],
+		 &loc->contentSignature,
+		 sizeof (struct GNUNET_CRYPTO_RsaSignature));
+  if (ret == -1)
+    goto ERR;
+  npos += ret;
+  if (dup[npos++] != '.')
+    goto ERR;
+  if (1 != SSCANF (&dup[npos], "%llu", &exptime))
+    goto ERR;
+  // FIXME: do something to exptime...
+  /* Finally: verify sigs! */
+  if (GNUNET_OK != GNUNET_RSA_verify (&loc->fi,
+                                      sizeof (struct FileIdentifier) +
+                                      sizeof (GNUNET_PeerIdentity) +
+                                      sizeof (GNUNET_Int32Time),
+                                      &loc->contentSignature, 
+				      &loc->peer))
+    goto ERR;
+
+  ret = GNUNET_malloc (sizeof(struct GNUNET_FS_Uri));
+  ret->type = loc;
+  ret->data.loc.chk = fi;
+  ret->data.loc.xx = yy;
+
+  return ret;
+ERR:
+  GNUNET_free_non_null (addr);
+  return NULL;
+}
+
 
 /**
  * Convert a UTF-8 String to a URI.
@@ -149,7 +525,18 @@ GNUNET_FS_uri_ksk_to_string_fancy (const struct GNUNET_FS_Uri *uri);
  */
 struct GNUNET_FS_Uri *
 GNUNET_FS_uri_parse (const char *uri,
-		     char **emsg);
+		     char **emsg)
+{
+  struct GNUNET_FS_Uri *ret;
+
+  if ( (NULL != (ret = uri_chk_parse (uri, emsg))) ||
+       (NULL != (ret = uri_ksk_parse (uri, emsg))) ||
+       (NULL != (ret = uri_sks_parse (uri, emsg))) ||
+       (NULL != (ret = uri_loc_parse (uri, emsg))) )
+    return ret;
+  return NULL;
+}
+
 
 /**
  * Free URI.
@@ -223,7 +610,9 @@ GNUNET_FS_uri_ksk_get_keywords (const struct GNUNET_FS_Uri *uri,
       keyword = uri->data.ksk.keywords[i];
       /* first character of keyword indicates
          if it is mandatory or not */
-      if (GNUNET_OK != iterator (&keyword[1], keyword[0] == '+', cls))
+      if (GNUNET_OK != iterator (iterator_cls,
+				 &keyword[1],
+				 keyword[0] == '+'))
         return i;
     }
   return i;
@@ -243,8 +632,9 @@ GNUNET_FS_uri_loc_get_peer_identity (const struct GNUNET_FS_Uri *uri,
 {
   if (uri->type != loc)
     return GNUNET_SYSERR;
-  GNUNET_hash (&uri->data.loc.peer, sizeof (GNUNET_RSA_PublicKey),
-               &peer->hashPubKey);
+  GNUNET_CRYPTO_hash (&uri->data.loc.peer,
+		      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+		      &peer->hashPubKey);
   return GNUNET_OK;
 }
 
@@ -258,11 +648,11 @@ GNUNET_FS_uri_loc_get_peer_identity (const struct GNUNET_FS_Uri *uri,
 struct GNUNET_FS_Uri *
 GNUNET_FS_uri_loc_get_uri (const struct GNUNET_FS_Uri *uri)
 {
-  struct GNUNET_ECRS_Uri *ret;
+  struct GNUNET_FS_Uri *ret;
 
   if (uri->type != loc)
     return NULL;
-  ret = GNUNET_malloc (sizeof (struct GNUNET_ECRS_Uri));
+  ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
   ret->type = chk;
   ret->data.chk = uri->data.loc.fi;
   return ret;
@@ -292,7 +682,11 @@ GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *baseUri,
  * @return canonicalized version of the URI, NULL on error
  */
 struct GNUNET_FS_Uri *
-GNUNET_FS_uri_ksk_canonicalize (const struct GNUNET_FS_Uri *uri);
+GNUNET_FS_uri_ksk_canonicalize (const struct GNUNET_FS_Uri *uri)
+{
+  /* FIXME: not implemented */
+  return NULL;
+}
 
 
 /**
@@ -306,7 +700,11 @@ GNUNET_FS_uri_ksk_canonicalize (const struct GNUNET_FS_Uri *uri);
  */
 struct GNUNET_FS_Uri *
 GNUNET_FS_uri_ksk_merge (const struct GNUNET_FS_Uri *u1,
-			 const struct GNUNET_FS_Uri *u2);
+			 const struct GNUNET_FS_Uri *u2)
+{
+  /* FIXME */
+  return NULL;
+}
 
 
 /**
@@ -318,7 +716,7 @@ GNUNET_FS_uri_ksk_merge (const struct GNUNET_FS_Uri *u1,
 struct GNUNET_FS_Uri *
 GNUNET_FS_uri_dup (const struct GNUNET_FS_Uri *uri)
 {
-  struct GNUNET_ECRS_URI *ret;
+  struct GNUNET_FS_Uri *ret;
   unsigned int i;
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
@@ -366,7 +764,11 @@ GNUNET_FS_uri_dup (const struct GNUNET_FS_Uri *uri)
  *  if keywords is not legal (i.e. empty).
  */
 struct GNUNET_FS_Uri *
-GNUNET_FS_uri_ksk_create (const char *keywords);
+GNUNET_FS_uri_ksk_create (const char *keywords)
+{
+  /* FIXME */
+  return NULL;
+}
 
 
 /**
@@ -388,7 +790,11 @@ GNUNET_FS_uri_ksk_create (const char *keywords);
  */
 struct GNUNET_FS_Uri *
 GNUNET_FS_uri_ksk_create_from_args (unsigned int argc,
-				    const char **argv);
+				    const char **argv)
+{
+  /* FIXME */
+  return NULL;
+}
 
 
 /**
@@ -406,37 +812,37 @@ GNUNET_FS_uri_test_equal (const struct GNUNET_FS_Uri *u1,
   unsigned int i;
   unsigned int j;
 
-  GNUNET_assert (uri1 != NULL);
-  GNUNET_assert (uri2 != NULL);
-  if (uri1->type != uri2->type)
+  GNUNET_assert (u1 != NULL);
+  GNUNET_assert (u2 != NULL);
+  if (u1->type != u2->type)
     return GNUNET_NO;
-  switch (uri1->type)
+  switch (u1->type)
     {
     case chk:
-      if (0 == memcmp (&uri1->data.chk,
-                       &uri2->data.chk,
+      if (0 == memcmp (&u1->data.chk,
+                       &u2->data.chk,
 		       sizeof (struct FileIdentifier)))
         return GNUNET_YES;
       return GNUNET_NO;
     case sks:
-      if ((0 == memcmp (&uri1->data.sks.namespace,
-                        &uri2->data.sks.namespace,
+      if ((0 == memcmp (&u1->data.sks.namespace,
+                        &u2->data.sks.namespace,
                         sizeof (GNUNET_HashCode))) &&
-          (0 == strcmp (uri1->data.sks.identifier,
-                        uri2->data.sks.identifier)))
+          (0 == strcmp (u1->data.sks.identifier,
+                        u2->data.sks.identifier)))
 
         return GNUNET_YES;
       return GNUNET_NO;
     case ksk:
-      if (uri1->data.ksk.keywordCount != uri2->data.ksk.keywordCount)
+      if (u1->data.ksk.keywordCount != u2->data.ksk.keywordCount)
         return GNUNET_NO;
-      for (i = 0; i < uri1->data.ksk.keywordCount; i++)
+      for (i = 0; i < u1->data.ksk.keywordCount; i++)
         {
           ret = GNUNET_NO;
-          for (j = 0; j < uri2->data.ksk.keywordCount; j++)
+          for (j = 0; j < u2->data.ksk.keywordCount; j++)
             {
-              if (0 == strcmp (uri1->data.ksk.keywords[i],
-                               uri2->data.ksk.keywords[j]))
+              if (0 == strcmp (u1->data.ksk.keywords[i],
+                               u2->data.ksk.keywords[j]))
                 {
                   ret = GNUNET_YES;
                   break;
@@ -447,10 +853,10 @@ GNUNET_FS_uri_test_equal (const struct GNUNET_FS_Uri *u1,
         }
       return GNUNET_YES;
     case loc:
-      if (memcmp (&uri1->data.loc,
-                  &uri2->data.loc,
+      if (memcmp (&u1->data.loc,
+                  &u2->data.loc,
                   sizeof (struct FileIdentifier) +
-                  sizeof (GNUNET_RSA_PublicKey) +
+                  sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) +
                   sizeof (struct GNUNET_TIME_Absolute) +
                   sizeof (unsigned short) + sizeof (unsigned short)) != 0)
         return GNUNET_NO;
@@ -491,7 +897,7 @@ GNUNET_FS_uri_sks_get_namespace (const struct GNUNET_FS_Uri *uri,
       GNUNET_break (0);
       return GNUNET_SYSERR;
     }
-  *id = uri->data.sks.namespace;
+  *nsid = uri->data.sks.namespace;
   return GNUNET_OK;
 }
 
@@ -524,7 +930,11 @@ GNUNET_FS_uri_sks_get_content_id (const struct GNUNET_FS_Uri *uri)
  */
 char *
 GNUNET_FS_uri_sks_to_string_fancy (struct GNUNET_CONFIGURATION_Handle *cfg,
-				   const struct GNUNET_FS_Uri *uri);
+				   const struct GNUNET_FS_Uri *uri)
+{
+  /* FIXME */
+  return NULL;
+}
 
 
 /**
@@ -634,7 +1044,7 @@ gather_uri_data (void *cls,
  * @deprecated
  */
 struct GNUNET_FS_Uri *
-GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_MetaData *md)
+GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_CONTAINER_MetaData *md)
 {
   struct GNUNET_FS_Uri *ret;
 
@@ -646,16 +1056,11 @@ GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_MetaData *md)
   ret->data.ksk.keywords = NULL;
   ret->data.ksk.keywords
     = GNUNET_malloc (sizeof (char *) *
-                     GNUNET_meta_data_get_contents (md, NULL, NULL));
-  GNUNET_meta_data_get_contents (md, &gather_uri_data, ret);
+                     GNUNET_CONTAINER_meta_data_get_contents (md, NULL, NULL));
+  GNUNET_CONTAINER_meta_data_get_contents (md, &gather_uri_data, ret);
   return ret;
 
 }
-
-#if 0
-
-// old code...
-
 
 
 /**
@@ -669,13 +1074,18 @@ needs_percent (char c)
             (c == '-') || (c == '_') || (c == '.') || (c == '~')));
 }
 
+
 /**
- * Generate a keyword URI.
+ * Convert a KSK URI to a string.
+ *
+ * @param uri the URI to convert
  * @return NULL on error (i.e. keywordCount == 0)
  */
 static char *
-createKeywordURI (char **keywords, unsigned int keywordCount)
+uri_ksk_to_string (const struct GNUNET_FS_Uri *uri)
 {
+  char ** keywords; 
+  unsigned int keywordCount;
   size_t n;
   char *ret;
   unsigned int i;
@@ -684,9 +1094,13 @@ createKeywordURI (char **keywords, unsigned int keywordCount)
   size_t slen;
   const char *keyword;
 
+  if (uri->type != ksk)
+    return NULL;
+  keywords = uri->data.ksk.keywords;
+  keywordCount = uri->data.ksk.keywordCount;
   n =
-    keywordCount + strlen (GNUNET_ECRS_URI_PREFIX) +
-    strlen (GNUNET_ECRS_SEARCH_INFIX) + 1;
+    keywordCount + strlen (GNUNET_FS_URI_PREFIX) +
+    strlen (GNUNET_FS_URI_KSK_INFIX) + 1;
   for (i = 0; i < keywordCount; i++)
     {
       keyword = keywords[i];
@@ -704,8 +1118,8 @@ createKeywordURI (char **keywords, unsigned int keywordCount)
         }
     }
   ret = GNUNET_malloc (n);
-  strcpy (ret, GNUNET_ECRS_URI_PREFIX);
-  strcat (ret, GNUNET_ECRS_SEARCH_INFIX);
+  strcpy (ret, GNUNET_FS_URI_PREFIX);
+  strcat (ret, GNUNET_FS_URI_KSK_INFIX);
   wpos = strlen (ret);
   for (i = 0; i < keywordCount; i++)
     {
@@ -731,548 +1145,245 @@ createKeywordURI (char **keywords, unsigned int keywordCount)
   return ret;
 }
 
+
 /**
- * Generate a subspace URI.
+ * Convert SKS URI to a string.
+ *
+ * @param uri sks uri to convert
+ * @return NULL on error
  */
 static char *
-createSubspaceURI (const GNUNET_HashCode * namespace, const char *identifier)
+uri_sks_to_string (const struct GNUNET_FS_Uri *uri)
 {
-  size_t n;
+  const GNUNET_HashCode * namespace;
+  const char *identifier;
   char *ret;
-  GNUNET_EncName ns;
-
-  n =
-    sizeof (GNUNET_EncName) + strlen (GNUNET_ECRS_URI_PREFIX) +
-    strlen (GNUNET_ECRS_SUBSPACE_INFIX) + 1 + strlen (identifier);
-  ret = GNUNET_malloc (n);
-  GNUNET_hash_to_enc (namespace, &ns);
-  GNUNET_snprintf (ret, n,
+  struct GNUNET_CRYPTO_HashAsciiEncoded ns;
+  
+  if (uri->type != sks)
+    return NULL;
+  namespace = &uri->data.sks.namespace;
+  identifier = uri->data.sks.identifier;
+  GNUNET_CRYPTO_hash_to_enc (namespace, &ns);
+  GNUNET_asprintf (&ret,
                    "%s%s%s/%s",
-                   GNUNET_ECRS_URI_PREFIX, GNUNET_ECRS_SUBSPACE_INFIX,
+                   GNUNET_FS_URI_PREFIX, 
+		   GNUNET_FS_URI_SKS_INFIX,
                    (const char *) &ns, identifier);
   return ret;
 }
 
+
 /**
- * Generate a file URI.
+ * Convert a CHK URI to a string.
+ *
+ * @param uri chk uri to convert
+ * @return NULL on error
  */
 static char *
-createFileURI (const GNUNET_EC_FileIdentifier * fi)
+uri_chk_to_string (const struct GNUNET_FS_Uri *uri)
 {
+  const struct FileIdentifier * fi;
   char *ret;
-  GNUNET_EncName keyhash;
-  GNUNET_EncName queryhash;
-  size_t n;
+  struct GNUNET_CRYPTO_HashAsciiEncoded keyhash;
+  struct GNUNET_CRYPTO_HashAsciiEncoded queryhash;
 
-  GNUNET_hash_to_enc (&fi->chk.key, &keyhash);
-  GNUNET_hash_to_enc (&fi->chk.query, &queryhash);
+  if (uri->type != chk)
+    return NULL;
+  fi = &uri->data.chk;
+  GNUNET_CRYPTO_hash_to_enc (&fi->chk.key, &keyhash);
+  GNUNET_CRYPTO_hash_to_enc (&fi->chk.query, &queryhash);
 
-  n =
-    strlen (GNUNET_ECRS_URI_PREFIX) + 2 * sizeof (GNUNET_EncName) + 8 + 16 +
-    32 + strlen (GNUNET_ECRS_FILE_INFIX);
-  ret = GNUNET_malloc (n);
-  GNUNET_snprintf (ret,
-                   n,
+  GNUNET_asprintf (&ret,
                    "%s%s%s.%s.%llu",
-                   GNUNET_ECRS_URI_PREFIX,
-                   GNUNET_ECRS_FILE_INFIX,
-                   (char *) &keyhash, (char *) &queryhash,
+                   GNUNET_FS_URI_PREFIX,
+                   GNUNET_FS_URI_CHK_INFIX,
+                   (const char *) &keyhash, 
+		   (const char *) &queryhash,
                    GNUNET_ntohll (fi->file_length));
   return ret;
 }
 
-#include "bincoder.c"
-
 /**
- * Create a (string) location URI from a Location.
+ * Convert binary data to a string.
+ *
+ * @return converted data
  */
 static char *
-createLocURI (const Location * loc)
+bin2enc (const void *data, size_t size)
 {
-  size_t n;
+  /**
+   * 64 characters for encoding, 6 bits per character
+   */
+  static char *tbl =
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_=";
+  
+  size_t len;
+  size_t pos;
+  unsigned int bits;
+  unsigned int hbits;
   char *ret;
-  GNUNET_EncName keyhash;
-  GNUNET_EncName queryhash;
+
+  GNUNET_assert (strlen (tbl) == 64);
+  len = size * 8 / 6;
+  if (((size * 8) % 6) != 0)
+    len++;
+  ret = GNUNET_malloc (len + 1);
+  ret[len] = '\0';
+  len = 0;
+  bits = 0;
+  hbits = 0;
+  for (pos = 0; pos < size; pos++)
+    {
+      bits |= ((((const unsigned char *) data)[pos]) << hbits);
+      hbits += 8;
+      while (hbits >= 6)
+        {
+          ret[len++] = tbl[bits & 63];
+          bits >>= 6;
+          hbits -= 6;
+        }
+    }
+  if (hbits > 0)
+    ret[len++] = tbl[bits & 63];
+  return ret;
+}
+
+
+/**
+ * Convert a character back to the binary value
+ * that it represents (given base64-encoding).
+ *
+ * @param a character to convert
+ * @return offset in the "tbl" array
+ */
+static unsigned int
+c2v (unsigned char a)
+{
+  if ((a >= '0') && (a <= '9'))
+    return a - '0';
+  if ((a >= 'A') && (a <= 'Z'))
+    return (a - 'A' + 10);
+  if ((a >= 'a') && (a <= 'z'))
+    return (a - 'a' + 36);
+  if (a == '_')
+    return 62;
+  if (a == '=')
+    return 63;
+  return -1;
+}
+
+
+/**
+ * Convert string back to binary data.
+ *
+ * @param input '\0'-terminated string
+ * @param data where to write binary data
+ * @param size how much data should be converted
+ * @return number of characters processed from input,
+ *        -1 on error
+ */
+static int
+enc2bin (const char *input, void *data, size_t size)
+{
+  size_t len;
+  size_t pos;
+  unsigned int bits;
+  unsigned int hbits;
+
+  len = size * 8 / 6;
+  if (((size * 8) % 6) != 0)
+    len++;
+  if (strlen (input) < len)
+    return -1;                  /* error! */
+  bits = 0;
+  hbits = 0;
+  len = 0;
+  pos = 0;
+  for (pos = 0; pos < size; pos++)
+    {
+      while (hbits < 8)
+        {
+          bits |= (c2v (input[len++]) << hbits);
+          hbits += 6;
+        }
+      (((unsigned char *) data)[pos]) = (unsigned char) bits;
+      bits >>= 8;
+      hbits -= 8;
+    }
+  return len;
+}
+
+
+/**
+ * Convert a LOC URI to a string.
+ *
+ * @param uri loc uri to convert
+ * @return NULL on error
+ */
+static char *
+uri_loc_to_string (const struct GNUNET_FS_Uri *uri)
+{
+  char *ret;
+  struct GNUNET_CRYPTO_HashAsciiEncoded keyhash;
+  struct GNUNET_CRYPTO_HashAsciiEncoded queryhash;
   char *peerId;
   char *peerSig;
 
-  GNUNET_hash_to_enc (&loc->fi.chk.key, &keyhash);
-  GNUNET_hash_to_enc (&loc->fi.chk.query, &queryhash);
-  n = 2148;
-  peerId = bin2enc (&loc->peer, sizeof (GNUNET_RSA_PublicKey));
-  peerSig = bin2enc (&loc->contentSignature, sizeof (GNUNET_RSA_Signature));
-  ret = GNUNET_malloc (n);
-  GNUNET_snprintf (ret,
-                   n,
-                   "%s%s%s.%s.%llu.%s.%s.%u",
-                   GNUNET_ECRS_URI_PREFIX,
-                   GNUNET_ECRS_LOCATION_INFIX,
-                   (char *) &keyhash,
-                   (char *) &queryhash,
-                   GNUNET_ntohll (loc->fi.file_length),
-                   peerId, peerSig, loc->expirationTime);
+  GNUNET_CRYPTO_hash_to_enc (&uri->data.loc.fi.chk.key, &keyhash);
+  GNUNET_CRYPTO_hash_to_enc (&uri->data.loc.fi.chk.query, &queryhash);
+  peerId = bin2enc (&uri->data.loc.peer,
+		    sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+  peerSig = bin2enc (&uri->data.loc.contentSignature, 
+		     sizeof (struct GNUNET_CRYPTO_RsaSignature));
+  GNUNET_asprintf (&ret,
+                   "%s%s%s.%s.%llu.%s.%s.%u", // FIXME: expirationTime 64-bit???
+                   GNUNET_FS_URI_PREFIX,
+                   GNUNET_FS_URI_LOC_INFIX,
+                   (const char *) &keyhash,
+                   (const char *) &queryhash,
+                   GNUNET_ntohll (uri->data.loc.fi.file_length),
+                   peerId,
+		   peerSig,
+		   uri->data.loc.expirationTime);
   GNUNET_free (peerSig);
   GNUNET_free (peerId);
   return ret;
 }
 
+
 /**
  * Convert a URI to a UTF-8 String.
+ *
+ * @param uri uri to convert to a string
+ * @return the UTF-8 string
  */
 char *
-GNUNET_ECRS_uri_to_string (const struct GNUNET_ECRS_URI *uri)
+GNUNET_FS_uri_to_string (const struct GNUNET_FS_Uri *uri)
 {
   if (uri == NULL)
     {
-      GNUNET_GE_BREAK (NULL, 0);
+      GNUNET_break (0);
       return NULL;
     }
   switch (uri->type)
     {
     case ksk:
-      return createKeywordURI (uri->data.ksk.keywords,
-                               uri->data.ksk.keywordCount);
+      return uri_ksk_to_string (uri);
     case sks:
-      return createSubspaceURI (&uri->data.sks.namespace,
-                                uri->data.sks.identifier);
+      return uri_sks_to_string (uri);
     case chk:
-      return createFileURI (&uri->data.fi);
+      return uri_chk_to_string (uri);
     case loc:
-      return createLocURI (&uri->data.loc);
+      return uri_loc_to_string (uri);
     default:
-      GNUNET_GE_BREAK (NULL, 0);
+      GNUNET_break (0);
       return NULL;
     }
 }
 
-/**
- * Convert keyword URI to a human readable format
- * (i.e. the search query that was used in the first place)
- */
-char *
-GNUNET_ECRS_ksk_uri_to_human_readable_string (const struct GNUNET_ECRS_URI
-                                              *uri)
-{
-  size_t n;
-  char *ret;
-  unsigned int i;
-  const char *keyword;
-  char **keywords;
-  unsigned int keywordCount;
 
-  if ((uri == NULL) || (uri->type != ksk))
-    {
-      GNUNET_GE_BREAK (NULL, 0);
-      return NULL;
-    }
-  keywords = uri->data.ksk.keywords;
-  keywordCount = uri->data.ksk.keywordCount;
-  n = keywordCount + 1;
-  for (i = 0; i < keywordCount; i++)
-    {
-      keyword = keywords[i];
-      n += strlen (keyword) - 1;
-      if (NULL != strstr (&keyword[1], " "))
-        n += 2;
-      if (keyword[0] == '+')
-        n++;
-    }
-  ret = GNUNET_malloc (n);
-  strcpy (ret, "");
-  for (i = 0; i < keywordCount; i++)
-    {
-      keyword = keywords[i];
-      if (NULL != strstr (&keyword[1], " "))
-        {
-          strcat (ret, "\"");
-          if (keyword[0] == '+')
-            strcat (ret, keyword);
-          else
-            strcat (ret, &keyword[1]);
-          strcat (ret, "\"");
-        }
-      else
-        {
-          if (keyword[0] == '+')
-            strcat (ret, keyword);
-          else
-            strcat (ret, &keyword[1]);
-        }
-      strcat (ret, " ");
-    }
-  return ret;
-}
-
-/**
- * Given a keyword with %-encoding (and possibly quotes to protect
- * spaces), return a copy of the keyword without %-encoding and
- * without double-quotes (%22).  Also, add a space at the beginning
- * if there is not a '+'.
- */
-static char *
-percent_decode_keyword (const char *in)
-{
-  char *out;
-  char *ret;
-  unsigned int rpos;
-  unsigned int wpos;
-  unsigned int hx;
-
-  out = GNUNET_strdup (in);
-  rpos = 0;
-  wpos = 0;
-  while (out[rpos] != '\0')
-    {
-      if (out[rpos] == '%')
-        {
-          if (1 != sscanf (&out[rpos + 1], "%2X", &hx))
-            {
-              GNUNET_free (out);
-              return NULL;
-            }
-          rpos += 3;
-          if (hx == '"')
-            continue;           /* skip double quote */
-          out[wpos++] = (char) hx;
-        }
-      else
-        {
-          out[wpos++] = out[rpos++];
-        }
-    }
-  out[wpos] = '\0';
-  if (out[0] == '+')
-    {
-      ret = GNUNET_strdup (out);
-    }
-  else
-    {
-      /* need to prefix with space */
-      ret = GNUNET_malloc (strlen (out) + 2);
-      strcpy (ret, " ");
-      strcat (ret, out);
-    }
-  GNUNET_free (out);
-  return ret;
-}
-
-/**
- * Parses an ECRS search URI.
- *
- * @param uri an uri string
- * @param keyword will be set to an array with the keywords
- * @return GNUNET_SYSERR if this is not a search URI, otherwise
- *  the number of keywords placed in the array
- */
-static int
-parseKeywordURI (struct GNUNET_GE_Context *ectx, const char *uri,
-                 char ***keywords)
-{
-  unsigned int pos;
-  int ret;
-  int iret;
-  int i;
-  size_t slen;
-  char *dup;
-  int saw_quote;
-
-  GNUNET_GE_ASSERT (ectx, uri != NULL);
-
-  slen = strlen (uri);
-  pos = strlen (GNUNET_ECRS_URI_PREFIX);
-
-  if (0 != strncmp (uri, GNUNET_ECRS_URI_PREFIX, pos))
-    return GNUNET_SYSERR;
-  if (0 !=
-      strncmp (&uri[pos], GNUNET_ECRS_SEARCH_INFIX,
-               strlen (GNUNET_ECRS_SEARCH_INFIX)))
-    return GNUNET_SYSERR;
-  pos += strlen (GNUNET_ECRS_SEARCH_INFIX);
-  if (slen == pos)
-    {
-      /* no keywords */
-      (*keywords) = NULL;
-      return 0;
-    }
-  if ((uri[slen - 1] == '+') || (uri[pos] == '+'))
-    return GNUNET_SYSERR;       /* no keywords / malformed */
-
-  ret = 1;
-  saw_quote = 0;
-  for (i = pos; i < slen; i++)
-    {
-      if ((uri[i] == '%') && (&uri[i] == strstr (&uri[i], "%22")))
-        {
-          saw_quote = (saw_quote + 1) % 2;
-          i += 3;
-          continue;
-        }
-      if ((uri[i] == '+') && (saw_quote == 0))
-        {
-          ret++;
-          if (uri[i - 1] == '+')
-            return GNUNET_SYSERR;       /* "++" not allowed */
-        }
-    }
-  if (saw_quote == 1)
-    return GNUNET_SYSERR;       /* quotes not balanced */
-  iret = ret;
-  dup = GNUNET_strdup (uri);
-  (*keywords) = GNUNET_malloc (ret * sizeof (char *));
-  for (i = 0; i < ret; i++)
-    (*keywords)[i] = NULL;
-  for (i = slen - 1; i >= pos; i--)
-    {
-      if ((uri[i] == '%') && (&uri[i] == strstr (&uri[i], "%22")))
-        {
-          saw_quote = (saw_quote + 1) % 2;
-          i += 3;
-          continue;
-        }
-      if ((dup[i] == '+') && (saw_quote == 0))
-        {
-          (*keywords)[--ret] = percent_decode_keyword (&dup[i + 1]);
-          if (NULL == (*keywords)[ret])
-            goto CLEANUP;
-          dup[i] = '\0';
-        }
-    }
-  (*keywords)[--ret] = percent_decode_keyword (&dup[pos]);
-  if (NULL == (*keywords)[ret])
-    goto CLEANUP;
-  GNUNET_GE_ASSERT (ectx, ret == 0);
-  GNUNET_free (dup);
-  return iret;
-CLEANUP:
-  for (i = 0; i < ret; i++)
-    GNUNET_free_non_null ((*keywords)[i]);
-  GNUNET_free (*keywords);
-  *keywords = NULL;
-  GNUNET_free (dup);
-  return GNUNET_SYSERR;
-}
-
-/**
- * Parses an AFS namespace / subspace identifier URI.
- *
- * @param uri an uri string
- * @param namespace set to the namespace ID
- * @param identifier set to the ID in the namespace
- * @return GNUNET_OK on success, GNUNET_SYSERR if this is not a namespace URI
- */
-static int
-parseSubspaceURI (struct GNUNET_GE_Context *ectx,
-                  const char *uri,
-                  GNUNET_HashCode * namespace, char **identifier)
-{
-  unsigned int pos;
-  size_t slen;
-  char *up;
-
-  GNUNET_GE_ASSERT (ectx, uri != NULL);
-
-  slen = strlen (uri);
-  pos = strlen (GNUNET_ECRS_URI_PREFIX);
-
-  if (0 != strncmp (uri, GNUNET_ECRS_URI_PREFIX, pos))
-    return GNUNET_SYSERR;
-  if (0 != strncmp (&uri[pos],
-                    GNUNET_ECRS_SUBSPACE_INFIX,
-                    strlen (GNUNET_ECRS_SUBSPACE_INFIX)))
-    return GNUNET_SYSERR;
-  pos += strlen (GNUNET_ECRS_SUBSPACE_INFIX);
-  if ((slen < pos + sizeof (GNUNET_EncName) + 1) ||
-      (!((uri[pos + sizeof (GNUNET_EncName) - 1] == '/') ||
-         (uri[pos + sizeof (GNUNET_EncName) - 1] == '\\'))))
-    return GNUNET_SYSERR;
-
-  up = GNUNET_strdup (uri);
-  up[pos + sizeof (GNUNET_EncName) - 1] = '\0';
-  if ((GNUNET_OK != GNUNET_enc_to_hash (&up[pos], namespace)))
-    {
-      GNUNET_free (up);
-      return GNUNET_SYSERR;
-    }
-  *identifier = GNUNET_strdup (&up[pos + sizeof (GNUNET_EncName)]);
-  GNUNET_free (up);
-  return GNUNET_OK;
-}
-
-/**
- * Parses an URI that identifies a file
- *
- * @param uri an uri string
- * @param fi the file identifier
- * @return GNUNET_OK on success, GNUNET_SYSERR if this is not a file URI
- */
-static int
-parseFileURI (struct GNUNET_GE_Context *ectx, const char *uri,
-              GNUNET_EC_FileIdentifier * fi)
-{
-  unsigned int pos;
-  size_t slen;
-  char *dup;
-
-  GNUNET_GE_ASSERT (ectx, uri != NULL);
-
-  slen = strlen (uri);
-  pos = strlen (GNUNET_ECRS_URI_PREFIX);
-
-  if (0 != strncmp (uri, GNUNET_ECRS_URI_PREFIX, pos))
-    return GNUNET_SYSERR;
-  if (0 !=
-      strncmp (&uri[pos], GNUNET_ECRS_FILE_INFIX,
-               strlen (GNUNET_ECRS_FILE_INFIX)))
-    return GNUNET_SYSERR;
-  pos += strlen (GNUNET_ECRS_FILE_INFIX);
-  if ((slen < pos + 2 * sizeof (GNUNET_EncName) + 1) ||
-      (uri[pos + sizeof (GNUNET_EncName) - 1] != '.') ||
-      (uri[pos + sizeof (GNUNET_EncName) * 2 - 1] != '.'))
-    return GNUNET_SYSERR;
-
-  dup = GNUNET_strdup (uri);
-  dup[pos + sizeof (GNUNET_EncName) - 1] = '\0';
-  dup[pos + sizeof (GNUNET_EncName) * 2 - 1] = '\0';
-  if ((GNUNET_OK != GNUNET_enc_to_hash (&dup[pos],
-                                        &fi->chk.key)) ||
-      (GNUNET_OK != GNUNET_enc_to_hash (&dup[pos + sizeof (GNUNET_EncName)],
-                                        &fi->chk.query)) ||
-      (1 != SSCANF (&dup[pos + sizeof (GNUNET_EncName) * 2],
-                    "%llu", &fi->file_length)))
-    {
-      GNUNET_free (dup);
-      return GNUNET_SYSERR;
-    }
-  GNUNET_free (dup);
-  fi->file_length = GNUNET_htonll (fi->file_length);
-  return GNUNET_OK;
-}
-
-/**
- * Parses an URI that identifies a location (and file).
- * Also verifies validity of the location URI.
- *
- * @param uri an uri string
- * @param loc where to store the location
- * @return GNUNET_OK on success, GNUNET_SYSERR if this is not a file URI
- */
-static int
-parseLocationURI (struct GNUNET_GE_Context *ectx, const char *uri,
-                  Location * loc)
-{
-  unsigned int pos;
-  unsigned int npos;
-  int ret;
-  size_t slen;
-  char *dup;
-  char *addr;
-
-
-  GNUNET_GE_ASSERT (ectx, uri != NULL);
-  addr = NULL;
-  slen = strlen (uri);
-  pos = strlen (GNUNET_ECRS_URI_PREFIX);
-
-  if (0 != strncmp (uri, GNUNET_ECRS_URI_PREFIX, pos))
-    return GNUNET_SYSERR;
-  if (0 != strncmp (&uri[pos],
-                    GNUNET_ECRS_LOCATION_INFIX,
-                    strlen (GNUNET_ECRS_LOCATION_INFIX)))
-    return GNUNET_SYSERR;
-  pos += strlen (GNUNET_ECRS_LOCATION_INFIX);
-  if ((slen < pos + 2 * sizeof (GNUNET_EncName) + 1) ||
-      (uri[pos + sizeof (GNUNET_EncName) - 1] != '.') ||
-      (uri[pos + sizeof (GNUNET_EncName) * 2 - 1] != '.'))
-    return GNUNET_SYSERR;
-
-  dup = GNUNET_strdup (uri);
-  dup[pos + sizeof (GNUNET_EncName) - 1] = '\0';
-  dup[pos + sizeof (GNUNET_EncName) * 2 - 1] = '\0';
-  npos = pos + sizeof (GNUNET_EncName) * 2;
-  while ((uri[npos] != '\0') && (uri[npos] != '.'))
-    npos++;
-  if (dup[npos] == '\0')
-    goto ERR;
-  dup[npos++] = '\0';
-  if ((GNUNET_OK != GNUNET_enc_to_hash (&dup[pos],
-                                        &loc->fi.chk.key)) ||
-      (GNUNET_OK != GNUNET_enc_to_hash (&dup[pos + sizeof (GNUNET_EncName)],
-                                        &loc->fi.chk.query)) ||
-      (1 != SSCANF (&dup[pos + sizeof (GNUNET_EncName) * 2],
-                    "%llu", &loc->fi.file_length)))
-    goto ERR;
-  loc->fi.file_length = GNUNET_htonll (loc->fi.file_length);
-  ret = enc2bin (&dup[npos], &loc->peer, sizeof (GNUNET_RSA_PublicKey));
-  if (ret == -1)
-    goto ERR;
-  npos += ret;
-  if (dup[npos++] != '.')
-    goto ERR;
-  ret =
-    enc2bin (&dup[npos], &loc->contentSignature,
-             sizeof (GNUNET_RSA_Signature));
-  if (ret == -1)
-    goto ERR;
-  npos += ret;
-  if (dup[npos++] != '.')
-    goto ERR;
-  if (1 != SSCANF (&dup[npos], "%u", &loc->expirationTime))
-    goto ERR;
-  /* Finally: verify sigs! */
-  if (GNUNET_OK != GNUNET_RSA_verify (&loc->fi,
-                                      sizeof (GNUNET_EC_FileIdentifier) +
-                                      sizeof (GNUNET_PeerIdentity) +
-                                      sizeof (GNUNET_Int32Time),
-                                      &loc->contentSignature, &loc->peer))
-    goto ERR;
-  GNUNET_free (dup);
-  return GNUNET_OK;
-ERR:
-  GNUNET_free (dup);
-  GNUNET_free_non_null (addr);
-  return GNUNET_SYSERR;
-}
-
-/**
- * Convert a UTF-8 String to a URI.
- */
-URI *
-GNUNET_ECRS_string_to_uri (struct GNUNET_GE_Context * ectx, const char *uri)
-{
-  URI *ret;
-  int len;
-
-  ret = GNUNET_malloc (sizeof (URI));
-  if (GNUNET_OK == parseFileURI (ectx, uri, &ret->data.fi))
-    {
-      ret->type = chk;
-      return ret;
-    }
-  if (GNUNET_OK == parseSubspaceURI (ectx,
-                                     uri,
-                                     &ret->data.sks.namespace,
-                                     &ret->data.sks.identifier))
-    {
-      ret->type = sks;
-      return ret;
-    }
-  if (GNUNET_OK == parseLocationURI (ectx, uri, &ret->data.loc))
-    {
-      ret->type = loc;
-      return ret;
-    }
-  len = parseKeywordURI (ectx, uri, &ret->data.ksk.keywords);
-  if (len < 0)
-    {
-      GNUNET_free (ret);
-      return NULL;
-    }
-  ret->type = ksk;
-  ret->data.ksk.keywordCount = len;
-  return ret;
-}
-
-
+#if 0
 
 /**
  * Construct a location URI.

@@ -748,6 +748,7 @@ src/core/Makefile
 src/datacache/Makefile
 src/datastore/Makefile
 src/fragmentation/Makefile
+src/fs/Makefile
 src/hello/Makefile
 src/include/Makefile
 src/include/gnunet_directories.h

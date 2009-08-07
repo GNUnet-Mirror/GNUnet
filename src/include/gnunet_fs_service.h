@@ -58,11 +58,11 @@ extern "C"
 
 /* ******************** URI API *********************** */
 
-#define GNUNET_FS_URI_PREFIX      "gnunet://fs/"
-#define GNUNET_FS_SEARCH_INFIX    "ksk/"
-#define GNUNET_FS_SUBSPACE_INFIX  "sks/"
-#define GNUNET_FS_FILE_INFIX      "chk/"
-#define GNUNET_FS_LOCATION_INFIX  "loc/"
+#define GNUNET_FS_URI_PREFIX "gnunet://fs/"
+#define GNUNET_FS_URI_KSK_INFIX "ksk/"
+#define GNUNET_FS_URI_SKS_INFIX "sks/"
+#define GNUNET_FS_URI_CHK_INFIX "chk/"
+#define GNUNET_FS_URI_LOC_INFIX "loc/"
 
 
 /**
@@ -378,7 +378,7 @@ GNUNET_FS_uri_test_loc (const struct GNUNET_FS_Uri *uri);
  * @deprecated
  */
 struct GNUNET_FS_Uri *
-GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_MetaData *md);
+GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_CONTAINER_MetaData *md);
 
 
 /* ******************** command-line option parsing API *********************** */
@@ -396,7 +396,7 @@ GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_MetaData *md);
  * @return GNUNET_OK on success
  */
 int
-GNUNET_FS_getopt_configure_set_keywords (GNUNET_GETOPT_CommandLineProcessorContext* ctx, 
+GNUNET_FS_getopt_configure_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext* ctx, 
 					 void *scls,
 					 const char *option,
 					 const char *value);
@@ -415,7 +415,7 @@ GNUNET_FS_getopt_configure_set_keywords (GNUNET_GETOPT_CommandLineProcessorConte
  * @return GNUNET_OK on success
  */
 int
-GNUNET_FS_getopt_configure_set_metadata (GNUNET_GETOPT_CommandLineProcessorContext* ctx, 
+GNUNET_FS_getopt_configure_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext* ctx, 
 					 void *scls,
 					 const char *option,
 					 const char *value);
@@ -627,26 +627,6 @@ enum GNUNET_FS_Status
   GNUNET_FS_STATUS_UNINDEX_STOPPED
 
 };
-
-
-/**
- * Notification of FS to a client about the progress of an 
- * operation.  Callbacks of this type will be used for uploads,
- * downloads and searches.  Some of the arguments depend a bit 
- * in their meaning on the context in which the callback is used.
- *
- * @param cls closure
- * @param info details about the event, specifying the event type
- *        and various bits about the event
- * @return client-context (for the next progress call
- *         for this operation; should be set to NULL for
- *         SUSPEND and STOPPED events).  The value returned
- *         will be passed to future callbacks in the respective
- *         field in the GNUNET_FS_ProgressInfo struct.
- */
-typedef int (*GNUNET_FS_ProgressCallback)
-  (void *cls,
-   const struct GNUNET_FS_ProgressInfo *info);
 
 
 /**
@@ -1230,7 +1210,7 @@ struct GNUNET_FS_ProgressInfo
 	  /**
 	   * Hash-identifier for the namespace.
 	   */
-	  struct GNUNET_HashCode id;      
+	  GNUNET_HashCode id;      
 	  
 	} namespace;
 
@@ -1349,6 +1329,26 @@ struct GNUNET_FS_ProgressInfo
   enum GNUNET_FS_Status status;
 
 };
+
+
+/**
+ * Notification of FS to a client about the progress of an 
+ * operation.  Callbacks of this type will be used for uploads,
+ * downloads and searches.  Some of the arguments depend a bit 
+ * in their meaning on the context in which the callback is used.
+ *
+ * @param cls closure
+ * @param info details about the event, specifying the event type
+ *        and various bits about the event
+ * @return client-context (for the next progress call
+ *         for this operation; should be set to NULL for
+ *         SUSPEND and STOPPED events).  The value returned
+ *         will be passed to future callbacks in the respective
+ *         field in the GNUNET_FS_ProgressInfo struct.
+ */
+typedef int (*GNUNET_FS_ProgressCallback)
+  (void *cls,
+   const struct GNUNET_FS_ProgressInfo *info);
 
 
 /**
@@ -1527,9 +1527,9 @@ GNUNET_FS_file_information_create_from_reader (void *client_info,
  * @param fi information about the file (should not be
  *        used henceforth by the caller)
  */
-typedef void (*GNUNET_FS_FileInformationProcessor)(void *cls,					
-						   const char *filename,
-						   struct GNUNET_FS_FileInformation *fi);
+typedef void (*GNUNET_FS_FileProcessor)(void *cls,
+					const char *filename,
+					struct GNUNET_FS_FileInformation *fi);
 
 
 /**
@@ -1661,7 +1661,7 @@ GNUNET_FS_file_information_add (struct GNUNET_FS_FileInformation *dir,
  */
 void
 GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
-				    struct GNUNET_FS_FileInformationProcessor proc,
+				    GNUNET_FS_FileInformationProcessor proc,
 				    void *proc_cls);
 
 
@@ -1699,7 +1699,7 @@ struct GNUNET_FS_ShareContext *
 GNUNET_FS_share_start (struct GNUNET_FS_Handle *h,
 		       void *ctx,
 		       const struct GNUNET_FS_FileInformation *fi,
-		       struct GNUNET_FS_Namespace *namespace
+		       struct GNUNET_FS_Namespace *namespace,
 		       const char *nid,
 		       const char *nuid);
 
@@ -1722,8 +1722,8 @@ GNUNET_FS_share_stop (struct GNUNET_FS_ShareContext *sc);
  * @param filename the name of the file
  * @return GNUNET_OK to continue iteration, GNUNET_SYSERR to abort
  */
-typedef int (*GNUNET_FS_FileProcessor) (void *cls,
-					const char *filename);
+typedef int (*GNUNET_FS_IndexedFileProcessor) (void *cls,
+					       const char *filename);
 
 
 /**
@@ -1735,7 +1735,7 @@ typedef int (*GNUNET_FS_FileProcessor) (void *cls,
  */
 void 
 GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
-			     GNUNET_FS_FileProcessor iterator,
+			     GNUNET_FS_IndexedFileProcessor iterator,
 			     void *iterator_cls);
 
 
@@ -1842,7 +1842,7 @@ typedef void (*GNUNET_FS_NamespaceInfoProcessor) (void *cls,
  */
 int 
 GNUNET_FS_namespace_list (struct GNUNET_FS_Handle *h,
-			  GNUNET_FS_NamespaceProcessor cb,
+			  GNUNET_FS_NamespaceInfoProcessor cb,
 			  void *cb_cls);
 
 
@@ -2074,7 +2074,7 @@ GNUNET_FS_meta_data_make_directory (struct GNUNET_CONTAINER_MetaData *md);
 typedef void (*GNUNET_FS_DirectoryEntryProcessor)(void *cls,
 						  const char *filename,
 						  const struct GNUNET_FS_Uri *uri,
-						  const struct GNUNET_FS_MetaData *meta,
+						  const struct GNUNET_CONTAINER_MetaData *meta,
 						  size_t length,
 						  const void *data);
 
