@@ -24,6 +24,7 @@ libgnunetutil_la_SOURCES = \
   container_bloomfilter.c \
   container_meta_data.c \
   container_multihashmap.c \
+  container_vector.c \
   crypto_aes.c \
   crypto_crc.c \
   crypto_hash.c \
@@ -79,6 +80,7 @@ check_PROGRAMS = \
  test_container_bloomfilter \
  test_container_meta_data \
  test_container_multihashmap \
+ test_container_vector \
  test_crypto_aes \
  test_crypto_aes_weak \
  test_crypto_crc \
@@ -150,6 +152,11 @@ test_container_meta_data_LDADD = \
 test_container_multihashmap_SOURCES = \
  test_container_multihashmap.c
 test_container_multihashmap_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+test_container_vector_SOURCES = \
+ test_container_vector.c
+test_container_vector_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_crypto_aes_SOURCES = \
