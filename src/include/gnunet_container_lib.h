@@ -790,14 +790,14 @@ void GNUNET_CONTAINER_vector_dump(struct GNUNET_CONTAINER_Vector *v);
 /**
  * Allocate a new vector structure with a single empty data segment.
  */
-struct GNUNET_CONTAINER_Vector * GNUNET_CONTAINER_vector_new(unsigned int vss);
+struct GNUNET_CONTAINER_Vector * GNUNET_CONTAINER_vector_create(unsigned int vss);
 
 /**
  * Free vector structure including its data segments, but _not_ including the
  * stored void pointers. It is the user's responsibility to empty the vector
  * when necessary to avoid memory leakage.
  */
-void GNUNET_CONTAINER_vector_free(struct GNUNET_CONTAINER_Vector *v);
+void GNUNET_CONTAINER_vector_destroy(struct GNUNET_CONTAINER_Vector *v);
 
 /**
  * Return the size of the vector.

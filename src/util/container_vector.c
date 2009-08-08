@@ -272,7 +272,7 @@ static void vectorFindObject(struct GNUNET_CONTAINER_Vector *v,
 /**
  * Allocate a new vector structure with a single empty data segment.
  */
-struct GNUNET_CONTAINER_Vector * GNUNET_CONTAINER_vector_new(unsigned int vss) {
+struct GNUNET_CONTAINER_Vector * GNUNET_CONTAINER_vector_create(unsigned int vss) {
    struct GNUNET_CONTAINER_Vector *rvalue;
 
    if (vss < 2)
@@ -296,7 +296,7 @@ struct GNUNET_CONTAINER_Vector * GNUNET_CONTAINER_vector_new(unsigned int vss) {
  * stored void pointers. It is the user's responsibility to empty the vector
  * when necessary to avoid memory leakage.
  */
-void GNUNET_CONTAINER_vector_free(struct GNUNET_CONTAINER_Vector *v) {
+void GNUNET_CONTAINER_vector_destroy(struct GNUNET_CONTAINER_Vector *v) {
   VectorSegment * vs;
   VectorSegment * vsNext;
 

@@ -30,7 +30,7 @@
 static int test(int size) {
   struct GNUNET_CONTAINER_Vector * v;
 
-  v = GNUNET_CONTAINER_vector_new(size);
+  v = GNUNET_CONTAINER_vector_create(size);
   if (0 != GNUNET_CONTAINER_vector_size(v))
     { DUMP(v); return 1; }
   if (GNUNET_OK != GNUNET_CONTAINER_vector_insert_at(v, "first", 0))
@@ -76,7 +76,7 @@ static int test(int size) {
     { DUMP(v); return 1; }
   if (0 != GNUNET_CONTAINER_vector_size(v))
     { DUMP(v); return 1; }
-  GNUNET_CONTAINER_vector_free(v);
+  GNUNET_CONTAINER_vector_destroy(v);
   return 0;
 }
 
@@ -84,7 +84,7 @@ static int test2(int size) {
   long i;
   struct GNUNET_CONTAINER_Vector * v;
 
-  v = GNUNET_CONTAINER_vector_new(size);
+  v = GNUNET_CONTAINER_vector_create(size);
 
   for (i=0;i<500;i++)
     if (GNUNET_OK != GNUNET_CONTAINER_vector_insert_at(v, (void*)i, 0))
@@ -109,16 +109,16 @@ static int test2(int size) {
     if (i != (long) GNUNET_CONTAINER_vector_get_previous(v))
       { DUMP(v); return 1; }
 
-  GNUNET_CONTAINER_vector_free(v);
+  GNUNET_CONTAINER_vector_destroy(v);
   return 0;
 }
 
 
 int main(int argc,
 	 char * argv[]) {
-  if (NULL != GNUNET_CONTAINER_vector_new(0))
+  if (NULL != GNUNET_CONTAINER_vector_create(0))
     { printf("At %d\n", __LINE__); return 1; }
-  if (NULL != GNUNET_CONTAINER_vector_new(1))
+  if (NULL != GNUNET_CONTAINER_vector_create(1))
     { printf("At %d\n", __LINE__); return 1; }
   if (test(2) != 0)
     { printf("At %d\n", __LINE__); return 1; }
