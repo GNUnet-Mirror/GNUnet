@@ -32,11 +32,11 @@
 #define PORT 12435
 
 
-static struct GNUNET_NETWORK_SocketHandle *csock;
+static struct GNUNET_NETWORK_ConnectionHandle *csock;
 
-static struct GNUNET_NETWORK_SocketHandle *asock;
+static struct GNUNET_NETWORK_ConnectionHandle *asock;
 
-static struct GNUNET_NETWORK_SocketHandle *lsock;
+static struct GNUNET_NETWORK_ConnectionHandle *lsock;
 
 static int ls;
 
@@ -85,13 +85,13 @@ static void
 run_accept_cancel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 
-  asock = GNUNET_NETWORK_socket_create_from_accept (tc->sched,
+  asock = GNUNET_NETWORK_connection_create_from_accept (tc->sched,
                                                     NULL, NULL, ls, 1024);
   GNUNET_assert (asock != NULL);
-  GNUNET_assert (GNUNET_YES == GNUNET_NETWORK_socket_check (asock));
-  GNUNET_NETWORK_socket_destroy (lsock);
+  GNUNET_assert (GNUNET_YES == GNUNET_NETWORK_connection_check (asock));
+  GNUNET_NETWORK_connection_destroy (lsock);
   receive_task
-    = GNUNET_NETWORK_receive (asock,
+    = GNUNET_NETWORK_connection_receive (asock,
                               1024,
                               GNUNET_TIME_relative_multiply
                               (GNUNET_TIME_UNIT_SECONDS, 5), &dead_receive,
@@ -103,9 +103,9 @@ static void
 receive_cancel_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   int *ok = cls;
-  GNUNET_NETWORK_receive_cancel (asock, receive_task);
-  GNUNET_NETWORK_socket_destroy (csock);
-  GNUNET_NETWORK_socket_destroy (asock);
+  GNUNET_NETWORK_connection_receive_cancel (asock, receive_task);
+  GNUNET_NETWORK_connection_destroy (csock);
+  GNUNET_NETWORK_connection_destroy (asock);
   *ok = 0;
 }
 
@@ -115,9 +115,9 @@ static void
 task_receive_cancel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   ls = open_listen_socket ();
-  lsock = GNUNET_NETWORK_socket_create_from_existing (tc->sched, ls, 0);
+  lsock = GNUNET_NETWORK_connection_create_from_existing (tc->sched, ls, 0);
   GNUNET_assert (lsock != NULL);
-  csock = GNUNET_NETWORK_socket_create_from_connect (tc->sched,
+  csock = GNUNET_NETWORK_connection_create_from_connect (tc->sched,
                                                      "localhost", PORT, 1024);
   GNUNET_assert (csock != NULL);
   GNUNET_SCHEDULER_add_read (tc->sched,

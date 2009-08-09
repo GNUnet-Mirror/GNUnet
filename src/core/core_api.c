@@ -836,7 +836,7 @@ void
 GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
 {
   if (handle->th != NULL)
-    GNUNET_NETWORK_notify_transmit_ready_cancel (handle->th);
+    GNUNET_NETWORK_connection_notify_transmit_ready_cancel (handle->th);
   if (handle->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (handle->sched, handle->reconnect_task);
   GNUNET_CLIENT_disconnect (handle->client);

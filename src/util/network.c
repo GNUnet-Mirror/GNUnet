@@ -66,7 +66,7 @@ struct GNUNET_NETWORK_TransmitHandle
   /**
    * Our socket handle.
    */
-  struct GNUNET_NETWORK_SocketHandle *sh;
+  struct GNUNET_NETWORK_ConnectionHandle *sh;
 
   /**
    * Timeout for receiving (in absolute time).
@@ -89,7 +89,7 @@ struct GNUNET_NETWORK_TransmitHandle
 /**
  * @brief handle for a network socket
  */
-struct GNUNET_NETWORK_SocketHandle
+struct GNUNET_NETWORK_ConnectionHandle
 {
 
   /**
@@ -167,7 +167,7 @@ struct GNUNET_NETWORK_SocketHandle
   GNUNET_SCHEDULER_TaskIdentifier write_task;
 
   /**
-   * The handle we return for GNUNET_NETWORK_notify_transmit_ready.
+   * The handle we return for GNUNET_NETWORK_connection_notify_transmit_ready.
    */
   struct GNUNET_NETWORK_TransmitHandle nth;
 
@@ -217,13 +217,13 @@ struct GNUNET_NETWORK_SocketHandle
  *        0 for sockets that need no write buffers, such as listen sockets)
  * @return the boxed socket handle
  */
-struct GNUNET_NETWORK_SocketHandle *
-GNUNET_NETWORK_socket_create_from_existing (struct GNUNET_SCHEDULER_Handle
+struct GNUNET_NETWORK_ConnectionHandle *
+GNUNET_NETWORK_connection_create_from_existing (struct GNUNET_SCHEDULER_Handle
                                             *sched, int osSocket,
                                             size_t maxbuf)
 {
-  struct GNUNET_NETWORK_SocketHandle *ret;
-  ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_SocketHandle) + maxbuf);
+  struct GNUNET_NETWORK_ConnectionHandle *ret;
+  ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_ConnectionHandle) + maxbuf);
   ret->write_buffer = (char *) &ret[1];
   ret->write_buffer_size = maxbuf;
   ret->sock = osSocket;
@@ -244,14 +244,14 @@ GNUNET_NETWORK_socket_create_from_existing (struct GNUNET_SCHEDULER_Handle
  *        0 for sockets that need no write buffers, such as listen sockets)
  * @return the socket handle, NULL on error
  */
-struct GNUNET_NETWORK_SocketHandle *
-GNUNET_NETWORK_socket_create_from_accept (struct GNUNET_SCHEDULER_Handle
+struct GNUNET_NETWORK_ConnectionHandle *
+GNUNET_NETWORK_connection_create_from_accept (struct GNUNET_SCHEDULER_Handle
                                           *sched,
                                           GNUNET_NETWORK_AccessCheck access,
                                           void *access_cls, int lsock,
                                           size_t maxbuf)
 {
-  struct GNUNET_NETWORK_SocketHandle *ret;
+  struct GNUNET_NETWORK_ConnectionHandle *ret;
   char addr[32];
   socklen_t addrlen;
   int fd;
@@ -320,7 +320,7 @@ GNUNET_NETWORK_socket_create_from_accept (struct GNUNET_SCHEDULER_Handle
 	      _("Accepting connection from `%s'\n"),
 	      GNUNET_a2s(uaddr, addrlen));
 #endif
-  ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_SocketHandle) + maxbuf);
+  ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_ConnectionHandle) + maxbuf);
   ret->write_buffer = (char *) &ret[1];
   ret->write_buffer_size = maxbuf;
   ret->addr = uaddr;
@@ -339,7 +339,7 @@ GNUNET_NETWORK_socket_create_from_accept (struct GNUNET_SCHEDULER_Handle
  * @return GNUNET_OK on success
  */
 int
-GNUNET_NETWORK_socket_get_address (struct GNUNET_NETWORK_SocketHandle *sock,
+GNUNET_NETWORK_connection_get_address (struct GNUNET_NETWORK_ConnectionHandle *sock,
                                    void **addr, size_t * addrlen)
 {
   if ((sock->addr == NULL) || (sock->addrlen == 0))
@@ -414,7 +414,7 @@ socket_set_blocking (int handle, int doBlock)
  * families as specified in the "address_families" array.
  */
 static void
-try_lookup (struct GNUNET_NETWORK_SocketHandle *sock)
+try_lookup (struct GNUNET_NETWORK_ConnectionHandle *sock)
 {
   struct addrinfo hints;
   int ec;
@@ -446,7 +446,7 @@ try_lookup (struct GNUNET_NETWORK_SocketHandle *sock)
  * @return GNUNET_SYSERR error (no more addresses to try)
  */
 static int
-try_connect (struct GNUNET_NETWORK_SocketHandle *sock)
+try_connect (struct GNUNET_NETWORK_ConnectionHandle *sock)
 {
   int s;
 
@@ -536,7 +536,7 @@ static void
 connect_continuation (void *cls,
                       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_NETWORK_SocketHandle *sock = cls;
+  struct GNUNET_NETWORK_ConnectionHandle *sock = cls;
   unsigned int len;
   int error;
 
@@ -605,14 +605,14 @@ connect_continuation (void *cls,
  *        0 for sockets that need no write buffers, such as listen sockets)
  * @return the socket handle
  */
-struct GNUNET_NETWORK_SocketHandle *
-GNUNET_NETWORK_socket_create_from_connect (struct GNUNET_SCHEDULER_Handle
+struct GNUNET_NETWORK_ConnectionHandle *
+GNUNET_NETWORK_connection_create_from_connect (struct GNUNET_SCHEDULER_Handle
                                            *sched, const char *hostname,
                                            uint16_t port, size_t maxbuf)
 {
-  struct GNUNET_NETWORK_SocketHandle *ret;
+  struct GNUNET_NETWORK_ConnectionHandle *ret;
 
-  ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_SocketHandle) + maxbuf);
+  ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_ConnectionHandle) + maxbuf);
   ret->sock = -1;
   ret->sched = sched;
   ret->write_buffer = (char *) &ret[1];
@@ -652,14 +652,14 @@ GNUNET_NETWORK_socket_create_from_connect (struct GNUNET_SCHEDULER_Handle
  *        0 for sockets that need no write buffers, such as listen sockets)
  * @return the socket handle
  */
-struct GNUNET_NETWORK_SocketHandle *
-GNUNET_NETWORK_socket_create_from_sockaddr (struct GNUNET_SCHEDULER_Handle
+struct GNUNET_NETWORK_ConnectionHandle *
+GNUNET_NETWORK_connection_create_from_sockaddr (struct GNUNET_SCHEDULER_Handle
                                             *sched, int af_family,
                                             const struct sockaddr *serv_addr,
                                             socklen_t addrlen, size_t maxbuf)
 {
   int s;
-  struct GNUNET_NETWORK_SocketHandle *ret;
+  struct GNUNET_NETWORK_ConnectionHandle *ret;
 
   s = SOCKET (af_family, SOCK_STREAM, 0);
   if (s == -1)
@@ -691,7 +691,7 @@ GNUNET_NETWORK_socket_create_from_sockaddr (struct GNUNET_SCHEDULER_Handle
       GNUNET_break (0 == CLOSE (s));
       return NULL;
     }
-  ret = GNUNET_NETWORK_socket_create_from_existing (sched, s, maxbuf);
+  ret = GNUNET_NETWORK_connection_create_from_existing (sched, s, maxbuf);
   ret->addr = GNUNET_malloc (addrlen);
   memcpy (ret->addr, serv_addr, addrlen);
   ret->addrlen = addrlen;
@@ -708,7 +708,7 @@ GNUNET_NETWORK_socket_create_from_sockaddr (struct GNUNET_SCHEDULER_Handle
  * @return GNUNET_YES if valid, GNUNET_NO otherwise
  */
 int
-GNUNET_NETWORK_socket_check (struct GNUNET_NETWORK_SocketHandle *sock)
+GNUNET_NETWORK_connection_check (struct GNUNET_NETWORK_ConnectionHandle *sock)
 {
   if (sock->ai != NULL)
     return GNUNET_YES;          /* still trying to connect */
@@ -724,7 +724,7 @@ static void
 destroy_continuation (void *cls,
                       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_NETWORK_SocketHandle *sock = cls;
+  struct GNUNET_NETWORK_ConnectionHandle *sock = cls;
   GNUNET_NETWORK_TransmitReadyNotify notify;
 
   if (sock->write_task != GNUNET_SCHEDULER_NO_TASK)
@@ -780,7 +780,7 @@ destroy_continuation (void *cls,
  * @param sock socket to destroy
  */
 void
-GNUNET_NETWORK_socket_destroy (struct GNUNET_NETWORK_SocketHandle *sock)
+GNUNET_NETWORK_connection_destroy (struct GNUNET_NETWORK_ConnectionHandle *sock)
 {
   if (sock->write_buffer_off == 0)
     sock->ai_pos = NULL;        /* if we're still trying to connect and have
@@ -797,7 +797,7 @@ GNUNET_NETWORK_socket_destroy (struct GNUNET_NETWORK_SocketHandle *sock)
  * Tell the receiver callback that a timeout was reached.
  */
 static void
-signal_timeout (struct GNUNET_NETWORK_SocketHandle *sh)
+signal_timeout (struct GNUNET_NETWORK_ConnectionHandle *sh)
 {
   GNUNET_NETWORK_Receiver receiver;
 
@@ -815,7 +815,7 @@ signal_timeout (struct GNUNET_NETWORK_SocketHandle *sh)
  * Tell the receiver callback that we had an IO error.
  */
 static void
-signal_error (struct GNUNET_NETWORK_SocketHandle *sh, int errcode)
+signal_error (struct GNUNET_NETWORK_ConnectionHandle *sh, int errcode)
 {
   GNUNET_NETWORK_Receiver receiver;
   GNUNET_assert (NULL != (receiver = sh->receiver));
@@ -831,7 +831,7 @@ signal_error (struct GNUNET_NETWORK_SocketHandle *sh, int errcode)
 static void
 receive_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_NETWORK_SocketHandle *sh = cls;
+  struct GNUNET_NETWORK_ConnectionHandle *sh = cls;
   struct GNUNET_TIME_Absolute now;
   char buffer[sh->max];
   ssize_t ret;
@@ -904,7 +904,7 @@ RETRY:
 static void
 receive_again (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_NETWORK_SocketHandle *sh = cls;
+  struct GNUNET_NETWORK_ConnectionHandle *sh = cls;
   struct GNUNET_TIME_Absolute now;
 
   sh->read_task = GNUNET_SCHEDULER_NO_TASK;
@@ -968,7 +968,7 @@ receive_again (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return scheduler task ID used for receiving, GNUNET_SCHEDULER_NO_TASK on error
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_NETWORK_receive (struct GNUNET_NETWORK_SocketHandle *sock,
+GNUNET_NETWORK_connection_receive (struct GNUNET_NETWORK_ConnectionHandle *sock,
                         size_t max,
                         struct GNUNET_TIME_Relative timeout,
                         GNUNET_NETWORK_Receiver receiver, void *receiver_cls)
@@ -999,7 +999,7 @@ GNUNET_NETWORK_receive (struct GNUNET_NETWORK_SocketHandle *sock,
  * @return closure of the original receiver callback
  */
 void *
-GNUNET_NETWORK_receive_cancel (struct GNUNET_NETWORK_SocketHandle *sock,
+GNUNET_NETWORK_connection_receive_cancel (struct GNUNET_NETWORK_ConnectionHandle *sock,
                                GNUNET_SCHEDULER_TaskIdentifier task)
 {
   GNUNET_assert (sock->read_task == task);
@@ -1018,7 +1018,7 @@ GNUNET_NETWORK_receive_cancel (struct GNUNET_NETWORK_SocketHandle *sock,
  * @return GNUNET_YES if we were able to call notify
  */
 static int
-process_notify (struct GNUNET_NETWORK_SocketHandle *sock)
+process_notify (struct GNUNET_NETWORK_ConnectionHandle *sock)
 {
   size_t used;
   size_t avail;
@@ -1067,7 +1067,7 @@ process_notify (struct GNUNET_NETWORK_SocketHandle *sock)
 static void
 transmit_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_NETWORK_SocketHandle *sock = cls;
+  struct GNUNET_NETWORK_ConnectionHandle *sock = cls;
   GNUNET_NETWORK_TransmitReadyNotify notify;
 
 #if DEBUG_NETWORK
@@ -1080,7 +1080,7 @@ transmit_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-transmit_error (struct GNUNET_NETWORK_SocketHandle *sock)
+transmit_error (struct GNUNET_NETWORK_ConnectionHandle *sock)
 {
   if (sock->nth.notify_ready == NULL)
     return;                     /* nobody to tell about it */
@@ -1101,7 +1101,7 @@ transmit_error (struct GNUNET_NETWORK_SocketHandle *sock)
 static void
 transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_NETWORK_SocketHandle *sock = cls;
+  struct GNUNET_NETWORK_ConnectionHandle *sock = cls;
   ssize_t ret;
   size_t have;
 
@@ -1221,7 +1221,7 @@ SCHEDULE_WRITE:
  *         NULL if we are already going to notify someone else (busy)
  */
 struct GNUNET_NETWORK_TransmitHandle *
-GNUNET_NETWORK_notify_transmit_ready (struct GNUNET_NETWORK_SocketHandle
+GNUNET_NETWORK_connection_notify_transmit_ready (struct GNUNET_NETWORK_ConnectionHandle
                                       *sock, size_t size,
                                       struct GNUNET_TIME_Relative timeout,
                                       GNUNET_NETWORK_TransmitReadyNotify
@@ -1285,7 +1285,7 @@ GNUNET_NETWORK_notify_transmit_ready (struct GNUNET_NETWORK_SocketHandle
  * notification.
  */
 void
-GNUNET_NETWORK_notify_transmit_ready_cancel (struct
+GNUNET_NETWORK_connection_notify_transmit_ready_cancel (struct
                                              GNUNET_NETWORK_TransmitHandle *h)
 {
   GNUNET_assert (h->notify_ready != NULL);

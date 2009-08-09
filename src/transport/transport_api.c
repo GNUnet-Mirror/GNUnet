@@ -1573,7 +1573,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
 #endif
           if (h->network_handle != NULL)
             {
-              GNUNET_NETWORK_notify_transmit_ready_cancel (h->network_handle);
+              GNUNET_NETWORK_connection_notify_transmit_ready_cancel (h->network_handle);
               h->network_handle = NULL;
               h->transmission_scheduled = GNUNET_NO;
 	      th = h->connect_ready_head;
@@ -1964,7 +1964,7 @@ GNUNET_TRANSPORT_notify_transmit_ready_cancel (struct
   h = th->handle;
   if ((h->connect_ready_head == NULL) && (h->network_handle != NULL))
     {
-      GNUNET_NETWORK_notify_transmit_ready_cancel (h->network_handle);
+      GNUNET_NETWORK_connection_notify_transmit_ready_cancel (h->network_handle);
       h->network_handle = NULL;
       h->transmission_scheduled = GNUNET_NO;
     }

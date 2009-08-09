@@ -31,7 +31,7 @@
 
 #define PORT 13425
 
-static struct GNUNET_NETWORK_SocketHandle *csock;
+static struct GNUNET_NETWORK_ConnectionHandle *csock;
 
 static size_t
 handle_timeout (void *cls, size_t size, void *buf)
@@ -51,11 +51,11 @@ handle_timeout (void *cls, size_t size, void *buf)
 static void
 task_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  csock = GNUNET_NETWORK_socket_create_from_connect (tc->sched,
+  csock = GNUNET_NETWORK_connection_create_from_connect (tc->sched,
                                                      "localhost", PORT, 1024);
   GNUNET_assert (csock != NULL);
   GNUNET_assert (NULL !=
-                 GNUNET_NETWORK_notify_transmit_ready (csock,
+                 GNUNET_NETWORK_connection_notify_transmit_ready (csock,
                                                        1024,
                                                        GNUNET_TIME_UNIT_SECONDS,
                                                        &handle_timeout, cls));

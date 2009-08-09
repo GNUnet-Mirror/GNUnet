@@ -32,11 +32,11 @@
 #define PORT 12435
 
 
-static struct GNUNET_NETWORK_SocketHandle *csock;
+static struct GNUNET_NETWORK_ConnectionHandle *csock;
 
-static struct GNUNET_NETWORK_SocketHandle *asock;
+static struct GNUNET_NETWORK_ConnectionHandle *asock;
 
-static struct GNUNET_NETWORK_SocketHandle *lsock;
+static struct GNUNET_NETWORK_ConnectionHandle *lsock;
 
 static size_t sofar;
 
@@ -82,7 +82,7 @@ receive_check (void *cls,
     sofar += available;
   if (sofar < 12)
     {
-      GNUNET_NETWORK_receive (asock,
+      GNUNET_NETWORK_connection_receive (asock,
                               1024,
                               GNUNET_TIME_relative_multiply
                               (GNUNET_TIME_UNIT_SECONDS, 5), &receive_check,
@@ -91,7 +91,7 @@ receive_check (void *cls,
   else
     {
       *ok = 0;
-      GNUNET_NETWORK_socket_destroy (asock);
+      GNUNET_NETWORK_connection_destroy (asock);
     }
 }
 
@@ -104,12 +104,12 @@ run_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct sockaddr_in *v4;
   struct sockaddr_in expect;
 
-  asock = GNUNET_NETWORK_socket_create_from_accept (tc->sched,
+  asock = GNUNET_NETWORK_connection_create_from_accept (tc->sched,
                                                     NULL, NULL, ls, 1024);
   GNUNET_assert (asock != NULL);
-  GNUNET_assert (GNUNET_YES == GNUNET_NETWORK_socket_check (asock));
+  GNUNET_assert (GNUNET_YES == GNUNET_NETWORK_connection_check (asock));
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_NETWORK_socket_get_address (asock, &addr, &alen));
+                 GNUNET_NETWORK_connection_get_address (asock, &addr, &alen));
   GNUNET_assert (alen == sizeof (struct sockaddr_in));
   v4 = addr;
   memset (&expect, 0, sizeof (expect));
@@ -118,8 +118,8 @@ run_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   expect.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
   GNUNET_assert (0 == memcmp (&expect, v4, alen));
   GNUNET_free (addr);
-  GNUNET_NETWORK_socket_destroy (lsock);
-  GNUNET_NETWORK_receive (asock,
+  GNUNET_NETWORK_connection_destroy (lsock);
+  GNUNET_NETWORK_connection_receive (asock,
                           1024,
                           GNUNET_TIME_relative_multiply
                           (GNUNET_TIME_UNIT_SECONDS, 5), &receive_check, cls);
@@ -138,24 +138,24 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct sockaddr_in v4;
   ls = open_listen_socket ();
-  lsock = GNUNET_NETWORK_socket_create_from_existing (tc->sched, ls, 0);
+  lsock = GNUNET_NETWORK_connection_create_from_existing (tc->sched, ls, 0);
   GNUNET_assert (lsock != NULL);
 
   v4.sin_family = AF_INET;
   v4.sin_port = htons (PORT);
   v4.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
-  csock = GNUNET_NETWORK_socket_create_from_sockaddr (tc->sched,
+  csock = GNUNET_NETWORK_connection_create_from_sockaddr (tc->sched,
                                                       AF_INET,
                                                       (const struct sockaddr
                                                        *) &v4, sizeof (v4),
                                                       1024);
   GNUNET_assert (csock != NULL);
   GNUNET_assert (NULL !=
-                 GNUNET_NETWORK_notify_transmit_ready (csock,
+                 GNUNET_NETWORK_connection_notify_transmit_ready (csock,
                                                        12,
                                                        GNUNET_TIME_UNIT_SECONDS,
                                                        &make_hello, NULL));
-  GNUNET_NETWORK_socket_destroy (csock);
+  GNUNET_NETWORK_connection_destroy (csock);
   GNUNET_SCHEDULER_add_read (tc->sched,
                              GNUNET_NO,
                              GNUNET_SCHEDULER_PRIORITY_HIGH,

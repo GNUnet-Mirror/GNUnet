@@ -46,17 +46,17 @@ task_transmit_cancel (void *cls,
 {
   int *ok = cls;
   struct GNUNET_NETWORK_TransmitHandle *th;
-  struct GNUNET_NETWORK_SocketHandle *csock;
+  struct GNUNET_NETWORK_ConnectionHandle *csock;
 
-  csock = GNUNET_NETWORK_socket_create_from_connect (tc->sched,
+  csock = GNUNET_NETWORK_connection_create_from_connect (tc->sched,
                                                      "localhost", PORT, 1024);
   GNUNET_assert (csock != NULL);
-  th = GNUNET_NETWORK_notify_transmit_ready (csock,
+  th = GNUNET_NETWORK_connection_notify_transmit_ready (csock,
                                              12,
                                              GNUNET_TIME_UNIT_MINUTES,
                                              &not_run, cls);
-  GNUNET_NETWORK_notify_transmit_ready_cancel (th);
-  GNUNET_NETWORK_socket_destroy (csock);
+  GNUNET_NETWORK_connection_notify_transmit_ready_cancel (th);
+  GNUNET_NETWORK_connection_destroy (csock);
   *ok = 0;
 }
 

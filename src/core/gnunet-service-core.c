@@ -1021,7 +1021,7 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
           else
             prev->next = pos->next;
           if (pos->th != NULL)
-            GNUNET_NETWORK_notify_transmit_ready_cancel (pos->th);
+            GNUNET_NETWORK_connection_notify_transmit_ready_cancel (pos->th);
 	  while (NULL != (e = pos->event_head))
 	    {
 	      pos->event_head = e->next;
