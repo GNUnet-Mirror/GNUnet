@@ -871,7 +871,6 @@ handle_get (void *cls,
 	     struct GNUNET_SERVER_Client *client,
 	     const struct GNUNET_MessageHeader *message)
 {
-  static struct GNUNET_TIME_Absolute zero;
   const struct GetMessage *msg;
   uint16_t size;
 
@@ -900,7 +899,8 @@ handle_get (void *cls,
 		  "GET");
 #endif	
       transmit_item (client,
-		     NULL, NULL, 0, NULL, 0, 0, 0, zero, 0);
+		     NULL, NULL, 0, NULL, 0, 0, 0, 
+		     GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
   GNUNET_SERVER_client_keep (client);

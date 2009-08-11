@@ -507,7 +507,6 @@ static void
 sqlite_next_request_cont (void *cls,
 			  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  static struct GNUNET_TIME_Absolute zero;
   struct NextContext * nc= cls;
   struct Plugin *plugin;
   unsigned long long rowid;
@@ -530,7 +529,7 @@ sqlite_next_request_cont (void *cls,
     END:
       nc->iter (nc->iter_cls, 
 		NULL, NULL, 0, NULL, 0, 0, 0, 
-		zero, 0);
+		GNUNET_TIME_UNIT_ZERO_ABS, 0);
       nc->prep (nc->prep_cls, NULL);
       GNUNET_free (nc);
       return;
@@ -923,7 +922,6 @@ basic_iter (struct Plugin *plugin,
 	    PluginIterator iter,
 	    void *iter_cls)
 {
-  static struct GNUNET_TIME_Absolute zero;
   struct NextContext *nc;
   struct IterContext *ic;
   sqlite3_stmt *stmt_1;
@@ -941,7 +939,7 @@ basic_iter (struct Plugin *plugin,
       LOG_SQLITE (plugin, NULL,
                   GNUNET_ERROR_TYPE_ERROR |
                   GNUNET_ERROR_TYPE_BULK, "sqlite3_prepare");
-      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, zero, 0);
+      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
   if (sq_prepare (plugin->dbh, stmt_str_2, &stmt_2) != SQLITE_OK)
@@ -950,7 +948,7 @@ basic_iter (struct Plugin *plugin,
                   GNUNET_ERROR_TYPE_ERROR |
                   GNUNET_ERROR_TYPE_BULK, "sqlite3_prepare");
       sqlite3_finalize (stmt_1);
-      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, zero, 0);
+      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
   nc = GNUNET_malloc (sizeof(struct NextContext) + 
@@ -1166,7 +1164,6 @@ sqlite_plugin_iter_all_now (void *cls,
 			    PluginIterator iter,
 			    void *iter_cls)
 {
-  static struct GNUNET_TIME_Absolute zero;
   struct Plugin *plugin = cls;
   struct NextContext *nc;
   sqlite3_stmt *stmt;
@@ -1178,7 +1175,7 @@ sqlite_plugin_iter_all_now (void *cls,
       LOG_SQLITE (plugin, NULL,
                   GNUNET_ERROR_TYPE_ERROR |
                   GNUNET_ERROR_TYPE_BULK, "sqlite3_prepare");
-      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, zero, 0);
+      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
   nc = GNUNET_malloc (sizeof(struct NextContext));
@@ -1276,7 +1273,6 @@ sqlite_plugin_get (void *cls,
 		   uint32_t type,
 		   PluginIterator iter, void *iter_cls)
 {
-  static struct GNUNET_TIME_Absolute zero;
   struct Plugin *plugin = cls;
   struct GetNextContext *gpc;
   struct NextContext *nc;
@@ -1301,7 +1297,7 @@ sqlite_plugin_get (void *cls,
     {
       LOG_SQLITE (plugin, NULL,
                   GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "sqlite_prepare");
-      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, zero, 0);
+      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
   sqoff = 1;
@@ -1321,7 +1317,7 @@ sqlite_plugin_get (void *cls,
                   GNUNET_ERROR_TYPE_ERROR, "sqlite_bind");
       sqlite3_reset (stmt);
       sqlite3_finalize (stmt);
-      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, zero, 0);
+      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
   ret = sqlite3_step (stmt);
@@ -1332,7 +1328,7 @@ sqlite_plugin_get (void *cls,
 		  "sqlite_step");
       sqlite3_reset (stmt);
       sqlite3_finalize (stmt);
-      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, zero, 0);
+      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
   total = sqlite3_column_int (stmt, 0);
@@ -1340,7 +1336,7 @@ sqlite_plugin_get (void *cls,
   sqlite3_finalize (stmt);
   if (0 == total)
     {
-      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, zero, 0);
+      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
 
@@ -1357,7 +1353,7 @@ sqlite_plugin_get (void *cls,
       LOG_SQLITE (plugin, NULL,
                   GNUNET_ERROR_TYPE_ERROR |
                   GNUNET_ERROR_TYPE_BULK, "sqlite_prepare");
-      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, zero, 0);
+      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
   nc = GNUNET_malloc (sizeof(struct NextContext) + 

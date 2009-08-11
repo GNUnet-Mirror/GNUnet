@@ -55,6 +55,17 @@ GNUNET_TIME_relative_get_zero ()
   return zero;
 }
 
+
+/**
+ * Return absolute time of 0ms.
+ */
+struct GNUNET_TIME_Absolute
+GNUNET_TIME_absolute_get_zero ()
+{
+  static struct GNUNET_TIME_Absolute zero;
+  return zero;
+}
+
 /**
  * Return relative time of 1ms.
  */
@@ -257,7 +268,7 @@ struct GNUNET_TIME_RelativeNBO
 GNUNET_TIME_relative_hton (struct GNUNET_TIME_Relative a)
 {
   struct GNUNET_TIME_RelativeNBO ret;
-  ret.value = GNUNET_htonll (a.value);
+  ret.value__ = GNUNET_htonll (a.value);
   return ret;
 }
 
@@ -268,7 +279,7 @@ struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_ntoh (struct GNUNET_TIME_RelativeNBO a)
 {
   struct GNUNET_TIME_Relative ret;
-  ret.value = GNUNET_ntohll (a.value);
+  ret.value = GNUNET_ntohll (a.value__);
   return ret;
 
 }
@@ -280,7 +291,7 @@ struct GNUNET_TIME_AbsoluteNBO
 GNUNET_TIME_absolute_hton (struct GNUNET_TIME_Absolute a)
 {
   struct GNUNET_TIME_AbsoluteNBO ret;
-  ret.value = GNUNET_htonll (a.value);
+  ret.value__ = GNUNET_htonll (a.value);
   return ret;
 }
 
@@ -291,7 +302,7 @@ struct GNUNET_TIME_Absolute
 GNUNET_TIME_absolute_ntoh (struct GNUNET_TIME_AbsoluteNBO a)
 {
   struct GNUNET_TIME_Absolute ret;
-  ret.value = GNUNET_ntohll (a.value);
+  ret.value = GNUNET_ntohll (a.value__);
   return ret;
 
 }

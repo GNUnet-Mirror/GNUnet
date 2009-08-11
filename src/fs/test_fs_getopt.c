@@ -23,7 +23,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_fs_lib.h"
+#include "gnunet_fs_service.h"
 
 int
 main (int argc, char *argv[])

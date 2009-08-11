@@ -59,10 +59,16 @@ extern "C"
  */
 #define GNUNET_SIGNATURE_PURPOSE_NAMESPACE_ADVERTISEMENT 3
 
+
+/**
+ * Signature of content URI placed into a namespace.
+ */
+#define GNUNET_SIGNATURE_PURPOSE_NAMESPACE_PLACEMENT 4
+
 /**
  *
  */
-#define GNUNET_SIGNATURE_PURPOSE_RESOLVER_RESPONSE 3
+#define GNUNET_SIGNATURE_PURPOSE_RESOLVER_RESPONSE 5
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

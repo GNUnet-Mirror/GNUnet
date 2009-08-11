@@ -19,15 +19,15 @@
 */
 
 /**
- * @file applications/fs/ecrs/uritest.c
- * @brief Test for uri.c
+ * @file fs/test_fs_uri.c
+ * @brief Test for fs_uri.c
  * @author Christian Grothoff
  */
 
 #include "platform.h"
-#include "gnunet_util.h"
-#include "gnunet_ecrs_lib.h"
-#include "ecrs.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_fs_service.h"
+#include "fs.h"
 
 #define ABORT() { fprintf(stderr, "Error at %s:%d\n", __FILE__, __LINE__); return 1; }
 

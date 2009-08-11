@@ -494,7 +494,6 @@ with_result_response_handler (void *cls,
 			      const struct
 			      GNUNET_MessageHeader * msg)
 {
-  static struct GNUNET_TIME_Absolute zero;
   struct GNUNET_DATASTORE_Handle *h = cls;
   GNUNET_DATASTORE_Iterator cont = h->response_proc;
   const struct DataMessage *dm;
@@ -506,7 +505,8 @@ with_result_response_handler (void *cls,
       GNUNET_CLIENT_disconnect (h->client);
       h->client = GNUNET_CLIENT_connect (h->sched, "datastore", h->cfg);
       cont (h->response_proc_cls, 
-	    NULL, 0, NULL, 0, 0, 0, zero, 0);
+	    NULL, 0, NULL, 0, 0, 0, 
+	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
   if (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END) 
@@ -518,7 +518,8 @@ with_result_response_handler (void *cls,
 		  "Received end of result set\n");
 #endif
       cont (h->response_proc_cls, 
-	    NULL, 0, NULL, 0, 0, 0, zero, 0);
+	    NULL, 0, NULL, 0, 0, 0, 
+	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
   if ( (ntohs(msg->size) < sizeof(struct DataMessage)) ||
@@ -529,7 +530,8 @@ with_result_response_handler (void *cls,
       h->client = GNUNET_CLIENT_connect (h->sched, "datastore", h->cfg);
       h->response_proc = NULL;
       cont (h->response_proc_cls, 
-	    NULL, 0, NULL, 0, 0, 0, zero, 0);
+	    NULL, 0, NULL, 0, 0, 0, 
+	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
   dm = (const struct DataMessage*) msg;
@@ -541,7 +543,8 @@ with_result_response_handler (void *cls,
       h->client = GNUNET_CLIENT_connect (h->sched, "datastore", h->cfg);
       h->response_proc = NULL;
       cont (h->response_proc_cls, 
-	    NULL, 0, NULL, 0, 0, 0, zero, 0);
+	    NULL, 0, NULL, 0, 0, 0, 
+	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
 #if DEBUG_DATASTORE
@@ -632,7 +635,6 @@ transmit_for_result (struct GNUNET_DATASTORE_Handle *h,
 		     void *cont_cls,
 		     struct GNUNET_TIME_Relative timeout)
 {
-  static struct GNUNET_TIME_Absolute zero;
   const struct GNUNET_MessageHeader *hdr;
   uint16_t msize;
 
@@ -660,7 +662,8 @@ transmit_for_result (struct GNUNET_DATASTORE_Handle *h,
       h->response_proc = NULL;
       h->message_size = 0;
       cont (h->response_proc_cls, 
-	    NULL, 0, NULL, 0, 0, 0, zero, 0);
+	    NULL, 0, NULL, 0, 0, 0, 
+	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
     }
 }
 
@@ -759,7 +762,7 @@ GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
   dm->priority = htonl(0);
   dm->anonymity = htonl(0);
   dm->uid = GNUNET_htonll(0);
-  dm->expiration.value = 0;
+  dm->expiration = GNUNET_TIME_absolute_hton(GNUNET_TIME_UNIT_ZERO_ABS);
   dm->key = *key;
   memcpy (&dm[1], data, size);
   transmit_for_status (h, cont, cont_cls, timeout);

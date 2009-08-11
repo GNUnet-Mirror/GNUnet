@@ -496,7 +496,9 @@ GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * Insert metadata into existing MD record (passed as cls).
  */
 static int
-merge_meta_helper (EXTRACTOR_KeywordType type, const char *data, void *cls)
+merge_meta_helper (void *cls,
+		   EXTRACTOR_KeywordType type, 
+		   const char *data)
 {
   struct GNUNET_CONTAINER_MetaData *meta = cls;
   GNUNET_CONTAINER_meta_data_insert (meta, type, data);

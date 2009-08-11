@@ -61,7 +61,7 @@ struct GNUNET_TIME_Relative
  */
 struct GNUNET_TIME_RelativeNBO
 {
-  uint64_t value GNUNET_PACKED;
+  uint64_t value__ GNUNET_PACKED;
 };
 
 
@@ -70,13 +70,15 @@ struct GNUNET_TIME_RelativeNBO
  */
 struct GNUNET_TIME_AbsoluteNBO
 {
-  uint64_t value GNUNET_PACKED;
+  uint64_t value__ GNUNET_PACKED;
 };
+
 
 /**
  * @brief constants to specify time
  */
 #define GNUNET_TIME_UNIT_ZERO     GNUNET_TIME_relative_get_zero()
+#define GNUNET_TIME_UNIT_ZERO_ABS GNUNET_TIME_absolute_get_zero()
 #define GNUNET_TIME_UNIT_MILLISECONDS GNUNET_TIME_relative_get_unit()
 #define GNUNET_TIME_UNIT_SECONDS GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 1000)
 #define GNUNET_TIME_UNIT_MINUTES GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60)
@@ -102,6 +104,11 @@ struct GNUNET_TIME_AbsoluteNBO
  * Return relative time of 0ms.
  */
 struct GNUNET_TIME_Relative GNUNET_TIME_relative_get_zero (void);
+
+/**
+ * Return absolute time of 0ms.
+ */
+struct GNUNET_TIME_Absolute GNUNET_TIME_absolute_get_zero (void);
 
 /**
  * Return relative time of 1ms.

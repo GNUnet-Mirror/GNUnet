@@ -80,6 +80,7 @@
  */
 #include "platform.h"
 #include "gnunet_fs_service.h"
+#include "gnunet_signatures.h"
 #include "fs.h"
 
 
@@ -422,6 +423,91 @@ uri_chk_parse (const char *s, char **emsg)
 
 
 /**
+ * Convert a character back to the binary value
+ * that it represents (given base64-encoding).
+ *
+ * @param a character to convert
+ * @return offset in the "tbl" array
+ */
+static unsigned int
+c2v (unsigned char a)
+{
+  if ((a >= '0') && (a <= '9'))
+    return a - '0';
+  if ((a >= 'A') && (a <= 'Z'))
+    return (a - 'A' + 10);
+  if ((a >= 'a') && (a <= 'z'))
+    return (a - 'a' + 36);
+  if (a == '_')
+    return 62;
+  if (a == '=')
+    return 63;
+  return -1;
+}
+
+
+/**
+ * Convert string back to binary data.
+ *
+ * @param input '\0'-terminated string
+ * @param data where to write binary data
+ * @param size how much data should be converted
+ * @return number of characters processed from input,
+ *        -1 on error
+ */
+static int
+enc2bin (const char *input, void *data, size_t size)
+{
+  size_t len;
+  size_t pos;
+  unsigned int bits;
+  unsigned int hbits;
+
+  len = size * 8 / 6;
+  if (((size * 8) % 6) != 0)
+    len++;
+  if (strlen (input) < len)
+    return -1;                  /* error! */
+  bits = 0;
+  hbits = 0;
+  len = 0;
+  pos = 0;
+  for (pos = 0; pos < size; pos++)
+    {
+      while (hbits < 8)
+        {
+          bits |= (c2v (input[len++]) << hbits);
+          hbits += 6;
+        }
+      (((unsigned char *) data)[pos]) = (unsigned char) bits;
+      bits >>= 8;
+      hbits -= 8;
+    }
+  return len;
+}
+
+
+/**
+ * Structure that defines how the
+ * contents of a location URI must be
+ * assembled in memory to create or
+ * verify the signature of a location
+ * URI.
+ */
+struct LocUriAssembly 
+{
+  struct GNUNET_CRYPTO_RsaSignaturePurpose purpose;
+
+  struct GNUNET_TIME_AbsoluteNBO exptime;
+
+  struct FileIdentifier fi;
+  
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded peer;
+
+};
+
+
+/**
  * Parse a LOC URI.
  * Also verifies validity of the location URI.
  *
@@ -432,12 +518,15 @@ uri_chk_parse (const char *s, char **emsg)
 static struct GNUNET_FS_Uri *
 uri_loc_parse (const char *s, char **emsg)
 {
-  struct GNUNET_FS_Uri *ret;
+  struct GNUNET_FS_Uri *uri;
   char h1[sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded)];
   char h2[sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded)];
   unsigned int pos;
   unsigned int npos;
   unsigned long long exptime;
+  struct GNUNET_TIME_Absolute et;
+  struct GNUNET_CRYPTO_RsaSignature sig;
+  struct LocUriAssembly ass;
   int ret;
   size_t slen;
   char *addr;
@@ -462,14 +551,14 @@ uri_loc_parse (const char *s, char **emsg)
   h2[sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded)-1] = '\0';
   
   if ((GNUNET_OK != GNUNET_CRYPTO_hash_from_string (h1,
-						    &fi.chk.key)) ||
+						    &ass.fi.chk.key)) ||
       (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (h2,
-						    &fi.chk.query)) 
+						    &ass.fi.chk.query)) ||
       (1 != SSCANF (&s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) * 2],
                     "%llu", 
-		    &fi.file_length)) )
+		    &ass.fi.file_length)) )
     return NULL;
-  fi.file_length = GNUNET_htonll (fi.file_length);
+  ass.fi.file_length = GNUNET_htonll (ass.fi.file_length);
 
   npos = pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) * 2;
   while ((s[npos] != '\0') && (s[npos] != '.'))
@@ -477,39 +566,42 @@ uri_loc_parse (const char *s, char **emsg)
   if (s[npos] == '\0')
     goto ERR;
   ret = enc2bin (&s[npos], 
-		 &loc->peer,
-		 sizeof (GNUNET_RSA_PublicKey));
+		 &ass.peer,
+		 sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
   if (ret == -1)
     goto ERR;
   npos += ret;
-  if (dup[npos++] != '.')
+  if (s[npos++] != '.')
     goto ERR;
   ret = enc2bin (&s[npos],
-		 &loc->contentSignature,
+		 &sig,
 		 sizeof (struct GNUNET_CRYPTO_RsaSignature));
   if (ret == -1)
     goto ERR;
   npos += ret;
-  if (dup[npos++] != '.')
+  if (s[npos++] != '.')
     goto ERR;
-  if (1 != SSCANF (&dup[npos], "%llu", &exptime))
+  if (1 != SSCANF (&s[npos], "%llu", &exptime))
     goto ERR;
-  // FIXME: do something to exptime...
-  /* Finally: verify sigs! */
-  if (GNUNET_OK != GNUNET_RSA_verify (&loc->fi,
-                                      sizeof (struct FileIdentifier) +
-                                      sizeof (GNUNET_PeerIdentity) +
-                                      sizeof (GNUNET_Int32Time),
-                                      &loc->contentSignature, 
-				      &loc->peer))
+  ass.purpose.size = htonl(sizeof(struct LocUriAssembly));
+  ass.purpose.purpose = htonl(GNUNET_SIGNATURE_PURPOSE_NAMESPACE_PLACEMENT);
+  et.value = exptime;
+  ass.exptime = GNUNET_TIME_absolute_hton (et);
+  if (GNUNET_OK != 
+      GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_NAMESPACE_PLACEMENT,
+				&ass.purpose,
+				&sig,
+				&ass.peer))
     goto ERR;
 
-  ret = GNUNET_malloc (sizeof(struct GNUNET_FS_Uri));
-  ret->type = loc;
-  ret->data.loc.chk = fi;
-  ret->data.loc.xx = yy;
+  uri = GNUNET_malloc (sizeof(struct GNUNET_FS_Uri));
+  uri->type = loc;
+  uri->data.loc.fi = ass.fi;
+  uri->data.loc.peer = ass.peer;
+  uri->data.loc.expirationTime = et;
+  uri->data.loc.contentSignature = sig;
 
-  return ret;
+  return uri;
 ERR:
   GNUNET_free_non_null (addr);
   return NULL;
@@ -1251,71 +1343,6 @@ bin2enc (const void *data, size_t size)
 
 
 /**
- * Convert a character back to the binary value
- * that it represents (given base64-encoding).
- *
- * @param a character to convert
- * @return offset in the "tbl" array
- */
-static unsigned int
-c2v (unsigned char a)
-{
-  if ((a >= '0') && (a <= '9'))
-    return a - '0';
-  if ((a >= 'A') && (a <= 'Z'))
-    return (a - 'A' + 10);
-  if ((a >= 'a') && (a <= 'z'))
-    return (a - 'a' + 36);
-  if (a == '_')
-    return 62;
-  if (a == '=')
-    return 63;
-  return -1;
-}
-
-
-/**
- * Convert string back to binary data.
- *
- * @param input '\0'-terminated string
- * @param data where to write binary data
- * @param size how much data should be converted
- * @return number of characters processed from input,
- *        -1 on error
- */
-static int
-enc2bin (const char *input, void *data, size_t size)
-{
-  size_t len;
-  size_t pos;
-  unsigned int bits;
-  unsigned int hbits;
-
-  len = size * 8 / 6;
-  if (((size * 8) % 6) != 0)
-    len++;
-  if (strlen (input) < len)
-    return -1;                  /* error! */
-  bits = 0;
-  hbits = 0;
-  len = 0;
-  pos = 0;
-  for (pos = 0; pos < size; pos++)
-    {
-      while (hbits < 8)
-        {
-          bits |= (c2v (input[len++]) << hbits);
-          hbits += 6;
-        }
-      (((unsigned char *) data)[pos]) = (unsigned char) bits;
-      bits >>= 8;
-      hbits -= 8;
-    }
-  return len;
-}
-
-
-/**
  * Convert a LOC URI to a string.
  *
  * @param uri loc uri to convert
@@ -1337,15 +1364,15 @@ uri_loc_to_string (const struct GNUNET_FS_Uri *uri)
   peerSig = bin2enc (&uri->data.loc.contentSignature, 
 		     sizeof (struct GNUNET_CRYPTO_RsaSignature));
   GNUNET_asprintf (&ret,
-                   "%s%s%s.%s.%llu.%s.%s.%u", // FIXME: expirationTime 64-bit???
+                   "%s%s%s.%s.%llu.%s.%s.%llu",
                    GNUNET_FS_URI_PREFIX,
                    GNUNET_FS_URI_LOC_INFIX,
                    (const char *) &keyhash,
                    (const char *) &queryhash,
-                   GNUNET_ntohll (uri->data.loc.fi.file_length),
+                   (unsigned long long) GNUNET_ntohll (uri->data.loc.fi.file_length),
                    peerId,
 		   peerSig,
-		   uri->data.loc.expirationTime);
+		   (unsigned long long) uri->data.loc.expirationTime.value);
   GNUNET_free (peerSig);
   GNUNET_free (peerId);
   return ret;
