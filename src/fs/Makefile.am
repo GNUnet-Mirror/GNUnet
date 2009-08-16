@@ -13,11 +13,15 @@ endif
 lib_LTLIBRARIES = libgnunetfs.la
 
 libgnunetfs_la_SOURCES = \
+  fs_collection.c \
+  fs_directory.c \
   fs_getopt.c \
   fs_uri.c 
+
 libgnunetfs_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL) $(XLIB)
+
 libgnunetfs_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
   -version-info 0:0:0

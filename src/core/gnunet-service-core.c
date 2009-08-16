@@ -2353,7 +2353,7 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
     }
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Decrypting key material.\n");
-#endif
+#endif  
   if ((GNUNET_CRYPTO_rsa_decrypt (my_private_key,
                                   &m->encrypted_key,
                                   &k,

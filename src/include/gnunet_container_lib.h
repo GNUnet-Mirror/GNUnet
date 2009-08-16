@@ -267,7 +267,7 @@ int GNUNET_CONTAINER_meta_data_get_contents (const struct
  *  otherwise client is responsible for freeing the value!
  */
 char *GNUNET_CONTAINER_meta_data_get_by_type (const struct
-                                              GNUNET_CONTAINER_MetaData *md,
+                                             GNUNET_CONTAINER_MetaData *md,
                                               EXTRACTOR_KeywordType type);
 
 /**

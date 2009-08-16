@@ -243,11 +243,13 @@ GNUNET_FS_uri_dup (const struct GNUNET_FS_Uri *uri);
  * "OR"ed keywords 'foo' and 'bar', not into '"foo bar"'.
  *
  * @param keywords the keyword string
+ * @param emsg where to store an error message
  * @return an FS URI for the given keywords, NULL
  *  if keywords is not legal (i.e. empty).
  */
 struct GNUNET_FS_Uri *
-GNUNET_FS_uri_ksk_create (const char *keywords);
+GNUNET_FS_uri_ksk_create (const char *keywords,
+			  char **emsg);
 
 
 /**
@@ -2032,9 +2034,9 @@ void GNUNET_FS_collection_add (const struct GNUNET_FS_Handle *h,
 /* ******************** Directory API *********************** */
 
 
-#define GNUNET_DIRECTORY_MIME  "application/gnunet-directory"
-#define GNUNET_DIRECTORY_MAGIC "\211GND\r\n\032\n"
-#define GNUNET_DIRECTORY_EXT   ".gnd"
+#define GNUNET_FS_DIRECTORY_MIME  "application/gnunet-directory"
+#define GNUNET_FS_DIRECTORY_MAGIC "\211GND\r\n\032\n"
+#define GNUNET_FS_DIRECTORY_EXT   ".gnd"
 
 /**
  * Does the meta-data claim that this is a directory?
@@ -2063,7 +2065,8 @@ GNUNET_FS_meta_data_make_directory (struct GNUNET_CONTAINER_MetaData *md);
  * @param cls closure
  * @param filename name of the file in the directory
  * @param uri URI of the file
- * @param metadata metadata for the file
+ * @param metadata metadata for the file; metadata for
+ *        the directory if everything else is NULL/zero
  * @param length length of the available data for the file
  *           (of type size_t since data must certainly fit
  *            into memory; if files are larger than size_t
@@ -2093,7 +2096,7 @@ typedef void (*GNUNET_FS_DirectoryEntryProcessor)(void *cls,
  * @param data pointer to the beginning of the directory
  * @param offset offset of data in the directory
  * @param dep function to call on each entry
- * @param dep_cls closure for spcb
+ * @param dep_cls closure for dep
  */
 void 
 GNUNET_FS_directory_list_contents (size_t size,

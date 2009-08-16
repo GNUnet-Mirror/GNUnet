@@ -27,6 +27,11 @@
 #define FS_H
 
 /**
+ * Size of the individual blocks used for file-sharing.
+ */
+#define GNUNET_FS_DBLOCK_SIZE (32*1024)
+
+/**
  * @brief content hash key
  */
 struct ContentHashKey 
