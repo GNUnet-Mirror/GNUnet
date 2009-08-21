@@ -27,39 +27,53 @@ libgnunetfs_la_LDFLAGS = \
   -version-info 0:0:0
 
 
-#bin_PROGRAMS = \ 
-# gnunet-directory \
-# gnunet-download \
-# gnunet-pseudonym \
-# gnunet-search \
-# gnunet-share \
+#bin_PROGRAMS =  
+# gnunet-directory 
+# gnunet-download 
+# gnunet-pseudonym 
+# gnunet-search
+# gnunet-share 
 # gnunet-unindex 
 
-#gnunet_directory_SOURCES = \
+#gnunet_directory_SOURCES = 
 # gnunet-directory.c         
-#gnunet_directory_LDADD = \
-#  $(top_builddir)/src/fs/libgnunetfs.la \
-#  $(top_builddir)/src/util/libgnunetutil.la \
+#gnunet_directory_LDADD = 
+#  $(top_builddir)/src/fs/libgnunetfs.la 
+#  $(top_builddir)/src/util/libgnunetutil.la 
 #  $(GN_LIBINTL)
 
 
 check_PROGRAMS = \
+ test_fs_collection \
+ test_fs_directory \
  test_fs_getopt \
  test_fs_uri
 
 TESTS = $(check_PROGRAMS)
 
-test_fs_uri_SOURCES = \
- test_fs_uri.c
-test_fs_LDADD = \
+test_fs_collection_SOURCES = \
+ test_fs_collection.c
+test_fs_collection_LDADD = \
+  $(top_builddir)/src/fs/libgnunetfs.la  \
+  $(top_builddir)/src/util/libgnunetutil.la  
+
+test_fs_directory_SOURCES = \
+ test_fs_directory.c
+test_fs_directory_LDADD = \
   $(top_builddir)/src/fs/libgnunetfs.la  \
   $(top_builddir)/src/util/libgnunetutil.la  
 
 test_fs_getopt_SOURCES = \
  test_fs_getopt.c
-test_fs_LDADD = \
+test_fs_getopt_LDADD = \
   $(top_builddir)/src/fs/libgnunetfs.la  \
   $(top_builddir)/src/util/libgnunetutil.la  
 
-#EXTRA_DIST = \
-#  test_fs_data.conf
+test_fs_uri_SOURCES = \
+ test_fs_uri.c
+test_fs_uri_LDADD = \
+  $(top_builddir)/src/fs/libgnunetfs.la  \
+  $(top_builddir)/src/util/libgnunetutil.la  
+
+EXTRA_DIST = \
+  test_fs_uri_data.conf
