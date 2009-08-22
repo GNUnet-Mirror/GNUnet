@@ -129,4 +129,16 @@ struct GNUNET_FS_Uri
 
 };
 
+
+/**
+ * Information for a file or directory that is
+ * about to be published.
+ */
+struct GNUNET_FS_FileInformation 
+{
+
+
+};
+
+
 #endif

@@ -26,10 +26,10 @@
  * GNUnet URIs are of the general form "gnunet://MODULE/IDENTIFIER".
  * The specific structure of "IDENTIFIER" depends on the module and
  * maybe differenciated into additional subcategories if applicable.
- * This module only deals with ecrs identifiers (MODULE = "ecrs").
+ * This module only deals with fs identifiers (MODULE = "fs").
  * <p>
  *
- * This module only parses URIs for the AFS module.  The ECRS URIs fall
+ * This module only parses URIs for the AFS module.  The FS URIs fall
  * into four categories, "chk", "sks", "ksk" and "loc".  The first three
  * categories were named in analogy (!) to Freenet, but they do NOT
  * work in exactly the same way.  They are very similar from the user's
@@ -40,7 +40,7 @@
  * <ul><li>
  *
  * First, there are URIs that identify a file.  They have the format
- * "gnunet://ecrs/chk/HEX1.HEX2.SIZE".  These URIs can be used to
+ * "gnunet://fs/chk/HEX1.HEX2.SIZE".  These URIs can be used to
  * download the file.  The description, filename, mime-type and other
  * meta-data is NOT part of the file-URI since a URI uniquely
  * identifies a resource (and the contents of the file would be the
@@ -49,7 +49,7 @@
  * </li><li>
  *
  * The second category identifies entries in a namespace.  The format
- * is "gnunet://ecrs/sks/NAMESPACE/IDENTIFIER" where the namespace
+ * is "gnunet://fs/sks/NAMESPACE/IDENTIFIER" where the namespace
  * should be given in HEX.  Applications may allow using a nickname
  * for the namespace if the nickname is not ambiguous.  The identifier
  * can be either an ASCII sequence or a HEX-encoding.  If the
@@ -59,7 +59,7 @@
  * </li> <li>
  *
  * The third category identifies ordinary searches.  The format is
- * "gnunet://ecrs/ksk/KEYWORD[+KEYWORD]*".  Using the "+" syntax
+ * "gnunet://fs/ksk/KEYWORD[+KEYWORD]*".  Using the "+" syntax
  * it is possible to encode searches with the boolean "AND" operator.
  * "+" is used since it indicates a commutative 'and' operation and
  * is unlikely to be used in a keyword by itself.
@@ -67,7 +67,7 @@
  * </li><li>
  *
  * The last category identifies a datum on a specific machine.  The
- * format is "gnunet://ecrs/loc/HEX1.HEX2.SIZE.PEER.SIG.EXPTIME".  PEER is
+ * format is "gnunet://fs/loc/HEX1.HEX2.SIZE.PEER.SIG.EXPTIME".  PEER is
  * the BinName of the public key of the peer storing the datum.  The
  * signature (SIG) certifies that this peer has this content.
  * HEX1, HEX2 and SIZE correspond to a 'chk' URI.
@@ -211,6 +211,7 @@ percent_decode_keyword (const char *in, char **emsg)
           if (1 != sscanf (&out[rpos + 1], "%2X", &hx))
             {
               GNUNET_free (out);
+	      *emsg = GNUNET_strdup (_("`%' must be followed by HEX number"));
               return NULL;
             }
           rpos += 3;
@@ -265,11 +266,14 @@ uri_ksk_parse (const char *s, char **emsg)
   pos = strlen (GNUNET_FS_URI_PREFIX GNUNET_FS_URI_KSK_INFIX);
   if ( (slen <= pos) ||
        (0 != strncmp (s, GNUNET_FS_URI_PREFIX GNUNET_FS_URI_KSK_INFIX, 
-		      pos) ) ||
-       (s[slen - 1] == '+') ||
+		      pos) ) )
+    return NULL;       /* not KSK URI */
+  if ( (s[slen - 1] == '+') ||
        (s[pos] == '+') )
-    return NULL;       /* no keywords / malformed */
-  
+    {
+      *emsg = GNUNET_strdup (_("Malformed KSK URI (must not begin or end with `+')"));
+      return NULL;
+    }
   max = 1;
   saw_quote = 0;
   for (i = pos; i < slen; i++)
@@ -284,11 +288,17 @@ uri_ksk_parse (const char *s, char **emsg)
         {
           max++;
           if (s[i - 1] == '+')
-            return NULL;       /* "++" not allowed */
+	    {
+	      *emsg = GNUNET_strdup (_("`++' not allowed in KSK URI")); 
+	      return NULL;
+	    }
         }
     }
   if (saw_quote == 1)
-    return NULL;       /* quotes not balanced */
+    {
+      *emsg = GNUNET_strdup (_("Quotes not balanced in KSK URI")); 
+      return NULL;
+    }
   iret = max;
   dup = GNUNET_strdup (s);
   keywords = GNUNET_malloc (max * sizeof (char *));
@@ -304,7 +314,7 @@ uri_ksk_parse (const char *s, char **emsg)
         {
           keywords[--max] = percent_decode_keyword (&dup[i + 1], emsg);
           if (NULL == keywords[max])
-            goto CLEANUP;
+	    goto CLEANUP;	   
           dup[i] = '\0';
         }
     }
@@ -349,14 +359,21 @@ uri_sks_parse (const char *s, char **emsg)
   pos = strlen (GNUNET_FS_URI_PREFIX GNUNET_FS_URI_SKS_INFIX);
   if ( (slen <= pos) ||
        (0 != strncmp (s, GNUNET_FS_URI_PREFIX GNUNET_FS_URI_SKS_INFIX, 
-		      pos) ) ||
-       (slen < pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) + 1) ||
+		      pos) ) )
+    return NULL; /* not an SKS URI */
+  if ( (slen < pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) + 1) ||
        (s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1] != '/') )
-    return NULL;
+    {
+      *emsg = GNUNET_strdup (_("Malformed SKS URI"));
+      return NULL;
+    }
   memcpy (enc, &s[pos], sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded));
   enc[sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded)-1] = '\0';
   if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (enc, &namespace))
-    return NULL;
+    {
+      *emsg = GNUNET_strdup (_("Malformed SKS URI"));
+      return NULL;
+    }
   identifier = GNUNET_strdup (&s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)]);
   ret = GNUNET_malloc (sizeof(struct GNUNET_FS_Uri));
   ret->type = sks;
@@ -389,11 +406,14 @@ uri_chk_parse (const char *s, char **emsg)
   pos = strlen (GNUNET_FS_URI_PREFIX GNUNET_FS_URI_CHK_INFIX);
   if ( (slen < pos + 2 * sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) + 1) ||
        (0 != strncmp (s, GNUNET_FS_URI_PREFIX GNUNET_FS_URI_CHK_INFIX, 
-		      pos) ) ||
-       (s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1] != '.') ||
+		      pos) ) )
+    return NULL; /* not a CHK URI */
+  if ( (s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1] != '.') ||
        (s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) * 2 - 1] != '.') )
-    return NULL;
-
+    {
+      *emsg = GNUNET_strdup (_("Malformed CHK URI"));
+      return NULL;
+    }
   memcpy (h1,
 	  &s[pos], 
 	  sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded));
@@ -410,9 +430,11 @@ uri_chk_parse (const char *s, char **emsg)
       (1 != SSCANF (&s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) * 2],
                     "%llu", 
 		    &fi.file_length)))
-    return NULL;
+    {
+      *emsg = GNUNET_strdup (_("Malformed CHK URI"));
+      return NULL;
+    }
   fi.file_length = GNUNET_htonll (fi.file_length);
-
   ret = GNUNET_malloc (sizeof(struct GNUNET_FS_Uri));
   ret->type = chk;
   ret->data.chk = fi;
@@ -527,18 +549,20 @@ uri_loc_parse (const char *s, char **emsg)
   struct LocUriAssembly ass;
   int ret;
   size_t slen;
-  char *addr;
 
   GNUNET_assert (s != NULL);
   slen = strlen (s);
   pos = strlen (GNUNET_FS_URI_PREFIX GNUNET_FS_URI_LOC_INFIX);
   if ( (slen < pos + 2 * sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) + 1) ||
        (0 != strncmp (s, GNUNET_FS_URI_PREFIX GNUNET_FS_URI_LOC_INFIX, 
-		      pos) ) ||
-       (s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1] != '.') ||
+		      pos) ) )
+    return NULL; /* not an SKS URI */
+  if ( (s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1] != '.') ||
        (s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) * 2 - 1] != '.') )
-    return NULL;
-
+    {
+      *emsg = GNUNET_strdup (_("SKS URI malformed"));
+      return NULL;
+    }
   memcpy (h1,
 	  &s[pos], 
 	  sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded));
@@ -555,32 +579,54 @@ uri_loc_parse (const char *s, char **emsg)
       (1 != SSCANF (&s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) * 2],
                     "%llu", 
 		    &ass.fi.file_length)) )
-    return NULL;
+    {
+      *emsg = GNUNET_strdup (_("SKS URI malformed"));
+      return NULL;
+    }
   ass.fi.file_length = GNUNET_htonll (ass.fi.file_length);
 
   npos = pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) * 2;
   while ((s[npos] != '\0') && (s[npos] != '.'))
     npos++;
   if (s[npos] == '\0')
-    goto ERR;
+    {
+      *emsg = GNUNET_strdup (_("SKS URI malformed"));
+      goto ERR;
+    }
+  npos++;
   ret = enc2bin (&s[npos], 
 		 &ass.peer,
 		 sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
   if (ret == -1)
-    goto ERR;
+    {
+      *emsg = GNUNET_strdup (_("SKS URI malformed (could not decode public key)"));
+      goto ERR;
+    }
   npos += ret;
   if (s[npos++] != '.')
-    goto ERR;
+    {
+      *emsg = GNUNET_strdup (_("SKS URI malformed (could not find signature)"));
+      goto ERR;
+    }
   ret = enc2bin (&s[npos],
 		 &sig,
 		 sizeof (struct GNUNET_CRYPTO_RsaSignature));
   if (ret == -1)
-    goto ERR;
-  npos += ret;
+    {
+      *emsg = GNUNET_strdup (_("SKS URI malformed (could not decode signature)"));
+      goto ERR;
+    }
+    npos += ret;
   if (s[npos++] != '.')
-    goto ERR;
+    {
+      *emsg = GNUNET_strdup (_("SKS URI malformed"));
+      goto ERR;
+    }
   if (1 != SSCANF (&s[npos], "%llu", &exptime))
-    goto ERR;
+    {
+      *emsg = GNUNET_strdup (_("SKS URI malformed (could not parse expiration time)"));
+      goto ERR;
+    }
   ass.purpose.size = htonl(sizeof(struct LocUriAssembly));
   ass.purpose.purpose = htonl(GNUNET_SIGNATURE_PURPOSE_NAMESPACE_PLACEMENT);
   et.value = exptime;
@@ -590,8 +636,10 @@ uri_loc_parse (const char *s, char **emsg)
 				&ass.purpose,
 				&sig,
 				&ass.peer))
-    goto ERR;
-
+    {
+      *emsg = GNUNET_strdup (_("SKS URI malformed (signature failed validation)"));
+      goto ERR;
+    }
   uri = GNUNET_malloc (sizeof(struct GNUNET_FS_Uri));
   uri->type = loc;
   uri->data.loc.fi = ass.fi;
@@ -601,7 +649,6 @@ uri_loc_parse (const char *s, char **emsg)
 
   return uri;
 ERR:
-  GNUNET_free_non_null (addr);
   return NULL;
 }
 
@@ -618,12 +665,20 @@ GNUNET_FS_uri_parse (const char *uri,
 		     char **emsg)
 {
   struct GNUNET_FS_Uri *ret;
+  char *msg;
 
+  if (NULL == emsg)
+    emsg = &msg;
+  *emsg = NULL;
   if ( (NULL != (ret = uri_chk_parse (uri, emsg))) ||
        (NULL != (ret = uri_ksk_parse (uri, emsg))) ||
        (NULL != (ret = uri_sks_parse (uri, emsg))) ||
        (NULL != (ret = uri_loc_parse (uri, emsg))) )
     return ret;
+  if (NULL == *emsg)
+    *emsg = GNUNET_strdup (_("Unrecognized URI type"));
+  if (emsg == &msg)
+    GNUNET_free (msg);
   return NULL;
 }
 

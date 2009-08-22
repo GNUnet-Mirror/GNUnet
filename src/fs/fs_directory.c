@@ -231,6 +231,13 @@ GNUNET_FS_directory_list_contents (size_t size,
     }
 }
 
+
+void
+GNUNET_FS_directory_create ()
+{
+}
+
+
 #if 0
 
 

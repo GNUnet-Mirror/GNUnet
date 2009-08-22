@@ -441,45 +441,45 @@ GNUNET_FS_getopt_configure_set_metadata (struct GNUNET_GETOPT_CommandLineProcess
 enum GNUNET_FS_Status
 {
   /**
-   * Notification that we have started to share a file structure.
+   * Notification that we have started to publish a file structure.
    */
-  GNUNET_FS_STATUS_SHARE_START,
+  GNUNET_FS_STATUS_PUBLISH_START,
 
   /**
    * Notification that we have resumed sharing a file structure.
    */
-  GNUNET_FS_STATUS_SHARE_RESUME,
+  GNUNET_FS_STATUS_PUBLISH_RESUME,
 
   /**
    * Notification that we have suspended sharing a file structure.
    */
-  GNUNET_FS_STATUS_SHARE_SUSPEND,
+  GNUNET_FS_STATUS_PUBLISH_SUSPEND,
 
   /**
    * Notification that we are making progress sharing a file structure.
    */
-  GNUNET_FS_STATUS_SHARE_PROGRESS,
+  GNUNET_FS_STATUS_PUBLISH_PROGRESS,
 
   /**
    * Notification that an error was encountered  sharing a file structure.
    * The application will continue to receive resume/suspend events for
-   * this structure until "GNUNET_FS_share_stop" is called.
+   * this structure until "GNUNET_FS_publish_stop" is called.
    */
-  GNUNET_FS_STATUS_SHARE_ERROR,
+  GNUNET_FS_STATUS_PUBLISH_ERROR,
 
   /**
    * Notification that we completed sharing a file structure.
    * The application will continue to receive resume/suspend events for
-   * this structure until "GNUNET_FS_share_stop" is called.
+   * this structure until "GNUNET_FS_publish_stop" is called.
    */
-  GNUNET_FS_STATUS_SHARE_COMPLETED,
+  GNUNET_FS_STATUS_PUBLISH_COMPLETED,
 
   /**
    * Notification that we have stopped
    * the process of uploading a file structure; no
    * futher events will be generated for this action.
    */
-  GNUNET_FS_STATUS_SHARE_STOPPED,
+  GNUNET_FS_STATUS_PUBLISH_STOPPED,
 
   /**
    * Notification that we have started this download.
@@ -640,7 +640,7 @@ struct GNUNET_FS_Namespace;
 /**
  * Handle for controlling an upload.
  */
-struct GNUNET_FS_ShareContext;
+struct GNUNET_FS_PublishContext;
 
 
 /**
@@ -662,7 +662,7 @@ struct GNUNET_FS_DownloadContext;
 
 
 /**
- * Handle for detail information about a file that is being shared.
+ * Handle for detail information about a file that is being publishd.
  * Specifies metadata, keywords, how to get the contents of the file
  * (i.e. data-buffer in memory, filename on disk) and other options.
  */
@@ -682,17 +682,17 @@ struct GNUNET_FS_ProgressInfo
   union {
     
     /**
-     * Values for all "GNUNET_FS_STATUS_SHARE_*" events.
+     * Values for all "GNUNET_FS_STATUS_PUBLISH_*" events.
      */
     struct {
 
       /**
        * Context for controlling the upload.
        */
-      struct GNUNET_FS_ShareContext *sc;
+      struct GNUNET_FS_PublishContext *sc;
 
       /**
-       * Information about the file that is being shared.
+       * Information about the file that is being publishd.
        */
       const struct GNUNET_FS_FileInformation *fi;
 
@@ -747,7 +747,7 @@ struct GNUNET_FS_ProgressInfo
 
 	/**
 	 * These values are only valid for
-	 * GNUNET_FS_STATUS_SHARE_PROGRESS events.
+	 * GNUNET_FS_STATUS_PUBLISH_PROGRESS events.
 	 */
 	struct {
 	  
@@ -770,7 +770,7 @@ struct GNUNET_FS_ProgressInfo
 
 	/**
 	 * These values are only valid for
-	 * GNUNET_FS_STATUS_SHARE_RESUME events.
+	 * GNUNET_FS_STATUS_PUBLISH_RESUME events.
 	 */
 	struct {
 	  
@@ -783,7 +783,7 @@ struct GNUNET_FS_ProgressInfo
 
 	/**
 	 * These values are only valid for
-	 * GNUNET_FS_STATUS_SHARE_ERROR events.
+	 * GNUNET_FS_STATUS_PUBLISH_ERROR events.
 	 */
 	struct {
 	  
@@ -796,7 +796,7 @@ struct GNUNET_FS_ProgressInfo
 
       } specifics;
 
-    } share;
+    } publish;
 
     
     /**
@@ -1348,7 +1348,7 @@ struct GNUNET_FS_ProgressInfo
  *         will be passed to future callbacks in the respective
  *         field in the GNUNET_FS_ProgressInfo struct.
  */
-typedef int (*GNUNET_FS_ProgressCallback)
+typedef void* (*GNUNET_FS_ProgressCallback)
   (void *cls,
    const struct GNUNET_FS_ProgressInfo *info);
 
@@ -1388,10 +1388,10 @@ GNUNET_FS_stop (struct GNUNET_FS_Handle *h);
 
 
 /**
- * Function called on entries in a GNUNET_FS_FileInformation share-structure.
+ * Function called on entries in a GNUNET_FS_FileInformation publish-structure.
  *
  * @param cls closure
- * @param fi the entry in the share-structure
+ * @param fi the entry in the publish-structure
  * @param length length of the file or directory
  * @param meta metadata for the file or directory (can be modified)
  * @param uri pointer to the keywords that will be used for this entry (can be modified)
@@ -1415,9 +1415,9 @@ typedef int (*GNUNET_FS_FileInformationProcessor)(void *cls,
 
 
 /**
- * Create an entry for a file in a share-structure.
+ * Create an entry for a file in a publish-structure.
  *
- * @param filename name of the file or directory to share
+ * @param filename name of the file or directory to publish
  * @param meta metadata for the file
  * @param do_index GNUNET_YES for index, GNUNET_NO for insertion,
  *                GNUNET_SYSERR for simulation
@@ -1426,7 +1426,7 @@ typedef int (*GNUNET_FS_FileInformationProcessor)(void *cls,
  *   keep this file available?  Use 0 for maximum anonymity and
  *   minimum reliability...
  * @param expirationTime when should this content expire?
- * @return share structure entry for the file
+ * @return publish structure entry for the file
  */
 struct GNUNET_FS_FileInformation *
 GNUNET_FS_file_information_create_from_file (void *client_info,
@@ -1439,7 +1439,7 @@ GNUNET_FS_file_information_create_from_file (void *client_info,
 
 
 /**
- * Create an entry for a file in a share-structure.
+ * Create an entry for a file in a publish-structure.
  *
  * @param length length of the file
  * @param data data for the file (should not be used afterwards by
@@ -1452,7 +1452,7 @@ GNUNET_FS_file_information_create_from_file (void *client_info,
  *   keep this file available?  Use 0 for maximum anonymity and
  *   minimum reliability...
  * @param expirationTime when should this content expire?
- * @return share structure entry for the file
+ * @return publish structure entry for the file
  */
 struct GNUNET_FS_FileInformation *
 GNUNET_FS_file_information_create_from_data (void *client_info,
@@ -1489,7 +1489,7 @@ typedef size_t (*GNUNET_FS_DataReader)(void *cls,
 
 
 /**
- * Create an entry for a file in a share-structure.
+ * Create an entry for a file in a publish-structure.
  *
  * @param length length of the file
  * @param reader function that can be used to obtain the data for the file 
@@ -1504,7 +1504,7 @@ typedef size_t (*GNUNET_FS_DataReader)(void *cls,
  *   keep this file available?  Use 0 for maximum anonymity and
  *   minimum reliability...
  * @param expirationTime when should this content expire?
- * @return share structure entry for the file
+ * @return publish structure entry for the file
  */
 struct GNUNET_FS_FileInformation *
 GNUNET_FS_file_information_create_from_reader (void *client_info,
@@ -1555,7 +1555,7 @@ typedef int (*GNUNET_FS_DirectoryScanner)(void *cls,
 /**
  * Simple, useful default implementation of a directory scanner
  * (GNUNET_FS_DirectoryScanner).  This implementation expects to get a
- * UNIX filename, will share all files in the directory except hidden
+ * UNIX filename, will publish all files in the directory except hidden
  * files (those starting with a ".").  Metadata will be extracted
  * using GNU libextractor; the specific list of plugins should be
  * specified in "cls", passing NULL will disable (!)  metadata
@@ -1578,7 +1578,7 @@ GNUNET_FS_directory_scanner_default (void *cls,
 
 
 /**
- * Create a share-structure from an existing file hierarchy, inferring
+ * Create a publish-structure from an existing file hierarchy, inferring
  * and organizing keywords and metadata as much as possible.  This
  * function primarily performs the recursive build and re-organizes
  * keywords and metadata; for automatically getting metadata
@@ -1595,7 +1595,7 @@ GNUNET_FS_directory_scanner_default (void *cls,
  *   keep this file available?  Use 0 for maximum anonymity and
  *   minimum reliability...
  * @param expirationTime when should this content expire?
- * @return share structure entry for the directory, NULL on error
+ * @return publish structure entry for the directory, NULL on error
  */
 struct GNUNET_FS_FileInformation *
 GNUNET_FS_file_information_create_from_directory (void *client_info,
@@ -1607,7 +1607,7 @@ GNUNET_FS_file_information_create_from_directory (void *client_info,
 
 
 /**
- * Create an entry for an empty directory in a share-structure.
+ * Create an entry for an empty directory in a publish-structure.
  * This function should be used by applications for which the
  * use of "GNUNET_FS_file_information_create_from_directory"
  * is not appropriate.
@@ -1620,7 +1620,7 @@ GNUNET_FS_file_information_create_from_directory (void *client_info,
  *   keep this file available?  Use 0 for maximum anonymity and
  *   minimum reliability...
  * @param expirationTime when should this content expire?
- * @return share structure entry for the directory , NULL on error
+ * @return publish structure entry for the directory , NULL on error
  */
 struct GNUNET_FS_FileInformation *
 GNUNET_FS_file_information_create_empty_directory (void *client_info,
@@ -1632,9 +1632,9 @@ GNUNET_FS_file_information_create_empty_directory (void *client_info,
 
 
 /**
- * Add an entry to a directory in a share-structure.  Clients
- * should never modify share structures that were passed to
- * "GNUNET_FS_share_start" already.
+ * Add an entry to a directory in a publish-structure.  Clients
+ * should never modify publish structures that were passed to
+ * "GNUNET_FS_publish_start" already.
  *
  * @param dir the directory
  * @param end the entry to add; the entry must not have been
@@ -1648,9 +1648,9 @@ GNUNET_FS_file_information_add (struct GNUNET_FS_FileInformation *dir,
 
 
 /**
- * Inspect a file or directory in a share-structure.  Clients
- * should never modify share structures that were passed to
- * "GNUNET_FS_share_start" already.  When called on a directory,
+ * Inspect a file or directory in a publish-structure.  Clients
+ * should never modify publish structures that were passed to
+ * "GNUNET_FS_publish_start" already.  When called on a directory,
  * this function will FIRST call "proc" with information about
  * the directory itself and then for each of the files in the
  * directory (but not for files in subdirectories).  When called
@@ -1668,8 +1668,8 @@ GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
 
 
 /**
- * Destroy share-structure.  Clients should never destroy share
- * structures that were passed to "GNUNET_FS_share_start" already.
+ * Destroy publish-structure.  Clients should never destroy publish
+ * structures that were passed to "GNUNET_FS_publish_start" already.
  *
  * @param fi structure to destroy
  * @param cleaner function to call on each entry in the structure
@@ -1684,21 +1684,21 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
 
 
 /**
- * Share a file or directory.
+ * Publish a file or directory.
  *
  * @param h handle to the file sharing subsystem
  * @param ctx initial value to use for the '*ctx'
- *        in the callback (for the GNUNET_FS_STATUS_SHARE_START event).
- * @param fi information about the file or directory structure to share
- * @param namespace namespace to share the file in, NULL for no namespace
- * @param nid identifier to use for the shared content in the namespace
+ *        in the callback (for the GNUNET_FS_STATUS_PUBLISH_START event).
+ * @param fi information about the file or directory structure to publish
+ * @param namespace namespace to publish the file in, NULL for no namespace
+ * @param nid identifier to use for the publishd content in the namespace
  *        (can be NULL, must be NULL if namespace is NULL)
  * @param nuid update-identifier that will be used for future updates 
  *        (can be NULL, must be NULL if namespace or nid is NULL)
- * @return context that can be used to control the share operation
+ * @return context that can be used to control the publish operation
  */
-struct GNUNET_FS_ShareContext *
-GNUNET_FS_share_start (struct GNUNET_FS_Handle *h,
+struct GNUNET_FS_PublishContext *
+GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
 		       void *ctx,
 		       const struct GNUNET_FS_FileInformation *fi,
 		       struct GNUNET_FS_Namespace *namespace,
@@ -1708,13 +1708,13 @@ GNUNET_FS_share_start (struct GNUNET_FS_Handle *h,
 
 /**
  * Stop an upload.  Will abort incomplete uploads (but 
- * not remove blocks that have already been shared) or
+ * not remove blocks that have already been publishd) or
  * simply clean up the state for completed uploads.
  *
  * @param sc context for the upload to stop
  */
 void 
-GNUNET_FS_share_stop (struct GNUNET_FS_ShareContext *sc);
+GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *sc);
 
 
 /**
@@ -1840,9 +1840,8 @@ typedef void (*GNUNET_FS_NamespaceInfoProcessor) (void *cls,
  * @param h handle to the file sharing subsystem
  * @param cb function to call on each known namespace
  * @param cb_cls closure for cb
- * @return GNUNET_SYSERR on error, otherwise the number of pseudonyms in list
  */
-int 
+void 
 GNUNET_FS_namespace_list (struct GNUNET_FS_Handle *h,
 			  GNUNET_FS_NamespaceInfoProcessor cb,
 			  void *cb_cls);

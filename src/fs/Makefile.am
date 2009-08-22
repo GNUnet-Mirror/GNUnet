@@ -13,9 +13,13 @@ endif
 lib_LTLIBRARIES = libgnunetfs.la
 
 libgnunetfs_la_SOURCES = \
+  fs.c \
   fs_collection.c \
   fs_directory.c \
+  fs_file_information.c \
   fs_getopt.c \
+  fs_publish.c \
+  fs_namespace.c \
   fs_uri.c 
 
 libgnunetfs_la_LIBADD = \
@@ -31,8 +35,8 @@ libgnunetfs_la_LDFLAGS = \
 # gnunet-directory 
 # gnunet-download 
 # gnunet-pseudonym 
+# gnunet-publish 
 # gnunet-search
-# gnunet-share 
 # gnunet-unindex 
 
 #gnunet_directory_SOURCES = 
@@ -76,4 +80,5 @@ test_fs_uri_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la  
 
 EXTRA_DIST = \
+  test_fs_collection_data.conf \
   test_fs_uri_data.conf

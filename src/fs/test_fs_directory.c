@@ -152,6 +152,13 @@ main (int argc, char *argv[])
   int failureCount = 0;
   int i;
 
+  GNUNET_log_setup ("test_fs_directory", 
+#if VERBOSE
+		    "DEBUG",
+#else
+		    "WARNING",
+#endif
+		    NULL);
   for (i = 17; i < 2000; i *= 2)
     {
       fprintf (stderr, ".");

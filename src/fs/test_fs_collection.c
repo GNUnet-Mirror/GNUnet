@@ -28,75 +28,87 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_fs_service.h"
 
-#define CHECK(a) if (!(a)) { ok = GNUNET_NO; GNUNET_break(0); goto FAILURE; }
+static struct GNUNET_CONFIGURATION_Handle *cfg;
 
-int
-main (int argc, char *argv[])
+static void* progress_cb (void *cls,
+			  const struct GNUNET_FS_ProgressInfo *info)
 {
-  struct GNUNET_CONFIGURATION_Handle *cfg;
-  int ok;
-  struct GNUNET_ClientServerConnection *sock;
-  struct GNUNET_CONTAINER_MetaData *meta;
-  struct GNUNET_CONTAINER_MetaData *have;
+  GNUNET_break (0);
+  return NULL;
+}
+
+
+static void
+task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_FS_Namespace *have;
+  struct GNUNET_FS_Namespace *ns;
   char *emsg;
   struct GNUNET_FS_Uri *uri;
-  struct GNUNET_CONTAINER_MetaData *md;
   struct GNUNET_FS_Handle *fsh;
+  struct GNUNET_CONTAINER_MetaData *md;
 
-  GNUNET_CRYPTO_random_disable_entropy_gathering ();
-  cfg = GNUNET_CONFIGURATION_create ();
-  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_parse (cfg, "check.conf"))
-    {
-      GNUNET_CONFIGURATION_destroy (cfg);
-      return -1;
-    }
-  sock = NULL;
-  meta = NULL;
-  ok = GNUNET_YES;
-  meta = GNUNET_CONTAINER_meta_data_create ();
-  GNUNET_CONTAINER_meta_data_insert (meta, EXTRACTOR_MIMETYPE, "test/foo");
-
-
-  fsh = GNUNET_FS_start (sched,
+  fsh = GNUNET_FS_start (tc->sched,
 			 cfg,
 			 "test-fs-collection",
 			 &progress_cb,
 			 NULL);
-
-  /* ACTUAL TEST CODE */
+  GNUNET_assert (NULL != fsh);
   GNUNET_FS_collection_stop (fsh);
-  CHECK (NULL == GNUNET_FS_collection_get (fsh));
-  CHECK (GNUNET_OK == GNUNET_FS_collection_start (fsh, 
-						  namespace));
+  GNUNET_assert (NULL == GNUNET_FS_collection_get (fsh));
+  ns = GNUNET_FS_namespace_create (fsh, "test-namespace");
+  GNUNET_assert (NULL != ns);
+  GNUNET_assert (GNUNET_OK == GNUNET_FS_collection_start (fsh, 
+							  ns));
+  GNUNET_FS_namespace_delete (ns, GNUNET_NO);
   have = GNUNET_FS_collection_get (fsh);
-  CHECK (NULL != have);
-  CHECK (GNUNET_CONTAINER_meta_data_test_equal (have, meta));
-  GNUNET_CONTAINER_meta_data_destroy (have);
-  md = meta;
+  GNUNET_assert (NULL != have);
+  GNUNET_FS_namespace_delete (have, GNUNET_NO);
   uri =
-    GNUNET_FS_uri_parse ("gnunet://ecrs/chk/0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0", &emsg);
+    GNUNET_FS_uri_parse ("gnunet://fs/chk/0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0", &emsg);
+  GNUNET_assert (NULL != uri);
+  md = GNUNET_CONTAINER_meta_data_create ();
   GNUNET_FS_collection_add (fsh, uri, md);
+  GNUNET_CONTAINER_meta_data_destroy (md);
   GNUNET_FS_uri_destroy (uri);
   GNUNET_FS_stop (fsh);
-  fsh = GNUNET_FS_start (sched, cfg,
+  fsh = GNUNET_FS_start (tc->sched,
+			 cfg,
 			 "test-fs-collection",
 			 &progress_cb,
 			 NULL);
   have = GNUNET_FS_collection_get (fsh);
-  CHECK (NULL != have);
-  CHECK (GNUNET_CONTAINER_meta_data_test_equal (have, meta));
-  GNUNET_CONTAINER_meta_data_destroy (have);
+  GNUNET_assert (NULL != have);
+  GNUNET_FS_namespace_delete (have, GNUNET_NO);
   GNUNET_FS_collection_publish (fsh);
   GNUNET_FS_collection_stop (fsh);
-  CHECK (NULL == GNUNET_FS_collection_get (fsh));
+  GNUNET_assert (NULL == GNUNET_FS_collection_get (fsh));
   GNUNET_FS_stop (fsh);
+}
 
-  /* END OF TEST CODE */
-FAILURE:
-  if (meta != NULL)
-    GNUNET_CONTAINER_meta_data_destroy (meta);
+
+int
+main (int argc, char *argv[])
+{
+  int ok;
+
+  GNUNET_log_setup ("test_fs_collection", 
+#if VERBOSE
+		    "DEBUG",
+#else
+		    "WARNING",
+#endif
+		    NULL);
+  GNUNET_CRYPTO_random_disable_entropy_gathering ();
+  cfg = GNUNET_CONFIGURATION_create ();
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_parse (cfg, "test_fs_collection_data.conf"))
+    {
+      GNUNET_CONFIGURATION_destroy (cfg);
+      return -1;
+    }
+  ok = GNUNET_YES;
+  GNUNET_SCHEDULER_run (&task, &ok);
   GNUNET_CONFIGURATION_destroy (cfg);
-  
   return (ok == GNUNET_YES) ? 0 : 1;
 }
 
