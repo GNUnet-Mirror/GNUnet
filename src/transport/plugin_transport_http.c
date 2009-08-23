@@ -399,7 +399,7 @@ static int stat_connect_calls;
  */
 static unsigned int http_requests_pending;
 
-static int signal_pipe[2];
+static struct GNUNET_DISK_FileHandle signal_pipe[2];
 
 static char *proxy;
 
@@ -453,7 +453,7 @@ static void
 signal_select ()
 {
   static char c;
-  WRITE (signal_pipe[1], &c, sizeof (c));
+  GNUNET_DISK_file_write (signal_pipe[1], &c, sizeof (c));
 }
 
 /**
@@ -1747,8 +1747,10 @@ curl_runner (void *unused)
   fd_set rs;
   fd_set ws;
   fd_set es;
+  struct GNUNET_NETWORK_FDSet *hrs;
+  struct GNUNET_NETWORK_FDSet *hws;
+  struct GNUNET_NETWORK_FDSet *hes;
   int max;
-  struct timeval tv;
   int running;
   unsigned long long timeout;
   long ms;
@@ -1761,6 +1763,11 @@ curl_runner (void *unused)
                  GNUNET_GE_DEBUG | GNUNET_GE_REQUEST | GNUNET_GE_USER,
                  "HTTP transport select thread started\n");
 #endif
+
+  hrs = GNUNET_net_fdset_create ();
+  hws = GNUNET_net_fdset_create ();
+  hes = GNUNET_net_fdset_create ();
+
   while (GNUNET_YES == http_running)
     {
       max = 0;
@@ -1793,16 +1800,20 @@ curl_runner (void *unused)
           have_tv = MHD_YES;
         }
       GNUNET_mutex_unlock (lock);
-      FD_SET (signal_pipe[0], &rs);
-      if (max < signal_pipe[0])
-        max = signal_pipe[0];
-      tv.tv_sec = timeout / 1000;
-      tv.tv_usec = (timeout % 1000) * 1000;
+
+      GNUNET_net_fdset_zero (hws);
+      GNUNET_net_fdset_zero (hrs);
+      GNUNET_net_fdset_zero (hes);
+      GNUNET_net_fdset_copy_native (hws, ws);
+      GNUNET_net_fdset_copy_native (hrs, rs);
+      GNUNET_net_fdset_copy_native (hes, es);
+
+       GNUNET_net_fdset_handle_set (signal_pipe[0], hrs);
       if (stats != NULL)
         stats->change (stat_select_calls, 1);
       ret =
-        SELECT (max + 1, &rs, &ws, &es, (have_tv == MHD_YES) ? &tv : NULL);
-      if (ret == -1)
+        GNUNET_net_select (hrs, hws, hes, (have_tv == MHD_YES) ? timeout : GNUNET_TIME_UNIT_FOREVER_REL);
+      if (ret == GNUNET_SYSERR)
         {
           GNUNET_GE_LOG_STRERROR (coreAPI->ectx,
                                   GNUNET_GE_ERROR | GNUNET_GE_ADMIN |
@@ -1819,8 +1830,8 @@ curl_runner (void *unused)
         }
       while ((mret == CURLM_CALL_MULTI_PERFORM)
              && (http_running == GNUNET_YES));
-      if (FD_ISSET (signal_pipe[0], &rs))
-        read (signal_pipe[0], buf, sizeof (buf));
+      if (GNUNET_net_fdset_handle_isset (signal_pipe[0], hrs))
+        GNUNET_DISK_file_read (signal_pipe[0], buf, sizeof (buf));
       if ((mret != CURLM_OK) && (mret != CURLM_CALL_MULTI_PERFORM))
         GNUNET_GE_LOG (coreAPI->ectx,
                        GNUNET_GE_ERROR | GNUNET_GE_ADMIN | GNUNET_GE_USER |
@@ -1914,7 +1925,7 @@ startTransportServer ()
                                                    GNUNET_YES))
         available_protocols |= VERSION_AVAILABLE_IPV6;
     }
-  if (0 != PIPE (signal_pipe))
+  if (GNUNET_OK != GNUNET_DISK_pipe (signal_pipe, GNUNET_NO))
     {
       MHD_stop_daemon (mhd_daemon);
       curl_multi_cleanup (curl_multi);
@@ -1922,8 +1933,6 @@ startTransportServer ()
       mhd_daemon = NULL;
       return GNUNET_SYSERR;
     }
-  GNUNET_pipe_make_nonblocking (coreAPI->ectx, signal_pipe[0]);
-  GNUNET_pipe_make_nonblocking (coreAPI->ectx, signal_pipe[1]);
   http_running = GNUNET_YES;
   curl_thread = GNUNET_thread_create (&curl_runner, NULL, 32 * 1024);
   if (curl_thread == NULL)
@@ -1950,8 +1959,8 @@ stopTransportServer ()
   signal_select ();
   GNUNET_thread_stop_sleep (curl_thread);
   GNUNET_thread_join (curl_thread, &unused);
-  CLOSE (signal_pipe[0]);
-  CLOSE (signal_pipe[1]);
+  GNUNET_DISK_close (signal_pipe[0]);
+  GNUNET_DISK_close (signal_pipe[1]);
   if (mhd_daemon != NULL)
     {
       MHD_stop_daemon (mhd_daemon);

@@ -32,6 +32,7 @@ libgnunetutil_la_SOURCES = \
   crypto_random.c \
   crypto_rsa.c \
   disk.c \
+  disk.h \
   getopt.c \
   getopt_helpers.c \
   network.c \
@@ -47,6 +48,7 @@ libgnunetutil_la_SOURCES = \
   server_tc.c \
   service.c \
   signal.c \
+  sock.c \
   strings.c \
   time.c \
   $(WINSRC)

@@ -50,7 +50,7 @@ static unsigned int maps_size;
 
 static struct GNUNET_ThreadHandle *discovery;
 
-static int discovery_socket;
+static struct GNUNET_NETWORK_Descriptor *discovery_socket;
 
 /**
  * Obtain the public/external IP address.
@@ -84,8 +84,8 @@ kill_discovery ()
 
   if (discovery != NULL)
     {
-      SHUTDOWN (discovery_socket, SHUT_RDWR);
-      CLOSE (discovery_socket);
+      GNUNET_IO_shutdown (discovery_socket, SHUT_RDWR);
+      GNUNET_IO_close (&discovery_socket);
       GNUNET_thread_join (discovery, &unused);
       discovery = NULL;
     }
@@ -105,8 +105,8 @@ static void
 discover (void *unused)
 {
   kill_discovery ();
-  discovery_socket = SOCKET (PF_INET, SOCK_DGRAM, 0);
-  if (discovery_socket == -1)
+  discovery_socket = GNUNET_IO_socket (PF_INET, SOCK_DGRAM, 0);
+  if (NULL == discovery_socket)
     return;
   discovery = GNUNET_thread_create (&discover_thread, NULL, 1024 * 128);
 }

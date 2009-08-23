@@ -267,31 +267,23 @@ udp_test_would_try (GNUNET_TSession * tsession, unsigned int size,
  * Create a UDP socket.  If possible, use IPv6, otherwise
  * try IPv4.  Update available_protocols accordingly.
  */
-static int
+static struct GNUNET_NETWORK_Descriptor *
 udp_create_socket ()
 {
-  int s;
+  struct GNUNET_NETWORK_Descriptor *desc;
 
   available_protocols = VERSION_AVAILABLE_NONE;
-  s = -1;
+  desc = NULL;
   if (GNUNET_YES !=
       GNUNET_GC_get_configuration_value_yesno (cfg, "GNUNETD", "DISABLE-IPV6",
                                                GNUNET_YES))
     {
-#ifndef MINGW
-      s = SOCKET (PF_INET6, SOCK_DGRAM, 17);
-#else
-      s = win_ols_socket (PF_INET6, SOCK_DGRAM, 17);
-#endif
+      desc = GNUNET_net_socket (PF_INET6, SOCK_DGRAM, 17);
     }
-  if (s < 0)
+  if (NULL == desc)
     {
-#ifndef MINGW
-      s = SOCKET (PF_INET, SOCK_DGRAM, 17);
-#else
-      s = win_ols_socket (PF_INET, SOCK_DGRAM, 17);
-#endif
-      if (s < 0)
+      desc = GNUNET_net_socket (PF_INET, SOCK_DGRAM, 17);
+      if (NULL == desc)
         {
           GNUNET_GE_LOG_STRERROR (coreAPI->ectx,
                                   GNUNET_GE_ERROR | GNUNET_GE_ADMIN |
@@ -304,7 +296,7 @@ udp_create_socket ()
     {
       available_protocols = VERSION_AVAILABLE_IPV6 | VERSION_AVAILABLE_IPV4;
     }
-  return s;
+  return desc;
 }
 
 /**
@@ -424,7 +416,7 @@ udp_transport_server_start ()
   struct sockaddr_in6 serverAddrv6;
   struct sockaddr *serverAddr;
   socklen_t addrlen;
-  int sock;
+  GNUNET_NETWORK_Descriptor *desc;
   const int on = 1;
   unsigned short port;
 
@@ -433,10 +425,10 @@ udp_transport_server_start ()
   port = get_port ();
   if (port != 0)
     {
-      sock = udp_create_socket ();
-      if (sock < 0)
+      desc = udp_create_socket ();
+      if (NULL == desc)
         return GNUNET_SYSERR;
-      if (SETSOCKOPT (sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) < 0)
+      if (GNUNET_net_setsockopt (desc, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) < 0)
         {
           GNUNET_GE_DIE_STRERROR (coreAPI->ectx,
                                   GNUNET_GE_FATAL | GNUNET_GE_ADMIN |
@@ -461,7 +453,7 @@ udp_transport_server_start ()
           addrlen = sizeof (serverAddrv6);
           serverAddr = (struct sockaddr *) &serverAddrv6;
         }
-      if (BIND (sock, serverAddr, addrlen) < 0)
+      if (GNUNET_net_bind (desc, serverAddr, addrlen) < 0)
         {
           GNUNET_GE_LOG_STRERROR (coreAPI->ectx,
                                   GNUNET_GE_FATAL | GNUNET_GE_ADMIN |
@@ -471,14 +463,14 @@ udp_transport_server_start ()
                          GNUNET_GE_IMMEDIATE,
                          _("Failed to bind to %s port %d.\n"),
                          MY_TRANSPORT_NAME, port);
-          if (0 != CLOSE (sock))
+          if (0 != GNUNET_net_close (&desc))
             GNUNET_GE_LOG_STRERROR (coreAPI->ectx,
                                     GNUNET_GE_ERROR | GNUNET_GE_USER |
                                     GNUNET_GE_ADMIN | GNUNET_GE_BULK,
                                     "close");
           return GNUNET_SYSERR;
         }
-      selector = GNUNET_select_create ("udp", GNUNET_YES, coreAPI->ectx, load_monitor, sock, addrlen, 0,        /* timeout */
+      selector = GNUNET_select_create ("udp", GNUNET_YES, coreAPI->ectx, load_monitor, desc, addrlen, 0,        /* timeout */
                                        &select_message_handler,
                                        NULL,
                                        &select_accept_handler,
@@ -489,8 +481,8 @@ udp_transport_server_start ()
       if (selector == NULL)
         return GNUNET_SYSERR;
     }
-  sock = udp_create_socket ();
-  if (sock == -1)
+  desc = udp_create_socket ();
+  if (NULL == desc)
     {
       GNUNET_GE_LOG_STRERROR (coreAPI->ectx,
                               GNUNET_GE_ERROR | GNUNET_GE_ADMIN |
@@ -499,7 +491,7 @@ udp_transport_server_start ()
       selector = NULL;
       return GNUNET_SYSERR;
     }
-  udp_sock = GNUNET_socket_create (coreAPI->ectx, load_monitor, sock);
+  udp_sock = GNUNET_socket_create (coreAPI->ectx, load_monitor, desc);
   GNUNET_GE_ASSERT (coreAPI->ectx, udp_sock != NULL);
   return GNUNET_OK;
 }

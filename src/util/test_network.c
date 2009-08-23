@@ -23,7 +23,7 @@
  */
 #include "platform.h"
 #include "gnunet_common.h"
-#include "gnunet_network_lib.h"
+#include "gnunet_connection_lib.h"
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_time_lib.h"
 
@@ -49,24 +49,24 @@ static int ls;
  *
  * @return -1 on error, otherwise the listen socket
  */
-static int
+static struct GNUNET_NETWORK_Descriptor *
 open_listen_socket ()
 {
   const static int on = 1;
   struct sockaddr_in sa;
-  int fd;
+  struct GNUNET_NETWORK_Descriptor *desc;
 
   memset (&sa, 0, sizeof (sa));
   sa.sin_port = htons (PORT);
   sa.sin_family = AF_INET;
-  fd = SOCKET (AF_INET, SOCK_STREAM, 0);
-  GNUNET_assert (fd >= 0);
-  if (SETSOCKOPT (fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) < 0)
+  desc = GNUNET_NETWORK_socket_socket (AF_INET, SOCK_STREAM, 0);
+  GNUNET_assert (desc != NULL);
+  if (GNUNET_NETWORK_socket_setsockopt (desc, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) < 0)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "setsockopt");
-  GNUNET_assert (BIND (fd, &sa, sizeof (sa)) >= 0);
-  LISTEN (fd, 5);
-  return fd;
+  GNUNET_assert (GNUNET_NETWORK_socket_bind (desc, &sa, sizeof (sa)) >= 0);
+  GNUNET_NETWORK_socket_listen (desc, 5);
+  return desc;
 }
 
 static void
@@ -166,7 +166,7 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test prepares to accept\n");
 #endif
-  GNUNET_SCHEDULER_add_read (tc->sched,
+  GNUNET_SCHEDULER_add_read_net (tc->sched,
                              GNUNET_NO,
                              GNUNET_SCHEDULER_PRIORITY_HIGH,
                              GNUNET_SCHEDULER_NO_TASK,

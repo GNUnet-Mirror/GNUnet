@@ -104,7 +104,7 @@ typedef struct
   char *full_url;
   char *buf;
   unsigned int buf_len;
-  int sock;
+  struct GNUNET_NETWORK_Descriptor *sock;
 } UPnPDiscoveryData;
 
 static GaimUPnPControlInfo control_info = {
@@ -543,7 +543,7 @@ gaim_upnp_parse_description (char *proxy, UPnPDiscoveryData * dd)
 }
 
 int
-gaim_upnp_discover (struct GNUNET_CONFIGURATION_Handle *cfg, int sock)
+gaim_upnp_discover (struct GNUNET_CONFIGURATION_Handle *cfg, struct GNUNET_NETWORK_Descriptor *sock)
 {
   char *proxy;
   socklen_t avail;
@@ -613,7 +613,7 @@ gaim_upnp_discover (struct GNUNET_CONFIGURATION_Handle *cfg, int sock)
   /* try to read response */
   do
     {
-      buf_len = recv (dd.sock, buf, sizeof (buf) - 1, 0);
+      buf_len = GNUNET_IO_recv (dd.sock, buf, sizeof (buf) - 1, 0);
       if (buf_len > 0)
         {
           buf[buf_len] = '\0';

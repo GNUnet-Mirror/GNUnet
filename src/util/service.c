@@ -813,9 +813,11 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
 
   if (!disablev6)
     {
+      struct GNUNET_NETWORK_Descriptor *desc;
+
       /* probe IPv6 support */
-      ret = SOCKET (PF_INET6, SOCK_STREAM, 0);
-      if (ret == -1)
+      desc = GNUNET_NETWORK_socket_socket (PF_INET6, SOCK_STREAM, 0);
+      if (NULL == desc)
         {
           if ((errno == ENOBUFS) ||
               (errno == ENOMEM) || (errno == ENFILE) || (errno == EACCES))
@@ -823,18 +825,18 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
               GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
               return GNUNET_SYSERR;
             }
-          ret = SOCKET (PF_INET, SOCK_STREAM, 0);
-          if (ret != -1)
+          desc = GNUNET_NETWORK_socket_socket (PF_INET, SOCK_STREAM, 0);
+          if (NULL == desc)
             {
               GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                           _
                           ("Disabling IPv6 support for service `%s', failed to create IPv6 socket: %s\n"),
-                          sctx->serviceName, strerror (errno));
+                          sctx->serviceName, STRERROR (errno));
               disablev6 = GNUNET_YES;
             }
         }
-      if (ret != -1)
-        GNUNET_break (0 == CLOSE (ret));
+      if (NULL != desc)
+        GNUNET_break (0 == GNUNET_NETWORK_socket_close (desc));
     }
 
 

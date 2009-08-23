@@ -20,11 +20,12 @@
 
 /**
  * @file include/gnunet_network_lib.h
- * @brief basic, low-level TCP networking interface
- * @author Christian Grothoff
+ * @brief basic low-level networking interface
+ * @author Nils Durner
  */
-#ifndef GNUNET_NETWORK_LIB_H
-#define GNUNET_NETWORK_LIB_H
+
+#ifndef GNUNET_NETWORK_LIB_H_
+#define GNUNET_NETWORK_LIB_H_
 
 #ifdef __cplusplus
 extern "C"
@@ -34,265 +35,102 @@ extern "C"
 #endif
 #endif
 
-#include "gnunet_scheduler_lib.h"
 #include "gnunet_time_lib.h"
 
+
 /**
- * Timeout we use on TCP connect before trying another
- * result from the DNS resolver. 5s.
+ * @brief handle to a socket
  */
-#define GNUNET_NETWORK_CONNECT_RETRY_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+struct GNUNET_NETWORK_Descriptor;
 
 /**
- * @brief handle for a network connection
+ * @brief collection of IO descriptors
  */
-struct GNUNET_NETWORK_ConnectionHandle;
+struct GNUNET_NETWORK_FDSet;
 
+struct GNUNET_DISK_FileHandle;
+
+struct GNUNET_NETWORK_Descriptor *GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Descriptor *desc,
+                      struct sockaddr *address,
+                      socklen_t *address_len);
+
+int GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Descriptor *desc,
+                    const struct sockaddr *address, socklen_t address_len);
+
+int GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Descriptor *desc);
+
+int GNUNET_NETWORK_socket_connect (const struct GNUNET_NETWORK_Descriptor *desc,
+                       const struct sockaddr *address, socklen_t address_len);
+
+int GNUNET_NETWORK_socket_getsockopt(const struct GNUNET_NETWORK_Descriptor *desc, int level, int optname,
+       void *optval, socklen_t *optlen);
+
+int GNUNET_NETWORK_socket_listen (const struct GNUNET_NETWORK_Descriptor *desc, int backlog);
+
+ssize_t GNUNET_NETWORK_socket_read (const struct GNUNET_NETWORK_Descriptor *desc, void *buf,
+                        size_t nbyte);
+
+ssize_t GNUNET_NETWORK_socket_recv (const struct GNUNET_NETWORK_Descriptor *desc, void *buffer,
+                        size_t length, int flags);
+
+int GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
+    struct GNUNET_NETWORK_FDSet *wfds, struct GNUNET_NETWORK_FDSet *efds,
+    struct GNUNET_TIME_Relative timeout);
 
 /**
- * Function to call for access control checks.
+ * Set if a socket should use blocking or non-blocking IO.
  *
- * @param cls closure
- * @param addr address
- * @param addrlen length of address
- * @return GNUNET_YES to allow, GNUNET_NO to deny, GNUNET_SYSERR
- *   for unknown address family (will be denied).
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-typedef int (*GNUNET_NETWORK_AccessCheck) (void *cls,
-                                           const struct sockaddr * addr,
-                                           socklen_t addrlen);
+int GNUNET_NETWORK_socket_set_blocking (struct GNUNET_NETWORK_Descriptor *fd, int doBlock);
+
+ssize_t GNUNET_NETWORK_socket_send (const struct GNUNET_NETWORK_Descriptor *desc,
+                        const void *buffer, size_t length, int flags);
+
+ssize_t GNUNET_NETWORK_socket_sendto (const struct GNUNET_NETWORK_Descriptor *desc,
+                          const void *message, size_t length, int flags,
+                          const struct sockaddr *dest_addr,
+                          socklen_t dest_len);
+
+int GNUNET_NETWORK_socket_setsockopt(struct GNUNET_NETWORK_Descriptor *fd, int level, int option_name,
+       const void *option_value, socklen_t option_len);
+
+int GNUNET_NETWORK_socket_shutdown (struct GNUNET_NETWORK_Descriptor *desc, int how);
+
+struct GNUNET_NETWORK_Descriptor *GNUNET_NETWORK_socket_socket (int domain, int type, int protocol);
+
+ssize_t GNUNET_NETWORK_socket_write (const struct GNUNET_NETWORK_Descriptor *desc,
+                         const void *buf, size_t nbyte);
 
 
-/**
- * Callback function for data received from the network.  Note that
- * both "available" and "err" would be 0 if the read simply timed out.
- *
- * @param cls closure
- * @param buf pointer to received data
- * @param available number of bytes availabe in "buf",
- *        possibly 0 (on errors)
- * @param addr address of the sender
- * @param addrlen size of addr
- * @param errCode value of errno (on errors receiving)
- */
-typedef void (*GNUNET_NETWORK_Receiver) (void *cls,
-                                         const void *buf,
-                                         size_t available,
-                                         const struct sockaddr * addr,
-                                         socklen_t addrlen, int errCode);
+void GNUNET_NETWORK_fdset_zero(struct GNUNET_NETWORK_FDSet *fds);
 
+void GNUNET_NETWORK_fdset_set(struct GNUNET_NETWORK_FDSet *fds,
+    const struct GNUNET_NETWORK_Descriptor *desc);
 
-/**
- * Create a socket handle by boxing an existing OS socket.  The OS
- * socket should henceforth be no longer used directly.
- * GNUNET_socket_destroy will close it.
- *
- * @param sched scheduler to use
- * @param osSocket existing socket to box
- * @param maxbuf maximum write buffer size for the socket (use
- *        0 for sockets that need no write buffers, such as listen sockets)
- * @return the boxed socket handle
- */
-struct GNUNET_NETWORK_ConnectionHandle
-  *GNUNET_NETWORK_connection_create_from_existing (struct GNUNET_SCHEDULER_Handle
-                                               *sched, int osSocket,
-                                               size_t maxbuf);
+int GNUNET_NETWORK_fdset_isset(const struct GNUNET_NETWORK_FDSet *fds,
+    const struct GNUNET_NETWORK_Descriptor *desc);
 
+void GNUNET_NETWORK_fdset_add (struct GNUNET_NETWORK_FDSet *dst,
+    const struct GNUNET_NETWORK_FDSet *src);
 
-/**
- * Create a socket handle by accepting on a listen socket.  This
- * function may block if the listen socket has no connection ready.
- *
- * @param sched scheduler to use
- * @param access function to use to check if access is allowed
- * @param access_cls closure for access
- * @param lsock listen socket
- * @param maxbuf maximum write buffer size for the socket (use
- *        0 for sockets that need no write buffers, such as listen sockets)
- * @return the socket handle, NULL on error (for example, access refused)
- */
-struct GNUNET_NETWORK_ConnectionHandle
-  *GNUNET_NETWORK_connection_create_from_accept (struct GNUNET_SCHEDULER_Handle
-                                             *sched,
-                                             GNUNET_NETWORK_AccessCheck
-                                             access, void *access_cls,
-                                             int lsock, size_t maxbuf);
+void GNUNET_NETWORK_fdset_copy(struct GNUNET_NETWORK_FDSet *to,
+    const struct GNUNET_NETWORK_FDSet *from);
 
+void GNUNET_NETWORK_fdset_copy_native (struct GNUNET_NETWORK_FDSet *to, const fd_set *from,
+    int nfds);
 
-/**
- * Create a socket handle by (asynchronously) connecting to a host.
- * This function returns immediately, even if the connection has not
- * yet been established.  This function only creates TCP connections.
- *
- * @param sched scheduler to use
- * @param hostname name of the host to connect to
- * @param port port to connect to
- * @param maxbuf maximum write buffer size for the socket (use
- *        0 for sockets that need no write buffers, such as listen sockets)
- * @return the socket handle
- */
-struct GNUNET_NETWORK_ConnectionHandle
-  *GNUNET_NETWORK_connection_create_from_connect (struct GNUNET_SCHEDULER_Handle
-                                              *sched, const char *hostname,
-                                              uint16_t port, size_t maxbuf);
+void GNUNET_NETWORK_fdset_handle_set (struct GNUNET_NETWORK_FDSet *fds,
+    const struct GNUNET_DISK_FileHandle *h);
 
+int GNUNET_NETWORK_fdset_handle_isset (const struct GNUNET_NETWORK_FDSet *fds,
+    const struct GNUNET_DISK_FileHandle *h);
 
+int GNUNET_NETWORK_fdset_overlap (const struct GNUNET_NETWORK_FDSet *fds1, const struct GNUNET_NETWORK_FDSet *fds2);
 
-/**
- * Create a socket handle by (asynchronously) connecting to a host.
- * This function returns immediately, even if the connection has not
- * yet been established.  This function only creates TCP connections.
- *
- * @param sched scheduler to use
- * @param af_family address family to use
- * @param serv_addr server address
- * @param addrlen length of server address
- * @param maxbuf maximum write buffer size for the socket (use
- *        0 for sockets that need no write buffers, such as listen sockets)
- * @return the socket handle
- */
-struct GNUNET_NETWORK_ConnectionHandle
-  *GNUNET_NETWORK_connection_create_from_sockaddr (struct GNUNET_SCHEDULER_Handle
-                                               *sched, int af_family,
-                                               const struct sockaddr
-                                               *serv_addr, socklen_t addrlen,
-                                               size_t maxbuf);
+struct GNUNET_NETWORK_FDSet *GNUNET_NETWORK_fdset_create ();
 
-/**
- * Check if socket is valid (no fatal errors have happened so far).
- * Note that a socket that is still trying to connect is considered
- * valid.
- *
- * @param sock socket to check
- * @return GNUNET_YES if valid, GNUNET_NO otherwise
- */
-int GNUNET_NETWORK_connection_check (struct GNUNET_NETWORK_ConnectionHandle *sock);
-
-
-/**
- * Obtain the network address of the other party.
- *
- * @param sock the client to get the address for
- * @param addr where to store the address
- * @param addrlen where to store the length of the address
- * @return GNUNET_OK on success
- */
-int GNUNET_NETWORK_connection_get_address (struct GNUNET_NETWORK_ConnectionHandle
-                                       *sock, void **addr, size_t * addrlen);
-
-/**
- * Close the socket and free associated resources.  Pending
- * transmissions are simply dropped.  A pending receive call will be
- * called with an error code of "EPIPE".
- *
- * @param sock socket to destroy
- */
-void GNUNET_NETWORK_connection_destroy (struct GNUNET_NETWORK_ConnectionHandle *sock);
-
-
-/**
- * Receive data from the given socket.  Note that this function will
- * call "receiver" asynchronously using the scheduler.  It will
- * "immediately" return.  Note that there MUST only be one active
- * receive call per socket at any given point in time (so do not
- * call receive again until the receiver callback has been invoked).
- *
- * @param sock socket handle
- * @param max maximum number of bytes to read
- * @param timeout maximum amount of time to wait
- * @param receiver function to call with received data
- * @param receiver_cls closure for receiver
- * @return scheduler task ID used for receiving, GNUNET_SCHEDULER_NO_TASK on error
- */
-GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_NETWORK_connection_receive (struct GNUNET_NETWORK_ConnectionHandle *sock,
-                        size_t max,
-                        struct GNUNET_TIME_Relative timeout,
-                        GNUNET_NETWORK_Receiver receiver, void *receiver_cls);
-
-
-/**
- * Cancel receive job on the given socket.  Note that the
- * receiver callback must not have been called yet in order
- * for the cancellation to be valid.
- *
- * @param sock socket handle
- * @param task task identifier returned from the receive call
- * @return closure of the original receiver callback
- */
-void *GNUNET_NETWORK_connection_receive_cancel (struct GNUNET_NETWORK_ConnectionHandle *sock,
-                                     GNUNET_SCHEDULER_TaskIdentifier task);
-
-
-/**
- * Function called to notify a client about the socket
- * begin ready to queue more data.  "buf" will be
- * NULL and "size" zero if the socket was closed for
- * writing in the meantime.
- *
- * @param cls closure
- * @param size number of bytes available in buf
- * @param buf where the callee should write the message
- * @return number of bytes written to buf
- */
-typedef size_t (*GNUNET_NETWORK_TransmitReadyNotify) (void *cls,
-                                                      size_t size, void *buf);
-
-
-/**
- * Opaque handle that can be used to cancel
- * a transmit-ready notification.
- */
-struct GNUNET_NETWORK_TransmitHandle;
-
-/**
- * Ask the socket to call us once the specified number of bytes
- * are free in the transmission buffer.  May call the notify
- * method immediately if enough space is available.  Note that
- * this function will abort if "size" is greater than
- * "maxbuf" (as specified when the socket handle was created).
- *
- * Note that "notify" will be called either when enough
- * buffer space is available OR when the socket is destroyed.
- * The size parameter given to notify is guaranteed to be
- * larger or equal to size if the buffer is ready, or zero
- * if the socket was destroyed (or at least closed for
- * writing).  Finally, any time before 'notify' is called, a
- * client may call "notify_transmit_ready_cancel" to cancel
- * the transmission request.
- *
- * Only one transmission request can be scheduled at the same
- * time.  Notify will be run with the same scheduler priority
- * as that of the caller.
- *
- * @param sock socket
- * @param size number of bytes to send
- * @param timeout after how long should we give up (and call
- *        notify with buf NULL and size 0)?
- * @param notify function to call when buffer space is available
- * @param notify_cls closure for notify
- * @return non-NULL if the notify callback was queued,
- *         NULL if we are already going to notify someone else (busy)
- */
-struct GNUNET_NETWORK_TransmitHandle
-  *GNUNET_NETWORK_connection_notify_transmit_ready (struct GNUNET_NETWORK_ConnectionHandle
-                                         *sock, size_t size,
-                                         struct GNUNET_TIME_Relative timeout,
-                                         GNUNET_NETWORK_TransmitReadyNotify
-                                         notify, void *notify_cls);
-
-
-/**
- * Cancel the specified transmission-ready
- * notification.
- *
- * @param h handle for notification to cancel
- */
-void
-GNUNET_NETWORK_connection_notify_transmit_ready_cancel (struct
-                                             GNUNET_NETWORK_TransmitHandle
-                                             *h);
-
+void GNUNET_NETWORK_fdset_destroy (struct GNUNET_NETWORK_FDSet *fds);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
@@ -302,7 +140,4 @@ GNUNET_NETWORK_connection_notify_transmit_ready_cancel (struct
 }
 #endif
 
-
-/* ifndef GNUNET_NETWORK_LIB_H */
-#endif
-/* end of gnunet_network_lib.h */
+#endif /* GNUNET_NETWORK_LIB_H_ */

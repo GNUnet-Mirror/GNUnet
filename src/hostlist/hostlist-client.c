@@ -380,11 +380,17 @@ run_multi ()
   fd_set ws;
   fd_set es;
   int max;
+  struct GNUNET_NETWORK_FDSet *grs;
+  struct GNUNET_NETWORK_FDSet *gws;
+  struct GNUNET_NETWORK_FDSet *ges;
   
   max = 0;
   FD_ZERO (&rs);
   FD_ZERO (&ws);
   FD_ZERO (&es);
+  grs = GNUNET_NETWORK_fdset_create ();
+  gws = GNUNET_NETWORK_fdset_create ();
+  ges = GNUNET_NETWORK_fdset_create ();
   mret = curl_multi_fdset (multi, &rs, &ws, &es, &max);
   if (mret != CURLM_OK)
     {
@@ -395,17 +401,22 @@ run_multi ()
       clean_up ();
       return;
     }
+  GNUNET_NETWORK_fdset_copy_native (grs, &rs, max);
+  GNUNET_NETWORK_fdset_copy_native (gws, &ws, max);
+  GNUNET_NETWORK_fdset_copy_native (ges, &es, max);
   current_task 
     = GNUNET_SCHEDULER_add_select (sched,
 				   GNUNET_NO,
 				   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
 				   GNUNET_SCHEDULER_NO_TASK,
 				   GNUNET_TIME_UNIT_MINUTES,
-				   max,
-				   &rs,
-				   &ws,
+				   grs,
+				   gws,
 				   &multi_ready,
 				   multi);
+  GNUNET_NETWORK_fdset_destroy (ges);
+  GNUNET_NETWORK_fdset_destroy (gws);
+  GNUNET_NETWORK_fdset_destroy (grs);
 }
 
 

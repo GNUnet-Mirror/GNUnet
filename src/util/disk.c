@@ -31,6 +31,7 @@
 #include "gnunet_disk_lib.h"
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_strings_lib.h"
+#include "disk.h"
 
 
 #if LINUX || CYGWIN
@@ -74,13 +75,9 @@ typedef struct
   int include_sym_links;
 } GetFileSizeData;
 
-struct GNUNET_DISK_FileHandle
+struct GNUNET_DISK_PipeHandle
 {
-#if MINGW
-  HANDLE h;
-#else
-  int fd;
-#endif
+  struct GNUNET_DISK_FileHandle fd[2];
 };
 
 static int
@@ -1388,6 +1385,167 @@ GNUNET_DISK_file_sync (const struct GNUNET_DISK_FileHandle *h)
 #else
   return fsync (h->fd) == -1 ? GNUNET_SYSERR : GNUNET_OK;
 #endif
+}
+
+/**
+ * Creates an interprocess channel
+ * @param blocking creates an asynchronous pipe if set to GNUNET_NO
+ * @return handle to the new pipe, NULL on error
+ */
+struct GNUNET_DISK_PipeHandle *
+GNUNET_DISK_pipe (int blocking)
+{
+  struct GNUNET_DISK_PipeHandle *p;
+  int err;
+
+  err = GNUNET_NO;
+  p = GNUNET_malloc (sizeof (struct GNUNET_DISK_PipeHandle));
+
+#ifndef MINGW
+  int fd[2];
+  int ret;
+  int flags;
+
+  ret = pipe (fd);
+  if (ret != -1)
+    {
+      p->fd[0].fd = fd[0];
+      p->fd[1].fd = fd[1];
+
+      if (!blocking)
+        {
+          flags = fcntl (fd[0], F_GETFL);
+          flags |= O_NONBLOCK;
+          ret = fcntl (fd[0], F_SETFL, flags);
+          if (ret != -1)
+            {
+              flags = fcntl (fd[1], F_GETFL);
+              flags |= O_NONBLOCK;
+              ret = fcntl (fd[1], F_SETFL, flags);
+            }
+          if (ret == -1)
+            {
+              GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR, "fcntl");
+              close (fd[0]);
+              close (fd[1]);
+              err = GNUNET_YES;
+            }
+        }
+    }
+  else
+    err = GNUNET_YES;
+#else
+  BOOL ret;
+
+  ret = CreatePipe (&p->fd[0].h, &p->fd[1].h, NULL, 0);
+  if (ret)
+    {
+      if (!blocking)
+        {
+          DWORD mode;
+
+          mode = PIPE_NOWAIT;
+          SetNamedPipeHandleState (p->fd[0].h, &mode, NULL, NULL);
+          SetNamedPipeHandleState (p->fd[1].h, &mode, NULL, NULL);
+          /* this always fails on Windows 95, so we don't care about error handling */
+        }
+    }
+  else
+      err = GNUNET_YES;
+#endif
+
+  if (GNUNET_YES == err)
+    {
+      GNUNET_free (p);
+      p = NULL;
+    }
+
+  return p;
+}
+
+/**
+ * Closes an interprocess channel
+ * @param p pipe
+ * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ */
+int
+GNUNET_DISK_pipe_close (struct GNUNET_DISK_PipeHandle *p)
+{
+  int ret;
+
+  ret = GNUNET_OK;
+
+#ifdef MINGW
+  if (!CloseHandle (p->fd[0].h))
+    {
+      SetErrnoFromWinError (GetLastError ());
+      ret = GNUNET_SYSERR;
+    }
+
+  if (!CloseHandle (p->fd[1].h))
+    {
+      SetErrnoFromWinError (GetLastError ());
+      ret = GNUNET_SYSERR;
+    }
+#else
+  {
+    int save;
+
+    if (close (p->fd[0].fd) != -1)
+      {
+        ret = GNUNET_SYSERR;
+        save = errno;
+      }
+    else
+      save = 0;
+
+    if (close (p->fd[1].fd) != -1)
+      {
+        ret = GNUNET_SYSERR;
+      }
+    else
+      errno = save;
+  }
+#endif
+  GNUNET_free (p);
+
+  return ret;
+}
+
+/**
+ * Get the handle to a particular pipe end
+ * @param p pipe
+ * @param n number of the end
+ */
+const struct GNUNET_DISK_FileHandle *
+GNUNET_DISK_pipe_handle (const struct GNUNET_DISK_PipeHandle *p, int n)
+{
+  return &p->fd[n];
+}
+
+/**
+ * Retrieve OS file handle
+ * @internal
+ * @param fh GNUnet file descriptor
+ * @param dst destination buffer
+ * @param dst_len length of dst
+ * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ */
+int
+GNUNET_internal_disk_file_handle (const struct GNUNET_DISK_FileHandle *fh,
+    void *dst, unsigned int dst_len)
+{
+#ifdef MINGW
+  if (dst_len < sizeof (HANDLE))
+    return GNUNET_SYSERR;
+  *((HANDLE *) dst) = fh->h;
+#else
+  if (dst_len < sizeof(int))
+    return GNUNET_SYSERR;
+  *((int *) dst) = fh->fd;
+#endif
+
+  return GNUNET_OK;
 }
 
 /* end of disk.c */

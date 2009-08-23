@@ -35,14 +35,14 @@ extern "C"
 #endif
 #endif
 
-#include "gnunet_time_lib.h"
 
+#include "gnunet_time_lib.h"
+#include "gnunet_network_lib.h"
 
 /**
  * Opaque handle for the scheduling service.
  */
 struct GNUNET_SCHEDULER_Handle;
-
 
 /**
  * Opaque reference to a task.
@@ -173,14 +173,14 @@ struct GNUNET_SCHEDULER_TaskContext
    * note that additional bits may be set
    * that were not in the original request
    */
-  const fd_set *read_ready;
+  const struct GNUNET_NETWORK_FDSet *read_ready;
 
   /**
    * Set of file descriptors ready for writing;
    * note that additional bits may be set
    * that were not in the original request.
    */
-  const fd_set *write_ready;
+  const struct GNUNET_NETWORK_FDSet *write_ready;
 
 };
 
@@ -345,12 +345,12 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_SCHEDULER_Handle *sched,
  *         only valid until "main" is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_read (struct GNUNET_SCHEDULER_Handle *sched,
+GNUNET_SCHEDULER_add_read_net (struct GNUNET_SCHEDULER_Handle *sched,
                            int run_on_shutdown,
                            enum GNUNET_SCHEDULER_Priority prio,
                            GNUNET_SCHEDULER_TaskIdentifier prerequisite_task,
                            struct GNUNET_TIME_Relative delay,
-                           int rfd, GNUNET_SCHEDULER_Task main, void *cls);
+                           struct GNUNET_NETWORK_Descriptor *rfd, GNUNET_SCHEDULER_Task main, void *cls);
 
 
 /**
@@ -378,12 +378,78 @@ GNUNET_SCHEDULER_add_read (struct GNUNET_SCHEDULER_Handle *sched,
  *         only valid until "main" is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_write (struct GNUNET_SCHEDULER_Handle *sched,
+GNUNET_SCHEDULER_add_write_net (struct GNUNET_SCHEDULER_Handle *sched,
                             int run_on_shutdown,
                             enum GNUNET_SCHEDULER_Priority prio,
                             GNUNET_SCHEDULER_TaskIdentifier prerequisite_task,
                             struct GNUNET_TIME_Relative delay,
-                            int wfd, GNUNET_SCHEDULER_Task main, void *cls);
+                            struct GNUNET_NETWORK_Descriptor *wfd, GNUNET_SCHEDULER_Task main, void *cls);
+
+
+/**
+ * Schedule a new task to be run with a specified delay or when the
+ * specified file descriptor is ready for reading.  The delay can be
+ * used as a timeout on the socket being ready.  The task will be
+ * scheduled for execution once either the delay has expired or the
+ * socket operation is ready.
+ *
+ * @param sched scheduler to use
+ * @param run_on_shutdown run on shutdown? Set this
+ *        argument to GNUNET_NO to skip this task if
+ *        the user requested process termination.
+ * @param prio how important is this task?
+ * @param prerequisite_task run this task after the task with the given
+ *        task identifier completes (and any of our other
+ *        conditions, such as delay, read or write-readyness
+ *        are satisfied).  Use  GNUNET_SCHEDULER_NO_TASK to not have any dependency
+ *        on completion of other tasks.
+ * @param delay how long should we wait? Use  GNUNET_TIME_UNIT_FOREVER_REL for "forever"
+ * @param rfd read file-descriptor
+ * @param main main function of the task
+ * @param cls closure of task
+ * @return unique task identifier for the job
+ *         only valid until "main" is started!
+ */
+GNUNET_SCHEDULER_TaskIdentifier
+GNUNET_SCHEDULER_add_read_file (struct GNUNET_SCHEDULER_Handle *sched,
+                           int run_on_shutdown,
+                           enum GNUNET_SCHEDULER_Priority prio,
+                           GNUNET_SCHEDULER_TaskIdentifier prerequisite_task,
+                           struct GNUNET_TIME_Relative delay,
+                           struct GNUNET_DISK_FileHandle *rfd, GNUNET_SCHEDULER_Task main, void *cls);
+
+
+/**
+ * Schedule a new task to be run with a specified delay or when the
+ * specified file descriptor is ready for writing.  The delay can be
+ * used as a timeout on the socket being ready.  The task will be
+ * scheduled for execution once either the delay has expired or the
+ * socket operation is ready.
+ *
+ * @param sched scheduler to use
+ * @param run_on_shutdown run on shutdown? Set this
+ *        argument to GNUNET_NO to skip this task if
+ *        the user requested process termination.
+ * @param prio how important is this task?
+ * @param prerequisite_task run this task after the task with the given
+ *        task identifier completes (and any of our other
+ *        conditions, such as delay, read or write-readyness
+ *        are satisfied).  Use  GNUNET_SCHEDULER_NO_TASK to not have any dependency
+ *        on completion of other tasks.
+ * @param delay how long should we wait? Use  GNUNET_TIME_UNIT_FOREVER_REL for "forever"
+ * @param wfd write file-descriptor
+ * @param main main function of the task
+ * @param cls closure of task
+ * @return unique task identifier for the job
+ *         only valid until "main" is started!
+ */
+GNUNET_SCHEDULER_TaskIdentifier
+GNUNET_SCHEDULER_add_write_file (struct GNUNET_SCHEDULER_Handle *sched,
+                            int run_on_shutdown,
+                            enum GNUNET_SCHEDULER_Priority prio,
+                            GNUNET_SCHEDULER_TaskIdentifier prerequisite_task,
+                            struct GNUNET_TIME_Relative delay,
+                            struct GNUNET_DISK_FileHandle *wfd, GNUNET_SCHEDULER_Task main, void *cls);
 
 
 /**
@@ -429,7 +495,7 @@ GNUNET_SCHEDULER_add_select (struct GNUNET_SCHEDULER_Handle *sched,
                              GNUNET_SCHEDULER_TaskIdentifier
                              prerequisite_task,
                              struct GNUNET_TIME_Relative delay,
-                             int nfds, const fd_set * rs, const fd_set * ws,
+                             const struct GNUNET_NETWORK_FDSet * rs, const struct GNUNET_NETWORK_FDSet * ws,
                              GNUNET_SCHEDULER_Task main, void *cls);
 
 #if 0                           /* keep Emacsens' auto-indent happy */

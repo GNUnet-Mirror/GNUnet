@@ -29,10 +29,11 @@
 
 #include "platform.h"
 #include "gnunet_common.h"
-#include "gnunet_network_lib.h"
+#include "gnunet_connection_lib.h"
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_server_lib.h"
 #include "gnunet_time_lib.h"
+#include "gnunet_disk_lib.h"
 
 #define DEBUG_SERVER GNUNET_NO
 
@@ -124,13 +125,13 @@ struct GNUNET_SERVER_Handle
   /**
    * Pipe used to signal shutdown of the server.
    */
-  int shutpipe[2];
+  struct GNUNET_DISK_PipeHandle *shutpipe;
 
   /**
    * Socket used to listen for new connections.  Set to
    * "-1" by GNUNET_SERVER_destroy to initiate shutdown.
    */
-  int listen_socket;
+  struct GNUNET_NETWORK_Descriptor *listen_socket;
 
   /**
    * Set to GNUNET_YES if we are shutting down.
@@ -280,9 +281,8 @@ destroy_server (struct GNUNET_SERVER_Handle *server)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Server shutting down.\n");
 #endif
-  GNUNET_assert (server->listen_socket == -1);
-  GNUNET_break (0 == CLOSE (server->shutpipe[0]));
-  GNUNET_break (0 == CLOSE (server->shutpipe[1]));
+  GNUNET_assert (server->listen_socket == NULL);
+  GNUNET_break (GNUNET_YES == GNUNET_DISK_pipe_close (server->shutpipe));
   while (server->clients != NULL)
     {
       pos = server->clients;
@@ -314,21 +314,23 @@ process_listen_socket (void *cls,
   struct GNUNET_SERVER_Handle *server = cls;
   struct GNUNET_NETWORK_ConnectionHandle *sock;
   struct GNUNET_SERVER_Client *client;
-  fd_set r;
+  struct GNUNET_NETWORK_FDSet *r;
+  const struct GNUNET_DISK_FileHandle *shutpipe;
 
   if ((server->do_shutdown) ||
       ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0))
     {
       /* shutdown was initiated */
-      GNUNET_assert (server->listen_socket != -1);
-      GNUNET_break (0 == CLOSE (server->listen_socket));
-      server->listen_socket = -1;
+      GNUNET_assert (server->listen_socket != NULL);
+      GNUNET_break (0 == GNUNET_NETWORK_socket_close (server->listen_socket));
+      server->listen_socket = NULL;
       if (server->do_shutdown)
         destroy_server (server);
       return;
     }
-  GNUNET_assert (FD_ISSET (server->listen_socket, tc->read_ready));
-  GNUNET_assert (!FD_ISSET (server->shutpipe[0], tc->read_ready));
+  shutpipe = GNUNET_DISK_pipe_handle (server->shutpipe, 0);
+  GNUNET_assert (GNUNET_NETWORK_fdset_isset (tc->read_ready, server->listen_socket));
+  GNUNET_assert (!GNUNET_NETWORK_fdset_handle_isset (tc->read_ready, shutpipe));
   sock = GNUNET_NETWORK_connection_create_from_accept (tc->sched,
                                                    server->access,
                                                    server->access_cls,
@@ -345,30 +347,30 @@ process_listen_socket (void *cls,
       GNUNET_SERVER_client_drop (client);
     }
   /* listen for more! */
-  FD_ZERO (&r);
-  FD_SET (server->listen_socket, &r);
-  FD_SET (server->shutpipe[0], &r);
+  r = GNUNET_NETWORK_fdset_create ();
+  GNUNET_NETWORK_fdset_set (r, server->listen_socket);
+  GNUNET_NETWORK_fdset_handle_set (r, shutpipe);
   GNUNET_SCHEDULER_add_select (server->sched,
                                GNUNET_YES,
                                GNUNET_SCHEDULER_PRIORITY_HIGH,
                                GNUNET_SCHEDULER_NO_TASK,
                                GNUNET_TIME_UNIT_FOREVER_REL,
-                               GNUNET_MAX (server->listen_socket,
-                                           server->shutpipe[0]) + 1, &r, NULL,
+                               r, NULL,
                                &process_listen_socket, server);
+  GNUNET_NETWORK_fdset_destroy (r);
 }
 
 
 /**
  * Create and initialize a listen socket for the server.
  *
- * @return -1 on error, otherwise the listen socket
+ * @return NULL on error, otherwise the listen socket
  */
-static int
+static struct GNUNET_NETWORK_Descriptor *
 open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
 {
   const static int on = 1;
-  int fd;
+  struct GNUNET_NETWORK_Descriptor *sock;
   uint16_t port;
 
   switch (serverAddr->sa_family)
@@ -381,46 +383,45 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
       break;
     default:
       GNUNET_break (0);
-      return -1;
+      return NULL;
     }
-  fd = SOCKET (serverAddr->sa_family, SOCK_STREAM, 0);
-  if (fd < 0)
+  sock = GNUNET_NETWORK_socket_socket (serverAddr->sa_family, SOCK_STREAM, 0);
+  if (NULL == sock)
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
-      return -1;
+      return NULL;
     }
 #ifndef MINGW
-  // FIXME NILS
-  if (0 != fcntl (fd, F_SETFD, fcntl (fd, F_GETFD) | FD_CLOEXEC))
+  if (GNUNET_OK != GNUNET_NETWORK_socket_set_inheritable (sock))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                          "fcntl");
 #endif
-  if (SETSOCKOPT (fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) < 0)
+  if (GNUNET_NETWORK_socket_setsockopt (sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) < 0)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                          "setsockopt");
   /* bind the socket */
-  if (BIND (fd, serverAddr, socklen) < 0)
+  if (GNUNET_NETWORK_socket_bind (sock, serverAddr, socklen) < 0)
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _
                   ("`%s' failed for port %d. Is the service already running?\n"),
                   "bind", port);
-      GNUNET_break (0 == CLOSE (fd));
-      return -1;
+      GNUNET_break (0 == GNUNET_NETWORK_socket_close (sock));
+      return NULL;
     }
-  if (0 != LISTEN (fd, 5))
+  if (0 != GNUNET_NETWORK_socket_listen (sock, 5))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "listen");
-      GNUNET_break (0 == CLOSE (fd));
-      return -1;
+      GNUNET_break (0 == GNUNET_NETWORK_socket_close (sock));
+      return NULL;
     }
 #if DEBUG_SERVER
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Server starts to listen on port %u.\n",
 		  port);
 #endif
-  return fd;
+  return sock;
 }
 
 
@@ -451,20 +452,22 @@ GNUNET_SERVER_create (struct GNUNET_SCHEDULER_Handle *sched,
                       idle_timeout, int require_found)
 {
   struct GNUNET_SERVER_Handle *ret;
-  int lsock;
-  fd_set r;
+  struct GNUNET_NETWORK_Descriptor *lsock;
+  struct GNUNET_NETWORK_FDSet *r;
 
-  lsock = -2;
+  lsock = NULL; // FIXME NILS: this was -2, does that have a special meaning?
   if (serverAddr != NULL)
     {
       lsock = open_listen_socket (serverAddr, socklen);
-      if (lsock == -1)
+      if (lsock == NULL)
         return NULL;
     }
   ret = GNUNET_malloc (sizeof (struct GNUNET_SERVER_Handle));
-  if (0 != PIPE (ret->shutpipe))
+  ret->shutpipe = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileDescriptor *[2]));
+  if ((ret->shutpipe = GNUNET_DISK_pipe (GNUNET_NO)) == NULL)
     {
-      GNUNET_break (0 == CLOSE (lsock));
+      GNUNET_break (0 == GNUNET_NETWORK_socket_close (lsock));
+      GNUNET_free (ret->shutpipe);
       GNUNET_free (ret);
       return NULL;
     }
@@ -475,19 +478,19 @@ GNUNET_SERVER_create (struct GNUNET_SCHEDULER_Handle *sched,
   ret->access = access;
   ret->access_cls = access_cls;
   ret->require_found = require_found;
-  if (lsock >= 0)
+  if (lsock != NULL)
     {
-      FD_ZERO (&r);
-      FD_SET (ret->listen_socket, &r);
-      FD_SET (ret->shutpipe[0], &r);
+      r = GNUNET_NETWORK_fdset_create ();
+      GNUNET_NETWORK_fdset_set (r, ret->listen_socket);
+      GNUNET_NETWORK_fdset_handle_set (r, GNUNET_DISK_pipe_handle (ret->shutpipe, 0));
       GNUNET_SCHEDULER_add_select (sched,
                                    GNUNET_YES,
                                    GNUNET_SCHEDULER_PRIORITY_HIGH,
                                    GNUNET_SCHEDULER_NO_TASK,
                                    GNUNET_TIME_UNIT_FOREVER_REL,
-                                   GNUNET_MAX (ret->listen_socket,
-                                               ret->shutpipe[0]) + 1, &r,
+                                   r,
                                    NULL, &process_listen_socket, ret);
+      GNUNET_NETWORK_fdset_destroy (r);
     }
   return ret;
 }
@@ -503,10 +506,10 @@ GNUNET_SERVER_destroy (struct GNUNET_SERVER_Handle *s)
 
   GNUNET_assert (s->do_shutdown == GNUNET_NO);
   s->do_shutdown = GNUNET_YES;
-  if (s->listen_socket == -1)
+  if (s->listen_socket == NULL)
     destroy_server (s);
   else
-    GNUNET_break (1 == WRITE (s->shutpipe[1], &c, 1));
+    GNUNET_break (1 == GNUNET_DISK_file_write (GNUNET_DISK_pipe_handle (s->shutpipe, 1), &c, 1));
 }
 
 

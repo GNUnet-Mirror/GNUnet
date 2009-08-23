@@ -26,7 +26,7 @@
 
 #include "platform.h"
 #include "gnunet_hello_lib.h"
-#include "gnunet_network_lib.h"
+#include "gnunet_connection_lib.h"
 #include "gnunet_os_lib.h"
 #include "gnunet_peerinfo_service.h"
 #include "gnunet_protocols.h"

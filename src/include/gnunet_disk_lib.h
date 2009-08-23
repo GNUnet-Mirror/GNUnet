@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006 Christian Grothoff (and other contributing authors)
+     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2009 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -76,6 +76,8 @@ enum GNUNET_DISK_Seek {GNUNET_SEEK_SET, GNUNET_SEEK_CUR, GNUNET_SEEK_END};
 
 struct GNUNET_DISK_FileHandle;
 
+struct GNUNET_DISK_PipeHandle;
+
 /**
  * Get the number of blocks that are left on the partition that
  * contains the given file (for normal users).
@@ -150,6 +152,19 @@ GNUNET_DISK_mktemp (const char *template);
  */
 struct GNUNET_DISK_FileHandle *GNUNET_DISK_file_open (const char *fn, int flags, ...);
 
+/**
+ * Creates an interprocess channel
+ * @param blocking creates an asynchronous pipe if set to GNUNET_NO
+ * @return handle to the new pipe, NULL on error
+ */
+struct GNUNET_DISK_PipeHandle *GNUNET_DISK_pipe (int blocking);
+
+/**
+ * Closes an interprocess channel
+ * @param p pipe
+ * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ */
+int GNUNET_DISK_pipe_close (struct GNUNET_DISK_PipeHandle *p);
 
 /**
  * Close an open file.
@@ -159,6 +174,14 @@ struct GNUNET_DISK_FileHandle *GNUNET_DISK_file_open (const char *fn, int flags,
  */
 int GNUNET_DISK_file_close (struct GNUNET_DISK_FileHandle *h);
 
+/**
+ * Get the handle to a particular pipe end
+ * @param p pipe
+ * @param n number of the end
+ */
+const struct GNUNET_DISK_FileHandle *GNUNET_DISK_pipe_handle (const struct
+                                                              GNUNET_DISK_PipeHandle
+                                                              *p, int n);
 
 /**
  * Read the contents of a binary file into a buffer.

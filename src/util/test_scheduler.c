@@ -25,6 +25,7 @@
 #include "gnunet_common.h"
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_time_lib.h"
+#include "gnunet_disk_lib.h"
 
 #define VERBOSE GNUNET_NO
 
@@ -55,7 +56,8 @@ task4 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   (*ok) = 5;
 }
 
-static int fds[2];
+struct GNUNET_DISK_PipeHandle *p;
+static struct GNUNET_DISK_FileHandle *fds[2];
 
 
 static void
@@ -64,10 +66,9 @@ taskWrt (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   static char c;
   int *ok = cls;
   GNUNET_assert (6 == *ok);
-  GNUNET_assert (FD_ISSET (fds[1], tc->write_ready));
+  GNUNET_assert (GNUNET_NETWORK_fdset_handle_isset (tc->write_ready, fds[1]));
   (*ok) = 7;
-  GNUNET_assert (1 == WRITE (fds[1], &c, 1));
-  GNUNET_break (0 == CLOSE (fds[1]));
+  GNUNET_assert (1 == GNUNET_DISK_file_write (fds[1], &c, 1));
 }
 
 
@@ -92,9 +93,8 @@ taskRd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   static char c;
   int *ok = cls;
   GNUNET_assert (7 == *ok);
-  GNUNET_assert (FD_ISSET (fds[0], tc->read_ready));
-  GNUNET_assert (1 == READ (fds[0], &c, 1));
-  GNUNET_break (0 == CLOSE (fds[0]));
+  GNUNET_assert (GNUNET_NETWORK_fdset_handle_isset (tc->read_ready, fds[0]));
+  GNUNET_assert (1 == GNUNET_DISK_file_read (fds[0], &c, 1));
   (*ok) = 8;
   GNUNET_SCHEDULER_add_after (tc->sched,
                               GNUNET_NO,
@@ -114,14 +114,17 @@ task5 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   int *ok = cls;
   GNUNET_assert (5 == *ok);
   (*ok) = 6;
-  GNUNET_assert (0 == PIPE (fds));
-  GNUNET_SCHEDULER_add_read (tc->sched,
+  p = GNUNET_DISK_pipe (GNUNET_NO);
+  GNUNET_assert (NULL != p);
+  fds[0] = GNUNET_DISK_pipe_handle (p, 0);
+  fds[1] = GNUNET_DISK_pipe_handle (p, 1);
+  GNUNET_SCHEDULER_add_read_file (tc->sched,
                              GNUNET_NO,
                              GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                              GNUNET_SCHEDULER_NO_TASK,
                              GNUNET_TIME_UNIT_FOREVER_REL,
                              fds[0], &taskRd, cls);
-  GNUNET_SCHEDULER_add_write (tc->sched,
+  GNUNET_SCHEDULER_add_write_file (tc->sched,
                               GNUNET_NO,
                               GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                               GNUNET_SCHEDULER_NO_TASK,
@@ -256,6 +259,7 @@ main (int argc, char *argv[])
   ret += check ();
   ret += checkSignal ();
   ret += checkCancel ();
+  GNUNET_DISK_pipe_close (p);
 
   return ret;
 }

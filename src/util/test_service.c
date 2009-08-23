@@ -300,7 +300,7 @@ int
 main (int argc, char *argv[])
 {
   int ret = 0;
-  int s;
+  struct GNUNET_NETWORK_Descriptor *s;
 
   GNUNET_log_setup ("test-service",
 #if VERBOSE
@@ -311,8 +311,8 @@ main (int argc, char *argv[])
                     NULL);
   ret += check ();
   ret += check ();
-  s = SOCKET (PF_INET6, SOCK_STREAM, 0);
-  if (s == -1)
+  s = GNUNET_NETWORK_socket_socket (PF_INET6, SOCK_STREAM, 0);
+  if (NULL == s)
     {
       if ((errno == ENOBUFS) ||
           (errno == ENOMEM) || (errno == ENFILE) || (errno == EACCES))
@@ -326,7 +326,7 @@ main (int argc, char *argv[])
     }
   else
     {
-      GNUNET_break (0 == CLOSE (s));
+      GNUNET_break (0 == GNUNET_NETWORK_socket_close (s));
       ret += check6 ();
       ret += check6d ();        /* with daemonization */
     }

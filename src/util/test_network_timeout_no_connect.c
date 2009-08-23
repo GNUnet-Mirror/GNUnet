@@ -23,7 +23,7 @@
  */
 #include "platform.h"
 #include "gnunet_common.h"
-#include "gnunet_network_lib.h"
+#include "gnunet_connection_lib.h"
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_time_lib.h"
 

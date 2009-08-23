@@ -221,6 +221,9 @@ prepare_daemon ()
   fd_set rs;
   fd_set ws;
   fd_set es;
+  struct GNUNET_NETWORK_FDSet *wrs;
+  struct GNUNET_NETWORK_FDSet *wws;
+  struct GNUNET_NETWORK_FDSet *wes;
   int max;
   unsigned long long timeout;
   int haveto;
@@ -229,6 +232,9 @@ prepare_daemon ()
   FD_ZERO(&rs);
   FD_ZERO(&ws);
   FD_ZERO(&es);
+  wrs = GNUNET_NETWORK_fdset_create ();
+  wes = GNUNET_NETWORK_fdset_create ();
+  wws = GNUNET_NETWORK_fdset_create ();
   max = -1;
   GNUNET_assert (MHD_YES ==
 		 MHD_get_fdset (daemon_handle,
@@ -241,17 +247,22 @@ prepare_daemon ()
     tv.value = (uint64_t) timeout;
   else
     tv = GNUNET_TIME_UNIT_FOREVER_REL;
+  GNUNET_NETWORK_fdset_copy_native (wrs, &rs, max);
+  GNUNET_NETWORK_fdset_copy_native (wws, &ws, max);
+  GNUNET_NETWORK_fdset_copy_native (wes, &es, max);
   hostlist_task 
     = GNUNET_SCHEDULER_add_select (sched,
 				   GNUNET_NO,
 				   GNUNET_SCHEDULER_PRIORITY_HIGH,
 				   GNUNET_SCHEDULER_NO_TASK,
 				   tv,
-				   max,
-				   &rs,
-				   &ws,
+				   wrs,
+				   wws,
 				   &run_daemon,
 				   NULL);
+  GNUNET_NETWORK_fdset_destroy (wrs);
+  GNUNET_NETWORK_fdset_destroy (wws);
+  GNUNET_NETWORK_fdset_destroy (wes);
 }
 
 
