@@ -602,6 +602,8 @@ GNUNET_CONFIGURATION_get_value_filename (const struct GNUNET_CONFIGURATION_Handl
       tmp = GNUNET_CONFIGURATION_expand_dollar (data, tmp);
       *value = GNUNET_STRINGS_filename_expand (tmp);
       GNUNET_free (tmp);
+      if (*value == NULL)
+        ret = GNUNET_SYSERR;
     }
   else
     {
