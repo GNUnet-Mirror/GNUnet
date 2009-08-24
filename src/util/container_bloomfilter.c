@@ -157,7 +157,7 @@ incrementBit (char *bitArray, unsigned int bitIdx, const struct GNUNET_DISK_File
   fileSlot = bitIdx / 2;
   targetLoc = bitIdx % 2;
 
-  GNUNET_assert (fileSlot == (unsigned int) GNUNET_DISK_file_seek (fh, fileSlot, GNUNET_SEEK_SET));
+  GNUNET_assert (fileSlot == (unsigned int) GNUNET_DISK_file_seek (fh, fileSlot, GNUNET_DISK_SEEK_SET));
   if (1 != GNUNET_DISK_file_read (fh, &value, 1))
     value = 0;
   low = value & 0xF;
@@ -174,7 +174,7 @@ incrementBit (char *bitArray, unsigned int bitIdx, const struct GNUNET_DISK_File
         high++;
     }
   value = ((high << 4) | low);
-  GNUNET_assert (fileSlot == (unsigned int) GNUNET_DISK_file_seek (fh, fileSlot, GNUNET_SEEK_SET));
+  GNUNET_assert (fileSlot == (unsigned int) GNUNET_DISK_file_seek (fh, fileSlot, GNUNET_DISK_SEEK_SET));
   GNUNET_assert (1 == GNUNET_DISK_file_write (fh, &value, 1));
 }
 
@@ -200,7 +200,7 @@ decrementBit (char *bitArray, unsigned int bitIdx, const struct GNUNET_DISK_File
   /* Each char slot in the counter file holds two 4 bit counters */
   fileSlot = bitIdx / 2;
   targetLoc = bitIdx % 2;
-  GNUNET_DISK_file_seek (fh, fileSlot, GNUNET_SEEK_SET);
+  GNUNET_DISK_file_seek (fh, fileSlot, GNUNET_DISK_SEEK_SET);
   if (1 != GNUNET_DISK_file_read (fh, &value, 1))
     value = 0;
   low = value & 0xF;
@@ -226,7 +226,7 @@ decrementBit (char *bitArray, unsigned int bitIdx, const struct GNUNET_DISK_File
         }
     }
   value = ((high << 4) | low);
-  GNUNET_DISK_file_seek (fh, fileSlot, GNUNET_SEEK_SET);
+  GNUNET_DISK_file_seek (fh, fileSlot, GNUNET_DISK_SEEK_SET);
   GNUNET_assert (1 == GNUNET_DISK_file_write (fh, &value, 1));
 }
 
@@ -250,7 +250,7 @@ makeEmptyFile (const struct GNUNET_DISK_FileHandle *fh, unsigned int size)
     return GNUNET_SYSERR;
   buffer = GNUNET_malloc (BUFFSIZE);
   memset (buffer, 0, BUFFSIZE);
-  GNUNET_DISK_file_seek (fh, 0, GNUNET_SEEK_SET);
+  GNUNET_DISK_file_seek (fh, 0, GNUNET_DISK_SEEK_SET);
 
   while (bytesleft > 0)
     {

@@ -391,7 +391,7 @@ GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
       | GNUNET_DISK_OPEN_READWRITE, GNUNET_DISK_PERM_USER_READ
       | GNUNET_DISK_PERM_USER_WRITE);
   GNUNET_free (fn);
-  GNUNET_DISK_file_seek (fh, idx * sizeof (GNUNET_HashCode), GNUNET_SEEK_SET);
+  GNUNET_DISK_file_seek (fh, idx * sizeof (GNUNET_HashCode), GNUNET_DISK_SEEK_SET);
   if (sizeof (GNUNET_HashCode) != GNUNET_DISK_file_read (fh, nsid, sizeof (GNUNET_HashCode)))
     {
       GNUNET_DISK_file_close (fh);

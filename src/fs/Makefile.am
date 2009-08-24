@@ -24,6 +24,7 @@ libgnunetfs_la_SOURCES = \
 
 libgnunetfs_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  -lextractor \
   $(GN_LIBINTL) $(XLIB)
 
 libgnunetfs_la_LDFLAGS = \

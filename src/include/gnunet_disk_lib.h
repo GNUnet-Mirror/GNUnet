@@ -72,7 +72,12 @@ extern "C"
 #define GNUNET_DISK_PERM_OTHER_WRITE    128
 #define GNUNET_DISK_PERM_OTHER_EXEC     256
 
-enum GNUNET_DISK_Seek {GNUNET_SEEK_SET, GNUNET_SEEK_CUR, GNUNET_SEEK_END};
+enum GNUNET_DISK_Seek 
+  {
+    GNUNET_DISK_SEEK_SET, 
+    GNUNET_DISK_SEEK_CUR, 
+    GNUNET_DISK_SEEK_END
+  };
 
 struct GNUNET_DISK_FileHandle;
 
@@ -250,7 +255,8 @@ int GNUNET_DISK_file_copy (const char *src, const char *dst);
  * @return the number of files found, -1 on error
  */
 int GNUNET_DISK_directory_scan (const char *dirName,
-                                GNUNET_FileNameCallback callback, void *data);
+                                GNUNET_FileNameCallback callback, 
+				void *data);
 
 
 /**

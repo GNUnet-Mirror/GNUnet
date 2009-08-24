@@ -116,14 +116,37 @@ struct GNUNET_FS_Uri
        * (only in URI-strings).
        */
       char **keywords;
+      
+      /**
+       * Size of the keywords array.
+       */
       unsigned int keywordCount;
     } ksk;
+
     struct
     {
+      /**
+       * Hash of the public key for the namespace.
+       */
       GNUNET_HashCode namespace;
+
+      /**
+       * Human-readable identifier chosen for this
+       * entry in the namespace.
+       */
       char *identifier;
     } sks;
+
+    /**
+     * Information needed to retrieve a file (content-hash-key
+     * plus file size).
+     */
     struct FileIdentifier chk;
+
+    /**
+     * Information needed to retrieve a file including signed
+     * location (identity of a peer) of the content.
+     */
     struct Location loc;
   } data;
 
@@ -134,9 +157,124 @@ struct GNUNET_FS_Uri
  * Information for a file or directory that is
  * about to be published.
  */
-struct GNUNET_FS_FileInformation 
+struct GNUNET_FS_FileInformation
 {
 
+  /**
+   * Files in a directory are kept as a linked list.
+   */
+  struct GNUNET_FS_FileInformation *next;
+
+  /**
+   * If this is a file in a directory, "dir" refers to
+   * the directory; otherwise NULL.
+   */
+  struct GNUNET_FS_FileInformation *dir;
+
+  /**
+   * Pointer kept for the client.
+   */
+  void *client_info;
+
+  /**
+   * Metadata to use for the file.
+   */
+  struct GNUNET_CONTAINER_MetaData *meta;
+
+  /**
+   * Keywords to use for KBlocks.
+   */
+  struct GNUNET_FS_Uri *keywords;
+
+  /**
+   * At what time should the content expire?
+   */
+  struct GNUNET_TIME_Absolute expirationTime;
+
+  /**
+   * Under what filename is this struct serialized
+   * (for operational persistence).
+   */
+  char *serialization;
+
+  /**
+   * How many bytes of this file or directory have been
+   * published so far?
+   */
+  uint64_t publish_offset;
+
+  /**
+   * Data describing either the file or the directory.
+   */
+  union
+  {
+
+    /**
+     * Data for a file.
+     */
+    struct {
+
+      /**
+       * Function that can be used to read the data for the file.
+       */
+      GNUNET_FS_DataReader reader;
+
+      /**
+       * Closure for reader.
+       */
+      void *reader_cls;
+
+      /**
+       * Size of the file (in bytes).
+       */
+      uint64_t file_size;
+
+      /**
+       * Should the file be indexed or inserted?
+       */
+      int do_index;
+
+    } file;
+
+    /**
+     * Data for a directory.
+     */
+    struct {
+      
+      /**
+       * Name of the directory.
+       */
+      char *dirname;
+      
+      /**
+       * Linked list of entries in the directory.
+       */
+      struct GNUNET_FS_FileInformation *entries;
+
+      /**
+       * Size of the directory itself (in bytes); 0 if the
+       * size has not yet been calculated.
+       */
+      uint64_t dir_size;
+
+    } dir;
+
+  } data;
+
+  /**
+   * Is this struct for a file or directory?
+   */
+  int is_directory;
+
+  /**
+   * Desired anonymity level.
+   */
+  unsigned int anonymity;
+
+  /**
+   * Desired priority (for keeping the content in the DB).
+   */
+  unsigned int priority;
 
 };
 

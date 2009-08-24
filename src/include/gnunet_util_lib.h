@@ -37,6 +37,7 @@ extern "C"
 #endif
 
 #include "gnunet_common.h"
+#include "gnunet_bio_lib.h"
 #include "gnunet_client_lib.h"
 #include "gnunet_configuration_lib.h"
 #include "gnunet_connection_lib.h"

@@ -1418,6 +1418,8 @@ typedef int (*GNUNET_FS_FileInformationProcessor)(void *cls,
  * Create an entry for a file in a publish-structure.
  *
  * @param filename name of the file or directory to publish
+ * @param keywords under which keywords should this file be available
+ *         directly; can be NULL
  * @param meta metadata for the file
  * @param do_index GNUNET_YES for index, GNUNET_NO for insertion,
  *                GNUNET_SYSERR for simulation
@@ -1431,6 +1433,7 @@ typedef int (*GNUNET_FS_FileInformationProcessor)(void *cls,
 struct GNUNET_FS_FileInformation *
 GNUNET_FS_file_information_create_from_file (void *client_info,
 					     const char *filename,
+					     const struct GNUNET_FS_Uri *keywords,
 					     const struct GNUNET_CONTAINER_MetaData *meta,
 					     int do_index,
 					     unsigned int anonymity,
@@ -1444,6 +1447,8 @@ GNUNET_FS_file_information_create_from_file (void *client_info,
  * @param length length of the file
  * @param data data for the file (should not be used afterwards by
  *        the caller; caller will "free")
+ * @param keywords under which keywords should this file be available
+ *         directly; can be NULL
  * @param meta metadata for the file
  * @param do_index GNUNET_YES for index, GNUNET_NO for insertion,
  *                GNUNET_SYSERR for simulation
@@ -1458,6 +1463,7 @@ struct GNUNET_FS_FileInformation *
 GNUNET_FS_file_information_create_from_data (void *client_info,
 					     uint64_t length,
 					     void *data,
+					     const struct GNUNET_FS_Uri *keywords,
 					     const struct GNUNET_CONTAINER_MetaData *meta,
 					     int do_index,
 					     unsigned int anonymity,
@@ -1539,6 +1545,10 @@ typedef void (*GNUNET_FS_FileProcessor)(void *cls,
  * 
  * @param cls closure
  * @param dirname name of the directory to scan
+ * @param do_index should files be indexed or inserted
+ * @param anonymity desired anonymity level
+ * @param priority priority for publishing
+ * @param expirationTime expiration for publication
  * @param proc function to call on each entry
  * @param proc_cls closure for proc
  * @param emsg where to store an error message (on errors)
@@ -1546,6 +1556,10 @@ typedef void (*GNUNET_FS_FileProcessor)(void *cls,
  */
 typedef int (*GNUNET_FS_DirectoryScanner)(void *cls,
 					  const char *dirname,
+					  int do_index,
+					  unsigned int anonymity,
+					  unsigned int priority,
+					  struct GNUNET_TIME_Absolute expirationTime,
 					  GNUNET_FS_FileProcessor proc,
 					  void *proc_cls,
 					  char **emsg);
@@ -1565,6 +1579,10 @@ typedef int (*GNUNET_FS_DirectoryScanner)(void *cls,
  *
  * @param cls must be of type "struct EXTRACTOR_Extractor*"
  * @param dirname name of the directory to scan
+ * @param do_index should files be indexed or inserted
+ * @param anonymity desired anonymity level
+ * @param priority priority for publishing
+ * @param expirationTime expiration for publication
  * @param proc function called on each entry
  * @param proc_cls closure for proc
  * @param emsg where to store an error message (on errors)
@@ -1573,8 +1591,13 @@ typedef int (*GNUNET_FS_DirectoryScanner)(void *cls,
 int
 GNUNET_FS_directory_scanner_default (void *cls,
 				     const char *dirname,
+				     int do_index,
+				     unsigned int anonymity,
+				     unsigned int priority,
+				     struct GNUNET_TIME_Absolute expirationTime,
 				     GNUNET_FS_FileProcessor proc,
-				     void *proc_cls);
+				     void *proc_cls,
+				     char **emsg);
 
 
 /**
@@ -1590,20 +1613,25 @@ GNUNET_FS_directory_scanner_default (void *cls,
  * @param filename name of the top-level file or directory
  * @param scanner function used to get a list of files in a directory
  * @param scanner_cls closure for scanner
+ * @param do_index should files in the hierarchy be indexed?
  * @param anonymity what is the desired anonymity level for sharing?
  * @param priority what is the priority for OUR node to
  *   keep this file available?  Use 0 for maximum anonymity and
  *   minimum reliability...
  * @param expirationTime when should this content expire?
+ * @param emsg where to store an error message
  * @return publish structure entry for the directory, NULL on error
  */
 struct GNUNET_FS_FileInformation *
 GNUNET_FS_file_information_create_from_directory (void *client_info,
+						  const char *filename,
 						  GNUNET_FS_DirectoryScanner scanner,
 						  void *scanner_cls,
+						  int do_index,
 						  unsigned int anonymity,
 						  unsigned int priority,
-						  struct GNUNET_TIME_Absolute expirationTime);
+						  struct GNUNET_TIME_Absolute expirationTime,
+						  char **emsg);
 
 
 /**

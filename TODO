@@ -1,6 +1,7 @@
 Implementable right now (but not necessarily important), with caveats
 (unavailable components that will limit what can be implemented right
 away), in order in which they will likely be done:
+* Buffered IO library (extend gnunet_disk_lib.h?)
 * TESTING
 * FS (DHT not available)
 * SETUP

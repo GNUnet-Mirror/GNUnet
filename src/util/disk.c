@@ -150,8 +150,8 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h, off_t offset,
 
 #ifdef MINGW
   DWORD ret;
-  static DWORD t[] = { [GNUNET_SEEK_SET] = FILE_BEGIN,
-      [GNUNET_SEEK_CUR] = FILE_CURRENT, [GNUNET_SEEK_END] = FILE_END };
+  static DWORD t[] = { [GNUNET_DISK_SEEK_SET] = FILE_BEGIN,
+      [GNUNET_DISK_SEEK_CUR] = FILE_CURRENT, [GNUNET_DISK_SEEK_END] = FILE_END };
 
   ret = SetFilePointer (h->h, offset, NULL, t[whence]);
   if (ret == INVALID_SET_FILE_POINTER)
@@ -161,8 +161,8 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h, off_t offset,
     }
   return ret;
 #else
-  static int t[] = { [GNUNET_SEEK_SET] = SEEK_SET,
-      [GNUNET_SEEK_CUR] = SEEK_CUR, [GNUNET_SEEK_END] = SEEK_END };
+  static int t[] = { [GNUNET_DISK_SEEK_SET] = SEEK_SET,
+      [GNUNET_DISK_SEEK_CUR] = SEEK_CUR, [GNUNET_DISK_SEEK_END] = SEEK_END };
 
   return lseek (h->fd, offset, t[whence]);
 #endif

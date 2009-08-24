@@ -15,6 +15,7 @@ endif
 lib_LTLIBRARIES = libgnunetutil.la
 
 libgnunetutil_la_SOURCES = \
+  bio.c \
   client.c \
   common_allocation.c \
   common_endian.c \
