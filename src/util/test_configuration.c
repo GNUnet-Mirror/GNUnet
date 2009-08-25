@@ -67,7 +67,12 @@ testConfig ()
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (cfg, "last", "test", &c))
     return 8;
+#ifndef MINGW
   if (0 != strcmp (c, "/hello/world"))
+#else
+  #define HI "\\hello\\world"
+  if (strstr (c, HI) != c + strlen (c) - strlen (HI))
+#endif
     {
       GNUNET_free (c);
       return 9;
