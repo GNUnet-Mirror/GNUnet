@@ -139,7 +139,7 @@ testdisk ()
   while (GNUNET_TIME_absolute_get_duration (start).value < 60 * 1000)
     {
       GNUNET_DISK_file_seek (fh, GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                           1024 * 1024 * 1024), GNUNET_SEEK_SET);
+                                           1024 * 1024 * 1024), GNUNET_DISK_SEEK_SET);
       GNUNET_assert (sizeof (buf) == GNUNET_DISK_file_write (fh, buf, sizeof (buf)));
       GNUNET_DISK_file_sync (fh);
       if (ret < GNUNET_OS_load_disk_get (cfg))
