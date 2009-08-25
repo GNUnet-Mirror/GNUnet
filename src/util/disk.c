@@ -262,8 +262,11 @@ GNUNET_DISK_get_blocks_available (const char *part)
   DWORD dwDummy;
   DWORD dwBlocks;
   char szDrive[4];
+  char *path;
 
-  memcpy (szDrive, part, 3);
+  path = GNUNET_STRINGS_filename_expand (part);
+  memcpy (szDrive, path, 3);
+  GNUNET_free (path);
   szDrive[3] = 0;
   if (!GetDiskFreeSpace (szDrive, &dwDummy, &dwDummy, &dwBlocks, &dwDummy))
     {
