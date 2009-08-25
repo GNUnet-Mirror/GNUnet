@@ -1100,11 +1100,24 @@ GNUNET_DISK_file_open (const char *fn, int flags, ...)
     access = FILE_WRITE_DATA;
 
   if (flags & GNUNET_DISK_OPEN_FAILIFEXISTS)
-    disp = CREATE_NEW;
-  if (flags & GNUNET_DISK_OPEN_TRUNCATE)
-    disp = TRUNCATE_EXISTING;
-  if (flags & GNUNET_DISK_OPEN_CREATE)
-    disp |= OPEN_ALWAYS;
+    {
+      disp = CREATE_NEW;
+    }
+  else if (flags & GNUNET_DISK_OPEN_CREATE)
+    {
+      if (flags & GNUNET_DISK_OPEN_TRUNCATE)
+        disp = CREATE_ALWAYS;
+      else
+        disp = OPEN_ALWAYS;
+    }
+  else if (flags & GNUNET_DISK_OPEN_TRUNCATE)
+    {
+      disp = TRUNCATE_EXISTING;
+    }
+  else
+  {
+    disp = OPEN_ALWAYS;
+  }
 
   /* TODO: access priviledges? */
   h = CreateFile (expfn, access, FILE_SHARE_DELETE | FILE_SHARE_READ
