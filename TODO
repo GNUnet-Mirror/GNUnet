@@ -1,7 +1,6 @@
 Implementable right now (but not necessarily important), with caveats
 (unavailable components that will limit what can be implemented right
 away), in order in which they will likely be done:
-* Buffered IO library (extend gnunet_disk_lib.h?)
 * TESTING
 * FS (DHT not available)
 * SETUP
@@ -42,16 +41,16 @@ PHASE #2: (Goal: recover basic file-sharing functionality)
   - implement FS library
     + URI API -- DONE (but do more testing)
     + getopt API -- DONE (but do more testing)
-    + persistence mechanism
+    + persistence mechanism (design done)
     + sharing API
-      ~ file-information
+      ~ file-information (almost done, needs testing)
       ~ insert
-      ~ download
       ~ search
-      ~ unindex
+      ~ download
+      ~ unindex & list indexed!!!
       ~ namespaces
       ~ collection
-    + directory API
+    + directory API (builder API unclear)
   - design network structs (P2P)
   - datastore request queueing mechanism
   - implement FS service (needs DHT)

@@ -279,4 +279,43 @@ struct GNUNET_FS_FileInformation
 };
 
 
+/**
+ * Master context for most FS operations.
+ */
+struct GNUNET_FS_Handle
+{
+  /**
+   * Scheduler.
+   */
+  struct GNUNET_SCHEDULER_Handle *sched;
+
+  /**
+   * Configuration to use.
+   */
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * Name of our client.
+   */
+  char *client_name;
+
+  /**
+   * Function to call with updates on our progress.
+   */
+  GNUNET_FS_ProgressCallback upcb;
+
+  /**
+   * Closure for upcb.
+   */
+  void *upcb_cls;
+
+  /**
+   * Connection to the FS service.
+   */
+  struct GNUNET_CLIENT_Connection *client;
+
+
+};
+
+
 #endif

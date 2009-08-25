@@ -29,7 +29,6 @@
 #include "fs.h"
 
 
-
 /**
  * Setup a connection to the file-sharing service.
  *
@@ -46,7 +45,35 @@ GNUNET_FS_start (struct GNUNET_SCHEDULER_Handle *sched,
 		 GNUNET_FS_ProgressCallback upcb,
 		 void *upcb_cls)
 {
-  return NULL;
+  struct GNUNET_FS_Handle *ret;
+  struct GNUNET_CLIENT_Connection *client;
+  
+  client = GNUNET_CLIENT_connect (sched,
+				  "fs",
+				  cfg);
+  if (NULL == client)
+    return NULL;
+  ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Handle));
+  ret->sched = sched;
+  ret->cfg = cfg;
+  ret->client_name = GNUNET_strdup (client_name);
+  ret->upcb = upcb;
+  ret->upcb_cls = upcb_cls;
+  ret->client = client;
+  // FIXME: setup receive-loop with client
+  // FIXME: deserialize state; use client-name to find master-directory!
+  // Deserialize-Upload:
+  // * read FNs for upload FIs, deserialize each
+  // Deserialize Search:
+  // * read search queries
+  // * for each query, read file with search results
+  // * for each search result with active download, deserialize download
+  // * for each directory search result, check for active downloads of contents
+  // Deserialize Download:
+  // * always part of search???
+  // Deserialize Unindex:
+  // * read FNs for unindex with progress offset
+  return ret;
 }
 
 
@@ -60,6 +87,12 @@ GNUNET_FS_start (struct GNUNET_SCHEDULER_Handle *sched,
 void 
 GNUNET_FS_stop (struct GNUNET_FS_Handle *h)
 {
+  // FIXME: serialize state!? (or is it always serialized???)
+  // FIXME: terminate receive-loop with client  
+  GNUNET_CLIENT_disconnect (h->client);
+  GNUNET_free (h->client_name);
+  GNUNET_free (h);
 }
+
 
 /* end of fs.c */

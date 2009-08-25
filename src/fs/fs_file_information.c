@@ -24,7 +24,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - publishing progress update API (increment offset, serialize)
  * - serialization/deserialization (& deserialization API)
  * - metadata filename clean up code
  * - metadata/ksk generation for directories from contained files
@@ -36,15 +35,15 @@
 
 
 /**
- * Create a temporary file disk to store the current
+ * Create a temporary file on disk to store the current
  * state of "fi" in.
  */
-static void
-fi_sync (struct GNUNET_FS_FileInformation * fi)
+void
+GNUNET_FS_file_information_sync (struct GNUNET_FS_FileInformation * fi)
 {
   if (NULL == fi->serialization)
     {
-      fi->serialization = NULL; // FIXME
+      fi->serialization = NULL; // FIXME -- need cfg!
     }
   // FIXME...
 }
@@ -57,12 +56,31 @@ fi_sync (struct GNUNET_FS_FileInformation * fi)
  * @param filename name of the file to use
  * @return NULL on error
  */
-static struct GNUNET_FS_FileInformation *
-fi_load (const char *filename)
+struct GNUNET_FS_FileInformation *
+GNUNET_FS_file_information_recover (const char *name)
 {
   struct GNUNET_FS_FileInformation *ret;
   // FIXME!
   return NULL;
+}
+
+
+/**
+ * Obtain the name under which this file information
+ * structure is stored on disk.  Only works for top-level
+ * file information structures.
+ *
+ * @param s structure to get the filename for
+ * @return NULL on error, otherwise filename that
+ *         can be passed to "GNUNET_FS_file_information_recover"
+ *         to read this fi-struct from disk.
+ */
+const char *
+GNUNET_FS_file_information_get_id (struct GNUNET_FS_FileInformation *s)
+{
+  if (NULL != s->dir)
+    return NULL;
+  return s->serialization;
 }
 
 
@@ -320,7 +338,7 @@ GNUNET_FS_file_information_create_from_reader (void *client_info,
   ret->data.file.do_index = do_index;
   ret->anonymity = anonymity;
   ret->priority = priority;
-  fi_sync (ret);
+  GNUNET_FS_file_information_sync (ret);
   return ret;
 }
 
@@ -609,10 +627,10 @@ GNUNET_FS_file_information_create_from_directory (void *client_info,
   while (dc.entries != NULL)
     {
       dc.entries->dir = ret;
-      fi_sync (dc.entries);
+      GNUNET_FS_file_information_sync (dc.entries);
       dc.entries = dc.entries->next;
     }
-  fi_sync (ret);
+  GNUNET_FS_file_information_sync (ret);
   return ret;
 }
 
@@ -651,7 +669,7 @@ GNUNET_FS_file_information_create_empty_directory (void *client_info,
   ret->is_directory = GNUNET_YES;
   ret->anonymity = anonymity;
   ret->priority = priority;
-  fi_sync (ret);
+  GNUNET_FS_file_information_sync (ret);
   return ret;
 }
 
@@ -683,8 +701,8 @@ GNUNET_FS_file_information_add (struct GNUNET_FS_FileInformation *dir,
   dir->data.dir.entries = ent;
   dir->data.dir.dir_size = 0;
   dir->publish_offset = 0;
-  fi_sync (ent);
-  fi_sync (dir);
+  GNUNET_FS_file_information_sync (ent);
+  GNUNET_FS_file_information_sync (dir);
   return GNUNET_OK;
 }
 

@@ -71,12 +71,12 @@ int GNUNET_BIO_read_close (struct GNUNET_BIO_ReadHandle *h,
  * @param what describes what is being read (for error message creation)
  * @param result the buffer to write the result to
  * @param len the number of bytes to read
- * @return len on success, GNUNET_SYSERR on failure
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-ssize_t GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h, 
-			 const char *what,
-			 void *result, 
-			 size_t len);
+int GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h, 
+		     const char *what,
+		     void *result, 
+		     size_t len);
 
 /**
  * Read 0-terminated string from a file.
@@ -85,11 +85,13 @@ ssize_t GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h,
  * @param what describes what is being read (for error message creation)
  * @param result the buffer to store a pointer to the (allocated) string to
  *        (note that *result could be set to NULL as well)
+ * @param maxLen maximum allowed length for the string
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int GNUNET_BIO_read_string (struct GNUNET_BIO_ReadHandle *h, 
 			    const char *what,
-			    char **result);
+			    char **result,
+			    size_t maxLen);
 
 
 /**
@@ -198,9 +200,9 @@ int GNUNET_BIO_write_close (struct GNUNET_BIO_WriteHandle *h);
  * @param n number of bytes to write
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-ssize_t GNUNET_BIO_write (struct GNUNET_BIO_WriteHandle *h, 
-			  const void *buffer,
-			  size_t n);
+int GNUNET_BIO_write (struct GNUNET_BIO_WriteHandle *h, 
+		      const void *buffer,
+		      size_t n);
 
 
 /**
@@ -244,7 +246,7 @@ int GNUNET_BIO_write_meta_data (struct GNUNET_BIO_WriteHandle *h,
  * @param h hande to open file
  * @param f double to write (must be a variable)
  */ 
-#define GNUNET_BIO_write_float(h, f) (sizeof(double) == GNUNET_BIO_write (h, &f, sizeof(double)))
+#define GNUNET_BIO_write_double(h, f) (sizeof(double) == GNUNET_BIO_write (h, &f, sizeof(double)))
 
 
 /**
@@ -254,7 +256,7 @@ int GNUNET_BIO_write_meta_data (struct GNUNET_BIO_WriteHandle *h,
  * @param i address of 32-bit integer to write
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */ 
-int GNUNET_BIO_write_int32 (struct GNUNET_BIO_ReadHandle *h, 
+int GNUNET_BIO_write_int32 (struct GNUNET_BIO_WriteHandle *h, 
 			    int32_t i);
 
 
@@ -265,7 +267,7 @@ int GNUNET_BIO_write_int32 (struct GNUNET_BIO_ReadHandle *h,
  * @param i address of 64-bit integer to write
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */ 
-int GNUNET_BIO_write_int64 (struct GNUNET_BIO_ReadHandle *h, 
+int GNUNET_BIO_write_int64 (struct GNUNET_BIO_WriteHandle *h, 
 			    int64_t i);
 
 

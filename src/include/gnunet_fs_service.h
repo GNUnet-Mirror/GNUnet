@@ -1415,6 +1415,42 @@ typedef int (*GNUNET_FS_FileInformationProcessor)(void *cls,
 
 
 /**
+ * Recover file information structure from disk.
+ *
+ * @param name filename for the structure on disk
+ * @return NULL on error 
+ */
+struct GNUNET_FS_FileInformation *
+GNUNET_FS_file_information_recover (const char *name);
+
+
+/**
+ * Obtain the name under which this file information
+ * structure is stored on disk.  Only works for top-level
+ * file information structures.
+ *
+ * @param s structure to get the filename for
+ * @return NULL on error, otherwise filename that
+ *         can be passed to "GNUNET_FS_file_information_recover"
+ *         to read this fi-struct from disk.
+ */
+const char *
+GNUNET_FS_file_information_get_id (struct GNUNET_FS_FileInformation *s);
+
+
+/**
+ * Synchronize this file-information struct with its mirror
+ * on disk.  Note that all internal FS-operations that change
+ * file information data should already call "sync" internally,
+ * so this function is likely not useful for clients.
+ * 
+ * @param s the struct to sync
+ */
+void
+GNUNET_FS_file_information_sync (struct GNUNET_FS_FileInformation *s);
+
+
+/**
  * Create an entry for a file in a publish-structure.
  *
  * @param filename name of the file or directory to publish
