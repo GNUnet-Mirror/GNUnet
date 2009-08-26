@@ -277,15 +277,10 @@ flush_bulk (const char *datestr)
 void
 GNUNET_log_skip (unsigned int n)
 {
-  int ok;
-
   if (n == 0)
-    {
-      ok = (0 == skip_log);
       skip_log = 0;
-      GNUNET_assert (ok);
-    }
-  skip_log += n;
+  else
+    skip_log += n;
 }
 
 
