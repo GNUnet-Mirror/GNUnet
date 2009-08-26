@@ -136,11 +136,11 @@ scan_callback (void *want, const char *filename)
 static int
 testDirScan ()
 {
-  if (GNUNET_OK != GNUNET_DISK_directory_create ("test/entry"))
+  if (GNUNET_OK != GNUNET_DISK_directory_create ("test" DIR_SEPARATOR_STR "entry"))
     return 1;
-  if (GNUNET_OK != GNUNET_DISK_directory_create ("test/entry_more"))
+  if (GNUNET_OK != GNUNET_DISK_directory_create ("test" DIR_SEPARATOR_STR "entry_more"))
     return 1;
-  GNUNET_DISK_directory_scan ("test", &scan_callback, "test/entry");
+  GNUNET_DISK_directory_scan ("test", &scan_callback, "test" DIR_SEPARATOR_STR "entry");
   if (GNUNET_OK != GNUNET_DISK_directory_remove ("test"))
     return 1;
   if (ok < 2)
