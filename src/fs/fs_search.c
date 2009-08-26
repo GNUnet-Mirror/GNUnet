@@ -19,19 +19,71 @@
 */
 
 /**
- * @file applications/fs/ecrs/search.c
+ * @file fs/fs_search.c
  * @brief Helper functions for searching.
  * @author Christian Grothoff
  */
 
 #include "platform.h"
-#include "gnunet_protocols.h"
-#include "gnunet_fs_lib.h"
-#include "gnunet_ecrs_lib.h"
-#include "ecrs_core.h"
-#include "ecrs.h"
+#include "gnunet_fs_service.h"
+#include "fs.h"
 
-#define DEBUG_SEARCH GNUNET_NO
+#define DEBUG_SEARCH GNUNET_YES
+
+
+/**
+ * Start search for content.
+ *
+ * @param h handle to the file sharing subsystem
+ * @param uri specifies the search parameters; can be
+ *        a KSK URI or an SKS URI.
+ * @param anonymity desired level of anonymity
+ * @return context that can be used to control the search
+ */
+struct GNUNET_FS_SearchContext *
+GNUNET_FS_search_start (struct GNUNET_FS_Handle *h,
+			const struct GNUNET_FS_Uri *uri,
+			unsigned int anonymity)
+{
+  return NULL;
+}
+
+
+/**
+ * Pause search.  
+ *
+ * @param sc context for the search that should be paused
+ */
+void 
+GNUNET_FS_search_pause (struct GNUNET_FS_SearchContext *sc)
+{
+}
+
+/**
+ * Continue paused search.
+ *
+ * @param sc context for the search that should be resumed
+ */
+void 
+GNUNET_FS_search_continue (struct GNUNET_FS_SearchContext *sc)
+{
+}
+
+
+/**
+ * Stop search for content.
+ *
+ * @param sc context for the search that should be stopped
+ */
+void 
+GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc)
+{
+}
+
+
+
+
+#if 0
 
 /**
  * Context for an individual search.  Followed
@@ -568,5 +620,6 @@ GNUNET_ECRS_search (struct GNUNET_GE_Context *ectx,
   return GNUNET_OK;
 }
 
+#endif
 
-/* end of search.c */
+/* end of fs_search.c */

@@ -19,25 +19,62 @@
 */
 
 /**
- * @file applications/fs/ecrs/unindex.c
+ * @file fs/fs_unindex.c
  * @author Krista Bennett
  * @author Christian Grothoff
- *
- * Unindex file.
+ * @brief Unindex file.
  *
  * TODO:
  * - code cleanup (share more with upload.c)
  */
 
 #include "platform.h"
-#include "gnunet_protocols.h"
-#include "gnunet_ecrs_lib.h"
-#include "gnunet_fs_lib.h"
-#include "gnunet_getoption_lib.h"
-#include "ecrs_core.h"
-#include "ecrs.h"
+#include "gnunet_fs_service.h"
 #include "fs.h"
-#include "tree.h"
+
+/**
+ * Iterate over all indexed files.
+ *
+ * @param h handle to the file sharing subsystem
+ * @param iterator function to call on each indexed file
+ * @param iterator_cls closure for iterator
+ */
+void 
+GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
+			     GNUNET_FS_IndexedFileProcessor iterator,
+			     void *iterator_cls)
+{
+}
+
+
+/**
+ * Unindex a file.
+ *
+ * @param h handle to the file sharing subsystem
+ * @param filename file to unindex
+ * @return NULL on error, otherwise handle 
+ */
+struct GNUNET_FS_UnindexContext *
+GNUNET_FS_unindex (struct GNUNET_FS_Handle *h,
+		   const char *filename)
+{
+  return NULL;
+}
+
+
+/**
+ * Clean up after completion of an unindex operation.
+ *
+ * @param uc handle
+ */
+void
+GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc)
+{
+}
+
+
+
+#if 0
 
 #define STRICT_CHECKS GNUNET_NO
 
@@ -391,4 +428,6 @@ FAILURE:
   return GNUNET_SYSERR;
 }
 
-/* end of unindex.c */
+#endif 
+
+/* end of fs_unindex.c */

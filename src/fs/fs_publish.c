@@ -34,6 +34,95 @@
 #define DEBUG_PUBLISH GNUNET_YES
 
 
+/**
+ * Main function that performs the upload.
+ * @param cls "struct GNUNET_FS_PublishContext" identifies the upload
+ * @param tc task context
+ */
+static void
+do_upload (void *cls,
+	   const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_FS_PublishContext *sc = cls;
+
+  sc->upload_task = GNUNET_SCHEDULER_NO_TASK;  
+
+  // FIXME: find next block, process, schedule
+  // transmission to FS service
+}
+
+
+/**
+ * Publish a file or directory.
+ *
+ * @param h handle to the file sharing subsystem
+ * @param ctx initial value to use for the '*ctx'
+ *        in the callback (for the GNUNET_FS_STATUS_PUBLISH_START event).
+ * @param fi information about the file or directory structure to publish
+ * @param namespace namespace to publish the file in, NULL for no namespace
+ * @param nid identifier to use for the publishd content in the namespace
+ *        (can be NULL, must be NULL if namespace is NULL)
+ * @param nuid update-identifier that will be used for future updates 
+ *        (can be NULL, must be NULL if namespace or nid is NULL)
+ * @return context that can be used to control the publish operation
+ */
+struct GNUNET_FS_PublishContext *
+GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
+			 void *ctx,
+			 struct GNUNET_FS_FileInformation *fi,
+			 struct GNUNET_FS_Namespace *namespace,
+			 const char *nid,
+			 const char *nuid)
+{
+  struct GNUNET_FS_PublishContext *ret;
+
+  ret = GNUNET_malloc (sizeof (struct GNUNET_FS_PublishContext));
+  ret->h = h;
+  ret->client_ctx = ctx;
+  ret->fi = fi;
+  ret->namespace = namespace;
+  if (namespace != NULL)
+    {
+      namespace->rc++;
+      GNUNET_assert (NULL != nid);
+      ret->nid = GNUNET_strdup (nid);
+      if (NULL != nuid)
+	ret->nuid = GNUNET_strdup (nuid);
+    }
+  // FIXME: make upload persistent!
+  ret->upload_task 
+    = GNUNET_SCHEDULER_add_delayed (h->sched,
+				    GNUNET_NO,
+				    GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+				    GNUNET_SCHEDULER_NO_TASK,
+				    GNUNET_TIME_UNIT_ZERO,
+				    &do_upload,
+				    ret);
+  return ret;
+}
+
+
+/**
+ * Stop an upload.  Will abort incomplete uploads (but 
+ * not remove blocks that have already been publishd) or
+ * simply clean up the state for completed uploads.
+ *
+ * @param sc context for the upload to stop
+ */
+void 
+GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *sc)
+{
+  if (GNUNET_SCHEDULER_NO_TASK != sc->upload_task)
+    GNUNET_SCHEDULER_cancel (sc->h->sched, sc->upload_task);
+  // FIXME: remove from persistence DB (?) --- think more about
+  //        shutdown / persistent-resume APIs!!!
+  GNUNET_FS_file_information_destroy (sc->fi, NULL, NULL);
+  GNUNET_FS_namespace_delete (sc->namespace, GNUNET_NO);
+  GNUNET_free_non_null (sc->nid);  
+  GNUNET_free_non_null (sc->nuid);
+  GNUNET_free (sc);
+}
+
 
 #if 0
 

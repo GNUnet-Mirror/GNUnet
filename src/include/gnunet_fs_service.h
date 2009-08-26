@@ -1763,11 +1763,11 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
  */
 struct GNUNET_FS_PublishContext *
 GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
-		       void *ctx,
-		       const struct GNUNET_FS_FileInformation *fi,
-		       struct GNUNET_FS_Namespace *namespace,
-		       const char *nid,
-		       const char *nuid);
+			 void *ctx,
+			 struct GNUNET_FS_FileInformation *fi,
+			 struct GNUNET_FS_Namespace *namespace,
+			 const char *nid,
+			 const char *nuid);
 
 
 /**

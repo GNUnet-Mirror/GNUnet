@@ -18,22 +18,75 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file applications/fs/ecrs/download.c
+ * @file fs/fs_download.c
  * @brief DOWNLOAD helper methods (which do the real work).
  * @author Christian Grothoff
  */
 
 #include "platform.h"
-#include "gnunet_protocols.h"
-#include "gnunet_ecrs_lib.h"
-#include "gnunet_fs_lib.h"
-#include "gnunet_identity_lib.h"
-#include "ecrs_core.h"
-#include "ecrs.h"
+#include "gnunet_fs_service.h"
 #include "fs.h"
-#include "tree.h"
 
-#define DEBUG_DOWNLOAD GNUNET_NO
+#define DEBUG_DOWNLOAD GNUNET_YES
+
+
+
+/**
+ * Download parts of a file.  Note that this will store
+ * the blocks at the respective offset in the given file.  Also, the
+ * download is still using the blocking of the underlying FS
+ * encoding.  As a result, the download may *write* outside of the
+ * given boundaries (if offset and length do not match the 32k FS
+ * block boundaries). <p>
+ *
+ * This function should be used to focus a download towards a
+ * particular portion of the file (optimization), not to strictly
+ * limit the download to exactly those bytes.
+ *
+ * @param h handle to the file sharing subsystem
+ * @param uri the URI of the file (determines what to download); CHK or LOC URI
+ * @param filename where to store the file, maybe NULL (then no file is
+ *        created on disk and data must be grabbed from the callbacks)
+ * @param offset at what offset should we start the download (typically 0)
+ * @param length how many bytes should be downloaded starting at offset
+ * @param anonymity anonymity level to use for the download
+ * @param no_temporaries set to GNUNET_YES to disallow generation of temporary files
+ * @param recursive should this be a recursive download (useful for directories
+ *        to automatically trigger download of files in the directories)
+ * @param parent parent download to associate this download with (use NULL
+ *        for top-level downloads; useful for manually-triggered recursive downloads)
+ * @return context that can be used to control this download
+ */
+struct GNUNET_FS_DownloadContext *
+GNUNET_FS_file_download_start (struct GNUNET_FS_Handle *h,
+			       const struct GNUNET_FS_Uri *uri,
+			       const char *filename,
+			       unsigned long long offset,
+			       unsigned long long length,
+			       unsigned int anonymity,
+			       int no_temporaries,	
+			       int recursive,
+			       struct GNUNET_FS_DownloadContext *parent)
+{
+  return NULL;
+}
+
+/**
+ * Stop a download (aborts if download is incomplete).
+ *
+ * @param rm handle for the download
+ * @param do_delete delete files of incomplete downloads
+ */
+void
+GNUNET_FS_file_download_stop (struct GNUNET_FS_DownloadContext *rm,
+			      int do_delete)
+{
+}
+
+
+
+
+#if 0
 
 /**
  * Node-specific data (not shared, keep small!). 152 bytes.
@@ -920,4 +973,6 @@ GNUNET_ECRS_file_download (struct GNUNET_GE_Context *ectx,
                                             dpcb, dpcbClosure, tt, ttClosure);
 }
 
-/* end of download.c */
+#endif
+
+/* end of fs_download.c */

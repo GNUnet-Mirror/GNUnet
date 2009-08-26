@@ -318,4 +318,79 @@ struct GNUNET_FS_Handle
 };
 
 
+/**
+ * Handle for controlling an upload.
+ */
+struct GNUNET_FS_PublishContext
+{
+  /**
+   * Handle to the global fs context.
+   */ 
+  struct GNUNET_FS_Handle *h;
+
+  /**
+   * Argument to pass to the client in callbacks.
+   */
+  void *client_ctx;
+  
+  /**
+   * File-structure that is being shared.
+   */
+  struct GNUNET_FS_FileInformation *fi;
+
+  /**
+   * Namespace that we are publishing in, NULL if we have no namespace.
+   */
+  struct GNUNET_FS_Namespace *namespace;
+
+  /**
+   * ID of the content in the namespace, NULL if we have no namespace.
+   */
+  char *nid;
+
+  /**
+   * ID for future updates, NULL if we have no namespace or no updates.
+   */
+  char *nuid;
+
+  /**
+   * ID of the task performing the upload. NO_TASK
+   * if the upload has completed.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier upload_task;
+};
+
+
+/**
+ * Handle for controlling an unindexing operation.
+ */
+struct GNUNET_FS_UnindexContext
+{
+};
+
+
+/**
+ * Handle for controlling a search.
+ */
+struct GNUNET_FS_SearchContext
+{
+};
+
+
+/**
+ * Context for controlling a download.
+ */
+struct GNUNET_FS_DownloadContext
+{
+};
+
+struct GNUNET_FS_Namespace
+{
+  /**
+   * Reference counter.
+   */
+  unsigned int rc;
+};
+
+
 #endif

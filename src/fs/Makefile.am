@@ -16,10 +16,13 @@ libgnunetfs_la_SOURCES = \
   fs.c \
   fs_collection.c \
   fs_directory.c \
+  fs_download.c \
   fs_file_information.c \
   fs_getopt.c \
   fs_publish.c \
   fs_namespace.c \
+  fs_search.c \
+  fs_unindex.c \
   fs_uri.c 
 
 libgnunetfs_la_LIBADD = \
