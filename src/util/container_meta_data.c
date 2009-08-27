@@ -442,9 +442,9 @@ struct MetaDataHeader
  *         GNUNET_SYSERR on error (typically: not enough
  *         space)
  */
-int
+ssize_t
 GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
-                                      *md, char *target, unsigned int max,
+                                      *md, char *target, size_t max,
                                       enum
                                       GNUNET_CONTAINER_MetaDataSerializationOptions
                                       part)
@@ -463,7 +463,7 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
   while (1)
     {
       size = sizeof (struct MetaDataHeader);
-      size += sizeof (unsigned int) * ic;
+      size += sizeof (uint32_t) * ic;
       for (i = 0; i < ic; i++)
         size += 1 + strlen (md->items[i].data);
       while (size % 8 != 0)
@@ -472,8 +472,8 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
       hdr->version = htonl (md == NULL ? 1 : 0);
       hdr->entries = htonl (ic);
       for (i = 0; i < ic; i++)
-        ((unsigned int *) &hdr[1])[i] =
-          htonl ((unsigned int) md->items[i].type);
+        ((uint32_t *) &hdr[1])[i] =
+          htonl ((uint32_t) md->items[i].type);
       pos = sizeof (struct MetaDataHeader);
       pos += sizeof (unsigned int) * ic;
       for (i = 0; i < ic; i++)
@@ -533,7 +533,7 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
  * serialized form.  The estimate MAY be higher
  * than what is strictly needed.
  */
-unsigned int
+ssize_t
 GNUNET_CONTAINER_meta_data_get_serialized_size (const struct
                                                 GNUNET_CONTAINER_MetaData *md,
                                                 enum
@@ -549,7 +549,7 @@ GNUNET_CONTAINER_meta_data_get_serialized_size (const struct
 
   ic = md ? md->itemCount : 0;
   size = sizeof (struct MetaDataHeader);
-  size += sizeof (unsigned int) * ic;
+  size += sizeof (uint32_t) * ic;
   for (i = 0; i < ic; i++)
     size += 1 + strlen (md->items[i].data);
   while (size % 8 != 0)
@@ -558,9 +558,9 @@ GNUNET_CONTAINER_meta_data_get_serialized_size (const struct
   hdr->version = htonl (md == NULL ? 1 : 0);
   hdr->entries = htonl (ic);
   for (i = 0; i < ic; i++)
-    ((unsigned int *) &hdr[1])[i] = htonl ((unsigned int) md->items[i].type);
+    ((uint32_t *) &hdr[1])[i] = htonl ((uint32_t) md->items[i].type);
   pos = sizeof (struct MetaDataHeader);
-  pos += sizeof (unsigned int) * ic;
+  pos += sizeof (uint32_t) * ic;
   for (i = 0; i < ic; i++)
     {
       len = strlen (md->items[i].data) + 1;
@@ -590,7 +590,7 @@ GNUNET_CONTAINER_meta_data_get_serialized_size (const struct
  *         bad format)
  */
 struct GNUNET_CONTAINER_MetaData *
-GNUNET_CONTAINER_meta_data_deserialize (const char *input, unsigned int size)
+GNUNET_CONTAINER_meta_data_deserialize (const char *input, size_t size)
 {
   struct GNUNET_CONTAINER_MetaData *md;
   const struct MetaDataHeader *hdr;
@@ -599,9 +599,9 @@ GNUNET_CONTAINER_meta_data_deserialize (const char *input, unsigned int size)
   const char *cdata;
   uint32_t dataSize;
   int compressed;
-  int i;
-  unsigned int pos;
-  int len;
+  uint32_t i;
+  size_t pos;
+  size_t len;
   uint32_t version;
 
   if (size < sizeof (struct MetaDataHeader))
@@ -651,7 +651,7 @@ GNUNET_CONTAINER_meta_data_deserialize (const char *input, unsigned int size)
         }
     }
 
-  if ((sizeof (unsigned int) * ic + ic) > dataSize)
+  if ((sizeof (uint32_t) * ic + ic) > dataSize)
     {
       GNUNET_break (0);
       goto FAILURE;
@@ -665,12 +665,12 @@ GNUNET_CONTAINER_meta_data_deserialize (const char *input, unsigned int size)
   md = GNUNET_CONTAINER_meta_data_create ();
   GNUNET_array_grow (md->items, md->itemCount, ic);
   i = 0;
-  pos = sizeof (unsigned int) * ic;
+  pos = sizeof (uint32_t) * ic;
   while ((pos < dataSize) && (i < ic))
     {
       len = strlen (&cdata[pos]) + 1;
       md->items[i].type = (EXTRACTOR_KeywordType)
-        ntohl (MAKE_UNALIGNED (((const unsigned int *) cdata)[i]));
+        ntohl (MAKE_UNALIGNED (((const uint32_t *) cdata)[i]));
       md->items[i].data = GNUNET_strdup (&cdata[pos]);
       pos += len;
       i++;

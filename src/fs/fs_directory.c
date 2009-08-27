@@ -25,7 +25,6 @@
  *
  * TODO:
  * - add support for embedded file data (use padding room!)
- * - add directory builder API to gnunet_fs_service
  * - modify directory builder API to support incremental
  *   generation of directories (to allow directories that
  *   would not fit into memory to be created)
@@ -38,6 +37,9 @@
 #include "gnunet_fs_service.h"
 #include "fs.h"
 
+#ifndef EXTRACTOR_GNUNET_FULL_DATA
+#define EXTRACTOR_GNUNET_FULL_DATA 137
+#endif
 
 /**
  * Does the meta-data claim that this is a directory?
@@ -215,6 +217,7 @@ GNUNET_FS_directory_list_contents (size_t size,
           return; /* malformed ! */
         }
       pos += mdSize;
+      // EXTRACTOR_GNUNET_FULL_DATA
       /* FIXME: add support for embedded data */
       filename = GNUNET_CONTAINER_meta_data_get_by_type (md,
 							 EXTRACTOR_FILENAME);
@@ -231,14 +234,150 @@ GNUNET_FS_directory_list_contents (size_t size,
     }
 }
 
-
-void
-GNUNET_FS_directory_create ()
+/**
+ * Entries in the directory (builder).
+ */
+struct BuilderEntry
 {
+  /**
+   * This is a linked list.
+   */
+  struct BuilderEntry *next;
+  
+  /**
+   * Length of this entry.
+   */
+  size_t len;
+};
+
+/**
+ * Internal state of a directory builder.
+ */
+struct GNUNET_FS_DirectoryBuilder
+{
+  /**
+   * Meta-data for the directory itself.
+   */
+  struct GNUNET_CONTAINER_MetaData *meta;
+
+  /**
+   * Head of linked list of entries.
+   */
+  struct BuilderEntry *head;
+
+  /**
+   * Number of entires in the directory.
+   */
+  unsigned int count;
+};
+
+
+/**
+ * Create a directory builder.
+ * 
+ * @param mdir metadata for the directory
+ */
+struct GNUNET_FS_DirectoryBuilder *
+GNUNET_FS_directory_builder_create (const struct GNUNET_CONTAINER_MetaData *mdir)
+{
+  struct GNUNET_FS_DirectoryBuilder *ret;
+
+  ret = GNUNET_malloc(sizeof(struct GNUNET_FS_DirectoryBuilder));
+  ret->meta = GNUNET_CONTAINER_meta_data_duplicate (mdir);
+  GNUNET_FS_meta_data_make_directory (ret->meta);
+  return ret;
 }
 
 
-#if 0
+/**
+ * Add an entry to a directory.
+ * 
+ * @param bld directory to extend
+ * @param uri uri of the entry (must not be a KSK)
+ * @param md metadata of the entry
+ * @param data raw data of the entry, can be NULL, otherwise
+ *        data must point to exactly the number of bytes specified
+ *        by the uri which must be of type LOC or CHK
+ */
+void
+GNUNET_FS_directory_builder_add (struct GNUNET_FS_DirectoryBuilder *bld,
+				 const struct GNUNET_FS_Uri *uri,
+				 const struct GNUNET_CONTAINER_MetaData *md,
+				 const void *data)
+{
+  struct BuilderEntry *e;
+  uint64_t fsize;
+  uint32_t big;
+  size_t mds;
+  size_t mdxs;
+  char *uris;
+  char *ser;
+  size_t slen;
+  struct GNUNET_CONTAINER_MetaData *meta;
+  const struct GNUNET_CONTAINER_MetaData *meta_use;
+
+  GNUNET_assert (! GNUNET_FS_uri_ksk_test (uri));
+  if (NULL != data)
+    if (GNUNET_FS_uri_chk_test (uri))
+      fsize = GNUNET_FS_uri_chk_get_size (uri);
+    else
+      fsize = GNUNET_FS_uri_chk_get_size (GNUNET_FS_uri_loc_get_uri (uri));
+  else
+    fsize = 0; /* not given */
+  if (fsize > GNUNET_FS_MAX_INLINE_SIZE)
+    fsize = 0; /* too large */
+  if (memchr (data, fsize, '\0')) // FIXME: check memchr args!
+    fsize = 0; /* must not have 0's in data! */
+  uris = GNUNET_FS_uri_to_string (uri);
+  slen = strlen (uris) + 1;
+  mds =
+    GNUNET_CONTAINER_meta_data_get_serialized_size (md,
+						    GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL);  
+  meta_use = md;
+  meta = NULL;
+  if (fsize > 0)
+    {
+      meta = GNUNET_CONTAINER_meta_data_duplicate (md);
+      GNUNET_CONTAINER_meta_data_insert (meta,
+					 EXTRACTOR_GNUNET_FULL_DATA,
+					 data);
+      mdxs =
+	GNUNET_CONTAINER_meta_data_get_serialized_size (meta,
+							GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL);  
+      if ( (slen + sizeof (uint32_t) + mdxs - 1) / GNUNET_FS_DBLOCK_SIZE ==
+	   (slen + sizeof (uint32_t) + mds - 1) / GNUNET_FS_DBLOCK_SIZE)
+	{
+	  /* adding full data would not cause us to cross
+	     additional blocks, so add it! */
+	  meta_use = meta;
+	  mds = mdxs;
+	}
+    }
+
+  if (mds > GNUNET_MAX_MALLOC_CHECKED / 2)
+    mds = GNUNET_MAX_MALLOC_CHECKED / 2;
+  e = GNUNET_malloc (sizeof(struct BuilderEntry) + 
+		     slen + mds + sizeof (uint32_t));
+  ser = (char*) &e[1];
+  memcpy (ser, uris, slen);
+  GNUNET_free (uris);
+  ret = GNUNET_CONTAINER_meta_data_serialize (meta_use,
+					      &ser[slen + sizeof(uint32_t)],
+					      mds,
+					      GNUNET_CONTAINER_META_DATA_SERIALIZE_PART);
+  if (NULL != meta)
+    GNUNET_CONTAINER_meta_data_destroy (meta);
+  if (ret == -1)
+    mds = 0;
+  else
+    mds = ret;
+  big = htonl (mds);
+  memcpy (&ser[slen], &big, sizeof (uint32_t));
+  e->len = slen + sizeof (uint32_t) + mds;
+  e->next = bld->head;
+  bld->head = e;
+  bld->count++;
+}
 
 
 /**
@@ -246,11 +385,11 @@ GNUNET_FS_directory_create ()
  * data, return the end position of that data
  * after alignment to the GNUNET_FS_DBLOCK_SIZE.
  */
-static uint64_t
-do_align (uint64_t start_position, 
-	  uint64_t end_position)
+static size_t
+do_align (size_t start_position, 
+	  size_t end_position)
 {
-  uint64_t align;
+  size_t align;
   
   align = (end_position / GNUNET_FS_DBLOCK_SIZE) * GNUNET_FS_DBLOCK_SIZE;
   if ((start_position < align) && (end_position > align))
@@ -269,19 +408,19 @@ do_align (uint64_t start_position,
  * @param perm the permutation of the blocks (updated)
  */
 static void
-block_align (uint64_t start,
+block_align (size_t start,
              unsigned int count, 
-	     const uint64_t *sizes,
+	     const size_t *sizes,
 	     unsigned int *perm)
 {
   unsigned int i;
   unsigned int j;
   unsigned int tmp;
   unsigned int best;
-  int64_t badness;
-  uint64_t cpos;
-  uint64_t cend;
-  int64_t cbad;
+  ssize_t badness;
+  size_t cpos;
+  size_t cend;
+  ssize_t cbad;
   unsigned int cval;
 
   cpos = start;
@@ -334,135 +473,94 @@ block_align (uint64_t start,
 
 
 /**
- * Create a directory.  We allow packing more than one variable
- * size entry into one block (and an entry could also span more
- * than one block), but an entry that is smaller than a single
- * block will never cross the block boundary.  This is done to
- * allow processing entries of a directory already even if the
- * download is still partial.<p>
+ * Finish building the directory.  Frees the
+ * builder context and returns the directory
+ * in-memory.
  *
- * The first block begins with the directories MAGIC signature,
- * followed by the meta-data about the directory itself.<p>
- *
- * After that, the directory consists of block-aligned pairs
- * of URIs (0-terminated strings) and serialized meta-data.
- *
- * @param data pointer set to the beginning of the directory
- * @param len set to number of bytes in data
- * @param count number of entries in uris and mds
- * @param uris URIs of the files in the directory
- * @param mds meta-data for the files (must match
- *        respective values at same offset in in uris)
- * @param mdir meta-data for the directory
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @param bld directory to finish
+ * @param rsize set to the number of bytes needed
+ * @param rdata set to the encoded directory
  */
-int
-GNUNET_FS_directory_create (char **data,
-			    size_t *len,
-			    unsigned int count,
-			    const struct GNUNET_FS_Uri **uris,
-			    const struct GNUNET_CONTAINER_MetaData **mds,
-			    const struct GNUNET_CONTAINER_MetaData *mdir)
+void
+GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
+				    size_t *rsize,
+				    void **rdata)
 {
+  char *data;
+  size_t *sizes;
+  unsigned int *perm;
   unsigned int i;
   unsigned int j;
-  uint64_t psize;
-  uint64_t size;
-  uint64_t pos;
-  char **ucs;
-  int ret;
-  uint64_t *sizes;
-  unsigned int *perm;
+  struct BuilderEntry *pos;
+  struct BuilderEntry **bes;
+  size_t size;
+  size_t psize;
+  size_t off;
+  ssize_t ret;
+  uint32_t big;
 
-  for (i = 0; i < count; i++)
+  size = 8 + sizeof (uint32_t);
+  size += GNUNET_meta_data_get_serialized_size (bld->meta, 
+						GNUNET_SERIALIZE_FULL);
+  if (bld->count > 0)
     {
-      if (GNUNET_FS_uri_test_ksk (fis[i].uri))
-        {
-          GNUNET_break (0);
-          return GNUNET_SYSERR; /* illegal in directory! */
-        }
-    }
-  ucs = GNUNET_malloc (sizeof (char *) * count);
-  size = 8 + sizeof (unsigned int);
-  size += GNUNET_meta_data_get_serialized_size (meta, GNUNET_SERIALIZE_FULL);
-  sizes = GNUNET_malloc (count * sizeof (unsigned long long));
-  perm = GNUNET_malloc (count * sizeof (int));
-  for (i = 0; i < count; i++)
-    {
-      perm[i] = i;
-      ucs[i] = GNUNET_FS_uri_to_string (fis[i].uri);
-      GNUNET_assert (ucs[i] != NULL);
-      psize =
-        GNUNET_meta_data_get_serialized_size (fis[i].meta,
-                                              GNUNET_SERIALIZE_FULL);
-      if (psize == -1)
-        {
-          GNUNET_break (0);
-          GNUNET_free (sizes);
-          GNUNET_free (perm);
-          while (i >= 0)
-            GNUNET_free (ucs[i--]);
-          GNUNET_free (ucs);
-          return GNUNET_SYSERR;
-        }
-      sizes[i] = psize + sizeof (unsigned int) + strlen (ucs[i]) + 1;
-    }
-  /* permutate entries to minimize alignment cost */
-  block_align (size, count, sizes, perm);
+      sizes = GNUNET_malloc (bld->count * sizeof (size_t));
+      perm = GNUNET_malloc (bld->count * sizeof (unsigned int));
+      bes = GNUNET_malloc (bld->count * sizeof (struct BuilderEntry *));
+      pos = bld->head;
+      for (i = 0; i < bld->count; i++)
+	{
+	  perm[i] = i;
+	  bes[i] = pos;
+	  sizes[i] = pos->size;
+	  pos = pos->next;
+	}
+    }  
+  block_align (size,
+	       bld->count,
+	       sizes,
+	       perm);
 
   /* compute final size with alignment */
-  for (i = 0; i < count; i++)
+  for (i = 0; i < bld->count; i++)
     {
       psize = size;
       size += sizes[perm[i]];
       size = do_align (psize, size);
     }
-  *len = size;
-  *data = GNUNET_malloc (size);
-  memset (*data, 0, size);
-
-  pos = 8;
-  memcpy (*data, GNUNET_DIRECTORY_MAGIC, 8);
+  *rsize = size;
+  data = GNUNET_malloc (size);
+  *rdata = data;
+  memcpy (data, GNUNET_DIRECTORY_MAGIC, 8);
+  off = 8;
 
   ret = GNUNET_CONTAINER_meta_data_serialize (meta,
-					      &(*data)[pos +
-						       sizeof (unsigned int)],
-					      size - pos - sizeof (unsigned int),
+					      &(*data)[off +
+						       sizeof (uint32_t)],
+					      size - pos - sizeof (uint32_t),
 					      GNUNET_SERIALIZE_FULL);
-  GNUNET_assert (ret != GNUNET_SYSERR);
-  ret = htonl (ret);
-  memcpy (&(*data)[pos], &ret, sizeof (unsigned int));
-  pos += ntohl (ret) + sizeof (unsigned int);
-
+  GNUNET_assert (ret != -1);
+  big = htonl (ret);  
+  memcpy (&(*data)[8], &big, sizeof (uint32_t));
+  pos += sizeof (uint32_t) + ret;
   for (j = 0; j < count; j++)
     {
       i = perm[j];
       psize = pos;
       pos += sizes[i];
       pos = do_align (psize, pos);
-      pos -= sizes[i];          /* go back to beginning */
-      memcpy (&(*data)[pos], ucs[i], strlen (ucs[i]) + 1);
-      pos += strlen (ucs[i]) + 1;
-      GNUNET_free (ucs[i]);
-      ret = GNUNET_CONTAINER_meta_data_serialize (mds[i],
-						  &(*data)[pos +
-							   sizeof (unsigned int)],
-						  size - pos -
-						  sizeof (unsigned int),
-						  GNUNET_SERIALIZE_FULL);
-      GNUNET_assert (ret != GNUNET_SYSERR);
-      ret = htonl (ret);
-      memcpy (&(*data)[pos], &ret, sizeof (unsigned int));
-      pos += ntohl (ret) + sizeof (unsigned int);
+      memcpy (&data[pos - sizes[i]], 
+	      &(bes[i])[1],
+	      sizes[i]);
+      GNUNET_free (bes[i]);
     }
   GNUNET_free (sizes);
   GNUNET_free (perm);
-  GNUNET_free (ucs);
-  GNUNET_assert (pos == size);
-  return GNUNET_OK;
+  GNUNET_free (bes);
+  GNUNET_assert (pos == size);  
+  GNUNET_CONTAINER_meta_data_destroy (bld->meta);
+  GNUNET_free (bld);
 }
 
-
-#endif 
 
 /* end of fs_directory.c */

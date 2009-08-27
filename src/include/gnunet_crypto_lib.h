@@ -394,7 +394,7 @@ void GNUNET_CRYPTO_hash_xor (const GNUNET_HashCode * a,
 /**
  * Convert a hashcode into a key.
  */
-void GNUNET_CRYPTO_hash_to_AES_key (const GNUNET_HashCode * hc,
+void GNUNET_CRYPTO_hash_to_aes_key (const GNUNET_HashCode * hc,
                                     struct GNUNET_CRYPTO_AesSessionKey *skey,
                                     struct
                                     GNUNET_CRYPTO_AesInitializationVector

@@ -2169,6 +2169,52 @@ GNUNET_FS_directory_list_contents (size_t size,
 				   void *dep_cls);
 
 
+/**
+ * Opaque handle to a directory builder.
+ */
+struct GNUNET_FS_DirectoryBuilder;
+
+/**
+ * Create a directory builder.
+ * 
+ * @param mdir metadata for the directory
+ */
+struct GNUNET_FS_DirectoryBuilder *
+GNUNET_FS_directory_builder_create (const struct GNUNET_CONTAINER_MetaData *mdir);
+
+
+/**
+ * Add an entry to a directory.
+ * 
+ * @param bld directory to extend
+ * @param uri uri of the entry (must not be a KSK)
+ * @param md metadata of the entry
+ * @param data raw data of the entry, can be NULL, otherwise
+ *        data must point to exactly the number of bytes specified
+ *        by the uri
+ */
+void
+GNUNET_FS_directory_builder_add (struct GNUNET_FS_DirectoryBuilder *bld,
+				 const struct GNUNET_FS_Uri *uri,
+				 const struct GNUNET_CONTAINER_MetaData *md,
+				 const void *data);
+		 
+
+/**
+ * Finish building the directory.  Frees the
+ * builder context and returns the directory
+ * in-memory.
+ *
+ * @param bld directory to finish
+ * @param size set to the number of bytes needed
+ * @param data set to the encoded directory
+ */
+void
+GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
+				    size_t *size,
+				    void **data);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

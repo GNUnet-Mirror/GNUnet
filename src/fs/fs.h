@@ -26,10 +26,32 @@
 #ifndef FS_H
 #define FS_H
 
+#include "gnunet_datastore_service.h"
+#include "gnunet_fs_service.h"
+
 /**
  * Size of the individual blocks used for file-sharing.
  */
 #define GNUNET_FS_DBLOCK_SIZE (32*1024)
+
+
+/**
+ * Pick a multiple of 2 here to achive 8-byte alignment!
+ * We also probably want DBlocks to have (roughly) the
+ * same size as IBlocks.  With SHA-512, the optimal
+ * value is 32768 byte / 128 byte = 256
+ * (128 byte = 2 * 512 bits).  DO NOT CHANGE!
+ */
+#define GNUNET_FS_CHK_PER_INODE 256
+
+
+/**
+ * Maximum size for a file to be considered for
+ * inlining in a directory.
+ */
+#define GNUNET_FS_MAX_INLINE_SIZE 65536
+
+
 
 /**
  * @brief content hash key
@@ -51,7 +73,7 @@ struct FileIdentifier
   /**
    * Total size of the file in bytes. (network byte order (!))
    */
-  unsigned long long file_length;
+  uint64_t file_length;
 
   /**
    * Query and key of the top GNUNET_EC_IBlock.
@@ -187,6 +209,12 @@ struct GNUNET_FS_FileInformation
   struct GNUNET_FS_Uri *keywords;
 
   /**
+   * CHK for this file or directory. NULL if
+   * we have not yet computed it.
+   */
+  struct GNUNET_FS_Uri *chk_uri;
+
+  /**
    * At what time should the content expire?
    */
   struct GNUNET_TIME_Absolute expirationTime;
@@ -196,6 +224,31 @@ struct GNUNET_FS_FileInformation
    * (for operational persistence).
    */
   char *serialization;
+
+  /**
+   * In-memory cache of the current CHK tree.
+   * This struct will contain the CHK values
+   * from the root to the currently processed
+   * node in the tree as identified by 
+   * "current_depth" and "publish_offset".
+   * The "chktree" will be initially NULL,
+   * then allocated to a sufficient number of
+   * entries for the size of the file and
+   * finally freed once the upload is complete.
+   */
+  struct ContentHashKey *chk_tree;
+  
+  /**
+   * Number of entries in "chk_tree".
+   */
+  unsigned int chk_tree_depth;
+
+  /**
+   * Depth in the CHK-tree at which we are
+   * currently publishing.  0 is the root
+   * of the tree.
+   */
+  unsigned int current_depth;
 
   /**
    * How many bytes of this file or directory have been
@@ -256,6 +309,12 @@ struct GNUNET_FS_FileInformation
        * size has not yet been calculated.
        */
       uint64_t dir_size;
+
+      /**
+       * Pointer to the data for the directory (or NULL if not
+       * available).
+       */
+      char *dir_data;
 
     } dir;
 
@@ -358,6 +417,23 @@ struct GNUNET_FS_PublishContext
    * if the upload has completed.
    */
   GNUNET_SCHEDULER_TaskIdentifier upload_task;
+
+  /**
+   * Current position in the file-tree for the
+   * upload.
+   */
+  struct GNUNET_FS_FileInformation *fi_pos;
+
+  /**
+   * Connection to the datastore service.
+   */
+  struct GNUNET_DATASTORE_Handle *dsh;
+
+  /**
+   * Space reservation ID with datastore service
+   * for this upload.
+   */
+  int rid;
 };
 
 

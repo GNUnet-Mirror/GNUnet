@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -24,14 +24,393 @@
  * @see http://gnunet.org/encoding.php3
  * @author Krista Bennett
  * @author Christian Grothoff
+ *
+ * TODO:
+ * - directory creation
+ * - KBlocks
+ * - SBlocks
+ * - indexing support
+ * - calling of progress function
+ * - handling of IO errors (emsg)
+ * - code-sharing with unindex
+ * - datastore reservation support
+ * - persistence support
  */
 
 #include "platform.h"
+#include "gnunet_constants.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_fs_service.h"
 #include "fs.h"
 
 #define DEBUG_PUBLISH GNUNET_YES
+
+/**
+ * Main function that performs the upload.
+ * @param cls "struct GNUNET_FS_PublishContext" identifies the upload
+ * @param tc task context
+ */
+static void
+do_upload (void *cls,
+	   const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
+ * Context for "ds_put_cont".
+ */
+struct PutContCtx
+{
+  /**
+   * Publishing context for which the datastore
+   * PUT request was executed.
+   */
+  struct GNUNET_FS_PublishContext *sc;
+
+  /**
+   * Specific file with the block.
+   */
+  struct GNUNET_FS_FileInformation *p;
+
+  /**
+   * Function to run next, if any (can be NULL).
+   */
+  GNUNET_SCHEDULER_Task cont;
+};
+
+/**
+ * Function called by the datastore API with
+ * the result from the PUT request.
+ *
+ * @param cls our closure
+ * @param success GNUNET_OK on success
+ * @param msg error message (or NULL)
+ */
+static void
+ds_put_cont (void *cls,
+	     int success,
+ 	     const char *msg)
+{
+  struct PutContCtx *pcc = cls;
+
+  if (GNUNET_OK != success)
+    {
+      // FIXME: call progress CB with error
+      // FIXME: update pcc->p to indicate abort
+      GNUNET_FS_file_information_sync (pcc->p);
+      return;
+    }
+  GNUNET_FS_file_information_sync (pcc->p);
+  if (NULL != pcc->cont)
+    pcc->sc->upload_task 
+      = GNUNET_SCHEDULER_add_delayed (pcc->sc->h->sched,
+				      GNUNET_NO,
+				      GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+				      GNUNET_SCHEDULER_NO_TASK,
+				      GNUNET_TIME_UNIT_ZERO,
+				      pcc->cont,
+				      pcc->sc);
+  GNUNET_free (pcc);
+}
+
+
+/**
+ * We need to publish a specific block.  Do it.  Then continue with
+ * the main task.
+ *
+ * @param sc overall upload data
+ * @param p file that the block belongs to (needed for options!)
+ * @param blk encoded block to publish
+ * @param blk_size size of the block
+ * @param blk_type type of the block
+ * @param cont function to run when done
+ */
+static void
+publish_block (struct GNUNET_FS_PublishContext *sc,
+	       struct GNUNET_FS_FileInformation *p,
+	       const void* blk,
+	       uint16_t blk_size,
+	       uint32_t blk_type,
+	       GNUNET_SCHEDULER_Task cont)
+{
+  struct GNUNET_HashCode key;
+
+  // FIXME: GNUNET_FS_get_key (blk_type, blk, blk_size, &key);
+  // (or add "key" as argument to reduce hashing?)
+  dpc_cls = GNUNET_malloc(sizeof(struct PutContCtx));
+  dpc_cls->cont = cont;
+  dpc_cls->sc = sc;
+  dpc_cls->p = p;
+  // FIXME: need to do something to "sc" to mark
+  // that "sc" can not be freed right now due to this
+  // pending, scheduled operation for which we don't have
+  // a task ID!  
+  GNUNET_DATASTORE_put (sc->dsh,
+			sc->rid,
+			&key,
+			blk_size,
+			blk_type,
+			p->priority,
+			p->anonymity,
+			p->expirationTime,
+			GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+			&ds_put_cont,
+			dpc_cls);
+}
+
+
+/**
+ * We are almost done publishing the structure,
+ * add SBlocks (if needed).
+ *
+ * @param sc overall upload data
+ */
+static void
+publish_sblock (struct GNUNET_FS_PublishContext *sc)
+{
+  struct GNUNET_FS_FileInformation *p;
+  p = sc->fi;
+
+  // FIXME: build sblock & call publish_block!
+  
+  // FIXME: continuation should
+  // be releasing the datastore reserve
+  // (once implemented)
+}
+
+
+/**
+ * We have uploaded a file or directory; now publish
+ * the KBlocks in the global keyword space so that
+ * it can be found.  Then continue with the
+ * main task.
+ *
+ * @param sc overall upload data
+ * @param p specific file or directory for which kblocks
+ *          should be created
+ */
+static void
+publish_kblocks (struct GNUNET_FS_PublishContext *sc,
+		 struct GNUNET_FS_FileInformation *p)
+{
+  // FIXME: build all kblocks
+  // call publish_kblock on each
+  // last continuation should then call the main continuation again
+}
+
+
+/**
+ * Compute the depth of the CHK tree.
+ *
+ * @param flen file length for which to compute the depth
+ * @return depth of the tree
+ */
+static unsigned int
+compute_depth (uint64_t flen)
+{
+  unsigned int treeDepth;
+  uint64_t fl;
+
+  treeDepth = 1;
+  fl = GNUNET_FS_DBLOCK_SIZE;
+  while (fl < flen)
+    {
+      treeDepth++;
+      if (fl * GNUNET_FS_CHK_PER_INODE < fl)
+        {
+          /* integer overflow, this is a HUGE file... */
+          return treeDepth;
+        }
+      fl = fl * GNUNET_FS_CHK_PER_INODE;
+    }
+  return treeDepth;
+}
+
+
+/**
+ * Compute the size of the current IBlock.
+ *
+ * @param height height of the IBlock in the tree (aka overall
+ *               number of tree levels minus depth); 0 == DBlock
+ * @param offset current offset in the overall file
+ * @return size of the corresponding IBlock
+ */
+static uint16_t 
+compute_iblock_size (unsigned int height,
+		     uint64_t offset)
+{
+  unsigned int ret;
+  unsigned int i;
+  uint64_t mod;
+  uint64_t bds;
+
+  GNUNET_assert (height > 0);
+  bds = GNUNET_FS_DBLOCK_SIZE; /* number of bytes each CHK at level "i"
+				  corresponds to */
+  for (i=0;i<height;i++)
+    bds *= GNUNET_FS_CHK_PER_INODE;
+  mod = offset % bds;
+  if (0 == mod)
+    {
+      /* we were triggered at the end of a full block */
+      ret = GNUNET_FS_CHK_PER_INODE;
+    }
+  else
+    {
+      /* we were triggered at the end of the file */
+      bds /= GNUNET_FS_CHK_PER_INODE;
+      ret = mod / bds;
+      if (0 != mod % bds)
+	ret++; 
+    }
+  return (uint16_t) (ret * sizeof(struct ContentHashKey));
+}
+
+
+/**
+ * Compute the offset of the CHK for the
+ * current block in the IBlock above.
+ *
+ * @param height height of the IBlock in the tree (aka overall
+ *               number of tree levels minus depth); 0 == DBlock
+ * @param offset current offset in the overall file
+ * @return (array of CHKs') offset in the above IBlock
+ */
+static unsigned int
+compute_chk_offset (unsigned int height,
+		    uint64_t offset)
+{
+  uint64_t bds;
+  unsigned  int ret;
+
+  bds = GNUNET_FS_DBLOCK_SIZE; /* number of bytes each CHK at level "i"
+				  corresponds to */
+  for (i=0;i<height;i++)
+    bds *= GNUNET_FS_CHK_PER_INODE;
+  GNUNET_assert (0 == (offset % bds));
+  ret = offset / bds;
+  return ret % GNUNET_FS_CHK_PER_INODE; 
+}
+
+
+/**
+ * We are uploading a file or directory; load (if necessary) the next
+ * block into memory, encrypt it and send it to the FS service.  Then
+ * continue with the main task.
+ *
+ * @param sc overall upload data
+ * @param p specific file or directory for which kblocks
+ *          should be created
+ */
+static void
+publish_content (struct GNUNET_FS_PublishContext *sc,
+		 struct GNUNET_FS_FileInformation *p)
+{
+  struct ContentHashKey *chk;
+  const void *pt_block;
+  uint16_t pt_size;
+  char *emsg;
+  char iob[GNUNET_FS_DBLOCK_SIZE];
+  char enc[GNUNET_FS_DBLOCK_SIZE];
+  struct GNUNET_CRYPTO_AesSessionKey sk;
+  struct GNUNET_CRYPTO_AesInitializationVector iv;
+  uint64_t size;
+  unsigned int off;
+
+  // FIXME: figure out how to share this code
+  // with unindex!
+  size = (p->is_directory) ? p->data.dir.dir_size : p->data.file.file_size;
+  if (NULL == p->chk_tree)
+    {
+      if (p->is_directory)
+	{
+	  /* FIXME: create function to create directory
+	     and use that API here! */
+	  GNUNET_FS_directory_create (&p->data.dir.dir_size,
+				      &p->data.dir.dir_data,
+				      p->meta,
+				      &directory_entry_lister,
+				      p->data.dir.entries);
+	  size = p->data.dir.data_size;
+	}
+      p->chk_tree_depth = compute_depth (size);
+      p->chk_tree = GNUNET_malloc (p->chk_tree_depth * 
+				   sizeof (struct ContentHashKey) *
+				   GNUNET_FS_CHK_PER_INODE);
+      p->current_depth = p->chk_tree_depth;
+    }
+  if (p->current_depth == p->chk_tree_depth)
+    {
+      if (p->is_directory)
+	{
+	  pt_size = GNUNET_MIN(GNUNET_FS_DBLOCK_SIZE,
+			       p->data.dir.dir_size - p->publish_offset);
+	  pt_block = &p->data.dir.dir_data[p->publish_offset];
+	}
+      else
+	{
+	  pt_size = GNUNET_MIN(GNUNET_FS_DBLOCK_SIZE,
+			       p->data.file.file_size - p->publish_offset);
+	  p->data.file.reader (p->data.file.reader_cls,
+			       p->publish_offset,
+			       pt_size,
+			       iob,
+			       &emsg);
+	  pt_block = iob;
+	}
+    }
+  else
+    {
+      pt_size = compute_iblock_size (p->chk_tree_depth - p->current_depth,
+				     p->publish_offset); 
+      pt_block = &p->chk_tree[p->current_depth *
+			      GNUNET_FS_CHK_PER_INODE];
+    }
+  off = compute_chk_offset (p->chk_tree_depth - p->current_depth,
+			    p->publish_offset);
+  chk = &p->chk_tree[(p->current_depth-1)*GNUNET_FS_CHK_PER_INODE+off];
+  GNUNET_CRYPTO_hash (pt_block, pt_size, &chk->key);
+  GNUNET_CRYPTO_hash_to_aes_key (&chk->key, &sk, &iv);
+  GNUNET_CRYPTO_aes_encrypt (pt_block,
+			     pt_size,
+			     &sk,
+			     &iv,
+			     enc);
+  // NOTE: this call (and progress below) is all that really differs
+  // between publish/unindex!  Parameterize & move this code!
+  // FIXME: something around here would need to change
+  // for indexing!
+  publish_block (sc, p, enc, pt_size, 
+		 (p->current_depth == p->chk_tree_depth) 
+		 ? GNUNET_DATASTORE_BLOCKTYPE_DBLOCK 
+		 : GNUNET_DATASTORE_BLOCKTYPE_IBLOCK,
+		 &do_upload);
+  // FIXME: should call progress function somewhere here!
+  GNUNET_CRYPTO_hash (enc, pt_size, &chk->query);
+  if (p->current_depth == p->chk_tree_depth) 
+    { 
+      p->publish_offset += pt_size;
+      if ( (p->publish_offset == size) ||
+	   (0 == p->publish_offset % (GNUNET_FS_CHK_PER_INODE * GNUNET_FS_DBLOCK_SIZE) ) )
+	p->current_depth--;
+    }
+  else
+    {
+      if ( (off == GNUNET_FS_CHK_PER_INODE) ||
+	   (p->publish_offset == size) )
+	p->current_depth--;
+      else
+	p->current_depth = p->chk_tree_depth;
+    }
+  if (0 == p->current_depth)
+    {
+      p->chk_uri = GNUNET_malloc (sizeof(struct GNUNET_FS_Uri));
+      p->chk_uri.type = chk;
+      p->chk_uri.data.chk.chk = p->chk_tree[0];
+      p->chk_uri.data.chk.file_length = size;
+      GNUNET_free (p->chk_tree);
+      p->chk_tree = NULL;
+    }
+}
 
 
 /**
@@ -44,11 +423,36 @@ do_upload (void *cls,
 	   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_FS_PublishContext *sc = cls;
+  struct GNUNET_FS_FileInformation *p;
 
   sc->upload_task = GNUNET_SCHEDULER_NO_TASK;  
-
-  // FIXME: find next block, process, schedule
-  // transmission to FS service
+  p = sc->fi_pos;
+  if (NULL == p)
+    {
+      /* upload of entire hierarchy complete,
+	 publish namespace entries */
+      publish_sblock (sc);
+      return;
+    }
+  if (NULL != p->chk_uri)
+    {
+      /* move on to next file */
+      if (NULL != p->next)
+	sc->fi_pos = p->next;
+      else
+	sc->fi_pos = p->dir;
+      /* upload of "p" complete, publish KBlocks! */
+      publish_kblocks (sc, p);
+      return;
+    }
+  if (p->do_index)
+    {
+      // FIXME: need to pre-compute hash over
+      // the entire file and ask FS to prepare
+      // for indexing!
+      return;
+    }
+  publish_content (sc, p);
 }
 
 
@@ -75,8 +479,15 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
 			 const char *nuid)
 {
   struct GNUNET_FS_PublishContext *ret;
+  struct GNUNET_FS_FileInformation *p;
+  struct GNUNET_DATASTORE_Handle *dsh;
 
+  dsh = GNUNET_DATASTORE_connect (h->cfg,
+				  h->sched);
+  if (NULL == dsh)
+    return NULL;
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_PublishContext));
+  ret->dsh = dsh;
   ret->h = h;
   ret->client_ctx = ctx;
   ret->fi = fi;
@@ -90,6 +501,17 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
 	ret->nuid = GNUNET_strdup (nuid);
     }
   // FIXME: make upload persistent!
+
+  /* find first leaf, DFS */
+  p = ret->fi;
+  while ( (p->is_directory) &&
+	  (NULL != p->data.dir.entries) )
+    p = p->data.dir.entries;	      
+  ret->fi_pos = p;
+
+  // FIXME: calculate space needed for "fi"
+  // and reserve as first task (then trigger
+  // "do_upload" from that continuation)!
   ret->upload_task 
     = GNUNET_SCHEDULER_add_delayed (h->sched,
 				    GNUNET_NO,
@@ -120,429 +542,8 @@ GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *sc)
   GNUNET_FS_namespace_delete (sc->namespace, GNUNET_NO);
   GNUNET_free_non_null (sc->nid);  
   GNUNET_free_non_null (sc->nuid);
+  GNUNET_DATASTORE_disconnect (sc->dsh);
   GNUNET_free (sc);
 }
-
-
-#if 0
-
-/**
- * Append the given key and query to the iblock[level].  If
- * iblock[level] is already full, compute its chk and push it to
- * level+1 and clear the level.  iblocks is guaranteed to be big
- * enough.
- */
-static int
-pushBlock (struct GNUNET_ClientServerConnection *sock,
-           const GNUNET_EC_ContentHashKey * chk,
-           unsigned int level,
-           GNUNET_DatastoreValue ** iblocks,
-           unsigned int prio, GNUNET_CronTime expirationTime)
-{
-  unsigned int size;
-  unsigned int present;
-  GNUNET_DatastoreValue *value;
-  GNUNET_EC_DBlock *db;
-  GNUNET_EC_ContentHashKey ichk;
-
-  size = ntohl (iblocks[level]->size);
-  GNUNET_GE_ASSERT (NULL, size > sizeof (GNUNET_DatastoreValue));
-  size -= sizeof (GNUNET_DatastoreValue);
-  GNUNET_GE_ASSERT (NULL,
-                    size - sizeof (GNUNET_EC_DBlock) <=
-                    GNUNET_ECRS_IBLOCK_SIZE);
-  present =
-    (size - sizeof (GNUNET_EC_DBlock)) / sizeof (GNUNET_EC_ContentHashKey);
-  db = (GNUNET_EC_DBlock *) & iblocks[level][1];
-  if (present == GNUNET_ECRS_CHK_PER_INODE)
-    {
-      GNUNET_EC_file_block_get_key (db, size, &ichk.key);
-      GNUNET_EC_file_block_get_query (db, size, &ichk.query);
-      if (GNUNET_OK != pushBlock (sock,
-                                  &ichk, level + 1, iblocks, prio,
-                                  expirationTime))
-        return GNUNET_SYSERR;
-      GNUNET_EC_file_block_encode (db, size, &ichk.query, &value);
-      if (value == NULL)
-        {
-          GNUNET_GE_BREAK (NULL, 0);
-          return GNUNET_SYSERR;
-        }
-      value->priority = htonl (prio);
-      value->expiration_time = GNUNET_htonll (expirationTime);
-      if (GNUNET_OK != GNUNET_FS_insert (sock, value))
-        {
-          GNUNET_free (value);
-          return GNUNET_SYSERR;
-        }
-      GNUNET_free (value);
-      size = sizeof (GNUNET_EC_DBlock); /* type */
-    }
-  /* append GNUNET_EC_ContentHashKey */
-  memcpy (&((char *) db)[size], chk, sizeof (GNUNET_EC_ContentHashKey));
-  size += sizeof (GNUNET_EC_ContentHashKey) + sizeof (GNUNET_DatastoreValue);
-  GNUNET_GE_ASSERT (NULL, size < GNUNET_MAX_BUFFER_SIZE);
-  iblocks[level]->size = htonl (size);
-
-  return GNUNET_OK;
-}
-
-/**
- * Index or insert a file.
- *
- * @param priority what is the priority for OUR node to
- *   keep this file available?  Use 0 for maximum anonymity and
- *   minimum reliability...
- * @param doIndex GNUNET_YES for index, GNUNET_NO for insertion,
- *         GNUNET_SYSERR for simulation
- * @param uri set to the URI of the uploaded file
- * @return GNUNET_SYSERR if the upload failed (i.e. not enough space
- *  or gnunetd not running)
- */
-int
-GNUNET_ECRS_file_upload (struct GNUNET_GE_Context *ectx,
-                         struct GNUNET_GC_Configuration *cfg,
-                         const char *filename,
-                         int doIndex,
-                         unsigned int anonymityLevel,
-                         unsigned int priority,
-                         GNUNET_CronTime expirationTime,
-                         GNUNET_ECRS_UploadProgressCallback upcb,
-                         void *upcbClosure,
-                         GNUNET_ECRS_TestTerminate tt,
-                         void *ttClosure, struct GNUNET_ECRS_URI **uri)
-{
-  unsigned long long filesize;
-  unsigned long long pos;
-  unsigned int treedepth;
-  int fd;
-  int i;
-  int ret;
-  unsigned int size;
-  GNUNET_DatastoreValue **iblocks;
-  GNUNET_DatastoreValue *dblock;
-  GNUNET_EC_DBlock *db;
-  GNUNET_DatastoreValue *value;
-  struct GNUNET_ClientServerConnection *sock;
-  GNUNET_HashCode fileId;
-  GNUNET_EC_ContentHashKey mchk;
-  GNUNET_CronTime eta;
-  GNUNET_CronTime start;
-  GNUNET_CronTime now;
-  GNUNET_EC_FileIdentifier fid;
-#if DEBUG_UPLOAD
-  GNUNET_EncName enc;
-#endif
-
-  GNUNET_GE_ASSERT (ectx, cfg != NULL);
-  start = GNUNET_get_time ();
-  memset (&mchk, 0, sizeof (GNUNET_EC_ContentHashKey));
-  if (GNUNET_YES != GNUNET_disk_file_test (ectx, filename))
-    {
-      GNUNET_GE_LOG (ectx,
-                     GNUNET_GE_ERROR | GNUNET_GE_BULK | GNUNET_GE_USER,
-                     _("`%s' is not a file.\n"), filename);
-      return GNUNET_SYSERR;
-    }
-  if (GNUNET_OK !=
-      GNUNET_disk_file_size (ectx, filename, &filesize, GNUNET_YES))
-    {
-      GNUNET_GE_LOG (ectx,
-                     GNUNET_GE_ERROR | GNUNET_GE_BULK | GNUNET_GE_USER,
-                     _("Cannot get size of file `%s'"), filename);
-
-      return GNUNET_SYSERR;
-    }
-  sock = GNUNET_client_connection_create (ectx, cfg);
-  if (sock == NULL)
-    {
-      GNUNET_GE_LOG (ectx,
-                     GNUNET_GE_ERROR | GNUNET_GE_BULK | GNUNET_GE_USER,
-                     _("Failed to connect to gnunetd."));
-      return GNUNET_SYSERR;
-    }
-  eta = 0;
-  if (upcb != NULL)
-    upcb (filesize, 0, eta, upcbClosure);
-  if (doIndex == GNUNET_YES)
-    {
-      if (GNUNET_SYSERR == GNUNET_hash_file (ectx, filename, &fileId))
-        {
-          GNUNET_GE_LOG (ectx,
-                         GNUNET_GE_ERROR | GNUNET_GE_BULK | GNUNET_GE_USER,
-                         _("Cannot hash `%s'.\n"), filename);
-
-          GNUNET_client_connection_destroy (sock);
-          return GNUNET_SYSERR;
-        }
-      if (GNUNET_YES == GNUNET_FS_test_indexed (sock, &fileId))
-        {
-          /* file already indexed; simulate only to get the URI! */
-          doIndex = GNUNET_SYSERR;
-        }
-    }
-  if (doIndex == GNUNET_YES)
-    {
-      now = GNUNET_get_time ();
-      eta = now + 2 * (now - start);
-      /* very rough estimate: GNUNET_hash reads once through the file,
-         we'll do that once more and write it.  But of course
-         the second read may be cached, and we have the encryption,
-         so a factor of two is really, really just a rough estimate */
-      start = now;
-      /* reset the counter since the formula later does not
-         take the time for GNUNET_hash_file into account */
-
-      switch (GNUNET_FS_prepare_to_index (sock, &fileId, filename))
-        {
-        case GNUNET_SYSERR:
-          GNUNET_GE_LOG (ectx,
-                         GNUNET_GE_ERROR | GNUNET_GE_BULK | GNUNET_GE_USER,
-                         _("Initialization for indexing file `%s' failed.\n"),
-                         filename);
-          GNUNET_client_connection_destroy (sock);
-          return GNUNET_SYSERR;
-        case GNUNET_NO:
-          GNUNET_GE_LOG (ectx,
-                         GNUNET_GE_ERROR | GNUNET_GE_BULK | GNUNET_GE_USER,
-                         _
-                         ("Indexing file `%s' failed. Suggestion: try to insert the file.\n"),
-                         filename);
-          GNUNET_client_connection_destroy (sock);
-          return GNUNET_SYSERR;
-        default:
-          break;
-        }
-    }
-  treedepth = GNUNET_ECRS_compute_depth (filesize);
-  fd = GNUNET_disk_file_open (ectx, filename, O_RDONLY | O_LARGEFILE);
-  if (fd == -1)
-    {
-      GNUNET_GE_LOG (ectx,
-                     GNUNET_GE_ERROR | GNUNET_GE_BULK | GNUNET_GE_USER,
-                     _("Cannot open file `%s': `%s'"), filename,
-                     STRERROR (errno));
-
-      GNUNET_client_connection_destroy (sock);
-      return GNUNET_SYSERR;
-    }
-
-  dblock =
-    GNUNET_malloc (sizeof (GNUNET_DatastoreValue) + GNUNET_ECRS_DBLOCK_SIZE +
-                   sizeof (GNUNET_EC_DBlock));
-  dblock->size =
-    htonl (sizeof (GNUNET_DatastoreValue) + GNUNET_ECRS_DBLOCK_SIZE +
-           sizeof (GNUNET_EC_DBlock));
-  dblock->anonymity_level = htonl (anonymityLevel);
-  dblock->priority = htonl (priority);
-  dblock->type = htonl (GNUNET_ECRS_BLOCKTYPE_DATA);
-  dblock->expiration_time = GNUNET_htonll (expirationTime);
-  db = (GNUNET_EC_DBlock *) & dblock[1];
-  db->type = htonl (GNUNET_ECRS_BLOCKTYPE_DATA);
-  iblocks =
-    GNUNET_malloc (sizeof (GNUNET_DatastoreValue *) * (treedepth + 1));
-  for (i = 0; i <= treedepth; i++)
-    {
-      iblocks[i] =
-        GNUNET_malloc (sizeof (GNUNET_DatastoreValue) +
-                       GNUNET_ECRS_IBLOCK_SIZE + sizeof (GNUNET_EC_DBlock));
-      iblocks[i]->size =
-        htonl (sizeof (GNUNET_DatastoreValue) + sizeof (GNUNET_EC_DBlock));
-      iblocks[i]->anonymity_level = htonl (anonymityLevel);
-      iblocks[i]->priority = htonl (priority);
-      iblocks[i]->type = htonl (GNUNET_ECRS_BLOCKTYPE_DATA);
-      iblocks[i]->expiration_time = GNUNET_htonll (expirationTime);
-      ((GNUNET_EC_DBlock *) & iblocks[i][1])->type =
-        htonl (GNUNET_ECRS_BLOCKTYPE_DATA);
-    }
-
-  pos = 0;
-  while (pos < filesize)
-    {
-      if (upcb != NULL)
-        upcb (filesize, pos, eta, upcbClosure);
-      if (tt != NULL)
-        if (GNUNET_OK != tt (ttClosure))
-          goto FAILURE;
-      size = GNUNET_ECRS_DBLOCK_SIZE;
-      if (size > filesize - pos)
-        {
-          size = filesize - pos;
-          memset (&db[1], 0, GNUNET_ECRS_DBLOCK_SIZE);
-        }
-      GNUNET_GE_ASSERT (ectx,
-                        sizeof (GNUNET_DatastoreValue) + size +
-                        sizeof (GNUNET_EC_DBlock) < GNUNET_MAX_BUFFER_SIZE);
-      dblock->size =
-        htonl (sizeof (GNUNET_DatastoreValue) + size +
-               sizeof (GNUNET_EC_DBlock));
-      if (size != READ (fd, &db[1], size))
-        {
-          GNUNET_GE_LOG_STRERROR_FILE (ectx,
-                                       GNUNET_GE_ERROR | GNUNET_GE_BULK |
-                                       GNUNET_GE_ADMIN | GNUNET_GE_USER,
-                                       "READ", filename);
-          goto FAILURE;
-        }
-      if (tt != NULL)
-        if (GNUNET_OK != tt (ttClosure))
-          goto FAILURE;
-      GNUNET_EC_file_block_get_key (db, size + sizeof (GNUNET_EC_DBlock),
-                                    &mchk.key);
-      GNUNET_EC_file_block_get_query (db, size + sizeof (GNUNET_EC_DBlock),
-                                      &mchk.query);
-#if DEBUG_UPLOAD
-      GNUNET_hash_to_enc (&mchk.query, &enc);
-      fprintf (stderr,
-               "Query for current block of size %u is `%s'\n", size,
-               (const char *) &enc);
-#endif
-      if (doIndex == GNUNET_YES)
-        {
-          if (GNUNET_SYSERR == GNUNET_FS_index (sock, &fileId, dblock, pos))
-            {
-              GNUNET_GE_LOG (ectx,
-                             GNUNET_GE_ERROR | GNUNET_GE_BULK |
-                             GNUNET_GE_USER,
-                             _
-                             ("Indexing data of file `%s' failed at position %llu.\n"),
-                             filename, pos);
-              goto FAILURE;
-            }
-        }
-      else
-        {
-          value = NULL;
-          if (GNUNET_OK !=
-              GNUNET_EC_file_block_encode (db,
-                                           size + sizeof (GNUNET_EC_DBlock),
-                                           &mchk.query, &value))
-            {
-              GNUNET_GE_BREAK (ectx, 0);
-              goto FAILURE;
-            }
-          GNUNET_GE_ASSERT (ectx, value != NULL);
-          *value = *dblock;     /* copy options! */
-          if ((doIndex == GNUNET_NO) &&
-              (GNUNET_OK != (ret = GNUNET_FS_insert (sock, value))))
-            {
-              GNUNET_GE_BREAK (ectx, ret == GNUNET_NO);
-              GNUNET_free (value);
-              goto FAILURE;
-            }
-          GNUNET_free (value);
-        }
-      pos += size;
-      now = GNUNET_get_time ();
-      if (pos > 0)
-        {
-          eta = (GNUNET_CronTime) (start +
-                                   (((double) (now - start) / (double) pos))
-                                   * (double) filesize);
-        }
-      if (GNUNET_OK != pushBlock (sock, &mchk, 0,       /* dblocks are on level 0 */
-                                  iblocks, priority, expirationTime))
-        goto FAILURE;
-    }
-  if (tt != NULL)
-    if (GNUNET_OK != tt (ttClosure))
-      goto FAILURE;
-#if DEBUG_UPLOAD
-  GNUNET_GE_LOG (ectx,
-                 GNUNET_GE_DEBUG | GNUNET_GE_REQUEST | GNUNET_GE_USER,
-                 "Tree depth is %u, walking up tree.\n", treedepth);
-#endif
-  for (i = 0; i < treedepth; i++)
-    {
-      size = ntohl (iblocks[i]->size) - sizeof (GNUNET_DatastoreValue);
-      GNUNET_GE_ASSERT (ectx, size < GNUNET_MAX_BUFFER_SIZE);
-      if (size == sizeof (GNUNET_EC_DBlock))
-        {
-#if DEBUG_UPLOAD
-          GNUNET_GE_LOG (ectx,
-                         GNUNET_GE_DEBUG | GNUNET_GE_REQUEST | GNUNET_GE_USER,
-                         "Level %u is empty\n", i);
-#endif
-          continue;
-        }
-      db = (GNUNET_EC_DBlock *) & iblocks[i][1];
-      GNUNET_EC_file_block_get_key (db, size, &mchk.key);
-#if DEBUG_UPLOAD
-      GNUNET_GE_LOG (ectx,
-                     GNUNET_GE_DEBUG | GNUNET_GE_REQUEST | GNUNET_GE_USER,
-                     "Computing query for %u bytes content.\n", size);
-#endif
-      GNUNET_EC_file_block_get_query (db, size, &mchk.query);
-#if DEBUG_UPLOAD
-      IF_GELOG (ectx,
-                GNUNET_GE_DEBUG | GNUNET_GE_REQUEST | GNUNET_GE_USER,
-                GNUNET_hash_to_enc (&mchk.query, &enc));
-      GNUNET_GE_LOG (ectx,
-                     GNUNET_GE_DEBUG | GNUNET_GE_REQUEST | GNUNET_GE_USER,
-                     "Query for current block at level %u is `%s'.\n", i,
-                     &enc);
-#endif
-      if (GNUNET_OK != pushBlock (sock,
-                                  &mchk, i + 1, iblocks, priority,
-                                  expirationTime))
-        {
-          GNUNET_GE_BREAK (ectx, 0);
-          goto FAILURE;
-        }
-      GNUNET_EC_file_block_encode (db, size, &mchk.query, &value);
-      if (value == NULL)
-        {
-          GNUNET_GE_BREAK (ectx, 0);
-          goto FAILURE;
-        }
-      value->expiration_time = GNUNET_htonll (expirationTime);
-      value->priority = htonl (priority);
-      if ((doIndex != GNUNET_SYSERR) &&
-          (GNUNET_SYSERR == GNUNET_FS_insert (sock, value)))
-        {
-          GNUNET_GE_BREAK (ectx, 0);
-          GNUNET_free (value);
-          goto FAILURE;
-        }
-      GNUNET_free (value);
-      GNUNET_free (iblocks[i]);
-      iblocks[i] = NULL;
-    }
-#if DEBUG_UPLOAD
-  IF_GELOG (ectx,
-            GNUNET_GE_DEBUG | GNUNET_GE_REQUEST | GNUNET_GE_USER,
-            GNUNET_hash_to_enc (&mchk.query, &enc));
-  GNUNET_GE_LOG (ectx, GNUNET_GE_DEBUG | GNUNET_GE_REQUEST | GNUNET_GE_USER,
-                 "Query for top block is %s\n", &enc);
-#endif
-  /* build URI */
-  fid.file_length = GNUNET_htonll (filesize);
-  db = (GNUNET_EC_DBlock *) & iblocks[treedepth][1];
-
-  fid.chk = *(GNUNET_EC_ContentHashKey *) & (db[1]);
-  *uri = GNUNET_malloc (sizeof (URI));
-  (*uri)->type = chk;
-  (*uri)->data.fi = fid;
-
-  /* free resources */
-  GNUNET_free_non_null (iblocks[treedepth]);
-  GNUNET_free (iblocks);
-  GNUNET_free (dblock);
-  if (upcb != NULL)
-    upcb (filesize, filesize, eta, upcbClosure);
-  CLOSE (fd);
-  GNUNET_client_connection_destroy (sock);
-  return GNUNET_OK;
-FAILURE:
-  for (i = 0; i <= treedepth; i++)
-    GNUNET_free_non_null (iblocks[i]);
-  GNUNET_free (iblocks);
-  GNUNET_free (dblock);
-  CLOSE (fd);
-  GNUNET_client_connection_destroy (sock);
-  return GNUNET_SYSERR;
-}
-
-#endif 
 
 /* end of fs_publish.c */

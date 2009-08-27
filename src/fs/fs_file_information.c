@@ -804,6 +804,7 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
 	       &fi->priority,
 	       &fi->expirationTime,
 	       &fi->client_info);
+      GNUNET_free_non_null (fi->data.dir.dir_data);
       GNUNET_free (fi->data.dir.dirname);
     }
   else
@@ -821,7 +822,7 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
 	       &fi->expirationTime,
 	       &fi->client_info);
     }
-
+  GNUNET_free_non_null (fi->chk_tree);
   /* clean up serialization */
   if (0 != UNLINK (fi->serialization))
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,

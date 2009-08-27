@@ -43,14 +43,14 @@ PHASE #2: (Goal: recover basic file-sharing functionality)
     + getopt API -- DONE (but do more testing)
     + persistence mechanism (design done)
     + sharing API
-      ~ file-information (almost done, needs testing)
-      ~ insert
+      ~ file-information (needs testing)
+      ~ directory: implement new directory builder!
+      ~ insert: close, need directory builder first!
+      ~ unindex & list indexed!!!
       ~ search
       ~ download
-      ~ unindex & list indexed!!!
       ~ namespaces
       ~ collection
-    + directory API (builder API unclear)
   - design network structs (P2P)
   - datastore request queueing mechanism
   - implement FS service (needs DHT)

@@ -305,8 +305,8 @@ int GNUNET_CONTAINER_meta_data_extract_from_file (struct
 
 enum GNUNET_CONTAINER_MetaDataSerializationOptions
 {
-  GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL = GNUNET_NO,
-  GNUNET_CONTAINER_META_DATA_SERIALIZE_PART = GNUNET_YES,
+  GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL = 0,
+  GNUNET_CONTAINER_META_DATA_SERIALIZE_PART = 1,
   GNUNET_CONTAINER_META_DATA_SERIALIZE_NO_COMPRESS = 2
 };
 
@@ -323,10 +323,11 @@ enum GNUNET_CONTAINER_MetaDataSerializationOptions
  *         GNUNET_SYSERR on error (typically: not enough
  *         space)
  */
-int GNUNET_CONTAINER_meta_data_serialize (const struct
-                                          GNUNET_CONTAINER_MetaData *md,
-                                          char *target, unsigned int size,
-                                          enum
+ssize_t GNUNET_CONTAINER_meta_data_serialize (const struct
+					      GNUNET_CONTAINER_MetaData *md,
+					      char *target, 
+					      size_t size,
+					      enum
                                           GNUNET_CONTAINER_MetaDataSerializationOptions
                                           opt);
 
@@ -337,12 +338,12 @@ int GNUNET_CONTAINER_meta_data_serialize (const struct
  *        meta-data to match the size constraint,
  *        possibly discarding some data?
  */
-unsigned int GNUNET_CONTAINER_meta_data_get_serialized_size (const struct
-                                                             GNUNET_CONTAINER_MetaData
-                                                             *md,
-                                                             enum
-                                                             GNUNET_CONTAINER_MetaDataSerializationOptions
-                                                             opt);
+ssize_t GNUNET_CONTAINER_meta_data_get_serialized_size (const struct
+							GNUNET_CONTAINER_MetaData
+							*md,
+							enum
+							GNUNET_CONTAINER_MetaDataSerializationOptions
+							opt);
 
 /**
  * Deserialize meta-data.  Initializes md.
@@ -352,7 +353,7 @@ unsigned int GNUNET_CONTAINER_meta_data_get_serialized_size (const struct
  */
 struct GNUNET_CONTAINER_MetaData
   *GNUNET_CONTAINER_meta_data_deserialize (const char *input,
-                                           unsigned int size);
+                                           size_t size);
 
 /**
  * Does the meta-data claim that this is a directory?

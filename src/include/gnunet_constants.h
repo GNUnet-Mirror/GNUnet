@@ -55,6 +55,13 @@ extern "C"
  */
 #define GNUNET_CONSTANTS_EXEC_WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 100)
 
+/**
+ * After how long do we consider a service irresponsive
+ * even if we assume that the service commonly does not
+ * respond instantly (DNS, Database, etc.).
+ */
+#define GNUNET_CONSTANTS_SERVICE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 10)
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
