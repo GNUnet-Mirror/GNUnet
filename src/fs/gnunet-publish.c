@@ -474,7 +474,7 @@ main (int argc, char *const *argv)
 
 ////////////////////////////////////////////////////////////////
 
-
+#if 0
 /**
  * Print progess message.
  */

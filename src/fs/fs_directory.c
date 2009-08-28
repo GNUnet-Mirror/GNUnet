@@ -335,7 +335,7 @@ GNUNET_FS_directory_builder_add (struct GNUNET_FS_DirectoryBuilder *bld,
     fsize = 0; /* not given */
   if (fsize > GNUNET_FS_MAX_INLINE_SIZE)
     fsize = 0; /* too large */
-  if (memchr (data, fsize, '\0')) // FIXME: check memchr args!
+  if (NULL != memchr (data, 0, fsize))
     fsize = 0; /* must not have 0's in data! */
   uris = GNUNET_FS_uri_to_string (uri);
   slen = strlen (uris) + 1;
