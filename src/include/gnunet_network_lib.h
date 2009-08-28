@@ -24,8 +24,8 @@
  * @author Nils Durner
  */
 
-#ifndef GNUNET_NETWORK_LIB_H_
-#define GNUNET_NETWORK_LIB_H_
+#ifndef GNUNET_NETWORK_LIB_H
+#define GNUNET_NETWORK_LIB_H
 
 #ifdef __cplusplus
 extern "C"
@@ -53,6 +53,11 @@ struct GNUNET_DISK_FileHandle;
 struct GNUNET_NETWORK_Descriptor *GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Descriptor *desc,
                       struct sockaddr *address,
                       socklen_t *address_len);
+
+int
+GNUNET_NETWORK_socket_set_inheritable (const struct GNUNET_NETWORK_Descriptor
+                                       *desc);
+
 
 int GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Descriptor *desc,
                     const struct sockaddr *address, socklen_t address_len);
@@ -128,7 +133,7 @@ int GNUNET_NETWORK_fdset_handle_isset (const struct GNUNET_NETWORK_FDSet *fds,
 
 int GNUNET_NETWORK_fdset_overlap (const struct GNUNET_NETWORK_FDSet *fds1, const struct GNUNET_NETWORK_FDSet *fds2);
 
-struct GNUNET_NETWORK_FDSet *GNUNET_NETWORK_fdset_create ();
+struct GNUNET_NETWORK_FDSet *GNUNET_NETWORK_fdset_create (void);
 
 void GNUNET_NETWORK_fdset_destroy (struct GNUNET_NETWORK_FDSet *fds);
 
@@ -140,4 +145,4 @@ void GNUNET_NETWORK_fdset_destroy (struct GNUNET_NETWORK_FDSet *fds);
 }
 #endif
 
-#endif /* GNUNET_NETWORK_LIB_H_ */
+#endif /* GNUNET_NETWORK_LIB_H */

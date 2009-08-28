@@ -37,6 +37,7 @@ libgnunetutil_la_SOURCES = \
   getopt.c \
   getopt_helpers.c \
   network.c \
+  network_socket.c \
   os_installation.c \
   os_load.c \
   os_network.c \
@@ -49,7 +50,6 @@ libgnunetutil_la_SOURCES = \
   server_tc.c \
   service.c \
   signal.c \
-  sock.c \
   strings.c \
   time.c \
   $(WINSRC)

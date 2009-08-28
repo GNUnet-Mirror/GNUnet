@@ -308,13 +308,13 @@ struct GNUNET_FS_FileInformation
        * Size of the directory itself (in bytes); 0 if the
        * size has not yet been calculated.
        */
-      uint64_t dir_size;
+      size_t dir_size;
 
       /**
        * Pointer to the data for the directory (or NULL if not
        * available).
        */
-      char *dir_data;
+      void *dir_data;
 
     } dir;
 

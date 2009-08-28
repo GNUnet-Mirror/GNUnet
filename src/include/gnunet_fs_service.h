@@ -21,6 +21,10 @@
  * @file include/gnunet_fs_service.h
  * @brief API for file-sharing via GNUnet 
  * @author Christian Grothoff
+ *
+ * TODO:
+ * - extend API with support for publish simulation (-s)
+ *   and URI-argument binding to keyword/namespace (-u)
  */
 #ifndef GNUNET_FS_LIB_H
 #define GNUNET_FS_LIB_H
@@ -398,7 +402,7 @@ GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_CONTAINER_MetaData 
  * @return GNUNET_OK on success
  */
 int
-GNUNET_FS_getopt_configure_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext* ctx, 
+GNUNET_FS_getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext* ctx, 
 					 void *scls,
 					 const char *option,
 					 const char *value);
@@ -417,7 +421,7 @@ GNUNET_FS_getopt_configure_set_keywords (struct GNUNET_GETOPT_CommandLineProcess
  * @return GNUNET_OK on success
  */
 int
-GNUNET_FS_getopt_configure_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext* ctx, 
+GNUNET_FS_getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext* ctx, 
 					 void *scls,
 					 const char *option,
 					 const char *value);

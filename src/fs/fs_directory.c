@@ -24,7 +24,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - add support for embedded file data (use padding room!)
  * - modify directory builder API to support incremental
  *   generation of directories (to allow directories that
  *   would not fit into memory to be created)
@@ -40,6 +39,13 @@
 #ifndef EXTRACTOR_GNUNET_FULL_DATA
 #define EXTRACTOR_GNUNET_FULL_DATA 137
 #endif
+
+/**
+ * String that is used to indicate that a file
+ * is a GNUnet directory.
+ */
+#define GNUNET_DIRECTORY_MAGIC "\211GND\r\n\032\n"
+
 
 /**
  * Does the meta-data claim that this is a directory?
@@ -118,6 +124,7 @@ GNUNET_FS_directory_list_contents (size_t size,
 				   void *dep_cls)
 {
   const char *cdata = data;
+  char *file_data;
   char *emsg;
   uint64_t pos;
   uint64_t align;
@@ -217,17 +224,18 @@ GNUNET_FS_directory_list_contents (size_t size,
           return; /* malformed ! */
         }
       pos += mdSize;
-      // EXTRACTOR_GNUNET_FULL_DATA
-      /* FIXME: add support for embedded data */
       filename = GNUNET_CONTAINER_meta_data_get_by_type (md,
 							 EXTRACTOR_FILENAME);
+      file_data = GNUNET_CONTAINER_meta_data_get_by_type (md,
+							  EXTRACTOR_GNUNET_FULL_DATA);
       if (dep != NULL) 
          dep (dep_cls,
 	      filename,
 	      uri,
 	      md,
-	      0,
-	      NULL);
+	      (file_data != NULL) ? strlen(file_data) : 0,
+	      file_data);
+      GNUNET_free_non_null (file_data);
       GNUNET_free_non_null (filename);
       GNUNET_CONTAINER_meta_data_destroy (md);
       GNUNET_FS_uri_destroy (uri);
@@ -308,6 +316,7 @@ GNUNET_FS_directory_builder_add (struct GNUNET_FS_DirectoryBuilder *bld,
   struct BuilderEntry *e;
   uint64_t fsize;
   uint32_t big;
+  ssize_t ret;
   size_t mds;
   size_t mdxs;
   char *uris;
@@ -316,12 +325,12 @@ GNUNET_FS_directory_builder_add (struct GNUNET_FS_DirectoryBuilder *bld,
   struct GNUNET_CONTAINER_MetaData *meta;
   const struct GNUNET_CONTAINER_MetaData *meta_use;
 
-  GNUNET_assert (! GNUNET_FS_uri_ksk_test (uri));
+  GNUNET_assert (! GNUNET_FS_uri_test_ksk (uri));
   if (NULL != data)
-    if (GNUNET_FS_uri_chk_test (uri))
-      fsize = GNUNET_FS_uri_chk_get_size (uri);
+    if (GNUNET_FS_uri_test_chk (uri))
+      fsize = GNUNET_FS_uri_chk_get_file_size (uri);
     else
-      fsize = GNUNET_FS_uri_chk_get_size (GNUNET_FS_uri_loc_get_uri (uri));
+      fsize = GNUNET_FS_uri_chk_get_file_size (GNUNET_FS_uri_loc_get_uri (uri));
   else
     fsize = 0; /* not given */
   if (fsize > GNUNET_FS_MAX_INLINE_SIZE)
@@ -500,8 +509,8 @@ GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
   uint32_t big;
 
   size = 8 + sizeof (uint32_t);
-  size += GNUNET_meta_data_get_serialized_size (bld->meta, 
-						GNUNET_SERIALIZE_FULL);
+  size += GNUNET_CONTAINER_meta_data_get_serialized_size (bld->meta, 
+							  GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL);
   if (bld->count > 0)
     {
       sizes = GNUNET_malloc (bld->count * sizeof (size_t));
@@ -512,7 +521,7 @@ GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
 	{
 	  perm[i] = i;
 	  bes[i] = pos;
-	  sizes[i] = pos->size;
+	  sizes[i] = pos->len;
 	  pos = pos->next;
 	}
     }  
@@ -534,22 +543,22 @@ GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
   memcpy (data, GNUNET_DIRECTORY_MAGIC, 8);
   off = 8;
 
-  ret = GNUNET_CONTAINER_meta_data_serialize (meta,
-					      &(*data)[off +
-						       sizeof (uint32_t)],
-					      size - pos - sizeof (uint32_t),
-					      GNUNET_SERIALIZE_FULL);
+  ret = GNUNET_CONTAINER_meta_data_serialize (bld->meta,
+					      &data[off +
+						    sizeof (uint32_t)],
+					      size - off - sizeof (uint32_t),
+					      GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL);
   GNUNET_assert (ret != -1);
   big = htonl (ret);  
-  memcpy (&(*data)[8], &big, sizeof (uint32_t));
-  pos += sizeof (uint32_t) + ret;
-  for (j = 0; j < count; j++)
+  memcpy (&data[8], &big, sizeof (uint32_t));
+  off += sizeof (uint32_t) + ret;
+  for (j = 0; j < bld->count; j++)
     {
       i = perm[j];
-      psize = pos;
-      pos += sizes[i];
-      pos = do_align (psize, pos);
-      memcpy (&data[pos - sizes[i]], 
+      psize = off;
+      off += sizes[i];
+      off = do_align (psize, off);
+      memcpy (&data[off - sizes[i]], 
 	      &(bes[i])[1],
 	      sizes[i]);
       GNUNET_free (bes[i]);
@@ -557,7 +566,7 @@ GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
   GNUNET_free (sizes);
   GNUNET_free (perm);
   GNUNET_free (bes);
-  GNUNET_assert (pos == size);  
+  GNUNET_assert (off == size);  
   GNUNET_CONTAINER_meta_data_destroy (bld->meta);
   GNUNET_free (bld);
 }

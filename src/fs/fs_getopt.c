@@ -42,7 +42,7 @@
  * @return GNUNET_OK on success
  */
 int
-GNUNET_FS_getopt_configure_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext* ctx, 
+GNUNET_FS_getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext* ctx, 
 					 void *scls,
 					 const char *option,
 					 const char *value)
@@ -124,7 +124,7 @@ GNUNET_FS_getopt_configure_set_keywords (struct GNUNET_GETOPT_CommandLineProcess
  * @return GNUNET_OK on success
  */
 int
-GNUNET_FS_getopt_configure_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext* ctx, 
+GNUNET_FS_getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext* ctx, 
 					 void *scls,
 					 const char *option,
 					 const char *value)

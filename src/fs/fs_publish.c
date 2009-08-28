@@ -26,7 +26,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - directory creation
  * - KBlocks
  * - SBlocks
  * - indexing support
@@ -119,6 +118,7 @@ ds_put_cont (void *cls,
  *
  * @param sc overall upload data
  * @param p file that the block belongs to (needed for options!)
+ * @param query what the block should be indexed under
  * @param blk encoded block to publish
  * @param blk_size size of the block
  * @param blk_type type of the block
@@ -127,15 +127,14 @@ ds_put_cont (void *cls,
 static void
 publish_block (struct GNUNET_FS_PublishContext *sc,
 	       struct GNUNET_FS_FileInformation *p,
+	       const GNUNET_HashCode *query,
 	       const void* blk,
 	       uint16_t blk_size,
 	       uint32_t blk_type,
 	       GNUNET_SCHEDULER_Task cont)
 {
-  struct GNUNET_HashCode key;
+  struct PutContCtx * dpc_cls;
 
-  // FIXME: GNUNET_FS_get_key (blk_type, blk, blk_size, &key);
-  // (or add "key" as argument to reduce hashing?)
   dpc_cls = GNUNET_malloc(sizeof(struct PutContCtx));
   dpc_cls->cont = cont;
   dpc_cls->sc = sc;
@@ -146,8 +145,9 @@ publish_block (struct GNUNET_FS_PublishContext *sc,
   // a task ID!  
   GNUNET_DATASTORE_put (sc->dsh,
 			sc->rid,
-			&key,
+			query,
 			blk_size,
+			blk,
 			blk_type,
 			p->priority,
 			p->anonymity,
@@ -280,7 +280,8 @@ compute_chk_offset (unsigned int height,
 		    uint64_t offset)
 {
   uint64_t bds;
-  unsigned  int ret;
+  unsigned int ret;
+  unsigned int i;
 
   bds = GNUNET_FS_DBLOCK_SIZE; /* number of bytes each CHK at level "i"
 				  corresponds to */
@@ -305,7 +306,7 @@ static void
 publish_content (struct GNUNET_FS_PublishContext *sc,
 		 struct GNUNET_FS_FileInformation *p)
 {
-  struct ContentHashKey *chk;
+  struct ContentHashKey *mychk;
   const void *pt_block;
   uint16_t pt_size;
   char *emsg;
@@ -315,6 +316,10 @@ publish_content (struct GNUNET_FS_PublishContext *sc,
   struct GNUNET_CRYPTO_AesInitializationVector iv;
   uint64_t size;
   unsigned int off;
+  struct GNUNET_FS_DirectoryBuilder *db;
+  struct GNUNET_FS_FileInformation *dirpos;
+  void *raw_data;
+  char *dd;
 
   // FIXME: figure out how to share this code
   // with unindex!
@@ -323,14 +328,47 @@ publish_content (struct GNUNET_FS_PublishContext *sc,
     {
       if (p->is_directory)
 	{
-	  /* FIXME: create function to create directory
-	     and use that API here! */
-	  GNUNET_FS_directory_create (&p->data.dir.dir_size,
-				      &p->data.dir.dir_data,
-				      p->meta,
-				      &directory_entry_lister,
-				      p->data.dir.entries);
-	  size = p->data.dir.data_size;
+	  db = GNUNET_FS_directory_builder_create (p->meta);
+	  dirpos = p->data.dir.entries;
+	  while (NULL != dirpos)
+	    {
+	      if (dirpos->is_directory)
+		{
+		  raw_data = dirpos->data.dir.dir_data;
+		  dirpos->data.dir.dir_data = NULL;
+		}
+	      else
+		{
+		  raw_data = NULL;
+		  if ( (dirpos->data.file.file_size < GNUNET_FS_MAX_INLINE_SIZE) &&
+		       (dirpos->data.file.file_size > 0) )
+		    {
+		      raw_data = GNUNET_malloc (dirpos->data.file.file_size);
+		      emsg = NULL;
+		      if (dirpos->data.file.file_size !=
+			  dirpos->data.file.reader (dirpos->data.file.reader_cls,
+						    0,
+						    dirpos->data.file.file_size,
+						    raw_data,
+						    &emsg))
+			{
+			  GNUNET_free_non_null (emsg);
+			  GNUNET_free (raw_data);
+			  raw_data = NULL;
+			} 
+		    }
+		}
+	      GNUNET_FS_directory_builder_add (db,
+					       dirpos->chk_uri,
+					       dirpos->meta,
+					       raw_data);
+	      GNUNET_free_non_null (raw_data);
+	      dirpos = dirpos->next;
+	    }
+	  GNUNET_FS_directory_builder_finish (db,
+					      &p->data.dir.dir_size,
+					      &p->data.dir.dir_data);
+	  size = p->data.dir.dir_size;
 	}
       p->chk_tree_depth = compute_depth (size);
       p->chk_tree = GNUNET_malloc (p->chk_tree_depth * 
@@ -344,17 +382,24 @@ publish_content (struct GNUNET_FS_PublishContext *sc,
 	{
 	  pt_size = GNUNET_MIN(GNUNET_FS_DBLOCK_SIZE,
 			       p->data.dir.dir_size - p->publish_offset);
-	  pt_block = &p->data.dir.dir_data[p->publish_offset];
+	  dd = p->data.dir.dir_data;
+	  pt_block = &dd[p->publish_offset];
 	}
       else
 	{
 	  pt_size = GNUNET_MIN(GNUNET_FS_DBLOCK_SIZE,
 			       p->data.file.file_size - p->publish_offset);
-	  p->data.file.reader (p->data.file.reader_cls,
-			       p->publish_offset,
-			       pt_size,
-			       iob,
-			       &emsg);
+	  emsg = NULL;
+	  if (pt_size !=
+	      p->data.file.reader (p->data.file.reader_cls,
+				   p->publish_offset,
+				   pt_size,
+				   iob,
+				   &emsg))
+	    {
+	      // FIXME: abort with error "emsg"
+	      GNUNET_free (emsg);
+	    }
 	  pt_block = iob;
 	}
     }
@@ -367,9 +412,9 @@ publish_content (struct GNUNET_FS_PublishContext *sc,
     }
   off = compute_chk_offset (p->chk_tree_depth - p->current_depth,
 			    p->publish_offset);
-  chk = &p->chk_tree[(p->current_depth-1)*GNUNET_FS_CHK_PER_INODE+off];
-  GNUNET_CRYPTO_hash (pt_block, pt_size, &chk->key);
-  GNUNET_CRYPTO_hash_to_aes_key (&chk->key, &sk, &iv);
+  mychk = &p->chk_tree[(p->current_depth-1)*GNUNET_FS_CHK_PER_INODE+off];
+  GNUNET_CRYPTO_hash (pt_block, pt_size, &mychk->key);
+  GNUNET_CRYPTO_hash_to_aes_key (&mychk->key, &sk, &iv);
   GNUNET_CRYPTO_aes_encrypt (pt_block,
 			     pt_size,
 			     &sk,
@@ -379,13 +424,16 @@ publish_content (struct GNUNET_FS_PublishContext *sc,
   // between publish/unindex!  Parameterize & move this code!
   // FIXME: something around here would need to change
   // for indexing!
-  publish_block (sc, p, enc, pt_size, 
+  publish_block (sc, p, 
+		 &mychk->query,
+		 enc, 
+		 pt_size, 
 		 (p->current_depth == p->chk_tree_depth) 
 		 ? GNUNET_DATASTORE_BLOCKTYPE_DBLOCK 
 		 : GNUNET_DATASTORE_BLOCKTYPE_IBLOCK,
 		 &do_upload);
   // FIXME: should call progress function somewhere here!
-  GNUNET_CRYPTO_hash (enc, pt_size, &chk->query);
+  GNUNET_CRYPTO_hash (enc, pt_size, &mychk->query);
   if (p->current_depth == p->chk_tree_depth) 
     { 
       p->publish_offset += pt_size;
@@ -404,9 +452,9 @@ publish_content (struct GNUNET_FS_PublishContext *sc,
   if (0 == p->current_depth)
     {
       p->chk_uri = GNUNET_malloc (sizeof(struct GNUNET_FS_Uri));
-      p->chk_uri.type = chk;
-      p->chk_uri.data.chk.chk = p->chk_tree[0];
-      p->chk_uri.data.chk.file_length = size;
+      p->chk_uri->type = chk;
+      p->chk_uri->data.chk.chk = p->chk_tree[0];
+      p->chk_uri->data.chk.file_length = size;
       GNUNET_free (p->chk_tree);
       p->chk_tree = NULL;
     }
@@ -445,7 +493,8 @@ do_upload (void *cls,
       publish_kblocks (sc, p);
       return;
     }
-  if (p->do_index)
+  if ( (!p->is_directory) &&
+       (p->data.file.do_index) )
     {
       // FIXME: need to pre-compute hash over
       // the entire file and ask FS to prepare
@@ -542,7 +591,7 @@ GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *sc)
   GNUNET_FS_namespace_delete (sc->namespace, GNUNET_NO);
   GNUNET_free_non_null (sc->nid);  
   GNUNET_free_non_null (sc->nuid);
-  GNUNET_DATASTORE_disconnect (sc->dsh);
+  GNUNET_DATASTORE_disconnect (sc->dsh, GNUNET_NO);
   GNUNET_free (sc);
 }
 

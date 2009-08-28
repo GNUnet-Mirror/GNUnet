@@ -1,0 +1,166 @@
+.TH GNUNET-PUBLISH "1" "27 Aug 2009" "GNUnet"
+.SH NAME
+gnunet\-publish \- a command line interface for publishing new content into GNUnet
+.SH SYNOPSIS
+.B gnunet\-publish
+[\fIOPTIONS\fR] FILENAME
+.SH DESCRIPTION
+.PP
+In order to share files with other GNUnet users, the files must first be made available to GNUnet.  GNUnet does not automatically share all files from a certain directory.  In fact, even files that are downloaded are not automatically shared.
+.PP
+In order to start sharing files, the files must be added either using gnunet\-publish or a graphical interface such as gnunet\-gtk.  The command line tool gnunet\-publish is more useful if many files are supposed to be added.  gnunet\-publish can automatically publish batches of files, recursively publish directories, create directories that can be browsed within GNUnet and publish file lists in a namespace.  When run on a directory, gnunet\-publish will always recursively publish all of the files in the directory.
+.PP
+gnunet\-publish can automatically extract keywords from the files that are shared.  Users that want to download files from GNUnet use keywords to search for the appropriate content.  You can disable keyword extraction with the \-D option.  You can manually add keywords using the \-k option. The keywords are case\-sensitive. (However, keyword normalization can also be used.)
+.PP
+You can use automatic meta\-data extraction (based on libextractor) or the command\-line option \-m to specify meta-data.  For the \-m option you need to use the form keyword\-type:value.  For example, use "\-m os:Linux" to specify that the operating system is Linux.  Common meta\-data types are "author", "title" , "mimetype", "filename", "language", "subject" and "keywords".  A full list can be obtained from the extract tool using the option \-\-list.  The meta\-data is used to help users in searching for files on the network.  
+.PP
+In addition to searching for files by keyword, GNUnet allows organizing files into directories.  With directories, the user only needs to find the directory in order to be able to download any of the files listed in the directory.  Directories can contain pointers to other directories.
+.PP
+With gnunet\-publish, it is easy to create new directories simultaneously when adding the files.  Simply pass the name of a directory instead of a file.
+.PP
+Since keywords can be spammed (any user can add any content under any keyword), GNUnet supports namespaces.  A namespace is a subset of the searchspace into which only the holder of a certain pseudonym can add content.  Any GNUnet user can create any number of pseudonyms using \fBgnunet\-pseudonym\fR. Pseudonyms are stored in the user's GNUnet directory. While pseudonyms are locally identified with an arbitrary string that the user selects when the pseudonym is created, the namespace is globally known only under the hash of the public key of the pseudonym. Since only the owner of the pseudonym can add content to the namespace, it is impossible for other users to pollute the namespace. gnunet\-publish automatically publishs the top\-directory (or the only file if only one file is specified) into the namespace if a pseudonym is specified.
+.PP
+It is possible to update content in GNUnet if that content was placed and obtained from a particular namespace.  Updates are only possible for content in namespaces since this is the only way to assure that a malicious party can not supply counterfeited updates.  Note that an update with GNUnet does not make the old content unavailable, GNUnet merely allows the publisher to point users to more recent versions. You can use the \-N option to specify the future identifier of an update.  When using this option, a GNUnet client that finds the current (\-t) identifier will automatically begin a search for the update (\-N) identifier.  If you later publish an update under the (\-N) identifier, both results will be given to the user. 
+.PP
+You can use automatic meta\-data extraction (based on libextractor) or the command\-line option \-m to specify meta-data.  For the \-m option you need to use the form keyword\-type:value.  For example, use "\-m os:Linux" to specify that the operating system is Linux.  Common meta\-data types are "author", "title" , "mimetype", "filename", "language", "subject" and "keywords".  A full list can be obtained from the extract tool using the option \-\-list.  The meta\-data is used to help users in searching for files on the network.  The keywords are case\-sensitive.
+.PP
+GNUnet supports two styles of publishing files on the network. Publishing a file means that a copy of the file is made in the local (!) database of the node.  Indexing a file means that an index is added to the local (!)  database with symbolic links to the file itself.  The links will use the SHA-512 hash of the entire file as the filename.  Indexing is generally significantly more efficient and the default choice.  However, indexing only works if the indexed file can be read (using the same absolute path) by gnunetd.  If this is not the case, indexing will fail (and gnunet\-publish will automatically revert to publishing instead).  Regardless of which method is used to publish the file, the file will be slowly (depending on how often it is requested and on how much bandwidth is available) dispersed into the network.  If you publish or index a file and then leave the network, it will almost always NOT be available anymore.
+
+\fB\-c \fIFILENAME\fR, \fB\-\-config=FILENAME\fR
+Use alternate config file (if this option is not specified, the default is ~/.gnunet/gnunet.conf).
+
+.TP
+\fB\-D\fR, \fB\-\-disable\-extractor\fR 
+Disable use of GNU libextractor for finding additional keywords and metadata.
+
+.TP
+\fB\-e\fR, \fB\-\-extract\fR
+Print the list of keywords that will be used for each file given the current options.  Do not perform any indexing or publishing.
+
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print a brief help page with all the options.
+
+.TP
+\fB\-H \fIHOSTNAME\fR, \fB\-\-host=\fIHOSTNAME\fR
+on which host is gnunetd running (default: localhost).  You can also specify a port using the syntax HOSTNAME:PORT.  The default port is 2087. 
+.TP
+\fB\-k \fIKEYWORD\fR, \fB\-\-key=KEYWORD\fR
+additional key to index the content with (to add multiple keys, specify multiple times). Each additional key is case\-sensitive. Can be specified multiple times.  The keyword is only applied to the top\-level file or directory.
+
+.TP
+\fB\-L \fILOGLEVEL\fR, \fB\-\-loglevel=\fILOGLEVEL\fR
+Change the loglevel.  Possible values for LOGLEVEL are NOTHING, FATAL,
+ERROR, WARNING, INFO, STATUS and DEBUG.  Note that options in the 
+configuration file take precedence over this option (the argument 
+will be ignored in that case).
+
+.TP
+\fB\-m \fITYPE:VALUE\fR, \fB\-\-meta=\fITYPE:VALUE\fR
+For the main file (or directory), set the metadata of the given TYPE to the given VALUE.  Note that this will not add the respective VALUE to the set of keywords under which the file can be found.
+
+.TP
+\fB\-n\fR, \fB\-\-noindex\fR
+Executive summary: You probably don't need it.
+
+Do not index, full publishion.  Note that directories, RBlocks, SBlocks and IBlocks are always published (even without this option).  With this option, every block of the actual files is stored in encrypted form in the block database of the local peer.  While this adds security if the local node is compromised (the adversary snags your machine), it is significantly less efficient compared to on\-demand encryption and is definitely not recommended for large files.
+
+.TP
+\fB\-N \fIID\fR, \fB\-\-next=\fIID\fR
+Specifies the next ID of a future version of the SBlock.  This option is only valid together with the \-P option.  This option can be used to specify what the identifier of an updated version will look like.  Note that specifying \-i and \-N without \-t is not allowed.
+
+.TP
+\fB\-p \fIPRIORITY\fR, \fB\-\-prio=\fIPRIORITY\fR
+Executive summary: You probably don't need it.
+
+Set the priority of the published content (default: 365).  If the local database is full, GNUnet will discard the content with the lowest ranking.  Note that ranks change over time depending on popularity.  The default should be high enough to preserve the locally published content in favor of content that migrates from other peers.
+
+.TP
+\fB\-P \fINAME\fR, \fB\-\-pseudonym=\fINAME\fR
+For the top\-level directory or file, create an SBlock that places the file into the namespace specified by the pseudonym NAME.
+
+.TP
+\fB\-s\fR, \fB\-\-simulate-only\fR
+When this option is used, gnunet\-publish will not actually publish the file but just simulate what would be done.  This can be used to compute the GNUnet URI for a file without actually sharing it.
+
+.TP
+\fB\-t \fIID\fR, \fB\-\-this=\fIID\fR
+Specifies the ID of the SBlock.  This option is only valid together with the\ \-s option.
+
+.TP
+\fB\-u \fIURI\fR, \fB\-\-uri=\fIURI\fR
+This option can be used to specify the URI of a file instead of a filename (this is the only case where the otherwise mandatory filename argument must be omitted).  Instead of publishing a file or directory and using the corresponding URI, gnunet\-publish will use this URI and perform the selected namespace or keyword operations.  This can be used to add additional keywords to a file that has already been shared or to add files to a namespace for which the URI is known but the content is not locally available.
+
+.TP
+\fB\-v\fR, \fB\-\-version\fR
+Print the version number.
+
+.TP
+\fB\-V\fR, \fB\-\-verbose\fR
+Be verbose.  Using this option causes gnunet\-publish to print progress information and at the end the file identification that can be used to download the file from GNUnet.
+
+
+.SH EXAMPLES
+.PP
+
+\fBBasic examples\fR
+
+Index a file COPYING:
+
+ # gnunet\-publish COPYING
+
+Publish a file COPYING:
+
+ # gnunet\-publish \-n COPYING
+
+Index a file COPYING with the keywords \fBgpl\fR and \fBtest\fR:
+
+ # gnunet\-publish \-k gpl \-k test COPYING
+
+Index a file COPYING with description "GNU License", mime-type "text/plain" and keywords \fBgpl\fR and \fBtest\fR:
+
+ # gnunet\-publish \-m "description:GNU License" \-k gpl \-k test -m "mimetype:text/plain" COPYING
+
+\fBUsing directories\fR
+
+Index the files COPYING and AUTHORS with keyword \fBtest\fR and build a directory containing the two files.  Make the directory itself available under keyword \fBgnu\fR and disable keyword extraction using libextractor:
+
+ # mkdir gnu
+ # mv COPYING AUTHORS gnu/
+ # gnunet\-publish \-K test \-k gnu \-D gnu/
+
+Neatly publish an image gallery in \fBkittendir/\fR and its subdirs with keyword \fBkittens\fR for the directory but no keywords for the individual files or subdirs (\-n).  Force description for all files:
+
+ # gnunet\-publish \-n \-m "description:Kitten collection" \-k kittens kittendir/
+
+\fBSecure publishing with namespaces\fR
+
+Publish file COPYING with pseudonym RIAA-2 (\-P) and with identifier \fBgpl\fR (\-t) and no updates:
+
+ # gnunet\-publish \-P RIAA-2 \-t gpl COPYING
+
+Recursively index /home/ogg and build a matching directory structure. Publish the top\-level directory into the namespace under the pseudonym RIAA-2 (\-P) under identifier 'MUSIC' (\-t) and promise to provide an update with identifier 'VIDEOS' (\-N):
+
+ # gnunet\-publish \-P RIAA-2 \-t MUSIC \-N VIDEOS /home/ogg
+
+Recursively publish (\-n) /var/lib/mysql and build a matching directory structure, but disable the use of libextractor to extract keywords (\-n).  Print the file identifiers (\-V) that can be used to retrieve the files.  This will store a copy of the MySQL database in GNUnet but without adding any keywords to search for it.  Thus only people that have been told the secret file identifiers printed with the \-V option can retrieve the (secret?) files:
+
+ # gnunet\-publish \-nV /var/lib/mysql
+
+Create a namespace entry 'root' in namespace MPAA-1 and announce that the next update will be called 'next':
+
+ # gnunet\-publish \-P MPAA-1 -t root \-N next noise.mp3
+
+Update the previous entry, do not allow any future updates:
+
+ # gnunet\-publish \-P MPAA-1 \-t next noise_updated.mp3
+
+
+.SH FILES
+.TP
+~/.gnunet/gnunet.conf
+GNUnet configuration file
+.SH "REPORTING BUGS"
+Report bugs by using mantis <https://gnunet.org/mantis/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+.SH "SEE ALSO"
+\fBgnunet\-auto\-share\fP(1), \fBgnunet\-gtk\fP(1), \fBgnunet\-pseudonym\fP(1), \fBgnunet\-search\fP(1), \fBgnunet\-download\fP(1), \fBgnunet.conf\fP(5), \fBgnunetd\fP(1), \fBextract\fP(1)

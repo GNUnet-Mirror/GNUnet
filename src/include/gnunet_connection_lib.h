@@ -23,8 +23,8 @@
  * @brief basic, low-level TCP networking interface
  * @author Christian Grothoff
  */
-#ifndef GNUNET_NETWORK_LIB_H
-#define GNUNET_NETWORK_LIB_H
+#ifndef GNUNET_CONNECTION_LIB_H
+#define GNUNET_CONNECTION_LIB_H
 
 #ifdef __cplusplus
 extern "C"
@@ -325,6 +325,6 @@ GNUNET_NETWORK_connection_notify_transmit_ready_cancel (struct
 #endif
 
 
-/* ifndef GNUNET_NETWORK_LIB_H */
+/* ifndef GNUNET_CONNECTION_LIB_H */
 #endif
 /* end of gnunet_connection_lib.h */

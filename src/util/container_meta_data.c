@@ -689,6 +689,10 @@ FAILURE:
 
 /**
  * Test if two MDs are equal.
+ *
+ * @param md1 first value to check
+ * @param md2 other value to check
+ * @return GNUNET_YES if they are equal
  */
 int
 GNUNET_CONTAINER_meta_data_test_equal (const struct GNUNET_CONTAINER_MetaData

@@ -26,6 +26,7 @@ libgnunetfs_la_SOURCES = \
   fs_uri.c 
 
 libgnunetfs_la_LIBADD = \
+  $(top_builddir)/src/datastore/libgnunetdatastore.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   -lextractor \
   $(GN_LIBINTL) $(XLIB)
@@ -35,11 +36,11 @@ libgnunetfs_la_LDFLAGS = \
   -version-info 0:0:0
 
 
-#bin_PROGRAMS =  
+bin_PROGRAMS = \
+  gnunet-publish 
 # gnunet-directory 
 # gnunet-download 
 # gnunet-pseudonym 
-# gnunet-publish 
 # gnunet-search
 # gnunet-unindex 
 
@@ -49,6 +50,14 @@ libgnunetfs_la_LDFLAGS = \
 #  $(top_builddir)/src/fs/libgnunetfs.la 
 #  $(top_builddir)/src/util/libgnunetutil.la 
 #  $(GN_LIBINTL)
+
+
+gnunet_publish_SOURCES =  \
+ gnunet-publish.c         
+gnunet_publish_LDADD =  \
+ $(top_builddir)/src/fs/libgnunetfs.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(GN_LIBINTL)
 
 
 check_PROGRAMS = \
