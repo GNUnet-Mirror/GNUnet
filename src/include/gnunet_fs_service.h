@@ -726,7 +726,7 @@ struct GNUNET_FS_ProgressInfo
        * (will be a value in the past for completed
        * uploads).
        */ 
-      struct GNUNET_TIME_Absolute eta;
+      struct GNUNET_TIME_Relative eta;
 
       /**
        * How long has this upload been actively running
@@ -782,8 +782,26 @@ struct GNUNET_FS_ProgressInfo
 	   * Error message, NULL if no error was encountered so far.
 	   */
 	  const char *message;
+	  
+	  /**
+	   * URI of the file (if the download had been completed)
+	   */
+	  const struct GNUNET_FS_Uri *chk_uri;
 
 	} resume;
+
+	/**
+	 * These values are only valid for
+	 * GNUNET_FS_STATUS_PUBLISH_COMPLETED events.
+	 */
+	struct {
+	  
+	  /**
+	   * URI of the file.
+	   */
+	  const struct GNUNET_FS_Uri *chk_uri;
+
+	} completed;
 
 	/**
 	 * These values are only valid for
@@ -844,7 +862,7 @@ struct GNUNET_FS_ProgressInfo
        * (will be a value in the past for completed
        * uploads).
        */ 
-      struct GNUNET_TIME_Absolute eta;
+      struct GNUNET_TIME_Relative eta;
 
       /**
        * How long has this download been active?
@@ -1256,7 +1274,7 @@ struct GNUNET_FS_ProgressInfo
        * (will be a value in the past for completed
        * unindexing opeations).
        */ 
-      struct GNUNET_TIME_Absolute eta;
+      struct GNUNET_TIME_Relative eta;
 
       /**
        * How long has this upload been actively running

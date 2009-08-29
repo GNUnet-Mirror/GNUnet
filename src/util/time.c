@@ -261,7 +261,7 @@ struct GNUNET_TIME_Relative GNUNET_TIME_calculate_eta (struct GNUNET_TIME_Absolu
   if (finished >= total)
     return GNUNET_TIME_UNIT_ZERO;
   if (finished == 0)
-    return GNUNET_TIME_UNIT_FOREVER;
+    return GNUNET_TIME_UNIT_FOREVER_REL;
   dur = GNUNET_TIME_absolute_get_duration (start);
   exp = ((double)dur.value) * ((double) total) / ((double)finished);
   ret.value = ((uint64_t) exp) - dur.value;

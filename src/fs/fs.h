@@ -220,6 +220,11 @@ struct GNUNET_FS_FileInformation
   struct GNUNET_TIME_Absolute expirationTime;
 
   /**
+   * At what time did we start this upload?
+   */
+  struct GNUNET_TIME_Absolute start_time;
+
+  /**
    * Under what filename is this struct serialized
    * (for operational persistence).
    */
@@ -237,6 +242,12 @@ struct GNUNET_FS_FileInformation
    * finally freed once the upload is complete.
    */
   struct ContentHashKey *chk_tree;
+
+  /**
+   * Error message (non-NULL if this operation
+   * failed).
+   */
+  char *emsg;
   
   /**
    * Number of entries in "chk_tree".

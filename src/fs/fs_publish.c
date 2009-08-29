@@ -76,6 +76,38 @@ struct PutContCtx
   GNUNET_SCHEDULER_Task cont;
 };
 
+
+/**
+ * Fill in all of the generic fields for 
+ * a publish event.
+ *
+ * @param pc structure to fill in
+ * @param sc overall publishing context
+ * @param p file information for the file being published
+ */
+static void
+make_publish_status (struct GNUNET_FS_ProgressInfo *pi,
+		     struct GNUNET_FS_PublishContext *sc,
+		     const struct GNUNET_FS_FileInformation *p)
+{
+  pi->value.publish.sc = sc;
+  pi->value.publish.fi = p;
+  pi->value.publish.cctx
+    = p->client_info;
+  pi->value.publish.pctx
+    = (NULL == p->dir) ? NULL : p->dir->client_info;
+  pi->value.publish.size
+    = (p->is_directory) ? p->data.dir.dir_size : p->data.file.file_size;
+  pi->value.publish.eta 
+    = GNUNET_TIME_calculate_eta (p->start_time,
+				 p->publish_offset,
+				 pi->value.publish.size);
+  pi->value.publish.duration = GNUNET_TIME_absolute_get_duration (p->start_time);
+  pi->value.publish.completed = p->publish_offset;
+  pi->value.publish.anonymity = p->anonymity;
+}
+
+
 /**
  * Function called by the datastore API with
  * the result from the PUT request.
@@ -90,12 +122,20 @@ ds_put_cont (void *cls,
  	     const char *msg)
 {
   struct PutContCtx *pcc = cls;
+  struct GNUNET_FS_ProgressInfo pi;
 
   if (GNUNET_OK != success)
     {
-      // FIXME: call progress CB with error
-      // FIXME: update pcc->p to indicate abort
+      GNUNET_asprintf (&pcc->p->emsg, 
+		       _("Upload failed: %s"),
+		       msg);
       GNUNET_FS_file_information_sync (pcc->p);
+      pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
+      make_publish_status (&pi, pcc->sc, pcc->p);
+      pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
+      pi.value.publish.specifics.error.message = pcc->p->emsg;
+      pcc->sc->h->upcb (pcc->sc->h->upcb_cls,
+			&pi);
       return;
     }
   GNUNET_FS_file_information_sync (pcc->p);
@@ -159,6 +199,29 @@ publish_block (struct GNUNET_FS_PublishContext *sc,
 
 
 /**
+ * Generate the callback that signals clients
+ * that a file (or directory) has been completely
+ * published.
+ *
+ * @param p the completed upload
+ * @param sc context of the publication
+ */
+static void 
+signal_publish_completion (struct GNUNET_FS_FileInformation *p,
+			   struct GNUNET_FS_PublishContext *sc)
+{
+  struct GNUNET_FS_ProgressInfo pi;
+  
+  pi.status = GNUNET_FS_STATUS_PUBLISH_COMPLETED;
+  make_publish_status (&pi, sc, p);
+  pi.value.publish.eta = GNUNET_TIME_UNIT_ZERO;
+  pi.value.publish.specifics.completed.chk_uri = p->chk_uri;
+  sc->h->upcb (sc->h->upcb_cls,
+	       &pi);
+}
+
+
+/**
  * We are almost done publishing the structure,
  * add SBlocks (if needed).
  *
@@ -175,6 +238,8 @@ publish_sblock (struct GNUNET_FS_PublishContext *sc)
   // FIXME: continuation should
   // be releasing the datastore reserve
   // (once implemented)
+  // FIXME: finally, signal overall completion
+  signal_publish_completion (p, sc);
 }
 
 
@@ -194,6 +259,12 @@ publish_kblocks (struct GNUNET_FS_PublishContext *sc,
 {
   // FIXME: build all kblocks
   // call publish_kblock on each
+
+
+  GNUNET_FS_file_information_sync (p);
+  if (NULL != p->dir)
+    signal_publish_completion (p, sc);
+
   // last continuation should then call the main continuation again
 }
 
@@ -306,6 +377,7 @@ static void
 publish_content (struct GNUNET_FS_PublishContext *sc,
 		 struct GNUNET_FS_FileInformation *p)
 {
+  struct GNUNET_FS_ProgressInfo pi;
   struct ContentHashKey *mychk;
   const void *pt_block;
   uint16_t pt_size;
@@ -397,8 +469,27 @@ publish_content (struct GNUNET_FS_PublishContext *sc,
 				   iob,
 				   &emsg))
 	    {
-	      // FIXME: abort with error "emsg"
+	      GNUNET_asprintf (&p->emsg, 
+			       _("Upload failed: %s"),
+			       emsg);
 	      GNUNET_free (emsg);
+	      GNUNET_FS_file_information_sync (p);
+	      pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
+	      make_publish_status (&pi, sc, p);
+	      pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
+	      pi.value.publish.specifics.error.message = p->emsg;
+	      sc->h->upcb (sc->h->upcb_cls,
+			   &pi);
+	      /* continue with main (to propagate error up) */
+	      sc->upload_task 
+		= GNUNET_SCHEDULER_add_delayed (sc->h->sched,
+						GNUNET_NO,
+						GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+						GNUNET_SCHEDULER_NO_TASK,
+						GNUNET_TIME_UNIT_ZERO,
+						&do_upload,
+						sc);
+	      return;
 	    }
 	  pt_block = iob;
 	}
@@ -432,7 +523,16 @@ publish_content (struct GNUNET_FS_PublishContext *sc,
 		 ? GNUNET_DATASTORE_BLOCKTYPE_DBLOCK 
 		 : GNUNET_DATASTORE_BLOCKTYPE_IBLOCK,
 		 &do_upload);
-  // FIXME: should call progress function somewhere here!
+  if (p->current_depth == p->chk_tree_depth)
+    {
+      pi.status = GNUNET_FS_STATUS_PUBLISH_PROGRESS;
+      make_publish_status (&pi, sc, p);
+      pi.value.publish.specifics.progress.data = pt_block;
+      pi.value.publish.specifics.progress.offset = p->publish_offset;
+      pi.value.publish.specifics.progress.data_len = pt_size;
+      sc->h->upcb (sc->h->upcb_cls,
+			&pi);
+    }
   GNUNET_CRYPTO_hash (enc, pt_size, &mychk->query);
   if (p->current_depth == p->chk_tree_depth) 
     { 
@@ -471,7 +571,9 @@ do_upload (void *cls,
 	   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_FS_PublishContext *sc = cls;
+  struct GNUNET_FS_ProgressInfo pi;
   struct GNUNET_FS_FileInformation *p;
+  char *fn;
 
   sc->upload_task = GNUNET_SCHEDULER_NO_TASK;  
   p = sc->fi_pos;
@@ -480,6 +582,29 @@ do_upload (void *cls,
       /* upload of entire hierarchy complete,
 	 publish namespace entries */
       publish_sblock (sc);
+      return;
+    }
+  if (NULL != p->emsg)
+    {
+      /* error with current file, abort all
+	 related files as well! */
+      while (NULL != p->dir)
+	{
+	  fn = GNUNET_CONTAINER_meta_data_get_by_type (p->meta,
+						       EXTRACTOR_FILENAME);
+	  p = p->dir;
+	  GNUNET_asprintf (&p->emsg, 
+			   _("Recursive upload failed at `%s'"),
+			   fn);
+	  GNUNET_free (fn);
+	  GNUNET_FS_file_information_sync (p);
+	  pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
+	  make_publish_status (&pi, sc, p);
+	  pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
+	  pi.value.publish.specifics.error.message = p->emsg;
+	  sc->h->upcb (sc->h->upcb_cls,
+		       &pi);
+	}
       return;
     }
   if (NULL != p->chk_uri)
@@ -550,6 +675,9 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
 	ret->nuid = GNUNET_strdup (nuid);
     }
   // FIXME: make upload persistent!
+
+  /* signal start */
+  
 
   /* find first leaf, DFS */
   p = ret->fi;
