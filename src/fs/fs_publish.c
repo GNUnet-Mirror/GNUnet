@@ -29,11 +29,9 @@
  * - KBlocks
  * - SBlocks
  * - indexing support
- * - calling of progress function
- * - handling of IO errors (emsg)
- * - code-sharing with unindex
- * - datastore reservation support
- * - persistence support
+ * - code-sharing with unindex (can wait)
+ * - persistence support (can wait)
+ * - datastore reservation support (optimization)
  */
 
 #include "platform.h"
@@ -134,8 +132,9 @@ ds_put_cont (void *cls,
       make_publish_status (&pi, pcc->sc, pcc->p);
       pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
       pi.value.publish.specifics.error.message = pcc->p->emsg;
-      pcc->sc->h->upcb (pcc->sc->h->upcb_cls,
-			&pi);
+      pcc->p->client_info
+	= pcc->sc->h->upcb (pcc->sc->h->upcb_cls,
+			    &pi);
       return;
     }
   GNUNET_FS_file_information_sync (pcc->p);
@@ -216,8 +215,9 @@ signal_publish_completion (struct GNUNET_FS_FileInformation *p,
   make_publish_status (&pi, sc, p);
   pi.value.publish.eta = GNUNET_TIME_UNIT_ZERO;
   pi.value.publish.specifics.completed.chk_uri = p->chk_uri;
-  sc->h->upcb (sc->h->upcb_cls,
-	       &pi);
+  p->client_info
+    = sc->h->upcb (sc->h->upcb_cls,
+		  &pi);
 }
 
 
@@ -478,8 +478,9 @@ publish_content (struct GNUNET_FS_PublishContext *sc,
 	      make_publish_status (&pi, sc, p);
 	      pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
 	      pi.value.publish.specifics.error.message = p->emsg;
-	      sc->h->upcb (sc->h->upcb_cls,
-			   &pi);
+	      p->client_info
+		= sc->h->upcb (sc->h->upcb_cls,
+			       &pi);
 	      /* continue with main (to propagate error up) */
 	      sc->upload_task 
 		= GNUNET_SCHEDULER_add_delayed (sc->h->sched,
@@ -530,8 +531,9 @@ publish_content (struct GNUNET_FS_PublishContext *sc,
       pi.value.publish.specifics.progress.data = pt_block;
       pi.value.publish.specifics.progress.offset = p->publish_offset;
       pi.value.publish.specifics.progress.data_len = pt_size;
-      sc->h->upcb (sc->h->upcb_cls,
-			&pi);
+      p->client_info 
+	= sc->h->upcb (sc->h->upcb_cls,
+		       &pi);
     }
   GNUNET_CRYPTO_hash (enc, pt_size, &mychk->query);
   if (p->current_depth == p->chk_tree_depth) 
@@ -602,8 +604,9 @@ do_upload (void *cls,
 	  make_publish_status (&pi, sc, p);
 	  pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
 	  pi.value.publish.specifics.error.message = p->emsg;
-	  sc->h->upcb (sc->h->upcb_cls,
-		       &pi);
+	  p->client_info
+	    = sc->h->upcb (sc->h->upcb_cls,
+			   &pi);
 	}
       return;
     }
@@ -627,6 +630,43 @@ do_upload (void *cls,
       return;
     }
   publish_content (sc, p);
+}
+
+
+/**
+ * Signal the FS's progress function that we are starting
+ * an upload.
+ *
+ * @param cls closure (of type "struct GNUNET_FS_PublishContext*")
+ * @param fi the entry in the publish-structure
+ * @param length length of the file or directory
+ * @param meta metadata for the file or directory (can be modified)
+ * @param uri pointer to the keywords that will be used for this entry (can be modified)
+ * @param anonymity pointer to selected anonymity level (can be modified)
+ * @param priority pointer to selected priority (can be modified)
+ * @param expirationTime pointer to selected expiration time (can be modified)
+ * @param client_info pointer to client context set upon creation (can be modified)
+ * @return GNUNET_OK to continue (always)
+ */
+static int
+fip_signal_start(void *cls,
+		 struct GNUNET_FS_FileInformation *fi,
+		 uint64_t length,
+		 struct GNUNET_CONTAINER_MetaData *meta,
+		 struct GNUNET_FS_Uri **uri,
+		 unsigned int *anonymity,
+		 unsigned int *priority,
+		 struct GNUNET_TIME_Absolute *expirationTime,
+		 void **client_info)
+{
+  struct GNUNET_FS_PublishContext *sc = cls;
+  struct GNUNET_FS_ProgressInfo pi;
+
+  pi.status = GNUNET_FS_STATUS_PUBLISH_START;
+  make_publish_status (&pi, sc, fi);
+  *client_info = sc->h->upcb (sc->h->upcb_cls,
+			      &pi);
+  return GNUNET_OK;
 }
 
 
@@ -677,8 +717,9 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
   // FIXME: make upload persistent!
 
   /* signal start */
-  
-
+  GNUNET_FS_file_information_inspect (ret->fi,
+				      &fip_signal_start,
+				      ret);
   /* find first leaf, DFS */
   p = ret->fi;
   while ( (p->is_directory) &&
@@ -702,6 +743,45 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
 
 
 /**
+ * Signal the FS's progress function that we are stopping
+ * an upload.
+ *
+ * @param cls closure (of type "struct GNUNET_FS_PublishContext*")
+ * @param fi the entry in the publish-structure
+ * @param length length of the file or directory
+ * @param meta metadata for the file or directory (can be modified)
+ * @param uri pointer to the keywords that will be used for this entry (can be modified)
+ * @param anonymity pointer to selected anonymity level (can be modified)
+ * @param priority pointer to selected priority (can be modified)
+ * @param expirationTime pointer to selected expiration time (can be modified)
+ * @param client_info pointer to client context set upon creation (can be modified)
+ * @return GNUNET_OK to continue (always)
+ */
+static int
+fip_signal_stop(void *cls,
+		struct GNUNET_FS_FileInformation *fi,
+		uint64_t length,
+		struct GNUNET_CONTAINER_MetaData *meta,
+		struct GNUNET_FS_Uri **uri,
+		unsigned int *anonymity,
+		unsigned int *priority,
+		struct GNUNET_TIME_Absolute *expirationTime,
+		void **client_info)
+{
+  struct GNUNET_FS_PublishContext*sc = cls;
+  struct GNUNET_FS_ProgressInfo pi;
+
+  pi.status = GNUNET_FS_STATUS_PUBLISH_STOPPED;
+  make_publish_status (&pi, sc, fi);
+  GNUNET_break (NULL ==
+		sc->h->upcb (sc->h->upcb_cls,
+			     &pi));
+  *client_info = NULL;
+  return GNUNET_OK;
+}
+
+
+/**
  * Stop an upload.  Will abort incomplete uploads (but 
  * not remove blocks that have already been publishd) or
  * simply clean up the state for completed uploads.
@@ -715,6 +795,9 @@ GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *sc)
     GNUNET_SCHEDULER_cancel (sc->h->sched, sc->upload_task);
   // FIXME: remove from persistence DB (?) --- think more about
   //        shutdown / persistent-resume APIs!!!
+  GNUNET_FS_file_information_inspect (sc->fi,
+				      &fip_signal_stop,
+				      sc);
   GNUNET_FS_file_information_destroy (sc->fi, NULL, NULL);
   GNUNET_FS_namespace_delete (sc->namespace, GNUNET_NO);
   GNUNET_free_non_null (sc->nid);  
