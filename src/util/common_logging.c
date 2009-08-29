@@ -273,12 +273,16 @@ flush_bulk (const char *datestr)
  * Ignore the next n calls to the log function.
  *
  * @param n number of log calls to ignore
+ * @param check_reset GNUNET_YES to assert that the log skip counter is currently zero
  */
 void
-GNUNET_log_skip (unsigned int n)
+GNUNET_log_skip (unsigned int n, int check_reset)
 {
   if (n == 0)
       skip_log = 0;
+      if (check_reset)
+        GNUNET_assert (ok);
+    }
   else
     skip_log += n;
 }

@@ -171,10 +171,11 @@ GNUNET_log_from (enum GNUNET_ErrorType kind,
 /**
  * Ignore the next n calls to the log function.
  *
- * @param n number of log calls to ignore, use 0 to
- *  assert that the log skip counter is currently zero.
+ * @param n number of log calls to ignore
+ * @param check_reset GNUNET_YES to assert that the log skip counter is currently zero
  */
-void GNUNET_log_skip (unsigned int n);
+void
+GNUNET_log_skip (unsigned int n, int check_reset);
 
 
 /**

@@ -102,9 +102,9 @@ testOpenClose ()
   GNUNET_break (0 == UNLINK (".testfile"));
 
   /* test that avail goes down as we fill the disk... */
-  GNUNET_log_skip (1);
+  GNUNET_log_skip (1, GNUNET_NO);
   avail = GNUNET_DISK_get_blocks_available (".testfile");
-  GNUNET_log_skip (0);
+  GNUNET_log_skip (0, GNUNET_NO);
   fh = GNUNET_DISK_file_open (".testfile", GNUNET_DISK_OPEN_READWRITE
       | GNUNET_DISK_OPEN_CREATE, GNUNET_DISK_PERM_USER_WRITE
       | GNUNET_DISK_PERM_USER_READ);
@@ -223,7 +223,7 @@ testCanonicalize ()
 static int
 testChangeOwner ()
 {
-  GNUNET_log_skip (1);
+  GNUNET_log_skip (1, GNUNET_NO);
   if (GNUNET_OK == GNUNET_DISK_file_change_owner ("/dev/null", "unknownuser"))
     return 1;
   return 0;

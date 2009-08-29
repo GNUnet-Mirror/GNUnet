@@ -31,9 +31,9 @@ check ()
 {
   void *ret;
 
-  GNUNET_log_skip (1);
+  GNUNET_log_skip (1, GNUNET_NO);
   ret = GNUNET_PLUGIN_load ("libgnunet_plugin_missing", NULL);
-  GNUNET_log_skip (0);
+  GNUNET_log_skip (0, GNUNET_NO);
   if (ret != NULL)
     return 1;
   ret = GNUNET_PLUGIN_load ("libgnunet_plugin_test", "in");

@@ -196,7 +196,9 @@ main (int argc, char *argv[])
 
   GNUNET_log_setup ("test_getopt", "WARNING", NULL);
   /* suppress output from -h, -v options */
+#ifndef MINGW
   GNUNET_break (0 == CLOSE (1));
+#endif
   if (0 != testMinimal ())
     errCnt++;
   if (0 != testVerbose ())

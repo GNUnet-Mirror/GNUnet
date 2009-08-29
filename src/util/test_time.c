@@ -46,10 +46,10 @@ check ()
 
   /* test overflow checking in multiply */
   rel = GNUNET_TIME_UNIT_SECONDS;
-  GNUNET_log_skip (1);
+  GNUNET_log_skip (1, GNUNET_NO);
   for (i = 0; i < 55; i++)
     rel = GNUNET_TIME_relative_multiply (rel, 2);
-  GNUNET_log_skip (0);
+  GNUNET_log_skip (0, GNUNET_NO);
   GNUNET_assert (rel.value == GNUNET_TIME_UNIT_FOREVER_REL.value);
 
   /* test infinity-check for relative to absolute */
@@ -58,15 +58,15 @@ check ()
 
   /* check overflow for r2a */
   rel.value = ((uint64_t) - 1LL) - 1024;
-  GNUNET_log_skip (1);
+  GNUNET_log_skip (1, GNUNET_NO);
   last = GNUNET_TIME_relative_to_absolute (rel);
-  GNUNET_log_skip (0);
+  GNUNET_log_skip (0, GNUNET_NO);
   GNUNET_assert (last.value == GNUNET_TIME_UNIT_FOREVER_ABS.value);
 
   /* check overflow for relative add */
-  GNUNET_log_skip (1);
+  GNUNET_log_skip (1, GNUNET_NO);
   rel = GNUNET_TIME_relative_add (rel, rel);
-  GNUNET_log_skip (0);
+  GNUNET_log_skip (0, GNUNET_NO);
   GNUNET_assert (rel.value == GNUNET_TIME_UNIT_FOREVER_REL.value);
 
   /* check relation check in get_duration */
