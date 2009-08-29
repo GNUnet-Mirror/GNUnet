@@ -1097,9 +1097,11 @@ GNUNET_DISK_file_open (const char *fn, int flags, ...)
   access = 0;
   disp = OPEN_ALWAYS;
 
-  if (flags & GNUNET_DISK_OPEN_READ)
+  if (GNUNET_DISK_OPEN_READWRITE == (flags & GNUNET_DISK_OPEN_READWRITE))
+    access = FILE_READ_DATA | FILE_WRITE_DATA;
+  else if (flags & GNUNET_DISK_OPEN_READ)
     access = FILE_READ_DATA;
-  if (flags & GNUNET_DISK_OPEN_WRITE)
+  else if (flags & GNUNET_DISK_OPEN_WRITE)
     access = FILE_WRITE_DATA;
 
   if (flags & GNUNET_DISK_OPEN_FAILIFEXISTS)
