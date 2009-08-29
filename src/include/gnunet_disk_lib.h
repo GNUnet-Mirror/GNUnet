@@ -22,18 +22,27 @@
  * @file include/gnunet_disk_lib.h
  * @brief disk IO apis
  */
-
 #ifndef GNUNET_DISK_LIB_H
 #define GNUNET_DISK_LIB_H
 
-#include "gnunet_configuration_lib.h"
-#include "gnunet_scheduler_lib.h"
+/**
+ * Opaque handle used to access files.
+ */
+struct GNUNET_DISK_FileHandle;
+
+/**
+ * Opaque handle used to manage a pipe.
+ */
+struct GNUNET_DISK_PipeHandle;
+
 
 /* we need size_t, and since it can be both unsigned int
    or unsigned long long, this IS platform dependent;
    but "stdlib.h" should be portable 'enough' to be
    unconditionally available... */
 #include <stdlib.h>
+#include "gnunet_configuration_lib.h"
+#include "gnunet_scheduler_lib.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -42,6 +51,7 @@ extern "C"
 }
 #endif
 #endif
+
 
 /* Open the file for reading */
 #define GNUNET_DISK_OPEN_READ           1
@@ -78,10 +88,6 @@ enum GNUNET_DISK_Seek
     GNUNET_DISK_SEEK_CUR, 
     GNUNET_DISK_SEEK_END
   };
-
-struct GNUNET_DISK_FileHandle;
-
-struct GNUNET_DISK_PipeHandle;
 
 /**
  * Get the number of blocks that are left on the partition that

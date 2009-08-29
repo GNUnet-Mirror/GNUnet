@@ -35,8 +35,6 @@ extern "C"
 #endif
 #endif
 
-#include "gnunet_disk_lib.h"
-#include "gnunet_time_lib.h"
 
 
 /**
@@ -50,9 +48,14 @@ struct GNUNET_NETWORK_Descriptor;
 struct GNUNET_NETWORK_FDSet;
 
 
-struct GNUNET_NETWORK_Descriptor *GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Descriptor *desc,
-                      struct sockaddr *address,
-                      socklen_t *address_len);
+#include "gnunet_disk_lib.h"
+#include "gnunet_time_lib.h"
+
+
+struct GNUNET_NETWORK_Descriptor *
+GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Descriptor *desc,
+			      struct sockaddr *address,
+			      socklen_t *address_len);
 
 int
 GNUNET_NETWORK_socket_set_inheritable (const struct GNUNET_NETWORK_Descriptor

@@ -52,10 +52,13 @@ struct GNUNET_CONTAINER_BloomFilter;
 /**
  * Iterator over HashCodes.
  *
+ * @param cls closure
+ * @param next set to the next hash code
  * @return GNUNET_YES if next was updated
  *         GNUNET_NO if there are no more entries
  */
-typedef int (*GNUNET_HashCodeIterator) (GNUNET_HashCode * next, void *arg);
+typedef int (*GNUNET_HashCodeIterator) (void *cls,
+					GNUNET_HashCode * next);
 
 /**
  * Load a bloom-filter from a file.
@@ -170,14 +173,14 @@ int GNUNET_CONTAINER_bloomfilter_or (struct GNUNET_CONTAINER_BloomFilter *bf,
  *
  * @param bf the filter
  * @param iterator an iterator over all elements stored in the BF
- * @param iterator_arg argument to the iterator function
+ * @param iterator_cls closure for iterator
  * @param size the new size for the filter
  * @param k the new number of GNUNET_CRYPTO_hash-function to apply per element
  */
 void GNUNET_CONTAINER_bloomfilter_resize (struct GNUNET_CONTAINER_BloomFilter
                                           *bf,
                                           GNUNET_HashCodeIterator iterator,
-                                          void *iterator_arg,
+                                          void *iterator_cls,
                                           unsigned int size, unsigned int k);
 
 /* ****************** metadata ******************* */
@@ -276,14 +279,14 @@ void GNUNET_CONTAINER_meta_data_add_publication_date (struct
  * Iterate over MD entries, excluding thumbnails.
  *
  * @param md metadata to inspect
- * @param iterator function to call on each entry
- * @param closure closure for iterator
+ * @param iter function to call on each entry
+ * @param iter_cls closure for iterator
  * @return number of entries
  */
 int GNUNET_CONTAINER_meta_data_get_contents (const struct
                                              GNUNET_CONTAINER_MetaData *md,
                                              GNUNET_CONTAINER_MetaDataProcessor
-                                             iterator, void *closure);
+                                             iter, void *iter_cls);
 
 /**
  * Get the first MD entry of the given type.

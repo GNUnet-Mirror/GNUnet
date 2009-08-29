@@ -36,9 +36,6 @@ extern "C"
 #endif
 
 
-#include "gnunet_time_lib.h"
-#include "gnunet_network_lib.h"
-
 /**
  * Opaque handle for the scheduling service.
  */
@@ -150,6 +147,9 @@ enum GNUNET_SCHEDULER_Priority
    */
   GNUNET_SCHEDULER_PRIORITY_COUNT = 7
 };
+
+#include "gnunet_time_lib.h"
+#include "gnunet_network_lib.h"
 
 
 /**
