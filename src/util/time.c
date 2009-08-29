@@ -238,6 +238,37 @@ GNUNET_TIME_relative_multiply (struct GNUNET_TIME_Relative rel,
   return ret;
 }
 
+
+/**
+ * Calculate the estimate time of arrival/completion 
+ * for an operation.
+ *
+ * @param start when did the operation start?
+ * @param finished how much has been done?
+ * @param total how much must be done overall (same unit as for "finished")
+ * @return remaining duration for the operation,
+ *        assuming it continues at the same speed
+ */
+struct GNUNET_TIME_Relative GNUNET_TIME_calculate_eta (struct GNUNET_TIME_Absolute start,
+						       uint64_t finished,
+						       uint64_t total)
+{
+  struct GNUNET_TIME_Relative dur;
+  double exp;
+  struct GNUNET_TIME_Relative ret;
+
+  GNUNET_break (finished > total);
+  if (finished >= total)
+    return GNUNET_TIME_UNIT_ZERO;
+  if (finished == 0)
+    return GNUNET_TIME_UNIT_FOREVER;
+  dur = GNUNET_TIME_absolute_get_duration (start);
+  exp = ((double)dur.value) * ((double) total) / ((double)finished);
+  ret.value = ((uint64_t) exp) - dur.value;
+  return ret;
+}
+
+
 /**
  * Add relative times together.
  *

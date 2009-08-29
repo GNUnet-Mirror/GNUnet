@@ -163,6 +163,22 @@ struct GNUNET_TIME_Relative GNUNET_TIME_absolute_get_remaining (struct
                                                                 GNUNET_TIME_Absolute
                                                                 future);
 
+
+/**
+ * Calculate the estimate time of arrival/completion 
+ * for an operation.
+ *
+ * @param start when did the operation start?
+ * @param finished how much has been done?
+ * @param total how much must be done overall (same unit as for "finished")
+ * @return remaining duration for the operation,
+ *        assuming it continues at the same speed
+ */
+struct GNUNET_TIME_Relative GNUNET_TIME_calculate_eta (struct GNUNET_TIME_Absolute start,
+						       uint64_t finished,
+						       uint64_t total);
+
+
 /**
  * Compute the time difference between the given start and end times.
  * Use this function instead of actual subtraction to ensure that
