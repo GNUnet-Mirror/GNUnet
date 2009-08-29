@@ -107,6 +107,24 @@ make_publish_status (struct GNUNET_FS_ProgressInfo *pi,
 
 
 /**
+ * Cleanup the publish context, we're done
+ * with it.
+ *
+ * @param pc struct to clean up after
+ */
+static void
+publish_cleanup (struct GNUNET_FS_PublishContext *sc)
+{
+  GNUNET_FS_file_information_destroy (sc->fi, NULL, NULL);
+  GNUNET_FS_namespace_delete (sc->namespace, GNUNET_NO);
+  GNUNET_free_non_null (sc->nid);  
+  GNUNET_free_non_null (sc->nuid);
+  GNUNET_DATASTORE_disconnect (sc->dsh, GNUNET_NO);
+  GNUNET_free (sc);
+}
+
+
+/**
  * Function called by the datastore API with
  * the result from the PUT request.
  *
@@ -122,6 +140,15 @@ ds_put_cont (void *cls,
   struct PutContCtx *pcc = cls;
   struct GNUNET_FS_ProgressInfo pi;
 
+  if (GNUNET_SYSERR == pcc->sc->in_network_wait)
+    {
+      /* we were aborted in the meantime,
+	 finish shutdown! */
+      publish_cleanup (pcc->sc);
+      return;
+    }
+  GNUNET_assert (GNUNET_YES == pcc->sc->in_network_wait);
+  pcc->sc->in_network_wait = GNUNET_NO;
   if (GNUNET_OK != success)
     {
       GNUNET_asprintf (&pcc->p->emsg, 
@@ -178,10 +205,8 @@ publish_block (struct GNUNET_FS_PublishContext *sc,
   dpc_cls->cont = cont;
   dpc_cls->sc = sc;
   dpc_cls->p = p;
-  // FIXME: need to do something to "sc" to mark
-  // that "sc" can not be freed right now due to this
-  // pending, scheduled operation for which we don't have
-  // a task ID!  
+  GNUNET_assert (GNUNET_NO == sc->in_network_wait);
+  sc->in_network_wait = GNUNET_YES;
   GNUNET_DATASTORE_put (sc->dsh,
 			sc->rid,
 			query,
@@ -798,12 +823,13 @@ GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *sc)
   GNUNET_FS_file_information_inspect (sc->fi,
 				      &fip_signal_stop,
 				      sc);
-  GNUNET_FS_file_information_destroy (sc->fi, NULL, NULL);
-  GNUNET_FS_namespace_delete (sc->namespace, GNUNET_NO);
-  GNUNET_free_non_null (sc->nid);  
-  GNUNET_free_non_null (sc->nuid);
-  GNUNET_DATASTORE_disconnect (sc->dsh, GNUNET_NO);
-  GNUNET_free (sc);
+  if (GNUNET_YES == sc->in_network_wait)
+    {
+      sc->in_network_wait = GNUNET_SYSERR;
+      return;
+    }
+  publish_cleanup (sc);
 }
+
 
 /* end of fs_publish.c */

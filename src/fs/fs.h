@@ -430,6 +430,21 @@ struct GNUNET_FS_PublishContext
   GNUNET_SCHEDULER_TaskIdentifier upload_task;
 
   /**
+   * Typically GNUNET_NO.  Set to GNUNET_YES if
+   * "upload_task" is GNUNET_SCHEDULER_NO_TASK
+   * and we're waiting for a response from the
+   * datastore service (in which case this
+   * struct must not be freed until we have that
+   * response).  If someone tries to stop the
+   * download for good during this period, 
+   * "in_network_wait" is set to GNUNET_SYSERR
+   * which will cause the struct to be destroyed
+   * right after we have the reply (or timeout)
+   * from the datastore service.
+   */
+  int in_network_wait;
+
+  /**
    * Current position in the file-tree for the
    * upload.
    */
