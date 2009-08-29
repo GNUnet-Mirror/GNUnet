@@ -675,4 +675,4 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 #endif
 }
 
-/* end of sock.c */
+/* end of network_socket.c */
