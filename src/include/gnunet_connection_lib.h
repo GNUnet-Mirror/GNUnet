@@ -42,7 +42,7 @@ extern "C"
  * Timeout we use on TCP connect before trying another
  * result from the DNS resolver. 5s.
  */
-#define GNUNET_NETWORK_CONNECT_RETRY_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define GNUNET_CONNECTION_CONNECT_RETRY_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
  * @brief handle for a network connection
@@ -59,7 +59,7 @@ struct GNUNET_CONNECTION_Handle;
  * @return GNUNET_YES to allow, GNUNET_NO to deny, GNUNET_SYSERR
  *   for unknown address family (will be denied).
  */
-typedef int (*GNUNET_NETWORK_AccessCheck) (void *cls,
+typedef int (*GNUNET_CONNECTION_AccessCheck) (void *cls,
                                            const struct sockaddr * addr,
                                            socklen_t addrlen);
 
@@ -76,7 +76,7 @@ typedef int (*GNUNET_NETWORK_AccessCheck) (void *cls,
  * @param addrlen size of addr
  * @param errCode value of errno (on errors receiving)
  */
-typedef void (*GNUNET_NETWORK_Receiver) (void *cls,
+typedef void (*GNUNET_CONNECTION_Receiver) (void *cls,
                                          const void *buf,
                                          size_t available,
                                          const struct sockaddr * addr,
@@ -119,7 +119,7 @@ struct GNUNET_CONNECTION_Handle
   *GNUNET_CONNECTION_create_from_accept (struct
                                                  GNUNET_SCHEDULER_Handle
                                                  *sched,
-                                                 GNUNET_NETWORK_AccessCheck
+                                                 GNUNET_CONNECTION_AccessCheck
                                                  access, void *access_cls,
                                                  struct
                                                  GNUNET_NETWORK_Descriptor
@@ -224,7 +224,7 @@ GNUNET_SCHEDULER_TaskIdentifier
 GNUNET_CONNECTION_receive (struct GNUNET_CONNECTION_Handle
                                    *sock, size_t max,
                                    struct GNUNET_TIME_Relative timeout,
-                                   GNUNET_NETWORK_Receiver receiver,
+                                   GNUNET_CONNECTION_Receiver receiver,
                                    void *receiver_cls);
 
 
@@ -255,7 +255,7 @@ void *GNUNET_CONNECTION_receive_cancel (struct
  * @param buf where the callee should write the message
  * @return number of bytes written to buf
  */
-typedef size_t (*GNUNET_NETWORK_TransmitReadyNotify) (void *cls,
+typedef size_t (*GNUNET_CONNECTION_TransmitReadyNotify) (void *cls,
                                                       size_t size, void *buf);
 
 
@@ -263,7 +263,7 @@ typedef size_t (*GNUNET_NETWORK_TransmitReadyNotify) (void *cls,
  * Opaque handle that can be used to cancel
  * a transmit-ready notification.
  */
-struct GNUNET_NETWORK_TransmitHandle;
+struct GNUNET_CONNECTION_TransmitHandle;
 
 /**
  * Ask the socket to call us once the specified number of bytes
@@ -294,14 +294,14 @@ struct GNUNET_NETWORK_TransmitHandle;
  * @return non-NULL if the notify callback was queued,
  *         NULL if we are already going to notify someone else (busy)
  */
-struct GNUNET_NETWORK_TransmitHandle
+struct GNUNET_CONNECTION_TransmitHandle
   *GNUNET_CONNECTION_notify_transmit_ready (struct
                                                     GNUNET_CONNECTION_Handle
                                                     *sock, size_t size,
                                                     struct
                                                     GNUNET_TIME_Relative
                                                     timeout,
-                                                    GNUNET_NETWORK_TransmitReadyNotify
+                                                    GNUNET_CONNECTION_TransmitReadyNotify
                                                     notify, void *notify_cls);
 
 
@@ -313,7 +313,7 @@ struct GNUNET_NETWORK_TransmitHandle
  */
 void
 GNUNET_CONNECTION_notify_transmit_ready_cancel (struct
-                                                        GNUNET_NETWORK_TransmitHandle
+                                                        GNUNET_CONNECTION_TransmitHandle
                                                         *h);
 
 

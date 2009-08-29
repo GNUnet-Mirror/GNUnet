@@ -94,7 +94,7 @@ struct GNUNET_CORE_Handle
   /**
    * Handle for our current transmission request.
    */
-  struct GNUNET_NETWORK_TransmitHandle *th;
+  struct GNUNET_CONNECTION_TransmitHandle *th;
 
   /**
    * Head of doubly-linked list of pending requests.
@@ -173,7 +173,7 @@ struct GNUNET_CORE_TransmitHandle
    * The function will be called with a NULL buffer to signal
    * timeout.
    */
-  GNUNET_NETWORK_TransmitReadyNotify get_message;
+  GNUNET_CONNECTION_TransmitReadyNotify get_message;
 
   /**
    * Closure for get_message.
@@ -195,7 +195,7 @@ struct GNUNET_CORE_TransmitHandle
    * If this entry is for a transmission request, pointer
    * to the notify callback; otherwise NULL.
    */
-  GNUNET_NETWORK_TransmitReadyNotify notify;
+  GNUNET_CONNECTION_TransmitReadyNotify notify;
 
   /**
    * Closure for notify.
@@ -961,7 +961,7 @@ produce_send (void *cls, size_t size, void *buf)
   struct GNUNET_CORE_Handle *h;
   struct SendMessage *sm;
   size_t dt;
-  GNUNET_NETWORK_TransmitReadyNotify notify;
+  GNUNET_CONNECTION_TransmitReadyNotify notify;
   void *notify_cls;
 
   h = th->ch;
@@ -1026,7 +1026,7 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
                                    struct GNUNET_TIME_Relative maxdelay,
                                    const struct GNUNET_PeerIdentity *target,
                                    size_t notify_size,
-                                   GNUNET_NETWORK_TransmitReadyNotify notify,
+                                   GNUNET_CONNECTION_TransmitReadyNotify notify,
                                    void *notify_cls)
 {
   struct GNUNET_CORE_TransmitHandle *th;

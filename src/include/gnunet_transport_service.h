@@ -186,7 +186,7 @@ struct GNUNET_TRANSPORT_TransmitHandle
 					   unsigned int priority,
                                            struct GNUNET_TIME_Relative
                                            timeout,
-                                           GNUNET_NETWORK_TransmitReadyNotify
+                                           GNUNET_CONNECTION_TransmitReadyNotify
                                            notify, void *notify_cls);
 
 

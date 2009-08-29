@@ -277,7 +277,7 @@ struct Session
   /**
    * Handle for pending transmission request.
    */
-  struct GNUNET_NETWORK_TransmitHandle *transmit_handle;
+  struct GNUNET_CONNECTION_TransmitHandle *transmit_handle;
 
   /**
    * To whom are we talking to (set to our identity

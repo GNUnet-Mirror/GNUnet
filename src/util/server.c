@@ -104,7 +104,7 @@ struct GNUNET_SERVER_Handle
   /**
    * Function to call for access control.
    */
-  GNUNET_NETWORK_AccessCheck access;
+  GNUNET_CONNECTION_AccessCheck access;
 
   /**
    * Closure for access.
@@ -443,7 +443,7 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
  */
 struct GNUNET_SERVER_Handle *
 GNUNET_SERVER_create (struct GNUNET_SCHEDULER_Handle *sched,
-                      GNUNET_NETWORK_AccessCheck access,
+                      GNUNET_CONNECTION_AccessCheck access,
                       void *access_cls,
                       const struct sockaddr *serverAddr,
                       socklen_t socklen,
@@ -868,7 +868,7 @@ static GNUNET_SCHEDULER_TaskIdentifier
 sock_receive (void *cls,
               size_t max,
               struct GNUNET_TIME_Relative timeout,
-              GNUNET_NETWORK_Receiver receiver, void *receiver_cls)
+              GNUNET_CONNECTION_Receiver receiver, void *receiver_cls)
 {
   return GNUNET_CONNECTION_receive (cls, max, timeout, receiver, receiver_cls);
 }
@@ -894,7 +894,7 @@ static void *
 sock_notify_transmit_ready (void *cls,
                             size_t size,
                             struct GNUNET_TIME_Relative timeout,
-                            GNUNET_NETWORK_TransmitReadyNotify notify,
+                            GNUNET_CONNECTION_TransmitReadyNotify notify,
                             void *notify_cls)
 {
   return GNUNET_CONNECTION_notify_transmit_ready (cls, size, timeout, notify,
@@ -1133,11 +1133,11 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
  *           GNUNET_CONNECTION_notify_transmit_ready_cancel.
  *         NULL if we are already going to notify someone else (busy)
  */
-struct GNUNET_NETWORK_TransmitHandle *
+struct GNUNET_CONNECTION_TransmitHandle *
 GNUNET_SERVER_notify_transmit_ready (struct GNUNET_SERVER_Client *client,
                                      size_t size,
                                      struct GNUNET_TIME_Relative timeout,
-                                     GNUNET_NETWORK_TransmitReadyNotify
+                                     GNUNET_CONNECTION_TransmitReadyNotify
                                      callback, void *callback_cls)
 {
   return client->notify_transmit_ready (client->client_closure,

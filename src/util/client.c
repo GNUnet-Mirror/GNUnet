@@ -508,11 +508,11 @@ GNUNET_CLIENT_service_test (struct GNUNET_SCHEDULER_Handle *sched,
  * @return NULL if our buffer will never hold size bytes,
  *         a handle if the notify callback was queued (can be used to cancel)
  */
-struct GNUNET_NETWORK_TransmitHandle *
+struct GNUNET_CONNECTION_TransmitHandle *
 GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *sock,
                                      size_t size,
                                      struct GNUNET_TIME_Relative timeout,
-                                     GNUNET_NETWORK_TransmitReadyNotify
+                                     GNUNET_CONNECTION_TransmitReadyNotify
                                      notify, void *notify_cls)
 {
   return GNUNET_CONNECTION_notify_transmit_ready (sock->sock,

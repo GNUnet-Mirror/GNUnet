@@ -570,7 +570,7 @@ struct Client
    * Current transmit handle, NULL if no transmission request
    * is pending.
    */
-  struct GNUNET_NETWORK_TransmitHandle *th;
+  struct GNUNET_CONNECTION_TransmitHandle *th;
 
   /**
    * Array of the types of messages this peer cares

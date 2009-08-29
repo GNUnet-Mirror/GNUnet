@@ -203,7 +203,7 @@ struct GNUNET_TRANSPORT_TransmitHandle
    * Function to call when notify_size bytes are available
    * for transmission.
    */
-  GNUNET_NETWORK_TransmitReadyNotify notify;
+  GNUNET_CONNECTION_TransmitReadyNotify notify;
 
   /**
    * Closure for notify.
@@ -278,7 +278,7 @@ struct GNUNET_TRANSPORT_Handle
   /**
    * Handle to our registration with the client for notification.
    */
-  struct GNUNET_NETWORK_TransmitHandle *network_handle;
+  struct GNUNET_CONNECTION_TransmitHandle *network_handle;
 
   /**
    * Linked list of transmit handles that are waiting for the
@@ -605,7 +605,7 @@ schedule_control_transmit (struct GNUNET_TRANSPORT_Handle *h,
                            size_t size,
                            int at_head,
                            struct GNUNET_TIME_Relative timeout,
-                           GNUNET_NETWORK_TransmitReadyNotify notify,
+                           GNUNET_CONNECTION_TransmitReadyNotify notify,
                            void *notify_cls)
 {
   struct GNUNET_TRANSPORT_TransmitHandle *th;
@@ -1768,7 +1768,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
 
 struct ClientTransmitWrapper
 {
-  GNUNET_NETWORK_TransmitReadyNotify notify;
+  GNUNET_CONNECTION_TransmitReadyNotify notify;
   void *notify_cls;
   struct GNUNET_TRANSPORT_TransmitHandle *th;
 };
@@ -1856,7 +1856,7 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
                                         *target, size_t size,
 					unsigned int priority,
                                         struct GNUNET_TIME_Relative timeout,
-                                        GNUNET_NETWORK_TransmitReadyNotify
+                                        GNUNET_CONNECTION_TransmitReadyNotify
                                         notify, void *notify_cls)
 {
   struct GNUNET_TRANSPORT_TransmitHandle *pos;

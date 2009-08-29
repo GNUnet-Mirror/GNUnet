@@ -289,7 +289,7 @@ GNUNET_CORE_notify_transmit_ready (struct
 				   *target,
 				   size_t
 				   notify_size,
-				   GNUNET_NETWORK_TransmitReadyNotify
+				   GNUNET_CONNECTION_TransmitReadyNotify
 				   notify,
 				   void
 				   *notify_cls);

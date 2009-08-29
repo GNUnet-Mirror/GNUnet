@@ -667,7 +667,7 @@ transmit_to_client_callback (void *cls, size_t size, void *buf)
   uint16_t msize;
   size_t tsize;
   const struct GNUNET_MessageHeader *msg;
-  struct GNUNET_NETWORK_TransmitHandle *th;
+  struct GNUNET_CONNECTION_TransmitHandle *th;
   char *cbuf;
 
   if (buf == NULL)
@@ -730,7 +730,7 @@ transmit_to_client (struct TransportClient *client,
 {
   struct ClientMessageQueueEntry *q;
   uint16_t msize;
-  struct GNUNET_NETWORK_TransmitHandle *th;
+  struct GNUNET_CONNECTION_TransmitHandle *th;
 
   if ((client->message_count >= MAX_PENDING) && (GNUNET_YES == may_drop))
     {

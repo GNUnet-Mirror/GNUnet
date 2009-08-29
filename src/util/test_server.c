@@ -51,7 +51,7 @@ recv_fin_cb (void *cls,
 
 struct SignalTimeoutContext
 {
-  GNUNET_NETWORK_Receiver cb;
+  GNUNET_CONNECTION_Receiver cb;
   void *cb_cls;
 };
 
@@ -70,7 +70,7 @@ static GNUNET_SCHEDULER_TaskIdentifier
 my_receive (void *cls,
             size_t max,
             struct GNUNET_TIME_Relative timeout,
-            GNUNET_NETWORK_Receiver receiver, void *receiver_cls)
+            GNUNET_CONNECTION_Receiver receiver, void *receiver_cls)
 {
   int *ok = cls;
   struct GNUNET_MessageHeader msg;
@@ -118,7 +118,7 @@ static void *
 my_transmit_ready_cb (void *cls,
                       size_t size,
                       struct GNUNET_TIME_Relative timeout,
-                      GNUNET_NETWORK_TransmitReadyNotify notify,
+                      GNUNET_CONNECTION_TransmitReadyNotify notify,
                       void *notify_cls)
 {
   static int non_null_addr;

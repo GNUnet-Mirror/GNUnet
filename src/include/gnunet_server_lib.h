@@ -127,7 +127,7 @@ struct GNUNET_SERVER_MessageHandler
 struct GNUNET_SERVER_Handle *GNUNET_SERVER_create (struct
                                                    GNUNET_SCHEDULER_Handle
                                                    *sched,
-                                                   GNUNET_NETWORK_AccessCheck
+                                                   GNUNET_CONNECTION_AccessCheck
                                                    access, void *access_cls,
                                                    const struct sockaddr
                                                    *serverAddr,
@@ -178,11 +178,11 @@ GNUNET_SERVER_add_handlers (struct GNUNET_SERVER_Handle *server,
  *           GNUNET_CONNECTION_notify_transmit_ready_cancel.
  *         NULL if we are already going to notify someone else (busy)
  */
-struct GNUNET_NETWORK_TransmitHandle
+struct GNUNET_CONNECTION_TransmitHandle
   *GNUNET_SERVER_notify_transmit_ready (struct GNUNET_SERVER_Client *client,
                                         size_t size,
                                         struct GNUNET_TIME_Relative timeout,
-                                        GNUNET_NETWORK_TransmitReadyNotify
+                                        GNUNET_CONNECTION_TransmitReadyNotify
                                         callback, void *callback_cls);
 
 
@@ -261,7 +261,7 @@ typedef GNUNET_SCHEDULER_TaskIdentifier
   (*GNUNET_SERVER_ReceiveCallback) (void *cls,
                                     size_t max,
                                     struct GNUNET_TIME_Relative timeout,
-                                    GNUNET_NETWORK_Receiver
+                                    GNUNET_CONNECTION_Receiver
                                     receiver, void *receiver_cls);
 
 
@@ -294,7 +294,7 @@ typedef void *(*GNUNET_SERVER_TransmitReadyCallback) (void *cls,
                                                       struct
                                                       GNUNET_TIME_Relative
                                                       timeout,
-                                                      GNUNET_NETWORK_TransmitReadyNotify
+                                                      GNUNET_CONNECTION_TransmitReadyNotify
                                                       notify,
                                                       void *notify_cls);
 
