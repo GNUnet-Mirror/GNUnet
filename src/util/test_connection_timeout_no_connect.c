@@ -18,8 +18,8 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file util/test_network_timeout.c
- * @brief tests for network.c, doing timeout which connect failure
+ * @file util/test_connection_timeout_no_connect.c
+ * @brief tests for connection.c, doing timeout which connect failure
  */
 #include "platform.h"
 #include "gnunet_common.h"
@@ -81,7 +81,7 @@ main (int argc, char *argv[])
 {
   int ret = 0;
 
-  GNUNET_log_setup ("test_network_timeout_no_connect",
+  GNUNET_log_setup ("test_connection_timeout_no_connect",
 #if VERBOSE
                     "DEBUG",
 #else
@@ -92,4 +92,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of test_network_timeout_no_connect.c */
+/* end of test_connection_timeout_no_connect.c */

@@ -22,6 +22,7 @@ libgnunetutil_la_SOURCES = \
   common_gettext.c \
   common_logging.c \
   configuration.c \
+  connection.c \
   container_bloomfilter.c \
   container_meta_data.c \
   container_multihashmap.c \
@@ -37,7 +38,6 @@ libgnunetutil_la_SOURCES = \
   getopt.c \
   getopt_helpers.c \
   network.c \
-  network_socket.c \
   os_installation.c \
   os_load.c \
   os_network.c \
@@ -93,12 +93,12 @@ check_PROGRAMS = \
  test_crypto_rsa \
  test_disk \
  test_getopt \
- test_network \
- test_network_addressing \
- test_network_receive_cancel \
- test_network_timeout \
- test_network_timeout_no_connect \
- test_network_transmit_cancel \
+ test_connection \
+ test_connection_addressing \
+ test_connection_receive_cancel \
+ test_connection_timeout \
+ test_connection_timeout_no_connect \
+ test_connection_transmit_cancel \
  test_os_load \
  test_os_network \
  test_os_priority \
@@ -207,34 +207,34 @@ test_getopt_SOURCES = \
 test_getopt_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
-test_network_SOURCES = \
- test_network.c
-test_network_LDADD = \
+test_connection_SOURCES = \
+ test_connection.c
+test_connection_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
-test_network_addressing_SOURCES = \
- test_network_addressing.c
-test_network_addressing_LDADD = \
+test_connection_addressing_SOURCES = \
+ test_connection_addressing.c
+test_connection_addressing_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
-test_network_receive_cancel_SOURCES = \
- test_network_receive_cancel.c
-test_network_receive_cancel_LDADD = \
+test_connection_receive_cancel_SOURCES = \
+ test_connection_receive_cancel.c
+test_connection_receive_cancel_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
-test_network_timeout_SOURCES = \
- test_network_timeout.c
-test_network_timeout_LDADD = \
+test_connection_timeout_SOURCES = \
+ test_connection_timeout.c
+test_connection_timeout_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
-test_network_timeout_no_connect_SOURCES = \
- test_network_timeout_no_connect.c
-test_network_timeout_no_connect_LDADD = \
+test_connection_timeout_no_connect_SOURCES = \
+ test_connection_timeout_no_connect.c
+test_connection_timeout_no_connect_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
-test_network_transmit_cancel_SOURCES = \
- test_network_transmit_cancel.c
-test_network_transmit_cancel_LDADD = \
+test_connection_transmit_cancel_SOURCES = \
+ test_connection_transmit_cancel.c
+test_connection_transmit_cancel_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_os_load_SOURCES = \

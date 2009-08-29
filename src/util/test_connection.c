@@ -18,8 +18,8 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file util/test_network_addressing.c
- * @brief tests for network.c
+ * @file util/test_connection.c
+ * @brief tests for connection.c
  */
 #include "platform.h"
 #include "gnunet_common.h"
@@ -40,14 +40,14 @@ static struct GNUNET_CONNECTION_Handle *lsock;
 
 static size_t sofar;
 
-static struct GNUNET_NETWORK_Descriptor *ls;
+static int ls;
 
 
 
 /**
  * Create and initialize a listen socket for the server.
  *
- * @return NULL on error, otherwise the listen socket
+ * @return -1 on error, otherwise the listen socket
  */
 static struct GNUNET_NETWORK_Descriptor *
 open_listen_socket ()
@@ -58,8 +58,9 @@ open_listen_socket ()
 
   memset (&sa, 0, sizeof (sa));
   sa.sin_port = htons (PORT);
+  sa.sin_family = AF_INET;
   desc = GNUNET_NETWORK_socket_socket (AF_INET, SOCK_STREAM, 0);
-  GNUNET_assert (desc != 0);
+  GNUNET_assert (desc != NULL);
   if (GNUNET_NETWORK_socket_setsockopt (desc, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) < 0)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "setsockopt");
@@ -67,7 +68,6 @@ open_listen_socket ()
   GNUNET_NETWORK_socket_listen (desc, 5);
   return desc;
 }
-
 
 static void
 receive_check (void *cls,
@@ -77,11 +77,17 @@ receive_check (void *cls,
 {
   int *ok = cls;
 
+#if VERBOSE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receive validates incoming data\n");
+#endif
   GNUNET_assert (buf != NULL);  /* no timeout */
   if (0 == memcmp (&"Hello World"[sofar], buf, available))
     sofar += available;
   if (sofar < 12)
     {
+#if VERBOSE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receive needs more data\n");
+#endif
       GNUNET_CONNECTION_receive (asock,
                               1024,
                               GNUNET_TIME_relative_multiply
@@ -90,6 +96,10 @@ receive_check (void *cls,
     }
   else
     {
+#if VERBOSE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Receive closes accepted socket\n");
+#endif
       *ok = 0;
       GNUNET_CONNECTION_destroy (asock);
     }
@@ -99,26 +109,21 @@ receive_check (void *cls,
 static void
 run_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  void *addr;
-  size_t alen;
-  struct sockaddr_in *v4;
-  struct sockaddr_in expect;
-
+#if VERBOSE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test accepts connection\n");
+#endif
   asock = GNUNET_CONNECTION_create_from_accept (tc->sched,
                                                     NULL, NULL, ls, 1024);
   GNUNET_assert (asock != NULL);
   GNUNET_assert (GNUNET_YES == GNUNET_CONNECTION_check (asock));
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONNECTION_get_address (asock, &addr, &alen));
-  GNUNET_assert (alen == sizeof (struct sockaddr_in));
-  v4 = addr;
-  memset (&expect, 0, sizeof (expect));
-  expect.sin_family = AF_INET;
-  expect.sin_port = v4->sin_port;
-  expect.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
-  GNUNET_assert (0 == memcmp (&expect, v4, alen));
-  GNUNET_free (addr);
+#if VERBOSE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test destroys listen socket\n");
+#endif
   GNUNET_CONNECTION_destroy (lsock);
+#if VERBOSE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Test asks to receive on accepted socket\n");
+#endif
   GNUNET_CONNECTION_receive (asock,
                           1024,
                           GNUNET_TIME_relative_multiply
@@ -128,6 +133,10 @@ run_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static size_t
 make_hello (void *cls, size_t size, void *buf)
 {
+#if VERBOSE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Test prepares to transmit on connect socket\n");
+#endif
   GNUNET_assert (size >= 12);
   strcpy ((char *) buf, "Hello World");
   return 12;
@@ -136,26 +145,27 @@ make_hello (void *cls, size_t size, void *buf)
 static void
 task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct sockaddr_in v4;
   ls = open_listen_socket ();
   lsock = GNUNET_CONNECTION_create_from_existing (tc->sched, ls, 0);
   GNUNET_assert (lsock != NULL);
-
-  v4.sin_family = AF_INET;
-  v4.sin_port = htons (PORT);
-  v4.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
-  csock = GNUNET_CONNECTION_create_from_sockaddr (tc->sched,
-                                                      AF_INET,
-                                                      (const struct sockaddr
-                                                       *) &v4, sizeof (v4),
-                                                      1024);
+  csock = GNUNET_CONNECTION_create_from_connect (tc->sched,
+                                                     "localhost", PORT, 1024);
   GNUNET_assert (csock != NULL);
+#if VERBOSE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test asks for write notification\n");
+#endif
   GNUNET_assert (NULL !=
                  GNUNET_CONNECTION_notify_transmit_ready (csock,
                                                        12,
                                                        GNUNET_TIME_UNIT_SECONDS,
                                                        &make_hello, NULL));
+#if VERBOSE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test destroys client socket\n");
+#endif
   GNUNET_CONNECTION_destroy (csock);
+#if VERBOSE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test prepares to accept\n");
+#endif
   GNUNET_SCHEDULER_add_read_net (tc->sched,
                              GNUNET_NO,
                              GNUNET_SCHEDULER_PRIORITY_HIGH,
@@ -186,15 +196,15 @@ main (int argc, char *argv[])
 {
   int ret = 0;
 
-  GNUNET_log_setup ("test_network_addressing", 
+  GNUNET_log_setup ("test_connection",
 #if VERBOSE
-		    "DEBUG",
+                    "DEBUG",
 #else
-		    "WARNING", 
+                    "WARNING",
 #endif
-		    NULL);
+                    NULL);
   ret += check ();
   return ret;
 }
 
-/* end of test_network_addressing.c */
+/* end of test_connection.c */
