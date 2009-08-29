@@ -665,7 +665,7 @@ connect_and_create_validation_session (struct Plugin *plugin,
       GNUNET_break_op (0);
       return NULL;              /* invalid address */
     }
-  conn = GNUNET_NETWORK_connection_create_from_sockaddr (plugin->env->sched,
+  conn = GNUNET_CONNECTION_create_from_sockaddr (plugin->env->sched,
                                                      af,
                                                      addr,
                                                      addrlen,
@@ -796,7 +796,7 @@ disconnect_session (struct Session *session)
   /* clean up state */
   if (session->transmit_handle != NULL)
     {
-      GNUNET_NETWORK_connection_notify_transmit_ready_cancel (session->transmit_handle);
+      GNUNET_CONNECTION_notify_transmit_ready_cancel (session->transmit_handle);
       session->transmit_handle = NULL;
     }
   while (NULL != (pm = session->pending_messages))
@@ -923,7 +923,7 @@ try_connect_to_address (void *cls,
     {
       cc->welcome = create_welcome (addrlen, addr, cc->plugin);
       cc->sa =
-        GNUNET_NETWORK_connection_create_from_sockaddr (cc->plugin->env->sched,
+        GNUNET_CONNECTION_create_from_sockaddr (cc->plugin->env->sched,
                                                     af, addr, addrlen,
                                                     GNUNET_SERVER_MAX_MESSAGE_SIZE);
 #if DEBUG_TCP

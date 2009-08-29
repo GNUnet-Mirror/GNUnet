@@ -175,7 +175,7 @@ GNUNET_SERVER_add_handlers (struct GNUNET_SERVER_Handle *server,
  * @param callback_cls closure for callback
  * @return non-NULL if the notify callback was queued; can be used
  *           to cancel the request using
- *           GNUNET_NETWORK_connection_notify_transmit_ready_cancel.
+ *           GNUNET_CONNECTION_notify_transmit_ready_cancel.
  *         NULL if we are already going to notify someone else (busy)
  */
 struct GNUNET_NETWORK_TransmitHandle

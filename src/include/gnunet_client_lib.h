@@ -109,7 +109,7 @@ void GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
  * @param notify_cls closure for notify
  * @return NULL if someone else is already waiting to be notified
  *         non-NULL if the notify callback was queued (can be used to cancel
- *         using GNUNET_NETWORK_connection_notify_transmit_ready_cancel)
+ *         using GNUNET_CONNECTION_notify_transmit_ready_cancel)
  */
 struct GNUNET_NETWORK_TransmitHandle
   *GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *sock,

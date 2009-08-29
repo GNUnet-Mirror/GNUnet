@@ -147,7 +147,7 @@ GNUNET_CLIENT_connect (struct GNUNET_SCHEDULER_Handle *sched,
                   service_name);
       return NULL;
     }
-  sock = GNUNET_NETWORK_connection_create_from_connect (sched,
+  sock = GNUNET_CONNECTION_create_from_connect (sched,
                                                     hostname,
                                                     port,
                                                     GNUNET_SERVER_MAX_MESSAGE_SIZE);
@@ -184,7 +184,7 @@ void
 GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock)
 {
   GNUNET_assert (sock->sock != NULL);
-  GNUNET_NETWORK_connection_destroy (sock->sock);
+  GNUNET_CONNECTION_destroy (sock->sock);
   sock->sock = NULL;
   sock->receiver_handler = NULL;
   GNUNET_SCHEDULER_add_after (sock->sched,
@@ -331,7 +331,7 @@ GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
                                                       GNUNET_SCHEDULER_NO_TASK,
                                                       &receive_task, sock);
   else
-    sock->receiver_task = GNUNET_NETWORK_connection_receive (sock->sock,
+    sock->receiver_task = GNUNET_CONNECTION_receive (sock->sock,
                                                   GNUNET_SERVER_MAX_MESSAGE_SIZE,
                                                   timeout,
                                                   &receive_helper, sock);
@@ -362,7 +362,7 @@ write_shutdown (void *cls, size_t size, void *buf)
 void
 GNUNET_CLIENT_service_shutdown (struct GNUNET_CLIENT_Connection *sock)
 {
-  GNUNET_NETWORK_connection_notify_transmit_ready (sock->sock,
+  GNUNET_CONNECTION_notify_transmit_ready (sock->sock,
                                         sizeof (struct GNUNET_MessageHeader),
                                         GNUNET_TIME_UNIT_FOREVER_REL,
                                         &write_shutdown, NULL);
@@ -478,7 +478,7 @@ GNUNET_CLIENT_service_test (struct GNUNET_SCHEDULER_Handle *sched,
   conn->test_cb = task;
   conn->test_cb_cls = task_cls;
   if (NULL ==
-      GNUNET_NETWORK_connection_notify_transmit_ready (conn->sock,
+      GNUNET_CONNECTION_notify_transmit_ready (conn->sock,
                                             sizeof (struct
                                                     GNUNET_MessageHeader),
                                             timeout, &write_test, NULL))
@@ -515,7 +515,7 @@ GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *sock,
                                      GNUNET_NETWORK_TransmitReadyNotify
                                      notify, void *notify_cls)
 {
-  return GNUNET_NETWORK_connection_notify_transmit_ready (sock->sock,
+  return GNUNET_CONNECTION_notify_transmit_ready (sock->sock,
                                                size,
                                                timeout, notify, notify_cls);
 }

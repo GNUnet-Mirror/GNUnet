@@ -95,7 +95,7 @@ typedef void (*GNUNET_NETWORK_Receiver) (void *cls,
  * @return the boxed socket handle
  */
 struct GNUNET_NETWORK_ConnectionHandle
-  *GNUNET_NETWORK_connection_create_from_existing (struct
+  *GNUNET_CONNECTION_create_from_existing (struct
                                                    GNUNET_SCHEDULER_Handle
                                                    *sched,
                                                    struct
@@ -116,7 +116,7 @@ struct GNUNET_NETWORK_ConnectionHandle
  * @return the socket handle, NULL on error (for example, access refused)
  */
 struct GNUNET_NETWORK_ConnectionHandle
-  *GNUNET_NETWORK_connection_create_from_accept (struct
+  *GNUNET_CONNECTION_create_from_accept (struct
                                                  GNUNET_SCHEDULER_Handle
                                                  *sched,
                                                  GNUNET_NETWORK_AccessCheck
@@ -139,7 +139,7 @@ struct GNUNET_NETWORK_ConnectionHandle
  * @return the socket handle
  */
 struct GNUNET_NETWORK_ConnectionHandle
-  *GNUNET_NETWORK_connection_create_from_connect (struct
+  *GNUNET_CONNECTION_create_from_connect (struct
                                                   GNUNET_SCHEDULER_Handle
                                                   *sched,
                                                   const char *hostname,
@@ -162,7 +162,7 @@ struct GNUNET_NETWORK_ConnectionHandle
  * @return the socket handle
  */
 struct GNUNET_NETWORK_ConnectionHandle
-  *GNUNET_NETWORK_connection_create_from_sockaddr (struct
+  *GNUNET_CONNECTION_create_from_sockaddr (struct
                                                    GNUNET_SCHEDULER_Handle
                                                    *sched, int af_family,
                                                    const struct sockaddr
@@ -178,7 +178,7 @@ struct GNUNET_NETWORK_ConnectionHandle
  * @param sock socket to check
  * @return GNUNET_YES if valid, GNUNET_NO otherwise
  */
-int GNUNET_NETWORK_connection_check (struct GNUNET_NETWORK_ConnectionHandle
+int GNUNET_CONNECTION_check (struct GNUNET_NETWORK_ConnectionHandle
                                      *sock);
 
 
@@ -190,7 +190,7 @@ int GNUNET_NETWORK_connection_check (struct GNUNET_NETWORK_ConnectionHandle
  * @param addrlen where to store the length of the address
  * @return GNUNET_OK on success
  */
-int GNUNET_NETWORK_connection_get_address (struct
+int GNUNET_CONNECTION_get_address (struct
                                            GNUNET_NETWORK_ConnectionHandle
                                            *sock, void **addr,
                                            size_t * addrlen);
@@ -202,7 +202,7 @@ int GNUNET_NETWORK_connection_get_address (struct
  *
  * @param sock socket to destroy
  */
-void GNUNET_NETWORK_connection_destroy (struct GNUNET_NETWORK_ConnectionHandle
+void GNUNET_CONNECTION_destroy (struct GNUNET_NETWORK_ConnectionHandle
                                         *sock);
 
 
@@ -221,7 +221,7 @@ void GNUNET_NETWORK_connection_destroy (struct GNUNET_NETWORK_ConnectionHandle
  * @return scheduler task ID used for receiving, GNUNET_SCHEDULER_NO_TASK on error
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_NETWORK_connection_receive (struct GNUNET_NETWORK_ConnectionHandle
+GNUNET_CONNECTION_receive (struct GNUNET_NETWORK_ConnectionHandle
                                    *sock, size_t max,
                                    struct GNUNET_TIME_Relative timeout,
                                    GNUNET_NETWORK_Receiver receiver,
@@ -237,7 +237,7 @@ GNUNET_NETWORK_connection_receive (struct GNUNET_NETWORK_ConnectionHandle
  * @param task task identifier returned from the receive call
  * @return closure of the original receiver callback
  */
-void *GNUNET_NETWORK_connection_receive_cancel (struct
+void *GNUNET_CONNECTION_receive_cancel (struct
                                                 GNUNET_NETWORK_ConnectionHandle
                                                 *sock,
                                                 GNUNET_SCHEDULER_TaskIdentifier
@@ -295,7 +295,7 @@ struct GNUNET_NETWORK_TransmitHandle;
  *         NULL if we are already going to notify someone else (busy)
  */
 struct GNUNET_NETWORK_TransmitHandle
-  *GNUNET_NETWORK_connection_notify_transmit_ready (struct
+  *GNUNET_CONNECTION_notify_transmit_ready (struct
                                                     GNUNET_NETWORK_ConnectionHandle
                                                     *sock, size_t size,
                                                     struct
@@ -312,7 +312,7 @@ struct GNUNET_NETWORK_TransmitHandle
  * @param h handle for notification to cancel
  */
 void
-GNUNET_NETWORK_connection_notify_transmit_ready_cancel (struct
+GNUNET_CONNECTION_notify_transmit_ready_cancel (struct
                                                         GNUNET_NETWORK_TransmitHandle
                                                         *h);
 

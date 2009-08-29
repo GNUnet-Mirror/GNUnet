@@ -331,7 +331,7 @@ process_listen_socket (void *cls,
   shutpipe = GNUNET_DISK_pipe_handle (server->shutpipe, 0);
   GNUNET_assert (GNUNET_NETWORK_fdset_isset (tc->read_ready, server->listen_socket));
   GNUNET_assert (!GNUNET_NETWORK_fdset_handle_isset (tc->read_ready, shutpipe));
-  sock = GNUNET_NETWORK_connection_create_from_accept (tc->sched,
+  sock = GNUNET_CONNECTION_create_from_accept (tc->sched,
                                                    server->access,
                                                    server->access_cls,
                                                    server->listen_socket,
@@ -870,7 +870,7 @@ sock_receive (void *cls,
               struct GNUNET_TIME_Relative timeout,
               GNUNET_NETWORK_Receiver receiver, void *receiver_cls)
 {
-  return GNUNET_NETWORK_connection_receive (cls, max, timeout, receiver, receiver_cls);
+  return GNUNET_CONNECTION_receive (cls, max, timeout, receiver, receiver_cls);
 }
 
 
@@ -878,12 +878,12 @@ sock_receive (void *cls,
  * Wrapper to cancel receiving from a socket.
  * 
  * @param cls handle to the GNUNET_NETWORK_ConnectionHandle to cancel
- * @param tc task ID that was returned by GNUNET_NETWORK_connection_receive
+ * @param tc task ID that was returned by GNUNET_CONNECTION_receive
  */
 static void
 sock_receive_cancel (void *cls, GNUNET_SCHEDULER_TaskIdentifier ti)
 {
-  GNUNET_NETWORK_connection_receive_cancel (cls, ti);
+  GNUNET_CONNECTION_receive_cancel (cls, ti);
 }
 
 
@@ -897,7 +897,7 @@ sock_notify_transmit_ready (void *cls,
                             GNUNET_NETWORK_TransmitReadyNotify notify,
                             void *notify_cls)
 {
-  return GNUNET_NETWORK_connection_notify_transmit_ready (cls, size, timeout, notify,
+  return GNUNET_CONNECTION_notify_transmit_ready (cls, size, timeout, notify,
                                                notify_cls);
 }
 
@@ -908,7 +908,7 @@ sock_notify_transmit_ready (void *cls,
 static void
 sock_notify_transmit_ready_cancel (void *cls, void *h)
 {
-  GNUNET_NETWORK_connection_notify_transmit_ready_cancel (h);
+  GNUNET_CONNECTION_notify_transmit_ready_cancel (h);
 }
 
 
@@ -921,7 +921,7 @@ sock_notify_transmit_ready_cancel (void *cls, void *h)
 static int
 sock_check (void *cls)
 {
-  return GNUNET_NETWORK_connection_check (cls);
+  return GNUNET_CONNECTION_check (cls);
 }
 
 
@@ -933,7 +933,7 @@ sock_check (void *cls)
 static void
 sock_destroy (void *cls)
 {
-  GNUNET_NETWORK_connection_destroy (cls);
+  GNUNET_CONNECTION_destroy (cls);
 }
 
 
@@ -1067,7 +1067,7 @@ GNUNET_SERVER_client_get_address (struct GNUNET_SERVER_Client *client,
 {
   if (client->receive != &sock_receive)
     return GNUNET_SYSERR;       /* not a network client */
-  return GNUNET_NETWORK_connection_get_address (client->client_closure,
+  return GNUNET_CONNECTION_get_address (client->client_closure,
                                             addr, addrlen);
 }
 
@@ -1130,7 +1130,7 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
  * @param callback_cls closure for callback
  * @return non-NULL if the notify callback was queued; can be used
  *           to cancel the request using
- *           GNUNET_NETWORK_connection_notify_transmit_ready_cancel.
+ *           GNUNET_CONNECTION_notify_transmit_ready_cancel.
  *         NULL if we are already going to notify someone else (busy)
  */
 struct GNUNET_NETWORK_TransmitHandle *

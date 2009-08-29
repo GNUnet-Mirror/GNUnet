@@ -74,8 +74,8 @@ send_kilo (void *cls, size_t size, void *buf)
 #endif
       GNUNET_assert (buf == NULL);
       *ok = 0;
-      GNUNET_NETWORK_connection_destroy (lsock);
-      GNUNET_NETWORK_connection_destroy (csock);
+      GNUNET_CONNECTION_destroy (lsock);
+      GNUNET_CONNECTION_destroy (csock);
       return 0;
     }
 #if VERBOSE
@@ -85,7 +85,7 @@ send_kilo (void *cls, size_t size, void *buf)
   memset (buf, 42, 1024);
 
   GNUNET_assert (NULL !=
-                 GNUNET_NETWORK_connection_notify_transmit_ready (csock,
+                 GNUNET_CONNECTION_notify_transmit_ready (csock,
                                                        1024,
                                                        GNUNET_TIME_UNIT_SECONDS,
                                                        &send_kilo, cls));
@@ -98,13 +98,13 @@ task_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 
   ls = open_listen_socket ();
-  lsock = GNUNET_NETWORK_connection_create_from_existing (tc->sched, ls, 0);
+  lsock = GNUNET_CONNECTION_create_from_existing (tc->sched, ls, 0);
   GNUNET_assert (lsock != NULL);
-  csock = GNUNET_NETWORK_connection_create_from_connect (tc->sched,
+  csock = GNUNET_CONNECTION_create_from_connect (tc->sched,
                                                      "localhost", PORT, 1024);
   GNUNET_assert (csock != NULL);
   GNUNET_assert (NULL !=
-                 GNUNET_NETWORK_connection_notify_transmit_ready (csock,
+                 GNUNET_CONNECTION_notify_transmit_ready (csock,
                                                        1024,
                                                        GNUNET_TIME_UNIT_SECONDS,
                                                        &send_kilo, cls));
