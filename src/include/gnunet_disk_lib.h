@@ -191,8 +191,8 @@ int GNUNET_DISK_file_close (struct GNUNET_DISK_FileHandle *h);
  * @param n number of the end
  */
 const struct GNUNET_DISK_FileHandle *GNUNET_DISK_pipe_handle (const struct
-                                                              GNUNET_DISK_PipeHandle
-                                                              *p, int n);
+							GNUNET_DISK_PipeHandle
+							*p, int n);
 
 /**
  * Read the contents of a binary file into a buffer.
