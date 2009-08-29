@@ -279,6 +279,7 @@ void
 GNUNET_log_skip (unsigned int n, int check_reset)
 {
   if (n == 0)
+    {
       skip_log = 0;
       if (check_reset)
         GNUNET_assert (ok);
