@@ -57,7 +57,7 @@ task4 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 struct GNUNET_DISK_PipeHandle *p;
-static struct GNUNET_DISK_FileHandle *fds[2];
+static const struct GNUNET_DISK_FileHandle *fds[2];
 
 
 static void

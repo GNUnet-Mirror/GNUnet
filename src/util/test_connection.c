@@ -40,7 +40,7 @@ static struct GNUNET_CONNECTION_Handle *lsock;
 
 static size_t sofar;
 
-static int ls;
+static struct GNUNET_NETWORK_Descriptor *ls;
 
 
 
@@ -64,7 +64,9 @@ open_listen_socket ()
   if (GNUNET_NETWORK_socket_setsockopt (desc, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) < 0)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "setsockopt");
-  GNUNET_assert (GNUNET_NETWORK_socket_bind (desc, &sa, sizeof (sa)) >= 0);
+  GNUNET_assert (GNUNET_NETWORK_socket_bind (desc, 
+					     (const struct sockaddr*) &sa,
+					     sizeof (sa)) >= 0);
   GNUNET_NETWORK_socket_listen (desc, 5);
   return desc;
 }
@@ -113,7 +115,7 @@ run_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test accepts connection\n");
 #endif
   asock = GNUNET_CONNECTION_create_from_accept (tc->sched,
-                                                    NULL, NULL, ls, 1024);
+						NULL, NULL, ls, 1024);
   GNUNET_assert (asock != NULL);
   GNUNET_assert (GNUNET_YES == GNUNET_CONNECTION_check (asock));
 #if VERBOSE

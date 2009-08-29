@@ -1481,18 +1481,17 @@ GNUNET_DISK_pipe (int blocking)
   return p;
 }
 
+
 /**
  * Closes an interprocess channel
- * @param p pipe
+ *
+ * @param p pipe to close
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
 int
 GNUNET_DISK_pipe_close (struct GNUNET_DISK_PipeHandle *p)
 {
-  int ret;
-
-  ret = GNUNET_OK;
-
+  int ret = GNUNET_OK;
 #ifdef MINGW
   if (!CloseHandle (p->fd[0].h))
     {
@@ -1506,29 +1505,25 @@ GNUNET_DISK_pipe_close (struct GNUNET_DISK_PipeHandle *p)
       ret = GNUNET_SYSERR;
     }
 #else
-  {
-    int save;
-
-    if (close (p->fd[0].fd) != -1)
-      {
-        ret = GNUNET_SYSERR;
-        save = errno;
-      }
-    else
-      save = 0;
-
-    if (close (p->fd[1].fd) != -1)
-      {
-        ret = GNUNET_SYSERR;
-      }
-    else
-      errno = save;
-  }
+  int save;
+  
+  if (0 != close (p->fd[0].fd))
+    {
+      ret = GNUNET_SYSERR;
+      save = errno;
+    }
+  else
+    save = 0;
+  
+  if (0 != close (p->fd[1].fd))
+    ret = GNUNET_SYSERR;
+  else
+    errno = save;
 #endif
   GNUNET_free (p);
-
   return ret;
 }
+
 
 /**
  * Get the handle to a particular pipe end

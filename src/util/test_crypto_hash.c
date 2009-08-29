@@ -98,7 +98,7 @@ testArithmetic ()
   if (1 != GNUNET_CRYPTO_hash_get_bit (&d, 6))
     return 1;
   memset (&d, 0, sizeof (d));
-  GNUNET_CRYPTO_hash_to_AES_key (&d, &skey, &iv);
+  GNUNET_CRYPTO_hash_to_aes_key (&d, &skey, &iv);
   if ((0 != memcmp (&skey, &zskey, sizeof (skey) - sizeof (unsigned int))) ||
       (0 != memcmp (&iv, &ziv, sizeof (iv))))
     return 1;

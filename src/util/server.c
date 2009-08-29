@@ -282,7 +282,9 @@ destroy_server (struct GNUNET_SERVER_Handle *server)
 	      "Server shutting down.\n");
 #endif
   GNUNET_assert (server->listen_socket == NULL);
-  GNUNET_break (GNUNET_YES == GNUNET_DISK_pipe_close (server->shutpipe));
+  if (GNUNET_OK != GNUNET_DISK_pipe_close (server->shutpipe))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			 "pipe-close");
   while (server->clients != NULL)
     {
       pos = server->clients;
@@ -455,7 +457,7 @@ GNUNET_SERVER_create (struct GNUNET_SCHEDULER_Handle *sched,
   struct GNUNET_NETWORK_Descriptor *lsock;
   struct GNUNET_NETWORK_FDSet *r;
 
-  lsock = NULL; // FIXME NILS: this was -2, does that have a special meaning?
+  lsock = NULL;
   if (serverAddr != NULL)
     {
       lsock = open_listen_socket (serverAddr, socklen);
@@ -464,7 +466,7 @@ GNUNET_SERVER_create (struct GNUNET_SCHEDULER_Handle *sched,
     }
   ret = GNUNET_malloc (sizeof (struct GNUNET_SERVER_Handle));
   ret->shutpipe = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileDescriptor *[2]));
-  if ((ret->shutpipe = GNUNET_DISK_pipe (GNUNET_NO)) == NULL)
+  if (NULL == (ret->shutpipe = GNUNET_DISK_pipe (GNUNET_NO)))
     {
       GNUNET_break (0 == GNUNET_NETWORK_socket_close (lsock));
       GNUNET_free (ret->shutpipe);
