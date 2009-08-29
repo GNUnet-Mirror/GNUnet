@@ -283,7 +283,7 @@ publish_kblocks (struct GNUNET_FS_PublishContext *sc,
 		 struct GNUNET_FS_FileInformation *p)
 {
   // FIXME: build all kblocks
-  // call publish_kblock on each
+  // call publish_block on each
 
 
   GNUNET_FS_file_information_sync (p);
