@@ -99,7 +99,7 @@ struct GNUNET_CONNECTION_Handle
                                                    GNUNET_SCHEDULER_Handle
                                                    *sched,
                                                    struct
-                                                   GNUNET_NETWORK_Descriptor
+                                                   GNUNET_NETWORK_Handle
                                                    *osSocket, size_t maxbuf);
 
 
@@ -122,7 +122,7 @@ struct GNUNET_CONNECTION_Handle
                                                  GNUNET_CONNECTION_AccessCheck
                                                  access, void *access_cls,
                                                  struct
-                                                 GNUNET_NETWORK_Descriptor
+                                                 GNUNET_NETWORK_Handle
                                                  *lsock, size_t maxbuf);
 
 

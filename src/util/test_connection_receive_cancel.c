@@ -38,7 +38,7 @@ static struct GNUNET_CONNECTION_Handle *asock;
 
 static struct GNUNET_CONNECTION_Handle *lsock;
 
-static struct GNUNET_NETWORK_Descriptor *ls;
+static struct GNUNET_NETWORK_Handle *ls;
 
 static GNUNET_SCHEDULER_TaskIdentifier receive_task;
 
@@ -50,12 +50,12 @@ static GNUNET_SCHEDULER_TaskIdentifier receive_task;
  *
  * @return NULL on error, otherwise the listen socket
  */
-static struct GNUNET_NETWORK_Descriptor *
+static struct GNUNET_NETWORK_Handle *
 open_listen_socket ()
 {
   const static int on = 1;
   struct sockaddr_in sa;
-  struct GNUNET_NETWORK_Descriptor *desc;
+  struct GNUNET_NETWORK_Handle *desc;
 
   memset (&sa, 0, sizeof (sa));
   sa.sin_port = htons (PORT);

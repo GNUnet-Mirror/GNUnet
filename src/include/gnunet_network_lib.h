@@ -40,7 +40,7 @@ extern "C"
 /**
  * @brief handle to a socket
  */
-struct GNUNET_NETWORK_Descriptor;
+struct GNUNET_NETWORK_Handle;
 
 /**
  * @brief collection of IO descriptors
@@ -52,33 +52,33 @@ struct GNUNET_NETWORK_FDSet;
 #include "gnunet_time_lib.h"
 
 
-struct GNUNET_NETWORK_Descriptor *
-GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Descriptor *desc,
+struct GNUNET_NETWORK_Handle *
+GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
 			      struct sockaddr *address,
 			      socklen_t *address_len);
 
 int
-GNUNET_NETWORK_socket_set_inheritable (const struct GNUNET_NETWORK_Descriptor
+GNUNET_NETWORK_socket_set_inheritable (const struct GNUNET_NETWORK_Handle
                                        *desc);
 
 
-int GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Descriptor *desc,
+int GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
                     const struct sockaddr *address, socklen_t address_len);
 
-int GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Descriptor *desc);
+int GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc);
 
-int GNUNET_NETWORK_socket_connect (const struct GNUNET_NETWORK_Descriptor *desc,
+int GNUNET_NETWORK_socket_connect (const struct GNUNET_NETWORK_Handle *desc,
                        const struct sockaddr *address, socklen_t address_len);
 
-int GNUNET_NETWORK_socket_getsockopt(const struct GNUNET_NETWORK_Descriptor *desc, int level, int optname,
+int GNUNET_NETWORK_socket_getsockopt(const struct GNUNET_NETWORK_Handle *desc, int level, int optname,
        void *optval, socklen_t *optlen);
 
-int GNUNET_NETWORK_socket_listen (const struct GNUNET_NETWORK_Descriptor *desc, int backlog);
+int GNUNET_NETWORK_socket_listen (const struct GNUNET_NETWORK_Handle *desc, int backlog);
 
-ssize_t GNUNET_NETWORK_socket_read (const struct GNUNET_NETWORK_Descriptor *desc, void *buf,
+ssize_t GNUNET_NETWORK_socket_read (const struct GNUNET_NETWORK_Handle *desc, void *buf,
                         size_t nbyte);
 
-ssize_t GNUNET_NETWORK_socket_recv (const struct GNUNET_NETWORK_Descriptor *desc, void *buffer,
+ssize_t GNUNET_NETWORK_socket_recv (const struct GNUNET_NETWORK_Handle *desc, void *buffer,
                         size_t length, int flags);
 
 int GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
@@ -90,34 +90,34 @@ int GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int GNUNET_NETWORK_socket_set_blocking (struct GNUNET_NETWORK_Descriptor *fd, int doBlock);
+int GNUNET_NETWORK_socket_set_blocking (struct GNUNET_NETWORK_Handle *fd, int doBlock);
 
-ssize_t GNUNET_NETWORK_socket_send (const struct GNUNET_NETWORK_Descriptor *desc,
+ssize_t GNUNET_NETWORK_socket_send (const struct GNUNET_NETWORK_Handle *desc,
                         const void *buffer, size_t length, int flags);
 
-ssize_t GNUNET_NETWORK_socket_sendto (const struct GNUNET_NETWORK_Descriptor *desc,
+ssize_t GNUNET_NETWORK_socket_sendto (const struct GNUNET_NETWORK_Handle *desc,
                           const void *message, size_t length, int flags,
                           const struct sockaddr *dest_addr,
                           socklen_t dest_len);
 
-int GNUNET_NETWORK_socket_setsockopt(struct GNUNET_NETWORK_Descriptor *fd, int level, int option_name,
+int GNUNET_NETWORK_socket_setsockopt(struct GNUNET_NETWORK_Handle *fd, int level, int option_name,
        const void *option_value, socklen_t option_len);
 
-int GNUNET_NETWORK_socket_shutdown (struct GNUNET_NETWORK_Descriptor *desc, int how);
+int GNUNET_NETWORK_socket_shutdown (struct GNUNET_NETWORK_Handle *desc, int how);
 
-struct GNUNET_NETWORK_Descriptor *GNUNET_NETWORK_socket_socket (int domain, int type, int protocol);
+struct GNUNET_NETWORK_Handle *GNUNET_NETWORK_socket_socket (int domain, int type, int protocol);
 
-ssize_t GNUNET_NETWORK_socket_write (const struct GNUNET_NETWORK_Descriptor *desc,
+ssize_t GNUNET_NETWORK_socket_write (const struct GNUNET_NETWORK_Handle *desc,
                          const void *buf, size_t nbyte);
 
 
 void GNUNET_NETWORK_fdset_zero(struct GNUNET_NETWORK_FDSet *fds);
 
 void GNUNET_NETWORK_fdset_set(struct GNUNET_NETWORK_FDSet *fds,
-    const struct GNUNET_NETWORK_Descriptor *desc);
+    const struct GNUNET_NETWORK_Handle *desc);
 
 int GNUNET_NETWORK_fdset_isset(const struct GNUNET_NETWORK_FDSet *fds,
-    const struct GNUNET_NETWORK_Descriptor *desc);
+    const struct GNUNET_NETWORK_Handle *desc);
 
 void GNUNET_NETWORK_fdset_add (struct GNUNET_NETWORK_FDSet *dst,
     const struct GNUNET_NETWORK_FDSet *src);

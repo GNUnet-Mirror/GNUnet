@@ -350,7 +350,7 @@ GNUNET_SCHEDULER_add_read_net (struct GNUNET_SCHEDULER_Handle *sched,
                            enum GNUNET_SCHEDULER_Priority prio,
                            GNUNET_SCHEDULER_TaskIdentifier prerequisite_task,
                            struct GNUNET_TIME_Relative delay,
-                           struct GNUNET_NETWORK_Descriptor *rfd, GNUNET_SCHEDULER_Task main, void *cls);
+                           struct GNUNET_NETWORK_Handle *rfd, GNUNET_SCHEDULER_Task main, void *cls);
 
 
 /**
@@ -383,7 +383,7 @@ GNUNET_SCHEDULER_add_write_net (struct GNUNET_SCHEDULER_Handle *sched,
                             enum GNUNET_SCHEDULER_Priority prio,
                             GNUNET_SCHEDULER_TaskIdentifier prerequisite_task,
                             struct GNUNET_TIME_Relative delay,
-                            struct GNUNET_NETWORK_Descriptor *wfd, GNUNET_SCHEDULER_Task main, void *cls);
+                            struct GNUNET_NETWORK_Handle *wfd, GNUNET_SCHEDULER_Task main, void *cls);
 
 
 /**

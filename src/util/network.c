@@ -31,7 +31,7 @@
 
 #define DEBUG_SOCK GNUNET_NO
 
-struct GNUNET_NETWORK_Descriptor
+struct GNUNET_NETWORK_Handle
 {
   int fd;
 };
@@ -51,14 +51,14 @@ struct GNUNET_NETWORK_FDSet
 #define FD_COPY(s, d) (memcpy ((d), (s), sizeof (fd_set)))
 #endif
 
-struct GNUNET_NETWORK_Descriptor *
-GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Descriptor *desc,
+struct GNUNET_NETWORK_Handle *
+GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
                               struct sockaddr *address,
                               socklen_t * address_len)
 {
-  struct GNUNET_NETWORK_Descriptor *ret;
+  struct GNUNET_NETWORK_Handle *ret;
 
-  ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Descriptor));
+  ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle));
   ret->fd = accept (desc->fd, address, address_len);
 #ifdef MINGW
   if (INVALID_SOCKET == ret->fd)
@@ -68,7 +68,7 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Descriptor *desc,
 }
 
 int
-GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Descriptor *desc,
+GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
                             const struct sockaddr *address,
                             socklen_t address_len)
 {
@@ -88,7 +88,7 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Descriptor *desc,
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
-GNUNET_NETWORK_socket_set_blocking (struct GNUNET_NETWORK_Descriptor *fd,
+GNUNET_NETWORK_socket_set_blocking (struct GNUNET_NETWORK_Handle *fd,
                                     int doBlock)
 {
 #if MINGW
@@ -124,7 +124,7 @@ GNUNET_NETWORK_socket_set_blocking (struct GNUNET_NETWORK_Descriptor *fd,
 }
 
 int
-GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Descriptor *desc)
+GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
 {
   int ret;
 #ifdef MINGW
@@ -145,7 +145,7 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Descriptor *desc)
 }
 
 int
-GNUNET_NETWORK_socket_connect (const struct GNUNET_NETWORK_Descriptor *desc,
+GNUNET_NETWORK_socket_connect (const struct GNUNET_NETWORK_Handle *desc,
                                const struct sockaddr *address,
                                socklen_t address_len)
 {
@@ -160,7 +160,7 @@ GNUNET_NETWORK_socket_connect (const struct GNUNET_NETWORK_Descriptor *desc,
 }
 
 int
-GNUNET_NETWORK_socket_getsockopt (const struct GNUNET_NETWORK_Descriptor *desc,
+GNUNET_NETWORK_socket_getsockopt (const struct GNUNET_NETWORK_Handle *desc,
                                   int level, int optname, void *optval,
                                   socklen_t * optlen)
 {
@@ -177,7 +177,7 @@ GNUNET_NETWORK_socket_getsockopt (const struct GNUNET_NETWORK_Descriptor *desc,
 }
 
 int
-GNUNET_NETWORK_socket_listen (const struct GNUNET_NETWORK_Descriptor *desc,
+GNUNET_NETWORK_socket_listen (const struct GNUNET_NETWORK_Handle *desc,
                               int backlog)
 {
   int ret;
@@ -192,7 +192,7 @@ GNUNET_NETWORK_socket_listen (const struct GNUNET_NETWORK_Descriptor *desc,
 }
 
 ssize_t
-GNUNET_NETWORK_socket_recv (const struct GNUNET_NETWORK_Descriptor * desc,
+GNUNET_NETWORK_socket_recv (const struct GNUNET_NETWORK_Handle * desc,
                             void *buffer, size_t length, int flags)
 {
   int ret;
@@ -207,7 +207,7 @@ GNUNET_NETWORK_socket_recv (const struct GNUNET_NETWORK_Descriptor * desc,
 }
 
 ssize_t
-GNUNET_NETWORK_socket_send (const struct GNUNET_NETWORK_Descriptor * desc,
+GNUNET_NETWORK_socket_send (const struct GNUNET_NETWORK_Handle * desc,
                             const void *buffer, size_t length, int flags)
 {
   int ret;
@@ -222,7 +222,7 @@ GNUNET_NETWORK_socket_send (const struct GNUNET_NETWORK_Descriptor * desc,
 }
 
 ssize_t
-GNUNET_NETWORK_socket_sendto (const struct GNUNET_NETWORK_Descriptor * desc,
+GNUNET_NETWORK_socket_sendto (const struct GNUNET_NETWORK_Handle * desc,
                               const void *message, size_t length, int flags,
                               const struct sockaddr * dest_addr,
                               socklen_t dest_len)
@@ -239,7 +239,7 @@ GNUNET_NETWORK_socket_sendto (const struct GNUNET_NETWORK_Descriptor * desc,
 }
 
 int
-GNUNET_NETWORK_socket_setsockopt (struct GNUNET_NETWORK_Descriptor *fd,
+GNUNET_NETWORK_socket_setsockopt (struct GNUNET_NETWORK_Handle *fd,
                                   int level, int option_name,
                                   const void *option_value,
                                   socklen_t option_len)
@@ -255,12 +255,12 @@ GNUNET_NETWORK_socket_setsockopt (struct GNUNET_NETWORK_Descriptor *fd,
   return ret;
 }
 
-struct GNUNET_NETWORK_Descriptor *
+struct GNUNET_NETWORK_Handle *
 GNUNET_NETWORK_socket_socket (int domain, int type, int protocol)
 {
-  struct GNUNET_NETWORK_Descriptor *ret;
+  struct GNUNET_NETWORK_Handle *ret;
 
-  ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Descriptor));
+  ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle));
   ret->fd = socket (domain, type, protocol);
 #ifdef MINGW
   if (INVALID_SOCKET == ret->fd)
@@ -277,7 +277,7 @@ GNUNET_NETWORK_socket_socket (int domain, int type, int protocol)
 }
 
 int
-GNUNET_NETWORK_socket_shutdown (struct GNUNET_NETWORK_Descriptor *desc,
+GNUNET_NETWORK_socket_shutdown (struct GNUNET_NETWORK_Handle *desc,
                                 int how)
 {
   int ret;
@@ -292,7 +292,7 @@ GNUNET_NETWORK_socket_shutdown (struct GNUNET_NETWORK_Descriptor *desc,
 }
 
 int
-GNUNET_NETWORK_socket_set_inheritable (const struct GNUNET_NETWORK_Descriptor
+GNUNET_NETWORK_socket_set_inheritable (const struct GNUNET_NETWORK_Handle
                                        *desc)
 {
 #ifdef MINGW
@@ -320,7 +320,7 @@ GNUNET_NETWORK_fdset_zero (struct GNUNET_NETWORK_FDSet *fds)
 
 void
 GNUNET_NETWORK_fdset_set (struct GNUNET_NETWORK_FDSet *fds,
-                          const struct GNUNET_NETWORK_Descriptor *desc)
+                          const struct GNUNET_NETWORK_Handle *desc)
 {
   FD_SET (desc->fd, &fds->sds);
 
@@ -330,7 +330,7 @@ GNUNET_NETWORK_fdset_set (struct GNUNET_NETWORK_FDSet *fds,
 
 int
 GNUNET_NETWORK_fdset_isset (const struct GNUNET_NETWORK_FDSet *fds,
-                            const struct GNUNET_NETWORK_Descriptor *desc)
+                            const struct GNUNET_NETWORK_Handle *desc)
 {
   return FD_ISSET (desc->fd, &fds->sds);
 }

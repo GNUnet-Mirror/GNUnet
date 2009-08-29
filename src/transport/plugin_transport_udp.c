@@ -267,10 +267,10 @@ udp_test_would_try (GNUNET_TSession * tsession, unsigned int size,
  * Create a UDP socket.  If possible, use IPv6, otherwise
  * try IPv4.  Update available_protocols accordingly.
  */
-static struct GNUNET_NETWORK_Descriptor *
+static struct GNUNET_NETWORK_Handle *
 udp_create_socket ()
 {
-  struct GNUNET_NETWORK_Descriptor *desc;
+  struct GNUNET_NETWORK_Handle *desc;
 
   available_protocols = VERSION_AVAILABLE_NONE;
   desc = NULL;
@@ -416,7 +416,7 @@ udp_transport_server_start ()
   struct sockaddr_in6 serverAddrv6;
   struct sockaddr *serverAddr;
   socklen_t addrlen;
-  GNUNET_NETWORK_Descriptor *desc;
+  GNUNET_NETWORK_Handle *desc;
   const int on = 1;
   unsigned short port;
 

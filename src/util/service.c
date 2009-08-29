@@ -813,7 +813,7 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
 
   if (!disablev6)
     {
-      struct GNUNET_NETWORK_Descriptor *desc;
+      struct GNUNET_NETWORK_Handle *desc;
 
       /* probe IPv6 support */
       desc = GNUNET_NETWORK_socket_socket (PF_INET6, SOCK_STREAM, 0);

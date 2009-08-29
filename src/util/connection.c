@@ -174,7 +174,7 @@ struct GNUNET_CONNECTION_Handle
   /**
    * Underlying OS's socket, set to NULL after fatal errors.
    */
-  struct GNUNET_NETWORK_Descriptor *sock;
+  struct GNUNET_NETWORK_Handle *sock;
 
   /**
    * Port to connect to.
@@ -219,7 +219,7 @@ struct GNUNET_CONNECTION_Handle
  */
 struct GNUNET_CONNECTION_Handle *
 GNUNET_CONNECTION_create_from_existing (struct GNUNET_SCHEDULER_Handle
-                                            *sched, struct GNUNET_NETWORK_Descriptor *osSocket,
+                                            *sched, struct GNUNET_NETWORK_Handle *osSocket,
                                             size_t maxbuf)
 {
   struct GNUNET_CONNECTION_Handle *ret;
@@ -248,13 +248,13 @@ struct GNUNET_CONNECTION_Handle *
 GNUNET_CONNECTION_create_from_accept (struct GNUNET_SCHEDULER_Handle
                                           *sched,
                                           GNUNET_CONNECTION_AccessCheck access,
-                                          void *access_cls, struct GNUNET_NETWORK_Descriptor *lsock,
+                                          void *access_cls, struct GNUNET_NETWORK_Handle *lsock,
                                           size_t maxbuf)
 {
   struct GNUNET_CONNECTION_Handle *ret;
   char addr[32];
   socklen_t addrlen;
-  struct GNUNET_NETWORK_Descriptor *sock;
+  struct GNUNET_NETWORK_Handle *sock;
   int aret;
   struct sockaddr_in *v4;
   struct sockaddr_in6 *v6;
@@ -389,7 +389,7 @@ try_lookup (struct GNUNET_CONNECTION_Handle *sock)
 static int
 try_connect (struct GNUNET_CONNECTION_Handle *sock)
 {
-  struct GNUNET_NETWORK_Descriptor *s;
+  struct GNUNET_NETWORK_Handle *s;
 
   if (sock->addr != NULL)
     {
@@ -598,7 +598,7 @@ GNUNET_CONNECTION_create_from_sockaddr (struct GNUNET_SCHEDULER_Handle
                                             const struct sockaddr *serv_addr,
                                             socklen_t addrlen, size_t maxbuf)
 {
-  struct GNUNET_NETWORK_Descriptor *s;
+  struct GNUNET_NETWORK_Handle *s;
   struct GNUNET_CONNECTION_Handle *ret;
 
   s = GNUNET_NETWORK_socket_socket (af_family, SOCK_STREAM, 0);

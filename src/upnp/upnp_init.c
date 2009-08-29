@@ -50,7 +50,7 @@ static unsigned int maps_size;
 
 static struct GNUNET_ThreadHandle *discovery;
 
-static struct GNUNET_NETWORK_Descriptor *discovery_socket;
+static struct GNUNET_NETWORK_Handle *discovery_socket;
 
 /**
  * Obtain the public/external IP address.

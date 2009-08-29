@@ -131,7 +131,7 @@ struct GNUNET_SERVER_Handle
    * Socket used to listen for new connections.  Set to
    * "-1" by GNUNET_SERVER_destroy to initiate shutdown.
    */
-  struct GNUNET_NETWORK_Descriptor *listen_socket;
+  struct GNUNET_NETWORK_Handle *listen_socket;
 
   /**
    * Set to GNUNET_YES if we are shutting down.
@@ -368,11 +368,11 @@ process_listen_socket (void *cls,
  *
  * @return NULL on error, otherwise the listen socket
  */
-static struct GNUNET_NETWORK_Descriptor *
+static struct GNUNET_NETWORK_Handle *
 open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
 {
   const static int on = 1;
-  struct GNUNET_NETWORK_Descriptor *sock;
+  struct GNUNET_NETWORK_Handle *sock;
   uint16_t port;
 
   switch (serverAddr->sa_family)
@@ -454,7 +454,7 @@ GNUNET_SERVER_create (struct GNUNET_SCHEDULER_Handle *sched,
                       idle_timeout, int require_found)
 {
   struct GNUNET_SERVER_Handle *ret;
-  struct GNUNET_NETWORK_Descriptor *lsock;
+  struct GNUNET_NETWORK_Handle *lsock;
   struct GNUNET_NETWORK_FDSet *r;
 
   lsock = NULL;

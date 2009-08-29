@@ -300,7 +300,7 @@ int
 main (int argc, char *argv[])
 {
   int ret = 0;
-  struct GNUNET_NETWORK_Descriptor *s;
+  struct GNUNET_NETWORK_Handle *s;
 
   GNUNET_log_setup ("test-service",
 #if VERBOSE
