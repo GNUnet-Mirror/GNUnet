@@ -1804,6 +1804,54 @@ GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *sc);
 
 
 /**
+ * Publish a KBlock on GNUnet.
+ *
+ * @param h handle to the file sharing subsystem
+ * @param keyword keyword to use
+ * @param meta metadata to use
+ * @param uri URI to refer to in the KBlock
+ * @param expirationTime when the KBlock expires
+ * @param anonymity anonymity level for the KBlock
+ * @param priority priority for the KBlock
+ */
+// FIXME: CPS this one..
+void
+GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
+		       const char *keyword,
+		       struct GNUNET_CONTAINER_MetaData *meta,
+		       struct GNUNET_FS_Uri *uri,
+		       struct GNUNET_TIME_Absolute expirationTime,
+		       unsigned int anonymity,
+		       unsigned int priority);
+
+
+/**
+ * Publish an SBlock on GNUnet.
+ *
+ * @param h handle to the file sharing subsystem
+ * @param namespace namespace to publish in
+ * @param identifier identifier to use
+ * @param update update identifier to use
+ * @param meta metadata to use
+ * @param uri URI to refer to in the SBlock
+ * @param expirationTime when the SBlock expires
+ * @param anonymity anonymity level for the SBlock
+ * @param priority priority for the SBlock
+ */
+// FIXME: CPS this one..
+void
+GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
+		       struct GNUNET_FS_Namespace *namespace,
+		       const char *identifier,
+		       const char *update,
+		       struct GNUNET_CONTAINER_MetaData *meta,
+		       struct GNUNET_FS_Uri *uri,
+		       struct GNUNET_TIME_Absolute expirationTime,
+		       unsigned int anonymity,
+		       unsigned int priority);
+
+
+/**
  * Type of a function called by "GNUNET_FS_get_indexed_files".
  *
  * @param cls closure

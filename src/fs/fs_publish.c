@@ -257,13 +257,18 @@ publish_sblock (struct GNUNET_FS_PublishContext *sc)
 {
   struct GNUNET_FS_FileInformation *p;
   p = sc->fi;
-
-  // FIXME: build sblock & call publish_block!
   
-  // FIXME: continuation should
-  // be releasing the datastore reserve
-  // (once implemented)
-  // FIXME: finally, signal overall completion
+  if (NULL != sc->namespace)
+    GNUNET_FS_publish_sks (sc->h,
+			   sc->namespace,
+			   sc->nid,
+			   sc->nuid,
+			   p->meta,
+			   p->chk_uri,
+			   p->expirationTime,
+			   p->anonymity,
+			   p->priority);
+  // FIXME: release the datastore reserve here!
   signal_publish_completion (p, sc);
 }
 
@@ -282,15 +287,28 @@ static void
 publish_kblocks (struct GNUNET_FS_PublishContext *sc,
 		 struct GNUNET_FS_FileInformation *p)
 {
-  // FIXME: build all kblocks
-  // call publish_block on each
+  unsigned int i;
 
-
+  // FIXME: use cps here instead...
+  for (i=0;i<p->keywords->data.ksk.keywordCount;i++)
+    GNUNET_FS_publish_ksk (sc->h,
+			   p->keywords->data.ksk.keywords[i],
+			   p->meta,
+			   p->chk_uri,
+			   p->expirationTime,
+			   p->anonymity,
+			   p->priority);
   GNUNET_FS_file_information_sync (p);
   if (NULL != p->dir)
     signal_publish_completion (p, sc);
-
-  // last continuation should then call the main continuation again
+  sc->upload_task 
+    = GNUNET_SCHEDULER_add_delayed (sc->h->sched,
+				    GNUNET_NO,
+				    GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+				    GNUNET_SCHEDULER_NO_TASK,
+				    GNUNET_TIME_UNIT_ZERO,
+				    &do_upload,
+				    sc);
 }
 
 
@@ -831,5 +849,59 @@ GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *sc)
   publish_cleanup (sc);
 }
 
+
+/**
+ * Publish a KBlock on GNUnet.
+ *
+ * @param h handle to the file sharing subsystem
+ * @param keyword keyword to use
+ * @param meta metadata to use
+ * @param uri URI to refer to in the KBlock
+ * @param expirationTime when the KBlock expires
+ * @param anonymity anonymity level for the KBlock
+ * @param priority priority for the KBlock
+ */
+// FIXME: cps this one
+void
+GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
+		       const char *keyword,
+		       struct GNUNET_CONTAINER_MetaData *meta,
+		       struct GNUNET_FS_Uri *uri,
+		       struct GNUNET_TIME_Absolute expirationTime,
+		       unsigned int anonymity,
+		       unsigned int priority)
+{
+  // FIXME!
+}
+
+
+
+/**
+ * Publish an SBlock on GNUnet.
+ *
+ * @param h handle to the file sharing subsystem
+ * @param namespace namespace to publish in
+ * @param identifier identifier to use
+ * @param update update identifier to use
+ * @param meta metadata to use
+ * @param uri URI to refer to in the SBlock
+ * @param expirationTime when the SBlock expires
+ * @param anonymity anonymity level for the SBlock
+ * @param priority priority for the SBlock
+ */
+// FIXME: cps this one
+void
+GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
+		       struct GNUNET_FS_Namespace *namespace,
+		       const char *identifier,
+		       const char *update,
+		       struct GNUNET_CONTAINER_MetaData *meta,
+		       struct GNUNET_FS_Uri *uri,
+		       struct GNUNET_TIME_Absolute expirationTime,
+		       unsigned int anonymity,
+		       unsigned int priority)
+{		 
+  // FIXME
+}
 
 /* end of fs_publish.c */
