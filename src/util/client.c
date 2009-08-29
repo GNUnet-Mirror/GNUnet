@@ -48,7 +48,7 @@ struct GNUNET_CLIENT_Connection
   /**
    * the socket handle, NULL if not live
    */
-  struct GNUNET_NETWORK_ConnectionHandle *sock;
+  struct GNUNET_CONNECTION_Handle *sock;
 
   /**
    * Our scheduler.
@@ -127,7 +127,7 @@ GNUNET_CLIENT_connect (struct GNUNET_SCHEDULER_Handle *sched,
                        const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_CLIENT_Connection *ret;
-  struct GNUNET_NETWORK_ConnectionHandle *sock;
+  struct GNUNET_CONNECTION_Handle *sock;
   char *hostname;
   unsigned long long port;
 

@@ -31,9 +31,9 @@
 
 #define PORT 12435
 
-static struct GNUNET_NETWORK_ConnectionHandle *csock;
+static struct GNUNET_CONNECTION_Handle *csock;
 
-static struct GNUNET_NETWORK_ConnectionHandle *lsock;
+static struct GNUNET_CONNECTION_Handle *lsock;
 
 static struct GNUNET_NETWORK_Descriptor *ls;
 

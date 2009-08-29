@@ -238,7 +238,7 @@ struct GNUNET_SERVER_Client *GNUNET_SERVER_connect_socket (struct
                                                            GNUNET_SERVER_Handle
                                                            *server,
                                                            struct
-                                                           GNUNET_NETWORK_ConnectionHandle
+                                                           GNUNET_CONNECTION_Handle
                                                            *connection);
 
 

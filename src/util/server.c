@@ -312,7 +312,7 @@ process_listen_socket (void *cls,
                        const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_SERVER_Handle *server = cls;
-  struct GNUNET_NETWORK_ConnectionHandle *sock;
+  struct GNUNET_CONNECTION_Handle *sock;
   struct GNUNET_SERVER_Client *client;
   struct GNUNET_NETWORK_FDSet *r;
   const struct GNUNET_DISK_FileHandle *shutpipe;
@@ -877,7 +877,7 @@ sock_receive (void *cls,
 /**
  * Wrapper to cancel receiving from a socket.
  * 
- * @param cls handle to the GNUNET_NETWORK_ConnectionHandle to cancel
+ * @param cls handle to the GNUNET_CONNECTION_Handle to cancel
  * @param tc task ID that was returned by GNUNET_CONNECTION_receive
  */
 static void
@@ -953,7 +953,7 @@ struct GNUNET_SERVER_Client *
 GNUNET_SERVER_connect_socket (struct
                               GNUNET_SERVER_Handle
                               *server,
-                              struct GNUNET_NETWORK_ConnectionHandle *connection)
+                              struct GNUNET_CONNECTION_Handle *connection)
 {
   struct GNUNET_SERVER_Client *client;
 

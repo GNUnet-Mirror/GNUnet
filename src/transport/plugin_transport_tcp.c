@@ -357,7 +357,7 @@ struct Plugin
   /**
    * The listen socket.
    */
-  struct GNUNET_NETWORK_ConnectionHandle *lsock;
+  struct GNUNET_CONNECTION_Handle *lsock;
 
   /**
    * List of open TCP sessions.
@@ -652,7 +652,7 @@ connect_and_create_validation_session (struct Plugin *plugin,
 				       const void *addr, size_t addrlen)
 {
   struct GNUNET_SERVER_Client *client;
-  struct GNUNET_NETWORK_ConnectionHandle *conn;
+  struct GNUNET_CONNECTION_Handle *conn;
   struct Session *session;
   int af;
 
@@ -877,7 +877,7 @@ struct ConnectContext
 {
   struct Plugin *plugin;
 
-  struct GNUNET_NETWORK_ConnectionHandle *sa;
+  struct GNUNET_CONNECTION_Handle *sa;
 
   struct PendingMessage *welcome;
 
