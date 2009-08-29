@@ -42,9 +42,10 @@ nextHC (GNUNET_HashCode * hc)
 }
 
 static int
-add_iterator (GNUNET_HashCode * next, void *arg)
+add_iterator (void *cls,
+	      GNUNET_HashCode * next)
 {
-  int *ret = arg;
+  int *ret = cls;
   GNUNET_HashCode pos;
 
   if (0 == (*ret)--)
