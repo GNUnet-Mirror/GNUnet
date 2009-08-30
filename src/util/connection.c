@@ -309,7 +309,7 @@ GNUNET_CONNECTION_create_from_accept (struct GNUNET_SCHEDULER_Handle
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		    _("Access denied to `%s'\n"),
 		    GNUNET_a2s(uaddr, addrlen));
-      GNUNET_break (0 == GNUNET_NETWORK_socket_shutdown (sock, SHUT_RDWR));
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_shutdown (sock, SHUT_RDWR));
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
       GNUNET_free (uaddr);
       return NULL;

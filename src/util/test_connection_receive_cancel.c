@@ -61,7 +61,7 @@ open_listen_socket ()
   sa.sin_port = htons (PORT);
   desc = GNUNET_NETWORK_socket_socket (AF_INET, SOCK_STREAM, 0);
   GNUNET_assert (desc != NULL);
-  if (GNUNET_NETWORK_socket_setsockopt (desc, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) < 0)
+  if (GNUNET_NETWORK_socket_setsockopt (desc, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "setsockopt");
   GNUNET_assert (GNUNET_NETWORK_socket_bind (desc,

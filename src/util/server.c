@@ -398,7 +398,7 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                          "fcntl");
 #endif
-  if (GNUNET_NETWORK_socket_setsockopt (sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) < 0)
+  if (GNUNET_NETWORK_socket_setsockopt (sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                          "setsockopt");
   /* bind the socket */
@@ -412,7 +412,7 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
       return NULL;
     }
-  if (0 != GNUNET_NETWORK_socket_listen (sock, 5))
+  if (GNUNET_OK != GNUNET_NETWORK_socket_listen (sock, 5))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "listen");
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
