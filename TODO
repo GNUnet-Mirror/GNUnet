@@ -36,43 +36,53 @@ PHASE #2: (Goal: recover basic file-sharing functionality)
 * HOSTLIST:
   - implement testcases
 * FS (anonymous FS only)
-  - review FS API [Nils, Amatus, CG]
   - design network structs (CS)
-  - implement FS library
-    + URI API -- DONE (but do more testing)
-    + getopt API -- DONE (but do more testing)
-    + persistence mechanism (design done)
+    + list-indexed, index, unindex
+    + search/download, response
+  - implement basic FS library
     + sharing API
-      ~ file-information (needs testing)
-      ~ directory (needs testing)
-      ~ publish (work in progress...)
+      ~ publish (indexing)
       ~ unindex & list indexed!!! (need publish to be done)
       ~ search (need publish to be done)
       ~ download (need publish/search to be done)
-      ~ namespaces
-      ~ collection
-  - design network structs (P2P)
-  - datastore request queueing mechanism
-  - implement FS service (needs DHT)
-    + download
-    + search
+  - design network structs (CS/P2P)
+  - implement FS service
+    + datastore request queueing mechanism
+    + CS-functions (search, download, index, get_indexed, unindex)
+    + P2P-functions (query, response)
   - implement testcases 
     + URI API
     + getopt API
     + sharing API (needs TESTING)
       ~ file-information
-      ~ insert
+      ~ publish (insert, index)
       ~ download
       ~ search
       ~ unindex
       ~ namespaces
       ~ collection
     + directory API
+  - advanced sharing API 
+    + namespaces => SBlocks!
+    + collection
+    + location URIs (publish, search, download)
+    + persistence support (publish, unindex, search, download)
+    + datastore reservation (publishing)
+  - implement adv. testcases 
+    + insert: sblocks, loc uris
+    + download: loc uris
+    + search: sblocks, skblocks, loc uris
+    + namespaces
+    + collection
   - implement performance tests (needs TESTING)
     + insert
     + download
     + search
     + unindex
+  - implement adv. FS service (needs DHT)
+    + basic DHT integration
+    + CS-DHT-functions (DHT-put of LOC)
+    + P2P-functions (DHT-get)
 * new webpage
   - install on proper server
   - activate as ng.gnunet.org
