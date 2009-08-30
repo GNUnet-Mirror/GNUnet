@@ -61,6 +61,7 @@ GNUNET_FS_start (struct GNUNET_SCHEDULER_Handle *sched,
   ret->upcb_cls = upcb_cls;
   ret->client = client;
   // FIXME: setup receive-loop with client
+
   // FIXME: deserialize state; use client-name to find master-directory!
   // Deserialize-Upload:
   // * read FNs for upload FIs, deserialize each

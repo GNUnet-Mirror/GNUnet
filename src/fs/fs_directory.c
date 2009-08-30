@@ -173,11 +173,11 @@ GNUNET_FS_directory_list_contents (size_t size,
           /* URI is never empty, must be end of block,
              skip to next alignment */
           align =
-            ((pos / GNUNET_FS_DBLOCK_SIZE) + 1) * GNUNET_FS_DBLOCK_SIZE;
+            ((pos / DBLOCK_SIZE) + 1) * DBLOCK_SIZE;
           if (align == pos)
             {
               /* if we were already aligned, still skip a block! */
-              align += GNUNET_FS_DBLOCK_SIZE;
+              align += DBLOCK_SIZE;
             }
           pos = align;
           if (pos >= size)
@@ -333,7 +333,7 @@ GNUNET_FS_directory_builder_add (struct GNUNET_FS_DirectoryBuilder *bld,
       fsize = GNUNET_FS_uri_chk_get_file_size (GNUNET_FS_uri_loc_get_uri (uri));
   else
     fsize = 0; /* not given */
-  if (fsize > GNUNET_FS_MAX_INLINE_SIZE)
+  if (fsize > MAX_INLINE_SIZE)
     fsize = 0; /* too large */
   if (NULL != memchr (data, 0, fsize))
     fsize = 0; /* must not have 0's in data! */
@@ -353,8 +353,8 @@ GNUNET_FS_directory_builder_add (struct GNUNET_FS_DirectoryBuilder *bld,
       mdxs =
 	GNUNET_CONTAINER_meta_data_get_serialized_size (meta,
 							GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL);  
-      if ( (slen + sizeof (uint32_t) + mdxs - 1) / GNUNET_FS_DBLOCK_SIZE ==
-	   (slen + sizeof (uint32_t) + mds - 1) / GNUNET_FS_DBLOCK_SIZE)
+      if ( (slen + sizeof (uint32_t) + mdxs - 1) / DBLOCK_SIZE ==
+	   (slen + sizeof (uint32_t) + mds - 1) / DBLOCK_SIZE)
 	{
 	  /* adding full data would not cause us to cross
 	     additional blocks, so add it! */
@@ -392,7 +392,7 @@ GNUNET_FS_directory_builder_add (struct GNUNET_FS_DirectoryBuilder *bld,
 /**
  * Given the start and end position of a block of
  * data, return the end position of that data
- * after alignment to the GNUNET_FS_DBLOCK_SIZE.
+ * after alignment to the DBLOCK_SIZE.
  */
 static size_t
 do_align (size_t start_position, 
@@ -400,7 +400,7 @@ do_align (size_t start_position,
 {
   size_t align;
   
-  align = (end_position / GNUNET_FS_DBLOCK_SIZE) * GNUNET_FS_DBLOCK_SIZE;
+  align = (end_position / DBLOCK_SIZE) * DBLOCK_SIZE;
   if ((start_position < align) && (end_position > align))
     return align + end_position - start_position;
   return end_position;
@@ -442,28 +442,28 @@ block_align (size_t start,
         {
           cval = perm[j];
           cend = cpos + sizes[cval];
-          if (cpos % GNUNET_FS_DBLOCK_SIZE == 0)
+          if (cpos % DBLOCK_SIZE == 0)
             {
               /* prefer placing the largest blocks first */
-              cbad = -(cend % GNUNET_FS_DBLOCK_SIZE);
+              cbad = -(cend % DBLOCK_SIZE);
             }
           else
             {
-              if (cpos / GNUNET_FS_DBLOCK_SIZE ==
-                  cend / GNUNET_FS_DBLOCK_SIZE)
+              if (cpos / DBLOCK_SIZE ==
+                  cend / DBLOCK_SIZE)
                 {
                   /* Data fits into the same block! Prefer small left-overs! */
                   cbad =
-                    GNUNET_FS_DBLOCK_SIZE - cend % GNUNET_FS_DBLOCK_SIZE;
+                    DBLOCK_SIZE - cend % DBLOCK_SIZE;
                 }
               else
                 {
                   /* Would have to waste space to re-align, add big factor, this
                      case is a real loss (proportional to space wasted)! */
                   cbad =
-                    GNUNET_FS_DBLOCK_SIZE * (GNUNET_FS_DBLOCK_SIZE -
+                    DBLOCK_SIZE * (DBLOCK_SIZE -
 					     cpos %
-					     GNUNET_FS_DBLOCK_SIZE);
+					     DBLOCK_SIZE);
                 }
             }
           if (cbad < badness)

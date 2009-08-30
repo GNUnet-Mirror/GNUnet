@@ -360,16 +360,16 @@ compute_depth (uint64_t flen)
   uint64_t fl;
 
   treeDepth = 1;
-  fl = GNUNET_FS_DBLOCK_SIZE;
+  fl = DBLOCK_SIZE;
   while (fl < flen)
     {
       treeDepth++;
-      if (fl * GNUNET_FS_CHK_PER_INODE < fl)
+      if (fl * CHK_PER_INODE < fl)
         {
           /* integer overflow, this is a HUGE file... */
           return treeDepth;
         }
-      fl = fl * GNUNET_FS_CHK_PER_INODE;
+      fl = fl * CHK_PER_INODE;
     }
   return treeDepth;
 }
@@ -393,20 +393,20 @@ compute_iblock_size (unsigned int height,
   uint64_t bds;
 
   GNUNET_assert (height > 0);
-  bds = GNUNET_FS_DBLOCK_SIZE; /* number of bytes each CHK at level "i"
+  bds = DBLOCK_SIZE; /* number of bytes each CHK at level "i"
 				  corresponds to */
   for (i=0;i<height;i++)
-    bds *= GNUNET_FS_CHK_PER_INODE;
+    bds *= CHK_PER_INODE;
   mod = offset % bds;
   if (0 == mod)
     {
       /* we were triggered at the end of a full block */
-      ret = GNUNET_FS_CHK_PER_INODE;
+      ret = CHK_PER_INODE;
     }
   else
     {
       /* we were triggered at the end of the file */
-      bds /= GNUNET_FS_CHK_PER_INODE;
+      bds /= CHK_PER_INODE;
       ret = mod / bds;
       if (0 != mod % bds)
 	ret++; 
@@ -432,13 +432,13 @@ compute_chk_offset (unsigned int height,
   unsigned int ret;
   unsigned int i;
 
-  bds = GNUNET_FS_DBLOCK_SIZE; /* number of bytes each CHK at level "i"
+  bds = DBLOCK_SIZE; /* number of bytes each CHK at level "i"
 				  corresponds to */
   for (i=0;i<height;i++)
-    bds *= GNUNET_FS_CHK_PER_INODE;
+    bds *= CHK_PER_INODE;
   GNUNET_assert (0 == (offset % bds));
   ret = offset / bds;
-  return ret % GNUNET_FS_CHK_PER_INODE; 
+  return ret % CHK_PER_INODE; 
 }
 
 
@@ -460,8 +460,8 @@ publish_content (struct GNUNET_FS_PublishContext *sc,
   const void *pt_block;
   uint16_t pt_size;
   char *emsg;
-  char iob[GNUNET_FS_DBLOCK_SIZE];
-  char enc[GNUNET_FS_DBLOCK_SIZE];
+  char iob[DBLOCK_SIZE];
+  char enc[DBLOCK_SIZE];
   struct GNUNET_CRYPTO_AesSessionKey sk;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
   uint64_t size;
@@ -491,7 +491,7 @@ publish_content (struct GNUNET_FS_PublishContext *sc,
 	      else
 		{
 		  raw_data = NULL;
-		  if ( (dirpos->data.file.file_size < GNUNET_FS_MAX_INLINE_SIZE) &&
+		  if ( (dirpos->data.file.file_size < MAX_INLINE_SIZE) &&
 		       (dirpos->data.file.file_size > 0) )
 		    {
 		      raw_data = GNUNET_malloc (dirpos->data.file.file_size);
@@ -524,21 +524,21 @@ publish_content (struct GNUNET_FS_PublishContext *sc,
       p->chk_tree_depth = compute_depth (size);
       p->chk_tree = GNUNET_malloc (p->chk_tree_depth * 
 				   sizeof (struct ContentHashKey) *
-				   GNUNET_FS_CHK_PER_INODE);
+				   CHK_PER_INODE);
       p->current_depth = p->chk_tree_depth;
     }
   if (p->current_depth == p->chk_tree_depth)
     {
       if (p->is_directory)
 	{
-	  pt_size = GNUNET_MIN(GNUNET_FS_DBLOCK_SIZE,
+	  pt_size = GNUNET_MIN(DBLOCK_SIZE,
 			       p->data.dir.dir_size - p->publish_offset);
 	  dd = p->data.dir.dir_data;
 	  pt_block = &dd[p->publish_offset];
 	}
       else
 	{
-	  pt_size = GNUNET_MIN(GNUNET_FS_DBLOCK_SIZE,
+	  pt_size = GNUNET_MIN(DBLOCK_SIZE,
 			       p->data.file.file_size - p->publish_offset);
 	  emsg = NULL;
 	  if (pt_size !=
@@ -579,11 +579,11 @@ publish_content (struct GNUNET_FS_PublishContext *sc,
       pt_size = compute_iblock_size (p->chk_tree_depth - p->current_depth,
 				     p->publish_offset); 
       pt_block = &p->chk_tree[p->current_depth *
-			      GNUNET_FS_CHK_PER_INODE];
+			      CHK_PER_INODE];
     }
   off = compute_chk_offset (p->chk_tree_depth - p->current_depth,
 			    p->publish_offset);
-  mychk = &p->chk_tree[(p->current_depth-1)*GNUNET_FS_CHK_PER_INODE+off];
+  mychk = &p->chk_tree[(p->current_depth-1)*CHK_PER_INODE+off];
   GNUNET_CRYPTO_hash (pt_block, pt_size, &mychk->key);
   GNUNET_CRYPTO_hash_to_aes_key (&mychk->key, &sk, &iv);
   GNUNET_CRYPTO_aes_encrypt (pt_block,
@@ -645,12 +645,12 @@ publish_content (struct GNUNET_FS_PublishContext *sc,
     { 
       p->publish_offset += pt_size;
       if ( (p->publish_offset == size) ||
-	   (0 == p->publish_offset % (GNUNET_FS_CHK_PER_INODE * GNUNET_FS_DBLOCK_SIZE) ) )
+	   (0 == p->publish_offset % (CHK_PER_INODE * DBLOCK_SIZE) ) )
 	p->current_depth--;
     }
   else
     {
-      if ( (off == GNUNET_FS_CHK_PER_INODE) ||
+      if ( (off == CHK_PER_INODE) ||
 	   (p->publish_offset == size) )
 	p->current_depth--;
       else
@@ -951,13 +951,13 @@ struct PublishKskContext
    * (in plaintext), has "mdsize+slen" more
    * bytes than the struct would suggest.
    */
-  struct GNUNET_FS_KBlock *kb;
+  struct KBlock *kb;
 
   /**
    * Buffer of the same size as "kb" for
    * the encrypted version.
    */ 
-  struct GNUNET_FS_KBlock *cpy;
+  struct KBlock *cpy;
 
   /**
    * Handle to the datastore, NULL if we are just
@@ -1114,7 +1114,7 @@ publish_ksk_cont (void *cls,
 			0,
 			&query,
 			pkc->mdsize + 
-			sizeof (struct GNUNET_FS_KBlock) + 
+			sizeof (struct KBlock) + 
 			pkc->slen,
 			pkc->cpy,
 			GNUNET_DATASTORE_BLOCKTYPE_KBLOCK, 
@@ -1181,11 +1181,11 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
   GNUNET_assert (pkc->mdsize >= 0);
   uris = GNUNET_FS_uri_to_string (uri);
   pkc->slen = strlen (uris) + 1;
-  size = pkc->mdsize + sizeof (struct GNUNET_FS_KBlock) + pkc->slen;
+  size = pkc->mdsize + sizeof (struct KBlock) + pkc->slen;
   if (size > MAX_KBLOCK_SIZE)
     {
       size = MAX_KBLOCK_SIZE;
-      pkc->mdsize = size - sizeof (struct GNUNET_FS_KBlock) - pkc->slen;
+      pkc->mdsize = size - sizeof (struct KBlock) - pkc->slen;
     }
   pkc->kb = GNUNET_malloc (size);
   kbe = (char *) &pkc->kb[1];
@@ -1206,7 +1206,7 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
       GNUNET_free (pkc);
       return;
     }
-  size = sizeof (struct GNUNET_FS_KBlock) + pkc->slen + pkc->mdsize;
+  size = sizeof (struct KBlock) + pkc->slen + pkc->mdsize;
 
   pkc->cpy = GNUNET_malloc (size);
   pkc->cpy->purpose.size = htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) + 
@@ -1322,8 +1322,8 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   size_t nidlen;
   size_t idlen;
   ssize_t mdsize;
-  struct GNUNET_FS_SBlock *sb;
-  struct GNUNET_FS_SBlock *sb_enc;
+  struct SBlock *sb;
+  struct SBlock *sb_enc;
   char *dest;
   GNUNET_HashCode key;           /* hash of thisId = key */
   GNUNET_HashCode id;          /* hash of hc = identifier */
@@ -1337,13 +1337,13 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   mdsize = GNUNET_CONTAINER_meta_data_get_serialized_size (meta, 
 							   GNUNET_CONTAINER_META_DATA_SERIALIZE_PART);
 
-  size = sizeof (struct GNUNET_FS_SBlock) + slen + nidlen + mdsize;
+  size = sizeof (struct SBlock) + slen + nidlen + mdsize;
   if (size > MAX_SBLOCK_SIZE)
     {
       size = MAX_SBLOCK_SIZE;
-      mdsize = size - (sizeof (struct GNUNET_FS_SBlock) + slen + nidlen);
+      mdsize = size - (sizeof (struct SBlock) + slen + nidlen);
     }
-  sb = GNUNET_malloc (sizeof (struct GNUNET_FS_SBlock) + size);
+  sb = GNUNET_malloc (sizeof (struct SBlock) + size);
   dest = (char *) &sb[1];
   memcpy (dest, update, nidlen);
   dest += nidlen;
@@ -1363,8 +1363,8 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
 	    _("Internal error."));
       return;
     }
-  size = sizeof (struct GNUNET_FS_SBlock) + mdsize + slen + nidlen;
-  sb_enc = GNUNET_malloc (sizeof (struct GNUNET_FS_SBlock) + size);
+  size = sizeof (struct SBlock) + mdsize + slen + nidlen;
+  sb_enc = GNUNET_malloc (sizeof (struct SBlock) + size);
   GNUNET_CRYPTO_hash (identifier, idlen, &key);
   GNUNET_CRYPTO_hash (&key, sizeof (GNUNET_HashCode), &id);
   sks_uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
@@ -1379,14 +1379,14 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
 			  &sb_enc->identifier);
   GNUNET_CRYPTO_hash_to_aes_key (&key, &sk, &iv);
   GNUNET_CRYPTO_aes_encrypt (&sb[1],
-			     size - sizeof (struct GNUNET_FS_SBlock),
+			     size - sizeof (struct SBlock),
 			     &sk,
 			     &iv,
 			     &sb_enc[1]);
   GNUNET_free (sb);
   sb_enc->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_FS_SBLOCK);
   sb_enc->purpose.size = htonl(slen + mdsize + nidlen
-			       + sizeof(struct GNUNET_FS_SBlock)
+			       + sizeof(struct SBlock)
 			       - sizeof(struct GNUNET_CRYPTO_RsaSignature));
   GNUNET_assert (GNUNET_OK == 
 		 GNUNET_CRYPTO_rsa_sign (namespace->key,

@@ -27,6 +27,13 @@ exported symbols:
 - must start with "GNUNET_modulename_" and be defined in "modulename.c"
 - exceptions: those defined in gnunet_common.h
 
+private (library-internal) symbols (including structs & macros):
+- must NOT start with any prefix
+- must not be exported in a way that linkers could use them or
+  other libraries might see them via headers; they must be either
+  declared/defined in C source files or in headers that are in 
+  the respective directory under src/modulename/ and NEVER be
+  declared in src/include/.
 
 testcases:
 - must be called "test_module-under-test_case-description.c"

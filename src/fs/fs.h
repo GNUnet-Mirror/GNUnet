@@ -32,7 +32,7 @@
 /**
  * Size of the individual blocks used for file-sharing.
  */
-#define GNUNET_FS_DBLOCK_SIZE (32*1024)
+#define DBLOCK_SIZE (32*1024)
 
 
 /**
@@ -42,14 +42,14 @@
  * value is 32768 byte / 128 byte = 256
  * (128 byte = 2 * 512 bits).  DO NOT CHANGE!
  */
-#define GNUNET_FS_CHK_PER_INODE 256
+#define CHK_PER_INODE 256
 
 
 /**
  * Maximum size for a file to be considered for
  * inlining in a directory.
  */
-#define GNUNET_FS_MAX_INLINE_SIZE 65536
+#define MAX_INLINE_SIZE 65536
 
 
 
@@ -509,7 +509,7 @@ struct GNUNET_FS_Namespace
 /**
  * @brief keyword block (advertising data under a keyword)
  */
-struct GNUNET_FS_KBlock
+struct KBlock
 {
 
   /**
@@ -536,7 +536,7 @@ struct GNUNET_FS_KBlock
 /**
  * @brief namespace content block (advertising data under an identifier in a namespace)
  */
-struct GNUNET_FS_SBlock
+struct SBlock
 {
 
   /**
@@ -570,6 +570,11 @@ struct GNUNET_FS_SBlock
 
 };
 
+
+struct IndexStartMessage
+{
+
+};
 
 
 
