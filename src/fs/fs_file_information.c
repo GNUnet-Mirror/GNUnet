@@ -60,8 +60,9 @@ struct GNUNET_FS_FileInformation *
 GNUNET_FS_file_information_recover (const char *name)
 {
   struct GNUNET_FS_FileInformation *ret;
+  ret = NULL;
   // FIXME!
-  return NULL;
+  return ret;
 }
 
 
