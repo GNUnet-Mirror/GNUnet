@@ -265,6 +265,9 @@ struct GNUNET_FS_UnindexContext *
 GNUNET_FS_unindex (struct GNUNET_FS_Handle *h,
 		   const char *filename)
 {
+  // 1: compute file-id (hash over entire file)
+  // 2: notify FS service about file no longer being indexed
+  // 3: remove corresponding blocks from datastore!
   return NULL;
 }
 

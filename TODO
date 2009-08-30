@@ -35,16 +35,17 @@ PHASE #2: (Goal: recover basic file-sharing functionality)
   - implement testcases (needs TESTING)
 * HOSTLIST:
   - implement testcases
-* FS (anonymous FS only)
+* FS (basic anonymous FS only)
   - design network structs (CS)
-    + list-indexed, unindex
+    + unindex
     + search/download, response
   - implement basic FS library
-    + sharing API
-      ~ unindex (need publish to be done)
-      ~ search (need publish to be done)
-      ~ download (need publish/search to be done)
-  - design network structs (CS/P2P)
+    - unindex
+    - keyword-search
+    - download (need search to be done)
+  - design network structs (P2P)
+    + query
+    + response
   - implement FS service
     + datastore request queueing mechanism
     + CS-functions (search, download, index, get_indexed, unindex)
@@ -52,7 +53,7 @@ PHASE #2: (Goal: recover basic file-sharing functionality)
   - implement testcases 
     + URI API
     + getopt API
-    + sharing API (needs TESTING)
+    + sharing API
       ~ file-information
       ~ publish (insert, index)
       ~ download
@@ -61,28 +62,6 @@ PHASE #2: (Goal: recover basic file-sharing functionality)
       ~ namespaces
       ~ collection
     + directory API
-  - advanced sharing API 
-    + namespaces => SBlocks!
-    + collection
-    + location URIs (publish, search, download)
-    + persistence support (publish, unindex, search, download)
-    + datastore reservation (publishing)
-    + indexing: index-failure-cleanup
-  - implement adv. testcases 
-    + insert: sblocks, loc uris
-    + download: loc uris
-    + search: sblocks, skblocks, loc uris
-    + namespaces
-    + collection
-  - implement performance tests (needs TESTING)
-    + insert
-    + download
-    + search
-    + unindex
-  - implement adv. FS service (needs DHT)
-    + basic DHT integration
-    + CS-DHT-functions (DHT-put of LOC)
-    + P2P-functions (DHT-get)
 * new webpage
   - install on proper server
   - activate as ng.gnunet.org
@@ -91,6 +70,31 @@ PHASE #2: (Goal: recover basic file-sharing functionality)
 
 PHASE #3: (Goal: ready for pre-release) [completion-goal: end of 2009]
 * Module features to implement:
+  - advanced FS API parts
+    + namespaces
+      ~ fundamental namespace API
+      ~ SBlock search
+      ~ KSBlocks!?
+    + collection
+    + location URIs (publish, search, download)
+    + persistence support (publish, unindex, search, download)
+    + datastore reservation (publishing)
+    + indexing: index-failure-cleanup
+  - implement adv. FS testcases 
+    + insert: sblocks, loc uris
+    + download: loc uris
+    + search: sblocks, skblocks, loc uris
+    + namespaces
+    + collection
+  - implement FS performance tests (needs TESTING)
+    + insert
+    + download
+    + search
+    + unindex
+  - non-anonymous FS service (needs DHT)
+    + basic DHT integration
+    + CS-DHT-functions (DHT-put of LOC)
+    + P2P-functions (DHT-get)
   - setup (RC-pre0)
     + default generation
     + need to settle basic design; do we want to keep guile?
