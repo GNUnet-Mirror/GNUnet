@@ -26,7 +26,7 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - indexing support
+ * - indexing cleanup: unindex on failure (can wait)
  * - code-sharing with unindex (can wait)
  * - persistence support (can wait)
  * - datastore reservation support (optimization)
@@ -52,6 +52,14 @@
  */
 #define MAX_SBLOCK_SIZE 60000
 
+/**
+ * Blocksize to use when hashing files
+ * for indexing (blocksize for IO, not for
+ * the DBlocks).  Larger blocksizes can
+ * be more efficient but will be more disruptive
+ * as far as the scheduler is concerned.
+ */
+#define HASHING_BLOCKSIZE (1024 * 1024)
 
 /**
  * Main function that performs the upload.
@@ -471,6 +479,7 @@ publish_content (struct GNUNET_FS_PublishContext *sc,
   void *raw_data;
   char *dd;
   struct PutContCtx * dpc_cls;
+  struct OnDemandBlock odb;
 
   // FIXME: figure out how to share this code
   // with unindex!
@@ -593,8 +602,6 @@ publish_content (struct GNUNET_FS_PublishContext *sc,
 			     enc);
   // NOTE: this block below is all that really differs
   // between publish/unindex!  Parameterize & move this code!
-  // FIXME: something around here would need to change
-  // for indexing!
   if (NULL == sc->dsh)
     {
       sc->upload_task
@@ -614,20 +621,42 @@ publish_content (struct GNUNET_FS_PublishContext *sc,
       dpc_cls->cont = &do_upload;
       dpc_cls->cont_cls = sc;
       dpc_cls->p = p;
-      GNUNET_DATASTORE_put (sc->dsh,
-			    sc->rid,
-			    &mychk->query,
-			    pt_size,
-			    enc,
-			    (p->current_depth == p->chk_tree_depth) 
-			    ? GNUNET_DATASTORE_BLOCKTYPE_DBLOCK 
-			    : GNUNET_DATASTORE_BLOCKTYPE_IBLOCK,
-			    p->priority,
-			    p->anonymity,
-			    p->expirationTime,
-			    GNUNET_CONSTANTS_SERVICE_TIMEOUT,
-			    &ds_put_cont,
-			    dpc_cls);
+      if ( (p->is_directory) &&
+	   (p->data.file.do_index) &&
+	   (p->current_depth == p->chk_tree_depth) )
+	{
+	  odb.offset = p->publish_offset;
+	  odb.file_id = p->data.file.file_id;
+	  GNUNET_DATASTORE_put (sc->dsh,
+				sc->rid,
+				&mychk->query,
+				sizeof(struct OnDemandBlock),
+				&odb,
+				GNUNET_DATASTORE_BLOCKTYPE_ONDEMAND,
+				p->priority,
+				p->anonymity,
+				p->expirationTime,
+				GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+				&ds_put_cont,
+				dpc_cls);	  
+	}
+      else
+	{
+	  GNUNET_DATASTORE_put (sc->dsh,
+				sc->rid,
+				&mychk->query,
+				pt_size,
+				enc,
+				(p->current_depth == p->chk_tree_depth) 
+				? GNUNET_DATASTORE_BLOCKTYPE_DBLOCK 
+				: GNUNET_DATASTORE_BLOCKTYPE_IBLOCK,
+				p->priority,
+				p->anonymity,
+				p->expirationTime,
+				GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+				&ds_put_cont,
+				dpc_cls);
+	}
     }
   if (p->current_depth == p->chk_tree_depth)
     {
@@ -665,6 +694,153 @@ publish_content (struct GNUNET_FS_PublishContext *sc,
       GNUNET_free (p->chk_tree);
       p->chk_tree = NULL;
     }
+}
+
+
+
+
+/**
+ * Process the response (or lack thereof) from
+ * the "fs" service to our 'start index' request.
+ *
+ * @param cls closure (of type "struct GNUNET_FS_PublishContext*"_)
+ * @param msg the response we got
+ */
+static void
+process_index_start_response (void *cls,
+			      const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_FS_PublishContext *sc = cls;
+  struct GNUNET_FS_FileInformation *p;
+  const char *emsg;
+  uint16_t msize;
+
+  GNUNET_CLIENT_disconnect (sc->client);
+  sc->client = NULL;
+  p = sc->fi_pos;
+  if (msg == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Can not index file `%s': %s.  Will try to insert instead.\n"),
+		  p->data.file.filename,
+		  _("timeout on index-start request to `fs' service"));
+      p->data.file.do_index = GNUNET_NO;
+      publish_content (sc, p);
+      return;
+    }
+  if (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_FS_INDEX_START_OK)
+    {
+      msize = ntohs (msg->size);
+      emsg = (const char *) &msg[1];
+      if ( (msize <= sizeof (struct GNUNET_MessageHeader)) ||
+	   (emsg[msize - sizeof(struct GNUNET_MessageHeader) - 1] != '\0') )
+	emsg = gettext_noop ("unknown error");
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Can not index file `%s': %s.  Will try to insert instead.\n"),
+		  p->data.file.filename,
+		  gettext (emsg));
+      p->data.file.do_index = GNUNET_NO;
+      publish_content (sc, p);
+      return;
+    }
+  /* success! continue with indexing */
+  publish_content (sc, p);
+}
+
+
+#if LINUX
+#include <sys/statvfs.h>
+#endif
+
+/**
+ * Function called once the hash computation over an
+ * indexed file has completed.
+ *
+ * @param cls closure, our publishing context
+ * @param res resulting hash, NULL on error
+ */
+static void 
+hash_for_index_cb (void *cls,
+		   const GNUNET_HashCode *
+		   res)
+{
+  struct GNUNET_FS_PublishContext *sc = cls;
+  struct GNUNET_FS_FileInformation *p;
+  struct IndexStartMessage *ism;
+  size_t slen;
+  struct GNUNET_CLIENT_Connection *client;
+#if LINUX
+  struct stat sbuf;
+  struct statvfs fbuf;
+#endif
+
+  p = sc->fi_pos;
+  if (NULL == res) 
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Can not index file `%s': %s.  Will try to insert instead.\n"),
+		  p->data.file.filename,
+		  _("failed to compute hash"));
+      p->data.file.do_index = GNUNET_NO;
+      publish_content (sc, p);
+      return;
+    }
+  slen = strlen (p->data.file.filename) + 1;
+  if (slen > GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof(struct IndexStartMessage))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Can not index file `%s': %s.  Will try to insert instead.\n"),
+		  p->data.file.filename,
+		  _("filename too long"));
+      p->data.file.do_index = GNUNET_NO;
+      publish_content (sc, p);
+      return;
+    }
+  client = GNUNET_CLIENT_connect (sc->h->sched,
+				  "fs",
+				  sc->h->cfg);
+  if (NULL == client)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Can not index file `%s': %s.  Will try to insert instead.\n"),
+		  p->data.file.filename,
+		  _("could not connect to `fs' service"));
+      p->data.file.do_index = GNUNET_NO;
+      publish_content (sc, p);
+      return;
+    }
+  p->data.file.file_id = *res;
+  ism = GNUNET_malloc (sizeof(struct IndexStartMessage) +
+		       slen);
+  ism->header.size = htons(sizeof(struct IndexStartMessage) +
+			   slen);
+  ism->header.type = htons(GNUNET_MESSAGE_TYPE_FS_INDEX_START);
+  /* FIXME: activate this on other OSes that
+     support it (or something very similar; make
+     sure to also adjust corresponding code
+     on the service-side) */
+  /* FIXME: the block below should probably be
+     abstracted into a function in the DISK API */
+#if LINUX
+  if ( (0 == stat(p->data.file.filename,
+		  &sbuf)) &&
+       (0 == statvfs (p->data.file.filename,
+		      &fbuf) ) )
+    {
+      ism->device = htonl ((uint32_t) fbuf.f_fsid);
+      ism->inode = GNUNET_htonll( (uint64_t) sbuf.st_ino);
+    }
+#endif
+  memcpy (&ism[1],
+	  p->data.file.filename,
+	  slen);
+  sc->client = client;
+  GNUNET_CLIENT_transmit_and_get_response (client,
+					   &ism->header,
+					   GNUNET_TIME_UNIT_FOREVER_REL,
+					   &process_index_start_response,
+					   sc);
+  GNUNET_free (ism);
 }
 
 
@@ -744,9 +920,23 @@ do_upload (void *cls,
   if ( (!p->is_directory) &&
        (p->data.file.do_index) )
     {
-      // FIXME: need to pre-compute hash over
-      // the entire file and ask FS to prepare
-      // for indexing!
+      if (NULL == p->data.file.filename)
+	{
+	  p->data.file.do_index = GNUNET_NO;
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		      _("Can not index file `%s': %s.  Will try to insert instead.\n"),
+		      "<no-name>",
+		      _("needs to be an actual file"));
+	  publish_content (sc, p);
+	  return;
+	}      
+      GNUNET_CRYPTO_hash_file (sc->h->sched,
+			       GNUNET_SCHEDULER_PRIORITY_IDLE,
+			       GNUNET_NO,
+			       p->data.file.filename,
+			       HASHING_BLOCKSIZE,
+			       &hash_for_index_cb,
+			       sc);
       return;
     }
   publish_content (sc, p);

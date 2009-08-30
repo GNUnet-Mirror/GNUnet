@@ -367,6 +367,24 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_DATASTORE_DROP 102
 
+
+/**
+ * Message sent by fs client to start indexing.
+ */
+#define GNUNET_MESSAGE_TYPE_FS_INDEX_START 128
+
+/**
+ * Affirmative response to a request for start indexing.
+ */
+#define GNUNET_MESSAGE_TYPE_FS_INDEX_START_OK 129
+
+
+/**
+ * Response to a request for start indexing that
+ * refuses.
+ */
+#define GNUNET_MESSAGE_TYPE_FS_INDEX_START_FAILED 130
+
 /*
   TODO:
   - DV

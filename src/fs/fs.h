@@ -289,6 +289,21 @@ struct GNUNET_FS_FileInformation
       void *reader_cls;
 
       /**
+       * Name of the file (must be an absolute path).
+       * Only required for indexing.  FIXME: not yet
+       * initialized!
+       */
+      char *filename;
+
+      /**
+       * If this file is being indexed, this value
+       * is set to the hash over the entire file
+       * (when the indexing process is started). 
+       * Otherwise this field is not used.
+       */
+      GNUNET_HashCode file_id;
+
+      /**
        * Size of the file (in bytes).
        */
       uint64_t file_size;
@@ -430,6 +445,13 @@ struct GNUNET_FS_PublishContext
   GNUNET_SCHEDULER_TaskIdentifier upload_task;
 
   /**
+   * Our own client handle for the FS service;
+   * only briefly used when we start to index a
+   * file, otherwise NULL.
+   */
+  struct GNUNET_CLIENT_Connection *client;
+
+  /**
    * Typically GNUNET_NO.  Set to GNUNET_YES if
    * "upload_task" is GNUNET_SCHEDULER_NO_TASK
    * and we're waiting for a response from the
@@ -507,6 +529,29 @@ struct GNUNET_FS_Namespace
 
 
 /**
+ * @brief index block (indexing a DBlock that 
+ *        can be obtained directly from reading
+ *        the plaintext file)
+ */
+struct OnDemandBlock
+{
+  /**
+   * Hash code of the entire content of the
+   * file that was indexed (used to uniquely
+   * identify the plaintext file).
+   */
+  GNUNET_HashCode file_id;
+
+  /**
+   * At which offset should we be able to find
+   * this on-demand encoded block?
+   */
+  uint64_t offset;
+
+};
+
+
+/**
  * @brief keyword block (advertising data under a keyword)
  */
 struct KBlock
@@ -571,8 +616,57 @@ struct SBlock
 };
 
 
+/**
+ * Message sent from a GNUnet (fs) publishing
+ * activity to the gnunet-fs-service to 
+ * initiate indexing of a file.  The service
+ * is supposed to check if the specified file
+ * is available and has the same cryptographic
+ * hash.  It should then respond with either
+ * a confirmation or a denial.
+ *
+ * On OSes where this works, it is considered
+ * acceptable if the service only checks that
+ * the path, device and inode match (it can
+ * then be assumed that the hash will also match
+ * without actually computing it; this is an
+ * optimization that should be safe given that
+ * the client is not our adversary).
+ */
 struct IndexStartMessage
 {
+
+  /**
+   * Message type will be 
+   * GNUNET_MESSAGE_TYPE_FS_INDEX_START.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * ID of device containing the file, as seen by the client.  This
+   * device ID is obtained using a call like "statvfs" (and converting
+   * the "f_fsid" field to a 32-bit big-endian number).  Use 0 if the
+   * OS does not support this, in which case the service must do a
+   * full hash recomputation.
+   */
+  uint32_t device;
+  
+  /**
+   * Inode of the file on the given device, as seen by the client
+   * ("st_ino" field from "struct stat").  Use 0 if the OS does not
+   * support this, in which case the service must do a full hash
+   * recomputation.
+   */
+  uint64_t inode;
+
+  /**
+   * Hash of the file that we would like to index.
+   */
+  GNUNET_HashCode file_id;
+
+  /* this is followed by a 0-terminated
+     filename of a file with the hash
+     "file_id" as seen by the client */
 
 };
 

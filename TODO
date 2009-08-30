@@ -37,11 +37,10 @@ PHASE #2: (Goal: recover basic file-sharing functionality)
   - implement testcases
 * FS (anonymous FS only)
   - design network structs (CS)
-    + list-indexed, index, unindex
+    + list-indexed, unindex
     + search/download, response
   - implement basic FS library
     + sharing API
-      ~ publish (indexing)
       ~ unindex & list indexed!!! (need publish to be done)
       ~ search (need publish to be done)
       ~ download (need publish/search to be done)
@@ -68,6 +67,7 @@ PHASE #2: (Goal: recover basic file-sharing functionality)
     + location URIs (publish, search, download)
     + persistence support (publish, unindex, search, download)
     + datastore reservation (publishing)
+    + indexing: index-failure-cleanup
   - implement adv. testcases 
     + insert: sblocks, loc uris
     + download: loc uris
