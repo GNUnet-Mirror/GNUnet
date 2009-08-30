@@ -26,7 +26,7 @@
  * @author Igor Wronsky
  *
  * TODO:
- * - support for some options is still missing (uri argument, simulate)
+ * - support for some options is still missing (uri argument)
  * - progress callbacks not implemented (and need verbosity option)
  * - clean shutdown is not implemented (stop ctx, etc.)
  */
@@ -385,7 +385,10 @@ run (void *cls,
 				fi,
 				namespace,
 				this_id,
-				next_id);
+				next_id,
+				(do_simulate) 
+				? GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY
+				: GNUNET_FS_PUBLISH_OPTION_NONE);
 }
 
 

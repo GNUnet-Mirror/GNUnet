@@ -445,6 +445,11 @@ struct GNUNET_FS_PublishContext
   int in_network_wait;
 
   /**
+   * Options for publishing.
+   */
+  enum GNUNET_FS_PublishOptions options;
+
+  /**
    * Current position in the file-tree for the
    * upload.
    */
@@ -495,4 +500,33 @@ struct GNUNET_FS_Namespace
 };
 
 
+/**
+ * @brief keyword block (advertising data under a keyword)
+ */
+struct GNUNET_FS_KBlock
+{
+
+  /**
+   * GNUNET_RSA_Signature using RSA-key generated from search keyword.
+   */
+  struct GNUNET_CRYPTO_RsaSignature signature;
+
+  /**
+   * What is being signed and why?
+   */
+  struct GNUNET_CRYPTO_RsaSignaturePurpose purpose;
+
+  /**
+   * Key generated (!) from the H(keyword) as the seed!
+   */
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded keyspace;
+
+  /* 0-terminated URI here */
+
+  /* variable-size Meta-Data follows here */
+
+};
+
 #endif
+
+/* end of fs.h */
