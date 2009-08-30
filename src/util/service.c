@@ -836,7 +836,7 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
             }
         }
       if (NULL != desc)
-        GNUNET_break (0 == GNUNET_NETWORK_socket_close (desc));
+        GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (desc));
     }
 
 

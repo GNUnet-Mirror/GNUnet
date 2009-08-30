@@ -276,7 +276,7 @@ GNUNET_CONNECTION_create_from_accept (struct GNUNET_SCHEDULER_Handle
   if (addrlen > sizeof (addr))
     {
       GNUNET_break (0);
-      GNUNET_break (0 == GNUNET_NETWORK_socket_close (sock));
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
       return NULL;
     }
 
@@ -310,7 +310,7 @@ GNUNET_CONNECTION_create_from_accept (struct GNUNET_SCHEDULER_Handle
 		    _("Access denied to `%s'\n"),
 		    GNUNET_a2s(uaddr, addrlen));
       GNUNET_break (0 == GNUNET_NETWORK_socket_shutdown (sock, SHUT_RDWR));
-      GNUNET_break (0 == GNUNET_NETWORK_socket_close (sock));
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
       GNUNET_free (uaddr);
       return NULL;
     }
@@ -436,7 +436,7 @@ try_connect (struct GNUNET_CONNECTION_Handle *sock)
       if (GNUNET_SYSERR == GNUNET_NETWORK_socket_set_blocking (s, GNUNET_NO))
         {
           /* we'll treat this one as fatal */
-          GNUNET_break (0 == GNUNET_NETWORK_socket_close (s));
+          GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (s));
           return GNUNET_SYSERR;
         }
 #if DEBUG_CONNECTION
@@ -445,13 +445,13 @@ try_connect (struct GNUNET_CONNECTION_Handle *sock)
 		  GNUNET_a2s(sock->ai_pos->ai_addr,
 			     sock->ai_pos->ai_addrlen));
 #endif
-      if ((0 != GNUNET_NETWORK_socket_connect (s,
+      if ((GNUNET_OK != GNUNET_NETWORK_socket_connect (s,
                          sock->ai_pos->ai_addr,
                          sock->ai_pos->ai_addrlen)) && (errno != EINPROGRESS))
         {
           /* maybe refused / unsupported address, try next */
           GNUNET_log_strerror (GNUNET_ERROR_TYPE_INFO, "connect");
-          GNUNET_break (0 == GNUNET_NETWORK_socket_close (s));
+          GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (s));
           sock->ai_pos = sock->ai_pos->ai_next;
           continue;
         }
@@ -497,7 +497,7 @@ connect_continuation (void *cls,
 		  GNUNET_a2s(sock->addr, sock->addrlen));
 #endif
       /* connect failed / timed out */
-      GNUNET_break (0 == GNUNET_NETWORK_socket_close (sock->sock));
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock->sock));
       sock->sock = NULL;
       if (GNUNET_SYSERR == try_connect (sock))
         {
@@ -619,7 +619,7 @@ GNUNET_CONNECTION_create_from_sockaddr (struct GNUNET_SCHEDULER_Handle
   if (GNUNET_SYSERR == GNUNET_NETWORK_socket_set_blocking (s, GNUNET_NO))
     {
       /* we'll treat this one as fatal */
-      GNUNET_break (0 == GNUNET_NETWORK_socket_close (s));
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (s));
       return NULL;
     }
 #if DEBUG_CONNECTION
@@ -627,11 +627,11 @@ GNUNET_CONNECTION_create_from_sockaddr (struct GNUNET_SCHEDULER_Handle
 	      _("Trying to connect to `%s'\n"),
 	      GNUNET_a2s(serv_addr, addrlen));
 #endif
-  if ((0 != GNUNET_NETWORK_socket_connect (s, serv_addr, addrlen)) && (errno != EINPROGRESS))
+  if ((GNUNET_OK != GNUNET_NETWORK_socket_connect (s, serv_addr, addrlen)) && (errno != EINPROGRESS))
     {
       /* maybe refused / unsupported address, try next */
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_INFO, "connect");
-      GNUNET_break (0 == GNUNET_NETWORK_socket_close (s));
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (s));
       return NULL;
     }
   ret = GNUNET_CONNECTION_create_from_existing (sched, s, maxbuf);
@@ -706,7 +706,7 @@ destroy_continuation (void *cls,
         }
     }
   if (sock->sock != NULL)
-    GNUNET_break (0 == GNUNET_NETWORK_socket_close (sock->sock));
+    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock->sock));
   GNUNET_free_non_null (sock->addr);
   if (sock->ai != NULL)
     freeaddrinfo (sock->ai);      
@@ -1075,7 +1075,7 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       if (NULL != sock->sock)
 	{
 	  GNUNET_NETWORK_socket_shutdown (sock->sock, SHUT_RDWR);
-	  GNUNET_break (0 == GNUNET_NETWORK_socket_close (sock->sock));
+	  GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock->sock));
 	  sock->sock = NULL;
 	}
       transmit_error (sock);
@@ -1115,7 +1115,7 @@ RETRY:
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_DEBUG, "send");
 #endif
       GNUNET_NETWORK_socket_shutdown (sock->sock, SHUT_RDWR);
-      GNUNET_break (0 == GNUNET_NETWORK_socket_close (sock->sock));
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock->sock));
       sock->sock = NULL;
       transmit_error (sock);
       return;

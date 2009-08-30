@@ -324,7 +324,7 @@ process_listen_socket (void *cls,
     {
       /* shutdown was initiated */
       GNUNET_assert (server->listen_socket != NULL);
-      GNUNET_break (0 == GNUNET_NETWORK_socket_close (server->listen_socket));
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (server->listen_socket));
       server->listen_socket = NULL;
       if (server->do_shutdown)
         destroy_server (server);
@@ -402,20 +402,20 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                          "setsockopt");
   /* bind the socket */
-  if (GNUNET_NETWORK_socket_bind (sock, serverAddr, socklen) < 0)
+  if (GNUNET_NETWORK_socket_bind (sock, serverAddr, socklen) != GNUNET_OK)
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _
                   ("`%s' failed for port %d. Is the service already running?\n"),
                   "bind", port);
-      GNUNET_break (0 == GNUNET_NETWORK_socket_close (sock));
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
       return NULL;
     }
   if (0 != GNUNET_NETWORK_socket_listen (sock, 5))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "listen");
-      GNUNET_break (0 == GNUNET_NETWORK_socket_close (sock));
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
       return NULL;
     }
 #if DEBUG_SERVER
@@ -468,7 +468,7 @@ GNUNET_SERVER_create (struct GNUNET_SCHEDULER_Handle *sched,
   ret->shutpipe = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileDescriptor *[2]));
   if (NULL == (ret->shutpipe = GNUNET_DISK_pipe (GNUNET_NO)))
     {
-      GNUNET_break (0 == GNUNET_NETWORK_socket_close (lsock));
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (lsock));
       GNUNET_free (ret->shutpipe);
       GNUNET_free (ret);
       return NULL;

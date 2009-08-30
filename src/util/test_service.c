@@ -326,7 +326,7 @@ main (int argc, char *argv[])
     }
   else
     {
-      GNUNET_break (0 == GNUNET_NETWORK_socket_close (s));
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (s));
       ret += check6 ();
       ret += check6d ();        /* with daemonization */
     }
