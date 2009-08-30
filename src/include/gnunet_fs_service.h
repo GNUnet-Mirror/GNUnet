@@ -1897,10 +1897,12 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
  *
  * @param cls closure
  * @param filename the name of the file
+ * @param file_id hash of the contents of the indexed file
  * @return GNUNET_OK to continue iteration, GNUNET_SYSERR to abort
  */
 typedef int (*GNUNET_FS_IndexedFileProcessor) (void *cls,
-					       const char *filename);
+					       const char *filename,
+					       const GNUNET_HashCode *file_id);
 
 
 /**
@@ -1909,11 +1911,17 @@ typedef int (*GNUNET_FS_IndexedFileProcessor) (void *cls,
  * @param h handle to the file sharing subsystem
  * @param iterator function to call on each indexed file
  * @param iterator_cls closure for iterator
+ * @param cont continuation to call when done;
+ *             reason should be "TIMEOUT" (on
+ *             error) or  "PREREQ_DONE" (on success)
+ * @param cont_cls closure for cont
  */
 void 
 GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
 			     GNUNET_FS_IndexedFileProcessor iterator,
-			     void *iterator_cls);
+			     void *iterator_cls,
+			     GNUNET_SCHEDULER_Task cont,
+			     void *cont_cls);
 
 
 /**

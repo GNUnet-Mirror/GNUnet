@@ -378,12 +378,27 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_FS_INDEX_START_OK 129
 
-
 /**
  * Response to a request for start indexing that
  * refuses.
  */
 #define GNUNET_MESSAGE_TYPE_FS_INDEX_START_FAILED 130
+
+/**
+ * Request from client for list of indexed files.
+ */
+#define GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_GET 131
+
+/**
+ * Reply to client with an indexed file name.
+ */
+#define GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_ENTRY 132
+
+/**
+ * Reply to client indicating end of list.
+ */
+#define GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_END 133
+
 
 /*
   TODO:

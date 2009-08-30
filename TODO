@@ -41,7 +41,7 @@ PHASE #2: (Goal: recover basic file-sharing functionality)
     + search/download, response
   - implement basic FS library
     + sharing API
-      ~ unindex & list indexed!!! (need publish to be done)
+      ~ unindex (need publish to be done)
       ~ search (need publish to be done)
       ~ download (need publish/search to be done)
   - design network structs (CS/P2P)

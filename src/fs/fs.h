@@ -671,6 +671,29 @@ struct IndexStartMessage
 };
 
 
+/**
+ * Message send by FS service in response to a request
+ * asking for a list of all indexed files.
+ */
+struct IndexInfoMessage
+{
+  /**
+   * Message type will be 
+   * GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_ENTRY.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Hash of the indexed file.
+   */
+  GNUNET_HashCode file_id;
+
+  /* this is followed by a 0-terminated
+     filename of a file with the hash
+     "file_id" as seen by the client */
+  
+};
+
 
 #endif
 
