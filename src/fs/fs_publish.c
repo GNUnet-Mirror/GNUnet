@@ -26,7 +26,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - SBlocks
  * - indexing support
  * - code-sharing with unindex (can wait)
  * - persistence support (can wait)
@@ -42,7 +41,16 @@
 
 #define DEBUG_PUBLISH GNUNET_YES
 
+/**
+ * Maximum allowed size for a KBlock.
+ */
 #define MAX_KBLOCK_SIZE 60000
+
+/**
+ * Maximum allowed size for an SBlock.
+ */
+#define MAX_SBLOCK_SIZE 60000
+
 
 /**
  * Main function that performs the upload.
@@ -1200,7 +1208,10 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
   size = sizeof (struct GNUNET_FS_KBlock) + pkc->slen + pkc->mdsize;
 
   pkc->cpy = GNUNET_malloc (size);
-  pkc->cpy->purpose.size = htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) + pkc->mdsize + pkc->slen);
+  pkc->cpy->purpose.size = htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) + 
+				  sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) +
+				  pkc->mdsize + 
+				  pkc->slen);
   pkc->cpy->purpose.purpose = htonl(GNUNET_SIGNATURE_PURPOSE_FS_KBLOCK);
   pkc->ksk_uri = GNUNET_FS_uri_dup (ksk_uri);
   GNUNET_SCHEDULER_add_continuation (h->sched,
@@ -1208,6 +1219,65 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
 				     &publish_ksk_cont,
 				     pkc,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+}
+
+
+/**
+ * Context for the SKS publication.
+ */
+struct PublishSksContext
+{
+
+  /**
+   * Global FS context.
+   */
+  struct GNUNET_FS_Uri *uri;
+
+  /**
+   * Handle to the datastore.
+   */
+  struct GNUNET_DATASTORE_Handle *dsh;
+
+  /**
+   * Function to call once we're done.
+   */
+  GNUNET_FS_PublishContinuation cont;
+
+  /**
+   * Closure for cont.
+   */ 
+  void *cont_cls;
+
+};
+
+
+/**
+ * Function called by the datastore API with
+ * the result from the PUT (SBlock) request.
+ *
+ * @param cls closure of type "struct PublishSksContext*"
+ * @param success GNUNET_OK on success
+ * @param msg error message (or NULL)
+ */
+static void
+sb_put_cont (void *cls,
+	     int success,
+ 	     const char *msg)
+{
+  struct PublishSksContext *psc = cls;
+
+  if (NULL != psc->dsh)
+    GNUNET_DATASTORE_disconnect (psc->dsh, GNUNET_NO);
+  if (GNUNET_OK != success)
+    psc->cont (psc->cont_cls,
+	       NULL,
+	       msg);
+  else
+    psc->cont (psc->cont_cls,
+	       psc->uri,
+	       NULL);
+  GNUNET_FS_uri_destroy (psc->uri);
+  GNUNET_free (psc);
 }
 
 
@@ -1240,100 +1310,123 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
 		       enum GNUNET_FS_PublishOptions options,
 		       GNUNET_FS_PublishContinuation cont,
 		       void *cont_cls)
-{		 
-#if 0
-  struct GNUNET_ECRS_URI *uri;
-  struct GNUNET_ClientServerConnection *sock;
-  GNUNET_DatastoreValue *value;
-  unsigned int size;
-  unsigned int mdsize;
-  struct GNUNET_RSA_PrivateKey *hk;
-  GNUNET_EC_SBlock *sb;
-  char *dstURI;
-  char *destPos;
-  GNUNET_HashCode hc;           /* hash of thisId = key */
-  GNUNET_HashCode hc2;          /* hash of hc = identifier */
-  int ret;
-  unsigned int nidlen;
+{
+  struct PublishSksContext *psc;
+  struct GNUNET_CRYPTO_AesSessionKey sk;
+  struct GNUNET_CRYPTO_AesInitializationVector iv;
+  struct GNUNET_FS_Uri *sks_uri;
+  char *uris;
+  size_t size;
+  size_t slen;
+  size_t nidlen;
+  size_t idlen;
+  ssize_t mdsize;
+  struct GNUNET_FS_SBlock *sb;
+  struct GNUNET_FS_SBlock *sb_enc;
+  char *dest;
+  GNUNET_HashCode key;           /* hash of thisId = key */
+  GNUNET_HashCode id;          /* hash of hc = identifier */
 
-  hk = read_namespace_key (cfg, pid);
-  if (hk == NULL)
-    return NULL;
+  uris = GNUNET_FS_uri_to_string (uri);
+  slen = strlen (uris) + 1;
+  idlen = strlen (identifier);
+  if (update == NULL)
+    update = "";
+  nidlen = strlen (update) + 1;
+  mdsize = GNUNET_CONTAINER_meta_data_get_serialized_size (meta, 
+							   GNUNET_CONTAINER_META_DATA_SERIALIZE_PART);
 
-  /* THEN: construct GNUNET_EC_SBlock */
-  dstURI = GNUNET_ECRS_uri_to_string (dstU);
-  mdsize = GNUNET_meta_data_get_serialized_size (md, GNUNET_SERIALIZE_PART);
-  if (nextId == NULL)
-    nextId = "";
-  nidlen = strlen (nextId) + 1;
-  size = mdsize + sizeof (GNUNET_EC_SBlock) + strlen (dstURI) + 1 + nidlen;
+  size = sizeof (struct GNUNET_FS_SBlock) + slen + nidlen + mdsize;
   if (size > MAX_SBLOCK_SIZE)
     {
       size = MAX_SBLOCK_SIZE;
-      mdsize =
-        size - (sizeof (GNUNET_EC_SBlock) + strlen (dstURI) + 1 + nidlen);
+      mdsize = size - (sizeof (struct GNUNET_FS_SBlock) + slen + nidlen);
     }
-  value = GNUNET_malloc (sizeof (GNUNET_DatastoreValue) + size);
-  sb = (GNUNET_EC_SBlock *) & value[1];
-  sb->type = htonl (GNUNET_ECRS_BLOCKTYPE_SIGNED);
-  destPos = (char *) &sb[1];
-  memcpy (destPos, nextId, nidlen);
-  destPos += nidlen;
-  memcpy (destPos, dstURI, strlen (dstURI) + 1);
-  destPos += strlen (dstURI) + 1;
-  mdsize = GNUNET_meta_data_serialize (ectx,
-                                       md,
-                                       destPos,
-                                       mdsize, GNUNET_SERIALIZE_PART);
+  sb = GNUNET_malloc (sizeof (struct GNUNET_FS_SBlock) + size);
+  dest = (char *) &sb[1];
+  memcpy (dest, update, nidlen);
+  dest += nidlen;
+  memcpy (dest, uris, slen);
+  dest += slen;
+  mdsize = GNUNET_CONTAINER_meta_data_serialize (meta,
+						 dest,
+						 mdsize, 
+						 GNUNET_CONTAINER_META_DATA_SERIALIZE_PART);
   if (mdsize == -1)
     {
-      GNUNET_GE_BREAK (ectx, 0);
-      GNUNET_free (dstURI);
-      GNUNET_RSA_free_key (hk);
-      GNUNET_free (value);
-      return NULL;
+      GNUNET_break (0);
+      GNUNET_free (uris);
+      GNUNET_free (sb);
+      cont (cont_cls,
+	    NULL,
+	    _("Internal error."));
+      return;
     }
-  size = sizeof (GNUNET_EC_SBlock) + mdsize + strlen (dstURI) + 1 + nidlen;
-  value->size = htonl (sizeof (GNUNET_DatastoreValue) + size);
-  value->type = htonl (GNUNET_ECRS_BLOCKTYPE_SIGNED);
-  value->priority = htonl (priority);
-  value->anonymity_level = htonl (anonymityLevel);
-  value->expiration_time = GNUNET_htonll (expiration);
-  GNUNET_hash (thisId, strlen (thisId), &hc);
-  GNUNET_hash (&hc, sizeof (GNUNET_HashCode), &hc2);
-  uri = GNUNET_malloc (sizeof (URI));
-  uri->type = sks;
-  GNUNET_RSA_get_public_key (hk, &sb->subspace);
-  GNUNET_hash (&sb->subspace,
-               sizeof (GNUNET_RSA_PublicKey), &uri->data.sks.namespace);
-  GNUNET_GE_BREAK (ectx, 0 == memcmp (&uri->data.sks.namespace,
-                                      pid, sizeof (GNUNET_HashCode)));
-  uri->data.sks.identifier = GNUNET_strdup (thisId);
-  GNUNET_hash_xor (&hc2, &uri->data.sks.namespace, &sb->identifier);
-  GNUNET_ECRS_encryptInPlace (&hc, &sb[1], size - sizeof (GNUNET_EC_SBlock));
-  GNUNET_GE_ASSERT (ectx,
-                    GNUNET_OK == GNUNET_RSA_sign (hk,
-                                                  size
-                                                  -
-                                                  sizeof
-                                                  (GNUNET_RSA_Signature) -
-                                                  sizeof
-                                                  (GNUNET_RSA_PublicKey) -
-                                                  sizeof (unsigned int),
-                                                  &sb->identifier,
-                                                  &sb->signature));
-  GNUNET_RSA_free_key (hk);
-  sock = GNUNET_client_connection_create (ectx, cfg);
-  ret = GNUNET_FS_insert (sock, value);
-  if (ret != GNUNET_OK)
+  size = sizeof (struct GNUNET_FS_SBlock) + mdsize + slen + nidlen;
+  sb_enc = GNUNET_malloc (sizeof (struct GNUNET_FS_SBlock) + size);
+  GNUNET_CRYPTO_hash (identifier, idlen, &key);
+  GNUNET_CRYPTO_hash (&key, sizeof (GNUNET_HashCode), &id);
+  sks_uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
+  sks_uri->type = sks;
+  GNUNET_CRYPTO_rsa_key_get_public (namespace->key, &sb_enc->subspace);
+  GNUNET_CRYPTO_hash (&sb_enc->subspace,
+		      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+		      &sks_uri->data.sks.namespace);
+  sks_uri->data.sks.identifier = GNUNET_strdup (identifier);
+  GNUNET_CRYPTO_hash_xor (&id, 
+			  &sks_uri->data.sks.namespace, 
+			  &sb_enc->identifier);
+  GNUNET_CRYPTO_hash_to_aes_key (&key, &sk, &iv);
+  GNUNET_CRYPTO_aes_encrypt (&sb[1],
+			     size - sizeof (struct GNUNET_FS_SBlock),
+			     &sk,
+			     &iv,
+			     &sb_enc[1]);
+  GNUNET_free (sb);
+  sb_enc->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_FS_SBLOCK);
+  sb_enc->purpose.size = htonl(slen + mdsize + nidlen
+			       + sizeof(struct GNUNET_FS_SBlock)
+			       - sizeof(struct GNUNET_CRYPTO_RsaSignature));
+  GNUNET_assert (GNUNET_OK == 
+		 GNUNET_CRYPTO_rsa_sign (namespace->key,
+					 &sb_enc->purpose,
+					 &sb_enc->signature));
+  psc = GNUNET_malloc (sizeof(struct PublishSksContext));
+  psc->uri = sks_uri;
+  psc->cont = cont;
+  psc->cont_cls = cont_cls;
+  if (0 != (options & GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY))
     {
-      GNUNET_free (uri);
-      uri = NULL;
+      GNUNET_free (sb_enc);
+      sb_put_cont (psc,
+		   GNUNET_OK,
+		   NULL);
+      return;
     }
-  GNUNET_client_connection_destroy (sock);
-  GNUNET_free (value);
-  GNUNET_free (dstURI);
-#endif
+  psc->dsh = GNUNET_DATASTORE_connect (h->cfg, h->sched);
+  if (NULL == psc->dsh)
+    {
+      GNUNET_free (sb_enc);
+      sb_put_cont (psc,
+		   GNUNET_NO,
+		   _("Failed to connect to datastore."));
+      return;
+    }
+
+  GNUNET_DATASTORE_put (psc->dsh,
+			0,
+			&sb->identifier,
+			size,
+			sb_enc,
+			GNUNET_DATASTORE_BLOCKTYPE_SBLOCK, 
+			priority,
+			anonymity,
+			expirationTime,
+			GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+			&sb_put_cont,
+			psc);
+  GNUNET_free (sb_enc);
 }
+
 
 /* end of fs_publish.c */

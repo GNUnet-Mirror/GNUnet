@@ -493,6 +493,12 @@ struct GNUNET_FS_DownloadContext
 
 struct GNUNET_FS_Namespace
 {
+
+  /**
+   * Private key for the namespace.
+   */
+  struct GNUNET_CRYPTO_RsaPrivateKey *key;
+
   /**
    * Reference counter.
    */
@@ -526,6 +532,46 @@ struct GNUNET_FS_KBlock
   /* variable-size Meta-Data follows here */
 
 };
+
+/**
+ * @brief namespace content block (advertising data under an identifier in a namespace)
+ */
+struct GNUNET_FS_SBlock
+{
+
+  /**
+   * GNUNET_RSA_Signature using RSA-key of the namespace
+   */
+  struct GNUNET_CRYPTO_RsaSignature signature;
+
+  /**
+   * What is being signed and why?
+   */
+  struct GNUNET_CRYPTO_RsaSignaturePurpose purpose;
+
+  /**
+   * Hash of the hash of the human-readable identifier used for
+   * this entry (the hash of the human-readable identifier is
+   * used as the key for decryption; the xor of this identifier
+   * and the hash of the "keyspace" is the datastore-query hash).
+   */
+  GNUNET_HashCode identifier;
+
+  /**
+   * Public key of the namespace.
+   */
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded subspace;
+
+  /* 0-terminated update-identifier here */
+
+  /* 0-terminated URI here */
+
+  /* variable-size Meta-Data follows here */
+
+};
+
+
+
 
 #endif
 

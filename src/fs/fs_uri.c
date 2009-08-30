@@ -628,11 +628,11 @@ uri_loc_parse (const char *s, char **emsg)
       goto ERR;
     }
   ass.purpose.size = htonl(sizeof(struct LocUriAssembly));
-  ass.purpose.purpose = htonl(GNUNET_SIGNATURE_PURPOSE_NAMESPACE_PLACEMENT);
+  ass.purpose.purpose = htonl(GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT);
   et.value = exptime;
   ass.exptime = GNUNET_TIME_absolute_hton (et);
   if (GNUNET_OK != 
-      GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_NAMESPACE_PLACEMENT,
+      GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT,
 				&ass.purpose,
 				&sig,
 				&ass.peer))
@@ -847,7 +847,7 @@ GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *baseUri,
   GNUNET_free (keyfile);
   GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
   ass.purpose.size = htonl(sizeof(struct LocUriAssembly));
-  ass.purpose.purpose = htonl(GNUNET_SIGNATURE_PURPOSE_NAMESPACE_PLACEMENT);
+  ass.purpose.purpose = htonl(GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT);
   ass.exptime = GNUNET_TIME_absolute_hton (expiration_time);
   ass.fi = baseUri->data.chk;
   ass.peer = my_public_key;
