@@ -521,4 +521,116 @@ GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *sock,
 }
 
 
+/**
+ * Context for processing 
+ * "GNUNET_CLIENT_transmit_and_get_response" requests.
+ */
+struct TARCtx
+{
+  /**
+   * Client handle.
+   */
+  struct GNUNET_CLIENT_Connection *sock;
+
+  /**
+   * Message to transmit; do not free, allocated
+   * right after this struct.
+   */
+  const struct GNUNET_MessageHeader *hdr;
+
+  /**
+   * Timeout to use.
+   */
+  struct GNUNET_TIME_Absolute timeout;
+
+  /**
+   * Function to call when done.
+   */
+  GNUNET_CLIENT_MessageHandler rn;
+
+  /**
+   * Closure for "rn".
+   */
+  void *rn_cls;
+};
+
+
+/**
+ * Function called to notify a client about the socket
+ * begin ready to queue the message.  "buf" will be
+ * NULL and "size" zero if the socket was closed for
+ * writing in the meantime.
+ *
+ * @param cls closure of type "struct TARCtx*"
+ * @param size number of bytes available in buf
+ * @param buf where the callee should write the message
+ * @return number of bytes written to buf
+ */
+static size_t
+transmit_for_response (void *cls,
+		       size_t size, 
+		       void *buf)
+{
+  struct TARCtx *tc = cls;
+  uint16_t msize;
+
+  msize = ntohs(tc->hdr->size);
+  if (NULL == buf)
+    {
+      tc->rn (tc->rn_cls, NULL);
+      GNUNET_free (tc);
+      return 0;
+    }
+  GNUNET_assert (size >= msize);
+  memcpy (buf, tc->hdr, msize);
+  GNUNET_CLIENT_receive (tc->sock,
+			 tc->rn,
+			 tc->rn_cls,
+			 GNUNET_TIME_absolute_get_remaining (tc->timeout));
+  GNUNET_free (tc);
+  return msize;
+}
+
+
+/**
+ * Convenience API that combines sending a request
+ * to the service and waiting for a response.
+ * If either operation times out, the callback
+ * will be called with a "NULL" response (in which
+ * case the connection should probably be destroyed).
+ *
+ * @param sock connection to use
+ * @param hdr message to transmit
+ * @param timeout when to give up (for both transmission
+ *         and for waiting for a response)
+ * @param rn function to call with the response
+ * @param rn_cls closure for rn 
+ */
+void
+GNUNET_CLIENT_transmit_and_get_response (struct GNUNET_CLIENT_Connection *sock,
+					 const struct GNUNET_MessageHeader *hdr,
+					 struct GNUNET_TIME_Relative timeout,
+					 GNUNET_CLIENT_MessageHandler rn,
+					 void *rn_cls)
+{
+  struct TARCtx *tc;
+  uint16_t msize;
+
+  msize = ntohs(hdr->size);
+  tc = GNUNET_malloc(sizeof (struct TARCtx) + msize);
+  tc->sock = sock;
+  tc->hdr = (const struct GNUNET_MessageHeader*) &tc[1]; 
+  memcpy (&tc[1], hdr, msize);
+  tc->timeout = GNUNET_TIME_relative_to_absolute (timeout);
+  tc->rn = rn;
+  tc->rn_cls = rn_cls;
+  GNUNET_CLIENT_notify_transmit_ready (sock,
+				       msize,
+				       timeout,
+				       &transmit_for_response,
+				       tc);
+}
+
+
+
 /*  end of client.c */

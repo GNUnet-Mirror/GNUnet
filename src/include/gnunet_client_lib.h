@@ -119,6 +119,30 @@ struct GNUNET_CONNECTION_TransmitHandle
                                         notify, void *notify_cls);
 
 
+
+/**
+ * Convenience API that combines sending a request
+ * to the service and waiting for a response.
+ * If either operation times out, the callback
+ * will be called with a "NULL" response (in which
+ * case the connection should probably be destroyed).
+ *
+ * @param sock connection to use
+ * @param hdr message to transmit
+ * @param timeout when to give up (for both transmission
+ *         and for waiting for a response)
+ * @param rn function to call with the response
+ * @param rn_cls closure for rn 
+ */
+void
+GNUNET_CLIENT_transmit_and_get_response (struct GNUNET_CLIENT_Connection *sock,
+					 const struct GNUNET_MessageHeader *hdr,
+					 struct GNUNET_TIME_Relative timeout,
+					 GNUNET_CLIENT_MessageHandler rn,
+					 void *rn_cls);
+
+
+
 /**
  * Request that the service should shutdown.
  * Afterwards, the connection should be disconnected.
