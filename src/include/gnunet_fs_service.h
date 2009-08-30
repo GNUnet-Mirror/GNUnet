@@ -1770,6 +1770,24 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
 
 
 /**
+ * Options for publishing.  Compatible options
+ * can be OR'ed together.
+ */
+enum GNUNET_FS_PublishOptions 
+  {
+    /**
+     * No options (use defaults for everything).
+     */
+    GNUNET_FS_PUBLISH_OPTION_NONE = 0,
+    
+    /**
+     * Simulate publishing.  With this option, no data will be stored
+     * in the datastore.  Useful for computing URIs from files.
+     */
+    GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY = 1
+  };
+
+/**
  * Publish a file or directory.
  *
  * @param h handle to the file sharing subsystem
@@ -1781,6 +1799,7 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
  *        (can be NULL, must be NULL if namespace is NULL)
  * @param nuid update-identifier that will be used for future updates 
  *        (can be NULL, must be NULL if namespace or nid is NULL)
+ * @param options options for the publication 
  * @return context that can be used to control the publish operation
  */
 struct GNUNET_FS_PublishContext *
@@ -1789,7 +1808,8 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
 			 struct GNUNET_FS_FileInformation *fi,
 			 struct GNUNET_FS_Namespace *namespace,
 			 const char *nid,
-			 const char *nuid);
+			 const char *nuid,
+			 enum GNUNET_FS_PublishOptions options);
 
 
 /**
@@ -1804,25 +1824,42 @@ GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *sc);
 
 
 /**
+ * Signature of a function called as the continuation of a KBlock or
+ * SBlock publication.
+ *
+ * @param cls closure
+ * @param uri URI under which the block is now available, NULL on error
+ * @param emsg error message, NULL on success
+ */
+typedef void (*GNUNET_FS_PublishContinuation)(void *cls,
+					      const struct GNUNET_FS_Uri *uri,
+					      const char *emsg);
+				      
+
+/**
  * Publish a KBlock on GNUnet.
  *
  * @param h handle to the file sharing subsystem
- * @param keyword keyword to use
+ * @param keywords keywords to use
  * @param meta metadata to use
  * @param uri URI to refer to in the KBlock
  * @param expirationTime when the KBlock expires
  * @param anonymity anonymity level for the KBlock
  * @param priority priority for the KBlock
+ * @param cont continuation
+ * @param cont_cls closure for cont
  */
-// FIXME: CPS this one..
 void
 GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
-		       const char *keyword,
+		       struct GNUNET_FS_Uri *keywords,
 		       struct GNUNET_CONTAINER_MetaData *meta,
 		       struct GNUNET_FS_Uri *uri,
 		       struct GNUNET_TIME_Absolute expirationTime,
 		       unsigned int anonymity,
-		       unsigned int priority);
+		       unsigned int priority,
+		       enum GNUNET_FS_PublishOptions options,
+		       GNUNET_FS_PublishContinuation cont,
+		       void *cont_cls);
 
 
 /**
@@ -1837,8 +1874,9 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
  * @param expirationTime when the SBlock expires
  * @param anonymity anonymity level for the SBlock
  * @param priority priority for the SBlock
+ * @param cont continuation
+ * @param cont_cls closure for cont
  */
-// FIXME: CPS this one..
 void
 GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
 		       struct GNUNET_FS_Namespace *namespace,
@@ -1848,7 +1886,10 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
 		       struct GNUNET_FS_Uri *uri,
 		       struct GNUNET_TIME_Absolute expirationTime,
 		       unsigned int anonymity,
-		       unsigned int priority);
+		       unsigned int priority,
+		       enum GNUNET_FS_PublishOptions options,
+		       GNUNET_FS_PublishContinuation cont,
+		       void *cont_cls);
 
 
 /**

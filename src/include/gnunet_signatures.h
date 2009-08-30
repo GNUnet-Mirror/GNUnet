@@ -59,16 +59,27 @@ extern "C"
  */
 #define GNUNET_SIGNATURE_PURPOSE_NAMESPACE_ADVERTISEMENT 3
 
+/**
+ * Signature by which a peer affirms that it is
+ * providing a certain bit of content (used
+ * in LOCation URIs).
+ */
+#define GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT 4
+
+/**
+ * Signature in a KBlock of the FS module.
+ */
+#define GNUNET_SIGNATURE_PURPOSE_FS_KBLOCK 5
 
 /**
  * Signature of content URI placed into a namespace.
  */
-#define GNUNET_SIGNATURE_PURPOSE_NAMESPACE_PLACEMENT 4
+#define GNUNET_SIGNATURE_PURPOSE_FS_SBLOCK 6
 
 /**
  *
  */
-#define GNUNET_SIGNATURE_PURPOSE_RESOLVER_RESPONSE 5
+#define GNUNET_SIGNATURE_PURPOSE_RESOLVER_RESPONSE 7
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

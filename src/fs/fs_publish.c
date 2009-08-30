@@ -30,6 +30,7 @@
  * - code-sharing with unindex (can wait)
  * - persistence support (can wait)
  * - datastore reservation support (optimization)
+ * - location URIs (publish with anonymity-level zero)
  */
 
 #include "platform.h"
