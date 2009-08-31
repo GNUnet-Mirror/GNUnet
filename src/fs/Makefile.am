@@ -19,6 +19,7 @@ libgnunetfs_la_SOURCES = \
   fs_download.c \
   fs_file_information.c \
   fs_getopt.c \
+  fs_list_indexed.c \
   fs_publish.c \
   fs_namespace.c \
   fs_search.c \

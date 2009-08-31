@@ -399,6 +399,16 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_END 133
 
+/**
+ * Request from client to unindex a file.
+ */
+#define GNUNET_MESSAGE_TYPE_FS_UNINDEX 134
+
+/**
+ * Reply to client indicating unindex receipt.
+ */
+#define GNUNET_MESSAGE_TYPE_FS_UNINDEX_OK 135
+
 
 /*
   TODO:

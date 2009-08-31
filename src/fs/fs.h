@@ -52,6 +52,15 @@
 #define MAX_INLINE_SIZE 65536
 
 
+/**
+ * Blocksize to use when hashing files
+ * for indexing (blocksize for IO, not for
+ * the DBlocks).  Larger blocksizes can
+ * be more efficient but will be more disruptive
+ * as far as the scheduler is concerned.
+ */
+#define HASHING_BLOCKSIZE (1024 * 1024)
+
 
 /**
  * @brief content hash key
@@ -491,10 +500,106 @@ struct GNUNET_FS_PublishContext
 
 
 /**
+ * Phases of unindex processing (state machine).
+ */ 
+enum UnindexState
+  {
+    /**
+     * We're currently hashing the file.
+     */
+    UNINDEX_STATE_HASHING = 0,
+
+    /**
+     * We're notifying the FS service about
+     * the unindexing.
+     */
+    UNINDEX_STATE_FS_NOTIFY = 1,
+
+    /**
+     * We're telling the datastore to delete
+     * the respective entries.
+     */
+    UNINDEX_STATE_DS_REMOVE = 2,
+
+    /**
+     * We're done.
+     */
+    UNINDEX_STATE_COMPLETE = 3,
+
+    /**
+     * We've encountered a fatal error.
+     */
+    UNINDEX_STATE_ERROR = 4,
+
+    /**
+     * We've been aborted.  The next callback should clean up the
+     * struct.
+     */
+    UNINDEX_STATE_ABORTED = 5
+  };
+
+
+/**
  * Handle for controlling an unindexing operation.
  */
 struct GNUNET_FS_UnindexContext
 {
+  
+  /**
+   * Global FS context.
+   */
+  struct GNUNET_FS_Handle *h;
+
+  /**
+   * Name of the file that we are unindexing.
+   */
+  char *filename;
+
+  /**
+   * Connection to the FS service,
+   * only valid during the UNINDEX_STATE_FS_NOTIFY
+   * phase.
+   */
+  struct GNUNET_CLIENT_Connection *client;
+
+  /**
+   * Connection to the datastore service,
+   * only valid during the UNINDEX_STATE_DS_NOTIFY
+   * phase.
+   */
+  struct GNUNET_DATASTORE_Handle *dsh;
+
+  /**
+   * Pointer kept for the client.
+   */
+  void *client_info;
+
+  /**
+   * Overall size of the file.
+   */ 
+  uint64_t file_size;
+
+  /**
+   * How far have we gotten?
+   */ 
+  uint64_t unindex_offset;
+
+  /**
+   * When did we start?
+   */
+  struct GNUNET_TIME_Absolute start_time;
+
+  /**
+   * Hash of the file's contents (once
+   * computed).
+   */
+  GNUNET_HashCode file_id;
+ 
+  /**
+   * Current operatinonal phase.
+   */
+  enum UnindexState state; 
+
 };
 
 
@@ -693,6 +798,38 @@ struct IndexInfoMessage
      "file_id" as seen by the client */
   
 };
+
+
+/**
+ * Message sent from a GNUnet (fs) unindexing
+ * activity to the gnunet-fs-service to 
+ * indicate that a file will be unindexed.  The service
+ * is supposed to remove the file from the
+ * list of indexed files and response with
+ * a confirmation message (even if the file
+ * was already not on the list).
+ */
+struct UnindexMessage
+{
+
+  /**
+   * Message type will be 
+   * GNUNET_MESSAGE_TYPE_FS_UNINDEX.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Always zero.
+   */
+  uint32_t reserved;
+
+  /**
+   * Hash of the file that we will unindex.
+   */
+  GNUNET_HashCode file_id;
+
+};
+
 
 
 #endif

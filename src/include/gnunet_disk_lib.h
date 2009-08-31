@@ -125,21 +125,27 @@ int GNUNET_DISK_file_test (const char *fil);
  * @return the new position on success, GNUNET_SYSERR otherwise
  */
 off_t
-GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h, off_t offset,
-    enum GNUNET_DISK_Seek whence);
+GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h, 
+		       off_t offset,
+		       enum GNUNET_DISK_Seek whence);
 
 
 /**
  * Get the size of the file (or directory)
  * of the given file (in bytes).
  *
+ * @param filename name of the file or directory
+ * @param size set to the size of the file (or,
+ *             in the case of directories, the sum
+ *             of all sizes of files in the directory)
  * @param includeSymLinks should symbolic links be
  *        included?
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int GNUNET_DISK_file_size (const char *filename,
-			   unsigned long long *size, int includeSymLinks);
+			   uint64_t *size, 
+			   int includeSymLinks);
 
 
 /**

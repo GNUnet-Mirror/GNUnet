@@ -53,15 +53,6 @@
 #define MAX_SBLOCK_SIZE 60000
 
 /**
- * Blocksize to use when hashing files
- * for indexing (blocksize for IO, not for
- * the DBlocks).  Larger blocksizes can
- * be more efficient but will be more disruptive
- * as far as the scheduler is concerned.
- */
-#define HASHING_BLOCKSIZE (1024 * 1024)
-
-/**
  * Main function that performs the upload.
  * @param cls "struct GNUNET_FS_PublishContext" identifies the upload
  * @param tc task context

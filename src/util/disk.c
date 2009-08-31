@@ -71,7 +71,7 @@
 
 typedef struct
 {
-  unsigned long long total;
+  uint64_t total;
   int include_sym_links;
 } GetFileSizeData;
 
@@ -176,7 +176,8 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h, off_t offset,
  */
 int
 GNUNET_DISK_file_size (const char *filename,
-                       unsigned long long *size, int includeSymLinks)
+                       uint64_t *size, 
+		       int includeSymLinks)
 {
   GetFileSizeData gfsd;
   int ret;
