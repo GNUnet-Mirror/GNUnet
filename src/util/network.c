@@ -182,7 +182,11 @@ GNUNET_NETWORK_socket_connect (const struct GNUNET_NETWORK_Handle *desc,
   ret = connect (desc->fd, address, address_len);
 #ifdef MINGW
   if (SOCKET_ERROR == ret)
-    SetErrnoFromWinsockError (WSAGetLastError ());
+    {
+      SetErrnoFromWinsockError (WSAGetLastError ());
+      if (errno == EWOULDBLOCK)
+        errno = EINPROGRESS;
+    }
 #endif
   return ret == 0 ? GNUNET_OK : GNUNET_SYSERR;
 }
