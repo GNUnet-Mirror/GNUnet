@@ -488,7 +488,7 @@ connect_continuation (void *cls,
   errno = 0;
   error = 0;
   if ((0 == (tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY)) ||
-      (0 != GNUNET_NETWORK_socket_getsockopt (sock->sock, SOL_SOCKET, SO_ERROR, &error, &len)) ||
+      (GNUNET_OK != GNUNET_NETWORK_socket_getsockopt (sock->sock, SOL_SOCKET, SO_ERROR, &error, &len)) ||
       (error != 0) || (errno != 0))
     {
 #if DEBUG_CONNECTION
