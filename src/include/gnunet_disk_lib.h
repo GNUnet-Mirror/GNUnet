@@ -157,7 +157,7 @@ int GNUNET_DISK_file_size (const char *filename,
  *         file on disk in directory for temporary files
  */
 char *
-GNUNET_DISK_mktemp (const char *template);
+GNUNET_DISK_mktemp (const char *t);
 
 
 /**

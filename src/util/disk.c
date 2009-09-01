@@ -200,7 +200,7 @@ GNUNET_DISK_file_size (const char *filename,
  *         file on disk in directory for temporary files
  */
 char *
-GNUNET_DISK_mktemp (const char *template)
+GNUNET_DISK_mktemp (const char *t)
 {
   const char *tmpdir;
   int fd;
@@ -214,7 +214,7 @@ GNUNET_DISK_mktemp (const char *template)
 		   "%s%s%s%s",
 		   tmpdir,
 		   DIR_SEPARATOR_STR,
-		   template,
+		   t,
 		   "XXXXXX");
 #ifdef MINGW
   fn = (char *) GNUNET_malloc (MAX_PATH + 1);
