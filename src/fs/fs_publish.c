@@ -26,7 +26,7 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - code-sharing with unindex (write unindex code, clean up new FIXME's)
+ * - code-sharing with unindex (write unindex code)
  * - indexing cleanup: unindex on failure (can wait)
  * - persistence support (can wait)
  * - datastore reservation support (optimization)
@@ -97,11 +97,13 @@ struct PutContCtx
  * @param pc structure to fill in
  * @param sc overall publishing context
  * @param p file information for the file being published
+ * @param offset where in the file are we so far
  */
 static void
 make_publish_status (struct GNUNET_FS_ProgressInfo *pi,
 		     struct GNUNET_FS_PublishContext *sc,
-		     const struct GNUNET_FS_FileInformation *p)
+		     const struct GNUNET_FS_FileInformation *p,
+		     uint64_t offset)
 {
   pi->value.publish.sc = sc;
   pi->value.publish.fi = p;
@@ -111,13 +113,11 @@ make_publish_status (struct GNUNET_FS_ProgressInfo *pi,
     = (NULL == p->dir) ? NULL : p->dir->client_info;
   pi->value.publish.size
     = (p->is_directory) ? p->data.dir.dir_size : p->data.file.file_size;
-#if FIXME
   pi->value.publish.eta 
     = GNUNET_TIME_calculate_eta (p->start_time,
-				 p->publish_offset,
+				 offset,
 				 pi->value.publish.size);
-  pi->value.publish.completed = p->publish_offset;
-#endif
+  pi->value.publish.completed = offset;
   pi->value.publish.duration = GNUNET_TIME_absolute_get_duration (p->start_time);
   pi->value.publish.anonymity = p->anonymity;
 }
@@ -173,7 +173,7 @@ ds_put_cont (void *cls,
 		       msg);
       GNUNET_FS_file_information_sync (pcc->p);
       pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
-      make_publish_status (&pi, pcc->sc, pcc->p);
+      make_publish_status (&pi, pcc->sc, pcc->p, 0);
       pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
       pi.value.publish.specifics.error.message = pcc->p->emsg;
       pcc->p->client_info
@@ -210,7 +210,7 @@ signal_publish_completion (struct GNUNET_FS_FileInformation *p,
   struct GNUNET_FS_ProgressInfo pi;
   
   pi.status = GNUNET_FS_STATUS_PUBLISH_COMPLETED;
-  make_publish_status (&pi, sc, p);
+  make_publish_status (&pi, sc, p, p->chk_uri->data.chk.file_length);
   pi.value.publish.eta = GNUNET_TIME_UNIT_ZERO;
   pi.value.publish.specifics.completed.chk_uri = p->chk_uri;
   p->client_info
@@ -237,7 +237,7 @@ signal_publish_error (struct GNUNET_FS_FileInformation *p,
   
   p->emsg = GNUNET_strdup (emsg);
   pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
-  make_publish_status (&pi, sc, p);
+  make_publish_status (&pi, sc, p, 0);
   pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
   pi.value.publish.specifics.error.message =emsg;
   p->client_info
@@ -350,7 +350,19 @@ publish_kblocks_cont (void *cls,
 }
 
 
-// FIXME: document
+/**
+ * Function called by the tree encoder to obtain
+ * a block of plaintext data (for the lowest level
+ * of the tree).
+ *
+ * @param cls our publishing context
+ * @param offset identifies which block to get
+ * @param max (maximum) number of bytes to get; returning
+ *        fewer will also cause errors
+ * @param buf where to copy the plaintext buffer
+ * @param emsg location to store an error message (on error)
+ * @return number of bytes copied to buf, 0 on error
+ */
 static size_t
 block_reader (void *cls,
 	      uint64_t offset,
@@ -389,7 +401,14 @@ block_reader (void *cls,
 }
 
 
-// FIXME: document
+/**
+ * The tree encoder has finished processing a
+ * file.   Call it's finish method and deal with
+ * the final result.
+ *
+ * @param cls our publishing context
+ * @param tc scheduler's task context (not used)
+ */
 static void 
 encode_cont (void *cls,
 	     const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -412,7 +431,7 @@ encode_cont (void *cls,
       GNUNET_free (emsg);
       GNUNET_FS_file_information_sync (p);
       pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
-      make_publish_status (&pi, sc, p);
+      make_publish_status (&pi, sc, p, 0);
       pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
       pi.value.publish.specifics.error.message = p->emsg;
       p->client_info
@@ -534,11 +553,11 @@ progress_proc (void *cls,
 
   p = sc->fi_pos;
   pi.status = GNUNET_FS_STATUS_PUBLISH_PROGRESS;
-  make_publish_status (&pi, sc, p);
+  make_publish_status (&pi, sc, p, offset);
   pi.value.publish.specifics.progress.data = pt_block;
   pi.value.publish.specifics.progress.offset = offset;
   pi.value.publish.specifics.progress.data_len = pt_size;
-  // FIXME: add depth to pi
+  pi.value.publish.specifics.progress.depth = depth;
   p->client_info 
     = sc->h->upcb (sc->h->upcb_cls,
 		   &pi);
@@ -551,20 +570,18 @@ progress_proc (void *cls,
  * continue with the main task.
  *
  * @param sc overall upload data
- * @param p specific file or directory for which kblocks
- *          should be created
  */
-// FIXME: "p" argument is not needed!
 static void
-publish_content (struct GNUNET_FS_PublishContext *sc,
-		 struct GNUNET_FS_FileInformation *p)
+publish_content (struct GNUNET_FS_PublishContext *sc) 
 {
+  struct GNUNET_FS_FileInformation *p;
   char *emsg;
   struct GNUNET_FS_DirectoryBuilder *db;
   struct GNUNET_FS_FileInformation *dirpos;
   void *raw_data;
   uint64_t size;
 
+  p = sc->fi_pos;
   if (NULL == p->te)
     {
       if (p->is_directory)
@@ -652,7 +669,7 @@ process_index_start_response (void *cls,
 		  p->data.file.filename,
 		  _("timeout on index-start request to `fs' service"));
       p->data.file.do_index = GNUNET_NO;
-      publish_content (sc, p);
+      publish_content (sc);
       return;
     }
   if (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_FS_INDEX_START_OK)
@@ -667,11 +684,11 @@ process_index_start_response (void *cls,
 		  p->data.file.filename,
 		  gettext (emsg));
       p->data.file.do_index = GNUNET_NO;
-      publish_content (sc, p);
+      publish_content (sc);
       return;
     }
   /* success! continue with indexing */
-  publish_content (sc, p);
+  publish_content (sc);
 }
 
 
@@ -709,7 +726,7 @@ hash_for_index_cb (void *cls,
 		  p->data.file.filename,
 		  _("failed to compute hash"));
       p->data.file.do_index = GNUNET_NO;
-      publish_content (sc, p);
+      publish_content (sc);
       return;
     }
   slen = strlen (p->data.file.filename) + 1;
@@ -720,7 +737,7 @@ hash_for_index_cb (void *cls,
 		  p->data.file.filename,
 		  _("filename too long"));
       p->data.file.do_index = GNUNET_NO;
-      publish_content (sc, p);
+      publish_content (sc);
       return;
     }
   client = GNUNET_CLIENT_connect (sc->h->sched,
@@ -733,7 +750,7 @@ hash_for_index_cb (void *cls,
 		  p->data.file.filename,
 		  _("could not connect to `fs' service"));
       p->data.file.do_index = GNUNET_NO;
-      publish_content (sc, p);
+      publish_content (sc);
       return;
     }
   p->data.file.file_id = *res;
@@ -819,7 +836,7 @@ do_upload (void *cls,
 	  GNUNET_free (fn);
 	  GNUNET_FS_file_information_sync (p);
 	  pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
-	  make_publish_status (&pi, sc, p);
+	  make_publish_status (&pi, sc, p, 0);
 	  pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
 	  pi.value.publish.specifics.error.message = p->emsg;
 	  p->client_info
@@ -854,7 +871,7 @@ do_upload (void *cls,
 		      _("Can not index file `%s': %s.  Will try to insert instead.\n"),
 		      "<no-name>",
 		      _("needs to be an actual file"));
-	  publish_content (sc, p);
+	  publish_content (sc);
 	  return;
 	}      
       GNUNET_CRYPTO_hash_file (sc->h->sched,
@@ -866,7 +883,7 @@ do_upload (void *cls,
 			       sc);
       return;
     }
-  publish_content (sc, p);
+  publish_content (sc);
 }
 
 
@@ -900,7 +917,7 @@ fip_signal_start(void *cls,
   struct GNUNET_FS_ProgressInfo pi;
 
   pi.status = GNUNET_FS_STATUS_PUBLISH_START;
-  make_publish_status (&pi, sc, fi);
+  make_publish_status (&pi, sc, fi, 0);
   *client_info = sc->h->upcb (sc->h->upcb_cls,
 			      &pi);
   return GNUNET_OK;
@@ -1010,9 +1027,11 @@ fip_signal_stop(void *cls,
 {
   struct GNUNET_FS_PublishContext*sc = cls;
   struct GNUNET_FS_ProgressInfo pi;
+  uint64_t off;
 
+  off = (fi->chk_uri == NULL) ? 0 : length;
   pi.status = GNUNET_FS_STATUS_PUBLISH_STOPPED;
-  make_publish_status (&pi, sc, fi);
+  make_publish_status (&pi, sc, fi, off);
   GNUNET_break (NULL ==
 		sc->h->upcb (sc->h->upcb_cls,
 			     &pi));
