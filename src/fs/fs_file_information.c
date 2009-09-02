@@ -701,7 +701,6 @@ GNUNET_FS_file_information_add (struct GNUNET_FS_FileInformation *dir,
   ent->next = dir->data.dir.entries;
   dir->data.dir.entries = ent;
   dir->data.dir.dir_size = 0;
-  dir->publish_offset = 0;
   GNUNET_FS_file_information_sync (ent);
   GNUNET_FS_file_information_sync (dir);
   return GNUNET_OK;
@@ -824,7 +823,6 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
 	       &fi->client_info);
     }
   GNUNET_free_non_null (fi->emsg);
-  GNUNET_free_non_null (fi->chk_tree);
   /* clean up serialization */
   if (0 != UNLINK (fi->serialization))
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
