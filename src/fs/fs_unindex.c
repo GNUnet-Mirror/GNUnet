@@ -144,29 +144,6 @@ unindex_process (void *cls,
 			   uc,
 			   GNUNET_CONSTANTS_SERVICE_TIMEOUT);
 }
-					     
-
-/**
- * Function called with information about our
- * progress in computing the tree encoding.
- *
- * @param cls closure
- * @param offset where are we in the file
- * @param pt_block plaintext of the currently processed block
- * @param pt_size size of pt_block
- * @param depth depth of the block in the tree
- */
-static void
-unindex_progress (void *cls,
-		  uint64_t offset,
-		  const void *pt_block,
-		  size_t pt_size,
-		  unsigned int depth)
-{
-  struct GNUNET_FS_UnindexContext *uc = cls;
-  // FIXME: call callback!
-}
-					       
 
 
 /**
@@ -193,6 +170,38 @@ make_unindex_status (struct GNUNET_FS_ProgressInfo *pi,
   pi->value.publish.completed = offset;
 }
 
+
+/**
+ * Function called with information about our
+ * progress in computing the tree encoding.
+ *
+ * @param cls closure
+ * @param offset where are we in the file
+ * @param pt_block plaintext of the currently processed block
+ * @param pt_size size of pt_block
+ * @param depth depth of the block in the tree
+ */
+static void
+unindex_progress (void *cls,
+		  uint64_t offset,
+		  const void *pt_block,
+		  size_t pt_size,
+		  unsigned int depth)
+{
+  struct GNUNET_FS_UnindexContext *uc = cls;
+  struct GNUNET_FS_ProgressInfo pi;
+
+  pi.status = GNUNET_FS_STATUS_UNINDEX_PROGRESS;
+  make_unindex_status (&pi, uc, offset);
+  pi.value.unindex.specifics.progress.data = pt_block;
+  pi.value.unindex.specifics.progress.offset = offset;
+  pi.value.unindex.specifics.progress.data_len = pt_size;
+  pi.value.unindex.specifics.progress.depth = depth;
+  uc->client_info 
+    = uc->h->upcb (uc->h->upcb_cls,
+		   &pi);
+}
+					       
 
 /**
  * We've encountered an error during

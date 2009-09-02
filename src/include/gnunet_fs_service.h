@@ -920,6 +920,14 @@ struct GNUNET_FS_ProgressInfo
 	  uint64_t data_len;
 
 	  /**
+	   * Depth of the given block in the tree; 
+	   * 0 would be the highest level (the first
+	   * call is guaranteed to be for the lowest
+	   * level).
+	   */
+	  unsigned int depth;
+
+	  /**
 	   * Amount of trust we offered to get the block.
 	   */
 	  unsigned int trust_offered;	  
@@ -1326,6 +1334,14 @@ struct GNUNET_FS_ProgressInfo
 	   * Length of the data block.
 	   */
 	  uint64_t data_len;
+
+	  /**
+	   * Depth of the given block in the tree; 
+	   * 0 would be the highest level (the first
+	   * call is guaranteed to be for the lowest
+	   * level).
+	   */
+	  unsigned int depth;
 
 	} progress;
 
