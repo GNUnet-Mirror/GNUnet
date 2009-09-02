@@ -37,10 +37,8 @@ PHASE #2: (Goal: recover basic file-sharing functionality)
   - implement testcases
 * FS (basic anonymous FS only)
   - design network structs (CS)
-    + unindex
     + search/download, response
   - implement basic FS library
-    - unindex
     - keyword-search
     - download (need search to be done)
   - design network structs (P2P)
