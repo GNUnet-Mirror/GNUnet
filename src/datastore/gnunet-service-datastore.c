@@ -1016,7 +1016,7 @@ remove_callback (void *cls,
       if (GNUNET_YES == rc->found)
 	transmit_status (rc->client, GNUNET_OK, NULL);       
       else
-	transmit_status (rc->client, GNUNET_SYSERR, _("Content not found"));       	
+	transmit_status (rc->client, GNUNET_NO, _("Content not found"));       	
       GNUNET_SERVER_client_drop (rc->client);
       GNUNET_free (rc);
       return GNUNET_OK; /* last item */

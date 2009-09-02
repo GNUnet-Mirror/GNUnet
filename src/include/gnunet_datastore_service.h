@@ -254,6 +254,10 @@ GNUNET_DATASTORE_get_random (struct GNUNET_DATASTORE_Handle *h,
 
 /**
  * Explicitly remove some content from the database.
+ * The "cont"inuation will be called with status
+ * "GNUNET_OK" if content was removed, "GNUNET_NO"
+ * if no matching entry was found and "GNUNET_SYSERR"
+ * on all other types of errors.
  *
  * @param h handle to the datastore
  * @param key key for the value

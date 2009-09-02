@@ -79,26 +79,6 @@ unindex_reader (void *cls,
 
 
 /**
- * Continuation called to notify client about result of the
- * datastore removal operation.
- *
- * @param cls closure
- * @param success GNUNET_SYSERR on failure
- * @param msg NULL on success, otherwise an error message
- */
-static void
-process_cont (void *cls,
-	      int success,
-	      const char *msg)
-{
-  struct GNUNET_FS_UnindexContext *uc = cls;
-  // FIXME: may want to check for errors
-  // OTHER than content-not-present!
-  GNUNET_FS_tree_encoder_next (uc->tc);
-}
-
-
-/**
  * Function called asking for the current (encoded)
  * block to be processed.  After processing the
  * client should either call "GNUNET_FS_tree_encode_next"
@@ -223,6 +203,31 @@ signal_unindex_error (struct GNUNET_FS_UnindexContext *uc,
   uc->client_info
     = uc->h->upcb (uc->h->upcb_cls,
 		   &pi);
+}
+
+
+/**
+ * Continuation called to notify client about result of the
+ * datastore removal operation.
+ *
+ * @param cls closure
+ * @param success GNUNET_SYSERR on failure
+ * @param msg NULL on success, otherwise an error message
+ */
+static void
+process_cont (void *cls,
+	      int success,
+	      const char *msg)
+{
+  struct GNUNET_FS_UnindexContext *uc = cls;
+  if (success == GNUNET_SYSERR)
+    {
+      signal_unindex_error (uc,
+			    emsg);
+      return;
+    }
+  
+  GNUNET_FS_tree_encoder_next (uc->tc);
 }
 
 
