@@ -372,7 +372,7 @@ block_reader (void *cls,
 {
   struct GNUNET_FS_PublishContext *sc = cls;
   struct GNUNET_FS_FileInformation *p;
-  uint16_t pt_size;
+  size_t pt_size;
   const char *dd;
 
   p = sc->fi_pos;

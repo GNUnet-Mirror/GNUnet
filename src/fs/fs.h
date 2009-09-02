@@ -238,19 +238,6 @@ struct GNUNET_FS_FileInformation
    * (for operational persistence).
    */
   char *serialization;
-
-  /**
-   * In-memory cache of the current CHK tree.
-   * This struct will contain the CHK values
-   * from the root to the currently processed
-   * node in the tree as identified by 
-   * "current_depth" and "publish_offset".
-   * The "chktree" will be initially NULL,
-   * then allocated to a sufficient number of
-   * entries for the size of the file and
-   * finally freed once the upload is complete.
-   */
-  // struct ContentHashKey *chk_tree;
   
   /**
    * Encoder being used to publish this file.
@@ -262,24 +249,6 @@ struct GNUNET_FS_FileInformation
    * failed).
    */
   char *emsg;
-  
-  /**
-   * Number of entries in "chk_tree".
-   */
-  // unsigned int chk_tree_depth;
-
-  /**
-   * Depth in the CHK-tree at which we are
-   * currently publishing.  0 is the root
-   * of the tree.
-   */
-  // unsigned int current_depth;
-
-  /**
-   * How many bytes of this file or directory have been
-   * published so far?
-   */
-  // uint64_t publish_offset;
 
   /**
    * Data describing either the file or the directory.
@@ -580,14 +549,19 @@ struct GNUNET_FS_UnindexContext
   void *client_info;
 
   /**
+   * Merkle-ish tree encoder context.
+   */
+  struct GNUNET_FS_TreeEncoder *tc;
+
+  /**
+   * Handle used to read the file.
+   */
+  struct GNUNET_DISK_FileHandle *fh;
+
+  /**
    * Overall size of the file.
    */ 
   uint64_t file_size;
-
-  /**
-   * How far have we gotten?
-   */ 
-  uint64_t unindex_offset;
 
   /**
    * When did we start?

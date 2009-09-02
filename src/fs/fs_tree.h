@@ -95,6 +95,7 @@ typedef void (*GNUNET_FS_TreeProgressCallback)(void *cls,
  * @param proc function to call on each encrypted block
  * @param progress function to call with progress information 
  * @param cont function to call when done
+ * @return tree encoder context
  */
 struct GNUNET_FS_TreeEncoder *
 GNUNET_FS_tree_encoder_create (struct GNUNET_FS_Handle *h,

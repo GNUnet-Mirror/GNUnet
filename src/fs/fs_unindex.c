@@ -32,8 +32,96 @@
 #include "gnunet_fs_service.h"
 #include "gnunet_protocols.h"
 #include "fs.h"
+#include "fs_tree.h"
 
 
+/**
+ * Function called by the tree encoder to obtain
+ * a block of plaintext data (for the lowest level
+ * of the tree).
+ *
+ * @param cls our publishing context
+ * @param offset identifies which block to get
+ * @param max (maximum) number of bytes to get; returning
+ *        fewer will also cause errors
+ * @param buf where to copy the plaintext buffer
+ * @param emsg location to store an error message (on error)
+ * @return number of bytes copied to buf, 0 on error
+ */
+static size_t
+unindex_reader (void *cls,
+		uint64_t offset,
+		size_t max, 
+		void *buf,
+		char **emsg)
+{
+  struct GNUNET_FS_UnindexContext *uc = cls;
+  size_t pt_size;
+
+  pt_size = GNUNET_MIN(max,
+		       uc->file_size - offset);
+  if (offset != 
+      GNUNET_DISK_file_seek (uc->fh, offset, GNUNET_DISK_SEEK_SET))
+    {
+      *emsg = GNUNET_strdup (_("Failed to find given position in file"));
+      return 0;
+    }
+  if (pt_size !=
+      GNUNET_DISK_file_read (uc->fh,
+			     buf,
+			     pt_size))
+    {
+      *emsg = GNUNET_strdup (_("Failed to read file"));
+      return 0;
+    }
+  return pt_size;
+}
+
+
+/**
+ * Function called asking for the current (encoded)
+ * block to be processed.  After processing the
+ * client should either call "GNUNET_FS_tree_encode_next"
+ * or (on error) "GNUNET_FS_tree_encode_finish".
+ *
+ * @param cls closure
+ * @param query the query for the block (key for lookup in the datastore)
+ * @param offset offset of the block
+ * @param type type of the block (IBLOCK or DBLOCK)
+ * @param block the (encrypted) block
+ * @param block_size size of block (in bytes)
+ */
+static void 
+unindex_process (void *cls,
+		 const GNUNET_HashCode *query,
+		 uint64_t offset,
+		 unsigned int type,
+		 const void *block,
+		 uint16_t block_size)
+{
+}
+					     
+
+/**
+ * Function called with information about our
+ * progress in computing the tree encoding.
+ *
+ * @param cls closure
+ * @param offset where are we in the file
+ * @param pt_block plaintext of the currently processed block
+ * @param pt_size size of pt_block
+ * @param depth depth of the block in the tree
+ */
+static void
+unindex_progress (void *cls,
+		  uint64_t offset,
+		  const void *pt_block,
+		  size_t pt_size,
+		  unsigned int depth)
+{
+  // FIXME
+}
+					       
 
 
 /**
@@ -45,7 +133,8 @@
  */
 static void
 make_unindex_status (struct GNUNET_FS_ProgressInfo *pi,
-		     struct GNUNET_FS_UnindexContext *uc)
+		     struct GNUNET_FS_UnindexContext *uc,
+		     uint64_t offset)
 {
   pi->value.unindex.uc = uc;
   pi->value.unindex.cctx = uc->client_info;
@@ -53,10 +142,10 @@ make_unindex_status (struct GNUNET_FS_ProgressInfo *pi,
   pi->value.unindex.size = uc->file_size;
   pi->value.unindex.eta 
     = GNUNET_TIME_calculate_eta (uc->start_time,
-				 uc->unindex_offset,
+				 offset,
 				 uc->file_size);
   pi->value.publish.duration = GNUNET_TIME_absolute_get_duration (uc->start_time);
-  pi->value.publish.completed = uc->unindex_offset;
+  pi->value.publish.completed = offset;
 }
 
 
@@ -74,12 +163,19 @@ signal_unindex_error (struct GNUNET_FS_UnindexContext *uc,
   struct GNUNET_FS_ProgressInfo pi;
   
   pi.status = GNUNET_FS_STATUS_UNINDEX_ERROR;
-  make_unindex_status (&pi, uc);
+  make_unindex_status (&pi, uc, 0);
   pi.value.unindex.eta = GNUNET_TIME_UNIT_FOREVER_REL;
   pi.value.unindex.specifics.error.message = emsg;
   uc->client_info
     = uc->h->upcb (uc->h->upcb_cls,
 		   &pi);
+}
+
+
+static void
+unindex_finish (void *cls,
+		const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
 }
 
 
@@ -127,8 +223,25 @@ process_fs_response (void *cls,
 			    _("Failed to connect to `datastore' service."));
       return;
     }
-
-  // FIXME: call shared code with publishing...
+  uc->fh = GNUNET_DISK_file_open (uc->filename,
+				  GNUNET_DISK_OPEN_READ);
+  if (NULL == uc->fh)
+    {
+      GNUNET_DATASTORE_disconnect (uc->dsh, GNUNET_NO);
+      uc->dsh = NULL;
+      uc->state = UNINDEX_STATE_ERROR;
+      signal_unindex_error (uc, 
+			    _("Failed to open file for unindexing."));
+      return;
+    }
+  uc->tc = GNUNET_FS_tree_encoder_create (uc->h,
+					  uc->file_size,
+					  uc,
+					  &unindex_reader,
+					  &unindex_process,
+					  &unindex_progress,
+					  &unindex_finish);
+  GNUNET_FS_tree_encoder_next (uc->tc);
 }
 
 
@@ -203,7 +316,7 @@ GNUNET_FS_unindex (struct GNUNET_FS_Handle *h,
 
   // FIXME: make persistent!
   pi.status = GNUNET_FS_STATUS_UNINDEX_START;
-  make_unindex_status (&pi, ret);
+  make_unindex_status (&pi, ret, 0);
   pi.value.unindex.eta = GNUNET_TIME_UNIT_FOREVER_REL;
   ret->client_info
     = h->upcb (h->upcb_cls,
@@ -236,8 +349,10 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc)
       return;
     }
   // FIXME: make unpersistent!
+  make_unindex_status (&pi, uc, 
+		       (uc->state == UNINDEX_STATE_COMPLETE)
+		       ? uc->file_size : 0);
   pi.status = GNUNET_FS_STATUS_UNINDEX_STOPPED;
-  make_unindex_status (&pi, uc);
   pi.value.unindex.eta = GNUNET_TIME_UNIT_ZERO;
   uc->client_info
     = uc->h->upcb (uc->h->upcb_cls,
