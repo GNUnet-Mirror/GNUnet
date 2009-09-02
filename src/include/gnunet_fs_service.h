@@ -628,6 +628,12 @@ enum GNUNET_FS_Status
 
   /**
    * Notification that the unindexing of this file
+   * was completed.
+   */
+  GNUNET_FS_STATUS_UNINDEX_COMPLETED,
+
+  /**
+   * Notification that the unindexing of this file
    * was stopped (final event for this action).
    */
   GNUNET_FS_STATUS_UNINDEX_STOPPED
@@ -769,6 +775,14 @@ struct GNUNET_FS_ProgressInfo
 	   * Length of the data block.
 	   */
 	  uint64_t data_len;
+
+	  /**
+	   * Depth of the given block in the tree; 
+	   * 0 would be the highest level (the first
+	   * call is guaranteed to be for the lowest
+	   * level).
+	   */
+	  unsigned int depth;
 
 	} progress;
 

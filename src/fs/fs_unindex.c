@@ -79,6 +79,26 @@ unindex_reader (void *cls,
 
 
 /**
+ * Continuation called to notify client about result of the
+ * datastore removal operation.
+ *
+ * @param cls closure
+ * @param success GNUNET_SYSERR on failure
+ * @param msg NULL on success, otherwise an error message
+ */
+static void
+process_cont (void *cls,
+	      int success,
+	      const char *msg)
+{
+  struct GNUNET_FS_UnindexContext *uc = cls;
+  // FIXME: may want to check for errors
+  // OTHER than content-not-present!
+  GNUNET_FS_tree_encoder_next (uc->tc);
+}
+
+
+/**
  * Function called asking for the current (encoded)
  * block to be processed.  After processing the
  * client should either call "GNUNET_FS_tree_encode_next"
@@ -99,6 +119,30 @@ unindex_process (void *cls,
 		 const void *block,
 		 uint16_t block_size)
 {
+  struct GNUNET_FS_UnindexContext *uc = cls;
+  uint32_t size;
+  const void *data;
+  struct OnDemandBlock odb;
+
+  if (type != GNUNET_DATASTORE_BLOCKTYPE_DBLOCK)
+    {
+      size = block_size;
+      data = block;
+    }
+  else /* on-demand encoded DBLOCK */
+    {
+      size = sizeof(struct OnDemandBlock);
+      odb.offset = offset;
+      odb.file_id = uc->file_id;
+      data = &odb;
+    }
+  GNUNET_DATASTORE_remove (uc->dsh,
+			   query,
+			   block_size,
+			   block,
+			   &process_cont,
+			   uc,
+			   GNUNET_CONSTANTS_SERVICE_TIMEOUT);
 }
 					     
 
@@ -119,7 +163,8 @@ unindex_progress (void *cls,
 		  size_t pt_size,
 		  unsigned int depth)
 {
-  // FIXME
+  struct GNUNET_FS_UnindexContext *uc = cls;
+  // FIXME: call callback!
 }
 					       
 
@@ -172,10 +217,45 @@ signal_unindex_error (struct GNUNET_FS_UnindexContext *uc,
 }
 
 
+/**
+ * Function called when the tree encoder has
+ * processed all blocks.  Clean up.
+ *
+ * @param cls our unindexing context
+ * @param tc not used
+ */
 static void
 unindex_finish (void *cls,
 		const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct GNUNET_FS_UnindexContext *uc = cls;
+  char *emsg;
+  struct GNUNET_FS_Uri *uri;
+  struct GNUNET_FS_ProgressInfo pi;
+
+  GNUNET_FS_tree_encoder_finish (uc->tc,
+				 &uri,
+				 &emsg);
+  if (uri != NULL)
+    GNUNET_FS_uri_destroy (uri);
+  GNUNET_DISK_file_close (uc->fh);
+  uc->fh = NULL;
+  GNUNET_DATASTORE_disconnect (uc->dsh, GNUNET_NO);
+  uc->dsh = NULL;
+  if (emsg != NULL)
+    {
+      signal_unindex_error (uc, emsg);
+      GNUNET_free (emsg);
+    }
+  else
+    {   
+      pi.status = GNUNET_FS_STATUS_UNINDEX_COMPLETED;
+      make_unindex_status (&pi, uc, uc->file_size);
+      pi.value.unindex.eta = GNUNET_TIME_UNIT_ZERO;
+      uc->client_info
+	= uc->h->upcb (uc->h->upcb_cls,
+		       &pi);
+    }
 }
 
 
