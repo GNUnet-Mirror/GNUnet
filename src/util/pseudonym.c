@@ -136,9 +136,9 @@ write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
                       const struct GNUNET_CONTAINER_MetaData *meta,
                       int32_t ranking, const char *ns_name)
 {
-  unsigned int size;
-  unsigned int tag;
-  unsigned int off;
+  size_t size;
+  size_t tag;
+  size_t off;
   char *buf;
   char *fn;
 
@@ -146,7 +146,7 @@ write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_assert (fn != NULL);
   size = GNUNET_CONTAINER_meta_data_get_serialized_size (meta,
                                                          GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL);
-  tag = size + sizeof (int) + 1;
+  tag = size + sizeof (int32_t) + 1;
   off = 0;
   if (ns_name != NULL)
     {
@@ -154,10 +154,10 @@ write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
       tag += off;
     }
   buf = GNUNET_malloc (tag);
-  ((int *) buf)[0] = htonl (ranking);   /* ranking */
+  ((int32_t *) buf)[0] = htonl (ranking);   /* ranking */
   if (ns_name != NULL)
     {
-      memcpy (&buf[sizeof (int)], ns_name, off + 1);
+      memcpy (&buf[sizeof (int32_t)], ns_name, off + 1);
     }
   else
     {
@@ -166,7 +166,7 @@ write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_assert
     (size == GNUNET_CONTAINER_meta_data_serialize (meta,
                                                    &buf[sizeof
-                                                        (int) +
+                                                        (int32_t) +
                                                         off + 1],
                                                    size,
                                                    GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL));
@@ -184,9 +184,9 @@ read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
            struct GNUNET_CONTAINER_MetaData **meta,
            int32_t * ranking, char **ns_name)
 {
-  unsigned long long len;
-  unsigned int size;
-  unsigned int zend;
+  uint64_t len;
+  size_t size;
+  size_t zend;
   struct stat sbuf;
   char *buf;
   char *fn;
@@ -204,7 +204,7 @@ read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
       GNUNET_free (fn);
       return GNUNET_SYSERR;
     }
-  if (len <= sizeof (int) + 1)
+  if (len <= sizeof (int32_t) + 1)
     {
       GNUNET_free (fn);
       return GNUNET_SYSERR;
@@ -226,8 +226,8 @@ read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
       return GNUNET_SYSERR;
     }
   if (ranking != NULL)
-    *ranking = ntohl (((int *) buf)[0]);
-  zend = sizeof (int);
+    *ranking = ntohl (((int32_t *) buf)[0]);
+  zend = sizeof (int32_t);
   while ((zend < len) && (buf[zend] != '\0'))
     zend++;
   if (zend == len)
@@ -238,8 +238,8 @@ read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
     }
   if (ns_name != NULL)
     {
-      if (zend != sizeof (int))
-        *ns_name = GNUNET_strdup (&buf[sizeof (int)]);
+      if (zend != sizeof (int32_t))
+        *ns_name = GNUNET_strdup (&buf[sizeof (int32_t)]);
       else
         *ns_name = NULL;
     }
@@ -280,7 +280,7 @@ GNUNET_PSEUDONYM_id_to_name (const struct GNUNET_CONFIGURATION_Handle *cfg,
   char *name;
   GNUNET_HashCode nh;
   char *fn;
-  unsigned long long len;
+  uint64_t len;
   struct GNUNET_DISK_FileHandle *fh;
   unsigned int i;
   unsigned int idx;
@@ -360,7 +360,7 @@ GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
                              const char *ns_uname, GNUNET_HashCode * nsid)
 {
   size_t slen;
-  unsigned long long len;
+  uint64_t len;
   unsigned int idx;
   char *name;
   GNUNET_HashCode nh;
