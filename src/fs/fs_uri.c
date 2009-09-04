@@ -396,6 +396,7 @@ uri_chk_parse (const char *s, char **emsg)
   struct GNUNET_FS_Uri *ret;
   struct FileIdentifier fi;
   unsigned int pos;
+  unsigned long long flen;
   size_t slen;
   char h1[sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded)];
   char h2[sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded)];
@@ -429,12 +430,12 @@ uri_chk_parse (const char *s, char **emsg)
 					       &fi.chk.query)) ||
       (1 != SSCANF (&s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) * 2],
                     "%llu", 
-		    &fi.file_length)))
+		    &flen)) )
     {
       *emsg = GNUNET_strdup (_("Malformed CHK URI"));
       return NULL;
     }
-  fi.file_length = GNUNET_htonll (fi.file_length);
+  fi.file_length = GNUNET_htonll (flen);
   ret = GNUNET_malloc (sizeof(struct GNUNET_FS_Uri));
   ret->type = chk;
   ret->data.chk = fi;
@@ -544,6 +545,7 @@ uri_loc_parse (const char *s, char **emsg)
   unsigned int pos;
   unsigned int npos;
   unsigned long long exptime;
+  unsigned long long flen;
   struct GNUNET_TIME_Absolute et;
   struct GNUNET_CRYPTO_RsaSignature sig;
   struct LocUriAssembly ass;
@@ -578,12 +580,12 @@ uri_loc_parse (const char *s, char **emsg)
 						    &ass.fi.chk.query)) ||
       (1 != SSCANF (&s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) * 2],
                     "%llu", 
-		    &ass.fi.file_length)) )
+		    &flen)) )
     {
       *emsg = GNUNET_strdup (_("SKS URI malformed"));
       return NULL;
     }
-  ass.fi.file_length = GNUNET_htonll (ass.fi.file_length);
+  ass.fi.file_length = GNUNET_htonll (flen);
 
   npos = pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) * 2;
   while ((s[npos] != '\0') && (s[npos] != '.'))

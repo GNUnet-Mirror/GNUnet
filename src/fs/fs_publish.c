@@ -210,7 +210,8 @@ signal_publish_completion (struct GNUNET_FS_FileInformation *p,
   struct GNUNET_FS_ProgressInfo pi;
   
   pi.status = GNUNET_FS_STATUS_PUBLISH_COMPLETED;
-  make_publish_status (&pi, sc, p, p->chk_uri->data.chk.file_length);
+  make_publish_status (&pi, sc, p,
+		       GNUNET_ntohll (p->chk_uri->data.chk.file_length));
   pi.value.publish.eta = GNUNET_TIME_UNIT_ZERO;
   pi.value.publish.specifics.completed.chk_uri = p->chk_uri;
   p->client_info
