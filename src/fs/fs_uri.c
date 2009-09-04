@@ -1195,7 +1195,7 @@ GNUNET_FS_uri_ksk_create_from_args (unsigned int argc,
   emsg = NULL;
   if ( (argc == 1) &&
        (strlen(argv[0]) > strlen(GNUNET_FS_URI_PREFIX)) &&
-       (strncmp(argv[0], GNUNET_FS_URI_PREFIX, strlen(GNUNET_FS_URI_PREFIX)) ) &&
+       (0 == strncmp(argv[0], GNUNET_FS_URI_PREFIX, strlen(GNUNET_FS_URI_PREFIX)) ) &&
        (NULL != (uri = GNUNET_FS_uri_parse(argv[0], &emsg)) ) )
     return uri;
   GNUNET_free_non_null (emsg);
