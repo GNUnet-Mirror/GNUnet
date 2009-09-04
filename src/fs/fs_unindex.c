@@ -79,54 +79,6 @@ unindex_reader (void *cls,
 
 
 /**
- * Function called asking for the current (encoded)
- * block to be processed.  After processing the
- * client should either call "GNUNET_FS_tree_encode_next"
- * or (on error) "GNUNET_FS_tree_encode_finish".
- *
- * @param cls closure
- * @param query the query for the block (key for lookup in the datastore)
- * @param offset offset of the block
- * @param type type of the block (IBLOCK or DBLOCK)
- * @param block the (encrypted) block
- * @param block_size size of block (in bytes)
- */
-static void 
-unindex_process (void *cls,
-		 const GNUNET_HashCode *query,
-		 uint64_t offset,
-		 unsigned int type,
-		 const void *block,
-		 uint16_t block_size)
-{
-  struct GNUNET_FS_UnindexContext *uc = cls;
-  uint32_t size;
-  const void *data;
-  struct OnDemandBlock odb;
-
-  if (type != GNUNET_DATASTORE_BLOCKTYPE_DBLOCK)
-    {
-      size = block_size;
-      data = block;
-    }
-  else /* on-demand encoded DBLOCK */
-    {
-      size = sizeof(struct OnDemandBlock);
-      odb.offset = offset;
-      odb.file_id = uc->file_id;
-      data = &odb;
-    }
-  GNUNET_DATASTORE_remove (uc->dsh,
-			   query,
-			   block_size,
-			   block,
-			   &process_cont,
-			   uc,
-			   GNUNET_CONSTANTS_SERVICE_TIMEOUT);
-}
-
-
-/**
  * Fill in all of the generic fields for 
  * an unindex event.
  *
@@ -223,11 +175,59 @@ process_cont (void *cls,
   if (success == GNUNET_SYSERR)
     {
       signal_unindex_error (uc,
-			    emsg);
+			    msg);
       return;
     }
   
   GNUNET_FS_tree_encoder_next (uc->tc);
+}
+
+
+/**
+ * Function called asking for the current (encoded)
+ * block to be processed.  After processing the
+ * client should either call "GNUNET_FS_tree_encode_next"
+ * or (on error) "GNUNET_FS_tree_encode_finish".
+ *
+ * @param cls closure
+ * @param query the query for the block (key for lookup in the datastore)
+ * @param offset offset of the block
+ * @param type type of the block (IBLOCK or DBLOCK)
+ * @param block the (encrypted) block
+ * @param block_size size of block (in bytes)
+ */
+static void 
+unindex_process (void *cls,
+		 const GNUNET_HashCode *query,
+		 uint64_t offset,
+		 unsigned int type,
+		 const void *block,
+		 uint16_t block_size)
+{
+  struct GNUNET_FS_UnindexContext *uc = cls;
+  uint32_t size;
+  const void *data;
+  struct OnDemandBlock odb;
+
+  if (type != GNUNET_DATASTORE_BLOCKTYPE_DBLOCK)
+    {
+      size = block_size;
+      data = block;
+    }
+  else /* on-demand encoded DBLOCK */
+    {
+      size = sizeof(struct OnDemandBlock);
+      odb.offset = offset;
+      odb.file_id = uc->file_id;
+      data = &odb;
+    }
+  GNUNET_DATASTORE_remove (uc->dsh,
+			   query,
+			   block_size,
+			   block,
+			   &process_cont,
+			   uc,
+			   GNUNET_CONSTANTS_SERVICE_TIMEOUT);
 }
 
 

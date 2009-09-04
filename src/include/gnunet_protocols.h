@@ -409,6 +409,16 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_FS_UNINDEX_OK 135
 
+/**
+ * Client asks FS service to start a (keyword) search.
+ */
+#define GNUNET_MESSAGE_TYPE_FS_START_SEARCH 136
+
+/**
+ * FS service has found content matching this client's
+ * request.
+ */
+#define GNUNET_MESSAGE_TYPE_FS_CONTENT 137
 
 /*
   TODO:

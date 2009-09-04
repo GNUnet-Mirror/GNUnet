@@ -36,8 +36,6 @@ PHASE #2: (Goal: recover basic file-sharing functionality)
 * HOSTLIST:
   - implement testcases
 * FS (basic anonymous FS only)
-  - design network structs (CS)
-    + search/download, response
   - implement basic FS library
     - keyword-search
     - download (need search to be done)
@@ -61,8 +59,13 @@ PHASE #2: (Goal: recover basic file-sharing functionality)
       ~ collection
     + directory API
 * new webpage
+  - lcov
+  - buildbot
+  - migrate Mantis?
+  - download links on Drupal?
+  - run peer
+  - configure hostlist
   - install on proper server
-  - activate as ng.gnunet.org
 => Deploy(able) development network
 
 

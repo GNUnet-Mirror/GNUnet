@@ -583,10 +583,70 @@ struct GNUNET_FS_UnindexContext
 
 
 /**
+ * Information we keep for each keyword in
+ * a keyword search.
+ */
+struct SearchRequestEntry
+{
+  /**
+   * Hash of the original keyword, also known as the
+   * key (for decrypting the KBlock).
+   */
+  GNUNET_HashCode key;
+
+  /**
+   * Hash of the public key, also known as the query.
+   */
+  GNUNET_HashCode query;
+};
+
+
+/**
  * Handle for controlling a search.
  */
 struct GNUNET_FS_SearchContext
 {
+  /**
+   * Handle to the global FS context.
+   */
+  struct GNUNET_FS_Handle *h;
+
+  /**
+   * List of keywords that we're looking for.
+   */
+  struct GNUNET_FS_Uri *uri;
+
+  /**
+   * Connection to the FS service.
+   */
+  struct GNUNET_CLIENT_Connection *client;
+
+  /**
+   * Per-keyword information for a keyword search.
+   */
+  struct SearchRequestEntry *requests;
+  
+  /**
+   * When did we start?
+   */
+  struct GNUNET_TIME_Absolute start_time;
+
+  /**
+   * ID of a task that is using this struct
+   * and that must be cancelled when the search
+   * is being stopped (if not GNUNET_SCHEDULER_NO_TASK).
+   * Used for the task that adds some artificial
+   * delay when trying to reconnect to the FS
+   * service.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier task;
+  
+  /**
+   * Anonymity level for the search.
+   */
+  unsigned int anonymity;
+
+
 };
 
 
@@ -630,7 +690,7 @@ struct OnDemandBlock
    * At which offset should we be able to find
    * this on-demand encoded block?
    */
-  uint64_t offset;
+  uint64_t offset GNUNET_PACKED;
 
 };
 
@@ -733,7 +793,7 @@ struct IndexStartMessage
    * OS does not support this, in which case the service must do a
    * full hash recomputation.
    */
-  uint32_t device;
+  uint32_t device GNUNET_PACKED;
   
   /**
    * Inode of the file on the given device, as seen by the client
@@ -741,7 +801,7 @@ struct IndexStartMessage
    * support this, in which case the service must do a full hash
    * recomputation.
    */
-  uint64_t inode;
+  uint64_t inode GNUNET_PACKED;
 
   /**
    * Hash of the file that we would like to index.
@@ -766,6 +826,11 @@ struct IndexInfoMessage
    * GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_ENTRY.
    */
   struct GNUNET_MessageHeader header;
+
+  /**
+   * Always zero.
+   */
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * Hash of the indexed file.
@@ -800,12 +865,99 @@ struct UnindexMessage
   /**
    * Always zero.
    */
-  uint32_t reserved;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * Hash of the file that we will unindex.
    */
   GNUNET_HashCode file_id;
+
+};
+
+
+/**
+ * Message sent from a GNUnet (fs) search
+ * activity to the gnunet-fs-service to 
+ * start a search.
+ */
+struct SearchMessage
+{
+
+  /**
+   * Message type will be 
+   * GNUNET_MESSAGE_TYPE_FS_START_SEARCH.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Should be zero.
+   */
+  int32_t reserved GNUNET_PACKED;
+
+  /**
+   * Type of the content that we're looking for.
+   * 0 for any.
+   */
+  uint32_t type GNUNET_PACKED;
+
+  /**
+   * Desired anonymity level, big-endian.
+   */
+  uint32_t anonymity_level GNUNET_PACKED;
+
+  /**
+   * If the request is for a DBLOCK or IBLOCK, this is the identity of
+   * the peer that is known to have a response.  Set to all-zeros if
+   * such a target is not known (note that even if OUR anonymity
+   * level is >0 we may happen to know the responder's identity;
+   * nevertheless, we should probably not use it for a DHT-lookup
+   * or similar blunt actions in order to avoid exposing ourselves).
+   * <p>
+   * If the request is for an SBLOCK, this is the identity of the
+   * pseudonym to which the SBLOCK belongs. 
+   * <p>
+   * If the request is for a KBLOCK, "target" must be all zeros.
+   */
+  GNUNET_HashCode target;
+
+  /**
+   * Hash of the keyword (aka query) for KBLOCKs; Hash of
+   * the CHK-encoded block for DBLOCKS and IBLOCKS (aka query)
+   * and hash of the identifier XORed with the target for
+   * SBLOCKS (aka query).
+   */
+  GNUNET_HashCode query;
+  
+};
+
+
+/**
+ * Response from FS service with a result for
+ * a previous FS search.  Note that queries
+ * for DBLOCKS and IBLOCKS that have received
+ * a single response are considered done.
+ */
+struct ContentMessage
+{
+
+  /**
+   * Message type will be 
+   * GNUNET_MESSAGE_TYPE_FS_CONTENT.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Type of the content that was found,
+   * should never be 0.
+   */
+  uint32_t type GNUNET_PACKED;
+
+  /**
+   * When will this result expire?
+   */
+  struct GNUNET_TIME_AbsoluteNBO expiration;
+
+  /* followed by the actual block of data */
 
 };
 
