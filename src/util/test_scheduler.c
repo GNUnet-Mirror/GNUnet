@@ -119,11 +119,11 @@ task5 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   fds[0] = GNUNET_DISK_pipe_handle (p, 0);
   fds[1] = GNUNET_DISK_pipe_handle (p, 1);
   GNUNET_SCHEDULER_add_read_file (tc->sched,
-                             GNUNET_NO,
-                             GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                             GNUNET_SCHEDULER_NO_TASK,
-                             GNUNET_TIME_UNIT_FOREVER_REL,
-                             fds[0], &taskRd, cls);
+				  GNUNET_NO,
+				  GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+				  GNUNET_SCHEDULER_NO_TASK,
+				  GNUNET_TIME_UNIT_FOREVER_REL,
+				  fds[0], &taskRd, cls);
   GNUNET_SCHEDULER_add_write_file (tc->sched,
                               GNUNET_NO,
                               GNUNET_SCHEDULER_PRIORITY_DEFAULT,

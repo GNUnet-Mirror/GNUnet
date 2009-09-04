@@ -412,11 +412,12 @@ GNUNET_SCHEDULER_add_write_net (struct GNUNET_SCHEDULER_Handle *sched,
  */
 GNUNET_SCHEDULER_TaskIdentifier
 GNUNET_SCHEDULER_add_read_file (struct GNUNET_SCHEDULER_Handle *sched,
-                           int run_on_shutdown,
-                           enum GNUNET_SCHEDULER_Priority prio,
-                           GNUNET_SCHEDULER_TaskIdentifier prerequisite_task,
-                           struct GNUNET_TIME_Relative delay,
-                           struct GNUNET_DISK_FileHandle *rfd, GNUNET_SCHEDULER_Task main, void *cls);
+				int run_on_shutdown,
+				enum GNUNET_SCHEDULER_Priority prio,
+				GNUNET_SCHEDULER_TaskIdentifier prerequisite_task,
+				struct GNUNET_TIME_Relative delay,
+				const struct GNUNET_DISK_FileHandle *rfd, 
+				GNUNET_SCHEDULER_Task main, void *cls);
 
 
 /**
@@ -445,11 +446,12 @@ GNUNET_SCHEDULER_add_read_file (struct GNUNET_SCHEDULER_Handle *sched,
  */
 GNUNET_SCHEDULER_TaskIdentifier
 GNUNET_SCHEDULER_add_write_file (struct GNUNET_SCHEDULER_Handle *sched,
-                            int run_on_shutdown,
-                            enum GNUNET_SCHEDULER_Priority prio,
-                            GNUNET_SCHEDULER_TaskIdentifier prerequisite_task,
-                            struct GNUNET_TIME_Relative delay,
-                            struct GNUNET_DISK_FileHandle *wfd, GNUNET_SCHEDULER_Task main, void *cls);
+				 int run_on_shutdown,
+				 enum GNUNET_SCHEDULER_Priority prio,
+				 GNUNET_SCHEDULER_TaskIdentifier prerequisite_task,
+				 struct GNUNET_TIME_Relative delay,
+				 const struct GNUNET_DISK_FileHandle *wfd,
+				 GNUNET_SCHEDULER_Task main, void *cls);
 
 
 /**

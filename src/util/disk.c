@@ -877,10 +877,11 @@ int
 GNUNET_DISK_file_copy (const char *src, const char *dst)
 {
   char *buf;
-  unsigned long long pos;
-  unsigned long long size;
-  unsigned long long len;
-  struct GNUNET_DISK_FileHandle *in, *out;
+  uint64_t pos;
+  uint64_t size;
+  size_t len;
+  struct GNUNET_DISK_FileHandle *in;
+  struct GNUNET_DISK_FileHandle *out;
 
   if (GNUNET_OK != GNUNET_DISK_file_size (src, &size, GNUNET_YES))
     return GNUNET_SYSERR;

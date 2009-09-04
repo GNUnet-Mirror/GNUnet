@@ -86,7 +86,7 @@ static int
 testOpenClose ()
 {
   struct GNUNET_DISK_FileHandle *fh;
-  unsigned long long size;
+  uint64_t size;
   long avail;
 
   fh = GNUNET_DISK_file_open (".testfile", GNUNET_DISK_OPEN_READWRITE
