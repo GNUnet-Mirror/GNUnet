@@ -414,13 +414,13 @@ struct FileHashContext
   /**
    * Size of the file.
    */
-  unsigned long long fsize;
+  uint64_t fsize;
 
   /**
    * Current offset.
    */
-  unsigned long long offset;
-
+  uint64_t offset;
+  
   /**
    * Run on shutdown?
    */
