@@ -855,6 +855,18 @@ struct GNUNET_FS_DownloadContext
   struct DownloadRequest *pending;
 
   /**
+   * The file handle, NULL if we don't create
+   * a file.
+   */
+  struct GNUNET_DISK_FileHandle *handle;
+
+  /**
+   * Identity of the peer having the content, or all-zeros
+   * if we don't know of such a peer.
+   */
+  struct GNUNET_PeerIdentity target;
+
+  /**
    * ID of a task that is using this struct
    * and that must be cancelled when the download
    * is being stopped (if not GNUNET_SCHEDULER_NO_TASK).
@@ -877,9 +889,25 @@ struct GNUNET_FS_DownloadContext
   uint64_t length;
 
   /**
+   * How many bytes have we already received within
+   * the specified range (DBlocks only).
+   */
+  uint64_t completed;
+
+  /**
+   * Time download was started.
+   */
+  struct GNUNET_TIME_Absolute start_time;
+
+  /**
    * Desired level of anonymity.
    */
   uint32_t anonymity;
+
+  /**
+   * The depth of the file-tree.
+   */
+  unsigned int treedepth;
 
   /**
    * Options for the download.
