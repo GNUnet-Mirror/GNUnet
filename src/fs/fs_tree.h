@@ -35,6 +35,16 @@
 #include "fs.h"
 
 /**
+ * Compute the depth of the CHK tree.
+ *
+ * @param flen file length for which to compute the depth
+ * @return depth of the tree
+ */
+unsigned int
+GNUNET_FS_compute_depth (uint64_t flen);
+
+
+/**
  * Context for an ECRS-based file encoder that computes
  * the Merkle-ish-CHK tree.
  */

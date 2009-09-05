@@ -121,8 +121,8 @@ struct GNUNET_FS_TreeEncoder
  * @param flen file length for which to compute the depth
  * @return depth of the tree
  */
-static unsigned int
-compute_depth (uint64_t flen)
+unsigned int
+GNUNET_FS_compute_depth (uint64_t flen)
 {
   unsigned int treeDepth;
   uint64_t fl;
@@ -179,7 +179,7 @@ GNUNET_FS_tree_encoder_create (struct GNUNET_FS_Handle *h,
   te->proc = proc;
   te->progress = progress;
   te->cont = cont;
-  te->chk_tree_depth = compute_depth (size);
+  te->chk_tree_depth = GNUNET_FS_compute_depth (size);
   te->current_depth = te->chk_tree_depth;
   te->chk_tree = GNUNET_malloc (te->chk_tree_depth *
 				CHK_PER_INODE *

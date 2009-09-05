@@ -33,6 +33,7 @@
 #include "gnunet_constants.h"
 #include "gnunet_fs_service.h"
 #include "fs.h"
+#include "fs_tree.h"
 
 #define DEBUG_DOWNLOAD GNUNET_YES
 
@@ -388,7 +389,7 @@ GNUNET_FS_file_download_start (struct GNUNET_FS_Handle *h,
   dc->anonymity = anonymity;
   dc->options = options;
   dc->active = GNUNET_CONTAINER_multihashmap_create (1 + (length / DBLOCK_SIZE));
-  // FIXME: calculate tree depth
+  dc->treedepth = GNUNET_FS_compute_depth (GNUNET_ntohll(dc->uri->data.chk.file_length));
   // FIXME: make persistent
   schedule_block_download (dc, 
 			   &dc->uri->data.chk.chk,
