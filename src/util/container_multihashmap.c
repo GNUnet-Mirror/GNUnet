@@ -123,7 +123,7 @@ GNUNET_CONTAINER_multihashmap_iterate (const struct
       e = map->map[i];
       while (e != NULL)
         {
-          if ((NULL != it) && (GNUNET_OK != it (&e->key, e->value, cls)))
+          if ((NULL != it) && (GNUNET_OK != it (cls, &e->key, e->value)))
             return GNUNET_SYSERR;
           count++;
           e = e->next;

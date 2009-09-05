@@ -455,15 +455,16 @@ enum GNUNET_CONTAINER_MultiHashMapOption
 /**
  * Iterator over HashCodes.
  *
+ * @param cls closure
  * @param key current key code
  * @param value value in the hash map
- * @param cls client-defined argument
  * @return GNUNET_YES if we should continue to
  *         iterate,
  *         GNUNET_NO if not.
  */
-typedef int (*GNUNET_CONTAINER_HashMapIterator) (const GNUNET_HashCode * key,
-                                                 void *value, void *cls);
+typedef int (*GNUNET_CONTAINER_HashMapIterator) (void *cls,
+						 const GNUNET_HashCode * key,
+                                                 void *value);
 
 
 /**

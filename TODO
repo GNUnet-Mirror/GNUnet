@@ -18,7 +18,7 @@ PHASE #2: (Goal: recover basic file-sharing functionality)
   - implement library for local testing
     + modify configuration to allow controlling
       connections for non-local starts
-    + CORE service does not start with valid peer ID (all zeross)
+    + CORE service does not start with valid peer ID (all zeros)
       -- testcase fails!
     + consider changing API for peer-group termination
       to call continuation when done
@@ -37,14 +37,17 @@ PHASE #2: (Goal: recover basic file-sharing functionality)
   - implement testcases
 * FS (basic anonymous FS only)
   - implement basic FS library
-    - keyword-search
-    - download (need search to be done)
+    - download API
+    - gnunet-search (binary)
+    - gnunet-unindex (binary)
+    - gnunet-download (binary)
+  - API FIX: change type for anonymity/priority from unsigned int to uint32_t!
   - design network structs (P2P)
     + query
     + response
   - implement FS service
     + datastore request queueing mechanism
-    + CS-functions (search, download, index, get_indexed, unindex)
+    + CS-functions (search/download, index, get_indexed, unindex)
     + P2P-functions (query, response)
   - implement testcases 
     + URI API
@@ -74,8 +77,7 @@ PHASE #3: (Goal: ready for pre-release) [completion-goal: end of 2009]
   - advanced FS API parts
     + namespaces
       ~ fundamental namespace API
-      ~ SBlock search
-      ~ KSBlocks!?
+    + search: SBlocks, KSBlocks, probes
     + collection
     + location URIs (publish, search, download)
     + persistence support (publish, unindex, search, download)

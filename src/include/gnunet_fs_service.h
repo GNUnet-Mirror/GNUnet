@@ -748,7 +748,7 @@ struct GNUNET_FS_ProgressInfo
       /**
        * What anonymity level is used for this upload?
        */
-      unsigned int anonymity;
+      uint32_t anonymity;
 
       /**
        * Additional values for specific events.
@@ -891,7 +891,7 @@ struct GNUNET_FS_ProgressInfo
       /**
        * What anonymity level is used for this download?
        */
-      unsigned int anonymity;
+      uint32_t anonymity;
 
       /**
        * Additional values for specific events.
@@ -926,11 +926,6 @@ struct GNUNET_FS_ProgressInfo
 	   * level).
 	   */
 	  unsigned int depth;
-
-	  /**
-	   * Amount of trust we offered to get the block.
-	   */
-	  unsigned int trust_offered;	  
 
 	} progress;
 
@@ -1027,13 +1022,7 @@ struct GNUNET_FS_ProgressInfo
       /**
        * What anonymity level is used for this search?
        */
-      unsigned int anonymity;
-
-      /**
-       * How much trust have we been offering for this search
-       * so far?
-       */
-      unsigned int trust_offered;
+      uint32_t anonymity;
 
       /**
        * Additional values for specific events.
@@ -1049,7 +1038,7 @@ struct GNUNET_FS_ProgressInfo
 	  /**
 	   * Metadata for the search result.
 	   */
-	  const struct GNUNET_MetaData *meta;
+	  const struct GNUNET_CONTAINER_MetaData *meta;
 
 	  /**
 	   * URI for the search result.
@@ -1067,7 +1056,7 @@ struct GNUNET_FS_ProgressInfo
 	  /**
 	   * Metadata for the search result.
 	   */
-	  const struct GNUNET_MetaData *meta;
+	  const struct GNUNET_CONTAINER_MetaData *meta;
 
 	  /**
 	   * URI for the search result.
@@ -1078,20 +1067,20 @@ struct GNUNET_FS_ProgressInfo
 	   * Current availability rank (negative:
 	   * unavailable, positive: available)
 	   */
-	  int availability_rank;
+	  int32_t availability_rank;
  
 	  /**
 	   * On how many total queries is the given
 	   * availability_rank based?
 	   */
-	  unsigned int availabiliy_certainty;
+	  uint32_t availabiliy_certainty;
 
 	  /**
 	   * Updated applicability rank (the larger,
 	   * the better the result fits the search
 	   * criteria).
 	   */
- 	  unsigned int applicabiliy_rank;	  
+ 	  uint32_t applicabiliy_rank;	  
 	  
 	} resume_result;
 	
@@ -1110,7 +1099,7 @@ struct GNUNET_FS_ProgressInfo
 	  /**
 	   * Metadata for the search result.
 	   */
-	  const struct GNUNET_MetaData *meta;
+	  const struct GNUNET_CONTAINER_MetaData *meta;
 
 	  /**
 	   * URI for the search result.
@@ -1121,20 +1110,20 @@ struct GNUNET_FS_ProgressInfo
 	   * Current availability rank (negative:
 	   * unavailable, positive: available)
 	   */
-	  int availability_rank;
+	  int32_t availability_rank;
  
 	  /**
 	   * On how many total queries is the given
 	   * availability_rank based?
 	   */
-	  unsigned int availabiliy_certainty;
+	  uint32_t availability_certainty;
 
 	  /**
 	   * Updated applicability rank (the larger,
 	   * the better the result fits the search
 	   * criteria).
 	   */
- 	  unsigned int applicabiliy_rank;
+ 	  uint32_t applicability_rank;
 
 	} update;
 	
@@ -1158,7 +1147,7 @@ struct GNUNET_FS_ProgressInfo
 	  /**
 	   * Metadata for the search result.
 	   */
-	  const struct GNUNET_MetaData *meta;
+	  const struct GNUNET_CONTAINER_MetaData *meta;
 
 	  /**
 	   * URI for the search result.
@@ -1187,7 +1176,7 @@ struct GNUNET_FS_ProgressInfo
 	  /**
 	   * Metadata for the search result.
 	   */
-	  const struct GNUNET_MetaData *meta;
+	  const struct GNUNET_CONTAINER_MetaData *meta;
 
 	  /**
 	   * URI for the search result.
@@ -1228,7 +1217,7 @@ struct GNUNET_FS_ProgressInfo
 	} error;
     
 	/**
-	 * Values for all "GNUNET_FS_STATUS_RESULT_NAMESPACE" events.
+	 * Values for all "GNUNET_FS_STATUS_SEARCH_RESULT_NAMESPACE" events.
 	 */
 	struct {
 	  

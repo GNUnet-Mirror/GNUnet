@@ -382,6 +382,12 @@ struct GNUNET_FS_Handle
    */
   struct GNUNET_CLIENT_Connection *client;
 
+  /**
+   * How many downloads probing availability
+   * of search results do we have running
+   * right now?
+   */
+  unsigned int active_probes;
 
 };
 
@@ -583,6 +589,72 @@ struct GNUNET_FS_UnindexContext
 
 
 /**
+ * Information we store for each search result.
+ */
+struct SearchResult
+{
+
+  /**
+   * URI to which this search result
+   * refers to.
+   */
+  struct GNUNET_FS_Uri *uri;
+
+  /**
+   * Metadata for the search result.
+   */
+  struct GNUNET_CONTAINER_MetaData *meta;
+
+  /**
+   * Client info for this search result.
+   */
+  void *client_info;
+
+  /**
+   * ID of a job that is currently probing
+   * this results' availability (NULL if we
+   * are not currently probing).
+   */
+  struct GNUNET_FS_DownloadContext *probe_ctx;
+  
+  /**
+   * ID of the task that will clean up the probe_ctx
+   * should it not complete on time (and that will
+   * need to be cancelled if we clean up the search
+   * result before then).
+   */
+  GNUNET_SCHEDULER_TaskIdentifier probe_cancel_task;
+
+  /**
+   * Number of mandatory keywords for which
+   * we have NOT yet found the search result;
+   * when this value hits zero, the search
+   * result is given to the callback.
+   */
+  uint32_t mandatory_missing;
+
+  /**
+   * Number of optional keywords under which
+   * this result was also found.
+   */
+  uint32_t optional_support;
+
+  /**
+   * Number of availability tests that
+   * have succeeded for this result.
+   */
+  uint32_t availability_success;
+
+  /**
+   * Number of availability trials that we
+   * have performed for this search result.
+   */
+  uint32_t availability_trials;
+
+};
+
+
+/**
  * Information we keep for each keyword in
  * a keyword search.
  */
@@ -597,7 +669,24 @@ struct SearchRequestEntry
   /**
    * Hash of the public key, also known as the query.
    */
-  GNUNET_HashCode query;
+  GNUNET_HashCode query;  
+
+  /**
+   * Map that contains a "struct SearchResult" for each result that
+   * was found under this keyword.  Note that the entries will point
+   * to the same locations as those in the master result map (in
+   * "struct GNUNET_FS_SearchContext"), so they should not be freed.
+   * The key for each entry is the XOR of the key and query in the CHK
+   * URI (as a unique identifier for the search result).
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *results;
+
+  /**
+   * Is this keyword a mandatory keyword
+   * (started with '+')?
+   */
+  int mandatory;
+
 };
 
 
@@ -617,12 +706,34 @@ struct GNUNET_FS_SearchContext
   struct GNUNET_FS_Uri *uri;
 
   /**
+   * For update-searches, link to the
+   * base-SKS search that triggered the
+   * update search; otherwise NULL.
+   */
+  struct GNUNET_FS_SearchContext *parent;
+
+  /**
    * Connection to the FS service.
    */
   struct GNUNET_CLIENT_Connection *client;
 
   /**
+   * Pointer we keep for the client.
+   */
+  void *client_info;
+
+  /**
+   * Map that contains a "struct SearchResult" for each result that
+   * was found in the search.  The key for each entry is the XOR of
+   * the key and query in the CHK URI (as a unique identifier for the
+   * search result).
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *master_result_map;
+
+  /**
    * Per-keyword information for a keyword search.
+   * This array will have exactly as many entries
+   * as there were keywords.
    */
   struct SearchRequestEntry *requests;
   
@@ -644,9 +755,12 @@ struct GNUNET_FS_SearchContext
   /**
    * Anonymity level for the search.
    */
-  unsigned int anonymity;
+  uint32_t anonymity;
 
-
+  /**
+   * Number of mandatory keywords in this query.
+   */
+  uint32_t mandatory_count;
 };
 
 
