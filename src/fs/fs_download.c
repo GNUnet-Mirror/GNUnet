@@ -23,9 +23,9 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - process replies
+ * - offset calculations
  * - callback signaling
- * - check if blocks exist already 
+ * - check if blocks exist already (can wait)
  * - location URI suppport (can wait)
  * - persistence (can wait)
  */
@@ -36,6 +36,65 @@
 #include "fs_tree.h"
 
 #define DEBUG_DOWNLOAD GNUNET_YES
+
+/**
+ * We're storing the IBLOCKS after the
+ * DBLOCKS on disk (so that we only have
+ * to truncate the file once we're done).
+ *
+ * Given the offset of a block (with respect
+ * to the DBLOCKS) and its depth, return the
+ * offset where we would store this block
+ * in the file.
+ * 
+ * @param fsize overall file size
+ * @param off offset of the block in the file
+ * @param depth depth of the block in the tree
+ * @param treedepth maximum depth of the tree
+ * @return off for DBLOCKS (depth == treedepth),
+ *         otherwise an offset past the end
+ *         of the file that does not overlap
+ *         with the range for any other block
+ */
+static uint64_t
+compute_disk_offset (uint64_t fsize,
+		      uint64_t off,
+		      unsigned int depth,
+		      unsigned int treedepth)
+{
+  if (depth == treedepth)
+    return off;
+  return 42; // FIXME
+}
+
+/**
+ * Given a file of the specified treedepth and 
+ * a block at the given offset and depth,
+ * calculate the offset for the CHK at
+ * the given index.
+ *
+ * @param offset the offset of the first
+ *        DBLOCK in the subtree of the 
+ *        identified IBLOCK
+ * @param depth the depth of the IBLOCK in the tree
+ * @param treedepth overall depth of the tree
+ * @param i which CHK in the IBLOCK are we 
+ *        talking about
+ * @return offset if i=0, otherwise an appropriately
+ *         larger value (i.e., if depth = treedepth-1,
+ *         the returned value should be offset+DBLOCK_SIZE)
+ */
+static uint64_t
+compute_dblock_offset (uint64_t offset,
+		       unsigned int depth,
+		       unsigned int treedepth,
+		       unsigned int i)
+{
+  GNUNET_assert (depth < treedepth);
+  if (i == 0)
+    return offset;
+  return 42; // FIXME
+}
 
 
 /**
@@ -57,8 +116,31 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
 			 unsigned int depth)
 {
   struct DownloadRequest *sm;
+  uint64_t off;
 
-  // FIXME: check if block exists on disk!
+  off = compute_disk_offset (GNUNET_ntohll (dc->uri->data.chk.file_length),
+			     offset,
+			     depth,
+			     dc->treedepth);
+  if ( (dc->old_file_size > off) &&
+       (dc->handle != NULL) &&
+       (off  == 
+	GNUNET_DISK_file_seek (dc->handle,
+			       off,
+			       GNUNET_DISK_SEEK_SET) ) )
+    {
+      // FIXME: check if block exists on disk!
+      // (read block, encode, compare with
+      // query; if matches, simply return)
+    }
+  if (depth < dc->treedepth)
+    {
+      // FIXME: try if we could
+      // reconstitute this IBLOCK
+      // from the existing blocks on disk (can wait)
+      // (read block(s), encode, compare with
+      // query; if matches, simply return)
+    }
   sm = GNUNET_malloc (sizeof (struct DownloadRequest));
   sm->chk = *chk;
   sm->offset = offset;
@@ -103,7 +185,12 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
   struct GNUNET_CRYPTO_AesSessionKey skey;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
   char pt[size];
+  uint64_t off;
+  size_t app;
+  unsigned int i;
+  struct ContentHashKey *chk;
 
+  // FIXME: check that size is as big as expected, otherwise ignore!!!
   GNUNET_CRYPTO_hash (data, size, &query);
   sm = GNUNET_CONTAINER_multihashmap_get (dc->active,
 					  &query);
@@ -122,10 +209,62 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
 			     &skey,
 			     &iv,
 			     pt);
-  // FIXME: save to disk
+  /* save to disk */
+  if ( (NULL != dc->handle) &&
+       ( (sm->depth == dc->treedepth) ||
+	 (0 == (dc->options & GNUNET_FS_DOWNLOAD_NO_TEMPORARIES)) ) )
+    {
+      off = compute_disk_offset (GNUNET_ntohll (dc->uri->data.chk.file_length),
+				 sm->offset,
+				 sm->depth,
+				 dc->treedepth);
+      GNUNET_assert (off  != 
+		     GNUNET_DISK_file_seek (dc->handle,
+					    off,
+					    GNUNET_DISK_SEEK_SET) );
+      GNUNET_DISK_file_write (dc->handle,
+			      pt,
+			      size);
+    }
   // FIXME: make persistent
+
+  if (sm->depth == dc->treedepth) 
+    {
+      app = size;
+      if (sm->offset < dc->offset)
+	{
+	  /* starting offset begins in the middle of pt,
+	     do not count first bytes as progress */
+	  GNUNET_assert (app > (dc->offset - sm->offset));
+	  app -= (dc->offset - sm->offset);	  
+	}
+      if (sm->offset + size > dc->offset + dc->length)
+	{
+	  /* end of block is after relevant range,
+	     do not count last bytes as progress */
+	  GNUNET_assert (app > (sm->offset + size) - (dc->offset + dc->length));
+	  app -= (sm->offset + size) - (dc->offset + dc->length);
+	}
+      dc->completed += app;
+    }
   // FIXME: call progress callback
-  // FIXME: trigger next block (if applicable)  
+  if (sm->depth == dc->treedepth) 
+    return;
+  GNUNET_assert (0 == (size % sizeof(struct ContentHashKey)));
+  chk = (struct ContentHashKey*) pt;
+  for (i=0;i<(size / sizeof(struct ContentHashKey));i++)
+    {
+      off = compute_dblock_offset (sm->offset,
+				   sm->depth,
+				   dc->treedepth,
+				   i);
+      if ( (off + DBLOCK_SIZE >= dc->offset) &&
+	   (off < dc->offset + dc->length) ) 
+	schedule_block_download (dc,
+				 &chk[i],
+				 off,
+				 sm->depth + 1);
+    }
 }
 
 
@@ -363,6 +502,10 @@ GNUNET_FS_file_download_start (struct GNUNET_FS_Handle *h,
   if (NULL != filename)
     {
       dc->filename = GNUNET_strdup (filename);
+      if (GNUNET_YES == GNUNET_DISK_file_test (filename))
+	GNUNET_DISK_file_size (filename,
+			       &dc->old_file_size,
+			       GNUNET_YES);
       dc->handle = GNUNET_DISK_file_open (filename, 
 					  GNUNET_DISK_OPEN_READWRITE | 
 					  GNUNET_DISK_OPEN_CREATE,
@@ -579,61 +722,6 @@ check_node_present (const struct Node *node)
     }
   GNUNET_free (data);
   return ret;
-}
-
-/**
- * DOWNLOAD children of this GNUNET_EC_IBlock.
- *
- * @param node the node that should be downloaded
- */
-static void
-iblock_download_children (const struct Node *node,
-                          const char *data, unsigned int size)
-{
-  struct GNUNET_GE_Context *ectx = node->ctx->ectx;
-  int i;
-  struct Node *child;
-  unsigned int childcount;
-  const GNUNET_EC_ContentHashKey *chks;
-  unsigned int levelSize;
-  unsigned long long baseOffset;
-
-  GNUNET_GE_ASSERT (ectx, node->level > 0);
-  childcount = size / sizeof (GNUNET_EC_ContentHashKey);
-  if (size != childcount * sizeof (GNUNET_EC_ContentHashKey))
-    {
-      GNUNET_GE_BREAK (ectx, 0);
-      return;
-    }
-  if (node->level == 1)
-    {
-      levelSize = GNUNET_ECRS_DBLOCK_SIZE;
-      baseOffset =
-        node->offset / sizeof (GNUNET_EC_ContentHashKey) *
-        GNUNET_ECRS_DBLOCK_SIZE;
-    }
-  else
-    {
-      levelSize =
-        sizeof (GNUNET_EC_ContentHashKey) * GNUNET_ECRS_CHK_PER_INODE;
-      baseOffset = node->offset * GNUNET_ECRS_CHK_PER_INODE;
-    }
-  chks = (const GNUNET_EC_ContentHashKey *) data;
-  for (i = 0; i < childcount; i++)
-    {
-      child = GNUNET_malloc (sizeof (struct Node));
-      child->ctx = node->ctx;
-      child->chk = chks[i];
-      child->offset = baseOffset + i * levelSize;
-      GNUNET_GE_ASSERT (ectx, child->offset < node->ctx->total);
-      child->level = node->level - 1;
-      GNUNET_GE_ASSERT (ectx, (child->level != 0) ||
-                        ((child->offset % GNUNET_ECRS_DBLOCK_SIZE) == 0));
-      if (GNUNET_NO == check_node_present (child))
-        add_request (child);
-      else
-        GNUNET_free (child);    /* done already! */
-    }
 }
 
 #endif

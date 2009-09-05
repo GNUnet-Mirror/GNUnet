@@ -877,6 +877,14 @@ struct GNUNET_FS_DownloadContext
   GNUNET_SCHEDULER_TaskIdentifier task;
 
   /**
+   * What was the size of the file on disk that we're downloading
+   * before we started?  Used to detect if there is a point in
+   * checking an existing block on disk for matching the desired
+   * content.  0 if the file did not exist already.
+   */
+  uint64_t old_file_size;
+
+  /**
    * What is the first offset that we're interested
    * in?
    */
