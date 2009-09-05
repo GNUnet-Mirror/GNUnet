@@ -337,12 +337,12 @@ struct GNUNET_FS_FileInformation
   /**
    * Desired anonymity level.
    */
-  unsigned int anonymity;
+  uint32_t anonymity;
 
   /**
    * Desired priority (for keeping the content in the DB).
    */
-  unsigned int priority;
+  uint32_t priority;
 
 };
 
@@ -428,17 +428,28 @@ struct GNUNET_FS_PublishContext
   char *nuid;
 
   /**
-   * ID of the task performing the upload. NO_TASK
-   * if the upload has completed.
-   */
-  GNUNET_SCHEDULER_TaskIdentifier upload_task;
-
-  /**
    * Our own client handle for the FS service;
    * only briefly used when we start to index a
    * file, otherwise NULL.
    */
   struct GNUNET_CLIENT_Connection *client;
+
+  /**
+   * Current position in the file-tree for the
+   * upload.
+   */
+  struct GNUNET_FS_FileInformation *fi_pos;
+
+  /**
+   * Connection to the datastore service.
+   */
+  struct GNUNET_DATASTORE_Handle *dsh;
+
+  /**
+   * ID of the task performing the upload. NO_TASK
+   * if the upload has completed.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier upload_task;
 
   /**
    * Typically GNUNET_NO.  Set to GNUNET_YES if
@@ -459,17 +470,6 @@ struct GNUNET_FS_PublishContext
    * Options for publishing.
    */
   enum GNUNET_FS_PublishOptions options;
-
-  /**
-   * Current position in the file-tree for the
-   * upload.
-   */
-  struct GNUNET_FS_FileInformation *fi_pos;
-
-  /**
-   * Connection to the datastore service.
-   */
-  struct GNUNET_DATASTORE_Handle *dsh;
 
   /**
    * Space reservation ID with datastore service
@@ -765,10 +765,127 @@ struct GNUNET_FS_SearchContext
 
 
 /**
+ * Information about an active download request.
+ */ 
+struct DownloadRequest
+{
+  /**
+   * While pending, we keep all download requests
+   * in a linked list.
+   */
+  struct DownloadRequest *next;
+
+  /**
+   * CHK for the request.
+   */
+  struct ContentHashKey chk;
+
+  /**
+   * Offset of the corresponding block.
+   */
+  uint64_t offset;
+
+  /**
+   * Depth of the corresponding block in the tree.
+   */
+  unsigned int depth;
+
+  /**
+   * Set if this request is currently in the linked list of pending
+   * requests.  Needed in case we get a response for a request that we
+   * have not yet send (due to FS bug or two blocks with identical
+   * content); in this case, we would need to remove the block from
+   * the pending list (and need a fast way to check if the block is on
+   * it).
+   */
+  int is_pending;
+
+};
+
+
+/**
  * Context for controlling a download.
  */
 struct GNUNET_FS_DownloadContext
 {
+  
+  /**
+   * Global FS context.
+   */ 
+  struct GNUNET_FS_Handle *h;
+  
+  /**
+   * Connection to the FS service.
+   */
+  struct GNUNET_CLIENT_Connection *client;
+
+  /**
+   * Parent download (used when downloading files
+   * in directories).
+   */
+  struct GNUNET_FS_DownloadContext *parent;
+
+  /**
+   * Context kept for the client.
+   */
+  void *client_info;
+
+  /**
+   * URI that identifies the file that
+   * we are downloading.
+   */
+  struct GNUNET_FS_Uri *uri;
+
+  /**
+   * Where are we writing the data (name of the
+   * file, can be NULL!).
+   */
+  char *filename;
+
+  /**
+   * Map of active requests (those waiting
+   * for a response).  The key is the hash
+   * of the encryped block (aka query).
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *active;
+
+  /**
+   * Linked list of pending requests.
+   */
+  struct DownloadRequest *pending;
+
+  /**
+   * ID of a task that is using this struct
+   * and that must be cancelled when the download
+   * is being stopped (if not GNUNET_SCHEDULER_NO_TASK).
+   * Used for the task that adds some artificial
+   * delay when trying to reconnect to the FS
+   * service.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier task;
+
+  /**
+   * What is the first offset that we're interested
+   * in?
+   */
+  uint64_t offset;
+
+  /**
+   * How many bytes starting from offset are desired?
+   * This is NOT the overall length of the file!
+   */
+  uint64_t length;
+
+  /**
+   * Desired level of anonymity.
+   */
+  uint32_t anonymity;
+
+  /**
+   * Options for the download.
+   */
+  enum GNUNET_FS_DownloadOptions options;
+
 };
 
 struct GNUNET_FS_Namespace
