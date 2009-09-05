@@ -50,9 +50,9 @@ testSymcipher ()
       printf ("symciphertest failed: encryptBlock returned %d\n", size);
       return 1;
     }
-  size = GNUNET_CRYPTO_aes_decrypt (&key,
-                                    result, size,
-                                    (const struct
+  size = GNUNET_CRYPTO_aes_decrypt (result, size,
+                                    &key,
+				    (const struct
                                      GNUNET_CRYPTO_AesInitializationVector *)
                                     INITVALUE, res);
   if (strlen (TESTSTRING) + 1 != size)
@@ -131,10 +131,10 @@ verifyCrypto ()
   res = GNUNET_malloc (GNUNET_CRYPTO_AES_KEY_LENGTH);
 
   if (GNUNET_CRYPTO_AES_KEY_LENGTH !=
-      GNUNET_CRYPTO_aes_decrypt (&key,
-                                 result,
+      GNUNET_CRYPTO_aes_decrypt (result,
                                  GNUNET_CRYPTO_AES_KEY_LENGTH,
-                                 (const struct
+                                 &key,
+				 (const struct
                                   GNUNET_CRYPTO_AesInitializationVector *)
                                  "testtesttesttest", res))
     {

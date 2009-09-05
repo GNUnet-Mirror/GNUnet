@@ -273,17 +273,16 @@ int GNUNET_CRYPTO_aes_encrypt (const void *block,
 /**
  * Decrypt a given block with the sessionkey.
  *
- * @param sessionkey the key used to decrypt
  * @param block the data to decrypt, encoded as returned by encrypt
  * @param size how big is the block?
+ * @param sessionkey the key used to decrypt
  * @param iv the initialization vector to use
  * @param result address to store the result at
  * @return -1 on failure, size of decrypted block on success
  */
-int GNUNET_CRYPTO_aes_decrypt (const struct GNUNET_CRYPTO_AesSessionKey
-                               *sessionkey, const void *block, uint16_t size,
-                               const struct
-                               GNUNET_CRYPTO_AesInitializationVector *iv,
+int GNUNET_CRYPTO_aes_decrypt (const void *block, uint16_t size,
+                               const struct GNUNET_CRYPTO_AesSessionKey *sessionkey, 
+                               const struct GNUNET_CRYPTO_AesInitializationVector *iv,
                                void *result);
 
 

@@ -103,7 +103,7 @@ testWeakKey ()
       return 1;
     }
 
-  size = GNUNET_CRYPTO_aes_decrypt (&weak_key, result, size, &INITVALUE, res);
+  size = GNUNET_CRYPTO_aes_decrypt (result, size, &weak_key, &INITVALUE, res);
 
   if ((strlen (WEAK_KEY_TESTSTRING) + 1) != size)
     {

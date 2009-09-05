@@ -1264,10 +1264,10 @@ do_decrypt (struct Neighbour *n,
       return GNUNET_SYSERR;
     }
   if (size !=
-      GNUNET_CRYPTO_aes_decrypt (&n->decrypt_key,
-                                 in,
+      GNUNET_CRYPTO_aes_decrypt (in,
                                  (uint16_t) size,
-                                 (const struct
+                                 &n->decrypt_key,
+				 (const struct
                                   GNUNET_CRYPTO_AesInitializationVector *) iv,
                                  out))
     {
