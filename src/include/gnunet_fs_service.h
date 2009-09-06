@@ -2122,6 +2122,35 @@ void
 GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc);
 
 
+
+
+/**
+ * Options for downloading.  Compatible options
+ * can be OR'ed together.
+ */
+enum GNUNET_FS_DownloadOptions 
+  {
+    /**
+     * No options (use defaults for everything).
+     */
+    GNUNET_FS_DOWNLOAD_OPTION_NONE = 0,
+    
+    /**
+     * Do a recursive download (that is, automatically trigger the
+     * download of files in directories).
+     */
+    GNUNET_FS_DOWNLOAD_OPTION_RECURSIVE = 1,
+
+    /**
+     * Do not append temporary data to
+     * the target file (for the IBlocks).
+     */
+    GNUNET_FS_DOWNLOAD_NO_TEMPORARIES = 2
+
+  };
+
+
+
 /**
  * Download parts of a file.  Note that this will store
  * the blocks at the respective offset in the given file.  Also, the
@@ -2130,7 +2159,7 @@ GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc);
  * given boundaries (if offset and length do not match the 32k FS
  * block boundaries). <p>
  *
- * This function should be used to focus a download towards a
+ * The given range can be used to focus a download towards a
  * particular portion of the file (optimization), not to strictly
  * limit the download to exactly those bytes.
  *
@@ -2141,9 +2170,7 @@ GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc);
  * @param offset at what offset should we start the download (typically 0)
  * @param length how many bytes should be downloaded starting at offset
  * @param anonymity anonymity level to use for the download
- * @param no_temporaries set to GNUNET_YES to disallow generation of temporary files
- * @param recursive should this be a recursive download (useful for directories
- *        to automatically trigger download of files in the directories)
+ * @param options various download options
  * @param parent parent download to associate this download with (use NULL
  *        for top-level downloads; useful for manually-triggered recursive downloads)
  * @return context that can be used to control this download
@@ -2152,11 +2179,10 @@ struct GNUNET_FS_DownloadContext *
 GNUNET_FS_file_download_start (struct GNUNET_FS_Handle *h,
 			       const struct GNUNET_FS_Uri *uri,
 			       const char *filename,
-			       unsigned long long offset,
-			       unsigned long long length,
-			       unsigned int anonymity,
-			       int no_temporaries,	
-			       int recursive,
+			       uint64_t offset,
+			       uint64_t length,
+			       uint32_t anonymity,
+			       enum GNUNET_FS_DownloadOptions options,
 			       struct GNUNET_FS_DownloadContext *parent);
 
 

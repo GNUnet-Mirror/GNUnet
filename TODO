@@ -39,7 +39,6 @@ PHASE #2: (Goal: recover basic file-sharing functionality)
   - implement basic FS library
     - download API
     - gnunet-search (binary)
-    - gnunet-unindex (binary)
     - gnunet-download (binary)
   - API FIX: change type for anonymity/priority from unsigned int to uint32_t!
   - design network structs (P2P)
