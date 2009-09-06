@@ -23,5 +23,6 @@ SUBDIRS = \
   core \
   testing \
   $(HOSTLIST_DIR) \
-  topology 
+  topology \
+  fs
 

@@ -274,7 +274,7 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
 static struct GNUNET_FS_SearchContext *
 search_start (struct GNUNET_FS_Handle *h,
 	      const struct GNUNET_FS_Uri *uri,
-	      unsigned int anonymity,
+	      uint32_t anonymity,
 	      struct GNUNET_FS_SearchContext *parent);
 
 
@@ -738,7 +738,7 @@ try_reconnect (struct GNUNET_FS_SearchContext *sc)
 static struct GNUNET_FS_SearchContext *
 search_start (struct GNUNET_FS_Handle *h,
 	      const struct GNUNET_FS_Uri *uri,
-	      unsigned int anonymity,
+	      uint32_t anonymity,
 	      struct GNUNET_FS_SearchContext *parent)
 {
   struct GNUNET_FS_SearchContext *sc;
@@ -830,7 +830,7 @@ search_start (struct GNUNET_FS_Handle *h,
 struct GNUNET_FS_SearchContext *
 GNUNET_FS_search_start (struct GNUNET_FS_Handle *h,
 			const struct GNUNET_FS_Uri *uri,
-			unsigned int anonymity)
+			uint32_t anonymity)
 {
   return search_start (h, uri, anonymity, NULL);
 }

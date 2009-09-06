@@ -192,8 +192,8 @@ GNUNET_FS_file_information_create_from_file (void *client_info,
 					     const struct GNUNET_FS_Uri *keywords,
 					     const struct GNUNET_CONTAINER_MetaData *meta,
 					     int do_index,
-					     unsigned int anonymity,
-					     unsigned int priority,
+					     uint32_t anonymity,
+					     uint32_t priority,
 					     struct GNUNET_TIME_Absolute expirationTime)
 {
   struct FileInfo *fi;
@@ -280,8 +280,8 @@ GNUNET_FS_file_information_create_from_data (void *client_info,
 					     const struct GNUNET_FS_Uri *keywords,
 					     const struct GNUNET_CONTAINER_MetaData *meta,
 					     int do_index,
-					     unsigned int anonymity,
-					     unsigned int priority,
+					     uint32_t anonymity,
+					     uint32_t priority,
 					     struct GNUNET_TIME_Absolute expirationTime)
 {
   return GNUNET_FS_file_information_create_from_reader (client_info,
@@ -323,8 +323,8 @@ GNUNET_FS_file_information_create_from_reader (void *client_info,
 					       const struct GNUNET_FS_Uri *keywords,
 					       const struct GNUNET_CONTAINER_MetaData *meta,
 					       int do_index,
-					       unsigned int anonymity,
-					       unsigned int priority,
+					       uint32_t anonymity,
+					       uint32_t priority,
 					       struct GNUNET_TIME_Absolute expirationTime)
 {
   struct GNUNET_FS_FileInformation *ret;
@@ -387,12 +387,12 @@ struct DirScanCls
   /**
    * Desired anonymity level.
    */
-  unsigned int anonymity;
+  uint32_t anonymity;
 
   /**
    * Desired publishing priority.
    */
-  unsigned int priority;
+  uint32_t priority;
 
   /**
    * Expiration time for publication.
@@ -499,8 +499,8 @@ int
 GNUNET_FS_directory_scanner_default (void *cls,
 				     const char *dirname,
 				     int do_index,
-				     unsigned int anonymity,
-				     unsigned int priority,
+				     uint32_t anonymity,
+				     uint32_t priority,
 				     struct GNUNET_TIME_Absolute expirationTime,
 				     GNUNET_FS_FileProcessor proc,
 				     void *proc_cls,
@@ -593,8 +593,8 @@ GNUNET_FS_file_information_create_from_directory (void *client_info,
 						  GNUNET_FS_DirectoryScanner scanner,
 						  void *scanner_cls,
 						  int do_index,
-						  unsigned int anonymity,
-						  unsigned int priority,
+						  uint32_t anonymity,
+						  uint32_t priority,
 						  struct GNUNET_TIME_Absolute expirationTime,
 						  char **emsg)
 {
@@ -656,8 +656,8 @@ struct GNUNET_FS_FileInformation *
 GNUNET_FS_file_information_create_empty_directory (void *client_info,
 						   const struct GNUNET_CONTAINER_MetaData *meta,
 						   const struct GNUNET_FS_Uri *keywords,
-						   unsigned int anonymity,
-						   unsigned int priority,
+						   uint32_t anonymity,
+						   uint32_t priority,
 						   struct GNUNET_TIME_Absolute expirationTime)
 {
   struct GNUNET_FS_FileInformation *ret;

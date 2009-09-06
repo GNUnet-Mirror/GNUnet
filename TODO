@@ -13,7 +13,7 @@ away), in order in which they will likely be done:
 * UPNP
 
 
-PHASE #2: (Goal: recover basic file-sharing functionality)
+Urgent items (before announcing ng.gnunet.org):
 * TESTING (needed for DV, DHT, Topology)
   - implement library for local testing
     + modify configuration to allow controlling
@@ -37,10 +37,10 @@ PHASE #2: (Goal: recover basic file-sharing functionality)
   - implement testcases
 * FS (basic anonymous FS only)
   - implement basic FS library
-    - download API
-    - gnunet-search (binary)
-    - gnunet-download (binary)
-  - API FIX: change type for anonymity/priority from unsigned int to uint32_t!
+    - gnunet-publish (progress CB, shutdown, URI args)
+    - gnunet-unindex (progress CB, shutdown, error checking)
+    - gnunet-search (start search, progress CB, shutdown, options)
+    - gnunet-download (start download, progress CB, shutdown, options)
   - design network structs (P2P)
     + query
     + response
@@ -57,21 +57,18 @@ PHASE #2: (Goal: recover basic file-sharing functionality)
       ~ download
       ~ search
       ~ unindex
-      ~ namespaces
-      ~ collection
     + directory API
 * new webpage
-  - lcov
-  - buildbot
-  - migrate Mantis?
-  - download links on Drupal?
-  - run peer
-  - configure hostlist
-  - install on proper server
+  - prevent?
+  - migrate Mantis!?
+  - Doxygen generation
+  - run peer => have a 0.9.x hostlist
+  - improve basic documentation (configure, dependencies, what works, etc.)
+  - write minimal welcome/introduction to 0.9.x-development/webpage/status
 => Deploy(able) development network
 
 
-PHASE #3: (Goal: ready for pre-release) [completion-goal: end of 2009]
+0.9.0pre0:
 * Module features to implement:
   - advanced FS API parts
     + namespaces
@@ -80,8 +77,9 @@ PHASE #3: (Goal: ready for pre-release) [completion-goal: end of 2009]
     + collection
     + location URIs (publish, search, download)
     + persistence support (publish, unindex, search, download)
-    + datastore reservation (publishing)
     + indexing: index-failure-cleanup
+    + download: management/bounding of parallel downloads (for recursive dl.)
+    + datastore reservation (publishing)
   - implement adv. FS testcases 
     + insert: sblocks, loc uris
     + download: loc uris
@@ -103,6 +101,9 @@ PHASE #3: (Goal: ready for pre-release) [completion-goal: end of 2009]
   - testing (RC-pre0)
     + implement library for distributed testing [Nate]
     + implement testcases for distributed testing [Nate]
+
+0.9.0pre1:
+* Module features to implement:
   - tbench (RC-pre1)
     + good to have for DV evaluation!
   - DV (RC-pre1)
@@ -112,6 +113,12 @@ PHASE #3: (Goal: ready for pre-release) [completion-goal: end of 2009]
     + implement DV transport plugin [Nate & CG]
     + implement testcases [Nate]
     + implement performance tests [Nate]
+* GUIs to implement:
+  - gtk (RC-pre1)
+    + how to integrate scheduler with GTK event loop!
+
+0.9.0pre2:
+* Module features to implement:
   - tracekit (RC-pre2)
     + good to have for DV/DHT evaluation!
   - DHT (RC-pre2)
@@ -120,25 +127,21 @@ PHASE #3: (Goal: ready for pre-release) [completion-goal: end of 2009]
     + implement testcases
     + implement performance tests
 * GUIs to implement:
-  - gtk (RC-pre1)
-    + how to integrate scheduler with GTK event loop!
   - fuse (RC-pre2)
-  - qt (RC-pre3)
-    + see discussions @ FISL about integration with event loop!
 * Plugins to implement:
   - UDP backend (RC-pre2)
     + Fragmentation library 
     + actual plugin
   - HTTP backend (RC-pre2)
+
+0.9.0pre3:
+* GUIs to implement:
+  - qt (RC-pre3)
+    + see discussions @ FISL about integration with event loop!
 * Determine RC bugs and fix those!
 
-=> PRE-RELEASE
-
-
-PHASE #4: [completion-goal: mid 2010]
+0.9.0:
 * Documentation
-  - Doxygen generation
-  - lcov generation
   - update man pages
   - update webpage documentation
 * new webpage:
@@ -161,13 +164,10 @@ PHASE #4: [completion-goal: mid 2010]
   - vpn
 * Determine RC bugs and fix those!
 
-=> 0.9.0 RELEASE
 
-
-
-
-Post 0.9.0 features:
-* SMTP transport backend
-* HTTPS transport backend
-  - improved HTTPS support in MHD
-  - actual plugin
+0.9.x:
+* Plugins to implement:
+  - SMTP transport backend
+  - HTTPS transport backend
+    + improved HTTPS support in MHD
+    + actual plugin

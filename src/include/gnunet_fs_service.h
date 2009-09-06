@@ -415,7 +415,7 @@ GNUNET_FS_getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext*
  * the metadata must be passed as the "scls" argument.
  *
  * @param ctx command line processor context
- * @param scls must be of type "struct GNUNET_MetaData **"
+ * @param scls must be of type "struct GNUNET_CONTAINER_MetaData **"
  * @param option name of the option (typically 'k')
  * @param value command line argument given
  * @return GNUNET_OK on success
@@ -864,12 +864,11 @@ struct GNUNET_FS_ProgressInfo
       const struct GNUNET_FS_Uri *uri;
       
       /**
-       * How large is the file overall?  For directories,
-       * this is only the size of the directory itself,
-       * not of the other files contained within the 
-       * directory.
+       * How large is the download overall?  This
+       * is NOT necessarily the size from the
+       * URI since we may be doing a partial download.
        */
-      uint64_t size;
+      uint64_t length;
 
       /**
        * At what time do we expect to finish the download?
@@ -938,8 +937,8 @@ struct GNUNET_FS_ProgressInfo
 	  /**
 	   * Known metadata for the download.
 	   */
-	  const struct GNUNET_MetaData *meta;
-
+	  const struct GNUNET_CONTAINER_MetaData *meta;
+	  
 	} start;
 
 	/**
@@ -951,7 +950,7 @@ struct GNUNET_FS_ProgressInfo
 	  /**
 	   * Known metadata for the download.
 	   */
-	  const struct GNUNET_MetaData *meta;
+	  const struct GNUNET_CONTAINER_MetaData *meta;
 
 	  /**
 	   * Error message, NULL if we have not encountered any error yet.
@@ -1449,8 +1448,8 @@ typedef int (*GNUNET_FS_FileInformationProcessor)(void *cls,
 						  uint64_t length,
 						  struct GNUNET_CONTAINER_MetaData *meta,
 						  struct GNUNET_FS_Uri **uri,
-						  unsigned int *anonymity,
-						  unsigned int *priority,
+						  uint32_t *anonymity,
+						  uint32_t *priority,
 						  struct GNUNET_TIME_Absolute *expirationTime,
 						  void **client_info);
 
@@ -1513,8 +1512,8 @@ GNUNET_FS_file_information_create_from_file (void *client_info,
 					     const struct GNUNET_FS_Uri *keywords,
 					     const struct GNUNET_CONTAINER_MetaData *meta,
 					     int do_index,
-					     unsigned int anonymity,
-					     unsigned int priority,
+					     uint32_t anonymity,
+					     uint32_t priority,
 					     struct GNUNET_TIME_Absolute expirationTime);
 
 
@@ -1543,8 +1542,8 @@ GNUNET_FS_file_information_create_from_data (void *client_info,
 					     const struct GNUNET_FS_Uri *keywords,
 					     const struct GNUNET_CONTAINER_MetaData *meta,
 					     int do_index,
-					     unsigned int anonymity,
-					     unsigned int priority,
+					     uint32_t anonymity,
+					     uint32_t priority,
 					     struct GNUNET_TIME_Absolute expirationTime);
 
 
@@ -1597,8 +1596,8 @@ GNUNET_FS_file_information_create_from_reader (void *client_info,
 					       const struct GNUNET_FS_Uri *keywords,
 					       const struct GNUNET_CONTAINER_MetaData *meta,
 					       int do_index,
-					       unsigned int anonymity,
-					       unsigned int priority,
+					       uint32_t anonymity,
+					       uint32_t priority,
 					       struct GNUNET_TIME_Absolute expirationTime);
 
 
@@ -1634,8 +1633,8 @@ typedef void (*GNUNET_FS_FileProcessor)(void *cls,
 typedef int (*GNUNET_FS_DirectoryScanner)(void *cls,
 					  const char *dirname,
 					  int do_index,
-					  unsigned int anonymity,
-					  unsigned int priority,
+					  uint32_t anonymity,
+					  uint32_t priority,
 					  struct GNUNET_TIME_Absolute expirationTime,
 					  GNUNET_FS_FileProcessor proc,
 					  void *proc_cls,
@@ -1669,8 +1668,8 @@ int
 GNUNET_FS_directory_scanner_default (void *cls,
 				     const char *dirname,
 				     int do_index,
-				     unsigned int anonymity,
-				     unsigned int priority,
+				     uint32_t anonymity,
+				     uint32_t priority,
 				     struct GNUNET_TIME_Absolute expirationTime,
 				     GNUNET_FS_FileProcessor proc,
 				     void *proc_cls,
@@ -1705,8 +1704,8 @@ GNUNET_FS_file_information_create_from_directory (void *client_info,
 						  GNUNET_FS_DirectoryScanner scanner,
 						  void *scanner_cls,
 						  int do_index,
-						  unsigned int anonymity,
-						  unsigned int priority,
+						  uint32_t anonymity,
+						  uint32_t priority,
 						  struct GNUNET_TIME_Absolute expirationTime,
 						  char **emsg);
 
@@ -1731,8 +1730,8 @@ struct GNUNET_FS_FileInformation *
 GNUNET_FS_file_information_create_empty_directory (void *client_info,
 						   const struct GNUNET_CONTAINER_MetaData *meta,
 						   const struct GNUNET_FS_Uri *keywords,
-						   unsigned int anonymity,
-						   unsigned int priority,
+						   uint32_t anonymity,
+						   uint32_t priority,
 						   struct GNUNET_TIME_Absolute expirationTime);
 
 
@@ -1874,8 +1873,8 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
 		       struct GNUNET_CONTAINER_MetaData *meta,
 		       struct GNUNET_FS_Uri *uri,
 		       struct GNUNET_TIME_Absolute expirationTime,
-		       unsigned int anonymity,
-		       unsigned int priority,
+		       uint32_t anonymity,
+		       uint32_t priority,
 		       enum GNUNET_FS_PublishOptions options,
 		       GNUNET_FS_PublishContinuation cont,
 		       void *cont_cls);
@@ -1904,8 +1903,8 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
 		       struct GNUNET_CONTAINER_MetaData *meta,
 		       struct GNUNET_FS_Uri *uri,
 		       struct GNUNET_TIME_Absolute expirationTime,
-		       unsigned int anonymity,
-		       unsigned int priority,
+		       uint32_t anonymity,
+		       uint32_t priority,
 		       enum GNUNET_FS_PublishOptions options,
 		       GNUNET_FS_PublishContinuation cont,
 		       void *cont_cls);
@@ -1983,9 +1982,9 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc);
 struct GNUNET_FS_Uri *
 GNUNET_FS_namespace_advertise (struct GNUNET_FS_Handle *h,
 			       struct GNUNET_FS_Namespace *namespace,
-			       const struct GNUNET_MetaData *meta,
-			       unsigned int anonymity,
-			       unsigned int priority,
+			       const struct GNUNET_CONTAINER_MetaData *meta,
+			       uint32_t anonymity,
+			       uint32_t priority,
 			       struct GNUNET_TIME_Absolute expiration,
 			       const struct GNUNET_FS_Uri *advertisementURI,
 			       const char *rootEntry);
@@ -2092,7 +2091,7 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
 struct GNUNET_FS_SearchContext *
 GNUNET_FS_search_start (struct GNUNET_FS_Handle *h,
 			const struct GNUNET_FS_Uri *uri,
-			unsigned int anonymity);
+			uint32_t anonymity);
 
 
 /**
@@ -2165,6 +2164,7 @@ enum GNUNET_FS_DownloadOptions
  *
  * @param h handle to the file sharing subsystem
  * @param uri the URI of the file (determines what to download); CHK or LOC URI
+ * @param meta known metadata for the file (can be NULL)
  * @param filename where to store the file, maybe NULL (then no file is
  *        created on disk and data must be grabbed from the callbacks)
  * @param offset at what offset should we start the download (typically 0)
@@ -2178,6 +2178,7 @@ enum GNUNET_FS_DownloadOptions
 struct GNUNET_FS_DownloadContext *
 GNUNET_FS_file_download_start (struct GNUNET_FS_Handle *h,
 			       const struct GNUNET_FS_Uri *uri,
+			       const struct GNUNET_CONTAINER_MetaData *meta,
 			       const char *filename,
 			       uint64_t offset,
 			       uint64_t length,

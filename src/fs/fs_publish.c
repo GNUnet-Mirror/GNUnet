@@ -467,7 +467,7 @@ static void
 block_proc (void *cls,
 	    const GNUNET_HashCode *query,
 	    uint64_t offset,
-	    unsigned int type,
+	    uint32_t type,
 	    const void *block,
 	    uint16_t block_size)
 {
@@ -909,8 +909,8 @@ fip_signal_start(void *cls,
 		 uint64_t length,
 		 struct GNUNET_CONTAINER_MetaData *meta,
 		 struct GNUNET_FS_Uri **uri,
-		 unsigned int *anonymity,
-		 unsigned int *priority,
+		 uint32_t *anonymity,
+		 uint32_t *priority,
 		 struct GNUNET_TIME_Absolute *expirationTime,
 		 void **client_info)
 {
@@ -1021,8 +1021,8 @@ fip_signal_stop(void *cls,
 		uint64_t length,
 		struct GNUNET_CONTAINER_MetaData *meta,
 		struct GNUNET_FS_Uri **uri,
-		unsigned int *anonymity,
-		unsigned int *priority,
+		uint32_t *anonymity,
+		uint32_t *priority,
 		struct GNUNET_TIME_Absolute *expirationTime,
 		void **client_info)
 {
@@ -1135,12 +1135,12 @@ struct PublishKskContext
   /**
    * Anonymity level for the KBlocks.
    */
-  unsigned int anonymity;
+  uint32_t anonymity;
 
   /**
    * Priority for the KBlocks.
    */
-  unsigned int priority;
+  uint32_t priority;
 };
 
 
@@ -1284,8 +1284,8 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
 		       struct GNUNET_CONTAINER_MetaData *meta,
 		       struct GNUNET_FS_Uri *uri,
 		       struct GNUNET_TIME_Absolute expirationTime,
-		       unsigned int anonymity,
-		       unsigned int priority,
+		       uint32_t anonymity,
+		       uint32_t priority,
 		       enum GNUNET_FS_PublishOptions options,
 		       GNUNET_FS_PublishContinuation cont,
 		       void *cont_cls)
@@ -1443,8 +1443,8 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
 		       struct GNUNET_CONTAINER_MetaData *meta,
 		       struct GNUNET_FS_Uri *uri,
 		       struct GNUNET_TIME_Absolute expirationTime,
-		       unsigned int anonymity,
-		       unsigned int priority,
+		       uint32_t anonymity,
+		       uint32_t priority,
 		       enum GNUNET_FS_PublishOptions options,
 		       GNUNET_FS_PublishContinuation cont,
 		       void *cont_cls)

@@ -200,7 +200,7 @@ static void
 unindex_process (void *cls,
 		 const GNUNET_HashCode *query,
 		 uint64_t offset,
-		 unsigned int type,
+		 uint32_t type,
 		 const void *block,
 		 uint16_t block_size)
 {

@@ -837,6 +837,16 @@ struct GNUNET_FS_DownloadContext
   struct GNUNET_FS_Uri *uri;
 
   /**
+   * Known meta-data for the file (can be NULL).
+   */
+  struct GNUNET_CONTAINER_MetaData *meta;
+
+  /**
+   * Error message, NULL if we're doing OK.
+   */
+  char *emsg;
+
+  /**
    * Where are we writing the data (name of the
    * file, can be NULL!).
    */

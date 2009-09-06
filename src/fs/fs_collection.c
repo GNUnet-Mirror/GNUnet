@@ -139,12 +139,12 @@ typedef struct CollectionData
   /**
    * Anonymity level for the collection. (NBO)
    */
-  unsigned int anonymityLevel;
+  uint32_t anonymityLevel;
 
   /**
    * Priority of the collection (NBO).
    */
-  unsigned int priority;
+  uint32_t priority;
 
   /**
    * Has this collection changed since the last publication?
@@ -465,8 +465,8 @@ GNUNET_CO_done ()
  *        is destroyed (i.e. on exit from the UI).
  */
 int
-GNUNET_CO_collection_start (unsigned int anonymityLevel,
-                            unsigned int prio,
+GNUNET_CO_collection_start (uint32_t anonymityLevel,
+                            uint32_t prio,
                             const struct GNUNET_MetaData *meta)
 {
   struct GNUNET_ECRS_URI *advertisement;
