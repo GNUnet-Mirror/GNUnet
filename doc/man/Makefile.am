@@ -1,8 +1,11 @@
 man_MANS = \
   gnunet-arm.1 \
+  gnunet-download.1 \
   gnunet-peerinfo.1 \
   gnunet-publish.1 \
+  gnunet-search.1 \
   gnunet-statistics.1 \
-  gnunet-transport.c
+  gnunet-transport.1 \
+  gnunet-unindex.1
 
 EXTRA_DIST = ${man_MANS}

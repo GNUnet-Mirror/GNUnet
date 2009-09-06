@@ -24,23 +24,19 @@
  * @author Krista Bennett
  * @author James Blackwell
  * @author Igor Wronsky
- *
- * TODO:
- * - progress callback
- * - error checking
  */
 #include "platform.h"
 #include "gnunet_fs_service.h"
 
 static int ret;
 
+static int verbose;
+
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static struct GNUNET_FS_Handle *ctx;
 
 static struct GNUNET_FS_UnindexContext *uc;
-
-static struct GNUNET_TIME_Absolute start_time;
 
 
 /**
@@ -60,6 +56,38 @@ static void *
 progress_cb (void *cls,
 	     const struct GNUNET_FS_ProgressInfo *info)
 {
+  switch (info->status)
+    {
+    case GNUNET_FS_STATUS_UNINDEX_START:
+      break;
+    case GNUNET_FS_STATUS_UNINDEX_PROGRESS:
+      if (verbose)
+	fprintf (stdout,
+		 _("Unindexing at %llu/%llu (%s remaining)\n"),
+		 (unsigned long long) info->value.unindex.completed,
+		 (unsigned long long) info->value.unindex.size,
+		 GNUNET_STRINGS_relative_time_to_string(info->value.unindex.eta));
+      break;
+    case GNUNET_FS_STATUS_UNINDEX_ERROR:
+      fprintf (stderr,
+	       _("Error unindexing: %s.\n"),
+	       info->value.unindex.specifics.error.message);
+      GNUNET_FS_unindex_stop (uc);      
+      break;
+    case GNUNET_FS_STATUS_UNINDEX_COMPLETED:
+      fprintf (stdout,
+	       _("Unindexing done.\n"));
+      GNUNET_FS_unindex_stop (uc);
+      break;
+    case GNUNET_FS_STATUS_UNINDEX_STOPPED:
+      GNUNET_FS_stop (ctx);
+      break;      
+    default:
+      fprintf (stderr,
+	       _("Unexpected status: %d\n"),
+	       info->status);
+      break;
+    }
   return NULL;
 }
 
@@ -93,7 +121,9 @@ run (void *cls,
 			 cfg,
 			 "gnunet-unindex",
 			 &progress_cb,
-			 NULL);
+			 NULL,
+			 GNUNET_FS_FLAGS_NONE,
+			 GNUNET_FS_OPTIONS_END);
   if (NULL == ctx)
     {
       fprintf (stderr,
@@ -102,9 +132,14 @@ run (void *cls,
       ret = 1;
       return;
     }
-  start_time = GNUNET_TIME_absolute_get ();
   uc = GNUNET_FS_unindex (ctx,
 			  args[0]);
+  if (NULL == uc)
+    {
+      fprintf (stderr,
+	       _("Could not start unindex operation.\n"));
+      GNUNET_FS_stop (ctx);
+    }
 }
 
 
@@ -112,6 +147,9 @@ run (void *cls,
  * gnunet-unindex command line options
  */
 static struct GNUNET_GETOPT_CommandLineOption options[] = {
+  {'V', "verbose", NULL,
+   gettext_noop ("be verbose (print progress information)"),
+   0, &GNUNET_GETOPT_set_one, &verbose},
   GNUNET_GETOPT_OPTION_END
 };
 

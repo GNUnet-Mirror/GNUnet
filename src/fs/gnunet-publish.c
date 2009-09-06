@@ -27,8 +27,6 @@
  *
  * TODO:
  * - support for some options is still missing (uri argument)
- * - progress callbacks not implemented (and need verbosity option)
- * - clean shutdown is not implemented (stop ctx, etc.)
  */
 #include "platform.h"
 #include "gnunet_fs_service.h"
@@ -37,13 +35,13 @@
 
 static int ret;
 
+static int verbose;
+
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static struct GNUNET_FS_Handle *ctx;
 
 static struct GNUNET_FS_PublishContext *pc;
-
-static struct GNUNET_TIME_Absolute start_time;
 
 static struct GNUNET_CONTAINER_MetaData *meta;
 
@@ -89,7 +87,43 @@ static void *
 progress_cb (void *cls,
 	     const struct GNUNET_FS_ProgressInfo *info)
 {
-  return NULL;
+  switch (info->status)
+    {
+    case GNUNET_FS_STATUS_PUBLISH_START:
+      break;
+    case GNUNET_FS_STATUS_PUBLISH_PROGRESS:
+      if (verbose)
+	fprintf (stdout,
+		 _("Publishing `%s' at %llu/%llu (%s remaining)\n"),
+		 info->value.publish.filename,
+		 (unsigned long long) info->value.publish.completed,
+		 (unsigned long long) info->value.publish.size,
+		 GNUNET_STRINGS_relative_time_to_string(info->value.publish.eta));
+      break;
+    case GNUNET_FS_STATUS_PUBLISH_ERROR:
+      fprintf (stderr,
+	       _("Error publishing: %s.\n"),
+	       info->value.publish.specifics.error.message);
+      GNUNET_FS_publish_stop (pc);      
+      break;
+    case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
+      fprintf (stdout,
+	       _("Publishing `%s' done.\n"),
+	       info->value.publish.filename);
+      if (info->value.publish.pctx == NULL)
+	GNUNET_FS_publish_stop (pc);
+      break;
+    case GNUNET_FS_STATUS_PUBLISH_STOPPED: 
+      if (info->value.publish.sc == pc)
+	GNUNET_FS_stop (ctx);
+      return NULL;      
+    default:
+      fprintf (stderr,
+	       _("Unexpected status: %d\n"),
+	       info->status);
+      return NULL;
+    }
+  return ""; /* non-null */
 }
 
 
@@ -302,7 +336,9 @@ run (void *cls,
 			 cfg,
 			 "gnunet-publish",
 			 &progress_cb,
-			 NULL);
+			 NULL,
+			 GNUNET_FS_FLAGS_NONE,
+			 GNUNET_FS_OPTIONS_END);
   if (NULL == ctx)
     {
       fprintf (stderr,
@@ -331,7 +367,6 @@ run (void *cls,
       // FIXME -- implement!
       return;
     }
-  start_time = GNUNET_TIME_absolute_get ();
 
   l = NULL;
   if (! disable_extractor)
@@ -389,6 +424,14 @@ run (void *cls,
 				(do_simulate) 
 				? GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY
 				: GNUNET_FS_PUBLISH_OPTION_NONE);
+  if (NULL == pc)
+    {
+      fprintf (stderr,
+	       _("Could not start publishing.\n"));
+      GNUNET_FS_stop (ctx);
+      ret = 1;
+      return;
+    }
 }
 
 
@@ -449,7 +492,10 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
   {'u', "uri", "URI",
    gettext_noop ("URI to be published (can be used instead of passing a "
                  "file to add keywords to the file with the respective URI)"),
-   1, &GNUNET_GETOPT_set_string, &uri_string},
+   1, &GNUNET_GETOPT_set_string, &uri_string}, 
+  {'V', "verbose", NULL,
+   gettext_noop ("be verbose (print progress information)"),
+   0, &GNUNET_GETOPT_set_one, &verbose},
   GNUNET_GETOPT_OPTION_END
 };
 

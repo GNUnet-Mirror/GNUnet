@@ -26,7 +26,7 @@
  * @author Igor Wronsky
  *
  * TODO:
- * - all
+ * - add many options (timeout, namespace search, etc.)
  */
 #include "platform.h"
 #include "gnunet_fs_service.h"
@@ -37,9 +37,23 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static struct GNUNET_FS_Handle *ctx;
 
-static struct GNUNET_TIME_Absolute start_time;
+static struct GNUNET_FS_SearchContext *sc;
 
 static unsigned int anonymity = 1;
+
+static int verbose;
+
+static int
+item_printer (void *cls,
+	      EXTRACTOR_KeywordType type, 
+	      const char *data)
+{
+  printf ("\t%20s: %s\n",
+          dgettext (LIBEXTRACTOR_GETTEXT_DOMAIN,
+                    EXTRACTOR_getKeywordTypeAsString (type)),
+	  data);
+  return GNUNET_OK;
+}
 
 
 /**
@@ -59,6 +73,56 @@ static void *
 progress_cb (void *cls,
 	     const struct GNUNET_FS_ProgressInfo *info)
 {
+  char *uri;
+  char *dotdot;
+  char *filename;
+
+  switch (info->status)
+    {
+    case GNUNET_FS_STATUS_SEARCH_START:
+      break;
+    case GNUNET_FS_STATUS_SEARCH_RESULT:
+      uri = GNUNET_FS_uri_to_string (info->value.search.specifics.result.uri);
+      printf ("%s:\n", uri);
+      filename =
+        GNUNET_CONTAINER_meta_data_get_by_type (info->value.search.specifics.result.meta,
+						EXTRACTOR_FILENAME);
+      if (filename != NULL)
+        {
+          while (NULL != (dotdot = strstr (filename, "..")))
+            dotdot[0] = dotdot[1] = '_';
+          printf ("gnunet-download -o \"%s\" %s\n", 
+		  filename, 
+		  uri);
+        }
+      else
+        printf ("gnunet-download %s\n", uri);
+      if (verbose)
+	GNUNET_CONTAINER_meta_data_get_contents (info->value.search.specifics.result.meta, 
+						 &item_printer,
+						 NULL);
+      printf ("\n");
+      fflush(stdout);
+      GNUNET_free_non_null (filename);
+      GNUNET_free (uri);
+      break;
+    case GNUNET_FS_STATUS_SEARCH_UPDATE:
+      break;
+    case GNUNET_FS_STATUS_SEARCH_ERROR:
+      fprintf (stderr,
+	       _("Error searching: %s.\n"),
+	       info->value.search.specifics.error.message);
+      GNUNET_FS_search_stop (sc);      
+      break;
+    case GNUNET_FS_STATUS_SEARCH_STOPPED: 
+      GNUNET_FS_stop (ctx);
+      break;      
+    default:
+      fprintf (stderr,
+	       _("Unexpected status: %d\n"),
+	       info->status);
+      break;
+    }
   return NULL;
 }
 
@@ -79,23 +143,51 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  /* FIXME: check arguments */
+  struct GNUNET_FS_Uri *uri;
+  unsigned int argc;
+
+  argc = 0;
+  while (NULL != args[argc])
+    argc++;
+  uri = GNUNET_FS_uri_ksk_create_from_args (argc,
+					    (const char **) args);
+  if (NULL == uri)
+    {
+      fprintf (stderr,
+	       _("Could not create keyword URI from arguments.\n"));
+      ret = 1;
+      GNUNET_FS_uri_destroy (uri);
+      return;
+    }
   cfg = c;
   ctx = GNUNET_FS_start (sched,
 			 cfg,
 			 "gnunet-search",
 			 &progress_cb,
-			 NULL);
+			 NULL,
+			 GNUNET_FS_FLAGS_NONE,
+			 GNUNET_FS_OPTIONS_END);
   if (NULL == ctx)
     {
       fprintf (stderr,
 	       _("Could not initialize `%s' subsystem.\n"),
 	       "FS");
+      GNUNET_FS_uri_destroy (uri);
+      GNUNET_FS_stop (ctx);
       ret = 1;
       return;
     }
-  start_time = GNUNET_TIME_absolute_get ();
-  // FIXME: start search
+  sc = GNUNET_FS_search_start (ctx,
+			       uri,
+			       anonymity);
+  GNUNET_FS_uri_destroy (uri);
+  if (NULL == sc)
+    {
+      fprintf (stderr,
+	       _("Could not start searching.\n"));
+      ret = 1;
+      return;
+    }
 }
 
 

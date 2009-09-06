@@ -389,6 +389,11 @@ struct GNUNET_FS_Handle
    */
   unsigned int active_probes;
 
+  /**
+   * General flags.
+   */
+  enum GNUNET_FS_Flags flags;
+
 };
 
 

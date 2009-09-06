@@ -360,7 +360,7 @@ GNUNET_FS_uri_test_chk (const struct GNUNET_FS_Uri *uri);
  * What is the size of the file that this URI
  * refers to?
  *
- * @param uri the CHK URI to inspect
+ * @param uri the CHK (or LOC) URI to inspect
  * @return size of the file as specified in the CHK URI
  */
 uint64_t 
@@ -718,6 +718,11 @@ struct GNUNET_FS_ProgressInfo
        * (if this is a file in a directory or a subdirectory).
        */
       void *pctx;
+
+      /**
+       * Name of the file being published; can be NULL.
+       */
+      const char *filename;
       
       /**
        * How large is the file overall?  For directories,
@@ -862,6 +867,11 @@ struct GNUNET_FS_ProgressInfo
        * URI used for this download.
        */
       const struct GNUNET_FS_Uri *uri;
+
+      /**
+       * Name of the file that we are downloading.
+       */
+      const char *filename;
       
       /**
        * How large is the download overall?  This
@@ -1394,6 +1404,46 @@ typedef void* (*GNUNET_FS_ProgressCallback)
 
 
 /**
+ * General (global) option flags for file-sharing.
+ */
+enum GNUNET_FS_Flags
+  {
+    /**
+     * No special flags set.
+     */
+    GNUNET_FS_FLAGS_NONE = 0,
+
+    /**
+     * Is persistence of operations desired?
+     * (will create SUSPEND/RESUME events).
+     */
+    GNUNET_FS_FLAGS_PERSISTENCE = 1
+
+  };
+
+/**
+ * Options specified in the VARARGs
+ * portion of GNUNET_FS_start.
+ */
+enum GNUNET_FS_OPTIONS
+  {
+    
+    /**
+     * Last option in the VARARG list.
+     */
+    GNUNET_FS_OPTIONS_END = 0,
+
+    /**
+     * Select the desired amount of parallelism (this option should be
+     * followed by an "unsigned int" giving the desired maximum number
+     * of parallel downloads).
+     */
+    GNUNET_FS_OPTIONS_DOWNLOAD_PARALLELISM = 1
+
+  };
+
+
+/**
  * Handle to the file-sharing service.
  */
 struct GNUNET_FS_Handle;
@@ -1407,13 +1457,18 @@ struct GNUNET_FS_Handle;
  * @param client_name unique identifier for this client 
  * @param upcb function to call to notify about FS actions
  * @param upcb_cls closure for upcb
+ * @param flags specific attributes for fs-operations
+ * @param ... list of optional options, terminated with GNUNET_FS_OPTIONS_END
+ * @return NULL on error
  */
 struct GNUNET_FS_Handle *
 GNUNET_FS_start (struct GNUNET_SCHEDULER_Handle *sched,
 		 const struct GNUNET_CONFIGURATION_Handle *cfg,
 		 const char *client_name,
 		 GNUNET_FS_ProgressCallback upcb,
-		 void *upcb_cls);
+		 void *upcb_cls,
+		 enum GNUNET_FS_Flags flags,
+		 ...);
 
 
 /**

@@ -1,0 +1,72 @@
+.TH GNUNET-SEARCH "1" "6 Sep 2009" "GNUnet"
+.SH NAME
+gnunet\-search \- a command line interface to search for content on GNUnet
+.SH SYNOPSIS
+.B gnunet\-search
+[\fIOPTIONS\fR] [+]\fIKEYWORD\fR [[+]\fIKEYWORD\fR]*
+
+.B gnunet\-search
+[\fIOPTIONS\fR] [+]\fIURI\fR
+.SH DESCRIPTION
+.PP
+Search for content on GNUnet. The keywords are case\-sensitive.  gnunet\-search can be used both for a search in the global namespace as well as for searching a private subspace.
+.TP
+\fB\-a \fILEVEL\fR, \fB\-\-anonymity=\fILEVEL\fR
+The \fB-a\fR option can be used to specify additional anonymity constraints.  If set to 0, GNUnet will try to download the file as fast as possible without any additional slowdown for anonymous routing.  Note that you may still have some amount of anonymity depending on the current network load and the power of the adversary.  Use at least 1 to force GNUnet to use anonymous routing.
+
+This option can be used to limit requests further than that. In particular, you can require GNUnet to have a certain amount of cover traffic from other peers before sending your queries. This way, you can gain very high levels of anonymity \- at the expense of much more traffic and much higher latency. So set this option to values beyond 1 only if you really believe you need it.
+
+The definition of ANONYMITY\-RECEIVE is the following: If the value v is 0, anonymous routing is not required.  For 1, anonymous routing is required, but there is no lower bound on how much cover traffic must be present.  For values > 1 and < 1000, it means that if GNUnet routes n bytes of messages from foreign peers, it may originate n/v bytes of queries in the same time\-period. The time\-period is twice the average delay that GNUnet deferrs forwarded queries. If the value v is >= 1000, it means that if GNUnet routes n bytes of QUERIES from at least (v % 1000) peers, it may originate n/v/1000 bytes of queries in the same time\-period.
+
+The default is 1 and this should be fine for most users.  Also notice that if you choose values above 1000, you may end up having no throughput at all, especially if many of your fellow GNUnet\-peers do the same.
+
+.TP
+\fB\-c \fIFILENAME\fR, \fB\-\-config=\fIFILENAME\fR
+use config file (defaults: ~/.gnunet/gnunet.conf)
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+print help page
+.TP
+\fB\-L \fILOGLEVEL\fR, \fB\-\-loglevel=\fILOGLEVEL\fR
+Change the loglevel.  Possible values for LOGLEVEL are 
+ERROR, WARNING, INFO and DEBUG. 
+.TP
+\fB\-o \fIPREFIX\fR, \fB\-\-output=\fIPREFIX\fR
+Writes the encountered (unencrypted) RBlocks or SBlocks to files with name PREFIX.XXX, where XXX is a number. This is useful to keep search results around.
+.TP
+\fB\-v\fR, \fB\-\-version\fR
+print the version number
+.SH NOTES
+
+You can run gnunet\-search with an URI instead of a keyword.  The URI can have the format for a namespace search or for a keyword search.  For a namespace search, the format is gnunet://fs/sks/NAMESPACE/IDENTIFIER.  For a keyword search, use gnunet://ecrs/ksk/KEYWORD[+KEYWORD]*.  If the format does not correspond to a GNUnet URI, GNUnet will automatically assume that keywords are supplied directly.  
+
+If multiple keywords are passed, gnunet-search will look for content matching any of the keywords.  The prefix "+" makes a keyword mandatory.  
+
+# gnunet\-search "Das Kapital"
+
+searches for content matching the keyword "Das Kapital".  Whereas
+
+# gnunet\-search +Das +Kapital
+
+Searches for content matching both mandatory keywords "Das" and "Kapital".
+
+Search results are printed by gnunet\-search like this:
+.P
+.ad l
+	gnunet\-download \-o "COPYING" gnunet://fs/chk/HASH1.HASH2.SIZE
+
+		Description: The GNU Public License
+
+		Mime-type: text/plain
+.ad b
+
+The first line contains the command to run to download the file.  The suggested filename in the example is COPYING.  The GNUnet URI consists of the key and query hash of the file and finally the size of the file.  After the command to download the file GNUnet will print meta\-data about the file as advertised in the search result, here "The GNU Public License" and the mime\-type (see the options for gnunet\-insert on how to supply meta-data by hand).
+
+.SH FILES
+.TP
+~/.gnunet/gnunet.conf
+GNUnet configuration file; specifies the default value for the timeout
+.SH "REPORTING BUGS"
+Report bugs to <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet-developers@gnu.org>
+.SH "SEE ALSO"
+\fBgnunet\-gtk\fP(1), \fBgnunet\-publish\fP(1), \fBgnunet\-download\fP(1), \fBgnunet\-pseudonym\fP(1), \fBgnunet.conf\fP(5), \fBgnunetd\fP(1)

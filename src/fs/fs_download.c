@@ -142,6 +142,8 @@ make_download_status (struct GNUNET_FS_ProgressInfo *pi,
     = (dc->parent == NULL) ? NULL : dc->parent->client_info;
   pi->value.download.uri 
     = dc->uri;
+  pi->value.download.filename
+    = dc->filename;
   pi->value.download.length
     = dc->length;
   pi->value.download.duration

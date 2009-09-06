@@ -36,11 +36,6 @@ Urgent items (before announcing ng.gnunet.org):
 * HOSTLIST:
   - implement testcases
 * FS (basic anonymous FS only)
-  - implement basic FS library
-    - gnunet-publish (progress CB, shutdown, URI args)
-    - gnunet-unindex (progress CB, shutdown, error checking)
-    - gnunet-search (start search, progress CB, shutdown, options)
-    - gnunet-download (start download, progress CB, shutdown, options)
   - design network structs (P2P)
     + query
     + response
@@ -80,6 +75,10 @@ Urgent items (before announcing ng.gnunet.org):
     + indexing: index-failure-cleanup
     + download: management/bounding of parallel downloads (for recursive dl.)
     + datastore reservation (publishing)
+    + gnunet-publish (URI args)
+    + gnunet-download (directory)
+    + gnunet-search (options, incl. namespace search)
+    - gnunet-download (many options)
   - implement adv. FS testcases 
     + insert: sblocks, loc uris
     + download: loc uris

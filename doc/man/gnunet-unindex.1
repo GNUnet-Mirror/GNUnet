@@ -1,0 +1,37 @@
+.TH GNUNET-UNINDEX "1" "6 Sep 2009" "GNUnet"
+.SH NAME
+gnunet\-unindex \- a command line interface for deleting indexed files from GNUnet
+.SH SYNOPSIS
+.B gnunet\-unindex
+[\fIOPTIONS\fR] FILENAME
+.SH DESCRIPTION
+.PP
+gnunet\-unindex is used for deleting indexed files from GNUnet.
+.TP
+\fB\-c \fIFILENAME\fR, \fB\-\-config=FILENAME\fR
+use config file (defaults: ~/.gnunet/gnunet.conf)
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+print help page
+.TP
+\fB\-L \fILOGLEVEL\fR, \fB\-\-loglevel=LOGLEVEL\fR
+Change the loglevel.  Possible values for LOGLEVEL are NOTHING,
+ERROR, WARNING, INFO and DEBUG. 
+
+.TP
+\fB\-v\fR, \fB\-\-version\fR
+print the version number
+.TP
+\fB\-V\fR, \fB\-\-verbose\fR
+be verbose
+.SH NOTES
+You can only unindex files that you indexed and that you still have available locally in full.  You should use gnunet\-unindex on files that you indexed (not inserted) and that you are going to delete or move locally.
+.TP
+.SH FILES
+.TP
+~/.gnunet/gnunet.conf
+GNUnet configuration file
+.SH "REPORTING BUGS"
+Report bugs to <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+.SH "SEE ALSO"
+\fBgnunet\-gtk\fP(1), \fBgnunet\-publish\fP(1), \fBgnunet\-gtk\fP(1), \fBgnunet\-search\fP(1), \fBgnunet\-download\fP(1), \fBgnunet.conf\fP(5), \fBgnunetd\fP(1)

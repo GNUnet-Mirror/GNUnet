@@ -37,13 +37,18 @@
  * @param client_name unique identifier for this client 
  * @param upcb function to call to notify about FS actions
  * @param upcb_cls closure for upcb
+ * @param flags specific attributes for fs-operations
+ * @param ... list of optional options, terminated with GNUNET_FS_OPTIONS_END
+ * @return NULL on error
  */
 struct GNUNET_FS_Handle *
 GNUNET_FS_start (struct GNUNET_SCHEDULER_Handle *sched,
 		 const struct GNUNET_CONFIGURATION_Handle *cfg,
 		 const char *client_name,
 		 GNUNET_FS_ProgressCallback upcb,
-		 void *upcb_cls)
+		 void *upcb_cls,
+		 enum GNUNET_FS_Flags flags,
+		 ...)
 {
   struct GNUNET_FS_Handle *ret;
   struct GNUNET_CLIENT_Connection *client;
@@ -60,6 +65,8 @@ GNUNET_FS_start (struct GNUNET_SCHEDULER_Handle *sched,
   ret->upcb = upcb;
   ret->upcb_cls = upcb_cls;
   ret->client = client;
+  ret->flags = flags;
+  // FIXME: process varargs!
   // FIXME: setup receive-loop with client
 
   // FIXME: deserialize state; use client-name to find master-directory!

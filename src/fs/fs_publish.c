@@ -111,6 +111,8 @@ make_publish_status (struct GNUNET_FS_ProgressInfo *pi,
     = p->client_info;
   pi->value.publish.pctx
     = (NULL == p->dir) ? NULL : p->dir->client_info;
+  pi->value.publish.filename
+    = (p->is_directory) ? p->data.dir.dirname : p->data.file.filename;
   pi->value.publish.size
     = (p->is_directory) ? p->data.dir.dir_size : p->data.file.file_size;
   pi->value.publish.eta 
