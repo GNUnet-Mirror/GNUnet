@@ -341,6 +341,7 @@ main (int argc, char *const *argv)
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
+  int ret;
   char *const argv_prog[] = {
     "test_plugin_transport",
     "-c",
@@ -361,13 +362,15 @@ main (int argc, char *const *argv)
 #endif
                     NULL);       
   ok = 1; /* set to fail */
-  return (GNUNET_OK ==
+  ret = (GNUNET_OK ==
           GNUNET_PROGRAM_run (5,
                               argv_prog,
                               "test-plugin-transport",
 			      "testcase",
 			      options,
                               &run, NULL)) ? ok : 1;
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-plugin-transport");
+  return ret;
 }
 
 /* end of test_plugin_transport.c */

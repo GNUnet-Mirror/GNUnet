@@ -169,7 +169,7 @@ main (int argc, char *argv[])
   int ret = 0;
 
   ret = check ();
-
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-peerinfo");
   return ret;
 }
 

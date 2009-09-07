@@ -294,7 +294,8 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
-
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-1"); 
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-2");
   return ret;
 }
 

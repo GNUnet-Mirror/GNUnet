@@ -132,6 +132,7 @@ FAILURE:
   GNUNET_PSEUDONYM_discovery_callback_unregister (&noti_callback, &notiCount);
   GNUNET_CONTAINER_meta_data_destroy (meta);
   GNUNET_CONFIGURATION_destroy (cfg);
+  GNUNET_DISK_directory_remove ("/tmp/gnunet-pseudonym-test");
   return (ok == GNUNET_YES) ? 0 : 1;
 }
 
