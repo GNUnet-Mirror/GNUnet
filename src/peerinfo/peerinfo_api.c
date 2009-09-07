@@ -262,8 +262,8 @@ GNUNET_PEERINFO_for_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_CLIENT_Connection *client;
   struct ListAllPeersMessage *lapm;
   struct ListPeerMessage *lpm;
-  size_t hs;
   struct InfoContext *ihc;
+  size_t hs;
 
   client = GNUNET_CLIENT_connect (sched, "peerinfo", cfg);
   if (client == NULL)
@@ -279,7 +279,6 @@ GNUNET_PEERINFO_for_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ihc->callback = callback;
   ihc->callback_cls = callback_cls;
   ihc->timeout = GNUNET_TIME_relative_to_absolute (timeout);
-  hs = 0;
   if (peer == NULL)
     {
       lapm = (struct ListAllPeersMessage *) &ihc[1];

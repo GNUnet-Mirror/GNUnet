@@ -335,7 +335,8 @@ GNUNET_FS_directory_builder_add (struct GNUNET_FS_DirectoryBuilder *bld,
     fsize = 0; /* not given */
   if (fsize > MAX_INLINE_SIZE)
     fsize = 0; /* too large */
-  if (NULL != memchr (data, 0, fsize))
+  if ( (NULL == data) ||
+       (NULL != memchr (data, 0, fsize)) )
     fsize = 0; /* must not have 0's in data! */
   uris = GNUNET_FS_uri_to_string (uri);
   slen = strlen (uris) + 1;
@@ -524,12 +525,11 @@ GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
 	  sizes[i] = pos->len;
 	  pos = pos->next;
 	}
+      block_align (size,
+		   bld->count,
+		   sizes,
+		   perm);
     }  
-  block_align (size,
-	       bld->count,
-	       sizes,
-	       perm);
-
   /* compute final size with alignment */
   for (i = 0; i < bld->count; i++)
     {
@@ -563,9 +563,12 @@ GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
 	      sizes[i]);
       GNUNET_free (bes[i]);
     }
-  GNUNET_free (sizes);
-  GNUNET_free (perm);
-  GNUNET_free (bes);
+  if (bld->count > 0)
+    {
+      GNUNET_free (sizes);
+      GNUNET_free (perm);
+      GNUNET_free (bes);
+    }
   GNUNET_assert (off == size);  
   GNUNET_CONTAINER_meta_data_destroy (bld->meta);
   GNUNET_free (bld);

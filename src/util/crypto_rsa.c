@@ -602,7 +602,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
               GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                           _
                           ("Could not aquire lock on file `%s' due to process %u: %s...\n"),
-                          filename, fl.l_pid, STRERROR (errno));
+                          filename, fl.l_pid, STRERROR (ec));
             }
           memset (&fl, 0, sizeof (struct flock));
           fl.l_type = F_WRLCK;
@@ -624,7 +624,6 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
       fl.l_type = F_UNLCK;
       fl.l_whence = SEEK_SET;
       fl.l_len = sizeof (struct RsaPrivateKeyBinaryEncoded);
-      cnt = 0;
       if (0 != fcntl (fd, F_SETLK, &fl))
         GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
                                   "fcntl", filename);
@@ -659,7 +658,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
               GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                           _
                           ("Could not aquire lock on file `%s' due to process %u: %s...\n"),
-                          filename, fl.l_pid, STRERROR (errno));
+                          filename, fl.l_pid, STRERROR (ec));
               GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                           _
                           ("This may be ok if someone is currently generating a hostkey.\n"));

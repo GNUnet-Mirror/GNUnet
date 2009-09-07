@@ -138,7 +138,6 @@ task1 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   int *ok = cls;
   GNUNET_SCHEDULER_TaskIdentifier t2;
-  GNUNET_SCHEDULER_TaskIdentifier t3;
   GNUNET_SCHEDULER_TaskIdentifier t4;
 
   GNUNET_assert (1 == *ok);
@@ -154,12 +153,12 @@ task1 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                    GNUNET_NO,
                                    GNUNET_SCHEDULER_PRIORITY_IDLE,
                                    t2, &task4, cls);
-  t3 = GNUNET_SCHEDULER_add_delayed (tc->sched,
-                                     GNUNET_NO,
-                                     GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                     t2,
-                                     GNUNET_TIME_relative_get_zero (),
-                                     &task3, cls);
+  GNUNET_SCHEDULER_add_delayed (tc->sched,
+				GNUNET_NO,
+				GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+				t2,
+				GNUNET_TIME_relative_get_zero (),
+				&task3, cls);
   /* t4 will go first: lower prio, but prereq! */
   GNUNET_SCHEDULER_add_after (tc->sched,
                               GNUNET_NO,

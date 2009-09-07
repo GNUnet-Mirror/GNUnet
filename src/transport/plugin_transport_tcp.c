@@ -1340,7 +1340,6 @@ update_quota (struct Session *session, int force)
   else
     {
       /* got more than acceptable */
-      total_remaining = 0;
       session->last_received -= total_allowed;
       delta = 0;
     }

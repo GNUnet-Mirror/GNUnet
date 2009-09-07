@@ -2178,7 +2178,8 @@ plugin_env_receive (void *cls,
         }
       GNUNET_free (im);
     }
-  GNUNET_assert (NULL != service_context->neighbour);
+  GNUNET_assert ( (service_context == NULL) ||
+		  (NULL != service_context->neighbour) );
   return service_context;
 }
 

@@ -1038,7 +1038,6 @@ GNUNET_DISK_file_open (const char *fn, int flags, ...)
 
 #ifndef MINGW
   mode = 0;
-  oflags = 0;
   if (GNUNET_DISK_OPEN_READWRITE == (flags & GNUNET_DISK_OPEN_READWRITE))
     oflags = O_RDWR; /* note: O_RDWR is NOT always O_RDONLY | O_WRONLY */
   else if (flags & GNUNET_DISK_OPEN_READ)

@@ -213,14 +213,12 @@ get_path_from_PATH ()
   char *end;
   char *buf;
   const char *p;
-  size_t size;
 
   p = getenv ("PATH");
   if (p == NULL)
     return NULL;
   path = GNUNET_strdup (p);     /* because we write on it */
   buf = GNUNET_malloc (strlen (path) + 20);
-  size = strlen (path);
   pos = path;
 
   while (NULL != (end = strchr (pos, ':')))

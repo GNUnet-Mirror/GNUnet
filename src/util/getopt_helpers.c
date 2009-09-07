@@ -50,11 +50,11 @@ GNUNET_GETOPT_format_help_ (struct GNUNET_GETOPT_CommandLineProcessorContext
                             const char *value)
 {
   const char *about = scls;
-  int slen;
-  int i;
+  size_t slen;
+  unsigned int i;
   int j;
-  int ml;
-  int p;
+  size_t ml;
+  size_t p;
   char *scp;
   const char *trans;
   const struct GNUNET_GETOPT_CommandLineOption *opt;
@@ -62,7 +62,6 @@ GNUNET_GETOPT_format_help_ (struct GNUNET_GETOPT_CommandLineProcessorContext
   printf ("%s\n%s\n", ctx->binaryOptions, gettext (about));
   printf (_
           ("Arguments mandatory for long options are also mandatory for short options.\n"));
-  slen = 0;
   i = 0;
   opt = ctx->allOptions;
   while (opt[i].description != NULL)

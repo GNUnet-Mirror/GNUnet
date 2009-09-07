@@ -214,10 +214,6 @@ sha512_transform (unsigned long long *state, const unsigned char *input)
   state[5] += f;
   state[6] += g;
   state[7] += h;
-
-  /* erase our data */
-  a = b = c = d = e = f = g = h = t1 = t2 = 0;
-  memset (W, 0, 80 * sizeof (unsigned long long));
 }
 
 static void
@@ -281,13 +277,13 @@ sha512_final (struct sha512_ctx *sctx, unsigned char *hash)
   static unsigned char padding[128] = { 0x80, };
 
   unsigned int t;
-  unsigned long long t2;
   unsigned char bits[128];
-  unsigned int index, pad_len;
+  unsigned int index;
+  unsigned int pad_len;
+  unsigned long long t2;
   int i, j;
 
-  index = pad_len = t = i = j = 0;
-  t2 = 0;
+  t = i = j = 0;
 
   /* Save number of bits */
   t = sctx->count[0];

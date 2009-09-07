@@ -492,7 +492,6 @@ enc2bin (const char *input, void *data, size_t size)
   bits = 0;
   hbits = 0;
   len = 0;
-  pos = 0;
   for (pos = 0; pos < size; pos++)
     {
       while (hbits < 8)

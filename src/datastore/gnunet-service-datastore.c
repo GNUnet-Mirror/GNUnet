@@ -748,7 +748,6 @@ handle_release_reserve (void *cls,
 	  return;
 	}       
       prev = pos;
-      pos = next;
     }
   GNUNET_break (0);
   transmit_status (client, GNUNET_SYSERR, gettext_noop ("Could not find matching reservation"));

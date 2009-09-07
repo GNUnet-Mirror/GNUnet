@@ -163,13 +163,11 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
 #elif HAVE_GETIFADDRS && HAVE_FREEIFADDRS
 
   struct ifaddrs *ifa_first;
+  struct ifaddrs *ifa_ptr;
   socklen_t alen;
 
   if (getifaddrs (&ifa_first) == 0)
     {
-      struct ifaddrs *ifa_ptr;
-
-      ifa_ptr = ifa_first;
       for (ifa_ptr = ifa_first; ifa_ptr != NULL; ifa_ptr = ifa_ptr->ifa_next)
         {
           if (ifa_ptr->ifa_name != NULL &&

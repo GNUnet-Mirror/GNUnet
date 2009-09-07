@@ -669,8 +669,8 @@ GNUNET_FS_file_download_start (struct GNUNET_FS_Handle *h,
     return NULL;
   // FIXME: add support for "loc" URIs!
   GNUNET_assert (GNUNET_FS_uri_test_chk (uri));
-  if ( (dc->offset + dc->length < dc->offset) ||
-       (dc->offset + dc->length > uri->data.chk.file_length) )
+  if ( (offset + length < offset) ||
+       (offset + length > uri->data.chk.file_length) )
     {
       GNUNET_break (0);
       return NULL;

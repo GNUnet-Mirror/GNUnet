@@ -145,7 +145,6 @@ getWeakKeys ()
         {
           printf ("testweakkey: gcry_cipher_open failed on trial %d. %s\n",
                   number_of_runs, gcry_strerror (rc));
-          rc = 0;
           continue;
         }
 

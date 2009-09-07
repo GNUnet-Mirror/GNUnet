@@ -206,11 +206,24 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
     {
       size = GNUNET_DISK_fn_read (fn, buffer, sizeof (buffer));
       hello = (const struct GNUNET_HELLO_Message *) buffer;
-      now = GNUNET_TIME_absolute_get ();
-      hello_clean = GNUNET_HELLO_iterate_addresses (hello,
-                                                    GNUNET_YES,
-                                                    &discard_expired, &now);
-      entry->hello = hello_clean;
+      if ( (size < sizeof (struct GNUNET_MessageHeader)) ||
+	   (size != ntohs((((const struct GNUNET_MessageHeader*) hello)->size))) ||
+	   (size != GNUNET_HELLO_size (hello)) )
+	{
+	  GNUNET_break (0);
+	  if (0 != UNLINK (fn))
+	    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+				      "unlink",
+				      fn);
+	}
+      else
+	{
+	  now = GNUNET_TIME_absolute_get ();
+	  hello_clean = GNUNET_HELLO_iterate_addresses (hello,
+							GNUNET_YES,
+							&discard_expired, &now);
+	  entry->hello = hello_clean;
+	}
     }
   GNUNET_free (fn);
   entry->next = hosts;

@@ -2918,7 +2918,6 @@ neighbour_quota_update (void *cls,
      account for possibility of new neighbours joining any time 
      AND to convert to double... */
   pref_rel = n->current_preference / (1.0 + preference_sum);
-  share = 0;
   distributable = 0;
   if (bandwidth_target_out > neighbour_count * MIN_BPM_PER_PEER)
     distributable = bandwidth_target_out - neighbour_count * MIN_BPM_PER_PEER;

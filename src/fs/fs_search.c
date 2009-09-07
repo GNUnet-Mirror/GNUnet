@@ -766,9 +766,9 @@ search_start (struct GNUNET_FS_Handle *h,
 		  _("Too many keywords specified for a single search."));
       return NULL;
     }
-  client = GNUNET_CLIENT_connect (sc->h->sched,
+  client = GNUNET_CLIENT_connect (h->sched,
 				  "fs",
-				  sc->h->cfg);
+				  h->cfg);
   if (NULL == client)
     return NULL;
   sc = GNUNET_malloc (sizeof(struct GNUNET_FS_SearchContext));

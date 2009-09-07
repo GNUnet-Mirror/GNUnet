@@ -223,8 +223,8 @@ unindex_process (void *cls,
     }
   GNUNET_DATASTORE_remove (uc->dsh,
 			   query,
-			   block_size,
-			   block,
+			   size,
+			   data,
 			   &process_cont,
 			   uc,
 			   GNUNET_CONSTANTS_SERVICE_TIMEOUT);

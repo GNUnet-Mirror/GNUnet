@@ -807,13 +807,11 @@ GNUNET_CONFIGURATION_remove_value_filename (struct GNUNET_CONFIGURATION_Handle
   char *end;
   char *match;
   char old;
-  int ret;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, section, option, &list))
     return GNUNET_NO;
   match = escape_name (value);
-  ret = 0;
   pos = list;
   while (1)
     {

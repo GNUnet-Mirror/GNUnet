@@ -165,7 +165,7 @@ testdisk ()
     }
   fprintf (stderr, "\n");
   GNUNET_CONFIGURATION_destroy (cfg);
-  return 0;
+  return ret;
 }
 
 int
