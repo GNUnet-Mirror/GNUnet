@@ -141,7 +141,7 @@ static int
 check ()
 {
   char *const argv[] = { "test-gnunet-daemon-hostlist",
-    "-c", "test_gnunet_daemon_hostlist.conf",
+    "-c", "test_gnunet_daemon_hostlist_data.conf",
 #if VERBOSE
     "-L", "DEBUG",
 #endif
