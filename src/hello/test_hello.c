@@ -98,12 +98,10 @@ main (int argc, char *argv[])
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded publicKey;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pk;
   struct GNUNET_TIME_Absolute startup_time;
-  int ok;
   unsigned int i;
 
   GNUNET_log_setup ("test-hello", "DEBUG", NULL);
   startup_time = GNUNET_TIME_absolute_get ();
-  ok = 0;
   memset (&publicKey, 42, sizeof (publicKey));
   fprintf (stderr, "Testing HELLO creation (without addresses)...\n");
   i = 0;

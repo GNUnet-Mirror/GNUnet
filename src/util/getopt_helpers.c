@@ -84,7 +84,7 @@ GNUNET_GETOPT_format_help_ (struct GNUNET_GETOPT_CommandLineProcessorContext
         }
       if (slen < BORDER)
         {
-          printf ("%*s", BORDER - slen, "");
+          printf ("%*s", (int) (BORDER - slen), "");
           slen = BORDER;
         }
       trans = gettext (opt[i].description);

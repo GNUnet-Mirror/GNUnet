@@ -288,7 +288,6 @@ run_continuation (void *cls,
 				   TIMEOUT);
       break;
     case RP_REPORT:
-      size = 0;
       printf (
 #if REPORT_ID
                "\n"
