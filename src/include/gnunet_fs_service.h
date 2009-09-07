@@ -117,6 +117,7 @@ GNUNET_FS_uri_to_string (const struct GNUNET_FS_Uri *uri);
 char *
 GNUNET_FS_uri_ksk_to_string_fancy (const struct GNUNET_FS_Uri *uri);
 
+
 /**
  * Convert a UTF-8 String to a URI.
  *

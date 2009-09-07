@@ -78,7 +78,9 @@ Urgent items (before announcing ng.gnunet.org):
     + gnunet-publish (URI args)
     + gnunet-download (directory)
     + gnunet-search (options, incl. namespace search)
-    - gnunet-download (many options)
+    + gnunet-download (many options)
+    + gnunet-directory (man page, options)
+    + gnunet-pseudonym (all of it)
   - implement adv. FS testcases 
     + insert: sblocks, loc uris
     + download: loc uris
