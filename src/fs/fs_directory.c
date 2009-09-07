@@ -512,6 +512,9 @@ GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
   size = 8 + sizeof (uint32_t);
   size += GNUNET_CONTAINER_meta_data_get_serialized_size (bld->meta, 
 							  GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL);
+  sizes = NULL;
+  perm = NULL;
+  bes = NULL;
   if (bld->count > 0)
     {
       sizes = GNUNET_malloc (bld->count * sizeof (size_t));
@@ -563,12 +566,9 @@ GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
 	      sizes[i]);
       GNUNET_free (bes[i]);
     }
-  if (bld->count > 0)
-    {
-      GNUNET_free (sizes);
-      GNUNET_free (perm);
-      GNUNET_free (bes);
-    }
+  GNUNET_free_non_null (sizes);
+  GNUNET_free_non_null (perm);
+  GNUNET_free_non_null (bes);
   GNUNET_assert (off == size);  
   GNUNET_CONTAINER_meta_data_destroy (bld->meta);
   GNUNET_free (bld);
