@@ -215,11 +215,11 @@ testing_init (void *cls,
 	      GNUNET_i2s(my_identity));
 #endif
   d->id = *my_identity;
+  d->server = server;
   if (GNUNET_YES == d->dead)
     GNUNET_TESTING_daemon_stop (d, d->dead_cb, d->dead_cb_cls);
   else if (NULL != cb)
     cb (d->cb_cls, my_identity, d->cfg, d, NULL);
-  d->server = server;
 }
 
 
@@ -309,9 +309,8 @@ start_fsm (void *cls,
 					    d->cfgfile,
 #if DEBUG_TESTING
 					    "-L", "DEBUG",
-#else
-					    "-d",
 #endif
+					    "-d",
 					    NULL);
 	}
       else
