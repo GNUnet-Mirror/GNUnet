@@ -193,7 +193,7 @@ main (int argc, char *argv[])
   struct GNUNET_CRYPTO_RsaPrivateKey *hostkey;
 
   GNUNET_log_setup ("test-crypto-ksk", "WARNING", NULL);
-  GNUNET_CRYPTO_hash_create_random (&in);
+  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &in);
   hostkey = GNUNET_CRYPTO_rsa_key_create_from_hash (&in);
   if (hostkey == NULL)
     {

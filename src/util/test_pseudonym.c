@@ -99,7 +99,7 @@ main (int argc, char *argv[])
   old = GNUNET_PSEUDONYM_list_all (cfg, NULL, NULL);
   meta = GNUNET_CONTAINER_meta_data_create ();
   GNUNET_CONTAINER_meta_data_insert (meta, EXTRACTOR_TITLE, "test");
-  GNUNET_CRYPTO_hash_create_random (&id1);
+  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &id1);
   GNUNET_PSEUDONYM_add (cfg, &id1, meta);
   CHECK (notiCount == 1);
   GNUNET_PSEUDONYM_add (cfg, &id1, meta);
@@ -107,7 +107,7 @@ main (int argc, char *argv[])
   newVal = GNUNET_PSEUDONYM_list_all (cfg, &iter, &ok);
   CHECK (old < newVal);
   old = newVal;
-  GNUNET_CRYPTO_hash_create_random (&id2);
+  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &id2);
   GNUNET_PSEUDONYM_add (cfg, &id2, meta);
   CHECK (notiCount == 3);
   newVal = GNUNET_PSEUDONYM_list_all (cfg, &iter, &ok);

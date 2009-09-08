@@ -751,7 +751,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
  */
 int
 GNUNET_CRYPTO_rsa_encrypt (const void *block,
-                           uint16_t size,
+                           size_t size,
                            const struct
                            GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey,
                            struct GNUNET_CRYPTO_RsaEncryptedData *target)
@@ -799,10 +799,11 @@ GNUNET_CRYPTO_rsa_encrypt (const void *block,
  *        the decrypted block is bigger, an error is returned
  * @returns the size of the decrypted block, -1 on error
  */
-int
+ssize_t
 GNUNET_CRYPTO_rsa_decrypt (const struct GNUNET_CRYPTO_RsaPrivateKey *hostkey,
                            const struct GNUNET_CRYPTO_RsaEncryptedData *block,
-                           void *result, uint16_t max)
+                           void *result, 
+			   size_t max)
 {
   gcry_sexp_t resultsexp;
   gcry_sexp_t data;

@@ -94,8 +94,8 @@ crc32 (uLong crc, const char *buf, size_t len)
  * @param len the length of the buffer
  * @return the resulting CRC32 checksum
  */
-int
-GNUNET_CRYPTO_crc32_n (const void *buf, unsigned int len)
+int32_t
+GNUNET_CRYPTO_crc32_n (const void *buf, size_t len)
 {
   uLong crc;
   crc = crc32 (0L, Z_NULL, 0);
@@ -103,4 +103,4 @@ GNUNET_CRYPTO_crc32_n (const void *buf, unsigned int len)
   return crc;
 }
 
-/* end of crc32.c */
+/* end of crypto_crc.c */

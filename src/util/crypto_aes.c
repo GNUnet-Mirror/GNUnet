@@ -72,9 +72,9 @@ GNUNET_CRYPTO_aes_check_session_key (const struct GNUNET_CRYPTO_AesSessionKey
  * @param result the output parameter in which to store the encrypted result
  * @returns the size of the encrypted block, -1 for errors
  */
-int
+ssize_t
 GNUNET_CRYPTO_aes_encrypt (const void *block,
-                           uint16_t len,
+                           size_t len,
                            const struct GNUNET_CRYPTO_AesSessionKey
                            *sessionkey,
                            const struct GNUNET_CRYPTO_AesInitializationVector
@@ -88,7 +88,7 @@ GNUNET_CRYPTO_aes_encrypt (const void *block,
              (sessionkey, GNUNET_CRYPTO_AES_KEY_LENGTH)))
     {
       GNUNET_break (0);
-      return GNUNET_SYSERR;
+      return -1;
     }
   GNUNET_assert (0 == gcry_cipher_open (&handle,
                                         GCRY_CIPHER_AES256,
@@ -115,8 +115,9 @@ GNUNET_CRYPTO_aes_encrypt (const void *block,
  * @param result address to store the result at
  * @return -1 on failure, size of decrypted block on success
  */
-int
-GNUNET_CRYPTO_aes_decrypt (const void *block, uint16_t size,
+ssize_t
+GNUNET_CRYPTO_aes_decrypt (const void *block, 
+			   size_t size,
                            const struct GNUNET_CRYPTO_AesSessionKey
                            *sessionkey, 
 			   const struct GNUNET_CRYPTO_AesInitializationVector
@@ -130,7 +131,7 @@ GNUNET_CRYPTO_aes_decrypt (const void *block, uint16_t size,
              (sessionkey, GNUNET_CRYPTO_AES_KEY_LENGTH)))
     {
       GNUNET_break (0);
-      return GNUNET_SYSERR;
+      return -1;
     }
   GNUNET_assert (0 == gcry_cipher_open (&handle,
                                         GCRY_CIPHER_AES256,

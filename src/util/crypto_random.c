@@ -32,13 +32,14 @@
 /**
  * @return a random value in the interval [0,i[.
  */
-unsigned int
-GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, unsigned int i)
+uint32_t
+GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, 
+			  uint32_t i)
 {
 #ifdef gcry_fast_random_poll
   static unsigned int invokeCount;
 #endif
-  unsigned int ret;
+  uint32_t ret;
 
   GNUNET_assert (i > 0);
 
@@ -49,11 +50,9 @@ GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, unsigned int i)
       if ((invokeCount++ % 256) == 0)
         gcry_fast_random_poll ();
 #endif
-      ret = rand ();            /* in case gcry_randomize fails,
-                                   we at least get a pseudo-
-                                   random number this way */
       gcry_randomize ((unsigned char *) &ret,
-                      sizeof (unsigned int), GCRY_STRONG_RANDOM);
+                      sizeof (uint32_t),
+		      GCRY_STRONG_RANDOM);
       return ret % i;
     }
   else
@@ -80,10 +79,10 @@ GNUNET_CRYPTO_random_permute (enum GNUNET_CRYPTO_Quality mode, unsigned int n)
   unsigned int *ret;
   unsigned int i;
   unsigned int tmp;
-  unsigned int x;
+  uint32_t x;
 
   GNUNET_assert (n > 0);
-  ret = GNUNET_malloc (n * sizeof (int));
+  ret = GNUNET_malloc (n * sizeof (unsigned int));
   for (i = 0; i < n; i++)
     ret[i] = i;
   for (i = 0; i < n; i++)
@@ -99,17 +98,18 @@ GNUNET_CRYPTO_random_permute (enum GNUNET_CRYPTO_Quality mode, unsigned int n)
 /**
  * Random on unsigned 64-bit values.
  */
-unsigned long long
+uint64_t
 GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode,
-                          unsigned long long u)
+                          uint64_t u)
 {
-  unsigned long long ret;
+  uint64_t ret;
 
   GNUNET_assert (u > 0);
   if (mode == GNUNET_CRYPTO_QUALITY_STRONG)
     {
       gcry_randomize ((unsigned char *) &ret,
-                      sizeof (unsigned long long), GCRY_STRONG_RANDOM);
+                      sizeof (uint64_t),
+		      GCRY_STRONG_RANDOM);
       return ret % u;
     }
   else

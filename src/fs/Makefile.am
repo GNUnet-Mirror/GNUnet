@@ -107,7 +107,9 @@ check_PROGRAMS = \
  test_fs_getopt \
  test_fs_uri
 
-TESTS = $(check_PROGRAMS)
+TESTS = test_fs_uri
+
+# $(check_PROGRAMS)
 
 test_fs_collection_SOURCES = \
  test_fs_collection.c

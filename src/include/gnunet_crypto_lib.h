@@ -202,25 +202,31 @@ struct GNUNET_CRYPTO_AesInitializationVector
  * @param len the length of the buffer in bytes
  * @return the resulting CRC32 checksum
  */
-int GNUNET_CRYPTO_crc32_n (const void *buf, unsigned int len);
+int32_t GNUNET_CRYPTO_crc32_n (const void *buf, 
+			       size_t len);
 
 
 /**
  * Produce a random value.
  *
+ * @param mode desired quality of the random number
  * @param i the upper limit (exclusive) for the random number
- * @return a random value in the interval [0,i[.
+ * @return a random value in the interval [0,i) (exclusive).
  */
-unsigned int GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality,
-                                       unsigned int i);
+uint32_t GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode,
+				   uint32_t i);
 
 
 /**
  * Random on unsigned 64-bit values.  We break them down into signed
  * 32-bit values and reassemble the 64-bit random value bit-wise.
+ *
+ * @param mode desired quality of the random number
+ * @param max value returned will be in range [0,max) (exclusive)
+ * @return random 64-bit number
  */
-unsigned long long GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode,
-                                             unsigned long long u);
+uint64_t GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode,
+				   uint64_t max);
 
 
 /**
@@ -261,13 +267,13 @@ int GNUNET_CRYPTO_aes_check_session_key (const struct
  *        for streams.
  * @returns the size of the encrypted block, -1 for errors
  */
-int GNUNET_CRYPTO_aes_encrypt (const void *block,
-                               uint16_t len,
-                               const struct GNUNET_CRYPTO_AesSessionKey
-                               *sessionkey,
-                               const struct
-                               GNUNET_CRYPTO_AesInitializationVector *iv,
-                               void *result);
+ssize_t GNUNET_CRYPTO_aes_encrypt (const void *block,
+				   size_t len,
+				   const struct GNUNET_CRYPTO_AesSessionKey
+				   *sessionkey,
+				   const struct
+				   GNUNET_CRYPTO_AesInitializationVector *iv,
+				   void *result);
 
 
 /**
@@ -280,10 +286,11 @@ int GNUNET_CRYPTO_aes_encrypt (const void *block,
  * @param result address to store the result at
  * @return -1 on failure, size of decrypted block on success
  */
-int GNUNET_CRYPTO_aes_decrypt (const void *block, uint16_t size,
-                               const struct GNUNET_CRYPTO_AesSessionKey *sessionkey, 
-                               const struct GNUNET_CRYPTO_AesInitializationVector *iv,
-                               void *result);
+ssize_t GNUNET_CRYPTO_aes_decrypt (const void *block, 
+				   size_t size,
+				   const struct GNUNET_CRYPTO_AesSessionKey *sessionkey, 
+				   const struct GNUNET_CRYPTO_AesInitializationVector *iv,
+				   void *result);
 
 
 /**
@@ -315,16 +322,19 @@ int GNUNET_CRYPTO_hash_from_string (const char *enc,
  * result should be a positive number.
  * @return number between 0 and 65536
  */
-unsigned int GNUNET_CRYPTO_hash_distance_u32 (const GNUNET_HashCode * a,
-                                              const GNUNET_HashCode * b);
+uint32_t GNUNET_CRYPTO_hash_distance_u32 (const GNUNET_HashCode * a,
+					  const GNUNET_HashCode * b);
 
 
 /**
- * Hash block of given size.
- * @param block the data to GNUNET_CRYPTO_hash, length is given as a second argument
+ * Compute hash of a given block.
+ *
+ * @param block the data to hash
+ * @param size size of the block
  * @param ret pointer to where to write the hashcode
  */
-void GNUNET_CRYPTO_hash (const void *block, unsigned int size,
+void GNUNET_CRYPTO_hash (const void *block, 
+			 size_t size,
                          GNUNET_HashCode * ret);
 
 
@@ -363,7 +373,8 @@ void GNUNET_CRYPTO_hash_file (struct GNUNET_SCHEDULER_Handle *sched,
 /**
  * Create a random hash code.
  */
-void GNUNET_CRYPTO_hash_create_random (GNUNET_HashCode * result);
+void GNUNET_CRYPTO_hash_create_random (enum GNUNET_CRYPTO_Quality mode,
+				       GNUNET_HashCode * result);
 
 
 /**
@@ -491,7 +502,7 @@ void GNUNET_CRYPTO_rsa_key_get_public (const struct
  * @returns GNUNET_SYSERR on error, GNUNET_OK if ok
  */
 int GNUNET_CRYPTO_rsa_encrypt (const void *block,
-                               uint16_t size,
+                               size_t size,
                                const struct
                                GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
                                *publicKey,
@@ -507,9 +518,11 @@ int GNUNET_CRYPTO_rsa_encrypt (const void *block,
  * @param size how many bytes of a result are expected? Must be exact.
  * @returns the size of the decrypted block (that is, size) or -1 on error
  */
-int GNUNET_CRYPTO_rsa_decrypt (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
-                               const struct GNUNET_CRYPTO_RsaEncryptedData
-                               *block, void *result, uint16_t size);
+ssize_t GNUNET_CRYPTO_rsa_decrypt (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
+				   const struct GNUNET_CRYPTO_RsaEncryptedData
+				   *block,
+				   void *result, 
+				   size_t size);
 
 
 /**

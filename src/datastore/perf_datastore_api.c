@@ -389,6 +389,7 @@ main (int argc, char *argv[])
 #if REPORT_ID
   fprintf (stderr, "\n");
 #endif
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-datastore");
   return ret;
 }
 

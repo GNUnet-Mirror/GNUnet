@@ -73,8 +73,8 @@ testArithmetic ()
   struct GNUNET_CRYPTO_AesSessionKey skey;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
 
-  GNUNET_CRYPTO_hash_create_random (&h1);
-  GNUNET_CRYPTO_hash_create_random (&h2);
+  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &h1);
+  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &h2);
   if (GNUNET_CRYPTO_hash_distance_u32 (&h1, &h2) !=
       GNUNET_CRYPTO_hash_distance_u32 (&h2, &h1))
     return 1;

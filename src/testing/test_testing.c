@@ -109,7 +109,7 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
-
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-testing");
   return ret;
 }
 

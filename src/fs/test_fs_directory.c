@@ -67,8 +67,9 @@ processor (void *cls,
 static int
 testDirectory (unsigned int i)
 {
+  struct GNUNET_FS_DirectoryBuilder *db;
   char *data;
-  unsigned long long dlen;
+  size_t dlen;
   struct GNUNET_FS_Uri **uris;
   struct GNUNET_CONTAINER_MetaData **mds;
   struct GNUNET_CONTAINER_MetaData *meta;
@@ -96,7 +97,7 @@ testDirectory (unsigned int i)
         }
       GNUNET_snprintf (uri,
                        sizeof(uri),
-                       "gnunet://ecrs/chk/C282GG70GKK41O4551011DO413KFBVTVMQG1OG30I0K4045N0G41HAPB82G680A02JRVVFO8URVRU2F159011DO41000000022RG820.RNVVVVOOLCLK065B5D04HTNVNSIB2AI022RG8200HSLK1CO1000ATQ98824DMA2032LIMG50CG0K057NVUVG200000H000004400000.%u",
+                       "gnunet://fs/chk/C282GG70GKK41O4551011DO413KFBVTVMQG1OG30I0K4045N0G41HAPB82G680A02JRVVFO8URVRU2F159011DO41000000022RG820.RNVVVVOOLCLK065B5D04HTNVNSIB2AI022RG8200HSLK1CO1000ATQ98824DMA2032LIMG50CG0K057NVUVG200000H000004400000.%u",
                        p);
       uris[p] = GNUNET_FS_uri_parse (uri, &emsg);
       if (uris[p] == NULL)
@@ -115,19 +116,12 @@ testDirectory (unsigned int i)
   meta = GNUNET_CONTAINER_meta_data_create ();
   GNUNET_CONTAINER_meta_data_insert (meta, EXTRACTOR_TITLE, "A title");
   GNUNET_CONTAINER_meta_data_insert (meta, EXTRACTOR_AUTHOR, "An author");
-  if (GNUNET_OK !=
-      GNUNET_FS_directory_create (&dlen, &data, i, uris, mds, meta))
-    {
-      GNUNET_CONTAINER_meta_data_destroy (meta);
-      for (p = 0; p < i; p++)
-        {
-          GNUNET_CONTAINER_meta_data_destroy (mds[p]);
-          GNUNET_FS_uri_destroy (uris[p]);
-        }
-      GNUNET_free (uris);
-      GNUNET_free (mds);
-      ABORT ();
-    }
+  db = GNUNET_FS_directory_builder_create (meta);
+  for (p=0;p<i;p++)
+    GNUNET_FS_directory_builder_add (db, uris[i], mds[i], NULL);
+  GNUNET_FS_directory_builder_finish (db,
+				      &dlen,
+				      (void**) &data);
   cls.pos = 0;
   cls.uri = uris;
   cls.md = mds;

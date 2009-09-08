@@ -174,5 +174,7 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
-  return 0; 
+  return ret; 
 }
+
+/* end of test_gnunet_daemon_hostlist.c */

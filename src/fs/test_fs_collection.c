@@ -52,7 +52,9 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 			 cfg,
 			 "test-fs-collection",
 			 &progress_cb,
-			 NULL);
+			 NULL,
+			 GNUNET_FS_FLAGS_NONE,
+			 GNUNET_FS_OPTIONS_END);
   GNUNET_assert (NULL != fsh);
   GNUNET_FS_collection_stop (fsh);
   GNUNET_assert (NULL == GNUNET_FS_collection_get (fsh));
@@ -76,7 +78,9 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 			 cfg,
 			 "test-fs-collection",
 			 &progress_cb,
-			 NULL);
+			 NULL,
+			 GNUNET_FS_FLAGS_NONE,
+			 GNUNET_FS_OPTIONS_END);
   have = GNUNET_FS_collection_get (fsh);
   GNUNET_assert (NULL != have);
   GNUNET_FS_namespace_delete (have, GNUNET_NO);
@@ -101,7 +105,8 @@ main (int argc, char *argv[])
 		    NULL);
   GNUNET_CRYPTO_random_disable_entropy_gathering ();
   cfg = GNUNET_CONFIGURATION_create ();
-  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_parse (cfg, "test_fs_collection_data.conf"))
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_parse (cfg, 
+						   "test_fs_collection_data.conf"))
     {
       GNUNET_CONFIGURATION_destroy (cfg);
       return -1;

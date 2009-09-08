@@ -38,7 +38,7 @@
 static void
 nextHC (GNUNET_HashCode * hc)
 {
-  GNUNET_CRYPTO_hash_create_random (hc);
+  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, hc);
 }
 
 static int
