@@ -515,7 +515,7 @@ GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
   sizes = NULL;
   perm = NULL;
   bes = NULL;
-  if (bld->count > 0)
+  if (0 < bld->count)
     {
       sizes = GNUNET_malloc (bld->count * sizeof (size_t));
       perm = GNUNET_malloc (bld->count * sizeof (unsigned int));
@@ -532,13 +532,13 @@ GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
 		   bld->count,
 		   sizes,
 		   perm);
-    }  
-  /* compute final size with alignment */
-  for (i = 0; i < bld->count; i++)
-    {
-      psize = size;
-      size += sizes[perm[i]];
-      size = do_align (psize, size);
+      /* compute final size with alignment */
+      for (i = 0; i < bld->count; i++)
+	{
+	  psize = size;
+	  size += sizes[perm[i]];
+	  size = do_align (psize, size);
+	}
     }
   *rsize = size;
   data = GNUNET_malloc (size);
