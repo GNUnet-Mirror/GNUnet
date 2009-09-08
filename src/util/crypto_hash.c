@@ -283,7 +283,7 @@ sha512_final (struct sha512_ctx *sctx, unsigned char *hash)
   unsigned long long t2;
   int i, j;
 
-  t = i = j = 0;
+  i = j = 0;
 
   /* Save number of bits */
   t = sctx->count[0];
@@ -352,6 +352,7 @@ sha512_final (struct sha512_ctx *sctx, unsigned char *hash)
   memset (sctx, 0, sizeof (struct sha512_ctx));
 }
 
+
 /**
  * Hash block of given size.
  *
@@ -364,7 +365,7 @@ GNUNET_CRYPTO_hash (const void *block, unsigned int size,
                     GNUNET_HashCode * ret)
 {
   struct sha512_ctx ctx;
-
+  
   sha512_init (&ctx);
   sha512_update (&ctx, block, size);
   sha512_final (&ctx, (unsigned char *) ret);
