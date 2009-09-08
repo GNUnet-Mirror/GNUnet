@@ -283,8 +283,6 @@ sha512_final (struct sha512_ctx *sctx, unsigned char *hash)
   unsigned long long t2;
   int i, j;
 
-  i = j = 0;
-
   /* Save number of bits */
   t = sctx->count[0];
   bits[15] = t;
