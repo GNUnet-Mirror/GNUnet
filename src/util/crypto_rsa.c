@@ -569,7 +569,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
 
   if (GNUNET_SYSERR == GNUNET_DISK_directory_create_for_file (filename))
     return NULL;
-  while (GNUNET_YES == GNUNET_DISK_file_test (filename))
+  while (GNUNET_YES != GNUNET_DISK_file_test (filename))
     {
       fd = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE | GNUNET_DISK_OPEN_FAILIFEXISTS);
       if (NULL == fd)
@@ -603,12 +603,10 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
       GNUNET_assert (ntohs (enc->len) == GNUNET_DISK_file_write (fd, enc, ntohs (enc->len)));
       GNUNET_free (enc);
 
-#ifndef MINGW
       GNUNET_DISK_file_sync (fd);
       if (GNUNET_YES != GNUNET_DISK_file_unlock (fd, 0, sizeof (struct RsaPrivateKeyBinaryEncoded)))
         GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
                                   "fcntl", filename);
-#endif
       GNUNET_assert (GNUNET_YES != GNUNET_DISK_file_close (fd));
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   _("Stored new private key in `%s'.\n"), filename);
