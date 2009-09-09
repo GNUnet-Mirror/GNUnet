@@ -51,6 +51,8 @@ processor (void *cls,
   struct PCLS *p = cls;
   int i;
 
+  if (NULL == uri)
+    return; /* ignore directory's meta data */
   for (i = 0; i < p->max; i++)
     {
       if (GNUNET_CONTAINER_meta_data_test_equal (p->md[i],
@@ -80,10 +82,16 @@ testDirectory (unsigned int i)
   char uri[512];
   char txt[128];
   int ret = 0;
+  struct GNUNET_TIME_Absolute start;
+  char *s;
 
   cls.max = i;
   uris = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri*) * i);
   mds = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_MetaData*) * i);
+  meta = GNUNET_CONTAINER_meta_data_create ();
+  GNUNET_CONTAINER_meta_data_insert (meta, EXTRACTOR_TITLE, "A title");
+  GNUNET_CONTAINER_meta_data_insert (meta, EXTRACTOR_AUTHOR, "An author");
+  db = GNUNET_FS_directory_builder_create (meta);
   for (p = 0; p < i; p++)
     {
       mds[p] = GNUNET_CONTAINER_meta_data_create ();
@@ -112,22 +120,27 @@ testDirectory (unsigned int i)
           GNUNET_free (uris);
           ABORT ();             /* error in testcase */
         }
+      GNUNET_FS_directory_builder_add (db, uris[p], mds[p], NULL);
     }
-  meta = GNUNET_CONTAINER_meta_data_create ();
-  GNUNET_CONTAINER_meta_data_insert (meta, EXTRACTOR_TITLE, "A title");
-  GNUNET_CONTAINER_meta_data_insert (meta, EXTRACTOR_AUTHOR, "An author");
-  db = GNUNET_FS_directory_builder_create (meta);
-  for (p=0;p<i;p++)
-    GNUNET_FS_directory_builder_add (db, uris[i], mds[i], NULL);
+  start = GNUNET_TIME_absolute_get ();
   GNUNET_FS_directory_builder_finish (db,
 				      &dlen,
 				      (void**) &data);
-  cls.pos = 0;
-  cls.uri = uris;
-  cls.md = mds;
-  GNUNET_FS_directory_list_contents (dlen, data, 0, 
-				     &processor, &cls);
-  GNUNET_assert (cls.pos == i);
+  s = GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start));
+  fprintf (stdout,
+	   "Creating directory with %u entires took %s\n",
+	   i,
+	   s);
+  GNUNET_free (s);
+  if (i < 1000)
+    {
+      cls.pos = 0;
+      cls.uri = uris;
+      cls.md = mds;
+      GNUNET_FS_directory_list_contents (dlen, data, 0, 
+					 &processor, &cls);
+      GNUNET_assert (cls.pos == i);
+    }
   GNUNET_free (data);
   GNUNET_CONTAINER_meta_data_destroy (meta);
   for (p = 0; p < i; p++)
@@ -139,6 +152,7 @@ testDirectory (unsigned int i)
   GNUNET_free (mds);
   return ret;
 }
+
 
 int
 main (int argc, char *argv[])
@@ -153,11 +167,8 @@ main (int argc, char *argv[])
 		    "WARNING",
 #endif
 		    NULL);
-  for (i = 17; i < 2000; i *= 2)
-    {
-      fprintf (stderr, ".");
-      failureCount += testDirectory (i);
-    }
+  for (i = 17; i < 10000; i *= 2)
+    failureCount += testDirectory (i);    
   fprintf (stderr, "\n");
 
   if (failureCount != 0)

@@ -269,6 +269,7 @@ main (int argc, char *argv[])
       failureCount += testFile (i);
     }
   /* fprintf (stderr, "\n"); */
+  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-uri");
   if (failureCount != 0)
     return 1;
   return 0;

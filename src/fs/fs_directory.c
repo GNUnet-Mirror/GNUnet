@@ -490,8 +490,9 @@ block_align (size_t start,
  * @param bld directory to finish
  * @param rsize set to the number of bytes needed
  * @param rdata set to the encoded directory
+ * @return GNUNET_OK on success
  */
-void
+int
 GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
 				    size_t *rsize,
 				    void **rdata)
@@ -541,7 +542,15 @@ GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
 	}
     }
   *rsize = size;
-  data = GNUNET_malloc (size);
+  data = GNUNET_malloc_large (size);
+  if (data == NULL)
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+			   "malloc");
+      *rsize = 0;
+      *rdata = NULL;
+      return GNUNET_SYSERR;
+    }
   *rdata = data;
   memcpy (data, GNUNET_DIRECTORY_MAGIC, 8);
   off = 8;
@@ -572,6 +581,7 @@ GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
   GNUNET_assert (off == size);  
   GNUNET_CONTAINER_meta_data_destroy (bld->meta);
   GNUNET_free (bld);
+  return GNUNET_OK;
 }
 
 

@@ -2429,8 +2429,9 @@ GNUNET_FS_directory_builder_add (struct GNUNET_FS_DirectoryBuilder *bld,
  * @param bld directory to finish
  * @param size set to the number of bytes needed
  * @param data set to the encoded directory
+ * @return GNUNET_OK on success
  */
-void
+int
 GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
 				    size_t *size,
 				    void **data);
