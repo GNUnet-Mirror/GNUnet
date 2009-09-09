@@ -376,11 +376,23 @@ int GNUNET_DISK_directory_create (const char *dir);
  * @param fh file handle
  * @lockStart absolute position from where to lock
  * @lockEnd absolute position until where to lock
+ * @excl GNUNET_YES for an exclusive lock
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
-GNUNET_DISK_file_lock(struct GNUNET_DISK_FileHandle *fh, off_t lockStart,
-    off_t lockEnd);
+GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, off_t lockStart,
+    off_t lockEnd, int excl);
+
+/**
+ * Unlock a part of a file
+ * @param fh file handle
+ * @lockStart absolute position from where to unlock
+ * @lockEnd absolute position until where to unlock
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, off_t unlockStart,
+    off_t unlockEnd);
 
 
 /**

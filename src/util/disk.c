@@ -978,11 +978,12 @@ GNUNET_DISK_file_change_owner (const char *filename, const char *user)
  * @param fh file handle
  * @lockStart absolute position from where to lock
  * @lockEnd absolute position until where to lock
+ * @excl GNUNET_YES for an exclusive lock
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
-GNUNET_DISK_file_lock(struct GNUNET_DISK_FileHandle *fh, off_t lockStart,
-    off_t lockEnd)
+GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, off_t lockStart,
+    off_t lockEnd, int excl)
 {
   if (fh == NULL)
     {
@@ -993,19 +994,69 @@ GNUNET_DISK_file_lock(struct GNUNET_DISK_FileHandle *fh, off_t lockStart,
 #ifndef MINGW
   struct flock fl;
 
-  memset(&fl, 0, sizeof(struct flock));
-  fl.l_type = F_WRLCK;
+  memset (&fl, 0, sizeof(struct flock));
+  fl.l_type = excl ? F_WRLCK : F_RDLCK;
   fl.l_whence = SEEK_SET;
   fl.l_start = lockStart;
   fl.l_len = lockEnd;
 
-  return fcntl(fh->fd, F_SETLK, &fl) != 0 ? GNUNET_SYSERR : GNUNET_OK;
+  return fcntl (fh->fd, F_SETLK, &fl) != 0 ? GNUNET_SYSERR : GNUNET_OK;
 #else
-  if (!LockFile(fh->h, 0, lockStart, 0, lockEnd))
-  {
-    SetErrnoFromWinError(GetLastError());
-    return GNUNET_SYSERR;
-  }
+  OVERLAPPED o;
+
+  memset (&o, 0, sizeof(OVERLAPPED));
+  o.Offset = lockStart;
+
+  if (!LockFileEx (fh->h, (excl ? LOCKFILE_EXCLUSIVE_LOCK : 0)
+      | LOCKFILE_FAIL_IMMEDIATELY, 0, lockEnd - lockStart, 0, &o))
+    {
+      SetErrnoFromWinError (GetLastError ());
+      return GNUNET_SYSERR;
+    }
+
+  return GNUNET_OK;
+#endif
+}
+
+
+/**
+ * Unlock a part of a file
+ * @param fh file handle
+ * @lockStart absolute position from where to unlock
+ * @lockEnd absolute position until where to unlock
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, off_t unlockStart,
+    off_t unlockEnd)
+{
+  if (fh == NULL)
+    {
+      errno = EINVAL;
+      return GNUNET_SYSERR;
+    }
+
+#ifndef MINGW
+  struct flock fl;
+
+  memset (&fl, 0, sizeof(struct flock));
+  fl.l_type = F_UNLCK;
+  fl.l_whence = SEEK_SET;
+  fl.l_start = unlockStart;
+  fl.l_len = unlockEnd;
+
+  return fcntl (fh->fd, F_SETLK, &fl) != 0 ? GNUNET_SYSERR : GNUNET_OK;
+#else
+  OVERLAPPED o;
+
+  memset (&o, 0, sizeof(OVERLAPPED));
+  o.Offset = unlockStart;
+
+  if (!UnlockFileEx (fh->h, 0, unlockEnd - unlockStart, 0, &o))
+    {
+      SetErrnoFromWinError (GetLastError ());
+      return GNUNET_SYSERR;
+    }
 
   return GNUNET_OK;
 #endif
@@ -1402,7 +1453,7 @@ GNUNET_DISK_file_sync (const struct GNUNET_DISK_FileHandle *h)
     SetErrnoFromWinError (GetLastError ());
   return ret;
 #else
-  return fsync (h->fd) == -1 ? GNUNET_SYSERR : GNUNET_OK;
+  return fdatasync (h->fd) == -1 ? GNUNET_SYSERR : GNUNET_OK;
 #endif
 }
 
