@@ -600,7 +600,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
       GNUNET_assert (ret != NULL);
       enc = rsa_encode_key (ret);
       GNUNET_assert (enc != NULL);
-      GNUNET_assert (ntohs (enc->len) == WRITE (fd, enc, ntohs (enc->len)));
+      GNUNET_assert (ntohs (enc->len) == GNUNET_DISK_file_write (fd, enc, ntohs (enc->len)));
       GNUNET_free (enc);
 
 #ifndef MINGW
@@ -678,7 +678,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
       break;
     }
   enc = GNUNET_malloc (fs);
-  GNUNET_assert (fs == READ (fd, enc, fs));
+  GNUNET_assert (fs == GNUNET_DISK_file_read (fd, enc, fs));
   len = ntohs (enc->len);
   ret = NULL;
   if ((len != fs) || (NULL == (ret = rsa_decode_key (enc))))
