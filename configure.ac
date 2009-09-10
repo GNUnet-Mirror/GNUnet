@@ -140,7 +140,7 @@ netbsd*)
      AC_CHECK_LIB(intl, gettext)
      LDFLAGS="$LDFLAGS -no-undefined -Wl,--export-all-symbols"
      LIBS="$LIBS -lws2_32 -lplibc"
-     CFLAGS="-mms-bitfields $CFLAGS"
+     CFLAGS="-mms-bitfields -I../../libltdl $CFLAGS"
      build_target="mingw"
      AC_PROG_CXX
      LIBPREFIX=lib
