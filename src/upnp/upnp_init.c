@@ -19,7 +19,7 @@
 */
 
 /**
- * @file transport/upnp_init.c
+ * @file upnp/upnp_init.c
  * @brief API for UPnP access
  * @author Christian Grothoff
  */

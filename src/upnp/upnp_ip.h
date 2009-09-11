@@ -19,7 +19,7 @@
 */
 
 /**
- * @file transport/upnp_ip.h
+ * @file upnp/upnp_ip.h
  * @brief
  *
  * @author Christian Grothoff

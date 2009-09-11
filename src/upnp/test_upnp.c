@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file src/transports/upnp/upnptest.c
+ * @file upnp/test_upnp.c
  * @brief Testcase for UPnP
  * @author Christian Grothoff
  */

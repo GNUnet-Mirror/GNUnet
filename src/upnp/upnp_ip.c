@@ -19,7 +19,7 @@
 */
 
 /**
- * @file transport/upnp_ip.c
+ * @file upnp/upnp_ip.c
  * @brief code to determine the IP of the local machine
  *
  * @author Christian Grothoff

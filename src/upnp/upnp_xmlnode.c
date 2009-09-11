@@ -1,5 +1,5 @@
 /**
- * @file transport/upnp_xmlnode.c XML DOM functions
+ * @file upnp/upnp_xmlnode.c XML DOM functions
  *
  * gaim
  *

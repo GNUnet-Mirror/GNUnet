@@ -1,5 +1,5 @@
 /*
- * @file util.h Utility Functions
+ * @file upnp_util.cUtility Functions
  * @ingroup core
  *
  * Gaim is the legal property of its developers, whose names are too numerous

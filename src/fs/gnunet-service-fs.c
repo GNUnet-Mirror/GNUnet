@@ -182,8 +182,30 @@ struct LocalGetContext
    * Client that initiated the search.
    */
   struct GNUNET_SERVER_Client *client;
+
+
   
 };
+
+
+static void 
+transmit_local_get (void *cls,
+		    int ok)
+{
+  struct LocalGetContext *lgc = cls;
+  // FIXME: search locally
+
+  GNUNET_assert (GNUNET_OK == ok);
+  GNUNET_SERVER_receive_done (lgc->client,
+			      GNUNET_OK);
+
+  // once we're done processing the DS reply, do:
+  next_ds_request ();
+  // FIXME: if not found, initiate P2P search  
+
+  // FIXME: once done with "client" handle:
+  GNUNET_SERVER_client_drop (lgc->client); 
+}
 
 
 /**
@@ -205,27 +227,10 @@ handle_start_search (void *cls,
   GNUNET_SERVER_client_keep (client);
   lgc = GNUNET_malloc (sizeof (struct LocalGetContext));
   lgc->client = client;
-  lgc->x = y;
-  queue_ds_request (&transmit_local_get,
+  // lgc->x = y;
+  queue_ds_request (GNUNET_TIME_UNIT_FOREVER_REL,
+		    &transmit_local_get,
 		    lgc);
-}
-
-
-static void 
-transmit_local_get (void *cls,
-		    int ok)
-{
-  struct LocalGetContext *lgc = cls;
-  // FIXME: search locally
-
-  GNUNET_assert (GNUNET_OK == ok);
-  GNUNET_SERVER_receive_done (lgc->client,
-			      GNUNET_OK);
-  
-  // FIXME: if not found, initiate P2P search  
-
-  // FIXME: once done with "client" handle:
-  GNUNET_SERVER_client_drop (lgc->client); 
 }
 
 
