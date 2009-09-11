@@ -566,10 +566,6 @@ with_result_response_handler (void *cls,
 	ntohl(dm->anonymity),
 	GNUNET_TIME_absolute_ntoh(dm->expiration),	
 	GNUNET_ntohll(dm->uid));
-  GNUNET_CLIENT_receive (h->client,
-			 &with_result_response_handler,
-			 h,
-			 GNUNET_TIME_absolute_get_remaining (h->timeout));
 }
 
 
@@ -615,6 +611,39 @@ transmit_get_result (void *cls,
 			 h,
 			 GNUNET_TIME_absolute_get_remaining (h->timeout));
   return msize;
+}
+
+
+
+/**
+ * Function called to trigger obtaining the next result
+ * from the datastore.
+ * 
+ * @param h handle to the datastore
+ * @param more GNUNET_YES to get moxre results, GNUNET_NO to abort
+ *        iteration (with a final call to "iter" with key/data == NULL).
+ */
+void 
+GNUNET_DATASTORE_get_next (struct GNUNET_DATASTORE_Handle *h,
+			   int more)
+{
+  GNUNET_DATASTORE_Iterator cont;
+
+  if (GNUNET_YES == more)
+    {
+      GNUNET_CLIENT_receive (h->client,
+			     &with_result_response_handler,
+			     h,
+			     GNUNET_TIME_absolute_get_remaining (h->timeout));
+      return;
+    }
+  cont = h->response_proc;
+  h->response_proc = NULL;
+  GNUNET_CLIENT_disconnect (h->client);
+  h->client = GNUNET_CLIENT_connect (h->sched, "datastore", h->cfg);
+  cont (h->response_proc_cls, 
+	NULL, 0, NULL, 0, 0, 0, 
+	GNUNET_TIME_UNIT_ZERO_ABS, 0);
 }
 
 

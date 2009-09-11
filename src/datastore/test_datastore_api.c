@@ -207,6 +207,7 @@ check_value (void *cls,
   GNUNET_assert (priority == get_priority (i));
   GNUNET_assert (anonymity == get_anonymity(i));
   GNUNET_assert (expiration.value == get_expiration(i).value);
+  GNUNET_DATASTORE_get_next (datastore, GNUNET_YES);
 }
 
 
@@ -237,6 +238,7 @@ delete_value (void *cls,
   crc->key = *key;
   crc->data = GNUNET_malloc (size);
   memcpy (crc->data, data, size);
+  GNUNET_DATASTORE_get_next (datastore, GNUNET_YES);
 }
 
 
@@ -292,6 +294,7 @@ check_multiple (void *cls,
   crc->phase++;
   if (priority == get_priority (42))
     crc->uid = uid;
+  GNUNET_DATASTORE_get_next (datastore, GNUNET_YES);
 }
 
 
@@ -327,6 +330,7 @@ check_update (void *cls,
     }
   else
     GNUNET_assert (size == get_size (43));
+  GNUNET_DATASTORE_get_next (datastore, GNUNET_YES);
 }
 
 

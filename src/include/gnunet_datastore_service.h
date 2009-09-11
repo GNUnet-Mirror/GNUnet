@@ -218,7 +218,10 @@ typedef void (*GNUNET_DATASTORE_Iterator) (void *cls,
 
 /**
  * Iterate over the results for a particular key
- * in the datastore.
+ * in the datastore.  The iterator will only be called
+ * once initially; if the first call did contain a
+ * result, further results can be obtained by calling
+ * "GNUNET_DATASTORE_get_next" with the given argument.
  *
  * @param h handle to the datastore
  * @param key maybe NULL (to match all entries)
@@ -232,8 +235,22 @@ void
 GNUNET_DATASTORE_get (struct GNUNET_DATASTORE_Handle *h,
                       const GNUNET_HashCode * key,
 		      uint32_t type,
-                      GNUNET_DATASTORE_Iterator iter, void *iter_cls,
+                      GNUNET_DATASTORE_Iterator iter, 
+		      void *iter_cls,
 		      struct GNUNET_TIME_Relative timeout);
+
+
+/**
+ * Function called to trigger obtaining the next result
+ * from the datastore.
+ * 
+ * @param h handle to the datastore
+ * @param more GNUNET_YES to get moxre results, GNUNET_NO to abort
+ *        iteration (with a final call to "iter" with key/data == NULL).
+ */
+void
+GNUNET_DATASTORE_get_next (struct GNUNET_DATASTORE_Handle *h,
+			   int more);
 
 
 /**
