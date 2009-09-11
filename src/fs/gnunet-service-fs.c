@@ -24,9 +24,10 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - INDEX_START handling
- * - UNINDEX handling 
+ * - read_index_list
+ * - write_index_list
  * - bloomfilter support (GET, CS-request with BF, etc.)
+ * - handling of on-demand blocks from datastore (need to use indexed-list!)
  * - all P2P messages
  */
 #include "platform.h"
@@ -94,8 +95,9 @@ static struct IndexInfo *indexed_files;
  * Write the current index information list to disk.
  */ 
 static void
-write_index_list (void)
+write_index_list ()
 {
+  // FIXME
 }
 
 
@@ -103,9 +105,9 @@ write_index_list (void)
  * Read index information from disk.
  */
 static void
-read_index_list (void)
+read_index_list ()
 {
-  
+  // FIXME
 }
 
 
@@ -297,10 +299,38 @@ handle_unindex (void *cls,
 		const struct GNUNET_MessageHeader *message)
 {
   const struct UnindexMessage *um;
+  struct IndexInfo *pos;
+  struct IndexInfo *prev;
+  struct IndexInfo *next;
   struct GNUNET_SERVER_TransmitContext *tc;
+  int found;
   
   um = (const struct UnindexMessage*) message;
-  // fixme: process!
+  found = GNUNET_NO;
+  prev = NULL;
+  pos = indexed_files;
+  while (NULL != pos)
+    {
+      next = pos->next;
+      if (0 == memcmp (&pos->file_id,
+		       &um->file_id,
+		       sizeof (GNUNET_HashCode)))
+	{
+	  if (prev == NULL)
+	    indexed_files = pos->next;
+	  else
+	    prev->next = pos->next;
+	  GNUNET_free (pos);
+	  found = GNUNET_YES;
+	}
+      else
+	{
+	  prev = pos;
+	}
+      pos = next;
+    }
+  if (GNUNET_YES == found)
+    write_index_list ();
   tc = GNUNET_SERVER_transmit_context_create (client);
   GNUNET_SERVER_transmit_context_append (tc,
 					 NULL, 0,
@@ -664,7 +694,8 @@ process_local_get_result (void *cls,
 {
   struct LocalGetContext *lgc = cls;
   size_t msize;
-  
+
+  // FIXME: handle ONDEMAND blocks!
   if (key == NULL)
     {
       /* no further results from datastore; continue
@@ -736,6 +767,7 @@ transmit_local_get (void *cls,
 {
   struct LocalGetContext *lgc = cls;
 
+  // FIXME: handle ONDEMAND blocks (change type to ANY for DBLOCK/IBLOCK)
   GNUNET_DATASTORE_get (dsh,
 			&lgc->query,
 			lgc->type,
