@@ -1481,7 +1481,9 @@ gather_uri_data (void *cls,
  * Construct a keyword-URI from meta-data (take all entries
  * in the meta-data and construct one large keyword URI
  * that lists all keywords that can be found in the meta-data).
- * @deprecated
+ *
+ * @param md metadata to use
+ * @return NULL on error, otherwise a KSK URI
  */
 struct GNUNET_FS_Uri *
 GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_CONTAINER_MetaData *md)

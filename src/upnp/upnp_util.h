@@ -1,5 +1,5 @@
 /**
- * @file transport/upnp_util.h Utility Functions
+ * @file upnp/upnp_util.h Utility Functions
  * @ingroup core
  *
  * gaim
