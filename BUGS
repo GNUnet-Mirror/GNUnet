@@ -107,7 +107,7 @@ sane end-user should care about this codebase yet anyway.
 * POSTGRES-DB:
   - finish postgres implementation; simplify other SQLs using new stats
 * HTTPS transport
-  - PolariSSL for MHD?
+  - Better SSL-support for MHD
   - https integration
 * GAP improvements:
   - active reply route caching design & implementation of service,
