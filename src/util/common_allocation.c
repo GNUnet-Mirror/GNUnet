@@ -19,7 +19,7 @@
 */
 
 /**
- * @file util/memory/common_allocation.c
+ * @file util/common_allocation.c
  * @brief wrapper around malloc/free
  * @author Christian Grothoff
  */

@@ -19,10 +19,10 @@
 */
 
 /**
- * @file util/winproc.h
+ * @file include/winproc.h
  * @brief Definitions for MS Windows
  * @author Nils Durner
- **/
+ */
 
 #ifndef _WINPROC_H
 #define _WINPROC_H

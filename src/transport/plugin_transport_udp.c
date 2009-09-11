@@ -19,7 +19,7 @@
 */
 
 /**
- * @file transports/udp.c
+ * @file transport/plugin_transport_udp.c
  * @brief Implementation of the UDP transport service
  * @author Christian Grothoff
  */

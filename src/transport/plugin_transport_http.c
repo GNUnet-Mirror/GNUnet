@@ -19,7 +19,7 @@
 */
 
 /**
- * @file transports/http.c
+ * @file transport/plugin_transport_http.c
  * @brief Implementation of the HTTP transport service
  * @author Christian Grothoff
  */

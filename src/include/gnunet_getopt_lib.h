@@ -99,7 +99,7 @@ struct GNUNET_GETOPT_CommandLineOption
 {
 
   /**
-   * Short name of the option (use '\0' for none).
+   * Short name of the option (use '\\0' for none).
    */
   const char shortName;
 

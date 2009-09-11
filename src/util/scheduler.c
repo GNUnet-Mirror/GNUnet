@@ -19,7 +19,7 @@
  */
 
 /**
- * @file util/scheduler/scheduler.c
+ * @file util/scheduler.c
  * @brief schedule computations using continuation passing style
  * @author Christian Grothoff
  */

@@ -19,7 +19,7 @@
 */
 
 /**
- * @file util/os/priority.c
+ * @file util/os_priority.c
  * @brief Methods to set process priority
  * @author Nils Durner
  */

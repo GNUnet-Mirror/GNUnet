@@ -19,7 +19,7 @@
 */
 
 /**
- * @file datacache/datacache_api.c
+ * @file datacache/datacache.c
  * @brief datacache API implementation
  * @author Christian Grothoff
  */

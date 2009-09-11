@@ -1,5 +1,5 @@
 /**
- * @file xmlnode.h XML DOM functions
+ * @file transport/upnp_xmlnode.h XML DOM functions
  * @ingroup core
  *
  * gaim

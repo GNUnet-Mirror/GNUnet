@@ -105,7 +105,7 @@ struct GNUNET_DATACACHE_PluginFunctions {
   /**
    * Store an item in the datastore.
    *
-   * @param key key to store data under
+   * @param cls closure (internal context for the plugin)
    * @param size number of bytes in data
    * @param data data to store
    * @param type type of the value
@@ -124,9 +124,11 @@ struct GNUNET_DATACACHE_PluginFunctions {
    * Iterate over the results for a particular key
    * in the datastore.
    *
+   * @param cls closure (internal context for the plugin)
    * @param key
    * @param type entries of which type are relevant?
    * @param iter maybe NULL (to just count)
+   * @param iter_cls closure for iter
    * @return the number of results found
    */
   unsigned int (*get) (void *cls,
@@ -140,6 +142,7 @@ struct GNUNET_DATACACHE_PluginFunctions {
    * Delete the entry with the lowest expiration value
    * from the datacache right now.
    * 
+   * @param cls closure (internal context for the plugin)
    * @return GNUNET_OK on success, GNUNET_SYSERR on error
    */ 
   int (*del) (void *cls);

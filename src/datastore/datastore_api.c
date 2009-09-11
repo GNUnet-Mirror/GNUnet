@@ -335,6 +335,8 @@ transmit_for_status (struct GNUNET_DATASTORE_Handle *h,
  * lower anonymity level is used.
  *
  * @param h handle to the datastore
+ * @param rid reservation ID to use (from "reserve"); use 0 if no
+ *            prior reservation was made
  * @param key key for the value
  * @param size number of bytes in data
  * @param data content stored

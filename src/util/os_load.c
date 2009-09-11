@@ -19,7 +19,7 @@
 */
 
 /**
- * @file util/os_load_cpu.c
+ * @file util/os_load.c
  * @brief calls to determine current CPU load
  * @author Tzvetan Horozov
  * @author Christian Grothoff
@@ -650,4 +650,4 @@ void __attribute__ ((destructor)) GNUNET_cpustats_ltdl_fini ()
 }
 
 
-/* end of os_load_cpu.c */
+/* end of os_load.c */

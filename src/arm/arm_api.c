@@ -33,18 +33,52 @@
 #include "arm.h"
 
 
+/**
+ * FIXME: document.
+ */
 struct ArmContext
 {
+
+  /**
+   * FIXME: document.
+   */
   GNUNET_ARM_Callback callback;
+
+  /**
+   * FIXME: document.
+   */
   void *cls;
+
+  /**
+   * FIXME: document.
+   */
   char *service_name;
+
+  /**
+   * FIXME: document.
+   */
   struct GNUNET_CLIENT_Connection *client;
+
+  /**
+   * FIXME: document.
+   */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * FIXME: document.
+   */
   struct GNUNET_TIME_Absolute timeout;
+
+  /**
+   * FIXME: document.
+   */
   uint16_t type;
 };
 
 
+/**
+ * FIXME: document.
+ */
 static void
 arm_service_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -192,6 +226,7 @@ send_service_msg (void *cls, size_t size, void *buf)
  * @param timeout how long to wait before failing for good
  * @param cb callback to invoke when service is ready
  * @param cb_cls closure for callback
+ * @param type type of the request 
  */
 static void
 change_service (const char *service_name,

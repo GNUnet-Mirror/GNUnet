@@ -19,7 +19,7 @@
 */
 
 /**
- * @file util/win/winproc.c
+ * @file util/winproc.c
  * @brief Functions for MS Windows
  * @author Nils Durner
  */

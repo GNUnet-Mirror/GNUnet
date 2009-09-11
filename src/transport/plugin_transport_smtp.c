@@ -19,7 +19,7 @@
 */
 
 /**
- * @file transports/smtp.c
+ * @file transport/plugin_transport_smtp.c
  * @brief Implementation of the SMTP transport service
  * @author Christian Grothoff
  * @author Renaldo Ferreira

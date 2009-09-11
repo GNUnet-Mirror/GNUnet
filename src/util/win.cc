@@ -19,10 +19,10 @@
 */
 
 /**
- * @file util/win/win.cc
+ * @file util/win.cc
  * @brief Helper functions for MS Windows in C++
  * @author Nils Durner
- **/
+ */
 
 #ifndef _WIN_CC
 #define _WIN_CC

@@ -19,7 +19,7 @@
 */
 
 /**
- * @file server/gnunet-transport.c
+ * @file src/transport/gnunet-transport.c
  * @brief Tool to help configure the transports.
  * @author Christian Grothoff
  *

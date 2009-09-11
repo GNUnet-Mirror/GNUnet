@@ -456,6 +456,8 @@ transmit_callback (void *cls,
  *
  * @param client target of the message
  * @param msg message to transmit, will be freed!
+ * @param tc function to call afterwards
+ * @param tc_cls closure for tc
  * @param end is this the last response (and we should
  *        signal the server completion accodingly after
  *        transmitting this message)?
@@ -537,7 +539,7 @@ transmit_status (struct GNUNET_SERVER_Client *client,
  * Function called once the transmit operation has
  * either failed or succeeded.
  *
- * @param cls closure
+ * @param next_cls closure for calling "next_request" callback
  * @param status GNUNET_OK on success, GNUNET_SYSERR on error
  */
 static void 

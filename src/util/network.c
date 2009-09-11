@@ -19,7 +19,7 @@
 */
 
 /**
- * @file util/sock.c
+ * @file util/network.c
  * @brief basic, low-level networking interface
  * @author Nils Durner
  */
@@ -821,4 +821,4 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 #endif
 }
 
-/* end of network_socket.c */
+/* end of network.c */

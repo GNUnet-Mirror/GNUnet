@@ -43,6 +43,7 @@ struct Plugin
 /**
  * Store an item in the datastore.
  *
+ * @param cls closure (our "struct Plugin")
  * @param key key to store data under
  * @param size number of bytes in data
  * @param data data to store
@@ -67,9 +68,11 @@ template_plugin_put (void *cls,
  * Iterate over the results for a particular key
  * in the datastore.
  *
+ * @param cls closure (our "struct Plugin")
  * @param key
  * @param type entries of which type are relevant?
  * @param iter maybe NULL (to just count)
+ * @param iter_cls closure for iter
  * @return the number of results found
  */
 static unsigned int 
@@ -88,6 +91,7 @@ template_plugin_get (void *cls,
  * Delete the entry with the lowest expiration value
  * from the datacache right now.
  * 
+ * @param cls closure (our "struct Plugin")
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */ 
 static int 
@@ -100,6 +104,9 @@ template_plugin_del (void *cls)
 
 /**
  * Entry point for the plugin.
+ *
+ * @param cls closure (the "struct GNUNET_DATACACHE_PluginEnvironmnet")
+ * @return the plugin's closure (our "struct Plugin")
  */
 void *
 libgnunet_plugin_datacache_template_init (void *cls)
@@ -123,6 +130,9 @@ libgnunet_plugin_datacache_template_init (void *cls)
 
 /**
  * Exit point from the plugin.
+ *
+ * @param cls closure (our "struct Plugin")
+ * @return NULL
  */
 void *
 libgnunet_plugin_datacache_template_done (void *cls)

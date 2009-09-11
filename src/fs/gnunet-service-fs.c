@@ -19,7 +19,7 @@
 */
 
 /**
- * @file statistics/gnunet-service-fs.c
+ * @file fs/gnunet-service-fs.c
  * @brief program that provides the file-sharing service
  * @author Christian Grothoff
  */
