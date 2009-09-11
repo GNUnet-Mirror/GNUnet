@@ -149,6 +149,19 @@ int GNUNET_DISK_file_size (const char *filename,
 
 
 /**
+ * FIXME.
+ *
+ * @param filename name of the file
+ * @param dev set to the device ID
+ * @param ino set to the inode ID
+ * @return GNUNET_OK on success
+ */
+int GNUNET_DISK_file_get_identifiers (const char *filename,
+				      uint32_t *dev,
+				      uint64_t *ino);
+ 
+
+/**
  * Create an (empty) temporary file on disk.
  * 
  * @param template component to use for the name;

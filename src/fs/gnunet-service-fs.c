@@ -25,7 +25,6 @@
  *
  * TODO:
  * - INDEX_START handling
- * - INDEX_LIST handling 
  * - UNINDEX handling 
  * - bloomfilter support (GET, CS-request with BF, etc.)
  * - all P2P messages
@@ -52,6 +51,121 @@ static struct GNUNET_SCHEDULER_Handle *sched;
  */
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+
+/**
+ * In-memory information about indexed files (also available
+ * on-disk).
+ */
+struct IndexInfo
+{
+  
+  /**
+   * This is a linked list.
+   */
+  struct IndexInfo *next;
+
+  /**
+   * Name of the indexed file.  Memory allocated
+   * at the end of this struct (do not free).
+   */
+  const char *filename;
+
+  /**
+   * Context for tranmitting confirmation to client,
+   * NULL if we've done this already.
+   */
+  struct GNUNET_SERVER_TransmitContext *tc;
+  
+  /**
+   * Hash of the contents of the file.
+   */
+  GNUNET_HashCode file_id;
+
+};
+
+
+/**
+ * Linked list of indexed files.
+ */
+static struct IndexInfo *indexed_files;
+
+
+/**
+ * Write the current index information list to disk.
+ */ 
+static void
+write_index_list (void)
+{
+}
+
+
+/**
+ * Read index information from disk.
+ */
+static void
+read_index_list (void)
+{
+  
+}
+
+
+/**
+ * We've validated the hash of the file we're about to
+ * index.  Signal success to the client and update
+ * our internal data structures.
+ *
+ * @param ii the index info entry for the request
+ */
+static void
+signal_index_ok (struct IndexInfo *ii)
+{
+  ii->next = indexed_files;
+  indexed_files = ii;
+  write_index_list ();
+  GNUNET_SERVER_transmit_context_append (ii->tc,
+					 NULL, 0,
+					 GNUNET_MESSAGE_TYPE_FS_INDEX_START_OK);
+  GNUNET_SERVER_transmit_context_run (ii->tc,
+				      GNUNET_TIME_UNIT_MINUTES);
+  ii->tc = NULL;
+}
+
+
+
+/**
+ * Function called once the hash computation over an
+ * indexed file has completed.
+ *
+ * @param cls closure, our publishing context
+ * @param res resulting hash, NULL on error
+ */
+static void 
+hash_for_index_val (void *cls,
+		    const GNUNET_HashCode *
+		    res)
+{
+  struct IndexInfo *ii;
+  
+  if ( (res == NULL) ||
+       (0 != memcmp (res,
+		     &ii->file_id,
+		     sizeof(GNUNET_HashCode))) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Hash mismatch trying to index file `%s'\n"),
+		  ii->filename);
+      GNUNET_SERVER_transmit_context_append (ii->tc,
+					     NULL, 0,
+					     GNUNET_MESSAGE_TYPE_FS_INDEX_START_FAILED);
+      GNUNET_SERVER_transmit_context_run (ii->tc,
+					  GNUNET_TIME_UNIT_MINUTES);
+      GNUNET_free (ii);
+      return;
+    }
+  signal_index_ok (ii);
+}
+
+
 /**
  * Handle INDEX_START-message.
  *
@@ -67,6 +181,12 @@ handle_index_start (void *cls,
   const struct IndexStartMessage *ism;
   const char *fn;
   uint16_t msize;
+  struct IndexInfo *ii;
+  size_t slen;
+  uint32_t dev;
+  uint64_t ino;
+  uint32_t mydev;
+  uint64_t myino;
 
   msize = ntohs(message->size);
   if ( (msize <= sizeof (struct IndexStartMessage)) ||
@@ -77,9 +197,37 @@ handle_index_start (void *cls,
 				  GNUNET_SYSERR);
       return;
     }
-  ism = (const struct IndexStartMessage*) message;
+  
   fn = (const char*) &ism[1];
-  // FIXME: store fn, hash, check, respond to client, etc.
+  dev = ntohl (ism->device);
+  ino = GNUNET_ntohll (ism->inode);
+  ism = (const struct IndexStartMessage*) message;
+  slen = strlen (fn) + 1;
+  ii = GNUNET_malloc (sizeof (struct IndexInfo) + slen);
+  ii->filename = (const char*) &ii[1];
+  memcpy (&ii[1], fn, slen);
+  ii->file_id = ism->file_id;  
+  ii->tc = GNUNET_SERVER_transmit_context_create (client);
+  if ( ( (dev != 0) ||
+	 (ino != 0) ) &&
+       (GNUNET_OK == GNUNET_DISK_file_get_identifiers (fn,
+						       &mydev,
+						       &myino)) &&
+       ( (dev == mydev) &&
+	 (ino == myino) ) )
+    {      
+      /* fast validation OK! */
+      signal_index_ok (ii);
+      return;
+    }
+  /* slow validation, need to hash full file (again) */
+  GNUNET_CRYPTO_hash_file (sched,
+			   GNUNET_SCHEDULER_PRIORITY_IDLE,
+			   GNUNET_NO,
+			   fn,
+			   HASHING_BLOCKSIZE,
+			   &hash_for_index_val,
+			   ii);
 }
 
 
@@ -99,18 +247,19 @@ handle_index_list_get (void *cls,
   struct IndexInfoMessage *iim;
   char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE];
   size_t slen;
-  char *fn;
+  const char *fn;
   struct GNUNET_MessageHeader *msg;
+  struct IndexInfo *pos;
 
   tc = GNUNET_SERVER_transmit_context_create (client);
   iim = (struct IndexInfoMessage*) buf;
   msg = &iim->header;
-  while (0)
+  pos = indexed_files;
+  while (NULL != pos)
     {
       iim->reserved = 0;
-      // FIXME: read actual list of indexed files...
-      // iim->file_id = id;
-      fn = "FIXME";
+      iim->file_id = pos->file_id;
+      fn = pos->filename;
       slen = strlen (fn) + 1;
       if (slen + sizeof (struct IndexInfoMessage) > 
 	  GNUNET_SERVER_MAX_MESSAGE_SIZE)
@@ -125,6 +274,7 @@ handle_index_list_get (void *cls,
 	 sizeof (struct IndexInfoMessage) 
 	 - sizeof (struct GNUNET_MessageHeader) + slen,
 	 GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_ENTRY);
+      pos = pos->next;
     }
   GNUNET_SERVER_transmit_context_append (tc,
 					 NULL, 0,
@@ -717,6 +867,7 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  read_index_list ();
   sched = s;
   cfg = c;
   dsh = GNUNET_DATASTORE_connect (cfg,

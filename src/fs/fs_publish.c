@@ -695,10 +695,6 @@ process_index_start_response (void *cls,
 }
 
 
-#if LINUX
-#include <sys/statvfs.h>
-#endif
-
 /**
  * Function called once the hash computation over an
  * indexed file has completed.
@@ -716,10 +712,8 @@ hash_for_index_cb (void *cls,
   struct IndexStartMessage *ism;
   size_t slen;
   struct GNUNET_CLIENT_Connection *client;
-#if LINUX
-  struct stat sbuf;
-  struct statvfs fbuf;
-#endif
+  uint32_t dev;
+  uint64_t ino;
 
   p = sc->fi_pos;
   if (NULL == res) 
@@ -762,22 +756,14 @@ hash_for_index_cb (void *cls,
   ism->header.size = htons(sizeof(struct IndexStartMessage) +
 			   slen);
   ism->header.type = htons(GNUNET_MESSAGE_TYPE_FS_INDEX_START);
-  /* FIXME: activate this on other OSes that
-     support it (or something very similar; make
-     sure to also adjust corresponding code
-     on the service-side) */
-  /* FIXME: the block below should probably be
-     abstracted into a function in the DISK API */
-#if LINUX
-  if ( (0 == stat(p->data.file.filename,
-		  &sbuf)) &&
-       (0 == statvfs (p->data.file.filename,
-		      &fbuf) ) )
+  if (GNUNET_OK ==
+      GNUNET_DISK_file_get_identifiers (p->data.file.filename,
+					&dev,
+					&ino))
     {
-      ism->device = htonl ((uint32_t) fbuf.f_fsid);
-      ism->inode = GNUNET_htonll( (uint64_t) sbuf.st_ino);
+      ism->device = htonl (dev);
+      ism->inode = GNUNET_htonll(ino);
     }
-#endif
   memcpy (&ism[1],
 	  p->data.file.filename,
 	  slen);

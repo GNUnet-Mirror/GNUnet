@@ -191,6 +191,42 @@ GNUNET_DISK_file_size (const char *filename,
 }
 
 
+
+#if LINUX
+#include <sys/statvfs.h>
+#endif
+
+
+
+/**
+ * FIXME.
+ *
+ * @param filename name of the file
+ * @param dev set to the device ID
+ * @param ino set to the inode ID
+ * @return GNUNET_OK on success
+ */
+int GNUNET_DISK_file_get_identifiers (const char *filename,
+				      uint32_t *dev,
+				      uint64_t *ino)
+{
+#if LINUX
+  struct stat sbuf;
+  struct statvfs fbuf;
+
+  if ( (0 == stat(filename,
+		  &sbuf)) &&
+       (0 == statvfs (filename,
+		      &fbuf) ) )
+    {
+      *dev = (uint32_t) fbuf.f_fsid;
+      *ino = (uint64_t) sbuf.st_ino;
+    }
+#endif 
+  return GNUNET_SYSERR;
+}
+ 
+
 /**
  * Create an (empty) temporary file on disk.
  * 
