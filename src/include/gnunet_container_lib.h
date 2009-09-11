@@ -62,6 +62,7 @@ typedef int (*GNUNET_HashCodeIterator) (void *cls,
 
 /**
  * Load a bloom-filter from a file.
+ *
  * @param filename the name of the file (or the prefix)
  * @param size the size of the bloom-filter (number of
  *        bytes of storage space to use)
@@ -161,7 +162,11 @@ void GNUNET_CONTAINER_bloomfilter_clear (struct GNUNET_CONTAINER_BloomFilter
  * data of the given bloom filter.  Assumes that
  * the size of the data array and the current filter
  * match.
+ *
  * @param bf the filter
+ * @param data data to OR-in
+ * @param size size of data
+ * @return GNUNET_OK on success
  */
 int GNUNET_CONTAINER_bloomfilter_or (struct GNUNET_CONTAINER_BloomFilter *bf,
                                      const char *data, unsigned int size);

@@ -64,6 +64,8 @@ GNUNET_CONFIGURATION_dup (const struct GNUNET_CONFIGURATION_Handle *c);
 
 /**
  * Destroy configuration object.
+ *
+ * @param cfg configuration to destroy
  */
 void GNUNET_CONFIGURATION_destroy (struct GNUNET_CONFIGURATION_Handle *cfg);
 
@@ -73,6 +75,7 @@ void GNUNET_CONFIGURATION_destroy (struct GNUNET_CONFIGURATION_Handle *cfg);
  * defaults and then parse the specific configuration file
  * to overwrite the defaults.
  *
+ * @param cfg configuration to update
  * @param filename name of the configuration file
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
@@ -83,6 +86,9 @@ int GNUNET_CONFIGURATION_load (struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Parse a configuration file, add all of the options in the
  * file to the configuration environment.
+ *
+ * @param cfg configuration to update
+ * @param filename name of the configuration file
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -91,6 +97,9 @@ int GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
 
 /**
  * Write configuration file.
+ *
+ * @param cfg configuration to write
+ * @param filename where to write the configuration
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -100,6 +109,8 @@ int GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Test if there are configuration options that were
  * changed since the last save.
+ *
+ * @param cfg configuration to inspect
  * @return GNUNET_NO if clean, GNUNET_YES if dirty, GNUNET_SYSERR on error (i.e. last save failed)
  */
 int GNUNET_CONFIGURATION_is_dirty (const struct GNUNET_CONFIGURATION_Handle *cfg);
@@ -133,6 +144,11 @@ void GNUNET_CONFIGURATION_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg
 
 /**
  * Get a configuration value that should be a number.
+ *
+ * @param cfg configuration to inspect
+ * @param section section of interest
+ * @param option option of interest
+ * @param number where to store the numeric value of the option
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int GNUNET_CONFIGURATION_get_value_number (const struct GNUNET_CONFIGURATION_Handle
@@ -143,6 +159,9 @@ int GNUNET_CONFIGURATION_get_value_number (const struct GNUNET_CONFIGURATION_Han
 /**
  * Get a configuration value that should be a relative time.
  *
+ * @param cfg configuration to inspect
+ * @param section section of interest
+ * @param option option of interest
  * @param time set to the time value stored in the configuration
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
@@ -153,6 +172,10 @@ int GNUNET_CONFIGURATION_get_value_time (const struct GNUNET_CONFIGURATION_Handl
 
 /**
  * Test if we have a value for a particular option
+ *
+ * @param cfg configuration to inspect
+ * @param section section of interest
+ * @param option option of interest
  * @return GNUNET_YES if so, GNUNET_NO if not.
  */
 int GNUNET_CONFIGURATION_have_value (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -160,6 +183,10 @@ int GNUNET_CONFIGURATION_have_value (const struct GNUNET_CONFIGURATION_Handle *c
 
 /**
  * Get a configuration value that should be a string.
+ *
+ * @param cfg configuration to inspect
+ * @param section section of interest
+ * @param option option of interest
  * @param value will be set to a freshly allocated configuration
  *        value, or NULL if option is not specified
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
@@ -172,6 +199,9 @@ int GNUNET_CONFIGURATION_get_value_string (const struct GNUNET_CONFIGURATION_Han
  * Get a configuration value that should be the name of a file
  * or directory.
  *
+ * @param cfg configuration to inspect
+ * @param section section of interest
+ * @param option option of interest
  * @param value will be set to a freshly allocated configuration
  *        value, or NULL if option is not specified
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
@@ -185,6 +215,11 @@ int GNUNET_CONFIGURATION_get_value_filename (const struct
 /**
  * Iterate over the set of filenames stored in a configuration value.
  *
+ * @param cfg configuration to inspect
+ * @param section section of interest
+ * @param option option of interest
+ * @param cb function to call on each filename
+ * @param cb_cls closure for cb
  * @return number of filenames iterated over, -1 on error
  */
 int GNUNET_CONFIGURATION_iterate_value_filenames (const struct
@@ -193,12 +228,15 @@ int GNUNET_CONFIGURATION_iterate_value_filenames (const struct
                                                   const char *section,
                                                   const char *option,
                                                   GNUNET_FileNameCallback
-                                                  cb, void *cls);
+                                                  cb, void *cb_cls);
 
 /**
  * Get a configuration value that should be in a set of
  * predefined strings
  *
+ * @param cfg configuration to inspect
+ * @param section section of interest
+ * @param option option of interest
  * @param choices NULL-terminated list of legal values
  * @param value will be set to an entry in the legal list,
  *        or NULL if option is not specified and no default given
@@ -214,6 +252,9 @@ int GNUNET_CONFIGURATION_get_value_choice (const struct GNUNET_CONFIGURATION_Han
  * Get a configuration value that should be in a set of
  * "YES" or "NO".
  *
+ * @param cfg configuration to inspect
+ * @param section section of interest
+ * @param option option of interest
  * @return GNUNET_YES, GNUNET_NO or if option has no valid value, GNUNET_SYSERR
  */
 int GNUNET_CONFIGURATION_get_value_yesno (const struct GNUNET_CONFIGURATION_Handle
@@ -224,7 +265,8 @@ int GNUNET_CONFIGURATION_get_value_yesno (const struct GNUNET_CONFIGURATION_Hand
  * Expand an expression of the form "$FOO/BAR" to "DIRECTORY/BAR"
  * where either in the "PATHS" section or the environtment
  * "FOO" is set to "DIRECTORY".
-
+ *
+ * @param cfg configuration to use for path expansion
  * @param old string to $-expand (will be freed!)
  * @return $-expanded string
  */
@@ -233,6 +275,11 @@ char *GNUNET_CONFIGURATION_expand_dollar (const struct GNUNET_CONFIGURATION_Hand
 
 /**
  * Set a configuration value that should be a number.
+ *
+ * @param cfg configuration to update
+ * @param section section of interest
+ * @param option option of interest
+ * @param number value to set
  */
 void
 GNUNET_CONFIGURATION_set_value_number (struct GNUNET_CONFIGURATION_Handle
@@ -244,7 +291,11 @@ GNUNET_CONFIGURATION_set_value_number (struct GNUNET_CONFIGURATION_Handle
 
 /**
  * Set a configuration value that should be a string.
- * @param value
+ *
+ * @param cfg configuration to update
+ * @param section section of interest
+ * @param option option of interest
+ * @param value value to set
  */
 void
 GNUNET_CONFIGURATION_set_value_string (struct GNUNET_CONFIGURATION_Handle
@@ -256,6 +307,9 @@ GNUNET_CONFIGURATION_set_value_string (struct GNUNET_CONFIGURATION_Handle
  * Remove a filename from a configuration value that
  * represents a list of filenames
  *
+ * @param cfg configuration to update
+ * @param section section of interest
+ * @param option option of interest
  * @param value filename to remove
  * @return GNUNET_OK on success,
  *         GNUNET_SYSERR if the filename is not in the list
@@ -271,6 +325,9 @@ int GNUNET_CONFIGURATION_remove_value_filename (struct
  * Append a filename to a configuration value that
  * represents a list of filenames
  *
+ * @param cfg configuration to update
+ * @param section section of interest
+ * @param option option of interest
  * @param value filename to append
  * @return GNUNET_OK on success,
  *         GNUNET_SYSERR if the filename already in the list

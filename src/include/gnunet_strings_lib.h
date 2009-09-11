@@ -116,13 +116,18 @@ unsigned int GNUNET_STRINGS_buffer_tokenize (const char *buffer,
 /**
  * "man ctime_r", except for GNUnet time; also, unlike ctime, the
  * return value does not include the newline character.
+ *
+ * @param t the absolute time to convert
+ * @return timestamp in human-readable form
  */
 char *GNUNET_STRINGS_absolute_time_to_string (struct GNUNET_TIME_Absolute t);
 
 
 /**
  * Give relative time in human-readable fancy format.
+ *
  * @param delta time in milli seconds
+ * @return string in human-readable form
  */
 char *GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative
                                               delta);

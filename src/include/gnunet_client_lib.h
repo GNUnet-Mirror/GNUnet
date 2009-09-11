@@ -85,7 +85,6 @@ typedef void (*GNUNET_CLIENT_MessageHandler) (void *cls,
 /**
  * Read from the service.
  *
- * @param sched scheduler to use
  * @param sock the service
  * @param handler function to call with the message
  * @param cls closure for handler
@@ -147,7 +146,6 @@ GNUNET_CLIENT_transmit_and_get_response (struct GNUNET_CLIENT_Connection *sock,
  * Request that the service should shutdown.
  * Afterwards, the connection should be disconnected.
  *
- * @param sched scheduler to use
  * @param sock the socket connected to the service
  */
 void GNUNET_CLIENT_service_shutdown (struct GNUNET_CLIENT_Connection *sock);
