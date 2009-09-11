@@ -40,8 +40,7 @@ Urgent items (before announcing ng.gnunet.org):
     + query
     + response
   - implement FS service
-    + datastore request queueing mechanism
-    + CS-functions (search/download, index, get_indexed, unindex)
+    + CS-functions (query BF, on-demand encoding, indexed-list serialization/deserialization)
     + P2P-functions (query, response)
   - implement testcases 
     + URI API
@@ -56,7 +55,6 @@ Urgent items (before announcing ng.gnunet.org):
 * new webpage
   - prevent?
   - migrate Mantis!?
-  - Doxygen generation
   - run peer => have a 0.9.x hostlist
   - improve basic documentation (configure, dependencies, what works, etc.)
   - write minimal welcome/introduction to 0.9.x-development/webpage/status
