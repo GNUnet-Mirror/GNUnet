@@ -91,7 +91,6 @@ testDirectory (unsigned int i)
   meta = GNUNET_CONTAINER_meta_data_create ();
   GNUNET_CONTAINER_meta_data_insert (meta, EXTRACTOR_TITLE, "A title");
   GNUNET_CONTAINER_meta_data_insert (meta, EXTRACTOR_AUTHOR, "An author");
-  db = GNUNET_FS_directory_builder_create (meta);
   for (p = 0; p < i; p++)
     {
       mds[p] = GNUNET_CONTAINER_meta_data_create ();
@@ -120,16 +119,19 @@ testDirectory (unsigned int i)
           GNUNET_free (uris);
           ABORT ();             /* error in testcase */
         }
-      GNUNET_FS_directory_builder_add (db, uris[p], mds[p], NULL);
     }
   start = GNUNET_TIME_absolute_get ();
+  db = GNUNET_FS_directory_builder_create (meta);
+  for (p = 0; p < i; p++)
+    GNUNET_FS_directory_builder_add (db, uris[p], mds[p], NULL);
   GNUNET_FS_directory_builder_finish (db,
 				      &dlen,
 				      (void**) &data);
   s = GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start));
   fprintf (stdout,
-	   "Creating directory with %u entires took %s\n",
+	   "Creating directory with %u entires and total size %llu took %s\n",
 	   i,
+	   (unsigned long long) dlen,
 	   s);
   GNUNET_free (s);
   if (i < 1000)
@@ -167,7 +169,7 @@ main (int argc, char *argv[])
 		    "WARNING",
 #endif
 		    NULL);
-  for (i = 17; i < 10000; i *= 2)
+  for (i = 17; i < 4000; i *= 2)
     failureCount += testDirectory (i);    
   fprintf (stderr, "\n");
 

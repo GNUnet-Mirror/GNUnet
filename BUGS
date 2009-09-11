@@ -4,7 +4,6 @@ sane end-user should care about this codebase yet anyway.
 
 
 * UTIL:
-  - crypto_hash: use libgcrypt (supports SHA-512 since 2003)
   - container_bloomfilter: improve efficiency (see FIXME)
   - no tests for BIO
   - Windows: use events instead of pipes to signal select()s [Nils]

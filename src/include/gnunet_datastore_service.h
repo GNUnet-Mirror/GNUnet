@@ -231,7 +231,7 @@ typedef void (*GNUNET_DATASTORE_Iterator) (void *cls,
 void
 GNUNET_DATASTORE_get (struct GNUNET_DATASTORE_Handle *h,
                       const GNUNET_HashCode * key,
-                      uint32_t type,
+		      uint32_t type,
                       GNUNET_DATASTORE_Iterator iter, void *iter_cls,
 		      struct GNUNET_TIME_Relative timeout);
 
