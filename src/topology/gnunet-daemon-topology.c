@@ -894,7 +894,8 @@ static unsigned int
 hello_advertising (void *cls,
 		   const struct GNUNET_PeerIdentity *
 		   receiver,
-		   void *position, unsigned int padding)
+		   void *position, 
+		   xsize_t padding)
 {
   struct PeerList *pl;
   struct HelloList *pos;
