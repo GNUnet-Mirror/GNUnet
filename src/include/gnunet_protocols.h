@@ -420,6 +420,18 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_FS_CONTENT 137
 
+/**
+ * P2P request for content (one FS to another).
+ */
+#define GNUNET_MESSAGE_TYPE_FS_GET 138
+
+
+/**
+ * P2P response with content or active
+ * migration of content.
+ */
+#define GNUNET_MESSAGE_TYPE_FS_PUT 139
+
 /*
   TODO:
   - DV

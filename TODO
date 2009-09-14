@@ -12,36 +12,14 @@ away), in order in which they will likely be done:
 * MySQL / Postgres plugins (datastore, datacache)
 * UPNP
 
-
 Urgent items (before announcing ng.gnunet.org):
-* TESTING (needed for DV, DHT, Topology)
-  - implement library for local testing
-    + modify configuration to allow controlling
-      connections for non-local starts
-    + CORE service does not start with valid peer ID (all zeros)
-      -- testcase fails!
-    + consider changing API for peer-group termination
-      to call continuation when done
-    + testbed creation with topology (needs working F2F topology) [Nate]
-    + testbed with churn [Nate]
-  - implement testcases for library
-    + get test for basic peer start to work!
-    + test basic peer connect
-    + test group start
-    + test basic peer re-configure [Nate]
-    + test topology creation [Nate]
-    + test churn generation [Nate]
-* TOPOLOGY:
-  - implement testcases (needs TESTING)
-* HOSTLIST:
-  - implement testcases
 * FS (basic anonymous FS only)
-  - design network structs (P2P)
-    + query
-    + response
+  - need way to determine network load (up/down)
+  - need *fast* way to check/update trust in peers
+    (async peerinfo would not be right)
   - implement FS service
-    + CS-functions (query BF, on-demand encoding, indexed-list serialization/deserialization)
-    + P2P-functions (query, response)
+    + P2P-functions (query, response, peer-disconnect)
+    + CS/P2P-functions (initiate P2P, handle P2P->CS)
   - implement testcases 
     + URI API
     + getopt API
@@ -52,6 +30,18 @@ Urgent items (before announcing ng.gnunet.org):
       ~ search
       ~ unindex
     + directory API
+* TESTING (needed for DV, DHT, Topology)
+  - implement library for local testing
+    + modify configuration to allow controlling connections for non-local starts
+    + CORE service does not start with valid peer ID (all zeros) -- testcase fails!
+    + consider changing API for peer-group termination to call continuation when done
+  - implement testcases for library
+    + get test for basic peer start to work!
+    + test basic peer connect
+    + test group start
+* TEST:
+  - topology (needs TESTING)
+  - hostlist (maybe easier with TESTING?)
 * new webpage
   - prevent?
   - migrate Mantis!?
@@ -64,9 +54,8 @@ Urgent items (before announcing ng.gnunet.org):
 0.9.0pre0:
 * Module features to implement:
   - advanced FS API parts
-    + namespaces
-      ~ fundamental namespace API
-    + search: SBlocks, KSBlocks, probes
+    + namespaces: fundamental namespace API
+    + search: SBlocks, KSBlocks, probes, notify FS-service of known results
     + collection
     + location URIs (publish, search, download)
     + persistence support (publish, unindex, search, download)
@@ -79,6 +68,8 @@ Urgent items (before announcing ng.gnunet.org):
     + gnunet-download (many options)
     + gnunet-directory (man page, options)
     + gnunet-pseudonym (all of it)
+    + gnunet-service-fs (remove failing on-demand blocks)
+    + datastore: do active migration support here?
   - implement adv. FS testcases 
     + insert: sblocks, loc uris
     + download: loc uris
@@ -98,8 +89,13 @@ Urgent items (before announcing ng.gnunet.org):
     + default generation
     + need to settle basic design; do we want to keep guile?
   - testing (RC-pre0)
+    + testbed creation with topology (needs working F2F topology) [Nate]
+    + testbed with churn [Nate]
     + implement library for distributed testing [Nate]
     + implement testcases for distributed testing [Nate]
+    + test basic peer re-configure [Nate]
+    + test topology creation [Nate]
+    + test churn generation [Nate]
 
 0.9.0pre1:
 * Module features to implement:

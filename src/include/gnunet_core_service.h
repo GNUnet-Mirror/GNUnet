@@ -77,7 +77,8 @@ typedef unsigned int
   (*GNUNET_CORE_BufferFillCallback) (void *cls,
                                      const struct GNUNET_PeerIdentity *
                                      receiver,
-                                     void *position, unsigned int padding);
+                                     void *position, 
+				     size_t padding);
 
 
 /**

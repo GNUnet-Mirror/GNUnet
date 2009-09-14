@@ -88,7 +88,7 @@ int GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h,
  * @param maxLen maximum allowed length for the string
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int GNUNET_BIO_read_string (struct GNUNET_BIO_ReadHandle *h, 
+int GNUNET_BIO_read_string (struct GNUNET_BIO_ReadHandle *h,
 			    const char *what,
 			    char **result,
 			    size_t maxLen);

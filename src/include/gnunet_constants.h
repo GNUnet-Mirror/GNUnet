@@ -63,6 +63,17 @@ extern "C"
 #define GNUNET_CONSTANTS_SERVICE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 10)
 
 
+/**
+ * Until which load do we consider the peer overly idle
+ * (which means that we would like to use more resources).<p>
+ *
+ * Note that we use 70 to leave some room for applications
+ * to consume resources "idly" (i.e. up to 85%) and then
+ * still have some room for "paid for" resource consumption.
+ */
+#define GNUNET_CONSTANTS_IDLE_LOAD_THRESHOLD 70
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

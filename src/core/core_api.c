@@ -550,8 +550,8 @@ main_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                             GNUNET_TIME_relative_ntoh (cim->latency),
                             (int) ntohl (cim->reserved_amount),
                             cim->preference);
-      /* done, clean up! */
-      GNUNET_CORE_notify_transmit_ready_cancel (h->submitted);
+      /* done, clean up! */      
+      GNUNET_CORE_notify_transmit_ready_cancel (h->submitted); // HUH?
       trigger_next_request (h);
       break;
     case GNUNET_MESSAGE_TYPE_CORE_SOLICIT_TRAFFIC:

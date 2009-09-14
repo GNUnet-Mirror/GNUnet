@@ -26,6 +26,7 @@
 #ifndef FS_H
 #define FS_H
 
+#include "gnunet_constants.h"
 #include "gnunet_datastore_service.h"
 #include "gnunet_fs_service.h"
 
@@ -60,6 +61,63 @@
  * as far as the scheduler is concerned.
  */
 #define HASHING_BLOCKSIZE (1024 * 1024)
+
+/**
+ * Number of bits we set per entry in the bloomfilter.
+ * Do not change!
+ */
+#define BLOOMFILTER_K 16
+
+/**
+ * By how much (in ms) do we decrement the TTL
+ * at each hop?
+ */
+#define TTL_DECREMENT 5000
+
+/**
+ * How long are we willing to wait for the datastore to be ready to
+ * process a request for a query without priority?
+ */
+#define BASIC_DATASTORE_REQUEST_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+
+
+/**
+ * How long are we willing to wait for the core to be ready to
+ * transmit a reply to the target peer (if we can not transmit
+ * until then, we will discard the reply).
+ */
+#define ACCEPTABLE_REPLY_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
+
+
+/**
+ * Bandwidth value of an (effectively) 0-priority query.
+ */
+#define QUERY_BANDWIDTH_VALUE 0.001
+
+/**
+ * Bandwidth value of a 0-priority content (must be
+ * fairly high compared to query since content is
+ * typically significantly larger -- and more valueable
+ * since it can take many queries to get one piece of
+ * content).
+ */
+#define CONTENT_BANDWIDTH_VALUE 0.8
+
+/**
+ * By which amount do we decrement the TTL for simple forwarding /
+ * indirection of the query; in milli-seconds.  Set somewhat in
+ * accordance to your network latency (above the time it'll take you
+ * to send a packet and get a reply).
+ */
+#define TTL_DECREMENT 5000
+
+/**
+ * Until which load do we consider the peer idle and do not
+ * charge at all? (should be larger than GNUNET_IDLE_LOAD_THRESHOLD used
+ * by the rest of the code)!
+ */
+#define IDLE_LOAD_THRESHOLD ((100 + GNUNET_CONSTANTS_IDLE_LOAD_THRESHOLD) / 2)
+
 
 
 /**
@@ -1209,7 +1267,12 @@ struct SearchMessage
    * SBLOCKS (aka query).
    */
   GNUNET_HashCode query;
-  
+
+  /* this is followed by the hash codes of already-known
+     results (which should hence be excluded from what
+     the service returns); naturally, this only applies
+     to queries that can have multiple results, such as
+     those for KBLOCKS (KSK) and SBLOCKS (SKS) */
 };
 
 
@@ -1243,6 +1306,118 @@ struct ContentMessage
 
 };
 
+/**
+ * Only the (mandatory) query is included.
+ */
+#define GET_MESSAGE_BIT_QUERY_ONLY 0
+
+/**
+ * The peer identity of a peer waiting for the
+ * reply is included (used if the response
+ * should be transmitted to someone other than
+ * the sender of the GET).
+ */
+#define GET_MESSAGE_BIT_RETURN_TO 1
+
+/**
+ * The hash of the public key of the target
+ * namespace is included (for SKS queries).
+ */
+#define GET_MESSAGE_BIT_SKS_NAMESPACE 2
+
+/**
+ * The peer identity of a peer that had claimed to have the content
+ * previously is included (can be used if responder-anonymity is not
+ * desired; note that the precursor presumably lacked a direct
+ * connection to the specified peer; still, the receiver is in no way
+ * required to limit forwarding only to the specified peer, it should
+ * only prefer it somewhat if possible).
+ */
+#define GET_MESSAGE_BIT_TRANSMIT_TO 4
+
+
+/**
+ * Message sent between peers asking for FS-content.
+ */
+struct GetMessage
+{
+
+  /**
+   * Message type will be GNUNET_MESSAGE_TYPE_FS_GET.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Type of the query (block type).
+   */
+  uint32_t type GNUNET_PACKED;
+
+  /**
+   * How important is this request (network byte order)
+   */
+  uint32_t priority GNUNET_PACKED;
+
+  /**
+   * Relative time to live in GNUNET_CRON_MILLISECONDS (network byte order)
+   */
+  int32_t ttl GNUNET_PACKED;
+
+  /**
+   * The content hash should be mutated using this value
+   * before checking against the bloomfilter (used to
+   * get many different filters for the same hash codes).
+   * The number should be in big-endian format when used
+   * for mingling.
+   */
+  int32_t filter_mutator GNUNET_PACKED;
+
+  /**
+   * Which of the optional hash codes are present at the end of the
+   * message?  See GET_MESSAGE_BIT_xx constants.  For each bit that is
+   * set, an additional GNUNET_HashCode with the respective content
+   * (in order of the bits) will be appended to the end of the GET
+   * message.
+   */
+  uint32_t hash_bitmap GNUNET_PACKED;
+
+  /**
+   * Hashcodes of the file(s) we're looking for.
+   * Details depend on the query type.
+   */
+  GNUNET_HashCode query GNUNET_PACKED;
+
+  /* this is followed by hash codes
+     as specified in the  "hash_bitmap";
+     after that, an optional bloomfilter
+     (with bits set for replies that should
+     be suppressed) can be present */
+};
+
+
+/**
+ * Message sent between peers providing FS-content.
+ */
+struct PutMessage
+{
+
+  /**
+   * Message type will be GNUNET_MESSAGE_TYPE_FS_PUT.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Type of the block (in big endian).
+   */
+  uint32_t type GNUNET_PACKED;
+
+  /**
+   * When does this result expire? 
+   */
+  struct GNUNET_TIME_RelativeNBO expiration;
+
+  /* this is followed by the actual encrypted content */
+
+};
 
 
 #endif
