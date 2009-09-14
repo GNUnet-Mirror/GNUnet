@@ -895,7 +895,7 @@ hello_advertising (void *cls,
 		   const struct GNUNET_PeerIdentity *
 		   receiver,
 		   void *position, 
-		   xsize_t padding)
+		   size_t padding)
 {
   struct PeerList *pl;
   struct HelloList *pos;
