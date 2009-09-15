@@ -42,6 +42,7 @@
 #include "platform.h"
 #include "gnunet_core_service.h"
 #include "gnunet_datastore_service.h"
+#include "gnunet_peer_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_signatures.h"
 #include "gnunet_util_lib.h"
@@ -341,12 +342,112 @@ struct ProcessGetContext
 
 
 /**
- * Information we keep for each pending
- * request.
+ * Information we keep for each pending request.  We should try to
+ * keep this struct as small as possible since its memory consumption
+ * is key to how many requests we can have pending at once.
  */
 struct PendingRequest
 {
-  // FIXME
+
+  /**
+   * ID of a client making a request, NULL if this entry is for a
+   * peer.
+   */
+  struct GNUNET_SERVER_Client *client;
+
+  /**
+   * If this is a namespace query, pointer to the hash of the public
+   * key of the namespace; otherwise NULL.
+   */
+  GNUNET_HashCode *namespace;
+
+  /**
+   * Bloomfilter we use to filter out replies that we don't care about
+   * (anymore).  NULL as long as we are interested in all replies.
+   */
+  struct GNUNET_CONTAINER_BloomFilter *bf;
+
+  /**
+   * Hash code of all replies that we have seen so far (only valid
+   * if client is not NULL since we only track replies like this for
+   * our own clients).
+   */
+  GNUNET_HashCode *replies_seen;
+
+  /**
+   * When did we first see this request (form this peer), or, if our
+   * client is initiating, when did we last initiate a search?
+   */
+  struct GNUNET_TIME_Absolute start_time;
+
+  /**
+   * The query that this request is for.
+   */
+  GNUNET_HashCode query;
+
+  /**
+   * (Interned) Peer identifier (only valid if "client" is NULL)
+   * that identifies a peer that gave us this request.
+   */
+  GNUNET_PEER_Id source_pid;
+
+  /**
+   * (Interned) Peer identifier that identifies a preferred target
+   * for requests.
+   */
+  GNUNET_PEER_Id target_pid;
+
+  /**
+   * (Interned) Peer identifiers of peers that have already
+   * received our query for this content.
+   */
+  GNUNET_PEER_Id *used_pids;
+
+  /**
+   * How many entries in "used_pids" are actually valid?
+   */
+  unsigned int used_pids_off;
+
+  /**
+   * How long is the "used_pids" array?
+   */
+  unsigned int used_pids_size;
+
+  /**
+   * How many entries in "replies_seen" are actually valid?
+   */
+  unsigned int replies_seen_off;
+
+  /**
+   * How long is the "replies_seen" array?
+   */
+  unsigned int replies_seen_size;
+  
+  /**
+   * Priority with which this request was made.  If one of our clients
+   * made the request, then this is the current priority that we are
+   * using when initiating the request.  This value is used when
+   * we decide to reward other peers with trust for providing a reply.
+   */
+  uint32_t priority;
+
+  /**
+   * Priority points left for us to spend when forwarding this request
+   * to other peers.
+   */
+  uint32_t remaining_priority;
+
+  /**
+   * TTL with which we saw this request (or, if we initiated, TTL that
+   * we used for the request).
+   */
+  int32_t ttl;
+  
+  /**
+   * Type of the content that this request is for.
+   */
+  uint32_t type;
+
 };
 
 
@@ -1080,6 +1181,7 @@ handle_on_demand_block (const GNUNET_HashCode * key,
   off = GNUNET_ntohll (odb->offset);
   fn = (const char*) GNUNET_CONTAINER_multihashmap_get (ifm,
 							&odb->file_id);
+  fh = NULL;
   if ( (NULL == fn) ||
        (NULL == (fh = GNUNET_DISK_file_open (fn, 
 					     GNUNET_DISK_OPEN_READ))) ||

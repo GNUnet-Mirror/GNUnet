@@ -753,6 +753,7 @@ src/hello/Makefile
 src/include/Makefile
 src/include/gnunet_directories.h
 src/hostlist/Makefile
+src/peer/Makefile
 src/peerinfo/Makefile
 src/resolver/Makefile
 src/statistics/Makefile

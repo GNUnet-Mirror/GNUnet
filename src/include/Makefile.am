@@ -30,6 +30,7 @@ gnunetinclude_HEADERS = \
   gnunet_getopt_lib.h \
   gnunet_hello_lib.h \
   gnunet_network_lib.h \
+  gnunet_peer_lib.h \
   gnunet_peerinfo_service.h \
   gnunet_program_lib.h \
   gnunet_protocols.h \

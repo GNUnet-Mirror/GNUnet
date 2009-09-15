@@ -13,6 +13,7 @@ SUBDIRS = \
   arm \
   fragmentation \
   hello \
+  peer \
   peerinfo \
   resolver \
   statistics \
