@@ -19,7 +19,7 @@
  */
 
 /**
- * @file peer/peer.c
+ * @file util/peer.c
  * @brief peer-ID table that assigns integer IDs to peer-IDs to save memory
  * @author Christian Grothoff
  */

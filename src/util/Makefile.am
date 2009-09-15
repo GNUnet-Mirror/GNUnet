@@ -41,6 +41,7 @@ libgnunetutil_la_SOURCES = \
   os_load.c \
   os_network.c \
   os_priority.c \
+  peer.c \
   plugin.c \
   program.c \
   pseudonym.c \
