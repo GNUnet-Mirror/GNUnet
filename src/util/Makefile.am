@@ -24,6 +24,7 @@ libgnunetutil_la_SOURCES = \
   configuration.c \
   connection.c \
   container_bloomfilter.c \
+  container_heap.c \
   container_meta_data.c \
   container_multihashmap.c \
   crypto_aes.c \

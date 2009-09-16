@@ -24,7 +24,7 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - tracking of PendingRequests (and defining that struct...)
+ * - tracking of PendingRequests
  * - setup P2P search on CS request
  * - setup P2P search on P2P GET
  * - forward replies based on tracked requests
@@ -342,6 +342,13 @@ struct ProcessGetContext
 
 
 /**
+ * All requests from a client are 
+ * kept in a doubly-linked list.
+ */
+struct ClientRequestList;
+
+
+/**
  * Information we keep for each pending request.  We should try to
  * keep this struct as small as possible since its memory consumption
  * is key to how many requests we can have pending at once.
@@ -354,6 +361,13 @@ struct PendingRequest
    * peer.
    */
   struct GNUNET_SERVER_Client *client;
+
+  /**
+   * If this request was made by a client,
+   * this is our entry in the client request
+   * list; otherwise NULL.
+   */
+  struct ClientRequestList *crl_entry;
 
   /**
    * If this is a namespace query, pointer to the hash of the public
@@ -452,6 +466,60 @@ struct PendingRequest
 
 
 /**
+ * All requests from a client are 
+ * kept in a doubly-linked list.
+ */
+struct ClientRequestList
+{
+  /**
+   * This is a doubly-linked list.
+   */
+  struct ClientRequestList *next;
+
+  /**
+   * This is a doubly-linked list.
+   */ 
+  struct ClientRequestList *prev;
+
+  /**
+   * A request from this client.
+   */
+  struct PendingRequest *req;
+
+};
+
+
+/**
+ * Linked list of all clients that we are 
+ * currently processing requests for.
+ */
+struct ClientList
+{
+
+  /**
+   * This is a linked list.
+   */
+  struct ClientList *next;
+
+  /**
+   * What client is this entry for?
+   */
+  struct GNUNET_SERVER_Client* client;
+
+  /**
+   * Head of the DLL of requests from this client.
+   */
+  struct ClientRequestList *head;
+
+  /**
+   * Tail of the DLL of requests from this client.
+   */
+  struct ClientRequestList *tail;
+
+};
+
+
+/**
  * Closure for "process_reply" function.
  */
 struct ProcessReplyClosure
@@ -505,8 +573,7 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
- * Handle to the core service (NULL until we've
- * connected to it).
+ * Handle to the core service (NULL until we've connected to it).
  */
 struct GNUNET_CORE_Handle *core;
 
@@ -542,6 +609,27 @@ static struct IndexInfo *indexed_files;
  * list and do not need to be freed.
  */
 static struct GNUNET_CONTAINER_MultiHashMap *ifm;
+
+/**
+ * Map of query hash codes to requests.
+ */
+static struct GNUNET_CONTAINER_MultiHashMap *requests_by_query;
+
+/**
+ * Map of peer IDs to requests (for those requests coming
+ * from other peers).
+ */
+static struct GNUNET_CONTAINER_MultiHashMap *requests_by_peer;
+
+/**
+ * Linked list of all of our clients and their requests.
+ */
+static struct ClientList *clients;
+
+/**
+ * Heap with the request that will expire next at the top.
+ */
+static struct GNUNET_CONTAINER_Heap *requests_by_expiration;
 
 
 /**
@@ -1468,6 +1556,35 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
 
 
 /**
+ * Clean up the memory used by the PendingRequest
+ * structure (except for the client or peer list
+ * that the request may be part of).
+ *
+ * @param pr request to clean up
+ */
+static void
+destroy_pending_request (struct PendingRequest *pr)
+{
+  GNUNET_CONTAINER_multihashmap_remove (requests_by_query,
+					&pr->query,
+					pr);
+  // FIXME: not sure how this can work (efficiently)
+  // also, what does the return value mean?
+  GNUNET_CONTAINER_heap_remove_node (requests_by_expiration,
+				     pr);
+  if (NULL != pr->bf)
+    GNUNET_CONTAINER_bloomfilter_free (pr->bf);
+  GNUNET_PEER_change_rc (pr->source_pid, -1);
+  GNUNET_PEER_change_rc (pr->target_pid, -1);
+  GNUNET_PEER_decrement_rcs (pr->used_pids, pr->used_pids_off);
+  GNUNET_free_non_null (pr->used_pids);
+  GNUNET_free_non_null (pr->replies_seen);
+  GNUNET_free_non_null (pr->namespace);
+  GNUNET_free (pr);
+}
+
+
+/**
  * A client disconnected.  Remove all of its pending queries.
  *
  * @param cls closure, NULL
@@ -1479,14 +1596,38 @@ handle_client_disconnect (void *cls,
 			  * client)
 {
   struct LocalGetContext *lgc;
+  struct ClientList *cpos;
+  struct ClientList *cprev;
+  struct ClientRequestList *rl;
 
   lgc = lgc_head;
   while ( (NULL != lgc) &&
 	  (lgc->client != client) )
     lgc = lgc->next;
-  if (lgc == NULL)
-    return; /* not one of our clients */
-  local_get_context_free (lgc);
+  if (lgc != NULL)
+    local_get_context_free (lgc);
+  cprev = NULL;
+  cpos = clients;
+  while ( (NULL != cpos) &&
+	  (clients->client != client) )
+    {
+      cprev = cpos;
+      cpos = cpos->next;
+    }
+  if (cpos != NULL)
+    {
+      if (cprev == NULL)
+	clients = cpos->next;
+      else
+	cprev->next = cpos->next;
+      while (NULL != (rl = cpos->head))
+	{
+	  cpos->head = rl->next;
+	  destroy_pending_request (rl->req);
+	  GNUNET_free (rl);
+	}
+      GNUNET_free (cpos);
+    }
 }
 
 
@@ -1521,6 +1662,30 @@ shutdown_task (void *cls,
 
 
 /**
+ * Free (each) request made by the peer.
+ *
+ * @param cls closure, points to peer that the request belongs to
+ * @param key current key code
+ * @param value value in the hash map
+ * @return GNUNET_YES (we should continue to iterate)
+ */
+static int
+destroy_request (void *cls,
+		 const GNUNET_HashCode * key,
+		 void *value)
+{
+  const struct GNUNET_PeerIdentity * peer = cls;
+  struct PendingRequest *pr = value;
+  
+  GNUNET_CONTAINER_multihashmap_remove (requests_by_peer,
+					&peer->hashPubKey,
+					pr);
+  destroy_pending_request (pr);
+  return GNUNET_YES;
+}
+
+
+/**
  * Method called whenever a peer disconnects.
  *
  * @param cls closure, not used
@@ -1531,9 +1696,10 @@ peer_disconnect_handler (void *cls,
 			 const struct
 			 GNUNET_PeerIdentity * peer)
 {
-  // FIXME: remove all pending requests from this
-  // peer from our memory
-  // (iterate over request_map)
+  GNUNET_CONTAINER_multihashmap_get_multiple (requests_by_peer,
+					      &peer->hashPubKey,
+					      &destroy_request,
+					      (void*) peer);
 }
 
 
@@ -1565,6 +1731,7 @@ forward_get_request (void *cls,
  * the target buffer "buf".  "buf" will be
  * NULL and "size" zero if the socket was closed for
  * writing in the meantime.  In that case, only
+
  * free the message
  *
  * @param cls closure, pointer to the message

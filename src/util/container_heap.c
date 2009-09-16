@@ -26,8 +26,7 @@
 
 #include "platform.h"
 #include "gnunet_protocols.h"
-#include "gnunet_util.h"
-#include "gnunet_util_containers.h"
+#include "gnunet_util_lib.h"
 
 /*
  * Struct that is stored in hashmap, pointers to
@@ -65,7 +64,7 @@ struct GNUNET_CONTAINER_Heap
 
   unsigned int max_size;
 
-  enum type;
+  enum GNUNET_CONTAINER_HeapOrder type;
 
   struct GNUNET_CONTAINER_heap_node *root;
 
@@ -96,7 +95,7 @@ printTree (struct GNUNET_CONTAINER_Heap *root)
 }
 
 struct GNUNET_CONTAINER_Heap *
-GNUNET_CONTAINER_heap_create (enum type)
+GNUNET_CONTAINER_heap_create (enum GNUNET_CONTAINER_HeapOrder type)
 {
   struct GNUNET_CONTAINER_Heap *heap;
   heap = malloc (sizeof (struct GNUNET_CONTAINER_Heap));
@@ -491,7 +490,7 @@ internal_iterator (struct GNUNET_CONTAINER_Heap *root,
     return;
   internal_iterator (root, node->left_child, iterator, cls);
   internal_iterator (root, node->right_child, iterator, cls);
-  iterator (node->element, node->cost, root, cls);
+  iterator (cls, node->element, node->cost);
 }
 
 int
@@ -519,7 +518,7 @@ GNUNET_CONTAINER_heap_walk_get_next (struct GNUNET_CONTAINER_Heap *root)
 
   element = root->traversal_pos->element;
 
-  choice = GNUNET_random_u32 (GNUNET_RANDOM_QUALITY_WEAK, 2);
+  choice = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 2);
 
   switch (choice)
     {
