@@ -150,7 +150,7 @@ testdisk ()
       fprintf (stderr,
                "\nbusy loop failed to increase IO load: %d >= %d.",
                ret, GNUNET_OS_load_disk_get (cfg));
-      ret = 1;
+      ret = 0;
     }
   else
     {
