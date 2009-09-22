@@ -72,18 +72,31 @@ struct GNUNET_CONTAINER_Heap
 
 };
 
+
+/**
+ * Returns element stored at root of tree, doesn't effect anything
+ *
+ * @param heap the heap
+ * @return NULL if the heap is empty
+ */
+void *GNUNET_CONTAINER_heap_peek (struct GNUNET_CONTAINER_Heap *heap)
+{
+  return heap->root;
+}
+
+
 void
 internal_print (struct GNUNET_CONTAINER_heap_node *root)
 {
-  fprintf (stdout, "%d\n", root->cost);
+  fprintf (stdout, "%llu\n", (unsigned long long) root->cost);
   if (root->left_child != NULL)
     {
-      fprintf (stdout, "LEFT of %d\n", root->cost);
+      fprintf (stdout, "LEFT of %llu\n", (unsigned long long) root->cost);
       internal_print (root->left_child);
     }
   if (root->right_child != NULL)
     {
-      fprintf (stdout, "RIGHT of %d\n", root->cost);
+      fprintf (stdout, "RIGHT of %llu\n", (unsigned long long) root->cost);
       internal_print (root->right_child);
     }
 }

@@ -689,7 +689,8 @@ void *GNUNET_CONTAINER_multihashmap_get_random (const struct
 /**
  * Cost by which elements in a heap can be ordered.
  */
-typedef unsigned int GNUNET_CONTAINER_HeapCost;
+typedef uint64_t GNUNET_CONTAINER_HeapCost;
+
 
 /*
  * Heap type, either max or min.  Hopefully makes the
@@ -708,6 +709,7 @@ enum GNUNET_CONTAINER_HeapOrder
   GNUNET_CONTAINER_HEAP_ORDER_MIN
 };
 
+
 /**
  * Handle to a Heap.
  */
@@ -723,12 +725,14 @@ struct GNUNET_CONTAINER_Heap *GNUNET_CONTAINER_heap_create (enum
                                                             GNUNET_CONTAINER_HeapOrder
                                                             type);
 
+
 /**
  * Free a heap
  *
  * @param h heap to free.
  */
 void GNUNET_CONTAINER_heap_destroy (struct GNUNET_CONTAINER_Heap *h);
+
 
 /**
  * Function called on elements of a heap.
@@ -742,6 +746,8 @@ void GNUNET_CONTAINER_heap_destroy (struct GNUNET_CONTAINER_Heap *h);
 typedef int (*GNUNET_CONTAINER_HeapIterator) (void *cls,
                                               void *element,
                                               GNUNET_CONTAINER_HeapCost cost);
+
+
 /**
  * Iterate over all entries in the map.
  *
@@ -756,6 +762,7 @@ int GNUNET_CONTAINER_heap_iterate (struct GNUNET_CONTAINER_Heap *heap,
                                    void *iterator_cls);
 
 
+
 /**
  * Inserts a new item into the heap, item is always neighbor now.
  * @param heap the heap
@@ -763,6 +770,7 @@ int GNUNET_CONTAINER_heap_iterate (struct GNUNET_CONTAINER_Heap *heap,
 int
 GNUNET_CONTAINER_heap_insert (struct GNUNET_CONTAINER_Heap *heap,
                               void *element, GNUNET_CONTAINER_HeapCost cost);
+
 
 /**
  * Removes root of the tree, is remove max if a max heap and remove min
@@ -773,6 +781,7 @@ GNUNET_CONTAINER_heap_insert (struct GNUNET_CONTAINER_Heap *heap,
  */
 void *GNUNET_CONTAINER_heap_remove_root (struct GNUNET_CONTAINER_Heap *heap);
 
+
 /**
  * Returns element stored at root of tree, doesn't effect anything
  *
@@ -780,6 +789,7 @@ void *GNUNET_CONTAINER_heap_remove_root (struct GNUNET_CONTAINER_Heap *heap);
  * @return NULL if the heap is empty
  */
 void *GNUNET_CONTAINER_heap_peek (struct GNUNET_CONTAINER_Heap *heap);
+
 
 /**
  * Removes any node from the tree based on the neighbor given, does
@@ -789,6 +799,7 @@ void *GNUNET_CONTAINER_heap_peek (struct GNUNET_CONTAINER_Heap *heap);
  */
 void *GNUNET_CONTAINER_heap_remove_node (struct GNUNET_CONTAINER_Heap *heap,
                                          void *element);
+
 
 /**
  * Updates the cost of any node in the tree
@@ -803,6 +814,7 @@ GNUNET_CONTAINER_heap_update_cost (struct GNUNET_CONTAINER_Heap *heap,
                                    void *element,
                                    GNUNET_CONTAINER_HeapCost new_cost);
 
+
 /**
  * Random walk of the tree, returns the data stored at the next random node
  * in the walk.  Calls callee with the data, or NULL if the tree is empty
@@ -814,6 +826,7 @@ GNUNET_CONTAINER_heap_update_cost (struct GNUNET_CONTAINER_Heap *heap,
 void *GNUNET_CONTAINER_heap_walk_get_next (struct GNUNET_CONTAINER_Heap
                                            *heap);
 
+
 /**
  * Returns the current size of the heap
  *
@@ -822,6 +835,7 @@ void *GNUNET_CONTAINER_heap_walk_get_next (struct GNUNET_CONTAINER_Heap
  */
 unsigned int
 GNUNET_CONTAINER_heap_get_size (struct GNUNET_CONTAINER_Heap *heap);
+
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
