@@ -24,20 +24,18 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - validation of KBLOCKS (almost done)
- * - validation of SBLOCKS
- * - validation of KSBLOCKS
  * - actually DO P2P search upon P2P/CS requests (pass appropriate handler to core
  *   and work through request list there; also update ttl/priority for our client's requests)
- * - randomly delay processing for improved anonymity (can wait)
- * - content migration (put in local DS) (can wait)
- * - check that we decrement PIDs always where necessary (can wait)
- * - handle some special cases when forwarding replies based on tracked requests (can wait)
- * - tracking of success correlations for hot-path routing (can wait)
  * - possible major issue: we may queue "gazillions" of (K|S)Blocks for the
  *   core to transmit to another peer; need to make sure this is bounded overall...
+ * - randomly delay processing for improved anonymity (can wait)
+ * - content migration (put in local DS) (can wait)
+ * - handle some special cases when forwarding replies based on tracked requests (can wait)
+ * - tracking of success correlations for hot-path routing (can wait)
  * - various load-based actions (can wait)
+ * - validation of KSBLOCKS (can wait)
  * - remove on-demand blocks if they keep failing (can wait)
+ * - check that we decrement PIDs always where necessary (can wait)
  */
 #include "platform.h"
 #include "gnunet_core_service.h"
@@ -588,6 +586,12 @@ struct ProcessReplyClosure
    * Size of data.
    */
   size_t size;
+
+  /**
+   * Namespace that this reply belongs to
+   * (if it is of type SBLOCK).
+   */
+  GNUNET_HashCode namespace;
 
   /**
    * Type of the block.
@@ -2445,28 +2449,11 @@ process_reply (void *cls,
     {
     case GNUNET_DATASTORE_BLOCKTYPE_DBLOCK:
     case GNUNET_DATASTORE_BLOCKTYPE_IBLOCK:
-      if (0 != memcmp (&chash,
-		       key,
-		       sizeof (GNUNET_HashCode)))
-	{
-	  GNUNET_break_op (0);
-	  return GNUNET_YES;
-	}
-      break;
-    case GNUNET_DATASTORE_BLOCKTYPE_KBLOCK:
-      // FIXME: validate KBlock!
-      if (pr->bf != NULL) 
-	{
-	  mingle_hash (&chash, pr->mingle, &mhash);
-	  if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (pr->bf,
-							       &mhash))
-	    return GNUNET_YES; /* duplicate */
-	  GNUNET_CONTAINER_bloomfilter_add (pr->bf,
-					    &mhash);
-	}      
       break;
     case GNUNET_DATASTORE_BLOCKTYPE_SBLOCK:
-      // FIXME: validate SBlock!
+      /* FIXME: does prq->namespace match our expectations? */
+      /* then: fall-through??? */
+    case GNUNET_DATASTORE_BLOCKTYPE_KBLOCK:
       if (pr->bf != NULL) 
 	{
 	  mingle_hash (&chash, pr->mingle, &mhash);
@@ -2478,7 +2465,7 @@ process_reply (void *cls,
 	}
       break;
     case GNUNET_DATASTORE_BLOCKTYPE_SKBLOCK:
-      // FIXME: validate SKBlock!
+      // FIXME: any checks against duplicates for SKBlocks?
       break;
     }
   prio = pr->priority;
@@ -2564,6 +2551,94 @@ process_reply (void *cls,
 
 
 /**
+ * Check if the given KBlock is well-formed.
+ *
+ * @param kb the kblock data (or at least "dsize" bytes claiming to be one)
+ * @param dsize size of "kb" in bytes; check for < sizeof(struct KBlock)!
+ * @param query where to store the query that this block answers
+ * @return GNUNET_OK if this is actually a well-formed KBlock
+ */
+static int
+check_kblock (const struct KBlock *kb,
+	      size_t dsize,
+	      GNUNET_HashCode *query)
+{
+  if (dsize < sizeof (struct KBlock))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+  if (dsize - sizeof (struct KBlock) !=
+      ntohs (kb->purpose.size) 
+      - sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) 
+      - sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) ) 
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_FS_KBLOCK,
+				&kb->purpose,
+				&kb->signature,
+				&kb->keyspace)) 
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+  if (query != NULL)
+    GNUNET_CRYPTO_hash (&kb->keyspace,
+			sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+			query);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Check if the given SBlock is well-formed.
+ *
+ * @param sb the sblock data (or at least "dsize" bytes claiming to be one)
+ * @param dsize size of "kb" in bytes; check for < sizeof(struct SBlock)!
+ * @param query where to store the query that this block answers
+ * @param namespace where to store the namespace that this block belongs to
+ * @return GNUNET_OK if this is actually a well-formed SBlock
+ */
+static int
+check_sblock (const struct SBlock *sb,
+	      size_t dsize,
+	      GNUNET_HashCode *query,	
+	      GNUNET_HashCode *namespace)
+{
+  if (dsize < sizeof (struct SBlock))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+  if (dsize !=
+      ntohs (sb->purpose.size) + sizeof (struct GNUNET_CRYPTO_RsaSignature))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_FS_SBLOCK,
+				&sb->purpose,
+				&sb->signature,
+				&sb->subspace)) 
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+  if (query != NULL)
+    *query = sb->identifier;
+  if (namespace != NULL)
+    GNUNET_CRYPTO_hash (&sb->subspace,
+			sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+			namespace);
+  return GNUNET_OK;
+}
+
+
+/**
  * Handle P2P "PUT" request.
  *
  * @param cls closure, always NULL
@@ -2584,7 +2659,6 @@ handle_p2p_put (void *cls,
   uint32_t type;
   struct GNUNET_TIME_Absolute expiration;
   GNUNET_HashCode query;
-  const struct KBlock *kb;
   struct ProcessReplyClosure prq;
 
   msize = ntohs (message->size);
@@ -2606,31 +2680,20 @@ handle_p2p_put (void *cls,
       GNUNET_CRYPTO_hash (&put[1], dsize, &query);
       break;
     case GNUNET_DATASTORE_BLOCKTYPE_KBLOCK:
-      if (dsize < sizeof (struct KBlock))
-	{
-	  GNUNET_break_op (0);
-	  return GNUNET_SYSERR;
-	}
-      kb = (const struct KBlock*) &put[1];
-      // FIXME -- validation code below broken...
-      if ( (dsize != ntohs (kb->purpose.size) + 42) ||
-	   (GNUNET_OK !=
-	    GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_FS_KBLOCK,
-				      &kb->purpose,
-				      &kb->signature,
-				      &kb->keyspace)) )
-	{
-	  GNUNET_break_op (0);
-	  return GNUNET_SYSERR;
-	}
-      GNUNET_CRYPTO_hash (&kb->keyspace,
-			  sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-			  &query);
+      if (GNUNET_OK !=
+	  check_kblock ((const struct KBlock*) &put[1],
+			dsize,
+			&query))
+	return GNUNET_SYSERR;
       break;
     case GNUNET_DATASTORE_BLOCKTYPE_SBLOCK:
-      // FIXME -- validate SBLOCK!
-      GNUNET_break (0);
-      return GNUNET_OK;
+      if (GNUNET_OK !=
+	  check_sblock ((const struct SBlock*) &put[1],
+			dsize,
+			&query,
+			&prq.namespace))
+	return GNUNET_SYSERR;
+      break;
     case GNUNET_DATASTORE_BLOCKTYPE_SKBLOCK:
       // FIXME -- validate SKBLOCK!
       GNUNET_break (0);
