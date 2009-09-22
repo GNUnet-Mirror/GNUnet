@@ -124,12 +124,8 @@ GNUNET_CONTAINER_heap_create (enum GNUNET_CONTAINER_HeapOrder type)
 void
 GNUNET_CONTAINER_heap_destroy (struct GNUNET_CONTAINER_Heap *heap)
 {
-  void *unused;
   while (heap->size > 0)
-    {
-      unused = GNUNET_CONTAINER_heap_remove_root (heap);
-    }
-
+      GNUNET_CONTAINER_heap_remove_root (heap);
   GNUNET_free (heap);
   return;
 }
