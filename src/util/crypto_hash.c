@@ -563,7 +563,7 @@ getValue__ (unsigned char a)
  *
  * @param block the GNUNET_CRYPTO_hash code
  * @param result where to store the encoding (struct GNUNET_CRYPTO_HashAsciiEncoded can be
- *  safely cast to char*, a '\0' termination is set).
+ *  safely cast to char*, a '\\0' termination is set).
  */
 void
 GNUNET_CRYPTO_hash_to_enc (const GNUNET_HashCode * block,

@@ -229,7 +229,7 @@ parse_ipv4_specification (const char *routeList)
  * notation.  The netmask must be given in CIDR notation (/16) or
  * can be omitted to specify a single host.
  * <p>
- * @param routeList a string specifying the forbidden networks
+ * @param routeListX a string specifying the forbidden networks
  * @return the converted list, NULL if the synatx is flawed
  */
 static struct IPv6NetworkSet *
@@ -350,7 +350,7 @@ parse_ipv6_specification (const char *routeListX)
  * Check if the given IP address is in the list of IP addresses.
  *
  * @param list a list of networks
- * @param ip the IP to check (in network byte order)
+ * @param add the IP to check (in network byte order)
  * @return GNUNET_NO if the IP is not in the list, GNUNET_YES if it it is
  */
 static int
@@ -1422,7 +1422,7 @@ GNUNET_SERVICE_get_server (struct GNUNET_SERVICE_Context *ctx)
 /**
  * Stop a service that was started with "GNUNET_SERVICE_start".
  *
- * @param ctx the service context returned from the start function
+ * @param sctx the service context returned from the start function
  */
 void
 GNUNET_SERVICE_stop (struct GNUNET_SERVICE_Context *sctx)

@@ -84,6 +84,9 @@ program_main (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Compare function for 'qsort' to sort command-line arguments by the
  * short option.
+ *
+ * @param a1 first command line option
+ * @param a2 second command line option
  */
 static int
 cmd_sorter (const void *a1, const void *a2)
@@ -109,6 +112,7 @@ cmd_sorter (const void *a1, const void *a2)
  * @param argc number of command line arguments
  * @param argv command line arguments
  * @param binaryName our expected name
+ * @param binaryHelp help text for the program
  * @param options command line options
  * @param task main function to run
  * @param task_cls closure for task

@@ -806,7 +806,7 @@ GNUNET_CRYPTO_rsa_decrypt (const struct GNUNET_CRYPTO_RsaPrivateKey *hostkey,
  *
  * @param hostkey private key to use for the signing
  * @param purpose what to sign (size, purpose)
- * @param result where to write the signature
+ * @param sig where to write the signature
  * @return GNUNET_SYSERR on error, GNUNET_OK on success
  */
 int

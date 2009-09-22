@@ -82,8 +82,9 @@ unindex_reader (void *cls,
  * Fill in all of the generic fields for 
  * an unindex event.
  *
- * @param pc structure to fill in
- * @param sc overall unindex context
+ * @param pi structure to fill in
+ * @param uc overall unindex context
+ * @param offset where we are in the file (for progress)
  */
 static void
 make_unindex_status (struct GNUNET_FS_ProgressInfo *pi,

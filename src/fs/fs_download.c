@@ -128,7 +128,7 @@ compute_dblock_offset (uint64_t offset,
  * Fill in all of the generic fields for 
  * a download event.
  *
- * @param pc structure to fill in
+ * @param pi structure to fill in
  * @param dc overall download context
  */
 static void
@@ -229,7 +229,8 @@ try_reconnect (struct GNUNET_FS_DownloadContext *dc);
  * the specified node.
  *
  * @param fsize overall file size
- * @param off offset of the node
+ * @param totaldepth depth of the entire tree
+ * @param offset offset of the node
  * @param depth depth of the node
  * @return number of bytes stored in this node
  */
@@ -269,9 +270,9 @@ calculate_block_size (uint64_t fsize,
 
 
 /**
- * Process a search result.
+ * Process a download result.
  *
- * @param sc our search context
+ * @param dc our download context
  * @param type type of the result
  * @param data the (encrypted) response
  * @param size size of data

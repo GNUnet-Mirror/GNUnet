@@ -880,7 +880,7 @@ sock_receive (void *cls,
  * Wrapper to cancel receiving from a socket.
  * 
  * @param cls handle to the GNUNET_CONNECTION_Handle to cancel
- * @param tc task ID that was returned by GNUNET_CONNECTION_receive
+ * @param ti task ID that was returned by GNUNET_CONNECTION_receive
  */
 static void
 sock_receive_cancel (void *cls, GNUNET_SCHEDULER_TaskIdentifier ti)
@@ -1123,7 +1123,6 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
  * Notify us when the server has enough space to transmit
  * a message of the given size to the given client.
  *
- * @param server the server to use
  * @param client client to transmit message to
  * @param size requested amount of buffer space
  * @param timeout after how long should we give up (and call

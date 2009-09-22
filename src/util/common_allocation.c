@@ -73,8 +73,8 @@ GNUNET_xmalloc_unchecked_ (size_t size, const char *filename, int linenumber)
  * Reallocate memory. Checks the return value, aborts if no more
  * memory is available.
  *
- * @ptr the pointer to reallocate
- * @param size how many bytes of memory to allocate
+ * @param ptr the pointer to reallocate
+ * @param n how many bytes of memory to allocate
  * @param filename where in the code was the call to GNUNET_realloc
  * @param linenumber where in the code was the call to GNUNET_realloc
  * @return pointer to size bytes of memory

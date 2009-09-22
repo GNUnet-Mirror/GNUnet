@@ -30,20 +30,49 @@
 #include "gnunet_disk_lib.h"
 #include "gnunet_pseudonym_lib.h"
 
+/** 
+ * FIXME
+ */
 #define PS_METADATA_DIR DIR_SEPARATOR_STR "data" DIR_SEPARATOR_STR "pseudonyms/metadata" DIR_SEPARATOR_STR
+
+/** 
+ * FIXME
+ */
 #define PS_NAMES_DIR    DIR_SEPARATOR_STR "data" DIR_SEPARATOR_STR "pseudonyms/names"    DIR_SEPARATOR_STR
 
+
+/** 
+ * FIXME
+ */
 struct DiscoveryCallback
 {
+
+  /** 
+   * FIXME
+   */
   struct DiscoveryCallback *next;
+
+  /** 
+   * FIXME
+   */
   GNUNET_PSEUDONYM_Iterator callback;
+
+  /** 
+   * FIXME
+   */
   void *closure;
 };
 
+
+/** 
+ * FIXME
+ */
 static struct DiscoveryCallback *head;
 
 /**
  * Internal notification about new tracked URI.
+ * 
+ * FIXME
  */
 static void
 internal_notify (const GNUNET_HashCode * id,
@@ -62,6 +91,8 @@ internal_notify (const GNUNET_HashCode * id,
 /**
  * Register callback to be invoked whenever we discover
  * a new pseudonym.
+ * 
+ * FIXME
  */
 int
 GNUNET_PSEUDONYM_discovery_callback_register (const struct
@@ -83,6 +114,8 @@ GNUNET_PSEUDONYM_discovery_callback_register (const struct
 
 /**
  * Unregister pseudonym discovery callback.
+ * 
+ * FIXME
  */
 int
 GNUNET_PSEUDONYM_discovery_callback_unregister (GNUNET_PSEUDONYM_Iterator
@@ -113,6 +146,8 @@ GNUNET_PSEUDONYM_discovery_callback_unregister (GNUNET_PSEUDONYM_Iterator
 /**
  * Get the filename (or directory name) for the given
  * pseudonym identifier and directory prefix.
+ * 
+ * FIXME
  */
 static char *
 get_data_filename (const struct GNUNET_CONFIGURATION_Handle
@@ -130,6 +165,10 @@ get_data_filename (const struct GNUNET_CONFIGURATION_Handle
                                         NULL);
 }
 
+
+/**
+ * FIXME
+ */
 static void
 write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
                       const GNUNET_HashCode * nsid,
@@ -178,6 +217,10 @@ write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_free_non_null (GNUNET_PSEUDONYM_id_to_name (cfg, nsid));
 }
 
+
+/**
+ * FIXME
+ */
 static int
 read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
            const GNUNET_HashCode * nsid,
@@ -270,6 +313,8 @@ read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Return the unique, human readable name for the given namespace.
  *
+ * @param cfg configuration 
+ * @param nsid cryptographic ID of the namespace
  * @return NULL on failure (should never happen)
  */
 char *
@@ -353,6 +398,9 @@ GNUNET_PSEUDONYM_id_to_name (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Get the namespace ID belonging to the given namespace name.
  *
+ * @param cfg configuration to use
+ * @param ns_uname human-readable name for the namespace
+ * @param nsid set to namespace ID based on 'ns_uname'
  * @return GNUNET_OK on success
  */
 int
@@ -403,14 +451,33 @@ GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 
-
+/**
+ * FIXME
+ */
 struct ListPseudonymClosure
 {
+
+  /**
+   * FIXME
+   */
   GNUNET_PSEUDONYM_Iterator iterator;
+  
+  /**
+   * FIXME
+   */
   void *closure;
+    
+  /**
+   * FIXME
+   */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 };
 
+
+
+/**
+ * FIXME
+ */
 static int
 list_pseudonym_helper (void *cls, const char *fullname)
 {
@@ -439,8 +506,14 @@ list_pseudonym_helper (void *cls, const char *fullname)
   return ret;
 }
 
+
 /**
  * List all available pseudonyms.
+ *
+ * @param cfg overall configuration 
+ * @param iterator function to call for each pseudonym
+ * @param closure closure for iterator
+ * @return number of pseudonyms found
  */
 int
 GNUNET_PSEUDONYM_list_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -464,6 +537,7 @@ GNUNET_PSEUDONYM_list_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Change the ranking of a pseudonym.
  *
+ * @param cfg overall configuration
  * @param nsid id of the pseudonym
  * @param delta by how much should the rating be
  *  changed?
@@ -494,6 +568,10 @@ GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 /**
  * Insert metadata into existing MD record (passed as cls).
+ *
+ * @param cls metadata to add to
+ * @param type type of entry to insert
+ * @param data value of entry to insert
  */
 static int
 merge_meta_helper (void *cls,
@@ -512,7 +590,9 @@ merge_meta_helper (void *cls,
  * For all pseudonym advertisements that we discover
  * FSUI should automatically call this function.
  *
+ * @param cfg overall configuration
  * @param id the pseudonym identifier
+ * @param metadata for the pseudonym
  */
 void
 GNUNET_PSEUDONYM_add (const struct GNUNET_CONFIGURATION_Handle *cfg,

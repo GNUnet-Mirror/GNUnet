@@ -470,7 +470,7 @@ c2v (unsigned char a)
 /**
  * Convert string back to binary data.
  *
- * @param input '\0'-terminated string
+ * @param input '\\0'-terminated string
  * @param data where to write binary data
  * @param size how much data should be converted
  * @return number of characters processed from input,
@@ -808,7 +808,7 @@ GNUNET_FS_uri_loc_get_uri (const struct GNUNET_FS_Uri *uri)
 /**
  * Construct a location URI (this peer will be used for the location).
  *
- * @param baseURI content offered by the sender
+ * @param baseUri content offered by the sender
  * @param cfg configuration information (used to find our hostkey)
  * @param expiration_time how long will the content be offered?
  * @return the location URI, NULL on error

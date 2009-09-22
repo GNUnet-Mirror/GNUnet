@@ -29,6 +29,10 @@ static int ret;
 
 /**
  * Print a meta data entry.
+ *
+ * @param cls closure (unused)
+ * @param type type of the keyword
+ * @param data value of the keyword
  */
 static int
 item_printer (void *cls,
@@ -49,7 +53,7 @@ item_printer (void *cls,
  * @param cls closure (not used)
  * @param filename name of the file in the directory
  * @param uri URI of the file
- * @param metadata metadata for the file; metadata for
+ * @param meta metadata for the file; metadata for
  *        the directory if everything else is NULL/zero
  * @param length length of the available data for the file
  *           (of type size_t since data must certainly fit

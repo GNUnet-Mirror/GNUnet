@@ -46,7 +46,7 @@
  * Fill in all of the generic fields for 
  * a search event.
  *
- * @param pc structure to fill in
+ * @param pi structure to fill in
  * @param sc overall search context
  */
 static void

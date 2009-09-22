@@ -337,7 +337,9 @@ GNUNET_STRINGS_filename_expand (const char *fil)
 
 /**
  * Give relative time in human-readable fancy format.
- * @param delta time in milli seconds
+ *
+ * @param del time in milli seconds
+ * @return time as human-readable string
  */
 char *
 GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative del)
@@ -374,6 +376,9 @@ GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative del)
 /**
  * "man ctime_r", except for GNUnet time; also, unlike ctime, the
  * return value does not include the newline character.
+ *
+ * @param t time to convert
+ * @return absolute time in human-readable format
  */
 char *
 GNUNET_STRINGS_absolute_time_to_string (struct GNUNET_TIME_Absolute t)

@@ -301,7 +301,6 @@ receive_task (void *scls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Read from the service.
  *
- * @param sched scheduler to use
  * @param sock the service
  * @param handler function to call with the message
  * @param cls closure for handler
@@ -356,7 +355,6 @@ write_shutdown (void *cls, size_t size, void *buf)
  * Request that the service should shutdown.
  * Afterwards, the connection should be disconnected.
  *
- * @param sched scheduler to use
  * @param sock the socket connected to the service
  */
 void
@@ -499,7 +497,7 @@ GNUNET_CLIENT_service_test (struct GNUNET_SCHEDULER_Handle *sched,
  * are free in the transmission buffer.  May call the notify
  * method immediately if enough space is available.
  *
- * @param client connection to the service
+ * @param sock connection to the service
  * @param size number of bytes to send
  * @param timeout after how long should we give up (and call
  *        notify with buf NULL and size 0)?

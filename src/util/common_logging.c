@@ -149,6 +149,8 @@ get_type (const char *log)
  *
  * @param comp default component to use
  * @param loglevel what types of messages should be logged
+ * @param logfile which file to write log messages to (can be NULL)
+ * @return GNUNET_OK on success
  */
 int
 GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)

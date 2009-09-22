@@ -154,6 +154,9 @@ struct GNUNET_SCHEDULER_Handle
 
 /**
  * Check that the given priority is legal (and return it).
+ *
+ * @param p priority value to check
+ * @return p on success, 0 on error
  */
 static enum GNUNET_SCHEDULER_Priority
 check_priority (enum GNUNET_SCHEDULER_Priority p)
@@ -171,6 +174,8 @@ check_priority (enum GNUNET_SCHEDULER_Priority p)
  * future), but only if the return value is "GNUNET_NO" (and
  * the "lowest_pending_id" check failed).
  *
+ * @param sched the scheduler
+ * @param id which task are we checking for
  * @return GNUNET_YES if so, GNUNET_NO if not
  */
 static int
@@ -212,10 +217,17 @@ is_pending (struct GNUNET_SCHEDULER_Handle *sched,
 
 /**
  * Update all sets and timeout for select.
+ *
+ * @param sched the scheduler
+ * @param rs read-set, set to all FDs we would like to read (updated)
+ * @param ws write-set, set to all FDs we would like to write (updated)
+ * @param timeout next timeout (updated)
  */
 static void
 update_sets (struct GNUNET_SCHEDULER_Handle *sched,
-             struct GNUNET_NETWORK_FDSet * rs, struct GNUNET_NETWORK_FDSet * ws, struct GNUNET_TIME_Relative *timeout)
+             struct GNUNET_NETWORK_FDSet * rs, 
+	     struct GNUNET_NETWORK_FDSet * ws, 
+	     struct GNUNET_TIME_Relative *timeout)
 {
   struct Task *pos;
 
@@ -251,11 +263,13 @@ update_sets (struct GNUNET_SCHEDULER_Handle *sched,
  * If so, update the want set (set all FDs that are ready).  If not,
  * return GNUNET_NO.
  *
- * @param maxfd highest FD that needs to be checked.
+ * @param ready set that is ready
+ * @param want set that we want to be ready
  * @return GNUNET_YES if there was some overlap
  */
 static int
-set_overlaps (const struct GNUNET_NETWORK_FDSet * ready, struct GNUNET_NETWORK_FDSet * want)
+set_overlaps (const struct GNUNET_NETWORK_FDSet * ready, 
+	      struct GNUNET_NETWORK_FDSet * want)
 {
   if (GNUNET_NETWORK_fdset_overlap (ready, want))
     {
@@ -272,13 +286,19 @@ set_overlaps (const struct GNUNET_NETWORK_FDSet * ready, struct GNUNET_NETWORK_F
  * Check if the given task is eligible to run now.
  * Also set the reason why it is eligible.
  *
+ * @param sched the scheduler
+ * @param task task to check if it is ready
+ * @param now the current time
+ * @param rs set of FDs ready for reading
+ * @param ws set of FDs ready for writing
  * @return GNUNET_YES if we can run it, GNUNET_NO if not.
  */
 static int
 is_ready (struct GNUNET_SCHEDULER_Handle *sched,
           struct Task *task,
           struct GNUNET_TIME_Absolute now,
-          const struct GNUNET_NETWORK_FDSet * rs, const struct GNUNET_NETWORK_FDSet * ws)
+          const struct GNUNET_NETWORK_FDSet *rs,
+	  const struct GNUNET_NETWORK_FDSet * ws)
 {
   if ((GNUNET_NO == task->run_on_shutdown) && (GNUNET_YES == sched->shutdown))
     return GNUNET_NO;
@@ -307,9 +327,13 @@ is_ready (struct GNUNET_SCHEDULER_Handle *sched,
 
 /**
  * Put a task that is ready for execution into the ready queue.
+ *
+ * @param handle the scheduler
+ * @param task task ready for execution
  */
 static void
-queue_ready_task (struct GNUNET_SCHEDULER_Handle *handle, struct Task *task)
+queue_ready_task (struct GNUNET_SCHEDULER_Handle *handle, 
+		  struct Task *task)
 {
   task->next = handle->ready[check_priority (task->priority)];
   handle->ready[check_priority (task->priority)] = task;
@@ -320,10 +344,15 @@ queue_ready_task (struct GNUNET_SCHEDULER_Handle *handle, struct Task *task)
 /**
  * Check which tasks are ready and move them
  * to the respective ready queue.
+ *
+ * @param handle the scheduler
+ * @param rs FDs ready for reading
+ * @param ws FDs ready for writing
  */
 static void
 check_ready (struct GNUNET_SCHEDULER_Handle *handle,
-             const struct GNUNET_NETWORK_FDSet * rs, const struct GNUNET_NETWORK_FDSet * ws)
+             const struct GNUNET_NETWORK_FDSet * rs,
+	     const struct GNUNET_NETWORK_FDSet * ws)
 {
   struct Task *pos;
   struct Task *prev;
@@ -353,7 +382,9 @@ check_ready (struct GNUNET_SCHEDULER_Handle *handle,
 
 
 /**
- * Destroy a task
+ * Destroy a task (release associated resources)
+ *
+ * @param t task to destroy
  */
 static void destroy_task (struct Task *t)
 {
@@ -371,6 +402,8 @@ static void destroy_task (struct Task *t)
  * "URGENT" tasks or until we have at least one "pending" task (which
  * may become ready, hence we should select on it).  Naturally, if
  * there are no more ready tasks, we also return.
+ *
+ * @param sched the scheduler
  */
 static void
 run_ready (struct GNUNET_SCHEDULER_Handle *sched)
@@ -513,6 +546,8 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *cls)
  * stop a scheduling thread when created with the
  * "GNUNET_SCHEDULER_init_thread" function or from within the signal
  * handler for signals causing shutdowns.
+ *
+ * @param sched the scheduler
  */
 void
 GNUNET_SCHEDULER_shutdown (struct GNUNET_SCHEDULER_Handle *sched)
@@ -528,6 +563,7 @@ GNUNET_SCHEDULER_shutdown (struct GNUNET_SCHEDULER_Handle *sched)
  * tasks ready to run).
  *
  * @param sched scheduler to query
+ * @param p priority level to look at
  * @return number of tasks pending right now
  */
 unsigned int
@@ -558,6 +594,7 @@ GNUNET_SCHEDULER_get_load (struct GNUNET_SCHEDULER_Handle *sched,
  *
  * @param sched scheduler to use
  * @param task id of the task to cancel
+ * @return original closure of the task
  */
 void *
 GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Handle *sched,
@@ -616,8 +653,9 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Handle *sched,
  * and the reason code can be specified.
  *
  * @param sched scheduler to use
+ * @param run_on_shutdown should this task be run if we are shutting down?
  * @param main main function of the task
- * @param cls closure of task
+ * @param cls closure for 'main'
  * @param reason reason for task invocation
  */
 void
@@ -653,7 +691,7 @@ GNUNET_SCHEDULER_add_continuation (struct GNUNET_SCHEDULER_Handle *sched,
  *        are satisfied).  Use  GNUNET_SCHEDULER_NO_TASK to not have any dependency
  *        on completion of other tasks.
  * @param main main function of the task
- * @param cls closure of task
+ * @param cls closure for 'main'
  * @return unique task identifier for the job
  *         only valid until "main" is started!
  */
