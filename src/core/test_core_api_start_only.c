@@ -86,7 +86,8 @@ disconnect_notify (void *cls,
 static unsigned int
 bfc_callback (void *cls,
               const struct GNUNET_PeerIdentity *receiver,
-              void *position, unsigned int padding)
+              void *position, 
+	      size_t padding)
 {
   return 0;
 }
