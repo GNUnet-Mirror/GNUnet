@@ -360,8 +360,7 @@ struct PendingReply
 
 
 /**
- * All requests from a client are 
- * kept in a doubly-linked list.
+ * All requests from a client are kept in a doubly-linked list.
  */
 struct ClientRequestList;
 
@@ -514,8 +513,7 @@ struct PendingRequest
 
 
 /**
- * All requests from a client are 
- * kept in a doubly-linked list.
+ * All requests from a client are kept in a doubly-linked list.
  */
 struct ClientRequestList
 {
@@ -688,7 +686,9 @@ static struct ClientList *clients;
 static struct GNUNET_CONTAINER_Heap *requests_by_expiration;
 
 /**
- * FIXME: set from configuration.
+ * Maximum number of requests (from other peers) that we're
+ * willing to have pending at any given point in time.
+ * FIXME: set from configuration (and 32 is a tiny value for testing only).
  */
 static uint64_t max_pending_requests = 32;
 

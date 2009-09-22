@@ -14,12 +14,10 @@ away), in order in which they will likely be done:
 
 Urgent items (before announcing ng.gnunet.org):
 * FS (basic anonymous FS only)
-  - need way to determine network load (up/down)
-  - need *fast* way to check/update trust in peers
-    (async peerinfo would not be right)
   - implement FS service
-    + P2P-functions (query, response, peer-disconnect)
-    + CS/P2P-functions (initiate P2P, handle P2P->CS)
+    + how to send queries (soliciting is not there in core; do we
+      also want to do pushing sometimes?)
+    + need to bound queueing of replies for other peers    
   - implement testcases 
     + URI API
     + getopt API
@@ -30,6 +28,11 @@ Urgent items (before announcing ng.gnunet.org):
       ~ search
       ~ unindex
     + directory API
+* CORE:
+  - soliciting traffic for clients that registered for it is not implemented
+    (in the service, client API supports GNUNET_MESSAGE_TYPE_CORE_SOLICIT_TRAFFIC
+     but never receives any such messages); how to avoid busy-waiting here
+     is a good question (solicit => nothing, when to solicit again???)
 * TESTING (needed for DV, DHT, Topology)
   - implement library for local testing
     + modify configuration to allow controlling connections for non-local starts
@@ -52,6 +55,11 @@ Urgent items (before announcing ng.gnunet.org):
 
 
 0.9.0pre0:
+* UTIL:
+  - heap: "remove_node" can hardly be O(1) given the API, but it should be (!)
+  - load: need way to determine network load (up/down)
+  - trust: need *fast* way to check/update trust in peers
+           (async peerinfo would not be right)
 * Module features to implement:
   - advanced FS API parts
     + namespaces: fundamental namespace API
@@ -68,7 +76,7 @@ Urgent items (before announcing ng.gnunet.org):
     + gnunet-download (many options)
     + gnunet-directory (man page, options)
     + gnunet-pseudonym (all of it)
-    + gnunet-service-fs (remove failing on-demand blocks)
+    + gnunet-service-fs (remove failing on-demand blocks, many other nitpicks/features/optimizations)
     + datastore: do active migration support here?
   - implement adv. FS testcases 
     + insert: sblocks, loc uris
