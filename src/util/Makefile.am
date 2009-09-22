@@ -84,6 +84,7 @@ check_PROGRAMS = \
  test_container_bloomfilter \
  test_container_meta_data \
  test_container_multihashmap \
+ test_container_heap \
  test_crypto_aes \
  test_crypto_aes_weak \
  test_crypto_crc \
@@ -156,6 +157,11 @@ test_container_multihashmap_SOURCES = \
  test_container_multihashmap.c
 test_container_multihashmap_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
+ 
+test_container_heap_SOURCES = \
+ test_container_heap.c
+test_container_heap_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la   
 
 test_crypto_aes_SOURCES = \
  test_crypto_aes.c

@@ -81,7 +81,10 @@ struct GNUNET_CONTAINER_Heap
  */
 void *GNUNET_CONTAINER_heap_peek (struct GNUNET_CONTAINER_Heap *heap)
 {
-  return heap->root;
+  if ((heap == NULL) || (heap->root == NULL))
+    return NULL;
+
+  return heap->root->element;
 }
 
 
@@ -135,20 +138,17 @@ find_element (struct GNUNET_CONTAINER_heap_node *node, void *element)
 {
   struct GNUNET_CONTAINER_heap_node *ret;
   ret = NULL;
-  if ((node != NULL) && (node->element == element))
-    {
-      ret = node;
-    }
+  if (node == NULL)
+    return NULL;
 
-  if ((ret == NULL) && (node->left_child != NULL))
-    {
-      ret = find_element (node->left_child, element);
-    }
+  if (node->element == element)
+    return node;
 
-  if ((ret == NULL) && (node->right_child != NULL))
-    {
-      ret = find_element (node->right_child, element);
-    }
+  if (node->left_child != NULL)
+    ret = find_element (node->left_child, element);
+
+  if (node->right_child != NULL)
+    ret = find_element (node->right_child, element);
 
   return ret;
 }
@@ -241,21 +241,6 @@ swapNodes (struct GNUNET_CONTAINER_heap_node *first,
   second->element = temp_element;
   second->cost = temp_cost;
 
-/*
- * I still worry that there is some good reason for
- * elements being location aware... but it eludes me
- * for the moment...
-  if ((root->type == GNUNET_DV_MAX_HEAP))
-    {
-      first->neighbor->max_loc = first;
-      second->neighbor->max_loc = second;
-    }
-  else if ((root->type == GNUNET_DV_MIN_HEAP))
-    {
-      first->neighbor->min_loc = first;
-      second->neighbor->min_loc = second;
-    }
-*/
   return;
 }
 
@@ -393,11 +378,6 @@ GNUNET_CONTAINER_heap_insert (struct GNUNET_CONTAINER_Heap *root,
       new_pos->element = element;
       new_pos->cost = cost;
       root->size++;
-      /*We no longer can tolerate pointers between heaps :( */
-      /*if (root->type == GNUNET_DV_MIN_HEAP)
-         new_pos->neighbor->min_loc = new_pos;
-         else if (root->type == GNUNET_DV_MAX_HEAP)
-         new_pos->neighbor->max_loc = new_pos; */
 
       percolateHeap (new_pos, root);
     }
@@ -416,11 +396,14 @@ GNUNET_CONTAINER_heap_remove_root (struct GNUNET_CONTAINER_Heap *root)
   struct GNUNET_CONTAINER_heap_node *root_node;
   struct GNUNET_CONTAINER_heap_node *last;
 
+  if ((root == NULL) || (root->size == 0) || (root->root == NULL))
+    return NULL;
+
   root_node = root->root;
   ret = root_node->element;
   last = getPos (root, root->size);
 
-  if ((root_node == last) && (root->size == 1)) 
+  if ((root_node == last) && (root->size == 1))
     {
       /* We are removing the last node in the heap! */
       root->root = NULL;
