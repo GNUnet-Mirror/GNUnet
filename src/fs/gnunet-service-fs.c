@@ -534,6 +534,10 @@ struct ClientRequestList
    */
   struct PendingRequest *req;
 
+  /**
+   * Client list with the head and tail of this DLL.
+   */
+  struct ClientList *cl;
 };
 
 
@@ -1514,6 +1518,7 @@ process_local_get_result (void *cls,
 	      clients = cl;
 	    }
 	  crl = GNUNET_malloc (sizeof (struct ClientRequestList));
+	  crl->cl = cl;
 	  GNUNET_CONTAINER_DLL_insert (cl->head, cl->tail, crl);
 	  pr = GNUNET_malloc (sizeof (struct PendingRequest));
 	  pr->client = lgc->client;
@@ -1732,9 +1737,8 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
 
 
 /**
- * Clean up the memory used by the PendingRequest
- * structure (except for the client or peer list
- * that the request may be part of).
+ * Clean up the memory used by the PendingRequest structure (except
+ * for the client or peer list that the request may be part of).
  *
  * @param pr request to clean up
  */
@@ -1742,15 +1746,25 @@ static void
 destroy_pending_request (struct PendingRequest *pr)
 {
   struct PendingReply *reply;
+  struct ClientList *cl;
 
   GNUNET_CONTAINER_multihashmap_remove (requests_by_query,
 					&pr->query,
 					pr);
   // FIXME: not sure how this can work (efficiently)
   // also, what does the return value mean?
-  if (pr->client != NULL)
-    GNUNET_CONTAINER_heap_remove_node (requests_by_expiration,
-				       pr);
+  if (pr->client == NULL)
+    {
+      GNUNET_CONTAINER_heap_remove_node (requests_by_expiration,
+					 pr);
+    }
+  else
+    {
+      cl = pr->crl_entry->cl;
+      GNUNET_CONTAINER_DLL_remove (cl->head,
+				   cl->tail,
+				   pr->crl_entry);
+    }
   if (NULL != pr->bf)
     GNUNET_CONTAINER_bloomfilter_free (pr->bf);
   if (NULL != pr->cth)
@@ -1820,6 +1834,27 @@ handle_client_disconnect (void *cls,
 
 
 /**
+ * Iterator over entries in the "requests_by_query" map
+ * that frees all the entries.
+ *
+ * @param cls closure, NULL
+ * @param key current key code (the query, unused) 
+ * @param value value in the hash map, of type "struct PendingRequest*"
+ * @return GNUNET_YES (we should continue to  iterate)
+ */
+static int 
+destroy_pending_request_cb (void *cls,
+			    const GNUNET_HashCode * key,
+			    void *value)
+{
+  struct PendingRequest *pr = value;
+
+  destroy_pending_request (pr);
+  return GNUNET_YES;
+}
+
+
+/**
  * Task run during shutdown.
  *
  * @param cls unused
@@ -1836,7 +1871,12 @@ shutdown_task (void *cls,
   GNUNET_DATASTORE_disconnect (dsh,
 			       GNUNET_NO);
   dsh = NULL;
-  // FIXME: iterate over maps to free entries!
+  GNUNET_CONTAINER_multihashmap_iterate (requests_by_query,
+					 &destroy_pending_request_cb,
+					 NULL);
+  while (clients != NULL)
+    handle_client_disconnect (NULL,
+			      clients->client);
   GNUNET_CONTAINER_multihashmap_destroy (requests_by_query);
   requests_by_query = NULL;
   GNUNET_CONTAINER_multihashmap_destroy (requests_by_peer);
