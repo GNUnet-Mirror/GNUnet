@@ -158,7 +158,7 @@ find_element (struct GNUNET_CONTAINER_heap_node *node, void *element)
   if (node->left_child != NULL)
     ret = find_element (node->left_child, element);
 
-  if (node->right_child != NULL)
+  if ((ret == NULL) && (node->right_child != NULL))
     ret = find_element (node->right_child, element);
 
   return ret;
