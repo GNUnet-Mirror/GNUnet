@@ -1488,6 +1488,8 @@ GNUNET_DISK_file_sync (const struct GNUNET_DISK_FileHandle *h)
   if (ret != GNUNET_OK)
     SetErrnoFromWinError (GetLastError ());
   return ret;
+#elif FREEBSD || OPENBSD
+  return fsync (h->fd) == -1 ? GNUNET_SYSERR : GNUNET_OK;
 #else
   return fdatasync (h->fd) == -1 ? GNUNET_SYSERR : GNUNET_OK;
 #endif
