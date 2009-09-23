@@ -87,6 +87,17 @@ void *GNUNET_CONTAINER_heap_peek (struct GNUNET_CONTAINER_Heap *heap)
   return heap->root->element;
 }
 
+int
+next_power_of_2(int v)
+{
+  v |= v >> 1;
+  v |= v >> 2;
+  v |= v >> 4;
+  v |= v >> 8;
+  v |= v >> 16;
+  v++;
+  return v;
+}
 
 void
 internal_print (struct GNUNET_CONTAINER_heap_node *root)
@@ -159,16 +170,14 @@ getNextPos (struct GNUNET_CONTAINER_Heap *root)
   struct GNUNET_CONTAINER_heap_node *ret;
   struct GNUNET_CONTAINER_heap_node *parent;
   int pos;
-  int depth;
   int i;
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_heap_node));
   pos = root->size + 1;
-  depth = (int) log2 (pos);
   ret->left_child = NULL;
   ret->right_child = NULL;
 
-  if (depth == 0)
+  if (0 == root->size)
     {
       ret->parent = NULL;
       root->root = ret;
@@ -176,9 +185,9 @@ getNextPos (struct GNUNET_CONTAINER_Heap *root)
   else
     {
       parent = root->root;
-      for (i = depth; i > 1; i--)
+      for (i = next_power_of_2(pos) >> 2; i > 1; i >>= 1)
         {
-          if (((pos / (1 << (i - 1))) % 2) == 0)
+          if (((pos / i) % 2) == 0)
             parent = parent->left_child;
           else
             parent = parent->right_child;
@@ -200,11 +209,8 @@ static struct GNUNET_CONTAINER_heap_node *
 getPos (struct GNUNET_CONTAINER_Heap *root, unsigned int pos)
 {
   struct GNUNET_CONTAINER_heap_node *ret;
-
-  int depth;
   int i;
 
-  depth = (int) log2 (pos);
   ret = NULL;
   if (pos > root->size)
     {
@@ -213,9 +219,9 @@ getPos (struct GNUNET_CONTAINER_Heap *root, unsigned int pos)
   else
     {
       ret = root->root;
-      for (i = depth; i > 0; i--)
+      for (i = next_power_of_2(pos) >> 2; i > 0; i >>= 1)
         {
-          if (((pos / (1 << (i - 1))) % 2) == 0)
+          if (((pos / i) % 2) == 0)
             ret = ret->left_child;
           else
             ret = ret->right_child;
