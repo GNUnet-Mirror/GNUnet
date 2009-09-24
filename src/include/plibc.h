@@ -379,7 +379,7 @@ int _win_access( const char *path, int mode );
 int _win_chmod(const char *filename, int pmode);
 char *realpath(const char *file_name, char *resolved_name);
 long _win_random(void);
-void _win_srandom(unsigned seed);
+void _win_srandom(unsigned int seed);
 int _win_remove(const char *path);
 int _win_rename(const char *oldname, const char *newname);
 int _win_stat(const char *path, struct stat *buffer);
@@ -572,7 +572,7 @@ size_t strnlen (const char *str, size_t maxlen);
  #define CHMOD(f, p) _win_chmod(f, p)
  #define PIPE(h) _win_pipe(h)
  #define RANDOM() _win_random()
- #define SRANDOM(s) _win_srandom()
+ #define SRANDOM(s) _win_srandom(s)
  #define REMOVE(p) _win_remove(p)
  #define RENAME(o, n) _win_rename(o, n)
  #define STAT(p, b) _win_stat(p, b)

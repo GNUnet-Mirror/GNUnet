@@ -132,5 +132,13 @@ GNUNET_CRYPTO_random_disable_entropy_gathering ()
   gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
 }
 
+/**
+ * Initializer
+ */
+void __attribute__ ((constructor))
+GNUNET_util_random_init()
+{
+  SRANDOM (time (NULL));
+}
 
 /* end of crypto_random.c */
