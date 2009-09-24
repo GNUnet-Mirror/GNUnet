@@ -186,6 +186,16 @@ GNUNET_FS_uri_loc_get_uri (const struct GNUNET_FS_Uri *uri);
 
 
 /**
+ * Obtain the expiration of the LOC URI.
+ *
+ * @param uri location URI to get the expiration from
+ * @return expiration time of the URI
+ */
+struct GNUNET_TIME_Absolute
+GNUNET_FS_uri_loc_get_expiration (const struct GNUNET_FS_Uri *uri);
+
+
+/**
  * Construct a location URI (this peer will be used for the location).
  *
  * @param baseURI content offered by the sender

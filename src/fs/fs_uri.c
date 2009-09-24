@@ -786,6 +786,21 @@ GNUNET_FS_uri_loc_get_peer_identity (const struct GNUNET_FS_Uri *uri,
 
 
 /**
+ * Obtain the expiration of the LOC URI.
+ *
+ * @param uri location URI to get the expiration from
+ * @return expiration time of the URI
+ */
+struct GNUNET_TIME_Absolute
+GNUNET_FS_uri_loc_get_expiration (const struct GNUNET_FS_Uri *uri)
+{
+  GNUNET_assert (uri->type == loc);
+  returnuri->data.loc.expirationTime; 
+}
+
+
+
+/**
  * Obtain the URI of the content itself.
  *
  * @param uri location URI to get the content URI from
