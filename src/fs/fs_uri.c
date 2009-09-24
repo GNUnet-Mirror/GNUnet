@@ -795,7 +795,7 @@ struct GNUNET_TIME_Absolute
 GNUNET_FS_uri_loc_get_expiration (const struct GNUNET_FS_Uri *uri)
 {
   GNUNET_assert (uri->type == loc);
-  returnuri->data.loc.expirationTime; 
+  return uri->data.loc.expirationTime; 
 }
 
 
