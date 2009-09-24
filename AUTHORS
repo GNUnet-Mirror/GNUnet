@@ -1,6 +1,6 @@
 Primary developers (0.9.x series):
 Christian Grothoff <christian@grothoff.org>
-Heikki Lindholm <holindho@cs.helsinki.fi>
+Heikki Lindholm <holin@iki.fi>
 Nils Durner <durner@gnunet.org>
 Milan Bouchet-Valat <nalimilan@club.fr>
 
@@ -19,7 +19,7 @@ Felix von Leitner [ diet libc snprintf for win32 ]
 Gerd Knorr <kraxel@bytesex.org>
 Glenn McGrath <bug1@iinet.net.au>
 Hendrik Pagenhardt <Hendrik.Pagenhardt@gmx.net>
-Heikki Lindholm <holindho@cs.helsinki.fi>
+Heikki Lindholm <holin@iki.fi>
 Igor Wronsky <iwronsky@users.sourceforge.net>
 Ioana Patrascu <ioanapatrascu@yahoo.com>
 <january@hushmail.com>
