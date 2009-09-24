@@ -203,6 +203,9 @@ test_validation ()
   struct sockaddr_in soaddr;
   
   memset (&soaddr, 0, sizeof(soaddr));
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  soaddr.sin_len = sizeof (soaddr);
+#endif
   soaddr.sin_family = AF_INET;
   /* Sailor: set this port to 2367 to see the
      testcase fail after 30s (because validation

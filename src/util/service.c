@@ -942,8 +942,11 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
       if (disablev6)
         {
           /* V4-only */
-          sctx->addrlen = sizeof (struct sockaddr_in6);
+          sctx->addrlen = sizeof (struct sockaddr_in);
           sctx->addr = GNUNET_malloc (sctx->addrlen);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+          ((struct sockaddr_in *) sctx->addr)->sin_len = sctx->addrlen;
+#endif
           ((struct sockaddr_in *) sctx->addr)->sin_family = AF_INET;
           ((struct sockaddr_in *) sctx->addr)->sin_port = htons (port);
           GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -956,6 +959,9 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
           /* dual stack */
           sctx->addrlen = sizeof (struct sockaddr_in6);
           sctx->addr = GNUNET_malloc (sctx->addrlen);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+          ((struct sockaddr_in6 *) sctx->addr)->sin6_len = sctx->addrlen;
+#endif
           ((struct sockaddr_in6 *) sctx->addr)->sin6_family = AF_INET6;
           ((struct sockaddr_in6 *) sctx->addr)->sin6_port = htons (port);
         }

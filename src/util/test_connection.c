@@ -57,6 +57,9 @@ open_listen_socket ()
   struct GNUNET_NETWORK_Handle *desc;
 
   memset (&sa, 0, sizeof (sa));
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  sa.sin_len = sizeof (sa);
+#endif
   sa.sin_port = htons (PORT);
   sa.sin_family = AF_INET;
   desc = GNUNET_NETWORK_socket_socket (AF_INET, SOCK_STREAM, 0);

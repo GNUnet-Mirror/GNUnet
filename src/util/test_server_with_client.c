@@ -74,6 +74,9 @@ recv_cb (void *cls,
   GNUNET_assert (addrlen == sizeof (struct sockaddr_in));
   have = addr;
   memset (&sa, 0, sizeof (sa));
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  sa.sin_len = sizeof (sa);
+#endif
   sa.sin_family = AF_INET;
   sa.sin_port = have->sin_port;
   sa.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
@@ -151,6 +154,9 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   sched = tc->sched;
   memset (&sa, 0, sizeof (sa));
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  sa.sin_len = sizeof (sa);
+#endif
   sa.sin_family = AF_INET;
   sa.sin_port = htons (PORT);
   server = GNUNET_SERVER_create (tc->sched,

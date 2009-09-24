@@ -362,6 +362,9 @@ udp_send (GNUNET_TSession * tsession,
   if ((available & VERSION_AVAILABLE_IPV4) > 0)
     {
       memset (&serverAddrv4, 0, sizeof (serverAddrv4));
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      serverAddrv4.sin_len = sizeof (serverAddrv4);
+#endif
       serverAddrv4.sin_family = AF_INET;
       serverAddrv4.sin_port = haddr->port;
       memcpy (&serverAddrv4.sin_addr, &haddr->ipv4, sizeof (struct in_addr));
@@ -371,6 +374,9 @@ udp_send (GNUNET_TSession * tsession,
   else
     {
       memset (&serverAddrv6, 0, sizeof (serverAddrv6));
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      serverAddrv6.sin6_len = sizeof (serverAddrv6);
+#endif
       serverAddrv6.sin6_family = AF_INET;
       serverAddrv6.sin6_port = haddr->port;
       memcpy (&serverAddrv6.sin6_addr, &haddr->ipv6,
@@ -438,6 +444,9 @@ udp_transport_server_start ()
       if (available_protocols == VERSION_AVAILABLE_IPV4)
         {
           memset (&serverAddrv4, 0, sizeof (serverAddrv4));
+#if HAVE_SOCKADDR_IN_SIN_LEN
+          serverAddrv4.sin_len = sizeof (serverAddrv4);
+#endif
           serverAddrv4.sin_family = AF_INET;
           serverAddrv4.sin_addr.s_addr = INADDR_ANY;
           serverAddrv4.sin_port = htons (port);
@@ -447,6 +456,9 @@ udp_transport_server_start ()
       else
         {
           memset (&serverAddrv6, 0, sizeof (serverAddrv6));
+#if HAVE_SOCKADDR_IN_SIN_LEN
+          serverAddrv6.sin6_len = sizeof (serverAddrv6);
+#endif
           serverAddrv6.sin6_family = AF_INET6;
           serverAddrv6.sin6_addr = in6addr_any;
           serverAddrv6.sin6_port = htons (port);

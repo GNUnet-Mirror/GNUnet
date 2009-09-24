@@ -600,6 +600,15 @@ AC_HEADER_STAT
 AC_HEADER_STDBOOL
 AC_STRUCT_TM
 
+AC_CHECK_MEMBER([struct sockaddr_in.sin_len],
+   [ AC_DEFINE(HAVE_SOCKADDR_IN_SIN_LEN, 1, [Do we have sockaddr_in.sin_len?])
+   ],
+   [],
+   [
+      #include <sys/types.h>
+      #include <sys/socket.h>
+      #include <netinet/in.h>
+   ])
 
 
 

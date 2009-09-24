@@ -140,6 +140,9 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct sockaddr_in sa;
 
   memset (&sa, 0, sizeof (sa));
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  sa.sin_len = sizeof (sa);
+#endif
   sa.sin_family = AF_INET;
   sa.sin_port = htons (PORT);
   server = GNUNET_SERVER_create (tc->sched,

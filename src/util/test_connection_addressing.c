@@ -57,6 +57,9 @@ open_listen_socket ()
   struct GNUNET_NETWORK_Handle *desc;
 
   memset (&sa, 0, sizeof (sa));
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  sa.sin_len = sizeof (sa);
+#endif
   sa.sin_port = htons (PORT);
   desc = GNUNET_NETWORK_socket_socket (AF_INET, SOCK_STREAM, 0);
   GNUNET_assert (desc != 0);
@@ -115,6 +118,9 @@ run_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (alen == sizeof (struct sockaddr_in));
   v4 = addr;
   memset (&expect, 0, sizeof (expect));
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  expect.sin_len = sizeof (expect);
+#endif
   expect.sin_family = AF_INET;
   expect.sin_port = v4->sin_port;
   expect.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
@@ -143,6 +149,9 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   lsock = GNUNET_CONNECTION_create_from_existing (tc->sched, ls, 0);
   GNUNET_assert (lsock != NULL);
 
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  v4.sin_len = sizeof (v4);
+#endif
   v4.sin_family = AF_INET;
   v4.sin_port = htons (PORT);
   v4.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
