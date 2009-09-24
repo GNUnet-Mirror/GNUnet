@@ -69,7 +69,7 @@ main (int argc, char *argv[])
   struct stat sbuf;
 
   GNUNET_log_setup ("test-container-bloomfilter", "WARNING", NULL);
-  srand (1);
+  SRANDOM (1);
   if (0 == stat (TESTFILE, &sbuf))
     if (0 != UNLINK (TESTFILE))
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "unlink", TESTFILE);
@@ -80,7 +80,7 @@ main (int argc, char *argv[])
       nextHC (&tmp);
       GNUNET_CONTAINER_bloomfilter_add (bf, &tmp);
     }
-  srand (1);
+  SRANDOM (1);
   ok1 = 0;
   for (i = 0; i < 200; i++)
     {
@@ -108,7 +108,7 @@ main (int argc, char *argv[])
   bfi = GNUNET_CONTAINER_bloomfilter_init (buf, SIZE, K);
   GNUNET_assert (bfi != NULL);
 
-  srand (1);
+  SRANDOM (1);
   ok1 = 0;
   ok2 = 0;
   for (i = 0; i < 200; i++)
@@ -137,7 +137,7 @@ main (int argc, char *argv[])
       return -1;
     }
 
-  srand (1);
+  SRANDOM (1);
   for (i = 0; i < 100; i++)
     {
       nextHC (&tmp);
@@ -145,7 +145,7 @@ main (int argc, char *argv[])
       GNUNET_CONTAINER_bloomfilter_remove (bfi, &tmp);
     }
 
-  srand (1);
+  SRANDOM (1);
 
   ok1 = 0;
   ok2 = 0;
@@ -177,7 +177,7 @@ main (int argc, char *argv[])
       return -1;
     }
 
-  srand (3);
+  SRANDOM (3);
 
   GNUNET_CONTAINER_bloomfilter_clear (bf);
   falseok = 0;
@@ -201,14 +201,14 @@ main (int argc, char *argv[])
       return -1;
     }
 
-  srand (2);
+  SRANDOM (2);
   i = 20;
   GNUNET_CONTAINER_bloomfilter_resize (bfi, &add_iterator, &i, SIZE * 2, K);
 
-  srand (2);
+  SRANDOM (2);
   i = 20;
   GNUNET_CONTAINER_bloomfilter_resize (bf, &add_iterator, &i, SIZE * 2, K);
-  srand (2);
+  SRANDOM (2);
 
   ok1 = 0;
   ok2 = 0;
