@@ -87,7 +87,7 @@ void *GNUNET_CONTAINER_heap_peek (struct GNUNET_CONTAINER_Heap *heap)
   return heap->root->element;
 }
 
-int
+static int
 next_power_of_2(int v)
 {
   v |= v >> 1;
@@ -99,7 +99,8 @@ next_power_of_2(int v)
   return v;
 }
 
-void
+#if 0
+static void
 internal_print (struct GNUNET_CONTAINER_heap_node *root)
 {
   fprintf (stdout, "%llu\n", (unsigned long long) root->cost);
@@ -115,11 +116,12 @@ internal_print (struct GNUNET_CONTAINER_heap_node *root)
     }
 }
 
-void
+static void
 printTree (struct GNUNET_CONTAINER_Heap *root)
 {
   internal_print (root->root);
 }
+#endif
 
 struct GNUNET_CONTAINER_Heap *
 GNUNET_CONTAINER_heap_create (enum GNUNET_CONTAINER_HeapOrder type)
@@ -414,7 +416,7 @@ GNUNET_CONTAINER_heap_remove_root (struct GNUNET_CONTAINER_Heap *root)
       /* We are removing the last node in the heap! */
       root->root = NULL;
       root->traversal_pos = NULL;
-      root->size = 0;
+      GNUNET_assert (0 == --root->size);
       return ret;
     }
 
