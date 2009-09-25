@@ -41,13 +41,41 @@ extern "C"
 #endif
 #endif
 
+/**
+ * FIXME.
+ */
 #define GNUNET_DATASTORE_BLOCKTYPE_ANY 0
+
+/**
+ * FIXME.
+ */
 #define GNUNET_DATASTORE_BLOCKTYPE_DBLOCK 1
+
+/**
+ * FIXME.
+ */
 #define GNUNET_DATASTORE_BLOCKTYPE_IBLOCK 2
+
+/**
+ * FIXME.
+ */
 #define GNUNET_DATASTORE_BLOCKTYPE_KBLOCK 3
+
+/**
+ * FIXME.
+ */
 #define GNUNET_DATASTORE_BLOCKTYPE_SBLOCK 4
+
+/**
+ * FIXME.
+ */
 #define GNUNET_DATASTORE_BLOCKTYPE_ONDEMAND 5
+
+/**
+ * FIXME.
+ */
 #define GNUNET_DATASTORE_BLOCKTYPE_SKBLOCK 6 /* not yet used */
+
 
 /**
  * Handle to the datastore service.

@@ -197,22 +197,37 @@ int GNUNET_GETOPT_run (const char *binaryName,
                        const struct GNUNET_GETOPT_CommandLineOption
                        *allOptions, unsigned int argc, char *const *argv);
 
+/**
+ * FIXME
+ */
 int GNUNET_GETOPT_set_ulong (struct GNUNET_GETOPT_CommandLineProcessorContext
                              *ctx, void *scls, const char *option,
                              const char *value);
 
+/**
+ * FIXME
+ */
 int GNUNET_GETOPT_set_uint (struct GNUNET_GETOPT_CommandLineProcessorContext
                             *ctx, void *scls, const char *option,
                             const char *value);
 
+/**
+ * FIXME
+ */
 int GNUNET_GETOPT_set_one (struct GNUNET_GETOPT_CommandLineProcessorContext
                            *ctx, void *scls, const char *option,
                            const char *value);
 
+/**
+ * FIXME
+ */
 int GNUNET_GETOPT_set_string (struct GNUNET_GETOPT_CommandLineProcessorContext
                               *ctx, void *scls, const char *option,
                               const char *value);
 
+/**
+ * FIXME
+ */
 int
 GNUNET_GETOPT_increment_value (struct
                                GNUNET_GETOPT_CommandLineProcessorContext *ctx,
@@ -221,11 +236,17 @@ GNUNET_GETOPT_increment_value (struct
 
 /* *************** internal prototypes - use macros above! ************* */
 
+/**
+ * FIXME
+ */
 int GNUNET_GETOPT_format_help_ (struct
                                 GNUNET_GETOPT_CommandLineProcessorContext
                                 *ctx, void *scls, const char *option,
                                 const char *value);
 
+/**
+ * FIXME
+ */
 int GNUNET_GETOPT_print_version_ (struct
                                   GNUNET_GETOPT_CommandLineProcessorContext
                                   *ctx, void *scls, const char *option,

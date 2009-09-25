@@ -45,12 +45,18 @@
  * used to parse the buffer back into individual
  * strings.
  *
+ * @param buffer the buffer to fill with strings, can
+ *               be NULL in which case only the necessary
+ *               amount of space will be calculated
+ * @param size number of bytes available in buffer
+ * @param count number of strings that follow
+ * @param ... count 0-terminated strings to copy to buffer
  * @return number of bytes written to the buffer
  *         (or number of bytes that would have been written)
  */
 unsigned int
 GNUNET_STRINGS_buffer_fill (char *buffer,
-                            unsigned int size, unsigned int count, ...)
+                            size_t size, unsigned int count, ...)
 {
   unsigned int needed;
   unsigned int slen;
@@ -91,7 +97,7 @@ GNUNET_STRINGS_buffer_fill (char *buffer,
  */
 unsigned int
 GNUNET_STRINGS_buffer_tokenize (const char *buffer,
-                                unsigned int size, unsigned int count, ...)
+                                size_t size, unsigned int count, ...)
 {
   unsigned int start;
   unsigned int needed;
@@ -122,6 +128,9 @@ GNUNET_STRINGS_buffer_tokenize (const char *buffer,
 
 /**
  * Convert a given filesize into a fancy human-readable format.
+ *
+ * @param size number of bytes
+ * @return fancy representation of the size (possibly rounded) for humans
  */
 char *
 GNUNET_STRINGS_byte_size_fancy (unsigned long long size)

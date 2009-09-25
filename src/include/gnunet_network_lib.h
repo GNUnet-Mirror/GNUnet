@@ -65,7 +65,9 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
 			      socklen_t *address_len);
 
 /**
- * Make a non-inheritable to child processes
+ * Make a non-inheritable to child processes (sets the
+ * close-on-exec flag).
+ *
  * @param socket
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  * @warning Not implemented on Windows
@@ -123,10 +125,12 @@ int GNUNET_NETWORK_socket_listen (const struct GNUNET_NETWORK_Handle *desc, int 
 
 /**
  * Read data from a connected socket
+ *
  * @param desc socket
  * @param buffer buffer
  * @param length length of buffer
  * @param flags type of message reception
+ * @return number of bytes read
  */
 ssize_t GNUNET_NETWORK_socket_recv (const struct GNUNET_NETWORK_Handle *desc, void *buffer,
                         size_t length, int flags);
@@ -149,7 +153,8 @@ int GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
  * @param doBlock blocking mode
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int GNUNET_NETWORK_socket_set_blocking (struct GNUNET_NETWORK_Handle *fd, int doBlock);
+int GNUNET_NETWORK_socket_set_blocking (struct GNUNET_NETWORK_Handle *fd, 
+					int doBlock);
 
 /**
  * Send data
@@ -207,8 +212,9 @@ int GNUNET_NETWORK_socket_shutdown (struct GNUNET_NETWORK_Handle *desc, int how)
 struct GNUNET_NETWORK_Handle *GNUNET_NETWORK_socket_socket (int domain, int type, int protocol);
 
 /**
- * Reset FD set
- * @param fds fd set
+ * Reset FD set (clears all file descriptors).
+ *
+ * @param fds fd set to clear
  */
 void GNUNET_NETWORK_fdset_zero(struct GNUNET_NETWORK_FDSet *fds);
 
@@ -218,7 +224,8 @@ void GNUNET_NETWORK_fdset_zero(struct GNUNET_NETWORK_FDSet *fds);
  * @param desc socket to add
  */
 void GNUNET_NETWORK_fdset_set(struct GNUNET_NETWORK_FDSet *fds,
-    const struct GNUNET_NETWORK_Handle *desc);
+			      const struct GNUNET_NETWORK_Handle *desc);
+
 
 /**
  * Check whether a socket is part of the fd set
@@ -226,7 +233,7 @@ void GNUNET_NETWORK_fdset_set(struct GNUNET_NETWORK_FDSet *fds,
  * @param desc socket
  */
 int GNUNET_NETWORK_fdset_isset(const struct GNUNET_NETWORK_FDSet *fds,
-    const struct GNUNET_NETWORK_Handle *desc);
+			       const struct GNUNET_NETWORK_Handle *desc);
 
 /**
  * Add one fd set to another
@@ -234,7 +241,7 @@ int GNUNET_NETWORK_fdset_isset(const struct GNUNET_NETWORK_FDSet *fds,
  * @param src the fd set to add from
  */
 void GNUNET_NETWORK_fdset_add (struct GNUNET_NETWORK_FDSet *dst,
-    const struct GNUNET_NETWORK_FDSet *src);
+			       const struct GNUNET_NETWORK_FDSet *src);
 
 /**
  * Copy one fd set to another
@@ -242,7 +249,7 @@ void GNUNET_NETWORK_fdset_add (struct GNUNET_NETWORK_FDSet *dst,
  * @param from source
  */
 void GNUNET_NETWORK_fdset_copy(struct GNUNET_NETWORK_FDSet *to,
-    const struct GNUNET_NETWORK_FDSet *from);
+			       const struct GNUNET_NETWORK_FDSet *from);
 
 /**
  * Copy a native fd set
@@ -250,8 +257,9 @@ void GNUNET_NETWORK_fdset_copy(struct GNUNET_NETWORK_FDSet *to,
  * @param from native source set
  * @param the biggest socket number in from + 1
  */
-void GNUNET_NETWORK_fdset_copy_native (struct GNUNET_NETWORK_FDSet *to, const fd_set *from,
-    int nfds);
+void GNUNET_NETWORK_fdset_copy_native (struct GNUNET_NETWORK_FDSet *to, 
+				       const fd_set *from,
+				       int nfds);
 
 /**
  * Add a file handle to the fd set
@@ -259,7 +267,7 @@ void GNUNET_NETWORK_fdset_copy_native (struct GNUNET_NETWORK_FDSet *to, const fd
  * @param h the file handle to add
  */
 void GNUNET_NETWORK_fdset_handle_set (struct GNUNET_NETWORK_FDSet *fds,
-    const struct GNUNET_DISK_FileHandle *h);
+				      const struct GNUNET_DISK_FileHandle *h);
 
 /**
  * Check if a file handle is part of an fd set
@@ -268,7 +276,7 @@ void GNUNET_NETWORK_fdset_handle_set (struct GNUNET_NETWORK_FDSet *fds,
  * @return GNUNET_YES if the file handle is part of the set
  */
 int GNUNET_NETWORK_fdset_handle_isset (const struct GNUNET_NETWORK_FDSet *fds,
-    const struct GNUNET_DISK_FileHandle *h);
+				       const struct GNUNET_DISK_FileHandle *h);
 
 /**
  * Checks if two fd sets overlap
@@ -276,7 +284,8 @@ int GNUNET_NETWORK_fdset_handle_isset (const struct GNUNET_NETWORK_FDSet *fds,
  * @param fds2 second fd set
  * @return GNUNET_YES if they do overlap, GNUNET_NO otherwise
  */
-int GNUNET_NETWORK_fdset_overlap (const struct GNUNET_NETWORK_FDSet *fds1, const struct GNUNET_NETWORK_FDSet *fds2);
+int GNUNET_NETWORK_fdset_overlap (const struct GNUNET_NETWORK_FDSet *fds1, 
+				  const struct GNUNET_NETWORK_FDSet *fds2);
 
 /**
  * Creates an fd set

@@ -50,11 +50,36 @@ extern "C"
  */
 enum GNUNET_OS_InstallationPathKind
 {
+  /**
+   * Return the "PREFIX" directory given to configure.
+   */
   GNUNET_OS_IPK_PREFIX,
+
+  /**
+   * Return the directory where the program binaries are installed. (bin/)
+   */
   GNUNET_OS_IPK_BINDIR,
+
+  /**
+   * Return the directory where libraries are installed. (lib/)
+   */
   GNUNET_OS_IPK_LIBDIR,
+
+  /**
+   * Return the directory where data is installed (share/)
+   */
   GNUNET_OS_IPK_DATADIR,
+
+  /**
+   * Return the directory where translations are installed (share/locale/)
+   */
   GNUNET_OS_IPK_LOCALEDIR,
+
+  /**
+   * Return the installation directory of this application, not
+   * the one of the overall GNUnet installation (in case they
+   * are different).
+   */
   GNUNET_OS_IPK_SELF_PREFIX
 };
 
@@ -64,10 +89,30 @@ enum GNUNET_OS_InstallationPathKind
  */
 enum GNUNET_OS_ProcessStatusType
 {
+  /**
+   * The process is not known to the OS (or at
+   * least not one of our children).
+   */
   GNUNET_OS_PROCESS_UNKNOWN,
+
+  /**
+   * The process is still running.
+   */
   GNUNET_OS_PROCESS_RUNNING,
+
+  /**
+   * The process is paused (but could be resumed).
+   */
   GNUNET_OS_PROCESS_STOPPED,
+
+  /**
+   * The process exited with a return code.
+   */
   GNUNET_OS_PROCESS_EXITED,
+
+  /**
+   * The process was killed by a signal.
+   */
   GNUNET_OS_PROCESS_SIGNALED
 };
 
@@ -103,10 +148,11 @@ typedef int (*GNUNET_OS_NetworkInterfaceProcessor) (void *cls,
 
 /**
  * @brief Enumerate all network interfaces
- * @param callback the callback function
+ * @param proc the callback function
+ * @param proc_cls closure for proc
  */
 void GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor
-                                        proc, void *cls);
+                                        proc, void *proc_cls);
 
 /**
  * Get the current CPU load.

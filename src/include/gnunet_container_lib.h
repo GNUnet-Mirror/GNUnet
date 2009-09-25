@@ -344,13 +344,28 @@ int GNUNET_CONTAINER_meta_data_extract_from_file (struct
                                                   EXTRACTOR_ExtractorList *
                                                   extractors);
 
+
+/**
+ * Options for metadata serialization.
+ */
 enum GNUNET_CONTAINER_MetaDataSerializationOptions
 {
+  /**
+   * Serialize all of the data.
+   */
   GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL = 0,
+
+  /**
+   * If not enough space is available, it is acceptable
+   * to only serialize some of the metadata.
+   */
   GNUNET_CONTAINER_META_DATA_SERIALIZE_PART = 1,
+
+  /**
+   * Speed is of the essence, do not allow compression.
+   */
   GNUNET_CONTAINER_META_DATA_SERIALIZE_NO_COMPRESS = 2
 };
-
 
 
 /**
@@ -631,6 +646,10 @@ void *GNUNET_CONTAINER_multihashmap_get_random (const struct
  * Insert an element into a DLL. Assumes
  * that head, tail and element are structs
  * with prev and next fields.
+ *
+ * @param head pointer to the head of the DLL
+ * @param tail pointer to the tail of the DLL
+ * @param element element to insert
  */
 #define GNUNET_CONTAINER_DLL_insert(head,tail,element) \
   (element)->next = (head); \
@@ -645,6 +664,11 @@ void *GNUNET_CONTAINER_multihashmap_get_random (const struct
  * Insert an element into a DLL after the given other
  * element.  Insert at the head if the other
  * element is NULL.
+ *
+ * @param head pointer to the head of the DLL
+ * @param tail pointer to the tail of the DLL
+ * @param other prior element, NULL for insertion at head of DLL
+ * @param element element to insert
  */
 #define GNUNET_CONTAINER_DLL_insert_after(head,tail,other,element) \
   (element)->prev = (other); \
@@ -670,6 +694,10 @@ void *GNUNET_CONTAINER_multihashmap_get_random (const struct
  * Remove an element from a DLL. Assumes
  * that head, tail and element are structs
  * with prev and next fields.
+ *
+ * @param head pointer to the head of the DLL
+ * @param tail pointer to the tail of the DLL
+ * @param element element to remove
  */
 #define GNUNET_CONTAINER_DLL_remove(head,tail,element) \
   if ((element)->prev == NULL) \
@@ -766,6 +794,9 @@ int GNUNET_CONTAINER_heap_iterate (struct GNUNET_CONTAINER_Heap *heap,
 /**
  * Inserts a new item into the heap, item is always neighbor now.
  * @param heap the heap
+ * @param element element to insert
+ * @param cost cost of the element
+ * @return FIXME
  */
 int
 GNUNET_CONTAINER_heap_insert (struct GNUNET_CONTAINER_Heap *heap,
@@ -795,7 +826,10 @@ void *GNUNET_CONTAINER_heap_peek (struct GNUNET_CONTAINER_Heap *heap);
  * Removes any node from the tree based on the neighbor given, does
  * not traverse the tree (backpointers) but may take more time due to
  * percolation of nodes.
+ *
  * @param heap the heap
+ * @param element element to remove
+ * @return FIXME
  */
 void *GNUNET_CONTAINER_heap_remove_node (struct GNUNET_CONTAINER_Heap *heap,
                                          void *element);
@@ -807,7 +841,7 @@ void *GNUNET_CONTAINER_heap_remove_node (struct GNUNET_CONTAINER_Heap *heap,
  * @param heap the heap
  * @param element the element for which the cost is updated
  * @param new_cost new cost for the element
- * @return WHAT?
+ * @return FIXME
  */
 int
 GNUNET_CONTAINER_heap_update_cost (struct GNUNET_CONTAINER_Heap *heap,

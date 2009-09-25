@@ -41,6 +41,11 @@ extern "C"
 
 /**
  * Signature of any function exported by a plugin.
+ *
+ * @param arg argument to the function (context)
+ * @return some pointer, NULL if the plugin was
+ *         shutdown or if there was an error, otherwise
+ *         the plugin's API on success
  */
 typedef void *(*GNUNET_PLUGIN_Callback) (void *arg);
 
@@ -55,7 +60,7 @@ typedef void *(*GNUNET_PLUGIN_Callback) (void *arg);
  *
  * @param library_name name of the plugin to load
  * @param arg argument to the plugin initialization function
- * @return whatever the initialization function returned
+ * @return whatever the initialization function returned, NULL on error
  */
 void *GNUNET_PLUGIN_load (const char *library_name, void *arg);
 
@@ -66,7 +71,8 @@ void *GNUNET_PLUGIN_load (const char *library_name, void *arg);
  *
  * @param library_name name of the plugin to unload
  * @param arg argument to the plugin shutdown function
- * @return whatever the shutdown function returned
+ * @return whatever the shutdown function returned, typically NULL
+ *         or a "char *" representing the error message
  */
 void *GNUNET_PLUGIN_unload (const char *library_name, void *arg);
 

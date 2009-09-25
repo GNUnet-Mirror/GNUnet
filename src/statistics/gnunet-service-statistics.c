@@ -22,6 +22,9 @@
  * @file statistics/gnunet-service-statistics.c
  * @brief program that tracks statistics
  * @author Christian Grothoff
+ * 
+ * TODO:
+ * - use BIO for IO operations
  */
 #include "platform.h"
 #include "gnunet_disk_lib.h"
@@ -121,7 +124,7 @@ load (struct GNUNET_SERVER_Handle *server,
       GNUNET_free (fn);
       return;
     }
-  buf = GNUNET_DISK_file_map (fh, &mh, GNUNET_DISK_MAP_READ, sb.st_size);
+  buf = GNUNET_DISK_file_map (fh, &mh, GNUNET_DISK_MAP_TYPE_READ, sb.st_size);
   if (NULL == buf)
     {
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "mmap", fn);

@@ -43,10 +43,20 @@ extern "C"
 #include "gnunet_common.h"
 #include "gnunet_scheduler_lib.h"
 
-
+/**
+ * Desired quality level for cryptographic operations.
+ */
 enum GNUNET_CRYPTO_Quality
 {
+  /**
+   * No good quality of the operation is needed (i.e.,
+   * random numbers can be pseudo-random).
+   */
   GNUNET_CRYPTO_QUALITY_WEAK,
+
+  /**
+   * High-quality operations are desired.
+   */
   GNUNET_CRYPTO_QUALITY_STRONG
 };
 
@@ -242,6 +252,8 @@ unsigned int *GNUNET_CRYPTO_random_permute (enum GNUNET_CRYPTO_Quality mode,
 
 /**
  * Create a new Session key.
+ *
+ * @param key key to initialize
  */
 void GNUNET_CRYPTO_aes_create_session_key (struct GNUNET_CRYPTO_AesSessionKey
                                            *key);
@@ -250,6 +262,7 @@ void GNUNET_CRYPTO_aes_create_session_key (struct GNUNET_CRYPTO_AesSessionKey
 /**
  * Check that a new session key is well-formed.
  *
+ * @param key key to check
  * @return GNUNET_OK if the key is valid
  */
 int GNUNET_CRYPTO_aes_check_session_key (const struct
@@ -320,6 +333,9 @@ int GNUNET_CRYPTO_hash_from_string (const char *enc,
  * a.a or a.e (they're used elsewhere), and
  * be somewhat consistent. And of course, the
  * result should be a positive number.
+ *
+ * @param a some hash code
+ * @param b some hash code
  * @return number between 0 and 65536
  */
 uint32_t GNUNET_CRYPTO_hash_distance_u32 (const GNUNET_HashCode * a,
@@ -372,6 +388,9 @@ void GNUNET_CRYPTO_hash_file (struct GNUNET_SCHEDULER_Handle *sched,
 
 /**
  * Create a random hash code.
+ *
+ * @param mode desired quality level
+ * @param result hash code that is randomized
  */
 void GNUNET_CRYPTO_hash_create_random (enum GNUNET_CRYPTO_Quality mode,
 				       GNUNET_HashCode * result);
@@ -379,6 +398,10 @@ void GNUNET_CRYPTO_hash_create_random (enum GNUNET_CRYPTO_Quality mode,
 
 /**
  * compute result(delta) = b - a
+ *
+ * @param a some hash code
+ * @param b some hash code
+ * @param result set to b - a 
  */
 void GNUNET_CRYPTO_hash_difference (const GNUNET_HashCode * a,
                                     const GNUNET_HashCode * b,
@@ -387,6 +410,10 @@ void GNUNET_CRYPTO_hash_difference (const GNUNET_HashCode * a,
 
 /**
  * compute result(b) = a + delta
+ *
+ * @param a some hash code
+ * @param delta some hash code
+ * @param result set to a + delta
  */
 void GNUNET_CRYPTO_hash_sum (const GNUNET_HashCode * a,
                              const GNUNET_HashCode * delta,
@@ -395,6 +422,10 @@ void GNUNET_CRYPTO_hash_sum (const GNUNET_HashCode * a,
 
 /**
  * compute result = a ^ b
+ *
+ * @param a some hash code
+ * @param b some hash code
+ * @param result set to a ^ b 
  */
 void GNUNET_CRYPTO_hash_xor (const GNUNET_HashCode * a,
                              const GNUNET_HashCode * b,
@@ -403,6 +434,10 @@ void GNUNET_CRYPTO_hash_xor (const GNUNET_HashCode * a,
 
 /**
  * Convert a hashcode into a key.
+ *
+ * @param hc hash code that serves to generate the key
+ * @param skey set to a valid session key
+ * @param iv set to a valid initialization vector
  */
 void GNUNET_CRYPTO_hash_to_aes_key (const GNUNET_HashCode * hc,
                                     struct GNUNET_CRYPTO_AesSessionKey *skey,
@@ -413,6 +448,7 @@ void GNUNET_CRYPTO_hash_to_aes_key (const GNUNET_HashCode * hc,
 
 /**
  * Obtain a bit from a hashcode.
+ *
  * @param code the GNUNET_CRYPTO_hash to index bit-wise
  * @param bit index into the hashcode, [0...159]
  * @return Bit \a bit from hashcode \a code, -1 for invalid index
@@ -424,6 +460,9 @@ int GNUNET_CRYPTO_hash_get_bit (const GNUNET_HashCode * code,
 /**
  * Compare function for HashCodes, producing a total ordering
  * of all hashcodes.
+ *
+ * @param h1 some hash code
+ * @param h2 some hash code
  * @return 1 if h1 > h2, -1 if h1 < h2 and 0 if h1 == h2.
  */
 int GNUNET_CRYPTO_hash_cmp (const GNUNET_HashCode * h1,
@@ -433,6 +472,10 @@ int GNUNET_CRYPTO_hash_cmp (const GNUNET_HashCode * h1,
 /**
  * Find out which of the two GNUNET_CRYPTO_hash codes is closer to target
  * in the XOR metric (Kademlia).
+ *
+ * @param h1 some hash code
+ * @param h2 some hash code
+ * @param target some hash code
  * @return -1 if h1 is closer, 1 if h2 is closer and 0 if h1==h2.
  */
 int GNUNET_CRYPTO_hash_xorcmp (const GNUNET_HashCode * h1,
@@ -442,6 +485,8 @@ int GNUNET_CRYPTO_hash_xorcmp (const GNUNET_HashCode * h1,
 
 /**
  * Create a new private key. Caller must free return value.
+ *
+ * @return fresh private key
  */
 struct GNUNET_CRYPTO_RsaPrivateKey *GNUNET_CRYPTO_rsa_key_create (void);
 
@@ -458,6 +503,7 @@ struct GNUNET_CRYPTO_RsaPrivateKey *GNUNET_CRYPTO_rsa_key_create (void);
  * are invalid the old file is deleted and a fresh key is
  * created.
  *
+ * @param filename name of file to use for storage
  * @return new private key, NULL on error (for example,
  *   permission denied)
  */
@@ -468,6 +514,9 @@ struct GNUNET_CRYPTO_RsaPrivateKey
 /**
  * Deterministically (!) create a private key using only the
  * given HashCode as input to the PRNG.
+ *
+ * @param input "random" input to PRNG
+ * @return some private key purely dependent on input
  */
 struct GNUNET_CRYPTO_RsaPrivateKey
   *GNUNET_CRYPTO_rsa_key_create_from_hash (const GNUNET_HashCode * input);
@@ -482,13 +531,15 @@ void GNUNET_CRYPTO_rsa_key_free (struct GNUNET_CRYPTO_RsaPrivateKey *hostkey);
 
 /**
  * Extract the public key of the host.
- * @param result where to write the result.
+ *
+ * @param priv the private key
+ * @param pub where to write the public key
  */
 void GNUNET_CRYPTO_rsa_key_get_public (const struct
-                                       GNUNET_CRYPTO_RsaPrivateKey *hostkey,
+                                       GNUNET_CRYPTO_RsaPrivateKey *priv,
                                        struct
                                        GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
-                                       *result);
+                                       *pub);
 
 
 /**
@@ -562,7 +613,7 @@ int GNUNET_CRYPTO_rsa_verify (uint32_t purpose,
 /**
  * This function should only be called in testcases
  * where strong entropy gathering is not desired
- * (for example, for hostkey generation).
+ * (for example, for hostkey generation). 
  */
 void GNUNET_CRYPTO_random_disable_entropy_gathering (void);
 

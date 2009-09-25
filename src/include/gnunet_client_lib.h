@@ -87,12 +87,13 @@ typedef void (*GNUNET_CLIENT_MessageHandler) (void *cls,
  *
  * @param sock the service
  * @param handler function to call with the message
- * @param cls closure for handler
+ * @param handler_cls closure for handler
  * @param timeout how long to wait until timing out
  */
 void GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
                             GNUNET_CLIENT_MessageHandler handler,
-                            void *cls, struct GNUNET_TIME_Relative timeout);
+                            void *handler_cls,
+			    struct GNUNET_TIME_Relative timeout);
 
 
 /**

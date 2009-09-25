@@ -53,25 +53,70 @@ extern "C"
 #endif
 
 
-/* Open the file for reading */
-#define GNUNET_DISK_OPEN_READ           1
-/* Open the file for writing */
-#define GNUNET_DISK_OPEN_WRITE          2
-/* Open the file for both reading and writing */
-#define GNUNET_DISK_OPEN_READWRITE      3
-/* Fail if file already exists */
-#define GNUNET_DISK_OPEN_FAILIFEXISTS   4
-/* Truncate file if it exists */
-#define GNUNET_DISK_OPEN_TRUNCATE       8
-/* Create file if it doesn't exist */
-#define GNUNET_DISK_OPEN_CREATE         16
-/* Append to the file */
-#define GNUNET_DISK_OPEN_APPEND         32
+/**
+ * Specifies how a file should be opened.
+ */
+enum GNUNET_DISK_OpenFlags
+  {
 
-#define GNUNET_DISK_MAP_READ    1
-#define GNUNET_DISK_MAP_WRITE   2
-#define GNUNET_DISK_MAP_READWRITE 3
+    /**
+     * Open the file for reading 
+     */
+    GNUNET_DISK_OPEN_READ = 1,
+    
+    /**
+     * Open the file for writing 
+     */
+    GNUNET_DISK_OPEN_WRITE = 2,
+    
+    /**
+     * Open the file for both reading and writing 
+     */
+    GNUNET_DISK_OPEN_READWRITE = 3,
+    
+    /**
+     * Fail if file already exists 
+     */
+    GNUNET_DISK_OPEN_FAILIFEXISTS = 4,
+    
+    /**
+     * Truncate file if it exists 
+     */
+    GNUNET_DISK_OPEN_TRUNCATE = 8,
+    
+    /**
+     * Create file if it doesn't exist 
+     */
+    GNUNET_DISK_OPEN_CREATE = 16,
 
+    /**
+     * Append to the file 
+     */
+    GNUNET_DISK_OPEN_APPEND = 32
+  };
+
+/**
+ * Specifies what type of memory map is desired.
+ */
+enum GNUNET_DISK_MapType
+  {
+    /**
+     * Read-only memory map.
+     */
+    GNUNET_DISK_MAP_TYPE_READ = 1,
+
+    /**
+     * Write-able memory map.
+     */
+    GNUNET_DISK_MAP_TYPE_WRITE = 2,
+    /**
+     * Read-write memory map.
+     */
+    GNUNET_DISK_MAP_TYPE_READWRITE = 3
+  };
+
+
+// FIXME: use enum here!
 #define GNUNET_DISK_PERM_USER_READ      1
 #define GNUNET_DISK_PERM_USER_WRITE     2
 #define GNUNET_DISK_PERM_USER_EXEC      4
@@ -82,10 +127,24 @@ extern "C"
 #define GNUNET_DISK_PERM_OTHER_WRITE    128
 #define GNUNET_DISK_PERM_OTHER_EXEC     256
 
+/**
+ * Constants for specifying how to seek.
+ */
 enum GNUNET_DISK_Seek 
   {
+    /**
+     * Seek an absolute position (from the start of the file).
+     */
     GNUNET_DISK_SEEK_SET, 
+
+    /**
+     * Seek a relative position (from the current offset).
+     */
     GNUNET_DISK_SEEK_CUR, 
+    
+    /**
+     * Seek an absolute position from the end of the file.
+     */
     GNUNET_DISK_SEEK_END
   };
 
@@ -111,7 +170,8 @@ int GNUNET_DISK_handle_invalid (const struct GNUNET_DISK_FileHandle *h);
  * Check that fil corresponds to a filename
  * (of a file that exists and that is not a directory).
  *
- * @returns GNUNET_YES if yes, GNUNET_NO if not a file, GNUNET_SYSERR if something
+ * @param fil filename to check
+ * @return GNUNET_YES if yes, GNUNET_NO if not a file, GNUNET_SYSERR if something
  * else (will print an error message in that case, too).
  */
 int GNUNET_DISK_file_test (const char *fil);
@@ -149,7 +209,14 @@ int GNUNET_DISK_file_size (const char *filename,
 
 
 /**
- * FIXME.
+ * Obtain some unique identifiers for the given file
+ * that can be used to identify it in the local system.
+ * This function is used between GNUnet processes to
+ * quickly check if two files with the same absolute path
+ * are actually identical.  The two processes represent
+ * the same peer but may communicate over the network
+ * (and the file may be on an NFS volume).  This function
+ * may not be supported on all operating systems.
  *
  * @param filename name of the file
  * @param dev set to the device ID
@@ -170,17 +237,20 @@ int GNUNET_DISK_file_get_identifiers (const char *filename,
  *         file on disk in directory for temporary files
  */
 char *
-GNUNET_DISK_mktemp (const char *t);
+GNUNET_DISK_mktemp (const char *template);
 
 
 /**
- * Open a file
+ * Open a file.
+ *
  * @param fn file name to be opened
  * @param flags opening flags, a combination of GNUNET_DISK_OPEN_xxx bit flags
- * @param perm permissions for the newly created file
+ * @param ... permissions for the newly created file (only required if creation is possible)
  * @return IO handle on success, NULL on error
  */
-struct GNUNET_DISK_FileHandle *GNUNET_DISK_file_open (const char *fn, int flags, ...);
+struct GNUNET_DISK_FileHandle *GNUNET_DISK_file_open (const char *fn,
+						      enum GNUNET_DISK_OpenFlags flags,
+						      ...);
 
 /**
  * Creates an interprocess channel
@@ -207,7 +277,8 @@ int GNUNET_DISK_file_close (struct GNUNET_DISK_FileHandle *h);
 /**
  * Get the handle to a particular pipe end
  * @param p pipe
- * @param n number of the end
+ * @param n number of the end (0 or 1); FIXME: use enum here!
+ * @return handle for the respective end
  */
 const struct GNUNET_DISK_FileHandle *GNUNET_DISK_pipe_handle (const struct
 							GNUNET_DISK_PipeHandle
@@ -359,6 +430,7 @@ int GNUNET_DISK_directory_create_for_file (const char *filename);
  * does not exist.  Will log errors if GNUNET_SYSERR is
  * returned.
  *
+ * @param fil filename to test
  * @return GNUNET_YES if yes, GNUNET_NO if does not exist, GNUNET_SYSERR
  *   on any error and if exists but not directory
  */
@@ -385,22 +457,24 @@ int GNUNET_DISK_directory_create (const char *dir);
 
 
 /**
- * Lock a part of a file
+ * Lock a part of a file.
+ *
  * @param fh file handle
- * @lockStart absolute position from where to lock
- * @lockEnd absolute position until where to lock
- * @excl GNUNET_YES for an exclusive lock
+ * @param lockStart absolute position from where to lock
+ * @param lockEnd absolute position until where to lock
+ * @param excl GNUNET_YES for an exclusive lock
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
 GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, off_t lockStart,
     off_t lockEnd, int excl);
 
+
 /**
  * Unlock a part of a file
  * @param fh file handle
- * @lockStart absolute position from where to unlock
- * @lockEnd absolute position until where to unlock
+ * @param lockStart absolute position from where to unlock
+ * @param lockEnd absolute position until where to unlock
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
@@ -431,6 +505,7 @@ int GNUNET_DISK_file_change_owner (const char *filename, const char *user);
  * a directory, end the last argument in '/' (or pass
  * DIR_SEPARATOR_STR as the last argument before NULL).
  *
+ * @param cfg configuration to use
  * @param serviceName name of the service asking
  * @param varargs is NULL-terminated list of
  *                path components to append to the
@@ -450,13 +525,13 @@ struct GNUNET_DISK_MapHandle;
  * Map a file into memory
  * @param h open file handle
  * @param m handle to the new mapping (will be set)
- * @param access access specification, GNUNET_DISK_MAP_xxx
+ * @param access access specification, GNUNET_DISK_MAP_TYPE_xxx
  * @param len size of the mapping
  * @return pointer to the mapped memory region, NULL on failure
  */
 void *GNUNET_DISK_file_map (const struct GNUNET_DISK_FileHandle *h, 
 			    struct GNUNET_DISK_MapHandle **m,
-			    int access, size_t len);
+			    enum GNUNET_DISK_MapType access, size_t len);
 
 /**
  * Unmap a file

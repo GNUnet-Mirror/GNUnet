@@ -52,25 +52,33 @@ extern "C"
 
 /**
  * Convert a given filesize into a fancy human-readable format.
+ *
+ * @param size number of bytes
+ * @return fancy representation of the size (possibly rounded) for humans
  */
 char *GNUNET_STRINGS_byte_size_fancy (unsigned long long size);
+
 
 /**
  * Convert the len characters long character sequence
  * given in input that is in the given charset
  * to UTF-8.
  *
+ * @param input the input string (not necessarily 0-terminated)
+ * @param len the number of bytes in the input
+ * @param charset character set to convert from
  * @return the converted string (0-terminated)
  */
 char *GNUNET_STRINGS_to_utf8 (const char *input,
                               size_t len, const char *charset);
+
 
 /**
  * Complete filename (a la shell) from abbrevition.
  *
  * @param fil the name of the file, may contain ~/ or
  *        be relative to the current directory
- * @returns the full file name,
+ * @return the full file name,
  *          NULL is returned on error
  */
 char *GNUNET_STRINGS_filename_expand (const char *fil);
@@ -87,12 +95,19 @@ char *GNUNET_STRINGS_filename_expand (const char *fil);
  * used to parse the buffer back into individual
  * strings.
  *
+ * @param buffer the buffer to fill with strings, can
+ *               be NULL in which case only the necessary
+ *               amount of space will be calculated
+ * @param size number of bytes available in buffer
+ * @param count number of strings that follow
+ * @param ... count 0-terminated strings to copy to buffer
  * @return number of bytes written to the buffer
  *         (or number of bytes that would have been written)
  */
-unsigned int GNUNET_STRINGS_buffer_fill (char *buffer,
-                                         unsigned int size,
-                                         unsigned int count, ...);
+size_t GNUNET_STRINGS_buffer_fill (char *buffer,
+				   size_t size,
+				   unsigned int count, ...);
+
 
 /**
  * Given a buffer of a given size, find "count"
@@ -104,11 +119,12 @@ unsigned int GNUNET_STRINGS_buffer_fill (char *buffer,
  * @param buffer the buffer to parse
  * @param size size of the buffer
  * @param count number of strings to locate
+ * @param ... pointers to where to store the strings
  * @return offset of the character after the last 0-termination
  *         in the buffer, or 0 on error.
  */
 unsigned int GNUNET_STRINGS_buffer_tokenize (const char *buffer,
-                                             unsigned int size,
+                                             size_t size,
                                              unsigned int count, ...);
 
 
@@ -131,6 +147,7 @@ char *GNUNET_STRINGS_absolute_time_to_string (struct GNUNET_TIME_Absolute t);
  */
 char *GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative
                                               delta);
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

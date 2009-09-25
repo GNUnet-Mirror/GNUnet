@@ -177,3 +177,5 @@ Urgent items (before announcing ng.gnunet.org):
 * Remove KBlocks in gnunet-unindex (see discussion with Kenneth Almquist on gnunet-devs in 9/2009)
 * Allow checking of presence of search results and/or content via command-line tools
   (add options to gnunet-search / gnunet-download to limit search to local peer)
+* STATISTICS:
+  - should use BIO instead of mmap

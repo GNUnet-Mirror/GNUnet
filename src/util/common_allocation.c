@@ -171,6 +171,14 @@ GNUNET_xgrow_ (void **old,
 }
 
 
+/**
+ * Like asprintf, just portable.
+ *
+ * @param buf set to a buffer of sufficient size (allocated, caller must free)
+ * @param format format string (see printf, fprintf, etc.)
+ * @param ... data for format string
+ * @return number of bytes in "*buf" excluding 0-termination
+ */
 int
 GNUNET_asprintf (char **buf, const char *format, ...)
 {
@@ -187,6 +195,16 @@ GNUNET_asprintf (char **buf, const char *format, ...)
   return ret;
 }
 
+
+/**
+ * Like snprintf, just aborts if the buffer is of insufficient size.
+ *
+ * @param buf pointer to buffer that is written to
+ * @param size number of bytes in buf
+ * @param format format strings
+ * @param ... data for format string
+ * @return number of bytes written to buf or negative value on error
+ */
 int
 GNUNET_snprintf (char *buf, size_t size, const char *format, ...)
 {

@@ -127,7 +127,7 @@ run (void *cls,
   len = (size_t) size;
   data = GNUNET_DISK_file_map (h,
 			       &map,
-			       GNUNET_DISK_MAP_READ,
+			       GNUNET_DISK_MAP_TYPE_READ,
 			       len);
   GNUNET_assert (NULL != data);
   GNUNET_FS_directory_list_contents (len,

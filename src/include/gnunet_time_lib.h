@@ -43,6 +43,9 @@ extern "C"
  */
 struct GNUNET_TIME_Absolute
 {
+  /**
+   * The actual value.
+   */
   uint64_t value;
 };
 
@@ -52,6 +55,9 @@ struct GNUNET_TIME_Absolute
  */
 struct GNUNET_TIME_Relative
 {
+  /**
+   * The actual value.
+   */
   uint64_t value;
 };
 
@@ -61,6 +67,9 @@ struct GNUNET_TIME_Relative
  */
 struct GNUNET_TIME_RelativeNBO
 {
+  /**
+   * The actual value (in network byte order).
+   */
   uint64_t value__ GNUNET_PACKED;
 };
 
@@ -70,22 +79,61 @@ struct GNUNET_TIME_RelativeNBO
  */
 struct GNUNET_TIME_AbsoluteNBO
 {
+  /**
+   * The actual value (in network byte order).
+   */
   uint64_t value__ GNUNET_PACKED;
 };
 
 
 /**
- * @brief constants to specify time
+ * Relative time zero.
  */
 #define GNUNET_TIME_UNIT_ZERO     GNUNET_TIME_relative_get_zero()
+
+/**
+ * Absolute time zero.
+ */
 #define GNUNET_TIME_UNIT_ZERO_ABS GNUNET_TIME_absolute_get_zero()
+
+/**
+ * One millisecond, our basic time unit.
+ */
 #define GNUNET_TIME_UNIT_MILLISECONDS GNUNET_TIME_relative_get_unit()
+
+/**
+ * One second.
+ */
 #define GNUNET_TIME_UNIT_SECONDS GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 1000)
+
+/**
+ * One minute.
+ */
 #define GNUNET_TIME_UNIT_MINUTES GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60)
+
+/**
+ * One hour.
+ */
 #define GNUNET_TIME_UNIT_HOURS   GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 60)
+
+/**
+ * One day.
+ */
 #define GNUNET_TIME_UNIT_DAYS    GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_HOURS,   24)
+
+/**
+ * One week.
+ */
 #define GNUNET_TIME_UNIT_WEEKS   GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_DAYS,     7)
+
+/**
+ * One month (30 days).
+ */
 #define GNUNET_TIME_UNIT_MONTHS  GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_DAYS,    30)
+
+/**
+ * One year (365 days).
+ */
 #define GNUNET_TIME_UNIT_YEARS   GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_DAYS,   365)
 
 /**
@@ -136,6 +184,7 @@ struct GNUNET_TIME_Absolute GNUNET_TIME_absolute_get (void);
  * Convert relative time to an absolute time in the
  * future.
  *
+ * @param rel relative time to convert
  * @return timestamp that is "rel" in the future, or FOREVER if rel==FOREVER (or if we would overflow)
  */
 struct GNUNET_TIME_Absolute GNUNET_TIME_relative_to_absolute (struct
@@ -145,6 +194,8 @@ struct GNUNET_TIME_Absolute GNUNET_TIME_relative_to_absolute (struct
 /**
  * Return the minimum of two relative time values.
  *
+ * @param t1 first timestamp
+ * @param t2 other timestamp
  * @return timestamp that is smaller
  */
 struct GNUNET_TIME_Relative GNUNET_TIME_relative_min (struct
@@ -157,6 +208,7 @@ struct GNUNET_TIME_Relative GNUNET_TIME_relative_min (struct
  * Given a timestamp in the future, how much time
  * remains until then?
  *
+ * @param future some absolute time, typically in the future
  * @return future - now, or 0 if now >= future, or FOREVER if future==FOREVER.
  */
 struct GNUNET_TIME_Relative GNUNET_TIME_absolute_get_remaining (struct
@@ -184,6 +236,8 @@ struct GNUNET_TIME_Relative GNUNET_TIME_calculate_eta (struct GNUNET_TIME_Absolu
  * Use this function instead of actual subtraction to ensure that
  * "FOREVER" and overflows are handeled correctly.
  *
+ * @param start some absolute time
+ * @param end some absolute time (typically larger or equal to start)
  * @return 0 if start >= end; FOREVER if end==FOREVER; otherwise end - start
  */
 struct GNUNET_TIME_Relative GNUNET_TIME_absolute_get_difference (struct
@@ -197,6 +251,7 @@ struct GNUNET_TIME_Relative GNUNET_TIME_absolute_get_difference (struct
  * Get the duration of an operation as the
  * difference of the current time and the given start time "hence".
  *
+ * @param hence some absolute time, typically in the past
  * @return aborts if hence==FOREVER, 0 if hence > now, otherwise now-hence.
  */
 struct GNUNET_TIME_Relative GNUNET_TIME_absolute_get_duration (struct
@@ -208,6 +263,8 @@ struct GNUNET_TIME_Relative GNUNET_TIME_absolute_get_duration (struct
  * Add a given relative duration to the
  * given start time.
  *
+ * @param start some absolute time
+ * @param duration some relative time to add
  * @return FOREVER if either argument is FOREVER or on overflow; start+duration otherwise
  */
 struct GNUNET_TIME_Absolute GNUNET_TIME_absolute_add (struct
@@ -220,6 +277,8 @@ struct GNUNET_TIME_Absolute GNUNET_TIME_absolute_add (struct
 /**
  * Multiply relative time by a given factor.
  *
+ * @param rel some duration
+ * @param factor integer to multiply with
  * @return FOREVER if rel=FOREVER or on overflow; otherwise rel*factor
  */
 struct GNUNET_TIME_Relative GNUNET_TIME_relative_multiply (struct
@@ -231,6 +290,8 @@ struct GNUNET_TIME_Relative GNUNET_TIME_relative_multiply (struct
 /**
  * Add relative times together.
  *
+ * @param a1 some relative time
+ * @param a2 some other relative time
  * @return FOREVER if either argument is FOREVER or on overflow; a1+a2 otherwise
  */
 struct GNUNET_TIME_Relative GNUNET_TIME_relative_add (struct
@@ -242,6 +303,9 @@ struct GNUNET_TIME_Relative GNUNET_TIME_relative_add (struct
 
 /**
  * Convert relative time to network byte order.
+ * 
+ * @param a time to convert
+ * @return converted time value
  */
 struct GNUNET_TIME_RelativeNBO GNUNET_TIME_relative_hton (struct
                                                           GNUNET_TIME_Relative
@@ -249,6 +313,9 @@ struct GNUNET_TIME_RelativeNBO GNUNET_TIME_relative_hton (struct
 
 /**
  * Convert relative time from network byte order.
+ *
+ * @param a time to convert
+ * @return converted time value
  */
 struct GNUNET_TIME_Relative GNUNET_TIME_relative_ntoh (struct
                                                        GNUNET_TIME_RelativeNBO
@@ -256,6 +323,9 @@ struct GNUNET_TIME_Relative GNUNET_TIME_relative_ntoh (struct
 
 /**
  * Convert relative time to network byte order.
+ *
+ * @param a time to convert
+ * @return converted time value
  */
 struct GNUNET_TIME_AbsoluteNBO GNUNET_TIME_absolute_hton (struct
                                                           GNUNET_TIME_Absolute
@@ -263,6 +333,9 @@ struct GNUNET_TIME_AbsoluteNBO GNUNET_TIME_absolute_hton (struct
 
 /**
  * Convert relative time from network byte order.
+ *
+ * @param a time to convert
+ * @return converted time value
  */
 struct GNUNET_TIME_Absolute GNUNET_TIME_absolute_ntoh (struct
                                                        GNUNET_TIME_AbsoluteNBO

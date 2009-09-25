@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2006 Christian Grothoff (and other contributing authors)
+     (C) 2006, 2009 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -413,11 +413,23 @@ unsigned long long GNUNET_htonll (unsigned long long n);
 
 /**
  * Like snprintf, just aborts if the buffer is of insufficient size.
+ *
+ * @param buf pointer to buffer that is written to
+ * @param size number of bytes in buf
+ * @param format format strings
+ * @param ... data for format string
+ * @return number of bytes written to buf or negative value on error
  */
 int GNUNET_snprintf (char *buf, size_t size, const char *format, ...);
 
+
 /**
  * Like asprintf, just portable.
+ *
+ * @param buf set to a buffer of sufficient size (allocated, caller must free)
+ * @param format format string (see printf, fprintf, etc.)
+ * @param ... data for format string
+ * @return number of bytes in "*buf" excluding 0-termination
  */
 int GNUNET_asprintf (char **buf, const char *format, ...);
 
@@ -429,8 +441,14 @@ int GNUNET_asprintf (char **buf, const char *format, ...);
  * memory is available.  Don't use GNUNET_xmalloc_ directly. Use the
  * GNUNET_malloc macro.
  * The memory will be zero'ed out.
+ *
+ * @param size number of bytes to allocate
+ * @param filename where is this call being made (for debugging)
+ * @param linenumber line where this call is being made (for debugging)
+ * @return allocated memory, never NULL
  */
 void *GNUNET_xmalloc_ (size_t size, const char *filename, int linenumber);
+
 
 /**
  * Allocate memory.  This function does not check if the
@@ -438,6 +456,11 @@ void *GNUNET_xmalloc_ (size_t size, const char *filename, int linenumber);
  * allocations larger than 40 MB.  If you don't expect the
  * possibility of very large allocations, use GNUNET_malloc instead.
  * The memory will be zero'ed out.
+ *
+ * @param size number of bytes to allocate
+ * @param filename where is this call being made (for debugging)
+ * @param linenumber line where this call is being made (for debugging)
+ * @return allocated memory, never NULL
  */
 void *GNUNET_xmalloc_unchecked_ (size_t size,
                                  const char *filename, int linenumber);
@@ -453,12 +476,20 @@ void *GNUNET_xrealloc_ (void *ptr,
  * Free memory. Merely a wrapper for the case that we
  * want to keep track of allocations.  Don't use GNUNET_xfree_
  * directly. Use the GNUNET_free macro.
+ *
+ * @param ptr pointer to memory to free
+ * @param filename where is this call being made (for debugging)
+ * @param linenumber line where this call is being made (for debugging)
  */
 void GNUNET_xfree_ (void *ptr, const char *filename, int linenumber);
 
 
 /**
  * Dup a string. Don't call GNUNET_xstrdup_ directly. Use the GNUNET_strdup macro.
+ * @param str string to duplicate
+ * @param filename where is this call being made (for debugging)
+ * @param linenumber line where this call is being made (for debugging)
+ * @return the duplicated string
  */
 char *GNUNET_xstrdup_ (const char *str, const char *filename, int linenumber);
 
@@ -474,6 +505,8 @@ char *GNUNET_xstrdup_ (const char *str, const char *filename, int linenumber);
  * @param elementSize the size of the elements of the array
  * @param oldCount address of the number of elements in the *old array
  * @param newCount number of elements in the new array, may be 0 (then *old will be NULL afterwards)
+ * @param filename where is this call being made (for debugging)
+ * @param linenumber line where this call is being made (for debugging)
  */
 void GNUNET_xgrow_ (void **old,
                     size_t elementSize,

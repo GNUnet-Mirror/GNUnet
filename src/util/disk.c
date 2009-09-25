@@ -1012,9 +1012,9 @@ GNUNET_DISK_file_change_owner (const char *filename, const char *user)
 /**
  * Lock a part of a file
  * @param fh file handle
- * @lockStart absolute position from where to lock
- * @lockEnd absolute position until where to lock
- * @excl GNUNET_YES for an exclusive lock
+ * @param lockStart absolute position from where to lock
+ * @param lockEnd absolute position until where to lock
+ * @param excl GNUNET_YES for an exclusive lock
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
@@ -1058,8 +1058,8 @@ GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, off_t lockStart,
 /**
  * Unlock a part of a file
  * @param fh file handle
- * @lockStart absolute position from where to unlock
- * @lockEnd absolute position until where to unlock
+ * @param lockStart absolute position from where to unlock
+ * @param lockEnd absolute position until where to unlock
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
@@ -1103,11 +1103,13 @@ GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, off_t unlockStart,
  * Open a file
  * @param fn file name to be opened
  * @param flags opening flags, a combination of GNUNET_DISK_OPEN_xxx bit flags
- * @param perm permissions for the newly created file
+ * @param ... permissions for the newly created file
  * @return IO handle on success, NULL on error
  */
 struct GNUNET_DISK_FileHandle *
-GNUNET_DISK_file_open (const char *fn, int flags, ...)
+GNUNET_DISK_file_open (const char *fn,
+		       enum GNUNET_DISK_OpenFlags flags, 
+		       ...)
 {
   char *expfn;
   struct GNUNET_DISK_FileHandle *ret;
@@ -1363,13 +1365,13 @@ struct GNUNET_DISK_MapHandle
  * Map a file into memory
  * @param h open file handle
  * @param m handle to the new mapping
- * @param access access specification, GNUNET_DISK_MAP_xxx
+ * @param access access specification, GNUNET_DISK_MAP_TYPE_xxx
  * @param len size of the mapping
  * @return pointer to the mapped memory region, NULL on failure
  */
 void *
 GNUNET_DISK_file_map (const struct GNUNET_DISK_FileHandle *h, struct GNUNET_DISK_MapHandle **m,
-    int access, size_t len)
+		      enum GNUNET_DISK_MapType access, size_t len)
 {
   if (h == NULL)
     {
@@ -1381,17 +1383,18 @@ GNUNET_DISK_file_map (const struct GNUNET_DISK_FileHandle *h, struct GNUNET_DISK
   DWORD mapAccess, protect;
   void *ret;
 
-  if (access & GNUNET_DISK_MAP_READ && access & GNUNET_DISK_MAP_WRITE)
+  if ((access & GNUNET_DISK_MAP_TYPE_READ) && 
+      (access & GNUNET_DISK_MAP_TYPE_WRITE))
     {
       protect = PAGE_READWRITE;
       mapAccess = FILE_MAP_ALL_ACCESS;
     }
-  else if (access & GNUNET_DISK_MAP_READ)
+  else if (access & GNUNET_DISK_MAP_TYPE_READ)
     {
       protect = PAGE_READONLY;
       mapAccess = FILE_MAP_READ;
     }
-  else if (access & GNUNET_DISK_MAP_WRITE)
+  else if (access & GNUNET_DISK_MAP_TYPE_WRITE)
     {
       protect = PAGE_READWRITE;
       mapAccess = FILE_MAP_WRITE;
@@ -1424,9 +1427,9 @@ GNUNET_DISK_file_map (const struct GNUNET_DISK_FileHandle *h, struct GNUNET_DISK
   int prot;
 
   prot = 0;
-  if (access & GNUNET_DISK_MAP_READ)
+  if (access & GNUNET_DISK_MAP_TYPE_READ)
     prot = PROT_READ;
-  if (access & GNUNET_DISK_MAP_WRITE)
+  if (access & GNUNET_DISK_MAP_TYPE_WRITE)
     prot |= PROT_WRITE;
   *m = GNUNET_malloc (sizeof (struct GNUNET_DISK_MapHandle));
   (*m)->addr = mmap (NULL, len, prot, MAP_SHARED, h->fd, 0);

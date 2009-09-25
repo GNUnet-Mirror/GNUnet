@@ -115,3 +115,4 @@ sane end-user should care about this codebase yet anyway.
 * HOSTLIST:
   - implement advertising of hostlist URL
   - implement learning of hostlist URLs
+
