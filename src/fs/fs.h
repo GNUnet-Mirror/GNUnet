@@ -75,6 +75,19 @@
 #define TTL_DECREMENT 5000
 
 /**
+ * Length of the P2P success tracker.  Note that
+ * having a very long list can also hurt performance.
+ */
+#define P2P_SUCCESS_LIST_SIZE 8
+
+
+/**
+ * Length of the CS-2-P success tracker.  Note that
+ * having a very long list can also hurt performance.
+ */
+#define CS2P_SUCCESS_LIST_SIZE 8
+
+/**
  * How long are we willing to wait for the datastore to be ready to
  * process a request for a query without priority?
  */

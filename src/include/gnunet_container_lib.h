@@ -472,6 +472,7 @@ enum GNUNET_CONTAINER_MultiHashMapOption
   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST
 };
 
+
 /**
  * Iterator over HashCodes.
  *

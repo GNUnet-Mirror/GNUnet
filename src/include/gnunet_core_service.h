@@ -197,6 +197,7 @@ void GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle);
 /**
  * Function called with statistics about the given peer.
  *
+ * @param cls closure
  * @param peer identifies the peer
  * @param latency current latency estimate, "FOREVER" if we have been
  *                disconnected
@@ -239,6 +240,7 @@ typedef void
  * @param info function to call with the resulting configuration information
  * @param info_cls closure for info
  */
+// FIXME: should return handle for cancellation!
 void
 GNUNET_CORE_peer_configure (struct GNUNET_CORE_Handle *handle,
                             const struct GNUNET_PeerIdentity *peer,
