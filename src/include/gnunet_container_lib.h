@@ -70,15 +70,15 @@ typedef int (*GNUNET_HashCodeIterator) (void *cls,
  *        element (number of bits set per element in the set)
  * @return the bloomfilter
  */
-struct GNUNET_CONTAINER_BloomFilter *GNUNET_CONTAINER_bloomfilter_load (const
-                                                                        char
-                                                                        *filename,
-                                                                        unsigned
-                                                                        int
-                                                                        size,
-                                                                        unsigned
-                                                                        int
-                                                                        k);
+struct GNUNET_CONTAINER_BloomFilter *
+GNUNET_CONTAINER_bloomfilter_load (const
+				   char
+				   *filename,
+				   size_t
+				   size,
+				   unsigned
+				   int
+				   k);
 
 /**
  * Create a bloom filter from raw bits.
@@ -93,15 +93,15 @@ struct GNUNET_CONTAINER_BloomFilter *GNUNET_CONTAINER_bloomfilter_load (const
  *        element (number of bits set per element in the set)
  * @return the bloomfilter
  */
-struct GNUNET_CONTAINER_BloomFilter *GNUNET_CONTAINER_bloomfilter_init (const
-                                                                        char
-                                                                        *data,
-                                                                        unsigned
-                                                                        int
-                                                                        size,
-                                                                        unsigned
-                                                                        int
-                                                                        k);
+struct GNUNET_CONTAINER_BloomFilter *
+GNUNET_CONTAINER_bloomfilter_init (const
+				   char
+				   *data,
+				   size_t
+				   size,
+				   unsigned
+				   int
+				   k);
 
 /**
  * Copy the raw data of this bloomfilter into
@@ -114,7 +114,7 @@ struct GNUNET_CONTAINER_BloomFilter *GNUNET_CONTAINER_bloomfilter_init (const
 int GNUNET_CONTAINER_bloomfilter_get_raw_data (struct
                                                GNUNET_CONTAINER_BloomFilter
                                                *bf, char *data,
-                                               unsigned int size);
+                                               size_t size);
 
 /**
  * Test if an element is in the filter.
@@ -169,7 +169,7 @@ void GNUNET_CONTAINER_bloomfilter_clear (struct GNUNET_CONTAINER_BloomFilter
  * @return GNUNET_OK on success
  */
 int GNUNET_CONTAINER_bloomfilter_or (struct GNUNET_CONTAINER_BloomFilter *bf,
-                                     const char *data, unsigned int size);
+                                     const char *data, size_t size);
 
 /**
  * Resize a bloom filter.  Note that this operation
@@ -186,7 +186,7 @@ void GNUNET_CONTAINER_bloomfilter_resize (struct GNUNET_CONTAINER_BloomFilter
                                           *bf,
                                           GNUNET_HashCodeIterator iterator,
                                           void *iterator_cls,
-                                          unsigned int size, unsigned int k);
+                                          size_t size, unsigned int k);
 
 /* ****************** metadata ******************* */
 

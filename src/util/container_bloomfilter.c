@@ -70,7 +70,7 @@ struct GNUNET_CONTAINER_BloomFilter
   /**
    * Size of bitArray in bytes
    */
-  unsigned int bitArraySize;
+  size_t bitArraySize;
 
 };
 
@@ -85,7 +85,7 @@ struct GNUNET_CONTAINER_BloomFilter
 static void
 setBit (char *bitArray, unsigned int bitIdx)
 {
-  unsigned int arraySlot;
+  size_t arraySlot;
   unsigned int targetBit;
 
   arraySlot = bitIdx / 8;
@@ -103,7 +103,7 @@ setBit (char *bitArray, unsigned int bitIdx)
 static void
 clearBit (char *bitArray, unsigned int bitIdx)
 {
-  unsigned int slot;
+  size_t slot;
   unsigned int targetBit;
 
   slot = bitIdx / 8;
@@ -121,7 +121,7 @@ clearBit (char *bitArray, unsigned int bitIdx)
 static int
 testBit (char *bitArray, unsigned int bitIdx)
 {
-  unsigned int slot;
+  size_t slot;
   unsigned int targetBit;
 
   slot = bitIdx / 8;
@@ -144,7 +144,7 @@ testBit (char *bitArray, unsigned int bitIdx)
 static void
 incrementBit (char *bitArray, unsigned int bitIdx, const struct GNUNET_DISK_FileHandle *fh)
 {
-  unsigned int fileSlot;
+  off_t fileSlot;
   unsigned char value;
   unsigned int high;
   unsigned int low;
@@ -157,7 +157,8 @@ incrementBit (char *bitArray, unsigned int bitIdx, const struct GNUNET_DISK_File
   fileSlot = bitIdx / 2;
   targetLoc = bitIdx % 2;
 
-  GNUNET_assert (fileSlot == (unsigned int) GNUNET_DISK_file_seek (fh, fileSlot, GNUNET_DISK_SEEK_SET));
+  GNUNET_assert (fileSlot == 
+		 GNUNET_DISK_file_seek (fh, fileSlot, GNUNET_DISK_SEEK_SET));
   if (1 != GNUNET_DISK_file_read (fh, &value, 1))
     value = 0;
   low = value & 0xF;
@@ -174,7 +175,9 @@ incrementBit (char *bitArray, unsigned int bitIdx, const struct GNUNET_DISK_File
         high++;
     }
   value = ((high << 4) | low);
-  GNUNET_assert (fileSlot == (unsigned int) GNUNET_DISK_file_seek (fh, fileSlot, GNUNET_DISK_SEEK_SET));
+  GNUNET_assert (fileSlot == GNUNET_DISK_file_seek (fh, 
+						    fileSlot, 
+						    GNUNET_DISK_SEEK_SET));
   GNUNET_assert (1 == GNUNET_DISK_file_write (fh, &value, 1));
 }
 
@@ -189,7 +192,7 @@ incrementBit (char *bitArray, unsigned int bitIdx, const struct GNUNET_DISK_File
 static void
 decrementBit (char *bitArray, unsigned int bitIdx, const struct GNUNET_DISK_FileHandle *fh)
 {
-  unsigned int fileSlot;
+  off_t fileSlot;
   unsigned char value;
   unsigned int high;
   unsigned int low;
@@ -240,10 +243,11 @@ decrementBit (char *bitArray, unsigned int bitIdx, const struct GNUNET_DISK_File
  * @return GNUNET_OK if created ok, GNUNET_SYSERR otherwise
  */
 static int
-makeEmptyFile (const struct GNUNET_DISK_FileHandle *fh, unsigned int size)
+makeEmptyFile (const struct GNUNET_DISK_FileHandle *fh, 
+	       size_t size)
 {
   char *buffer;
-  unsigned int bytesleft = size;
+  size_t bytesleft = size;
   int res = 0;
 
   if (GNUNET_DISK_handle_invalid (fh))
@@ -270,7 +274,7 @@ makeEmptyFile (const struct GNUNET_DISK_FileHandle *fh, unsigned int size)
   return GNUNET_OK;
 }
 
-/* ************** GNUNET_CONTAINER_BloomFilter GNUNET_CRYPTO_hash iterator ********* */
+/* ************** GNUNET_CONTAINER_BloomFilter iterator ********* */
 
 /**
  * Iterator (callback) method to be called by the
@@ -308,11 +312,11 @@ iterateBits (struct GNUNET_CONTAINER_BloomFilter *bf,
   round = 0;
   while (bitCount > 0)
     {
-      while (slot < (sizeof (GNUNET_HashCode) / sizeof (unsigned int)))
+      while (slot < (sizeof (GNUNET_HashCode) / sizeof (uint32_t)))
         {
           callback (arg, 
 		    bf,
-                    (((unsigned int *) &tmp[round & 1])[slot]) &
+                    (((uint32_t *) &tmp[round & 1])[slot]) &
                     ((bf->bitArraySize * 8) - 1));
           slot++;
           bitCount--;
@@ -388,14 +392,15 @@ testBitCallback (void *cls,
  * @return the bloomfilter
  */
 struct GNUNET_CONTAINER_BloomFilter *
-GNUNET_CONTAINER_bloomfilter_load (const char *filename, unsigned int size,
+GNUNET_CONTAINER_bloomfilter_load (const char *filename, 
+				   size_t size,
                                    unsigned int k)
 {
   struct GNUNET_CONTAINER_BloomFilter *bf;
   char *rbuff;
-  unsigned int pos;
+  off_t pos;
   int i;
-  unsigned int ui;
+  size_t ui;
 
   if ((k == 0) || (size == 0))
     return NULL;
@@ -480,11 +485,12 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, unsigned int size,
  * @return the bloomfilter
  */
 struct GNUNET_CONTAINER_BloomFilter *
-GNUNET_CONTAINER_bloomfilter_init (const char *data, unsigned int size,
+GNUNET_CONTAINER_bloomfilter_init (const char *data,
+				   size_t size,
                                    unsigned int k)
 {
   struct GNUNET_CONTAINER_BloomFilter *bf;
-  unsigned int ui;
+  size_t ui;
 
   if ((k == 0) || (size == 0))
     return NULL;
@@ -520,7 +526,8 @@ GNUNET_CONTAINER_bloomfilter_init (const char *data, unsigned int size,
  */
 int
 GNUNET_CONTAINER_bloomfilter_get_raw_data (struct GNUNET_CONTAINER_BloomFilter
-                                           *bf, char *data, unsigned int size)
+                                           *bf, char *data, 
+					   size_t size)
 {
   if (NULL == bf)
     return GNUNET_SYSERR;
@@ -611,11 +618,15 @@ GNUNET_CONTAINER_bloomfilter_add (struct GNUNET_CONTAINER_BloomFilter *bf,
  * data of the given bloom filter.  Assumes that
  * the size of the data array and the current filter
  * match.
+ *
  * @param bf the filter
+ * @param data the data to or-in
+ * @param size number of bytes in data
  */
 int
 GNUNET_CONTAINER_bloomfilter_or (struct GNUNET_CONTAINER_BloomFilter *bf,
-                                 const char *data, unsigned int size)
+                                 const char *data,
+				 size_t size)
 {
   unsigned int i;
 
@@ -661,7 +672,8 @@ GNUNET_CONTAINER_bloomfilter_remove (struct GNUNET_CONTAINER_BloomFilter *bf,
 void
 GNUNET_CONTAINER_bloomfilter_resize (struct GNUNET_CONTAINER_BloomFilter *bf,
                                      GNUNET_HashCodeIterator iterator,
-                                     void *iterator_arg, unsigned int size,
+                                     void *iterator_arg, 
+				     size_t size,
                                      unsigned int k)
 {
   GNUNET_HashCode hc;
