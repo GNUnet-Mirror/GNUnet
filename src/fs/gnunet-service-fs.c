@@ -24,8 +24,7 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - actually DO P2P search upon P2P/CS requests (pass appropriate handler to core
- *   and work through request list there; also update ttl/priority for our client's requests)
+ * - fix gazillion of minor FIXME's
  * - possible major issue: we may queue "gazillions" of (K|S)Blocks for the
  *   core to transmit to another peer; need to make sure this is bounded overall...
  * - randomly delay processing for improved anonymity (can wait)
@@ -36,6 +35,7 @@
  * - validation of KSBLOCKS (can wait)
  * - remove on-demand blocks if they keep failing (can wait)
  * - check that we decrement PIDs always where necessary (can wait)
+ * - find out how to use core-pulling instead of pushing (at least for some cases)
  */
 #include "platform.h"
 #include <values.h>
@@ -160,6 +160,9 @@ struct LocalGetContext
   /**
    * Bloomfilter over all results (for fast query construction);
    * NULL if we don't have any results.
+   *
+   * FIXME: this member is not used, is that OK? If so, it should
+   * be removed!
    */
   struct GNUNET_CONTAINER_BloomFilter *results_bf; 
 
@@ -193,6 +196,14 @@ struct LocalGetContext
    * Size of the results array in memory.
    */
   unsigned int results_size;
+  
+  /**
+   * Size (in bytes) of the 'results_bf' bloomfilter.
+   *
+   * FIXME: this member is not used, is that OK? If so, it should
+   * be removed!
+   */
+  size_t results_bf_size;
 
   /**
    * If the request is for a DBLOCK or IBLOCK, this is the identity of
@@ -294,9 +305,8 @@ struct ProcessGetContext
   struct DatastoreRequestQueue *drq;
 
   /**
-   * Filter used to eliminate duplicate
-   * results.   Can be NULL if we are
-   * not yet filtering any results.
+   * Filter used to eliminate duplicate results.  Can be NULL if we
+   * are not yet filtering any results.
    */
   struct GNUNET_CONTAINER_BloomFilter *bf;
 
@@ -315,6 +325,11 @@ struct ProcessGetContext
    * Priority of the request.
    */
   uint32_t priority;
+
+  /**
+   * Size of the 'bf' (in bytes).
+   */
+  size_t bf_size;
 
   /**
    * In what ways are we going to process
@@ -462,6 +477,11 @@ struct PendingRequest
    * received our query for this content.
    */
   GNUNET_PEER_Id *used_pids;
+
+  /**
+   * Size of the 'bf' (in bytes).
+   */
+  size_t bf_size;
 
   /**
    * Desired anonymity level; only valid for requests from a local client.
@@ -1482,10 +1502,10 @@ handle_on_demand_block (const GNUNET_HashCode * key,
  *
  * @return must be a power of two and smaller or equal to 2^15.
  */
-static unsigned int
+static size_t
 compute_bloomfilter_size (unsigned int entry_count)
 {
-  unsigned int size;
+  size_t size;
   unsigned int ideal = (entry_count * BLOOMFILTER_K) / 4;
   uint16_t max = 1 << 15;
 
@@ -1505,16 +1525,18 @@ compute_bloomfilter_size (unsigned int entry_count)
  *
  * @param count number of entries we are filtering right now
  * @param mingle set to our new mingling value
+ * @param bf_size set to the size of the bloomfilter
  * @param entries the entries to filter
  * @return updated bloomfilter, NULL for none
  */
 static struct GNUNET_CONTAINER_BloomFilter *
 refresh_bloomfilter (unsigned int count,
 		     int32_t * mingle,
+		     size_t *bf_size,
 		     const GNUNET_HashCode *entries)
 {
   struct GNUNET_CONTAINER_BloomFilter *bf;
-  unsigned int nsize;
+  size_t nsize;
   unsigned int i;
   GNUNET_HashCode mhash;
 
@@ -1522,6 +1544,7 @@ refresh_bloomfilter (unsigned int count,
     return NULL;
   nsize = compute_bloomfilter_size (count);
   *mingle = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, -1);
+  *bf_size = nsize;
   bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 
 					  nsize,
 					  BLOOMFILTER_K);
@@ -1575,14 +1598,19 @@ target_peer_select_cb (void *cls,
 		       void *value)
 {
   struct PeerSelectionContext *psc = cls;
-  // struct ConnectedPeer *cp = value;
+  struct ConnectedPeer *cp = value;
+  struct PendingRequest *pr = psc->pr;
   double score;
-  // FIXME (CRITICAL: would  always sent to same peer without this!)
-  // 1) check if we have already (recently) forwarded to this peer, if so, skip
+  unsigned int i;
+
+  /* 1) check if we have already (recently) forwarded to this peer */
+  for (i=0;i<pr->used_pids_off;i++)
+    if (pr->used_pids[i] == cp->pid)
+      return GNUNET_YES; /* skip */
   // 2) calculate how much we'd like to forward to this peer
-  score = 0;
+  score = 0; // FIXME!
   
-  // 3) store in closure
+  /* store best-fit in closure */
   if (score > psc->target_score)
     {
       psc->target_score = score;
@@ -1590,8 +1618,6 @@ target_peer_select_cb (void *cls,
     }
   return GNUNET_YES;
 }
-
-
 
 
 /**
@@ -1642,7 +1668,11 @@ transmit_request_cb (void *cls,
 		     void *buf)
 {
   struct PendingRequest *pr = cls;
+  struct GetMessage *gm;
+  GNUNET_HashCode *ext;
+  char *bfdata;
   uint16_t msize;
+  unsigned int k;
 
   pr->cth = NULL;
   /* (1) check for timeout */
@@ -1659,8 +1689,27 @@ transmit_request_cb (void *cls,
       return 0;
     }
   /* (2) build query message */
-  msize = 0;
-  // CRITICAL-FIXME! (nothing goes without this!)
+  k = 0; // FIXME: count hash codes!
+  msize = sizeof (struct GetMessage) + pr->bf_size + k * sizeof(GNUNET_HashCode);
+  GNUNET_assert (msize < GNUNET_SERVER_MAX_MESSAGE_SIZE);
+  gm = (struct GetMessage*) buf;
+  gm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_GET);
+  gm->header.size = htons (msize);
+  gm->type = htonl (pr->type);
+  pr->remaining_priority /= 2;
+  gm->priority = htonl (pr->remaining_priority);
+  gm->ttl = htonl (pr->ttl);
+  gm->filter_mutator = htonl(pr->mingle);
+  gm->hash_bitmap = htonl (42);
+  gm->query = pr->query;
+  ext = (GNUNET_HashCode*) &gm[1];
+  // FIXME: setup "ext[0]..[k-1]"
+  bfdata = (char *) &ext[k];
+  if (pr->bf != NULL)
+    GNUNET_CONTAINER_bloomfilter_get_raw_data (pr->bf,
+					       bfdata,
+					       pr->bf_size);
+  
   /* (3) schedule job to do it again (or another peer, etc.) */
   pr->task = GNUNET_SCHEDULER_add_delayed (sched,
 					   GNUNET_NO,
@@ -1893,6 +1942,7 @@ process_local_get_result (void *cls,
 	  pr->anonymity_level = lgc->anonymity_level;
 	  pr->bf = refresh_bloomfilter (pr->replies_seen_off,
 					&pr->mingle,
+					&pr->bf_size,
 					pr->replies_seen);
 	  GNUNET_CONTAINER_multihashmap_put (requests_by_query,
 					     &pr->query,
@@ -2351,6 +2401,7 @@ forward_get_request (void *cls,
       *pr->namespace = pgc->namespace;
     }
   pr->bf = pgc->bf;
+  pr->bf_size = pgc->bf_size;
   pgc->bf = NULL;
   pr->start_time = pgc->start_time;
   pr->query = pgc->query;
@@ -2534,9 +2585,12 @@ process_p2p_get_result (void *cls,
        (pgc->type == GNUNET_DATASTORE_BLOCKTYPE_SKBLOCK) )
     {
       if (pgc->bf == NULL)
-	pgc->bf = GNUNET_CONTAINER_bloomfilter_init (NULL,
-						     32, 
-						     BLOOMFILTER_K);
+	{
+	  pgc->bf_size = 32;
+	  pgc->bf = GNUNET_CONTAINER_bloomfilter_init (NULL,
+						       pgc->bf_size, 
+						       BLOOMFILTER_K);
+	}
       GNUNET_CONTAINER_bloomfilter_add (pgc->bf, 
 					&mhash);
     }
@@ -2695,9 +2749,12 @@ handle_p2p_get (void *cls,
   bfsize = msize - sizeof (struct GetMessage) + bits * sizeof (GNUNET_HashCode);
   pgc = GNUNET_malloc (sizeof (struct ProcessGetContext));
   if (bfsize > 0)
-    pgc->bf = GNUNET_CONTAINER_bloomfilter_init ((const char*) &pgc[1],
-						 bfsize,
-						 BLOOMFILTER_K);
+    {
+      pgc->bf = GNUNET_CONTAINER_bloomfilter_init ((const char*) &pgc[1],
+						   bfsize,
+						   BLOOMFILTER_K);
+      pgc->bf_size = bfsize;
+    }
   pgc->type = ntohl (gm->type);
   pgc->bm = ntohl (gm->hash_bitmap);
   pgc->mingle = gm->filter_mutator;
