@@ -829,8 +829,8 @@ void *GNUNET_CONTAINER_heap_peek (struct GNUNET_CONTAINER_Heap *heap);
  * percolation of nodes.
  *
  * @param heap the heap
- * @param element element to remove
- * @return FIXME
+ * @param element the element to remove
+ * @return NULL if "element" was not found in the heap, otherwise element
  */
 void *GNUNET_CONTAINER_heap_remove_node (struct GNUNET_CONTAINER_Heap *heap,
                                          void *element);

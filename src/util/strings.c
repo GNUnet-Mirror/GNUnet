@@ -54,12 +54,12 @@
  * @return number of bytes written to the buffer
  *         (or number of bytes that would have been written)
  */
-unsigned int
+size_t
 GNUNET_STRINGS_buffer_fill (char *buffer,
                             size_t size, unsigned int count, ...)
 {
-  unsigned int needed;
-  unsigned int slen;
+  size_t needed;
+  size_t slen;
   const char *s;
   va_list ap;
 
