@@ -38,7 +38,7 @@
  * - find out how to use core-pulling instead of pushing (at least for some cases)
  */
 #include "platform.h"
-#include <values.h>
+#include <float.h>
 #include "gnunet_core_service.h"
 #include "gnunet_datastore_service.h"
 #include "gnunet_peer_lib.h"
@@ -1825,11 +1825,11 @@ forward_request_task (void *cls,
     }
   /* (1) select target */
   psc.pr = pr;
-  psc.target_score = MINDOUBLE;
+  psc.target_score = DBL_MIN;
   GNUNET_CONTAINER_multihashmap_iterate (connected_peers,
 					 &target_peer_select_cb,
 					 &psc);
-  if (psc.target_score == MINDOUBLE)
+  if (psc.target_score == DBL_MIN)
     {
       /* no possible target found, wait some time */
       pr->task = GNUNET_SCHEDULER_add_delayed (sched,
