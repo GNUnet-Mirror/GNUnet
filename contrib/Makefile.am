@@ -1,7 +1,6 @@
 dist_pkgdata_DATA = \
  gnunet-logo-color.png \
- defaults.conf \
- config.scm 
+ defaults.conf
 
 EXTRA_DIST = \
  coverage.sh \

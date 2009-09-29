@@ -160,15 +160,6 @@ else
 fi
 
 
-TEST=`$WHICH guile 2> /dev/null`
-if test -n "$TEST"; then
-  guile --version | head -n1 2> /dev/null | \
-    awk '{print "Guile          : "$2}'
-else
-  echo "Guile          : Not found"
-fi
-
-
 TEST=`$WHICH curl-config 2> /dev/null`
 if test -n "$TEST"; then
   curl-config --version | head -n1 2> /dev/null | \

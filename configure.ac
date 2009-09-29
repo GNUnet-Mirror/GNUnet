@@ -439,72 +439,6 @@ then
  AC_MSG_ERROR([GNUnet requires SQLite or MySQL])
 fi
 
-# GNUnet Setup
-dialog=0
-LIBS="-lm $LIBS"
-AC_CHECK_LIB([ncursesw],[wmove])
-AC_MSG_CHECKING([for dialog 1.0-20051207])
-AC_ARG_WITH(dialog,
-   [  --with-dialog=PFX       base of dialog installation],
-   [AC_MSG_RESULT([$with_dialog])
-    case $with_dialog in
-      no)
-        ;;
-      yes)
-        AC_CHECK_HEADERS(dialog.h,
-          AC_CHECK_LIB([dialog], [dlg_menu],
-            dialog=1))
-        ;;
-      *)
-        LDFLAGS="-L$with_dialog/lib $LDFLAGS"
-        CPPFLAGS="-I$with_dialog/include $CPPFLAGS"
-        AC_CHECK_HEADERS(dialog.h,
-          AC_CHECK_LIB([dialog], [dlg_menu],
-            EXT_LIB_PATH="-L$with_dialog/lib $EXT_LIB_PATH"
-              dialog=1))
-        ;;
-    esac
-   ],
-   [AC_MSG_RESULT([--with-dialog not specified])
-    AC_CHECK_HEADERS(dialog.h,
-      AC_CHECK_LIB([dialog], [dlg_menu],
-          dialog=1))])
-
-AM_CONDITIONAL(HAVE_DIALOG, test x$dialog = x1)
-AC_DEFINE_UNQUOTED([HAVE_DIALOG], $dialog, [We have dialog])
-
-cdialog=0
-AC_ARG_WITH(cdialog,
-   [  --with-cdialog=PFX      base of cdialog installation],
-   [AC_MSG_RESULT([$with_cdialog])
-    case $with_cdialog in
-      no)
-        ;;
-      yes)
-        AC_CHECK_HEADERS(cdialog/dialog.h,
-          AC_CHECK_LIB([cdialog], [dlg_menu],
-            cdialog=1))
-        ;;
-      *)
-        LDFLAGS="-L$with_cdialog/lib $LDFLAGS"
-        CPPFLAGS="-I$with_cdialog/include $CPPFLAGS"
-        AC_CHECK_HEADERS(cdialog/dialog.h,
-          AC_CHECK_LIB([cdialog], [dlg_menu],
-            EXT_LIB_PATH="-L$with_cdialog/lib $EXT_LIB_PATH"
-              cdialog=1))
-        ;;
-    esac
-   ],
-   [AC_MSG_RESULT([--with-cdialog not specified])
-    AC_CHECK_HEADERS(cdialog/dialog.h,
-      AC_CHECK_LIB([cdialog], [dlg_menu],
-          cdialog=1))])
-
-AM_CONDITIONAL(HAVE_CDIALOG, test x$cdialog = x1)
-AC_DEFINE_UNQUOTED([HAVE_CDIALOG], $cdialog, [We have cdialog])
-# restore LIBS
-LIBS=$SAVE_LIBS
-
 # libmicrohttpd
 lmhd=0
 AC_MSG_CHECKING([for libmicrohttpd])
@@ -632,51 +566,6 @@ AC_CHECK_FUNCS([floor gethostname memmove rmdir strncasecmp strrchr strtol atoll
 # restore LIBS
 LIBS=$SAVE_LIBS
 
-
-
-# check for guile
-guile=0
-AC_MSG_CHECKING(for guile 1.8)
-AC_ARG_WITH(guile,
-   [  --with-guile=PFX        base of guile installation],
-   [AC_MSG_RESULT([$with_guile])
-    case $with_guile in
-      no)
-        ;;
-      yes)
-        AC_CHECK_HEADERS(libguile.h,
-          AC_CHECK_LIB([guile], [scm_c_define_gsubr],
-            guile=1, [],
-            -lgmp $LIBLTDL))
-        ;;
-      *)
-        LDFLAGS="-L$with_guile/lib $LDFLAGS"
-        CPPFLAGS="-I$with_guile/include $CPPFLAGS"
-        AC_CHECK_HEADERS(libguile.h,
-          AC_CHECK_LIB([guile], [scm_c_define_gsubr],
-            EXT_LIB_PATH="-L$with_guile/lib $EXT_LIB_PATH"
-            guile=1, [],
-            -lgmp $LIBLTDL))
-        ;;
-    esac
-   ],
-   [AC_MSG_RESULT([--with-guile not specified])
-    AC_CHECK_HEADERS(libguile.h,
-     AC_CHECK_LIB([guile], [scm_c_define_gsubr],
-      guile=1, [], -lgmp $LIBLTDL))])
-
-if test "$guile" = 1
-then
- AC_CHECK_LIB([guile], [scm_init_guile], [],
-    	AC_MSG_ERROR([Guile doesn't provide scm_init_guile(). Please report to bug-gnunet@gnu.org]), -lgmp $LIBLTDL)
- AC_DEFINE_UNQUOTED([HAVE_GUILE], 1, [We have GUILE])
-else
- AC_DEFINE_UNQUOTED([HAVE_GUILE], 0, [We do NOT have GUILE])
-fi
-AM_CONDITIONAL(HAVE_GUILE, test x$guile = x1)
-# restore LIBS
-LIBS=$SAVE_LIBS
-
 gn_user_home_dir="~/.gnunet"
 AC_ARG_WITH(user-home-dir,
         AC_HELP_STRING(
@@ -787,23 +676,12 @@ then
   AC_MSG_NOTICE([NOTICE: sqlite not found.  sqLite support will not be compiled.])
 fi
 
-if test "x$dialog" != "x1" -a "x$cdialog" != "x1"
-then
- AC_MSG_NOTICE([NOTICE: curses based gnunet-setup frontends will not be installed.])
-fi
-
 if test "x$lmhd" != "x1"
 then
  AC_MSG_NOTICE([NOTICE: libmicrohttpd not found, http transport will not be installed.])
 fi
 
 AC_MSG_NOTICE([NOTICE: Database support is set to MySQL: $mysql, SQLite: $sqlite])
-
-# guile
-if test "x$guile" = "x0"
-then
- AC_MSG_NOTICE([WARNING: Guile not found, gnunet-setup will not be installed.])
-fi
 
 if test "$enable_framework_build" = "yes"
 then
