@@ -1069,7 +1069,6 @@ handle_remove (void *cls,
   GNUNET_CRYPTO_hash (&dm[1],
 		      ntohl(dm->size),
 		      &vhash);
-  GNUNET_SERVER_client_keep (client);
   plugin->api->get (plugin->api->cls,
 		    &dm->key,
 		    &vhash,

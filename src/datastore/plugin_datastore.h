@@ -112,6 +112,8 @@ typedef int (*PluginIterator) (void *cls,
 /**
  * Get an estimate of how much space the database is
  * currently using.
+ *
+ * @param cls closure
  * @return number of bytes used on disk
  */
 typedef unsigned long long (*PluginGetSize) (void *cls);
@@ -185,6 +187,7 @@ typedef void (*PluginGet) (void *cls,
  * Note that it is possible for multiple values to match this put.
  * In that case, all of the respective values are updated.
  *
+ * @param cls closure
  * @param uid unique identifier of the datum
  * @param delta by how much should the priority
  *     change?  If priority + delta < 0 the
@@ -206,6 +209,7 @@ typedef int (*PluginUpdate) (void *cls,
  * Select a subset of the items in the datastore and call
  * the given iterator for each of them.
  *
+ * @param cls closure
  * @param type entries of which type should be considered?
  *        Use 0 for any type.
  * @param iter function to call on each matching value; however,
@@ -223,6 +227,8 @@ typedef void (*PluginSelector) (void *cls,
 
 /**
  * Drop database.
+ *
+ * @param cls closure
  */
 typedef void (*PluginDrop) (void *cls);
 

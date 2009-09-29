@@ -43,6 +43,8 @@ struct Plugin
 /**
  * Get an estimate of how much space the database is
  * currently using.
+ *
+ * @param cls our "struct Plugin*"
  * @return number of bytes used on disk
  */
 static unsigned long long template_plugin_get_size (void *cls)
@@ -142,6 +144,7 @@ template_plugin_get (void *cls,
  * Note that it is possible for multiple values to match this put.
  * In that case, all of the respective values are updated.
  *
+ * @param cls our "struct Plugin*"
  * @param uid unique identifier of the datum
  * @param delta by how much should the priority
  *     change?  If priority + delta < 0 the
@@ -169,6 +172,7 @@ template_plugin_update (void *cls,
  * Select a subset of the items in the datastore and call
  * the given iterator for each of them.
  *
+ * @param cls our "struct Plugin*"
  * @param type entries of which type should be considered?
  *        Use 0 for any type.
  * @param iter function to call on each matching value;
@@ -211,6 +215,7 @@ template_plugin_iter_zero_anonymity (void *cls,
  * Select a subset of the items in the datastore and call
  * the given iterator for each of them.
  *
+ * @param cls our "struct Plugin*"
  * @param type entries of which type should be considered?
  *        Use 0 for any type.
  * @param iter function to call on each matching value;
@@ -232,6 +237,7 @@ template_plugin_iter_ascending_expiration (void *cls,
  * Select a subset of the items in the datastore and call
  * the given iterator for each of them.
  *
+ * @param cls our "struct Plugin*"
  * @param type entries of which type should be considered?
  *        Use 0 for any type.
  * @param iter function to call on each matching value;
@@ -253,6 +259,7 @@ template_plugin_iter_migration_order (void *cls,
  * Select a subset of the items in the datastore and call
  * the given iterator for each of them.
  *
+ * @param cls our "struct Plugin*"
  * @param type entries of which type should be considered?
  *        Use 0 for any type.
  * @param iter function to call on each matching value;
@@ -281,6 +288,9 @@ template_plugin_drop (void *cls)
 
 /**
  * Entry point for the plugin.
+ *
+ * @param cls the "struct GNUNET_DATASTORE_PluginEnvironment*"
+ * @return our "struct Plugin*"
  */
 void *
 libgnunet_plugin_datastore_template_init (void *cls)
@@ -312,6 +322,8 @@ libgnunet_plugin_datastore_template_init (void *cls)
 
 /**
  * Exit point from the plugin.
+ * @param cls our "struct Plugin*"
+ * @return always NULL
  */
 void *
 libgnunet_plugin_datastore_template_done (void *cls)

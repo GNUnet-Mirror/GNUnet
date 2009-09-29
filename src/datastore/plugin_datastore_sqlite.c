@@ -149,7 +149,10 @@ struct Plugin
 /**
  * @brief Prepare a SQL statement
  *
+ * @param dbh handle to the database
  * @param zSql SQL statement, UTF-8 encoded
+ * @param ppStmt set to the prepared statement
+ * @return 0 on success
  */
 static int
 sq_prepare (sqlite3 * dbh, const char *zSql,
@@ -164,6 +167,8 @@ sq_prepare (sqlite3 * dbh, const char *zSql,
 
 /**
  * Create our database indices.
+ * 
+ * @param dbh handle to the database
  */
 static void
 create_indices (sqlite3 * dbh)
@@ -205,6 +210,8 @@ create_indices (sqlite3 * dbh)
  * data structures (create tables and indices
  * as needed as well).
  *
+ * @param cfg our configuration
+ * @param plugin the plugin context (state for this module)
  * @return GNUNET_OK on success
  */
 static int
@@ -335,6 +342,7 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Synchronize our utilization statistics with the 
  * statistics service.
+ * @param plugin the plugin context (state for this module)
  */
 static void 
 sync_stats (struct Plugin *plugin)
@@ -350,6 +358,7 @@ sync_stats (struct Plugin *plugin)
 /**
  * Shutdown database connection and associate data
  * structures.
+ * @param plugin the plugin context (state for this module)
  */
 static void
 database_shutdown (struct Plugin *plugin)
@@ -368,6 +377,8 @@ database_shutdown (struct Plugin *plugin)
 /**
  * Get an estimate of how much space the database is
  * currently using.
+ *
+ * @param cls our plugin context
  * @return number of bytes used on disk
  */
 static unsigned long long sqlite_plugin_get_size (void *cls)
@@ -380,6 +391,9 @@ static unsigned long long sqlite_plugin_get_size (void *cls)
 /**
  * Delete the database entry with the given
  * row identifier.
+ *
+ * @param plugin the plugin context (state for this module)
+ * @param rid the ID of the row to delete
  */
 static int
 delete_by_rowid (struct Plugin* plugin, 
@@ -502,6 +516,7 @@ struct NextContext
  * Continuation of "sqlite_next_request".
  *
  * @param cls the next context
+ * @param tc the task context (unused)
  */
 static void 
 sqlite_next_request_cont (void *cls,
@@ -743,6 +758,7 @@ sqlite_plugin_put (void *cls,
  * Note that it is possible for multiple values to match this put.
  * In that case, all of the respective values are updated.
  *
+ * @param cls the plugin context (state for this module)
  * @param uid unique identifier of the datum
  * @param delta by how much should the priority
  *     change?  If priority + delta < 0 the
@@ -785,18 +801,57 @@ sqlite_plugin_update (void *cls,
 }
 
 
+/**
+ * Internal context for an iteration.
+ */
 struct IterContext
 {
+  /**
+   * FIXME.
+   */
   sqlite3_stmt *stmt_1;
+
+  /**
+   * FIXME.
+   */
   sqlite3_stmt *stmt_2;
+
+  /**
+   * FIXME.
+   */
   int is_asc;
+
+  /**
+   * FIXME.
+   */
   int is_prio;
+
+  /**
+   * FIXME.
+   */
   int is_migr;
+
+  /**
+   * FIXME.
+   */
   int limit_nonanonymous;
+
+  /**
+   * Desired type for blocks returned by this iterator.
+   */
   uint32_t type;
 };
 
 
+/**
+ * Prepare our SQL query to obtain the next record from the database.
+ *
+ * @param cls our "struct IterContext"
+ * @param nc NULL to terminate the iteration, otherwise our context for
+ *           getting the next result.
+ * @return GNUNET_OK on success, GNUNET_NO if there are no more results,
+ *         GNUNET_SYSERR on error (or end of iteration)
+ */
 static int
 iter_next_prepare (void *cls,
 		   struct NextContext *nc)
@@ -903,12 +958,18 @@ iter_next_prepare (void *cls,
  * Call a method for each key in the database and
  * call the callback method on it.
  *
+ * @param plugin our plugin context
  * @param type entries of which type should be considered?
+ * @param is_asc are we iterating in ascending order?
+ * @param is_prio are we iterating by priority (otherwise by expiration)
+ * @param is_migr are we iterating in migration order?
+ * @param limit_nonanonymous are we restricting results to those with anonymity
+ *              level zero?
+ * @param stmt_str_1 first SQL statement to execute
+ * @param stmt_str_2 SQL statement to execute to get "more" results (inner iteration)
  * @param iter function to call on each matching value;
  *        will be called once with a NULL value at the end
  * @param iter_cls closure for iter
- * @return the number of results processed,
- *         GNUNET_SYSERR on error
  */
 static void
 basic_iter (struct Plugin *plugin,
@@ -987,6 +1048,7 @@ basic_iter (struct Plugin *plugin,
  * Select a subset of the items in the datastore and call
  * the given iterator for each of them.
  *
+ * @param cls our plugin context
  * @param type entries of which type should be considered?
  *        Use 0 for any type.
  * @param iter function to call on each matching value;
@@ -1013,6 +1075,7 @@ sqlite_plugin_iter_low_priority (void *cls,
  * Select a subset of the items in the datastore and call
  * the given iterator for each of them.
  *
+ * @param cls our plugin context
  * @param type entries of which type should be considered?
  *        Use 0 for any type.
  * @param iter function to call on each matching value;
@@ -1051,6 +1114,7 @@ sqlite_plugin_iter_zero_anonymity (void *cls,
  * Select a subset of the items in the datastore and call
  * the given iterator for each of them.
  *
+ * @param cls our plugin context
  * @param type entries of which type should be considered?
  *        Use 0 for any type.
  * @param iter function to call on each matching value;
@@ -1087,6 +1151,7 @@ sqlite_plugin_iter_ascending_expiration (void *cls,
  * Select a subset of the items in the datastore and call
  * the given iterator for each of them.
  *
+ * @param cls our plugin context
  * @param type entries of which type should be considered?
  *        Use 0 for any type.
  * @param iter function to call on each matching value;
@@ -1116,6 +1181,15 @@ sqlite_plugin_iter_migration_order (void *cls,
 }
 
 
+/**
+ * Call sqlite using the already prepared query to get
+ * the next result.
+ *
+ * @param cls not used
+ * @param nc context with the prepared query
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error, GNUNET_NO if
+ *        there are no more results 
+ */
 static int
 all_next_prepare (void *cls,
 		  struct NextContext *nc)
@@ -1152,6 +1226,7 @@ all_next_prepare (void *cls,
  * Select a subset of the items in the datastore and call
  * the given iterator for each of them.
  *
+ * @param cls our plugin context
  * @param type entries of which type should be considered?
  *        Use 0 for any type.
  * @param iter function to call on each matching value;
@@ -1189,18 +1264,59 @@ sqlite_plugin_iter_all_now (void *cls,
 }
 
 
+/**
+ * FIXME.
+ */
 struct GetNextContext
 {
+
+  /**
+   * FIXME.
+   */
   int total;
+
+  /**
+   * FIXME.
+   */
   int off;
+
+  /**
+   * FIXME.
+   */
   int have_vhash;
+
+  /**
+   * FIXME.
+   */
   unsigned int type;
+
+  /**
+   * FIXME.
+   */
   sqlite3_stmt *stmt;
+
+  /**
+   * FIXME.
+   */
   GNUNET_HashCode key;
+
+  /**
+   * FIXME.
+   */
   GNUNET_HashCode vhash;
 };
 
 
+
+/**
+ * FIXME.
+ *
+ * @param cls our "struct GetNextContext*"
+ * @param nc FIXME
+ * @return GNUNET_YES if there are more results, 
+ *         GNUNET_NO if there are no more results,
+ *         GNUNET_SYSERR on internal error
+ */
 static int
 get_next_prepare (void *cls,
 		  struct NextContext *nc)
@@ -1381,6 +1497,8 @@ sqlite_plugin_get (void *cls,
 
 /**
  * Drop database.
+ *
+ * @param cls our plugin context
  */
 static void 
 sqlite_plugin_drop (void *cls)
@@ -1415,6 +1533,9 @@ process_stat_in (void *cls,
 
 /**
  * Entry point for the plugin.
+ *
+ * @param cls the "struct GNUNET_DATASTORE_PluginEnvironment*"
+ * @return NULL on error, othrewise the plugin context
  */
 void *
 libgnunet_plugin_datastore_sqlite_init (void *cls)
@@ -1464,6 +1585,9 @@ libgnunet_plugin_datastore_sqlite_init (void *cls)
 
 /**
  * Exit point from the plugin.
+ *
+ * @param cls the plugin context (as returned by "init")
+ * @return always NULL
  */
 void *
 libgnunet_plugin_datastore_sqlite_done (void *cls)

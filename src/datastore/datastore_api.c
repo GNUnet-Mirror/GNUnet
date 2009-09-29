@@ -585,16 +585,18 @@ transmit_get_result (void *cls,
 		     void *buf)
 {
   struct GNUNET_DATASTORE_Handle *h = cls;
-  GNUNET_DATASTORE_ContinuationWithStatus cont = h->response_proc;
+  GNUNET_DATASTORE_Iterator cont = h->response_proc;
   uint16_t msize;
 
   if (buf == NULL)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Error transmitting message to datastore service.\n"));
       h->response_proc = NULL;
       h->message_size = 0;
       cont (h->response_proc_cls, 
-	    GNUNET_SYSERR,
-	    gettext_noop ("Error transmitting message to datastore service.\n"));
+	    NULL, 0, NULL, 0, 0, 0,
+	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return 0;
     }
   msize = h->message_size;
