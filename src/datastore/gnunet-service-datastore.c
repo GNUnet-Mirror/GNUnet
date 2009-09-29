@@ -899,6 +899,7 @@ handle_get (void *cls,
 		  "Empty result set for `%s' request.\n",
 		  "GET");
 #endif	
+      GNUNET_SERVER_client_keep (client);
       transmit_item (client,
 		     NULL, NULL, 0, NULL, 0, 0, 0, 
 		     GNUNET_TIME_UNIT_ZERO_ABS, 0);

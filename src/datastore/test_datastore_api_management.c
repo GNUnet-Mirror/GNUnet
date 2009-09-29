@@ -202,11 +202,10 @@ check_nothing (void *cls,
 	     expiration, uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
+
   GNUNET_assert (key == NULL);
-  if (crc->i == 0)
-    {
-      crc->phase = RP_DONE;
-    }
+  if (0 == --crc->i)
+    crc->phase = RP_DONE;
   GNUNET_SCHEDULER_add_continuation (crc->sched,
 				     GNUNET_NO,
 				     &run_continuation,
@@ -284,6 +283,7 @@ run_continuation (void *cls,
 			    TIMEOUT);
       break;
     case RP_DONE:
+      GNUNET_assert (0 == crc->i);
 #if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Finished, disconnecting\n");
