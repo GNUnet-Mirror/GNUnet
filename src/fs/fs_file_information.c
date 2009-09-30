@@ -53,11 +53,11 @@ GNUNET_FS_file_information_sync (struct GNUNET_FS_FileInformation * fi)
  * Load file information from the file to which
  * it was sync'ed.
  *
- * @param filename name of the file to use
+ * @param fn name of the file to use
  * @return NULL on error
  */
 struct GNUNET_FS_FileInformation *
-GNUNET_FS_file_information_recover (const char *name)
+GNUNET_FS_file_information_recover (const char *fn)
 {
   struct GNUNET_FS_FileInformation *ret;
   ret = NULL;
@@ -173,6 +173,7 @@ data_reader_file(void *cls,
 /**
  * Create an entry for a file in a publish-structure.
  *
+ * @param client_info initial value for the client-info value for this entry
  * @param filename name of the file or directory to publish
  * @param keywords under which keywords should this file be available
  *         directly; can be NULL
@@ -258,6 +259,7 @@ data_reader_copy(void *cls,
 /**
  * Create an entry for a file in a publish-structure.
  *
+ * @param client_info initial value for the client-info value for this entry
  * @param length length of the file
  * @param data data for the file (should not be used afterwards by
  *        the caller; caller will "free")
@@ -300,6 +302,7 @@ GNUNET_FS_file_information_create_from_data (void *client_info,
 /**
  * Create an entry for a file in a publish-structure.
  *
+ * @param client_info initial value for the client-info value for this entry
  * @param length length of the file
  * @param reader function that can be used to obtain the data for the file 
  * @param reader_cls closure for "reader"
@@ -575,6 +578,7 @@ dirproc (void *cls,
  * passed (GNUNET_FS_directory_scanner_default).  This is strictly a
  * convenience function.
  *
+ * @param client_info initial value for the client-info value for this entry
  * @param filename name of the top-level file or directory
  * @param scanner function used to get a list of files in a directory
  * @param scanner_cls closure for scanner
@@ -642,6 +646,7 @@ GNUNET_FS_file_information_create_from_directory (void *client_info,
  * use of "GNUNET_FS_file_information_create_from_directory"
  * is not appropriate.
  *
+ * @param client_info initial value for the client-info value for this entry
  * @param meta metadata for the directory
  * @param keywords under which keywords should this directory be available
  *         directly; can be NULL

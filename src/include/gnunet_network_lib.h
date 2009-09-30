@@ -68,17 +68,18 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
  * Make a non-inheritable to child processes (sets the
  * close-on-exec flag).
  *
- * @param socket
+ * @param h the socket to make non-inheritable
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  * @warning Not implemented on Windows
  */
 int
 GNUNET_NETWORK_socket_set_inheritable (const struct GNUNET_NETWORK_Handle
-                                       *desc);
+                                       *h);
 
 /**
  * Bind to a connected socket
- * @param desc socket
+ *
+ * @param desc socket to bind
  * @param address address to be bound
  * @param address_len length of address
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
@@ -88,14 +89,16 @@ int GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
 
 /**
  * Close a socket
- * @param desc socket
+ *
+ * @param desc socket to close
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
 int GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc);
 
 /**
  * Connect a socket
- * @param desc socket
+ *
+ * @param desc socket to connect
  * @param address peer address
  * @param length of address
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
@@ -103,9 +106,11 @@ int GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc);
 int GNUNET_NETWORK_socket_connect (const struct GNUNET_NETWORK_Handle *desc,
                        const struct sockaddr *address, socklen_t address_len);
 
+
 /**
  * Get socket options
- * @param desc socket
+ *
+ * @param desc socket to inspect
  * @param level protocol level of the option
  * @param optname identifier of the option
  * @param optval options
@@ -115,9 +120,11 @@ int GNUNET_NETWORK_socket_connect (const struct GNUNET_NETWORK_Handle *desc,
 int GNUNET_NETWORK_socket_getsockopt(const struct GNUNET_NETWORK_Handle *desc, int level, int optname,
        void *optval, socklen_t *optlen);
 
+
 /**
  * Listen on a socket
- * @param desc socket
+ *
+ * @param desc socket to start listening on
  * @param backlog length of the listen queue
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */

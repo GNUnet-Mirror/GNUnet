@@ -592,7 +592,7 @@ merge_meta_helper (void *cls,
  *
  * @param cfg overall configuration
  * @param id the pseudonym identifier
- * @param metadata for the pseudonym
+ * @param meta metadata for the pseudonym
  */
 void
 GNUNET_PSEUDONYM_add (const struct GNUNET_CONFIGURATION_Handle *cfg,

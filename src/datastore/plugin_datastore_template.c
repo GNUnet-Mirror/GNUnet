@@ -194,6 +194,7 @@ template_plugin_iter_low_priority (void *cls,
  * Select a subset of the items in the datastore and call
  * the given iterator for each of them.
  *
+ * @param cls our "struct Plugin*"
  * @param type entries of which type should be considered?
  *        Use 0 for any type.
  * @param iter function to call on each matching value;

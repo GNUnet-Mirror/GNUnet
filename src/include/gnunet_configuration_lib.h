@@ -156,6 +156,7 @@ int GNUNET_CONFIGURATION_get_value_number (const struct GNUNET_CONFIGURATION_Han
                                            const char *option,
                                            unsigned long long *number);
 
+
 /**
  * Get a configuration value that should be a relative time.
  *
@@ -170,6 +171,7 @@ int GNUNET_CONFIGURATION_get_value_time (const struct GNUNET_CONFIGURATION_Handl
 					 const char *option,
 					 struct GNUNET_TIME_Relative *time);
 
+
 /**
  * Test if we have a value for a particular option
  *
@@ -180,6 +182,7 @@ int GNUNET_CONFIGURATION_get_value_time (const struct GNUNET_CONFIGURATION_Handl
  */
 int GNUNET_CONFIGURATION_have_value (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                      const char *section, const char *option);
+
 
 /**
  * Get a configuration value that should be a string.
@@ -194,6 +197,7 @@ int GNUNET_CONFIGURATION_have_value (const struct GNUNET_CONFIGURATION_Handle *c
 int GNUNET_CONFIGURATION_get_value_string (const struct GNUNET_CONFIGURATION_Handle
                                            *cfg, const char *section,
                                            const char *option, char **value);
+
 
 /**
  * Get a configuration value that should be the name of a file
@@ -267,11 +271,12 @@ int GNUNET_CONFIGURATION_get_value_yesno (const struct GNUNET_CONFIGURATION_Hand
  * "FOO" is set to "DIRECTORY".
  *
  * @param cfg configuration to use for path expansion
- * @param old string to $-expand (will be freed!)
+ * @param orig string to $-expand (will be freed!)
  * @return $-expanded string
  */
 char *GNUNET_CONFIGURATION_expand_dollar (const struct GNUNET_CONFIGURATION_Handle
-                                          *cfg, char *old);
+                                          *cfg, char *orig);
+
 
 /**
  * Set a configuration value that should be a number.

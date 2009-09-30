@@ -35,6 +35,9 @@
 /**
  * Start downloading hostlists from hostlist servers as necessary.
  *
+ * @param c the configuration to use
+ * @param s the scheduler to use
+ * @param st hande for publishing statistics
  * @param ch set to handler for connect notifications
  * @param dh set to handler for disconnect notifications
  * @return GNUNET_OK on success

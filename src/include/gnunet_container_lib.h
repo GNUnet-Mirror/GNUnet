@@ -491,7 +491,6 @@ typedef int (*GNUNET_CONTAINER_HashMapIterator) (void *cls,
 /**
  * Create a multi hash map.
  *
- * @param map the map
  * @param len initial size (map will grow as needed)
  * @return NULL on error
  */

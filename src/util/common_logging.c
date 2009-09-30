@@ -123,12 +123,17 @@ static struct CustomLogger *loggers;
  */
 static unsigned int skip_log;
 
+/**
+ * File descriptor to use for "stderr", or NULL for none.
+ */
 static FILE *GNUNET_stderr;
 
 /**
  * Convert a textual description of a loglevel
  * to the respective GNUNET_GE_KIND.
- * @returns GNUNET_GE_INVALID if log does not parse
+ *
+ * @param log loglevel to parse
+ * @return GNUNET_GE_INVALID if log does not parse
  */
 static enum GNUNET_ErrorType
 get_type (const char *log)
@@ -143,6 +148,7 @@ get_type (const char *log)
     return GNUNET_ERROR_TYPE_ERROR;
   return GNUNET_ERROR_TYPE_INVALID;
 }
+
 
 /**
  * Setup logging.
@@ -219,6 +225,15 @@ GNUNET_logger_remove (GNUNET_Logger logger, void *logger_cls)
   GNUNET_free (pos);
 }
 
+
+/**
+ * Actually output the log message.
+ *
+ * @param kind how severe was the issue
+ * @param comp component responsible
+ * @param datestr current date/time
+ * @param msg the actual message
+ */
 static void
 output_message (enum GNUNET_ErrorType kind,
                 const char *comp, const char *datestr, const char *msg)
@@ -235,6 +250,12 @@ output_message (enum GNUNET_ErrorType kind,
     }
 }
 
+
+/**
+ * Flush an existing bulk report to the output.
+ *
+ * @param datastr our current timestamp
+ */
 static void
 flush_bulk (const char *datestr)
 {
@@ -294,6 +315,14 @@ GNUNET_log_skip (unsigned int n, int check_reset)
 }
 
 
+/**
+ * Output a log message using the default mechanism.
+ *
+ * @param kind how severe was the issue
+ * @param comp component responsible
+ * @param message the actual message
+ * @param va arguments to the format string "message"
+ */
 static void
 mylog (enum GNUNET_ErrorType kind,
        const char *comp, const char *message, va_list va)
@@ -346,6 +375,13 @@ mylog (enum GNUNET_ErrorType kind,
 }
 
 
+/**
+ * Main log function.
+ *
+ * @param kind how serious is the error?
+ * @param message what is the message (format string)
+ * @param ... arguments for format string
+ */
 void
 GNUNET_log (enum GNUNET_ErrorType kind, const char *message, ...)
 {
@@ -356,6 +392,15 @@ GNUNET_log (enum GNUNET_ErrorType kind, const char *message, ...)
 }
 
 
+/**
+ * Log function that specifies an alternative component.
+ * This function should be used by plugins.
+ *
+ * @param kind how serious is the error?
+ * @param comp component responsible for generating the message
+ * @param message what is the message (format string)
+ * @param ... arguments for format string
+ */
 void
 GNUNET_log_from (enum GNUNET_ErrorType kind,
                  const char *comp, const char *message, ...)
@@ -368,7 +413,10 @@ GNUNET_log_from (enum GNUNET_ErrorType kind,
 
 
 /**
- * Convert KIND to String
+ * Convert error type to string.
+ *
+ * @param kind type to convert
+ * @return string corresponding to the type
  */
 const char *
 GNUNET_error_type_to_string (enum GNUNET_ErrorType kind)

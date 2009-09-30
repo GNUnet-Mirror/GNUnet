@@ -33,7 +33,9 @@
 
 /**
  * @brief Enumerate all network interfaces
- * @param callback the callback function
+ *
+ * @param proc the callback function
+ * @param cls closure for proc
  */
 void
 GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,

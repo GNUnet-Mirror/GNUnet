@@ -99,7 +99,7 @@ progress_cb (void *cls,
  * @param sched the scheduler to use
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
- * @param cfg configuration
+ * @param c configuration
  */
 static void
 run (void *cls,

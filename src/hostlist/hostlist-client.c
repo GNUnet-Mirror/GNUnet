@@ -307,7 +307,8 @@ clean_up ()
  * Task that is run when we are ready to receive more data from the hostlist
  * server. 
  *
- * @param tc
+ * @param cls closure, unused
+ * @param tc task context, unused
  */
 static void
 multi_ready (void *cls,

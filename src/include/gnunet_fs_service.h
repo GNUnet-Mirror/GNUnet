@@ -1525,11 +1525,11 @@ typedef int (*GNUNET_FS_FileInformationProcessor)(void *cls,
 /**
  * Recover file information structure from disk.
  *
- * @param name filename for the structure on disk
+ * @param fn filename for the structure on disk
  * @return NULL on error 
  */
 struct GNUNET_FS_FileInformation *
-GNUNET_FS_file_information_recover (const char *name);
+GNUNET_FS_file_information_recover (const char *fn);
 
 
 /**

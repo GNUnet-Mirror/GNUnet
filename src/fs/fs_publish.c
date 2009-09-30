@@ -94,7 +94,7 @@ struct PutContCtx
  * Fill in all of the generic fields for 
  * a publish event.
  *
- * @param pc structure to fill in
+ * @param pi structure to fill in
  * @param sc overall publishing context
  * @param p file information for the file being published
  * @param offset where in the file are we so far
@@ -129,7 +129,7 @@ make_publish_status (struct GNUNET_FS_ProgressInfo *pi,
  * Cleanup the publish context, we're done
  * with it.
  *
- * @param pc struct to clean up after
+ * @param sc struct to clean up after
  */
 static void
 publish_cleanup (struct GNUNET_FS_PublishContext *sc)
@@ -461,6 +461,7 @@ encode_cont (void *cls,
  *
  * @param cls closure
  * @param query the query for the block (key for lookup in the datastore)
+ * @param offset offset of the block in the file
  * @param type type of the block (IBLOCK or DBLOCK)
  * @param block the (encrypted) block
  * @param block_size size of block (in bytes)

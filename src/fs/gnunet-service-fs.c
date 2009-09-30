@@ -2659,7 +2659,7 @@ ds_get_request (void *cls,
  * value for the ttl that can be requested.
  *
  * @param ttl_in requested ttl
- * @param priority given priority
+ * @param prio given priority
  * @return ttl_in if ttl_in is below the limit,
  *         otherwise the ttl-limit for the given priority
  */
@@ -2702,7 +2702,7 @@ bound_priority (uint32_t prio_in,
  * Handle P2P "GET" request.
  *
  * @param cls closure, always NULL
- * @param peer the other peer involved (sender or receiver, NULL
+ * @param other the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
  * @return GNUNET_OK to keep the connection open,
@@ -3135,7 +3135,7 @@ check_sblock (const struct SBlock *sb,
  * Handle P2P "PUT" request.
  *
  * @param cls closure, always NULL
- * @param peer the other peer involved (sender or receiver, NULL
+ * @param other the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
  * @return GNUNET_OK to keep the connection open,
@@ -3243,6 +3243,11 @@ core_connect_task (void *cls,
 /**
  * Function called by the core after we've
  * connected.
+ *
+ * @param cls closure, unused
+ * @param server handle to the core service
+ * @param my_identity our peer identity (unused)
+ * @param publicKey our public key (unused)
  */
 static void
 core_start_cb (void *cls,
@@ -3297,9 +3302,9 @@ core_connect_task (void *cls,
  * Process fs requests.
  *
  * @param cls closure
- * @param sched scheduler to use
+ * @param s scheduler to use
  * @param server the initialized server
- * @param cfg configuration to use
+ * @param c configuration to use
  */
 static void
 run (void *cls,

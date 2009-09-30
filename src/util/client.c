@@ -303,25 +303,25 @@ receive_task (void *scls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @param sock the service
  * @param handler function to call with the message
- * @param cls closure for handler
+ * @param handler_cls closure for handler
  * @param timeout how long to wait until timing out
  */
 void
 GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
                        GNUNET_CLIENT_MessageHandler handler,
-                       void *cls, struct GNUNET_TIME_Relative timeout)
+                       void *handler_cls, struct GNUNET_TIME_Relative timeout)
 {
   if (sock->sock == NULL)
     {
       /* already disconnected, fail instantly! */
       GNUNET_break (0);         /* this should not happen in well-written code! */
-      handler (cls, NULL);
+      handler (handler_cls, NULL);
       return;
     }
   GNUNET_assert (sock->receiver_task ==
                  GNUNET_SCHEDULER_NO_TASK);
   sock->receiver_handler = handler;
-  sock->receiver_handler_cls = cls;
+  sock->receiver_handler_cls = handler_cls;
   sock->receive_timeout = GNUNET_TIME_relative_to_absolute (timeout);
   if (GNUNET_YES == sock->msg_complete)
     sock->receiver_task = GNUNET_SCHEDULER_add_after (sock->sched,
@@ -331,9 +331,9 @@ GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
                                                       &receive_task, sock);
   else
     sock->receiver_task = GNUNET_CONNECTION_receive (sock->sock,
-                                                  GNUNET_SERVER_MAX_MESSAGE_SIZE,
-                                                  timeout,
-                                                  &receive_helper, sock);
+						     GNUNET_SERVER_MAX_MESSAGE_SIZE,
+						     timeout,
+						     &receive_helper, sock);
 }
 
 

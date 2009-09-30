@@ -230,7 +230,7 @@ int GNUNET_DISK_file_get_identifiers (const char *filename,
 /**
  * Create an (empty) temporary file on disk.
  * 
- * @param template component to use for the name;
+ * @param t component to use for the name;
  *        does NOT contain "XXXXXX" or "/tmp/".
  * @return NULL on error, otherwise name of fresh
  *         file on disk in directory for temporary files
@@ -480,7 +480,7 @@ GNUNET_DISK_directory_create (const char *dir)
  * Create the directory structure for storing
  * a file.
  *
- * @param filename name of a file in the directory
+ * @param dir name of a file in the directory
  * @returns GNUNET_OK on success,
  *          GNUNET_SYSERR on failure,
  *          GNUNET_NO if the directory
@@ -1058,8 +1058,8 @@ GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, off_t lockStart,
 /**
  * Unlock a part of a file
  * @param fh file handle
- * @param lockStart absolute position from where to unlock
- * @param lockEnd absolute position until where to unlock
+ * @param unlockStart absolute position from where to unlock
+ * @param unlockEnd absolute position until where to unlock
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int

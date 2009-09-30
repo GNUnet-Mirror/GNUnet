@@ -169,7 +169,7 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
  * Connect a socket
  * @param desc socket
  * @param address peer address
- * @param length of address
+ * @param address_len length of address
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
 int
@@ -406,6 +406,7 @@ GNUNET_NETWORK_socket_set_inheritable (const struct GNUNET_NETWORK_Handle
 #endif
 }
 
+
 /**
  * Reset FD set
  * @param fds fd set
@@ -422,6 +423,7 @@ GNUNET_NETWORK_fdset_zero (struct GNUNET_NETWORK_FDSet *fds)
 #endif
 }
 
+
 /**
  * Add a socket to the FD set
  * @param fds fd set
@@ -437,10 +439,12 @@ GNUNET_NETWORK_fdset_set (struct GNUNET_NETWORK_FDSet *fds,
     fds->nsds = desc->fd + 1;
 }
 
+
 /**
  * Check whether a socket is part of the fd set
  * @param fds fd set
  * @param desc socket
+ * @return 0 if the FD is not set
  */
 int
 GNUNET_NETWORK_fdset_isset (const struct GNUNET_NETWORK_FDSet *fds,
@@ -448,6 +452,7 @@ GNUNET_NETWORK_fdset_isset (const struct GNUNET_NETWORK_FDSet *fds,
 {
   return FD_ISSET (desc->fd, &fds->sds);
 }
+
 
 /**
  * Add one fd set to another
@@ -468,6 +473,7 @@ GNUNET_NETWORK_fdset_add (struct GNUNET_NETWORK_FDSet *dst,
           dst->nsds = nfds + 1;
       }
 }
+
 
 /**
  * Copy one fd set to another
@@ -494,11 +500,12 @@ GNUNET_NETWORK_fdset_copy (struct GNUNET_NETWORK_FDSet *to,
 #endif
 }
 
+
 /**
  * Copy a native fd set
  * @param to destination
  * @param from native source set
- * @param the biggest socket number in from + 1
+ * @param nfds the biggest socket number in from + 1
  */
 void
 GNUNET_NETWORK_fdset_copy_native (struct GNUNET_NETWORK_FDSet *to,
@@ -507,6 +514,7 @@ GNUNET_NETWORK_fdset_copy_native (struct GNUNET_NETWORK_FDSet *to,
   FD_COPY (from, &to->sds);
   to->nsds = nfds;
 }
+
 
 /**
  * Add a file handle to the fd set
@@ -591,6 +599,7 @@ GNUNET_NETWORK_fdset_create ()
   return fds;
 }
 
+
 /**
  * Releases the associated memory of an fd set
  * @param fds fd set
@@ -603,6 +612,7 @@ GNUNET_NETWORK_fdset_destroy (struct GNUNET_NETWORK_FDSet *fds)
 #endif
   GNUNET_free (fds);
 }
+
 
 /**
  * Check if sockets meet certain conditions
@@ -820,5 +830,6 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   return retcode;
 #endif
 }
+
 
 /* end of network.c */
