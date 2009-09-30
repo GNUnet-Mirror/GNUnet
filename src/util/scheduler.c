@@ -508,7 +508,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *cls)
           timeout = GNUNET_TIME_relative_get_zero();
         }
       update_sets (&sched, rs, ws, &timeout);
-      ret = GNUNET_NETWORK_socket_select (rs, ws, NULL, GNUNET_TIME_relative_get_zero());
+      ret = GNUNET_NETWORK_socket_select (rs, ws, NULL, timeout);
       if (ret == GNUNET_SYSERR)
         {
           if (errno == EINTR)
