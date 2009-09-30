@@ -40,7 +40,9 @@ extern "C"
 
 /**
  * Timeout we use on TCP connect before trying another
- * result from the DNS resolver. 5s.
+ * result from the DNS resolver.  Actual value used
+ * is this value divided by the number of address families.
+ * Default is 5s.
  */
 #define GNUNET_CONNECTION_CONNECT_RETRY_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 

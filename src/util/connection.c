@@ -349,10 +349,13 @@ GNUNET_CONNECTION_get_address (struct GNUNET_CONNECTION_Handle *sock,
   return GNUNET_OK;
 }
 
+
 /**
  * Perform a DNS lookup for the hostname associated
  * with the current socket, iterating over the address
  * families as specified in the "address_families" array.
+ *
+ * @param sock the socket for which to do the lookup
  */
 static void
 try_lookup (struct GNUNET_CONNECTION_Handle *sock)
@@ -360,6 +363,7 @@ try_lookup (struct GNUNET_CONNECTION_Handle *sock)
   struct addrinfo hints;
   int ec;
 
+  GNUNET_assert (0 < strlen (sock->hostname)); /* sanity check */
   while ( (sock->ai_pos == NULL) &&
 	  (sock->af_fam_offset > 0) )
     {
@@ -368,11 +372,32 @@ try_lookup (struct GNUNET_CONNECTION_Handle *sock)
       memset (&hints, 0, sizeof (hints));
       hints.ai_family = address_families[--sock->af_fam_offset];
       hints.ai_socktype = SOCK_STREAM;
-      if (0 != (ec = getaddrinfo (sock->hostname, NULL, &hints, &sock->ai)))
+#if 0
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("`%s' tries to resolve address family %d and hostname `%s:%u'\n"),
+		  "getaddrinfo", 
+		  address_families[sock->af_fam_offset],
+		  sock->hostname,
+		  sock->port);
+#endif
+      ec = getaddrinfo (sock->hostname, NULL, &hints, &sock->ai);
+#if 0
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("`%s' returned from resolving address family %d and hostname `%s:%u'\n"),
+		  "getaddrinfo", 
+		  address_families[sock->af_fam_offset],
+		  sock->hostname,
+		  sock->port);
+#endif
+      if (0 != ec)
 	{
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
-		      "`%s' failed for hostname `%s': %s\n",
-		      "getaddrinfo", sock->hostname, gai_strerror (ec));
+		      _("`%s' failed for address family %d and hostname `%s:%u': %s\n"),
+		      "getaddrinfo", 
+		      address_families[sock->af_fam_offset],
+		      sock->hostname,
+		      sock->port,
+		      gai_strerror (ec));
 	  sock->ai = NULL;
 	}
       sock->ai_pos = sock->ai;
@@ -477,10 +502,12 @@ connect_continuation (void *cls,
                       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CONNECTION_Handle *sock = cls;
+  struct GNUNET_TIME_Relative delay;
   unsigned int len;
   int error;
 
-  /* nobody needs to wait for us anymore... */
+  GNUNET_assert (0 < strlen (sock->hostname)); /* sanity check */
+   /* nobody needs to wait for us anymore... */
   sock->connect_task = GNUNET_SCHEDULER_NO_TASK;
   /* Note: write-ready does NOT mean connect succeeded,
      we need to use getsockopt to be sure */
@@ -493,8 +520,9 @@ connect_continuation (void *cls,
     {
 #if DEBUG_CONNECTION
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Failed to establish TCP connection to `%s'\n",
-		  GNUNET_a2s(sock->addr, sock->addrlen));
+		  "Failed to establish TCP connection to `%s:%u': %s\n",
+		  GNUNET_a2s(sock->addr, sock->addrlen),
+		  STRERROR (GNUNET_MAX (error, errno)));
 #endif
       /* connect failed / timed out */
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock->sock));
@@ -504,7 +532,9 @@ connect_continuation (void *cls,
           /* failed for good */
 #if DEBUG_CONNECTION
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Failed to establish TCP connection, no further addresses to try.\n");
+		      "Failed to establish TCP connection to `%s:%u', no further addresses to try.\n",
+		      sock->hostname,
+		      sock->port);
 #endif
 	  /* connect failed / timed out */
           GNUNET_break (sock->ai_pos == NULL);
@@ -512,13 +542,28 @@ connect_continuation (void *cls,
           sock->ai = NULL;
           return;
         }
+      delay = GNUNET_CONNECTION_CONNECT_RETRY_TIMEOUT;
+      if (sock->nth.notify_ready != NULL)
+	delay = GNUNET_TIME_relative_min (delay,
+					  GNUNET_TIME_absolute_get_remaining (sock->nth.transmit_timeout));
+      if (sock->receiver != NULL)
+	delay = GNUNET_TIME_relative_min (delay,
+					  GNUNET_TIME_absolute_get_remaining (sock->receive_timeout));
+      delay.value /= (1 + sock->af_fam_offset);
+#if DEBUG_CONNECTION
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Will try to connect to `%s' for %llu ms\n",
+		  GNUNET_a2s (sock->addr,
+			      sock->addrlen),
+		  delay.value);
+#endif
       sock->connect_task = GNUNET_SCHEDULER_add_write_net (tc->sched, GNUNET_NO,    /* abort on shutdown */
-                                                       GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                                       GNUNET_SCHEDULER_NO_TASK,
-                                                       GNUNET_CONNECTION_CONNECT_RETRY_TIMEOUT,
-                                                       sock->sock,
-                                                       &connect_continuation,
-                                                       sock);
+							   GNUNET_SCHEDULER_PRIORITY_KEEP,
+							   GNUNET_SCHEDULER_NO_TASK,
+							   delay,
+							   sock->sock,
+							   &connect_continuation,
+							   sock);
       return;
     }
   /* connect succeeded! clean up "ai" */
@@ -552,6 +597,7 @@ GNUNET_CONNECTION_create_from_connect (struct GNUNET_SCHEDULER_Handle
 {
   struct GNUNET_CONNECTION_Handle *ret;
 
+  GNUNET_assert (0 < strlen (hostname)); /* sanity check */
   ret = GNUNET_malloc (sizeof (struct GNUNET_CONNECTION_Handle) + maxbuf);
   ret->sock = NULL;
   ret->sched = sched;
@@ -788,7 +834,9 @@ receive_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
 #if DEBUG_CONNECTION
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Receive encounters error: time out...\n");
+                  "Receive from %s encounters error: time out by %llums...\n",
+		  GNUNET_a2s (sh->addr, sh->addrlen),
+		  now.value - sh->receive_timeout.value);
 #endif
       signal_timeout (sh);
       return;
@@ -1014,7 +1062,9 @@ transmit_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CONNECTION_TransmitReadyNotify notify;
 
 #if DEBUG_CONNECTION
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmit fails, time out reached.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Transmit to `%s' fails, time out reached.\n",
+	      GNUNET_a2s (sock->addr, sock->addrlen));
 #endif
   notify = sock->nth.notify_ready;
   sock->nth.notify_ready = NULL;

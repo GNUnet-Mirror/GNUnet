@@ -143,14 +143,22 @@ GNUNET_CLIENT_connect (struct GNUNET_SCHEDULER_Handle *sched,
                                               "HOSTNAME", &hostname)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Could not determine valid hostname and port for service `%s' from configuration.\n",
+                  _("Could not determine valid hostname and port for service `%s' from configuration.\n"),
                   service_name);
       return NULL;
     }
+  if (0 == strlen (hostname))
+    {
+      GNUNET_free (hostname);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Need a non-empty hostname for service `%s'.\n"),
+		  service_name);
+      return NULL;
+    }
   sock = GNUNET_CONNECTION_create_from_connect (sched,
-                                                    hostname,
-                                                    port,
-                                                    GNUNET_SERVER_MAX_MESSAGE_SIZE);
+						hostname,
+						port,
+						GNUNET_SERVER_MAX_MESSAGE_SIZE);
   GNUNET_free (hostname);
   if (sock == NULL)
     return NULL;

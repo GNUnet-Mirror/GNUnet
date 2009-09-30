@@ -1104,7 +1104,11 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       sctx->ready_confirm_fd = -1;
       write_pid_file (sctx, getpid ());
     }
-
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      _("Service `%s' runs at %s\n"),
+	      sctx->serviceName,
+	      GNUNET_a2s (sctx->addr,
+			  sctx->addrlen));
   sctx->task (sctx->task_cls, tc->sched, sctx->server, sctx->cfg);
 }
 

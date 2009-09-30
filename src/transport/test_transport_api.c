@@ -31,7 +31,7 @@
 #include "gnunet_transport_service.h"
 #include "transport.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define START_ARM GNUNET_YES
 
