@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 rm -rf /tmp/test-gnunetd-arm/
 exe="./gnunet-arm -c test_arm_api_data.conf"
