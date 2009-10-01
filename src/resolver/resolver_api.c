@@ -32,15 +32,87 @@
 #include "resolver.h"
 
 
+/**
+ * FIXME.
+ */
 struct GetAddressContext
 {
+
+  /**
+   * FIXME.
+   */
   GNUNET_RESOLVER_AddressCallback callback;
+
+  /**
+   * Closure for "callback".
+   */
   void *cls;
+
+  /**
+   * FIXME.
+   */
   struct GNUNET_RESOLVER_GetMessage *msg;
+
+  /**
+   * FIXME.
+   */
   struct GNUNET_CLIENT_Connection *client;
+
+  /**
+   * FIXME.
+   */
   struct GNUNET_TIME_Absolute timeout;
 };
 
+
+/**
+ * Possible hostnames for "loopback".
+ */
+static const char *loopback[] = {
+  "localhost",
+  "127.0.0.1",
+  "ip6-localnet",
+  "::1",
+  NULL
+};
+
+
+/**
+ * Check that the resolver service runs on localhost
+ * (or equivalent).
+ */
+static void
+check_config (const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  char *hostname;
+  unsigned int i;
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+					     "resolver",
+					     "HOSTNAME",
+					     &hostname))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Must specify `%s' for `%s' in configuration!\n"),
+		  "HOSTNAME",
+		  "resolver");
+      GNUNET_assert (0);
+    }
+  i = 0;
+  while (loopback[i] != NULL)
+    if (0 == strcmp (loopback[i++], hostname))
+      {
+	GNUNET_free (hostname); 
+	return;
+      }
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      _("Must specify `%s' for `%s' in configuration!\n"),
+	      "localhost",
+	      "resolver");
+  GNUNET_free (hostname); 
+  GNUNET_assert (0); 
+}
 
 
 /**
@@ -182,7 +254,7 @@ transmit_get_ip (void *cls, size_t size, void *buf)
  * @param hostname the hostname to resolve
  * @param domain AF_INET or AF_INET6; use AF_UNSPEC for "any"
  * @param callback function to call with addresses
- * @param cls closure for callback
+ * @param callback_cls closure for callback
  * @param timeout how long to try resolving
  */
 void
@@ -191,25 +263,72 @@ GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
                         const char *hostname,
                         int domain,
                         struct GNUNET_TIME_Relative timeout,
-                        GNUNET_RESOLVER_AddressCallback callback, void *cls)
+                        GNUNET_RESOLVER_AddressCallback callback, 
+			void *callback_cls)
 {
   struct GNUNET_CLIENT_Connection *client;
   struct GNUNET_RESOLVER_GetMessage *msg;
   struct GetAddressContext *actx;
   size_t slen;
+  unsigned int i;
+  struct sockaddr_in v4;
+  struct sockaddr_in6 v6;
 
+  check_config (cfg);
+  i = 0;
+  while (loopback[i] != NULL)
+    if (0 == strcmp (loopback[i++], hostname))
+      {
+	memset (&v4, 0, sizeof(v4));
+#if HAVE_SOCKADDR_IN_SIN_LEN
+	v4.sin_len = sizeof (v4);
+#endif
+	v4.sin_family = AF_INET;
+	v4.sin_addr.s_addr = htonl (INADDR_LOOPBACK);  
+
+	memset (&v6, 0, sizeof(v6));
+#if HAVE_SOCKADDR_IN_SIN_LEN
+	v6.sin6_len = sizeof (v6);
+#endif
+	v6.sin6_family = AF_INET6;
+	v6.sin6_addr = in6addr_loopback;
+
+	switch (domain)
+	  {
+	  case AF_INET:
+	    callback (callback_cls, 
+		      (const struct sockaddr*) &v4,
+		      sizeof(v4));
+	    break;
+	  case AF_INET6:
+	    callback (callback_cls, 
+		      (const struct sockaddr*) &v6,
+		      sizeof(v6));
+	    break;
+	  case AF_UNSPEC:
+	    callback (callback_cls, 
+		      (const struct sockaddr*) &v4,
+		      sizeof(v4));
+	    callback (callback_cls, 
+		      (const struct sockaddr*) &v6,
+		      sizeof(v6));
+	    break;
+	  }
+	callback (callback_cls, NULL, 0);
+	return;
+      }
   slen = strlen (hostname) + 1;
   if (slen + sizeof (struct GNUNET_RESOLVER_GetMessage) >
       GNUNET_SERVER_MAX_MESSAGE_SIZE)
     {
       GNUNET_break (0);
-      callback (cls, NULL, 0);
+      callback (callback_cls, NULL, 0);
       return;
     }
   client = GNUNET_CLIENT_connect (sched, "resolver", cfg);
   if (client == NULL)
     {
-      callback (cls, NULL, 0);
+      callback (callback_cls, NULL, 0);
       return;
     }
   msg = GNUNET_malloc (sizeof (struct GNUNET_RESOLVER_GetMessage) + slen);
@@ -221,7 +340,7 @@ GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
   memcpy (&msg[1], hostname, slen);
   actx = GNUNET_malloc (sizeof (struct GetAddressContext));
   actx->callback = callback;
-  actx->cls = cls;
+  actx->cls = callback_cls;
   actx->client = client;
   actx->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   actx->msg = msg;
@@ -240,7 +359,7 @@ GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
     {
       GNUNET_free (msg);
       GNUNET_free (actx);
-      callback (cls, NULL, 0);
+      callback (callback_cls, NULL, 0);
       GNUNET_CLIENT_disconnect (client);
       return;
     }
@@ -362,6 +481,7 @@ GNUNET_RESOLVER_hostname_get (struct GNUNET_SCHEDULER_Handle *sched,
   struct GNUNET_RESOLVER_GetMessage *msg;
   struct GetHostnameContext *hctx;
 
+  check_config (cfg);
   if (GNUNET_NO == do_resolve)
     {
       result = no_resolve (sa, salen);
@@ -447,6 +567,7 @@ GNUNET_RESOLVER_hostname_resolve (struct GNUNET_SCHEDULER_Handle *sched,
 {
   char hostname[MAX_HOSTNAME];
 
+  check_config (cfg);
   if (0 != gethostname (hostname, sizeof (hostname) - 1))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR |
