@@ -27,6 +27,6 @@
 
 #include "gnunet_common.h"
 
-#define DEBUG_ARM GNUNET_YES
+#define DEBUG_ARM GNUNET_NO
 
 #endif

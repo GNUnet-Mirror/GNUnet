@@ -6,6 +6,21 @@ base=/tmp/gnunet-test-arm
 out=/tmp/test-gnunetd-arm.log
 #DEBUG="-L DEBUG"
 
+# -------------------------------------------
+echo -n "TEST: can this script work?... "
+LINES=`ps -C gnunet-service-arm -o pid= | wc -l`
+if test $LINES -ne 0; then
+  echo "No (arm exists). Exiting early."
+  exit 0
+fi
+LINES=`ps -C gnunet-service-resolver -o pid= | wc -l`
+if test $LINES -ne 0; then
+  echo "No (resolver exists). Exiting early."
+  exit 0
+fi
+echo "Yes."
+
+
 # ----------------------------------------------------------------------------------
 echo -n "TEST: Bad argument checking... "
 
@@ -24,7 +39,7 @@ if ! $exe $DEBUG -s > $out ; then
   cat $out
   exit 1
 fi
-LINES=`ps ax | grep gnunet-service-arm | grep -v grep | wc -l`
+LINES=`ps -u $USER -C gnunet-service-arm -o pid= | wc -l`
 if test $LINES -eq 0; then
   echo "FAIL: found $LINES gnunet-service-arm processes"
   echo "Command output was:"
@@ -44,7 +59,7 @@ if ! $exe $DEBUG -i resolver > $out ; then
   exit 1
 fi
 sleep 1
-LINES=`ps ax | grep gnunet-service-resolver | grep -v grep | wc -l`
+LINES=`ps -C gnunet-service-resolver -o pid= | wc -l`
 if test $LINES -ne 1; then
   echo "FAIL: unexpected output (got $LINES lines, wanted 1)"
   echo "Command output was:"
@@ -86,8 +101,14 @@ if ! $exe $DEBUG -k resolver > $out; then
   exit 1
 fi
 sleep 1
-LINES=`ps ax | grep gnunet-service-resolver | grep -v grep | wc -l`
+LINES=`ps -C gnunet-service-resolver -o pid= | wc -l`
 if test $LINES -ne 0; then
+  sleep 5
+  LINES=`ps -C gnunet-service-resolver -o pid= | wc -l`
+fi
+if test $LINES -ne 0; then
+  sleep 2
+
   echo "FAIL: unexpected output"
   echo "Command output was:"
   cat $out
@@ -122,7 +143,11 @@ if ! $exe $DEBUG -e > $out; then
   exit 1
 fi
 sleep 1
-LINES=`ps ax | grep gnunet-service-arm | grep -v grep | wc -l`
+LINES=`ps -C gnunet-service-arm -o pid= | wc -l`
+if test $LINES -ne 0; then
+  sleep 5
+  LINES=`ps -C gnunet-service-arm -o pid= | wc -l`
+fi
 if test $LINES -ne 0; then
   echo "FAIL: unexpected output, still have $LINES gnunet-service-arm processes"
   echo "Command output was:"
