@@ -512,20 +512,24 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *cls)
       GNUNET_NETWORK_fdset_zero (rs);
       GNUNET_NETWORK_fdset_zero (ws);
       timeout = GNUNET_TIME_relative_get_forever();
+      update_sets (&sched, rs, ws, &timeout);
       if (sched.ready_count > 0)
         {
           /* no blocking, more work already ready! */
           timeout = GNUNET_TIME_relative_get_zero();
         }
-      update_sets (&sched, rs, ws, &timeout);
       ret = GNUNET_NETWORK_socket_select (rs, ws, NULL, timeout);
       if (last_tr == sched.tasks_run)
-	busy_wait_warning++;
+	{
+	  busy_wait_warning++;
+	}
       else
-	last_tr = sched.tasks_run;
+	{
+	  last_tr = sched.tasks_run;
+	  busy_wait_warning = 0;
+	}
       if ( (ret == 0) &&
 	   (timeout.value == 0) &&
-	   (sched.ready_count == 0) &&
 	   (busy_wait_warning > 16) )
 	{
 	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
