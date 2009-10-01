@@ -1027,9 +1027,9 @@ receive_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   sh->read_task = GNUNET_SCHEDULER_NO_TASK;
   now = GNUNET_TIME_absolute_get ();
-  if ((now.value > sh->receive_timeout.value) ||
-      (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT)) ||
-      (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)))
+  if ( (now.value > sh->receive_timeout.value) ||
+       (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT)) ||
+       (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)) )
     {
 #if DEBUG_CONNECTION
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1304,15 +1304,27 @@ static void
 transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CONNECTION_Handle *sock = cls;
+  GNUNET_CONNECTION_TransmitReadyNotify notify;
   ssize_t ret;
   size_t have;
 
   GNUNET_assert (sock->write_task != GNUNET_SCHEDULER_NO_TASK);
   sock->write_task = GNUNET_SCHEDULER_NO_TASK;
-  if ( (sock->sock == NULL) ||
-       ( (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT)) &&
-	 (0 == (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE)) &&
-	 (!GNUNET_NETWORK_fdset_isset (tc->write_ready, sock->sock)))  )
+  GNUNET_assert (NULL != sock->sock);
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
+    {
+#if DEBUG_CONNECTION
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		  "Transmit to `%s' fails, time out reached.\n",
+		  GNUNET_a2s (sock->addr, sock->addrlen));
+#endif
+      notify = sock->nth.notify_ready;
+      sock->nth.notify_ready = NULL;
+      notify (sock->nth.notify_ready_cls, 0, NULL);
+      return;
+    }
+  if (! GNUNET_NETWORK_fdset_isset (tc->write_ready, 
+				    sock->sock))
     {
 #if DEBUG_CONNECTION
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -1392,7 +1404,8 @@ SCHEDULE_WRITE:
 				      GNUNET_SCHEDULER_PRIORITY_KEEP,
 				      GNUNET_SCHEDULER_NO_TASK,
 				      GNUNET_TIME_absolute_get_remaining (sock->nth.transmit_timeout),
-				      sock->sock, &transmit_ready, sock);
+				      sock->sock, 
+				      &transmit_ready, sock);
 }
 
 
