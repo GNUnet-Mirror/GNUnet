@@ -683,7 +683,6 @@ run (void *cls,
   char *defaultservices;
   char *pos;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting...\n");
   cfg = c;
   sched = s;
   if (GNUNET_OK !=
