@@ -631,7 +631,6 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   int nfds;
 
   nfds = 0;
-
   if (NULL != rfds)
     nfds = rfds->nsds;
   if (NULL != wfds)
