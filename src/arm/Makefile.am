@@ -51,7 +51,6 @@ test_arm_api_SOURCES = \
  test_arm_api.c
 test_arm_api_LDADD = \
   $(top_builddir)/src/arm/libgnunetarm.la \
-  $(top_builddir)/src/resolver/libgnunetresolver.la \
   $(top_builddir)/src/util/libgnunetutil.la  
 
 
