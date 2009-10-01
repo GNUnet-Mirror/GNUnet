@@ -31,7 +31,6 @@
  * module they are VERY, VERY important.
  *
  * TODO:
- * - can we merge receive_ready and receive_again?
  * - can we integrate the nth.timeout_task with the write_task's timeout?
  */
 
@@ -512,6 +511,9 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
     }
   if (0 != (h->ccs & CC_TRANSMIT_READY))
     {
+      GNUNET_assert (h->nth.timeout_task != GNUNET_SCHEDULER_NO_TASK);    
+      GNUNET_SCHEDULER_cancel (h->sched, h->nth.timeout_task);
+      h->nth.timeout_task = GNUNET_SCHEDULER_NO_TASK;
       h->ccs -= CC_TRANSMIT_READY;
       h->write_task = GNUNET_SCHEDULER_add_after (h->sched,
 						  GNUNET_NO,
@@ -558,6 +560,9 @@ connect_success_continuation (struct GNUNET_CONNECTION_Handle *h)
     }
   if (0 != (h->ccs & CC_TRANSMIT_READY))
     {
+      GNUNET_assert (h->nth.timeout_task != GNUNET_SCHEDULER_NO_TASK);    
+      GNUNET_SCHEDULER_cancel (h->sched, h->nth.timeout_task);
+      h->nth.timeout_task = GNUNET_SCHEDULER_NO_TASK;
       h->ccs -= CC_TRANSMIT_READY;
       h->write_task =
 	GNUNET_SCHEDULER_add_write_net (h->sched,
@@ -684,15 +689,11 @@ destroy_continuation (void *cls,
                                   &destroy_continuation, sock);
       return;
     }
+  GNUNET_assert (sock->nth.timeout_task == GNUNET_SCHEDULER_NO_TASK);
   if (NULL != (notify = sock->nth.notify_ready))
     {
       sock->nth.notify_ready = NULL;
       notify (sock->nth.notify_ready_cls, 0, NULL);
-      if (sock->nth.timeout_task != GNUNET_SCHEDULER_NO_TASK)
-        {
-          GNUNET_SCHEDULER_cancel (sock->sched, sock->nth.timeout_task);
-          sock->nth.timeout_task = GNUNET_SCHEDULER_NO_TASK;
-        }
     }
   if (sock->sock != NULL)
     GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock->sock));
@@ -1233,11 +1234,6 @@ process_notify (struct GNUNET_CONNECTION_Handle *sock)
   if (sock->nth.notify_size > avail)
     return GNUNET_NO;
   sock->nth.notify_ready = NULL;
-  if (sock->nth.timeout_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (sock->sched, sock->nth.timeout_task);
-      sock->nth.timeout_task = GNUNET_SCHEDULER_NO_TASK;
-    }
   if (sock->write_buffer_size - sock->write_buffer_off < size)
     {
       /* need to compact */
@@ -1264,7 +1260,8 @@ process_notify (struct GNUNET_CONNECTION_Handle *sock)
  * This task notifies the client about the timeout.
  */
 static void
-transmit_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+transmit_timeout (void *cls,
+		  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CONNECTION_Handle *sock = cls;
   GNUNET_CONNECTION_TransmitReadyNotify notify;
@@ -1274,6 +1271,8 @@ transmit_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	      "Transmit to `%s' fails, time out reached.\n",
 	      GNUNET_a2s (sock->addr, sock->addrlen));
 #endif
+  GNUNET_assert (0 != (sock->ccs & CC_TRANSMIT_READY));
+  sock->ccs -= CC_TRANSMIT_READY; /* remove request */
   notify = sock->nth.notify_ready;
   sock->nth.notify_ready = NULL;
   notify (sock->nth.notify_ready_cls, 0, NULL);
@@ -1283,14 +1282,13 @@ transmit_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 transmit_error (struct GNUNET_CONNECTION_Handle *sock)
 {
+  GNUNET_CONNECTION_TransmitReadyNotify notify;
+
   if (sock->nth.notify_ready == NULL)
     return;                     /* nobody to tell about it */
-  if (sock->nth.timeout_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (sock->sched, sock->nth.timeout_task);
-      sock->nth.timeout_task = GNUNET_SCHEDULER_NO_TASK;
-    }
-  transmit_timeout (sock, NULL);
+  notify = sock->nth.notify_ready;
+  sock->nth.notify_ready = NULL;
+  notify (sock->nth.notify_ready_cls, 0, NULL);
 }
 
 
@@ -1341,13 +1339,13 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   have = sock->write_buffer_off - sock->write_buffer_pos;
   if (have == 0)
     {
-      /* no data ready for writing, terminate write loop */
+       /* no data ready for writing, terminate write loop */
       return;
     }
 RETRY:
   ret = GNUNET_NETWORK_socket_send (sock->sock,
-              &sock->write_buffer[sock->write_buffer_pos],
-              have,
+				    &sock->write_buffer[sock->write_buffer_pos],
+				    have,
 #ifndef MINGW
               // FIXME NILS
               MSG_DONTWAIT | MSG_NOSIGNAL
@@ -1382,18 +1380,19 @@ RETRY:
       sock->write_buffer_pos = 0;
       sock->write_buffer_off = 0;
     }
-  if ((sock->write_buffer_off == 0) && (NULL == sock->nth.notify_ready))
-    return;                     /* all data sent! */
+  if ( (sock->write_buffer_off == 0) && 
+       (NULL == sock->nth.notify_ready))
+    return;                     /* all data sent! */    
   /* not done writing, schedule more */
 SCHEDULE_WRITE:
   if (sock->write_task == GNUNET_SCHEDULER_NO_TASK)
     sock->write_task =
       GNUNET_SCHEDULER_add_write_net (tc->sched,
-                                  GNUNET_NO,
-                                  GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                  GNUNET_SCHEDULER_NO_TASK,
-                                  GNUNET_TIME_absolute_get_remaining (sock->nth.transmit_timeout),
-                                  sock->sock, &transmit_ready, sock);
+				      GNUNET_NO,
+				      GNUNET_SCHEDULER_PRIORITY_KEEP,
+				      GNUNET_SCHEDULER_NO_TASK,
+				      GNUNET_TIME_absolute_get_remaining (sock->nth.transmit_timeout),
+				      sock->sock, &transmit_ready, sock);
 }
 
 
@@ -1443,25 +1442,28 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle
   sock->nth.sh = sock;
   sock->nth.notify_size = size;
   sock->nth.transmit_timeout = GNUNET_TIME_relative_to_absolute (timeout);
-  sock->nth.timeout_task = GNUNET_SCHEDULER_add_delayed (sock->sched,
-                                                         GNUNET_NO,
-                                                         GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                                         GNUNET_SCHEDULER_NO_TASK,
-                                                         timeout,
-                                                         &transmit_timeout,
-                                                         sock);
-  if (sock->write_task == GNUNET_SCHEDULER_NO_TASK)
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == sock->nth.timeout_task);
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == sock->write_task);
+  if (sock->sock != NULL)
     {
-      if (sock->sock != NULL)
-	sock->write_task = GNUNET_SCHEDULER_add_write_net (sock->sched,
-							   GNUNET_NO,
-							   GNUNET_SCHEDULER_PRIORITY_KEEP,
-							   GNUNET_SCHEDULER_NO_TASK,
-							   GNUNET_TIME_absolute_get_remaining (sock->nth.transmit_timeout),
-							   sock->sock,
-							   &transmit_ready, sock);
-      else
-	sock->ccs |= CC_TRANSMIT_READY;
+      sock->write_task = GNUNET_SCHEDULER_add_write_net (sock->sched,
+							 GNUNET_NO,
+							 GNUNET_SCHEDULER_PRIORITY_KEEP,
+							 GNUNET_SCHEDULER_NO_TASK,
+							 GNUNET_TIME_absolute_get_remaining (sock->nth.transmit_timeout),
+							 sock->sock,
+							 &transmit_ready, sock);
+    }
+  else
+    {
+      sock->ccs |= CC_TRANSMIT_READY;   
+      sock->nth.timeout_task = GNUNET_SCHEDULER_add_delayed (sock->sched,
+							     GNUNET_NO,
+							     GNUNET_SCHEDULER_PRIORITY_KEEP,
+							     GNUNET_SCHEDULER_NO_TASK,
+							     timeout,
+							     &transmit_timeout,
+							     sock);
     }
   return &sock->nth;
 }
@@ -1473,11 +1475,20 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle
  */
 void
 GNUNET_CONNECTION_notify_transmit_ready_cancel (struct
-                                             GNUNET_CONNECTION_TransmitHandle *h)
+						GNUNET_CONNECTION_TransmitHandle *h)
 {
   GNUNET_assert (h->notify_ready != NULL);
-  GNUNET_SCHEDULER_cancel (h->sh->sched, h->timeout_task);
-  h->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (h->sh->ccs & CC_TRANSMIT_READY))
+    {
+      GNUNET_SCHEDULER_cancel (h->sh->sched, h->timeout_task);
+      h->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+      h->sh->ccs -= CC_TRANSMIT_READY;
+    }
+  else
+    {
+      GNUNET_SCHEDULER_cancel (h->sh->sched,
+			       h->sh->write_task);
+    }
   h->notify_ready = NULL;
 }
 
