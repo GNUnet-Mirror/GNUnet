@@ -598,11 +598,10 @@ connect_probe_continuation (void *cls,
   struct AddressProbe *ap = cls;
   struct GNUNET_CONNECTION_Handle *h = ap->h;
   struct AddressProbe *pos;
- int error;
+  int error;
   unsigned int len;
 
   GNUNET_CONTAINER_DLL_remove (h->ap_head, h->ap_tail, ap);
-
   len = sizeof (error);
   errno = 0;
   error = 0;
@@ -1032,10 +1031,11 @@ receive_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
        (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)) )
     {
 #if DEBUG_CONNECTION
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Receive from %s encounters error: time out by %llums...\n",
-		  GNUNET_a2s (sh->addr, sh->addrlen),
-		  now.value - sh->receive_timeout.value);
+      if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "Receive from `%s' encounters error: time out by %llums...\n",
+		    GNUNET_a2s (sh->addr, sh->addrlen),
+		    GNUNET_TIME_absolute_get_duration (sh->receive_timeout).value);
 #endif
       signal_timeout (sh);
       return;
@@ -1269,7 +1269,9 @@ transmit_timeout (void *cls,
   sock->nth.timeout_task = GNUNET_SCHEDULER_NO_TASK;
 #if DEBUG_CONNECTION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Transmit to `%s' fails, time out reached.\n",
+	      "Transmit to `%s:%u/%s' fails, time out reached.\n",
+	      sock->hostname,
+	      sock->port,
 	      GNUNET_a2s (sock->addr, sock->addrlen));
 #endif
   GNUNET_assert (0 != (sock->ccs & CC_TRANSMIT_READY));
@@ -1502,6 +1504,7 @@ GNUNET_CONNECTION_notify_transmit_ready_cancel (struct
     {
       GNUNET_SCHEDULER_cancel (h->sh->sched,
 			       h->sh->write_task);
+      h->sh->write_task = GNUNET_SCHEDULER_NO_TASK;
     }
   h->notify_ready = NULL;
 }
