@@ -1310,7 +1310,6 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_assert (sock->write_task != GNUNET_SCHEDULER_NO_TASK);
   sock->write_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_assert (NULL != sock->sock);
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
     {
 #if DEBUG_CONNECTION
@@ -1323,6 +1322,7 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       notify (sock->nth.notify_ready_cls, 0, NULL);
       return;
     }
+  GNUNET_assert (NULL != sock->sock);
   if (! GNUNET_NETWORK_fdset_isset (tc->write_ready, 
 				    sock->sock))
     {
