@@ -1266,6 +1266,7 @@ transmit_timeout (void *cls,
   struct GNUNET_CONNECTION_Handle *sock = cls;
   GNUNET_CONNECTION_TransmitReadyNotify notify;
 
+  sock->nth.timeout_task = GNUNET_SCHEDULER_NO_TASK;
 #if DEBUG_CONNECTION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Transmit to `%s' fails, time out reached.\n",
