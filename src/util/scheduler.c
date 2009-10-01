@@ -144,6 +144,11 @@ struct GNUNET_SCHEDULER_Handle
   unsigned int ready_count;
 
   /**
+   * How many tasks have we run so far?
+   */
+  unsigned long long tasks_run;
+
+  /**
    * Priority of the task running right now.  Only
    * valid while a task is running.
    */
@@ -436,6 +441,7 @@ run_ready (struct GNUNET_SCHEDULER_Handle *sched)
       tc.write_ready = pos->write_set;
       pos->callback (pos->callback_cls, &tc);
       destroy_task (pos);
+      sched->tasks_run++;
     }
   while ((sched->pending == NULL) || (p == GNUNET_SCHEDULER_PRIORITY_URGENT));
 }
@@ -479,6 +485,8 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *cls)
   struct GNUNET_SIGNAL_Context *shc_quit;
   struct GNUNET_SIGNAL_Context *shc_hup;
   struct Task *tpos;
+  unsigned long long last_tr;
+  unsigned int busy_wait_warning;
 
   sig_shutdown = 0;
   rs = GNUNET_NETWORK_fdset_create ();
@@ -495,6 +503,8 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *cls)
                                      GNUNET_YES,
                                      task,
                                      cls, GNUNET_SCHEDULER_REASON_STARTUP);
+  last_tr = 0;
+  busy_wait_warning = 0;
   while ((GNUNET_NO == sched.shutdown) &&
          (!sig_shutdown) &&
          ((sched.pending != NULL) || (sched.ready_count > 0)))
@@ -509,6 +519,18 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *cls)
         }
       update_sets (&sched, rs, ws, &timeout);
       ret = GNUNET_NETWORK_socket_select (rs, ws, NULL, timeout);
+      if (last_tr == sched.tasks_run)
+	busy_wait_warning++;
+      else
+	last_tr = sched.tasks_run;
+      if ( (ret == 0) &&
+	   (timeout.value == 0) &&
+	   (sched.ready_count == 0) &&
+	   (busy_wait_warning > 16) )
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		      _("Looks like we're busy waiting...\n"));
+	}
       if (ret == GNUNET_SYSERR)
         {
           if (errno == EINTR)
