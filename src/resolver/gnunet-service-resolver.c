@@ -58,7 +58,11 @@ getnameinfo_resolve (struct IPCache *cache)
 {
   char hostname[256];
 
-  if (0 == getnameinfo (cache->sa, cache->salen, hostname, 255, NULL, 0, 0))
+  if (0 == getnameinfo (cache->sa, 
+			cache->salen, 
+			hostname, 
+			sizeof(hostname), 
+			NULL, 0, 0))
     cache->addr = GNUNET_strdup (hostname);
 }
 #endif
