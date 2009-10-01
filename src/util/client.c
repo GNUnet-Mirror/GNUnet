@@ -61,11 +61,6 @@ struct GNUNET_CLIENT_Connection
   char *service_name;
 
   /**
-   * ID of task used for receiving.
-   */
-  GNUNET_SCHEDULER_TaskIdentifier receiver_task;
-
-  /**
    * Handler for current receiver task.
    */
   GNUNET_CLIENT_MessageHandler receiver_handler;
@@ -109,6 +104,14 @@ struct GNUNET_CLIENT_Connection
    * Do we have a complete response in received_buf?
    */
   int msg_complete;
+
+  /**
+   * Are we currently busy doing receive-processing?
+   * GNUNET_YES if so, GNUNET_NO if not, GNUNET_SYSERR
+   * if the handle should be destroyed as soon as the
+   * receive processing is done.
+   */
+  int in_receive;
 
 };
 
@@ -156,6 +159,7 @@ GNUNET_CLIENT_connect (struct GNUNET_SCHEDULER_Handle *sched,
       return NULL;
     }
   sock = GNUNET_CONNECTION_create_from_connect (sched,
+						cfg,
 						hostname,
 						port,
 						GNUNET_SERVER_MAX_MESSAGE_SIZE);
@@ -195,15 +199,19 @@ GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock)
   GNUNET_CONNECTION_destroy (sock->sock);
   sock->sock = NULL;
   sock->receiver_handler = NULL;
-  GNUNET_SCHEDULER_add_after (sock->sched,
-                              GNUNET_YES,
-                              GNUNET_SCHEDULER_PRIORITY_KEEP,
-                              sock->receiver_task, &finish_cleanup, sock);
+  if (sock->in_receive == GNUNET_YES)
+    sock->in_receive = GNUNET_SYSERR;
+  else
+    GNUNET_SCHEDULER_add_after (sock->sched,
+				GNUNET_YES,
+				GNUNET_SCHEDULER_PRIORITY_KEEP,
+				GNUNET_SCHEDULER_NO_TASK,
+				&finish_cleanup, sock);
 }
 
 
 /**
- * check if message is complete
+ * Check if message is complete
  */
 static void
 check_complete (struct GNUNET_CLIENT_Connection *conn)
@@ -238,8 +246,14 @@ receive_helper (void *cls,
   struct GNUNET_TIME_Relative remaining;
 
   GNUNET_assert (conn->msg_complete == GNUNET_NO);
-  conn->receiver_task = GNUNET_SCHEDULER_NO_TASK;
-
+  if (GNUNET_SYSERR == conn->in_receive)
+    GNUNET_SCHEDULER_add_after (conn->sched,
+				GNUNET_YES,
+				GNUNET_SCHEDULER_PRIORITY_KEEP,
+				GNUNET_SCHEDULER_NO_TASK,
+				&finish_cleanup, 
+				conn);
+  conn->in_receive = GNUNET_NO;
   if ((available == 0) || (conn->sock == NULL) || (errCode != 0))
     {
       /* signal timeout! */
@@ -291,8 +305,15 @@ receive_task (void *scls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char mbuf[msize];
   struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader*) mbuf;
 
+  if (GNUNET_SYSERR == sock->in_receive)
+    GNUNET_SCHEDULER_add_after (sock->sched,
+				GNUNET_YES,
+				GNUNET_SCHEDULER_PRIORITY_KEEP,
+				GNUNET_SCHEDULER_NO_TASK,
+				&finish_cleanup, 
+				sock);
+  sock->in_receive = GNUNET_NO;
   GNUNET_assert (GNUNET_YES == sock->msg_complete);
-  sock->receiver_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (sock->received_pos >= msize);
   memcpy (msg, cmsg, msize);
   memmove (sock->received_buf,
@@ -326,22 +347,21 @@ GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
       handler (handler_cls, NULL);
       return;
     }
-  GNUNET_assert (sock->receiver_task ==
-                 GNUNET_SCHEDULER_NO_TASK);
   sock->receiver_handler = handler;
   sock->receiver_handler_cls = handler_cls;
   sock->receive_timeout = GNUNET_TIME_relative_to_absolute (timeout);
+  sock->in_receive = GNUNET_YES;
   if (GNUNET_YES == sock->msg_complete)
-    sock->receiver_task = GNUNET_SCHEDULER_add_after (sock->sched,
-                                                      GNUNET_YES,
-                                                      GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                                      GNUNET_SCHEDULER_NO_TASK,
-                                                      &receive_task, sock);
+    GNUNET_SCHEDULER_add_after (sock->sched,
+				GNUNET_YES,
+				GNUNET_SCHEDULER_PRIORITY_KEEP,
+				GNUNET_SCHEDULER_NO_TASK,
+				&receive_task, sock);
   else
-    sock->receiver_task = GNUNET_CONNECTION_receive (sock->sock,
-						     GNUNET_SERVER_MAX_MESSAGE_SIZE,
-						     timeout,
-						     &receive_helper, sock);
+    GNUNET_CONNECTION_receive (sock->sock,
+			       GNUNET_SERVER_MAX_MESSAGE_SIZE,
+			       timeout,
+			       &receive_helper, sock);
 }
 
 

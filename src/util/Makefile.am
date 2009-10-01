@@ -46,6 +46,7 @@ libgnunetutil_la_SOURCES = \
   plugin.c \
   program.c \
   pseudonym.c \
+  resolver_api.c \
   scheduler.c \
   server.c \
   server_tc.c \
@@ -64,6 +65,16 @@ libgnunetutil_la_LIBADD = \
 libgnunetutil_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 4:0:0
+
+
+bin_PROGRAMS = \
+ gnunet-service-resolver
+
+gnunet_service_resolver_SOURCES = \
+ gnunet-service-resolver.c         
+gnunet_service_resolver_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
 
 
 plugin_LTLIBRARIES = \
@@ -106,6 +117,7 @@ check_PROGRAMS = \
  test_plugin \
  test_program \
  test_pseudonym \
+ test_resolver_api \
  test_scheduler \
  test_scheduler_delay \
  test_server \
@@ -157,7 +169,7 @@ test_container_multihashmap_SOURCES = \
  test_container_multihashmap.c
 test_container_multihashmap_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
- 
+
 test_container_heap_SOURCES = \
  test_container_heap.c
 test_container_heap_LDADD = \
@@ -268,6 +280,11 @@ test_pseudonym_SOURCES = \
 test_pseudonym_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
+test_resolver_api_SOURCES = \
+ test_resolver_api.c
+test_resolver_api_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la  
+
 test_scheduler_SOURCES = \
  test_scheduler.c
 test_scheduler_LDADD = \
@@ -319,4 +336,5 @@ EXTRA_DIST = \
   test_container_meta_data_image.jpg \
   test_program_data.conf \
   test_pseudonym_data.conf \
+  test_resolver_api_data.conf \
   test_service_data.conf

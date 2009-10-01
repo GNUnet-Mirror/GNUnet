@@ -134,6 +134,7 @@ struct GNUNET_CONNECTION_Handle
  * yet been established.  This function only creates TCP connections.
  *
  * @param sched scheduler to use
+ * @param cfg configuration to use
  * @param hostname name of the host to connect to
  * @param port port to connect to
  * @param maxbuf maximum write buffer size for the socket (use
@@ -141,12 +142,11 @@ struct GNUNET_CONNECTION_Handle
  * @return the socket handle
  */
 struct GNUNET_CONNECTION_Handle
-  *GNUNET_CONNECTION_create_from_connect (struct
-                                                  GNUNET_SCHEDULER_Handle
-                                                  *sched,
-                                                  const char *hostname,
-                                                  uint16_t port,
-                                                  size_t maxbuf);
+  *GNUNET_CONNECTION_create_from_connect (struct GNUNET_SCHEDULER_Handle *sched,
+					  const struct GNUNET_CONFIGURATION_Handle *cfg,
+					  const char *hostname,
+					  uint16_t port,
+					  size_t maxbuf);
 
 
 
@@ -220,9 +220,8 @@ void GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle
  * @param timeout maximum amount of time to wait
  * @param receiver function to call with received data
  * @param receiver_cls closure for receiver
- * @return scheduler task ID used for receiving, GNUNET_SCHEDULER_NO_TASK on error
  */
-GNUNET_SCHEDULER_TaskIdentifier
+void
 GNUNET_CONNECTION_receive (struct GNUNET_CONNECTION_Handle
                                    *sock, size_t max,
                                    struct GNUNET_TIME_Relative timeout,
@@ -236,14 +235,11 @@ GNUNET_CONNECTION_receive (struct GNUNET_CONNECTION_Handle
  * for the cancellation to be valid.
  *
  * @param sock socket handle
- * @param task task identifier returned from the receive call
- * @return closure of the original receiver callback
+ * @return closure of the original receiver callback closure
  */
 void *GNUNET_CONNECTION_receive_cancel (struct
-                                                GNUNET_CONNECTION_Handle
-                                                *sock,
-                                                GNUNET_SCHEDULER_TaskIdentifier
-                                                task);
+					GNUNET_CONNECTION_Handle
+					*sock);
 
 
 /**

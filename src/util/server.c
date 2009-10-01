@@ -223,12 +223,6 @@ struct GNUNET_SERVER_Client
   struct GNUNET_TIME_Absolute last_activity;
 
   /**
-   * Current task identifier for the receive call
-   * (or GNUNET_SCHEDULER_NO_TASK for none).
-   */
-  GNUNET_SCHEDULER_TaskIdentifier my_receive;
-
-  /**
    * How many bytes in the "incoming_buffer" are currently
    * valid? (starting at offset 0).
    */
@@ -626,7 +620,6 @@ shutdown_incoming_processing (struct GNUNET_SERVER_Client *client)
   struct NotifyList *n;
   unsigned int rc;
 
-  GNUNET_assert (client->my_receive == GNUNET_SCHEDULER_NO_TASK);
   rc = client->reference_count;
   if (client->server != NULL)
     {
@@ -745,7 +738,6 @@ process_incoming (void *cls,
   const char *cbuf = buf;
   size_t maxcpy;
 
-  client->my_receive = GNUNET_SCHEDULER_NO_TASK;
   if ((buf == NULL) ||
       (available == 0) ||
       (errCode != 0) ||
@@ -809,10 +801,10 @@ process_incoming (void *cls,
       (GNUNET_YES != client->shutdown_now) && (client->server != NULL))
     {
       /* Finally, keep receiving! */
-      client->my_receive = client->receive (client->client_closure,
-                                            GNUNET_SERVER_MAX_MESSAGE_SIZE,
-                                            server->idle_timeout,
-                                            &process_incoming, client);
+      client->receive (client->client_closure,
+		       GNUNET_SERVER_MAX_MESSAGE_SIZE,
+		       server->idle_timeout,
+		       &process_incoming, client);
     }
   if (GNUNET_YES == client->shutdown_now)
     shutdown_incoming_processing (client);
@@ -830,10 +822,10 @@ restart_processing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   process_client_buffer (client);
   if (0 == client->suspended)
-    client->my_receive = client->receive (client->client_closure,
-                                          GNUNET_SERVER_MAX_MESSAGE_SIZE,
-                                          client->server->idle_timeout,
-                                          &process_incoming, client);
+    client->receive (client->client_closure,
+		     GNUNET_SERVER_MAX_MESSAGE_SIZE,
+		     client->server->idle_timeout,
+		     &process_incoming, client);
 }
 
 
@@ -849,10 +841,10 @@ add_client (struct GNUNET_SERVER_Handle *server,
   client->last_activity = GNUNET_TIME_absolute_get ();
   client->next = server->clients;
   server->clients = client;
-  client->my_receive = client->receive (client->client_closure,
-                                        GNUNET_SERVER_MAX_MESSAGE_SIZE,
-                                        server->idle_timeout,
-                                        &process_incoming, client);
+  client->receive (client->client_closure,
+		   GNUNET_SERVER_MAX_MESSAGE_SIZE,
+		   server->idle_timeout,
+		   &process_incoming, client);
 }
 
 
@@ -864,15 +856,14 @@ add_client (struct GNUNET_SERVER_Handle *server,
  * @param timeout when should this operation time out
  * @param receiver function to call for processing
  * @param receiver_cls closure for receiver
- * @return task identifier that can be used to cancel the operation
  */
-static GNUNET_SCHEDULER_TaskIdentifier
+static void
 sock_receive (void *cls,
               size_t max,
               struct GNUNET_TIME_Relative timeout,
               GNUNET_CONNECTION_Receiver receiver, void *receiver_cls)
 {
-  return GNUNET_CONNECTION_receive (cls, max, timeout, receiver, receiver_cls);
+  GNUNET_CONNECTION_receive (cls, max, timeout, receiver, receiver_cls);
 }
 
 
@@ -880,12 +871,11 @@ sock_receive (void *cls,
  * Wrapper to cancel receiving from a socket.
  * 
  * @param cls handle to the GNUNET_CONNECTION_Handle to cancel
- * @param ti task ID that was returned by GNUNET_CONNECTION_receive
  */
 static void
-sock_receive_cancel (void *cls, GNUNET_SCHEDULER_TaskIdentifier ti)
+sock_receive_cancel (void *cls)
 {
-  GNUNET_CONNECTION_receive_cancel (cls, ti);
+  GNUNET_CONNECTION_receive_cancel (cls);
 }
 
 
@@ -1112,9 +1102,7 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
 {
   if (client->server == NULL)
     return;                     /* already disconnected */
-  GNUNET_assert (client->my_receive != GNUNET_SCHEDULER_NO_TASK);
-  client->receive_cancel (client->client_closure, client->my_receive);
-  client->my_receive = GNUNET_SCHEDULER_NO_TASK;
+  client->receive_cancel (client->client_closure);
   shutdown_incoming_processing (client);
 }
 

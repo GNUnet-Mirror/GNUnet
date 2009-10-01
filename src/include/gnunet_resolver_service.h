@@ -60,7 +60,7 @@ typedef void (*GNUNET_RESOLVER_AddressCallback) (void *cls,
  * @param hostname the hostname to resolve
  * @param domain AF_INET or AF_INET6; use AF_UNSPEC for "any"
  * @param callback function to call with addresses
- * @param cls closure for callback
+ * @param callback_cls closure for callback
  * @param timeout how long to try resolving
  */
 void
@@ -69,7 +69,8 @@ GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
                         const char *hostname,
                         int domain,
                         struct GNUNET_TIME_Relative timeout,
-                        GNUNET_RESOLVER_AddressCallback callback, void *cls);
+                        GNUNET_RESOLVER_AddressCallback callback, 
+			void *callback_cls);
 
 
 /**

@@ -202,6 +202,8 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CONFIGURATION_set_value_number (cfg, "test", "PORT", PORT);
   GNUNET_CONFIGURATION_set_value_string (cfg, "test", "HOSTNAME",
                                          "localhost");
+  GNUNET_CONFIGURATION_set_value_string (cfg, "resolver", "HOSTNAME",
+                                         "localhost");
   client = GNUNET_CLIENT_connect (tc->sched, "test", cfg);
   GNUNET_assert (client != NULL);
   GNUNET_CLIENT_notify_transmit_ready (client,

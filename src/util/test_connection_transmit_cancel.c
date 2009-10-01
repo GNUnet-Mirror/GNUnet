@@ -31,6 +31,8 @@
 
 #define PORT 12435
 
+static struct GNUNET_CONFIGURATION_Handle *cfg;
+
 
 static size_t
 not_run (void *cls, size_t size, void *buf)
@@ -48,8 +50,8 @@ task_transmit_cancel (void *cls,
   struct GNUNET_CONNECTION_TransmitHandle *th;
   struct GNUNET_CONNECTION_Handle *csock;
 
-  csock = GNUNET_CONNECTION_create_from_connect (tc->sched,
-                                                     "localhost", PORT, 1024);
+  csock = GNUNET_CONNECTION_create_from_connect (tc->sched, cfg,
+						 "localhost", PORT, 1024);
   GNUNET_assert (csock != NULL);
   th = GNUNET_CONNECTION_notify_transmit_ready (csock,
                                              12,
@@ -72,7 +74,11 @@ check_transmit_cancel ()
   int ok;
 
   ok = 1;
+  cfg = GNUNET_CONFIGURATION_create ();
+  GNUNET_CONFIGURATION_set_value_string (cfg,
+                                         "resolver", "HOSTNAME", "localhost");
   GNUNET_SCHEDULER_run (&task_transmit_cancel, &ok);
+  GNUNET_CONFIGURATION_destroy (cfg);
   return ok;
 }
 

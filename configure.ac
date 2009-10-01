@@ -652,7 +652,6 @@ src/include/Makefile
 src/include/gnunet_directories.h
 src/hostlist/Makefile
 src/peerinfo/Makefile
-src/resolver/Makefile
 src/statistics/Makefile
 src/template/Makefile
 src/testing/Makefile

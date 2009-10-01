@@ -66,7 +66,10 @@ signal_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-static GNUNET_SCHEDULER_TaskIdentifier
+static GNUNET_SCHEDULER_TaskIdentifier ti;
+
+
+static void
 my_receive (void *cls,
             size_t max,
             struct GNUNET_TIME_Relative timeout,
@@ -104,12 +107,12 @@ my_receive (void *cls,
     default:
       GNUNET_assert (0);
     }
-  return ret;
+  ti = ret;
 }
 
 
 static void
-my_cancel (void *cls, GNUNET_SCHEDULER_TaskIdentifier ti)
+my_cancel (void *cls)
 {
   GNUNET_SCHEDULER_cancel (sched, ti);
 }

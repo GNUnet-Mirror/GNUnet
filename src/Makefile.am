@@ -14,7 +14,6 @@ SUBDIRS = \
   fragmentation \
   hello \
   peerinfo \
-  resolver \
   statistics \
   datacache \
   datastore \

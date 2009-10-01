@@ -40,9 +40,7 @@ static struct GNUNET_CONNECTION_Handle *lsock;
 
 static struct GNUNET_NETWORK_Handle *ls;
 
-static GNUNET_SCHEDULER_TaskIdentifier receive_task;
-
-
+static struct GNUNET_CONFIGURATION_Handle *cfg;
 
 
 /**
@@ -95,12 +93,11 @@ run_accept_cancel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (asock != NULL);
   GNUNET_assert (GNUNET_YES == GNUNET_CONNECTION_check (asock));
   GNUNET_CONNECTION_destroy (lsock);
-  receive_task
-    = GNUNET_CONNECTION_receive (asock,
-                              1024,
-                              GNUNET_TIME_relative_multiply
-                              (GNUNET_TIME_UNIT_SECONDS, 5), &dead_receive,
-                              cls);
+  GNUNET_CONNECTION_receive (asock,
+			     1024,
+			     GNUNET_TIME_relative_multiply
+			     (GNUNET_TIME_UNIT_SECONDS, 5), &dead_receive,
+			     cls);
 }
 
 
@@ -108,7 +105,7 @@ static void
 receive_cancel_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   int *ok = cls;
-  GNUNET_CONNECTION_receive_cancel (asock, receive_task);
+  GNUNET_CONNECTION_receive_cancel (asock);
   GNUNET_CONNECTION_destroy (csock);
   GNUNET_CONNECTION_destroy (asock);
   *ok = 0;
@@ -122,8 +119,8 @@ task_receive_cancel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ls = open_listen_socket ();
   lsock = GNUNET_CONNECTION_create_from_existing (tc->sched, ls, 0);
   GNUNET_assert (lsock != NULL);
-  csock = GNUNET_CONNECTION_create_from_connect (tc->sched,
-                                                     "localhost", PORT, 1024);
+  csock = GNUNET_CONNECTION_create_from_connect (tc->sched, cfg,
+						 "localhost", PORT, 1024);
   GNUNET_assert (csock != NULL);
   GNUNET_SCHEDULER_add_read_net (tc->sched,
                              GNUNET_NO,
@@ -150,7 +147,11 @@ check_receive_cancel ()
   int ok;
 
   ok = 1;
+  cfg = GNUNET_CONFIGURATION_create ();
+  GNUNET_CONFIGURATION_set_value_string (cfg,
+                                         "resolver", "HOSTNAME", "localhost");
   GNUNET_SCHEDULER_run (&task_receive_cancel, &ok);
+  GNUNET_CONFIGURATION_destroy (cfg);
   return ok;
 }
 

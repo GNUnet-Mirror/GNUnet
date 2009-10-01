@@ -27,7 +27,7 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_time_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define PORT 12435
 
@@ -42,7 +42,7 @@ static size_t sofar;
 
 static struct GNUNET_NETWORK_Handle *ls;
 
-
+static struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
  * Create and initialize a listen socket for the server.
@@ -154,7 +154,8 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   lsock = GNUNET_CONNECTION_create_from_existing (tc->sched, ls, 0);
   GNUNET_assert (lsock != NULL);
   csock = GNUNET_CONNECTION_create_from_connect (tc->sched,
-                                                     "localhost", PORT, 1024);
+						 cfg,
+						 "localhost", PORT, 1024);
   GNUNET_assert (csock != NULL);
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test asks for write notification\n");
@@ -190,7 +191,11 @@ check ()
   int ok;
 
   ok = 1;
+  cfg = GNUNET_CONFIGURATION_create ();
+  GNUNET_CONFIGURATION_set_value_string (cfg,
+                                         "resolver", "HOSTNAME", "localhost");
   GNUNET_SCHEDULER_run (&task, &ok);
+  GNUNET_CONFIGURATION_destroy (cfg);
   return ok;
 }
 

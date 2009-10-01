@@ -33,6 +33,8 @@
 
 static struct GNUNET_CONNECTION_Handle *csock;
 
+static struct GNUNET_CONFIGURATION_Handle *cfg;
+
 static size_t
 handle_timeout (void *cls, size_t size, void *buf)
 {
@@ -51,8 +53,8 @@ handle_timeout (void *cls, size_t size, void *buf)
 static void
 task_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  csock = GNUNET_CONNECTION_create_from_connect (tc->sched,
-                                                     "localhost", PORT, 1024);
+  csock = GNUNET_CONNECTION_create_from_connect (tc->sched, cfg,
+						 "localhost", PORT, 1024);
   GNUNET_assert (csock != NULL);
   GNUNET_assert (NULL !=
                  GNUNET_CONNECTION_notify_transmit_ready (csock,
@@ -72,7 +74,11 @@ check_timeout ()
   int ok;
 
   ok = 1;
+  cfg = GNUNET_CONFIGURATION_create ();
+  GNUNET_CONFIGURATION_set_value_string (cfg,
+                                         "resolver", "HOSTNAME", "localhost");
   GNUNET_SCHEDULER_run (&task_timeout, &ok);
+  GNUNET_CONFIGURATION_destroy (cfg);
   return ok;
 }
 

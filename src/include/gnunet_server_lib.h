@@ -253,11 +253,8 @@ struct GNUNET_SERVER_Client *GNUNET_SERVER_connect_socket (struct
  * @param timeout maximum amount of time to wait (use -1 for "forever")
  * @param receiver function to call with received data
  * @param receiver_cls closure for receiver
- * @return task identifier that can be used to cancel the receive,
- *         GNUNET_SCHEDULER_NO_TASK should be returned
- *         if the receiver function was already called
  */
-typedef GNUNET_SCHEDULER_TaskIdentifier
+typedef void
   (*GNUNET_SERVER_ReceiveCallback) (void *cls,
                                     size_t max,
                                     struct GNUNET_TIME_Relative timeout,
@@ -269,11 +266,8 @@ typedef GNUNET_SCHEDULER_TaskIdentifier
  * Cancel receive request.
  *
  * @param cls closure
- * @param ti task identifier from the receive callback
  */
-typedef void (*GNUNET_SERVER_ReceiveCancelCallback) (void *cls,
-                                                     GNUNET_SCHEDULER_TaskIdentifier
-                                                     ti);
+typedef void (*GNUNET_SERVER_ReceiveCancelCallback) (void *cls);
 
 
 /**
