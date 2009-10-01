@@ -530,6 +530,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *cls)
 	{
 	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		      _("Looks like we're busy waiting...\n"));
+	  sleep (1); /* mitigate */
 	}
       if (ret == GNUNET_SYSERR)
         {
