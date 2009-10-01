@@ -632,23 +632,25 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 
   nfds = 0;
 
-  if (rfds)
+  if (NULL != rfds)
     nfds = rfds->nsds;
-  if (wfds && wfds->nsds > nfds)
-    nfds = wfds->nsds;
-  if (efds && efds->nsds > nfds)
-    nfds = efds->nsds;
+  if (NULL != wfds)
+    nfds = GNUNET_MAX (nfds, wfds->nsds);
+  if (NULL != efds)
+    nfds = GNUNET_MAX (nfds, efds->nsds);
 
 #ifndef MINGW
   struct timeval tv;
 
   tv.tv_sec = timeout.value / GNUNET_TIME_UNIT_SECONDS.value;
-  tv.tv_usec = (timeout.value - (tv.tv_sec * GNUNET_TIME_UNIT_SECONDS.value))
-    / GNUNET_TIME_UNIT_MILLISECONDS.value;
-
-  return select (nfds + 1, rfds ? &rfds->sds : NULL, wfds ? &wfds->sds : NULL,
-      efds ? &efds->sds : NULL, timeout.value
-          == GNUNET_TIME_UNIT_FOREVER_REL.value ? NULL : &tv);
+  tv.tv_usec = 1000 * (timeout.value - (tv.tv_sec * GNUNET_TIME_UNIT_SECONDS.value));
+  return select (nfds + 1, 
+		 (rfds != NULL) ? &rfds->sds : NULL, 
+		 (wfds != NULL) ? &wfds->sds : NULL,
+		 (efds != NULL) ? &efds->sds : NULL, 
+		 (timeout.value == GNUNET_TIME_UNIT_FOREVER_REL.value) 
+		 ? NULL 
+		 : &tv);
 #else
   DWORD limit;
   fd_set sock_read, sock_write, sock_except;
@@ -670,7 +672,6 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   if (!(rfds || wfds || efds))
     {
       Sleep (ms_total);
-
       return 0;
     }
 
