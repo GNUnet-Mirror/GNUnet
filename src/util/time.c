@@ -122,6 +122,8 @@ GNUNET_TIME_relative_to_absolute (struct GNUNET_TIME_Relative rel)
 /**
  * Return the minimum of two relative time values.
  *
+ * @param t1 first timestamp
+ * @param t2 other timestamp
  * @return timestamp that is smaller
  */
 struct GNUNET_TIME_Relative GNUNET_TIME_relative_min (struct
@@ -129,6 +131,24 @@ struct GNUNET_TIME_Relative GNUNET_TIME_relative_min (struct
 						      t1,
 						      struct
 						      GNUNET_TIME_Relative t2)
+{
+  return (t1.value < t2.value) ? t1 : t2;
+}
+
+
+
+/**
+ * Return the minimum of two relative time values.
+ *
+ * @param t1 first timestamp
+ * @param t2 other timestamp
+ * @return timestamp that is smaller
+ */
+struct GNUNET_TIME_Absolute GNUNET_TIME_absolute_min (struct
+						      GNUNET_TIME_Absolute
+						      t1,
+						      struct
+						      GNUNET_TIME_Absolute t2)
 {
   return (t1.value < t2.value) ? t1 : t2;
 }
