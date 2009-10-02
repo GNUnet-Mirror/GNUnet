@@ -643,6 +643,14 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 
   tv.tv_sec = timeout.value / GNUNET_TIME_UNIT_SECONDS.value;
   tv.tv_usec = 1000 * (timeout.value - (tv.tv_sec * GNUNET_TIME_UNIT_SECONDS.value));
+  if ( (nfds == 0) &&
+       (timeout.value == GNUNET_TIME_UNIT_FOREVER_REL.value) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Fatal internal logic error, process hangs in `%s' (abort with CTRL-C)!\n"),
+		  "select");
+      GNUNET_break (0);
+    }
   return select (nfds + 1, 
 		 (rfds != NULL) ? &rfds->sds : NULL, 
 		 (wfds != NULL) ? &wfds->sds : NULL,
