@@ -67,8 +67,13 @@
 
 /**
  * How long until a HELLO verification attempt should time out?
+ * Must be rather small, otherwise a partially successful HELLO
+ * validation (some addresses working) might not be available
+ * before a client's request for a connection fails for good.
+ * Besides, if a single request to an address takes a long time,
+ * then the peer is unlikely worthwhile anyway.
  */
-#define HELLO_VERIFICATION_TIMEOUT GNUNET_TIME_UNIT_MINUTES
+#define HELLO_VERIFICATION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
 
 /**
  * How often do we re-add (cheaper) plugins to our list of plugins
@@ -692,6 +697,11 @@ transmit_to_client_callback (void *cls, size_t size, void *buf)
       msize = ntohs (msg->size);
       if (msize + tsize > size)
         break;
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Transmitting message of type %u to client.\n",
+		  ntohs (msg->type));
+#endif
       client->message_queue_head = q->next;
       if (q->next == NULL)
         client->message_queue_tail = NULL;
@@ -1451,6 +1461,7 @@ cleanup_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct ValidationList *pos;
   struct ValidationList *prev;
   struct GNUNET_TIME_Absolute now;
+  struct GNUNET_TIME_Absolute first;
   struct GNUNET_HELLO_Message *hello;
   struct GNUNET_PeerIdentity pid;
   struct NeighbourList *n;
@@ -1506,16 +1517,22 @@ cleanup_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   /* finally, reschedule cleanup if needed; list is
      ordered by timeout, so we need the last element... */
-  pos = pending_validations;
-  while ((pos != NULL) && (pos->next != NULL))
-    pos = pos->next;
-  if (NULL != pos)
-    GNUNET_SCHEDULER_add_delayed (sched,
-                                  GNUNET_NO,
-                                  GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                  GNUNET_SCHEDULER_NO_TASK,
-                                  GNUNET_TIME_absolute_get_remaining
-                                  (pos->timeout), &cleanup_validation, NULL);
+  if (NULL != pending_validations)
+    {
+      first = pos->timeout;
+      pos = pending_validations;
+      while (pos != NULL) 
+	{
+	  first = GNUNET_TIME_absolute_min (first, pos->timeout);
+	  pos = pos->next;
+	}
+      GNUNET_SCHEDULER_add_delayed (sched,
+				    GNUNET_NO,
+				    GNUNET_SCHEDULER_PRIORITY_IDLE,
+				    GNUNET_SCHEDULER_NO_TASK,
+				    GNUNET_TIME_absolute_get_remaining (first),
+				    &cleanup_validation, NULL);
+    }
 }
 
 
@@ -1543,7 +1560,7 @@ plugin_env_notify_validation (void *cls,
 			      uint32_t challenge,
 			      const char *sender_addr)
 {
-  int all_done;
+  unsigned int not_done;
   int matched;
   struct ValidationList *pos;
   struct ValidationAddress *va;
@@ -1570,7 +1587,7 @@ plugin_env_notify_validation (void *cls,
 		  GNUNET_i2s(peer));
       return;
     }
-  all_done = GNUNET_YES;
+  not_done = 0;
   matched = GNUNET_NO;
   va = pos->addresses;
   while (va != NULL)
@@ -1579,7 +1596,10 @@ plugin_env_notify_validation (void *cls,
 	{
 #if DEBUG_TRANSPORT
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Confirmed validity of peer address.\n");
+		      "Confirmed validity of address, peer `%4s' has address `%s'.\n",
+		      GNUNET_i2s (peer),
+		      GNUNET_a2s ((const struct sockaddr*) &va[1], 
+				  va->addr_len));
 #endif
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
 		      _("Another peer saw us using the address `%s' via `%s'. If this is not plausible, this address should be listed in the configuration as implausible to avoid MiM attacks.\n"),
@@ -1591,7 +1611,7 @@ plugin_env_notify_validation (void *cls,
 	  matched = GNUNET_YES;
 	}        
       if (va->ok != GNUNET_YES)
-        all_done = GNUNET_NO;
+        not_done++;
       va = va->next;
     }
   if (GNUNET_NO == matched)
@@ -1602,8 +1622,14 @@ plugin_env_notify_validation (void *cls,
                   ("Received `%s' message but have no record of a matching `%s' message. Ignoring.\n"),
                   "PONG", "PING");
     }
-  if (GNUNET_YES == all_done)
+  if (0 == not_done)
     {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "All addresses validated, will now construct `%s' for `%4s'.\n",
+		  "HELLO",
+		  GNUNET_i2s (peer));
+#endif
       pos->timeout.value = 0;
       GNUNET_SCHEDULER_add_delayed (sched,
                                     GNUNET_NO,
@@ -1611,6 +1637,17 @@ plugin_env_notify_validation (void *cls,
                                     GNUNET_SCHEDULER_NO_TASK,
                                     GNUNET_TIME_UNIT_ZERO,
                                     &cleanup_validation, NULL);
+    }
+  else
+    {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Still waiting for %u additional `%s' messages before constructing `%s' for `%4s'.\n",
+		  not_done,
+		  "PONG",
+		  "HELLO",
+		  GNUNET_i2s (peer));
+#endif
     }
 }
 
@@ -1731,14 +1768,21 @@ check_hello_validated (void *cls,
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_HELLO_get_id (chvc->hello,
 				      &apeer));
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Ready to validate addresses from `%s' message for peer `%4s'\n",
+	      "HELLO", GNUNET_i2s (&apeer));
+#endif
   va = chvc->e->addresses;
   while (va != NULL)
     {
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Establishing `%s' connection to validate `%s' of `%4s'\n",
+                  "Establishing `%s' connection to validate `%s' address `%s' of `%4s'\n",
                   va->transport_name,
                   "HELLO",
+		  GNUNET_a2s ((const struct sockaddr*) &va[1], 
+			      va->addr_len),
 		  GNUNET_i2s (&apeer));
 #endif
       tp = find_transport (va->transport_name);
@@ -1753,14 +1797,12 @@ check_hello_validated (void *cls,
         va->ok = GNUNET_SYSERR;
       va = va->next;
     }
-  if (chvc->e->next == NULL)
-    GNUNET_SCHEDULER_add_delayed (sched,
-                                  GNUNET_NO,
-                                  GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                  GNUNET_SCHEDULER_NO_TASK,
-                                  GNUNET_TIME_absolute_get_remaining
-                                  (chvc->e->timeout), &cleanup_validation,
-                                  NULL);
+  GNUNET_SCHEDULER_add_delayed (sched,
+				GNUNET_NO,
+				GNUNET_SCHEDULER_PRIORITY_IDLE,
+				GNUNET_SCHEDULER_NO_TASK,
+				GNUNET_TIME_absolute_get_remaining (chvc->e->timeout), 
+				&cleanup_validation, NULL);
   GNUNET_free (chvc);
 }
 

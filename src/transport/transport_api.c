@@ -1108,6 +1108,10 @@ remove_neighbour (struct GNUNET_TRANSPORT_Handle *h,
 	}
       else
 	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		      _("Connection with `%4s' failed, will keep trying for %llu ms to deliver message\n"),
+		      GNUNET_i2s (peer),
+		      GNUNET_TIME_absolute_get_remaining (th->timeout).value);
 	  /* try again in a bit */
 	  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == th->notify_delay_task);
 	  th->notify_delay_task 

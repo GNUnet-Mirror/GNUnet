@@ -39,7 +39,7 @@
 #include "plugin_transport.h"
 #include "transport.h"
 
-#define DEBUG_TCP GNUNET_NO
+#define DEBUG_TCP GNUNET_YES
 
 /**
  * After how long do we expire an address that we
@@ -1490,8 +1490,17 @@ handle_tcp_ping (void *cls,
   void *addr;
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-              "Processing PING\n");
+  if (GNUNET_OK ==
+      GNUNET_SERVER_client_get_address (client,
+					(void **) &addr,
+					&addrlen))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+		  "Processing `%s' from `%s'\n",
+		  "PING",
+		  GNUNET_a2s (addr, addrlen));
+      GNUNET_free (addr);
+    }
 #endif
   msize = ntohs (message->size);
   if (msize < sizeof (struct ValidationChallengeMessage))
@@ -1570,23 +1579,10 @@ handle_tcp_ping (void *cls,
 
 
 /**
- * Handle PING-message.  If the plugin that gave us the message is
- * able to queue the PONG immediately, we only queue one PONG.
- * Otherwise we send at most TWO PONG messages, one via an unconfirmed
- * transport and one via a confirmed transport.  Both addresses are
- * selected randomly among those available.
+ * Handle PONG-message.
  *
- * @param plugin plugin that gave us the message
- * @param sender claimed sender of the PING
- * @param plugin_context context that might be used to send response
- * @param message the actual message
- */
-/**
- * We've received a PING from this peer via TCP.
- * Send back our PONG.
- *
- * @param cls closure
- * @param client identification of the client
+ * @param plugin handle for this plugin
+ * @param sender claimed sender of the PONG
  * @param message the actual message
  */
 static void
@@ -1604,8 +1600,19 @@ handle_tcp_pong (void *cls,
   struct sockaddr_in6 v6;
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-              "Processing PONG\n");
+  struct sockaddr *claddr;
+
+  if (GNUNET_OK ==
+      GNUNET_SERVER_client_get_address (client,
+					(void**) &claddr,
+					&addrlen))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+		  "Processing `%s' from `%s'\n",
+		  "PONG",
+		  GNUNET_a2s (claddr, addrlen));
+      GNUNET_free (claddr);
+    }
 #endif
   if (ntohs(message->size) < sizeof(struct ValidationChallengeResponse))
     {
@@ -2002,9 +2009,11 @@ process_hostname_ips (void *cls,
 
   if (addr == NULL)
     return;
-  plugin->env->notify_address (plugin->env->cls,
-                               "tcp",
-                               addr, addrlen, GNUNET_TIME_UNIT_FOREVER_REL);
+  process_interfaces (plugin,
+		      "<hostname>",
+		      GNUNET_YES,
+		      addr,
+		      addrlen);
 }
 
 

@@ -223,7 +223,8 @@ exchange_hello (void *cls,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
 				      message, &me->id));
-  GNUNET_TRANSPORT_get_hello (p2.th, GNUNET_TIME_UNIT_MINUTES,
+  GNUNET_TRANSPORT_get_hello (p2.th,
+			      TIMEOUT,
                               &exchange_hello_last, &p2);
 }
 
@@ -241,7 +242,7 @@ run (void *cls,
   setup_peer (&p1, "test_transport_api_peer1.conf");
   setup_peer (&p2, "test_transport_api_peer2.conf");
   GNUNET_TRANSPORT_get_hello (p1.th,
-                              GNUNET_TIME_UNIT_MINUTES, &exchange_hello, &p1);
+                              TIMEOUT, &exchange_hello, &p1);
 }
 
 
