@@ -155,11 +155,10 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
   else
     SetErrnoFromWinsockError (WSAGetLastError ());
 #else
+  /* FIXME: Nils, this is very strange code here... */
   ret = close (desc->fd);
-  if (-1 == ret)
-    {
-      GNUNET_free (desc);
-    }
+  if (0 == ret)
+    GNUNET_free (desc);
 #endif
 
   return ret == 0 ? GNUNET_OK : GNUNET_SYSERR;
