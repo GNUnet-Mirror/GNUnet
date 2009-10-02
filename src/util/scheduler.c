@@ -29,6 +29,8 @@
 #include "gnunet_signal_lib.h"
 #include "gnunet_time_lib.h"
 
+#define DEBUG_TASKS GNUNET_NO
+
 /**
  * Linked list of pending tasks.
  */
@@ -254,9 +256,10 @@ update_sets (struct GNUNET_SCHEDULER_Handle *sched,
           if (timeout->value > to.value)
               *timeout = to;
         }
-
-      GNUNET_NETWORK_fdset_add (rs, pos->read_set);
-      GNUNET_NETWORK_fdset_add (ws, pos->write_set);
+      if (pos->read_set != NULL)
+	GNUNET_NETWORK_fdset_add (rs, pos->read_set);
+      if (pos->write_set != NULL)
+	GNUNET_NETWORK_fdset_add (ws, pos->write_set);
       pos = pos->next;
     }
 }
@@ -275,6 +278,8 @@ static int
 set_overlaps (const struct GNUNET_NETWORK_FDSet * ready, 
 	      struct GNUNET_NETWORK_FDSet * want)
 {
+  if (NULL == want)
+    return GNUNET_NO;
   if (GNUNET_NETWORK_fdset_overlap (ready, want))
     {
       /* copy all over (yes, there maybe unrelated bits,
@@ -368,7 +373,7 @@ check_ready (struct GNUNET_SCHEDULER_Handle *handle,
   pos = handle->pending;
   while (pos != NULL)
     {
-#if 0
+#if DEBUG_TASKS
       fprintf (stderr,
 	       "Checking readyness of task: %llu\n",
 	       pos->id);
@@ -397,9 +402,9 @@ check_ready (struct GNUNET_SCHEDULER_Handle *handle,
  */
 static void destroy_task (struct Task *t)
 {
-  if (t->read_set)
+  if (NULL != t->read_set)
     GNUNET_NETWORK_fdset_destroy (t->read_set);
-  if (t->write_set)
+  if (NULL != t->write_set)
     GNUNET_NETWORK_fdset_destroy (t->write_set);
   GNUNET_free (t);
 }
@@ -444,6 +449,11 @@ run_ready (struct GNUNET_SCHEDULER_Handle *sched)
       tc.read_ready = pos->read_set;
       tc.write_ready = pos->write_set;
       pos->callback (pos->callback_cls, &tc);
+#if DEBUG_TASKS
+      fprintf (stderr,
+	       "Running task: %llu\n",
+	       pos->id);
+#endif
       destroy_task (pos);
       sched->tasks_run++;
     }
@@ -636,7 +646,7 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Handle *sched,
   enum GNUNET_SCHEDULER_Priority p;
   void *ret;
 
-#if 0
+#if DEBUG_TASKS
   fprintf (stderr,
 	   "Canceling task: %llu\n",
 	   task);
@@ -682,6 +692,9 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Handle *sched,
   return ret;
 }
 
+#if DEBUG_TASKS
+#include <execinfo.h>
+#endif
 
 /**
  * Continue the current execution with the given function.  This is
@@ -710,10 +723,14 @@ GNUNET_SCHEDULER_add_continuation (struct GNUNET_SCHEDULER_Handle *sched,
   task->reason = reason;
   task->priority = sched->current_priority;
   task->run_on_shutdown = run_on_shutdown;
-#if 0
-  fprintf (stderr,
-	   "Adding continuation task: %llu\n",
-	   task->id);
+#if DEBUG_TASKS
+  {
+    void *ptrs[20];
+    fprintf (stderr,
+	     "Adding continuation task: %llu\n",
+	     task->id);
+    backtrace_symbols_fd (ptrs, backtrace (ptrs, 20), 2);    
+  }
 #endif
   queue_ready_task (sched, task);
 }
@@ -931,12 +948,16 @@ GNUNET_SCHEDULER_add_select (struct GNUNET_SCHEDULER_Handle * sched,
   task = GNUNET_malloc (sizeof (struct Task));
   task->callback = main;
   task->callback_cls = cls;
-  task->read_set = GNUNET_NETWORK_fdset_create ();
   if (rs != NULL)
-    GNUNET_NETWORK_fdset_copy (task->read_set, rs);
-  task->write_set = GNUNET_NETWORK_fdset_create ();
+    {
+      task->read_set = GNUNET_NETWORK_fdset_create ();
+      GNUNET_NETWORK_fdset_copy (task->read_set, rs);
+    }
   if (ws != NULL)
-    GNUNET_NETWORK_fdset_copy (task->write_set, ws);
+    {
+      task->write_set = GNUNET_NETWORK_fdset_create ();
+      GNUNET_NETWORK_fdset_copy (task->write_set, ws);
+    }
   task->id = ++sched->last_id;
   task->prereq_id = prerequisite_task;
   task->timeout = GNUNET_TIME_relative_to_absolute (delay);
@@ -947,10 +968,14 @@ GNUNET_SCHEDULER_add_select (struct GNUNET_SCHEDULER_Handle * sched,
   task->run_on_shutdown = run_on_shutdown;
   task->next = sched->pending;
   sched->pending = task;
-#if 0
-  fprintf (stderr,
-	   "Adding task: %llu\n",
-	   task->id);
+#if DEBUG_TASKS
+  {
+    void *ptrs[20];
+    fprintf (stderr,
+	     "Adding task: %llu\n",
+	     task->id);
+    backtrace_symbols_fd (ptrs, backtrace (ptrs, 20), 2);    
+  }
 #endif
   return task->id;
 }

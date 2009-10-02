@@ -594,7 +594,6 @@ GNUNET_NETWORK_fdset_create ()
   fds->handles = NULL;
 #endif
   GNUNET_NETWORK_fdset_zero (fds);
-
   return fds;
 }
 
