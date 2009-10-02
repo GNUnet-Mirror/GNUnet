@@ -239,7 +239,6 @@ update_sets (struct GNUNET_SCHEDULER_Handle *sched,
   pos = sched->pending;
   while (pos != NULL)
     {
-
       if ((pos->prereq_id != GNUNET_SCHEDULER_NO_TASK) &&
           (GNUNET_YES == is_pending (sched, pos->prereq_id)))
         {
@@ -369,6 +368,11 @@ check_ready (struct GNUNET_SCHEDULER_Handle *handle,
   pos = handle->pending;
   while (pos != NULL)
     {
+#if 0
+      fprintf (stderr,
+	       "Checking readyness of task: %llu\n",
+	       pos->id);
+#endif
       next = pos->next;
       if (GNUNET_YES == is_ready (handle, pos, now, rs, ws))
         {
@@ -632,6 +636,11 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Handle *sched,
   enum GNUNET_SCHEDULER_Priority p;
   void *ret;
 
+#if 0
+  fprintf (stderr,
+	   "Canceling task: %llu\n",
+	   task);
+#endif
   prev = NULL;
   t = sched->pending;
   while (t != NULL)
@@ -701,6 +710,11 @@ GNUNET_SCHEDULER_add_continuation (struct GNUNET_SCHEDULER_Handle *sched,
   task->reason = reason;
   task->priority = sched->current_priority;
   task->run_on_shutdown = run_on_shutdown;
+#if 0
+  fprintf (stderr,
+	   "Adding continuation task: %llu\n",
+	   task->id);
+#endif
   queue_ready_task (sched, task);
 }
 
@@ -908,7 +922,8 @@ GNUNET_SCHEDULER_add_select (struct GNUNET_SCHEDULER_Handle * sched,
                              GNUNET_SCHEDULER_TaskIdentifier
                              prerequisite_task,
                              struct GNUNET_TIME_Relative delay,
-                             const struct GNUNET_NETWORK_FDSet * rs, const struct GNUNET_NETWORK_FDSet * ws,
+                             const struct GNUNET_NETWORK_FDSet * rs,
+			     const struct GNUNET_NETWORK_FDSet * ws,
                              GNUNET_SCHEDULER_Task main, void *cls)
 {
   struct Task *task;
@@ -932,6 +947,11 @@ GNUNET_SCHEDULER_add_select (struct GNUNET_SCHEDULER_Handle * sched,
   task->run_on_shutdown = run_on_shutdown;
   task->next = sched->pending;
   sched->pending = task;
+#if 0
+  fprintf (stderr,
+	   "Adding task: %llu\n",
+	   task->id);
+#endif
   return task->id;
 }
 

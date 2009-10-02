@@ -38,7 +38,7 @@
 #include "gnunet_resolver_service.h"
 #include "gnunet_scheduler_lib.h"
 
-#define DEBUG_CONNECTION GNUNET_YES
+#define DEBUG_CONNECTION GNUNET_NO
 
 
 /**
