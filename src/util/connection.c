@@ -689,6 +689,7 @@ destroy_continuation (void *cls,
       return;
     }
   GNUNET_assert (sock->nth.timeout_task == GNUNET_SCHEDULER_NO_TASK);
+  GNUNET_assert (sock->ccs == CC_NONE);
   if (NULL != (notify = sock->nth.notify_ready))
     {
       sock->nth.notify_ready = NULL;
