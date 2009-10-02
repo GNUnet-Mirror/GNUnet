@@ -381,7 +381,6 @@ transport_notify_ready (void *cls, size_t size, void *buf)
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  "Could not transmit to transport service, cancelling pending requests\n");
 #endif
-      th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
       th = h->connect_ready_head;
       if (th->next != NULL)
         th->next->prev = NULL;
@@ -391,9 +390,12 @@ transport_notify_ready (void *cls, size_t size, void *buf)
           GNUNET_assert (n->transmit_handle == th);
           n->transmit_handle = NULL;
         }
-      GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != th->notify_delay_task);
-      GNUNET_SCHEDULER_cancel (h->sched,
-			       th->notify_delay_task);
+      if (th->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
+	{
+	  GNUNET_SCHEDULER_cancel (h->sched,
+				   th->notify_delay_task);
+	  th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
+	}
       GNUNET_assert (0 == th->notify (th->notify_cls, 0, NULL));
       GNUNET_free (th);
       if (h->connect_ready_head != NULL) schedule_transmission (h); /* FIXME: is this ok? */
@@ -412,8 +414,6 @@ transport_notify_ready (void *cls, size_t size, void *buf)
       th = h->connect_ready_head;
       if (th->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
 	{
-	  /* remove existing time out task (only applies if
-	     this is not the first iteration of the loop) */
 	  GNUNET_SCHEDULER_cancel (h->sched,
 				   th->notify_delay_task);
 	  th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
@@ -994,12 +994,12 @@ request_connect (void *cls, size_t size, void *buf)
 		  "TRY_CONNECT",
 		  GNUNET_i2s(&th->target));
 #endif
-      th->notify (th->notify_cls, 0, NULL);
       if (th->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
 	{
 	  GNUNET_SCHEDULER_cancel (h->sched, th->notify_delay_task);
 	  th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
 	}
+      th->notify (th->notify_cls, 0, NULL);
       GNUNET_free (th);
       return 0;
     }
@@ -1498,11 +1498,13 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
   struct GNUNET_CLIENT_Connection *client;
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transport disconnect called!\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Transport disconnect called!\n");
 #endif
   while (NULL != (th = handle->connect_ready_head))
     {
       handle->connect_ready_head = th->next;
+      GNUNET_assert (th->notify_delay_task == GNUNET_SCHEDULER_NO_TASK);
       th->notify (th->notify_cls, 0, NULL);
       GNUNET_free (th);
     }
@@ -1957,8 +1959,7 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
 
 
 /**
- * Cancel the specified transmission-ready
- * notification.
+ * Cancel the specified transmission-ready notification.
  */
 void
 GNUNET_TRANSPORT_notify_transmit_ready_cancel (struct
@@ -1983,6 +1984,7 @@ GNUNET_TRANSPORT_notify_transmit_ready_cancel (struct
       h->transmission_scheduled = GNUNET_NO;
     }
   GNUNET_free (th->notify_cls);
+  GNUNET_assert (th->notify_delay_task == GNUNET_SCHEDULER_NO_TASK);
   GNUNET_free (th);
 }
 
