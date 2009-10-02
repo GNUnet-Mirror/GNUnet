@@ -70,9 +70,7 @@ struct GetAddressContext
  */
 static const char *loopback[] = {
   "localhost",
-  "127.0.0.1",
   "ip6-localnet",
-  "::1",
   NULL
 };
 
@@ -86,6 +84,8 @@ check_config (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char *hostname;
   unsigned int i;
+  struct in_addr v4;
+  struct in6_addr v6;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
@@ -99,6 +99,13 @@ check_config (const struct GNUNET_CONFIGURATION_Handle *cfg)
 		  "resolver");
       GNUNET_assert (0);
     }
+  if ( (0 == inet_pton (AF_INET,
+			hostname,
+		 	&v4)) ||
+       (0 == inet_pton (AF_INET6,
+			hostname,
+			&v6)) )
+    return;
   i = 0;
   while (loopback[i] != NULL)
     if (0 == strcmp (loopback[i++], hostname))
@@ -274,25 +281,48 @@ GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
   struct sockaddr_in v4;
   struct sockaddr_in6 v6;
 
+  memset (&v4, 0, sizeof(v4));
+  v4.sin_addr.s_addr = htonl (INADDR_LOOPBACK);  
+  v4.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  v4.sin_len = sizeof(v4);
+#endif
+  memset (&v6, 0, sizeof(v6)); 
+  v6.sin6_family = AF_INET6;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  v6.sin6_len = sizeof(v6);
+#endif
+  /* first, check if this is a numeric address */
+  if ( ( (domain == AF_UNSPEC) ||(domain == AF_INET) ) && 
+       (0 == inet_pton (AF_INET,
+			hostname,
+			&v4.sin_addr)) )
+    {
+      callback (callback_cls,
+		(const struct sockaddr*) &v4,
+		sizeof(v4));
+      callback (callback_cls, NULL, 0);
+      return;
+    }
+  if ( ( (domain == AF_UNSPEC) ||(domain == AF_INET) ) && 
+       (0 == inet_pton (AF_INET6,
+			hostname,
+			&v6.sin6_addr)) )
+    {
+      callback (callback_cls,
+		(const struct sockaddr*) &v6,
+		sizeof(v6));
+      callback (callback_cls, NULL, 0);
+      return;
+    }
   check_config (cfg);
+  /* then, check if this is a loopback address */
   i = 0;
   while (loopback[i] != NULL)
     if (0 == strcmp (loopback[i++], hostname))
       {
-	memset (&v4, 0, sizeof(v4));
-#if HAVE_SOCKADDR_IN_SIN_LEN
-	v4.sin_len = sizeof (v4);
-#endif
-	v4.sin_family = AF_INET;
 	v4.sin_addr.s_addr = htonl (INADDR_LOOPBACK);  
-
-	memset (&v6, 0, sizeof(v6));
-#if HAVE_SOCKADDR_IN_SIN_LEN
-	v6.sin6_len = sizeof (v6);
-#endif
-	v6.sin6_family = AF_INET6;
 	v6.sin6_addr = in6addr_loopback;
-
 	switch (domain)
 	  {
 	  case AF_INET:
