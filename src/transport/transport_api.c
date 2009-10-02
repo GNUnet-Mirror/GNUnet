@@ -381,6 +381,7 @@ transport_notify_ready (void *cls, size_t size, void *buf)
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  "Could not transmit to transport service, cancelling pending requests\n");
 #endif
+      th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
       th = h->connect_ready_head;
       if (th->next != NULL)
         th->next->prev = NULL;
@@ -390,8 +391,12 @@ transport_notify_ready (void *cls, size_t size, void *buf)
           GNUNET_assert (n->transmit_handle == th);
           n->transmit_handle = NULL;
         }
+      GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != th->notify_delay_task);
+      GNUNET_SCHEDULER_cancel (h->sched,
+			       th->notify_delay_task);
       GNUNET_assert (0 == th->notify (th->notify_cls, 0, NULL));
       GNUNET_free (th);
+      if (h->connect_ready_head != NULL) schedule_transmission (h); /* FIXME: is this ok? */
       return 0;
     } 
 #if DEBUG_TRANSPORT
@@ -990,6 +995,11 @@ request_connect (void *cls, size_t size, void *buf)
 		  GNUNET_i2s(&th->target));
 #endif
       th->notify (th->notify_cls, 0, NULL);
+      if (th->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
+	{
+	  GNUNET_SCHEDULER_cancel (h->sched, th->notify_delay_task);
+	  th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
+	}
       GNUNET_free (th);
       return 0;
     }
