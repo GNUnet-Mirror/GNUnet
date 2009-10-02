@@ -574,7 +574,7 @@ try_connect (struct GNUNET_TRANSPORT_TransmitHandle *th);
  * TransmitHandle.
  */
 static void
-transmit_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+peer_transmit_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TRANSPORT_TransmitHandle *th = cls;
 
@@ -627,7 +627,7 @@ schedule_control_transmit (struct GNUNET_TRANSPORT_Handle *h,
 				    GNUNET_SCHEDULER_PRIORITY_KEEP,
 				    GNUNET_SCHEDULER_NO_TASK,
 				    timeout,
-				    &transmit_timeout, th);    
+				    &peer_transmit_timeout, th);    
   if (at_head)
     {
       th->next = h->connect_ready_head;
@@ -1021,7 +1021,7 @@ request_connect (void *cls, size_t size, void *buf)
                                     GNUNET_SCHEDULER_NO_TASK,
 				    GNUNET_TIME_absolute_get_remaining
 				    (th->timeout),
-				    &transmit_timeout, th);
+				    &peer_transmit_timeout, th);
   insert_transmit_handle (&h->connect_wait_head, th);
   return sizeof (struct TryConnectMessage);
 }
@@ -1114,7 +1114,7 @@ remove_neighbour (struct GNUNET_TRANSPORT_Handle *h,
 	{
 	  /* signal error */
 	  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == th->notify_delay_task);
-	  transmit_timeout (th, NULL);	  
+	  peer_transmit_timeout (th, NULL);	  
 	}
       else
 	{
@@ -1336,7 +1336,7 @@ schedule_request (struct GNUNET_TRANSPORT_TransmitHandle *th)
                                         GNUNET_SCHEDULER_PRIORITY_KEEP,
                                         GNUNET_SCHEDULER_NO_TASK,
                                         GNUNET_TIME_absolute_get_remaining
-                                        (th->timeout), &transmit_timeout, th);
+                                        (th->timeout), &peer_transmit_timeout, th);
       return;
     }
   n->transmit_ok = GNUNET_NO;
@@ -1601,7 +1601,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
 						GNUNET_SCHEDULER_PRIORITY_KEEP,
 						GNUNET_SCHEDULER_NO_TASK,
 						GNUNET_TIME_absolute_get_remaining(th->timeout),
-						&transmit_timeout, 
+						&peer_transmit_timeout, 
 						th);    
             }
           GNUNET_CLIENT_disconnect (h->client);
@@ -1944,7 +1944,7 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
 					GNUNET_NO,
 					GNUNET_SCHEDULER_PRIORITY_KEEP,
 					GNUNET_SCHEDULER_NO_TASK,
-					timeout, &transmit_timeout, th);
+					timeout, &peer_transmit_timeout, th);
       return th;
     }
   
