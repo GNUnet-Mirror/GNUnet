@@ -37,7 +37,7 @@ main (int argc, char *argv[])
   struct GNUNET_CONTAINER_SList *l;
   struct GNUNET_CONTAINER_SList_Iterator *it;
   unsigned int i, j, s;
-
+  const void *p;    
 
   GNUNET_log_setup ("test-container-slist", "WARNING", NULL);
 
@@ -53,8 +53,6 @@ main (int argc, char *argv[])
        GNUNET_CONTAINER_slist_end (it) != GNUNET_YES;
        GNUNET_CONTAINER_slist_next (it), i--)
     {
-      void *p;
-
       p = GNUNET_CONTAINER_slist_get (it, &s);
       CHECK (p != NULL);
       j = *(int *) p;
@@ -65,6 +63,7 @@ main (int argc, char *argv[])
       GNUNET_CONTAINER_slist_insert (it, GNUNET_MEM_DISP_TRANSIENT, &j,
                                      sizeof (j));
     }
+  GNUNET_free (it);
   CHECK (GNUNET_CONTAINER_slist_count (l) == 200);
   i = 198;
   CHECK (GNUNET_CONTAINER_slist_contains (l, &i, sizeof (i)));
@@ -72,8 +71,6 @@ main (int argc, char *argv[])
   for (it = GNUNET_CONTAINER_slist_begin (l);
        GNUNET_CONTAINER_slist_end (it) != GNUNET_YES;)
     {
-      void *p;
-
       p = GNUNET_CONTAINER_slist_get (it, &s);
       CHECK (p != NULL);
       CHECK (s == sizeof (i));
@@ -91,6 +88,7 @@ main (int argc, char *argv[])
 
       GNUNET_CONTAINER_slist_erase (it);
     }
+  GNUNET_free (it);
   CHECK (GNUNET_CONTAINER_slist_count (l) == 100);
   i = 99;
   CHECK (GNUNET_CONTAINER_slist_contains (l, &i, sizeof (i)) == GNUNET_NO);

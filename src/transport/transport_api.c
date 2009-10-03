@@ -1150,6 +1150,9 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_TRANSPORT_TransmitHandle *pos;
   struct NeighbourList *n;
 
+  fprintf (stderr,
+	   "Trying to reconnect to transport!\n");
+
   /* Forget about all neighbours that we used to be connected
      to */
   while (NULL != (n = h->neighbours))
