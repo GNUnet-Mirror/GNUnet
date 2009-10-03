@@ -36,7 +36,9 @@ main (int argc, char *argv[])
 {
   struct GNUNET_CONTAINER_SList *l;
   struct GNUNET_CONTAINER_SList_Iterator *it;
-  unsigned int i, j, s;
+  unsigned int i;
+  unsigned int j;
+  size_t s;
   const void *p;    
 
   GNUNET_log_setup ("test-container-slist", "WARNING", NULL);
