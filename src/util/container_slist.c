@@ -92,6 +92,7 @@ struct GNUNET_CONTAINER_SList_Iterator
   struct GNUNET_CONTAINER_SList_Elem *elem;
 };
 
+
 /**
  * Create a new element that is to be inserted into the list
  * @internal
@@ -112,14 +113,13 @@ create_elem (enum GNUNET_CONTAINER_SListDisposition disp,
       e = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_SList_Elem) + len);
       memcpy (&e[1], buf, len);
       e->elem = (void*) &e[1];
-      e->disp = GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC;
     }
   else
     {
       e = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_SList_Elem));
       e->elem = (void*) buf;
-      e->disp = disp;
     }
+  e->disp = disp;
   e->len = len;
   return e;
 }
