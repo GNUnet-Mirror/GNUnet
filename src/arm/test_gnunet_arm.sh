@@ -47,6 +47,7 @@ if test $LINES -eq 0; then
   exit 1
 fi
 echo "PASS"
+sleep 1
 
 # ----------------------------------------------------------------------------------
 echo -n "TEST: Start another service... "
