@@ -490,7 +490,7 @@ GNUNET_NETWORK_fdset_copy (struct GNUNET_NETWORK_FDSet *to,
   GNUNET_CONTAINER_slist_clear (to->handles);
 
   for (iter = GNUNET_CONTAINER_slist_begin (from->handles);
-      GNUNET_CONTAINER_slist_end (iter); GNUNET_CONTAINER_slist_next (iter))
+      GNUNET_CONTAINER_slist_end (iter) != GNUNET_YES; GNUNET_CONTAINER_slist_next (iter))
     {
       void *handle;
       size_t len;
@@ -592,7 +592,7 @@ GNUNET_NETWORK_fdset_create ()
 
   fds = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_FDSet));
 #ifdef MINGW
-  fds->handles = NULL;
+  fds->handles = GNUNET_CONTAINER_slist_create ();
 #endif
   GNUNET_NETWORK_fdset_zero (fds);
   return fds;
