@@ -41,6 +41,9 @@ proc (void *cls,
   int *ok = cls;
   char buf[INET6_ADDRSTRLEN];
 
+  if (NULL == addr)
+    return GNUNET_OK;
+
   inet_ntop (addr->sa_family,
              (addr->sa_family == AF_INET) ?
              (void *) &((struct sockaddr_in *) addr)->sin_addr :
