@@ -42,6 +42,10 @@ extern "C"
 #endif
 
 
+#define GNUNET_MEM_DISP_TRANSIENT    0
+#define GNUNET_MEM_DISP_STATIC       2
+#define GNUNET_MEM_DISP_DYNAMIC      4
+
 /* ******************* bloomfilter ***************** */
 
 /**
@@ -870,6 +874,101 @@ void *GNUNET_CONTAINER_heap_walk_get_next (struct GNUNET_CONTAINER_Heap
 unsigned int
 GNUNET_CONTAINER_heap_get_size (struct GNUNET_CONTAINER_Heap *heap);
 
+/* ******************** Singly linked list *************** */
+
+/* Handle to a singly linked list  */
+struct GNUNET_CONTAINER_SList;
+
+/* Handle to a singly linked list iterator */
+struct GNUNET_CONTAINER_SList_Iterator;
+
+
+/**
+ * Add a new element to the list
+ * @param l list
+ * @param disp memory disposition
+ * @param buf payload buffer
+ * @param len length of the buffer
+ */
+void GNUNET_CONTAINER_slist_add (struct GNUNET_CONTAINER_SList *l, int disp, const void *buf, size_t len);
+
+/**
+ * Create a new singly linked list
+ * @return the new list
+ */
+struct GNUNET_CONTAINER_SList *GNUNET_CONTAINER_slist_create ();
+
+/**
+ * Destroy a singly linked list
+ * @param l the list to be destroyed
+ */
+void GNUNET_CONTAINER_slist_destroy (struct GNUNET_CONTAINER_SList *l);
+
+/**
+ * Return the beginning of a list
+ * @param l list
+ * @return iterator pointing to the beginning
+ */
+const struct GNUNET_CONTAINER_SList_Iterator *GNUNET_CONTAINER_slist_begin(const struct GNUNET_CONTAINER_SList *l);
+
+/**
+ * Clear a list
+ * @param l list
+ */
+void GNUNET_CONTAINER_slist_clear (struct GNUNET_CONTAINER_SList *l);
+
+/**
+ * Check if a list contains a certain element
+ * @param l list
+ * @param buf payload buffer to find
+ * @param lenght of the payload
+ */
+int GNUNET_CONTAINER_slist_contains (const struct GNUNET_CONTAINER_SList *l, const void *buf, size_t len);
+
+/**
+ * Count the elements of a list
+ * @param l list
+ * @return number of elements in the list
+ */
+int GNUNET_CONTAINER_slist_count (const struct GNUNET_CONTAINER_SList *l);
+
+/**
+ * Remove an element from the list
+ * @param i iterator that points to the element to be removed
+ */
+void GNUNET_CONTAINER_slist_erase (struct GNUNET_CONTAINER_SList_Iterator *i);
+
+/**
+ * Insert an element into a list at a specific position
+ * @param before where to insert the new element
+ * @param disp memory disposition
+ * @param buf payload buffer
+ * @param len length of the payload
+ */
+void GNUNET_CONTAINER_slist_insert (struct GNUNET_CONTAINER_SList_Iterator *before, int disp, const void *buf, size_t len);
+
+/**
+ * Advance an iterator to the next element
+ * @param i iterator
+ * @return GNUNET_YES on success, GNUNET_NO if the end has been reached
+ */
+int GNUNET_CONTAINER_slist_next (struct GNUNET_CONTAINER_SList_Iterator *i);
+
+/**
+ * Check if an iterator points beyond the end of a list
+ * @param i iterator
+ * @return GNUNET_YES if the end has been reached, GNUNET_NO if the iterator
+ *         points to a valid element
+ */
+int GNUNET_CONTAINER_slist_end (struct GNUNET_CONTAINER_SList_Iterator *i);
+
+/**
+ * Retrieve the element at a specific position in a list
+ * @param i iterator
+ * @param len payload length
+ * @return payload
+ */
+void *GNUNET_CONTAINER_slist_get (const struct GNUNET_CONTAINER_SList_Iterator *i, size_t *len);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

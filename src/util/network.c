@@ -43,7 +43,7 @@ struct GNUNET_NETWORK_FDSet
   fd_set sds;
 #ifdef WINDOWS
   /* handles */
-  struct GNUNET_CONTAINER_Vector *handles;
+  struct GNUNET_CONTAINER_SList *handles;
 #endif
 };
 
@@ -416,9 +416,7 @@ GNUNET_NETWORK_fdset_zero (struct GNUNET_NETWORK_FDSet *fds)
   FD_ZERO (&fds->sds);
   fds->nsds = 0;
 #ifdef MINGW
-  if (fds->handles)
-    GNUNET_CONTAINER_vector_destroy (fds->handles);
-  fds->handles = GNUNET_CONTAINER_vector_create (2);
+  GNUNET_CONTAINER_slist_clear (fds->handles);
 #endif
 }
 
@@ -486,15 +484,19 @@ GNUNET_NETWORK_fdset_copy (struct GNUNET_NETWORK_FDSet *to,
   FD_COPY (&from->sds, &to->sds);
   to->nsds = from->nsds;
 #ifdef MINGW
-  void *obj;
+  struct GNUNET_CONTAINER_SList_Iterator *iter;
 
-  if (to->handles)
-    GNUNET_CONTAINER_vector_destroy (to->handles);
-  to->handles = GNUNET_CONTAINER_vector_create (2);
-  for (obj = GNUNET_CONTAINER_vector_get_first (from->handles); obj != NULL;
-       obj = GNUNET_CONTAINER_vector_get_next (from->handles))
+
+  GNUNET_CONTAINER_slist_clear (to->handles);
+
+  for (iter = GNUNET_CONTAINER_slist_begin (from->handles);
+      GNUNET_CONTAINER_slist_end (iter); GNUNET_CONTAINER_slist_next (iter))
     {
-      GNUNET_CONTAINER_vector_insert_last (to->handles, obj);
+      void *handle;
+      size_t len;
+
+      handle = GNUNET_CONTAINER_slist_get (iter, &len);
+      GNUNET_CONTAINER_slist_add (to->handles, GNUNET_MEM_DISP_TRANSIENT, handle, len);
     }
 #endif
 }
@@ -528,7 +530,7 @@ GNUNET_NETWORK_fdset_handle_set (struct GNUNET_NETWORK_FDSet *fds,
   HANDLE hw;
 
   GNUNET_internal_disk_file_handle (h, &hw, sizeof (HANDLE));
-  GNUNET_CONTAINER_vector_insert_last (fds->handles, h);
+  GNUNET_CONTAINER_slist_add (fds->handles, GNUNET_NO, &hw, sizeof (HANDLE));
 #else
   int fd;
 
@@ -550,8 +552,7 @@ GNUNET_NETWORK_fdset_handle_isset (const struct GNUNET_NETWORK_FDSet *fds,
                                    const struct GNUNET_DISK_FileHandle *h)
 {
 #ifdef MINGW
-  return GNUNET_CONTAINER_vector_index_of (fds->handles, h->h) !=
-    (unsigned int) -1;
+  return GNUNET_CONTAINER_slist_contains (fds->handles, h->h, sizeof (HANDLE));
 #else
   return FD_ISSET (h->fd, &fds->sds);
 #endif
@@ -606,7 +607,7 @@ void
 GNUNET_NETWORK_fdset_destroy (struct GNUNET_NETWORK_FDSet *fds)
 {
 #ifdef MINGW
-  GNUNET_CONTAINER_vector_destroy (fds->handles);
+  GNUNET_CONTAINER_slist_destroy (fds->handles);
 #endif
   GNUNET_free (fds);
 }
@@ -736,50 +737,76 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 
       /* Poll read pipes */
       if (rfds)
-        for (i = GNUNET_CONTAINER_vector_size (rfds->handles) - 1; i >= 0; i--)
-          {
-            DWORD dwBytes;
+        {
+          struct GNUNET_CONTAINER_SList_Iterator *i;
+          int on_next;
 
-            if (!PeekNamedPipe
-                (GNUNET_CONTAINER_vector_get_at (rfds->handles, i), NULL, 0,
-                 NULL, &dwBytes, NULL))
-              {
-                GNUNET_CONTAINER_vector_remove_at (rfds->handles, i);
+          on_next = GNUNET_NO;
+          for (i = GNUNET_CONTAINER_slist_begin (rfds->handles);
+                    GNUNET_CONTAINER_slist_end (i) != GNUNET_YES;
+                    on_next || GNUNET_CONTAINER_slist_next (i))
+            {
+              HANDLE h;
+              DWORD dwBytes;
 
-                retcode = -1;
-                SetErrnoFromWinError (GetLastError ());
+              h = *(HANDLE *) GNUNET_CONTAINER_slist_get (i, NULL);
+              on_next = GNUNET_NO;
+
+              if (!PeekNamedPipe (h, NULL, 0, NULL, &dwBytes, NULL))
+                {
+                  GNUNET_CONTAINER_slist_erase (i);
+                  on_next = GNUNET_YES;
+
+                  retcode = -1;
+                  SetErrnoFromWinError (GetLastError ());
 #if DEBUG_SOCK
-            GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "PeekNamedPipe");
+                  GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "PeekNamedPipe");
 #endif
-               goto select_loop_end;
-              }
-            else if (dwBytes)
-              {
-                retcode++;
-              }
-            else
-              GNUNET_CONTAINER_vector_remove_at (rfds->handles, i);
-          }
+                  goto select_loop_end;
+                }
+              else if (dwBytes)
+                {
+                  retcode++;
+                }
+              else
+                {
+                  GNUNET_CONTAINER_slist_erase (i);
+                  on_next = GNUNET_YES;
+                }
+            }
+        }
 
       /* Poll for faulty pipes */
       if (efds)
-        for (i = GNUNET_CONTAINER_vector_size (efds->handles); i >= 0; i--)
-          {
-            DWORD dwBytes;
+        {
+          struct GNUNET_CONTAINER_SList_Iterator *i;
+          int on_next;
 
-            if (PeekNamedPipe
-                (GNUNET_CONTAINER_vector_get_at (rfds->handles, i), NULL, 0,
-                 NULL, &dwBytes, NULL))
-              {
-                GNUNET_CONTAINER_vector_remove_at (efds->handles, i);
+          on_next = GNUNET_NO;
+          for (i = GNUNET_CONTAINER_slist_begin (efds->handles);
+                    GNUNET_CONTAINER_slist_end (i) != GNUNET_YES;
+                    on_next || GNUNET_CONTAINER_slist_next (i))
+            {
+              HANDLE h;
+              DWORD dwBytes;
 
-                retcode++;
-              }
-          }
+              h = *(HANDLE *) GNUNET_CONTAINER_slist_get (i, NULL);
+
+              if (PeekNamedPipe (h, NULL, 0, NULL, &dwBytes, NULL))
+                {
+                  GNUNET_CONTAINER_slist_erase (i);
+                  on_next = GNUNET_YES;
+
+                  retcode++;
+                }
+              else
+                on_next = GNUNET_NO;
+            }
+        }
 
       /* FIXME */
       if (wfds)
-        GNUNET_assert (GNUNET_CONTAINER_vector_size (wfds->handles) == 0);
+        GNUNET_assert (GNUNET_CONTAINER_slist_count (wfds->handles) == 0);
 
       /* Check for closed sockets */
       for (i = 0; i < nfds; i++)
