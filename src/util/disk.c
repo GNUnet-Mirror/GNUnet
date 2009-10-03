@@ -230,13 +230,13 @@ int GNUNET_DISK_file_get_identifiers (const char *filename,
 /**
  * Create an (empty) temporary file on disk.
  * 
- * @param tmpl component to use for the name;
+ * @param t component to use for the name;
  *        does NOT contain "XXXXXX" or "/tmp/".
  * @return NULL on error, otherwise name of fresh
  *         file on disk in directory for temporary files
  */
 char *
-GNUNET_DISK_mktemp (const char *tmpl)
+GNUNET_DISK_mktemp (const char *t)
 {
   const char *tmpdir;
   int fd;
