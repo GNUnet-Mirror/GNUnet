@@ -229,7 +229,6 @@ getaddrinfo_resolve (struct GNUNET_SERVER_TransmitContext *tc,
           (s == EAI_SYSTEM)
 #else
           // FIXME NILS
-          1
 #endif
       )
         return GNUNET_NO;       /* other function may still succeed */

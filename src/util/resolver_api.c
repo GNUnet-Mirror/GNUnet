@@ -337,11 +337,11 @@ GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
 	    break;
 	  case AF_UNSPEC:
 	    callback (callback_cls, 
-		      (const struct sockaddr*) &v4,
-		      sizeof(v4));
-	    callback (callback_cls, 
 		      (const struct sockaddr*) &v6,
 		      sizeof(v6));
+	    callback (callback_cls, 
+		      (const struct sockaddr*) &v4,
+		      sizeof(v4));
 	    break;
 	  }
 	callback (callback_cls, NULL, 0);
