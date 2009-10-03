@@ -49,22 +49,22 @@ enum ConnectContinuations
     /**
      * Call nothing.
      */
-    CC_NONE = 0,
+    COCO_NONE = 0,
 
     /**
      * Call "receive_again".
      */
-    CC_RECEIVE_AGAIN = 1,
+    COCO_RECEIVE_AGAIN = 1,
 
     /**
      * Call "transmit_ready".
      */
-    CC_TRANSMIT_READY = 2,
+    COCO_TRANSMIT_READY = 2,
 
     /**
      * Call "destroy_continuation".
      */
-    CC_DESTROY_CONTINUATION = 4
+    COCO_DESTROY_CONTINUATION = 4
   };
 
 
@@ -468,13 +468,13 @@ destroy_continuation (void *cls,
       sock->dns_active = GNUNET_SYSERR;
       return;
     }
-  if (0 != (sock->ccs & CC_TRANSMIT_READY))
+  if (0 != (sock->ccs & COCO_TRANSMIT_READY))
     {
 #if DEBUG_CONNECTION
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		  "Destroy waits for CCS-TR to be done\n");
 #endif
-      sock->ccs |= CC_DESTROY_CONTINUATION;
+      sock->ccs |= COCO_DESTROY_CONTINUATION;
       return;
     }
   if (sock->write_task != GNUNET_SCHEDULER_NO_TASK)
@@ -490,9 +490,9 @@ destroy_continuation (void *cls,
                                   &destroy_continuation, sock);
       return;
     }
-  if (0 != (sock->ccs & CC_RECEIVE_AGAIN))
+  if (0 != (sock->ccs & COCO_RECEIVE_AGAIN))
     {
-      sock->ccs |= CC_DESTROY_CONTINUATION;
+      sock->ccs |= COCO_DESTROY_CONTINUATION;
       return;
     }
   if (sock->sock != NULL)
@@ -516,7 +516,7 @@ destroy_continuation (void *cls,
 	      "Destroy actually runs!\n");
 #endif
   GNUNET_assert (sock->nth.timeout_task == GNUNET_SCHEDULER_NO_TASK);
-  GNUNET_assert (sock->ccs == CC_NONE);
+  GNUNET_assert (sock->ccs == COCO_NONE);
   if (NULL != (notify = sock->nth.notify_ready))
     {
       sock->nth.notify_ready = NULL;
@@ -565,13 +565,13 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
 
   /* FIXME: trigger delayed reconnect attempt... */
   /* trigger jobs that used to wait on "connect_task" */
-  if (0 != (h->ccs & CC_RECEIVE_AGAIN))
+  if (0 != (h->ccs & COCO_RECEIVE_AGAIN))
     {
 #if DEBUG_CONNECTION
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		  "connect_timeout_continuation triggers receive_again\n");
 #endif
-      h->ccs -= CC_RECEIVE_AGAIN;
+      h->ccs -= COCO_RECEIVE_AGAIN;
       h->read_task = GNUNET_SCHEDULER_add_after (h->sched,
 						 GNUNET_NO,
 						 GNUNET_SCHEDULER_PRIORITY_KEEP,
@@ -579,7 +579,7 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
 						 &receive_again,
 						 h);
     }
-  if (0 != (h->ccs & CC_TRANSMIT_READY))
+  if (0 != (h->ccs & COCO_TRANSMIT_READY))
     {
 #if DEBUG_CONNECTION
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
@@ -588,7 +588,7 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
       GNUNET_assert (h->nth.timeout_task != GNUNET_SCHEDULER_NO_TASK);    
       GNUNET_SCHEDULER_cancel (h->sched, h->nth.timeout_task);
       h->nth.timeout_task = GNUNET_SCHEDULER_NO_TASK;
-      h->ccs -= CC_TRANSMIT_READY;
+      h->ccs -= COCO_TRANSMIT_READY;
       h->write_task = GNUNET_SCHEDULER_add_after (h->sched,
 						  GNUNET_NO,
 						  GNUNET_SCHEDULER_PRIORITY_KEEP,
@@ -596,13 +596,13 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
 						  &transmit_ready,
 						  h);
     }
-  if (0 != (h->ccs & CC_DESTROY_CONTINUATION))
+  if (0 != (h->ccs & COCO_DESTROY_CONTINUATION))
     {
 #if DEBUG_CONNECTION
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		  "connect_timeout_continuation runs destroy_continuation\n");
 #endif
-      h->ccs -= CC_DESTROY_CONTINUATION;
+      h->ccs -= COCO_DESTROY_CONTINUATION;
       GNUNET_SCHEDULER_add_continuation (h->sched,
 					 GNUNET_NO,
 					 &destroy_continuation,
@@ -626,13 +626,13 @@ connect_success_continuation (struct GNUNET_CONNECTION_Handle *h)
 	      GNUNET_a2s(h->addr, h->addrlen));
 #endif
   /* trigger jobs that waited for the connection */
-  if (0 != (h->ccs & CC_RECEIVE_AGAIN))
+  if (0 != (h->ccs & COCO_RECEIVE_AGAIN))
     {
 #if DEBUG_CONNECTION
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		  "connect_success_continuation runs receive_again\n");
 #endif
-      h->ccs -= CC_RECEIVE_AGAIN;
+      h->ccs -= COCO_RECEIVE_AGAIN;
       h->read_task = GNUNET_SCHEDULER_add_after (h->sched,
 						 GNUNET_NO,
 						 GNUNET_SCHEDULER_PRIORITY_KEEP,
@@ -640,7 +640,7 @@ connect_success_continuation (struct GNUNET_CONNECTION_Handle *h)
 						 &receive_again,
 						 h);
     }
-  if (0 != (h->ccs & CC_TRANSMIT_READY))
+  if (0 != (h->ccs & COCO_TRANSMIT_READY))
     {
 #if DEBUG_CONNECTION
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
@@ -649,7 +649,7 @@ connect_success_continuation (struct GNUNET_CONNECTION_Handle *h)
       GNUNET_assert (h->nth.timeout_task != GNUNET_SCHEDULER_NO_TASK);    
       GNUNET_SCHEDULER_cancel (h->sched, h->nth.timeout_task);
       h->nth.timeout_task = GNUNET_SCHEDULER_NO_TASK;
-      h->ccs -= CC_TRANSMIT_READY;
+      h->ccs -= COCO_TRANSMIT_READY;
       h->write_task =
 	GNUNET_SCHEDULER_add_write_net (h->sched,
 					GNUNET_NO,
@@ -658,13 +658,13 @@ connect_success_continuation (struct GNUNET_CONNECTION_Handle *h)
 					GNUNET_TIME_absolute_get_remaining (h->nth.transmit_timeout),
 					h->sock, &transmit_ready, h);
     }
-  if (0 != (h->ccs & CC_DESTROY_CONTINUATION))
+  if (0 != (h->ccs & COCO_DESTROY_CONTINUATION))
     {
 #if DEBUG_CONNECTION
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		  "connect_success_continuation runs destroy_continuation\n");
 #endif
-      h->ccs -= CC_DESTROY_CONTINUATION;
+      h->ccs -= COCO_DESTROY_CONTINUATION;
       GNUNET_SCHEDULER_add_continuation (h->sched,
 					 GNUNET_NO,
 					 &destroy_continuation,
@@ -1181,7 +1181,7 @@ GNUNET_CONNECTION_receive (struct GNUNET_CONNECTION_Handle *sock,
   struct GNUNET_SCHEDULER_TaskContext tc;
 
   GNUNET_assert ((sock->read_task == GNUNET_SCHEDULER_NO_TASK) &&
-		 (0 == (sock->ccs & CC_RECEIVE_AGAIN)) &&
+		 (0 == (sock->ccs & COCO_RECEIVE_AGAIN)) &&
                  (sock->receiver == NULL));
   sock->receiver = receiver;
   sock->receiver_cls = receiver_cls;
@@ -1201,7 +1201,7 @@ GNUNET_CONNECTION_receive (struct GNUNET_CONNECTION_Handle *sock,
       receiver (receiver_cls, NULL, 0, NULL, 0, ETIMEDOUT);
       return;
     }
-  sock->ccs += CC_RECEIVE_AGAIN;
+  sock->ccs += COCO_RECEIVE_AGAIN;
 }
 
 
@@ -1224,8 +1224,8 @@ GNUNET_CONNECTION_receive_cancel (struct GNUNET_CONNECTION_Handle *sock)
     }
   else
     {					       
-      GNUNET_assert (0 != (sock->ccs & CC_RECEIVE_AGAIN));
-      sock->ccs -= CC_RECEIVE_AGAIN;
+      GNUNET_assert (0 != (sock->ccs & COCO_RECEIVE_AGAIN));
+      sock->ccs -= COCO_RECEIVE_AGAIN;
     }
   sock->receiver = NULL;
   return sock->receiver_cls;
@@ -1300,8 +1300,8 @@ transmit_timeout (void *cls,
 	      sock->port,
 	      GNUNET_a2s (sock->addr, sock->addrlen));
 #endif
-  GNUNET_assert (0 != (sock->ccs & CC_TRANSMIT_READY));
-  sock->ccs -= CC_TRANSMIT_READY; /* remove request */
+  GNUNET_assert (0 != (sock->ccs & COCO_TRANSMIT_READY));
+  sock->ccs -= COCO_TRANSMIT_READY; /* remove request */
   notify = sock->nth.notify_ready;
   sock->nth.notify_ready = NULL;
   notify (sock->nth.notify_ready_cls, 0, NULL);
@@ -1515,7 +1515,7 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		  "CCS-Scheduling transmit_ready, adding timeout task.\n");
 #endif
-      sock->ccs |= CC_TRANSMIT_READY;   
+      sock->ccs |= COCO_TRANSMIT_READY;
       sock->nth.timeout_task = GNUNET_SCHEDULER_add_delayed (sock->sched,
 							     GNUNET_NO,
 							     GNUNET_SCHEDULER_PRIORITY_KEEP,
@@ -1537,11 +1537,11 @@ GNUNET_CONNECTION_notify_transmit_ready_cancel (struct
 						GNUNET_CONNECTION_TransmitHandle *h)
 {
   GNUNET_assert (h->notify_ready != NULL);
-  if (0 != (h->sh->ccs & CC_TRANSMIT_READY))
+  if (0 != (h->sh->ccs & COCO_TRANSMIT_READY))
     {
       GNUNET_SCHEDULER_cancel (h->sh->sched, h->timeout_task);
       h->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-      h->sh->ccs -= CC_TRANSMIT_READY;
+      h->sh->ccs -= COCO_TRANSMIT_READY;
     }
   else
     {
