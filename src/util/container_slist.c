@@ -27,24 +27,68 @@
 #include "platform.h"
 #include "gnunet_container_lib.h"
 
+/**
+ * Element in our linked list.
+ */
 struct GNUNET_CONTAINER_SList_Elem
 {
+  /**
+   * This is a linked list.
+   */ 
   struct GNUNET_CONTAINER_SList_Elem *next;
-  const void *elem;
+
+  /**
+   * Application data stored at this element.
+   */
+  void *elem;
+
+  /**
+   * Number of bytes stored in elem.
+   */
   size_t len;
-  int disp;
+
+  /**
+   * Disposition of the element.
+   */
+  enum GNUNET_CONTAINER_SListDisposition disp;
 };
 
+
+/**
+ * Handle to a singly linked list  
+ */
 struct GNUNET_CONTAINER_SList
 {
+  /**
+   * Head of the linked list.
+   */
   struct GNUNET_CONTAINER_SList_Elem *head;
+
+  /**
+   * Number of elements in the list.
+   */
   unsigned int length;
 };
 
+
+/**
+ * Handle to a singly linked list iterator 
+ */
 struct GNUNET_CONTAINER_SList_Iterator
 {
+  /**
+   * Linked list that we are iterating over.
+   */
   struct GNUNET_CONTAINER_SList *list;
+
+  /**
+   * Last element accessed.
+   */
   struct GNUNET_CONTAINER_SList_Elem *last;
+
+  /**
+   * Current list element.
+   */
   struct GNUNET_CONTAINER_SList_Elem *elem;
 };
 
@@ -57,20 +101,22 @@ struct GNUNET_CONTAINER_SList_Iterator
  * @return a new element
  */
 static struct GNUNET_CONTAINER_SList_Elem *
-create_elem (int disp, const void *buf, size_t len)
+create_elem (enum GNUNET_CONTAINER_SListDisposition disp, 
+	     const void *buf, 
+	     size_t len)
 {
   struct GNUNET_CONTAINER_SList_Elem *e;
 
-  if (disp == GNUNET_MEM_DISP_TRANSIENT)
+  if (disp == GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT)
     {
       e = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_SList_Elem) + len);
       memcpy (&e[1], buf, len);
-      e->elem = (const void*) &e[1];
+      e->elem = (void*) &e[1];
     }
   else
     {
       e = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_SList_Elem));
-      e->elem = buf;
+      e->elem = (void*) buf;
     }
   e->disp = disp;
   e->len = len;
@@ -86,7 +132,8 @@ create_elem (int disp, const void *buf, size_t len)
  * @param len length of the buffer
  */
 void
-GNUNET_CONTAINER_slist_add (struct GNUNET_CONTAINER_SList *l, int disp,
+GNUNET_CONTAINER_slist_add (struct GNUNET_CONTAINER_SList *l, 
+			    enum GNUNET_CONTAINER_SListDisposition disp, 
                             const void *buf, size_t len)
 {
   struct GNUNET_CONTAINER_SList_Elem *e;
@@ -107,6 +154,7 @@ GNUNET_CONTAINER_slist_create ()
 {
   return GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_SList));
 }
+
 
 /**
  * Destroy a singly linked list
@@ -151,6 +199,8 @@ GNUNET_CONTAINER_slist_clear (struct GNUNET_CONTAINER_SList *l)
   while (e != NULL)
     {
       n = e->next;
+      if (e->disp == GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC)
+	GNUNET_free (e->elem);
       GNUNET_free (e);
       e = n;
     }
@@ -207,6 +257,8 @@ GNUNET_CONTAINER_slist_erase (struct GNUNET_CONTAINER_SList_Iterator *i)
     i->last->next = next;
   else
     i->list->head = next;
+  if (i->elem->disp == GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC)
+    GNUNET_free (i->elem->elem);
   GNUNET_free (i->elem);
   i->list->length--;
   i->elem = next;
@@ -222,7 +274,8 @@ GNUNET_CONTAINER_slist_erase (struct GNUNET_CONTAINER_SList_Iterator *i)
  */
 void
 GNUNET_CONTAINER_slist_insert (struct GNUNET_CONTAINER_SList_Iterator *before,
-                               int disp, const void *buf, size_t len)
+                               enum GNUNET_CONTAINER_SListDisposition disp, 
+			       const void *buf, size_t len)
 {
   struct GNUNET_CONTAINER_SList_Elem *e;
 

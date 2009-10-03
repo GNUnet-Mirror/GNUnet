@@ -42,10 +42,6 @@ extern "C"
 #endif
 
 
-#define GNUNET_MEM_DISP_TRANSIENT    0
-#define GNUNET_MEM_DISP_STATIC       2
-#define GNUNET_MEM_DISP_DYNAMIC      4
-
 /* ******************* bloomfilter ***************** */
 
 /**
@@ -877,6 +873,30 @@ GNUNET_CONTAINER_heap_get_size (struct GNUNET_CONTAINER_Heap *heap);
 /* ******************** Singly linked list *************** */
 
 /**
+ * Possible ways for how data stored in the linked list
+ * might be allocated.
+ */ 
+enum GNUNET_CONTAINER_SListDisposition
+  {
+    /**
+     * Single-linked list must copy the buffer.
+     */
+    GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT = 0,
+
+    /**
+     * Data is static, no need to copy or free.
+     */
+    GNUNET_CONTAINER_SLIST_DISPOSITION_STATIC = 2,
+
+    /**
+     * Data is dynamic, do not copy but free when done.
+     */
+    GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC = 4
+  };
+
+
+
+/**
  * Handle to a singly linked list  
  */
 struct GNUNET_CONTAINER_SList;
@@ -894,7 +914,9 @@ struct GNUNET_CONTAINER_SList_Iterator;
  * @param buf payload buffer
  * @param len length of the buffer
  */
-void GNUNET_CONTAINER_slist_add (struct GNUNET_CONTAINER_SList *l, int disp, const void *buf, size_t len);
+void GNUNET_CONTAINER_slist_add (struct GNUNET_CONTAINER_SList *l, 
+				 enum GNUNET_CONTAINER_SListDisposition disp,
+				 const void *buf, size_t len);
 
 
 /**
@@ -960,7 +982,10 @@ void GNUNET_CONTAINER_slist_erase (struct GNUNET_CONTAINER_SList_Iterator *i);
  * @param buf payload buffer
  * @param len length of the payload
  */
-void GNUNET_CONTAINER_slist_insert (struct GNUNET_CONTAINER_SList_Iterator *before, int disp, const void *buf, size_t len);
+void GNUNET_CONTAINER_slist_insert (struct GNUNET_CONTAINER_SList_Iterator *before,
+				    enum GNUNET_CONTAINER_SListDisposition disp,
+				    const void *buf, 
+				    size_t len);
 
 
 /**

@@ -46,7 +46,7 @@ main (int argc, char *argv[])
   CHECK (GNUNET_CONTAINER_slist_count (l) == 0);
 
   for (i = 0; i < 100; i++)
-    GNUNET_CONTAINER_slist_add (l, GNUNET_MEM_DISP_TRANSIENT, &i, sizeof (i));
+    GNUNET_CONTAINER_slist_add (l, GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT, &i, sizeof (i));
   CHECK (GNUNET_CONTAINER_slist_count (l) == 100);
 
   for (it = GNUNET_CONTAINER_slist_begin (l), i = 99;
@@ -60,7 +60,7 @@ main (int argc, char *argv[])
       CHECK (s == sizeof (i));
 
       j *= 2;
-      GNUNET_CONTAINER_slist_insert (it, GNUNET_MEM_DISP_TRANSIENT, &j,
+      GNUNET_CONTAINER_slist_insert (it, GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT, &j,
                                      sizeof (j));
     }
   GNUNET_free (it);
@@ -99,7 +99,7 @@ main (int argc, char *argv[])
   CHECK (GNUNET_CONTAINER_slist_count (l) == 0);
 
   for (i = 0; i < 100; i++)
-    GNUNET_CONTAINER_slist_add (l, GNUNET_MEM_DISP_TRANSIENT, &i, sizeof (i));
+    GNUNET_CONTAINER_slist_add (l, GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT, &i, sizeof (i));
 
   GNUNET_CONTAINER_slist_destroy (l);
 

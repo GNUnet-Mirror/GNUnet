@@ -496,7 +496,7 @@ GNUNET_NETWORK_fdset_copy (struct GNUNET_NETWORK_FDSet *to,
       size_t len;
 
       handle = GNUNET_CONTAINER_slist_get (iter, &len);
-      GNUNET_CONTAINER_slist_add (to->handles, GNUNET_MEM_DISP_TRANSIENT, handle, len);
+      GNUNET_CONTAINER_slist_add (to->handles, GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT, handle, len);
     }
 #endif
 }
