@@ -66,3 +66,17 @@ gnunet-service-statistics
 gnunet-service-dv
 gnunet-service-dht
 gnunet-service-fs (or just lib?)
+
+
+
+
+Coding style:
+- GNU guidelines apply
+- declare only one variable per line, so 
+
+  int i;
+  int j;
+
+  instead of
+
+  int i,j;
