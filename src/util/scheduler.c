@@ -562,10 +562,12 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *cls)
     }
   if (sig_shutdown)
     sched.shutdown = GNUNET_YES;
+#ifndef MINGW
   GNUNET_SIGNAL_handler_uninstall (shc_int);
   GNUNET_SIGNAL_handler_uninstall (shc_term);
   GNUNET_SIGNAL_handler_uninstall (shc_quit);
   GNUNET_SIGNAL_handler_uninstall (shc_hup);
+#endif
   do
     {
       run_ready (&sched);
