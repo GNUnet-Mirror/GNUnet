@@ -30,7 +30,7 @@
 #include "gnunet_resolver_service.h"
 #include "resolver.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 
 static void
