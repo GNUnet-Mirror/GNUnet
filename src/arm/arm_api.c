@@ -98,10 +98,10 @@ arm_service_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   config = NULL;
   /* start service */
   if ((GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_filename (pos->cfg,
-                                                "arm",
-                                                "BINARY",
-                                                &binary)) ||
+       GNUNET_CONFIGURATION_get_value_string (pos->cfg,
+					      "arm",
+					      "BINARY",
+					      &binary)) ||
       (GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_filename (pos->cfg,
                                                 "arm", "CONFIG", &config)))
