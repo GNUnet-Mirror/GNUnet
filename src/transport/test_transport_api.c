@@ -31,7 +31,9 @@
 #include "gnunet_transport_service.h"
 #include "transport.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
+
+#define VERBOSE_ARM GNUNET_NO
 
 #define START_ARM GNUNET_YES
 
@@ -149,7 +151,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 #if START_ARM
   p->arm_pid = GNUNET_OS_start_process ("gnunet-service-arm",
                                         "gnunet-service-arm",
-#if VERBOSE
+#if VERBOSE_ARM
                                         "-L", "DEBUG",
 #endif
                                         "-c", cfgname, NULL);
