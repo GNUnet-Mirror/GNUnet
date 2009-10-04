@@ -1519,7 +1519,7 @@ cleanup_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
      ordered by timeout, so we need the last element... */
   if (NULL != pending_validations)
     {
-      first = pos->timeout;
+      first = pending_validations->timeout;
       pos = pending_validations;
       while (pos != NULL) 
 	{
