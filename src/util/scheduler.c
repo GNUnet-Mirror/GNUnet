@@ -374,9 +374,10 @@ check_ready (struct GNUNET_SCHEDULER_Handle *handle,
   while (pos != NULL)
     {
 #if DEBUG_TASKS
-      fprintf (stderr,
-	       "Checking readyness of task: %llu\n",
-	       pos->id);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Checking readyness of task: %llu / %p\n",
+		  pos->id,
+		  pos->callback_cls);
 #endif
       next = pos->next;
       if (GNUNET_YES == is_ready (handle, pos, now, rs, ws))
@@ -450,9 +451,10 @@ run_ready (struct GNUNET_SCHEDULER_Handle *sched)
       tc.write_ready = pos->write_set;
       pos->callback (pos->callback_cls, &tc);
 #if DEBUG_TASKS
-      fprintf (stderr,
-	       "Running task: %llu\n",
-	       pos->id);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Running task: %llu / %p\n",
+		  pos->id,
+		  pos->callback_cls);
 #endif
       destroy_task (pos);
       sched->tasks_run++;
@@ -648,11 +650,6 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Handle *sched,
   enum GNUNET_SCHEDULER_Priority p;
   void *ret;
 
-#if DEBUG_TASKS
-  fprintf (stderr,
-	   "Canceling task: %llu\n",
-	   task);
-#endif
   prev = NULL;
   t = sched->pending;
   while (t != NULL)
@@ -690,13 +687,16 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Handle *sched,
   else
     prev->next = t->next;
   ret = t->callback_cls;
+#if DEBUG_TASKS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Canceling task: %llu / %p\n",
+	      task,
+	      t->callback_cls);
+#endif
   destroy_task (t);
   return ret;
 }
 
-#if DEBUG_TASKS
-#include <execinfo.h>
-#endif
 
 /**
  * Continue the current execution with the given function.  This is
@@ -726,13 +726,10 @@ GNUNET_SCHEDULER_add_continuation (struct GNUNET_SCHEDULER_Handle *sched,
   task->priority = sched->current_priority;
   task->run_on_shutdown = run_on_shutdown;
 #if DEBUG_TASKS
-  {
-    void *ptrs[20];
-    fprintf (stderr,
-	     "Adding continuation task: %llu\n",
-	     task->id);
-    backtrace_symbols_fd (ptrs, backtrace (ptrs, 20), 2);    
-  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Adding continuation task: %llu / %p\n",
+	      task->id,
+	      task->callback_cls);
 #endif
   queue_ready_task (sched, task);
 }
@@ -971,13 +968,10 @@ GNUNET_SCHEDULER_add_select (struct GNUNET_SCHEDULER_Handle * sched,
   task->next = sched->pending;
   sched->pending = task;
 #if DEBUG_TASKS
-  {
-    void *ptrs[20];
-    fprintf (stderr,
-	     "Adding task: %llu\n",
-	     task->id);
-    backtrace_symbols_fd (ptrs, backtrace (ptrs, 20), 2);    
-  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Adding task: %llu / %p\n",
+	      task->id,
+	      task->callback_cls);
 #endif
   return task->id;
 }
