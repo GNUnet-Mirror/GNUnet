@@ -148,14 +148,17 @@ int
 GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
 {
   int ret;
+  int eno;
+
 #ifdef MINGW
   ret = closesocket (desc->fd);
-  SetErrnoFromWinsockError (WSAGetLastError ());
+  SetErrnoFromWinsockError (WSAGetLastError ());  
 #else
   ret = close (desc->fd);
 #endif
-
+  eno = errno;
   GNUNET_free (desc);
+  errno = eno;
   return ret == 0 ? GNUNET_OK : GNUNET_SYSERR;
 }
 
