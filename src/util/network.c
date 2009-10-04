@@ -150,17 +150,12 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
   int ret;
 #ifdef MINGW
   ret = closesocket (desc->fd);
-  if (SOCKET_ERROR != ret)
-    GNUNET_free (desc);
-  else
-    SetErrnoFromWinsockError (WSAGetLastError ());
+  SetErrnoFromWinsockError (WSAGetLastError ());
 #else
-  /* FIXME: Nils, this is very strange code here... */
   ret = close (desc->fd);
-  if (0 == ret)
-    GNUNET_free (desc);
 #endif
 
+  GNUNET_free (desc);
   return ret == 0 ? GNUNET_OK : GNUNET_SYSERR;
 }
 
