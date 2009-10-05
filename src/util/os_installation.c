@@ -314,6 +314,7 @@ os_get_exec_path ()
 {
   char *ret;
 
+  ret = NULL;
 #if LINUX
   ret = get_path_from_proc_exe ();
   if (ret != NULL)
@@ -330,7 +331,7 @@ os_get_exec_path ()
     return ret;
 #endif
   /* other attempts here */
-  return NULL;
+  return ret;
 }
 
 
