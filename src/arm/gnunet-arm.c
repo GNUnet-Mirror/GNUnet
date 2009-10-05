@@ -65,7 +65,46 @@ static char *test;
  */
 static int ret;
 
+/**
+ * Connection with ARM.
+ */
+static struct GNUNET_ARM_Handle *h;
 
+/**
+ * Our scheduler.
+ */
+static struct GNUNET_SCHEDULER_Handle *sched;
+
+/**
+ * Our configuration.
+ */
+const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
+ * Processing stage that we are in.  Simple counter.
+ */
+static unsigned int phase;
+
+
+/**
+ * Main continuation-passing-style loop.  Runs the various
+ * jobs that we've been asked to do in order.
+ * 
+ * @param cls closure, unused
+ * @param tc context, unused
+ */
+static void
+cps_loop (void *cls,
+	  const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
+ * Callback invoked with the status of the last operation.  Reports to the
+ * user and then runs the next phase in the FSM.
+ *
+ * @param cls pointer to "const char*" identifying service that was manipulated
+ * @param success GNUNET_OK if service is now running, GNUNET_NO if not, GNUNET_SYSERR on error
+ */
 static void
 confirm_cb (void *cls, int success)
 {
@@ -83,9 +122,21 @@ confirm_cb (void *cls, int success)
                _("Error updating service `%s': ARM not running\n"), service);
       break;
     }
+  GNUNET_SCHEDULER_add_continuation (sched,
+				     GNUNET_NO,
+				     &cps_loop,
+				     NULL,
+				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
+/**
+ * Function called to confirm that a service is running (or that
+ * it is not running).
+ *
+ * @param cls pointer to "const char*" identifying service that was manipulated
+ * @param tc reason determines if service is now running
+ */
 static void
 confirm_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -95,6 +146,11 @@ confirm_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     fprintf (stdout, _("Service `%s' is running.\n"), service);
   else
     fprintf (stdout, _("Service `%s' is not running.\n"), service);
+  GNUNET_SCHEDULER_add_continuation (sched,
+				     GNUNET_NO,
+				     &cps_loop,
+				     NULL,
+				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
@@ -102,40 +158,90 @@ confirm_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
- * @param sched the scheduler to use
+ * @param s the scheduler to use
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
- * @param cfg configuration
+ * @param c configuration
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *sched,
+     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile, 
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  if (term != NULL)
+  sched = s;
+  cfg = c;
+  h = GNUNET_ARM_connect (cfg, sched, NULL);
+  if (h == NULL)
     {
-      GNUNET_ARM_stop_service (term, cfg, sched, TIMEOUT, &confirm_cb, term);
+      fprintf (stderr,
+	       _("Fatal error initializing ARM API.\n"));
+      ret = 1;
+      return;
     }
-  if (end)
+  GNUNET_SCHEDULER_add_continuation (sched,
+				     GNUNET_NO,
+				     &cps_loop,
+				     NULL,
+				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+}
+
+
+/**
+ * Main continuation-passing-style loop.  Runs the various
+ * jobs that we've been asked to do in order.
+ * 
+ * @param cls closure, unused
+ * @param tc context, unused
+ */
+static void
+cps_loop (void *cls,
+	  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  while (1)
     {
-      GNUNET_ARM_stop_service ("arm",
-                               cfg, sched, TIMEOUT, &confirm_cb, "arm");
-    }
-  if (start)
-    {
-      GNUNET_ARM_start_service ("arm",
-                                cfg, sched, TIMEOUT, &confirm_cb, "arm");
-    }
-  if (init != NULL)
-    {
-      GNUNET_ARM_start_service (init, cfg, sched, TIMEOUT, &confirm_cb, init);
-    }
-  if (test != NULL)
-    {
-      GNUNET_CLIENT_service_test (sched,
-                                  test, cfg, TIMEOUT, &confirm_task, test);
+      switch (phase++)
+	{
+	case 0:
+	  if (term != NULL)
+	    {
+	      GNUNET_ARM_stop_service (h, term, TIMEOUT, &confirm_cb, term);
+	      return;
+	    }
+	  break;
+	case 1:
+	  if (end)
+	    {
+	      GNUNET_ARM_stop_service (h, "arm", TIMEOUT, &confirm_cb, "arm");
+	      return;
+	    }
+	  break;
+	case 2:
+	  if (start)
+	    {
+	      GNUNET_ARM_start_service (h, "arm", TIMEOUT, &confirm_cb, "arm");
+	      return;
+	    }
+	  break;
+	case 3:
+	  if (init != NULL)
+	    {
+	      GNUNET_ARM_start_service (h, init, TIMEOUT, &confirm_cb, init);
+	      return;
+	    }
+	  break;
+	case 4:
+	  if (test != NULL)
+	    {
+	      GNUNET_CLIENT_service_test (sched, test, cfg, TIMEOUT, &confirm_task, test);
+	      return;
+	    }
+	  break;
+	default: /* last phase */
+	  GNUNET_ARM_disconnect (h);
+	  return;
+	}
     }
 }
 

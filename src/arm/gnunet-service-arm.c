@@ -46,9 +46,15 @@
 
 
 /**
- * Run maintenance every second.
+ * Run normal maintenance every 2s.
  */
-#define MAINT_FREQUENCY GNUNET_TIME_UNIT_SECONDS
+#define MAINT_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2)
+
+/**
+ * Run fast maintenance after 100ms.  This is used for an extra-job
+ * that is run to check for a process that we just killed.
+ */
+#define MAINT_FAST_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 100)
 
 /**
  * How long do we wait until we decide that a service
@@ -56,8 +62,18 @@
  */
 #define CHECK_TIMEOUT GNUNET_TIME_UNIT_MINUTES
 
+/**
+ * List of our services.
+ */
 struct ServiceList;
 
+/**
+ * Function to call if waitpid informs us that
+ * a process has died.
+ *
+ * @param cls closure
+ * @param pos entry in the service list of the process that died
+ */
 typedef void (*CleanCallback) (void *cls, struct ServiceList * pos);
 
 /**
@@ -137,6 +153,24 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 static char *prefix_command;
 
 
+/**
+ * Background task doing maintenance.
+ *
+ * @param cls closure, NULL if we need to self-restart
+ * @param tc context
+ */
+static void
+maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
+ * Transmit a status result message.
+ *
+ * @param cls pointer to "unit16_t*" with message type
+ * @param size number of bytes available in buf
+ * @param buf where to copy the message, NULL on error
+ * @return number of bytes copied to buf
+ */
 static size_t
 write_result (void *cls, size_t size, void *buf)
 {
@@ -159,6 +193,9 @@ write_result (void *cls, size_t size, void *buf)
  * Signal our client that we will start or stop the
  * service.
  *
+ * @param client who is being signalled
+ * @param name name of the service
+ * @param result message type to send
  * @return NULL if it was not found
  */
 static void
@@ -188,6 +225,7 @@ signal_result (struct GNUNET_SERVER_Client *client,
  * Find the process with the given service
  * name in the given list, remove it and return it.
  *
+ * @param name which service entry to look up
  * @return NULL if it was not found
  */
 static struct ServiceList *
@@ -216,6 +254,11 @@ find_name (const char *name)
 }
 
 
+/**
+ * Free an entry in the service list.
+ *
+ * @param pos entry to free
+ */
 static void
 free_entry (struct ServiceList *pos)
 {
@@ -224,8 +267,6 @@ free_entry (struct ServiceList *pos)
   GNUNET_free (pos->name);
   GNUNET_free (pos);
 }
-
-
 
 
 /**
@@ -335,6 +376,9 @@ start_process (struct ServiceList *sl)
 
 /**
  * Start the specified service.
+ *
+ * @param client who is asking for this
+ * @param servicename name of the service to start
  */
 static void
 start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
@@ -394,6 +438,13 @@ start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
 }
 
 
+/**
+ * Free the given entry in the service list and signal
+ * the given client that the service is now down.
+ *
+ * @param cls pointer to the client ("struct GNUNET_SERVER_Client*")
+ * @param pos entry for the service
+ */
 static void
 free_and_signal (void *cls, struct ServiceList *pos)
 {
@@ -409,9 +460,13 @@ free_and_signal (void *cls, struct ServiceList *pos)
 
 /**
  * Stop the specified service.
+ *
+ * @param client who is asking for this
+ * @param servicename name of the service to stop
  */
 static void
-stop_service (struct GNUNET_SERVER_Client *client, const char *servicename)
+stop_service (struct GNUNET_SERVER_Client *client,
+	      const char *servicename)
 {
   struct ServiceList *pos;
   struct GNUNET_CLIENT_Connection *sc;
@@ -445,6 +500,11 @@ stop_service (struct GNUNET_SERVER_Client *client, const char *servicename)
       pos->kill_continuation = &free_and_signal;
       pos->kill_continuation_cls = client;
       GNUNET_SERVER_client_keep (client);
+      GNUNET_SCHEDULER_add_delayed (sched,
+				    GNUNET_YES,
+				    GNUNET_SCHEDULER_PRIORITY_IDLE,
+				    GNUNET_SCHEDULER_NO_TASK,
+				    MAINT_FAST_FREQUENCY, &maint, NULL);
     }
   else
     {
@@ -529,11 +589,10 @@ handle_stop (void *cls,
 }
 
 
-
 /**
  * Background task doing maintenance.
  *
- * @param cls closure
+ * @param cls closure, NULL if we need to self-restart
  * @param tc context
  */
 static void
@@ -561,11 +620,12 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         }
       return;
     }
-  GNUNET_SCHEDULER_add_delayed (tc->sched,
-                                GNUNET_YES,
-                                GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                GNUNET_SCHEDULER_NO_TASK,
-                                MAINT_FREQUENCY, &maint, NULL);
+  if (cls == NULL)
+    GNUNET_SCHEDULER_add_delayed (tc->sched,
+				  GNUNET_YES,
+				  GNUNET_SCHEDULER_PRIORITY_IDLE,
+				  GNUNET_SCHEDULER_NO_TASK,
+				  MAINT_FREQUENCY, &maint, NULL);
 
   /* check for services that died (WAITPID) */
   prev = NULL;
@@ -656,8 +716,7 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * List of handlers for the messages understood by this
- * service.
+ * List of handlers for the messages understood by this service.
  */
 static struct GNUNET_SERVER_MessageHandler handlers[] = {
   {&handle_start, NULL, GNUNET_MESSAGE_TYPE_ARM_START, 0},

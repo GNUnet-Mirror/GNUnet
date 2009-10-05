@@ -40,7 +40,20 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+static struct GNUNET_ARM_Handle *arm;
+
 static int ok = 1;
+
+
+static void
+arm_notify_stop (void *cls, int success)
+{
+  GNUNET_assert (success == GNUNET_NO);
+#if START_ARM
+  GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, NULL, NULL);
+#endif
+}
+
 
 static void
 dns_notify (void *cls, const struct sockaddr *addr, socklen_t addrlen)
@@ -48,9 +61,7 @@ dns_notify (void *cls, const struct sockaddr *addr, socklen_t addrlen)
   if (addr == NULL)
     {
       GNUNET_assert (ok == 0);
-#if START_ARM
-      GNUNET_ARM_stop_service ("arm", cfg, sched, TIMEOUT, NULL, NULL);
-#endif
+      GNUNET_ARM_stop_service (arm, "resolver", TIMEOUT, &arm_notify_stop, NULL);
       return;
     }
   GNUNET_assert (addr != NULL);
@@ -62,21 +73,17 @@ static void
 resolver_notify (void *cls, int success)
 {
   GNUNET_assert (success == GNUNET_YES);
-  sleep (1);                    /* FIXME: that we need to do this is a problem... */
   GNUNET_RESOLVER_ip_get (sched,
                           cfg,
                           "localhost", AF_INET, TIMEOUT, &dns_notify, NULL);
 }
 
+
 static void
 arm_notify (void *cls, int success)
 {
   GNUNET_assert (success == GNUNET_YES);
-#if START_ARM
-  sleep (1);                    /* FIXME: that we need to do this is a problem... */
-#endif
-  GNUNET_ARM_start_service ("resolver",
-                            cfg, sched, TIMEOUT, &resolver_notify, NULL);
+  GNUNET_ARM_start_service (arm, "resolver", TIMEOUT, &resolver_notify, NULL);
 }
 
 
@@ -89,8 +96,9 @@ task (void *cls,
 {
   cfg = c;
   sched = s;
+  arm = GNUNET_ARM_connect (cfg, sched, NULL);
 #if START_ARM
-  GNUNET_ARM_start_service ("arm", cfg, sched, TIMEOUT, &arm_notify, NULL);
+  GNUNET_ARM_start_service (arm, "arm", TIMEOUT, &arm_notify, NULL);
 #else
   arm_notify (NULL, GNUNET_YES);
 #endif

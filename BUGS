@@ -92,8 +92,6 @@ sane end-user should care about this codebase yet anyway.
   - implement exponential back-off for service restarts
   - better tracking of which config changes actually need to cause process restarts by ARM.
   - have way to specify dependencies between services (to manage ARM restarts better)
-  - client-API is inefficient since it opens a TCP connection per service that is started
-    (instead of re-using connections).
 * CORE: 
   - code currently notifies clients about "encrypted" connections being up well before
     we get the encrypted PONG; sometimes this may be OK (for topology killing

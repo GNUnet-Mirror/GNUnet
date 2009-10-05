@@ -49,9 +49,8 @@
 #define ARM_START_WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
 
 /**
- * How many times are we willing to try to 
- * wait for "scp" or "gnunet-service-arm" to
- * complete (waitpid) before giving up?
+ * How many times are we willing to try to wait for "scp" or
+ * "gnunet-service-arm" to complete (waitpid) before giving up?
  */
 #define MAX_EXEC_WAIT_RUNS 50
 
@@ -60,12 +59,39 @@
  */
 enum StartPhase
   {
+    /**
+     * FIXME.
+     */
     SP_COPYING,
+
+    /**
+     * FIXME.
+     */
     SP_COPIED,
+
+    /**
+     * FIXME.
+     */
     SP_START_ARMING,
+
+    /**
+     * FIXME.
+     */
     SP_START_CORE,
+
+    /**
+     * FIXME.
+     */
     SP_START_DONE,
+
+    /**
+     * FIXME.
+     */
     SP_CLEANUP,
+
+    /**
+     * FIXME.
+     */
     SP_CONFIG_UPDATE
   };
 
@@ -839,21 +865,56 @@ void GNUNET_TESTING_daemon_reconfigure (struct GNUNET_TESTING_Daemon *d,
 				    d);
 }
 
-
+/**
+ * FIXME.
+ */
 struct ConnectContext
 {
+  /**
+   * FIXME.
+   */
   struct GNUNET_TESTING_Daemon *d1;
+
+  /**
+   * FIXME.
+   */
   struct GNUNET_TESTING_Daemon *d2;
+
+  /**
+   * FIXME.
+   */
   struct GNUNET_TRANSPORT_Handle *d1th;
+
+  /**
+   * FIXME.
+   */
   struct GNUNET_TRANSPORT_Handle *d2th;
+
+  /**
+   * When should this operation be complete (or we must trigger
+   * a timeout).
+   */
   struct GNUNET_TIME_Absolute timeout;
+
+  /**
+   * Function to call once we are done (or have timed out).
+   */
   GNUNET_TESTING_NotifyCompletion cb;
+
+  /**
+   * Closure for "nb".
+   */
   void *cb_cls;
 };
 
 
 /**
  * Success, connection is up.  Signal client our success.
+ *
+ * @param cls FIXME
+ * @param size number of bytes available in buf
+ * @param buf where to copy the message, NULL on error
+ * @return number of bytes copied to buf
  */
 static size_t
 transmit_ready (void *cls, size_t size, void *buf)

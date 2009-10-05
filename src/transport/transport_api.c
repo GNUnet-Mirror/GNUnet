@@ -1458,10 +1458,7 @@ GNUNET_TRANSPORT_connect (struct GNUNET_SCHEDULER_Handle *sched,
 {
   struct GNUNET_TRANSPORT_Handle *ret;
 
-  GNUNET_ARM_start_service ("peerinfo",
-                            cfg, sched, START_SERVICE_TIMEOUT, NULL, NULL);
-  GNUNET_ARM_start_service ("transport",
-                            cfg, sched, START_SERVICE_TIMEOUT, NULL, NULL);
+  GNUNET_ARM_start_services (cfg, sched, "peerinfo", "transport", NULL);
   ret = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_Handle));
   ret->sched = sched;
   ret->cfg = cfg;
@@ -1483,12 +1480,8 @@ static void
 stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TRANSPORT_Handle *handle = cls;
-  GNUNET_ARM_stop_service ("transport",
-                           handle->cfg,
-                           tc->sched, STOP_SERVICE_TIMEOUT, NULL, NULL);
-  GNUNET_ARM_stop_service ("peerinfo",
-                           handle->cfg,
-                           tc->sched, STOP_SERVICE_TIMEOUT, NULL, NULL);
+
+  GNUNET_ARM_stop_services (handle->cfg, handle->sched, "transport", "peerinfo", NULL);
 }
 
 

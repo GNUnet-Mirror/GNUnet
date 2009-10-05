@@ -82,8 +82,8 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CORE_disconnect (p2.ch);
   GNUNET_TRANSPORT_disconnect (p1.th);
   GNUNET_TRANSPORT_disconnect (p2.th);
-  GNUNET_ARM_stop_service ("core", p1.cfg, sched, TIMEOUT, NULL, NULL);
-  GNUNET_ARM_stop_service ("core", p2.cfg, sched, TIMEOUT, NULL, NULL);
+  GNUNET_ARM_stop_services (p1.cfg, sched, "core", NULL);
+  GNUNET_ARM_stop_services (p2.cfg, sched, "core", NULL);
   ok = 0;
 }
 
@@ -96,8 +96,8 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CORE_disconnect (p2.ch);
   GNUNET_TRANSPORT_disconnect (p1.th);
   GNUNET_TRANSPORT_disconnect (p2.th);
-  GNUNET_ARM_stop_service ("core", p1.cfg, sched, TIMEOUT, NULL, NULL);
-  GNUNET_ARM_stop_service ("core", p2.cfg, sched, TIMEOUT, NULL, NULL);
+  GNUNET_ARM_stop_services (p1.cfg, sched, "core", NULL);
+  GNUNET_ARM_stop_services (p2.cfg, sched, "core", NULL);
   ok = 42;
 }
 
@@ -303,7 +303,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   sleep (1);                    /* allow ARM to start */
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
-  GNUNET_ARM_start_service ("core", p->cfg, sched, TIMEOUT, NULL, NULL);
+  GNUNET_ARM_start_services (p->cfg, sched, "core", NULL);
   p->th = GNUNET_TRANSPORT_connect (sched, p->cfg, p, NULL, NULL, NULL);
   GNUNET_assert (p->th != NULL);
   GNUNET_TRANSPORT_get_hello (p->th, TIMEOUT, &process_hello, p);
