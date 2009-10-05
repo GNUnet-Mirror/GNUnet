@@ -60,37 +60,44 @@
 enum StartPhase
   {
     /**
-     * FIXME.
+     * Copy the configuration file to the target system.
      */
     SP_COPYING,
 
     /**
-     * FIXME.
+     * Configuration file has been copied, start ARM on target system.
      */
     SP_COPIED,
 
     /**
-     * FIXME.
+     * ARM has been started, check that it has properly daemonized and
+     * then try to connect to the CORE service (which should be
+     * auto-started by ARM).
      */
     SP_START_ARMING,
 
     /**
-     * FIXME.
+     * We're waiting for CORE to start.
      */
     SP_START_CORE,
 
     /**
-     * FIXME.
+     * Core has notified us that we've established a connection to the service.
+     * The main FSM halts here and waits to be moved to UPDATE or CLEANUP.
      */
     SP_START_DONE,
 
     /**
-     * FIXME.
+     * We've been asked to terminate the instance and are now waiting for
+     * the remote command to delete the configuration file to complete.
      */
     SP_CLEANUP,
 
     /**
-     * FIXME.
+     * We've received a configuration update and are currently waiting for
+     * the copy process for the update to complete.  Once it is, we will
+     * return to "SP_START_DONE" (and rely on ARM to restart all affected
+     * services).
      */
     SP_CONFIG_UPDATE
   };
@@ -223,6 +230,7 @@ testing_init (void *cls,
   struct GNUNET_TESTING_Daemon *d = cls;
   GNUNET_TESTING_NotifyDaemonRunning cb;
 
+  GNUNET_assert (d->phase == SP_START_CORE);
   d->phase = SP_START_DONE;
   cb = d->cb;
   d->cb = NULL;
