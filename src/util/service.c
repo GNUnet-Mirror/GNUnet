@@ -1075,11 +1075,6 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_SERVICE_Context *sctx = cls;
   unsigned int i;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      _("Trying to start `%s' at `%s'\n"),
-	      sctx->serviceName, 
-	      GNUNET_a2s (sctx->addr,
-			  sctx->addrlen));
   sctx->sched = tc->sched;
   sctx->server = GNUNET_SERVER_create (tc->sched,
                                        &check_access,
@@ -1090,6 +1085,11 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                        sctx->timeout, sctx->require_found);
   if (sctx->server == NULL)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Failed to start `%s' at `%s'\n"),
+		  sctx->serviceName, 
+		  GNUNET_a2s (sctx->addr,
+			      sctx->addrlen));
       sctx->ret = GNUNET_SYSERR;
       return;
     }
