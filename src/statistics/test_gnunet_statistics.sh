@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 rm -rf /tmp/test-gnunetd-statistics/
 exe="./gnunet-statistics -c test_statistics_api_data.conf"
