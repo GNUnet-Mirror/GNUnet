@@ -24,7 +24,7 @@
 #include "platform.h"
 #include "gnunet_testing_lib.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 static int ok;
 
@@ -109,6 +109,7 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
+  sleep (1);
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-testing");
   return ret;
 }
