@@ -1121,11 +1121,11 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static int
 detach_terminal (struct GNUNET_SERVICE_Context *sctx)
 {
+#ifndef MINGW 
   pid_t pid;
   int nullfd;
   int filedes[2];
 
-#ifndef MINGW
   if (0 != PIPE (filedes))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "pipe");
