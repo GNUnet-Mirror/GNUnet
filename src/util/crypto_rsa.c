@@ -615,7 +615,8 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
       return ret;
     }
   /* hostkey file exists already, read it! */
-  fd = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ);
+  fd = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ,
+			      GNUNET_DISK_PERM_NONE);
   if (NULL == fd)
     {
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", filename);

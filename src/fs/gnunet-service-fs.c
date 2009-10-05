@@ -1430,7 +1430,8 @@ handle_on_demand_block (const GNUNET_HashCode * key,
   fh = NULL;
   if ( (NULL == fn) ||
        (NULL == (fh = GNUNET_DISK_file_open (fn, 
-					     GNUNET_DISK_OPEN_READ))) ||
+					     GNUNET_DISK_OPEN_READ,
+					     GNUNET_DISK_PERM_NONE))) ||
        (off !=
 	GNUNET_DISK_file_seek (fh,
 			       off,

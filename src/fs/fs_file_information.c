@@ -139,7 +139,8 @@ data_reader_file(void *cls,
   if (fi->fd == NULL)
     {
       fi->fd = GNUNET_DISK_file_open (fi->filename,
-				      GNUNET_DISK_OPEN_READ);
+				      GNUNET_DISK_OPEN_READ,
+				      GNUNET_DISK_PERM_NONE);
       if (fi->fd == NULL)
 	{
 	  GNUNET_asprintf (emsg, 

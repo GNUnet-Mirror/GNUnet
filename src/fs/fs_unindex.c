@@ -319,7 +319,8 @@ process_fs_response (void *cls,
       return;
     }
   uc->fh = GNUNET_DISK_file_open (uc->filename,
-				  GNUNET_DISK_OPEN_READ);
+				  GNUNET_DISK_OPEN_READ,
+				  GNUNET_DISK_PERM_NONE);
   if (NULL == uc->fh)
     {
       GNUNET_DATASTORE_disconnect (uc->dsh, GNUNET_NO);

@@ -116,8 +116,8 @@ task5 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   (*ok) = 6;
   p = GNUNET_DISK_pipe (GNUNET_NO);
   GNUNET_assert (NULL != p);
-  fds[0] = GNUNET_DISK_pipe_handle (p, 0);
-  fds[1] = GNUNET_DISK_pipe_handle (p, 1);
+  fds[0] = GNUNET_DISK_pipe_handle (p, GNUNET_DISK_PIPE_END_READ);
+  fds[1] = GNUNET_DISK_pipe_handle (p, GNUNET_DISK_PIPE_END_WRITE);
   GNUNET_SCHEDULER_add_read_file (tc->sched,
 				  GNUNET_NO,
 				  GNUNET_SCHEDULER_PRIORITY_DEFAULT,

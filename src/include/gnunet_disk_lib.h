@@ -31,7 +31,7 @@
 struct GNUNET_DISK_FileHandle;
 
 /**
- * Opaque handle used to manage a pipe.
+ * Handle used to manage a pipe.
  */
 struct GNUNET_DISK_PipeHandle;
 
@@ -116,16 +116,62 @@ enum GNUNET_DISK_MapType
   };
 
 
-// FIXME: use enum here!
-#define GNUNET_DISK_PERM_USER_READ      1
-#define GNUNET_DISK_PERM_USER_WRITE     2
-#define GNUNET_DISK_PERM_USER_EXEC      4
-#define GNUNET_DISK_PERM_GROUP_READ     8
-#define GNUNET_DISK_PERM_GROUP_WRITE    16
-#define GNUNET_DISK_PERM_GROUP_EXEC     32
-#define GNUNET_DISK_PERM_OTHER_READ     64
-#define GNUNET_DISK_PERM_OTHER_WRITE    128
-#define GNUNET_DISK_PERM_OTHER_EXEC     256
+/**
+ * File access permissions, UNIX-style.
+ */
+enum GNUNET_DISK_AccessPermissions
+  {
+    /**
+     * Nobody is allowed to do anything to the file.
+     */
+    GNUNET_DISK_PERM_NONE = 0,
+
+    /**
+     * Owner can read.
+     */
+    GNUNET_DISK_PERM_USER_READ = 1,
+
+    /**
+     * Owner can write.
+     */
+    GNUNET_DISK_PERM_USER_WRITE = 2,
+
+    /**
+     * Owner can execute.
+     */
+    GNUNET_DISK_PERM_USER_EXEC = 4,
+
+    /**
+     * Group can read.
+     */
+    GNUNET_DISK_PERM_GROUP_READ = 8,
+
+    /**
+     * Group can write.
+     */
+    GNUNET_DISK_PERM_GROUP_WRITE = 16,
+
+    /**
+     * Group can execute.
+     */
+    GNUNET_DISK_PERM_GROUP_EXEC = 32,
+
+    /**
+     * Everybody can read.
+     */
+    GNUNET_DISK_PERM_OTHER_READ = 64,
+
+    /**
+     * Everybody can write.
+     */
+    GNUNET_DISK_PERM_OTHER_WRITE = 128,
+
+    /**
+     * Everybody can execute.
+     */
+    GNUNET_DISK_PERM_OTHER_EXEC = 256
+  };
+
 
 /**
  * Constants for specifying how to seek.
@@ -148,6 +194,24 @@ enum GNUNET_DISK_Seek
     GNUNET_DISK_SEEK_END
   };
 
+
+/**
+ * Enumeration identifying the two ends of a pipe.
+ */
+enum GNUNET_DISK_PipeEnd
+  {
+    /**
+     * The reading-end of a pipe.
+     */
+    GNUNET_DISK_PIPE_END_READ = 0,
+
+    /**
+     * The writing-end of a pipe.
+     */
+    GNUNET_DISK_PIPE_END_WRITE = 1
+  };
+
+
 /**
  * Get the number of blocks that are left on the partition that
  * contains the given file (for normal users).
@@ -160,6 +224,7 @@ long GNUNET_DISK_get_blocks_available (const char *part);
 
 /**
  * Checks whether a handle is invalid
+ *
  * @param h handle to check
  * @return GNUNET_YES if invalid, GNUNET_NO if valid
  */
@@ -200,7 +265,6 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h,
  *             of all sizes of files in the directory)
  * @param includeSymLinks should symbolic links be
  *        included?
- *
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int GNUNET_DISK_file_size (const char *filename,
@@ -231,26 +295,30 @@ int GNUNET_DISK_file_get_identifiers (const char *filename,
 /**
  * Create an (empty) temporary file on disk.
  * 
- * @param tmpl component to use for the name;
+ * @param t component to use for the name;
  *        does NOT contain "XXXXXX" or "/tmp/".
  * @return NULL on error, otherwise name of fresh
  *         file on disk in directory for temporary files
  */
 char *
-GNUNET_DISK_mktemp (const char *tmpl);
+GNUNET_DISK_mktemp (const char *t);
 
 
 /**
- * Open a file.
+ * Open a file.  Note that the access permissions will only be
+ * used if a new file is created and if the underlying operating
+ * system supports the given permissions.
  *
  * @param fn file name to be opened
  * @param flags opening flags, a combination of GNUNET_DISK_OPEN_xxx bit flags
- * @param ... permissions for the newly created file (only required if creation is possible)
+ * @param perm permissions for the newly created file, use
+ *             GNUNET_DISK_PERM_USER_NONE if a file could not be created by this
+ *             call (because of flags)
  * @return IO handle on success, NULL on error
  */
 struct GNUNET_DISK_FileHandle *GNUNET_DISK_file_open (const char *fn,
 						      enum GNUNET_DISK_OpenFlags flags,
-						      ...);
+						      enum GNUNET_DISK_AccessPermissions perm);
 
 /**
  * Creates an interprocess channel
@@ -277,12 +345,14 @@ int GNUNET_DISK_file_close (struct GNUNET_DISK_FileHandle *h);
 /**
  * Get the handle to a particular pipe end
  * @param p pipe
- * @param n number of the end (0 or 1); FIXME: use enum here!
+ * @param n end to access
  * @return handle for the respective end
  */
-const struct GNUNET_DISK_FileHandle *GNUNET_DISK_pipe_handle (const struct
-							GNUNET_DISK_PipeHandle
-							*p, int n);
+const struct GNUNET_DISK_FileHandle *
+GNUNET_DISK_pipe_handle (const struct
+			 GNUNET_DISK_PipeHandle
+			 *p, 
+			 enum GNUNET_DISK_PipeEnd n);
 
 /**
  * Read the contents of a binary file into a buffer.
@@ -297,12 +367,14 @@ ssize_t GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle *h, void *res
 
 /**
  * Read the contents of a binary file into a buffer.
+ *
  * @param fn file name
  * @param result the buffer to write the result to
  * @param len the maximum number of bytes to read
  * @return number of bytes read, GNUNET_SYSERR on failure
  */
-ssize_t GNUNET_DISK_fn_read (const char * const fn, void *result, 
+ssize_t GNUNET_DISK_fn_read (const char *fn, 
+			     void *result, 
 			     size_t len);
 
 
@@ -326,33 +398,36 @@ ssize_t GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle *h,
  * @param fn file name
  * @param buffer the data to write
  * @param n number of bytes to write
+ * @param mode file permissions 
  * @return number of bytes written on success, GNUNET_SYSERR on error
  */
-ssize_t GNUNET_DISK_fn_write (const char * fn, 
+ssize_t GNUNET_DISK_fn_write (const char *fn, 
 			      const void *buffer,
 			      size_t n, 
-			      int mode);
+			      enum GNUNET_DISK_AccessPermissions mode);
 
 
 /**
  * Copy a file.
+ *
+ * @param src file to copy
+ * @param dst destination file name
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int GNUNET_DISK_file_copy (const char *src, const char *dst);
 
 
 /**
- * Scan a directory for files. The name of the directory
- * must be expanded first (!).
+ * Scan a directory for files.
  *
  * @param dirName the name of the directory
  * @param callback the method to call for each file
- * @param data argument to pass to callback
+ * @param callback_cls closure for callback
  * @return the number of files found, -1 on error
  */
 int GNUNET_DISK_directory_scan (const char *dirName,
                                 GNUNET_FileNameCallback callback, 
-				void *data);
+				void *callback_cls);
 
 
 /**
@@ -425,7 +500,7 @@ int GNUNET_DISK_directory_create_for_file (const char *filename);
 
 
 /**
- * Test if fil is a directory that can be accessed.
+ * Test if "fil" is a directory that can be accessed.
  * Will not print an error message if the directory
  * does not exist.  Will log errors if GNUNET_SYSERR is
  * returned.

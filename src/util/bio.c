@@ -56,7 +56,8 @@ GNUNET_BIO_read_open (const char *fn)
   struct GNUNET_DISK_FileHandle *fd;
   struct GNUNET_BIO_ReadHandle *h;
 
-  fd = GNUNET_DISK_file_open (fn, GNUNET_DISK_OPEN_READ);
+  fd = GNUNET_DISK_file_open (fn, GNUNET_DISK_OPEN_READ,
+			      GNUNET_DISK_PERM_NONE);
   if (NULL == fd)
     return NULL;
   h = GNUNET_malloc (sizeof(struct GNUNET_BIO_ReadHandle) + BIO_BUFFER_SIZE);

@@ -523,7 +523,8 @@ GNUNET_CRYPTO_hash_file (struct GNUNET_SCHEDULER_Handle *sched,
     }
   fhc->run_on_shutdown = run_on_shutdown;
   fhc->fh = GNUNET_DISK_file_open (filename,
-      GNUNET_DISK_OPEN_READ);
+				   GNUNET_DISK_OPEN_READ,
+				   GNUNET_DISK_PERM_NONE);
   if (!fhc->fh)
     {
       file_hash_finish (fhc, NULL);

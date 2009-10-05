@@ -116,7 +116,8 @@ run (void *cls,
 			       &size,
 			       GNUNET_YES)) ||
        (NULL == (h = GNUNET_DISK_file_open (filename,
-					    GNUNET_DISK_OPEN_READ))) )
+					    GNUNET_DISK_OPEN_READ,
+					    GNUNET_DISK_PERM_NONE))) )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Failed to read directory `%s'\n"),

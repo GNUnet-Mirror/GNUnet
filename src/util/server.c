@@ -324,7 +324,8 @@ process_listen_socket (void *cls,
         destroy_server (server);
       return;
     }
-  shutpipe = GNUNET_DISK_pipe_handle (server->shutpipe, 0);
+  shutpipe = GNUNET_DISK_pipe_handle (server->shutpipe, 
+				      GNUNET_DISK_PIPE_END_READ);
   GNUNET_assert (GNUNET_NETWORK_fdset_isset (tc->read_ready, server->listen_socket));
   GNUNET_assert (!GNUNET_NETWORK_fdset_handle_isset (tc->read_ready, shutpipe));
   sock = GNUNET_CONNECTION_create_from_accept (tc->sched,
@@ -476,7 +477,8 @@ GNUNET_SERVER_create (struct GNUNET_SCHEDULER_Handle *sched,
     {
       r = GNUNET_NETWORK_fdset_create ();
       GNUNET_NETWORK_fdset_set (r, ret->listen_socket);
-      GNUNET_NETWORK_fdset_handle_set (r, GNUNET_DISK_pipe_handle (ret->shutpipe, 0));
+      GNUNET_NETWORK_fdset_handle_set (r, GNUNET_DISK_pipe_handle (ret->shutpipe,
+								   GNUNET_DISK_PIPE_END_READ));
       GNUNET_SCHEDULER_add_select (sched,
                                    GNUNET_YES,
                                    GNUNET_SCHEDULER_PRIORITY_HIGH,
@@ -503,7 +505,10 @@ GNUNET_SERVER_destroy (struct GNUNET_SERVER_Handle *s)
   if (s->listen_socket == NULL)
     destroy_server (s);
   else
-    GNUNET_break (1 == GNUNET_DISK_file_write (GNUNET_DISK_pipe_handle (s->shutpipe, 1), &c, 1));
+    GNUNET_break (1 == GNUNET_DISK_file_write (GNUNET_DISK_pipe_handle (s->shutpipe, 
+									GNUNET_DISK_PIPE_END_WRITE),
+					       &c, 
+					       sizeof(c)));
 }
 
 

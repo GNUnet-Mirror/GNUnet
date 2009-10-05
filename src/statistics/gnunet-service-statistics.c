@@ -118,7 +118,8 @@ load (struct GNUNET_SERVER_Handle *server,
       GNUNET_free (fn);
       return;
     }
-  fh = GNUNET_DISK_file_open (fn, GNUNET_DISK_OPEN_READ);
+  fh = GNUNET_DISK_file_open (fn, GNUNET_DISK_OPEN_READ,
+			      GNUNET_DISK_PERM_NONE);
   if (!fh)
     {
       GNUNET_free (fn);
