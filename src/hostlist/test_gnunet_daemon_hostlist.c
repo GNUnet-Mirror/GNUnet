@@ -100,7 +100,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   sleep (1);                    /* allow ARM to start */
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
-  GNUNET_ARM_start_service ("core", p->cfg, sched, TIMEOUT, NULL, NULL);
+  GNUNET_ARM_start_services (p->cfg, sched, "core", NULL);
   p->th = GNUNET_TRANSPORT_connect (sched, p->cfg, p, NULL, NULL, NULL);
   GNUNET_assert (p->th != NULL);
   GNUNET_TRANSPORT_get_hello (p->th, TIMEOUT, &process_hello, p);
@@ -125,6 +125,7 @@ run (void *cls,
 static void
 stop_arm (struct PeerContext *p)
 {
+  GNUNET_ARM_stop_services (p->cfg, sched, "core", NULL);
 #if START_ARM
   if (0 != PLIBC_KILL (p->arm_pid, SIGTERM))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
