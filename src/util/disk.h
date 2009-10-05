@@ -41,6 +41,7 @@ struct GNUNET_DISK_FileHandle
 
 /**
  * Retrieve OS file handle
+ *
  * @internal
  * @param fh GNUnet file descriptor
  * @param dst destination buffer

@@ -459,11 +459,9 @@ GNUNET_SERVER_create (struct GNUNET_SCHEDULER_Handle *sched,
         return NULL;
     }
   ret = GNUNET_malloc (sizeof (struct GNUNET_SERVER_Handle));
-  ret->shutpipe = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileDescriptor *[2]));
   if (NULL == (ret->shutpipe = GNUNET_DISK_pipe (GNUNET_NO)))
     {
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (lsock));
-      GNUNET_free (ret->shutpipe);
       GNUNET_free (ret);
       return NULL;
     }

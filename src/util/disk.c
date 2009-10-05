@@ -75,10 +75,7 @@ typedef struct
   int include_sym_links;
 } GetFileSizeData;
 
-struct GNUNET_DISK_PipeHandle
-{
-  struct GNUNET_DISK_FileHandle fd[2];
-};
+
 
 static int
 getSizeRec (void *ptr, const char *fn)
@@ -1500,6 +1497,7 @@ GNUNET_DISK_file_sync (const struct GNUNET_DISK_FileHandle *h)
 
 /**
  * Creates an interprocess channel
+ *
  * @param blocking creates an asynchronous pipe if set to GNUNET_NO
  * @return handle to the new pipe, NULL on error
  */
@@ -1516,12 +1514,15 @@ GNUNET_DISK_pipe (int blocking)
   int fd[2];
   int ret;
   int flags;
+  int eno;
 
   ret = pipe (fd);
   if (ret != -1)
     {
-      p->fd[0].fd = fd[0];
-      p->fd[1].fd = fd[1];
+      p->fd[0] = GNUNET_malloc(sizeof(struct GNUNET_DISK_FileHandle));
+      p->fd[1] = GNUNET_malloc(sizeof(struct GNUNET_DISK_FileHandle));
+      p->fd[0]->fd = fd[0];
+      p->fd[1]->fd = fd[1];
 
       if (!blocking)
         {
@@ -1536,10 +1537,14 @@ GNUNET_DISK_pipe (int blocking)
             }
           if (ret == -1)
             {
+	      eno = errno;
               GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR, "fcntl");
-              close (fd[0]);
-              close (fd[1]);
+              GNUNET_DISK_file_close (p->fd[0]);
+              GNUNET_DISK_file_close (p->fd[1]);
+	      p->fd[0] = NULL;
+	      p->fd[1] = NULL;
               err = GNUNET_YES;
+	      errno = eno;
             }
         }
     }
@@ -1556,8 +1561,10 @@ GNUNET_DISK_pipe (int blocking)
           DWORD mode;
 
           mode = PIPE_NOWAIT;
-          SetNamedPipeHandleState (p->fd[0].h, &mode, NULL, NULL);
-          SetNamedPipeHandleState (p->fd[1].h, &mode, NULL, NULL);
+	  p->fd[0] = GNUNET_malloc(sizeof(struct GNUNET_DISK_FileHandle));
+	  p->fd[1] = GNUNET_malloc(sizeof(struct GNUNET_DISK_FileHandle));
+          SetNamedPipeHandleState (p->fd[0]->h, &mode, NULL, NULL);
+          SetNamedPipeHandleState (p->fd[1]->h, &mode, NULL, NULL);
           /* this always fails on Windows 95, so we don't care about error handling */
         }
     }
@@ -1586,13 +1593,13 @@ GNUNET_DISK_pipe_close (struct GNUNET_DISK_PipeHandle *p)
 {
   int ret = GNUNET_OK;
 #ifdef MINGW
-  if (!CloseHandle (p->fd[0].h))
+  if (!CloseHandle (p->fd[0]->h))
     {
       SetErrnoFromWinError (GetLastError ());
       ret = GNUNET_SYSERR;
     }
 
-  if (!CloseHandle (p->fd[1].h))
+  if (!CloseHandle (p->fd[1]->h))
     {
       SetErrnoFromWinError (GetLastError ());
       ret = GNUNET_SYSERR;
@@ -1600,7 +1607,7 @@ GNUNET_DISK_pipe_close (struct GNUNET_DISK_PipeHandle *p)
 #else
   int save;
   
-  if (0 != close (p->fd[0].fd))
+  if (0 != close (p->fd[0]->fd))
     {
       ret = GNUNET_SYSERR;
       save = errno;
@@ -1608,11 +1615,13 @@ GNUNET_DISK_pipe_close (struct GNUNET_DISK_PipeHandle *p)
   else
     save = 0;
   
-  if (0 != close (p->fd[1].fd))
+  if (0 != close (p->fd[1]->fd))
     ret = GNUNET_SYSERR;
   else
     errno = save;
 #endif
+  GNUNET_free (p->fd[0]);
+  GNUNET_free (p->fd[1]);
   GNUNET_free (p);
   return ret;
 }
@@ -1626,7 +1635,7 @@ GNUNET_DISK_pipe_close (struct GNUNET_DISK_PipeHandle *p)
 const struct GNUNET_DISK_FileHandle *
 GNUNET_DISK_pipe_handle (const struct GNUNET_DISK_PipeHandle *p, int n)
 {
-  return &p->fd[n];
+  return p->fd[n];
 }
 
 /**
