@@ -124,6 +124,10 @@ check_config (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
 /**
  * Convert IP address to string without DNS resolution.
+ *
+ * @param sa the address 
+ * @param salen number of bytes in sa
+ * @return address as a string, NULL on error
  */
 static char *
 no_resolve (const struct sockaddr *sa, socklen_t salen)
@@ -160,6 +164,12 @@ no_resolve (const struct sockaddr *sa, socklen_t salen)
 }
 
 
+/**
+ * FIXME
+ *
+ * @param cls FIXME
+ * @param msg FIXME
+ */
 static void
 handle_address_response (void *cls, const struct GNUNET_MessageHeader *msg)
 {
@@ -224,6 +234,14 @@ handle_address_response (void *cls, const struct GNUNET_MessageHeader *msg)
 }
 
 
+/**
+ * FIXME
+ *
+ * @param cls FIXME
+ * @param size number of bytes available in buf
+ * @param buf target buffer, NULL on error
+ * @return number of bytes written to buf
+ */
 static size_t
 transmit_get_ip (void *cls, size_t size, void *buf)
 {
@@ -396,16 +414,45 @@ GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
 }
 
 
+/**
+ * FIXME.
+ */
 struct GetHostnameContext
 {
+
+  /**
+   * FIXME.
+   */
   GNUNET_RESOLVER_HostnameCallback callback;
+  
+  /**
+   * FIXME.
+   */
   void *cls;
+  
+  /**
+   * FIXME.
+   */ 
   struct GNUNET_RESOLVER_GetMessage *msg;
+  
+  /**
+   * FIXME.
+   */  
   struct GNUNET_CLIENT_Connection *client;
+  
+  /**
+   * FIXME.
+   */ 
   struct GNUNET_TIME_Absolute timeout;
 };
 
 
+/**
+ * FIXME.
+ *
+ * @param cls FIXME
+ * @param msg FIXME
+ */
 static void
 handle_hostname_response (void *cls, const struct GNUNET_MessageHeader *msg)
 {
@@ -455,6 +502,14 @@ handle_hostname_response (void *cls, const struct GNUNET_MessageHeader *msg)
 }
 
 
+/**
+ * FIXME
+ *
+ * @param cls FIXME
+ * @param size number of bytes available in buf
+ * @param buf target buffer, NULL on error
+ * @return number of bytes written to buf
+ */
 static size_t
 transmit_get_hostname (void *cls, size_t size, void *buf)
 {

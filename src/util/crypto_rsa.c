@@ -642,12 +642,12 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
       if (GNUNET_YES != GNUNET_DISK_file_test (filename))
         {
           /* eh, what!? File we opened is now gone!? */
-          GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+          GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
                                     "stat", filename);
           if (GNUNET_YES != GNUNET_DISK_file_unlock (fd, 0, sizeof (struct RsaPrivateKeyBinaryEncoded)))
             GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
                                       "fcntl", filename);
-          GNUNET_assert (0 == GNUNET_DISK_file_close (fd));
+          GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fd));
 
           return NULL;
         }
