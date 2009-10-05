@@ -1510,7 +1510,11 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
   while (NULL != (th = handle->connect_ready_head))
     {
       handle->connect_ready_head = th->next;
-      GNUNET_assert (th->notify_delay_task == GNUNET_SCHEDULER_NO_TASK);
+      if (th->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
+        {
+          GNUNET_SCHEDULER_cancel (handle->sched, th->notify_delay_task);
+          th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
+        }
       th->notify (th->notify_cls, 0, NULL);
       GNUNET_free (th);
     }
