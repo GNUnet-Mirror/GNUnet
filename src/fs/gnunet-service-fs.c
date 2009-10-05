@@ -1671,7 +1671,7 @@ transmit_request_cb (void *cls,
   struct GetMessage *gm;
   GNUNET_HashCode *ext;
   char *bfdata;
-  uint16_t msize;
+  size_t msize;
   unsigned int k;
 
   pr->cth = NULL;
