@@ -1747,8 +1747,9 @@ GNUNET_DISK_pipe_handle (const struct GNUNET_DISK_PipeHandle *p,
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
 int
-GNUNET_internal_disk_file_handle (const struct GNUNET_DISK_FileHandle *fh,
-    void *dst, unsigned int dst_len)
+GNUNET_DISK_internal_file_handle_ (const struct GNUNET_DISK_FileHandle *fh,
+				   void *dst, 
+				   size_t dst_len)
 {
 #ifdef MINGW
   if (dst_len < sizeof (HANDLE))

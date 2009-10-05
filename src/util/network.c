@@ -527,12 +527,12 @@ GNUNET_NETWORK_fdset_handle_set (struct GNUNET_NETWORK_FDSet *fds,
 #ifdef MINGW
   HANDLE hw;
 
-  GNUNET_internal_disk_file_handle (h, &hw, sizeof (HANDLE));
+  GNUNET_DISK_internal_file_handle_ (h, &hw, sizeof (HANDLE));
   GNUNET_CONTAINER_slist_add (fds->handles, GNUNET_NO, &hw, sizeof (HANDLE));
 #else
   int fd;
 
-  GNUNET_internal_disk_file_handle (h, &fd, sizeof (int));
+  GNUNET_DISK_internal_file_handle_ (h, &fd, sizeof (int));
   FD_SET (fd, &fds->sds);
   if (fd + 1 > fds->nsds)
     fds->nsds = fd + 1;
