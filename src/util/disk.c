@@ -1602,9 +1602,7 @@ GNUNET_DISK_pipe (int blocking)
 {
   struct GNUNET_DISK_PipeHandle *p;
   struct GNUNET_DISK_FileHandle *fds;
-  int err;
 
-  err = GNUNET_NO;
   p = GNUNET_malloc (sizeof (struct GNUNET_DISK_PipeHandle) + 2 * sizeof (struct GNUNET_DISK_FileHandle));
   fds = (struct GNUNET_DISK_FileHandle *) &p[1];
   p->fd[0] = &fds[0];
@@ -1618,9 +1616,9 @@ GNUNET_DISK_pipe (int blocking)
   ret = pipe (fd);
   if (ret == -1)
     {
-      err = errno;
+      eno = errno;
       GNUNET_free (p);
-      errno = err;
+      errno = eno;
       return NULL;
     }
   p->fd[0]->fd = fd[0];
@@ -1640,9 +1638,8 @@ GNUNET_DISK_pipe (int blocking)
 	{
 	  eno = errno;
 	  GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR, "fcntl");
-	  close (p->fd[0]->fd);
-	  close (p->fd[1]->fd);
-	  err = GNUNET_YES;
+	  GNUNET_break (0 == close (p->fd[0]->fd));
+	  GNUNET_break (0 == close (p->fd[1]->fd));
 	  GNUNET_free (p);
 	  errno = eno;
 	  return NULL;
