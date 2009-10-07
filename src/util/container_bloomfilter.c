@@ -520,6 +520,7 @@ GNUNET_CONTAINER_bloomfilter_init (const char *data,
  * Copy the raw data of this bloomfilter into
  * the given data array.
  *
+ * @param bf bloomfilter to take the raw data from
  * @param data where to write the data
  * @param size the size of the given data array
  * @return GNUNET_SYSERR if the data array is not big enough

@@ -384,22 +384,26 @@ GNUNET_NETWORK_socket_shutdown (struct GNUNET_NETWORK_Handle *desc,
 
 /**
  * Make a non-inheritable to child processes
- * @param socket
+ *
+ * @param h the socket to make non-inheritable
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  * @warning Not implemented on Windows
  */
 int
 GNUNET_NETWORK_socket_set_inheritable (const struct GNUNET_NETWORK_Handle
-                                       *desc)
+                                       *h)
 {
 #ifdef MINGW
   errno = ENOSYS;
   return GNUNET_SYSERR;
 #else
-  return fcntl (desc->fd, F_SETFD,
-                fcntl (desc->fd,
-                       F_GETFD) | FD_CLOEXEC) ==
-    0 ? GNUNET_OK : GNUNET_SYSERR;
+  int i;
+
+  i = fcntl (h->fd, F_GETFD);
+  if (i == (i | FD_CLOEXEC))
+    return GNUNET_OK;
+  return (fcntl (h->fd, F_SETFD, i | FD_CLOEXEC) == 0)
+    ? GNUNET_OK : GNUNET_SYSERR;
 #endif
 }
 

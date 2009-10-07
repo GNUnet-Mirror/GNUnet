@@ -372,6 +372,7 @@ enum GNUNET_CONTAINER_MetaDataSerializationOptions
  * Serialize meta-data to target.
  *
  * @param md metadata to serialize
+ * @param target where to write the serialized metadata
  * @param size maximum number of bytes available
  * @param opt is it ok to just write SOME of the
  *        meta-data to match the size constraint,
@@ -388,9 +389,11 @@ ssize_t GNUNET_CONTAINER_meta_data_serialize (const struct
                                           GNUNET_CONTAINER_MetaDataSerializationOptions
                                           opt);
 
+
 /**
- * Compute size of the meta-data in
- * serialized form.
+ * Estimate (!) the size of the meta-data in
+ * serialized form.  The estimate MAY be higher
+ * than what is strictly needed.
  *
  * @param md metadata to inspect
  * @param opt is it ok to just write SOME of the

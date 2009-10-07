@@ -247,6 +247,7 @@ GNUNET_CONTAINER_meta_data_get_first_by_types (const struct
 /**
  * Get a thumbnail from the meta-data (if present).
  *
+ * @param md metadata to get the thumbnail from
  * @param thumb will be set to the thumbnail data.  Must be
  *        freed by the caller!
  * @return number of bytes in thumbnail, 0 if not available
@@ -332,6 +333,7 @@ GNUNET_CONTAINER_meta_data_extract_from_file (struct GNUNET_CONTAINER_MetaData
   EXTRACTOR_freeKeywords (head);
   return ret;
 }
+
 
 static unsigned int
 tryCompression (char *data, unsigned int oldSize)
@@ -434,7 +436,9 @@ struct MetaDataHeader
 /**
  * Serialize meta-data to target.
  *
- * @param size maximum number of bytes available
+ * @param md metadata to serialize
+ * @param target where to write the serialized metadata
+ * @param max maximum number of bytes available in target
  * @param part is it ok to just write SOME of the
  *        meta-data to match the size constraint,
  *        possibly discarding some data?
@@ -532,13 +536,19 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
  * Estimate (!) the size of the meta-data in
  * serialized form.  The estimate MAY be higher
  * than what is strictly needed.
+ *
+ * @param md metadata to inspect
+ * @param opt is it ok to just write SOME of the
+ *        meta-data to match the size constraint,
+ *        possibly discarding some data?
+ * @return number of bytes needed for serialization, -1 on error
  */
 ssize_t
 GNUNET_CONTAINER_meta_data_get_serialized_size (const struct
                                                 GNUNET_CONTAINER_MetaData *md,
                                                 enum
                                                 GNUNET_CONTAINER_MetaDataSerializationOptions
-                                                part)
+                                                opt)
 {
   struct MetaDataHeader *hdr;
   size_t size;
@@ -567,7 +577,7 @@ GNUNET_CONTAINER_meta_data_get_serialized_size (const struct
       memcpy (&((char *) hdr)[pos], md->items[i].data, len);
       pos += len;
     }
-  if ((part & GNUNET_CONTAINER_META_DATA_SERIALIZE_NO_COMPRESS) == 0)
+  if ((opt & GNUNET_CONTAINER_META_DATA_SERIALIZE_NO_COMPRESS) == 0)
     {
       pos =
         tryCompression ((char *) &hdr[1],
@@ -583,9 +593,12 @@ GNUNET_CONTAINER_meta_data_get_serialized_size (const struct
   return size;
 }
 
+
 /**
  * Deserialize meta-data.  Initializes md.
- * @param size number of bytes available
+ *
+ * @param input buffer with the serialized metadata
+ * @param size number of bytes available in input
  * @return MD on success, NULL on error (i.e.
  *         bad format)
  */

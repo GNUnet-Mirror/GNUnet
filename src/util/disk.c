@@ -536,20 +536,20 @@ GNUNET_DISK_directory_create (const char *dir)
  * Create the directory structure for storing
  * a file.
  *
- * @param dir name of a file in the directory
+ * @param filename name of a file in the directory
  * @returns GNUNET_OK on success,
  *          GNUNET_SYSERR on failure,
  *          GNUNET_NO if the directory
  *          exists but is not writeable for us
  */
 int
-GNUNET_DISK_directory_create_for_file (const char *dir)
+GNUNET_DISK_directory_create_for_file (const char *filename)
 {
   char *rdir;
   int len;
   int ret;
 
-  rdir = GNUNET_STRINGS_filename_expand (dir);
+  rdir = GNUNET_STRINGS_filename_expand (filename);
   if (rdir == NULL)
     return GNUNET_SYSERR;
   len = strlen (rdir);
@@ -1367,7 +1367,7 @@ GNUNET_DISK_file_close (struct GNUNET_DISK_FileHandle *h)
  *
  * @param cfg configuration to use (determines HOME)
  * @param serviceName name of the service
- * @param varargs is NULL-terminated list of
+ * @param ... is NULL-terminated list of
  *                path components to append to the
  *                private directory name.
  * @return the constructed filename

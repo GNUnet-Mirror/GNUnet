@@ -692,7 +692,7 @@ connect_success_continuation (struct GNUNET_CONNECTION_Handle *h)
  * Scheduler let us know that we're either ready to write on the
  * socket OR connect timed out.  Do the right thing.
  *
- * @param ap the address we were probing
+ * @param cls the "struct AddressProbe*" with the address that we are probing
  * @param tc success or failure info about the connect attempt.
  */
 static void
@@ -1188,7 +1188,6 @@ receive_again (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * receive call per socket at any given point in time (so do not
  * call receive again until the receiver callback has been invoked).
  *
- * @param sched scheduler to use
  * @param sock socket handle
  * @param max maximum number of bytes to read
  * @param timeout maximum amount of time to wait (use -1 for "forever")

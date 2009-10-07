@@ -548,8 +548,8 @@ GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, off_t lockStart,
 /**
  * Unlock a part of a file
  * @param fh file handle
- * @param lockStart absolute position from where to unlock
- * @param lockEnd absolute position until where to unlock
+ * @param unlockStart absolute position from where to unlock
+ * @param unlockEnd absolute position until where to unlock
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
@@ -582,7 +582,7 @@ int GNUNET_DISK_file_change_owner (const char *filename, const char *user);
  *
  * @param cfg configuration to use
  * @param serviceName name of the service asking
- * @param varargs is NULL-terminated list of
+ * @param ... is NULL-terminated list of
  *                path components to append to the
  *                private directory name.
  * @return the constructed filename

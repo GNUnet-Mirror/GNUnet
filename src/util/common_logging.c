@@ -254,7 +254,7 @@ output_message (enum GNUNET_ErrorType kind,
 /**
  * Flush an existing bulk report to the output.
  *
- * @param datastr our current timestamp
+ * @param datestr our current timestamp
  */
 static void
 flush_bulk (const char *datestr)

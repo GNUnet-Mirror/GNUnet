@@ -215,7 +215,7 @@ GNUNET_CONTAINER_slist_clear (struct GNUNET_CONTAINER_SList *l)
  *
  * @param l list
  * @param buf payload buffer to find
- * @param lenght of the payload
+ * @param len length of the payload (number of bytes in buf)
  */
 int
 GNUNET_CONTAINER_slist_contains (const struct GNUNET_CONTAINER_SList *l,
