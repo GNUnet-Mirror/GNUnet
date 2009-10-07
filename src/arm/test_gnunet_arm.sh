@@ -3,7 +3,7 @@
 rm -rf /tmp/test-gnunetd-arm/
 exe="./gnunet-arm -c test_arm_api_data.conf"
 base=/tmp/gnunet-test-arm
-out=/tmp/test-gnunetd-arm.log
+out=`mktemp /tmp/test-gnunetd-armXXXXXX.log
 #DEBUG="-L DEBUG"
 
 
