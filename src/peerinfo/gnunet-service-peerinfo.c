@@ -104,6 +104,10 @@ static char *trustDirectory;
  * Address iterator that causes expired entries to be discarded.
  *
  * @param cls pointer to the current time
+ * @param tname name of the transport
+ * @param expiration expiration time for the address
+ * @param addr the address
+ * @param addrlen length of addr in bytes
  * @return GNUNET_NO if expiration smaller than the current time
  */
 static int
@@ -176,7 +180,6 @@ lookup_host_entry (const struct GNUNET_PeerIdentity *id)
  * Add a host to the list.
  *
  * @param identity the identity of the host
- * @param protocol the protocol for the host
  */
 static void
 add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
@@ -398,7 +401,9 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
  * argument or for all known hosts and change their trust values by
  * the given delta.
  *
- * @param only NULL to hit all hosts
+ * @param only NULL to hit all hosts, otherwise specifies a particular target
+ * @param trust_change how much should the trust be changed
+ * @param client who is making the request (and will thus receive our confirmation)
  */
 static void
 send_to_each_host (const struct GNUNET_PeerIdentity *only,

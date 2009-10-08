@@ -65,11 +65,11 @@ static int persistent;
 static int
 printer (void *cls,
          const char *subsystem,
-         const char *sname, unsigned long long value, int is_persistent)
+         const char *name, unsigned long long value, int is_persistent)
 {
   FPRINTF (stdout,
            "%s%-20s %-40s: %16llu\n",
-           is_persistent ? "!" : " ", subsystem, _(sname), value);
+           is_persistent ? "!" : " ", subsystem, _(name), value);
   return GNUNET_OK;
 }
 

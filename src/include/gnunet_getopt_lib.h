@@ -186,14 +186,14 @@ struct GNUNET_GETOPT_CommandLineOption
 /**
  * Parse the command line.
  *
- * @param binaryName name of the binary / application with options
+ * @param binaryOptions Name of application with option summary
  * @param allOptions defined options and handlers
  * @param argc number of arguments
  * @param argv actual arguments
  * @return index into argv with first non-option
  *   argument, or GNUNET_SYSERR on error
  */
-int GNUNET_GETOPT_run (const char *binaryName,
+int GNUNET_GETOPT_run (const char *binaryOptions,
                        const struct GNUNET_GETOPT_CommandLineOption
                        *allOptions, unsigned int argc, char *const *argv);
 

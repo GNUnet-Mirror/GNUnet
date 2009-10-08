@@ -93,6 +93,7 @@ typedef void (*GNUNET_DHT_Iterator)(void *cls,
 /**
  * Perform an asynchronous GET operation on the DHT identified.
  *
+ * @param h handle to the DHT service
  * @param type expected type of the response object
  * @param key the key to look up
  * @param iter function to call on each result

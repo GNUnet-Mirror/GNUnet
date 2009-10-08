@@ -217,13 +217,13 @@ struct GNUNET_CONTAINER_MetaData *GNUNET_CONTAINER_meta_data_create (void);
 /**
  * Duplicate a MetaData token.
  * 
- * @param meta what to duplicate
+ * @param md what to duplicate
  * @return duplicate meta-data container
  */
 struct GNUNET_CONTAINER_MetaData *GNUNET_CONTAINER_meta_data_duplicate (const
                                                                         struct
                                                                         GNUNET_CONTAINER_MetaData
-                                                                        *meta);
+                                                                        *md);
 
 /**
  * Free meta data.
@@ -261,6 +261,7 @@ int GNUNET_CONTAINER_meta_data_insert (struct GNUNET_CONTAINER_MetaData *md,
 /**
  * Remove an item.
  *
+ * @param md metadata to manipulate
  * @param type type of the item to remove
  * @param data specific value to remove, NULL to remove all
  *        entries of the given type
@@ -373,7 +374,7 @@ enum GNUNET_CONTAINER_MetaDataSerializationOptions
  *
  * @param md metadata to serialize
  * @param target where to write the serialized metadata
- * @param size maximum number of bytes available
+ * @param max maximum number of bytes available
  * @param opt is it ok to just write SOME of the
  *        meta-data to match the size constraint,
  *        possibly discarding some data?
@@ -384,7 +385,7 @@ enum GNUNET_CONTAINER_MetaDataSerializationOptions
 ssize_t GNUNET_CONTAINER_meta_data_serialize (const struct
 					      GNUNET_CONTAINER_MetaData *md,
 					      char *target, 
-					      size_t size,
+					      size_t max,
 					      enum
                                           GNUNET_CONTAINER_MetaDataSerializationOptions
                                           opt);
@@ -958,7 +959,7 @@ void GNUNET_CONTAINER_slist_clear (struct GNUNET_CONTAINER_SList *l);
  * Check if a list contains a certain element
  * @param l list
  * @param buf payload buffer to find
- * @param lenght of the payload
+ * @param len length of the payload (number of bytes in buf)
  */
 int GNUNET_CONTAINER_slist_contains (const struct GNUNET_CONTAINER_SList *l, const void *buf, size_t len);
 

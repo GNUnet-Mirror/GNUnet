@@ -353,37 +353,37 @@ GNUNET_STRINGS_filename_expand (const char *fil)
 /**
  * Give relative time in human-readable fancy format.
  *
- * @param del time in milli seconds
+ * @param delta time in milli seconds
  * @return time as human-readable string
  */
 char *
-GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative del)
+GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative delta)
 {
   const char *unit = _( /* time unit */ "ms");
   char *ret;
-  uint64_t delta = del.value;
+  uint64_t dval = delta.value;
 
-  if (delta > 5 * 1000)
+  if (dval > 5 * 1000)
     {
-      delta = delta / 1000;
+      dval = dval / 1000;
       unit = _( /* time unit */ "s");
-      if (delta > 5 * 60)
+      if (dval > 5 * 60)
         {
-          delta = delta / 60;
+          dval = dval / 60;
           unit = _( /* time unit */ "m");
-          if (delta > 5 * 60)
+          if (dval > 5 * 60)
             {
-              delta = delta / 60;
+              dval = dval / 60;
               unit = _( /* time unit */ "h");
-              if (delta > 5 * 24)
+              if (dval > 5 * 24)
                 {
-                  delta = delta / 24;
+                  dval = dval / 24;
                   unit = _( /* time unit */ " days");
                 }
             }
         }
     }
-  GNUNET_asprintf (&ret, "%llu%s", delta, unit);
+  GNUNET_asprintf (&ret, "%llu%s", dval, unit);
   return ret;
 }
 

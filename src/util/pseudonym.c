@@ -588,7 +588,7 @@ merge_meta_helper (void *cls,
 /**
  * Add a pseudonym to the set of known pseudonyms.
  * For all pseudonym advertisements that we discover
- * FSUI should automatically call this function.
+ * FS should automatically call this function.
  *
  * @param cfg overall configuration
  * @param id the pseudonym identifier

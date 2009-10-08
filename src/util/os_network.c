@@ -35,11 +35,11 @@
  * @brief Enumerate all network interfaces
  *
  * @param proc the callback function
- * @param cls closure for proc
+ * @param proc_cls closure for proc
  */
 void
 GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
-                                   void *cls)
+                                   void *proc_cls)
 {
 #ifdef MINGW
   PMIB_IFTABLE pTable;
@@ -148,7 +148,7 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
                 free (pszIfName);
 
               if (GNUNET_OK !=
-                  proc (cls,
+                  proc (proc_cls,
                         szEntry,
                         pAddrTable->table[dwIfIdx].dwIndex == dwExternalNIC,
                         NULL /* FIXME: pass actual IP address! */ ,
@@ -182,7 +182,7 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
                 alen = sizeof (struct sockaddr_in);
               else
                 alen = sizeof (struct sockaddr_in6);
-              if (GNUNET_OK != proc (cls,
+              if (GNUNET_OK != proc (proc_cls,
                                      ifa_ptr->ifa_name,
                                      0 == strcmp (ifa_ptr->ifa_name,
                                                   GNUNET_DEFAULT_INTERFACE),
@@ -255,7 +255,7 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
               a4.sin_family = AF_INET;
               a4.sin_addr = v4;
               if (GNUNET_OK !=
-                  proc (cls,
+                  proc (proc_cls,
                         ifc,
                         0 == strcmp (ifc, GNUNET_DEFAULT_INTERFACE),
                         (const struct sockaddr *) &a4, sizeof (a4)))
@@ -270,7 +270,7 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
               a6.sin6_addr = v6;
               fprintf (stderr, "procing %s\n", addrstr);
               if (GNUNET_OK !=
-                  proc (cls,
+                  proc (proc_cls,
                         ifc,
                         0 == strcmp (ifc, GNUNET_DEFAULT_INTERFACE),
                         (const struct sockaddr *) &a6, sizeof (a6)))

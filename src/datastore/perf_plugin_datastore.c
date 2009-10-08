@@ -192,6 +192,7 @@ iterateDummy (void *cls,
  * down.  Unloads our datastore plugin.
  *
  * @param api api to unload
+ * @param cfg configuration to use
  */
 static void
 unload_plugin (struct GNUNET_DATASTORE_PluginFunctions * api,

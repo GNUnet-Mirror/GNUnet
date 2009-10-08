@@ -228,8 +228,7 @@ uint32_t GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode,
 
 
 /**
- * Random on unsigned 64-bit values.  We break them down into signed
- * 32-bit values and reassemble the 64-bit random value bit-wise.
+ * Random on unsigned 64-bit values. 
  *
  * @param mode desired quality of the random number
  * @param max value returned will be in range [0,max) (exclusive)
@@ -278,7 +277,7 @@ int GNUNET_CRYPTO_aes_check_session_key (const struct
  * @param sessionkey the key used to encrypt
  * @param iv the initialization vector to use, use INITVALUE
  *        for streams.
- * @returns the size of the encrypted block, -1 for errors
+ * @return the size of the encrypted block, -1 for errors
  */
 ssize_t GNUNET_CRYPTO_aes_encrypt (const void *block,
 				   size_t len,
@@ -307,10 +306,10 @@ ssize_t GNUNET_CRYPTO_aes_decrypt (const void *block,
 
 
 /**
- * Convert GNUNET_CRYPTO_hash to ASCII encoding.
- * @param block the GNUNET_CRYPTO_hash code
+ * Convert hash to ASCII encoding.
+ * @param block the hash code
  * @param result where to store the encoding (struct GNUNET_CRYPTO_HashAsciiEncoded can be
- *  safely cast to char*, a '\0' termination is set).
+ *  safely cast to char*, a '\\0' termination is set).
  */
 void GNUNET_CRYPTO_hash_to_enc (const GNUNET_HashCode * block,
                                 struct GNUNET_CRYPTO_HashAsciiEncoded
@@ -515,11 +514,11 @@ struct GNUNET_CRYPTO_RsaPrivateKey
  * Deterministically (!) create a private key using only the
  * given HashCode as input to the PRNG.
  *
- * @param input "random" input to PRNG
+ * @param hc "random" input to PRNG
  * @return some private key purely dependent on input
  */
 struct GNUNET_CRYPTO_RsaPrivateKey
-  *GNUNET_CRYPTO_rsa_key_create_from_hash (const GNUNET_HashCode * input);
+  *GNUNET_CRYPTO_rsa_key_create_from_hash (const GNUNET_HashCode * hc);
 
 
 /**
@@ -550,7 +549,7 @@ void GNUNET_CRYPTO_rsa_key_get_public (const struct
  * @param size the size of block
  * @param publicKey the encoded public key used to encrypt
  * @param target where to store the encrypted block
- * @returns GNUNET_SYSERR on error, GNUNET_OK if ok
+ * @return GNUNET_SYSERR on error, GNUNET_OK if ok
  */
 int GNUNET_CRYPTO_rsa_encrypt (const void *block,
                                size_t size,
@@ -566,14 +565,14 @@ int GNUNET_CRYPTO_rsa_encrypt (const void *block,
  * @param key the key to use
  * @param block the data to decrypt, encoded as returned by encrypt, not consumed
  * @param result pointer to a location where the result can be stored
- * @param size how many bytes of a result are expected? Must be exact.
- * @returns the size of the decrypted block (that is, size) or -1 on error
+ * @param max how many bytes of a result are expected? Must be exact.
+ * @return the size of the decrypted block (that is, size) or -1 on error
  */
 ssize_t GNUNET_CRYPTO_rsa_decrypt (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
 				   const struct GNUNET_CRYPTO_RsaEncryptedData
 				   *block,
 				   void *result, 
-				   size_t size);
+				   size_t max);
 
 
 /**
@@ -581,13 +580,13 @@ ssize_t GNUNET_CRYPTO_rsa_decrypt (const struct GNUNET_CRYPTO_RsaPrivateKey *key
  *
  * @param key private key to use for the signing
  * @param purpose what to sign (size, purpose)
- * @param result where to write the signature
+ * @param sig where to write the signature
  * @return GNUNET_SYSERR on error, GNUNET_OK on success
  */
 int GNUNET_CRYPTO_rsa_sign (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
                             const struct GNUNET_CRYPTO_RsaSignaturePurpose
                             *purpose,
-                            struct GNUNET_CRYPTO_RsaSignature *result);
+                            struct GNUNET_CRYPTO_RsaSignature *sig);
 
 
 /**
@@ -598,7 +597,7 @@ int GNUNET_CRYPTO_rsa_sign (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
  * @param validate block to validate (size, purpose, data)
  * @param sig signature that is being validated
  * @param publicKey public key of the signer
- * @returns GNUNET_OK if ok, GNUNET_SYSERR if invalid
+ * @return GNUNET_OK if ok, GNUNET_SYSERR if invalid
  */
 int GNUNET_CRYPTO_rsa_verify (uint32_t purpose,
                               const struct GNUNET_CRYPTO_RsaSignaturePurpose

@@ -101,7 +101,7 @@ void GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
  * are free in the transmission buffer.  May call the notify
  * method immediately if enough space is available.
  *
- * @param client connection to the service
+ * @param sock connection to the service
  * @param size number of bytes to send
  * @param timeout after how long should we give up (and call
  *        notify with buf NULL and size 0)?

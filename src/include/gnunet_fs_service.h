@@ -198,7 +198,7 @@ GNUNET_FS_uri_loc_get_expiration (const struct GNUNET_FS_Uri *uri);
 /**
  * Construct a location URI (this peer will be used for the location).
  *
- * @param baseURI content offered by the sender
+ * @param baseUri content offered by the sender
  * @param cfg configuration information (used to find our hostkey)
  * @param expiration_time how long will the content be offered?
  * @return the location URI, NULL on error
@@ -1552,10 +1552,10 @@ GNUNET_FS_file_information_get_id (struct GNUNET_FS_FileInformation *s);
  * file information data should already call "sync" internally,
  * so this function is likely not useful for clients.
  * 
- * @param s the struct to sync
+ * @param fi the struct to sync
  */
 void
-GNUNET_FS_file_information_sync (struct GNUNET_FS_FileInformation *s);
+GNUNET_FS_file_information_sync (struct GNUNET_FS_FileInformation *f);
 
 
 /**
@@ -1809,14 +1809,14 @@ GNUNET_FS_file_information_create_empty_directory (void *client_info,
  * "GNUNET_FS_publish_start" already.
  *
  * @param dir the directory
- * @param end the entry to add; the entry must not have been
+ * @param ent the entry to add; the entry must not have been
  *            added to any other directory at this point and 
  *            must not include "dir" in its structure
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
 GNUNET_FS_file_information_add (struct GNUNET_FS_FileInformation *dir,
-				struct GNUNET_FS_FileInformation *end);
+				struct GNUNET_FS_FileInformation *ent);
 
 
 /**
@@ -1926,7 +1926,7 @@ typedef void (*GNUNET_FS_PublishContinuation)(void *cls,
  * Publish a KBlock on GNUnet.
  *
  * @param h handle to the file sharing subsystem
- * @param keywords keywords to use
+ * @param ksk_uri keywords to use
  * @param meta metadata to use
  * @param uri URI to refer to in the KBlock
  * @param expirationTime when the KBlock expires
@@ -1937,7 +1937,7 @@ typedef void (*GNUNET_FS_PublishContinuation)(void *cls,
  */
 void
 GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
-		       struct GNUNET_FS_Uri *keywords,
+		       struct GNUNET_FS_Uri *ksk_uri,
 		       struct GNUNET_CONTAINER_MetaData *meta,
 		       struct GNUNET_FS_Uri *uri,
 		       struct GNUNET_TIME_Absolute expirationTime,
@@ -2258,11 +2258,11 @@ GNUNET_FS_file_download_start (struct GNUNET_FS_Handle *h,
 /**
  * Stop a download (aborts if download is incomplete).
  *
- * @param rm handle for the download
+ * @param dc handle for the download
  * @param do_delete delete files of incomplete downloads
  */
 void
-GNUNET_FS_file_download_stop (struct GNUNET_FS_DownloadContext *rm,
+GNUNET_FS_file_download_stop (struct GNUNET_FS_DownloadContext *dc,
 			      int do_delete);
 
 
@@ -2439,14 +2439,14 @@ GNUNET_FS_directory_builder_add (struct GNUNET_FS_DirectoryBuilder *bld,
  * in-memory.
  *
  * @param bld directory to finish
- * @param size set to the number of bytes needed
- * @param data set to the encoded directory
+ * @param rsize set to the number of bytes needed
+ * @param rdata set to the encoded directory
  * @return GNUNET_OK on success
  */
 int
 GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
-				    size_t *size,
-				    void **data);
+				    size_t *rsize,
+				    void **rdata);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

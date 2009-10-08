@@ -329,7 +329,7 @@ typedef void (*GNUNET_SERVER_DestroyCallback) (void *cls);
  * @param server the server to use
  * @param chandle opaque handle for the connection
  * @param creceive receive function for the connection
- * @param creceive_cancel cancel receive function for the connection
+ * @param ccancel cancel receive function for the connection
  * @param cnotify transmit notification function for the connection
  * @param cnotify_cancel transmit notification cancellation function for the connection
  * @param ccheck function to test if the connection is still up

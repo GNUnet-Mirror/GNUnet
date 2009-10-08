@@ -100,11 +100,12 @@ int GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc);
  *
  * @param desc socket to connect
  * @param address peer address
- * @param length of address
+ * @param address_len of address
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
 int GNUNET_NETWORK_socket_connect (const struct GNUNET_NETWORK_Handle *desc,
-                       const struct sockaddr *address, socklen_t address_len);
+				   const struct sockaddr *address, 
+				   socklen_t address_len);
 
 
 /**
@@ -262,7 +263,7 @@ void GNUNET_NETWORK_fdset_copy(struct GNUNET_NETWORK_FDSet *to,
  * Copy a native fd set
  * @param to destination
  * @param from native source set
- * @param the biggest socket number in from + 1
+ * @param nfds the biggest socket number in from + 1
  */
 void GNUNET_NETWORK_fdset_copy_native (struct GNUNET_NETWORK_FDSet *to, 
 				       const fd_set *from,

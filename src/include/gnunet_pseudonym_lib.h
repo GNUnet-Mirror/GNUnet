@@ -55,20 +55,25 @@ typedef int (*GNUNET_PSEUDONYM_Iterator) (void *cls,
 /**
  * Change the ranking of a pseudonym.
  *
- * @param pseudonym id of the pseudonym
+ * @param cfg overall configuration
+ * @param nsid id of the pseudonym
  * @param delta by how much should the rating be changed?
  * @return new rating of the namespace
  */
 int GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           const GNUNET_HashCode * pseudonym, int delta);
+                           const GNUNET_HashCode *nsid, int delta);
 
 /**
  * Add a pseudonym to the set of known pseudonyms.
+ * For all pseudonym advertisements that we discover
+ * FS should automatically call this function.
  *
- * @param pseudonym the pseudonym's identifier
+ * @param cfg overall configuration
+ * @param id the pseudonym identifier
+ * @param meta metadata for the pseudonym
  */
 void GNUNET_PSEUDONYM_add (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           const GNUNET_HashCode * pseudo,
+                           const GNUNET_HashCode *id,
                            const struct GNUNET_CONTAINER_MetaData *meta);
 
 

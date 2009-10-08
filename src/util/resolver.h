@@ -20,7 +20,7 @@
 
 /**
  * @author Christian Grothoff
- * @file resolver/resolver.h
+ * @file util/resolver.h
  */
 #ifndef RESOLVER_H
 #define RESOLVER_H

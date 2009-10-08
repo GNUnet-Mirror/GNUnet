@@ -171,6 +171,7 @@ template_plugin_validate (void *cls,
  * @param target who should receive this message
  * @param priority how important is the message
  * @param msg the message to transmit
+ * @param timeout when should we time out 
  * @param cont continuation to call once the message has
  *        been transmitted (or if the transport is ready
  *        for the next transmission call; or if the
@@ -226,7 +227,7 @@ template_plugin_cancel (void *cls,
  * format.
  *
  * @param cls closure
- * @param name name of the transport that generated the address
+ * @param type name of the transport that generated the address
  * @param addr one of the addresses of the host, NULL for the last address
  *        the specific address format depends on the transport
  * @param addrlen length of the address
@@ -254,7 +255,7 @@ template_plugin_address_pretty_printer (void *cls,
  * calls to stay below the quota (in terms of incoming data).
  *
  * @param cls closure
- * @param peer the peer for whom the quota is given
+ * @param target the peer for whom the quota is given
  * @param quota_in quota for receiving/sending data in bytes per ms
  */
 static void

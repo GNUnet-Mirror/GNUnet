@@ -55,11 +55,11 @@ struct GNUNET_CONFIGURATION_Handle *GNUNET_CONFIGURATION_create (void);
 /**
  * Duplicate an existing configuration object.
  *
- * @param c configuration to duplicate
+ * @param cfg configuration to duplicate
  * @return duplicate configuration
  */
 struct GNUNET_CONFIGURATION_Handle *
-GNUNET_CONFIGURATION_dup (const struct GNUNET_CONFIGURATION_Handle *c);
+GNUNET_CONFIGURATION_dup (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**

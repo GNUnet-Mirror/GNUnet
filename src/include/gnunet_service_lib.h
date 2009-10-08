@@ -123,9 +123,9 @@ struct GNUNET_SERVER_Handle *GNUNET_SERVICE_get_server (struct
 /**
  * Stop a service that was started with "GNUNET_SERVICE_start".
  *
- * @param ctx the service context returned from the start function
+ * @param sctx the service context returned from the start function
  */
-void GNUNET_SERVICE_stop (struct GNUNET_SERVICE_Context *ctx);
+void GNUNET_SERVICE_stop (struct GNUNET_SERVICE_Context *sctx);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

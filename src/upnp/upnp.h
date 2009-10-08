@@ -61,12 +61,10 @@ const char *gaim_upnp_get_public_ip (void);
  * this gaim client. Essentially, this function takes care of the port
  * forwarding so things like file transfers can work behind NAT firewalls
  *
+ * @param cfg configuration to use
+ * @param do_add TRUE/GNUNET_YES to add, FALSE/GNUNET_NO to remove
  * @param portmap The port to map to this client
  * @param protocol The protocol to map, either "TCP" or "UDP"
- * @param do_add TRUE/GNUNET_YES to add, FALSE/GNUNET_NO to remove
- * @param cb an optional callback function to be notified when the mapping
- *           addition is complete
- * @param cb_data Extra data to be passed to the callback
  */
 int gaim_upnp_change_port_mapping (struct GNUNET_CONFIGURATION_Handle *cfg,
                                    int do_add,

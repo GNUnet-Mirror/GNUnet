@@ -106,7 +106,7 @@ typedef void
  * @param cls closure for the callbacks
  * @param rec receive function to call
  * @param nc function to call on connect events
- * @param dc function to call on disconnect events
+ * @param nd function to call on disconnect events
  */
 struct GNUNET_TRANSPORT_Handle *GNUNET_TRANSPORT_connect (struct
                                                           GNUNET_SCHEDULER_Handle

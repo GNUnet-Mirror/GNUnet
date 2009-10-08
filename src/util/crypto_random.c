@@ -30,6 +30,10 @@
 #include <gcrypt.h>
 
 /**
+ * Produce a random value.
+ *
+ * @param mode desired quality of the random number
+ * @param i the upper limit (exclusive) for the random number
  * @return a random value in the interval [0,i[.
  */
 uint32_t
@@ -97,26 +101,31 @@ GNUNET_CRYPTO_random_permute (enum GNUNET_CRYPTO_Quality mode, unsigned int n)
 
 /**
  * Random on unsigned 64-bit values.
+ *
+ *
+ * @param mode desired quality of the random number
+ * @param max value returned will be in range [0,max) (exclusive)
+ * @return random 64-bit number
  */
 uint64_t
 GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode,
-                          uint64_t u)
+                          uint64_t max)
 {
   uint64_t ret;
 
-  GNUNET_assert (u > 0);
+  GNUNET_assert (max > 0);
   if (mode == GNUNET_CRYPTO_QUALITY_STRONG)
     {
       gcry_randomize ((unsigned char *) &ret,
                       sizeof (uint64_t),
 		      GCRY_STRONG_RANDOM);
-      return ret % u;
+      return ret % max;
     }
   else
     {
-      ret = u * ((double) RANDOM () / RAND_MAX);
-      if (ret >= u)
-        ret = u - 1;
+      ret = max * ((double) RANDOM () / RAND_MAX);
+      if (ret >= max)
+        ret = max - 1;
       return ret;
     }
 }

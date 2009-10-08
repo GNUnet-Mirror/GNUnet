@@ -29,19 +29,23 @@
 #include "gnunet_os_lib.h"
 
 /**
- * Set our process priority
+ * Set process priority
+ *
+ * @param proc id of the process
+ * @param prio priority value
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
 GNUNET_OS_set_process_priority (pid_t proc,
-                                enum GNUNET_SCHEDULER_Priority eprio)
+                                enum GNUNET_SCHEDULER_Priority prio)
 {
   int prio = 0;
 
-  GNUNET_assert (eprio < GNUNET_SCHEDULER_PRIORITY_COUNT);
-  if (eprio == GNUNET_SCHEDULER_PRIORITY_KEEP)
+  GNUNET_assert (prio < GNUNET_SCHEDULER_PRIORITY_COUNT);
+  if (prio == GNUNET_SCHEDULER_PRIORITY_KEEP)
     return GNUNET_OK;
   /* convert to MINGW/Unix values */
-  switch (eprio)
+  switch (prio)
     {
     case GNUNET_SCHEDULER_PRIORITY_DEFAULT:
 #ifdef MINGW

@@ -76,7 +76,6 @@ copy_and_free (void *cls, size_t size, void *buf)
  * @param sched scheduler to use
  * @param peer identity of the peer
  * @param hello the verified (!) HELLO message
- * @param expiration when the HELLO will expire
  */
 void
 GNUNET_PEERINFO_add_peer (const struct GNUNET_CONFIGURATION_Handle *cfg,

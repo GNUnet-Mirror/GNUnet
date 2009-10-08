@@ -201,6 +201,7 @@ free_action_item (struct ActionItem *ai)
 /**
  * Get handle for the statistics service.
  *
+ * @param sched scheduler to use
  * @param subsystem name of subsystem using the service
  * @param cfg services configuration in use
  * @return handle to use

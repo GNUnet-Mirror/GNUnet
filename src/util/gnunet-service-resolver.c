@@ -19,7 +19,7 @@
 */
 
 /**
- * @file resolver/gnunet-service-resolver.c
+ * @file util/gnunet-service-resolver.c
  * @brief code to do DNS resolution
  * @author Christian Grothoff
  */
@@ -35,24 +35,55 @@
 #include "gnunet_time_lib.h"
 #include "resolver.h"
 
-
+/**
+ * A cached DNS lookup result.
+ */
 struct IPCache
 {
+  /**
+   * This is a linked list.
+   */
   struct IPCache *next;
+  
+  /**
+   * Hostname in human-readable form.
+   */
   char *addr;
+
+  /**
+   * Hostname in binary format.
+   */
   struct sockaddr *sa;
+  
+  /**
+   * Last time this entry was updated.
+   */
   struct GNUNET_TIME_Absolute last_refresh;
+
+  /**
+   * Last time this entry was requested.
+   */
   struct GNUNET_TIME_Absolute last_request;
-  unsigned int salen;
+
+  /**
+   * Number of bytes in sa.
+   */
+  socklen_t salen;
 };
 
 
+/**
+ * Start of the linked list of cached DNS lookup results.
+ */
 static struct IPCache *head;
 
 
-
-
 #if HAVE_GETNAMEINFO
+/**
+ * Resolve the given request using getnameinfo
+ *
+ * @param cache the request to resolve (and where to store the result)
+ */
 static void
 getnameinfo_resolve (struct IPCache *cache)
 {
@@ -69,6 +100,11 @@ getnameinfo_resolve (struct IPCache *cache)
 
 
 #if HAVE_GETHOSTBYADDR
+/**
+ * Resolve the given request using gethostbyaddr
+ *
+ * @param cache the request to resolve (and where to store the result)
+ */
 static void
 gethostbyaddr_resolve (struct IPCache *cache)
 {
@@ -92,7 +128,11 @@ gethostbyaddr_resolve (struct IPCache *cache)
 }
 #endif
 
-
+/**
+ * Resolve the given request using the available methods.
+ *
+ * @param cache the request to resolve (and where to store the result)
+ */
 static void
 cache_resolve (struct IPCache *cache)
 {
@@ -114,11 +154,13 @@ cache_resolve (struct IPCache *cache)
  * may not immediately result in the FQN (but instead in a
  * human-readable IP address).
  *
+ * @param client handle to the client making the request (for sending the reply)
  * @param sa should be of type "struct sockaddr*"
+ * @param salen number of bytes in sa
  */
 static void
 get_ip_as_string (struct GNUNET_SERVER_Client *client,
-                  const struct sockaddr *sav, socklen_t salen)
+                  const struct sockaddr *sa, socklen_t salen)
 {
   struct IPCache *cache;
   struct IPCache *prev;
@@ -134,7 +176,7 @@ get_ip_as_string (struct GNUNET_SERVER_Client *client,
   cache = head;
   prev = NULL;
   while ((cache != NULL) &&
-         ((cache->salen != salen) || (0 != memcmp (cache->sa, sav, salen))))
+         ((cache->salen != salen) || (0 != memcmp (cache->sa, sa, salen))))
     {
       if (GNUNET_TIME_absolute_get_duration (cache->last_request).value <
           60 * 60 * 1000)
@@ -178,7 +220,7 @@ get_ip_as_string (struct GNUNET_SERVER_Client *client,
       cache->next = head;
       cache->salen = salen;
       cache->sa = GNUNET_malloc (salen);
-      memcpy (cache->sa, sav, salen);
+      memcpy (cache->sa, sa, salen);
       cache->last_request = GNUNET_TIME_absolute_get ();
       cache->last_refresh = GNUNET_TIME_absolute_get ();
       cache->addr = NULL;

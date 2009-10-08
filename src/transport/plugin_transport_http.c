@@ -1231,6 +1231,7 @@ create_curl_get (HTTPSession * httpSession)
  *
  * @param hello the hello-Message for the target node
  * @param tsessionPtr the session handle that is set
+ * @param may_reuse are we allowed to re-use an existing connection?
  * @return GNUNET_OK on success, GNUNET_SYSERR if the operation failed
  */
 static int
@@ -1458,6 +1459,7 @@ httpTestWouldTry (GNUNET_TSession * tsession, const unsigned int size,
  * @param tsession the GNUNET_MessageHello identifying the remote node
  * @param msg the message
  * @param size the size of the message
+ * @param important is this message so important that usual restrictions do not apply?
  * @return GNUNET_SYSERR on error, GNUNET_OK on success, GNUNET_NO if queue is full
  */
 static int

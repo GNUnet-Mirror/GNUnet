@@ -516,8 +516,9 @@ get_message (void **buf, int *len, void *cls)
  * Send a message to the specified remote node.
  *
  * @param tsession the GNUNET_MessageHello identifying the remote node
- * @param message what to send
+ * @param msg what to send
  * @param size the size of the message
+ * @param important is this message important enough to override typical limits?
  * @return GNUNET_SYSERR on error, GNUNET_OK on success
  */
 static int
@@ -689,8 +690,9 @@ api_send (GNUNET_TSession * tsession,
 
 /**
  * Establish a connection to a remote node.
- * @param helo the hello-Message for the target node
+ * @param hello the hello-Message for the target node
  * @param tsessionPtr the session handle that is to be set
+ * @param may_reuse can we re-use an existing connection?
  * @return GNUNET_OK on success, GNUNET_SYSERR if the operation failed
  */
 static int

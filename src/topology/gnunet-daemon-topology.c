@@ -250,7 +250,8 @@ ready_callback (void *cls,
 /**
  * Try to connect to the specified peer.
  *
- * @param pos NULL if not in friend list yet
+ * @param peer who we should try to connect to
+ * @param pos entry in our friend list; NULL if not in friend list yet
  */
 static void
 attempt_connect (const struct GNUNET_PeerIdentity *peer,
@@ -475,7 +476,12 @@ schedule_peer_search ()
 /**
  * Iterator called on each address.
  *
- * @param cls flag that we will set if we see any addresses.
+ * @param cls flag that we will set if we see any addresses
+ * @param tname name of the transport
+ * @param expiration when will the given address expire
+ * @param addr the address of the peer
+ * @param addrlen number of bytes in addr
+ * @return GNUNET_SYSERR always, to terminate iteration
  */
 static int
 address_iterator (void *cls,
@@ -840,7 +846,7 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * received.
  *
  * @param cls closure
- * @param peer the other peer involved (sender or receiver, NULL
+ * @param other the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual HELLO message
  * @return GNUNET_OK to keep the connection open,
@@ -862,6 +868,11 @@ handle_encrypted_hello (void *cls,
 /**
  * Peerinfo calls this function to let us know about a
  * possible peer that we might want to connect to.
+ *
+ * @param cls unused
+ * @param peer NULL for the end of the list, otherwise a peer identity
+ * @param hello a HELLO for a peer, or NULL
+ * @param trust how much do we trust the given peer?
  */
 static void
 gather_hello_callback (void *cls,
@@ -882,6 +893,7 @@ gather_hello_callback (void *cls,
 /**
  * Function to fill send buffer with HELLO.
  *
+ * @param cls unused
  * @param receiver the receiver of the message
  * @param position is the reference to the
  *        first unused position in the buffer where GNUnet is building

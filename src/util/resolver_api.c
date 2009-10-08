@@ -19,7 +19,7 @@
 */
 
 /**
- * @file resolver/resolver_api.c
+ * @file util/resolver_api.c
  * @brief resolver for writing a tool
  * @author Christian Grothoff
  */

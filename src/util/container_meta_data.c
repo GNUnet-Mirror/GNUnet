@@ -139,6 +139,11 @@ GNUNET_CONTAINER_meta_data_insert (struct GNUNET_CONTAINER_MetaData *md,
 
 /**
  * Remove an item.
+ *
+ * @param md metadata to manipulate
+ * @param type type of the item to remove
+ * @param data specific value to remove, NULL to remove all
+ *        entries of the given type
  * @return GNUNET_OK on success, GNUNET_SYSERR if the item does not exist in md
  */
 int
@@ -170,13 +175,16 @@ GNUNET_CONTAINER_meta_data_delete (struct GNUNET_CONTAINER_MetaData *md,
 /**
  * Iterate over MD entries, excluding thumbnails.
  *
+ * @param md metadata to inspect
+ * @param iter function to call on each entry
+ * @param iter_cls closure for iterator
  * @return number of entries
  */
 int
 GNUNET_CONTAINER_meta_data_get_contents (const struct
                                          GNUNET_CONTAINER_MetaData *md,
                                          GNUNET_CONTAINER_MetaDataProcessor
-                                         iterator, void *closure)
+                                         iter, void *iter_cls)
 {
   uint32_t i;
   uint32_t sub;
@@ -187,9 +195,9 @@ GNUNET_CONTAINER_meta_data_get_contents (const struct
       if (!EXTRACTOR_isBinaryType (md->items[i].type))
         {
           if ((iterator != NULL) &&
-              (GNUNET_OK != iterator (closure,
-				      md->items[i].type,
-                                      md->items[i].data)))
+              (GNUNET_OK != iter (iter_cls,
+				  md->items[i].type,
+				  md->items[i].data)))
             return GNUNET_SYSERR;
         }
       else
@@ -280,6 +288,9 @@ GNUNET_CONTAINER_meta_data_get_thumbnail (const struct
 
 /**
  * Duplicate struct GNUNET_CONTAINER_MetaData.
+ * 
+ * @param md what to duplicate
+ * @return duplicate meta-data container
  */
 struct GNUNET_CONTAINER_MetaData *
 GNUNET_CONTAINER_meta_data_duplicate (const struct GNUNET_CONTAINER_MetaData
@@ -439,7 +450,7 @@ struct MetaDataHeader
  * @param md metadata to serialize
  * @param target where to write the serialized metadata
  * @param max maximum number of bytes available in target
- * @param part is it ok to just write SOME of the
+ * @param opt is it ok to just write SOME of the
  *        meta-data to match the size constraint,
  *        possibly discarding some data?
  * @return number of bytes written on success,
@@ -451,7 +462,7 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
                                       *md, char *target, size_t max,
                                       enum
                                       GNUNET_CONTAINER_MetaDataSerializationOptions
-                                      part)
+                                      opt)
 {
   struct MetaDataHeader *hdr;
   size_t size;
@@ -488,7 +499,7 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
         }
 
       hdr->size = htonl (size);
-      if ((part & GNUNET_CONTAINER_META_DATA_SERIALIZE_NO_COMPRESS) == 0)
+      if ((opt & GNUNET_CONTAINER_META_DATA_SERIALIZE_NO_COMPRESS) == 0)
         {
           pos = tryCompression ((char *) &hdr[1],
                                 size - sizeof (struct MetaDataHeader));
@@ -507,7 +518,7 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
       GNUNET_free (hdr);
       hdr = NULL;
 
-      if ((part & GNUNET_CONTAINER_META_DATA_SERIALIZE_PART) == 0)
+      if ((opt & GNUNET_CONTAINER_META_DATA_SERIALIZE_PART) == 0)
         {
           return GNUNET_SYSERR; /* does not fit! */
         }

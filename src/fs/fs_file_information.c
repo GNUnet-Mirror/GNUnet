@@ -37,6 +37,8 @@
 /**
  * Create a temporary file on disk to store the current
  * state of "fi" in.
+ *
+ * @param fi file information to sync with disk
  */
 void
 GNUNET_FS_file_information_sync (struct GNUNET_FS_FileInformation * fi)

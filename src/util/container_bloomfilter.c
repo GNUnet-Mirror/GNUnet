@@ -666,14 +666,14 @@ GNUNET_CONTAINER_bloomfilter_remove (struct GNUNET_CONTAINER_BloomFilter *bf,
  *
  * @param bf the filter
  * @param iterator an iterator over all elements stored in the BF
- * @param iterator_arg argument to the iterator function
+ * @param iterator_cls argument to the iterator function
  * @param size the new size for the filter
  * @param k the new number of GNUNET_CRYPTO_hash-function to apply per element
  */
 void
 GNUNET_CONTAINER_bloomfilter_resize (struct GNUNET_CONTAINER_BloomFilter *bf,
                                      GNUNET_HashCodeIterator iterator,
-                                     void *iterator_arg, 
+                                     void *iterator_cls, 
 				     size_t size,
                                      unsigned int k)
 {
@@ -691,7 +691,7 @@ GNUNET_CONTAINER_bloomfilter_resize (struct GNUNET_CONTAINER_BloomFilter *bf,
   memset (bf->bitArray, 0, bf->bitArraySize);
   if (bf->filename != NULL)
     makeEmptyFile (bf->fh, bf->bitArraySize * 4);
-  while (GNUNET_YES == iterator (iterator_arg, &hc))
+  while (GNUNET_YES == iterator (iterator_cls, &hc))
     GNUNET_CONTAINER_bloomfilter_add (bf, &hc);
 }
 

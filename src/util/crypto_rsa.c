@@ -186,15 +186,15 @@ key_from_sexp (gcry_mpi_t * array,
 
 /**
  * Extract the public key of the host.
- * @param hostkey the hostkey to extract into the result.
- * @param result where to write the result.
+ * @param priv the private key
+ * @param pub where to write the public key
  */
 void
 GNUNET_CRYPTO_rsa_key_get_public (const struct GNUNET_CRYPTO_RsaPrivateKey
-                                  *hostkey,
+                                  *priv,
                                   struct
                                   GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
-                                  *result)
+                                  *pub)
 {
   gcry_mpi_t skey[2];
   size_t size;
@@ -750,15 +750,15 @@ GNUNET_CRYPTO_rsa_encrypt (const void *block,
 /**
  * Decrypt a given block with the hostkey.
  *
- * @param hostkey the hostkey with which to decrypt this block
+ * @param key the key with which to decrypt this block
  * @param block the data to decrypt, encoded as returned by encrypt
  * @param result pointer to a location where the result can be stored
  * @param max the maximum number of bits to store for the result, if
  *        the decrypted block is bigger, an error is returned
- * @returns the size of the decrypted block, -1 on error
+ * @return the size of the decrypted block, -1 on error
  */
 ssize_t
-GNUNET_CRYPTO_rsa_decrypt (const struct GNUNET_CRYPTO_RsaPrivateKey *hostkey,
+GNUNET_CRYPTO_rsa_decrypt (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
                            const struct GNUNET_CRYPTO_RsaEncryptedData *block,
                            void *result, 
 			   size_t max)
@@ -772,7 +772,7 @@ GNUNET_CRYPTO_rsa_decrypt (const struct GNUNET_CRYPTO_RsaPrivateKey *hostkey,
   unsigned char *tmp;
 
 #if EXTRA_CHECKS
-  GNUNET_assert (0 == gcry_pk_testkey (hostkey->sexp));
+  GNUNET_assert (0 == gcry_pk_testkey (key->sexp));
 #endif
   size = sizeof (struct GNUNET_CRYPTO_RsaEncryptedData);
   GNUNET_assert (0 == gcry_mpi_scan (&val,
@@ -782,7 +782,7 @@ GNUNET_CRYPTO_rsa_decrypt (const struct GNUNET_CRYPTO_RsaPrivateKey *hostkey,
                  gcry_sexp_build (&data, &erroff,
                                   "(enc-val(flags)(rsa(a %m)))", val));
   gcry_mpi_release (val);
-  GNUNET_assert (0 == gcry_pk_decrypt (&resultsexp, data, hostkey->sexp));
+  GNUNET_assert (0 == gcry_pk_decrypt (&resultsexp, data, key->sexp));
   gcry_sexp_release (data);
   /* resultsexp has format "(value %m)" */
   GNUNET_assert (NULL !=
@@ -805,13 +805,13 @@ GNUNET_CRYPTO_rsa_decrypt (const struct GNUNET_CRYPTO_RsaPrivateKey *hostkey,
 /**
  * Sign a given block.
  *
- * @param hostkey private key to use for the signing
+ * @param key private key to use for the signing
  * @param purpose what to sign (size, purpose)
  * @param sig where to write the signature
  * @return GNUNET_SYSERR on error, GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_rsa_sign (const struct GNUNET_CRYPTO_RsaPrivateKey *hostkey,
+GNUNET_CRYPTO_rsa_sign (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
                         const struct GNUNET_CRYPTO_RsaSignaturePurpose
                         *purpose, struct GNUNET_CRYPTO_RsaSignature *sig)
 {
@@ -835,7 +835,7 @@ GNUNET_CRYPTO_rsa_sign (const struct GNUNET_CRYPTO_RsaPrivateKey *hostkey,
            - 1], &hc, sizeof (GNUNET_HashCode));
   GNUNET_assert (0 == gcry_sexp_new (&data, buff, bufSize, 0));
   GNUNET_free (buff);
-  GNUNET_assert (0 == gcry_pk_sign (&result, data, hostkey->sexp));
+  GNUNET_assert (0 == gcry_pk_sign (&result, data, key->sexp));
   gcry_sexp_release (data);
   GNUNET_assert (0 == key_from_sexp (&rval, result, "rsa", "s"));
   gcry_sexp_release (result);

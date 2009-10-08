@@ -562,7 +562,7 @@ getValue__ (unsigned char a)
  * small number of characters.  The GNUnet encoding uses 102
  * characters plus a null terminator.
  *
- * @param block the GNUNET_CRYPTO_hash code
+ * @param block the hash code
  * @param result where to store the encoding (struct GNUNET_CRYPTO_HashAsciiEncoded can be
  *  safely cast to char*, a '\\0' termination is set).
  */

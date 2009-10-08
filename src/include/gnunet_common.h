@@ -181,13 +181,13 @@ GNUNET_log_skip (unsigned int n, int check_reset);
 /**
  * Setup logging.
  *
- * @param component default component to use
+ * @param comp default component to use
  * @param loglevel what types of messages should be logged
  * @param logfile change logging to logfile (use NULL to keep stderr)
  * @return GNUNET_OK on success, GNUNET_SYSERR if logfile could not be opened
  */
 int
-GNUNET_log_setup (const char *component,
+GNUNET_log_setup (const char *comp,
                   const char *loglevel, const char *logfile);
 
 /**

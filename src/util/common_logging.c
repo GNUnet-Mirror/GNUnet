@@ -438,14 +438,14 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind)
  * This is one of the very few calls in the entire API that is
  * NOT reentrant!
  *
- * @param pid the peer identity
+ * @param hc the hash code
  * @return string form; will be overwritten by next call to GNUNET_h2s.
  */
 const char *
-GNUNET_h2s (const GNUNET_HashCode *pid)
+GNUNET_h2s (const GNUNET_HashCode *hc)
 {
   static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
-  GNUNET_CRYPTO_hash_to_enc (pid, &ret);
+  GNUNET_CRYPTO_hash_to_enc (hc, &ret);
   ret.encoding[8] = '\0';
   return (const char *) ret.encoding;
 }

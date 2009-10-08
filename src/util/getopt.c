@@ -987,7 +987,7 @@ GNgetopt_long (int argc,
 /**
  * Parse the command line.
  *
- * @param binaryOptions name of this binary / application
+ * @param binaryOptions Name of application with option summary
  * @param allOptions defined options and handlers
  * @param argc number of arguments
  * @param argv actual arguments

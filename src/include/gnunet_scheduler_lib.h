@@ -482,7 +482,6 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_SCHEDULER_Handle *sched,
  *        are satisfied).  Use GNUNET_SCHEDULER_NO_TASK to not have any dependency
  *        on completion of other tasks.
  * @param delay how long should we wait? Use GNUNET_TIME_UNIT_FOREVER_REL for "forever"
- * @param nfds highest-numbered file descriptor in any of the two sets plus one
  * @param rs set of file descriptors we want to read (can be NULL)
  * @param ws set of file descriptors we want to write (can be NULL)
  * @param main main function of the task
@@ -497,7 +496,8 @@ GNUNET_SCHEDULER_add_select (struct GNUNET_SCHEDULER_Handle *sched,
                              GNUNET_SCHEDULER_TaskIdentifier
                              prerequisite_task,
                              struct GNUNET_TIME_Relative delay,
-                             const struct GNUNET_NETWORK_FDSet * rs, const struct GNUNET_NETWORK_FDSet * ws,
+                             const struct GNUNET_NETWORK_FDSet * rs,
+			     const struct GNUNET_NETWORK_FDSet * ws,
                              GNUNET_SCHEDULER_Task main, void *cls);
 
 #if 0                           /* keep Emacsens' auto-indent happy */

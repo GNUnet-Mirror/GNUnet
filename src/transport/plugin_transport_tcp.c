@@ -1059,13 +1059,14 @@ session_try_connect (void *cls,
  * @param target who should receive this message
  * @param priority how important is the message
  * @param msg the message to transmit
+ * @param timeout when should we time out (give up) if we can not transmit?
  * @param cont continuation to call once the message has
  *        been transmitted (or if the transport is ready
  *        for the next transmission call; or if the
  *        peer disconnected...)
  * @param cont_cls closure for cont
  * @return plugin_context that should be used next time for
- *         sending messages to the specified peer
+  *         sending messages to the specified peer
  */
 static void *
 tcp_plugin_send (void *cls,
@@ -1252,7 +1253,7 @@ append_port (void *cls, const char *hostname)
  * format.
  *
  * @param cls closure
- * @param name name of the transport that generated the address
+ * @param type name of the transport that generated the address
  * @param addr one of the addresses of the host, NULL for the last address
  *        the specific address format depends on the transport
  * @param addrlen length of the address
@@ -1353,7 +1354,7 @@ update_quota (struct Session *session, int force)
  * calls to stay below the quota (in terms of incoming data).
  *
  * @param cls closure
- * @param peer the peer for whom the quota is given
+ * @param target the peer for whom the quota is given
  * @param quota_in quota for receiving/sending data in bytes per ms
  */
 static void
@@ -1581,8 +1582,8 @@ handle_tcp_ping (void *cls,
 /**
  * Handle PONG-message.
  *
- * @param plugin handle for this plugin
- * @param sender claimed sender of the PONG
+ * @param cls handle for this plugin
+ * @param client from where did we receive the PONG
  * @param message the actual message
  */
 static void

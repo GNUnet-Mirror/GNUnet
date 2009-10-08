@@ -598,6 +598,7 @@ peer_transmit_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Queue control request for transmission to the transport
  * service.
  *
+ * @param h handle to the transport service
  * @param size number of bytes to be transmitted
  * @param at_head request must be added to the head of the queue
  *        (otherwise request will be appended)
@@ -1446,7 +1447,7 @@ add_neighbour (struct GNUNET_TRANSPORT_Handle *h,
  * @param cls closure for the callbacks
  * @param rec receive function to call
  * @param nc function to call on connect events
- * @param dc function to call on disconnect events
+ * @param nd function to call on disconnect events
  */
 struct GNUNET_TRANSPORT_Handle *
 GNUNET_TRANSPORT_connect (struct GNUNET_SCHEDULER_Handle *sched,

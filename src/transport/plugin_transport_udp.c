@@ -151,6 +151,7 @@ select_close_handler (void *ch_cls,
  *
  * @param hello the hello-Message for the target node
  * @param tsessionPtr the session handle that is to be set
+ * @param may_reuse are we allowed to re-use an existing connection (ignored for UDP)
  * @return GNUNET_OK on success, GNUNET_SYSERR if the operation failed
  */
 static int
@@ -305,6 +306,7 @@ udp_create_socket ()
  * @param tsession the GNUNET_MessageHello identifying the remote node
  * @param message what to send
  * @param size the size of the message
+ * @param important is this message "important" to override typical transmit limits?
  * @return GNUNET_SYSERR on error, GNUNET_OK on success
  */
 static int

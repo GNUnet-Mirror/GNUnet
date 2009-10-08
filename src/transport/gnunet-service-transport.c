@@ -2066,6 +2066,7 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer)
  * reducing the rate at which they read from the socket
  * and generally forward to our receive callback.
  *
+ * @param cls the "struct TransportPlugin *" we gave to the plugin
  * @param plugin_context value to pass to this plugin
  *        to respond to the given peer (use is optional,
  *        but may speed up processing)
