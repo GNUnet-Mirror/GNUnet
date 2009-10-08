@@ -31,6 +31,10 @@
 
 #define DEBUG_SOCK GNUNET_NO
 
+#ifndef INVALID_SOCKET
+#define INVALID_SOCKET -1
+#endif
+
 struct GNUNET_NETWORK_Handle
 {
   int fd;
@@ -68,9 +72,22 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle));
   ret->fd = accept (desc->fd, address, address_len);
+  if (ret->fd == INVALID_SOCKET)
+    {
 #ifdef MINGW
-  if (INVALID_SOCKET == ret->fd)
-    SetErrnoFromWinsockError (WSAGetLastError ());
+      SetErrnoFromWinsockError (WSAGetLastError ());
+#endif
+      GNUNET_free (ret);
+      return NULL;
+    }
+#ifndef MINGW
+  if (ret->fd >= FD_SETSIZE)
+    {
+      close (desc->fd);
+      GNUNET_free (ret);
+      errno = EMFILE;
+      return NULL;
+    }
 #endif
   return ret;
 }
@@ -347,17 +364,23 @@ GNUNET_NETWORK_socket_socket (int domain, int type, int protocol)
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle));
   ret->fd = socket (domain, type, protocol);
-#ifdef MINGW
   if (INVALID_SOCKET == ret->fd)
-    SetErrnoFromWinsockError (WSAGetLastError ());
-#endif
-
-  if (ret->fd < 0)
     {
+#ifdef MINGW
+      SetErrnoFromWinsockError (WSAGetLastError ());
+#endif
       GNUNET_free (ret);
-      ret = NULL;
+      return NULL;
     }
-
+#ifndef MINGW
+  if (ret->fd >= FD_SETSIZE)
+    {
+      close (ret->fd);
+      GNUNET_free (ret);
+      errno = EMFILE;
+      return NULL;
+    }
+#endif
   return ret;
 }
 
