@@ -39,7 +39,7 @@ int
 GNUNET_OS_set_process_priority (pid_t proc,
                                 enum GNUNET_SCHEDULER_Priority prio)
 {
-  int prio = 0;
+  int rprio = 0;
 
   GNUNET_assert (prio < GNUNET_SCHEDULER_PRIORITY_COUNT);
   if (prio == GNUNET_SCHEDULER_PRIORITY_KEEP)
@@ -49,38 +49,38 @@ GNUNET_OS_set_process_priority (pid_t proc,
     {
     case GNUNET_SCHEDULER_PRIORITY_DEFAULT:
 #ifdef MINGW
-      prio = NORMAL_PRIORITY_CLASS;
+      rprio = NORMAL_PRIORITY_CLASS;
 #else
-      prio = 0;
+      rprio = 0;
 #endif
       break;
     case GNUNET_SCHEDULER_PRIORITY_HIGH:
 #ifdef MINGW
-      prio = ABOVE_NORMAL_PRIORITY_CLASS;
+      rprio = ABOVE_NORMAL_PRIORITY_CLASS;
 #else
-      prio = -5;
+      rprio = -5;
 #endif
       break;
     case GNUNET_SCHEDULER_PRIORITY_BACKGROUND:
 #ifdef MINGW
-      prio = BELOW_NORMAL_PRIORITY_CLASS;
+      rprio = BELOW_NORMAL_PRIORITY_CLASS;
 #else
-      prio = 10;
+      rprio = 10;
 #endif
       break;
     case GNUNET_SCHEDULER_PRIORITY_UI:
     case GNUNET_SCHEDULER_PRIORITY_URGENT:
 #ifdef MINGW
-      prio = HIGH_PRIORITY_CLASS;
+      rprio = HIGH_PRIORITY_CLASS;
 #else
-      prio = -10;
+      rprio = -10;
 #endif
       break;
     case GNUNET_SCHEDULER_PRIORITY_IDLE:
 #ifdef MINGW
-      prio = IDLE_PRIORITY_CLASS;
+      rprio = IDLE_PRIORITY_CLASS;
 #else
-      prio = 19;
+      rprio = 19;
 #endif
       break;
     default:
@@ -89,12 +89,12 @@ GNUNET_OS_set_process_priority (pid_t proc,
     }
   /* Set process priority */
 #ifdef MINGW
-  SetPriorityClass (GetCurrentProcess (), prio);
+  SetPriorityClass (GetCurrentProcess (), rprio);
 #else
   if (proc == getpid ())
     {
       errno = 0;
-      if ((-1 == nice (prio)) && (errno != 0))
+      if ((-1 == nice (rprio)) && (errno != 0))
         {
           GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING |
                                GNUNET_ERROR_TYPE_BULK, "nice");
@@ -103,7 +103,7 @@ GNUNET_OS_set_process_priority (pid_t proc,
     }
   else
     {
-      if (0 != setpriority (PRIO_PROCESS, proc, prio))
+      if (0 != setpriority (PRIO_PROCESS, proc, rprio))
 
         {
           GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING |

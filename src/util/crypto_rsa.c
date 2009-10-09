@@ -200,29 +200,29 @@ GNUNET_CRYPTO_rsa_key_get_public (const struct GNUNET_CRYPTO_RsaPrivateKey
   size_t size;
   int rc;
 
-  rc = key_from_sexp (skey, hostkey->sexp, "public-key", "ne");
+  rc = key_from_sexp (skey, priv->sexp, "public-key", "ne");
   if (rc)
-    rc = key_from_sexp (skey, hostkey->sexp, "private-key", "ne");
+    rc = key_from_sexp (skey, priv->sexp, "private-key", "ne");
   if (rc)
-    rc = key_from_sexp (skey, hostkey->sexp, "rsa", "ne");
+    rc = key_from_sexp (skey, priv->sexp, "rsa", "ne");
   GNUNET_assert (0 == rc);
-  result->len =
+  pub->len =
     htons (sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) -
-           sizeof (result->padding));
-  result->sizen = htons (GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH);
-  result->padding = 0;
+           sizeof (pub->padding));
+  pub->sizen = htons (GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH);
+  pub->padding = 0;
   size = GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH;
   GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
-                                      &result->key[0], size, &size, skey[0]));
-  adjust (&result->key[0], size, GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH);
+                                      &pub->key[0], size, &size, skey[0]));
+  adjust (&pub->key[0], size, GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH);
   size =
     GNUNET_CRYPTO_RSA_KEY_LENGTH - GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH;
   GNUNET_assert (0 ==
                  gcry_mpi_print (GCRYMPI_FMT_USG,
-                                 &result->key
+                                 &pub->key
                                  [GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH],
                                  size, &size, skey[1]));
-  adjust (&result->key[GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH], size,
+  adjust (&pub->key[GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH], size,
           GNUNET_CRYPTO_RSA_KEY_LENGTH -
           GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH);
   gcry_mpi_release (skey[0]);

@@ -3,7 +3,7 @@
 rm -rf /tmp/test-gnunetd-arm/
 exe="./gnunet-arm -c test_arm_api_data.conf"
 base=/tmp/gnunet-test-arm
-out=`mktemp /tmp/test-gnunetd-armXXXXXX.log`
+out=`mktemp /tmp/test-gnunetd-arm-logXXXXXXXX`
 #DEBUG="-L DEBUG"
 
 
@@ -17,7 +17,7 @@ fi
 echo "PASS"
 
 # ----------------------------------------------------------------------------------
-echo -n "TEST: Start ARM... "
+echo -n "TEST: Start ARM..."
 
 if ! $exe $DEBUG -s > $out ; then
   echo "FAIL: error running $exe"
