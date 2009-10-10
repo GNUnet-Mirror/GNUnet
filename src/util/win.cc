@@ -103,9 +103,11 @@ void EnumNICs(PMIB_IFTABLE *pIfTable, PMIB_IPADDRTABLE *pAddrTable)
 /**
  * Lists all network interfaces in a combo box
  * Used by the basic GTK configurator
- * @param callback
+ *
+ * @param callback function to call for each NIC
+ * @param callback_cls closure for callback
  */
-  int ListNICs(void (*callback) (const char *, int, void *), void * cls)
+  int ListNICs(void (*callback) (void *, const char *, int), void * callback_cls)
 {
   PMIB_IFTABLE pTable;
   PMIB_IPADDRTABLE pAddrTable;
@@ -201,7 +203,9 @@ void EnumNICs(PMIB_IFTABLE *pIfTable, PMIB_IPADDRTABLE *pAddrTable)
         if (pszIfName)
          	free(pszIfName);
 
-        callback(szEntry, pAddrTable->table[dwIfIdx].dwIndex == dwExternalNIC, cls);
+        callback(callback_cls,
+		 szEntry, 
+		 pAddrTable->table[dwIfIdx].dwIndex == dwExternalNIC);
       }
     }
     GlobalFree(pAddrTable);
@@ -513,7 +517,7 @@ int CreateServiceAccount(char *pszName, char *pszDesc)
  * @brief Grant permission to a file
  * @param lpszFileName the name of the file or directory
  * @param lpszAccountName the user account
- * @param the desired access (e.g. GENERIC_ALL)
+ * @param dwAccessMask the desired access (e.g. GENERIC_ALL)
  * @return TRUE on success
  * @remark based on http://support.microsoft.com/default.aspx?scid=KB;EN-US;Q102102&
  */

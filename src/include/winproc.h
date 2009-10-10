@@ -200,7 +200,7 @@ extern "C"
   BOOL DereferenceShortcut (char *pszShortcut);
   long QueryRegistry (HKEY hMainKey, char *pszKey, char *pszSubKey,
                       char *pszBuffer, long *pdLength);
-  int ListNICs (void (*callback) (const char *, int, void *), void *cls);
+  int ListNICs (void (*callback) (void *, const char *, int), void *cls);
   BOOL AddPathAccessRights (char *lpszFileName, char *lpszAccountName,
                             DWORD dwAccessMask);
   char *winErrorStr (const char *prefix, int dwErr);
