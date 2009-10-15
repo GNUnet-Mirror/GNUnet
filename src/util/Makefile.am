@@ -88,6 +88,7 @@ libgnunet_plugin_test_la_LDFLAGS = \
 
 
 check_PROGRAMS = \
+ test_bio \
  test_client \
  test_common_allocation \
  test_common_endian \
@@ -131,6 +132,13 @@ check_PROGRAMS = \
  perf_crypto_hash
 
 TESTS = $(check_PROGRAMS)
+
+
+test_bio_SOURCES = \
+ test_bio.c
+test_bio_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la
+
 
 test_client_SOURCES = \
  test_client.c
