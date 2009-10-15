@@ -23,23 +23,40 @@
  * @brief testcase for the buffered IO module
  * @author
  */
+
+
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_disk_lib.h"
-#include "gnunet_scheduler_lib.h"
+#include "gnunet_bio_lib.h"
+
+int check(){
+
+	int suc;
+    char* fileName = GNUNET_DISK_mktemp ("gnunet_bio");
+	struct GNUNET_BIO_ReadHandle *fileR;
+	struct GNUNET_BIO_WriteHandle *fileW;
+	char *msg;
+	fileR = GNUNET_BIO_read_open (fileName);
+	GNUNET_BIO_read_close(fileR,&msg);
+	fileW = GNUNET_BIO_write_open(fileName);
+	if (GNUNET_OK == GNUNET_BIO_write_close(fileW))
+		suc = 0;
+	else
+		suc = 1;
+
+	return suc;
+
+
+}
 
 
 
 int
 main (int argc, char *argv[])
 {
-  unsigned int failureCount = 0;
 
-  GNUNET_log_setup ("test-bio", "WARNING", NULL);
-  if (failureCount != 0)
-    {
-      fprintf (stderr, "\n%u TESTS FAILED!\n", failureCount);
-      return -1;
-    }
-  return 0;
+	int ch = check();
+	return ch;
+
 }                               /* end of main */
