@@ -151,9 +151,8 @@ GNUNET_DATACACHE_create (struct GNUNET_SCHEDULER_Handle *sched,
   bf_size = quota / 32; /* 8 bit per entry, 1 bit per 32 kb in DB */
 
   ret = GNUNET_malloc (sizeof(struct GNUNET_DATACACHE_Handle));
-  ret->bloom_name = GNUNET_DISK_mktemp ("datacachebloom");
-
-  if (ret->bloom_name)
+  ret->bloom_name = GNUNET_DISK_mktemp ("gnunet-datacachebloom");
+  if (NULL != ret->bloom_name)
     {
       ret->filter = GNUNET_CONTAINER_bloomfilter_load (ret->bloom_name, 
 						       quota / 1024,    /* 8 bit per entry in DB, expect 1k entries */

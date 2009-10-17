@@ -101,6 +101,7 @@ run (void *cls,
       k = n;
     }
   fprintf (stderr, "\n");
+  GNUNET_DATACACHE_destroy (h);
   return;
 FAILURE:
   if (h != NULL)
