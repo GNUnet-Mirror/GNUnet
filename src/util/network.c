@@ -333,6 +333,13 @@ GNUNET_NETWORK_socket_send (const struct GNUNET_NETWORK_Handle * desc,
 {
   int ret;
   int flags;
+#ifdef OSX
+  int no_sigpipe;
+  no_sigpipe = 1;
+  /* shouldn't matter if this fails as there's a SIGPIPE handler */
+  ret = setsockopt (desc->fd, SOL_SOCKET, SO_NOSIGPIPE,
+                    (void *) &no_sigpipe, sizeof (no_sigpipe));
+#endif
 
   flags = 0;
 #ifdef MSG_DONTWAIT
@@ -370,6 +377,13 @@ GNUNET_NETWORK_socket_sendto (const struct GNUNET_NETWORK_Handle * desc,
 {
   int ret;
   int flags;
+#ifdef OSX
+  int no_sigpipe;
+  no_sigpipe = 1;
+  /* shouldn't matter if this fails as there's a SIGPIPE handler */
+  ret = setsockopt (desc->fd, SOL_SOCKET, SO_NOSIGPIPE,
+                    (void *) &no_sigpipe, sizeof (no_sigpipe));
+#endif
 
   flags = 0;
 #ifdef MSG_DONTWAIT
