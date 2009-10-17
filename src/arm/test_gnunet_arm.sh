@@ -1,8 +1,6 @@
 #!/bin/sh
 
-rm -rf /tmp/test-gnunetd-arm/
 exe="./gnunet-arm -c test_arm_api_data.conf"
-base=/tmp/gnunet-test-arm
 out=`mktemp /tmp/test-gnunetd-arm-logXXXXXXXX`
 #DEBUG="-L DEBUG"
 
@@ -43,21 +41,21 @@ echo "PASS"
 
 # ----------------------------------------------------------------------------------
 echo -n "TEST: Test -t on running service... "
-if ! $exe $DEBUG -t resolver > $base.out; then
+if ! $exe $DEBUG -t resolver > $out; then
     echo "FAIL: error running $exe"
     exit 1
 fi
-LINES=`cat $base.out | grep resolver | grep not | wc -l`
+LINES=`cat $out | grep resolver | grep not | wc -l`
 if test $LINES -ne 0; then
   echo "FAIL: unexpected output:"
-  cat $base.out
+  cat $out
   $exe -e
   exit 1
 fi
-LINES=`cat $base.out | grep resolver | grep -v not | wc -l`
+LINES=`cat $out | grep resolver | grep -v not | wc -l`
 if test $LINES -ne 1; then
   echo "FAIL: unexpected output"
-  cat $base.out
+  cat $out
   $exe -e
   exit 1
 fi
@@ -76,16 +74,16 @@ echo "PASS"
 
 # ----------------------------------------------------------------------------------
 echo -n "TEST: Test -t on stopped service... "
-if ! $exe $DEBUG -t resolver > $base.out; then
+if ! $exe $DEBUG -t resolver > $out; then
   echo "FAIL: error running $exe"
-  cat $base.out
+  cat $out
   $exe -e > /dev/null
   exit 1
 fi
-LINES=`cat $base.out | grep resolver | grep not | wc -l`
+LINES=`cat $out | grep resolver | grep not | wc -l`
 if test $LINES -ne 1; then
   echo "FAIL: unexpected output"
-  cat $base.out 
+  cat $out 
   $exe -e > /dev/null
   exit 1
 fi
@@ -102,5 +100,5 @@ sleep 1
 echo "PASS"
 
 rm -rf /tmp/test-gnunetd-arm/
-rm -f $base.out "$out"
+rm -f $out
 
