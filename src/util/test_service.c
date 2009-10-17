@@ -311,7 +311,7 @@ main (int argc, char *argv[])
                     NULL);
   ret += check ();
   ret += check ();
-  s = GNUNET_NETWORK_socket_socket (PF_INET6, SOCK_STREAM, 0);
+  s = GNUNET_NETWORK_socket_create (PF_INET6, SOCK_STREAM, 0);
   if (NULL == s)
     {
       if ((errno == ENOBUFS) ||

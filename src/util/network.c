@@ -55,6 +55,75 @@ struct GNUNET_NETWORK_FDSet
 #define FD_COPY(s, d) (memcpy ((d), (s), sizeof (fd_set)))
 #endif
 
+
+
+/**
+ * Set if a socket should use blocking or non-blocking IO.
+ * @param fd socket
+ * @param doBlock blocking mode
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+static int
+socket_set_blocking (struct GNUNET_NETWORK_Handle *fd,
+		     int doBlock)
+{
+#if MINGW
+  u_long mode;
+  mode = !doBlock;
+  if (ioctlsocket (fd->fd, FIONBIO, &mode) == SOCKET_ERROR)
+    {
+      SetErrnoFromWinsockError (WSAGetLastError ());
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "ioctlsocket");
+      return GNUNET_SYSERR;
+    }
+  return GNUNET_OK;
+
+#else
+  /* not MINGW */
+  int flags = fcntl (fd->fd, F_GETFL);
+  if (flags == -1)
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "fcntl");
+      return GNUNET_SYSERR;
+    }
+  if (doBlock)
+    flags &= ~O_NONBLOCK;
+  else
+    flags |= O_NONBLOCK;
+  if (0 != fcntl (fd->fd, F_SETFL, flags))
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "fcntl");
+      return GNUNET_SYSERR;
+    }
+  return GNUNET_OK;
+#endif
+}
+
+
+#ifndef MINGW
+/**
+ * Make a non-inheritable to child processes
+ *
+ * @param h the socket to make non-inheritable
+ * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ * @warning Not implemented on Windows
+ */
+static int
+socket_set_inheritable (const struct GNUNET_NETWORK_Handle
+                                       *h)
+{
+  int i;
+
+  i = fcntl (h->fd, F_GETFD);
+  if (i == (i | FD_CLOEXEC))
+    return GNUNET_OK;
+  return (fcntl (h->fd, F_SETFD, i | FD_CLOEXEC) == 0)
+    ? GNUNET_OK : GNUNET_SYSERR;
+}
+#endif
+
+
+
 /**
  * accept a new connection on a socket
  *
@@ -89,6 +158,18 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
       return NULL;
     }
 #endif
+  if (GNUNET_SYSERR == socket_set_blocking (ret, GNUNET_NO))
+    {
+      /* we might want to treat this one as fatal... */
+      GNUNET_break (0);
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (ret));
+      return NULL; 
+    }
+#ifndef MINGW
+  if (GNUNET_OK != socket_set_inheritable (ret))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+			 "socket_set_inheritable");
+#endif
   return ret;
 }
 
@@ -114,47 +195,6 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
   return ret == 0 ? GNUNET_OK : GNUNET_SYSERR;
 }
 
-/**
- * Set if a socket should use blocking or non-blocking IO.
- * @param fd socket
- * @param doBlock blocking mode
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
- */
-int
-GNUNET_NETWORK_socket_set_blocking (struct GNUNET_NETWORK_Handle *fd,
-                                    int doBlock)
-{
-#if MINGW
-  u_long mode;
-  mode = !doBlock;
-  if (ioctlsocket (fd->fd, FIONBIO, &mode) == SOCKET_ERROR)
-    {
-      SetErrnoFromWinsockError (WSAGetLastError ());
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "ioctlsocket");
-      return GNUNET_SYSERR;
-    }
-  return GNUNET_OK;
-
-#else
-  /* not MINGW */
-  int flags = fcntl (fd->fd, F_GETFL);
-  if (flags == -1)
-    {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "fcntl");
-      return GNUNET_SYSERR;
-    }
-  if (doBlock)
-    flags &= ~O_NONBLOCK;
-  else
-    flags |= O_NONBLOCK;
-  if (0 != fcntl (fd->fd, F_SETFL, flags))
-    {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "fcntl");
-      return GNUNET_SYSERR;
-    }
-  return GNUNET_OK;
-#endif
-}
 
 /**
  * Close a socket
@@ -207,6 +247,7 @@ GNUNET_NETWORK_socket_connect (const struct GNUNET_NETWORK_Handle *desc,
 
 /**
  * Get socket options
+ *
  * @param desc socket
  * @param level protocol level of the option
  * @param optname identifier of the option
@@ -253,18 +294,22 @@ GNUNET_NETWORK_socket_listen (const struct GNUNET_NETWORK_Handle *desc,
 }
 
 /**
- * Read data from a connected socket
+ * Read data from a connected socket (always non-blocking).
  * @param desc socket
  * @param buffer buffer
  * @param length length of buffer
- * @param flags type of message reception
  */
 ssize_t
 GNUNET_NETWORK_socket_recv (const struct GNUNET_NETWORK_Handle * desc,
-                            void *buffer, size_t length, int flags)
+                            void *buffer, size_t length)
 {
   int ret;
+  int flags;
 
+  flags = 0;
+#ifdef MSG_DONTWAIT
+  flags |= MSG_DONTWAIT;
+#endif
   ret = recv (desc->fd, buffer, length, flags);
 #ifdef MINGW
   if (SOCKET_ERROR == ret)
@@ -275,19 +320,27 @@ GNUNET_NETWORK_socket_recv (const struct GNUNET_NETWORK_Handle * desc,
 }
 
 /**
- * Send data
+ * Send data (always non-blocking).
+ *
  * @param desc socket
  * @param buffer data to send
  * @param length size of the buffer
- * @param flags type of message transmission
  * @return number of bytes sent, GNUNET_SYSERR on error
  */
 ssize_t
 GNUNET_NETWORK_socket_send (const struct GNUNET_NETWORK_Handle * desc,
-                            const void *buffer, size_t length, int flags)
+                            const void *buffer, size_t length)
 {
   int ret;
+  int flags;
 
+  flags = 0;
+#ifdef MSG_DONTWAIT
+  flags |= MSG_DONTWAIT;
+#endif
+#ifdef MSG_NOSIGNAL
+  flags |= MSG_NOSIGNAL;
+#endif
   ret = send (desc->fd, buffer, length, flags);
 #ifdef MINGW
   if (SOCKET_ERROR == ret)
@@ -297,24 +350,34 @@ GNUNET_NETWORK_socket_send (const struct GNUNET_NETWORK_Handle * desc,
   return ret;
 }
 
+
 /**
- * Send data
+ * Send data to a particular destination (always non-blocking).
+ * This function only works for UDP sockets.
+ *
  * @param desc socket
  * @param message data to send
  * @param length size of the data
- * @param flags type of message transmission
  * @param dest_addr destination address
  * @param dest_len length of address
  * @return number of bytes sent, GNUNET_SYSERR on error
  */
 ssize_t
 GNUNET_NETWORK_socket_sendto (const struct GNUNET_NETWORK_Handle * desc,
-                              const void *message, size_t length, int flags,
+                              const void *message, size_t length,
                               const struct sockaddr * dest_addr,
                               socklen_t dest_len)
 {
   int ret;
+  int flags;
 
+  flags = 0;
+#ifdef MSG_DONTWAIT
+  flags |= MSG_DONTWAIT;
+#endif
+#ifdef MSG_NOSIGNAL
+  flags |= MSG_NOSIGNAL;
+#endif
   ret = sendto (desc->fd, message, length, flags, dest_addr, dest_len);
 #ifdef MINGW
   if (SOCKET_ERROR == ret)
@@ -350,15 +413,20 @@ GNUNET_NETWORK_socket_setsockopt (struct GNUNET_NETWORK_Handle *fd,
   return ret == 0 ? GNUNET_OK : GNUNET_SYSERR;
 }
 
+
+
 /**
- * Create a new socket
+ * Create a new socket.  Configure it for non-blocking IO and
+ * mark it as non-inheritable to child processes (set the
+ * close-on-exec flag).
+ *
  * @param domain domain of the socket
  * @param type socket type
  * @param protocol network protocol
  * @return new socket, NULL on error
  */
 struct GNUNET_NETWORK_Handle *
-GNUNET_NETWORK_socket_socket (int domain, int type, int protocol)
+GNUNET_NETWORK_socket_create (int domain, int type, int protocol)
 {
   struct GNUNET_NETWORK_Handle *ret;
 
@@ -381,6 +449,20 @@ GNUNET_NETWORK_socket_socket (int domain, int type, int protocol)
       return NULL;
     }
 #endif
+
+  if (GNUNET_SYSERR == socket_set_blocking (ret, GNUNET_NO))
+    {
+      /* we might want to treat this one as fatal... */
+      GNUNET_break (0);
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (ret));
+      return NULL; 
+    }
+#ifndef MINGW
+  if (GNUNET_OK != socket_set_inheritable (ret))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+			 "socket_set_inheritable");
+#endif
+
   return ret;
 }
 
@@ -403,31 +485,6 @@ GNUNET_NETWORK_socket_shutdown (struct GNUNET_NETWORK_Handle *desc,
 #endif
 
   return ret == 0 ? GNUNET_OK : GNUNET_SYSERR;
-}
-
-/**
- * Make a non-inheritable to child processes
- *
- * @param h the socket to make non-inheritable
- * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
- * @warning Not implemented on Windows
- */
-int
-GNUNET_NETWORK_socket_set_inheritable (const struct GNUNET_NETWORK_Handle
-                                       *h)
-{
-#ifdef MINGW
-  errno = ENOSYS;
-  return GNUNET_SYSERR;
-#else
-  int i;
-
-  i = fcntl (h->fd, F_GETFD);
-  if (i == (i | FD_CLOEXEC))
-    return GNUNET_OK;
-  return (fcntl (h->fd, F_SETFD, i | FD_CLOEXEC) == 0)
-    ? GNUNET_OK : GNUNET_SYSERR;
-#endif
 }
 
 

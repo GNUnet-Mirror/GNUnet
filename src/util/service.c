@@ -815,7 +815,7 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
   if (!disablev6)
     {
       /* probe IPv6 support */
-      desc = GNUNET_NETWORK_socket_socket (PF_INET6, SOCK_STREAM, 0);
+      desc = GNUNET_NETWORK_socket_create (PF_INET6, SOCK_STREAM, 0);
       if (NULL == desc)
         {
           if ((errno == ENOBUFS) ||

@@ -382,17 +382,12 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
       GNUNET_break (0);
       return NULL;
     }
-  sock = GNUNET_NETWORK_socket_socket (serverAddr->sa_family, SOCK_STREAM, 0);
+  sock = GNUNET_NETWORK_socket_create (serverAddr->sa_family, SOCK_STREAM, 0);
   if (NULL == sock)
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
       return NULL;
     }
-#ifndef MINGW
-  if (GNUNET_OK != GNUNET_NETWORK_socket_set_inheritable (sock))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                         "fcntl");
-#endif
   if (GNUNET_NETWORK_socket_setsockopt (sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                          "setsockopt");

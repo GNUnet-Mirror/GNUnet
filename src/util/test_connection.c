@@ -62,7 +62,7 @@ open_listen_socket ()
 #endif
   sa.sin_port = htons (PORT);
   sa.sin_family = AF_INET;
-  desc = GNUNET_NETWORK_socket_socket (AF_INET, SOCK_STREAM, 0);
+  desc = GNUNET_NETWORK_socket_create (AF_INET, SOCK_STREAM, 0);
   GNUNET_assert (desc != NULL);
   if (GNUNET_NETWORK_socket_setsockopt (desc, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,

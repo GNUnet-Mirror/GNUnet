@@ -51,8 +51,11 @@ struct GNUNET_NETWORK_FDSet;
 #include "gnunet_disk_lib.h"
 #include "gnunet_time_lib.h"
 
+
 /**
- * accept a new connection on a socket
+ * Accept a new connection on a socket.  Configure it for non-blocking
+ * IO and mark it as non-inheritable to child processes (set the
+ * close-on-exec flag).
  *
  * @param desc bound socket
  * @param address address of the connecting peer, may be NULL
@@ -64,17 +67,6 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
 			      struct sockaddr *address,
 			      socklen_t *address_len);
 
-/**
- * Make a non-inheritable to child processes (sets the
- * close-on-exec flag).
- *
- * @param h the socket to make non-inheritable
- * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
- * @warning Not implemented on Windows
- */
-int
-GNUNET_NETWORK_socket_set_inheritable (const struct GNUNET_NETWORK_Handle
-                                       *h);
 
 /**
  * Bind to a connected socket
@@ -88,7 +80,7 @@ int GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
                     const struct sockaddr *address, socklen_t address_len);
 
 /**
- * Close a socket
+ * Close a socket.
  *
  * @param desc socket to close
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
@@ -132,16 +124,15 @@ int GNUNET_NETWORK_socket_getsockopt(const struct GNUNET_NETWORK_Handle *desc, i
 int GNUNET_NETWORK_socket_listen (const struct GNUNET_NETWORK_Handle *desc, int backlog);
 
 /**
- * Read data from a connected socket
+ * Read data from a connected socket (always non-blocking).
  *
  * @param desc socket
  * @param buffer buffer
  * @param length length of buffer
- * @param flags type of message reception
  * @return number of bytes read
  */
 ssize_t GNUNET_NETWORK_socket_recv (const struct GNUNET_NETWORK_Handle *desc, void *buffer,
-                        size_t length, int flags);
+				    size_t length);
 
 /**
  * Check if sockets meet certain conditions
@@ -155,38 +146,32 @@ int GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
     struct GNUNET_NETWORK_FDSet *wfds, struct GNUNET_NETWORK_FDSet *efds,
     struct GNUNET_TIME_Relative timeout);
 
-/**
- * Set if a socket should use blocking or non-blocking IO.
- * @param fd socket
- * @param doBlock blocking mode
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
- */
-int GNUNET_NETWORK_socket_set_blocking (struct GNUNET_NETWORK_Handle *fd, 
-					int doBlock);
+
 
 /**
- * Send data
+ * Send data (always non-blocking).
+ *
  * @param desc socket
  * @param buffer data to send
  * @param length size of the buffer
- * @param flags type of message transmission
  * @return number of bytes sent, GNUNET_SYSERR on error
  */
 ssize_t GNUNET_NETWORK_socket_send (const struct GNUNET_NETWORK_Handle *desc,
-                        const void *buffer, size_t length, int flags);
+                        const void *buffer, size_t length);
 
 /**
- * Send data
+ * Send data to a particular destination (always non-blocking).
+ * This function only works for UDP sockets.
+ *
  * @param desc socket
  * @param message data to send
  * @param length size of the data
- * @param flags type of message transmission
  * @param dest_addr destination address
  * @param dest_len length of address
  * @return number of bytes sent, GNUNET_SYSERR on error
  */
 ssize_t GNUNET_NETWORK_socket_sendto (const struct GNUNET_NETWORK_Handle *desc,
-                          const void *message, size_t length, int flags,
+                          const void *message, size_t length, 
                           const struct sockaddr *dest_addr,
                           socklen_t dest_len);
 
@@ -210,14 +195,18 @@ int GNUNET_NETWORK_socket_setsockopt(struct GNUNET_NETWORK_Handle *fd, int level
  */
 int GNUNET_NETWORK_socket_shutdown (struct GNUNET_NETWORK_Handle *desc, int how);
 
+
 /**
- * Create a new socket
+ * Create a new socket.   Configure it for non-blocking IO and
+ * mark it as non-inheritable to child processes (set the
+ * close-on-exec flag).
+ *
  * @param domain domain of the socket
  * @param type socket type
  * @param protocol network protocol
  * @return new socket, NULL on error
  */
-struct GNUNET_NETWORK_Handle *GNUNET_NETWORK_socket_socket (int domain, int type, int protocol);
+struct GNUNET_NETWORK_Handle *GNUNET_NETWORK_socket_create (int domain, int type, int protocol);
 
 /**
  * Reset FD set (clears all file descriptors).
