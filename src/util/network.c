@@ -125,6 +125,23 @@ socket_set_inheritable (const struct GNUNET_NETWORK_Handle
 
 
 /**
+ * Disable delays when sending data via the socket.
+ * (GNUnet makes sure that messages are as big as
+ * possible already).
+ *
+ * @param h the socket to make non-delaying
+ */
+static void
+socket_set_nodelay (const struct GNUNET_NETWORK_Handle
+		    *h)
+{
+  int value = 1;
+  setsockopt (h->fd, IPPROTO_TCP, TCP_NODELAY, &value, sizeof(value));
+}
+
+
+
+/**
  * accept a new connection on a socket
  *
  * @param desc bound socket
@@ -170,6 +187,7 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
 			 "socket_set_inheritable");
 #endif
+  socket_set_nodelay (ret);
   return ret;
 }
 
@@ -476,6 +494,8 @@ GNUNET_NETWORK_socket_create (int domain, int type, int protocol)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
 			 "socket_set_inheritable");
 #endif
+  if (type == SOCK_STREAM)
+    socket_set_nodelay (ret);
 
   return ret;
 }
