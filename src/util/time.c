@@ -277,7 +277,7 @@ struct GNUNET_TIME_Relative GNUNET_TIME_calculate_eta (struct GNUNET_TIME_Absolu
   double exp;
   struct GNUNET_TIME_Relative ret;
 
-  GNUNET_break (finished > total);
+  GNUNET_break (finished <= total);
   if (finished >= total)
     return GNUNET_TIME_UNIT_ZERO;
   if (finished == 0)
