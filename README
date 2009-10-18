@@ -26,33 +26,23 @@ Dependencies:
 For the impatient, here is the list of immediate dependencies for
 running GNUnet:
 
-- libextractor  >= 0.5.20b
+- libextractor  >= 0.5.23
+- libmicrohttpd >= 0.4.2
 - libgcrypt     >= 1.2
 - libgmp        >= 4.0
 - libcurl       >= 7.15.4
 - libltdl       >= 2.2 (part of GNU libtool)
-- libguile      >= 1.8 (required for gnunet-setup)
-- GNU adns      >= 1.0 (strongly recommended)
 - mysql         >= 5.0 (strongly recommended)
 - sqlite        >= 3.0 (alternative to MySQL)
 
 Certain gnunet-setup plugins would also like to have:
 - GTK          >= 2.6.0
 - Qt           >= 4.0
-- dialog       >= 1.0-20051207
-- ncurses
-
-Certain transports would also like to have:
-- libmicrohttpd >= 0.4.0b
-- libcurl       >= 7.15.4
-- libesmtp      >= 1.0.4
-
 
 Recommended autotools for compiling the SVN version are:
 - autoconf >= 2.59
 - automake >= 1.9.4
-- libtool  >= 1.5
-- libltdl  >= 2.2.0 (only in Debian experimental)
+- libtool  >= 2.2 (only in Debian experimental)
 
 See also README.debian for a list of Debian packages.
 
@@ -72,16 +62,16 @@ you can start the actual GNUnet compilation process with:
 $ ./configure --prefix=$HOME --with-extractor=$HOME
 $ make
 # make install
-# gnunet-setup -d
-# gnunetd
+# gnunet-setup # (note: does not yet exist!)
+# gnunet-arm -s
 
 This will compile and install GNUnet to ~/bin/, ~/lib/ and ~/man/.
-gnunet-setup will create the daemon configuration (-d); this step is
+gnunet-setup will create the configuration; this step is
 interactive.  You can run gnunet-setup as root for a system-wide
 installation or as a particular user to create a personal
 installation.  If you do not want to run gnunetd as root, gnunet-setup
 can be used to add a user "gnunet".  Data will then be stored in
-/var/lib/GNUnet and gnunetd will run as that user.  Note that
+/var/lib/gnunet and gnunetd will run as that user.  Note that
 additional, per-user configuration files (~/.gnunet/gnunet.conf) also
 need to be created by each user by running gnunet-setup without the -d
 option.  Depending on your operating system the wizards of
@@ -106,6 +96,7 @@ $ aclocal -I /usr/local/share/aclocal
 Configuration
 =============
 
+// FIXME: update this section once we have gnunet-setup!
 GNUnet uses two types of configuration files, one for the daemon
 (called gnunetd.conf) and one for each user (gnunet.conf).  You can
 create and edit these configuration files with the gnunet-setup tool.
@@ -120,7 +111,7 @@ A default version of the per-user configuration will automatically
 be created whenever you run any tool that needs that particular
 cofniguration file.
 
-You MUST create /etc/gnunetd.conf explicitly before starting gnunetd,
+You MUST create /etc/gnunet.conf explicitly before starting gnunetd,
 and the recommended way to do this is to run gnunet-setup -d (plus
 possibly options to specify which user interface you would perfer).
 
@@ -131,20 +122,17 @@ cause gnunetd to re-read the configuration file.  Note that not all
 options can be changed at runtime this way (e.g. to change any port
 number, you must fully restart gnunetd).
 
-After changing certain options (or updating GNUnet) you must re-run
-gnunet-update.
-
 
 Usage
 =====
 
 First, you must obtain an initial list of GNUnet hosts.  Knowing a
 single peer is sufficient since after that GNUnet propagates
-information about other peers.  Note that the default "gnunetd.conf"
-contains URLs from where gnunetd downloads an initial hostlist
+information about other peers.  Note that the default "gnunet.conf"
+contains URLs from where GNUnet downloads an initial hostlist
 whenever it is started.  If you want to create an alternative URL for
 others to use, the file can be generated on any machine running
-gnunetd by periodically executing
+GNUnet by periodically executing
 
 $ cat $GNUNETD_HOME/data/hosts/* > the_file
 
@@ -153,12 +141,12 @@ can also add hosts manually.  The GNUnet webpage has a public
 directory of hostkeys under http://gnunet.org/hosts/.  You
 can of course use any other source for these files.  Copy the hostkeys
 to "$GNUNETD_HOME/data/hosts/" (where $GNUNETD_HOME is the
-directory specified in the /etc/gnunetd.conf configuration file).
+directory specified in the /etc/gnunet.conf configuration file).
 
-Now start the local node using "gnunetd".  gnunetd should run 24/7 if
+Now start the local node using "gnunet-arm -s".  GNUnet should run 24/7 if
 you want to maximize your anonymity.  You may start it as a service
-with "/etc/init.d/gnunetd start".  To insert files into GNUnet, use
-the "gnunet-insert" command.
+with "/etc/init.d/gnunet start".  To publish files on GNUnet, use
+the "gnunet-publish" command.
 
 The GTK user interface is shipped separately from GNUnet.  After
 downloading and installing gnunet-gtk, you can invoke the GUI with:
@@ -237,6 +225,7 @@ port (from the point of view of the network).
 Running the SMTP transport
 ==========================
 
+// NOTE: SMTP is not currently available in this version of GNUnet
 Running GNUnet over SMTP (e-mail) is a bit more involved.  Note that
 you do not need to run all transports (only running the NAT transport
 is the only thing that will not work).  If you really want to do
