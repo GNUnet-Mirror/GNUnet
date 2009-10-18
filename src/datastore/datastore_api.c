@@ -186,7 +186,7 @@ with_status_response_handler (void *cls,
       h->client = GNUNET_CLIENT_connect (h->sched, "datastore", h->cfg);
       cont (h->response_proc_cls, 
 	    GNUNET_SYSERR,
-	    _("Timeout trying to read response from datastore service\n"));       
+	    _("Timeout trying to read response from datastore service"));
       return;
     }
   if ( (ntohs(msg->size) < sizeof(struct StatusMessage)) ||
@@ -198,7 +198,7 @@ with_status_response_handler (void *cls,
       h->client = GNUNET_CLIENT_connect (h->sched, "datastore", h->cfg);
       cont (h->response_proc_cls, 
 	    GNUNET_SYSERR,
-	    _("Error reading response from datastore service\n"));
+	    _("Error reading response from datastore service"));
       return;
     }
   sm = (const struct StatusMessage*) msg;
@@ -257,7 +257,7 @@ transmit_get_status (void *cls,
       h->response_proc = NULL;
       cont (h->response_proc_cls, 
 	    GNUNET_SYSERR,
-	    gettext_noop ("Error transmitting message to datastore service.\n"));
+	    _("Error transmitting message to datastore service."));
       return 0;
     }
   msize = h->message_size;
@@ -324,7 +324,7 @@ transmit_for_status (struct GNUNET_DATASTORE_Handle *h,
       h->message_size = 0;
       cont (cont_cls,
 	    GNUNET_SYSERR,
-	    gettext_noop ("Not ready to transmit request to datastore service"));
+	    _("Not ready to transmit request to datastore service"));
     }
 }
 
