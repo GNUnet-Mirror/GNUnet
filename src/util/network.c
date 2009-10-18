@@ -102,7 +102,7 @@ socket_set_blocking (struct GNUNET_NETWORK_Handle *fd,
 
 #ifndef MINGW
 /**
- * Make a non-inheritable to child processes
+ * Make a socket non-inheritable to child processes
  *
  * @param h the socket to make non-inheritable
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
@@ -119,6 +119,23 @@ socket_set_inheritable (const struct GNUNET_NETWORK_Handle
     return GNUNET_OK;
   return (fcntl (h->fd, F_SETFD, i | FD_CLOEXEC) == 0)
     ? GNUNET_OK : GNUNET_SYSERR;
+}
+#endif
+
+
+
+#ifdef OSX
+/**
+ * The MSG_NOSIGNAL equivalent on Mac OS X
+ *
+ * @param h the socket to make non-delaying
+ */
+static void
+socket_set_nosigpipe (const struct GNUNET_NETWORK_Handle
+		    *h)
+{
+  int value = 1;
+  setsockopt (h->fd, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof(value));
 }
 #endif
 
@@ -186,6 +203,9 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
   if (GNUNET_OK != socket_set_inheritable (ret))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
 			 "socket_set_inheritable");
+#endif
+#ifdef OSX
+  socket_set_nosigpipe (ret);  
 #endif
   socket_set_nodelay (ret);
   return ret;
@@ -351,13 +371,6 @@ GNUNET_NETWORK_socket_send (const struct GNUNET_NETWORK_Handle * desc,
 {
   int ret;
   int flags;
-#ifdef OSX
-  int no_sigpipe;
-  no_sigpipe = 1;
-  /* shouldn't matter if this fails as there's a SIGPIPE handler */
-  ret = setsockopt (desc->fd, SOL_SOCKET, SO_NOSIGPIPE,
-                    (void *) &no_sigpipe, sizeof (no_sigpipe));
-#endif
 
   flags = 0;
 #ifdef MSG_DONTWAIT
@@ -395,13 +408,6 @@ GNUNET_NETWORK_socket_sendto (const struct GNUNET_NETWORK_Handle * desc,
 {
   int ret;
   int flags;
-#ifdef OSX
-  int no_sigpipe;
-  no_sigpipe = 1;
-  /* shouldn't matter if this fails as there's a SIGPIPE handler */
-  ret = setsockopt (desc->fd, SOL_SOCKET, SO_NOSIGPIPE,
-                    (void *) &no_sigpipe, sizeof (no_sigpipe));
-#endif
 
   flags = 0;
 #ifdef MSG_DONTWAIT
@@ -493,6 +499,9 @@ GNUNET_NETWORK_socket_create (int domain, int type, int protocol)
   if (GNUNET_OK != socket_set_inheritable (ret))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
 			 "socket_set_inheritable");
+#endif
+#ifdef OSX
+  socket_set_nosigpipe (ret);  
 #endif
   if (type == SOCK_STREAM)
     socket_set_nodelay (ret);
