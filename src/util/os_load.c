@@ -49,7 +49,7 @@
 #endif
 #endif
 
-#ifdef OSX
+#ifdef DARWIN
 #include <mach/mach.h>
 
 static processor_cpu_load_info_t prev_cpu_load;
@@ -76,7 +76,7 @@ static int currentIOLoad;
 
 static double agedIOLoad = -1;
 
-#ifdef OSX
+#ifdef DARWIN
 static int
 initMachCpuStats ()
 {
@@ -196,7 +196,7 @@ updateUsage ()
     }
 #endif
 
-#ifdef OSX
+#ifdef DARWIN
   {
     unsigned int cpu_count;
     processor_cpu_load_info_t cpu_load;
@@ -284,7 +284,7 @@ updateUsage ()
         vm_deallocate (mach_task_self (),
                        (vm_address_t) cpu_load,
                        (vm_size_t) (cpu_msg_count * sizeof (*cpu_load)));
-        currentIOLoad = -1;     /* FIXME-OSX! */
+        currentIOLoad = -1;     /* There's no IO load meter on darwin */
         return GNUNET_OK;
       }
     else
@@ -623,7 +623,7 @@ void __attribute__ ((constructor)) GNUNET_cpustats_ltdl_init ()
   proc_stat = fopen ("/proc/stat", "r");
   if (NULL == proc_stat)
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", "/proc/stat");
-#elif OSX
+#elif defined(DARWIN)
   initMachCpuStats ();
 #elif MINGW
   InitWinEnv (NULL);
@@ -642,7 +642,7 @@ void __attribute__ ((destructor)) GNUNET_cpustats_ltdl_fini ()
       fclose (proc_stat);
       proc_stat = NULL;
     }
-#elif OSX
+#elif defined(DARWIN)
   GNUNET_free_non_null (prev_cpu_load);
 #elif MINGW
   ShutdownWinEnv ();

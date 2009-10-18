@@ -41,14 +41,10 @@
 
 
 
-#if LINUX || CYGWIN
+#if defined(LINUX) || defined(CYGWIN)
 #include <sys/vfs.h>
 #else
-#ifdef SOMEBSD
-#include <sys/param.h>
-#include <sys/mount.h>
-#else
-#ifdef OSX
+#if defined(SOMEBSD) || defined(DARWIN)
 #include <sys/param.h>
 #include <sys/mount.h>
 #else
@@ -66,14 +62,9 @@
 #endif
 #endif
 #endif
-#endif
 
-#ifndef SOMEBSD
-#ifndef WINDOWS
-#ifndef OSX
+#if !defined(SOMEBSD) && !defined(DARWIN) && !defined(WINDOWS)
 #include <wordexp.h>
-#endif
-#endif
 #endif
 #if LINUX
 #include <sys/statvfs.h>
@@ -1584,7 +1575,7 @@ GNUNET_DISK_file_sync (const struct GNUNET_DISK_FileHandle *h)
   if (ret != GNUNET_OK)
     SetErrnoFromWinError (GetLastError ());
   return ret;
-#elif FREEBSD || OPENBSD || OSX
+#elif defined(FREEBSD) || defined(OPENBSD) || defined(DARWIN)
   return fsync (h->fd) == -1 ? GNUNET_SYSERR : GNUNET_OK;
 #else
   return fdatasync (h->fd) == -1 ? GNUNET_SYSERR : GNUNET_OK;

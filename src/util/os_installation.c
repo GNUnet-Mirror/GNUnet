@@ -42,7 +42,7 @@ extern "C"
 #include "gnunet_configuration_lib.h"
 #include "gnunet_disk_lib.h"
 #include "gnunet_os_lib.h"
-#if OSX
+#if DARWIN
 #include <mach-o/ldsyms.h>
 #include <mach-o/dyld.h>
 #endif
@@ -137,7 +137,7 @@ get_path_from_module_filename ()
 }
 #endif
 
-#if OSX
+#if DARWIN
 typedef int (*MyNSGetExecutablePathProto) (char *buf, size_t * bufsize);
 
 static char *
@@ -285,7 +285,7 @@ os_get_gnunet_path ()
   if (ret != NULL)
     return ret;
 #endif
-#if OSX
+#if DARWIN
   ret = get_path_from_dyld_image ();
   if (ret != NULL)
     return ret;
@@ -325,7 +325,7 @@ os_get_exec_path ()
   if (ret != NULL)
     return ret;
 #endif
-#if OSX
+#if DARWIN
   ret = get_path_from_NSGetExecutablePath ();
   if (ret != NULL)
     return ret;

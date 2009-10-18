@@ -124,7 +124,7 @@ socket_set_inheritable (const struct GNUNET_NETWORK_Handle
 
 
 
-#ifdef OSX
+#ifdef DARWIN
 /**
  * The MSG_NOSIGNAL equivalent on Mac OS X
  *
@@ -204,7 +204,7 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
 			 "socket_set_inheritable");
 #endif
-#ifdef OSX
+#ifdef DARWIN
   socket_set_nosigpipe (ret);  
 #endif
   socket_set_nodelay (ret);
@@ -500,7 +500,7 @@ GNUNET_NETWORK_socket_create (int domain, int type, int protocol)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
 			 "socket_set_inheritable");
 #endif
-#ifdef OSX
+#ifdef DARWIN
   socket_set_nosigpipe (ret);  
 #endif
   if (type == SOCK_STREAM)

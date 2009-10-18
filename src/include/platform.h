@@ -128,7 +128,7 @@
 #ifdef GNUNET_freeBSD
 #include <semaphore.h>
 #endif
-#ifdef OSX
+#ifdef DARWIN
 #include <dlfcn.h>
 #include <semaphore.h>
 #include <net/if.h>
@@ -192,11 +192,10 @@
 #define __BIG_ENDIAN BIG_ENDIAN
 #endif
 
-#ifdef OSX
-#define socklen_t unsigned int
+#ifdef DARWIN
 #define __BYTE_ORDER BYTE_ORDER
 #define __BIG_ENDIAN BIG_ENDIAN
- /* not available on OS X, override configure */
+ /* not available on darwin, override configure */
 #undef HAVE_STAT64
 #undef HAVE_MREMAP
 #endif

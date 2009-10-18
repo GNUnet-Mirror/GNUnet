@@ -69,10 +69,10 @@ DEFAULT_INTERFACE="\"eth0\""
 # Check system type
 case "$host_os" in
 *darwin* | *rhapsody* | *macosx*)
-     AC_DEFINE_UNQUOTED(OSX,1,[This is an OS X system])
+     AC_DEFINE_UNQUOTED(DARWIN,1,[This is an Apple Darwin system])
      CFLAGS="-no-cpp-precomp -fno-common $CFLAGS"
      AC_MSG_WARN([The VPN application cannot be compiled on your OS])
-     build_target="macosx"
+     build_target="darwin"
      DEFAULT_INTERFACE="\"en0\""
      LIBPREFIX=
      DLLDIR=lib
@@ -155,7 +155,7 @@ AC_DEFINE_UNQUOTED([GNUNET_DEFAULT_INTERFACE], $DEFAULT_INTERFACE, [This should 
 AC_SUBST(DEFAULT_INTERFACE)
 
 AC_MSG_CHECKING([for build target])
-AM_CONDITIONAL(MACOSX,  test "$build_target" = "macosx")
+AM_CONDITIONAL(DARWIN,  test "$build_target" = "darwin")
 AM_CONDITIONAL(CYGWIN,  test "$build_target" = "cygwin")
 AM_CONDITIONAL(MINGW,   test "$build_target" = "mingw")
 AM_CONDITIONAL(SOLARIS, test "$build_target" = "solaris")
