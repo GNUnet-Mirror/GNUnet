@@ -69,6 +69,24 @@ static struct GNUNET_FS_PublishContext *publish;
 static char *fn;
 
 
+static void
+abort_download_task (void *cls,
+		     const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_FS_download_stop (download, GNUNET_YES);
+  download = NULL;
+}
+
+
+static void
+abort_publish_task (void *cls,
+		     const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_FS_publish_stop (publish);
+  publish = NULL;
+}
+
+
 static void *
 progress_cb (void *cls, 
 	     const struct GNUNET_FS_ProgressInfo *event)
@@ -76,14 +94,8 @@ progress_cb (void *cls,
 
   switch (event->status)
     {
-    case GNUNET_FS_STATUS_DOWNLOAD_SUSPEND:
-      GNUNET_break (0);
-      break;
-    case GNUNET_FS_STATUS_DOWNLOAD_RESUME:
-      GNUNET_break (0);
-      break;
     case GNUNET_FS_STATUS_PUBLISH_PROGRESS:
-#if DEBUG_VERBOSE > 1
+#if DEBUG_VERBOSE
       printf ("Publish is progressing (%llu/%llu)...\n",
               (unsigned long long) event->value.publish.completed,
               (unsigned long long) event->value.publish.size);
@@ -115,35 +127,39 @@ progress_cb (void *cls,
       download = NULL;
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_PROGRESS:
-#if DEBUG_VERBOSE > 1
+#if DEBUG_VERBOSE
       printf ("Download is progressing (%llu/%llu)...\n",
               (unsigned long long) event->value.download.completed,
               (unsigned long long) event->value.download.size);
 #endif
       break;
-    case GNUNET_FS_STATUS_UNINDEX_PROGRESS:
-      GNUNET_break (0);
-      break;
-    case GNUNET_FS_STATUS_UNINDEX_COMPLETED:
-      GNUNET_break (0);
-      break;
-    case GNUNET_FS_STATUS_UNINDEX_ERROR:
-      GNUNET_break (0);
     case GNUNET_FS_STATUS_PUBLISH_ERROR:
+      fprintf (stderr,
+	       "Error publishing file: %s\n",
+	       event->value.publish.specifics.error.message);
       GNUNET_break (0);
+      GNUNET_SCHEDULER_add_continuation (sched,
+					 GNUNET_NO,
+					 &abort_publish_task,
+					 NULL,
+					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      break;
     case GNUNET_FS_STATUS_DOWNLOAD_ERROR:
-      GNUNET_break (0);
-      break;
-    case GNUNET_FS_STATUS_UNINDEX_SUSPEND:
-      GNUNET_break (0);
-      break;
-    case GNUNET_FS_STATUS_PUBLISH_SUSPEND:
-      GNUNET_break (0);
+      fprintf (stderr,
+	       "Error downloading file: %s\n",
+	       event->value.download.specifics.error.message);
+      GNUNET_SCHEDULER_add_continuation (sched,
+					 GNUNET_NO,
+					 &abort_download_task,
+					 NULL,
+					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
     case GNUNET_FS_STATUS_PUBLISH_START:
       /* FIXME: add checks here... */
+      break;
     case GNUNET_FS_STATUS_PUBLISH_STOPPED:
       /* FIXME: add checks here... */
+      break;
     case GNUNET_FS_STATUS_DOWNLOAD_START:
       /* FIXME: add checks here... */
       break;
@@ -151,12 +167,6 @@ progress_cb (void *cls,
       /* FIXME: add checks here... */
       GNUNET_FS_stop (fs);
       fs = NULL;
-      break;
-    case GNUNET_FS_STATUS_UNINDEX_START:
-      GNUNET_break (0);
-      break;
-    case GNUNET_FS_STATUS_UNINDEX_STOPPED:
-      GNUNET_break (0);
       break;
     default:
       printf ("Unexpected event: %d\n", 

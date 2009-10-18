@@ -1902,6 +1902,7 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
  * Stop an upload.  Will abort incomplete uploads (but 
  * not remove blocks that have already been publishd) or
  * simply clean up the state for completed uploads.
+ * Must NOT be called from within the event callback!
  *
  * @param sc context for the upload to stop
  */

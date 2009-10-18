@@ -552,6 +552,11 @@ struct GNUNET_FS_PublishContext
    * for this upload.
    */
   int rid;
+
+  /**
+   * Set to GNUNET_YES if all processing has completed.
+   */
+  int all_done;
 };
 
 

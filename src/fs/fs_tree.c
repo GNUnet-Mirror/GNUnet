@@ -171,6 +171,7 @@ GNUNET_FS_tree_encoder_create (struct GNUNET_FS_Handle *h,
 {
   struct GNUNET_FS_TreeEncoder *te;
   
+  GNUNET_assert (size > 0);
   te = GNUNET_malloc (sizeof (struct GNUNET_FS_TreeEncoder));
   te->h = h;
   te->size = size;

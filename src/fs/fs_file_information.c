@@ -249,6 +249,7 @@ data_reader_copy(void *cls,
 		 char **emsg)
 {
   char *data = cls;
+
   if (max == 0)
     {
       GNUNET_free (data);
@@ -343,6 +344,7 @@ GNUNET_FS_file_information_create_from_reader (void *client_info,
   ret->data.file.reader = reader; 
   ret->data.file.reader_cls = reader_cls;
   ret->data.file.do_index = do_index;
+  ret->data.file.file_size = length;
   ret->anonymity = anonymity;
   ret->priority = priority;
   GNUNET_FS_file_information_sync (ret);
@@ -803,15 +805,16 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
 	  GNUNET_FS_file_information_destroy (pos, cleaner, cleaner_cls);
 	}
       /* clean up client-info */
-      cleaner (cleaner_cls, 
-	       fi,
-	       fi->data.dir.dir_size,
-	       fi->meta,
-	       &fi->keywords,
-	       &fi->anonymity,
-	       &fi->priority,
-	       &fi->expirationTime,
-	       &fi->client_info);
+      if (NULL != cleaner)
+	cleaner (cleaner_cls, 
+		 fi,
+		 fi->data.dir.dir_size,
+		 fi->meta,
+		 &fi->keywords,
+		 &fi->anonymity,
+		 &fi->priority,
+		 &fi->expirationTime,
+		 &fi->client_info);
       GNUNET_free_non_null (fi->data.dir.dir_data);
       GNUNET_free (fi->data.dir.dirname);
     }
@@ -820,25 +823,27 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
       /* call clean-up function of the reader */
       fi->data.file.reader (fi->data.file.reader_cls, 0, 0, NULL, NULL);
       /* clean up client-info */
-      cleaner (cleaner_cls, 
-	       fi,
-	       fi->data.file.file_size,
-	       fi->meta,
-	       &fi->keywords,
-	       &fi->anonymity,
-	       &fi->priority,
-	       &fi->expirationTime,
-	       &fi->client_info);
+      if (NULL != cleaner)
+	cleaner (cleaner_cls, 
+		 fi,
+		 fi->data.file.file_size,
+		 fi->meta,
+		 &fi->keywords,
+		 &fi->anonymity,
+		 &fi->priority,
+		 &fi->expirationTime,
+		 &fi->client_info);
     }
   GNUNET_free_non_null (fi->emsg);
   /* clean up serialization */
-  if (0 != UNLINK (fi->serialization))
+  if ( (NULL != fi->serialization) &&
+       (0 != UNLINK (fi->serialization)) )
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
 			      "unlink",
 			      fi->serialization);
   GNUNET_FS_uri_destroy (fi->keywords);
   GNUNET_CONTAINER_meta_data_destroy (fi->meta);
-  GNUNET_free (fi->serialization);
+  GNUNET_free_non_null (fi->serialization);
   GNUNET_free (fi);
 }
 

@@ -135,7 +135,8 @@ static void
 publish_cleanup (struct GNUNET_FS_PublishContext *sc)
 {
   GNUNET_FS_file_information_destroy (sc->fi, NULL, NULL);
-  GNUNET_FS_namespace_delete (sc->namespace, GNUNET_NO);
+  if (sc->namespace != NULL)
+    GNUNET_FS_namespace_delete (sc->namespace, GNUNET_NO);
   GNUNET_free_non_null (sc->nid);  
   GNUNET_free_non_null (sc->nuid);
   GNUNET_DATASTORE_disconnect (sc->dsh, GNUNET_NO);
@@ -181,7 +182,6 @@ ds_put_cont (void *cls,
       pcc->p->client_info
 	= pcc->sc->h->upcb (pcc->sc->h->upcb_cls,
 			    &pi);
-      return;
     }
   GNUNET_FS_file_information_sync (pcc->p);
   if (NULL != pcc->cont)
@@ -272,6 +272,7 @@ publish_sblocks_cont (void *cls,
     }  
   // FIXME: release the datastore reserve here!
   signal_publish_completion (sc->fi, sc);
+  sc->all_done = GNUNET_YES;
 }
 
 
@@ -392,6 +393,9 @@ block_reader (void *cls,
     {
       pt_size = GNUNET_MIN(max,
 			   p->data.file.file_size - offset);
+      if (pt_size == 0)
+	return 0; /* calling reader with pt_size==0 
+		     might free buf, so don't! */
       if (pt_size !=
 	  p->data.file.reader (p->data.file.reader_cls,
 			       offset,
@@ -498,6 +502,7 @@ block_proc (void *cls,
   dpc_cls = GNUNET_malloc(sizeof(struct PutContCtx));
   dpc_cls->cont = &do_upload;
   dpc_cls->cont_cls = sc;
+  dpc_cls->sc = sc;
   dpc_cls->p = p;
   if ( (p->is_directory) &&
        (p->data.file.do_index) &&
@@ -833,6 +838,7 @@ do_upload (void *cls,
 	    = sc->h->upcb (sc->h->upcb_cls,
 			   &pi);
 	}
+      sc->all_done = GNUNET_YES;
       return;
     }
   /* handle completion */
@@ -1034,6 +1040,7 @@ fip_signal_stop(void *cls,
  * Stop an upload.  Will abort incomplete uploads (but 
  * not remove blocks that have already been publishd) or
  * simply clean up the state for completed uploads.
+ * Must NOT be called from within the event callback!
  *
  * @param sc context for the upload to stop
  */
@@ -1042,6 +1049,8 @@ GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *sc)
 {
   if (GNUNET_SCHEDULER_NO_TASK != sc->upload_task)
     GNUNET_SCHEDULER_cancel (sc->h->sched, sc->upload_task);
+  else
+    GNUNET_assert (sc->all_done == GNUNET_YES);
   // FIXME: remove from persistence DB (?) --- think more about
   //        shutdown / persistent-resume APIs!!!
   GNUNET_FS_file_information_inspect (sc->fi,
