@@ -144,7 +144,7 @@ make_download_status (struct GNUNET_FS_ProgressInfo *pi,
     = dc->uri;
   pi->value.download.filename
     = dc->filename;
-  pi->value.download.length
+  pi->value.download.size
     = dc->length;
   pi->value.download.duration
     = GNUNET_TIME_absolute_get_duration (dc->start_time);
@@ -649,15 +649,15 @@ try_reconnect (struct GNUNET_FS_DownloadContext *dc)
  * @return context that can be used to control this download
  */
 struct GNUNET_FS_DownloadContext *
-GNUNET_FS_file_download_start (struct GNUNET_FS_Handle *h,
-			       const struct GNUNET_FS_Uri *uri,
-			       const struct GNUNET_CONTAINER_MetaData *meta,
-			       const char *filename,
-			       uint64_t offset,
-			       uint64_t length,
-			       uint32_t anonymity,
-			       enum GNUNET_FS_DownloadOptions options,
-			       struct GNUNET_FS_DownloadContext *parent)
+GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
+			  const struct GNUNET_FS_Uri *uri,
+			  const struct GNUNET_CONTAINER_MetaData *meta,
+			  const char *filename,
+			  uint64_t offset,
+			  uint64_t length,
+			  uint32_t anonymity,
+			  enum GNUNET_FS_DownloadOptions options,
+			  struct GNUNET_FS_DownloadContext *parent)
 {
   struct GNUNET_FS_ProgressInfo pi;
   struct GNUNET_FS_DownloadContext *dc;
@@ -766,8 +766,8 @@ free_entry (void *cls,
  * @param do_delete delete files of incomplete downloads
  */
 void
-GNUNET_FS_file_download_stop (struct GNUNET_FS_DownloadContext *dc,
-			      int do_delete)
+GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
+			 int do_delete)
 {
   struct GNUNET_FS_ProgressInfo pi;
 

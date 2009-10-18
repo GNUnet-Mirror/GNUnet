@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2004, 2005, 2006, 2008 Christian Grothoff (and other contributing authors)
+     (C) 2004, 2005, 2006, 2008, 2009 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -19,306 +19,268 @@
 */
 
 /**
- * @file applications/fs/fsui/download_persistence_test.c
- * @brief testcase for fsui download persistence (upload-download)
+ * @file fs/test_fs_download.c
+ * @brief simple testcase for download
  * @author Christian Grothoff
  */
 
 #include "platform.h"
-#include "gnunet_util.h"
-#include "gnunet_fsui_lib.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_arm_service.h"
+#include "gnunet_fs_service.h"
 
-#define DEBUG_VERBOSE GNUNET_NO
+#define DEBUG_VERBOSE 42 
+//GNUNET_NO
 
-#define CHECK(a) if (!(a)) { ok = GNUNET_NO; GNUNET_GE_BREAK(ectx, 0); goto FAILURE; }
-
-static volatile int suspendRestart = 0;
-
-static struct GNUNET_GE_Context *ectx;
-
-static char *
-makeName (unsigned int i)
-{
-  char *fn;
-
-  fn =
-    GNUNET_malloc (strlen
-                   ("/tmp/gnunet-fsui-download_persistence_test/FSUITEST") +
-                   14);
-  GNUNET_snprintf (fn,
-                   strlen
-                   ("/tmp/gnunet-fsui-download_persistence_test/FSUITEST") +
-                   14,
-                   "/tmp/gnunet-fsui-download_persistence_test/FSUITEST%u",
-                   i);
-  GNUNET_disk_directory_create_for_file (NULL, fn);
-  return fn;
-}
-
-static volatile enum GNUNET_FSUI_EventType lastEvent;
-static volatile enum GNUNET_FSUI_EventType waitForEvent;
-static volatile int download_done;
-static struct GNUNET_FSUI_Context *ctx;
-static struct GNUNET_ECRS_URI *upURI;
-static struct GNUNET_FSUI_DownloadList *download;
-
-static void *
-eventCallback (void *cls, const GNUNET_FSUI_Event * event)
-{
-  switch (event->type)
-    {
-    case GNUNET_FSUI_download_suspended:
-      download = NULL;
-      break;
-    case GNUNET_FSUI_download_resumed:
-#if DEBUG_VERBOSE
-      printf ("Download resuming\n");
-#endif
-      download = event->data.DownloadResumed.dc.pos;
-      break;
-    case GNUNET_FSUI_upload_progress:
-#if DEBUG_VERBOSE > 1
-      printf ("Upload is progressing (%llu/%llu)...\n",
-              event->data.UploadProgress.completed,
-              event->data.UploadProgress.total);
-#endif
-      break;
-    case GNUNET_FSUI_upload_completed:
-      upURI = GNUNET_ECRS_uri_duplicate (event->data.UploadCompleted.uri);
-#if DEBUG_VERBOSE
-      printf ("Upload complete.\n");
-#endif
-      break;
-    case GNUNET_FSUI_download_completed:
-#if DEBUG_VERBOSE
-      printf ("Download complete.\n");
-#endif
-      download_done = 1;
-      break;
-    case GNUNET_FSUI_download_progress:
-#if DEBUG_VERBOSE > 1
-      printf ("Download is progressing (%llu/%llu)...\n",
-              event->data.DownloadProgress.completed,
-              event->data.DownloadProgress.total);
-#endif
-      break;
-    case GNUNET_FSUI_unindex_progress:
-#if DEBUG_VERBOSE > 1
-      printf ("Unindex is progressing (%llu/%llu)...\n",
-              event->data.UnindexProgress.completed,
-              event->data.UnindexProgress.total);
-#endif
-      break;
-    case GNUNET_FSUI_unindex_completed:
-#if DEBUG_VERBOSE
-      printf ("Unindex complete.\n");
-#endif
-      break;
-    case GNUNET_FSUI_unindex_error:
-    case GNUNET_FSUI_upload_error:
-    case GNUNET_FSUI_download_error:
-      fprintf (stderr, "Received ERROR: %d\n", event->type);
-      GNUNET_GE_BREAK (ectx, 0);
-      break;
-    case GNUNET_FSUI_download_aborted:
-#if DEBUG_VERBOSE
-      printf ("Received download aborted event.\n");
-#endif
-      break;
-    case GNUNET_FSUI_unindex_suspended:
-    case GNUNET_FSUI_upload_suspended:
-#if DEBUG_VERBOSE
-      fprintf (stderr, "Received SUSPENDING: %d\n", event->type);
-#endif
-      break;
-    case GNUNET_FSUI_upload_started:
-    case GNUNET_FSUI_upload_stopped:
-    case GNUNET_FSUI_download_started:
-    case GNUNET_FSUI_download_stopped:
-    case GNUNET_FSUI_unindex_started:
-    case GNUNET_FSUI_unindex_stopped:
-      break;
-    default:
-      printf ("Unexpected event: %d\n", event->type);
-      break;
-    }
-  if (lastEvent == waitForEvent)
-    return NULL;                /* ignore all other events */
-  lastEvent = event->type;
-  return NULL;
-}
+#define START_ARM GNUNET_YES
 
 #define FILESIZE (1024 * 1024 * 2)
 
-#define START_DAEMON 1
+/**
+ * How long until we give up on transmitting the message?
+ */
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+
+/**
+ * How long should our test-content live?
+ */ 
+#define LIFETIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
+
+struct PeerContext
+{
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+  struct GNUNET_PeerIdentity id;   
+#if START_ARM
+  pid_t arm_pid;
+#endif
+};
+
+static struct PeerContext p1;
+
+
+static struct GNUNET_SCHEDULER_Handle *sched;
+
+static struct GNUNET_FS_Handle *fs;
+
+static struct GNUNET_FS_DownloadContext *download;
+
+static struct GNUNET_FS_PublishContext *publish;
+
+static char *fn;
+
+
+static void *
+progress_cb (void *cls, 
+	     const struct GNUNET_FS_ProgressInfo *event)
+{
+
+  switch (event->status)
+    {
+    case GNUNET_FS_STATUS_DOWNLOAD_SUSPEND:
+      GNUNET_break (0);
+      break;
+    case GNUNET_FS_STATUS_DOWNLOAD_RESUME:
+      GNUNET_break (0);
+      break;
+    case GNUNET_FS_STATUS_PUBLISH_PROGRESS:
+#if DEBUG_VERBOSE > 1
+      printf ("Publish is progressing (%llu/%llu)...\n",
+              (unsigned long long) event->value.publish.completed,
+              (unsigned long long) event->value.publish.size);
+#endif
+      break;
+    case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
+#if DEBUG_VERBOSE
+      printf ("Publish complete.\n");
+#endif
+      GNUNET_FS_publish_stop (publish);
+      publish = NULL;
+      fn = GNUNET_DISK_mktemp ("gnunet-download-test-dstXXXXXX");
+      download = GNUNET_FS_download_start (fs,
+					   event->value.publish.specifics.completed.chk_uri,
+					   NULL,
+					   fn,
+					   0,
+					   FILESIZE,
+					   1,
+					   GNUNET_FS_DOWNLOAD_OPTION_NONE,
+					   NULL);
+      GNUNET_assert (download != NULL);
+      break;
+    case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
+#if DEBUG_VERBOSE
+      printf ("Download complete.\n");
+#endif
+      GNUNET_FS_download_stop (download, GNUNET_YES);
+      download = NULL;
+      break;
+    case GNUNET_FS_STATUS_DOWNLOAD_PROGRESS:
+#if DEBUG_VERBOSE > 1
+      printf ("Download is progressing (%llu/%llu)...\n",
+              (unsigned long long) event->value.download.completed,
+              (unsigned long long) event->value.download.size);
+#endif
+      break;
+    case GNUNET_FS_STATUS_UNINDEX_PROGRESS:
+      GNUNET_break (0);
+      break;
+    case GNUNET_FS_STATUS_UNINDEX_COMPLETED:
+      GNUNET_break (0);
+      break;
+    case GNUNET_FS_STATUS_UNINDEX_ERROR:
+      GNUNET_break (0);
+    case GNUNET_FS_STATUS_PUBLISH_ERROR:
+      GNUNET_break (0);
+    case GNUNET_FS_STATUS_DOWNLOAD_ERROR:
+      GNUNET_break (0);
+      break;
+    case GNUNET_FS_STATUS_UNINDEX_SUSPEND:
+      GNUNET_break (0);
+      break;
+    case GNUNET_FS_STATUS_PUBLISH_SUSPEND:
+      GNUNET_break (0);
+      break;
+    case GNUNET_FS_STATUS_PUBLISH_START:
+      /* FIXME: add checks here... */
+    case GNUNET_FS_STATUS_PUBLISH_STOPPED:
+      /* FIXME: add checks here... */
+    case GNUNET_FS_STATUS_DOWNLOAD_START:
+      /* FIXME: add checks here... */
+      break;
+    case GNUNET_FS_STATUS_DOWNLOAD_STOPPED:
+      /* FIXME: add checks here... */
+      GNUNET_FS_stop (fs);
+      fs = NULL;
+      break;
+    case GNUNET_FS_STATUS_UNINDEX_START:
+      GNUNET_break (0);
+      break;
+    case GNUNET_FS_STATUS_UNINDEX_STOPPED:
+      GNUNET_break (0);
+      break;
+    default:
+      printf ("Unexpected event: %d\n", 
+	      event->status);
+      break;
+    }
+  return NULL;
+}
+
+
+static void
+setup_peer (struct PeerContext *p, const char *cfgname)
+{
+  p->cfg = GNUNET_CONFIGURATION_create ();
+#if START_ARM
+  p->arm_pid = GNUNET_OS_start_process ("gnunet-service-arm",
+                                        "gnunet-service-arm",
+#if VERBOSE
+                                        "-L", "DEBUG",
+#endif
+                                        "-c", cfgname, NULL);
+  sleep (1);                    /* allow ARM to start */
+#endif
+  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
+  GNUNET_ARM_start_services (p->cfg, sched, "core", NULL);
+}
+
+
+static void
+stop_arm (struct PeerContext *p)
+{
+#if START_ARM
+  if (0 != PLIBC_KILL (p->arm_pid, SIGTERM))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+  if (GNUNET_OS_process_wait(p->arm_pid) != GNUNET_OK)
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "ARM process %u stopped\n", p->arm_pid);
+#endif
+  GNUNET_CONFIGURATION_destroy (p->cfg);
+}
+
+
+static void
+run (void *cls,
+     struct GNUNET_SCHEDULER_Handle *s,
+     char *const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  const char *keywords[] = {
+    "down_foo",
+    "down_bar",
+  };
+  char *buf;
+  struct GNUNET_CONTAINER_MetaData *meta;
+  struct GNUNET_FS_Uri *kuri;
+  struct GNUNET_FS_FileInformation *fi;
+  size_t i;
+
+  sched = s;
+  setup_peer (&p1, "test_fs_download_data.conf");
+  fs = GNUNET_FS_start (sched,
+			cfg,
+			"test-fs-download",
+			&progress_cb,
+			NULL,
+			GNUNET_FS_FLAGS_NONE,
+			GNUNET_FS_OPTIONS_END);
+  GNUNET_assert (NULL != fs); 
+  buf = GNUNET_malloc (FILESIZE);
+  for (i = 0; i < FILESIZE; i++)
+    buf[i] = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 256);
+  meta = GNUNET_CONTAINER_meta_data_create ();
+  kuri = GNUNET_FS_uri_ksk_create_from_args (2, keywords);
+  fi = GNUNET_FS_file_information_create_from_data ("file-to-publish",
+						    FILESIZE,
+						    buf,
+						    kuri,
+						    meta,
+						    GNUNET_NO,
+						    1,
+						    42,
+						    GNUNET_TIME_relative_to_absolute (LIFETIME)); 
+  GNUNET_FS_uri_destroy (kuri);
+  GNUNET_CONTAINER_meta_data_destroy (meta);
+  GNUNET_assert (NULL != fi);
+  publish = GNUNET_FS_publish_start (fs,
+				    "publish-context",
+				    fi,
+				    NULL, NULL, NULL,
+				    GNUNET_FS_PUBLISH_OPTION_NONE);
+  GNUNET_assert (publish != NULL);
+}
+
 
 int
 main (int argc, char *argv[])
 {
-#if START_DAEMON
-  pid_t daemon;
+  char *const argvx[] = { 
+    "test-fs-download",
+    "-c",
+    "test_fs_download_data.conf",
+#if VERBOSE
+    "-L", "DEBUG",
 #endif
-  int ok;
-  int i;
-  char *fn = NULL;
-  char *keywords[] = {
-    "down_foo",
-    "down_bar",
+    NULL
   };
-  int prog;
-  char *buf;
-  struct GNUNET_MetaData *meta = NULL;
-  struct GNUNET_ECRS_URI *kuri = NULL;
-  struct GNUNET_GC_Configuration *cfg;
-  struct GNUNET_FSUI_UnindexList *unindex = NULL;
-  struct GNUNET_FSUI_UploadList *upload = NULL;
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_END
+  };
 
-  ok = GNUNET_YES;
-  cfg = GNUNET_GC_create ();
-  if (-1 == GNUNET_GC_parse_configuration (cfg, "check.conf"))
-    {
-      GNUNET_GC_free (cfg);
-      return -1;
-    }
-#if START_DAEMON
-  GNUNET_disk_directory_remove (NULL,
-                                "/tmp/gnunet-fsui-download_persistence_test/");
-  daemon = GNUNET_daemon_start (NULL, cfg, "peer.conf", GNUNET_NO);
-  GNUNET_GE_ASSERT (NULL, daemon > 0);
-  CHECK (GNUNET_OK ==
-         GNUNET_wait_for_daemon_running (NULL, cfg,
-                                         30 * GNUNET_CRON_SECONDS));
-  GNUNET_thread_sleep (5 * GNUNET_CRON_SECONDS);        /* give apps time to start */
-  /* ACTUAL TEST CODE */
+  GNUNET_log_setup ("test_fs_download", 
+#if VERBOSE
+		    "DEBUG",
+#else
+		    "WARNING",
 #endif
-  ctx = GNUNET_FSUI_start (NULL,
-                           cfg, "fsuidownload_persistence_test", 32,
-                           GNUNET_YES, &eventCallback, NULL);
-  CHECK (ctx != NULL);
-
-  /* upload */
-  fn = makeName (42);
-  buf = GNUNET_malloc (FILESIZE);
-  for (i = 0; i < FILESIZE; i++)
-    buf[i] = GNUNET_random_u32 (GNUNET_RANDOM_QUALITY_WEAK, 256);
-  GNUNET_disk_file_write (ectx, fn, buf, FILESIZE, "600");
-  GNUNET_free (buf);
-  meta = GNUNET_meta_data_create ();
-  kuri =
-    GNUNET_ECRS_keyword_command_line_to_uri (ectx, 2,
-                                             (const char **) keywords);
-  waitForEvent = GNUNET_FSUI_upload_completed;
-  upload = GNUNET_FSUI_upload_start (ctx,
-                                     fn,
-                                     (GNUNET_FSUI_DirectoryScanCallback) &
-                                     GNUNET_disk_directory_scan, NULL, 0, 0,
-                                     GNUNET_YES, GNUNET_NO, GNUNET_NO,
-                                     GNUNET_get_time () +
-                                     5 * GNUNET_CRON_HOURS, meta, kuri, kuri);
-  CHECK (upload != NULL);
-  GNUNET_ECRS_uri_destroy (kuri);
-  kuri = NULL;
-  prog = 0;
-  while (lastEvent != GNUNET_FSUI_upload_completed)
-    {
-      prog++;
-      CHECK (prog < 5000);
-      GNUNET_thread_sleep (50 * GNUNET_CRON_MILLISECONDS);
-      if (GNUNET_shutdown_test () == GNUNET_YES)
-        break;
-    }
-  GNUNET_FSUI_upload_stop (upload);
-
-  /* download */
-  waitForEvent = GNUNET_FSUI_download_completed;
-  GNUNET_free (fn);
-  fn = makeName (43);
-  download_done = 0;
-  download = GNUNET_FSUI_download_start (ctx,
-                                         0,
-                                         GNUNET_NO,
-                                         upURI, meta, fn, NULL, NULL);
-  CHECK (download != NULL);
-  GNUNET_free (fn);
-  suspendRestart = 4;
-  prog = 0;
-  while (download_done == 0)
-    {
-      prog++;
-      CHECK (prog < 1000);
-      GNUNET_thread_sleep (50 * GNUNET_CRON_MILLISECONDS);
-      if ((suspendRestart > 0)
-          && (GNUNET_random_u32 (GNUNET_RANDOM_QUALITY_WEAK, 4) == 0))
-        {
-#if 1
-#if DEBUG_VERBOSE
-          printf ("Testing FSUI suspend-resume\n");
-#endif
-          GNUNET_FSUI_stop (ctx);       /* download possibly incomplete
-                                           at this point, thus testing resume */
-          ctx = GNUNET_FSUI_start (NULL,
-                                   cfg,
-                                   "fsuidownload_persistence_test",
-                                   32, GNUNET_YES, &eventCallback, NULL);
-#if DEBUG_VERBOSE
-          printf ("Resumed...\n");
-#endif
-#endif
-          suspendRestart--;
-        }
-      if (GNUNET_shutdown_test () == GNUNET_YES)
-        break;
-    }
-  GNUNET_FSUI_download_stop (download);
-  download = NULL;
-
-  /* unindex */
-  waitForEvent = GNUNET_FSUI_unindex_completed;
-  fn = makeName (42);
-  unindex = GNUNET_FSUI_unindex_start (ctx, fn);
-  CHECK (unindex != NULL);
-  prog = 0;
-  while (lastEvent != GNUNET_FSUI_unindex_completed)
-    {
-      prog++;
-      CHECK (prog < 5000);
-      GNUNET_thread_sleep (50 * GNUNET_CRON_MILLISECONDS);
-      CHECK (lastEvent != GNUNET_FSUI_unindex_error);
-      if (GNUNET_shutdown_test () == GNUNET_YES)
-        break;
-    }
-  CHECK (lastEvent == GNUNET_FSUI_unindex_completed);
-  /* END OF TEST CODE */
-FAILURE:
-  if (meta != NULL)
-    GNUNET_meta_data_destroy (meta);
-  if (ctx != NULL)
-    {
-      if (unindex != NULL)
-        GNUNET_FSUI_unindex_stop (unindex);
-      if (download != NULL)
-        GNUNET_FSUI_download_stop (download);
-      GNUNET_FSUI_stop (ctx);
-    }
-  if (fn != NULL)
-    {
-      UNLINK (fn);
-      GNUNET_free (fn);
-    }
-  if (kuri != NULL)
-    GNUNET_ECRS_uri_destroy (kuri);
-  fn = makeName (43);
-  /* TODO: verify file 'fn(42)' == file 'fn(43)' */
-  UNLINK (fn);
-  GNUNET_free (fn);
-  if (upURI != NULL)
-    GNUNET_ECRS_uri_destroy (upURI);
-
-#if START_DAEMON
-  GNUNET_GE_BREAK (NULL, GNUNET_OK == GNUNET_daemon_stop (NULL, daemon));
-#endif
-  GNUNET_GC_free (cfg);
-  return (ok == GNUNET_YES) ? 0 : 1;
+		    NULL);
+  GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1,
+                      argvx, "test-fs-download",
+		      "nohelp", options, &run, NULL);
+  stop_arm (&p1);
+  return 0;
 }
 
-/* end of download_persistence_test.c */
+/* end of test_fs_download.c */

@@ -914,7 +914,7 @@ search_result_free (void *cls,
   GNUNET_CONTAINER_meta_data_destroy (sr->meta);
   if (sr->probe_ctx != NULL)
     {
-      GNUNET_FS_file_download_stop (sr->probe_ctx, GNUNET_YES);
+      GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);
       h->active_probes--;
       /* FIXME: trigger starting of new
 	 probes here!? Maybe not -- could

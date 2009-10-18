@@ -74,7 +74,7 @@ progress_cb (void *cls,
 		 _("Downloading `%s' at %llu/%llu (%s remaining, %s/s)\n"),
 		 info->value.download.filename,
 		 (unsigned long long) info->value.download.completed,
-		 (unsigned long long) info->value.download.length,
+		 (unsigned long long) info->value.download.size,
 		 GNUNET_STRINGS_relative_time_to_string(info->value.download.eta),
 		 GNUNET_STRINGS_byte_size_fancy(info->value.download.completed * 1000 / (info->value.download.duration.value + 1)));
       break;
@@ -82,7 +82,7 @@ progress_cb (void *cls,
       fprintf (stderr,
 	       _("Error downloading: %s.\n"),
 	       info->value.download.specifics.error.message);
-      GNUNET_FS_file_download_stop (dc, delete_incomplete); 
+      GNUNET_FS_download_stop (dc, delete_incomplete); 
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
       fprintf (stdout,
@@ -90,7 +90,7 @@ progress_cb (void *cls,
 	       info->value.download.filename,
 	       GNUNET_STRINGS_byte_size_fancy(info->value.download.completed * 1000 / (info->value.download.duration.value + 1)));
       if (info->value.download.dc == dc)
-	GNUNET_FS_file_download_stop (dc, delete_incomplete);
+	GNUNET_FS_download_stop (dc, delete_incomplete);
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_STOPPED: 
       if (info->value.download.dc == dc)
@@ -172,15 +172,15 @@ run (void *cls,
       return;
     }
   options = GNUNET_FS_DOWNLOAD_OPTION_NONE;
-  dc = GNUNET_FS_file_download_start (ctx,
-				      uri,
-				      NULL,
-				      filename,
-				      0,
-				      GNUNET_FS_uri_chk_get_file_size (uri),
-				      anonymity,
-				      options,
-				      NULL);
+  dc = GNUNET_FS_download_start (ctx,
+				 uri,
+				 NULL,
+				 filename,
+				 0,
+				 GNUNET_FS_uri_chk_get_file_size (uri),
+				 anonymity,
+				 options,
+				 NULL);
   GNUNET_FS_uri_destroy (uri);
 }
 

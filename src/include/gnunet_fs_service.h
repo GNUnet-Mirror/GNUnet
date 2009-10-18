@@ -891,7 +891,7 @@ struct GNUNET_FS_ProgressInfo
        * is NOT necessarily the size from the
        * URI since we may be doing a partial download.
        */
-      uint64_t length;
+      uint64_t size;
 
       /**
        * At what time do we expect to finish the download?
@@ -1590,7 +1590,7 @@ GNUNET_FS_file_information_create_from_file (void *client_info,
  *
  * @param length length of the file
  * @param data data for the file (should not be used afterwards by
- *        the caller; caller will "free")
+ *        the caller; callee will "free")
  * @param keywords under which keywords should this file be available
  *         directly; can be NULL
  * @param meta metadata for the file
@@ -2017,9 +2017,10 @@ GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
  * @param filename file to unindex
  * @return NULL on error, otherwise handle 
  */
+// FIXME: add a "void *" context for the client to arguments!?
 struct GNUNET_FS_UnindexContext *
-GNUNET_FS_unindex (struct GNUNET_FS_Handle *h,
-		   const char *filename);
+GNUNET_FS_unindex_start (struct GNUNET_FS_Handle *h,
+			 const char *filename);
 
 
 /**
@@ -2156,6 +2157,7 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
  * @param anonymity desired level of anonymity
  * @return context that can be used to control the search
  */
+// FIXME: add a "void *" context for the client to arguments!?
 struct GNUNET_FS_SearchContext *
 GNUNET_FS_search_start (struct GNUNET_FS_Handle *h,
 			const struct GNUNET_FS_Uri *uri,
@@ -2243,16 +2245,17 @@ enum GNUNET_FS_DownloadOptions
  *        for top-level downloads; useful for manually-triggered recursive downloads)
  * @return context that can be used to control this download
  */
+// FIXME: add a "void *" context for the client to arguments!?
 struct GNUNET_FS_DownloadContext *
-GNUNET_FS_file_download_start (struct GNUNET_FS_Handle *h,
-			       const struct GNUNET_FS_Uri *uri,
-			       const struct GNUNET_CONTAINER_MetaData *meta,
-			       const char *filename,
-			       uint64_t offset,
-			       uint64_t length,
-			       uint32_t anonymity,
-			       enum GNUNET_FS_DownloadOptions options,
-			       struct GNUNET_FS_DownloadContext *parent);
+GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
+			  const struct GNUNET_FS_Uri *uri,
+			  const struct GNUNET_CONTAINER_MetaData *meta,
+			  const char *filename,
+			  uint64_t offset,
+			  uint64_t length,
+			  uint32_t anonymity,
+			  enum GNUNET_FS_DownloadOptions options,
+			  struct GNUNET_FS_DownloadContext *parent);
 
 
 /**
@@ -2262,8 +2265,8 @@ GNUNET_FS_file_download_start (struct GNUNET_FS_Handle *h,
  * @param do_delete delete files of incomplete downloads
  */
 void
-GNUNET_FS_file_download_stop (struct GNUNET_FS_DownloadContext *dc,
-			      int do_delete);
+GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
+			 int do_delete);
 
 
 /**

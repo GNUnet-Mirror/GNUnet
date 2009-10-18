@@ -392,8 +392,8 @@ process_hash (void *cls,
  * @return NULL on error, otherwise handle 
  */
 struct GNUNET_FS_UnindexContext *
-GNUNET_FS_unindex (struct GNUNET_FS_Handle *h,
-		   const char *filename)
+GNUNET_FS_unindex_start (struct GNUNET_FS_Handle *h,
+			 const char *filename)
 {
   struct GNUNET_FS_UnindexContext *ret;
   struct GNUNET_FS_ProgressInfo pi;

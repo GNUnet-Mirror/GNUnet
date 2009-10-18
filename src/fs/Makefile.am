@@ -104,6 +104,7 @@ gnunet_unindex_LDADD = \
 check_PROGRAMS = \
  test_fs_collection \
  test_fs_directory \
+ test_fs_download \
  test_fs_getopt \
  test_fs_uri
 
@@ -123,6 +124,13 @@ test_fs_directory_LDADD = \
   $(top_builddir)/src/fs/libgnunetfs.la  \
   $(top_builddir)/src/util/libgnunetutil.la  
 
+test_fs_download_SOURCES = \
+ test_fs_download.c
+test_fs_download_LDADD = \
+  $(top_builddir)/src/fs/libgnunetfs.la  \
+  $(top_builddir)/src/arm/libgnunetarm.la  \
+  $(top_builddir)/src/util/libgnunetutil.la  
+
 test_fs_getopt_SOURCES = \
  test_fs_getopt.c
 test_fs_getopt_LDADD = \
@@ -137,4 +145,5 @@ test_fs_uri_LDADD = \
 
 EXTRA_DIST = \
   test_fs_collection_data.conf \
+  test_fs_download_data.conf \
   test_fs_uri_data.conf

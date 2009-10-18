@@ -363,7 +363,6 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  // sleep (1); /* for 'make check': allow previous processes to fully terminate */
   ok = 1;
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "test-core-api", "nohelp", options, &run, &ok);

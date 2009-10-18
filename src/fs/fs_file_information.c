@@ -265,7 +265,7 @@ data_reader_copy(void *cls,
  * @param client_info initial value for the client-info value for this entry
  * @param length length of the file
  * @param data data for the file (should not be used afterwards by
- *        the caller; caller will "free")
+ *        the caller; callee will "free")
  * @param keywords under which keywords should this file be available
  *         directly; can be NULL
  * @param meta metadata for the file
