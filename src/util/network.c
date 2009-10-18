@@ -186,7 +186,7 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
 #ifndef MINGW
   if (ret->fd >= FD_SETSIZE)
     {
-      close (desc->fd);
+      close (ret->fd);
       GNUNET_free (ret);
       errno = EMFILE;
       return NULL;
