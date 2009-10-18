@@ -96,17 +96,22 @@ progress_cb (void *cls,
     {
     case GNUNET_FS_STATUS_PUBLISH_PROGRESS:
 #if DEBUG_VERBOSE
-      printf ("Publish is progressing (%llu/%llu)...\n",
+      printf ("Publish is progressing (%llu/%llu at level %u off %llu)...\n",
               (unsigned long long) event->value.publish.completed,
-              (unsigned long long) event->value.publish.size);
+              (unsigned long long) event->value.publish.size,
+	      event->value.publish.specifics.progress.depth,
+	      (unsigned long long) event->value.publish.specifics.progress.offset);
 #endif
       break;
     case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
 #if DEBUG_VERBOSE
       printf ("Publish complete.\n");
 #endif
-      GNUNET_FS_publish_stop (publish);
-      publish = NULL;
+      GNUNET_SCHEDULER_add_continuation (sched,
+					 GNUNET_NO,
+					 &abort_publish_task,
+					 NULL,
+					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       fn = GNUNET_DISK_mktemp ("gnunet-download-test-dstXXXXXX");
       download = GNUNET_FS_download_start (fs,
 					   event->value.publish.specifics.completed.chk_uri,
@@ -123,14 +128,19 @@ progress_cb (void *cls,
 #if DEBUG_VERBOSE
       printf ("Download complete.\n");
 #endif
-      GNUNET_FS_download_stop (download, GNUNET_YES);
-      download = NULL;
+      GNUNET_SCHEDULER_add_continuation (sched,
+					 GNUNET_NO,
+					 &abort_download_task,
+					 NULL,
+					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_PROGRESS:
 #if DEBUG_VERBOSE
-      printf ("Download is progressing (%llu/%llu)...\n",
+      printf ("Download is progressing (%llu/%llu at level %u off %llu)...\n",
               (unsigned long long) event->value.download.completed,
-              (unsigned long long) event->value.download.size);
+              (unsigned long long) event->value.download.size,
+	      event->value.download.specifics.progress.depth,
+	      (unsigned long long) event->value.download.specifics.progress.offset);
 #endif
       break;
     case GNUNET_FS_STATUS_PUBLISH_ERROR:

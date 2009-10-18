@@ -250,7 +250,6 @@ compute_chk_offset (unsigned int height,
 				  corresponds to */
   for (i=0;i<height;i++)
     bds *= CHK_PER_INODE;
-  GNUNET_assert (0 == (offset % bds));
   ret = offset / bds;
   return ret % CHK_PER_INODE; 
 }
@@ -312,6 +311,19 @@ void GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder * te)
 			     &sk,
 			     &iv,
 			     enc);
+  if (0 == te->current_depth)
+    {
+      te->uri = GNUNET_malloc (sizeof(struct GNUNET_FS_Uri));
+      te->uri->type = chk;
+      te->uri->data.chk.chk = te->chk_tree[0];
+      te->uri->data.chk.file_length = GNUNET_htonll (te->size);
+      GNUNET_SCHEDULER_add_continuation (te->h->sched,
+					 GNUNET_NO,
+					 te->cont,
+					 te->cls,
+					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      return;
+    }
   if (NULL != te->proc)
     te->proc (te->cls,
 	      &mychk->query,
@@ -342,18 +354,6 @@ void GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder * te)
 	te->current_depth--;
       else
 	te->current_depth = te->chk_tree_depth;
-    }
-  if (0 == te->current_depth)
-    {
-      te->uri = GNUNET_malloc (sizeof(struct GNUNET_FS_Uri));
-      te->uri->type = chk;
-      te->uri->data.chk.chk = te->chk_tree[0];
-      te->uri->data.chk.file_length = GNUNET_htonll (te->size);
-      GNUNET_SCHEDULER_add_continuation (te->h->sched,
-					 GNUNET_NO,
-					 te->cont,
-					 te->cls,
-					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     }
 }
 
