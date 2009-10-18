@@ -53,6 +53,7 @@ GNUNET_FS_namespace_advertise (struct GNUNET_FS_Handle *h,
 			       const struct GNUNET_FS_Uri *advertisementURI,
 			       const char *rootEntry)
 {
+  GNUNET_break (0);
   return NULL;
 }
 
@@ -69,6 +70,7 @@ struct GNUNET_FS_Namespace *
 GNUNET_FS_namespace_create (struct GNUNET_FS_Handle *h,
 			    const char *name)
 {
+  GNUNET_break (0);
   return NULL;
 }
 
@@ -88,6 +90,7 @@ int
 GNUNET_FS_namespace_delete (struct GNUNET_FS_Namespace *namespace,
 			    int freeze)
 {
+  GNUNET_break (0);
   return GNUNET_SYSERR;
 }
 
@@ -106,6 +109,7 @@ GNUNET_FS_namespace_list (struct GNUNET_FS_Handle *h,
 			  GNUNET_FS_NamespaceInfoProcessor cb,
 			  void *cb_cls)
 {
+  GNUNET_break (0);
 }
 
 /* end of fs_namespace.c */
