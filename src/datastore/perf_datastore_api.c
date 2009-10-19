@@ -313,6 +313,8 @@ run_continuation (void *cls,
       GNUNET_free (crc);
       ok = 0;
       break;
+    default:
+      GNUNET_assert (0);      
     }
 }
 

@@ -1195,6 +1195,11 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unload_plugin (plugin);
   plugin = NULL;
+  if (filter != NULL)
+    {
+      GNUNET_CONTAINER_bloomfilter_free (filter);
+      filter = NULL;
+    }
 }
 
 
@@ -1296,6 +1301,7 @@ run (void *cls,
   if (NULL == plugin)
     {
       GNUNET_CONTAINER_bloomfilter_free (filter);
+      filter = NULL;
       return;
     }
   GNUNET_SERVER_disconnect_notify (server, &cleanup_reservations, NULL);
