@@ -169,7 +169,7 @@ int GNUNET_BIO_read_string (struct GNUNET_BIO_ReadHandle *h,
   char *buf;
   uint32_t big;
 
-  if (! GNUNET_BIO_read_int32 (h, &big))
+  if (GNUNET_OK != GNUNET_BIO_read_int32 (h, &big))
     return GNUNET_SYSERR;
   if (big == 0)
     {
@@ -187,7 +187,7 @@ int GNUNET_BIO_read_string (struct GNUNET_BIO_ReadHandle *h,
     }
   buf = GNUNET_malloc (big);
   buf[--big] = '\0';
-  if (big != GNUNET_BIO_read (h, what, buf, big))
+  if (GNUNET_OK != GNUNET_BIO_read (h, what, buf, big))
     {
       GNUNET_free (buf);
       return GNUNET_SYSERR;
@@ -227,7 +227,7 @@ int GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h,
       return GNUNET_SYSERR;
     }
   buf = GNUNET_malloc (size);
-  if (size != 
+  if (GNUNET_OK != 
       GNUNET_BIO_read (h, what, buf, size))
     {
       GNUNET_free (buf);
@@ -262,7 +262,7 @@ int GNUNET_BIO_read_int32__ (struct GNUNET_BIO_ReadHandle *h,
 {
   int32_t big;
 
-  if (sizeof (int32_t) !=
+  if (GNUNET_OK !=
       GNUNET_BIO_read (h,
 		       what,
 		       &big,
@@ -287,7 +287,7 @@ int GNUNET_BIO_read_int64__ (struct GNUNET_BIO_ReadHandle *h,
 {
   int64_t big;
 
-  if (sizeof (int64_t) != 
+  if (GNUNET_OK != 
       GNUNET_BIO_read (h, 
 		       what,
 		       &big,
@@ -342,6 +342,7 @@ struct GNUNET_BIO_WriteHandle *GNUNET_BIO_write_open (const char *fn)
  */
 int GNUNET_BIO_write_close (struct GNUNET_BIO_WriteHandle *h)
 {
+  ssize_t wrt;
   int ret;
 
   if (NULL == h->fd)
@@ -350,8 +351,12 @@ int GNUNET_BIO_write_close (struct GNUNET_BIO_WriteHandle *h)
     }
   else
     {
+      wrt = GNUNET_DISK_file_write (h->fd, h->buffer, h->have);
+      if (wrt == h->have)
+	ret = GNUNET_OK;
+      else
+	ret = GNUNET_SYSERR;
       GNUNET_DISK_file_close (h->fd);
-      ret = GNUNET_OK;
     }
   GNUNET_free (h);
   return ret;

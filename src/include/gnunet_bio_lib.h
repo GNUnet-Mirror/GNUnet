@@ -113,7 +113,7 @@ int GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h,
  * @param h hande to open file
  * @param f address of float to read
  */ 
-#define GNUNET_BIO_read_float(h, f) (sizeof(float) == GNUNET_BIO_read (h, __FILE__ "##__LINE__##", f, sizeof(float)))
+#define GNUNET_BIO_read_float(h, f) (GNUNET_BIO_read (h, __FILE__ "##__LINE__##", f, sizeof(float)))
 
 
 
@@ -123,7 +123,7 @@ int GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h,
  * @param h hande to open file
  * @param f address of double to read
  */ 
-#define GNUNET_BIO_read_double(h, f) (sizeof(double) == GNUNET_BIO_read (h, __FILE__ "##__LINE__##", f, sizeof(double)))
+#define GNUNET_BIO_read_double(h, f) (GNUNET_BIO_read (h, __FILE__ "##__LINE__##", f, sizeof(double)))
 
 
 /**
@@ -167,7 +167,7 @@ int GNUNET_BIO_read_int64__ (struct GNUNET_BIO_ReadHandle *h,
  * @param h hande to open file
  * @param i address of 64-bit integer to read
  */ 
-#define GNUNET_BIO_read_int64(h, i) (sizeof(int64_t) == GNUNET_BIO_read (h, __FILE__ "##__LINE__##", (int64_t*) i, sizeof(int64_t)))
+#define GNUNET_BIO_read_int64(h, i) GNUNET_BIO_read_int64__ (h, __FILE__ "##__LINE__##", (int64_t*) i)
 
 
 /**
@@ -236,7 +236,7 @@ int GNUNET_BIO_write_meta_data (struct GNUNET_BIO_WriteHandle *h,
  * @param h hande to open file
  * @param f float to write (must be a variable)
  */ 
-#define GNUNET_BIO_write_float(h, f) (sizeof(float) == GNUNET_BIO_write (h, &f, sizeof(float)))
+#define GNUNET_BIO_write_float(h, f) GNUNET_BIO_write (h, &f, sizeof(float))
 
 
 
@@ -246,7 +246,7 @@ int GNUNET_BIO_write_meta_data (struct GNUNET_BIO_WriteHandle *h,
  * @param h hande to open file
  * @param f double to write (must be a variable)
  */ 
-#define GNUNET_BIO_write_double(h, f) (sizeof(double) == GNUNET_BIO_write (h, &f, sizeof(double)))
+#define GNUNET_BIO_write_double(h, f) GNUNET_BIO_write (h, &f, sizeof(double))
 
 
 /**
