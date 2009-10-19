@@ -952,6 +952,12 @@ struct GNUNET_FS_DownloadContext
   struct GNUNET_DISK_FileHandle *handle;
 
   /**
+   * Non-NULL if we are currently having a request for
+   * transmission pending with the client handle.
+   */
+  struct GNUNET_CONNECTION_TransmitHandle *th;
+
+  /**
    * Identity of the peer having the content, or all-zeros
    * if we don't know of such a peer.
    */

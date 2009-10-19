@@ -47,6 +47,8 @@
 #include "gnunet_util_lib.h"
 #include "fs.h"
 
+#define DEBUG_FS GNUNET_YES
+
 
 /**
  * In-memory information about indexed files (also available
@@ -2000,7 +2002,8 @@ process_local_get_result (void *cls,
 			      lgc);
       return;
     }
-  if (type != lgc->type)
+  if ( (type != lgc->type) &&
+       (lgc->type != GNUNET_DATASTORE_BLOCKTYPE_ANY) )
     {
       /* this should be virtually impossible to reach (DBLOCK 
 	 query hash being identical to KBLOCK/SBLOCK query hash);
@@ -2008,7 +2011,9 @@ process_local_get_result (void *cls,
 	 simply skip the result. */
 #if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Received block of unexpected type for `%s' from local datastore, ignoring.\n",
+		  "Received block of unexpected type (%u, want %u) for `%s' from local datastore, ignoring.\n",
+		  type,
+		  lgc->type,
 		  GNUNET_h2s (&lgc->query));
 #endif
       GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);	  
@@ -2829,7 +2834,7 @@ handle_p2p_get (void *cls,
 #if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Dropping query from `%s', this peer is too busy.\n",
-		  GNUNET_h2s (other));
+		  GNUNET_i2s (other));
 #endif
       return GNUNET_OK;
     }
@@ -2866,7 +2871,7 @@ handle_p2p_get (void *cls,
 #if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Dropping query from `%s', network saturated.\n",
-		  GNUNET_h2s (other));
+		  GNUNET_i2s (other));
 #endif
       if (NULL != pgc->bf)
 	GNUNET_CONTAINER_bloomfilter_free (pgc->bf);
@@ -2886,7 +2891,7 @@ handle_p2p_get (void *cls,
 #if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Dropping query from `%s' due to TTL underflow.\n",
-		  GNUNET_h2s (other));
+		  GNUNET_i2s (other));
 #endif
       /* integer underflow => drop (should be very rare)! */
       if (NULL != pgc->bf)

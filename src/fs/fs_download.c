@@ -120,7 +120,7 @@ compute_dblock_offset (uint64_t offset,
   lsize = DBLOCK_SIZE;
   for (i=treedepth-1;i>depth;i--)
     lsize *= CHK_PER_INODE;
-  return offset + i * lsize;
+  return offset + k * lsize;
 }
 
 
@@ -153,6 +153,22 @@ make_download_status (struct GNUNET_FS_ProgressInfo *pi,
   pi->value.download.anonymity
     = dc->anonymity;
 }
+
+/**
+ * We're ready to transmit a search request to the
+ * file-sharing service.  Do it.  If there is 
+ * more than one request pending, try to send 
+ * multiple or request another transmission.
+ *
+ * @param cls closure
+ * @param size number of bytes available in buf
+ * @param buf where the callee should write the message
+ * @return number of bytes written to buf
+ */
+static size_t
+transmit_download_request (void *cls,
+			   size_t size, 
+			   void *buf);
 
 
 /**
@@ -217,6 +233,15 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
 				     &chk->query,
 				     sm,
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+
+  if ( (dc->th == NULL) &&
+       (dc->client != NULL) )
+    dc->th = GNUNET_CLIENT_notify_transmit_ready (dc->client,
+						  sizeof (struct SearchMessage),
+						  GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+						  &transmit_download_request,
+						  dc); 
+
 }
 
 
@@ -298,7 +323,7 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
   char pt[size];
   uint64_t off;
   size_t app;
-  unsigned int i;
+  int i;
   struct ContentHashKey *chk;
   char *emsg;
 
@@ -310,11 +335,16 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
 	      GNUNET_h2s (&query),
 	      "FS");
 #endif
- sm = GNUNET_CONTAINER_multihashmap_get (dc->active,
+  sm = GNUNET_CONTAINER_multihashmap_get (dc->active,
 					  &query);
   if (NULL == sm)
     {
-      GNUNET_break (0);
+      GNUNET_break (0); /* FIXME: this assertion actually fails for one
+			   of my tests, the ascii-strings of the
+			   query match what was printed when the
+			   request was originally made; this does
+			   NOT happen if in line ~825 a HT size
+			   of 1 is used! => bug in HT? */
       return;
     }
   if (size != calculate_block_size (GNUNET_ntohll (dc->uri->data.chk.file_length),
@@ -323,8 +353,13 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
 				    sm->depth))
     {
 #if DEBUG_DOWNLOAD
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Internal error or bogus download URI\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Internal error or bogus download URI (expected %u bytes, got %u)\n",
+		  calculate_block_size (GNUNET_ntohll (dc->uri->data.chk.file_length),
+					dc->treedepth,
+					sm->offset,
+					sm->depth),
+		  size);
 #endif
       dc->emsg = GNUNET_strdup ("Internal error or bogus download URI");
       /* signal error */
@@ -334,6 +369,11 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
       dc->client_info = dc->h->upcb (dc->h->upcb_cls,
 				     &pi);
       /* abort all pending requests */
+      if (NULL != dc->th)
+	{
+	  GNUNET_CONNECTION_notify_transmit_ready_cancel (dc->th);
+	  dc->th = NULL;
+	}
       GNUNET_CLIENT_disconnect (dc->client);
       dc->client = NULL;
       return;
@@ -395,6 +435,11 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
 					 &pi);
 
 	  /* abort all pending requests */
+	  if (NULL != dc->th)
+	    {
+	      GNUNET_CONNECTION_notify_transmit_ready_cancel (dc->th);
+	      dc->th = NULL;
+	    }
 	  GNUNET_CLIENT_disconnect (dc->client);
 	  dc->client = NULL;
 	  return;
@@ -459,12 +504,13 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
     return;
 #if DEBUG_DOWNLOAD
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Triggering downloads of children (this block was at level %u)\n",
-	      dc->treedepth);
+	      "Triggering downloads of children (this block was at level %u and offset %llu)\n",
+	      sm->depth,
+	      (unsigned long long) sm->offset);
 #endif
   GNUNET_assert (0 == (size % sizeof(struct ContentHashKey)));
   chk = (struct ContentHashKey*) pt;
-  for (i=0;i<(size / sizeof(struct ContentHashKey));i++)
+  for (i=(size / sizeof(struct ContentHashKey))-1;i>=0;i--)
     {
       off = compute_dblock_offset (sm->offset,
 				   sm->depth,
@@ -508,6 +554,8 @@ receive_results (void *cls,
 		  ntohl (cm->type),
 		  &cm[1],
 		  msize - sizeof (struct ContentMessage));
+  if (dc->client == NULL)
+    return; /* fatal error */
   /* continue receiving */
   GNUNET_CLIENT_receive (dc->client,
 			 &receive_results,
@@ -537,6 +585,7 @@ transmit_download_request (void *cls,
   size_t msize;
   struct SearchMessage *sm;
 
+  dc->th = NULL;
   if (NULL == buf)
     {
       try_reconnect (dc);
@@ -565,6 +614,12 @@ transmit_download_request (void *cls,
       msize += sizeof (struct SearchMessage);
       sm++;
     }
+  if (dc->pending != NULL)
+    dc->th = GNUNET_CLIENT_notify_transmit_ready (dc->client,
+						  sizeof (struct SearchMessage),
+						  GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+						  &transmit_download_request,
+						  dc); 
   return msize;
 }
 
@@ -596,11 +651,11 @@ do_reconnect (void *cls,
       return;
     }
   dc->client = client;
-  GNUNET_CLIENT_notify_transmit_ready (client,
-				       sizeof (struct SearchMessage),
-                                       GNUNET_CONSTANTS_SERVICE_TIMEOUT,
-				       &transmit_download_request,
-				       dc);  
+  dc->th = GNUNET_CLIENT_notify_transmit_ready (client,
+						sizeof (struct SearchMessage),
+						GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+						&transmit_download_request,
+						dc);  
   GNUNET_CLIENT_receive (client,
 			 &receive_results,
 			 dc,
@@ -647,6 +702,11 @@ try_reconnect (struct GNUNET_FS_DownloadContext *dc)
   
   if (NULL != dc->client)
     {
+      if (NULL != dc->th)
+	{
+	  GNUNET_CONNECTION_notify_transmit_ready_cancel (dc->th);
+	  dc->th = NULL;
+	}
       GNUNET_CONTAINER_multihashmap_iterate (dc->active,
 					     &retry_entry,
 					     dc);
@@ -762,6 +822,7 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
   dc->length = length;
   dc->anonymity = anonymity;
   dc->options = options;
+  // dc->active = GNUNET_CONTAINER_multihashmap_create (1); // + (length / DBLOCK_SIZE));
   dc->active = GNUNET_CONTAINER_multihashmap_create (1 + (length / DBLOCK_SIZE));
   dc->treedepth = GNUNET_FS_compute_depth (GNUNET_ntohll(dc->uri->data.chk.file_length));
 #if DEBUG_DOWNLOAD
@@ -773,12 +834,7 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
   schedule_block_download (dc, 
 			   &dc->uri->data.chk.chk,
 			   0, 
-			   0);
-  GNUNET_CLIENT_notify_transmit_ready (client,
-				       sizeof (struct SearchMessage),
-                                       GNUNET_CONSTANTS_SERVICE_TIMEOUT,
-				       &transmit_download_request,
-				       dc);  
+			   1 /* 0 == CHK, 1 == top */);
   GNUNET_CLIENT_receive (client,
 			 &receive_results,
 			 dc,
@@ -832,6 +888,11 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
   if (GNUNET_SCHEDULER_NO_TASK != dc->task)
     GNUNET_SCHEDULER_cancel (dc->h->sched,
 			     dc->task);
+  if (NULL != dc->th)
+    {
+      GNUNET_CONNECTION_notify_transmit_ready_cancel (dc->th);
+      dc->th = NULL;
+    }
   if (NULL != dc->client)
     GNUNET_CLIENT_disconnect (dc->client);
   GNUNET_CONTAINER_multihashmap_iterate (dc->active,
