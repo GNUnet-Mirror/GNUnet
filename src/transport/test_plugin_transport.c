@@ -145,6 +145,15 @@ unload_plugins (void *cls,
 }
 
 
+static void
+unload_task (void *cls,
+	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+  unload_plugins (NULL, cfg);
+}
+
+
 static GNUNET_SCHEDULER_TaskIdentifier validation_timeout_task;
 
 
@@ -169,7 +178,11 @@ validation_notification (void *cls,
   /* Sailor: if this is the last test, calling this function
      here will end the process. */
   ok = 0; /* if the last test succeeded, report success */
-  unload_plugins (NULL, cfg);
+  GNUNET_SCHEDULER_add_continuation (sched,
+				     GNUNET_NO,
+				     &unload_task,
+				     (void*) cfg,
+				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
@@ -309,6 +322,7 @@ run (void *cls,
   GNUNET_asprintf (&libname, "libgnunet_plugin_transport_tcp");
 
   api = GNUNET_PLUGIN_load(libname, &env);
+  GNUNET_free (libname);
   if (api == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
