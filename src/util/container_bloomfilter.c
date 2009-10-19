@@ -551,11 +551,9 @@ GNUNET_CONTAINER_bloomfilter_free (struct GNUNET_CONTAINER_BloomFilter *bf)
 {
   if (NULL == bf)
     return;
-  if (bf->filename != NULL)
-    {
-      GNUNET_DISK_file_close (bf->fh);
-      GNUNET_free (bf->filename);
-    }
+  if (bf->fh != NULL)
+    GNUNET_DISK_file_close (bf->fh);
+  GNUNET_free_non_null (bf->filename);
   GNUNET_free (bf->bitArray);
   GNUNET_free (bf);
 }
