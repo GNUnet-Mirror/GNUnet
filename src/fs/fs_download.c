@@ -176,6 +176,13 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
   struct DownloadRequest *sm;
   uint64_t off;
 
+#if DEBUG_DOWNLOAD
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Scheduling download at offset %llu and depth %u for `%s'\n",
+	      (unsigned long long) offset,
+	      depth,
+	      GNUNET_h2s (&chk->query));
+#endif
   off = compute_disk_offset (GNUNET_ntohll (dc->uri->data.chk.file_length),
 			     offset,
 			     depth,
@@ -676,6 +683,12 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
       GNUNET_break (0);
       return NULL;
     }
+#if DEBUG_DOWNLOAD
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Starting download `%s' of %llu bytes\n",
+	      filename,
+	      (unsigned long long) length);
+#endif
   dc = GNUNET_malloc (sizeof(struct GNUNET_FS_DownloadContext));
   dc->h = h;
   dc->client = client;
@@ -717,6 +730,11 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
   dc->options = options;
   dc->active = GNUNET_CONTAINER_multihashmap_create (1 + (length / DBLOCK_SIZE));
   dc->treedepth = GNUNET_FS_compute_depth (GNUNET_ntohll(dc->uri->data.chk.file_length));
+#if DEBUG_DOWNLOAD
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Download tree has depth %u\n",
+	      dc->treedepth);
+#endif
   // FIXME: make persistent
   schedule_block_download (dc, 
 			   &dc->uri->data.chk.chk,

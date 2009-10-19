@@ -483,6 +483,12 @@ block_proc (void *cls,
   struct PutContCtx * dpc_cls;
   struct OnDemandBlock odb;
 
+#if DEBUG_PUBLISH
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Publishing block `%s' for offset %llu\n",
+	      GNUNET_h2s (query),
+	      (unsigned long long) offset);
+#endif
   p = sc->fi_pos;
   if (NULL == sc->dsh)
     {

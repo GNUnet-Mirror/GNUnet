@@ -301,16 +301,6 @@ void GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder * te)
       pt_block = &te->chk_tree[te->current_depth *
 			       CHK_PER_INODE];
     }
-  off = compute_chk_offset (te->chk_tree_depth - te->current_depth,
-			    te->publish_offset);
-  mychk = &te->chk_tree[(te->current_depth-1)*CHK_PER_INODE+off];
-  GNUNET_CRYPTO_hash (pt_block, pt_size, &mychk->key);
-  GNUNET_CRYPTO_hash_to_aes_key (&mychk->key, &sk, &iv);
-  GNUNET_CRYPTO_aes_encrypt (pt_block,
-			     pt_size,
-			     &sk,
-			     &iv,
-			     enc);
   if (0 == te->current_depth)
     {
       te->uri = GNUNET_malloc (sizeof(struct GNUNET_FS_Uri));
@@ -324,6 +314,16 @@ void GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder * te)
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       return;
     }
+  off = compute_chk_offset (te->chk_tree_depth - te->current_depth,
+			    te->publish_offset);
+  mychk = &te->chk_tree[(te->current_depth-1)*CHK_PER_INODE+off];
+  GNUNET_CRYPTO_hash (pt_block, pt_size, &mychk->key);
+  GNUNET_CRYPTO_hash_to_aes_key (&mychk->key, &sk, &iv);
+  GNUNET_CRYPTO_aes_encrypt (pt_block,
+			     pt_size,
+			     &sk,
+			     &iv,
+			     enc);
   if (NULL != te->proc)
     te->proc (te->cls,
 	      &mychk->query,

@@ -29,8 +29,7 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_fs_service.h"
 
-#define DEBUG_VERBOSE 42 
-//GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define START_ARM GNUNET_YES
 
@@ -95,7 +94,7 @@ progress_cb (void *cls,
   switch (event->status)
     {
     case GNUNET_FS_STATUS_PUBLISH_PROGRESS:
-#if DEBUG_VERBOSE
+#if VERBOSE
       printf ("Publish is progressing (%llu/%llu at level %u off %llu)...\n",
               (unsigned long long) event->value.publish.completed,
               (unsigned long long) event->value.publish.size,
@@ -104,7 +103,7 @@ progress_cb (void *cls,
 #endif
       break;
     case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
-#if DEBUG_VERBOSE
+#if VERBOSE
       printf ("Publish complete.\n");
 #endif
       GNUNET_SCHEDULER_add_continuation (sched,
@@ -125,7 +124,7 @@ progress_cb (void *cls,
       GNUNET_assert (download != NULL);
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
-#if DEBUG_VERBOSE
+#if VERBOSE
       printf ("Download complete.\n");
 #endif
       GNUNET_SCHEDULER_add_continuation (sched,
@@ -135,7 +134,7 @@ progress_cb (void *cls,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_PROGRESS:
-#if DEBUG_VERBOSE
+#if VERBOSE
       printf ("Download is progressing (%llu/%llu at level %u off %llu)...\n",
               (unsigned long long) event->value.download.completed,
               (unsigned long long) event->value.download.size,
