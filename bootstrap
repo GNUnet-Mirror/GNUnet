@@ -1,7 +1,2 @@
 #!/bin/sh
-libtoolize -ifc
-aclocal -I m4
-autoheader
-autoconf
-automake --add-missing --copy
-
+autoreconf -fiv -I m4
