@@ -278,7 +278,8 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
     }
 #if DEBUG_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("Received response from ARM service\n"));
+              "Received response from ARM service: %u\n",
+	      ntohs(msg->type));
 #endif
   switch (ntohs (msg->type))
     {

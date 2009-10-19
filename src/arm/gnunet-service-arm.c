@@ -473,11 +473,15 @@ stop_service (struct GNUNET_SERVER_Client *client,
   unsigned long long port;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Preparing to stop `%s'\n", servicename);
+              _("Preparing to stop `%s'\n"), servicename);
   pos = find_name (servicename);
   if ((pos != NULL) && (pos->kill_continuation != NULL))
     {
       /* killing already in progress */
+#if DEBUG_ARM
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Service `%s' is already down\n", servicename);
+#endif
       signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
       return;
     }
@@ -487,12 +491,23 @@ stop_service (struct GNUNET_SERVER_Client *client,
       pos->rc--;
       pos->next = running;
       running = pos;
+#if DEBUG_ARM
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Service `%s' still used by %u clients, will keep it running!\n",
+		  servicename,
+		  pos->rc);
+#endif
       signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_UP);
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return;
     }
   if (pos != NULL)
     {
+#if DEBUG_ARM
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Sending kill signal to service `%s', waiting for process to die.\n",
+		  servicename);
+#endif
       if (0 != PLIBC_KILL (pos->pid, SIGTERM))
         GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
       pos->next = running;
@@ -508,6 +523,11 @@ stop_service (struct GNUNET_SERVER_Client *client,
     }
   else
     {
+#if DEBUG_ARM
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Sending termination request to service `%s'.\n",
+		  servicename);
+#endif
       if ( (GNUNET_OK ==
 	    GNUNET_CONFIGURATION_get_value_number (cfg,
 						   servicename,
