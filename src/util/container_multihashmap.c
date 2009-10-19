@@ -19,7 +19,7 @@
 */
 /**
  * @file util/container_multihashmap.c
- * @brief hash map where the same key maybe present multiple times
+ * @brief hash map where the same key may be present multiple times
  * @author Christian Grothoff
  */
 
@@ -28,6 +28,9 @@
 #include "gnunet_container_lib.h"
 #include "gnunet_crypto_lib.h"
 
+/**
+ *
+ */
 struct MapEntry
 {
   GNUNET_HashCode key;
@@ -35,6 +38,9 @@ struct MapEntry
   struct MapEntry *next;
 };
 
+/**
+ *
+ */
 struct GNUNET_CONTAINER_MultiHashMap
 {
 
@@ -44,6 +50,7 @@ struct GNUNET_CONTAINER_MultiHashMap
 
   unsigned int map_length;
 };
+
 
 struct GNUNET_CONTAINER_MultiHashMap *
 GNUNET_CONTAINER_multihashmap_create (unsigned int len)
@@ -57,6 +64,7 @@ GNUNET_CONTAINER_multihashmap_create (unsigned int len)
   ret->map_length = len;
   return ret;
 }
+
 
 void
 GNUNET_CONTAINER_multihashmap_destroy (struct GNUNET_CONTAINER_MultiHashMap
@@ -84,12 +92,14 @@ idx_of (const struct GNUNET_CONTAINER_MultiHashMap *m,
   return (*(unsigned int *) key) % m->map_length;
 }
 
+
 unsigned int
 GNUNET_CONTAINER_multihashmap_size (const struct GNUNET_CONTAINER_MultiHashMap
                                     *map)
 {
   return map->size;
 }
+
 
 void *
 GNUNET_CONTAINER_multihashmap_get (const struct GNUNET_CONTAINER_MultiHashMap
@@ -106,6 +116,7 @@ GNUNET_CONTAINER_multihashmap_get (const struct GNUNET_CONTAINER_MultiHashMap
     }
   return NULL;
 }
+
 
 int
 GNUNET_CONTAINER_multihashmap_iterate (const struct
@@ -131,6 +142,7 @@ GNUNET_CONTAINER_multihashmap_iterate (const struct
     }
   return count;
 }
+
 
 int
 GNUNET_CONTAINER_multihashmap_remove (struct GNUNET_CONTAINER_MultiHashMap
@@ -162,6 +174,7 @@ GNUNET_CONTAINER_multihashmap_remove (struct GNUNET_CONTAINER_MultiHashMap
     }
   return GNUNET_NO;
 }
+
 
 int
 GNUNET_CONTAINER_multihashmap_remove_all (struct GNUNET_CONTAINER_MultiHashMap
@@ -201,6 +214,7 @@ GNUNET_CONTAINER_multihashmap_remove_all (struct GNUNET_CONTAINER_MultiHashMap
   return ret;
 }
 
+
 int
 GNUNET_CONTAINER_multihashmap_contains (const struct
                                         GNUNET_CONTAINER_MultiHashMap *map,
@@ -219,6 +233,7 @@ GNUNET_CONTAINER_multihashmap_contains (const struct
     }
   return GNUNET_NO;
 }
+
 
 static void
 grow (struct GNUNET_CONTAINER_MultiHashMap *map)
@@ -244,6 +259,7 @@ grow (struct GNUNET_CONTAINER_MultiHashMap *map)
     }
   GNUNET_free (old);
 }
+
 
 int
 GNUNET_CONTAINER_multihashmap_put (struct GNUNET_CONTAINER_MultiHashMap *map,
@@ -284,6 +300,7 @@ GNUNET_CONTAINER_multihashmap_put (struct GNUNET_CONTAINER_MultiHashMap *map,
   return GNUNET_OK;
 }
 
+
 int
 GNUNET_CONTAINER_multihashmap_get_multiple (const struct
                                             GNUNET_CONTAINER_MultiHashMap
@@ -309,6 +326,7 @@ GNUNET_CONTAINER_multihashmap_get_multiple (const struct
   return count;
 }
 
+
 void *
 GNUNET_CONTAINER_multihashmap_get_random (const struct
                                           GNUNET_CONTAINER_MultiHashMap *map)
@@ -331,4 +349,4 @@ GNUNET_CONTAINER_multihashmap_get_random (const struct
   return e->value;
 }
 
-/* end of multihashmap.c */
+/* end of container_multihashmap.c */
