@@ -116,7 +116,6 @@ GNUNET_OS_set_process_priority (pid_t proc,
 }
 
 
-
 /**
  * Start a process.
  *
@@ -134,11 +133,31 @@ GNUNET_OS_start_process (const char *filename, ...)
   char **argv;
   int argc;
 
+#if HAVE_WORKING_VFORK
+  ret = vfork ();
+#else
   ret = fork ();
+#endif
   if (ret != 0)
     {
       if (ret == -1)
-        GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "fork");
+	{
+	  GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "fork");
+	}
+      else
+	{
+#if HAVE_WORKING_VFORK
+	  /* let's hope vfork actually works; for some extreme cases (including
+	     a testcase) we need 'execvp' to have run before we return, since
+	     we may send a signal to the process next and we don't want it
+	     to be caught by OUR signal handler (but either by the default
+	     handler or the actual handler as installed by the process itself). */
+#else
+	  /* let's give the child process a chance to run execvp, 1s should
+	     be plenty in practice */
+	  sleep (1);
+#endif
+	}
       return ret;
     }
   argc = 0;
@@ -154,7 +173,7 @@ GNUNET_OS_start_process (const char *filename, ...)
   va_end (ap);
   execvp (filename, argv);
   GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "execvp", filename);
-  exit (1);
+  _exit (1);
 #else
   char *arg;
   unsigned int cmdlen;
@@ -209,16 +228,36 @@ GNUNET_OS_start_process_v (const char *filename, char *const argv[])
 #ifndef MINGW
   pid_t ret;
 
+#if HAVE_WORKING_VFORK
+  ret = vfork ();
+#else
   ret = fork ();
+#endif
   if (ret != 0)
     {
       if (ret == -1)
-        GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "fork");
+	{
+	  GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "fork");
+	}
+      else
+	{
+#if HAVE_WORKING_VFORK
+	  /* let's hope vfork actually works; for some extreme cases (including
+	     a testcase) we need 'execvp' to have run before we return, since
+	     we may send a signal to the process next and we don't want it
+	     to be caught by OUR signal handler (but either by the default
+	     handler or the actual handler as installed by the process itself). */
+#else
+	  /* let's give the child process a chance to run execvp, 1s should
+	     be plenty in practice */
+	  sleep (1);
+#endif
+	}
       return ret;
     }
   execvp (filename, argv);
   GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "execvp", filename);
-  exit (1);
+  _exit (1);
 #else
   char **arg;
   unsigned int cmdlen;

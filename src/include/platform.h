@@ -151,6 +151,10 @@
 #include <errno.h>
 #include <limits.h>
 
+#if HAVE_VFORK_H
+#include <vfork.h>
+#endif
+
 #if HAVE_CTYPE_H
 #include <ctype.h>
 #endif
