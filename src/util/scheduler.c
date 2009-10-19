@@ -514,8 +514,11 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *cls)
   rs = GNUNET_NETWORK_fdset_create ();
   ws = GNUNET_NETWORK_fdset_create ();
 #ifndef MINGW
+  GNUNET_assert (sigpipe == NULL);
   sigpipe = GNUNET_DISK_pipe (GNUNET_NO);
+  GNUNET_assert (sigpipe != NULL);
   pr = GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ);
+  GNUNET_assert (pr != NULL);
   shc_int = GNUNET_SIGNAL_handler_install (SIGINT, &sighandler_shutdown);
   shc_term = GNUNET_SIGNAL_handler_install (SIGTERM, &sighandler_shutdown);
   shc_quit = GNUNET_SIGNAL_handler_install (SIGQUIT, &sighandler_shutdown);
