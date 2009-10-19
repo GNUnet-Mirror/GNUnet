@@ -21,52 +21,48 @@
 /**
  * @file util/test_bio.c
  * @brief testcase for the buffered IO module
- * @author JiLu
+ * @author Ji Lu
  */
 
 
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_disk_lib.h"
-#include "gnunet_bio_lib.h"
-#include "gnunet_container_lib.h"
-#include "gnunet_strings_lib.h"
-#include "gnunet_time_lib.h"
-#include <extractor.h>
-#include <zlib.h>
-
-const char readWhatMeta[200],readWhatString[200],readWhatInt64[200];
-char readResultString[200];
-size_t readMaxLen;
-int64_t numberOne = 100000L;
-char *msg;
+#include "gnunet_util_lib.h"
+#define TESTSTRING "testString"
+#define TESTNUMBER64 100000L
 
 int
 main (int argc, char *argv[])
 {
-	    char* fileName = GNUNET_DISK_mktemp ("gnunet_bio");
-		struct GNUNET_BIO_ReadHandle *fileR;
-		struct GNUNET_BIO_WriteHandle *fileW;
-		struct GNUNET_CONTAINER_MetaData *metaDataW;
-		struct GNUNET_CONTAINER_MetaData *metaDataR;
-		metaDataR = GNUNET_CONTAINER_meta_data_create();
-		metaDataW = GNUNET_CONTAINER_meta_data_create();
-		GNUNET_CONTAINER_meta_data_add_publication_date(metaDataW);
-		fileW = GNUNET_BIO_write_open(fileName);
-		const char writeString[]="helloJilu";
-		GNUNET_assert(GNUNET_OK == GNUNET_BIO_write_string(fileW,writeString));
-		GNUNET_assert(GNUNET_OK == GNUNET_BIO_write_meta_data(fileW,metaDataW));
-		GNUNET_assert(GNUNET_OK == GNUNET_BIO_write_int64(fileW,numberOne));
-		GNUNET_assert(GNUNET_OK == GNUNET_BIO_write_close(fileW));
-		fileR = GNUNET_BIO_read_open (fileName);
-		GNUNET_BIO_read_meta_data(fileR,readWhatMeta,&metaDataR);
-		readMaxLen = sizeof(readResultString);
-        //GNUNET_assert(GNUNET_OK == GNUNET_BIO_read_string(fileR,readWhatString,&readResultString,readMaxLen));
-		//GNUNET_assert(GNUNET_OK == GNUNET_BIO_read_int64__(fileR,readWhatInt64,&numberOne));
-        GNUNET_BIO_read_close(fileR,&msg);
-		GNUNET_CONTAINER_meta_data_destroy(metaDataW);
-		GNUNET_CONTAINER_meta_data_destroy(metaDataR);
 
-		return 0;
+	char *readResultString;
+	int64_t testNumber = (int64_t)TESTNUMBER64;
+
+	const char *writeString = TESTSTRING;
+	char *msg;
+
+	char* fileName = GNUNET_DISK_mktemp ("gnunet_bio");
+	struct GNUNET_BIO_ReadHandle *fileR;
+	struct GNUNET_BIO_WriteHandle *fileW;
+	struct GNUNET_CONTAINER_MetaData *metaDataW;
+	struct GNUNET_CONTAINER_MetaData *metaDataR;
+	metaDataR = GNUNET_CONTAINER_meta_data_create();
+	metaDataW = GNUNET_CONTAINER_meta_data_create();
+	GNUNET_CONTAINER_meta_data_add_publication_date(metaDataW);
+	fileW = GNUNET_BIO_write_open(fileName);
+	GNUNET_assert(GNUNET_OK == GNUNET_BIO_write_string(fileW,writeString));
+	GNUNET_assert(GNUNET_OK == GNUNET_BIO_write_meta_data(fileW,metaDataW));
+	GNUNET_assert(GNUNET_OK == GNUNET_BIO_write_int64(fileW,testNumber));
+	GNUNET_assert(GNUNET_OK == GNUNET_BIO_write_close(fileW));
+	fileR = GNUNET_BIO_read_open (fileName);
+	GNUNET_BIO_read_meta_data(fileR,"Read meta error",&metaDataR);
+	size_t readMaxLen = 200;
+	//GNUNET_assert(GNUNET_OK == GNUNET_BIO_read_string(fileR,"Read string error",&readResultString,readMaxLen));
+	//GNUNET_assert(GNUNET_OK == GNUNET_BIO_read_int64__(fileR,"Read int64 error",&testNum));
+    GNUNET_BIO_read_close(fileR,&msg);
+	GNUNET_CONTAINER_meta_data_destroy(metaDataW);
+	GNUNET_CONTAINER_meta_data_destroy(metaDataR);
+    free(fileName);
+
+    return 0;
 
 }                               /* end of main */
