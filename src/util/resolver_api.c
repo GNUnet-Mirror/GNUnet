@@ -105,7 +105,10 @@ check_config (const struct GNUNET_CONFIGURATION_Handle *cfg)
        (0 == inet_pton (AF_INET6,
 			hostname,
 			&v6)) )
-    return;
+    {
+      GNUNET_free (hostname);
+      return;
+    }
   i = 0;
   while (loopback[i] != NULL)
     if (0 == strcmp (loopback[i++], hostname))
