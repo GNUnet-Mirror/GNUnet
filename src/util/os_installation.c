@@ -442,4 +442,4 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
 #ifdef __cplusplus
 }
 #endif
-/* end of installpath.c */
+/* end of os_installation.c */
