@@ -31,6 +31,7 @@
 #include "platform.h"
 #include "fs_tree.h"
 
+#define DEBUG_TREE GNUNET_YES
 
 /**
  * Context for an ECRS-based file encoder that computes
@@ -316,6 +317,14 @@ void GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder * te)
     }
   off = compute_chk_offset (te->chk_tree_depth - te->current_depth,
 			    te->publish_offset);
+#if DEBUG_TREE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "TE is at offset %llu and depth %u with block size %u and target-CHK-offset %u\n",
+	      (unsigned long long) te->publish_offset,
+	      te->current_depth,
+	      (unsigned int) pt_size,
+	      (unsigned int) off);
+#endif
   mychk = &te->chk_tree[(te->current_depth-1)*CHK_PER_INODE+off];
   GNUNET_CRYPTO_hash (pt_block, pt_size, &mychk->key);
   GNUNET_CRYPTO_hash_to_aes_key (&mychk->key, &sk, &iv);
@@ -324,22 +333,27 @@ void GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder * te)
 			     &sk,
 			     &iv,
 			     enc);
+  GNUNET_CRYPTO_hash (enc, pt_size, &mychk->query);
+#if DEBUG_TREE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "TE calculates query to be `%s'\n",
+	      GNUNET_h2s (&mychk->query));
+#endif
   if (NULL != te->proc)
     te->proc (te->cls,
 	      &mychk->query,
 	      te->publish_offset,
-	      pt_size,
-	      enc,
 	      (te->current_depth == te->chk_tree_depth) 
 	      ? GNUNET_DATASTORE_BLOCKTYPE_DBLOCK 
-	      : GNUNET_DATASTORE_BLOCKTYPE_IBLOCK);
+	      : GNUNET_DATASTORE_BLOCKTYPE_IBLOCK,
+	      enc,
+	      pt_size);
   if (NULL != te->progress)
     te->progress (te->cls,
 		  te->publish_offset,
 		  pt_block,
 		  pt_size,
 		  te->current_depth);
-  GNUNET_CRYPTO_hash (enc, pt_size, &mychk->query);
   if (te->current_depth == te->chk_tree_depth) 
     { 
       te->publish_offset += pt_size;

@@ -26,7 +26,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - code-sharing with unindex (write unindex code)
  * - indexing cleanup: unindex on failure (can wait)
  * - persistence support (can wait)
  * - datastore reservation support (optimization)
@@ -485,9 +484,10 @@ block_proc (void *cls,
 
 #if DEBUG_PUBLISH
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Publishing block `%s' for offset %llu\n",
+	      "Publishing block `%s' for offset %llu with size %u\n",
 	      GNUNET_h2s (query),
-	      (unsigned long long) offset);
+	      (unsigned long long) offset,
+	      (unsigned int) block_size);
 #endif
   p = sc->fi_pos;
   if (NULL == sc->dsh)
