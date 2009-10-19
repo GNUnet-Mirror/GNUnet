@@ -464,9 +464,9 @@ run_ready (struct GNUNET_SCHEDULER_Handle *sched)
 
 
 /**
- * Have we (ever) received a SIGINT/TERM/QUIT/HUP?
+ * Pipe used to communicate shutdown via signal.
  */
-static volatile int sig_shutdown;
+static struct GNUNET_DISK_PipeHandle *sigpipe;
 
 
 /**
@@ -475,7 +475,11 @@ static volatile int sig_shutdown;
 static void
 sighandler_shutdown ()
 {
-  sig_shutdown = 1;
+  static char c;
+
+  GNUNET_DISK_file_write (GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_WRITE),
+			  &c,
+			  sizeof(c));
 }
 
 
@@ -503,11 +507,15 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *cls)
   struct Task *tpos;
   unsigned long long last_tr;
   unsigned int busy_wait_warning;
+#ifndef MINGW
+  const struct GNUNET_DISK_FileHandle *pr;
+#endif
 
-  sig_shutdown = 0;
   rs = GNUNET_NETWORK_fdset_create ();
   ws = GNUNET_NETWORK_fdset_create ();
 #ifndef MINGW
+  sigpipe = GNUNET_DISK_pipe (GNUNET_NO);
+  pr = GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ);
   shc_int = GNUNET_SIGNAL_handler_install (SIGINT, &sighandler_shutdown);
   shc_term = GNUNET_SIGNAL_handler_install (SIGTERM, &sighandler_shutdown);
   shc_quit = GNUNET_SIGNAL_handler_install (SIGQUIT, &sighandler_shutdown);
@@ -522,19 +530,25 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *cls)
   last_tr = 0;
   busy_wait_warning = 0;
   while ((GNUNET_NO == sched.shutdown) &&
-         (!sig_shutdown) &&
          ((sched.pending != NULL) || (sched.ready_count > 0)))
     {
       GNUNET_NETWORK_fdset_zero (rs);
       GNUNET_NETWORK_fdset_zero (ws);
       timeout = GNUNET_TIME_relative_get_forever();
       update_sets (&sched, rs, ws, &timeout);
+#ifndef MINGW
+      GNUNET_NETWORK_fdset_handle_set (rs, pr);
+#endif
       if (sched.ready_count > 0)
         {
           /* no blocking, more work already ready! */
           timeout = GNUNET_TIME_relative_get_zero();
         }
       ret = GNUNET_NETWORK_socket_select (rs, ws, NULL, timeout);
+#ifndef MINGW
+      if (GNUNET_NETWORK_fdset_handle_isset (rs, pr))
+	break;	
+#endif
       if (last_tr == sched.tasks_run)
 	{
 	  busy_wait_warning++;
@@ -562,13 +576,14 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *cls)
       check_ready (&sched, rs, ws);
       run_ready (&sched);
     }
-  if (sig_shutdown)
-    sched.shutdown = GNUNET_YES;
+  sched.shutdown = GNUNET_YES;
 #ifndef MINGW
   GNUNET_SIGNAL_handler_uninstall (shc_int);
   GNUNET_SIGNAL_handler_uninstall (shc_term);
   GNUNET_SIGNAL_handler_uninstall (shc_quit);
   GNUNET_SIGNAL_handler_uninstall (shc_hup);
+  GNUNET_DISK_pipe_close (sigpipe);
+  sigpipe = NULL;
 #endif
   do
     {
