@@ -1546,7 +1546,10 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
     }
   GNUNET_free_non_null (handle->my_hello);
   handle->my_hello = NULL;
-  GNUNET_SCHEDULER_run (&stop_task, handle);
+  GNUNET_SCHEDULER_add_continuation (handle->sched,
+				     GNUNET_YES,
+				     &stop_task, handle,
+				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
   if (NULL != (client = handle->client))
     {
 #if DEBUG_TRANSPORT
