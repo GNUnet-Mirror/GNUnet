@@ -1312,6 +1312,10 @@ transmit_local_result (void *cls,
 
   if (NULL == buf)
     {
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Failed to transmit result to local client, aborting datastore iteration.\n");
+#endif
       /* error, abort! */
       GNUNET_free (lgc->result);
       lgc->result = NULL;
@@ -1319,6 +1323,11 @@ transmit_local_result (void *cls,
       return 0;
     }
   msize = ntohs (lgc->result->header.size);
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmitting %u bytes of result to local client.\n",
+	      msize);
+#endif
   GNUNET_assert (max >= msize);
   memcpy (buf, lgc->result, msize);
   GNUNET_free (lgc->result);
@@ -1895,6 +1904,11 @@ process_local_get_result (void *cls,
 
   if (key == NULL)
     {
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Received last result for `%s' from local datastore, deciding what to do next.\n",
+		  GNUNET_h2s (&lgc->query));
+#endif
       /* no further results from datastore; continue
 	 processing further requests from the client and
 	 allow the next task to use the datastore; also,
@@ -1907,6 +1921,11 @@ process_local_get_result (void *cls,
 	   (lgc->type == GNUNET_DATASTORE_BLOCKTYPE_SBLOCK) ||
 	   (lgc->type == GNUNET_DATASTORE_BLOCKTYPE_SKBLOCK) )
 	{
+#if DEBUG_FS
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Forwarding query for `%s' to network.\n",
+		      GNUNET_h2s (&lgc->query));
+#endif
 	  cl = clients;
 	  while ( (NULL != cl) &&
 		  (cl->client != lgc->client) )
@@ -1960,11 +1979,21 @@ process_local_get_result (void *cls,
    	  return;
 	}
       /* got all possible results, clean up! */
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Found all possible results for query for `%s', done!\n",
+		  GNUNET_h2s (&lgc->query));
+#endif
       local_get_context_free (lgc);
       return;
     }
   if (type == GNUNET_DATASTORE_BLOCKTYPE_ONDEMAND)
     {
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Received on-demand block for `%s' from local datastore, fetching data.\n",
+		  GNUNET_h2s (&lgc->query));
+#endif
       handle_on_demand_block (key, size, data, type, priority, 
 			      anonymity, expiration, uid,
 			      &process_local_get_result,
@@ -1977,6 +2006,11 @@ process_local_get_result (void *cls,
 	 query hash being identical to KBLOCK/SBLOCK query hash);
 	 nevertheless, if it happens, the correct thing is to
 	 simply skip the result. */
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Received block of unexpected type for `%s' from local datastore, ignoring.\n",
+		  GNUNET_h2s (&lgc->query));
+#endif
       GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);	  
       return;
     }
@@ -1987,6 +2021,11 @@ process_local_get_result (void *cls,
 		     &lgc->results[i],
 		     sizeof (GNUNET_HashCode)))
       {
+#if DEBUG_FS
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "Received duplicate result for `%s' from local datastore, ignoring.\n",
+		    GNUNET_h2s (&lgc->query));
+#endif
 	GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
 	return;	
       }
@@ -2007,6 +2046,11 @@ process_local_get_result (void *cls,
   memcpy (&lgc->result[1],
 	  data,
 	  size);
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received new result for `%s' from local datastore, passing to client.\n",
+	      GNUNET_h2s (&lgc->query));
+#endif
   GNUNET_SERVER_notify_transmit_ready (lgc->client,
 				       msize,
 				       GNUNET_TIME_UNIT_FOREVER_REL,
