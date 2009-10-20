@@ -766,19 +766,19 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
   struct GNUNET_FS_DownloadContext *dc;
   struct GNUNET_CLIENT_Connection *client;
 
+  GNUNET_assert (GNUNET_FS_uri_test_chk (uri));
+  if ( (offset + length < offset) ||
+       (offset + length > uri->data.chk.file_length) )
+    {      
+      GNUNET_break (0);
+      return NULL;
+    }
   client = GNUNET_CLIENT_connect (h->sched,
 				  "fs",
 				  h->cfg);
   if (NULL == client)
     return NULL;
   // FIXME: add support for "loc" URIs!
-  GNUNET_assert (GNUNET_FS_uri_test_chk (uri));
-  if ( (offset + length < offset) ||
-       (offset + length > uri->data.chk.file_length) )
-    {
-      GNUNET_break (0);
-      return NULL;
-    }
 #if DEBUG_DOWNLOAD
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Starting download `%s' of %llu bytes\n",

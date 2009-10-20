@@ -313,6 +313,7 @@ GNUNET_FS_directory_builder_add (struct GNUNET_FS_DirectoryBuilder *bld,
 				 const struct GNUNET_CONTAINER_MetaData *md,
 				 const void *data)
 {
+  struct GNUNET_FS_Uri *curi;
   struct BuilderEntry *e;
   uint64_t fsize;
   uint32_t big;
@@ -330,7 +331,11 @@ GNUNET_FS_directory_builder_add (struct GNUNET_FS_DirectoryBuilder *bld,
     if (GNUNET_FS_uri_test_chk (uri))
       fsize = GNUNET_FS_uri_chk_get_file_size (uri);
     else
-      fsize = GNUNET_FS_uri_chk_get_file_size (GNUNET_FS_uri_loc_get_uri (uri));
+      {
+	curi = GNUNET_FS_uri_loc_get_uri (uri);
+	fsize = GNUNET_FS_uri_chk_get_file_size (curi);
+	GNUNET_FS_uri_destroy (curi);
+      }
   else
     fsize = 0; /* not given */
   if (fsize > MAX_INLINE_SIZE)

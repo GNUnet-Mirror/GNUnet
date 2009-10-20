@@ -633,6 +633,7 @@ GNUNET_FS_file_information_create_from_directory (void *client_info,
 							   anonymity,
 							   priority,
 							   expirationTime);
+  GNUNET_CONTAINER_meta_data_destroy (meta);
   ret->data.dir.entries = dc.entries;
   while (dc.entries != NULL)
     {

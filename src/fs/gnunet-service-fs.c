@@ -920,6 +920,7 @@ read_index_list ()
 	  pos->next = indexed_files;
 	  indexed_files = pos;
 	}
+      GNUNET_free (fname);
     }
   if (GNUNET_OK != 
       GNUNET_BIO_read_close (rh, &emsg))

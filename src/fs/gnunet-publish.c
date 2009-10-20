@@ -87,18 +87,24 @@ static void *
 progress_cb (void *cls,
 	     const struct GNUNET_FS_ProgressInfo *info)
 {
+  char *s;
+
   switch (info->status)
     {
     case GNUNET_FS_STATUS_PUBLISH_START:
       break;
     case GNUNET_FS_STATUS_PUBLISH_PROGRESS:
       if (verbose)
-	fprintf (stdout,
-		 _("Publishing `%s' at %llu/%llu (%s remaining)\n"),
-		 info->value.publish.filename,
-		 (unsigned long long) info->value.publish.completed,
-		 (unsigned long long) info->value.publish.size,
-		 GNUNET_STRINGS_relative_time_to_string(info->value.publish.eta));
+	{
+	  s = GNUNET_STRINGS_relative_time_to_string(info->value.publish.eta);
+	  fprintf (stdout,
+		   _("Publishing `%s' at %llu/%llu (%s remaining)\n"),
+		   info->value.publish.filename,
+		   (unsigned long long) info->value.publish.completed,
+		   (unsigned long long) info->value.publish.size,
+		   s);
+	  GNUNET_free (s);
+	}
       break;
     case GNUNET_FS_STATUS_PUBLISH_ERROR:
       fprintf (stderr,

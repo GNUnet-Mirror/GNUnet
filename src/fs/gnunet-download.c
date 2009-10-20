@@ -64,19 +64,28 @@ static void *
 progress_cb (void *cls,
 	     const struct GNUNET_FS_ProgressInfo *info)
 {
+  char *s;
+  char *t;
+
   switch (info->status)
     {
     case GNUNET_FS_STATUS_DOWNLOAD_START:
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_PROGRESS:
       if (verbose)
-	fprintf (stdout,
-		 _("Downloading `%s' at %llu/%llu (%s remaining, %s/s)\n"),
-		 info->value.download.filename,
-		 (unsigned long long) info->value.download.completed,
-		 (unsigned long long) info->value.download.size,
-		 GNUNET_STRINGS_relative_time_to_string(info->value.download.eta),
-		 GNUNET_STRINGS_byte_size_fancy(info->value.download.completed * 1000 / (info->value.download.duration.value + 1)));
+	{
+	  s = GNUNET_STRINGS_relative_time_to_string(info->value.download.eta);
+	  t = GNUNET_STRINGS_byte_size_fancy(info->value.download.completed * 1000 / (info->value.download.duration.value + 1));
+	  fprintf (stdout,
+		   _("Downloading `%s' at %llu/%llu (%s remaining, %s/s)\n"),
+		   info->value.download.filename,
+		   (unsigned long long) info->value.download.completed,
+		   (unsigned long long) info->value.download.size,
+		   s,
+		   t);
+	  GNUNET_free (s);
+	  GNUNET_free (t);
+	}
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_ERROR:
       fprintf (stderr,
@@ -85,10 +94,12 @@ progress_cb (void *cls,
       GNUNET_FS_download_stop (dc, delete_incomplete); 
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
+      s = GNUNET_STRINGS_byte_size_fancy(info->value.download.completed * 1000 / (info->value.download.duration.value + 1));
       fprintf (stdout,
 	       _("Downloading `%s' done (%s/s).\n"),
 	       info->value.download.filename,
-	       GNUNET_STRINGS_byte_size_fancy(info->value.download.completed * 1000 / (info->value.download.duration.value + 1)));
+	       s);
+      GNUNET_free (s);
       if (info->value.download.dc == dc)
 	GNUNET_FS_download_stop (dc, delete_incomplete);
       break;
