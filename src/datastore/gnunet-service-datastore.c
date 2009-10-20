@@ -849,8 +849,16 @@ handle_put (void *cls,
 			  GNUNET_TIME_absolute_ntoh(dm->expiration),
 			  &msg);
   if (GNUNET_OK == ret)
-    GNUNET_CONTAINER_bloomfilter_add (filter,
-				      &dm->key);
+    {
+      GNUNET_CONTAINER_bloomfilter_add (filter,
+					&dm->key);
+#if DEBUG_DATASTORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Successfully stored %u bytes under key `%s'\n",
+		  size,
+		  GNUNET_h2s (&dm->key));
+#endif
+    }
   transmit_status (client, 
 		   (GNUNET_SYSERR == ret) ? GNUNET_SYSERR : GNUNET_OK, 
 		   msg);
@@ -896,8 +904,9 @@ handle_get (void *cls,
       /* don't bother database... */
 #if DEBUG_DATASTORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Empty result set for `%s' request.\n",
-		  "GET");
+		  "Empty result set for `%s' request for `%s'.\n",
+		  "GET",
+		  GNUNET_h2s (&msg->key));
 #endif	
       GNUNET_SERVER_client_keep (client);
       transmit_item (client,
