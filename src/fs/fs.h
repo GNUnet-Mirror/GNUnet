@@ -479,11 +479,6 @@ struct GNUNET_FS_PublishContext
   struct GNUNET_FS_Handle *h;
 
   /**
-   * Argument to pass to the client in callbacks.
-   */
-  void *client_ctx;
-  
-  /**
    * File-structure that is being shared.
    */
   struct GNUNET_FS_FileInformation *fi;

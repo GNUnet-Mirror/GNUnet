@@ -930,8 +930,6 @@ fip_signal_start(void *cls,
  * Publish a file or directory.
  *
  * @param h handle to the file sharing subsystem
- * @param ctx initial value to use for the '*ctx'
- *        in the callback (for the GNUNET_FS_STATUS_PUBLISH_START event).
  * @param fi information about the file or directory structure to publish
  * @param namespace namespace to publish the file in, NULL for no namespace
  * @param nid identifier to use for the publishd content in the namespace
@@ -943,7 +941,6 @@ fip_signal_start(void *cls,
  */
 struct GNUNET_FS_PublishContext *
 GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
-			 void *ctx,
 			 struct GNUNET_FS_FileInformation *fi,
 			 struct GNUNET_FS_Namespace *namespace,
 			 const char *nid,
@@ -967,7 +964,6 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_PublishContext));
   ret->dsh = dsh;
   ret->h = h;
-  ret->client_ctx = ctx;
   ret->fi = fi;
   ret->namespace = namespace;
   if (namespace != NULL)

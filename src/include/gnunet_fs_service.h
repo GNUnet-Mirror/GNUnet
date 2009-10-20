@@ -720,9 +720,8 @@ struct GNUNET_FS_ProgressInfo
       const struct GNUNET_FS_FileInformation *fi;
 
       /**
-       * Client context pointer (set the last time
-       * by the client for this operation; initially
-       * NULL on START/RESUME events).
+       * Client context pointer (set the last time by the client for
+       * this operation; initially NULL on START/RESUME events).
        */
       void *cctx;
 
@@ -1877,8 +1876,6 @@ enum GNUNET_FS_PublishOptions
  * Publish a file or directory.
  *
  * @param h handle to the file sharing subsystem
- * @param ctx initial value to use for the '*ctx'
- *        in the callback (for the GNUNET_FS_STATUS_PUBLISH_START event).
  * @param fi information about the file or directory structure to publish
  * @param namespace namespace to publish the file in, NULL for no namespace
  * @param nid identifier to use for the publishd content in the namespace
@@ -1890,7 +1887,6 @@ enum GNUNET_FS_PublishOptions
  */
 struct GNUNET_FS_PublishContext *
 GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
-			 void *ctx,
 			 struct GNUNET_FS_FileInformation *fi,
 			 struct GNUNET_FS_Namespace *namespace,
 			 const char *nid,
@@ -2242,11 +2238,11 @@ enum GNUNET_FS_DownloadOptions
  * @param length how many bytes should be downloaded starting at offset
  * @param anonymity anonymity level to use for the download
  * @param options various download options
+ * @param cctx initial value for the client context for this download
  * @param parent parent download to associate this download with (use NULL
  *        for top-level downloads; useful for manually-triggered recursive downloads)
  * @return context that can be used to control this download
  */
-// FIXME: add a "void *" context for the client to arguments!?
 struct GNUNET_FS_DownloadContext *
 GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 			  const struct GNUNET_FS_Uri *uri,
@@ -2256,6 +2252,7 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 			  uint64_t length,
 			  uint32_t anonymity,
 			  enum GNUNET_FS_DownloadOptions options,
+			  void *cctx,
 			  struct GNUNET_FS_DownloadContext *parent);
 
 

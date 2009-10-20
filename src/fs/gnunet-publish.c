@@ -416,7 +416,6 @@ run (void *cls,
       return;
     }
   pc = GNUNET_FS_publish_start (ctx,
-				NULL,
 				fi,
 				namespace,
 				this_id,

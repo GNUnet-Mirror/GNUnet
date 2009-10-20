@@ -745,6 +745,7 @@ try_reconnect (struct GNUNET_FS_DownloadContext *dc)
  * @param length how many bytes should be downloaded starting at offset
  * @param anonymity anonymity level to use for the download
  * @param options various options
+ * @param cctx initial value for the client context for this download
  * @param parent parent download to associate this download with (use NULL
  *        for top-level downloads; useful for manually-triggered recursive downloads)
  * @return context that can be used to control this download
@@ -758,6 +759,7 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 			  uint64_t length,
 			  uint32_t anonymity,
 			  enum GNUNET_FS_DownloadOptions options,
+			  void *cctx,
 			  struct GNUNET_FS_DownloadContext *parent)
 {
   struct GNUNET_FS_ProgressInfo pi;
@@ -789,6 +791,7 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
   dc->parent = parent;
   dc->uri = GNUNET_FS_uri_dup (uri);
   dc->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
+  dc->client_info = cctx;
   if (NULL != filename)
     {
       dc->filename = GNUNET_strdup (filename);

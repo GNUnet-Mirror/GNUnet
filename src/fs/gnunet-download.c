@@ -180,6 +180,7 @@ run (void *cls,
 				 GNUNET_FS_uri_chk_get_file_size (uri),
 				 anonymity,
 				 options,
+				 NULL,
 				 NULL);
   GNUNET_FS_uri_destroy (uri);
 }
