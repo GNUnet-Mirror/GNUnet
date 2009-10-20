@@ -1334,7 +1334,6 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
   if (pkc->mdsize == -1)
     {
       GNUNET_break (0);
-      GNUNET_free (uris);
       GNUNET_free (pkc->kb);
       if (pkc->dsh != NULL)
 	GNUNET_DATASTORE_disconnect (pkc->dsh, GNUNET_NO);

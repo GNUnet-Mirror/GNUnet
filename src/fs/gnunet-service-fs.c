@@ -2959,9 +2959,9 @@ transmit_result (void *cls,
       pr->replies_pending = reply->next;
       memcpy (&cbuf[ret], &reply[1], reply->msize);
       ret += reply->msize;
-      GNUNET_free (pr);
+      GNUNET_free (reply);
     }
-  return 0;
+  return ret;
 }
 
 
