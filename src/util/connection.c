@@ -1478,7 +1478,8 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle
   sock->nth.notify_size = size;
   sock->nth.transmit_timeout = GNUNET_TIME_relative_to_absolute (timeout);
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == sock->nth.timeout_task);
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == sock->write_task);
+  if (GNUNET_SCHEDULER_NO_TASK != sock->write_task)
+    return &sock->nth;
   if (sock->sock != NULL)
     {
 #if DEBUG_CONNECTION
