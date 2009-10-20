@@ -40,7 +40,7 @@
 #include "fs.h"
 #include "fs_tree.h"
 
-#define DEBUG_PUBLISH GNUNET_YES
+#define DEBUG_PUBLISH GNUNET_NO
 
 /**
  * Maximum allowed size for a KBlock.

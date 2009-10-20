@@ -31,7 +31,7 @@
 #include "platform.h"
 #include "fs_tree.h"
 
-#define DEBUG_TREE GNUNET_YES
+#define DEBUG_TREE GNUNET_NO
 
 /**
  * Context for an ECRS-based file encoder that computes

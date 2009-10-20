@@ -108,7 +108,7 @@ check_PROGRAMS = \
  test_fs_getopt \
  test_fs_uri
 
-TESTS = test_fs_directory test_fs_uri
+TESTS = test_fs_directory test_fs_download test_fs_uri
 
 # $(check_PROGRAMS)
 

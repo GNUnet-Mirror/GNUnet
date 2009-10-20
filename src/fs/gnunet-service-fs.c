@@ -47,7 +47,7 @@
 #include "gnunet_util_lib.h"
 #include "fs.h"
 
-#define DEBUG_FS GNUNET_YES
+#define DEBUG_FS GNUNET_NO
 
 
 /**
@@ -873,6 +873,12 @@ read_index_list ()
 		  _("Configuration option `%s' in section `%s' missing.\n"),
 		  "INDEXDB",
 		  "FS");
+      return;
+    }
+  if (GNUNET_NO == GNUNET_DISK_file_test (fn))
+    {
+      /* no index info  yet */
+      GNUNET_free (fn);
       return;
     }
   rh = GNUNET_BIO_read_open (fn);

@@ -134,7 +134,7 @@ testDirectory (unsigned int i)
 	   (unsigned long long) dlen,
 	   s);
   GNUNET_free (s);
-  if (i < 1000)
+  if (i < 100)
     {
       cls.pos = 0;
       cls.uri = uris;
@@ -169,10 +169,8 @@ main (int argc, char *argv[])
 		    "WARNING",
 #endif
 		    NULL);
-  for (i = 17; i < 4000; i *= 2)
+  for (i = 17; i < 1000; i *= 2)
     failureCount += testDirectory (i);    
-  fprintf (stderr, "\n");
-
   if (failureCount != 0)
     return 1;
   return 0;

@@ -36,7 +36,7 @@
 #include "fs.h"
 #include "fs_tree.h"
 
-#define DEBUG_DOWNLOAD GNUNET_YES
+#define DEBUG_DOWNLOAD GNUNET_NO
 
 /**
  * We're storing the IBLOCKS after the
@@ -339,12 +339,7 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
 					  &query);
   if (NULL == sm)
     {
-      GNUNET_break (0); /* FIXME: this assertion actually fails for one
-			   of my tests, the ascii-strings of the
-			   query match what was printed when the
-			   request was originally made; this does
-			   NOT happen if in line ~825 a HT size
-			   of 1 is used! => bug in HT? */
+      GNUNET_break (0);
       return;
     }
   if (size != calculate_block_size (GNUNET_ntohll (dc->uri->data.chk.file_length),
@@ -442,6 +437,7 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
 	    }
 	  GNUNET_CLIENT_disconnect (dc->client);
 	  dc->client = NULL;
+	  GNUNET_free (sm);
 	  return;
 	}
     }
@@ -501,7 +497,10 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
     }
   // FIXME: make persistent
   if (sm->depth == dc->treedepth) 
-    return;
+    {
+      GNUNET_free (sm);      
+      return;
+    }
 #if DEBUG_DOWNLOAD
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Triggering downloads of children (this block was at level %u and offset %llu)\n",
@@ -523,6 +522,7 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
 				 off,
 				 sm->depth + 1);
     }
+  GNUNET_free (sm);
 }
 
 

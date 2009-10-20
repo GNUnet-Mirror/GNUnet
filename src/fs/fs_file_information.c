@@ -835,6 +835,7 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
 		 &fi->client_info);
     }
   GNUNET_free_non_null (fi->emsg);
+  GNUNET_free_non_null (fi->chk_uri);
   /* clean up serialization */
   if ( (NULL != fi->serialization) &&
        (0 != UNLINK (fi->serialization)) )
