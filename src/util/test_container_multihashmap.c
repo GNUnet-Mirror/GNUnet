@@ -108,4 +108,4 @@ main (int argc, char *argv[])
   return 0;
 }
 
-/* end of maptest.c */
+/* end of test_container_multihashmap.c */
