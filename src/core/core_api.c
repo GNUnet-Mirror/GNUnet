@@ -420,7 +420,7 @@ main_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 
   if (msg == NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   _
                   ("Client was disconnected from core service, trying to reconnect.\n"));
       reconnect (h);
