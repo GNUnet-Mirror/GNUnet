@@ -708,7 +708,7 @@ connect_probe_continuation (void *cls,
        (GNUNET_OK != GNUNET_NETWORK_socket_getsockopt (ap->sock, SOL_SOCKET, SO_ERROR, &error, &len)) ||
        (error != 0) || (errno != 0) )
     {
-      GNUNET_NETWORK_socket_close (ap->sock);
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (ap->sock));
       GNUNET_free (ap);
       if ( (NULL == h->ap_head) &&
 	   (h->dns_active == GNUNET_NO) )
@@ -724,7 +724,7 @@ connect_probe_continuation (void *cls,
   /* cancel all other attempts */
   while (NULL != (pos = h->ap_head))
     {
-      GNUNET_NETWORK_socket_close (pos->sock);
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (pos->sock));
       GNUNET_SCHEDULER_cancel (h->sched, pos->task);
       GNUNET_CONTAINER_DLL_remove (h->ap_head, h->ap_tail, pos);
       GNUNET_free (pos);
