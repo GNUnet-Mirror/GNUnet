@@ -84,8 +84,6 @@ testMap (int i)
   CHECK (0 ==
          GNUNET_CONTAINER_multihashmap_get_multiple (m, &k2, NULL, NULL));
   CHECK (2 == GNUNET_CONTAINER_multihashmap_iterate (m, NULL, NULL));
-  r = GNUNET_CONTAINER_multihashmap_get_random (m);
-  CHECK (0 == strcmp (r, "v1") || 0 == strcmp (r, "v2"));
   CHECK (2 == GNUNET_CONTAINER_multihashmap_remove_all (m, &k1));
   for (j = 0; j < 1024; j++)
     CHECK (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put (m,

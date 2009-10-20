@@ -633,22 +633,6 @@ int GNUNET_CONTAINER_multihashmap_get_multiple (const struct
                                                 it, void *it_cls);
 
 
-/**
- * Returns the stored value of a random non-null entry in the hash
- * table.  Returns only the first value, does not go inside bucket
- * linked list (yet).  Runs with a worst case time of N, so it's not
- * efficient in any way shape or form!!!!.
- *
- * @param map the map
- * @return value associated with a random key
- */
-void *GNUNET_CONTAINER_multihashmap_get_random (const struct
-                                                GNUNET_CONTAINER_MultiHashMap
-                                                *map);
-
-
-
-
 /* ******************** doubly-linked list *************** */
 
 /**
