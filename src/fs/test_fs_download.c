@@ -20,7 +20,7 @@
 
 /**
  * @file fs/test_fs_download.c
- * @brief simple testcase for download
+ * @brief simple testcase for simple publish + download operation
  * @author Christian Grothoff
  */
 
@@ -33,6 +33,9 @@
 
 #define START_ARM GNUNET_YES
 
+/**
+ * File-size we use for testing.
+ */
 #define FILESIZE (1024 * 1024 * 2)
 
 /**
@@ -56,6 +59,7 @@ struct PeerContext
 
 static struct PeerContext p1;
 
+static struct GNUNET_TIME_Absolute start;
 
 static struct GNUNET_SCHEDULER_Handle *sched;
 
@@ -69,20 +73,20 @@ static char *fn;
 
 
 static void
-abort_download_task (void *cls,
-		     const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  GNUNET_FS_download_stop (download, GNUNET_YES);
-  download = NULL;
-}
-
-
-static void
 abort_publish_task (void *cls,
 		     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_FS_publish_stop (publish);
   publish = NULL;
+}
+
+
+static void
+abort_download_task (void *cls,
+		     const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_FS_download_stop (download, GNUNET_YES);
+  download = NULL;
 }
 
 
@@ -103,15 +107,10 @@ progress_cb (void *cls,
 #endif
       break;
     case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
-#if VERBOSE
-      printf ("Publish complete.\n");
-#endif
-      GNUNET_SCHEDULER_add_continuation (sched,
-					 GNUNET_NO,
-					 &abort_publish_task,
-					 NULL,
-					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      printf ("Publishing complete, %llu kbps.\n",
+	      (unsigned long long) (FILESIZE * 1000 / (1+GNUNET_TIME_absolute_get_duration (start).value) / 1024));
       fn = GNUNET_DISK_mktemp ("gnunet-download-test-dstXXXXXX");
+      start = GNUNET_TIME_absolute_get ();
       download = GNUNET_FS_download_start (fs,
 					   event->value.publish.specifics.completed.chk_uri,
 					   NULL,
@@ -124,9 +123,8 @@ progress_cb (void *cls,
       GNUNET_assert (download != NULL);
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
-#if VERBOSE
-      printf ("Download complete.\n");
-#endif
+      printf ("Download complete,  %llu kbps.\n",
+	      (unsigned long long) (FILESIZE * 1000 / (1+GNUNET_TIME_absolute_get_duration (start).value) / 1024));
       GNUNET_SCHEDULER_add_continuation (sched,
 					 GNUNET_NO,
 					 &abort_download_task,
@@ -168,14 +166,19 @@ progress_cb (void *cls,
       break;
     case GNUNET_FS_STATUS_PUBLISH_STOPPED:
       /* FIXME: add checks here... */
+      GNUNET_FS_stop (fs);
+      fs = NULL;
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_START:
       /* FIXME: add checks here... */
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_STOPPED:
       /* FIXME: add checks here... */
-      GNUNET_FS_stop (fs);
-      fs = NULL;
+      GNUNET_SCHEDULER_add_continuation (sched,
+					 GNUNET_NO,
+					 &abort_publish_task,
+					 NULL,
+					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
     default:
       printf ("Unexpected event: %d\n", 
@@ -263,6 +266,7 @@ run (void *cls,
   GNUNET_FS_uri_destroy (kuri);
   GNUNET_CONTAINER_meta_data_destroy (meta);
   GNUNET_assert (NULL != fi);
+  start = GNUNET_TIME_absolute_get ();
   publish = GNUNET_FS_publish_start (fs,
 				    "publish-context",
 				    fi,
