@@ -181,7 +181,6 @@ progress_cb (void *cls,
       GNUNET_assert (publish == event->value.publish.sc);
       GNUNET_assert (FILESIZE == event->value.publish.size);
       GNUNET_assert (1 == event->value.publish.anonymity);
-      /* FIXME: add checks here... */
       GNUNET_FS_stop (fs);
       fs = NULL;
       break;
