@@ -1344,6 +1344,13 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       return;
     }
   GNUNET_assert (NULL != sock->sock);
+  if (tc->write_ready == NULL)
+    {
+      /* special circumstances (in particular,
+	 PREREQ_DONE after connect): not yet ready to write,
+	 but no "fatal" error either.  Hence retry.  */
+      goto SCHEDULE_WRITE;
+    }
   if (! GNUNET_NETWORK_fdset_isset (tc->write_ready, 
 				    sock->sock))
     {
@@ -1360,13 +1367,6 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	}
       transmit_error (sock);
       return;                   /* connect failed for good, we're finished */
-    }
- if ((tc->write_ready == NULL) || (!GNUNET_NETWORK_fdset_isset (tc->write_ready, sock->sock)))
-    {
-      /* special circumstances (in particular,
-	 PREREQ_DONE after connect): not yet ready to write,
-	 but no "fatal" error either.  Hence retry.  */
-      goto SCHEDULE_WRITE;
     }
   GNUNET_assert (sock->write_buffer_off >= sock->write_buffer_pos);
   process_notify (sock);
