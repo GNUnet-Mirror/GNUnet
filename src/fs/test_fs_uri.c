@@ -43,7 +43,10 @@ testKeyword ()
   GNUNET_free (emsg);
   ret = GNUNET_FS_uri_parse ("gnunet://fs/ksk/foo+bar", &emsg);
   if (ret == NULL)
-    ABORT ();
+    {
+      GNUNET_free (emsg);
+      ABORT ();
+    }
   if (!GNUNET_FS_uri_test_ksk (ret))
     {
       GNUNET_FS_uri_destroy (ret);
@@ -160,8 +163,8 @@ testNamespace (int i)
     ABORT ();
   GNUNET_free (emsg);
   if (NULL !=
-      GNUNET_FS_uri_parse ("gnunet://fs/sks/D1KJS9H2A82Q65VKQ0ML3RFU6U1D3V/test", &emsg))
-    ABORT ();
+      GNUNET_FS_uri_parse ("gnunet://fs/sks/D1KJS9H2A82Q65VKQ0ML3RFU6U1D3V/test", &emsg))    
+      ABORT ();    
   GNUNET_free (emsg);
   if (NULL != GNUNET_FS_uri_parse ("gnunet://fs/sks/test", &emsg))
     ABORT ();
@@ -169,7 +172,10 @@ testNamespace (int i)
   ret =
     GNUNET_FS_uri_parse ("gnunet://fs/sks/C282GG70GKK41O4551011DO413KFBVTVMQG1OG30I0K4045N0G41HAPB82G680A02JRVVFO8URVRU2F159011DO41000000022RG820/test", &emsg);
   if (ret == NULL)
-    ABORT ();
+    {
+      GNUNET_free (emsg);
+      ABORT ();
+    }
   if (GNUNET_FS_uri_test_ksk (ret))
     {
       GNUNET_FS_uri_destroy (ret);
@@ -216,7 +222,10 @@ testFile (int i)
   ret =
     GNUNET_FS_uri_parse ("gnunet://fs/chk/C282GG70GKK41O4551011DO413KFBVTVMQG1OG30I0K4045N0G41HAPB82G680A02JRVVFO8URVRU2F159011DO41000000022RG820.RNVVVVOOLCLK065B5D04HTNVNSIB2AI022RG8200HSLK1CO1000ATQ98824DMA2032LIMG50CG0K057NVUVG200000H000004400000.42", &emsg);
   if (ret == NULL)
-    ABORT ();
+    {
+      GNUNET_free (emsg);
+      ABORT ();
+    }
   if (GNUNET_FS_uri_test_ksk (ret))
     {
       GNUNET_FS_uri_destroy (ret);

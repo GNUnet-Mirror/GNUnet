@@ -117,6 +117,8 @@ testDirectory (unsigned int i)
             }
           GNUNET_free (mds);
           GNUNET_free (uris);
+	  GNUNET_free (emsg);
+	  GNUNET_CONTAINER_meta_data_destroy (meta);
           ABORT ();             /* error in testcase */
         }
     }
