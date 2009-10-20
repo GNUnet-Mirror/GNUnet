@@ -38,7 +38,6 @@ testMap (int i)
   GNUNET_HashCode k1;
   GNUNET_HashCode k2;
   int j;
-  void *r;
 
   CHECK (NULL != (m = GNUNET_CONTAINER_multihashmap_create (i)));
   memset (&k1, 0, sizeof (k1));
