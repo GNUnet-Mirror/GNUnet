@@ -65,11 +65,13 @@ static int persistent;
 static int
 printer (void *cls,
          const char *subsystem,
-         const char *name, unsigned long long value, int is_persistent)
+         const char *name, 
+	 uint64_t value, int is_persistent)
 {
   FPRINTF (stdout,
            "%s%-20s %-40s: %16llu\n",
-           is_persistent ? "!" : " ", subsystem, _(name), value);
+           is_persistent ? "!" : " ", subsystem, _(name),
+	   (unsigned long long) value);
   return GNUNET_OK;
 }
 
@@ -127,7 +129,7 @@ run (void *cls,
           ret = 1;
           return;
         }
-      GNUNET_STATISTICS_set (h, name, val, persistent);
+      GNUNET_STATISTICS_set (h, name, (uint64_t) val, persistent);
       GNUNET_STATISTICS_destroy (h);
       return;
     }

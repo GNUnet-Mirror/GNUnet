@@ -88,7 +88,7 @@ struct ActionItem
   /**
    * Associated value.
    */
-  unsigned long long value;
+  uint64_t value;
 
   /**
    * Flag for SET/UPDATE actions.
@@ -630,7 +630,7 @@ static void
 add_setter_action (struct GNUNET_STATISTICS_Handle *h,
                    const char *name,
                    int make_persistent,
-                   unsigned long long value, enum ActionType type)
+                   uint64_t value, enum ActionType type)
 {
   struct ActionItem *ai;
   size_t slen;
@@ -674,7 +674,7 @@ add_setter_action (struct GNUNET_STATISTICS_Handle *h,
 void
 GNUNET_STATISTICS_set (struct GNUNET_STATISTICS_Handle *handle,
                        const char *name,
-                       unsigned long long value, int make_persistent)
+                       uint64_t value, int make_persistent)
 {
   add_setter_action (handle, name, make_persistent, value, ACTION_SET);
 }
@@ -692,7 +692,7 @@ GNUNET_STATISTICS_set (struct GNUNET_STATISTICS_Handle *handle,
 void
 GNUNET_STATISTICS_update (struct GNUNET_STATISTICS_Handle *handle,
                           const char *name,
-                          long long delta, int make_persistent)
+                          int64_t delta, int make_persistent)
 {
   add_setter_action (handle, name, make_persistent,
                      (unsigned long long) delta, ACTION_UPDATE);

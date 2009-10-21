@@ -607,10 +607,10 @@ static int
 process_stat (void *cls,
 	      const char *subsystem,
 	      const char *name,
-	      unsigned long long value,
+	      uint64_t value,
 	      int is_persistent)
 {
-  hostlist_delay.value = (uint64_t) value;
+  hostlist_delay.value = value;
   return GNUNET_OK;
 }
 

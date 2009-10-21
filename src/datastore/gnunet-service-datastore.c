@@ -134,11 +134,10 @@ static int reservation_gen;
 static unsigned long long quota;
 
 /**
- * How much space are we using for the cache?
- * (space available for insertions that will be
- *  instantly reclaimed by discarding less 
- *  important content --- or possibly whatever
- *  we just inserted into the "cache").
+ * How much space are we using for the cache?  (space available for
+ * insertions that will be instantly reclaimed by discarding less
+ * important content --- or possibly whatever we just inserted into
+ * the "cache").
  */
 static unsigned long long cache_size;
 
@@ -354,7 +353,7 @@ manage (void *cls,
 			     (0 == *need) ? GNUNET_YES : GNUNET_NO);
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Deleting %llu bytes of low-priority content (still trying to recover %llu bytes)\n",
+	      "Deleting %llu bytes of low-priority content (still trying to free another %llu bytes)\n",
 	      size + GNUNET_DATASTORE_ENTRY_OVERHEAD,
 	      *need);
 #endif
@@ -383,7 +382,7 @@ manage_space (unsigned long long need)
 
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Asked to recover %llu bytes of cache space\n",
+	      "Asked to free up %llu bytes of cache space\n",
 	      need);
 #endif
   n = GNUNET_malloc (sizeof(unsigned long long));

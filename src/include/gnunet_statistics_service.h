@@ -64,7 +64,7 @@ struct GNUNET_STATISTICS_Handle;
 typedef int (*GNUNET_STATISTICS_Iterator) (void *cls,
                                            const char *subsystem,
                                            const char *name,
-                                           unsigned long long value,
+                                           uint64_t value,
                                            int is_persistent);
 
 /**
@@ -129,7 +129,7 @@ GNUNET_STATISTICS_get (struct GNUNET_STATISTICS_Handle *handle,
 void
 GNUNET_STATISTICS_set (struct GNUNET_STATISTICS_Handle *handle,
                        const char *name,
-                       unsigned long long value, int make_persistent);
+                       uint64_t value, int make_persistent);
 
 /**
  * Set statistic value for the peer.  Will always use our
@@ -143,7 +143,7 @@ GNUNET_STATISTICS_set (struct GNUNET_STATISTICS_Handle *handle,
 void
 GNUNET_STATISTICS_update (struct GNUNET_STATISTICS_Handle *handle,
                           const char *name,
-                          long long delta, int make_persistent);
+                          int64_t delta, int make_persistent);
 
 
 

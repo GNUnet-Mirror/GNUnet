@@ -25,11 +25,12 @@
  */
 
 #include "platform.h"
+#include "gnunet_arm_service.h"
 #include "gnunet_statistics_service.h"
 #include "plugin_datastore.h"
 #include <sqlite3.h>
 
-#define DEBUG_SQLITE GNUNET_NO
+#define DEBUG_SQLITE GNUNET_YES
 
 /**
  * After how many payload-changing operations
@@ -614,11 +615,28 @@ sqlite_next_request_cont (void *cls,
       nc->end_it = GNUNET_YES;
       return;
     }
+#if DEBUG_SQLITE
+  if (ret == GNUNET_NO)
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		     "sqlite",
+		     "Asked to remove entry %llu (%u bytes)\n",
+		     (unsigned long long) rowid,
+		     size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
+#endif
   if ( (ret == GNUNET_NO) &&
        (GNUNET_OK == delete_by_rowid (plugin, rowid)) )
     {
       plugin->payload -= (size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
       plugin->lastSync++; 
+#if DEBUG_SQLITE
+      if (ret == GNUNET_NO)
+	GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+			 "sqlite",
+			 "Removed entry %llu (%u bytes), new payload is %llu\n",
+			 (unsigned long long) rowid,
+			 size + GNUNET_DATASTORE_ENTRY_OVERHEAD,
+			 (unsigned long long) plugin->payload);
+#endif
       if (plugin->lastSync >= MAX_STAT_SYNC_LAG)
 	sync_stats (plugin);
     }
@@ -741,6 +759,13 @@ sqlite_plugin_put (void *cls,
                 GNUNET_ERROR_TYPE_BULK, "sqlite3_reset");
   plugin->lastSync++;
   plugin->payload += size + GNUNET_DATASTORE_ENTRY_OVERHEAD;
+#if DEBUG_SQLITE
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		   "sqlite",
+		   "Stored new entry (%u bytes), new payload is %llu\n",
+		   size + GNUNET_DATASTORE_ENTRY_OVERHEAD,
+		   (unsigned long long) plugin->payload);
+#endif
   if (plugin->lastSync >= MAX_STAT_SYNC_LAG)
     sync_stats (plugin);
   return GNUNET_OK;
@@ -1522,11 +1547,18 @@ static int
 process_stat_in (void *cls,
 		 const char *subsystem,
 		 const char *name,
-		 unsigned long long value,
+		 uint64_t value,
 		 int is_persistent)
 {
   struct Plugin *plugin = cls;
   plugin->payload += value;
+#if DEBUG_SQLITE
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		   "sqlite",
+		   "Notification from statistics about existing payload (%llu), new payload is %llu\n",
+		   value,
+		   (unsigned long long) plugin->payload);
+#endif
   return GNUNET_OK;
 }
 			 		 
@@ -1548,6 +1580,7 @@ libgnunet_plugin_datastore_sqlite_init (void *cls)
     return NULL; /* can only initialize once! */
   memset (&plugin, 0, sizeof(struct Plugin));
   plugin.env = env;
+  GNUNET_ARM_start_services (env->cfg, env->sched, "statistics");
   plugin.statistics = GNUNET_STATISTICS_create (env->sched,
 						"sqlite",
 						env->cfg);
@@ -1562,6 +1595,7 @@ libgnunet_plugin_datastore_sqlite_init (void *cls)
       database_setup (env->cfg, &plugin))
     {
       database_shutdown (&plugin);
+      GNUNET_ARM_stop_services (env->cfg, env->sched, "statistics");
       return NULL;
     }
   api = GNUNET_malloc (sizeof (struct GNUNET_DATASTORE_PluginFunctions));
@@ -1603,6 +1637,7 @@ libgnunet_plugin_datastore_sqlite_done (void *cls)
   plugin->env = NULL; 
   plugin->payload = 0;
   GNUNET_STATISTICS_destroy (plugin->statistics);
+  GNUNET_ARM_stop_services (plugin->env->cfg, plugin->env->sched, "statistics");
   GNUNET_free (api);
   if (fn != NULL)
     {
