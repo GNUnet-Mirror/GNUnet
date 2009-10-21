@@ -25,7 +25,6 @@
  */
 
 #include "platform.h"
-#include "gnunet_arm_service.h"
 #include "gnunet_statistics_service.h"
 #include "plugin_datastore.h"
 #include <sqlite3.h>
@@ -1580,7 +1579,6 @@ libgnunet_plugin_datastore_sqlite_init (void *cls)
     return NULL; /* can only initialize once! */
   memset (&plugin, 0, sizeof(struct Plugin));
   plugin.env = env;
-  GNUNET_ARM_start_services (env->cfg, env->sched, "statistics", NULL);
   plugin.statistics = GNUNET_STATISTICS_create (env->sched,
 						"sqlite",
 						env->cfg);
@@ -1595,7 +1593,6 @@ libgnunet_plugin_datastore_sqlite_init (void *cls)
       database_setup (env->cfg, &plugin))
     {
       database_shutdown (&plugin);
-      GNUNET_ARM_stop_services (env->cfg, env->sched, "statistics", NULL);
       return NULL;
     }
   api = GNUNET_malloc (sizeof (struct GNUNET_DATASTORE_PluginFunctions));
@@ -1635,7 +1632,6 @@ libgnunet_plugin_datastore_sqlite_done (void *cls)
     fn = GNUNET_strdup (plugin->fn);
   database_shutdown (plugin);
   GNUNET_STATISTICS_destroy (plugin->statistics);
-  GNUNET_ARM_stop_services (plugin->env->cfg, plugin->env->sched, "statistics", NULL);
   plugin->env = NULL; 
   plugin->payload = 0;
   GNUNET_free (api);

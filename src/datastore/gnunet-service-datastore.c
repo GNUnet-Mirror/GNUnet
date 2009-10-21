@@ -26,6 +26,7 @@
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_arm_service.h"
 #include "gnunet_protocols.h"
 #include "plugin_datastore.h"
 #include "datastore.h"
@@ -1208,6 +1209,7 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_CONTAINER_bloomfilter_free (filter);
       filter = NULL;
     }
+  GNUNET_ARM_stop_services (cfg, tc->sched, "statistics", NULL);
 }
 
 
@@ -1305,11 +1307,13 @@ run (void *cls,
 		  _("Failed to initialize bloomfilter.\n"));
       return;
     }
+  GNUNET_ARM_start_services (cfg, sched, "statistics", NULL);
   plugin = load_plugin ();
   if (NULL == plugin)
     {
       GNUNET_CONTAINER_bloomfilter_free (filter);
       filter = NULL;
+      GNUNET_ARM_stop_services (cfg, sched, "statistics", NULL);
       return;
     }
   GNUNET_SERVER_disconnect_notify (server, &cleanup_reservations, NULL);
