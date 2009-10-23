@@ -27,25 +27,42 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_time_lib.h"
 
-static int setme;
+static int setme1, setme2;
 
-static struct GNUNET_GETOPT_CommandLineOption options[] = {
-  {'n', "name", NULL, "description", 0, &GNUNET_GETOPT_set_one, &setme},
+static struct GNUNET_GETOPT_CommandLineOption options1[] = {
+  {'n', "name", NULL, "description", 0, &GNUNET_GETOPT_set_one, &setme1},
   GNUNET_GETOPT_OPTION_END
+};
+
+static struct GNUNET_GETOPT_CommandLineOption options2[] = {
+  {'n', "name", NULL, "description", 0, &GNUNET_GETOPT_set_one, &setme1},
+  {'N', "number", NULL, "description", 0, &GNUNET_GETOPT_set_one, &setme2}
+};
+
+static struct GNUNET_GETOPT_CommandLineOption options3[] = {
+  {'N', "number", NULL, "description", 0, &GNUNET_GETOPT_set_one, &setme1},
+  {'n', "name", NULL, "description", 0, &GNUNET_GETOPT_set_one, &setme2}
+
+};
+
+static struct GNUNET_GETOPT_CommandLineOption options4[] = {
+  {'n', "name", NULL, "description", 0, &GNUNET_GETOPT_set_one, &setme1},
+  {'n', "number", NULL, "description", 0, &GNUNET_GETOPT_set_one, &setme2}
+
 };
 
 /**
  * Main function that will be run.
  */
+
 static void
 runner (void *cls,
         struct GNUNET_SCHEDULER_Handle *sched,
         char *const *args,
-        const char *cfgfile, 
-	const struct GNUNET_CONFIGURATION_Handle *cfg)
+        const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   int *ok = cls;
-  GNUNET_assert (setme == 1);
+  GNUNET_assert (setme1 == 1);
   GNUNET_assert (sched != NULL);
   GNUNET_assert (0 == strcmp (args[0], "extra"));
   GNUNET_assert (args[1] == NULL);
@@ -53,7 +70,6 @@ runner (void *cls,
 
   *ok = 0;
 }
-
 
 /**
  * Main method, starts scheduler with task1,
@@ -73,11 +89,29 @@ check ()
     "extra",
     NULL
   };
+
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_PROGRAM_run (7,
                                      argv,
                                      "test_program",
-                                     "A test", options, &runner, &ok));
+                                     "A test", options1, &runner, &ok));
+
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_PROGRAM_run (7,
+                                     argv,
+                                     "test_program",
+                                     "A test", options2, &runner, &ok));
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_PROGRAM_run (7,
+                                     argv,
+                                     "test_program",
+                                     "A test", options3, &runner, &ok));
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_PROGRAM_run (7,
+                                     argv,
+                                     "test_program",
+                                     "A test", options4, &runner, &ok));
+
   return ok;
 }
 
