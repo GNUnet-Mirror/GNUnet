@@ -101,6 +101,18 @@ if ! $exe $DEBUG -n lasting -s subsystem 40 -p; then
   $arm -e
   exit 1
 fi
+if ! $exe $DEBUG > $out; then
+    echo "FAIL: error running $exe"
+    $arm -e
+    exit 1
+fi
+LINES=`cat $out | grep 40 | wc -l`
+if test $LINES -ne 1; then
+    echo "FAIL: unexpected output"
+    cat $out
+    $arm -e
+    exit 1
+fi
 echo "PASS"
 
 # -----------------------------------
