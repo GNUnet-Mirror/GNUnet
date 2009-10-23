@@ -2,7 +2,7 @@
 
 rm -rf /tmp/test-gnunetd-statistics/
 exe="./gnunet-statistics -c test_statistics_api_data.conf"
-base=/tmp/gnunet-test-statistics
+out=`mktemp /tmp/test-gnunet-statistics-logXXXXXXXX`
 arm="gnunet-arm -c test_statistics_api_data.conf $DEBUG"
 #DEBUG="-L DEBUG"
 # -----------------------------------
@@ -47,12 +47,12 @@ echo "PASS"
 # ----------------------------------------------------------------------------------
 echo -n "TEST: viewing all stats..."
 
-if ! $exe $DEBUG > $base.out; then
+if ! $exe $DEBUG > $out; then
     echo "FAIL: error running $exe"
     $arm -e
     exit 1
 fi
-LINES=`cat $base.out | wc -l`
+LINES=`cat $out | wc -l`
 if test $LINES -ne 2; then
     echo "FAIL: unexpected output"
     $arm -e
@@ -63,12 +63,12 @@ echo "PASS"
 # ----------------------------------------------------------------------------------
 echo -n "TEST: viewing stats by name..."
 
-if ! $exe $DEBUG -n other > $base.out; then
+if ! $exe $DEBUG -n other > $out; then
     echo "FAIL: error running $exe"
     $arm -e
     exit 1
 fi
-LINES=`cat $base.out | grep 43 | wc -l`
+LINES=`cat $out | grep 43 | wc -l`
 if test $LINES -ne 1; then
     echo "FAIL: unexpected output"
     $arm -e
@@ -79,12 +79,12 @@ echo "PASS"
 # ----------------------------------------------------------------------------------
 echo -n "TEST: viewing stats by subsystem..."
 
-if ! $exe $DEBUG -s subsystem > $base.out; then
+if ! $exe $DEBUG -s subsystem > $out; then
     echo "FAIL: error running $exe"
     $arm -e
     exit 1
 fi
-LINES=`cat $base.out | grep 42 | wc -l`
+LINES=`cat $out | grep 42 | wc -l`
 if test $LINES -ne 1; then
     echo "FAIL: unexpected output"
     $arm -e
@@ -114,12 +114,12 @@ echo "DONE"
 # ----------------------------------------------------------------------------------
 echo -n "TEST: checking persistence..."
 
-if ! $exe $DEBUG > $base.out; then
+if ! $exe $DEBUG > $out; then
     echo "FAIL: error running $exe"
     $arm -e
     exit 1
 fi
-LINES=`cat $base.out | grep 40 | wc -l`
+LINES=`cat $out | grep 40 | wc -l`
 if test $LINES -ne 1; then
     echo "FAIL: unexpected output"
     $arm -e
@@ -151,12 +151,12 @@ echo "DONE"
 # ----------------------------------------------------------------------------------
 echo -n "TEST: checking removed persistence..."
 
-if ! $exe $DEBUG > $base.out; then
+if ! $exe $DEBUG > $out; then
     echo "FAIL: error running $exe"
     $arm -e
     exit 1
 fi
-LINES=`cat $base.out | grep 40 | wc -l`
+LINES=`cat $out | grep 40 | wc -l`
 if test $LINES -ne 0; then
     echo "FAIL: unexpected output"
     $arm -e
@@ -169,5 +169,5 @@ echo -n "Stopping service..."
 $arm -e > /dev/null
 sleep 1
 echo "DONE"
-rm -f $base.out
+rm -f $out
 rm -rf /tmp/test-gnunetd-statistics/
