@@ -42,8 +42,8 @@ check ()
   struct GNUNET_TIME_Relative relUnit;
   struct GNUNET_TIME_RelativeNBO reln;
   unsigned int i;
-  forever = GNUNET_TIME_absolute_get_forever();
-  relForever = GNUNET_TIME_relative_get_forever();
+  forever = GNUNET_TIME_absolute_get_forever ();
+  relForever = GNUNET_TIME_relative_get_forever ();
   relUnit = GNUNET_TIME_relative_get_unit ();
   zero.value = 0;
 
@@ -77,8 +77,10 @@ check ()
   GNUNET_log_skip (0, GNUNET_NO);
   GNUNET_assert (rel.value == GNUNET_TIME_UNIT_FOREVER_REL.value);
 
-  GNUNET_assert (GNUNET_TIME_relative_add (relForever,relForever).value == relForever.value);
-  GNUNET_assert (GNUNET_TIME_relative_add (relUnit,relUnit).value == 2*relUnit.value);
+  GNUNET_assert (GNUNET_TIME_relative_add (relForever, relForever).value ==
+                 relForever.value);
+  GNUNET_assert (GNUNET_TIME_relative_add (relUnit, relUnit).value ==
+                 2 * relUnit.value);
 
   /* check relation check in get_duration */
   future.value = now.value + 1000000;
@@ -87,7 +89,8 @@ check ()
   GNUNET_assert (GNUNET_TIME_absolute_get_difference (future, now).value ==
                  0);
 
-  GNUNET_assert (GNUNET_TIME_absolute_get_difference (zero, forever).value == forever.value);
+  GNUNET_assert (GNUNET_TIME_absolute_get_difference (zero, forever).value ==
+                 forever.value);
 
   past.value = now.value - 1000000;
   rel = GNUNET_TIME_absolute_get_duration (future);
@@ -114,12 +117,12 @@ check ()
   future = GNUNET_TIME_absolute_add (now, GNUNET_TIME_UNIT_SECONDS);
   GNUNET_assert (future.value == now.value + 1000);
 
-  future = GNUNET_TIME_absolute_add (forever,GNUNET_TIME_UNIT_ZERO);
+  future = GNUNET_TIME_absolute_add (forever, GNUNET_TIME_UNIT_ZERO);
   GNUNET_assert (future.value == forever.value);
 
   rel.value = ((uint64_t) - 1LL) - 1024;
   now.value = rel.value;
-  future = GNUNET_TIME_absolute_add (now,rel);
+  future = GNUNET_TIME_absolute_add (now, rel);
   GNUNET_assert (future.value == forever.value);
 
   /* check zero */
