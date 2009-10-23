@@ -172,6 +172,7 @@ fi
 LINES=`cat $out | grep 40 | wc -l`
 if test $LINES -ne 0; then
     echo "FAIL: unexpected output"
+    cat $out
     $arm -e
     exit 1
 fi
