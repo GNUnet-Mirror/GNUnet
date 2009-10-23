@@ -208,7 +208,7 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
   int is_new;
 
   /* check if new */
-  if (! GNUNET_FS_uri_test_ksk (uri))
+  if (! GNUNET_FS_uri_test_chk (uri))
     {
       GNUNET_break_op (0);
       return;
@@ -380,7 +380,7 @@ process_kblock (struct GNUNET_FS_SearchContext *sc,
     }
   /* decrypt */
   GNUNET_CRYPTO_hash_to_aes_key (&sc->requests[i].key, &skey, &iv);
-  GNUNET_CRYPTO_aes_encrypt (&kb[1],
+  GNUNET_CRYPTO_aes_decrypt (&kb[1],
 			     size - sizeof (struct KBlock),
 			     &skey,
 			     &iv,

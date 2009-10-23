@@ -29,7 +29,7 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_fs_service.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define START_ARM GNUNET_YES
 
@@ -324,6 +324,7 @@ main (int argc, char *argv[])
                       argvx, "test-fs-download",
 		      "nohelp", options, &run, NULL);
   stop_arm (&p1);
+  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-download/");
   return 0;
 }
 

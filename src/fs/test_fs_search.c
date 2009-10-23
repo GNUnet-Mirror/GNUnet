@@ -29,7 +29,7 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_fs_service.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define START_ARM GNUNET_YES
 
@@ -83,7 +83,8 @@ static void
 abort_search_task (void *cls,
 		     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_FS_search_stop (search);
+  if (search != NULL)
+    GNUNET_FS_search_stop (search);
   search = NULL;
 }
 
@@ -118,7 +119,9 @@ progress_cb (void *cls,
       GNUNET_assert (search != NULL);
       break;
     case GNUNET_FS_STATUS_SEARCH_RESULT:
+#if VERBOSE
       printf ("Search complete.\n");
+#endif
       GNUNET_SCHEDULER_add_continuation (sched,
 					 GNUNET_NO,
 					 &abort_search_task,
@@ -165,6 +168,8 @@ progress_cb (void *cls,
       //  GNUNET_assert (0 == strcmp ("search", event->value.search.cctx));
       GNUNET_assert (1 == event->value.search.anonymity);
       break;
+    case GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED:
+      break;
     case GNUNET_FS_STATUS_SEARCH_STOPPED:
       GNUNET_assert (search == event->value.search.sc);
       GNUNET_SCHEDULER_add_continuation (sched,
@@ -174,8 +179,9 @@ progress_cb (void *cls,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
     default:
-      printf ("Unexpected event: %d\n", 
-	      event->status);
+      fprintf (stderr,
+	       "Unexpected event: %d\n", 
+	       event->status);
       break;
     }
   return NULL;
@@ -295,6 +301,7 @@ main (int argc, char *argv[])
                       argvx, "test-fs-search",
 		      "nohelp", options, &run, NULL);
   stop_arm (&p1);
+  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-search/");
   return 0;
 }
 

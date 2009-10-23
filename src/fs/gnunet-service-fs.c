@@ -47,7 +47,7 @@
 #include "gnunet_util_lib.h"
 #include "fs.h"
 
-#define DEBUG_FS GNUNET_YES
+#define DEBUG_FS GNUNET_NO
 
 
 /**
