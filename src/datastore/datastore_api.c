@@ -184,6 +184,7 @@ with_status_response_handler (void *cls,
   const char *emsg;
   int status;
 
+  h->message_size = 0;
   if (msg == NULL)
     {
       h->response_proc = NULL;
@@ -464,6 +465,7 @@ with_result_response_handler (void *cls,
   const struct DataMessage *dm;
   size_t msize;
 
+  h->message_size = 0;
   if (msg == NULL)
     {
       h->response_proc = NULL;
