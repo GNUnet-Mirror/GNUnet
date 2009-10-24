@@ -674,6 +674,7 @@ client_notify (void *cls,
   size_t ret;
   struct GNUNET_TIME_Relative delay;
   
+  th->th = NULL;
   if (buf == NULL)
     {
       delay = GNUNET_TIME_absolute_get_remaining (th->timeout);
@@ -691,7 +692,6 @@ client_notify (void *cls,
       /* auto-retry */
       GNUNET_CONNECTION_destroy (th->sock->sock);
       th->sock->sock = NULL;
-      th->th = NULL;
       delay = GNUNET_TIME_relative_min (delay, GNUNET_TIME_UNIT_SECONDS);
       th->task = GNUNET_SCHEDULER_add_delayed (th->sock->sched,
 					       GNUNET_NO,
@@ -771,8 +771,11 @@ void
 GNUNET_CLIENT_notify_transmit_ready_cancel (struct GNUNET_CLIENT_TransmitHandle *th)
 {
   if (th->task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (th->sock->sched,
-			     th->task);
+    {
+      GNUNET_break (NULL == th->th);
+      GNUNET_SCHEDULER_cancel (th->sock->sched,
+			       th->task);      
+    }
   else
     {
       GNUNET_break (NULL != th->th);

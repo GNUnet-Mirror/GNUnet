@@ -1293,6 +1293,32 @@ transmit_timeout (void *cls,
 }
 
 
+/**
+ * Task invoked by the scheduler when we failed to connect
+ * at the time of being asked to transmit.
+ *
+ * This task notifies the client about the error.
+ */
+static void
+connect_error (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_CONNECTION_Handle *sock = cls;
+  GNUNET_CONNECTION_TransmitReadyNotify notify;
+
+#if DEBUG_CONNECTION
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmission request of size %u fails, connection failed (%p).\n",
+	      sock->nth.notify_size,
+	      sock);
+#endif
+  sock->write_task = GNUNET_SCHEDULER_NO_TASK;
+  notify = sock->nth.notify_ready;
+  sock->nth.notify_ready = NULL;
+  notify (sock->nth.notify_ready_cls, 0, NULL);
+}
+
+
 static void
 transmit_error (struct GNUNET_CONNECTION_Handle *sock)
 {
@@ -1455,20 +1481,6 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle
     return NULL;
   GNUNET_assert (notify != NULL);
   GNUNET_assert (sock->write_buffer_size >= size);
-
-  if ( (sock->sock == NULL) &&
-       (sock->ap_head == NULL) &&
-       (sock->dns_active != GNUNET_YES) )
-    {
-#if DEBUG_CONNECTION
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Transmission request of size %u fails, connection failed (%p).\n",
-		  size,
-		  sock);
-#endif
-      notify (notify_cls, 0, NULL);
-      return &sock->nth;
-    }
   GNUNET_assert (sock->write_buffer_off <= sock->write_buffer_size);
   GNUNET_assert (sock->write_buffer_pos <= sock->write_buffer_size);
   GNUNET_assert (sock->write_buffer_pos <= sock->write_buffer_off);
@@ -1478,6 +1490,19 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle
   sock->nth.notify_size = size;
   sock->nth.transmit_timeout = GNUNET_TIME_relative_to_absolute (timeout);
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == sock->nth.timeout_task);
+  if ( (sock->sock == NULL) &&
+       (sock->ap_head == NULL) &&
+       (sock->dns_active != GNUNET_YES) )
+    {     
+      sock->write_task = GNUNET_SCHEDULER_add_delayed (sock->sched,
+						       GNUNET_NO,
+						       GNUNET_SCHEDULER_PRIORITY_KEEP,
+						       GNUNET_SCHEDULER_NO_TASK,
+						       GNUNET_TIME_UNIT_ZERO,
+						       &connect_error,
+						       sock);
+      return &sock->nth;
+    }
   if (GNUNET_SCHEDULER_NO_TASK != sock->write_task)
     return &sock->nth;
   if (sock->sock != NULL)
