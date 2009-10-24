@@ -89,12 +89,14 @@ stop_arm (struct PeerContext *p)
 }
 
 
+#if 0
 static void
 spcb (void *cls,
       const char *name,
       const GNUNET_HashCode * key)
 {
 }
+#endif
 
 
 static void
