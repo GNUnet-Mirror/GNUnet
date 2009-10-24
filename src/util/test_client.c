@@ -163,8 +163,9 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (NULL !=
                  GNUNET_CLIENT_notify_transmit_ready (client,
                                                       sizeof (struct
-                                                              GNUNET_MessageHeader),
+                                                              GNUNET_MessageHeader),						      
                                                       GNUNET_TIME_UNIT_SECONDS,
+						      GNUNET_NO,
                                                       &make_msg, NULL));
   GNUNET_CLIENT_receive (client, &recv_bounce, cls,
                          GNUNET_TIME_relative_multiply

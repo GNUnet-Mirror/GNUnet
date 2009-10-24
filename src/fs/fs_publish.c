@@ -783,6 +783,7 @@ hash_for_index_cb (void *cls,
   GNUNET_CLIENT_transmit_and_get_response (client,
 					   &ism->header,
 					   GNUNET_TIME_UNIT_FOREVER_REL,
+					   GNUNET_YES,
 					   &process_index_start_response,
 					   sc);
   GNUNET_free (ism);

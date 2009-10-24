@@ -278,7 +278,7 @@ struct GNUNET_TRANSPORT_Handle
   /**
    * Handle to our registration with the client for notification.
    */
-  struct GNUNET_CONNECTION_TransmitHandle *network_handle;
+  struct GNUNET_CLIENT_TransmitHandle *network_handle;
 
   /**
    * Linked list of transmit handles that are waiting for the
@@ -477,6 +477,7 @@ schedule_transmission (struct GNUNET_TRANSPORT_Handle *h)
                                                            th->notify_size,
                                                            GNUNET_TIME_absolute_get_remaining
                                                            (th->timeout),
+							   GNUNET_NO,
                                                            &transport_notify_ready,
                                                            h);
   GNUNET_assert (NULL != h->network_handle);
@@ -1596,7 +1597,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
 #endif
           if (h->network_handle != NULL)
             {
-              GNUNET_CONNECTION_notify_transmit_ready_cancel (h->network_handle);
+              GNUNET_CLIENT_notify_transmit_ready_cancel (h->network_handle);
               h->network_handle = NULL;
               h->transmission_scheduled = GNUNET_NO;
 	      th = h->connect_ready_head;
@@ -1986,7 +1987,7 @@ GNUNET_TRANSPORT_notify_transmit_ready_cancel (struct
   h = th->handle;
   if ((h->connect_ready_head == NULL) && (h->network_handle != NULL))
     {
-      GNUNET_CONNECTION_notify_transmit_ready_cancel (h->network_handle);
+      GNUNET_CLIENT_notify_transmit_ready_cancel (h->network_handle);
       h->network_handle = NULL;
       h->transmission_scheduled = GNUNET_NO;
     }

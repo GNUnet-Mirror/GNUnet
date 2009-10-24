@@ -694,6 +694,7 @@ do_reconnect (void *cls,
   GNUNET_CLIENT_notify_transmit_ready (client,
 				       size,
                                        GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+				       GNUNET_NO,
 				       &transmit_search_request,
 				       sc);  
 }
@@ -812,6 +813,7 @@ search_start (struct GNUNET_FS_Handle *h,
   GNUNET_CLIENT_notify_transmit_ready (client,
 				       size,
                                        GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+				       GNUNET_NO,
 				       &transmit_search_request,
 				       sc);  
   return sc;

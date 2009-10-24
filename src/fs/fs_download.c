@@ -239,6 +239,7 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
     dc->th = GNUNET_CLIENT_notify_transmit_ready (dc->client,
 						  sizeof (struct SearchMessage),
 						  GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+						  GNUNET_NO,
 						  &transmit_download_request,
 						  dc); 
 
@@ -366,7 +367,7 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
       /* abort all pending requests */
       if (NULL != dc->th)
 	{
-	  GNUNET_CONNECTION_notify_transmit_ready_cancel (dc->th);
+	  GNUNET_CLIENT_notify_transmit_ready_cancel (dc->th);
 	  dc->th = NULL;
 	}
       GNUNET_CLIENT_disconnect (dc->client);
@@ -432,7 +433,7 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
 	  /* abort all pending requests */
 	  if (NULL != dc->th)
 	    {
-	      GNUNET_CONNECTION_notify_transmit_ready_cancel (dc->th);
+	      GNUNET_CLIENT_notify_transmit_ready_cancel (dc->th);
 	      dc->th = NULL;
 	    }
 	  GNUNET_CLIENT_disconnect (dc->client);
@@ -618,6 +619,7 @@ transmit_download_request (void *cls,
     dc->th = GNUNET_CLIENT_notify_transmit_ready (dc->client,
 						  sizeof (struct SearchMessage),
 						  GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+						  GNUNET_NO,
 						  &transmit_download_request,
 						  dc); 
   return msize;
@@ -654,6 +656,7 @@ do_reconnect (void *cls,
   dc->th = GNUNET_CLIENT_notify_transmit_ready (client,
 						sizeof (struct SearchMessage),
 						GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+						GNUNET_NO,
 						&transmit_download_request,
 						dc);  
   GNUNET_CLIENT_receive (client,
@@ -704,7 +707,7 @@ try_reconnect (struct GNUNET_FS_DownloadContext *dc)
     {
       if (NULL != dc->th)
 	{
-	  GNUNET_CONNECTION_notify_transmit_ready_cancel (dc->th);
+	  GNUNET_CLIENT_notify_transmit_ready_cancel (dc->th);
 	  dc->th = NULL;
 	}
       GNUNET_CONTAINER_multihashmap_iterate (dc->active,
@@ -892,7 +895,7 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
 			     dc->task);
   if (NULL != dc->th)
     {
-      GNUNET_CONNECTION_notify_transmit_ready_cancel (dc->th);
+      GNUNET_CLIENT_notify_transmit_ready_cancel (dc->th);
       dc->th = NULL;
     }
   if (NULL != dc->client)

@@ -36,6 +36,14 @@
 
 #define DEBUG_CLIENT GNUNET_NO
 
+
+/**
+ * How often do we re-try tranmsitting requests before giving up?
+ * Note that if we succeeded transmitting a request but failed to read
+ * a response, we do NOT re-try.
+ */
+#define MAX_ATTEMPTS 10
+
 /**
  * Struct to refer to a GNUnet TCP connection.
  * This is more than just a socket because if the server
@@ -54,6 +62,11 @@ struct GNUNET_CLIENT_Connection
    * Our scheduler.
    */
   struct GNUNET_SCHEDULER_Handle *sched;
+
+  /**
+   * Our configuration.
+   */
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
    * Name of the service we interact with.
@@ -116,20 +129,11 @@ struct GNUNET_CLIENT_Connection
 };
 
 
-/**
- * Get a connection with a service.
- *
- * @param sched scheduler to use
- * @param service_name name of the service
- * @param cfg configuration to use
- * @return NULL on error (service unknown to configuration)
- */
-struct GNUNET_CLIENT_Connection *
-GNUNET_CLIENT_connect (struct GNUNET_SCHEDULER_Handle *sched,
-                       const char *service_name,
-                       const struct GNUNET_CONFIGURATION_Handle *cfg)
+static struct GNUNET_CONNECTION_Handle *
+do_connect (struct GNUNET_SCHEDULER_Handle *sched,
+	    const char *service_name,
+	    const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  struct GNUNET_CLIENT_Connection *ret;
   struct GNUNET_CONNECTION_Handle *sock;
   char *hostname;
   unsigned long long port;
@@ -164,12 +168,34 @@ GNUNET_CLIENT_connect (struct GNUNET_SCHEDULER_Handle *sched,
 						port,
 						GNUNET_SERVER_MAX_MESSAGE_SIZE);
   GNUNET_free (hostname);
+  return sock;
+}
+
+
+/**
+ * Get a connection with a service.
+ *
+ * @param sched scheduler to use
+ * @param service_name name of the service
+ * @param cfg configuration to use
+ * @return NULL on error (service unknown to configuration)
+ */
+struct GNUNET_CLIENT_Connection *
+GNUNET_CLIENT_connect (struct GNUNET_SCHEDULER_Handle *sched,
+                       const char *service_name,
+                       const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  struct GNUNET_CLIENT_Connection *ret;
+  struct GNUNET_CONNECTION_Handle *sock;
+
+  sock = do_connect (sched, service_name, cfg);
   if (sock == NULL)
     return NULL;
   ret = GNUNET_malloc (sizeof (struct GNUNET_CLIENT_Connection));
   ret->sock = sock;
   ret->sched = sched;
   ret->service_name = GNUNET_strdup (service_name);
+  ret->cfg = cfg;
   return ret;
 }
 
@@ -521,6 +547,171 @@ GNUNET_CLIENT_service_test (struct GNUNET_SCHEDULER_Handle *sched,
 
 
 /**
+ * Handle for a transmission request.
+ */
+struct GNUNET_CLIENT_TransmitHandle 
+{
+  /**
+   * Connection state.
+   */
+  struct GNUNET_CLIENT_Connection *sock;
+
+  /**
+   * Function to call to get the data for transmission.
+   */
+  GNUNET_CONNECTION_TransmitReadyNotify notify;
+
+  /**
+   * Closure for notify.
+   */
+  void *notify_cls;
+
+  /**
+   * Handle to the transmission with the underlying
+   * connection.
+   */
+  struct GNUNET_CONNECTION_TransmitHandle *th;
+
+  /**
+   * Timeout.
+   */
+  struct GNUNET_TIME_Absolute timeout;
+
+  /**
+   * If we are re-trying and are delaying to do so,
+   * handle to the scheduled task managing the delay.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier task;
+
+  /**
+   * Number of bytes requested.
+   */
+  size_t size;
+
+  /**
+   * Are we allowed to re-try to connect without telling
+   * the user (of this API) about the connection troubles?
+   */
+  int auto_retry;
+
+  /**
+   * Number of attempts left for transmitting the request.  We may
+   * fail the first time (say because the service is not yet up), in
+   * which case (if auto_retry is set) we wait a bit and re-try
+   * (timeout permitting).
+   */
+  unsigned int attempts_left;
+
+};
+
+
+
+/**
+ * Connection notifies us about failure or success of
+ * a transmission request.  Either pass it on to our
+ * user or, if possible, retry.
+ *
+ * @param cls our "struct GNUNET_CLIENT_TransmissionHandle"
+ * @param size number of bytes available for transmission
+ * @param buf where to write them
+ * @return number of bytes written to buf
+ */
+static size_t
+client_notify (void *cls,
+	       size_t size,
+	       void *buf);
+
+
+
+/**
+ * This task is run if we should re-try connection to the
+ * service after a while.
+ *
+ * @param cls our "struct GNUNET_CLIENT_TransmitHandle" of the request
+ * @param tc unused
+ */
+static void
+client_delayed_retry (void *cls,
+		      const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_CLIENT_TransmitHandle *th = cls;
+
+  th->task = GNUNET_SCHEDULER_NO_TASK;
+  th->sock->sock = do_connect (th->sock->sched, 
+			       th->sock->service_name,
+			       th->sock->cfg);
+  th->th = GNUNET_CONNECTION_notify_transmit_ready (th->sock->sock,
+						    th->size,
+						    GNUNET_TIME_absolute_get_remaining (th->timeout), 
+						    &client_notify, 
+						    th);
+  if (th->th == NULL)
+    {
+      GNUNET_break (0);
+      th->notify (th->notify_cls, 0, NULL);
+      GNUNET_free (th);
+      return;		  
+    }
+}
+
+
+/**
+ * Connection notifies us about failure or success of
+ * a transmission request.  Either pass it on to our
+ * user or, if possible, retry.
+ *
+ * @param cls our "struct GNUNET_CLIENT_TransmissionHandle"
+ * @param size number of bytes available for transmission
+ * @param buf where to write them
+ * @return number of bytes written to buf
+ */
+static size_t
+client_notify (void *cls,
+	       size_t size,
+	       void *buf)
+{
+  struct GNUNET_CLIENT_TransmitHandle *th = cls;
+  size_t ret;
+  struct GNUNET_TIME_Relative delay;
+  
+  if (buf == NULL)
+    {
+      delay = GNUNET_TIME_absolute_get_remaining (th->timeout);
+      delay.value /= 2;
+      if ( (GNUNET_YES != th->auto_retry) ||
+	   (0 == --th->attempts_left) ||
+	   (delay.value < 1) )
+	{
+	  GNUNET_break (0 == th->notify (th->notify_cls,
+					 0,
+					 NULL));
+	  GNUNET_free (th);
+	  return 0;
+	}
+      /* auto-retry */
+      GNUNET_CONNECTION_destroy (th->sock->sock);
+      th->sock->sock = NULL;
+      th->th = NULL;
+      delay = GNUNET_TIME_relative_min (delay, GNUNET_TIME_UNIT_SECONDS);
+      th->task = GNUNET_SCHEDULER_add_delayed (th->sock->sched,
+					       GNUNET_NO,
+					       GNUNET_SCHEDULER_PRIORITY_KEEP,
+					       GNUNET_SCHEDULER_NO_TASK,
+					       delay,
+					       &client_delayed_retry,
+					       th);
+      return 0;
+    }
+  GNUNET_assert (size >= th->size);
+  ret = th->notify (th->notify_cls,
+		    size,
+		    buf);
+  GNUNET_free (th);
+  return ret;
+}
+
+
+/**
  * Ask the client to call us once the specified number of bytes
  * are free in the transmission buffer.  May call the notify
  * method immediately if enough space is available.
@@ -529,21 +720,65 @@ GNUNET_CLIENT_service_test (struct GNUNET_SCHEDULER_Handle *sched,
  * @param size number of bytes to send
  * @param timeout after how long should we give up (and call
  *        notify with buf NULL and size 0)?
+ * @param auto_retry if the connection to the service dies, should we
+ *        automatically re-connect and retry (within the timeout period)
+ *        or should we immediately fail in this case?  Pass GNUNET_YES
+ *        if the caller does not care about temporary connection errors,
+ *        for example because the protocol is stateless
  * @param notify function to call
  * @param notify_cls closure for notify
  * @return NULL if our buffer will never hold size bytes,
  *         a handle if the notify callback was queued (can be used to cancel)
  */
-struct GNUNET_CONNECTION_TransmitHandle *
+struct GNUNET_CLIENT_TransmitHandle *
 GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *sock,
                                      size_t size,
                                      struct GNUNET_TIME_Relative timeout,
+				     int auto_retry,
                                      GNUNET_CONNECTION_TransmitReadyNotify
                                      notify, void *notify_cls)
 {
-  return GNUNET_CONNECTION_notify_transmit_ready (sock->sock,
-                                               size,
-                                               timeout, notify, notify_cls);
+  struct GNUNET_CLIENT_TransmitHandle *th;
+
+  th = GNUNET_malloc (sizeof (struct GNUNET_CLIENT_TransmitHandle));
+  th->sock = sock;
+  th->size = size;
+  th->timeout = GNUNET_TIME_relative_to_absolute (timeout);
+  th->auto_retry = auto_retry;
+  th->notify = notify;
+  th->notify_cls = notify_cls;
+  th->attempts_left = MAX_ATTEMPTS;
+  th->th = GNUNET_CONNECTION_notify_transmit_ready (sock->sock,
+						    size,
+						    timeout, 
+						    &client_notify, 
+						    th);
+  if (NULL == th->th)
+    {
+      GNUNET_free (th);
+      return NULL;
+    }
+  return th;
+}
+
+
+/**
+ * Cancel a request for notification.
+ * 
+ * @param th handle from the original request.
+ */
+void
+GNUNET_CLIENT_notify_transmit_ready_cancel (struct GNUNET_CLIENT_TransmitHandle *th)
+{
+  if (th->task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (th->sock->sched,
+			     th->task);
+  else
+    {
+      GNUNET_break (NULL != th->th);
+      GNUNET_CONNECTION_notify_transmit_ready_cancel (th->th);
+    }
+  GNUNET_free (th);
 }
 
 
@@ -629,13 +864,21 @@ transmit_for_response (void *cls,
  * @param hdr message to transmit
  * @param timeout when to give up (for both transmission
  *         and for waiting for a response)
+ * @param auto_retry if the connection to the service dies, should we
+ *        automatically re-connect and retry (within the timeout period)
+ *        or should we immediately fail in this case?  Pass GNUNET_YES
+ *        if the caller does not care about temporary connection errors,
+ *        for example because the protocol is stateless
  * @param rn function to call with the response
  * @param rn_cls closure for rn 
+ * @return GNUNET_OK on success, GNUNET_SYSERR if a request
+ *         is already pending
  */
-void
+int
 GNUNET_CLIENT_transmit_and_get_response (struct GNUNET_CLIENT_Connection *sock,
 					 const struct GNUNET_MessageHeader *hdr,
 					 struct GNUNET_TIME_Relative timeout,
+					 int auto_retry,
 					 GNUNET_CLIENT_MessageHandler rn,
 					 void *rn_cls)
 {
@@ -650,11 +893,17 @@ GNUNET_CLIENT_transmit_and_get_response (struct GNUNET_CLIENT_Connection *sock,
   tc->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   tc->rn = rn;
   tc->rn_cls = rn_cls;
-  GNUNET_CLIENT_notify_transmit_ready (sock,
-				       msize,
-				       timeout,
-				       &transmit_for_response,
-				       tc);
+  if (NULL == GNUNET_CLIENT_notify_transmit_ready (sock,
+						   msize,
+						   timeout,
+						   auto_retry,
+						   &transmit_for_response,
+						   tc))
+    {
+      GNUNET_free (tc);
+      return GNUNET_SYSERR;
+    }
+  return GNUNET_OK;
 }
 
 

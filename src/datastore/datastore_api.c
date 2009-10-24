@@ -24,6 +24,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#include "gnunet_arm_service.h"
 #include "gnunet_datastore_service.h"
 #include "datastore.h"
 
@@ -75,6 +76,7 @@ struct GNUNET_DATASTORE_Handle
 };
 
 
+
 /**
  * Connect to the datastore service.
  *
@@ -95,6 +97,7 @@ struct GNUNET_DATASTORE_Handle *GNUNET_DATASTORE_connect (const struct
   c = GNUNET_CLIENT_connect (sched, "datastore", cfg);
   if (c == NULL)
     return NULL; /* oops */
+  GNUNET_ARM_start_services (cfg, sched, "datastore", NULL);
   h = GNUNET_malloc (sizeof(struct GNUNET_DATASTORE_Handle) + 
 		     GNUNET_SERVER_MAX_MESSAGE_SIZE);
   h->client = c;
@@ -149,6 +152,7 @@ void GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
 	  GNUNET_CLIENT_notify_transmit_ready (h->client,
 					       sizeof(struct GNUNET_MessageHeader),
 					       GNUNET_TIME_UNIT_MINUTES,
+					       GNUNET_YES,
 					       &transmit_drop,
 					       h))
 	return;
@@ -156,6 +160,7 @@ void GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
     }
   if (h->client != NULL)
     GNUNET_CLIENT_disconnect (h->client);
+  GNUNET_ARM_stop_services (h->cfg, h->sched, "datastore", NULL);
   GNUNET_free (h);
 }
 
@@ -233,51 +238,6 @@ with_status_response_handler (void *cls,
 
 
 /**
- * Transmit message to datastore service and then
- * read a status message.
- *
- * @param cls closure with handle to datastore
- * @param size number of bytes we can transmit at most
- * @param buf where to write transmission, NULL on
- *        timeout
- * @return number of bytes copied to buf
- */
-static size_t
-transmit_get_status (void *cls,
-		     size_t size,
-		     void *buf)
-{
-  struct GNUNET_DATASTORE_Handle *h = cls;
-  GNUNET_DATASTORE_ContinuationWithStatus cont = h->response_proc;
-  uint16_t msize;
-
-  if (buf == NULL)
-    {
-      h->message_size = 0;
-      h->response_proc = NULL;
-      cont (h->response_proc_cls, 
-	    GNUNET_SYSERR,
-	    _("Error transmitting message to datastore service."));
-      return 0;
-    }
-  msize = h->message_size;
-  GNUNET_assert (msize <= size);
-  memcpy (buf, &h[1], msize);
-#if DEBUG_DATASTORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Transmitted %u byte message to datastore service, now waiting for status.\n",
-	      msize);
-#endif
-  h->message_size = 0;
-  GNUNET_CLIENT_receive (h->client,
-			 &with_status_response_handler,
-			 h,
-			 GNUNET_TIME_absolute_get_remaining (h->timeout));
-  return msize;
-}
-
-
-/**
  * Helper function that will initiate the
  * transmission of a message to the datastore
  * service.  The message must already be prepared
@@ -313,11 +273,13 @@ transmit_for_status (struct GNUNET_DATASTORE_Handle *h,
   h->response_proc_cls = cont_cls;
   h->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   h->message_size = msize;
-  if (NULL == GNUNET_CLIENT_notify_transmit_ready (h->client,
-						   msize,
-						   timeout,
-						   &transmit_get_status,
-						   h))
+  if (GNUNET_OK !=
+      GNUNET_CLIENT_transmit_and_get_response (h->client,
+					       hdr,					       
+					       timeout,
+					       GNUNET_YES,
+					       &with_status_response_handler,					       
+					       h))
     {
       GNUNET_break (0);
       h->response_proc = NULL;
@@ -571,54 +533,6 @@ with_result_response_handler (void *cls,
 
 
 /**
- * Transmit message to datastore service and then
- * read a result message.
- *
- * @param cls closure with handle to datastore
- * @param size number of bytes we can transmit at most
- * @param buf where to write transmission, NULL on
- *        timeout
- * @return number of bytes copied to buf
- */
-static size_t
-transmit_get_result (void *cls,
-		     size_t size,
-		     void *buf)
-{
-  struct GNUNET_DATASTORE_Handle *h = cls;
-  GNUNET_DATASTORE_Iterator cont = h->response_proc;
-  uint16_t msize;
-
-  if (buf == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Error transmitting message to datastore service.\n"));
-      h->response_proc = NULL;
-      h->message_size = 0;
-      cont (h->response_proc_cls, 
-	    NULL, 0, NULL, 0, 0, 0,
-	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
-      return 0;
-    }
-  msize = h->message_size;
-  GNUNET_assert (msize <= size);
-  memcpy (buf, &h[1], msize);
-#if DEBUG_DATASTORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Transmitted %u byte message to datastore service, now waiting for result.\n",
-	      msize);
-#endif
-  h->message_size = 0;
-  GNUNET_CLIENT_receive (h->client,
-			 &with_result_response_handler,
-			 h,
-			 GNUNET_TIME_absolute_get_remaining (h->timeout));
-  return msize;
-}
-
-
-
-/**
  * Function called to trigger obtaining the next result
  * from the datastore.
  * 
@@ -651,12 +565,10 @@ GNUNET_DATASTORE_get_next (struct GNUNET_DATASTORE_Handle *h,
 
 
 /**
- * Helper function that will initiate the
- * transmission of a message to the datastore
- * service.  The message must already be prepared
- * and stored in the buffer at the end of the
- * handle.  The message must be of a type that
- * expects a "DataMessage" in response.
+ * Helper function that will initiate the transmission of a message to
+ * the datastore service.  The message must already be prepared and
+ * stored in the buffer at the end of the handle.  The message must be
+ * of a type that expects a "DataMessage" in response.
  *
  * @param h handle to the service with prepared message
  * @param cont function to call with result
@@ -686,11 +598,13 @@ transmit_for_result (struct GNUNET_DATASTORE_Handle *h,
   h->response_proc_cls = cont_cls;
   h->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   h->message_size = msize;
-  if (NULL == GNUNET_CLIENT_notify_transmit_ready (h->client,
-						   msize,
-						   timeout,
-						   &transmit_get_result,
-						   h))
+  if (GNUNET_OK !=
+      GNUNET_CLIENT_transmit_and_get_response (h->client,
+					       hdr,
+					       timeout,
+					       GNUNET_YES,
+					       &with_result_response_handler,
+					       h))
     {
       GNUNET_break (0);
       h->response_proc = NULL;

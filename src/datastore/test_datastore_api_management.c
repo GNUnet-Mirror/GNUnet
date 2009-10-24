@@ -335,8 +335,8 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  pid = GNUNET_OS_start_process ("gnunet-service-datastore",
-                                 "gnunet-service-datastore",
+  pid = GNUNET_OS_start_process ("gnunet-service-arm",
+                                 "gnunet-service-arm",
 #if VERBOSE
                                  "-L", "DEBUG",
 #endif

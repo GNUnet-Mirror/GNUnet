@@ -32,19 +32,6 @@
 #include "gnunet_server_lib.h"
 #include "arm.h"
 
-/**
- * How often do we re-try tranmsitting requests to ARM before
- * giving up?  Note that if we succeeded transmitting a request
- * but failed to read a response, we do NOT re-try (since that
- * might result in ARM getting a request twice).
- */
-#define MAX_ATTEMPTS 4
-
-/**
- * Minimum delay between attempts to talk to ARM.
- */
-#define MIN_RETRY_DELAY  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 100)
-
 
 /**
  * How long are we willing to wait for a service operation during the multi-operation
@@ -143,26 +130,9 @@ struct RequestContext
   void *cls;
 
   /**
-   * The service that is being manipulated.  Do not free.
-   */
-  const char *service_name;
-
-  /**
    * Timeout for the operation.
    */
   struct GNUNET_TIME_Absolute timeout;
-
-  /**
-   * Length of service_name plus one.
-   */
-  size_t slen;
-
-  /**
-   * Number of attempts left for transmitting the request to ARM.
-   * We may fail the first time (say because ARM is not yet up),
-   * in which case we wait a bit and re-try (timeout permitting).
-   */
-  unsigned int attempts_left;
 
   /**
    * Type of the request expressed as a message type (start or stop).
@@ -303,121 +273,6 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
 
 
 /**
- * We've failed to transmit the request to the ARM service.
- * Report our failure and clean up the state.
- *
- * @param sctx the state of the (now failed) request
- */
-static void
-report_transmit_failure (struct RequestContext *sctx)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-	      _("Error while trying to transmit to ARM service\n"));
-  if (sctx->callback != NULL)
-    sctx->callback (sctx->cls, GNUNET_SYSERR);
-  GNUNET_free (sctx);
-}
-
-
-/**
- * Transmit a request for a service status change to the
- * ARM service.
- *
- * @param cls the "struct RequestContext" identifying the request
- * @param size how many bytes are available in buf
- * @param buf where to write the request, NULL on error
- * @return number of bytes written to buf
- */
-static size_t
-send_service_msg (void *cls, size_t size, void *buf);
-
-
-/**
- * We've failed to transmit the request to the ARM service but
- * are now going to try again.
- * 
- * @param cls state of the request
- * @param tc task context (unused)
- */
-static void
-retry_request (void *cls,
-	       const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct RequestContext *sctx = cls;
-
-  if (NULL ==
-      GNUNET_CLIENT_notify_transmit_ready (sctx->h->client,
-					   sctx->slen +
-					   sizeof (struct
-						   GNUNET_MessageHeader),
-					   GNUNET_TIME_absolute_get_remaining (sctx->timeout),
-					   &send_service_msg, 
-					   sctx))
-    {
-      report_transmit_failure (sctx);    
-      return;
-    }
-}
-
-
-/**
- * Transmit a request for a service status change to the
- * ARM service.
- *
- * @param cls the "struct RequestContext" identifying the request
- * @param size how many bytes are available in buf
- * @param buf where to write the request, NULL on error
- * @return number of bytes written to buf
- */
-static size_t
-send_service_msg (void *cls, size_t size, void *buf)
-{
-  struct RequestContext *sctx = cls;
-  struct GNUNET_MessageHeader *msg;
-  struct GNUNET_TIME_Relative rem;
-
-  if (buf == NULL)
-    {
-      GNUNET_CLIENT_disconnect (sctx->h->client);
-      sctx->h->client = GNUNET_CLIENT_connect (sctx->h->sched, 
-					       "arm", 
-					       sctx->h->cfg);
-      GNUNET_assert (sctx->h->client != NULL);
-      rem = GNUNET_TIME_absolute_get_remaining (sctx->timeout);
-      if ( (sctx->attempts_left-- > 0) &&
-	   (rem.value > 0) )
-	{
-	  GNUNET_SCHEDULER_add_delayed (sctx->h->sched,
-					GNUNET_NO,
-					GNUNET_SCHEDULER_PRIORITY_KEEP,
-					GNUNET_SCHEDULER_NO_TASK,
-					GNUNET_TIME_relative_min (MIN_RETRY_DELAY,
-								  rem),
-					&retry_request,
-					sctx);
-	  return 0;
-	}
-      report_transmit_failure (sctx);
-      return 0;
-    }
-#if DEBUG_ARM
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("Transmitting service request to ARM.\n"));
-#endif
-  GNUNET_assert (size >= sctx->slen);
-  msg = buf;
-  msg->size = htons (sizeof (struct GNUNET_MessageHeader) + sctx->slen);
-  msg->type = htons (sctx->type);
-  memcpy (&msg[1], sctx->service_name, sctx->slen);
-  GNUNET_CLIENT_receive (sctx->h->client,
-                         &handle_response,
-                         sctx,
-                         GNUNET_TIME_absolute_get_remaining (sctx->timeout));
-  return sctx->slen + sizeof (struct GNUNET_MessageHeader);
-}
-
-
-/**
  * Start or stop a service.
  *
  * @param h handle to ARM
@@ -435,6 +290,7 @@ change_service (struct GNUNET_ARM_Handle *h,
 {
   struct RequestContext *sctx;
   size_t slen;
+  struct GNUNET_MessageHeader *msg;
 
   slen = strlen (service_name) + 1;
   if (slen + sizeof (struct GNUNET_MessageHeader) >
@@ -453,15 +309,29 @@ change_service (struct GNUNET_ARM_Handle *h,
   sctx->h = h;
   sctx->callback = cb;
   sctx->cls = cb_cls;
-  sctx->service_name = (const char*) &sctx[1];
-  memcpy (&sctx[1],
-	  service_name,
-	  slen);
   sctx->timeout = GNUNET_TIME_relative_to_absolute (timeout);
-  sctx->slen = slen;
-  sctx->attempts_left = MAX_ATTEMPTS;
   sctx->type = type;
-  retry_request (sctx, NULL);
+  msg = GNUNET_malloc (sizeof (struct GNUNET_MessageHeader) + slen);
+  msg->size = htons (sizeof (struct GNUNET_MessageHeader) + slen);
+  msg->type = htons (sctx->type);
+  memcpy (&msg[1], service_name, slen);
+  if (GNUNET_OK !=
+      GNUNET_CLIENT_transmit_and_get_response (sctx->h->client,
+					       msg,
+					       GNUNET_TIME_absolute_get_remaining (sctx->timeout),
+					       GNUNET_YES,
+					       &handle_response,
+					       sctx))
+    {       
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Error while trying to transmit to ARM service\n"));
+      if (cb != NULL)
+	cb (cb_cls, GNUNET_SYSERR);
+      GNUNET_free (sctx);
+      GNUNET_free (msg);
+      return;
+    }
+  GNUNET_free (msg);
 }
 
 

@@ -106,7 +106,9 @@ GNUNET_PEERINFO_add_peer (const struct GNUNET_CONFIGURATION_Handle *cfg,
   cc->msg = &pam->header;
   GNUNET_CLIENT_notify_transmit_ready (client,
                                        ntohs (pam->header.size),
-                                       ADD_PEER_TIMEOUT, &copy_and_free, cc);
+                                       ADD_PEER_TIMEOUT, 
+				       GNUNET_YES,
+				       &copy_and_free, cc);
 }
 
 
@@ -203,36 +205,6 @@ info_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 }
 
 
-static size_t
-copy_then_receive (void *cls, size_t size, void *buf)
-{
-  struct InfoContext *ic = cls;
-  const struct GNUNET_MessageHeader *msg =
-    (const struct GNUNET_MessageHeader *) &ic[1];
-  uint16_t msize;
-
-  if (buf == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _
-                  ("Failed to transmit message of type %u to `%s' service.\n"),
-                  ntohs (msg->type), "peerinfo");
-      ic->callback (ic->callback_cls, NULL, NULL, 1);
-      GNUNET_CLIENT_disconnect (ic->client);
-      GNUNET_free (ic);
-      return 0;
-    }
-  msize = ntohs (msg->size);
-  GNUNET_assert (size >= msize);
-  memcpy (buf, msg, msize);
-  GNUNET_CLIENT_receive (ic->client,
-                         &info_handler,
-                         ic,
-                         GNUNET_TIME_absolute_get_remaining (ic->timeout));
-  return msize;
-}
-
-
 /**
  * Call a method for each known matching host and change
  * its trust value.  The method will be invoked once for
@@ -293,8 +265,20 @@ GNUNET_PEERINFO_for_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
       lpm->trust_change = htonl (trust_delta);
       memcpy (&lpm->peer, peer, sizeof (struct GNUNET_PeerIdentity));
     }
-  GNUNET_CLIENT_notify_transmit_ready (client,
-                                       hs, timeout, &copy_then_receive, ihc);
+  if (GNUNET_OK != 
+      GNUNET_CLIENT_transmit_and_get_response (client,
+					       (const struct GNUNET_MessageHeader*) &ihc[1],
+					       timeout,
+					       GNUNET_YES,
+					       &info_handler,
+					       ihc))
+    {
+      GNUNET_break (0);
+      ihc->callback (ihc->callback_cls, NULL, NULL, 1);
+      GNUNET_CLIENT_disconnect (ihc->client);
+      GNUNET_free (ihc);
+      return;
+    }
 }
 
 /* end of peerinfo_api.c */

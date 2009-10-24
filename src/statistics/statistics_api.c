@@ -539,7 +539,9 @@ schedule_action (struct GNUNET_STATISTICS_Handle *h)
   if (NULL ==
       GNUNET_CLIENT_notify_transmit_ready (h->client,
                                            h->current->msize,
-                                           timeout, &transmit_action, h))
+                                           timeout,
+					   GNUNET_YES,
+					   &transmit_action, h))
     {
 #if DEBUG_STATISTICS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

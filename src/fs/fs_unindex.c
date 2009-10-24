@@ -379,6 +379,7 @@ process_hash (void *cls,
   GNUNET_CLIENT_transmit_and_get_response (uc->client,
 					   &req.header,
 					   GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+					   GNUNET_YES,
 					   &process_fs_response,
 					   uc);
 }

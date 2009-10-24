@@ -87,6 +87,7 @@ ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CLIENT_notify_transmit_ready (client,
                                        sizeof (struct GNUNET_MessageHeader),
                                        GNUNET_TIME_UNIT_SECONDS,
+				       GNUNET_NO,
                                        &build_msg, client);
 }
 
@@ -170,6 +171,7 @@ ready6 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CLIENT_notify_transmit_ready (client,
                                        sizeof (struct GNUNET_MessageHeader),
                                        GNUNET_TIME_UNIT_SECONDS,
+				       GNUNET_NO,
                                        &build_msg, client);
 }
 

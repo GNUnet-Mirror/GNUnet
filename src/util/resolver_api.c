@@ -51,11 +51,6 @@ struct GetAddressContext
   /**
    * FIXME.
    */
-  struct GNUNET_RESOLVER_GetMessage *msg;
-
-  /**
-   * FIXME.
-   */
   struct GNUNET_CLIENT_Connection *client;
 
   /**
@@ -238,43 +233,6 @@ handle_address_response (void *cls, const struct GNUNET_MessageHeader *msg)
 
 
 /**
- * FIXME
- *
- * @param cls FIXME
- * @param size number of bytes available in buf
- * @param buf target buffer, NULL on error
- * @return number of bytes written to buf
- */
-static size_t
-transmit_get_ip (void *cls, size_t size, void *buf)
-{
-  struct GetAddressContext *actx = cls;
-  uint16_t ms;
-
-  if (buf == NULL)
-    {
-      /* timeout / error */
-      GNUNET_free (actx->msg);
-      actx->callback (actx->cls, NULL, 0);
-      GNUNET_CLIENT_disconnect (actx->client);
-      GNUNET_free (actx);
-      return 0;
-    }
-  ms = ntohs (actx->msg->header.size);
-  GNUNET_assert (size >= ms);
-  memcpy (buf, actx->msg, ms);
-  GNUNET_free (actx->msg);
-  actx->msg = NULL;
-  GNUNET_CLIENT_receive (actx->client,
-                         &handle_address_response,
-                         actx,
-                         GNUNET_TIME_absolute_get_remaining (actx->timeout));
-  return ms;
-}
-
-
-
-/**
  * Convert a string to one or more IP addresses.
  *
  * @param sched scheduler to use
@@ -404,19 +362,19 @@ GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
   actx->cls = callback_cls;
   actx->client = client;
   actx->timeout = GNUNET_TIME_relative_to_absolute (timeout);
-  actx->msg = msg;
 
 #if DEBUG_RESOLVER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               _("Resolver requests DNS resolution of hostname `%s'.\n"),
               hostname);
 #endif
-  if (NULL ==
-      GNUNET_CLIENT_notify_transmit_ready (client,
-                                           slen +
-                                           sizeof (struct
-                                                   GNUNET_RESOLVER_GetMessage),
-                                           timeout, &transmit_get_ip, actx))
+  if (GNUNET_OK !=
+      GNUNET_CLIENT_transmit_and_get_response (client,
+					       &msg->header,
+					       timeout,
+					       GNUNET_YES,
+					       &handle_address_response,
+					       actx))
     {
       GNUNET_free (msg);
       GNUNET_free (actx);
@@ -424,6 +382,7 @@ GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
       GNUNET_CLIENT_disconnect (client);
       return;
     }
+  GNUNET_free (msg);      
 }
 
 
@@ -442,11 +401,6 @@ struct GetHostnameContext
    * FIXME.
    */
   void *cls;
-  
-  /**
-   * FIXME.
-   */ 
-  struct GNUNET_RESOLVER_GetMessage *msg;
   
   /**
    * FIXME.
@@ -513,43 +467,6 @@ handle_hostname_response (void *cls, const struct GNUNET_MessageHeader *msg)
                          ghc,
                          GNUNET_TIME_absolute_get_remaining (ghc->timeout));
 }
-
-
-/**
- * FIXME
- *
- * @param cls FIXME
- * @param size number of bytes available in buf
- * @param buf target buffer, NULL on error
- * @return number of bytes written to buf
- */
-static size_t
-transmit_get_hostname (void *cls, size_t size, void *buf)
-{
-  struct GetHostnameContext *hctx = cls;
-  uint16_t msize;
-
-  if (buf == NULL)
-    {
-      GNUNET_free (hctx->msg);
-      hctx->callback (hctx->cls, NULL);
-      GNUNET_CLIENT_disconnect (hctx->client);
-      GNUNET_free (hctx);
-      return 0;
-    }
-  msize = ntohs (hctx->msg->header.size);
-  GNUNET_assert (size >= msize);
-  memcpy (buf, hctx->msg, msize);
-  GNUNET_free (hctx->msg);
-  hctx->msg = NULL;
-  GNUNET_CLIENT_receive (hctx->client,
-                         &handle_hostname_response,
-                         hctx,
-                         GNUNET_TIME_absolute_get_remaining (hctx->timeout));
-  return msize;
-}
-
-
 
 
 /**
@@ -624,19 +541,20 @@ GNUNET_RESOLVER_hostname_get (struct GNUNET_SCHEDULER_Handle *sched,
   hctx->cls = cls;
   hctx->client = client;
   hctx->timeout = GNUNET_TIME_relative_to_absolute (timeout);
-  hctx->msg = msg;
-  if (NULL ==
-      GNUNET_CLIENT_notify_transmit_ready (client,
-                                           sizeof (struct
-                                                   GNUNET_RESOLVER_GetMessage)
-                                           + salen, timeout,
-                                           &transmit_get_hostname, hctx))
+  if (GNUNET_OK !=
+      GNUNET_CLIENT_transmit_and_get_response (client,
+					       &msg->header,
+					       timeout,
+					       GNUNET_YES,
+					       &handle_hostname_response,
+					       hctx))
     {
       GNUNET_free (msg);
       callback (cls, NULL);
       GNUNET_CLIENT_disconnect (client);
       GNUNET_free (hctx);
     }
+  GNUNET_free (msg);
 }
 
 /**

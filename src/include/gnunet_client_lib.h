@@ -97,6 +97,12 @@ void GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
 
 
 /**
+ * Transmit handle for client connections.
+ */
+struct GNUNET_CLIENT_TransmitHandle;
+
+
+/**
  * Ask the client to call us once the specified number of bytes
  * are free in the transmission buffer.  May call the notify
  * method immediately if enough space is available.
@@ -105,19 +111,34 @@ void GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
  * @param size number of bytes to send
  * @param timeout after how long should we give up (and call
  *        notify with buf NULL and size 0)?
+ * @param auto_retry if the connection to the service dies, should we
+ *        automatically re-connect and retry (within the timeout period)
+ *        or should we immediately fail in this case?  Pass GNUNET_YES
+ *        if the caller does not care about temporary connection errors,
+ *        for example because the protocol is stateless
  * @param notify function to call
  * @param notify_cls closure for notify
  * @return NULL if someone else is already waiting to be notified
  *         non-NULL if the notify callback was queued (can be used to cancel
  *         using GNUNET_CONNECTION_notify_transmit_ready_cancel)
  */
-struct GNUNET_CONNECTION_TransmitHandle
+struct GNUNET_CLIENT_TransmitHandle
   *GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *sock,
                                         size_t size,
                                         struct GNUNET_TIME_Relative timeout,
+					int auto_retry,
                                         GNUNET_CONNECTION_TransmitReadyNotify
-                                        notify, void *notify_cls);
+                                        notify,
+					void *notify_cls);
 
+
+/**
+ * Cancel a request for notification.
+ * 
+ * @param th handle from the original request.
+ */
+void
+GNUNET_CLIENT_notify_transmit_ready_cancel (struct GNUNET_CLIENT_TransmitHandle *th);
 
 
 /**
@@ -131,13 +152,21 @@ struct GNUNET_CONNECTION_TransmitHandle
  * @param hdr message to transmit
  * @param timeout when to give up (for both transmission
  *         and for waiting for a response)
+ * @param auto_retry if the connection to the service dies, should we
+ *        automatically re-connect and retry (within the timeout period)
+ *        or should we immediately fail in this case?  Pass GNUNET_YES
+ *        if the caller does not care about temporary connection errors,
+ *        for example because the protocol is stateless
  * @param rn function to call with the response
  * @param rn_cls closure for rn 
+ * @return GNUNET_OK on success, GNUNET_SYSERR if a request
+ *         is already pending
  */
-void
+int
 GNUNET_CLIENT_transmit_and_get_response (struct GNUNET_CLIENT_Connection *sock,
 					 const struct GNUNET_MessageHeader *hdr,
 					 struct GNUNET_TIME_Relative timeout,
+					 int auto_retry,
 					 GNUNET_CLIENT_MessageHandler rn,
 					 void *rn_cls);
 

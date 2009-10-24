@@ -155,50 +155,6 @@ handle_index_info (void *cls,
 
 
 /**
- * Transmit the request to get a list of all 
- * indexed files to the "FS" service.
- *
- * @param cls closure (of type "struct GetIndexedContext*")
- * @param size number of bytes availabe in buf
- * @param buf where to write the message, NULL on error
- * @return number of bytes written to buf
- */
-static size_t
-transmit_get_indexed (void *cls,
-		      size_t size,
-		      void *buf)
-{
-  struct GetIndexedContext *gic = cls;
-  struct GNUNET_MessageHeader *hdr;
-
-  if (NULL == buf)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Failed to transmit `%s' request to `%s' service.\n"),
-		  "GET_INDEXED",
-		  "fs");
-      GNUNET_SCHEDULER_add_continuation (gic->h->sched,
-					 GNUNET_NO,
-					 gic->cont,
-					 gic->cont_cls,
-					 GNUNET_SCHEDULER_REASON_TIMEOUT);
-      GNUNET_CLIENT_disconnect (gic->client);
-      GNUNET_free (gic);
-      return 0;
-    }
-  GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
-  hdr = buf;
-  hdr->size = htons (sizeof (struct GNUNET_MessageHeader));
-  hdr->type = htons (GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_GET);
-  GNUNET_CLIENT_receive (gic->client,
-			 &handle_index_info,
-			 gic,
-			 GNUNET_CONSTANTS_SERVICE_TIMEOUT);
-  return sizeof (struct GNUNET_MessageHeader);
-}
-
-
-/**
  * Iterate over all indexed files.
  *
  * @param h handle to the file sharing subsystem
@@ -218,6 +174,7 @@ GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
 {
   struct GNUNET_CLIENT_Connection *client;
   struct GetIndexedContext *gic;
+  struct GNUNET_MessageHeader msg;
 
   client = GNUNET_CLIENT_connect (h->sched,
 				  "fs",
@@ -242,11 +199,15 @@ GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
   gic->iterator_cls = iterator_cls;
   gic->cont = cont;
   gic->cont_cls = cont_cls;
-  GNUNET_CLIENT_notify_transmit_ready (client,
-				       sizeof (struct GNUNET_MessageHeader),
-				       GNUNET_CONSTANTS_SERVICE_TIMEOUT,
-				       &transmit_get_indexed,
-				       gic);
+  msg.size = htons (sizeof (struct GNUNET_MessageHeader));
+  msg.type = htons (GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_GET);
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CLIENT_transmit_and_get_response (client,
+							  &msg,
+							  GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+							  GNUNET_YES,
+							  &handle_index_info,
+							  gic));
 }
 
 /* end of fs_list_indexed.c */

@@ -94,7 +94,7 @@ struct GNUNET_CORE_Handle
   /**
    * Handle for our current transmission request.
    */
-  struct GNUNET_CONNECTION_TransmitHandle *th;
+  struct GNUNET_CLIENT_TransmitHandle *th;
 
   /**
    * Head of doubly-linked list of pending requests.
@@ -257,6 +257,7 @@ reconnect (struct GNUNET_CORE_Handle *h)
                                                sizeof (struct InitMessage) +
                                                sizeof (uint16_t) * h->hcnt,
                                                GNUNET_TIME_UNIT_SECONDS,
+					       GNUNET_NO,
                                                &transmit_start, h);
 }
 
@@ -346,7 +347,9 @@ trigger_next_request (struct GNUNET_CORE_Handle *h)
   h->th = GNUNET_CLIENT_notify_transmit_ready (h->client,
                                                th->msize,
                                                GNUNET_TIME_absolute_get_remaining
-                                               (th->timeout), &request_start,
+                                               (th->timeout), 
+					       GNUNET_NO,
+					       &request_start,
                                                h);
 }
 
@@ -821,6 +824,7 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
     GNUNET_CLIENT_notify_transmit_ready (h->client,
                                          sizeof (struct InitMessage) +
                                          sizeof (uint16_t) * h->hcnt, timeout,
+					 GNUNET_YES,
                                          &transmit_start, h);
 }
 
@@ -834,7 +838,7 @@ void
 GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
 {
   if (handle->th != NULL)
-    GNUNET_CONNECTION_notify_transmit_ready_cancel (handle->th);
+    GNUNET_CLIENT_notify_transmit_ready_cancel (handle->th);
   if (handle->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (handle->sched, handle->reconnect_task);
   GNUNET_CLIENT_disconnect (handle->client);
