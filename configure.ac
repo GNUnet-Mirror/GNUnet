@@ -653,6 +653,7 @@ src/hello/Makefile
 src/include/Makefile
 src/include/gnunet_directories.h
 src/hostlist/Makefile
+src/nat/Makefile
 src/peerinfo/Makefile
 src/statistics/Makefile
 src/template/Makefile
