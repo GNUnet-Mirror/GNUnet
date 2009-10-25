@@ -14,20 +14,13 @@ away), in order in which they will likely be done:
 
 Urgent items (before announcing ng.gnunet.org):
 * FS (basic anonymous FS only)
-  - implement FS service
+  - implement FS service (P2P operations)
     + how to send queries (soliciting is not there in core; do we
       also want to do pushing sometimes?)
     + need to bound queueing of replies for other peers    
   - implement testcases 
-    + URI API
-    + getopt API
     + sharing API
       ~ file-information
-      ~ publish (insert, index)
-      ~ download
-      ~ search
-      ~ unindex
-    + directory API
 * CORE:
   - soliciting traffic for clients that registered for it is not implemented
     (in the service, client API supports GNUNET_MESSAGE_TYPE_CORE_SOLICIT_TRAFFIC
@@ -79,6 +72,7 @@ Urgent items (before announcing ng.gnunet.org):
     + gnunet-service-fs (remove failing on-demand blocks, many other nitpicks/features/optimizations)
     + datastore: do active migration support here?
   - implement adv. FS testcases 
+    + getopt API
     + insert: sblocks, loc uris
     + download: loc uris
     + search: sblocks, skblocks, loc uris
