@@ -508,6 +508,8 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
 	    {
 	      GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
 	      h->th = NULL;
+	      free_action_item (h->current);
+	      h->current = NULL;
 	    }
 	}
       pos = h->action_head;
