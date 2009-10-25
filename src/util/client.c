@@ -221,11 +221,8 @@ finish_cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 void
 GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock)
 {
-  if (sock->sock != NULL)
-    {
-      GNUNET_CONNECTION_destroy (sock->sock);
-      sock->sock = NULL;
-    }
+  GNUNET_assert (sock->sock != NULL);
+  GNUNET_CONNECTION_destroy (sock->sock);
   sock->receiver_handler = NULL;
   if (sock->in_receive == GNUNET_YES)
     sock->in_receive = GNUNET_SYSERR;
@@ -639,9 +636,6 @@ client_delayed_retry (void *cls,
   struct GNUNET_CLIENT_TransmitHandle *th = cls;
 
   th->task = GNUNET_SCHEDULER_NO_TASK;
-  th->sock->sock = do_connect (th->sock->sched, 
-			       th->sock->service_name,
-			       th->sock->cfg);
   th->th = GNUNET_CONNECTION_notify_transmit_ready (th->sock->sock,
 						    th->size,
 						    GNUNET_TIME_absolute_get_remaining (th->timeout), 
@@ -693,7 +687,9 @@ client_notify (void *cls,
 	}
       /* auto-retry */
       GNUNET_CONNECTION_destroy (th->sock->sock);
-      th->sock->sock = NULL;
+      th->sock->sock = do_connect (th->sock->sched, 
+				   th->sock->service_name,
+				   th->sock->cfg);
       delay = GNUNET_TIME_relative_min (delay, GNUNET_TIME_UNIT_SECONDS);
       th->task = GNUNET_SCHEDULER_add_delayed (th->sock->sched,
 					       GNUNET_NO,
