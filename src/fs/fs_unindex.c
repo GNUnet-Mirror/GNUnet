@@ -96,8 +96,8 @@ make_unindex_status (struct GNUNET_FS_ProgressInfo *pi,
     = GNUNET_TIME_calculate_eta (uc->start_time,
 				 offset,
 				 uc->file_size);
-  pi->value.publish.duration = GNUNET_TIME_absolute_get_duration (uc->start_time);
-  pi->value.publish.completed = offset;
+  pi->value.unindex.duration = GNUNET_TIME_absolute_get_duration (uc->start_time);
+  pi->value.unindex.completed = offset;
 }
 
 
