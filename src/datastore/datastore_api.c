@@ -706,6 +706,12 @@ GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
   struct DataMessage *dm;
   size_t msize;
 
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Asked to remove %u bytes of data under key `%s'\n",
+	      size,
+	      GNUNET_h2s (key));
+#endif
   msize = sizeof(struct DataMessage) + size;
   GNUNET_assert (msize <= GNUNET_SERVER_MAX_MESSAGE_SIZE);
   dm = (struct DataMessage*) &h[1];
