@@ -327,12 +327,14 @@ struct GNUNET_DISK_FileHandle *GNUNET_DISK_file_open (const char *fn,
  */
 struct GNUNET_DISK_PipeHandle *GNUNET_DISK_pipe (int blocking);
 
+
 /**
  * Closes an interprocess channel
  * @param p pipe
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
 int GNUNET_DISK_pipe_close (struct GNUNET_DISK_PipeHandle *p);
+
 
 /**
  * Close an open file.
@@ -341,6 +343,7 @@ int GNUNET_DISK_pipe_close (struct GNUNET_DISK_PipeHandle *p);
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
 int GNUNET_DISK_file_close (struct GNUNET_DISK_FileHandle *h);
+
 
 /**
  * Get the handle to a particular pipe end
@@ -384,7 +387,7 @@ ssize_t GNUNET_DISK_fn_read (const char *fn,
  * @param h handle to open file
  * @param buffer the data to write
  * @param n number of bytes to write
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return number of bytes written on success, GNUNET_SYSERR on error
  */
 ssize_t GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle *h, 
 				const void *buffer,

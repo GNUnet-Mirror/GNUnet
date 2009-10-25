@@ -477,9 +477,10 @@ flush_trust (struct HostEntry *host)
   else
     {
       trust = htonl (host->trust);
-      if (GNUNET_OK == GNUNET_DISK_fn_write (fn, &trust, sizeof(uint32_t),
-          GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE
-              | GNUNET_DISK_PERM_GROUP_READ | GNUNET_DISK_PERM_OTHER_READ))
+      if (sizeof(uint32_t) == GNUNET_DISK_fn_write (fn, &trust, 
+						    sizeof(uint32_t),
+						    GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE
+						    | GNUNET_DISK_PERM_GROUP_READ | GNUNET_DISK_PERM_OTHER_READ))
         host->disk_trust = host->trust;
     }
   GNUNET_free (fn);

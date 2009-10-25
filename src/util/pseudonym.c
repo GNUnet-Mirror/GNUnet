@@ -209,8 +209,9 @@ write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                                         off + 1],
                                                    size,
                                                    GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL));
-  GNUNET_DISK_fn_write (fn, buf, tag, GNUNET_DISK_PERM_USER_READ
-      | GNUNET_DISK_PERM_USER_WRITE | GNUNET_DISK_PERM_GROUP_READ);
+  GNUNET_break
+    (tag != GNUNET_DISK_fn_write (fn, buf, tag, GNUNET_DISK_PERM_USER_READ
+				  | GNUNET_DISK_PERM_USER_WRITE | GNUNET_DISK_PERM_GROUP_READ));
   GNUNET_free (fn);
   GNUNET_free (buf);
   /* create entry for pseudonym name in names */

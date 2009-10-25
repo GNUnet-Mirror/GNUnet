@@ -653,7 +653,7 @@ GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle *h, const void *buff
  * @param buffer the data to write
  * @param n number of bytes to write
  * @param mode file permissions 
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return number of bytes written on success, GNUNET_SYSERR on error
  */
 ssize_t
 GNUNET_DISK_fn_write (const char * fn, const void *buffer,
@@ -661,7 +661,7 @@ GNUNET_DISK_fn_write (const char * fn, const void *buffer,
 		      enum GNUNET_DISK_AccessPermissions mode)
 {
   struct GNUNET_DISK_FileHandle *fh;
-  int ret;
+  ssize_t ret;
 
   fh = GNUNET_DISK_file_open (fn, 
 			      GNUNET_DISK_OPEN_WRITE 
@@ -669,9 +669,8 @@ GNUNET_DISK_fn_write (const char * fn, const void *buffer,
 			      | GNUNET_DISK_OPEN_CREATE, mode);
   if (!fh)
     return GNUNET_SYSERR;
-  ret = (n == GNUNET_DISK_file_write (fh, buffer, n)) ? GNUNET_OK : GNUNET_SYSERR;
+  ret = GNUNET_DISK_file_write (fh, buffer, n);
   GNUNET_assert(GNUNET_OK == GNUNET_DISK_file_close(fh));
-
   return ret;
 }
 

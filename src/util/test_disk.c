@@ -36,8 +36,10 @@ testReadWrite ()
   char tmp[100 + 1];
   int ret;
 
-  if (GNUNET_OK != GNUNET_DISK_fn_write (".testfile", TESTSTRING, strlen (
-      TESTSTRING), GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE))
+  if (strlen(TESTSTRING) != 
+      GNUNET_DISK_fn_write (".testfile", TESTSTRING, 
+			    strlen (TESTSTRING),
+			    GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE))
     return 1;
   if (GNUNET_OK != GNUNET_DISK_file_test (".testfile"))
     return 1;
