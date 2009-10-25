@@ -139,6 +139,11 @@ struct GNUNET_STATISTICS_Handle
   struct GNUNET_CLIENT_Connection *client;
 
   /**
+   * Currently pending transmission request.
+   */
+  struct GNUNET_CLIENT_TransmitHandle *th;
+
+  /**
    * Head of the linked list of pending actions (first action
    * to be performed).
    */
@@ -156,11 +161,6 @@ struct GNUNET_STATISTICS_Handle
    */
   struct ActionItem *current;
 
-  /**
-   * Should this handle be destroyed once we've processed
-   * all actions?
-   */
-  int do_destroy;
 
 };
 
@@ -226,13 +226,25 @@ GNUNET_STATISTICS_create (struct GNUNET_SCHEDULER_Handle *sched,
 
 
 /**
- * Actually free the handle.
+ * Destroy a handle (free all state associated with
+ * it).
  */
-static void
-do_destroy (struct GNUNET_STATISTICS_Handle *h)
+void
+GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h)
 {
-  GNUNET_assert (h->action_head == NULL);
-  GNUNET_assert (h->current == NULL);
+  struct ActionItem *pos;
+  if (NULL != h->th)
+    {
+      GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
+      h->th = NULL;
+    }
+  if (h->current != NULL)
+    free_action_item (h->current);
+  while (NULL != (pos = h->action_head))
+    {
+      h->action_head = pos->next;
+      free_action_item (pos);
+    }
   if (h->client != NULL)
     {
       GNUNET_CLIENT_disconnect (h->client);
@@ -240,23 +252,6 @@ do_destroy (struct GNUNET_STATISTICS_Handle *h)
     }
   GNUNET_free (h->subsystem);
   GNUNET_free (h);
-}
-
-
-/**
- * Destroy a handle (free all state associated with
- * it).
- */
-void
-GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *handle)
-{
-  GNUNET_assert (handle->do_destroy == GNUNET_NO);
-  if ((handle->action_head != NULL) || (handle->current != NULL))
-    {
-      handle->do_destroy = GNUNET_YES;
-      return;
-    }
-  do_destroy (handle);
 }
 
 
@@ -348,8 +343,11 @@ receive_stats (void *cls, const struct GNUNET_MessageHeader *msg)
 
   if (msg == NULL)
     {
-      GNUNET_CLIENT_disconnect (h->client);
-      h->client = NULL;
+      if (NULL != h->client)
+	{
+	  GNUNET_CLIENT_disconnect (h->client);
+	  h->client = NULL;
+	}
 #if DEBUG_STATISTICS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
 		  "Error receiving statistics from service, is the service running?\n" );
@@ -383,8 +381,11 @@ receive_stats (void *cls, const struct GNUNET_MessageHeader *msg)
       GNUNET_break (0);
       break;
     }
-  GNUNET_CLIENT_disconnect (h->client);
-  h->client = NULL;
+  if (NULL != h->client)
+    {
+      GNUNET_CLIENT_disconnect (h->client);
+      h->client = NULL;
+    }
   finish (h, GNUNET_SYSERR);
 }
 
@@ -486,6 +487,7 @@ transmit_action (void *cls, size_t size, void *buf)
   struct GNUNET_STATISTICS_Handle *handle = cls;
   size_t ret;
 
+  handle->th = NULL;
   switch (handle->current->type)
     {
     case ACTION_GET:
@@ -523,25 +525,18 @@ schedule_action (struct GNUNET_STATISTICS_Handle *h)
   /* schedule next action */
   h->current = h->action_head;
   if (NULL == h->current)
-    {
-      /* no pending network action, check destroy! */
-      if (h->do_destroy != GNUNET_YES)
-        return;
-      do_destroy (h);
-      return;
-    }
+    return;
   h->action_head = h->action_head->next;
   if (NULL == h->action_head)
     h->action_tail = NULL;
   h->current->next = NULL;
-
   timeout = GNUNET_TIME_absolute_get_remaining (h->current->timeout);
   if (NULL ==
-      GNUNET_CLIENT_notify_transmit_ready (h->client,
-                                           h->current->msize,
-                                           timeout,
-					   GNUNET_YES,
-					   &transmit_action, h))
+      (h->th = GNUNET_CLIENT_notify_transmit_ready (h->client,
+						    h->current->msize,
+						    timeout,
+						    GNUNET_YES,
+						    &transmit_action, h)))
     {
 #if DEBUG_STATISTICS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
