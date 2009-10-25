@@ -5,7 +5,6 @@ sane end-user should care about this codebase yet anyway.
 
 * UTIL:
   - container_bloomfilter: improve efficiency (see FIXME)
-  - no tests for BIO
   - Windows: use events instead of pipes to signal select()s [Nils]
   - only connect() sockets that are ready (select()) [Nils]
     [On W32, we need to select after calling socket before
