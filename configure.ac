@@ -654,6 +654,8 @@ src/include/Makefile
 src/include/gnunet_directories.h
 src/hostlist/Makefile
 src/nat/Makefile
+src/nat/libnatpmp/Makefile
+src/nat/miniupnp/Makefile
 src/peerinfo/Makefile
 src/statistics/Makefile
 src/template/Makefile
