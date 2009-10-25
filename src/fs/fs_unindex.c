@@ -390,11 +390,13 @@ process_hash (void *cls,
  *
  * @param h handle to the file sharing subsystem
  * @param filename file to unindex
+ * @param cctx initial value for the client context
  * @return NULL on error, otherwise handle 
  */
 struct GNUNET_FS_UnindexContext *
 GNUNET_FS_unindex_start (struct GNUNET_FS_Handle *h,
-			 const char *filename)
+			 const char *filename,
+			 void *cctx)
 {
   struct GNUNET_FS_UnindexContext *ret;
   struct GNUNET_FS_ProgressInfo pi;
@@ -410,6 +412,7 @@ GNUNET_FS_unindex_start (struct GNUNET_FS_Handle *h,
   ret->filename = GNUNET_strdup (filename);
   ret->start_time = GNUNET_TIME_absolute_get ();
   ret->file_size = size;
+  ret->client_info = cctx;
 
   // FIXME: make persistent!
   pi.status = GNUNET_FS_STATUS_UNINDEX_START;

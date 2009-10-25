@@ -2012,12 +2012,13 @@ GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
  *
  * @param h handle to the file sharing subsystem
  * @param filename file to unindex
+ * @param cctx initial value for the client context
  * @return NULL on error, otherwise handle 
  */
-// FIXME: add a "void *" context for the client to arguments!?
 struct GNUNET_FS_UnindexContext *
 GNUNET_FS_unindex_start (struct GNUNET_FS_Handle *h,
-			 const char *filename);
+			 const char *filename,
+			 void *cctx);
 
 
 /**

@@ -114,7 +114,8 @@ progress_cb (void *cls,
 	      (unsigned long long) (FILESIZE * 1000 / (1+GNUNET_TIME_absolute_get_duration (start).value) / 1024));
       start = GNUNET_TIME_absolute_get ();
       unindex = GNUNET_FS_unindex_start (fs,
-					 fn);
+					 fn,
+					 "unindex");
       GNUNET_assert (unindex != NULL);
       break;
     case GNUNET_FS_STATUS_UNINDEX_COMPLETED:

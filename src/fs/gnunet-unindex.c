@@ -139,7 +139,8 @@ run (void *cls,
       return;
     }
   uc = GNUNET_FS_unindex_start (ctx,
-				args[0]);
+				args[0],
+				NULL);
   if (NULL == uc)
     {
       fprintf (stderr,
