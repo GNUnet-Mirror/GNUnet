@@ -13,6 +13,7 @@ SUBDIRS = \
   arm \
   fragmentation \
   hello \
+  nat \
   peerinfo \
   statistics \
   datacache \
