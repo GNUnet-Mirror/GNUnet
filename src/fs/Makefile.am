@@ -110,6 +110,7 @@ check_PROGRAMS = \
  test_fs_namespace \
  test_fs_search \
  test_fs_start_stop \
+ test_fs_unindex \
  test_fs_uri
 
 TESTS = \
@@ -139,6 +140,12 @@ test_fs_download_LDADD = \
   $(top_builddir)/src/arm/libgnunetarm.la  \
   $(top_builddir)/src/util/libgnunetutil.la  
 
+test_fs_getopt_SOURCES = \
+ test_fs_getopt.c
+test_fs_getopt_LDADD = \
+  $(top_builddir)/src/fs/libgnunetfs.la  \
+  $(top_builddir)/src/util/libgnunetutil.la  
+
 test_fs_namespace_SOURCES = \
  test_fs_namespace.c
 test_fs_namespace_LDADD = \
@@ -159,10 +166,11 @@ test_fs_start_stop_LDADD = \
   $(top_builddir)/src/arm/libgnunetarm.la  \
   $(top_builddir)/src/util/libgnunetutil.la  
 
-test_fs_getopt_SOURCES = \
- test_fs_getopt.c
-test_fs_getopt_LDADD = \
+test_fs_unindex_SOURCES = \
+ test_fs_unindex.c
+test_fs_unindex_LDADD = \
   $(top_builddir)/src/fs/libgnunetfs.la  \
+  $(top_builddir)/src/arm/libgnunetarm.la  \
   $(top_builddir)/src/util/libgnunetutil.la  
 
 test_fs_uri_SOURCES = \
@@ -177,4 +185,5 @@ EXTRA_DIST = \
   test_fs_download_data.conf \
   test_fs_namespace_data.conf \
   test_fs_search_data.conf \
+  test_fs_unindex_data.conf \
   test_fs_uri_data.conf
