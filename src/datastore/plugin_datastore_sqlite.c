@@ -1632,7 +1632,7 @@ libgnunet_plugin_datastore_sqlite_done (void *cls)
     fn = GNUNET_strdup (plugin->fn);
   database_shutdown (plugin);
   GNUNET_STATISTICS_destroy (plugin->statistics,
-			     GNUNET_YES);
+			     GNUNET_NO);
   plugin->env = NULL; 
   plugin->payload = 0;
   GNUNET_free (api);
