@@ -34,7 +34,7 @@
 static int
 check_1 (void *cls,
          const char *subsystem,
-         const char *name, unsigned long long value, int is_persistent)
+         const char *name, uint64_t value, int is_persistent)
 {
   GNUNET_assert (0 == strcmp (name, "test-1"));
   GNUNET_assert (0 == strcmp (subsystem, "test-statistics-api"));
@@ -46,7 +46,7 @@ check_1 (void *cls,
 static int
 check_2 (void *cls,
          const char *subsystem,
-         const char *name, unsigned long long value, int is_persistent)
+         const char *name, uint64_t value, int is_persistent)
 {
   GNUNET_assert (0 == strcmp (name, "test-2"));
   GNUNET_assert (0 == strcmp (subsystem, "test-statistics-api"));
@@ -58,7 +58,7 @@ check_2 (void *cls,
 static int
 check_3 (void *cls,
          const char *subsystem,
-         const char *name, unsigned long long value, int is_persistent)
+         const char *name, uint64_t value, int is_persistent)
 {
   GNUNET_assert (0 == strcmp (name, "test-3"));
   GNUNET_assert (0 == strcmp (subsystem, "test-statistics-api"));
