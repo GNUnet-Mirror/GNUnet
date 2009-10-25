@@ -234,7 +234,6 @@ GNUNET_PEERINFO_for_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct ListAllPeersMessage *lapm;
   struct ListPeerMessage *lpm;
   struct InfoContext *ihc;
-  size_t hs;
 
   client = GNUNET_CLIENT_connect (sched, "peerinfo", cfg);
   if (client == NULL)
@@ -253,14 +252,14 @@ GNUNET_PEERINFO_for_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (peer == NULL)
     {
       lapm = (struct ListAllPeersMessage *) &ihc[1];
-      lapm->header.size = htons (hs = sizeof (struct ListAllPeersMessage));
+      lapm->header.size = htons (sizeof (struct ListAllPeersMessage));
       lapm->header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_GET_ALL);
       lapm->trust_change = htonl (trust_delta);
     }
   else
     {
       lpm = (struct ListPeerMessage *) &ihc[1];
-      lpm->header.size = htons (hs = sizeof (struct ListPeerMessage));
+      lpm->header.size = htons (sizeof (struct ListPeerMessage));
       lpm->header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_GET);
       lpm->trust_change = htonl (trust_delta);
       memcpy (&lpm->peer, peer, sizeof (struct GNUNET_PeerIdentity));
