@@ -13,7 +13,6 @@ SUBDIRS = \
   arm \
   fragmentation \
   hello \
-  nat \
   peerinfo \
   statistics \
   datacache \
@@ -24,5 +23,6 @@ SUBDIRS = \
   testing \
   $(HOSTLIST_DIR) \
   topology \
-  fs
+  fs \
+  nat
 

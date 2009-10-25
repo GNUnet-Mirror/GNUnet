@@ -84,8 +84,13 @@ struct GNUNET_STATISTICS_Handle
 /**
  * Destroy a handle (free all state associated with
  * it).
+ *
+ * @param h statistics handle to destroy
+ * @param sync_first set to GNUNET_YES if pending SET requests should
+ *        be completed
  */
-void GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *handle);
+void GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
+				int sync_first);
 
 
 /**

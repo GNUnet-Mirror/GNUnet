@@ -161,6 +161,11 @@ struct GNUNET_STATISTICS_Handle
    */
   struct ActionItem *current;
 
+  /**
+   * Should this handle auto-destruct once all actions have
+   * been processed?
+   */
+  int do_destroy;
 
 };
 
@@ -198,60 +203,27 @@ free_action_item (struct ActionItem *ai)
 }
 
 
-/**
- * Get handle for the statistics service.
- *
- * @param sched scheduler to use
- * @param subsystem name of subsystem using the service
- * @param cfg services configuration in use
- * @return handle to use
- */
-struct GNUNET_STATISTICS_Handle *
-GNUNET_STATISTICS_create (struct GNUNET_SCHEDULER_Handle *sched,
-                          const char *subsystem,
-                          const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  struct GNUNET_STATISTICS_Handle *ret;
 
-  GNUNET_assert (subsystem != NULL);
-  GNUNET_assert (sched != NULL);
-  GNUNET_assert (cfg != NULL);
-  ret = GNUNET_malloc (sizeof (struct GNUNET_STATISTICS_Handle));
-  ret->sched = sched;
-  ret->cfg = cfg;
-  ret->subsystem = GNUNET_strdup (subsystem);
-  try_connect (ret);
-  return ret;
-}
 
 
 /**
- * Destroy a handle (free all state associated with
- * it).
+ * Schedule the next action to be performed.
  */
-void
-GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h)
+static void schedule_action (struct GNUNET_STATISTICS_Handle *h);
+
+
+/**
+ * GET processing is complete, tell client about it.
+ */
+static void
+finish (struct GNUNET_STATISTICS_Handle *h, int code)
 {
-  struct ActionItem *pos;
-  if (NULL != h->th)
-    {
-      GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
-      h->th = NULL;
-    }
-  if (h->current != NULL)
-    free_action_item (h->current);
-  while (NULL != (pos = h->action_head))
-    {
-      h->action_head = pos->next;
-      free_action_item (pos);
-    }
-  if (h->client != NULL)
-    {
-      GNUNET_CLIENT_disconnect (h->client);
-      h->client = NULL;
-    }
-  GNUNET_free (h->subsystem);
-  GNUNET_free (h);
+  struct ActionItem *pos = h->current;
+  h->current = NULL;
+  schedule_action (h);
+  if (pos->cont != NULL)
+    pos->cont (pos->cls, code);
+  free_action_item (pos);
 }
 
 
@@ -305,28 +277,6 @@ process_message (struct GNUNET_STATISTICS_Handle *h,
       h->current->aborted = GNUNET_YES;
     }
   return GNUNET_OK;
-}
-
-
-
-/**
- * Schedule the next action to be performed.
- */
-static void schedule_action (struct GNUNET_STATISTICS_Handle *h);
-
-
-/**
- * GET processing is complete, tell client about it.
- */
-static void
-finish (struct GNUNET_STATISTICS_Handle *h, int code)
-{
-  struct ActionItem *pos = h->current;
-  h->current = NULL;
-  schedule_action (h);
-  if (pos->cont != NULL)
-    pos->cont (pos->cls, code);
-  free_action_item (pos);
 }
 
 
@@ -507,6 +457,127 @@ transmit_action (void *cls, size_t size, void *buf)
 
 
 /**
+ * Get handle for the statistics service.
+ *
+ * @param sched scheduler to use
+ * @param subsystem name of subsystem using the service
+ * @param cfg services configuration in use
+ * @return handle to use
+ */
+struct GNUNET_STATISTICS_Handle *
+GNUNET_STATISTICS_create (struct GNUNET_SCHEDULER_Handle *sched,
+                          const char *subsystem,
+                          const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  struct GNUNET_STATISTICS_Handle *ret;
+
+  GNUNET_assert (subsystem != NULL);
+  GNUNET_assert (sched != NULL);
+  GNUNET_assert (cfg != NULL);
+  ret = GNUNET_malloc (sizeof (struct GNUNET_STATISTICS_Handle));
+  ret->sched = sched;
+  ret->cfg = cfg;
+  ret->subsystem = GNUNET_strdup (subsystem);
+  try_connect (ret);
+  return ret;
+}
+
+
+/**
+ * Destroy a handle (free all state associated with
+ * it).
+ *
+ * @param h statistics handle to destroy
+ * @param sync_first set to GNUNET_YES if pending SET requests should
+ *        be completed
+ */
+void
+GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
+			   int sync_first)
+{
+  struct ActionItem *pos;
+  struct ActionItem *next;
+  struct ActionItem *prev;
+  struct GNUNET_TIME_Relative timeout;
+
+  if (sync_first)
+    {
+      if (h->current != NULL)
+	{
+	  if (h->current->type == ACTION_GET)
+	    {
+	      GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
+	      h->th = NULL;
+	    }
+	}
+      pos = h->action_head;
+      prev = NULL;
+      while (pos != NULL)
+	{
+	  next = pos->next;
+	  if (pos->type == ACTION_GET)
+	    {
+	      if (prev == NULL)
+		h->action_head = next;
+	      else
+		prev->next = next;
+	      free_action_item (pos);
+	    }
+	  else
+	    {
+	      prev = pos;
+	    }
+	  pos = next;
+	}
+      h->action_tail = prev;
+      if (h->current == NULL)
+	{
+	  h->current = h->action_head;
+	  if (h->action_head != NULL)
+	    {
+	      h->action_head = h->action_head->next;
+	      if (h->action_head == NULL)
+		h->action_tail = NULL;
+	    }
+	}
+      if ( (h->current != NULL) &&
+	   (h->th == NULL) )
+	{					
+	  timeout = GNUNET_TIME_absolute_get_remaining (h->current->timeout);
+	  h->th = GNUNET_CLIENT_notify_transmit_ready (h->client,
+						       h->current->msize,
+						       timeout,
+						       GNUNET_YES,
+						       &transmit_action, h);
+	  GNUNET_assert (NULL != h->th);
+	}
+      h->do_destroy = GNUNET_YES;
+      return;
+    }
+  if (NULL != h->th)
+    {
+      GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
+      h->th = NULL;
+    }
+  if (h->current != NULL)
+    free_action_item (h->current);
+  while (NULL != (pos = h->action_head))
+    {
+      h->action_head = pos->next;
+      free_action_item (pos);
+    }
+  if (h->client != NULL)
+    {
+      GNUNET_CLIENT_disconnect (h->client);
+      h->client = NULL;
+    }
+  GNUNET_free (h->subsystem);
+  GNUNET_free (h);
+}
+
+
+
+/**
  * Schedule the next action to be performed.
  */
 static void
@@ -525,7 +596,14 @@ schedule_action (struct GNUNET_STATISTICS_Handle *h)
   /* schedule next action */
   h->current = h->action_head;
   if (NULL == h->current)
-    return;
+    {
+      if (h->do_destroy)
+	{
+	  h->do_destroy = GNUNET_NO;
+	  GNUNET_STATISTICS_destroy (h, GNUNET_YES);
+	}
+      return;
+    }
   h->action_head = h->action_head->next;
   if (NULL == h->action_head)
     h->action_tail = NULL;
@@ -590,6 +668,7 @@ GNUNET_STATISTICS_get (struct GNUNET_STATISTICS_Handle *handle,
 
   GNUNET_assert (handle != NULL);
   GNUNET_assert (proc != NULL);
+  GNUNET_assert (GNUNET_NO == handle->do_destroy);
   if (GNUNET_YES != try_connect (handle))
     {
 #if DEBUG_STATISTICS
@@ -673,6 +752,7 @@ GNUNET_STATISTICS_set (struct GNUNET_STATISTICS_Handle *handle,
                        const char *name,
                        uint64_t value, int make_persistent)
 {
+  GNUNET_assert (GNUNET_NO == handle->do_destroy);
   add_setter_action (handle, name, make_persistent, value, ACTION_SET);
 }
 
@@ -691,6 +771,7 @@ GNUNET_STATISTICS_update (struct GNUNET_STATISTICS_Handle *handle,
                           const char *name,
                           int64_t delta, int make_persistent)
 {
+  GNUNET_assert (GNUNET_NO == handle->do_destroy);
   add_setter_action (handle, name, make_persistent,
                      (unsigned long long) delta, ACTION_UPDATE);
 }

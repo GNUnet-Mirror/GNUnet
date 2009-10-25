@@ -91,7 +91,8 @@ cleanup (void *cls, int success)
   if (success != GNUNET_OK)
     ret = 1;
   if (h != NULL)
-    GNUNET_STATISTICS_destroy (h);
+    GNUNET_STATISTICS_destroy (h,
+			       GNUNET_NO);
 }
 
 
@@ -130,7 +131,7 @@ run (void *cls,
           return;
         }
       GNUNET_STATISTICS_set (h, name, (uint64_t) val, persistent);
-      GNUNET_STATISTICS_destroy (h);
+      GNUNET_STATISTICS_destroy (h, GNUNET_YES);
       return;
     }
   h = GNUNET_STATISTICS_create (sched, "gnunet-statistics", cfg);

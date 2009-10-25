@@ -74,7 +74,7 @@ next_fin (void *cls, int success)
 {
   int *ok = cls;
 
-  GNUNET_STATISTICS_destroy (h);
+  GNUNET_STATISTICS_destroy (h, GNUNET_NO);
   GNUNET_assert (success == GNUNET_OK);
   *ok = 0;
 }
