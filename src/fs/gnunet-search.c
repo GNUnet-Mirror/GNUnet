@@ -179,7 +179,8 @@ run (void *cls,
     }
   sc = GNUNET_FS_search_start (ctx,
 			       uri,
-			       anonymity);
+			       anonymity,
+			       NULL);
   GNUNET_FS_uri_destroy (uri);
   if (NULL == sc)
     {

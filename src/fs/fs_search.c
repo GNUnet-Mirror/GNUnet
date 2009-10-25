@@ -268,6 +268,7 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
  * @param uri specifies the search parameters; can be
  *        a KSK URI or an SKS URI.
  * @param anonymity desired level of anonymity
+ * @param cctx client context
  * @param parent parent search (for namespace update searches)
  * @return context that can be used to control the search
  */
@@ -275,6 +276,7 @@ static struct GNUNET_FS_SearchContext *
 search_start (struct GNUNET_FS_Handle *h,
 	      const struct GNUNET_FS_Uri *uri,
 	      uint32_t anonymity,
+	      void *cctx,
 	      struct GNUNET_FS_SearchContext *parent);
 
 
@@ -336,6 +338,7 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc,
   search_start (sc->h,
 		&uu,
 		sc->anonymity,
+		NULL,
 		sc);
 }
 
@@ -733,6 +736,7 @@ try_reconnect (struct GNUNET_FS_SearchContext *sc)
  * @param uri specifies the search parameters; can be
  *        a KSK URI or an SKS URI.
  * @param anonymity desired level of anonymity
+ * @param cctx initial value for the client context
  * @param parent parent search (for namespace update searches)
  * @return context that can be used to control the search
  */
@@ -740,6 +744,7 @@ static struct GNUNET_FS_SearchContext *
 search_start (struct GNUNET_FS_Handle *h,
 	      const struct GNUNET_FS_Uri *uri,
 	      uint32_t anonymity,
+	      void *cctx,
 	      struct GNUNET_FS_SearchContext *parent)
 {
   struct GNUNET_FS_SearchContext *sc;
@@ -780,6 +785,7 @@ search_start (struct GNUNET_FS_Handle *h,
   sc->client = client;  
   sc->parent = parent;
   sc->master_result_map = GNUNET_CONTAINER_multihashmap_create (16);
+  sc->client_info = cctx;
 
   sc->requests = GNUNET_malloc (sizeof (struct SearchRequestEntry) *
 				sc->uri->data.ksk.keywordCount);
@@ -827,14 +833,16 @@ search_start (struct GNUNET_FS_Handle *h,
  * @param uri specifies the search parameters; can be
  *        a KSK URI or an SKS URI.
  * @param anonymity desired level of anonymity
+ * @param cctx initial value for the client context
  * @return context that can be used to control the search
  */
 struct GNUNET_FS_SearchContext *
 GNUNET_FS_search_start (struct GNUNET_FS_Handle *h,
 			const struct GNUNET_FS_Uri *uri,
-			uint32_t anonymity)
+			uint32_t anonymity,
+			void *cctx)
 {
-  return search_start (h, uri, anonymity, NULL);
+  return search_start (h, uri, anonymity, cctx, NULL);
 }
 
 

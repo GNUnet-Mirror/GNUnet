@@ -114,7 +114,8 @@ progress_cb (void *cls,
       start = GNUNET_TIME_absolute_get ();
       search = GNUNET_FS_search_start (fs,
 				       kuri,
-				       1);
+				       1,
+				       "search");
       GNUNET_FS_uri_destroy (kuri);
       GNUNET_assert (search != NULL);
       break;
@@ -165,7 +166,7 @@ progress_cb (void *cls,
       break;
     case GNUNET_FS_STATUS_SEARCH_START:
       GNUNET_assert (search == NULL);
-      //  GNUNET_assert (0 == strcmp ("search", event->value.search.cctx));
+      GNUNET_assert (0 == strcmp ("search", event->value.search.cctx));
       GNUNET_assert (1 == event->value.search.anonymity);
       break;
     case GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED:

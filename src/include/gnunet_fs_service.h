@@ -2153,13 +2153,14 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
  * @param uri specifies the search parameters; can be
  *        a KSK URI or an SKS URI.
  * @param anonymity desired level of anonymity
+ * @param cctx initial value for the client context
  * @return context that can be used to control the search
  */
-// FIXME: add a "void *" context for the client to arguments!?
 struct GNUNET_FS_SearchContext *
 GNUNET_FS_search_start (struct GNUNET_FS_Handle *h,
 			const struct GNUNET_FS_Uri *uri,
-			uint32_t anonymity);
+			uint32_t anonymity,
+			void *cctx);
 
 
 /**

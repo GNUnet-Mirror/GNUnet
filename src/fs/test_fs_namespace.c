@@ -108,7 +108,7 @@ publish_cont (void *cls,
 
   GNUNET_assert (NULL == emsg);
   fprintf (stderr, "Starting namespace search...\n");
-  search = GNUNET_FS_search_start (fs, uri, 1);
+  search = GNUNET_FS_search_start (fs, uri, 1, "ns-search");
 }
 
 
