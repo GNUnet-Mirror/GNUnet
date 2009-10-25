@@ -343,6 +343,7 @@ cron_scan_directory_data_hosts (void *cls,
   unsigned int count;
 
   count = 0;
+  GNUNET_DISK_directory_create (networkIdDirectory);
   GNUNET_DISK_directory_scan (networkIdDirectory,
                               &hosts_directory_scan_callback, &count);
   if ((0 == count) && (0 == (++retries & 31)))
