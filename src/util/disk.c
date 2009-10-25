@@ -260,6 +260,7 @@ int GNUNET_DISK_file_get_identifiers (const char *filename,
     {
       *dev = (uint32_t) fbuf.f_fsid;
       *ino = (uint64_t) sbuf.st_ino;
+      return GNUNET_OK;
     }
 #endif 
   return GNUNET_SYSERR;
