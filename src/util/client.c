@@ -221,9 +221,11 @@ finish_cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 void
 GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock)
 {
-  GNUNET_assert (sock->sock != NULL);
-  GNUNET_CONNECTION_destroy (sock->sock);
-  sock->sock = NULL;
+  if (sock->sock != NULL)
+    {
+      GNUNET_CONNECTION_destroy (sock->sock);
+      sock->sock = NULL;
+    }
   sock->receiver_handler = NULL;
   if (sock->in_receive == GNUNET_YES)
     sock->in_receive = GNUNET_SYSERR;
