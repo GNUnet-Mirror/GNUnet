@@ -482,13 +482,6 @@ block_proc (void *cls,
   struct PutContCtx * dpc_cls;
   struct OnDemandBlock odb;
 
-#if DEBUG_PUBLISH
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Publishing block `%s' for offset %llu with size %u\n",
-	      GNUNET_h2s (query),
-	      (unsigned long long) offset,
-	      (unsigned int) block_size);
-#endif
   p = sc->fi_pos;
   if (NULL == sc->dsh)
     {
@@ -510,10 +503,17 @@ block_proc (void *cls,
   dpc_cls->cont_cls = sc;
   dpc_cls->sc = sc;
   dpc_cls->p = p;
-  if ( (p->is_directory) &&
-       (p->data.file.do_index) &&
+  if ( (! p->is_directory) &&
+       (GNUNET_YES == p->data.file.do_index) &&
        (type == GNUNET_DATASTORE_BLOCKTYPE_DBLOCK) )
     {
+#if DEBUG_PUBLISH
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Indexing block `%s' for offset %llu with index size %u\n",
+		  GNUNET_h2s (query),
+		  (unsigned long long) offset,
+		  sizeof (struct OnDemandBlock));
+#endif
       odb.offset = offset;
       odb.file_id = p->data.file.file_id;
       GNUNET_DATASTORE_put (sc->dsh,
@@ -530,6 +530,13 @@ block_proc (void *cls,
 			    dpc_cls);	  
       return;
     }
+#if DEBUG_PUBLISH
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Publishing block `%s' for offset %llu with size %u\n",
+	      GNUNET_h2s (query),
+	      (unsigned long long) offset,
+	      (unsigned int) block_size);
+#endif
   GNUNET_DATASTORE_put (sc->dsh,
 			sc->rid,
 			query,
@@ -702,6 +709,7 @@ process_index_start_response (void *cls,
       publish_content (sc);
       return;
     }
+  p->data.file.index_start_confirmed = GNUNET_YES;
   /* success! continue with indexing */
   publish_content (sc);
 }
@@ -738,6 +746,11 @@ hash_for_index_cb (void *cls,
       publish_content (sc);
       return;
     }
+  if (GNUNET_YES == p->data.file.index_start_confirmed)
+    {
+      publish_content (sc);
+      return;
+    }
   slen = strlen (p->data.file.filename) + 1;
   if (slen > GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof(struct IndexStartMessage))
     {
@@ -749,6 +762,12 @@ hash_for_index_cb (void *cls,
       publish_content (sc);
       return;
     }
+#if DEBUG_PUBLISH
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Hash of indexed file `%s' is `%s'\n",
+	      p->data.file.filename,
+	      GNUNET_h2s (res));
+#endif
   client = GNUNET_CLIENT_connect (sc->h->sched,
 				  "fs",
 				  sc->h->cfg);
@@ -763,6 +782,7 @@ hash_for_index_cb (void *cls,
       return;
     }
   p->data.file.file_id = *res;
+  p->data.file.have_hash = GNUNET_YES;
   ism = GNUNET_malloc (sizeof(struct IndexStartMessage) +
 		       slen);
   ism->header.size = htons(sizeof(struct IndexStartMessage) +
@@ -776,6 +796,13 @@ hash_for_index_cb (void *cls,
       ism->device = htonl (dev);
       ism->inode = GNUNET_htonll(ino);
     }
+  else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Failed to get file identifiers for `%s'\n"),
+		  p->data.file.filename);
+    }
+  ism->file_id = *res;
   memcpy (&ism[1],
 	  p->data.file.filename,
 	  slen);
@@ -877,13 +904,17 @@ do_upload (void *cls,
 	  publish_content (sc);
 	  return;
 	}      
-      GNUNET_CRYPTO_hash_file (sc->h->sched,
-			       GNUNET_SCHEDULER_PRIORITY_IDLE,
-			       GNUNET_NO,
-			       p->data.file.filename,
-			       HASHING_BLOCKSIZE,
-			       &hash_for_index_cb,
-			       sc);
+      if (p->data.file.have_hash)
+	hash_for_index_cb (sc,
+			   &p->data.file.file_id);
+      else
+	GNUNET_CRYPTO_hash_file (sc->h->sched,
+				 GNUNET_SCHEDULER_PRIORITY_IDLE,
+				 GNUNET_NO,
+				 p->data.file.filename,
+				 HASHING_BLOCKSIZE,
+				 &hash_for_index_cb,
+				 sc);
       return;
     }
   publish_content (sc);

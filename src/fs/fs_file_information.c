@@ -202,6 +202,7 @@ GNUNET_FS_file_information_create_from_file (void *client_info,
 {
   struct FileInfo *fi;
   struct stat sbuf;
+  struct GNUNET_FS_FileInformation *ret;
 
   if (0 != STAT (filename, &sbuf))
     {
@@ -212,16 +213,18 @@ GNUNET_FS_file_information_create_from_file (void *client_info,
     }
   fi = GNUNET_malloc (sizeof(struct FileInfo));
   fi->filename = GNUNET_strdup (filename);
-  return GNUNET_FS_file_information_create_from_reader (client_info,
-							sbuf.st_size,
-							&data_reader_file,
-							fi,
-							keywords,
-							meta,
-							do_index,
-							anonymity,
-							priority,
-							expirationTime);
+  ret = GNUNET_FS_file_information_create_from_reader (client_info,
+						       sbuf.st_size,
+						       &data_reader_file,
+						       fi,
+						       keywords,
+						       meta,
+						       do_index,
+						       anonymity,
+						       priority,
+						       expirationTime);
+  ret->data.file.filename = GNUNET_strdup (filename);
+  return ret;
 }
 
 

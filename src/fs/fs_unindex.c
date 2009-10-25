@@ -20,12 +20,9 @@
 
 /**
  * @file fs/fs_unindex.c
- * @author Krista Bennett
+ * @author Krista Grothoff
  * @author Christian Grothoff
  * @brief Unindex file.
- *
- * TODO:
- * - code cleanup (share more with upload.c)
  */
 #include "platform.h"
 #include "gnunet_constants.h"

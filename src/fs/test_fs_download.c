@@ -116,7 +116,7 @@ progress_cb (void *cls,
     case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
       printf ("Publishing complete, %llu kbps.\n",
 	      (unsigned long long) (FILESIZE * 1000 / (1+GNUNET_TIME_absolute_get_duration (start).value) / 1024));
-      fn = GNUNET_DISK_mktemp ("gnunet-download-test-dstXXXXXX");
+      fn = GNUNET_DISK_mktemp ("gnunet-download-test-dst");
       start = GNUNET_TIME_absolute_get ();
       download = GNUNET_FS_download_start (fs,
 					   event->value.publish.specifics.completed.chk_uri,

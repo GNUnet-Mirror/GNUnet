@@ -367,6 +367,18 @@ struct GNUNET_FS_FileInformation
        */
       int do_index;
 
+      /**
+       * Is "file_id" already valid?  Set to GNUNET_YES
+       * once the hash has been calculated.
+       */
+      int have_hash;
+
+      /**
+       * Has the service confirmed our INDEX_START request?
+       * GNUNET_YES if this step has been completed.
+       */
+      int index_start_confirmed;
+
     } file;
 
     /**

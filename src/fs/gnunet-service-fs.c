@@ -990,8 +990,14 @@ hash_for_index_val (void *cls,
 		     sizeof(GNUNET_HashCode))) )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Hash mismatch trying to index file `%s'\n"),
-		  ii->filename);
+		  _("Hash mismatch trying to index file `%s' which has hash `%s'\n"),
+		  ii->filename,
+		  GNUNET_h2s (res));
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Wanted `%s'\n",
+		  GNUNET_h2s (&ii->file_id));
+#endif
       GNUNET_SERVER_transmit_context_append (ii->tc,
 					     NULL, 0,
 					     GNUNET_MESSAGE_TYPE_FS_INDEX_START_FAILED);
@@ -1058,6 +1064,14 @@ handle_index_start (void *cls,
       signal_index_ok (ii);
       return;
     }
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Mismatch in file identifiers (%llu != %llu or %u != %u), need to hash.\n",
+	      (unsigned long long) ino,
+	      (unsigned long long) myino,
+	      (unsigned int) dev,
+	      (unsigned int) mydev);
+#endif
   /* slow validation, need to hash full file (again) */
   GNUNET_CRYPTO_hash_file (sched,
 			   GNUNET_SCHEDULER_PRIORITY_IDLE,
@@ -1165,7 +1179,13 @@ handle_unindex (void *cls,
 	}
       pos = next;
     }
-  if (GNUNET_YES == found)
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Client requested unindexing of file `%s': %s\n",
+	      GNUNET_h2s (&um->file_id),
+	      found ? "found" : "not found");
+#endif
+  if (GNUNET_YES == found)    
     write_index_list ();
   tc = GNUNET_SERVER_transmit_context_create (client);
   GNUNET_SERVER_transmit_context_append (tc,

@@ -118,6 +118,7 @@ TESTS = \
  test_fs_download \
  test_fs_search \
  test_fs_start_stop \
+ test_fs_unindex \
  test_fs_uri
 # $(check_PROGRAMS)
 

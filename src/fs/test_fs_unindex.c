@@ -29,7 +29,7 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_fs_service.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define START_ARM GNUNET_YES
 
@@ -248,7 +248,7 @@ run (void *cls,
 
   sched = s;
   setup_peer (&p1, "test_fs_unindex_data.conf");
-  fn = GNUNET_DISK_mktemp ("gnunet-unindex-test-dstXXXXXX");
+  fn = GNUNET_DISK_mktemp ("gnunet-unindex-test-dst");
   fs = GNUNET_FS_start (sched,
 			cfg,
 			"test-fs-unindex",
