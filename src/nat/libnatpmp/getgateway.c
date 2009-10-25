@@ -339,13 +339,13 @@ getdefaultgateway (int *af, u_int8_t addr[16])
     }
 
 
-  if (gate != NULL && ((struct sockaddr_in *) gate)->sa_family == AF_INET)
+  if (gate != NULL && gate->sa_family == AF_INET)
     {
       *addr = ((struct sockaddr_in *) gate)->sin_addr.s_addr;
       *af = AF_INET;
       return SUCCESS;
     }
-  else if (gate != NULL && ((struct sockaddr_in *) gate)->sa_family == AF_INET6)
+  else if (gate != NULL && gate->sa_family == AF_INET6)
     {
       *addr = ((struct sockaddr_in6 *) gate)->sin6_addr.s6_addr;
       *af = AF_INET6;
