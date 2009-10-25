@@ -347,7 +347,7 @@ getdefaultgateway (int *af, u_int8_t addr[16])
     }
   else if (gate != NULL && gate->sa_family == AF_INET6)
     {
-      *addr = ((struct sockaddr_in6 *) gate)->sin6_addr.s6_addr;
+      memcpy (addr, ((struct sockaddr_in6 *) gate)->sin6_addr.s6_addr, 16 * sizeof (u_int8_t));
       *af = AF_INET6;
       return SUCCESS;
     }
