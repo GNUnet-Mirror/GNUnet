@@ -758,7 +758,7 @@ GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
 	{
 	  proc (proc_cls, 
 		pos,
-		pos->data.dir.dir_size,
+		(pos->is_directory) ? pos->data.dir.dir_size : pos->data.file.file_size,
 		pos->meta,
 		&pos->keywords,
 		&pos->anonymity,
