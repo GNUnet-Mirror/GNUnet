@@ -77,10 +77,14 @@ check ()
   GNUNET_log_skip (0, GNUNET_NO);
   GNUNET_assert (rel.value == GNUNET_TIME_UNIT_FOREVER_REL.value);
 
-  GNUNET_assert (GNUNET_TIME_relative_add (relForever, relForever).value ==
-                 relForever.value);
-  GNUNET_assert (GNUNET_TIME_relative_add (relUnit, relUnit).value ==
-                 2 * relUnit.value);
+  GNUNET_log_skip (1, GNUNET_NO);
+  rel = GNUNET_TIME_relative_add (relForever, relForever);
+  GNUNET_log_skip (0, GNUNET_NO);
+  GNUNET_assert (rel.value == relForever.value);
+
+  GNUNET_log_skip (1, GNUNET_NO);
+  rel = GNUNET_TIME_relative_add (relUnit, relUnit);
+  GNUNET_assert (rel.value == 2 * relUnit.value);
 
   /* check relation check in get_duration */
   future.value = now.value + 1000000;
