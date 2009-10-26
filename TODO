@@ -13,19 +13,6 @@ away), in order in which they will likely be done:
 * UPNP
 
 Urgent items (before announcing ng.gnunet.org):
-* FS (basic anonymous FS only)
-  - implement FS service (P2P operations)
-    + how to send queries (soliciting is not there in core; do we
-      also want to do pushing sometimes?)
-    + need to bound queueing of replies for other peers    
-  - implement testcases 
-    + sharing API
-      ~ file-information
-* CORE:
-  - soliciting traffic for clients that registered for it is not implemented
-    (in the service, client API supports GNUNET_MESSAGE_TYPE_CORE_SOLICIT_TRAFFIC
-     but never receives any such messages); how to avoid busy-waiting here
-     is a good question (solicit => nothing, when to solicit again???)
 * TESTING (needed for DV, DHT, Topology)
   - implement library for local testing
     + modify configuration to allow controlling connections for non-local starts
@@ -38,6 +25,17 @@ Urgent items (before announcing ng.gnunet.org):
 * TEST:
   - topology (needs TESTING)
   - hostlist (maybe easier with TESTING?)
+* CORE:
+  - soliciting traffic for clients that registered for it is not implemented
+    (in the service, client API supports GNUNET_MESSAGE_TYPE_CORE_SOLICIT_TRAFFIC
+     but never receives any such messages); how to avoid busy-waiting here
+     is a good question (solicit => nothing, when to solicit again???)
+* FS (basic anonymous FS only)
+  - implement FS service (P2P operations)
+    + how to send queries (soliciting is not there in core; do we
+      also want to do pushing sometimes?)
+    + need to bound queueing of replies for other peers    
+  - test multi-peer search/download
 * new webpage
   - prevent?
   - migrate Mantis!?
