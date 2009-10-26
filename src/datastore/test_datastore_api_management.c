@@ -361,7 +361,7 @@ main (int argc, char *argv[])
 {
   int ret;
   
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-datastore");
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-datastore");
   GNUNET_log_setup ("test-datastore-api",
 #if VERBOSE
                     "DEBUG",
@@ -370,7 +370,7 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-datastore");
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-datastore");
   return ret;
 }
 
