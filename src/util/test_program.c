@@ -36,19 +36,20 @@ static struct GNUNET_GETOPT_CommandLineOption options1[] = {
 
 static struct GNUNET_GETOPT_CommandLineOption options2[] = {
   {'n', "name", NULL, "description", 0, &GNUNET_GETOPT_set_one, &setme1},
-  {'N', "number", NULL, "description", 0, &GNUNET_GETOPT_set_one, &setme2}
+  {'N', "number", NULL, "description", 0, &GNUNET_GETOPT_set_one, &setme2},
+  GNUNET_GETOPT_OPTION_END
 };
 
 static struct GNUNET_GETOPT_CommandLineOption options3[] = {
   {'N', "number", NULL, "description", 0, &GNUNET_GETOPT_set_one, &setme1},
-  {'n', "name", NULL, "description", 0, &GNUNET_GETOPT_set_one, &setme2}
-
+  {'n', "name", NULL, "description", 0, &GNUNET_GETOPT_set_one, &setme2},
+  GNUNET_GETOPT_OPTION_END
 };
 
 static struct GNUNET_GETOPT_CommandLineOption options4[] = {
   {'n', "name", NULL, "description", 0, &GNUNET_GETOPT_set_one, &setme1},
-  {'n', "number", NULL, "description", 0, &GNUNET_GETOPT_set_one, &setme2}
-
+  {'n', "number", NULL, "description", 0, &GNUNET_GETOPT_set_one, &setme2},
+  GNUNET_GETOPT_OPTION_END
 };
 
 /**
