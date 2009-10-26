@@ -118,7 +118,7 @@ check_PROGRAMS = \
 
 TESTS = \
  test_fs_directory \
- test_fs_download \ 
+ test_fs_download \
  test_fs_file_information \
  test_fs_search \
  test_fs_start_stop \
