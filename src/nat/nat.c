@@ -312,16 +312,24 @@ GNUNET_NAT_register (struct GNUNET_SCHEDULER_Handle *sched,
     {
       GNUNET_assert (addr->sa_family == AF_INET
                      || addr->sa_family == AF_INET6);
+      nat->local_addr = GNUNET_malloc (addrlen);
+      memcpy (nat->local_addr, addr, addrlen);
+
       if (addr->sa_family == AF_INET)
         {
           nat->public_port = ntohs (((struct sockaddr_in *) addr)->sin_port);
-//          ((struct sockaddr_in *) addr)->sin_port = 0;
+          ((struct sockaddr_in *) nat->local_addr)->sin_port = 0;
         }
       else if (addr->sa_family == AF_INET6)
         {
           nat->public_port = ntohs (((struct sockaddr_in6 *) addr)->sin6_port);
-//          ((struct sockaddr_in6 *) addr)->sin6_port = 0;
+          ((struct sockaddr_in6 *) nat->local_addr)->sin6_port = 0;
         }
+    }
+  else
+    {
+      nat->local_addr = NULL;
+      nat->public_port = 0;
     }
 
   nat->should_change = GNUNET_YES;
@@ -333,8 +341,6 @@ GNUNET_NAT_register (struct GNUNET_SCHEDULER_Handle *sched,
   nat->callback_cls = callback_cls;
   nat->ext_addr = NULL;
   nat->contact_addr = NULL;
-  nat->local_addr = GNUNET_malloc (addrlen);
-  memcpy (nat->local_addr, addr, addrlen);
   nat->natpmp = GNUNET_NAT_NATPMP_init (nat->local_addr, addrlen, nat->public_port);
   nat->upnp = GNUNET_NAT_UPNP_init (nat->local_addr, addrlen, nat->public_port);
 
