@@ -135,7 +135,9 @@ socket_set_nosigpipe (const struct GNUNET_NETWORK_Handle
 		    *h)
 {
   int value = 1;
-  setsockopt (h->fd, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof(value));
+  if (0 != setsockopt (h->fd, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof(value)))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			 "setsockopt");
 }
 #endif
 
