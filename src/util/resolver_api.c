@@ -553,6 +553,7 @@ GNUNET_RESOLVER_hostname_get (struct GNUNET_SCHEDULER_Handle *sched,
       callback (cls, NULL);
       GNUNET_CLIENT_disconnect (client);
       GNUNET_free (hctx);
+      return;
     }
   GNUNET_free (msg);
 }
