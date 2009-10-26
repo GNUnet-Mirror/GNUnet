@@ -384,7 +384,7 @@ block_reader (void *cls,
       pt_size = GNUNET_MIN(max,
 			   p->data.dir.dir_size - offset);
       dd = p->data.dir.dir_data;
-      memcpy (&buf,
+      memcpy (buf,
 	      &dd[offset],
 	      pt_size);
     }
