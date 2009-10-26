@@ -273,7 +273,7 @@ GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
 #endif
   /* first, check if this is a numeric address */
   if ( ( (domain == AF_UNSPEC) || (domain == AF_INET) ) && 
-       (0 == inet_pton (AF_INET,
+       (1 == inet_pton (AF_INET,
 			hostname,
 			&v4.sin_addr)) )
     {
@@ -281,7 +281,7 @@ GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
 		(const struct sockaddr*) &v4,
 		sizeof(v4));
       if ( (domain == AF_UNSPEC) && 
-	   (0 == inet_pton (AF_INET6,
+	   (1 == inet_pton (AF_INET6,
 			    hostname,
 			    &v6.sin6_addr)) )
 	{
@@ -293,8 +293,8 @@ GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
       callback (callback_cls, NULL, 0);      
       return;
     }
-  if ( ( (domain == AF_UNSPEC) ||(domain == AF_INET) ) && 
-       (0 == inet_pton (AF_INET6,
+  if ( ( (domain == AF_UNSPEC) || (domain == AF_INET6) ) && 
+       (1 == inet_pton (AF_INET6,
 			hostname,
 			&v6.sin6_addr)) )
     {
