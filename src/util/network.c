@@ -155,7 +155,10 @@ socket_set_nodelay (const struct GNUNET_NETWORK_Handle
 		    *h)
 {
   int value = 1;
-  setsockopt (h->fd, IPPROTO_TCP, TCP_NODELAY, &value, sizeof(value));
+  if (0 != setsockopt (h->fd, IPPROTO_TCP, TCP_NODELAY, &value, sizeof(value)))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			 "setsockopt");
+
 }
 
 
