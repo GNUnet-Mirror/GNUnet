@@ -1560,6 +1560,7 @@ GNUNET_FS_file_information_sync (struct GNUNET_FS_FileInformation *f);
 /**
  * Create an entry for a file in a publish-structure.
  *
+ * @param client_info initial client-info value for this entry
  * @param filename name of the file or directory to publish
  * @param keywords under which keywords should this file be available
  *         directly; can be NULL
@@ -1587,6 +1588,7 @@ GNUNET_FS_file_information_create_from_file (void *client_info,
 /**
  * Create an entry for a file in a publish-structure.
  *
+ * @param client_info initial client-info value for this entry
  * @param length length of the file
  * @param data data for the file (should not be used afterwards by
  *        the caller; callee will "free")
@@ -1640,6 +1642,7 @@ typedef size_t (*GNUNET_FS_DataReader)(void *cls,
 /**
  * Create an entry for a file in a publish-structure.
  *
+ * @param client_info initial client-info value for this entry
  * @param length length of the file
  * @param reader function that can be used to obtain the data for the file 
  * @param reader_cls closure for "reader"
@@ -1753,6 +1756,7 @@ GNUNET_FS_directory_scanner_default (void *cls,
  * passed (GNUNET_FS_directory_scanner_default).  This is strictly a
  * convenience function.
  *
+ * @param client_info initial client-info value for this entry
  * @param filename name of the top-level file or directory
  * @param scanner function used to get a list of files in a directory
  * @param scanner_cls closure for scanner
@@ -1783,9 +1787,10 @@ GNUNET_FS_file_information_create_from_directory (void *client_info,
  * use of "GNUNET_FS_file_information_create_from_directory"
  * is not appropriate.
  *
- * @param meta metadata for the directory
+ * @param client_info initial client-info value for this entry
  * @param keywords under which keywords should this directory be available
  *         directly; can be NULL
+ * @param meta metadata for the directory
  * @param anonymity what is the desired anonymity level for sharing?
  * @param priority what is the priority for OUR node to
  *   keep this file available?  Use 0 for maximum anonymity and
@@ -1795,8 +1800,8 @@ GNUNET_FS_file_information_create_from_directory (void *client_info,
  */
 struct GNUNET_FS_FileInformation *
 GNUNET_FS_file_information_create_empty_directory (void *client_info,
-						   const struct GNUNET_CONTAINER_MetaData *meta,
 						   const struct GNUNET_FS_Uri *keywords,
+						   const struct GNUNET_CONTAINER_MetaData *meta,
 						   uint32_t anonymity,
 						   uint32_t priority,
 						   struct GNUNET_TIME_Absolute expirationTime);
