@@ -106,6 +106,7 @@ testDirectory (unsigned int i)
                        sizeof(uri),
                        "gnunet://fs/chk/C282GG70GKK41O4551011DO413KFBVTVMQG1OG30I0K4045N0G41HAPB82G680A02JRVVFO8URVRU2F159011DO41000000022RG820.RNVVVVOOLCLK065B5D04HTNVNSIB2AI022RG8200HSLK1CO1000ATQ98824DMA2032LIMG50CG0K057NVUVG200000H000004400000.%u",
                        p);
+      emsg = NULL;
       uris[p] = GNUNET_FS_uri_parse (uri, &emsg);
       if (uris[p] == NULL)
         {
@@ -121,6 +122,7 @@ testDirectory (unsigned int i)
 	  GNUNET_CONTAINER_meta_data_destroy (meta);
           ABORT ();             /* error in testcase */
         }
+      GNUNET_assert (emsg == NULL);
     }
   start = GNUNET_TIME_absolute_get ();
   db = GNUNET_FS_directory_builder_create (meta);

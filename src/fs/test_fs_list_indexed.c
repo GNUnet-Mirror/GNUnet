@@ -347,7 +347,7 @@ main (int argc, char *argv[])
                       argvx, "test-fs-list_indexed",
 		      "nohelp", options, &run, NULL);
   stop_arm (&p1);
-  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-list_indexed/");
+  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-list-indexed/");
   GNUNET_DISK_directory_remove (fn1);
   GNUNET_free_non_null (fn1);
   GNUNET_DISK_directory_remove (fn2);
