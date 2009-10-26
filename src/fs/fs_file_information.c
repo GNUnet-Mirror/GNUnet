@@ -631,8 +631,8 @@ GNUNET_FS_file_information_create_from_directory (void *client_info,
   ksk = NULL; // FIXME...
   // FIXME: create meta!
   ret = GNUNET_FS_file_information_create_empty_directory (client_info,
-							   meta,
 							   ksk,
+							   meta,
 							   anonymity,
 							   priority,
 							   expirationTime);
@@ -668,8 +668,8 @@ GNUNET_FS_file_information_create_from_directory (void *client_info,
  */
 struct GNUNET_FS_FileInformation *
 GNUNET_FS_file_information_create_empty_directory (void *client_info,
-						   const struct GNUNET_CONTAINER_MetaData *meta,
 						   const struct GNUNET_FS_Uri *keywords,
+						   const struct GNUNET_CONTAINER_MetaData *meta,
 						   uint32_t anonymity,
 						   uint32_t priority,
 						   struct GNUNET_TIME_Absolute expirationTime)
@@ -820,7 +820,7 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
 		 &fi->expirationTime,
 		 &fi->client_info);
       GNUNET_free_non_null (fi->data.dir.dir_data);
-      GNUNET_free (fi->data.dir.dirname);
+      GNUNET_free_non_null (fi->data.dir.dirname);
     }
   else
     {

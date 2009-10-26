@@ -387,7 +387,7 @@ struct GNUNET_FS_FileInformation
     struct {
       
       /**
-       * Name of the directory.
+       * Name of the directory.  FIXME: currently never set!
        */
       char *dirname;
       

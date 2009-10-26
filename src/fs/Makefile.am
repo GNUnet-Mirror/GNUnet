@@ -106,8 +106,11 @@ check_PROGRAMS = \
  test_fs_collection \
  test_fs_directory \
  test_fs_download \
+ test_fs_file_information \
  test_fs_getopt \
+ test_fs_list_indexed \
  test_fs_namespace \
+ test_fs_publish \
  test_fs_search \
  test_fs_start_stop \
  test_fs_unindex \
@@ -115,7 +118,8 @@ check_PROGRAMS = \
 
 TESTS = \
  test_fs_directory \
- test_fs_download \
+ test_fs_download \ 
+ test_fs_file_information \
  test_fs_search \
  test_fs_start_stop \
  test_fs_unindex \
@@ -141,15 +145,35 @@ test_fs_download_LDADD = \
   $(top_builddir)/src/arm/libgnunetarm.la  \
   $(top_builddir)/src/util/libgnunetutil.la  
 
+test_fs_file_information_SOURCES = \
+ test_fs_file_information.c
+test_fs_file_information_LDADD = \
+  $(top_builddir)/src/fs/libgnunetfs.la  \
+  $(top_builddir)/src/util/libgnunetutil.la  
+
 test_fs_getopt_SOURCES = \
  test_fs_getopt.c
 test_fs_getopt_LDADD = \
   $(top_builddir)/src/fs/libgnunetfs.la  \
   $(top_builddir)/src/util/libgnunetutil.la  
 
+test_fs_list_indexed_SOURCES = \
+ test_fs_list_indexed.c
+test_fs_list_indexed_LDADD = \
+  $(top_builddir)/src/fs/libgnunetfs.la  \
+  $(top_builddir)/src/arm/libgnunetarm.la  \
+  $(top_builddir)/src/util/libgnunetutil.la  
+
 test_fs_namespace_SOURCES = \
  test_fs_namespace.c
 test_fs_namespace_LDADD = \
+  $(top_builddir)/src/fs/libgnunetfs.la  \
+  $(top_builddir)/src/arm/libgnunetarm.la  \
+  $(top_builddir)/src/util/libgnunetutil.la  
+
+test_fs_publish_SOURCES = \
+ test_fs_publish.c
+test_fs_publish_LDADD = \
   $(top_builddir)/src/fs/libgnunetfs.la  \
   $(top_builddir)/src/arm/libgnunetarm.la  \
   $(top_builddir)/src/util/libgnunetutil.la  
@@ -184,7 +208,10 @@ EXTRA_DIST = \
   test_fs_data.conf \
   test_fs_collection_data.conf \
   test_fs_download_data.conf \
+  test_fs_file_information_data.conf \
+  test_fs_list_indexed_data.conf \
   test_fs_namespace_data.conf \
+  test_fs_publish_data.conf \
   test_fs_search_data.conf \
   test_fs_unindex_data.conf \
   test_fs_uri_data.conf
