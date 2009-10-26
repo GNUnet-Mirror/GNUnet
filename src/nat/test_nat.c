@@ -133,7 +133,7 @@ run (void *cls,
 }
 
 int
-main (int argc, const char *argv[])
+main (int argc, char *const argv[])
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
