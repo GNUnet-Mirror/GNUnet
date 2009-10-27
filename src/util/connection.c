@@ -771,8 +771,22 @@ try_connect_using_address (void *cls,
   if (h->sock != NULL)
     return; /* already connected */
   if (h->dns_active == GNUNET_SYSERR)
-    return; /* already destroyed */
+    {
+#if DEBUG_CONNECTION
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Connection has already been destroyed.\n");
+#endif
+      return; /* already destroyed */
+    }
   /* try to connect */
+#if DEBUG_CONNECTION
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Trying to connect using address `%s:%u/%s:%u'\n",
+	      h->hostname,
+	      h->port,
+	      GNUNET_a2s (addr, addrlen),
+	      h->port);
+#endif
   ap = GNUNET_malloc (sizeof (struct AddressProbe) + addrlen);
   ap->addr = (const struct sockaddr*) &ap[1];
   memcpy (&ap[1], addr, addrlen);

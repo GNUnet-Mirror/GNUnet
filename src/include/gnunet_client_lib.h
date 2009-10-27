@@ -64,10 +64,15 @@ struct GNUNET_CLIENT_Connection *GNUNET_CLIENT_connect (struct
                                                         *cfg);
 
 /**
- * Destroy connection with the service.  This will
- * automatically cancel any pending "receive" request
- * (however, the handler will *NOT* be called, not
- * even with a NULL message).
+ * Destroy connection with the service.  This will automatically
+ * cancel any pending "receive" request (however, the handler will
+ * *NOT* be called, not even with a NULL message).  Any pending
+ * transmission request will also be cancelled UNLESS the callback for
+ * the transmission request has already been called, in which case the
+ * transmission is guaranteed to complete before the socket is fully
+ * destroyed.
+ *
+ * @param sock handle to the service connection
  */
 void GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock);
 

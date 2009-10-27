@@ -53,6 +53,13 @@ typedef void (*GNUNET_RESOLVER_AddressCallback) (void *cls,
 
 
 /**
+ * Handle to a request given to the resolver.  Can be used to cancel
+ * the request prior to the timeout or successful execution.
+ */
+struct GNUNET_RESOLVER_RequestHandle;
+
+
+/**
  * Convert a string to one or more IP addresses.
  *
  * @param sched scheduler to use
@@ -62,8 +69,9 @@ typedef void (*GNUNET_RESOLVER_AddressCallback) (void *cls,
  * @param callback function to call with addresses
  * @param callback_cls closure for callback
  * @param timeout how long to try resolving
+ * @return handle that can be used to cancel the request, NULL on error
  */
-void
+struct GNUNET_RESOLVER_RequestHandle *
 GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
                         const struct GNUNET_CONFIGURATION_Handle *cfg,
                         const char *hostname,
@@ -82,8 +90,9 @@ GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
  * @param callback function to call with addresses
  * @param cls closure for callback
  * @param timeout how long to try resolving
+ * @return handle that can be used to cancel the request, NULL on error
  */
-void
+struct GNUNET_RESOLVER_RequestHandle *
 GNUNET_RESOLVER_hostname_resolve (struct GNUNET_SCHEDULER_Handle *sched,
                                   const struct GNUNET_CONFIGURATION_Handle *cfg,
                                   int domain,
@@ -104,7 +113,7 @@ typedef void (*GNUNET_RESOLVER_HostnameCallback) (void *cls,
 
 
 /**
- * Get an IP address as a string.
+ * Perform a reverse DNS lookup.
  *
  * @param sched scheduler to use
  * @param cfg configuration to use
@@ -114,15 +123,30 @@ typedef void (*GNUNET_RESOLVER_HostnameCallback) (void *cls,
  * @param timeout how long to try resolving
  * @param callback function to call with hostnames
  * @param cls closure for callback
+ * @return handle that can be used to cancel the request, NULL on error
  */
-void GNUNET_RESOLVER_hostname_get (struct GNUNET_SCHEDULER_Handle *sched,
-                                   const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                   const struct sockaddr *sa,
-                                   socklen_t salen,
-                                   int do_resolve,
-                                   struct GNUNET_TIME_Relative timeout,
-                                   GNUNET_RESOLVER_HostnameCallback callback,
-                                   void *cls);
+struct GNUNET_RESOLVER_RequestHandle * 
+GNUNET_RESOLVER_hostname_get (struct GNUNET_SCHEDULER_Handle *sched,
+			      const struct GNUNET_CONFIGURATION_Handle *cfg,
+			      const struct sockaddr *sa,
+			      socklen_t salen,
+			      int do_resolve,
+			      struct GNUNET_TIME_Relative timeout,
+			      GNUNET_RESOLVER_HostnameCallback callback,
+			      void *cls);
+
+
+/**
+ * Cancel a request that is still pending with the resolver.
+ * Note that a client MUST NOT cancel a request that has
+ * been completed (i.e, the callback has been called to
+ * signal timeout or the final result).
+ *
+ * @param h handle of request to cancel
+ */
+void
+GNUNET_RESOLVER_request_cancel (struct GNUNET_RESOLVER_RequestHandle *h);
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

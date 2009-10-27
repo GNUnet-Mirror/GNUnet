@@ -144,6 +144,10 @@ make_hello (void *cls, size_t size, void *buf)
 #endif
   GNUNET_assert (size >= 12);
   strcpy ((char *) buf, "Hello World");
+#if VERBOSE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test destroys client socket\n");
+#endif
+  GNUNET_CONNECTION_destroy (csock);
   return 12;
 }
 
@@ -162,13 +166,10 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
   GNUNET_assert (NULL !=
                  GNUNET_CONNECTION_notify_transmit_ready (csock,
-                                                       12,
-                                                       GNUNET_TIME_UNIT_SECONDS,
-                                                       &make_hello, NULL));
-#if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test destroys client socket\n");
-#endif
-  GNUNET_CONNECTION_destroy (csock);
+							  12,
+							  GNUNET_TIME_UNIT_SECONDS,
+							  &make_hello, 
+							  NULL));
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test prepares to accept\n");
 #endif

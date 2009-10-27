@@ -29,7 +29,7 @@
 #include "disk.h"
 #include "gnunet_container_lib.h"
 
-#define DEBUG_SOCK GNUNET_NO
+#define DEBUG_NETWORK GNUNET_YES
 
 #ifndef INVALID_SOCKET
 #define INVALID_SOCKET -1
@@ -857,7 +857,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
               if (errno == ENOTSOCK)
                 errno = EBADF;
 
-#if DEBUG_SOCK
+#if DEBUG_NETWORK
             GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "select");
 #endif
 
@@ -889,7 +889,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 
                   retcode = -1;
                   SetErrnoFromWinError (GetLastError ());
-#if DEBUG_SOCK
+#if DEBUG_NETWORK
                   GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "PeekNamedPipe");
 #endif
                   goto select_loop_end;
