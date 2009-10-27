@@ -9,8 +9,10 @@ sane end-user should care about this codebase yet anyway.
   - only connect() sockets that are ready (select()) [Nils]
     [On W32, we need to select after calling socket before
      doing connect etc.]
-* SERVER:
-  - inefficient memmove
+  - server: inefficient memmove
+  - client: should do exponential back-off (starting at 1ms,
+    bounded by 1s) when connection failed (in addition to
+    half-time-to-deadline retry at the end)
 * TRANSPORT:
   - transport_api: support forcing disconnects through low quotas!
     (required for working F2F support!)
