@@ -527,6 +527,11 @@ destroy_continuation (void *cls,
     GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock->sock));
   GNUNET_free_non_null (sock->addr);
   GNUNET_free_non_null (sock->hostname);
+#if DEBUG_CONNECTION
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Freeing memory of connection %p.\n",
+	      sock);
+#endif
   GNUNET_free (sock);
 }
 
@@ -774,7 +779,8 @@ try_connect_using_address (void *cls,
     {
 #if DEBUG_CONNECTION
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Connection has already been destroyed.\n");
+		  "Connection %p has already been destroyed.\n",
+		  h);
 #endif
       return; /* already destroyed */
     }
@@ -1565,6 +1571,11 @@ GNUNET_CONNECTION_notify_transmit_ready_cancel (struct
   GNUNET_assert (h->notify_ready != NULL);
   if (0 != (h->sh->ccs & COCO_TRANSMIT_READY))
     {
+#if DEBUG_CONNECTION
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		  "notify_transmit_ready_cancel cancels timeout_task (%p)\n",
+		  h);
+#endif
       GNUNET_SCHEDULER_cancel (h->sh->sched, h->timeout_task);
       h->timeout_task = GNUNET_SCHEDULER_NO_TASK;
       h->sh->ccs -= COCO_TRANSMIT_READY;

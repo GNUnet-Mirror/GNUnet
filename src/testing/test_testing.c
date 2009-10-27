@@ -24,7 +24,7 @@
 #include "platform.h"
 #include "gnunet_testing_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 static int ok;
 
@@ -91,7 +91,7 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-tesing", "nohelp",
+                      argv, "test-testing", "nohelp",
                       options, &run, &ok);
   return ok;
 }

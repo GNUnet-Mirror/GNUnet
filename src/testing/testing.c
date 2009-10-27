@@ -40,13 +40,13 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_transport_service.h"
 
-#define DEBUG_TESTING GNUNET_NO
+#define DEBUG_TESTING GNUNET_YES
 
 /**
  * How long do we wait after starting gnunet-service-arm
  * for the core service to be alive?
  */
-#define ARM_START_WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
+#define ARM_START_WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2)
 
 /**
  * How many times are we willing to try to wait for "scp" or

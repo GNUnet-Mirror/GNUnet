@@ -20,7 +20,6 @@ SUBDIRS = \
   template \
   transport \
   core \
-  testing \
   $(HOSTLIST_DIR) \
   topology \
   fs \
