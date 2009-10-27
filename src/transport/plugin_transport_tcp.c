@@ -404,6 +404,13 @@ struct Plugin
 };
 
 
+
+/**
+ * Handle for request of hostname resolution, non-NULL if pending.
+ */
+static struct GNUNET_RESOLVER_RequestHandle *hostname_dns;
+
+
 /**
  * Find the session handle for the given peer.
  */
@@ -2093,11 +2100,11 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   GNUNET_SERVER_disconnect_notify (plugin->server, &disconnect_notify,
                                    plugin);
   GNUNET_OS_network_interfaces_list (&process_interfaces, plugin);
-  GNUNET_RESOLVER_hostname_resolve (env->sched,
-                                    env->cfg,
-                                    AF_UNSPEC,
-                                    HOSTNAME_RESOLVE_TIMEOUT,
-                                    &process_hostname_ips, plugin);
+  hostname_dns = GNUNET_RESOLVER_hostname_resolve (env->sched,
+						   env->cfg,
+						   AF_UNSPEC,
+						   HOSTNAME_RESOLVE_TIMEOUT,
+						   &process_hostname_ips, plugin);
   return api;
 }
 
@@ -2114,6 +2121,11 @@ libgnunet_plugin_transport_tcp_done (void *cls)
 
   while (NULL != (session = plugin->sessions))
     disconnect_session (session);    
+  if (NULL != hostname_dns)
+    {
+      GNUNET_RESOLVER_request_cancel (hostname_dns);
+      hostname_dns = NULL;
+    }
   GNUNET_SERVICE_stop (plugin->service);
   GNUNET_free (plugin->handlers);
   GNUNET_free (plugin);
