@@ -390,6 +390,7 @@ GNUNET_ARM_stop_service (struct GNUNET_ARM_Handle *h,
   if (0 == strcmp ("arm", service_name))
     {
       GNUNET_CLIENT_service_shutdown (h->client);
+      h->client = NULL;
       if (cb != NULL)
         cb (cb_cls, GNUNET_NO);
       return;

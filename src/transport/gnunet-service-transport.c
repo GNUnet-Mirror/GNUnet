@@ -2588,6 +2588,42 @@ client_disconnect_notification (void *cls,
 
 
 /**
+ * Function called when the service shuts down.  Unloads our plugins.
+ *
+ * @param cls closure, unused
+ * @param tc task context (unused)
+ */
+static void
+unload_plugins (void *cls, 
+		const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct TransportPlugin *plug;
+  struct AddressList *al;
+
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Transport service is unloading plugins...\n");
+#endif
+  while (NULL != (plug = plugins))
+    {
+      plugins = plug->next;
+      GNUNET_break (NULL == GNUNET_PLUGIN_unload (plug->lib_name, plug->api));
+      GNUNET_free (plug->lib_name);
+      GNUNET_free (plug->short_name);
+      while (NULL != (al = plug->addresses))
+        {
+          plug->addresses = al->next;
+          GNUNET_free (al);
+        }
+      GNUNET_free (plug);
+    }
+  if (my_private_key != NULL)
+    GNUNET_CRYPTO_rsa_key_free (my_private_key);
+  GNUNET_free_non_null (our_hello);
+}
+
+
+/**
  * Initiate transport service.
  *
  * @param cls closure
@@ -2661,6 +2697,12 @@ run (void *cls,
         }
       GNUNET_free (plugs);
     }
+  GNUNET_SCHEDULER_add_delayed (sched,
+                                GNUNET_YES,
+                                GNUNET_SCHEDULER_PRIORITY_IDLE,
+                                GNUNET_SCHEDULER_NO_TASK,
+                                GNUNET_TIME_UNIT_FOREVER_REL,
+                                &unload_plugins, NULL);
   if (no_transports)
     refresh_hello ();
 #if DEBUG_TRANSPORT
@@ -2669,43 +2711,6 @@ run (void *cls,
 #endif
   /* process client requests */
   GNUNET_SERVER_add_handlers (server, handlers);
-}
-
-
-/**
- * Function called when the service shuts
- * down.  Unloads our plugins.
- *
- * @param cls closure
- * @param cfg configuration to use
- */
-static void
-unload_plugins (void *cls, 
-		const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  struct TransportPlugin *plug;
-  struct AddressList *al;
-
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transport service is unloading plugins...\n");
-#endif
-  while (NULL != (plug = plugins))
-    {
-      plugins = plug->next;
-      GNUNET_break (NULL == GNUNET_PLUGIN_unload (plug->lib_name, plug->api));
-      GNUNET_free (plug->lib_name);
-      GNUNET_free (plug->short_name);
-      while (NULL != (al = plug->addresses))
-        {
-          plug->addresses = al->next;
-          GNUNET_free (al);
-        }
-      GNUNET_free (plug);
-    }
-  if (my_private_key != NULL)
-    GNUNET_CRYPTO_rsa_key_free (my_private_key);
-  GNUNET_free_non_null (our_hello);
 }
 
 
@@ -2723,7 +2728,7 @@ main (int argc, char *const *argv)
 	  GNUNET_SERVICE_run (argc,
 			      argv,
 			      "transport",
-			      &run, NULL, &unload_plugins, NULL)) ? 0 : 1;
+			      &run, NULL, NULL, NULL)) ? 0 : 1;
 }
 
 /* end of gnunet-service-transport.c */

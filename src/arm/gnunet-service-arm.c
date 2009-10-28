@@ -536,7 +536,6 @@ stop_service (struct GNUNET_SERVER_Client *client,
 	   (NULL != (sc = GNUNET_CLIENT_connect (sched, servicename, cfg))) )
 	{
 	  GNUNET_CLIENT_service_shutdown (sc);
-	  GNUNET_CLIENT_disconnect (sc);
 	  signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
 	}
       else

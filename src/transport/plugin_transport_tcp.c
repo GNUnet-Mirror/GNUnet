@@ -2016,7 +2016,10 @@ process_hostname_ips (void *cls,
   struct Plugin *plugin = cls;
 
   if (addr == NULL)
-    return;
+    {
+      hostname_dns = NULL;
+      return;
+    }
   process_interfaces (plugin,
 		      "<hostname>",
 		      GNUNET_YES,

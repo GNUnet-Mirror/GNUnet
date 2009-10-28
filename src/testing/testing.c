@@ -40,13 +40,13 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_transport_service.h"
 
-#define DEBUG_TESTING GNUNET_YES
+#define DEBUG_TESTING GNUNET_NO
 
 /**
  * How long do we wait after starting gnunet-service-arm
  * for the core service to be alive?
  */
-#define ARM_START_WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2)
+#define ARM_START_WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 /**
  * How many times are we willing to try to wait for "scp" or
@@ -632,8 +632,13 @@ GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
   ret->username = username;
 
   /* 2) copy file to remote host */  
-  if (NULL != hostname)
+  if (NULL != hostname) 
     {
+#if DEBUG_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Copying configuration file to host `%s'.\n",
+		  hostname);
+#endif
       ret->phase = SP_COPYING;
       if (NULL != username)
 	GNUNET_asprintf (&arg,
@@ -732,7 +737,6 @@ void GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
 			      "arm",
 			      d->cfg);
   GNUNET_CLIENT_service_shutdown (cc);
-  GNUNET_CLIENT_disconnect (cc);
   
   /* state clean up and notifications */
   if (0 != UNLINK (d->cfgfile))
@@ -741,6 +745,11 @@ void GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
 			      d->cfgfile);
   if (d->hostname != NULL)
     {
+#if DEBUG_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Removing configuration file on remote host `%s'.\n",
+		  d->hostname);
+#endif
       if (NULL != d->username)
 	GNUNET_asprintf (&dst,
 			 "%s@%s",
@@ -832,6 +841,11 @@ void GNUNET_TESTING_daemon_reconfigure (struct GNUNET_TESTING_Daemon *d,
 	cb (cb_cls, NULL); 
       return;
     }
+#if DEBUG_TESTING
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Copying updated configuration file to remote host `%s'.\n",
+	      d->hostname);
+#endif
   d->phase = SP_CONFIG_UPDATE;
   if (NULL != d->username)
     GNUNET_asprintf (&arg,
@@ -873,28 +887,30 @@ void GNUNET_TESTING_daemon_reconfigure (struct GNUNET_TESTING_Daemon *d,
 				    d);
 }
 
+
 /**
- * FIXME.
+ * Data kept for each pair of peers that we try
+ * to connect.
  */
 struct ConnectContext
 {
   /**
-   * FIXME.
+   * Testing handle to the first daemon.
    */
   struct GNUNET_TESTING_Daemon *d1;
 
   /**
-   * FIXME.
+   * Testing handle to the second daemon.
    */
   struct GNUNET_TESTING_Daemon *d2;
 
   /**
-   * FIXME.
+   * Transport handle to the first daemon.
    */
   struct GNUNET_TRANSPORT_Handle *d1th;
 
   /**
-   * FIXME.
+   * Transport handle to the second daemon.
    */
   struct GNUNET_TRANSPORT_Handle *d2th;
 
@@ -919,7 +935,7 @@ struct ConnectContext
 /**
  * Success, connection is up.  Signal client our success.
  *
- * @param cls FIXME
+ * @param cls our "struct ConnectContext"
  * @param size number of bytes available in buf
  * @param buf where to copy the message, NULL on error
  * @return number of bytes copied to buf

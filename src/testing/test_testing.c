@@ -24,7 +24,7 @@
 #include "platform.h"
 #include "gnunet_testing_lib.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 static int ok;
 
@@ -48,7 +48,8 @@ static void my_cb(void *cls,
   GNUNET_assert (id != NULL);
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Daemon started, will now stop it.\n");
+	      "Daemon `%s' started, will now stop it.\n",
+	      GNUNET_i2s (id));
 #endif
   GNUNET_TESTING_daemon_stop (d, &end_cb, NULL);
 }

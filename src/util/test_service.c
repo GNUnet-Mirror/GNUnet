@@ -47,7 +47,6 @@ end_it (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down service\n");
   GNUNET_CLIENT_service_shutdown (client);
-  GNUNET_CLIENT_disconnect (client);
   if (sctx != NULL)
     GNUNET_SERVICE_stop (sctx);
 }

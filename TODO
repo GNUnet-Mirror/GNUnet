@@ -1,25 +1,22 @@
 Implementable right now (but not necessarily important), with caveats
 (unavailable components that will limit what can be implemented right
 away), in order in which they will likely be done:
-* TESTING
-* FS (DHT not available)
+* TESTING [Nate]
 * SETUP
-* DV (distributed testing not available)
-* TBENCH (distributed testing not available)
+* DV (distributed testing not available) [Nate]
+* TBENCH (distributed testing not available) 
 * TRACEKIT (distributed testing not available)
+* FRAGMENTATION [Ji Lu]
 * HTTP transport
-* FRAGMENTATION
-* MySQL / Postgres plugins (datastore, datacache)
-* UPNP
+* MySQL / Postgres plugins (datastore, datacache) [Radhika]
+* UPNP [Milan]
 
 Urgent items (before announcing ng.gnunet.org):
 * TESTING (needed for DV, DHT, Topology)
   - implement library for local testing
-    + modify configuration to allow controlling connections for non-local starts
-    + CORE service does not start with valid peer ID (all zeros) -- testcase fails!
-    + consider changing API for peer-group termination to call continuation when done
+    + consider changing API for peer-group termination to 
+      call continuation when done
   - implement testcases for library
-    + get test for basic peer start to work!
     + test basic peer connect
     + test group start
 * TEST:
@@ -89,6 +86,7 @@ Urgent items (before announcing ng.gnunet.org):
     + default generation
     + need to settle basic design; do we want to keep guile?
   - testing (RC-pre0)
+    + modify configuration to allow controlling connections for non-local starts
     + testbed creation with topology (needs working F2F topology) [Nate]
     + testbed with churn [Nate]
     + implement library for distributed testing [Nate]
@@ -146,7 +144,7 @@ Urgent items (before announcing ng.gnunet.org):
   - create good Drupal theme for GNUnet
   - make a NICE download page and figure out how to 
     enable developers to publish TGZs nicely
-  - port "contact" page; add impressum
+  - port "contact" page
   - add content type for "todo" items?
   - DNS activation
 * Plugins to implement:

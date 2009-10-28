@@ -179,7 +179,10 @@ GNUNET_CLIENT_transmit_and_get_response (struct GNUNET_CLIENT_Connection *sock,
 
 /**
  * Request that the service should shutdown.
- * Afterwards, the connection should be disconnected.
+ * Afterwards, the connection will automatically be
+ * disconnected.  Hence the "sock" shoud not
+ * be used by the caller after this call
+ * (calling this function frees "sock" after a while).
  *
  * @param sock the socket connected to the service
  */

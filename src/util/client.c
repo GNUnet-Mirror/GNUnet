@@ -468,13 +468,28 @@ GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
 }
 
 
+/**
+ * If possible, write a shutdown message to the target
+ * buffer and destroy the client connection.
+ *
+ * @param cls the "struct GNUNET_CLIENT_Connection" to destroy
+ * @param size number of bytes available in buf
+ * @param buf NULL on error, otherwise target buffer
+ * @return number of bytes written to buf
+ */
 static size_t
 write_shutdown (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MessageHeader *msg;
+  struct GNUNET_CLIENT_Connection *sock = cls;
 
+  GNUNET_CLIENT_disconnect (sock);
   if (size < sizeof (struct GNUNET_MessageHeader))
-    return 0;                   /* client disconnected */
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Failed to transmit shutdown request to client.\n"));
+      return 0;                   /* client disconnected */
+    }
   msg = (struct GNUNET_MessageHeader *) buf;
   msg->type = htons (GNUNET_MESSAGE_TYPE_SHUTDOWN);
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
@@ -492,9 +507,9 @@ void
 GNUNET_CLIENT_service_shutdown (struct GNUNET_CLIENT_Connection *sock)
 {
   GNUNET_CONNECTION_notify_transmit_ready (sock->sock,
-                                        sizeof (struct GNUNET_MessageHeader),
-                                        GNUNET_TIME_UNIT_FOREVER_REL,
-                                        &write_shutdown, NULL);
+					   sizeof (struct GNUNET_MessageHeader),
+					   GNUNET_TIME_UNIT_FOREVER_REL,
+					   &write_shutdown, sock);
 }
 
 
