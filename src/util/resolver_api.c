@@ -452,7 +452,6 @@ GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
       return NULL;
     }
   rh = GNUNET_malloc (sizeof(struct GNUNET_RESOLVER_RequestHandle) + slen);
-  rh->client = client;
   rh->sched = sched;
   rh->domain = domain;
   rh->addr_callback = callback;
