@@ -1475,19 +1475,6 @@ GNUNET_TRANSPORT_connect (struct GNUNET_SCHEDULER_Handle *sched,
 
 
 /**
- * These stop activities must be run in a fresh
- * scheduler that is NOT in shutdown mode.
- */
-static void
-stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct GNUNET_TRANSPORT_Handle *handle = cls;
-
-  GNUNET_ARM_stop_services (handle->cfg, handle->sched, "transport", "peerinfo", NULL);
-}
-
-
-/**
  * Disconnect from the transport service.
  */
 void
@@ -1547,10 +1534,7 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
     }
   GNUNET_free_non_null (handle->my_hello);
   handle->my_hello = NULL;
-  GNUNET_SCHEDULER_add_continuation (handle->sched,
-				     GNUNET_YES,
-				     &stop_task, handle,
-				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_ARM_stop_services (handle->cfg, handle->sched, "transport", "peerinfo", NULL);
   if (NULL != (client = handle->client))
     {
 #if DEBUG_TRANSPORT
