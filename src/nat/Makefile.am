@@ -20,8 +20,11 @@ libgnunetnat_la_SOURCES = \
 libgnunetnat_la_CFLAGS = \
  -I$(top_scrdir)/include
 
+# FIXME should prefer not to use archives
 libgnunetnat_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/nat/miniupnp/libminiupnp.a \
+  $(top_builddir)/src/nat/libnatpmp/libnatpmp.a \
   $(GN_LIBINTL) @EXT_LIBS@
 
 libgnunetnat_la_LDFLAGS = \
