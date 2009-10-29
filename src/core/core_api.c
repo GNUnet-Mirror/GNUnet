@@ -808,6 +808,12 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
   h->outbound_hdr_only = outbound_hdr_only;
   h->handlers = handlers;
   h->client = GNUNET_CLIENT_connect (sched, "core", cfg);
+  if (h->client == NULL)
+    {
+      init (cls, NULL, NULL, NULL);
+      GNUNET_free (h);
+      return;
+    }
   h->startup_timeout = GNUNET_TIME_relative_to_absolute (timeout);
   h->hcnt = 0;
   while (handlers[h->hcnt].callback != NULL)
