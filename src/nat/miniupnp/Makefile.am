@@ -1,8 +1,8 @@
-noinst_LIBRARIES = libminiupnp.a
+noinst_LTLIBRARIES = libminiupnp.la
 
 AM_CPPFLAGS = -DNDEBUG
 
-libminiupnp_a_SOURCES = \
+libminiupnp_la_SOURCES = \
     igd_desc_parse.c \
     minisoap.c \
     minissdpc.c \

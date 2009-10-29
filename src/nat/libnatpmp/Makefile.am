@@ -1,8 +1,8 @@
-noinst_LIBRARIES = libnatpmp.a
+noinst_LTLIBRARIES = libnatpmp.la
 
 AM_CPPFLAGS = -DENABLE_STRNATPMPERR
 
-libnatpmp_a_SOURCES = \
+libnatpmp_la_SOURCES = \
     getgateway.c \
     natpmp.c
 
