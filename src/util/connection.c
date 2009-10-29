@@ -1589,12 +1589,4 @@ GNUNET_CONNECTION_notify_transmit_ready_cancel (struct
   h->notify_ready = NULL;
 }
 
-
-#if 0                           /* keep Emacsens' auto-indent happy */
-{
-#endif
-#ifdef __cplusplus
-}
-#endif
-
 /* end of connection.c */

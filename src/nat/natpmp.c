@@ -30,15 +30,6 @@
  *
  * @author Milan Bouchet-Valat
  */
-
-#ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
-}
-#endif
-#endif
-
 #include <assert.h>
 #include <errno.h>
 #include <time.h>
