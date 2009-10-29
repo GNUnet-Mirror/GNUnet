@@ -30,15 +30,6 @@
  *
  * @author Milan Bouchet-Valat
  */
-
-#ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
-}
-#endif
-#endif
-
 #include <stdlib.h>
 #include <assert.h>
 #include <errno.h>
@@ -348,10 +339,3 @@ GNUNET_NAT_UPNP_pulse (GNUNET_NAT_UPNP_Handle * handle, int is_enabled,
 
   return ret;
 }
-
-#if 0                           /* keep Emacsens' auto-indent happy */
-{
-#endif
-#ifdef __cplusplus
-}
-#endif

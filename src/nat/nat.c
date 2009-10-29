@@ -31,15 +31,6 @@
  *
  * @author Milan Bouchet-Valat
  */
-
-#ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
-}
-#endif
-#endif
-
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
@@ -372,10 +363,3 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *nat)
     GNUNET_free (nat->ext_addr);
   GNUNET_free (nat);
 }
-
-#if 0                           /* keep Emacsens' auto-indent happy */
-{
-#endif
-#ifdef __cplusplus
-}
-#endif
