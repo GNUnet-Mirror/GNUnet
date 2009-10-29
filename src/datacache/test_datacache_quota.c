@@ -60,7 +60,7 @@ run (void *cls,
 
   ASSERT (NULL != h);
   exp = GNUNET_TIME_absolute_get ();
-  exp.value += 5 * 60 * 1000;
+  exp.value += 20 * 60 * 1000;
   memset (buf, 1, sizeof (buf));
   memset (&k, 0, sizeof (GNUNET_HashCode));
   for (i = 0; i < 10; i++)
