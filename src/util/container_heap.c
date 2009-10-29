@@ -146,7 +146,7 @@ GNUNET_CONTAINER_heap_destroy (struct GNUNET_CONTAINER_Heap *heap)
   return;
 }
 
-struct GNUNET_CONTAINER_heap_node *
+static struct GNUNET_CONTAINER_heap_node *
 find_element (struct GNUNET_CONTAINER_heap_node *node, void *element)
 {
   struct GNUNET_CONTAINER_heap_node *ret;

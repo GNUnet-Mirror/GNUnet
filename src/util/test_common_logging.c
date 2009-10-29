@@ -42,13 +42,7 @@ main (int argc, char *argv[])
   unsigned int failureCount = 0;
   unsigned int logs = 0;
 
-  /* FIXME: this causes a double free, because common_logging sets
-   * GNUNET_stderr = stderr before main() gets executed and then tries
-   * to fclose(GNUNET_stderr) in GNUNET_log_setup */
-  fclose (stderr);
-#ifndef MINGW
-  stderr = NULL;
-#endif
+  GNUNET_log_setup ("test-common-logging", "DEBUG", "/dev/null");
   GNUNET_logger_add (&my_log, &logs);
   GNUNET_logger_add (&my_log, &logs);
   GNUNET_log (GNUNET_ERROR_TYPE_BULK, "Testing...\n");
