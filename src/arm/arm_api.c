@@ -54,7 +54,7 @@ struct GNUNET_ARM_Handle
   /**
    * The configuration that we are using.
    */
-  const struct GNUNET_CONFIGURATION_Handle *cfg;
+  struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
    * Scheduler to use.
@@ -87,7 +87,7 @@ GNUNET_ARM_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (client == NULL)
     return NULL;
   ret = GNUNET_malloc (sizeof (struct GNUNET_ARM_Handle));
-  ret->cfg = cfg;
+  ret->cfg = GNUNET_CONFIGURATION_dup (cfg);
   ret->sched = sched;
   ret->client = client;
   return ret;
@@ -104,6 +104,7 @@ GNUNET_ARM_disconnect (struct GNUNET_ARM_Handle *h)
 {
   if (h->client != NULL)
     GNUNET_CLIENT_disconnect (h->client);
+  GNUNET_CONFIGURATION_destroy (h->cfg);
   GNUNET_free (h);
 }
 
