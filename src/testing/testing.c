@@ -945,6 +945,8 @@ transmit_ready (void *cls, size_t size, void *buf)
 {
   struct ConnectContext *ctx = cls;
 
+  GNUNET_TRANSPORT_disconnect (ctx->d1th);
+  GNUNET_TRANSPORT_disconnect (ctx->d2th);
   if (NULL != ctx->cb)
     {
       if (buf == NULL)
@@ -977,11 +979,11 @@ process_hello (void *cls,
   if (peer == NULL)
     {
       /* signal error */
+      GNUNET_TRANSPORT_disconnect (ctx->d1th);
+      GNUNET_TRANSPORT_disconnect (ctx->d2th);
       if (NULL != ctx->cb)
 	ctx->cb (ctx->cb_cls,
 		 _("Failed to receive `HELLO' from peer\n"));
-      GNUNET_TRANSPORT_disconnect (ctx->d1th);
-      GNUNET_TRANSPORT_disconnect (ctx->d2th);
       GNUNET_free (ctx);
       return;
     }
