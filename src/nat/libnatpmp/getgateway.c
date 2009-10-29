@@ -88,10 +88,10 @@
 
 #ifdef USE_PROC_NET_ROUTE
 int
-getdefaultgateway (int *af, u_int8_t addr[16])
+getdefaultgateway (int *af, uint8_t addr[16])
 {
   unsigned int tmp;
-  u_int8_t d[16];
+  uint8_t d[16];
   char buf[256];
   int line = 0;
   FILE *f;
@@ -128,7 +128,7 @@ getdefaultgateway (int *af, u_int8_t addr[16])
                   d[i+12] = d[i];
                   d[i] = 0;
                 }
-              memcpy (addr, d, 16 * sizeof (u_int8_t));
+              memcpy (addr, d, 16 * sizeof (uint8_t));
               *af = AF_INET;
               fclose (f);
               return SUCCESS;
@@ -136,7 +136,7 @@ getdefaultgateway (int *af, u_int8_t addr[16])
           else if (i == 16) /* IPv6 address on 16 hex chars,
                              * or IPv4 address padded with 0 */
             {
-              memcpy (addr, d, 16 * sizeof (u_int8_t));
+              memcpy (addr, d, 16 * sizeof (uint8_t));
               /* Check at what byte the actual address starts */
               for (i = 0; i <= 12; i++)
                 if (addr[i]) break;
@@ -171,7 +171,7 @@ getdefaultgateway (int *af, u_int8_t addr[16])
 	((a) > 0 ? (1 + (((a) - 1) | (sizeof(long) - 1))) : sizeof(long))
 
 int
-getdefaultgateway (int *af, u_int8_t addr[16])
+getdefaultgateway (int *af, uint8_t addr[16])
 {
 #if 0
   /* net.route.0.inet.dump.0.0 ? */
@@ -239,9 +239,10 @@ getdefaultgateway (int *af, u_int8_t addr[16])
               && sa_tab[RTAX_DST]->sa_family == AF_INET6
               && sa_tab[RTAX_GATEWAY]->sa_family == AF_INET6)
             {
-              if (((struct sockaddr_in6 *) sa_tab[RTAX_DST])->sin6_addr == 0)
+              if (IN6_IS_ADDR_UNSPECIFIED (&(((struct sockaddr_in6 *)
+                                           sa_tab[RTAX_DST])->sin6_addr)))
                 {
-                  *addr =
+                  *(struct in6_addr *)addr =
                     ((struct sockaddr_in6 *) (sa_tab[RTAX_GATEWAY]))->sin6_addr;
                   *af = AF_INET6;
                   r = SUCCESS;
@@ -271,7 +272,7 @@ struct
 } m_rtmsg;
 
 int
-getdefaultgateway (int *af, u_int8_t addr[16])
+getdefaultgateway (int *af, uint8_t addr[16])
 {
   int s, seq, l, rtm_addrs, i;
   pid_t pid;
@@ -347,7 +348,7 @@ getdefaultgateway (int *af, u_int8_t addr[16])
     }
   else if (gate != NULL && gate->sa_family == AF_INET6)
     {
-      memcpy (addr, ((struct sockaddr_in6 *) gate)->sin6_addr.s6_addr, 16 * sizeof (u_int8_t));
+      memcpy (addr, ((struct sockaddr_in6 *) gate)->sin6_addr.s6_addr, 16 * sizeof (uint8_t));
       *af = AF_INET6;
       return SUCCESS;
     }
@@ -360,7 +361,7 @@ getdefaultgateway (int *af, u_int8_t addr[16])
 
 #ifdef USE_WIN32_CODE
 int
-getdefaultgateway (int *af, u_int8_t addr[16])
+getdefaultgateway (int *af, uint8_t addr[16])
 {
   HKEY networkCardsKey;
   HKEY networkCardKey;

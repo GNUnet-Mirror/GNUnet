@@ -81,7 +81,7 @@ initnatpmp (natpmp_t * p)
       memset (&addr, 0, sizeof (addr));
       addr.sin_family = AF_INET;
       addr.sin_port = htons (NATPMP_PORT);
-      memcpy (&addr.sin_addr.s_addr, p->gateway, 4 * sizeof (u_int8_t));
+      memcpy (&addr.sin_addr.s_addr, p->gateway, 4 * sizeof (uint8_t));
 #ifdef HAVE_SOCKADDR_IN_SIN_LEN
       addr.sin_len = sizeof (addr);
 #endif
@@ -93,7 +93,7 @@ initnatpmp (natpmp_t * p)
       memset (&addr6, 0, sizeof (addr6));
       addr6.sin6_family = AF_INET6;
       addr6.sin6_port = htons (NATPMP_PORT);
-      memcpy (addr6.sin6_addr.s6_addr, p->gateway, 16 * sizeof (u_int8_t));
+      memcpy (addr6.sin6_addr.s6_addr, p->gateway, 16 * sizeof (uint8_t));
 #ifdef HAVE_SOCKADDR_IN_SIN_LEN
       addr6.sin6_len = sizeof (addr6);
 #endif
@@ -228,9 +228,9 @@ readnatpmpresponse (natpmp_t * p, natpmpresp_t * response)
         n = NATPMP_ERR_RECVFROM;
       }
   /* check that addr is correct (= gateway) */
-  else if (addr.ss_family == AF_INET && memcmp (&((struct sockaddr_in *) &addr)->sin_addr.s_addr, p->gateway, 4 * sizeof (u_int8_t)) == 0)
+  else if (addr.ss_family == AF_INET && memcmp (&((struct sockaddr_in *) &addr)->sin_addr.s_addr, p->gateway, 4 * sizeof (uint8_t)) == 0)
     n = NATPMP_ERR_WRONGPACKETSOURCE;
-  else if (addr.ss_family == AF_INET6 && memcmp (((struct sockaddr_in6 *) &addr)->sin6_addr.s6_addr, p->gateway, 16 * sizeof (u_int8_t)) == 0)
+  else if (addr.ss_family == AF_INET6 && memcmp (((struct sockaddr_in6 *) &addr)->sin6_addr.s6_addr, p->gateway, 16 * sizeof (uint8_t)) == 0)
     n = NATPMP_ERR_WRONGPACKETSOURCE;
   else
     {

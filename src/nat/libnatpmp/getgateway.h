@@ -27,6 +27,6 @@
  * return value :
  *    0 : success
  *   -1 : failure    */
-LIBSPEC int getdefaultgateway (int *af, u_int8_t addr[16]);
+LIBSPEC int getdefaultgateway (int *af, uint8_t addr[16]);
 
 #endif

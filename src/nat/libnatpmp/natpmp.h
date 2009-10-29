@@ -20,6 +20,7 @@
 /* NAT-PMP Port as defined by the NAT-PMP draft */
 #define NATPMP_PORT (5351)
 
+#include <stdint.h>
 #include <time.h>
 #include <sys/time.h>
 #ifdef WIN32
@@ -38,7 +39,7 @@ typedef struct
   int s;                        /* socket */
   struct sockaddr *addr;
   socklen_t addrlen;
-  u_int8_t gateway[16];       /* default gateway (IPv4 or IPv6) */
+  uint8_t gateway[16];       /* default gateway (IPv4 or IPv6) */
   int has_pending_request;
   unsigned char pending_request[12];
   int pending_request_len;
