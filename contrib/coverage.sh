@@ -2,6 +2,7 @@
 # make sure configure was run with coverage enabled...
 lcov --directory . --zerocounters
 make check
+rm `find * -name "test_*.gc??"`
 for n in `find * -name "*.gc??" | grep libs`
 do
   cd `dirname $n`
