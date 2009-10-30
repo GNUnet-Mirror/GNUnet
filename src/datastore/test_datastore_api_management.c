@@ -111,7 +111,6 @@ struct CpsRunContext
   struct GNUNET_SCHEDULER_Handle *sched;
   const struct GNUNET_CONFIGURATION_Handle *cfg;
   void *data;
-  size_t size;
   enum RunPhase phase;
 };
 

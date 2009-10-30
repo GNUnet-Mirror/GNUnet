@@ -28,19 +28,7 @@
 #include "gnunet_protocols.h"
 #include "gnunet_util_lib.h"
 
-/*
- * Struct that is stored in hashmap, pointers to
- * locations in min_heap and max_heap.
- */
-struct GNUNET_CONTAINER_heap_info
-{
-  struct GNUNET_CONTAINER_heap_node *min_loc;
-
-  struct GNUNET_CONTAINER_heap_node *max_loc;
-
-};
-
-/*
+/**
  * Generic heap node structure, contains pointer to parent
  * left child, right child, and actual neighbor.
  */
@@ -211,7 +199,7 @@ static struct GNUNET_CONTAINER_heap_node *
 getPos (struct GNUNET_CONTAINER_Heap *root, unsigned int pos)
 {
   struct GNUNET_CONTAINER_heap_node *ret;
-  int i;
+  unsigned int i;
 
   ret = NULL;
   if (pos > root->size)

@@ -82,6 +82,22 @@ sane end-user should care about this codebase yet anyway.
     ==28393==    by 0x524473E: GNUNET_NETWORK_socket_create_from_accept (network.c:323)
     (rest of trace identical)
 
+  - [./transport/gnunet-service-transport.c:173]: (style) struct or union member 'TransportPlugin::rebuild' is never used
+  - [./transport/plugin_transport_tcp.c:391]: (style) struct or union member 'Plugin::address_update_task' is never used
+
+* FS:
+  - [./fs/gnunet-service-fs.c:208]: (style) struct or union member 'LocalGetContext::results_bf_size' is never used
+  - [./fs/gnunet-service-fs.c:501]: (style) struct or union member 'PendingRequest::used_pids_size' is never used
+  - [./fs/gnunet-service-fs.c:654]: (style) struct or union member 'ConnectedPeer::last_client_replies' is never used
+  - [./fs/gnunet-service-fs.c:669]: (style) struct or union member 'ConnectedPeer::avg_delay' is never used
+  - [./fs/gnunet-service-fs.c:675]: (style) struct or union member 'ConnectedPeer::avg_priority' is never used
+  - [./fs/gnunet-service-fs.c:688]: (style) struct or union member 'ConnectedPeer::pending_requests' is never used
+  - [./fs/gnunet-service-fs.c:694]: (style) struct or union member 'ConnectedPeer::last_p2p_replies_woff' is never used
+  - [./fs/gnunet-service-fs.c:700]: (style) struct or union member 'ConnectedPeer::last_client_replies_woff' is never used
+
+* TOPOLOGY:
+  - [./topology/gnunet-daemon-topology.c:94]: (style) struct or union member 'PeerList::last_hello_sent' is never used
+
 * DATASTORE:
   - mysql backend
   - postgres backend
@@ -100,6 +116,9 @@ sane end-user should care about this codebase yet anyway.
     to signal on PONG and have topology hook directly into transport to
     kill plaintext connections before they have a chance to become encrypted
     (may require minor hack in transport API)
+  - [./core/gnunet-service-core.c:469]: (style) struct or union member 'Neighbour::message_queue_size' is never used
+  - [./core/test_core_api_start_only.c:50]: (style) struct or union member 'PeerContext::id' is never used
+
 * PEERINFO:
   - have gnunet-peerinfo print actual host addresses again
   - add option to gnunet-peerinfo to modify trust value

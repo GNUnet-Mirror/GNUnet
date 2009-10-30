@@ -118,7 +118,6 @@ struct CpsRunContext
   GNUNET_HashCode key;
   int i;
   int rid;
-  int *iptr;
   struct GNUNET_SCHEDULER_Handle *sched;
   const struct GNUNET_CONFIGURATION_Handle *cfg;
   void *data;

@@ -35,11 +35,6 @@ struct GNUNET_DATACACHE_Handle
 {
 
   /**
-   * Our datastore plugin (NULL if not available).
-   */
-  struct DatastorePlugin *plugin;
-  
-  /**
    * Bloomfilter to quickly tell if we don't have the content.
    */
   struct GNUNET_CONTAINER_BloomFilter *filter;

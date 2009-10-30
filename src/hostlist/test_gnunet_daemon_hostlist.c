@@ -44,8 +44,6 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 struct PeerContext
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
-  struct GNUNET_CORE_Handle *ch;
-  struct GNUNET_PeerIdentity id; 
   struct GNUNET_TRANSPORT_Handle *th;
   struct GNUNET_MessageHeader *hello;
 #if START_ARM
