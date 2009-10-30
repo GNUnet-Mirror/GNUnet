@@ -238,6 +238,7 @@ simpleUPnPcommand (int s, const char *url, const char *service,
       /* Test IPv4 address, else use IPv6 */
       if (inet_pton (AF_INET, hostname, &dest.sin_addr) == 1)
         {
+          memset (&dest, 0, sizeof (dest));
           dest.sin_family = AF_INET;
           dest.sin_port = htons (port);
 #ifdef HAVE_SOCKADDR_IN_SIN_LEN
@@ -253,9 +254,9 @@ simpleUPnPcommand (int s, const char *url, const char *service,
         }
       else if (inet_pton (AF_INET6, hostname, &dest6.sin6_addr) == 1)
         {
+          memset (&dest6, 0, sizeof (dest6));
           dest6.sin6_family = AF_INET6;
           dest6.sin6_port = htons (port);
-          dest6.sin6_flowinfo = 0;
 #ifdef HAVE_SOCKADDR_IN_SIN_LEN
           dest6.sin6_len = sizeof (dest6);
 #endif
@@ -270,7 +271,9 @@ simpleUPnPcommand (int s, const char *url, const char *service,
       else
         {
           PRINT_SOCKET_ERROR ("inet_pton");
-          closesocket (s);
+          if (s > 0)
+            closesocket (s);
+
           *bufsize = 0;
           return -1;
         }
@@ -495,7 +498,11 @@ upnpDiscover (int delay, const char *multicastif,
       memset (&sockudp6_w, 0, sizeof (struct sockaddr_in6));
       sockudp6_w.sin6_family = AF_INET6;
       sockudp6_w.sin6_port = htons (PORT);
-      inet_pton (AF_INET6, UPNP_MCAST_ADDR6, &sockudp6_w.sin6_addr);
+      if (inet_pton (AF_INET6, UPNP_MCAST_ADDR6, &sockudp6_w.sin6_addr) != 1)
+        {
+          PRINT_SOCKET_ERROR ("inet_pton");
+          return NULL;
+        }
 #ifdef HAVE_SOCKADDR_IN_SIN_LEN
       sockudp6_w.sin6_len = sizeof (struct sockaddr_in6);
 #endif
@@ -535,13 +542,17 @@ upnpDiscover (int delay, const char *multicastif,
         }
       else
         {
-          if (multicastif && !(if_index = if_nametoindex (multicastif)))
-              PRINT_SOCKET_ERROR ("if_nametoindex");
-
-          if (setsockopt
-              (sudp, IPPROTO_IPV6, IPV6_MULTICAST_IF, &if_index, sizeof (if_index)) < 0)
+          if (multicastif)
             {
-              PRINT_SOCKET_ERROR ("setsockopt");
+              if_index = if_nametoindex (multicastif);
+              if (!if_index)
+                PRINT_SOCKET_ERROR ("if_nametoindex");
+
+              if (setsockopt
+                  (sudp, IPPROTO_IPV6, IPV6_MULTICAST_IF, &if_index, sizeof (if_index)) < 0)
+                {
+                  PRINT_SOCKET_ERROR ("setsockopt");
+                }
             }
 
           /* Bind to receive response before sending packet */

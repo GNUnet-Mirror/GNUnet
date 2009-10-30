@@ -56,8 +56,9 @@ typedef struct
   {
     struct
     {
-      //in_addr_t addr;
+      int family;
       struct in_addr addr;
+      struct in6_addr addr6;
     } publicaddress;
     struct
     {

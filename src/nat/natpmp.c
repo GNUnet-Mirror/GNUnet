@@ -65,6 +65,7 @@ struct GNUNET_NAT_NATPMP_Handle
 {
   const struct sockaddr *addr;
   socklen_t addrlen;
+  struct sockaddr *ext_addr;
   int is_mapped;
   int has_discovered;
   int port;
@@ -107,6 +108,7 @@ GNUNET_NAT_NATPMP_init (const struct sockaddr *addr, socklen_t addrlen,
   nat->port = port;
   nat->addr = addr;
   nat->addrlen = addrlen;
+  nat->ext_addr = NULL;
   return nat;
 }
 
@@ -160,10 +162,28 @@ GNUNET_NAT_NATPMP_pulse (struct GNUNET_NAT_NATPMP_Handle *nat, int is_enabled,
       log_val ("readnatpmpresponseorretry", val);
       if (val >= 0)
         {
-          *ext_addr =
-            GNUNET_malloc (sizeof (response.pnu.publicaddress.addr));
-          memcpy (*ext_addr, &response.pnu.publicaddress.addr,
-                  (sizeof (response.pnu.publicaddress.addr)));
+          if (nat->ext_addr)
+            {
+              GNUNET_free (nat->ext_addr);
+              nat->ext_addr = NULL;
+            }
+
+          if (response.pnu.publicaddress.family == AF_INET)
+            {
+              nat->ext_addr =
+                GNUNET_malloc (sizeof (struct in_addr));
+              memcpy (nat->ext_addr, &response.pnu.publicaddress.addr,
+                      sizeof (struct in_addr));
+            }
+          else
+            {
+              nat->ext_addr =
+                GNUNET_malloc (sizeof (struct in6_addr));
+              memcpy (nat->ext_addr, &response.pnu.publicaddress.addr6,
+                      (sizeof (struct in6_addr)));
+            }
+
+            *ext_addr = nat->ext_addr;
 #ifdef DEBUG
           GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, COMP_NAT_NATPMP,
                       _("Found public IP address %s\n"),

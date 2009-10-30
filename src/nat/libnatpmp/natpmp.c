@@ -267,9 +267,13 @@ readnatpmpresponse (natpmp_t * p, natpmpresp_t * response)
         {
           response->type = buf[1] & 0x7f;
           if (buf[1] == 128)
-            //response->publicaddress.addr = *((uint32_t *)(buf + 8));
-            response->pnu.publicaddress.addr.s_addr =
-              *((uint32_t *) (buf + 8));
+            {
+              response->pnu.publicaddress.family = AF_INET;
+              memset (&response->pnu.publicaddress.addr6.s6_addr, 0, sizeof (struct in6_addr));
+              response->pnu.publicaddress.addr.s_addr =
+                *((uint32_t *) (buf + 8));
+              /* FIXME: support IPv6 address */
+            }
           else
             {
               response->pnu.newportmapping.privateport =

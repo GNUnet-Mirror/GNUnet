@@ -223,7 +223,7 @@ GNUNET_NAT_UPNP_pulse (GNUNET_NAT_UPNP_Handle * handle, int is_enabled,
       int err = -1;
       errno = 0;
 
-      if (!handle->urls.controlURL || !handle->data.servicetype)
+      if (!handle->urls.controlURL)
         handle->is_mapped = 0;
       else
         {

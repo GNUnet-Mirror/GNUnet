@@ -435,8 +435,7 @@ UPNP_GetGenericPortMappingEntry (const char *controlURL,
   int r = UPNPCOMMAND_UNKNOWN_ERROR;
   if (!index)
     return UPNPCOMMAND_INVALID_ARGS;
-  intClient[0] = '\0';
-  intPort[0] = '\0';
+
   GetPortMappingArgs = calloc (2, sizeof (struct UPNParg));
   GetPortMappingArgs[0].elt = "NewPortMappingIndex";
   GetPortMappingArgs[0].val = index;

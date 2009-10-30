@@ -359,6 +359,9 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *nat)
 
   GNUNET_NAT_NATPMP_close (nat->natpmp);
   GNUNET_NAT_UPNP_close (nat->upnp);
+
+  if (nat->local_addr)
+    GNUNET_free (nat->local_addr);
   if (nat->ext_addr)
     GNUNET_free (nat->ext_addr);
   GNUNET_free (nat);
