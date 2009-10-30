@@ -24,7 +24,8 @@ check_PROGRAMS = \
  test_testing \
  test_testing_connect
 
-TESTS = $(check_PROGRAMS)
+TESTS = test_testing
+# $(check_PROGRAMS)
 
 test_testing_SOURCES = \
  test_testing.c
