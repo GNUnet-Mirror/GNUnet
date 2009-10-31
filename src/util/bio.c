@@ -58,8 +58,6 @@ GNUNET_BIO_read_open (const char *fn)
 
   fd = GNUNET_DISK_file_open (fn, GNUNET_DISK_OPEN_READ,
 			      GNUNET_DISK_PERM_NONE);
-  if (NULL == fd)
-    return NULL;
   h = GNUNET_malloc (sizeof(struct GNUNET_BIO_ReadHandle) + BIO_BUFFER_SIZE);
   h->buffer = (char*) &h[1];
   h->size = BIO_BUFFER_SIZE;
@@ -324,12 +322,11 @@ struct GNUNET_BIO_WriteHandle *GNUNET_BIO_write_open (const char *fn)
   fd = GNUNET_DISK_file_open (fn, 
 			      GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_TRUNCATE | GNUNET_DISK_OPEN_CREATE,
 			      GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
-  if (NULL == fd)
-    return NULL;
   h = GNUNET_malloc (sizeof(struct GNUNET_BIO_WriteHandle) + BIO_BUFFER_SIZE);
   h->buffer = (char*) &h[1];
   h->size = BIO_BUFFER_SIZE;
   h->fd = fd;
+
   return h;
 }
 
