@@ -27,6 +27,10 @@
 
 #include "gnunet_common.h"
 
+/**
+ * This option will turn on the DEBUG loglevel for
+ * all processes controlled by this ARM!
+ */
 #define DEBUG_ARM GNUNET_NO
 
 #endif
