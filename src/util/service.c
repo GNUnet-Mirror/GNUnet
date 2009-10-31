@@ -1335,7 +1335,12 @@ GNUNET_SERVICE_run (int argc,
       GNUNET_free_non_null (sctx.v6_allowed);
       return GNUNET_SYSERR;
     }
-
+#if 0
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Service `%s' runs with configuration from `%s'\n",
+	      serviceName,
+	      cfg_fn);
+#endif
   /* actually run service */
   GNUNET_SCHEDULER_run (&service_task, &sctx);
   if (sctx.ready_confirm_fd != -1)

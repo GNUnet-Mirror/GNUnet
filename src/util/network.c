@@ -29,7 +29,7 @@
 #include "disk.h"
 #include "gnunet_container_lib.h"
 
-#define DEBUG_NETWORK GNUNET_YES
+#define DEBUG_NETWORK GNUNET_NO
 
 #ifndef INVALID_SOCKET
 #define INVALID_SOCKET -1

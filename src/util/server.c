@@ -35,7 +35,7 @@
 #include "gnunet_time_lib.h"
 #include "gnunet_disk_lib.h"
 
-#define DEBUG_SERVER GNUNET_YES
+#define DEBUG_SERVER GNUNET_NO
 
 /**
  * List of arrays of message handlers.
