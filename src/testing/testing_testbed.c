@@ -67,6 +67,7 @@ GNUNET_TESTING_testbed_start (struct GNUNET_SCHEDULER_Handle *sched,
 			      const char *hostname,
 			      ...)
 {
+  GNUNET_break (0);
   return NULL;
 }
 
@@ -83,6 +84,7 @@ GNUNET_TESTING_testbed_stop (struct GNUNET_TESTING_Testbed *tb,
 			     GNUNET_TESTING_NotifyCompletion cb,
 			     void *cb_cls)
 {
+  GNUNET_break (0);
 }
 
 
@@ -113,6 +115,7 @@ GNUNET_TESTING_testbed_churn (struct GNUNET_TESTING_Testbed *tb,
 			      GNUNET_TESTING_NotifyCompletion cb,
 			      void *cb_cls)
 {
+  GNUNET_break (0);
 }
 
 
