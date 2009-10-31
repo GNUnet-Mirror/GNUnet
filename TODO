@@ -17,7 +17,6 @@ Urgent items (before announcing ng.gnunet.org):
     + consider changing API for peer-group termination to 
       call continuation when done
   - implement testcases for library
-    + test basic peer connect
     + test group start
 * TEST:
   - topology (needs TESTING)
