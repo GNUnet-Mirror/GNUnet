@@ -40,7 +40,7 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_transport_service.h"
 
-#define DEBUG_TESTING GNUNET_NO
+#define DEBUG_TESTING GNUNET_YES
 
 /**
  * How long do we wait after starting gnunet-service-arm
@@ -790,6 +790,7 @@ void GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
       return;
     }
   GNUNET_CONFIGURATION_destroy (d->cfg);
+  GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_remove (d->cfgfile));
   GNUNET_free (d->cfgfile);
   GNUNET_free_non_null (d->hostname);
   GNUNET_free_non_null (d->username);
@@ -915,12 +916,6 @@ struct ConnectContext
   struct GNUNET_TRANSPORT_Handle *d2th;
 
   /**
-   * When should this operation be complete (or we must trigger
-   * a timeout).
-   */
-  struct GNUNET_TIME_Absolute timeout;
-
-  /**
    * Function to call once we are done (or have timed out).
    */
   GNUNET_TESTING_NotifyCompletion cb;
@@ -929,7 +924,44 @@ struct ConnectContext
    * Closure for "nb".
    */
   void *cb_cls;
+
+  /**
+   * Transmit handle for our request for transmission
+   * (as given to d2 asking to talk to d1).
+   */
+  struct GNUNET_CORE_TransmitHandle *ntr;
+
+  /**
+   * When should this operation be complete (or we must trigger
+   * a timeout).
+   */
+  struct GNUNET_TIME_Absolute timeout;
+
 };
+
+
+/**
+ * Notify callback about success or failure of the attempt
+ * to connect the two peers
+ * 
+ * @param cls our "struct ConnectContext" (freed)
+ * @param tc reason tells us if we succeeded or failed
+ */
+static void
+notify_connect_result (void *cls,
+		       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct ConnectContext *ctx = cls;
+
+  if (ctx->cb != NULL)
+    {
+      if ((tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT) != 0)
+	ctx->cb (ctx->cb_cls, _("Peers failed to connect"));
+      else
+	ctx->cb (ctx->cb_cls, NULL);
+    }
+  GNUNET_free (ctx);
+}
 
 
 /**
@@ -945,16 +977,22 @@ transmit_ready (void *cls, size_t size, void *buf)
 {
   struct ConnectContext *ctx = cls;
 
+#if DEBUG_TESTING
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Core notified us about readiness to transmit message, connection must be up!\n");
+#endif
+  ctx->ntr = NULL;
   GNUNET_TRANSPORT_disconnect (ctx->d1th);
+  ctx->d1th = NULL;
   GNUNET_TRANSPORT_disconnect (ctx->d2th);
-  if (NULL != ctx->cb)
-    {
-      if (buf == NULL)
-	ctx->cb (ctx->cb_cls, _("Peers failed to connect"));
-      else
-	ctx->cb (ctx->cb_cls, NULL);
-    }
-  GNUNET_free (ctx);
+  ctx->d2th = NULL;
+  GNUNET_SCHEDULER_add_continuation (ctx->d1->sched,
+				     GNUNET_NO,
+				     &notify_connect_result,
+				     ctx,
+				     (buf == NULL) ? 
+				     GNUNET_SCHEDULER_REASON_TIMEOUT :
+				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
   return 0;
 }
 
@@ -987,17 +1025,20 @@ process_hello (void *cls,
       GNUNET_free (ctx);
       return;
     }
+#if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' from transport service of `%4s'\n",
               "HELLO", GNUNET_i2s (peer));
+#endif
   GNUNET_assert (message != NULL);
   GNUNET_TRANSPORT_offer_hello (ctx->d2th, message);
-  GNUNET_CORE_notify_transmit_ready (ctx->d2->server,
-				     0,
-				     GNUNET_TIME_absolute_get_remaining (ctx->timeout),
-				     &ctx->d1->id,
-				     sizeof (struct GNUNET_MessageHeader),
-				     &transmit_ready, ctx);
+  ctx->ntr 
+    = GNUNET_CORE_notify_transmit_ready (ctx->d2->server,
+					 0,
+					 GNUNET_TIME_absolute_get_remaining (ctx->timeout),
+					 &ctx->d1->id,
+					 sizeof (struct GNUNET_MessageHeader),
+					 &transmit_ready, ctx);
 }
 
 
@@ -1032,7 +1073,10 @@ void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
   ctx->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   ctx->cb = cb;
   ctx->cb_cls = cb_cls;
-  ctx->d1th = GNUNET_TRANSPORT_connect (d1->sched, d1->cfg, d1, NULL, NULL, NULL);
+  ctx->d1th = GNUNET_TRANSPORT_connect (d1->sched,
+					d1->cfg, 
+					d1,
+					NULL, NULL, NULL);
   if (ctx->d1th == NULL)
     {
       GNUNET_free (ctx);
@@ -1040,7 +1084,10 @@ void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 	cb (cb_cls, _("Failed to connect to transport service!\n"));
       return;
     }
-  ctx->d2th = GNUNET_TRANSPORT_connect (d2->sched, d2->cfg, d2, NULL, NULL, NULL);
+  ctx->d2th = GNUNET_TRANSPORT_connect (d2->sched,
+					d2->cfg, 
+					d2, 
+					NULL, NULL, NULL);
   if (ctx->d2th == NULL)
     {
       GNUNET_TRANSPORT_disconnect (ctx->d1th);

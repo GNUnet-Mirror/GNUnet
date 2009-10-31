@@ -57,7 +57,7 @@ static void end2_cb(void *cls,
 }
 
 static void end1_cb(void *cls,
-		   const char *emsg)
+		    const char *emsg)
 {
   GNUNET_assert (emsg == NULL); 
   GNUNET_TESTING_daemon_stop (d2, &end2_cb, NULL);
