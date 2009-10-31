@@ -1,11 +1,11 @@
 Implementable right now (but not necessarily important), with caveats
 (unavailable components that will limit what can be implemented right
 away), in order in which they will likely be done:
-* TESTING [Nate]
+* TESTING-TESTBED [Nate]
 * SETUP
-* DV (distributed testing not available) [Nate]
-* TBENCH (distributed testing not available) 
-* TRACEKIT (distributed testing not available)
+* DV [Nate]
+* TBENCH
+* TRACEKIT
 * FRAGMENTATION [Ji Lu]
 * HTTP transport
 * MySQL / Postgres plugins (datastore, datacache) [Radhika]
@@ -13,8 +13,8 @@ away), in order in which they will likely be done:
 
 Urgent items (before announcing ng.gnunet.org):
 * TEST:
-  - topology (needs TESTING)
-  - hostlist (maybe easier with TESTING?)
+  - topology
+  - hostlist
 * CORE:
   - soliciting traffic for clients that registered for it is not implemented
     (in the service, client API supports GNUNET_MESSAGE_TYPE_CORE_SOLICIT_TRAFFIC
@@ -37,7 +37,7 @@ Urgent items (before announcing ng.gnunet.org):
 
 0.9.0pre0:
 * UTIL:
-  - heap: "remove_node" can hardly be O(1) given the API, but it should be (!)
+  - heap: "remove_node" can hardly be O(1) given the API, but it should be [Radhika]
   - load: need way to determine network load (up/down)
   - trust: need *fast* way to check/update trust in peers
            (async peerinfo would not be right)
