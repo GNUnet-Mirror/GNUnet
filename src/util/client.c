@@ -127,8 +127,8 @@ struct GNUNET_CLIENT_Connection
   /**
    * Our configuration.
    */
-  const struct GNUNET_CONFIGURATION_Handle *cfg;
-
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+  
   /**
    * Name of the service we interact with.
    */
@@ -262,7 +262,7 @@ GNUNET_CLIENT_connect (struct GNUNET_SCHEDULER_Handle *sched,
   ret->sock = sock;
   ret->sched = sched;
   ret->service_name = GNUNET_strdup (service_name);
-  ret->cfg = cfg;
+  ret->cfg = GNUNET_CONFIGURATION_dup (cfg);
   return ret;
 }
 
@@ -280,6 +280,7 @@ finish_cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CLIENT_notify_transmit_ready_cancel (sock->th);    
   GNUNET_array_grow (sock->received_buf, sock->received_size, 0);
   GNUNET_free (sock->service_name);
+  GNUNET_CONFIGURATION_destroy (sock->cfg);
   GNUNET_free (sock);
 }
 
