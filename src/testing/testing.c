@@ -790,7 +790,6 @@ void GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
       return;
     }
   GNUNET_CONFIGURATION_destroy (d->cfg);
-  GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_remove (d->cfgfile));
   GNUNET_free (d->cfgfile);
   GNUNET_free_non_null (d->hostname);
   GNUNET_free_non_null (d->username);
