@@ -42,7 +42,7 @@ main (int argc, char *argv[])
   struct GNUNET_CONTAINER_MetaData *metaDataW;
   struct GNUNET_CONTAINER_MetaData *metaDataR;
   
-  filename = GNUNET_DISK_mktemp ("gnunet_bio");
+  fileName = GNUNET_DISK_mktemp ("gnunet_bio");
   metaDataR = GNUNET_CONTAINER_meta_data_create();
   metaDataW = GNUNET_CONTAINER_meta_data_create();
   GNUNET_CONTAINER_meta_data_add_publication_date(metaDataW);
