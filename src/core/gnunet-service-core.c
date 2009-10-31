@@ -1750,6 +1750,10 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
 
 /**
  * Handle CORE_SEND request.
+ *
+ * @param cls unused
+ * @param client the client issuing the request
+ * @param message the "struct SendMessage"
  */
 static void
 handle_client_send (void *cls,
@@ -1796,6 +1800,10 @@ send_connect_continuation (void *cls, size_t size, void *buf)
 
 /**
  * Handle CORE_SEND request.
+ *
+ * @param cls unused
+ * @param client the client issuing the request
+ * @param message the "struct SendMessage"
  */
 static void
 handle_client_send (void *cls,

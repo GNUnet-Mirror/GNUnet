@@ -1054,6 +1054,12 @@ produce_send (void *cls, size_t size, void *buf)
   trigger_next_request (h);
   GNUNET_assert (size >= sizeof (struct SendMessage));
   dt = notify (notify_cls, size - sizeof (struct SendMessage), &sm[1]);
+  if (0 == dt)
+    {
+      /* client decided to send nothing! */
+      return 0;
+    }
+  GNUNET_assert (dt >= sizeof (struct GNUNET_MessageHeader));
   sm->header.size = htons (dt + sizeof (struct SendMessage));
   GNUNET_assert (dt + sizeof (struct SendMessage) < size);
   return dt + sizeof (struct SendMessage);
