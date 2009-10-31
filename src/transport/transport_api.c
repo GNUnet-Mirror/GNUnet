@@ -1544,8 +1544,7 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
       handle->client = NULL;
       GNUNET_CLIENT_disconnect (client);
     }
-  if (client == NULL)
-    GNUNET_free (handle);
+  GNUNET_free (handle);
 }
 
 
