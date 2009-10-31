@@ -133,4 +133,6 @@ sane end-user should care about this codebase yet anyway.
 * HOSTLIST:
   - implement advertising of hostlist URL
   - implement learning of hostlist URLs
-
+* TESTING:
+  - consider changing API for peer-group termination to 
+    call continuation when done

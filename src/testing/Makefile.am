@@ -22,9 +22,14 @@ libgnunettesting_la_LIBADD = $(XLIB) \
 
 check_PROGRAMS = \
  test_testing \
- test_testing_connect
+ test_testing_connect \
+ test_testing_group
 
-TESTS = $(check_PROGRAMS)
+TESTS = \
+ test_testing \
+ test_testing_connect \
+ test_testing_group
+#$(check_PROGRAMS)
 
 test_testing_SOURCES = \
  test_testing.c
@@ -35,6 +40,12 @@ test_testing_LDADD = \
 test_testing_connect_SOURCES = \
  test_testing_connect.c
 test_testing_connect_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+test_testing_group_SOURCES = \
+ test_testing_group.c
+test_testing_group_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 

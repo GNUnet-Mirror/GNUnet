@@ -12,12 +12,6 @@ away), in order in which they will likely be done:
 * UPNP [Milan]
 
 Urgent items (before announcing ng.gnunet.org):
-* TESTING (needed for DV, DHT, Topology)
-  - implement library for local testing
-    + consider changing API for peer-group termination to 
-      call continuation when done
-  - implement testcases for library
-    + test group start
 * TEST:
   - topology (needs TESTING)
   - hostlist (maybe easier with TESTING?)
