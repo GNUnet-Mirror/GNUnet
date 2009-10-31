@@ -112,6 +112,17 @@ struct GNUNET_CORE_Handle
   struct GNUNET_CORE_TransmitHandle *submitted;
 
   /**
+   * Currently submitted request based on solicitation (or NULL)
+   */
+  struct GNUNET_CORE_TransmitHandle *solicit_transmit_req;
+
+  /**
+   * Buffer where we store a message for transmission in response
+   * to a traffic solicitation (or NULL).
+   */
+  char *solicit_buffer;
+
+  /**
    * How long to wait until we time out the connection attempt?
    */
   struct GNUNET_TIME_Absolute startup_timeout;
@@ -246,6 +257,8 @@ static size_t transmit_start (void *cls, size_t size, void *buf);
 /**
  * Our current client connection went down.  Clean it up
  * and try to reconnect!
+ *
+ * @param h our handle to the core service
  */
 static void
 reconnect (struct GNUNET_CORE_Handle *h)
@@ -362,9 +375,12 @@ trigger_next_request (struct GNUNET_CORE_Handle *h)
 static size_t
 copy_and_free (void *cls, size_t size, void *buf)
 {
-  char *cbuf = cls;
+  struct GNUNET_CORE_Handle *h = cls;
+  char *cbuf = h->solicit_buffer;
   uint32_t have;
 
+  h->solicit_transmit_req = NULL;
+  h->solicit_buffer = NULL;
   memcpy (&have, cbuf, sizeof (uint32_t));
   if (have > size)
     {
@@ -380,6 +396,10 @@ copy_and_free (void *cls, size_t size, void *buf)
 
 /**
  * Call bfc callback to solicit traffic for the given peer.
+ *
+ * @param h our handle to the core service
+ * @param peer peer for which traffic is solicited
+ * @param amount number of bytes that are being solicited
  */
 static void
 solicit_traffic (struct GNUNET_CORE_Handle *h,
@@ -389,22 +409,49 @@ solicit_traffic (struct GNUNET_CORE_Handle *h,
   size_t have;
   char *cbuf;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "Core solicited %u bytes of traffic for `%s'!\n",
+	      amount,
+	      GNUNET_i2s (peer));
+  if (NULL != h->solicit_transmit_req)
+    {
+      /* more than one solicitation pending */
+      GNUNET_break (0);
+      return;
+    }
   have = h->bfc (h->cls, peer, buf, amount);
   if (have == 0)
-    return;
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  "Can not help with traffic solicitation for `%s'!\n",
+		  GNUNET_i2s (peer));
+      return;
+    }
   GNUNET_assert (have >= sizeof (struct GNUNET_MessageHeader));
   cbuf = GNUNET_malloc (have + sizeof (uint32_t));
   memcpy (cbuf, &have, sizeof (uint32_t));
   memcpy (cbuf + sizeof (uint32_t), buf, have);
-  GNUNET_CORE_notify_transmit_ready (h,
-                                     0,
-                                     GNUNET_TIME_UNIT_SECONDS,
-                                     peer, have, &copy_and_free, cbuf);
+  h->solicit_buffer = cbuf;
+  h->solicit_transmit_req 
+    = GNUNET_CORE_notify_transmit_ready (h,
+					 0,
+					 GNUNET_TIME_UNIT_SECONDS,
+					 peer, have, &copy_and_free, h);
+  if (h->solicit_transmit_req == NULL)
+    {
+      /* this should not happen */
+      GNUNET_break (0);
+      GNUNET_free (cbuf);
+      h->solicit_buffer = NULL;
+    }
 }
 
 
 /**
  * Handler for most messages received from the core.
+ *
+ * @param cls our "struct GNUNET_CORE_Handle"
+ * @param msg the message received from the core service
  */
 static void
 main_handler (void *cls, const struct GNUNET_MessageHeader *msg)
@@ -845,9 +892,12 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
 {
   if (handle->th != NULL)
     GNUNET_CLIENT_notify_transmit_ready_cancel (handle->th);
+  if (handle->solicit_transmit_req != NULL)
+    GNUNET_CORE_notify_transmit_ready_cancel (handle->solicit_transmit_req);
   if (handle->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (handle->sched, handle->reconnect_task);
   GNUNET_CLIENT_disconnect (handle->client);
+  GNUNET_free_non_null (handle->solicit_buffer);
   GNUNET_free (handle);
 }
 
