@@ -3,8 +3,17 @@ INCLUDES = -I$(top_srcdir)/src/include
 plugindir = $(libdir)/gnunet
 
 if MINGW
- WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols -lole32 -lshell32 -luuid -liconv -lstdc++ -lcomdlg32 -lgdi32
- WINSRC = win.cc winproc.c
+noinst_LIBRARIES = \
+  libgnunetutilwin.a
+libgnunetutilwin_a_SOURCES = \
+  win.cc \
+  winproc.c
+libgnunetutilwin_a_LDFLAGS = \
+  -Wl,--no-undefined -Wl,--export-all-symbols 
+libgnunetutilwin_a_LIBADD = \
+  -lole32 -lshell32 -luuid -liconv -lstdc++ \
+  -lcomdlg32 -lgdi32
+WINLIB = libgnunetutilwin.a
 endif
 
 if USE_COVERAGE
@@ -59,12 +68,12 @@ libgnunetutil_la_SOURCES = \
 
 
 libgnunetutil_la_LIBADD = \
-  $(GCLIBADD) \
+  $(GCLIBADD) $(WINLIB) \
   $(LIBGCRYPT_LIBS) \
   -lgmp -lltdl -lz -lextractor $(XLIB)
 
 libgnunetutil_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  $(GN_LIB_LDFLAGS) \
   -version-info 4:0:0
 
 
