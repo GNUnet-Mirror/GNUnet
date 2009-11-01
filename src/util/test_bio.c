@@ -93,6 +93,7 @@ main (int argc, char *argv[])
   fileW3 = GNUNET_BIO_write_open (fileName3);
   GNUNET_assert (NULL != fileW3);
   GNUNET_assert (GNUNET_OK == GNUNET_BIO_write_meta_data (fileW3, metaData));
+  GNUNET_assert (GNUNET_OK == GNUNET_BIO_write_close (fileW3));
   fileW4 = GNUNET_BIO_write_open (fileName4);
   GNUNET_assert (NULL != fileW4);
   GNUNET_assert (GNUNET_OK == GNUNET_BIO_write_string (fileW4, ""));
@@ -112,7 +113,7 @@ main (int argc, char *argv[])
   GNUNET_assert (NULL != fileR);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_BIO_read_string (fileR, "Read string error",
-                                         &readResultString, 200));
+                                           &readResultString, 200));
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_BIO_read_meta_data (fileR, "Read meta error",
                                             &metaDataR));
@@ -135,6 +136,9 @@ main (int argc, char *argv[])
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_BIO_read_string (fileR4, "Read string error",
                                          &readResultString, 200));
+  GNUNET_assert (GNUNET_SYSERR	 ==
+                   GNUNET_BIO_read_string (fileR4, "Read string error",
+                                               &readResultString, 0));
   GNUNET_BIO_read_close (fileR, &msg);
   GNUNET_BIO_read_close (fileR2, &msg);
   GNUNET_BIO_read_close (fileR3, &msg);
