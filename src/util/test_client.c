@@ -61,8 +61,7 @@ copy_msg (void *cls, size_t size, void *buf)
   GNUNET_SERVER_receive_done (ctx->client, GNUNET_OK);
   GNUNET_free (cpy);
   GNUNET_free (ctx);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Message bounced back to client\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message bounced back to client\n");
   return sizeof (struct GNUNET_MessageHeader);
 }
 
@@ -79,7 +78,7 @@ echo_cb (void *cls,
   struct GNUNET_MessageHeader *cpy;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Receiving message from client, bouncing back\n");
+              "Receiving message from client, bouncing back\n");
   GNUNET_assert (sizeof (struct GNUNET_MessageHeader) ==
                  ntohs (message->size));
   cc = GNUNET_malloc (sizeof (struct CopyContext));
@@ -109,10 +108,11 @@ recv_bounce (void *cls, const struct GNUNET_MessageHeader *got)
 
   GNUNET_assert (got != NULL);  /* timeout */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Receiving bounce, checking content\n");
+              "Receiving bounce, checking content\n");
   msg.type = htons (MY_TYPE);
   msg.size = htons (sizeof (struct GNUNET_MessageHeader));
-  GNUNET_assert (0 == memcmp (got, &msg, sizeof (struct GNUNET_MessageHeader)));
+  GNUNET_assert (0 ==
+                 memcmp (got, &msg, sizeof (struct GNUNET_MessageHeader)));
   GNUNET_CLIENT_disconnect (client);
   client = NULL;
   GNUNET_SERVER_destroy (server);
@@ -128,8 +128,7 @@ make_msg (void *cls, size_t size, void *buf)
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   msg->type = htons (MY_TYPE);
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Creating message for transmission\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating message for transmission\n");
   return sizeof (struct GNUNET_MessageHeader);
 }
 
@@ -163,9 +162,9 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (NULL !=
                  GNUNET_CLIENT_notify_transmit_ready (client,
                                                       sizeof (struct
-                                                              GNUNET_MessageHeader),						      
+                                                              GNUNET_MessageHeader),
                                                       GNUNET_TIME_UNIT_SECONDS,
-						      GNUNET_NO,
+                                                      GNUNET_NO,
                                                       &make_msg, NULL));
   GNUNET_CLIENT_receive (client, &recv_bounce, cls,
                          GNUNET_TIME_relative_multiply
@@ -199,13 +198,13 @@ main (int argc, char *argv[])
 {
   int ret = 0;
 
-  GNUNET_log_setup ("test_client", 
+  GNUNET_log_setup ("test_client",
 #if VERBOSE
-		    "DEBUG",
+                    "DEBUG",
 #else
-		    "WARNING",
+                    "WARNING",
 #endif
-		    NULL);
+                    NULL);
   ret += check ();
 
   return ret;

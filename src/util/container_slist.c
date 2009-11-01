@@ -34,7 +34,7 @@ struct GNUNET_CONTAINER_SList_Elem
 {
   /**
    * This is a linked list.
-   */ 
+   */
   struct GNUNET_CONTAINER_SList_Elem *next;
 
   /**
@@ -102,9 +102,8 @@ struct GNUNET_CONTAINER_SList_Iterator
  * @return a new element
  */
 static struct GNUNET_CONTAINER_SList_Elem *
-create_elem (enum GNUNET_CONTAINER_SListDisposition disp, 
-	     const void *buf, 
-	     size_t len)
+create_elem (enum GNUNET_CONTAINER_SListDisposition disp,
+             const void *buf, size_t len)
 {
   struct GNUNET_CONTAINER_SList_Elem *e;
 
@@ -112,12 +111,12 @@ create_elem (enum GNUNET_CONTAINER_SListDisposition disp,
     {
       e = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_SList_Elem) + len);
       memcpy (&e[1], buf, len);
-      e->elem = (void*) &e[1];
+      e->elem = (void *) &e[1];
     }
   else
     {
       e = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_SList_Elem));
-      e->elem = (void*) buf;
+      e->elem = (void *) buf;
     }
   e->disp = disp;
   e->len = len;
@@ -133,8 +132,8 @@ create_elem (enum GNUNET_CONTAINER_SListDisposition disp,
  * @param len length of the buffer
  */
 void
-GNUNET_CONTAINER_slist_add (struct GNUNET_CONTAINER_SList *l, 
-			    enum GNUNET_CONTAINER_SListDisposition disp, 
+GNUNET_CONTAINER_slist_add (struct GNUNET_CONTAINER_SList *l,
+                            enum GNUNET_CONTAINER_SListDisposition disp,
                             const void *buf, size_t len)
 {
   struct GNUNET_CONTAINER_SList_Elem *e;
@@ -201,7 +200,7 @@ GNUNET_CONTAINER_slist_clear (struct GNUNET_CONTAINER_SList *l)
     {
       n = e->next;
       if (e->disp == GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC)
-	GNUNET_free (e->elem);
+        GNUNET_free (e->elem);
       GNUNET_free (e);
       e = n;
     }
@@ -224,8 +223,7 @@ GNUNET_CONTAINER_slist_contains (const struct GNUNET_CONTAINER_SList *l,
   struct GNUNET_CONTAINER_SList_Elem *e;
 
   for (e = l->head; e != NULL; e = e->next)
-    if ( (e->len == len) && 
-	 (memcmp (buf, e->elem, len) == 0) )
+    if ((e->len == len) && (memcmp (buf, e->elem, len) == 0))
       return GNUNET_YES;
   return GNUNET_NO;
 }
@@ -275,8 +273,8 @@ GNUNET_CONTAINER_slist_erase (struct GNUNET_CONTAINER_SList_Iterator *i)
  */
 void
 GNUNET_CONTAINER_slist_insert (struct GNUNET_CONTAINER_SList_Iterator *before,
-                               enum GNUNET_CONTAINER_SListDisposition disp, 
-			       const void *buf, size_t len)
+                               enum GNUNET_CONTAINER_SListDisposition disp,
+                               const void *buf, size_t len)
 {
   struct GNUNET_CONTAINER_SList_Elem *e;
 

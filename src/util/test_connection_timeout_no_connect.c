@@ -54,13 +54,14 @@ static void
 task_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   csock = GNUNET_CONNECTION_create_from_connect (tc->sched, cfg,
-						 "localhost", PORT, 1024);
+                                                 "localhost", PORT, 1024);
   GNUNET_assert (csock != NULL);
   GNUNET_assert (NULL !=
                  GNUNET_CONNECTION_notify_transmit_ready (csock,
-                                                       1024,
-                                                       GNUNET_TIME_UNIT_SECONDS,
-                                                       &handle_timeout, cls));
+                                                          1024,
+                                                          GNUNET_TIME_UNIT_SECONDS,
+                                                          &handle_timeout,
+                                                          cls));
 }
 
 

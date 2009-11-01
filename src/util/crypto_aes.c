@@ -76,9 +76,9 @@ ssize_t
 GNUNET_CRYPTO_aes_encrypt (const void *block,
                            size_t len,
                            const struct GNUNET_CRYPTO_AesSessionKey
-                           *sessionkey,
+                           * sessionkey,
                            const struct GNUNET_CRYPTO_AesInitializationVector
-                           *iv, void *result)
+                           * iv, void *result)
 {
   gcry_cipher_hd_t handle;
   int rc;
@@ -116,12 +116,12 @@ GNUNET_CRYPTO_aes_encrypt (const void *block,
  * @return -1 on failure, size of decrypted block on success
  */
 ssize_t
-GNUNET_CRYPTO_aes_decrypt (const void *block, 
-			   size_t size,
+GNUNET_CRYPTO_aes_decrypt (const void *block,
+                           size_t size,
                            const struct GNUNET_CRYPTO_AesSessionKey
-                           *sessionkey, 
-			   const struct GNUNET_CRYPTO_AesInitializationVector
-                           *iv, void *result)
+                           * sessionkey,
+                           const struct GNUNET_CRYPTO_AesInitializationVector
+                           * iv, void *result)
 {
   gcry_cipher_hd_t handle;
   int rc;

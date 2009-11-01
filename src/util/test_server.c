@@ -87,7 +87,8 @@ my_receive (void *cls,
       *ok = 2;                  /* report success */
       msg.type = htons (MY_TYPE2);
       msg.size = htons (sizeof (struct GNUNET_MessageHeader));
-      receiver (receiver_cls, &msg, sizeof (struct GNUNET_MessageHeader), NULL, 0, 0);
+      receiver (receiver_cls, &msg, sizeof (struct GNUNET_MessageHeader),
+                NULL, 0, 0);
       break;
     case 3:
       /* called after first receive instantly

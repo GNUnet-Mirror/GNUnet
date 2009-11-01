@@ -73,8 +73,8 @@ void
 plibc_panic (int err, char *msg)
 {
   GNUNET_log (((err ==
-                   INT_MAX) ? GNUNET_ERROR_TYPE_DEBUG : GNUNET_ERROR_TYPE_ERROR),
-                 "%s", msg);
+                INT_MAX) ? GNUNET_ERROR_TYPE_DEBUG : GNUNET_ERROR_TYPE_ERROR),
+              "%s", msg);
 }
 
 /**

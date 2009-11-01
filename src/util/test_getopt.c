@@ -87,8 +87,7 @@ testVersion ()
     GNUNET_GETOPT_OPTION_END
   };
 
-  if (-1 != GNUNET_GETOPT_run ("test_getopt",
-			       versionoptionlist, 2, myargv))
+  if (-1 != GNUNET_GETOPT_run ("test_getopt", versionoptionlist, 2, myargv))
     {
       GNUNET_break (0);
       return 1;
@@ -109,8 +108,7 @@ testAbout ()
     GNUNET_GETOPT_OPTION_END
   };
 
-  if (-1 != GNUNET_GETOPT_run ("test_getopt",
-                               aboutoptionlist, 2, myargv))
+  if (-1 != GNUNET_GETOPT_run ("test_getopt", aboutoptionlist, 2, myargv))
     {
       GNUNET_break (0);
       return 1;

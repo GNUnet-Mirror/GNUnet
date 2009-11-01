@@ -44,8 +44,8 @@ check_hostname (void *cls, const struct sockaddr *sa, socklen_t salen)
       return;
     }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      _("Got IP address `%s' for our host.\n"),
-	      GNUNET_a2s (sa, salen));
+              _("Got IP address `%s' for our host.\n"),
+              GNUNET_a2s (sa, salen));
 }
 
 
@@ -126,8 +126,7 @@ static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *sched,
      char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct sockaddr_in sa;
   struct GNUNET_TIME_Relative timeout =
@@ -186,7 +185,7 @@ check ()
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
       ok = 1;
     }
-  GNUNET_OS_process_wait(pid);
+  GNUNET_OS_process_wait (pid);
   if (ok != 0)
     fprintf (stderr, "Missed some resolutions: %u\n", ok);
   return ok;

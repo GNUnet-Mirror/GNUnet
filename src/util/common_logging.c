@@ -442,7 +442,7 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind)
  * @return string form; will be overwritten by next call to GNUNET_h2s.
  */
 const char *
-GNUNET_h2s (const GNUNET_HashCode *hc)
+GNUNET_h2s (const GNUNET_HashCode * hc)
 {
   static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
   GNUNET_CRYPTO_hash_to_enc (hc, &ret);
@@ -481,12 +481,12 @@ GNUNET_i2s (const struct GNUNET_PeerIdentity *pid)
  * @return nicely formatted string for the address
  *  will be overwritten by next call to GNUNET_a2s.
  */
-const char *GNUNET_a2s (const struct sockaddr *addr,
-			socklen_t addrlen)
+const char *
+GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
 {
-  static char buf[INET6_ADDRSTRLEN+8];
+  static char buf[INET6_ADDRSTRLEN + 8];
   static char b2[6];
-  const struct sockaddr_in * v4;
+  const struct sockaddr_in *v4;
   const struct sockaddr_in6 *v6;
 
   if (addr == NULL)
@@ -494,24 +494,24 @@ const char *GNUNET_a2s (const struct sockaddr *addr,
   switch (addr->sa_family)
     {
     case AF_INET:
-      v4 = (const struct sockaddr_in*)addr;
-      inet_ntop(AF_INET, &v4->sin_addr, buf, INET_ADDRSTRLEN);
-      if (0 == ntohs(v4->sin_port))
-	return buf;	
+      v4 = (const struct sockaddr_in *) addr;
+      inet_ntop (AF_INET, &v4->sin_addr, buf, INET_ADDRSTRLEN);
+      if (0 == ntohs (v4->sin_port))
+        return buf;
       strcat (buf, ":");
-      sprintf (b2, "%u", ntohs(v4->sin_port));
+      sprintf (b2, "%u", ntohs (v4->sin_port));
       strcat (buf, b2);
       return buf;
     case AF_INET6:
-      v6 = (const struct sockaddr_in6*)addr;
+      v6 = (const struct sockaddr_in6 *) addr;
       buf[0] = '[';
-      inet_ntop(AF_INET6, &v6->sin6_addr, &buf[1], INET6_ADDRSTRLEN);
-      if (0 == ntohs(v6->sin6_port))
-	return &buf[1];	
+      inet_ntop (AF_INET6, &v6->sin6_addr, &buf[1], INET6_ADDRSTRLEN);
+      if (0 == ntohs (v6->sin6_port))
+        return &buf[1];
       strcat (buf, "]:");
-      sprintf (b2, "%u", ntohs(v6->sin6_port));
+      sprintf (b2, "%u", ntohs (v6->sin6_port));
       strcat (buf, b2);
-      return buf;      
+      return buf;
     default:
       return _("invalid address");
     }
@@ -521,8 +521,7 @@ const char *GNUNET_a2s (const struct sockaddr *addr,
 /**
  * Initializer
  */
-void __attribute__ ((constructor))
-GNUNET_util_cl_init()
+void __attribute__ ((constructor)) GNUNET_util_cl_init ()
 {
   GNUNET_stderr = stderr;
 }

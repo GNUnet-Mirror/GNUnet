@@ -63,12 +63,13 @@ open_listen_socket ()
   sa.sin_port = htons (PORT);
   desc = GNUNET_NETWORK_socket_create (AF_INET, SOCK_STREAM, 0);
   GNUNET_assert (desc != 0);
-  if (GNUNET_NETWORK_socket_setsockopt (desc, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
+  if (GNUNET_NETWORK_socket_setsockopt
+      (desc, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "setsockopt");
-  GNUNET_assert (GNUNET_NETWORK_socket_bind (desc,
-					     (const struct sockaddr*) &sa,
-					     sizeof (sa)) == GNUNET_OK);
+  GNUNET_assert (GNUNET_NETWORK_socket_bind
+                 (desc, (const struct sockaddr *) &sa,
+                  sizeof (sa)) == GNUNET_OK);
   GNUNET_NETWORK_socket_listen (desc, 5);
   return desc;
 }
@@ -88,10 +89,10 @@ receive_check (void *cls,
   if (sofar < 12)
     {
       GNUNET_CONNECTION_receive (asock,
-                              1024,
-                              GNUNET_TIME_relative_multiply
-                              (GNUNET_TIME_UNIT_SECONDS, 5), &receive_check,
-                              cls);
+                                 1024,
+                                 GNUNET_TIME_relative_multiply
+                                 (GNUNET_TIME_UNIT_SECONDS, 5),
+                                 &receive_check, cls);
     }
   else
     {
@@ -110,7 +111,7 @@ run_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct sockaddr_in expect;
 
   asock = GNUNET_CONNECTION_create_from_accept (tc->sched,
-                                                    NULL, NULL, ls, 1024);
+                                                NULL, NULL, ls, 1024);
   GNUNET_assert (asock != NULL);
   GNUNET_assert (GNUNET_YES == GNUNET_CONNECTION_check (asock));
   GNUNET_assert (GNUNET_OK ==
@@ -128,9 +129,10 @@ run_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_free (addr);
   GNUNET_CONNECTION_destroy (lsock);
   GNUNET_CONNECTION_receive (asock,
-                          1024,
-                          GNUNET_TIME_relative_multiply
-                          (GNUNET_TIME_UNIT_SECONDS, 5), &receive_check, cls);
+                             1024,
+                             GNUNET_TIME_relative_multiply
+                             (GNUNET_TIME_UNIT_SECONDS, 5), &receive_check,
+                             cls);
 }
 
 static size_t
@@ -156,23 +158,22 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   v4.sin_port = htons (PORT);
   v4.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
   csock = GNUNET_CONNECTION_create_from_sockaddr (tc->sched,
-                                                      AF_INET,
-                                                      (const struct sockaddr
-                                                       *) &v4, sizeof (v4),
-                                                      1024);
+                                                  AF_INET,
+                                                  (const struct sockaddr
+                                                   *) &v4, sizeof (v4), 1024);
   GNUNET_assert (csock != NULL);
   GNUNET_assert (NULL !=
                  GNUNET_CONNECTION_notify_transmit_ready (csock,
-                                                       12,
-                                                       GNUNET_TIME_UNIT_SECONDS,
-                                                       &make_hello, NULL));
+                                                          12,
+                                                          GNUNET_TIME_UNIT_SECONDS,
+                                                          &make_hello, NULL));
   GNUNET_CONNECTION_destroy (csock);
   GNUNET_SCHEDULER_add_read_net (tc->sched,
-                             GNUNET_NO,
-                             GNUNET_SCHEDULER_PRIORITY_HIGH,
-                             GNUNET_SCHEDULER_NO_TASK,
-                             GNUNET_TIME_UNIT_FOREVER_REL,
-                             ls, &run_accept, cls);
+                                 GNUNET_NO,
+                                 GNUNET_SCHEDULER_PRIORITY_HIGH,
+                                 GNUNET_SCHEDULER_NO_TASK,
+                                 GNUNET_TIME_UNIT_FOREVER_REL,
+                                 ls, &run_accept, cls);
 }
 
 
@@ -197,13 +198,13 @@ main (int argc, char *argv[])
 {
   int ret = 0;
 
-  GNUNET_log_setup ("test_connection_addressing", 
+  GNUNET_log_setup ("test_connection_addressing",
 #if VERBOSE
-		    "DEBUG",
+                    "DEBUG",
 #else
-		    "WARNING", 
+                    "WARNING",
 #endif
-		    NULL);
+                    NULL);
   ret += check ();
   return ret;
 }

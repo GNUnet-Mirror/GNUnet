@@ -59,12 +59,13 @@ open_listen_socket ()
   sa.sin_port = htons (PORT);
   desc = GNUNET_NETWORK_socket_create (AF_INET, SOCK_STREAM, 0);
   GNUNET_assert (desc != NULL);
-  if (GNUNET_NETWORK_socket_setsockopt (desc, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
+  if (GNUNET_NETWORK_socket_setsockopt
+      (desc, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "setsockopt");
-  GNUNET_assert (GNUNET_NETWORK_socket_bind (desc, 
-					     (const struct sockaddr*) &sa, 
-					     sizeof (sa)) == GNUNET_OK);
+  GNUNET_assert (GNUNET_NETWORK_socket_bind
+                 (desc, (const struct sockaddr *) &sa,
+                  sizeof (sa)) == GNUNET_OK);
   GNUNET_NETWORK_socket_listen (desc, 5);
   return desc;
 }
@@ -93,9 +94,9 @@ send_kilo (void *cls, size_t size, void *buf)
 
   GNUNET_assert (NULL !=
                  GNUNET_CONNECTION_notify_transmit_ready (csock,
-                                                       1024,
-                                                       GNUNET_TIME_UNIT_SECONDS,
-                                                       &send_kilo, cls));
+                                                          1024,
+                                                          GNUNET_TIME_UNIT_SECONDS,
+                                                          &send_kilo, cls));
   return 1024;
 }
 
@@ -108,13 +109,13 @@ task_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   lsock = GNUNET_CONNECTION_create_from_existing (tc->sched, ls, 0);
   GNUNET_assert (lsock != NULL);
   csock = GNUNET_CONNECTION_create_from_connect (tc->sched, cfg,
-						 "localhost", PORT, 1024);
+                                                 "localhost", PORT, 1024);
   GNUNET_assert (csock != NULL);
   GNUNET_assert (NULL !=
                  GNUNET_CONNECTION_notify_transmit_ready (csock,
-                                                       1024,
-                                                       GNUNET_TIME_UNIT_SECONDS,
-                                                       &send_kilo, cls));
+                                                          1024,
+                                                          GNUNET_TIME_UNIT_SECONDS,
+                                                          &send_kilo, cls));
 }
 
 

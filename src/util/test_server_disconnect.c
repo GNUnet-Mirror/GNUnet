@@ -210,8 +210,7 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                        256,
                                        GNUNET_TIME_relative_multiply
                                        (GNUNET_TIME_UNIT_MILLISECONDS, 250),
-				       GNUNET_NO,
-                                       &notify_ready, NULL);
+                                       GNUNET_NO, &notify_ready, NULL);
 }
 
 

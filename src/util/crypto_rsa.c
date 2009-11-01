@@ -571,9 +571,13 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
     return NULL;
   while (GNUNET_YES != GNUNET_DISK_file_test (filename))
     {
-      fd = GNUNET_DISK_file_open (filename, 
-				  GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE | GNUNET_DISK_OPEN_FAILIFEXISTS,
-				  GNUNET_DISK_PERM_USER_READ| GNUNET_DISK_PERM_USER_WRITE | GNUNET_DISK_PERM_GROUP_READ);
+      fd = GNUNET_DISK_file_open (filename,
+                                  GNUNET_DISK_OPEN_WRITE |
+                                  GNUNET_DISK_OPEN_CREATE |
+                                  GNUNET_DISK_OPEN_FAILIFEXISTS,
+                                  GNUNET_DISK_PERM_USER_READ |
+                                  GNUNET_DISK_PERM_USER_WRITE |
+                                  GNUNET_DISK_PERM_GROUP_READ);
       if (NULL == fd)
         {
           if (errno == EEXIST)
@@ -584,7 +588,11 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
         }
       cnt = 0;
 
-      while (GNUNET_YES != GNUNET_DISK_file_lock (fd, 0, sizeof (struct RsaPrivateKeyBinaryEncoded), GNUNET_YES))
+      while (GNUNET_YES !=
+             GNUNET_DISK_file_lock (fd, 0,
+                                    sizeof (struct
+                                            RsaPrivateKeyBinaryEncoded),
+                                    GNUNET_YES))
         {
           sleep (1);
           if (0 == ++cnt % 10)
@@ -602,13 +610,17 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
       GNUNET_assert (ret != NULL);
       enc = rsa_encode_key (ret);
       GNUNET_assert (enc != NULL);
-      GNUNET_assert (ntohs (enc->len) == GNUNET_DISK_file_write (fd, enc, ntohs (enc->len)));
+      GNUNET_assert (ntohs (enc->len) ==
+                     GNUNET_DISK_file_write (fd, enc, ntohs (enc->len)));
       GNUNET_free (enc);
 
       GNUNET_DISK_file_sync (fd);
-      if (GNUNET_YES != GNUNET_DISK_file_unlock (fd, 0, sizeof (struct RsaPrivateKeyBinaryEncoded)))
-        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-                                  "fcntl", filename);
+      if (GNUNET_YES !=
+          GNUNET_DISK_file_unlock (fd, 0,
+                                   sizeof (struct
+                                           RsaPrivateKeyBinaryEncoded)))
+        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "fcntl",
+                                  filename);
       GNUNET_assert (GNUNET_YES == GNUNET_DISK_file_close (fd));
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   _("Stored new private key in `%s'.\n"), filename);
@@ -616,7 +628,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
     }
   /* hostkey file exists already, read it! */
   fd = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ,
-			      GNUNET_DISK_PERM_NONE);
+                              GNUNET_DISK_PERM_NONE);
   if (NULL == fd)
     {
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", filename);
@@ -625,7 +637,10 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
   cnt = 0;
   while (1)
     {
-      if (GNUNET_YES != GNUNET_DISK_file_lock (fd, 0, sizeof (struct RsaPrivateKeyBinaryEncoded), GNUNET_NO))
+      if (GNUNET_YES !=
+          GNUNET_DISK_file_lock (fd, 0,
+                                 sizeof (struct RsaPrivateKeyBinaryEncoded),
+                                 GNUNET_NO))
         {
           if (0 == ++cnt % 10)
             {
@@ -645,9 +660,12 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
           /* eh, what!? File we opened is now gone!? */
           GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
                                     "stat", filename);
-          if (GNUNET_YES != GNUNET_DISK_file_unlock (fd, 0, sizeof (struct RsaPrivateKeyBinaryEncoded)))
-            GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-                                      "fcntl", filename);
+          if (GNUNET_YES !=
+              GNUNET_DISK_file_unlock (fd, 0,
+                                       sizeof (struct
+                                               RsaPrivateKeyBinaryEncoded)))
+            GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "fcntl",
+                                      filename);
           GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fd));
 
           return NULL;
@@ -658,9 +676,12 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
         {
           /* maybe we got the read lock before the hostkey generating
              process had a chance to get the write lock; give it up! */
-          if (GNUNET_YES != GNUNET_DISK_file_unlock (fd, 0, sizeof (struct RsaPrivateKeyBinaryEncoded)))
-            GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-                                      "fcntl", filename);
+          if (GNUNET_YES !=
+              GNUNET_DISK_file_unlock (fd, 0,
+                                       sizeof (struct
+                                               RsaPrivateKeyBinaryEncoded)))
+            GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "fcntl",
+                                      filename);
           if (0 == ++cnt % 10)
             {
               GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -690,7 +711,9 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
                   filename);
     }
   GNUNET_free (enc);
-  if (GNUNET_YES != GNUNET_DISK_file_unlock (fd, 0, sizeof (struct RsaPrivateKeyBinaryEncoded)))
+  if (GNUNET_YES !=
+      GNUNET_DISK_file_unlock (fd, 0,
+                               sizeof (struct RsaPrivateKeyBinaryEncoded)))
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "fcntl", filename);
   GNUNET_assert (GNUNET_YES == GNUNET_DISK_file_close (fd));
   return ret;
@@ -758,10 +781,9 @@ GNUNET_CRYPTO_rsa_encrypt (const void *block,
  * @return the size of the decrypted block, -1 on error
  */
 ssize_t
-GNUNET_CRYPTO_rsa_decrypt (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
-                           const struct GNUNET_CRYPTO_RsaEncryptedData *block,
-                           void *result, 
-			   size_t max)
+GNUNET_CRYPTO_rsa_decrypt (const struct GNUNET_CRYPTO_RsaPrivateKey * key,
+                           const struct GNUNET_CRYPTO_RsaEncryptedData *
+                           block, void *result, size_t max)
 {
   gcry_sexp_t resultsexp;
   gcry_sexp_t data;

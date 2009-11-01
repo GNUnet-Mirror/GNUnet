@@ -36,10 +36,11 @@ testReadWrite ()
   char tmp[100 + 1];
   int ret;
 
-  if (strlen(TESTSTRING) != 
-      GNUNET_DISK_fn_write (".testfile", TESTSTRING, 
-			    strlen (TESTSTRING),
-			    GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE))
+  if (strlen (TESTSTRING) !=
+      GNUNET_DISK_fn_write (".testfile", TESTSTRING,
+                            strlen (TESTSTRING),
+                            GNUNET_DISK_PERM_USER_READ |
+                            GNUNET_DISK_PERM_USER_WRITE))
     return 1;
   if (GNUNET_OK != GNUNET_DISK_file_test (".testfile"))
     return 1;
@@ -92,8 +93,9 @@ testOpenClose ()
   long avail;
 
   fh = GNUNET_DISK_file_open (".testfile", GNUNET_DISK_OPEN_READWRITE
-      | GNUNET_DISK_OPEN_CREATE, GNUNET_DISK_PERM_USER_READ
-      | GNUNET_DISK_PERM_USER_WRITE);
+                              | GNUNET_DISK_OPEN_CREATE,
+                              GNUNET_DISK_PERM_USER_READ |
+                              GNUNET_DISK_PERM_USER_WRITE);
   GNUNET_assert (GNUNET_NO == GNUNET_DISK_handle_invalid (fh));
   GNUNET_break (5 == GNUNET_DISK_file_write (fh, "Hello", 5));
   GNUNET_DISK_file_close (fh);
@@ -108,8 +110,9 @@ testOpenClose ()
   avail = GNUNET_DISK_get_blocks_available (".testfile");
   GNUNET_log_skip (0, GNUNET_NO);
   fh = GNUNET_DISK_file_open (".testfile", GNUNET_DISK_OPEN_READWRITE
-      | GNUNET_DISK_OPEN_CREATE, GNUNET_DISK_PERM_USER_WRITE
-      | GNUNET_DISK_PERM_USER_READ);
+                              | GNUNET_DISK_OPEN_CREATE,
+                              GNUNET_DISK_PERM_USER_WRITE |
+                              GNUNET_DISK_PERM_USER_READ);
   GNUNET_assert (GNUNET_NO == GNUNET_DISK_handle_invalid (fh));
   while ((avail == GNUNET_DISK_get_blocks_available (".testfile")) &&
          (avail != -1))
@@ -138,11 +141,14 @@ scan_callback (void *want, const char *filename)
 static int
 testDirScan ()
 {
-  if (GNUNET_OK != GNUNET_DISK_directory_create ("test" DIR_SEPARATOR_STR "entry"))
+  if (GNUNET_OK !=
+      GNUNET_DISK_directory_create ("test" DIR_SEPARATOR_STR "entry"))
     return 1;
-  if (GNUNET_OK != GNUNET_DISK_directory_create ("test" DIR_SEPARATOR_STR "entry_more"))
+  if (GNUNET_OK !=
+      GNUNET_DISK_directory_create ("test" DIR_SEPARATOR_STR "entry_more"))
     return 1;
-  GNUNET_DISK_directory_scan ("test", &scan_callback, "test" DIR_SEPARATOR_STR "entry");
+  GNUNET_DISK_directory_scan ("test", &scan_callback,
+                              "test" DIR_SEPARATOR_STR "entry");
   if (GNUNET_OK != GNUNET_DISK_directory_remove ("test"))
     return 1;
   if (ok < 2)

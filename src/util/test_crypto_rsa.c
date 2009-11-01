@@ -76,9 +76,7 @@ testEncryptDecrypt ()
       if (strncmp (TESTSTRING, result, strlen (TESTSTRING)) != 0)
         {
           printf ("%s != %.*s - testEncryptDecrypt failed!\n",
-                  TESTSTRING, 
-		  (int) MAX_TESTVAL,
-		  result);
+                  TESTSTRING, (int) MAX_TESTVAL, result);
           ok++;
           continue;
         }
@@ -229,8 +227,8 @@ testSignVerify ()
           continue;
         }
       if (GNUNET_SYSERR !=
-          GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_TCP_PING,
-                                    &purp, &sig, &pkey))
+          GNUNET_CRYPTO_rsa_verify
+          (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_TCP_PING, &purp, &sig, &pkey))
         {
           printf ("GNUNET_CRYPTO_rsa_verify failed to fail!\n");
           ok = GNUNET_SYSERR;
@@ -275,7 +273,8 @@ testSignPerformance ()
         }
     }
   printf ("%d RSA sign operations %llu ms\n", ITER,
-          (unsigned long long) GNUNET_TIME_absolute_get_duration (start).value);
+          (unsigned long long) GNUNET_TIME_absolute_get_duration (start).
+          value);
   GNUNET_CRYPTO_rsa_key_free (hostkey);
   return ok;
 }

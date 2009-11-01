@@ -83,7 +83,7 @@ static unsigned int free_list_start;
  * @return the interned identity.
  */
 GNUNET_PEER_Id
-GNUNET_PEER_intern (const struct GNUNET_PeerIdentity * pid)
+GNUNET_PEER_intern (const struct GNUNET_PeerIdentity *pid)
 {
   GNUNET_PEER_Id ret;
   struct PeerEntry *e;
@@ -93,8 +93,7 @@ GNUNET_PEER_intern (const struct GNUNET_PeerIdentity * pid)
     return 0;
   if (NULL == map)
     map = GNUNET_CONTAINER_multihashmap_create (32);
-  e = GNUNET_CONTAINER_multihashmap_get (map,
-					 &pid->hashPubKey);
+  e = GNUNET_CONTAINER_multihashmap_get (map, &pid->hashPubKey);
   if (e != NULL)
     {
       GNUNET_assert (e->rc > 0);
@@ -105,8 +104,8 @@ GNUNET_PEER_intern (const struct GNUNET_PeerIdentity * pid)
   if (ret == size)
     {
       GNUNET_array_grow (table, size, size + 16);
-      for (i=ret;i<size;i++)
-	table[i].pid = i + 1;
+      for (i = ret; i < size; i++)
+        table[i].pid = i + 1;
     }
   if (ret == 0)
     {
@@ -121,9 +120,9 @@ GNUNET_PEER_intern (const struct GNUNET_PeerIdentity * pid)
   table[ret].rc = 1;
   table[ret].pid = ret;
   GNUNET_CONTAINER_multihashmap_put (map,
-				     &pid->hashPubKey,
-				     &table[ret],
-				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+                                     &pid->hashPubKey,
+                                     &table[ret],
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   return ret;
 }
 
@@ -135,8 +134,7 @@ GNUNET_PEER_intern (const struct GNUNET_PeerIdentity * pid)
  * @param count size of the ids array
  */
 void
-GNUNET_PEER_decrement_rcs (const GNUNET_PEER_Id * ids, 
-			   unsigned int count)
+GNUNET_PEER_decrement_rcs (const GNUNET_PEER_Id * ids, unsigned int count)
 {
   int i;
   GNUNET_PEER_Id id;
@@ -150,13 +148,13 @@ GNUNET_PEER_decrement_rcs (const GNUNET_PEER_Id * ids,
       GNUNET_assert (table[id].rc > 0);
       table[id].rc--;
       if (table[id].rc == 0)
-	{
-	  GNUNET_CONTAINER_multihashmap_remove (map,
-						&table[id].id.hashPubKey,
-						&table[id]);
-	  table[id].pid = free_list_start;
-	  free_list_start = id;
-	}
+        {
+          GNUNET_CONTAINER_multihashmap_remove (map,
+                                                &table[id].id.hashPubKey,
+                                                &table[id]);
+          table[id].pid = free_list_start;
+          free_list_start = id;
+        }
     }
 }
 
@@ -179,8 +177,8 @@ GNUNET_PEER_change_rc (GNUNET_PEER_Id id, int delta)
   if (table[id].rc == 0)
     {
       GNUNET_CONTAINER_multihashmap_remove (map,
-					    &table[id].id.hashPubKey,
-					    &table[id]);
+                                            &table[id].id.hashPubKey,
+                                            &table[id]);
       table[id].pid = free_list_start;
       free_list_start = id;
     }
@@ -194,8 +192,7 @@ GNUNET_PEER_change_rc (GNUNET_PEER_Id id, int delta)
  * @param pid where to write the normal peer identity
  */
 void
-GNUNET_PEER_resolve (GNUNET_PEER_Id id, 
-		     struct GNUNET_PeerIdentity * pid)
+GNUNET_PEER_resolve (GNUNET_PEER_Id id, struct GNUNET_PeerIdentity *pid)
 {
   if (id == 0)
     {

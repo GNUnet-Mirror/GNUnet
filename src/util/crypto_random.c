@@ -37,8 +37,7 @@
  * @return a random value in the interval [0,i[.
  */
 uint32_t
-GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, 
-			  uint32_t i)
+GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, uint32_t i)
 {
 #ifdef gcry_fast_random_poll
   static unsigned int invokeCount;
@@ -55,8 +54,7 @@ GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode,
         gcry_fast_random_poll ();
 #endif
       gcry_randomize ((unsigned char *) &ret,
-                      sizeof (uint32_t),
-		      GCRY_STRONG_RANDOM);
+                      sizeof (uint32_t), GCRY_STRONG_RANDOM);
       return ret % i;
     }
   else
@@ -108,8 +106,7 @@ GNUNET_CRYPTO_random_permute (enum GNUNET_CRYPTO_Quality mode, unsigned int n)
  * @return random 64-bit number
  */
 uint64_t
-GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode,
-                          uint64_t max)
+GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode, uint64_t max)
 {
   uint64_t ret;
 
@@ -117,8 +114,7 @@ GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode,
   if (mode == GNUNET_CRYPTO_QUALITY_STRONG)
     {
       gcry_randomize ((unsigned char *) &ret,
-                      sizeof (uint64_t),
-		      GCRY_STRONG_RANDOM);
+                      sizeof (uint64_t), GCRY_STRONG_RANDOM);
       return ret % max;
     }
   else
@@ -144,8 +140,7 @@ GNUNET_CRYPTO_random_disable_entropy_gathering ()
 /**
  * Initializer
  */
-void __attribute__ ((constructor))
-GNUNET_util_random_init()
+void __attribute__ ((constructor)) GNUNET_util_random_init ()
 {
   SRANDOM (time (NULL));
 }

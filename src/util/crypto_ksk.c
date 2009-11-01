@@ -774,11 +774,8 @@ static pid_t genproc;
  * blocked gathering entropy.
  */
 static void
-entropy_generator (void *cls, 
-		   const char *what,
-		   int printchar,
-		   int current,
-		   int total)
+entropy_generator (void *cls,
+                   const char *what, int printchar, int current, int total)
 {
   unsigned long code;
   enum GNUNET_OS_ProcessStatusType type;
@@ -789,50 +786,45 @@ entropy_generator (void *cls,
   if (current == total)
     {
       if (genproc != 0)
-	{
-	  if (0 != PLIBC_KILL(genproc, SIGTERM))
-	    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
-				 "kill");
-	  GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (genproc));
-	  genproc = 0;
-	}
+        {
+          if (0 != PLIBC_KILL (genproc, SIGTERM))
+            GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "kill");
+          GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (genproc));
+          genproc = 0;
+        }
       return;
     }
   if (genproc != 0)
     {
-      ret = GNUNET_OS_process_status (genproc,
-				      &type,
-				      &code);
+      ret = GNUNET_OS_process_status (genproc, &type, &code);
       if (ret == GNUNET_NO)
-	return; /* still running */
+        return;                 /* still running */
       if (ret == GNUNET_SYSERR)
-	{
-	  GNUNET_break (0);
-	  return;
-	}
-      if (0 != PLIBC_KILL(genproc, SIGTERM))
-	GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
-			     "kill");
+        {
+          GNUNET_break (0);
+          return;
+        }
+      if (0 != PLIBC_KILL (genproc, SIGTERM))
+        GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "kill");
       GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (genproc));
-      genproc = 0;     
+      genproc = 0;
     }
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-	     _("Starting `%s' process to generate entropy\n"),
-	     "find");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Starting `%s' process to generate entropy\n"), "find");
   genproc = GNUNET_OS_start_process ("sh",
-				     "sh",
-				     "-c",
-				     "exec find / -mount -type f -exec cp {} /dev/null \\; 2>/dev/null",
-				     NULL);				   
+                                     "sh",
+                                     "-c",
+                                     "exec find / -mount -type f -exec cp {} /dev/null \\; 2>/dev/null",
+                                     NULL);
 }
 
 
-static void 
+static void
 killfind ()
 {
   if (genproc != 0)
     {
-      PLIBC_KILL(genproc, SIGKILL);
+      PLIBC_KILL (genproc, SIGKILL);
       genproc = 0;
     }
 }

@@ -67,7 +67,8 @@ struct GNUNET_CONTAINER_Heap
  * @param heap the heap
  * @return NULL if the heap is empty
  */
-void *GNUNET_CONTAINER_heap_peek (struct GNUNET_CONTAINER_Heap *heap)
+void *
+GNUNET_CONTAINER_heap_peek (struct GNUNET_CONTAINER_Heap *heap)
 {
   if ((heap == NULL) || (heap->root == NULL))
     return NULL;
@@ -76,7 +77,7 @@ void *GNUNET_CONTAINER_heap_peek (struct GNUNET_CONTAINER_Heap *heap)
 }
 
 static int
-next_power_of_2(int v)
+next_power_of_2 (int v)
 {
   v |= v >> 1;
   v |= v >> 2;
@@ -129,7 +130,7 @@ void
 GNUNET_CONTAINER_heap_destroy (struct GNUNET_CONTAINER_Heap *heap)
 {
   while (heap->size > 0)
-      GNUNET_CONTAINER_heap_remove_root (heap);
+    GNUNET_CONTAINER_heap_remove_root (heap);
   GNUNET_free (heap);
   return;
 }
@@ -175,7 +176,7 @@ getNextPos (struct GNUNET_CONTAINER_Heap *root)
   else
     {
       parent = root->root;
-      for (i = next_power_of_2(pos) >> 2; i > 1; i >>= 1)
+      for (i = next_power_of_2 (pos) >> 2; i > 1; i >>= 1)
         {
           if (((pos / i) % 2) == 0)
             parent = parent->left_child;
@@ -209,7 +210,7 @@ getPos (struct GNUNET_CONTAINER_Heap *root, unsigned int pos)
   else
     {
       ret = root->root;
-      for (i = next_power_of_2(pos) >> 2; i > 0; i >>= 1)
+      for (i = next_power_of_2 (pos) >> 2; i > 0; i >>= 1)
         {
           if (((pos / i) % 2) == 0)
             ret = ret->left_child;

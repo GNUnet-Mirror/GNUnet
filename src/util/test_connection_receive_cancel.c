@@ -62,12 +62,13 @@ open_listen_socket ()
   sa.sin_port = htons (PORT);
   desc = GNUNET_NETWORK_socket_create (AF_INET, SOCK_STREAM, 0);
   GNUNET_assert (desc != NULL);
-  if (GNUNET_NETWORK_socket_setsockopt (desc, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
+  if (GNUNET_NETWORK_socket_setsockopt
+      (desc, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "setsockopt");
-  GNUNET_assert (GNUNET_NETWORK_socket_bind (desc,
-					     (const struct sockaddr*) &sa,
-					     sizeof (sa)) == GNUNET_OK);
+  GNUNET_assert (GNUNET_NETWORK_socket_bind
+                 (desc, (const struct sockaddr *) &sa,
+                  sizeof (sa)) == GNUNET_OK);
   GNUNET_NETWORK_socket_listen (desc, 5);
   return desc;
 }
@@ -89,15 +90,15 @@ run_accept_cancel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 
   asock = GNUNET_CONNECTION_create_from_accept (tc->sched,
-                                                    NULL, NULL, ls, 1024);
+                                                NULL, NULL, ls, 1024);
   GNUNET_assert (asock != NULL);
   GNUNET_assert (GNUNET_YES == GNUNET_CONNECTION_check (asock));
   GNUNET_CONNECTION_destroy (lsock);
   GNUNET_CONNECTION_receive (asock,
-			     1024,
-			     GNUNET_TIME_relative_multiply
-			     (GNUNET_TIME_UNIT_SECONDS, 5), &dead_receive,
-			     cls);
+                             1024,
+                             GNUNET_TIME_relative_multiply
+                             (GNUNET_TIME_UNIT_SECONDS, 5), &dead_receive,
+                             cls);
 }
 
 
@@ -120,14 +121,14 @@ task_receive_cancel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   lsock = GNUNET_CONNECTION_create_from_existing (tc->sched, ls, 0);
   GNUNET_assert (lsock != NULL);
   csock = GNUNET_CONNECTION_create_from_connect (tc->sched, cfg,
-						 "localhost", PORT, 1024);
+                                                 "localhost", PORT, 1024);
   GNUNET_assert (csock != NULL);
   GNUNET_SCHEDULER_add_read_net (tc->sched,
-                             GNUNET_NO,
-                             GNUNET_SCHEDULER_PRIORITY_HIGH,
-                             GNUNET_SCHEDULER_NO_TASK,
-                             GNUNET_TIME_UNIT_FOREVER_REL,
-                             ls, &run_accept_cancel, cls);
+                                 GNUNET_NO,
+                                 GNUNET_SCHEDULER_PRIORITY_HIGH,
+                                 GNUNET_SCHEDULER_NO_TASK,
+                                 GNUNET_TIME_UNIT_FOREVER_REL,
+                                 ls, &run_accept_cancel, cls);
   GNUNET_SCHEDULER_add_delayed (tc->sched,
                                 GNUNET_NO,
                                 GNUNET_SCHEDULER_PRIORITY_KEEP,

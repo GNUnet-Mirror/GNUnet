@@ -198,13 +198,13 @@ GNUNET_STRINGS_to_utf8 (const char *input, size_t len, const char *charset)
   tmp = GNUNET_malloc (tmpSize);
   itmp = tmp;
   finSize = tmpSize;
-  if (iconv (cd, 
+  if (iconv (cd,
 #if FREEBSD
-	     (const char **) &input, 
+             (const char **) &input,
 #else
-	     (char **) &input, 
+             (char **) &input,
 #endif
-	     &len, &itmp, &finSize) == (size_t) - 1)
+             &len, &itmp, &finSize) == (size_t) - 1)
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "iconv");
       iconv_close (cd);

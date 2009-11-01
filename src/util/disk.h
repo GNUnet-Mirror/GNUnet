@@ -16,41 +16,40 @@
      along with GNUnet; see the file COPYING.  If not, write to the
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
-*/
-
+*/  
+  
 /**
  * @file util/disk.h
  * @brief Internal DISK related helper functions
  * @author Nils Durner
- */
-
-
+ */ 
+  
 #ifndef GNUNET_DISK_H_
 #define GNUNET_DISK_H_
-
+  
 #include "gnunet_disk_lib.h"
-
-
+  
 /**
  * Handle used to access files (and pipes).  
- */
-struct GNUNET_DISK_FileHandle
+ */ 
+struct GNUNET_DISK_FileHandle 
 {
+  
 #ifdef MINGW
   /**
    * File handle under W32.
-   */
+   */ 
   HANDLE h;
-#else
+  
+#else   /*  */
   /**
    * File handle on other OSes.
-   */
+   */ 
   int fd;
-#endif
+   
+#endif  /*  */
 };
-
-
-
+
 /**
  * Retrieve OS file handle
  *
@@ -59,9 +58,8 @@ struct GNUNET_DISK_FileHandle
  * @param dst destination buffer
  * @param dst_len length of dst
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
- */
-int GNUNET_DISK_internal_file_handle_ (const struct GNUNET_DISK_FileHandle *fh,
-                                      void *dst,
-				      size_t dst_len);
-
-#endif /* GNUNET_DISK_H_ */
+ */ 
+int GNUNET_DISK_internal_file_handle_ (const struct GNUNET_DISK_FileHandle
+                                       *fh, void *dst, size_t dst_len);
+
+#endif  /* GNUNET_DISK_H_ */

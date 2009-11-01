@@ -650,7 +650,7 @@ check_access (void *cls, const struct sockaddr *addr, socklen_t addrlen)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("Access from `%s' denied to service `%s'\n"),
-                  GNUNET_a2s(addr, addrlen), sctx->serviceName);
+                  GNUNET_a2s (addr, addrlen), sctx->serviceName);
     }
   return ret;
 }
@@ -770,8 +770,8 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
     {
       if (GNUNET_OK !=
           GNUNET_CONFIGURATION_get_value_time (sctx->cfg,
-					       sctx->serviceName,
-					       "TIMEOUT", &idleout))
+                                               sctx->serviceName,
+                                               "TIMEOUT", &idleout))
         return GNUNET_SYSERR;
 
       sctx->timeout = idleout;
@@ -794,7 +794,8 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
     {
       if (GNUNET_SYSERR ==
           (disablev6 = GNUNET_CONFIGURATION_get_value_yesno (sctx->cfg,
-                                                             sctx->serviceName,
+                                                             sctx->
+                                                             serviceName,
                                                              "DISABLEV6")))
         return GNUNET_SYSERR;
     }
@@ -824,16 +825,16 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
               GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
               return GNUNET_SYSERR;
             }
-	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		      _("Disabling IPv6 support for service `%s', failed to create IPv6 socket: %s\n"),
-		      sctx->serviceName,
-		      STRERROR (errno));
-	  disablev6 = GNUNET_YES;
+          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                      _
+                      ("Disabling IPv6 support for service `%s', failed to create IPv6 socket: %s\n"),
+                      sctx->serviceName, STRERROR (errno));
+          disablev6 = GNUNET_YES;
         }
       else
-	{
-	  GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (desc));
-	}
+        {
+          GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (desc));
+        }
     }
 
 
@@ -900,7 +901,7 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
         {
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                       _("Failed to find %saddress for `%s'.\n"),
-		      disablev6 ? "IPv4 " : "", hostname);
+                      disablev6 ? "IPv4 " : "", hostname);
           freeaddrinfo (res);
           GNUNET_free (hostname);
           return GNUNET_SYSERR;
@@ -1086,10 +1087,8 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (sctx->server == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  _("Failed to start `%s' at `%s'\n"),
-		  sctx->serviceName, 
-		  GNUNET_a2s (sctx->addr,
-			      sctx->addrlen));
+                  _("Failed to start `%s' at `%s'\n"),
+                  sctx->serviceName, GNUNET_a2s (sctx->addr, sctx->addrlen));
       sctx->ret = GNUNET_SYSERR;
       return;
     }
@@ -1107,10 +1106,8 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       write_pid_file (sctx, getpid ());
     }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      _("Service `%s' runs at %s\n"),
-	      sctx->serviceName,
-	      GNUNET_a2s (sctx->addr,
-			  sctx->addrlen));
+              _("Service `%s' runs at %s\n"),
+              sctx->serviceName, GNUNET_a2s (sctx->addr, sctx->addrlen));
   sctx->task (sctx->task_cls, tc->sched, sctx->server, sctx->cfg);
 }
 
@@ -1121,7 +1118,7 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static int
 detach_terminal (struct GNUNET_SERVICE_Context *sctx)
 {
-#ifndef MINGW 
+#ifndef MINGW
   pid_t pid;
   int nullfd;
   int filedes[2];
@@ -1304,7 +1301,7 @@ GNUNET_SERVICE_run (int argc,
   sctx.cfg = cfg = GNUNET_CONFIGURATION_create ();
   /* setup subsystems */
   if ((GNUNET_SYSERR ==
-       GNUNET_GETOPT_run (serviceName,                         
+       GNUNET_GETOPT_run (serviceName,
                           service_options,
                           argc,
                           argv)) ||
@@ -1337,9 +1334,8 @@ GNUNET_SERVICE_run (int argc,
     }
 #if 0
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Service `%s' runs with configuration from `%s'\n",
-	      serviceName,
-	      cfg_fn);
+              "Service `%s' runs with configuration from `%s'\n",
+              serviceName, cfg_fn);
 #endif
   /* actually run service */
   GNUNET_SCHEDULER_run (&service_task, &sctx);

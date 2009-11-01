@@ -199,8 +199,7 @@ GNUNET_CONTAINER_multihashmap_iterate (const struct
       e = map->map[i];
       while (e != NULL)
         {
-          if ( (NULL != it) && 
-	       (GNUNET_OK != it (it_cls, &e->key, e->value)) )
+          if ((NULL != it) && (GNUNET_OK != it (it_cls, &e->key, e->value)))
             return GNUNET_SYSERR;
           count++;
           e = e->next;
@@ -235,8 +234,8 @@ GNUNET_CONTAINER_multihashmap_remove (struct GNUNET_CONTAINER_MultiHashMap
   e = map->map[i];
   while (e != NULL)
     {
-      if ( (0 == memcmp (key, &e->key, sizeof (GNUNET_HashCode))) &&
-	   (value == e->value))
+      if ((0 == memcmp (key, &e->key, sizeof (GNUNET_HashCode))) &&
+          (value == e->value))
         {
           if (p == NULL)
             map->map[i] = e->next;
@@ -354,7 +353,7 @@ grow (struct GNUNET_CONTAINER_MultiHashMap *map)
       while (NULL != (e = old_map[i]))
         {
           old_map[i] = e->next;
-	  idx = idx_of (map, &e->key);
+          idx = idx_of (map, &e->key);
           e->next = new_map[idx];
           new_map[idx] = e;
         }
@@ -386,8 +385,8 @@ GNUNET_CONTAINER_multihashmap_put (struct GNUNET_CONTAINER_MultiHashMap *map,
   unsigned int i;
 
   i = idx_of (map, key);
-  if ( (opt != GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE) &&
-       (opt != GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST) )
+  if ((opt != GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE) &&
+      (opt != GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
     {
       e = map->map[i];
       while (e != NULL)
@@ -405,7 +404,7 @@ GNUNET_CONTAINER_multihashmap_put (struct GNUNET_CONTAINER_MultiHashMap *map,
   if (map->size / 3 >= map->map_length / 4)
     {
       grow (map);
-      i = idx_of (map, key);  
+      i = idx_of (map, key);
     }
   e = GNUNET_malloc (sizeof (struct MapEntry));
   e->key = *key;
@@ -443,8 +442,7 @@ GNUNET_CONTAINER_multihashmap_get_multiple (const struct
     {
       if (0 == memcmp (key, &e->key, sizeof (GNUNET_HashCode)))
         {
-          if ( (it != NULL) && 
-	       (GNUNET_OK != it (it_cls, &e->key, e->value)) )
+          if ((it != NULL) && (GNUNET_OK != it (it_cls, &e->key, e->value)))
             return GNUNET_SYSERR;
           count++;
         }

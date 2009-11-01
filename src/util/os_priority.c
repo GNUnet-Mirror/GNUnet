@@ -141,23 +141,23 @@ GNUNET_OS_start_process (const char *filename, ...)
   if (ret != 0)
     {
       if (ret == -1)
-	{
-	  GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "fork");
-	}
+        {
+          GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "fork");
+        }
       else
-	{
+        {
 #if HAVE_WORKING_VFORK
-	  /* let's hope vfork actually works; for some extreme cases (including
-	     a testcase) we need 'execvp' to have run before we return, since
-	     we may send a signal to the process next and we don't want it
-	     to be caught by OUR signal handler (but either by the default
-	     handler or the actual handler as installed by the process itself). */
+          /* let's hope vfork actually works; for some extreme cases (including
+             a testcase) we need 'execvp' to have run before we return, since
+             we may send a signal to the process next and we don't want it
+             to be caught by OUR signal handler (but either by the default
+             handler or the actual handler as installed by the process itself). */
 #else
-	  /* let's give the child process a chance to run execvp, 1s should
-	     be plenty in practice */
-	  sleep (1);
+          /* let's give the child process a chance to run execvp, 1s should
+             be plenty in practice */
+          sleep (1);
 #endif
-	}
+        }
       return ret;
     }
   argc = 0;
@@ -184,29 +184,30 @@ GNUNET_OS_start_process (const char *filename, ...)
   cmdlen = 0;
   va_start (ap, filename);
   while (NULL != (arg = va_arg (ap, char *)))
-    cmdlen = cmdlen + strlen (arg) + 3;
+      cmdlen = cmdlen + strlen (arg) + 3;
   va_end (ap);
 
-  cmd = idx = GNUNET_malloc (sizeof(char) * cmdlen);
+  cmd = idx = GNUNET_malloc (sizeof (char) * cmdlen);
   va_start (ap, filename);
   while (NULL != (arg = va_arg (ap, char *)))
-    idx += sprintf (idx, "\"%s\" ", arg);
+      idx += sprintf (idx, "\"%s\" ", arg);
   va_end (ap);
 
-  memset (&start, 0, sizeof(start));
-  start.cb = sizeof(start);
+  memset (&start, 0, sizeof (start));
+  start.cb = sizeof (start);
 
-  if (!CreateProcess (filename, cmd, NULL, NULL, FALSE, DETACHED_PROCESS, NULL,
-      NULL, &start, &proc))
-  {
-    SetErrnoFromWinError (GetLastError ());
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "fork");
-    return -1;
-  }
+  if (!CreateProcess
+      (filename, cmd, NULL, NULL, FALSE, DETACHED_PROCESS, NULL, NULL, &start,
+       &proc))
+    {
+      SetErrnoFromWinError (GetLastError ());
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "fork");
+      return -1;
+    }
   CloseHandle (proc.hProcess);
   CloseHandle (proc.hThread);
 
-  GNUNET_free(cmd);
+  GNUNET_free (cmd);
 
   return proc.dwProcessId;
 #endif
@@ -236,23 +237,23 @@ GNUNET_OS_start_process_v (const char *filename, char *const argv[])
   if (ret != 0)
     {
       if (ret == -1)
-	{
-	  GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "fork");
-	}
+        {
+          GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "fork");
+        }
       else
-	{
+        {
 #if HAVE_WORKING_VFORK
-	  /* let's hope vfork actually works; for some extreme cases (including
-	     a testcase) we need 'execvp' to have run before we return, since
-	     we may send a signal to the process next and we don't want it
-	     to be caught by OUR signal handler (but either by the default
-	     handler or the actual handler as installed by the process itself). */
+          /* let's hope vfork actually works; for some extreme cases (including
+             a testcase) we need 'execvp' to have run before we return, since
+             we may send a signal to the process next and we don't want it
+             to be caught by OUR signal handler (but either by the default
+             handler or the actual handler as installed by the process itself). */
 #else
-	  /* let's give the child process a chance to run execvp, 1s should
-	     be plenty in practice */
-	  sleep (1);
+          /* let's give the child process a chance to run execvp, 1s should
+             be plenty in practice */
+          sleep (1);
 #endif
-	}
+        }
       return ret;
     }
   execvp (filename, argv);
@@ -268,33 +269,34 @@ GNUNET_OS_start_process_v (const char *filename, char *const argv[])
   cmdlen = 0;
   arg = argv;
   while (*arg)
-  {
-    cmdlen = cmdlen + strlen (*arg) + 3;
-    arg++;
-  }
+    {
+      cmdlen = cmdlen + strlen (*arg) + 3;
+      arg++;
+    }
 
-  cmd = idx = GNUNET_malloc (sizeof(char) * cmdlen);
+  cmd = idx = GNUNET_malloc (sizeof (char) * cmdlen);
   arg = argv;
   while (*arg)
-  {
-    idx += sprintf (idx, "\"%s\" ", *arg);
-    arg++;
-  }
+    {
+      idx += sprintf (idx, "\"%s\" ", *arg);
+      arg++;
+    }
 
-  memset (&start, 0, sizeof(start));
-  start.cb = sizeof(start);
+  memset (&start, 0, sizeof (start));
+  start.cb = sizeof (start);
 
-  if (!CreateProcess (filename, cmd, NULL, NULL, FALSE, DETACHED_PROCESS, NULL,
-      NULL, &start, &proc))
-  {
-    SetErrnoFromWinError (GetLastError ());
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "fork");
-    return -1;
-  }
+  if (!CreateProcess
+      (filename, cmd, NULL, NULL, FALSE, DETACHED_PROCESS, NULL, NULL, &start,
+       &proc))
+    {
+      SetErrnoFromWinError (GetLastError ());
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "fork");
+      return -1;
+    }
   CloseHandle (proc.hProcess);
   CloseHandle (proc.hThread);
 
-  GNUNET_free(cmd);
+  GNUNET_free (cmd);
 
   return proc.dwProcessId;
 #endif
@@ -309,7 +311,7 @@ GNUNET_OS_start_process_v (const char *filename, char *const argv[])
  */
 int
 GNUNET_OS_process_status (pid_t proc, enum GNUNET_OS_ProcessStatusType *type,
-    unsigned long *code)
+                          unsigned long *code)
 {
 #ifndef MINGW
   int status;
@@ -317,7 +319,7 @@ GNUNET_OS_process_status (pid_t proc, enum GNUNET_OS_ProcessStatusType *type,
 
   GNUNET_assert (0 != proc);
   ret = waitpid (proc, &status, WNOHANG);
-  if (0 == ret) 
+  if (0 == ret)
     {
       *type = GNUNET_OS_PROCESS_RUNNING;
       *code = 0;
@@ -329,50 +331,50 @@ GNUNET_OS_process_status (pid_t proc, enum GNUNET_OS_ProcessStatusType *type,
       return GNUNET_SYSERR;
     }
   if (WIFEXITED (status))
-  {
-    *type = GNUNET_OS_PROCESS_EXITED;
-    *code = WEXITSTATUS (status);
-  }
+    {
+      *type = GNUNET_OS_PROCESS_EXITED;
+      *code = WEXITSTATUS (status);
+    }
   else if (WIFSIGNALED (status))
-  {
-    *type = GNUNET_OS_PROCESS_SIGNALED;
-    *code = WTERMSIG (status);
-  }
+    {
+      *type = GNUNET_OS_PROCESS_SIGNALED;
+      *code = WTERMSIG (status);
+    }
   else if (WIFSTOPPED (status))
-  {
-    *type = GNUNET_OS_PROCESS_SIGNALED;
-    *code = WSTOPSIG (status);
-  }
+    {
+      *type = GNUNET_OS_PROCESS_SIGNALED;
+      *code = WSTOPSIG (status);
+    }
   else if (WIFCONTINUED (status))
-  {
-    *type = GNUNET_OS_PROCESS_RUNNING;
-    *code = 0;
-  }
+    {
+      *type = GNUNET_OS_PROCESS_RUNNING;
+      *code = 0;
+    }
   else
-  {
-    *type = GNUNET_OS_PROCESS_UNKNOWN;
-    *code = 0;
-  }
+    {
+      *type = GNUNET_OS_PROCESS_UNKNOWN;
+      *code = 0;
+    }
 #else
   HANDLE h;
   DWORD c;
 
   h = OpenProcess (PROCESS_QUERY_INFORMATION, FALSE, proc);
   if (INVALID_HANDLE_VALUE == h)
-  {
-    SetErrnoFromWinError (GetLastError ());
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "OpenProcess");
-    return GNUNET_SYSERR;
-  }
+    {
+      SetErrnoFromWinError (GetLastError ());
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "OpenProcess");
+      return GNUNET_SYSERR;
+    }
 
   c = GetExitCodeProcess (proc, &c);
   if (STILL_ACTIVE == c)
-  {
-    *type = GNUNET_OS_PROCESS_RUNNING;
-    *code = 0;
-    CloseHandle (h);
-    return GNUNET_NO;
-  }
+    {
+      *type = GNUNET_OS_PROCESS_RUNNING;
+      *code = 0;
+      CloseHandle (h);
+      return GNUNET_NO;
+    }
   *type = GNUNET_OS_PROCESS_EXITED;
   *code = c;
   CloseHandle (h);
@@ -401,16 +403,16 @@ GNUNET_OS_process_wait (pid_t proc)
 
   h = OpenProcess (PROCESS_QUERY_INFORMATION, FALSE, proc);
   if (INVALID_HANDLE_VALUE == h)
-  {
-    SetErrnoFromWinError (GetLastError ());
-    return GNUNET_SYSERR;
-  }
+    {
+      SetErrnoFromWinError (GetLastError ());
+      return GNUNET_SYSERR;
+    }
 
   if (WAIT_OBJECT_0 != WaitForSingleObject (h, INFINITE))
-  {
-    SetErrnoFromWinError (GetLastError ());
-    ret = GNUNET_SYSERR;
-  }
+    {
+      SetErrnoFromWinError (GetLastError ());
+      ret = GNUNET_SYSERR;
+    }
   else
     ret = GNUNET_OK;
 

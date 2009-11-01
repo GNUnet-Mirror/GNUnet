@@ -196,8 +196,7 @@ GNUNET_CONTAINER_meta_data_get_contents (const struct
         {
           if ((iter != NULL) &&
               (GNUNET_OK != iter (iter_cls,
-				  md->items[i].type,
-				  md->items[i].data)))
+                                  md->items[i].type, md->items[i].data)))
             return GNUNET_SYSERR;
         }
       else
@@ -487,8 +486,7 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
       hdr->version = htonl (md == NULL ? 1 : 0);
       hdr->entries = htonl (ic);
       for (i = 0; i < ic; i++)
-        ((uint32_t *) &hdr[1])[i] =
-          htonl ((uint32_t) md->items[i].type);
+        ((uint32_t *) & hdr[1])[i] = htonl ((uint32_t) md->items[i].type);
       pos = sizeof (struct MetaDataHeader);
       pos += sizeof (unsigned int) * ic;
       for (i = 0; i < ic; i++)
@@ -556,7 +554,8 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
  */
 ssize_t
 GNUNET_CONTAINER_meta_data_get_serialized_size (const struct
-                                                GNUNET_CONTAINER_MetaData *md,
+                                                GNUNET_CONTAINER_MetaData *
+                                                md,
                                                 enum
                                                 GNUNET_CONTAINER_MetaDataSerializationOptions
                                                 opt)
@@ -579,7 +578,7 @@ GNUNET_CONTAINER_meta_data_get_serialized_size (const struct
   hdr->version = htonl (md == NULL ? 1 : 0);
   hdr->entries = htonl (ic);
   for (i = 0; i < ic; i++)
-    ((uint32_t *) &hdr[1])[i] = htonl ((uint32_t) md->items[i].type);
+    ((uint32_t *) & hdr[1])[i] = htonl ((uint32_t) md->items[i].type);
   pos = sizeof (struct MetaDataHeader);
   pos += sizeof (uint32_t) * ic;
   for (i = 0; i < ic; i++)

@@ -193,7 +193,7 @@ write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
       tag += off;
     }
   buf = GNUNET_malloc (tag);
-  ((int32_t *) buf)[0] = htonl (ranking);   /* ranking */
+  ((int32_t *) buf)[0] = htonl (ranking);       /* ranking */
   if (ns_name != NULL)
     {
       memcpy (&buf[sizeof (int32_t)], ns_name, off + 1);
@@ -211,7 +211,8 @@ write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                                    GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL));
   GNUNET_break
     (tag == GNUNET_DISK_fn_write (fn, buf, tag, GNUNET_DISK_PERM_USER_READ
-				  | GNUNET_DISK_PERM_USER_WRITE | GNUNET_DISK_PERM_GROUP_READ));
+                                  | GNUNET_DISK_PERM_USER_WRITE |
+                                  GNUNET_DISK_PERM_GROUP_READ));
   GNUNET_free (fn);
   GNUNET_free (buf);
   /* create entry for pseudonym name in names */
@@ -365,8 +366,9 @@ GNUNET_PSEUDONYM_id_to_name (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (0 == STAT (fn, &sbuf))
     GNUNET_DISK_file_size (fn, &len, GNUNET_YES);
   fh = GNUNET_DISK_file_open (fn, GNUNET_DISK_OPEN_CREATE
-      | GNUNET_DISK_OPEN_READWRITE, GNUNET_DISK_PERM_USER_READ
-      | GNUNET_DISK_PERM_USER_WRITE);
+                              | GNUNET_DISK_OPEN_READWRITE,
+                              GNUNET_DISK_PERM_USER_READ |
+                              GNUNET_DISK_PERM_USER_WRITE);
   i = 0;
   idx = -1;
   while ((len >= sizeof (GNUNET_HashCode)) &&
@@ -437,11 +439,14 @@ GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
       return GNUNET_SYSERR;
     }
   fh = GNUNET_DISK_file_open (fn, GNUNET_DISK_OPEN_CREATE
-      | GNUNET_DISK_OPEN_READWRITE, GNUNET_DISK_PERM_USER_READ
-      | GNUNET_DISK_PERM_USER_WRITE);
+                              | GNUNET_DISK_OPEN_READWRITE,
+                              GNUNET_DISK_PERM_USER_READ |
+                              GNUNET_DISK_PERM_USER_WRITE);
   GNUNET_free (fn);
-  GNUNET_DISK_file_seek (fh, idx * sizeof (GNUNET_HashCode), GNUNET_DISK_SEEK_SET);
-  if (sizeof (GNUNET_HashCode) != GNUNET_DISK_file_read (fh, nsid, sizeof (GNUNET_HashCode)))
+  GNUNET_DISK_file_seek (fh, idx * sizeof (GNUNET_HashCode),
+                         GNUNET_DISK_SEEK_SET);
+  if (sizeof (GNUNET_HashCode) !=
+      GNUNET_DISK_file_read (fh, nsid, sizeof (GNUNET_HashCode)))
     {
       GNUNET_DISK_file_close (fh);
       return GNUNET_SYSERR;
@@ -462,12 +467,12 @@ struct ListPseudonymClosure
    * FIXME
    */
   GNUNET_PSEUDONYM_Iterator iterator;
-  
+
   /**
    * FIXME
    */
   void *closure;
-    
+
   /**
    * FIXME
    */
@@ -575,9 +580,7 @@ GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param data value of entry to insert
  */
 static int
-merge_meta_helper (void *cls,
-		   EXTRACTOR_KeywordType type, 
-		   const char *data)
+merge_meta_helper (void *cls, EXTRACTOR_KeywordType type, const char *data)
 {
   struct GNUNET_CONTAINER_MetaData *meta = cls;
   GNUNET_CONTAINER_meta_data_insert (meta, type, data);

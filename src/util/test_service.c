@@ -86,8 +86,7 @@ ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CLIENT_notify_transmit_ready (client,
                                        sizeof (struct GNUNET_MessageHeader),
                                        GNUNET_TIME_UNIT_SECONDS,
-				       GNUNET_NO,
-                                       &build_msg, client);
+                                       GNUNET_NO, &build_msg, client);
 }
 
 static void
@@ -114,12 +113,12 @@ runner (void *cls,
   GNUNET_SERVER_add_handlers (server, myhandlers);
   GNUNET_CLIENT_service_test (sched,
                               "test_service",
-                              cfg, GNUNET_TIME_UNIT_SECONDS, &ready, (void*) cfg);
+                              cfg, GNUNET_TIME_UNIT_SECONDS, &ready,
+                              (void *) cfg);
 }
 
 static void
-term (void *cls, 
-      const struct GNUNET_CONFIGURATION_Handle *cfg)
+term (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   int *ok = cls;
   *ok = 0;
@@ -170,8 +169,7 @@ ready6 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CLIENT_notify_transmit_ready (client,
                                        sizeof (struct GNUNET_MessageHeader),
                                        GNUNET_TIME_UNIT_SECONDS,
-				       GNUNET_NO,
-                                       &build_msg, client);
+                                       GNUNET_NO, &build_msg, client);
 }
 
 static void
@@ -184,7 +182,8 @@ runner6 (void *cls,
   GNUNET_SERVER_add_handlers (server, myhandlers);
   GNUNET_CLIENT_service_test (sched,
                               "test_service6",
-                              cfg, GNUNET_TIME_UNIT_SECONDS, &ready6, (void*) cfg);
+                              cfg, GNUNET_TIME_UNIT_SECONDS, &ready6,
+                              (void *) cfg);
 }
 
 /**
@@ -254,8 +253,8 @@ static void
 start_stop_main (void *cls,
                  struct GNUNET_SCHEDULER_Handle *sched,
                  char *const *args,
-                 const char *cfgfile, 
-		 const struct GNUNET_CONFIGURATION_Handle *cfg)
+                 const char *cfgfile,
+                 const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   int *ret = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

@@ -48,7 +48,7 @@
 /**
  * Handle for a transmission request.
  */
-struct GNUNET_CLIENT_TransmitHandle 
+struct GNUNET_CLIENT_TransmitHandle
 {
   /**
    * Connection state.
@@ -128,7 +128,7 @@ struct GNUNET_CLIENT_Connection
    * Our configuration.
    */
   struct GNUNET_CONFIGURATION_Handle *cfg;
-  
+
   /**
    * Name of the service we interact with.
    */
@@ -198,8 +198,8 @@ struct GNUNET_CLIENT_Connection
 
 static struct GNUNET_CONNECTION_Handle *
 do_connect (struct GNUNET_SCHEDULER_Handle *sched,
-	    const char *service_name,
-	    const struct GNUNET_CONFIGURATION_Handle *cfg)
+            const char *service_name,
+            const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_CONNECTION_Handle *sock;
   char *hostname;
@@ -217,7 +217,8 @@ do_connect (struct GNUNET_SCHEDULER_Handle *sched,
                                               "HOSTNAME", &hostname)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("Could not determine valid hostname and port for service `%s' from configuration.\n"),
+                  _
+                  ("Could not determine valid hostname and port for service `%s' from configuration.\n"),
                   service_name);
       return NULL;
     }
@@ -226,14 +227,14 @@ do_connect (struct GNUNET_SCHEDULER_Handle *sched,
       GNUNET_free (hostname);
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("Need a non-empty hostname for service `%s'.\n"),
-		  service_name);
+                  service_name);
       return NULL;
     }
   sock = GNUNET_CONNECTION_create_from_connect (sched,
-						cfg,
-						hostname,
-						port,
-						GNUNET_SERVER_MAX_MESSAGE_SIZE);
+                                                cfg,
+                                                hostname,
+                                                port,
+                                                GNUNET_SERVER_MAX_MESSAGE_SIZE);
   GNUNET_free (hostname);
   return sock;
 }
@@ -277,7 +278,7 @@ finish_cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_CLIENT_Connection *sock = cls;
 
   if (sock->th != NULL)
-    GNUNET_CLIENT_notify_transmit_ready_cancel (sock->th);    
+    GNUNET_CLIENT_notify_transmit_ready_cancel (sock->th);
   GNUNET_array_grow (sock->received_buf, sock->received_size, 0);
   GNUNET_free (sock->service_name);
   GNUNET_CONFIGURATION_destroy (sock->cfg);
@@ -307,10 +308,10 @@ GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock)
     sock->in_receive = GNUNET_SYSERR;
   else
     GNUNET_SCHEDULER_add_after (sock->sched,
-				GNUNET_YES,
-				GNUNET_SCHEDULER_PRIORITY_KEEP,
-				GNUNET_SCHEDULER_NO_TASK,
-				&finish_cleanup, sock);
+                                GNUNET_YES,
+                                GNUNET_SCHEDULER_PRIORITY_KEEP,
+                                GNUNET_SCHEDULER_NO_TASK,
+                                &finish_cleanup, sock);
 }
 
 
@@ -322,8 +323,8 @@ check_complete (struct GNUNET_CLIENT_Connection *conn)
 {
   if ((conn->received_pos >= sizeof (struct GNUNET_MessageHeader)) &&
       (conn->received_pos >=
-       ntohs (((const struct GNUNET_MessageHeader *) conn->
-               received_buf)->size)))
+       ntohs (((const struct GNUNET_MessageHeader *) conn->received_buf)->
+              size)))
     conn->msg_complete = GNUNET_YES;
 }
 
@@ -352,11 +353,10 @@ receive_helper (void *cls,
   GNUNET_assert (conn->msg_complete == GNUNET_NO);
   if (GNUNET_SYSERR == conn->in_receive)
     GNUNET_SCHEDULER_add_after (conn->sched,
-				GNUNET_YES,
-				GNUNET_SCHEDULER_PRIORITY_KEEP,
-				GNUNET_SCHEDULER_NO_TASK,
-				&finish_cleanup, 
-				conn);
+                                GNUNET_YES,
+                                GNUNET_SCHEDULER_PRIORITY_KEEP,
+                                GNUNET_SCHEDULER_NO_TASK,
+                                &finish_cleanup, conn);
   conn->in_receive = GNUNET_NO;
   if ((available == 0) || (conn->sock == NULL) || (errCode != 0))
     {
@@ -403,28 +403,28 @@ receive_task (void *scls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CLIENT_Connection *sock = scls;
   GNUNET_CLIENT_MessageHandler handler = sock->receiver_handler;
-  const struct GNUNET_MessageHeader *cmsg = (const struct GNUNET_MessageHeader *) sock->received_buf;
+  const struct GNUNET_MessageHeader *cmsg =
+    (const struct GNUNET_MessageHeader *) sock->received_buf;
   void *cls = sock->receiver_handler_cls;
   uint16_t msize = ntohs (cmsg->size);
   char mbuf[msize];
-  struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader*) mbuf;
+  struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader *) mbuf;
 
   if (GNUNET_SYSERR == sock->in_receive)
     GNUNET_SCHEDULER_add_after (sock->sched,
-				GNUNET_YES,
-				GNUNET_SCHEDULER_PRIORITY_KEEP,
-				GNUNET_SCHEDULER_NO_TASK,
-				&finish_cleanup, 
-				sock);
+                                GNUNET_YES,
+                                GNUNET_SCHEDULER_PRIORITY_KEEP,
+                                GNUNET_SCHEDULER_NO_TASK,
+                                &finish_cleanup, sock);
   sock->in_receive = GNUNET_NO;
   GNUNET_assert (GNUNET_YES == sock->msg_complete);
   GNUNET_assert (sock->received_pos >= msize);
   memcpy (msg, cmsg, msize);
   memmove (sock->received_buf,
-	   &sock->received_buf[msize], sock->received_pos - msize);
+           &sock->received_buf[msize], sock->received_pos - msize);
   sock->received_pos -= msize;
   sock->msg_complete = GNUNET_NO;
-  sock->receiver_handler = NULL;  
+  sock->receiver_handler = NULL;
   check_complete (sock);
   if (handler != NULL)
     handler (cls, msg);
@@ -457,15 +457,14 @@ GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
   sock->in_receive = GNUNET_YES;
   if (GNUNET_YES == sock->msg_complete)
     GNUNET_SCHEDULER_add_after (sock->sched,
-				GNUNET_YES,
-				GNUNET_SCHEDULER_PRIORITY_KEEP,
-				GNUNET_SCHEDULER_NO_TASK,
-				&receive_task, sock);
+                                GNUNET_YES,
+                                GNUNET_SCHEDULER_PRIORITY_KEEP,
+                                GNUNET_SCHEDULER_NO_TASK,
+                                &receive_task, sock);
   else
     GNUNET_CONNECTION_receive (sock->sock,
-			       GNUNET_SERVER_MAX_MESSAGE_SIZE,
-			       timeout,
-			       &receive_helper, sock);
+                               GNUNET_SERVER_MAX_MESSAGE_SIZE,
+                               timeout, &receive_helper, sock);
 }
 
 
@@ -488,8 +487,8 @@ write_shutdown (void *cls, size_t size, void *buf)
   if (size < sizeof (struct GNUNET_MessageHeader))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  _("Failed to transmit shutdown request to client.\n"));
-      return 0;                   /* client disconnected */
+                  _("Failed to transmit shutdown request to client.\n"));
+      return 0;                 /* client disconnected */
     }
   msg = (struct GNUNET_MessageHeader *) buf;
   msg->type = htons (GNUNET_MESSAGE_TYPE_SHUTDOWN);
@@ -508,9 +507,10 @@ void
 GNUNET_CLIENT_service_shutdown (struct GNUNET_CLIENT_Connection *sock)
 {
   GNUNET_CONNECTION_notify_transmit_ready (sock->sock,
-					   sizeof (struct GNUNET_MessageHeader),
-					   GNUNET_TIME_UNIT_FOREVER_REL,
-					   &write_shutdown, sock);
+                                           sizeof (struct
+                                                   GNUNET_MessageHeader),
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           &write_shutdown, sock);
 }
 
 
@@ -624,9 +624,9 @@ GNUNET_CLIENT_service_test (struct GNUNET_SCHEDULER_Handle *sched,
   conn->test_cb_cls = task_cls;
   if (NULL ==
       GNUNET_CONNECTION_notify_transmit_ready (conn->sock,
-                                            sizeof (struct
-                                                    GNUNET_MessageHeader),
-                                            timeout, &write_test, NULL))
+                                               sizeof (struct
+                                                       GNUNET_MessageHeader),
+                                               timeout, &write_test, NULL))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("Failure to transmit request to service `%s'\n"),
@@ -649,10 +649,7 @@ GNUNET_CLIENT_service_test (struct GNUNET_SCHEDULER_Handle *sched,
  * @param buf where to write them
  * @return number of bytes written to buf
  */
-static size_t
-client_notify (void *cls,
-	       size_t size,
-	       void *buf);
+static size_t client_notify (void *cls, size_t size, void *buf);
 
 
 
@@ -665,22 +662,22 @@ client_notify (void *cls,
  */
 static void
 client_delayed_retry (void *cls,
-		      const struct GNUNET_SCHEDULER_TaskContext *tc)
+                      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CLIENT_TransmitHandle *th = cls;
 
   th->task = GNUNET_SCHEDULER_NO_TASK;
   th->th = GNUNET_CONNECTION_notify_transmit_ready (th->sock->sock,
-						    th->size,
-						    GNUNET_TIME_absolute_get_remaining (th->timeout), 
-						    &client_notify, 
-						    th);
+                                                    th->size,
+                                                    GNUNET_TIME_absolute_get_remaining
+                                                    (th->timeout),
+                                                    &client_notify, th);
   if (th->th == NULL)
     {
       GNUNET_break (0);
       th->notify (th->notify_cls, 0, NULL);
       GNUNET_free (th);
-      return;		  
+      return;
     }
 }
 
@@ -696,51 +693,42 @@ client_delayed_retry (void *cls,
  * @return number of bytes written to buf
  */
 static size_t
-client_notify (void *cls,
-	       size_t size,
-	       void *buf)
+client_notify (void *cls, size_t size, void *buf)
 {
   struct GNUNET_CLIENT_TransmitHandle *th = cls;
   size_t ret;
   struct GNUNET_TIME_Relative delay;
-  
+
   th->th = NULL;
   th->sock->th = NULL;
   if (buf == NULL)
     {
       delay = GNUNET_TIME_absolute_get_remaining (th->timeout);
       delay.value /= 2;
-      if ( (GNUNET_YES != th->auto_retry) ||
-	   (0 == --th->attempts_left) ||
-	   (delay.value < 1) )
-	{
-	  GNUNET_break (0 == th->notify (th->notify_cls,
-					 0,
-					 NULL));
-	  GNUNET_free (th);
-	  return 0;
-	}
+      if ((GNUNET_YES != th->auto_retry) ||
+          (0 == --th->attempts_left) || (delay.value < 1))
+        {
+          GNUNET_break (0 == th->notify (th->notify_cls, 0, NULL));
+          GNUNET_free (th);
+          return 0;
+        }
       /* auto-retry */
       GNUNET_CONNECTION_destroy (th->sock->sock);
-      th->sock->sock = do_connect (th->sock->sched, 
-				   th->sock->service_name,
-				   th->sock->cfg);
+      th->sock->sock = do_connect (th->sock->sched,
+                                   th->sock->service_name, th->sock->cfg);
       GNUNET_assert (NULL != th->sock->sock);
       delay = GNUNET_TIME_relative_min (delay, GNUNET_TIME_UNIT_SECONDS);
       th->task = GNUNET_SCHEDULER_add_delayed (th->sock->sched,
-					       GNUNET_NO,
-					       GNUNET_SCHEDULER_PRIORITY_KEEP,
-					       GNUNET_SCHEDULER_NO_TASK,
-					       delay,
-					       &client_delayed_retry,
-					       th);
+                                               GNUNET_NO,
+                                               GNUNET_SCHEDULER_PRIORITY_KEEP,
+                                               GNUNET_SCHEDULER_NO_TASK,
+                                               delay,
+                                               &client_delayed_retry, th);
       th->sock->th = th;
       return 0;
     }
   GNUNET_assert (size >= th->size);
-  ret = th->notify (th->notify_cls,
-		    size,
-		    buf);
+  ret = th->notify (th->notify_cls, size, buf);
   GNUNET_free (th);
   return ret;
 }
@@ -769,7 +757,7 @@ struct GNUNET_CLIENT_TransmitHandle *
 GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *sock,
                                      size_t size,
                                      struct GNUNET_TIME_Relative timeout,
-				     int auto_retry,
+                                     int auto_retry,
                                      GNUNET_CONNECTION_TransmitReadyNotify
                                      notify, void *notify_cls)
 {
@@ -786,10 +774,9 @@ GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *sock,
   th->notify_cls = notify_cls;
   th->attempts_left = MAX_ATTEMPTS;
   th->th = GNUNET_CONNECTION_notify_transmit_ready (sock->sock,
-						    size,
-						    timeout, 
-						    &client_notify, 
-						    th);
+                                                    size,
+                                                    timeout,
+                                                    &client_notify, th);
   if (NULL == th->th)
     {
       GNUNET_break (0);
@@ -807,13 +794,13 @@ GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *sock,
  * @param th handle from the original request.
  */
 void
-GNUNET_CLIENT_notify_transmit_ready_cancel (struct GNUNET_CLIENT_TransmitHandle *th)
+GNUNET_CLIENT_notify_transmit_ready_cancel (struct
+                                            GNUNET_CLIENT_TransmitHandle *th)
 {
   if (th->task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_break (NULL == th->th);
-      GNUNET_SCHEDULER_cancel (th->sock->sched,
-			       th->task);      
+      GNUNET_SCHEDULER_cancel (th->sock->sched, th->task);
     }
   else
     {
@@ -871,14 +858,12 @@ struct TARCtx
  * @return number of bytes written to buf
  */
 static size_t
-transmit_for_response (void *cls,
-		       size_t size, 
-		       void *buf)
+transmit_for_response (void *cls, size_t size, void *buf)
 {
   struct TARCtx *tc = cls;
   uint16_t msize;
 
-  msize = ntohs(tc->hdr->size);
+  msize = ntohs (tc->hdr->size);
   if (NULL == buf)
     {
       tc->rn (tc->rn_cls, NULL);
@@ -888,9 +873,9 @@ transmit_for_response (void *cls,
   GNUNET_assert (size >= msize);
   memcpy (buf, tc->hdr, msize);
   GNUNET_CLIENT_receive (tc->sock,
-			 tc->rn,
-			 tc->rn_cls,
-			 GNUNET_TIME_absolute_get_remaining (tc->timeout));
+                         tc->rn,
+                         tc->rn_cls,
+                         GNUNET_TIME_absolute_get_remaining (tc->timeout));
   GNUNET_free (tc);
   return msize;
 }
@@ -918,32 +903,34 @@ transmit_for_response (void *cls,
  *         is already pending
  */
 int
-GNUNET_CLIENT_transmit_and_get_response (struct GNUNET_CLIENT_Connection *sock,
-					 const struct GNUNET_MessageHeader *hdr,
-					 struct GNUNET_TIME_Relative timeout,
-					 int auto_retry,
-					 GNUNET_CLIENT_MessageHandler rn,
-					 void *rn_cls)
+GNUNET_CLIENT_transmit_and_get_response (struct GNUNET_CLIENT_Connection
+                                         *sock,
+                                         const struct GNUNET_MessageHeader
+                                         *hdr,
+                                         struct GNUNET_TIME_Relative timeout,
+                                         int auto_retry,
+                                         GNUNET_CLIENT_MessageHandler rn,
+                                         void *rn_cls)
 {
   struct TARCtx *tc;
   uint16_t msize;
 
   if (NULL != sock->th)
     return GNUNET_SYSERR;
-  msize = ntohs(hdr->size);
-  tc = GNUNET_malloc(sizeof (struct TARCtx) + msize);
+  msize = ntohs (hdr->size);
+  tc = GNUNET_malloc (sizeof (struct TARCtx) + msize);
   tc->sock = sock;
-  tc->hdr = (const struct GNUNET_MessageHeader*) &tc[1]; 
+  tc->hdr = (const struct GNUNET_MessageHeader *) &tc[1];
   memcpy (&tc[1], hdr, msize);
   tc->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   tc->rn = rn;
   tc->rn_cls = rn_cls;
   if (NULL == GNUNET_CLIENT_notify_transmit_ready (sock,
-						   msize,
-						   timeout,
-						   auto_retry,
-						   &transmit_for_response,
-						   tc))
+                                                   msize,
+                                                   timeout,
+                                                   auto_retry,
+                                                   &transmit_for_response,
+                                                   tc))
     {
       GNUNET_break (0);
       GNUNET_free (tc);

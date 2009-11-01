@@ -272,13 +272,11 @@ destroy_server (struct GNUNET_SERVER_Handle *server)
   struct NotifyList *npos;
 
 #if DEBUG_SERVER
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Server shutting down.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Server shutting down.\n");
 #endif
   GNUNET_assert (server->listen_socket == NULL);
   if (GNUNET_OK != GNUNET_DISK_pipe_close (server->shutpipe))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
-			 "pipe-close");
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "pipe-close");
   while (server->clients != NULL)
     {
       pos = server->clients;
@@ -318,26 +316,29 @@ process_listen_socket (void *cls,
     {
       /* shutdown was initiated */
       GNUNET_assert (server->listen_socket != NULL);
-      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (server->listen_socket));
+      GNUNET_break (GNUNET_OK ==
+                    GNUNET_NETWORK_socket_close (server->listen_socket));
       server->listen_socket = NULL;
       if (server->do_shutdown)
         destroy_server (server);
       return;
     }
-  shutpipe = GNUNET_DISK_pipe_handle (server->shutpipe, 
-				      GNUNET_DISK_PIPE_END_READ);
-  GNUNET_assert (GNUNET_NETWORK_fdset_isset (tc->read_ready, server->listen_socket));
-  GNUNET_assert (!GNUNET_NETWORK_fdset_handle_isset (tc->read_ready, shutpipe));
-  sock = GNUNET_CONNECTION_create_from_accept (tc->sched,
-                                                   server->access,
-                                                   server->access_cls,
-                                                   server->listen_socket,
-                                                   server->maxbuf);
+  shutpipe = GNUNET_DISK_pipe_handle (server->shutpipe,
+                                      GNUNET_DISK_PIPE_END_READ);
+  GNUNET_assert (GNUNET_NETWORK_fdset_isset
+                 (tc->read_ready, server->listen_socket));
+  GNUNET_assert (!GNUNET_NETWORK_fdset_handle_isset
+                 (tc->read_ready, shutpipe));
+  sock =
+    GNUNET_CONNECTION_create_from_accept (tc->sched, server->access,
+                                          server->access_cls,
+                                          server->listen_socket,
+                                          server->maxbuf);
   if (sock != NULL)
     {
 #if DEBUG_SERVER
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Server accepted incoming connection.\n");
+                  "Server accepted incoming connection.\n");
 #endif
       client = GNUNET_SERVER_connect_socket (server, sock);
       /* decrement reference count, we don't keep "client" alive */
@@ -352,8 +353,7 @@ process_listen_socket (void *cls,
                                GNUNET_SCHEDULER_PRIORITY_HIGH,
                                GNUNET_SCHEDULER_NO_TASK,
                                GNUNET_TIME_UNIT_FOREVER_REL,
-                               r, NULL,
-                               &process_listen_socket, server);
+                               r, NULL, &process_listen_socket, server);
   GNUNET_NETWORK_fdset_destroy (r);
 }
 
@@ -388,7 +388,8 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
       return NULL;
     }
-  if (GNUNET_NETWORK_socket_setsockopt (sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
+  if (GNUNET_NETWORK_socket_setsockopt
+      (sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                          "setsockopt");
   /* bind the socket */
@@ -409,9 +410,8 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
       return NULL;
     }
 #if DEBUG_SERVER
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Server starts to listen on port %u.\n",
-		  port);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Server starts to listen on port %u.\n", port);
 #endif
   return sock;
 }
@@ -472,15 +472,14 @@ GNUNET_SERVER_create (struct GNUNET_SCHEDULER_Handle *sched,
     {
       r = GNUNET_NETWORK_fdset_create ();
       GNUNET_NETWORK_fdset_set (r, ret->listen_socket);
-      GNUNET_NETWORK_fdset_handle_set (r, GNUNET_DISK_pipe_handle (ret->shutpipe,
-								   GNUNET_DISK_PIPE_END_READ));
-      GNUNET_SCHEDULER_add_select (sched,
-                                   GNUNET_YES,
+      GNUNET_NETWORK_fdset_handle_set (r,
+                                       GNUNET_DISK_pipe_handle (ret->shutpipe,
+                                                                GNUNET_DISK_PIPE_END_READ));
+      GNUNET_SCHEDULER_add_select (sched, GNUNET_YES,
                                    GNUNET_SCHEDULER_PRIORITY_HIGH,
                                    GNUNET_SCHEDULER_NO_TASK,
-                                   GNUNET_TIME_UNIT_FOREVER_REL,
-                                   r,
-                                   NULL, &process_listen_socket, ret);
+                                   GNUNET_TIME_UNIT_FOREVER_REL, r, NULL,
+                                   &process_listen_socket, ret);
       GNUNET_NETWORK_fdset_destroy (r);
     }
   return ret;
@@ -500,10 +499,11 @@ GNUNET_SERVER_destroy (struct GNUNET_SERVER_Handle *s)
   if (s->listen_socket == NULL)
     destroy_server (s);
   else
-    GNUNET_break (1 == GNUNET_DISK_file_write (GNUNET_DISK_pipe_handle (s->shutpipe, 
-									GNUNET_DISK_PIPE_END_WRITE),
-					       &c, 
-					       sizeof(c)));
+    GNUNET_break (1 ==
+                  GNUNET_DISK_file_write (GNUNET_DISK_pipe_handle
+                                          (s->shutpipe,
+                                           GNUNET_DISK_PIPE_END_WRITE), &c,
+                                          sizeof (c)));
 }
 
 
@@ -565,9 +565,8 @@ GNUNET_SERVER_inject (struct GNUNET_SERVER_Handle *server,
   size = ntohs (message->size);
 #if DEBUG_SERVER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Server schedules transmission of %u-byte message of type %u to client.\n",
-	      size,
-	      type);
+              "Server schedules transmission of %u-byte message of type %u to client.\n",
+              size, type);
 #endif
   pos = server->handlers;
   found = GNUNET_NO;
@@ -668,10 +667,10 @@ process_client_buffer (struct GNUNET_SERVER_Client *client)
   server = client->server;
 #if DEBUG_SERVER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Private buffer contains %u bytes; client is %s and we are %s\n",
-	      client->receive_pos,
-	      client->suspended ? "suspended" : "up",
-	      client->shutdown_now ? "in shutdown" : "running");
+              "Private buffer contains %u bytes; client is %s and we are %s\n",
+              client->receive_pos,
+              client->suspended ? "suspended" : "up",
+              client->shutdown_now ? "in shutdown" : "running");
 #endif
   while ((client->receive_pos >= sizeof (struct GNUNET_MessageHeader)) &&
          (0 == client->suspended) && (GNUNET_YES != client->shutdown_now))
@@ -679,19 +678,17 @@ process_client_buffer (struct GNUNET_SERVER_Client *client)
       hdr = (const struct GNUNET_MessageHeader *) &client->incoming_buffer;
       msize = ntohs (hdr->size);
       if (msize > client->receive_pos)
-	{
+        {
 #if DEBUG_SERVER
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Total message size is %u, we only have %u bytes; need more data\n",
-		      msize,
-		      client->receive_pos);
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Total message size is %u, we only have %u bytes; need more data\n",
+                      msize, client->receive_pos);
 #endif
-	  break;
-	}
+          break;
+        }
 #if DEBUG_SERVER
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Passing %u bytes to callback for processing\n",
-		  msize);
+                  "Passing %u bytes to callback for processing\n", msize);
 #endif
       if ((msize < sizeof (struct GNUNET_MessageHeader)) ||
           (GNUNET_OK != GNUNET_SERVER_inject (server, client, hdr)))
@@ -727,9 +724,7 @@ static void
 process_incoming (void *cls,
                   const void *buf,
                   size_t available,
-                  const struct sockaddr *addr, 
-		  socklen_t addrlen,
-		  int errCode)
+                  const struct sockaddr *addr, socklen_t addrlen, int errCode)
 {
   struct GNUNET_SERVER_Client *client = cls;
   struct GNUNET_SERVER_Handle *server = client->server;
@@ -749,9 +744,8 @@ process_incoming (void *cls,
     }
 #if DEBUG_SERVER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Server receives %u bytes from `%s'.\n",
-	      available,
-	      GNUNET_a2s(addr, addrlen));
+              "Server receives %u bytes from `%s'.\n",
+              available, GNUNET_a2s (addr, addrlen));
 #endif
   GNUNET_SERVER_client_keep (client);
   client->last_activity = GNUNET_TIME_absolute_get ();
@@ -763,8 +757,7 @@ process_incoming (void *cls,
         maxcpy = sizeof (client->incoming_buffer) - client->receive_pos;
 #if DEBUG_SERVER
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Can copy %u bytes to private buffer\n",
-		  maxcpy);
+                  "Can copy %u bytes to private buffer\n", maxcpy);
 #endif
       memcpy (&client->incoming_buffer[client->receive_pos], cbuf, maxcpy);
       client->receive_pos += maxcpy;
@@ -775,12 +768,12 @@ process_incoming (void *cls,
           if (available > 0)
             {
 #if DEBUG_SERVER
-	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-			  "Client has suspended processing; copying %u bytes to side buffer to be used later.\n",
-			  available);
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          "Client has suspended processing; copying %u bytes to side buffer to be used later.\n",
+                          available);
 #endif
-	      GNUNET_assert (client->side_buf_size == 0);
-	      GNUNET_assert (client->side_buf == NULL);
+              GNUNET_assert (client->side_buf_size == 0);
+              GNUNET_assert (client->side_buf == NULL);
               client->side_buf_size = available;
               client->side_buf = GNUNET_malloc (available);
               memcpy (client->side_buf, cbuf, available);
@@ -790,7 +783,7 @@ process_incoming (void *cls,
         }
 #if DEBUG_SERVER
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Now processing messages in private buffer\n");
+                  "Now processing messages in private buffer\n");
 #endif
       process_client_buffer (client);
     }
@@ -800,9 +793,8 @@ process_incoming (void *cls,
     {
       /* Finally, keep receiving! */
       client->receive (client->client_closure,
-		       GNUNET_SERVER_MAX_MESSAGE_SIZE,
-		       server->idle_timeout,
-		       &process_incoming, client);
+                       GNUNET_SERVER_MAX_MESSAGE_SIZE,
+                       server->idle_timeout, &process_incoming, client);
     }
   if (GNUNET_YES == client->shutdown_now)
     shutdown_incoming_processing (client);
@@ -821,9 +813,8 @@ restart_processing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   process_client_buffer (client);
   if (0 == client->suspended)
     client->receive (client->client_closure,
-		     GNUNET_SERVER_MAX_MESSAGE_SIZE,
-		     client->server->idle_timeout,
-		     &process_incoming, client);
+                     GNUNET_SERVER_MAX_MESSAGE_SIZE,
+                     client->server->idle_timeout, &process_incoming, client);
 }
 
 
@@ -840,9 +831,8 @@ add_client (struct GNUNET_SERVER_Handle *server,
   client->next = server->clients;
   server->clients = client;
   client->receive (client->client_closure,
-		   GNUNET_SERVER_MAX_MESSAGE_SIZE,
-		   server->idle_timeout,
-		   &process_incoming, client);
+                   GNUNET_SERVER_MAX_MESSAGE_SIZE,
+                   server->idle_timeout, &process_incoming, client);
 }
 
 
@@ -888,7 +878,7 @@ sock_notify_transmit_ready (void *cls,
                             void *notify_cls)
 {
   return GNUNET_CONNECTION_notify_transmit_ready (cls, size, timeout, notify,
-                                               notify_cls);
+                                                  notify_cls);
 }
 
 
@@ -1058,7 +1048,7 @@ GNUNET_SERVER_client_get_address (struct GNUNET_SERVER_Client *client,
   if (client->receive != &sock_receive)
     return GNUNET_SYSERR;       /* not a network client */
   return GNUNET_CONNECTION_get_address (client->client_closure,
-                                            addr, addrlen);
+                                        addr, addrlen);
 }
 
 

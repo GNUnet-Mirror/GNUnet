@@ -119,17 +119,17 @@ task5 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   fds[0] = GNUNET_DISK_pipe_handle (p, GNUNET_DISK_PIPE_END_READ);
   fds[1] = GNUNET_DISK_pipe_handle (p, GNUNET_DISK_PIPE_END_WRITE);
   GNUNET_SCHEDULER_add_read_file (tc->sched,
-				  GNUNET_NO,
-				  GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-				  GNUNET_SCHEDULER_NO_TASK,
-				  GNUNET_TIME_UNIT_FOREVER_REL,
-				  fds[0], &taskRd, cls);
+                                  GNUNET_NO,
+                                  GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                  GNUNET_SCHEDULER_NO_TASK,
+                                  GNUNET_TIME_UNIT_FOREVER_REL,
+                                  fds[0], &taskRd, cls);
   GNUNET_SCHEDULER_add_write_file (tc->sched,
-                              GNUNET_NO,
-                              GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                              GNUNET_SCHEDULER_NO_TASK,
-                              GNUNET_TIME_UNIT_FOREVER_REL,
-                              fds[1], &taskWrt, cls);
+                                   GNUNET_NO,
+                                   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                   GNUNET_SCHEDULER_NO_TASK,
+                                   GNUNET_TIME_UNIT_FOREVER_REL,
+                                   fds[1], &taskWrt, cls);
 }
 
 
@@ -146,19 +146,18 @@ task1 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   t2 = GNUNET_SCHEDULER_add_after (tc->sched,
                                    GNUNET_NO,
                                    GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                   GNUNET_SCHEDULER_NO_TASK,
-                                   &task2, cls);
+                                   GNUNET_SCHEDULER_NO_TASK, &task2, cls);
   /* t3 will go before t4: higher priority */
   t4 = GNUNET_SCHEDULER_add_after (tc->sched,
                                    GNUNET_NO,
                                    GNUNET_SCHEDULER_PRIORITY_IDLE,
                                    t2, &task4, cls);
   GNUNET_SCHEDULER_add_delayed (tc->sched,
-				GNUNET_NO,
-				GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-				t2,
-				GNUNET_TIME_relative_get_zero (),
-				&task3, cls);
+                                GNUNET_NO,
+                                GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                t2,
+                                GNUNET_TIME_relative_get_zero (),
+                                &task3, cls);
   /* t4 will go first: lower prio, but prereq! */
   GNUNET_SCHEDULER_add_after (tc->sched,
                               GNUNET_NO,

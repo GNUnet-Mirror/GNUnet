@@ -57,9 +57,9 @@ GNUNET_BIO_read_open (const char *fn)
   struct GNUNET_BIO_ReadHandle *h;
 
   fd = GNUNET_DISK_file_open (fn, GNUNET_DISK_OPEN_READ,
-			      GNUNET_DISK_PERM_NONE);
-  h = GNUNET_malloc (sizeof(struct GNUNET_BIO_ReadHandle) + BIO_BUFFER_SIZE);
-  h->buffer = (char*) &h[1];
+                              GNUNET_DISK_PERM_NONE);
+  h = GNUNET_malloc (sizeof (struct GNUNET_BIO_ReadHandle) + BIO_BUFFER_SIZE);
+  h->buffer = (char *) &h[1];
   h->size = BIO_BUFFER_SIZE;
   h->fd = fd;
   return h;
@@ -74,8 +74,8 @@ GNUNET_BIO_read_open (const char *fn)
  * @param emsg set to the error message
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
-int GNUNET_BIO_read_close (struct GNUNET_BIO_ReadHandle *h,
-			   char **emsg)
+int
+GNUNET_BIO_read_close (struct GNUNET_BIO_ReadHandle *h, char **emsg)
 {
   *emsg = h->emsg;
   GNUNET_DISK_file_close (h->fd);
@@ -93,10 +93,9 @@ int GNUNET_BIO_read_close (struct GNUNET_BIO_ReadHandle *h,
  * @param len the number of bytes to read
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h, 
-		     const char *what,
-		     void *result, 
-		     size_t len)
+int
+GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h,
+                 const char *what, void *result, size_t len)
 {
   char *dst = result;
   size_t min;
@@ -119,32 +118,28 @@ int GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h,
           pos += min;
         }
       if (pos == len)
-        return GNUNET_OK;             /* done! */
+        return GNUNET_OK;       /* done! */
       GNUNET_assert (h->have == h->pos);
       /* fill buffer */
-      ret = GNUNET_DISK_file_read (h->fd,
-				   h->buffer, 
-				   h->size);
+      ret = GNUNET_DISK_file_read (h->fd, h->buffer, h->size);
       if (ret == -1)
         {
-	  GNUNET_asprintf (&h->emsg,
-			   _("Error reading `%s': %s"),
-			   what,
-			   STRERROR (errno));
-	  return GNUNET_SYSERR;
+          GNUNET_asprintf (&h->emsg,
+                           _("Error reading `%s': %s"),
+                           what, STRERROR (errno));
+          return GNUNET_SYSERR;
         }
       if (ret == 0)
-	{
-	  GNUNET_asprintf (&h->emsg,
-			   _("Error reading `%s': %s"),
-			   what,
-			   _("End of file"));
-	  return GNUNET_SYSERR;
-	}
+        {
+          GNUNET_asprintf (&h->emsg,
+                           _("Error reading `%s': %s"),
+                           what, _("End of file"));
+          return GNUNET_SYSERR;
+        }
       h->pos = 0;
       h->have = ret;
     }
-  while (pos < len);           /* should always be true */
+  while (pos < len);            /* should always be true */
   return GNUNET_OK;
 }
 
@@ -159,10 +154,9 @@ int GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h,
  * @param maxLen maximum allowed length for the string
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int GNUNET_BIO_read_string (struct GNUNET_BIO_ReadHandle *h, 
-			    const char *what,
-			    char **result,
-			    size_t maxLen)
+int
+GNUNET_BIO_read_string (struct GNUNET_BIO_ReadHandle *h,
+                        const char *what, char **result, size_t maxLen)
 {
   char *buf;
   uint32_t big;
@@ -177,14 +171,14 @@ int GNUNET_BIO_read_string (struct GNUNET_BIO_ReadHandle *h,
   if (big > maxLen)
     {
       GNUNET_asprintf (&h->emsg,
-		       _("String `%s' longer than allowed (%u > %u)"),
-		       what,
-		       big,
-		       maxLen);
+                       _("String `%s' longer than allowed (%u > %u)"),
+                       what, big, maxLen);
       return GNUNET_SYSERR;
     }
   buf = GNUNET_malloc (big);
   buf[--big] = '\0';
+  if (big == 0)
+    return GNUNET_OK;
   if (GNUNET_OK != GNUNET_BIO_read (h, what, buf, big))
     {
       GNUNET_free (buf);
@@ -203,30 +197,27 @@ int GNUNET_BIO_read_string (struct GNUNET_BIO_ReadHandle *h,
  * @param result the buffer to store a pointer to the (allocated) metadata
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h, 
-			       const char *what,
-			       struct GNUNET_CONTAINER_MetaData **result)
+int
+GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h,
+                           const char *what,
+                           struct GNUNET_CONTAINER_MetaData **result)
 {
   uint32_t size;
   char *buf;
   struct GNUNET_CONTAINER_MetaData *meta;
 
-  if (GNUNET_BIO_read_int32__ (h, 
-			       what, 
-			       (int32_t*) &size) != GNUNET_OK)
+  if (GNUNET_BIO_read_int32__ (h, what, (int32_t *) & size) != GNUNET_OK)
     return GNUNET_SYSERR;
   if (size > MAX_META_DATA)
     {
       GNUNET_asprintf (&h->emsg,
-		       _("Serialized metadata `%s' larger than allowed (%u > %u)"),
-		       what,
-		       size,
-		       MAX_META_DATA);
+                       _
+                       ("Serialized metadata `%s' larger than allowed (%u > %u)"),
+                       what, size, MAX_META_DATA);
       return GNUNET_SYSERR;
     }
   buf = GNUNET_malloc (size);
-  if (GNUNET_OK != 
-      GNUNET_BIO_read (h, what, buf, size))
+  if (GNUNET_OK != GNUNET_BIO_read (h, what, buf, size))
     {
       GNUNET_free (buf);
       return GNUNET_SYSERR;
@@ -236,8 +227,7 @@ int GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h,
     {
       GNUNET_free (buf);
       GNUNET_asprintf (&h->emsg,
-		       _("Metadata `%s' failed to deserialize"),
-		       what);
+                       _("Metadata `%s' failed to deserialize"), what);
       return GNUNET_SYSERR;
     }
   GNUNET_free (buf);
@@ -253,18 +243,14 @@ int GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h,
  * @param what describes what is being read (for error message creation)
  * @param i address of 32-bit integer to read
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
- */ 
-int GNUNET_BIO_read_int32__ (struct GNUNET_BIO_ReadHandle *h, 
-			     const char *what,
-			     int32_t *i)
+ */
+int
+GNUNET_BIO_read_int32__ (struct GNUNET_BIO_ReadHandle *h,
+                         const char *what, int32_t * i)
 {
   int32_t big;
 
-  if (GNUNET_OK !=
-      GNUNET_BIO_read (h,
-		       what,
-		       &big,
-		       sizeof (int32_t)))
+  if (GNUNET_OK != GNUNET_BIO_read (h, what, &big, sizeof (int32_t)))
     return GNUNET_SYSERR;
   *i = ntohl (big);
   return GNUNET_OK;
@@ -278,18 +264,14 @@ int GNUNET_BIO_read_int32__ (struct GNUNET_BIO_ReadHandle *h,
  * @param what describes what is being read (for error message creation)
  * @param i address of 64-bit integer to read
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
- */ 
-int GNUNET_BIO_read_int64__ (struct GNUNET_BIO_ReadHandle *h, 
-			     const char *what,
-			     int64_t *i)
+ */
+int
+GNUNET_BIO_read_int64__ (struct GNUNET_BIO_ReadHandle *h,
+                         const char *what, int64_t * i)
 {
   int64_t big;
 
-  if (GNUNET_OK != 
-      GNUNET_BIO_read (h, 
-		       what,
-		       &big,
-		       sizeof (int64_t)))
+  if (GNUNET_OK != GNUNET_BIO_read (h, what, &big, sizeof (int64_t)))
     return GNUNET_SYSERR;
   *i = GNUNET_ntohll (big);
   return GNUNET_OK;
@@ -314,16 +296,21 @@ struct GNUNET_BIO_WriteHandle
  * @param fn file name to be opened
  * @return IO handle on success, NULL on error
  */
-struct GNUNET_BIO_WriteHandle *GNUNET_BIO_write_open (const char *fn)
+struct GNUNET_BIO_WriteHandle *
+GNUNET_BIO_write_open (const char *fn)
 {
   struct GNUNET_DISK_FileHandle *fd;
   struct GNUNET_BIO_WriteHandle *h;
 
-  fd = GNUNET_DISK_file_open (fn, 
-			      GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_TRUNCATE | GNUNET_DISK_OPEN_CREATE,
-			      GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
-  h = GNUNET_malloc (sizeof(struct GNUNET_BIO_WriteHandle) + BIO_BUFFER_SIZE);
-  h->buffer = (char*) &h[1];
+  fd = GNUNET_DISK_file_open (fn,
+                              GNUNET_DISK_OPEN_WRITE |
+                              GNUNET_DISK_OPEN_TRUNCATE |
+                              GNUNET_DISK_OPEN_CREATE,
+                              GNUNET_DISK_PERM_USER_READ |
+                              GNUNET_DISK_PERM_USER_WRITE);
+  h =
+    GNUNET_malloc (sizeof (struct GNUNET_BIO_WriteHandle) + BIO_BUFFER_SIZE);
+  h->buffer = (char *) &h[1];
   h->size = BIO_BUFFER_SIZE;
   h->fd = fd;
 
@@ -337,7 +324,8 @@ struct GNUNET_BIO_WriteHandle *GNUNET_BIO_write_open (const char *fn)
  * @param h file handle
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
-int GNUNET_BIO_write_close (struct GNUNET_BIO_WriteHandle *h)
+int
+GNUNET_BIO_write_close (struct GNUNET_BIO_WriteHandle *h)
 {
   ssize_t wrt;
   int ret;
@@ -350,9 +338,9 @@ int GNUNET_BIO_write_close (struct GNUNET_BIO_WriteHandle *h)
     {
       wrt = GNUNET_DISK_file_write (h->fd, h->buffer, h->have);
       if (wrt == h->have)
-	ret = GNUNET_OK;
+        ret = GNUNET_OK;
       else
-	ret = GNUNET_SYSERR;
+        ret = GNUNET_SYSERR;
       GNUNET_DISK_file_close (h->fd);
     }
   GNUNET_free (h);
@@ -368,9 +356,9 @@ int GNUNET_BIO_write_close (struct GNUNET_BIO_WriteHandle *h)
  * @param n number of bytes to write
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int GNUNET_BIO_write (struct GNUNET_BIO_WriteHandle *h, 
-		      const void *buffer,
-		      size_t n)
+int
+GNUNET_BIO_write (struct GNUNET_BIO_WriteHandle *h,
+                  const void *buffer, size_t n)
 {
   const char *src = buffer;
   size_t min;
@@ -390,18 +378,18 @@ int GNUNET_BIO_write (struct GNUNET_BIO_WriteHandle *h,
       pos += min;
       h->have += min;
       if (pos == n)
-        return GNUNET_OK;                 /* done */
+        return GNUNET_OK;       /* done */
       GNUNET_assert (h->have == h->size);
       ret = GNUNET_DISK_file_write (h->fd, h->buffer, h->size);
       if (ret != h->size)
         {
           GNUNET_DISK_file_close (h->fd);
           h->fd = NULL;
-          return GNUNET_SYSERR;               /* error */
+          return GNUNET_SYSERR; /* error */
         }
       h->have = 0;
     }
-  while (pos < n);           /* should always be true */
+  while (pos < n);              /* should always be true */
   return GNUNET_OK;
 }
 
@@ -413,14 +401,13 @@ int GNUNET_BIO_write (struct GNUNET_BIO_WriteHandle *h,
  * @param s string to write (can be NULL)
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int GNUNET_BIO_write_string (struct GNUNET_BIO_WriteHandle *h, 
-			     const char *s)
+int
+GNUNET_BIO_write_string (struct GNUNET_BIO_WriteHandle *h, const char *s)
 {
   uint32_t slen;
 
-  slen =  (uint32_t) ((s == NULL) ? 0 : strlen(s) + 1);
-  if (GNUNET_OK != 
-      GNUNET_BIO_write_int32 (h, slen))
+  slen = (uint32_t) ((s == NULL) ? 0 : strlen (s) + 1);
+  if (GNUNET_OK != GNUNET_BIO_write_int32 (h, slen))
     return GNUNET_SYSERR;
   if (0 != slen)
     return GNUNET_BIO_write (h, s, slen - 1);
@@ -435,28 +422,28 @@ int GNUNET_BIO_write_string (struct GNUNET_BIO_WriteHandle *h,
  * @param m metadata to write
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int GNUNET_BIO_write_meta_data (struct GNUNET_BIO_WriteHandle *h, 
-				const struct GNUNET_CONTAINER_MetaData *m)
+int
+GNUNET_BIO_write_meta_data (struct GNUNET_BIO_WriteHandle *h,
+                            const struct GNUNET_CONTAINER_MetaData *m)
 {
   unsigned int size;
   char *buf;
 
   size = GNUNET_CONTAINER_meta_data_get_serialized_size (m,
-							 GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL
-							 |
-                                               GNUNET_CONTAINER_META_DATA_SERIALIZE_NO_COMPRESS);
+                                                         GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL
+                                                         |
+                                                         GNUNET_CONTAINER_META_DATA_SERIALIZE_NO_COMPRESS);
   if (size > MAX_META_DATA)
     size = MAX_META_DATA;
   buf = GNUNET_malloc (size);
   GNUNET_CONTAINER_meta_data_serialize (m,
-					buf,
-					size,
-					GNUNET_CONTAINER_META_DATA_SERIALIZE_PART |
-					GNUNET_CONTAINER_META_DATA_SERIALIZE_NO_COMPRESS);
-  if ( (GNUNET_OK != 
-	GNUNET_BIO_write_int32 (h, size)) ||
-       (GNUNET_OK !=
-	GNUNET_BIO_write (h, buf, size)) )
+                                        buf,
+                                        size,
+                                        GNUNET_CONTAINER_META_DATA_SERIALIZE_PART
+                                        |
+                                        GNUNET_CONTAINER_META_DATA_SERIALIZE_NO_COMPRESS);
+  if ((GNUNET_OK != GNUNET_BIO_write_int32 (h, size))
+      || (GNUNET_OK != GNUNET_BIO_write (h, buf, size)))
     {
       GNUNET_free (buf);
       return GNUNET_SYSERR;
@@ -472,9 +459,9 @@ int GNUNET_BIO_write_meta_data (struct GNUNET_BIO_WriteHandle *h,
  * @param h hande to open file
  * @param i address of 32-bit integer to write
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
- */ 
-int GNUNET_BIO_write_int32 (struct GNUNET_BIO_WriteHandle *h, 
-			    int32_t i)
+ */
+int
+GNUNET_BIO_write_int32 (struct GNUNET_BIO_WriteHandle *h, int32_t i)
 {
   int32_t big;
   big = htonl (i);
@@ -488,9 +475,9 @@ int GNUNET_BIO_write_int32 (struct GNUNET_BIO_WriteHandle *h,
  * @param h hande to open file
  * @param i address of 64-bit integer to write
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
- */ 
-int GNUNET_BIO_write_int64 (struct GNUNET_BIO_WriteHandle *h, 
-			    int64_t i)
+ */
+int
+GNUNET_BIO_write_int64 (struct GNUNET_BIO_WriteHandle *h, int64_t i)
 {
   int64_t big;
   big = GNUNET_htonll (i);

@@ -79,7 +79,7 @@ struct GNUNET_DISK_PipeHandle
   /**
    * File descriptors for the pipe.
    */
-  struct GNUNET_DISK_FileHandle * fd[2];
+  struct GNUNET_DISK_FileHandle *fd[2];
 };
 
 
@@ -171,8 +171,8 @@ GNUNET_DISK_handle_invalid (const struct GNUNET_DISK_FileHandle *h)
  * @return the new position on success, GNUNET_SYSERR otherwise
  */
 off_t
-GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h, off_t offset,
-		       enum GNUNET_DISK_Seek whence)
+GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle * h, off_t offset,
+                       enum GNUNET_DISK_Seek whence)
 {
   if (h == NULL)
     {
@@ -182,8 +182,9 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h, off_t offset,
 
 #ifdef MINGW
   DWORD ret;
-  static DWORD t[] = { [GNUNET_DISK_SEEK_SET] = FILE_BEGIN,
-      [GNUNET_DISK_SEEK_CUR] = FILE_CURRENT, [GNUNET_DISK_SEEK_END] = FILE_END };
+  static DWORD t[] = {[GNUNET_DISK_SEEK_SET] = FILE_BEGIN,
+    [GNUNET_DISK_SEEK_CUR] = FILE_CURRENT,[GNUNET_DISK_SEEK_END] = FILE_END
+  };
 
   ret = SetFilePointer (h->h, offset, NULL, t[whence]);
   if (ret == INVALID_SET_FILE_POINTER)
@@ -193,8 +194,9 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h, off_t offset,
     }
   return ret;
 #else
-  static int t[] = { [GNUNET_DISK_SEEK_SET] = SEEK_SET,
-      [GNUNET_DISK_SEEK_CUR] = SEEK_CUR, [GNUNET_DISK_SEEK_END] = SEEK_END };
+  static int t[] = {[GNUNET_DISK_SEEK_SET] = SEEK_SET,
+    [GNUNET_DISK_SEEK_CUR] = SEEK_CUR,[GNUNET_DISK_SEEK_END] = SEEK_END
+  };
 
   return lseek (h->fd, offset, t[whence]);
 #endif
@@ -215,8 +217,7 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h, off_t offset,
  */
 int
 GNUNET_DISK_file_size (const char *filename,
-                       uint64_t *size, 
-		       int includeSymLinks)
+                       uint64_t * size, int includeSymLinks)
 {
   struct GetFileSizeData gfsd;
   int ret;
@@ -245,27 +246,24 @@ GNUNET_DISK_file_size (const char *filename,
  * @param ino set to the inode ID
  * @return GNUNET_OK on success
  */
-int GNUNET_DISK_file_get_identifiers (const char *filename,
-				      uint32_t *dev,
-				      uint64_t *ino)
+int
+GNUNET_DISK_file_get_identifiers (const char *filename,
+                                  uint32_t * dev, uint64_t * ino)
 {
 #if LINUX
   struct stat sbuf;
   struct statvfs fbuf;
 
-  if ( (0 == stat(filename,
-		  &sbuf)) &&
-       (0 == statvfs (filename,
-		      &fbuf) ) )
+  if ((0 == stat (filename, &sbuf)) && (0 == statvfs (filename, &fbuf)))
     {
       *dev = (uint32_t) fbuf.f_fsid;
       *ino = (uint64_t) sbuf.st_ino;
       return GNUNET_OK;
     }
-#endif 
+#endif
   return GNUNET_SYSERR;
 }
- 
+
 
 /**
  * Create an (empty) temporary file on disk.
@@ -286,12 +284,7 @@ GNUNET_DISK_mktemp (const char *t)
   tmpdir = getenv ("TMPDIR");
   tmpdir = tmpdir ? tmpdir : "/tmp";
 
-  GNUNET_asprintf (&tmpl,
-		   "%s%s%s%s",
-		   tmpdir,
-		   DIR_SEPARATOR_STR,
-		   t,
-		   "XXXXXX");
+  GNUNET_asprintf (&tmpl, "%s%s%s%s", tmpdir, DIR_SEPARATOR_STR, t, "XXXXXX");
 #ifdef MINGW
   fn = (char *) GNUNET_malloc (MAX_PATH + 1);
   plibc_conv_to_win_path (tmpl, fn);
@@ -302,16 +295,12 @@ GNUNET_DISK_mktemp (const char *t)
   fd = mkstemp (fn);
   if (fd == -1)
     {
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-				"mkstemp",
-				fn);
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "mkstemp", fn);
       GNUNET_free (fn);
       return NULL;
     }
   if (0 != CLOSE (fd))
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-			      "close",
-			      fn);
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "close", fn);
   return fn;
 }
 
@@ -348,8 +337,8 @@ GNUNET_DISK_get_blocks_available (const char *part)
   if (!GetDiskFreeSpace (szDrive, &dwDummy, &dwDummy, &dwBlocks, &dwDummy))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                     _("`%s' failed for drive `%s': %u\n"),
-                     "GetDiskFreeSpace", szDrive, GetLastError ());
+                  _("`%s' failed for drive `%s': %u\n"),
+                  "GetDiskFreeSpace", szDrive, GetLastError ());
 
       return -1;
     }
@@ -564,8 +553,8 @@ GNUNET_DISK_directory_create_for_file (const char *filename)
  * @return the number of bytes read on success, GNUNET_SYSERR on failure
  */
 ssize_t
-GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle *h, void *result, 
-		       size_t len)
+GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle * h, void *result,
+                       size_t len)
 {
   if (h == NULL)
     {
@@ -597,19 +586,17 @@ GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle *h, void *result,
  * @return number of bytes read, GNUNET_SYSERR on failure
  */
 ssize_t
-GNUNET_DISK_fn_read (const char * fn, 
-		     void *result,
-		     size_t len)
+GNUNET_DISK_fn_read (const char *fn, void *result, size_t len)
 {
   struct GNUNET_DISK_FileHandle *fh;
   ssize_t ret;
 
   fh = GNUNET_DISK_file_open (fn, GNUNET_DISK_OPEN_READ,
-			      GNUNET_DISK_PERM_NONE);
+                              GNUNET_DISK_PERM_NONE);
   if (!fh)
     return GNUNET_SYSERR;
   ret = GNUNET_DISK_file_read (fh, result, len);
-  GNUNET_assert(GNUNET_OK == GNUNET_DISK_file_close(fh));
+  GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fh));
 
   return ret;
 }
@@ -623,8 +610,8 @@ GNUNET_DISK_fn_read (const char * fn,
  * @return number of bytes written on success, GNUNET_SYSERR on error
  */
 ssize_t
-GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle *h, const void *buffer,
-			size_t n)
+GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle * h,
+                        const void *buffer, size_t n)
 {
   if (h == NULL)
     {
@@ -657,21 +644,20 @@ GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle *h, const void *buff
  * @return number of bytes written on success, GNUNET_SYSERR on error
  */
 ssize_t
-GNUNET_DISK_fn_write (const char * fn, const void *buffer,
-		      size_t n, 
-		      enum GNUNET_DISK_AccessPermissions mode)
+GNUNET_DISK_fn_write (const char *fn, const void *buffer,
+                      size_t n, enum GNUNET_DISK_AccessPermissions mode)
 {
   struct GNUNET_DISK_FileHandle *fh;
   ssize_t ret;
 
-  fh = GNUNET_DISK_file_open (fn, 
-			      GNUNET_DISK_OPEN_WRITE 
-			      | GNUNET_DISK_OPEN_TRUNCATE
-			      | GNUNET_DISK_OPEN_CREATE, mode);
+  fh = GNUNET_DISK_file_open (fn,
+                              GNUNET_DISK_OPEN_WRITE
+                              | GNUNET_DISK_OPEN_TRUNCATE
+                              | GNUNET_DISK_OPEN_CREATE, mode);
   if (!fh)
     return GNUNET_SYSERR;
   ret = GNUNET_DISK_file_write (fh, buffer, n);
-  GNUNET_assert(GNUNET_OK == GNUNET_DISK_file_close(fh));
+  GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fh));
   return ret;
 }
 
@@ -688,7 +674,7 @@ GNUNET_DISK_fn_write (const char * fn, const void *buffer,
 int
 GNUNET_DISK_directory_scan (const char *dirName,
                             GNUNET_FileNameCallback callback,
-			    void *callback_cls)
+                            void *callback_cls)
 {
   DIR *dinfo;
   struct dirent *finfo;
@@ -954,9 +940,7 @@ GNUNET_DISK_directory_remove (const char *fileName)
       return GNUNET_SYSERR;
     }
   if (GNUNET_SYSERR ==
-      GNUNET_DISK_directory_scan (fileName, 
-				  &remove_helper,
-				  NULL))
+      GNUNET_DISK_directory_scan (fileName, &remove_helper, NULL))
     return GNUNET_SYSERR;
   if (0 != RMDIR (fileName))
     {
@@ -988,13 +972,16 @@ GNUNET_DISK_file_copy (const char *src, const char *dst)
     return GNUNET_SYSERR;
   pos = 0;
   in = GNUNET_DISK_file_open (src, GNUNET_DISK_OPEN_READ,
-			      GNUNET_DISK_PERM_NONE);
+                              GNUNET_DISK_PERM_NONE);
   if (!in)
     return GNUNET_SYSERR;
   out = GNUNET_DISK_file_open (dst, GNUNET_DISK_OPEN_WRITE
-			       | GNUNET_DISK_OPEN_CREATE | GNUNET_DISK_OPEN_FAILIFEXISTS,
-			       GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE
-			       | GNUNET_DISK_PERM_GROUP_READ | GNUNET_DISK_PERM_GROUP_WRITE);
+                               | GNUNET_DISK_OPEN_CREATE |
+                               GNUNET_DISK_OPEN_FAILIFEXISTS,
+                               GNUNET_DISK_PERM_USER_READ |
+                               GNUNET_DISK_PERM_USER_WRITE |
+                               GNUNET_DISK_PERM_GROUP_READ |
+                               GNUNET_DISK_PERM_GROUP_WRITE);
   if (!out)
     {
       GNUNET_DISK_file_close (in);
@@ -1089,7 +1076,7 @@ GNUNET_DISK_file_change_owner (const char *filename, const char *user)
  */
 int
 GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, off_t lockStart,
-    off_t lockEnd, int excl)
+                       off_t lockEnd, int excl)
 {
   if (fh == NULL)
     {
@@ -1100,7 +1087,7 @@ GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, off_t lockStart,
 #ifndef MINGW
   struct flock fl;
 
-  memset (&fl, 0, sizeof(struct flock));
+  memset (&fl, 0, sizeof (struct flock));
   fl.l_type = excl ? F_WRLCK : F_RDLCK;
   fl.l_whence = SEEK_SET;
   fl.l_start = lockStart;
@@ -1110,11 +1097,12 @@ GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, off_t lockStart,
 #else
   OVERLAPPED o;
 
-  memset (&o, 0, sizeof(OVERLAPPED));
+  memset (&o, 0, sizeof (OVERLAPPED));
   o.Offset = lockStart;
 
   if (!LockFileEx (fh->h, (excl ? LOCKFILE_EXCLUSIVE_LOCK : 0)
-      | LOCKFILE_FAIL_IMMEDIATELY, 0, lockEnd - lockStart, 0, &o))
+                   | LOCKFILE_FAIL_IMMEDIATELY, 0, lockEnd - lockStart, 0,
+                   &o))
     {
       SetErrnoFromWinError (GetLastError ());
       return GNUNET_SYSERR;
@@ -1134,7 +1122,7 @@ GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, off_t lockStart,
  */
 int
 GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, off_t unlockStart,
-    off_t unlockEnd)
+                         off_t unlockEnd)
 {
   if (fh == NULL)
     {
@@ -1145,7 +1133,7 @@ GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, off_t unlockStart,
 #ifndef MINGW
   struct flock fl;
 
-  memset (&fl, 0, sizeof(struct flock));
+  memset (&fl, 0, sizeof (struct flock));
   fl.l_type = F_UNLCK;
   fl.l_whence = SEEK_SET;
   fl.l_start = unlockStart;
@@ -1155,7 +1143,7 @@ GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, off_t unlockStart,
 #else
   OVERLAPPED o;
 
-  memset (&o, 0, sizeof(OVERLAPPED));
+  memset (&o, 0, sizeof (OVERLAPPED));
   o.Offset = unlockStart;
 
   if (!UnlockFileEx (fh->h, 0, unlockEnd - unlockStart, 0, &o))
@@ -1183,8 +1171,8 @@ GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, off_t unlockStart,
  */
 struct GNUNET_DISK_FileHandle *
 GNUNET_DISK_file_open (const char *fn,
-		       enum GNUNET_DISK_OpenFlags flags, 
-		       enum GNUNET_DISK_AccessPermissions perm)
+                       enum GNUNET_DISK_OpenFlags flags,
+                       enum GNUNET_DISK_AccessPermissions perm)
 {
   char *expfn;
   struct GNUNET_DISK_FileHandle *ret;
@@ -1203,7 +1191,7 @@ GNUNET_DISK_file_open (const char *fn,
 #ifndef MINGW
   mode = 0;
   if (GNUNET_DISK_OPEN_READWRITE == (flags & GNUNET_DISK_OPEN_READWRITE))
-    oflags = O_RDWR; /* note: O_RDWR is NOT always O_RDONLY | O_WRONLY */
+    oflags = O_RDWR;            /* note: O_RDWR is NOT always O_RDONLY | O_WRONLY */
   else if (flags & GNUNET_DISK_OPEN_READ)
     oflags = O_RDONLY;
   else if (flags & GNUNET_DISK_OPEN_WRITE)
@@ -1245,11 +1233,11 @@ GNUNET_DISK_file_open (const char *fn,
 
   fd = open (expfn, oflags | O_LARGEFILE, mode);
   if (fd == -1)
-  {
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "open", expfn);
-    GNUNET_free (expfn);
-    return NULL;
-  }
+    {
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "open", expfn);
+      GNUNET_free (expfn);
+      return NULL;
+    }
 #else
   access = 0;
   disp = OPEN_ALWAYS;
@@ -1277,33 +1265,35 @@ GNUNET_DISK_file_open (const char *fn,
       disp = TRUNCATE_EXISTING;
     }
   else
-  {
-    disp = OPEN_ALWAYS;
-  }
+    {
+      disp = OPEN_ALWAYS;
+    }
 
   /* TODO: access priviledges? */
   h = CreateFile (expfn, access, FILE_SHARE_DELETE | FILE_SHARE_READ
-      | FILE_SHARE_WRITE, NULL, disp, FILE_ATTRIBUTE_NORMAL, NULL);
+                  | FILE_SHARE_WRITE, NULL, disp, FILE_ATTRIBUTE_NORMAL,
+                  NULL);
   if (h == INVALID_HANDLE_VALUE)
-  {
-    SetErrnoFromWinError (GetLastError ());
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "open", expfn);
-    GNUNET_free (expfn);
-    return NULL;
-  }
-
-  if (flags & GNUNET_DISK_OPEN_APPEND)
-    if (SetFilePointer (h, 0, 0, FILE_END) == INVALID_SET_FILE_POINTER)
     {
       SetErrnoFromWinError (GetLastError ());
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "SetFilePointer", expfn);
-      CloseHandle (h);
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "open", expfn);
       GNUNET_free (expfn);
       return NULL;
     }
+
+  if (flags & GNUNET_DISK_OPEN_APPEND)
+    if (SetFilePointer (h, 0, 0, FILE_END) == INVALID_SET_FILE_POINTER)
+      {
+        SetErrnoFromWinError (GetLastError ());
+        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "SetFilePointer",
+                                  expfn);
+        CloseHandle (h);
+        GNUNET_free (expfn);
+        return NULL;
+      }
 #endif
 
-  ret = GNUNET_malloc(sizeof(struct GNUNET_DISK_FileHandle));
+  ret = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
 #ifdef MINGW
   ret->h = h;
 #else
@@ -1330,19 +1320,19 @@ GNUNET_DISK_file_close (struct GNUNET_DISK_FileHandle *h)
 
 #if MINGW
   if (!CloseHandle (h->h))
-  {
-    SetErrnoFromWinError (GetLastError ());
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "close");
-    GNUNET_free (h);
-    return GNUNET_SYSERR;
-  }
+    {
+      SetErrnoFromWinError (GetLastError ());
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "close");
+      GNUNET_free (h);
+      return GNUNET_SYSERR;
+    }
 #else
   if (close (h->fd) != 0)
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "close");
-    GNUNET_free (h);
-    return GNUNET_SYSERR;
-  }
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "close");
+      GNUNET_free (h);
+      return GNUNET_SYSERR;
+    }
 #endif
   GNUNET_free (h);
   return GNUNET_OK;
@@ -1454,8 +1444,9 @@ struct GNUNET_DISK_MapHandle
  * @return pointer to the mapped memory region, NULL on failure
  */
 void *
-GNUNET_DISK_file_map (const struct GNUNET_DISK_FileHandle *h, struct GNUNET_DISK_MapHandle **m,
-		      enum GNUNET_DISK_MapType access, size_t len)
+GNUNET_DISK_file_map (const struct GNUNET_DISK_FileHandle *h,
+                      struct GNUNET_DISK_MapHandle **m,
+                      enum GNUNET_DISK_MapType access, size_t len)
 {
   if (h == NULL)
     {
@@ -1467,7 +1458,7 @@ GNUNET_DISK_file_map (const struct GNUNET_DISK_FileHandle *h, struct GNUNET_DISK
   DWORD mapAccess, protect;
   void *ret;
 
-  if ((access & GNUNET_DISK_MAP_TYPE_READ) && 
+  if ((access & GNUNET_DISK_MAP_TYPE_READ) &&
       (access & GNUNET_DISK_MAP_TYPE_WRITE))
     {
       protect = PAGE_READWRITE;
@@ -1594,7 +1585,9 @@ GNUNET_DISK_pipe (int blocking)
   struct GNUNET_DISK_PipeHandle *p;
   struct GNUNET_DISK_FileHandle *fds;
 
-  p = GNUNET_malloc (sizeof (struct GNUNET_DISK_PipeHandle) + 2 * sizeof (struct GNUNET_DISK_FileHandle));
+  p =
+    GNUNET_malloc (sizeof (struct GNUNET_DISK_PipeHandle) +
+                   2 * sizeof (struct GNUNET_DISK_FileHandle));
   fds = (struct GNUNET_DISK_FileHandle *) &p[1];
   p->fd[0] = &fds[0];
   p->fd[1] = &fds[1];
@@ -1620,27 +1613,27 @@ GNUNET_DISK_pipe (int blocking)
       flags |= O_NONBLOCK;
       ret = fcntl (fd[0], F_SETFL, flags);
       if (ret != -1)
-	{
-	  flags = fcntl (fd[1], F_GETFL);
-	  flags |= O_NONBLOCK;
-	  ret = fcntl (fd[1], F_SETFL, flags);
-	}
+        {
+          flags = fcntl (fd[1], F_GETFL);
+          flags |= O_NONBLOCK;
+          ret = fcntl (fd[1], F_SETFL, flags);
+        }
       if (ret == -1)
-	{
-	  eno = errno;
-	  GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR, "fcntl");
-	  GNUNET_break (0 == close (p->fd[0]->fd));
-	  GNUNET_break (0 == close (p->fd[1]->fd));
-	  GNUNET_free (p);
-	  errno = eno;
-	  return NULL;
-	}
+        {
+          eno = errno;
+          GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "fcntl");
+          GNUNET_break (0 == close (p->fd[0]->fd));
+          GNUNET_break (0 == close (p->fd[1]->fd));
+          GNUNET_free (p);
+          errno = eno;
+          return NULL;
+        }
     }
 #else
   BOOL ret;
 
   ret = CreatePipe (&p->fd[0]->h, &p->fd[1]->h, NULL, 0);
-  if (! ret)
+  if (!ret)
     {
       GNUNET_free (p);
       SetErrnoFromWinError (GetLastError ());
@@ -1649,10 +1642,10 @@ GNUNET_DISK_pipe (int blocking)
   if (!blocking)
     {
       DWORD mode;
-      
+
       mode = PIPE_NOWAIT;
-      p->fd[0] = GNUNET_malloc(sizeof(struct GNUNET_DISK_FileHandle));
-      p->fd[1] = GNUNET_malloc(sizeof(struct GNUNET_DISK_FileHandle));
+      p->fd[0] = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
+      p->fd[1] = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
       SetNamedPipeHandleState (p->fd[0]->h, &mode, NULL, NULL);
       SetNamedPipeHandleState (p->fd[1]->h, &mode, NULL, NULL);
       /* this always fails on Windows 95, so we don't care about error handling */
@@ -1673,7 +1666,7 @@ GNUNET_DISK_pipe_close (struct GNUNET_DISK_PipeHandle *p)
 {
   int ret = GNUNET_OK;
   int save;
-  
+
 #ifdef MINGW
   if (!CloseHandle (p->fd[0]->h))
     {
@@ -1711,8 +1704,8 @@ GNUNET_DISK_pipe_close (struct GNUNET_DISK_PipeHandle *p)
  * @param n end to access
  */
 const struct GNUNET_DISK_FileHandle *
-GNUNET_DISK_pipe_handle (const struct GNUNET_DISK_PipeHandle *p, 
-			 enum GNUNET_DISK_PipeEnd n)
+GNUNET_DISK_pipe_handle (const struct GNUNET_DISK_PipeHandle *p,
+                         enum GNUNET_DISK_PipeEnd n)
 {
   switch (n)
     {
@@ -1736,15 +1729,14 @@ GNUNET_DISK_pipe_handle (const struct GNUNET_DISK_PipeHandle *p,
  */
 int
 GNUNET_DISK_internal_file_handle_ (const struct GNUNET_DISK_FileHandle *fh,
-				   void *dst, 
-				   size_t dst_len)
+                                   void *dst, size_t dst_len)
 {
 #ifdef MINGW
   if (dst_len < sizeof (HANDLE))
     return GNUNET_SYSERR;
   *((HANDLE *) dst) = fh->h;
 #else
-  if (dst_len < sizeof(int))
+  if (dst_len < sizeof (int))
     return GNUNET_SYSERR;
   *((int *) dst) = fh->fd;
 #endif

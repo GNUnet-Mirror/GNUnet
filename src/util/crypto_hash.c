@@ -359,12 +359,10 @@ sha512_final (struct sha512_ctx *sctx, unsigned char *hash)
  * @param ret pointer to where to write the hashcode
  */
 void
-GNUNET_CRYPTO_hash (const void *block, 
-		    size_t size,
-                    GNUNET_HashCode * ret)
+GNUNET_CRYPTO_hash (const void *block, size_t size, GNUNET_HashCode * ret)
 {
   struct sha512_ctx ctx;
-  
+
   sha512_init (&ctx);
   sha512_update (&ctx, block, size);
   sha512_final (&ctx, (unsigned char *) ret);
@@ -416,7 +414,7 @@ struct FileHashContext
    * Current offset.
    */
   uint64_t offset;
-  
+
   /**
    * Run on shutdown?
    */
@@ -480,8 +478,7 @@ file_hash_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_SCHEDULER_add_after (tc->sched,
                               fhc->run_on_shutdown,
                               GNUNET_SCHEDULER_PRIORITY_KEEP,
-                              GNUNET_SCHEDULER_NO_TASK,
-                              &file_hash_task, fhc);
+                              GNUNET_SCHEDULER_NO_TASK, &file_hash_task, fhc);
 }
 
 
@@ -523,8 +520,8 @@ GNUNET_CRYPTO_hash_file (struct GNUNET_SCHEDULER_Handle *sched,
     }
   fhc->run_on_shutdown = run_on_shutdown;
   fhc->fh = GNUNET_DISK_file_open (filename,
-				   GNUNET_DISK_OPEN_READ,
-				   GNUNET_DISK_PERM_NONE);
+                                   GNUNET_DISK_OPEN_READ,
+                                   GNUNET_DISK_PERM_NONE);
   if (!fhc->fh)
     {
       file_hash_finish (fhc, NULL);
@@ -533,8 +530,7 @@ GNUNET_CRYPTO_hash_file (struct GNUNET_SCHEDULER_Handle *sched,
   GNUNET_SCHEDULER_add_after (sched,
                               run_on_shutdown,
                               priority,
-                              GNUNET_SCHEDULER_NO_TASK,
-                              &file_hash_task, fhc);
+                              GNUNET_SCHEDULER_NO_TASK, &file_hash_task, fhc);
 }
 
 
@@ -662,18 +658,18 @@ GNUNET_CRYPTO_hash_distance_u32 (const GNUNET_HashCode * a,
 }
 
 void
-GNUNET_CRYPTO_hash_create_random (enum GNUNET_CRYPTO_Quality mode, GNUNET_HashCode * result)
+GNUNET_CRYPTO_hash_create_random (enum GNUNET_CRYPTO_Quality mode,
+                                  GNUNET_HashCode * result)
 {
   int i;
-  for (i = (sizeof (GNUNET_HashCode) / sizeof (uint32_t)) - 1; i >= 0;
-       i--)
-    result->bits[i] = GNUNET_CRYPTO_random_u32 (mode, (uint32_t)-1);
+  for (i = (sizeof (GNUNET_HashCode) / sizeof (uint32_t)) - 1; i >= 0; i--)
+    result->bits[i] = GNUNET_CRYPTO_random_u32 (mode, (uint32_t) - 1);
 }
 
 void
 GNUNET_CRYPTO_hash_difference (const GNUNET_HashCode * a,
-			       const GNUNET_HashCode * b,
-			       GNUNET_HashCode * result)
+                               const GNUNET_HashCode * b,
+                               GNUNET_HashCode * result)
 {
   int i;
   for (i = (sizeof (GNUNET_HashCode) / sizeof (unsigned int)) - 1; i >= 0;
@@ -683,8 +679,8 @@ GNUNET_CRYPTO_hash_difference (const GNUNET_HashCode * a,
 
 void
 GNUNET_CRYPTO_hash_sum (const GNUNET_HashCode * a,
-			const GNUNET_HashCode * delta,
-			GNUNET_HashCode * result)
+                        const GNUNET_HashCode * delta,
+                        GNUNET_HashCode * result)
 {
   int i;
   for (i = (sizeof (GNUNET_HashCode) / sizeof (unsigned int)) - 1; i >= 0;
@@ -694,7 +690,7 @@ GNUNET_CRYPTO_hash_sum (const GNUNET_HashCode * a,
 
 void
 GNUNET_CRYPTO_hash_xor (const GNUNET_HashCode * a,
-			const GNUNET_HashCode * b, GNUNET_HashCode * result)
+                        const GNUNET_HashCode * b, GNUNET_HashCode * result)
 {
   int i;
   for (i = (sizeof (GNUNET_HashCode) / sizeof (unsigned int)) - 1; i >= 0;
@@ -707,18 +703,18 @@ GNUNET_CRYPTO_hash_xor (const GNUNET_HashCode * a,
  */
 void
 GNUNET_CRYPTO_hash_to_aes_key (const GNUNET_HashCode * hc,
-			       struct GNUNET_CRYPTO_AesSessionKey *skey,
-			       struct GNUNET_CRYPTO_AesInitializationVector
-			       *iv)
+                               struct GNUNET_CRYPTO_AesSessionKey *skey,
+                               struct GNUNET_CRYPTO_AesInitializationVector
+                               *iv)
 {
   GNUNET_assert (sizeof (GNUNET_HashCode) >=
-		 GNUNET_CRYPTO_AES_KEY_LENGTH +
-		 sizeof (struct GNUNET_CRYPTO_AesInitializationVector));
+                 GNUNET_CRYPTO_AES_KEY_LENGTH +
+                 sizeof (struct GNUNET_CRYPTO_AesInitializationVector));
   memcpy (skey, hc, GNUNET_CRYPTO_AES_KEY_LENGTH);
   skey->crc32 =
     htonl (GNUNET_CRYPTO_crc32_n (skey, GNUNET_CRYPTO_AES_KEY_LENGTH));
   memcpy (iv, &((char *) hc)[GNUNET_CRYPTO_AES_KEY_LENGTH],
-	  sizeof (struct GNUNET_CRYPTO_AesInitializationVector));
+          sizeof (struct GNUNET_CRYPTO_AesInitializationVector));
 }
 
 /**
@@ -741,21 +737,21 @@ GNUNET_CRYPTO_hash_get_bit (const GNUNET_HashCode * code, unsigned int bit)
  */
 int
 GNUNET_CRYPTO_hash_cmp (const GNUNET_HashCode * h1,
-			const GNUNET_HashCode * h2)
+                        const GNUNET_HashCode * h2)
 {
   unsigned int *i1;
   unsigned int *i2;
   int i;
-  
+
   i1 = (unsigned int *) h1;
   i2 = (unsigned int *) h2;
   for (i = (sizeof (GNUNET_HashCode) / sizeof (unsigned int)) - 1; i >= 0;
        i--)
     {
       if (i1[i] > i2[i])
-	return 1;
+        return 1;
       if (i1[i] < i2[i])
-	return -1;
+        return -1;
     }
   return 0;
 }
@@ -767,21 +763,21 @@ GNUNET_CRYPTO_hash_cmp (const GNUNET_HashCode * h1,
  */
 int
 GNUNET_CRYPTO_hash_xorcmp (const GNUNET_HashCode * h1,
-			   const GNUNET_HashCode * h2,
-			   const GNUNET_HashCode * target)
+                           const GNUNET_HashCode * h2,
+                           const GNUNET_HashCode * target)
 {
   int i;
   unsigned int d1;
   unsigned int d2;
-  
+
   for (i = sizeof (GNUNET_HashCode) / sizeof (unsigned int) - 1; i >= 0; i--)
     {
       d1 = ((unsigned int *) h1)[i] ^ ((unsigned int *) target)[i];
       d2 = ((unsigned int *) h2)[i] ^ ((unsigned int *) target)[i];
       if (d1 > d2)
-	return 1;
+        return 1;
       else if (d1 < d2)
-	return -1;
+        return -1;
     }
   return 0;
 }

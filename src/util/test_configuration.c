@@ -70,7 +70,7 @@ testConfig ()
 #ifndef MINGW
   if (0 != strcmp (c, "/hello/world"))
 #else
-  #define HI "\\hello\\world"
+#define HI "\\hello\\world"
   if (strstr (c, HI) != c + strlen (c) - strlen (HI))
 #endif
     {

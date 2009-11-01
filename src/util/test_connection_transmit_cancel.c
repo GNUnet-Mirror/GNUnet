@@ -51,12 +51,12 @@ task_transmit_cancel (void *cls,
   struct GNUNET_CONNECTION_Handle *csock;
 
   csock = GNUNET_CONNECTION_create_from_connect (tc->sched, cfg,
-						 "localhost", PORT, 1024);
+                                                 "localhost", PORT, 1024);
   GNUNET_assert (csock != NULL);
   th = GNUNET_CONNECTION_notify_transmit_ready (csock,
-                                             12,
-                                             GNUNET_TIME_UNIT_MINUTES,
-                                             &not_run, cls);
+                                                12,
+                                                GNUNET_TIME_UNIT_MINUTES,
+                                                &not_run, cls);
   GNUNET_CONNECTION_notify_transmit_ready_cancel (th);
   GNUNET_CONNECTION_destroy (csock);
   *ok = 0;

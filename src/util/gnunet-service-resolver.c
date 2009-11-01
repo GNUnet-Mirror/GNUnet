@@ -44,7 +44,7 @@ struct IPCache
    * This is a linked list.
    */
   struct IPCache *next;
-  
+
   /**
    * Hostname in human-readable form.
    */
@@ -54,7 +54,7 @@ struct IPCache
    * Hostname in binary format.
    */
   struct sockaddr *sa;
-  
+
   /**
    * Last time this entry was updated.
    */
@@ -89,11 +89,9 @@ getnameinfo_resolve (struct IPCache *cache)
 {
   char hostname[256];
 
-  if (0 == getnameinfo (cache->sa, 
-			cache->salen, 
-			hostname, 
-			sizeof(hostname), 
-			NULL, 0, 0))
+  if (0 == getnameinfo (cache->sa,
+                        cache->salen,
+                        hostname, sizeof (hostname), NULL, 0, 0))
     cache->addr = GNUNET_strdup (hostname);
 }
 #endif
@@ -273,7 +271,7 @@ getaddrinfo_resolve (struct GNUNET_SERVER_TransmitContext *tc,
           // FIXME NILS
           1
 #endif
-      )
+        )
         return GNUNET_NO;       /* other function may still succeed */
       return GNUNET_SYSERR;
     }

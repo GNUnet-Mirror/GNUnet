@@ -131,14 +131,18 @@ testdisk ()
     }
   memset (buf, 42, sizeof (buf));
   fh = GNUNET_DISK_file_open (".loadfile", GNUNET_DISK_OPEN_WRITE
-      | GNUNET_DISK_OPEN_CREATE, GNUNET_DISK_PERM_USER_READ
-      | GNUNET_DISK_PERM_USER_WRITE);
-  GNUNET_assert (GNUNET_NO == GNUNET_DISK_handle_invalid(fh));
+                              | GNUNET_DISK_OPEN_CREATE,
+                              GNUNET_DISK_PERM_USER_READ |
+                              GNUNET_DISK_PERM_USER_WRITE);
+  GNUNET_assert (GNUNET_NO == GNUNET_DISK_handle_invalid (fh));
   while (GNUNET_TIME_absolute_get_duration (start).value < 60 * 1000)
     {
-      GNUNET_DISK_file_seek (fh, GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                           1024 * 1024 * 1024), GNUNET_DISK_SEEK_SET);
-      GNUNET_assert (sizeof (buf) == GNUNET_DISK_file_write (fh, buf, sizeof (buf)));
+      GNUNET_DISK_file_seek (fh,
+                             GNUNET_CRYPTO_random_u64
+                             (GNUNET_CRYPTO_QUALITY_WEAK, 1024 * 1024 * 1024),
+                             GNUNET_DISK_SEEK_SET);
+      GNUNET_assert (sizeof (buf) ==
+                     GNUNET_DISK_file_write (fh, buf, sizeof (buf)));
       GNUNET_DISK_file_sync (fh);
       if (ret < GNUNET_OS_load_disk_get (cfg))
         break;

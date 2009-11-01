@@ -52,7 +52,7 @@ testSymcipher ()
     }
   size = GNUNET_CRYPTO_aes_decrypt (result, size,
                                     &key,
-				    (const struct
+                                    (const struct
                                      GNUNET_CRYPTO_AesInitializationVector *)
                                     INITVALUE, res);
   if (strlen (TESTSTRING) + 1 != size)
@@ -134,7 +134,7 @@ verifyCrypto ()
       GNUNET_CRYPTO_aes_decrypt (result,
                                  GNUNET_CRYPTO_AES_KEY_LENGTH,
                                  &key,
-				 (const struct
+                                 (const struct
                                   GNUNET_CRYPTO_AesInitializationVector *)
                                  "testtesttesttest", res))
     {
