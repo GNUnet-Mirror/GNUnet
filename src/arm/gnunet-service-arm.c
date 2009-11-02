@@ -421,7 +421,7 @@ start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
                   config, servicename);
       signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
       GNUNET_free (binary);
-      GNUNET_free (config);
+      GNUNET_free_non_null (config);
       return;
     }
   sl = GNUNET_malloc (sizeof (struct ServiceList));
