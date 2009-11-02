@@ -20,7 +20,7 @@
 
 /**
  * @file topology/gnunet-daemon-topology.c
- * @brief code for bootstrapping via topology servers
+ * @brief code for maintaining the mesh topology
  * @author Christian Grothoff
  */
 
