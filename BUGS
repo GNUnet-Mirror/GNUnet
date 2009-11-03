@@ -97,6 +97,30 @@ sane end-user should care about this codebase yet anyway.
 
 * TOPOLOGY:
   - [./topology/gnunet-daemon-topology.c:94]: (style) struct or union member 'PeerList::last_hello_sent' is never used
+  - while running the topology test with valgrind (--trace-children=yes), I get:
+
+Nov 03 22:38:57 topology DEBUG I am peer `AJ5M'==4186== Syscall param socketcall.send(msg) points to uninitialised byte(s)
+==4186==    at 0x4164BF1: send (socket.S:64)
+==4186==    by 0x404CC1F: transmit_ready (connection.c:1393)
+==4186==    by 0x4063C3B: run_ready (scheduler.c:451)
+==4186==    by 0x40640AE: GNUNET_SCHEDULER_run (scheduler.c:575)
+==4186==    by 0x406090A: GNUNET_PROGRAM_run (program.c:196)
+==4186==    by 0x804B1CA: main (gnunet-daemon-topology.c:1250)
+==4186==  Address 0x46e33b0 is 136 bytes inside a block of size 65,664 alloc'd
+==4186==    at 0x4024C1C: malloc (vg_replace_malloc.c:195)
+==4186==    by 0x40476F6: GNUNET_xmalloc_unchecked_ (common_allocation.c:61)
+==4186==    by 0x404768E: GNUNET_xmalloc_ (common_allocation.c:52)
+==4186==    by 0x404BB22: GNUNET_CONNECTION_create_from_connect (connection.c:887)
+==4186==    by 0x40460B8: do_connect (client.c:233)
+==4186==    by 0x404610C: GNUNET_CLIENT_connect (client.c:259)
+==4186==    by 0x402C6D5: GNUNET_CORE_connect (core_api.c:857)
+==4186==    by 0x804B118: run (gnunet-daemon-topology.c:1217)
+==4186==    by 0x4060498: program_main (program.c:80)
+==4186==    by 0x4063C3B: run_ready (scheduler.c:451)
+==4186==    by 0x40640AE: GNUNET_SCHEDULER_run (scheduler.c:575)
+==4186==    by 0x406090A: GNUNET_PROGRAM_run (program.c:196)
+==4186== 
+
 
 * DATASTORE:
   - mysql backend
