@@ -763,7 +763,7 @@ find_more_peers (void *cls,
 		 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   discard_old_blacklist_entries ();
-  if (target_connection_count <= connection_count)
+  if (connection_count <= target_connection_count)
     {
       schedule_peer_search ();
       return;
