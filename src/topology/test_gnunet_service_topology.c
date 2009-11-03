@@ -24,7 +24,7 @@
 #include "platform.h"
 #include "gnunet_testing_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define NUM_PEERS 10
 
@@ -66,6 +66,7 @@ notify_connect_complete(void *cls,
     {
       /* FIXME: check that topology adds a few more links
 	 in addition to those that were seeded */
+      sleep (100);
       GNUNET_TESTING_daemons_stop (pg);
       ok = 0;     
     }

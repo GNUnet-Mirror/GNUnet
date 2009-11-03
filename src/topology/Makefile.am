@@ -22,7 +22,7 @@ gnunet_daemon_topology_LDADD = \
 check_PROGRAMS = \
  test_gnunet_service_topology
 
-TESTS = $(check_PROGRAMS)
+#TESTS = $(check_PROGRAMS)
 
 test_gnunet_service_topology_SOURCES = \
  test_gnunet_service_topology.c
