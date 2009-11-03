@@ -38,9 +38,38 @@ static int ok;
 
 static int peers_left;
 
+static int connect_left;
+
 static struct GNUNET_TESTING_PeerGroup *pg;
 
+static struct GNUNET_TESTING_Daemon *first;
+
+static struct GNUNET_TESTING_Daemon *last;
+
 static struct GNUNET_SCHEDULER_Handle *sched;
+
+
+static void 
+notify_connect_complete(void *cls,
+			const char *emsg)
+{
+  if (NULL != emsg)
+    {
+      fprintf (stderr,
+	       "Failed to connect two peers: %s\n",
+	       emsg);
+      GNUNET_assert (0);
+      return;
+    }
+  connect_left--;
+  if (connect_left == 0)
+    {
+      /* FIXME: check that topology adds a few more links
+	 in addition to those that were seeded */
+      GNUNET_TESTING_daemons_stop (pg);
+      ok = 0;     
+    }
+}
 
 
 static void my_cb(void *cls,
@@ -50,12 +79,23 @@ static void my_cb(void *cls,
 		   const char *emsg)
 {
   GNUNET_assert (id != NULL);
-  peers_left--;
+  peers_left--;  
+  if (first == NULL)
+    {
+      connect_left = NUM_PEERS;
+      first = d;
+      last = d;
+      return;
+    }
+  GNUNET_TESTING_daemons_connect (last, d, TIMEOUT,
+				  &notify_connect_complete,
+				  NULL);
   if (peers_left == 0)
     {
-      /* FIXME: connect a few... */
-      GNUNET_TESTING_daemons_stop (pg);
-      ok = 0;
+      /* close circle */
+      GNUNET_TESTING_daemons_connect (d, first, TIMEOUT,
+				      &notify_connect_complete,
+				      NULL);
     }
 }
 
