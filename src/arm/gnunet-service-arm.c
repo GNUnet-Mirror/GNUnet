@@ -152,6 +152,11 @@ static struct GNUNET_SCHEDULER_Handle *sched;
  */
 static char *prefix_command;
 
+/**
+ * Are we in shutdown mode?
+ */
+static int in_shutdown;
+
 
 /**
  * Background task doing maintenance.
@@ -387,6 +392,14 @@ start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
   char *binary;
   char *config;
   struct stat sbuf;
+
+  if (GNUNET_YES == in_shutdown)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  _("ARM is shutting down, service `%s' not started.\n"), servicename);
+      signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
+      return;
+    }
   sl = find_name (servicename);
   if (sl != NULL)
     {
@@ -475,7 +488,9 @@ stop_service (struct GNUNET_SERVER_Client *client,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Preparing to stop `%s'\n"), servicename);
   pos = find_name (servicename);
-  if ((pos != NULL) && (pos->kill_continuation != NULL))
+  if ( (pos != NULL) && 
+       ( (pos->kill_continuation != NULL) ||
+	 (GNUNET_YES == in_shutdown) ) )
     {
       /* killing already in progress */
 #if DEBUG_ARM
@@ -520,6 +535,8 @@ stop_service (struct GNUNET_SERVER_Client *client,
     }
   else
     {
+      if (GNUNET_YES == in_shutdown)
+	return;
 #if DEBUG_ARM
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Sending termination request to service `%s'.\n",
@@ -625,28 +642,27 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Stopping all services\n"));
+      in_shutdown = GNUNET_YES;
       pos = running;
       while (NULL != pos)
         {
-          if (0 != PLIBC_KILL (pos->pid, SIGTERM))
-            GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+	  if ( (pos->pid != 0) &&
+	       (0 != PLIBC_KILL (pos->pid, SIGTERM)) )
+	    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");	    
           pos = pos->next;
         }
-      while (NULL != (pos = running))
-        {
-          running = pos->next;
-          if (GNUNET_OK != GNUNET_OS_process_wait(pos->pid))
-            GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");	  
-	  if (NULL != pos->kill_continuation)
-	    pos->kill_continuation (pos->kill_continuation_cls, pos);	    
-	  else
-	    free_entry (pos);
-        }
-      return;
     }
   if (cls == NULL)
-    GNUNET_SCHEDULER_add_delayed (tc->sched,
-				  MAINT_FREQUENCY, &maint, NULL);
+    {
+      if ( (in_shutdown == GNUNET_YES) &&
+	   (running == NULL) )
+	return; /* we are done! */      
+      GNUNET_SCHEDULER_add_delayed (tc->sched,
+				    (in_shutdown == GNUNET_YES)
+				    ? MAINT_FAST_FREQUENCY
+				    : MAINT_FREQUENCY, 
+				    &maint, NULL);
+    }
 
   /* check for services that died (WAITPID) */
   prev = NULL;
@@ -694,18 +710,24 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	  statstr = _( /* process termination method */ "unknown");
 	  statcode = 0;
 	}    
-      if (NULL != pos->kill_continuation)
+      if ( (NULL != pos->kill_continuation) ||
+	   ( (GNUNET_YES == in_shutdown) &&
+	     (pos->pid == 0) ) )
         {
 	  if (prev == NULL)
 	    running = next;
 	  else
 	    prev->next = next;
-	  pos->kill_continuation (pos->kill_continuation_cls, pos);
+	  if (NULL != pos->kill_continuation)
+	    pos->kill_continuation (pos->kill_continuation_cls, pos);
+	  else
+	    free_entry (pos);
 	  continue;
         }
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Service `%s' terminated with status %s/%d, will try to restart it!\n"),
-		  pos->name, statstr, statcode);
+      if (GNUNET_YES != in_shutdown)
+	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		    _("Service `%s' terminated with status %s/%d, will try to restart it!\n"),
+		    pos->name, statstr, statcode);
       /* schedule restart */
       pos->pid = 0;
       prev = pos;
@@ -723,7 +745,8 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           if (0 != PLIBC_KILL (pos->pid, SIGTERM))
             GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
         }
-      if (pos->pid == 0)
+      if ( (pos->pid == 0) &&
+	   (GNUNET_YES != in_shutdown) )
         {
           GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                       _("Restarting service `%s'.\n"), pos->name);
