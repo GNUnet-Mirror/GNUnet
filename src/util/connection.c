@@ -245,6 +245,11 @@ struct GNUNET_CONNECTION_Handle
   GNUNET_SCHEDULER_TaskIdentifier write_task;
 
   /**
+   * Handle to a pending DNS lookup request.
+   */
+  struct GNUNET_RESOLVER_RequestHandle *dns_active;
+
+  /**
    * The handle we return for GNUNET_CONNECTION_notify_transmit_ready.
    */
   struct GNUNET_CONNECTION_TransmitHandle nth;
@@ -263,14 +268,6 @@ struct GNUNET_CONNECTION_Handle
    * Maximum number of bytes to read (for receiving).
    */
   size_t max;
-
-  /**
-   * Are we still waiting for DNS replies (on connect)?
-   * GNUNET_YES if we are, GNUNET_NO if we are not waiting for DNS,
-   * GNUNET_SYSERR if destroying the handle was deferred due to 
-   * a pending DNS lookup.
-   */
-  int dns_active;
 
   /**
    * Port to connect to.
@@ -462,11 +459,7 @@ destroy_continuation (void *cls,
   struct GNUNET_CONNECTION_Handle *sock = cls;
   GNUNET_CONNECTION_TransmitReadyNotify notify;
 
-  if (sock->dns_active == GNUNET_YES)
-    {
-      sock->dns_active = GNUNET_SYSERR;
-      return;
-    }
+  GNUNET_assert (sock->dns_active == NULL);
   if (0 != (sock->ccs & COCO_TRANSMIT_READY))
     {
 #if DEBUG_CONNECTION
@@ -748,30 +741,13 @@ try_connect_using_address (void *cls,
 
   if (addr == NULL)
     {
-      if (h->dns_active == GNUNET_SYSERR)
-        {
-          h->dns_active = GNUNET_NO;
-          GNUNET_SCHEDULER_add_after (h->sched,
-                                      GNUNET_YES,
-                                      GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                      h->read_task, &destroy_continuation, h);
-          return;
-        }
-      h->dns_active = GNUNET_NO;
+      h->dns_active = NULL;
       if (NULL == h->ap_head)
         connect_fail_continuation (h);
       return;
     }
   if (h->sock != NULL)
     return;                     /* already connected */
-  if (h->dns_active == GNUNET_SYSERR)
-    {
-#if DEBUG_CONNECTION
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Connection %p has already been destroyed.\n", h);
-#endif
-      return;                   /* already destroyed */
-    }
   /* try to connect */
 #if DEBUG_CONNECTION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -851,13 +827,13 @@ retry_connect_continuation (void *cls,
 {
   struct GNUNET_CONNECTION_Handle *sock = cls;
 
-  sock->dns_active = GNUNET_YES;
-  GNUNET_RESOLVER_ip_get (sock->sched,
-                          sock->cfg,
-                          sock->hostname,
-                          AF_UNSPEC,
-                          GNUNET_CONNECTION_CONNECT_RETRY_TIMEOUT,
-                          &try_connect_using_address, sock);
+  GNUNET_assert (sock->dns_active == NULL);
+  sock->dns_active = GNUNET_RESOLVER_ip_get (sock->sched,
+					     sock->cfg,
+					     sock->hostname,
+					     AF_UNSPEC,
+					     GNUNET_CONNECTION_CONNECT_RETRY_TIMEOUT,
+					     &try_connect_using_address, sock);
 }
 
 
@@ -957,7 +933,7 @@ GNUNET_CONNECTION_create_from_sockaddr (struct GNUNET_SCHEDULER_Handle
 int
 GNUNET_CONNECTION_check (struct GNUNET_CONNECTION_Handle *sock)
 {
-  if ((sock->ap_head != NULL) || (sock->dns_active == GNUNET_YES))
+  if ((sock->ap_head != NULL) || (sock->dns_active != NULL))
     return GNUNET_YES;          /* still trying to connect */
   return (sock->sock == NULL) ? GNUNET_NO : GNUNET_YES;
 }
@@ -973,11 +949,10 @@ GNUNET_CONNECTION_check (struct GNUNET_CONNECTION_Handle *sock)
 void
 GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *sock)
 {
-  if ((sock->write_buffer_off == 0) && (sock->dns_active == GNUNET_YES))
+  if ((sock->write_buffer_off == 0) && (sock->dns_active != NULL))
     {
-      sock->dns_active = GNUNET_SYSERR; /* if we're still trying to connect and have
-                                           no message pending, stop trying! */
-      return;
+      GNUNET_RESOLVER_request_cancel (sock->dns_active);
+      sock->dns_active = NULL;
     }
   GNUNET_assert (sock->sched != NULL);
   GNUNET_SCHEDULER_add_after (sock->sched,
@@ -1173,7 +1148,7 @@ GNUNET_CONNECTION_receive (struct GNUNET_CONNECTION_Handle *sock,
       receive_again (sock, &tc);
       return;
     }
-  if ((sock->dns_active != GNUNET_YES) && (sock->ap_head == NULL))
+  if ((sock->dns_active == NULL) && (sock->ap_head == NULL))
     {
       receiver (receiver_cls, NULL, 0, NULL, 0, ETIMEDOUT);
       return;
@@ -1475,7 +1450,7 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle
   sock->nth.transmit_timeout = GNUNET_TIME_relative_to_absolute (timeout);
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == sock->nth.timeout_task);
   if ((sock->sock == NULL) &&
-      (sock->ap_head == NULL) && (sock->dns_active != GNUNET_YES))
+      (sock->ap_head == NULL) && (sock->dns_active == NULL))
     {
       sock->write_task = GNUNET_SCHEDULER_add_delayed (sock->sched,
                                                        GNUNET_NO,
