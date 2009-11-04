@@ -636,8 +636,11 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         {
           running = pos->next;
           if (GNUNET_OK != GNUNET_OS_process_wait(pos->pid))
-            GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
-          free_entry (pos);
+            GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");	  
+	  if (NULL != pos->kill_continuation)
+	    pos->kill_continuation (pos->kill_continuation_cls, pos);	    
+	  else
+	    free_entry (pos);
         }
       return;
     }
