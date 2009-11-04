@@ -809,6 +809,7 @@ core_init (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Failed to connect to core service, can not manage topology!\n"));
+      GNUNET_SCHEDULER_shutdown (sched);
       return;
     }
   handle = server;
@@ -1136,8 +1137,11 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_TRANSPORT_disconnect (transport);
   transport = NULL;
-  GNUNET_CORE_disconnect (handle);
-  handle = NULL;
+  if (handle != NULL)
+    {
+      GNUNET_CORE_disconnect (handle);
+      handle = NULL;
+    }
   while (NULL != (pl = friends))
     {
       friends = pl->next;
@@ -1208,21 +1212,36 @@ run (void *cls,
 					NULL,
 					NULL,
 					NULL);
-  GNUNET_CORE_connect (sched,
-		       cfg,
-		       GNUNET_TIME_UNIT_FOREVER_REL,
-		       NULL,
-		       &core_init,
-		       &connect_notify,
-		       &disconnect_notify,
-		       &hello_advertising,
-		       NULL, GNUNET_NO,
-		       NULL, GNUNET_NO,
-		       handlers);
-
+  handle = GNUNET_CORE_connect (sched,
+				cfg,
+				GNUNET_TIME_UNIT_FOREVER_REL,
+				NULL,
+				&core_init,
+				&connect_notify,
+				&disconnect_notify,
+				&hello_advertising,
+				NULL, GNUNET_NO,
+				NULL, GNUNET_NO,
+				handlers);
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &cleaning_task, NULL);
+  if (NULL == transport)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Failed to connect to `%s' service.\n"),
+		  "transport");
+      GNUNET_SCHEDULER_shutdown (sched);
+      return;
+    }
+  if (NULL == handle)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Failed to connect to `%s' service.\n"),
+		  "core");
+      GNUNET_SCHEDULER_shutdown (sched);
+      return;
+    }
 }
 
 

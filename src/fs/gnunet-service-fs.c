@@ -792,6 +792,7 @@ static struct GNUNET_CONTAINER_MultiHashMap *connected_peers;
  */
 static uint64_t max_pending_requests = 32;
 
+
 /**
  * Write the current index information list to disk.
  */ 
@@ -2326,10 +2327,16 @@ shutdown_task (void *cls,
   struct IndexInfo *pos;  
 
   if (NULL != core)
-    GNUNET_CORE_disconnect (core);
-  GNUNET_DATASTORE_disconnect (dsh,
-			       GNUNET_NO);
-  dsh = NULL;
+    {
+      GNUNET_CORE_disconnect (core);
+      core = NULL;
+    }
+  if (NULL != dsh)
+    {
+      GNUNET_DATASTORE_disconnect (dsh,
+				   GNUNET_NO);
+      dsh = NULL;
+    }
   GNUNET_CONTAINER_multihashmap_iterate (requests_by_query,
 					 &destroy_pending_request_cb,
 					 NULL);
@@ -3275,73 +3282,6 @@ static struct GNUNET_CORE_MessageHandler p2p_handlers[] =
 
 
 /**
- * Task that will try to initiate a connection with the
- * core service.
- * 
- * @param cls unused
- * @param tc unused
- */
-static void
-core_connect_task (void *cls,
-		   const struct GNUNET_SCHEDULER_TaskContext *tc);
-
-
-/**
- * Function called by the core after we've
- * connected.
- *
- * @param cls closure, unused
- * @param server handle to the core service
- * @param my_identity our peer identity (unused)
- * @param publicKey our public key (unused)
- */
-static void
-core_start_cb (void *cls,
-	       struct GNUNET_CORE_Handle * server,
-	       const struct GNUNET_PeerIdentity *
-	       my_identity,
-	       const struct
-	       GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *
-	       publicKey)
-{
-  if (server == NULL)
-    {
-      GNUNET_SCHEDULER_add_delayed (sched,
-				    GNUNET_TIME_UNIT_SECONDS,
-				    &core_connect_task,
-				    NULL);
-      return;
-    }
-  core = server;
-}
-
-
-/**
- * Task that will try to initiate a connection with the
- * core service.
- * 
- * @param cls unused
- * @param tc unused
- */
-static void
-core_connect_task (void *cls,
-		   const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  GNUNET_CORE_connect (sched,
-		       cfg,
-		       GNUNET_TIME_UNIT_FOREVER_REL,
-		       NULL,
-		       &core_start_cb,
-		       &peer_connect_handler,
-		       &peer_disconnect_handler,
-		       NULL, 
-		       NULL, GNUNET_NO,
-		       NULL, GNUNET_NO,
-		       p2p_handlers);
-}
-
-
-/**
  * Process fs requests.
  *
  * @param cls closure
@@ -3366,21 +3306,42 @@ run (void *cls,
   read_index_list ();
   dsh = GNUNET_DATASTORE_connect (cfg,
 				  sched);
-  if (NULL == dsh)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Failed to connect to datastore service.\n"));
-      return;
-    }
+  core = GNUNET_CORE_connect (sched,
+			      cfg,
+			      GNUNET_TIME_UNIT_FOREVER_REL,
+			      NULL,
+			      NULL,
+			      &peer_connect_handler,
+			      &peer_disconnect_handler,
+			      NULL, 
+			      NULL, GNUNET_NO,
+			      NULL, GNUNET_NO,
+			      p2p_handlers);
+
   GNUNET_SERVER_disconnect_notify (server, 
 				   &handle_client_disconnect,
 				   NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
-  core_connect_task (NULL, NULL);
   GNUNET_SCHEDULER_add_delayed (sched,
 				GNUNET_TIME_UNIT_FOREVER_REL,
 				&shutdown_task,
 				NULL);
+  if (NULL == dsh)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Failed to connect to `%s' service.\n"),
+		  "datastore");
+      GNUNET_SCHEDULER_shutdown (sched);
+      return;
+    }
+  if (NULL == core)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Failed to connect to `%s' service.\n"),
+		  "core");
+      GNUNET_SCHEDULER_shutdown (sched);
+      return;
+    }
 }
 
 

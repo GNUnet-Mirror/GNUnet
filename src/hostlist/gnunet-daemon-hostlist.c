@@ -71,6 +71,11 @@ static int provide_hostlist;
 static struct GNUNET_STATISTICS_Handle *stats;
 
 /**
+ * Handle to the core service (NULL until we've connected to it).
+ */
+struct GNUNET_CORE_Handle *core;
+
+/**
  * gnunet-daemon-hostlist command line options.
  */
 static struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -119,6 +124,7 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 				 GNUNET_NO);
       stats = NULL;
     }
+  GNUNET_CORE_disconnect (core);
 }
 
 
@@ -167,18 +173,26 @@ run (void *cls,
     {      
       GNUNET_HOSTLIST_server_start (cfg, sched, stats);
     }
-  GNUNET_CORE_connect (sched, cfg,
-		       GNUNET_TIME_UNIT_FOREVER_REL,
-		       NULL,
-		       &core_init,
-		       ch, dh,
-		       NULL,
-		       NULL, GNUNET_NO,
-		       NULL, GNUNET_NO,
-		       handlers);
+  core = GNUNET_CORE_connect (sched, cfg,
+			      GNUNET_TIME_UNIT_FOREVER_REL,
+			      NULL,
+			      &core_init,
+			      ch, dh,
+			      NULL,
+			      NULL, GNUNET_NO,
+			      NULL, GNUNET_NO,
+			      handlers);
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &cleaning_task, NULL);
+  if (NULL == core)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Failed to connect to `%s' service.\n"),
+		  "core");
+      GNUNET_SCHEDULER_shutdown (sched);
+      return;     
+    }
 }
 
 

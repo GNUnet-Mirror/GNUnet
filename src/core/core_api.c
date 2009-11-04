@@ -804,7 +804,7 @@ transmit_start (void *cls, size_t size, void *buf)
  * @param timeout after how long should we give up trying to connect to the core service?
  * @param cls closure for the various callbacks that follow (including handlers in the handlers array)
  * @param init callback to call on timeout or once we have successfully
- *        connected to the core service
+ *        connected to the core service; note that timeout is only meaningful if init is not NULL
  * @param connects function to call on peer connect, can be NULL
  * @param disconnects function to call on peer disconnect / timeout, can be NULL
  * @param bfc function to call to fill up spare bandwidth, can be NULL
@@ -817,8 +817,10 @@ transmit_start (void *cls, size_t size, void *buf)
  *                GNUNET_MessageHeader and hence we do not need to give it the full message
  *                can be used to improve efficiency, ignored if outbound_notify is NULLL
  * @param handlers callbacks for messages we care about, NULL-terminated
+ * @return handle to the core service (only useful for disconnect until 'init' is called);
+ *                NULL on error (in this case, init is never called)
  */
-void
+struct GNUNET_CORE_Handle *
 GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
                      const struct GNUNET_CONFIGURATION_Handle *cfg,
                      struct GNUNET_TIME_Relative timeout,
@@ -835,7 +837,6 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
 {
   struct GNUNET_CORE_Handle *h;
 
-  GNUNET_assert (init != NULL);
   h = GNUNET_malloc (sizeof (struct GNUNET_CORE_Handle));
   h->sched = sched;
   h->cfg = cfg;
@@ -852,9 +853,8 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
   h->client = GNUNET_CLIENT_connect (sched, "core", cfg);
   if (h->client == NULL)
     {
-      init (cls, NULL, NULL, NULL);
       GNUNET_free (h);
-      return;
+      return NULL;
     }
   h->startup_timeout = GNUNET_TIME_relative_to_absolute (timeout);
   h->hcnt = 0;
@@ -874,6 +874,7 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
                                          sizeof (uint16_t) * h->hcnt, timeout,
 					 GNUNET_YES,
                                          &transmit_start, h);
+  return h;
 }
 
 
