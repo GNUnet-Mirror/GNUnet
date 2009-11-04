@@ -260,9 +260,6 @@ expired_processor (void *cls,
     {
       expired_kill_task 
 	= GNUNET_SCHEDULER_add_delayed (sched,
-					GNUNET_NO,
-					GNUNET_SCHEDULER_PRIORITY_IDLE,
-					GNUNET_SCHEDULER_NO_TASK,
 					MAX_EXPIRE_DELAY,
 					&delete_expired,
 					NULL);
@@ -1209,7 +1206,7 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_CONTAINER_bloomfilter_free (filter);
       filter = NULL;
     }
- //  GNUNET_ARM_stop_services (cfg, tc->sched, "statistics", NULL);
+  GNUNET_ARM_stop_services (cfg, tc->sched, "statistics", NULL);
 }
 
 
@@ -1307,28 +1304,22 @@ run (void *cls,
 		  _("Failed to initialize bloomfilter.\n"));
       return;
     }
-//  GNUNET_ARM_start_services (cfg, sched, "statistics", NULL);
+  GNUNET_ARM_start_services (cfg, sched, "statistics", NULL);
   plugin = load_plugin ();
   if (NULL == plugin)
     {
       GNUNET_CONTAINER_bloomfilter_free (filter);
       filter = NULL;
-//      GNUNET_ARM_stop_services (cfg, sched, "statistics", NULL);
+      GNUNET_ARM_stop_services (cfg, sched, "statistics", NULL);
       return;
     }
   GNUNET_SERVER_disconnect_notify (server, &cleanup_reservations, NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
   expired_kill_task
-    = GNUNET_SCHEDULER_add_delayed (sched,
-				    GNUNET_NO,
-				    GNUNET_SCHEDULER_PRIORITY_IDLE,
-				    GNUNET_SCHEDULER_NO_TASK,
-				    GNUNET_TIME_UNIT_ZERO,
-				    &delete_expired, NULL);
+    = GNUNET_SCHEDULER_add_with_priority (sched,
+					  GNUNET_SCHEDULER_PRIORITY_IDLE,
+					  &delete_expired, NULL);
   GNUNET_SCHEDULER_add_delayed (sched,
-                                GNUNET_YES,
-                                GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                GNUNET_SCHEDULER_NO_TASK,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &cleaning_task, NULL);
   
@@ -1350,7 +1341,7 @@ main (int argc, char *const *argv)
   ret = (GNUNET_OK ==
          GNUNET_SERVICE_run (argc,
                              argv,
-                             "datastore", &run, NULL, NULL, NULL)) ? 0 : 1;
+                             "datastore", &run, NULL)) ? 0 : 1;
   return ret;
 }
 

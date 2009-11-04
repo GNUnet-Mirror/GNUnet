@@ -121,7 +121,6 @@ progress_cb (void *cls,
       printf ("Unindex complete,  %llu kbps.\n",
 	      (unsigned long long) (FILESIZE * 1000 / (1+GNUNET_TIME_absolute_get_duration (start).value) / 1024));
       GNUNET_SCHEDULER_add_continuation (sched,
-					 GNUNET_NO,
 					 &abort_unindex_task,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -142,7 +141,6 @@ progress_cb (void *cls,
 	       event->value.publish.specifics.error.message);
       GNUNET_break (0);
       GNUNET_SCHEDULER_add_continuation (sched,
-					 GNUNET_NO,
 					 &abort_publish_task,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -152,7 +150,6 @@ progress_cb (void *cls,
 	       "Error unindexing file: %s\n",
 	       event->value.unindex.specifics.error.message);
       GNUNET_SCHEDULER_add_continuation (sched,
-					 GNUNET_NO,
 					 &abort_unindex_task,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -181,7 +178,6 @@ progress_cb (void *cls,
     case GNUNET_FS_STATUS_UNINDEX_STOPPED:
       GNUNET_assert (unindex == event->value.unindex.uc);
       GNUNET_SCHEDULER_add_continuation (sched,
-					 GNUNET_NO,
 					 &abort_publish_task,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);

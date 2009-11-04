@@ -179,7 +179,6 @@ validation_notification (void *cls,
      here will end the process. */
   ok = 0; /* if the last test succeeded, report success */
   GNUNET_SCHEDULER_add_continuation (sched,
-				     GNUNET_NO,
 				     &unload_task,
 				     (void*) cfg,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -236,9 +235,6 @@ test_validation ()
   /* add job to catch failure (timeout) */
   validation_timeout_task =
     GNUNET_SCHEDULER_add_delayed (sched,
-				  GNUNET_NO,
-				  GNUNET_SCHEDULER_PRIORITY_KEEP,
-				  GNUNET_SCHEDULER_NO_TASK,
 				  TIMEOUT,
 				  &validation_failed,
 				  NULL);

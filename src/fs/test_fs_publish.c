@@ -106,7 +106,6 @@ progress_cb (void *cls,
       if (0 == strcmp ("list_indexed-context-dir", 
 		       event->value.publish.cctx))	
 	GNUNET_SCHEDULER_add_continuation (sched,
-					   GNUNET_NO,
 					   &abort_publish_task,
 					   NULL,
 					   GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -131,7 +130,6 @@ progress_cb (void *cls,
       if (0 == strcmp ("list_indexed-context-dir", 
 		       event->value.publish.cctx))		
 	GNUNET_SCHEDULER_add_continuation (sched,
-					   GNUNET_NO,
 					   &abort_publish_task,
 					   NULL,
 					   GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -171,7 +169,6 @@ progress_cb (void *cls,
 	{
 	  GNUNET_assert (publish == event->value.publish.sc);
 	  GNUNET_SCHEDULER_add_continuation (sched,
-					     GNUNET_NO,
 					     &abort_publish_task,
 					     NULL,
 					     GNUNET_SCHEDULER_REASON_PREREQ_DONE);

@@ -285,9 +285,7 @@ nat_pulse (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       notify_change (nat, ext_addr_natpmp, port_mapped);
     }
 
-  nat->pulse_timer = GNUNET_SCHEDULER_add_delayed (nat->sched, GNUNET_NO,
-                                                   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                                   GNUNET_SCHEDULER_NO_TASK,
+  nat->pulse_timer = GNUNET_SCHEDULER_add_delayed (nat->sched, 
                                                    GNUNET_TIME_UNIT_SECONDS,
                                                    &nat_pulse, nat);
 }
@@ -335,9 +333,7 @@ GNUNET_NAT_register (struct GNUNET_SCHEDULER_Handle *sched,
   nat->natpmp = GNUNET_NAT_NATPMP_init (nat->local_addr, addrlen, nat->public_port);
   nat->upnp = GNUNET_NAT_UPNP_init (nat->local_addr, addrlen, nat->public_port);
 
-  nat->pulse_timer = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_NO,
-                                                   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                                   GNUNET_SCHEDULER_NO_TASK,
+  nat->pulse_timer = GNUNET_SCHEDULER_add_delayed (sched, 
                                                    GNUNET_TIME_UNIT_SECONDS,
                                                    &nat_pulse, nat);
 

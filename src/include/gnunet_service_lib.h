@@ -55,18 +55,6 @@ typedef void (*GNUNET_SERVICE_Main) (void *cls,
 
 
 /**
- * Function called when the service shuts
- * down to run service-specific teardown code.
- *
- * @param cls closure
- * @param cfg configuration to use
- */
-typedef void (*GNUNET_SERVICE_Term) (void *cls,
-                                     const struct GNUNET_CONFIGURATION_Handle *
-                                     cfg);
-
-
-/**
  * Run a standard GNUnet service startup sequence (initialize loggers
  * and configuration, parse options).
  *
@@ -75,8 +63,6 @@ typedef void (*GNUNET_SERVICE_Term) (void *cls,
  * @param serviceName our service name
  * @param task main task of the service
  * @param task_cls closure for task
- * @param term termination task of the service
- * @param term_cls closure for term
  * @return GNUNET_SYSERR on error, GNUNET_OK
  *         if we shutdown nicely
  */
@@ -84,8 +70,7 @@ int GNUNET_SERVICE_run (int argc,
                         char *const *argv,
                         const char *serviceName,
                         GNUNET_SERVICE_Main task,
-                        void *task_cls,
-                        GNUNET_SERVICE_Term term, void *term_cls);
+                        void *task_cls);
 
 
 struct GNUNET_SERVICE_Context;

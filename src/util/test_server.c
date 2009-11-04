@@ -100,9 +100,6 @@ my_receive (void *cls,
       stctx->cb = receiver;
       stctx->cb_cls = receiver_cls;
       ret = GNUNET_SCHEDULER_add_delayed (sched,
-                                          GNUNET_NO,
-                                          GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                          GNUNET_SCHEDULER_NO_TASK,
                                           timeout, &signal_timeout, stctx);
       break;
     default:

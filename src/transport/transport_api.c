@@ -625,9 +625,6 @@ schedule_control_transmit (struct GNUNET_TRANSPORT_Handle *h,
   th->notify_size = size;
   th->notify_delay_task 
     = GNUNET_SCHEDULER_add_delayed (h->sched,
-				    GNUNET_NO,
-				    GNUNET_SCHEDULER_PRIORITY_KEEP,
-				    GNUNET_SCHEDULER_NO_TASK,
 				    timeout,
 				    &peer_transmit_timeout, th);    
   if (at_head)
@@ -704,7 +701,6 @@ send_set_quota (void *cls, size_t size, void *buf)
   if (buf == NULL)
     {
       GNUNET_SCHEDULER_add_continuation (sqc->handle->sched,
-                                         GNUNET_NO,
                                          sqc->cont,
                                          sqc->cont_cls,
                                          GNUNET_SCHEDULER_REASON_TIMEOUT);
@@ -724,7 +720,6 @@ send_set_quota (void *cls, size_t size, void *buf)
   memcpy (&msg->peer, &sqc->target, sizeof (struct GNUNET_PeerIdentity));
   if (sqc->cont != NULL)
     GNUNET_SCHEDULER_add_continuation (sqc->handle->sched,
-                                       GNUNET_NO,
                                        sqc->cont,
                                        sqc->cont_cls,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -802,9 +797,6 @@ hello_wait_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 		  GNUNET_TIME_absolute_get_remaining (hwl->timeout).value);
 #endif
       hwl->task = GNUNET_SCHEDULER_add_delayed (hwl->handle->sched,
-                                                GNUNET_YES,
-                                                GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                                GNUNET_SCHEDULER_NO_TASK,
                                                 GNUNET_TIME_absolute_get_remaining (hwl->timeout),
                                                 &hello_wait_timeout, hwl);
       return;      
@@ -862,9 +854,6 @@ GNUNET_TRANSPORT_get_hello (struct GNUNET_TRANSPORT_Handle *handle,
       hwl->rec_cls = rec_cls;
       hwl->timeout = GNUNET_TIME_relative_to_absolute (timeout);
       hwl->task = GNUNET_SCHEDULER_add_delayed (handle->sched,
-                                                GNUNET_YES,
-                                                GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                                GNUNET_SCHEDULER_NO_TASK,
                                                 timeout,
                                                 &hello_wait_timeout, hwl);
       return;
@@ -1018,9 +1007,6 @@ request_connect (void *cls, size_t size, void *buf)
   memcpy (&tcm->peer, &th->target, sizeof (struct GNUNET_PeerIdentity));
   th->notify_delay_task
     = GNUNET_SCHEDULER_add_delayed (h->sched,
-                                    GNUNET_NO,
-                                    GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                    GNUNET_SCHEDULER_NO_TASK,
 				    GNUNET_TIME_absolute_get_remaining
 				    (th->timeout),
 				    &peer_transmit_timeout, th);
@@ -1128,9 +1114,6 @@ remove_neighbour (struct GNUNET_TRANSPORT_Handle *h,
 	  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == th->notify_delay_task);
 	  th->notify_delay_task 
 	    = GNUNET_SCHEDULER_add_delayed (h->sched,
-					    GNUNET_NO,
-					    GNUNET_SCHEDULER_PRIORITY_KEEP,
-					    GNUNET_SCHEDULER_NO_TASK,
 					    CONNECT_RETRY_TIMEOUT,
 					    &try_connect_task,
 					    th);
@@ -1214,9 +1197,6 @@ schedule_reconnect (struct GNUNET_TRANSPORT_Handle *h)
   GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
   h->reconnect_task
     = GNUNET_SCHEDULER_add_delayed (h->sched,
-                                    GNUNET_NO,
-                                    GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                    GNUNET_SCHEDULER_NO_TASK,
                                     h->reconnect_delay, &reconnect, h);
   h->reconnect_delay = GNUNET_TIME_UNIT_SECONDS;
 }
@@ -1318,9 +1298,6 @@ schedule_request (struct GNUNET_TRANSPORT_TransmitHandle *th)
 #endif
       th->notify_delay_task
         = GNUNET_SCHEDULER_add_delayed (h->sched,
-                                        GNUNET_NO,
-                                        GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                        GNUNET_SCHEDULER_NO_TASK,
                                         duration, &transmit_ready, th);
       return;
     }
@@ -1340,9 +1317,6 @@ schedule_request (struct GNUNET_TRANSPORT_TransmitHandle *th)
 #endif
       th->notify_delay_task
         = GNUNET_SCHEDULER_add_delayed (h->sched,
-                                        GNUNET_NO,
-                                        GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                        GNUNET_SCHEDULER_NO_TASK,
                                         GNUNET_TIME_absolute_get_remaining
                                         (th->timeout), &peer_transmit_timeout, th);
       return;
@@ -1593,9 +1567,6 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
 	      GNUNET_assert (th->notify_delay_task == GNUNET_SCHEDULER_NO_TASK);
 	      th->notify_delay_task 
 		= GNUNET_SCHEDULER_add_delayed (h->sched,
-						GNUNET_NO,
-						GNUNET_SCHEDULER_PRIORITY_KEEP,
-						GNUNET_SCHEDULER_NO_TASK,
 						GNUNET_TIME_absolute_get_remaining(th->timeout),
 						&peer_transmit_timeout, 
 						th);    
@@ -1937,9 +1908,6 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
 #endif
       th->notify_delay_task
 	= GNUNET_SCHEDULER_add_delayed (handle->sched,
-					GNUNET_NO,
-					GNUNET_SCHEDULER_PRIORITY_KEEP,
-					GNUNET_SCHEDULER_NO_TASK,
 					timeout, &peer_transmit_timeout, th);
       return th;
     }

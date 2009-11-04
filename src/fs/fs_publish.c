@@ -185,13 +185,10 @@ ds_put_cont (void *cls,
   GNUNET_FS_file_information_sync (pcc->p);
   if (NULL != pcc->cont)
     pcc->sc->upload_task 
-      = GNUNET_SCHEDULER_add_delayed (pcc->sc->h->sched,
-				      GNUNET_NO,
-				      GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
-				      GNUNET_SCHEDULER_NO_TASK,
-				      GNUNET_TIME_UNIT_ZERO,
-				      pcc->cont,
-				      pcc->cont_cls);
+      = GNUNET_SCHEDULER_add_with_priority (pcc->sc->h->sched,
+					    GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+					    pcc->cont,
+					    pcc->cont_cls);
   GNUNET_free (pcc);
 }
 
@@ -325,13 +322,10 @@ publish_kblocks_cont (void *cls,
     {
       signal_publish_error (p, sc, emsg);
       sc->upload_task 
-	= GNUNET_SCHEDULER_add_delayed (sc->h->sched,
-					GNUNET_NO,
-					GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
-					GNUNET_SCHEDULER_NO_TASK,
-					GNUNET_TIME_UNIT_ZERO,
-					&do_upload,
-					sc);
+	= GNUNET_SCHEDULER_add_with_priority (sc->h->sched,
+					      GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+					      &do_upload,
+					      sc);
       return;
     }
   GNUNET_FS_file_information_sync (p);
@@ -343,13 +337,10 @@ publish_kblocks_cont (void *cls,
   else
     sc->fi_pos = p->dir;
   sc->upload_task 
-    = GNUNET_SCHEDULER_add_delayed (sc->h->sched,
-				    GNUNET_NO,
-				    GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
-				    GNUNET_SCHEDULER_NO_TASK,
-				    GNUNET_TIME_UNIT_ZERO,
-				    &do_upload,
-				    sc);
+    = GNUNET_SCHEDULER_add_with_priority (sc->h->sched,
+					  GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+					  &do_upload,
+					  sc);
 }
 
 
@@ -446,11 +437,8 @@ encode_cont (void *cls,
     }
   /* continue with main */
   sc->upload_task 
-    = GNUNET_SCHEDULER_add_delayed (sc->h->sched,
-				    GNUNET_NO,
-				    GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
-				    GNUNET_SCHEDULER_NO_TASK,
-				    GNUNET_TIME_UNIT_ZERO,
+    = GNUNET_SCHEDULER_add_with_priority (sc->h->sched,
+					  GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
 				    &do_upload,
 				    sc);
 }
@@ -486,11 +474,8 @@ block_proc (void *cls,
   if (NULL == sc->dsh)
     {
       sc->upload_task
-	= GNUNET_SCHEDULER_add_delayed (sc->h->sched,
-					GNUNET_NO,
+	= GNUNET_SCHEDULER_add_with_priority (sc->h->sched,
 					GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
-					GNUNET_SCHEDULER_NO_TASK,
-					GNUNET_TIME_UNIT_ZERO,
 					&do_upload,
 					sc);
       return;
@@ -910,7 +895,6 @@ do_upload (void *cls,
       else
 	GNUNET_CRYPTO_hash_file (sc->h->sched,
 				 GNUNET_SCHEDULER_PRIORITY_IDLE,
-				 GNUNET_NO,
 				 p->data.file.filename,
 				 HASHING_BLOCKSIZE,
 				 &hash_for_index_cb,
@@ -1018,11 +1002,8 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
   // and reserve as first task (then trigger
   // "do_upload" from that continuation)!
   ret->upload_task 
-    = GNUNET_SCHEDULER_add_delayed (h->sched,
-				    GNUNET_NO,
+    = GNUNET_SCHEDULER_add_with_priority (h->sched,
 				    GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
-				    GNUNET_SCHEDULER_NO_TASK,
-				    GNUNET_TIME_UNIT_ZERO,
 				    &do_upload,
 				    ret);
   return ret;
@@ -1217,7 +1198,6 @@ kb_put_cont (void *cls,
       return;
     }
   GNUNET_SCHEDULER_add_continuation (pkc->h->sched,
-				     GNUNET_NO,
 				     &publish_ksk_cont,
 				     pkc,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -1383,7 +1363,6 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
   pkc->cpy->purpose.purpose = htonl(GNUNET_SIGNATURE_PURPOSE_FS_KBLOCK);
   pkc->ksk_uri = GNUNET_FS_uri_dup (ksk_uri);
   GNUNET_SCHEDULER_add_continuation (h->sched,
-				     GNUNET_NO,
 				     &publish_ksk_cont,
 				     pkc,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);

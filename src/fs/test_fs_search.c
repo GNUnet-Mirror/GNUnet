@@ -124,7 +124,6 @@ progress_cb (void *cls,
       printf ("Search complete.\n");
 #endif
       GNUNET_SCHEDULER_add_continuation (sched,
-					 GNUNET_NO,
 					 &abort_search_task,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -135,7 +134,6 @@ progress_cb (void *cls,
 	       event->value.publish.specifics.error.message);
       GNUNET_break (0);
       GNUNET_SCHEDULER_add_continuation (sched,
-					 GNUNET_NO,
 					 &abort_publish_task,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -145,7 +143,6 @@ progress_cb (void *cls,
 	       "Error searching file: %s\n",
 	       event->value.search.specifics.error.message);
       GNUNET_SCHEDULER_add_continuation (sched,
-					 GNUNET_NO,
 					 &abort_search_task,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -174,7 +171,6 @@ progress_cb (void *cls,
     case GNUNET_FS_STATUS_SEARCH_STOPPED:
       GNUNET_assert (search == event->value.search.sc);
       GNUNET_SCHEDULER_add_continuation (sched,
-					 GNUNET_NO,
 					 &abort_publish_task,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);

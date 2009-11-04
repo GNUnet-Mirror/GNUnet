@@ -168,8 +168,6 @@ iterateDummy (void *cls,
 	    crc->phase = RP_PUT;
 	}
       GNUNET_SCHEDULER_add_after (crc->sched,
-				  GNUNET_NO,
-				  GNUNET_SCHEDULER_PRIORITY_KEEP,
 				  GNUNET_SCHEDULER_NO_TASK,
 				  &test, crc);
       return GNUNET_OK;
@@ -254,8 +252,6 @@ test (void *cls,
       crc->i++;
       crc->phase = RP_LP_GET;
       GNUNET_SCHEDULER_add_after (crc->sched,
-				  GNUNET_NO,
-				  GNUNET_SCHEDULER_PRIORITY_KEEP,
 				  GNUNET_SCHEDULER_NO_TASK,
 				  &test, crc);
       break;
@@ -301,11 +297,8 @@ test (void *cls,
       break;
     case RP_DONE:
       crc->api->drop (crc->api->cls);
-      GNUNET_SCHEDULER_add_delayed (crc->sched,
-				    GNUNET_YES,
+      GNUNET_SCHEDULER_add_with_priority (crc->sched,
 				    GNUNET_SCHEDULER_PRIORITY_IDLE,
-				    GNUNET_SCHEDULER_NO_TASK,
-				    GNUNET_TIME_UNIT_ZERO,
 				    &cleaning_task, crc);
       break;
     }
@@ -364,8 +357,6 @@ run (void *cls,
   crc->cfg = c;
   crc->phase = RP_PUT;
   GNUNET_SCHEDULER_add_after (s,
-			      GNUNET_YES,
-			      GNUNET_SCHEDULER_PRIORITY_KEEP,
 			      GNUNET_SCHEDULER_NO_TASK,
 			      &test, crc);
 }

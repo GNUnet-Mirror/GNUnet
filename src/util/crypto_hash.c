@@ -416,11 +416,6 @@ struct FileHashContext
   uint64_t offset;
 
   /**
-   * Run on shutdown?
-   */
-  int run_on_shutdown;
-
-  /**
    * File descriptor.
    */
   struct GNUNET_DISK_FileHandle *fh;
@@ -476,8 +471,6 @@ file_hash_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       return;
     }
   GNUNET_SCHEDULER_add_after (tc->sched,
-                              fhc->run_on_shutdown,
-                              GNUNET_SCHEDULER_PRIORITY_KEEP,
                               GNUNET_SCHEDULER_NO_TASK, &file_hash_task, fhc);
 }
 
@@ -487,7 +480,6 @@ file_hash_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @param sched scheduler to use
  * @param priority scheduling priority to use
- * @param run_on_shutdown should we complete even on shutdown?
  * @param filename name of file to hash
  * @param blocksize number of bytes to process in one task
  * @param callback function to call upon completion
@@ -496,7 +488,6 @@ file_hash_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 void
 GNUNET_CRYPTO_hash_file (struct GNUNET_SCHEDULER_Handle *sched,
                          enum GNUNET_SCHEDULER_Priority priority,
-                         int run_on_shutdown,
                          const char *filename,
                          size_t blocksize,
                          GNUNET_CRYPTO_HashCompletedCallback callback,
@@ -518,7 +509,6 @@ GNUNET_CRYPTO_hash_file (struct GNUNET_SCHEDULER_Handle *sched,
       file_hash_finish (fhc, NULL);
       return;
     }
-  fhc->run_on_shutdown = run_on_shutdown;
   fhc->fh = GNUNET_DISK_file_open (filename,
                                    GNUNET_DISK_OPEN_READ,
                                    GNUNET_DISK_PERM_NONE);
@@ -527,10 +517,7 @@ GNUNET_CRYPTO_hash_file (struct GNUNET_SCHEDULER_Handle *sched,
       file_hash_finish (fhc, NULL);
       return;
     }
-  GNUNET_SCHEDULER_add_after (sched,
-                              run_on_shutdown,
-                              priority,
-                              GNUNET_SCHEDULER_NO_TASK, &file_hash_task, fhc);
+  GNUNET_SCHEDULER_add_with_priority (sched, priority, &file_hash_task, fhc);
 }
 
 

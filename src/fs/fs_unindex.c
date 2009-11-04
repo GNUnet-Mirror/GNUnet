@@ -420,7 +420,6 @@ GNUNET_FS_unindex_start (struct GNUNET_FS_Handle *h,
 	       &pi);
   GNUNET_CRYPTO_hash_file (h->sched,
 			   GNUNET_SCHEDULER_PRIORITY_IDLE,
-			   GNUNET_NO,
 			   filename,
 			   HASHING_BLOCKSIZE,
 			   &process_hash,

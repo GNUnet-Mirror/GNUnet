@@ -710,9 +710,9 @@ transmit_to_client_callback (void *cls, size_t size, void *buf)
       GNUNET_free (q);
       client->message_count--;
     }
-  GNUNET_assert (tsize > 0);
   if (NULL != q)
     {
+      GNUNET_assert (msize >= sizeof (struct GNUNET_MessageHeader));
       th = GNUNET_SERVER_notify_transmit_ready (client->client,
                                                 msize,
                                                 GNUNET_TIME_UNIT_FOREVER_REL,
@@ -753,6 +753,7 @@ transmit_to_client (struct TransportClient *client,
     }
   client->message_count++;
   msize = ntohs (msg->size);
+  GNUNET_assert (msize >= sizeof (struct GNUNET_MessageHeader));
   q = GNUNET_malloc (sizeof (struct ClientMessageQueueEntry) + msize);
   memcpy (&q[1], msg, msize);
   /* append to message queue */
@@ -1217,9 +1218,6 @@ update_addresses (struct TransportPlugin *plugin, int fresh)
   if (min_remaining.value < GNUNET_TIME_UNIT_FOREVER_REL.value)
     plugin->address_update_task
       = GNUNET_SCHEDULER_add_delayed (plugin->env.sched,
-                                      GNUNET_NO,
-                                      GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                      GNUNET_SCHEDULER_NO_TASK,
                                       min_remaining,
                                       &expire_address_task, plugin);
 
@@ -1527,9 +1525,6 @@ cleanup_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	  pos = pos->next;
 	}
       GNUNET_SCHEDULER_add_delayed (sched,
-				    GNUNET_NO,
-				    GNUNET_SCHEDULER_PRIORITY_IDLE,
-				    GNUNET_SCHEDULER_NO_TASK,
 				    GNUNET_TIME_absolute_get_remaining (first),
 				    &cleanup_validation, NULL);
     }
@@ -1631,12 +1626,9 @@ plugin_env_notify_validation (void *cls,
 		  GNUNET_i2s (peer));
 #endif
       pos->timeout.value = 0;
-      GNUNET_SCHEDULER_add_delayed (sched,
-                                    GNUNET_NO,
-                                    GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                    GNUNET_SCHEDULER_NO_TASK,
-                                    GNUNET_TIME_UNIT_ZERO,
-                                    &cleanup_validation, NULL);
+      GNUNET_SCHEDULER_add_with_priority (sched,
+					  GNUNET_SCHEDULER_PRIORITY_IDLE,
+					  &cleanup_validation, NULL);
     }
   else
     {
@@ -1798,9 +1790,6 @@ check_hello_validated (void *cls,
       va = va->next;
     }
   GNUNET_SCHEDULER_add_delayed (sched,
-				GNUNET_NO,
-				GNUNET_SCHEDULER_PRIORITY_IDLE,
-				GNUNET_SCHEDULER_NO_TASK,
 				GNUNET_TIME_absolute_get_remaining (chvc->e->timeout), 
 				&cleanup_validation, NULL);
   GNUNET_free (chvc);
@@ -2047,9 +2036,6 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer)
   n->quota_in = (GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT + 59999) / (60 * 1000);
   add_plugins (n);
   n->timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                                  GNUNET_NO,
-                                                  GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                                  GNUNET_SCHEDULER_NO_TASK,
                                                   GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                                   &neighbour_timeout_task, n);
   transmit_to_peer (NULL, 0,
@@ -2161,9 +2147,7 @@ plugin_env_receive (void *cls,
   n->peer_timeout =
     GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
   n->timeout_task =
-    GNUNET_SCHEDULER_add_delayed (sched, GNUNET_NO,
-                                  GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                  GNUNET_SCHEDULER_NO_TASK,
+    GNUNET_SCHEDULER_add_delayed (sched, 
                                   GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                   &neighbour_timeout_task, n);
   update_quota (n);
@@ -2698,9 +2682,6 @@ run (void *cls,
       GNUNET_free (plugs);
     }
   GNUNET_SCHEDULER_add_delayed (sched,
-                                GNUNET_YES,
-                                GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                GNUNET_SCHEDULER_NO_TASK,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &unload_plugins, NULL);
   if (no_transports)
@@ -2728,7 +2709,7 @@ main (int argc, char *const *argv)
 	  GNUNET_SERVICE_run (argc,
 			      argv,
 			      "transport",
-			      &run, NULL, NULL, NULL)) ? 0 : 1;
+			      &run, NULL)) ? 0 : 1;
 }
 
 /* end of gnunet-service-transport.c */

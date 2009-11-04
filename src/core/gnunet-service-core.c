@@ -1703,9 +1703,6 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
       /* no messages selected for sending, try again later... */
       n->retry_plaintext_task =
         GNUNET_SCHEDULER_add_delayed (sched,
-                                      GNUNET_NO,
-                                      GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                      GNUNET_SCHEDULER_NO_TASK,
                                       retry_time,
                                       &retry_plaintext_processing, n);
       return;
@@ -2154,9 +2151,6 @@ send_key (struct Neighbour *n)
   if (n->status != PEER_STATE_KEY_CONFIRMED)
     n->retry_set_key_task
       = GNUNET_SCHEDULER_add_delayed (sched,
-                                      GNUNET_NO,
-                                      GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                      GNUNET_SCHEDULER_NO_TASK,
                                       n->set_key_retry_frequency,
                                       &set_key_retry_task, n);
 }
@@ -2894,9 +2888,6 @@ schedule_quota_update (struct Neighbour *n)
 		 GNUNET_SCHEDULER_NO_TASK);
   n->quota_update_task
     = GNUNET_SCHEDULER_add_delayed (sched,
-				    GNUNET_NO,
-				    GNUNET_SCHEDULER_PRIORITY_IDLE,
-				    GNUNET_SCHEDULER_NO_TASK,
 				    QUOTA_UPDATE_FREQUENCY,
 				    &neighbour_quota_update,
 				    n);
@@ -3114,6 +3105,8 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
   while (NULL != (c = clients))
     handle_client_disconnect (NULL, c->client_handle);
+  if (my_private_key != NULL)
+    GNUNET_CRYPTO_rsa_key_free (my_private_key);
 }
 
 
@@ -3198,9 +3191,6 @@ run (void *cls,
                                         &handle_transport_notify_disconnect);
   GNUNET_assert (NULL != transport);
   GNUNET_SCHEDULER_add_delayed (sched,
-                                GNUNET_YES,
-                                GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                GNUNET_SCHEDULER_NO_TASK,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &cleaning_task, NULL);
   /* process client requests */
@@ -3209,17 +3199,6 @@ run (void *cls,
               _("Core service of `%4s' ready.\n"), GNUNET_i2s (&my_identity));
 }
 
-
-/**
- * Function called during shutdown.  Clean up our state.
- */
-static void
-cleanup (void *cls, 
-	 const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  if (my_private_key != NULL)
-    GNUNET_CRYPTO_rsa_key_free (my_private_key);
-}
 
 
 /**
@@ -3235,7 +3214,7 @@ main (int argc, char *const *argv)
   return (GNUNET_OK ==
           GNUNET_SERVICE_run (argc,
                               argv,
-                              "core", &run, NULL, &cleanup, NULL)) ? 0 : 1;
+                              "core", &run, NULL)) ? 0 : 1;
 }
 
 /* end of gnunet-service-core.c */

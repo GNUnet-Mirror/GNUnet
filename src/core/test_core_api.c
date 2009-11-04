@@ -172,9 +172,6 @@ process_mtype (void *cls,
   OKPP;
   GNUNET_SCHEDULER_cancel (sched, err_task);
   GNUNET_SCHEDULER_add_delayed (sched,
-                                GNUNET_NO,
-                                GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                GNUNET_SCHEDULER_NO_TASK,
                                 GNUNET_TIME_UNIT_ZERO, &terminate_task, NULL);
   return GNUNET_OK;
 }
@@ -201,9 +198,6 @@ transmit_ready (void *cls, size_t size, void *buf)
   m->size = htons (sizeof (struct GNUNET_MessageHeader));
   err_task = 
     GNUNET_SCHEDULER_add_delayed (sched,
-				  GNUNET_NO,
-				  GNUNET_SCHEDULER_PRIORITY_KEEP,
-				  GNUNET_SCHEDULER_NO_TASK,
 				  GNUNET_TIME_UNIT_MINUTES, &terminate_task_error, NULL);
 
   return sizeof (struct GNUNET_MessageHeader);
@@ -300,7 +294,6 @@ setup_peer (struct PeerContext *p, const char *cfgname)
                                         "-L", "DEBUG",
 #endif
                                         "-c", cfgname, NULL);
-  sleep (1);                    /* allow ARM to start */
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
   GNUNET_ARM_start_services (p->cfg, sched, "core", NULL);

@@ -1075,7 +1075,6 @@ handle_index_start (void *cls,
   /* slow validation, need to hash full file (again) */
   GNUNET_CRYPTO_hash_file (sched,
 			   GNUNET_SCHEDULER_PRIORITY_IDLE,
-			   GNUNET_NO,
 			   fn,
 			   HASHING_BLOCKSIZE,
 			   &hash_for_index_val,
@@ -1287,9 +1286,6 @@ queue_ds_request (struct GNUNET_TIME_Relative deadline,
   if (deadline.value == GNUNET_TIME_UNIT_FOREVER_REL.value)
     return e;
   e->task = GNUNET_SCHEDULER_add_delayed (sched,
-					  GNUNET_NO,
-					  GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
-					  GNUNET_SCHEDULER_NO_TASK,
 					  deadline,
 					  &timeout_ds_request,
 					  e);
@@ -1718,13 +1714,10 @@ transmit_request_cb (void *cls,
   if (NULL == buf)
     {
       /* timeout, try another peer immediately again */
-      pr->task = GNUNET_SCHEDULER_add_delayed (sched,
-					       GNUNET_NO,
-					       GNUNET_SCHEDULER_PRIORITY_IDLE,
-					       GNUNET_SCHEDULER_NO_TASK,
-					       GNUNET_TIME_UNIT_ZERO,
-					       &forward_request_task,
-					       pr);
+      pr->task = GNUNET_SCHEDULER_add_with_priority (sched,
+						     GNUNET_SCHEDULER_PRIORITY_IDLE,
+						     &forward_request_task,
+						     pr);
       return 0;
     }
   /* (2) build query message */
@@ -1751,9 +1744,6 @@ transmit_request_cb (void *cls,
   
   /* (3) schedule job to do it again (or another peer, etc.) */
   pr->task = GNUNET_SCHEDULER_add_delayed (sched,
-					   GNUNET_NO,
-					   GNUNET_SCHEDULER_PRIORITY_IDLE,
-					   GNUNET_SCHEDULER_NO_TASK,
 					   get_processing_delay (), // FIXME!
 					   &forward_request_task,
 					   pr);
@@ -1797,9 +1787,6 @@ target_reservation_cb (void *cls,
     {
       /* try again later; FIXME: we may need to un-reserve "amount"? */
       pr->task = GNUNET_SCHEDULER_add_delayed (sched,
-					       GNUNET_NO,
-					       GNUNET_SCHEDULER_PRIORITY_IDLE,
-					       GNUNET_SCHEDULER_NO_TASK,
 					       get_processing_delay (), // FIXME: longer?
 					       &forward_request_task,
 					       pr);
@@ -1821,9 +1808,6 @@ target_reservation_cb (void *cls,
     {
       /* try again later */
       pr->task = GNUNET_SCHEDULER_add_delayed (sched,
-					       GNUNET_NO,
-					       GNUNET_SCHEDULER_PRIORITY_IDLE,
-					       GNUNET_SCHEDULER_NO_TASK,
 					       get_processing_delay (), // FIXME: longer?
 					       &forward_request_task,
 					       pr);
@@ -1854,9 +1838,6 @@ forward_request_task (void *cls,
     {
       /* we're busy transmitting a result, wait a bit */
       pr->task = GNUNET_SCHEDULER_add_delayed (sched,
-					       GNUNET_NO,
-					       GNUNET_SCHEDULER_PRIORITY_IDLE,
-					       GNUNET_SCHEDULER_NO_TASK,
 					       get_processing_delay (), 
 					       &forward_request_task,
 					       pr);
@@ -1872,9 +1853,6 @@ forward_request_task (void *cls,
     {
       /* no possible target found, wait some time */
       pr->task = GNUNET_SCHEDULER_add_delayed (sched,
-					       GNUNET_NO,
-					       GNUNET_SCHEDULER_PRIORITY_IDLE,
-					       GNUNET_SCHEDULER_NO_TASK,
 					       get_processing_delay (), // FIXME: exponential back-off? or at least wait longer...
 					       &forward_request_task,
 					       pr);
@@ -1998,9 +1976,6 @@ process_local_get_result (void *cls,
 					     pr,
 					     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 	  pr->task = GNUNET_SCHEDULER_add_delayed (sched,
-						   GNUNET_NO,
-						   GNUNET_SCHEDULER_PRIORITY_IDLE,
-						   GNUNET_SCHEDULER_NO_TASK,
 						   get_processing_delay (),
 						   &forward_request_task,
 						   pr);
@@ -2132,7 +2107,6 @@ transmit_local_get_ready (void *cls,
 
   GNUNET_assert (GNUNET_OK == ok);
   GNUNET_SCHEDULER_add_continuation (sched,
-				     GNUNET_NO,
 				     &transmit_local_get,
 				     lgc,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -2514,9 +2488,6 @@ forward_get_request (void *cls,
       destroy_pending_request (eer);     
     }
   pr->task = GNUNET_SCHEDULER_add_delayed (sched,
-					   GNUNET_NO,
-					   GNUNET_SCHEDULER_PRIORITY_IDLE,
-					   GNUNET_SCHEDULER_NO_TASK,
 					   get_processing_delay (),
 					   &forward_request_task,
 					   pr);
@@ -2617,7 +2588,6 @@ process_p2p_get_result (void *cls,
 	     (pgc->type == GNUNET_DATASTORE_BLOCKTYPE_SKBLOCK) ) )
 	{
 	  GNUNET_SCHEDULER_add_continuation (sched,
-					     GNUNET_NO,
 					     &forward_get_request,
 					     pgc,
 					     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -2942,7 +2912,6 @@ handle_p2p_get (void *cls,
 				 pgc);
   else
     GNUNET_SCHEDULER_add_continuation (sched,
-				       GNUNET_NO,
 				       &forward_get_request,
 				       pgc,
 				       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -3338,9 +3307,6 @@ core_start_cb (void *cls,
   if (server == NULL)
     {
       GNUNET_SCHEDULER_add_delayed (sched,
-				    GNUNET_NO,
-				    GNUNET_SCHEDULER_PRIORITY_HIGH,
-				    GNUNET_SCHEDULER_NO_TASK,
 				    GNUNET_TIME_UNIT_SECONDS,
 				    &core_connect_task,
 				    NULL);
@@ -3412,9 +3378,6 @@ run (void *cls,
   GNUNET_SERVER_add_handlers (server, handlers);
   core_connect_task (NULL, NULL);
   GNUNET_SCHEDULER_add_delayed (sched,
-				GNUNET_YES,
-				GNUNET_SCHEDULER_PRIORITY_IDLE,
-				GNUNET_SCHEDULER_NO_TASK,
 				GNUNET_TIME_UNIT_FOREVER_REL,
 				&shutdown_task,
 				NULL);
@@ -3434,7 +3397,7 @@ main (int argc, char *const *argv)
   return (GNUNET_OK ==
           GNUNET_SERVICE_run (argc,
                               argv,
-                              "fs", &run, NULL, NULL, NULL)) ? 0 : 1;
+                              "fs", &run, NULL)) ? 0 : 1;
 }
 
 /* end of gnunet-service-fs.c */

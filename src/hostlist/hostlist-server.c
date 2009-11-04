@@ -92,9 +92,6 @@ finish_response (struct HostSet *results)
   GNUNET_free (results);
   /* schedule next update of the response */  
   GNUNET_SCHEDULER_add_delayed (sched,
-				GNUNET_NO,
-				GNUNET_SCHEDULER_PRIORITY_IDLE,
-				GNUNET_SCHEDULER_NO_TASK,
 				RESPONSE_UPDATE_FREQUENCY,
 				&update_response,
 				NULL);
@@ -252,7 +249,6 @@ prepare_daemon ()
   GNUNET_NETWORK_fdset_copy_native (wes, &es, max);
   hostlist_task 
     = GNUNET_SCHEDULER_add_select (sched,
-				   GNUNET_NO,
 				   GNUNET_SCHEDULER_PRIORITY_HIGH,
 				   GNUNET_SCHEDULER_NO_TASK,
 				   tv,

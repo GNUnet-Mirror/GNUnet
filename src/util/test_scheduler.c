@@ -30,14 +30,6 @@
 #define VERBOSE GNUNET_NO
 
 static void
-task2 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  int *ok = cls;
-  GNUNET_assert (2 == *ok);
-  (*ok) = 3;
-}
-
-static void
 task3 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   int *ok = cls;
@@ -46,6 +38,19 @@ task3 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                  GNUNET_SCHEDULER_PRIORITY_COUNT));
   GNUNET_assert (3 == *ok);
   (*ok) = 4;
+}
+
+
+static void
+task2 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  int *ok = cls;
+  GNUNET_assert (2 == *ok);
+  (*ok) = 3;
+  /* t3 will go before t4: higher priority */
+  GNUNET_SCHEDULER_add_with_priority (tc->sched,                                 
+				      GNUNET_SCHEDULER_PRIORITY_UI,
+				      &task3, cls);
 }
 
 static void
@@ -96,14 +101,9 @@ taskRd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (GNUNET_NETWORK_fdset_handle_isset (tc->read_ready, fds[0]));
   GNUNET_assert (1 == GNUNET_DISK_file_read (fds[0], &c, 1));
   (*ok) = 8;
-  GNUNET_SCHEDULER_add_after (tc->sched,
-                              GNUNET_NO,
-                              GNUNET_SCHEDULER_PRIORITY_UI,
-                              0, &taskNeverRun, NULL);
-  GNUNET_SCHEDULER_add_after (tc->sched,
-                              GNUNET_YES,
-                              GNUNET_SCHEDULER_PRIORITY_IDLE,
-                              0, &taskLast, cls);
+  GNUNET_SCHEDULER_add_with_priority (tc->sched,
+				      GNUNET_SCHEDULER_PRIORITY_IDLE,
+				      &taskLast, cls);
   GNUNET_SCHEDULER_shutdown (tc->sched);
 }
 
@@ -119,15 +119,9 @@ task5 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   fds[0] = GNUNET_DISK_pipe_handle (p, GNUNET_DISK_PIPE_END_READ);
   fds[1] = GNUNET_DISK_pipe_handle (p, GNUNET_DISK_PIPE_END_WRITE);
   GNUNET_SCHEDULER_add_read_file (tc->sched,
-                                  GNUNET_NO,
-                                  GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                  GNUNET_SCHEDULER_NO_TASK,
                                   GNUNET_TIME_UNIT_FOREVER_REL,
                                   fds[0], &taskRd, cls);
   GNUNET_SCHEDULER_add_write_file (tc->sched,
-                                   GNUNET_NO,
-                                   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   GNUNET_SCHEDULER_NO_TASK,
                                    GNUNET_TIME_UNIT_FOREVER_REL,
                                    fds[1], &taskWrt, cls);
 }
@@ -144,24 +138,13 @@ task1 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   (*ok) = 2;
   /* t2 will go first -- prereq for all */
   t2 = GNUNET_SCHEDULER_add_after (tc->sched,
-                                   GNUNET_NO,
-                                   GNUNET_SCHEDULER_PRIORITY_IDLE,
                                    GNUNET_SCHEDULER_NO_TASK, &task2, cls);
-  /* t3 will go before t4: higher priority */
+  /* t4 will go after t2 ('add after') and after t3 (priority) */
   t4 = GNUNET_SCHEDULER_add_after (tc->sched,
-                                   GNUNET_NO,
-                                   GNUNET_SCHEDULER_PRIORITY_IDLE,
                                    t2, &task4, cls);
-  GNUNET_SCHEDULER_add_delayed (tc->sched,
-                                GNUNET_NO,
-                                GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                t2,
-                                GNUNET_TIME_relative_get_zero (),
-                                &task3, cls);
-  /* t4 will go first: lower prio, but prereq! */
+  /* t5 will go last (after p4) */
   GNUNET_SCHEDULER_add_after (tc->sched,
-                              GNUNET_NO,
-                              GNUNET_SCHEDULER_PRIORITY_UI, t4, &task5, cls);
+                              t4, &task5, cls);
 }
 
 
@@ -182,20 +165,47 @@ check ()
 
 
 static void
+taskShutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  int *ok = cls;
+  GNUNET_assert (1 == *ok);
+  *ok = 8;
+  GNUNET_SCHEDULER_add_delayed (tc->sched,
+				GNUNET_TIME_UNIT_FOREVER_REL,
+				&taskLast, cls);
+  GNUNET_SCHEDULER_shutdown (tc->sched);
+}
+
+
+/**
+ * Main method, starts scheduler with task1,
+ * checks that "ok" is correct at the end.
+ */
+static int
+checkShutdown ()
+{
+  int ok;
+
+  ok = 1;
+  GNUNET_SCHEDULER_run (&taskShutdown, &ok);
+  return ok;
+}
+
+
+static void
 taskSig (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   int *ok = cls;
   GNUNET_assert (1 == *ok);
   *ok = 8;
-  GNUNET_SCHEDULER_add_after (tc->sched,
-                              GNUNET_NO,
-                              GNUNET_SCHEDULER_PRIORITY_UI,
-                              0, &taskNeverRun, NULL);
-  GNUNET_SCHEDULER_add_after (tc->sched,
-                              GNUNET_YES,
-                              GNUNET_SCHEDULER_PRIORITY_UI,
-                              0, &taskLast, cls);
+  GNUNET_SCHEDULER_add_delayed (tc->sched,
+				GNUNET_TIME_UNIT_FOREVER_REL,
+				&taskLast, cls);
+#ifndef MINGW
   GNUNET_break (0 == PLIBC_KILL (getpid (), SIGTERM));
+#else
+  GNUNET_SCHEDULER_shutdown (tc->sched);
+#endif
 }
 
 
@@ -214,8 +224,6 @@ checkSignal ()
 }
 
 
-
-
 static void
 taskCancel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -225,9 +233,7 @@ taskCancel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   *ok = 0;
   GNUNET_SCHEDULER_cancel (tc->sched,
                            GNUNET_SCHEDULER_add_after (tc->sched,
-                                                       GNUNET_NO,
-                                                       GNUNET_SCHEDULER_PRIORITY_UI,
-                                                       0,
+                                                       GNUNET_SCHEDULER_NO_TASK,
                                                        &taskNeverRun, NULL));
 }
 
@@ -256,6 +262,7 @@ main (int argc, char *argv[])
   GNUNET_log_setup ("test_scheduler", "WARNING", NULL);
   ret += check ();
   ret += checkSignal ();
+  ret += checkShutdown ();
   ret += checkCancel ();
   GNUNET_DISK_pipe_close (p);
 

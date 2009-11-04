@@ -342,6 +342,8 @@ cron_scan_directory_data_hosts (void *cls,
   static unsigned int retries;
   unsigned int count;
 
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
   count = 0;
   GNUNET_DISK_directory_create (networkIdDirectory);
   GNUNET_DISK_directory_scan (networkIdDirectory,
@@ -351,9 +353,6 @@ cron_scan_directory_data_hosts (void *cls,
                 GNUNET_ERROR_TYPE_BULK,
                 _("Still no peers found in `%s'!\n"), networkIdDirectory);
   GNUNET_SCHEDULER_add_delayed (tc->sched,
-                                GNUNET_NO,
-                                GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                GNUNET_SCHEDULER_NO_TASK,
                                 DATA_HOST_FREQ,
                                 &cron_scan_directory_data_hosts, NULL);
 }
@@ -501,12 +500,10 @@ cron_flush_trust (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       flush_trust (pos);
       pos = pos->next;
     }
-  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    GNUNET_SCHEDULER_add_delayed (tc->sched,
-                                  GNUNET_YES,
-                                  GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                  GNUNET_SCHEDULER_NO_TASK,
-                                  TRUST_FLUSH_FREQ, &cron_flush_trust, NULL);
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+  GNUNET_SCHEDULER_add_delayed (tc->sched,
+				TRUST_FLUSH_FREQ, &cron_flush_trust, NULL);
 }
 
 
@@ -558,14 +555,13 @@ cron_clean_data_hosts (void *cls,
 {
   struct GNUNET_TIME_Absolute now;
 
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
   now = GNUNET_TIME_absolute_get ();
   GNUNET_DISK_directory_scan (networkIdDirectory,
                               &discard_hosts_helper, &now);
 
   GNUNET_SCHEDULER_add_delayed (tc->sched,
-                                GNUNET_NO,
-                                GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                GNUNET_SCHEDULER_NO_TASK,
                                 DATA_HOST_CLEAN_FREQ,
                                 &cron_clean_data_hosts, NULL);
 }
@@ -660,6 +656,7 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
 };
 
 
+
 /**
  * Process statistics requests.
  *
@@ -686,23 +683,15 @@ run (void *cls,
                                                           &trustDirectory));
   GNUNET_DISK_directory_create (networkIdDirectory);
   GNUNET_DISK_directory_create (trustDirectory);
-  GNUNET_SCHEDULER_add_delayed (sched,
-                                GNUNET_NO,
-                                GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                GNUNET_SCHEDULER_NO_TASK,
-                                GNUNET_TIME_UNIT_MILLISECONDS,
-                                &cron_scan_directory_data_hosts, NULL);
-  GNUNET_SCHEDULER_add_delayed (sched,
-                                GNUNET_YES,
-                                GNUNET_SCHEDULER_PRIORITY_HIGH,
-                                GNUNET_SCHEDULER_NO_TASK,
-                                TRUST_FLUSH_FREQ, &cron_flush_trust, NULL);
-  GNUNET_SCHEDULER_add_delayed (sched,
-                                GNUNET_NO,
-                                GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                GNUNET_SCHEDULER_NO_TASK,
-                                DATA_HOST_CLEAN_FREQ,
-                                &cron_clean_data_hosts, NULL);
+  GNUNET_SCHEDULER_add_with_priority (sched,
+				      GNUNET_SCHEDULER_PRIORITY_IDLE,
+				      &cron_scan_directory_data_hosts, NULL);
+  GNUNET_SCHEDULER_add_with_priority (sched,
+				      GNUNET_SCHEDULER_PRIORITY_HIGH,
+				      &cron_flush_trust, NULL);
+  GNUNET_SCHEDULER_add_with_priority (sched,
+				      GNUNET_SCHEDULER_PRIORITY_IDLE,
+				      &cron_clean_data_hosts, NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
 }
 
@@ -722,7 +711,7 @@ main (int argc, char *const *argv)
   ret = (GNUNET_OK ==
 	 GNUNET_SERVICE_run (argc,
 			     argv,
-                              "peerinfo", &run, NULL, NULL, NULL)) ? 0 : 1;
+                              "peerinfo", &run, NULL)) ? 0 : 1;
   GNUNET_free_non_null (networkIdDirectory);
   GNUNET_free_non_null (trustDirectory);
   return ret;

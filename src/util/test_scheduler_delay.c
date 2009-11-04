@@ -66,9 +66,6 @@ test_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       return;
     }
   GNUNET_SCHEDULER_add_delayed (tc->sched,
-                                GNUNET_NO,
-                                GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                GNUNET_SCHEDULER_NO_TASK,
                                 GNUNET_TIME_relative_multiply
                                 (GNUNET_TIME_UNIT_MILLISECONDS, i),
                                 &test_task, NULL);

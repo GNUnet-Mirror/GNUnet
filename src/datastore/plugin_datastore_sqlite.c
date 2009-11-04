@@ -663,7 +663,6 @@ sqlite_next_request (void *next_cls,
   if (GNUNET_YES == end_it)
     nc->end_it = GNUNET_YES;
   GNUNET_SCHEDULER_add_continuation (nc->plugin->env->sched,
-				     GNUNET_NO,
 				     &sqlite_next_request_cont,
 				     nc,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);

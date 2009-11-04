@@ -83,6 +83,11 @@ struct StatsEntry
 };
 
 /**
+ * Our configuration.
+ */
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
  * Linked list of our active statistics.
  */
 static struct StatsEntry *start;
@@ -96,10 +101,11 @@ static uint32_t uidgen;
  * Load persistent values from disk.  Disk format is
  * exactly the same format that we also use for
  * setting the values over the network.
+ *
+ * @param server handle to the server context
  */
 static void
-load (struct GNUNET_SERVER_Handle *server,
-      const struct GNUNET_CONFIGURATION_Handle *cfg)
+load (struct GNUNET_SERVER_Handle *server)
 {
   char *fn;
   struct GNUNET_DISK_FileHandle *fh;
@@ -153,16 +159,11 @@ load (struct GNUNET_SERVER_Handle *server,
   GNUNET_free (fn);
 }
 
-
 /**
  * Write persistent statistics to disk.
- *
- * @param cls closure
- * @param cfg configuration to use
  */
 static void
-save (void *cls, 
-      const struct GNUNET_CONFIGURATION_Handle *cfg)
+save ()       
 {
   struct StatsEntry *pos;
   char *fn;
@@ -435,21 +436,40 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
 
 
 /**
+ * Task run during shutdown.
+ *
+ * @param cls unused
+ * @param tc unused
+ */
+static void
+shutdown_task (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  save ();
+}
+
+
+/**
  * Process statistics requests.
  *
  * @param cls closure
  * @param sched scheduler to use
  * @param server the initialized server
- * @param cfg configuration to use
+ * @param c configuration to use
  */
 static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *sched,
      struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  cfg = c;
   GNUNET_SERVER_add_handlers (server, handlers);
-  load (server, cfg);
+  load (server);
+  GNUNET_SCHEDULER_add_delayed (sched,
+				GNUNET_TIME_UNIT_FOREVER_REL,
+				&shutdown_task,
+				NULL);
 }
 
 
@@ -466,7 +486,7 @@ main (int argc, char *const *argv)
   return (GNUNET_OK ==
           GNUNET_SERVICE_run (argc,
                               argv,
-                              "statistics", &run, NULL, &save, NULL)) ? 0 : 1;
+                              "statistics", &run, NULL)) ? 0 : 1;
 }
 
 /* end of gnunet-service-statistics.c */

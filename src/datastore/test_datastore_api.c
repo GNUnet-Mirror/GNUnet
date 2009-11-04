@@ -145,7 +145,6 @@ check_success (void *cls,
   GNUNET_free_non_null (crc->data);
   crc->data = NULL;
   GNUNET_SCHEDULER_add_continuation (crc->sched,
-				     GNUNET_NO,
 				     &run_continuation,
 				     crc,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -164,7 +163,6 @@ get_reserved (void *cls,
   GNUNET_assert (0 < success);
   crc->rid = success;
   GNUNET_SCHEDULER_add_continuation (crc->sched,
-				     GNUNET_NO,
 				     &run_continuation,
 				     crc,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -193,7 +191,6 @@ check_value (void *cls,
 	  crc->i = ITERATIONS;
 	}
       GNUNET_SCHEDULER_add_continuation (crc->sched,
-					 GNUNET_NO,
 					 &run_continuation,
 					 crc,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -226,7 +223,6 @@ delete_value (void *cls,
     {
       crc->phase = RP_DO_DEL;
       GNUNET_SCHEDULER_add_continuation (crc->sched,
-					 GNUNET_NO,
 					 &run_continuation,
 					 crc,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -259,7 +255,6 @@ check_nothing (void *cls,
       crc->phase = RP_RESERVE;	  
     }
   GNUNET_SCHEDULER_add_continuation (crc->sched,
-				     GNUNET_NO,
 				     &run_continuation,
 				     crc,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -284,7 +279,6 @@ check_multiple (void *cls,
       GNUNET_assert (crc->phase == RP_GET_MULTIPLE_DONE);
       crc->phase = RP_UPDATE;
       GNUNET_SCHEDULER_add_continuation (crc->sched,
-					 GNUNET_NO,
 					 &run_continuation,
 					 crc,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -315,7 +309,6 @@ check_update (void *cls,
       GNUNET_assert (crc->phase == RP_UPDATE_DONE);
       crc->phase = RP_DONE;
       GNUNET_SCHEDULER_add_continuation (crc->sched,
-					 GNUNET_NO,
 					 &run_continuation,
 					 crc,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -542,7 +535,6 @@ run (void *cls,
   now = GNUNET_TIME_absolute_get ();
   datastore = GNUNET_DATASTORE_connect (cfg, sched);
   GNUNET_SCHEDULER_add_continuation (crc->sched,
-				     GNUNET_NO,
 				     &run_continuation,
 				     crc,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -572,7 +564,6 @@ check ()
                                  "-L", "DEBUG",
 #endif
                                  "-c", "test_datastore_api_data.conf", NULL);
-  sleep (1);
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "test-datastore-api", "nohelp",
                       options, &run, NULL);

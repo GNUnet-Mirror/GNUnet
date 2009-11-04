@@ -124,15 +124,9 @@ task_receive_cancel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                  "localhost", PORT, 1024);
   GNUNET_assert (csock != NULL);
   GNUNET_SCHEDULER_add_read_net (tc->sched,
-                                 GNUNET_NO,
-                                 GNUNET_SCHEDULER_PRIORITY_HIGH,
-                                 GNUNET_SCHEDULER_NO_TASK,
                                  GNUNET_TIME_UNIT_FOREVER_REL,
                                  ls, &run_accept_cancel, cls);
   GNUNET_SCHEDULER_add_delayed (tc->sched,
-                                GNUNET_NO,
-                                GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                GNUNET_SCHEDULER_NO_TASK,
                                 GNUNET_TIME_UNIT_SECONDS,
                                 &receive_cancel_task, cls);
 }

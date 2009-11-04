@@ -476,8 +476,6 @@ destroy_continuation (void *cls,
                   "Destroy waits for write_task to be done (%p)\n", sock);
 #endif
       GNUNET_SCHEDULER_add_after (sock->sched,
-                                  GNUNET_YES,
-                                  GNUNET_SCHEDULER_PRIORITY_KEEP,
                                   sock->write_task,
                                   &destroy_continuation, sock);
       return;
@@ -498,8 +496,6 @@ destroy_continuation (void *cls,
   if (sock->read_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_add_after (sock->sched,
-                                  GNUNET_YES,
-                                  GNUNET_SCHEDULER_PRIORITY_KEEP,
                                   sock->read_task,
                                   &destroy_continuation, sock);
       return;
@@ -569,8 +565,6 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
 #endif
       h->ccs -= COCO_RECEIVE_AGAIN;
       h->read_task = GNUNET_SCHEDULER_add_after (h->sched,
-                                                 GNUNET_NO,
-                                                 GNUNET_SCHEDULER_PRIORITY_KEEP,
                                                  GNUNET_SCHEDULER_NO_TASK,
                                                  &receive_again, h);
     }
@@ -586,8 +580,6 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
       h->nth.timeout_task = GNUNET_SCHEDULER_NO_TASK;
       h->ccs -= COCO_TRANSMIT_READY;
       h->write_task = GNUNET_SCHEDULER_add_after (h->sched,
-                                                  GNUNET_NO,
-                                                  GNUNET_SCHEDULER_PRIORITY_KEEP,
                                                   GNUNET_SCHEDULER_NO_TASK,
                                                   &transmit_ready, h);
     }
@@ -600,7 +592,6 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
 #endif
       h->ccs -= COCO_DESTROY_CONTINUATION;
       GNUNET_SCHEDULER_add_continuation (h->sched,
-                                         GNUNET_NO,
                                          &destroy_continuation,
                                          h, GNUNET_SCHEDULER_REASON_TIMEOUT);
     }
@@ -630,8 +621,6 @@ connect_success_continuation (struct GNUNET_CONNECTION_Handle *h)
 #endif
       h->ccs -= COCO_RECEIVE_AGAIN;
       h->read_task = GNUNET_SCHEDULER_add_after (h->sched,
-                                                 GNUNET_NO,
-                                                 GNUNET_SCHEDULER_PRIORITY_KEEP,
                                                  GNUNET_SCHEDULER_NO_TASK,
                                                  &receive_again, h);
     }
@@ -648,9 +637,6 @@ connect_success_continuation (struct GNUNET_CONNECTION_Handle *h)
       h->ccs -= COCO_TRANSMIT_READY;
       h->write_task =
         GNUNET_SCHEDULER_add_write_net (h->sched,
-                                        GNUNET_NO,
-                                        GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                        GNUNET_SCHEDULER_NO_TASK,
                                         GNUNET_TIME_absolute_get_remaining
                                         (h->nth.transmit_timeout), h->sock,
                                         &transmit_ready, h);
@@ -664,7 +650,6 @@ connect_success_continuation (struct GNUNET_CONNECTION_Handle *h)
 #endif
       h->ccs -= COCO_DESTROY_CONTINUATION;
       GNUNET_SCHEDULER_add_continuation (h->sched,
-                                         GNUNET_NO,
                                          &destroy_continuation,
                                          h,
                                          GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -808,9 +793,8 @@ try_connect_using_address (void *cls,
                                       GNUNET_TIME_absolute_get_remaining (h->
                                                                           receive_timeout));
   ap->task =
-    GNUNET_SCHEDULER_add_write_net (h->sched, GNUNET_NO,
-                                    GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                    GNUNET_SCHEDULER_NO_TASK, delay, ap->sock,
+    GNUNET_SCHEDULER_add_write_net (h->sched, 
+                                    delay, ap->sock,
                                     &connect_probe_continuation, ap);
 }
 
@@ -956,8 +940,6 @@ GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *sock)
     }
   GNUNET_assert (sock->sched != NULL);
   GNUNET_SCHEDULER_add_after (sock->sched,
-                              GNUNET_YES,
-                              GNUNET_SCHEDULER_PRIORITY_KEEP,
                               GNUNET_SCHEDULER_NO_TASK,
                               &destroy_continuation, sock);
 }
@@ -1101,9 +1083,6 @@ receive_again (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (sh->sock != NULL);
   /* connect succeeded, wait for data! */
   sh->read_task = GNUNET_SCHEDULER_add_read_net (tc->sched,
-                                                 GNUNET_YES,
-                                                 GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                                 GNUNET_SCHEDULER_NO_TASK,
                                                  GNUNET_TIME_absolute_get_remaining
                                                  (sh->receive_timeout),
                                                  sh->sock,
@@ -1406,9 +1385,6 @@ SCHEDULE_WRITE:
   if (sock->write_task == GNUNET_SCHEDULER_NO_TASK)
     sock->write_task =
       GNUNET_SCHEDULER_add_write_net (tc->sched,
-                                      GNUNET_NO,
-                                      GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                      GNUNET_SCHEDULER_NO_TASK,
                                       GNUNET_TIME_absolute_get_remaining
                                       (sock->nth.transmit_timeout),
                                       sock->sock, &transmit_ready, sock);
@@ -1453,9 +1429,6 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle
       (sock->ap_head == NULL) && (sock->dns_active == NULL))
     {
       sock->write_task = GNUNET_SCHEDULER_add_delayed (sock->sched,
-                                                       GNUNET_NO,
-                                                       GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                                       GNUNET_SCHEDULER_NO_TASK,
                                                        GNUNET_TIME_UNIT_ZERO,
                                                        &connect_error, sock);
       return &sock->nth;
@@ -1469,9 +1442,6 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle
                   "Scheduling transmit_ready (%p).\n", sock);
 #endif
       sock->write_task = GNUNET_SCHEDULER_add_write_net (sock->sched,
-                                                         GNUNET_NO,
-                                                         GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                                         GNUNET_SCHEDULER_NO_TASK,
                                                          GNUNET_TIME_absolute_get_remaining
                                                          (sock->nth.
                                                           transmit_timeout),
@@ -1488,9 +1458,6 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle
 #endif
       sock->ccs |= COCO_TRANSMIT_READY;
       sock->nth.timeout_task = GNUNET_SCHEDULER_add_delayed (sock->sched,
-                                                             GNUNET_NO,
-                                                             GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                                             GNUNET_SCHEDULER_NO_TASK,
                                                              timeout,
                                                              &transmit_timeout,
                                                              sock);

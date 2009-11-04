@@ -1068,6 +1068,22 @@ write_pid_file (struct GNUNET_SERVICE_Context *sctx, pid_t pid)
 
 
 /**
+ * Task run during shutdown.
+ *
+ * @param cls unused
+ * @param tc unused
+ */
+static void
+shutdown_task (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_SERVER_Handle *server = cls;
+
+  GNUNET_SERVER_destroy (server);
+}
+
+
+/**
  * Initial task for the service.
  */
 static void
@@ -1092,6 +1108,10 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       sctx->ret = GNUNET_SYSERR;
       return;
     }
+  GNUNET_SCHEDULER_add_delayed (tc->sched,
+				GNUNET_TIME_UNIT_FOREVER_REL,
+				&shutdown_task,
+				sctx->server);
   sctx->my_handlers = GNUNET_malloc (sizeof (defhandlers));
   memcpy (sctx->my_handlers, defhandlers, sizeof (defhandlers));
   i = 0;
@@ -1249,6 +1269,7 @@ pid_file_delete (struct GNUNET_SERVICE_Context *sctx)
   GNUNET_free (pif);
 }
 
+
 /**
  * Run a standard GNUnet service startup sequence (initialize loggers
  * and configuration, parse options).
@@ -1258,8 +1279,6 @@ pid_file_delete (struct GNUNET_SERVICE_Context *sctx)
  * @param serviceName our service name
  * @param task main task of the service
  * @param task_cls closure for task
- * @param term termination task of the service
- * @param term_cls closure for term
  * @return GNUNET_SYSERR on error, GNUNET_OK
  *         if we shutdown nicely
  */
@@ -1268,7 +1287,7 @@ GNUNET_SERVICE_run (int argc,
                     char *const *argv,
                     const char *serviceName,
                     GNUNET_SERVICE_Main task,
-                    void *task_cls, GNUNET_SERVICE_Term term, void *term_cls)
+                    void *task_cls)
 {
   char *cfg_fn;
   char *loglev;
@@ -1347,12 +1366,8 @@ GNUNET_SERVICE_run (int argc,
     }
 
   /* shutdown */
-  if (term != NULL)
-    term (term_cls, sctx.cfg);
   if ((do_daemonize == 1) && (sctx.server != NULL))
     pid_file_delete (&sctx);
-  if (sctx.server != NULL)
-    GNUNET_SERVER_destroy (sctx.server);
   GNUNET_free_non_null (sctx.my_handlers);
   GNUNET_CONFIGURATION_destroy (cfg);
   GNUNET_free_non_null (sctx.addr);
@@ -1413,8 +1428,6 @@ GNUNET_SERVICE_start (const char *serviceName,
   while ((sctx->my_handlers[i].callback != NULL))
     sctx->my_handlers[i++].callback_cls = sctx;
   GNUNET_SERVER_add_handlers (sctx->server, sctx->my_handlers);
-
-
   return sctx;
 }
 

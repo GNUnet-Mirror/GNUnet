@@ -140,7 +140,6 @@ check_success (void *cls,
 	crc->phase = RP_CUT;
     }
   GNUNET_SCHEDULER_add_continuation (crc->sched,
-				     GNUNET_NO,
 				     &run_continuation,
 				     crc,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -167,7 +166,6 @@ remove_next(void *cls,
 #endif
   GNUNET_assert (GNUNET_OK == success);
   GNUNET_SCHEDULER_add_continuation (crc->sched,
-				     GNUNET_NO,
 				     &run_continuation,
 				     crc,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -214,18 +212,15 @@ delete_value (void *cls,
 	{
 	  crc->phase = RP_REPORT;
 	  GNUNET_SCHEDULER_add_continuation (crc->sched,
-					     GNUNET_NO,
 					     &run_continuation,
 					     crc,
 					     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 	  return;     
 	}
-      GNUNET_SCHEDULER_add_after (crc->sched,
-				  GNUNET_NO,
-				  GNUNET_SCHEDULER_PRIORITY_HIGH,
-				  GNUNET_SCHEDULER_NO_TASK,
-				  &do_delete,
-				  crc);
+      GNUNET_SCHEDULER_add_with_priority (crc->sched,
+					  GNUNET_SCHEDULER_PRIORITY_HIGH,
+					  &do_delete,
+					  crc);
       return;
     }
   stored_ops++;
@@ -303,7 +298,6 @@ run_continuation (void *cls,
       crc->phase = RP_PUT;
       crc->j = 0;
       GNUNET_SCHEDULER_add_continuation (crc->sched,
-					 GNUNET_NO,
 					 &run_continuation,
 					 crc,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -335,7 +329,6 @@ run (void *cls,
   crc->cfg = cfg;
   crc->phase = RP_PUT;
   GNUNET_SCHEDULER_add_continuation (crc->sched,
-				     GNUNET_NO,
 				     &run_continuation,
 				     crc,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -364,7 +357,6 @@ check ()
                                  "-L", "DEBUG",
 #endif
                                  "-c", "test_datastore_api_data.conf", NULL);
-  sleep (1);
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "perf-datastore-api", "nohelp",
                       options, &run, NULL);

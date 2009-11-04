@@ -133,7 +133,6 @@ check_success (void *cls,
   GNUNET_free_non_null (crc->data);
   crc->data = NULL;
   GNUNET_SCHEDULER_add_continuation (crc->sched,
-				     GNUNET_NO,
 				     &run_continuation,
 				     crc,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -171,7 +170,6 @@ check_value (void *cls,
       if (0 == crc->i)
 	crc->phase = RP_DONE;
       GNUNET_SCHEDULER_add_continuation (crc->sched,
-					 GNUNET_NO,
 					 &run_continuation,
 					 crc,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -206,7 +204,6 @@ check_nothing (void *cls,
   if (0 == --crc->i)
     crc->phase = RP_DONE;
   GNUNET_SCHEDULER_add_continuation (crc->sched,
-				     GNUNET_NO,
 				     &run_continuation,
 				     crc,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -310,7 +307,6 @@ run (void *cls,
   now = GNUNET_TIME_absolute_get ();
   datastore = GNUNET_DATASTORE_connect (cfg, sched);
   GNUNET_SCHEDULER_add_continuation (crc->sched,
-				     GNUNET_NO,
 				     &run_continuation,
 				     crc,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -340,7 +336,6 @@ check ()
                                  "-L", "DEBUG",
 #endif
                                  "-c", "test_datastore_api_data.conf", NULL);
-  sleep (1);
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "test-datastore-api", "nohelp",
                       options, &run, NULL);

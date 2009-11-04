@@ -175,9 +175,6 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test prepares to accept\n");
 #endif
   GNUNET_SCHEDULER_add_read_net (tc->sched,
-                                 GNUNET_NO,
-                                 GNUNET_SCHEDULER_PRIORITY_HIGH,
-                                 GNUNET_SCHEDULER_NO_TASK,
                                  GNUNET_TIME_UNIT_FOREVER_REL,
                                  ls, &run_accept, cls);
 }

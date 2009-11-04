@@ -124,7 +124,7 @@ file_hasher (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_CRYPTO_hash_file (tc->sched,
                            GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                           GNUNET_NO, FILENAME, 1024, &finished_task, cls);
+                           FILENAME, 1024, &finished_task, cls);
 }
 
 

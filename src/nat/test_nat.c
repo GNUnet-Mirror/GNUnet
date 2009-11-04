@@ -125,9 +125,7 @@ run (void *cls,
   nat = GNUNET_NAT_register (sched, addr, data.addrlen, addr_callback, NULL);
   GNUNET_free (addr);
 
-  GNUNET_SCHEDULER_add_delayed (sched, GNUNET_NO,
-                                GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                GNUNET_SCHEDULER_NO_TASK,
+  GNUNET_SCHEDULER_add_delayed (sched, 
                                 GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, TIMEOUT),
                                 stop, nat);
 }

@@ -30,6 +30,7 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_time_lib.h"
 
+
 #define VERBOSE GNUNET_NO
 
 #define PORT 12435
@@ -40,6 +41,9 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 
 static struct GNUNET_SERVICE_Context *sctx;
 
+static int ok = 1;
+
+
 static void
 end_it (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -47,8 +51,11 @@ end_it (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down service\n");
   GNUNET_CLIENT_service_shutdown (client);
-  if (sctx != NULL)
+  if (sctx != NULL)    
     GNUNET_SERVICE_stop (sctx);
+  else
+    GNUNET_SCHEDULER_shutdown (sched);
+  ok = 0;
 }
 
 
@@ -63,7 +70,6 @@ build_msg (void *cls, size_t size, void *buf)
   msg->type = htons (MY_TYPE);
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
   GNUNET_SCHEDULER_add_continuation (sched,
-                                     GNUNET_YES,
                                      &end_it,
                                      client,
                                      GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -103,6 +109,9 @@ static struct GNUNET_SERVER_MessageHandler myhandlers[] = {
   {NULL, NULL, 0, 0}
 };
 
+
+
+
 static void
 runner (void *cls,
         struct GNUNET_SCHEDULER_Handle *sched,
@@ -117,12 +126,6 @@ runner (void *cls,
                               (void *) cfg);
 }
 
-static void
-term (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  int *ok = cls;
-  *ok = 0;
-}
 
 /**
  * Main method, starts scheduler with task1,
@@ -131,7 +134,7 @@ term (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 static int
 check ()
 {
-  int ok = 1;
+  ok = 1;
   char *const argv[] = {
     "test_service",
     "-c",
@@ -149,12 +152,12 @@ check ()
                  GNUNET_SERVICE_run (5,
                                      argv,
                                      "test_service",
-                                     &runner, &ok, &term, &ok));
+                                     &runner, &ok));
   GNUNET_assert (0 == ok);
   return ok;
 }
 
-static void
+static void 
 ready6 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
@@ -193,7 +196,6 @@ runner6 (void *cls,
 static int
 check6 ()
 {
-  int ok = 1;
   char *const argv[] = {
     "test_service6",
     "-c",
@@ -211,7 +213,7 @@ check6 ()
                  GNUNET_SERVICE_run (5,
                                      argv,
                                      "test_service6",
-                                     &runner6, &ok, &term, &ok));
+                                     &runner6, &ok));
   GNUNET_assert (0 == ok);
   return ok;
 }
@@ -224,7 +226,7 @@ check6 ()
 static int
 check6d ()
 {
-  int ok = 1;
+  ok = 1;
   char *const argv[] = {
     "test_service6",
     "-c",
@@ -243,7 +245,7 @@ check6d ()
                  GNUNET_SERVICE_run (6,
                                      argv,
                                      "test_service6",
-                                     &runner6, &ok, &term, &ok));
+                                     &runner6, &ok));
   GNUNET_break (0 == ok);
   return ok;
 }

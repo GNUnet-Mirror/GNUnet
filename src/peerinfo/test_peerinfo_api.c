@@ -149,7 +149,6 @@ check ()
                                  "-L", "DEBUG",
 #endif
                                  "-c", "test_peerinfo_api_data.conf", NULL);
-  sleep (1);
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "test-peerinfo-api", "nohelp",
                       options, &run, &ok);

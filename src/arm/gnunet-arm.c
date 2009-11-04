@@ -123,7 +123,6 @@ confirm_cb (void *cls, int success)
       break;
     }
   GNUNET_SCHEDULER_add_continuation (sched,
-				     GNUNET_NO,
 				     &cps_loop,
 				     NULL,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -147,7 +146,6 @@ confirm_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   else
     fprintf (stdout, _("Service `%s' is not running.\n"), service);
   GNUNET_SCHEDULER_add_continuation (sched,
-				     GNUNET_NO,
 				     &cps_loop,
 				     NULL,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -181,7 +179,6 @@ run (void *cls,
       return;
     }
   GNUNET_SCHEDULER_add_continuation (sched,
-				     GNUNET_NO,
 				     &cps_loop,
 				     NULL,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);

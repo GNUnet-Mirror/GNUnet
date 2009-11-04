@@ -404,7 +404,6 @@ run_multi ()
   GNUNET_NETWORK_fdset_copy_native (gws, &ws, max);
   current_task 
     = GNUNET_SCHEDULER_add_select (sched,
-				   GNUNET_NO,
 				   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
 				   GNUNET_SCHEDULER_NO_TASK,
 				   GNUNET_TIME_UNIT_MINUTES,
@@ -549,9 +548,6 @@ schedule_hostlist_task ()
 			 hostlist_delay.value,
 			 GNUNET_YES);
   current_task = GNUNET_SCHEDULER_add_delayed (sched,
-					       GNUNET_NO,
-					       GNUNET_SCHEDULER_PRIORITY_IDLE,
-					       GNUNET_SCHEDULER_NO_TASK,
 					       delay,
 					       &check_task,
 					       NULL);

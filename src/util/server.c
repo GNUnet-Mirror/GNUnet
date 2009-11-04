@@ -349,7 +349,6 @@ process_listen_socket (void *cls,
   GNUNET_NETWORK_fdset_set (r, server->listen_socket);
   GNUNET_NETWORK_fdset_handle_set (r, shutpipe);
   GNUNET_SCHEDULER_add_select (server->sched,
-                               GNUNET_YES,
                                GNUNET_SCHEDULER_PRIORITY_HIGH,
                                GNUNET_SCHEDULER_NO_TASK,
                                GNUNET_TIME_UNIT_FOREVER_REL,
@@ -475,7 +474,7 @@ GNUNET_SERVER_create (struct GNUNET_SCHEDULER_Handle *sched,
       GNUNET_NETWORK_fdset_handle_set (r,
                                        GNUNET_DISK_pipe_handle (ret->shutpipe,
                                                                 GNUNET_DISK_PIPE_END_READ));
-      GNUNET_SCHEDULER_add_select (sched, GNUNET_YES,
+      GNUNET_SCHEDULER_add_select (sched, 
                                    GNUNET_SCHEDULER_PRIORITY_HIGH,
                                    GNUNET_SCHEDULER_NO_TASK,
                                    GNUNET_TIME_UNIT_FOREVER_REL, r, NULL,
@@ -1167,7 +1166,6 @@ GNUNET_SERVER_receive_done (struct GNUNET_SERVER_Client *client, int success)
   if (GNUNET_YES != client->shutdown_now)
     {
       GNUNET_SCHEDULER_add_continuation (client->server->sched,
-                                         GNUNET_NO,
                                          &restart_processing,
                                          client,
                                          GNUNET_SCHEDULER_REASON_PREREQ_DONE);

@@ -856,11 +856,9 @@ GNUNET_DISK_directory_iterator_next (struct GNUNET_DISK_DirectoryIterator
       GNUNET_DISK_directory_iterator_next (iter, GNUNET_YES);
       return GNUNET_NO;
     }
-  GNUNET_SCHEDULER_add_after (iter->sched,
-                              GNUNET_YES,
-                              iter->priority,
-                              GNUNET_SCHEDULER_NO_TASK,
-                              &directory_iterator_task, iter);
+  GNUNET_SCHEDULER_add_with_priority (iter->sched,
+				      iter->priority,
+				      &directory_iterator_task, iter);
   return GNUNET_YES;
 }
 

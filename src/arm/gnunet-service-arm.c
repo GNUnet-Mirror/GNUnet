@@ -516,9 +516,6 @@ stop_service (struct GNUNET_SERVER_Client *client,
       pos->kill_continuation_cls = client;
       GNUNET_SERVER_client_keep (client);
       GNUNET_SCHEDULER_add_delayed (sched,
-				    GNUNET_YES,
-				    GNUNET_SCHEDULER_PRIORITY_IDLE,
-				    GNUNET_SCHEDULER_NO_TASK,
 				    MAINT_FAST_FREQUENCY, &maint, NULL);
     }
   else
@@ -641,9 +638,6 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
   if (cls == NULL)
     GNUNET_SCHEDULER_add_delayed (tc->sched,
-				  GNUNET_YES,
-				  GNUNET_SCHEDULER_PRIORITY_IDLE,
-				  GNUNET_SCHEDULER_NO_TASK,
 				  MAINT_FREQUENCY, &maint, NULL);
 
   /* check for services that died (WAITPID) */
@@ -800,11 +794,9 @@ run (void *cls,
   GNUNET_SERVER_add_handlers (server, handlers);
 
   /* manage services */
-  GNUNET_SCHEDULER_add_delayed (sched,
-                                GNUNET_YES,
-                                GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                GNUNET_SCHEDULER_NO_TASK,
-                                MAINT_FREQUENCY, &maint, NULL);
+  GNUNET_SCHEDULER_add_with_priority (sched,
+				      GNUNET_SCHEDULER_PRIORITY_IDLE,
+				      &maint, NULL);
 }
 
 
@@ -820,7 +812,7 @@ main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
           GNUNET_SERVICE_run (argc,
-                              argv, "arm", &run, NULL, NULL, NULL)) ? 0 : 1;
+                              argv, "arm", &run, NULL)) ? 0 : 1;
 }
 
 /* end of gnunet-service-arm.c */

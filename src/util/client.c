@@ -308,8 +308,6 @@ GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock)
     sock->in_receive = GNUNET_SYSERR;
   else
     GNUNET_SCHEDULER_add_after (sock->sched,
-                                GNUNET_YES,
-                                GNUNET_SCHEDULER_PRIORITY_KEEP,
                                 GNUNET_SCHEDULER_NO_TASK,
                                 &finish_cleanup, sock);
 }
@@ -353,8 +351,6 @@ receive_helper (void *cls,
   GNUNET_assert (conn->msg_complete == GNUNET_NO);
   if (GNUNET_SYSERR == conn->in_receive)
     GNUNET_SCHEDULER_add_after (conn->sched,
-                                GNUNET_YES,
-                                GNUNET_SCHEDULER_PRIORITY_KEEP,
                                 GNUNET_SCHEDULER_NO_TASK,
                                 &finish_cleanup, conn);
   conn->in_receive = GNUNET_NO;
@@ -412,8 +408,6 @@ receive_task (void *scls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (GNUNET_SYSERR == sock->in_receive)
     GNUNET_SCHEDULER_add_after (sock->sched,
-                                GNUNET_YES,
-                                GNUNET_SCHEDULER_PRIORITY_KEEP,
                                 GNUNET_SCHEDULER_NO_TASK,
                                 &finish_cleanup, sock);
   sock->in_receive = GNUNET_NO;
@@ -457,8 +451,6 @@ GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
   sock->in_receive = GNUNET_YES;
   if (GNUNET_YES == sock->msg_complete)
     GNUNET_SCHEDULER_add_after (sock->sched,
-                                GNUNET_YES,
-                                GNUNET_SCHEDULER_PRIORITY_KEEP,
                                 GNUNET_SCHEDULER_NO_TASK,
                                 &receive_task, sock);
   else
@@ -522,7 +514,6 @@ service_test_error (struct GNUNET_SCHEDULER_Handle *s,
                     GNUNET_SCHEDULER_Task task, void *task_cls)
 {
   GNUNET_SCHEDULER_add_continuation (s,
-                                     GNUNET_YES,
                                      task,
                                      task_cls,
                                      GNUNET_SCHEDULER_REASON_TIMEOUT);
@@ -549,7 +540,6 @@ confirm_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                   "Received confirmation that service is running.\n");
 #endif
       GNUNET_SCHEDULER_add_continuation (conn->sched,
-                                         GNUNET_YES,
                                          conn->test_cb,
                                          conn->test_cb_cls,
                                          GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -719,9 +709,6 @@ client_notify (void *cls, size_t size, void *buf)
       GNUNET_assert (NULL != th->sock->sock);
       delay = GNUNET_TIME_relative_min (delay, GNUNET_TIME_UNIT_SECONDS);
       th->task = GNUNET_SCHEDULER_add_delayed (th->sock->sched,
-                                               GNUNET_NO,
-                                               GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                               GNUNET_SCHEDULER_NO_TASK,
                                                delay,
                                                &client_delayed_retry, th);
       th->sock->th = th;

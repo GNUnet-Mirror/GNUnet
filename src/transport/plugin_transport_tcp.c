@@ -1898,9 +1898,6 @@ handle_tcp_data (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
   else
     GNUNET_SCHEDULER_add_delayed (session->plugin->env->sched,
-                                  GNUNET_NO,
-                                  GNUNET_SCHEDULER_PRIORITY_HIGH,
-                                  GNUNET_SCHEDULER_NO_TASK,
                                   delay, &delayed_done, session);
 }
 

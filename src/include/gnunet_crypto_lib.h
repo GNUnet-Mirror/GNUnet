@@ -370,7 +370,6 @@ typedef void (*GNUNET_CRYPTO_HashCompletedCallback) (void *cls,
  *
  * @param sched scheduler to use
  * @param priority scheduling priority to use
- * @param run_on_shutdown should we complete even on shutdown?
  * @param filename name of file to hash
  * @param blocksize number of bytes to process in one task
  * @param callback function to call upon completion
@@ -378,7 +377,6 @@ typedef void (*GNUNET_CRYPTO_HashCompletedCallback) (void *cls,
  */
 void GNUNET_CRYPTO_hash_file (struct GNUNET_SCHEDULER_Handle *sched,
                               enum GNUNET_SCHEDULER_Priority priority,
-                              int run_on_shutdown,
                               const char *filename,
                               size_t blocksize,
                               GNUNET_CRYPTO_HashCompletedCallback callback,

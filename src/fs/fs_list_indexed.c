@@ -91,7 +91,6 @@ handle_index_info (void *cls,
 		  "GET_INDEXED",
 		  "fs");
       GNUNET_SCHEDULER_add_continuation (gic->h->sched,
-					 GNUNET_NO,
 					 gic->cont,
 					 gic->cont_cls,
 					 GNUNET_SCHEDULER_REASON_TIMEOUT);
@@ -103,7 +102,6 @@ handle_index_info (void *cls,
     {
       /* normal end-of-list */
       GNUNET_SCHEDULER_add_continuation (gic->h->sched,
-					 GNUNET_NO,
 					 gic->cont,
 					 gic->cont_cls,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -124,7 +122,6 @@ handle_index_info (void *cls,
 		  "GET_INDEXED",
 		  "fs");
       GNUNET_SCHEDULER_add_continuation (gic->h->sched,
-					 GNUNET_NO,
 					 gic->cont,
 					 gic->cont_cls,
 					 GNUNET_SCHEDULER_REASON_TIMEOUT);
@@ -138,7 +135,6 @@ handle_index_info (void *cls,
 		     &iim->file_id))
     {
       GNUNET_SCHEDULER_add_continuation (gic->h->sched,
-					 GNUNET_NO,
 					 gic->cont,
 					 gic->cont_cls,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -185,7 +181,6 @@ GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
 		  _("Failed to not connect to `%s' service.\n"),
 		  "fs");
       GNUNET_SCHEDULER_add_continuation (h->sched,
-					 GNUNET_NO,
 					 cont,
 					 cont_cls,
 					 GNUNET_SCHEDULER_REASON_TIMEOUT);

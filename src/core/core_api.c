@@ -320,9 +320,6 @@ request_start (void *cls, size_t size, void *buf)
     }
   /* create new timeout task (in case core takes too long to respond!) */
   th->timeout_task = GNUNET_SCHEDULER_add_delayed (h->sched,
-                                                   GNUNET_NO,
-                                                   GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                                   GNUNET_SCHEDULER_NO_TASK,
                                                    GNUNET_TIME_absolute_get_remaining
                                                    (th->timeout),
                                                    &timeout_request, th);
@@ -748,9 +745,7 @@ transmit_start (void *cls, size_t size, void *buf)
             h->startup_timeout =
               GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
           h->reconnect_task =
-            GNUNET_SCHEDULER_add_delayed (h->sched, GNUNET_NO,
-                                          GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                          GNUNET_SCHEDULER_NO_TASK,
+            GNUNET_SCHEDULER_add_delayed (h->sched, 
                                           delay, &reconnect_task, h);
           return 0;
         }
@@ -990,9 +985,6 @@ GNUNET_CORE_peer_configure (struct GNUNET_CORE_Handle *handle,
   th->info_cls = info_cls;
   th->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   th->timeout_task = GNUNET_SCHEDULER_add_delayed (handle->sched,
-                                                   GNUNET_NO,
-                                                   GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                                   GNUNET_SCHEDULER_NO_TASK,
                                                    timeout,
                                                    &timeout_request, th);
   th->msize = sizeof (struct RequestConfigureMessage);
@@ -1112,9 +1104,6 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
   th->peer = *target;
   th->timeout = GNUNET_TIME_relative_to_absolute (maxdelay);
   th->timeout_task = GNUNET_SCHEDULER_add_delayed (handle->sched,
-                                                   GNUNET_NO,
-                                                   GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                                   GNUNET_SCHEDULER_NO_TASK,
                                                    maxdelay,
                                                    &timeout_request, th);
   th->priority = priority;

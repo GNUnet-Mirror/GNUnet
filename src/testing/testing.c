@@ -306,9 +306,6 @@ start_fsm (void *cls,
 	  /* wait some more */
 	  d->task
 	    = GNUNET_SCHEDULER_add_delayed (d->sched, 
-					    GNUNET_NO,
-					    GNUNET_SCHEDULER_PRIORITY_KEEP,
-					    GNUNET_SCHEDULER_NO_TASK,
 					    GNUNET_CONSTANTS_EXEC_WAIT,
 					    &start_fsm,
 					    d);
@@ -392,9 +389,6 @@ start_fsm (void *cls,
       d->wait_runs = 0;
       d->task
 	= GNUNET_SCHEDULER_add_delayed (d->sched, 
-					GNUNET_NO,
-					GNUNET_SCHEDULER_PRIORITY_KEEP,
-					GNUNET_SCHEDULER_NO_TASK,
 					GNUNET_CONSTANTS_EXEC_WAIT,
 					&start_fsm,
 					d);
@@ -423,9 +417,6 @@ start_fsm (void *cls,
 	  /* wait some more */
 	  d->task
 	    = GNUNET_SCHEDULER_add_delayed (d->sched, 
-					    GNUNET_NO,
-					    GNUNET_SCHEDULER_PRIORITY_KEEP,
-					    GNUNET_SCHEDULER_NO_TASK,
 					    GNUNET_CONSTANTS_EXEC_WAIT,
 					    &start_fsm,
 					    d);
@@ -474,9 +465,6 @@ start_fsm (void *cls,
 	  /* wait some more */
 	  d->task
 	    = GNUNET_SCHEDULER_add_delayed (d->sched, 
-					    GNUNET_NO,
-					    GNUNET_SCHEDULER_PRIORITY_KEEP,
-					    GNUNET_SCHEDULER_NO_TASK,
 					    GNUNET_CONSTANTS_EXEC_WAIT,
 					    &start_fsm,
 					    d);
@@ -528,9 +516,6 @@ start_fsm (void *cls,
 	  /* wait some more */
 	  d->task
 	    = GNUNET_SCHEDULER_add_delayed (d->sched, 
-					    GNUNET_NO,
-					    GNUNET_SCHEDULER_PRIORITY_KEEP,
-					    GNUNET_SCHEDULER_NO_TASK,
 					    GNUNET_CONSTANTS_EXEC_WAIT,
 					    &start_fsm,
 					    d);
@@ -675,9 +660,6 @@ GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
 	}
       ret->task
 	= GNUNET_SCHEDULER_add_delayed (sched, 
-					GNUNET_YES,
-					GNUNET_SCHEDULER_PRIORITY_KEEP,
-					GNUNET_SCHEDULER_NO_TASK,
 					GNUNET_CONSTANTS_EXEC_WAIT,
 					&start_fsm,
 					ret);
@@ -689,7 +671,6 @@ GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
 #endif
   ret->phase = SP_COPIED;
   GNUNET_SCHEDULER_add_continuation (sched,
-				     GNUNET_NO,
 				     &start_fsm,
 				     ret,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -781,9 +762,6 @@ void GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
       d->dead_cb_cls = cb_cls;
       d->task
 	= GNUNET_SCHEDULER_add_delayed (d->sched, 
-					GNUNET_YES,
-					GNUNET_SCHEDULER_PRIORITY_KEEP,
-					GNUNET_SCHEDULER_NO_TASK,
 					GNUNET_CONSTANTS_EXEC_WAIT,
 					&start_fsm,
 					d);
@@ -879,9 +857,6 @@ void GNUNET_TESTING_daemon_reconfigure (struct GNUNET_TESTING_Daemon *d,
   d->update_cb_cls = cb_cls;
   d->task
     = GNUNET_SCHEDULER_add_delayed (d->sched, 
-				    GNUNET_NO,
-				    GNUNET_SCHEDULER_PRIORITY_KEEP,
-				    GNUNET_SCHEDULER_NO_TASK,
 				    GNUNET_CONSTANTS_EXEC_WAIT,
 				    &start_fsm,
 				    d);
@@ -986,7 +961,6 @@ transmit_ready (void *cls, size_t size, void *buf)
   GNUNET_TRANSPORT_disconnect (ctx->d2th);
   ctx->d2th = NULL;
   GNUNET_SCHEDULER_add_continuation (ctx->d1->sched,
-				     GNUNET_NO,
 				     &notify_connect_result,
 				     ctx,
 				     (buf == NULL) ? 

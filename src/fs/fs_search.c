@@ -720,9 +720,6 @@ try_reconnect (struct GNUNET_FS_SearchContext *sc)
     }
   sc->task
     = GNUNET_SCHEDULER_add_delayed (sc->h->sched,
-				    GNUNET_NO,
-				    GNUNET_SCHEDULER_PRIORITY_IDLE,
-				    GNUNET_SCHEDULER_NO_TASK,
 				    GNUNET_TIME_UNIT_SECONDS,
 				    &do_reconnect,
 				    sc);
