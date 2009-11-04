@@ -625,11 +625,16 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Stopping all services\n"));
+      pos = running;
+      while (NULL != pos)
+        {
+          if (0 != PLIBC_KILL (pos->pid, SIGTERM))
+            GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+          pos = pos->next;
+        }
       while (NULL != (pos = running))
         {
           running = pos->next;
-          if (0 != PLIBC_KILL (pos->pid, SIGTERM))
-            GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
           if (GNUNET_OK != GNUNET_OS_process_wait(pos->pid))
             GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
           free_entry (pos);
