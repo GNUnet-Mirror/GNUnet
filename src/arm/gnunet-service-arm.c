@@ -673,18 +673,20 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       unsigned long statusCode;
      
       next = pos->next;
-      if (pos->pid == 0)
-	{
+      if ( (NULL != pos->kill_continuation) ||
+	   ( (GNUNET_YES == in_shutdown) &&
+	     (pos->pid == 0) ) )
+        {
+	  if (prev == NULL)
+	    running = next;
+	  else
+	    prev->next = next;
 	  if (NULL != pos->kill_continuation)
-	    {
-	      if (prev == NULL)
-		running = next;
-	      else
-		prev->next = next;
-	      pos->kill_continuation (pos->kill_continuation_cls, pos);	    
-	    }
+	    pos->kill_continuation (pos->kill_continuation_cls, pos);
+	  else
+	    free_entry (pos);
 	  continue;
-	}
+        }
       if ( (GNUNET_SYSERR == (ret = GNUNET_OS_process_status(pos->pid, 
 							     &statusType,
 							     &statusCode))) ||
@@ -710,20 +712,6 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	  statstr = _( /* process termination method */ "unknown");
 	  statcode = 0;
 	}    
-      if ( (NULL != pos->kill_continuation) ||
-	   ( (GNUNET_YES == in_shutdown) &&
-	     (pos->pid == 0) ) )
-        {
-	  if (prev == NULL)
-	    running = next;
-	  else
-	    prev->next = next;
-	  if (NULL != pos->kill_continuation)
-	    pos->kill_continuation (pos->kill_continuation_cls, pos);
-	  else
-	    free_entry (pos);
-	  continue;
-        }
       if (GNUNET_YES != in_shutdown)
 	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		    _("Service `%s' terminated with status %s/%d, will try to restart it!\n"),
