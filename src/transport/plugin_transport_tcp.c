@@ -2090,12 +2090,12 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   plugin->server = GNUNET_SERVICE_get_server (service);
   create_tcp_handlers (plugin);
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
-                   "tcp", _("TCP transport listening on port %u\n"), bport);
+                   "tcp", _("TCP transport listening on port %llu\n"), bport);
   if (aport != bport)
     GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
                      "tcp",
                      _
-                     ("TCP transport advertises itself as being on port %u\n"),
+                     ("TCP transport advertises itself as being on port %llu\n"),
                      aport);
   GNUNET_SERVER_disconnect_notify (plugin->server, &disconnect_notify,
                                    plugin);
