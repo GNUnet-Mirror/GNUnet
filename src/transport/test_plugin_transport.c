@@ -209,6 +209,9 @@ validation_failed (void *cls,
  *  work for other plugins; we should ask
  *  the plugin about its address instead...).
  */
+/* FIXME: won't work on IPv6 enabled systems where IPv4 bridge
+ * mode isn't enabled (eg. FreeBSD > 4)
+ */
 static void
 test_validation ()
 {
