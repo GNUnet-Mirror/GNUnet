@@ -123,9 +123,11 @@ main (int argc, char *argv[])
   GNUNET_assert (GNUNET_OK == GNUNET_BIO_read_int64 (fileR, &testNum));
   fileR2 = GNUNET_BIO_read_open (fileName2);
   GNUNET_assert (NULL != fileR2);
+  readResultString = (char*) "not null";
   GNUNET_assert (GNUNET_SYSERR ==
                  GNUNET_BIO_read_string (fileR2, "Read string error",
                                          &readResultString, 200));
+  GNUNET_assert (NULL == readResultString);
   fileR3 = GNUNET_BIO_read_open (fileName3);
   GNUNET_assert (NULL != fileR3);
   GNUNET_assert (GNUNET_SYSERR ==
