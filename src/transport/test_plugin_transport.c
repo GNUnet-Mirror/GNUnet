@@ -164,9 +164,6 @@ validation_notification (void *cls,
 			 uint32_t challenge,
 			 const char *sender_addr)
 {
-  /* Sailor: 'test_validation' should get here
-     if the validation worked; so we cancel the
-     "delayed" task that will cause failure */
   if (validation_timeout_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (sched, validation_timeout_task);
@@ -175,8 +172,6 @@ validation_notification (void *cls,
 
   GNUNET_assert (challenge == 42);
   
-  /* Sailor: if this is the last test, calling this function
-     here will end the process. */
   ok = 0; /* if the last test succeeded, report success */
   GNUNET_SCHEDULER_add_continuation (sched,
 				     &unload_task,
@@ -222,11 +217,6 @@ test_validation ()
   soaddr.sin_len = sizeof (soaddr);
 #endif
   soaddr.sin_family = AF_INET;
-  /* Sailor: set this port to 2367 to see the
-     testcase fail after 30s (because validation
-     fails); obviously the test should be
-     modified to test both successful and
-     unsuccessful validation in the end... */
   soaddr.sin_port = htons(2368 /* FIXME: get from config! */);
   soaddr.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
   api->validate (api->cls,
@@ -329,18 +319,7 @@ run (void *cls,
       /* FIXME: set some error code for main */
       return;
     } 
-  /* Sailor: if we had no real tests, we
-     could call this function
-     here to end the process; instead, I'll
-     show how one could run a single test below. 
-     Note that the test is not particularly well-written,
-     it just serves to illustrate (also,
-     the "validation_notification" function above is
-     part of the test.*/
-  if (0)
-    unload_plugins (NULL, cfg);
-  else
-    test_validation ();
+  test_validation ();
 }
 
 
