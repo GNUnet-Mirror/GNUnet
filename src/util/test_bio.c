@@ -33,7 +33,7 @@
 int
 main (int argc, char *argv[])
 {
-
+#if 0
   char *readResultString;
   int64_t testNumber = (int64_t) TESTNUMBER64;
   int64_t testNum;
@@ -153,7 +153,7 @@ main (int argc, char *argv[])
   GNUNET_free (fileName2);
   GNUNET_free (fileName3);
   GNUNET_free (fileName4);
-
+#endif
 
   return 0;
 
