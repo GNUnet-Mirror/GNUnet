@@ -7,6 +7,10 @@ if HAVE_MHD
  HOSTLIST_DIR = hostlist
 endif
 
+if !MINGW
+ NAT_DIR = nat
+endif
+
 SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
   util \
@@ -24,5 +28,5 @@ SUBDIRS = \
   $(HOSTLIST_DIR) \
   topology \
   fs \
-  nat
+  $(NAT_DIR)
 
