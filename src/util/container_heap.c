@@ -392,9 +392,7 @@ GNUNET_CONTAINER_heap_remove_root (struct GNUNET_CONTAINER_Heap *root)
   struct GNUNET_CONTAINER_heap_node *root_node;
   struct GNUNET_CONTAINER_heap_node *last;
 
-  if ( (root == NULL) || 
-       (root->size == 0) || 
-       (root->root == NULL) )
+  if ((root == NULL) || (root->size == 0) || (root->root == NULL))
     {
       GNUNET_break (0);
       return NULL;
@@ -404,7 +402,7 @@ GNUNET_CONTAINER_heap_remove_root (struct GNUNET_CONTAINER_Heap *root)
   ret = root_node->element;
   last = getPos (root, root->size);
 
-  if ( (root_node == last) && (root->size == 1))
+  if ((root_node == last) && (root->size == 1))
     {
       /* We are removing the last node in the heap! */
       GNUNET_free (last);
@@ -423,7 +421,7 @@ GNUNET_CONTAINER_heap_remove_root (struct GNUNET_CONTAINER_Heap *root)
   root_node->cost = last->cost;
 
   if (root->traversal_pos == last)
-    root->traversal_pos = root->root;   
+    root->traversal_pos = root->root;
   GNUNET_free (last);
   root->size--;
   percolateDownHeap (root->root, root);

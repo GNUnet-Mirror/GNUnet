@@ -48,9 +48,9 @@ task2 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (2 == *ok);
   (*ok) = 3;
   /* t3 will go before t4: higher priority */
-  GNUNET_SCHEDULER_add_with_priority (tc->sched,                                 
-				      GNUNET_SCHEDULER_PRIORITY_UI,
-				      &task3, cls);
+  GNUNET_SCHEDULER_add_with_priority (tc->sched,
+                                      GNUNET_SCHEDULER_PRIORITY_UI,
+                                      &task3, cls);
 }
 
 static void
@@ -102,8 +102,8 @@ taskRd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (1 == GNUNET_DISK_file_read (fds[0], &c, 1));
   (*ok) = 8;
   GNUNET_SCHEDULER_add_with_priority (tc->sched,
-				      GNUNET_SCHEDULER_PRIORITY_IDLE,
-				      &taskLast, cls);
+                                      GNUNET_SCHEDULER_PRIORITY_IDLE,
+                                      &taskLast, cls);
   GNUNET_SCHEDULER_shutdown (tc->sched);
 }
 
@@ -140,11 +140,9 @@ task1 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   t2 = GNUNET_SCHEDULER_add_after (tc->sched,
                                    GNUNET_SCHEDULER_NO_TASK, &task2, cls);
   /* t4 will go after t2 ('add after') and after t3 (priority) */
-  t4 = GNUNET_SCHEDULER_add_after (tc->sched,
-                                   t2, &task4, cls);
+  t4 = GNUNET_SCHEDULER_add_after (tc->sched, t2, &task4, cls);
   /* t5 will go last (after p4) */
-  GNUNET_SCHEDULER_add_after (tc->sched,
-                              t4, &task5, cls);
+  GNUNET_SCHEDULER_add_after (tc->sched, t4, &task5, cls);
 }
 
 
@@ -171,8 +169,7 @@ taskShutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (1 == *ok);
   *ok = 8;
   GNUNET_SCHEDULER_add_delayed (tc->sched,
-				GNUNET_TIME_UNIT_FOREVER_REL,
-				&taskLast, cls);
+                                GNUNET_TIME_UNIT_FOREVER_REL, &taskLast, cls);
   GNUNET_SCHEDULER_shutdown (tc->sched);
 }
 
@@ -199,8 +196,7 @@ taskSig (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (1 == *ok);
   *ok = 8;
   GNUNET_SCHEDULER_add_delayed (tc->sched,
-				GNUNET_TIME_UNIT_FOREVER_REL,
-				&taskLast, cls);
+                                GNUNET_TIME_UNIT_FOREVER_REL, &taskLast, cls);
 #ifndef MINGW
   GNUNET_break (0 == PLIBC_KILL (getpid (), SIGTERM));
 #else

@@ -785,16 +785,14 @@ try_connect_using_address (void *cls,
   delay = GNUNET_CONNECTION_CONNECT_RETRY_TIMEOUT;
   if (h->nth.notify_ready != NULL)
     delay = GNUNET_TIME_relative_min (delay,
-                                      GNUNET_TIME_absolute_get_remaining (h->
-                                                                          nth.
-                                                                          transmit_timeout));
+                                      GNUNET_TIME_absolute_get_remaining
+                                      (h->nth.transmit_timeout));
   if (h->receiver != NULL)
     delay = GNUNET_TIME_relative_min (delay,
-                                      GNUNET_TIME_absolute_get_remaining (h->
-                                                                          receive_timeout));
+                                      GNUNET_TIME_absolute_get_remaining
+                                      (h->receive_timeout));
   ap->task =
-    GNUNET_SCHEDULER_add_write_net (h->sched, 
-                                    delay, ap->sock,
+    GNUNET_SCHEDULER_add_write_net (h->sched, delay, ap->sock,
                                     &connect_probe_continuation, ap);
 }
 
@@ -813,11 +811,12 @@ retry_connect_continuation (void *cls,
 
   GNUNET_assert (sock->dns_active == NULL);
   sock->dns_active = GNUNET_RESOLVER_ip_get (sock->sched,
-					     sock->cfg,
-					     sock->hostname,
-					     AF_UNSPEC,
-					     GNUNET_CONNECTION_CONNECT_RETRY_TIMEOUT,
-					     &try_connect_using_address, sock);
+                                             sock->cfg,
+                                             sock->hostname,
+                                             AF_UNSPEC,
+                                             GNUNET_CONNECTION_CONNECT_RETRY_TIMEOUT,
+                                             &try_connect_using_address,
+                                             sock);
 }
 
 
@@ -1000,8 +999,9 @@ receive_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "Receive from `%s' encounters error: time out by %llums... (%p)\n",
                     GNUNET_a2s (sh->addr, sh->addrlen),
-                    GNUNET_TIME_absolute_get_duration (sh->receive_timeout).
-                    value, sh);
+                    GNUNET_TIME_absolute_get_duration (sh->
+                                                       receive_timeout).value,
+                    sh);
 #endif
       signal_timeout (sh);
       return;
@@ -1348,8 +1348,8 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (sock->write_buffer_pos <= sock->write_buffer_size);
 RETRY:
   ret = GNUNET_NETWORK_socket_send (sock->sock,
-                                    &sock->write_buffer[sock->
-                                                        write_buffer_pos],
+                                    &sock->
+                                    write_buffer[sock->write_buffer_pos],
                                     have);
   if (ret == -1)
     {
@@ -1446,8 +1446,8 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle
 #endif
       sock->write_task = GNUNET_SCHEDULER_add_write_net (sock->sched,
                                                          GNUNET_TIME_absolute_get_remaining
-                                                         (sock->nth.
-                                                          transmit_timeout),
+                                                         (sock->
+                                                          nth.transmit_timeout),
                                                          sock->sock,
                                                          &transmit_ready,
                                                          sock);

@@ -517,7 +517,7 @@ main (int argc, char *const *argv)
          GNUNET_SERVICE_run (argc,
                              argv,
                              "resolver", GNUNET_SERVICE_OPTION_NONE,
-			     &run, NULL)) ? 0 : 1;
+                             &run, NULL)) ? 0 : 1;
 
   while (head != NULL)
     {

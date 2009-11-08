@@ -275,16 +275,17 @@ process_listen_socket (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     {
       server->listen_task = GNUNET_SCHEDULER_add_select (server->sched,
-							 GNUNET_SCHEDULER_PRIORITY_HIGH,
-							 GNUNET_SCHEDULER_NO_TASK,
-							 GNUNET_TIME_UNIT_FOREVER_REL,
-							 r, NULL, &process_listen_socket, 
-							 server);
+                                                         GNUNET_SCHEDULER_PRIORITY_HIGH,
+                                                         GNUNET_SCHEDULER_NO_TASK,
+                                                         GNUNET_TIME_UNIT_FOREVER_REL,
+                                                         r, NULL,
+                                                         &process_listen_socket,
+                                                         server);
       GNUNET_NETWORK_fdset_destroy (r);
-      return; /* ignore shutdown, someone else will take care of it! */
+      return;                   /* ignore shutdown, someone else will take care of it! */
     }
   GNUNET_assert (GNUNET_NETWORK_fdset_isset
-                 (tc->read_ready, server->listen_socket));  
+                 (tc->read_ready, server->listen_socket));
   sock =
     GNUNET_CONNECTION_create_from_accept (tc->sched, server->access,
                                           server->access_cls,
@@ -302,10 +303,12 @@ process_listen_socket (void *cls,
     }
   /* listen for more! */
   server->listen_task = GNUNET_SCHEDULER_add_select (server->sched,
-						     GNUNET_SCHEDULER_PRIORITY_HIGH,
-						     GNUNET_SCHEDULER_NO_TASK,
-						     GNUNET_TIME_UNIT_FOREVER_REL,
-						     r, NULL, &process_listen_socket, server);
+                                                     GNUNET_SCHEDULER_PRIORITY_HIGH,
+                                                     GNUNET_SCHEDULER_NO_TASK,
+                                                     GNUNET_TIME_UNIT_FOREVER_REL,
+                                                     r, NULL,
+                                                     &process_listen_socket,
+                                                     server);
   GNUNET_NETWORK_fdset_destroy (r);
 }
 
@@ -418,11 +421,13 @@ GNUNET_SERVER_create (struct GNUNET_SCHEDULER_Handle *sched,
     {
       r = GNUNET_NETWORK_fdset_create ();
       GNUNET_NETWORK_fdset_set (r, ret->listen_socket);
-      ret->listen_task = GNUNET_SCHEDULER_add_select (sched, 
-						      GNUNET_SCHEDULER_PRIORITY_HIGH,
-						      GNUNET_SCHEDULER_NO_TASK,
-						      GNUNET_TIME_UNIT_FOREVER_REL, r, NULL,
-						      &process_listen_socket, ret);
+      ret->listen_task = GNUNET_SCHEDULER_add_select (sched,
+                                                      GNUNET_SCHEDULER_PRIORITY_HIGH,
+                                                      GNUNET_SCHEDULER_NO_TASK,
+                                                      GNUNET_TIME_UNIT_FOREVER_REL,
+                                                      r, NULL,
+                                                      &process_listen_socket,
+                                                      ret);
       GNUNET_NETWORK_fdset_destroy (r);
     }
   return ret;
@@ -444,12 +449,10 @@ GNUNET_SERVER_destroy (struct GNUNET_SERVER_Handle *s)
 #endif
   if (GNUNET_SCHEDULER_NO_TASK != s->listen_task)
     {
-      GNUNET_SCHEDULER_cancel (s->sched,
-			       s->listen_task);
+      GNUNET_SCHEDULER_cancel (s->sched, s->listen_task);
       s->listen_task = GNUNET_SCHEDULER_NO_TASK;
     }
-  GNUNET_break (GNUNET_OK ==
-		GNUNET_NETWORK_socket_close (s->listen_socket));
+  GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (s->listen_socket));
   s->listen_socket = NULL;
   while (s->clients != NULL)
     {

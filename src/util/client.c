@@ -344,8 +344,7 @@ GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock)
     GNUNET_CLIENT_notify_transmit_ready_cancel (sock->th);
   if (sock->receive_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (sock->sched,
-			       sock->receive_task);
+      GNUNET_SCHEDULER_cancel (sock->sched, sock->receive_task);
       sock->receive_task = GNUNET_SCHEDULER_NO_TASK;
     }
   GNUNET_array_grow (sock->received_buf, sock->received_size, 0);
@@ -363,8 +362,8 @@ check_complete (struct GNUNET_CLIENT_Connection *conn)
 {
   if ((conn->received_pos >= sizeof (struct GNUNET_MessageHeader)) &&
       (conn->received_pos >=
-       ntohs (((const struct GNUNET_MessageHeader *) conn->received_buf)->
-              size)))
+       ntohs (((const struct GNUNET_MessageHeader *) conn->
+               received_buf)->size)))
     conn->msg_complete = GNUNET_YES;
 }
 
@@ -399,7 +398,7 @@ receive_helper (void *cls,
       /* signal timeout! */
       if (NULL != (receive_handler = conn->receiver_handler))
         {
-	  receive_handler_cls = conn->receiver_handler_cls;
+          receive_handler_cls = conn->receiver_handler_cls;
           conn->receiver_handler = NULL;
           receive_handler (receive_handler_cls, NULL);
         }
@@ -491,15 +490,15 @@ GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
   if (GNUNET_YES == sock->msg_complete)
     {
       sock->receive_task = GNUNET_SCHEDULER_add_after (sock->sched,
-						       GNUNET_SCHEDULER_NO_TASK,
-						       &receive_task, sock);
+                                                       GNUNET_SCHEDULER_NO_TASK,
+                                                       &receive_task, sock);
     }
   else
     {
       sock->in_receive = GNUNET_YES;
       GNUNET_CONNECTION_receive (sock->sock,
-				 GNUNET_SERVER_MAX_MESSAGE_SIZE,
-				 timeout, &receive_helper, sock);
+                                 GNUNET_SERVER_MAX_MESSAGE_SIZE,
+                                 timeout, &receive_helper, sock);
     }
 }
 
@@ -611,8 +610,7 @@ write_test (void *cls, size_t size, void *buf)
     }
 #if DEBUG_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Transmitting `%s' request.\n",
-	      "TEST");
+              "Transmitting `%s' request.\n", "TEST");
 #endif
   msg = (struct GNUNET_MessageHeader *) buf;
   msg->type = htons (GNUNET_MESSAGE_TYPE_TEST);
@@ -706,11 +704,11 @@ client_delayed_retry (void *cls,
     {
 #if DEBUG_CLIENT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Transmission failed due to shutdown.\n");
+                  "Transmission failed due to shutdown.\n");
 #endif
       th->sock->th = NULL;
       th->notify (th->notify_cls, 0, NULL);
-      GNUNET_free (th);      
+      GNUNET_free (th);
       return;
     }
   th->th = GNUNET_CONNECTION_notify_transmit_ready (th->sock->sock,
@@ -758,9 +756,9 @@ client_notify (void *cls, size_t size, void *buf)
           (0 == --th->attempts_left) || (delay.value < 1))
         {
 #if DEBUG_CLIENT
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Transmission failed %u times, giving up.\n",
-		      MAX_ATTEMPTS - th->attempts_left);
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Transmission failed %u times, giving up.\n",
+                      MAX_ATTEMPTS - th->attempts_left);
 #endif
           GNUNET_break (0 == th->notify (th->notify_cls, 0, NULL));
           GNUNET_free (th);
@@ -774,13 +772,14 @@ client_notify (void *cls, size_t size, void *buf)
       delay = GNUNET_TIME_relative_min (delay, GNUNET_TIME_UNIT_SECONDS);
 #if DEBUG_CLIENT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Transmission failed %u times, trying again in %llums.\n",
-		  MAX_ATTEMPTS - th->attempts_left,
-		  (unsigned long long) delay.value);
+                  "Transmission failed %u times, trying again in %llums.\n",
+                  MAX_ATTEMPTS - th->attempts_left,
+                  (unsigned long long) delay.value);
 #endif
       th->reconnect_task = GNUNET_SCHEDULER_add_delayed (th->sock->sched,
-							 delay,
-							 &client_delayed_retry, th);
+                                                         delay,
+                                                         &client_delayed_retry,
+                                                         th);
       th->sock->th = th;
       return 0;
     }

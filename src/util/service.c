@@ -799,8 +799,7 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
     {
       if (GNUNET_SYSERR ==
           (disablev6 = GNUNET_CONFIGURATION_get_value_yesno (sctx->cfg,
-                                                             sctx->
-                                                             serviceName,
+                                                             sctx->serviceName,
                                                              "DISABLEV6")))
         return GNUNET_SYSERR;
     }
@@ -1079,8 +1078,7 @@ write_pid_file (struct GNUNET_SERVICE_Context *sctx, pid_t pid)
  * @param tc unused
  */
 static void
-shutdown_task (void *cls,
-	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_SERVER_Handle *server = cls;
 
@@ -1116,11 +1114,10 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (0 == (sctx->options & GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN))
     {
       /* install a task that will kill the server
-	 process if the scheduler ever gets a shutdown signal */
+         process if the scheduler ever gets a shutdown signal */
       GNUNET_SCHEDULER_add_delayed (tc->sched,
-				    GNUNET_TIME_UNIT_FOREVER_REL,
-				    &shutdown_task,
-				    sctx->server);
+                                    GNUNET_TIME_UNIT_FOREVER_REL,
+                                    &shutdown_task, sctx->server);
     }
   sctx->my_handlers = GNUNET_malloc (sizeof (defhandlers));
   memcpy (sctx->my_handlers, defhandlers, sizeof (defhandlers));
@@ -1297,9 +1294,8 @@ int
 GNUNET_SERVICE_run (int argc,
                     char *const *argv,
                     const char *serviceName,
-		    enum GNUNET_SERVICE_Options opt,
-                    GNUNET_SERVICE_Main task,
-                    void *task_cls)
+                    enum GNUNET_SERVICE_Options opt,
+                    GNUNET_SERVICE_Main task, void *task_cls)
 {
   char *cfg_fn;
   char *loglev;

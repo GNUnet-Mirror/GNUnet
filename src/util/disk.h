@@ -41,13 +41,13 @@ struct GNUNET_DISK_FileHandle
    */ 
   HANDLE h;
   
-#else   /*  */
+#else                           /*  */
   /**
    * File handle on other OSes.
    */ 
   int fd;
    
-#endif  /*  */
+#endif                          /*  */
 };
 
 /**

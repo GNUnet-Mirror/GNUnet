@@ -273,8 +273,8 @@ testSignPerformance ()
         }
     }
   printf ("%d RSA sign operations %llu ms\n", ITER,
-          (unsigned long long) GNUNET_TIME_absolute_get_duration (start).
-          value);
+          (unsigned long long)
+          GNUNET_TIME_absolute_get_duration (start).value);
   GNUNET_CRYPTO_rsa_key_free (hostkey);
   return ok;
 }

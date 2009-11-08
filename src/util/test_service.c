@@ -51,7 +51,7 @@ end_it (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down service\n");
   GNUNET_CLIENT_service_shutdown (client);
-  if (sctx != NULL)    
+  if (sctx != NULL)
     GNUNET_SERVICE_stop (sctx);
   else
     GNUNET_SCHEDULER_shutdown (sched);
@@ -152,13 +152,13 @@ check ()
                  GNUNET_SERVICE_run (5,
                                      argv,
                                      "test_service",
-				     GNUNET_SERVICE_OPTION_NONE,
+                                     GNUNET_SERVICE_OPTION_NONE,
                                      &runner, &ok));
   GNUNET_assert (0 == ok);
   return ok;
 }
 
-static void 
+static void
 ready6 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
@@ -214,7 +214,7 @@ check6 ()
                  GNUNET_SERVICE_run (5,
                                      argv,
                                      "test_service6",
-				     GNUNET_SERVICE_OPTION_NONE,
+                                     GNUNET_SERVICE_OPTION_NONE,
                                      &runner6, &ok));
   GNUNET_assert (0 == ok);
   return ok;
@@ -247,7 +247,7 @@ check6d ()
                  GNUNET_SERVICE_run (6,
                                      argv,
                                      "test_service6",
-				     GNUNET_SERVICE_OPTION_NONE,
+                                     GNUNET_SERVICE_OPTION_NONE,
                                      &runner6, &ok));
   GNUNET_break (0 == ok);
   return ok;

@@ -126,8 +126,7 @@ notify_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   GNUNET_assert (ok == 5);
   ok = 0;
   GNUNET_SCHEDULER_add_delayed (sched,
-				GNUNET_TIME_UNIT_ZERO,
-				&clean_up, NULL); 
+                                GNUNET_TIME_UNIT_ZERO, &clean_up, NULL);
 }
 
 
