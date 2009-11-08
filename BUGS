@@ -2,21 +2,27 @@ This file lists minor work items (also possibly called "known bugs").
 We are not tracking them in Mantis yet since there are too many and no
 sane end-user should care about this codebase yet anyway.
 
+
 * TESTING:
   - connection.c:553 fails when "make check" is run!
     (check if this could be memory corruption).
 
 
 * UTIL:
+  - API-DESIGN: network/connection/client/server: need to communicate
+    scheduler's "reason" code for failures to callbacks of the kind
+    used by the notify_transmit_ready-family: shutdown and timeout
+    may require entirely different actions, and currently we  
+    cannot tell the difference! [need 4th argument!]
   - container_bloomfilter: improve efficiency (see FIXME)
-  - Windows: use events instead of pipes to signal select()s [Nils]
-  - only connect() sockets that are ready (select()) [Nils]
-    [On W32, we need to select after calling socket before
-     doing connect etc.]
   - server: inefficient memmove
   - client: should do exponential back-off (starting at 1ms,
     bounded by 1s) when connection failed (in addition to
     half-time-to-deadline retry at the end)
+  - Windows: use events instead of pipes to signal select()s [Nils]
+  - only connect() sockets that are ready (select()) [Nils]
+    [On W32, we need to select after calling socket before
+     doing connect etc.]
 * TRANSPORT:
   - transport_api: support forcing disconnects through low quotas!
     (required for working F2F support!)
