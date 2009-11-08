@@ -708,8 +708,9 @@ client_delayed_retry (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Transmission failed due to shutdown.\n");
 #endif
+      th->sock->th = NULL;
       th->notify (th->notify_cls, 0, NULL);
-      GNUNET_free (th);
+      GNUNET_free (th);      
       return;
     }
   th->th = GNUNET_CONNECTION_notify_transmit_ready (th->sock->sock,
