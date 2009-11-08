@@ -468,7 +468,6 @@ GNUNET_SERVER_destroy (struct GNUNET_SERVER_Handle *s)
       GNUNET_free (npos);
     }
   GNUNET_free (s);
-
 }
 
 
