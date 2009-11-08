@@ -389,7 +389,7 @@ receive_helper (void *cls,
 {
   struct GNUNET_CLIENT_Connection *conn = cls;
   struct GNUNET_TIME_Relative remaining;
-  GNUNET_CLIENT_MessageHandler receiver_handler;
+  GNUNET_CLIENT_MessageHandler receive_handler;
   void *receive_handler_cls;
 
   GNUNET_assert (conn->msg_complete == GNUNET_NO);
@@ -401,7 +401,7 @@ receive_helper (void *cls,
         {
 	  receive_handler_cls = conn->receiver_handler_cls;
           conn->receiver_handler = NULL;
-          receiver_handler (receive_handler_cls, NULL);
+          receive_handler (receive_handler_cls, NULL);
         }
       return;
     }
