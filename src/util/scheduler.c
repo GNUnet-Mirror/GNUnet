@@ -521,9 +521,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
   struct GNUNET_SIGNAL_Context *shc_hup;
   unsigned long long last_tr;
   unsigned int busy_wait_warning;
-#ifndef MINGW
   const struct GNUNET_DISK_FileHandle *pr;
-#endif
   char c;
 
   rs = GNUNET_NETWORK_fdset_create ();

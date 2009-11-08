@@ -42,20 +42,7 @@ using namespace std;
 
 extern "C" {
 
-typedef list<WSAOVERLAPPED *> TOLList;
-
-static HANDLE hOLLock;
-static TOLList lstOL;
-
 int plibc_conv_to_win_path(const char *pszUnix, char *pszWindows);
-
-void __attribute__ ((constructor)) gnunet_win_init() {
-  hOLLock = CreateMutex(NULL, FALSE, NULL);
-}
-
-void __attribute__ ((destructor)) gnunet_win_fini() {
-  CloseHandle(hOLLock);
-}
 
 /**
  * Enumerate all network adapters

@@ -3,17 +3,17 @@ INCLUDES = -I$(top_srcdir)/src/include
 plugindir = $(libdir)/gnunet
 
 if MINGW
-noinst_LIBRARIES = \
-  libgnunetutilwin.a
-libgnunetutilwin_a_SOURCES = \
+noinst_LTLIBRARIES = \
+  libgnunetutilwin.la
+libgnunetutilwin_la_SOURCES = \
   win.cc \
   winproc.c
-libgnunetutilwin_a_LDFLAGS = \
+libgnunetutilwin_la_LDFLAGS = \
   -Wl,--no-undefined -Wl,--export-all-symbols 
-libgnunetutilwin_a_LIBADD = \
-  -lole32 -lshell32 -luuid -liconv -lstdc++ \
+libgnunetutilwin_la_LIBADD = \
+  -lshell32 -luuid -liconv -lstdc++ \
   -lcomdlg32 -lgdi32
-WINLIB = libgnunetutilwin.a
+WINLIB = libgnunetutilwin.la
 endif
 
 if USE_COVERAGE
