@@ -186,6 +186,19 @@ test_bigmeta_rw ()
 }
 
 static int
+test_directory_r(void){
+	char *msg;
+	char readResult[200];
+    const char *fileName = "/dev";
+    struct GNUNET_BIO_ReadHandle *fileR;
+    fileR = GNUNET_BIO_read_open (fileName);
+  	GNUNET_assert (NULL != fileR);
+  	GNUNET_assert (GNUNET_SYSERR == GNUNET_BIO_read (fileR, "Read error", readResult, 65537));
+  	GNUNET_BIO_read_close (fileR, &msg);
+	return 0;
+}
+
+static int
 test_nullfile_rw (void)
 {
   char *msg;
@@ -343,14 +356,14 @@ check_file_rw (void)
 {
   GNUNET_assert (0 == test_normal_rw ());
   GNUNET_assert (0 == test_nullfile_rw ());
+  GNUNET_assert (0 == test_directory_r());
   return 0;
 }
 
 int
-main (int argc, char *argv[])
-{
-  GNUNET_assert (0 == check_file_rw ());
-  GNUNET_assert (0 == check_metadata_rw ());
-  GNUNET_assert (0 == check_string_rw ());
-  return 0;
+main (int argc, char *argv[]){
+    GNUNET_assert (0 == check_file_rw());
+    GNUNET_assert (0 == check_metadata_rw());
+    GNUNET_assert (0 == check_string_rw());
+    return 0;
 }                               /* end of main */
