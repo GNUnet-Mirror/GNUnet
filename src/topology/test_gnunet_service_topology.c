@@ -66,7 +66,8 @@ notify_connect_complete(void *cls,
     {
       /* FIXME: check that topology adds a few more links
 	 in addition to those that were seeded */
-      sleep (100);
+      /* For now, sleep so we can have the daemon do some work */
+      sleep (10);
       GNUNET_TESTING_daemons_stop (pg);
       ok = 0;     
     }

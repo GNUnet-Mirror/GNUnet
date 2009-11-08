@@ -1,6 +1,6 @@
 #!/bin/sh
 
-exe="./gnunet-arm -c test_arm_api_data.conf"
+exe="valgrind --trace-children=yes ./gnunet-arm -c test_arm_api_data.conf"
 out=`mktemp /tmp/test-gnunet-arm-logXXXXXXXX`
 #DEBUG="-L DEBUG"
 

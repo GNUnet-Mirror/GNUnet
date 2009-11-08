@@ -514,6 +514,11 @@ struct GNUNET_SERVICE_Context
   int allow_shutdown;
 
   /**
+   * Our options.
+   */
+  enum GNUNET_SERVICE_Options options;
+
+  /**
    * Length of addr.
    */
   socklen_t addrlen;
@@ -1108,10 +1113,15 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       sctx->ret = GNUNET_SYSERR;
       return;
     }
-  GNUNET_SCHEDULER_add_delayed (tc->sched,
-				GNUNET_TIME_UNIT_FOREVER_REL,
-				&shutdown_task,
-				sctx->server);
+  if (0 == (sctx->options & GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN))
+    {
+      /* install a task that will kill the server
+	 process if the scheduler ever gets a shutdown signal */
+      GNUNET_SCHEDULER_add_delayed (tc->sched,
+				    GNUNET_TIME_UNIT_FOREVER_REL,
+				    &shutdown_task,
+				    sctx->server);
+    }
   sctx->my_handlers = GNUNET_malloc (sizeof (defhandlers));
   memcpy (sctx->my_handlers, defhandlers, sizeof (defhandlers));
   i = 0;
@@ -1277,6 +1287,7 @@ pid_file_delete (struct GNUNET_SERVICE_Context *sctx)
  * @param argc number of command line arguments
  * @param argv command line arguments
  * @param serviceName our service name
+ * @param opt service options
  * @param task main task of the service
  * @param task_cls closure for task
  * @return GNUNET_SYSERR on error, GNUNET_OK
@@ -1286,6 +1297,7 @@ int
 GNUNET_SERVICE_run (int argc,
                     char *const *argv,
                     const char *serviceName,
+		    enum GNUNET_SERVICE_Options opt,
                     GNUNET_SERVICE_Main task,
                     void *task_cls)
 {
@@ -1311,6 +1323,7 @@ GNUNET_SERVICE_run (int argc,
   loglev = GNUNET_strdup ("WARNING");
   cfg_fn = GNUNET_strdup (GNUNET_DEFAULT_DAEMON_CONFIG_FILE);
   memset (&sctx, 0, sizeof (sctx));
+  sctx.options = opt;
   sctx.ready_confirm_fd = -1;
   sctx.ret = GNUNET_OK;
   sctx.timeout = GNUNET_TIME_UNIT_FOREVER_REL;

@@ -3358,7 +3358,9 @@ main (int argc, char *const *argv)
   return (GNUNET_OK ==
           GNUNET_SERVICE_run (argc,
                               argv,
-                              "fs", &run, NULL)) ? 0 : 1;
+                              "fs",
+			      GNUNET_SERVICE_OPTION_NONE,
+			      &run, NULL)) ? 0 : 1;
 }
 
 /* end of gnunet-service-fs.c */

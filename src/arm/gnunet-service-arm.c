@@ -157,6 +157,17 @@ static char *prefix_command;
  */
 static int in_shutdown;
 
+/**
+ * Handle to our server instance.  Our server is a bit special in that
+ * its service is not immediately stopped once we get a shutdown
+ * request (since we need to continue service until all of our child
+ * processes are dead).  This handle is used to shut down the server
+ * (and thus trigger process termination) once all child processes are
+ * also dead.  A special option in the ARM configuration modifies the
+ * behaviour of the service implementation to not do the shutdown
+ * immediately.
+ */
+static struct GNUNET_SERVER_Handle *server;
 
 /**
  * Background task doing maintenance.
@@ -646,9 +657,16 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       pos = running;
       while (NULL != pos)
         {
-	  if ( (pos->pid != 0) &&
-	       (0 != PLIBC_KILL (pos->pid, SIGTERM)) )
-	    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");	    
+	  if (pos->pid != 0) 
+	    {
+#if DEBUG_ARM
+	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+			  "Sending SIGTERM to `%s'\n",
+			  pos->name);
+#endif
+	      if (0 != PLIBC_KILL (pos->pid, SIGTERM))
+		GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");	    
+	    }
           pos = pos->next;
         }
     }
@@ -656,7 +674,14 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       if ( (in_shutdown == GNUNET_YES) &&
 	   (running == NULL) )
-	return; /* we are done! */      
+	{
+#if DEBUG_ARM
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		      "ARM service terminates.\n");
+#endif	
+	  GNUNET_SERVER_destroy (server);
+	  return; /* we are done! */      
+	}
       GNUNET_SCHEDULER_add_delayed (tc->sched,
 				    (in_shutdown == GNUNET_YES)
 				    ? MAINT_FAST_FREQUENCY
@@ -716,6 +741,12 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		    _("Service `%s' terminated with status %s/%d, will try to restart it!\n"),
 		    pos->name, statstr, statcode);
+#if DEBUG_ARM
+      else
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		    "Service `%s' terminated with status %s/%d\n",
+		    pos->name, statstr, statcode);
+#endif	
       /* schedule restart */
       pos->pid = 0;
       prev = pos;
@@ -762,20 +793,22 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
  *
  * @param cls closure
  * @param s scheduler to use
- * @param server the initialized server
+ * @param serv the initialized server
  * @param c configuration to use
  */
 static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
-     struct GNUNET_SERVER_Handle *server,
+     struct GNUNET_SERVER_Handle *serv,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *defaultservices;
   char *pos;
 
+  GNUNET_assert (serv != NULL);
   cfg = c;
   sched = s;
+  server = serv;
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
                                              "ARM",
@@ -831,7 +864,9 @@ main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
           GNUNET_SERVICE_run (argc,
-                              argv, "arm", &run, NULL)) ? 0 : 1;
+                              argv, "arm",
+			      GNUNET_YES,
+			      &run, NULL)) ? 0 : 1;
 }
 
 /* end of gnunet-service-arm.c */

@@ -516,7 +516,8 @@ main (int argc, char *const *argv)
   ret = (GNUNET_OK ==
          GNUNET_SERVICE_run (argc,
                              argv,
-                             "resolver", &run, NULL)) ? 0 : 1;
+                             "resolver", GNUNET_SERVICE_OPTION_NONE,
+			     &run, NULL)) ? 0 : 1;
 
   while (head != NULL)
     {

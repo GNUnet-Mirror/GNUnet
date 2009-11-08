@@ -24,7 +24,7 @@
 #include "platform.h"
 #include "gnunet_testing_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 
 /**
@@ -51,7 +51,7 @@ static void end2_cb(void *cls,
   GNUNET_assert (emsg == NULL); 
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Daemon terminated, will now exit.\n");
+	      "Both daemons terminated, will now exit.\n");
 #endif
  ok = 0;
 }

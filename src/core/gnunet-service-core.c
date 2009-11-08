@@ -3214,7 +3214,9 @@ main (int argc, char *const *argv)
   return (GNUNET_OK ==
           GNUNET_SERVICE_run (argc,
                               argv,
-                              "core", &run, NULL)) ? 0 : 1;
+                              "core",
+			      GNUNET_SERVICE_OPTION_NONE,
+			      &run, NULL)) ? 0 : 1;
 }
 
 /* end of gnunet-service-core.c */

@@ -40,13 +40,13 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_transport_service.h"
 
-#define DEBUG_TESTING GNUNET_NO
+#define DEBUG_TESTING GNUNET_YES
 
 /**
  * How long do we wait after starting gnunet-service-arm
  * for the core service to be alive?
  */
-#define ARM_START_WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define ARM_START_WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 
 /**
  * How many times are we willing to try to wait for "scp" or
@@ -236,6 +236,7 @@ testing_init (void *cls,
   d->cb = NULL;
   if (server == NULL)
     {
+      d->server = NULL;
       if (GNUNET_YES == d->dead)
 	GNUNET_TESTING_daemon_stop (d, d->dead_cb, d->dead_cb_cls);
       else if (NULL != cb)
@@ -428,15 +429,15 @@ start_fsm (void *cls,
 		  "gnunet-service-arm");
 #endif
       d->phase = SP_START_CORE;
-      GNUNET_CORE_connect (d->sched,
-			   d->cfg,
-			   ARM_START_WAIT,
-			   d,
-			   &testing_init,
-			   NULL, NULL, NULL, 
-			   NULL, GNUNET_NO,
-			   NULL, GNUNET_NO,
-			   no_handlers);     
+      d->server = GNUNET_CORE_connect (d->sched,
+				       d->cfg,
+				       ARM_START_WAIT,
+				       d,
+				       &testing_init,
+				       NULL, NULL, NULL, 
+				       NULL, GNUNET_NO,
+				       NULL, GNUNET_NO,
+				       no_handlers);     
       break;
     case SP_START_CORE:
       GNUNET_break (0);

@@ -560,6 +560,13 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
           timeout = GNUNET_TIME_UNIT_ZERO;
         }
       ret = GNUNET_NETWORK_socket_select (rs, ws, NULL, timeout);
+      if (ret == GNUNET_SYSERR)
+        {
+          if (errno == EINTR)
+            continue;
+          GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "select");
+          break;
+        }
 #ifndef MINGW
       if (GNUNET_NETWORK_fdset_handle_isset (rs, pr))
 	{
@@ -583,13 +590,6 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                       _("Looks like we're busy waiting...\n"));
           sleep (1);            /* mitigate */
-        }
-      if (ret == GNUNET_SYSERR)
-        {
-          if (errno == EINTR)
-            continue;
-          GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "select");
-          break;
         }
       check_ready (&sched, rs, ws);
       run_ready (&sched);

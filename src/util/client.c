@@ -566,7 +566,9 @@ write_test (void *cls, size_t size, void *buf)
       return 0;                 /* client disconnected */
     }
 #if DEBUG_CLIENT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Transmitting TEST request.\n"));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmitting `%s' request.\n",
+	      "TEST");
 #endif
   msg = (struct GNUNET_MessageHeader *) buf;
   msg->type = htons (GNUNET_MESSAGE_TYPE_TEST);
@@ -642,7 +644,6 @@ GNUNET_CLIENT_service_test (struct GNUNET_SCHEDULER_Handle *sched,
 static size_t client_notify (void *cls, size_t size, void *buf);
 
 
-
 /**
  * This task is run if we should re-try connection to the
  * service after a while.
@@ -657,6 +658,16 @@ client_delayed_retry (void *cls,
   struct GNUNET_CLIENT_TransmitHandle *th = cls;
 
   th->task = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    {
+#if DEBUG_CLIENT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Transmission failed due to shutdown.\n");
+#endif
+      th->notify (th->notify_cls, 0, NULL);
+      GNUNET_free (th);
+      return;
+    }
   th->th = GNUNET_CONNECTION_notify_transmit_ready (th->sock->sock,
                                                     th->size,
                                                     GNUNET_TIME_absolute_get_remaining
@@ -693,11 +704,19 @@ client_notify (void *cls, size_t size, void *buf)
   th->sock->th = NULL;
   if (buf == NULL)
     {
+      // FIXME: need a way to check if the
+      // reason is SHUTDOWN (not timeout) and
+      // if so NOT retry!
       delay = GNUNET_TIME_absolute_get_remaining (th->timeout);
       delay.value /= 2;
       if ((GNUNET_YES != th->auto_retry) ||
           (0 == --th->attempts_left) || (delay.value < 1))
         {
+#if DEBUG_CLIENT
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Transmission failed %u times, giving up.\n",
+		      MAX_ATTEMPTS - th->attempts_left);
+#endif
           GNUNET_break (0 == th->notify (th->notify_cls, 0, NULL));
           GNUNET_free (th);
           return 0;
@@ -708,6 +727,12 @@ client_notify (void *cls, size_t size, void *buf)
                                    th->sock->service_name, th->sock->cfg);
       GNUNET_assert (NULL != th->sock->sock);
       delay = GNUNET_TIME_relative_min (delay, GNUNET_TIME_UNIT_SECONDS);
+#if DEBUG_CLIENT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Transmission failed %u times, trying again in %llums.\n",
+		  MAX_ATTEMPTS - th->attempts_left,
+		  (unsigned long long) delay.value);
+#endif
       th->task = GNUNET_SCHEDULER_add_delayed (th->sock->sched,
                                                delay,
                                                &client_delayed_retry, th);

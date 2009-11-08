@@ -1343,6 +1343,9 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       /* no data ready for writing, terminate write loop */
       return;
     }
+  GNUNET_assert (have <= sock->write_buffer_size);
+  GNUNET_assert (have + sock->write_buffer_pos <= sock->write_buffer_size);
+  GNUNET_assert (sock->write_buffer_pos <= sock->write_buffer_size);
 RETRY:
   ret = GNUNET_NETWORK_socket_send (sock->sock,
                                     &sock->write_buffer[sock->

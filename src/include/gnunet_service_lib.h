@@ -55,12 +55,31 @@ typedef void (*GNUNET_SERVICE_Main) (void *cls,
 
 
 /**
+ * Options for the service (bitmask).
+ */
+enum GNUNET_SERVICE_Options
+  {
+    /**
+     * Use defaults.
+     */
+    GNUNET_SERVICE_OPTION_NONE = 0,
+
+    /**
+     * Do not trigger server shutdown on signals, allow for the user
+     * to terminate the server explicitly when needed.
+     */
+    GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN = 1
+  };
+
+
+/**
  * Run a standard GNUnet service startup sequence (initialize loggers
  * and configuration, parse options).
  *
  * @param argc number of command line arguments
  * @param argv command line arguments
  * @param serviceName our service name
+ * @param opt service options
  * @param task main task of the service
  * @param task_cls closure for task
  * @return GNUNET_SYSERR on error, GNUNET_OK
@@ -69,6 +88,7 @@ typedef void (*GNUNET_SERVICE_Main) (void *cls,
 int GNUNET_SERVICE_run (int argc,
                         char *const *argv,
                         const char *serviceName,
+			enum GNUNET_SERVICE_Options opt,
                         GNUNET_SERVICE_Main task,
                         void *task_cls);
 

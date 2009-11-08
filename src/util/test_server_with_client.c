@@ -103,6 +103,16 @@ recv_cb (void *cls,
 }
 
 
+static void
+clean_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_SERVER_destroy (server);
+  server = NULL;
+  GNUNET_CONFIGURATION_destroy (cfg);
+  cfg = NULL;
+}
+
+
 /**
  * Functions with this signature are called whenever a client
  * is disconnected on the network level.
@@ -115,8 +125,9 @@ notify_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 {
   GNUNET_assert (ok == 5);
   ok = 0;
-  GNUNET_SCHEDULER_shutdown (sched);
-  GNUNET_CONFIGURATION_destroy (cfg);
+  GNUNET_SCHEDULER_add_delayed (sched,
+				GNUNET_TIME_UNIT_ZERO,
+				&clean_up, NULL); 
 }
 
 

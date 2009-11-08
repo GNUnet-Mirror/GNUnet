@@ -120,8 +120,11 @@ disconnect_notify (void *cls, const struct GNUNET_MessageHeader *msg)
   GNUNET_assert (ok == 7);
   ok = 0;
   GNUNET_CLIENT_disconnect (client);
-  GNUNET_SCHEDULER_shutdown (sched);
+  client = NULL;
+  GNUNET_SERVER_destroy (server);
+  server = NULL;
   GNUNET_CONFIGURATION_destroy (cfg);
+  cfg = NULL;
 }
 
 

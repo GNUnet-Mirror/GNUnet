@@ -152,6 +152,7 @@ check ()
                  GNUNET_SERVICE_run (5,
                                      argv,
                                      "test_service",
+				     GNUNET_SERVICE_OPTION_NONE,
                                      &runner, &ok));
   GNUNET_assert (0 == ok);
   return ok;
@@ -213,6 +214,7 @@ check6 ()
                  GNUNET_SERVICE_run (5,
                                      argv,
                                      "test_service6",
+				     GNUNET_SERVICE_OPTION_NONE,
                                      &runner6, &ok));
   GNUNET_assert (0 == ok);
   return ok;
@@ -245,6 +247,7 @@ check6d ()
                  GNUNET_SERVICE_run (6,
                                      argv,
                                      "test_service6",
+				     GNUNET_SERVICE_OPTION_NONE,
                                      &runner6, &ok));
   GNUNET_break (0 == ok);
   return ok;

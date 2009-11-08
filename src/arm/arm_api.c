@@ -163,12 +163,22 @@ arm_service_report (void *cls,
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
     {
+#if DEBUG_ARM
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Looks like `%s' is already running.\n",
+		  "gnunet-service-arm");
+#endif
       /* arm is running! */
       if (pos->callback != NULL)
         pos->callback (pos->cls, GNUNET_YES);
       GNUNET_free (pos);
       return;
     }
+#if DEBUG_ARM
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Looks like `%s' is not running, will start it.\n",
+	      "gnunet-service-arm");
+#endif
   /* FIXME: should we check that HOSTNAME for 'arm' is localhost? */
   /* start service */
   if (GNUNET_OK !=
@@ -236,7 +246,10 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
   if (msg == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("Error receiving response from ARM service\n"));
+                  _("Error receiving response to `%s' request from ARM service\n"),
+		  (sc->type == GNUNET_MESSAGE_TYPE_ARM_START) 
+		  ? "START"
+		  : "STOP");
       GNUNET_CLIENT_disconnect (sc->h->client);
       sc->h->client = GNUNET_CLIENT_connect (sc->h->sched, 
 					     "arm", 
@@ -304,7 +317,10 @@ change_service (struct GNUNET_ARM_Handle *h,
     }
 #if DEBUG_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("ARM requests starting of service `%s'.\n"), service_name);
+              (type == GNUNET_MESSAGE_TYPE_ARM_START) 
+	      ? _("Requesting start of service `%s'.\n") 
+	      : _("Requesting termination of service `%s'.\n"),
+	      service_name);
 #endif
   sctx = GNUNET_malloc (sizeof (struct RequestContext) + slen);
   sctx->h = h;
@@ -355,7 +371,7 @@ GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h,
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Starting service `%s'\n"), service_name);
-  if (0 == strcmp ("arm", service_name))
+  if (0 == strcasecmp ("arm", service_name))
     {
       sctx = GNUNET_malloc (sizeof (struct RequestContext));
       sctx->h = h;
@@ -388,7 +404,7 @@ GNUNET_ARM_stop_service (struct GNUNET_ARM_Handle *h,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Stopping service `%s'\n"), service_name);
-  if (0 == strcmp ("arm", service_name))
+  if (0 == strcasecmp ("arm", service_name))
     {
       GNUNET_CLIENT_service_shutdown (h->client);
       h->client = NULL;

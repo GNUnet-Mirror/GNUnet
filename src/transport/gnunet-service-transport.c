@@ -2709,6 +2709,7 @@ main (int argc, char *const *argv)
 	  GNUNET_SERVICE_run (argc,
 			      argv,
 			      "transport",
+			      GNUNET_SERVICE_OPTION_NONE,
 			      &run, NULL)) ? 0 : 1;
 }
 
