@@ -542,7 +542,7 @@ stop_service (struct GNUNET_SERVER_Client *client,
       pos->kill_continuation_cls = client;
       GNUNET_SERVER_client_keep (client);
       GNUNET_SCHEDULER_add_delayed (sched,
-				    MAINT_FAST_FREQUENCY, &maint, NULL);
+				    MAINT_FAST_FREQUENCY, &maint, "non-null");
     }
   else
     {
@@ -678,8 +678,10 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #if DEBUG_ARM
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		      "ARM service terminates.\n");
-#endif	
+#endif
+	  GNUNET_assert (server != NULL);
 	  GNUNET_SERVER_destroy (server);
+	  server = NULL;
 	  return; /* we are done! */      
 	}
       GNUNET_SCHEDULER_add_delayed (tc->sched,
