@@ -1199,6 +1199,12 @@ unload_plugin (struct DatastorePlugin *plug)
 static void
 cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (expired_kill_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (sched,
+			       expired_kill_task);
+      expired_kill_task = GNUNET_SCHEDULER_NO_TASK;
+    }
   unload_plugin (plugin);
   plugin = NULL;
   if (filter != NULL)
