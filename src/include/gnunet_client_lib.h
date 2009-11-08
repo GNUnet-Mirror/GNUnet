@@ -70,7 +70,8 @@ struct GNUNET_CLIENT_Connection *GNUNET_CLIENT_connect (struct
  * transmission request will also be cancelled UNLESS the callback for
  * the transmission request has already been called, in which case the
  * transmission is guaranteed to complete before the socket is fully
- * destroyed.
+ * destroyed  (unless, of course, there is an error with the server
+ * in which case the message may still be lost).
  *
  * @param sock handle to the service connection
  */

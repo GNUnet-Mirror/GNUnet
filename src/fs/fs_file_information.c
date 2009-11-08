@@ -32,6 +32,7 @@
 #include <extractor.h>
 #include "gnunet_fs_service.h"
 #include "fs.h"
+#include "fs_tree.h"
 
 
 /**
@@ -849,6 +850,12 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
   GNUNET_FS_uri_destroy (fi->keywords);
   GNUNET_CONTAINER_meta_data_destroy (fi->meta);
   GNUNET_free_non_null (fi->serialization);
+  if (fi->te != NULL)
+    {
+      GNUNET_FS_tree_encoder_finish (fi->te,
+				     NULL, NULL);
+      fi->te = NULL;
+    }
   GNUNET_free (fi);
 }
 

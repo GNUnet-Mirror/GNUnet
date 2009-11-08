@@ -385,8 +385,15 @@ void GNUNET_FS_tree_encoder_finish (struct GNUNET_FS_TreeEncoder * te,
 				    struct GNUNET_FS_Uri **uri,
 				    char **emsg)
 {
-  *uri = te->uri;
-  *emsg = te->emsg;
+  if (uri != NULL)
+    *uri = te->uri;
+  else
+    if (NULL != te->uri)
+      GNUNET_FS_uri_destroy (te->uri);
+  if (emsg != NULL)
+    *emsg = te->emsg;
+  else
+    GNUNET_free_non_null (te->emsg);
   GNUNET_free (te->chk_tree);
   GNUNET_free (te);
 }
