@@ -389,16 +389,19 @@ receive_helper (void *cls,
 {
   struct GNUNET_CLIENT_Connection *conn = cls;
   struct GNUNET_TIME_Relative remaining;
+  GNUNET_CLIENT_MessageHandler receiver_handler;
+  void *receive_handler_cls;
 
   GNUNET_assert (conn->msg_complete == GNUNET_NO);
   conn->in_receive = GNUNET_NO;
   if ((available == 0) || (conn->sock == NULL) || (errCode != 0))
     {
       /* signal timeout! */
-      if (conn->receiver_handler != NULL)
+      if (NULL != (receive_handler = conn->receiver_handler))
         {
-          conn->receiver_handler (conn->receiver_handler_cls, NULL);
+	  receive_handler_cls = conn->receiver_handler_cls;
           conn->receiver_handler = NULL;
+          receiver_handler (receive_handler_cls, NULL);
         }
       return;
     }
