@@ -1642,8 +1642,6 @@ GNUNET_DISK_pipe (int blocking)
       DWORD mode;
 
       mode = PIPE_NOWAIT;
-      p->fd[0] = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
-      p->fd[1] = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
       SetNamedPipeHandleState (p->fd[0]->h, &mode, NULL, NULL);
       SetNamedPipeHandleState (p->fd[1]->h, &mode, NULL, NULL);
       /* this always fails on Windows 95, so we don't care about error handling */
