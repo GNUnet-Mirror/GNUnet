@@ -802,21 +802,44 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
                               const struct GNUNET_TIME_Relative timeout)
 {
   int nfds;
+#ifdef MINGW
+  int handles;
+#endif
   nfds = 0;
+#ifdef MINGW
+  handles = 0;
+#endif
   if (NULL != rfds)
-    nfds = rfds->nsds;
+    {
+      nfds = rfds->nsds;
+#ifdef MINGW
+      handles = GNUNET_CONTAINER_slist_count (rfds->handles);
+#endif
+    }
   if (NULL != wfds)
-    nfds = GNUNET_MAX (nfds, wfds->nsds);
+    {
+      nfds = GNUNET_MAX (nfds, wfds->nsds);
+#ifdef MINGW
+      handles += GNUNET_CONTAINER_slist_count (wfds->handles);
+#endif
+    }
   if (NULL != efds)
-    nfds = GNUNET_MAX (nfds, efds->nsds);
+    {
+      nfds = GNUNET_MAX (nfds, efds->nsds);
+#ifdef MINGW
+      handles += GNUNET_CONTAINER_slist_count (efds->handles);
+#endif
+    }
 
-#ifndef MINGW
   struct timeval tv;
   tv.tv_sec = timeout.value / GNUNET_TIME_UNIT_SECONDS.value;
   tv.tv_usec =
     1000 * (timeout.value - (tv.tv_sec * GNUNET_TIME_UNIT_SECONDS.value));
-  if ((nfds == 0) && (timeout.value == GNUNET_TIME_UNIT_FOREVER_REL.value))
-
+  if ((nfds == 0) && (timeout.value == GNUNET_TIME_UNIT_FOREVER_REL.value)
+#ifdef MINGW
+      && handles == 0
+#endif
+    )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _
@@ -824,6 +847,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
                   "select");
       GNUNET_break (0);
     }
+#ifndef MINGW
   return select (nfds + 1,
                  (rfds != NULL) ? &rfds->sds : NULL,
                  (wfds != NULL) ? &wfds->sds : NULL,
@@ -858,17 +882,14 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
     }
   if (rfds)
     sock_read = rfds->sds;
-
   else
     FD_ZERO (&sock_read);
   if (wfds)
     sock_write = wfds->sds;
-
   else
     FD_ZERO (&sock_write);
   if (efds)
     sock_except = efds->sds;
-
   else
     FD_ZERO (&sock_except);
 
@@ -1020,7 +1041,9 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
                 }
             }
         }
-    select_loop_end:;
+    select_loop_end:
+      if (retcode == 0 && nfds == 0)
+        Sleep(GNUNET_MIN(100, limit - GetTickCount()));
     }
   while (retcode == 0 && (ms_total == INFINITE || GetTickCount () < limit));
   if (retcode != -1)
