@@ -666,6 +666,7 @@ GNUNET_NETWORK_fdset_copy (struct GNUNET_NETWORK_FDSet *to,
                                   GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
                                   handle, len);
     }
+  GNUNET_CONTAINER_slist_iter_destroy (iter);
 #endif /*  */
 }
 
@@ -954,6 +955,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
                   on_next = GNUNET_YES;
                 }
             }
+           GNUNET_CONTAINER_slist_iter_destroy (i);
         }
 
       /* Poll for faulty pipes */
@@ -982,6 +984,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
               else
                 on_next = GNUNET_NO;
             }
+          GNUNET_CONTAINER_slist_iter_destroy (i);
         }
 
       /* FIXME */

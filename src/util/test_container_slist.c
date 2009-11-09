@@ -68,7 +68,7 @@ main (int argc, char *argv[])
                                      GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
                                      &j, sizeof (j));
     }
-  GNUNET_free (it);
+  GNUNET_CONTAINER_slist_iter_destroy (it);
   CHECK (GNUNET_CONTAINER_slist_count (l) == 200);
   i = 198;
   CHECK (GNUNET_CONTAINER_slist_contains (l, &i, sizeof (i)));
@@ -93,7 +93,7 @@ main (int argc, char *argv[])
 
       GNUNET_CONTAINER_slist_erase (it);
     }
-  GNUNET_free (it);
+  GNUNET_CONTAINER_slist_iter_destroy (it);
   CHECK (GNUNET_CONTAINER_slist_count (l) == 100);
   i = 99;
   CHECK (GNUNET_CONTAINER_slist_contains (l, &i, sizeof (i)) == GNUNET_NO);

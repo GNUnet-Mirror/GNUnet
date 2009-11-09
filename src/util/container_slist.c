@@ -332,4 +332,13 @@ GNUNET_CONTAINER_slist_get (const struct GNUNET_CONTAINER_SList_Iterator *i,
   return i->elem->elem;
 }
 
+/**
+ * Release an iterator
+ * @param i iterator
+ */
+void GNUNET_CONTAINER_slist_iter_destroy (struct GNUNET_CONTAINER_SList_Iterator *i)
+{
+  GNUNET_free (i);
+}
+
 /* end of container_slist.c */

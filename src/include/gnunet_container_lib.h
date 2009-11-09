@@ -1010,6 +1010,13 @@ GNUNET_CONTAINER_slist_get (const struct GNUNET_CONTAINER_SList_Iterator *i,
 			    size_t *len);
 
 
+/**
+ * Release an iterator
+ * @param i iterator
+ */
+void GNUNET_CONTAINER_slist_iter_destroy (struct GNUNET_CONTAINER_SList_Iterator *i);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

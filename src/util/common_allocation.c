@@ -31,7 +31,7 @@
 #define INT_MAX 0x7FFFFFFF
 #endif
 
-#ifdef MINGW
+#if 0
   #define W32_MEM_LIMIT 200000000
 #endif
 
