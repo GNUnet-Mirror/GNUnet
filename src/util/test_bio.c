@@ -31,7 +31,7 @@
 #define TESTNUMBER64 100000L
 
 static int
-test_normal_rw (void)
+test_normal_rw ()
 {
   char *msg;
   int64_t testNum;
@@ -101,7 +101,7 @@ test_nullstring_rw ()
 }
 
 static int
-test_emptystring_rw (void)
+test_emptystring_rw ()
 {
   char *msg;
   char *readResultString;
@@ -126,7 +126,7 @@ test_emptystring_rw (void)
 }
 
 static int
-test_bigstring_rw (void)
+test_bigstring_rw ()
 {
   char *msg;
   char *readResultString;
@@ -186,7 +186,7 @@ test_bigmeta_rw ()
 }
 
 static int
-test_directory_r(void){
+test_directory_r(){
 	char *msg;
 	char readResult[200];
     const char *fileName = "/dev";
@@ -199,7 +199,7 @@ test_directory_r(void){
 }
 
 static int
-test_nullfile_rw (void)
+test_nullfile_rw ()
 {
   char *msg;
   int64_t testNum;
@@ -253,7 +253,7 @@ test_nullfile_rw (void)
 }
 
 static int
-test_fakestring_rw (void)
+test_fakestring_rw ()
 {
   char *msg;
   int32_t tmpInt = 2;
@@ -279,7 +279,7 @@ test_fakestring_rw (void)
 }
 
 static int
-test_fakemeta_rw (void)
+test_fakemeta_rw ()
 {
   char *msg;
   int32_t tmpInt = 2;
@@ -306,7 +306,7 @@ test_fakemeta_rw (void)
 }
 
 static int
-test_fakebigmeta_rw (void)
+test_fakebigmeta_rw ()
 {
   char *msg;
   int32_t tmpInt = 1024 * 1024 * 10;
@@ -333,7 +333,7 @@ test_fakebigmeta_rw (void)
 }
 
 static int
-check_string_rw (void)
+check_string_rw ()
 {
   GNUNET_assert (0 == test_nullstring_rw ());
   GNUNET_assert (0 == test_emptystring_rw ());
@@ -343,7 +343,7 @@ check_string_rw (void)
 }
 
 static int
-check_metadata_rw (void)
+check_metadata_rw ()
 {
   GNUNET_assert (0 == test_fakebigmeta_rw ());
   GNUNET_assert (0 == test_fakemeta_rw ());
@@ -352,7 +352,7 @@ check_metadata_rw (void)
 }
 
 static int
-check_file_rw (void)
+check_file_rw ()
 {
   GNUNET_assert (0 == test_normal_rw ());
   GNUNET_assert (0 == test_nullfile_rw ());
