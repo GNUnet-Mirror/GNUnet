@@ -31,6 +31,14 @@
 #define INT_MAX 0x7FFFFFFF
 #endif
 
+#ifdef MINGW
+  #define W32_MEM_LIMIT 200000000
+#endif
+
+#ifdef W32_MEM_LIMIT
+  static LONG mem_used = 0;
+#endif
+
 /**
  * Allocate memory. Checks the return value, aborts if no more
  * memory is available.
@@ -57,6 +65,12 @@ GNUNET_xmalloc_unchecked_ (size_t size, const char *filename, int linenumber)
 {
   void *result;
 
+#ifdef W32_MEM_LIMIT
+  size += sizeof(size_t);
+  if (mem_used + size > W32_MEM_LIMIT)
+    return NULL;
+#endif
+
   GNUNET_assert_at (size < INT_MAX, filename, linenumber);
   result = malloc (size);
   if (result == NULL)
@@ -65,6 +79,13 @@ GNUNET_xmalloc_unchecked_ (size_t size, const char *filename, int linenumber)
       abort ();
     }
   memset (result, 0, size);
+
+#ifdef W32_MEM_LIMIT
+  *((size_t *) result) = size;
+  result = &((size_t *) result)[1];
+  mem_used += size;
+#endif
+
   return result;
 }
 
@@ -80,14 +101,27 @@ GNUNET_xmalloc_unchecked_ (size_t size, const char *filename, int linenumber)
  */
 void *
 GNUNET_xrealloc_ (void *ptr,
-                  const size_t n, const char *filename, int linenumber)
+#ifndef W32_MEM_LIMIT
+                  const size_t n,
+#else
+                  size_t n,
+#endif
+                  const char *filename, int linenumber)
 {
+#ifdef W32_MEM_LIMIT
+  n += sizeof(size_t);
+  ptr = &((size_t *) ptr)[-1];
+  mem_used = mem_used - *((size_t *) ptr) + n;
+#endif
   ptr = realloc (ptr, n);
   if (!ptr)
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "realloc");
       abort ();
     }
+#ifdef W32_MEM_LIMIT
+  ptr = &((size_t *) ptr)[1];
+#endif
   return ptr;
 }
 
@@ -103,6 +137,10 @@ void
 GNUNET_xfree_ (void *ptr, const char *filename, int linenumber)
 {
   GNUNET_assert_at (ptr != NULL, filename, linenumber);
+#ifdef W32_MEM_LIMIT
+  ptr = &((size_t *) ptr)[-1];
+  mem_used -= *((size_t *) ptr);
+#endif
   free (ptr);
 }
 
@@ -216,6 +254,5 @@ GNUNET_snprintf (char *buf, size_t size, const char *format, ...)
   GNUNET_assert (ret <= size);
   return ret;
 }
-
 
 /* end of common_allocation.c */
