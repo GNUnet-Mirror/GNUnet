@@ -45,6 +45,17 @@ extern "C"
  */
 struct GNUNET_CONFIGURATION_Handle;
 
+
+/**
+ * Used for diffing a configuration object against
+ * the default one
+ */
+typedef struct {
+	struct GNUNET_CONFIGURATION_Handle* cfgNew;
+	struct GNUNET_CONFIGURATION_Handle* cfgDiff;
+} GNUNNET_CONFIGURATION_Diff_Handle;
+
+
 /**
  * Create a new configuration object.
  * @return fresh configuration object
@@ -105,6 +116,18 @@ int GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
 int GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *cfg,
                                 const char *filename);
 
+/**
+ * Write only configuration entries that have been changed to configuration file
+ * @param cfgDefault default configuration
+ * @param cfgNew new configuration
+ * @param filename where to write the configuration diff between default and new
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_CONFIGURATION_write_diffs(
+	struct GNUNET_CONFIGURATION_Handle *cfgDefault,
+	struct GNUNET_CONFIGURATION_Handle *cfgNew,
+	const char* filename);
 
 /**
  * Test if there are configuration options that were

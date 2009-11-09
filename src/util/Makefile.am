@@ -126,6 +126,7 @@ check_PROGRAMS = \
  test_os_load \
  test_os_network \
  test_os_priority \
+ test_peer \
  test_plugin \
  test_program \
  test_pseudonym \
@@ -288,6 +289,11 @@ test_os_priority_SOURCES = \
  test_os_priority.c
 test_os_priority_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
+
+test_peer_SOURCES = \
+ test_peer.c
+test_peer_LDADD = \
+$(top_builddir)/src/util/libgnunetutil.la
 
 test_plugin_SOURCES = \
  test_plugin.c
