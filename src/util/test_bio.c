@@ -42,7 +42,7 @@ test_normal_rw ()
   struct GNUNET_CONTAINER_MetaData *metaDataW;
   struct GNUNET_CONTAINER_MetaData *metaDataR;
   metaDataW = GNUNET_CONTAINER_meta_data_create ();
-  metaDataR = GNUNET_CONTAINER_meta_data_create ();
+  metaDataR = NULL;
   GNUNET_CONTAINER_meta_data_add_publication_date (metaDataW);
 
   fileW = GNUNET_BIO_write_open (fileName);
@@ -55,9 +55,12 @@ test_normal_rw ()
 
   fileR = GNUNET_BIO_read_open (fileName);
   GNUNET_assert (NULL != fileR);
+  readResultString = NULL;
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_BIO_read_string (fileR, "Read string error",
                                          &readResultString, 200));
+  GNUNET_assert (0 == strcmp (TESTSTRING, readResultString));
+  GNUNET_free (readResultString);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_BIO_read_meta_data (fileR, "Read meta error",
                                             &metaDataR));
@@ -116,9 +119,11 @@ test_emptystring_rw ()
 
   fileR = GNUNET_BIO_read_open (fileName);
   GNUNET_assert (NULL != fileR);
+  readResultString = NULL;
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_BIO_read_string (fileR, "Read string error",
                                          &readResultString, 200));
+  GNUNET_free (readResultString);
   GNUNET_BIO_read_close (fileR, &msg);
   GNUNET_assert (GNUNET_OK == GNUNET_DISK_directory_remove (fileName));
   GNUNET_free (fileName);
@@ -141,10 +146,14 @@ test_bigstring_rw ()
 
   fileR = GNUNET_BIO_read_open (fileName);
   GNUNET_assert (NULL != fileR);
+  readResultString = NULL;
   GNUNET_assert (GNUNET_SYSERR ==
                  GNUNET_BIO_read_string (fileR, "Read string error",
                                          &readResultString, 1));
+  GNUNET_assert (NULL == readResultString);
+  msg = NULL;
   GNUNET_BIO_read_close (fileR, &msg);
+  GNUNET_free (msg);
   GNUNET_assert (GNUNET_OK == GNUNET_DISK_directory_remove (fileName));
   GNUNET_free (fileName);
   return 0;
@@ -163,7 +172,6 @@ test_bigmeta_rw ()
   struct GNUNET_CONTAINER_MetaData *metaDataW;
   struct GNUNET_CONTAINER_MetaData *metaDataR;
   metaDataW = GNUNET_CONTAINER_meta_data_create ();
-  metaDataR = GNUNET_CONTAINER_meta_data_create ();
   GNUNET_CONTAINER_meta_data_add_publication_date (metaDataW);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_meta_data_insert (metaDataW,
@@ -176,13 +184,15 @@ test_bigmeta_rw ()
 
   fileR = GNUNET_BIO_read_open (fileName);
   GNUNET_assert (NULL != fileR);
+  metaDataR = NULL;
   GNUNET_assert (GNUNET_SYSERR ==
                  GNUNET_BIO_read_meta_data (fileR, "Read meta error",
                                             &metaDataR));
+  msg = NULL;
   GNUNET_BIO_read_close (fileR, &msg);
-
+  GNUNET_free (msg);
   GNUNET_assert (GNUNET_OK == GNUNET_DISK_directory_remove (fileName));
-  GNUNET_CONTAINER_meta_data_destroy (metaDataR);
+  GNUNET_assert (NULL == metaDataR);
   GNUNET_CONTAINER_meta_data_destroy (metaDataW);
   GNUNET_free (fileName);
   return 0;
@@ -197,7 +207,9 @@ test_directory_r(){
   fileR = GNUNET_BIO_read_open ("/dev");
   GNUNET_assert (NULL != fileR);
   GNUNET_assert (GNUNET_SYSERR == GNUNET_BIO_read (fileR, "Read error", readResult, 65537));
+  msg = NULL;
   GNUNET_BIO_read_close (fileR, &msg);
+  GNUNET_free (msg);
   return 0;
 }
 
@@ -235,7 +247,7 @@ test_nullfile_rw ()
                  GNUNET_BIO_write_meta_data (fileW, metaDataW));
   GNUNET_assert (GNUNET_SYSERR == GNUNET_BIO_write_close (fileW));
 
-  fileW = GNUNET_BIO_write_open (fileName);
+  fileW = GNUNET_BIO_write_open ("/dev/full");
   GNUNET_assert (NULL != fileW);
   GNUNET_assert (GNUNET_SYSERR == GNUNET_BIO_write_close (fileW));
 
@@ -243,14 +255,18 @@ test_nullfile_rw ()
   GNUNET_assert (NULL != fileR);
   GNUNET_assert (GNUNET_SYSERR ==
                  GNUNET_BIO_read (fileR, "Read error", readResult, 65537));
+  readResultString = NULL;
   GNUNET_assert (GNUNET_SYSERR ==
                  GNUNET_BIO_read_string (fileR, "Read string error",
                                          &readResultString, 200));
+  GNUNET_assert (NULL == readResultString);
   GNUNET_assert (GNUNET_SYSERR == GNUNET_BIO_read_int64 (fileR, &testNum));
   GNUNET_assert (GNUNET_SYSERR ==
                  GNUNET_BIO_read_meta_data (fileR, "Read meta error",
                                             &metaDataR));
+  msg = NULL;
   GNUNET_BIO_read_close (fileR, &msg);
+  GNUNET_free (msg);
   GNUNET_CONTAINER_meta_data_destroy (metaDataR);
   GNUNET_CONTAINER_meta_data_destroy (metaDataW);
   return 0;
@@ -276,7 +292,9 @@ test_fakestring_rw ()
   GNUNET_assert (GNUNET_SYSERR ==
                  GNUNET_BIO_read_string (fileR, "Read string error",
                                          &readResult, 200));
+  msg = NULL;
   GNUNET_BIO_read_close (fileR, &msg);
+  GNUNET_free (msg);
   GNUNET_assert (GNUNET_OK == GNUNET_DISK_directory_remove (fileName));
   GNUNET_free (fileName);
   return 0;
@@ -291,7 +309,6 @@ test_fakemeta_rw ()
   struct GNUNET_BIO_ReadHandle *fileR;
   char *fileName = GNUNET_DISK_mktemp ("gnunet_bio");
   struct GNUNET_CONTAINER_MetaData *metaDataR;
-  metaDataR = GNUNET_CONTAINER_meta_data_create ();
 
   fileW = GNUNET_BIO_write_open (fileName);
   GNUNET_assert (NULL != fileW);
@@ -300,12 +317,15 @@ test_fakemeta_rw ()
 
   fileR = GNUNET_BIO_read_open (fileName);
   GNUNET_assert (NULL != fileR);
+  metaDataR = NULL;
   GNUNET_assert (GNUNET_SYSERR ==
                  GNUNET_BIO_read_meta_data (fileR, "Read meta error",
                                             &metaDataR));
+  GNUNET_assert (NULL == metaDataR);
+  msg = NULL;
   GNUNET_BIO_read_close (fileR, &msg);
+  GNUNET_free (msg);
   GNUNET_assert (GNUNET_OK == GNUNET_DISK_directory_remove (fileName));
-  GNUNET_CONTAINER_meta_data_destroy (metaDataR);
   GNUNET_free (fileName);
   return 0;
 }
@@ -319,7 +339,6 @@ test_fakebigmeta_rw ()
   struct GNUNET_BIO_ReadHandle *fileR;
   char *fileName = GNUNET_DISK_mktemp ("gnunet_bio");
   struct GNUNET_CONTAINER_MetaData *metaDataR;
-  metaDataR = GNUNET_CONTAINER_meta_data_create ();
 
   fileW = GNUNET_BIO_write_open (fileName);
   GNUNET_assert (NULL != fileW);
@@ -328,12 +347,15 @@ test_fakebigmeta_rw ()
 
   fileR = GNUNET_BIO_read_open (fileName);
   GNUNET_assert (NULL != fileR);
+  metaDataR = NULL;
   GNUNET_assert (GNUNET_SYSERR ==
                  GNUNET_BIO_read_meta_data (fileR, "Read meta error",
                                             &metaDataR));
+  msg = NULL;
   GNUNET_BIO_read_close (fileR, &msg);
+  GNUNET_free (msg);
   GNUNET_assert (GNUNET_OK == GNUNET_DISK_directory_remove (fileName));
-  GNUNET_CONTAINER_meta_data_destroy (metaDataR);
+  GNUNET_assert (NULL == metaDataR);
   GNUNET_free (fileName);
   return 0;
 }
