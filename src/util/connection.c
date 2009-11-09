@@ -421,17 +421,6 @@ GNUNET_CONNECTION_get_address (struct GNUNET_CONNECTION_Handle *sock,
 
 
 /**
- * It is time to re-try connecting.
- * 
- * @param cls the handle for the connection that should be re-tried
- * @param tc unused scheduler taks context
- */
-static void
-retry_connect_continuation (void *cls,
-                            const struct GNUNET_SCHEDULER_TaskContext *tc);
-
-
-/**
  * This function is called after establishing a connection either has
  * succeeded or timed out.  Note that it is possible that the attempt
  * timed out and that we're immediately retrying.  If we are retrying,
@@ -798,29 +787,6 @@ try_connect_using_address (void *cls,
 
 
 /**
- * It is time to re-try connecting.
- * 
- * @param cls the handle for the connection that should be re-tried
- * @param tc unused scheduler taks context
- */
-static void
-retry_connect_continuation (void *cls,
-                            const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct GNUNET_CONNECTION_Handle *sock = cls;
-
-  GNUNET_assert (sock->dns_active == NULL);
-  sock->dns_active = GNUNET_RESOLVER_ip_get (sock->sched,
-                                             sock->cfg,
-                                             sock->hostname,
-                                             AF_UNSPEC,
-                                             GNUNET_CONNECTION_CONNECT_RETRY_TIMEOUT,
-                                             &try_connect_using_address,
-                                             sock);
-}
-
-
-/**
  * Create a socket handle by (asynchronously) connecting to a host.
  * This function returns immediately, even if the connection has not
  * yet been established.  This function only creates TCP connections.
@@ -850,7 +816,13 @@ GNUNET_CONNECTION_create_from_connect (struct GNUNET_SCHEDULER_Handle *sched,
   ret->write_buffer_size = maxbuf;
   ret->port = port;
   ret->hostname = GNUNET_strdup (hostname);
-  retry_connect_continuation (ret, NULL);
+  ret->dns_active = GNUNET_RESOLVER_ip_get (sched,
+					    cfg,
+					    ret->hostname,
+					    AF_UNSPEC,
+					    GNUNET_CONNECTION_CONNECT_RETRY_TIMEOUT,
+					    &try_connect_using_address,
+					    ret);
   return ret;
 }
 
