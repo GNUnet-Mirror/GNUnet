@@ -78,7 +78,7 @@ struct GNUNET_CLIENT_TransmitHandle
   GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
 
   /**
-   * Timeout.
+   * Timeout for the operation overall.
    */
   struct GNUNET_TIME_Absolute timeout;
 
@@ -216,6 +216,12 @@ struct GNUNET_CLIENT_Connection
   struct GNUNET_TIME_Absolute receive_timeout;
 
   /**
+   * Current value for our incremental back-off (for
+   * connect re-tries).
+   */
+  struct GNUNET_TIME_Relative back_off;
+
+  /**
    * Number of bytes in received_buf that are valid.
    */
   size_t received_pos;
@@ -307,6 +313,7 @@ GNUNET_CLIENT_connect (struct GNUNET_SCHEDULER_Handle *sched,
   ret->sched = sched;
   ret->service_name = GNUNET_strdup (service_name);
   ret->cfg = GNUNET_CONFIGURATION_dup (cfg);
+  ret->back_off = GNUNET_TIME_UNIT_MILLISECONDS;
   return ret;
 }
 
@@ -768,7 +775,10 @@ client_notify (void *cls, size_t size, void *buf)
       th->sock->sock = do_connect (th->sock->sched,
                                    th->sock->service_name, th->sock->cfg);
       GNUNET_assert (NULL != th->sock->sock);
-      delay = GNUNET_TIME_relative_min (delay, GNUNET_TIME_UNIT_SECONDS);
+      delay = GNUNET_TIME_relative_min (delay, th->sock->back_off);
+      th->sock->back_off 
+	= GNUNET_TIME_relative_min (GNUNET_TIME_relative_multiply (th->sock->back_off, 2),
+				    GNUNET_TIME_UNIT_SECONDS);
 #if DEBUG_CLIENT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Transmission failed %u times, trying again in %llums.\n",
