@@ -202,7 +202,6 @@ setup_peer (struct PeerContext *p, const char *cfgname)
                                         "-L", "DEBUG",
 #endif
                                         "-c", cfgname, NULL);
-  sleep (1);                    /* allow ARM to start */
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
   GNUNET_ARM_start_services (p->cfg, sched, "core", NULL);
