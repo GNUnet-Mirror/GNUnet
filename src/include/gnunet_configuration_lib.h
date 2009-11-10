@@ -113,10 +113,9 @@ int GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
-GNUNET_CONFIGURATION_write_diffs(
-	struct GNUNET_CONFIGURATION_Handle *cfgDefault,
-	struct GNUNET_CONFIGURATION_Handle *cfgNew,
-	const char* filename);
+GNUNET_CONFIGURATION_write_diffs(const struct GNUNET_CONFIGURATION_Handle *cfgDefault,
+				 const struct GNUNET_CONFIGURATION_Handle *cfgNew,
+				 const char* filename);
 
 /**
  * Test if there are configuration options that were
