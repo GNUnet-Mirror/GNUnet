@@ -28,7 +28,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #define TESTSTRING "testString"
-#define TESTNUMBER64 100000L
+#define TESTNUMBER64 ((int64_t)100000L)
 
 static int
 test_normal_rw ()
@@ -50,7 +50,7 @@ test_normal_rw ()
   GNUNET_assert (GNUNET_OK == GNUNET_BIO_write_string (fileW, TESTSTRING));
   GNUNET_assert (GNUNET_OK == GNUNET_BIO_write_meta_data (fileW, metaDataW));
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_BIO_write_int64 (fileW, (int64_t) TESTNUMBER64));
+                 GNUNET_BIO_write_int64 (fileW, TESTNUMBER64));
   GNUNET_assert (GNUNET_OK == GNUNET_BIO_write_close (fileW));
 
   fileR = GNUNET_BIO_read_open (fileName);
@@ -240,7 +240,7 @@ test_nullfile_rw ()
   fileW = GNUNET_BIO_write_open ("/dev/full");
   GNUNET_assert (NULL != fileW);
   GNUNET_assert (GNUNET_SYSERR ==
-                 GNUNET_BIO_write (fileW, TESTSTRING, 65537));
+                 GNUNET_BIO_write (fileW, fileNameNO, sizeof(fileNameNO)));
   GNUNET_assert (GNUNET_SYSERR ==
                  GNUNET_BIO_write_string (fileW, TESTSTRING));
   GNUNET_assert (GNUNET_SYSERR ==
