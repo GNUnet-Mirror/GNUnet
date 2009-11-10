@@ -231,23 +231,26 @@ main (int argc, char *argv[])
 //      return 1;
 //    }
 //  
-  struct GNUNET_CONFIGURATION_Handle* cfgDefault = GNUNET_CONFIGURATION_create ();
-  struct GNUNET_CONFIGURATION_Handle* cfgNew = GNUNET_CONFIGURATION_create();
+  struct GNUNET_CONFIGURATION_Handle *cfgDefault =
+    GNUNET_CONFIGURATION_create ();
+  struct GNUNET_CONFIGURATION_Handle *cfgNew = GNUNET_CONFIGURATION_create ();
   if (GNUNET_OK !=
-        GNUNET_CONFIGURATION_parse (cfgDefault, "src/util/test_configuration_data.conf"))
-  {
-    fprintf (stderr, "Failed to parse configuration file\n");
-    GNUNET_CONFIGURATION_destroy (cfgDefault);
-    return 1;
-  }
+      GNUNET_CONFIGURATION_parse (cfgDefault,
+                                  "src/util/test_configuration_data.conf"))
+    {
+      fprintf (stderr, "Failed to parse configuration file\n");
+      GNUNET_CONFIGURATION_destroy (cfgDefault);
+      return 1;
+    }
   if (GNUNET_OK !=
-          GNUNET_CONFIGURATION_parse (cfgNew, "/Users/soufi/Desktop/test_configuration_data.conf"))
-  {
-	fprintf (stderr, "Failed to parse configuration file\n");
-	GNUNET_CONFIGURATION_destroy (cfgNew);
-	return 1;
-  }
-  
-  GNUNET_CONFIGURATION_write_diffs(cfgDefault, cfgNew, "/tmp/safey.conf");	
+      GNUNET_CONFIGURATION_parse (cfgNew,
+                                  "/Users/soufi/Desktop/test_configuration_data.conf"))
+    {
+      fprintf (stderr, "Failed to parse configuration file\n");
+      GNUNET_CONFIGURATION_destroy (cfgNew);
+      return 1;
+    }
+
+  GNUNET_CONFIGURATION_write_diffs (cfgDefault, cfgNew, "/tmp/safey.conf");
   return 0;
 }

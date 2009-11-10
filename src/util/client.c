@@ -362,8 +362,8 @@ check_complete (struct GNUNET_CLIENT_Connection *conn)
 {
   if ((conn->received_pos >= sizeof (struct GNUNET_MessageHeader)) &&
       (conn->received_pos >=
-       ntohs (((const struct GNUNET_MessageHeader *) conn->
-               received_buf)->size)))
+       ntohs (((const struct GNUNET_MessageHeader *) conn->received_buf)->
+              size)))
     conn->msg_complete = GNUNET_YES;
 }
 

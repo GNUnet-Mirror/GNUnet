@@ -336,7 +336,9 @@ GNUNET_CONTAINER_slist_get (const struct GNUNET_CONTAINER_SList_Iterator *i,
  * Release an iterator
  * @param i iterator
  */
-void GNUNET_CONTAINER_slist_iter_destroy (struct GNUNET_CONTAINER_SList_Iterator *i)
+void
+GNUNET_CONTAINER_slist_iter_destroy (struct GNUNET_CONTAINER_SList_Iterator
+                                     *i)
 {
   GNUNET_free (i);
 }

@@ -49,8 +49,7 @@ test_normal_rw ()
   GNUNET_assert (NULL != fileW);
   GNUNET_assert (GNUNET_OK == GNUNET_BIO_write_string (fileW, TESTSTRING));
   GNUNET_assert (GNUNET_OK == GNUNET_BIO_write_meta_data (fileW, metaDataW));
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_BIO_write_int64 (fileW, TESTNUMBER64));
+  GNUNET_assert (GNUNET_OK == GNUNET_BIO_write_int64 (fileW, TESTNUMBER64));
   GNUNET_assert (GNUNET_OK == GNUNET_BIO_write_close (fileW));
 
   fileR = GNUNET_BIO_read_open (fileName);
@@ -199,14 +198,16 @@ test_bigmeta_rw ()
 }
 
 static int
-test_directory_r(){
+test_directory_r ()
+{
   char *msg;
   char readResult[200];
   struct GNUNET_BIO_ReadHandle *fileR;
 
   fileR = GNUNET_BIO_read_open ("/dev");
   GNUNET_assert (NULL != fileR);
-  GNUNET_assert (GNUNET_SYSERR == GNUNET_BIO_read (fileR, "Read error", readResult, 65537));
+  GNUNET_assert (GNUNET_SYSERR ==
+                 GNUNET_BIO_read (fileR, "Read error", readResult, 65537));
   msg = NULL;
   GNUNET_BIO_read_close (fileR, &msg);
   GNUNET_free (msg);
@@ -240,7 +241,7 @@ test_nullfile_rw ()
   fileW = GNUNET_BIO_write_open ("/dev/full");
   GNUNET_assert (NULL != fileW);
   GNUNET_assert (GNUNET_SYSERR ==
-                 GNUNET_BIO_write (fileW, fileNameNO, sizeof(fileNameNO)));
+                 GNUNET_BIO_write (fileW, fileNameNO, sizeof (fileNameNO)));
   GNUNET_assert (GNUNET_SYSERR ==
                  GNUNET_BIO_write_string (fileW, TESTSTRING));
   GNUNET_assert (GNUNET_SYSERR ==
@@ -384,14 +385,15 @@ check_file_rw ()
 {
   GNUNET_assert (0 == test_normal_rw ());
   GNUNET_assert (0 == test_nullfile_rw ());
-  GNUNET_assert (0 == test_directory_r());
+  GNUNET_assert (0 == test_directory_r ());
   return 0;
 }
 
 int
-main (int argc, char *argv[]){
-    GNUNET_assert (0 == check_file_rw());
-    GNUNET_assert (0 == check_metadata_rw());
-    GNUNET_assert (0 == check_string_rw());
-    return 0;
+main (int argc, char *argv[])
+{
+  GNUNET_assert (0 == check_file_rw ());
+  GNUNET_assert (0 == check_metadata_rw ());
+  GNUNET_assert (0 == check_string_rw ());
+  return 0;
 }                               /* end of main */

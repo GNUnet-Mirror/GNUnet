@@ -976,7 +976,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
                   on_next = GNUNET_YES;
                 }
             }
-           GNUNET_CONTAINER_slist_iter_destroy (i);
+          GNUNET_CONTAINER_slist_iter_destroy (i);
         }
 
       /* Poll for faulty pipes */
@@ -1043,7 +1043,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
         }
     select_loop_end:
       if (retcode == 0 && nfds == 0)
-        Sleep(GNUNET_MIN(100, limit - GetTickCount()));
+        Sleep (GNUNET_MIN (100, limit - GetTickCount ()));
     }
   while (retcode == 0 && (ms_total == INFINITE || GetTickCount () < limit));
   if (retcode != -1)

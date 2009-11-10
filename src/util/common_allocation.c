@@ -32,11 +32,11 @@
 #endif
 
 #if 0
-  #define W32_MEM_LIMIT 200000000
+#define W32_MEM_LIMIT 200000000
 #endif
 
 #ifdef W32_MEM_LIMIT
-  static LONG mem_used = 0;
+static LONG mem_used = 0;
 #endif
 
 /**
@@ -66,7 +66,7 @@ GNUNET_xmalloc_unchecked_ (size_t size, const char *filename, int linenumber)
   void *result;
 
 #ifdef W32_MEM_LIMIT
-  size += sizeof(size_t);
+  size += sizeof (size_t);
   if (mem_used + size > W32_MEM_LIMIT)
     return NULL;
 #endif
@@ -109,7 +109,7 @@ GNUNET_xrealloc_ (void *ptr,
                   const char *filename, int linenumber)
 {
 #ifdef W32_MEM_LIMIT
-  n += sizeof(size_t);
+  n += sizeof (size_t);
   ptr = &((size_t *) ptr)[-1];
   mem_used = mem_used - *((size_t *) ptr) + n;
 #endif

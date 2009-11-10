@@ -799,7 +799,8 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
     {
       if (GNUNET_SYSERR ==
           (disablev6 = GNUNET_CONFIGURATION_get_value_yesno (sctx->cfg,
-                                                             sctx->serviceName,
+                                                             sctx->
+                                                             serviceName,
                                                              "DISABLEV6")))
         return GNUNET_SYSERR;
     }

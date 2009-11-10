@@ -817,12 +817,11 @@ GNUNET_CONNECTION_create_from_connect (struct GNUNET_SCHEDULER_Handle *sched,
   ret->port = port;
   ret->hostname = GNUNET_strdup (hostname);
   ret->dns_active = GNUNET_RESOLVER_ip_get (sched,
-					    cfg,
-					    ret->hostname,
-					    AF_UNSPEC,
-					    GNUNET_CONNECTION_CONNECT_RETRY_TIMEOUT,
-					    &try_connect_using_address,
-					    ret);
+                                            cfg,
+                                            ret->hostname,
+                                            AF_UNSPEC,
+                                            GNUNET_CONNECTION_CONNECT_RETRY_TIMEOUT,
+                                            &try_connect_using_address, ret);
   return ret;
 }
 
@@ -971,9 +970,8 @@ receive_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "Receive from `%s' encounters error: time out by %llums... (%p)\n",
                     GNUNET_a2s (sh->addr, sh->addrlen),
-                    GNUNET_TIME_absolute_get_duration (sh->
-                                                       receive_timeout).value,
-                    sh);
+                    GNUNET_TIME_absolute_get_duration (sh->receive_timeout).
+                    value, sh);
 #endif
       signal_timeout (sh);
       return;
@@ -1320,8 +1318,8 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (sock->write_buffer_pos <= sock->write_buffer_size);
 RETRY:
   ret = GNUNET_NETWORK_socket_send (sock->sock,
-                                    &sock->
-                                    write_buffer[sock->write_buffer_pos],
+                                    &sock->write_buffer[sock->
+                                                        write_buffer_pos],
                                     have);
   if (ret == -1)
     {
@@ -1418,8 +1416,8 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle
 #endif
       sock->write_task = GNUNET_SCHEDULER_add_write_net (sock->sched,
                                                          GNUNET_TIME_absolute_get_remaining
-                                                         (sock->
-                                                          nth.transmit_timeout),
+                                                         (sock->nth.
+                                                          transmit_timeout),
                                                          sock->sock,
                                                          &transmit_ready,
                                                          sock);
