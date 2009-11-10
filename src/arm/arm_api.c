@@ -245,11 +245,12 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
 
   if (msg == NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("Error receiving response to `%s' request from ARM service\n"),
-		  (sc->type == GNUNET_MESSAGE_TYPE_ARM_START) 
-		  ? "START"
-		  : "STOP");
+      if (0 == (GNUNET_SCHEDULER_REASON_SHUTDOWN & GNUNET_SCHEDULER_get_reason (sc->h->sched)))
+	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		    _("Error receiving response to `%s' request from ARM service\n"),
+		    (sc->type == GNUNET_MESSAGE_TYPE_ARM_START) 
+		    ? "START"
+		    : "STOP");
       GNUNET_CLIENT_disconnect (sc->h->client);
       sc->h->client = GNUNET_CLIENT_connect (sc->h->sched, 
 					     "arm", 
