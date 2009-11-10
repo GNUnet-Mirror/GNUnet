@@ -749,7 +749,7 @@ client_notify (void *cls, size_t size, void *buf)
     {
       delay = GNUNET_TIME_absolute_get_remaining (th->timeout);
       delay.value /= 2;
-      if ( (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & GNUNET_SCHEDULER_get_reason (th->sched))) ||
+      if ( (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & GNUNET_SCHEDULER_get_reason (th->sock->sched))) ||
 	   (GNUNET_YES != th->auto_retry) ||
 	   (0 == --th->attempts_left) || 
 	   (delay.value < 1) )
