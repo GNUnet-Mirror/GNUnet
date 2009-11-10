@@ -543,7 +543,6 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
   GNUNET_break (h->dns_active == GNUNET_NO);
   GNUNET_break (h->sock == NULL);
 
-  /* FIXME: trigger delayed reconnect attempt... */
   /* trigger jobs that used to wait on "connect_task" */
   if (0 != (h->ccs & COCO_RECEIVE_AGAIN))
     {

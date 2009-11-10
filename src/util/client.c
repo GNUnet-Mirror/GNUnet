@@ -747,13 +747,12 @@ client_notify (void *cls, size_t size, void *buf)
   th->sock->th = NULL;
   if (buf == NULL)
     {
-      // FIXME: need a way to check if the
-      // reason is SHUTDOWN (not timeout) and
-      // if so NOT retry!
       delay = GNUNET_TIME_absolute_get_remaining (th->timeout);
       delay.value /= 2;
-      if ((GNUNET_YES != th->auto_retry) ||
-          (0 == --th->attempts_left) || (delay.value < 1))
+      if ( (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & GNUNET_SCHEDULER_get_reason (th->sched))) ||
+	   (GNUNET_YES != th->auto_retry) ||
+	   (0 == --th->attempts_left) || 
+	   (delay.value < 1) )
         {
 #if DEBUG_CLIENT
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
