@@ -135,7 +135,6 @@ check ()
                                  "-L", "DEBUG",
 #endif
                                  "-c", "test_statistics_api_data.conf", NULL);
-  sleep (1);
   GNUNET_PROGRAM_run (3, argv, "test-statistics-api", "nohelp",
                       options, &run, &ok);
   if (0 != PLIBC_KILL (pid, SIGTERM))
@@ -154,7 +153,6 @@ check ()
                                  "-L", "DEBUG",
 #endif
                                  "-c", "test_statistics_api_data.conf", NULL);
-  sleep (1);
   GNUNET_PROGRAM_run (3, argv, "test-statistics-api", "nohelp",
                       options, &run_more, &ok);
   if (0 != PLIBC_KILL (pid, SIGTERM))
