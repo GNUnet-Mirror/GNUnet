@@ -242,6 +242,18 @@ unsigned int GNUNET_SCHEDULER_get_load (struct GNUNET_SCHEDULER_Handle *sched,
 
 
 /**
+ * Obtain the reason code for why the current task was
+ * started.  Will return the same value as 
+ * the GNUNET_SCHEDULER_TaskContext's reason field.
+ *
+ * @param sched scheduler to query
+ * @return reason(s) why the current task is run
+ */
+enum GNUNET_SCHEDULER_Reason
+GNUNET_SCHEDULER_get_reason (struct GNUNET_SCHEDULER_Handle *sched);
+
+
+/**
  * Cancel the task with the specified identifier.
  * The task must not yet have run.
  *

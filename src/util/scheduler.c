@@ -110,6 +110,11 @@ struct GNUNET_SCHEDULER_Handle
   struct Task *pending;
 
   /**
+   * ID of the task that is running right now.
+   */
+  struct Task *active_task;
+
+  /**
    * List of tasks ready to run right now,
    * grouped by importance.
    */
@@ -456,6 +461,7 @@ run_ready (struct GNUNET_SCHEDULER_Handle *sched)
       sched->ready_count--;
       sched->current_priority = p;
       GNUNET_assert (pos->priority == p);
+      sched->active_task = pos;
       tc.sched = sched;
       tc.reason = pos->reason;
       tc.read_ready = pos->read_set;
@@ -465,6 +471,7 @@ run_ready (struct GNUNET_SCHEDULER_Handle *sched)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Running task: %llu / %p\n", pos->id, pos->callback_cls);
 #endif
+      sched->active_task = NULL;
       destroy_task (pos);
       sched->tasks_run++;
     }
@@ -600,6 +607,20 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
   GNUNET_NETWORK_fdset_destroy (ws);
 }
 
+
+/**
+ * Obtain the reason code for why the current task was
+ * started.  Will return the same value as 
+ * the GNUNET_SCHEDULER_TaskContext's reason field.
+ *
+ * @param sched scheduler to query
+ * @return reason(s) why the current task is run
+ */
+enum GNUNET_SCHEDULER_Reason
+GNUNET_SCHEDULER_get_reason (struct GNUNET_SCHEDULER_Handle *sched)
+{
+  return sched->active_task->reason;
+}
 
 
 /**
