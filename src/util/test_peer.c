@@ -28,7 +28,8 @@
 #include "gnunet_peer_lib.h"
 
 #define NUMBER_OF_PEERS 10
-/*#define DEBUG*/
+
+#define DEBUG GNUNET_NO
 
 /**
  * A list of Peer ID's to play with 
@@ -45,7 +46,7 @@ generatePeerIdList ()
     {
       GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK,
                                         &pidArr[i].hashPubKey);
-#ifdef DEBUG
+#if DEBUG
       printf ("Peer %d: %s\n", i, GNUNET_i2s (&pidArr[i]));
 #endif
     }
@@ -57,7 +58,10 @@ check ()
 {
   int i;
   GNUNET_PEER_Id pid;
+  struct GNUNET_PeerIdentity res;
+  GNUNET_PEER_Id ids[] = { 1, 2, 3 };
 
+  GNUNET_assert (0 == GNUNET_PEER_intern (NULL));
   /* Insert Peers into PeerEntry table and hashmap */
   for (i = 0; i < NUMBER_OF_PEERS; i++)
     {
@@ -77,28 +81,24 @@ check ()
       if (pid != (i + 1))
         {
           fprintf (stderr,
-                   "Unexpcted Peer ID returned by intern function \n");
+                   "Unexpected Peer ID returned by intern function \n");
           return 1;
         }
     }
 
-  /* Dereferencing the first 3 peers once [decrementing their reference count] */
-  {
-    GNUNET_PEER_Id ids[] = { 1, 2, 3 };
-    GNUNET_PEER_decrement_rcs (ids, 3);
-  }
+  /* Dereferencing the first 3 peers once [decrementing their reference count] */ 
+  GNUNET_PEER_decrement_rcs (ids, 3);  
 
   /* re-referencing the first 3 peers using the change_rc function */
-  for (i = 0; i < 3; i++)
-    {
-      GNUNET_PEER_change_rc (i, 1);
-    }
+  for (i = 0; i < 3; i++)   
+    GNUNET_PEER_change_rc (i, 1);
 
   /* Removing the second Peer from the PeerEntry hash map */
   GNUNET_PEER_change_rc (2, -2);
 
   /* convert the pid of the first PeerEntry into that of the third */
-  GNUNET_PEER_resolve (1, &pidArr[3]);
+  GNUNET_PEER_resolve (1, &res);
+  GNUNET_assert (0 == memcmp (&res, &pidArr[0], sizeof(res)));
 
   return 0;
 }
@@ -107,9 +107,15 @@ check ()
 int
 main ()
 {
+  int i;
   GNUNET_log_setup ("test-peer", "ERROR", NULL);
-  generatePeerIdList ();
-  return check ();
+  for (i=0;i<1;i++)
+    {
+      generatePeerIdList ();
+      if (0 != check ())
+	return 1;
+    }
+  return 0;
 }
 
 /* end of test_peer.c */
