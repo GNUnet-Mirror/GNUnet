@@ -106,7 +106,7 @@ struct GNUNET_CONFIGURATION_Handle
 struct DiffHandle
 {
   const struct GNUNET_CONFIGURATION_Handle *cfgDefault;
-  const struct GNUNET_CONFIGURATION_Handle *cfgDiff;
+  struct GNUNET_CONFIGURATION_Handle *cfgDiff;
 };
 
 
@@ -495,6 +495,7 @@ compareEntries (void *cls,
        (strcmp (entNew->val, value) == 0) )
     return;
   GNUNET_CONFIGURATION_set_value_string (dh->cfgDiff,
+					 section,
 					 option,
 					 value);
 }
