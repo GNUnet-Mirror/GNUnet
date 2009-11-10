@@ -45,17 +45,6 @@ extern "C"
  */
 struct GNUNET_CONFIGURATION_Handle;
 
-
-/**
- * Used for diffing a configuration object against
- * the default one
- */
-typedef struct {
-	struct GNUNET_CONFIGURATION_Handle* cfgNew;
-	struct GNUNET_CONFIGURATION_Handle* cfgDiff;
-} GNUNNET_CONFIGURATION_Diff_Handle;
-
-
 /**
  * Create a new configuration object.
  * @return fresh configuration object
