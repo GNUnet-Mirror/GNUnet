@@ -176,7 +176,6 @@ check ()
                                  "-L", "DEBUG",
 #endif
                                  "-c", "test_resolver_api_data.conf", NULL);
-  sleep (1);
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "test-resolver-api", "nohelp",
                       options, &run, &ok);
