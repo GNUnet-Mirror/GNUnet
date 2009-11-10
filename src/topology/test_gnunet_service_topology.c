@@ -155,7 +155,7 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
-  sleep (1);
+  sleep (1); /* FIXME: needed? */
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-topology");
   return ret;
 }
