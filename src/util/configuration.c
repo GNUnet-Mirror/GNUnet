@@ -98,6 +98,16 @@ struct GNUNET_CONFIGURATION_Handle
 
 };
 
+/**
+ * Used for diffing a configuration object against
+ * the default one
+ */
+struct GNUNNET_CONFIGURATION_Diff_Handle{
+	struct GNUNET_CONFIGURATION_Handle* cfgNew;
+	struct GNUNET_CONFIGURATION_Handle* cfgDiff;
+};
+
+
 
 /**
  * Create a GNUNET_CONFIGURATION_Handle.
@@ -478,7 +488,7 @@ compareEntries(
 {
 	struct ConfigSection *secNew;
 	struct ConfigEntry *entNew;
-	GNUNNET_CONFIGURATION_Diff_Handle* cfgDiff = (GNUNNET_CONFIGURATION_Diff_Handle*)cls;
+	struct GNUNNET_CONFIGURATION_Diff_Handle* cfgDiff = (struct GNUNNET_CONFIGURATION_Diff_Handle*)cls;
 	
 	secNew = findSection(cfgDiff->cfgNew, section);
 	entNew = findEntry(cfgDiff->cfgNew, section, option);
@@ -551,14 +561,18 @@ GNUNET_CONFIGURATION_write_diffs(
 	const char* filename
 	)
 {
-	GNUNNET_CONFIGURATION_Diff_Handle *diffHandle = 
-		GNUNET_malloc(sizeof(GNUNNET_CONFIGURATION_Diff_Handle));
-	diffHandle->cfgDiff = GNUNET_CONFIGURATION_create();
-	diffHandle->cfgDiff->sections = NULL;
-	diffHandle->cfgNew = cfgNew;
-	GNUNET_CONFIGURATION_iterate(cfgDefault, compareEntries, diffHandle);
+	int ret;
+	struct GNUNNET_CONFIGURATION_Diff_Handle diffHandle;
+	diffHandle.cfgDiff = GNUNET_CONFIGURATION_create();
+	diffHandle.cfgDiff->sections = NULL;
+	diffHandle.cfgNew = cfgNew;
+	GNUNET_CONFIGURATION_iterate(cfgDefault, compareEntries, &diffHandle);
 	
-	return GNUNET_CONFIGURATION_write(diffHandle->cfgDiff, filename);
+	ret = GNUNET_CONFIGURATION_write(diffHandle.cfgDiff, filename);
+	
+	/* Housekeeping */
+	GNUNET_CONFIGURATION_destroy(diffHandle.cfgDiff);
+	return ret;
 }
 
 
