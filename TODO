@@ -37,7 +37,6 @@ Urgent items (before announcing ng.gnunet.org):
 
 0.9.0pre0:
 * UTIL:
-  - heap: "remove_node" can hardly be O(1) given the API, but it should be [Radhika]
   - load: need way to determine network load (up/down)
   - trust: need *fast* way to check/update trust in peers
            (async peerinfo would not be right)

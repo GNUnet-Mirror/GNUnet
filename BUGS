@@ -10,7 +10,6 @@ sane end-user should care about this codebase yet anyway.
 
 * UTIL:
   - container_bloomfilter: improve efficiency (see FIXME)
-  - server: inefficient memmove
   - Windows: use events instead of pipes to signal select()s [Nils]
   - only connect() sockets that are ready (select()) [Nils]
     [On W32, we need to select after calling socket before
@@ -124,9 +123,6 @@ Nov 03 22:38:57 topology DEBUG I am peer `AJ5M'==4186== Syscall param socketcall
 ==4186== 
 
 
-* DATASTORE:
-  - mysql backend
-  - postgres backend
 * SETUP:
   - auto-generate "defaults.conf" using gnunet-setup from "config.scm"
   - integrate all options into "config.scm"
@@ -145,20 +141,12 @@ Nov 03 22:38:57 topology DEBUG I am peer `AJ5M'==4186== Syscall param socketcall
   - [./core/gnunet-service-core.c:469]: (style) struct or union member 'Neighbour::message_queue_size' is never used
   - [./core/test_core_api_start_only.c:50]: (style) struct or union member 'PeerContext::id' is never used
 
-* PEERINFO:
-  - have gnunet-peerinfo print actual host addresses again
-  - add option to gnunet-peerinfo to modify trust value
-* POSTGRES-DB:
-  - finish postgres implementation; simplify other SQLs using new stats
 * HTTPS transport
   - Better SSL-support for MHD
   - https integration
 * GAP improvements:
   - active reply route caching design & implementation of service,
     gap extension!
-* HOSTLIST:
-  - implement advertising of hostlist URL
-  - implement learning of hostlist URLs
 * TESTING:
   - consider changing API for peer-group termination to 
     call continuation when done
