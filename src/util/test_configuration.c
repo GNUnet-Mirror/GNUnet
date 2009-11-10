@@ -173,84 +173,62 @@ testConfigFilenames ()
 int
 main (int argc, char *argv[])
 {
-//  int failureCount = 0;
-//  char *c;
+  int failureCount = 0;
+  char *c;
 
-//  GNUNET_log_setup ("test_configuration", "WARNING", NULL);
-//  cfg = GNUNET_CONFIGURATION_create ();
-//  GNUNET_assert (cfg != NULL);
-//  if (GNUNET_OK !=
-//      GNUNET_CONFIGURATION_parse (cfg, "test_configuration_data.conf"))
-//    {
-//      fprintf (stderr, "Failed to parse configuration file\n");
-//      GNUNET_CONFIGURATION_destroy (cfg);
-//      return 1;
-//    }
-//  failureCount += testConfig ();
-//  failureCount += 2 * testConfigFilenames ();
-//
-//  if (GNUNET_OK != GNUNET_CONFIGURATION_write (cfg, "/tmp/gnunet-test.conf"))
-//    {
-//      fprintf (stderr, "Failed to write configuration file\n");
-//      GNUNET_CONFIGURATION_destroy (cfg);
-//      return 1;
-//    }
-//  GNUNET_CONFIGURATION_destroy (cfg);
-//  GNUNET_assert (0 == UNLINK ("/tmp/gnunet-test.conf"));
-//
-//  cfg = GNUNET_CONFIGURATION_create ();
-//  if (GNUNET_OK !=
-//      GNUNET_CONFIGURATION_load (cfg, "test_configuration_data.conf"))
-//    {
-//      GNUNET_break (0);
-//      GNUNET_CONFIGURATION_destroy (cfg);
-//      return 1;
-//    }
-//  if ((GNUNET_OK !=
-//       GNUNET_CONFIGURATION_get_value_string (cfg, "TESTING", "WEAKRANDOM",
-//                                              &c))
-//      || (0 != strcmp (c, "YES")))
-//    {
-//      GNUNET_CONFIGURATION_destroy (cfg);
-//      return 1;
-//    }
-//  GNUNET_free (c);
-//  if ((GNUNET_OK !=
-//       GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS", "SERVICEHOME",
-//                                              &c))
-//      || (0 != strcmp (c, "/var/lib/gnunet/")))
-//    {
-//      GNUNET_CONFIGURATION_destroy (cfg);
-//      return 1;
-//    }
-//  GNUNET_free (c);
-//  GNUNET_CONFIGURATION_destroy (cfg);
-//  if (failureCount != 0)
-//    {
-//      fprintf (stderr, "Test failed: %u\n", failureCount);
-//      return 1;
-//    }
-//  
-  struct GNUNET_CONFIGURATION_Handle *cfgDefault =
-    GNUNET_CONFIGURATION_create ();
-  struct GNUNET_CONFIGURATION_Handle *cfgNew = GNUNET_CONFIGURATION_create ();
+  GNUNET_log_setup ("test_configuration", "WARNING", NULL);
+  cfg = GNUNET_CONFIGURATION_create ();
+  GNUNET_assert (cfg != NULL);
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_parse (cfgDefault,
-                                  "src/util/test_configuration_data.conf"))
+      GNUNET_CONFIGURATION_parse (cfg, "test_configuration_data.conf"))
     {
       fprintf (stderr, "Failed to parse configuration file\n");
-      GNUNET_CONFIGURATION_destroy (cfgDefault);
+      GNUNET_CONFIGURATION_destroy (cfg);
       return 1;
     }
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_parse (cfgNew,
-                                  "/Users/soufi/Desktop/test_configuration_data.conf"))
-    {
-      fprintf (stderr, "Failed to parse configuration file\n");
-      GNUNET_CONFIGURATION_destroy (cfgNew);
-      return 1;
-    }
+  failureCount += testConfig ();
+  failureCount += 2 * testConfigFilenames ();
 
-  GNUNET_CONFIGURATION_write_diffs (cfgDefault, cfgNew, "/tmp/safey.conf");
+  if (GNUNET_OK != GNUNET_CONFIGURATION_write (cfg, "/tmp/gnunet-test.conf"))
+    {
+      fprintf (stderr, "Failed to write configuration file\n");
+      GNUNET_CONFIGURATION_destroy (cfg);
+      return 1;
+    }
+  GNUNET_CONFIGURATION_destroy (cfg);
+  GNUNET_assert (0 == UNLINK ("/tmp/gnunet-test.conf"));
+
+  cfg = GNUNET_CONFIGURATION_create ();
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_load (cfg, "test_configuration_data.conf"))
+    {
+      GNUNET_break (0);
+      GNUNET_CONFIGURATION_destroy (cfg);
+      return 1;
+    }
+  if ((GNUNET_OK !=
+       GNUNET_CONFIGURATION_get_value_string (cfg, "TESTING", "WEAKRANDOM",
+                                              &c))
+      || (0 != strcmp (c, "YES")))
+    {
+      GNUNET_CONFIGURATION_destroy (cfg);
+      return 1;
+    }
+  GNUNET_free (c);
+  if ((GNUNET_OK !=
+       GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS", "SERVICEHOME",
+                                              &c))
+      || (0 != strcmp (c, "/var/lib/gnunet/")))
+    {
+      GNUNET_CONFIGURATION_destroy (cfg);
+      return 1;
+    }
+  GNUNET_free (c);
+  GNUNET_CONFIGURATION_destroy (cfg);
+  if (failureCount != 0)
+    {
+      fprintf (stderr, "Test failed: %u\n", failureCount);
+      return 1;
+    }
   return 0;
 }

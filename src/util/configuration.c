@@ -98,14 +98,15 @@ struct GNUNET_CONFIGURATION_Handle
 
 };
 
+
 /**
  * Used for diffing a configuration object against
  * the default one
  */
-struct GNUNNET_CONFIGURATION_Diff_Handle
+struct DiffHandle
 {
-  struct GNUNET_CONFIGURATION_Handle *cfgNew;
-  struct GNUNET_CONFIGURATION_Handle *cfgDiff;
+  const struct GNUNET_CONFIGURATION_Handle *cfgDefault;
+  const struct GNUNET_CONFIGURATION_Handle *cfgDiff;
 };
 
 
@@ -473,88 +474,29 @@ findEntry (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * A callback function, compares entries from two configurations (default against a new configuration)
- * and write the diffs in a diff-configuration object (the callback object).
- * @param cls the diff configuration (ConfigurationDiffHandle*)
+ * A callback function, compares entries from two configurations
+ * (default against a new configuration) and write the diffs in a
+ * diff-configuration object (the callback object).
+ *
+ * @param cls the diff configuration (struct DiffHandle*)
  * @param section section for the value (of the default conf.)
  * @param option option name of the value (of the default conf.)
  * @param value value to copy (of the default conf.)
  */
-void
+static void
 compareEntries (void *cls,
                 const char *section, const char *option, const char *value)
 {
-  struct ConfigSection *secNew;
+  struct DiffHandle *dh = cls;
   struct ConfigEntry *entNew;
-  struct GNUNNET_CONFIGURATION_Diff_Handle *cfgDiff =
-    (struct GNUNNET_CONFIGURATION_Diff_Handle *) cls;
-
-  secNew = findSection (cfgDiff->cfgNew, section);
-  entNew = findEntry (cfgDiff->cfgNew, section, option);
-  if (secNew && strcmp (entNew->val, value) != 0)
-    {
-      /* Value in the new configuration has been changed */
-      /* Add the changed value to the diff configuration object */
-      struct ConfigEntry *diffEntry = NULL;
-      struct ConfigSection *diffSection = NULL;
-
-      diffSection = cfgDiff->cfgDiff->sections;
-      if (diffSection == NULL)
-        {
-          /* First section */
-          diffSection = GNUNET_malloc (sizeof (struct ConfigSection));
-          memcpy (diffSection, secNew, sizeof (struct ConfigSection));
-          cfgDiff->cfgDiff->sections = diffSection;
-          diffSection->entries = NULL;
-          diffSection->next = NULL;
-        }
-      else
-        {
-          while ((strcmp (diffSection->name, secNew->name) != 0)
-                 && (diffSection->next != NULL))
-            {
-              diffSection = diffSection->next;
-            }
-          if (strcmp (diffSection->name, secNew->name) != 0)
-            {
-              /* Section not found in diffs configuration */
-              diffSection->next =
-                GNUNET_malloc (sizeof (struct ConfigSection));
-              memcpy (diffSection->next, secNew,
-                      sizeof (struct ConfigSection));
-              diffSection->next->entries = NULL;
-              diffSection->next->next = NULL;
-            }
-          else
-            {
-              diffEntry = diffSection->entries;
-            }
-        }
-
-      if (diffEntry == NULL)
-        {
-          /* First Entry */
-          diffEntry = GNUNET_malloc (sizeof (struct ConfigEntry));
-          memcpy (diffEntry, entNew, sizeof (struct ConfigEntry));
-          if (diffSection->next == NULL)
-            /* The first Entry of the first Section */
-            diffSection->entries = diffEntry;
-          else
-            /* The first entry of the non-first Section */
-            diffSection->next->entries = diffEntry;
-          diffEntry->next = NULL;
-        }
-      else
-        {
-          while (diffEntry->next != NULL)
-            {
-              diffEntry = diffEntry->next;
-            }
-          diffEntry->next = GNUNET_malloc (sizeof (struct ConfigEntry));
-          memcpy (diffEntry->next, entNew, sizeof (struct ConfigEntry));
-          diffEntry->next->next = NULL;
-        }
-    }
+ 
+  entNew = findEntry (dh->cfgDefault, section, option);
+  if ( (entNew != NULL) &&
+       (strcmp (entNew->val, value) == 0) )
+    return;
+  GNUNET_CONFIGURATION_set_value_string (dh->cfgDiff,
+					 option,
+					 value);
 }
 
 
@@ -566,21 +508,18 @@ compareEntries (void *cls,
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
-GNUNET_CONFIGURATION_write_diffs (struct GNUNET_CONFIGURATION_Handle
+GNUNET_CONFIGURATION_write_diffs (const struct GNUNET_CONFIGURATION_Handle
                                   *cfgDefault,
-                                  struct GNUNET_CONFIGURATION_Handle *cfgNew,
+                                  const struct GNUNET_CONFIGURATION_Handle *cfgNew,
                                   const char *filename)
 {
   int ret;
-  struct GNUNNET_CONFIGURATION_Diff_Handle diffHandle;
+  struct DiffHandle diffHandle;
+
   diffHandle.cfgDiff = GNUNET_CONFIGURATION_create ();
-  diffHandle.cfgDiff->sections = NULL;
-  diffHandle.cfgNew = cfgNew;
-  GNUNET_CONFIGURATION_iterate (cfgDefault, compareEntries, &diffHandle);
-
+  diffHandle.cfgDefault = cfgDefault;
+  GNUNET_CONFIGURATION_iterate (cfgNew, compareEntries, &diffHandle);
   ret = GNUNET_CONFIGURATION_write (diffHandle.cfgDiff, filename);
-
-  /* Housekeeping */
   GNUNET_CONFIGURATION_destroy (diffHandle.cfgDiff);
   return ret;
 }
