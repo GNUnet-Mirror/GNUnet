@@ -98,7 +98,7 @@ main (int argc, char *argv[])
   /* ACTUAL TEST CODE */
   old = GNUNET_PSEUDONYM_list_all (cfg, NULL, NULL);
   meta = GNUNET_CONTAINER_meta_data_create ();
-  GNUNET_CONTAINER_meta_data_insert (meta, EXTRACTOR_TITLE, "test");
+  GNUNET_CONTAINER_meta_data_insert (meta, EXTRACTOR_TITLE,"test");
   GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &id1);
   GNUNET_PSEUDONYM_add (cfg, &id1, meta);
   CHECK (notiCount == 1);
