@@ -1529,7 +1529,6 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
 			     &sk,
 			     &iv,
 			     &sb_enc[1]);
-  GNUNET_free (sb);
   sb_enc->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_FS_SBLOCK);
   sb_enc->purpose.size = htonl(slen + mdsize + nidlen
 			       + sizeof(struct SBlock)
@@ -1545,6 +1544,7 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   if (0 != (options & GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY))
     {
       GNUNET_free (sb_enc);
+      GNUNET_free (sb);
       sb_put_cont (psc,
 		   GNUNET_OK,
 		   NULL);
@@ -1554,6 +1554,7 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   if (NULL == psc->dsh)
     {
       GNUNET_free (sb_enc);
+      GNUNET_free (sb);
       sb_put_cont (psc,
 		   GNUNET_NO,
 		   _("Failed to connect to datastore."));
@@ -1572,6 +1573,7 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
 			GNUNET_CONSTANTS_SERVICE_TIMEOUT,
 			&sb_put_cont,
 			psc);
+  GNUNET_free (sb);
   GNUNET_free (sb_enc);
 }
 
