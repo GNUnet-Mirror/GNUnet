@@ -1432,6 +1432,10 @@ struct GNUNET_DISK_MapHandle
 };
 
 
+#ifndef MAP_FAILED
+#define MAP_FAILED ((void *) -1)
+#endif
+
 /**
  * Map a file into memory
  *
@@ -1498,6 +1502,7 @@ GNUNET_DISK_file_map (const struct GNUNET_DISK_FileHandle *h,
   return ret;
 #else
   int prot;
+  int ec;
 
   prot = 0;
   if (access & GNUNET_DISK_MAP_TYPE_READ)
@@ -1506,6 +1511,14 @@ GNUNET_DISK_file_map (const struct GNUNET_DISK_FileHandle *h,
     prot |= PROT_WRITE;
   *m = GNUNET_malloc (sizeof (struct GNUNET_DISK_MapHandle));
   (*m)->addr = mmap (NULL, len, prot, MAP_SHARED, h->fd, 0);
+  GNUNET_assert (NULL != (*m)->addr);
+  if (MAP_FAILED == (*m)->addr)
+    {    
+      ec = errno;
+      GNUNET_free (*m);
+      errno = ec;
+      return NULL;
+    }
   (*m)->len = len;
   return (*m)->addr;
 #endif

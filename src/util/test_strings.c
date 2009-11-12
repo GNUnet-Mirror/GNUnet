@@ -90,11 +90,11 @@ check ()
       GNUNET_free (r);
       return 1;
     }
+  GNUNET_free (r);
   b = GNUNET_STRINGS_to_utf8 ("TEST", 4, "ASCII");
   WANT ("TEST", b);
   b = GNUNET_STRINGS_to_utf8 ("TEST", 4, "unknown");
   WANT ("TEST", b);
-  GNUNET_free (r);
   return 0;
 }
 
