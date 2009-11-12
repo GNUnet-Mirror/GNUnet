@@ -943,6 +943,7 @@ canonicalize_keyword (const char *in)
 	  /* keep characters listed above without changes */
 	  *wpos = *rpos;
 	  wpos++;
+	  break;
 	default:
 	  /* replace characters listed above with '_' */
 	  *wpos = '_';
