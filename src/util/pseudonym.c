@@ -29,6 +29,7 @@
 #include "gnunet_container_lib.h"
 #include "gnunet_disk_lib.h"
 #include "gnunet_pseudonym_lib.h"
+#include "gnunet_bio_lib.h"
 
 /** 
  * FIXME
@@ -175,46 +176,18 @@ write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
                       const struct GNUNET_CONTAINER_MetaData *meta,
                       int32_t ranking, const char *ns_name)
 {
-  size_t size;
-  size_t tag;
-  size_t off;
-  char *buf;
   char *fn;
 
   fn = get_data_filename (cfg, PS_METADATA_DIR, nsid);
   GNUNET_assert (fn != NULL);
-  size = GNUNET_CONTAINER_meta_data_get_serialized_size (meta,
-                                                         GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL);
-  tag = size + sizeof (int32_t) + 1;
-  off = 0;
-  if (ns_name != NULL)
-    {
-      off = strlen (ns_name);
-      tag += off;
-    }
-  buf = GNUNET_malloc (tag);
-  ((int32_t *) buf)[0] = htonl (ranking);       /* ranking */
-  if (ns_name != NULL)
-    {
-      memcpy (&buf[sizeof (int32_t)], ns_name, off + 1);
-    }
-  else
-    {
-      buf[sizeof (int)] = '\0';
-    }
-  GNUNET_assert
-    (size == GNUNET_CONTAINER_meta_data_serialize (meta,
-                                                   &buf[sizeof
-                                                        (int32_t) +
-                                                        off + 1],
-                                                   size,
-                                                   GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL));
-  GNUNET_break
-    (tag == GNUNET_DISK_fn_write (fn, buf, tag, GNUNET_DISK_PERM_USER_READ
-                                  | GNUNET_DISK_PERM_USER_WRITE |
-                                  GNUNET_DISK_PERM_GROUP_READ));
+  struct GNUNET_BIO_WriteHandle *fileW;
+  fileW = GNUNET_BIO_write_open(fn);
+  GNUNET_assert (NULL != fileW);
+  GNUNET_assert (GNUNET_OK == GNUNET_BIO_write_int32(fileW, ranking));
+  GNUNET_assert (GNUNET_OK == GNUNET_BIO_write_string(fileW, ns_name));
+  GNUNET_assert (GNUNET_OK == GNUNET_BIO_write_meta_data(fileW, meta));
+  GNUNET_assert(GNUNET_OK == GNUNET_BIO_write_close(fileW));
   GNUNET_free (fn);
-  GNUNET_free (buf);
   /* create entry for pseudonym name in names */
   GNUNET_free_non_null (GNUNET_PSEUDONYM_id_to_name (cfg, nsid));
 }
@@ -229,84 +202,19 @@ read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
            struct GNUNET_CONTAINER_MetaData **meta,
            int32_t * ranking, char **ns_name)
 {
-  uint64_t len;
-  size_t size;
-  size_t zend;
-  struct stat sbuf;
-  char *buf;
   char *fn;
+  char *emsg;
 
-  if (meta != NULL)
-    *meta = NULL;
-  if (ns_name != NULL)
-    *ns_name = NULL;
   fn = get_data_filename (cfg, PS_METADATA_DIR, nsid);
   GNUNET_assert (fn != NULL);
-
-  if ((0 != STAT (fn, &sbuf))
-      || (GNUNET_OK != GNUNET_DISK_file_size (fn, &len, GNUNET_YES)))
-    {
-      GNUNET_free (fn);
-      return GNUNET_SYSERR;
-    }
-  if (len <= sizeof (int32_t) + 1)
-    {
-      GNUNET_free (fn);
-      return GNUNET_SYSERR;
-    }
-  if (len > 16 * 1024 * 1024)
-    {
-      /* too big, must be invalid! remove! */
-      GNUNET_break (0);
-      if (0 != UNLINK (fn))
-        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
-      GNUNET_free (fn);
-      return GNUNET_SYSERR;
-    }
-  buf = GNUNET_malloc (len);
-  if (len != GNUNET_DISK_fn_read (fn, buf, len))
-    {
-      GNUNET_free (buf);
-      GNUNET_free (fn);
-      return GNUNET_SYSERR;
-    }
-  if (ranking != NULL)
-    *ranking = ntohl (((int32_t *) buf)[0]);
-  zend = sizeof (int32_t);
-  while ((zend < len) && (buf[zend] != '\0'))
-    zend++;
-  if (zend == len)
-    {
-      GNUNET_free (buf);
-      GNUNET_free (fn);
-      return GNUNET_SYSERR;
-    }
-  if (ns_name != NULL)
-    {
-      if (zend != sizeof (int32_t))
-        *ns_name = GNUNET_strdup (&buf[sizeof (int32_t)]);
-      else
-        *ns_name = NULL;
-    }
-  zend++;
-  size = len - zend;
-  if (meta != NULL)
-    {
-      *meta = GNUNET_CONTAINER_meta_data_deserialize (&buf[zend], size);
-      if ((*meta) == NULL)
-        {
-          /* invalid data! remove! */
-          GNUNET_break (0);
-          if (0 != UNLINK (fn))
-            GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-                                      "unlink", fn);
-          GNUNET_free (buf);
-          GNUNET_free (fn);
-          return GNUNET_SYSERR;
-        }
-    }
+  struct GNUNET_BIO_ReadHandle *fileR;
+  fileR = GNUNET_BIO_read_open(fn);
+  GNUNET_assert (NULL != fileR);
+  GNUNET_assert (GNUNET_OK == GNUNET_BIO_read_int32__(fileR, "Read int32 error!", ranking));
+  GNUNET_assert (GNUNET_OK == GNUNET_BIO_read_string(fileR, "Read string error!", ns_name, 200));
+  GNUNET_assert (GNUNET_OK == GNUNET_BIO_read_meta_data(fileR, "Read meta data error!", meta));
+  GNUNET_assert(GNUNET_OK == GNUNET_BIO_read_close(fileR, &emsg));
   GNUNET_free (fn);
-  GNUNET_free (buf);
   return GNUNET_OK;
 }
 
@@ -333,10 +241,12 @@ GNUNET_PSEUDONYM_id_to_name (const struct GNUNET_CONFIGURATION_Handle *cfg,
   unsigned int idx;
   char *ret;
   struct stat sbuf;
+  int32_t temp = 0;
+  int32_t *rank = &temp;
 
   meta = NULL;
   name = NULL;
-  if (GNUNET_OK == read_info (cfg, nsid, &meta, NULL, &name))
+  if (GNUNET_OK == read_info (cfg, nsid, &meta, rank, &name))
     {
       if ((meta != NULL) && (name == NULL))
         name = GNUNET_CONTAINER_meta_data_get_first_by_types (meta,
@@ -493,6 +403,7 @@ list_pseudonym_helper (void *cls, const char *fullname)
   int rating;
   struct GNUNET_CONTAINER_MetaData *meta;
   const char *fn;
+  const char *str = "not null";
 
   if (strlen (fullname) < sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded))
     return GNUNET_OK;
@@ -504,7 +415,7 @@ list_pseudonym_helper (void *cls, const char *fullname)
   ret = GNUNET_OK;
   if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (fn, &id))
     return GNUNET_OK;           /* invalid name */
-  if (GNUNET_OK != read_info (c->cfg, &id, &meta, &rating, NULL))
+  if (GNUNET_OK != read_info (c->cfg, &id, &meta, &rating, &str))
     return GNUNET_OK;           /* ignore entry */
   if (c->iterator != NULL)
     ret = c->iterator (c->closure, &id, meta, rating);
