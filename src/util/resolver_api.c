@@ -228,7 +228,8 @@ handle_address_response (void *cls, const struct GNUNET_MessageHeader *msg)
   if (msg == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("Timeout trying to resolve hostname.\n"));
+                  _("Timeout trying to resolve hostname `%s'.\n"),
+		  rh->hostname);
       rh->addr_callback (rh->cls, NULL, 0);
       GNUNET_CLIENT_disconnect (rh->client);
       GNUNET_free (rh);
@@ -248,7 +249,8 @@ handle_address_response (void *cls, const struct GNUNET_MessageHeader *msg)
     {
 #if DEBUG_RESOLVER
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  _("Received end message resolving hostname.\n"));
+                  _("Received end message resolving hostname `%s'.\n"),
+		  rh->hostname);
 #endif
       rh->addr_callback (rh->cls, NULL, 0);
       GNUNET_CLIENT_disconnect (rh->client);
@@ -268,7 +270,9 @@ handle_address_response (void *cls, const struct GNUNET_MessageHeader *msg)
 #if DEBUG_RESOLVER
   {
     char *ips = no_resolve (sa, salen);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Resolver returns `%s'.\n", ips);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Resolver returns `%s' for `%s'.\n", ips,
+		rh->hostname);
     GNUNET_free (ips);
   }
 #endif
@@ -507,7 +511,8 @@ handle_hostname_response (void *cls, const struct GNUNET_MessageHeader *msg)
   if (msg == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("Timeout trying to resolve IP address.\n"));
+                  _("Timeout trying to resolve IP address `%s'.\n"),
+		  GNUNET_a2s ((const void*) &rh[1], rh->salen));
       rh->name_callback (rh->cls, NULL);
       GNUNET_CLIENT_disconnect (rh->client);
       GNUNET_free (rh);
@@ -518,7 +523,8 @@ handle_hostname_response (void *cls, const struct GNUNET_MessageHeader *msg)
     {
 #if DEBUG_RESOLVER
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  _("Received end message resolving IP address.\n"));
+                  _("Received end message resolving IP address `%s'.\n"),
+		  GNUNET_a2s ((const void*) &rh[1], rh->salen));
 #endif
       rh->name_callback (rh->cls, NULL);
       GNUNET_CLIENT_disconnect (rh->client);
@@ -536,7 +542,9 @@ handle_hostname_response (void *cls, const struct GNUNET_MessageHeader *msg)
     }
 #if DEBUG_RESOLVER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("Resolver returns `%s'.\n"), hostname);
+              _("Resolver returns `%s' for IP `%s'.\n"), 
+	      hostname,
+	      GNUNET_a2s ((const void*) &rh[1], rh->salen));
 #endif
   rh->name_callback (rh->cls, hostname);
   GNUNET_CLIENT_receive (rh->client,
