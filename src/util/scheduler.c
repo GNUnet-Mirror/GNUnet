@@ -608,14 +608,14 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
       check_ready (&sched, rs, ws);
       run_ready (&sched);
     }
-#ifndef MINGW
   GNUNET_SIGNAL_handler_uninstall (shc_int);
   GNUNET_SIGNAL_handler_uninstall (shc_term);
+#ifndef MINGW
   GNUNET_SIGNAL_handler_uninstall (shc_quit);
   GNUNET_SIGNAL_handler_uninstall (shc_hup);
+#endif
   GNUNET_DISK_pipe_close (sigpipe);
   sigpipe = NULL;
-#endif
   GNUNET_NETWORK_fdset_destroy (rs);
   GNUNET_NETWORK_fdset_destroy (ws);
 }

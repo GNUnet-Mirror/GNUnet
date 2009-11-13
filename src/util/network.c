@@ -636,6 +636,9 @@ GNUNET_NETWORK_fdset_add (struct GNUNET_NETWORK_FDSet *dst,
         if (nfds + 1 > dst->nsds)
           dst->nsds = nfds + 1;
       }
+#ifdef MINGW
+  GNUNET_CONTAINER_slist_append (dst->handles, src->handles);
+#endif
 }
 
 
@@ -652,21 +655,8 @@ GNUNET_NETWORK_fdset_copy (struct GNUNET_NETWORK_FDSet *to,
   to->nsds = from->nsds;
 
 #ifdef MINGW
-  struct GNUNET_CONTAINER_SList_Iterator *iter;
   GNUNET_CONTAINER_slist_clear (to->handles);
-  for (iter = GNUNET_CONTAINER_slist_begin (from->handles);
-       GNUNET_CONTAINER_slist_end (iter) != GNUNET_YES;
-       GNUNET_CONTAINER_slist_next (iter))
-
-    {
-      void *handle;
-      size_t len;
-      handle = GNUNET_CONTAINER_slist_get (iter, &len);
-      GNUNET_CONTAINER_slist_add (to->handles,
-                                  GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
-                                  handle, len);
-    }
-  GNUNET_CONTAINER_slist_iter_destroy (iter);
+  GNUNET_CONTAINER_slist_append (to->handles, from->handles);
 #endif /*  */
 }
 
@@ -697,7 +687,7 @@ GNUNET_NETWORK_fdset_handle_set (struct GNUNET_NETWORK_FDSet *fds,
 #ifdef MINGW
   HANDLE hw;
   GNUNET_DISK_internal_file_handle_ (h, &hw, sizeof (HANDLE));
-  GNUNET_CONTAINER_slist_add (fds->handles, GNUNET_NO, &hw, sizeof (HANDLE));
+  GNUNET_CONTAINER_slist_add (fds->handles, GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT, &hw, sizeof (HANDLE));
 
 #else /*  */
   int fd;
@@ -722,7 +712,7 @@ GNUNET_NETWORK_fdset_handle_isset (const struct GNUNET_NETWORK_FDSet *fds,
 {
 
 #ifdef MINGW
-  return GNUNET_CONTAINER_slist_contains (fds->handles, h->h,
+  return GNUNET_CONTAINER_slist_contains (fds->handles, &h->h,
                                           sizeof (HANDLE));
 
 #else /*  */
@@ -749,6 +739,24 @@ GNUNET_NETWORK_fdset_overlap (const struct GNUNET_NETWORK_FDSet *fds1,
   for (; nfds >= 0; nfds--)
     if (FD_ISSET (nfds, &fds1->sds) && FD_ISSET (nfds, &fds2->sds))
       return GNUNET_YES;
+#ifdef MINGW
+  {
+      struct GNUNET_CONTAINER_SList_Iterator *it;
+
+      for(it = GNUNET_CONTAINER_slist_begin (fds1->handles); GNUNET_CONTAINER_slist_end (it) != GNUNET_YES; GNUNET_CONTAINER_slist_next (it))
+        {
+          HANDLE *h;
+
+          h = GNUNET_CONTAINER_slist_get (it, NULL);
+          if (GNUNET_CONTAINER_slist_contains (fds2->handles, h, sizeof (HANDLE)))
+            {
+              GNUNET_CONTAINER_slist_iter_destroy (it);
+              return GNUNET_YES;
+            }
+        }
+      GNUNET_CONTAINER_slist_iter_destroy (it);
+  }
+#endif
   return GNUNET_NO;
 }
 
@@ -859,6 +867,8 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   DWORD limit;
   fd_set sock_read, sock_write, sock_except;
   fd_set aread, awrite, aexcept;
+  struct GNUNET_CONTAINER_SList *handles_read, *handles_write, *handles_except;
+
   int i;
   struct timeval tvslice;
   int retcode;
@@ -880,6 +890,11 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
       Sleep (ms_total);
       return 0;
     }
+
+  handles_read = GNUNET_CONTAINER_slist_create ();
+  handles_write = GNUNET_CONTAINER_slist_create ();
+  handles_except = GNUNET_CONTAINER_slist_create ();
+
   if (rfds)
     sock_read = rfds->sds;
   else
@@ -936,22 +951,16 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 
         {
           struct GNUNET_CONTAINER_SList_Iterator *i;
-          int on_next;
-          on_next = GNUNET_NO;
           for (i = GNUNET_CONTAINER_slist_begin (rfds->handles);
                GNUNET_CONTAINER_slist_end (i) != GNUNET_YES;
-               on_next || GNUNET_CONTAINER_slist_next (i))
+               GNUNET_CONTAINER_slist_next (i))
 
             {
               HANDLE h;
               DWORD dwBytes;
               h = *(HANDLE *) GNUNET_CONTAINER_slist_get (i, NULL);
-              on_next = GNUNET_NO;
               if (!PeekNamedPipe (h, NULL, 0, NULL, &dwBytes, NULL))
-
                 {
-                  GNUNET_CONTAINER_slist_erase (i);
-                  on_next = GNUNET_YES;
                   retcode = -1;
                   SetErrnoFromWinError (GetLastError ());
 
@@ -962,18 +971,13 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 #endif /*  */
                   goto select_loop_end;
                 }
-
               else if (dwBytes)
 
                 {
+                  GNUNET_CONTAINER_slist_add (handles_read,
+                      GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT, &h,
+                      sizeof (HANDLE));
                   retcode++;
-                }
-
-              else
-
-                {
-                  GNUNET_CONTAINER_slist_erase (i);
-                  on_next = GNUNET_YES;
                 }
             }
           GNUNET_CONTAINER_slist_iter_destroy (i);
@@ -984,33 +988,31 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 
         {
           struct GNUNET_CONTAINER_SList_Iterator *i;
-          int on_next;
-          on_next = GNUNET_NO;
           for (i = GNUNET_CONTAINER_slist_begin (efds->handles);
                GNUNET_CONTAINER_slist_end (i) != GNUNET_YES;
-               on_next || GNUNET_CONTAINER_slist_next (i))
+               GNUNET_CONTAINER_slist_next (i))
 
             {
               HANDLE h;
               DWORD dwBytes;
               h = *(HANDLE *) GNUNET_CONTAINER_slist_get (i, NULL);
-              if (PeekNamedPipe (h, NULL, 0, NULL, &dwBytes, NULL))
+              if (!PeekNamedPipe (h, NULL, 0, NULL, &dwBytes, NULL))
 
                 {
-                  GNUNET_CONTAINER_slist_erase (i);
-                  on_next = GNUNET_YES;
+                  GNUNET_CONTAINER_slist_add (handles_except,
+                      GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT, &h,
+                      sizeof (HANDLE));
                   retcode++;
                 }
-
-              else
-                on_next = GNUNET_NO;
             }
           GNUNET_CONTAINER_slist_iter_destroy (i);
         }
 
-      /* FIXME */
       if (wfds)
-        GNUNET_assert (GNUNET_CONTAINER_slist_count (wfds->handles) == 0);
+        {
+          GNUNET_CONTAINER_slist_append (handles_write, wfds->handles);
+          retcode += GNUNET_CONTAINER_slist_count (wfds->handles);
+        }
 
       /* Check for closed sockets */
       for (i = 0; i < nfds; i++)
@@ -1046,6 +1048,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
         Sleep (GNUNET_MIN (100, limit - GetTickCount ()));
     }
   while (retcode == 0 && (ms_total == INFINITE || GetTickCount () < limit));
+
   if (retcode != -1)
 
     {
@@ -1054,20 +1057,32 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
         {
           GNUNET_NETWORK_fdset_zero (rfds);
           GNUNET_NETWORK_fdset_copy_native (rfds, &aread, retcode);
+          GNUNET_CONTAINER_slist_clear (rfds->handles);
+          GNUNET_CONTAINER_slist_append (rfds->handles, handles_read);
+
         }
       if (wfds)
 
         {
           GNUNET_NETWORK_fdset_zero (wfds);
           GNUNET_NETWORK_fdset_copy_native (wfds, &awrite, retcode);
+          GNUNET_CONTAINER_slist_clear (wfds->handles);
+          GNUNET_CONTAINER_slist_append (wfds->handles, handles_write);
         }
       if (efds)
 
         {
           GNUNET_NETWORK_fdset_zero (efds);
           GNUNET_NETWORK_fdset_copy_native (efds, &aexcept, retcode);
+          GNUNET_CONTAINER_slist_clear (efds->handles);
+          GNUNET_CONTAINER_slist_append (efds->handles, handles_except);
         }
     }
+
+  GNUNET_CONTAINER_slist_destroy (handles_read);
+  GNUNET_CONTAINER_slist_destroy (handles_write);
+  GNUNET_CONTAINER_slist_destroy (handles_except);
+
   return retcode;
 
 #endif /*  */

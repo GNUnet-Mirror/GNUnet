@@ -197,11 +197,7 @@ taskSig (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   *ok = 8;
   GNUNET_SCHEDULER_add_delayed (tc->sched,
                                 GNUNET_TIME_UNIT_FOREVER_REL, &taskLast, cls);
-#ifndef MINGW
   GNUNET_break (0 == PLIBC_KILL (getpid (), SIGTERM));
-#else
-  GNUNET_SCHEDULER_shutdown (tc->sched);
-#endif
 }
 
 
@@ -257,7 +253,9 @@ main (int argc, char *argv[])
 
   GNUNET_log_setup ("test_scheduler", "WARNING", NULL);
   ret += check ();
+#ifndef MINGW
   ret += checkSignal ();
+#endif
   ret += checkShutdown ();
   ret += checkCancel ();
   GNUNET_DISK_pipe_close (p);
