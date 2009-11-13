@@ -777,11 +777,13 @@ restart_processing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_SERVER_Client *client = cls;
 
+  GNUNET_SERVER_client_keep (client);
   process_client_buffer (client);
   if (0 == client->suspended)
     client->receive (client->client_closure,
                      GNUNET_SERVER_MAX_MESSAGE_SIZE,
                      client->server->idle_timeout, &process_incoming, client);
+  GNUNET_SERVER_client_drop (client);
 }
 
 
