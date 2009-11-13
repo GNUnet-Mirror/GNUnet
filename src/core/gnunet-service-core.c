@@ -1524,6 +1524,11 @@ batch_message (struct Neighbour *n,
           ret += pos->size;
           size -= pos->size;
           *priority += pos->priority;
+#if DEBUG_CORE
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Adding plaintext message with deadline %llu ms to batch\n",
+		      GNUNET_TIME_absolute_get_remaining (pos->deadline).value);
+#endif
           deadline->value = GNUNET_MIN (deadline->value, pos->deadline.value);
           GNUNET_free (pos);
           if (prev == NULL)
@@ -1537,6 +1542,11 @@ batch_message (struct Neighbour *n,
         }
       pos = next;
     }
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Deadline for message batch is %llu ms\n",
+	      GNUNET_TIME_absolute_get_remaining (*deadline).value);
+#endif
   return ret;
 }
 
@@ -1707,7 +1717,6 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
                                       &retry_plaintext_processing, n);
       return;
     }
-
   ph->sequence_number = htonl (++n->last_sequence_number_sent);
   ph->inbound_bpm_limit = htonl (n->bpm_in);
   ph->timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
@@ -1726,9 +1735,10 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
   /* encrypt */
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Encrypting %u bytes of plaintext messages for `%4s' for transmission.\n",
+              "Encrypting %u bytes of plaintext messages for `%4s' for transmission in %llums.\n",
 	      esize,
-	      GNUNET_i2s(&n->peer));
+	      GNUNET_i2s(&n->peer),
+	      (unsigned long long) GNUNET_TIME_absolute_get_remaining (deadline).value);
 #endif
   GNUNET_assert (GNUNET_OK ==
                  do_encrypt (n,
@@ -2146,6 +2156,12 @@ send_key (struct Neighbour *n)
       GNUNET_break (0);
       break;
     }
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Have %llu ms left for `%s' transmission.\n",
+	      (unsigned long long) GNUNET_TIME_absolute_get_remaining (me->deadline).value,
+	      "SET_KEY");
+#endif
   /* trigger queue processing */
   process_encrypted_neighbour_queue (n);
   if (n->status != PEER_STATE_KEY_CONFIRMED)
