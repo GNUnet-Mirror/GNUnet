@@ -62,7 +62,7 @@ addr_callback (void *cls, int add_remove,
 static void
 stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_NAT_Handle *nat = cls;
+  struct GNUNET_NAT_Handle *nat = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stopping NAT and quitting...\n");
   GNUNET_NAT_unregister (nat);
@@ -97,7 +97,7 @@ run (void *cls,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_NAT_Handle *nat;
+  struct GNUNET_NAT_Handle *nat;
   struct addr_cls data;
   struct sockaddr *addr;
 
