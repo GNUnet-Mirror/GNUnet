@@ -398,6 +398,7 @@ void
 GNUNET_SCHEDULER_shutdown (struct GNUNET_SCHEDULER_Handle *sched)
 {
   struct Task *pos;
+  int i;
 
   pos = sched->pending;
   while (pos != NULL)
@@ -408,6 +409,18 @@ GNUNET_SCHEDULER_shutdown (struct GNUNET_SCHEDULER_Handle *sched)
          readyness-factors */
       pos = pos->next;
     }
+  for (i=0;i<GNUNET_SCHEDULER_PRIORITY_COUNT;i++)
+    {
+      pos = sched->ready[i];
+      while (pos != NULL)
+	{
+	  pos->reason |= GNUNET_SCHEDULER_REASON_SHUTDOWN;
+	  /* we don't move the task into the ready queue yet; check_ready
+	     will do that later, possibly adding additional
+	     readyness-factors */
+	  pos = pos->next;
+	}
+    }  
 }
 
 
