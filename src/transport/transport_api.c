@@ -617,6 +617,12 @@ schedule_control_transmit (struct GNUNET_TRANSPORT_Handle *h,
 {
   struct GNUNET_TRANSPORT_TransmitHandle *th;
 
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Control transmit of %u bytes within %llums requested\n", 
+	      size,
+	      (unsigned long long) timeout.value);
+#endif
   th = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_TransmitHandle));
   th->handle = h;
   th->notify = notify;
@@ -996,8 +1002,9 @@ request_connect (void *cls, size_t size, void *buf)
     }
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmitting `%s' message for `%4s'.\n",
-              "TRY_CONNECT", GNUNET_i2s (&th->target));
+              "Transmitting `%s' message for `%4s' (need connection in %llu ms).\n",
+              "TRY_CONNECT", GNUNET_i2s (&th->target),
+	      GNUNET_TIME_absolute_get_remaining (th->timeout).value);
 #endif
   GNUNET_assert (size >= sizeof (struct TryConnectMessage));
   tcm = buf;
@@ -1101,6 +1108,9 @@ remove_neighbour (struct GNUNET_TRANSPORT_Handle *h,
       if (GNUNET_TIME_absolute_get_remaining (th->timeout).value <= CONNECT_RETRY_TIMEOUT.value)
 	{
 	  /* signal error */
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		      _("Connection with `%4s' failed and timeout was in the past, giving up on message delivery.\n"),
+		      GNUNET_i2s (peer));
 	  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == th->notify_delay_task);
 	  peer_transmit_timeout (th, NULL);	  
 	}
@@ -1919,7 +1929,7 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
 #endif
   th->notify_delay_task
     = GNUNET_SCHEDULER_add_now (handle->sched,
-				&peer_transmit_timeout, th);
+				&transmit_ready, th);
   return th;
 }
 
