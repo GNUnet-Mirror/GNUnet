@@ -146,6 +146,29 @@ GNUNET_CONTAINER_slist_add (struct GNUNET_CONTAINER_SList *l,
 
 
 /**
+ * Append a singly linked list to another
+ * @param dst list to append to
+ * @param src source
+ */
+void
+GNUNET_CONTAINER_slist_append (struct GNUNET_CONTAINER_SList *dst, struct GNUNET_CONTAINER_SList *src)
+{
+  struct GNUNET_CONTAINER_SList_Iterator *i;
+
+  for (i = GNUNET_CONTAINER_slist_begin (src); GNUNET_CONTAINER_slist_end (i) !=
+      GNUNET_YES; GNUNET_CONTAINER_slist_next (i))
+
+    {
+      GNUNET_CONTAINER_slist_add (dst,
+          (i->elem->disp == GNUNET_CONTAINER_SLIST_DISPOSITION_STATIC) ? GNUNET_CONTAINER_SLIST_DISPOSITION_STATIC
+              : GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT, i->elem->elem,
+          i->elem->len);
+    }
+  GNUNET_CONTAINER_slist_iter_destroy (i);
+}
+
+
+/**
  * Create a new singly linked list
  * @return the new list
  */

@@ -913,6 +913,15 @@ void GNUNET_CONTAINER_slist_add (struct GNUNET_CONTAINER_SList *l,
 
 
 /**
+ * Append a singly linked list to another
+ * @param dst list to append to
+ * @param src source
+ */
+void
+GNUNET_CONTAINER_slist_append (struct GNUNET_CONTAINER_SList *dst, struct GNUNET_CONTAINER_SList *src);
+
+
+/**
  * Create a new singly linked list
  * @return the new list
  */
