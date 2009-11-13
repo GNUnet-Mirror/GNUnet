@@ -52,8 +52,8 @@ struct GNUNET_NAT_Handle
 {
   int is_enabled;
 
-  GNUNET_NAT_port_forwarding natpmp_status;
-  GNUNET_NAT_port_forwarding upnp_status;
+  enum GNUNET_NAT_port_forwarding natpmp_status;
+  enum GNUNET_NAT_port_forwarding upnp_status;
 
   int should_change;
   u_short public_port;
@@ -102,7 +102,7 @@ get_nat_state_str (int state)
 #endif
 
 static int
-get_traversal_status (const GNUNET_NAT_Handle * s)
+get_traversal_status (const struct GNUNET_NAT_Handle * s)
 {
   return MAX (s->natpmp_status, s->upnp_status);
 }
@@ -135,7 +135,7 @@ GNUNET_NAT_cmp_addr (const struct sockaddr *a, const struct sockaddr *b)
  * or nullify the previous sockaddr. Change the port if needed.
  */
 static void
-notify_change (GNUNET_NAT_Handle *nat, struct sockaddr *addr, int new_port_mapped)
+notify_change (struct GNUNET_NAT_Handle *nat, struct sockaddr *addr, int new_port_mapped)
 {
   static int port_mapped = GNUNET_NO;
 
@@ -209,7 +209,7 @@ notify_change (GNUNET_NAT_Handle *nat, struct sockaddr *addr, int new_port_mappe
 static void
 nat_pulse (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_NAT_Handle *nat = cls;
+  struct GNUNET_NAT_Handle *nat = cls;
   static int first_warning = GNUNET_YES;
   int old_status;
   int new_status;
@@ -295,7 +295,7 @@ GNUNET_NAT_register (struct GNUNET_SCHEDULER_Handle *sched,
                      const struct sockaddr *addr, socklen_t addrlen,
                      GNUNET_NAT_AddressCallback callback, void *callback_cls)
 {
-  GNUNET_NAT_Handle *nat = GNUNET_malloc (sizeof (GNUNET_NAT_Handle));
+  struct GNUNET_NAT_Handle *nat = GNUNET_malloc (sizeof (struct GNUNET_NAT_Handle));
 
   if (addr)
     {

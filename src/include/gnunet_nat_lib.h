@@ -36,31 +36,37 @@
 
 #include <inttypes.h>
 
-/* Used to communicate with the UPnP and NAT-PMP plugins */
-typedef enum
-{
-  GNUNET_NAT_PORT_ERROR,
-  GNUNET_NAT_PORT_UNMAPPED,
-  GNUNET_NAT_PORT_UNMAPPING,
-  GNUNET_NAT_PORT_MAPPING,
-  GNUNET_NAT_PORT_MAPPED
-}
-GNUNET_NAT_port_forwarding;
+/**
+ * Used to communicate with the UPnP and NAT-PMP plugins 
+ * FIXME: move to src/nat/common.h
+ */
+enum GNUNET_NAT_port_forwarding
+  {
+    GNUNET_NAT_PORT_ERROR,
+    GNUNET_NAT_PORT_UNMAPPED,
+    GNUNET_NAT_PORT_UNMAPPING,
+    GNUNET_NAT_PORT_MAPPING,
+    GNUNET_NAT_PORT_MAPPED
+  };
+
 
 /**
  * Signature of the callback passed to GNUNET_NAT_register.
  *
- * @cls closure
- * @add_remove GNUNET_YES to mean the new public IP address, GNUNET_NO to mean
+ * @param cls closure
+ * @param add_remove GNUNET_YES to mean the new public IP address, GNUNET_NO to mean
  *     the previous (now invalid) one
- * @addr either the previous or the new public IP address
- * @addrlen actual lenght of the address
+ * @param addr either the previous or the new public IP address
+ * @param addrlen actual lenght of the address
  */
 typedef void (*GNUNET_NAT_AddressCallback) (void *cls, int add_remove,
                                             const struct sockaddr * addr,
                                             socklen_t addrlen);
 
-typedef struct GNUNET_NAT_Handle GNUNET_NAT_Handle;
+/**
+ * Handle for active NAT registrations.
+ */
+struct GNUNET_NAT_Handle;
 
 /**
  * Attempt to enable port redirection and detect public IP address contacting
@@ -68,11 +74,12 @@ typedef struct GNUNET_NAT_Handle GNUNET_NAT_Handle;
  * of the local host's addresses should the external port be mapped. The port
  * is taken from the corresponding sockaddr_in[6] field.
  *
- * @sched the sheduler used in the program
- * @addr the local address packets should be redirected to
- * @addrlen actual lenght of the address
- * @callback function to call everytime the public IP address changes
- * @callback_cls closure for @callback
+ * @param sched the sheduler used in the program
+ * @param addr the local address packets should be redirected to
+ * @param addrlen actual lenght of the address
+ * @param callback function to call everytime the public IP address changes
+ * @param callback_cls closure for callback
+ * @return NULL on error, otherwise handle that can be used to unregister 
  */
 struct GNUNET_NAT_Handle *GNUNET_NAT_register (struct GNUNET_SCHEDULER_Handle
                                                *sched,
@@ -85,15 +92,22 @@ struct GNUNET_NAT_Handle *GNUNET_NAT_register (struct GNUNET_SCHEDULER_Handle
  * Stop port redirection and public IP address detection for the given handle.
  * This frees the handle, after having sent the needed commands to close open ports.
  *
- * @h the handle to stop
+ * @param h the handle to stop
  */
 void GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h);
 
 /**
  * Compare the sin(6)_addr fields of AF_INET or AF_INET(6) sockaddr.
- * @param a first sockaddr
- * @param second sockaddr
- * @returns 0 if addresses are equal, non-null value otherwise */
-int GNUNET_NAT_cmp_addr (const struct sockaddr *a, const struct sockaddr *b);
+ * FIXME: move to src/nat/common.h or so.
+ * 
+ * @param param a first sockaddr
+ * @param param b second sockaddr
+ * @return 0 if addresses are equal, non-null value otherwise 
+ */
+int GNUNET_NAT_cmp_addr (const struct sockaddr *a, 
+			 const struct sockaddr *b);
 
-#endif /* GNUNET_NAT_LIB_H */
+
+#endif 
+
+/* end of gnunet_nat_lib.h */
