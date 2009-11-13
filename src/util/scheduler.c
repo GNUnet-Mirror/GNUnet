@@ -832,6 +832,31 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_SCHEDULER_Handle * sched,
 }
 
 
+
+/**
+ * Schedule a new task to be run as soon as possible. The task
+ * will be run with the priority of the calling task.
+ *
+ * @param sched scheduler to use
+ * @param task main function of the task
+ * @param task_cls closure of task
+ * @return unique task identifier for the job
+ *         only valid until "task" is started!
+ */
+GNUNET_SCHEDULER_TaskIdentifier
+GNUNET_SCHEDULER_add_now (struct GNUNET_SCHEDULER_Handle *sched,
+			  GNUNET_SCHEDULER_Task task,
+			  void *task_cls)
+{
+  return GNUNET_SCHEDULER_add_select (sched,
+                                      GNUNET_SCHEDULER_PRIORITY_KEEP,
+                                      GNUNET_SCHEDULER_NO_TASK,
+				      GNUNET_TIME_UNIT_ZERO,
+                                      NULL, NULL, task, task_cls);
+}
+
+
+
 /**
  * Schedule a new task to be run with a specified delay or when the
  * specified file descriptor is ready for reading.  The delay can be

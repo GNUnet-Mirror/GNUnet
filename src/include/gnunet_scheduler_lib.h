@@ -324,6 +324,22 @@ GNUNET_SCHEDULER_add_with_priority (struct GNUNET_SCHEDULER_Handle *sched,
 
 
 /**
+ * Schedule a new task to be run as soon as possible. The task
+ * will be run with the priority of the calling task.
+ *
+ * @param sched scheduler to use
+ * @param task main function of the task
+ * @param task_cls closure of task
+ * @return unique task identifier for the job
+ *         only valid until "task" is started!
+ */
+GNUNET_SCHEDULER_TaskIdentifier
+GNUNET_SCHEDULER_add_now (struct GNUNET_SCHEDULER_Handle *sched,
+			  GNUNET_SCHEDULER_Task task,
+			  void *task_cls);
+
+
+/**
  * Schedule a new task to be run with a specified delay.  The task
  * will be scheduled for execution once the delay has expired. It
  * will be run with the priority of the calling task.
