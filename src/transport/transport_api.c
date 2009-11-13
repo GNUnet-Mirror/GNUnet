@@ -1917,7 +1917,9 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
 	      "Peer `%4s' is ready to receive, scheduling message for delivery now.\n",
 	      GNUNET_i2s (target));
 #endif
-  schedule_request (th);
+  th->notify_delay_task
+    = GNUNET_SCHEDULER_add_now (handle->sched,
+				&peer_transmit_timeout, th);
   return th;
 }
 
