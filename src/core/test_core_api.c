@@ -171,8 +171,7 @@ process_mtype (void *cls,
   GNUNET_assert (ok == 5);
   OKPP;
   GNUNET_SCHEDULER_cancel (sched, err_task);
-  GNUNET_SCHEDULER_add_delayed (sched,
-                                GNUNET_TIME_UNIT_ZERO, &terminate_task, NULL);
+  GNUNET_SCHEDULER_add_now (sched, &terminate_task, NULL);
   return GNUNET_OK;
 }
 

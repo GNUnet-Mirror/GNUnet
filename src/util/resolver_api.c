@@ -441,9 +441,8 @@ GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
                         &v6)) &&
        ((domain == AF_INET6) || (domain == AF_UNSPEC))))
     {
-      rh->task = GNUNET_SCHEDULER_add_delayed (sched,
-                                               GNUNET_TIME_UNIT_ZERO,
-                                               &numeric_resolution, rh);
+      rh->task = GNUNET_SCHEDULER_add_now (sched,
+					   &numeric_resolution, rh);
       return rh;
     }
   /* then, check if this is a loopback address */
@@ -451,9 +450,8 @@ GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
   while (loopback[i] != NULL)
     if (0 == strcasecmp (loopback[i++], hostname))
       {
-        rh->task = GNUNET_SCHEDULER_add_delayed (sched,
-                                                 GNUNET_TIME_UNIT_ZERO,
-                                                 &loopback_resolution, rh);
+        rh->task = GNUNET_SCHEDULER_add_now (sched,
+					     &loopback_resolution, rh);
         return rh;
       }
 
@@ -616,9 +614,8 @@ GNUNET_RESOLVER_hostname_get (struct GNUNET_SCHEDULER_Handle *sched,
 
   if (GNUNET_NO == do_resolve)
     {
-      rh->task = GNUNET_SCHEDULER_add_delayed (sched,
-                                               GNUNET_TIME_UNIT_ZERO,
-                                               &numeric_reverse, rh);
+      rh->task = GNUNET_SCHEDULER_add_now (sched,
+					   &numeric_reverse, rh);
       return rh;
     }
   if (salen + sizeof (struct GNUNET_RESOLVER_GetMessage) >

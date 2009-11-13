@@ -1400,9 +1400,8 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle
   if ((sock->sock == NULL) &&
       (sock->ap_head == NULL) && (sock->dns_active == NULL))
     {
-      sock->write_task = GNUNET_SCHEDULER_add_delayed (sock->sched,
-                                                       GNUNET_TIME_UNIT_ZERO,
-                                                       &connect_error, sock);
+      sock->write_task = GNUNET_SCHEDULER_add_now (sock->sched,
+						   &connect_error, sock);
       return &sock->nth;
     }
   if (GNUNET_SCHEDULER_NO_TASK != sock->write_task)
