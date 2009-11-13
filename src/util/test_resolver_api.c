@@ -176,9 +176,9 @@ check ()
                                  "-L", "DEBUG",
 #endif
                                  "-c", "test_resolver_api_data.conf", NULL);
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-resolver-api", "nohelp",
-                      options, &run, &ok);
+  GNUNET_assert (OK == GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
+					   argv, "test-resolver-api", "nohelp",
+					   options, &run, &ok));
   if (0 != PLIBC_KILL (pid, SIGTERM))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
