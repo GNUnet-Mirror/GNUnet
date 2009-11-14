@@ -392,6 +392,7 @@ check_file_rw ()
 int
 main (int argc, char *argv[])
 {
+  GNUNET_log_setup ("test-bio", "WARNING", NULL);
   GNUNET_assert (0 == check_file_rw ());
   GNUNET_assert (0 == check_metadata_rw ());
   GNUNET_assert (0 == check_string_rw ());
