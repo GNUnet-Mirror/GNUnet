@@ -151,7 +151,7 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                  sizeof (sa),
                                  1024,
                                  GNUNET_TIME_relative_multiply
-                                 (GNUNET_TIME_UNIT_MILLISECONDS, 250),
+                                 (GNUNET_TIME_UNIT_MILLISECONDS, 10000),
                                  GNUNET_NO);
   GNUNET_assert (server != NULL);
   handlers[0].callback_cls = cls;
@@ -168,7 +168,7 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                       &make_msg, NULL));
   GNUNET_CLIENT_receive (client, &recv_bounce, cls,
                          GNUNET_TIME_relative_multiply
-                         (GNUNET_TIME_UNIT_MILLISECONDS, 250));
+                         (GNUNET_TIME_UNIT_MILLISECONDS, 10000));
 }
 
 
