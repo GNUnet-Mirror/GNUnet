@@ -128,6 +128,7 @@ GNUNET_NAT_UPNP_close (GNUNET_NAT_UPNP_Handle * handle)
  * 
  * @param handle the handle for UPnP object
  * @param is_enabled whether enable port redirection
+ * @param doPortCheck FIXME
  * @param ext_addr pointer for returning external IP address.
  *     Will be set to NULL if address could not be found. Don't free the sockaddr.
  */

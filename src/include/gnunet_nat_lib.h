@@ -70,7 +70,7 @@ struct GNUNET_NAT_Handle;
 
 /**
  * Attempt to enable port redirection and detect public IP address contacting
- * UPnP or NAT-PMP routers on the local network. Use @addr to specify to which
+ * UPnP or NAT-PMP routers on the local network. Use addr to specify to which
  * of the local host's addresses should the external port be mapped. The port
  * is taken from the corresponding sockaddr_in[6] field.
  *

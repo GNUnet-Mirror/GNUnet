@@ -271,14 +271,14 @@ void *GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Handle *sched,
  * and the reason code can be specified.
  *
  * @param sched scheduler to use
- * @param main main function of the task
- * @param cls closure of task
+ * @param task main function of the task
+ * @param task_cls closure of task
  * @param reason reason for task invocation
  */
 void
 GNUNET_SCHEDULER_add_continuation (struct GNUNET_SCHEDULER_Handle *sched,
-                                   GNUNET_SCHEDULER_Task main,
-                                   void *cls,
+                                   GNUNET_SCHEDULER_Task task,
+                                   void *task_cls,
                                    enum GNUNET_SCHEDULER_Reason reason);
 
 

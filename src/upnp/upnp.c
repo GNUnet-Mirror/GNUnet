@@ -1,5 +1,5 @@
 /**
- * @file upnp.c UPnP Implementation
+ * @file upnp/upnp.c UPnP Implementation
  * @ingroup core
  *
  * gaim
