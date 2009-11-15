@@ -624,6 +624,14 @@ process_peer (void *cls,
   if (peer == NULL)
     {
       /* last call, schedule 'find_more_peers' again... */
+      if (0 != (GNUNET_SCHEDULER_get_reason (sched) & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+	{
+#if DEBUG_TOPOLOGY
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Received shutdown request, stopping search for peers to connect to.\n");
+#endif
+	  return;
+	}
       schedule_peer_search ();
       return;
     }
@@ -759,6 +767,14 @@ static void
 find_more_peers (void *cls,
 		 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    {
+#if DEBUG_TOPOLOGY
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Received shutdown request, stopping search for peers to connect to.\n");
+#endif
+      return;
+    }
   discard_old_blacklist_entries ();
   if (connection_count <= target_connection_count)
     {
@@ -816,7 +832,7 @@ core_init (void *cls,
   my_identity = *my_id;
 #if DEBUG_TOPOLOGY
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "I am peer `%s'",
+	      "I am peer `%s'\n",
 	      GNUNET_i2s (my_id));
 #endif 	
   if (autoconnect)
