@@ -86,6 +86,7 @@ GNUNET_ARM_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   client = GNUNET_CLIENT_connect (sched, "arm", cfg);
   if (client == NULL)
     return NULL;
+  GNUNET_CLIENT_ignore_shutdown (client, GNUNET_YES);
   ret = GNUNET_malloc (sizeof (struct GNUNET_ARM_Handle));
   ret->cfg = GNUNET_CONFIGURATION_dup (cfg);
   ret->sched = sched;
@@ -245,17 +246,18 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
 
   if (msg == NULL)
     {
-      if (0 == (GNUNET_SCHEDULER_REASON_SHUTDOWN & GNUNET_SCHEDULER_get_reason (sc->h->sched)))
-	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		    _("Error receiving response to `%s' request from ARM service\n"),
-		    (sc->type == GNUNET_MESSAGE_TYPE_ARM_START) 
-		    ? "START"
-		    : "STOP");
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Error receiving response to `%s' request from ARM for service `%s'\n"),
+		  (sc->type == GNUNET_MESSAGE_TYPE_ARM_START) 
+		  ? "START"
+		  : "STOP",
+		  (const char*) &sc[1]);
       GNUNET_CLIENT_disconnect (sc->h->client);
       sc->h->client = GNUNET_CLIENT_connect (sc->h->sched, 
 					     "arm", 
 					     sc->h->cfg);
       GNUNET_assert (NULL != sc->h->client);
+      GNUNET_CLIENT_ignore_shutdown (sc->h->client, GNUNET_YES);
       if (sc->callback != NULL)
         sc->callback (sc->cls, GNUNET_SYSERR);
       GNUNET_free (sc);
@@ -263,7 +265,8 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
     }
 #if DEBUG_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received response from ARM service: %u\n",
+              "Received response from ARM for  service `%s': %u\n",
+	      (const char*) &sc[1],
 	      ntohs(msg->type));
 #endif
   switch (ntohs (msg->type))
@@ -329,6 +332,7 @@ change_service (struct GNUNET_ARM_Handle *h,
   sctx->cls = cb_cls;
   sctx->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   sctx->type = type;
+  memcpy (&sctx[1], service_name, slen);
   msg = GNUNET_malloc (sizeof (struct GNUNET_MessageHeader) + slen);
   msg->size = htons (sizeof (struct GNUNET_MessageHeader) + slen);
   msg->type = htons (sctx->type);
@@ -342,7 +346,10 @@ change_service (struct GNUNET_ARM_Handle *h,
 					       sctx))
     {       
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Error while trying to transmit to ARM service\n"));
+		  (type == GNUNET_MESSAGE_TYPE_ARM_START)
+		  ? _("Error while trying to transmit request to start `%s' to ARM\n")
+		  : _("Error while trying to transmit request to stop `%s' to ARM\n"),
+		  (const char*) &service_name);
       if (cb != NULL)
 	cb (cb_cls, GNUNET_SYSERR);
       GNUNET_free (sctx);
@@ -369,16 +376,20 @@ GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h,
                           GNUNET_ARM_Callback cb, void *cb_cls)
 {
   struct RequestContext *sctx;
+  size_t slen;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Starting service `%s'\n"), service_name);
+              _("Asked to starting service `%s' within %llu ms\n"), service_name,
+	      (unsigned long long) timeout.value);
   if (0 == strcasecmp ("arm", service_name))
     {
-      sctx = GNUNET_malloc (sizeof (struct RequestContext));
+      slen = strlen ("arm") + 1;
+      sctx = GNUNET_malloc (sizeof (struct RequestContext) + slen);
       sctx->h = h;
       sctx->callback = cb;
       sctx->cls = cb_cls;
       sctx->timeout = GNUNET_TIME_relative_to_absolute (timeout);
+      memcpy (&sctx[1], service_name, slen);
       GNUNET_CLIENT_service_test (h->sched,
                                   "arm",
                                   h->cfg, timeout, &arm_service_report, sctx);
@@ -404,7 +415,8 @@ GNUNET_ARM_stop_service (struct GNUNET_ARM_Handle *h,
                          GNUNET_ARM_Callback cb, void *cb_cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Stopping service `%s'\n"), service_name);
+              _("Stopping service `%s' within %llu ms\n"), service_name,
+	      (unsigned long long) timeout.value);
   if (0 == strcasecmp ("arm", service_name))
     {
       GNUNET_CLIENT_service_shutdown (h->client);
