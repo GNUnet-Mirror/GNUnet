@@ -63,25 +63,6 @@ sane end-user should care about this codebase yet anyway.
   - should latency be included in the ReceiveCallback and
     NotifyConnect or passed on request?
   - FIXME's with latency being simply set to 0 in a few places
-  - Memory leak (running valgrind --trace-children=yes on test_transport_api:   
-    ==28393== 16 bytes in 1 blocks are indirectly lost in loss record 1 of 5
-    ==28393==    at 0x4C2260E: malloc (vg_replace_malloc.c:207)
-    ==28393==    by 0x52343E3: GNUNET_xmalloc_unchecked_ (common_allocation.c:62)
-    ==28393==    by 0x5234389: GNUNET_xmalloc_ (common_allocation.c:53)
-    ==28393==    by 0x524458A: GNUNET_NETWORK_socket_create_from_accept (network.c:289)
-    ==28393==    by 0x524B2DA: ??? (server.c:332)
-    ==28393==    by 0x524A4C7: ??? (scheduler.c:425)
-    ==28393==    by 0x524A73D: GNUNET_SCHEDULER_run (scheduler.c:510)
-    ==28393==    by 0x524FF8C: GNUNET_SERVICE_run (service.c:1326)
-    ==28393==    by 0x405500: main (gnunet-service-transport.c:2645)
-    And also:
-    ==28393== 65,744 (65,728 direct, 16 indirect) bytes in 1 blocks are definitely lost in loss record 5 of 5
-    ==28393==    at 0x4C2260E: malloc (vg_replace_malloc.c:207)
-    ==28393==    by 0x52343E3: GNUNET_xmalloc_unchecked_ (common_allocation.c:62)
-    ==28393==    by 0x5234389: GNUNET_xmalloc_ (common_allocation.c:53)
-    ==28393==    by 0x524473E: GNUNET_NETWORK_socket_create_from_accept (network.c:323)
-    (rest of trace identical)
-
   - [./transport/gnunet-service-transport.c:173]: (style) struct or union member 'TransportPlugin::rebuild' is never used
   - [./transport/plugin_transport_tcp.c:391]: (style) struct or union member 'Plugin::address_update_task' is never used
 
