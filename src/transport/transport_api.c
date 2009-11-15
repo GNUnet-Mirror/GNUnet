@@ -44,7 +44,7 @@
 #define OFFER_HELLO_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 /**
- * After how long do we give automatically retry an unsuccessful
+ * After how long do we automatically retry an unsuccessful
  * CONNECT request?
  */
 #define CONNECT_RETRY_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 750)
