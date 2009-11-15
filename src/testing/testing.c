@@ -40,7 +40,7 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_transport_service.h"
 
-#define DEBUG_TESTING GNUNET_YES
+#define DEBUG_TESTING GNUNET_NO
 
 /**
  * How long do we wait after starting gnunet-service-arm
