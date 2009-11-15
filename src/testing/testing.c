@@ -712,9 +712,11 @@ void GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
       d->server = NULL;
     }
   /* shutdown ARM process (will also terminate others) */
+#if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      _("Terminating peer `%4s'\n"),
 	      GNUNET_i2s(&d->id));
+#endif
   cc = GNUNET_CLIENT_connect (d->sched,
 			      "arm",
 			      d->cfg);
