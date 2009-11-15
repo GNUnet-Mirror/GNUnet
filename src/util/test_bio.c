@@ -184,9 +184,11 @@ test_bigmeta_rw ()
   fileR = GNUNET_BIO_read_open (fileName);
   GNUNET_assert (NULL != fileR);
   metaDataR = NULL;
+  GNUNET_log_skip (1, GNUNET_NO);
   GNUNET_assert (GNUNET_SYSERR ==
                  GNUNET_BIO_read_meta_data (fileR, "Read meta error",
                                             &metaDataR));
+  GNUNET_log_skip (0, GNUNET_YES);
   msg = NULL;
   GNUNET_BIO_read_close (fileR, &msg);
   GNUNET_free (msg);
@@ -222,20 +224,25 @@ test_nullfile_rw ()
   char *readResultString;
   static char fileNameNO[102401];
   char readResult[200];
-  memset (fileNameNO, 'a', sizeof (fileNameNO));
-  fileNameNO[sizeof (fileNameNO) - 1] = '\0';
   struct GNUNET_BIO_WriteHandle *fileW, *fileWNO;
   struct GNUNET_BIO_ReadHandle *fileR, *fileRNO;
   struct GNUNET_CONTAINER_MetaData *metaDataW;
   struct GNUNET_CONTAINER_MetaData *metaDataR;
+
+  memset (fileNameNO, 'a', sizeof (fileNameNO));
+  fileNameNO[sizeof (fileNameNO) - 1] = '\0';
   metaDataW = GNUNET_CONTAINER_meta_data_create ();
   metaDataR = GNUNET_CONTAINER_meta_data_create ();
   GNUNET_CONTAINER_meta_data_add_publication_date (metaDataW);
-
+  
+  GNUNET_log_skip (1, GNUNET_NO);
   fileWNO = GNUNET_BIO_write_open (fileNameNO);
+  GNUNET_log_skip (0, GNUNET_YES);
   GNUNET_assert (NULL == fileWNO);
 
+  GNUNET_log_skip (1, GNUNET_NO);
   fileRNO = GNUNET_BIO_read_open (fileNameNO);
+  GNUNET_log_skip (0, GNUNET_YES);
   GNUNET_assert (NULL == fileRNO);
 
 #ifndef MINGW
