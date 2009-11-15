@@ -177,16 +177,19 @@ write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
                       int32_t ranking, const char *ns_name)
 {
   char *fn;
-
+  int ret;
   fn = get_data_filename (cfg, PS_METADATA_DIR, nsid);
   GNUNET_assert (fn != NULL);
   struct GNUNET_BIO_WriteHandle *fileW;
   fileW = GNUNET_BIO_write_open(fn);
-  GNUNET_assert (NULL != fileW);
-  GNUNET_assert (GNUNET_OK == GNUNET_BIO_write_int32(fileW, ranking));
-  GNUNET_assert (GNUNET_OK == GNUNET_BIO_write_string(fileW, ns_name));
-  GNUNET_assert (GNUNET_OK == GNUNET_BIO_write_meta_data(fileW, meta));
-  GNUNET_assert(GNUNET_OK == GNUNET_BIO_write_close(fileW));
+  if((NULL != fileW)&&
+	 (GNUNET_OK == GNUNET_BIO_write_int32(fileW, ranking))&&
+     (GNUNET_OK == GNUNET_BIO_write_string(fileW, ns_name))&&
+     (GNUNET_OK == GNUNET_BIO_write_meta_data(fileW, meta))&&
+     (GNUNET_OK == GNUNET_BIO_write_close(fileW)))
+  ret = GNUNET_OK;
+  else
+  ret = GNUNET_SYSERR;
   GNUNET_free (fn);
   /* create entry for pseudonym name in names */
   GNUNET_free_non_null (GNUNET_PSEUDONYM_id_to_name (cfg, nsid));
@@ -204,18 +207,21 @@ read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   char *fn;
   char *emsg;
-
+  int ret;
   fn = get_data_filename (cfg, PS_METADATA_DIR, nsid);
   GNUNET_assert (fn != NULL);
   struct GNUNET_BIO_ReadHandle *fileR;
   fileR = GNUNET_BIO_read_open(fn);
-  GNUNET_assert (NULL != fileR);
-  GNUNET_assert (GNUNET_OK == GNUNET_BIO_read_int32__(fileR, "Read int32 error!", ranking));
-  GNUNET_assert (GNUNET_OK == GNUNET_BIO_read_string(fileR, "Read string error!", ns_name, 200));
-  GNUNET_assert (GNUNET_OK == GNUNET_BIO_read_meta_data(fileR, "Read meta data error!", meta));
-  GNUNET_assert(GNUNET_OK == GNUNET_BIO_read_close(fileR, &emsg));
+  if((NULL != fileR)&&
+     (GNUNET_OK == GNUNET_BIO_read_int32__(fileR, "Read int32 error!", ranking))&&
+     (GNUNET_OK == GNUNET_BIO_read_string(fileR, "Read string error!", ns_name, 200))&&
+     (GNUNET_OK == GNUNET_BIO_read_meta_data(fileR, "Read meta data error!", meta))&&
+     (GNUNET_OK == GNUNET_BIO_read_close(fileR, &emsg)))
+  ret = GNUNET_OK;
+  else
+  ret = GNUNET_SYSERR;
   GNUNET_free (fn);
-  return GNUNET_OK;
+  return ret;
 }
 
 
