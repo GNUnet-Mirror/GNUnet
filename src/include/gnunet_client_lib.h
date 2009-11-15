@@ -63,6 +63,18 @@ struct GNUNET_CLIENT_Connection *GNUNET_CLIENT_connect (struct
                                                         GNUNET_CONFIGURATION_Handle
                                                         *cfg);
 
+
+/**
+ * Configure this connection to ignore shutdown signals.
+ *
+ * @param h client handle
+ * @param do_ignore GNUNET_YES to ignore, GNUNET_NO to restore default
+ */
+void
+GNUNET_CLIENT_ignore_shutdown (struct GNUNET_CLIENT_Connection *h,
+			       int do_ignore);
+
+
 /**
  * Destroy connection with the service.  This will automatically
  * cancel any pending "receive" request (however, the handler will

@@ -315,6 +315,17 @@ GNUNET_CONNECTION_notify_transmit_ready_cancel (struct
                                                         *h);
 
 
+/**
+ * Configure this connection to ignore shutdown signals.
+ *
+ * @param sock socket handle
+ * @param do_ignore GNUNET_YES to ignore, GNUNET_NO to restore default
+ */
+void
+GNUNET_CONNECTION_ignore_shutdown (struct GNUNET_CONNECTION_Handle *sock,
+				   int do_ignore);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
