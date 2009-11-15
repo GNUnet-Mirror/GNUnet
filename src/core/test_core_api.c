@@ -376,8 +376,8 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-core-peer-1"); 
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-core-peer-2");
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-peer-1"); 
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-peer-2");
 
   return ret;
 }
