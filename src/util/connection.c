@@ -452,6 +452,7 @@ destroy_continuation (void *cls,
 {
   struct GNUNET_CONNECTION_Handle *sock = cls;
   GNUNET_CONNECTION_TransmitReadyNotify notify;
+  struct AddressProbe *pos;
 
   GNUNET_assert (sock->dns_active == NULL);
   if (0 != (sock->ccs & COCO_TRANSMIT_READY))
@@ -502,6 +503,13 @@ destroy_continuation (void *cls,
     {
       GNUNET_RESOLVER_request_cancel (sock->dns_active);
       sock->dns_active = NULL;
+    }
+  while (NULL != (pos = sock->ap_head))
+    {
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (pos->sock));
+      GNUNET_SCHEDULER_cancel (sock->sched, pos->task);
+      GNUNET_CONTAINER_DLL_remove (sock->ap_head, sock->ap_tail, pos);
+      GNUNET_free (pos);
     }
   GNUNET_assert (sock->nth.timeout_task == GNUNET_SCHEDULER_NO_TASK);
   GNUNET_assert (sock->ccs == COCO_NONE);

@@ -298,9 +298,10 @@ process_listen_socket (void *cls,
                   "Server accepted incoming connection.\n");
 #endif
       client = GNUNET_SERVER_connect_socket (server, sock);
+      // GNUNET_CONNECTION_ignore_shutdown (sock, GNUNET_YES);
       /* decrement reference count, we don't keep "client" alive */
       GNUNET_SERVER_client_drop (client);
-    }
+    }  
   /* listen for more! */
   server->listen_task = GNUNET_SCHEDULER_add_select (server->sched,
                                                      GNUNET_SCHEDULER_PRIORITY_HIGH,
