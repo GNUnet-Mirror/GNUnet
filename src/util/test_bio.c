@@ -238,6 +238,7 @@ test_nullfile_rw ()
   fileRNO = GNUNET_BIO_read_open (fileNameNO);
   GNUNET_assert (NULL == fileRNO);
 
+#ifndef MINGW
   fileW = GNUNET_BIO_write_open ("/dev/full");
   GNUNET_assert (NULL != fileW);
   GNUNET_assert (GNUNET_SYSERR ==
@@ -270,6 +271,7 @@ test_nullfile_rw ()
   GNUNET_free (msg);
   GNUNET_CONTAINER_meta_data_destroy (metaDataR);
   GNUNET_CONTAINER_meta_data_destroy (metaDataW);
+#endif
   return 0;
 }
 
