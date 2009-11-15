@@ -100,8 +100,8 @@ void GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h);
  * Compare the sin(6)_addr fields of AF_INET or AF_INET(6) sockaddr.
  * FIXME: move to src/nat/common.h or so.
  * 
- * @param param a first sockaddr
- * @param param b second sockaddr
+ * @param a first sockaddr
+ * @param b second sockaddr
  * @return 0 if addresses are equal, non-null value otherwise 
  */
 int GNUNET_NAT_cmp_addr (const struct sockaddr *a, 

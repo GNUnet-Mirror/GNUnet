@@ -1,5 +1,5 @@
 /**
- * @file upnp.h Universal Plug N Play API
+ * @file upnp/upnp.h Universal Plug N Play API
  * @ingroup core
  *
  * gaim

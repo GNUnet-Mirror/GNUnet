@@ -111,7 +111,7 @@ get_traversal_status (const struct GNUNET_NAT_Handle * s)
  * Compare the sin(6)_addr fields of AF_INET or AF_INET(6) sockaddr.
  * @param a first sockaddr
  * @param b second sockaddr
- * @returns 0 if addresses are equal, non-null value otherwise */
+ * @return 0 if addresses are equal, non-null value otherwise */
 int
 GNUNET_NAT_cmp_addr (const struct sockaddr *a, const struct sockaddr *b)
 {

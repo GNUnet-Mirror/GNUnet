@@ -26,7 +26,7 @@
 
 #define VERBOSE GNUNET_YES
 
-#define NUM_PEERS 4
+#define NUM_PEERS 2
 
 /**
  * How long until we give up on connecting the peers?
