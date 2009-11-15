@@ -270,6 +270,11 @@ struct GNUNET_CONNECTION_Handle
   size_t max;
 
   /**
+   * Ignore GNUNET_SCHEDULER_REASON_SHUTDOWN for this socket.
+   */
+  int ignore_shutdown;
+
+  /**
    * Port to connect to.
    */
   uint16_t port;
@@ -490,8 +495,14 @@ destroy_continuation (void *cls,
       return;
     }
 #if DEBUG_CONNECTION
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Destroy actually runs (%p)!\n", sock);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Destroy actually runs (%p)!\n", sock);
 #endif
+  if (sock->dns_active != NULL)
+    {
+      GNUNET_RESOLVER_request_cancel (sock->dns_active);
+      sock->dns_active = NULL;
+    }
   GNUNET_assert (sock->nth.timeout_task == GNUNET_SCHEDULER_NO_TASK);
   GNUNET_assert (sock->ccs == COCO_NONE);
   if (NULL != (notify = sock->nth.notify_ready))
@@ -911,9 +922,8 @@ GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *sock)
       sock->dns_active = NULL;
     }
   GNUNET_assert (sock->sched != NULL);
-  GNUNET_SCHEDULER_add_after (sock->sched,
-                              GNUNET_SCHEDULER_NO_TASK,
-                              &destroy_continuation, sock);
+  GNUNET_SCHEDULER_add_now (sock->sched,
+			    &destroy_continuation, sock);
 }
 
 
@@ -962,6 +972,21 @@ receive_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CONNECTION_Receiver receiver;
 
   sh->read_task = GNUNET_SCHEDULER_NO_TASK;
+  if ( (GNUNET_YES == sh->ignore_shutdown) &&
+       (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))) 
+    {
+      /* ignore shutdown request, go again immediately */
+#if DEBUG_CONNECTION
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Ignoring shutdown signal per configuration\n");
+#endif
+      sh->read_task = GNUNET_SCHEDULER_add_read_net (tc->sched,
+						     GNUNET_TIME_absolute_get_remaining
+						     (sh->receive_timeout),
+						     sh->sock,
+						     &receive_ready, sh);
+      return;
+    }
   now = GNUNET_TIME_absolute_get ();
   if ((now.value > sh->receive_timeout.value) ||
       (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT)) ||
@@ -1105,6 +1130,20 @@ GNUNET_CONNECTION_receive (struct GNUNET_CONNECTION_Handle *sock,
       return;
     }
   sock->ccs += COCO_RECEIVE_AGAIN;
+}
+
+
+/**
+ * Configure this connection to ignore shutdown signals.
+ *
+ * @param sock socket handle
+ * @param do_ignore GNUNET_YES to ignore, GNUNET_NO to restore default
+ */
+void
+GNUNET_CONNECTION_ignore_shutdown (struct GNUNET_CONNECTION_Handle *sock,
+				   int do_ignore)
+{
+  sock->ignore_shutdown = do_ignore;
 }
 
 

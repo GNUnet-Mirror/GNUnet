@@ -242,6 +242,11 @@ struct GNUNET_CLIENT_Connection
    */
   int in_receive;
 
+  /**
+   * Are we ignoring shutdown signals?
+   */
+  int ignore_shutdown;
+
 };
 
 
@@ -315,6 +320,22 @@ GNUNET_CLIENT_connect (struct GNUNET_SCHEDULER_Handle *sched,
   ret->cfg = GNUNET_CONFIGURATION_dup (cfg);
   ret->back_off = GNUNET_TIME_UNIT_MILLISECONDS;
   return ret;
+}
+
+/**
+ * Configure this connection to ignore shutdown signals.
+ *
+ * @param h client handle
+ * @param do_ignore GNUNET_YES to ignore, GNUNET_NO to restore default
+ */
+void
+GNUNET_CLIENT_ignore_shutdown (struct GNUNET_CLIENT_Connection *h,
+			       int do_ignore)
+{
+  h->ignore_shutdown = do_ignore;
+  if (h->sock != NULL)
+    GNUNET_CONNECTION_ignore_shutdown (h->sock,
+				       do_ignore);
 }
 
 
@@ -775,6 +796,9 @@ client_notify (void *cls, size_t size, void *buf)
       th->sock->sock = do_connect (th->sock->sched,
                                    th->sock->service_name, th->sock->cfg);
       GNUNET_assert (NULL != th->sock->sock);
+      GNUNET_CONNECTION_ignore_shutdown (th->sock->sock,
+					 th->sock->ignore_shutdown);
+
       delay = GNUNET_TIME_relative_min (delay, th->sock->back_off);
       th->sock->back_off 
 	= GNUNET_TIME_relative_min (GNUNET_TIME_relative_multiply (th->sock->back_off, 2),
@@ -899,6 +923,10 @@ transmit_for_response (void *cls, size_t size, void *buf)
   msize = ntohs (tc->hdr->size);
   if (NULL == buf)
     {
+#if DEBUG_CLIENT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  _("Could not submit request, not expecting to receive a response.\n"));
+#endif
       tc->rn (tc->rn_cls, NULL);
       GNUNET_free (tc);
       return 0;
