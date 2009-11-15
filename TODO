@@ -27,8 +27,7 @@ Urgent items (before announcing ng.gnunet.org):
     + need to bound queueing of replies for other peers    
   - test multi-peer search/download
 * new webpage
-  - prevent?
-  - migrate Mantis!?
+  - migrate Mantis, Subversion
   - run peer => have a 0.9.x hostlist
   - improve basic documentation (configure, dependencies, what works, etc.)
   - write minimal welcome/introduction to 0.9.x-development/webpage/status
