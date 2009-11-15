@@ -49,6 +49,15 @@ static struct GNUNET_TESTING_Daemon *last;
 static struct GNUNET_SCHEDULER_Handle *sched;
 
 
+static void
+clean_up_task (void *cls,
+		 const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_TESTING_daemons_stop (pg);
+  ok = 0;     
+}
+
+
 static void 
 notify_connect_complete(void *cls,
 			const char *emsg)
@@ -67,9 +76,10 @@ notify_connect_complete(void *cls,
       /* FIXME: check that topology adds a few more links
 	 in addition to those that were seeded */
       /* For now, sleep so we can have the daemon do some work */
-      sleep (10);
-      GNUNET_TESTING_daemons_stop (pg);
-      ok = 0;     
+      GNUNET_SCHEDULER_add_delayed (sched,
+				    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
+				    &clean_up_task,
+				    NULL);
     }
 }
 
