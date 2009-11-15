@@ -194,7 +194,11 @@ write_result (void *cls, size_t size, void *buf)
   struct GNUNET_MessageHeader *msg;
 
   if (buf == NULL)
-    return 0;                   /* error, not much we can do */
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Could not send status result to client\n"));
+      return 0;                   /* error, not much we can do */
+    }
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   msg = buf;
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
@@ -221,7 +225,11 @@ signal_result (struct GNUNET_SERVER_Client *client,
   uint16_t *res;
 
   if (NULL == client)
-    return;
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Not sending status result to client: no client known\n"));
+      return;
+    }
 #if DEBUG_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Telling client that service `%s' is now %s\n",
@@ -493,25 +501,17 @@ stop_service (struct GNUNET_SERVER_Client *client,
 	      const char *servicename)
 {
   struct ServiceList *pos;
-  struct GNUNET_CLIENT_Connection *sc;
-  unsigned long long port;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Preparing to stop `%s'\n"), servicename);
   pos = find_name (servicename);
-  if ( (pos != NULL) && 
-       ( (pos->kill_continuation != NULL) ||
-	 (GNUNET_YES == in_shutdown) ) )
+  if (pos == NULL)
     {
-      /* killing already in progress */
-#if DEBUG_ARM
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Service `%s' is already down\n", servicename);
-#endif
-      signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
+      signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_UNKNOWN);
+      GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return;
     }
-  if ((pos != NULL) && (pos->rc > 1))
+  if (pos->rc > 1)
     {
       /* RC>1, just decrement RC */
       pos->rc--;
@@ -527,48 +527,47 @@ stop_service (struct GNUNET_SERVER_Client *client,
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return;
     }
-  if (pos != NULL)
+  if (pos->rc == 1)
+    pos->rc--; /* decrement RC to zero */
+  if (pos->kill_continuation != NULL)
     {
+      /* killing already in progress */
 #if DEBUG_ARM
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Sending kill signal to service `%s', waiting for process to die.\n",
-		  servicename);
+		  "Service `%s' is already down\n", servicename);
 #endif
-      if (0 != PLIBC_KILL (pos->pid, SIGTERM))
-        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-      pos->next = running;
-      running = pos;
-      pos->kill_continuation = &free_and_signal;
-      pos->kill_continuation_cls = client;
-      GNUNET_SERVER_client_keep (client);
-      GNUNET_SCHEDULER_add_delayed (sched,
-				    MAINT_FAST_FREQUENCY, &maint, "non-null");
-    }
-  else
-    {
-      if (GNUNET_YES == in_shutdown)
-	return;
-#if DEBUG_ARM
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Sending termination request to service `%s'.\n",
-		  servicename);
-#endif
-      if ( (GNUNET_OK ==
-	    GNUNET_CONFIGURATION_get_value_number (cfg,
-						   servicename,
-						   "PORT",
-						   &port)) &&
-	   (NULL != (sc = GNUNET_CLIENT_connect (sched, servicename, cfg))) )
-	{
-	  GNUNET_CLIENT_service_shutdown (sc);
-	  signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
-	}
-      else
-	{
-	  signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_UNKNOWN);
-	}
+      signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      return;
     }
+
+  if (GNUNET_YES == in_shutdown)
+    {
+#if DEBUG_ARM
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Termination request already sent to `%s' (since ARM is in shutdown).\n",
+		  servicename);
+#endif
+      signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
+      GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      return;
+    }
+
+
+#if DEBUG_ARM
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending kill signal to service `%s', waiting for process to die.\n",
+	      servicename);
+#endif
+  if (0 != PLIBC_KILL (pos->pid, SIGTERM))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+  pos->next = running;
+  running = pos;
+  pos->kill_continuation = &free_and_signal;
+  pos->kill_continuation_cls = client;
+  GNUNET_SERVER_client_keep (client);
+  GNUNET_SCHEDULER_add_delayed (sched,
+				MAINT_FAST_FREQUENCY, &maint, "non-null");
 }
 
 
@@ -807,6 +806,7 @@ run (void *cls,
   char *defaultservices;
   char *pos;
 
+  GNUNET_SERVER_ignore_shutdown (serv, GNUNET_YES);
   GNUNET_assert (serv != NULL);
   cfg = c;
   sched = s;

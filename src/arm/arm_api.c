@@ -265,7 +265,7 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
     }
 #if DEBUG_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received response from ARM for  service `%s': %u\n",
+              "Received response from ARM for service `%s': %u\n",
 	      (const char*) &sc[1],
 	      ntohs(msg->type));
 #endif
@@ -379,7 +379,7 @@ GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h,
   size_t slen;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Asked to starting service `%s' within %llu ms\n"), service_name,
+              _("Asked to start service `%s' within %llu ms\n"), service_name,
 	      (unsigned long long) timeout.value);
   if (0 == strcasecmp ("arm", service_name))
     {
