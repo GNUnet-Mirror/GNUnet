@@ -284,10 +284,15 @@ GNUNET_DISK_mktemp (const char *t)
   tmpdir = getenv ("TMPDIR");
   tmpdir = tmpdir ? tmpdir : "/tmp";
 
-  GNUNET_asprintf (&tmpl, "%s%s%s%s", tmpdir, DIR_SEPARATOR_STR, t, "XXXXXX");
+  GNUNET_asprintf (&tmpl, "%s/%s%s", tmpdir, t, "XXXXXX");
 #ifdef MINGW
   fn = (char *) GNUNET_malloc (MAX_PATH + 1);
-  plibc_conv_to_win_path (tmpl, fn);
+  if (ERROR_SUCCESS != plibc_conv_to_win_path (tmpl, fn))
+    {
+      GNUNET_free (fn);
+      GNUNET_free (tmpl);
+      return NULL;
+    }
   GNUNET_free (tmpl);
 #else
   fn = tmpl;
@@ -1185,6 +1190,8 @@ GNUNET_DISK_file_open (const char *fn,
 #endif
 
   expfn = GNUNET_STRINGS_filename_expand (fn);
+  if (NULL == expfn)
+    return NULL;
 
 #ifndef MINGW
   mode = 0;

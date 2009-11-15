@@ -167,7 +167,7 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
   min_level = get_type (loglevel);
   if (logfile == NULL)
     return GNUNET_OK;
-  altlog = fopen (logfile, "a");
+  altlog = FOPEN (logfile, "a");
   if (altlog == NULL)
     {
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", logfile);
