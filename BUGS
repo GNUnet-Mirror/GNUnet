@@ -3,11 +3,6 @@ We are not tracking them in Mantis yet since there are too many and no
 sane end-user should care about this codebase yet anyway.
 
 
-* TESTING:
-  - connection.c:553 fails when "make check" is run!
-    (check if this could be memory corruption).
-
-
 * UTIL:
   - container_bloomfilter: improve efficiency (see FIXME)
   - only connect() sockets that are ready (select()) [Nils]
