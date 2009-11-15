@@ -42,7 +42,7 @@
  * Note that if we succeeded transmitting a request but failed to read
  * a response, we do NOT re-try.
  */
-#define MAX_ATTEMPTS 10
+#define MAX_ATTEMPTS 50
 
 
 /**
@@ -798,7 +798,6 @@ client_notify (void *cls, size_t size, void *buf)
       GNUNET_assert (NULL != th->sock->sock);
       GNUNET_CONNECTION_ignore_shutdown (th->sock->sock,
 					 th->sock->ignore_shutdown);
-
       delay = GNUNET_TIME_relative_min (delay, th->sock->back_off);
       th->sock->back_off 
 	= GNUNET_TIME_relative_min (GNUNET_TIME_relative_multiply (th->sock->back_off, 2),
