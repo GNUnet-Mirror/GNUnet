@@ -678,6 +678,8 @@ connect_probe_continuation (void *cls,
         connect_fail_continuation (h);
       return;
     }
+  GNUNET_assert (h->sock == NULL);
+  GNUNET_assert (ap->sock != NULL);
   h->sock = ap->sock;
   GNUNET_assert (h->addr == NULL);
   h->addr = GNUNET_malloc (ap->addrlen);
@@ -721,6 +723,7 @@ try_connect_using_address (void *cls,
     }
   if (h->sock != NULL)
     return;                     /* already connected */
+  GNUNET_assert (h->addr == NULL);
   /* try to connect */
 #if DEBUG_CONNECTION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
