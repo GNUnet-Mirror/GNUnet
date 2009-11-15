@@ -140,6 +140,14 @@ struct GNUNET_SERVER_Handle
    */
   int require_found;
 
+  /**
+   * Should all of the clients of this server continue
+   * to process connections as usual even if we get
+   * a shutdown request? (the listen socket always ignores
+   * shutdown).
+   */
+  int clients_ignore_shutdown;
+
 };
 
 
@@ -185,7 +193,7 @@ struct GNUNET_SERVER_Client
    */
   GNUNET_SERVER_TransmitReadyCallback notify_transmit_ready;
 
-   /**
+  /**
    * Callback to ask about transmit-ready notification.
    */
   GNUNET_SERVER_TransmitReadyCancelCallback notify_transmit_ready_cancel;
@@ -259,6 +267,10 @@ struct GNUNET_SERVER_Client
 /**
  * Scheduler says our listen socket is ready.
  * Process it!
+ *
+ * @param cls handle to our server for which we are processing the listen
+ *        socket
+ * @param tc reason why we are running right now
  */
 static void
 process_listen_socket (void *cls,
@@ -274,6 +286,7 @@ process_listen_socket (void *cls,
   GNUNET_NETWORK_fdset_set (r, server->listen_socket);
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     {
+      /* ignore shutdown, someone else will take care of it! */
       server->listen_task = GNUNET_SCHEDULER_add_select (server->sched,
                                                          GNUNET_SCHEDULER_PRIORITY_HIGH,
                                                          GNUNET_SCHEDULER_NO_TASK,
@@ -282,7 +295,7 @@ process_listen_socket (void *cls,
                                                          &process_listen_socket,
                                                          server);
       GNUNET_NETWORK_fdset_destroy (r);
-      return;                   /* ignore shutdown, someone else will take care of it! */
+      return;                   
     }
   GNUNET_assert (GNUNET_NETWORK_fdset_isset
                  (tc->read_ready, server->listen_socket));
@@ -298,7 +311,7 @@ process_listen_socket (void *cls,
                   "Server accepted incoming connection.\n");
 #endif
       client = GNUNET_SERVER_connect_socket (server, sock);
-      // GNUNET_CONNECTION_ignore_shutdown (sock, GNUNET_YES);
+      GNUNET_CONNECTION_ignore_shutdown (sock, server->clients_ignore_shutdown);
       /* decrement reference count, we don't keep "client" alive */
       GNUNET_SERVER_client_drop (client);
     }  
@@ -1145,5 +1158,23 @@ GNUNET_SERVER_receive_done (struct GNUNET_SERVER_Client *client, int success)
   shutdown_incoming_processing (client);
 }
 
+
+/**
+ * Configure this server's connections to continue handling client
+ * requests as usual even after we get a shutdown signal.  The change
+ * only applies to clients that connect to the server from the outside
+ * using TCP after this call.  Clients managed previously or those
+ * added using GNUNET_SERVER_connect_socket and
+ * GNUNET_SERVER_connect_callback are not affected by this option.
+ *
+ * @param h server handle
+ * @param do_ignore GNUNET_YES to ignore, GNUNET_NO to restore default
+ */
+void
+GNUNET_SERVER_ignore_shutdown (struct GNUNET_SERVER_Handle *h,
+			       int do_ignore)
+{
+  h->clients_ignore_shutdown = do_ignore;
+}
 
 /* end of server.c */
