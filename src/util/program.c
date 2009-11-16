@@ -35,6 +35,12 @@
 #include "gnunet_scheduler_lib.h"
 #include <gcrypt.h>
 
+#if HAVE_ARGZ_H
+#include <argz.h>
+#else
+#include "program_lib_argz.c"
+#endif
+
 /**
  * Context for the command.
  */
@@ -139,7 +145,25 @@ GNUNET_PROGRAM_run (int argc,
     GNUNET_GETOPT_OPTION_VERSION (PACKAGE_VERSION)
   };
   struct GNUNET_GETOPT_CommandLineOption *allopts;
+  const char *gargs;
 
+  gargs = getenv ("GNUNET_ARGS");
+  if (gargs != NULL)
+    {
+      char *gargz;
+      size_t gargl;
+      char **gargv;
+      int i;
+
+      argz_create_sep (gargs, ' ', &gargz, &gargl);
+      for (i=0;i<argc;i++)
+	argz_insert (&gargz, &gargl, gargz, argv[i]);
+      gargv = GNUNET_malloc (sizeof (char*) * (gargl+1));
+      argz_extract (gargz, gargl, gargv);
+      argc = argz_count (gargz, gargl);
+      free (gargz);
+      argv = (char *const *) gargv;
+    }
   memset (&cc, 0, sizeof (cc));
   loglev = NULL;
   cc.task = task;

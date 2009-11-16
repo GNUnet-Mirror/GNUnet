@@ -409,7 +409,7 @@ list_pseudonym_helper (void *cls, const char *fullname)
   int rating;
   struct GNUNET_CONTAINER_MetaData *meta;
   const char *fn;
-  const char *str = "not null";
+  char *str;
 
   if (strlen (fullname) < sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded))
     return GNUNET_OK;
@@ -421,8 +421,10 @@ list_pseudonym_helper (void *cls, const char *fullname)
   ret = GNUNET_OK;
   if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (fn, &id))
     return GNUNET_OK;           /* invalid name */
+  str = NULL;
   if (GNUNET_OK != read_info (c->cfg, &id, &meta, &rating, &str))
     return GNUNET_OK;           /* ignore entry */
+  GNUNET_free_non_null (str);
   if (c->iterator != NULL)
     ret = c->iterator (c->closure, &id, meta, rating);
   GNUNET_CONTAINER_meta_data_destroy (meta);
