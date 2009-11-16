@@ -32,48 +32,48 @@
 #include "gnunet_bio_lib.h"
 
 /** 
- * FIXME
+ * the directory which stores meta data for pseudonym
  */
 #define PS_METADATA_DIR DIR_SEPARATOR_STR "data" DIR_SEPARATOR_STR "pseudonyms/metadata" DIR_SEPARATOR_STR
 
 /** 
- * FIXME
+ * the directory which stores name for pseudonym
  */
 #define PS_NAMES_DIR    DIR_SEPARATOR_STR "data" DIR_SEPARATOR_STR "pseudonyms/names"    DIR_SEPARATOR_STR
 
 
 /** 
- * FIXME
+ * link list struct DiscoveryCallback
  */
 struct DiscoveryCallback
 {
-
   /** 
-   * FIXME
+   * the point which points address of the next DiscoveryCallback
    */
   struct DiscoveryCallback *next;
 
   /** 
-   * FIXME
+   * Iterator over pseudonym
    */
   GNUNET_PSEUDONYM_Iterator callback;
 
   /** 
-   * FIXME
+   * a point to closure
    */
   void *closure;
 };
 
 
 /** 
- * FIXME
+ * declare a point to a static stuct DiscoveryCallback
  */
 static struct DiscoveryCallback *head;
 
 /**
  * Internal notification about new tracked URI.
- * 
- * FIXME
+ * @param id a point to the hash code of pseudonym
+ * @param md meta data to be written
+ * @param rating rating of pseudonym
  */
 static void
 internal_notify (const GNUNET_HashCode * id,
@@ -92,8 +92,9 @@ internal_notify (const GNUNET_HashCode * id,
 /**
  * Register callback to be invoked whenever we discover
  * a new pseudonym.
- * 
- * FIXME
+ * @param cfg configuration to use
+ * @param iterator iterator over pseudonym
+ * @param closure point to a closure
  */
 int
 GNUNET_PSEUDONYM_discovery_callback_register (const struct
@@ -115,8 +116,8 @@ GNUNET_PSEUDONYM_discovery_callback_register (const struct
 
 /**
  * Unregister pseudonym discovery callback.
- * 
- * FIXME
+ * @param iterator iterator over pseudonym
+ * @param closure point to a closure
  */
 int
 GNUNET_PSEUDONYM_discovery_callback_unregister (GNUNET_PSEUDONYM_Iterator
@@ -147,8 +148,9 @@ GNUNET_PSEUDONYM_discovery_callback_unregister (GNUNET_PSEUDONYM_Iterator
 /**
  * Get the filename (or directory name) for the given
  * pseudonym identifier and directory prefix.
- * 
- * FIXME
+ * @param cfg configuration to use
+ * @param prefix path components to append to the private directory name
+ * @param psid hash code of pseudonym
  */
 static char *
 get_data_filename (const struct GNUNET_CONFIGURATION_Handle
@@ -168,7 +170,12 @@ get_data_filename (const struct GNUNET_CONFIGURATION_Handle
 
 
 /**
- * FIXME
+ * Write the pseudonym infomation into a file
+ * @param cfg configuration to use
+ * @param nsid hash code of a pseudonym
+ * @param meta meta data to be written into a file
+ * @param ranking ranking of a pseudonym
+ * @param ns_name name of a pseudonym
  */
 static void
 write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -207,7 +214,12 @@ write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * FIXME
+ * read the pseudonym infomation from a file
+ * @param cfg configuration to use
+ * @param nsid hash code of a pseudonym
+ * @param meta meta data to be read from a file
+ * @param ranking ranking of a pseudonym
+ * @param ns_name name of a pseudonym
  */
 static int
 read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -402,23 +414,23 @@ GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * FIXME
+ * struct used to list the pseudonym
  */
 struct ListPseudonymClosure
 {
 
   /**
-   * FIXME
+   * iterator over pseudonym
    */
   GNUNET_PSEUDONYM_Iterator iterator;
 
   /**
-   * FIXME
+   * point to closure
    */
   void *closure;
 
   /**
-   * FIXME
+   * cfg configuration to use
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 };
@@ -426,7 +438,9 @@ struct ListPseudonymClosure
 
 
 /**
- * FIXME
+ * the help function to list all available pseudonyms
+ * @param cls point to a struct ListPseudonymClosure
+ * @param fullname name of pseudonym
  */
 static int
 list_pseudonym_helper (void *cls, const char *fullname)
