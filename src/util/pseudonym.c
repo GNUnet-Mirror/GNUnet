@@ -189,13 +189,13 @@ write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
 	   (GNUNET_OK != GNUNET_BIO_write_meta_data(fileW, meta)) )
 	{
 	  GNUNET_BIO_write_close(fileW);
-	  GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_remove (fileW));
+	  GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_remove (fn));
 	  GNUNET_free (fn);
 	  return;
 	}
       if (GNUNET_OK != GNUNET_BIO_write_close(fileW))
 	{
-	  GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_remove (fileW));
+	  GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_remove (fn));
 	  GNUNET_free (fn);
 	  return;
 	}
@@ -217,21 +217,39 @@ read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   char *fn;
   char *emsg;
-  int ret;
+  struct GNUNET_BIO_ReadHandle *fileR;
+
   fn = get_data_filename (cfg, PS_METADATA_DIR, nsid);
   GNUNET_assert (fn != NULL);
-  struct GNUNET_BIO_ReadHandle *fileR;
   fileR = GNUNET_BIO_read_open(fn);
-  if((NULL != fileR)&&
-     (GNUNET_OK == GNUNET_BIO_read_int32__(fileR, "Read int32 error!", ranking))&&
-     (GNUNET_OK == GNUNET_BIO_read_string(fileR, "Read string error!", ns_name, 200))&&
-     (GNUNET_OK == GNUNET_BIO_read_meta_data(fileR, "Read meta data error!", meta))&&
-     (GNUNET_OK == GNUNET_BIO_read_close(fileR, &emsg)))
-  ret = GNUNET_OK;
-  else
-  ret = GNUNET_SYSERR;
+  if (fileR == NULL)
+    {
+      GNUNET_free (fn);
+      return GNUNET_SYSERR;
+    }
+  if ( (GNUNET_OK != GNUNET_BIO_read_int32__(fileR, "Read int32 error!", ranking)) ||
+       (GNUNET_OK != GNUNET_BIO_read_string(fileR, "Read string error!", ns_name, 200)) ||
+       (GNUNET_OK != GNUNET_BIO_read_meta_data(fileR, "Read meta data error!", meta)) )
+    {
+      GNUNET_BIO_read_close(fileR, &emsg);
+      GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_remove (fn));
+      GNUNET_free (fn);
+      return GNUNET_SYSERR;
+    }
+  emsg = NULL;
+  if (GNUNET_OK != GNUNET_BIO_read_close(fileR, &emsg))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Failed to parse metadata about pseudonym from file `%s': %s\n"),
+		  fn,
+		  emsg);
+      GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_remove (fn));
+      GNUNET_free_non_null (emsg);
+      GNUNET_free (fn);
+      return GNUNET_SYSERR;
+    }
   GNUNET_free (fn);
-  return ret;
+  return GNUNET_OK;
 }
 
 
