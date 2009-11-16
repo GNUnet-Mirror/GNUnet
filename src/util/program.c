@@ -38,6 +38,9 @@
 #if HAVE_ARGZ_H
 #include <argz.h>
 #else
+#include "program_lib_strndup.c"
+#include "program_lib_strnlen.c"
+#include "program_lib_mempcpy.c"
 #include "program_lib_argz.c"
 #endif
 

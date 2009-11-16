@@ -363,6 +363,9 @@ perf_crypto_hash_LDADD = \
 
 EXTRA_DIST = \
   program_lib_argz.c \
+  program_lib_strndup.c \
+  program_lib_strnlen.c \
+  program_lib_mempcpy.c \
   test_configuration_data.conf \
   test_container_meta_data_image.jpg \
   test_program_data.conf \
