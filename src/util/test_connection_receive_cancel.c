@@ -59,6 +59,7 @@ open_listen_socket ()
 #if HAVE_SOCKADDR_IN_SIN_LEN
   sa.sin_len = sizeof (sa);
 #endif
+  sa.sin_family = AF_INET;
   sa.sin_port = htons (PORT);
   desc = GNUNET_NETWORK_socket_create (AF_INET, SOCK_STREAM, 0);
   GNUNET_assert (desc != NULL);

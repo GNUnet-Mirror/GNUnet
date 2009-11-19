@@ -60,6 +60,7 @@ open_listen_socket ()
 #if HAVE_SOCKADDR_IN_SIN_LEN
   sa.sin_len = sizeof (sa);
 #endif
+  sa.sin_family = AF_INET;
   sa.sin_port = htons (PORT);
   desc = GNUNET_NETWORK_socket_create (AF_INET, SOCK_STREAM, 0);
   GNUNET_assert (desc != 0);
@@ -67,9 +68,13 @@ open_listen_socket ()
       (desc, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "setsockopt");
-  GNUNET_assert (GNUNET_NETWORK_socket_bind
-                 (desc, (const struct sockaddr *) &sa,
-                  sizeof (sa)) == GNUNET_OK);
+  if (GNUNET_OK != GNUNET_NETWORK_socket_bind (desc,
+      (const struct sockaddr *) &sa, sizeof(sa)))
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+          "bind");
+      GNUNET_assert (0);
+    }
   GNUNET_NETWORK_socket_listen (desc, 5);
   return desc;
 }
