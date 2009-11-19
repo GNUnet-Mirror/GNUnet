@@ -32,40 +32,41 @@
 #include "gnunet_bio_lib.h"
 
 /** 
- * the directory which stores meta data for pseudonym
+ * Name of the directory which stores meta data for pseudonym
  */
-#define PS_METADATA_DIR DIR_SEPARATOR_STR "data" DIR_SEPARATOR_STR "pseudonyms/metadata" DIR_SEPARATOR_STR
+#define PS_METADATA_DIR DIR_SEPARATOR_STR "data" DIR_SEPARATOR_STR "pseudonyms" DIR_SEPARATOR_STR "metadata" DIR_SEPARATOR_STR
 
 /** 
- * the directory which stores name for pseudonym
+ * Name of the directory which stores names for pseudonyms
  */
-#define PS_NAMES_DIR    DIR_SEPARATOR_STR "data" DIR_SEPARATOR_STR "pseudonyms/names"    DIR_SEPARATOR_STR
+#define PS_NAMES_DIR    DIR_SEPARATOR_STR "data" DIR_SEPARATOR_STR "pseudonyms" DIR_SEPARATOR_STR "names"    DIR_SEPARATOR_STR
 
 
 /** 
- * link list struct DiscoveryCallback
+ * Registered callbacks for discovery of pseudonyms.
  */
 struct DiscoveryCallback
 {
   /** 
-   * the point which points address of the next DiscoveryCallback
+   * This is a linked list.
    */
   struct DiscoveryCallback *next;
 
   /** 
-   * Iterator over pseudonym
+   * Function to call each time a pseudonym is discovered.
    */
   GNUNET_PSEUDONYM_Iterator callback;
 
   /** 
-   * a point to closure
+   * Closure for callback.
    */
   void *closure;
 };
 
 
 /** 
- * declare a point to a static stuct DiscoveryCallback
+ * Head of the linked list of functions to call when 
+ * new pseudonyms are added.
  */
 static struct DiscoveryCallback *head;
 
@@ -150,7 +151,8 @@ GNUNET_PSEUDONYM_discovery_callback_unregister (GNUNET_PSEUDONYM_Iterator
  * pseudonym identifier and directory prefix.
  * @param cfg configuration to use
  * @param prefix path components to append to the private directory name
- * @param psid hash code of pseudonym
+ * @param psid hash code of pseudonym, can be NULL
+ * @return filename of the pseudonym (if psid != NULL) or directory with the data (if psid == NULL)
  */
 static char *
 get_data_filename (const struct GNUNET_CONFIGURATION_Handle
@@ -425,12 +427,12 @@ struct ListPseudonymClosure
   GNUNET_PSEUDONYM_Iterator iterator;
 
   /**
-   * point to closure
+   * Closure for iterator.
    */
   void *closure;
 
   /**
-   * cfg configuration to use
+   * Configuration to use.
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 };
