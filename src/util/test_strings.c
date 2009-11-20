@@ -65,7 +65,13 @@ check ()
                                             (GNUNET_TIME_UNIT_MILLISECONDS,
                                              7 * 60 * 60 * 1000));
   WANT (buf, b);
-  sprintf (buf, "%s%s", getenv ("HOME"), DIR_SEPARATOR_STR);
+  sprintf (buf, "%s%s", getenv (
+#ifndef MINGW
+      "HOME"
+#else
+      "USERPROFILE"
+#endif
+)      , DIR_SEPARATOR_STR);
   b = GNUNET_STRINGS_filename_expand ("~");
   WANT (buf, b);
   GNUNET_STRINGS_buffer_fill (buf, sizeof (buf), 3, "a", "btx", "c");
