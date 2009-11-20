@@ -66,7 +66,25 @@ noti_callback (void *cls,
   return GNUNET_OK;
 }
 
+static int
+fake_noti_callback (void *cls,
+        const GNUNET_HashCode *
+        pseudonym,
+        const struct GNUNET_CONTAINER_MetaData *md, int rating)
+{
+	  int *ret = cls;
+	  (*ret)++;
+	  return GNUNET_OK;
+}
 
+static int
+false_callback (void *cls,
+        const GNUNET_HashCode *
+        pseudonym,
+        const struct GNUNET_CONTAINER_MetaData *md, int rating)
+{
+	  return GNUNET_OK;
+}
 int
 main (int argc, char *argv[])
 {
@@ -74,12 +92,22 @@ main (int argc, char *argv[])
   GNUNET_HashCode rid1;
   GNUNET_HashCode id2;
   GNUNET_HashCode rid2;
+  GNUNET_HashCode fid;
+  GNUNET_HashCode id3;
+  GNUNET_HashCode rid3;
+
   int old;
   int newVal;
   struct GNUNET_CONFIGURATION_Handle *cfg;
   char *name1;
   char *name2;
-  int notiCount;
+  char *name3;
+  char *noname;
+  int notiCount,fakenotiCount;
+  int count;
+  static char m[1024 * 1024 * 10];
+    memset (m, 'b', sizeof (m));
+    m[sizeof (m) - 1] = '\0';
 
   GNUNET_log_setup ("test-pseudonym", "WARNING", NULL);
   ok = GNUNET_YES;
@@ -93,8 +121,15 @@ main (int argc, char *argv[])
       return -1;
     }
   notiCount = 0;
+  fakenotiCount = 0;
+  count = 0;
+  GNUNET_PSEUDONYM_discovery_callback_register (cfg,
+		                                        &fake_noti_callback, &fakenotiCount);
   GNUNET_PSEUDONYM_discovery_callback_register (cfg,
                                                 &noti_callback, &notiCount);
+  GNUNET_PSEUDONYM_discovery_callback_unregister (&false_callback, &count);
+  GNUNET_PSEUDONYM_discovery_callback_unregister (&fake_noti_callback, &fakenotiCount);
+
   /* ACTUAL TEST CODE */
   old = GNUNET_PSEUDONYM_list_all (cfg, NULL, NULL);
   meta = GNUNET_CONTAINER_meta_data_create ();
@@ -112,21 +147,35 @@ main (int argc, char *argv[])
   CHECK (notiCount == 3);
   newVal = GNUNET_PSEUDONYM_list_all (cfg, &iter, &ok);
   CHECK (old < newVal);
+  GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_meta_data_insert (meta, EXTRACTOR_COMMENT, m));
+  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &id3);
+  GNUNET_PSEUDONYM_add (cfg, &id3, meta);
+  GNUNET_log_skip (1, GNUNET_NO);
+  name3 = GNUNET_PSEUDONYM_id_to_name (cfg, &id3);
+  GNUNET_log_skip (0, GNUNET_YES);
   name2 = GNUNET_PSEUDONYM_id_to_name (cfg, &id2);
   CHECK (name2 != NULL);
   name1 = GNUNET_PSEUDONYM_id_to_name (cfg, &id1);
   CHECK (name1 != NULL);
   CHECK (0 != strcmp (name1, name2));
+  CHECK	(GNUNET_SYSERR == GNUNET_PSEUDONYM_name_to_id (cfg, "fake", &rid2))
   CHECK (GNUNET_OK == GNUNET_PSEUDONYM_name_to_id (cfg, name2, &rid2));
   CHECK (GNUNET_OK == GNUNET_PSEUDONYM_name_to_id (cfg, name1, &rid1));
   CHECK (0 == memcmp (&id1, &rid1, sizeof (GNUNET_HashCode)));
   CHECK (0 == memcmp (&id2, &rid2, sizeof (GNUNET_HashCode)));
+
+  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &fid);
+  CHECK (0 == GNUNET_PSEUDONYM_rank (cfg, &fid, 0));
+  noname = GNUNET_PSEUDONYM_id_to_name (cfg, &fid);
+  CHECK (noname != NULL);
   CHECK (0 == GNUNET_PSEUDONYM_rank (cfg, &id1, 0));
   CHECK (5 == GNUNET_PSEUDONYM_rank (cfg, &id1, 5));
   CHECK (-5 == GNUNET_PSEUDONYM_rank (cfg, &id1, -10));
   CHECK (0 == GNUNET_PSEUDONYM_rank (cfg, &id1, 5));
   GNUNET_free (name1);
   GNUNET_free (name2);
+  GNUNET_free (name3);
+  GNUNET_free (noname);
   /* END OF TEST CODE */
 FAILURE:
   GNUNET_PSEUDONYM_discovery_callback_unregister (&noti_callback, &notiCount);
