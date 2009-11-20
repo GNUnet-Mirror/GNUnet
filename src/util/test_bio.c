@@ -245,7 +245,8 @@ test_nullfile_rw ()
   GNUNET_log_skip (0, GNUNET_YES);
   GNUNET_assert (NULL == fileRNO);
 
-#ifdef LINUX /* is /dev/full present on any other OS than linux, really */
+#ifdef LINUX 
+  /* /dev/full only seems to exist on Linux */
   fileW = GNUNET_BIO_write_open ("/dev/full");
   GNUNET_assert (NULL != fileW);
   GNUNET_assert (GNUNET_SYSERR ==
@@ -406,4 +407,6 @@ main (int argc, char *argv[])
   GNUNET_assert (0 == check_metadata_rw ());
   GNUNET_assert (0 == check_string_rw ());
   return 0;
-}                               /* end of main */
+}
+
+/* end of test_bio.c */
