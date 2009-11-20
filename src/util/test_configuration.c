@@ -26,22 +26,25 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_configuration_lib.h"
+#include "gnunet_disk_lib.h"
 
-/* Directives used for testing Configuration Diffs */
 #define DEBUG GNUNET_NO
-#define CONFIGURATION_DIFFS_PATH "/tmp/gnunet-diff.conf"
-#define EDIT_NOTHING 0
-#define EDIT_SECTION 1
-#define EDIT_ALL 2
-#define ADD_NEW_SECTION 3
-#define ADD_NEW_ENTRY 4
-#define REMOVE_SECTION 5
-#define REMOVE_ENTRY 6
-#define COMPARE 7
 
+/* Test Configuration Diffs Options */
+enum
+{
+  EDIT_NOTHING,
+  EDIT_SECTION,
+  EDIT_ALL,
+  ADD_NEW_SECTION,
+  ADD_NEW_ENTRY,
+  REMOVE_SECTION,
+  REMOVE_ENTRY,
+  COMPARE
 #if DEBUG
-#define PRINT 8
+    , PRINT
 #endif
+};
 
 static struct GNUNET_CONFIGURATION_Handle *cfg;
 static struct GNUNET_CONFIGURATION_Handle *cfgDefault;
@@ -81,7 +84,7 @@ diffsCallBack (void *cls,
   switch (cbOption)
     {
     case EDIT_SECTION:
-      if (cbData->section == NULL)
+      if (NULL == cbData->section)
 	cbData->section = section;
       if (strcmp (cbData->section, section) == 0)
 	{
@@ -117,14 +120,23 @@ diffsCallBack (void *cls,
 	ret =
 	  GNUNET_CONFIGURATION_get_value_string (cbData->cfgDiffs, section,
 						 option, &diffValue);
-	if (ret == GNUNET_SYSERR || diffValue == NULL
-	    || strcmp (diffValue, value) != 0)
+	if (NULL != diffValue)
+	  {
+	    if (ret == GNUNET_SYSERR || strcmp (diffValue, value) != 0)
+	      cbData->status = 1;
+	  }
+	else
 	  cbData->status = 1;
 	break;
       }
 #if DEBUG
     case PRINT:
-      if (cbData->section == NULL || strcmp (cbData->section, section) != 0)
+      if (NULL == cbData->section)
+	{
+	  cbData->section = section;
+	  printf ("\nSection: %s\n", section);
+	}
+      else if (strcmp (cbData->section, section) != 0)
 	{
 	  cbData->section = section;
 	  printf ("\nSection: %s\n", section);
@@ -158,9 +170,9 @@ editConfiguration (struct GNUNET_CONFIGURATION_Handle *cfg, int option)
       break;
     case ADD_NEW_SECTION:
       {
-	int i = 0;
+	int i;
 	char *key;
-	for (; i < 5; i++)
+	for (i = 0; i < 5; i++)
 	  {
 	    GNUNET_asprintf (&key, "key%d", i);
 	    GNUNET_CONFIGURATION_set_value_string (cfg, "new-section", key,
@@ -188,23 +200,28 @@ editConfiguration (struct GNUNET_CONFIGURATION_Handle *cfg, int option)
 static int
 checkDiffs (struct GNUNET_CONFIGURATION_Handle *cfgDefault, int option)
 {
-  struct GNUNET_CONFIGURATION_Handle *cfg, *cfgDiffs;
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+  struct GNUNET_CONFIGURATION_Handle *cfgDiffs;
   struct DiffsCBData cbData;
+  int ret;
+  char *diffsFileName;
+
   initDiffsCBData (&cbData);
-  int ret = 0;
 
   cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_CONFIGURATION_load (cfg, NULL);
 
   /* Modify configuration and save it */
   cfgDiffs = editConfiguration (cfg, option);
-  GNUNET_CONFIGURATION_write_diffs (cfgDefault, cfg,
-				    CONFIGURATION_DIFFS_PATH);
+  diffsFileName =
+    GNUNET_DISK_mktemp ("gnunet-test-configurations-diffs.conf");
+  GNUNET_CONFIGURATION_write_diffs (cfgDefault, cfg, diffsFileName);
   GNUNET_CONFIGURATION_destroy (cfg);
 
   /* Compare the dumped configuration with modifications done */
   cfg = GNUNET_CONFIGURATION_create ();
-  GNUNET_CONFIGURATION_parse (cfg, CONFIGURATION_DIFFS_PATH);
+  GNUNET_CONFIGURATION_parse (cfg, diffsFileName);
+  remove (diffsFileName);
   cbData.callBackOption = COMPARE;
   cbData.cfgDiffs = cfgDiffs;
   GNUNET_CONFIGURATION_iterate (cfg, diffsCallBack, &cbData);
@@ -436,9 +453,11 @@ main (int argc, char *argv[])
 
   /* Testing configuration diffs */
   cfgDefault = GNUNET_CONFIGURATION_create ();
-  if (GNUNET_CONFIGURATION_load (cfgDefault, NULL) == GNUNET_SYSERR)
+  if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfgDefault, NULL))
     {
-      printf ("\n Error! \n");
+      GNUNET_break (0);
+      GNUNET_CONFIGURATION_destroy (cfgDefault);
+      return 1;
     }
 
   /* Nothing changed in the new configuration */
