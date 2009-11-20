@@ -202,6 +202,7 @@ test_bigmeta_rw ()
 static int
 test_directory_r ()
 {
+#if LINUX
   char *msg;
   char readResult[200];
   struct GNUNET_BIO_ReadHandle *fileR;
@@ -209,10 +210,11 @@ test_directory_r ()
   fileR = GNUNET_BIO_read_open ("/dev");
   GNUNET_assert (NULL != fileR);
   GNUNET_assert (GNUNET_SYSERR ==
-                 GNUNET_BIO_read (fileR, "Read error", readResult, 65537));
+                 GNUNET_BIO_read (fileR, "Read error", readResult, sizeof(readResult)));
   msg = NULL;
   GNUNET_BIO_read_close (fileR, &msg);
   GNUNET_free (msg);
+#endif
   return 0;
 }
 
@@ -264,7 +266,7 @@ test_nullfile_rw ()
   fileR = GNUNET_BIO_read_open ("/dev/null");
   GNUNET_assert (NULL != fileR);
   GNUNET_assert (GNUNET_SYSERR ==
-                 GNUNET_BIO_read (fileR, "Read error", readResult, 65537));
+                 GNUNET_BIO_read (fileR, "Read error", readResult, sizeof(readResult)));
   readResultString = NULL;
   GNUNET_assert (GNUNET_SYSERR ==
                  GNUNET_BIO_read_string (fileR, "Read string error",
