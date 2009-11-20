@@ -86,6 +86,7 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
               BYTE bPhysAddr[MAXLEN_PHYSADDR];
               char *pszIfName = NULL;
               char dst[INET_ADDRSTRLEN];
+              struct sockaddr_in sa;
 
               /* Get friendly interface name */
               pAdapterInfo =
@@ -147,11 +148,14 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
               if (pszIfName)
                 free (pszIfName);
 
+              sa.sin_family = AF_INET;
+              sa.sin_addr.S_un.S_addr = dwIP;
+
               if (GNUNET_OK !=
                   proc (proc_cls,
                         szEntry,
                         pAddrTable->table[dwIfIdx].dwIndex == dwExternalNIC,
-                        NULL /* FIXME: pass actual IP address! */ ,
+                        &sa,
                         0))
                 break;
             }
