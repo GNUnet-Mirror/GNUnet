@@ -158,6 +158,7 @@ static int
 check ()
 {
   int ok = 1 + 2 + 4 + 8;
+  char *fn;
   pid_t pid;
   char *const argv[] = { "test-resolver-api",
     "-c",
@@ -170,12 +171,16 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  pid = GNUNET_OS_start_process ("gnunet-service-resolver",
+  GNUNET_asprintf(&fn, "%s%cgnunet-service-resolver.exe",
+                  GNUNET_OS_installation_get_path(GNUNET_OS_IPK_BINDIR),
+                  DIR_SEPARATOR);
+  pid = GNUNET_OS_start_process (fn,
                                  "gnunet-service-resolver",
 #if VERBOSE
                                  "-L", "DEBUG",
 #endif
                                  "-c", "test_resolver_api_data.conf", NULL);
+  GNUNET_free (fn);
   GNUNET_assert (GNUNET_OK == GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
 					   argv, "test-resolver-api", "nohelp",
 					   options, &run, &ok));
