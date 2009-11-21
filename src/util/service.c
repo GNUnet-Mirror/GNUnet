@@ -979,21 +979,11 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
       return GNUNET_SYSERR;
     }
 
+  process_acl4 (&sctx->v4_denied, sctx, "REJECT_FROM");
+  process_acl4 (&sctx->v4_allowed, sctx, "ACCEPT_FROM");
+  process_acl6 (&sctx->v6_denied, sctx, "REJECT_FROM6");
+  process_acl6 (&sctx->v6_allowed, sctx, "ACCEPT_FROM6");
 
-  if ((GNUNET_OK !=
-       process_acl4 (&sctx->v4_denied,
-                     sctx,
-                     "REJECT_FROM")) ||
-      (GNUNET_OK !=
-       process_acl4 (&sctx->v4_allowed,
-                     sctx,
-                     "ACCEPT_FROM")) ||
-      (GNUNET_OK !=
-       process_acl6 (&sctx->v6_denied,
-                     sctx,
-                     "REJECT_FROM6")) ||
-      (GNUNET_OK != process_acl6 (&sctx->v6_allowed, sctx, "ACCEPT_FROM6")))
-    return GNUNET_SYSERR;
   return GNUNET_OK;
 }
 
