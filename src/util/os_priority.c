@@ -180,6 +180,8 @@ GNUNET_OS_start_process (const char *filename, ...)
   char *cmd, *idx;
   STARTUPINFO start;
   PROCESS_INFORMATION proc;
+  char *fn;
+  int len;
 
   cmdlen = 0;
   va_start (ap, filename);
@@ -196,14 +198,22 @@ GNUNET_OS_start_process (const char *filename, ...)
   memset (&start, 0, sizeof (start));
   start.cb = sizeof (start);
 
+  len = strlen (filename);
+  if (strnicmp (filename + len - 4, ".exe", 4) == 0)
+    fn = filename;
+  else
+    GNUNET_asprintf (&fn, "%s.exe", filename);
+
   if (!CreateProcess
-      (filename, cmd, NULL, NULL, FALSE, DETACHED_PROCESS, NULL, NULL, &start,
+      (fn, cmd, NULL, NULL, FALSE, DETACHED_PROCESS, NULL, NULL, &start,
        &proc))
     {
       SetErrnoFromWinError (GetLastError ());
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "CreateProcess", filename);
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "CreateProcess", fn);
       return -1;
     }
+  if (fn != filename)
+    GNUNET_free (fn);
   CloseHandle (proc.hProcess);
   CloseHandle (proc.hThread);
 

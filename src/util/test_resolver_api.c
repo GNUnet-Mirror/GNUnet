@@ -171,7 +171,7 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  GNUNET_asprintf(&fn, "%s%cgnunet-service-resolver.exe",
+  GNUNET_asprintf(&fn, "%s%cgnunet-service-resolver",
                   GNUNET_OS_installation_get_path(GNUNET_OS_IPK_BINDIR),
                   DIR_SEPARATOR);
   pid = GNUNET_OS_start_process (fn,
