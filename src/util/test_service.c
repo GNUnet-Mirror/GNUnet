@@ -31,7 +31,7 @@
 #include "gnunet_time_lib.h"
 
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define PORT 12435
 
@@ -305,7 +305,7 @@ int
 main (int argc, char *argv[])
 {
   int ret = 0;
-  struct GNUNET_NETWORK_Handle *s;
+  struct GNUNET_NETWORK_Handle *s = NULL;
 
   GNUNET_log_setup ("test-service",
 #if VERBOSE
@@ -316,7 +316,11 @@ main (int argc, char *argv[])
                     NULL);
   ret += check ();
   ret += check ();
+
+  // FIXME
+#ifndef MINGW
   s = GNUNET_NETWORK_socket_create (PF_INET6, SOCK_STREAM, 0);
+#endif
   if (NULL == s)
     {
       if ((errno == ENOBUFS) ||
