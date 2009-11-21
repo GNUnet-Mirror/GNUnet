@@ -1298,6 +1298,11 @@ GNUNET_SERVICE_run (int argc,
                     enum GNUNET_SERVICE_Options opt,
                     GNUNET_SERVICE_Main task, void *task_cls)
 {
+#define HANDLE_ERROR    err = 1; \
+                        GNUNET_assert (0); \
+                        goto shutdown;
+
+  int err;
   char *cfg_fn;
   char *loglev;
   char *logfile;
@@ -1315,6 +1320,7 @@ GNUNET_SERVICE_run (int argc,
     GNUNET_GETOPT_OPTION_VERSION (PACKAGE_VERSION),
     GNUNET_GETOPT_OPTION_END
   };
+  err = 0;
   do_daemonize = 0;
   logfile = NULL;
   loglev = GNUNET_strdup ("WARNING");
@@ -1329,38 +1335,37 @@ GNUNET_SERVICE_run (int argc,
   sctx.serviceName = serviceName;
   sctx.cfg = cfg = GNUNET_CONFIGURATION_create ();
   /* setup subsystems */
-  if ((GNUNET_SYSERR ==
-       GNUNET_GETOPT_run (serviceName,
-                          service_options,
-                          argc,
-                          argv)) ||
-      (GNUNET_OK !=
-       GNUNET_log_setup (serviceName, loglev, logfile)) ||
-      (GNUNET_OK !=
-       GNUNET_CONFIGURATION_load (cfg, cfg_fn)) ||
-      (GNUNET_OK !=
-       setup_service (&sctx)) ||
-      ((do_daemonize == 1) &&
-       (GNUNET_OK != detach_terminal (&sctx))) ||
-      (GNUNET_OK != set_user_id (&sctx)))
+  if (GNUNET_SYSERR == GNUNET_GETOPT_run (serviceName, service_options, argc,
+      argv))
     {
-      if (sctx.ready_confirm_fd != -1)
-        {
-          if (1 != WRITE (sctx.ready_confirm_fd, "I", 1))
-            GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "write");
-          GNUNET_break (0 == CLOSE (sctx.ready_confirm_fd));
-        }
-      GNUNET_CONFIGURATION_destroy (cfg);
-      GNUNET_free_non_null (sctx.addr);
-      GNUNET_free_non_null (logfile);
-      GNUNET_free (loglev);
-      GNUNET_free (cfg_fn);
-      GNUNET_free_non_null (sctx.v4_denied);
-      GNUNET_free_non_null (sctx.v6_denied);
-      GNUNET_free_non_null (sctx.v4_allowed);
-      GNUNET_free_non_null (sctx.v6_allowed);
-      return GNUNET_SYSERR;
+      HANDLE_ERROR
     }
+
+  if (GNUNET_OK != GNUNET_log_setup (serviceName, loglev, logfile))
+    {
+      HANDLE_ERROR
+    }
+
+  if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cfg_fn))
+    {
+      HANDLE_ERROR
+    }
+
+  if (GNUNET_OK != setup_service (&sctx))
+    {
+      HANDLE_ERROR
+    }
+
+  if (do_daemonize == 1 && GNUNET_OK != detach_terminal (&sctx))
+    {
+      HANDLE_ERROR
+    }
+
+  if (GNUNET_OK != set_user_id (&sctx))
+    {
+      HANDLE_ERROR
+    }
+
 #if 0
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Service `%s' runs with configuration from `%s'\n",
@@ -1368,17 +1373,20 @@ GNUNET_SERVICE_run (int argc,
 #endif
   /* actually run service */
   GNUNET_SCHEDULER_run (&service_task, &sctx);
-  if (sctx.ready_confirm_fd != -1)
-    {
-      if (1 != WRITE (sctx.ready_confirm_fd, "S", 1))
-        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "write");
-      GNUNET_break (0 == CLOSE (sctx.ready_confirm_fd));
-    }
 
   /* shutdown */
   if ((do_daemonize == 1) && (sctx.server != NULL))
     pid_file_delete (&sctx);
   GNUNET_free_non_null (sctx.my_handlers);
+
+shutdown:
+  if (sctx.ready_confirm_fd != -1)
+    {
+      if (1 != WRITE (sctx.ready_confirm_fd, err ? "I" : "S", 1))
+        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "write");
+      GNUNET_break (0 == CLOSE (sctx.ready_confirm_fd));
+    }
+
   GNUNET_CONFIGURATION_destroy (cfg);
   GNUNET_free_non_null (sctx.addr);
   GNUNET_free_non_null (logfile);
@@ -1388,7 +1396,8 @@ GNUNET_SERVICE_run (int argc,
   GNUNET_free_non_null (sctx.v6_denied);
   GNUNET_free_non_null (sctx.v4_allowed);
   GNUNET_free_non_null (sctx.v6_allowed);
-  return sctx.ret;
+
+  return err ? GNUNET_SYSERR : sctx.ret;
 }
 
 
