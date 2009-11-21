@@ -201,7 +201,7 @@ GNUNET_OS_start_process (const char *filename, ...)
        &proc))
     {
       SetErrnoFromWinError (GetLastError ());
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "fork");
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "CreateProcess", filename);
       return -1;
     }
   CloseHandle (proc.hProcess);
