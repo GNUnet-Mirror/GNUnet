@@ -333,7 +333,7 @@ parse_ipv6_specification (const char *routeListX)
                         _("Wrong format `%s' for network\n"),
                         &routeList[slash + 1]);
           else
-            GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "inet_pton");
+            GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR, "inet_pton");
           GNUNET_free (result);
           GNUNET_free (routeList);
           return NULL;
