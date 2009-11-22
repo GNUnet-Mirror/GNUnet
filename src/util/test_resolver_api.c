@@ -159,6 +159,7 @@ check ()
 {
   int ok = 1 + 2 + 4 + 8;
   char *fn;
+  char *pfx;
   pid_t pid;
   char *const argv[] = { "test-resolver-api",
     "-c",
@@ -171,9 +172,11 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
+  pfx = GNUNET_OS_installation_get_path(GNUNET_OS_IPK_BINDIR);
   GNUNET_asprintf(&fn, "%s%cgnunet-service-resolver",
-                  GNUNET_OS_installation_get_path(GNUNET_OS_IPK_BINDIR),
+                  pfx,
                   DIR_SEPARATOR);
+  GNUNET_free (pfx);
   pid = GNUNET_OS_start_process (fn,
                                  "gnunet-service-resolver",
 #if VERBOSE
