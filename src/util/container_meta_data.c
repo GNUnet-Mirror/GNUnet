@@ -435,7 +435,7 @@ struct MetaDataHeader
   uint32_t size;
 
   /**
-   * This is followed by 'entries' values of type 'unsigned int' that
+   * This is followed by 'entries' values of type 'uint32_t' that
    * correspond to EXTRACTOR_KeywordTypes.  After that, the meta-data
    * keywords follow (0-terminated).  The MD block always ends with
    * 0-termination, padding with 0 until a multiple of 8 bytes.
@@ -488,7 +488,7 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
       for (i = 0; i < ic; i++)
         ((uint32_t *) & hdr[1])[i] = htonl ((uint32_t) md->items[i].type);
       pos = sizeof (struct MetaDataHeader);
-      pos += sizeof (unsigned int) * ic;
+      pos += sizeof (uint32_t) * ic;
       for (i = 0; i < ic; i++)
         {
           len = strlen (md->items[i].data) + 1;
