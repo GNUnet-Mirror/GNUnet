@@ -149,9 +149,7 @@ main (int argc, char *argv[])
   GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_meta_data_insert (meta, EXTRACTOR_COMMENT, m));
   GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &id3);
   GNUNET_PSEUDONYM_add (cfg, &id3, meta);
-  GNUNET_log_skip (1, GNUNET_NO);
   name3 = GNUNET_PSEUDONYM_id_to_name (cfg, &id3);
-  GNUNET_log_skip (0, GNUNET_YES);
   name2 = GNUNET_PSEUDONYM_id_to_name (cfg, &id2);
   CHECK (name2 != NULL);
   name1 = GNUNET_PSEUDONYM_id_to_name (cfg, &id1);
@@ -164,7 +162,9 @@ main (int argc, char *argv[])
   CHECK (0 == memcmp (&id2, &rid2, sizeof (GNUNET_HashCode)));
 
   GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &fid);
+  GNUNET_log_skip (1, GNUNET_NO);
   CHECK (0 == GNUNET_PSEUDONYM_rank (cfg, &fid, 0));
+  GNUNET_log_skip (0, GNUNET_YES);
   noname = GNUNET_PSEUDONYM_id_to_name (cfg, &fid);
   CHECK (noname != NULL);
   CHECK (0 == GNUNET_PSEUDONYM_rank (cfg, &id1, 0));
