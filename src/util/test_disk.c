@@ -211,7 +211,7 @@ testGetHome ()
   GNUNET_CONFIGURATION_destroy (cfg);
   ret = strcmp ("/tmp/test-gnunet-disk-a/b/c/d/e", fn);
   GNUNET_free (fn);
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-disk-a");
+  GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_remove ("/tmp/test-gnunet-disk-a"));
   return ret;
 }
 

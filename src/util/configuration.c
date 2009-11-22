@@ -209,7 +209,7 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
       if (1 == sscanf (line, "@INLINE@ %191[^\n]", value))
         {
           /* @INLINE@ value */
-          if (0 != GNUNET_CONFIGURATION_parse (cfg, value))
+          if (GNUNET_OK != GNUNET_CONFIGURATION_parse (cfg, value))
             ret = GNUNET_SYSERR;        /* failed to parse included config */
         }
       else if (1 == sscanf (line, "[%99[^]]]", value))
@@ -1140,7 +1140,7 @@ GNUNET_CONFIGURATION_load (struct GNUNET_CONFIGURATION_Handle *cfg,
       (!((filename == NULL) ||
          (GNUNET_OK == GNUNET_CONFIGURATION_parse (cfg, filename)))))
     {
-      GNUNET_free (baseconfig);
+     GNUNET_free (baseconfig);
       return GNUNET_SYSERR;
     }
   GNUNET_free (baseconfig);

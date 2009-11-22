@@ -231,7 +231,7 @@ checkDiffs (struct GNUNET_CONFIGURATION_Handle *cfgDefault, int option)
 
   /* Compare the dumped configuration with modifications done */
   cfg = GNUNET_CONFIGURATION_create ();
-  GNUNET_CONFIGURATION_parse (cfg, diffsFileName);
+  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_parse (cfg, diffsFileName));
   remove (diffsFileName);
   cbData.callBackOption = COMPARE;
   cbData.cfgDiffs = cfgDiffs;

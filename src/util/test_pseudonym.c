@@ -111,7 +111,7 @@ main (int argc, char *argv[])
   GNUNET_log_setup ("test-pseudonym", "WARNING", NULL);
   ok = GNUNET_YES;
   GNUNET_CRYPTO_random_disable_entropy_gathering ();
-  GNUNET_DISK_directory_remove ("/tmp/gnunet-pseudonym-test");
+  (void) GNUNET_DISK_directory_remove ("/tmp/gnunet-pseudonym-test");
   cfg = GNUNET_CONFIGURATION_create ();
   if (-1 == GNUNET_CONFIGURATION_parse (cfg, "test_pseudonym_data.conf"))
     {
@@ -180,7 +180,7 @@ FAILURE:
   GNUNET_PSEUDONYM_discovery_callback_unregister (&noti_callback, &notiCount);
   GNUNET_CONTAINER_meta_data_destroy (meta);
   GNUNET_CONFIGURATION_destroy (cfg);
-  GNUNET_DISK_directory_remove ("/tmp/gnunet-pseudonym-test");
+  GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_remove ("/tmp/gnunet-pseudonym-test"));
   return (ok == GNUNET_YES) ? 0 : 1;
 }
 

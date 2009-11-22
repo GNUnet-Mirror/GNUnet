@@ -911,7 +911,7 @@ GNUNET_DISK_directory_iterator_start (struct GNUNET_SCHEDULER_Handle *sched,
 static int
 remove_helper (void *unused, const char *fn)
 {
-  GNUNET_DISK_directory_remove (fn);
+  (void) GNUNET_DISK_directory_remove (fn);
   return GNUNET_OK;
 }
 
