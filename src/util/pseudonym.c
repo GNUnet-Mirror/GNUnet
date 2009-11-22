@@ -211,6 +211,8 @@ write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
     }
   GNUNET_free (fn);
   /* create entry for pseudonym name in names */
+  /* FIXME: 90% of what this call does is not needed
+     here => refactor code to only create the entry! */
   GNUNET_free_non_null (GNUNET_PSEUDONYM_id_to_name (cfg, nsid));
 }
 
