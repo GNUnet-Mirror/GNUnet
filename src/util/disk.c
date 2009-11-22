@@ -1271,7 +1271,7 @@ GNUNET_DISK_file_open (const char *fn,
     }
   else
     {
-      disp = OPEN_ALWAYS;
+      disp = OPEN_EXISTING;
     }
 
   /* TODO: access priviledges? */
