@@ -1288,9 +1288,7 @@ GNUNET_SERVICE_run (int argc,
                     enum GNUNET_SERVICE_Options opt,
                     GNUNET_SERVICE_Main task, void *task_cls)
 {
-#define HANDLE_ERROR    err = 1; \
-                        GNUNET_assert (0); \
-                        goto shutdown;
+#define HANDLE_ERROR do { err = 1; GNUNET_break (0); goto shutdown; } while (0)
 
   int err;
   char *cfg_fn;
@@ -1326,37 +1324,19 @@ GNUNET_SERVICE_run (int argc,
   sctx.cfg = cfg = GNUNET_CONFIGURATION_create ();
   /* setup subsystems */
   if (GNUNET_SYSERR == GNUNET_GETOPT_run (serviceName, service_options, argc,
-      argv))
-    {
-      HANDLE_ERROR
-    }
-
+      argv))    
+    HANDLE_ERROR;
   if (GNUNET_OK != GNUNET_log_setup (serviceName, loglev, logfile))
-    {
-      HANDLE_ERROR
-    }
-
+    HANDLE_ERROR;
   if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cfg_fn))
-    {
-      HANDLE_ERROR
-    }
-
+    HANDLE_ERROR;
   if (GNUNET_OK != setup_service (&sctx))
-    {
-      HANDLE_ERROR
-    }
-
-  if (do_daemonize == 1 && GNUNET_OK != detach_terminal (&sctx))
-    {
-      HANDLE_ERROR
-    }
-
+    HANDLE_ERROR;
+  if ( (do_daemonize == 1) && (GNUNET_OK != detach_terminal (&sctx)))    
+    HANDLE_ERROR;
   if (GNUNET_OK != set_user_id (&sctx))
-    {
-      HANDLE_ERROR
-    }
-
-#if 0
+    HANDLE_ERROR;
+#if DEBUG_SERVICE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Service `%s' runs with configuration from `%s'\n",
               serviceName, cfg_fn);
