@@ -209,13 +209,12 @@ GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h,
   char *buf;
   struct GNUNET_CONTAINER_MetaData *meta;
 
-  if (GNUNET_BIO_read_int32__ (h, what, (int32_t *) & size) != GNUNET_OK)
+  if (GNUNET_BIO_read_int32__ (h, what, (int32_t *) &size) != GNUNET_OK)
     return GNUNET_SYSERR;
   if (size > MAX_META_DATA)
     {
       GNUNET_asprintf (&h->emsg,
-                       _
-                       ("Serialized metadata `%s' larger than allowed (%u > %u)"),
+                       _("Serialized metadata `%s' larger than allowed (%u>%u)"),
                        what, size, MAX_META_DATA);
       return GNUNET_SYSERR;
     }
@@ -432,24 +431,26 @@ int
 GNUNET_BIO_write_meta_data (struct GNUNET_BIO_WriteHandle *h,
                             const struct GNUNET_CONTAINER_MetaData *m)
 {
-  unsigned int size;
+  ssize_t size;
   char *buf;
 
   size = GNUNET_CONTAINER_meta_data_get_serialized_size (m,
                                                          GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL
                                                          |
                                                          GNUNET_CONTAINER_META_DATA_SERIALIZE_NO_COMPRESS);
+  if (size == -1)
+    return GNUNET_SYSERR;
   if (size > MAX_META_DATA)
-    size = MAX_META_DATA;
+    size = MAX_META_DATA;  
   buf = GNUNET_malloc (size);
-  GNUNET_CONTAINER_meta_data_serialize (m,
-                                        buf,
-                                        size,
-                                        GNUNET_CONTAINER_META_DATA_SERIALIZE_PART
-                                        |
-                                        GNUNET_CONTAINER_META_DATA_SERIALIZE_NO_COMPRESS);
-  if ((GNUNET_OK != GNUNET_BIO_write_int32 (h, size))
-      || (GNUNET_OK != GNUNET_BIO_write (h, buf, size)))
+  size = GNUNET_CONTAINER_meta_data_serialize (m,
+					       buf,
+					       size,
+					       GNUNET_CONTAINER_META_DATA_SERIALIZE_PART
+					       |
+					       GNUNET_CONTAINER_META_DATA_SERIALIZE_NO_COMPRESS);
+  if ( (GNUNET_OK != GNUNET_BIO_write_int32 (h, (uint32_t) size)) ||
+       (GNUNET_OK != GNUNET_BIO_write (h, buf, size)) )
     {
       GNUNET_free (buf);
       return GNUNET_SYSERR;
