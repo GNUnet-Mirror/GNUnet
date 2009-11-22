@@ -94,7 +94,6 @@ main (int argc, char *argv[])
   GNUNET_HashCode rid2;
   GNUNET_HashCode fid;
   GNUNET_HashCode id3;
-  GNUNET_HashCode rid3;
 
   int old;
   int newVal;
