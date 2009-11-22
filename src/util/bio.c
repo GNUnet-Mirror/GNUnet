@@ -449,6 +449,11 @@ GNUNET_BIO_write_meta_data (struct GNUNET_BIO_WriteHandle *h,
 					       GNUNET_CONTAINER_META_DATA_SERIALIZE_PART
 					       |
 					       GNUNET_CONTAINER_META_DATA_SERIALIZE_NO_COMPRESS);
+  if (size == -1)
+    {
+      GNUNET_free (buf);
+      return GNUNET_SYSERR;
+    }
   if ( (GNUNET_OK != GNUNET_BIO_write_int32 (h, (uint32_t) size)) ||
        (GNUNET_OK != GNUNET_BIO_write (h, buf, size)) )
     {

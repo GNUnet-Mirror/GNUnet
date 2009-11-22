@@ -197,7 +197,7 @@ write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
 	   (GNUNET_OK != GNUNET_BIO_write_string(fileW, ns_name)) ||
 	   (GNUNET_OK != GNUNET_BIO_write_meta_data(fileW, meta)) )
 	{
-	  GNUNET_BIO_write_close(fileW);
+	  (void) GNUNET_BIO_write_close(fileW);
 	  GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_remove (fn));
 	  GNUNET_free (fn);
 	  return;

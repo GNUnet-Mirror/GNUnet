@@ -252,9 +252,9 @@ test_fullfile_rw ()
 
   fileW = GNUNET_BIO_write_open ("/dev/full");
   GNUNET_assert (NULL != fileW);
-  GNUNET_BIO_write (fileW, TESTSTRING, strlen (TESTSTRING));
-  GNUNET_BIO_write_string (fileW, TESTSTRING);
-  GNUNET_BIO_write_meta_data (fileW, metaDataW);
+  (void) GNUNET_BIO_write (fileW, TESTSTRING, strlen (TESTSTRING));
+  (void) GNUNET_BIO_write_string (fileW, TESTSTRING);
+  (void) GNUNET_BIO_write_meta_data (fileW, metaDataW);
   GNUNET_assert (GNUNET_SYSERR == GNUNET_BIO_write_close (fileW));
   GNUNET_CONTAINER_meta_data_destroy (metaDataW);
 
