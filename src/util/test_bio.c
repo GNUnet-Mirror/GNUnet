@@ -163,38 +163,30 @@ test_bigmeta_rw ()
 {
   char *msg;
   static char meta[1024 * 1024 * 10];
-  memset (meta, 'b', sizeof (meta));
-  meta[sizeof (meta) - 1] = '\0';
   struct GNUNET_BIO_WriteHandle *fileW;
   struct GNUNET_BIO_ReadHandle *fileR;
   char *fileName = GNUNET_DISK_mktemp ("gnunet_bio");
-  struct GNUNET_CONTAINER_MetaData *metaDataW;
   struct GNUNET_CONTAINER_MetaData *metaDataR;
-  metaDataW = GNUNET_CONTAINER_meta_data_create ();
-  GNUNET_CONTAINER_meta_data_add_publication_date (metaDataW);
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_meta_data_insert (metaDataW,
-                                                    EXTRACTOR_COMMENT, meta));
 
+  memset (meta, 'b', sizeof (meta));
+  meta[sizeof (meta) - 1] = '\0';
   fileW = GNUNET_BIO_write_open (fileName);
   GNUNET_assert (NULL != fileW);
-  GNUNET_assert (GNUNET_OK == GNUNET_BIO_write_meta_data (fileW, metaDataW));
+  GNUNET_assert (GNUNET_OK == GNUNET_BIO_write_int32 (fileW, sizeof(meta)));
+  GNUNET_assert (GNUNET_OK == GNUNET_BIO_write (fileW, meta, sizeof(meta)));
   GNUNET_assert (GNUNET_OK == GNUNET_BIO_write_close (fileW));
 
   fileR = GNUNET_BIO_read_open (fileName);
   GNUNET_assert (NULL != fileR);
   metaDataR = NULL;
-  GNUNET_log_skip (1, GNUNET_NO);
   GNUNET_assert (GNUNET_SYSERR ==
                  GNUNET_BIO_read_meta_data (fileR, "Read meta error",
                                             &metaDataR));
-  GNUNET_log_skip (0, GNUNET_YES);
   msg = NULL;
   GNUNET_BIO_read_close (fileR, &msg);
   GNUNET_free (msg);
   GNUNET_assert (GNUNET_OK == GNUNET_DISK_directory_remove (fileName));
   GNUNET_assert (NULL == metaDataR);
-  GNUNET_CONTAINER_meta_data_destroy (metaDataW);
   GNUNET_free (fileName);
   return 0;
 }
