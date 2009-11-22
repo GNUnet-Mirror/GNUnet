@@ -526,7 +526,6 @@ AM_GNU_GETTEXT([external])
 AM_ICONV
 
 # Checks for standard typedefs, structures, and compiler characteristics.
-AC_C_CONST
 AC_TYPE_PID_T
 AC_TYPE_SIZE_T
 AC_TYPE_MODE_T
