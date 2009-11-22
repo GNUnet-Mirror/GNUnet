@@ -221,7 +221,11 @@ checkDiffs (struct GNUNET_CONFIGURATION_Handle *cfgDefault, int option)
   diffsFileName =
     GNUNET_DISK_mktemp ("gnunet-test-configurations-diffs.conf");
   if (diffsFileName == NULL)
-    return 1;
+    {
+      GNUNET_CONFIGURATION_destroy (cfg);
+      GNUNET_CONFIGURATION_destroy (cfgDiffs);      
+      return 1;
+    }
   GNUNET_CONFIGURATION_write_diffs (cfgDefault, cfg, diffsFileName);
   GNUNET_CONFIGURATION_destroy (cfg);
 
