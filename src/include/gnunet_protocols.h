@@ -175,6 +175,16 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_ACK 28
 
+/**
+ * FIXME.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP 29
+
+/**
+ * FIXME.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY 30
+
 
 /**
  * Request addition of a HELLO

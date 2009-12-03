@@ -71,12 +71,13 @@ struct GNUNET_MessageHeader
 {
 
   /**
-   * The length of the struct (in bytes, including the length field itself)
+   * The length of the struct (in bytes, including the length field itself),
+   * in big-endian format.
    */
   uint16_t size GNUNET_PACKED;
 
   /**
-   * The type of the message (XX_CS_PROTO_XXXX)
+   * The type of the message (GNUNET_MESSAGE_TYPE_XXXX), in big-endian format.
    */
   uint16_t type GNUNET_PACKED;
 

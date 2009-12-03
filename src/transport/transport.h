@@ -233,6 +233,27 @@ struct OutboundMessage
 
 
 
+/**
+ * Message from the library to the transport service
+ * asking for converting a transport address to a
+ * human-readable UTF-8 string.
+ */
+struct AddressLookupMessage
+{
+
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Length of the (binary) address in bytes, in big-endian.
+   */
+  uint32_t addrlen GNUNET_PACKED;
+
+  /* followed by 'addrlen' bytes of the actual address, then
+     followed by the 0-terminated name of the transport */
+};
 
 
 /* end of transport.h */
