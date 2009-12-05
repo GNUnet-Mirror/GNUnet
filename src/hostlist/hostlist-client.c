@@ -460,6 +460,8 @@ download_hostlist ()
       clean_up ();
       return;
     }
+  CURL_EASY_SETOPT (curl, CURLOPT_FOLLOWLOCATION, 1);
+  /* no need to abort if the above failed */
   CURL_EASY_SETOPT (curl, 
 		    CURLOPT_URL, 
 		    current_url);
