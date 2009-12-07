@@ -355,11 +355,13 @@ GNUNET_OS_process_status (pid_t proc, enum GNUNET_OS_ProcessStatusType *type,
       *type = GNUNET_OS_PROCESS_SIGNALED;
       *code = WSTOPSIG (status);
     }
+#ifdef WIFCONTINUED
   else if (WIFCONTINUED (status))
     {
       *type = GNUNET_OS_PROCESS_RUNNING;
       *code = 0;
     }
+#endif
   else
     {
       *type = GNUNET_OS_PROCESS_UNKNOWN;
