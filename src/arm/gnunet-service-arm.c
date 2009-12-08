@@ -28,8 +28,6 @@
  *   in UP/DOWN signals based on "pending" that are inaccurate...
  *   => have list of clients waiting for a resolution instead of
  *      giving instant (but incorrect) replies
- * - code could go into restart-loop for a service
- *   if service crashes instantly -- need exponential back-off
  * - need to test auto-restart code on configuration changes;
  * - should refine restart code to check if *relevant* parts of the
  *   configuration were changed (anything in the section for the service)
@@ -47,27 +45,14 @@
 
 
 /**
- * Run normal maintenance every 2s.
+ * Check for configuration file changes every 5s.
  */
-#define MAINT_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2)
+#define MAINT_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
- * Run fast maintenance after 100ms.  This is used for an extra-job
- * that is run to check for a process that we just killed.
+ * Threshold after which exponential backoff shouldn't increase (in ms); 30m
  */
-#define MAINT_FAST_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 100)
-
-/**
- * How long do we wait until we decide that a service
- * did not start?
- */
-#define CHECK_TIMEOUT GNUNET_TIME_UNIT_MINUTES
-
-
-/**
- * Threshold after which exponential backoff shouldn't increase
- */
-#define EXPONENTIAL_BACKOFF_THRESHOLD 8
+#define EXPONENTIAL_BACKOFF_THRESHOLD (1000 * 60 * 30)
 
 
 /**
@@ -167,6 +152,32 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 static char *prefix_command;
 
 /**
+ * ID of task called whenever we get a SIGCHILD.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier child_death_task;
+
+/**
+ * ID of task called whenever the timeout for restarting a child
+ * expires.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier child_restart_task;
+
+/**
+ * Context for our SIGCHILD handler.
+ */
+static struct GNUNET_SIGNAL_Context *shc_chld;
+
+/**
+ * Pipe used to communicate shutdown via signal.
+ */
+static struct GNUNET_DISK_PipeHandle *sigpipe;
+
+/**
+ * Reading end of the signal pipe.
+ */
+static const struct GNUNET_DISK_FileHandle *pr;
+
+/**
  * Are we in shutdown mode?
  */
 static int in_shutdown;
@@ -184,13 +195,39 @@ static int in_shutdown;
  */
 static struct GNUNET_SERVER_Handle *server;
 
+
 /**
- * Background task doing maintenance.
+ * If the configuration file changes, restart tasks that depended on that
+ * option.
  *
  * @param cls closure, NULL if we need to self-restart
  * @param tc context
  */
-static void maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void 
+config_change_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct ServiceList *pos;
+  struct stat sbuf;
+
+  pos = running;
+  while (pos != NULL)
+    {
+      /* FIXME: this test for config change is a bit too coarse grained */
+      if ( (0 == STAT (pos->config, &sbuf)) && 
+	   (pos->mtime < sbuf.st_mtime) &&
+	   (pos->pid != 0) )
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		      _("Restarting service `%s' due to configuration file change.\n"));
+	  if (0 != PLIBC_KILL (pos->pid, SIGTERM))
+	    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+	  else
+	    pos->backoff = GNUNET_TIME_UNIT_MILLISECONDS;
+	}
+      pos = pos->next;
+    }
+}
+
 
 
 /**
@@ -407,6 +444,7 @@ start_process (struct ServiceList *sl)
     }
   argv[argv_size++] = NULL;
   sl->pid = GNUNET_OS_start_process_v (firstarg, argv);
+  /* FIXME: should check sl->pid */
   GNUNET_free (argv);
   GNUNET_free (loprefix);
   GNUNET_free (options);
@@ -583,8 +621,6 @@ stop_service (struct GNUNET_SERVER_Client *client, const char *servicename)
   pos->kill_continuation = &free_and_signal;
   pos->kill_continuation_cls = client;
   GNUNET_SERVER_client_keep (client);
-  GNUNET_SCHEDULER_add_delayed (sched,
-				MAINT_FAST_FREQUENCY, &maint, "non-null");
 }
 
 
@@ -650,171 +686,98 @@ handle_stop (void *cls,
 
 
 /**
- * Background task doing maintenance.
+ * Task run for shutdown.
  *
  * @param cls closure, NULL if we need to self-restart
  * @param tc context
  */
 static void
-maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ServiceList *pos;
-  struct ServiceList *prev;
   struct ServiceList *next;
-  const char *statstr;
-  int statcode;
-  struct stat sbuf;
-  struct GNUNET_TIME_Relative lowestRestartDelay;
-  int ret;
-
-  lowestRestartDelay = GNUNET_TIME_UNIT_FOREVER_REL;
-
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Stopping all services\n"));
-
-      in_shutdown = GNUNET_YES;
-      pos = running;
-      while (NULL != pos)
-	{
-	  if (pos->pid != 0)
-	    {
-#if DEBUG_ARM
-	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-			  "Sending SIGTERM to `%s'\n", pos->name);
-#endif
-	      if (0 != PLIBC_KILL (pos->pid, SIGTERM))
-		GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-	    }
-	  pos = pos->next;
-	}
-    }
-  if (cls == NULL)
-    {
-      if ((in_shutdown == GNUNET_YES) && (running == NULL))
-	{
-#if DEBUG_ARM
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM service terminates.\n");
-#endif
-	  GNUNET_assert (server != NULL);
-	  GNUNET_SERVER_destroy (server);
-	  server = NULL;
-	  return;		/* we are done! */
-	}
-      GNUNET_SCHEDULER_add_delayed (tc->sched,
-				    (in_shutdown == GNUNET_YES)
-				    ? MAINT_FAST_FREQUENCY
-				    : MAINT_FREQUENCY, &maint, NULL);
-    }
-
-  /* check for services that died (WAITPID) */
+  struct ServiceList *prev;
+ 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Stopping all services\n"));
+  in_shutdown = GNUNET_YES;
+  pos = running;
   prev = NULL;
-  next = running;
-  while (NULL != (pos = next))
+  while (NULL != pos)
     {
-      enum GNUNET_OS_ProcessStatusType statusType;
-      unsigned long statusCode;
-
       next = pos->next;
-      if ((NULL != pos->kill_continuation) ||
-	  ((GNUNET_YES == in_shutdown) && (pos->pid == 0)))
+      if (pos->pid != 0)
+	{
+#if DEBUG_ARM
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Sending SIGTERM to `%s'\n", pos->name);
+#endif
+	  if (0 != PLIBC_KILL (pos->pid, SIGTERM))
+	    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+	  prev = pos;      
+	}
+      else
 	{
 	  if (prev == NULL)
 	    running = next;
 	  else
 	    prev->next = next;
-	  if (NULL != pos->kill_continuation)
-	    pos->kill_continuation (pos->kill_continuation_cls, pos);
-	  else
-	    free_entry (pos);
-	  continue;
+	  free_entry (pos);
 	}
-      if ((GNUNET_SYSERR == (ret = GNUNET_OS_process_status (pos->pid,
-							     &statusType,
-							     &statusCode))) ||
-	  ((ret == GNUNET_NO) ||
-	   (statusType == GNUNET_OS_PROCESS_STOPPED) ||
-	   (statusType == GNUNET_OS_PROCESS_RUNNING)))
-	{
-	  prev = pos;
-	  continue;
-	}
-      if (statusType == GNUNET_OS_PROCESS_EXITED)
-	{
-	  statstr = _( /* process termination method */ "exit");
-	  statcode = statusCode;
-	}
-      else if (statusType == GNUNET_OS_PROCESS_SIGNALED)
-	{
-	  statstr = _( /* process termination method */ "signal");
-	  statcode = statusCode;
-	}
-      else
-	{
-	  statstr = _( /* process termination method */ "unknown");
-	  statcode = 0;
-	}
-      if (GNUNET_YES != in_shutdown)
-	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		    _
-		    ("Service `%s' terminated with status %s/%d, will try to restart it!\n"),
-		    pos->name, statstr, statcode);
-#if DEBUG_ARM
-      else
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		    "Service `%s' terminated with status %s/%d\n",
-		    pos->name, statstr, statcode);
-#endif
-      /* schedule restart */
-      pos->pid = 0;
-      prev = pos;
+      pos = next;
     }
+  if (running == NULL)
+    GNUNET_SERVER_destroy (server);
+}
+
+
+/**
+ * Task run whenever it is time to restart a child that died.
+ *
+ * @param cls closure, always NULL
+ * @param tc context
+ */
+static void
+delayed_restart_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct ServiceList *pos;
+  struct GNUNET_TIME_Relative lowestRestartDelay;
+
+  child_restart_task = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+  lowestRestartDelay = GNUNET_TIME_UNIT_FOREVER_REL;
 
   /* check for services that need to be restarted due to
      configuration changes or because the last restart failed */
   pos = running;
   while (pos != NULL)
     {
-      if ((0 == STAT (pos->config, &sbuf)) && (pos->mtime < sbuf.st_mtime))
+      if ( (pos->pid == 0) && 
+	   (GNUNET_YES != in_shutdown) )
 	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		      _
-		      ("Restarting service `%s' due to configuration file change.\n"));
-	  if (0 != PLIBC_KILL (pos->pid, SIGTERM))
-	    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-	}
-      if ((pos->pid == 0) && (GNUNET_YES != in_shutdown))
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		      _("Restarting service `%s'.\n"), pos->name);
-	  /* FIXME: should have some exponentially
-	     increasing timer to avoid tight restart loops */
-	  if (pos->restartAt.value != GNUNET_TIME_UNIT_FOREVER_ABS.value)
-	    {
-	      /* Otherwise, the process died for the first time, backoff should't increase */
-	      if (pos->backoff.value < EXPONENTIAL_BACKOFF_THRESHOLD)
-		pos->backoff =
-		  GNUNET_TIME_relative_multiply (pos->backoff, 2);
-	    }
-
-	  pos->restartAt = GNUNET_TIME_relative_to_absolute (pos->backoff);
-
-	  lowestRestartDelay = GNUNET_TIME_relative_min (lowestRestartDelay,
-							 GNUNET_TIME_absolute_get_remaining
-							 (pos->restartAt));
-
 	  if (GNUNET_TIME_absolute_get_remaining (pos->restartAt).value == 0)
-	    start_process (pos);
+	    {
+	      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+			  _("Restarting service `%s'.\n"), pos->name);
+	      start_process (pos);
+	    }
+	  else
+	    {
+	      lowestRestartDelay 
+		= GNUNET_TIME_relative_min (lowestRestartDelay,
+					    GNUNET_TIME_absolute_get_remaining
+					    (pos->restartAt));
+	    }
 	}
       pos = pos->next;
     }
+  if (lowestRestartDelay.value != GNUNET_TIME_UNIT_FOREVER_REL.value)
+    child_restart_task
+      = GNUNET_SCHEDULER_add_delayed (sched,
+				      lowestRestartDelay,
+				      &delayed_restart_task,
+				      NULL);
 }
-
-#if 0
-static GNUNET_SCHEDULER_TaskIdentifier child_death_task;
-
-static GNUNET_SCHEDULER_TaskIdentifier child_restart_task;
-
 
 
 /**
@@ -831,16 +794,20 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct ServiceList *next;
   const char *statstr;
   int statcode;
-  struct stat sbuf;
-  struct GNUNET_TIME_Relative lowestRestartDelay;
   int ret;
+  char c;
 
   child_death_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-  child_death_task =
-    GNUNET_SCHEDULER_add_read_file (sched, GNUNET_TIME_UNIT_FOREVER_REL, pr,
-				    &maint_child_death, NULL);
+    {
+      child_death_task =
+	GNUNET_SCHEDULER_add_read_file (sched, GNUNET_TIME_UNIT_FOREVER_REL, pr,
+					&maint_child_death, NULL);
+      return;    
+    }
+  /* consume the signal */
+  GNUNET_DISK_file_read (pr, &c, sizeof (c));
+
   /* check for services that died (WAITPID) */
   prev = NULL;
   next = running;
@@ -850,25 +817,17 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       unsigned long statusCode;
 
       next = pos->next;
-      if ((NULL != pos->kill_continuation) ||
-	  ((GNUNET_YES == in_shutdown) && (pos->pid == 0)))
+      if (pos->pid == 0) 
 	{
-	  if (prev == NULL)
-	    running = next;
-	  else
-	    prev->next = next;
-	  if (NULL != pos->kill_continuation)
-	    pos->kill_continuation (pos->kill_continuation_cls, pos);
-	  else
-	    free_entry (pos);
+	  prev = pos;
 	  continue;
 	}
       if ((GNUNET_SYSERR == (ret = GNUNET_OS_process_status (pos->pid,
 							     &statusType,
 							     &statusCode))) ||
-	  ((ret == GNUNET_NO) ||
-	   (statusType == GNUNET_OS_PROCESS_STOPPED) ||
-	   (statusType == GNUNET_OS_PROCESS_RUNNING)))
+	  ( (ret == GNUNET_NO) ||
+	    (statusType == GNUNET_OS_PROCESS_STOPPED) ||
+	    (statusType == GNUNET_OS_PROCESS_RUNNING)) )
 	{
 	  prev = pos;
 	  continue;
@@ -888,66 +847,56 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	  statstr = _( /* process termination method */ "unknown");
 	  statcode = 0;
 	}
+      pos->pid = 0;
+      if (NULL != pos->kill_continuation) 
+	{
+	  if (prev == NULL)
+	    running = next;
+	  else
+	    prev->next = next;
+	  pos->kill_continuation (pos->kill_continuation_cls, pos);
+	  continue;
+	}
       if (GNUNET_YES != in_shutdown)
-	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		    _
-		    ("Service `%s' terminated with status %s/%d, will try to restart it!\n"),
-		    pos->name, statstr, statcode);
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		      _
+		      ("Service `%s' terminated with status %s/%d, will try to restart it!\n"),
+		      pos->name, statstr, statcode);
+	  /* schedule restart */
+	  pos->restartAt
+	    = GNUNET_TIME_relative_to_absolute (pos->backoff);
+	  if (pos->backoff.value < EXPONENTIAL_BACKOFF_THRESHOLD)
+	    pos->backoff 
+	      = GNUNET_TIME_relative_multiply (pos->backoff, 2);
+	  if (GNUNET_SCHEDULER_NO_TASK != child_restart_task)
+	    GNUNET_SCHEDULER_cancel (sched, child_restart_task);
+	  child_restart_task 
+	    = GNUNET_SCHEDULER_add_now (sched,
+					&delayed_restart_task,
+					NULL);
+	}
 #if DEBUG_ARM
       else
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		    "Service `%s' terminated with status %s/%d\n",
 		    pos->name, statstr, statcode);
 #endif
-      /* schedule restart */
-      pos->pid = 0;
       prev = pos;
     }
-
-  /* check for services that need to be restarted due to
-     configuration changes or because the last restart failed */
-  pos = running;
-  while (pos != NULL)
+  if ( (running == NULL) &&
+       (in_shutdown) )
     {
-      if ((0 == STAT (pos->config, &sbuf)) && (pos->mtime < sbuf.st_mtime))
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		      _
-		      ("Restarting service `%s' due to configuration file change.\n"));
-	  if (0 != PLIBC_KILL (pos->pid, SIGTERM))
-	    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-	}
-      if ((pos->pid == 0) && (GNUNET_YES != in_shutdown))
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		      _("Restarting service `%s'.\n"), pos->name);
-	  /* FIXME: should have some exponentially
-	     increasing timer to avoid tight restart loops */
-	  if (pos->restartAt.value != GNUNET_TIME_UNIT_FOREVER_ABS.value)
-	    {
-	      /* Otherwise, the process died for the first time, backoff should't increase */
-	      if (pos->backoff.value < EXPONENTIAL_BACKOFF_THRESHOLD)
-		pos->backoff =
-		  GNUNET_TIME_relative_multiply (pos->backoff, 2);
-	    }
-
-	  pos->restartAt = GNUNET_TIME_relative_to_absolute (pos->backoff);
-
-	  lowestRestartDelay = GNUNET_TIME_relative_min (lowestRestartDelay,
-							 GNUNET_TIME_absolute_get_remaining
-							 (pos->restartAt));
-
-	  if (GNUNET_TIME_absolute_get_remaining (pos->restartAt).value == 0)
-	    start_process (pos);
-	}
-      pos = pos->next;
+      GNUNET_SERVER_destroy (server);
+      GNUNET_SIGNAL_handler_uninstall (shc_chld);
+    }
+  else
+    {
+      child_death_task =
+	GNUNET_SCHEDULER_add_read_file (sched, GNUNET_TIME_UNIT_FOREVER_REL, pr,
+					&maint_child_death, NULL);
     }
 }
-
-#endif
-
-
-
 
 
 /**
@@ -958,15 +907,6 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
   {&handle_stop, NULL, GNUNET_MESSAGE_TYPE_ARM_STOP, 0},
   {NULL, NULL, 0, 0}
 };
-
-static struct GNUNET_SIGNAL_Context *shc_chld;
-
-/**
- * Pipe used to communicate shutdown via signal.
- */
-static struct GNUNET_DISK_PipeHandle *sigpipe;
-
-static const struct GNUNET_DISK_FileHandle *pr;
 
 /**
  * Signal handler called for signals that should cause us to shutdown.
@@ -999,23 +939,25 @@ run (void *cls,
   char *defaultservices;
   char *pos;
 
+  cfg = c;
+  sched = s;
+  server = serv;
+  GNUNET_assert (serv != NULL);
   shc_chld = GNUNET_SIGNAL_handler_install (SIGCHLD, &sighandler_child_death);
   GNUNET_assert (sigpipe == NULL);
   sigpipe = GNUNET_DISK_pipe (GNUNET_NO);
   GNUNET_assert (sigpipe != NULL);
   pr = GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ);
   GNUNET_assert (pr != NULL);
-
   GNUNET_SERVER_ignore_shutdown (serv, GNUNET_YES);
-  GNUNET_assert (serv != NULL);
-  cfg = c;
-  sched = s;
-  server = serv;
-  /*
-   * child_death_task =
+  GNUNET_SCHEDULER_add_delayed (sched,
+				GNUNET_TIME_UNIT_FOREVER_REL,
+				&shutdown_task,
+				NULL);
+  child_death_task =
     GNUNET_SCHEDULER_add_read_file (sched, GNUNET_TIME_UNIT_FOREVER_REL, pr,
 				    &maint_child_death, NULL);
-*/
+
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
 					     "ARM",
@@ -1055,7 +997,7 @@ run (void *cls,
   /* manage services */
   GNUNET_SCHEDULER_add_with_priority (sched,
 				      GNUNET_SCHEDULER_PRIORITY_IDLE,
-				      &maint, NULL);
+				      &config_change_task, NULL);
 }
 
 
