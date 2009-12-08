@@ -728,8 +728,11 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (running == NULL)
     {
       GNUNET_SERVER_destroy (server);
+      server = NULL;
       GNUNET_SIGNAL_handler_uninstall (shc_chld);
       shc_chld = NULL;
+      GNUNET_SCHEDULER_cancel (sched, child_death_task);
+      child_death_task = GNUNET_SCHEDULER_NO_TASK;
     }
 }
 
