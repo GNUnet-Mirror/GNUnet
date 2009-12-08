@@ -42,6 +42,7 @@
 #include "gnunet_os_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_service_lib.h"
+#include "gnunet_signal_lib.h"
 #include "arm.h"
 
 
@@ -61,6 +62,13 @@
  * did not start?
  */
 #define CHECK_TIMEOUT GNUNET_TIME_UNIT_MINUTES
+
+
+/**
+ * Threshold after which exponential backoff shouldn't increase
+ */
+#define EXPONENTIAL_BACKOFF_THRESHOLD 8
+
 
 /**
  * List of our services.
@@ -123,6 +131,12 @@ struct ServiceList
    */
   time_t mtime;
 
+  /* Process exponential backoff time */
+  struct GNUNET_TIME_Relative backoff;
+
+  /* Absolute time at which the process is scheduled to restart in case of death */
+  struct GNUNET_TIME_Absolute restartAt;
+
   /**
    * Reference counter (counts how many times we've been
    * asked to start the service).  We only actually stop
@@ -157,6 +171,7 @@ static char *prefix_command;
  */
 static int in_shutdown;
 
+
 /**
  * Handle to our server instance.  Our server is a bit special in that
  * its service is not immediately stopped once we get a shutdown
@@ -175,8 +190,7 @@ static struct GNUNET_SERVER_Handle *server;
  * @param cls closure, NULL if we need to self-restart
  * @param tc context
  */
-static void
-maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -197,7 +211,7 @@ write_result (void *cls, size_t size, void *buf)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Could not send status result to client\n"));
-      return 0;                   /* error, not much we can do */
+      return 0;			/* error, not much we can do */
     }
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   msg = buf;
@@ -220,28 +234,29 @@ write_result (void *cls, size_t size, void *buf)
  */
 static void
 signal_result (struct GNUNET_SERVER_Client *client,
-               const char *name, uint16_t result)
+	       const char *name, uint16_t result)
 {
   uint16_t *res;
 
   if (NULL == client)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  _("Not sending status result to client: no client known\n"));
+		  _
+		  ("Not sending status result to client: no client known\n"));
       return;
     }
 #if DEBUG_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Telling client that service `%s' is now %s\n",
-              name,
-              result == GNUNET_MESSAGE_TYPE_ARM_IS_DOWN ? "down" : "up");
+	      "Telling client that service `%s' is now %s\n",
+	      name,
+	      result == GNUNET_MESSAGE_TYPE_ARM_IS_DOWN ? "down" : "up");
 #endif
   res = GNUNET_malloc (sizeof (uint16_t));
   *res = result;
   GNUNET_SERVER_notify_transmit_ready (client,
-                                       sizeof (struct GNUNET_MessageHeader),
-                                       GNUNET_TIME_UNIT_FOREVER_REL,
-                                       &write_result, res);
+				       sizeof (struct GNUNET_MessageHeader),
+				       GNUNET_TIME_UNIT_FOREVER_REL,
+				       &write_result, res);
 }
 
 
@@ -263,14 +278,14 @@ find_name (const char *name)
   while (pos != NULL)
     {
       if (0 == strcmp (pos->name, name))
-        {
-          if (prev == NULL)
-            running = pos->next;
-          else
-            prev->next = pos->next;
-          pos->next = NULL;
-          return pos;
-        }
+	{
+	  if (prev == NULL)
+	    running = pos->next;
+	  else
+	    prev->next = pos->next;
+	  pos->next = NULL;
+	  return pos;
+	}
       prev = pos;
       pos = pos->next;
     }
@@ -313,19 +328,19 @@ start_process (struct ServiceList *sl)
   /* start service */
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             sl->name, "PREFIX", &loprefix))
+					     sl->name, "PREFIX", &loprefix))
     loprefix = GNUNET_strdup (prefix_command);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             sl->name, "OPTIONS", &options))
+					     sl->name, "OPTIONS", &options))
     options = GNUNET_strdup ("");
   use_debug = GNUNET_CONFIGURATION_get_value_yesno (cfg, sl->name, "DEBUG");
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Starting service `%s'\n"), sl->name);
 #if DEBUG_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Starting service `%s' using binary `%s' and configuration `%s'\n",
-              sl->name, sl->binary, sl->config);
+	      "Starting service `%s' using binary `%s' and configuration `%s'\n",
+	      sl->name, sl->binary, sl->config);
 #endif
   argv_size = 6;
   if (use_debug)
@@ -334,14 +349,14 @@ start_process (struct ServiceList *sl)
   while ('\0' != *lopos)
     {
       if (*lopos == ' ')
-        argv_size++;
+	argv_size++;
       lopos++;
     }
   optpos = options;
   while ('\0' != *optpos)
     {
       if (*optpos == ' ')
-        argv_size++;
+	argv_size++;
       optpos++;
     }
   firstarg = NULL;
@@ -352,16 +367,16 @@ start_process (struct ServiceList *sl)
   while ('\0' != *lopos)
     {
       while (*lopos == ' ')
-        lopos++;
+	lopos++;
       if (*lopos == '\0')
-        continue;
+	continue;
       if (argv_size == 0)
-        firstarg = lopos;
+	firstarg = lopos;
       argv[argv_size++] = lopos;
       while (('\0' != *lopos) && (' ' != *lopos))
-        lopos++;
+	lopos++;
       if ('\0' == *lopos)
-        continue;
+	continue;
       *lopos = '\0';
       lopos++;
     }
@@ -379,14 +394,14 @@ start_process (struct ServiceList *sl)
   while ('\0' != *optpos)
     {
       while (*optpos == ' ')
-        optpos++;
+	optpos++;
       if (*optpos == '\0')
-        continue;
+	continue;
       argv[argv_size++] = optpos;
       while (('\0' != *optpos) && (' ' != *optpos))
-        optpos++;
+	optpos++;
       if ('\0' == *optpos)
-        continue;
+	continue;
       *optpos = '\0';
       optpos++;
     }
@@ -415,7 +430,8 @@ start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
   if (GNUNET_YES == in_shutdown)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("ARM is shutting down, service `%s' not started.\n"), servicename);
+		  _("ARM is shutting down, service `%s' not started.\n"),
+		  servicename);
       signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
       return;
     }
@@ -424,7 +440,7 @@ start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
     {
       /* already running, just increment RC */
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("Service `%s' already running.\n"), servicename);
+		  _("Service `%s' already running.\n"), servicename);
       sl->rc++;
       sl->next = running;
       running = sl;
@@ -433,24 +449,24 @@ start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
     }
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             servicename, "BINARY", &binary))
+					     servicename, "BINARY", &binary))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("Binary implementing service `%s' not known!\n"),
-                  servicename);
+		  _("Binary implementing service `%s' not known!\n"),
+		  servicename);
       signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
       return;
     }
   if ((GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                                servicename,
-                                                "CONFIG",
-                                                &config)) ||
+						servicename,
+						"CONFIG",
+						&config)) ||
       (0 != STAT (config, &sbuf)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("Configuration file `%s' for service `%s' not known!\n"),
-                  config, servicename);
+		  _("Configuration file `%s' for service `%s' not known!\n"),
+		  config, servicename);
       signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
       GNUNET_free (binary);
       GNUNET_free_non_null (config);
@@ -463,6 +479,9 @@ start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
   sl->binary = binary;
   sl->config = config;
   sl->mtime = sbuf.st_mtime;
+  sl->backoff = GNUNET_TIME_UNIT_MILLISECONDS;
+  sl->restartAt = GNUNET_TIME_UNIT_FOREVER_ABS;
+
   running = sl;
   start_process (sl);
   if (NULL != client)
@@ -497,13 +516,12 @@ free_and_signal (void *cls, struct ServiceList *pos)
  * @param servicename name of the service to stop
  */
 static void
-stop_service (struct GNUNET_SERVER_Client *client,
-	      const char *servicename)
+stop_service (struct GNUNET_SERVER_Client *client, const char *servicename)
 {
   struct ServiceList *pos;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Preparing to stop `%s'\n"), servicename);
+	      _("Preparing to stop `%s'\n"), servicename);
   pos = find_name (servicename);
   if (pos == NULL)
     {
@@ -520,15 +538,14 @@ stop_service (struct GNUNET_SERVER_Client *client,
 #if DEBUG_ARM
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Service `%s' still used by %u clients, will keep it running!\n",
-		  servicename,
-		  pos->rc);
+		  servicename, pos->rc);
 #endif
       signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_UP);
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return;
     }
   if (pos->rc == 1)
-    pos->rc--; /* decrement RC to zero */
+    pos->rc--;			/* decrement RC to zero */
   if (pos->kill_continuation != NULL)
     {
       /* killing already in progress */
@@ -582,8 +599,8 @@ stop_service (struct GNUNET_SERVER_Client *client,
  */
 static void
 handle_start (void *cls,
-              struct GNUNET_SERVER_Client *client,
-              const struct GNUNET_MessageHeader *message)
+	      struct GNUNET_SERVER_Client *client,
+	      const struct GNUNET_MessageHeader *message)
 {
   const char *servicename;
   uint16_t size;
@@ -613,8 +630,8 @@ handle_start (void *cls,
  */
 static void
 handle_stop (void *cls,
-             struct GNUNET_SERVER_Client *client,
-             const struct GNUNET_MessageHeader *message)
+	     struct GNUNET_SERVER_Client *client,
+	     const struct GNUNET_MessageHeader *message)
 {
   const char *servicename;
   uint16_t size;
@@ -647,47 +664,47 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   const char *statstr;
   int statcode;
   struct stat sbuf;
+  struct GNUNET_TIME_Relative lowestRestartDelay;
   int ret;
+
+  lowestRestartDelay = GNUNET_TIME_UNIT_FOREVER_REL;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Stopping all services\n"));
+
       in_shutdown = GNUNET_YES;
       pos = running;
       while (NULL != pos)
-        {
-	  if (pos->pid != 0) 
+	{
+	  if (pos->pid != 0)
 	    {
 #if DEBUG_ARM
-	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-			  "Sending SIGTERM to `%s'\n",
-			  pos->name);
+	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+			  "Sending SIGTERM to `%s'\n", pos->name);
 #endif
 	      if (0 != PLIBC_KILL (pos->pid, SIGTERM))
-		GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");	    
+		GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
 	    }
-          pos = pos->next;
-        }
+	  pos = pos->next;
+	}
     }
   if (cls == NULL)
     {
-      if ( (in_shutdown == GNUNET_YES) &&
-	   (running == NULL) )
+      if ((in_shutdown == GNUNET_YES) && (running == NULL))
 	{
 #if DEBUG_ARM
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		      "ARM service terminates.\n");
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM service terminates.\n");
 #endif
 	  GNUNET_assert (server != NULL);
 	  GNUNET_SERVER_destroy (server);
 	  server = NULL;
-	  return; /* we are done! */      
+	  return;		/* we are done! */
 	}
       GNUNET_SCHEDULER_add_delayed (tc->sched,
 				    (in_shutdown == GNUNET_YES)
 				    ? MAINT_FAST_FREQUENCY
-				    : MAINT_FREQUENCY, 
-				    &maint, NULL);
+				    : MAINT_FREQUENCY, &maint, NULL);
     }
 
   /* check for services that died (WAITPID) */
@@ -697,12 +714,11 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       enum GNUNET_OS_ProcessStatusType statusType;
       unsigned long statusCode;
-     
+
       next = pos->next;
-      if ( (NULL != pos->kill_continuation) ||
-	   ( (GNUNET_YES == in_shutdown) &&
-	     (pos->pid == 0) ) )
-        {
+      if ((NULL != pos->kill_continuation) ||
+	  ((GNUNET_YES == in_shutdown) && (pos->pid == 0)))
+	{
 	  if (prev == NULL)
 	    running = next;
 	  else
@@ -712,13 +728,13 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	  else
 	    free_entry (pos);
 	  continue;
-        }
-      if ( (GNUNET_SYSERR == (ret = GNUNET_OS_process_status(pos->pid, 
+	}
+      if ((GNUNET_SYSERR == (ret = GNUNET_OS_process_status (pos->pid,
 							     &statusType,
 							     &statusCode))) ||
-	   ( (ret == GNUNET_NO) ||
-	     (statusType == GNUNET_OS_PROCESS_STOPPED) || 
-	     (statusType == GNUNET_OS_PROCESS_RUNNING) ) )
+	  ((ret == GNUNET_NO) ||
+	   (statusType == GNUNET_OS_PROCESS_STOPPED) ||
+	   (statusType == GNUNET_OS_PROCESS_RUNNING)))
 	{
 	  prev = pos;
 	  continue;
@@ -737,17 +753,18 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	{
 	  statstr = _( /* process termination method */ "unknown");
 	  statcode = 0;
-	}    
+	}
       if (GNUNET_YES != in_shutdown)
 	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		    _("Service `%s' terminated with status %s/%d, will try to restart it!\n"),
+		    _
+		    ("Service `%s' terminated with status %s/%d, will try to restart it!\n"),
 		    pos->name, statstr, statcode);
 #if DEBUG_ARM
       else
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		    "Service `%s' terminated with status %s/%d\n",
 		    pos->name, statstr, statcode);
-#endif	
+#endif
       /* schedule restart */
       pos->pid = 0;
       prev = pos;
@@ -759,24 +776,178 @@ maint (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   while (pos != NULL)
     {
       if ((0 == STAT (pos->config, &sbuf)) && (pos->mtime < sbuf.st_mtime))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                      _("Restarting service `%s' due to configuration file change.\n"));
-          if (0 != PLIBC_KILL (pos->pid, SIGTERM))
-            GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-        }
-      if ( (pos->pid == 0) &&
-	   (GNUNET_YES != in_shutdown) )
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                      _("Restarting service `%s'.\n"), pos->name);
-          /* FIXME: should have some exponentially
-             increasing timer to avoid tight restart loops */
-          start_process (pos);
-        }
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		      _
+		      ("Restarting service `%s' due to configuration file change.\n"));
+	  if (0 != PLIBC_KILL (pos->pid, SIGTERM))
+	    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+	}
+      if ((pos->pid == 0) && (GNUNET_YES != in_shutdown))
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		      _("Restarting service `%s'.\n"), pos->name);
+	  /* FIXME: should have some exponentially
+	     increasing timer to avoid tight restart loops */
+	  if (pos->restartAt.value != GNUNET_TIME_UNIT_FOREVER_ABS.value)
+	    {
+	      /* Otherwise, the process died for the first time, backoff should't increase */
+	      if (pos->backoff.value < EXPONENTIAL_BACKOFF_THRESHOLD)
+		pos->backoff =
+		  GNUNET_TIME_relative_multiply (pos->backoff, 2);
+	    }
+
+	  pos->restartAt = GNUNET_TIME_relative_to_absolute (pos->backoff);
+
+	  lowestRestartDelay = GNUNET_TIME_relative_min (lowestRestartDelay,
+							 GNUNET_TIME_absolute_get_remaining
+							 (pos->restartAt));
+
+	  if (GNUNET_TIME_absolute_get_remaining (pos->restartAt).value == 0)
+	    start_process (pos);
+	}
       pos = pos->next;
     }
 }
+
+#if 0
+static GNUNET_SCHEDULER_TaskIdentifier child_death_task;
+
+static GNUNET_SCHEDULER_TaskIdentifier child_restart_task;
+
+
+
+/**
+ * 
+ *
+ * @param cls closure, NULL if we need to self-restart
+ * @param tc context
+ */
+static void
+maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct ServiceList *pos;
+  struct ServiceList *prev;
+  struct ServiceList *next;
+  const char *statstr;
+  int statcode;
+  struct stat sbuf;
+  struct GNUNET_TIME_Relative lowestRestartDelay;
+  int ret;
+
+  child_death_task = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+  child_death_task =
+    GNUNET_SCHEDULER_add_read_file (sched, GNUNET_TIME_UNIT_FOREVER_REL, pr,
+				    &maint_child_death, NULL);
+  /* check for services that died (WAITPID) */
+  prev = NULL;
+  next = running;
+  while (NULL != (pos = next))
+    {
+      enum GNUNET_OS_ProcessStatusType statusType;
+      unsigned long statusCode;
+
+      next = pos->next;
+      if ((NULL != pos->kill_continuation) ||
+	  ((GNUNET_YES == in_shutdown) && (pos->pid == 0)))
+	{
+	  if (prev == NULL)
+	    running = next;
+	  else
+	    prev->next = next;
+	  if (NULL != pos->kill_continuation)
+	    pos->kill_continuation (pos->kill_continuation_cls, pos);
+	  else
+	    free_entry (pos);
+	  continue;
+	}
+      if ((GNUNET_SYSERR == (ret = GNUNET_OS_process_status (pos->pid,
+							     &statusType,
+							     &statusCode))) ||
+	  ((ret == GNUNET_NO) ||
+	   (statusType == GNUNET_OS_PROCESS_STOPPED) ||
+	   (statusType == GNUNET_OS_PROCESS_RUNNING)))
+	{
+	  prev = pos;
+	  continue;
+	}
+      if (statusType == GNUNET_OS_PROCESS_EXITED)
+	{
+	  statstr = _( /* process termination method */ "exit");
+	  statcode = statusCode;
+	}
+      else if (statusType == GNUNET_OS_PROCESS_SIGNALED)
+	{
+	  statstr = _( /* process termination method */ "signal");
+	  statcode = statusCode;
+	}
+      else
+	{
+	  statstr = _( /* process termination method */ "unknown");
+	  statcode = 0;
+	}
+      if (GNUNET_YES != in_shutdown)
+	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		    _
+		    ("Service `%s' terminated with status %s/%d, will try to restart it!\n"),
+		    pos->name, statstr, statcode);
+#if DEBUG_ARM
+      else
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "Service `%s' terminated with status %s/%d\n",
+		    pos->name, statstr, statcode);
+#endif
+      /* schedule restart */
+      pos->pid = 0;
+      prev = pos;
+    }
+
+  /* check for services that need to be restarted due to
+     configuration changes or because the last restart failed */
+  pos = running;
+  while (pos != NULL)
+    {
+      if ((0 == STAT (pos->config, &sbuf)) && (pos->mtime < sbuf.st_mtime))
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		      _
+		      ("Restarting service `%s' due to configuration file change.\n"));
+	  if (0 != PLIBC_KILL (pos->pid, SIGTERM))
+	    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+	}
+      if ((pos->pid == 0) && (GNUNET_YES != in_shutdown))
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		      _("Restarting service `%s'.\n"), pos->name);
+	  /* FIXME: should have some exponentially
+	     increasing timer to avoid tight restart loops */
+	  if (pos->restartAt.value != GNUNET_TIME_UNIT_FOREVER_ABS.value)
+	    {
+	      /* Otherwise, the process died for the first time, backoff should't increase */
+	      if (pos->backoff.value < EXPONENTIAL_BACKOFF_THRESHOLD)
+		pos->backoff =
+		  GNUNET_TIME_relative_multiply (pos->backoff, 2);
+	    }
+
+	  pos->restartAt = GNUNET_TIME_relative_to_absolute (pos->backoff);
+
+	  lowestRestartDelay = GNUNET_TIME_relative_min (lowestRestartDelay,
+							 GNUNET_TIME_absolute_get_remaining
+							 (pos->restartAt));
+
+	  if (GNUNET_TIME_absolute_get_remaining (pos->restartAt).value == 0)
+	    start_process (pos);
+	}
+      pos = pos->next;
+    }
+}
+
+#endif
+
+
+
 
 
 /**
@@ -787,6 +958,28 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
   {&handle_stop, NULL, GNUNET_MESSAGE_TYPE_ARM_STOP, 0},
   {NULL, NULL, 0, 0}
 };
+
+static struct GNUNET_SIGNAL_Context *shc_chld;
+
+/**
+ * Pipe used to communicate shutdown via signal.
+ */
+static struct GNUNET_DISK_PipeHandle *sigpipe;
+
+static const struct GNUNET_DISK_FileHandle *pr;
+
+/**
+ * Signal handler called for signals that should cause us to shutdown.
+ */
+static void
+sighandler_child_death ()
+{
+  static char c;
+
+  GNUNET_DISK_file_write (GNUNET_DISK_pipe_handle
+			  (sigpipe, GNUNET_DISK_PIPE_END_WRITE), &c,
+			  sizeof (c));
+}
 
 
 /**
@@ -806,41 +999,53 @@ run (void *cls,
   char *defaultservices;
   char *pos;
 
+  shc_chld = GNUNET_SIGNAL_handler_install (SIGCHLD, &sighandler_child_death);
+  GNUNET_assert (sigpipe == NULL);
+  sigpipe = GNUNET_DISK_pipe (GNUNET_NO);
+  GNUNET_assert (sigpipe != NULL);
+  pr = GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ);
+  GNUNET_assert (pr != NULL);
+
   GNUNET_SERVER_ignore_shutdown (serv, GNUNET_YES);
   GNUNET_assert (serv != NULL);
   cfg = c;
   sched = s;
   server = serv;
+  /*
+   * child_death_task =
+    GNUNET_SCHEDULER_add_read_file (sched, GNUNET_TIME_UNIT_FOREVER_REL, pr,
+				    &maint_child_death, NULL);
+*/
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             "ARM",
-                                             "GLOBAL_PREFIX",
-                                             &prefix_command))
+					     "ARM",
+					     "GLOBAL_PREFIX",
+					     &prefix_command))
     prefix_command = GNUNET_strdup ("");
   /* start default services... */
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             "ARM",
-                                             "DEFAULTSERVICES",
-                                             &defaultservices))
+					     "ARM",
+					     "DEFAULTSERVICES",
+					     &defaultservices))
     {
 #if DEBUG_ARM
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Starting default services `%s'\n", defaultservices);
+		  "Starting default services `%s'\n", defaultservices);
 #endif
       pos = strtok (defaultservices, " ");
       while (pos != NULL)
-        {
-          start_service (NULL, pos);
-          pos = strtok (NULL, " ");
-        }
+	{
+	  start_service (NULL, pos);
+	  pos = strtok (NULL, " ");
+	}
       GNUNET_free (defaultservices);
     }
   else
     {
 #if DEBUG_ARM
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "No default services configured.\n");
+		  "No default services configured.\n");
 #endif
     }
 
@@ -865,10 +1070,8 @@ int
 main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc,
-                              argv, "arm",
-			      GNUNET_YES,
-			      &run, NULL)) ? 0 : 1;
+	  GNUNET_SERVICE_run (argc,
+			      argv, "arm", GNUNET_YES, &run, NULL)) ? 0 : 1;
 }
 
 /* end of gnunet-service-arm.c */
