@@ -844,7 +844,7 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       return;    
     }
   /* consume the signal */
-  GNUNET_DISK_file_read (pr, &c, sizeof (c));
+  GNUNET_break (0 < GNUNET_DISK_file_read (pr, &c, sizeof (c)));
 
   /* check for services that died (WAITPID) */
   prev = NULL;
@@ -923,6 +923,8 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
       prev = pos;
     }
+  if (in_shutdown)
+    clean_up_running ();
   if ( (running == NULL) &&
        (in_shutdown) )
     {
@@ -956,9 +958,10 @@ sighandler_child_death ()
 {
   static char c;
 
-  GNUNET_DISK_file_write (GNUNET_DISK_pipe_handle
-			  (sigpipe, GNUNET_DISK_PIPE_END_WRITE), &c,
-			  sizeof (c));
+  GNUNET_break (1 == 
+		GNUNET_DISK_file_write (GNUNET_DISK_pipe_handle
+					(sigpipe, GNUNET_DISK_PIPE_END_WRITE), &c,
+					sizeof (c)));
 }
 
 
