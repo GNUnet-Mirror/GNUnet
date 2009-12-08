@@ -1377,9 +1377,7 @@ RETRY:
 #if DEBUG_CONNECTION
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_DEBUG, "send");
 #endif
-      GNUNET_NETWORK_socket_shutdown (sock->sock, SHUT_RDWR);
-      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock->sock));
-      sock->sock = NULL;
+      GNUNET_NETWORK_socket_shutdown (sock->sock, SHUT_WR);
       transmit_error (sock);
       return;
     }
