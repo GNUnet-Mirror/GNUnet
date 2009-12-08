@@ -726,7 +726,11 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       pos = next;
     }
   if (running == NULL)
-    GNUNET_SERVER_destroy (server);
+    {
+      GNUNET_SERVER_destroy (server);
+      GNUNET_SIGNAL_handler_uninstall (shc_chld);
+      shc_chld = NULL;
+    }
 }
 
 
@@ -889,6 +893,7 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       GNUNET_SERVER_destroy (server);
       GNUNET_SIGNAL_handler_uninstall (shc_chld);
+      shc_chld = NULL;
     }
   else
     {
