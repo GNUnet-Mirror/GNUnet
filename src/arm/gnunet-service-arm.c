@@ -686,36 +686,23 @@ handle_stop (void *cls,
 
 
 /**
- * Task run for shutdown.
- *
- * @param cls closure, NULL if we need to self-restart
- * @param tc context
+ * Remove all entries for tasks that are not running
+ * (pid = 0) from the running list (they will no longer
+ * be restarted since we are shutting down).
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+clean_up_running ()
 {
   struct ServiceList *pos;
   struct ServiceList *next;
   struct ServiceList *prev;
  
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Stopping all services\n"));
-  in_shutdown = GNUNET_YES;
   pos = running;
   prev = NULL;
   while (NULL != pos)
     {
       next = pos->next;
-      if (pos->pid != 0)
-	{
-#if DEBUG_ARM
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Sending SIGTERM to `%s'\n", pos->name);
-#endif
-	  if (0 != PLIBC_KILL (pos->pid, SIGTERM))
-	    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-	  prev = pos;      
-	}
-      else
+      if (pos->pid == 0)
 	{
 	  if (prev == NULL)
 	    running = next;
@@ -725,15 +712,54 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	}
       pos = next;
     }
-  if (running == NULL)
+}
+
+
+/**
+ * We are done with everything.  Stop remaining 
+ * tasks, signal handler and the server. 
+ */
+static void
+do_shutdown ()
+{
+  GNUNET_SERVER_destroy (server);
+  server = NULL;
+  GNUNET_SIGNAL_handler_uninstall (shc_chld);
+  shc_chld = NULL;
+  GNUNET_SCHEDULER_cancel (sched, child_death_task);
+  child_death_task = GNUNET_SCHEDULER_NO_TASK;
+}
+
+
+/**
+ * Task run for shutdown.
+ *
+ * @param cls closure, NULL if we need to self-restart
+ * @param tc context
+ */
+static void
+shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct ServiceList *pos;
+ 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Stopping all services\n"));
+  in_shutdown = GNUNET_YES;
+  pos = running;
+  while (NULL != pos)
     {
-      GNUNET_SERVER_destroy (server);
-      server = NULL;
-      GNUNET_SIGNAL_handler_uninstall (shc_chld);
-      shc_chld = NULL;
-      GNUNET_SCHEDULER_cancel (sched, child_death_task);
-      child_death_task = GNUNET_SCHEDULER_NO_TASK;
+      if (pos->pid != 0)
+	{
+#if DEBUG_ARM
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Sending SIGTERM to `%s'\n", pos->name);
+#endif
+	  if (0 != PLIBC_KILL (pos->pid, SIGTERM))
+	    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+	}
+      pos = pos->next;
     }
+  if (running == NULL)
+    do_shutdown ();
 }
 
 
@@ -751,7 +777,12 @@ delayed_restart_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   child_restart_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
+    {
+      clean_up_running ();
+      if (NULL == running)
+	do_shutdown ();
+      return;
+    }
   lowestRestartDelay = GNUNET_TIME_UNIT_FOREVER_REL;
 
   /* check for services that need to be restarted due to
@@ -805,7 +836,7 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char c;
 
   child_death_task = GNUNET_SCHEDULER_NO_TASK;
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
     {
       child_death_task =
 	GNUNET_SCHEDULER_add_read_file (sched, GNUNET_TIME_UNIT_FOREVER_REL, pr,
@@ -879,9 +910,10 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	  if (GNUNET_SCHEDULER_NO_TASK != child_restart_task)
 	    GNUNET_SCHEDULER_cancel (sched, child_restart_task);
 	  child_restart_task 
-	    = GNUNET_SCHEDULER_add_now (sched,
-					&delayed_restart_task,
-					NULL);
+	    = GNUNET_SCHEDULER_add_with_priority (sched,
+						  GNUNET_SCHEDULER_PRIORITY_IDLE,
+						  &delayed_restart_task,
+						  NULL);
 	}
 #if DEBUG_ARM
       else
