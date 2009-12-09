@@ -710,6 +710,8 @@ clean_up_running ()
 	    prev->next = next;
 	  free_entry (pos);
 	}
+      else
+	prev = pos;
       pos = next;
     }
 }
