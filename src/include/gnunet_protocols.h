@@ -176,12 +176,12 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_ACK 28
 
 /**
- * FIXME.
+ * Request to look addresses of peers in server.
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP 29
 
 /**
- * FIXME.
+ * Response to the address lookup request. 
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY 30
 
@@ -441,6 +441,11 @@ extern "C"
  * migration of content.
  */
 #define GNUNET_MESSAGE_TYPE_FS_PUT 139
+
+/**
+ * Reply to client with addresses of other peers 
+ */
+#define GNUNET_MESSAGE_TYPE_PEER_ADDRESS 140
 
 /*
   TODO:
