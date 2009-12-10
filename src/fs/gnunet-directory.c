@@ -102,50 +102,53 @@ run (void *cls,
   void *data;
   size_t len;
   uint64_t size;
-  const char *filename = args[0];
+  const char *filename;
+  int i;
 
-  if (NULL == filename)
+  if (NULL == argv[0])
     {
       fprintf (stderr,
 	       _("You must specify a filename to inspect."));
       ret = 1;
       return;
     }
-  if ( (GNUNET_OK !=
-	GNUNET_DISK_file_size (filename,
-			       &size,
-			       GNUNET_YES)) ||
-       (NULL == (h = GNUNET_DISK_file_open (filename,
-					    GNUNET_DISK_OPEN_READ,
-					    GNUNET_DISK_PERM_NONE))) )
+  i = 0;
+  while (NULL != (filename = args[i++]))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Failed to read directory `%s'\n"),
-		  filename);
-      ret = 1;
-      return;
+      if ( (GNUNET_OK !=
+	    GNUNET_DISK_file_size (filename,
+				   &size,
+				   GNUNET_YES)) ||
+	   (NULL == (h = GNUNET_DISK_file_open (filename,
+						GNUNET_DISK_OPEN_READ,
+						GNUNET_DISK_PERM_NONE))) )
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      _("Failed to read directory `%s'\n"),
+		      filename);
+	  ret = 1;
+	  continue;
+	}
+      len = (size_t) size;
+      data = GNUNET_DISK_file_map (h,
+				   &map,
+				   GNUNET_DISK_MAP_TYPE_READ,
+				   len);
+      GNUNET_assert (NULL != data);
+      GNUNET_FS_directory_list_contents (len,
+					 data,
+					 0, 
+					 &print_entry,
+					 NULL);
+      GNUNET_DISK_file_unmap (map);
+      GNUNET_DISK_file_close (h);
     }
-  len = (size_t) size;
-  data = GNUNET_DISK_file_map (h,
-			       &map,
-			       GNUNET_DISK_MAP_TYPE_READ,
-			       len);
-  GNUNET_assert (NULL != data);
-  GNUNET_FS_directory_list_contents (len,
-				     data,
-				     0, 
-				     &print_entry,
-				     NULL);
-  GNUNET_DISK_file_unmap (map);
-  GNUNET_DISK_file_close (h);
 }
-
 
 /**
  * gnunet-directory command line options
  */
 static struct GNUNET_GETOPT_CommandLineOption options[] = {
-  // FIXME: options!
   GNUNET_GETOPT_OPTION_END
 };
 

@@ -1,0 +1,35 @@
+.TH gnunet-directory "1" "10 Dec 2009" "GNUnet"
+.SH NAME
+gnunet\-directory \- display directories
+
+.SH SYNOPSIS
+.B gnunet\-directory
+[\fIOPTIONS\fR] (FILENAME)*
+.SH DESCRIPTION
+.PP
+gnunet\-directory lists the contents of one or more GNUnet directories.  A GNUnet directory is a binary file that contains a list of GNUnet file\-sharing URIs and meta data.  The names of the directory files must be passed as command\-line arguments to gnunet\-directory.
+.TP
+\fB\-c \fIFILENAME\fR, \fB\-\-config=FILENAME\fR
+configuration file to use (useless option since gnunet\-directory does not really depend on any configuration options)
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+print help page
+.TP
+\fB\-L \fILOGLEVEL\fR, \fB\-\-loglevel=LOGLEVEL\fR
+Change the loglevel.  Possible values for LOGLEVEL are ERROR, WARNING, INFO and DEBUG.
+.TP
+\fB\-v\fR, \fB\-\-version\fR
+print the version number
+.SH NOTES
+A GNUnet directory is a file containing a list of GNUnet URIs and meta data.  The keys can point to files, other directories or files in namespaces.  In other words, a GNUnet directory is similar to UNIX directories.  The difference to tar and zip is that GNUnet directory does not contain the actual files (except if they are really small, in which case they may be inlined), just symbolic (links), similar to directories with symbolic links in UNIX filesystems.  The benefit is that the individual files can be retrieved separately (if desired) and if some of the files are inserted to another node in GNUnet, this just increases their availability but does not produce useless duplicates (for example, it is a better idea to publish a collection of pictures or compressed sound files using a GNUnet directory instead of processing them with archivers such as tar or zip first).  Directories can contain arbitrary meta data for each file.
+
+If a directory has missing blocks (for example, some blocks failed to download), GNUnet is typically able to retrieve information about other files in the directory.  Files in a GNUnet directory have no particular order; the GNUnet code that generates a directory can reorder the entries in order to better fit the information about files into blocks of 32k.  Respecting 32k boundaries where possible makes it easier for gnunet\-directory (and other tools) to recover information from partially downloaded directory files.
+
+At the moment, directories can be created by \fBgnunet\-gtk\fP and \fBgnunet\-publish\fP.  Just like ordinary files, a directory can be published in a namespace.
+
+GNUnet directories use the (unregistered) mimetype \fBapplication/gnunet\-directory\fP.  They can show up among normal search results.  The directory file can be downloaded to disk by \fBgnunet\-download\fP(1) for later processing or be handled more directly by \fBgnunet\-gtk\fP(1).
+
+.SH "REPORTING BUGS"
+Report bugs by using mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+.SH "SEE ALSO"
+\fBgnunet\-gtk\fP(1), \fBgnunet\-publish\fP(1), \fBgnunet\-search\fP(1), \fBgnunet\-download\fP(1)
