@@ -241,7 +241,8 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
  *  @param addLUmsg the address-lookup message
  */
 void
-GNUNET_TRANSPORT_address_lookup (struct GNUNET_TRANSPORT_Handle *handle,
+GNUNET_TRANSPORT_address_lookup (struct GNUNET_SCHEDULER_Handle *sched,
+                                 const struct GNUNET_CONFIGURATION_Handle *cfg,
                                  const char * address,
                                  size_t addressLen,
                                  const char * nameTrans,
