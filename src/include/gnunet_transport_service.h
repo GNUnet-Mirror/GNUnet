@@ -97,6 +97,10 @@ typedef void
                                         peer);
 
 
+typedef void
+(*GNUNET_TRANSPORT_AddressLookUpCallback) (void *cls,
+		                               const char *address);
+
 /**
  * Connect to the transport service.  Note that the connection may
  * complete (or fail) asynchronously.
@@ -183,7 +187,7 @@ struct GNUNET_TRANSPORT_TransmitHandle
                                            *handle,
                                            const struct GNUNET_PeerIdentity
                                            *target, size_t size,
-					   unsigned int priority,
+					                       unsigned int priority,
                                            struct GNUNET_TIME_Relative
                                            timeout,
                                            GNUNET_CONNECTION_TransmitReadyNotify
@@ -230,6 +234,22 @@ void
 GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
                               const struct GNUNET_MessageHeader *hello);
 
+/**
+ *  Obtain a AddressLookupMessage from a client and return to client all the host addresses of other peers.
+ *
+ *  @param handle connection to transport service
+ *  @param addLUmsg the address-lookup message
+ */
+void
+GNUNET_TRANSPORT_address_lookup (struct GNUNET_TRANSPORT_Handle *handle,
+                                 const char * address,
+                                 size_t addressLen,
+                                 const char * nameTrans,
+		                         struct GNUNET_TIME_Relative timeout,
+		                         GNUNET_TRANSPORT_AddressLookUpCallback aluc,
+		                         void *aluc_cls);
+
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
@@ -241,3 +261,5 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
 /* ifndef GNUNET_TRANSPORT_SERVICE_H */
 #endif
 /* end of gnunet_transport_service.h */
+
+
