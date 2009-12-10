@@ -2451,6 +2451,79 @@ handle_try_connect (void *cls,
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
+static void
+transmit_address_to_client (void *cls, const char *address)
+{
+	struct GNUNET_SERVER_TransmitContext *tc = cls;
+	size_t slen;
+
+	if (NULL == address)
+		slen = 0;
+	else
+		slen = strlen (address) + 1;
+	GNUNET_SERVER_transmit_context_append (tc, address, slen,
+				GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+	if (NULL == address)
+		GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
+}
+
+/**
+ * Handle AddressLookup-message.
+ *
+ * @param cls closure (always NULL)
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_addressLookUp (void *cls,
+                      struct GNUNET_SERVER_Client *client,
+                      const struct GNUNET_MessageHeader *message)
+{
+	const struct AddressLookupMessage *alum;
+	struct TransportPlugin *lsPlugin;
+	const char *nameTransport;
+	const char *address;
+	uint16_t size;
+	struct GNUNET_MessageHeader reply;
+	struct GNUNET_SERVER_TransmitContext *tc;
+
+	size = ntohs (message->size);
+	if (size < sizeof(struct AddressLookupMessage))
+	{
+		GNUNET_break_op (0);
+		GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+		return;
+	}
+	alum = (const struct AddressLookupMessage *) message;
+	uint32_t addressLen = ntohl(alum->addrlen);
+	if (size <= sizeof(struct AddressLookupMessage) + addressLen)
+	{
+		GNUNET_break_op (0);
+		GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+		return;
+	}
+	address = (const char *)&alum[1];
+	nameTransport = (const char*)&addr[addressLen];
+	if (nameTransport [size - sizeof (struct AddressLookupMessage) - addressLen -1] != '\0')
+	{
+		GNUNET_break_op (0);
+		GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+		return;
+	}
+	struct GNUNET_TIME_Absolute timeout= GNUNET_TIME_absolute_ntoh(bbalum->timeout);
+	struct GNUNET_TIME_Relative rtimeout = GNUNET_TIME_absolute_get_remaining(timeout);
+	lsPlugin = find_transport(nameTransport);
+	if (NULL == lsPlugin)
+	{
+		tc = GNUNET_SERVER_transmit_context_create (client);
+		GNUNET_SERVER_transmit_context_append (tc, NULL, 0, GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+		GNUNET_SERVER_transmit_context_run (tc, rtimeout);
+		return;
+	}
+	tc = GNUNET_SERVER_transmit_context_create (client);
+	lsPlugin->api->address_pretty_printer(cls, nameTransport,
+				addr, alum->addrlen, GNUNET_YES, rtimeout, &transmit_address_to_client, tc);
+}
 
 /**
  * List of handlers for the messages understood by this

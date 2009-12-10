@@ -247,6 +247,11 @@ struct AddressLookupMessage
   struct GNUNET_MessageHeader header;
 
   /**
+   * timeout to give up.
+   */
+  struct GNUNET_TIME_AbosluteNBO tiemout;
+
+  /**
    * Length of the (binary) address in bytes, in big-endian.
    */
   uint32_t addrlen GNUNET_PACKED;
