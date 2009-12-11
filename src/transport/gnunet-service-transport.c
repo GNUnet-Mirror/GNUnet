@@ -2475,7 +2475,7 @@ transmit_address_to_client (void *cls, const char *address)
  * @param message the actual message
  */
 static void
-handle_addressLookUp (void *cls,
+handle_address_lookup (void *cls,
                       struct GNUNET_SERVER_Client *client,
                       const struct GNUNET_MessageHeader *message)
 {
@@ -2484,7 +2484,6 @@ handle_addressLookUp (void *cls,
 	const char *nameTransport;
 	const char *address;
 	uint16_t size;
-	struct GNUNET_MessageHeader reply;
 	struct GNUNET_SERVER_TransmitContext *tc;
 
 	size = ntohs (message->size);
@@ -2503,14 +2502,14 @@ handle_addressLookUp (void *cls,
 		return;
 	}
 	address = (const char *)&alum[1];
-	nameTransport = (const char*)&addr[addressLen];
+	nameTransport = (const char*)&address[addressLen];
 	if (nameTransport [size - sizeof (struct AddressLookupMessage) - addressLen -1] != '\0')
 	{
 		GNUNET_break_op (0);
 		GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
 		return;
 	}
-	struct GNUNET_TIME_Absolute timeout= GNUNET_TIME_absolute_ntoh(bbalum->timeout);
+	struct GNUNET_TIME_Absolute timeout= GNUNET_TIME_absolute_ntoh(alum->timeout);
 	struct GNUNET_TIME_Relative rtimeout = GNUNET_TIME_absolute_get_remaining(timeout);
 	lsPlugin = find_transport(nameTransport);
 	if (NULL == lsPlugin)
@@ -2522,7 +2521,7 @@ handle_addressLookUp (void *cls,
 	}
 	tc = GNUNET_SERVER_transmit_context_create (client);
 	lsPlugin->api->address_pretty_printer(cls, nameTransport,
-				addr, alum->addrlen, GNUNET_YES, rtimeout, &transmit_address_to_client, tc);
+				address, addressLen, GNUNET_YES, rtimeout, &transmit_address_to_client, tc);
 }
 
 /**
@@ -2541,6 +2540,9 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
   {&handle_try_connect, NULL,
    GNUNET_MESSAGE_TYPE_TRANSPORT_TRY_CONNECT,
    sizeof (struct TryConnectMessage)},
+  {&handle_address_lookup, NULL,
+   GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP,
+   0 },
   {NULL, NULL, 0, 0}
 };
 

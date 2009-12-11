@@ -249,7 +249,7 @@ struct AddressLookupMessage
   /**
    * timeout to give up.
    */
-  struct GNUNET_TIME_AbosluteNBO tiemout;
+  struct GNUNET_TIME_AbsoluteNBO timeout;
 
   /**
    * Length of the (binary) address in bytes, in big-endian.

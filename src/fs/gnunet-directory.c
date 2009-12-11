@@ -105,7 +105,7 @@ run (void *cls,
   const char *filename;
   int i;
 
-  if (NULL == argv[0])
+  if (NULL == args[0])
     {
       fprintf (stderr,
 	       _("You must specify a filename to inspect."));
