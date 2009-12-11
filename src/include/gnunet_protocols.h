@@ -442,11 +442,6 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_FS_PUT 139
 
-/**
- * Reply to client with addresses of other peers 
- */
-#define GNUNET_MESSAGE_TYPE_PEER_ADDRESS 140
-
 /*
   TODO:
   - DV
