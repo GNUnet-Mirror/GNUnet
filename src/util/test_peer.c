@@ -45,7 +45,7 @@ generatePeerIdList ()
   for (i = 0; i < NUMBER_OF_PEERS; i++)
     {
       GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK,
-                                        &pidArr[i].hashPubKey);
+					&pidArr[i].hashPubKey);
 #if DEBUG
       printf ("Peer %d: %s\n", i, GNUNET_i2s (&pidArr[i]));
 #endif
@@ -59,6 +59,7 @@ check ()
   int i;
   GNUNET_PEER_Id pid;
   struct GNUNET_PeerIdentity res;
+  struct GNUNET_PeerIdentity zero;
   GNUNET_PEER_Id ids[] = { 1, 2, 3 };
 
   GNUNET_assert (0 == GNUNET_PEER_intern (NULL));
@@ -67,11 +68,11 @@ check ()
     {
       pid = GNUNET_PEER_intern (&pidArr[i]);
       if (pid != (i + 1))
-        {
-          fprintf (stderr,
-                   "Unexpected Peer ID returned by intern function \n");
-          return 1;
-        }
+	{
+	  fprintf (stderr,
+		   "Unexpected Peer ID returned by intern function \n");
+	  return 1;
+	}
     }
 
   /* Referencing the first 3 peers once again */
@@ -79,18 +80,18 @@ check ()
     {
       pid = GNUNET_PEER_intern (&pidArr[i]);
       if (pid != (i + 1))
-        {
-          fprintf (stderr,
-                   "Unexpected Peer ID returned by intern function \n");
-          return 1;
-        }
+	{
+	  fprintf (stderr,
+		   "Unexpected Peer ID returned by intern function \n");
+	  return 1;
+	}
     }
 
-  /* Dereferencing the first 3 peers once [decrementing their reference count] */ 
-  GNUNET_PEER_decrement_rcs (ids, 3);  
+  /* Dereferencing the first 3 peers once [decrementing their reference count] */
+  GNUNET_PEER_decrement_rcs (ids, 3);
 
   /* re-referencing the first 3 peers using the change_rc function */
-  for (i = 0; i < 3; i++)   
+  for (i = 1; i <= 3; i++)
     GNUNET_PEER_change_rc (i, 1);
 
   /* Removing the second Peer from the PeerEntry hash map */
@@ -98,7 +99,25 @@ check ()
 
   /* convert the pid of the first PeerEntry into that of the third */
   GNUNET_PEER_resolve (1, &res);
-  GNUNET_assert (0 == memcmp (&res, &pidArr[0], sizeof(res)));
+  GNUNET_assert (0 == memcmp (&res, &pidArr[0], sizeof (res)));
+
+  /* 
+   * Attempt to convert pid = 0 (which is reserved) 
+   * into a peer identity object, the peer identity memory
+   * is expected to be set to zero 
+   */
+  memset (&zero, 0, sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_log_skip (1, GNUNET_YES);
+  GNUNET_PEER_resolve (0, &res);
+  GNUNET_assert (0 == memcmp (&res, &zero, sizeof (res)));
+
+  /* Removing peer entries 1 and 3 from table using the list decrement function */
+  /* If count = 0, nothing should be done whatsoever */
+  GNUNET_PEER_decrement_rcs (ids, 0);
+
+  ids[1] = 3;
+  GNUNET_PEER_decrement_rcs (ids, 2);
+  GNUNET_PEER_decrement_rcs (ids, 2);
 
   return 0;
 }
@@ -109,7 +128,7 @@ main ()
 {
   int i;
   GNUNET_log_setup ("test-peer", "ERROR", NULL);
-  for (i=0;i<1;i++)
+  for (i = 0; i < 1; i++)
     {
       generatePeerIdList ();
       if (0 != check ())
