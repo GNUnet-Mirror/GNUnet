@@ -710,7 +710,7 @@ int GNUNET_CONTAINER_multihashmap_get_multiple (const struct
 /**
  * Cost by which elements in a heap can be ordered.
  */
-typedef uint64_t GNUNET_CONTAINER_HeapCost;
+typedef uint64_t GNUNET_CONTAINER_HeapCostType;
 
 
 /*
@@ -736,132 +736,145 @@ enum GNUNET_CONTAINER_HeapOrder
  */
 struct GNUNET_CONTAINER_Heap;
 
+
+
+/**
+ * Handle to a node in a heap.
+ */
+struct GNUNET_CONTAINER_HeapNode;
+
+
 /**
  * Create a new heap.
  *
- * @param type should the minimum or the maximum element be the root
- * @return NULL on error, otherwise a fresh heap
+ * @param order how should the heap be sorted?
+ * @return handle to the heap
  */
-struct GNUNET_CONTAINER_Heap *GNUNET_CONTAINER_heap_create (enum
-                                                            GNUNET_CONTAINER_HeapOrder
-                                                            type);
+struct GNUNET_CONTAINER_Heap *
+GNUNET_CONTAINER_heap_create (enum GNUNET_CONTAINER_HeapOrder order);
 
 
 /**
- * Free a heap
+ * Destroys the heap.  Only call on a heap that
+ * is already empty.
  *
- * @param h heap to free.
+ * @param heap heap to destroy
  */
-void GNUNET_CONTAINER_heap_destroy (struct GNUNET_CONTAINER_Heap *h);
+void GNUNET_CONTAINER_heap_destroy (struct GNUNET_CONTAINER_Heap *heap);
 
 
 /**
- * Function called on elements of a heap.
+ * Get element stored at root of heap.
+ *
+ * @param heap heap to inspect
+ * @return NULL if heap is empty
+ */
+void *
+GNUNET_CONTAINER_heap_peek (const struct GNUNET_CONTAINER_Heap *heap);
+
+
+/**
+ * Get the current size of the heap
+ *
+ * @param heap the heap to get the size of
+ * @return number of elements stored
+ */
+unsigned int
+GNUNET_CONTAINER_heap_get_size (const struct GNUNET_CONTAINER_Heap *heap);
+
+
+/**
+ * Iterator for heap
  *
  * @param cls closure
- * @param element obj stored in heap
- * @param cost cost of the element
+ * @param node internal node of the heap
+ * @param element value stored at the node
+ * @param cost cost associated with the node
  * @return GNUNET_YES if we should continue to iterate,
  *         GNUNET_NO if not.
  */
 typedef int (*GNUNET_CONTAINER_HeapIterator) (void *cls,
-                                              void *element,
-                                              GNUNET_CONTAINER_HeapCost cost);
+					      struct GNUNET_CONTAINER_HeapNode *node,
+					      void *element,
+                                              GNUNET_CONTAINER_HeapCostType cost);
 
 
 /**
- * Iterate over all entries in the map.
+ * Iterate over all entries in the heap.
  *
  * @param heap the heap
  * @param iterator function to call on each entry
  * @param iterator_cls closure for iterator
- * @return number of items handled
- *         GNUNET_SYSERR if iteration was aborted by iterator
  */
-int GNUNET_CONTAINER_heap_iterate (struct GNUNET_CONTAINER_Heap *heap,
-                                   GNUNET_CONTAINER_HeapIterator iterator,
-                                   void *iterator_cls);
-
+void
+GNUNET_CONTAINER_heap_iterate (const struct GNUNET_CONTAINER_Heap *heap,
+			       GNUNET_CONTAINER_HeapIterator iterator,
+			       void *iterator_cls);
 
 
 /**
- * Inserts a new item into the heap, item is always neighbor now.
- * @param heap the heap
+ * Perform a random walk of the tree.  The walk is biased
+ * towards elements closer to the root of the tree (since
+ * each walk starts at the root and ends at a random leaf).
+ * The heap internally tracks the current position of the
+ * walk.
+ *
+ * @param heap heap to walk
+ * @return data stored at the next random node in the walk;
+ *         NULL if the tree is empty.
+ */
+void *
+GNUNET_CONTAINER_heap_walk_get_next (struct GNUNET_CONTAINER_Heap *heap);
+
+
+/**
+ * Inserts a new element into the heap.
+ *
+ * @param heap heap to modify
  * @param element element to insert
- * @param cost cost of the element
- * @return FIXME
+ * @param cost cost for the element
+ * @return node for the new element
  */
-int
+struct GNUNET_CONTAINER_HeapNode *
 GNUNET_CONTAINER_heap_insert (struct GNUNET_CONTAINER_Heap *heap,
-                              void *element, GNUNET_CONTAINER_HeapCost cost);
+                              void *element,
+			      GNUNET_CONTAINER_HeapCostType cost);
 
 
 /**
- * Removes root of the tree, is remove max if a max heap and remove min
- * if a min heap, returns the data stored at the node.
+ * Remove root of the heap.
  *
- * @param heap the heap
- * @return NULL if the heap is empty
+ * @param heap heap to modify
+ * @return element data stored at the root node
  */
-void *GNUNET_CONTAINER_heap_remove_root (struct GNUNET_CONTAINER_Heap *heap);
+void *
+GNUNET_CONTAINER_heap_remove_root (struct GNUNET_CONTAINER_Heap *heap);
 
 
 /**
- * Returns element stored at root of tree, doesn't effect anything
- *
- * @param heap the heap
- * @return NULL if the heap is empty
+ * Removes a node from the heap.
+ * 
+ * @param heap heap to modify
+ * @param node node to remove
+ * @return element data stored at the node, NULL if heap is empty
  */
-void *GNUNET_CONTAINER_heap_peek (struct GNUNET_CONTAINER_Heap *heap);
-
-
-/**
- * Removes any node from the tree based on the neighbor given, does
- * not traverse the tree (backpointers) but may take more time due to
- * percolation of nodes.
- *
- * @param heap the heap
- * @param element the element to remove
- * @return NULL if "element" was not found in the heap, otherwise element
- */
-void *GNUNET_CONTAINER_heap_remove_node (struct GNUNET_CONTAINER_Heap *heap,
-                                         void *element);
+void *
+GNUNET_CONTAINER_heap_remove_node (struct GNUNET_CONTAINER_Heap *heap,
+				   struct GNUNET_CONTAINER_HeapNode *node);
 
 
 /**
  * Updates the cost of any node in the tree
  *
- * @param heap the heap
- * @param element the element for which the cost is updated
- * @param new_cost new cost for the element
- * @return FIXME
+ * @param heap heap to modify
+ * @param node node for which the cost is to be changed
+ * @param new_cost new cost for the node
  */
-int
+void
 GNUNET_CONTAINER_heap_update_cost (struct GNUNET_CONTAINER_Heap *heap,
-                                   void *element,
-                                   GNUNET_CONTAINER_HeapCost new_cost);
+                                   struct GNUNET_CONTAINER_HeapNode *node, 
+				   GNUNET_CONTAINER_HeapCostType new_cost);
 
-
-/**
- * Random walk of the tree, returns the data stored at the next random node
- * in the walk.  Calls callee with the data, or NULL if the tree is empty
- * or some other problem crops up.
- *
- * @param heap the heap
- * @return the next element from the random walk
- */
-void *GNUNET_CONTAINER_heap_walk_get_next (struct GNUNET_CONTAINER_Heap
-                                           *heap);
-
-
-/**
- * Returns the current size of the heap
- *
- * @param heap the heap to get the size of
- * @return number of elements in the heap
- */
-unsigned int
-GNUNET_CONTAINER_heap_get_size (struct GNUNET_CONTAINER_Heap *heap);
 
 /* ******************** Singly linked list *************** */
 

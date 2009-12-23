@@ -446,6 +446,11 @@ struct PendingRequest
   GNUNET_HashCode *replies_seen;
 
   /**
+   * Node in the heap representing this entry.
+   */
+  struct GNUNET_CONTAINER_HeapNode *hnode;
+
+  /**
    * When did we first see this request (form this peer), or, if our
    * client is initiating, when did we last initiate a search?
    */
@@ -2214,7 +2219,7 @@ destroy_pending_request (struct PendingRequest *pr)
   if (pr->client == NULL)
     {
       GNUNET_CONTAINER_heap_remove_node (requests_by_expiration,
-					 pr);
+					 pr->hnode);
     }
   else
     {
@@ -2480,9 +2485,9 @@ forward_get_request (void *cls,
 				     &pgc->reply_to.hashPubKey,
 				     pr,
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  GNUNET_CONTAINER_heap_insert (requests_by_expiration,
-				pr,
-				pr->start_time.value + pr->ttl);
+  pr->hnode = GNUNET_CONTAINER_heap_insert (requests_by_expiration,
+					    pr,
+					    pr->start_time.value + pr->ttl);
   if (GNUNET_CONTAINER_heap_get_size (requests_by_expiration) > max_pending_requests)
     {
       /* expire oldest request! */
