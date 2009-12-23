@@ -50,6 +50,10 @@ print_peer_info (void *cls,
 
   /* FIXME: add printing of address information!
      => need extended transport API! */
+  if (peer == NULL)
+    {
+      return;    
+    }
   GNUNET_CRYPTO_hash_to_enc (&peer->hashPubKey, &enc);
   if (be_quiet)
     printf ("%s\n", (const char *) &enc);
