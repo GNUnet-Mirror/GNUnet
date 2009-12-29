@@ -568,7 +568,7 @@ do_transmit (void *cls, size_t size, void *buf)
     {
       if (pm->is_welcome)
         {
-          if (size < (msize = htons (pm->msg->size)))
+          if (size < (msize = ntohs (pm->msg->size)))
             break;
           memcpy (cbuf, pm->msg, msize);
           cbuf += msize;
@@ -578,7 +578,7 @@ do_transmit (void *cls, size_t size, void *buf)
       else
         {
           if (size <
-              sizeof (struct DataMessage) + (msize = htons (pm->msg->size)))
+              sizeof (struct DataMessage) + (msize = ntohs (pm->msg->size)))
             break;
           dm = (struct DataMessage *) cbuf;
           dm->header.size = htons (sizeof (struct DataMessage) + msize);
@@ -627,7 +627,7 @@ process_pending_messages (struct Session *session)
     return;
   session->transmit_handle
     = GNUNET_SERVER_notify_transmit_ready (session->client,
-                                           htons (session->
+                                           ntohs (session->
                                                   pending_messages->msg->
                                                   size) +
                                            (session->
