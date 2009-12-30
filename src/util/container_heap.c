@@ -267,6 +267,7 @@ GNUNET_CONTAINER_heap_walk_get_next (struct GNUNET_CONTAINER_Heap *heap)
  * Insert the given node 'node' into the subtree starting
  * at 'pos' (while keeping the tree somewhat balanced).
  *
+ * @param heap heap to modify
  * @param pos existing tree
  * @param node node to insert (which may be a subtree itself)
  */
