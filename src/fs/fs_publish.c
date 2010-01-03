@@ -842,7 +842,7 @@ do_upload (void *cls,
       while (NULL != p->dir)
 	{
 	  fn = GNUNET_CONTAINER_meta_data_get_by_type (p->meta,
-						       EXTRACTOR_FILENAME);
+						       EXTRACTOR_METATYPE_FILENAME);
 	  p = p->dir;
 	  GNUNET_asprintf (&p->emsg, 
 			   _("Recursive upload failed at `%s'"),
@@ -1305,6 +1305,7 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
   char *uris;
   size_t size;
   char *kbe;
+  char *sptr;
 
   pkc = GNUNET_malloc (sizeof (struct PublishKskContext));
   pkc->h = h;
@@ -1324,8 +1325,7 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
 	  return;
 	}
     }
-  pkc->mdsize = GNUNET_CONTAINER_meta_data_get_serialized_size (meta,
-								GNUNET_CONTAINER_META_DATA_SERIALIZE_PART);
+  pkc->mdsize = GNUNET_CONTAINER_meta_data_get_serialized_size (meta);
   GNUNET_assert (pkc->mdsize >= 0);
   uris = GNUNET_FS_uri_to_string (uri);
   pkc->slen = strlen (uris) + 1;
@@ -1339,8 +1339,9 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
   kbe = (char *) &pkc->kb[1];
   memcpy (kbe, uris, pkc->slen);
   GNUNET_free (uris);
+  sptr = &kbe[pkc->slen];
   pkc->mdsize = GNUNET_CONTAINER_meta_data_serialize (meta,
-						      &kbe[pkc->slen],
+						      &sptr,
 						      pkc->mdsize,
 						      GNUNET_CONTAINER_META_DATA_SERIALIZE_PART);
   if (pkc->mdsize == -1)
@@ -1480,8 +1481,7 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   if (update == NULL)
     update = "";
   nidlen = strlen (update) + 1;
-  mdsize = GNUNET_CONTAINER_meta_data_get_serialized_size (meta, 
-							   GNUNET_CONTAINER_META_DATA_SERIALIZE_PART);
+  mdsize = GNUNET_CONTAINER_meta_data_get_serialized_size (meta);
 
   size = sizeof (struct SBlock) + slen + nidlen + mdsize;
   if (size > MAX_SBLOCK_SIZE)
@@ -1496,7 +1496,7 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   memcpy (dest, uris, slen);
   dest += slen;
   mdsize = GNUNET_CONTAINER_meta_data_serialize (meta,
-						 dest,
+						 &dest,
 						 mdsize, 
 						 GNUNET_CONTAINER_META_DATA_SERIALIZE_PART);
   if (mdsize == -1)

@@ -300,15 +300,14 @@ GNUNET_PSEUDONYM_id_to_name (const struct GNUNET_CONFIGURATION_Handle *cfg,
     {
       if ((meta != NULL) && (name == NULL))
         name = GNUNET_CONTAINER_meta_data_get_first_by_types (meta,
-                                                              EXTRACTOR_TITLE,
-                                                              EXTRACTOR_FILENAME,
-                                                              EXTRACTOR_DESCRIPTION,
-                                                              EXTRACTOR_SUBJECT,
-                                                              EXTRACTOR_PUBLISHER,
-                                                              EXTRACTOR_AUTHOR,
-                                                              EXTRACTOR_COMMENT,
-                                                              EXTRACTOR_SUMMARY,
-                                                              EXTRACTOR_OWNER,
+                                                              EXTRACTOR_METATYPE_TITLE,
+                                                              EXTRACTOR_METATYPE_FILENAME,
+                                                              EXTRACTOR_METATYPE_DESCRIPTION,
+                                                              EXTRACTOR_METATYPE_SUBJECT,
+                                                              EXTRACTOR_METATYPE_PUBLISHER,
+                                                              EXTRACTOR_METATYPE_AUTHOR_NAME,
+                                                              EXTRACTOR_METATYPE_COMMENT,
+                                                              EXTRACTOR_METATYPE_SUMMARY,
                                                               -1);
       if (meta != NULL)
         {
@@ -545,11 +544,21 @@ GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param data value of entry to insert
  */
 static int
-merge_meta_helper (void *cls, EXTRACTOR_KeywordType type, const char *data)
+merge_meta_helper (void *cls, 
+		   const char *plugin_name,
+		   enum EXTRACTOR_MetaType type, 
+		   enum EXTRACTOR_MetaFormat format,
+		   const char *data_mime_type,
+		   const char *data,
+		   size_t data_len)
 {
   struct GNUNET_CONTAINER_MetaData *meta = cls;
-  GNUNET_CONTAINER_meta_data_insert (meta, type, data);
-  return GNUNET_OK;
+
+  (void) GNUNET_CONTAINER_meta_data_insert (meta, plugin_name,
+					    type, format,
+					    data_mime_type,
+					    data, data_len);
+  return 0;
 }
 
 
@@ -581,7 +590,7 @@ GNUNET_PSEUDONYM_add (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if ((0 == STAT (fn, &sbuf)) &&
       (GNUNET_OK == read_info (cfg, id, &old, &ranking, &name)))
     {
-      GNUNET_CONTAINER_meta_data_get_contents (meta, &merge_meta_helper, old);
+      GNUNET_CONTAINER_meta_data_iterate (meta, &merge_meta_helper, old);
       write_pseudonym_info (cfg, id, old, ranking, name);
       GNUNET_CONTAINER_meta_data_destroy (old);
       GNUNET_free_non_null (name);

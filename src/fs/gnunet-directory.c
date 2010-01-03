@@ -36,13 +36,20 @@ static int ret;
  */
 static int
 item_printer (void *cls,
-	      EXTRACTOR_KeywordType type, 
-	      const char *data)
+	      const char *plugin_name,
+	      enum EXTRACTOR_MetaType type, 
+	      enum EXTRACTOR_MetaFormat format,
+	      const char *data_mime_type,
+	      const char *data,
+	      size_t data_size)
 {
+  if ( (format != EXTRACTOR_METAFORMAT_UTF8) &&
+       (format != EXTRACTOR_METAFORMAT_C_STRING) )
+    return 0;
   printf ("\t%20s: %s\n",
           dgettext (LIBEXTRACTOR_GETTEXT_DOMAIN,
-                    EXTRACTOR_getKeywordTypeAsString (type)), data);
-  return GNUNET_OK;
+                    EXTRACTOR_metatype_to_string (type)), data);
+  return 0;
 }
 
 
@@ -75,9 +82,9 @@ print_entry (void *cls,
   string = GNUNET_FS_uri_to_string (uri);
   printf ("%s:\n", string);
   GNUNET_free (string);
-  GNUNET_CONTAINER_meta_data_get_contents (meta,
-					   &item_printer,
-					   NULL);
+  GNUNET_CONTAINER_meta_data_iterate (meta,
+				      &item_printer,
+				      NULL);
 }
 
 

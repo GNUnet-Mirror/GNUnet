@@ -45,12 +45,19 @@ static int verbose;
 
 static int
 item_printer (void *cls,
-	      EXTRACTOR_KeywordType type, 
-	      const char *data)
+	      const char *plugin_name,
+	      enum EXTRACTOR_MetaType type, 
+	      enum EXTRACTOR_MetaFormat format,
+	      const char *data_mime_type,
+	      const char *data,
+	      size_t data_size)
 {
+  if ( (format != EXTRACTOR_METAFORMAT_UTF8) &&
+       (format != EXTRACTOR_METAFORMAT_C_STRING) )
+    return 0;
   printf ("\t%20s: %s\n",
           dgettext (LIBEXTRACTOR_GETTEXT_DOMAIN,
-                    EXTRACTOR_getKeywordTypeAsString (type)),
+                    EXTRACTOR_metatype_to_string (type)),
 	  data);
   return GNUNET_OK;
 }
@@ -86,7 +93,7 @@ progress_cb (void *cls,
       printf ("%s:\n", uri);
       filename =
         GNUNET_CONTAINER_meta_data_get_by_type (info->value.search.specifics.result.meta,
-						EXTRACTOR_FILENAME);
+						EXTRACTOR_METATYPE_FILENAME);
       if (filename != NULL)
         {
           while (NULL != (dotdot = strstr (filename, "..")))
@@ -98,9 +105,9 @@ progress_cb (void *cls,
       else
         printf ("gnunet-download %s\n", uri);
       if (verbose)
-	GNUNET_CONTAINER_meta_data_get_contents (info->value.search.specifics.result.meta, 
-						 &item_printer,
-						 NULL);
+	GNUNET_CONTAINER_meta_data_iterate (info->value.search.specifics.result.meta, 
+					    &item_printer,
+					    NULL);
       printf ("\n");
       fflush(stdout);
       GNUNET_free_non_null (filename);

@@ -1,5 +1,5 @@
 # This file is part of GNUnet.
-# (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Christian Grothoff (and other contributing authors)
+# (C) 2001--2010 Christian Grothoff (and other contributing authors)
 #
 # GNUnet is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published
@@ -38,7 +38,6 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AM_PROG_CC_C_O
-LT_CONFIG_LTDL_DIR([libltdl])
 AC_CANONICAL_HOST
 LT_INIT([disable-static dlopen win32-dll])
 LTDL_INIT
@@ -141,7 +140,7 @@ netbsd*)
      AC_CHECK_LIB(intl, gettext)
      LDFLAGS="$LDFLAGS -no-undefined -Wl,--export-all-symbols"
      LIBS="$LIBS -lws2_32 -lplibc"
-     CFLAGS="-mms-bitfields -I../../libltdl $CFLAGS"
+     CFLAGS="-mms-bitfields $CFLAGS"
      build_target="mingw"
      AC_PROG_CXX
      LIBPREFIX=lib
@@ -212,14 +211,14 @@ AC_ARG_WITH(extractor,
         ;;
       yes)
         AC_CHECK_HEADERS(extractor.h,
-          AC_CHECK_LIB([extractor], [EXTRACTOR_loadDefaultLibraries],
+          AC_CHECK_LIB([extractor], [EXTRACTOR_plugin_add_defaults],
             extractor=1))
         ;;
       *)
         LDFLAGS="-L$with_extractor/lib $LDFLAGS"
         CPPFLAGS="-I$with_extractor/include $CPPFLAGS"
         AC_CHECK_HEADERS(extractor.h,
-          AC_CHECK_LIB([extractor], [EXTRACTOR_loadDefaultLibraries],
+          AC_CHECK_LIB([extractor], [EXTRACTOR_plugin_add_defaults],
             EXT_LIB_PATH="-L$with_extractor/lib $EXT_LIB_PATH"
             extractor=1))
         ;;
@@ -227,7 +226,7 @@ AC_ARG_WITH(extractor,
    ],
    [AC_MSG_RESULT([--with-extractor not specified])
     AC_CHECK_HEADERS(extractor.h,
-     AC_CHECK_LIB([extractor], [EXTRACTOR_loadDefaultLibraries],
+     AC_CHECK_LIB([extractor], [EXTRACTOR_plugin_add_defaults],
       extractor=1))])
 if test "$extractor" != 1
 then

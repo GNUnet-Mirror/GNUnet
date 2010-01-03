@@ -1,2 +1,5 @@
 #!/bin/sh
-autoreconf -fiv -I m4
+libtoolize --automake --copy --force
+aclocal
+automake
+autoreconf -f -i

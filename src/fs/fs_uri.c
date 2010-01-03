@@ -1469,19 +1469,34 @@ GNUNET_FS_uri_test_loc (const struct GNUNET_FS_Uri *uri)
  * Adds it to the URI.
  *
  * @param cls URI to update
- * @param type type of the meta data
- * @param data value of the meta data
- * @return GNUNET_OK (always)
+ * @param plugin_name name of the plugin that produced this value;
+ *        special values can be used (i.e. '<zlib>' for zlib being
+ *        used in the main libextractor library and yielding
+ *        meta data).
+ * @param type libextractor-type describing the meta data
+ * @param format basic format information about data 
+ * @param data_mime_type mime-type of data (not of the original file);
+ *        can be NULL (if mime-type is not known)
+ * @param data actual meta-data found
+ * @param data_len number of bytes in data
+ * @return 0 (always)
  */
 static int
 gather_uri_data (void *cls,
-		 EXTRACTOR_KeywordType type, 
-		 const char *data)
+		 const char *plugin_name,
+		 enum EXTRACTOR_MetaType type, 
+		 enum EXTRACTOR_MetaFormat format,
+		 const char *data_mime_type,
+		 const char *data,
+		 size_t data_len)
 {
   struct GNUNET_FS_Uri *uri = cls;
   char *nkword;
   int j;
   
+  if ( (format != EXTRACTOR_METAFORMAT_UTF8) &&
+       (format != EXTRACTOR_METAFORMAT_C_STRING) )
+    return 0;
   for (j = uri->data.ksk.keywordCount - 1; j >= 0; j--)
     if (0 == strcmp (&uri->data.ksk.keywords[j][1], data))
       return GNUNET_OK;
@@ -1489,7 +1504,7 @@ gather_uri_data (void *cls,
   strcpy (nkword, " ");         /* not mandatory */
   strcat (nkword, data);
   uri->data.ksk.keywords[uri->data.ksk.keywordCount++] = nkword;
-  return GNUNET_OK;
+  return 0;
 }
 
 
@@ -1514,8 +1529,8 @@ GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_CONTAINER_MetaData 
   ret->data.ksk.keywords = NULL;
   ret->data.ksk.keywords
     = GNUNET_malloc (sizeof (char *) *
-                     GNUNET_CONTAINER_meta_data_get_contents (md, NULL, NULL));
-  GNUNET_CONTAINER_meta_data_get_contents (md, &gather_uri_data, ret);
+                     GNUNET_CONTAINER_meta_data_iterate (md, NULL, NULL));
+  GNUNET_CONTAINER_meta_data_iterate (md, &gather_uri_data, ret);
   return ret;
 
 }

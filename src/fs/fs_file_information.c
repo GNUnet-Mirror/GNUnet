@@ -364,7 +364,7 @@ struct DirScanCls
   /**
    * Metadata extractors to use.
    */
-  struct EXTRACTOR_Extractor *extractors;
+  struct EXTRACTOR_PluginList *extractors;
 
   /**
    * Function to call on each directory entry.
@@ -518,7 +518,7 @@ GNUNET_FS_directory_scanner_default (void *cls,
 				     void *proc_cls,
 				     char **emsg)
 {
-  struct EXTRACTOR_Extractor *ex = cls;
+  struct EXTRACTOR_PluginList *ex = cls;
   struct DirScanCls dsc;
 
   dsc.extractors = ex;

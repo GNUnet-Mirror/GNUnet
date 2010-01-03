@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2008, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2008, 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -196,23 +196,12 @@ void GNUNET_CONTAINER_bloomfilter_resize (struct GNUNET_CONTAINER_BloomFilter
 struct GNUNET_CONTAINER_MetaData;
 
 /**
- * Iterator over meta data.
- *
- * @param cls closure
- * @param type type of the meta data
- * @param data value of the meta data
- * @return GNUNET_OK to continue to iterate, GNUNET_SYSERR to abort
- */
-typedef int (*GNUNET_CONTAINER_MetaDataProcessor) (void *cls,
-						   EXTRACTOR_KeywordType type,
-                                                   const char *data);
-
-/**
  * Create a fresh MetaData token.
  * 
  * @return empty meta-data container
  */
-struct GNUNET_CONTAINER_MetaData *GNUNET_CONTAINER_meta_data_create (void);
+struct GNUNET_CONTAINER_MetaData *
+GNUNET_CONTAINER_meta_data_create (void);
 
 /**
  * Duplicate a MetaData token.
@@ -220,43 +209,61 @@ struct GNUNET_CONTAINER_MetaData *GNUNET_CONTAINER_meta_data_create (void);
  * @param md what to duplicate
  * @return duplicate meta-data container
  */
-struct GNUNET_CONTAINER_MetaData *GNUNET_CONTAINER_meta_data_duplicate (const
-                                                                        struct
-                                                                        GNUNET_CONTAINER_MetaData
-                                                                        *md);
+struct GNUNET_CONTAINER_MetaData *
+GNUNET_CONTAINER_meta_data_duplicate (const struct 
+				      GNUNET_CONTAINER_MetaData *md);
 
 /**
  * Free meta data.
  *
  * @param md what to free
  */
-void GNUNET_CONTAINER_meta_data_destroy (struct GNUNET_CONTAINER_MetaData
-                                         *md);
+void 
+GNUNET_CONTAINER_meta_data_destroy (struct GNUNET_CONTAINER_MetaData *md);
 
 /**
- * Test if two MDs are equal.
+ * Test if two MDs are equal. We consider them equal if
+ * the meta types, formats and content match (we do not
+ * include the mime types and plugins names in this
+ * consideration).
  *
  * @param md1 first value to check
  * @param md2 other value to check
  * @return GNUNET_YES if they are equal
  */
-int GNUNET_CONTAINER_meta_data_test_equal (const struct
-                                           GNUNET_CONTAINER_MetaData *md1,
-                                           const struct
-                                           GNUNET_CONTAINER_MetaData *md2);
+int 
+GNUNET_CONTAINER_meta_data_test_equal (const struct
+				       GNUNET_CONTAINER_MetaData *md1,
+				       const struct
+				       GNUNET_CONTAINER_MetaData *md2);
 
 
 /**
  * Extend metadata.
  *
  * @param md metadata to extend
- * @param type type of the new entry
- * @param data value for the entry
+ * @param plugin_name name of the plugin that produced this value;
+ *        special values can be used (i.e. '<zlib>' for zlib being
+ *        used in the main libextractor library and yielding
+ *        meta data).
+ * @param type libextractor-type describing the meta data
+ * @param format basic format information about data 
+ * @param data_mime_type mime-type of data (not of the original file);
+ *        can be NULL (if mime-type is not known)
+ * @param data actual meta-data found
+ * @param data_len number of bytes in data
  * @return GNUNET_OK on success, GNUNET_SYSERR if this entry already exists
+ *         data_mime_type and plugin_name are not considered for "exists" checks
  */
-int GNUNET_CONTAINER_meta_data_insert (struct GNUNET_CONTAINER_MetaData *md,
-                                       EXTRACTOR_KeywordType type,
-                                       const char *data);
+int 
+GNUNET_CONTAINER_meta_data_insert (struct GNUNET_CONTAINER_MetaData *md,
+				   const char *plugin_name,
+				   enum EXTRACTOR_MetaType type,
+				   enum EXTRACTOR_MetaFormat format,
+				   const char *data_mime_type,
+				   const char *data,
+				   size_t data_len);
+
 
 /**
  * Remove an item.
@@ -265,11 +272,15 @@ int GNUNET_CONTAINER_meta_data_insert (struct GNUNET_CONTAINER_MetaData *md,
  * @param type type of the item to remove
  * @param data specific value to remove, NULL to remove all
  *        entries of the given type
+ * @param data_len number of bytes in data
  * @return GNUNET_OK on success, GNUNET_SYSERR if the item does not exist in md
  */
-int GNUNET_CONTAINER_meta_data_delete (struct GNUNET_CONTAINER_MetaData *md,
-                                       EXTRACTOR_KeywordType type,
-                                       const char *data);
+int 
+GNUNET_CONTAINER_meta_data_delete (struct GNUNET_CONTAINER_MetaData *md,
+				   enum EXTRACTOR_MetaType type,
+				   const char *data,
+				   size_t data_len);
+
 
 /**
  * Add the current time as the publication date
@@ -277,58 +288,70 @@ int GNUNET_CONTAINER_meta_data_delete (struct GNUNET_CONTAINER_MetaData *md,
  *
  * @param md metadata to modify
  */
-void GNUNET_CONTAINER_meta_data_add_publication_date (struct
-                                                      GNUNET_CONTAINER_MetaData
-                                                      *md);
+void 
+GNUNET_CONTAINER_meta_data_add_publication_date (struct
+						 GNUNET_CONTAINER_MetaData
+						 *md);
+
 
 /**
- * Iterate over MD entries, excluding thumbnails.
+ * Iterate over MD entries.
  *
  * @param md metadata to inspect
  * @param iter function to call on each entry
  * @param iter_cls closure for iterator
  * @return number of entries
  */
-int GNUNET_CONTAINER_meta_data_get_contents (const struct
-                                             GNUNET_CONTAINER_MetaData *md,
-                                             GNUNET_CONTAINER_MetaDataProcessor
-                                             iter, void *iter_cls);
+int GNUNET_CONTAINER_meta_data_iterate (const struct
+					GNUNET_CONTAINER_MetaData *md,
+					EXTRACTOR_MetaDataProcessor
+					iter, void *iter_cls);
 
 /**
- * Get the first MD entry of the given type.
+ * Get the first MD entry of the given type.  Caller
+ * is responsible for freeing the return value.
+ * Also, only meta data items that are strings (0-terminated)
+ * are returned by this function.
  *
  * @param md metadata to inspect
  * @param type type to look for
- * @return NULL if we do not have any such entry,
- *  otherwise client is responsible for freeing the value!
+ * @return NULL if no entry was found
  */
-char *GNUNET_CONTAINER_meta_data_get_by_type (const struct
-                                             GNUNET_CONTAINER_MetaData *md,
-                                              EXTRACTOR_KeywordType type);
+char *
+GNUNET_CONTAINER_meta_data_get_by_type (const struct
+					GNUNET_CONTAINER_MetaData *md,
+					enum EXTRACTOR_MetaType type);
+
 
 /**
- * Get the first matching MD entry of the given types.
+ * Get the first matching MD entry of the given types. Caller is
+ * responsible for freeing the return value.  Also, only meta data
+ * items that are strings (0-terminated) are returned by this
+ * function.
  *
  * @param md metadata to inspect
  * @param ... -1-terminated list of types
  * @return NULL if we do not have any such entry,
  *  otherwise client is responsible for freeing the value!
  */
-char *GNUNET_CONTAINER_meta_data_get_first_by_types (const struct
-                                                     GNUNET_CONTAINER_MetaData
-                                                     *md, ...);
+char *
+GNUNET_CONTAINER_meta_data_get_first_by_types (const struct
+					       GNUNET_CONTAINER_MetaData
+					       *md, ...);
 
 /**
- * Get a thumbnail from the meta-data (if present).
+ * Get a thumbnail from the meta-data (if present).  Only matches meta
+ * data with mime type "image" and binary format.
  *
  * @param md metadata to inspect
  * @param thumb will be set to the thumbnail data.  Must be
  *        freed by the caller!
  * @return number of bytes in thumbnail, 0 if not available
  */
-size_t GNUNET_CONTAINER_meta_data_get_thumbnail (const struct
-                                                 GNUNET_CONTAINER_MetaData
-                                                 *md, unsigned char **thumb);
+size_t 
+GNUNET_CONTAINER_meta_data_get_thumbnail (const struct
+					  GNUNET_CONTAINER_MetaData
+					  *md, unsigned char **thumb);
 
 /**
  * Extract meta-data from a file.
@@ -339,11 +362,12 @@ size_t GNUNET_CONTAINER_meta_data_get_thumbnail (const struct
  * @return GNUNET_SYSERR on error, otherwise the number
  *   of meta-data items obtained
  */
-int GNUNET_CONTAINER_meta_data_extract_from_file (struct
-                                                  GNUNET_CONTAINER_MetaData
-                                                  *md, const char *filename,
-                                                  EXTRACTOR_ExtractorList *
-                                                  extractors);
+int 
+GNUNET_CONTAINER_meta_data_extract_from_file (struct
+					      GNUNET_CONTAINER_MetaData
+					      *md, const char *filename,
+					      struct EXTRACTOR_PluginList *
+					      extractors);
 
 
 /**
@@ -373,7 +397,8 @@ enum GNUNET_CONTAINER_MetaDataSerializationOptions
  * Serialize meta-data to target.
  *
  * @param md metadata to serialize
- * @param target where to write the serialized metadata
+ * @param target where to write the serialized metadata;
+ *         *target can be NULL, in which case memory is allocated
  * @param max maximum number of bytes available
  * @param opt is it ok to just write SOME of the
  *        meta-data to match the size constraint,
@@ -384,7 +409,7 @@ enum GNUNET_CONTAINER_MetaDataSerializationOptions
  */
 ssize_t GNUNET_CONTAINER_meta_data_serialize (const struct
 					      GNUNET_CONTAINER_MetaData *md,
-					      char *target, 
+					      char **target, 
 					      size_t max,
 					      enum
                                           GNUNET_CONTAINER_MetaDataSerializationOptions
@@ -392,22 +417,15 @@ ssize_t GNUNET_CONTAINER_meta_data_serialize (const struct
 
 
 /**
- * Estimate (!) the size of the meta-data in
- * serialized form.  The estimate MAY be higher
- * than what is strictly needed.
+ * Get the size of the full meta-data in serialized form.
  *
  * @param md metadata to inspect
- * @param opt is it ok to just write SOME of the
- *        meta-data to match the size constraint,
- *        possibly discarding some data?
  * @return number of bytes needed for serialization, -1 on error
  */
 ssize_t GNUNET_CONTAINER_meta_data_get_serialized_size (const struct
 							GNUNET_CONTAINER_MetaData
-							*md,
-							enum
-							GNUNET_CONTAINER_MetaDataSerializationOptions
-							opt);
+							*md);
+
 
 /**
  * Deserialize meta-data.  Initializes md.

@@ -140,43 +140,57 @@ progress_cb (void *cls,
  * @param cls closure
  * @param type type of the meta data
  * @param data value of the meta data
- * @return GNUNET_OK to continue to iterate, GNUNET_SYSERR to abort
+ * @return always 0
  */
 static int
 meta_printer (void *cls,
-	      EXTRACTOR_KeywordType type,
-	      const char *data)
+	      const char *plugin_name,
+	      enum EXTRACTOR_MetaType type, 
+	      enum EXTRACTOR_MetaFormat format,
+	      const char *data_mime_type,
+	      const char *data,
+	      size_t data_size)
 {
-  if ( (type == EXTRACTOR_FILENAME) ||
-       (EXTRACTOR_isBinaryType (type)) )
-    return GNUNET_OK;
+  if ( (format != EXTRACTOR_METAFORMAT_UTF8) &&
+       (format != EXTRACTOR_METAFORMAT_C_STRING) )
+    return 0;
+  if (type == EXTRACTOR_METATYPE_FILENAME) 
+    return 0;
   fprintf (stdout, 
 	   "%s - %s",
-	   EXTRACTOR_getKeywordTypeAsString (type),
+	   EXTRACTOR_metatype_to_string (type),
 	   data);
-  return GNUNET_OK;
+  return 0;
 }
 
 
 /**
- * Merge metadata entries (except binary
- * metadata).
+ * Merge metadata entries.
  *
  * @param cls closure, target metadata structure
  * @param type type of the meta data
  * @param data value of the meta data
- * @return GNUNET_OK to continue to iterate, GNUNET_SYSERR to abort
+ * @return always 0
  */
 static int
 meta_merger (void *cls,
-	     EXTRACTOR_KeywordType type,
-	     const char *data)
+	      const char *plugin_name,
+	      enum EXTRACTOR_MetaType type, 
+	      enum EXTRACTOR_MetaFormat format,
+	      const char *data_mime_type,
+	      const char *data,
+	      size_t data_size)
 {
   struct GNUNET_CONTAINER_MetaData *m = cls;
+
   GNUNET_CONTAINER_meta_data_insert (m,
+				     plugin_name,
 				     type, 
-				     data);
-  return GNUNET_OK;
+				     format,
+				     data_mime_type,
+				     data,
+				     data_size);
+  return 0;
 }
 
 
@@ -227,16 +241,16 @@ publish_inspector (void *cls,
     }
   if (NULL != meta)
     {
-      GNUNET_CONTAINER_meta_data_get_contents (meta,
-					       &meta_merger,
-					       m);
+      GNUNET_CONTAINER_meta_data_iterate (meta,
+					  &meta_merger,
+					  m);
       GNUNET_CONTAINER_meta_data_destroy (meta);
       meta = NULL;
     }
   if (extract_only)
     {
       fn = GNUNET_CONTAINER_meta_data_get_by_type (meta,
-						   EXTRACTOR_FILENAME);
+						   EXTRACTOR_METATYPE_FILENAME);
       fs = GNUNET_STRINGS_byte_size_fancy (length);
       fprintf (stdout,
 	       _("Keywords for file `%s' (%s)\n"),
@@ -244,9 +258,9 @@ publish_inspector (void *cls,
 	       fs);
       GNUNET_free (fn);
       GNUNET_free (fs);
-      GNUNET_CONTAINER_meta_data_get_contents (meta,
-					       &meta_printer,
-					       NULL);
+      GNUNET_CONTAINER_meta_data_iterate (meta,
+					  &meta_printer,
+					  NULL);
       fprintf (stdout, "\n");
     }
   if (GNUNET_FS_meta_data_test_for_directory (meta))
@@ -275,7 +289,7 @@ run (void *cls,
 {
   struct GNUNET_FS_FileInformation *fi;
   struct GNUNET_FS_Namespace *namespace;
-  EXTRACTOR_ExtractorList *l;
+  struct EXTRACTOR_PluginList *l;
   char *ex;
   char *emsg;
   
@@ -377,13 +391,13 @@ run (void *cls,
   l = NULL;
   if (! disable_extractor)
     {
-      l = EXTRACTOR_loadDefaultLibraries ();
+      l = EXTRACTOR_plugin_add_defaults (EXTRACTOR_OPTION_DEFAULT_POLICY);
       if (GNUNET_OK ==
 	  GNUNET_CONFIGURATION_get_value_string (cfg, "FS", "EXTRACTORS",
 						 &ex))
 	{
 	  if (strlen (ex) > 0)
-	    l = EXTRACTOR_loadConfigLibraries (l, ex);
+	    l = EXTRACTOR_plugin_add_config (l, ex, EXTRACTOR_OPTION_DEFAULT_POLICY);
 	  GNUNET_free (ex);
 	}
     }
@@ -396,7 +410,7 @@ run (void *cls,
 							 priority,
 							 GNUNET_TIME_relative_to_absolute (DEFAULT_EXPIRATION),
 							 &emsg);
-  EXTRACTOR_removeAll (l);  
+  EXTRACTOR_plugin_remove_all (l);  
   if (fi == NULL)
     {
       fprintf (stderr,

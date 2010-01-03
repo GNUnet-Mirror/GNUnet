@@ -434,21 +434,11 @@ GNUNET_BIO_write_meta_data (struct GNUNET_BIO_WriteHandle *h,
   ssize_t size;
   char *buf;
 
-  size = GNUNET_CONTAINER_meta_data_get_serialized_size (m,
-                                                         GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL
-                                                         |
-                                                         GNUNET_CONTAINER_META_DATA_SERIALIZE_NO_COMPRESS);
-  if (size == -1)
-    return GNUNET_SYSERR;
-  if (size > MAX_META_DATA)
-    size = MAX_META_DATA;  
-  buf = GNUNET_malloc (size);
+  buf = NULL;
   size = GNUNET_CONTAINER_meta_data_serialize (m,
-					       buf,
-					       size,
-					       GNUNET_CONTAINER_META_DATA_SERIALIZE_PART
-					       |
-					       GNUNET_CONTAINER_META_DATA_SERIALIZE_NO_COMPRESS);
+					       &buf,
+					       MAX_META_DATA,
+					       GNUNET_CONTAINER_META_DATA_SERIALIZE_PART);
   if (size == -1)
     {
       GNUNET_free (buf);
