@@ -132,7 +132,13 @@ main (int argc, char *argv[])
   /* ACTUAL TEST CODE */
   old = GNUNET_PSEUDONYM_list_all (cfg, NULL, NULL);
   meta = GNUNET_CONTAINER_meta_data_create ();
-  GNUNET_CONTAINER_meta_data_insert (meta, EXTRACTOR_TITLE,"test");
+  GNUNET_CONTAINER_meta_data_insert (meta, 
+				     "<test>",
+				     EXTRACTOR_METATYPE_TITLE,
+				     EXTRACTOR_METAFORMAT_UTF8,
+				     "text/plain",
+				     "test",
+				     strlen("test")+1);
   GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &id1);
   GNUNET_PSEUDONYM_add (cfg, &id1, meta);
   CHECK (notiCount == 1);
@@ -146,7 +152,13 @@ main (int argc, char *argv[])
   CHECK (notiCount == 3);
   newVal = GNUNET_PSEUDONYM_list_all (cfg, &iter, &ok);
   CHECK (old < newVal);
-  GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_meta_data_insert (meta, EXTRACTOR_COMMENT, m));
+  GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_meta_data_insert (meta, 
+								 "<test>",
+								 EXTRACTOR_METATYPE_COMMENT,
+								 EXTRACTOR_METAFORMAT_UTF8,
+								 "text/plain",
+								 m,
+								 strlen(m)+1));
   GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &id3);
   GNUNET_PSEUDONYM_add (cfg, &id3, meta);
   name3 = GNUNET_PSEUDONYM_id_to_name (cfg, &id3);

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2003, 2004, 2006, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2003, 2004, 2006, 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -34,85 +34,124 @@ static int
 testMeta (int i)
 {
   struct GNUNET_CONTAINER_MetaData *m;
-  char *val;
+  char val[256];
+  char *sval;
   int j;
   unsigned int size;
 
   m = GNUNET_CONTAINER_meta_data_create ();
   if (GNUNET_OK !=
-      GNUNET_CONTAINER_meta_data_insert (m, EXTRACTOR_TITLE, "TestTitle"))
+      GNUNET_CONTAINER_meta_data_insert (m,
+					 "<test>",
+					 EXTRACTOR_METATYPE_TITLE, 
+					 EXTRACTOR_METAFORMAT_UTF8,
+					 "text/plain",
+					 "TestTitle",
+					 strlen("TestTitle")+1))
     ABORT (m);
   if (GNUNET_OK !=
-      GNUNET_CONTAINER_meta_data_insert (m, EXTRACTOR_AUTHOR, "TestTitle"))
+      GNUNET_CONTAINER_meta_data_insert (m, 
+					 "<test>",
+					 EXTRACTOR_METATYPE_AUTHOR_NAME, 
+					 EXTRACTOR_METAFORMAT_UTF8,
+					 "text/plain",
+					 "TestTitle",
+					 strlen ("TestTitle")+1))
     ABORT (m);
-  if (GNUNET_OK == GNUNET_CONTAINER_meta_data_insert (m, EXTRACTOR_TITLE, "TestTitle")) /* dup! */
+  if (GNUNET_OK == GNUNET_CONTAINER_meta_data_insert (m, 
+						      "<test>",
+						      EXTRACTOR_METATYPE_TITLE, 
+						      EXTRACTOR_METAFORMAT_UTF8,
+						      "text/plain",
+						      "TestTitle",
+						      strlen ("TestTitle")+1)) /* dup! */
     ABORT (m);
-  if (GNUNET_OK == GNUNET_CONTAINER_meta_data_insert (m, EXTRACTOR_AUTHOR, "TestTitle"))        /* dup! */
+  if (GNUNET_OK == GNUNET_CONTAINER_meta_data_insert (m,
+						      "<test>",
+						      EXTRACTOR_METATYPE_AUTHOR_NAME,
+						      EXTRACTOR_METAFORMAT_UTF8,
+						      "text/plain",
+						      "TestTitle",
+						      strlen ("TestTitle")+1))        /* dup! */
     ABORT (m);
-  if (2 != GNUNET_CONTAINER_meta_data_get_contents (m, NULL, NULL))
+  if (2 != GNUNET_CONTAINER_meta_data_iterate (m, NULL, NULL))
     ABORT (m);
   if (GNUNET_OK !=
-      GNUNET_CONTAINER_meta_data_delete (m, EXTRACTOR_AUTHOR, "TestTitle"))
+      GNUNET_CONTAINER_meta_data_delete (m,
+					 EXTRACTOR_METATYPE_AUTHOR_NAME,
+					 "TestTitle",
+					 strlen("TestTitle")+1))
     ABORT (m);
-  if (GNUNET_OK == GNUNET_CONTAINER_meta_data_delete (m, EXTRACTOR_AUTHOR, "TestTitle"))        /* already gone */
+  if (GNUNET_OK == GNUNET_CONTAINER_meta_data_delete (m,
+						      EXTRACTOR_METATYPE_AUTHOR_NAME, 
+						      "TestTitle",
+						      strlen ("TestTitle")+1))        /* already gone */
     ABORT (m);
-  if (1 != GNUNET_CONTAINER_meta_data_get_contents (m, NULL, NULL))
+  if (1 != GNUNET_CONTAINER_meta_data_iterate (m, NULL, NULL))
     ABORT (m);
   if (GNUNET_OK !=
-      GNUNET_CONTAINER_meta_data_delete (m, EXTRACTOR_TITLE, "TestTitle"))
+      GNUNET_CONTAINER_meta_data_delete (m, 
+					 EXTRACTOR_METATYPE_TITLE,
+					 "TestTitle",
+					 strlen ("TestTitle")+1))
     ABORT (m);
-  if (GNUNET_OK == GNUNET_CONTAINER_meta_data_delete (m, EXTRACTOR_TITLE, "TestTitle")) /* already gone */
+  if (GNUNET_OK == GNUNET_CONTAINER_meta_data_delete (m, 
+						      EXTRACTOR_METATYPE_TITLE, 
+						      "TestTitle",
+						      strlen ("TestTitle")+1)) /* already gone */
     ABORT (m);
-  if (0 != GNUNET_CONTAINER_meta_data_get_contents (m, NULL, NULL))
+  if (0 != GNUNET_CONTAINER_meta_data_iterate (m, NULL, NULL))
     ABORT (m);
-  val = GNUNET_malloc (256);
   for (j = 0; j < i; j++)
     {
-      GNUNET_snprintf (val, 256, "%s.%d",
+      GNUNET_snprintf (val, 
+		       sizeof(val),
+		       "%s.%d",
                        "A teststring that should compress well.", j);
       if (GNUNET_OK !=
-          GNUNET_CONTAINER_meta_data_insert (m, EXTRACTOR_UNKNOWN, val))
-        {
-          GNUNET_free (val);
-          ABORT (m);
-        }
+          GNUNET_CONTAINER_meta_data_insert (m,
+					     "<test>",
+					     EXTRACTOR_METATYPE_UNKNOWN, 
+					     EXTRACTOR_METAFORMAT_UTF8,
+					     "text/plain",
+					     val,
+					     strlen(val)+1))
+	ABORT (m);        
     }
-  GNUNET_free (val);
-  if (i != GNUNET_CONTAINER_meta_data_get_contents (m, NULL, NULL))
+  if (i != GNUNET_CONTAINER_meta_data_iterate (m, NULL, NULL))
     ABORT (m);
 
   size =
-    GNUNET_CONTAINER_meta_data_get_serialized_size (m,
-                                                    GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL);
-  val = GNUNET_malloc (size);
-  if (size != GNUNET_CONTAINER_meta_data_serialize (m, val, size,
+    GNUNET_CONTAINER_meta_data_get_serialized_size (m);
+  sval = NULL;
+  if (size != GNUNET_CONTAINER_meta_data_serialize (m,
+						    &sval, size,
                                                     GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL))
     {
-      GNUNET_free (val);
+      GNUNET_free_non_null (sval);
       ABORT (m);
     }
   GNUNET_CONTAINER_meta_data_destroy (m);
-  m = GNUNET_CONTAINER_meta_data_deserialize (val, size);
-  GNUNET_free (val);
+  m = GNUNET_CONTAINER_meta_data_deserialize (sval, size);
+  GNUNET_free (sval);
   if (m == NULL)
     ABORT (m);
-  val = GNUNET_malloc (256);
   for (j = 0; j < i; j++)
     {
-      GNUNET_snprintf (val, 256, "%s.%d",
+      GNUNET_snprintf (val, 
+		       sizeof(val), "%s.%d",
                        "A teststring that should compress well.", j);
       if (GNUNET_OK !=
-          GNUNET_CONTAINER_meta_data_delete (m, EXTRACTOR_UNKNOWN, val))
+          GNUNET_CONTAINER_meta_data_delete (m,
+					     EXTRACTOR_METATYPE_UNKNOWN, 
+					     val,
+					     strlen(val)+1))
         {
-          GNUNET_free (val);
           ABORT (m);
         }
     }
-  GNUNET_free (val);
-  if (0 != GNUNET_CONTAINER_meta_data_get_contents (m, NULL, NULL))
-    {
-      ABORT (m);
-    }
+  if (0 != GNUNET_CONTAINER_meta_data_iterate (m, NULL, NULL))
+    ABORT (m);    
   GNUNET_CONTAINER_meta_data_destroy (m);
   return 0;
 }
@@ -131,16 +170,18 @@ testMetaMore (int i)
     {
       GNUNET_snprintf (txt, 128, "%u -- %u\n", i, q);
       GNUNET_CONTAINER_meta_data_insert (meta,
-                                         q %
-                                         EXTRACTOR_getHighestKeywordTypeNumber
-                                         (), txt);
+					 "<test>",
+                                         q % EXTRACTOR_metatype_get_max(), 
+					 EXTRACTOR_METAFORMAT_UTF8,
+					 "text/plain",
+					 txt,
+					 strlen (txt)+1);
     }
   size =
-    GNUNET_CONTAINER_meta_data_get_serialized_size (meta,
-                                                    GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL);
+    GNUNET_CONTAINER_meta_data_get_serialized_size (meta);
   data = GNUNET_malloc (size * 4);
   if (size != GNUNET_CONTAINER_meta_data_serialize (meta,
-                                                    data, size * 4,
+                                                    &data, size * 4,
                                                     GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL))
     {
       GNUNET_free (data);
@@ -160,22 +201,26 @@ testMetaLink ()
 
   m = GNUNET_CONTAINER_meta_data_create ();
   if (GNUNET_OK !=
-      GNUNET_CONTAINER_meta_data_insert (m, EXTRACTOR_UNKNOWN, "link"))
+      GNUNET_CONTAINER_meta_data_insert (m, 
+					 "<test>",
+					 EXTRACTOR_METATYPE_UNKNOWN, 
+					 EXTRACTOR_METAFORMAT_UTF8,
+					 "text/plain",
+					 "link",
+					 strlen("link")+1))
     ABORT (m);
   if (GNUNET_OK !=
-      GNUNET_CONTAINER_meta_data_insert (m, EXTRACTOR_FILENAME,
-                                         "lib-link.m4"))
+      GNUNET_CONTAINER_meta_data_insert (m,
+					 "<test>",
+					 EXTRACTOR_METATYPE_FILENAME,
+					 EXTRACTOR_METAFORMAT_UTF8,
+					 "text/plain",
+                                         "lib-link.m4",
+					 strlen ("lib-link.m4")+1))
     ABORT (m);
-  size =
-    GNUNET_CONTAINER_meta_data_get_serialized_size (m,
-                                                    GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL);
-  val = GNUNET_malloc (size);
-  if (size != GNUNET_CONTAINER_meta_data_serialize (m, val, size,
-                                                    GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL))
-    {
-      GNUNET_free (val);
-      ABORT (m);
-    }
+  val = NULL;
+  size = GNUNET_CONTAINER_meta_data_serialize (m, &val, (size_t) -1,
+					       GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL);
   GNUNET_CONTAINER_meta_data_destroy (m);
   m = GNUNET_CONTAINER_meta_data_deserialize (val, size);
   GNUNET_free (val);
@@ -191,30 +236,30 @@ testThumbnail ()
 {
   struct GNUNET_CONTAINER_MetaData *m;
   struct GNUNET_CONTAINER_MetaData *d;
-  EXTRACTOR_ExtractorList *ex;
+  struct EXTRACTOR_PluginList *ex;
   unsigned char *thumb;
   size_t size;
   char *date;
 
-  ex = EXTRACTOR_loadConfigLibraries (NULL, "libextractor_thumbnail");
+  ex = EXTRACTOR_plugin_add_config (NULL, "thumbnailgtk", EXTRACTOR_OPTION_DEFAULT_POLICY);
   if (ex == NULL)
     {
       fprintf (stderr,
-               "Test incomplete, have no thumbnail extractor available.\n");
+               "Test incomplete, have no GTK thumbnail extractor available.\n");
       return 0;                 /* can not test, no thumbnailer */
     }
-  ex = EXTRACTOR_loadConfigLibraries (ex, "libextractor_mime");
+  ex = EXTRACTOR_plugin_add_config (ex, "mime", EXTRACTOR_OPTION_DEFAULT_POLICY);
   m = GNUNET_CONTAINER_meta_data_create ();
   if (3 != GNUNET_CONTAINER_meta_data_extract_from_file (m,
                                                          "test_container_meta_data_image.jpg",
                                                          ex))
     {
       GNUNET_break (0);
-      EXTRACTOR_removeAll (ex);
+      EXTRACTOR_plugin_remove_all (ex);
       GNUNET_CONTAINER_meta_data_destroy (m);
       return 1;
     }
-  EXTRACTOR_removeAll (ex);
+  EXTRACTOR_plugin_remove_all (ex);
   d = GNUNET_CONTAINER_meta_data_duplicate (m);
   GNUNET_CONTAINER_meta_data_destroy (m);
   size = GNUNET_CONTAINER_meta_data_get_thumbnail (d, &thumb);
@@ -227,7 +272,7 @@ testThumbnail ()
   GNUNET_free (thumb);
   GNUNET_CONTAINER_meta_data_add_publication_date (d);
   date = GNUNET_CONTAINER_meta_data_get_by_type (d,
-                                                 EXTRACTOR_PUBLICATION_DATE);
+                                                 EXTRACTOR_METATYPE_PUBLICATION_DATE);
   if (date == NULL)
     {
       GNUNET_break (0);
@@ -259,4 +304,4 @@ main (int argc, char *argv[])
   return 0;
 }
 
-/* end of metatest.c */
+/* end of test_container_meta_data.c */

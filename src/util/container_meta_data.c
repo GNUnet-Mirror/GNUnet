@@ -794,7 +794,7 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
   if (md->sbuf != NULL)
     {
       /* try to use serialization cache */
-      if (md->sbuf_size < max)
+      if (md->sbuf_size <= max)
 	{
 	  if (NULL == *target)
 	    *target = GNUNET_malloc (md->sbuf_size);
@@ -881,10 +881,10 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
 	     of making the API look strange. */
 	  vmd = (struct GNUNET_CONTAINER_MetaData*) md;
 	  hdr = GNUNET_malloc (left + sizeof (struct MetaDataHeader));
+	  hdr->size = htonl (left);
 	  hdr->entries = htonl (md->item_count);
 	  if (GNUNET_YES == comp)
 	    {
-	      hdr->size = htonl (clen);
 	      hdr->version = htonl (2 | HEADER_COMPRESSED);
 	      memcpy (&hdr[1],
 		      cdata, 
@@ -893,7 +893,6 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
 	    }
 	  else
 	    {
-	      hdr->size = htonl (left);
 	      hdr->version = htonl (2);
 	      memcpy (&hdr[1],
 		      &ent[0], 
@@ -917,9 +916,9 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
 		  *target = (char*) hdr;
 		}
 	      hdr->version = htonl (2 | HEADER_COMPRESSED);
-	      hdr->entries = htonl (md->item_count - i);
 	      hdr->size = htonl (left);
-	      memcpy (&target[sizeof(struct MetaDataHeader)],
+	      hdr->entries = htonl (md->item_count - i);
+	      memcpy (&(*target)[sizeof(struct MetaDataHeader)],
 		      cdata, 
 		      clen);
 	      GNUNET_free (cdata);
@@ -928,7 +927,7 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
 	    }
 	  else
 	    {
-	      hdr = (struct MetaDataHeader*) target;
+	      hdr = (struct MetaDataHeader*) *target;
 	      if (hdr == NULL)
 		{
 		  hdr = GNUNET_malloc (left + sizeof (struct MetaDataHeader));
@@ -937,7 +936,7 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
 	      hdr->version = htonl (2);
 	      hdr->entries = htonl (md->item_count - i);
 	      hdr->size = htonl (left);
-	      memcpy (&target[sizeof(struct MetaDataHeader)],
+	      memcpy (&(*target)[sizeof(struct MetaDataHeader)],
 		      &ent[i], 
 		      left);
 	      GNUNET_free (ent);
@@ -964,7 +963,7 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
   GNUNET_free (ent);
 
   /* nothing fit, only write header! */
-  hdr = (struct MetaDataHeader*) target;
+  hdr = (struct MetaDataHeader*) *target;
   if (hdr == NULL)
     {
       hdr = GNUNET_malloc (sizeof (struct MetaDataHeader));
