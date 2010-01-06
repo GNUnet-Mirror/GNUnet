@@ -89,8 +89,20 @@ testDirectory (unsigned int i)
   uris = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri*) * i);
   mds = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_MetaData*) * i);
   meta = GNUNET_CONTAINER_meta_data_create ();
-  GNUNET_CONTAINER_meta_data_insert (meta, EXTRACTOR_TITLE, "A title");
-  GNUNET_CONTAINER_meta_data_insert (meta, EXTRACTOR_AUTHOR, "An author");
+  GNUNET_CONTAINER_meta_data_insert (meta, 
+				     "<test>",
+				     EXTRACTOR_METATYPE_TITLE,
+				     EXTRACTOR_METAFORMAT_UTF8,
+				     "text/plain",
+				     "A title",
+				     strlen("A title")+1);
+  GNUNET_CONTAINER_meta_data_insert (meta, 
+				     "<test>",
+				     EXTRACTOR_METATYPE_AUTHOR_NAME, 
+				     EXTRACTOR_METAFORMAT_UTF8,
+				     "text/plain",
+				     "An author",
+				     strlen ("An author")+1);
   for (p = 0; p < i; p++)
     {
       mds[p] = GNUNET_CONTAINER_meta_data_create ();
@@ -98,9 +110,12 @@ testDirectory (unsigned int i)
         {
           GNUNET_snprintf (txt, sizeof(txt), "%u -- %u\n", p, q);
           GNUNET_CONTAINER_meta_data_insert (mds[p],
-                                   q %
-                                   EXTRACTOR_getHighestKeywordTypeNumber
-                                   (), txt);
+					     "<test>",
+					     q % EXTRACTOR_metatype_get_max (),
+					     EXTRACTOR_METAFORMAT_UTF8,
+					     "text/plain",
+					     txt,
+					     strlen(txt)+1);
         }
       GNUNET_snprintf (uri,
                        sizeof(uri),
