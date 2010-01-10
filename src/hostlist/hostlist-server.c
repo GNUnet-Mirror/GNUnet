@@ -144,6 +144,9 @@ update_response (void *cls,
 			   GNUNET_TIME_UNIT_MINUTES,
 			   &host_processor,
 			   results);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      _("Created new hostlist response with %u bytes\n"),
+	      results->size);  
 }
 
 
@@ -174,6 +177,8 @@ access_handler_callback (void *cls,
   
   if (0 != strcmp (method, MHD_HTTP_METHOD_GET))
     return MHD_NO;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      _("Received request for our hostlist\n"));
   if (NULL == *con_cls)
     {
       (*con_cls) = &dummy;
@@ -282,6 +287,9 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 						   "HTTPPORT", 
 						   &port))
     return GNUNET_SYSERR;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      _("Hostlist service starts on port %llu\n"),
+	      port);
   daemon_handle = MHD_start_daemon (MHD_USE_IPv6,
                                     (unsigned short) port,
                                     &accept_policy_callback,

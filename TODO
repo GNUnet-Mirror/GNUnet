@@ -15,6 +15,8 @@ Urgent items (before announcing ng.gnunet.org):
 * TEST:
   - topology
   - hostlist
+    * is 'update_response' / 'finish_response' etc ever called? (hostlist-server)
+    * we still have serious shutdown problems in the testcase (on failure)
 * CORE:
   - soliciting traffic for clients that registered for it is not implemented
     (in the service, client API supports GNUNET_MESSAGE_TYPE_CORE_SOLICIT_TRAFFIC
@@ -38,6 +40,13 @@ Urgent items (before announcing ng.gnunet.org):
   - load: need way to determine network load (up/down)
   - trust: need *fast* way to check/update trust in peers
            (async peerinfo would not be right)
+  - OS: existing waitpid call is not nice (not integratable with scheduler! fix this!)
+* STATISTICS:
+  - synchronous/asynchronous API (& implementation) is not nice
+  - does not seem to work with timeouts (especially if service is not running)
+* ARM:
+  - need to get rid of synchronous API for service starts (cause all kinds of problems)
+    [=> eliminate for need to tell ARM about service starts most of the time!]
 * Module features to implement:
   - advanced FS API parts
     + namespaces: fundamental namespace API

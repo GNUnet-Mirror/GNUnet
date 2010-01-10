@@ -132,7 +132,9 @@ download_hostlist_processor (void *ptr,
 
   total = size * nmemb;
   if ( (total == 0) || (bogus_url) )
-    return total;  /* ok, no data or bogus data */
+    {
+      return total;  /* ok, no data or bogus data */
+    }
   left = total;
   while (left > 0)
     {
@@ -161,6 +163,9 @@ download_hostlist_processor (void *ptr,
 	break;
       if (GNUNET_HELLO_size ((const struct GNUNET_HELLO_Message*)msg) == msize)
 	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Received valid `%s' message from hostlist server.\n",
+		      "HELLO");
 	  GNUNET_TRANSPORT_offer_hello (transport, msg);
 	}
       else
@@ -318,6 +323,11 @@ multi_ready (void *cls,
   struct CURLMsg *msg;
   CURLMcode mret;
 
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    {
+      clean_up ();
+      return;
+    }
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -365,6 +375,9 @@ multi_ready (void *cls,
       clean_up ();
       return;
     }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      _("Download of hostlist `%s' completed.\n"),
+	      current_url);
   clean_up ();
 }
 
@@ -521,6 +534,7 @@ static void
 check_task (void *cls,
 	    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  
   if (connection_count < MIN_CONNECTIONS)
     download_hostlist ();
   else
@@ -597,6 +611,8 @@ disconnect_handler (void *cls,
 static void
 primary_task (void *cls, int success)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Statistics request done, scheduling hostlist download\n");
   schedule_hostlist_task ();
 }
 
@@ -608,6 +624,9 @@ process_stat (void *cls,
 	      uint64_t value,
 	      int is_persistent)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      _("Initial time between hostlist downloads is %llums\n"),
+	      (unsigned long long) value);
   hostlist_delay.value = value;
   return GNUNET_OK;
 }
@@ -656,8 +675,9 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
 void
 GNUNET_HOSTLIST_client_stop ()
 {
-  GNUNET_SCHEDULER_cancel (sched,
-			   current_task);
+  if (current_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (sched,
+			     current_task);
   GNUNET_free_non_null (proxy);
   proxy = NULL;
   if (sched != NULL)

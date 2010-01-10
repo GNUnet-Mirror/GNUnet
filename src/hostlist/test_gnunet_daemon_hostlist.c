@@ -40,12 +40,15 @@
 static int ok;
 
 static struct GNUNET_SCHEDULER_Handle *sched;
+
+static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
     
 struct PeerContext
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_TRANSPORT_Handle *th;
   struct GNUNET_MessageHeader *hello;
+  struct GNUNET_ARM_Handle *arm;
 #if START_ARM
   pid_t arm_pid;
 #endif
@@ -57,6 +60,52 @@ static struct PeerContext p2;
 
 
 
+/**
+ * Timeout, give up.
+ */
+static void
+timeout_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "Timeout trying to connect peers, test failed.\n");
+  GNUNET_TRANSPORT_disconnect (p1.th);
+  p1.th = NULL;
+  GNUNET_TRANSPORT_disconnect (p2.th);
+  p2.th = NULL;
+  GNUNET_SCHEDULER_shutdown (sched);
+}
+
+
+/**
+ * Function called to notify transport users that another
+ * peer connected to us.
+ *
+ * @param cls closure
+ * @param peer the peer that connected
+ * @param latency current latency of the connection
+ */
+static void
+notify_connect (void *cls,
+		const struct GNUNET_PeerIdentity * peer,
+		struct GNUNET_TIME_Relative latency)
+{
+  if (peer == NULL)
+    return;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Peers connected, shutting down.\n");
+  GNUNET_assert (ok == 4);
+  ok = 0;
+
+  GNUNET_SCHEDULER_cancel (sched,
+			   timeout_task);
+  GNUNET_TRANSPORT_disconnect (p1.th);
+  p1.th = NULL;
+  GNUNET_TRANSPORT_disconnect (p2.th);
+  p2.th = NULL;
+}
+
+
 static void
 process_hello (void *cls,
                struct GNUNET_TIME_Relative latency,
@@ -65,22 +114,13 @@ process_hello (void *cls,
 {
   struct PeerContext *p = cls;
 
-  GNUNET_assert (peer != NULL);
+  if (message == NULL)
+    return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received (my) `%s' from transport service of `%4s'\n",
-              "HELLO", GNUNET_i2s (peer));
-  GNUNET_assert (message != NULL);
-  p->hello = GNUNET_malloc (ntohs (message->size));
-  memcpy (p->hello, message, ntohs (message->size));
-  if ((p == &p1) && (p2.th != NULL))
-    GNUNET_TRANSPORT_offer_hello (p2.th, message);
-  if ((p == &p2) && (p1.th != NULL))
-    GNUNET_TRANSPORT_offer_hello (p1.th, message);
-
-  if ((p == &p1) && (p2.hello != NULL))
-    GNUNET_TRANSPORT_offer_hello (p1.th, p2.hello);
-  if ((p == &p2) && (p1.hello != NULL))
-    GNUNET_TRANSPORT_offer_hello (p2.th, p1.hello);
+	      "Received HELLO, starting hostlist service.\n");
+  GNUNET_assert ( (ok >= 2) && (ok <= 3) );
+  ok++;
+  GNUNET_ARM_start_services (p->cfg, sched, "hostlist", NULL);
 }
 
 
@@ -98,9 +138,71 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
   GNUNET_ARM_start_services (p->cfg, sched, "core", NULL);
-  p->th = GNUNET_TRANSPORT_connect (sched, p->cfg, p, NULL, NULL, NULL);
+  p->th = GNUNET_TRANSPORT_connect (sched, p->cfg, p, NULL, 
+				    &notify_connect, NULL);
   GNUNET_assert (p->th != NULL);
   GNUNET_TRANSPORT_get_hello (p->th, TIMEOUT, &process_hello, p);
+}
+
+
+static void
+waitpid_task (void *cls, 
+	      const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct PeerContext *p = cls;
+
+#if START_ARM 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Killing ARM process.\n");
+  if (0 != PLIBC_KILL (p->arm_pid, SIGTERM))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+  if (GNUNET_OS_process_wait(p->arm_pid) != GNUNET_OK)
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "ARM process %u stopped\n", p->arm_pid);
+#endif
+  GNUNET_CONFIGURATION_destroy (p->cfg);
+}
+
+
+static void
+stop_cb (void *cls, 
+	 int success)
+{
+  struct PeerContext *p = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      success 
+	      ? "ARM stopped core service\n" 
+	      : "ARM failed to stop core service\n");
+  GNUNET_ARM_disconnect (p->arm);
+  p->arm = NULL;
+  /* make sure this runs after all other tasks are done */
+  GNUNET_SCHEDULER_add_delayed (sched,
+				GNUNET_TIME_UNIT_SECONDS,
+				&waitpid_task, p);
+}
+
+
+static void
+stop_arm (struct PeerContext *p)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Asking ARM to stop core service\n");
+  p->arm = GNUNET_ARM_connect (p->cfg, sched, NULL);
+  GNUNET_ARM_stop_service (p->arm, "core", GNUNET_TIME_UNIT_SECONDS,
+			   &stop_cb, p);
+}
+
+
+/**
+ * Try again to connect to transport service.
+ */
+static void
+shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  stop_arm (&p1);
+  stop_arm (&p2);
 }
 
 
@@ -114,24 +216,17 @@ run (void *cls,
   GNUNET_assert (ok == 1);
   ok++;
   sched = s;
+  timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
+					       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+									      15),
+					       &timeout_error,
+					       NULL);
+  GNUNET_SCHEDULER_add_delayed (sched,
+				GNUNET_TIME_UNIT_FOREVER_REL,
+				&shutdown_task,
+				NULL);
   setup_peer (&p1, "test_gnunet_daemon_hostlist_peer1.conf");
   setup_peer (&p2, "test_gnunet_daemon_hostlist_peer2.conf");
-}
-
-
-static void
-stop_arm (struct PeerContext *p)
-{
-  GNUNET_ARM_stop_services (p->cfg, sched, "core", NULL);
-#if START_ARM
-  if (0 != PLIBC_KILL (p->arm_pid, SIGTERM))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  if (GNUNET_OS_process_wait(p->arm_pid) != GNUNET_OK)
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "ARM process %u stopped\n", p->arm_pid);
-#endif
-  GNUNET_CONFIGURATION_destroy (p->cfg);
 }
 
 
@@ -152,8 +247,6 @@ check ()
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "test-gnunet-daemon-hostlist",
 		      "nohelp", options, &run, &ok);
-  stop_arm (&p1);
-  stop_arm (&p2);
   return ok;
 }
 

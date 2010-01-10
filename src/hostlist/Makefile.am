@@ -27,12 +27,10 @@ gnunet_daemon_hostlist_LDADD = \
 gnunet_daemon_hostlist_CPPFLAGS = \
  @LIBCURL_CPPFLAGS@ 
 
-
-
 check_PROGRAMS = \
  test_gnunet_daemon_hostlist
 
-# TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
+# TESTS = $(check_PROGRAMS)
 
 test_gnunet_daemon_hostlist_SOURCES = \
  test_gnunet_daemon_hostlist.c

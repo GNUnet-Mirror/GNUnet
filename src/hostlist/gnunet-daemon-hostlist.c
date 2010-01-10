@@ -118,13 +118,21 @@ core_init (void *cls,
 static void
 cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (bootstrapping)
+    {
+      GNUNET_HOSTLIST_client_stop ();
+    }
+  if (provide_hostlist)
+    {      
+      GNUNET_HOSTLIST_server_stop ();
+    }
+  GNUNET_CORE_disconnect (core);
   if (stats != NULL)
     {
       GNUNET_STATISTICS_destroy (stats,
 				 GNUNET_NO);
       stats = NULL;
     }
-  GNUNET_CORE_disconnect (core);
 }
 
 
