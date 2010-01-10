@@ -562,7 +562,10 @@ write_shutdown (void *cls, size_t size, void *buf)
 
 /**
  * Request that the service should shutdown.
- * Afterwards, the connection should be disconnected.
+ * Afterwards, the connection will automatically be
+ * disconnected.  Hence the "sock" shoud not
+ * be used by the caller after this call
+ * (calling this function frees "sock" after a while).
  *
  * @param sock the socket connected to the service
  */
