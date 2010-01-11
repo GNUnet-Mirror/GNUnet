@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2008 Christian Grothoff (and other contributing authors)
+     (C) 2008, 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -56,6 +56,11 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 static GNUNET_SCHEDULER_TaskIdentifier hostlist_task;
 
 /**
+ * Task that updates our HTTP response.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier response_task;
+
+/**
  * Our canonical response.
  */
 static struct MHD_Response *response;
@@ -85,16 +90,29 @@ update_response (void *cls,
 static void
 finish_response (struct HostSet *results)
 {
+  struct GNUNET_TIME_Relative freq;
+  
   if (response != NULL)
     MHD_destroy_response (response);
   response = MHD_create_response_from_data (results->size,
                                             results->data, MHD_YES, MHD_NO);
+  if (daemon_handle != NULL)
+    {
+      freq = RESPONSE_UPDATE_FREQUENCY;
+      if (results->size == 0)
+	freq = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 50);
+      /* schedule next update of the response */  
+      response_task = GNUNET_SCHEDULER_add_delayed (sched,
+						    freq,
+						    &update_response,
+						    NULL);
+    }
+  else
+    {
+      MHD_destroy_response (response);
+      response = NULL;
+    }
   GNUNET_free (results);
-  /* schedule next update of the response */  
-  GNUNET_SCHEDULER_add_delayed (sched,
-				RESPONSE_UPDATE_FREQUENCY,
-				&update_response,
-				NULL);
 }
 
 
@@ -137,6 +155,7 @@ update_response (void *cls,
 {
   struct HostSet *results;
 
+  response_task = GNUNET_SCHEDULER_NO_TASK;
   results = GNUNET_malloc(sizeof(struct HostSet));
   GNUNET_PEERINFO_for_all (cfg, sched, 
 			   NULL,
@@ -157,6 +176,12 @@ static int
 accept_policy_callback (void *cls,
                         const struct sockaddr *addr, socklen_t addrlen)
 {
+  if (NULL == response)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Received request for hostlist, but I am not yet ready; rejecting!\n");
+      return MHD_NO;
+    }
   return MHD_YES;               /* accept all */
 }
 
@@ -309,6 +334,9 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
       return GNUNET_SYSERR;    
     }
   prepare_daemon ();
+  response_task = GNUNET_SCHEDULER_add_now (sched,
+					    &update_response,
+					    NULL);
   return GNUNET_OK;
 }
 
@@ -318,10 +346,26 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 void
 GNUNET_HOSTLIST_server_stop ()
 {
-  GNUNET_SCHEDULER_cancel (sched, hostlist_task);
-  hostlist_task = GNUNET_SCHEDULER_NO_TASK;
-  MHD_stop_daemon (daemon_handle);
-  daemon_handle = NULL;
+  if (GNUNET_SCHEDULER_NO_TASK != hostlist_task)
+    {
+      GNUNET_SCHEDULER_cancel (sched, hostlist_task);
+      hostlist_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  if (GNUNET_SCHEDULER_NO_TASK != response_task)
+    {
+      GNUNET_SCHEDULER_cancel (sched, response_task);
+      response_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  if (NULL != daemon_handle)
+    {
+      MHD_stop_daemon (daemon_handle);
+      daemon_handle = NULL;
+    }
+  if (response != NULL)
+    {
+      MHD_destroy_response (response);
+      response = NULL;
+    }
 }
 
 /* end of hostlist-server.c */

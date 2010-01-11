@@ -551,6 +551,8 @@ schedule_hostlist_task ()
 {
   struct GNUNET_TIME_Relative delay;
 
+  if (stats == NULL)
+    return; /* in shutdown */
   delay = hostlist_delay;
   if (hostlist_delay.value == 0)
     hostlist_delay = GNUNET_TIME_UNIT_SECONDS;
@@ -611,6 +613,8 @@ disconnect_handler (void *cls,
 static void
 primary_task (void *cls, int success)
 {
+  if (stats == NULL)
+    return; /* in shutdown */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Statistics request done, scheduling hostlist download\n");
   schedule_hostlist_task ();
@@ -684,6 +688,7 @@ GNUNET_HOSTLIST_client_stop ()
     curl_global_cleanup ();
   cfg = NULL;
   sched = NULL;
+  stats = NULL;
 }
 
 /* end of hostlist-client.c */

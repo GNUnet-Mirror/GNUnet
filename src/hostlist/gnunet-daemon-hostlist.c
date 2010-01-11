@@ -118,6 +118,8 @@ core_init (void *cls,
 static void
 cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Hostlist daemon is shutting down.\n");
   if (bootstrapping)
     {
       GNUNET_HOSTLIST_client_stop ();
@@ -126,7 +128,11 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {      
       GNUNET_HOSTLIST_server_stop ();
     }
-  GNUNET_CORE_disconnect (core);
+  if (core != NULL)
+    {
+      GNUNET_CORE_disconnect (core);
+      core = NULL;
+    }
   if (stats != NULL)
     {
       GNUNET_STATISTICS_destroy (stats,
