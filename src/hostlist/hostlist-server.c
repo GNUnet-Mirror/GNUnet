@@ -30,15 +30,22 @@
 #include "gnunet_hello_lib.h"
 #include "gnunet_peerinfo_service.h"
 
+#define DEBUG_HOSTLIST_SERVER GNUNET_NO
+
 /**
  * How often should we recalculate our response to hostlist requests?
  */
 #define RESPONSE_UPDATE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 /**
- * Handle to the HTTP server as provided by libmicrohttpd.
+ * Handle to the HTTP server as provided by libmicrohttpd for IPv6.
  */
-static struct MHD_Daemon *daemon_handle;
+static struct MHD_Daemon *daemon_handle_v6;
+
+/**
+ * Handle to the HTTP server as provided by libmicrohttpd for IPv4.
+ */
+static struct MHD_Daemon *daemon_handle_v4;
 
 /**
  * Our configuration.
@@ -51,9 +58,14 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 static struct GNUNET_SCHEDULER_Handle *sched;
 
 /**
- * Our primary task.
+ * Our primary task for IPv4.
  */
-static GNUNET_SCHEDULER_TaskIdentifier hostlist_task;
+static GNUNET_SCHEDULER_TaskIdentifier hostlist_task_v4;
+
+/**
+ * Our primary task for IPv6.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier hostlist_task_v6;
 
 /**
  * Task that updates our HTTP response.
@@ -94,9 +106,15 @@ finish_response (struct HostSet *results)
   
   if (response != NULL)
     MHD_destroy_response (response);
+#if DEBUG_HOSTLIST_SERVER
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Creating hostlist response with %u bytes\n",
+	      (unsigned int) results->size);
+#endif
   response = MHD_create_response_from_data (results->size,
                                             results->data, MHD_YES, MHD_NO);
-  if (daemon_handle != NULL)
+  if ( (daemon_handle_v4 != NULL) ||
+       (daemon_handle_v6 != NULL) )    
     {
       freq = RESPONSE_UPDATE_FREQUENCY;
       if (results->size == 0)
@@ -109,6 +127,7 @@ finish_response (struct HostSet *results)
     }
   else
     {
+      /* already past shutdown */
       MHD_destroy_response (response);
       response = NULL;
     }
@@ -137,6 +156,13 @@ host_processor (void *cls,
     }
   old = results->size;
   s = GNUNET_HELLO_size(hello);
+#if DEBUG_HOSTLIST_SERVER
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received %u bytes of `%s' from peer `%s' for hostlist.\n",
+	      (unsigned int) s,
+	      "HELLO",
+	      GNUNET_i2s (peer));
+#endif
   if (old + s >= GNUNET_MAX_MALLOC_CHECKED)
     return; /* too large, skip! */
   GNUNET_array_grow (results->data,
@@ -163,9 +189,6 @@ update_response (void *cls,
 			   GNUNET_TIME_UNIT_MINUTES,
 			   &host_processor,
 			   results);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      _("Created new hostlist response with %u bytes\n"),
-	      results->size);  
 }
 
 
@@ -178,8 +201,10 @@ accept_policy_callback (void *cls,
 {
   if (NULL == response)
     {
+#if DEBUG_HOSTLIST_SERVER
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Received request for hostlist, but I am not yet ready; rejecting!\n");
+#endif
       return MHD_NO;
     }
   return MHD_YES;               /* accept all */
@@ -201,18 +226,37 @@ access_handler_callback (void *cls,
   static int dummy;
   
   if (0 != strcmp (method, MHD_HTTP_METHOD_GET))
-    return MHD_NO;
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Refusing `%s' request to hostlist server\n"),
+		  method);
+      return MHD_NO;
+    }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("Received request for our hostlist\n"));
   if (NULL == *con_cls)
     {
       (*con_cls) = &dummy;
+#if DEBUG_HOSTLIST_SERVER
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  _("Sending 100 CONTINUE reply\n"));
+#endif
       return MHD_YES;           /* send 100 continue */
     }
   if (*upload_data_size != 0)
-    return MHD_NO;              /* do not support upload data */
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Refusing `%s' request with %llu bytes of upload data\n"),
+		  method,
+		  (unsigned long long) *upload_data_size);
+      return MHD_NO;              /* do not support upload data */
+    }
   if (response == NULL)
-    return MHD_NO;              /* internal error, no response yet */
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Could not handle hostlist request since I do not have a response yet\n"));
+      return MHD_NO;              /* internal error, no response yet */
+    }
   return MHD_queue_response (connection, MHD_HTTP_OK, response);
 }
 
@@ -221,9 +265,8 @@ access_handler_callback (void *cls,
  * Function that queries MHD's select sets and
  * starts the task waiting for them.
  */
-static void 
-prepare_daemon (void);
-
+static GNUNET_SCHEDULER_TaskIdentifier
+prepare_daemon (struct MHD_Daemon *daemon_handle);
 
 /**
  * Call MHD to process pending requests and then go back
@@ -233,8 +276,20 @@ static void
 run_daemon (void *cls,
 	    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct MHD_Daemon *daemon_handle = cls;
+
+  if (daemon_handle == daemon_handle_v4)
+    hostlist_task_v4 = GNUNET_SCHEDULER_NO_TASK;
+  else
+    hostlist_task_v6 = GNUNET_SCHEDULER_NO_TASK;
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;    
   GNUNET_assert (MHD_YES == MHD_run (daemon_handle));
-  prepare_daemon ();
+  if (daemon_handle == daemon_handle_v4)
+    hostlist_task_v4 = prepare_daemon (daemon_handle);
+  else
+    hostlist_task_v6 = prepare_daemon (daemon_handle);
 }
 
 
@@ -242,9 +297,10 @@ run_daemon (void *cls,
  * Function that queries MHD's select sets and
  * starts the task waiting for them.
  */
-static void 
-prepare_daemon ()
+static GNUNET_SCHEDULER_TaskIdentifier
+prepare_daemon (struct MHD_Daemon *daemon_handle)
 {
+  GNUNET_SCHEDULER_TaskIdentifier ret;
   fd_set rs;
   fd_set ws;
   fd_set es;
@@ -277,18 +333,18 @@ prepare_daemon ()
   GNUNET_NETWORK_fdset_copy_native (wrs, &rs, max);
   GNUNET_NETWORK_fdset_copy_native (wws, &ws, max);
   GNUNET_NETWORK_fdset_copy_native (wes, &es, max);
-  hostlist_task 
-    = GNUNET_SCHEDULER_add_select (sched,
-				   GNUNET_SCHEDULER_PRIORITY_HIGH,
-				   GNUNET_SCHEDULER_NO_TASK,
-				   tv,
-				   wrs,
-				   wws,
-				   &run_daemon,
-				   NULL);
+  ret = GNUNET_SCHEDULER_add_select (sched,
+				     GNUNET_SCHEDULER_PRIORITY_HIGH,
+				     GNUNET_SCHEDULER_NO_TASK,
+				     tv,
+				     wrs,
+				     wws,
+				     &run_daemon,
+				     daemon_handle);
   GNUNET_NETWORK_fdset_destroy (wrs);
   GNUNET_NETWORK_fdset_destroy (wws);
   GNUNET_NETWORK_fdset_destroy (wes);
+  return ret;
 }
 
 
@@ -315,25 +371,49 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("Hostlist service starts on port %llu\n"),
 	      port);
-  daemon_handle = MHD_start_daemon (MHD_USE_IPv6,
-                                    (unsigned short) port,
-                                    &accept_policy_callback,
-                                    NULL,
-                                    &access_handler_callback,
-                                    NULL,
-                                    MHD_OPTION_CONNECTION_LIMIT, 16,
-                                    MHD_OPTION_PER_IP_CONNECTION_LIMIT, 1,
-                                    MHD_OPTION_CONNECTION_TIMEOUT, 16,
-                                    MHD_OPTION_CONNECTION_MEMORY_LIMIT,
-                                    16 * 1024, MHD_OPTION_END);
-  if (daemon_handle == NULL)
+  daemon_handle_v6 = MHD_start_daemon (MHD_USE_IPv6 
+#if DEBUG_HOSTLIST_SERVER
+				       | MHD_USE_DEBUG
+#endif
+				       ,
+				       (unsigned short) port,
+				       &accept_policy_callback,
+				       NULL,
+				       &access_handler_callback,
+				       NULL,
+				       MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
+				       MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
+				       MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
+				       MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
+				       MHD_OPTION_END);
+  daemon_handle_v4 = MHD_start_daemon (MHD_NO_FLAG
+#if DEBUG_HOSTLIST_SERVER
+				       | MHD_USE_DEBUG
+#endif
+				       ,
+				       (unsigned short) port,
+				       &accept_policy_callback,
+				       NULL,
+				       &access_handler_callback,
+				       NULL,
+				       MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
+				       MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
+				       MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
+				       MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
+				       MHD_OPTION_END);
+
+  if ( (daemon_handle_v6 == NULL) &&
+       (daemon_handle_v4 == NULL) )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Could not start hostlist HTTP server on port %u\n"),
 		  (unsigned short) port);
       return GNUNET_SYSERR;    
     }
-  prepare_daemon ();
+  if (daemon_handle_v4 != NULL)
+    hostlist_task_v4 = prepare_daemon (daemon_handle_v4);
+  if (daemon_handle_v6 != NULL)
+    hostlist_task_v6 = prepare_daemon (daemon_handle_v6);
   response_task = GNUNET_SCHEDULER_add_now (sched,
 					    &update_response,
 					    NULL);
@@ -346,22 +426,34 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 void
 GNUNET_HOSTLIST_server_stop ()
 {
+#if DEBUG_HOSTLIST_SERVER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Hostlist server shutdown\n");
-  if (GNUNET_SCHEDULER_NO_TASK != hostlist_task)
+#endif
+  if (GNUNET_SCHEDULER_NO_TASK != hostlist_task_v6)
     {
-      GNUNET_SCHEDULER_cancel (sched, hostlist_task);
-      hostlist_task = GNUNET_SCHEDULER_NO_TASK;
+      GNUNET_SCHEDULER_cancel (sched, hostlist_task_v6);
+      hostlist_task_v6 = GNUNET_SCHEDULER_NO_TASK;
+    }
+  if (GNUNET_SCHEDULER_NO_TASK != hostlist_task_v4)
+    {
+      GNUNET_SCHEDULER_cancel (sched, hostlist_task_v4);
+      hostlist_task_v4 = GNUNET_SCHEDULER_NO_TASK;
     }
   if (GNUNET_SCHEDULER_NO_TASK != response_task)
     {
       GNUNET_SCHEDULER_cancel (sched, response_task);
       response_task = GNUNET_SCHEDULER_NO_TASK;
     }
-  if (NULL != daemon_handle)
+  if (NULL != daemon_handle_v4)
     {
-      MHD_stop_daemon (daemon_handle);
-      daemon_handle = NULL;
+      MHD_stop_daemon (daemon_handle_v4);
+      daemon_handle_v4 = NULL;
+    }
+  if (NULL != daemon_handle_v6)
+    {
+      MHD_stop_daemon (daemon_handle_v6);
+      daemon_handle_v6 = NULL;
     }
   if (response != NULL)
     {
