@@ -211,6 +211,12 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_PEERINFO_INFO_END 36
 
+/**
+ * Start notifying this client about all changes to
+ * the known peers until it disconnects.
+ */
+#define GNUNET_MESSAGE_TYPE_PEERINFO_NOTIFY 37
+
 
 /**
  * Message by which a TCP transport notifies

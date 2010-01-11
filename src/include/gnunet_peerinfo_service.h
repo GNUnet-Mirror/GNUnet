@@ -99,6 +99,41 @@ GNUNET_PEERINFO_for_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
                          void *callback_cls);
 
 
+/**
+ * Handle for notifications about changes to the set of known peers.
+ */
+struct GNUNET_PEERINFO_NotifyContext;
+
+
+/**
+ * Call a method whenever our known information about peers
+ * changes.  Initially calls the given function for all known
+ * peers and then only signals changes.  Note that it is
+ * possible (i.e. on disconnects) that the callback is called
+ * twice with the same peer information.
+ *
+ * @param cfg configuration to use
+ * @param sched scheduler to use
+ * @param callback the method to call for each peer
+ * @param callback_cls closure for callback
+ * @return NULL on error
+ */
+struct GNUNET_PEERINFO_NotifyContext *
+GNUNET_PEERINFO_notify (const struct GNUNET_CONFIGURATION_Handle *cfg,
+			struct GNUNET_SCHEDULER_Handle *sched,
+			GNUNET_PEERINFO_Processor callback,
+			void *callback_cls);
+
+
+/**
+ * Stop notifying about changes.
+ *
+ * @param nc context to stop notifying
+ */
+void
+GNUNET_PEERINFO_notify_cancel (struct GNUNET_PEERINFO_NotifyContext *nc);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
