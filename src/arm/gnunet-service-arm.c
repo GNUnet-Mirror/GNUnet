@@ -744,7 +744,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ServiceList *pos;
  
+#if DEBUG_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Stopping all services\n"));
+#endif
   in_shutdown = GNUNET_YES;
   pos = running;
   while (NULL != pos)
