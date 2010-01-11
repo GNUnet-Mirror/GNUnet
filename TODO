@@ -15,8 +15,7 @@ Urgent items (before announcing ng.gnunet.org):
 * TEST:
   - topology
   - hostlist
-    * is 'update_response' / 'finish_response' etc ever called? (hostlist-server)
-    * we still have serious shutdown problems in the testcase (on failure)
+    * test fails (peers don't connect quickly, could be topology issue)
 * CORE:
   - soliciting traffic for clients that registered for it is not implemented
     (in the service, client API supports GNUNET_MESSAGE_TYPE_CORE_SOLICIT_TRAFFIC
