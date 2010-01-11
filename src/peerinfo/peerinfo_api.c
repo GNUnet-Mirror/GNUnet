@@ -88,6 +88,11 @@ GNUNET_PEERINFO_add_peer (const struct GNUNET_CONFIGURATION_Handle *cfg,
   uint16_t hs;
   struct CAFContext *cc;
 
+#if DEBUG_PEERINFO
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Adding peer `%s' to peerinfo database\n",
+	      GNUNET_i2s(peer));
+#endif
   client = GNUNET_CLIENT_connect (sched, "peerinfo", cfg);
   if (client == NULL)
     {
@@ -168,6 +173,10 @@ info_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     }
   if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_PEERINFO_INFO_END)
     {
+#if DEBUG_PEERINFO
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Received end of list of peers from peerinfo database\n");
+#endif
       ic->callback (ic->callback_cls, NULL, NULL, 0);
       GNUNET_CLIENT_disconnect (ic->client);
       GNUNET_free (ic);
@@ -197,6 +206,11 @@ info_handler (void *cls, const struct GNUNET_MessageHeader *msg)
           return;
         }
     }
+#if DEBUG_PEERINFO
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received information about peer `%s' from peerinfo database\n",
+	      GNUNET_i2s (&im->peer));
+#endif
   ic->callback (ic->callback_cls, &im->peer, hello, ntohl (im->trust));
   GNUNET_CLIENT_receive (ic->client,
                          &info_handler,
@@ -243,6 +257,10 @@ GNUNET_PEERINFO_for_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
       callback (callback_cls, NULL, NULL, 2);
       return;
     }
+#if DEBUG_PEERINFO
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Requesting list of peers from peerinfo database\n");
+#endif
   ihc = GNUNET_malloc (sizeof (struct InfoContext) +
                        sizeof (struct ListPeerMessage));
   ihc->client = client;

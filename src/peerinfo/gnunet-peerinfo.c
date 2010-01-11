@@ -97,9 +97,15 @@ run (void *cls,
     {
       if (GNUNET_OK !=
           GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                                   "GNUNET",
-                                                   "HOSTKEYFILE", &fn))
-        return;
+                                                   "GNUNETD",
+                                                   "HOSTKEY", &fn))
+	{
+          fprintf (stderr, 
+		   _("Could not find option `%s:%s' in configuration.\n"), 
+		   "GNUNETD",
+		   "HOSTKEYFILE");
+	  return;
+	}
       priv = GNUNET_CRYPTO_rsa_key_create_from_file (fn);
       if (priv == NULL)
         {
