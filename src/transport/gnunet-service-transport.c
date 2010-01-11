@@ -1135,6 +1135,7 @@ refresh_hello ()
   GNUNET_free_non_null (our_hello);
   our_hello = hello;
   our_hello_version++;
+  GNUNET_PEERINFO_add_peer (cfg, sched, &my_identity, our_hello);
   npos = neighbours;
   while (npos != NULL)
     {
