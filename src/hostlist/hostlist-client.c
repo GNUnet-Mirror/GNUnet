@@ -297,11 +297,6 @@ clean_up ()
       curl_easy_cleanup (curl);
       curl = NULL;
     }  
-  if (transport != NULL)
-    {
-      GNUNET_TRANSPORT_disconnect (transport);
-      transport = NULL;
-    }
   GNUNET_free_non_null (current_url);
   current_url = NULL;
   schedule_hostlist_task ();
@@ -534,7 +529,9 @@ static void
 check_task (void *cls,
 	    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  
+  current_task = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
   if (connection_count < MIN_CONNECTIONS)
     download_hostlist ();
   else
@@ -552,7 +549,10 @@ schedule_hostlist_task ()
   struct GNUNET_TIME_Relative delay;
 
   if (stats == NULL)
-    return; /* in shutdown */
+    {
+      curl_global_cleanup ();
+      return; /* in shutdown */
+    }
   delay = hostlist_delay;
   if (hostlist_delay.value == 0)
     hostlist_delay = GNUNET_TIME_UNIT_SECONDS;
@@ -679,13 +679,22 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
 void
 GNUNET_HOSTLIST_client_stop ()
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Hostlist client shutdown\n");
   if (current_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (sched,
-			     current_task);
+    {
+      GNUNET_SCHEDULER_cancel (sched,
+			       current_task);
+      if (transport != NULL)
+	{
+	  GNUNET_TRANSPORT_disconnect (transport);
+	  transport = NULL;
+	}
+      curl_global_cleanup ();
+    }
+  GNUNET_assert (NULL == transport);
   GNUNET_free_non_null (proxy);
   proxy = NULL;
-  if (sched != NULL)
-    curl_global_cleanup ();
   cfg = NULL;
   sched = NULL;
   stats = NULL;

@@ -346,6 +346,8 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 void
 GNUNET_HOSTLIST_server_stop ()
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Hostlist server shutdown\n");
   if (GNUNET_SCHEDULER_NO_TASK != hostlist_task)
     {
       GNUNET_SCHEDULER_cancel (sched, hostlist_task);
