@@ -33,28 +33,41 @@
 
 #ifndef INVALID_SOCKET
 #define INVALID_SOCKET -1
-#endif /*  */
+#endif
+
+
 struct GNUNET_NETWORK_Handle
 {
   int fd;
 };
+
+
 struct GNUNET_NETWORK_FDSet
 {
 
-  /* socket descriptors */
+  /**
+   * Maximum number of any socket socket descriptor in the set
+   */
   int nsds;
+
+  /**
+   * Bitset with the descriptors.
+   */
   fd_set sds;
 
 #ifdef WINDOWS
-  /* handles */
+  /**
+   * Linked list of handles 
+   */
   struct GNUNET_CONTAINER_SList *handles;
+#endif
 
-#endif                          /*  */
 };
 
 #ifndef FD_COPY
 #define FD_COPY(s, d) (memcpy ((d), (s), sizeof (fd_set)))
-#endif /*  */
+#endif
+
 
 /**
  * Set if a socket should use blocking or non-blocking IO.
@@ -78,7 +91,7 @@ socket_set_blocking (struct GNUNET_NETWORK_Handle *fd, int doBlock)
     }
   return GNUNET_OK;
 
-#else /*  */
+#else
   /* not MINGW */
   int flags = fcntl (fd->fd, F_GETFL);
   if (flags == -1)
@@ -99,8 +112,7 @@ socket_set_blocking (struct GNUNET_NETWORK_Handle *fd, int doBlock)
       return GNUNET_SYSERR;
     }
   return GNUNET_OK;
-
-#endif /*  */
+#endif
 }
 
 
@@ -122,9 +134,8 @@ socket_set_inheritable (const struct GNUNET_NETWORK_Handle *h)
   return (fcntl (h->fd, F_SETFD, i | FD_CLOEXEC) == 0)
     ? GNUNET_OK : GNUNET_SYSERR;
 }
+#endif
 
-
-#endif /*  */
 
 #ifdef DARWIN
 /**
@@ -140,9 +151,8 @@ socket_set_nosigpipe (const struct GNUNET_NETWORK_Handle *h)
       setsockopt (h->fd, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof (value)))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
 }
+#endif
 
-
-#endif /*  */
 
 /**
  * Disable delays when sending data via the socket.
@@ -178,28 +188,22 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
   ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle));
   ret->fd = accept (desc->fd, address, address_len);
   if (ret->fd == INVALID_SOCKET)
-
     {
-
 #ifdef MINGW
       SetErrnoFromWinsockError (WSAGetLastError ());
-
-#endif /*  */
+#endif
       GNUNET_free (ret);
       return NULL;
     }
-
 #ifndef MINGW
   if (ret->fd >= FD_SETSIZE)
-
     {
       GNUNET_break (0 == close (ret->fd));
       GNUNET_free (ret);
       errno = EMFILE;
       return NULL;
     }
-
-#endif /*  */
+#endif
   if (GNUNET_SYSERR == socket_set_blocking (ret, GNUNET_NO))
 
     {
@@ -214,12 +218,10 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
   if (GNUNET_OK != socket_set_inheritable (ret))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                          "socket_set_inheritable");
-
-#endif /*  */
+#endif
 #ifdef DARWIN
   socket_set_nosigpipe (ret);
-
-#endif /*  */
+#endif
   socket_set_nodelay (ret);
   return ret;
 }
@@ -238,13 +240,12 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
                             socklen_t address_len)
 {
   int ret;
-  ret = bind (desc->fd, address, address_len);
 
+  ret = bind (desc->fd, address, address_len);
 #ifdef MINGW
   if (SOCKET_ERROR == ret)
     SetErrnoFromWinsockError (WSAGetLastError ());
-
-#endif /*  */
+#endif
   return ret == 0 ? GNUNET_OK : GNUNET_SYSERR;
 }
 
@@ -263,11 +264,9 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
 #ifdef MINGW
   ret = closesocket (desc->fd);
   SetErrnoFromWinsockError (WSAGetLastError ());
-
-#else /*  */
+#else
   ret = close (desc->fd);
-
-#endif /*  */
+#endif
   eno = errno;
   GNUNET_free (desc);
   errno = eno;
@@ -298,8 +297,7 @@ GNUNET_NETWORK_socket_connect (const struct GNUNET_NETWORK_Handle *desc,
       if (errno == EWOULDBLOCK)
         errno = EINPROGRESS;
     }
-
-#endif /*  */
+#endif
   return ret == 0 ? GNUNET_OK : GNUNET_SYSERR;
 }
 
@@ -329,7 +327,7 @@ GNUNET_NETWORK_socket_getsockopt (const struct GNUNET_NETWORK_Handle *desc,
   else if (SOCKET_ERROR == ret)
     SetErrnoFromWinsockError (WSAGetLastError ());
 
-#endif /*  */
+#endif
   return ret == 0 ? GNUNET_OK : GNUNET_SYSERR;
 }
 
@@ -351,7 +349,7 @@ GNUNET_NETWORK_socket_listen (const struct GNUNET_NETWORK_Handle *desc,
   if (SOCKET_ERROR == ret)
     SetErrnoFromWinsockError (WSAGetLastError ());
 
-#endif /*  */
+#endif
   return ret == 0 ? GNUNET_OK : GNUNET_SYSERR;
 }
 
@@ -443,19 +441,15 @@ GNUNET_NETWORK_socket_sendto (const struct GNUNET_NETWORK_Handle * desc,
 
 #ifdef MSG_DONTWAIT
   flags |= MSG_DONTWAIT;
-
-#endif /*  */
+#endif
 #ifdef MSG_NOSIGNAL
   flags |= MSG_NOSIGNAL;
-
-#endif /*  */
+#endif
   ret = sendto (desc->fd, message, length, flags, dest_addr, dest_len);
-
 #ifdef MINGW
   if (SOCKET_ERROR == ret)
     SetErrnoFromWinsockError (WSAGetLastError ());
-
-#endif /*  */
+#endif
   return ret;
 }
 
@@ -476,13 +470,12 @@ GNUNET_NETWORK_socket_setsockopt (struct GNUNET_NETWORK_Handle *fd,
                                   socklen_t option_len)
 {
   int ret;
-  ret = setsockopt (fd->fd, level, option_name, option_value, option_len);
 
+  ret = setsockopt (fd->fd, level, option_name, option_value, option_len);
 #ifdef MINGW
   if (SOCKET_ERROR == ret)
     SetErrnoFromWinsockError (WSAGetLastError ());
-
-#endif /*  */
+#endif
   return ret == 0 ? GNUNET_OK : GNUNET_SYSERR;
 }
 
@@ -504,20 +497,16 @@ GNUNET_NETWORK_socket_create (int domain, int type, int protocol)
   ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle));
   ret->fd = socket (domain, type, protocol);
   if (INVALID_SOCKET == ret->fd)
-
     {
-
 #ifdef MINGW
       SetErrnoFromWinsockError (WSAGetLastError ());
-
-#endif /*  */
+#endif
       GNUNET_free (ret);
       return NULL;
     }
 
 #ifndef MINGW
   if (ret->fd >= FD_SETSIZE)
-
     {
       GNUNET_break (0 == close (ret->fd));
       GNUNET_free (ret);
@@ -525,11 +514,9 @@ GNUNET_NETWORK_socket_create (int domain, int type, int protocol)
       return NULL;
     }
 
-#endif /*  */
+#endif
   if (GNUNET_SYSERR == socket_set_blocking (ret, GNUNET_NO))
-
     {
-
       /* we might want to treat this one as fatal... */
       GNUNET_break (0);
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (ret));
@@ -540,12 +527,10 @@ GNUNET_NETWORK_socket_create (int domain, int type, int protocol)
   if (GNUNET_OK != socket_set_inheritable (ret))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                          "socket_set_inheritable");
-
-#endif /*  */
+#endif
 #ifdef DARWIN
   socket_set_nosigpipe (ret);
-
-#endif /*  */
+#endif
   if (type == SOCK_STREAM)
     socket_set_nodelay (ret);
   return ret;
@@ -562,13 +547,12 @@ int
 GNUNET_NETWORK_socket_shutdown (struct GNUNET_NETWORK_Handle *desc, int how)
 {
   int ret;
-  ret = shutdown (desc->fd, how);
 
+  ret = shutdown (desc->fd, how);
 #ifdef MINGW
   if (ret != 0)
     SetErrnoFromWinsockError (WSAGetLastError ());
-
-#endif /*  */
+#endif
   return ret == 0 ? GNUNET_OK : GNUNET_SYSERR;
 }
 
@@ -582,11 +566,9 @@ GNUNET_NETWORK_fdset_zero (struct GNUNET_NETWORK_FDSet *fds)
 {
   FD_ZERO (&fds->sds);
   fds->nsds = 0;
-
 #ifdef MINGW
   GNUNET_CONTAINER_slist_clear (fds->handles);
-
-#endif /*  */
+#endif
 }
 
 /**
@@ -644,6 +626,7 @@ GNUNET_NETWORK_fdset_add (struct GNUNET_NETWORK_FDSet *dst,
 
 /**
  * Copy one fd set to another
+ *
  * @param to destination
  * @param from source
  */
@@ -657,11 +640,12 @@ GNUNET_NETWORK_fdset_copy (struct GNUNET_NETWORK_FDSet *to,
 #ifdef MINGW
   GNUNET_CONTAINER_slist_clear (to->handles);
   GNUNET_CONTAINER_slist_append (to->handles, from->handles);
-#endif /*  */
+#endif
 }
 
 /**
  * Copy a native fd set
+ *
  * @param to destination
  * @param from native source set
  * @param nfds the biggest socket number in from + 1
@@ -689,14 +673,14 @@ GNUNET_NETWORK_fdset_handle_set (struct GNUNET_NETWORK_FDSet *fds,
   GNUNET_DISK_internal_file_handle_ (h, &hw, sizeof (HANDLE));
   GNUNET_CONTAINER_slist_add (fds->handles, GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT, &hw, sizeof (HANDLE));
 
-#else /*  */
+#else
   int fd;
   GNUNET_DISK_internal_file_handle_ (h, &fd, sizeof (int));
   FD_SET (fd, &fds->sds);
   if (fd + 1 > fds->nsds)
     fds->nsds = fd + 1;
 
-#endif /*  */
+#endif
 }
 
 
@@ -714,11 +698,9 @@ GNUNET_NETWORK_fdset_handle_isset (const struct GNUNET_NETWORK_FDSet *fds,
 #ifdef MINGW
   return GNUNET_CONTAINER_slist_contains (fds->handles, &h->h,
                                           sizeof (HANDLE));
-
-#else /*  */
+#else
   return FD_ISSET (h->fd, &fds->sds);
-
-#endif /*  */
+#endif
 }
 
 
@@ -770,11 +752,9 @@ GNUNET_NETWORK_fdset_create ()
 {
   struct GNUNET_NETWORK_FDSet *fds;
   fds = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_FDSet));
-
 #ifdef MINGW
   fds->handles = GNUNET_CONTAINER_slist_create ();
-
-#endif /*  */
+#endif
   GNUNET_NETWORK_fdset_zero (fds);
   return fds;
 }
@@ -787,11 +767,9 @@ GNUNET_NETWORK_fdset_create ()
 void
 GNUNET_NETWORK_fdset_destroy (struct GNUNET_NETWORK_FDSet *fds)
 {
-
 #ifdef MINGW
   GNUNET_CONTAINER_slist_destroy (fds->handles);
-
-#endif /*  */
+#endif
   GNUNET_free (fds);
 }
 
@@ -863,7 +841,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
                  (timeout.value == GNUNET_TIME_UNIT_FOREVER_REL.value)
                  ? NULL : &tv);
 
-#else /*  */
+#else
   DWORD limit;
   fd_set sock_read, sock_write, sock_except;
   fd_set aread, awrite, aexcept;
@@ -915,7 +893,6 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   limit = GetTickCount () + ms_total;
 
   do
-
     {
       retcode = 0;
       if (nfds > 0)
@@ -941,7 +918,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 #if DEBUG_NETWORK
               GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "select");
 
-#endif /*  */
+#endif
               goto select_loop_end;
             }
         }
@@ -968,7 +945,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
                   GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
                                        "PeekNamedPipe");
 
-#endif /*  */
+#endif
                   goto select_loop_end;
                 }
               else if (dwBytes)
@@ -1084,8 +1061,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   GNUNET_CONTAINER_slist_destroy (handles_except);
 
   return retcode;
-
-#endif /*  */
+#endif
 }
 
 
