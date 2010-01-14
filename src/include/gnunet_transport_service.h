@@ -235,10 +235,17 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
                               const struct GNUNET_MessageHeader *hello);
 
 /**
- *  Obtain a AddressLookupMessage from a client and return to client all the host addresses of other peers.
+ * Convert a binary address into a human
+ * readable address.
  *
- *  @param handle connection to transport service
- *  @param addLUmsg the address-lookup message
+ * @param handle connection to transport service
+ * @param cfg configuration to use
+ * @param address address to convert (binary format)
+ * @param addressLen number of bytes in address
+ * @param nameTrans name of the transport to which the address belongs
+ * @param timeout how long is the lookup allowed to take at most
+ * @param aluc function to call with the results
+ * @param aluc_cls closure for aluc
  */
 void
 GNUNET_TRANSPORT_address_lookup (struct GNUNET_SCHEDULER_Handle *sched,
@@ -246,9 +253,9 @@ GNUNET_TRANSPORT_address_lookup (struct GNUNET_SCHEDULER_Handle *sched,
                                  const char * address,
                                  size_t addressLen,
                                  const char * nameTrans,
-		                         struct GNUNET_TIME_Relative timeout,
-		                         GNUNET_TRANSPORT_AddressLookUpCallback aluc,
-		                         void *aluc_cls);
+				 struct GNUNET_TIME_Relative timeout,
+				 GNUNET_TRANSPORT_AddressLookUpCallback aluc,
+				 void *aluc_cls);
 
 
 

@@ -541,7 +541,11 @@ GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *
  * @param cls metadata to add to
  * @param type type of entry to insert
- * @param data value of entry to insert
+ * @param format format of data
+ * @param data_mime_type mime type of data
+ * @param data value of the meta data
+ * @param data_size number of bytes in data
+ * @return always 0
  */
 static int
 merge_meta_helper (void *cls, 

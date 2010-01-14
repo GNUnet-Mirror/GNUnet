@@ -32,7 +32,11 @@ static int ret;
  *
  * @param cls closure (unused)
  * @param type type of the keyword
- * @param data value of the keyword
+ * @param format format of data
+ * @param data_mime_type mime type of data
+ * @param data value of the meta data
+ * @param data_size number of bytes in data
+ * @return always 0 (to continue iterating)
  */
 static int
 item_printer (void *cls,

@@ -220,7 +220,7 @@ transmit_pending_notification (void *cls,
  * list was previously empty.
  *
  * @param nl client to notify
- * @param hc entry to notify about
+ * @param he entry to notify about
  */
 static void
 do_notify (struct NotifyList *nl,
