@@ -59,6 +59,15 @@ static struct PeerContext p1;
 static struct PeerContext p2;
 
 
+static void
+clean_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_TRANSPORT_disconnect (p1.th);
+  p1.th = NULL;
+  GNUNET_TRANSPORT_disconnect (p2.th);
+  p2.th = NULL;
+  GNUNET_SCHEDULER_shutdown (sched);
+}
 
 /**
  * Timeout, give up.
@@ -69,11 +78,7 @@ timeout_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 	      "Timeout trying to connect peers, test failed.\n");
-  GNUNET_TRANSPORT_disconnect (p1.th);
-  p1.th = NULL;
-  GNUNET_TRANSPORT_disconnect (p2.th);
-  p2.th = NULL;
-  GNUNET_SCHEDULER_shutdown (sched);
+  clean_up (NULL, tc);
 }
 
 
@@ -96,13 +101,8 @@ notify_connect (void *cls,
 	      "Peers connected, shutting down.\n");
   GNUNET_assert (ok == 4);
   ok = 0;
-
-  GNUNET_SCHEDULER_cancel (sched,
-			   timeout_task);
-  GNUNET_TRANSPORT_disconnect (p1.th);
-  p1.th = NULL;
-  GNUNET_TRANSPORT_disconnect (p2.th);
-  p2.th = NULL;
+  GNUNET_SCHEDULER_add_now (sched,
+			    &clean_up, NULL);
 }
 
 
