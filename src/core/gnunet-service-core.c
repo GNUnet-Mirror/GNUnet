@@ -844,6 +844,7 @@ request_transmit (struct Client *client)
 
 /**
  * Send a message to one of our clients.
+ *
  * @param client target for the message
  * @param msg message to transmit
  * @param can_drop could this message be dropped if the
@@ -1938,7 +1939,12 @@ handle_client_send (void *cls,
 	min_prio_prev->next = min_prio_entry->next;      
       GNUNET_free (min_prio_entry);	
     }
-  
+
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Adding transmission request for `%4s' to queue\n",
+	      GNUNET_i2s (&sm->peer));
+#endif  
   e = GNUNET_malloc (sizeof (struct MessageEntry) + msize);
   e->deadline = GNUNET_TIME_absolute_ntoh (sm->deadline);
   e->priority = ntohl (sm->priority);

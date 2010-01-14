@@ -1110,7 +1110,8 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
   th->priority = priority;
   th->msize = sizeof (struct SendMessage) + notify_size;
   /* was the request queue previously empty? */
-  if (handle->pending_head == th)
+  if ( (handle->pending_head == th) &&
+       (handle->th == NULL) )
     trigger_next_request (handle);
   return th;
 }

@@ -251,13 +251,23 @@ static size_t
 ready_callback (void *cls,
 		size_t size, void *buf)
 {
+  struct GNUNET_MessageHeader hdr;
+  if (buf == NULL)
+    {
+#if DEBUG_TOPOLOGY
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Core told us that our attempt to connect failed.\n");
+#endif
+      return 0;
+    }
 #if DEBUG_TOPOLOGY
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      (buf == NULL)
-	      ? "Core told us that our attempt to connect failed.\n"
-	      : "Core told us that our attempt to connect worked. Good!\n");
+	      "Sending dummy message to establish connection.\n");
 #endif
-  return 0;
+  hdr.size = htons (sizeof (struct GNUNET_MessageHeader));
+  hdr.type = htons (GNUNET_MESSAGE_TYPE_TOPOLOGY_DUMMY);
+  memcpy (buf, &hdr, sizeof (struct GNUNET_MessageHeader));
+  return sizeof (struct GNUNET_MessageHeader);
 }
 
 

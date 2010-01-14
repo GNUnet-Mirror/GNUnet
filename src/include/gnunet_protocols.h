@@ -322,6 +322,10 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_CORE_HANGUP 84
 
+/**
+ * Dummy message send by the topology service to create connections.
+ */
+#define GNUNET_MESSAGE_TYPE_TOPOLOGY_DUMMY 91
 
 /**
  * Message sent by datastore client on join.
@@ -440,7 +444,6 @@ extern "C"
  * P2P request for content (one FS to another).
  */
 #define GNUNET_MESSAGE_TYPE_FS_GET 138
-
 
 /**
  * P2P response with content or active

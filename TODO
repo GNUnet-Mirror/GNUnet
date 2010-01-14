@@ -12,15 +12,76 @@ away), in order in which they will likely be done:
 * UPNP [Milan]
 
 Urgent items (before announcing ng.gnunet.org):
-* TEST:
-  - topology
-  - hostlist
-    * test fails (peers don't connect quickly, could be topology issue)
+* topology
+  - needs testing
+* hostlist
+  - test fails (peers don't connect quickly, could be topology issue)
+  - crashes:
+(gdb) print pos
+$1 = (struct GNUNET_TRANSPORT_TransmitHandle *) 0x21
+(gdb) print h
+$2 = (struct GNUNET_TRANSPORT_Handle *) 0x21775d0
+(gdb) print *h
+$3 = {cls = 0x454d414e54534f48, rec = 0x7f66983d7e00 <_IO_stdfile_0_lock>, nc_cb = 0x4010d8 <notify_connect+128>, nd_cb = 0x21, my_hello = 0x736f686c61636f6c, client = 0x7f66983d0074, network_handle = 0x0, connect_wait_head = 0x21, connect_ready_head = 0x21775b0,
+  hwl_head = 0x2177630, sched = 0x2177650, cfg = 0x21, neighbours = 0x54524f5050545448, reconnect_task = 140078617558528, reconnect_delay = {value = 1000}, transmission_scheduled = 33}
+(gdb) ba
+#0  0x00007f6698a2143c in add_neighbour (h=0x21775d0, quota_out=1, latency=..., pid=0x7fff2d320bd0) at transport_api.c:1383
+#1  0x00007f6698a21d70 in demultiplexer (cls=0x21775d0, msg=0x7fff2d320bc0) at transport_api.c:1645
+#2  0x00007f66985ed452 in receive_task (cls=0x2177470, tc=0x7fff2d320ca0) at client.c:491
+#3  0x00007f6698609caa in run_ready (sched=0x7fff2d320d10) at scheduler.c:482
+#4  0x00007f669860a0ba in GNUNET_SCHEDULER_run (task=0x7f66986069a8 <program_main>, task_cls=0x7fff2d320f20) at scheduler.c:609
+#5  0x00007f6698606ffc in GNUNET_PROGRAM_run (argc=5, argv=0x7fff2d321000, binaryName=0x401b3f "st-gnunetd-hostlist-peer-2", binaryHelp=0x401b86 "", options=0x7fff2d320fc0, task=0x401638 <run+128>, task_cls=0x602360) at program.c:223
+
 * CORE:
   - soliciting traffic for clients that registered for it is not implemented
     (in the service, client API supports GNUNET_MESSAGE_TYPE_CORE_SOLICIT_TRAFFIC
      but never receives any such messages); how to avoid busy-waiting here
      is a good question (solicit => nothing, when to solicit again???)
+  - crashes:
+#0  0x00007ffff7072f55 in *__GI_raise (sig=<value optimized out>)
+    at ../nptl/sysdeps/unix/sysv/linux/raise.c:64
+#1  0x00007ffff7075d90 in *__GI_abort () at abort.c:88
+#2  0x00007ffff7bdfc68 in produce_configure_message (cls=0x61c480, size=65536, 
+    buf=0x65a008) at core_api.c:932
+#3  0x00007ffff7bde53c in request_start (cls=0x6213c0, size=65536, 
+    buf=0x65a008) at core_api.c:336
+#4  0x00007ffff75a6c90 in client_notify (cls=0x634110, size=65536, 
+    buf=0x65a008) at client.c:822
+#5  0x00007ffff75ac3f8 in process_notify (sock=0x659f30) at connection.c:1218
+#6  0x00007ffff75ac7f3 in transmit_ready (cls=0x659f30, tc=0x7fffffffdbe0)
+    at connection.c:1358
+#7  0x00007ffff75c2caa in run_ready (sched=0x7fffffffdc50) at scheduler.c:482
+#8  0x00007ffff75c30ba in GNUNET_SCHEDULER_run (
+    task=0x7ffff75bf9a8 <program_main>, task_cls=0x7fffffffde60)
+    at scheduler.c:609
+#9  0x00007ffff75bfffc in GNUNET_PROGRAM_run (argc=5, argv=0x7fffffffe018, 
+    binaryName=0x403fbb "topology", 
+    binaryHelp=0x403f78 "GNUnet topology control (maintaining P2P mesh and F2F constraints)", options=0x6048c0, task=0x4031fd <run>, task_cls=0x0)
+    at program.c:223
+#10 0x000000000040353c in main (argc=5, argv=0x7fffffffe018)
+    at gnunet-daemon-topology.c:1303
+* TRANSPORT:
+  - crashes:
+(gdb) ba
+#0  0x00007ffff5d0d3d4 in disconnect_session (session=0x656700)
+    at plugin_transport_tcp.c:797
+#1  0x00007ffff5d0d74c in session_try_connect (cls=0x656700, peer=0x0, 
+    hello=0x0, trust=0) at plugin_transport_tcp.c:990
+#2  0x00007ffff7bdf26e in info_handler (cls=0x6306e0, msg=0x7fffffffda60)
+    at peerinfo_api.c:180
+#3  0x00007ffff79b0452 in receive_task (cls=0x69ec40, tc=0x7fffffffdb00)
+    at client.c:491
+#4  0x00007ffff79cccaa in run_ready (sched=0x7fffffffdb70) at scheduler.c:482
+#5  0x00007ffff79cd0ba in GNUNET_SCHEDULER_run (
+    task=0x7ffff79d1898 <service_task>, task_cls=0x7fffffffde10)
+    at scheduler.c:609
+#6  0x00007ffff79d27e1 in GNUNET_SERVICE_run (argc=3, argv=0x7fffffffe028, 
+    serviceName=0x405e6b "transport", opt=GNUNET_SERVICE_OPTION_NONE, 
+    task=0x4055c9 <run>, task_cls=0x0) at service.c:1345
+#7  0x0000000000405870 in main (argc=3, argv=0x7fffffffe028)
+    at gnunet-service-transport.c:2784
+
+
 * FS (basic anonymous FS only)
   - implement FS service (P2P operations)
     + how to send queries (soliciting is not there in core; do we
