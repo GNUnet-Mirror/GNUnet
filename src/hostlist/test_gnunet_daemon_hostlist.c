@@ -101,6 +101,9 @@ notify_connect (void *cls,
 	      "Peers connected, shutting down.\n");
   GNUNET_assert (ok == 4);
   ok = 0;
+  GNUNET_SCHEDULER_cancel (sched,
+			   timeout_task);
+  timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_SCHEDULER_add_now (sched,
 			    &clean_up, NULL);
 }
