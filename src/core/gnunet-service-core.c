@@ -2041,7 +2041,6 @@ set_key_retry_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Neighbour *n = cls;
 
-  GNUNET_assert (n->status != PEER_STATE_KEY_CONFIRMED);
   n->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
   n->set_key_retry_frequency =
     GNUNET_TIME_relative_multiply (n->set_key_retry_frequency, 2);
@@ -2156,7 +2155,6 @@ send_key (struct Neighbour *n)
     case PEER_STATE_KEY_RECEIVED:
       break;
     case PEER_STATE_KEY_CONFIRMED:
-      GNUNET_break (0);
       break;
     default:
       GNUNET_break (0);
@@ -2426,7 +2424,7 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
     case PEER_STATE_KEY_CONFIRMED:
       if ((sender_status != PEER_STATE_KEY_RECEIVED) &&
           (sender_status != PEER_STATE_KEY_CONFIRMED))
-        {
+        {	  
 #if DEBUG_CORE
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Responding to `%s' with my own key (other peer has status %u), I was already fully up.\n",
@@ -2806,7 +2804,7 @@ handle_transport_receive (void *cls,
       return;
     }
   n->last_latency = latency;
-  up = n->status == PEER_STATE_KEY_CONFIRMED;
+  up = (n->status == PEER_STATE_KEY_CONFIRMED);
   type = ntohs (message->type);
   size = ntohs (message->size);
   switch (type)

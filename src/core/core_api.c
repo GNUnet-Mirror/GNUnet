@@ -929,8 +929,6 @@ produce_configure_message (void *cls, size_t size, void *buf)
     ch->pending_tail = th->prev;
   else
     th->next->prev = th->prev;
-  GNUNET_assert (ch->submitted == NULL);
-  ch->submitted = th;
   return sizeof (struct RequestConfigureMessage);
 }
 
