@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2007, 2008, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2007, 2008, 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -139,6 +139,14 @@ struct HelloList
 
 
 /**
+ * Our peerinfo notification context.  We use notification
+ * to instantly learn about new peers as they are discovered
+ * as well as periodic iteration to try peers again after
+ * a while.
+ */
+static struct GNUNET_PEERINFO_NotifyContext *peerinfo_notify;
+
+/**
  * Linked list of HELLOs for advertising.
  */
 static struct HelloList *hellos;
@@ -270,6 +278,7 @@ attempt_connect (const struct GNUNET_PeerIdentity *peer,
 	{
 	  if (0 == memcmp (&pos->id, peer, sizeof (struct GNUNET_PeerIdentity)))
 	    break;
+	  pos = pos->next;
 	}
     }
   if (pos == NULL)
@@ -1151,6 +1160,11 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerList *pl;
 
+  if (NULL != peerinfo_notify)
+    {
+      GNUNET_PEERINFO_notify_cancel (peerinfo_notify);
+      peerinfo_notify = NULL;
+    }
   GNUNET_TRANSPORT_disconnect (transport);
   transport = NULL;
   if (handle != NULL)
@@ -1162,7 +1176,7 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       friends = pl->next;
       GNUNET_free (pl);
-    }
+    }  
 }
 
 
@@ -1258,6 +1272,9 @@ run (void *cls,
       GNUNET_SCHEDULER_shutdown (sched);
       return;
     }
+  peerinfo_notify = GNUNET_PEERINFO_notify (cfg, sched,
+					    &process_peer,
+					    NULL);
 }
 
 
