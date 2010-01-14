@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2004, 2005, 2007, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2001, 2002, 2004, 2005, 2007, 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -181,9 +181,11 @@ transmit_pending_notification (void *cls,
   next = nl->pending;
   pos = nl->pending;
   left = size;
-  while ( (pos != NULL) &&
-	  (left >= sizeof (struct InfoMessage) + (hs = GNUNET_HELLO_size (pos->he->hello))) )
+  while (pos != NULL) 
     {
+      hs = (pos->he->hello == NULL) ? 0 : GNUNET_HELLO_size (pos->he->hello);
+      if (left < sizeof (struct InfoMessage) + hs)
+	break;
       next = pos->next;
       im.header.size = htons (hs + sizeof (struct InfoMessage));
       im.header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_INFO);
@@ -225,6 +227,7 @@ do_notify (struct NotifyList *nl,
 	   struct HostEntry *he)
 {
   struct PendingEntry *pe;
+  uint16_t hsize;
 
   pe = nl->pending;
   while (NULL != pe)
@@ -239,8 +242,9 @@ do_notify (struct NotifyList *nl,
   nl->pending = pe;
   if (nl->transmit_ctx != NULL)
     return; /* already trying to transmit */
+  hsize = (he->hello == NULL) ? 0 : GNUNET_HELLO_size (he->hello);
   nl->transmit_ctx = GNUNET_SERVER_notify_transmit_ready (nl->client,
-							  sizeof (struct InfoMessage) + GNUNET_HELLO_size (he->hello),
+							  sizeof (struct InfoMessage) + hsize,
 							  GNUNET_TIME_UNIT_FOREVER_REL,
 							  &transmit_pending_notification,
 							  nl);
