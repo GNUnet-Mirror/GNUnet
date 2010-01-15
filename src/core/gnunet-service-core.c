@@ -360,6 +360,18 @@ struct Neighbour
   struct PingMessage *pending_ping;
 
   /**
+   * Non-NULL if we are currently looking up HELLOs for this peer.
+   * for this peer.
+   */
+  struct GNUNET_PEERINFO_IteratorContext *pitr;
+
+  /**
+   * SetKeyMessage to transmit, NULL if we are not currently trying
+   * to send one.
+   */
+  struct SetKeyMessage *skm;
+
+  /**
    * Identity of the neighbour.
    */
   struct GNUNET_PeerIdentity peer;
@@ -2005,13 +2017,13 @@ process_hello_retry_send_key (void *cls,
                               const struct GNUNET_HELLO_Message *hello,
                               uint32_t trust)
 {
-  struct Neighbour *n;
+  struct Neighbour *n = cls;
 
   if (peer == NULL)
-    return;
-  n = find_neighbour (peer);
-  if (n == NULL)
-    return;
+    {
+      n->pitr = NULL;
+      return;
+    }
   if (n->public_key != NULL)
     return;
 #if DEBUG_CORE
@@ -2074,12 +2086,13 @@ send_key (struct Neighbour *n)
                   "Lacking public key for `%4s', trying to obtain one.\n",
                   GNUNET_i2s (&n->peer));
 #endif
-      GNUNET_PEERINFO_for_all (cfg,
-                               sched,
-                               &n->peer,
-                               0,
-                               GNUNET_TIME_UNIT_MINUTES,
-                               &process_hello_retry_send_key, NULL);
+      GNUNET_assert (n->pitr == NULL);
+      n->pitr = GNUNET_PEERINFO_iterate (cfg,
+					 sched,
+					 &n->peer,
+					 0,
+					 GNUNET_TIME_UNIT_MINUTES,
+					 &process_hello_retry_send_key, n);
       return;
     }
   /* first, set key message */
@@ -2203,18 +2216,14 @@ process_hello_retry_handle_set_key (void *cls,
                                     const struct GNUNET_HELLO_Message *hello,
                                     uint32_t trust)
 {
-  struct SetKeyMessage *sm = cls;
-  struct Neighbour *n;
+  struct Neighbour *n = cls;
+  struct SetKeyMessage *sm = n->skm;
 
   if (peer == NULL)
     {
       GNUNET_free (sm);
-      return;
-    }
-  n = find_neighbour (peer);
-  if (n == NULL)
-    {
-      GNUNET_break (0);
+      n->skm = NULL;
+      n->pitr = NULL;
       return;
     }
   if (n->public_key != NULL)
@@ -2341,12 +2350,15 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
       m_cpy = GNUNET_malloc (sizeof (struct SetKeyMessage));
       memcpy (m_cpy, m, sizeof (struct SetKeyMessage));
       /* lookup n's public key, then try again */
-      GNUNET_PEERINFO_for_all (cfg,
-                               sched,
-                               &n->peer,
-                               0,
-                               GNUNET_TIME_UNIT_MINUTES,
-                               &process_hello_retry_handle_set_key, m_cpy);
+      GNUNET_assert (n->pitr == NULL);
+      GNUNET_assert (n->skm == NULL);
+      n->skm = m_cpy;
+      n->pitr = GNUNET_PEERINFO_iterate (cfg,
+					 sched,
+					 &n->peer,
+					 0,
+					 GNUNET_TIME_UNIT_MINUTES,
+					 &process_hello_retry_handle_set_key, n);
       return;
     }
   if (0 != memcmp (&m->target,
@@ -3036,6 +3048,16 @@ free_neighbour (struct Neighbour *n)
 {
   struct MessageEntry *m;
 
+  if (n->pitr != NULL)
+    {
+      GNUNET_PEERINFO_iterate_cancel (n->pitr);
+      n->pitr = NULL;
+    }
+  if (n->skm != NULL)
+    {
+      GNUNET_free (n->skm);
+      n->skm = NULL;
+    }
   while (NULL != (m = n->messages))
     {
       n->messages = m->next;

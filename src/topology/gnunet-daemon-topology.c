@@ -219,10 +219,16 @@ static unsigned int friend_count;
 static int autoconnect;
 
 /**
- * Are we currently having a request pending with
+ * Non-NULL if we are currently having a request pending with
  * PEERINFO asking for HELLOs for advertising?
  */
-static int hello_gathering_active;
+static struct GNUNET_PEERINFO_IteratorContext *pitr;
+
+/**
+ * Non-NULL if we are currently having a request pending with
+ * PEERINFO looking for more peers to connect to.
+ */
+static struct GNUNET_PEERINFO_IteratorContext *pitr_more;
 
 
 
@@ -642,6 +648,7 @@ process_peer (void *cls,
 
   if (peer == NULL)
     {
+      pitr_more = NULL;
       /* last call, schedule 'find_more_peers' again... */
       if (0 != (GNUNET_SCHEDULER_get_reason (sched) & GNUNET_SCHEDULER_REASON_SHUTDOWN))
 	{
@@ -814,11 +821,11 @@ find_more_peers (void *cls,
 	      target_connection_count,
 	      friend_count);
 #endif 	
-  GNUNET_PEERINFO_for_all (cfg,
-			   sched,
-			   NULL,
-			   0, GNUNET_TIME_UNIT_FOREVER_REL,
-			   &process_peer, NULL);
+  pitr_more = GNUNET_PEERINFO_iterate (cfg,
+				       sched,
+				       NULL,
+				       0, GNUNET_TIME_UNIT_FOREVER_REL,
+				       &process_peer, NULL);
 }
 
 
@@ -1036,7 +1043,7 @@ gather_hello_callback (void *cls,
 {
   if (peer == NULL)
     {
-      hello_gathering_active = GNUNET_NO;
+      pitr = NULL;
       return;
     }
 #if DEBUG_TOPOLOGY
@@ -1139,7 +1146,7 @@ hello_advertising (void *cls,
 #endif 	
       return size;
     }
-  if ( (GNUNET_NO == hello_gathering_active) &&
+  if ( (NULL == pitr) &&
        (GNUNET_TIME_absolute_get_duration (last_hello_gather_time).value >
 	MIN_HELLO_GATHER_DELAY.value) )
     {
@@ -1149,13 +1156,12 @@ hello_advertising (void *cls,
 		  "HELLO",
 		  "PEERINFO");
 #endif 	
-      hello_gathering_active = GNUNET_YES;
       last_hello_gather_time = GNUNET_TIME_absolute_get();
-      GNUNET_PEERINFO_for_all (cfg,
-			       sched,
-			       NULL,
-			       0, GNUNET_TIME_UNIT_FOREVER_REL,
-			       &gather_hello_callback, NULL);
+      pitr = GNUNET_PEERINFO_iterate (cfg,
+				      sched,
+				      NULL,
+				      0, GNUNET_TIME_UNIT_FOREVER_REL,
+				      &gather_hello_callback, NULL);
     }
   return 0;
 }
@@ -1174,6 +1180,16 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       GNUNET_PEERINFO_notify_cancel (peerinfo_notify);
       peerinfo_notify = NULL;
+    }
+  if (NULL != pitr)
+    {
+      GNUNET_PEERINFO_iterate_cancel (pitr);
+      pitr = NULL;
+    }
+  if (NULL != pitr_more)
+    {
+      GNUNET_PEERINFO_iterate_cancel (pitr_more);
+      pitr_more = NULL;
     }
   GNUNET_TRANSPORT_disconnect (transport);
   transport = NULL;

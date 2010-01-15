@@ -78,6 +78,11 @@ static GNUNET_SCHEDULER_TaskIdentifier response_task;
 static struct MHD_Response *response;
 
 /**
+ * NULL if we are not currenlty iterating over peer information.
+ */
+static struct GNUNET_PEERINFO_IteratorContext *pitr;
+
+/**
  * Context for host processor.
  */
 struct HostSet
@@ -151,6 +156,7 @@ host_processor (void *cls,
   
   if (peer == NULL)
     {
+      pitr = NULL;
       finish_response (results);
       return;
     }
@@ -183,12 +189,12 @@ update_response (void *cls,
 
   response_task = GNUNET_SCHEDULER_NO_TASK;
   results = GNUNET_malloc(sizeof(struct HostSet));
-  GNUNET_PEERINFO_for_all (cfg, sched, 
-			   NULL,
-			   0, 
-			   GNUNET_TIME_UNIT_MINUTES,
-			   &host_processor,
-			   results);
+  pitr = GNUNET_PEERINFO_iterate (cfg, sched, 
+				  NULL,
+				  0, 
+				  GNUNET_TIME_UNIT_MINUTES,
+				  &host_processor,
+				  results);
 }
 
 
@@ -439,6 +445,11 @@ GNUNET_HOSTLIST_server_stop ()
     {
       GNUNET_SCHEDULER_cancel (sched, hostlist_task_v4);
       hostlist_task_v4 = GNUNET_SCHEDULER_NO_TASK;
+    }
+  if (pitr != NULL)
+    {
+      GNUNET_PEERINFO_iterate_cancel (pitr);
+      pitr = NULL;
     }
   if (GNUNET_SCHEDULER_NO_TASK != response_task)
     {
