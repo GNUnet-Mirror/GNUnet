@@ -35,6 +35,8 @@
 #include "gnunet_server_lib.h"
 #include "gnunet_service_lib.h"
 
+#define DEBUG_SERVICE GNUNET_NO
+
 /* ******************* access control ******************** */
 
 /**
@@ -433,9 +435,9 @@ struct GNUNET_SERVICE_Context
   struct GNUNET_SCHEDULER_Handle *sched;
 
   /**
-   * Address to bind to.
+   * NULL-terminated array of addresses to bind to.
    */
-  struct sockaddr *addr;
+  struct sockaddr **addrs;
 
   /**
    * Name of our service.
@@ -519,9 +521,9 @@ struct GNUNET_SERVICE_Context
   enum GNUNET_SERVICE_Options options;
 
   /**
-   * Length of addr.
+   * Array of the lengths of the entries in addrs.
    */
-  socklen_t addrlen;
+  socklen_t * addrlens;
 
 };
 
@@ -766,8 +768,10 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
   struct addrinfo hints;
   struct addrinfo *res;
   struct addrinfo *pos;
+  struct addrinfo *next;
   int ret;
   int tolerant;
+  unsigned int i;
   struct GNUNET_NETWORK_Handle *desc;
 
   if (GNUNET_CONFIGURATION_have_value (sctx->cfg,
@@ -884,6 +888,12 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
 
   if (hostname != NULL)
     {
+#if DEBUG_SERVICE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Resolving `%s' since that is where `%s' will bind to.\n",
+		  hostname,
+		  sctx->serviceName);
+#endif
       memset (&hints, 0, sizeof (struct addrinfo));
       if (disablev6)
         hints.ai_family = AF_INET;
@@ -896,13 +906,16 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
           GNUNET_free (hostname);
           return GNUNET_SYSERR;
         }
-      pos = res;
-      while ((NULL != pos) &&
-             (((disablev6) &&
-               (pos->ai_family != AF_INET)) ||
-              ((pos->ai_family != AF_INET) && (pos->ai_family != AF_INET6))))
-        pos = pos->ai_next;
-      if (pos == NULL)
+      next = res;
+      i = 0;
+      while (NULL != (pos = next)) 
+	{
+	  next = pos->ai_next;
+	  if ( (disablev6) && (pos->ai_family == AF_INET6))
+	    continue;
+	  i++;
+	}
+      if (0 == i)
         {
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                       _("Failed to find %saddress for `%s'.\n"),
@@ -911,32 +924,42 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
           GNUNET_free (hostname);
           return GNUNET_SYSERR;
         }
+      sctx->addrs = GNUNET_malloc ((i+1) * sizeof(struct sockaddr*));
+      sctx->addrlens = GNUNET_malloc ((i+1) * sizeof (socklen_t));
+      i = 0;
+      next = res;
+      while (NULL != (pos = next)) 
+	{
+	  next = pos->ai_next;
+	  if ( (disablev6) && (pos->ai_family == AF_INET6))
+	    continue;
+#if DEBUG_SERVICE
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Service `%s' will bind to `%s'\n",
+		      sctx->serviceName,
+		      GNUNET_a2s (pos->ai_addr,
+				  pos->ai_addrlen));
+#endif
+	  if (pos->ai_family == AF_INET)
+	    {
+	      GNUNET_assert (pos->ai_addrlen == sizeof (struct sockaddr_in));
+	      sctx->addrlens[i] = pos->ai_addrlen;
+	      sctx->addrs[i] = GNUNET_malloc (sctx->addrlens[i]);
+	      memcpy (sctx->addrs[i], pos->ai_addr, sctx->addrlens[i]);
+	      ((struct sockaddr_in *) sctx->addrs[i])->sin_port = htons (port);
+	    }
+	  else
+	    {
+	      GNUNET_assert (pos->ai_family == AF_INET6);
+	      GNUNET_assert (pos->ai_addrlen == sizeof (struct sockaddr_in6));
+	      sctx->addrlens[i] = pos->ai_addrlen;
+	      sctx->addrs[i] = GNUNET_malloc (sctx->addrlens[i]);
+	      memcpy (sctx->addrs[i], pos->ai_addr, sctx->addrlens[i]);
+	      ((struct sockaddr_in6 *) sctx->addrs[i])->sin6_port = htons (port);
+	    }	  
+	  i++;
+	}
       GNUNET_free (hostname);
-      if (pos->ai_family == AF_INET)
-        {
-          GNUNET_assert (pos->ai_addrlen == sizeof (struct sockaddr_in));
-          sctx->addrlen = pos->ai_addrlen;
-          sctx->addr = GNUNET_malloc (sctx->addrlen);
-          memcpy (sctx->addr, res->ai_addr, sctx->addrlen);
-          ((struct sockaddr_in *) sctx->addr)->sin_port = htons (port);
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                      _
-                      ("Configured to bind to %s address; %s connections to this service will fail!\n"),
-                      "IPv4", "IPv6");
-        }
-      else
-        {
-          GNUNET_assert (pos->ai_family == AF_INET6);
-          GNUNET_assert (pos->ai_addrlen == sizeof (struct sockaddr_in6));
-          sctx->addrlen = pos->ai_addrlen;
-          sctx->addr = GNUNET_malloc (sctx->addrlen);
-          memcpy (sctx->addr, res->ai_addr, sctx->addrlen);
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                      _
-                      ("Configured to bind to %s address; %s connections to this service will fail!\n"),
-                      "IPv6", "IPv4");
-          ((struct sockaddr_in6 *) sctx->addr)->sin6_port = htons (port);
-        }
       freeaddrinfo (res);
     }
   else
@@ -945,28 +968,38 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
       if (disablev6)
         {
           /* V4-only */
-          sctx->addrlen = sizeof (struct sockaddr_in);
-          sctx->addr = GNUNET_malloc (sctx->addrlen);
+	  sctx->addrs = GNUNET_malloc (2 * sizeof(struct sockaddr*));
+	  sctx->addrlens = GNUNET_malloc (2 * sizeof (socklen_t));
+          sctx->addrlens[0] = sizeof (struct sockaddr_in);
+          sctx->addrs[0] = GNUNET_malloc (sctx->addrlens[0]);
 #if HAVE_SOCKADDR_IN_SIN_LEN
-          ((struct sockaddr_in *) sctx->addr)->sin_len = sctx->addrlen;
+          ((struct sockaddr_in *) sctx->addrs[0])->sin_len = sctx->addrlens[0];
 #endif
-          ((struct sockaddr_in *) sctx->addr)->sin_family = AF_INET;
-          ((struct sockaddr_in *) sctx->addr)->sin_port = htons (port);
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                      _
-                      ("Configured to bind to %s address; %s connections to this service will fail!\n"),
-                      "IPv4", "IPv6");
+          ((struct sockaddr_in *) sctx->addrs[0])->sin_family = AF_INET;
+          ((struct sockaddr_in *) sctx->addrs[0])->sin_port = htons (port);
         }
       else
         {
           /* dual stack */
-          sctx->addrlen = sizeof (struct sockaddr_in6);
-          sctx->addr = GNUNET_malloc (sctx->addrlen);
+	  sctx->addrs = GNUNET_malloc (3 * sizeof(struct sockaddr*));
+	  sctx->addrlens = GNUNET_malloc (3 * sizeof (socklen_t));
+
+          sctx->addrlens[0] = sizeof (struct sockaddr_in6);
+          sctx->addrs[0] = GNUNET_malloc (sctx->addrlens[0]);
 #if HAVE_SOCKADDR_IN_SIN_LEN
-          ((struct sockaddr_in6 *) sctx->addr)->sin6_len = sctx->addrlen;
+          ((struct sockaddr_in6 *) sctx->addrs[0])->sin6_len = sctx->addrlen[0];
 #endif
-          ((struct sockaddr_in6 *) sctx->addr)->sin6_family = AF_INET6;
-          ((struct sockaddr_in6 *) sctx->addr)->sin6_port = htons (port);
+          ((struct sockaddr_in6 *) sctx->addrs[0])->sin6_family = AF_INET6;
+          ((struct sockaddr_in6 *) sctx->addrs[0])->sin6_port = htons (port);
+
+          sctx->addrlens[1] = sizeof (struct sockaddr_in);
+          sctx->addrs[1] = GNUNET_malloc (sctx->addrlens[1]);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+          ((struct sockaddr_in *) sctx->addrs[1])->sin_len = sctx->addrlens[1];
+#endif
+          ((struct sockaddr_in *) sctx->addrs[1])->sin_family = AF_INET;
+          ((struct sockaddr_in *) sctx->addrs[1])->sin_port = htons (port);
+
         }
     }
   sctx->maxbuf = (size_t) maxbuf;
@@ -1090,15 +1123,21 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   sctx->server = GNUNET_SERVER_create (tc->sched,
                                        &check_access,
                                        sctx,
-                                       sctx->addr,
-                                       sctx->addrlen,
+                                       sctx->addrs,
+                                       sctx->addrlens,
                                        sctx->maxbuf,
                                        sctx->timeout, sctx->require_found);
   if (sctx->server == NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("Failed to start `%s' at `%s'\n"),
-                  sctx->serviceName, GNUNET_a2s (sctx->addr, sctx->addrlen));
+      i = 0;
+      while (sctx->addrs[i] != NULL)
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		      _("Failed to start `%s' at `%s'\n"),
+		      sctx->serviceName, 
+		      GNUNET_a2s (sctx->addrs[i], sctx->addrlens[i]));
+	  i++;
+	}
       sctx->ret = GNUNET_SYSERR;
       return;
     }
@@ -1123,9 +1162,15 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       sctx->ready_confirm_fd = -1;
       write_pid_file (sctx, getpid ());
     }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Service `%s' runs at %s\n"),
-              sctx->serviceName, GNUNET_a2s (sctx->addr, sctx->addrlen));
+  i = 0;
+  while (sctx->addrs[i] != NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Service `%s' runs at %s\n"),
+		  sctx->serviceName, 
+		  GNUNET_a2s (sctx->addrs[i], sctx->addrlens[i]));
+      i++;
+    }
   sctx->task (sctx->task_cls, tc->sched, sctx->server, sctx->cfg);
 }
 
@@ -1295,6 +1340,7 @@ GNUNET_SERVICE_run (int argc,
   char *loglev;
   char *logfile;
   int do_daemonize;
+  unsigned int i;
   struct GNUNET_SERVICE_Context sctx;
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_GETOPT_CommandLineOption service_options[] = {
@@ -1358,7 +1404,11 @@ shutdown:
     }
 
   GNUNET_CONFIGURATION_destroy (cfg);
-  GNUNET_free_non_null (sctx.addr);
+  i = 0;
+  while (sctx.addrs[i] != NULL)    
+    GNUNET_free (sctx.addrs[i++]);    
+  GNUNET_free_non_null (sctx.addrs);
+  GNUNET_free_non_null (sctx.addrlens);
   GNUNET_free_non_null (logfile);
   GNUNET_free (loglev);
   GNUNET_free (cfg_fn);
@@ -1402,8 +1452,8 @@ GNUNET_SERVICE_start (const char *serviceName,
       (NULL == (sctx->server = GNUNET_SERVER_create (sched,
                                                      &check_access,
                                                      sctx,
-                                                     sctx->addr,
-                                                     sctx->addrlen,
+                                                     sctx->addrs,
+                                                     sctx->addrlens,
                                                      sctx->maxbuf,
                                                      sctx->timeout,
                                                      sctx->require_found))))
@@ -1442,10 +1492,15 @@ GNUNET_SERVICE_get_server (struct GNUNET_SERVICE_Context *ctx)
 void
 GNUNET_SERVICE_stop (struct GNUNET_SERVICE_Context *sctx)
 {
+  unsigned int i;
   if (NULL != sctx->server)
     GNUNET_SERVER_destroy (sctx->server);
   GNUNET_free_non_null (sctx->my_handlers);
-  GNUNET_free_non_null (sctx->addr);
+  i = 0;
+  while (sctx->addrs[i] != NULL)    
+    GNUNET_free (sctx->addrs[i++]);    
+  GNUNET_free_non_null (sctx->addrs);
+  GNUNET_free_non_null (sctx->addrlens);
   GNUNET_free_non_null (sctx->v4_denied);
   GNUNET_free_non_null (sctx->v6_denied);
   GNUNET_free_non_null (sctx->v4_allowed);

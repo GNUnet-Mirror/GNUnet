@@ -76,15 +76,16 @@ build_msg (void *cls, size_t size, void *buf)
   return sizeof (struct GNUNET_MessageHeader);
 }
 
+
 static void
 ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   struct GNUNET_CLIENT_Connection *client;
 
+  GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Service confirmed running\n");
   sched = tc->sched;
-  GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE));
   client = GNUNET_CLIENT_connect (tc->sched, "test_service", cfg);
   GNUNET_assert (client != NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

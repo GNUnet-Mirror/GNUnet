@@ -137,7 +137,13 @@ static void
 task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct sockaddr_in sa;
+  struct sockaddr * sap[2];
+  socklen_t slens[2];
 
+  sap[0] = (struct sockaddr*) &sa;
+  slens[0] = sizeof (sa);
+  sap[1] = NULL;
+  slens[1] = 0;
   memset (&sa, 0, sizeof (sa));
 #if HAVE_SOCKADDR_IN_SIN_LEN
   sa.sin_len = sizeof (sa);
@@ -147,8 +153,8 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   server = GNUNET_SERVER_create (tc->sched,
                                  NULL,
                                  NULL,
-                                 (const struct sockaddr *) &sa,
-                                 sizeof (sa),
+                                 sap,
+				 slens,
                                  1024,
                                  GNUNET_TIME_relative_multiply
                                  (GNUNET_TIME_UNIT_MILLISECONDS, 10000),
