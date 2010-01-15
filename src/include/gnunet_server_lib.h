@@ -114,9 +114,8 @@ struct GNUNET_SERVER_MessageHandler
  * @param sched scheduler to use
  * @param access function for access control
  * @param access_cls closure for access
- * @param serverAddr address to listen on (including port), use NULL
- *        for internal server (no listening)
- * @param socklen length of serverAddr
+ * @param serverAddr address toes listen on (including port), NULL terminated array
+ * @param socklen lengths of respective serverAddr 
  * @param maxbuf maximum write buffer size for accepted sockets
  * @param idle_timeout after how long should we timeout idle connections?
  * @param require_found if YES, connections sending messages of unknown type
@@ -129,9 +128,8 @@ struct GNUNET_SERVER_Handle *GNUNET_SERVER_create (struct
                                                    *sched,
                                                    GNUNET_CONNECTION_AccessCheck
                                                    access, void *access_cls,
-                                                   const struct sockaddr
-                                                   *serverAddr,
-                                                   socklen_t socklen,
+						   struct sockaddr *const*serverAddr,
+                                                   const socklen_t *socklen,
                                                    size_t maxbuf,
                                                    struct GNUNET_TIME_Relative
                                                    idle_timeout,
