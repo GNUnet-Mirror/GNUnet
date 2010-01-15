@@ -33,7 +33,7 @@
 #include "gnunet_util_lib.h"
 
 
-#define DEBUG_TOPOLOGY GNUNET_YES
+#define DEBUG_TOPOLOGY GNUNET_NO
 
 /**
  * For how long do we blacklist a peer after a failed
@@ -388,7 +388,7 @@ static void connect_notify (void *cls,
 
 #if DEBUG_TOPOLOGY
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Core told us that we connected to `%s'\n",
+	      "Core told us that we are connecting to `%s'\n",
 	      GNUNET_i2s (peer));
 #endif       
   connection_count++;

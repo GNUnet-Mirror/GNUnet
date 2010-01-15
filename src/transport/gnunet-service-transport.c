@@ -251,12 +251,6 @@ struct ReadyList
   struct NeighbourList *neighbour;
 
   /**
-   * Opaque handle (specific to the plugin) for the
-   * connection to our target; can be NULL.
-   */
-  void *plugin_handle;
-
-  /**
    * What was the last latency observed for this plugin
    * and peer?  Invalid if connected is GNUNET_NO.
    */
@@ -887,7 +881,6 @@ transmit_send_continuation (void *cls,
 		  "Transmission to peer `%s' failed, marking connection as down.\n",
 		  GNUNET_i2s(target));
       rl->connected = GNUNET_NO;
-      rl->plugin_handle = NULL;
     }
   if (!mq->internal_msg)
     rl->transmit_ready = GNUNET_YES;
@@ -986,15 +979,13 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
               ntohs (mq->message->type),
               GNUNET_i2s (&neighbour->id), rl->plugin->short_name);
 #endif
-  rl->plugin_handle
-    = rl->plugin->api->send (rl->plugin->api->cls,
-                             rl->plugin_handle,
-                             rl,
-                             &neighbour->id,
-			     mq->priority,
-                             mq->message,
-                             GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-                             &transmit_send_continuation, mq);
+  rl->plugin->api->send (rl->plugin->api->cls,
+			 rl,
+			 &neighbour->id,
+			 mq->priority,
+			 mq->message,
+			 GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+			 &transmit_send_continuation, mq);
 }
 
 
@@ -1939,7 +1930,6 @@ disconnect_neighbour (struct NeighbourList *n,
       GNUNET_assert (rpos->neighbour == n);
       if (GNUNET_YES == rpos->connected)
 	rpos->plugin->api->cancel (rpos->plugin->api->cls,
-				   rpos->plugin_handle,
 				   rpos,
 				   &n->id);
       GNUNET_free (rpos);
@@ -2054,9 +2044,6 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer)
  * and generally forward to our receive callback.
  *
  * @param cls the "struct TransportPlugin *" we gave to the plugin
- * @param plugin_context value to pass to this plugin
- *        to respond to the given peer (use is optional,
- *        but may speed up processing)
  * @param service_context value passed to the transport-service
  *        to identify the neighbour; will be NULL on the first
  *        call for a given peer
@@ -2070,7 +2057,6 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer)
  */
 static struct ReadyList *
 plugin_env_receive (void *cls,
-                    void *plugin_context,
                     struct ReadyList *service_context,
                     struct GNUNET_TIME_Relative latency,
                     const struct GNUNET_PeerIdentity *peer,
@@ -2114,12 +2100,8 @@ plugin_env_receive (void *cls,
 		  GNUNET_i2s(&n->id));
 #endif
       /* TODO: call stats */
-      if ((service_context != NULL) &&
-          (service_context->plugin_handle == plugin_context))
-        {
-          service_context->connected = GNUNET_NO;
-          service_context->plugin_handle = NULL;
-        }
+      if (service_context != NULL) 
+	service_context->connected = GNUNET_NO;        
       disconnect_neighbour (n, GNUNET_YES);
       return NULL;
     }
@@ -2138,7 +2120,6 @@ plugin_env_receive (void *cls,
         }
       service_context->timeout
         = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-      service_context->plugin_handle = plugin_context;
       service_context->latency = latency;
     }
   /* update traffic received amount ... */

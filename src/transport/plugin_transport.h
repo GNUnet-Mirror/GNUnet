@@ -58,9 +58,6 @@ struct ReadyList;
  * message to signal that the other peer disconnected.
  *
  * @param cls closure
- * @param plugin_context value to pass to this plugin
- *        to respond to the given peer (use is optional,
- *        but may speed up processing)
  * @param service_context value passed to the transport-service
  *        to identify the neighbour; will be NULL on the first
  *        call for a given peer
@@ -79,7 +76,6 @@ struct ReadyList;
  */
 typedef struct ReadyList *
   (*GNUNET_TRANSPORT_PluginReceiveCallback) (void *cls,
-                                             void *plugin_context,
                                              struct ReadyList *
                                              service_context,
                                              struct GNUNET_TIME_Relative
@@ -299,9 +295,6 @@ typedef void
  * a fresh connection to another peer.
  *
  * @param cls closure
- * @param plugin_context value we were asked to pass to this plugin
- *        to respond to the given peer (use is optional,
- *        but may speed up processing), can be NULL
  * @param service_context value passed to the transport-service
  *        to identify the neighbour; NULL is used to indicate
  *        an urgent message.  If the urgent message can not be
@@ -316,12 +309,9 @@ typedef void
  *        for the next transmission call; or if the
  *        peer disconnected...); can be NULL
  * @param cont_cls closure for cont
- * @return plugin_context that should be used next time for
- *         sending messages to the specified peer
  */
-typedef void *
+typedef void 
   (*GNUNET_TRANSPORT_TransmitFunction) (void *cls,
-                                        void *plugin_context,
                                         struct ReadyList * service_context,
                                         const struct GNUNET_PeerIdentity *
                                         target,
@@ -346,14 +336,6 @@ typedef void *
  * closed after a getting this call.
  *
  * @param cls closure
- * @param plugin_context value we were asked to pass to this plugin
- *        to respond to the given peer (use is optional,
- *        but may speed up processing), can be NULL (if
- *        NULL was returned from the transmit function); note
- *        that use of NULL is dangerous since then this call may
- *        cancel any session with the target peer (including
- *        HELLO validation sessions), which is likely not what
- *        is intended.
  * @param service_context must correspond to the service context
  *        of the corresponding Transmit call; the plugin should
  *        not cancel a send call made with a different service
@@ -363,7 +345,6 @@ typedef void *
  */
 typedef void
   (*GNUNET_TRANSPORT_CancelFunction) (void *cls,
-                                      void *plugin_context,
                                       struct ReadyList * service_context,
                                       const struct GNUNET_PeerIdentity *
                                       target);

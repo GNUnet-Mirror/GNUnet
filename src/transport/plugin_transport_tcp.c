@@ -386,6 +386,11 @@ struct Plugin
   struct GNUNET_SERVER_MessageHandler *handlers;
 
   /**
+   * Handle for request of hostname resolution, non-NULL if pending.
+   */
+  struct GNUNET_RESOLVER_RequestHandle *hostname_dns;
+
+  /**
    * ID of task used to update our addresses when one expires.
    */
   GNUNET_SCHEDULER_TaskIdentifier address_update_task;
@@ -402,13 +407,6 @@ struct Plugin
   uint16_t adv_port;
 
 };
-
-
-
-/**
- * Handle for request of hostname resolution, non-NULL if pending.
- */
-static struct GNUNET_RESOLVER_RequestHandle *hostname_dns;
 
 
 /**
@@ -837,7 +835,6 @@ disconnect_session (struct Session *session)
 	 know about this one, so we need to 
 	 notify transport service about disconnect */
       session->plugin->env->receive (session->plugin->env->cls,
-				     session,
 				     session->service_context,
 				     GNUNET_TIME_UNIT_ZERO,
 				     &session->target, NULL);
@@ -1058,9 +1055,6 @@ session_try_connect (void *cls,
  * a message using the plugin.
  *
  * @param cls closure
- * @param plugin_context value we were asked to pass to this plugin
- *        to respond to the given peer (use is optional,
- *        but may speed up processing), can be NULL
  * @param service_context value passed to the transport-service
  *        to identify the neighbour
  * @param target who should receive this message
@@ -1072,12 +1066,9 @@ session_try_connect (void *cls,
  *        for the next transmission call; or if the
  *        peer disconnected...)
  * @param cont_cls closure for cont
- * @return plugin_context that should be used next time for
-  *         sending messages to the specified peer
  */
-static void *
+static void 
 tcp_plugin_send (void *cls,
-                 void *plugin_context,
                  struct ReadyList *service_context,
                  const struct GNUNET_PeerIdentity *target,   
 		 unsigned int priority,
@@ -1086,12 +1077,11 @@ tcp_plugin_send (void *cls,
                  GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
   struct Plugin *plugin = cls;
-  struct Session *session = plugin_context;
+  struct Session *session;
   struct PendingMessage *pm;
   struct PendingMessage *pme;
 
-  if (session == NULL)
-    session = find_session_by_target (plugin, target);  
+  session = find_session_by_target (plugin, target);  
   pm = GNUNET_malloc (sizeof (struct PendingMessage) + ntohs (msg->size));
   pm->msg = (struct GNUNET_MessageHeader *) &pm[1];
   memcpy (pm->msg, msg, ntohs (msg->size));
@@ -1120,7 +1110,7 @@ tcp_plugin_send (void *cls,
                                plugin->env->sched,
                                target,
                                0, timeout, &session_try_connect, session);
-      return session;
+      return;
     }
   GNUNET_assert (session != NULL);
   GNUNET_assert (session->client != NULL);
@@ -1142,7 +1132,6 @@ tcp_plugin_send (void *cls,
                    "tcp", "Asked to transmit, added message to list.\n");
 #endif
   process_pending_messages (session);
-  return session;
 }
 
 
@@ -1160,14 +1149,6 @@ tcp_plugin_send (void *cls,
  * closed after a getting this call.
  *
  * @param cls closure
- * @param plugin_context value we were asked to pass to this plugin
- *        to respond to the given peer (use is optional,
- *        but may speed up processing), can be NULL (if
- *        NULL was returned from the transmit function); note
- *        that use of NULL is dangerous since then this call may
- *        cancel any session with the target peer (including
- *        HELLO validation sessions), which is likely not what
- *        is intended.
  * @param service_context must correspond to the service context
  *        of the corresponding Transmit call; the plugin should
  *        not cancel a send call made with a different service
@@ -1177,24 +1158,14 @@ tcp_plugin_send (void *cls,
  */
 static void
 tcp_plugin_cancel (void *cls,
-                   void *plugin_context,
                    struct ReadyList *service_context,
                    const struct GNUNET_PeerIdentity *target)
 {
   struct Plugin *plugin = cls;
-  struct Session *session = plugin_context;
+  struct Session *session;
   struct PendingMessage *pm;
   
-  if (session == NULL)
-    {
-#if DEBUG_TCP
-      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
-		       "tcp",
-		       "Asked to cancel with `%4s' without specification of specifics; will try to find an applicable session\n",
-		       GNUNET_i2s(target));
-#endif
-      session = find_session_by_target (plugin, target);
-    }
+  session = find_session_by_target (plugin, target);
   if (session == NULL)
     {
       GNUNET_break (0);
@@ -1886,7 +1857,6 @@ handle_tcp_data (void *cls,
 #endif
   session->service_context
     = plugin->env->receive (plugin->env->cls,
-                            session,
                             session->service_context,
                             latency, &session->target, msg);
   /* update bandwidth used */
@@ -2014,7 +1984,7 @@ process_hostname_ips (void *cls,
 
   if (addr == NULL)
     {
-      hostname_dns = NULL;
+      plugin->hostname_dns = NULL;
       return;
     }
   process_interfaces (plugin,
@@ -2100,11 +2070,11 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   GNUNET_SERVER_disconnect_notify (plugin->server, &disconnect_notify,
                                    plugin);
   GNUNET_OS_network_interfaces_list (&process_interfaces, plugin);
-  hostname_dns = GNUNET_RESOLVER_hostname_resolve (env->sched,
-						   env->cfg,
-						   AF_UNSPEC,
-						   HOSTNAME_RESOLVE_TIMEOUT,
-						   &process_hostname_ips, plugin);
+  plugin->hostname_dns = GNUNET_RESOLVER_hostname_resolve (env->sched,
+							   env->cfg,
+							   AF_UNSPEC,
+							   HOSTNAME_RESOLVE_TIMEOUT,
+							   &process_hostname_ips, plugin);
   return api;
 }
 
@@ -2121,10 +2091,10 @@ libgnunet_plugin_transport_tcp_done (void *cls)
 
   while (NULL != (session = plugin->sessions))
     disconnect_session (session);    
-  if (NULL != hostname_dns)
+  if (NULL != plugin->hostname_dns)
     {
-      GNUNET_RESOLVER_request_cancel (hostname_dns);
-      hostname_dns = NULL;
+      GNUNET_RESOLVER_request_cancel (plugin->hostname_dns);
+      plugin->hostname_dns = NULL;
     }
   GNUNET_SERVICE_stop (plugin->service);
   GNUNET_free (plugin->handlers);

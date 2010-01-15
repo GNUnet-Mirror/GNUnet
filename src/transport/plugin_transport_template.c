@@ -163,9 +163,6 @@ template_plugin_validate (void *cls,
  * a message using the plugin.
  *
  * @param cls closure
- * @param plugin_context value we were asked to pass to this plugin
- *        to respond to the given peer (use is optional,
- *        but may speed up processing), can be NULL
  * @param service_context value passed to the transport-service
  *        to identify the neighbour
  * @param target who should receive this message
@@ -177,12 +174,9 @@ template_plugin_validate (void *cls,
  *        for the next transmission call; or if the
  *        peer disconnected...)
  * @param cont_cls closure for cont
- * @return plugin_context that should be used next time for
- *         sending messages to the specified peer
  */
-static void *
+static void 
 template_plugin_send (void *cls,
-                      void *plugin_context,
                       struct ReadyList *service_context,
                       const struct GNUNET_PeerIdentity *target,
 		      unsigned int priority,
@@ -192,18 +186,16 @@ template_plugin_send (void *cls,
                       void *cont_cls)
 {
   //  struct Plugin *plugin = cls;
-  return NULL;
 }
 
 
 
 /**
+ * Function that can be used to force the plugin to disconnect
+ * from the given peer and cancel all previous transmissions
+ * (and their continuationc).
  *
  * @param cls closure
- * @param plugin_context value we were asked to pass to this plugin
- *        to respond to the given peer (use is optional,
- *        but may speed up processing), can be NULL (if
- *        NULL was returned from the transmit function)
  * @param service_context must correspond to the service context
  *        of the corresponding Transmit call; the plugin should
  *        not cancel a send call made with a different service
@@ -213,7 +205,6 @@ template_plugin_send (void *cls,
  */
 static void
 template_plugin_cancel (void *cls,
-                        void *plugin_context,
                         struct ReadyList *service_context,
                         const struct GNUNET_PeerIdentity *target)
 {
