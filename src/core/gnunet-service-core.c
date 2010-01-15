@@ -2349,6 +2349,14 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
                                &process_hello_retry_handle_set_key, m_cpy);
       return;
     }
+  if (0 != memcmp (&m->target,
+		   &my_identity,
+		   sizeof (struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Received `%s' message that was not for me.  Ignoring.\n"));
+      return;
+    }
   if ((ntohl (m->purpose.size) !=
        sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) +
        sizeof (struct GNUNET_TIME_AbsoluteNBO) +
