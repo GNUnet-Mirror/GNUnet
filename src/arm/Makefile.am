@@ -23,7 +23,8 @@ libgnunetarm_la_LDFLAGS = \
 
 bin_PROGRAMS = \
  gnunet-arm \
- gnunet-service-arm
+ gnunet-service-arm \
+ mockup-service 
 
 gnunet_arm_SOURCES = \
  gnunet-arm.c         
@@ -39,13 +40,20 @@ gnunet_service_arm_LDADD = \
   $(GN_LIBINTL)
 
 
-check_PROGRAMS = \
- test_arm_api
+mockup_service_SOURCES = \
+  mockup-service.c
+ mockup_service_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la  
 
+
+check_PROGRAMS = \
+ test_arm_api \
+ test_exponential_backoff
+ 
 check_SCRIPTS = \
  test_gnunet_arm.sh
 
-TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
+TESTS = test_arm_api $(check_SCRIPTS)
 
 test_arm_api_SOURCES = \
  test_arm_api.c
@@ -53,6 +61,12 @@ test_arm_api_LDADD = \
   $(top_builddir)/src/arm/libgnunetarm.la \
   $(top_builddir)/src/util/libgnunetutil.la  
 
-
+test_exponential_backoff_SOURCES = \
+ test_exponential_backoff.c
+test_exponential_backoff_LDADD = \
+  $(top_builddir)/src/arm/libgnunetarm.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+  
+  
 EXTRA_DIST = \
   test_arm_api_data.conf
