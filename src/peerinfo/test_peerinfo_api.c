@@ -117,7 +117,7 @@ run (void *cls,
   hello = GNUNET_HELLO_create (&pkey, &address_generator, &agc);
   GNUNET_assert (hello != NULL);
   GNUNET_PEERINFO_add_peer (cfg, sched, &pid, hello);
-  GNUNET_PEERINFO_for_all (cfg,
+  GNUNET_PEERINFO_iterate (cfg,
                            sched,
                            NULL,
                            0,
