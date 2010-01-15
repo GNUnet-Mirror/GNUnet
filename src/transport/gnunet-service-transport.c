@@ -1285,83 +1285,6 @@ plugin_env_notify_address (void *cls,
 
 
 /**
- * FIXME: document.
- */
-struct LookupHelloContext
-{
-  GNUNET_TRANSPORT_AddressCallback iterator;
-
-  void *iterator_cls;
-};
-
-
-/**
- * FIXME: document.
- */
-static int
-lookup_address_callback (void *cls,
-                         const char *tname,
-                         struct GNUNET_TIME_Absolute expiration,
-                         const void *addr, size_t addrlen)
-{
-  struct LookupHelloContext *lhc = cls;
-  lhc->iterator (lhc->iterator_cls, tname, addr, addrlen);
-  return GNUNET_OK;
-}
-
-
-/**
- * FIXME: document.
- */
-static void
-lookup_hello_callback (void *cls,
-                       const struct GNUNET_PeerIdentity *peer,
-                       const struct GNUNET_HELLO_Message *h, uint32_t trust)
-{
-  struct LookupHelloContext *lhc = cls;
-
-  if (peer == NULL)
-    {
-      lhc->iterator (lhc->iterator_cls, NULL, NULL, 0);
-      GNUNET_free (lhc);
-      return;
-    }
-  if (h == NULL)
-    return;
-  GNUNET_HELLO_iterate_addresses (h,
-                                  GNUNET_NO, &lookup_address_callback, lhc);
-}
-
-
-/**
- * Function that allows a transport to query the known
- * network addresses for a given peer.
- *
- * @param cls closure
- * @param timeout after how long should we time out?
- * @param target which peer are we looking for?
- * @param iter function to call for each known address
- * @param iter_cls closure for iter
- */
-static void
-plugin_env_lookup_address (void *cls,
-                           struct GNUNET_TIME_Relative timeout,
-                           const struct GNUNET_PeerIdentity *target,
-                           GNUNET_TRANSPORT_AddressCallback iter,
-                           void *iter_cls)
-{
-  struct LookupHelloContext *lhc;
-
-  lhc = GNUNET_malloc (sizeof (struct LookupHelloContext));
-  lhc->iterator = iter;
-  lhc->iterator_cls = iter_cls;
-  GNUNET_PEERINFO_for_all (cfg,
-                           sched,
-                           target, 0, timeout, &lookup_hello_callback, &lhc);
-}
-
-
-/**
  * Notify all of our clients about a peer connecting.
  */
 static void
@@ -1653,6 +1576,12 @@ struct CheckHelloValidatedContext
    */
   struct ValidationList *e;
 
+  /**
+   * Context for peerinfo iteration.
+   * NULL after we are done processing peerinfo's information.
+   */
+  struct GNUNET_PEERINFO_IteratorContext *piter;
+
 };
 
 
@@ -1723,6 +1652,7 @@ check_hello_validated (void *cls,
   first_call = GNUNET_NO;
   if (chvc->e == NULL)
     {
+      chvc->piter = NULL;
       first_call = GNUNET_YES;
       chvc->e = GNUNET_malloc (sizeof (struct ValidationList));
       GNUNET_assert (GNUNET_OK ==
@@ -1858,12 +1788,12 @@ process_hello (struct TransportPlugin *plugin,
   memcpy (chvc->hello, hello, hsize);
   /* finally, check if HELLO was previously validated
      (continuation will then schedule actual validation) */
-  GNUNET_PEERINFO_for_all (cfg,
-                           sched,
-                           &target,
-                           0,
-                           HELLO_VERIFICATION_TIMEOUT,
-                           &check_hello_validated, chvc);
+  chvc->piter = GNUNET_PEERINFO_iterate (cfg,
+					 sched,
+					 &target,
+					 0,
+					 HELLO_VERIFICATION_TIMEOUT,
+					 &check_hello_validated, chvc);
   return GNUNET_OK;
 }
 
@@ -2542,7 +2472,6 @@ create_environment (struct TransportPlugin *plug)
   plug->env.my_identity = &my_identity;
   plug->env.cls = plug;
   plug->env.receive = &plugin_env_receive;
-  plug->env.lookup = &plugin_env_lookup_address;
   plug->env.notify_address = &plugin_env_notify_address;
   plug->env.notify_validation = &plugin_env_notify_validation;
   plug->env.default_quota_in = (GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT + 59999) / (60 * 1000);

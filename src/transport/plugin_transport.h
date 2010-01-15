@@ -145,25 +145,6 @@ typedef void (*GNUNET_TRANSPORT_AddressCallback) (void *cls,
 
 
 /**
- * Function that allows a transport to query the known
- * network addresses for a given peer.
- *
- * @param cls closure
- * @param timeout after how long should we time out?
- * @param target which peer are we looking for?
- * @param iter function to call for each known address
- * @param iter_cls closure for iter
- */
-typedef void (*GNUNET_TRANSPORT_LookupAddress) (void *cls,
-                                                struct GNUNET_TIME_Relative
-                                                timeout,
-                                                const struct
-                                                GNUNET_PeerIdentity * target,
-                                                GNUNET_TRANSPORT_AddressCallback
-                                                iter, void *iter_cls);
-
-
-/**
  * The transport service will pass a pointer to a struct
  * of this type as the first and only argument to the
  * entry point of each transport plugin.
@@ -205,11 +186,6 @@ struct GNUNET_TRANSPORT_PluginEnvironment
    * whenever a message is received.
    */
   GNUNET_TRANSPORT_PluginReceiveCallback receive;
-
-  /**
-   * Address lookup function.
-   */
-  GNUNET_TRANSPORT_LookupAddress lookup;
 
   /**
    * Function that must be called by each plugin to notify the

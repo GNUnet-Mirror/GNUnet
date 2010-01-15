@@ -291,6 +291,12 @@ struct Session
   struct GNUNET_TIME_Absolute last_quota_update;
 
   /**
+   * Context for our iteration to find HELLOs for this peer.  NULL
+   * after iteration has completed.
+   */
+  struct GNUNET_PEERINFO_IteratorContext *ic;
+
+  /**
    * Address of the other peer if WE initiated the connection
    * (and hence can be sure what it is), otherwise NULL.
    */
@@ -799,6 +805,11 @@ disconnect_session (struct Session *session)
   else
     prev->next = session->next;
   /* clean up state */
+  if (session->ic != NULL)
+    {
+      GNUNET_PEERINFO_iterate_cancel (session->ic);
+      session->ic = NULL;
+    }
   if (session->transmit_handle != NULL)
     {
       GNUNET_CONNECTION_notify_transmit_ready_cancel (session->transmit_handle);
@@ -963,6 +974,7 @@ session_try_connect (void *cls,
 
   if (peer == NULL)
     {
+      session->ic = NULL;
       /* last call, destroy session if we are still not
          connected */
       if (session->client != NULL)
@@ -1106,10 +1118,10 @@ tcp_plugin_send (void *cls,
       session->expecting_welcome = GNUNET_YES;
       session->pending_messages = pm;
       session->service_context = service_context;
-      GNUNET_PEERINFO_for_all (plugin->env->cfg,
-                               plugin->env->sched,
-                               target,
-                               0, timeout, &session_try_connect, session);
+      session->ic = GNUNET_PEERINFO_iterate (plugin->env->cfg,
+					     plugin->env->sched,
+					     target,
+					     0, timeout, &session_try_connect, session);
       return;
     }
   GNUNET_assert (session != NULL);
