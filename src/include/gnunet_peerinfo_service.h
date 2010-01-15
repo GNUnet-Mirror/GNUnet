@@ -73,13 +73,21 @@ typedef void
 
 
 /**
+ * Handle for cancellation of iteration over peers.
+ */
+struct GNUNET_PEERINFO_IteratorContext;
+
+
+/**
  * Call a method for each known matching host and change
  * its trust value.  The method will be invoked once for
- * each host and then finally once with a NULL pointer.
- * Note that the last call can be triggered by timeout or
- * by simply being done; however, the trust argument will
- * be set to zero if we are done, 1 if we timed out and
- * 2 for fatal error.
+ * each host and then finally once with a NULL pointer.  After
+ * that final invocation, the iterator context must no longer
+ * be used.
+ *
+ * Note that the last call can be triggered by timeout or by simply
+ * being done; however, the trust argument will be set to zero if we
+ * are done, 1 if we timed out and 2 for fatal error.
  *
  * @param cfg configuration to use
  * @param sched scheduler to use
@@ -88,15 +96,26 @@ typedef void
  * @param timeout how long to wait until timing out
  * @param callback the method to call for each peer
  * @param callback_cls closure for callback
+ * @return NULL on error (in this case, 'callback' is never called!), 
+ *         otherwise an iterator context
  */
-void
-GNUNET_PEERINFO_for_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
+struct GNUNET_PEERINFO_IteratorContext *
+GNUNET_PEERINFO_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
                          struct GNUNET_SCHEDULER_Handle *sched,
                          const struct GNUNET_PeerIdentity *peer,
                          int trust_delta,
                          struct GNUNET_TIME_Relative timeout,
                          GNUNET_PEERINFO_Processor callback,
                          void *callback_cls);
+
+
+/**
+ * Cancel an iteration over peer information.
+ *
+ * @param ic context of the iterator to cancel
+ */
+void
+GNUNET_PEERINFO_iterate_cancel (struct GNUNET_PEERINFO_IteratorContext *ic);
 
 
 /**

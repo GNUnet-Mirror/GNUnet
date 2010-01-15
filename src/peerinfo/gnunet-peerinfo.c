@@ -85,13 +85,13 @@ run (void *cls,
 
   if (get_self != GNUNET_YES)
     {
-      GNUNET_PEERINFO_for_all (cfg,
-                               sched,
-                               NULL,
-                               0,
-                               GNUNET_TIME_relative_multiply
-                               (GNUNET_TIME_UNIT_SECONDS, 30),
-                               &print_peer_info, NULL);
+      (void) GNUNET_PEERINFO_iterate (cfg,
+				      sched,
+				      NULL,
+				      0,
+				      GNUNET_TIME_relative_multiply
+				      (GNUNET_TIME_UNIT_SECONDS, 30),
+				      &print_peer_info, NULL);
     }
   else
     {

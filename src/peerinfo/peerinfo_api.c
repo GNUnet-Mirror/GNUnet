@@ -120,7 +120,7 @@ GNUNET_PEERINFO_add_peer (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Context for the info handler.
  */
-struct InfoContext
+struct GNUNET_PEERINFO_IteratorContext
 {
 
   /**
@@ -156,7 +156,7 @@ struct InfoContext
 static void
 info_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 {
-  struct InfoContext *ic = cls;
+  struct GNUNET_PEERINFO_IteratorContext *ic = cls;
   const struct InfoMessage *im;
   const struct GNUNET_HELLO_Message *hello;
   uint16_t ms;
@@ -234,9 +234,10 @@ info_handler (void *cls, const struct GNUNET_MessageHeader *msg)
  * @param timeout how long to wait until timing out
  * @param callback the method to call for each peer
  * @param callback_cls closure for callback
+ * @return NULL on error, otherwise an iterator context
  */
-void
-GNUNET_PEERINFO_for_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
+struct GNUNET_PEERINFO_IteratorContext *
+GNUNET_PEERINFO_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
                          struct GNUNET_SCHEDULER_Handle *sched,
                          const struct GNUNET_PeerIdentity *peer,
                          int trust_delta,
@@ -247,28 +248,23 @@ GNUNET_PEERINFO_for_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_CLIENT_Connection *client;
   struct ListAllPeersMessage *lapm;
   struct ListPeerMessage *lpm;
-  struct InfoContext *ihc;
+  struct GNUNET_PEERINFO_IteratorContext *ihc;
 
   client = GNUNET_CLIENT_connect (sched, "peerinfo", cfg);
   if (client == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("Could not connect to `%s' service.\n"), "peerinfo");
-      callback (callback_cls, NULL, NULL, 2);
-      return;
+      return NULL;
     }
 #if DEBUG_PEERINFO
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Requesting list of peers from peerinfo database\n");
 #endif
-  ihc = GNUNET_malloc (sizeof (struct InfoContext) +
-                       sizeof (struct ListPeerMessage));
-  ihc->client = client;
-  ihc->callback = callback;
-  ihc->callback_cls = callback_cls;
-  ihc->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   if (peer == NULL)
     {
+      ihc = GNUNET_malloc (sizeof (struct GNUNET_PEERINFO_IteratorContext) +
+			   sizeof (struct ListAllPeersMessage));
       lapm = (struct ListAllPeersMessage *) &ihc[1];
       lapm->header.size = htons (sizeof (struct ListAllPeersMessage));
       lapm->header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_GET_ALL);
@@ -276,12 +272,18 @@ GNUNET_PEERINFO_for_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
     }
   else
     {
+      ihc = GNUNET_malloc (sizeof (struct GNUNET_PEERINFO_IteratorContext) +
+			   sizeof (struct ListPeerMessage));
       lpm = (struct ListPeerMessage *) &ihc[1];
       lpm->header.size = htons (sizeof (struct ListPeerMessage));
       lpm->header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_GET);
       lpm->trust_change = htonl (trust_delta);
       memcpy (&lpm->peer, peer, sizeof (struct GNUNET_PeerIdentity));
     }
+  ihc->client = client;
+  ihc->callback = callback;
+  ihc->callback_cls = callback_cls;
+  ihc->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   if (GNUNET_OK != 
       GNUNET_CLIENT_transmit_and_get_response (client,
 					       (const struct GNUNET_MessageHeader*) &ihc[1],
@@ -291,13 +293,25 @@ GNUNET_PEERINFO_for_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
 					       ihc))
     {
       GNUNET_break (0);
-      ihc->callback (ihc->callback_cls, NULL, NULL, 1);
       GNUNET_CLIENT_disconnect (ihc->client);
       GNUNET_free (ihc);
-      return;
+      return NULL;
     }
+  return ihc;
 }
 
+
+/**
+ * Cancel an iteration over peer information.
+ *
+ * @param ic context of the iterator to cancel
+ */
+void
+GNUNET_PEERINFO_iterate_cancel (struct GNUNET_PEERINFO_IteratorContext *ic)
+{
+  GNUNET_CLIENT_disconnect (ic->client);
+  GNUNET_free (ic);
+}
 
 
 /**
