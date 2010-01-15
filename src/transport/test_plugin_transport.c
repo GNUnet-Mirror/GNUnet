@@ -93,7 +93,7 @@ static int ok;
  * Initialize Environment for this plugin
  */
 struct ReadyList * 
-receive(void *cls,void *plugin_context,
+receive(void *cls,
 	struct ReadyList *
 	service_context,
 	struct GNUNET_TIME_Relative
@@ -115,17 +115,6 @@ void notify_address(void *cls,
 		    expires)
 {
 }
-
-void lookup (void *cls,
-	     struct GNUNET_TIME_Relative
-	     timeout,
-	     const struct
-	     GNUNET_PeerIdentity * target,
-	     GNUNET_TRANSPORT_AddressCallback
-	     iter, void *iter_cls)
-{	
-}
-
 
 /**
  * Function called when the service shuts
@@ -243,7 +232,6 @@ static void setup_plugin_environment()
   env.my_identity = &my_identity;
   env.cls=&env;
   env.receive=&receive;
-  env.lookup=&lookup;
   env.notify_address=&notify_address;
   env.notify_validation = &validation_notification;
   env.max_connections = max_connect_per_transport;       
