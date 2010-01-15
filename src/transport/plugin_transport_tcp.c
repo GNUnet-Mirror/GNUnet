@@ -625,8 +625,8 @@ static void
 process_pending_messages (struct Session *session)
 {
   GNUNET_assert (session->client != NULL);
-  if (session->pending_messages == NULL)
-    return;
+  if (session->pending_messages == NULL)    
+    return;    
   if (session->transmit_handle != NULL)
     return;
   session->transmit_handle
@@ -1186,8 +1186,7 @@ tcp_plugin_cancel (void *cls,
 #if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "tcp",
-		   "Asked to cancel session %p with `%4s'\n",
-		   plugin_context,
+		   "Asked to cancel session with `%4s'\n",
 		   GNUNET_i2s(target));
 #endif
   pm = session->pending_messages;
