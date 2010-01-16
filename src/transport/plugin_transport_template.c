@@ -163,8 +163,6 @@ template_plugin_validate (void *cls,
  * a message using the plugin.
  *
  * @param cls closure
- * @param service_context value passed to the transport-service
- *        to identify the neighbour
  * @param target who should receive this message
  * @param priority how important is the message
  * @param msg the message to transmit
@@ -177,7 +175,6 @@ template_plugin_validate (void *cls,
  */
 static void 
 template_plugin_send (void *cls,
-                      struct ReadyList *service_context,
                       const struct GNUNET_PeerIdentity *target,
 		      unsigned int priority,
                       const struct GNUNET_MessageHeader *msg,
@@ -196,17 +193,11 @@ template_plugin_send (void *cls,
  * (and their continuationc).
  *
  * @param cls closure
- * @param service_context must correspond to the service context
- *        of the corresponding Transmit call; the plugin should
- *        not cancel a send call made with a different service
- *        context pointer!  Never NULL.
- * @param target peer for which the last transmission is
- *        to be cancelled
+ * @param target peer from which to disconnect
  */
 static void
-template_plugin_cancel (void *cls,
-                        struct ReadyList *service_context,
-                        const struct GNUNET_PeerIdentity *target)
+template_plugin_disconnect (void *cls,
+			    const struct GNUNET_PeerIdentity *target)
 {
   // struct Plugin *plugin = cls;
   // FIXME
@@ -301,7 +292,7 @@ gnunet_plugin_transport_template_init (void *cls)
   api->cls = plugin;
   api->validate = &template_plugin_validate;
   api->send = &template_plugin_send;
-  api->cancel = &template_plugin_cancel;
+  api->disconnect = &template_plugin_disconnect;
   api->address_pretty_printer = &template_plugin_address_pretty_printer;
   api->set_receive_quota = &template_plugin_set_receive_quota;
   api->address_suggested = &template_plugin_address_suggested;

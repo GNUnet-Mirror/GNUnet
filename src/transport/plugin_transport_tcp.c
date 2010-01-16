@@ -264,11 +264,6 @@ struct Session
   struct GNUNET_SERVER_Client *client;
 
   /**
-   * gnunet-service-transport context for this connection.
-   */
-  struct ReadyList *service_context;
-
-  /**
    * Messages currently pending for transmission
    * to this peer, if any.
    */
@@ -560,7 +555,6 @@ do_transmit (void *cls, size_t size, void *buf)
 #endif
           if (pm->transmit_cont != NULL)
 	    pm->transmit_cont (pm->transmit_cont_cls,
-			       session->service_context,
 			       &session->target, GNUNET_SYSERR);	    
           GNUNET_free (pm);
         }
@@ -600,7 +594,6 @@ do_transmit (void *cls, size_t size, void *buf)
       session->pending_messages = pm->next;
       if (pm->transmit_cont != NULL)
         pm->transmit_cont (pm->transmit_cont_cls,
-                           session->service_context,
                            &session->target, GNUNET_OK);
       GNUNET_free (pm);
       session->gen_time[session->out_msg_counter % ACK_LOG_SIZE]
@@ -829,7 +822,6 @@ disconnect_session (struct Session *session)
       session->pending_messages = pm->next;
       if (NULL != pm->transmit_cont)
         pm->transmit_cont (pm->transmit_cont_cls,
-                           session->service_context,
                            &session->target, GNUNET_SYSERR);
       GNUNET_free (pm);
     }
@@ -846,7 +838,6 @@ disconnect_session (struct Session *session)
 	 know about this one, so we need to 
 	 notify transport service about disconnect */
       session->plugin->env->receive (session->plugin->env->cls,
-				     session->service_context,
 				     GNUNET_TIME_UNIT_ZERO,
 				     &session->target, NULL);
     }
@@ -1081,7 +1072,6 @@ session_try_connect (void *cls,
  */
 static void 
 tcp_plugin_send (void *cls,
-                 struct ReadyList *service_context,
                  const struct GNUNET_PeerIdentity *target,   
 		 unsigned int priority,
                  const struct GNUNET_MessageHeader *msg,
@@ -1117,7 +1107,6 @@ tcp_plugin_send (void *cls,
       session->quota_in = plugin->env->default_quota_in;
       session->expecting_welcome = GNUNET_YES;
       session->pending_messages = pm;
-      session->service_context = service_context;
       session->ic = GNUNET_PEERINFO_iterate (plugin->env->cfg,
 					     plugin->env->sched,
 					     target,
@@ -1126,7 +1115,6 @@ tcp_plugin_send (void *cls,
     }
   GNUNET_assert (session != NULL);
   GNUNET_assert (session->client != NULL);
-  session->service_context = service_context;
   /* append pm to pending_messages list */
   pme = session->pending_messages;
   if (pme == NULL)
@@ -1161,17 +1149,12 @@ tcp_plugin_send (void *cls,
  * closed after a getting this call.
  *
  * @param cls closure
- * @param service_context must correspond to the service context
- *        of the corresponding Transmit call; the plugin should
- *        not cancel a send call made with a different service
- *        context pointer!  Never NULL.
  * @param target peer for which the last transmission is
  *        to be cancelled
  */
 static void
-tcp_plugin_cancel (void *cls,
-                   struct ReadyList *service_context,
-                   const struct GNUNET_PeerIdentity *target)
+tcp_plugin_disconnect (void *cls,
+		       const struct GNUNET_PeerIdentity *target)
 {
   struct Plugin *plugin = cls;
   struct Session *session;
@@ -1196,7 +1179,6 @@ tcp_plugin_cancel (void *cls,
       pm->transmit_cont_cls = NULL;
       pm = pm->next;
     }
-  session->service_context = NULL;
   if (session->client != NULL)
     {
       GNUNET_SERVER_client_drop (session->client);
@@ -1866,10 +1848,8 @@ handle_tcp_data (void *cls,
                    "Forwarding data of type %u to transport service.\n",
                    ntohs (msg->type));
 #endif
-  session->service_context
-    = plugin->env->receive (plugin->env->cls,
-                            session->service_context,
-                            latency, &session->target, msg);
+  plugin->env->receive (plugin->env->cls,
+			latency, &session->target, msg);
   /* update bandwidth used */
   session->last_received += msize;
   update_quota (session, GNUNET_NO);
@@ -2062,7 +2042,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   api->cls = plugin;
   api->validate = &tcp_plugin_validate;
   api->send = &tcp_plugin_send;
-  api->cancel = &tcp_plugin_cancel;
+  api->disconnect = &tcp_plugin_disconnect;
   api->address_pretty_printer = &tcp_plugin_address_pretty_printer;
   api->set_receive_quota = &tcp_plugin_set_receive_quota;
   api->address_suggested = &tcp_plugin_address_suggested;

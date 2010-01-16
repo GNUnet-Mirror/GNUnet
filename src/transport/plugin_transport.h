@@ -44,23 +44,11 @@
 #include "gnunet_transport_service.h"
 
 /**
- * Opaque internal context for a particular peer of the transport
- * service.  Plugins will be given a pointer to this type and, if
- * cheaply possible, should pass this pointer back to the transport
- * service whenever additional messages from the same peer are
- * received.
- */
-struct ReadyList;
-
-/**
  * Function called by the transport for each received message.
  * This function should also be called with "NULL" for the
  * message to signal that the other peer disconnected.
  *
  * @param cls closure
- * @param service_context value passed to the transport-service
- *        to identify the neighbour; will be NULL on the first
- *        call for a given peer
  * @param latency estimated latency for communicating with the
  *        given peer; should be set to GNUNET_TIME_UNIT_FOREVER_REL
  *        until the transport has seen messages transmitted in
@@ -70,20 +58,14 @@ struct ReadyList;
  *        using this one plugin actually works
  * @param peer (claimed) identity of the other peer
  * @param message the message, NULL if peer was disconnected
- * @return the new service_context that the plugin should use
- *         for future receive calls for messages from this
- *         particular peer
  */
-typedef struct ReadyList *
-  (*GNUNET_TRANSPORT_PluginReceiveCallback) (void *cls,
-                                             struct ReadyList *
-                                             service_context,
-                                             struct GNUNET_TIME_Relative
-                                             latency,
-                                             const struct GNUNET_PeerIdentity
-                                             * peer,
-                                             const struct GNUNET_MessageHeader
-                                             * message);
+typedef void (*GNUNET_TRANSPORT_PluginReceiveCallback) (void *cls,
+							struct GNUNET_TIME_Relative
+							latency,
+							const struct GNUNET_PeerIdentity
+							* peer,
+							const struct GNUNET_MessageHeader
+							* message);
 
 
 /**
@@ -247,8 +229,6 @@ typedef int
  * upon "completion".
  *
  * @param cls closure
- * @param service_context value passed to the transport-service
- *        to identify the neighbour
  * @param target who was the recipient of the message?
  * @param result GNUNET_OK on success
  *               GNUNET_SYSERR if the target disconnected;
@@ -257,10 +237,9 @@ typedef int
  */
 typedef void
   (*GNUNET_TRANSPORT_TransmitContinuation) (void *cls,
-                                            struct ReadyList *
-                                            service_context,
                                             const struct GNUNET_PeerIdentity *
                                             target, int result);
+
 
 /**
  * Function that can be used by the transport service to transmit
@@ -271,11 +250,6 @@ typedef void
  * a fresh connection to another peer.
  *
  * @param cls closure
- * @param service_context value passed to the transport-service
- *        to identify the neighbour; NULL is used to indicate
- *        an urgent message.  If the urgent message can not be
- *        scheduled for immediate transmission, the plugin is to
- *        call the continuation with failure immediately
  * @param target who should receive this message
  * @param priority how important is the message?
  * @param msg the message to transmit
@@ -288,7 +262,6 @@ typedef void
  */
 typedef void 
   (*GNUNET_TRANSPORT_TransmitFunction) (void *cls,
-                                        struct ReadyList * service_context,
                                         const struct GNUNET_PeerIdentity *
                                         target,
 					unsigned int priority,
@@ -312,18 +285,13 @@ typedef void
  * closed after a getting this call.
  *
  * @param cls closure
- * @param service_context must correspond to the service context
- *        of the corresponding Transmit call; the plugin should
- *        not cancel a send call made with a different service
- *        context pointer!  Never NULL.
  * @param target peer for which the last transmission is
  *        to be cancelled
  */
 typedef void
-  (*GNUNET_TRANSPORT_CancelFunction) (void *cls,
-                                      struct ReadyList * service_context,
-                                      const struct GNUNET_PeerIdentity *
-                                      target);
+  (*GNUNET_TRANSPORT_DisconnectFunction) (void *cls,
+					  const struct GNUNET_PeerIdentity *
+					  target);
 
 
 /**
@@ -423,11 +391,13 @@ struct GNUNET_TRANSPORT_PluginFunctions
   GNUNET_TRANSPORT_TransmitFunction send;
 
   /**
-   * Function that can be used to force the plugin to disconnect
-   * from the given peer and cancel all previous transmissions
-   * (and their continuationc).
+   * Function that can be used to force the plugin to disconnect from
+   * the given peer and cancel all previous transmissions (and their
+   * continuations).  Note that if the transport does not have
+   * sessions / persistent connections (for example, UDP), this
+   * function may very well do nothing.
    */
-  GNUNET_TRANSPORT_CancelFunction cancel;
+  GNUNET_TRANSPORT_DisconnectFunction disconnect;
 
   /**
    * Function to pretty-print addresses.  NOTE: this function is not

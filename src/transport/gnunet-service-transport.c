@@ -850,11 +850,11 @@ try_transmission_to_peer (struct NeighbourList *neighbour);
  */
 static void
 transmit_send_continuation (void *cls,
-                            struct ReadyList *rl,
                             const struct GNUNET_PeerIdentity *target,
                             int result)
 {
   struct MessageQueue *mq = cls;
+  struct ReadyList *rl;
   struct SendOkMessage send_ok_msg;
   struct NeighbourList *n;
 
@@ -864,13 +864,10 @@ transmit_send_continuation (void *cls,
   GNUNET_assert (0 ==
                  memcmp (&n->id, target,
                          sizeof (struct GNUNET_PeerIdentity)));
-  if (rl == NULL)
-    {
-      rl = n->plugins;
-      while ((rl != NULL) && (rl->plugin != mq->plugin))
-        rl = rl->next;
-      GNUNET_assert (rl != NULL);
-    }
+  rl = n->plugins;
+  while ((rl != NULL) && (rl->plugin != mq->plugin))
+    rl = rl->next;
+  GNUNET_assert (rl != NULL);
   if (result == GNUNET_OK)
     {
       rl->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
@@ -980,7 +977,6 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
               GNUNET_i2s (&neighbour->id), rl->plugin->short_name);
 #endif
   rl->plugin->api->send (rl->plugin->api->cls,
-			 rl,
 			 &neighbour->id,
 			 mq->priority,
 			 mq->message,
@@ -1859,9 +1855,8 @@ disconnect_neighbour (struct NeighbourList *n,
       n->plugins = rpos->next;
       GNUNET_assert (rpos->neighbour == n);
       if (GNUNET_YES == rpos->connected)
-	rpos->plugin->api->cancel (rpos->plugin->api->cls,
-				   rpos,
-				   &n->id);
+	rpos->plugin->api->disconnect (rpos->plugin->api->cls,
+				       &n->id);
       GNUNET_free (rpos);
     }
 
@@ -1974,9 +1969,6 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer)
  * and generally forward to our receive callback.
  *
  * @param cls the "struct TransportPlugin *" we gave to the plugin
- * @param service_context value passed to the transport-service
- *        to identify the neighbour; will be NULL on the first
- *        call for a given peer
  * @param latency estimated latency for communicating with the
  *             given peer
  * @param peer (claimed) identity of the other peer
@@ -1985,9 +1977,8 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer)
  *         for future receive calls for messages from this
  *         particular peer
  */
-static struct ReadyList *
+static void
 plugin_env_receive (void *cls,
-                    struct ReadyList *service_context,
                     struct GNUNET_TIME_Relative latency,
                     const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_MessageHeader *message)
@@ -1996,32 +1987,26 @@ plugin_env_receive (void *cls,
     htons (sizeof (struct GNUNET_MessageHeader)),
     htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ACK)
   };
+  struct ReadyList *service_context;
   struct TransportPlugin *plugin = cls;
   struct TransportClient *cpos;
   struct InboundMessage *im;
   uint16_t msize;
   struct NeighbourList *n;
 
-  if (service_context != NULL)
+  n = find_neighbour (peer);
+  if (n == NULL)
     {
-      n = service_context->neighbour;
-      GNUNET_assert (n != NULL);
+      if (message == NULL)
+	return;        /* disconnect of peer already marked down */
+      n = setup_new_neighbour (peer);
     }
-  else
-    {
-      n = find_neighbour (peer);
-      if (n == NULL)
-        {
-          if (message == NULL)
-            return NULL;        /* disconnect of peer already marked down */
-          n = setup_new_neighbour (peer);
-        }
-      service_context = n->plugins;
-      while ((service_context != NULL) && (plugin != service_context->plugin))
-        service_context = service_context->next;
-      GNUNET_assert ((plugin->api->send == NULL) ||
-                     (service_context != NULL));
-    }
+  service_context = n->plugins;
+  while ( (service_context != NULL) &&
+	  (plugin != service_context->plugin) )
+    service_context = service_context->next;
+  GNUNET_assert ((plugin->api->send == NULL) ||
+		 (service_context != NULL));    
   if (message == NULL)
     {
 #if DEBUG_TRANSPORT
@@ -2033,7 +2018,7 @@ plugin_env_receive (void *cls,
       if (service_context != NULL) 
 	service_context->connected = GNUNET_NO;        
       disconnect_neighbour (n, GNUNET_YES);
-      return NULL;
+      return;
     }
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
@@ -2073,7 +2058,7 @@ plugin_env_receive (void *cls,
       /* TODO: call stats */
       GNUNET_assert ( (service_context == NULL) ||
 		      (NULL != service_context->neighbour) );
-      return service_context;
+      return;
     }
   switch (ntohs (message->type))
     {
@@ -2119,7 +2104,6 @@ plugin_env_receive (void *cls,
     }
   GNUNET_assert ( (service_context == NULL) ||
 		  (NULL != service_context->neighbour) );
-  return service_context;
 }
 
 

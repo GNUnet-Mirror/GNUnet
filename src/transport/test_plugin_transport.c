@@ -92,10 +92,8 @@ static int ok;
 /**
  * Initialize Environment for this plugin
  */
-struct ReadyList * 
+static void
 receive(void *cls,
-	struct ReadyList *
-	service_context,
 	struct GNUNET_TIME_Relative
 	latency,
 	const struct GNUNET_PeerIdentity
@@ -103,7 +101,7 @@ receive(void *cls,
 	const struct GNUNET_MessageHeader
 	* message)
 {
-  return NULL;
+  /* do nothing */
 }
 
 void notify_address(void *cls,
