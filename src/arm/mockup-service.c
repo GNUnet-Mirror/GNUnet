@@ -36,7 +36,6 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
 	/* Does nothing */
-	int x = 0;
 }
 
 
