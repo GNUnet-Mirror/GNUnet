@@ -863,6 +863,8 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
     }  
   GNUNET_assert (off == 0);
 
+  clen = 0;
+  cdata = NULL;
   left = size;
   for (i=0;i<md->item_count;i++)
     {           
