@@ -49,10 +49,12 @@ copy_and_free (void *cls, size_t size, void *buf)
 
   if (buf == NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+#if DEBUG_PEERINFO
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _
                   ("Failed to transmit message of type %u to `%s' service.\n"),
                   ntohs (msg->type), "peerinfo");
+#endif
       GNUNET_free (msg);
       GNUNET_CLIENT_disconnect (cc->client);
       GNUNET_free (cc);
@@ -112,7 +114,7 @@ GNUNET_PEERINFO_add_peer (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_CLIENT_notify_transmit_ready (client,
                                        ntohs (pam->header.size),
                                        ADD_PEER_TIMEOUT, 
-				       GNUNET_YES,
+				       GNUNET_NO,
 				       &copy_and_free, cc);
 }
 

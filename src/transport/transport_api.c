@@ -378,7 +378,7 @@ transport_notify_ready (void *cls, size_t size, void *buf)
   if (buf == NULL)
     {
 #if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Could not transmit to transport service, cancelling pending requests\n");
 #endif
       th = h->connect_ready_head;
@@ -398,7 +398,8 @@ transport_notify_ready (void *cls, size_t size, void *buf)
 	}
       GNUNET_assert (0 == th->notify (th->notify_cls, 0, NULL));
       GNUNET_free (th);
-      if (h->connect_ready_head != NULL) schedule_transmission (h); /* FIXME: is this ok? */
+      if (h->connect_ready_head != NULL) 
+	schedule_transmission (h); /* FIXME: is this ok? */
       return 0;
     } 
 #if DEBUG_TRANSPORT
@@ -409,7 +410,8 @@ transport_notify_ready (void *cls, size_t size, void *buf)
   ret = 0;
   h->network_handle = NULL;
   h->transmission_scheduled = GNUNET_NO;
-  do
+  while ((h->connect_ready_head != NULL) &&
+         (h->connect_ready_head->notify_size <= size))
     {
       th = h->connect_ready_head;
       if (th->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
@@ -433,8 +435,6 @@ transport_notify_ready (void *cls, size_t size, void *buf)
         n->last_sent += ret;
       size -= ret;
     }
-  while ((h->connect_ready_head != NULL) &&
-         (h->connect_ready_head->notify_size <= size));
   if (h->connect_ready_head != NULL)
     schedule_transmission (h);
 #if DEBUG_TRANSPORT
@@ -1498,6 +1498,16 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
   while (NULL != (n = handle->neighbours))
     {
       handle->neighbours = n->next;
+      if (NULL != (th = n->transmit_handle))
+	{
+	  if (th->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
+	    {
+	      GNUNET_SCHEDULER_cancel (handle->sched, th->notify_delay_task);
+	      th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
+	    }
+	  th->notify (th->notify_cls, 0, NULL);
+	  GNUNET_free (th);
+	}
       GNUNET_free (n);
     }
   while (NULL != (hwl = handle->hwl_head))

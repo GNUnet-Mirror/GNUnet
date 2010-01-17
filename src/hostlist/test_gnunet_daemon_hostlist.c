@@ -62,10 +62,16 @@ static struct PeerContext p2;
 static void
 clean_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_TRANSPORT_disconnect (p1.th);
-  p1.th = NULL;
-  GNUNET_TRANSPORT_disconnect (p2.th);
-  p2.th = NULL;
+  if (p1.th != NULL)
+    {
+      GNUNET_TRANSPORT_disconnect (p1.th);
+      p1.th = NULL;
+    }
+  if (p2.th != NULL)
+    {
+      GNUNET_TRANSPORT_disconnect (p2.th);
+      p2.th = NULL;
+    }
   GNUNET_SCHEDULER_shutdown (sched);
 }
 
@@ -99,13 +105,16 @@ notify_connect (void *cls,
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Peers connected, shutting down.\n");
-  GNUNET_assert (ok == 4);
   ok = 0;
-  GNUNET_SCHEDULER_cancel (sched,
-			   timeout_task);
-  timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_SCHEDULER_add_now (sched,
-			    &clean_up, NULL);
+  if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (sched,
+			       timeout_task);
+      timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  GNUNET_SCHEDULER_add_delayed (sched,
+				GNUNET_TIME_UNIT_MINUTES,
+				&clean_up, NULL);
 }
 
 
@@ -121,8 +130,6 @@ process_hello (void *cls,
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received HELLO, starting hostlist service.\n");
-  GNUNET_assert ( (ok >= 2) && (ok <= 3) );
-  ok++;
   GNUNET_ARM_start_services (p->cfg, sched, "hostlist", NULL);
 }
 
