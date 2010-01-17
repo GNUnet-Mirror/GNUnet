@@ -13,9 +13,13 @@ away), in order in which they will likely be done:
 
 Urgent items (before announcing ng.gnunet.org):
 * topology
+  - considers peers 'connected' well before they actually are
+    (since core notifies about it too early?)
   - needs testing
 * hostlist
-  - test fails (gnunet-service-core crashes -- sometimes; with memory corruption!)
+  - test fails (looks like it works, but that's because of a bad
+    connectivity notification; somehow core is unable to send
+    messages successfully via transport)
 * CORE:
   - soliciting traffic for clients that registered for it is not implemented
     (in the service, client API supports GNUNET_MESSAGE_TYPE_CORE_SOLICIT_TRAFFIC
