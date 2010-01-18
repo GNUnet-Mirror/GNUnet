@@ -1177,9 +1177,9 @@ handle_unindex (void *cls,
 		       sizeof (GNUNET_HashCode)))
 	{
 	  if (prev == NULL)
-	    indexed_files = pos->next;
+	    indexed_files = next;
 	  else
-	    prev->next = pos->next;
+	    prev->next = next;
 	  GNUNET_free (pos);
 	  found = GNUNET_YES;
 	}
