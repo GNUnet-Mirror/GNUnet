@@ -262,6 +262,7 @@ testThumbnail ()
   EXTRACTOR_plugin_remove_all (ex);
   d = GNUNET_CONTAINER_meta_data_duplicate (m);
   GNUNET_CONTAINER_meta_data_destroy (m);
+  thumb = NULL;
   size = GNUNET_CONTAINER_meta_data_get_thumbnail (d, &thumb);
   if (size == 0)
     {

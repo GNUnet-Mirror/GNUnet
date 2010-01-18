@@ -67,6 +67,8 @@ Urgent items (before announcing ng.gnunet.org):
 * ARM:
   - need to get rid of synchronous API for service starts (cause all kinds of problems)
     [=> eliminate for need to tell ARM about service starts most of the time!]
+* HELLO:
+  - need function to test "equivalency" of HELLOs; use in topology!
 * Module features to implement:
   - advanced FS API parts
     + namespaces: fundamental namespace API

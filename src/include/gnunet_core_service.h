@@ -175,8 +175,10 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
 void GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle);
 
 
+// FIXME
 struct GNUNET_CORE_PeerRequestHandle;
 
+// FIXME
 struct GNUNET_CORE_PeerRequestHandle *
 GNUNET_CORE_peer_request_connect (struct GNUNET_SCHEDULER_Handle *sched,
 					 const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -185,6 +187,7 @@ GNUNET_CORE_peer_request_connect (struct GNUNET_SCHEDULER_Handle *sched,
 					 void *cont_cls);
 
 
+// FIXME
 struct GNUNET_CORE_PeerRequestHandle *
 GNUNET_CORE_peer_request_disconnect (struct GNUNET_SCHEDULER_Handle *sched,
 					    const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -192,6 +195,7 @@ GNUNET_CORE_peer_request_disconnect (struct GNUNET_SCHEDULER_Handle *sched,
 					    GNUNET_SCHEDULER_Task cont,
 					    void *cont_cls);
 
+// FIXME
 void
 GNUNET_CORE_peer_request_cancel (struct GNUNET_CORE_PeerRequestHandle *req);
 

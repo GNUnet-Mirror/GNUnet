@@ -519,7 +519,8 @@ GNUNET_CONTAINER_meta_data_get_thumbnail (const struct
 	}
       pos = pos->next;
     }
-  if (match == NULL)
+  if ( (match == NULL) ||
+       (match->data_size == 0) )
     return 0;
   *thumb = GNUNET_malloc (match->data_size);
   memcpy (*thumb, match->data, match->data_size);
@@ -855,9 +856,11 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
       off -= pos->data_size;
       memcpy (&mdata[off], pos->data, pos->data_size);
       off -= plen;
-      memcpy (&mdata[off], pos->plugin_name, plen);
+      if (pos->plugin_name != NULL)
+	memcpy (&mdata[off], pos->plugin_name, plen);
       off -= mlen;
-      memcpy (&mdata[off], pos->mime_type, mlen);      
+      if (pos->mime_type != NULL)
+	memcpy (&mdata[off], pos->mime_type, mlen);      
       i++;
       pos = pos->next;
     }  
@@ -866,6 +869,7 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
   clen = 0;
   cdata = NULL;
   left = size;
+  pos = md->items;
   for (i=0;i<md->item_count;i++)
     {           
       comp = GNUNET_NO;
@@ -887,6 +891,7 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
 	  hdr->entries = htonl (md->item_count);
 	  if (GNUNET_YES == comp)
 	    {
+	      GNUNET_assert (clen < left);
 	      hdr->version = htonl (2 | HEADER_COMPRESSED);
 	      memcpy (&hdr[1],
 		      cdata, 
@@ -960,7 +965,8 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
       if (pos->plugin_name != NULL)
 	left -= strlen (pos->plugin_name) + 1;
       if (pos->mime_type != NULL)
-	left -= strlen (pos->mime_type) + 1;      
+	left -= strlen (pos->mime_type) + 1;
+      pos = pos->next;
     }
   GNUNET_free (ent);
 

@@ -856,7 +856,6 @@ process_peer (void *cls,
   if (hello == NULL)
     {
       /* free existing HELLO, if any */
-      pos = find_peer (peer);
       if (NULL != (pos = find_peer (peer)))
 	{
 	  GNUNET_free_non_null (pos->hello);
@@ -1063,11 +1062,9 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
 	  fl = make_peer (&pid,
 			  NULL,
 			  GNUNET_YES);
-#if DEBUG_TOPOLOGY
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Found friend `%s' in configuration\n",
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		      _("Found friend `%s' in configuration\n"),
 		      GNUNET_i2s (&fl->id));
-#endif       
 	}
       pos = pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded);
       while ((pos < frstat.st_size) && isspace (data[pos]))

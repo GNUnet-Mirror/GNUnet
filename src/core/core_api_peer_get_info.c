@@ -64,7 +64,7 @@ receive_info (void *cls,
 
   if (msg == NULL)
     {
-      if (irc != NULL)
+      if (irc->info != NULL)
 	irc->info (irc->info_cls, 
 		   NULL, 0, 0, GNUNET_TIME_UNIT_FOREVER_REL, 0, 0);     
       GNUNET_CLIENT_disconnect (irc->client);
@@ -75,7 +75,7 @@ receive_info (void *cls,
        (ntohs (msg->size) != sizeof (struct ConfigurationInfoMessage)) )
     {
       GNUNET_break (0);
-      if (irc != NULL)
+      if (irc->info != NULL)
 	irc->info (irc->info_cls, 
 		   NULL, 0, 0, GNUNET_TIME_UNIT_FOREVER_REL, 0, 0);     
       GNUNET_CLIENT_disconnect (irc->client);
@@ -83,7 +83,7 @@ receive_info (void *cls,
       return;
     }
   cim = (const struct ConfigurationInfoMessage*) msg;
-  if (irc != NULL)
+  if (irc->info != NULL)
     irc->info (irc->info_cls,
 	       &cim->peer,
 	       ntohl (cim->bpm_in),

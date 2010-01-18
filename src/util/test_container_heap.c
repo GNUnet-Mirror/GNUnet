@@ -51,6 +51,7 @@ check ()
 
   myHeap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   n1 = GNUNET_CONTAINER_heap_insert (myHeap, "11", 11);
+  GNUNET_assert (NULL != n1);
   GNUNET_CONTAINER_heap_iterate (myHeap, &iterator_callback, NULL);
   GNUNET_assert (1 == GNUNET_CONTAINER_heap_get_size (myHeap));
   n2 = GNUNET_CONTAINER_heap_insert (myHeap, "78", 78);
@@ -66,6 +67,7 @@ check ()
   GNUNET_CONTAINER_heap_iterate (myHeap, &iterator_callback, NULL);
 
   n4 = GNUNET_CONTAINER_heap_insert (myHeap, "50", 50);
+  GNUNET_CONTAINER_heap_update_cost (myHeap, n4, 0);
   GNUNET_assert (3 == GNUNET_CONTAINER_heap_get_size (myHeap));
   GNUNET_CONTAINER_heap_iterate (myHeap, &iterator_callback, NULL);
 
