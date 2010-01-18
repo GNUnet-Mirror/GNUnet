@@ -625,15 +625,22 @@ GNUNET_CONTAINER_bloomfilter_or (struct GNUNET_CONTAINER_BloomFilter *bf,
                                  const char *data, size_t size)
 {
   unsigned int i;
+  unsigned int n;
+  unsigned long long* fc;
+  const unsigned long long* dc;
 
   if (NULL == bf)
     return GNUNET_YES;
   if (bf->bitArraySize != size)
     return GNUNET_SYSERR;
-  /* FIXME: we could do this 4-8x faster by
-     going over int/long arrays */
-  for (i = 0; i < size; i++)
-    bf->bitArray[i] |= data[i];
+  fc = (unsigned long long*) bf->bitArray;
+  dc = (const unsigned long long*) data;
+  n = size / sizeof (unsigned long long);
+
+  for (i = 0; i < n; i++)
+    fc[i] |= dc[i];
+  for (i = n * sizeof(unsigned long long); i < size; i++)
+    bf->bitArray[i] |= data[i]
   return GNUNET_OK;
 }
 

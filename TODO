@@ -13,6 +13,7 @@ away), in order in which they will likely be done:
 
 Urgent items (before announcing ng.gnunet.org):
 * topology
+  - HELLO advertising does not work (no solicitation!)
   - considers peers 'connected' well before they actually are
     (since core notifies about it too early?)
   - needs testing
