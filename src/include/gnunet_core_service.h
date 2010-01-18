@@ -180,10 +180,10 @@ void GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle);
  *
  * @param cls closure
  * @param peer identifies the peer
- * @param latency current latency estimate, "FOREVER" if we have been
- *                disconnected
  * @param bpm_in set to the current bandwidth limit (receiving) for this peer
  * @param bpm_out set to the current bandwidth limit (sending) for this peer
+ * @param latency current latency estimate, "FOREVER" if we have been
+ *                disconnected
  * @param amount set to the amount that was actually reserved or unreserved
  * @param preference current traffic preference for the given peer
  */
