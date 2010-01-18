@@ -122,19 +122,6 @@ disconnect_notify (void *cls,
 }
 
 
-static unsigned int
-bfc_callback (void *cls,
-              const struct GNUNET_PeerIdentity *receiver,
-              void *position, 
-	      size_t padding)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core requests data for `%4s', I have none.\n",
-              GNUNET_i2s (receiver));
-  return 0;
-}
-
-
 static int
 inbound_notify (void *cls,
                 const struct GNUNET_PeerIdentity *other,
@@ -230,7 +217,6 @@ init_notify (void *cls,
                            &init_notify,
                            &connect_notify,
                            &disconnect_notify,
-                           &bfc_callback,
                            &inbound_notify,
                            GNUNET_YES,
                            &outbound_notify, GNUNET_YES, handlers);
@@ -321,7 +307,6 @@ run (void *cls,
                        &init_notify,
                        &connect_notify,
                        &disconnect_notify,
-                       &bfc_callback,
                        &inbound_notify,
                        GNUNET_YES, &outbound_notify, GNUNET_YES, handlers);
 }
