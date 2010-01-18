@@ -103,6 +103,12 @@ GNUNET_PEERINFO_add_peer (const struct GNUNET_CONFIGURATION_Handle *cfg,
       return;
     }
   hs = GNUNET_HELLO_size (hello);
+#if DEBUG_PEERINFO
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Size of `%s' is %u bytes\n",
+	      "HELLO",
+	      (unsigned int) GNUNET_HELLO_size (hello));
+#endif  
   pam = GNUNET_malloc (sizeof (struct PeerAddMessage) + hs);
   pam->header.size = htons (hs + sizeof (struct PeerAddMessage));
   pam->header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_ADD);
@@ -213,6 +219,12 @@ info_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 	      "Received information about peer `%s' from peerinfo database\n",
 	      GNUNET_i2s (&im->peer));
 #endif
+#if DEBUG_PEERINFO
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Size of `%s' is %u bytes\n",
+	      "HELLO",
+	      (unsigned int) GNUNET_HELLO_size (hello));
+#endif  
   ic->callback (ic->callback_cls, &im->peer, hello, ntohl (im->trust));
   GNUNET_CLIENT_receive (ic->client,
                          &info_handler,

@@ -34,7 +34,13 @@
 #include "gnunet_peerinfo_service.h"
 #include "gnunet_program_lib.h"
 #include "gnunet_time_lib.h"
+#include "peerinfo.h"
 
+static struct GNUNET_SCHEDULER_Handle *sched;
+
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+static unsigned int retries;
 
 static int
 check_it (void *cls,
@@ -51,34 +57,6 @@ check_it (void *cls,
       (*agc) -= (1 << (addrlen - 1));
     }
   return GNUNET_OK;
-}
-
-
-static void
-process (void *cls,
-         const struct GNUNET_PeerIdentity *peer,
-         const struct GNUNET_HELLO_Message *hello, uint32_t trust)
-{
-  int *ok = cls;
-  unsigned int agc;
-
-  if (peer == NULL)
-    {
-      GNUNET_assert (peer == NULL);
-      GNUNET_assert (2 == *ok);
-      GNUNET_assert (trust == 0);
-      *ok = 0;
-      return;
-    }
-
-  if (hello != NULL)
-    {
-      GNUNET_assert (3 == *ok);
-      agc = 3;
-      GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &check_it, &agc);
-      GNUNET_assert (agc == 0);
-      *ok = 2;
-    }
 }
 
 
@@ -100,30 +78,82 @@ address_generator (void *cls, size_t max, void *buf)
 
 
 static void
-run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *sched,
-     char *const *args,
-     const char *cfgfile, 
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+add_peer ()
 {
-  struct GNUNET_HELLO_Message *hello;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
-  size_t agc;
   struct GNUNET_PeerIdentity pid;
+  struct GNUNET_HELLO_Message *h2;
+  size_t agc;
 
+  agc = 2;
   memset (&pkey, 32, sizeof (pkey));
   GNUNET_CRYPTO_hash (&pkey, sizeof (pkey), &pid.hashPubKey);
-  agc = 2;
-  hello = GNUNET_HELLO_create (&pkey, &address_generator, &agc);
-  GNUNET_assert (hello != NULL);
-  GNUNET_PEERINFO_add_peer (cfg, sched, &pid, hello);
+  h2 = GNUNET_HELLO_create (&pkey, &address_generator, &agc);
+  GNUNET_PEERINFO_add_peer (cfg, sched, &pid, h2);
+  GNUNET_free (h2);
+
+}
+
+
+static void
+process (void *cls,
+         const struct GNUNET_PeerIdentity *peer,
+         const struct GNUNET_HELLO_Message *hello, uint32_t trust)
+{
+  int *ok = cls;
+  unsigned int agc;
+
+  if (peer == NULL)
+    {
+      if ( (3 == *ok) &&
+	   (retries < 5) )
+	{
+	  /* try again */
+	  retries++;	  
+	  add_peer ();
+	  GNUNET_PEERINFO_iterate (cfg,
+				   sched,
+				   NULL,
+				   0,
+				   GNUNET_TIME_relative_multiply
+				   (GNUNET_TIME_UNIT_SECONDS, 15), 
+				   &process, cls);
+	  return;
+	}
+      GNUNET_assert (peer == NULL);
+      GNUNET_assert (2 == *ok);
+      GNUNET_assert (trust == 0);
+      *ok = 0;
+      return;
+    }
+
+  if (hello != NULL)
+    {
+      GNUNET_assert (3 == *ok);
+      agc = 3;
+      GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &check_it, &agc);
+      GNUNET_assert (agc == 0);
+      *ok = 2;
+    }
+}
+
+
+static void
+run (void *cls,
+     struct GNUNET_SCHEDULER_Handle *s,
+     char *const *args,
+     const char *cfgfile, 
+     const struct GNUNET_CONFIGURATION_Handle *c)
+{
+  sched = s;
+  cfg = c;
+  add_peer ();
   GNUNET_PEERINFO_iterate (cfg,
                            sched,
                            NULL,
                            0,
                            GNUNET_TIME_relative_multiply
                            (GNUNET_TIME_UNIT_SECONDS, 15), &process, cls);
-  GNUNET_free (hello);
 }
 
 
@@ -167,6 +197,13 @@ main (int argc, char *argv[])
 {
   int ret = 0;
 
+  GNUNET_log_setup ("test_peerinfo_api",
+#if DEBUG_PEERINFO
+                    "DEBUG",
+#else
+                    "WARNING",
+#endif
+                    NULL);
   ret = check ();
   GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-peerinfo");
   return ret;

@@ -563,6 +563,7 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
       host->hello = mrg;
     }
   fn = get_host_filename (peer);
+  GNUNET_DISK_directory_create_for_file (fn);
   GNUNET_DISK_fn_write (fn, 
 			host->hello, 
 			GNUNET_HELLO_size (host->hello),
