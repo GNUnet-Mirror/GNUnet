@@ -139,6 +139,35 @@ struct HelloList
 
 
 /**
+ * Entry in linked list of active 'disconnect' requests that we have issued.
+ */
+struct DisconnectList
+{
+  /**
+   * This is a doubly-linked list.
+   */
+  struct DisconnectList *next;
+
+  /**
+   * This is a doubly-linked list.
+   */
+  struct DisconnectList *prev;
+  
+  /**
+   * Our request handle.
+   */
+  struct GNUNET_CORE_InformationRequestContext *rh;
+
+  /**
+   * Peer we tried to disconnect.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+};
+
+
+
+/**
  * Our peerinfo notification context.  We use notification
  * to instantly learn about new peers as they are discovered
  * as well as periodic iteration to try peers again after
@@ -229,35 +258,6 @@ static struct GNUNET_PEERINFO_IteratorContext *pitr;
  * PEERINFO looking for more peers to connect to.
  */
 static struct GNUNET_PEERINFO_IteratorContext *pitr_more;
-
-
-/**
- * Entry in linked list of active 'disconnect' requests that we have issued.
- */
-struct DisconnectList
-{
-  /**
-   * This is a doubly-linked list.
-   */
-  struct DisconnectList *next;
-
-  /**
-   * This is a doubly-linked list.
-   */
-  struct DisconnectList *prev;
-  
-  /**
-   * Our request handle.
-   */
-  struct GNUNET_CORE_InformationRequestContext *rh;
-
-  /**
-   * Peer we tried to disconnect.
-   */
-  struct GNUNET_PeerIdentity peer;
-
-};
-
 
 /**
  * Head of doubly-linked list of active 'disconnect' requests that we have issued.
