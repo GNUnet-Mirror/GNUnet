@@ -231,6 +231,76 @@ static struct GNUNET_PEERINFO_IteratorContext *pitr;
 static struct GNUNET_PEERINFO_IteratorContext *pitr_more;
 
 
+/**
+ * Entry in linked list of active 'disconnect' requests that we have issued.
+ */
+struct DisconnectList
+{
+  /**
+   * This is a doubly-linked list.
+   */
+  struct DisconnectList *next;
+
+  /**
+   * This is a doubly-linked list.
+   */
+  struct DisconnectList *prev;
+  
+  /**
+   * Our request handle.
+   */
+  struct GNUNET_CORE_InformationRequestContext *rh;
+
+  /**
+   * Peer we tried to disconnect.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+};
+
+
+/**
+ * Head of doubly-linked list of active 'disconnect' requests that we have issued.
+ */
+static struct DisconnectList *disconnect_head;
+
+/**
+ * Head of doubly-linked list of active 'disconnect' requests that we have issued.
+ */
+static struct DisconnectList *disconnect_tail;
+
+
+/**
+ * Function called once our request to 'disconnect' a peer
+ * has completed.
+ *
+ * @param cls our 'struct DisconnectList'
+ * @param peer NULL on error (then what?)
+ * @param bpm_in set to the current bandwidth limit (receiving) for this peer
+ * @param bpm_out set to the current bandwidth limit (sending) for this peer
+ * @param latency current latency estimate, "FOREVER" if we have been
+ *                disconnected
+ * @param amount set to the amount that was actually reserved or unreserved
+ * @param preference current traffic preference for the given peer
+ */
+static void
+disconnect_done (void *cls,
+		 const struct
+		 GNUNET_PeerIdentity * peer,
+		 unsigned int bpm_in,
+		 unsigned int bpm_out,
+		 struct GNUNET_TIME_Relative
+		 latency, int amount,
+		 unsigned long long preference)
+{
+  struct DisconnectList *dl = cls;
+
+  GNUNET_CONTAINER_DLL_remove (disconnect_head,
+			       disconnect_tail,
+			       dl);
+  GNUNET_free (dl);
+}
+
 
 /**
  * Force a disconnect from the specified peer.
@@ -238,15 +308,21 @@ static struct GNUNET_PEERINFO_IteratorContext *pitr_more;
 static void
 force_disconnect (const struct GNUNET_PeerIdentity *peer)
 {
-  // FIXME: do something with return value!
-  GNUNET_CORE_peer_get_info (sched, cfg,
-			     peer,
-			     GNUNET_TIME_UNIT_FOREVER_REL,
-			     0,
-			     0,
-			     0,
-			     NULL,
-			     NULL);
+  struct DisconnectList *dl;
+
+  dl = GNUNET_malloc (sizeof (struct DisconnectList));
+  dl->peer = *peer;
+  GNUNET_CONTAINER_DLL_insert (disconnect_head,
+			       disconnect_tail,
+			       dl);
+  dl->rh = GNUNET_CORE_peer_get_info (sched, cfg,
+				      peer,
+				      GNUNET_TIME_UNIT_FOREVER_REL,
+				      0,
+				      0,
+				      0,
+				      &disconnect_done,
+				      dl);
 }
 
 
@@ -1177,6 +1253,7 @@ static void
 cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerList *pl;
+  struct DisconnectList *dl;
 
   if (NULL != peerinfo_notify)
     {
@@ -1205,6 +1282,14 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       friends = pl->next;
       GNUNET_free (pl);
     }  
+  while (NULL != (dl = disconnect_head))
+    {
+      GNUNET_CONTAINER_DLL_remove (disconnect_head,
+				   disconnect_tail,
+				   dl);
+      GNUNET_CORE_peer_get_info_cancel (dl->rh);
+      GNUNET_free (dl);
+    }
 }
 
 
