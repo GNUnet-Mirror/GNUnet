@@ -873,6 +873,7 @@ process_peer (void *cls,
     }
   consider_for_advertising (hello);
   pos = find_peer (peer);  
+  GNUNET_assert (NULL != pos);
 #if DEBUG_TOPOLOGY
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Considering connecting to peer `%s'\n",
