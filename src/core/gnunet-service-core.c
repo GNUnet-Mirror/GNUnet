@@ -2182,10 +2182,13 @@ send_key (struct Neighbour *n)
   /* trigger queue processing */
   process_encrypted_neighbour_queue (n);
   if (n->status != PEER_STATE_KEY_CONFIRMED)
-    n->retry_set_key_task
-      = GNUNET_SCHEDULER_add_delayed (sched,
-                                      n->set_key_retry_frequency,
-                                      &set_key_retry_task, n);
+    {
+      GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == n->retry_set_key_task);
+      n->retry_set_key_task
+	= GNUNET_SCHEDULER_add_delayed (sched,
+					n->set_key_retry_frequency,
+					&set_key_retry_task, n);
+    }
 }
 
 
