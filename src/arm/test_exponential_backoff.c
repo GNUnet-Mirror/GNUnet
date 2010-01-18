@@ -86,7 +86,7 @@ do_nothing_restarted_notify_task (void *unused,
 		if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0) 
 			fprintf(killLogFilePtr, "Reason is shutdown!\n");
 		else if ((tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT) != 0)
-			fprintf(killLogFilePtr, "%d.Reason is timeout!\n", trialCount);
+		  fprintf(killLogFilePtr, "%d.Reason is timeout!\n", trialCount);
 		else if ((tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE) != 0)
 			fprintf(killLogFilePtr, "%d.Service is running!\n", trialCount);
 	}
@@ -110,7 +110,11 @@ kill_task (void *cbData,
 		waitedFor = GNUNET_TIME_absolute_get_duration(startedWaitingAt);
 		trialCount++;
 		if (trialCount >= 11) 
-			fprintf(killLogFilePtr, "Trial no.%d, Started waiting at:%lld. Waited for: %lld\n", trialCount, startedWaitingAt.value, waitedFor.value);
+		  fprintf(killLogFilePtr,
+			  "Trial no.%d, Started waiting at: %llu. Waited for: %llu\n", 
+			  trialCount, 
+			  (unsigned long long) startedWaitingAt.value, 
+			  (unsigned long long) waitedFor.value);
 	}
 	
 	 /* Connect to the doNothing task */ 
