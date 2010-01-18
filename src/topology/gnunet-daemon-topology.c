@@ -462,20 +462,19 @@ free_peer (struct PeerList *peer)
 {
   struct PeerList *pos;
   struct PeerList *prev;
-  struct PeerList *next;
   
   prev = NULL;
-  next = peers;
-  while (peer != (pos = next))
+  pos = peers;
+  while (peer != pos)
     {
-      next = pos->next;
       prev = pos;
+      pos = pos->next;
     }
   GNUNET_assert (pos != NULL);
    if (prev == NULL)
-     peers = next;
+     peers = pos->next;
    else
-     prev->next = next;
+     prev->next = pos->next;
    if (pos->hello_req != NULL)
      GNUNET_CORE_notify_transmit_ready_cancel (pos->hello_req);
    if (pos->connect_req != NULL)
