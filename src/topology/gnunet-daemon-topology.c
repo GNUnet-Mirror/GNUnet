@@ -238,14 +238,15 @@ static struct GNUNET_PEERINFO_IteratorContext *pitr_more;
 static void
 force_disconnect (const struct GNUNET_PeerIdentity *peer)
 {
-  GNUNET_CORE_peer_configure (handle,
-			      peer,
-			      GNUNET_TIME_UNIT_FOREVER_REL,
-			      0,
-			      0,
-			      0,
-			      NULL,
-			      NULL);
+  // FIXME: do something with return value!
+  GNUNET_CORE_peer_get_info (sched, cfg,
+			     peer,
+			     GNUNET_TIME_UNIT_FOREVER_REL,
+			     0,
+			     0,
+			     0,
+			     NULL,
+			     NULL);
 }
 
 
@@ -1057,6 +1058,7 @@ gather_hello_callback (void *cls,
 }
 
 
+// FIXME: this no longer works (no solicitation!)
 /**
  * Function to fill send buffer with HELLO.
  *
@@ -1069,7 +1071,7 @@ gather_hello_callback (void *cls,
  * @return the number of bytes written to
  *   that buffer (must be a positive number).
  */
-static unsigned int
+/* static */ unsigned int
 hello_advertising (void *cls,
 		   const struct GNUNET_PeerIdentity *
 		   receiver,
@@ -1275,7 +1277,6 @@ run (void *cls,
 				&core_init,
 				&connect_notify,
 				&disconnect_notify,
-				&hello_advertising,
 				NULL, GNUNET_NO,
 				NULL, GNUNET_NO,
 				handlers);

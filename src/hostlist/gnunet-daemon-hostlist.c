@@ -192,7 +192,6 @@ run (void *cls,
 			      NULL,
 			      &core_init,
 			      ch, dh,
-			      NULL,
 			      NULL, GNUNET_NO,
 			      NULL, GNUNET_NO,
 			      handlers);

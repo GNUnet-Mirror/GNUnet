@@ -63,25 +63,6 @@ typedef void (*GNUNET_CORE_ClientEventHandler) (void *cls,
 
 
 /**
- * Type of a send callback to fill up buffers.
- *
- * @param receiver the receiver of the message
- * @param position is the reference to the
- *        first unused position in the buffer where GNUnet is building
- *        the message
- * @param padding is the number of bytes left in that buffer.
- * @return the number of bytes written to
- *   that buffer (must be a positive number).
- */
-typedef unsigned int
-  (*GNUNET_CORE_BufferFillCallback) (void *cls,
-                                     const struct GNUNET_PeerIdentity *
-                                     receiver,
-                                     void *position, 
-				     size_t padding);
-
-
-/**
  * Functions with this signature are called whenever a message is
  * received or transmitted.
  *
@@ -159,7 +140,6 @@ typedef void
  *        connected to the core service; note that timeout is only meaningful if init is not NULL
  * @param connects function to call on peer connect, can be NULL
  * @param disconnects function to call on peer disconnect / timeout, can be NULL
- * @param bfc function to call to fill up spare bandwidth, can be NULL
  * @param inbound_notify function to call for all inbound messages, can be NULL
  * @param inbound_hdr_only set to GNUNET_YES if inbound_notify will only read the
  *                GNUNET_MessageHeader and hence we do not need to give it the full message;
@@ -180,7 +160,6 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
                      GNUNET_CORE_StartupCallback init,
                      GNUNET_CORE_ClientEventHandler connects,
                      GNUNET_CORE_ClientEventHandler disconnects,
-                     GNUNET_CORE_BufferFillCallback bfc,
                      GNUNET_CORE_MessageCallback inbound_notify,
                      int inbound_hdr_only,
                      GNUNET_CORE_MessageCallback outbound_notify,
@@ -219,10 +198,17 @@ typedef void
                                                 unsigned long long preference);
 
 
+
+/**
+ * Context that can be used to cancel a peer information request.
+ */
+struct GNUNET_CORE_InformationRequestContext;
+
 /**
  * Obtain statistics and/or change preferences for the given peer.
  *
- * @param handle connection to core to use
+ * @param sched scheduler to use
+ * @param cfg configuration to use
  * @param peer identifies the peer
  * @param timeout after how long should we give up (and call "info" with NULL
  *                for "peer" to signal an error)?
@@ -241,17 +227,27 @@ typedef void
  *                to all connected peers
  * @param info function to call with the resulting configuration information
  * @param info_cls closure for info
+ * @return NULL on error
  */
-// FIXME: should return handle for cancellation!
+struct GNUNET_CORE_InformationRequestContext *
+GNUNET_CORE_peer_get_info (struct GNUNET_SCHEDULER_Handle *sched,
+			   const struct GNUNET_CONFIGURATION_Handle *cfg,
+			   const struct GNUNET_PeerIdentity *peer,
+			   struct GNUNET_TIME_Relative timeout,
+			   uint32_t bpm_out,
+			   int32_t amount,
+			   uint64_t preference,
+			   GNUNET_CORE_PeerConfigurationInfoCallback info,
+			   void *info_cls);
+
+
+/**
+ * Cancel request for getting information about a peer.
+ *
+ * @param irc context returned by the original GNUNET_CORE_peer_get_info call
+ */
 void
-GNUNET_CORE_peer_configure (struct GNUNET_CORE_Handle *handle,
-                            const struct GNUNET_PeerIdentity *peer,
-                            struct GNUNET_TIME_Relative timeout,
-                            unsigned int bpm_out,
-                            int amount,
-                            unsigned long long preference,
-                            GNUNET_CORE_PeerConfigurationInfoCallback info,
-                            void *info_cls);
+GNUNET_CORE_peer_get_info_cancel (struct GNUNET_CORE_InformationRequestContext *irc);
 
 
 /**

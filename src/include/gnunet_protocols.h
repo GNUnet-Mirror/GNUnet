@@ -276,7 +276,7 @@ extern "C"
 /**
  * Request from client to "configure" P2P connection.
  */
-#define GNUNET_MESSAGE_TYPE_CORE_REQUEST_CONFIGURE 70
+#define GNUNET_MESSAGE_TYPE_CORE_REQUEST_INFO 70
 
 /**
  * Response from server about (possibly updated) P2P
@@ -285,16 +285,9 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CORE_CONFIGURATION_INFO 71
 
 /**
- * Solicitation from server for transmission (may have
- * been requested or also be transmitted without
- * client's request).
+ * Request from client with message to transmit.
  */
-#define GNUNET_MESSAGE_TYPE_CORE_SOLICIT_TRAFFIC 72
-
-/**
- * Response from client with message to transmit.
- */
-#define GNUNET_MESSAGE_TYPE_CORE_SEND 73
+#define GNUNET_MESSAGE_TYPE_CORE_SEND 72
 
 
 /**

@@ -417,6 +417,11 @@ struct PendingRequest
   struct GNUNET_CONTAINER_BloomFilter *bf;
 
   /**
+   * Context of our GNUNET_CORE_peer_get_info call.
+   */
+  struct GNUNET_CORE_InformationRequestContext *irc;
+
+  /**
    * Replies that we have received but were unable to forward yet
    * (typically non-null only if we have a pending transmission
    * request with the client or the respective peer).
@@ -1787,6 +1792,7 @@ target_reservation_cb (void *cls,
   uint16_t size;
   struct GNUNET_TIME_Relative maxdelay;
 
+  pr->irc = NULL;
   GNUNET_assert (peer != NULL);
   if ( (amount != DBLOCK_SIZE) ||
        (pr->cth != NULL) )
@@ -1865,17 +1871,15 @@ forward_request_task (void *cls,
       return;
     }
   /* (2) reserve reply bandwidth */
-  // FIXME: need a way to cancel; this
-  // async operation is problematic (segv-problematic)
-  // if "pr" is destroyed while it happens!
-  GNUNET_CORE_peer_configure (core,
-			      &psc.target,
-			      GNUNET_CONSTANTS_SERVICE_TIMEOUT, 
-			      -1,
-			      DBLOCK_SIZE, // FIXME: make dependent on type?
-			      0,
-			      &target_reservation_cb,
-			      pr);
+  GNUNET_assert (NULL == pr->irc);
+  pr->irc = GNUNET_CORE_peer_get_info (sched, cfg,
+				       &psc.target,
+				       GNUNET_CONSTANTS_SERVICE_TIMEOUT, 
+				       -1,
+				       DBLOCK_SIZE, // FIXME: make dependent on type?
+				       0,
+				       &target_reservation_cb,
+				       pr);
 }
 
 
@@ -2216,6 +2220,11 @@ destroy_pending_request (struct PendingRequest *pr)
 					pr);
   // FIXME: not sure how this can work (efficiently)
   // also, what does the return value mean?
+  if (pr->irc != NULL)
+    {
+      GNUNET_CORE_peer_get_info_cancel (pr->irc);
+      pr->irc = NULL;
+    }
   if (pr->client == NULL)
     {
       GNUNET_CONTAINER_heap_remove_node (requests_by_expiration,
@@ -2914,10 +2923,10 @@ handle_p2p_get (void *cls,
   if (preference < QUERY_BANDWIDTH_VALUE)
     preference = QUERY_BANDWIDTH_VALUE;
   // FIXME: also reserve bandwidth for reply?
-  GNUNET_CORE_peer_configure (core,
-			      other,
-			      GNUNET_TIME_UNIT_FOREVER_REL,
-			      0, 0, preference, NULL, NULL);
+  (void) GNUNET_CORE_peer_get_info (sched, cfg,
+				    other,
+				    GNUNET_TIME_UNIT_FOREVER_REL,
+				    0, 0, preference, NULL, NULL);
   if (0 != (pgc->policy & ROUTING_POLICY_ANSWER))
     pgc->drq = queue_ds_request (BASIC_DATASTORE_REQUEST_DELAY,
 				 &ds_get_request,
@@ -3318,7 +3327,6 @@ run (void *cls,
 			      NULL,
 			      &peer_connect_handler,
 			      &peer_disconnect_handler,
-			      NULL, 
 			      NULL, GNUNET_NO,
 			      NULL, GNUNET_NO,
 			      p2p_handlers);

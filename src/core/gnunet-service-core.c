@@ -1051,14 +1051,14 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 
 
 /**
- * Handle REQUEST_CONFIGURE request.
+ * Handle REQUEST_INFO request.
  */
 static void
-handle_client_request_configure (void *cls,
+handle_client_request_info (void *cls,
                                  struct GNUNET_SERVER_Client *client,
                                  const struct GNUNET_MessageHeader *message)
 {
-  const struct RequestConfigureMessage *rcm;
+  const struct RequestInfoMessage *rcm;
   struct Neighbour *n;
   struct ConfigurationInfoMessage cim;
   struct Client *c;
@@ -1067,9 +1067,9 @@ handle_client_request_configure (void *cls,
 
 #if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core service receives `%s' request.\n", "CONFIGURE");
+              "Core service receives `%s' request.\n", "REQUEST_INFO");
 #endif
-  rcm = (const struct RequestConfigureMessage *) message;
+  rcm = (const struct RequestInfoMessage *) message;
   n = find_neighbour (&rcm->peer);
   memset (&cim, 0, sizeof (cim));
   if ((n != NULL) && (n->status == PEER_STATE_KEY_CONFIRMED))
@@ -1991,9 +1991,9 @@ handle_client_send (void *cls,
 static struct GNUNET_SERVER_MessageHandler handlers[] = {
   {&handle_client_init, NULL,
    GNUNET_MESSAGE_TYPE_CORE_INIT, 0},
-  {&handle_client_request_configure, NULL,
-   GNUNET_MESSAGE_TYPE_CORE_REQUEST_CONFIGURE,
-   sizeof (struct RequestConfigureMessage)},
+  {&handle_client_request_info, NULL,
+   GNUNET_MESSAGE_TYPE_CORE_REQUEST_INFO,
+   sizeof (struct RequestInfoMessage)},
   {&handle_client_send, NULL,
    GNUNET_MESSAGE_TYPE_CORE_SEND, 0},
   {NULL, NULL, 0, 0}

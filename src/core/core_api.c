@@ -66,12 +66,6 @@ struct GNUNET_CORE_Handle
   GNUNET_CORE_ClientEventHandler disconnects;
 
   /**
-   * Function to call whenever we're asked to generate traffic
-   * (data provided to be transmitted back to the service).
-   */
-  GNUNET_CORE_BufferFillCallback bfc;
-
-  /**
    * Function to call whenever we receive an inbound message.
    */
   GNUNET_CORE_MessageCallback inbound_notify;
@@ -365,86 +359,6 @@ trigger_next_request (struct GNUNET_CORE_Handle *h)
 
 
 /**
- * cls is a pointer to a 32 bit number followed by that
- * amount of data.  If possible, copy to buf and return
- * number of bytes copied.  Always free the buffer.
- */
-static size_t
-copy_and_free (void *cls, size_t size, void *buf)
-{
-  struct GNUNET_CORE_Handle *h = cls;
-  char *cbuf = h->solicit_buffer;
-  uint32_t have;
-
-  h->solicit_transmit_req = NULL;
-  h->solicit_buffer = NULL;
-  memcpy (&have, cbuf, sizeof (uint32_t));
-  if (have > size)
-    {
-      /* timeout / error case */
-      GNUNET_free (cbuf);
-      return 0;
-    }
-  memcpy (buf, cbuf + sizeof (uint32_t), have);
-  GNUNET_free (cbuf);
-  return have;
-}
-
-
-/**
- * Call bfc callback to solicit traffic for the given peer.
- *
- * @param h our handle to the core service
- * @param peer peer for which traffic is solicited
- * @param amount number of bytes that are being solicited
- */
-static void
-solicit_traffic (struct GNUNET_CORE_Handle *h,
-                 const struct GNUNET_PeerIdentity *peer, uint32_t amount)
-{
-  char buf[amount];
-  size_t have;
-  char *cbuf;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      "Core solicited %u bytes of traffic for `%s'!\n",
-	      amount,
-	      GNUNET_i2s (peer));
-  if (NULL != h->solicit_transmit_req)
-    {
-      /* more than one solicitation pending */
-      GNUNET_break (0);
-      return;
-    }
-  have = h->bfc (h->cls, peer, buf, amount);
-  if (have == 0)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  "Can not help with traffic solicitation for `%s'!\n",
-		  GNUNET_i2s (peer));
-      return;
-    }
-  GNUNET_assert (have >= sizeof (struct GNUNET_MessageHeader));
-  cbuf = GNUNET_malloc (have + sizeof (uint32_t));
-  memcpy (cbuf, &have, sizeof (uint32_t));
-  memcpy (cbuf + sizeof (uint32_t), buf, have);
-  h->solicit_buffer = cbuf;
-  h->solicit_transmit_req 
-    = GNUNET_CORE_notify_transmit_ready (h,
-					 0,
-					 GNUNET_TIME_UNIT_SECONDS,
-					 peer, have, &copy_and_free, h);
-  if (h->solicit_transmit_req == NULL)
-    {
-      /* this should not happen */
-      GNUNET_break (0);
-      GNUNET_free (cbuf);
-      h->solicit_buffer = NULL;
-    }
-}
-
-
-/**
  * Handler for most messages received from the core.
  *
  * @param cls our "struct GNUNET_CORE_Handle"
@@ -458,11 +372,9 @@ main_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   const struct ConnectNotifyMessage *cnm;
   const struct NotifyTrafficMessage *ntm;
   const struct ConfigurationInfoMessage *cim;
-  const struct SolicitTrafficMessage *stm;
   const struct GNUNET_MessageHeader *em;
   uint16_t msize;
   uint16_t et;
-  uint32_t ss;
   const struct GNUNET_CORE_MessageHandler *mh;
 
   if (msg == NULL)
@@ -600,27 +512,6 @@ main_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       /* done, clean up! */      
       GNUNET_CORE_notify_transmit_ready_cancel (h->submitted); // HUH?
       trigger_next_request (h);
-      break;
-    case GNUNET_MESSAGE_TYPE_CORE_SOLICIT_TRAFFIC:
-      if (msize != sizeof (struct SolicitTrafficMessage))
-        {
-          GNUNET_break (0);
-          break;
-        }
-      stm = (const struct SolicitTrafficMessage *) msg;
-      if (NULL == h->bfc)
-        {
-          GNUNET_break (0);
-          break;
-        }
-      ss = ntohl (stm->solicit_size);
-      if ((ss > GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
-          (ss + sizeof (struct SendMessage) > GNUNET_SERVER_MAX_MESSAGE_SIZE))
-        {
-          GNUNET_break (0);
-          break;
-        }
-      solicit_traffic (h, &stm->peer, ss);
       break;
     default:
       GNUNET_break (0);
@@ -766,8 +657,6 @@ transmit_start (void *cls, size_t size, void *buf)
     opt |= GNUNET_CORE_OPTION_SEND_CONNECT;
   if (h->disconnects != NULL)
     opt |= GNUNET_CORE_OPTION_SEND_DISCONNECT;
-  if (h->bfc != NULL)
-    opt |= GNUNET_CORE_OPTION_SEND_BFC;
   if (h->inbound_notify != NULL)
     {
       if (h->inbound_hdr_only)
@@ -807,7 +696,6 @@ transmit_start (void *cls, size_t size, void *buf)
  *        connected to the core service; note that timeout is only meaningful if init is not NULL
  * @param connects function to call on peer connect, can be NULL
  * @param disconnects function to call on peer disconnect / timeout, can be NULL
- * @param bfc function to call to fill up spare bandwidth, can be NULL
  * @param inbound_notify function to call for all inbound messages, can be NULL
  * @param inbound_hdr_only set to GNUNET_YES if inbound_notify will only read the
  *                GNUNET_MessageHeader and hence we do not need to give it the full message;
@@ -828,7 +716,6 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
                      GNUNET_CORE_StartupCallback init,
                      GNUNET_CORE_ClientEventHandler connects,
                      GNUNET_CORE_ClientEventHandler disconnects,
-                     GNUNET_CORE_BufferFillCallback bfc,
                      GNUNET_CORE_MessageCallback inbound_notify,
                      int inbound_hdr_only,
                      GNUNET_CORE_MessageCallback outbound_notify,
@@ -844,7 +731,6 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
   h->init = init;
   h->connects = connects;
   h->disconnects = disconnects;
-  h->bfc = bfc;
   h->inbound_notify = inbound_notify;
   h->outbound_notify = outbound_notify;
   h->inbound_hdr_only = inbound_hdr_only;
@@ -895,108 +781,6 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
   GNUNET_CLIENT_disconnect (handle->client);
   GNUNET_free_non_null (handle->solicit_buffer);
   GNUNET_free (handle);
-}
-
-
-/**
- * Build the configure message.
- */
-static size_t
-produce_configure_message (void *cls, size_t size, void *buf)
-{
-  struct GNUNET_CORE_TransmitHandle *th = cls;
-  struct GNUNET_CORE_Handle *ch = th->ch;
-
-  if (buf == NULL)
-    {
-      /* communicate handle timeout/error! */
-      if (th->info != NULL)
-        th->info (th->info_cls, NULL, 0, 0, GNUNET_TIME_UNIT_ZERO, 0, 0.0);
-      if (th->timeout_task != GNUNET_SCHEDULER_NO_TASK)
-        GNUNET_CORE_notify_transmit_ready_cancel (th);
-      if (ch->submitted == th)
-        ch->submitted = NULL;
-      trigger_next_request (ch);
-      return 0;
-    }
-  GNUNET_assert (size >= sizeof (struct RequestConfigureMessage));
-  memcpy (buf, &th[1], sizeof (struct RequestConfigureMessage));
-  if (th->prev == NULL)
-    ch->pending_head = th->next;
-  else
-    th->prev->next = th->next;
-  if (th->next == NULL)
-    ch->pending_tail = th->prev;
-  else
-    th->next->prev = th->prev;
-  return sizeof (struct RequestConfigureMessage);
-}
-
-
-/**
- * Obtain statistics and/or change preferences for the given peer.
- *
- * @param handle connection to core to use
- * @param peer identifies the peer
- * @param timeout after how long should we give up (and call "info" with NULL
- *                for "peer" to signal an error)?
- * @param bpm_out set to the current bandwidth limit (sending) for this peer,
- *                caller should set "bpm_out" to "-1" to avoid changing
- *                the current value; otherwise "bpm_out" will be lowered to
- *                the specified value; passing a pointer to "0" can be used to force
- *                us to disconnect from the peer; "bpm_out" might not increase
- *                as specified since the upper bound is generally
- *                determined by the other peer!
- * @param amount reserve N bytes for receiving, negative
- *                amounts can be used to undo a (recent) reservation;
- * @param preference increase incoming traffic share preference by this amount;
- *                in the absence of "amount" reservations, we use this
- *                preference value to assign proportional bandwidth shares
- *                to all connected peers
- * @param info function to call with the resulting configuration information
- * @param info_cls closure for info
- */
-void
-GNUNET_CORE_peer_configure (struct GNUNET_CORE_Handle *handle,
-                            const struct GNUNET_PeerIdentity *peer,
-                            struct GNUNET_TIME_Relative timeout,
-                            unsigned int bpm_out,
-                            int amount,
-                            unsigned long long preference,
-                            GNUNET_CORE_PeerConfigurationInfoCallback info,
-                            void *info_cls)
-{
-  struct RequestConfigureMessage *rcm;
-  struct GNUNET_CORE_TransmitHandle *th;
-
-  th = GNUNET_malloc (sizeof (struct GNUNET_CORE_TransmitHandle) +
-                      sizeof (struct RequestConfigureMessage));
-  /* append to list */
-  th->prev = handle->pending_tail;
-  if (handle->pending_tail == NULL)
-    handle->pending_head = th;
-  else
-    handle->pending_tail->next = th;
-  th->ch = handle;
-  th->get_message = &produce_configure_message;
-  th->get_message_cls = th;
-  th->info = info;
-  th->info_cls = info_cls;
-  th->timeout = GNUNET_TIME_relative_to_absolute (timeout);
-  th->timeout_task = GNUNET_SCHEDULER_add_delayed (handle->sched,
-                                                   timeout,
-                                                   &timeout_request, th);
-  th->msize = sizeof (struct RequestConfigureMessage);
-  rcm = (struct RequestConfigureMessage *) &th[1];
-  rcm->header.size = htons (sizeof (struct RequestConfigureMessage));
-  rcm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_REQUEST_CONFIGURE);
-  rcm->reserved = htonl (0);
-  rcm->limit_outbound_bpm = htonl (bpm_out);
-  rcm->reserve_inbound = htonl (amount);
-  rcm->preference_change = GNUNET_htonll(preference);
-  rcm->peer = *peer;
-  if (handle->pending_head == th)
-    trigger_next_request (handle);
 }
 
 

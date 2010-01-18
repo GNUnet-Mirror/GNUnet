@@ -45,11 +45,10 @@
 #define GNUNET_CORE_OPTION_NOTHING             0
 #define GNUNET_CORE_OPTION_SEND_CONNECT        1
 #define GNUNET_CORE_OPTION_SEND_DISCONNECT     2
-#define GNUNET_CORE_OPTION_SEND_BFC            4
-#define GNUNET_CORE_OPTION_SEND_FULL_INBOUND   8
-#define GNUNET_CORE_OPTION_SEND_HDR_INBOUND   16
-#define GNUNET_CORE_OPTION_SEND_FULL_OUTBOUND 32
-#define GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND  64
+#define GNUNET_CORE_OPTION_SEND_FULL_INBOUND   4
+#define GNUNET_CORE_OPTION_SEND_HDR_INBOUND    8
+#define GNUNET_CORE_OPTION_SEND_FULL_OUTBOUND 16
+#define GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND  32
 
 
 /**
@@ -159,7 +158,7 @@ struct NotifyTrafficMessage
  * Message sent to the core asking for configuration
  * information and possibly preference changes.
  */
-struct RequestConfigureMessage
+struct RequestInfoMessage
 {
   /**
    * Header with type GNUNET_MESSAGE_TYPE_CORE_REQUEST_CONFIGURE
@@ -200,7 +199,7 @@ struct RequestConfigureMessage
 
 
 /**
- * Response from the core to a "RequestConfigureMessage"
+ * Response from the core to a "RequestInfoMessage"
  * providing traffic status information for a peer.
  */
 struct ConfigurationInfoMessage
@@ -239,32 +238,7 @@ struct ConfigurationInfoMessage
    * Current traffic preference for the peer.
    * 0 if we have been disconnected.
    */
-  double preference;
-
-  /**
-   * Identity of the receiver or sender.
-   */
-  struct GNUNET_PeerIdentity peer;
-
-};
-
-
-/**
- * Core asking a client to generate traffic for a particular
- * target.
- */
-struct SolicitTrafficMessage
-{
-  /**
-   * Header with type GNUNET_MESSAGE_TYPE_CORE_SOLICIT_TRAFFIC
-   * or GNUNET_MESSAGE_TYPE_CORE_RECV_OK
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Number of bytes of traffic being solicited.
-   */
-  uint32_t solicit_size GNUNET_PACKED;
+  uint64_t preference;
 
   /**
    * Identity of the receiver or sender.
