@@ -250,7 +250,7 @@ struct ConfigurationInfoMessage
 
 /**
  * Client asking core to transmit a particular message to
- * a particular target.  Does NOT have to be solicited.
+ * a particular target.  
  */
 struct SendMessage
 {
