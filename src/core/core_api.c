@@ -346,8 +346,11 @@ trigger_next_request (struct GNUNET_CORE_Handle *h)
   if (NULL == (th = h->pending_head))
     return;                     /* no requests pending */
   GNUNET_assert (NULL == h->th);
-  GNUNET_SCHEDULER_cancel (h->sched, th->timeout_task);
-  th->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  if (GNUNET_SCHEDULER_NO_TASK != th->timeout_task)
+    {
+      GNUNET_SCHEDULER_cancel (h->sched, th->timeout_task);
+      th->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    }
   h->th = GNUNET_CLIENT_notify_transmit_ready (h->client,
                                                th->msize,
                                                GNUNET_TIME_absolute_get_remaining
@@ -807,8 +810,7 @@ produce_send (void *cls, size_t size, void *buf)
 		  GNUNET_i2s(&th->peer));
 #endif
       GNUNET_assert (0 == th->notify (th->notify_cls, 0, NULL));
-      if (th->timeout_task != GNUNET_SCHEDULER_NO_TASK)
-        GNUNET_CORE_notify_transmit_ready_cancel (th);
+      GNUNET_CORE_notify_transmit_ready_cancel (th);
       trigger_next_request (h);
       return 0;
     }
