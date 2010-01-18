@@ -840,9 +840,6 @@ try_transmission_to_peer (struct NeighbourList *neighbour);
  * @param cls closure, identifies the entry on the
  *            message queue that was transmitted and the
  *            client responsible for queueing the message
- * @param rl identifies plugin used for the transmission for
- *           this neighbour; needs to be re-enabled for
- *           future transmissions
  * @param target the peer receiving the message
  * @param result GNUNET_OK on success, if the transmission
  *           failed, we should not tell the client to transmit

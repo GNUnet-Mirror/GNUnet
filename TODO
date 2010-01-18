@@ -13,10 +13,28 @@ away), in order in which they will likely be done:
 
 Urgent items (before announcing ng.gnunet.org):
 * topology
-  - HELLO advertising does not work (no solicitation!)
+  - valgrind crash (in topology test case):
+==31107== Invalid read of size 8                                                                                                             
+==31107==    at 0x401DA1: free_peer (gnunet-daemon-topology.c:480)                                                                           
+==31107==    by 0x4030A2: cleaning_task (gnunet-daemon-topology.c:1212)                                                                      
+==31107==    by 0x545DCBD: run_ready (scheduler.c:482)                                                                                       
+==31107==    by 0x545E0CD: GNUNET_SCHEDULER_run (scheduler.c:609)                                                                            
+==31107==    by 0x545B00F: GNUNET_PROGRAM_run (program.c:223)                                                                                
+==31107==    by 0x403477: main (gnunet-daemon-topology.c:1346)                                                                               
+==31107==  Address 0x737e828 is 8 bytes inside a block of size 144 free'd                                                                    
+==31107==    at 0x4C21DBC: free (vg_replace_malloc.c:325)                                                                                    
+==31107==    by 0x544240B: GNUNET_xfree_ (common_allocation.c:144)                                                                           
+==31107==    by 0x401E13: free_peer (gnunet-daemon-topology.c:487)                                                                           
+==31107==    by 0x4030A2: cleaning_task (gnunet-daemon-topology.c:1212)                                                                      
+==31107==    by 0x545DCBD: run_ready (scheduler.c:482)                                                                                       
+==31107==    by 0x545E0CD: GNUNET_SCHEDULER_run (scheduler.c:609)                                                                            
+==31107==    by 0x545B00F: GNUNET_PROGRAM_run (program.c:223)                                                                                
+==31107==    by 0x403477: main (gnunet-daemon-topology.c:1346)                                                                               
+==31107==                                                                                                                                    
   - considers peers 'connected' well before they actually are
-    (since core notifies about it too early?)
-  - needs testing
+    (since core notifies about it too early?);
+  - (forced) disconnect does not work (also CORE API issue)
+  - needs testing (not sure the current testcase does much...)
 * hostlist
   - test fails (looks like it works, but that's because of a bad
     connectivity notification; somehow core is unable to send

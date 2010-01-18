@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -173,6 +173,27 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
  * @param handle connection to core to disconnect
  */
 void GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle);
+
+
+struct GNUNET_CORE_PeerRequestHandle;
+
+struct GNUNET_CORE_PeerRequestHandle *
+struct GNUNET_CORE_peer_request_connect (struct GNUNET_SCHEDULER_Handle *sched,
+					 const struct GNUNET_CONFIGURATION_Handle *cfg,
+					 const struct GNUNET_PeerIdentity * peer,
+					 GNUNET_SCHEDULER_Task cont,
+					 void *cont_cls);
+
+
+struct GNUNET_CORE_PeerRequestHandle *
+struct GNUNET_CORE_peer_request_disconnect (struct GNUNET_SCHEDULER_Handle *sched,
+					    const struct GNUNET_CONFIGURATION_Handle *cfg,
+					    const struct GNUNET_PeerIdentity * peer,
+					    GNUNET_SCHEDULER_Task cont,
+					    void *cont_cls);
+
+void
+GNUNET_CORE_peer_request_cancel (struct GNUNET_CORE_PeerRequestHandle *req);
 
 
 /**

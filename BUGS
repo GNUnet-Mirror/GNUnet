@@ -100,3 +100,7 @@ sane end-user should care about this codebase yet anyway.
 * TESTING:
   - consider changing API for peer-group termination to 
     call continuation when done
+
+* HOSTLIST:
+  - 'server' uses 'GNUNET_PEERINFO_iterate', should probably switch to notification API
+    (for more instant / up-to-date hostlists at lower cost) [OPTIMIZATION]

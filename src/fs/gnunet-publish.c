@@ -138,6 +138,7 @@ progress_cb (void *cls,
  * metadata and the filename).
  *
  * @param cls closure
+ * @param plugin_name name of the plugin that generated the meta data
  * @param type type of the meta data
  * @param format format of data
  * @param data_mime_type mime type of data
@@ -171,6 +172,7 @@ meta_printer (void *cls,
  * Merge metadata entries.
  *
  * @param cls closure, target metadata structure
+ * @param plugin_name name of the plugin that generated the meta data
  * @param type type of the meta data
  * @param format format of data
  * @param data_mime_type mime type of data

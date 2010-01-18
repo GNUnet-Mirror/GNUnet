@@ -347,8 +347,7 @@ ready_callback (void *cls,
 /**
  * Try to connect to the specified peer.
  *
- * @param peer who we should try to connect to
- * @param pos entry in our friend list; NULL if not in friend list yet
+ * @param pos peer to connect to
  */
 static void
 attempt_connect (struct PeerList *pos)

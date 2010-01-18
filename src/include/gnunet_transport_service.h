@@ -238,7 +238,7 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
  * Convert a binary address into a human
  * readable address.
  *
- * @param handle connection to transport service
+ * @param sched scheduler to use
  * @param cfg configuration to use
  * @param address address to convert (binary format)
  * @param addressLen number of bytes in address

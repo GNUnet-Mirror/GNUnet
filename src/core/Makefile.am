@@ -15,7 +15,8 @@ lib_LTLIBRARIES = \
 
 libgnunetcore_la_SOURCES = \
   core_api.c core.h \
-  core_api_peer_get_info.c
+  core_api_peer_get_info.c \
+  core_api_peer_request.c
 libgnunetcore_la_LIBADD = \
   $(top_builddir)/src/arm/libgnunetarm.la \
   $(top_builddir)/src/util/libgnunetutil.la \

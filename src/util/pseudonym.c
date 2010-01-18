@@ -540,11 +540,12 @@ GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * Insert metadata into existing MD record (passed as cls).
  *
  * @param cls metadata to add to
+ * @param plugin_name name of the plugin that generated the meta data
  * @param type type of entry to insert
  * @param format format of data
  * @param data_mime_type mime type of data
  * @param data value of the meta data
- * @param data_size number of bytes in data
+ * @param data_len number of bytes in data
  * @return always 0
  */
 static int

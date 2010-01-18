@@ -31,6 +31,7 @@ static int ret;
  * Print a meta data entry.
  *
  * @param cls closure (unused)
+ * @param plugin_name name of the plugin that generated the meta data
  * @param type type of the keyword
  * @param format format of data
  * @param data_mime_type mime type of data
