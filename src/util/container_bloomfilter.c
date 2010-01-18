@@ -640,7 +640,7 @@ GNUNET_CONTAINER_bloomfilter_or (struct GNUNET_CONTAINER_BloomFilter *bf,
   for (i = 0; i < n; i++)
     fc[i] |= dc[i];
   for (i = n * sizeof(unsigned long long); i < size; i++)
-    bf->bitArray[i] |= data[i]
+    bf->bitArray[i] |= data[i];
   return GNUNET_OK;
 }
 
