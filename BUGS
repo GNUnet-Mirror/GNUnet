@@ -4,7 +4,6 @@ sane end-user should care about this codebase yet anyway.
 
 
 * UTIL:
-  - container_bloomfilter: improve efficiency (see FIXME)
   - only connect() sockets that are ready (select()) [Nils]
     [On W32, we need to select after calling socket before
      doing connect etc.]
