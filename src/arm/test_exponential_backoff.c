@@ -34,7 +34,6 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 static struct GNUNET_ARM_Handle *arm;
 static int ok = 1;
-static int kill_ok = GNUNET_OK;
 static FILE *killLogFilePtr;
 static char *killLogFileName;
 
@@ -47,12 +46,6 @@ arm_notify_stop (void *cls, int success)
 #endif
 }
 
-
-static void
-do_nothing_notify_stop (void *cls, int success)
-{
-  GNUNET_assert (success == GNUNET_NO);
-}
 
 
 static void
