@@ -1688,8 +1688,8 @@ check_hello_validated (void *cls,
       va = va->next;
     }
   GNUNET_SCHEDULER_add_delayed (sched,
-                                GNUNET_TIME_absolute_get_remaining (chvc->e->
-                                                                    timeout),
+                                GNUNET_TIME_absolute_get_remaining (chvc->
+                                                                    e->timeout),
                                 &cleanup_validation, NULL);
   GNUNET_free (chvc);
 }

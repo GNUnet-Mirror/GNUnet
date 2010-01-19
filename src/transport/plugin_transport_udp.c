@@ -43,12 +43,6 @@
 #define DEBUG_UDP GNUNET_NO
 
 /**
- * The default maximum size of each outbound UDP message,
- * optimal value for Ethernet (10 or 100 MBit).
- */
-#define MESSAGE_SIZE 1472
-
-/**
  * Handle for request of hostname resolution, non-NULL if pending.
  */
 static struct GNUNET_RESOLVER_RequestHandle *hostname_dns;
@@ -115,6 +109,15 @@ struct Session
    */
   unsigned int validated;
 
+  /*
+   * What is the latency of this connection? (Time between ping and pong)
+   */
+  struct GNUNET_TIME_Relative latency;
+
+  /*
+   * At what GNUNET_TIME did we send a ping?
+   */
+  struct GNUNET_TIME_Absolute ping_sent;
 };
 
 /**
@@ -280,12 +283,11 @@ udp_transport_server_stop (void *cls)
 }
 
 static struct Session *
-find_session (void *cls, struct Session *session_list,
-              const struct GNUNET_PeerIdentity *peer)
+find_session (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct Plugin *plugin = cls;
   struct Session *pos;
-  pos = session_list;
+  pos = plugin->sessions;
 
   while (pos != NULL)
     {
@@ -329,7 +331,7 @@ udp_plugin_send (void *cls,
   int ssize;
   size_t sent;
 
-  session = find_session (plugin, plugin->sessions, target);
+  session = find_session (plugin, target);
 
   if ((session == NULL) || (udp_sock == NULL))
     return;
@@ -361,7 +363,7 @@ udp_plugin_send (void *cls,
       else
         cont (cont_cls, target, GNUNET_OK);
     }
-  GNUNET_free(message);
+  GNUNET_free (message);
   return;
 }
 
@@ -380,7 +382,6 @@ handle_udp_ping (void *cls,
                  const struct GNUNET_MessageHeader *message)
 {
   struct Plugin *plugin = cls;
-  struct Session *head = plugin->sessions;
   const struct UDPPingMessage *ping = (const struct UDPPingMessage *) message;
   struct UDPPongMessage *pong;
   struct Session *found;
@@ -390,7 +391,7 @@ handle_udp_ping (void *cls,
                    ("handling ping, challenge is %d\n"),
                    ntohs (ping->challenge));
 #endif
-  found = find_session (plugin, head, sender);
+  found = find_session (plugin, sender);
   if (found != NULL)
     {
       pong = GNUNET_malloc (sizeof (struct UDPPongMessage) + addrlen);
@@ -404,7 +405,7 @@ handle_udp_ping (void *cls,
                        &pong->header,
                        GNUNET_TIME_relative_multiply
                        (GNUNET_TIME_UNIT_SECONDS, 30), NULL, NULL);
-      GNUNET_free(pong);
+      GNUNET_free (pong);
     }
 
   return;
@@ -434,7 +435,7 @@ handle_udp_pong (void *cls,
 #if DEBUG_UDP
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _("handling pong\n"));
 #endif
-  found = find_session (plugin, plugin->sessions, sender);
+  found = find_session (plugin, sender);
 #if DEBUG_UDP
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
                    ("found->challenge %d, pong->challenge %d\n"),
@@ -443,6 +444,9 @@ handle_udp_pong (void *cls,
   if ((found != NULL) && (found->challenge == ntohs (pong->challenge)))
     {
       found->validated = GNUNET_YES;
+      found->latency =
+        GNUNET_TIME_absolute_get_difference (found->ping_sent,
+                                             GNUNET_TIME_absolute_get ());
       addr_len = ntohs (pong->addrlen);
 #if DEBUG_UDP
       GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
@@ -479,6 +483,7 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   socklen_t fromlen;
   struct sockaddr_storage addr;
   ssize_t ret;
+  struct Session *found;
 
   do
     {
@@ -528,13 +533,13 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                        ("header reports message type of %d\n"),
                        ntohs (msg->header.type));
 #endif
-      /*if (ntohs(hdr->size) < sizeof(struct UDPMessage))
-         {
-         GNUNET_free(buf);
-         GNUNET_NETWORK_fdset_zero(plugin->rs);
-         GNUNET_NETWORK_fdset_set(plugin->rs, udp_sock);
-         break;
-         } */
+      if (ntohs (msg->header.size) < sizeof (struct UDPMessage))
+        {
+          GNUNET_free (buf);
+          GNUNET_NETWORK_fdset_zero (plugin->rs);
+          GNUNET_NETWORK_fdset_set (plugin->rs, udp_sock);
+          break;
+        }
       hdr = (const struct GNUNET_MessageHeader *) &msg[1];
       sender = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
       memcpy (sender, &msg->sender, sizeof (struct GNUNET_PeerIdentity));
@@ -553,12 +558,22 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         {
           handle_udp_ping (plugin, sender, &addr, fromlen, hdr);
         }
-
-      if (ntohs (hdr->type) == GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_PONG)
+      else if (ntohs (hdr->type) == GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_PONG)
         {
           handle_udp_pong (plugin, sender, hdr);
         }
-      GNUNET_free(sender);
+      else
+        {
+          found = find_session (plugin, sender);
+          if (found != NULL)
+            plugin->env->receive (plugin->env->cls, found->latency, sender,
+                                  &msg->header);
+          else
+            plugin->env->receive (plugin->env->cls,
+                                  GNUNET_TIME_relative_get_forever (), sender,
+                                  &msg->header);
+        }
+      GNUNET_free (sender);
       GNUNET_free (buf);
 
     }
@@ -676,7 +691,7 @@ udp_plugin_validate (void *cls,
 {
   struct Plugin *plugin = cls;
   struct Session *new_session;
-  struct UDPPongMessage *msg;
+  struct UDPPingMessage *msg;
 
   if (addrlen <= 0)
     return GNUNET_SYSERR;
@@ -697,11 +712,13 @@ udp_plugin_validate (void *cls,
   memcpy (&new_session->target, target, sizeof (struct GNUNET_PeerIdentity));
   new_session->challenge = challenge;
   new_session->validated = GNUNET_NO;
+  new_session->latency = GNUNET_TIME_relative_get_zero ();
+  new_session->ping_sent = GNUNET_TIME_absolute_get ();
   new_session->next = plugin->sessions;
   plugin->sessions = new_session;
 
-  msg = GNUNET_malloc (sizeof (struct UDPPongMessage));
-  msg->header.size = htons (sizeof (struct UDPPongMessage));
+  msg = GNUNET_malloc (sizeof (struct UDPPingMessage));
+  msg->header.size = htons (sizeof (struct UDPPingMessage));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_PING);
   msg->challenge = htons (challenge);
 #if DEBUG_UDP
@@ -713,7 +730,7 @@ udp_plugin_validate (void *cls,
   udp_plugin_send (plugin, target, GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                    &msg->header, timeout, NULL, NULL);
 
-  GNUNET_free(msg);
+  GNUNET_free (msg);
   return GNUNET_OK;
 }
 
@@ -880,13 +897,13 @@ libgnunet_plugin_transport_udp_done (void *cls)
   pos = plugin->sessions;
   while (pos != NULL)
     {
-      GNUNET_free(pos->connect_addr);
+      GNUNET_free (pos->connect_addr);
       oldpos = pos;
       pos = pos->next;
-      GNUNET_free(oldpos);
+      GNUNET_free (oldpos);
     }
 
-  GNUNET_NETWORK_fdset_destroy(plugin->rs);
+  GNUNET_NETWORK_fdset_destroy (plugin->rs);
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;

@@ -624,14 +624,16 @@ process_pending_messages (struct Session *session)
     return;
   session->transmit_handle
     = GNUNET_SERVER_notify_transmit_ready (session->client,
-                                           ntohs (session->pending_messages->
-                                                  msg->size) +
-                                           (session->pending_messages->
-                                            is_welcome ? 0 : sizeof (struct
-                                                                     DataMessage)),
+                                           ntohs (session->
+                                                  pending_messages->msg->
+                                                  size) +
+                                           (session->
+                                            pending_messages->is_welcome ? 0 :
+                                            sizeof (struct DataMessage)),
                                            GNUNET_TIME_absolute_get_remaining
-                                           (session->pending_messages[0].
-                                            timeout), &do_transmit, session);
+                                           (session->
+                                            pending_messages[0].timeout),
+                                           &do_transmit, session);
 }
 
 
@@ -803,8 +805,8 @@ disconnect_session (struct Session *session)
     }
   if (session->transmit_handle != NULL)
     {
-      GNUNET_CONNECTION_notify_transmit_ready_cancel (session->
-                                                      transmit_handle);
+      GNUNET_CONNECTION_notify_transmit_ready_cancel
+        (session->transmit_handle);
       session->transmit_handle = NULL;
     }
   while (NULL != (pm = session->pending_messages))

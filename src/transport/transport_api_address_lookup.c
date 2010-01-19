@@ -57,8 +57,8 @@ address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
           /* expect more replies */
           GNUNET_CLIENT_receive (alucb->client, &address_response_processor,
                                  alucb,
-                                 GNUNET_TIME_absolute_get_remaining (alucb->
-                                                                     timeout));
+                                 GNUNET_TIME_absolute_get_remaining
+                                 (alucb->timeout));
         }
     }
   alucb->cb (alucb->cls, address);
