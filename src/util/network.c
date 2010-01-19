@@ -361,15 +361,14 @@ GNUNET_NETWORK_socket_listen (const struct GNUNET_NETWORK_Handle *desc,
  * @param desc socket
  */
 unsigned int
-GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle * desc)
+GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle
+                                       *desc)
 {
   int error;
   unsigned int pending;
 
   /* How much is there to be read? */
-  error = ioctl(desc->fd, FIONREAD, &pending);
-  GNUNET_log_from(GNUNET_ERROR_TYPE_INFO, "udp", _
-            ("pending is %u bytes, error is %d\n"), pending, error);
+  error = ioctl (desc->fd, FIONREAD, &pending);
 
   if (error == 0)
     return pending;
@@ -389,7 +388,8 @@ GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle * desc
 ssize_t
 GNUNET_NETWORK_socket_recvfrom (const struct GNUNET_NETWORK_Handle * desc,
                                 void *buffer, size_t length,
-                                struct sockaddr *src_addr, socklen_t *addrlen)
+                                struct sockaddr * src_addr,
+                                socklen_t * addrlen)
 {
   int ret;
   int flags;
@@ -733,7 +733,9 @@ GNUNET_NETWORK_fdset_handle_set (struct GNUNET_NETWORK_FDSet *fds,
 #ifdef MINGW
   HANDLE hw;
   GNUNET_DISK_internal_file_handle_ (h, &hw, sizeof (HANDLE));
-  GNUNET_CONTAINER_slist_add (fds->handles, GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT, &hw, sizeof (HANDLE));
+  GNUNET_CONTAINER_slist_add (fds->handles,
+                              GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
+                              &hw, sizeof (HANDLE));
 
 #else
   int fd;
@@ -785,20 +787,23 @@ GNUNET_NETWORK_fdset_overlap (const struct GNUNET_NETWORK_FDSet *fds1,
       return GNUNET_YES;
 #ifdef MINGW
   {
-      struct GNUNET_CONTAINER_SList_Iterator *it;
+    struct GNUNET_CONTAINER_SList_Iterator *it;
 
-      for(it = GNUNET_CONTAINER_slist_begin (fds1->handles); GNUNET_CONTAINER_slist_end (it) != GNUNET_YES; GNUNET_CONTAINER_slist_next (it))
-        {
-          HANDLE *h;
+    for (it = GNUNET_CONTAINER_slist_begin (fds1->handles);
+         GNUNET_CONTAINER_slist_end (it) != GNUNET_YES;
+         GNUNET_CONTAINER_slist_next (it))
+      {
+        HANDLE *h;
 
-          h = GNUNET_CONTAINER_slist_get (it, NULL);
-          if (GNUNET_CONTAINER_slist_contains (fds2->handles, h, sizeof (HANDLE)))
-            {
-              GNUNET_CONTAINER_slist_iter_destroy (it);
-              return GNUNET_YES;
-            }
-        }
-      GNUNET_CONTAINER_slist_iter_destroy (it);
+        h = GNUNET_CONTAINER_slist_get (it, NULL);
+        if (GNUNET_CONTAINER_slist_contains
+            (fds2->handles, h, sizeof (HANDLE)))
+          {
+            GNUNET_CONTAINER_slist_iter_destroy (it);
+            return GNUNET_YES;
+          }
+      }
+    GNUNET_CONTAINER_slist_iter_destroy (it);
   }
 #endif
   return GNUNET_NO;
@@ -907,7 +912,8 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   DWORD limit;
   fd_set sock_read, sock_write, sock_except;
   fd_set aread, awrite, aexcept;
-  struct GNUNET_CONTAINER_SList *handles_read, *handles_write, *handles_except;
+  struct GNUNET_CONTAINER_SList *handles_read, *handles_write,
+    *handles_except;
 
   int i;
   struct timeval tvslice;
@@ -1014,8 +1020,8 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 
                 {
                   GNUNET_CONTAINER_slist_add (handles_read,
-                      GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT, &h,
-                      sizeof (HANDLE));
+                                              GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
+                                              &h, sizeof (HANDLE));
                   retcode++;
                 }
             }
@@ -1039,8 +1045,8 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 
                 {
                   GNUNET_CONTAINER_slist_add (handles_except,
-                      GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT, &h,
-                      sizeof (HANDLE));
+                                              GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
+                                              &h, sizeof (HANDLE));
                   retcode++;
                 }
             }
