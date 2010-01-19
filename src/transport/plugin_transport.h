@@ -60,12 +60,15 @@
  * @param message the message, NULL if peer was disconnected
  */
 typedef void (*GNUNET_TRANSPORT_PluginReceiveCallback) (void *cls,
-							struct GNUNET_TIME_Relative
-							latency,
-							const struct GNUNET_PeerIdentity
-							* peer,
-							const struct GNUNET_MessageHeader
-							* message);
+                                                        struct
+                                                        GNUNET_TIME_Relative
+                                                        latency,
+                                                        const struct
+                                                        GNUNET_PeerIdentity *
+                                                        peer,
+                                                        const struct
+                                                        GNUNET_MessageHeader *
+                                                        message);
 
 
 /**
@@ -84,10 +87,13 @@ typedef void (*GNUNET_TRANSPORT_PluginReceiveCallback) (void *cls,
  *         by the other peer in human-readable format)
  */
 typedef void (*GNUNET_TRANSPORT_ValidationNotification) (void *cls,
-							 const char *name,
-							 const struct GNUNET_PeerIdentity *peer,
-							 uint32_t challenge,
-							 const char *sender_addr);
+                                                         const char *name,
+                                                         const struct
+                                                         GNUNET_PeerIdentity *
+                                                         peer,
+                                                         uint32_t challenge,
+                                                         const char
+                                                         *sender_addr);
 
 
 
@@ -217,12 +223,12 @@ struct GNUNET_TRANSPORT_PluginEnvironment
  */
 typedef int
   (*GNUNET_TRANSPORT_ValidationFunction) (void *cls,
-					  const struct
-					  GNUNET_PeerIdentity * target,
-					  uint32_t challenge,
-					  struct GNUNET_TIME_Relative
-					  timeout, const void *addr,
-					  size_t addrlen);
+                                          const struct
+                                          GNUNET_PeerIdentity * target,
+                                          uint32_t challenge,
+                                          struct GNUNET_TIME_Relative
+                                          timeout, const void *addr,
+                                          size_t addrlen);
 
 /**
  * Function called by the GNUNET_TRANSPORT_TransmitFunction
@@ -260,11 +266,11 @@ typedef void
  *        peer disconnected...); can be NULL
  * @param cont_cls closure for cont
  */
-typedef void 
+typedef void
   (*GNUNET_TRANSPORT_TransmitFunction) (void *cls,
                                         const struct GNUNET_PeerIdentity *
                                         target,
-					unsigned int priority,
+                                        unsigned int priority,
                                         const struct GNUNET_MessageHeader *
                                         msg,
                                         struct GNUNET_TIME_Relative timeout,
@@ -290,8 +296,8 @@ typedef void
  */
 typedef void
   (*GNUNET_TRANSPORT_DisconnectFunction) (void *cls,
-					  const struct GNUNET_PeerIdentity *
-					  target);
+                                          const struct GNUNET_PeerIdentity *
+                                          target);
 
 
 /**

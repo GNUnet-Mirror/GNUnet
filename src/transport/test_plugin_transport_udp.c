@@ -94,24 +94,20 @@ static int ok;
  * Initialize Environment for this plugin
  */
 static void
-receive(void *cls,
-        struct GNUNET_TIME_Relative
-        latency,
-        const struct GNUNET_PeerIdentity
-        * peer,
-        const struct GNUNET_MessageHeader
-        * message)
+receive (void *cls,
+         struct GNUNET_TIME_Relative
+         latency,
+         const struct GNUNET_PeerIdentity
+         *peer, const struct GNUNET_MessageHeader *message)
 {
   /* do nothing */
 }
 
-void notify_address(void *cls,
-                    const char *name,
-                    const void *addr,
-                    size_t addrlen,
-                    struct
-                    GNUNET_TIME_Relative
-                    expires)
+void
+notify_address (void *cls,
+                const char *name,
+                const void *addr,
+                size_t addrlen, struct GNUNET_TIME_Relative expires)
 {
 }
 
@@ -123,10 +119,11 @@ void notify_address(void *cls,
  * @param cfg configuration to use
  */
 static void
-unload_plugins (void *cls,
-                const struct GNUNET_CONFIGURATION_Handle *cfg)
+unload_plugins (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_udp",api));
+  GNUNET_assert (NULL ==
+                 GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_udp",
+                                       api));
   if (my_private_key != NULL)
     GNUNET_CRYPTO_rsa_key_free (my_private_key);
 
@@ -134,8 +131,7 @@ unload_plugins (void *cls,
 
 
 static void
-unload_task (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc)
+unload_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   unload_plugins (NULL, cfg);
@@ -149,8 +145,7 @@ static void
 validation_notification (void *cls,
                          const char *name,
                          const struct GNUNET_PeerIdentity *peer,
-                         uint32_t challenge,
-                         const char *sender_addr)
+                         uint32_t challenge, const char *sender_addr)
 {
   if (validation_timeout_task != GNUNET_SCHEDULER_NO_TASK)
     {
@@ -160,21 +155,20 @@ validation_notification (void *cls,
 
   GNUNET_assert (challenge == 42);
 
-  ok = 0; /* if the last test succeeded, report success */
+  ok = 0;                       /* if the last test succeeded, report success */
 
   GNUNET_SCHEDULER_add_continuation (sched,
                                      &unload_task,
-                                     (void*) cfg,
+                                     (void *) cfg,
                                      GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
 static void
-validation_failed (void *cls,
-                   const struct GNUNET_SCHEDULER_TaskContext *tc)
+validation_failed (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   validation_timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_break (0); /* output error */
+  GNUNET_break (0);             /* output error */
   /* the "validation_notification" was not called
      in a timely fashion; we should set an error
      code for main and shut down */
@@ -201,43 +195,38 @@ test_validation ()
 {
   struct sockaddr_in soaddr;
 
-  memset (&soaddr, 0, sizeof(soaddr));
+  memset (&soaddr, 0, sizeof (soaddr));
 #if HAVE_SOCKADDR_IN_SIN_LEN
   soaddr.sin_len = sizeof (soaddr);
 #endif
   soaddr.sin_family = AF_INET;
-  soaddr.sin_port = htons(2368 /* FIXME: get from config! */);
+  soaddr.sin_port = htons (2368 /* FIXME: get from config! */ );
   soaddr.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
 
   /* add job to catch failure (timeout) */
   validation_timeout_task =
-    GNUNET_SCHEDULER_add_delayed (sched,
-                                  TIMEOUT,
-                                  &validation_failed,
-                                  NULL);
+    GNUNET_SCHEDULER_add_delayed (sched, TIMEOUT, &validation_failed, NULL);
 
   api->validate (api->cls,
-                 &my_identity,
-                 42,
-                 TIMEOUT,
-                 &soaddr,
-                 sizeof(soaddr));
+                 &my_identity, 42, TIMEOUT, &soaddr, sizeof (soaddr));
 }
 
 
-static void setup_plugin_environment()
+static void
+setup_plugin_environment ()
 {
-  env.cfg  = cfg;
+  env.cfg = cfg;
   env.sched = sched;
   env.my_public_key = &my_public_key;
   env.my_private_key = my_private_key;
   env.my_identity = &my_identity;
-  env.cls=&env;
-  env.receive=&receive;
-  env.notify_address=&notify_address;
+  env.cls = &env;
+  env.receive = &receive;
+  env.notify_address = &notify_address;
   env.notify_validation = &validation_notification;
   env.max_connections = max_connect_per_transport;
 }
+
 static int retx;
 
 /**
@@ -251,8 +240,7 @@ static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
 {
   unsigned long long tneigh;
   char *keyfile;
@@ -272,7 +260,8 @@ run (void *cls,
                                                 "HOSTKEY", &keyfile)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Transport service is lacking key configuration settings.  Exiting.\n"));
+                  _
+                  ("Transport service is lacking key configuration settings.  Exiting.\n"));
       GNUNET_SCHEDULER_shutdown (s);
       return;
     }
@@ -282,23 +271,21 @@ run (void *cls,
   if (my_private_key == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Transport service could not access hostkey.  Exiting.\n"));
+                  _
+                  ("Transport service could not access hostkey.  Exiting.\n"));
       GNUNET_SCHEDULER_shutdown (s);
       return;
     }
-  GNUNET_CRYPTO_rsa_key_get_public (my_private_key,
-                                    &my_public_key);
+  GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
   GNUNET_CRYPTO_hash (&my_public_key,
-                      sizeof (my_public_key),
-                      &my_identity.hashPubKey);
+                      sizeof (my_public_key), &my_identity.hashPubKey);
 
   /* load plugins... */
-  setup_plugin_environment();
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Loading udp transport plugin\n"));
+  setup_plugin_environment ();
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading udp transport plugin\n"));
   GNUNET_asprintf (&libname, "libgnunet_plugin_transport_udp");
 
-  api = GNUNET_PLUGIN_load(libname, &env);
+  api = GNUNET_PLUGIN_load (libname, &env);
   GNUNET_free (libname);
   if (api == NULL)
     {
@@ -344,14 +331,12 @@ main (int argc, char *const *argv)
                     "WARNING",
 #endif
                     NULL);
-  ok = 1; /* set to fail */
+  ok = 1;                       /* set to fail */
   ret = (GNUNET_OK ==
-          GNUNET_PROGRAM_run (5,
-                              argv_prog,
-                              "test-plugin-transport",
-                              "testcase",
-                              options,
-                              &run, NULL)) ? ok : 1;
+         GNUNET_PROGRAM_run (5,
+                             argv_prog,
+                             "test-plugin-transport",
+                             "testcase", options, &run, NULL)) ? ok : 1;
   GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-plugin-transport");
   return ret;
 }

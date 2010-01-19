@@ -120,10 +120,8 @@ notify_connect (void *cls,
                 const struct GNUNET_PeerIdentity *peer,
                 struct GNUNET_TIME_Relative latency)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Peer `%4s' connected to us (%p)!\n", 
-	      GNUNET_i2s(peer),
-	      cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Peer `%4s' connected to us (%p)!\n", GNUNET_i2s (peer), cls);
   GNUNET_assert ((ok >= 1) && (ok <= 6));
   OKPP;
 }
@@ -197,14 +195,15 @@ exchange_hello_last (void *cls,
   GNUNET_assert (message != NULL);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
-				      message, &me->id));
+                                      message, &me->id));
   GNUNET_TRANSPORT_offer_hello (p1.th, message);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Finished exchanging HELLOs, now waiting for transmission!\n");
   /* both HELLOs exchanged, get ready to test transmission! */
   GNUNET_TRANSPORT_notify_transmit_ready (p1.th,
                                           &p2.id,
-                                          256, 0, TIMEOUT, &notify_ready, &p1);
+                                          256, 0, TIMEOUT, &notify_ready,
+                                          &p1);
 }
 
 
@@ -223,10 +222,8 @@ exchange_hello (void *cls,
   GNUNET_assert (message != NULL);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
-				      message, &me->id));
-  GNUNET_TRANSPORT_get_hello (p2.th,
-			      TIMEOUT,
-                              &exchange_hello_last, &p2);
+                                      message, &me->id));
+  GNUNET_TRANSPORT_get_hello (p2.th, TIMEOUT, &exchange_hello_last, &p2);
 }
 
 
@@ -234,16 +231,14 @@ static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (ok == 1);
   OKPP;
   sched = s;
   setup_peer (&p1, "test_transport_api_peer1.conf");
   setup_peer (&p2, "test_transport_api_peer2.conf");
-  GNUNET_TRANSPORT_get_hello (p1.th,
-                              TIMEOUT, &exchange_hello, &p1);
+  GNUNET_TRANSPORT_get_hello (p1.th, TIMEOUT, &exchange_hello, &p1);
 }
 
 
@@ -253,7 +248,7 @@ stop_arm (struct PeerContext *p)
 #if START_ARM
   if (0 != PLIBC_KILL (p->arm_pid, SIGTERM))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  GNUNET_OS_process_wait(p->arm_pid);
+  GNUNET_OS_process_wait (p->arm_pid);
 #endif
   GNUNET_CONFIGURATION_destroy (p->cfg);
 }
@@ -296,7 +291,7 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-1"); 
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-1");
   GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-2");
   return ret;
 }

@@ -1006,9 +1006,8 @@ receiveContentCallback (void *ptr, size_t size, size_t nmemb, void *ctx)
           cpy = sizeof (GNUNET_MessageHeader) - httpSession->cs.client.rpos1;
           if (cpy > have)
             cpy = have;
-          memcpy (&httpSession->cs.
-                  client.rbuff1[httpSession->cs.client.rpos1], &inbuf[poff],
-                  cpy);
+          memcpy (&httpSession->cs.client.
+                  rbuff1[httpSession->cs.client.rpos1], &inbuf[poff], cpy);
           httpSession->cs.client.rpos1 += cpy;
           have -= cpy;
           poff += cpy;
@@ -1028,9 +1027,8 @@ receiveContentCallback (void *ptr, size_t size, size_t nmemb, void *ctx)
             httpSession->cs.client.rpos2;
           if (cpy > have)
             cpy = have;
-          memcpy (&httpSession->cs.
-                  client.rbuff2[httpSession->cs.client.rpos2], &inbuf[poff],
-                  cpy);
+          memcpy (&httpSession->cs.client.
+                  rbuff2[httpSession->cs.client.rpos2], &inbuf[poff], cpy);
           have -= cpy;
           poff += cpy;
           httpSession->cs.client.rpos2 += cpy;
@@ -1810,11 +1808,14 @@ curl_runner (void *unused)
       GNUNET_net_fdset_copy_native (hrs, rs);
       GNUNET_net_fdset_copy_native (hes, es);
 
-       GNUNET_net_fdset_handle_set (signal_pipe[0], hrs);
+      GNUNET_net_fdset_handle_set (signal_pipe[0], hrs);
       if (stats != NULL)
         stats->change (stat_select_calls, 1);
       ret =
-        GNUNET_net_select (hrs, hws, hes, (have_tv == MHD_YES) ? timeout : GNUNET_TIME_UNIT_FOREVER_REL);
+        GNUNET_net_select (hrs, hws, hes,
+                           (have_tv ==
+                            MHD_YES) ? timeout :
+                           GNUNET_TIME_UNIT_FOREVER_REL);
       if (ret == GNUNET_SYSERR)
         {
           GNUNET_GE_LOG_STRERROR (coreAPI->ectx,

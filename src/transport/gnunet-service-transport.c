@@ -223,7 +223,7 @@ struct MessageQueue
    * How important is the message?
    */
   unsigned int priority;
-  
+
 };
 
 
@@ -672,7 +672,7 @@ transmit_to_client_callback (void *cls, size_t size, void *buf)
   if (buf == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Transmission to client failed, closing connection.\n");
+                  "Transmission to client failed, closing connection.\n");
       /* fatal error with client, free message queue! */
       while (NULL != (q = client->message_queue_head))
         {
@@ -693,8 +693,8 @@ transmit_to_client_callback (void *cls, size_t size, void *buf)
         break;
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Transmitting message of type %u to client.\n",
-		  ntohs (msg->type));
+                  "Transmitting message of type %u to client.\n",
+                  ntohs (msg->type));
 #endif
       client->message_queue_head = q->next;
       if (q->next == NULL)
@@ -815,9 +815,7 @@ try_alternative_plugins (struct NeighbourList *neighbour)
  *        disconnected or must we ask all plugins to
  *        disconnect?
  */
-static void
-disconnect_neighbour (struct NeighbourList *n,
-		      int check);
+static void disconnect_neighbour (struct NeighbourList *n, int check);
 
 
 /**
@@ -827,8 +825,7 @@ disconnect_neighbour (struct NeighbourList *n,
  *
  * @param neighbour target peer for which to check the plugins
  */
-static void 
-try_transmission_to_peer (struct NeighbourList *neighbour);
+static void try_transmission_to_peer (struct NeighbourList *neighbour);
 
 
 /**
@@ -867,13 +864,15 @@ transmit_send_continuation (void *cls,
   GNUNET_assert (rl != NULL);
   if (result == GNUNET_OK)
     {
-      rl->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+      rl->timeout =
+        GNUNET_TIME_relative_to_absolute
+        (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
     }
   else
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Transmission to peer `%s' failed, marking connection as down.\n",
-		  GNUNET_i2s(target));
+                  "Transmission to peer `%s' failed, marking connection as down.\n",
+                  GNUNET_i2s (target));
       rl->connected = GNUNET_NO;
     }
   if (!mq->internal_msg)
@@ -881,9 +880,8 @@ transmit_send_continuation (void *cls,
   if (mq->client != NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Notifying client %p about failed transission to peer `%4s'.\n",
-		  mq->client,
-		  GNUNET_i2s(target));
+                  "Notifying client %p about failed transission to peer `%4s'.\n",
+                  mq->client, GNUNET_i2s (target));
       send_ok_msg.header.size = htons (sizeof (send_ok_msg));
       send_ok_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
       send_ok_msg.success = htonl (result);
@@ -896,8 +894,8 @@ transmit_send_continuation (void *cls,
      another message (if available) */
   if (result == GNUNET_OK)
     try_transmission_to_peer (n);
-  else    
-    disconnect_neighbour (n, GNUNET_YES); 
+  else
+    disconnect_neighbour (n, GNUNET_YES);
 }
 
 
@@ -958,9 +956,9 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
       rl->connect_attempts++;
       rl->connected = GNUNET_YES;
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Establishing fresh connection with `%4s' via plugin `%s'\n",
-              GNUNET_i2s (&neighbour->id), rl->plugin->short_name);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Establishing fresh connection with `%4s' via plugin `%s'\n",
+                  GNUNET_i2s (&neighbour->id), rl->plugin->short_name);
 #endif
     }
   neighbour->messages = mq->next;
@@ -974,11 +972,11 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
               GNUNET_i2s (&neighbour->id), rl->plugin->short_name);
 #endif
   rl->plugin->api->send (rl->plugin->api->cls,
-			 &neighbour->id,
-			 mq->priority,
-			 mq->message,
-			 GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-			 &transmit_send_continuation, mq);
+                         &neighbour->id,
+                         mq->priority,
+                         mq->message,
+                         GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+                         &transmit_send_continuation, mq);
 }
 
 
@@ -993,7 +991,7 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
  */
 static void
 transmit_to_peer (struct TransportClient *client,
-		  unsigned int priority,
+                  unsigned int priority,
                   const struct GNUNET_MessageHeader *msg,
                   int is_internal, struct NeighbourList *neighbour)
 {
@@ -1100,8 +1098,7 @@ refresh_hello ()
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-              "Refreshing my `%s'\n",
-	      "HELLO");
+              "Refreshing my `%s'\n", "HELLO");
 #endif
   gc.plug_pos = plugins;
   gc.addr_pos = plugins != NULL ? plugins->addresses : NULL;
@@ -1125,9 +1122,8 @@ refresh_hello ()
     {
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-		  "Transmitting updated `%s' to neighbour `%4s'\n",
-		  "HELLO",
-		  GNUNET_i2s(&npos->id));
+                  "Transmitting updated `%s' to neighbour `%4s'\n",
+                  "HELLO", GNUNET_i2s (&npos->id));
 #endif
       transmit_to_peer (NULL, 0,
                         (const struct GNUNET_MessageHeader *) our_hello,
@@ -1264,7 +1260,7 @@ plugin_env_notify_address (void *cls,
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Plugin `%s' informs us about a new address `%s'\n", name,
-	      GNUNET_a2s(addr, addrlen));
+              GNUNET_a2s (addr, addrlen));
 #endif
   al = GNUNET_malloc (sizeof (struct AddressList) + addrlen);
   al->addr = &al[1];
@@ -1294,7 +1290,7 @@ notify_clients_connect (const struct GNUNET_PeerIdentity *peer,
 #endif
   cim.header.size = htons (sizeof (struct ConnectInfoMessage));
   cim.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
-  cim.quota_out = htonl (GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT / (60*1000));
+  cim.quota_out = htonl (GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT / (60 * 1000));
   cim.latency = GNUNET_TIME_relative_hton (latency);
   memcpy (&cim.id, peer, sizeof (struct GNUNET_PeerIdentity));
   cpos = clients;
@@ -1400,9 +1396,9 @@ cleanup_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                       "HELLO", GNUNET_i2s (&pid));
 #endif
           GNUNET_PEERINFO_add_peer (cfg, sched, &pid, hello);
-	  n = find_neighbour (&pid);
-	  if (NULL != n)
-	    try_transmission_to_peer (n);	    
+          n = find_neighbour (&pid);
+          if (NULL != n)
+            try_transmission_to_peer (n);
           GNUNET_free (hello);
           while (NULL != (va = pos->addresses))
             {
@@ -1416,7 +1412,7 @@ cleanup_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           else
             pos = prev->next;
           continue;
-	}
+        }
       prev = pos;
       pos = pos->next;
     }
@@ -1427,14 +1423,14 @@ cleanup_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       first = pending_validations->timeout;
       pos = pending_validations;
-      while (pos != NULL) 
-	{
-	  first = GNUNET_TIME_absolute_min (first, pos->timeout);
-	  pos = pos->next;
-	}
+      while (pos != NULL)
+        {
+          first = GNUNET_TIME_absolute_min (first, pos->timeout);
+          pos = pos->next;
+        }
       GNUNET_SCHEDULER_add_delayed (sched,
-				    GNUNET_TIME_absolute_get_remaining (first),
-				    &cleanup_validation, NULL);
+                                    GNUNET_TIME_absolute_get_remaining
+                                    (first), &cleanup_validation, NULL);
     }
 }
 
@@ -1458,10 +1454,9 @@ cleanup_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static void
 plugin_env_notify_validation (void *cls,
-			      const char *name,
-			      const struct GNUNET_PeerIdentity *peer,
-			      uint32_t challenge,
-			      const char *sender_addr)
+                              const char *name,
+                              const struct GNUNET_PeerIdentity *peer,
+                              uint32_t challenge, const char *sender_addr)
 {
   unsigned int not_done;
   int matched;
@@ -1476,8 +1471,7 @@ plugin_env_notify_validation (void *cls,
                           sizeof (struct
                                   GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                           &id.hashPubKey);
-      if (0 ==
-          memcmp (peer, &id, sizeof (struct GNUNET_PeerIdentity)))
+      if (0 == memcmp (peer, &id, sizeof (struct GNUNET_PeerIdentity)))
         break;
       pos = pos->next;
     }
@@ -1487,7 +1481,7 @@ plugin_env_notify_validation (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   _
                   ("Received validation response but have no record of any validation request for `%4s'. Ignoring.\n"),
-		  GNUNET_i2s(peer));
+                  GNUNET_i2s (peer));
       return;
     }
   not_done = 0;
@@ -1496,23 +1490,23 @@ plugin_env_notify_validation (void *cls,
   while (va != NULL)
     {
       if (va->challenge == challenge)
-	{
+        {
 #if DEBUG_TRANSPORT
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Confirmed validity of address, peer `%4s' has address `%s'.\n",
-		      GNUNET_i2s (peer),
-		      GNUNET_a2s ((const struct sockaddr*) &va[1], 
-				  va->addr_len));
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Confirmed validity of address, peer `%4s' has address `%s'.\n",
+                      GNUNET_i2s (peer),
+                      GNUNET_a2s ((const struct sockaddr *) &va[1],
+                                  va->addr_len));
 #endif
-	  GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
-		      _("Another peer saw us using the address `%s' via `%s'. If this is not plausible, this address should be listed in the configuration as implausible to avoid MiM attacks.\n"),
-		      sender_addr, 
-		      name);
-	  va->ok = GNUNET_YES;
-	  va->expiration =
-	    GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
-	  matched = GNUNET_YES;
-	}        
+          GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
+                      _
+                      ("Another peer saw us using the address `%s' via `%s'. If this is not plausible, this address should be listed in the configuration as implausible to avoid MiM attacks.\n"),
+                      sender_addr, name);
+          va->ok = GNUNET_YES;
+          va->expiration =
+            GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
+          matched = GNUNET_YES;
+        }
       if (va->ok != GNUNET_YES)
         not_done++;
       va = va->next;
@@ -1529,24 +1523,20 @@ plugin_env_notify_validation (void *cls,
     {
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "All addresses validated, will now construct `%s' for `%4s'.\n",
-		  "HELLO",
-		  GNUNET_i2s (peer));
+                  "All addresses validated, will now construct `%s' for `%4s'.\n",
+                  "HELLO", GNUNET_i2s (peer));
 #endif
       pos->timeout.value = 0;
       GNUNET_SCHEDULER_add_with_priority (sched,
-					  GNUNET_SCHEDULER_PRIORITY_IDLE,
-					  &cleanup_validation, NULL);
+                                          GNUNET_SCHEDULER_PRIORITY_IDLE,
+                                          &cleanup_validation, NULL);
     }
   else
     {
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Still waiting for %u additional `%s' messages before constructing `%s' for `%4s'.\n",
-		  not_done,
-		  "PONG",
-		  "HELLO",
-		  GNUNET_i2s (peer));
+                  "Still waiting for %u additional `%s' messages before constructing `%s' for `%4s'.\n",
+                  not_done, "PONG", "HELLO", GNUNET_i2s (peer));
 #endif
     }
 }
@@ -1604,14 +1594,12 @@ run_validation (void *cls,
       return GNUNET_OK;
     }
   GNUNET_CRYPTO_hash (&e->publicKey,
-		      sizeof (struct
-			      GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-		      &id.hashPubKey);
+                      sizeof (struct
+                              GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                      &id.hashPubKey);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Scheduling validation of address `%s' via `%s' for `%4s'\n",
-	      GNUNET_a2s(addr, addrlen),
-	      tname,
-	      GNUNET_i2s(&id));
+              "Scheduling validation of address `%s' via `%s' for `%4s'\n",
+              GNUNET_a2s (addr, addrlen), tname, GNUNET_i2s (&id));
 
   va = GNUNET_malloc (sizeof (struct ValidationAddress) + addrlen);
   va->next = e->addresses;
@@ -1619,7 +1607,7 @@ run_validation (void *cls,
   va->transport_name = GNUNET_strdup (tname);
   va->addr_len = addrlen;
   va->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-					    (unsigned int) -1);
+                                            (unsigned int) -1);
   memcpy (&va[1], addr, addrlen);
   return GNUNET_OK;
 }
@@ -1633,8 +1621,7 @@ run_validation (void *cls,
 static void
 check_hello_validated (void *cls,
                        const struct GNUNET_PeerIdentity *peer,
-                       const struct GNUNET_HELLO_Message *h, 
-		       uint32_t trust)
+                       const struct GNUNET_HELLO_Message *h, uint32_t trust)
 {
   struct CheckHelloValidatedContext *chvc = cls;
   struct ValidationAddress *va;
@@ -1672,13 +1659,11 @@ check_hello_validated (void *cls,
   if (h != NULL)
     return;                     /* wait for next call */
   /* finally, transmit validation attempts */
-  GNUNET_assert (GNUNET_OK ==
-		 GNUNET_HELLO_get_id (chvc->hello,
-				      &apeer));
+  GNUNET_assert (GNUNET_OK == GNUNET_HELLO_get_id (chvc->hello, &apeer));
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Ready to validate addresses from `%s' message for peer `%4s'\n",
-	      "HELLO", GNUNET_i2s (&apeer));
+              "Ready to validate addresses from `%s' message for peer `%4s'\n",
+              "HELLO", GNUNET_i2s (&apeer));
 #endif
   va = chvc->e->addresses;
   while (va != NULL)
@@ -1688,25 +1673,24 @@ check_hello_validated (void *cls,
                   "Establishing `%s' connection to validate `%s' address `%s' of `%4s'\n",
                   va->transport_name,
                   "HELLO",
-		  GNUNET_a2s ((const struct sockaddr*) &va[1], 
-			      va->addr_len),
-		  GNUNET_i2s (&apeer));
+                  GNUNET_a2s ((const struct sockaddr *) &va[1],
+                              va->addr_len), GNUNET_i2s (&apeer));
 #endif
       tp = find_transport (va->transport_name);
       GNUNET_assert (tp != NULL);
       if (GNUNET_OK !=
           tp->api->validate (tp->api->cls,
-			     &apeer,
-			     va->challenge,
-			     HELLO_VERIFICATION_TIMEOUT,
-			     &va[1],
-			     va->addr_len))
+                             &apeer,
+                             va->challenge,
+                             HELLO_VERIFICATION_TIMEOUT,
+                             &va[1], va->addr_len))
         va->ok = GNUNET_SYSERR;
       va = va->next;
     }
   GNUNET_SCHEDULER_add_delayed (sched,
-				GNUNET_TIME_absolute_get_remaining (chvc->e->timeout), 
-				&cleanup_validation, NULL);
+                                GNUNET_TIME_absolute_get_remaining (chvc->e->
+                                                                    timeout),
+                                &cleanup_validation, NULL);
   GNUNET_free (chvc);
 }
 
@@ -1767,10 +1751,10 @@ process_hello (struct TransportPlugin *plugin,
         {
           /* TODO: call to stats? */
 #if DEBUG_TRANSPORT
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "`%s' message for peer `%4s' is already pending; ignoring new message\n",
-		      "HELLO", GNUNET_i2s (&target));
-#endif	  
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "`%s' message for peer `%4s' is already pending; ignoring new message\n",
+                      "HELLO", GNUNET_i2s (&target));
+#endif
           return GNUNET_OK;
         }
       e = e->next;
@@ -1782,11 +1766,11 @@ process_hello (struct TransportPlugin *plugin,
   /* finally, check if HELLO was previously validated
      (continuation will then schedule actual validation) */
   chvc->piter = GNUNET_PEERINFO_iterate (cfg,
-					 sched,
-					 &target,
-					 0,
-					 HELLO_VERIFICATION_TIMEOUT,
-					 &check_hello_validated, chvc);
+                                         sched,
+                                         &target,
+                                         0,
+                                         HELLO_VERIFICATION_TIMEOUT,
+                                         &check_hello_validated, chvc);
   return GNUNET_OK;
 }
 
@@ -1805,29 +1789,27 @@ process_hello (struct TransportPlugin *plugin,
  *        disconnect?
  */
 static void
-disconnect_neighbour (struct NeighbourList *n,
-		      int check)
+disconnect_neighbour (struct NeighbourList *n, int check)
 {
   struct ReadyList *rpos;
   struct NeighbourList *npos;
   struct NeighbourList *nprev;
   struct MessageQueue *mq;
-  
+
   if (GNUNET_YES == check)
     {
       rpos = n->plugins;
       while (NULL != rpos)
-	{
-	  if (GNUNET_YES == rpos->connected)
-	    return; /* still connected */
-	  rpos = rpos->next;
-	}
+        {
+          if (GNUNET_YES == rpos->connected)
+            return;             /* still connected */
+          rpos = rpos->next;
+        }
     }
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-              "Disconnecting from `%4s'\n",
-	      GNUNET_i2s(&n->id));
+              "Disconnecting from `%4s'\n", GNUNET_i2s (&n->id));
 #endif
   /* remove n from neighbours list */
   nprev = NULL;
@@ -1852,8 +1834,7 @@ disconnect_neighbour (struct NeighbourList *n,
       n->plugins = rpos->next;
       GNUNET_assert (rpos->neighbour == n);
       if (GNUNET_YES == rpos->connected)
-	rpos->plugin->api->disconnect (rpos->plugin->api->cls,
-				       &n->id);
+        rpos->plugin->api->disconnect (rpos->plugin->api->cls, &n->id);
       GNUNET_free (rpos);
     }
 
@@ -1865,8 +1846,7 @@ disconnect_neighbour (struct NeighbourList *n,
       GNUNET_free (mq);
     }
   if (n->timeout_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (sched,
-			     n->timeout_task);
+    GNUNET_SCHEDULER_cancel (sched, n->timeout_task);
   /* finally, free n itself */
   GNUNET_free (n);
 }
@@ -1912,8 +1892,7 @@ neighbour_timeout_task (void *cls,
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-              "Neighbour `%4s' has timed out!\n",
-	      GNUNET_i2s(&n->id));
+              "Neighbour `%4s' has timed out!\n", GNUNET_i2s (&n->id));
 #endif
   n->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   disconnect_neighbour (n, GNUNET_NO);
@@ -1945,7 +1924,8 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer)
   n->id = *peer;
   n->last_quota_update = GNUNET_TIME_absolute_get ();
   n->peer_timeout =
-    GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+    GNUNET_TIME_relative_to_absolute
+    (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
   n->quota_in = (GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT + 59999) / (60 * 1000);
   add_plugins (n);
   n->timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
@@ -1995,25 +1975,23 @@ plugin_env_receive (void *cls,
   if (n == NULL)
     {
       if (message == NULL)
-	return;        /* disconnect of peer already marked down */
+        return;                 /* disconnect of peer already marked down */
       n = setup_new_neighbour (peer);
     }
   service_context = n->plugins;
-  while ( (service_context != NULL) &&
-	  (plugin != service_context->plugin) )
+  while ((service_context != NULL) && (plugin != service_context->plugin))
     service_context = service_context->next;
-  GNUNET_assert ((plugin->api->send == NULL) ||
-		 (service_context != NULL));    
+  GNUNET_assert ((plugin->api->send == NULL) || (service_context != NULL));
   if (message == NULL)
     {
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-		  "Receive failed from `%4s', triggering disconnect\n",
-		  GNUNET_i2s(&n->id));
+                  "Receive failed from `%4s', triggering disconnect\n",
+                  GNUNET_i2s (&n->id));
 #endif
       /* TODO: call stats */
-      if (service_context != NULL) 
-	service_context->connected = GNUNET_NO;        
+      if (service_context != NULL)
+        service_context->connected = GNUNET_NO;
       disconnect_neighbour (n, GNUNET_YES);
       return;
     }
@@ -2031,7 +2009,9 @@ plugin_env_receive (void *cls,
           service_context->connect_attempts++;
         }
       service_context->timeout
-        = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+        =
+        GNUNET_TIME_relative_to_absolute
+        (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
       service_context->latency = latency;
     }
   /* update traffic received amount ... */
@@ -2039,9 +2019,10 @@ plugin_env_receive (void *cls,
   n->last_received += msize;
   GNUNET_SCHEDULER_cancel (sched, n->timeout_task);
   n->peer_timeout =
-    GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+    GNUNET_TIME_relative_to_absolute
+    (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
   n->timeout_task =
-    GNUNET_SCHEDULER_add_delayed (sched, 
+    GNUNET_SCHEDULER_add_delayed (sched,
                                   GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                   &neighbour_timeout_task, n);
   update_quota (n);
@@ -2053,8 +2034,8 @@ plugin_env_receive (void *cls,
                   _
                   ("Dropping incoming message due to repeated bandwidth quota violations.\n"));
       /* TODO: call stats */
-      GNUNET_assert ( (service_context == NULL) ||
-		      (NULL != service_context->neighbour) );
+      GNUNET_assert ((service_context == NULL) ||
+                     (NULL != service_context->neighbour));
       return;
     }
   switch (ntohs (message->type))
@@ -2063,13 +2044,13 @@ plugin_env_receive (void *cls,
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Receiving `%s' message from `%4s'.\n", "HELLO",
-		  GNUNET_i2s(peer));
+                  GNUNET_i2s (peer));
 #endif
       process_hello (plugin, message);
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Sending `%s' message to connecting peer `%4s'.\n", "ACK",
-		  GNUNET_i2s(peer));
+                  GNUNET_i2s (peer));
 #endif
       transmit_to_peer (NULL, 0, &ack, GNUNET_YES, n);
       break;
@@ -2080,8 +2061,7 @@ plugin_env_receive (void *cls,
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Received message of type %u from `%4s', sending to all clients.\n",
-                  ntohs (message->type),
-		  GNUNET_i2s(peer));
+                  ntohs (message->type), GNUNET_i2s (peer));
 #endif
       /* transmit message to all clients */
       im = GNUNET_malloc (sizeof (struct InboundMessage) + msize);
@@ -2099,8 +2079,8 @@ plugin_env_receive (void *cls,
         }
       GNUNET_free (im);
     }
-  GNUNET_assert ( (service_context == NULL) ||
-		  (NULL != service_context->neighbour) );
+  GNUNET_assert ((service_context == NULL) ||
+                 (NULL != service_context->neighbour));
 }
 
 
@@ -2147,8 +2127,7 @@ handle_start (void *cls,
     {
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Sending our own `%s' to new client\n",
-		  "HELLO");
+                  "Sending our own `%s' to new client\n", "HELLO");
 #endif
       transmit_to_client (c,
                           (const struct GNUNET_MessageHeader *) our_hello,
@@ -2156,7 +2135,8 @@ handle_start (void *cls,
       /* tell new client about all existing connections */
       cim.header.size = htons (sizeof (struct ConnectInfoMessage));
       cim.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
-      cim.quota_out = htonl (GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT / (60 * 1000));
+      cim.quota_out =
+        htonl (GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT / (60 * 1000));
       cim.latency = GNUNET_TIME_relative_hton (GNUNET_TIME_UNIT_ZERO);  /* FIXME? */
       im = GNUNET_malloc (sizeof (struct InboundMessage) +
                           sizeof (struct GNUNET_MessageHeader));
@@ -2260,7 +2240,7 @@ handle_send (void *cls,
               ntohs (obmm->size),
               ntohs (obmm->type), GNUNET_i2s (&obm->peer));
 #endif
-  transmit_to_peer (tc, ntohl(obm->priority), obmm, GNUNET_NO, n);
+  transmit_to_peer (tc, ntohl (obm->priority), obmm, GNUNET_NO, n);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -2328,36 +2308,33 @@ handle_try_connect (void *cls,
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' request from client %p asking to connect to `%4s'\n",
-              "TRY_CONNECT",
-	      client,
-	      GNUNET_i2s (&tcm->peer));
+              "TRY_CONNECT", client, GNUNET_i2s (&tcm->peer));
 #endif
   if (NULL == find_neighbour (&tcm->peer))
     setup_new_neighbour (&tcm->peer);
 #if DEBUG_TRANSPORT
   else
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		"Client asked to connect to `%4s', but connection already exists\n",
-		"TRY_CONNECT", 
-		GNUNET_i2s (&tcm->peer));
-#endif    
+                "Client asked to connect to `%4s', but connection already exists\n",
+                "TRY_CONNECT", GNUNET_i2s (&tcm->peer));
+#endif
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 static void
 transmit_address_to_client (void *cls, const char *address)
 {
-	struct GNUNET_SERVER_TransmitContext *tc = cls;
-	size_t slen;
+  struct GNUNET_SERVER_TransmitContext *tc = cls;
+  size_t slen;
 
-	if (NULL == address)
-		slen = 0;
-	else
-		slen = strlen (address) + 1;
-	GNUNET_SERVER_transmit_context_append (tc, address, slen,
-				GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
-	if (NULL == address)
-		GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
+  if (NULL == address)
+    slen = 0;
+  else
+    slen = strlen (address) + 1;
+  GNUNET_SERVER_transmit_context_append (tc, address, slen,
+                                         GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+  if (NULL == address)
+    GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 /**
@@ -2369,52 +2346,58 @@ transmit_address_to_client (void *cls, const char *address)
  */
 static void
 handle_address_lookup (void *cls,
-                      struct GNUNET_SERVER_Client *client,
-                      const struct GNUNET_MessageHeader *message)
+                       struct GNUNET_SERVER_Client *client,
+                       const struct GNUNET_MessageHeader *message)
 {
-	const struct AddressLookupMessage *alum;
-	struct TransportPlugin *lsPlugin;
-	const char *nameTransport;
-	const char *address;
-	uint16_t size;
-	struct GNUNET_SERVER_TransmitContext *tc;
+  const struct AddressLookupMessage *alum;
+  struct TransportPlugin *lsPlugin;
+  const char *nameTransport;
+  const char *address;
+  uint16_t size;
+  struct GNUNET_SERVER_TransmitContext *tc;
 
-	size = ntohs (message->size);
-	if (size < sizeof(struct AddressLookupMessage))
-	{
-		GNUNET_break_op (0);
-		GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-		return;
-	}
-	alum = (const struct AddressLookupMessage *) message;
-	uint32_t addressLen = ntohl(alum->addrlen);
-	if (size <= sizeof(struct AddressLookupMessage) + addressLen)
-	{
-		GNUNET_break_op (0);
-		GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-		return;
-	}
-	address = (const char *)&alum[1];
-	nameTransport = (const char*)&address[addressLen];
-	if (nameTransport [size - sizeof (struct AddressLookupMessage) - addressLen -1] != '\0')
-	{
-		GNUNET_break_op (0);
-		GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-		return;
-	}
-	struct GNUNET_TIME_Absolute timeout= GNUNET_TIME_absolute_ntoh(alum->timeout);
-	struct GNUNET_TIME_Relative rtimeout = GNUNET_TIME_absolute_get_remaining(timeout);
-	lsPlugin = find_transport(nameTransport);
-	if (NULL == lsPlugin)
-	{
-		tc = GNUNET_SERVER_transmit_context_create (client);
-		GNUNET_SERVER_transmit_context_append (tc, NULL, 0, GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
-		GNUNET_SERVER_transmit_context_run (tc, rtimeout);
-		return;
-	}
-	tc = GNUNET_SERVER_transmit_context_create (client);
-	lsPlugin->api->address_pretty_printer(cls, nameTransport,
-				address, addressLen, GNUNET_YES, rtimeout, &transmit_address_to_client, tc);
+  size = ntohs (message->size);
+  if (size < sizeof (struct AddressLookupMessage))
+    {
+      GNUNET_break_op (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+  alum = (const struct AddressLookupMessage *) message;
+  uint32_t addressLen = ntohl (alum->addrlen);
+  if (size <= sizeof (struct AddressLookupMessage) + addressLen)
+    {
+      GNUNET_break_op (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+  address = (const char *) &alum[1];
+  nameTransport = (const char *) &address[addressLen];
+  if (nameTransport
+      [size - sizeof (struct AddressLookupMessage) - addressLen - 1] != '\0')
+    {
+      GNUNET_break_op (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+  struct GNUNET_TIME_Absolute timeout =
+    GNUNET_TIME_absolute_ntoh (alum->timeout);
+  struct GNUNET_TIME_Relative rtimeout =
+    GNUNET_TIME_absolute_get_remaining (timeout);
+  lsPlugin = find_transport (nameTransport);
+  if (NULL == lsPlugin)
+    {
+      tc = GNUNET_SERVER_transmit_context_create (client);
+      GNUNET_SERVER_transmit_context_append (tc, NULL, 0,
+                                             GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+      GNUNET_SERVER_transmit_context_run (tc, rtimeout);
+      return;
+    }
+  tc = GNUNET_SERVER_transmit_context_create (client);
+  lsPlugin->api->address_pretty_printer (cls, nameTransport,
+                                         address, addressLen, GNUNET_YES,
+                                         rtimeout,
+                                         &transmit_address_to_client, tc);
 }
 
 /**
@@ -2435,7 +2418,7 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
    sizeof (struct TryConnectMessage)},
   {&handle_address_lookup, NULL,
    GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP,
-   0 },
+   0},
   {NULL, NULL, 0, 0}
 };
 
@@ -2455,7 +2438,8 @@ create_environment (struct TransportPlugin *plug)
   plug->env.receive = &plugin_env_receive;
   plug->env.notify_address = &plugin_env_notify_address;
   plug->env.notify_validation = &plugin_env_notify_validation;
-  plug->env.default_quota_in = (GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT + 59999) / (60 * 1000);
+  plug->env.default_quota_in =
+    (GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT + 59999) / (60 * 1000);
   plug->env.max_connections = max_connect_per_transport;
 }
 
@@ -2545,8 +2529,7 @@ client_disconnect_notification (void *cls,
  * @param tc task context (unused)
  */
 static void
-unload_plugins (void *cls, 
-		const struct GNUNET_SCHEDULER_TaskContext *tc)
+unload_plugins (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct TransportPlugin *plug;
   struct AddressList *al;
@@ -2585,7 +2568,7 @@ unload_plugins (void *cls,
 static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
-     struct GNUNET_SERVER_Handle *serv, 
+     struct GNUNET_SERVER_Handle *serv,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *plugs;
@@ -2654,8 +2637,7 @@ run (void *cls,
   if (no_transports)
     refresh_hello ();
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      _("Transport service ready.\n"));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Transport service ready.\n"));
 #endif
   /* process client requests */
   GNUNET_SERVER_add_handlers (server, handlers);
@@ -2673,11 +2655,11 @@ int
 main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
-	  GNUNET_SERVICE_run (argc,
-			      argv,
-			      "transport",
-			      GNUNET_SERVICE_OPTION_NONE,
-			      &run, NULL)) ? 0 : 1;
+          GNUNET_SERVICE_run (argc,
+                              argv,
+                              "transport",
+                              GNUNET_SERVICE_OPTION_NONE,
+                              &run, NULL)) ? 0 : 1;
 }
 
 /* end of gnunet-service-transport.c */

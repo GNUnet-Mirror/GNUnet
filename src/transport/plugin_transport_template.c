@@ -147,11 +147,10 @@ struct Plugin
  */
 static int
 template_plugin_validate (void *cls,
-			  const struct GNUNET_PeerIdentity *target,
-			  uint32_t challenge,
-			  struct GNUNET_TIME_Relative timeout,
-			  const void *addr,
-			  size_t addrlen)
+                          const struct GNUNET_PeerIdentity *target,
+                          uint32_t challenge,
+                          struct GNUNET_TIME_Relative timeout,
+                          const void *addr, size_t addrlen)
 {
   // FIXME
   return GNUNET_SYSERR;
@@ -173,10 +172,10 @@ template_plugin_validate (void *cls,
  *        peer disconnected...)
  * @param cont_cls closure for cont
  */
-static void 
+static void
 template_plugin_send (void *cls,
                       const struct GNUNET_PeerIdentity *target,
-		      unsigned int priority,
+                      unsigned int priority,
                       const struct GNUNET_MessageHeader *msg,
                       struct GNUNET_TIME_Relative timeout,
                       GNUNET_TRANSPORT_TransmitContinuation cont,
@@ -197,7 +196,7 @@ template_plugin_send (void *cls,
  */
 static void
 template_plugin_disconnect (void *cls,
-			    const struct GNUNET_PeerIdentity *target)
+                            const struct GNUNET_PeerIdentity *target)
 {
   // struct Plugin *plugin = cls;
   // FIXME
