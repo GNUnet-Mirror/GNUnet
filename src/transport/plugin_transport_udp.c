@@ -361,7 +361,7 @@ udp_plugin_send (void *cls,
       else
         cont (cont_cls, target, GNUNET_OK);
     }
-
+  GNUNET_free(message);
   return;
 }
 
@@ -404,6 +404,7 @@ handle_udp_ping (void *cls,
                        &pong->header,
                        GNUNET_TIME_relative_multiply
                        (GNUNET_TIME_UNIT_SECONDS, 30), NULL, NULL);
+      GNUNET_free(pong);
     }
 
   return;
@@ -557,7 +558,7 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         {
           handle_udp_pong (plugin, sender, hdr);
         }
-
+      GNUNET_free(sender);
       GNUNET_free (buf);
 
     }
@@ -712,6 +713,7 @@ udp_plugin_validate (void *cls,
   udp_plugin_send (plugin, target, GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                    &msg->header, timeout, NULL, NULL);
 
+  GNUNET_free(msg);
   return GNUNET_OK;
 }
 
@@ -864,6 +866,8 @@ libgnunet_plugin_transport_udp_done (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
+  struct Session *pos;
+  struct Session *oldpos;
 
   udp_transport_server_stop (plugin);
   if (NULL != hostname_dns)
@@ -872,6 +876,17 @@ libgnunet_plugin_transport_udp_done (void *cls)
       hostname_dns = NULL;
     }
   GNUNET_SERVICE_stop (plugin->service);
+
+  pos = plugin->sessions;
+  while (pos != NULL)
+    {
+      GNUNET_free(pos->connect_addr);
+      oldpos = pos;
+      pos = pos->next;
+      GNUNET_free(oldpos);
+    }
+
+  GNUNET_NETWORK_fdset_destroy(plugin->rs);
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;
