@@ -365,7 +365,7 @@ check_ready (struct GNUNET_SCHEDULER_Handle *handle,
     {
 #if DEBUG_TASKS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Checking readyness of task: %llu / %p\n",
+                  "Checking readiness of task: %llu / %p\n",
                   pos->id, pos->callback_cls);
 #endif
       next = pos->next;
@@ -406,7 +406,7 @@ GNUNET_SCHEDULER_shutdown (struct GNUNET_SCHEDULER_Handle *sched)
       pos->reason |= GNUNET_SCHEDULER_REASON_SHUTDOWN;
       /* we don't move the task into the ready queue yet; check_ready
          will do that later, possibly adding additional
-         readyness-factors */
+         readiness-factors */
       pos = pos->next;
     }
   for (i=0;i<GNUNET_SCHEDULER_PRIORITY_COUNT;i++)
@@ -417,7 +417,7 @@ GNUNET_SCHEDULER_shutdown (struct GNUNET_SCHEDULER_Handle *sched)
 	  pos->reason |= GNUNET_SCHEDULER_REASON_SHUTDOWN;
 	  /* we don't move the task into the ready queue yet; check_ready
 	     will do that later, possibly adding additional
-	     readyness-factors */
+	     readiness-factors */
 	  pos = pos->next;
 	}
     }  
@@ -773,7 +773,7 @@ GNUNET_SCHEDULER_add_continuation (struct GNUNET_SCHEDULER_Handle *sched,
  * @param sched scheduler to use
  * @param prerequisite_task run this task after the task with the given
  *        task identifier completes (and any of our other
- *        conditions, such as delay, read or write-readyness
+ *        conditions, such as delay, read or write-readiness
  *        are satisfied).  Use  GNUNET_SCHEDULER_NO_TASK to not have any dependency
  *        on completion of other tasks (this will cause the task to run as
  *        soon as possible).
@@ -1044,7 +1044,7 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_SCHEDULER_Handle * sched,
  * @param prio how important is this task?
  * @param prerequisite_task run this task after the task with the given
  *        task identifier completes (and any of our other
- *        conditions, such as delay, read or write-readyness
+ *        conditions, such as delay, read or write-readiness
  *        are satisfied).  Use GNUNET_SCHEDULER_NO_TASK to not have any dependency
  *        on completion of other tasks.
  * @param delay how long should we wait? Use GNUNET_TIME_UNIT_FOREVER_REL for "forever",

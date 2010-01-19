@@ -124,6 +124,27 @@ int GNUNET_NETWORK_socket_getsockopt(const struct GNUNET_NETWORK_Handle *desc, i
 int GNUNET_NETWORK_socket_listen (const struct GNUNET_NETWORK_Handle *desc, int backlog);
 
 /**
+ * How much data is available to be read on this descriptor?
+ * @param desc socket
+ */
+unsigned int
+GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle * desc);
+
+/**
+ * Read data from a connected socket (always non-blocking).
+ * @param desc socket
+ * @param buffer buffer
+ * @param length length of buffer
+ * @param src_addr either the source to recv from, or all zeroes
+ *        to be filled in by recvfrom
+ * @param addrlen length of the addr
+ */
+ssize_t
+GNUNET_NETWORK_socket_recvfrom (const struct GNUNET_NETWORK_Handle * desc,
+                                void *buffer, size_t length,
+                                struct sockaddr *src_addr, socklen_t *addrlen);
+
+/**
  * Read data from a connected socket (always non-blocking).
  *
  * @param desc socket
@@ -248,6 +269,11 @@ void GNUNET_NETWORK_fdset_add (struct GNUNET_NETWORK_FDSet *dst,
 void GNUNET_NETWORK_fdset_copy(struct GNUNET_NETWORK_FDSet *to,
 			       const struct GNUNET_NETWORK_FDSet *from);
 
+/*
+ * Return file descriptor for this network handle
+ */
+int
+GNUNET_NETWORK_get_fd (struct GNUNET_NETWORK_Handle *desc);
 /**
  * Copy a native fd set
  * @param to destination

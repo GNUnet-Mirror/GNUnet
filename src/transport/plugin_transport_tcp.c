@@ -218,7 +218,7 @@ struct PendingMessage
 
   /**
    * Continuation function to call once the message
-   * has been sent.  Can be  NULL if there is no
+   * has been sent.  Can be NULL if there is no
    * continuation to call.
    */
   GNUNET_TRANSPORT_TransmitContinuation transmit_cont;
@@ -514,7 +514,7 @@ static void process_pending_messages (struct Session *session);
 
 /**
  * Function called to notify a client about the socket
- * begin ready to queue more data.  "buf" will be
+ * being ready to queue more data.  "buf" will be
  * NULL and "size" zero if the socket was closed for
  * writing in the meantime.
  *
@@ -1073,7 +1073,7 @@ session_try_connect (void *cls,
 static void 
 tcp_plugin_send (void *cls,
                  const struct GNUNET_PeerIdentity *target,   
-		 unsigned int priority,
+                 unsigned int priority,
                  const struct GNUNET_MessageHeader *msg,
                  struct GNUNET_TIME_Relative timeout,
                  GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)

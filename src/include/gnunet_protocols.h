@@ -242,6 +242,15 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_DATA 43
 
+/*
+ * UDP Ping message
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_PING 51
+
+/*
+ * UDP Pong message
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_PONG 52
 
 /**
  * Initial setup message from core client to core.

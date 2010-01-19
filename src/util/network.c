@@ -355,6 +355,62 @@ GNUNET_NETWORK_socket_listen (const struct GNUNET_NETWORK_Handle *desc,
 
 
 /**
+ * How much data is available to be read on this descriptor?
+ *
+ * Returns GNUNET_NO if no data is available, or on error!
+ * @param desc socket
+ */
+unsigned int
+GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle * desc)
+{
+  int error;
+  unsigned int pending;
+
+  /* How much is there to be read? */
+  error = ioctl(desc->fd, FIONREAD, &pending);
+  GNUNET_log_from(GNUNET_ERROR_TYPE_INFO, "udp", _
+            ("pending is %u bytes, error is %d\n"), pending, error);
+
+  if (error == 0)
+    return pending;
+  else
+    return GNUNET_NO;
+}
+
+/**
+ * Read data from a connected socket (always non-blocking).
+ * @param desc socket
+ * @param buffer buffer
+ * @param length length of buffer
+ * @param src_addr either the source to recv from, or all zeroes
+ *        to be filled in by recvfrom
+ * @param addrlen length of the addr
+ */
+ssize_t
+GNUNET_NETWORK_socket_recvfrom (const struct GNUNET_NETWORK_Handle * desc,
+                                void *buffer, size_t length,
+                                struct sockaddr *src_addr, socklen_t *addrlen)
+{
+  int ret;
+  int flags;
+  flags = 0;
+
+#ifdef MSG_DONTWAIT
+  flags |= MSG_DONTWAIT;
+
+#endif /*  */
+  ret = recvfrom (desc->fd, buffer, length, flags, src_addr, addrlen);
+
+#ifdef MINGW
+  if (SOCKET_ERROR == ret)
+    SetErrnoFromWinsockError (WSAGetLastError ());
+
+#endif /*  */
+  return ret;
+}
+
+
+/**
  * Read data from a connected socket (always non-blocking).
  * @param desc socket
  * @param buffer buffer
@@ -641,6 +697,12 @@ GNUNET_NETWORK_fdset_copy (struct GNUNET_NETWORK_FDSet *to,
   GNUNET_CONTAINER_slist_clear (to->handles);
   GNUNET_CONTAINER_slist_append (to->handles, from->handles);
 #endif
+}
+
+int
+GNUNET_NETWORK_get_fd (struct GNUNET_NETWORK_Handle *desc)
+{
+  return desc->fd;
 }
 
 /**

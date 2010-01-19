@@ -290,7 +290,7 @@ GNUNET_SCHEDULER_add_continuation (struct GNUNET_SCHEDULER_Handle *sched,
  * @param sched scheduler to use
  * @param prerequisite_task run this task after the task with the given
  *        task identifier completes (and any of our other
- *        conditions, such as delay, read or write-readyness
+ *        conditions, such as delay, read or write-readiness
  *        are satisfied).  Use  GNUNET_SCHEDULER_NO_TASK to not have any dependency
  *        on completion of other tasks (this will cause the task to run as
  *        soon as possible).
@@ -480,7 +480,7 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_SCHEDULER_Handle *sched,
  * @param prio how important is this task?
  * @param prerequisite_task run this task after the task with the given
  *        task identifier completes (and any of our other
- *        conditions, such as delay, read or write-readyness
+ *        conditions, such as delay, read or write-readiness
  *        are satisfied).  Use GNUNET_SCHEDULER_NO_TASK to not have any dependency
  *        on completion of other tasks.
  * @param delay how long should we wait? Use GNUNET_TIME_UNIT_FOREVER_REL for "forever",

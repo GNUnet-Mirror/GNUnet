@@ -48,6 +48,7 @@ gnunet_service_transport_LDADD = \
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_transport_tcp.la \
+  libgnunet_plugin_transport_udp.la \
   libgnunet_plugin_transport_template.la 
 # TODO: add udp, http, nat, etc.
 
@@ -67,10 +68,19 @@ libgnunet_plugin_transport_template_la_LIBADD = \
 libgnunet_plugin_transport_template_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
+libgnunet_plugin_transport_udp_la_SOURCES = \
+  plugin_transport_udp.c
+libgnunet_plugin_transport_udp_la_LIBADD = \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
+libgnunet_plugin_transport_udp_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
 
 check_PROGRAMS = \
  test_transport_api \
- test_plugin_transport
+ test_plugin_transport \
+ test_plugin_transport_udp
 # TODO: add tests for tcp, udp, http, nat, etc.
 
 TESTS = $(check_PROGRAMS)
@@ -88,6 +98,11 @@ test_plugin_transport_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
+test_plugin_transport_udp_SOURCES = \
+ test_plugin_transport_udp.c
+test_plugin_transport_udp_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
 
 EXTRA_DIST = \
   test_transport_api_data.conf \
