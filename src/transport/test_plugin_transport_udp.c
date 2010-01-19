@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -22,6 +22,7 @@
  * @brief testcase for transport_api.c
  * @author Sailor Siraj
  * @author Christian Grothoff
+ * @author Nathan Evans
  */
 
 #include "platform.h"

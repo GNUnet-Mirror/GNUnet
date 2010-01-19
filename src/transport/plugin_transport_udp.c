@@ -22,22 +22,9 @@
  * @file transport/plugin_transport_udp.c
  * @brief Implementation of the UDP transport service
  * @author Christian Grothoff
- * @author Nathan Evans?
+ * @author Nathan Evans
  */
 
-/* Notes for Nate:
- *  - Use simple network api to open ports and do select and whatnot.
- *  - For sending, just find session and send away!
- *  - All that is required is a simple linked list of known peers and
- *    how to send to them.  Each will have a socket associated with it
- *    and that's pretty much it!  May want to re-start over with 0.8
- *    code now that we have a better idea.
- *  - How often to do select loop?  Do with a recall thing since we
- *    don't want to use cron jobs?
- *  - First thing, set up server which listens on a UDP port.
- *  - Use plugin->env->receive to notify server of message receipt
- *
- */
 #include "platform.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_connection_lib.h"
