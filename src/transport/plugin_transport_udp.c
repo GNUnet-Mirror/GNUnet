@@ -40,7 +40,7 @@
 #include "plugin_transport.h"
 #include "transport.h"
 
-#define DEBUG_UDP GNUNET_YES
+#define DEBUG_UDP GNUNET_NO
 
 /**
  * The default maximum size of each outbound UDP message,

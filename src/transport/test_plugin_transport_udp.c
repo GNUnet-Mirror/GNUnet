@@ -147,11 +147,24 @@ validation_notification (void *cls,
                          const struct GNUNET_PeerIdentity *peer,
                          uint32_t challenge, const char *sender_addr)
 {
+  struct sockaddr_storage *addr = (struct sockaddr_storage *)sender_addr;
+
   if (validation_timeout_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (sched, validation_timeout_task);
       validation_timeout_task = GNUNET_SCHEDULER_NO_TASK;
     }
+
+  switch (addr->ss_family)
+  {
+    case AF_INET:
+      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
+                      ("got address %s\n"),GNUNET_a2s((struct sockaddr *)addr, INET_ADDRSTRLEN));
+    case AF_INET6:
+      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
+                      ("got address %s\n"),GNUNET_a2s((struct sockaddr *)addr, INET6_ADDRSTRLEN));
+  }
+
 
   GNUNET_assert (challenge == 42);
 
