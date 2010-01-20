@@ -973,34 +973,41 @@ transmit_ready (void *cls, size_t size, void *buf)
 }
 
 
+#if 0
+static void
+timeout_hello_task (void *cls,
+		    const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_TRANSPORT_get_hello_cancel (ctx->d1th, 
+				     &process_hello, 
+				     ctx);
+  GNUNET_TRANSPORT_disconnect (ctx->d1th);
+  GNUNET_TRANSPORT_disconnect (ctx->d2th);
+  if (NULL != ctx->cb)
+    ctx->cb (ctx->cb_cls,
+	     _("Failed to receive `HELLO' from peer\n"));
+  GNUNET_free (ctx);
+}
+#endif
+
+
 /**
  * Receive the HELLO from one peer, give it to the other
  * and ask them to connect.
  * 
  * @param cls "struct ConnectContext"
- * @param latency how fast is the connection
- * @param peer ID of peer giving us the HELLO
  * @param message HELLO message of peer
  */
 static void
 process_hello (void *cls,
-               struct GNUNET_TIME_Relative latency,
-               const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_MessageHeader *message)
 {
   struct ConnectContext *ctx = cls;
 
-  if (peer == NULL)
-    {
-      /* signal error */
-      GNUNET_TRANSPORT_disconnect (ctx->d1th);
-      GNUNET_TRANSPORT_disconnect (ctx->d2th);
-      if (NULL != ctx->cb)
-	ctx->cb (ctx->cb_cls,
-		 _("Failed to receive `HELLO' from peer\n"));
-      GNUNET_free (ctx);
-      return;
-    }
+  /* first of all, stop the notification stuff */
+  GNUNET_TRANSPORT_get_hello_cancel (ctx->d1th, 
+				     &process_hello, 
+				     ctx);
 #if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' from transport service of `%4s'\n",
@@ -1071,9 +1078,10 @@ void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
       if (NULL != cb)
 	cb (cb_cls, _("Failed to connect to transport service!\n"));
       return;
-    }
+    }					       
+  /* FIXME: need to handle timeout: start timeout task 
+     as well here! (use 'timeout_hello_task') */
   GNUNET_TRANSPORT_get_hello (ctx->d1th, 
-			      timeout,
 			      &process_hello, 
 			      ctx);
 }

@@ -13,11 +13,19 @@ away), in order in which they will likely be done:
 
 Urgent items (before announcing ng.gnunet.org):
 * CORE:
+  - update core API to reflect changes to transport API
+    (need to pass distance to clients!)
   - test currently fails spectacularly
   - request disconnect not implemented (needs better transport API)
 * topology
   - (forced) disconnect does not work (also CORE API issue)
   - needs testing (not sure the current testcase does much...)
+* testing:
+  - timeout_hello_task is not used but should be (so we can fail 
+    properly)
+  - check that 'GNUNET_TRANSPORT_get_hello' is associated with
+    a TIMEOUT task wherever else appropriate (other testcases
+    in particular!)
 * hostlist
   - test fails (looks like it works, but that's because of a bad
     connectivity notification; somehow core is unable to send

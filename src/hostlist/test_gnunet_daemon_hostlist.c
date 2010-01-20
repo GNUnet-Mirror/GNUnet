@@ -95,11 +95,13 @@ timeout_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls closure
  * @param peer the peer that connected
  * @param latency current latency of the connection
+ * @param distance in overlay hops, as given by transport plugin
  */
 static void
 notify_connect (void *cls,
 		const struct GNUNET_PeerIdentity * peer,
-		struct GNUNET_TIME_Relative latency)
+		struct GNUNET_TIME_Relative latency,
+		unsigned int distance)
 {
   if (peer == NULL)
     return;
@@ -120,14 +122,11 @@ notify_connect (void *cls,
 
 static void
 process_hello (void *cls,
-               struct GNUNET_TIME_Relative latency,
-               const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_MessageHeader *message)
 {
   struct PeerContext *p = cls;
 
-  if (message == NULL)
-    return;
+  GNUNET_TRANSPORT_get_hello_cancel (p->th, &process_hello, p);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received HELLO, starting hostlist service.\n");
   GNUNET_ARM_start_services (p->cfg, sched, "hostlist", NULL);
@@ -151,7 +150,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   p->th = GNUNET_TRANSPORT_connect (sched, p->cfg, p, NULL, 
 				    &notify_connect, NULL);
   GNUNET_assert (p->th != NULL);
-  GNUNET_TRANSPORT_get_hello (p->th, TIMEOUT, &process_hello, p);
+  GNUNET_TRANSPORT_get_hello (p->th, &process_hello, p);
 }
 
 

@@ -2880,16 +2880,18 @@ handle_encrypted_message (struct Neighbour *n,
  * Function called by the transport for each received message.
  *
  * @param cls closure
- * @param latency estimated latency for communicating with the
- *             given peer
  * @param peer (claimed) identity of the other peer
  * @param message the message
+ * @param latency estimated latency for communicating with the
+ *             given peer (round-trip)
+ * @param distance in overlay hops, as given by transport plugin
  */
 static void
 handle_transport_receive (void *cls,
-                          struct GNUNET_TIME_Relative latency,
                           const struct GNUNET_PeerIdentity *peer,
-                          const struct GNUNET_MessageHeader *message)
+                          const struct GNUNET_MessageHeader *message,
+                          struct GNUNET_TIME_Relative latency,
+			  unsigned int distance)
 {
   struct Neighbour *n;
   struct GNUNET_TIME_Absolute now;
@@ -3073,11 +3075,13 @@ neighbour_quota_update (void *cls,
  * @param cls closure
  * @param peer the peer that connected
  * @param latency current latency of the connection
+ * @param distance in overlay hops, as given by transport plugin
  */
 static void
 handle_transport_notify_connect (void *cls,
                                  const struct GNUNET_PeerIdentity *peer,
-                                 struct GNUNET_TIME_Relative latency)
+                                 struct GNUNET_TIME_Relative latency,
+				 unsigned int distance)
 {
   struct Neighbour *n;
   struct GNUNET_TIME_Absolute now;

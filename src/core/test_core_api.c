@@ -243,16 +243,14 @@ init_notify (void *cls,
 
 static void
 process_hello (void *cls,
-               struct GNUNET_TIME_Relative latency,
-               const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_MessageHeader *message)
 {
   struct PeerContext *p = cls;
 
-  GNUNET_assert (peer != NULL);
+  GNUNET_TRANSPORT_get_hello_cancel (p->th, &process_hello, p);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received (my) `%s' from transport service of `%4s'\n",
-              "HELLO", GNUNET_i2s (peer));
+              "Received (my) `%s' from transport service\n",
+              "HELLO");
   GNUNET_assert (message != NULL);
   p->hello = GNUNET_malloc (ntohs (message->size));
   memcpy (p->hello, message, ntohs (message->size));
@@ -285,7 +283,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   GNUNET_ARM_start_services (p->cfg, sched, "core", NULL);
   p->th = GNUNET_TRANSPORT_connect (sched, p->cfg, p, NULL, NULL, NULL);
   GNUNET_assert (p->th != NULL);
-  GNUNET_TRANSPORT_get_hello (p->th, TIMEOUT, &process_hello, p);
+  GNUNET_TRANSPORT_get_hello (p->th, &process_hello, p);
 }
 
 
