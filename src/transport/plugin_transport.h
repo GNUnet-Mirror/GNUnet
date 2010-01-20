@@ -290,14 +290,14 @@ typedef void
  * connect to it but simply to see if the binary format is technically
  * legal for establishing a connection.
  *
- * @param addr pointer to the address
+ * @param addr pointer to the address, may be modified (slightly)
  * @param addrlen length of addr
  * @return GNUNET_OK if this is a plausible address for this peer
  *         and transport, GNUNET_SYSERR if not
  */
 typedef int
   (*GNUNET_TRANSPORT_CheckAddress) (void *cls,
-				    const void *addr, size_t addrlen);
+				    void *addr, size_t addrlen);
 
 /**
  * Each plugin is required to return a pointer to a struct of this
@@ -346,7 +346,8 @@ struct GNUNET_TRANSPORT_PluginFunctions
 
   /**
    * Function that will be called to check if a binary address
-   * for this plugin is well-formed.
+   * for this plugin is well-formed.  If clearly needed, patch
+   * up information such as port numbers.
    */
   GNUNET_TRANSPORT_CheckAddress check_address;
 
