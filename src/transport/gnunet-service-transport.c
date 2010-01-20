@@ -257,12 +257,11 @@ struct ReadyList
   struct GNUNET_TIME_Relative latency;
 
   /**
-   * If we did not successfully transmit a message to the
-   * given peer via this connection during the specified
-   * time, we should consider the connection to be dead.
-   * This is used in the case that a TCP transport simply
-   * stalls writing to the stream but does not formerly
-   * get a signal that the other peer died.
+   * If we did not successfully transmit a message to the given peer
+   * via this connection during the specified time, we should consider
+   * the connection to be dead.  This is used in the case that a TCP
+   * transport simply stalls writing to the stream but does not
+   * formerly get a signal that the other peer died.
    */
   struct GNUNET_TIME_Absolute timeout;
 
@@ -286,10 +285,10 @@ struct ReadyList
   unsigned int connect_attempts;
 
   /**
-   * Is this plugin ready to transmit to the specific
-   * target?  GNUNET_NO if not.  Initially, all plugins
-   * are marked ready.  If a transmission is in progress,
-   * "transmit_ready" is set to GNUNET_NO.
+   * Is this plugin ready to transmit to the specific target?
+   * GNUNET_NO if not.  Initially, all plugins are marked ready.  If a
+   * transmission is in progress, "transmit_ready" is set to
+   * GNUNET_NO.
    */
   int transmit_ready;
 

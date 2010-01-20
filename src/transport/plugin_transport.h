@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -43,57 +43,29 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_transport_service.h"
 
+
 /**
  * Function called by the transport for each received message.
  * This function should also be called with "NULL" for the
  * message to signal that the other peer disconnected.
  *
  * @param cls closure
- * @param latency estimated latency for communicating with the
- *        given peer; should be set to GNUNET_TIME_UNIT_FOREVER_REL
- *        until the transport has seen messages transmitted in
- *        BOTH directions (and hence been able to do an actual
- *        round-trip observation); a non-FOREVER latency is also used
- *        by the transport to know that communication in both directions
- *        using this one plugin actually works
+ * @param distance in overlay hops; use 1 unless DV
+ * @param sender_address binary address of the sender (if observed)
+ * @param sender_address_len number of bytes in sender_address
  * @param peer (claimed) identity of the other peer
  * @param message the message, NULL if peer was disconnected
  */
 typedef void (*GNUNET_TRANSPORT_PluginReceiveCallback) (void *cls,
-                                                        struct
-                                                        GNUNET_TIME_Relative
-                                                        latency,
+                                                        unsigned int distance,
+							const char *sender_address,
+							size_t sender_address_len,
                                                         const struct
                                                         GNUNET_PeerIdentity *
                                                         peer,
                                                         const struct
                                                         GNUNET_MessageHeader *
                                                         message);
-
-
-/**
- * Function that will be called if we receive a validation
- * of an address challenge that we transmitted to another
- * peer.  Note that the validation should only be considered
- * acceptable if the challenge matches AND if the sender
- * address is at least a plausible address for this peer
- * (otherwise we may be seeing a MiM attack).
- *
- * @param cls closure
- * @param name name of the transport that generated the address
- * @param peer who responded to our challenge
- * @param challenge the challenge number we presumably used
- * @param sender_addr string describing our sender address (as observed
- *         by the other peer in human-readable format)
- */
-typedef void (*GNUNET_TRANSPORT_ValidationNotification) (void *cls,
-                                                         const char *name,
-                                                         const struct
-                                                         GNUNET_PeerIdentity *
-                                                         peer,
-                                                         uint32_t challenge,
-                                                         const char
-                                                         *sender_addr);
 
 
 
@@ -118,21 +90,6 @@ typedef void (*GNUNET_TRANSPORT_AddressNotification) (void *cls,
 
 
 /**
- * Function that will be called for each address obtained from the HELLO.
- *
- * @param cls closure
- * @param name name of the transport that generated the address
- * @param addr one of the addresses of the host, NULL for the last address
- *        the specific address format depends on the transport
- * @param addrlen length of the address
- */
-typedef void (*GNUNET_TRANSPORT_AddressCallback) (void *cls,
-                                                  const char *name,
-                                                  const void *addr,
-                                                  size_t addrlen);
-
-
-/**
  * The transport service will pass a pointer to a struct
  * of this type as the first and only argument to the
  * entry point of each transport plugin.
@@ -148,16 +105,6 @@ struct GNUNET_TRANSPORT_PluginEnvironment
    * Scheduler to use.
    */
   struct GNUNET_SCHEDULER_Handle *sched;
-
-  /**
-   * Our public key.
-   */
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *my_public_key;
-
-  /**
-   * Our private key.
-   */
-  struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
 
   /**
    * Identity of this peer.
@@ -183,14 +130,6 @@ struct GNUNET_TRANSPORT_PluginEnvironment
   GNUNET_TRANSPORT_AddressNotification notify_address;
 
   /**
-   * Function that must be called by each plugin to notify the
-   * transport service about a successful validation of an
-   * address of another peer (or at least likely successful
-   * validation).
-   */
-  GNUNET_TRANSPORT_ValidationNotification notify_validation;
-
-  /**
    * What is the default quota (in terms of incoming bytes per
    * ms) for new connections?
    */
@@ -205,30 +144,6 @@ struct GNUNET_TRANSPORT_PluginEnvironment
 
 };
 
-
-/**
- * Function that can be used by the transport service to validate
- * the address of another peer.  Even if
- * we already have a connection to this peer, this function is
- * required to establish a new one.
- *
- * @param cls closure
- * @param target who should receive this message
- * @param challenge challenge code to use
- * @param timeout how long should we try to transmit these?
- * @param addrlen length of the address
- * @param addr the address
- * @return GNUNET_OK on success, GNUNET_SYSERR if the address
- *         format is invalid
- */
-typedef int
-  (*GNUNET_TRANSPORT_ValidationFunction) (void *cls,
-                                          const struct
-                                          GNUNET_PeerIdentity * target,
-                                          uint32_t challenge,
-                                          struct GNUNET_TIME_Relative
-                                          timeout, const void *addr,
-                                          size_t addrlen);
 
 /**
  * Function called by the GNUNET_TRANSPORT_TransmitFunction
@@ -257,24 +172,39 @@ typedef void
  *
  * @param cls closure
  * @param target who should receive this message
- * @param priority how important is the message?
  * @param msg the message to transmit
- * @param timeout how long to wait at most for the transmission
+ * @param priority how important is the message (most plugins will
+ *                 ignore message priority and just FIFO)
+ * @param timeout how long to wait at most for the transmission (does not
+ *                require plugins to discard the message after the timeout,
+ *                just advisory for the desired delay; most plugins will ignore
+ *                this as well)
+ * @param addr the address to use (can be NULL if the plugin
+ *                is "on its own" (i.e. re-use existing TCP connection))
+ * @param addrlen length of the address in bytes
+ * @param force_address GNUNET_YES if the plugin MUST use the given address,
+ *                otherwise the plugin may use other addresses or
+ *                existing connections (if available)
  * @param cont continuation to call once the message has
  *        been transmitted (or if the transport is ready
  *        for the next transmission call; or if the
  *        peer disconnected...); can be NULL
  * @param cont_cls closure for cont
+ * @return number of bytes used (on the physical network, with overheads);
+ *         -1 on hard errors (i.e. address invalid); 0 is a legal value
+ *         and does NOT mean that the message was not transmitted (DV)
  */
-typedef void
+typedef ssize_t
   (*GNUNET_TRANSPORT_TransmitFunction) (void *cls,
                                         const struct GNUNET_PeerIdentity *
                                         target,
+                                        const struct GNUNET_MessageHeader *msg,
                                         unsigned int priority,
-                                        const struct GNUNET_MessageHeader *
-                                        msg,
                                         struct GNUNET_TIME_Relative timeout,
-                                        GNUNET_TRANSPORT_TransmitContinuation
+                                        const void *addr,
+					size_t addrlen,
+					int force_address,
+					GNUNET_TRANSPORT_TransmitContinuation
                                         cont, void *cont_cls);
 
 
@@ -354,19 +284,20 @@ typedef void
 
 
 /**
- * Another peer has suggested an address for this
- * peer and transport plugin.  Check that this could be a valid
- * address.  If so, consider adding it to the list
- * of addresses.
+ * Another peer has suggested an address for this peer and transport
+ * plugin.  Check that this could be a valid address.  This function
+ * is not expected to 'validate' the address in the sense of trying to
+ * connect to it but simply to see if the binary format is technically
+ * legal for establishing a connection.
  *
  * @param addr pointer to the address
  * @param addrlen length of addr
  * @return GNUNET_OK if this is a plausible address for this peer
- *         and transport
+ *         and transport, GNUNET_SYSERR if not
  */
 typedef int
-  (*GNUNET_TRANSPORT_SuggestAddress) (void *cls,
-                                      const void *addr, size_t addrlen);
+  (*GNUNET_TRANSPORT_CheckAddress) (void *cls,
+				    const void *addr, size_t addrlen);
 
 /**
  * Each plugin is required to return a pointer to a struct of this
@@ -379,13 +310,6 @@ struct GNUNET_TRANSPORT_PluginFunctions
    * Closure for all of the callbacks.
    */
   void *cls;
-
-  /**
-   * Function used to send a single message to a particular
-   * peer using the specified address.  Used to validate
-   * HELLOs.
-   */
-  GNUNET_TRANSPORT_ValidationFunction validate;
 
   /**
    * Function that the transport service will use to transmit data to
@@ -421,23 +345,12 @@ struct GNUNET_TRANSPORT_PluginFunctions
   GNUNET_TRANSPORT_SetQuota set_receive_quota;
 
   /**
-   * Function that will be called if another peer suggested that
-   * we should use a particular address (since he is reaching
-   * us at that address) for this transport.
+   * Function that will be called to check if a binary address
+   * for this plugin is well-formed.
    */
-  GNUNET_TRANSPORT_SuggestAddress address_suggested;
+  GNUNET_TRANSPORT_CheckAddress check_address;
 
-  /**
-   * Relative cost of this transport compared to others.  This
-   * is supposed to be a static cost estimate which determines
-   * which plugins should not even be attempted if other,
-   * cheaper transports are already working.  The idea is that
-   * the costs have roughly this relationship:
-   * <pre>
-   * TCP < UDP < HTTP == HTTPS < SMTP
-   * </pre>
-   */
-  unsigned int cost_estimate;
+
 };
 
 

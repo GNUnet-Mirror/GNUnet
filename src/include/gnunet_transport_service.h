@@ -22,6 +22,10 @@
  * @file include/gnunet_transport_service.h
  * @brief low-level P2P IO
  * @author Christian Grothoff
+ *
+ * TODO:
+ * - define API for blacklisting, un-blacklisting and notifications
+ *   about blacklisted peers
  */
 
 #ifndef GNUNET_TRANSPORT_SERVICE_H
@@ -50,19 +54,21 @@ extern "C"
  * Function called by the transport for each received message.
  *
  * @param cls closure
- * @param latency estimated latency for communicating with the
- *             given peer
  * @param peer (claimed) identity of the other peer
  * @param message the message
+ * @param latency estimated latency for communicating with the
+ *             given peer (round-trip)
+ * @param distance in overlay hops, as given by transport plugin
  */
 typedef void (*GNUNET_TRANSPORT_ReceiveCallback) (void *cls,
-                                                  struct GNUNET_TIME_Relative
-                                                  latency,
                                                   const struct
                                                   GNUNET_PeerIdentity * peer,
                                                   const struct
                                                   GNUNET_MessageHeader *
-                                                  message);
+                                                  message,
+						  struct GNUNET_TIME_Relative
+                                                  latency,
+						  unsigned int distance);
 
 
 /**
@@ -77,12 +83,15 @@ struct GNUNET_TRANSPORT_Handle;
  *
  * @param cls closure
  * @param peer the peer that connected
- * @param latency current latency of the connection
+ * @param latency estimated latency for communicating with the
+ *             given peer (round-trip)
+ * @param distance in overlay hops, as given by transport plugin
  */
 typedef void
   (*GNUNET_TRANSPORT_NotifyConnect) (void *cls,
                                      const struct GNUNET_PeerIdentity * peer,
-                                     struct GNUNET_TIME_Relative latency);
+                                     struct GNUNET_TIME_Relative latency,
+				     unsigned int distance);
 
 /**
  * Function called to notify transport users that another
@@ -97,9 +106,16 @@ typedef void
                                         peer);
 
 
+/**
+ * Function to call with a human-readable format of an address
+ *
+ * @param cls closure
+ * @param address NULL on error, otherwise 0-terminated printable UTF-8 string
+ */
 typedef void
 (*GNUNET_TRANSPORT_AddressLookUpCallback) (void *cls,
-		                               const char *address);
+					   const char *address);
+
 
 /**
  * Connect to the transport service.  Note that the connection may
@@ -111,6 +127,7 @@ typedef void
  * @param rec receive function to call
  * @param nc function to call on connect events
  * @param nd function to call on disconnect events
+ * @return NULL on error
  */
 struct GNUNET_TRANSPORT_Handle *GNUNET_TRANSPORT_connect (struct
                                                           GNUNET_SCHEDULER_Handle
@@ -128,6 +145,8 @@ struct GNUNET_TRANSPORT_Handle *GNUNET_TRANSPORT_connect (struct
 
 /**
  * Disconnect from the transport service.
+ *
+ * @param handle handle returned from connect
  */
 void GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle);
 
@@ -185,7 +204,7 @@ struct GNUNET_TRANSPORT_TransmitHandle
                                            *handle,
                                            const struct GNUNET_PeerIdentity
                                            *target, size_t size,
-					                       unsigned int priority,
+					   unsigned int priority,
                                            struct GNUNET_TIME_Relative
                                            timeout,
                                            GNUNET_CONNECTION_TransmitReadyNotify
@@ -203,28 +222,42 @@ GNUNET_TRANSPORT_notify_transmit_ready_cancel (struct
                                                *h);
 
 
+
+typedef void (*GNUNET_TRANSPORT_HelloUpdateCallback)(void *cls,
+						     const struct GNUNET_MessageHeader *hello);
+
+
 /**
- * Obtain the HELLO message for this peer.
+ * Obtain updates on changes to the HELLO message for this peer.
  *
  * @param handle connection to transport service
- * @param timeout how long to wait for the HELLO
- * @param rec function to call with the HELLO, sender will be our peer
- *            identity; message and sender will be NULL on timeout
- *            (handshake with transport service pending/failed).
- *             cost estimate will be 0.
+ * @param rec function to call with the HELLO
  * @param rec_cls closure for rec
  */
 void
 GNUNET_TRANSPORT_get_hello (struct GNUNET_TRANSPORT_Handle *handle,
-                            struct GNUNET_TIME_Relative timeout,
-                            GNUNET_TRANSPORT_ReceiveCallback rec,
+                            GNUNET_TRANSPORT_HelloUpdateCallback rec,
                             void *rec_cls);
+
+
+/**
+ * Stop receiving updates about changes to our HELLO message.
+ *
+ * @param handle connection to transport service
+ * @param rec function previously registered to be called with the HELLOs
+ * @param rec_cls closure for rec
+ */
+void
+GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_Handle *handle,
+				   GNUNET_TRANSPORT_HelloUpdateCallback rec,
+				   void *rec_cls);
 
 
 /**
  * Offer the transport service the HELLO of another peer.  Note that
  * the transport service may just ignore this message if the HELLO is
- * malformed or useless due to our local configuration.
+ * malformed or useless due to our local configuration.  If the HELLO
+ * is working, we should add it to PEERINFO.
  *
  * @param handle connection to transport service
  * @param hello the hello message
@@ -233,14 +266,16 @@ void
 GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
                               const struct GNUNET_MessageHeader *hello);
 
+
 /**
- * Convert a binary address into a human
- * readable address.
+ * Convert a binary address into a human readable address.
  *
  * @param sched scheduler to use
  * @param cfg configuration to use
  * @param address address to convert (binary format)
  * @param addressLen number of bytes in address
+ * @param numeric should (IP) addresses be displayed in numeric form 
+ *                (otherwise do reverse DNS lookup)
  * @param nameTrans name of the transport to which the address belongs
  * @param timeout how long is the lookup allowed to take at most
  * @param aluc function to call with the results
@@ -251,6 +286,7 @@ GNUNET_TRANSPORT_address_lookup (struct GNUNET_SCHEDULER_Handle *sched,
                                  const struct GNUNET_CONFIGURATION_Handle *cfg,
                                  const char * address,
                                  size_t addressLen,
+				 int numeric,
                                  const char * nameTrans,
 				 struct GNUNET_TIME_Relative timeout,
 				 GNUNET_TRANSPORT_AddressLookUpCallback aluc,
@@ -268,5 +304,3 @@ GNUNET_TRANSPORT_address_lookup (struct GNUNET_SCHEDULER_Handle *sched,
 /* ifndef GNUNET_TRANSPORT_SERVICE_H */
 #endif
 /* end of gnunet_transport_service.h */
-
-
