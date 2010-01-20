@@ -22,10 +22,6 @@
  * @file transport/transport_api.c
  * @brief library to access the low-level P2P IO service
  * @author Christian Grothoff
- *
- * TODO:
- * - set_quota with low bandwidth should cause peer
- *   disconnects (currently never does that) (MINOR)
  */
 #include "platform.h"
 #include "gnunet_client_lib.h"
@@ -395,7 +391,8 @@ transport_notify_ready (void *cls, size_t size, void *buf)
           GNUNET_SCHEDULER_cancel (h->sched, th->notify_delay_task);
           th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
         }
-      GNUNET_assert (0 == th->notify (th->notify_cls, 0, NULL));
+      if (NULL != th->notify)
+	GNUNET_assert (0 == th->notify (th->notify_cls, 0, NULL));
       GNUNET_free (th);
       if (h->connect_ready_head != NULL)
         schedule_transmission (h);      /* FIXME: is this ok? */
@@ -427,7 +424,8 @@ transport_notify_ready (void *cls, size_t size, void *buf)
           GNUNET_assert (n->transmit_handle == th);
           n->transmit_handle = NULL;
         }
-      ret += th->notify (th->notify_cls, size, &cbuf[ret]);
+      if (NULL != th->notify)
+	ret += th->notify (th->notify_cls, size, &cbuf[ret]);
       GNUNET_free (th);
       if (n != NULL)
         n->last_sent += ret;
@@ -585,7 +583,8 @@ peer_transmit_timeout (void *cls,
               GNUNET_i2s (&th->target));
 #endif
   remove_from_any_list (th);
-  th->notify (th->notify_cls, 0, NULL);
+  if (NULL != th->notify)
+    th->notify (th->notify_cls, 0, NULL);
   GNUNET_free (th);
 }
 
@@ -735,10 +734,8 @@ send_set_quota (void *cls, size_t size, void *buf)
  *
  * @param handle connection to transport service
  * @param target who's bandwidth quota is being changed
- * @param quota_in incoming bandwidth quota in bytes per ms; 0 can
- *        be used to force all traffic to be discarded
- * @param quota_out outgoing bandwidth quota in bytes per ms; 0 can
- *        be used to force all traffic to be discarded
+ * @param quota_in incoming bandwidth quota in bytes per ms
+ * @param quota_out outgoing bandwidth quota in bytes per ms
  * @param timeout how long to wait until signaling failure if
  *        we can not communicate the quota change
  * @param cont continuation to call when done, will be called
@@ -992,7 +989,8 @@ request_connect (void *cls, size_t size, void *buf)
           GNUNET_SCHEDULER_cancel (h->sched, th->notify_delay_task);
           th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
         }
-      th->notify (th->notify_cls, 0, NULL);
+      if (NULL != th->notify)
+	GNUNET_assert (0 == th->notify (th->notify_cls, 0, NULL));
       GNUNET_free (th);
       return 0;
     }
@@ -1288,7 +1286,8 @@ schedule_request (struct GNUNET_TRANSPORT_TransmitHandle *th)
                       duration.value, GNUNET_i2s (&th->target));
 #endif
           remove_from_wait_list (th);
-          th->notify (th->notify_cls, 0, NULL);
+	  if (NULL != th->notify)
+	    GNUNET_assert (0 == th->notify (th->notify_cls, 0, NULL));
           GNUNET_free (th);
           return;
         }
@@ -1472,7 +1471,8 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
           GNUNET_SCHEDULER_cancel (handle->sched, th->notify_delay_task);
           th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
         }
-      th->notify (th->notify_cls, 0, NULL);
+      if (NULL != th->notify)
+	GNUNET_assert (0 == th->notify (th->notify_cls, 0, NULL));
       GNUNET_free (th);
     }
   while (NULL != (th = handle->connect_wait_head))
@@ -1483,7 +1483,8 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
           GNUNET_SCHEDULER_cancel (handle->sched, th->notify_delay_task);
           th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
         }
-      th->notify (th->notify_cls, 0, NULL);
+      if (NULL != th->notify)
+	GNUNET_assert (0 == th->notify (th->notify_cls, 0, NULL));
       GNUNET_free (th);
     }
   while (NULL != (n = handle->neighbours))
@@ -1496,7 +1497,8 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
               GNUNET_SCHEDULER_cancel (handle->sched, th->notify_delay_task);
               th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
             }
-          th->notify (th->notify_cls, 0, NULL);
+	  if (NULL != th->notify)
+	    GNUNET_assert (0 == th->notify (th->notify_cls, 0, NULL));        
           GNUNET_free (th);
         }
       GNUNET_free (n);
@@ -1788,16 +1790,19 @@ client_notify_wrapper (void *cls, size_t size, void *buf)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Transmission request could not be satisfied.\n");
 #endif
-      ret = ctw->notify (ctw->notify_cls, 0, NULL);
-      GNUNET_assert (ret == 0);
+      if (NULL != ctw->notify)
+	GNUNET_assert (0 == ctw->notify (ctw->notify_cls, 0, NULL));
       GNUNET_free (ctw);
       return 0;
     }
   GNUNET_assert (size >= sizeof (struct OutboundMessage));
   obm = buf;
-  ret = ctw->notify (ctw->notify_cls,
-                     size - sizeof (struct OutboundMessage),
-                     (void *) &obm[1]);
+  if (ctw->notify != NULL)
+    ret = ctw->notify (ctw->notify_cls,
+		       size - sizeof (struct OutboundMessage),
+		       (void *) &obm[1]);
+  else
+    ret = 0;
   if (ret == 0)
     {
       /* Need to reset flag, no SEND means no SEND_OK! */

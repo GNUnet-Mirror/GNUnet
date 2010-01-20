@@ -263,40 +263,57 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CORE_INIT_REPLY 65
 
 /**
- * Notify clients about new peer-to-peer connections.
+ * Notify clients about new peer-to-peer connections (before
+ * key exchange and authentication).
  */
-#define GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT 66
+#define GNUNET_MESSAGE_TYPE_CORE_NOTIFY_PRE_CONNECT 66
+
+/**
+ * Notify clients about new peer-to-peer connections (triggered
+ * after key exchange).
+ */
+#define GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT 67
 
 /**
  * Notify clients about peer disconnecting.
  */
-#define GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT 67
+#define GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT 68
 
 /**
  * Notify clients about incoming P2P messages.
  */
-#define GNUNET_MESSAGE_TYPE_CORE_NOTIFY_INBOUND 68
+#define GNUNET_MESSAGE_TYPE_CORE_NOTIFY_INBOUND 69
 
 /**
  * Notify clients about outgoing P2P transmissions.
  */
-#define GNUNET_MESSAGE_TYPE_CORE_NOTIFY_OUTBOUND 69
+#define GNUNET_MESSAGE_TYPE_CORE_NOTIFY_OUTBOUND 70
 
 /**
  * Request from client to "configure" P2P connection.
  */
-#define GNUNET_MESSAGE_TYPE_CORE_REQUEST_INFO 70
+#define GNUNET_MESSAGE_TYPE_CORE_REQUEST_INFO 71
 
 /**
  * Response from server about (possibly updated) P2P
  * connection configuration.
  */
-#define GNUNET_MESSAGE_TYPE_CORE_CONFIGURATION_INFO 71
+#define GNUNET_MESSAGE_TYPE_CORE_CONFIGURATION_INFO 72
 
 /**
  * Request from client with message to transmit.
  */
-#define GNUNET_MESSAGE_TYPE_CORE_SEND 72
+#define GNUNET_MESSAGE_TYPE_CORE_SEND 73
+
+/**
+ * Request from client asking to connect to a peer.
+ */
+#define GNUNET_MESSAGE_TYPE_CORE_REQUEST_CONNECT 74
+
+/**
+ * Request from client asking to disconnect from a peer.
+ */
+#define GNUNET_MESSAGE_TYPE_CORE_REQUEST_DISCONNECT 75
 
 
 /**

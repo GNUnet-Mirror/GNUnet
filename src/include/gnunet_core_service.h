@@ -138,6 +138,7 @@ typedef void
  * @param cls closure for the various callbacks that follow (including handlers in the handlers array)
  * @param init callback to call on timeout or once we have successfully
  *        connected to the core service; note that timeout is only meaningful if init is not NULL
+ * @param pre_connects function to call on peer pre-connect (no session key yet), can be NULL
  * @param connects function to call on peer connect, can be NULL
  * @param disconnects function to call on peer disconnect / timeout, can be NULL
  * @param inbound_notify function to call for all inbound messages, can be NULL
@@ -158,6 +159,7 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
                      struct GNUNET_TIME_Relative timeout,
                      void *cls,
                      GNUNET_CORE_StartupCallback init,
+		     GNUNET_CORE_ClientEventHandler pre_connects,
                      GNUNET_CORE_ClientEventHandler connects,
                      GNUNET_CORE_ClientEventHandler disconnects,
                      GNUNET_CORE_MessageCallback inbound_notify,
@@ -175,27 +177,77 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
 void GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle);
 
 
-// FIXME
+/**
+ * Handle for a request to the core to connect or disconnect
+ * from a particular peer.  Can be used to cancel the request
+ * (before the 'cont'inuation is called).
+ */
 struct GNUNET_CORE_PeerRequestHandle;
 
-// FIXME
+
+/**
+ * Request that the core should try to connect to a particular peer.
+ * Once the request has been transmitted to the core, the continuation
+ * function will be called.  Note that this does NOT mean that a
+ * connection was successfully established -- it only means that the
+ * core will now try.  Successful establishment of the connection
+ * will be signalled to the 'connects' callback argument of
+ * 'GNUNET_CORE_connect' only.  If the core service does not respond
+ * to our connection attempt within the given time frame, 'cont' will
+ * be called with the TIMEOUT reason code.
+ *
+ * @param sched scheduler to use
+ * @param cfg configuration to use
+ * @param timeout how long to try to talk to core
+ * @param cont function to call once the request has been completed (or timed out)
+ * @param cont_cls closure for cont
+ * @return NULL on error (cont will not be called), otherwise handle for cancellation
+ */
 struct GNUNET_CORE_PeerRequestHandle *
 GNUNET_CORE_peer_request_connect (struct GNUNET_SCHEDULER_Handle *sched,
-					 const struct GNUNET_CONFIGURATION_Handle *cfg,
-					 const struct GNUNET_PeerIdentity * peer,
-					 GNUNET_SCHEDULER_Task cont,
-					 void *cont_cls);
+				  const struct GNUNET_CONFIGURATION_Handle *cfg,
+				  struct GNUNET_TIME_Relative timeout,
+				  const struct GNUNET_PeerIdentity * peer,
+				  GNUNET_SCHEDULER_Task cont,
+				  void *cont_cls);
 
 
-// FIXME
+/**
+ * Request that the core should try to disconnect from a particular
+ * peer.  Once the request has been transmitted to the core, the
+ * continuation function will be called.  Note that this does NOT mean
+ * that a connection was successfully cut -- it only means that the
+ * core will now try.  Typically this will work pretty much
+ * immediately, but it is at least in theory also possible that a
+ * reconnect is also triggered rather quickly.  Successful creation
+ * and destruction of connections will be signalled to the 'connects'
+ * and 'disconnects' callback arguments of 'GNUNET_CORE_connect' only.
+ * If the core service does not respond to our connection attempt
+ * within the given time frame, 'cont' will be called with the TIMEOUT
+ * reason code.
+ *
+ * @param sched scheduler to use
+ * @param cfg configuration to use
+ * @param timeout how long to try to talk to core
+ * @param cont function to call once the request has been completed (or timed out)
+ * @param cont_cls closure for cont
+ * @return NULL on error (cont will not be called), otherwise handle for cancellation
+ */
 struct GNUNET_CORE_PeerRequestHandle *
 GNUNET_CORE_peer_request_disconnect (struct GNUNET_SCHEDULER_Handle *sched,
-					    const struct GNUNET_CONFIGURATION_Handle *cfg,
-					    const struct GNUNET_PeerIdentity * peer,
-					    GNUNET_SCHEDULER_Task cont,
-					    void *cont_cls);
+				     const struct GNUNET_CONFIGURATION_Handle *cfg,
+				     struct GNUNET_TIME_Relative timeout,
+				     const struct GNUNET_PeerIdentity * peer,
+				     GNUNET_SCHEDULER_Task cont,
+				     void *cont_cls);
 
-// FIXME
+
+/**
+ * Cancel a pending request to connect or disconnect from/to a particular
+ * peer.   Must not be called after the 'cont' function was invoked.
+ *
+ * @param req request handle that was returned for the original request
+ */
 void
 GNUNET_CORE_peer_request_cancel (struct GNUNET_CORE_PeerRequestHandle *req);
 

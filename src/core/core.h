@@ -43,12 +43,13 @@
  * transmitted to the client.
  */
 #define GNUNET_CORE_OPTION_NOTHING             0
-#define GNUNET_CORE_OPTION_SEND_CONNECT        1
-#define GNUNET_CORE_OPTION_SEND_DISCONNECT     2
-#define GNUNET_CORE_OPTION_SEND_FULL_INBOUND   4
-#define GNUNET_CORE_OPTION_SEND_HDR_INBOUND    8
-#define GNUNET_CORE_OPTION_SEND_FULL_OUTBOUND 16
-#define GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND  32
+#define GNUNET_CORE_OPTION_SEND_PRE_CONNECT    1
+#define GNUNET_CORE_OPTION_SEND_CONNECT        2
+#define GNUNET_CORE_OPTION_SEND_DISCONNECT     4
+#define GNUNET_CORE_OPTION_SEND_FULL_INBOUND   8
+#define GNUNET_CORE_OPTION_SEND_HDR_INBOUND   16
+#define GNUNET_CORE_OPTION_SEND_FULL_OUTBOUND 32
+#define GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND  64
 
 
 /**
@@ -277,5 +278,32 @@ struct SendMessage
 
 };
 
+
+/**
+ * Client asking core to transmit a particular message to a particular
+ * target.  There is no response from the core to this type of request
+ * (however, if an actual connection is created or destroyed, be it
+ * because of this type request or not, the core generally needs to
+ * notify the clients).
+ */
+struct ConnectMessage
+{
+  /**
+   * Header with type GNUNET_MESSAGE_TYPE_REQUEST_CONNECT or
+   * GNUNET_MESSAGE_TYPE_REQUEST_DISCONNECT.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * For alignment.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * Identity of the other peer.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+};
 
 /* end of core.h */

@@ -434,7 +434,7 @@ start_fsm (void *cls,
 				       ARM_START_WAIT,
 				       d,
 				       &testing_init,
-				       NULL, NULL, 
+				       NULL, NULL, NULL,
 				       NULL, GNUNET_NO,
 				       NULL, GNUNET_NO,
 				       no_handlers);     

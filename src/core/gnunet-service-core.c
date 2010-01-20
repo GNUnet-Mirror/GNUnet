@@ -23,6 +23,11 @@
  * @brief high-level P2P messaging
  * @author Christian Grothoff
  *
+ * TODO:
+ * - not all GNUNET_CORE_OPTION_SEND_* flags are fully supported yet
+ *   (i.e. no SEND_XXX_OUTBOUND).
+ * - 'REQUEST_DISCONNECT' is not implemented (transport API is lacking!)
+ *
  * Considerations for later:
  * - check that hostkey used by transport (for HELLOs) is the
  *   same as the hostkey that we are using!
@@ -911,14 +916,17 @@ send_to_client (struct Client *client,
  * Send a message to all of our current clients.
  */
 static void
-send_to_all_clients (const struct GNUNET_MessageHeader *msg, int can_drop)
+send_to_all_clients (const struct GNUNET_MessageHeader *msg, 
+		     int can_drop,
+		     int options)
 {
   struct Client *c;
 
   c = clients;
   while (c != NULL)
     {
-      send_to_client (c, msg, can_drop);
+      if (0 != (c->options & options))
+	send_to_client (c, msg, can_drop);
       c = c->next;
     }
 }
@@ -1985,6 +1993,66 @@ handle_client_send (void *cls,
 
 
 /**
+ * Handle CORE_REQUEST_CONNECT request.
+ *
+ * @param cls unused
+ * @param client the client issuing the request
+ * @param message the "struct ConnectMessage"
+ */
+static void
+handle_client_request_connect (void *cls,
+			       struct GNUNET_SERVER_Client *client,
+			       const struct GNUNET_MessageHeader *message)
+{
+  const struct ConnectMessage *cm = (const struct ConnectMessage*) message;
+  struct Neighbour *n;
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  n = find_neighbour (&cm->peer);
+  if (n != NULL)
+    return; /* already connected, or at least trying */
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Core received `%s' request for `%4s', will try to establish connection\n",
+	      "REQUEST_CONNECT",
+	      GNUNET_i2s (&cm->peer));
+#endif
+  /* ask transport to connect to the peer */
+  /* FIXME: timeout zero OK? need for cancellation? */
+  GNUNET_TRANSPORT_notify_transmit_ready (transport,
+					  &cm->peer,
+					  0, 0,
+					  GNUNET_TIME_UNIT_ZERO,
+					  NULL,
+					  NULL);
+}
+
+
+/**
+ * Handle CORE_REQUEST_DISCONNECT request.
+ *
+ * @param cls unused
+ * @param client the client issuing the request
+ * @param message the "struct ConnectMessage"
+ */
+static void
+handle_client_request_disconnect (void *cls,
+				  struct GNUNET_SERVER_Client *client,
+				  const struct GNUNET_MessageHeader *message)
+{
+  const struct ConnectMessage *cm = (const struct ConnectMessage*) message;
+  struct Neighbour *n;
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  n = find_neighbour (&cm->peer);
+  if (n == NULL)
+    return; /* done */
+  /* FIXME: implement disconnect! */
+}
+
+
+
+/**
  * List of handlers for the messages understood by this
  * service.
  */
@@ -1996,15 +2064,20 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
    sizeof (struct RequestInfoMessage)},
   {&handle_client_send, NULL,
    GNUNET_MESSAGE_TYPE_CORE_SEND, 0},
+  {&handle_client_request_connect, NULL,
+   GNUNET_MESSAGE_TYPE_CORE_REQUEST_CONNECT,
+   sizeof (struct ConnectMessage)},
+  {&handle_client_request_disconnect, NULL,
+   GNUNET_MESSAGE_TYPE_CORE_REQUEST_DISCONNECT,
+   sizeof (struct ConnectMessage)},
   {NULL, NULL, 0, 0}
 };
 
 
 /**
- * PEERINFO is giving us a HELLO for a peer.  Add the
- * public key to the neighbour's struct and retry
- * send_key.  Or, if we did not get a HELLO, just do
- * nothing.
+ * PEERINFO is giving us a HELLO for a peer.  Add the public key to
+ * the neighbour's struct and retry send_key.  Or, if we did not get a
+ * HELLO, just do nothing.
  *
  * @param cls NULL
  * @param peer the peer for which this is the HELLO
@@ -2073,6 +2146,9 @@ send_key (struct Neighbour *n)
   struct PingMessage pp;
   struct PingMessage *pm;
 
+  if ( (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK) ||
+       (n->pitr != NULL) )
+    return; /* already in progress */
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asked to perform key exchange with `%4s'.\n",
@@ -2481,6 +2557,7 @@ static void
 handle_pong (struct Neighbour *n, const struct PingMessage *m)
 {
   struct PingMessage t;
+  struct ConnectNotifyMessage cnm;
 
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2533,7 +2610,12 @@ handle_pong (struct Neighbour *n, const struct PingMessage *m)
         {
           GNUNET_SCHEDULER_cancel (sched, n->retry_set_key_task);
           n->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
-        }
+        }      
+      cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
+      cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
+      cnm.reserved = htonl (0);
+      cnm.peer = n->peer;
+      send_to_all_clients (&cnm.header, GNUNET_YES, GNUNET_CORE_OPTION_SEND_CONNECT);
       process_encrypted_neighbour_queue (n);
       break;
     case PEER_STATE_KEY_CONFIRMED:
@@ -2599,7 +2681,7 @@ deliver_message (struct Neighbour *sender,
   while (cpos != NULL)
     {
       deliver_full = GNUNET_NO;
-      if (cpos->options & GNUNET_CORE_OPTION_SEND_FULL_INBOUND)
+      if (0 != (cpos->options & GNUNET_CORE_OPTION_SEND_FULL_INBOUND))
         deliver_full = GNUNET_YES;
       else
         {
@@ -3033,10 +3115,11 @@ handle_transport_notify_connect (void *cls,
 #endif
   schedule_quota_update (n);
   cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
-  cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
+  cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_PRE_CONNECT);
   cnm.reserved = htonl (0);
   cnm.peer = *peer;
-  send_to_all_clients (&cnm.header, GNUNET_YES);
+  send_to_all_clients (&cnm.header, GNUNET_YES, GNUNET_CORE_OPTION_SEND_PRE_CONNECT);
+  send_key (n);
 }
 
 
@@ -3127,7 +3210,7 @@ handle_transport_notify_disconnect (void *cls,
   cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT);
   cnm.reserved = htonl (0);
   cnm.peer = *peer;
-  send_to_all_clients (&cnm.header, GNUNET_YES);
+  send_to_all_clients (&cnm.header, GNUNET_YES, GNUNET_CORE_OPTION_SEND_DISCONNECT);
   free_neighbour (n);
 }
 

@@ -191,7 +191,7 @@ run (void *cls,
 			      GNUNET_TIME_UNIT_FOREVER_REL,
 			      NULL,
 			      &core_init,
-			      ch, dh,
+			      NULL, ch, dh,
 			      NULL, GNUNET_NO,
 			      NULL, GNUNET_NO,
 			      handlers);

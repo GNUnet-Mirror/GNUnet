@@ -12,18 +12,16 @@ away), in order in which they will likely be done:
 * UPNP [Milan]
 
 Urgent items (before announcing ng.gnunet.org):
+* CORE:
+  - test currently fails spectacularly
+  - request disconnect not implemented (needs better transport API)
 * topology
-  - considers peers 'connected' well before they actually are
-    (since core notifies about it too early?);
   - (forced) disconnect does not work (also CORE API issue)
   - needs testing (not sure the current testcase does much...)
 * hostlist
   - test fails (looks like it works, but that's because of a bad
     connectivity notification; somehow core is unable to send
     messages successfully via transport)
-* CORE:
-  - core notifies about connects "too early" (when we have not yet
-    succeeded with the full key exchange) [see also: BUGS]
 * FS (basic anonymous FS only)
   - implement FS service (P2P operations)
     + how to send queries (soliciting is not there in core; do we
@@ -51,6 +49,8 @@ Urgent items (before announcing ng.gnunet.org):
     [=> eliminate for need to tell ARM about service starts most of the time!]
 * HELLO:
   - need function to test "equivalency" of HELLOs; use in topology!
+* CORE:
+  - outbound message monitoring not supported
 * Module features to implement:
   - advanced FS API parts
     + namespaces: fundamental namespace API

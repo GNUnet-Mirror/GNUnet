@@ -138,10 +138,8 @@ void GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle);
  *
  * @param handle connection to transport service
  * @param target who's bandwidth quota is being changed
- * @param quota_in incoming bandwidth quota in bytes per ms; 0 can
- *        be used to force all traffic to be discarded
- * @param quota_out outgoing bandwidth quota in bytes per ms; 0 can
- *        be used to force all traffic to be discarded
+ * @param quota_in incoming bandwidth quota in bytes per ms
+ * @param quota_out outgoing bandwidth quota in bytes per ms
  * @param timeout how long to wait until signaling failure if
  *        we can not communicate the quota change
  * @param cont continuation to call when done, will be called
@@ -195,8 +193,9 @@ struct GNUNET_TRANSPORT_TransmitHandle
 
 
 /**
- * Cancel the specified transmission-ready
- * notification.
+ * Cancel the specified transmission-ready notification.
+ *
+ * @param h handle of the transmission notification request to cancel
  */
 void
 GNUNET_TRANSPORT_notify_transmit_ready_cancel (struct

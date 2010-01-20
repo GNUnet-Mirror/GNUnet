@@ -82,12 +82,7 @@ sane end-user should care about this codebase yet anyway.
   - better tracking of which config changes actually need to cause process restarts by ARM.
   - have way to specify dependencies between services (to manage ARM restarts better)
 * CORE: 
-  - code currently notifies clients about "encrypted" connections being up well before
-    we get the encrypted PONG; sometimes this may be OK (for topology killing
-    unwanted connnections), but of course not in general.  I suspect we want
-    to signal on PONG and have topology hook directly into transport to
-    kill plaintext connections before they have a chance to become encrypted
-    (may require minor hack in transport API)
+  - test case (test_core_api) hangs for a while (some timeout task not killed somewhere?)
   - [./core/gnunet-service-core.c:469]: (style) struct or union member 'Neighbour::message_queue_size' is never used
   - [./core/test_core_api_start_only.c:50]: (style) struct or union member 'PeerContext::id' is never used
 
