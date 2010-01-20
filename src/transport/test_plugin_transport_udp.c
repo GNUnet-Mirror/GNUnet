@@ -244,8 +244,6 @@ setup_plugin_environment ()
   env.max_connections = max_connect_per_transport;
 }
 
-static int retx;
-
 /**
  * Runs the test.
  *

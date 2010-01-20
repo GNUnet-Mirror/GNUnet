@@ -62,6 +62,10 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 
 static int ok;
 
+static int is_tcp;
+
+static int is_udp;
+
 #if VERBOSE
 #define OKPP do { ok++; fprintf (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
 #else
@@ -282,6 +286,16 @@ int
 main (int argc, char *argv[])
 {
   int ret;
+
+  if (strstr(argv[0], "test_transport_api_tcp") == 0)
+    {
+      is_tcp = GNUNET_YES;
+    }
+  else if (strstr(argv[0], "test_transport_api_udp") == 0)
+    {
+      is_udp = GNUNET_NO;
+    }
+
 
   GNUNET_log_setup ("test-transport-api",
 #if VERBOSE

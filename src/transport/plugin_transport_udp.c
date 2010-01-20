@@ -175,9 +175,7 @@ struct Plugin
 
 /**
  * Message used to ask a peer to validate receipt (to check an address
- * from a HELLO).  Followed by the address used.  Note that the
- * recipients response does not affirm that he has this address,
- * only that he got the challenge message.
+ * from a HELLO).
  */
 struct UDPPingMessage
 {
@@ -192,22 +190,16 @@ struct UDPPingMessage
    */
   uint32_t challenge GNUNET_PACKED;
 
-
-
 };
 
 
 /**
- * Message used to validate a HELLO.  The challenge is included in the
- * confirmation to make matching of replies to requests possible.  The
- * signature signs the original challenge number, our public key, the
- * sender's address (so that the sender can check that the address we
- * saw is plausible for him and possibly detect a MiM attack) and a
- * timestamp (to limit replay).<p>
+ * Message used to validate a HELLO.  The challenge number
+ * is sent along with whatever address the peer received
+ * the ping from.  Used to validate our address (or at
+ * least give us a better idea where we look like we're
+ * coming from).
  *
- * This message is followed by the address of the
- * client that we are observing (which is part of what
- * is being signed).
  */
 struct UDPPongMessage
 {
@@ -499,12 +491,10 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
       buf = GNUNET_malloc (buflen);
       fromlen = sizeof (addr);
-
 #if DEBUG_UDP
       GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
                        ("src_addr_len is %u\n"), fromlen);
 #endif
-
       memset (&addr, 0, fromlen);
       ret =
         GNUNET_NETWORK_socket_recvfrom (udp_sock, buf, buflen,
@@ -521,7 +511,6 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           GNUNET_free (buf);
           return;
         }
-
       msg = (struct UDPMessage *) buf;
 
 #if DEBUG_UDP
