@@ -219,38 +219,10 @@ extern "C"
 
 
 /**
- * Message by which a TCP transport notifies
- * the other that it wants to check an address
- * (and not initiate a persistent connection).
+ * Welcome message between TCP transports.
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_PING 40
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME 40
 
-/**
- * Message by which a TCP transport confirms
- * the other that the address used worked.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_PONG 41
-
-/**
- * Welcome message between TCP transports
- * (for a persistent connection).
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME 42
-
-/**
- * Data message between TCP transports.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_DATA 43
-
-/*
- * UDP Ping message
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_PING 51
-
-/*
- * UDP Pong message
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_PONG 52
 
 /**
  * Initial setup message from core client to core.
