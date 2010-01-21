@@ -2033,8 +2033,8 @@ static int handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
  *
  */
 static void
-plugin_env_receive (void *cls, const struct GNUNET_MessageHeader *message,
-                    const struct GNUNET_PeerIdentity *peer,
+plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
+                    const struct GNUNET_MessageHeader *message,
                     unsigned int distance, const char *sender_address,
                     size_t sender_address_len)
 {
