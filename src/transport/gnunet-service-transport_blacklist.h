@@ -23,13 +23,12 @@
  * @brief internal API for blacklisting functionality
  * @author Christian Grothoff
  */
-#include "platform.h"
+#ifndef GNUNET_SERVICE_TRANSPORT_BLACKLIST_H
+#define GNUNET_SERVICE_TRANSPORT_BLACKLIST_H
+
 #include "gnunet_protocols.h"
 #include "gnunet_service_lib.h"
 #include "transport.h"
-
-#ifndef GNUNET_SERVICE_TRANSPORT_BLACKLIST_H
-#define GNUNET_SERVICE_TRANSPORT_BLACKLIST_H
 
 /**
  * Handle a request to blacklist a peer.

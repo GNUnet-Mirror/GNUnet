@@ -23,6 +23,9 @@
  * @brief common internal definitions for transport service
  * @author Christian Grothoff
  */
+#ifndef TRANSPORT_H
+#define TRANSPORT_H
+
 #include "gnunet_crypto_lib.h"
 #include "gnunet_time_lib.h"
 #include "gnunet_transport_service.h"
@@ -309,3 +312,4 @@ struct BlacklistMessage
 
 
 /* end of transport.h */
+#endif

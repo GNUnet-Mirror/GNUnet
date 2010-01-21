@@ -77,7 +77,7 @@ receive_info (void *cls,
       GNUNET_break (0);
       if (irc->info != NULL)
 	irc->info (irc->info_cls, 
-		   NULL, 0, 0, GNUNET_TIME_UNIT_FOREVER_REL, 0, 0);     
+		   NULL, 0, 0, 0, 0);     
       GNUNET_CLIENT_disconnect (irc->client);
       GNUNET_free (irc);
       return;

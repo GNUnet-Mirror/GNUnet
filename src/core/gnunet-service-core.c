@@ -525,6 +525,12 @@ struct Neighbour
   uint32_t ping_challenge;
 
   /**
+   * What was the last distance to this peer as reported by the transports?
+   * (FIXME: actually set this!)
+   */
+  uint32_t last_distance;
+
+  /**
    * What is our connection status?
    */
   enum PeerStateMachine status;
@@ -1005,7 +1011,8 @@ handle_client_init (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Sending `%s' message to client.\n", "NOTIFY_CONNECT");
 #endif
-      cnm.reserved = htonl (0);
+      cnm.distance = htonl (n->last_distance);
+      cnm.latency = GNUNET_TIME_relative_hton (n->last_latency);
       cnm.peer = n->peer;
       send_to_client (c, &cnm.header, GNUNET_NO);
       n = n->next;
@@ -1114,7 +1121,6 @@ handle_client_request_info (void *cls,
       cim.reserved_amount = htonl (reserv);
       cim.bpm_in = htonl (n->bpm_in);
       cim.bpm_out = htonl (n->bpm_out);
-      cim.latency = GNUNET_TIME_relative_hton (n->last_latency);
       cim.preference = n->current_preference;
     }
   cim.header.size = htons (sizeof (struct ConfigurationInfoMessage));
@@ -2613,6 +2619,8 @@ handle_pong (struct Neighbour *n, const struct PingMessage *m)
         }      
       cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
       cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
+      cnm.distance = htonl (0); /* FIXME */
+      cnm.latency = GNUNET_TIME_relative_hton (GNUNET_TIME_UNIT_ZERO); /* FIXME */
       cnm.reserved = htonl (0);
       cnm.peer = n->peer;
       send_to_all_clients (&cnm.header, GNUNET_YES, GNUNET_CORE_OPTION_SEND_CONNECT);

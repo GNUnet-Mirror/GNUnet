@@ -25,6 +25,7 @@
  */
 #include "platform.h"
 #include "gnunet_protocols.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_service_lib.h"
 #include "transport.h"
 #include "gnunet-service-transport_blacklist.h"
@@ -183,6 +184,11 @@ GNUNET_TRANSPORT_handle_blacklist_notify (void *cls,
 					  struct GNUNET_SERVER_Client *client,
 					  const struct GNUNET_MessageHeader *message)
 {
+  struct BlacklistNotificationList *bnl;
+
+  bnl = GNUNET_malloc (sizeof (struct BlacklistNotificationList));
+  bnl->next = blacklist_notifiers;
+  blacklist_notifiers = bnl;
   /* FIXME */
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
