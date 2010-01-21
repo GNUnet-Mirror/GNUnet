@@ -1118,6 +1118,44 @@ GNUNET_SERVER_disconnect_notify (struct GNUNET_SERVER_Handle *server,
 
 
 /**
+ * Ask the server to stop notifying us whenever a client disconnects.
+ *
+ * @param server the server manageing the clients
+ * @param callback function to call on disconnect
+ * @param callback_cls closure for callback
+ */
+void
+GNUNET_SERVER_disconnect_notify_cancel (struct GNUNET_SERVER_Handle *server,
+					GNUNET_SERVER_DisconnectCallback callback,
+					void *callback_cls)
+{
+  struct NotifyList *pos;
+  struct NotifyList *prev;
+
+  prev = NULL;
+  pos = server->disconnect_notify_list;
+  while (pos != NULL)
+    {
+      if ( (pos->callback == callback) &&
+	   (pos->callback_cls == callback_cls ) )
+	break;
+      prev = pos;
+      pos = pos->next;
+    }
+  if (pos == NULL)
+    {
+      GNUNET_break (0);
+      return;
+    }
+  if (prev == NULL)
+    server->disconnect_notify_list = pos->next;
+  else
+    prev->next = pos->next;
+  GNUNET_free (pos);
+}
+
+
+/**
  * Ask the server to disconnect from the given client.
  * This is the same as returning GNUNET_SYSERR from a message
  * handler, except that it allows dropping of a client even
@@ -1171,6 +1209,7 @@ GNUNET_SERVER_notify_transmit_ready (struct GNUNET_SERVER_Client *client,
  * @param client client we were processing a message of
  * @param success GNUNET_OK to keep the connection open and
  *                          continue to receive
+ *                GNUNET_NO to close the connection (normal behavior)
  *                GNUNET_SYSERR to close the connection (signal
  *                          serious error)
  */

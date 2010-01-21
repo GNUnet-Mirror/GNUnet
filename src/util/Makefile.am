@@ -59,6 +59,7 @@ libgnunetutil_la_SOURCES = \
   resolver_api.c \
   scheduler.c \
   server.c \
+  server_nc.c \
   server_tc.c \
   service.c \
   signal.c \

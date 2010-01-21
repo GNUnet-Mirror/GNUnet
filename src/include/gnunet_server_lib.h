@@ -138,6 +138,8 @@ struct GNUNET_SERVER_Handle *GNUNET_SERVER_create (struct
 
 /**
  * Free resources held by this server.
+ *
+ * @param s server to destroy
  */
 void GNUNET_SERVER_destroy (struct GNUNET_SERVER_Handle *s);
 
@@ -192,6 +194,7 @@ struct GNUNET_CONNECTION_TransmitHandle
  * @param client client we were processing a message of
  * @param success GNUNET_OK to keep the connection open and
  *                          continue to receive
+ *                GNUNET_NO to close the connection (normal behavior)
  *                GNUNET_SYSERR to close the connection (signal
  *                          serious error)
  */
@@ -414,6 +417,18 @@ void GNUNET_SERVER_disconnect_notify (struct GNUNET_SERVER_Handle *server,
 
 
 /**
+ * Ask the server to stop notifying us whenever a client disconnects.
+ *
+ * @param server the server manageing the clients
+ * @param callback function to call on disconnect
+ * @param callback_cls closure for callback
+ */
+void GNUNET_SERVER_disconnect_notify_cancel (struct GNUNET_SERVER_Handle *server,
+					     GNUNET_SERVER_DisconnectCallback
+					     callback, void *callback_cls);
+
+
+/**
  * Ask the server to disconnect from the given client.
  * This is the same as returning GNUNET_SYSERR from a message
  * handler, except that it allows dropping of a client even
@@ -438,6 +453,7 @@ void GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client);
 void
 GNUNET_SERVER_ignore_shutdown (struct GNUNET_SERVER_Handle *h,
 			       int do_ignore);
+
 
 
 /**
@@ -487,6 +503,81 @@ GNUNET_SERVER_transmit_context_append (struct GNUNET_SERVER_TransmitContext
 void
 GNUNET_SERVER_transmit_context_run (struct GNUNET_SERVER_TransmitContext *tc,
                                     struct GNUNET_TIME_Relative timeout);
+
+
+
+/**
+ * The notification context is the key datastructure for a conveniance
+ * API used for transmission of notifications to the client until the
+ * client disconnects (or the notification context is destroyed, in
+ * which case we disconnect these clients).  Essentially, all
+ * (notification) messages are queued up until the client is able to
+ * read them.
+ */
+struct GNUNET_SERVER_NotificationContext;
+
+
+/**
+ * Create a new notification context.
+ *
+ * @param server server for which this function creates the context
+ * @param queue_length maximum number of messages to keep in
+ *        the notification queue; optional messages are dropped
+ *        it the queue gets longer than this number of messages
+ * @return handle to the notification context
+ */
+struct GNUNET_SERVER_NotificationContext *
+GNUNET_SERVER_notification_context_create (struct GNUNET_SERVER_Handle *server,
+					   unsigned int queue_length);
+
+
+/**
+ * Destroy the context, force disconnect for all clients.
+ *
+ * @param nc context to destroy.
+ */
+void
+GNUNET_SERVER_notification_context_destroy (struct GNUNET_SERVER_NotificationContext *nc);
+
+
+/**
+ * Add a client to the notification context.
+ *
+ * @param nc context to modify
+ * @param client client to add
+ */
+void
+GNUNET_SERVER_notification_context_add (struct GNUNET_SERVER_NotificationContext *nc,
+					struct GNUNET_SERVER_Client *client);
+
+
+/**
+ * Send a message to a particular client; must have
+ * already been added to the notification context.
+ *
+ * @param nc context to modify
+ * @param client client to transmit to
+ * @param msg message to send
+ * @param can_drop can this message be dropped due to queue length limitations
+ */
+void
+GNUNET_SERVER_notification_context_unicast (struct GNUNET_SERVER_NotificationContext *nc,
+					    struct GNUNET_SERVER_Client *client,
+					    const struct GNUNET_MessageHeader *msg,
+					    int can_drop);
+
+
+/**
+ * Send a message to all clients of this context.
+ *
+ * @param nc context to modify
+ * @param msg message to send
+ * @param can_drop can this message be dropped due to queue length limitations
+ */
+void
+GNUNET_SERVER_notification_context_broadcast (struct GNUNET_SERVER_NotificationContext *nc,
+					      const struct GNUNET_MessageHeader *msg,
+					      int can_drop);
 
 
 

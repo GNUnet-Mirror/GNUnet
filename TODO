@@ -12,24 +12,40 @@ away), in order in which they will likely be done:
 * UPNP [Milan]
 
 Urgent items (before announcing ng.gnunet.org):
+* UTIL:
+  - provide higher-level convenience API for servers/services that
+    need to send a stream of notifications to clients; instead
+    of having each service queue messages and "send when ready", 
+    simply have a way to add a client to the notification set
+    and to 'notify client' or 'notify all clients'
+    (useful for peerinfo (new hellos), transport (our hello; blacklist), 
+     core (misc monitoring features), statistics (change notifications)
+     and likely others)
+  - server/service API change for ARM inetd'ing
+    (listen as well as support for start with multiple, already
+     bound & listening sockets!)
+* TRANSPORT:
+  - main service not implemented [Nate]
+  - blacklist not implemented [Christian]
+  - testcases crash & burn (no surprise)
 * CORE:
-  - test currently fails spectacularly
-  - request disconnect not implemented 
-  - request connect not working
-  - various notification options not implemented
-* topology
-  - (forced) disconnect does not work as implemented (still?)
-  - needs testing (not sure the current testcase does much...)
-* testing:
-  - timeout_hello_task is not used but should be (so we can fail 
-    properly)
+  - request disconnect not implemented [Christian]
+  - various notification options not implemented [Christian]
+  - test currently fails spectacularly [segv of transport service]
+    => need transport to work first!
+  - request connect not working [Christian, need transport first]
+* PEERINFO:
+  - make sue we also trigger notifications whenever HELLOs expire
+* TOPOLOGY:
+  - needs testing [need transport first]
+* TESTING:
   - check that 'GNUNET_TRANSPORT_get_hello' is associated with
-    a TIMEOUT task wherever else appropriate (other testcases
-    in particular!)
-* hostlist
+    a cancel request wherever appropriate (other testcases
+    in particular!) [Christian]
+* HOSTLIST:
   - test fails (looks like it works, but that's because of a bad
     connectivity notification; somehow core is unable to send
-    messages successfully via transport)
+    messages successfully via transport) [need transport first]
 * FS (basic anonymous FS only)
   - implement FS service (P2P operations)
     + how to send queries (soliciting is not there in core; do we

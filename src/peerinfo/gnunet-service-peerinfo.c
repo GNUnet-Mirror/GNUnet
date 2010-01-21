@@ -103,6 +103,7 @@ struct PendingEntry
    * Entry to tell the client about.
    */
   struct HostEntry *he;
+
 };
 
 
@@ -131,6 +132,7 @@ struct NotifyList
    * Handle for a transmit ready request.
    */
   struct GNUNET_CONNECTION_TransmitHandle *transmit_ctx;
+
 };
 
 
