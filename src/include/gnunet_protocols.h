@@ -223,6 +223,10 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME 40
 
+/**
+ * Welcome message between TCP transports.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_DATA 41
 
 /**
  * Initial setup message from core client to core.
