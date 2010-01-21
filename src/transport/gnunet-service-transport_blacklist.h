@@ -1,4 +1,4 @@
-*
+/*
      This file is part of GNUnet.
      (C) 2010 Christian Grothoff (and other contributing authors)
 
@@ -28,3 +28,53 @@
 #include "gnunet_service_lib.h"
 #include "transport.h"
 
+#ifndef GNUNET_SERVICE_TRANSPORT_BLACKLIST_H
+#define GNUNET_SERVICE_TRANSPORT_BLACKLIST_H
+
+/**
+ * Handle a request to blacklist a peer.
+ *
+ * @param cls closure (always NULL)
+ * @param client identification of the client
+ * @param message the actual message
+ */
+void
+GNUNET_TRANSPORT_handle_blacklist (void *cls,
+				   struct GNUNET_SERVER_Client *client,
+				   const struct GNUNET_MessageHeader *message);
+
+
+/**
+ * Handle a request for notification of blacklist changes.
+ *
+ * @param cls closure (always NULL)
+ * @param client identification of the client
+ * @param message the actual message
+ */
+void
+GNUNET_TRANSPORT_handle_blacklist_notify (void *cls,
+					  struct GNUNET_SERVER_Client *client,
+					  const struct GNUNET_MessageHeader *message);
+
+
+/**
+ * Is the given peer currently blacklisted?
+ *
+ * @param id identity of the peer
+ * @return GNUNET_YES if the peer is blacklisted, GNUNET_NO if not
+ */
+int
+GNUNET_TRANSPORT_blacklist_check (const struct GNUNET_PeerIdentity *id);
+
+
+/**
+ * Initialize the blacklisting subsystem.
+ *
+ * @param s scheduler to use
+ */
+void 
+GNUNET_TRANSPORT_blacklist_init (struct GNUNET_SCHEDULER_Handle *s);
+
+
+#endif
+/* end of gnunet-service-transport_blacklist.h */

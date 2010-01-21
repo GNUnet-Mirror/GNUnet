@@ -150,6 +150,10 @@ shutdown_task (void *cls,
 
 /**
  * Handle a request to blacklist a peer.
+ *
+ * @param cls closure (always NULL)
+ * @param client identification of the client
+ * @param message the actual message
  */
 void
 GNUNET_TRANSPORT_handle_blacklist (void *cls,
@@ -161,6 +165,10 @@ GNUNET_TRANSPORT_handle_blacklist (void *cls,
 
 /**
  * Handle a request for notification of blacklist changes.
+ *
+ * @param cls closure (always NULL)
+ * @param client identification of the client
+ * @param message the actual message
  */
 void
 GNUNET_TRANSPORT_handle_blacklist_notify (void *cls,
