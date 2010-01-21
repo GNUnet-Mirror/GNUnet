@@ -360,12 +360,12 @@ GNUNET_NETWORK_socket_listen (const struct GNUNET_NETWORK_Handle *desc,
  * Returns GNUNET_NO if no data is available, or on error!
  * @param desc socket
  */
-unsigned int
+ssize_t
 GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle
                                        *desc)
 {
   int error;
-  unsigned int pending;
+  int pending;
 
   /* How much is there to be read? */
   error = ioctl (desc->fd, FIONREAD, &pending);
@@ -373,7 +373,7 @@ GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle
   if (error == 0)
     return pending;
   else
-    return GNUNET_NO;
+    return error;
 }
 
 /**
