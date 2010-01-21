@@ -50,22 +50,22 @@
  * message to signal that the other peer disconnected.
  *
  * @param cls closure
+ * @param peer (claimed) identity of the other peer
+ * @param message the message, NULL if peer was disconnected
  * @param distance in overlay hops; use 1 unless DV
  * @param sender_address binary address of the sender (if observed)
  * @param sender_address_len number of bytes in sender_address
- * @param peer (claimed) identity of the other peer
- * @param message the message, NULL if peer was disconnected
  */
-typedef void (*GNUNET_TRANSPORT_PluginReceiveCallback) (void *cls, const struct
-                                                        GNUNET_MessageHeader *
-                                                        message,
+typedef void (*GNUNET_TRANSPORT_PluginReceiveCallback) (void *cls,
                                                         const struct
                                                         GNUNET_PeerIdentity *
                                                         peer,
-                                                        unsigned int distance,
+							const struct
+                                                        GNUNET_MessageHeader *
+                                                        message,
+                                                        uint32_t distance,
 							const char *sender_address,
 							size_t sender_address_len);
-
 
 
 /**
@@ -198,7 +198,7 @@ typedef ssize_t
                                         const struct GNUNET_PeerIdentity *
                                         target,
                                         const struct GNUNET_MessageHeader *msg,
-                                        unsigned int priority,
+                                        uint32_t priority,
                                         struct GNUNET_TIME_Relative timeout,
                                         const void *addr,
 					size_t addrlen,

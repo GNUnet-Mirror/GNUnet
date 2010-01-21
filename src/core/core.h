@@ -112,6 +112,36 @@ struct ConnectNotifyMessage
   struct GNUNET_MessageHeader header;
 
   /**
+   * Distance to the peer.
+   */
+  uint32_t distance GNUNET_PACKED;
+
+  /**
+   * Currently observed latency.
+   */
+  struct GNUNET_TIME_RelativeNBO latency;
+
+  /**
+   * Identity of the connecting peer.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+};
+
+
+
+/**
+ * Message sent by the service to clients to notify them
+ * about a peer disconnecting.
+ */
+struct DisconnectNotifyMessage
+{
+  /**
+   * Header with type GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
    * Always zero.
    */
   uint32_t reserved GNUNET_PACKED;
@@ -143,9 +173,14 @@ struct NotifyTrafficMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Always zero.
+   * Distance to the peer.
    */
-  uint32_t reserved GNUNET_PACKED;
+  uint32_t distance GNUNET_PACKED;
+
+  /**
+   * Currently observed latency.
+   */
+  struct GNUNET_TIME_RelativeNBO latency;
 
   /**
    * Identity of the receiver or sender.
@@ -230,12 +265,6 @@ struct ConfigurationInfoMessage
   uint32_t bpm_out GNUNET_PACKED;
 
   /**
-   * Latest transport latency estimate for the peer.
-   * FOREVER if we have been disconnected.
-   */
-  struct GNUNET_TIME_RelativeNBO latency;
-
-  /**
    * Current traffic preference for the peer.
    * 0 if we have been disconnected.
    */
@@ -280,11 +309,11 @@ struct SendMessage
 
 
 /**
- * Client asking core to transmit a particular message to a particular
- * target.  There is no response from the core to this type of request
- * (however, if an actual connection is created or destroyed, be it
- * because of this type request or not, the core generally needs to
- * notify the clients).
+ * Client asking core to connect to a particular target.  There is no
+ * response from the core to this type of request (however, if an
+ * actual connection is created or destroyed, be it because of this
+ * type request or not, the core generally needs to notify the
+ * clients).
  */
 struct ConnectMessage
 {

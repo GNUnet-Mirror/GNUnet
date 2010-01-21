@@ -51,15 +51,30 @@ struct GNUNET_CORE_Handle;
 
 
 /**
- * Method called whenever a given peer either connects or
- * disconnects (or list of connections was requested).
+ * Method called whenever a given peer either connects.
+ *
+ * @param cls closure
+ * @param peer peer identity this notification is about
+ * @param latency reported latency of the connection with 'other'
+ * @param distance reported distance (DV) to 'other' 
+ */
+typedef void (*GNUNET_CORE_ConnectEventHandler) (void *cls,
+						 const struct
+						 GNUNET_PeerIdentity * peer,
+						 struct GNUNET_TIME_Relative latency,
+						 uint32_t distance);
+
+
+
+/**
+ * Method called whenever a given peer either disconnects.
  *
  * @param cls closure
  * @param peer peer identity this notification is about
  */
-typedef void (*GNUNET_CORE_ClientEventHandler) (void *cls,
-                                                const struct
-                                                GNUNET_PeerIdentity * peer);
+typedef void (*GNUNET_CORE_DisconnectEventHandler) (void *cls,
+						    const struct
+						    GNUNET_PeerIdentity * peer);
 
 
 /**
@@ -70,6 +85,8 @@ typedef void (*GNUNET_CORE_ClientEventHandler) (void *cls,
  * @param peer the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
+ * @param latency reported latency of the connection with 'other'
+ * @param distance reported distance (DV) to 'other' 
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -77,7 +94,9 @@ typedef int
   (*GNUNET_CORE_MessageCallback) (void *cls,
                                   const struct GNUNET_PeerIdentity * other,
                                   const struct GNUNET_MessageHeader *
-                                  message);
+                                  message,
+				  struct GNUNET_TIME_Relative latency,
+				  uint32_t distance);
 
 
 /**
@@ -159,9 +178,9 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
                      struct GNUNET_TIME_Relative timeout,
                      void *cls,
                      GNUNET_CORE_StartupCallback init,
-		     GNUNET_CORE_ClientEventHandler pre_connects,
-                     GNUNET_CORE_ClientEventHandler connects,
-                     GNUNET_CORE_ClientEventHandler disconnects,
+		     GNUNET_CORE_ConnectEventHandler pre_connects,
+                     GNUNET_CORE_ConnectEventHandler connects,
+                     GNUNET_CORE_DisconnectEventHandler disconnects,
                      GNUNET_CORE_MessageCallback inbound_notify,
                      int inbound_hdr_only,
                      GNUNET_CORE_MessageCallback outbound_notify,
@@ -270,9 +289,8 @@ typedef void
                                                 GNUNET_PeerIdentity * peer,
                                                 unsigned int bpm_in,
                                                 unsigned int bpm_out,
-                                                struct GNUNET_TIME_Relative
-                                                latency, int amount,
-                                                unsigned long long preference);
+						int amount,
+                                                uint64_t preference);
 
 
 
@@ -307,15 +325,15 @@ struct GNUNET_CORE_InformationRequestContext;
  * @return NULL on error
  */
 struct GNUNET_CORE_InformationRequestContext *
-GNUNET_CORE_peer_get_info (struct GNUNET_SCHEDULER_Handle *sched,
-			   const struct GNUNET_CONFIGURATION_Handle *cfg,
-			   const struct GNUNET_PeerIdentity *peer,
-			   struct GNUNET_TIME_Relative timeout,
-			   uint32_t bpm_out,
-			   int32_t amount,
-			   uint64_t preference,
-			   GNUNET_CORE_PeerConfigurationInfoCallback info,
-			   void *info_cls);
+GNUNET_CORE_peer_change_preference (struct GNUNET_SCHEDULER_Handle *sched,
+				    const struct GNUNET_CONFIGURATION_Handle *cfg,
+				    const struct GNUNET_PeerIdentity *peer,
+				    struct GNUNET_TIME_Relative timeout,
+				    uint32_t bpm_out,
+				    int32_t amount,
+				    uint64_t preference,
+				    GNUNET_CORE_PeerConfigurationInfoCallback info,
+				    void *info_cls);
 
 
 /**
@@ -324,7 +342,7 @@ GNUNET_CORE_peer_get_info (struct GNUNET_SCHEDULER_Handle *sched,
  * @param irc context returned by the original GNUNET_CORE_peer_get_info call
  */
 void
-GNUNET_CORE_peer_get_info_cancel (struct GNUNET_CORE_InformationRequestContext *irc);
+GNUNET_CORE_peer_change_preference_cancel (struct GNUNET_CORE_InformationRequestContext *irc);
 
 
 /**
@@ -355,9 +373,7 @@ struct GNUNET_CORE_TransmitHandle *
 GNUNET_CORE_notify_transmit_ready (struct
 				   GNUNET_CORE_Handle
 				   *handle,
-				   unsigned
-				   int
-				   priority,
+				   uint32_t priority,
 				   struct
 				   GNUNET_TIME_Relative
 				   maxdelay,

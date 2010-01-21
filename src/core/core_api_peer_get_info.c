@@ -88,7 +88,6 @@ receive_info (void *cls,
 	       &cim->peer,
 	       ntohl (cim->bpm_in),
 	       ntohl (cim->bpm_out),
-	       GNUNET_TIME_relative_ntoh (cim->latency),
 	       ntohl (cim->reserved_amount),
 	       GNUNET_ntohll (cim->preference));  
   GNUNET_CLIENT_disconnect (irc->client);
@@ -122,15 +121,15 @@ receive_info (void *cls,
  * @return NULL on error
  */
 struct GNUNET_CORE_InformationRequestContext *
-GNUNET_CORE_peer_get_info (struct GNUNET_SCHEDULER_Handle *sched,
-			   const struct GNUNET_CONFIGURATION_Handle *cfg,
-			   const struct GNUNET_PeerIdentity *peer,
-			   struct GNUNET_TIME_Relative timeout,
-			   uint32_t bpm_out,
-			   int32_t amount,
-			   uint64_t preference,
-			   GNUNET_CORE_PeerConfigurationInfoCallback info,
-			   void *info_cls)
+GNUNET_CORE_peer_change_preference (struct GNUNET_SCHEDULER_Handle *sched,
+				    const struct GNUNET_CONFIGURATION_Handle *cfg,
+				    const struct GNUNET_PeerIdentity *peer,
+				    struct GNUNET_TIME_Relative timeout,
+				    uint32_t bpm_out,
+				    int32_t amount,
+				    uint64_t preference,
+				    GNUNET_CORE_PeerConfigurationInfoCallback info,
+				    void *info_cls)
 {
   struct GNUNET_CORE_InformationRequestContext *irc;
   struct RequestInfoMessage rim;
