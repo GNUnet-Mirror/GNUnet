@@ -129,34 +129,6 @@ struct Plugin
 
 };
 
-
-
-/**
- * Function that can be used by the transport service to validate that
- * another peer is reachable at a particular address (even if we
- * already have a connection to this peer, this function is required
- * to establish a new one).
- *
- * @param cls closure
- * @param target who should receive this message
- * @param challenge challenge code to use
- * @param addrlen length of the address
- * @param addr the address
- * @param timeout how long should we try to transmit these?
- * @return GNUNET_OK if the transmission has been scheduled
- */
-static int
-template_plugin_validate (void *cls,
-                          const struct GNUNET_PeerIdentity *target,
-                          uint32_t challenge,
-                          struct GNUNET_TIME_Relative timeout,
-                          const void *addr, size_t addrlen)
-{
-  // FIXME
-  return GNUNET_SYSERR;
-}
-
-
 /**
  * Function that can be used by the transport service to transmit
  * a message using the plugin.
@@ -172,16 +144,22 @@ template_plugin_validate (void *cls,
  *        peer disconnected...)
  * @param cont_cls closure for cont
  */
-static void
+static ssize_t
 template_plugin_send (void *cls,
-                      const struct GNUNET_PeerIdentity *target,
-                      unsigned int priority,
+                      const struct GNUNET_PeerIdentity *
+                      target,
                       const struct GNUNET_MessageHeader *msg,
+                      unsigned int priority,
                       struct GNUNET_TIME_Relative timeout,
-                      GNUNET_TRANSPORT_TransmitContinuation cont,
-                      void *cont_cls)
+                      const void *addr,
+                      size_t addrlen,
+                      int force_address,
+                      GNUNET_TRANSPORT_TransmitContinuation
+                      cont, void *cont_cls)
 {
-  //  struct Plugin *plugin = cls;
+  int bytes_sent = 0;
+  /*  struct Plugin *plugin = cls; */
+  return bytes_sent;
 }
 
 
@@ -263,13 +241,12 @@ template_plugin_set_receive_quota (void *cls,
  */
 static int
 template_plugin_address_suggested (void *cls,
-                                   const void *addr, size_t addrlen)
+                                  void *addr, size_t addrlen)
 {
-  // struct Plugin *plugin = cls;
+  /* struct Plugin *plugin = cls; */
 
   /* check if the address is plausible; if so,
      add it to our list! */
-  // FIXME!
   return GNUNET_OK;
 }
 
@@ -289,13 +266,11 @@ gnunet_plugin_transport_template_init (void *cls)
   plugin->statistics = NULL;
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
-  api->validate = &template_plugin_validate;
   api->send = &template_plugin_send;
   api->disconnect = &template_plugin_disconnect;
   api->address_pretty_printer = &template_plugin_address_pretty_printer;
   api->set_receive_quota = &template_plugin_set_receive_quota;
-  api->address_suggested = &template_plugin_address_suggested;
-  api->cost_estimate = 42;      // FIXME
+  api->check_address = &template_plugin_address_suggested;
   return api;
 }
 
