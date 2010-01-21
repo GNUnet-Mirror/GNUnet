@@ -84,20 +84,12 @@ end ()
 }
 
 
-/**
- * Function called by the transport for each received message.
- *
- * @param cls closure
- * @param latency estimated latency for communicating with the
- *             given peer
- * @param peer (claimed) identity of the other peer
- * @param message the message
- */
 static void
 notify_receive (void *cls,
-                struct GNUNET_TIME_Relative latency,
                 const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_MessageHeader *message)
+                const struct GNUNET_MessageHeader *message,
+                struct GNUNET_TIME_Relative latency,
+		uint32_t distance)
 {
   GNUNET_assert (ok == 7);
   OKPP;
@@ -110,19 +102,11 @@ notify_receive (void *cls,
 }
 
 
-/**
- * Function called to notify transport users that another
- * peer connected to us.
- *
- * @param cls closure
- * @param transport the transport service handle
- * @param peer the peer that disconnected
- * @param latency current latency of the connection
- */
 static void
 notify_connect (void *cls,
                 const struct GNUNET_PeerIdentity *peer,
-                struct GNUNET_TIME_Relative latency)
+                struct GNUNET_TIME_Relative latency,
+		uint32_t distance)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer `%4s' connected to us (%p)!\n", GNUNET_i2s (peer), cls);
@@ -131,14 +115,6 @@ notify_connect (void *cls,
 }
 
 
-/**
- * Function called to notify transport users that another
- * peer disconnected from us.
- *
- * @param cls closure
- * @param transport the transport service handle
- * @param peer the peer that disconnected
- */
 static void
 notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
@@ -187,12 +163,11 @@ notify_ready (void *cls, size_t size, void *buf)
 
 static void
 exchange_hello_last (void *cls,
-                     struct GNUNET_TIME_Relative latency,
-                     const struct GNUNET_PeerIdentity *peer,
                      const struct GNUNET_MessageHeader *message)
 {
   struct PeerContext *me = cls;
 
+  GNUNET_TRANSPORT_get_hello (p2.th, &exchange_hello_last, me);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Exchanging HELLO with peer (%p)!\n", cls);
   GNUNET_assert (ok >= 3);
@@ -214,12 +189,11 @@ exchange_hello_last (void *cls,
 
 static void
 exchange_hello (void *cls,
-                struct GNUNET_TIME_Relative latency,
-                const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message)
 {
   struct PeerContext *me = cls;
 
+  GNUNET_TRANSPORT_get_hello_cancel (p1.th, &exchange_hello, me);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Exchanging HELLO with peer (%p)!\n", cls);
   GNUNET_assert (ok >= 2);
@@ -228,7 +202,7 @@ exchange_hello (void *cls,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
                                       message, &me->id));
-  GNUNET_TRANSPORT_get_hello (p2.th, TIMEOUT, &exchange_hello_last, &p2);
+  GNUNET_TRANSPORT_get_hello (p2.th, &exchange_hello_last, &p2);
 }
 
 static void
@@ -272,7 +246,7 @@ run (void *cls,
 
   setup_peer (&p1, "test_transport_api_peer1.conf");
   setup_peer (&p2, "test_transport_api_peer2.conf");
-  GNUNET_TRANSPORT_get_hello (p1.th, TIMEOUT, &exchange_hello, &p1);
+  GNUNET_TRANSPORT_get_hello (p1.th, &exchange_hello, &p1);
 }
 
 
