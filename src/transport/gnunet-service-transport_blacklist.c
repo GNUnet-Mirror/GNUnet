@@ -137,6 +137,12 @@ free_blacklist_entry (void *cls,
 }
 
 
+/**
+ * Task run when we are shutting down.  Cleans up.
+ *
+ * @param cls closure (unused)
+ * @param tc scheduler context (unused)
+ */
 static void 
 shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -160,6 +166,8 @@ GNUNET_TRANSPORT_handle_blacklist (void *cls,
 				   struct GNUNET_SERVER_Client *client,
 				   const struct GNUNET_MessageHeader *message)
 {
+  /* FIXME */
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -175,6 +183,8 @@ GNUNET_TRANSPORT_handle_blacklist_notify (void *cls,
 					  struct GNUNET_SERVER_Client *client,
 					  const struct GNUNET_MessageHeader *message)
 {
+  /* FIXME */
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
