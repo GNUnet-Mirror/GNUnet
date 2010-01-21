@@ -294,6 +294,77 @@ GNUNET_TRANSPORT_address_lookup (struct GNUNET_SCHEDULER_Handle *sched,
 
 
 
+
+/**
+ * Blacklist a peer for a given period of time.  All connections
+ * (inbound and outbound) to a peer that is blacklisted will be
+ * dropped (as soon as we learn who the connection is for).  A second
+ * call to this function for the same peer overrides previous
+ * blacklisting requests.
+ *
+ * @param sched scheduler to use
+ * @param cfg configuration to use
+ * @param peer identity of peer to blacklist
+ * @param duration how long to blacklist, use GNUNET_TIME_UNIT_ZERO to
+ *        re-enable connections
+ */
+void
+GNUNET_TRANSPORT_blacklist (struct GNUNET_SCHEDULER_Handle *sched,
+			    const struct GNUNET_CONFIGURATION_Handle *cfg,
+			    const struct GNUNET_PeerIdentity *peer,
+			    struct GNUNET_TIME_Relative duration);
+
+
+/**
+ * Handle for blacklist notifications.
+ */
+struct GNUNET_TRANSPORT_BlacklistNotification;
+
+
+/**
+ * Signature of function called whenever the blacklist status of
+ * a peer changes.  This includes changes to the duration of the
+ * blacklist status as well as the expiration of an existing
+ * blacklist status.
+ *
+ * @param cls closure
+ * @param peer identity of peer with the change
+ * @param until GNUNET_TIME_UNIT_ZERO_ABS if the peer is no
+ *              longer blacklisted, otherwise the time at
+ *              which the current blacklisting will expire
+ */
+typedef void (*GNUNET_TRANSPORT_BlacklistCallback)(void *cls,
+						   const struct GNUNET_PeerIdentity *peer,
+						   struct GNUNET_TIME_Absolute until);
+
+
+/**
+ * Call a function whenever a peer's blacklisting status changes.
+ *
+ * @param sched scheduler to use
+ * @param cfg configuration to use
+ * @param bc function to call on status changes
+ * @param bc_cls closure for bc
+ * @return NULL on error, otherwise handle for cancellation
+ */
+struct GNUNET_TRANSPORT_BlacklistNotification *
+GNUNET_TRANSPORT_blacklist_notify (struct GNUNET_SCHEDULER_Handle *sched,
+				   const struct GNUNET_CONFIGURATION_Handle *cfg,
+				   GNUNET_TRANSPORT_BlacklistCallback bc,
+				   void *bc_cls);
+
+
+/**
+ * Stop calling the notification callback associated with
+ * the given blacklist notification.
+ *
+ * @param bn handle of the request that is to be cancelled
+ */
+void
+GNUNET_TRANSPORT_blacklist_notify_cancel (struct GNUNET_TRANSPORT_BlacklistNotification * bn);
+
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
