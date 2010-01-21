@@ -76,6 +76,13 @@
 #define HELLO_VERIFICATION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
 
 /**
+ * How long will we allow sending of a ping to be delayed?
+ */
+#define TRANSPORT_DEFAULT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+
+#define TRANSPORT_DEFAULT_PRIORITY 4 /* Tired of remembering arbitrary priority names */
+
+/**
  * How often do we re-add (cheaper) plugins to our list of plugins
  * to try for a given connected peer?
  */
@@ -1544,7 +1551,20 @@ cleanup_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+static struct GNUNET_MessageHeader *
+createPingMessage (struct GNUNET_PeerIdentity * target, struct ValidationAddress *va)
+{
 
+  struct TransportPingMessage *ping;
+  ping = GNUNET_malloc(sizeof(struct TransportPingMessage));
+
+  ping->challenge = htonl(va->challenge);
+  ping->header.size = sizeof(struct TransportPingMessage);
+  ping->header.type = GNUNET_MESSAGE_TYPE_TRANSPORT_PING;
+  memcpy(&ping->target, target, sizeof(struct GNUNET_PeerIdentity));
+
+  return &ping->header;
+}
 
 /**
  * Function that will be called if we receive a validation
@@ -1572,8 +1592,9 @@ handle_pong (void *cls, const struct GNUNET_MessageHeader *message,
   struct ValidationList *pos;
   struct ValidationAddress *va;
   struct GNUNET_PeerIdentity id;
+  struct TransportPongMessage *pong = (struct TransportPongMessage *)message;
 
-  int challenge = 1; /* FIXME: Pull this number out of the PONG message */
+  unsigned int challenge = ntohl(pong->challenge);
   pos = pending_validations;
   while (pos != NULL)
     {
@@ -1692,7 +1713,7 @@ run_validation (void *cls,
   struct TransportPlugin *tp;
   struct ValidationAddress *va;
   struct GNUNET_PeerIdentity id;
-
+  struct GNUNET_MessageHeader *pingMessage;
   tp = find_transport (tname);
   if (tp == NULL)
     {
@@ -1719,6 +1740,14 @@ run_validation (void *cls,
   va->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                             (unsigned int) -1);
   memcpy (&va[1], addr, addrlen);
+
+  pingMessage = createPingMessage(&id, va);
+
+  tp->api->send(tp->api->cls, &id, pingMessage, GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                TRANSPORT_DEFAULT_TIMEOUT, addr, addrlen, GNUNET_YES, NULL, NULL);
+
+  GNUNET_free(pingMessage);
+
   return GNUNET_OK;
 }
 
@@ -2083,7 +2112,72 @@ static int handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
                        const char *sender_address,
                        size_t sender_address_len)
 {
+  struct TransportPlugin *plugin = cls;
+  struct TransportPingMessage *ping;
+  struct TransportPongMessage *pong;
+  uint16_t msize;
 
+  pong = GNUNET_malloc(sizeof(struct TransportPongMessage));
+
+#if DEBUG_TRANSPORT
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+                "Processing `%s' from `%s'\n",
+               "PING", GNUNET_a2s ((const struct sockaddr *)sender_address, sender_address_len));
+#endif
+
+  msize = ntohs (message->size);
+  if (msize < sizeof (struct TransportPingMessage))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+  ping = (struct TransportPingMessage *) message;
+  if (0 != memcmp (&ping->target,
+                   plugin->env.my_identity,
+                   sizeof (struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Received `%s' message not destined for me!\n"), "PING");
+      return GNUNET_SYSERR;
+    }
+
+  msize -= sizeof (struct TransportPingMessage);
+/*
+ * if (GNUNET_OK != tcp_plugin_address_suggested (plugin, &vcm[1], msize))
+    {
+      GNUNET_break_op (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+
+  if (GNUNET_OK != GNUNET_SERVER_client_get_address (client, &addr, &addrlen))
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+*/
+  pong = GNUNET_malloc (sizeof (struct TransportPongMessage) + sender_address_len);
+  pong->header.size = htons (sizeof (struct TransportPongMessage) + sender_address_len);
+  pong->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_PONG);
+  pong->purpose.size =
+    htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) +
+           sizeof (uint32_t) +
+           sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) + sender_address_len);
+  pong->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_TCP_PING);
+  pong->challenge = ping->challenge;
+
+  memcpy(&pong->signer, &my_public_key, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+  memcpy (&pong[1], sender_address, sender_address_len);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CRYPTO_rsa_sign (my_private_key,
+                                         &pong->purpose, &pong->signature));
+
+  transmit_to_peer(NULL, TRANSPORT_DEFAULT_PRIORITY, &pong->header, GNUNET_NO, find_neighbor(peer, NULL, 0));
+  /* plugin->api->send(); */ /* We can't directly send back along received address, because
+                          the port we saw for the peer (for TCP especially) will not
+                          likely be the open port on the other side! */
+  GNUNET_free(pong);
   return GNUNET_OK;
 }
 
