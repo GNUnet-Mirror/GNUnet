@@ -565,7 +565,7 @@ static ssize_t
 tcp_plugin_send (void *cls,
                  const struct GNUNET_PeerIdentity *target,
                  const struct GNUNET_MessageHeader *msg,
-                 unsigned int priority,
+                 uint32_t priority,
                  struct GNUNET_TIME_Relative timeout,
 		 const void *addr,
 		 size_t addrlen,
