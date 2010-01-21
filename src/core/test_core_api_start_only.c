@@ -71,7 +71,9 @@ static int ok;
 
 static void
 connect_notify (void *cls,
-                const struct GNUNET_PeerIdentity *peer)
+                const struct GNUNET_PeerIdentity *peer,
+		struct GNUNET_TIME_Relative latency,
+		uint32_t distance)
 {
 }
 
@@ -86,7 +88,9 @@ disconnect_notify (void *cls,
 static int
 inbound_notify (void *cls,
                 const struct GNUNET_PeerIdentity *other,
-                const struct GNUNET_MessageHeader *message)
+                const struct GNUNET_MessageHeader *message,
+		struct GNUNET_TIME_Relative latency,
+		uint32_t distance)
 {
   return GNUNET_OK;
 }
@@ -95,7 +99,9 @@ inbound_notify (void *cls,
 static int
 outbound_notify (void *cls,
                  const struct GNUNET_PeerIdentity *other,
-                 const struct GNUNET_MessageHeader *message)
+                 const struct GNUNET_MessageHeader *message,
+		 struct GNUNET_TIME_Relative latency,
+		 uint32_t distance)
 {
   return GNUNET_OK;
 }

@@ -104,7 +104,9 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 connect_notify (void *cls,
-                const struct GNUNET_PeerIdentity *peer)
+                const struct GNUNET_PeerIdentity *peer,
+		struct GNUNET_TIME_Relative latency,
+		uint32_t distance)
 {
   GNUNET_assert ((ok == 5) || (ok == 6));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -125,7 +127,9 @@ disconnect_notify (void *cls,
 static int
 inbound_notify (void *cls,
                 const struct GNUNET_PeerIdentity *other,
-                const struct GNUNET_MessageHeader *message)
+                const struct GNUNET_MessageHeader *message,
+		struct GNUNET_TIME_Relative latency,
+		uint32_t distance)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core provides inbound data from `%4s'.\n", GNUNET_i2s (other));
@@ -136,7 +140,9 @@ inbound_notify (void *cls,
 static int
 outbound_notify (void *cls,
                  const struct GNUNET_PeerIdentity *other,
-                 const struct GNUNET_MessageHeader *message)
+                 const struct GNUNET_MessageHeader *message,
+		 struct GNUNET_TIME_Relative latency,
+		 uint32_t distance)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core notifies about outbound data for `%4s'.\n",
@@ -151,7 +157,9 @@ static GNUNET_SCHEDULER_TaskIdentifier err_task;
 static int
 process_mtype (void *cls,
                const struct GNUNET_PeerIdentity *peer,
-               const struct GNUNET_MessageHeader *message)
+               const struct GNUNET_MessageHeader *message,
+	       struct GNUNET_TIME_Relative latency,
+	       uint32_t distance)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Receiving message from `%4s'.\n", GNUNET_i2s (peer));
