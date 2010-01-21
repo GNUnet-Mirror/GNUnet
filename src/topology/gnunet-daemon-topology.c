@@ -23,12 +23,6 @@
  * @brief code for maintaining the mesh topology
  * @author Christian Grothoff
  *
- * TODO:
- * - make sure that PEERINFO *also* notifies us when a HELLO expires
- *   (otherwise the 'soft state' of this module does not work nicely)
- * - CORE API's connect/disconnect API is not nice (we think we are
- *   connected when we are not; disconnect using bandwidth-limiting
- *   does not really work and is not nice)
  * OPTIMIZATIONS:
  * - move code to use hash table instead of linked list
  * - instead of periodically discarding blacklisted entries,
