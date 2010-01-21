@@ -62,10 +62,13 @@ struct GNUNET_NETWORK_FDSet;
  * @param address_len length of address
  * @return client socket
  */
-struct GNUNET_NETWORK_Handle *
-GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
-			      struct sockaddr *address,
-			      socklen_t *address_len);
+struct GNUNET_NETWORK_Handle *GNUNET_NETWORK_socket_accept (const struct
+                                                            GNUNET_NETWORK_Handle
+                                                            *desc,
+                                                            struct sockaddr
+                                                            *address,
+                                                            socklen_t *
+                                                            address_len);
 
 
 /**
@@ -77,7 +80,8 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
 int GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
-                    const struct sockaddr *address, socklen_t address_len);
+                                const struct sockaddr *address,
+                                socklen_t address_len);
 
 /**
  * Close a socket.
@@ -96,8 +100,8 @@ int GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc);
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
 int GNUNET_NETWORK_socket_connect (const struct GNUNET_NETWORK_Handle *desc,
-				   const struct sockaddr *address, 
-				   socklen_t address_len);
+                                   const struct sockaddr *address,
+                                   socklen_t address_len);
 
 
 /**
@@ -110,8 +114,9 @@ int GNUNET_NETWORK_socket_connect (const struct GNUNET_NETWORK_Handle *desc,
  * @param optlen length of optval
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
-int GNUNET_NETWORK_socket_getsockopt(const struct GNUNET_NETWORK_Handle *desc, int level, int optname,
-       void *optval, socklen_t *optlen);
+int GNUNET_NETWORK_socket_getsockopt (const struct GNUNET_NETWORK_Handle
+                                      *desc, int level, int optname,
+                                      void *optval, socklen_t * optlen);
 
 
 /**
@@ -121,14 +126,16 @@ int GNUNET_NETWORK_socket_getsockopt(const struct GNUNET_NETWORK_Handle *desc, i
  * @param backlog length of the listen queue
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
-int GNUNET_NETWORK_socket_listen (const struct GNUNET_NETWORK_Handle *desc, int backlog);
+int GNUNET_NETWORK_socket_listen (const struct GNUNET_NETWORK_Handle *desc,
+                                  int backlog);
 
 /**
  * How much data is available to be read on this descriptor?
  * @param desc socket
  */
-unsigned int
-GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle * desc);
+ssize_t
+GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle
+                                       *desc);
 
 /**
  * Read data from a connected socket (always non-blocking).
@@ -140,9 +147,10 @@ GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle * desc
  * @param addrlen length of the addr
  */
 ssize_t
-GNUNET_NETWORK_socket_recvfrom (const struct GNUNET_NETWORK_Handle * desc,
+GNUNET_NETWORK_socket_recvfrom (const struct GNUNET_NETWORK_Handle *desc,
                                 void *buffer, size_t length,
-                                struct sockaddr *src_addr, socklen_t *addrlen);
+                                struct sockaddr *src_addr,
+                                socklen_t * addrlen);
 
 /**
  * Read data from a connected socket (always non-blocking).
@@ -152,8 +160,8 @@ GNUNET_NETWORK_socket_recvfrom (const struct GNUNET_NETWORK_Handle * desc,
  * @param length length of buffer
  * @return number of bytes read
  */
-ssize_t GNUNET_NETWORK_socket_recv (const struct GNUNET_NETWORK_Handle *desc, void *buffer,
-				    size_t length);
+ssize_t GNUNET_NETWORK_socket_recv (const struct GNUNET_NETWORK_Handle *desc,
+                                    void *buffer, size_t length);
 
 /**
  * Check if sockets meet certain conditions
@@ -164,8 +172,9 @@ ssize_t GNUNET_NETWORK_socket_recv (const struct GNUNET_NETWORK_Handle *desc, vo
  * @return number of selected sockets, GNUNET_SYSERR on error
  */
 int GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
-    struct GNUNET_NETWORK_FDSet *wfds, struct GNUNET_NETWORK_FDSet *efds,
-    struct GNUNET_TIME_Relative timeout);
+                                  struct GNUNET_NETWORK_FDSet *wfds,
+                                  struct GNUNET_NETWORK_FDSet *efds,
+                                  struct GNUNET_TIME_Relative timeout);
 
 
 
@@ -178,7 +187,7 @@ int GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
  * @return number of bytes sent, GNUNET_SYSERR on error
  */
 ssize_t GNUNET_NETWORK_socket_send (const struct GNUNET_NETWORK_Handle *desc,
-                        const void *buffer, size_t length);
+                                    const void *buffer, size_t length);
 
 /**
  * Send data to a particular destination (always non-blocking).
@@ -191,10 +200,11 @@ ssize_t GNUNET_NETWORK_socket_send (const struct GNUNET_NETWORK_Handle *desc,
  * @param dest_len length of address
  * @return number of bytes sent, GNUNET_SYSERR on error
  */
-ssize_t GNUNET_NETWORK_socket_sendto (const struct GNUNET_NETWORK_Handle *desc,
-                          const void *message, size_t length, 
-                          const struct sockaddr *dest_addr,
-                          socklen_t dest_len);
+ssize_t GNUNET_NETWORK_socket_sendto (const struct GNUNET_NETWORK_Handle
+                                      *desc, const void *message,
+                                      size_t length,
+                                      const struct sockaddr *dest_addr,
+                                      socklen_t dest_len);
 
 /**
  * Set socket option
@@ -205,8 +215,10 @@ ssize_t GNUNET_NETWORK_socket_sendto (const struct GNUNET_NETWORK_Handle *desc,
  * @param option_len size of option_value
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
-int GNUNET_NETWORK_socket_setsockopt(struct GNUNET_NETWORK_Handle *fd, int level, int option_name,
-       const void *option_value, socklen_t option_len);
+int GNUNET_NETWORK_socket_setsockopt (struct GNUNET_NETWORK_Handle *fd,
+                                      int level, int option_name,
+                                      const void *option_value,
+                                      socklen_t option_len);
 
 /**
  * Shut down socket operations
@@ -214,7 +226,8 @@ int GNUNET_NETWORK_socket_setsockopt(struct GNUNET_NETWORK_Handle *fd, int level
  * @param how type of shutdown
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
-int GNUNET_NETWORK_socket_shutdown (struct GNUNET_NETWORK_Handle *desc, int how);
+int GNUNET_NETWORK_socket_shutdown (struct GNUNET_NETWORK_Handle *desc,
+                                    int how);
 
 
 /**
@@ -227,22 +240,24 @@ int GNUNET_NETWORK_socket_shutdown (struct GNUNET_NETWORK_Handle *desc, int how)
  * @param protocol network protocol
  * @return new socket, NULL on error
  */
-struct GNUNET_NETWORK_Handle *GNUNET_NETWORK_socket_create (int domain, int type, int protocol);
+struct GNUNET_NETWORK_Handle *GNUNET_NETWORK_socket_create (int domain,
+                                                            int type,
+                                                            int protocol);
 
 /**
  * Reset FD set (clears all file descriptors).
  *
  * @param fds fd set to clear
  */
-void GNUNET_NETWORK_fdset_zero(struct GNUNET_NETWORK_FDSet *fds);
+void GNUNET_NETWORK_fdset_zero (struct GNUNET_NETWORK_FDSet *fds);
 
 /**
  * Add a socket to the FD set
  * @param fds fd set
  * @param desc socket to add
  */
-void GNUNET_NETWORK_fdset_set(struct GNUNET_NETWORK_FDSet *fds,
-			      const struct GNUNET_NETWORK_Handle *desc);
+void GNUNET_NETWORK_fdset_set (struct GNUNET_NETWORK_FDSet *fds,
+                               const struct GNUNET_NETWORK_Handle *desc);
 
 
 /**
@@ -250,8 +265,8 @@ void GNUNET_NETWORK_fdset_set(struct GNUNET_NETWORK_FDSet *fds,
  * @param fds fd set
  * @param desc socket
  */
-int GNUNET_NETWORK_fdset_isset(const struct GNUNET_NETWORK_FDSet *fds,
-			       const struct GNUNET_NETWORK_Handle *desc);
+int GNUNET_NETWORK_fdset_isset (const struct GNUNET_NETWORK_FDSet *fds,
+                                const struct GNUNET_NETWORK_Handle *desc);
 
 /**
  * Add one fd set to another
@@ -259,30 +274,28 @@ int GNUNET_NETWORK_fdset_isset(const struct GNUNET_NETWORK_FDSet *fds,
  * @param src the fd set to add from
  */
 void GNUNET_NETWORK_fdset_add (struct GNUNET_NETWORK_FDSet *dst,
-			       const struct GNUNET_NETWORK_FDSet *src);
+                               const struct GNUNET_NETWORK_FDSet *src);
 
 /**
  * Copy one fd set to another
  * @param to destination
  * @param from source
  */
-void GNUNET_NETWORK_fdset_copy(struct GNUNET_NETWORK_FDSet *to,
-			       const struct GNUNET_NETWORK_FDSet *from);
+void GNUNET_NETWORK_fdset_copy (struct GNUNET_NETWORK_FDSet *to,
+                                const struct GNUNET_NETWORK_FDSet *from);
 
 /*
  * Return file descriptor for this network handle
  */
-int
-GNUNET_NETWORK_get_fd (struct GNUNET_NETWORK_Handle *desc);
+int GNUNET_NETWORK_get_fd (struct GNUNET_NETWORK_Handle *desc);
 /**
  * Copy a native fd set
  * @param to destination
  * @param from native source set
  * @param nfds the biggest socket number in from + 1
  */
-void GNUNET_NETWORK_fdset_copy_native (struct GNUNET_NETWORK_FDSet *to, 
-				       const fd_set *from,
-				       int nfds);
+void GNUNET_NETWORK_fdset_copy_native (struct GNUNET_NETWORK_FDSet *to,
+                                       const fd_set * from, int nfds);
 
 /**
  * Add a file handle to the fd set
@@ -290,7 +303,7 @@ void GNUNET_NETWORK_fdset_copy_native (struct GNUNET_NETWORK_FDSet *to,
  * @param h the file handle to add
  */
 void GNUNET_NETWORK_fdset_handle_set (struct GNUNET_NETWORK_FDSet *fds,
-				      const struct GNUNET_DISK_FileHandle *h);
+                                      const struct GNUNET_DISK_FileHandle *h);
 
 /**
  * Check if a file handle is part of an fd set
@@ -299,7 +312,8 @@ void GNUNET_NETWORK_fdset_handle_set (struct GNUNET_NETWORK_FDSet *fds,
  * @return GNUNET_YES if the file handle is part of the set
  */
 int GNUNET_NETWORK_fdset_handle_isset (const struct GNUNET_NETWORK_FDSet *fds,
-				       const struct GNUNET_DISK_FileHandle *h);
+                                       const struct GNUNET_DISK_FileHandle
+                                       *h);
 
 /**
  * Checks if two fd sets overlap
@@ -307,8 +321,8 @@ int GNUNET_NETWORK_fdset_handle_isset (const struct GNUNET_NETWORK_FDSet *fds,
  * @param fds2 second fd set
  * @return GNUNET_YES if they do overlap, GNUNET_NO otherwise
  */
-int GNUNET_NETWORK_fdset_overlap (const struct GNUNET_NETWORK_FDSet *fds1, 
-				  const struct GNUNET_NETWORK_FDSet *fds2);
+int GNUNET_NETWORK_fdset_overlap (const struct GNUNET_NETWORK_FDSet *fds1,
+                                  const struct GNUNET_NETWORK_FDSet *fds2);
 
 /**
  * Creates an fd set
