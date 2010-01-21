@@ -294,6 +294,11 @@ GNUNET_TRANSPORT_address_lookup (struct GNUNET_SCHEDULER_Handle *sched,
 
 
 
+/**
+ * Handle for blacklisting requests.
+ */
+struct GNUNET_TRANSPORT_BlacklistRequest;
+
 
 /**
  * Blacklist a peer for a given period of time.  All connections
@@ -307,12 +312,33 @@ GNUNET_TRANSPORT_address_lookup (struct GNUNET_SCHEDULER_Handle *sched,
  * @param peer identity of peer to blacklist
  * @param duration how long to blacklist, use GNUNET_TIME_UNIT_ZERO to
  *        re-enable connections
+ * @param timeout when should this operation (trying to establish the
+ *        blacklisting time out)
+ * @param cont continuation to call once the request has been processed
+ * @param cont_cls closure for cont
+ * @return NULL on error, otherwise handle for cancellation
  */
-void
+struct GNUNET_TRANSPORT_BlacklistRequest *
 GNUNET_TRANSPORT_blacklist (struct GNUNET_SCHEDULER_Handle *sched,
 			    const struct GNUNET_CONFIGURATION_Handle *cfg,
 			    const struct GNUNET_PeerIdentity *peer,
-			    struct GNUNET_TIME_Relative duration);
+			    struct GNUNET_TIME_Relative duration,
+			    struct GNUNET_TIME_Relative timeout,
+			    GNUNET_SCHEDULER_Task cont,
+			    void *cont_cls);
+
+
+/**
+ * Abort transmitting the blacklist request.  Note that this function
+ * is NOT for removing a peer from the blacklist (for that, call 
+ * GNUNET_TRANSPORT_blacklist with a duration of zero).  This function
+ * is only for aborting the transmission of a blacklist request
+ * (i.e. because of shutdown).
+ *
+ * @param br handle of the request that is to be cancelled
+ */
+void
+GNUNET_TRANSPORT_blacklist_cancel (struct GNUNET_TRANSPORT_BlacklistRequest * br);
 
 
 /**

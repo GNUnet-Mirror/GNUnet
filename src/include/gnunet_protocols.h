@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -185,43 +185,55 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY 30
 
+/**
+ * Change in blacklisting status of a peer.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST 31
+
+/**
+ * Request to transport to notify us about any blacklisting status
+ * changes on this connection (and to immediately send all
+ * active blacklist entries).
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_NOTIFY 32
+
 
 /**
  * Request addition of a HELLO
  */
-#define GNUNET_MESSAGE_TYPE_PEERINFO_ADD 32
+#define GNUNET_MESSAGE_TYPE_PEERINFO_ADD 36
 
 /**
  * Request update and listing of a peer.
  */
-#define GNUNET_MESSAGE_TYPE_PEERINFO_GET 33
+#define GNUNET_MESSAGE_TYPE_PEERINFO_GET 37
 
 /**
  * Request update and listing of all peers.
  */
-#define GNUNET_MESSAGE_TYPE_PEERINFO_GET_ALL 34
+#define GNUNET_MESSAGE_TYPE_PEERINFO_GET_ALL 38
 
 /**
  * Information about one of the peers.
  */
-#define GNUNET_MESSAGE_TYPE_PEERINFO_INFO 35
+#define GNUNET_MESSAGE_TYPE_PEERINFO_INFO 39
 
 /**
  * End of information about other peers.
  */
-#define GNUNET_MESSAGE_TYPE_PEERINFO_INFO_END 36
+#define GNUNET_MESSAGE_TYPE_PEERINFO_INFO_END 40
 
 /**
  * Start notifying this client about all changes to
  * the known peers until it disconnects.
  */
-#define GNUNET_MESSAGE_TYPE_PEERINFO_NOTIFY 37
+#define GNUNET_MESSAGE_TYPE_PEERINFO_NOTIFY 41
 
 
 /**
  * Welcome message between TCP transports.
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME 40
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME 60
 
 /**
  * Welcome message between TCP transports.

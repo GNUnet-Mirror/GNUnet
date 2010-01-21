@@ -15,7 +15,8 @@ lib_LTLIBRARIES = \
   libgnunettransport.la
 
 libgnunettransport_la_SOURCES = \
-  transport_api.c transport.h
+  transport_api.c transport.h \
+  transport_api_blacklist.c
 libgnunettransport_la_LIBADD = \
   $(top_builddir)/src/arm/libgnunetarm.la \
   $(top_builddir)/src/hello/libgnunethello.la \

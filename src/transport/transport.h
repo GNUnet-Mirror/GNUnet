@@ -231,8 +231,6 @@ struct OutboundMessage
 };
 
 
-
-
 /**
  * Message from the library to the transport service
  * asking for converting a transport address to a
@@ -247,6 +245,12 @@ struct AddressLookupMessage
   struct GNUNET_MessageHeader header;
 
   /**
+   * Should the conversion use numeric IP addresses (otherwise
+   * a reverse DNS lookup is OK -- if applicable).
+   */
+  int32_t numeric_only GNUNET_PACKED;
+
+  /**
    * timeout to give up.
    */
   struct GNUNET_TIME_AbsoluteNBO timeout;
@@ -258,6 +262,39 @@ struct AddressLookupMessage
 
   /* followed by 'addrlen' bytes of the actual address, then
      followed by the 0-terminated name of the transport */
+};
+
+
+
+/**
+ * Change in blacklisting (either request or notification,
+ * depending on which direction it is going).
+ */
+struct BlacklistMessage
+{
+
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Reserved (for alignment).
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * Which peer is being blacklisted (or has seen its
+   * blacklisting expire)?
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * Until what time is this peer blacklisted (zero for
+   * no longer blacklisted).
+   */
+  struct GNUNET_TIME_AbsoluteNBO until;
+
 };
 
 
