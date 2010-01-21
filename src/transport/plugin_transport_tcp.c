@@ -56,6 +56,9 @@
  */
 struct WelcomeMessage
 {
+  /**
+   * Type is GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME.
+   */
   struct GNUNET_MessageHeader header;
 
   /**
