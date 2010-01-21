@@ -258,23 +258,11 @@ static struct DisconnectList *disconnect_tail;
  * has completed.
  *
  * @param cls our 'struct DisconnectList'
- * @param peer NULL on error (then what?)
- * @param bpm_in set to the current bandwidth limit (receiving) for this peer
- * @param bpm_out set to the current bandwidth limit (sending) for this peer
- * @param latency current latency estimate, "FOREVER" if we have been
- *                disconnected
- * @param amount set to the amount that was actually reserved or unreserved
- * @param preference current traffic preference for the given peer
+ * @param tc unused
  */
 static void
 disconnect_done (void *cls,
-		 const struct
-		 GNUNET_PeerIdentity * peer,
-		 unsigned int bpm_in,
-		 unsigned int bpm_out,
-		 struct GNUNET_TIME_Relative
-		 latency, int amount,
-		 unsigned long long preference)
+		 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct DisconnectList *dl = cls;
 
@@ -620,11 +608,15 @@ reschedule_hellos (struct PeerList *peer)
  *
  * @param cls closure
  * @param peer peer identity this notification is about
+ * @param latency reported latency of the connection with 'other'
+ * @param distance reported distance (DV) to 'other' 
  */
 static void 
 connect_notify (void *cls,
 		const struct
-		GNUNET_PeerIdentity * peer)
+		GNUNET_PeerIdentity * peer,
+		struct GNUNET_TIME_Relative latency,
+		uint32_t distance)
 {
   struct PeerList *pos;
 
@@ -1092,6 +1084,8 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param other the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual HELLO message
+ * @param latency reported latency of the connection with 'other'
+ * @param distance reported distance (DV) to 'other' 
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -1099,7 +1093,9 @@ static int
 handle_encrypted_hello (void *cls,
 			const struct GNUNET_PeerIdentity * other,
 			const struct GNUNET_MessageHeader *
-			message)
+			message,
+			struct GNUNET_TIME_Relative latency,
+			uint32_t distance)
 {
 #if DEBUG_TOPOLOGY
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1213,7 +1209,7 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_CONTAINER_DLL_remove (disconnect_head,
 				   disconnect_tail,
 				   dl);
-      GNUNET_CORE_peer_get_info_cancel (dl->rh);
+      GNUNET_CORE_peer_request_cancel (dl->rh);
       GNUNET_free (dl);
     }
 }

@@ -20,7 +20,7 @@
 
 /**
  * @file core/core_api_peer_get_info.c
- * @brief implementation of the peer_get_info functions 
+ * @brief implementation of the peer_change_preference functions 
  * @author Christian Grothoff
  */
 #include "platform.h"
@@ -167,7 +167,7 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_SCHEDULER_Handle *sched,
  * @param irc context returned by the original GNUNET_CORE_peer_get_info call
  */
 void
-GNUNET_CORE_peer_get_info_cancel (struct GNUNET_CORE_InformationRequestContext *irc)
+GNUNET_CORE_peer_change_preference_cancel (struct GNUNET_CORE_InformationRequestContext *irc)
 {
   GNUNET_CLIENT_disconnect (irc->client);
   GNUNET_free (irc);

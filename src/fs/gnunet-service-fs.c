@@ -417,7 +417,7 @@ struct PendingRequest
   struct GNUNET_CONTAINER_BloomFilter *bf;
 
   /**
-   * Context of our GNUNET_CORE_peer_get_info call.
+   * Context of our GNUNET_CORE_peer_change_preference call.
    */
   struct GNUNET_CORE_InformationRequestContext *irc;
 
@@ -1770,8 +1770,6 @@ transmit_request_cb (void *cls,
  *
  * @param cls the requests "struct PendingRequest*"
  * @param peer identifies the peer
- * @param latency current latency estimate, "FOREVER" if we have been
- *                disconnected
  * @param bpm_in set to the current bandwidth limit (receiving) for this peer
  * @param bpm_out set to the current bandwidth limit (sending) for this peer
  * @param amount set to the amount that was actually reserved or unreserved
@@ -1783,9 +1781,8 @@ target_reservation_cb (void *cls,
 		       GNUNET_PeerIdentity * peer,
 		       unsigned int bpm_in,
 		       unsigned int bpm_out,
-		       struct GNUNET_TIME_Relative
-		       latency, int amount,
-		       unsigned long long preference)
+		       int amount,
+		       uint64_t preference)
 {
   struct PendingRequest *pr = cls;
   uint32_t priority;
@@ -1872,7 +1869,7 @@ forward_request_task (void *cls,
     }
   /* (2) reserve reply bandwidth */
   GNUNET_assert (NULL == pr->irc);
-  pr->irc = GNUNET_CORE_peer_get_info (sched, cfg,
+  pr->irc = GNUNET_CORE_peer_change_preference (sched, cfg,
 				       &psc.target,
 				       GNUNET_CONSTANTS_SERVICE_TIMEOUT, 
 				       -1,
@@ -2222,7 +2219,7 @@ destroy_pending_request (struct PendingRequest *pr)
   // also, what does the return value mean?
   if (pr->irc != NULL)
     {
-      GNUNET_CORE_peer_get_info_cancel (pr->irc);
+      GNUNET_CORE_peer_change_preference_cancel (pr->irc);
       pr->irc = NULL;
     }
   if (pr->client == NULL)
@@ -2407,11 +2404,15 @@ destroy_request (void *cls,
  *
  * @param cls closure, not used
  * @param peer peer identity this notification is about
+ * @param latency reported latency of the connection with 'other'
+ * @param distance reported distance (DV) to 'other' 
  */
 static void 
 peer_connect_handler (void *cls,
 		      const struct
-		      GNUNET_PeerIdentity * peer)
+		      GNUNET_PeerIdentity * peer,
+		      struct GNUNET_TIME_Relative latency,
+		      uint32_t distance)
 {
   struct ConnectedPeer *cp;
 
@@ -2773,13 +2774,17 @@ bound_priority (uint32_t prio_in,
  * @param other the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
+ * @param latency reported latency of the connection with 'other'
+ * @param distance reported distance (DV) to 'other' 
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 handle_p2p_get (void *cls,
 		const struct GNUNET_PeerIdentity *other,
-		const struct GNUNET_MessageHeader *message)
+		const struct GNUNET_MessageHeader *message,
+				  struct GNUNET_TIME_Relative latency,
+				  uint32_t distance)
 {
   uint16_t msize;
   const struct GetMessage *gm;
@@ -2923,10 +2928,10 @@ handle_p2p_get (void *cls,
   if (preference < QUERY_BANDWIDTH_VALUE)
     preference = QUERY_BANDWIDTH_VALUE;
   // FIXME: also reserve bandwidth for reply?
-  (void) GNUNET_CORE_peer_get_info (sched, cfg,
-				    other,
-				    GNUNET_TIME_UNIT_FOREVER_REL,
-				    0, 0, preference, NULL, NULL);
+  (void) GNUNET_CORE_peer_change_preference (sched, cfg,
+					     other,
+					     GNUNET_TIME_UNIT_FOREVER_REL,
+					     0, 0, preference, NULL, NULL);
   if (0 != (pgc->policy & ROUTING_POLICY_ANSWER))
     pgc->drq = queue_ds_request (BASIC_DATASTORE_REQUEST_DELAY,
 				 &ds_get_request,
@@ -3205,13 +3210,17 @@ check_sblock (const struct SBlock *sb,
  * @param other the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
+ * @param latency reported latency of the connection with 'other'
+ * @param distance reported distance (DV) to 'other' 
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 handle_p2p_put (void *cls,
 		const struct GNUNET_PeerIdentity *other,
-		const struct GNUNET_MessageHeader *message)
+		const struct GNUNET_MessageHeader *message,
+		struct GNUNET_TIME_Relative latency,
+		uint32_t distance)
 {
   const struct PutMessage *put;
   uint16_t msize;
