@@ -56,16 +56,15 @@
  * @param peer (claimed) identity of the other peer
  * @param message the message, NULL if peer was disconnected
  */
-typedef void (*GNUNET_TRANSPORT_PluginReceiveCallback) (void *cls,
-                                                        unsigned int distance,
-							const char *sender_address,
-							size_t sender_address_len,
+typedef void (*GNUNET_TRANSPORT_PluginReceiveCallback) (void *cls, const struct
+                                                        GNUNET_MessageHeader *
+                                                        message,
                                                         const struct
                                                         GNUNET_PeerIdentity *
                                                         peer,
-                                                        const struct
-                                                        GNUNET_MessageHeader *
-                                                        message);
+                                                        unsigned int distance,
+							const char *sender_address,
+							size_t sender_address_len);
 
 
 

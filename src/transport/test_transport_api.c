@@ -40,7 +40,7 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 #define MTYPE 12345
 
@@ -159,6 +159,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
                                         "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
+
   p->th = GNUNET_TRANSPORT_connect (sched, p->cfg,
                                     p,
                                     &notify_receive,
@@ -230,6 +231,31 @@ exchange_hello (void *cls,
   GNUNET_TRANSPORT_get_hello (p2.th, TIMEOUT, &exchange_hello_last, &p2);
 }
 
+static void
+setTransportOptions(char * filename)
+{
+  struct GNUNET_CONFIGURATION_Handle * tempcfg;
+
+  tempcfg = GNUNET_CONFIGURATION_create();
+  GNUNET_CONFIGURATION_load (tempcfg, filename);
+
+  unsigned long long curr_port;
+  GNUNET_CONFIGURATION_get_value_number(tempcfg, "transport", "port", &curr_port);
+
+  if (is_udp)
+    {
+      fprintf(stderr, "setting transport udp plugins\n");
+      GNUNET_CONFIGURATION_set_value_string(tempcfg, "transport", "plugins", "udp");
+      GNUNET_CONFIGURATION_set_value_number(tempcfg, "transport-udp", "PORT", curr_port + 3);
+    }
+  else if (is_tcp)
+    {
+      GNUNET_CONFIGURATION_set_value_string(tempcfg, "transport", "plugins", "tcp");
+      GNUNET_CONFIGURATION_set_value_number(tempcfg, "transport-tcp", "port", curr_port + 3);
+    }
+  GNUNET_CONFIGURATION_write(tempcfg, filename);
+  return;
+}
 
 static void
 run (void *cls,
@@ -240,6 +266,10 @@ run (void *cls,
   GNUNET_assert (ok == 1);
   OKPP;
   sched = s;
+
+  setTransportOptions("test_transport_api_peer1.conf");
+  setTransportOptions("test_transport_api_peer2.conf");
+
   setup_peer (&p1, "test_transport_api_peer1.conf");
   setup_peer (&p2, "test_transport_api_peer2.conf");
   GNUNET_TRANSPORT_get_hello (p1.th, TIMEOUT, &exchange_hello, &p1);
@@ -257,10 +287,10 @@ stop_arm (struct PeerContext *p)
   GNUNET_CONFIGURATION_destroy (p->cfg);
 }
 
-
 static int
 check ()
 {
+
   char *const argv[] = { "test-transport-api",
     "-c",
     "test_transport_api_data.conf",
@@ -269,6 +299,9 @@ check ()
 #endif
     NULL
   };
+
+  setTransportOptions("test_transport_api_data.conf");
+
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
@@ -287,13 +320,13 @@ main (int argc, char *argv[])
 {
   int ret;
 
-  if (strstr(argv[0], "test_transport_api_tcp") == 0)
+  if (strstr(argv[0], "tcp") != NULL)
     {
       is_tcp = GNUNET_YES;
     }
-  else if (strstr(argv[0], "test_transport_api_udp") == 0)
+  else if (strstr(argv[0], "udp") != NULL)
     {
-      is_udp = GNUNET_NO;
+      is_udp = GNUNET_YES;
     }
 
 
