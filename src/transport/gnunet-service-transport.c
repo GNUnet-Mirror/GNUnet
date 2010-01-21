@@ -393,6 +393,79 @@ struct NeighborList
 
 };
 
+/**
+ * Message used to ask a peer to validate receipt (to check an address
+ * from a HELLO).  Followed by the address used.  Note that the
+ * recipients response does not affirm that he has this address,
+ * only that he got the challenge message.
+ */
+struct TransportPingMessage
+{
+
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_PING
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Random challenge number (in network byte order).
+   */
+  uint32_t challenge GNUNET_PACKED;
+
+  /**
+   * Who is the intended recipient?
+   */
+  struct GNUNET_PeerIdentity target;
+
+};
+
+
+/**
+ * Message used to validate a HELLO.  The challenge is included in the
+ * confirmation to make matching of replies to requests possible.  The
+ * signature signs the original challenge number, our public key, the
+ * sender's address (so that the sender can check that the address we
+ * saw is plausible for him and possibly detect a MiM attack) and a
+ * timestamp (to limit replay).<p>
+ *
+ * This message is followed by the address of the
+ * client that we are observing (which is part of what
+ * is being signed).
+ */
+struct TransportPongMessage
+{
+
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_PONG
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * For padding, always zero.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * Signature.
+   */
+  struct GNUNET_CRYPTO_RsaSignature signature;
+
+  /**
+   * What are we signing and why?
+   */
+  struct GNUNET_CRYPTO_RsaSignaturePurpose purpose;
+
+  /**
+   * Random challenge number (in network byte order).
+   */
+  uint32_t challenge GNUNET_PACKED;
+
+  /**
+   * Who signed this message?
+   */
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded signer;
+
+};
 
 /**
  * Linked list of messages to be transmitted to
