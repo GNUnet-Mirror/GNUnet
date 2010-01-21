@@ -59,17 +59,17 @@ struct GNUNET_CORE_Handle
    * Function to call whenever we're notified about a peer connecting
    * (pre-connects, no session key exchange yet).
    */
-  GNUNET_CORE_ClientEventHandler pre_connects;
+  GNUNET_CORE_ConnectEventHandler pre_connects;
 
   /**
    * Function to call whenever we're notified about a peer connecting.
    */
-  GNUNET_CORE_ClientEventHandler connects;
+  GNUNET_CORE_ConnectEventHandler connects;
 
   /**
    * Function to call whenever we're notified about a peer disconnecting.
    */
-  GNUNET_CORE_ClientEventHandler disconnects;
+  GNUNET_CORE_DisconnectEventHandler disconnects;
 
   /**
    * Function to call whenever we receive an inbound message.
@@ -414,7 +414,9 @@ main_handler (void *cls, const struct GNUNET_MessageHeader *msg)
         }
       cnm = (const struct ConnectNotifyMessage *) msg;
       h->pre_connects (h->cls,
-		       &cnm->peer);
+		       &cnm->peer,
+		       GNUNET_TIME_relative_ntoh (cnm->latency),
+		       ntohl (cnm->distance));
       break;
     case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT:
       if (NULL == h->connects)
@@ -429,7 +431,9 @@ main_handler (void *cls, const struct GNUNET_MessageHeader *msg)
         }
       cnm = (const struct ConnectNotifyMessage *) msg;
       h->connects (h->cls,
-		   &cnm->peer);
+		   &cnm->peer,
+		   GNUNET_TIME_relative_ntoh (cnm->latency),
+		   ntohl (cnm->distance));
       break;
     case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT:
       if (NULL == h->disconnects)
@@ -480,7 +484,9 @@ main_handler (void *cls, const struct GNUNET_MessageHeader *msg)
               continue;
             }
           if (GNUNET_OK !=
-              h->handlers[hpos].callback (h->cls, &ntm->peer, em))
+              h->handlers[hpos].callback (h->cls, &ntm->peer, em,
+					  GNUNET_TIME_relative_ntoh (ntm->latency),
+					  ntohl (ntm->distance)))
             {
               /* error in processing, disconnect ! */
               reconnect (h);
@@ -488,7 +494,9 @@ main_handler (void *cls, const struct GNUNET_MessageHeader *msg)
             }
         }
       if (NULL != h->inbound_notify)
-        h->inbound_notify (h->cls, &ntm->peer, em);
+        h->inbound_notify (h->cls, &ntm->peer, em,
+			   GNUNET_TIME_relative_ntoh (ntm->latency),
+			   ntohl (ntm->distance));
       break;
     case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_OUTBOUND:
       if (msize <
@@ -511,7 +519,9 @@ main_handler (void *cls, const struct GNUNET_MessageHeader *msg)
           GNUNET_break (0);
           break;
         }
-      h->outbound_notify (h->cls, &ntm->peer, em);
+      h->outbound_notify (h->cls, &ntm->peer, em,
+			  GNUNET_TIME_relative_ntoh (ntm->latency),
+			  ntohl (ntm->distance));
       break;
     case GNUNET_MESSAGE_TYPE_CORE_CONFIGURATION_INFO:
       if (msize != sizeof (struct ConfigurationInfoMessage))
@@ -529,7 +539,6 @@ main_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                             &h->submitted->peer,
                             ntohl (cim->bpm_in),
                             ntohl (cim->bpm_out),
-                            GNUNET_TIME_relative_ntoh (cim->latency),
                             (int) ntohl (cim->reserved_amount),
                             cim->preference);
       /* done, clean up! */      
@@ -740,9 +749,9 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
                      struct GNUNET_TIME_Relative timeout,
                      void *cls,
                      GNUNET_CORE_StartupCallback init,
-                     GNUNET_CORE_ClientEventHandler pre_connects,
-                     GNUNET_CORE_ClientEventHandler connects,
-                     GNUNET_CORE_ClientEventHandler disconnects,
+                     GNUNET_CORE_ConnectEventHandler pre_connects,
+                     GNUNET_CORE_ConnectEventHandler connects,
+                     GNUNET_CORE_DisconnectEventHandler disconnects,
                      GNUNET_CORE_MessageCallback inbound_notify,
                      int inbound_hdr_only,
                      GNUNET_CORE_MessageCallback outbound_notify,
