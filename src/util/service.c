@@ -987,7 +987,7 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
           sctx->addrlens[0] = sizeof (struct sockaddr_in6);
           sctx->addrs[0] = GNUNET_malloc (sctx->addrlens[0]);
 #if HAVE_SOCKADDR_IN_SIN_LEN
-          ((struct sockaddr_in6 *) sctx->addrs[0])->sin6_len = sctx->addrlen[0];
+          ((struct sockaddr_in6 *) sctx->addrs[0])->sin6_len = sctx->addrlens[0];
 #endif
           ((struct sockaddr_in6 *) sctx->addrs[0])->sin6_family = AF_INET6;
           ((struct sockaddr_in6 *) sctx->addrs[0])->sin6_port = htons (port);
