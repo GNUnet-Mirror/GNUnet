@@ -164,7 +164,7 @@ struct DisconnectList
   /**
    * Our request handle.
    */
-  struct GNUNET_CORE_InformationRequestContext *rh;
+  struct GNUNET_CORE_PeerRequestHandle *rh;
 
   /**
    * Peer we tried to disconnect.
@@ -301,14 +301,11 @@ force_disconnect (const struct GNUNET_PeerIdentity *peer)
   GNUNET_CONTAINER_DLL_insert (disconnect_head,
 			       disconnect_tail,
 			       dl);
-  dl->rh = GNUNET_CORE_peer_get_info (sched, cfg,
-				      peer,
-				      GNUNET_TIME_UNIT_FOREVER_REL,
-				      0,
-				      0,
-				      0,
-				      &disconnect_done,
-				      dl);
+  dl->rh = GNUNET_CORE_peer_request_disconnect (sched, cfg,						
+						GNUNET_TIME_UNIT_FOREVER_REL,
+						peer,
+						&disconnect_done,
+						dl);
 }
 
 
