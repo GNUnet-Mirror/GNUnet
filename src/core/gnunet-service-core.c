@@ -2553,8 +2553,7 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
 
 
 /**
- * We received a PONG message.  Validate and update
- * our status.
+ * We received a PONG message.  Validate and update our status.
  *
  * @param n sender of the PONG
  * @param m the encrypted PONG message itself
@@ -2619,9 +2618,8 @@ handle_pong (struct Neighbour *n, const struct PingMessage *m)
         }      
       cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
       cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
-      cnm.distance = htonl (0); /* FIXME */
-      cnm.latency = GNUNET_TIME_relative_hton (GNUNET_TIME_UNIT_ZERO); /* FIXME */
-      cnm.reserved = htonl (0);
+      cnm.distance = htonl (n->last_distance);
+      cnm.latency = GNUNET_TIME_relative_hton (n->last_latency);
       cnm.peer = n->peer;
       send_to_all_clients (&cnm.header, GNUNET_YES, GNUNET_CORE_OPTION_SEND_CONNECT);
       process_encrypted_neighbour_queue (n);
@@ -2661,7 +2659,8 @@ send_p2p_message_to_client (struct Neighbour *sender,
   ntm = (struct NotifyTrafficMessage *) buf;
   ntm->header.size = htons (msize + sizeof (struct NotifyTrafficMessage));
   ntm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_INBOUND);
-  ntm->reserved = htonl (0);
+  ntm->distance = htonl (sender->last_distance);
+  ntm->latency = GNUNET_TIME_relative_hton (sender->last_latency);
   ntm->peer = sender->peer;
   memcpy (&ntm[1], m, msize);
   send_to_client (client, &ntm->header, GNUNET_YES);
@@ -3128,7 +3127,8 @@ handle_transport_notify_connect (void *cls,
   schedule_quota_update (n);
   cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
   cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_PRE_CONNECT);
-  cnm.reserved = htonl (0);
+  cnm.distance = htonl (n->last_distance);
+  cnm.latency = GNUNET_TIME_relative_hton (n->last_latency);
   cnm.peer = *peer;
   send_to_all_clients (&cnm.header, GNUNET_YES, GNUNET_CORE_OPTION_SEND_PRE_CONNECT);
   send_key (n);
@@ -3191,7 +3191,7 @@ static void
 handle_transport_notify_disconnect (void *cls,
                                     const struct GNUNET_PeerIdentity *peer)
 {
-  struct ConnectNotifyMessage cnm;
+  struct DisconnectNotifyMessage cnm;
   struct Neighbour *n;
   struct Neighbour *p;
 
@@ -3218,9 +3218,8 @@ handle_transport_notify_disconnect (void *cls,
     p->next = n->next;
   GNUNET_assert (neighbour_count > 0);
   neighbour_count--;
-  cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
+  cnm.header.size = htons (sizeof (struct DisconnectNotifyMessage));
   cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT);
-  cnm.reserved = htonl (0);
   cnm.peer = *peer;
   send_to_all_clients (&cnm.header, GNUNET_YES, GNUNET_CORE_OPTION_SEND_DISCONNECT);
   free_neighbour (n);
