@@ -46,8 +46,8 @@ int
 GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
 			      struct GNUNET_SCHEDULER_Handle *s,
 			      struct GNUNET_STATISTICS_Handle *st,
-			      GNUNET_CORE_ClientEventHandler *ch,
-			      GNUNET_CORE_ClientEventHandler *dh);
+			      GNUNET_CORE_ConnectEventHandler *ch,
+			      GNUNET_CORE_DisconnectEventHandler *dh);
 
 
 /**

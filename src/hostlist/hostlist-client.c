@@ -638,11 +638,15 @@ schedule_hostlist_task ()
  *
  * @param cls closure
  * @param peer peer identity this notification is about
+ * @param latency reported latency of the connection with 'other'
+ * @param distance reported distance (DV) to 'other' 
  */
 static void
 connect_handler (void *cls,
 		 const struct
-		 GNUNET_PeerIdentity * peer)
+		 GNUNET_PeerIdentity * peer,
+		 struct GNUNET_TIME_Relative latency,
+		 uint32_t distance)
 {
   connection_count++;
 }
@@ -706,8 +710,8 @@ int
 GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
 			      struct GNUNET_SCHEDULER_Handle *s,
 			      struct GNUNET_STATISTICS_Handle *st,
-			      GNUNET_CORE_ClientEventHandler *ch,
-			      GNUNET_CORE_ClientEventHandler *dh)
+			      GNUNET_CORE_ConnectEventHandler *ch,
+			      GNUNET_CORE_DisconnectEventHandler *dh)
 {
   if (0 != curl_global_init (CURL_GLOBAL_WIN32))
     {

@@ -158,8 +158,8 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle * cfg)
 {
-  GNUNET_CORE_ClientEventHandler ch = NULL;
-  GNUNET_CORE_ClientEventHandler dh = NULL;
+  GNUNET_CORE_ConnectEventHandler ch = NULL;
+  GNUNET_CORE_DisconnectEventHandler dh = NULL;
   struct GNUNET_CORE_MessageHandler handlers[] = 
     {
       { NULL, 0, 0 }
