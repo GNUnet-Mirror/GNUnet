@@ -64,6 +64,11 @@ struct ConnectInfoMessage
    */
   struct GNUNET_TIME_RelativeNBO latency;
 
+  /*
+   * Transport distance metric (i.e. hops for DV)
+   */
+  uint16_t distance;
+
   /**
    * Identity of the new neighbour.
    */
@@ -174,6 +179,11 @@ struct InboundMessage
    * Which peer sent the message?
    */
   struct GNUNET_PeerIdentity peer;
+
+  /*
+   * Distance metric.
+   */
+  uint16_t distance;
 
 };
 

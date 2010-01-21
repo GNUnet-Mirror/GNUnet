@@ -138,7 +138,7 @@ struct HelloWaitList
   /**
    * Callback to call once we got our HELLO.
    */
-  GNUNET_TRANSPORT_ReceiveCallback rec;
+  GNUNET_TRANSPORT_HelloUpdateCallback rec;
 
   /**
    * Closure for rec.
@@ -818,7 +818,7 @@ hello_wait_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   else
     prev->next = hwl->next;
   if (hwl->rec != NULL)
-    hwl->rec (hwl->rec_cls, GNUNET_TIME_UNIT_ZERO, NULL, NULL);
+    hwl->rec (hwl->rec_cls, NULL);
   GNUNET_free (hwl);
 }
 
@@ -836,8 +836,7 @@ hello_wait_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 void
 GNUNET_TRANSPORT_get_hello (struct GNUNET_TRANSPORT_Handle *handle,
-                            struct GNUNET_TIME_Relative timeout,
-                            GNUNET_TRANSPORT_ReceiveCallback rec,
+                            GNUNET_TRANSPORT_HelloUpdateCallback rec,
                             void *rec_cls)
 {
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pk;
@@ -852,10 +851,14 @@ GNUNET_TRANSPORT_get_hello (struct GNUNET_TRANSPORT_Handle *handle,
       hwl->handle = handle;
       hwl->rec = rec;
       hwl->rec_cls = rec_cls;
-      hwl->timeout = GNUNET_TIME_relative_to_absolute (timeout);
+      /* hwl->timeout = GNUNET_TIME_relative_to_absolute (timeout);
+       * Timeout not needed, because we should notify on change.
+       * FIXME: set up scheduler to notify on modification?
+
       hwl->task = GNUNET_SCHEDULER_add_delayed (handle->sched,
                                                 timeout,
                                                 &hello_wait_timeout, hwl);
+      */
       return;
     }
   GNUNET_assert (GNUNET_OK == GNUNET_HELLO_get_key (handle->my_hello, &pk));
@@ -863,9 +866,7 @@ GNUNET_TRANSPORT_get_hello (struct GNUNET_TRANSPORT_Handle *handle,
                       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                       &me.hashPubKey);
 
-  rec (rec_cls,
-       GNUNET_TIME_UNIT_ZERO,
-       &me, (const struct GNUNET_MessageHeader *) handle->my_hello);
+  rec (rec_cls, (const struct GNUNET_MessageHeader *) handle->my_hello);
 }
 
 
@@ -1342,6 +1343,7 @@ static void
 add_neighbour (struct GNUNET_TRANSPORT_Handle *h,
                uint32_t quota_out,
                struct GNUNET_TIME_Relative latency,
+               uint16_t distance,
                const struct GNUNET_PeerIdentity *pid)
 {
   struct NeighbourList *n;
@@ -1367,7 +1369,7 @@ add_neighbour (struct GNUNET_TRANSPORT_Handle *h,
   n->transmit_ok = GNUNET_YES;
   h->neighbours = n;
   if (h->nc_cb != NULL)
-    h->nc_cb (h->cls, &n->id, latency);
+    h->nc_cb (h->cls, &n->id, latency, distance);
   prev = NULL;
   pos = h->connect_wait_head;
   while (pos != NULL)
@@ -1512,7 +1514,7 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
                   ("Disconnect while trying to obtain `%s' from transport service.\n"),
                   "HELLO");
       if (hwl->rec != NULL)
-        hwl->rec (hwl->rec_cls, GNUNET_TIME_UNIT_ZERO, NULL, NULL);
+        hwl->rec (hwl->rec_cls, NULL);
       GNUNET_free (hwl);
     }
   if (handle->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
@@ -1631,7 +1633,6 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
           h->hwl_head = hwl->next;
           GNUNET_SCHEDULER_cancel (h->sched, hwl->task);
           GNUNET_TRANSPORT_get_hello (h,
-                                      GNUNET_TIME_UNIT_ZERO,
                                       hwl->rec, hwl->rec_cls);
           GNUNET_free (hwl);
         }
@@ -1650,7 +1651,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
 #endif
       add_neighbour (h,
                      ntohl (cim->quota_out),
-                     GNUNET_TIME_relative_ntoh (cim->latency), &cim->id);
+                     GNUNET_TIME_relative_ntoh (cim->latency), ntohs(cim->distance), &cim->id);
       break;
     case GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT:
       if (size != sizeof (struct DisconnectInfoMessage))
@@ -1748,8 +1749,8 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
                       ntohs (imm->type), GNUNET_i2s (&im->peer));
 #endif
           if (h->rec != NULL)
-            h->rec (h->cls,
-                    GNUNET_TIME_relative_ntoh (im->latency), &im->peer, imm);
+            h->rec (h->cls, &im->peer, imm,
+                    GNUNET_TIME_relative_ntoh (im->latency), ntohs(im->distance));
           break;
         }
       break;

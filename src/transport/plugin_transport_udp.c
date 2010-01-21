@@ -330,9 +330,8 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                        ("msg reports message type of %d\n"),
                        ntohs (hdr->type));
 #endif
-
-      plugin->env->receive (plugin->env->cls, UDP_DIRECT_DISTANCE,(char *)&addr, fromlen, sender,
-                              &msg->header);
+      plugin->env->receive (plugin->env->cls,
+          &msg->header, sender, UDP_DIRECT_DISTANCE, (char *)&addr, fromlen);
 
       GNUNET_free (sender);
       GNUNET_free (buf);
