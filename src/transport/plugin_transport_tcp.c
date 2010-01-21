@@ -516,8 +516,7 @@ disconnect_session (struct Session *session)
          know about this one, so we need to 
          notify transport service about disconnect */
       session->plugin->env->receive (session->plugin->env->cls,
-                                     NULL,
-                                     &session->target,
+                                     &session->target, NULL,
                                      1,
 				     session->connect_addr,
 				     session->connect_alen);
@@ -1093,7 +1092,7 @@ handle_tcp_data (void *cls,
 		   (unsigned int) msize,
                    (unsigned int) ntohs (msg->type));
 #endif
-  plugin->env->receive (plugin->env->cls, message, &session->target, 1,
+  plugin->env->receive (plugin->env->cls, &session->target, message, 1,
 			session->connect_addr,
 			session->connect_alen);
   /* update bandwidth used */

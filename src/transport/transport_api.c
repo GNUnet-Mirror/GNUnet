@@ -778,6 +778,7 @@ GNUNET_TRANSPORT_set_quota (struct GNUNET_TRANSPORT_Handle *handle,
  * A "get_hello" request has timed out.  Signal the client
  * and clean up.
  */
+#if 0
 static void
 hello_wait_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -821,7 +822,7 @@ hello_wait_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     hwl->rec (hwl->rec_cls, NULL);
   GNUNET_free (hwl);
 }
-
+#endif
 
 /**
  * Obtain the HELLO message for this peer.

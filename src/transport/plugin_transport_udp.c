@@ -331,7 +331,7 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                        ntohs (hdr->type));
 #endif
       plugin->env->receive (plugin->env->cls,
-          &msg->header, sender, UDP_DIRECT_DISTANCE, (char *)&addr, fromlen);
+          sender, &msg->header, UDP_DIRECT_DISTANCE, (char *)&addr, fromlen);
 
       GNUNET_free (sender);
       GNUNET_free (buf);
