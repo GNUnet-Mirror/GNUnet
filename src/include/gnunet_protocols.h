@@ -197,6 +197,15 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_NOTIFY 32
 
+/**
+ * Transport PING message
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_PING 33
+
+/**
+ * Transport PONG message
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_PONG 34
 
 /**
  * Request addition of a HELLO
