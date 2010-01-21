@@ -378,6 +378,7 @@ main_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   struct GNUNET_CORE_Handle *h = cls;
   unsigned int hpos;
   const struct ConnectNotifyMessage *cnm;
+  const struct DisconnectNotifyMessage *dnm;
   const struct NotifyTrafficMessage *ntm;
   const struct ConfigurationInfoMessage *cim;
   const struct GNUNET_MessageHeader *em;
@@ -441,14 +442,14 @@ main_handler (void *cls, const struct GNUNET_MessageHeader *msg)
           GNUNET_break (0);
           break;
         }
-      if (msize != sizeof (struct ConnectNotifyMessage))
+      if (msize != sizeof (struct DisconnectNotifyMessage))
         {
           GNUNET_break (0);
           break;
         }
-      cnm = (const struct ConnectNotifyMessage *) msg;
+      dnm = (const struct DisconnectNotifyMessage *) msg;
       h->disconnects (h->cls,
-		      &cnm->peer);
+		      &dnm->peer);
       break;
     case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_INBOUND:
       if (msize <
