@@ -254,7 +254,7 @@ void *GNUNET_CONNECTION_receive_cancel (struct
  * @return number of bytes written to buf
  */
 typedef size_t (*GNUNET_CONNECTION_TransmitReadyNotify) (void *cls,
-                                                      size_t size, void *buf);
+							 size_t size, void *buf);
 
 
 /**
