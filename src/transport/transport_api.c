@@ -775,56 +775,6 @@ GNUNET_TRANSPORT_set_quota (struct GNUNET_TRANSPORT_Handle *handle,
 
 
 /**
- * A "get_hello" request has timed out.  Signal the client
- * and clean up.
- */
-#if 0
-static void
-hello_wait_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct HelloWaitList *hwl = cls;
-  struct HelloWaitList *pos;
-  struct HelloWaitList *prev;
-
-  hwl->task = GNUNET_SCHEDULER_NO_TASK;
-  if (GNUNET_TIME_absolute_get_remaining (hwl->timeout).value > 0)
-    {
-#if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  _
-                  ("First attempt to obtain `%s' from transport service failed, will try again for %llums.\n"),
-                  "HELLO",
-                  GNUNET_TIME_absolute_get_remaining (hwl->timeout).value);
-#endif
-      hwl->task = GNUNET_SCHEDULER_add_delayed (hwl->handle->sched,
-                                                GNUNET_TIME_absolute_get_remaining
-                                                (hwl->timeout),
-                                                &hello_wait_timeout, hwl);
-      return;
-    }
-  /* signal timeout */
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              _("Timeout trying to obtain `%s' from transport service.\n"),
-              "HELLO");
-  prev = NULL;
-  pos = hwl->handle->hwl_head;
-  while (pos != hwl)
-    {
-      GNUNET_assert (pos != NULL);
-      prev = pos;
-      pos = pos->next;
-    }
-  if (prev == NULL)
-    hwl->handle->hwl_head = hwl->next;
-  else
-    prev->next = hwl->next;
-  if (hwl->rec != NULL)
-    hwl->rec (hwl->rec_cls, NULL);
-  GNUNET_free (hwl);
-}
-#endif
-
-/**
  * Obtain the HELLO message for this peer.
  *
  * @param handle connection to transport service
@@ -840,34 +790,54 @@ GNUNET_TRANSPORT_get_hello (struct GNUNET_TRANSPORT_Handle *handle,
                             GNUNET_TRANSPORT_HelloUpdateCallback rec,
                             void *rec_cls)
 {
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pk;
-  struct GNUNET_PeerIdentity me;
   struct HelloWaitList *hwl;
 
+  hwl = GNUNET_malloc (sizeof (struct HelloWaitList));
+  hwl->next = handle->hwl_head;
+  handle->hwl_head = hwl;
+  hwl->handle = handle;
+  hwl->rec = rec;
+  hwl->rec_cls = rec_cls;
   if (handle->my_hello == NULL)
-    {
-      hwl = GNUNET_malloc (sizeof (struct HelloWaitList));
-      hwl->next = handle->hwl_head;
-      handle->hwl_head = hwl;
-      hwl->handle = handle;
-      hwl->rec = rec;
-      hwl->rec_cls = rec_cls;
-      /* hwl->timeout = GNUNET_TIME_relative_to_absolute (timeout);
-       * Timeout not needed, because we should notify on change.
-       * FIXME: set up scheduler to notify on modification?
-
-      hwl->task = GNUNET_SCHEDULER_add_delayed (handle->sched,
-                                                timeout,
-                                                &hello_wait_timeout, hwl);
-      */
-      return;
-    }
-  GNUNET_assert (GNUNET_OK == GNUNET_HELLO_get_key (handle->my_hello, &pk));
-  GNUNET_CRYPTO_hash (&pk,
-                      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                      &me.hashPubKey);
-
+    return;    
   rec (rec_cls, (const struct GNUNET_MessageHeader *) handle->my_hello);
+}
+
+
+
+/**
+ * Stop receiving updates about changes to our HELLO message.
+ *
+ * @param handle connection to transport service
+ * @param rec function previously registered to be called with the HELLOs
+ * @param rec_cls closure for rec
+ */
+void
+GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_Handle *handle,
+				   GNUNET_TRANSPORT_HelloUpdateCallback rec,
+				   void *rec_cls)
+{
+  struct HelloWaitList *pos;
+  struct HelloWaitList *prev;
+
+  prev = NULL;
+  pos = handle->hwl_head;
+  while (pos != NULL)
+    {
+      if ( (pos->rec == rec) &&
+	   (pos->rec_cls == rec_cls) )
+	break;
+      prev = pos;
+      pos = pos->next;
+    }
+  GNUNET_break (pos != NULL);
+  if (pos == NULL)
+    return;
+  if (prev == NULL)
+    handle->hwl_head = pos->next;
+  else
+    prev->next = pos->next;
+  GNUNET_free (pos);
 }
 
 
@@ -1512,7 +1482,7 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
       GNUNET_SCHEDULER_cancel (handle->sched, hwl->task);
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _
-                  ("Disconnect while trying to obtain `%s' from transport service.\n"),
+                  ("Disconnect while notification for `%s' still registered.\n"),
                   "HELLO");
       if (hwl->rec != NULL)
         hwl->rec (hwl->rec_cls, NULL);
@@ -1562,6 +1532,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
   const struct GNUNET_MessageHeader *imm;
   const struct SendOkMessage *okm;
   struct HelloWaitList *hwl;
+  struct HelloWaitList *next_hwl;
   struct NeighbourList *n;
   struct GNUNET_PeerIdentity me;
   struct GNUNET_TRANSPORT_TransmitHandle *th;
@@ -1629,13 +1600,13 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
         }
       h->my_hello = GNUNET_malloc (size);
       memcpy (h->my_hello, msg, size);
-      while (NULL != (hwl = h->hwl_head))
+      hwl = h->hwl_head;
+      while (NULL != hwl)
         {
-          h->hwl_head = hwl->next;
-          GNUNET_SCHEDULER_cancel (h->sched, hwl->task);
-          GNUNET_TRANSPORT_get_hello (h,
-                                      hwl->rec, hwl->rec_cls);
-          GNUNET_free (hwl);
+	  next_hwl = hwl->next;
+          hwl->rec (hwl->rec_cls,
+		    (const struct GNUNET_MessageHeader *) h->my_hello);
+	  hwl = next_hwl;
         }
       break;
     case GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT:
