@@ -69,10 +69,12 @@ GNUNET_TRANSPORT_blacklist_check (const struct GNUNET_PeerIdentity *id);
 /**
  * Initialize the blacklisting subsystem.
  *
+ * @param server server we handle requests from (transport service server)
  * @param s scheduler to use
  */
 void 
-GNUNET_TRANSPORT_blacklist_init (struct GNUNET_SCHEDULER_Handle *s);
+GNUNET_TRANSPORT_blacklist_init (struct GNUNET_SERVER_Handle *server,
+				 struct GNUNET_SCHEDULER_Handle *s);
 
 
 #endif
