@@ -470,7 +470,6 @@ send_to_each_host (const struct GNUNET_PeerIdentity *only,
 {
   struct HostEntry *pos;
   struct InfoMessage *im;
-  const struct GNUNET_MessageHeader *end;
   uint16_t hs;
   char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE];
   struct GNUNET_SERVER_TransmitContext *tc;
@@ -487,6 +486,8 @@ send_to_each_host (const struct GNUNET_PeerIdentity *only,
           change_host_trust (&pos->identity, trust_change);
           hs = 0;
           im = (struct InfoMessage *) buf;
+	  im->header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_INFO);
+	  im->header.size = htons (sizeof (struct InfoMessage) + hs);
           if (pos->hello != NULL)
             {
               hs = GNUNET_HELLO_size (pos->hello);
@@ -497,19 +498,13 @@ send_to_each_host (const struct GNUNET_PeerIdentity *only,
             }
           im->trust = htonl (pos->trust);
           im->peer = pos->identity;
-          end = &im->header;
-          GNUNET_SERVER_transmit_context_append (tc,
-                                                 &end[1],
-                                                 hs +
-                                                 sizeof (struct InfoMessage) -
-                                                 sizeof (struct
-                                                         GNUNET_MessageHeader),
-                                                 GNUNET_MESSAGE_TYPE_PEERINFO_INFO);
+          GNUNET_SERVER_transmit_context_append_message (tc,
+							 &im->header);
         }
       pos = pos->next;
     }
-  GNUNET_SERVER_transmit_context_append (tc, NULL, 0,
-                                         GNUNET_MESSAGE_TYPE_PEERINFO_INFO_END);
+  GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
+					      GNUNET_MESSAGE_TYPE_PEERINFO_INFO_END);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 

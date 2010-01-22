@@ -961,9 +961,9 @@ signal_index_ok (struct IndexInfo *ii)
 		  ii->filename,
 		  (const char*) GNUNET_CONTAINER_multihashmap_get (ifm,
 								   &ii->file_id));
-      GNUNET_SERVER_transmit_context_append (ii->tc,
-					     NULL, 0,
-					     GNUNET_MESSAGE_TYPE_FS_INDEX_START_OK);
+      GNUNET_SERVER_transmit_context_append_data (ii->tc,
+						  NULL, 0,
+						  GNUNET_MESSAGE_TYPE_FS_INDEX_START_OK);
       GNUNET_SERVER_transmit_context_run (ii->tc,
 					  GNUNET_TIME_UNIT_MINUTES);
       GNUNET_free (ii);
@@ -972,9 +972,9 @@ signal_index_ok (struct IndexInfo *ii)
   ii->next = indexed_files;
   indexed_files = ii;
   write_index_list ();
-  GNUNET_SERVER_transmit_context_append (ii->tc,
-					 NULL, 0,
-					 GNUNET_MESSAGE_TYPE_FS_INDEX_START_OK);
+  GNUNET_SERVER_transmit_context_append_data (ii->tc,
+					      NULL, 0,
+					      GNUNET_MESSAGE_TYPE_FS_INDEX_START_OK);
   GNUNET_SERVER_transmit_context_run (ii->tc,
 				      GNUNET_TIME_UNIT_MINUTES);
   ii->tc = NULL;
@@ -1009,9 +1009,9 @@ hash_for_index_val (void *cls,
 		  "Wanted `%s'\n",
 		  GNUNET_h2s (&ii->file_id));
 #endif
-      GNUNET_SERVER_transmit_context_append (ii->tc,
-					     NULL, 0,
-					     GNUNET_MESSAGE_TYPE_FS_INDEX_START_FAILED);
+      GNUNET_SERVER_transmit_context_append_data (ii->tc,
+						  NULL, 0,
+						  GNUNET_MESSAGE_TYPE_FS_INDEX_START_FAILED);
       GNUNET_SERVER_transmit_context_run (ii->tc,
 					  GNUNET_TIME_UNIT_MINUTES);
       GNUNET_free (ii);
@@ -1110,17 +1110,13 @@ handle_index_list_get (void *cls,
   char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE];
   size_t slen;
   const char *fn;
-  struct GNUNET_MessageHeader *msg;
   struct IndexInfo *pos;
 
   tc = GNUNET_SERVER_transmit_context_create (client);
   iim = (struct IndexInfoMessage*) buf;
-  msg = &iim->header;
   pos = indexed_files;
   while (NULL != pos)
     {
-      iim->reserved = 0;
-      iim->file_id = pos->file_id;
       fn = pos->filename;
       slen = strlen (fn) + 1;
       if (slen + sizeof (struct IndexInfoMessage) > 
@@ -1129,18 +1125,18 @@ handle_index_list_get (void *cls,
 	  GNUNET_break (0);
 	  break;
 	}
+      iim->header.type = htons (GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_ENTRY);
+      iim->header.size = htons (slen + sizeof (struct IndexInfoMessage));
+      iim->reserved = 0;
+      iim->file_id = pos->file_id;
       memcpy (&iim[1], fn, slen);
-      GNUNET_SERVER_transmit_context_append
-	(tc,
-	 &msg[1],
-	 sizeof (struct IndexInfoMessage) 
-	 - sizeof (struct GNUNET_MessageHeader) + slen,
-	 GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_ENTRY);
+      GNUNET_SERVER_transmit_context_append_message (tc,
+						     &iim->header);
       pos = pos->next;
     }
-  GNUNET_SERVER_transmit_context_append (tc,
-					 NULL, 0,
-					 GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_END);
+  GNUNET_SERVER_transmit_context_append_data (tc,
+					      NULL, 0,
+					      GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_END);
   GNUNET_SERVER_transmit_context_run (tc,
 				      GNUNET_TIME_UNIT_MINUTES);
 }
@@ -1198,9 +1194,9 @@ handle_unindex (void *cls,
   if (GNUNET_YES == found)    
     write_index_list ();
   tc = GNUNET_SERVER_transmit_context_create (client);
-  GNUNET_SERVER_transmit_context_append (tc,
-					 NULL, 0,
-					 GNUNET_MESSAGE_TYPE_FS_UNINDEX_OK);
+  GNUNET_SERVER_transmit_context_append_data (tc,
+					      NULL, 0,
+					      GNUNET_MESSAGE_TYPE_FS_UNINDEX_OK);
   GNUNET_SERVER_transmit_context_run (tc,
 				      GNUNET_TIME_UNIT_MINUTES);
 }

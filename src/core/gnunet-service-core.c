@@ -539,31 +539,6 @@ struct Neighbour
 
 
 /**
- * Events are messages for clients.  The struct
- * itself is followed by the actual message.
- */
-struct Event
-{
-  /**
-   * This is a linked list.
-   */
-  struct Event *next;
-
-  /**
-   * Size of the message.
-   */
-  size_t size;
-
-  /**
-   * Could this event be dropped if this queue
-   * is getting too large? (NOT YET USED!)
-   */
-  int can_drop;
-
-};
-
-
-/**
  * Data structure for each client connected to the core service.
  */
 struct Client
@@ -577,23 +552,6 @@ struct Client
    * Handle for the client with the server API.
    */
   struct GNUNET_SERVER_Client *client_handle;
-
-  /**
-   * Linked list of messages we still need to deliver to
-   * this client.
-   */
-  struct Event *event_head;
-
-  /**
-   * Tail of the linked list of events.
-   */
-  struct Event *event_tail;
-
-  /**
-   * Current transmit handle, NULL if no transmission request
-   * is pending.
-   */
-  struct GNUNET_CONNECTION_TransmitHandle *th;
 
   /**
    * Array of the types of messages this peer cares
@@ -656,6 +614,11 @@ static struct GNUNET_TRANSPORT_Handle *transport;
  * Linked list of our clients.
  */
 static struct Client *clients;
+
+/**
+ * Context for notifications we need to send to our clients.
+ */
+static struct GNUNET_SERVER_NotificationContext *notifier;
 
 /**
  * We keep neighbours in a linked list (for now).
@@ -762,110 +725,6 @@ find_neighbour (const struct GNUNET_PeerIdentity *peer)
 
 
 /**
- * Find the entry for the given client.
- *
- * @param client handle for the client
- * @return NULL if we are not connected, otherwise the
- *         client's struct.
- */
-static struct Client *
-find_client (const struct GNUNET_SERVER_Client *client)
-{
-  struct Client *ret;
-
-  ret = clients;
-  while ((ret != NULL) && (client != ret->client_handle))
-    ret = ret->next;
-  return ret;
-}
-
-
-/**
- * If necessary, initiate a request with the server to
- * transmit messages from the queue of the given client.
- * @param client who to transfer messages to
- */
-static void request_transmit (struct Client *client);
-
-
-/**
- * Client is ready to receive data, provide it.
- *
- * @param cls closure
- * @param size number of bytes available in buf
- * @param buf where the callee should write the message
- * @return number of bytes written to buf
- */
-static size_t
-do_client_transmit (void *cls, size_t size, void *buf)
-{
-  struct Client *client = cls;
-  struct Event *e;
-  char *tgt;
-  size_t ret;
-
-  client->th = NULL;
-#if DEBUG_CORE_CLIENT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Client ready to receive %u bytes.\n", size);
-#endif
-  if (buf == NULL)
-    {
-#if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Failed to transmit data to client (disconnect)?\n");
-#endif
-      return 0;                 /* we'll surely get a disconnect soon... */
-    }
-  tgt = buf;
-  ret = 0;
-  while ((NULL != (e = client->event_head)) && (e->size <= size))
-    {
-      memcpy (&tgt[ret], &e[1], e->size);
-      size -= e->size;
-      ret += e->size;
-      client->event_head = e->next;
-      GNUNET_free (e);
-    }
-  GNUNET_assert (ret > 0);
-  if (client->event_head == NULL)
-    client->event_tail = NULL;
-#if DEBUG_CORE_CLIENT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmitting %u bytes to client\n", ret);
-#endif
-  request_transmit (client);
-  return ret;
-}
-
-
-/**
- * If necessary, initiate a request with the server to
- * transmit messages from the queue of the given client.
- * @param client who to transfer messages to
- */
-static void
-request_transmit (struct Client *client)
-{
-
-  if (NULL != client->th)
-    return;                     /* already pending */
-  if (NULL == client->event_head)
-    return;                     /* no more events pending */
-#if DEBUG_CORE_CLIENT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Asking server to transmit %u bytes to client\n",
-              client->event_head->size);
-#endif
-  client->th
-    = GNUNET_SERVER_notify_transmit_ready (client->client_handle,
-                                           client->event_head->size,
-                                           GNUNET_TIME_UNIT_FOREVER_REL,
-                                           &do_client_transmit, client);
-}
-
-
-/**
  * Send a message to one of our clients.
  *
  * @param client target for the message
@@ -875,51 +734,28 @@ request_transmit (struct Client *client)
  */
 static void
 send_to_client (struct Client *client,
-                const struct GNUNET_MessageHeader *msg, int can_drop)
+                const struct GNUNET_MessageHeader *msg, 
+		int can_drop)
 {
-  struct Event *e;
-  unsigned int queue_size;
-  uint16_t msize;
-
 #if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Preparing to send message of type %u to client.\n",
               ntohs (msg->type));
-#endif
-  queue_size = 0;
-  e = client->event_head;
-  while (e != NULL)
-    {
-      queue_size++;
-      e = e->next;
-    }
-  if ( (queue_size >= MAX_CLIENT_QUEUE_SIZE) &&
-       (can_drop == GNUNET_YES) )
-    {
-#if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  "Too many messages in queue for the client, dropping the new message.\n");
-#endif
-      return;
-    }
-
-  msize = ntohs (msg->size);
-  e = GNUNET_malloc (sizeof (struct Event) + msize);
-  /* append */
-  if (client->event_tail != NULL)
-    client->event_tail->next = e;
-  else
-    client->event_head = e;
-  client->event_tail = e;
-  e->can_drop = can_drop;
-  e->size = msize;
-  memcpy (&e[1], msg, msize);
-  request_transmit (client);
+#endif  
+  GNUNET_SERVER_notification_context_unicast (notifier,
+					      client->client_handle,
+					      msg,
+					      can_drop);
 }
 
 
 /**
- * Send a message to all of our current clients.
+ * Send a message to all of our current clients that have
+ * the right options set.
+ * 
+ * @param msg message to multicast
+ * @param can_drop can this message be discarded if the queue is too long
+ * @param options mask to use 
  */
 static void
 send_to_all_clients (const struct GNUNET_MessageHeader *msg, 
@@ -978,6 +814,7 @@ handle_client_init (void *cls,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
+  GNUNET_SERVER_notification_context_add (notifier, client);
   im = (const struct InitMessage *) message;
   types = (const uint16_t *) &im[1];
   msize -= sizeof (struct InitMessage);
@@ -1017,7 +854,6 @@ handle_client_init (void *cls,
       send_to_client (c, &cnm.header, GNUNET_NO);
       n = n->next;
     }
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -1032,7 +868,6 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 {
   struct Client *pos;
   struct Client *prev;
-  struct Event *e;
 
   if (client == NULL)
     return;
@@ -1050,13 +885,6 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
             clients = pos->next;
           else
             prev->next = pos->next;
-          if (pos->th != NULL)
-            GNUNET_CONNECTION_notify_transmit_ready_cancel (pos->th);
-	  while (NULL != (e = pos->event_head))
-	    {
-	      pos->event_head = e->next;
-	      GNUNET_free (e);
-	    }
           GNUNET_free (pos);
           return;
         }
@@ -1072,15 +900,15 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
  */
 static void
 handle_client_request_info (void *cls,
-                                 struct GNUNET_SERVER_Client *client,
-                                 const struct GNUNET_MessageHeader *message)
+			    struct GNUNET_SERVER_Client *client,
+			    const struct GNUNET_MessageHeader *message)
 {
   const struct RequestInfoMessage *rcm;
   struct Neighbour *n;
   struct ConfigurationInfoMessage cim;
-  struct Client *c;
   int reserv;
   unsigned long long old_preference;
+  struct GNUNET_SERVER_TransmitContext *tc;
 
 #if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1128,17 +956,15 @@ handle_client_request_info (void *cls,
   cim.header.size = htons (sizeof (struct ConfigurationInfoMessage));
   cim.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_CONFIGURATION_INFO);
   cim.peer = rcm->peer;
-  c = find_client (client);
-  if (c == NULL)
-    {
-      GNUNET_break (0);
-      return;
-    }
+
 #if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending `%s' message to client.\n", "CONFIGURATION_INFO");
 #endif
-  send_to_client (c, &cim.header, GNUNET_NO);
+  tc = GNUNET_SERVER_transmit_context_create (client);
+  GNUNET_SERVER_transmit_context_append_message (tc, &cim.header);
+  GNUNET_SERVER_transmit_context_run (tc,
+				      GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 
@@ -3252,6 +3078,8 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       neighbour_count--;
       free_neighbour (n);
     }
+  GNUNET_SERVER_notification_context_destroy (notifier);
+  notifier = NULL;
   while (NULL != (c = clients))
     handle_client_disconnect (NULL, c->client_handle);
   if (my_private_key != NULL)
@@ -3281,7 +3109,7 @@ run (void *cls,
   char *keyfile;
 
   sched = s;
-  cfg = c;
+  cfg = c;  
   /* parse configuration */
   if (
        (GNUNET_OK !=
@@ -3330,6 +3158,7 @@ run (void *cls,
                       sizeof (my_public_key), &my_identity.hashPubKey);
   /* setup notification */
   server = serv;
+  notifier = GNUNET_SERVER_notification_context_create (server, 0);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
   /* setup transport connection */
   transport = GNUNET_TRANSPORT_connect (sched,

@@ -218,16 +218,15 @@ transmit (struct GNUNET_SERVER_TransmitContext *tc,
           const struct StatsEntry *e)
 {
   struct GNUNET_STATISTICS_ReplyMessage *m;
-  struct GNUNET_MessageHeader *h;
   size_t size;
-  uint16_t msize;
 
   size =
     sizeof (struct GNUNET_STATISTICS_ReplyMessage) + strlen (e->service) + 1 +
     strlen (e->name) + 1;
   GNUNET_assert (size < GNUNET_SERVER_MAX_MESSAGE_SIZE);
-  msize = size - sizeof (struct GNUNET_MessageHeader);
   m = GNUNET_malloc (size);
+  m->header.type = htons (GNUNET_MESSAGE_TYPE_STATISTICS_VALUE);
+  m->header.size = htons (size);
   m->uid = htonl (e->uid);
   if (e->persistent)
     m->uid |= htonl (GNUNET_STATISTICS_PERSIST_BIT);
@@ -241,11 +240,7 @@ transmit (struct GNUNET_SERVER_TransmitContext *tc,
               "Transmitting value for `%s:%s': %llu\n",
               e->service, e->name, e->value);
 #endif
-  h = &m->header;
-  GNUNET_SERVER_transmit_context_append (tc,
-                                         &h[1],
-                                         msize,
-                                         GNUNET_MESSAGE_TYPE_STATISTICS_VALUE);
+  GNUNET_SERVER_transmit_context_append_message (tc, &m->header);
   GNUNET_free (m);
 }
 
@@ -303,8 +298,8 @@ handle_get (void *cls,
         transmit (tc, pos);
       pos = pos->next;
     }
-  GNUNET_SERVER_transmit_context_append (tc, NULL, 0,
-                                         GNUNET_MESSAGE_TYPE_STATISTICS_END);
+  GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
+					      GNUNET_MESSAGE_TYPE_STATISTICS_END);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 

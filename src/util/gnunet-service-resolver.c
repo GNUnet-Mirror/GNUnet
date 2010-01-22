@@ -227,12 +227,12 @@ get_ip_as_string (struct GNUNET_SERVER_Client *client,
     }
   tc = GNUNET_SERVER_transmit_context_create (client);
   if (cache->addr != NULL)
-    GNUNET_SERVER_transmit_context_append (tc,
-                                           cache->addr,
-                                           strlen (cache->addr) + 1,
-                                           GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
-  GNUNET_SERVER_transmit_context_append (tc, NULL, 0,
-                                         GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+    GNUNET_SERVER_transmit_context_append_data (tc,
+						cache->addr,
+						strlen (cache->addr) + 1,
+						GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+  GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
+					      GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
@@ -280,10 +280,10 @@ getaddrinfo_resolve (struct GNUNET_SERVER_TransmitContext *tc,
   pos = result;
   while (pos != NULL)
     {
-      GNUNET_SERVER_transmit_context_append (tc,
-                                             result->ai_addr,
-                                             result->ai_addrlen,
-                                             GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+      GNUNET_SERVER_transmit_context_append_data (tc,
+						  result->ai_addr,
+						  result->ai_addrlen,
+						  GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
       pos = pos->ai_next;
     }
   freeaddrinfo (result);
@@ -327,10 +327,10 @@ gethostbyname2_resolve (struct GNUNET_SERVER_TransmitContext *tc,
       memset (&a4, 0, sizeof (a4));
       a4.sin_family = AF_INET;
       memcpy (&a4.sin_addr, hp->h_addr_list[0], hp->h_length);
-      GNUNET_SERVER_transmit_context_append (tc,
-                                             &a4,
-                                             sizeof (a4),
-                                             GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+      GNUNET_SERVER_transmit_context_append_data (tc,
+						  &a4,
+						  sizeof (a4),
+						  GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
     }
   else
     {
@@ -338,10 +338,10 @@ gethostbyname2_resolve (struct GNUNET_SERVER_TransmitContext *tc,
       memset (&a6, 0, sizeof (a6));
       a6.sin6_family = AF_INET6;
       memcpy (&a6.sin6_addr, hp->h_addr_list[0], hp->h_length);
-      GNUNET_SERVER_transmit_context_append (tc,
-                                             &a6,
-                                             sizeof (a6),
-                                             GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+      GNUNET_SERVER_transmit_context_append_data (tc,
+						  &a6,
+						  sizeof (a6),
+						  GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
     }
   return GNUNET_OK;
 }
@@ -372,10 +372,10 @@ gethostbyname_resolve (struct GNUNET_SERVER_TransmitContext *tc,
   memset (&addr, 0, sizeof (addr));
   addr.sin_family = AF_INET;
   memcpy (&addr.sin_addr, hp->h_addr_list[0], hp->h_length);
-  GNUNET_SERVER_transmit_context_append (tc,
-                                         &addr,
-                                         sizeof (addr),
-                                         GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+  GNUNET_SERVER_transmit_context_append_data (tc,
+					      &addr,
+					      sizeof (addr),
+					      GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
   return GNUNET_OK;
 }
 #endif
@@ -409,8 +409,8 @@ get_ip_from_hostname (struct GNUNET_SERVER_Client *client,
   if ((ret == GNUNET_NO) && ((domain == AF_UNSPEC) || (domain == PF_INET)))
     gethostbyname_resolve (tc, hostname);
 #endif
-  GNUNET_SERVER_transmit_context_append (tc, NULL, 0,
-                                         GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+  GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
+					      GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 

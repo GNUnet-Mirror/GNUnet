@@ -2587,8 +2587,8 @@ transmit_address_to_client (void *cls, const char *address)
     slen = 0;
   else
     slen = strlen (address) + 1;
-  GNUNET_SERVER_transmit_context_append (tc, address, slen,
-                                         GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+  GNUNET_SERVER_transmit_context_append_data (tc, address, slen,
+					      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
   if (NULL == address)
     GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
@@ -2644,8 +2644,8 @@ handle_address_lookup (void *cls,
   if (NULL == lsPlugin)
     {
       tc = GNUNET_SERVER_transmit_context_create (client);
-      GNUNET_SERVER_transmit_context_append (tc, NULL, 0,
-                                             GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+      GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
+						  GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
       GNUNET_SERVER_transmit_context_run (tc, rtimeout);
       return;
     }

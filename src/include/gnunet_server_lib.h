@@ -492,9 +492,23 @@ struct GNUNET_SERVER_TransmitContext
  * @param type type of the message
  */
 void
-GNUNET_SERVER_transmit_context_append (struct GNUNET_SERVER_TransmitContext
-                                       *tc, const void *data, size_t length,
-                                       uint16_t type);
+GNUNET_SERVER_transmit_context_append_data (struct GNUNET_SERVER_TransmitContext
+					    *tc, const void *data, size_t length,
+					    uint16_t type);
+
+
+/**
+ * Append a message to the transmission context.
+ * All messages in the context will be sent by
+ * the transmit_context_run method.
+ *
+ * @param tc context to use
+ * @param msg message to append
+ */
+void
+GNUNET_SERVER_transmit_context_append_message (struct GNUNET_SERVER_TransmitContext
+					       *tc, const struct GNUNET_MessageHeader *msg);
+
 
 /**
  * Execute a transmission context.  If there is

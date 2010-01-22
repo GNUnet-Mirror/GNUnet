@@ -87,9 +87,14 @@ struct GNUNET_CORE_Handle
   const struct GNUNET_CORE_MessageHandler *handlers;
 
   /**
-   * Our connection to the service.
+   * Our connection to the service for notifications.
    */
-  struct GNUNET_CLIENT_Connection *client;
+  struct GNUNET_CLIENT_Connection *client_notifications;
+
+  /**
+   * Our connection to the service for normal requests.
+   */
+  struct GNUNET_CLIENT_Connection *client_requests;
 
   /**
    * Handle for our current transmission request.
@@ -263,10 +268,10 @@ static size_t transmit_start (void *cls, size_t size, void *buf);
 static void
 reconnect (struct GNUNET_CORE_Handle *h)
 {
-  GNUNET_CLIENT_disconnect (h->client);
+  GNUNET_CLIENT_disconnect (h->client_notifications);
   h->currently_down = GNUNET_YES;
-  h->client = GNUNET_CLIENT_connect (h->sched, "core", h->cfg);
-  h->th = GNUNET_CLIENT_notify_transmit_ready (h->client,
+  h->client_notifications = GNUNET_CLIENT_connect (h->sched, "core", h->cfg);
+  h->th = GNUNET_CLIENT_notify_transmit_ready (h->client_notifications,
                                                sizeof (struct InitMessage) +
                                                sizeof (uint16_t) * h->hcnt,
                                                GNUNET_TIME_UNIT_SECONDS,
@@ -346,6 +351,7 @@ static void
 trigger_next_request (struct GNUNET_CORE_Handle *h)
 {
   struct GNUNET_CORE_TransmitHandle *th;
+
   if (h->currently_down)
     return;                     /* connection temporarily down */
   if (NULL == (th = h->pending_head))
@@ -356,7 +362,7 @@ trigger_next_request (struct GNUNET_CORE_Handle *h)
       GNUNET_SCHEDULER_cancel (h->sched, th->timeout_task);
       th->timeout_task = GNUNET_SCHEDULER_NO_TASK;
     }
-  h->th = GNUNET_CLIENT_notify_transmit_ready (h->client,
+  h->th = GNUNET_CLIENT_notify_transmit_ready (h->client_requests,
                                                th->msize,
                                                GNUNET_TIME_absolute_get_remaining
                                                (th->timeout), 
@@ -367,20 +373,19 @@ trigger_next_request (struct GNUNET_CORE_Handle *h)
 
 
 /**
- * Handler for most messages received from the core.
+ * Handler for notification messages received from the core.
  *
  * @param cls our "struct GNUNET_CORE_Handle"
  * @param msg the message received from the core service
  */
 static void
-main_handler (void *cls, const struct GNUNET_MessageHeader *msg)
+main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_CORE_Handle *h = cls;
   unsigned int hpos;
   const struct ConnectNotifyMessage *cnm;
   const struct DisconnectNotifyMessage *dnm;
   const struct NotifyTrafficMessage *ntm;
-  const struct ConfigurationInfoMessage *cim;
   const struct GNUNET_MessageHeader *em;
   uint16_t msize;
   uint16_t et;
@@ -524,36 +529,13 @@ main_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 			  GNUNET_TIME_relative_ntoh (ntm->latency),
 			  ntohl (ntm->distance));
       break;
-    case GNUNET_MESSAGE_TYPE_CORE_CONFIGURATION_INFO:
-      if (msize != sizeof (struct ConfigurationInfoMessage))
-        {
-          GNUNET_break (0);
-          break;
-        }
-      if (NULL == h->submitted)
-        break;
-      cim = (const struct ConfigurationInfoMessage *) msg;
-
-      /* process configuration data */
-      if (h->submitted->info != NULL)
-        h->submitted->info (h->submitted->info_cls,
-                            &h->submitted->peer,
-                            ntohl (cim->bpm_in),
-                            ntohl (cim->bpm_out),
-                            (int) ntohl (cim->reserved_amount),
-                            cim->preference);
-      /* done, clean up! */      
-      GNUNET_CORE_notify_transmit_ready_cancel (h->submitted); // HUH?
-      trigger_next_request (h);
-      break;
     default:
       GNUNET_break (0);
       break;
     }
-  GNUNET_CLIENT_receive (h->client,
-                         &main_handler, h, GNUNET_TIME_UNIT_FOREVER_REL);
+  GNUNET_CLIENT_receive (h->client_notifications,
+                         &main_notify_handler, h, GNUNET_TIME_UNIT_FOREVER_REL);
 }
-
 
 
 /**
@@ -606,8 +588,8 @@ init_reply_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 #endif
   h->currently_down = GNUNET_NO;
   trigger_next_request (h);
-  GNUNET_CLIENT_receive (h->client,
-                         &main_handler, h, GNUNET_TIME_UNIT_FOREVER_REL);
+  GNUNET_CLIENT_receive (h->client_notifications,
+                         &main_notify_handler, h, GNUNET_TIME_UNIT_FOREVER_REL);
   if (NULL != (init = h->init))
     {
       /* mark so we don't call init on reconnect */
@@ -710,7 +692,7 @@ transmit_start (void *cls, size_t size, void *buf)
   ts = (uint16_t *) & init[1];
   for (hpos = 0; hpos < h->hcnt; hpos++)
     ts[hpos] = htons (h->handlers[hpos].type);
-  GNUNET_CLIENT_receive (h->client,
+  GNUNET_CLIENT_receive (h->client_notifications,
                          &init_reply_handler,
                          h,
                          GNUNET_TIME_absolute_get_remaining
@@ -774,8 +756,8 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
   h->inbound_hdr_only = inbound_hdr_only;
   h->outbound_hdr_only = outbound_hdr_only;
   h->handlers = handlers;
-  h->client = GNUNET_CLIENT_connect (sched, "core", cfg);
-  if (h->client == NULL)
+  h->client_notifications = GNUNET_CLIENT_connect (sched, "core", cfg);
+  if (h->client_notifications == NULL)
     {
       GNUNET_free (h);
       return NULL;
@@ -793,7 +775,7 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
               timeout.value);
 #endif
   h->th =
-    GNUNET_CLIENT_notify_transmit_ready (h->client,
+    GNUNET_CLIENT_notify_transmit_ready (h->client_notifications,
                                          sizeof (struct InitMessage) +
                                          sizeof (uint16_t) * h->hcnt, timeout,
 					 GNUNET_YES,
@@ -816,7 +798,9 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
     GNUNET_CORE_notify_transmit_ready_cancel (handle->solicit_transmit_req);
   if (handle->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (handle->sched, handle->reconnect_task);
-  GNUNET_CLIENT_disconnect (handle->client);
+  GNUNET_CLIENT_disconnect (handle->client_notifications);
+  if (handle->client_requests != NULL)
+    GNUNET_CLIENT_disconnect (handle->client_requests);
   GNUNET_free_non_null (handle->solicit_buffer);
   GNUNET_free (handle);
 }
