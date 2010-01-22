@@ -22,14 +22,6 @@
  * @file topology/gnunet-daemon-topology.c
  * @brief code for maintaining the mesh topology
  * @author Christian Grothoff
- *
- * OPTIMIZATIONS:
- * - move code to use hash table instead of linked list
- * - instead of periodically discarding blacklisted entries,
- *   simply add task that is triggered at the right time (earlier free,
- *   more balanced load)
- * - check if new HELLO learned is different from old HELLO
- *   before resetting entire state!
  */
 
 #include <stdlib.h>
@@ -101,6 +93,12 @@ struct PeerList
   struct GNUNET_CONTAINER_BloomFilter *filter;
 
   /**
+   * Our request handle for *whitelisting* this peer (NULL if
+   * no whitelisting request is pending).
+   */
+  struct GNUNET_TRANSPORT_BlacklistRequest *wh;
+
+  /**
    * Is this peer listed here because he is a friend?
    */
   int is_friend;
@@ -109,6 +107,11 @@ struct PeerList
    * Are we connected to this peer right now?
    */
   int is_connected;
+
+  /**
+   * Are we currently blocking this peer (via blacklist)?
+   */
+  int is_blocked;
 
   /**
    * Until what time should we not try to connect again
@@ -269,13 +272,19 @@ disconnect_done (void *cls,
 
 /**
  * Force a disconnect from the specified peer. 
- * FIXME: this policy change is never undone; how do we reconnect ever?
  */
 static void
-force_disconnect (const struct GNUNET_PeerIdentity *peer)
+force_disconnect (struct PeerList *pl)
 {
+  const struct GNUNET_PeerIdentity *peer = &pl->id;
   struct DisconnectList *dl;
 
+  if (NULL != dl->wh)
+    {
+      GNUNET_TRANSPORT_blacklist_cancel (dl->wh);
+      dl->wh = NULL;
+    }
+  pl->is_blocked = GNUNET_YES;
   dl = GNUNET_malloc (sizeof (struct DisconnectList));
   dl->peer = *peer;
   GNUNET_CONTAINER_DLL_insert (disconnect_head,
@@ -287,6 +296,63 @@ force_disconnect (const struct GNUNET_PeerIdentity *peer)
 				       GNUNET_TIME_UNIT_FOREVER_REL,
 				       &disconnect_done,
 				       dl);
+}
+
+
+
+/**
+ * Function called once our request to 'whitelist' a peer
+ * has completed.
+ *
+ * @param cls our 'struct PeerList'
+ * @param tc unused
+ */
+static void
+whitelist_done (void *cls,
+		const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct PeerList *pl = cls;
+
+  pl->wh = NULL;
+}
+
+
+/**
+ * Whitelist all peers that we blacklisted; we've passed
+ * the minimum number of friends.
+ */
+static void
+whitelist_peers ()
+{
+  struct PeerList *pl;
+  struct DisconnectList *dl;
+
+  /* first, cancel all blacklisting requests */
+  while (NULL != (dl = disconnect_head))
+    {
+      GNUNET_CONTAINER_DLL_remove (disconnect_head,
+				   disconnect_tail,
+				   dl);
+      GNUNET_TRANSPORT_blacklist_cancel (dl->rh);
+      GNUNET_free (dl);
+    }
+  /* then, specifically whitelist all peers that we
+     know to have blacklisted */
+  pl = peers;
+  while (pl != NULL)
+    {
+      if (pl->is_blocked)
+	{
+	  pl->wh = GNUNET_TRANSPORT_blacklist (sched, cfg,						
+					       peer,
+					       GNUNET_TIME_UNIT_FOREVER_ZERO,
+					       GNUNET_TIME_UNIT_FOREVER_REL,
+					       &whitelist_done,
+					       pl);
+	  pl->is_blocked = GNUNET_NO;
+	}
+      pl = pl->next;
+    }
 }
 
 
@@ -434,6 +500,8 @@ free_peer (struct PeerList *peer)
      prev->next = pos->next;
    if (pos->hello_req != NULL)
      GNUNET_CORE_notify_transmit_ready_cancel (pos->hello_req);
+   if (pos->wh != NULL)
+     GNUNET_TRANSPORT_blacklist_cancel (pos->wh);
    if (pos->connect_req != NULL)
      GNUNET_CORE_peer_request_connect_cancel (pos->connect_req);	      
    if (pos->hello_delay_task != GNUNET_SCHEDULER_NO_TASK)
@@ -611,7 +679,7 @@ connect_notify (void *cls,
 		      "Connection to `%s' is forbidden, forcing disconnect!\n",
 		      GNUNET_i2s (peer));
 #endif       
-	  force_disconnect (&pos->id);
+	  force_disconnect (pos);
 	  return;
 	}
     }
@@ -622,7 +690,12 @@ connect_notify (void *cls,
     }
   pos->is_connected = GNUNET_YES;
   if (pos->is_friend)
-    friend_count++;
+    {
+      if ( (friend_count == minimum_friend_count - 1) &&
+	   (GNUNET_YES != friends_only) )	
+	whitelist_peers ();       
+      friend_count++;
+    }
   reschedule_hellos (pos);
 }
 
@@ -646,7 +719,7 @@ drop_non_friends ()
 		      "Connection to `%s' is not from a friend, forcing disconnect!\n",
 		      GNUNET_i2s (&pos->id));
 #endif       
-	  force_disconnect (&pos->id);
+	  force_disconnect (pos);
 	}
       pos = pos->next;
     }
@@ -884,6 +957,7 @@ discard_old_blacklist_entries (void *cls,
       next = pos->next;
       if ( (GNUNET_NO == pos->is_friend) &&
 	   (GNUNET_NO == pos->is_connected) &&
+	   (GNUNET_NO == pos->is_blocked) &&
 	   (0 == GNUNET_TIME_absolute_get_remaining (pos->blacklisted_until).value) )
 	free_peer (pos);
     }

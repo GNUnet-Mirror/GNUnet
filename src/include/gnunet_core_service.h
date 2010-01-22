@@ -269,6 +269,7 @@ typedef void
  */
 struct GNUNET_CORE_InformationRequestContext;
 
+
 /**
  * Obtain statistics and/or change preferences for the given peer.
  *
