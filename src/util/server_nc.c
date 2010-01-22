@@ -79,12 +79,24 @@ struct ClientList
    */
   struct GNUNET_SERVER_Client *client;
 
+  /**
+   * Handle for pending transmission request to the client (or NULL).
+   */
   struct GNUNET_CONNECTION_TransmitHandle *th;
 
+  /**
+   * Head of linked list of requests queued for transmission.
+   */ 
   struct PendingMessageList *pending_head;
 
+  /**
+   * Tail of linked list of requests queued for transmission.
+   */ 
   struct PendingMessageList *pending_tail;
 
+  /**
+   * Number of messages currently in the list.
+   */
   unsigned int num_pending;
 
 };
@@ -101,10 +113,19 @@ struct ClientList
 struct GNUNET_SERVER_NotificationContext
 {
 
+  /**
+   * Server we do notifications for.
+   */
   struct GNUNET_SERVER_Handle *server;
 
+  /**
+   * List of clients receiving notifications.
+   */
   struct ClientList *clients;
 
+  /**
+   * Maximum number of optional messages to queue per client.
+   */
   unsigned int queue_length;
 
 };
@@ -261,6 +282,7 @@ transmit_message (void *cls,
       ret += msize;
       size -= msize;
       GNUNET_free (pml);
+      cl->num_pending--;
     }
   if (cl->pending_head != NULL)    
     cl->th = GNUNET_SERVER_notify_transmit_ready (cl->client,
@@ -297,6 +319,7 @@ do_unicast (struct GNUNET_SERVER_NotificationContext *nc,
       /* FIXME: consider checking for other messages in the
 	 queue that are 'droppable' */
     }
+  client->num_pending++;
   size = ntohs (msg->size);
   pml = GNUNET_malloc (sizeof (struct PendingMessageList) + size);
   pml->msg = (const struct GNUNET_MessageHeader*) &pml[1];
