@@ -232,43 +232,13 @@ GNUNET_CORE_peer_request_connect (struct GNUNET_SCHEDULER_Handle *sched,
 
 
 /**
- * Request that the core should try to disconnect from a particular
- * peer.  Once the request has been transmitted to the core, the
- * continuation function will be called.  Note that this does NOT mean
- * that a connection was successfully cut -- it only means that the
- * core will now try.  Typically this will work pretty much
- * immediately, but it is at least in theory also possible that a
- * reconnect is also triggered rather quickly.  Successful creation
- * and destruction of connections will be signalled to the 'connects'
- * and 'disconnects' callback arguments of 'GNUNET_CORE_connect' only.
- * If the core service does not respond to our connection attempt
- * within the given time frame, 'cont' will be called with the TIMEOUT
- * reason code.
- *
- * @param sched scheduler to use
- * @param cfg configuration to use
- * @param timeout how long to try to talk to core
- * @param cont function to call once the request has been completed (or timed out)
- * @param cont_cls closure for cont
- * @return NULL on error (cont will not be called), otherwise handle for cancellation
- */
-struct GNUNET_CORE_PeerRequestHandle *
-GNUNET_CORE_peer_request_disconnect (struct GNUNET_SCHEDULER_Handle *sched,
-				     const struct GNUNET_CONFIGURATION_Handle *cfg,
-				     struct GNUNET_TIME_Relative timeout,
-				     const struct GNUNET_PeerIdentity * peer,
-				     GNUNET_SCHEDULER_Task cont,
-				     void *cont_cls);
-
-
-/**
- * Cancel a pending request to connect or disconnect from/to a particular
- * peer.   Must not be called after the 'cont' function was invoked.
+ * Cancel a pending request to connect to a particular peer.  Must not
+ * be called after the 'cont' function was invoked.
  *
  * @param req request handle that was returned for the original request
  */
 void
-GNUNET_CORE_peer_request_cancel (struct GNUNET_CORE_PeerRequestHandle *req);
+GNUNET_CORE_peer_request_connect_cancel (struct GNUNET_CORE_PeerRequestHandle *req);
 
 
 /**

@@ -223,6 +223,13 @@ GNUNET_TRANSPORT_notify_transmit_ready_cancel (struct
 
 
 
+/**
+ * Function called whenever there is an update to the
+ * HELLO of this peer.
+ *
+ * @param cls closure
+ * @param hello our updated HELLO
+ */
 typedef void (*GNUNET_TRANSPORT_HelloUpdateCallback)(void *cls,
 						     const struct GNUNET_MessageHeader *hello);
 

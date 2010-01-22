@@ -87,7 +87,7 @@ struct PeerList
    * Our handle for the request to connect to this peer; NULL if no
    * such request is pending.
    */
-  struct GNUNET_CORE_TransmitHandle *connect_req;  
+  struct GNUNET_CORE_PeerRequestHandle *connect_req;  
 
   /**
    * Pointer to the HELLO message of this peer; can be NULL.
@@ -158,8 +158,8 @@ struct DisconnectList
   /**
    * Our request handle.
    */
-  struct GNUNET_CORE_PeerRequestHandle *rh;
-
+  struct GNUNET_TRANSPORT_BlacklistRequest *rh;
+  
   /**
    * Peer we tried to disconnect.
    */
@@ -268,9 +268,7 @@ disconnect_done (void *cls,
 
 
 /**
- * Force a disconnect from the specified peer.  This is currently done by
- * changing the bandwidth policy to 0 bytes per second.  
- * FIXME: maybe we want a nicer CORE API for both connect and disconnect...
+ * Force a disconnect from the specified peer. 
  * FIXME: this policy change is never undone; how do we reconnect ever?
  */
 static void
@@ -283,43 +281,25 @@ force_disconnect (const struct GNUNET_PeerIdentity *peer)
   GNUNET_CONTAINER_DLL_insert (disconnect_head,
 			       disconnect_tail,
 			       dl);
-  dl->rh = GNUNET_CORE_peer_request_disconnect (sched, cfg,						
-						GNUNET_TIME_UNIT_FOREVER_REL,
-						peer,
-						&disconnect_done,
-						dl);
+  dl->rh = GNUNET_TRANSPORT_blacklist (sched, cfg,						
+				       peer,
+				       GNUNET_TIME_UNIT_FOREVER_REL,
+				       GNUNET_TIME_UNIT_FOREVER_REL,
+				       &disconnect_done,
+				       dl);
 }
 
 
 /**
  * Function called by core when our attempt to connect succeeded.
- * Transmits a 'DUMMY' message to trigger the session key exchange.
- * FIXME: this is an issue with the current CORE API.
  */
-static size_t
-ready_callback (void *cls,
-		size_t size, void *buf)
+static void
+connect_completed_callback (void *cls,
+			    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerList *pos = cls;
-  struct GNUNET_MessageHeader hdr;
 
   pos->connect_req = NULL;
-  if (buf == NULL)
-    {
-#if DEBUG_TOPOLOGY
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Core told us that our attempt to connect failed.\n");
-#endif
-      return 0;
-    }
-#if DEBUG_TOPOLOGY
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Sending dummy message to establish connection.\n");
-#endif
-  hdr.size = htons (sizeof (struct GNUNET_MessageHeader));
-  hdr.type = htons (GNUNET_MESSAGE_TYPE_TOPOLOGY_DUMMY);
-  memcpy (buf, &hdr, sizeof (struct GNUNET_MessageHeader));
-  return sizeof (struct GNUNET_MessageHeader);
 }
 
 
@@ -340,13 +320,11 @@ attempt_connect (struct PeerList *pos)
 	      "Asking core to connect to `%s'\n",
 	      GNUNET_i2s (&pos->id));
 #endif
-  pos->connect_req = GNUNET_CORE_notify_transmit_ready (handle,
-							0 /* priority */,
-							GNUNET_TIME_UNIT_MINUTES,
-							&pos->id,
-							sizeof(struct GNUNET_MessageHeader),
-							&ready_callback,
-							pos);
+  pos->connect_req = GNUNET_CORE_peer_request_connect (sched, cfg,
+						       GNUNET_TIME_UNIT_MINUTES,
+						       &pos->id,
+						       &connect_completed_callback,
+						       pos);
 }
 
 
@@ -457,7 +435,7 @@ free_peer (struct PeerList *peer)
    if (pos->hello_req != NULL)
      GNUNET_CORE_notify_transmit_ready_cancel (pos->hello_req);
    if (pos->connect_req != NULL)
-     GNUNET_CORE_notify_transmit_ready_cancel (pos->connect_req);	      
+     GNUNET_CORE_peer_request_connect_cancel (pos->connect_req);	      
    if (pos->hello_delay_task != GNUNET_SCHEDULER_NO_TASK)
      GNUNET_SCHEDULER_cancel (sched,
 			      pos->hello_delay_task);
@@ -1203,7 +1181,7 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_CONTAINER_DLL_remove (disconnect_head,
 				   disconnect_tail,
 				   dl);
-      GNUNET_CORE_peer_request_cancel (dl->rh);
+      GNUNET_TRANSPORT_blacklist_cancel (dl->rh);
       GNUNET_free (dl);
     }
 }

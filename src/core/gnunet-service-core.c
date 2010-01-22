@@ -1862,30 +1862,6 @@ handle_client_request_connect (void *cls,
 
 
 /**
- * Handle CORE_REQUEST_DISCONNECT request.
- *
- * @param cls unused
- * @param client the client issuing the request
- * @param message the "struct ConnectMessage"
- */
-static void
-handle_client_request_disconnect (void *cls,
-				  struct GNUNET_SERVER_Client *client,
-				  const struct GNUNET_MessageHeader *message)
-{
-  const struct ConnectMessage *cm = (const struct ConnectMessage*) message;
-  struct Neighbour *n;
-
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  n = find_neighbour (&cm->peer);
-  if (n == NULL)
-    return; /* done */
-  /* FIXME: implement disconnect! */
-}
-
-
-
-/**
  * List of handlers for the messages understood by this
  * service.
  */
@@ -1899,9 +1875,6 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
    GNUNET_MESSAGE_TYPE_CORE_SEND, 0},
   {&handle_client_request_connect, NULL,
    GNUNET_MESSAGE_TYPE_CORE_REQUEST_CONNECT,
-   sizeof (struct ConnectMessage)},
-  {&handle_client_request_disconnect, NULL,
-   GNUNET_MESSAGE_TYPE_CORE_REQUEST_DISCONNECT,
    sizeof (struct ConnectMessage)},
   {NULL, NULL, 0, 0}
 };

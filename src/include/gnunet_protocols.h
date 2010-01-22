@@ -307,11 +307,6 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_CORE_REQUEST_CONNECT 74
 
-/**
- * Request from client asking to disconnect from a peer.
- */
-#define GNUNET_MESSAGE_TYPE_CORE_REQUEST_DISCONNECT 75
-
 
 /**
  * Session key exchange between peers.
