@@ -2743,6 +2743,8 @@ client_disconnect_notification (void *cls,
   struct TransportClient *prev;
   struct ClientMessageQueueEntry *mqe;
 
+  if (client == NULL) 
+    return;
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
               "Client disconnected, cleaning up.\n");

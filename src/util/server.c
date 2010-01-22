@@ -538,6 +538,7 @@ GNUNET_SERVER_destroy (struct GNUNET_SERVER_Handle *s)
     }
   while (NULL != (npos = s->disconnect_notify_list))
     {
+      npos->callback (npos->callback_cls, NULL);
       s->disconnect_notify_list = npos->next;
       GNUNET_free (npos);
     }

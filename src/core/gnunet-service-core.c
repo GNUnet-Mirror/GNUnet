@@ -1034,6 +1034,8 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   struct Client *prev;
   struct Event *e;
 
+  if (client == NULL)
+    return;
 #if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client has disconnected from core service.\n");

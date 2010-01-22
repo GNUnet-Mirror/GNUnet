@@ -394,7 +394,8 @@ int GNUNET_SERVER_client_get_address (struct GNUNET_SERVER_Client *client,
  * is disconnected on the network level.
  *
  * @param cls closure
- * @param client identification of the client
+ * @param client identification of the client; NULL
+ *        for the last call when the server is destroyed
  */
 typedef void (*GNUNET_SERVER_DisconnectCallback) (void *cls,
                                                   struct GNUNET_SERVER_Client
@@ -405,7 +406,11 @@ typedef void (*GNUNET_SERVER_DisconnectCallback) (void *cls,
  * Ask the server to notify us whenever a client disconnects.
  * This function is called whenever the actual network connection
  * is closed; the reference count may be zero or larger than zero
- * at this point.
+ * at this point.  If the server is destroyed before this 
+ * notification is explicitly cancelled, the 'callback' will
+ * once be called with a 'client' argument of NULL to indicate
+ * that the server itself is now gone (and that the callback
+ * won't be called anymore and also can no longer be cancelled).
  *
  * @param server the server manageing the clients
  * @param callback function to call on disconnect

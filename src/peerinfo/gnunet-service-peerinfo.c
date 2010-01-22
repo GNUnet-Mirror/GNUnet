@@ -89,54 +89,6 @@ struct HostEntry
 
 
 /**
- * Entries that we still need to tell the client about.
- */
-struct PendingEntry
-{
-
-  /**
-   * This is a linked list.
-   */
-  struct PendingEntry *next;
-
-  /**
-   * Entry to tell the client about.
-   */
-  struct HostEntry *he;
-
-};
-
-
-/**
- * Clients to notify of changes to the peer information.
- */
-struct NotifyList
-{
-
-  /**
-   * This is a linked list.
-   */
-  struct NotifyList *next;
-
-  /**
-   * Client to notify.
-   */ 
-  struct GNUNET_SERVER_Client *client;
-
-  /**
-   * Notifications pending for this entry.
-   */
-  struct PendingEntry *pending;
-
-  /**
-   * Handle for a transmit ready request.
-   */
-  struct GNUNET_CONNECTION_TransmitHandle *transmit_ctx;
-
-};
-
-
-/**
  * The in-memory list of known hosts.
  */
 static struct HostEntry *hosts;
@@ -144,7 +96,7 @@ static struct HostEntry *hosts;
 /**
  * Clients to immediately notify about all changes.
  */
-static struct NotifyList *notify_list;
+static struct GNUNET_SERVER_NotificationContext *notify_list;
 
 /**
  * Directory where the hellos are stored in (data/hosts)
@@ -158,116 +110,23 @@ static char *trustDirectory;
 
 
 /**
- * Transmit peer information messages from the pending queue
- * to the client.
- *
- * @param cls the 'struct NotifyList' that we are processing
- * @param size number of bytes we can transmit
- * @param vbuf where to write the messages
- * @return number of bytes written to vbuf
- */
-static size_t
-transmit_pending_notification (void *cls,
-			       size_t size,
-			       void *vbuf)
-{
-  struct NotifyList *nl = cls;
-  char *buf = vbuf;
-  struct PendingEntry *pos;
-  struct PendingEntry *next;
-  struct InfoMessage im;
-  uint16_t hs;
-  size_t left;
-
-  nl->transmit_ctx = NULL;
-  next = nl->pending;
-  pos = nl->pending;
-  left = size;
-  while (pos != NULL) 
-    {
-      hs = (pos->he->hello == NULL) ? 0 : GNUNET_HELLO_size (pos->he->hello);
-      if (left < sizeof (struct InfoMessage) + hs)
-	break;
-      next = pos->next;
-      im.header.size = htons (hs + sizeof (struct InfoMessage));
-      im.header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_INFO);
-      im.trust = htonl (pos->he->trust);
-      im.peer = pos->he->identity;
-      memcpy (&buf[size - left], &im, sizeof (struct InfoMessage));      
-      memcpy (&buf[size - left + sizeof (struct InfoMessage)], pos->he->hello, hs);
-      left -= hs + sizeof (struct InfoMessage);
-      GNUNET_free (pos);
-      pos = next;      
-    }
-  nl->pending = next;
-  if (nl->pending != NULL)
-    {
-      nl->transmit_ctx 
-	= GNUNET_SERVER_notify_transmit_ready (nl->client,
-					       sizeof (struct InfoMessage) + hs,
-					       GNUNET_TIME_UNIT_FOREVER_REL,
-					       &transmit_pending_notification,
-					       nl);
-    }
-  return size - left;
-}
-
-
-
-/**
- * Notify client about host change.  Checks if the
- * respective host entry is already in the list of things
- * to send to the client, and if not, adds it.  Also
- * triggers a new request for transmission if the pending
- * list was previously empty.
- *
- * @param nl client to notify
- * @param he entry to notify about
- */
-static void
-do_notify (struct NotifyList *nl,
-	   struct HostEntry *he)
-{
-  struct PendingEntry *pe;
-  uint16_t hsize;
-
-  pe = nl->pending;
-  while (NULL != pe)
-    {
-      if (pe->he == he)
-	return; /* already in list */
-      pe = pe->next;
-    }
-  pe = GNUNET_malloc (sizeof (struct PendingEntry));
-  pe->next = nl->pending;
-  pe->he = he;
-  nl->pending = pe;
-  if (nl->transmit_ctx != NULL)
-    return; /* already trying to transmit */
-  hsize = (he->hello == NULL) ? 0 : GNUNET_HELLO_size (he->hello);
-  nl->transmit_ctx = GNUNET_SERVER_notify_transmit_ready (nl->client,
-							  sizeof (struct InfoMessage) + hsize,
-							  GNUNET_TIME_UNIT_FOREVER_REL,
-							  &transmit_pending_notification,
-							  nl);
-}
-
-
-/**
  * Notify all clients in the notify list about the
  * given host entry changing.
  */
-static void
-notify_all (struct HostEntry *he)
+static struct InfoMessage *
+make_info_message (const struct HostEntry *he)
 {
-  struct NotifyList *nl;
+  struct InfoMessage *im;
+  size_t hs;
 
-  nl = notify_list;
-  while (NULL != nl)
-    {
-      do_notify (nl, he);
-      nl = nl->next;
-    }
+  hs = (he->hello == NULL) ? 0 : GNUNET_HELLO_size (he->hello);
+  im = GNUNET_malloc (sizeof (struct InfoMessage) + hs);
+  im->header.size = htons (hs + sizeof (struct InfoMessage));
+  im->header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_INFO);
+  im->trust = htonl (he->trust);
+  im->peer = he->identity;
+  memcpy (&im[1], he->hello, hs);
+  return im;
 }
 
 
@@ -328,6 +187,7 @@ get_trust_filename (const struct GNUNET_PeerIdentity *id)
   return fn;
 }
 
+
 /**
  * Find the host entry for the given peer.  Call
  * only when synchronized!
@@ -344,6 +204,25 @@ lookup_host_entry (const struct GNUNET_PeerIdentity *id)
           memcmp (id, &pos->identity, sizeof (struct GNUNET_PeerIdentity))))
     pos = pos->next;
   return pos;
+}
+
+
+/**
+ * Broadcast information about the given entry to all 
+ * clients that care.
+ *
+ * @param entry entry to broadcast about
+ */
+static void
+notify_all (struct HostEntry *entry)
+{
+  struct InfoMessage *msg;
+
+  msg = make_info_message (entry);
+  GNUNET_SERVER_notification_context_broadcast (notify_list,
+						&msg->header,
+						GNUNET_NO);
+  GNUNET_free (msg);
 }
 
 
@@ -451,7 +330,7 @@ change_host_trust (const struct GNUNET_PeerIdentity *hostId, int value)
         host->trust += value;
     }
   if (host->trust != old_trust)
-    notify_all (host);
+    notify_all (host);    
   return value;
 }
 
@@ -834,18 +713,20 @@ handle_notify (void *cls,
             struct GNUNET_SERVER_Client *client,
             const struct GNUNET_MessageHeader *message)
 {
-  struct NotifyList *nl;
+  struct InfoMessage *msg;
   struct HostEntry *pos;
 
-  nl = GNUNET_malloc (sizeof (struct NotifyList));
-  nl->next = notify_list;
-  nl->client = client;
-  GNUNET_SERVER_client_keep (client);  
-  notify_list = nl;
+  GNUNET_SERVER_notification_context_add (notify_list,
+					  client);
   pos = hosts;
   while (NULL != pos)
     {
-      do_notify (nl, pos);
+      msg = make_info_message (pos);
+      GNUNET_SERVER_notification_context_unicast (notify_list,
+						  client,
+						  &msg->header,
+						  GNUNET_NO);
+      GNUNET_free (msg);
       pos = pos->next;
     }
 }
@@ -868,48 +749,17 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
 
 
 /**
- * Function that is called when a client disconnects.
+ * Clean up our state.  Called during shutdown.
+ *
+ * @param cls unused
+ * @param tc scheduler task context, unused
  */
 static void
-notify_disconnect (void *cls,
-		   struct GNUNET_SERVER_Client *client)
+shutdown_task (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct NotifyList *pos;
-  struct NotifyList *prev;
-  struct NotifyList *next;
-  struct PendingEntry *p;
-
-  pos = notify_list;
-  prev = NULL;
-  while (pos != NULL)
-    {
-      next = pos->next;
-      if (pos->client == client)
-	{
-	  while (NULL != (p = pos->pending))
-	    {
-	      pos->pending = p->next;
-	      GNUNET_free (p);
-	    }
-	  if (pos->transmit_ctx != NULL)
-	    {
-	      GNUNET_CONNECTION_notify_transmit_ready_cancel (pos->transmit_ctx);
-	      pos->transmit_ctx = NULL;
-	    }
-	  if (prev == NULL)
-	    notify_list = next;
-	  else
-	    prev->next = next;
-          GNUNET_SERVER_client_drop (client);
-	  GNUNET_free (pos);
-	}
-      else
-	{
-	  prev = pos;
-	}
-      pos = next;
-    }
-
+  GNUNET_SERVER_notification_context_destroy (notify_list);
+  notify_list = NULL;
 }
 
 
@@ -927,6 +777,7 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  notify_list = GNUNET_SERVER_notification_context_create (server, 0);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_filename (cfg,
                                                           "peerinfo",
@@ -948,7 +799,9 @@ run (void *cls,
   GNUNET_SCHEDULER_add_with_priority (sched,
 				      GNUNET_SCHEDULER_PRIORITY_IDLE,
 				      &cron_clean_data_hosts, NULL);
-  GNUNET_SERVER_disconnect_notify (server, &notify_disconnect, NULL);
+  GNUNET_SCHEDULER_add_delayed (sched,
+				GNUNET_TIME_UNIT_FOREVER_REL,
+				&shutdown_task, NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
 }
 

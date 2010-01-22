@@ -1146,6 +1146,8 @@ disconnect_notify (void *cls, struct GNUNET_SERVER_Client *client)
   struct Plugin *plugin = cls;
   struct Session *session;
 
+  if (client == NULL)
+    return;
   session = find_session_by_client (plugin, client);
   if (session == NULL)
     return;                     /* unknown, nothing to do */

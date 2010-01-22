@@ -18,8 +18,8 @@ Urgent items (before announcing ng.gnunet.org):
     of having each service queue messages and "send when ready", 
     simply have a way to add a client to the notification set
     and to 'notify client' or 'notify all clients'
-    (useful for peerinfo (new hellos), transport (our hello; blacklist), 
-     core (misc monitoring features), statistics (change notifications)
+    (transport (our hello), 
+     core (misc monitoring features)
      and likely others)
   - server/service API change for ARM inetd'ing
     (listen as well as support for start with multiple, already
@@ -66,7 +66,8 @@ Urgent items (before announcing ng.gnunet.org):
            (async peerinfo would not be right)
   - OS: existing waitpid call is not nice (not integratable with scheduler! fix this!)
 * STATISTICS:
-  - synchronous/asynchronous API (& implementation) is not nice
+  - synchronous/asynchronous API (& implementation) is not nice;
+    => provide notification-based API
   - does not seem to work with timeouts (especially if service is not running)
 * ARM:
   - need to get rid of synchronous API for service starts (cause all kinds of problems)

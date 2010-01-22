@@ -146,6 +146,11 @@ handle_client_disconnect (void *cls,
   struct ClientList *prev;
   struct PendingMessageList *pml;
 
+  if (client == NULL)
+    {
+      nc->server = NULL;
+      return;
+    }
   prev = NULL;
   pos = nc->clients;
   while (NULL != pos)
@@ -219,9 +224,10 @@ GNUNET_SERVER_notification_context_destroy (struct GNUNET_SERVER_NotificationCon
 	}
       GNUNET_free (pos);
     }
-  GNUNET_SERVER_disconnect_notify_cancel (nc->server,
-					  &handle_client_disconnect,
-					  nc);
+  if (nc->server != NULL)
+    GNUNET_SERVER_disconnect_notify_cancel (nc->server,
+					    &handle_client_disconnect,
+					    nc);
   GNUNET_free (nc);
 }
 

@@ -1233,6 +1233,8 @@ cleanup_reservations (void *cls,
   struct ReservationList *prev;
   struct ReservationList *next;
 
+  if (client == NULL)
+    return;
   prev = NULL;
   pos = reservations;
   while (NULL != pos)

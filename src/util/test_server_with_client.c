@@ -123,6 +123,8 @@ clean_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 notify_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 {
+  if (client == NULL)
+    return;
   GNUNET_assert (ok == 5);
   ok = 0;
   GNUNET_SCHEDULER_add_now (sched,

@@ -138,6 +138,8 @@ disconnect_notify (void *cls, const struct GNUNET_MessageHeader *msg)
 static void
 notify_disconnect (void *cls, struct GNUNET_SERVER_Client *clientarg)
 {
+  if (clientarg == NULL)
+    return;
   GNUNET_assert (ok == 6);
   ok++;
   GNUNET_CLIENT_receive (client,

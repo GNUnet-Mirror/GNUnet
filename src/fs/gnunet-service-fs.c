@@ -2273,6 +2273,8 @@ handle_client_disconnect (void *cls,
   struct ClientList *cprev;
   struct ClientRequestList *rl;
 
+  if (client == NULL)
+    return;
   lgc = lgc_head;
   while ( (NULL != lgc) &&
 	  (lgc->client != client) )
