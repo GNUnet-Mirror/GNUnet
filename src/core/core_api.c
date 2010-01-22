@@ -92,11 +92,6 @@ struct GNUNET_CORE_Handle
   struct GNUNET_CLIENT_Connection *client_notifications;
 
   /**
-   * Our connection to the service for normal requests.
-   */
-  struct GNUNET_CLIENT_Connection *client_requests;
-
-  /**
    * Handle for our current transmission request.
    */
   struct GNUNET_CLIENT_TransmitHandle *th;
@@ -362,7 +357,7 @@ trigger_next_request (struct GNUNET_CORE_Handle *h)
       GNUNET_SCHEDULER_cancel (h->sched, th->timeout_task);
       th->timeout_task = GNUNET_SCHEDULER_NO_TASK;
     }
-  h->th = GNUNET_CLIENT_notify_transmit_ready (h->client_requests,
+  h->th = GNUNET_CLIENT_notify_transmit_ready (h->client_notifications,
                                                th->msize,
                                                GNUNET_TIME_absolute_get_remaining
                                                (th->timeout), 
@@ -799,8 +794,6 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
   if (handle->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (handle->sched, handle->reconnect_task);
   GNUNET_CLIENT_disconnect (handle->client_notifications);
-  if (handle->client_requests != NULL)
-    GNUNET_CLIENT_disconnect (handle->client_requests);
   GNUNET_free_non_null (handle->solicit_buffer);
   GNUNET_free (handle);
 }
