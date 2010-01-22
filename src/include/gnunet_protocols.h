@@ -245,11 +245,6 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME 60
 
 /**
- * Welcome message between TCP transports.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_DATA 41
-
-/**
  * Initial setup message from core client to core.
  */
 #define GNUNET_MESSAGE_TYPE_CORE_INIT 64
@@ -461,6 +456,11 @@ extern "C"
  * migration of content.
  */
 #define GNUNET_MESSAGE_TYPE_FS_PUT 139
+
+/**
+ * Type used to match 'all' message types.
+ */
+#define GNUNET_MESSAGE_TYPE_ALL 65535
 
 /*
   TODO:

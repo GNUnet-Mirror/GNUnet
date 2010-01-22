@@ -34,6 +34,7 @@
 #include "gnunet_server_lib.h"
 #include "gnunet_time_lib.h"
 #include "gnunet_disk_lib.h"
+#include "gnunet_protocols.h"
 
 #define DEBUG_SERVER GNUNET_NO
 
@@ -297,35 +298,37 @@ process_listen_socket (void *cls,
                                                          &process_listen_socket,
                                                          server);
       GNUNET_NETWORK_fdset_destroy (r);
-      return;                   
+      return;
     }
   i = 0;
   while (NULL != server->listen_sockets[i])
     {
-      if (GNUNET_NETWORK_fdset_isset (tc->read_ready, server->listen_sockets[i]))
-	{
-	  sock =
-	    GNUNET_CONNECTION_create_from_accept (tc->sched, server->access,
-						  server->access_cls,
-						  server->listen_sockets[i],
-						  server->maxbuf);
-	  if (sock != NULL)
-	    {
+      if (GNUNET_NETWORK_fdset_isset
+          (tc->read_ready, server->listen_sockets[i]))
+        {
+          sock =
+            GNUNET_CONNECTION_create_from_accept (tc->sched, server->access,
+                                                  server->access_cls,
+                                                  server->listen_sockets[i],
+                                                  server->maxbuf);
+          if (sock != NULL)
+            {
 #if DEBUG_SERVER
-	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-			  "Server accepted incoming connection.\n");
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          "Server accepted incoming connection.\n");
 #endif
-	      client = GNUNET_SERVER_connect_socket (server, sock);
-	      GNUNET_CONNECTION_ignore_shutdown (sock, server->clients_ignore_shutdown);
-	      /* decrement reference count, we don't keep "client" alive */
-	      GNUNET_SERVER_client_drop (client);
-	    }  
-	}
+              client = GNUNET_SERVER_connect_socket (server, sock);
+              GNUNET_CONNECTION_ignore_shutdown (sock,
+                                                 server->clients_ignore_shutdown);
+              /* decrement reference count, we don't keep "client" alive */
+              GNUNET_SERVER_client_drop (client);
+            }
+        }
       i++;
     }
   /* listen for more! */
   server->listen_task = GNUNET_SCHEDULER_add_select (server->sched,
-						     GNUNET_SCHEDULER_PRIORITY_HIGH,
+                                                     GNUNET_SCHEDULER_PRIORITY_HIGH,
                                                      GNUNET_SCHEDULER_NO_TASK,
                                                      GNUNET_TIME_UNIT_FOREVER_REL,
                                                      r, NULL,
@@ -366,31 +369,31 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
       errno = 0;
       return NULL;
-    } 
-  if ( (port != 0) &&
-       (GNUNET_NETWORK_socket_setsockopt
-	(sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK))
+    }
+  if ((port != 0) &&
+      (GNUNET_NETWORK_socket_setsockopt
+       (sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-			 "setsockopt");
+                         "setsockopt");
   /* bind the socket */
   if (GNUNET_NETWORK_socket_bind (sock, serverAddr, socklen) != GNUNET_OK)
     {
       eno = errno;
       if (errno != EADDRINUSE)
-	{
-	  /* we don't log 'EADDRINUSE' here since an IPv4 bind may
-	     fail if we already took the port on IPv6; if both IPv4 and
-	     IPv6 binds fail, then our caller will log using the
-	     errno preserved in 'eno' */
-	  GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
-	  if (port != 0)
-	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-			_
-			("`%s' failed for port %d (%s).\n"),
-			"bind", port,
-			(serverAddr->sa_family == AF_INET) ? "IPv4" : "IPv6");
-	  eno = 0;
-	}
+        {
+          /* we don't log 'EADDRINUSE' here since an IPv4 bind may
+             fail if we already took the port on IPv6; if both IPv4 and
+             IPv6 binds fail, then our caller will log using the
+             errno preserved in 'eno' */
+          GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
+          if (port != 0)
+            GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                        _
+                        ("`%s' failed for port %d (%s).\n"),
+                        "bind", port,
+                        (serverAddr->sa_family == AF_INET) ? "IPv4" : "IPv6");
+          eno = 0;
+        }
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
       errno = eno;
       return NULL;
@@ -405,7 +408,7 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
 #if DEBUG_SERVER
   if (port != 0)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Server starts to listen on port %u.\n", port);
+                "Server starts to listen on port %u.\n", port);
 #endif
   return sock;
 }
@@ -430,12 +433,11 @@ struct GNUNET_SERVER_Handle *
 GNUNET_SERVER_create (struct GNUNET_SCHEDULER_Handle *sched,
                       GNUNET_CONNECTION_AccessCheck access,
                       void *access_cls,
-		      struct sockaddr *const *serverAddr,
-                      const socklen_t *socklen,
+                      struct sockaddr *const *serverAddr,
+                      const socklen_t * socklen,
                       size_t maxbuf,
                       struct GNUNET_TIME_Relative
-                      idle_timeout, 
-		      int require_found)
+                      idle_timeout, int require_found)
 {
   struct GNUNET_SERVER_Handle *ret;
   struct GNUNET_NETWORK_Handle **lsocks;
@@ -448,23 +450,24 @@ GNUNET_SERVER_create (struct GNUNET_SCHEDULER_Handle *sched,
     i++;
   if (i > 0)
     {
-      lsocks = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle*) * (i+1));
+      lsocks =
+        GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle *) * (i + 1));
       i = 0;
       j = 0;
       while (serverAddr[i] != NULL)
-	{
-	  lsocks[j] = open_listen_socket (serverAddr[i], socklen[i]);
-	  if (lsocks[j] != NULL)
-	    j++;
-	  i++;
-	}
+        {
+          lsocks[j] = open_listen_socket (serverAddr[i], socklen[i]);
+          if (lsocks[j] != NULL)
+            j++;
+          i++;
+        }
       if (j == 0)
-	{
-	  if (errno != 0)
-	    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
-	  GNUNET_free (lsocks);
-	  lsocks = NULL;
-	}
+        {
+          if (errno != 0)
+            GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
+          GNUNET_free (lsocks);
+          lsocks = NULL;
+        }
     }
   else
     {
@@ -480,11 +483,11 @@ GNUNET_SERVER_create (struct GNUNET_SCHEDULER_Handle *sched,
   ret->require_found = require_found;
   if (lsocks != NULL)
     {
-      
+
       r = GNUNET_NETWORK_fdset_create ();
       i = 0;
       while (NULL != ret->listen_sockets[i])
-	GNUNET_NETWORK_fdset_set (r, ret->listen_sockets[i++]);
+        GNUNET_NETWORK_fdset_set (r, ret->listen_sockets[i++]);
       ret->listen_task = GNUNET_SCHEDULER_add_select (sched,
                                                       GNUNET_SCHEDULER_PRIORITY_HIGH,
                                                       GNUNET_SCHEDULER_NO_TASK,
@@ -521,7 +524,8 @@ GNUNET_SERVER_destroy (struct GNUNET_SERVER_Handle *s)
     {
       i = 0;
       while (s->listen_sockets[i] != NULL)
-	GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (s->listen_sockets[i++]));
+        GNUNET_break (GNUNET_OK ==
+                      GNUNET_NETWORK_socket_close (s->listen_sockets[i++]));
       GNUNET_free (s->listen_sockets);
       s->listen_sockets = NULL;
     }
@@ -615,7 +619,8 @@ GNUNET_SERVER_inject (struct GNUNET_SERVER_Handle *server,
       while (pos->handlers[i].callback != NULL)
         {
           mh = &pos->handlers[i];
-          if (mh->type == type)
+          if ( (mh->type == type) ||
+               (mh->type == GNUNET_MESSAGE_TYPE_ALL) )
             {
               if ((mh->expected_size != 0) && (mh->expected_size != size))
                 {
@@ -1268,8 +1273,7 @@ GNUNET_SERVER_receive_done (struct GNUNET_SERVER_Client *client, int success)
  * @param do_ignore GNUNET_YES to ignore, GNUNET_NO to restore default
  */
 void
-GNUNET_SERVER_ignore_shutdown (struct GNUNET_SERVER_Handle *h,
-			       int do_ignore)
+GNUNET_SERVER_ignore_shutdown (struct GNUNET_SERVER_Handle *h, int do_ignore)
 {
   h->clients_ignore_shutdown = do_ignore;
 }
