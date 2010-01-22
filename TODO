@@ -8,40 +8,27 @@ away), in order in which they will likely be done:
 * TRACEKIT
 * FRAGMENTATION [Ji Lu]
 * HTTP transport
-* MySQL / Postgres plugins (datastore, datacache) [Radhika]
+* MySQL / Postgres plugins (datastore, datacache)
 * UPNP [Milan]
+* ARM [Safey]
 
 Urgent items (before announcing ng.gnunet.org):
 * UTIL:
-  - provide higher-level convenience API for servers/services that
-    need to send a stream of notifications to clients; instead
-    of having each service queue messages and "send when ready", 
-    simply have a way to add a client to the notification set
-    and to 'notify client' or 'notify all clients'
-    (transport (our hello), 
-     core (misc monitoring features)
-     and likely others)
   - server/service API change for ARM inetd'ing
     (listen as well as support for start with multiple, already
-     bound & listening sockets!)
+     bound & listening sockets!) [Christian]
 * TRANSPORT:
   - main service not implemented [Nate]
-  - blacklist not implemented [Christian]
   - testcases crash & burn (no surprise)
 * CORE:
   - request disconnect not implemented [Christian]
   - various notification options not implemented [Christian]
+  - outbound message monitoring not supported [Christian]
   - test currently fails spectacularly [segv of transport service]
     => need transport to work first!
   - request connect not working [Christian, need transport first]
-* PEERINFO:
-  - make sue we also trigger notifications whenever HELLOs expire
 * TOPOLOGY:
   - needs testing [need transport first]
-* TESTING:
-  - check that 'GNUNET_TRANSPORT_get_hello' is associated with
-    a cancel request wherever appropriate (other testcases
-    in particular!) [Christian]
 * HOSTLIST:
   - test fails (looks like it works, but that's because of a bad
     connectivity notification; somehow core is unable to send
@@ -65,17 +52,16 @@ Urgent items (before announcing ng.gnunet.org):
   - trust: need *fast* way to check/update trust in peers
            (async peerinfo would not be right)
   - OS: existing waitpid call is not nice (not integratable with scheduler! fix this!)
+    => should 'scheduler' support SIGCHILD explicitly? Always?
 * STATISTICS:
   - synchronous/asynchronous API (& implementation) is not nice;
     => provide notification-based API
   - does not seem to work with timeouts (especially if service is not running)
 * ARM:
   - need to get rid of synchronous API for service starts (cause all kinds of problems)
-    [=> eliminate for need to tell ARM about service starts most of the time!]
+    [=> eliminate for need to tell ARM about service starts most of the time!] [Safey]
 * HELLO:
   - need function to test "equivalency" of HELLOs; use in topology!
-* CORE:
-  - outbound message monitoring not supported
 * Module features to implement:
   - advanced FS API parts
     + namespaces: fundamental namespace API
@@ -197,3 +183,8 @@ Urgent items (before announcing ng.gnunet.org):
   (add options to gnunet-search / gnunet-download to limit search to local peer)
 * STATISTICS:
   - should use BIO instead of mmap
+* PEERINFO:
+  - expire 'ancient' HELLOs (those without valid addresses AND that 
+    we have not 'used' (for their public keys) in a while; need a way
+    to track actual 'use')
+  - make sue we also trigger notifications whenever HELLOs expire
