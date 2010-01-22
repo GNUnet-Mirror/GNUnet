@@ -33,25 +33,50 @@
 #include "gnunet_time_lib.h"
 
 
+/**
+ * Entry in list of messages pending to be transmitted.
+ */
 struct PendingMessageList
 {
 
+  /**
+   * This is a linked list.
+   */ 
   struct PendingMessageList *next;
 
+  /**
+   * Message to transmit (allocated at the end of this
+   * struct, do not free)
+   */
   const struct GNUNET_MessageHeader *msg;
 
+  /**
+   * Can this message be dropped?
+   */ 
   int can_drop;
 
 };
 
 
+/**
+ * Lists of clients we manage for notifications.
+ */
 struct ClientList
 {
 
+  /**
+   * This is a linked list.
+   */ 
   struct ClientList *next;
 
+  /**
+   * Overall context this client belongs to. 
+   */
   struct GNUNET_SERVER_NotificationContext *nc;
 
+  /**
+   * Handle to the client.
+   */
   struct GNUNET_SERVER_Client *client;
 
   struct GNUNET_CONNECTION_TransmitHandle *th;
@@ -114,6 +139,7 @@ handle_client_disconnect (void *cls,
       pos->pending_head = pml->next;
       GNUNET_free (pml);
     }
+  GNUNET_SERVER_client_drop (client);
   GNUNET_free (pos);
 }
 
@@ -189,6 +215,7 @@ GNUNET_SERVER_notification_context_add (struct GNUNET_SERVER_NotificationContext
   cl->next = nc->clients;
   cl->nc = nc;
   cl->client = client;
+  GNUNET_SERVER_client_keep (client);
   nc->clients = cl;
 }
 
