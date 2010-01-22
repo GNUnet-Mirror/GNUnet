@@ -40,6 +40,8 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+static struct GNUNET_PEERINFO_IteratorContext *ic;
+
 static unsigned int retries;
 
 static int
@@ -105,19 +107,20 @@ process (void *cls,
 
   if (peer == NULL)
     {
+      ic = NULL;
       if ( (3 == *ok) &&
-	   (retries < 5) )
+	   (retries < 50) )
 	{
 	  /* try again */
 	  retries++;	  
 	  add_peer ();
-	  GNUNET_PEERINFO_iterate (cfg,
-				   sched,
-				   NULL,
-				   0,
-				   GNUNET_TIME_relative_multiply
-				   (GNUNET_TIME_UNIT_SECONDS, 15), 
-				   &process, cls);
+	  ic = GNUNET_PEERINFO_iterate (cfg,
+					sched,
+					NULL,
+					0,
+					GNUNET_TIME_relative_multiply
+					(GNUNET_TIME_UNIT_SECONDS, 15), 
+					&process, cls);
 	  return;
 	}
       GNUNET_assert (peer == NULL);
@@ -126,7 +129,6 @@ process (void *cls,
       *ok = 0;
       return;
     }
-
   if (hello != NULL)
     {
       GNUNET_assert (3 == *ok);
@@ -148,12 +150,12 @@ run (void *cls,
   sched = s;
   cfg = c;
   add_peer ();
-  GNUNET_PEERINFO_iterate (cfg,
-                           sched,
-                           NULL,
-                           0,
-                           GNUNET_TIME_relative_multiply
-                           (GNUNET_TIME_UNIT_SECONDS, 15), &process, cls);
+  ic = GNUNET_PEERINFO_iterate (cfg,
+				sched,
+				NULL,
+				0,
+				GNUNET_TIME_relative_multiply
+				(GNUNET_TIME_UNIT_SECONDS, 15), &process, cls);
 }
 
 

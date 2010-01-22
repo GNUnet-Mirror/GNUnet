@@ -223,7 +223,7 @@ info_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Size of `%s' is %u bytes\n",
 	      "HELLO",
-	      (unsigned int) GNUNET_HELLO_size (hello));
+	      (hello == NULL) ? 0 : (unsigned int) GNUNET_HELLO_size (hello));
 #endif  
   ic->callback (ic->callback_cls, &im->peer, hello, ntohl (im->trust));
   GNUNET_CLIENT_receive (ic->client,
