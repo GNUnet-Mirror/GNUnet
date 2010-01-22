@@ -131,6 +131,12 @@ struct GNUNET_SERVER_NotificationContext
 };
 
 
+/**
+ * Client has disconnected, clean up.
+ *
+ * @param cls our 'struct GNUNET_SERVER_NotificationContext *'
+ * @param client handle of client that disconnected
+ */
 static void
 handle_client_disconnect (void *cls,
 			  struct GNUNET_SERVER_Client *client)
