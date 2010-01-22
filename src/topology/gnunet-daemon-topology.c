@@ -279,10 +279,10 @@ force_disconnect (struct PeerList *pl)
   const struct GNUNET_PeerIdentity *peer = &pl->id;
   struct DisconnectList *dl;
 
-  if (NULL != dl->wh)
+  if (NULL != pl->wh)
     {
-      GNUNET_TRANSPORT_blacklist_cancel (dl->wh);
-      dl->wh = NULL;
+      GNUNET_TRANSPORT_blacklist_cancel (pl->wh);
+      pl->wh = NULL;
     }
   pl->is_blocked = GNUNET_YES;
   dl = GNUNET_malloc (sizeof (struct DisconnectList));
@@ -344,8 +344,8 @@ whitelist_peers ()
       if (pl->is_blocked)
 	{
 	  pl->wh = GNUNET_TRANSPORT_blacklist (sched, cfg,						
-					       peer,
-					       GNUNET_TIME_UNIT_FOREVER_ZERO,
+					       &pl->id,
+					       GNUNET_TIME_UNIT_ZERO,
 					       GNUNET_TIME_UNIT_FOREVER_REL,
 					       &whitelist_done,
 					       pl);
