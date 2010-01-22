@@ -1154,13 +1154,13 @@ transmit_to_peer (struct TransportClient *client,
     {
       /* new head */
       neighbor->messages = mq;
-      try_transmission_to_peer (neighbor);
     }
   else
     {
       /* append */
       mqe->next = mq;
     }
+  try_transmission_to_peer (neighbor);
 }
 
 
@@ -1560,7 +1560,7 @@ createPingMessage (struct GNUNET_PeerIdentity * target, struct ValidationAddress
 
   ping->challenge = htonl(va->challenge);
   ping->header.size = sizeof(struct TransportPingMessage);
-  ping->header.type = GNUNET_MESSAGE_TYPE_TRANSPORT_PING;
+  ping->header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_PING);
   memcpy(&ping->target, target, sizeof(struct GNUNET_PeerIdentity));
 
   return &ping->header;
@@ -1626,13 +1626,14 @@ handle_pong (void *cls, const struct GNUNET_MessageHeader *message,
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Confirmed validity of address, peer `%4s' has address `%s'.\n",
                       GNUNET_i2s (peer),
-                      GNUNET_a2s ((const struct sockaddr *) &va[1],
-                                  va->addr_len));
+                      GNUNET_a2s ((const struct sockaddr *) sender_address,
+                                  sender_address_len));
 #endif
           GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
                       _
                       ("Another peer saw us using the address `%s' via `FIXME'. If this is not plausible, this address should be listed in the configuration as implausible to avoid MiM attacks.\n"),
-                      sender_address);
+                      GNUNET_a2s ((const struct sockaddr *) &va[1],
+                                                           va->addr_len));
           va->ok = GNUNET_YES;
           va->expiration =
             GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
@@ -1714,6 +1715,7 @@ run_validation (void *cls,
   struct ValidationAddress *va;
   struct GNUNET_PeerIdentity id;
   struct GNUNET_MessageHeader *pingMessage;
+  int sent;
   tp = find_transport (tname);
   if (tp == NULL)
     {
@@ -1743,8 +1745,14 @@ run_validation (void *cls,
 
   pingMessage = createPingMessage(&id, va);
 
-  tp->api->send(tp->api->cls, &id, pingMessage, GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending ping message to address `%s' via `%s' for `%4s'\n",
+                GNUNET_a2s (addr, addrlen), tname, GNUNET_i2s (&id));
+
+
+  sent = tp->api->send(tp->api->cls, &id, pingMessage, GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                 TRANSPORT_DEFAULT_TIMEOUT, addr, addrlen, GNUNET_YES, NULL, NULL);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transport returned %d from send!\n", sent);
 
   GNUNET_free(pingMessage);
 
@@ -2301,8 +2309,10 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
       break;
     case GNUNET_MESSAGE_TYPE_TRANSPORT_PING:
       handle_ping(plugin, message, peer, sender_address, sender_address_len);
+      break;
     case GNUNET_MESSAGE_TYPE_TRANSPORT_PONG:
       handle_pong(plugin, message, peer, sender_address, sender_address_len);
+      break;
       //plugin_env_notify_validation();
     case GNUNET_MESSAGE_TYPE_TRANSPORT_ACK:
       n->saw_ack = GNUNET_YES;
@@ -2408,6 +2418,10 @@ handle_start (void *cls,
             }
         }
       GNUNET_free (im);
+    }
+  else
+    {
+      fprintf(stderr, "Our hello is NULL!\n");
     }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -2891,6 +2905,7 @@ run (void *cls,
                                 &unload_plugins, NULL);
   if (no_transports)
     refresh_hello ();
+
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Transport service ready.\n"));
 #endif

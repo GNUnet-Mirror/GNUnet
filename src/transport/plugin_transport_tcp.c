@@ -38,7 +38,7 @@
 #include "plugin_transport.h"
 #include "transport.h"
 
-#define DEBUG_TCP GNUNET_NO
+#define DEBUG_TCP GNUNET_YES
 
 /**
  * How long until we give up on transmitting the welcome message?
@@ -584,12 +584,13 @@ tcp_plugin_send (void *cls,
 
   mlen = ntohs (msg->size);
   session = find_session_by_target (plugin, target);
-  if ( (GNUNET_YES == force_address) &&
+  if ( (session != NULL) && ((GNUNET_YES == force_address) &&
        ( (session->connect_alen != addrlen) ||
 	 (0 != memcmp (session->connect_addr,
 		       addr,
-		       addrlen)) ) )    
+		       addrlen)) )) )
     session = NULL; /* ignore existing session */
+
   if ( (session == NULL) &&
        (addr == NULL) )
     {
@@ -635,7 +636,7 @@ tcp_plugin_send (void *cls,
 #endif
       session = create_session (plugin,
 				target,
-				GNUNET_SERVER_connect_socket (session->plugin->server,
+				GNUNET_SERVER_connect_socket (plugin->server,
 							      sa));
       session->connect_addr = GNUNET_malloc (addrlen);
       memcpy (session->connect_addr,
@@ -974,9 +975,10 @@ handle_tcp_welcome (void *cls,
 #if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "tcp",
-                   "Received `%s' message from `%4s/%p'.\n", "WELCOME",
+                   "Received `%s' message from a `%4s/%p'.\n", "WELCOME",
                    GNUNET_i2s (&wm->clientIdentity), client);
 #endif
+
   session = find_session_by_client (plugin, client);
   if (session == NULL)
     {
@@ -986,14 +988,29 @@ handle_tcp_welcome (void *cls,
       if (GNUNET_OK == 
 	  GNUNET_SERVER_client_get_address (client, &vaddr, &alen))
 	{
+#if DEBUG_TCP
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                       "tcp",
+                       "Found address for incoming `%s' message\n",
+                       "WELCOME");
+#endif
 	  session->connect_addr = vaddr;
 	  session->connect_alen = alen;
 	}
+      else
+        {
+#if DEBUG_TCP
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                       "tcp",
+                       "Didn't find address for incoming `%s' message\n",
+                       "WELCOME");
+#endif
+        }
 #if DEBUG_TCP
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                        "tcp",
                        "Creating new session %p for incoming `%s' message.\n",
-                       session_c, "WELCOME");
+                       session, "WELCOME");
 #endif
       process_pending_messages (session);
     }
@@ -1090,7 +1107,7 @@ handle_tcp_data (void *cls,
                    "tcp",
                    "Forwarding %u bytes of data of type %u to transport service.\n",
 		   (unsigned int) msize,
-                   (unsigned int) ntohs (msg->type));
+                   (unsigned int) ntohs (message->type));
 #endif
   plugin->env->receive (plugin->env->cls, &session->target, message, 1,
 			session->connect_addr,
@@ -1113,7 +1130,7 @@ handle_tcp_data (void *cls,
 static struct GNUNET_SERVER_MessageHandler my_handlers[] = {
   {&handle_tcp_welcome, NULL, GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME, 
    sizeof (struct WelcomeMessage)},
-  {&handle_tcp_data, NULL, GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_DATA, 0},
+  {&handle_tcp_data, NULL, GNUNET_MESSAGE_TYPE_ALL, 0},
   {NULL, NULL, 0, 0}
 };
 

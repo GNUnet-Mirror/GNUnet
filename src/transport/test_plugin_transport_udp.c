@@ -95,10 +95,11 @@ static int ok;
  */
 static void
 receive (void *cls,
-         struct GNUNET_TIME_Relative
-         latency,
-         const struct GNUNET_PeerIdentity
-         *peer, const struct GNUNET_MessageHeader *message)
+        const struct GNUNET_PeerIdentity * peer,
+        const struct GNUNET_MessageHeader * message,
+        uint32_t distance,
+        const char *sender_address,
+        size_t sender_address_len)
 {
   /* do nothing */
 }
@@ -127,82 +128,12 @@ unload_plugins (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
   if (my_private_key != NULL)
     GNUNET_CRYPTO_rsa_key_free (my_private_key);
 
+  ok = 0;
 }
-
-
-static void
-unload_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct GNUNET_CONFIGURATION_Handle *cfg = cls;
-  unload_plugins (NULL, cfg);
-}
-
-
-static GNUNET_SCHEDULER_TaskIdentifier validation_timeout_task;
-
-
-static void
-validation_notification (void *cls,
-                         const char *name,
-                         const struct GNUNET_PeerIdentity *peer,
-                         uint32_t challenge, const char *sender_addr)
-{
-  struct sockaddr_storage *addr = (struct sockaddr_storage *) sender_addr;
-
-  if (validation_timeout_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (sched, validation_timeout_task);
-      validation_timeout_task = GNUNET_SCHEDULER_NO_TASK;
-    }
-
-  switch (addr->ss_family)
-    {
-    case AF_INET:
-      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
-                       ("got address %s\n"),
-                       GNUNET_a2s ((struct sockaddr *) addr,
-                                   INET_ADDRSTRLEN));
-    case AF_INET6:
-      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
-                       ("got address %s\n"),
-                       GNUNET_a2s ((struct sockaddr *) addr,
-                                   INET6_ADDRSTRLEN));
-    }
-
-
-  GNUNET_assert (challenge == 42);
-
-  ok = 0;                       /* if the last test succeeded, report success */
-
-  GNUNET_SCHEDULER_add_continuation (sched,
-                                     &unload_task,
-                                     (void *) cfg,
-                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-}
-
-
-static void
-validation_failed (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  validation_timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_break (0);             /* output error */
-  /* the "validation_notification" was not called
-     in a timely fashion; we should set an error
-     code for main and shut down */
-  unload_plugins (NULL, cfg);
-}
-
 
 /**
  * Simple example test that invokes
- * the "validate" function of the plugin
- * and tries to see if the plugin would
- * succeed to validate its own address.
- * (This test is not well-written since
- *  we hand-compile the address which
- *  kind-of works for TCP but would not
- *  work for other plugins; we should ask
- *  the plugin about its address instead...).
+ * the check_address function of the plugin.
  */
 /* FIXME: won't work on IPv6 enabled systems where IPv4 mapping
  * isn't enabled (eg. FreeBSD > 4)
@@ -220,12 +151,10 @@ test_validation ()
   soaddr.sin_port = htons (2368 /* FIXME: get from config! */ );
   soaddr.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
 
-  /* add job to catch failure (timeout) */
-  validation_timeout_task =
-    GNUNET_SCHEDULER_add_delayed (sched, TIMEOUT, &validation_failed, NULL);
+  api->check_address(api->cls,
+      &soaddr, sizeof (soaddr));
 
-  api->validate (api->cls,
-                 &my_identity, 42, TIMEOUT, &soaddr, sizeof (soaddr));
+  unload_plugins(env.cls, env.cfg);
 }
 
 
@@ -234,13 +163,10 @@ setup_plugin_environment ()
 {
   env.cfg = cfg;
   env.sched = sched;
-  env.my_public_key = &my_public_key;
-  env.my_private_key = my_private_key;
   env.my_identity = &my_identity;
   env.cls = &env;
   env.receive = &receive;
   env.notify_address = &notify_address;
-  env.notify_validation = &validation_notification;
   env.max_connections = max_connect_per_transport;
 }
 
