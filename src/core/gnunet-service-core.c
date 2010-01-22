@@ -526,7 +526,6 @@ struct Neighbour
 
   /**
    * What was the last distance to this peer as reported by the transports?
-   * (FIXME: actually set this!)
    */
   uint32_t last_distance;
 
@@ -2746,6 +2745,7 @@ handle_transport_receive (void *cls,
       return;
     }
   n->last_latency = latency;
+  n->last_distance = distance;
   up = (n->status == PEER_STATE_KEY_CONFIRMED);
   type = ntohs (message->type);
   size = ntohs (message->size);
@@ -2936,6 +2936,7 @@ handle_transport_notify_connect (void *cls,
   neighbour_count++;
   n->peer = *peer;
   n->last_latency = latency;
+  n->last_distance = distance;
   GNUNET_CRYPTO_aes_create_session_key (&n->encrypt_key);
   n->encrypt_key_created = now;
   n->set_key_retry_frequency = INITIAL_SET_KEY_RETRY_FREQUENCY;
