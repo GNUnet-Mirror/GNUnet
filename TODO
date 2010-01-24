@@ -17,7 +17,6 @@ Urgent items (before announcing ng.gnunet.org):
   - main service not implemented [Nate]
   - testcases crash & burn (no surprise)
 * CORE:
-  - outbound message monitoring not supported [Christian]
   - test currently fails spectacularly [segv of transport service]
     => need transport to work first!
   - request connect not working [Christian, need transport first]

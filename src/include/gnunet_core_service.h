@@ -148,8 +148,15 @@ typedef void
 
 
 /**
- * Connect to the core service.  Note that the connection may
- * complete (or fail) asynchronously.
+ * Connect to the core service.  Note that the connection may complete
+ * (or fail) asynchronously.  This function primarily causes the given
+ * callback notification functions to be invoked whenever the
+ * specified event happens.  The maximum number of queued
+ * notifications (queue length) is per client but the queue is shared
+ * across all types of notifications.  So a slow client that registers
+ * for 'outbound_notify' also risks missing 'inbound_notify' messages.
+ * Certain events (such as connect/disconnect notifications) are not
+ * subject to queue size limitations.
  *
  * @param sched scheduler to use
  * @param cfg configuration to use
@@ -161,14 +168,29 @@ typedef void
  * @param connects function to call on peer connect, can be NULL
  * @param disconnects function to call on peer disconnect / timeout, can be NULL
  * @param inbound_notify function to call for all inbound messages, can be NULL
+ *                note that the core is allowed to drop notifications about inbound
+ *                messages if the client does not process them fast enough (for this
+ *                notification type, a bounded queue is used)
  * @param inbound_hdr_only set to GNUNET_YES if inbound_notify will only read the
  *                GNUNET_MessageHeader and hence we do not need to give it the full message;
- *                can be used to improve efficiency, ignored if inbound_notify is NULLL
- * @param outbound_notify function to call for all outbound messages, can be NULL
+ *                can be used to improve efficiency, ignored if inbound_notify is NULL
+ *                note that the core is allowed to drop notifications about inbound
+ *                messages if the client does not process them fast enough (for this
+ *                notification type, a bounded queue is used) 
+ * @param outbound_notify function to call for all outbound messages, can be NULL;
+ *                note that the core is allowed to drop notifications about outbound
+ *                messages if the client does not process them fast enough (for this
+ *                notification type, a bounded queue is used)
  * @param outbound_hdr_only set to GNUNET_YES if outbound_notify will only read the
  *                GNUNET_MessageHeader and hence we do not need to give it the full message
- *                can be used to improve efficiency, ignored if outbound_notify is NULLL
+ *                can be used to improve efficiency, ignored if outbound_notify is NULL
+ *                note that the core is allowed to drop notifications about outbound
+ *                messages if the client does not process them fast enough (for this
+ *                notification type, a bounded queue is used)
  * @param handlers callbacks for messages we care about, NULL-terminated
+ *                note that the core is allowed to drop notifications about inbound
+ *                messages if the client does not process them fast enough (for this
+ *                notification type, a bounded queue is used)
  * @return handle to the core service (only useful for disconnect until 'init' is called),
  *           NULL on error (in this case, init is never called)
  */

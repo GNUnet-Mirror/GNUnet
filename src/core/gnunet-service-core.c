@@ -23,11 +23,6 @@
  * @brief high-level P2P messaging
  * @author Christian Grothoff
  *
- * TODO:
- * - not all GNUNET_CORE_OPTION_SEND_* flags are fully supported yet
- *   (i.e. no SEND_XXX_OUTBOUND).
- * - 'REQUEST_DISCONNECT' is not implemented (transport API is lacking!)
- *
  * Considerations for later:
  * - check that hostkey used by transport (for HELLOs) is the
  *   same as the hostkey that we are using!
@@ -52,6 +47,13 @@
  * need to cap it?  (specified in ms).
  */
 #define MAX_WINDOW_TIME (5 * 60 * 1000)
+
+/**
+ * How many messages do we queue up at most for optional
+ * notifications to a client?  (this can cause notifications
+ * about outgoing messages to be dropped).
+ */
+#define MAX_NOTIFY_QUEUE 16
 
 /**
  * Minimum of bytes per minute (out) to assign to any connected peer.
@@ -1350,11 +1352,13 @@ batch_message (struct Neighbour *n,
                struct GNUNET_TIME_Relative *retry_time,
                unsigned int *priority)
 {
+  char ntmb[GNUNET_SERVER_MAX_MESSAGE_SIZE];
+  struct NotifyTrafficMessage *ntm = (struct NotifyTrafficMessage*) ntmb;
   struct MessageEntry *pos;
   struct MessageEntry *prev;
   struct MessageEntry *next;
   size_t ret;
-
+  
   ret = 0;
   *priority = 0;
   *deadline = GNUNET_TIME_UNIT_FOREVER_ABS;
@@ -1366,6 +1370,11 @@ batch_message (struct Neighbour *n,
                   retry_time->value);
       return 0;
     }
+  ntm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_OUTBOUND);
+  ntm->distance = htonl (n->last_distance);
+  ntm->latency = GNUNET_TIME_relative_hton (n->last_latency);
+  ntm->peer = n->peer;
+  
   pos = n->messages;
   prev = NULL;
   while ((pos != NULL) && (size >= sizeof (struct GNUNET_MessageHeader)))
@@ -1374,6 +1383,33 @@ batch_message (struct Neighbour *n,
       if (GNUNET_YES == pos->do_transmit)
         {
           GNUNET_assert (pos->size <= size);
+	  /* do notifications */
+	  /* FIXME: track if we have *any* client that wants
+	     full notifications and only do this if that is
+	     actually true */
+	  if (pos->size < GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct NotifyTrafficMessage))
+	    {
+	      memcpy (&ntm[1], &pos[1], pos->size);
+	      ntm->header.size = htons (sizeof (struct NotifyTrafficMessage) + 
+					sizeof (struct GNUNET_MessageHeader));
+	      send_to_all_clients (&ntm->header,
+				   GNUNET_YES,
+				   GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND);
+	    }
+	  else
+	    {
+	      /* message too large for 'full' notifications, we do at
+		 least the 'hdr' type */
+	      memcpy (&ntm[1],
+		      &pos[1],
+		      sizeof (struct GNUNET_MessageHeader));
+	    }
+	  ntm->header.size = htons (sizeof (struct NotifyTrafficMessage) + 
+				    pos->size);
+	  send_to_all_clients (&ntm->header,
+			       GNUNET_YES,
+			       GNUNET_CORE_OPTION_SEND_FULL_OUTBOUND); 	 
+	  /* copy for encrypted transmission */
           memcpy (&buf[ret], &pos[1], pos->size);
           ret += pos->size;
           size -= pos->size;
@@ -3096,17 +3132,6 @@ run (void *cls,
                                                "CORE",
                                                "TOTAL_QUOTA_OUT",
                                                &bandwidth_target_out)) ||
-#if 0
-       (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_number (c,
-                                               "CORE",
-                                               "YY",
-                                               &qout)) ||
-       (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_number (c,
-                                               "CORE",
-                                               "ZZ_LIMIT", &tneigh)) ||
-#endif
        (GNUNET_OK !=
         GNUNET_CONFIGURATION_get_value_filename (c,
                                                  "GNUNETD",
@@ -3132,7 +3157,8 @@ run (void *cls,
                       sizeof (my_public_key), &my_identity.hashPubKey);
   /* setup notification */
   server = serv;
-  notifier = GNUNET_SERVER_notification_context_create (server, 0);
+  notifier = GNUNET_SERVER_notification_context_create (server, 
+							MAX_NOTIFY_QUEUE);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
   /* setup transport connection */
   transport = GNUNET_TRANSPORT_connect (sched,
