@@ -26,8 +26,7 @@ Urgent items (before announcing ng.gnunet.org):
   - needs testing [need transport first]
 * FS (basic anonymous FS only)
   - implement FS service (P2P operations)
-    + how to send queries (soliciting is not there in core; do we
-      also want to do pushing sometimes?)
+    + implement sending of queries (low-priority push!)
     + need to bound queueing of replies for other peers    
   - test multi-peer search/download
 * new webpage
