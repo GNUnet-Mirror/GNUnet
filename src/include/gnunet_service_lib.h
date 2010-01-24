@@ -38,6 +38,34 @@ extern "C"
 #include "gnunet_configuration_lib.h"
 #include "gnunet_server_lib.h"
 
+
+/**
+ * Get the list of addresses that a server for the given service
+ * should bind to.
+ *
+ * @param serviceName name of the service
+ * @param cfg configuration (which specifies the addresses)
+ * @param addrs set (call by reference) to an array of pointers to the
+ *              addresses the server should bind to and listen on; the
+ *              array will be NULL-terminated (on success)
+ * @param addr_lens set (call by reference) to an array of the lengths
+ *              of the respective 'struct sockaddr' struct in the 'addrs'
+ *              array (on success)
+ * @return number of addresses found on success,
+ *              GNUNET_SYSERR if the configuration
+ *              did not specify reasonable finding information or
+ *              if it specified a hostname that could not be resolved;
+ *              GNUNET_NO if the number of addresses configured is
+ *              zero (in this case, '*addrs' and '*addr_lens' will be
+ *              set to NULL).
+ */
+int
+GNUNET_SERVICE_get_server_addresses (const char *serviceName,
+				     const struct GNUNET_CONFIGURATION_Handle *cfg,
+				     struct sockaddr ***addrs,
+				     socklen_t **addr_lens);
+
+
 /**
  * Function called by the service's run
  * method to run service-specific setup code.

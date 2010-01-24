@@ -740,87 +740,59 @@ process_acl6 (struct IPv6NetworkSet **ret,
 
 
 /**
- * Setup addr, addrlen, maxbuf, idle_timeout
- * based on configuration!
+ * Get the list of addresses that a server for the given service
+ * should bind to.
  *
- * Configuration must specify a "PORT".  It may
- * specify:
- * - TIMEOUT (after how many ms does an inactive service timeout);
- * - MAXBUF (maximum incoming message size supported)
- * - DISABLEV6 (disable support for IPv6, otherwise we use dual-stack)
- * - ALLOW_SHUTDOWN (allow clients to shutdown this service)
- * - BINDTO (hostname or IP address to bind to, otherwise we take everything)
- * - ACCEPT_FROM  (only allow connections from specified IPv4 subnets)
- * - ACCEPT_FROM6 (only allow connections from specified IPv6 subnets)
- * - REJECT_FROM  (disallow allow connections from specified IPv4 subnets)
- * - REJECT_FROM6 (disallow allow connections from specified IPv6 subnets)
- *
- * @return GNUNET_OK if configuration succeeded
+ * @param serviceName name of the service
+ * @param cfg configuration (which specifies the addresses)
+ * @param addrs set (call by reference) to an array of pointers to the
+ *              addresses the server should bind to and listen on; the
+ *              array will be NULL-terminated (on success)
+ * @param addr_lens set (call by reference) to an array of the lengths
+ *              of the respective 'struct sockaddr' struct in the 'addrs'
+ *              array (on success)
+ * @return number of addresses found on success,
+ *              GNUNET_SYSERR if the configuration
+ *              did not specify reasonable finding information or
+ *              if it specified a hostname that could not be resolved;
+ *              GNUNET_NO if the number of addresses configured is
+ *              zero (in this case, '*addrs' and '*addr_lens' will be
+ *              set to NULL).
  */
-static int
-setup_service (struct GNUNET_SERVICE_Context *sctx)
+int
+GNUNET_SERVICE_get_server_addresses (const char *serviceName,
+				     const struct GNUNET_CONFIGURATION_Handle *cfg,
+				     struct sockaddr ***addrs,
+				     socklen_t **addr_lens)
 {
-  unsigned long long maxbuf;
-  struct GNUNET_TIME_Relative idleout;
-  char *hostname;
-  unsigned long long port;
   int disablev6;
+  struct GNUNET_NETWORK_Handle *desc;
+  unsigned long long port;
   struct addrinfo hints;
   struct addrinfo *res;
   struct addrinfo *pos;
   struct addrinfo *next;
-  int ret;
-  int tolerant;
   unsigned int i;
-  struct GNUNET_NETWORK_Handle *desc;
+  int resi;
+  int ret;
+  struct sockaddr **saddrs;
+  socklen_t *saddrlens;
+  char *hostname;
 
-  if (GNUNET_CONFIGURATION_have_value (sctx->cfg,
-                                       sctx->serviceName, "TIMEOUT"))
-    {
-      if (GNUNET_OK !=
-          GNUNET_CONFIGURATION_get_value_time (sctx->cfg,
-                                               sctx->serviceName,
-                                               "TIMEOUT", &idleout))
-        return GNUNET_SYSERR;
-
-      sctx->timeout = idleout;
-    }
-  else
-    sctx->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
-  if (GNUNET_CONFIGURATION_have_value (sctx->cfg,
-                                       sctx->serviceName, "MAXBUF"))
-    {
-      if (GNUNET_OK !=
-          GNUNET_CONFIGURATION_get_value_number (sctx->cfg,
-                                                 sctx->serviceName,
-                                                 "MAXBUF", &maxbuf))
-        return GNUNET_SYSERR;
-    }
-  else
-    maxbuf = GNUNET_SERVER_MAX_MESSAGE_SIZE;
-  if (GNUNET_CONFIGURATION_have_value (sctx->cfg,
-                                       sctx->serviceName, "DISABLEV6"))
+  *addrs = NULL;
+  *addr_lens = NULL;
+  resi = 0;
+  if (GNUNET_CONFIGURATION_have_value (cfg,
+                                       serviceName, "DISABLEV6"))
     {
       if (GNUNET_SYSERR ==
-          (disablev6 = GNUNET_CONFIGURATION_get_value_yesno (sctx->cfg,
-                                                             sctx->
-                                                             serviceName,
+          (disablev6 = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+							     serviceName,
                                                              "DISABLEV6")))
         return GNUNET_SYSERR;
     }
   else
     disablev6 = GNUNET_NO;
-  if (GNUNET_CONFIGURATION_have_value (sctx->cfg,
-                                       sctx->serviceName, "ALLOW_SHUTDOWN"))
-    {
-      if (GNUNET_SYSERR ==
-          (sctx->allow_shutdown =
-           GNUNET_CONFIGURATION_get_value_yesno (sctx->cfg, sctx->serviceName,
-                                                 "ALLOW_SHUTDOWN")))
-        return GNUNET_SYSERR;
-    }
-  else
-    sctx->allow_shutdown = GNUNET_NO;
 
   if (!disablev6)
     {
@@ -837,7 +809,7 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
           GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                       _
                       ("Disabling IPv6 support for service `%s', failed to create IPv6 socket: %s\n"),
-                      sctx->serviceName, STRERROR (errno));
+                      serviceName, STRERROR (errno));
           disablev6 = GNUNET_YES;
         }
       else
@@ -847,39 +819,24 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
     }
 
 
-
-  if (GNUNET_CONFIGURATION_have_value (sctx->cfg,
-                                       sctx->serviceName, "TOLERANT"))
-    {
-      if (GNUNET_SYSERR ==
-          (tolerant = GNUNET_CONFIGURATION_get_value_yesno (sctx->cfg,
-                                                            sctx->serviceName,
-                                                            "TOLERANT")))
-        return GNUNET_SYSERR;
-    }
-  else
-    tolerant = GNUNET_NO;
-  sctx->require_found = tolerant ? GNUNET_NO : GNUNET_YES;
-
-
   if ((GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_number (sctx->cfg,
-                                              sctx->serviceName,
+       GNUNET_CONFIGURATION_get_value_number (cfg,
+                                              serviceName,
                                               "PORT",
                                               &port)) || (port > 65535))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _
                   ("Require valid port number for service `%s' in configuration!\n"),
-                  sctx->serviceName);
+                  serviceName);
       return GNUNET_SYSERR;
     }
-  if (GNUNET_CONFIGURATION_have_value (sctx->cfg,
-                                       sctx->serviceName, "BINDTO"))
+  if (GNUNET_CONFIGURATION_have_value (cfg,
+                                       serviceName, "BINDTO"))
     {
       GNUNET_break (GNUNET_OK ==
-                    GNUNET_CONFIGURATION_get_value_string (sctx->cfg,
-                                                           sctx->serviceName,
+                    GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                           serviceName,
                                                            "BINDTO",
                                                            &hostname));
     }
@@ -892,7 +849,7 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Resolving `%s' since that is where `%s' will bind to.\n",
 		  hostname,
-		  sctx->serviceName);
+		  serviceName);
 #endif
       memset (&hints, 0, sizeof (struct addrinfo));
       if (disablev6)
@@ -924,8 +881,9 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
           GNUNET_free (hostname);
           return GNUNET_SYSERR;
         }
-      sctx->addrs = GNUNET_malloc ((i+1) * sizeof(struct sockaddr*));
-      sctx->addrlens = GNUNET_malloc ((i+1) * sizeof (socklen_t));
+      resi = i;
+      saddrs = GNUNET_malloc ((i+1) * sizeof(struct sockaddr*));
+      saddrlens = GNUNET_malloc ((i+1) * sizeof (socklen_t));
       i = 0;
       next = res;
       while (NULL != (pos = next)) 
@@ -936,26 +894,26 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
 #if DEBUG_SERVICE
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Service `%s' will bind to `%s'\n",
-		      sctx->serviceName,
+		      serviceName,
 		      GNUNET_a2s (pos->ai_addr,
 				  pos->ai_addrlen));
 #endif
 	  if (pos->ai_family == AF_INET)
 	    {
 	      GNUNET_assert (pos->ai_addrlen == sizeof (struct sockaddr_in));
-	      sctx->addrlens[i] = pos->ai_addrlen;
-	      sctx->addrs[i] = GNUNET_malloc (sctx->addrlens[i]);
-	      memcpy (sctx->addrs[i], pos->ai_addr, sctx->addrlens[i]);
-	      ((struct sockaddr_in *) sctx->addrs[i])->sin_port = htons (port);
+	      saddrlens[i] = pos->ai_addrlen;
+	      saddrs[i] = GNUNET_malloc (saddrlens[i]);
+	      memcpy (saddrs[i], pos->ai_addr, saddrlens[i]);
+	      ((struct sockaddr_in *) saddrs[i])->sin_port = htons (port);
 	    }
 	  else
 	    {
 	      GNUNET_assert (pos->ai_family == AF_INET6);
 	      GNUNET_assert (pos->ai_addrlen == sizeof (struct sockaddr_in6));
-	      sctx->addrlens[i] = pos->ai_addrlen;
-	      sctx->addrs[i] = GNUNET_malloc (sctx->addrlens[i]);
-	      memcpy (sctx->addrs[i], pos->ai_addr, sctx->addrlens[i]);
-	      ((struct sockaddr_in6 *) sctx->addrs[i])->sin6_port = htons (port);
+	      saddrlens[i] = pos->ai_addrlen;
+	      saddrs[i] = GNUNET_malloc (saddrlens[i]);
+	      memcpy (saddrs[i], pos->ai_addr, saddrlens[i]);
+	      ((struct sockaddr_in6 *) saddrs[i])->sin6_port = htons (port);
 	    }	  
 	  i++;
 	}
@@ -968,40 +926,129 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
       if (disablev6)
         {
           /* V4-only */
-	  sctx->addrs = GNUNET_malloc (2 * sizeof(struct sockaddr*));
-	  sctx->addrlens = GNUNET_malloc (2 * sizeof (socklen_t));
-          sctx->addrlens[0] = sizeof (struct sockaddr_in);
-          sctx->addrs[0] = GNUNET_malloc (sctx->addrlens[0]);
+	  resi = 1;
+	  saddrs = GNUNET_malloc (2 * sizeof(struct sockaddr*));
+	  saddrlens = GNUNET_malloc (2 * sizeof (socklen_t));
+          saddrlens[0] = sizeof (struct sockaddr_in);
+          saddrs[0] = GNUNET_malloc (saddrlens[0]);
 #if HAVE_SOCKADDR_IN_SIN_LEN
-          ((struct sockaddr_in *) sctx->addrs[0])->sin_len = sctx->addrlens[0];
+          ((struct sockaddr_in *) saddrs[0])->sin_len = saddrlens[0];
 #endif
-          ((struct sockaddr_in *) sctx->addrs[0])->sin_family = AF_INET;
-          ((struct sockaddr_in *) sctx->addrs[0])->sin_port = htons (port);
+          ((struct sockaddr_in *) saddrs[0])->sin_family = AF_INET;
+          ((struct sockaddr_in *) saddrs[0])->sin_port = htons (port);
         }
       else
         {
           /* dual stack */
-	  sctx->addrs = GNUNET_malloc (3 * sizeof(struct sockaddr*));
-	  sctx->addrlens = GNUNET_malloc (3 * sizeof (socklen_t));
+	  resi = 2;
+	  saddrs = GNUNET_malloc (3 * sizeof(struct sockaddr*));
+	  saddrlens = GNUNET_malloc (3 * sizeof (socklen_t));
 
-          sctx->addrlens[0] = sizeof (struct sockaddr_in6);
-          sctx->addrs[0] = GNUNET_malloc (sctx->addrlens[0]);
+          saddrlens[0] = sizeof (struct sockaddr_in6);
+          saddrs[0] = GNUNET_malloc (saddrlens[0]);
 #if HAVE_SOCKADDR_IN_SIN_LEN
-          ((struct sockaddr_in6 *) sctx->addrs[0])->sin6_len = sctx->addrlens[0];
+          ((struct sockaddr_in6 *) saddrs[0])->sin6_len = saddrlens[0];
 #endif
-          ((struct sockaddr_in6 *) sctx->addrs[0])->sin6_family = AF_INET6;
-          ((struct sockaddr_in6 *) sctx->addrs[0])->sin6_port = htons (port);
+          ((struct sockaddr_in6 *) saddrs[0])->sin6_family = AF_INET6;
+          ((struct sockaddr_in6 *) saddrs[0])->sin6_port = htons (port);
 
-          sctx->addrlens[1] = sizeof (struct sockaddr_in);
-          sctx->addrs[1] = GNUNET_malloc (sctx->addrlens[1]);
+          saddrlens[1] = sizeof (struct sockaddr_in);
+          saddrs[1] = GNUNET_malloc (saddrlens[1]);
 #if HAVE_SOCKADDR_IN_SIN_LEN
-          ((struct sockaddr_in *) sctx->addrs[1])->sin_len = sctx->addrlens[1];
+          ((struct sockaddr_in *) saddrs[1])->sin_len = saddrlens[1];
 #endif
-          ((struct sockaddr_in *) sctx->addrs[1])->sin_family = AF_INET;
-          ((struct sockaddr_in *) sctx->addrs[1])->sin_port = htons (port);
+          ((struct sockaddr_in *) saddrs[1])->sin_family = AF_INET;
+          ((struct sockaddr_in *) saddrs[1])->sin_port = htons (port);
 
         }
     }
+  *addrs = saddrs;
+  *addr_lens = saddrlens;
+  return resi;
+}
+
+
+/**
+ * Setup addr, addrlen, maxbuf, idle_timeout
+ * based on configuration!
+ *
+ * Configuration must specify a "PORT".  It may
+ * specify:
+ * - TIMEOUT (after how many ms does an inactive service timeout);
+ * - MAXBUF (maximum incoming message size supported)
+ * - DISABLEV6 (disable support for IPv6, otherwise we use dual-stack)
+ * - ALLOW_SHUTDOWN (allow clients to shutdown this service)
+ * - BINDTO (hostname or IP address to bind to, otherwise we take everything)
+ * - ACCEPT_FROM  (only allow connections from specified IPv4 subnets)
+ * - ACCEPT_FROM6 (only allow connections from specified IPv6 subnets)
+ * - REJECT_FROM  (disallow allow connections from specified IPv4 subnets)
+ * - REJECT_FROM6 (disallow allow connections from specified IPv6 subnets)
+ *
+ * @return GNUNET_OK if configuration succeeded
+ */
+static int
+setup_service (struct GNUNET_SERVICE_Context *sctx)
+{
+  unsigned long long maxbuf;
+  struct GNUNET_TIME_Relative idleout;
+  int tolerant;
+
+  if (GNUNET_CONFIGURATION_have_value (sctx->cfg,
+                                       sctx->serviceName, "TIMEOUT"))
+    {
+      if (GNUNET_OK !=
+          GNUNET_CONFIGURATION_get_value_time (sctx->cfg,
+                                               sctx->serviceName,
+                                               "TIMEOUT", &idleout))
+        return GNUNET_SYSERR;
+
+      sctx->timeout = idleout;
+    }
+  else
+    sctx->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
+  if (GNUNET_CONFIGURATION_have_value (sctx->cfg,
+                                       sctx->serviceName, "MAXBUF"))
+    {
+      if (GNUNET_OK !=
+          GNUNET_CONFIGURATION_get_value_number (sctx->cfg,
+                                                 sctx->serviceName,
+                                                 "MAXBUF", &maxbuf))
+        return GNUNET_SYSERR;
+    }
+  else
+    maxbuf = GNUNET_SERVER_MAX_MESSAGE_SIZE;
+  if (GNUNET_CONFIGURATION_have_value (sctx->cfg,
+                                       sctx->serviceName, "ALLOW_SHUTDOWN"))
+    {
+      if (GNUNET_SYSERR ==
+          (sctx->allow_shutdown =
+           GNUNET_CONFIGURATION_get_value_yesno (sctx->cfg, sctx->serviceName,
+                                                 "ALLOW_SHUTDOWN")))
+        return GNUNET_SYSERR;
+    }
+  else
+    sctx->allow_shutdown = GNUNET_NO;
+
+
+  if (GNUNET_CONFIGURATION_have_value (sctx->cfg,
+                                       sctx->serviceName, "TOLERANT"))
+    {
+      if (GNUNET_SYSERR ==
+          (tolerant = GNUNET_CONFIGURATION_get_value_yesno (sctx->cfg,
+                                                            sctx->serviceName,
+                                                            "TOLERANT")))
+        return GNUNET_SYSERR;
+    }
+  else
+    tolerant = GNUNET_NO;
+
+  if (GNUNET_SYSERR ==
+      GNUNET_SERVICE_get_server_addresses (sctx->serviceName,
+					   sctx->cfg,
+					   &sctx->addrs,
+					   &sctx->addrlens))
+    return GNUNET_SYSERR;
+  sctx->require_found = tolerant ? GNUNET_NO : GNUNET_YES;
   sctx->maxbuf = (size_t) maxbuf;
   if (sctx->maxbuf != maxbuf)
     {

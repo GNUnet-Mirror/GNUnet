@@ -13,10 +13,6 @@ away), in order in which they will likely be done:
 * ARM [Safey]
 
 Urgent items (before announcing ng.gnunet.org):
-* UTIL:
-  - server/service API change for ARM inetd'ing
-    (listen as well as support for start with multiple, already
-     bound & listening sockets!) [Christian]
 * TRANSPORT:
   - main service not implemented [Nate]
   - testcases crash & burn (no surprise)
