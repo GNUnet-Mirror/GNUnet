@@ -33,7 +33,7 @@
 
 #define VERBOSE GNUNET_YES
 
-#define VERBOSE_ARM GNUNET_YES
+#define VERBOSE_ARM GNUNET_NO
 
 #define START_ARM GNUNET_YES
 
@@ -180,8 +180,7 @@ exchange_hello_last (void *cls,
   struct PeerContext *me = cls;
 
   GNUNET_TRANSPORT_get_hello_cancel (p2.th, &exchange_hello_last, me);
-  /* Infinite loop, how was this supposed to work? *sound of nate ripping
-   * hair out* */
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Exchanging HELLO with peer (%p)!\n", cls);
   GNUNET_assert (ok >= 3);
@@ -217,6 +216,9 @@ exchange_hello (void *cls,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
                                       message, &me->id));
+
+  GNUNET_TRANSPORT_offer_hello (p2.th, message);
+
   GNUNET_TRANSPORT_get_hello (p2.th, &exchange_hello_last, &p2);
 }
 
