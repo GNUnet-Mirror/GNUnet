@@ -73,7 +73,7 @@
  * Besides, if a single request to an address takes a long time,
  * then the peer is unlikely worthwhile anyway.
  */
-#define HELLO_VERIFICATION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
+#define HELLO_VERIFICATION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 /**
  * How long will we allow sending of a ping to be delayed?
@@ -1593,7 +1593,7 @@ handle_pong (void *cls, const struct GNUNET_MessageHeader *message,
   struct ValidationAddress *va;
   struct GNUNET_PeerIdentity id;
   struct TransportPongMessage *pong = (struct TransportPongMessage *)message;
-
+  int count = 0;
   unsigned int challenge = ntohl(pong->challenge);
   pos = pending_validations;
   while (pos != NULL)
@@ -1605,14 +1605,15 @@ handle_pong (void *cls, const struct GNUNET_MessageHeader *message,
       if (0 == memcmp (peer, &id, sizeof (struct GNUNET_PeerIdentity)))
         break;
       pos = pos->next;
+      count++;
     }
   if (pos == NULL)
     {
       /* TODO: call statistics (unmatched PONG) */
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   _
-                  ("Received validation response but have no record of any validation request for `%4s'. Ignoring.\n"),
-                  GNUNET_i2s (peer));
+                  ("Received validation response but have no record of any validation request for `%4s' (out of %d). Ignoring.\n"),
+                  GNUNET_i2s (peer), count);
       return;
     }
   not_done = 0;
@@ -2757,7 +2758,7 @@ client_disconnect_notification (void *cls,
   struct TransportClient *prev;
   struct ClientMessageQueueEntry *mqe;
 
-  if (client == NULL) 
+  if (client == NULL)
     return;
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
