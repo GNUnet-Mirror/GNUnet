@@ -52,7 +52,7 @@
 
 
 /**
- * Initial handshake message for a session.  
+ * Initial handshake message for a session.
  */
 struct WelcomeMessage
 {
@@ -334,7 +334,7 @@ create_session (struct Plugin *plugin,
   ret->last_quota_update = GNUNET_TIME_absolute_get ();
   ret->quota_in = plugin->env->default_quota_in;
   ret->expecting_welcome = GNUNET_YES;
-  ret->pending_messages = create_welcome (plugin);  
+  ret->pending_messages = create_welcome (plugin);
   return ret;
 }
 
@@ -511,9 +511,9 @@ disconnect_session (struct Session *session)
                        "Notifying transport service about loss of data connection with `%4s'.\n",
                        GNUNET_i2s (&session->target));
 #endif
-      /* Data session that actually went past the 
+      /* Data session that actually went past the
          initial handshake; transport service may
-         know about this one, so we need to 
+         know about this one, so we need to
          notify transport service about disconnect */
       session->plugin->env->receive (session->plugin->env->cls,
                                      &session->target, NULL,
@@ -599,7 +599,7 @@ tcp_plugin_send (void *cls,
                        "tcp",
                        "Asked to transmit to `%4s' without address and I have no existing connection (failing).\n",
                        GNUNET_i2s (target));
-#endif      
+#endif
       return -1;
     }
   if (session == NULL)
@@ -624,7 +624,7 @@ tcp_plugin_send (void *cls,
 			   "Failed to create connection to `%4s' at `%s'\n",
 			   GNUNET_i2s (target),
 			   GNUNET_a2s (addr, addrlen));
-#endif      
+#endif
 	  return -1;
 	}
 
@@ -663,7 +663,7 @@ tcp_plugin_send (void *cls,
     }
   else
     {
-      /* FIXME: this could be done faster by keeping 
+      /* FIXME: this could be done faster by keeping
 	 track of the tail of the list... */
       while (NULL != pme->next)
         pme = pme->next;
@@ -725,7 +725,7 @@ tcp_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
 	  session->client = NULL;
 	}
       /* rest of the clean-up of the session will be done as part of
-	 disconnect_notify which should be triggered any time now 
+	 disconnect_notify which should be triggered any time now
 	 (or which may be triggering this call in the first place) */
     }
 }
@@ -985,7 +985,7 @@ handle_tcp_welcome (void *cls,
       GNUNET_SERVER_client_keep (client);
       session = create_session (plugin,
 				&wm->clientIdentity, client);
-      if (GNUNET_OK == 
+      if (GNUNET_OK ==
 	  GNUNET_SERVER_client_get_address (client, &vaddr, &alen))
 	{
 #if DEBUG_TCP
@@ -1091,6 +1091,16 @@ handle_tcp_data (void *cls,
 
   msize = ntohs (message->size);
   session = find_session_by_client (plugin, client);
+
+  if (GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME == ntohs(message->type))
+  {
+#if DEBUG_TCP
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                   "tcp", "Received a welcome, NOT sending to clients!\n");
+#endif
+    return; /* We don't want to propogate WELCOME messages up! */
+  }
+
   if ( (NULL == session) || (GNUNET_NO != session->expecting_welcome))
     {
       GNUNET_break_op (0);
@@ -1128,7 +1138,7 @@ handle_tcp_data (void *cls,
  * Handlers for the various TCP messages.
  */
 static struct GNUNET_SERVER_MessageHandler my_handlers[] = {
-  {&handle_tcp_welcome, NULL, GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME, 
+  {&handle_tcp_welcome, NULL, GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME,
    sizeof (struct WelcomeMessage)},
   {&handle_tcp_data, NULL, GNUNET_MESSAGE_TYPE_ALL, 0},
   {NULL, NULL, 0, 0}
@@ -1315,7 +1325,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
                      aport);
   GNUNET_SERVER_disconnect_notify (plugin->server, &disconnect_notify,
                                    plugin);
-  /* FIXME: do the two calls below periodically again and 
+  /* FIXME: do the two calls below periodically again and
      not just once (since the info we get might change...) */
   GNUNET_OS_network_interfaces_list (&process_interfaces, plugin);
   plugin->hostname_dns = GNUNET_RESOLVER_hostname_resolve (env->sched,

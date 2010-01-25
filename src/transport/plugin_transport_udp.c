@@ -53,6 +53,12 @@
 static struct GNUNET_RESOLVER_RequestHandle *hostname_dns;
 
 /**
+ * How long until we give up on transmitting the welcome message?
+ */
+#define HOSTNAME_RESOLVE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+
+
+/**
  * Message-Packet header.
  */
 struct UDPMessage
@@ -98,6 +104,11 @@ struct Plugin
    * Handle to the network service.
    */
   struct GNUNET_SERVICE_Context *service;
+
+  /**
+   * Handle for request of hostname resolution, non-NULL if pending.
+   */
+  struct GNUNET_RESOLVER_RequestHandle *hostname_dns;
 
   /**
    * ID of task used to update our addresses when one expires.
@@ -236,6 +247,69 @@ udp_plugin_send (void *cls,
     }
   GNUNET_free (message);
   return sent;
+}
+
+
+/**
+ * Add the IP of our network interface to the list of
+ * our external IP addresses.
+ */
+static int
+process_interfaces (void *cls,
+                    const char *name,
+                    int isDefault,
+                    const struct sockaddr *addr, socklen_t addrlen)
+{
+  struct Plugin *plugin = cls;
+  int af;
+  struct sockaddr_in *v4;
+  struct sockaddr_in6 *v6;
+
+  af = addr->sa_family;
+  if (af == AF_INET)
+    {
+      v4 = (struct sockaddr_in *) addr;
+      v4->sin_port = htons (plugin->adv_port);
+    }
+  else
+    {
+      GNUNET_assert (af == AF_INET6);
+      v6 = (struct sockaddr_in6 *) addr;
+      v6->sin6_port = htons (plugin->adv_port);
+    }
+  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO |
+                   GNUNET_ERROR_TYPE_BULK,
+                   "udp", _("Found address `%s' (%s)\n"),
+                   GNUNET_a2s (addr, addrlen), name);
+  plugin->env->notify_address (plugin->env->cls,
+                               "udp",
+                               addr, addrlen, GNUNET_TIME_UNIT_FOREVER_REL);
+
+  return GNUNET_OK;
+}
+
+
+/**
+ * Function called by the resolver for each address obtained from DNS
+ * for our own hostname.  Add the addresses to the list of our
+ * external IP addresses.
+ *
+ * @param cls closure
+ * @param addr one of the addresses of the host, NULL for the last address
+ * @param addrlen length of the address
+ */
+static void
+process_hostname_ips (void *cls,
+                      const struct sockaddr *addr, socklen_t addrlen)
+{
+  struct Plugin *plugin = cls;
+
+  if (addr == NULL)
+    {
+      plugin->hostname_dns = NULL;
+      return;
+    }
+  process_interfaces (plugin, "<hostname>", GNUNET_YES, addr, addrlen);
 }
 
 
@@ -666,6 +740,16 @@ libgnunet_plugin_transport_udp_init (void *cls)
   api->check_address = &udp_check_address;
 
   plugin->service = service;
+
+  /* FIXME: do the two calls below periodically again and
+     not just once (since the info we get might change...) */
+  GNUNET_OS_network_interfaces_list (&process_interfaces, plugin);
+  plugin->hostname_dns = GNUNET_RESOLVER_hostname_resolve (env->sched,
+                                                           env->cfg,
+                                                           AF_UNSPEC,
+                                                           HOSTNAME_RESOLVE_TIMEOUT,
+                                                           &process_hostname_ips,
+                                                           plugin);
 
   udp_sock = udp_transport_server_start (plugin);
 
