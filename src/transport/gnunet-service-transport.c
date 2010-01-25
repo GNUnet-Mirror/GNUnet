@@ -988,7 +988,12 @@ transmit_send_continuation (void *cls,
       rl->connected = GNUNET_NO;
     }
   if (!mq->internal_msg)
-    rl->transmit_ready = GNUNET_YES;
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Setting transmit_ready on transport!\n");
+      rl->transmit_ready = GNUNET_YES;
+    }
+
   if (mq->client != NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1025,6 +1030,16 @@ try_transmission_to_peer (struct NeighborList *neighbor)
   struct MessageQueue *mq;
   struct GNUNET_TIME_Absolute now;
 
+  if (neighbor->addr != NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+          _("try_transmission_to_peer entry: at this point neighbor->addr is NOT NULL\n"));
+    }
+  else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("try_transmission_to_peer entry: at this point neighbor->addr is NULL\n"));
+    }
+
   if (neighbor->messages == NULL)
     return;                     /* nothing to do */
   try_alternative_plugins (neighbor);
@@ -1044,6 +1059,13 @@ try_transmission_to_peer (struct NeighborList *neighbor)
                       GNUNET_i2s (&neighbor->id));
 #endif
           pos->connected = GNUNET_NO;
+        }
+      if (GNUNET_YES == pos->transmit_ready)
+        {
+#if DEBUG_TRANSPORT
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Found transmit_ready flag...\n");
+#endif
         }
       if (((GNUNET_YES == pos->transmit_ready) ||
            (mq->internal_msg)) &&
@@ -1084,6 +1106,10 @@ try_transmission_to_peer (struct NeighborList *neighbor)
               GNUNET_i2s (&neighbor->id), rl->plugin->short_name);
 #endif
 
+  if (rl->neighbor->addr != NULL)
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("try_transmission_to_peer pre-send: at this point rl->neighbor->addr is NOT NULL, addrlen is %d\n"), rl->neighbor->addr_len);
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("try_transmission_to_peer pre-send: at this point rl->neighbor->addr is NULL\n"));
   rl->plugin->api->send (rl->plugin->api->cls,
                          &neighbor->id,
                          mq->message,
@@ -1119,6 +1145,8 @@ transmit_to_peer (struct TransportClient *client,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               _("Sending message of type %u to peer `%4s'\n"),
               ntohs (msg->type), GNUNET_i2s (&neighbor->id));
+  if (neighbor->addr != NULL)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("transmit_to_peer: at this point neighbor->addr is NOT NULL\n"));
 #endif
   if (client != NULL)
     {
@@ -1190,7 +1218,17 @@ address_generator (void *cls, size_t max, void *buf)
       gc->addr_pos = (gc->plug_pos != NULL) ? gc->plug_pos->addresses : NULL;
     }
   if (NULL == gc->plug_pos)
-    return 0;
+    {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "In address_generator, gc->plug_pos is NULL!\n");
+#endif
+      return 0;
+    }
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Should be adding an address...\n");
+#endif
   ret = GNUNET_HELLO_add_address (gc->plug_pos->short_name,
                                   gc->expiration,
                                   gc->addr_pos->addr,
@@ -1220,6 +1258,10 @@ refresh_hello ()
   gc.addr_pos = plugins != NULL ? plugins->addresses : NULL;
   gc.expiration = GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
   hello = GNUNET_HELLO_create (&my_public_key, &address_generator, &gc);
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+              "Refreshed my `%s', new size is %d\n", "HELLO", GNUNET_HELLO_size(hello));
+#endif
   cpos = clients;
   while (cpos != NULL)
     {
@@ -1801,6 +1843,7 @@ check_hello_validated (void *cls,
   struct ValidationAddress *va;
   struct TransportPlugin *tp;
   int first_call;
+  int count;
   struct GNUNET_PeerIdentity apeer;
 
   first_call = GNUNET_NO;
@@ -1817,6 +1860,10 @@ check_hello_validated (void *cls,
       chvc->e->next = pending_validations;
       pending_validations = chvc->e;
     }
+  /* no existing HELLO, all addresses are new */
+  GNUNET_HELLO_iterate_addresses (chvc->hello,
+                                  GNUNET_NO, &run_validation, chvc->e);
+#if 0
   if (h != NULL)
     {
       GNUNET_HELLO_iterate_new_addresses (chvc->hello,
@@ -1830,6 +1877,7 @@ check_hello_validated (void *cls,
       GNUNET_HELLO_iterate_addresses (chvc->hello,
                                       GNUNET_NO, &run_validation, chvc->e);
     }
+#endif
   if (h != NULL)
     return;                     /* wait for next call */
   /* finally, transmit validation attempts */
@@ -1840,6 +1888,7 @@ check_hello_validated (void *cls,
               "HELLO", GNUNET_i2s (&apeer));
 #endif
   va = chvc->e->addresses;
+  count = 0;
   while (va != NULL)
     {
 #if DEBUG_TRANSPORT
@@ -1858,7 +1907,13 @@ check_hello_validated (void *cls,
                         &va[1], va->addr_len);
       /* va->ok = GNUNET_SYSERR; will be set by validate_address! */
       va = va->next;
+      count++;
     }
+
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Found %d addresses in hello of size %d\n", count, GNUNET_HELLO_size(chvc->hello));
+#endif
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_TIME_absolute_get_remaining (chvc->
                                                                     e->timeout),
@@ -1909,8 +1964,8 @@ process_hello (struct TransportPlugin *plugin,
                       &target.hashPubKey);
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Processing `%s' message for `%4s'\n",
-              "HELLO", GNUNET_i2s (&target));
+              "Processing `%s' message for `%4s' of size %d (hsize is %d)\n",
+              "HELLO", GNUNET_i2s (&target), GNUNET_HELLO_size(hello), hsize);
 #endif
   /* check if a HELLO for this peer is already on the validation list */
   e = pending_validations;
@@ -2125,7 +2180,7 @@ static int handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
   struct TransportPingMessage *ping;
   struct TransportPongMessage *pong;
   uint16_t msize;
-
+  struct NeighborList *n;
   pong = GNUNET_malloc(sizeof(struct TransportPongMessage));
 
 #if DEBUG_TRANSPORT
@@ -2181,11 +2236,37 @@ static int handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_rsa_sign (my_private_key,
                                          &pong->purpose, &pong->signature));
+  /* Will this nonsense work, even for UDP?
+   * The idea is that we need an address to send to for UDP, but we may not know
+   * this peer yet.  So in that case, we need to create a new neighbor with the
+   * current address, but is this address going to be correct, or will it have a
+   * random high port or something? Another question is, why didn't we get a WELCOME
+   * from this peer with its advertised addresses already?  We don't want to
+   * differentiate based on transport... */
+  n = find_neighbor(peer, NULL, 0);
+  if (n == NULL)
+    {
+#if DEBUG_TRANSPORT
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Didn't find peer in list, adding...\n");
+#endif
+      setup_new_neighbor(peer, sender_address, sender_address_len);
+      n = find_neighbor(peer, sender_address, sender_address_len);
+      GNUNET_assert(n != NULL);
+    }
+  else if (n->addr == NULL)
+    {
+#if DEBUG_TRANSPORT
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Found peer in list, but without address, adding!\n");
+#endif
+      n->addr = GNUNET_malloc(sender_address_len);
+      memcpy(n->addr, sender_address, sender_address_len);
+      n->addr_len = sender_address_len;
+    }
 
-  transmit_to_peer(NULL, TRANSPORT_DEFAULT_PRIORITY, &pong->header, GNUNET_NO, find_neighbor(peer, NULL, 0));
-  /* plugin->api->send(); */ /* We can't directly send back along received address, because
-                          the port we saw for the peer (for TCP especially) will not
-                          likely be the open port on the other side! */
+  transmit_to_peer(NULL, TRANSPORT_DEFAULT_PRIORITY, &pong->header, GNUNET_NO, n);
+
   GNUNET_free(pong);
   return GNUNET_OK;
 }

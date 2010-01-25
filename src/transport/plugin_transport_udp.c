@@ -40,7 +40,7 @@
 #include "plugin_transport.h"
 #include "transport.h"
 
-#define DEBUG_UDP GNUNET_NO
+#define DEBUG_UDP GNUNET_YES
 
 /*
  * Transport cost to peer, always 1 for UDP (direct connection)
@@ -216,7 +216,16 @@ udp_plugin_send (void *cls,
   ssize_t sent;
 
   GNUNET_assert(udp_sock != NULL);
-  GNUNET_assert(addr != NULL);
+
+  if ((addr == NULL) || (addrlen == 0))
+    {
+#if DEBUG_UDP
+  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
+                   ("udp_plugin_send called without address, returning!\n"));
+#endif
+      cont (cont_cls, target, GNUNET_OK);
+      return 0; /* Can never send if we don't have an address!! */
+    }
 
   /* Build the message to be sent */
   message = GNUNET_malloc (sizeof (struct UDPMessage) + ntohs (msg->size));
@@ -243,7 +252,13 @@ udp_plugin_send (void *cls,
       if (sent == GNUNET_SYSERR)
         cont (cont_cls, target, GNUNET_SYSERR);
       else
-        cont (cont_cls, target, GNUNET_OK);
+        {
+#if DEBUG_UDP
+  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
+                   ("Sucessfully sent message, calling transmit continuation!\n"));
+#endif
+          cont (cont_cls, target, GNUNET_OK);
+        }
     }
   GNUNET_free (message);
   return sent;
@@ -405,7 +420,7 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                        ntohs (hdr->type));
 #endif
       plugin->env->receive (plugin->env->cls,
-          sender, &msg->header, UDP_DIRECT_DISTANCE, (char *)&addr, fromlen);
+          sender, hdr, UDP_DIRECT_DISTANCE, (char *)&addr, fromlen);
 
       GNUNET_free (sender);
       GNUNET_free (buf);
@@ -562,7 +577,7 @@ udp_check_address (void *cls, void *addr, size_t addrlen)
       v6 = (struct sockaddr_in6 *) buf;
       v6->sin6_port = htons (check_port (plugin, ntohs (v6->sin6_port)));
     }
-#if DEBUG_TCP
+#if DEBUG_UDP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "tcp",
                    "Informing transport service about my address `%s'.\n",
