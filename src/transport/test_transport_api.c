@@ -31,7 +31,7 @@
 #include "gnunet_transport_service.h"
 #include "transport.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define VERBOSE_ARM GNUNET_NO
 
@@ -247,6 +247,9 @@ setTransportOptions(char * filename)
 #if VERBOSE_TRANSPORT
       GNUNET_CONFIGURATION_set_value_string(tempcfg, "transport", "DEBUG", "YES");
       GNUNET_CONFIGURATION_set_value_string(tempcfg, "transport", "PREFIX", "xterm -e xterm -T transport -e gdb --args");
+#else
+      GNUNET_CONFIGURATION_set_value_string(tempcfg, "transport", "DEBUG", "NO");
+      GNUNET_CONFIGURATION_set_value_string(tempcfg, "transport", "PREFIX", "");
 #endif
 
   GNUNET_CONFIGURATION_write(tempcfg, filename);
