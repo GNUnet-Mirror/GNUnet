@@ -84,7 +84,8 @@ gnunet_search_LDADD = \
   $(GN_LIBINTL)
 
 gnunet_service_fs_SOURCES =  \
- gnunet-service-fs.c         
+ gnunet-service-fs.c \
+ gnunet-service-fs_indexing.c gnunet-service-fs_indexing.h
 gnunet_service_fs_LDADD =  \
  $(top_builddir)/src/fs/libgnunetfs.la \
  $(top_builddir)/src/datastore/libgnunetdatastore.la \
