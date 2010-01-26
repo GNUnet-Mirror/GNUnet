@@ -1746,11 +1746,11 @@ run_validation (void *cls,
   struct TransportPlugin *tp;
   struct ValidationAddress *va;
   struct GNUNET_PeerIdentity id;
-  char *pingMessage;
   int sent;
   struct TransportPingMessage *ping;
   char * message_buf;
   int hello_size;
+  int tsize;
 
   tp = find_transport (tname);
   if (tp == NULL)
@@ -1780,27 +1780,34 @@ run_validation (void *cls,
   memcpy (&va[1], addr, addrlen);
 
   hello_size = GNUNET_HELLO_size(our_hello);
-  message_buf = GNUNET_malloc(sizeof(struct TransportPingMessage) + hello_size);
-  memcpy(message_buf, &our_hello, hello_size);
+  tsize = sizeof(struct TransportPingMessage) + hello_size;
+
+  message_buf = GNUNET_malloc(tsize);
 
   ping = GNUNET_malloc(sizeof(struct TransportPingMessage));
   ping->challenge = htonl(va->challenge);
   ping->header.size = htons(sizeof(struct TransportPingMessage));
   ping->header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_PING);
   memcpy(&ping->target, &id, sizeof(struct GNUNET_PeerIdentity));
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "hello size is %d, ping size is %d, total size is %d", hello_size, sizeof(struct TransportPingMessage), tsize);
+
+  memcpy(message_buf, our_hello, hello_size);
   memcpy(&message_buf[hello_size], ping, sizeof(struct TransportPingMessage));
+
+
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending ping message to address `%s' via `%s' for `%4s'\n",
                 GNUNET_a2s (addr, addrlen), tname, GNUNET_i2s (&id));
 
 
-  sent = tp->api->send(tp->api->cls, &id, message_buf, sizeof(struct TransportPingMessage) + hello_size, GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+  sent = tp->api->send(tp->api->cls, &id, message_buf, tsize, GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                 TRANSPORT_DEFAULT_TIMEOUT, addr, addrlen, GNUNET_YES, NULL, NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transport returned %d from send!\n", sent);
 
-  GNUNET_free(pingMessage);
-
+  GNUNET_free(ping);
+  GNUNET_free(message_buf);
   return GNUNET_OK;
 }
 

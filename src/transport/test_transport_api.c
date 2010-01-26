@@ -42,7 +42,7 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 50)
 
 #define MTYPE 12345
 
@@ -68,6 +68,8 @@ static int is_tcp;
 
 static int is_udp;
 
+GNUNET_SCHEDULER_TaskIdentifier die_task;
+
 #if VERBOSE
 #define OKPP do { ok++; fprintf (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
 #else
@@ -79,12 +81,35 @@ static void
 end ()
 {
   /* do work here */
-  //GNUNET_assert (ok == 8);
+  GNUNET_assert (ok == 8);
   GNUNET_TRANSPORT_disconnect (p1.th);
   GNUNET_TRANSPORT_disconnect (p2.th);
   ok = 0;
 }
 
+static void
+stop_arm (struct PeerContext *p)
+{
+#if START_ARM
+  if (0 != PLIBC_KILL (p->arm_pid, SIGTERM))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+  GNUNET_OS_process_wait (p->arm_pid);
+#endif
+  GNUNET_CONFIGURATION_destroy (p->cfg);
+}
+
+static void
+end_badly ()
+{
+  /* do work here */
+  fprintf(stderr, "Ending on an unhappy note.\n");
+
+  GNUNET_TRANSPORT_disconnect (p1.th);
+  GNUNET_TRANSPORT_disconnect (p2.th);
+
+  ok = 1;
+  return;
+}
 
 static void
 notify_receive (void *cls,
@@ -95,14 +120,14 @@ notify_receive (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ok is (%d)!\n",
               ok);
-  //GNUNET_assert (ok == 7);
+  GNUNET_assert (ok == 7);
   OKPP;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received message of type %d from peer (%p)!\n",
                 ntohs(message->type), cls);
 
-  //GNUNET_assert (MTYPE == ntohs (message->type));
-  //GNUNET_assert (sizeof (struct GNUNET_MessageHeader) ==
-  //               ntohs (message->size));
+  GNUNET_assert (MTYPE == ntohs (message->type));
+  GNUNET_assert (sizeof (struct GNUNET_MessageHeader) ==
+                 ntohs (message->size));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received message from peer (%p)!\n",
               cls);
   end ();
@@ -158,8 +183,8 @@ notify_ready (void *cls, size_t size, void *buf)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transmitting message to peer (%p) - %u!\n", cls, size);
-  //GNUNET_assert (size >= 256);
-  //GNUNET_assert ((ok >= 5) && (ok <= 6));
+  GNUNET_assert (size >= 256);
+  GNUNET_assert ((ok >= 5) && (ok <= 6));
   OKPP;
   if (buf != NULL)
   {
@@ -168,8 +193,7 @@ notify_ready (void *cls, size_t size, void *buf)
     hdr->type = htons (MTYPE);
   }
 
-  return 0;
-  //return sizeof (struct GNUNET_MessageHeader);
+  return sizeof (struct GNUNET_MessageHeader);
 }
 
 
@@ -217,6 +241,9 @@ exchange_hello (void *cls,
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
                                       message, &me->id));
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received HELLO size %d\n", GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message));
+
   GNUNET_TRANSPORT_offer_hello (p2.th, message);
 
   GNUNET_TRANSPORT_get_hello (p2.th, &exchange_hello_last, &p2);
@@ -253,6 +280,8 @@ setTransportOptions(char * filename)
 #endif
 
   GNUNET_CONFIGURATION_write(tempcfg, filename);
+
+  GNUNET_CONFIGURATION_destroy(tempcfg);
   return;
 }
 
@@ -269,21 +298,13 @@ run (void *cls,
   setTransportOptions("test_transport_api_peer1.conf");
   setTransportOptions("test_transport_api_peer2.conf");
 
+  die_task = GNUNET_SCHEDULER_add_delayed (sched,
+      GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 1), &end_badly, NULL);
+
   setup_peer (&p1, "test_transport_api_peer1.conf");
   setup_peer (&p2, "test_transport_api_peer2.conf");
+
   GNUNET_TRANSPORT_get_hello (p1.th, &exchange_hello, &p1);
-}
-
-
-static void
-stop_arm (struct PeerContext *p)
-{
-#if START_ARM
-  if (0 != PLIBC_KILL (p->arm_pid, SIGTERM))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  GNUNET_OS_process_wait (p->arm_pid);
-#endif
-  GNUNET_CONFIGURATION_destroy (p->cfg);
 }
 
 static int
