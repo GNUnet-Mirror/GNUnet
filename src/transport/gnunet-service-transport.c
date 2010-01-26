@@ -1110,9 +1110,11 @@ try_transmission_to_peer (struct NeighborList *neighbor)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("try_transmission_to_peer pre-send: at this point rl->neighbor->addr is NOT NULL, addrlen is %d\n"), rl->neighbor->addr_len);
   else
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("try_transmission_to_peer pre-send: at this point rl->neighbor->addr is NULL\n"));
+  /* FIXME: Change MessageQueue to hold message buffer and size? */
   rl->plugin->api->send (rl->plugin->api->cls,
                          &neighbor->id,
-                         mq->message,
+                         (char *)mq->message,
+                         ntohs(mq->message->size),
                          mq->priority,
                          GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                          rl->neighbor->addr,
@@ -1556,7 +1558,9 @@ cleanup_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           GNUNET_PEERINFO_add_peer (cfg, sched, &pid, hello);
           n = find_neighbor (&pid, NULL, 0);
           if (NULL != n)
-            try_transmission_to_peer (n);
+            {
+              try_transmission_to_peer (n);
+            }
           GNUNET_free (hello);
           while (NULL != (va = pos->addresses))
             {
@@ -1592,21 +1596,6 @@ cleanup_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
 }
 
-
-static struct GNUNET_MessageHeader *
-createPingMessage (struct GNUNET_PeerIdentity * target, struct ValidationAddress *va)
-{
-
-  struct TransportPingMessage *ping;
-  ping = GNUNET_malloc(sizeof(struct TransportPingMessage));
-
-  ping->challenge = htonl(va->challenge);
-  ping->header.size = sizeof(struct TransportPingMessage);
-  ping->header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_PING);
-  memcpy(&ping->target, target, sizeof(struct GNUNET_PeerIdentity));
-
-  return &ping->header;
-}
 
 /**
  * Function that will be called if we receive a validation
@@ -1757,8 +1746,12 @@ run_validation (void *cls,
   struct TransportPlugin *tp;
   struct ValidationAddress *va;
   struct GNUNET_PeerIdentity id;
-  struct GNUNET_MessageHeader *pingMessage;
+  char *pingMessage;
   int sent;
+  struct TransportPingMessage *ping;
+  char * message_buf;
+  int hello_size;
+
   tp = find_transport (tname);
   if (tp == NULL)
     {
@@ -1786,13 +1779,22 @@ run_validation (void *cls,
                                             (unsigned int) -1);
   memcpy (&va[1], addr, addrlen);
 
-  pingMessage = createPingMessage(&id, va);
+  hello_size = GNUNET_HELLO_size(our_hello);
+  message_buf = GNUNET_malloc(sizeof(struct TransportPingMessage) + hello_size);
+  memcpy(message_buf, &our_hello, hello_size);
+
+  ping = GNUNET_malloc(sizeof(struct TransportPingMessage));
+  ping->challenge = htonl(va->challenge);
+  ping->header.size = htons(sizeof(struct TransportPingMessage));
+  ping->header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_PING);
+  memcpy(&ping->target, &id, sizeof(struct GNUNET_PeerIdentity));
+  memcpy(&message_buf[hello_size], ping, sizeof(struct TransportPingMessage));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending ping message to address `%s' via `%s' for `%4s'\n",
                 GNUNET_a2s (addr, addrlen), tname, GNUNET_i2s (&id));
 
 
-  sent = tp->api->send(tp->api->cls, &id, pingMessage, GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+  sent = tp->api->send(tp->api->cls, &id, message_buf, sizeof(struct TransportPingMessage) + hello_size, GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                 TRANSPORT_DEFAULT_TIMEOUT, addr, addrlen, GNUNET_YES, NULL, NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transport returned %d from send!\n", sent);
@@ -1814,6 +1816,8 @@ run_validation (void *cls,
  * the address via the transport plugin.  If not validated, then
  * do not count this as a good peer/address...
  *
+ * Currently this function is not used, ping/pongs get sent from the
+ * run_validation function.  Haven't decided yet how to do this.
  */
 static void
 validate_address (void *cls, struct ValidationAddress *va,

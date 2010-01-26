@@ -566,7 +566,8 @@ disconnect_session (struct Session *session)
 static ssize_t
 tcp_plugin_send (void *cls,
                  const struct GNUNET_PeerIdentity *target,
-                 const struct GNUNET_MessageHeader *msg,
+                 char *msg,
+                 size_t msgbuf_size,
                  uint32_t priority,
                  struct GNUNET_TIME_Relative timeout,
 		 const void *addr,
@@ -582,7 +583,7 @@ tcp_plugin_send (void *cls,
   int af;
   uint16_t mlen;
 
-  mlen = ntohs (msg->size);
+  mlen = msgbuf_size;
   session = find_session_by_target (plugin, target);
   if ( (session != NULL) && ((GNUNET_YES == force_address) &&
        ( (session->connect_alen != addrlen) ||

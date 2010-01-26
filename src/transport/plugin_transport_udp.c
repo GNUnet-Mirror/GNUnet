@@ -183,7 +183,8 @@ udp_transport_server_stop (void *cls)
  *
  * @param cls closure
  * @param target who should receive this message (ignored by UDP)
- * @param msg the message to transmit
+ * @param msgbuf one or more GNUNET_MessageHeader(s) strung together
+ * @param msgbufsize the size of the msgbuf to send
  * @param priority how important is the message (ignored by UDP)
  * @param timeout when should we time out (give up) if we can not transmit?
  * @param addr the addr to send the message to, needs to be a sockaddr for us
@@ -202,7 +203,8 @@ udp_transport_server_stop (void *cls)
 static ssize_t
 udp_plugin_send (void *cls,
                  const struct GNUNET_PeerIdentity *target,
-                 const struct GNUNET_MessageHeader *msg,
+                 char *msgbuf,
+                 size_t msgbuf_size,
                  unsigned int priority,
                  struct GNUNET_TIME_Relative timeout,
                  const void *addr,
@@ -228,8 +230,8 @@ udp_plugin_send (void *cls,
     }
 
   /* Build the message to be sent */
-  message = GNUNET_malloc (sizeof (struct UDPMessage) + ntohs (msg->size));
-  ssize = sizeof (struct UDPMessage) + ntohs (msg->size);
+  message = GNUNET_malloc (sizeof (struct UDPMessage) + msgbuf_size);
+  ssize = sizeof (struct UDPMessage) + msgbuf_size;
 
 #if DEBUG_UDP
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
@@ -239,7 +241,7 @@ udp_plugin_send (void *cls,
   message->header.type = htons (0);
   memcpy (&message->sender, plugin->env->my_identity,
           sizeof (struct GNUNET_PeerIdentity));
-  memcpy (&message[1], msg, ntohs (msg->size));
+  memcpy (&message[1], msgbuf, msgbuf_size);
 
   /* Actually send the message */
   sent =
@@ -353,6 +355,9 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   socklen_t fromlen;
   struct sockaddr_storage addr;
   ssize_t ret;
+  int offset;
+  int count;
+  const struct GNUNET_MessageHeader *currhdr;
 
   do
     {
@@ -419,8 +424,20 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                        ("msg reports message type of %d\n"),
                        ntohs (hdr->type));
 #endif
-      plugin->env->receive (plugin->env->cls,
-          sender, hdr, UDP_DIRECT_DISTANCE, (char *)&addr, fromlen);
+      offset = 0;
+      count = 0;
+      while (offset < (ntohs (msg->header.size) - sizeof(struct UDPMessage)))
+        {
+          currhdr = &hdr[offset];
+#if DEBUG_UDP
+      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
+                       ("processing msg %d: type %d, size %d at offset %d\n"),
+                       count, offset, ntohs(currhdr->size), ntohs(currhdr->type));
+#endif
+          plugin->env->receive (plugin->env->cls,
+              sender, currhdr, UDP_DIRECT_DISTANCE, (char *)&addr, fromlen);
+          offset += ntohs(currhdr->size);
+        }
 
       GNUNET_free (sender);
       GNUNET_free (buf);
