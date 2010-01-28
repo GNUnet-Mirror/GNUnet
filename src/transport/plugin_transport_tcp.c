@@ -38,7 +38,7 @@
 #include "plugin_transport.h"
 #include "transport.h"
 
-#define DEBUG_TCP GNUNET_YES
+#define DEBUG_TCP GNUNET_NO
 
 /**
  * How long until we give up on transmitting the welcome message?
@@ -1110,6 +1110,7 @@ handle_tcp_data (void *cls,
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "tcp", "Received a welcome, NOT sending to clients!\n");
 #endif
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return; /* We don't want to propagate WELCOME messages up! */
   }
   else
