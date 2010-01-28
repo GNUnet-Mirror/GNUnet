@@ -97,6 +97,98 @@
 
 
 /**
+ * List of addresses of other peers
+ */
+struct PeerAddressList
+{
+  /**
+   * This is a linked list.
+   */
+  struct PeerAddressList *next;
+
+  /*
+   * Pointer to the validation associated with this
+   * address.  May be NULL if already validated!
+   */
+  struct ValidationAddress *validation;
+
+  /**
+   * Which of our transport plugins does this entry
+   * belong to?
+   */
+  struct TransportPlugin *plugin;
+
+  /**
+   * Neighbor this entry belongs to.
+   */
+  struct NeighborList *neighbor;
+
+  /*
+   * Ready list (transport) that this peer belongs to
+   */
+  struct ReadyList *ready_list;
+  /**
+   * How long until we auto-expire this address (unless it is
+   * re-confirmed by the transport)?
+   */
+  struct GNUNET_TIME_Absolute expires;
+
+  /**
+   * Length of addr.
+   */
+  size_t addrlen;
+
+  /**
+   * The address
+   */
+  char *addr;
+
+  /**
+   * Is this plugin ready to transmit to the specific target?
+   * GNUNET_NO if not.  Initially, all plugins are marked ready.  If a
+   * transmission is in progress, "transmit_ready" is set to
+   * GNUNET_NO.
+   */
+  int transmit_ready;
+
+  /**
+   * What was the last latency observed for this plugin
+   * and peer?  Invalid if connected is GNUNET_NO.
+   */
+  struct GNUNET_TIME_Relative latency;
+
+  /**
+   * If we did not successfully transmit a message to the given peer
+   * via this connection during the specified time, we should consider
+   * the connection to be dead.  This is used in the case that a TCP
+   * transport simply stalls writing to the stream but does not
+   * formerly get a signal that the other peer died.
+   */
+  struct GNUNET_TIME_Absolute timeout;
+
+  /**
+   * Is this plugin currently connected?  The first time
+   * we transmit or send data to a peer via a particular
+   * plugin, we set this to GNUNET_YES.  If we later get
+   * an error (disconnect notification or transmission
+   * failure), we set it back to GNUNET_NO.  Each time the
+   * value is set to GNUNET_YES, we increment the
+   * "connect_attempts" counter.  If that one reaches a
+   * particular threshold, we consider the plugin to not
+   * be working properly at this time for the given peer
+   * and remove it from the eligible list.
+   */
+  int connected;
+
+  /**
+   * How often have we tried to connect using this plugin?
+   */
+  unsigned int connect_attempts;
+
+};
+
+
+/**
  * Entry in linked list of network addresses.
  */
 struct AddressList
@@ -195,13 +287,19 @@ struct MessageQueue
   struct MessageQueue *next;
 
   /**
-   * The message we want to transmit.
+   * The message(s) we want to transmit, GNUNET_MessageHeader(s)
+   * stuck together in memory.
    */
-  struct GNUNET_MessageHeader *message;
+  char *message_buf;
+
+  /*
+   * Size of the message buf
+   */
+  size_t message_buf_size;
 
   /**
    * Client responsible for queueing the message;
-   * used to check that a client has not two messages
+   * used to check that a client has no two messages
    * pending for the same target.  Can be NULL.
    */
   struct TransportClient *client;
@@ -231,6 +329,11 @@ struct MessageQueue
    */
   unsigned int priority;
 
+  /*
+   * Using which specific address should we send this message?
+   */
+  struct PeerAddressList *specific_peer;
+
 };
 
 
@@ -240,7 +343,6 @@ struct MessageQueue
  */
 struct ReadyList
 {
-
   /**
    * This is a linked list.
    */
@@ -257,39 +359,11 @@ struct ReadyList
    */
   struct NeighborList *neighbor;
 
-  /**
-   * What was the last latency observed for this plugin
-   * and peer?  Invalid if connected is GNUNET_NO.
+  /*
+   * Transport addresses, latency, and readiness for
+   * this particular plugin.
    */
-  struct GNUNET_TIME_Relative latency;
-
-  /**
-   * If we did not successfully transmit a message to the given peer
-   * via this connection during the specified time, we should consider
-   * the connection to be dead.  This is used in the case that a TCP
-   * transport simply stalls writing to the stream but does not
-   * formerly get a signal that the other peer died.
-   */
-  struct GNUNET_TIME_Absolute timeout;
-
-  /**
-   * Is this plugin currently connected?  The first time
-   * we transmit or send data to a peer via a particular
-   * plugin, we set this to GNUNET_YES.  If we later get
-   * an error (disconnect notification or transmission
-   * failure), we set it back to GNUNET_NO.  Each time the
-   * value is set to GNUNET_YES, we increment the
-   * "connect_attempts" counter.  If that one reaches a
-   * particular threshold, we consider the plugin to not
-   * be working properly at this time for the given peer
-   * and remove it from the eligible list.
-   */
-  int connected;
-
-  /**
-   * How often have we tried to connect using this plugin?
-   */
-  unsigned int connect_attempts;
+  struct PeerAddressList *addresses;
 
   /**
    * Is this plugin ready to transmit to the specific target?
@@ -297,8 +371,12 @@ struct ReadyList
    * transmission is in progress, "transmit_ready" is set to
    * GNUNET_NO.
    */
-  int transmit_ready;
+  int plugin_transmit_ready;
 
+  /*
+   * Are any of our PeerAddressList addresses still connected?
+   */
+  int connected; /* FIXME: dynamically check PeerAddressList addresses when asked to! */
 };
 
 
@@ -329,16 +407,6 @@ struct NeighborList
    * Identity of this neighbor.
    */
   struct GNUNET_PeerIdentity id;
-
-  /*
-   * Opaque addr of this peer, only known to the plugin
-   */
-  char *addr;
-
-  /*
-   * Size of addr
-   */
-  size_t addr_len;
 
   /**
    * ID of task scheduled to run when this peer is about to
@@ -388,7 +456,7 @@ struct NeighborList
    * (used to make up a fake ACK for clients connecting after
    * the neighbor connected to us).
    */
-  int saw_ack;
+  int received_pong;
 
   /* The latency we have seen for this particular address for
    * this particular peer.  This latency may have been calculated
@@ -472,6 +540,11 @@ struct TransportPongMessage
    */
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded signer;
 
+  /*
+   * Size of address appended to this message
+   */
+  size_t addrlen;
+
 };
 
 /**
@@ -543,6 +616,11 @@ struct ValidationAddress
    */
   struct ValidationAddress *next;
 
+  /*
+   * What peer_address does this validation belong to?
+   */
+  struct PeerAddressList *peer_address;
+
   /**
    * Name of the transport.
    */
@@ -553,10 +631,10 @@ struct ValidationAddress
    */
   struct GNUNET_TIME_Absolute expiration;
 
-  /**
-   * Length of the address we are validating.
+  /*
+   * At what time did we send this validation?
    */
-  size_t addr_len;
+  struct GNUNET_TIME_Absolute send_time;
 
   /**
    * Challenge number we used.
@@ -601,6 +679,33 @@ struct ValidationList
   struct GNUNET_TIME_Absolute timeout;
 
 };
+
+
+struct CheckHelloValidatedContext
+{
+  /**
+   * Plugin for which we are validating.
+   */
+  struct TransportPlugin *plugin;
+
+  /**
+   * Hello that we are validating.
+   */
+  struct GNUNET_HELLO_Message *hello;
+
+  /**
+   * Validation list being built.
+   */
+  struct ValidationList *e;
+
+  /**
+   * Context for peerinfo iteration.
+   * NULL after we are done processing peerinfo's information.
+   */
+  struct GNUNET_PEERINFO_IteratorContext *piter;
+
+};
+
 
 
 /**
@@ -670,6 +775,31 @@ static struct NeighborList *neighbors;
  */
 static uint32_t max_connect_per_transport;
 
+/**
+ * The peer specified by the given neighbor has timed-out or a plugin
+ * has disconnected.  We may either need to do nothing (other plugins
+ * still up), or trigger a full disconnect and clean up.  This
+ * function updates our state and do the necessary notifications.
+ * Also notifies our clients that the neighbor is now officially
+ * gone.
+ *
+ * @param n the neighbor list entry for the peer
+ * @param check should we just check if all plugins
+ *        disconnected or must we ask all plugins to
+ *        disconnect?
+ */
+static void disconnect_neighbor (struct NeighborList *n, int check);
+
+
+/**
+ * Check the ready list for the given neighbor and
+ * if a plugin is ready for transmission (and if we
+ * have a message), do so!
+ *
+ * @param neighbor target peer for which to check the plugins
+ */
+static ssize_t try_transmission_to_peer (struct NeighborList *neighbor);
+
 
 /**
  * Find an entry in the neighbor list for a particular peer.
@@ -680,24 +810,14 @@ static uint32_t max_connect_per_transport;
  * @return NULL if not found.
  */
 static struct NeighborList *
-find_neighbor (const struct GNUNET_PeerIdentity *key, const char *sender_address,
-    size_t sender_address_len)
+find_neighbor (const struct GNUNET_PeerIdentity *key)
 {
   struct NeighborList *head = neighbors;
-  if (sender_address == NULL)
-    {
-      while ((head != NULL) &&
-            (0 != memcmp (key, &head->id, sizeof (struct GNUNET_PeerIdentity))))
-        head = head->next;
-    }
-    else
-    {
-      while ((head != NULL) &&
-             (0 != memcmp (key, &head->id, sizeof (struct GNUNET_PeerIdentity))) &&
-             (sender_address_len != head->addr_len) &&
-             (0 != memcmp (sender_address, &head->addr, head->addr_len)))
-        head = head->next;
-    }
+
+  while ((head != NULL) &&
+        (0 != memcmp (key, &head->id, sizeof (struct GNUNET_PeerIdentity))))
+    head = head->next;
+
   return head;
 }
 
@@ -904,40 +1024,15 @@ try_alternative_plugins (struct NeighborList *neighbor)
     = GNUNET_TIME_relative_to_absolute (PLUGIN_RETRY_FREQUENCY);
 
   rl = neighbor->plugins;
+#if WTF /* FIXME: What is this supposed to do? */
   while (rl != NULL)
     {
       if (rl->connect_attempts > 0)
         rl->connect_attempts--; /* amnesty */
       rl = rl->next;
     }
-
+#endif
 }
-
-
-/**
- * The peer specified by the given neighbor has timed-out or a plugin
- * has disconnected.  We may either need to do nothing (other plugins
- * still up), or trigger a full disconnect and clean up.  This
- * function updates our state and do the necessary notifications.
- * Also notifies our clients that the neighbor is now officially
- * gone.
- *
- * @param n the neighbor list entry for the peer
- * @param check should we just check if all plugins
- *        disconnected or must we ask all plugins to
- *        disconnect?
- */
-static void disconnect_neighbor (struct NeighborList *n, int check);
-
-
-/**
- * Check the ready list for the given neighbor and
- * if a plugin is ready for transmission (and if we
- * have a message), do so!
- *
- * @param neighbor target peer for which to check the plugins
- */
-static void try_transmission_to_peer (struct NeighborList *neighbor);
 
 
 /**
@@ -976,7 +1071,7 @@ transmit_send_continuation (void *cls,
   GNUNET_assert (rl != NULL);
   if (result == GNUNET_OK)
     {
-      rl->timeout =
+      mq->specific_peer->timeout =
         GNUNET_TIME_relative_to_absolute
         (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
     }
@@ -985,19 +1080,21 @@ transmit_send_continuation (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Transmission to peer `%s' failed, marking connection as down.\n",
                   GNUNET_i2s (target));
-      rl->connected = GNUNET_NO;
+      mq->specific_peer->connected = GNUNET_NO;
     }
   if (!mq->internal_msg)
     {
+#if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Setting transmit_ready on transport!\n");
-      rl->transmit_ready = GNUNET_YES;
+#endif
+      mq->specific_peer->transmit_ready = GNUNET_YES;
     }
 
   if (mq->client != NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Notifying client %p about failed transission to peer `%4s'.\n",
+                  "Notifying client %p about transmission to peer `%4s'.\n",
                   mq->client, GNUNET_i2s (target));
       send_ok_msg.header.size = htons (sizeof (send_ok_msg));
       send_ok_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
@@ -1005,7 +1102,7 @@ transmit_send_continuation (void *cls,
       send_ok_msg.peer = n->id;
       transmit_to_client (mq->client, &send_ok_msg.header, GNUNET_NO);
     }
-  GNUNET_free (mq->message);
+  GNUNET_free (mq->message_buf);
   GNUNET_free (mq);
   /* one plugin just became ready again, try transmitting
      another message (if available) */
@@ -1016,38 +1113,39 @@ transmit_send_continuation (void *cls,
 }
 
 
-/**
- * Check the ready list for the given neighbor and
- * if a plugin is ready for transmission (and if we
- * have a message), do so!
- */
-static void
-try_transmission_to_peer (struct NeighborList *neighbor)
+
+
+struct PeerAddressList *
+find_ready_address(struct NeighborList *neighbor)
 {
-  struct ReadyList *pos;
-  struct GNUNET_TIME_Relative min_latency;
-  struct ReadyList *rl;
-  struct MessageQueue *mq;
-  struct GNUNET_TIME_Absolute now;
-
-  if (neighbor->addr != NULL)
+  struct ReadyList *head = neighbor->plugins;
+  struct PeerAddressList *addresses;
+  while (head != NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-          _("try_transmission_to_peer entry: at this point neighbor->addr is NOT NULL\n"));
-    }
-  else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("try_transmission_to_peer entry: at this point neighbor->addr is NULL\n"));
-    }
+      addresses = head->addresses;
+      while ((addresses != NULL) &&
+             ((addresses->connected != GNUNET_YES) ||
+             (addresses->transmit_ready != GNUNET_YES)))
+        {
+          addresses = addresses->next;
+        }
 
-  if (neighbor->messages == NULL)
-    return;                     /* nothing to do */
-  try_alternative_plugins (neighbor);
-  min_latency = GNUNET_TIME_UNIT_FOREVER_REL;
-  rl = NULL;
-  mq = neighbor->messages;
-  now = GNUNET_TIME_absolute_get ();
-  pos = neighbor->plugins;
+      if (addresses != NULL)
+        {
+#if DEBUG_TRANSPORT
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Found ready address, connected is %d\n",
+                      addresses->connected);
+#endif
+          return addresses;
+        }
+
+
+      head = head->next;
+    }
+  return NULL;
+
+#if 0 /* Do some checks to keep everything sane, return lowest latency connection */
   while (pos != NULL)
     {
       /* set plugins that are inactive for a long time back to disconnected */
@@ -1077,50 +1175,65 @@ try_transmission_to_peer (struct NeighborList *neighbor)
         }
       pos = pos->next;
     }
-  if (rl == NULL)
+#endif
+}
+
+/**
+ * Check the ready list for the given neighbor and
+ * if a plugin is ready for transmission (and if we
+ * have a message), do so!
+ */
+static ssize_t
+try_transmission_to_peer (struct NeighborList *neighbor)
+{
+  struct GNUNET_TIME_Relative min_latency;
+  struct ReadyList *rl;
+  struct MessageQueue *mq;
+  struct GNUNET_TIME_Absolute now;
+
+  if (neighbor->messages == NULL)
+    return 0;                     /* nothing to do */
+  try_alternative_plugins (neighbor);
+  min_latency = GNUNET_TIME_UNIT_FOREVER_REL;
+  rl = NULL;
+  mq = neighbor->messages;
+  now = GNUNET_TIME_absolute_get ();
+
+  if (mq->specific_peer == NULL)
+    mq->specific_peer = find_ready_address(neighbor); /* Find first available (or best!) address to transmit to */
+
+  if (mq->specific_peer == NULL)
     {
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "No plugin ready to transmit message\n");
 #endif
-      return;                   /* nobody ready */
+      return 0;                   /* nobody ready */
     }
-  if (GNUNET_NO == rl->connected)
-    {
-      rl->connect_attempts++;
-      rl->connected = GNUNET_YES;
-#if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Establishing fresh connection with `%4s' via plugin `%s'\n",
-                  GNUNET_i2s (&neighbor->id), rl->plugin->short_name);
-#endif
-    }
+
+  rl = mq->specific_peer->ready_list;
   neighbor->messages = mq->next;
   mq->plugin = rl->plugin;
   if (!mq->internal_msg)
-    rl->transmit_ready = GNUNET_NO;
+    mq->specific_peer->transmit_ready = GNUNET_NO;
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Giving message of type `%u' for `%4s' to plugin `%s'\n",
-              ntohs (mq->message->type),
+              "Giving message of size `%u' for `%4s' to plugin `%s'\n",
+              mq->message_buf_size,
               GNUNET_i2s (&neighbor->id), rl->plugin->short_name);
 #endif
 
-  if (rl->neighbor->addr != NULL)
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("try_transmission_to_peer pre-send: at this point rl->neighbor->addr is NOT NULL, addrlen is %d\n"), rl->neighbor->addr_len);
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("try_transmission_to_peer pre-send: at this point rl->neighbor->addr is NULL\n"));
-  /* FIXME: Change MessageQueue to hold message buffer and size? */
-  rl->plugin->api->send (rl->plugin->api->cls,
+  return rl->plugin->api->send (rl->plugin->api->cls,
                          &neighbor->id,
-                         (char *)mq->message,
-                         ntohs(mq->message->size),
+                         mq->message_buf,
+                         mq->message_buf_size,
                          mq->priority,
                          GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-                         rl->neighbor->addr,
-                         rl->neighbor->addr_len,
+                         mq->specific_peer->addr,
+                         mq->specific_peer->addrlen,
                          GNUNET_NO,
                          &transmit_send_continuation, mq);
+
 }
 
 
@@ -1128,28 +1241,25 @@ try_transmission_to_peer (struct NeighborList *neighbor)
  * Send the specified message to the specified peer.
  *
  * @param client source of the transmission request (can be NULL)
+ * @param peer_address PeerAddressList where we should send this message
  * @param priority how important is the message
- * @param msg message to send
+ * @param message_buf message(s) to send GNUNET_MessageHeader(s)
+ * @param message_buf_size total size of all messages in message_buf
  * @param is_internal is this an internal message
  * @param neighbor handle to the neighbor for transmission
  */
-static void
+static ssize_t
 transmit_to_peer (struct TransportClient *client,
+                  struct PeerAddressList *peer_address,
                   unsigned int priority,
-                  const struct GNUNET_MessageHeader *msg,
+                  const char *message_buf,
+                  size_t message_buf_size,
                   int is_internal, struct NeighborList *neighbor)
 {
   struct MessageQueue *mq;
   struct MessageQueue *mqe;
-  struct GNUNET_MessageHeader *m;
+  char *m;
 
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("Sending message of type %u to peer `%4s'\n"),
-              ntohs (msg->type), GNUNET_i2s (&neighbor->id));
-  if (neighbor->addr != NULL)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("transmit_to_peer: at this point neighbor->addr is NOT NULL\n"));
-#endif
   if (client != NULL)
     {
       /* check for duplicate submission */
@@ -1161,16 +1271,18 @@ transmit_to_peer (struct TransportClient *client,
               /* client transmitted to same peer twice
                  before getting SendOk! */
               GNUNET_break (0);
-              return;
+              return 0;
             }
           mq = mq->next;
         }
     }
   mq = GNUNET_malloc (sizeof (struct MessageQueue));
+  mq->specific_peer = peer_address;
   mq->client = client;
-  m = GNUNET_malloc (ntohs (msg->size));
-  memcpy (m, msg, ntohs (msg->size));
-  mq->message = m;
+  m = GNUNET_malloc (message_buf_size);
+  memcpy (m, message_buf, message_buf_size);
+  mq->message_buf = m;
+  mq->message_buf_size = message_buf_size;
   mq->neighbor = neighbor;
   mq->internal_msg = is_internal;
   mq->priority = priority;
@@ -1190,7 +1302,7 @@ transmit_to_peer (struct TransportClient *client,
       /* append */
       mqe->next = mq;
     }
-  try_transmission_to_peer (neighbor);
+  return try_transmission_to_peer (neighbor);
 }
 
 
@@ -1221,16 +1333,9 @@ address_generator (void *cls, size_t max, void *buf)
     }
   if (NULL == gc->plug_pos)
     {
-#if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "In address_generator, gc->plug_pos is NULL!\n");
-#endif
+
       return 0;
     }
-#if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Should be adding an address...\n");
-#endif
   ret = GNUNET_HELLO_add_address (gc->plug_pos->short_name,
                                   gc->expiration,
                                   gc->addr_pos->addr,
@@ -1252,10 +1357,6 @@ refresh_hello ()
   struct NeighborList *npos;
   struct GeneratorContext gc;
 
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-              "Refreshing my `%s'\n", "HELLO");
-#endif
   gc.plug_pos = plugins;
   gc.addr_pos = plugins != NULL ? plugins->addresses : NULL;
   gc.expiration = GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
@@ -1284,10 +1385,10 @@ refresh_hello ()
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                   "Transmitting updated `%s' to neighbor `%4s'\n",
                   "HELLO", GNUNET_i2s (&npos->id));
-#endif
-      transmit_to_peer (NULL, 0,
-                        (const struct GNUNET_MessageHeader *) our_hello,
-                        GNUNET_YES, npos);
+#endif // FIXME: just testing
+      //transmit_to_peer (NULL, NULL, 0,
+      //                  (const char *) our_hello, GNUNET_HELLO_size(our_hello),
+      //                  GNUNET_YES, npos);
       npos = npos->next;
     }
 }
@@ -1417,11 +1518,7 @@ plugin_env_notify_address (void *cls,
         }
       al = al->next;
     }
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Plugin `%s' informs us about a new address `%s'\n", name,
-              GNUNET_a2s (addr, addrlen));
-#endif
+
   al = GNUNET_malloc (sizeof (struct AddressList) + addrlen);
   al->addr = &al[1];
   al->next = p->addresses;
@@ -1443,11 +1540,6 @@ notify_clients_connect (const struct GNUNET_PeerIdentity *peer,
   struct ConnectInfoMessage cim;
   struct TransportClient *cpos;
 
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Informing clients about peer `%4s' connecting to us\n",
-              GNUNET_i2s (peer));
-#endif
   cim.header.size = htons (sizeof (struct ConnectInfoMessage));
   cim.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
   cim.quota_out = htonl (GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT / (60 * 1000));
@@ -1471,11 +1563,6 @@ notify_clients_disconnect (const struct GNUNET_PeerIdentity *peer)
   struct DisconnectInfoMessage dim;
   struct TransportClient *cpos;
 
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Informing clients about peer `%4s' disconnecting\n",
-              GNUNET_i2s (peer));
-#endif
   dim.header.size = htons (sizeof (struct DisconnectInfoMessage));
   dim.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT);
   dim.reserved = htonl (0);
@@ -1507,7 +1594,7 @@ list_validated_addresses (void *cls, size_t max, void *buf)
     return 0;
   ret = GNUNET_HELLO_add_address ((*va)->transport_name,
                                   (*va)->expiration,
-                                  &(*va)[1], (*va)->addr_len, buf, max);
+                                  (*va)->peer_address->addr, (*va)->peer_address->addrlen, buf, max);
   *va = (*va)->next;
   return ret;
 }
@@ -1528,10 +1615,6 @@ cleanup_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_PeerIdentity pid;
   struct NeighborList *n;
 
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-              "HELLO validation cleanup background task running...\n");
-#endif
   now = GNUNET_TIME_absolute_get ();
   prev = NULL;
   pos = pending_validations;
@@ -1556,7 +1639,7 @@ cleanup_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                       "HELLO", GNUNET_i2s (&pid));
 #endif
           GNUNET_PEERINFO_add_peer (cfg, sched, &pid, hello);
-          n = find_neighbor (&pid, NULL, 0);
+          n = find_neighbor (&pid);
           if (NULL != n)
             {
               try_transmission_to_peer (n);
@@ -1663,13 +1746,18 @@ handle_pong (void *cls, const struct GNUNET_MessageHeader *message,
 #endif
           GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
                       _
-                      ("Another peer saw us using the address `%s' via `FIXME'. If this is not plausible, this address should be listed in the configuration as implausible to avoid MiM attacks.\n"),
-                      GNUNET_a2s ((const struct sockaddr *) &va[1],
-                                                           va->addr_len));
+                      ("Another peer saw us using the address `%s' via `%s'. If this is not plausible, this address should be listed in the configuration as implausible to avoid MiM attacks.\n"),
+                      GNUNET_a2s ((const struct sockaddr *) &pong[1],
+                                                           ntohs(pong->addrlen)), va->transport_name);
           va->ok = GNUNET_YES;
           va->expiration =
             GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
           matched = GNUNET_YES;
+          va->peer_address->connected = GNUNET_YES;
+          va->peer_address->latency = GNUNET_TIME_absolute_get_difference(GNUNET_TIME_absolute_get(), va->send_time);
+          va->peer_address->transmit_ready = GNUNET_YES;
+          va->peer_address->expires = GNUNET_TIME_relative_to_absolute
+              (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
         }
       if (va->ok != GNUNET_YES)
         not_done++;
@@ -1695,42 +1783,143 @@ handle_pong (void *cls, const struct GNUNET_MessageHeader *message,
                                           GNUNET_SCHEDULER_PRIORITY_IDLE,
                                           &cleanup_validation, NULL);
     }
-  else
+
+}
+
+/**
+ * Add an entry for each of our transport plugins
+ * (that are able to send) to the list of plugins
+ * for this neighbor.
+ *
+ * @param neighbor to initialize
+ */
+static void
+add_plugins (struct NeighborList *neighbor)
+{
+  struct TransportPlugin *tp;
+  struct ReadyList *rl;
+
+  neighbor->retry_plugins_time
+    = GNUNET_TIME_relative_to_absolute (PLUGIN_RETRY_FREQUENCY);
+  tp = plugins;
+  while (tp != NULL)
     {
-#if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Still waiting for %u additional `%s' messages before constructing `%s' for `%4s'.\n",
-                  not_done, "PONG", "HELLO", GNUNET_i2s (peer));
-#endif
+      if (tp->api->send != NULL)
+        {
+          rl = GNUNET_malloc (sizeof (struct ReadyList));
+          rl->next = neighbor->plugins;
+          neighbor->plugins = rl;
+          rl->plugin = tp;
+          rl->neighbor = neighbor;
+          rl->addresses = NULL;
+        }
+      tp = tp->next;
     }
 }
 
-
-struct CheckHelloValidatedContext
+static void
+neighbor_timeout_task (void *cls,
+                        const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  /**
-   * Plugin for which we are validating.
-   */
-  struct TransportPlugin *plugin;
+  struct NeighborList *n = cls;
 
-  /**
-   * Hello that we are validating.
-   */
-  struct GNUNET_HELLO_Message *hello;
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+              "Neighbor `%4s' has timed out!\n", GNUNET_i2s (&n->id));
+#endif
+  n->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  disconnect_neighbor (n, GNUNET_NO);
+}
 
-  /**
-   * Validation list being build.
-   */
-  struct ValidationList *e;
+/**
+ * Create a fresh entry in our neighbor list for the given peer.
+ * Will try to transmit our current HELLO to the new neighbor.  Also
+ * notifies our clients about the new "connection".
+ *
+ * @param peer the peer for which we create the entry
+ * @return the new neighbor list entry
+ */
+static struct NeighborList *
+setup_new_neighbor (const struct GNUNET_PeerIdentity *peer)
+{
+  struct NeighborList *n;
 
-  /**
-   * Context for peerinfo iteration.
-   * NULL after we are done processing peerinfo's information.
-   */
-  struct GNUNET_PEERINFO_IteratorContext *piter;
+  GNUNET_assert (our_hello != NULL);
+  n = GNUNET_malloc (sizeof (struct NeighborList));
+  n->next = neighbors;
+  neighbors = n;
+  n->id = *peer;
+  n->last_quota_update = GNUNET_TIME_absolute_get ();
+  n->peer_timeout =
+    GNUNET_TIME_relative_to_absolute
+    (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+  n->quota_in = (GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT + 59999) / (60 * 1000);
+  add_plugins (n);
+  n->timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
+                                                  GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+                                                  &neighbor_timeout_task, n);
+  transmit_to_peer (NULL, NULL, 0,
+                    (const char *) our_hello, GNUNET_HELLO_size(our_hello),
+                    GNUNET_YES, n);
+  notify_clients_connect (peer, GNUNET_TIME_UNIT_FOREVER_REL);
+  return n;
+}
 
-};
+static struct PeerAddressList *
+add_peer_address(struct NeighborList *neighbor, const char *addr, size_t addrlen)
+{
+  /* FIXME: should return a list of PeerAddressLists, support for multiple transports! */
+  struct ReadyList *head = neighbor->plugins;
+  struct PeerAddressList * new_address;
 
+  GNUNET_assert(addr != NULL);
+
+  while (head != NULL)
+    {
+      new_address = GNUNET_malloc(sizeof(struct PeerAddressList));
+      new_address->addr = GNUNET_malloc(addrlen);
+      memcpy(new_address->addr, addr, addrlen);
+      new_address->addrlen = addrlen;
+      new_address->connect_attempts = 0;
+      new_address->connected = GNUNET_YES; /* Set connected to GNUNET_YES, assuming that we're good */
+      new_address->expires = GNUNET_TIME_relative_to_absolute
+          (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+      new_address->latency = GNUNET_TIME_relative_get_forever();
+      new_address->neighbor = neighbor;
+      new_address->plugin = head->plugin;
+      new_address->transmit_ready = GNUNET_YES;
+      new_address->timeout = GNUNET_TIME_relative_to_absolute
+          (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT); /* FIXME: Do we need this? */
+      new_address->ready_list = head;
+      new_address->next = head->addresses;
+      head->addresses = new_address;
+      head = head->next;
+    }
+
+  return new_address;
+}
+
+static struct PeerAddressList *
+find_peer_address(struct NeighborList *neighbor, const char *addr, size_t addrlen)
+{
+  struct ReadyList *head = neighbor->plugins;
+  struct PeerAddressList *address_head;
+  while (head != NULL)
+    {
+      address_head = head->addresses;
+      while ((address_head != NULL) &&
+              (address_head->addrlen != addrlen) &&
+              (memcmp(address_head->addr, addr, addrlen) != 0))
+        {
+          address_head = address_head->next;
+        }
+      if (address_head != NULL)
+        return address_head;
+
+      head = head->next;
+    }
+  return NULL;
+}
 
 /**
  * Append the given address to the list of entries
@@ -1746,6 +1935,8 @@ run_validation (void *cls,
   struct TransportPlugin *tp;
   struct ValidationAddress *va;
   struct GNUNET_PeerIdentity id;
+  struct NeighborList *neighbor;
+  struct PeerAddressList *peer_address;
   int sent;
   struct TransportPingMessage *ping;
   char * message_buf;
@@ -1766,18 +1957,34 @@ run_validation (void *cls,
                       sizeof (struct
                               GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                       &id.hashPubKey);
+#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Scheduling validation of address `%s' via `%s' for `%4s'\n",
               GNUNET_a2s (addr, addrlen), tname, GNUNET_i2s (&id));
-
-  va = GNUNET_malloc (sizeof (struct ValidationAddress) + addrlen);
+#endif
+  va = GNUNET_malloc (sizeof (struct ValidationAddress));
   va->next = e->addresses;
   e->addresses = va;
   va->transport_name = GNUNET_strdup (tname);
-  va->addr_len = addrlen;
   va->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                             (unsigned int) -1);
-  memcpy (&va[1], addr, addrlen);
+  va->send_time = GNUNET_TIME_absolute_get();
+
+  neighbor = find_neighbor(&id);
+
+  if (neighbor == NULL)
+    neighbor = setup_new_neighbor(&id);
+
+  peer_address = find_peer_address(neighbor, addr, addrlen);
+  if (peer_address == NULL)
+    {
+      peer_address = add_peer_address(neighbor, addr, addrlen);
+    }
+
+  GNUNET_assert(peer_address != NULL);
+
+  va->peer_address = peer_address; /* Back pointer FIXME: remove this nonsense! */
+  peer_address->validation = va;
 
   hello_size = GNUNET_HELLO_size(our_hello);
   tsize = sizeof(struct TransportPingMessage) + hello_size;
@@ -1790,27 +1997,29 @@ run_validation (void *cls,
   ping->header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_PING);
   memcpy(&ping->target, &id, sizeof(struct GNUNET_PeerIdentity));
 
+#if DEBUG_TRANSPORT
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "hello size is %d, ping size is %d, total size is %d", hello_size, sizeof(struct TransportPingMessage), tsize);
-
+#endif
   memcpy(message_buf, our_hello, hello_size);
   memcpy(&message_buf[hello_size], ping, sizeof(struct TransportPingMessage));
 
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending ping message of size %d to address `%s' via `%s' for `%4s'\n",
+                tsize, GNUNET_a2s (addr, addrlen), tname, GNUNET_i2s (&id));
+#endif
+  sent = transmit_to_peer(NULL, peer_address, GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                   message_buf, tsize, GNUNET_NO, neighbor);
 
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending ping message to address `%s' via `%s' for `%4s'\n",
-                GNUNET_a2s (addr, addrlen), tname, GNUNET_i2s (&id));
-
-
-  sent = tp->api->send(tp->api->cls, &id, message_buf, tsize, GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                TRANSPORT_DEFAULT_TIMEOUT, addr, addrlen, GNUNET_YES, NULL, NULL);
-
+#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transport returned %d from send!\n", sent);
+#endif
 
   GNUNET_free(ping);
   GNUNET_free(message_buf);
   return GNUNET_OK;
 }
 
+#if WHY
 /*
  * @param cls handle to the plugin (for sending)
  * @param target the peer identity of the peer we are sending to
@@ -1838,7 +2047,7 @@ validate_address (void *cls, struct ValidationAddress *va,
 
   return;
 }
-
+#endif
 
 /**
  * Check if addresses in validated hello "h" overlap with
@@ -1872,9 +2081,9 @@ check_hello_validated (void *cls,
       pending_validations = chvc->e;
     }
   /* no existing HELLO, all addresses are new */
-  GNUNET_HELLO_iterate_addresses (chvc->hello,
-                                  GNUNET_NO, &run_validation, chvc->e);
-#if 0
+/*  GNUNET_HELLO_iterate_addresses (chvc->hello,
+                                  GNUNET_NO, &run_validation, chvc->e);*/
+
   if (h != NULL)
     {
       GNUNET_HELLO_iterate_new_addresses (chvc->hello,
@@ -1888,16 +2097,12 @@ check_hello_validated (void *cls,
       GNUNET_HELLO_iterate_addresses (chvc->hello,
                                       GNUNET_NO, &run_validation, chvc->e);
     }
-#endif
+
   if (h != NULL)
     return;                     /* wait for next call */
   /* finally, transmit validation attempts */
   GNUNET_assert (GNUNET_OK == GNUNET_HELLO_get_id (chvc->hello, &apeer));
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Ready to validate addresses from `%s' message for peer `%4s'\n",
-              "HELLO", GNUNET_i2s (&apeer));
-#endif
+
   va = chvc->e->addresses;
   count = 0;
   while (va != NULL)
@@ -1907,24 +2112,17 @@ check_hello_validated (void *cls,
                   "Establishing `%s' connection to validate `%s' address `%s' of `%4s'\n",
                   va->transport_name,
                   "HELLO",
-                  GNUNET_a2s ((const struct sockaddr *) &va[1],
-                              va->addr_len), GNUNET_i2s (&apeer));
+                  GNUNET_a2s ((const struct sockaddr *) va->peer_address->addr,
+                              va->peer_address->addrlen), GNUNET_i2s (&apeer));
 #endif
       tp = find_transport (va->transport_name);
       GNUNET_assert (tp != NULL);
       /* This validation should happen inside the transport, not from the plugin! */
-      validate_address (tp->api->cls, va, &apeer,
-                        HELLO_VERIFICATION_TIMEOUT,
-                        &va[1], va->addr_len);
-      /* va->ok = GNUNET_SYSERR; will be set by validate_address! */
+      va->ok = GNUNET_SYSERR;
       va = va->next;
       count++;
     }
 
-#if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Found %d addresses in hello of size %d\n", count, GNUNET_HELLO_size(chvc->hello));
-#endif
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_TIME_absolute_get_remaining (chvc->
                                                                     e->timeout),
@@ -2000,6 +2198,7 @@ process_hello (struct TransportPlugin *plugin,
   chvc = GNUNET_malloc (sizeof (struct CheckHelloValidatedContext) + hsize);
   chvc->plugin = plugin;
   chvc->hello = (struct GNUNET_HELLO_Message *) &chvc[1];
+  chvc->e = NULL;
   memcpy (chvc->hello, hello, hsize);
   /* finally, check if HELLO was previously validated
      (continuation will then schedule actual validation) */
@@ -2090,92 +2289,6 @@ disconnect_neighbor (struct NeighborList *n, int check)
 }
 
 
-/**
- * Add an entry for each of our transport plugins
- * (that are able to send) to the list of plugins
- * for this neighbor.
- *
- * @param neighbor to initialize
- */
-static void
-add_plugins (struct NeighborList *neighbor)
-{
-  struct TransportPlugin *tp;
-  struct ReadyList *rl;
-
-  neighbor->retry_plugins_time
-    = GNUNET_TIME_relative_to_absolute (PLUGIN_RETRY_FREQUENCY);
-  tp = plugins;
-  while (tp != NULL)
-    {
-      if (tp->api->send != NULL)
-        {
-          rl = GNUNET_malloc (sizeof (struct ReadyList));
-          rl->next = neighbor->plugins;
-          neighbor->plugins = rl;
-          rl->plugin = tp;
-          rl->neighbor = neighbor;
-          rl->transmit_ready = GNUNET_YES;
-        }
-      tp = tp->next;
-    }
-}
-
-
-static void
-neighbor_timeout_task (void *cls,
-                        const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct NeighborList *n = cls;
-
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-              "Neighbor `%4s' has timed out!\n", GNUNET_i2s (&n->id));
-#endif
-  n->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  disconnect_neighbor (n, GNUNET_NO);
-}
-
-
-/**
- * Create a fresh entry in our neighbor list for the given peer.
- * Will try to transmit our current HELLO to the new neighbor.  Also
- * notifies our clients about the new "connection".
- *
- * @param peer the peer for which we create the entry
- * @return the new neighbor list entry
- */
-static struct NeighborList *
-setup_new_neighbor (const struct GNUNET_PeerIdentity *peer, const char *addr, size_t sender_address_len)
-{
-  struct NeighborList *n;
-
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-              "Setting up new neighbor `%4s', sending our HELLO to introduce ourselves\n",
-              GNUNET_i2s (peer));
-#endif
-  GNUNET_assert (our_hello != NULL);
-  n = GNUNET_malloc (sizeof (struct NeighborList));
-  n->next = neighbors;
-  neighbors = n;
-  n->id = *peer;
-  n->last_quota_update = GNUNET_TIME_absolute_get ();
-  n->peer_timeout =
-    GNUNET_TIME_relative_to_absolute
-    (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-  n->quota_in = (GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT + 59999) / (60 * 1000);
-  add_plugins (n);
-  n->timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                                  GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-                                                  &neighbor_timeout_task, n);
-  transmit_to_peer (NULL, 0,
-                    (const struct GNUNET_MessageHeader *) our_hello,
-                    GNUNET_YES, n);
-  notify_clients_connect (peer, GNUNET_TIME_UNIT_FOREVER_REL);
-  return n;
-}
-
 /*
  * We have received a PING message from someone.  Need to send a PONG message
  * in response to the peer by any means necessary.  Of course, with something
@@ -2190,6 +2303,7 @@ static int handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
   struct TransportPlugin *plugin = cls;
   struct TransportPingMessage *ping;
   struct TransportPongMessage *pong;
+  struct PeerAddressList *peer_address;
   uint16_t msize;
   struct NeighborList *n;
   pong = GNUNET_malloc(sizeof(struct TransportPongMessage));
@@ -2217,21 +2331,7 @@ static int handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
     }
 
   msize -= sizeof (struct TransportPingMessage);
-/*
- * if (GNUNET_OK != tcp_plugin_address_suggested (plugin, &vcm[1], msize))
-    {
-      GNUNET_break_op (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
 
-  if (GNUNET_OK != GNUNET_SERVER_client_get_address (client, &addr, &addrlen))
-    {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
-*/
   pong = GNUNET_malloc (sizeof (struct TransportPongMessage) + sender_address_len);
   pong->header.size = htons (sizeof (struct TransportPongMessage) + sender_address_len);
   pong->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_PONG);
@@ -2241,42 +2341,23 @@ static int handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
            sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) + sender_address_len);
   pong->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_TCP_PING);
   pong->challenge = ping->challenge;
+  pong->addrlen = htons(sender_address_len);
 
   memcpy(&pong->signer, &my_public_key, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
   memcpy (&pong[1], sender_address, sender_address_len);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_rsa_sign (my_private_key,
                                          &pong->purpose, &pong->signature));
-  /* Will this nonsense work, even for UDP?
-   * The idea is that we need an address to send to for UDP, but we may not know
-   * this peer yet.  So in that case, we need to create a new neighbor with the
-   * current address, but is this address going to be correct, or will it have a
-   * random high port or something? Another question is, why didn't we get a WELCOME
-   * from this peer with its advertised addresses already?  We don't want to
-   * differentiate based on transport... */
-  n = find_neighbor(peer, NULL, 0);
-  if (n == NULL)
-    {
-#if DEBUG_TRANSPORT
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Didn't find peer in list, adding...\n");
-#endif
-      setup_new_neighbor(peer, sender_address, sender_address_len);
-      n = find_neighbor(peer, sender_address, sender_address_len);
-      GNUNET_assert(n != NULL);
-    }
-  else if (n->addr == NULL)
-    {
-#if DEBUG_TRANSPORT
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Found peer in list, but without address, adding!\n");
-#endif
-      n->addr = GNUNET_malloc(sender_address_len);
-      memcpy(n->addr, sender_address, sender_address_len);
-      n->addr_len = sender_address_len;
-    }
 
-  transmit_to_peer(NULL, TRANSPORT_DEFAULT_PRIORITY, &pong->header, GNUNET_NO, n);
+  n = find_neighbor(peer);
+  if (n == NULL)
+    n = setup_new_neighbor(peer);
+
+  peer_address = find_peer_address(n, sender_address, sender_address_len);
+  if (peer_address == NULL)
+    peer_address = add_peer_address(n, sender_address, sender_address_len);
+
+  transmit_to_peer(NULL, NULL, TRANSPORT_DEFAULT_PRIORITY, (char *)pong, ntohs(pong->header.size), GNUNET_NO, n);
 
   GNUNET_free(pong);
   return GNUNET_OK;
@@ -2306,24 +2387,27 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                     unsigned int distance, const char *sender_address,
                     size_t sender_address_len)
 {
-  const struct GNUNET_MessageHeader ack = {
-    htons (sizeof (struct GNUNET_MessageHeader)),
-    htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ACK)
-  };
   struct ReadyList *service_context;
   struct TransportPlugin *plugin = cls;
   struct TransportClient *cpos;
   struct InboundMessage *im;
+  struct PeerAddressList *peer_address;
   uint16_t msize;
   struct NeighborList *n;
 
-  n = find_neighbor (peer, sender_address, sender_address_len);
+  n = find_neighbor (peer);
   if (n == NULL)
     {
       if (message == NULL)
         return;                 /* disconnect of peer already marked down */
-      n = setup_new_neighbor (peer, sender_address, sender_address_len);
+      n = setup_new_neighbor (peer);
+
     }
+
+  peer_address = find_peer_address(n, sender_address, sender_address_len);
+  if (peer_address == NULL)
+    peer_address = add_peer_address(n, sender_address, sender_address_len);
+
   service_context = n->plugins;
   while ((service_context != NULL) && (plugin != service_context->plugin))
     service_context = service_context->next;
@@ -2350,15 +2434,17 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     {
       if (service_context->connected == GNUNET_NO)
         {
-          service_context->connected = GNUNET_YES;
-          service_context->transmit_ready = GNUNET_YES;
-          service_context->connect_attempts++;
+          /*service_context->connected = GNUNET_YES;*/
+          /* FIXME: What to do here?  Should we use these as well, to specify some Address
+           * in the AddressList should be available?
+           */
+          peer_address->transmit_ready = GNUNET_YES;
+          peer_address->connect_attempts++;
         }
-      service_context->timeout
+      peer_address->timeout
         =
         GNUNET_TIME_relative_to_absolute
         (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-      /* service_context->latency = latency; */ /* This value should be set by us! */
     }
   /* update traffic received amount ... */
   msize = ntohs (message->size);
@@ -2393,12 +2479,6 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                   GNUNET_i2s (peer));
 #endif
       process_hello (plugin, message);
-#if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Sending `%s' message to connecting peer `%4s'.\n", "ACK",
-                  GNUNET_i2s (peer));
-#endif
-      transmit_to_peer (NULL, 0, &ack, GNUNET_YES, n);
       break;
     case GNUNET_MESSAGE_TYPE_TRANSPORT_PING:
       handle_ping(plugin, message, peer, sender_address, sender_address_len);
@@ -2406,14 +2486,10 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     case GNUNET_MESSAGE_TYPE_TRANSPORT_PONG:
       handle_pong(plugin, message, peer, sender_address, sender_address_len);
       break;
-      //plugin_env_notify_validation();
-    case GNUNET_MESSAGE_TYPE_TRANSPORT_ACK:
-      n->saw_ack = GNUNET_YES;
-      /* intentional fall-through! */
     default:
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Received message of type %u from `%4s', sending to all clients.\n",
+                  "Received \n\nREAL MESSAGE\n\ntype %u from `%4s', sending to all clients.\n",
                   ntohs (message->type), GNUNET_i2s (peer));
 #endif
       /* transmit message to all clients */
@@ -2504,7 +2580,7 @@ handle_start (void *cls,
         {
           cim.id = n->id;
           transmit_to_client (c, &cim.header, GNUNET_NO);
-          if (n->saw_ack)
+          if (n->received_pong)
             {
               im->peer = n->id;
               transmit_to_client (c, &im->header, GNUNET_NO);
@@ -2584,9 +2660,9 @@ handle_send (void *cls,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
-  n = find_neighbor (&obm->peer, NULL, 0);
+  n = find_neighbor (&obm->peer);
   if (n == NULL)
-    n = setup_new_neighbor (&obm->peer, NULL, 0);
+    n = setup_new_neighbor (&obm->peer); /* But won't ever add address, we have none! */
   tc = clients;
   while ((tc != NULL) && (tc->client != client))
     tc = tc->next;
@@ -2597,7 +2673,7 @@ handle_send (void *cls,
               ntohs (obmm->size),
               ntohs (obmm->type), GNUNET_i2s (&obm->peer));
 #endif
-  transmit_to_peer (tc, ntohl (obm->priority), obmm, GNUNET_NO, n);
+  transmit_to_peer (tc, NULL, ntohl (obm->priority), (char *)obmm, ntohs (obmm->size), GNUNET_NO, n);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -2625,7 +2701,7 @@ handle_set_quota (void *cls,
               "Received `%s' request from client for peer `%4s'\n",
               "SET_QUOTA", GNUNET_i2s (&qsm->peer));
 #endif
-  n = find_neighbor (&qsm->peer, NULL, 0);
+  n = find_neighbor (&qsm->peer);
   if (n == NULL)
     {
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -2667,14 +2743,8 @@ handle_try_connect (void *cls,
               "Received `%s' request from client %p asking to connect to `%4s'\n",
               "TRY_CONNECT", client, GNUNET_i2s (&tcm->peer));
 #endif
-  if (NULL == find_neighbor (&tcm->peer, NULL, 0))
-    setup_new_neighbor (&tcm->peer, NULL, 0); /* Can we set up a truly _new_ neighbor without
-                                        knowing its address?  Should we ask the plugin
-                                        for more information about this peer?  I don't
-                                        think we can...  Or set up new peer should only
-                                        happen when transport notifies us of an address,
-                                        and this setup should check for an address in
-                                        the existing list only */
+  if (NULL == find_neighbor (&tcm->peer))
+    setup_new_neighbor (&tcm->peer);
 #if DEBUG_TRANSPORT
   else
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,

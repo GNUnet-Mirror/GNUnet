@@ -1357,8 +1357,8 @@ add_neighbour (struct GNUNET_TRANSPORT_Handle *h,
             h->connect_wait_head = next;
           else
             prev->next = next;
-          if (GNUNET_YES == n->received_ack)
-            {
+//          if (GNUNET_YES == n->received_ack)
+//            {
 #if DEBUG_TRANSPORT
               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                           "Found pending request for `%4s' will trigger it now.\n",
@@ -1370,15 +1370,8 @@ add_neighbour (struct GNUNET_TRANSPORT_Handle *h,
                   pos->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
                 }
               schedule_request (pos);
-            }
-          else
-            {
-#if DEBUG_TRANSPORT
-              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                          "Found pending request for `%4s' but still need `%s' before proceeding.\n",
-                          GNUNET_i2s (&pos->target), "ACK");
-#endif
-            }
+//            }
+
           break;
         }
       prev = pos;

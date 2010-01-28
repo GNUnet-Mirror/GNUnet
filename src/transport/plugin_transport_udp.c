@@ -345,8 +345,6 @@ static void
 udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Plugin *plugin = cls;
-  struct GNUNET_TIME_Relative timeout =
-    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500);
   char *buf;
   struct UDPMessage *msg;
   const struct GNUNET_MessageHeader *hdr;
@@ -361,8 +359,11 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char *msgbuf;
   const struct GNUNET_MessageHeader *currhdr;
 
-  do
-    {
+#if DEBUG_UDP
+      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
+                       ("entered select...\n"));
+#endif
+
       buflen = GNUNET_NETWORK_socket_recvfrom_amount (udp_sock);
 
 #if DEBUG_UDP
@@ -370,82 +371,80 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                        ("we expect to read %u bytes\n"), buflen);
 #endif
 
-      if (buflen == GNUNET_NO)
+    if (buflen == GNUNET_NO)
+      return;
+
+    buf = GNUNET_malloc (buflen);
+    fromlen = sizeof (addr);
+
+    memset (&addr, 0, fromlen);
+    ret =
+      GNUNET_NETWORK_socket_recvfrom (udp_sock, buf, buflen,
+                                      (struct sockaddr *) &addr, &fromlen);
+
+#if DEBUG_UDP
+    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
+                     ("socket_recv returned %u, src_addr_len is %u\n"), ret,
+                     fromlen);
+#endif
+
+    if (ret <= 0)
+      {
+        GNUNET_free (buf);
         return;
-
-      buf = GNUNET_malloc (buflen);
-      fromlen = sizeof (addr);
-
-      memset (&addr, 0, fromlen);
-      ret =
-        GNUNET_NETWORK_socket_recvfrom (udp_sock, buf, buflen,
-                                        (struct sockaddr *) &addr, &fromlen);
+      }
+    msg = (struct UDPMessage *) buf;
 
 #if DEBUG_UDP
-      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
-                       ("socket_recv returned %u, src_addr_len is %u\n"), ret,
-                       fromlen);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
+                     ("header reports message size of %d\n"),
+                     ntohs (msg->header.size));
+
+    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
+                     ("header reports message type of %d\n"),
+                     ntohs (msg->header.type));
 #endif
+    if (ntohs (msg->header.size) < sizeof (struct UDPMessage))
+      {
+        GNUNET_free (buf);
+        GNUNET_NETWORK_fdset_zero (plugin->rs);
+        GNUNET_NETWORK_fdset_set (plugin->rs, udp_sock);
+        return;
+      }
+    hdr = (const struct GNUNET_MessageHeader *) &msg[1];
+    msgbuf = (char *)&msg[1];
+    sender = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
+    memcpy (sender, &msg->sender, sizeof (struct GNUNET_PeerIdentity));
 
-      if (ret <= 0)
-        {
-          GNUNET_free (buf);
-          return;
-        }
-      msg = (struct UDPMessage *) buf;
-
+    offset = 0;
+    count = 0;
+    tsize = ntohs (msg->header.size) - sizeof(struct UDPMessage);
 #if DEBUG_UDP
-      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
-                       ("header reports message size of %d\n"),
-                       ntohs (msg->header.size));
-
-      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
-                       ("header reports message type of %d\n"),
-                       ntohs (msg->header.type));
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "UDP", _
+                     ("offset is %d, tsize is %d (UDPMessage size is %d)\n"),
+                     offset, tsize, sizeof(struct UDPMessage));
 #endif
-      if (ntohs (msg->header.size) < sizeof (struct UDPMessage))
-        {
-          GNUNET_free (buf);
-          GNUNET_NETWORK_fdset_zero (plugin->rs);
-          GNUNET_NETWORK_fdset_set (plugin->rs, udp_sock);
-          break;
-        }
-      hdr = (const struct GNUNET_MessageHeader *) &msg[1];
-      msgbuf = (char *)&msg[1];
-      sender = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
-      memcpy (sender, &msg->sender, sizeof (struct GNUNET_PeerIdentity));
-
-      offset = 0;
-      count = 0;
-      tsize = ntohs (msg->header.size) - sizeof(struct UDPMessage);
-      while (offset < tsize)
-        {
-          currhdr = (struct GNUNET_MessageHeader *)&msgbuf[offset];
+    while (offset < tsize)
+      {
+        currhdr = (struct GNUNET_MessageHeader *)&msgbuf[offset];
 #if DEBUG_UDP
-      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
-                       ("processing msg %d: type %d, size %d at offset %d\n"),
-                       count, ntohs(currhdr->type), ntohs(currhdr->size), offset);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
+                     ("processing msg %d: type %d, size %d at offset %d\n"),
+                     count, ntohs(currhdr->type), ntohs(currhdr->size), offset);
 #endif
-          plugin->env->receive (plugin->env->cls,
-              sender, currhdr, UDP_DIRECT_DISTANCE, (char *)&addr, fromlen);
-          offset += ntohs(currhdr->size);
+        plugin->env->receive (plugin->env->cls,
+            sender, currhdr, UDP_DIRECT_DISTANCE, (char *)&addr, fromlen);
+        offset += ntohs(currhdr->size);
 #if DEBUG_UDP
-      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
-                       ("offset now %d, tsize %d\n"),
-                       offset, tsize);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
+                     ("offset now %d, tsize %d\n"),
+                     offset, tsize);
 #endif
-          count++;
-        }
+        count++;
+      }
 
-      GNUNET_free (sender);
-      GNUNET_free (buf);
-
-    }
-  while (GNUNET_NETWORK_socket_select (plugin->rs,
-                                       NULL,
-                                       NULL,
-                                       timeout) > 0
-         && GNUNET_NETWORK_fdset_isset (plugin->rs, udp_sock));
+    GNUNET_free (sender);
+    GNUNET_free (buf);
 
   plugin->select_task =
     GNUNET_SCHEDULER_add_select (plugin->env->sched,
