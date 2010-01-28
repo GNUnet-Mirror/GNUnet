@@ -81,10 +81,10 @@ libgnunet_plugin_transport_udp_la_LDFLAGS = \
 
 check_PROGRAMS = \
  test_transport_api_tcp \
- test_transport_api_udp \
- test_plugin_transport \
- test_plugin_transport_udp
-# TODO: add tests for tcp, udp, http, nat, etc.
+ test_transport_api_udp
+# test_plugin_transport \
+# test_plugin_transport_udp
+# TODO: add tests for http, nat, etc.
 
 TESTS = $(check_PROGRAMS)
 
