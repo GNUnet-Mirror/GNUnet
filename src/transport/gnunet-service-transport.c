@@ -1055,7 +1055,7 @@ transmit_send_continuation (void *cls,
                             int result)
 {
   struct MessageQueue *mq = cls;
-  struct ReadyList *rl;
+  /*struct ReadyList *rl;*/ /* We no longer use the ReadyList for anything here, safe to remove? */
   struct SendOkMessage send_ok_msg;
   struct NeighborList *n;
 
@@ -1065,10 +1065,12 @@ transmit_send_continuation (void *cls,
   GNUNET_assert (0 ==
                  memcmp (&n->id, target,
                          sizeof (struct GNUNET_PeerIdentity)));
-  rl = n->plugins;
+/*  rl = n->plugins;
   while ((rl != NULL) && (rl->plugin != mq->plugin))
     rl = rl->next;
   GNUNET_assert (rl != NULL);
+*/
+
   if (result == GNUNET_OK)
     {
       mq->specific_peer->timeout =
@@ -2232,14 +2234,20 @@ disconnect_neighbor (struct NeighborList *n, int check)
   struct NeighborList *npos;
   struct NeighborList *nprev;
   struct MessageQueue *mq;
+  struct PeerAddressList *peer_addresses;
 
   if (GNUNET_YES == check)
     {
       rpos = n->plugins;
       while (NULL != rpos)
         {
-          if (GNUNET_YES == rpos->connected)
-            return;             /* still connected */
+          peer_addresses = rpos->addresses;
+          while (peer_addresses != NULL)
+            {
+              if (GNUNET_YES == peer_addresses->connected)
+                return;             /* still connected */
+              peer_addresses = peer_addresses->next;
+            }
           rpos = rpos->next;
         }
     }
