@@ -1712,6 +1712,7 @@ handle_pong (void *cls, const struct GNUNET_MessageHeader *message,
   int count = 0;
   unsigned int challenge = ntohl(pong->challenge);
   pos = pending_validations;
+
   while (pos != NULL)
     {
       GNUNET_CRYPTO_hash (&pos->publicKey,
@@ -1756,7 +1757,14 @@ handle_pong (void *cls, const struct GNUNET_MessageHeader *message,
             GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
           matched = GNUNET_YES;
           va->peer_address->connected = GNUNET_YES;
-          va->peer_address->latency = GNUNET_TIME_absolute_get_difference(GNUNET_TIME_absolute_get(), va->send_time);
+          va->peer_address->latency = GNUNET_TIME_absolute_get_difference(va->peer_address->validation->send_time, GNUNET_TIME_absolute_get());
+#if DEBUG_TRANSPORT
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Confirmed validity of address, peer `%4s' has address `%s', latency of %llu\n",
+                      GNUNET_i2s (peer),
+                      GNUNET_a2s ((const struct sockaddr *) sender_address,
+                                  sender_address_len), (unsigned long long)va->peer_address->latency.value);
+#endif
           va->peer_address->transmit_ready = GNUNET_YES;
           va->peer_address->expires = GNUNET_TIME_relative_to_absolute
               (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
@@ -2082,9 +2090,6 @@ check_hello_validated (void *cls,
       chvc->e->next = pending_validations;
       pending_validations = chvc->e;
     }
-  /* no existing HELLO, all addresses are new */
-/*  GNUNET_HELLO_iterate_addresses (chvc->hello,
-                                  GNUNET_NO, &run_validation, chvc->e);*/
 
   if (h != NULL)
     {
@@ -2497,7 +2502,7 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     default:
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Received \n\nREAL MESSAGE\n\ntype %u from `%4s', sending to all clients.\n",
+                  "Received REAL MESSAGE type %u from `%4s', sending to all clients.\n",
                   ntohs (message->type), GNUNET_i2s (peer));
 #endif
       /* transmit message to all clients */
