@@ -1231,7 +1231,7 @@ try_transmission_to_peer (struct NeighborList *neighbor)
                          GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                          mq->specific_peer->addr,
                          mq->specific_peer->addrlen,
-                         GNUNET_NO,
+                         GNUNET_YES,
                          &transmit_send_continuation, mq);
 
 }

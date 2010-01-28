@@ -88,10 +88,16 @@ struct PendingMessage
   struct PendingMessage *next;
 
   /**
-   * The pending message, pointer to the end
-   * of this struct, do not free!
+   * The pending message
    */
-  const struct GNUNET_MessageHeader *msg;
+  char *msg;
+
+  /*
+   * So that the gnunet_transport_service can group messages together,
+   * these pending messages need to accept a message buffer and size
+   * instead of just a GNUNET_MessageHeader.
+   */
+  size_t message_size;
 
   /**
    * Continuation function to call once the message
@@ -298,10 +304,10 @@ create_welcome (struct Plugin *plugin)
   struct PendingMessage *pm;
   struct WelcomeMessage *welcome;
 
-  pm = GNUNET_malloc (sizeof (struct PendingMessage) +
-                      sizeof (struct WelcomeMessage));
-  pm->msg = (struct GNUNET_MessageHeader *) &pm[1];
-  welcome = (struct WelcomeMessage *) &pm[1];
+  pm = GNUNET_malloc (sizeof (struct PendingMessage));
+  pm->msg = GNUNET_malloc(sizeof(struct WelcomeMessage));
+  welcome = (struct WelcomeMessage *)pm->msg;
+  pm->message_size = sizeof (struct WelcomeMessage);
   welcome->header.size = htons (sizeof (struct WelcomeMessage));
   welcome->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME);
   welcome->clientIdentity = *plugin->env->my_identity;
@@ -365,7 +371,7 @@ do_transmit (void *cls, size_t size, void *buf)
   struct Session *session = cls;
   struct PendingMessage *pm;
   char *cbuf;
-  uint16_t msize;
+
   size_t ret;
 
   session->transmit_handle = NULL;
@@ -384,8 +390,7 @@ do_transmit (void *cls, size_t size, void *buf)
 #if DEBUG_TCP
           GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                            "tcp",
-                           "Failed to transmit message of type %u to `%4s'.\n",
-                           ntohs (pm->msg->type),
+                           "Failed to transmit message of to `%4s'.\n",
                            GNUNET_i2s (&session->target));
 #endif
           if (pm->transmit_cont != NULL)
@@ -399,12 +404,12 @@ do_transmit (void *cls, size_t size, void *buf)
   cbuf = buf;
   while (NULL != (pm = session->pending_messages))
     {
-      if (size < (msize = ntohs (pm->msg->size)))
+      if (size < pm->message_size)
 	break;
-      memcpy (cbuf, pm->msg, msize);
-      cbuf += msize;
-      ret += msize;
-      size -= msize;
+      memcpy (cbuf, pm->msg, pm->message_size);
+      cbuf += pm->message_size;
+      ret += pm->message_size;
+      size -= pm->message_size;
       session->pending_messages = pm->next;
       if (pm->transmit_cont != NULL)
         pm->transmit_cont (pm->transmit_cont_cls,
@@ -437,7 +442,7 @@ process_pending_messages (struct Session *session)
     return;
   session->transmit_handle
     = GNUNET_SERVER_notify_transmit_ready (session->client,
-                                           ntohs (pm->msg->size),
+                                           pm->message_size,
                                            GNUNET_TIME_absolute_get_remaining
                                            (pm->timeout),
                                            &do_transmit, session);
@@ -492,15 +497,16 @@ disconnect_session (struct Session *session)
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                        "tcp",
                        pm->transmit_cont != NULL
-                       ? "Could not deliver message of type %u to `%4s'.\n"
+                       ? "Could not deliver message to `%4s'.\n"
                        :
-                       "Could not deliver message of type %u to `%4s', notifying.\n",
-                       ntohs (pm->msg->type), GNUNET_i2s (&session->target));
+                       "Could not deliver message to `%4s', notifying.\n",
+                       GNUNET_i2s (&session->target));
 #endif
       session->pending_messages = pm->next;
       if (NULL != pm->transmit_cont)
         pm->transmit_cont (pm->transmit_cont_cls,
                            &session->target, GNUNET_SYSERR);
+      GNUNET_free(pm->msg);
       GNUNET_free (pm);
     }
   if (GNUNET_NO == session->expecting_welcome)
@@ -581,9 +587,7 @@ tcp_plugin_send (void *cls,
   struct PendingMessage *pme;
   struct GNUNET_CONNECTION_Handle *sa;
   int af;
-  uint16_t mlen;
 
-  mlen = msgbuf_size;
   session = find_session_by_target (plugin, target);
   if ( (session != NULL) && ((GNUNET_YES == force_address) &&
        ( (session->connect_alen != addrlen) ||
@@ -648,10 +652,17 @@ tcp_plugin_send (void *cls,
   GNUNET_assert (session != NULL);
   GNUNET_assert (session->client != NULL);
 
+#if DEBUG_TCP
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                       "tcp",
+                       "Creating pending message of size %d\n",
+                       msgbuf_size);
+#endif
   /* create new message entry */
-  pm = GNUNET_malloc (mlen + sizeof (struct PendingMessage));
-  memcpy (&pm[1], msg, mlen);
-  pm->msg = (const struct GNUNET_MessageHeader*) &pm[1];
+  pm = GNUNET_malloc (sizeof (struct PendingMessage));
+  pm->msg = GNUNET_malloc(msgbuf_size);
+  memcpy (pm->msg, msg, msgbuf_size);
+  pm->message_size = msgbuf_size;
   pm->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   pm->transmit_cont = cont;
   pm->transmit_cont_cls = cont_cls;
@@ -674,11 +685,11 @@ tcp_plugin_send (void *cls,
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "tcp",
 		   "Asked to transmit %u bytes to `%s', added message to list.\n",
-		   mlen,
+		   msgbuf_size,
 		   GNUNET_i2s (target));
 #endif
   process_pending_messages (session);
-  return mlen;
+  return msgbuf_size;
 }
 
 
@@ -1099,8 +1110,15 @@ handle_tcp_data (void *cls,
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "tcp", "Received a welcome, NOT sending to clients!\n");
 #endif
-    return; /* We don't want to propogate WELCOME messages up! */
+    return; /* We don't want to propagate WELCOME messages up! */
   }
+  else
+    {
+#if DEBUG_TCP
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                   "tcp", "Received DATA message, checking session!\n");
+#endif
+    }
 
   if ( (NULL == session) || (GNUNET_NO != session->expecting_welcome))
     {
