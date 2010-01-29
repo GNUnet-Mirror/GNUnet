@@ -31,13 +31,13 @@
 #include "gnunet_transport_service.h"
 #include "transport.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define VERBOSE_ARM GNUNET_NO
 
 #define START_ARM GNUNET_YES
 
-#define VERBOSE_TRANSPORT GNUNET_NO
+#define VERBOSE_TRANSPORT GNUNET_YES
 
 /**
  * How long until we give up on transmitting the message?
@@ -218,6 +218,7 @@ exchange_hello_last (void *cls,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
                                       message, &me->id));
+
   GNUNET_TRANSPORT_offer_hello (p1.th, message);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Finished exchanging HELLOs, now waiting for transmission!\n");
