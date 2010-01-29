@@ -494,7 +494,7 @@ enum GNUNET_CONTAINER_MultiHashMapOption
 
 
 /**
- * Iterator over HashCodes.
+ * Iterator over hash map entries.
  *
  * @param cls closure
  * @param key current key code
