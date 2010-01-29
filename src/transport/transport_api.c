@@ -889,7 +889,6 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "Not connected to transport service, dropping offered HELLO\n");
-      fprintf(stderr, "Not connected to transport service, dropping offered HELLO\n");
 #endif
       return;
     }
