@@ -49,11 +49,11 @@
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
- * @param dsh connection to the datastore (to ask for more)
- * @param cont function to call with the actual block
+ * @param cont function to call with the actual block (at most once, on success)
  * @param cont_cls closure for cont
+ * @return GNUNET_OK on success
  */
-void
+int
 GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
 				  uint32_t size,
 				  const void *data,
@@ -62,7 +62,6 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
 				  uint32_t anonymity,
 				  struct GNUNET_TIME_Absolute
 				  expiration, uint64_t uid,
-				  struct GNUNET_DATASTORE_Handle *dsh,
 				  GNUNET_DATASTORE_Iterator cont,
 				  void *cont_cls);
 
@@ -112,9 +111,10 @@ GNUNET_FS_handle_unindex (void *cls,
  *
  * @param s scheduler to use
  * @param c configuration to use
+ * @return GNUNET_OK on success
  */
-void
-GNUNET_FS_init_indexing (struct GNUNET_SCHEDULER_Handle *s,
+int
+GNUNET_FS_indexing_init (struct GNUNET_SCHEDULER_Handle *s,
 			 const struct GNUNET_CONFIGURATION_Handle *c);
 
 

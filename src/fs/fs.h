@@ -1132,28 +1132,23 @@ struct SBlock
 
 
 /**
- * Message sent from a GNUnet (fs) publishing
- * activity to the gnunet-fs-service to 
- * initiate indexing of a file.  The service
- * is supposed to check if the specified file
- * is available and has the same cryptographic
- * hash.  It should then respond with either
- * a confirmation or a denial.
+ * Message sent from a GNUnet (fs) publishing activity to the
+ * gnunet-fs-service to initiate indexing of a file.  The service is
+ * supposed to check if the specified file is available and has the
+ * same cryptographic hash.  It should then respond with either a
+ * confirmation or a denial.
  *
- * On OSes where this works, it is considered
- * acceptable if the service only checks that
- * the path, device and inode match (it can
- * then be assumed that the hash will also match
- * without actually computing it; this is an
- * optimization that should be safe given that
- * the client is not our adversary).
+ * On OSes where this works, it is considered acceptable if the
+ * service only checks that the path, device and inode match (it can
+ * then be assumed that the hash will also match without actually
+ * computing it; this is an optimization that should be safe given
+ * that the client is not our adversary).
  */
 struct IndexStartMessage
 {
 
   /**
-   * Message type will be 
-   * GNUNET_MESSAGE_TYPE_FS_INDEX_START.
+   * Message type will be GNUNET_MESSAGE_TYPE_FS_INDEX_START.
    */
   struct GNUNET_MessageHeader header;
 
@@ -1216,12 +1211,10 @@ struct IndexInfoMessage
 
 
 /**
- * Message sent from a GNUnet (fs) unindexing
- * activity to the gnunet-fs-service to 
- * indicate that a file will be unindexed.  The service
- * is supposed to remove the file from the
- * list of indexed files and response with
- * a confirmation message (even if the file
+ * Message sent from a GNUnet (fs) unindexing activity to the
+ * gnunet-service-fs to indicate that a file will be unindexed.  The
+ * service is supposed to remove the file from the list of indexed
+ * files and response with a confirmation message (even if the file
  * was already not on the list).
  */
 struct UnindexMessage
@@ -1247,9 +1240,8 @@ struct UnindexMessage
 
 
 /**
- * Message sent from a GNUnet (fs) search
- * activity to the gnunet-fs-service to 
- * start a search.
+ * Message sent from a GNUnet (fs) search activity to the
+ * gnunet-service-fs to start a search.
  */
 struct SearchMessage
 {
@@ -1308,10 +1300,9 @@ struct SearchMessage
 
 
 /**
- * Response from FS service with a result for
- * a previous FS search.  Note that queries
- * for DBLOCKS and IBLOCKS that have received
- * a single response are considered done.
+ * Response from FS service with a result for a previous FS search.
+ * Note that queries for DBLOCKS and IBLOCKS that have received a
+ * single response are considered done.
  */
 struct ContentMessage
 {

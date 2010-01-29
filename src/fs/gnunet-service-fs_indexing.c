@@ -34,6 +34,7 @@
 #include "gnunet_protocols.h"
 #include "gnunet_signatures.h"
 #include "gnunet_util_lib.h"
+#include "gnunet-service-fs_drq.h"
 #include "gnunet-service-fs_indexing.h"
 #include "fs.h"
 
@@ -508,13 +509,10 @@ remove_cont (void *cls,
 	     int success,
 	     const char *msg)
 {
-  struct GNUNET_DATASTORE_Handle *dsh = cls;
-
   if (GNUNET_OK != success)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Failed to delete bogus block: %s\n"),
 		msg);
-  GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
 }
 
 
@@ -533,10 +531,11 @@ remove_cont (void *cls,
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
- * @param cont function to call with the actual block
+ * @param cont function to call with the actual block (at most once, on success)
  * @param cont_cls closure for cont
+ * @return GNUNET_OK on success
  */
-void
+int
 GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
 				  uint32_t size,
 				  const void *data,
@@ -545,7 +544,6 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
 				  uint32_t anonymity,
 				  struct GNUNET_TIME_Absolute
 				  expiration, uint64_t uid,
-				  struct GNUNET_DATASTORE_Handle *dsh,
 				  GNUNET_DATASTORE_Iterator cont,
 				  void *cont_cls)
 {
@@ -564,14 +562,13 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
   if (size != sizeof (struct OnDemandBlock))
     {
       GNUNET_break (0);
-      GNUNET_DATASTORE_remove (dsh, 
-			       key,
-			       size,
-			       data,
-			       &remove_cont,
-			       dsh,
-			       GNUNET_TIME_UNIT_FOREVER_REL);	  
-      return;
+      GNUNET_FS_drq_remove (key,
+			    size,
+			    data,
+			    &remove_cont,
+			    NULL,
+			    GNUNET_TIME_UNIT_FOREVER_REL);
+      return GNUNET_SYSERR;
     }
   odb = (const struct OnDemandBlock*) data;
   off = GNUNET_ntohll (odb->offset);
@@ -600,8 +597,7 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
 	GNUNET_DISK_file_close (fh);
       /* FIXME: if this happens often, we need
 	 to remove the OnDemand block from the DS! */
-      GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);	  
-      return;
+      return GNUNET_SYSERR;
     }
   GNUNET_DISK_file_close (fh);
   GNUNET_CRYPTO_hash (ndata,
@@ -626,8 +622,7 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
 		  (unsigned long long) off);
       /* FIXME: if this happens often, we need
 	 to remove the OnDemand block from the DS! */
-      GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
-      return;
+      return GNUNET_SYSERR;
     }
   cont (cont_cls,
 	key,
@@ -638,6 +633,7 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
 	anonymity,
 	expiration,
 	uid);
+  return GNUNET_OK;
 }
 
 
@@ -671,8 +667,8 @@ shutdown_task (void *cls,
  * @param s scheduler to use
  * @param c configuration to use
  */
-void
-GNUNET_FS_init_indexing (struct GNUNET_SCHEDULER_Handle *s,
+int
+GNUNET_FS_indexing_init (struct GNUNET_SCHEDULER_Handle *s,
 			 const struct GNUNET_CONFIGURATION_Handle *c)
 {
   sched = s;
@@ -683,6 +679,7 @@ GNUNET_FS_init_indexing (struct GNUNET_SCHEDULER_Handle *s,
 				&shutdown_task,
 				NULL);
   read_index_list ();
+  return GNUNET_OK;
 }
 
 /* end of gnunet-service-fs_indexing.c */
