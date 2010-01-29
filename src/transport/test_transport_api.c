@@ -31,13 +31,13 @@
 #include "gnunet_transport_service.h"
 #include "transport.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define VERBOSE_ARM GNUNET_NO
 
 #define START_ARM GNUNET_YES
 
-#define VERBOSE_TRANSPORT GNUNET_YES
+#define VERBOSE_TRANSPORT GNUNET_NO
 
 /**
  * How long until we give up on transmitting the message?
