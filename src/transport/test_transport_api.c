@@ -223,7 +223,7 @@ exchange_hello_last (void *cls,
 
   GNUNET_TRANSPORT_offer_hello (p1.th, message);
 
-  /*sleep(10);*/ /* Make sure we are not falling prey to the "favorable timing" bug...
+  /*sleep(1);*/ /* Make sure we are not falling prey to the "favorable timing" bug... */
 
   /* both HELLOs exchanged, get ready to test transmission! */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
