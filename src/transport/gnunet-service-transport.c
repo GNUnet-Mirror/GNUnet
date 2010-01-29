@@ -1670,9 +1670,12 @@ cleanup_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           first = GNUNET_TIME_absolute_min (first, pos->timeout);
           pos = pos->next;
         }
-      GNUNET_SCHEDULER_add_delayed (sched,
-                                    GNUNET_TIME_absolute_get_remaining
-                                    (first), &cleanup_validation, NULL);
+      if (tc->reason != GNUNET_SCHEDULER_REASON_SHUTDOWN)
+        {
+          GNUNET_SCHEDULER_add_delayed (sched,
+                                        GNUNET_TIME_absolute_get_remaining
+                                        (first), &cleanup_validation, NULL);
+        }
     }
 }
 
