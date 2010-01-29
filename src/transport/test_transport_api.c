@@ -31,7 +31,7 @@
 #include "gnunet_transport_service.h"
 #include "transport.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define VERBOSE_ARM GNUNET_NO
 
@@ -125,10 +125,12 @@ notify_receive (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ok is (%d)!\n",
               ok);
-  GNUNET_assert (ok == 7);
-  OKPP;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received message of type %d from peer (%p)!\n",
                 ntohs(message->type), cls);
+
+  GNUNET_assert (ok == 7);
+  OKPP;
 
   GNUNET_assert (MTYPE == ntohs (message->type));
   GNUNET_assert (sizeof (struct GNUNET_MessageHeader) ==
@@ -220,16 +222,18 @@ exchange_hello_last (void *cls,
                                       message, &me->id));
 
   GNUNET_TRANSPORT_offer_hello (p1.th, message);
+
+  /*sleep(10);*/ /* Make sure we are not falling prey to the "favorable timing" bug...
+
+  /* both HELLOs exchanged, get ready to test transmission! */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Finished exchanging HELLOs, now waiting for transmission!\n");
 
-  /* both HELLOs exchanged, get ready to test transmission! */
   GNUNET_TRANSPORT_notify_transmit_ready (p1.th,
-                                          &p2.id,
-                                          256, 0, TIMEOUT, &notify_ready,
-                                          &p1);
+                                            &p2.id,
+                                            256, 0, TIMEOUT, &notify_ready,
+                                            &p1);
 }
-
 
 static void
 exchange_hello (void *cls,

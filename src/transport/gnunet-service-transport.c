@@ -1122,62 +1122,57 @@ find_ready_address(struct NeighborList *neighbor)
 {
   struct ReadyList *head = neighbor->plugins;
   struct PeerAddressList *addresses;
+  struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
+  struct GNUNET_TIME_Relative min_latency = GNUNET_TIME_relative_get_forever();
+  struct PeerAddressList *best_address;
+
+  best_address = NULL;
   while (head != NULL)
     {
       addresses = head->addresses;
-      while ((addresses != NULL) &&
-             ((addresses->connected != GNUNET_YES) ||
-             (addresses->transmit_ready != GNUNET_YES)))
+
+      while (addresses != NULL)
         {
+          if ((addresses->timeout.value < now.value) && (addresses->connected == GNUNET_YES))
+            {
+#if DEBUG_TRANSPORT
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          "Marking long-time inactive connection to `%4s' as down.\n",
+                          GNUNET_i2s (&addresses->ready_list->neighbor->id));
+#endif
+              addresses->connected = GNUNET_NO;
+            }
           addresses = addresses->next;
         }
 
-      if (addresses != NULL)
+      addresses = head->addresses;
+      while (addresses != NULL)
         {
+          if ((addresses->connected == GNUNET_YES) &&
+              (addresses->transmit_ready == GNUNET_YES) &&
+              ((addresses->latency.value < min_latency.value) || (best_address == NULL)))
+            {
 #if DEBUG_TRANSPORT
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Found ready address, connected is %d\n",
-                      addresses->connected);
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          "Found address with latency %llu, setting as best found yet!\n",
+                          addresses->latency.value);
 #endif
-          return addresses;
+              best_address = addresses;
+            }
+          addresses = addresses->next;
         }
-
-
       head = head->next;
     }
-  return NULL;
-
-#if 0 /* Do some checks to keep everything sane, return lowest latency connection */
-  while (pos != NULL)
+#if DEBUG_TRANSPORT
+  if (best_address != NULL)
     {
-      /* set plugins that are inactive for a long time back to disconnected */
-      if ((pos->timeout.value < now.value) && (pos->connected == GNUNET_YES))
-        {
-#if DEBUG_TRANSPORT
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Marking long-time inactive connection to `%4s' as down.\n",
-                      GNUNET_i2s (&neighbor->id));
-#endif
-          pos->connected = GNUNET_NO;
-        }
-      if (GNUNET_YES == pos->transmit_ready)
-        {
-#if DEBUG_TRANSPORT
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Found transmit_ready flag...\n");
-#endif
-        }
-      if (((GNUNET_YES == pos->transmit_ready) ||
-           (mq->internal_msg)) &&
-          (pos->connect_attempts < MAX_CONNECT_RETRY) &&
-          ((rl == NULL) || (min_latency.value > pos->latency.value)))
-        {
-          rl = pos;
-          min_latency = pos->latency;
-        }
-      pos = pos->next;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Best address found has latency of %llu!\n",
+                  best_address->latency.value);
     }
 #endif
+  return best_address;
+
 }
 
 /**
@@ -2223,7 +2218,7 @@ process_hello (struct TransportPlugin *plugin,
  * The peer specified by the given neighbor has timed-out or a plugin
  * has disconnected.  We may either need to do nothing (other plugins
  * still up), or trigger a full disconnect and clean up.  This
- * function updates our state and do the necessary notifications.
+ * function updates our state and does the necessary notifications.
  * Also notifies our clients that the neighbor is now officially
  * gone.
  *
@@ -2233,13 +2228,26 @@ process_hello (struct TransportPlugin *plugin,
  *        disconnect?
  */
 static void
-disconnect_neighbor (struct NeighborList *n, int check)
+disconnect_neighbor (struct NeighborList *current_handle, int check)
 {
   struct ReadyList *rpos;
   struct NeighborList *npos;
   struct NeighborList *nprev;
+  struct NeighborList *n;
   struct MessageQueue *mq;
   struct PeerAddressList *peer_addresses;
+
+  if (neighbors == NULL)
+    return; /* We don't have any neighbors, so client has an already removed handle! */
+
+  npos = neighbors;
+  while ((npos != NULL) && (current_handle != npos))
+    npos = npos->next;
+
+  if (npos == NULL)
+    return; /* Couldn't find neighbor in existing list, must have been already removed! */
+  else
+    n = npos;
 
   if (GNUNET_YES == check)
     {
@@ -2749,21 +2757,29 @@ handle_try_connect (void *cls,
                     const struct GNUNET_MessageHeader *message)
 {
   const struct TryConnectMessage *tcm;
-
+  struct NeighborList *neighbor;
   tcm = (const struct TryConnectMessage *) message;
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' request from client %p asking to connect to `%4s'\n",
               "TRY_CONNECT", client, GNUNET_i2s (&tcm->peer));
 #endif
-  if (NULL == find_neighbor (&tcm->peer))
+  neighbor = find_neighbor(&tcm->peer);
+
+  if (neighbor == NULL)
     setup_new_neighbor (&tcm->peer);
-#if DEBUG_TRANSPORT
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Client asked to connect to `%4s', but connection already exists\n",
-                "TRY_CONNECT", GNUNET_i2s (&tcm->peer));
+    {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Client asked to connect to `%4s', but connection already exists\n",
+                  "TRY_CONNECT", GNUNET_i2s (&tcm->peer));
 #endif
+      transmit_to_peer (NULL, NULL, 0,
+                        (const char *) our_hello, GNUNET_HELLO_size(our_hello),
+                        GNUNET_YES, neighbor);
+      notify_clients_connect (&tcm->peer, GNUNET_TIME_UNIT_FOREVER_REL);
+    }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 

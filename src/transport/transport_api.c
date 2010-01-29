@@ -946,9 +946,23 @@ request_connect (void *cls, size_t size, void *buf)
   struct GNUNET_TRANSPORT_TransmitHandle *th = cls;
   struct TryConnectMessage *tcm;
   struct GNUNET_TRANSPORT_Handle *h;
+  struct NeighbourList *n;
 
   GNUNET_assert (th->notify_delay_task == GNUNET_SCHEDULER_NO_TASK);
   h = th->handle;
+
+  n = find_neighbour(h, &tcm->peer);
+
+  if (n != NULL)
+    {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Asked to TRY_CONNECT to already connected peer!\n");
+#endif
+      return GNUNET_YES;
+    }
+
+
   if (buf == NULL)
     {
 #if DEBUG_TRANSPORT
@@ -1356,8 +1370,10 @@ add_neighbour (struct GNUNET_TRANSPORT_Handle *h,
             h->connect_wait_head = next;
           else
             prev->next = next;
-//          if (GNUNET_YES == n->received_ack)
-//            {
+#if ACK
+          if (GNUNET_YES == n->received_ack)
+            {
+#endif
 #if DEBUG_TRANSPORT
               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                           "Found pending request for `%4s' will trigger it now.\n",
@@ -1369,7 +1385,9 @@ add_neighbour (struct GNUNET_TRANSPORT_Handle *h,
                   pos->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
                 }
               schedule_request (pos);
-//            }
+#if ACK
+            }
+#endif
 
           break;
         }
@@ -1529,6 +1547,10 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
   struct NeighbourList *n;
   struct GNUNET_PeerIdentity me;
   struct GNUNET_TRANSPORT_TransmitHandle *th;
+
+  struct GNUNET_TRANSPORT_TransmitHandle *prev;
+  struct GNUNET_TRANSPORT_TransmitHandle *pos;
+  struct GNUNET_TRANSPORT_TransmitHandle *next;
   uint16_t size;
 
   if ((msg == NULL) || (h->client == NULL))
@@ -1614,9 +1636,80 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
                   "Receiving `%s' message for `%4s'.\n",
                   "CONNECT", GNUNET_i2s (&cim->id));
 #endif
-      add_neighbour (h,
-                     ntohl (cim->quota_out),
-                     GNUNET_TIME_relative_ntoh (cim->latency), ntohs(cim->distance), &cim->id);
+      if (find_neighbour(h, &cim->id) == NULL)
+        {
+#if DEBUG_TRANSPORT
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          "Don't know neighbor, adding!\n");
+#endif
+          add_neighbour (h,
+                         ntohl (cim->quota_out),
+                         GNUNET_TIME_relative_ntoh (cim->latency), ntohs(cim->distance), &cim->id);
+        }
+      else
+        {
+#if DEBUG_TRANSPORT
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          "Do know neighbor, scheduling transmission!\n");
+#endif
+          n = find_neighbour(h, &cim->id);
+          n->received_ack = GNUNET_YES;
+          if (NULL != n->transmit_handle)
+            {
+#if DEBUG_TRANSPORT
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          "Peer connected, scheduling delayed message for delivery now.\n");
+#endif
+              schedule_request (n->transmit_handle);
+            }
+          else
+            {
+#if DEBUG_TRANSPORT
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          "Transmit handle is null... Checking for pending stuff(?)\n");
+#endif
+              prev = NULL;
+              pos = h->connect_wait_head;
+              while (pos != NULL)
+                {
+                  next = pos->next;
+                  if (0 == memcmp (&cim->id,
+                                   &pos->target, sizeof (struct GNUNET_PeerIdentity)))
+                    {
+                      pos->neighbour = n;
+                      GNUNET_assert (NULL == n->transmit_handle);
+                      n->transmit_handle = pos;
+                      if (prev == NULL)
+                        h->connect_wait_head = next;
+                      else
+                        prev->next = next;
+#if ACK
+                        if (GNUNET_YES == n->received_ack)
+                          {
+#endif
+  #if DEBUG_TRANSPORT
+                          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                                      "Found pending request for `%4s' will trigger it now.\n",
+                                      GNUNET_i2s (&pos->target));
+  #endif
+                          if (pos->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
+                            {
+                              GNUNET_SCHEDULER_cancel (h->sched, pos->notify_delay_task);
+                              pos->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
+                            }
+                          schedule_request (pos);
+#if ACK
+                          }
+#endif
+
+                      break;
+                    }
+                  prev = pos;
+                  pos = next;
+                }
+          }
+        }
+
       break;
     case GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT:
       if (size != sizeof (struct DisconnectInfoMessage))
@@ -1882,7 +1975,7 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
 #endif
   GNUNET_assert (NULL == n->transmit_handle);
   n->transmit_handle = th;
-  if (GNUNET_YES != n->received_ack)
+  if (GNUNET_YES != n->transmit_ok)
     {
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
