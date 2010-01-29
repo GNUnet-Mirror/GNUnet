@@ -435,18 +435,18 @@ GNUNET_CONTAINER_multihashmap_get_multiple (const struct
 {
   int count;
   struct MapEntry *e;
+  struct MapEntry *n;
 
   count = 0;
-  e = map->map[idx_of (map, key)];
-  while (e != NULL)
+  n = map->map[idx_of (map, key)];
+  while (NULL != (e = n))
     {
-      if (0 == memcmp (key, &e->key, sizeof (GNUNET_HashCode)))
-        {
-          if ((it != NULL) && (GNUNET_OK != it (it_cls, &e->key, e->value)))
-            return GNUNET_SYSERR;
-          count++;
-        }
-      e = e->next;
+      n = e->next;
+      if (0 != memcmp (key, &e->key, sizeof (GNUNET_HashCode)))
+	continue;
+      if ((it != NULL) && (GNUNET_OK != it (it_cls, &e->key, e->value)))
+	return GNUNET_SYSERR;
+      count++;
     }
   return count;
 }
