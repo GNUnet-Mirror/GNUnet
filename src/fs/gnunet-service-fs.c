@@ -46,7 +46,7 @@
 #include "gnunet-service-fs_indexing.h"
 #include "fs.h"
 
-#define DEBUG_FS GNUNET_YES
+#define DEBUG_FS GNUNET_NO
 
 /**
  * Maximum number of outgoing messages we queue per peer.
@@ -1918,6 +1918,9 @@ process_local_reply (void *cls,
   pr->drq = NULL;
   if (NULL == key)
     {
+      if (pr->client_request_list != NULL)
+	GNUNET_SERVER_receive_done (pr->client_request_list->client_list->client, 
+				    GNUNET_YES);
       /* no more results */
       if (pr->task == GNUNET_SCHEDULER_NO_TASK)
 	pr->task = GNUNET_SCHEDULER_add_now (sched,
@@ -2347,8 +2350,10 @@ handle_start_search (void *cls,
 				     &sm->query,
 				     pr,
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  if (type == GNUNET_DATASTORE_BLOCKTYPE_DBLOCK)
+    type = GNUNET_DATASTORE_BLOCKTYPE_ANY; /* get on-demand blocks too! */
   pr->drq = GNUNET_FS_drq_get (&sm->query,
-			       pr->type,			       
+			       type,			       
 			       &process_local_reply,
 			       pr,
 			       GNUNET_TIME_UNIT_FOREVER_REL,

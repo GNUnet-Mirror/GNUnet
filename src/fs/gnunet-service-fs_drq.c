@@ -144,9 +144,7 @@ run_next_request (void *cls,
 		  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct DatastoreRequestQueue *e = cls;
-
-  GNUNET_CONTAINER_DLL_remove (drq_head, drq_tail, e);
-  drq_running = e;
+  
   e->req (e->req_cls, GNUNET_YES);
 }
 
@@ -165,6 +163,8 @@ next_ds_request ()
   e = drq_head;
   if (e == NULL)
     return;
+  GNUNET_CONTAINER_DLL_remove (drq_head, drq_tail, e);
+  drq_running = e;
   GNUNET_SCHEDULER_cancel (sched, e->task);
   e->task = GNUNET_SCHEDULER_add_now (sched,
 				      &run_next_request,
