@@ -30,7 +30,6 @@
  * - detect duplicate requests (P2P and CS)
  * - implement: bound_priority, test_load_too_high, validate_skblock
  * - add content migration support (store locally)
- * - add random delay
  * - statistics
  * 
  */
@@ -928,17 +927,17 @@ static void
 shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_CONTAINER_multihashmap_iterate (connected_peers,
-					 &clean_peer,
-					 NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (connected_peers);
-  connected_peers = NULL;
   while (client_list != NULL)
     handle_client_disconnect (NULL,
 			      client_list->client);
+  GNUNET_CONTAINER_multihashmap_iterate (connected_peers,
+					 &clean_peer,
+					 NULL);
   GNUNET_break (0 == GNUNET_CONTAINER_heap_get_size (requests_by_expiration_heap));
   GNUNET_CONTAINER_heap_destroy (requests_by_expiration_heap);
   requests_by_expiration_heap = 0;
+  GNUNET_CONTAINER_multihashmap_destroy (connected_peers);
+  connected_peers = NULL;
   GNUNET_break (0 == GNUNET_CONTAINER_multihashmap_size (query_request_map));
   GNUNET_CONTAINER_multihashmap_destroy (query_request_map);
   query_request_map = NULL;
@@ -1243,14 +1242,10 @@ target_reservation_cb (void *cls,
   char *bfdata;
   size_t msize;
   unsigned int k;
+  int no_route;
 
   pr->irc = NULL;
   GNUNET_assert (peer != NULL);
-  if (amount != DBLOCK_SIZE) 
-    {
-      /* FIXME: call stats... */
-      return; /* this target round failed */    
-    }
   // (3) transmit, update ttl/priority
   cp = GNUNET_CONTAINER_multihashmap_get (connected_peers,
 					  &peer->hashPubKey);
@@ -1259,8 +1254,24 @@ target_reservation_cb (void *cls,
       /* Peer must have just left */
       return;
     }
+  no_route = GNUNET_NO;
+  if (amount != DBLOCK_SIZE) 
+    {
+      if (pr->pht_entry == NULL)
+	return;  /* this target round failed */
+      /* FIXME: if we are "quite" busy, we may still want to skip
+	 this round; need more load detection code! */
+      no_route = GNUNET_YES;
+    }
+  
   /* build message and insert message into priority queue */
-  k = 0; // FIXME: count hash codes!
+  k = 0;
+  if (pr->namespace != NULL)
+    k++;
+  if (pr->target_pid != 0)
+    k++;
+  if (GNUNET_YES == no_route)
+    k++;      
   msize = sizeof (struct GetMessage) + pr->bf_size + k * sizeof(GNUNET_HashCode);
   GNUNET_assert (msize < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   pm = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
@@ -1276,7 +1287,13 @@ target_reservation_cb (void *cls,
   gm->hash_bitmap = htonl (42); // FIXME!
   gm->query = pr->query;
   ext = (GNUNET_HashCode*) &gm[1];
-  // FIXME: setup "ext[0]..[k-1]"
+  k = 0;
+  if (pr->namespace != NULL)
+    memcpy (&ext[k++], pr->namespace, sizeof (GNUNET_HashCode));
+  if (pr->target_pid != 0)
+    GNUNET_PEER_resolve (pr->target_pid, (struct GNUNET_PeerIdentity*) &ext[k++]);
+  if (GNUNET_YES == no_route)
+    GNUNET_PEER_resolve (pr->pht_entry->cp->pid, (struct GNUNET_PeerIdentity*) &ext[k++]);
   bfdata = (char *) &ext[k];
   if (pr->bf != NULL)
     GNUNET_CONTAINER_bloomfilter_get_raw_data (pr->bf,
@@ -1286,7 +1303,6 @@ target_reservation_cb (void *cls,
   pm->cont_cls = pr;
   add_to_pending_messages_for_peer (cp, pm, pr);
 }
-
 
 
 /**
@@ -1659,7 +1675,7 @@ process_reply (void *cls,
       GNUNET_break (GNUNET_YES ==
 		    GNUNET_CONTAINER_multihashmap_remove (query_request_map,
 							  key,
-							  prq));
+							  pr));
       break;
     case GNUNET_DATASTORE_BLOCKTYPE_SBLOCK:
       if (0 != memcmp (pr->namespace,
@@ -1679,7 +1695,6 @@ process_reply (void *cls,
 	}
       if (pr->client_request_list != NULL)
 	{
-	  cl = pr->client_request_list->client_list;
 	  if (pr->replies_seen_size == pr->replies_seen_off)
 	    {
 	      GNUNET_array_grow (pr->replies_seen,
@@ -1702,6 +1717,7 @@ process_reply (void *cls,
   pr->remaining_priority = 0;
   if (pr->client_request_list != NULL)
     {
+      cl = pr->client_request_list->client_list;
       msize = sizeof (struct PutMessage) + prq->size;
       creply = GNUNET_malloc (msize + sizeof (struct ClientResponseMessage));
       creply->msize = msize;
@@ -2144,7 +2160,7 @@ handle_p2p_get (void *cls,
   pre->req = pr;
   GNUNET_CONTAINER_multihashmap_put (query_request_map,
 				     &gm->query,
-				     pre,
+				     pr,
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   
   pr->hnode = GNUNET_CONTAINER_heap_insert (requests_by_expiration_heap,
@@ -2247,8 +2263,9 @@ handle_start_search (void *cls,
   /* FIXME: detect duplicate request; if duplicate, simply update (merge)
      'pr->replies_seen'! */
   pr = GNUNET_malloc (sizeof (struct PendingRequest) + 
-		      (type == GNUNET_DATASTORE_BLOCKTYPE_SBLOCK)?sizeof(GNUNET_HashCode):0);
+		      ((type == GNUNET_DATASTORE_BLOCKTYPE_SBLOCK)?sizeof(GNUNET_HashCode):0));
   crl = GNUNET_malloc (sizeof (struct ClientRequestList));
+  memset (crl, 0, sizeof (struct ClientRequestList));
   crl->client_list = cl;
   GNUNET_CONTAINER_DLL_insert (cl->rl_head,
 			       cl->rl_tail,
@@ -2283,6 +2300,10 @@ handle_start_search (void *cls,
     default:
       break;
     }
+  GNUNET_CONTAINER_multihashmap_put (query_request_map,
+				     &sm->query,
+				     pr,
+				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   pr->drq = GNUNET_FS_drq_get (&sm->query,
 			       pr->type,			       
 			       &process_local_reply,
@@ -2341,6 +2362,10 @@ main_init (struct GNUNET_SCHEDULER_Handle *s,
 {
   sched = s;
   cfg = c;
+  connected_peers = GNUNET_CONTAINER_multihashmap_create (128); // FIXME: get size from config
+  query_request_map = GNUNET_CONTAINER_multihashmap_create (128); // FIXME: get size from config
+  peer_request_map = GNUNET_CONTAINER_multihashmap_create (128); // FIXME: get size from config
+  requests_by_expiration_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN); 
   core = GNUNET_CORE_connect (sched,
 			      cfg,
 			      GNUNET_TIME_UNIT_FOREVER_REL,
@@ -2357,11 +2382,17 @@ main_init (struct GNUNET_SCHEDULER_Handle *s,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Failed to connect to `%s' service.\n"),
 		  "core");
+      GNUNET_CONTAINER_multihashmap_destroy (connected_peers);
+      connected_peers = NULL;
+      GNUNET_CONTAINER_multihashmap_destroy (query_request_map);
+      query_request_map = NULL;
+      GNUNET_CONTAINER_heap_destroy (requests_by_expiration_heap);
+      requests_by_expiration_heap = NULL;
+      GNUNET_CONTAINER_multihashmap_destroy (peer_request_map);
+      peer_request_map = NULL;
+
       return GNUNET_SYSERR;
     }  
-  query_request_map = GNUNET_CONTAINER_multihashmap_create (128); // FIXME: get size from config
-  peer_request_map = GNUNET_CONTAINER_multihashmap_create (128); // FIXME: get size from config
-  requests_by_expiration_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN); 
   GNUNET_SERVER_disconnect_notify (server, 
 				   &handle_client_disconnect,
 				   NULL);
