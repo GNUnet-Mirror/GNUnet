@@ -259,6 +259,7 @@ exchange_hello (void *cls,
   GNUNET_TRANSPORT_get_hello (p2.th, &exchange_hello_last, &p2);
 }
 
+#if WRITECONFIG
 static void
 setTransportOptions(char * filename)
 {
@@ -294,6 +295,7 @@ setTransportOptions(char * filename)
   GNUNET_CONFIGURATION_destroy(tempcfg);
   return;
 }
+#endif
 
 static void
 run (void *cls,
@@ -305,14 +307,19 @@ run (void *cls,
   OKPP;
   sched = s;
 
-  setTransportOptions("test_transport_api_peer1.conf");
-  setTransportOptions("test_transport_api_peer2.conf");
-
   die_task = GNUNET_SCHEDULER_add_delayed (sched,
       GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 1), &end_badly, NULL);
 
-  setup_peer (&p1, "test_transport_api_peer1.conf");
-  setup_peer (&p2, "test_transport_api_peer2.conf");
+  if (is_udp)
+    {
+      setup_peer (&p1, "test_transport_api_udp_peer1.conf");
+      setup_peer (&p2, "test_transport_api_udp_peer2.conf");
+    }
+  else if (is_tcp)
+    {
+      setup_peer (&p1, "test_transport_api_tcp_peer1.conf");
+      setup_peer (&p2, "test_transport_api_tcp_peer2.conf");
+    }
 
   GNUNET_TRANSPORT_get_hello (p1.th, &exchange_hello, &p1);
 }
@@ -330,7 +337,9 @@ check ()
     NULL
   };
 
+#if WRITECONFIG
   setTransportOptions("test_transport_api_data.conf");
+#endif
 
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END

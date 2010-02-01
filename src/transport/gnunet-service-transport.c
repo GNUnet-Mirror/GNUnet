@@ -24,8 +24,7 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - if we do not receive an ACK in response to our
- *   HELLO, retransmit HELLO!
+ * - remove AddressValidations, incorporate them into the PeerAddressLists
  */
 #include "platform.h"
 #include "gnunet_client_lib.h"
@@ -307,7 +306,12 @@ struct MessageQueue
   /**
    * Neighbor this entry belongs to.
    */
-  struct NeighborList *neighbor;
+  /*struct NeighborList *neighbor;*/
+
+  /**
+   * Peer ID of the Neighbor this entry belongs to.
+   */
+  struct GNUNET_PeerIdentity *neighbor_id;
 
   /**
    * Plugin that we used for the transmission.
@@ -1060,16 +1064,14 @@ transmit_send_continuation (void *cls,
   struct NeighborList *n;
 
   GNUNET_assert (mq != NULL);
-  n = mq->neighbor;
-  GNUNET_assert (n != NULL);
+  n = find_neighbor(mq->neighbor_id);
+  if (n == NULL) /* Neighbor must have been removed asynchronously! */
+    return;
+
+  /* Otherwise, let's make sure we've got the right peer */
   GNUNET_assert (0 ==
                  memcmp (&n->id, target,
                          sizeof (struct GNUNET_PeerIdentity)));
-/*  rl = n->plugins;
-  while ((rl != NULL) && (rl->plugin != mq->plugin))
-    rl = rl->next;
-  GNUNET_assert (rl != NULL);
-*/
 
   if (result == GNUNET_OK)
     {
@@ -1221,7 +1223,7 @@ try_transmission_to_peer (struct NeighborList *neighbor)
 #endif
 
   return rl->plugin->api->send (rl->plugin->api->cls,
-                         &neighbor->id,
+                         mq->neighbor_id,
                          mq->message_buf,
                          mq->message_buf_size,
                          mq->priority,
@@ -1280,7 +1282,9 @@ transmit_to_peer (struct TransportClient *client,
   memcpy (m, message_buf, message_buf_size);
   mq->message_buf = m;
   mq->message_buf_size = message_buf_size;
-  mq->neighbor = neighbor;
+  mq->neighbor_id = GNUNET_malloc(sizeof (struct GNUNET_PeerIdentity));
+
+  memcpy(mq->neighbor_id, &neighbor->id, sizeof(struct GNUNET_PeerIdentity));
   mq->internal_msg = is_internal;
   mq->priority = priority;
 
@@ -1882,6 +1886,7 @@ add_peer_address(struct NeighborList *neighbor, const char *addr, size_t addrlen
 
   GNUNET_assert(addr != NULL);
 
+  new_address = NULL;
   while (head != NULL)
     {
       new_address = GNUNET_malloc(sizeof(struct PeerAddressList));
@@ -2303,7 +2308,7 @@ disconnect_neighbor (struct NeighborList *current_handle, int check)
   while (NULL != (mq = n->messages))
     {
       n->messages = mq->next;
-      GNUNET_assert (mq->neighbor == n);
+      GNUNET_assert (0 == memcmp(mq->neighbor_id, &n->id, sizeof(struct GNUNET_PeerIdentity)));
       GNUNET_free (mq);
     }
   if (n->timeout_task != GNUNET_SCHEDULER_NO_TASK)
