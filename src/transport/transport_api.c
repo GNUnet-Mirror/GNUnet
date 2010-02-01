@@ -951,7 +951,7 @@ request_connect (void *cls, size_t size, void *buf)
   GNUNET_assert (th->notify_delay_task == GNUNET_SCHEDULER_NO_TASK);
   h = th->handle;
 
-  n = find_neighbour(h, &tcm->peer);
+  n = find_neighbour(h, &th->target);
 
   if (n != NULL)
     {
@@ -1653,6 +1653,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
                           "Do know neighbor, scheduling transmission!\n");
 #endif
           n = find_neighbour(h, &cim->id);
+          GNUNET_assert(n != NULL);
           n->received_ack = GNUNET_YES;
           if (NULL != n->transmit_handle)
             {
