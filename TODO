@@ -23,12 +23,7 @@ Urgent items (before announcing ng.gnunet.org):
 * HOSTLIST:
   - needs testing [need transport first]
 * FS (basic anonymous FS only)
-  - implement FS service (P2P operations)
-    + implement sending of queries (low-priority push!)
-    + need to bound queueing of replies for other peers    
-    + content migration support
-    + hot path routing    
-  - test multi-peer search/download
+  - test multi-peer search/download [needs core first]
 * new webpage
   - run peer => have a 0.9.x hostlist
   - improve basic documentation (configure, dependencies, what works, etc.)
@@ -68,7 +63,7 @@ Urgent items (before announcing ng.gnunet.org):
     + gnunet-download (many options)
     + gnunet-directory (man page, options)
     + gnunet-pseudonym (all of it)
-    + gnunet-service-fs (remove failing on-demand blocks, stats, load-based routing, nitpicks)
+    + gnunet-service-fs (remove failing on-demand blocks, stats, hot-path routing, load-based routing, nitpicks)
     + datastore: do active migration support here?   
   - implement adv. FS testcases 
     + getopt API
