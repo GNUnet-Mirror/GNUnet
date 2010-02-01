@@ -441,21 +441,15 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_FS_START_SEARCH 136
 
 /**
- * FS service has found content matching this client's
- * request.
- */
-#define GNUNET_MESSAGE_TYPE_FS_CONTENT 137
-
-/**
  * P2P request for content (one FS to another).
  */
-#define GNUNET_MESSAGE_TYPE_FS_GET 138
+#define GNUNET_MESSAGE_TYPE_FS_GET 137
 
 /**
- * P2P response with content or active
- * migration of content.
+ * P2P response with content or active migration of content.  Also
+ * used between the service and clients (in response to START_SEARCH).
  */
-#define GNUNET_MESSAGE_TYPE_FS_PUT 139
+#define GNUNET_MESSAGE_TYPE_FS_PUT 138
 
 /**
  * Type used to match 'all' message types.

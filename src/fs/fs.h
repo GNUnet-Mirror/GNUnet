@@ -1300,35 +1300,6 @@ struct SearchMessage
 
 
 /**
- * Response from FS service with a result for a previous FS search.
- * Note that queries for DBLOCKS and IBLOCKS that have received a
- * single response are considered done.
- */
-struct ContentMessage
-{
-
-  /**
-   * Message type will be 
-   * GNUNET_MESSAGE_TYPE_FS_CONTENT.
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Type of the content that was found,
-   * should never be 0.
-   */
-  uint32_t type GNUNET_PACKED;
-
-  /**
-   * When will this result expire?
-   */
-  struct GNUNET_TIME_AbsoluteNBO expiration;
-
-  /* followed by the actual block of data */
-
-};
-
-/**
  * Only the (mandatory) query is included.
  */
 #define GET_MESSAGE_BIT_QUERY_ONLY 0
@@ -1417,7 +1388,10 @@ struct GetMessage
 
 
 /**
- * Message sent between peers providing FS-content.
+ * Response from FS service with a result for a previous FS search.
+ * Note that queries for DBLOCKS and IBLOCKS that have received a
+ * single response are considered done.  This message is transmitted
+ * between peers as well as between the service and a client.
  */
 struct PutMessage
 {
@@ -1428,14 +1402,14 @@ struct PutMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Type of the block (in big endian).
+   * Type of the block (in big endian).  Should never be zero.
    */
   uint32_t type GNUNET_PACKED;
 
   /**
    * When does this result expire? 
    */
-  struct GNUNET_TIME_RelativeNBO expiration;
+  struct GNUNET_TIME_AbsoluteNBO expiration;
 
   /* this is followed by the actual encrypted content */
 

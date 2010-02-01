@@ -574,23 +574,23 @@ receive_results (void *cls,
 		 const struct GNUNET_MessageHeader * msg)
 {
   struct GNUNET_FS_SearchContext *sc = cls;
-  const struct ContentMessage *cm;
+  const struct PutMessage *cm;
   uint16_t msize;
 
   if ( (NULL == msg) ||
-       (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_FS_CONTENT) ||
-       (ntohs (msg->size) <= sizeof (struct ContentMessage)) )
+       (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_FS_PUT) ||
+       (ntohs (msg->size) <= sizeof (struct PutMessage)) )
     {
       try_reconnect (sc);
       return;
     }
   msize = ntohs (msg->size);
-  cm = (const struct ContentMessage*) msg;
+  cm = (const struct PutMessage*) msg;
   process_result (sc, 
 		  ntohl (cm->type),
 		  GNUNET_TIME_absolute_ntoh (cm->expiration),
 		  &cm[1],
-		  msize - sizeof (struct ContentMessage));
+		  msize - sizeof (struct PutMessage));
   /* continue receiving */
   GNUNET_CLIENT_receive (sc->client,
 			 &receive_results,

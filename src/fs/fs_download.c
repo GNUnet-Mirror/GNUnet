@@ -36,7 +36,7 @@
 #include "fs.h"
 #include "fs_tree.h"
 
-#define DEBUG_DOWNLOAD GNUNET_NO
+#define DEBUG_DOWNLOAD GNUNET_YES
 
 /**
  * We're storing the IBLOCKS after the
@@ -539,22 +539,23 @@ receive_results (void *cls,
 		 const struct GNUNET_MessageHeader * msg)
 {
   struct GNUNET_FS_DownloadContext *dc = cls;
-  const struct ContentMessage *cm;
+  const struct PutMessage *cm;
   uint16_t msize;
 
   if ( (NULL == msg) ||
-       (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_FS_CONTENT) ||
-       (ntohs (msg->size) <= sizeof (struct ContentMessage)) )
+       (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_FS_PUT) ||
+       (sizeof (struct PutMessage) > ntohs(msg->size)) )
     {
+      GNUNET_break (msg == NULL);	
       try_reconnect (dc);
       return;
     }
-  msize = ntohs (msg->size);
-  cm = (const struct ContentMessage*) msg;
+  msize = ntohs(msg->size);
+  cm = (const struct PutMessage*) msg;
   process_result (dc, 
 		  ntohl (cm->type),
 		  &cm[1],
-		  msize - sizeof (struct ContentMessage));
+		  msize - sizeof (struct PutMessage));
   if (dc->client == NULL)
     return; /* fatal error */
   /* continue receiving */

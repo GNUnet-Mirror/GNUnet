@@ -38,8 +38,7 @@
 #include "gnunet-service-fs_indexing.h"
 #include "fs.h"
 
-#define DEBUG_FS GNUNET_NO
-
+#define DEBUG_FS GNUNET_YES
 
 /**
  * In-memory information about indexed files (also available
@@ -624,6 +623,11 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
 	 to remove the OnDemand block from the DS! */
       return GNUNET_SYSERR;
     }
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "On-demand encoded block for query `%s'\n",
+		  GNUNET_h2s (key));
+#endif  
   cont (cont_cls,
 	key,
 	nsize,

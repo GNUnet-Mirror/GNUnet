@@ -29,7 +29,7 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_fs_service.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define START_ARM GNUNET_YES
 
@@ -78,15 +78,15 @@ static void
 timeout_kill_task (void *cls,
 		   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (publish != NULL)
-    {
-      GNUNET_FS_publish_stop (publish);
-      publish = NULL;
-    }
   if (download != NULL)
     {
       GNUNET_FS_download_stop (download, GNUNET_YES);
       download = NULL;
+    }
+  else if (publish != NULL)
+    {
+      GNUNET_FS_publish_stop (publish);
+      publish = NULL;
     }
   timeout_kill = GNUNET_SCHEDULER_NO_TASK;
   err = 1;

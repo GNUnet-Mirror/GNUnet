@@ -1592,6 +1592,11 @@ transmit_to_client (void *cls,
 						  GNUNET_TIME_UNIT_FOREVER_REL,
 						  &transmit_to_client,
 						  cl);
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmitted %u bytes to client\n",
+	      (unsigned int) msize);
+#endif
   return msize;
 }
 
@@ -1655,7 +1660,6 @@ process_reply (void *cls,
   struct ClientResponseMessage *creply;
   struct ClientList *cl;
   struct PutMessage *pm;
-  struct ContentMessage *cm;
   struct ConnectedPeer *cp;
   GNUNET_HashCode chash;
   GNUNET_HashCode mhash;
@@ -1740,8 +1744,8 @@ process_reply (void *cls,
       pm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_PUT);
       pm->header.size = htons (msize);
       pm->type = htonl (prq->type);
-      pm->expiration = GNUNET_TIME_relative_hton (GNUNET_TIME_absolute_get_remaining (prq->expiration));
-      memcpy (&creply[1], prq->data, prq->size);      
+      pm->expiration = GNUNET_TIME_absolute_hton (prq->expiration);
+      memcpy (&pm[1], prq->data, prq->size);      
       if (NULL == cl->th)
 	cl->th = GNUNET_SERVER_notify_transmit_ready (cl->client,
 						      msize,
@@ -1759,18 +1763,18 @@ process_reply (void *cls,
 		  GNUNET_h2s (key),
 		  (unsigned int) cp->pid);
 #endif  
-      msize = sizeof (struct ContentMessage) + prq->size;
+      msize = sizeof (struct PutMessage) + prq->size;
       reply = GNUNET_malloc (msize + sizeof (struct PendingMessage));
       reply->cont = &transmit_reply_continuation;
       reply->cont_cls = pr;
       reply->msize = msize;
       reply->priority = (uint32_t) -1; /* send replies first! */
-      cm = (struct ContentMessage*) &reply[1];
-      cm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_CONTENT);
-      cm->header.size = htons (msize);
-      cm->type = htonl (prq->type);
-      cm->expiration = GNUNET_TIME_absolute_hton (prq->expiration);
-      memcpy (&reply[1], prq->data, prq->size);
+      pm = (struct PutMessage*) &reply[1];
+      pm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_PUT);
+      pm->header.size = htons (msize);
+      pm->type = htonl (prq->type);
+      pm->expiration = GNUNET_TIME_absolute_hton (prq->expiration);
+      memcpy (&pm[1], prq->data, prq->size);
       add_to_pending_messages_for_peer (cp, reply, pr);
     }
 
@@ -1816,7 +1820,7 @@ handle_p2p_put (void *cls,
   put = (const struct PutMessage*) message;
   dsize = msize - sizeof (struct PutMessage);
   type = ntohl (put->type);
-  expiration = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_ntoh (put->expiration));
+  expiration = GNUNET_TIME_absolute_ntoh (put->expiration);
 
   /* first, validate! */
   switch (type)
