@@ -14,11 +14,9 @@ away), in order in which they will likely be done:
 
 Urgent items (before announcing ng.gnunet.org):
 * TRANSPORT:
-  - main service not implemented [Nate]
-  - testcases crash & burn (no surprise)
+  - nondeterministic transport testcase failures [Nate]
 * CORE:
-  - test currently fails spectacularly [segv of transport service]
-    => need transport to work first!
+  - test currently fails
   - request connect not working [Christian, need transport first]
 * TOPOLOGY:
   - needs testing [need transport first]
@@ -28,6 +26,8 @@ Urgent items (before announcing ng.gnunet.org):
   - implement FS service (P2P operations)
     + implement sending of queries (low-priority push!)
     + need to bound queueing of replies for other peers    
+    + content migration support
+    + hot path routing    
   - test multi-peer search/download
 * new webpage
   - run peer => have a 0.9.x hostlist
@@ -68,8 +68,8 @@ Urgent items (before announcing ng.gnunet.org):
     + gnunet-download (many options)
     + gnunet-directory (man page, options)
     + gnunet-pseudonym (all of it)
-    + gnunet-service-fs (remove failing on-demand blocks, many other nitpicks/features/optimizations)
-    + datastore: do active migration support here?
+    + gnunet-service-fs (remove failing on-demand blocks, stats, load-based routing, nitpicks)
+    + datastore: do active migration support here?   
   - implement adv. FS testcases 
     + getopt API
     + insert: sblocks, loc uris
