@@ -68,15 +68,39 @@ static struct GNUNET_FS_DownloadContext *download;
 
 static struct GNUNET_FS_PublishContext *publish;
 
+static GNUNET_SCHEDULER_TaskIdentifier timeout_kill;
+
 static char *fn;
 
+static int err;
+
+static void
+timeout_kill_task (void *cls,
+		   const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if (publish != NULL)
+    {
+      GNUNET_FS_publish_stop (publish);
+      publish = NULL;
+    }
+  if (download != NULL)
+    {
+      GNUNET_FS_download_stop (download, GNUNET_YES);
+      download = NULL;
+    }
+  timeout_kill = GNUNET_SCHEDULER_NO_TASK;
+  err = 1;
+}
 
 static void
 abort_publish_task (void *cls,
 		     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_FS_publish_stop (publish);
-  publish = NULL;
+  if (publish != NULL)
+    {
+      GNUNET_FS_publish_stop (publish);
+      publish = NULL;
+    }
 }
 
 
@@ -86,13 +110,18 @@ abort_download_task (void *cls,
 {
   uint64_t size;
   
-  GNUNET_FS_download_stop (download, GNUNET_YES);
-  download = NULL;
+  if (download != NULL)
+    {
+      GNUNET_FS_download_stop (download, GNUNET_YES);
+      download = NULL;
+    }
   GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_size (fn, &size, GNUNET_YES));
   GNUNET_assert (size == FILESIZE); 
   GNUNET_DISK_directory_remove (fn);
   GNUNET_free (fn);
   fn = NULL;
+  GNUNET_SCHEDULER_cancel (sched, timeout_kill);
+  timeout_kill = GNUNET_SCHEDULER_NO_TASK;
 }
 
 
@@ -132,10 +161,9 @@ progress_cb (void *cls,
     case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
       printf ("Download complete,  %llu kbps.\n",
 	      (unsigned long long) (FILESIZE * 1000 / (1+GNUNET_TIME_absolute_get_duration (start).value) / 1024));
-      GNUNET_SCHEDULER_add_continuation (sched,
-					 &abort_download_task,
-					 NULL,
-					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      GNUNET_SCHEDULER_add_now (sched,
+				&abort_download_task,
+				NULL);
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_PROGRESS:
       GNUNET_assert (download == event->value.download.dc);
@@ -161,10 +189,9 @@ progress_cb (void *cls,
       fprintf (stderr,
 	       "Error downloading file: %s\n",
 	       event->value.download.specifics.error.message);
-      GNUNET_SCHEDULER_add_continuation (sched,
-					 &abort_download_task,
-					 NULL,
-					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      GNUNET_SCHEDULER_add_now (sched,
+				&abort_download_task,
+				NULL);
       break;
     case GNUNET_FS_STATUS_PUBLISH_START:
       GNUNET_assert (0 == strcmp ("publish-context", event->value.publish.cctx));
@@ -282,6 +309,10 @@ run (void *cls,
   GNUNET_FS_uri_destroy (kuri);
   GNUNET_CONTAINER_meta_data_destroy (meta);
   GNUNET_assert (NULL != fi);
+  timeout_kill = GNUNET_SCHEDULER_add_delayed (sched,
+					       TIMEOUT,
+					       &timeout_kill_task,
+					       NULL);
   start = GNUNET_TIME_absolute_get ();
   publish = GNUNET_FS_publish_start (fs,
 				    fi,
@@ -319,7 +350,7 @@ main (int argc, char *argv[])
 		      "nohelp", options, &run, NULL);
   stop_arm (&p1);
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-download/");
-  return 0;
+  return err;
 }
 
 /* end of test_fs_download.c */

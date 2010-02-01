@@ -46,12 +46,13 @@
 #include "gnunet-service-fs_indexing.h"
 #include "fs.h"
 
+#define DEBUG_FS GNUNET_YES
+
 /**
  * Maximum number of outgoing messages we queue per peer.
  * FIXME: set to a tiny value for testing; make configurable.
  */
 #define MAX_QUEUE_PER_PEER 2
-
 
 
 /**
@@ -1661,7 +1662,11 @@ process_reply (void *cls,
   size_t msize;
   uint32_t prio;
 
-  
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Matched result for query `%s' with pending request\n",
+	      GNUNET_h2s (key));
+#endif  
   GNUNET_CRYPTO_hash (prq->data,
 		      prq->size,
 		      &chash);
@@ -1717,6 +1722,11 @@ process_reply (void *cls,
   pr->remaining_priority = 0;
   if (pr->client_request_list != NULL)
     {
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Transmitting result for query `%s' to local client\n",
+		  GNUNET_h2s (key));
+#endif  
       cl = pr->client_request_list->client_list;
       msize = sizeof (struct PutMessage) + prq->size;
       creply = GNUNET_malloc (msize + sizeof (struct ClientResponseMessage));
@@ -1743,6 +1753,12 @@ process_reply (void *cls,
   else
     {
       cp = pr->pht_entry->cp;
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Transmitting result for query `%s' to other peer (PID=%u)\n",
+		  GNUNET_h2s (key),
+		  (unsigned int) cp->pid);
+#endif  
       msize = sizeof (struct ContentMessage) + prq->size;
       reply = GNUNET_malloc (msize + sizeof (struct PendingMessage));
       reply->cont = &transmit_reply_continuation;
@@ -1834,6 +1850,12 @@ handle_p2p_put (void *cls,
       return GNUNET_SYSERR;
     }
 
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received result for query `%s' from peer `%4s'\n",
+	      GNUNET_h2s (&query),
+	      GNUNET_i2s (other));
+#endif
   /* now, lookup 'query' */
   prq.data = (const void*) &put[1];
   prq.size = dsize;
@@ -1921,11 +1943,16 @@ process_local_reply (void *cls,
     {      
 #if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Result from datastore filtered by bloomfilter.\n");
+		  "Result from datastore filtered by bloomfilter (duplicate).\n");
 #endif
       GNUNET_FS_drq_get_next (GNUNET_YES);
       return;
     }
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Found result for query `%s' in local datastore\n",
+	      GNUNET_h2s (key));
+#endif
   pr->results_found++;
   if ( (pr->type == GNUNET_DATASTORE_BLOCKTYPE_KBLOCK) ||
        (pr->type == GNUNET_DATASTORE_BLOCKTYPE_SBLOCK) ||
@@ -2104,6 +2131,13 @@ handle_p2p_get (void *cls,
       return GNUNET_OK;
     }
 
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received request for `%s' of type %u from peer `%4s'\n",
+	      GNUNET_h2s (&gm->query),
+	      (unsigned int) ntohl (gm->type),
+	      GNUNET_i2s (other));
+#endif
   pr = GNUNET_malloc (sizeof (struct PendingRequest) + 
 		      (bm & GET_MESSAGE_BIT_SKS_NAMESPACE)?sizeof(GNUNET_HashCode):0);
   if ((bm & GET_MESSAGE_BIT_SKS_NAMESPACE))
@@ -2259,7 +2293,12 @@ handle_start_search (void *cls,
       client_list = cl;
     }
   type = ntohl (sm->type);
-
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received request for `%s' of type %u from local client\n",
+	      GNUNET_h2s (&sm->query),
+	      (unsigned int) type);
+#endif
   /* FIXME: detect duplicate request; if duplicate, simply update (merge)
      'pr->replies_seen'! */
   pr = GNUNET_malloc (sizeof (struct PendingRequest) + 

@@ -627,8 +627,7 @@ transmit_download_request (void *cls,
 
 
 /**
- * Reconnect to the FS service and transmit
- * our queries NOW.
+ * Reconnect to the FS service and transmit our queries NOW.
  *
  * @param cls our download context
  * @param tc unused
