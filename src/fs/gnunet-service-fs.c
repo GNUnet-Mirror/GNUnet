@@ -2168,7 +2168,8 @@ handle_p2p_get (void *cls,
 			       pr->type,			       
 			       &process_local_reply,
 			       pr,
-			       timeout);
+			       timeout,
+			       GNUNET_NO);
 
   /* Are multiple results possible?  If so, start processing remotely now! */
   switch (pr->type)
@@ -2286,7 +2287,8 @@ handle_start_search (void *cls,
 			       pr->type,			       
 			       &process_local_reply,
 			       pr,
-			       GNUNET_TIME_UNIT_FOREVER_REL);
+			       GNUNET_TIME_UNIT_FOREVER_REL,
+			       GNUNET_YES);
 }
 
 

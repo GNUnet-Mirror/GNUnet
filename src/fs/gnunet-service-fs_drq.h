@@ -49,13 +49,16 @@ struct DatastoreRequestQueue;
  *        will be called once with a NULL value at the end
  * @param iter_cls closure for iter
  * @param timeout how long to wait at most for a response
+ * @param immediate should this be queued immediately at
+ *        the head of the queue (irrespecitive of the timeout)?
  */
 struct DatastoreRequestQueue *
 GNUNET_FS_drq_get (const GNUNET_HashCode * key,
 		   uint32_t type,
 		   GNUNET_DATASTORE_Iterator iter, 
 		   void *iter_cls,
-		   struct GNUNET_TIME_Relative timeout);
+		   struct GNUNET_TIME_Relative timeout,
+		   int immediate);
 
 
 
