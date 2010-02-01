@@ -951,18 +951,6 @@ request_connect (void *cls, size_t size, void *buf)
   GNUNET_assert (th->notify_delay_task == GNUNET_SCHEDULER_NO_TASK);
   h = th->handle;
 
-  n = find_neighbour(h, &th->target);
-
-  if (n != NULL)
-    {
-#if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Asked to TRY_CONNECT to already connected peer!\n");
-#endif
-      return GNUNET_YES;
-    }
-
-
   if (buf == NULL)
     {
 #if DEBUG_TRANSPORT
@@ -1653,7 +1641,6 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
                           "Do know neighbor, scheduling transmission!\n");
 #endif
           n = find_neighbour(h, &cim->id);
-          GNUNET_assert(n != NULL);
           n->received_ack = GNUNET_YES;
           if (NULL != n->transmit_handle)
             {
