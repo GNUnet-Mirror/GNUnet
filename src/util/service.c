@@ -1405,7 +1405,7 @@ GNUNET_SERVICE_run (int argc,
   do_daemonize = 0;
   logfile = NULL;
   loglev = GNUNET_strdup ("WARNING");
-  cfg_fn = GNUNET_strdup (GNUNET_DEFAULT_DAEMON_CONFIG_FILE);
+  cfg_fn = GNUNET_strdup (GNUNET_DEFAULT_USER_CONFIG_FILE);
   memset (&sctx, 0, sizeof (sctx));
   sctx.options = opt;
   sctx.ready_confirm_fd = -1;
