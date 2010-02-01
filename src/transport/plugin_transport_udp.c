@@ -165,6 +165,8 @@ static int
 udp_transport_server_stop (void *cls)
 {
   struct Plugin *plugin = cls;
+  int ret;
+
   GNUNET_assert (udp_sock != NULL);
   if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK)
     {
@@ -172,9 +174,10 @@ udp_transport_server_stop (void *cls)
       plugin->select_task = GNUNET_SCHEDULER_NO_TASK;
     }
 
-  GNUNET_NETWORK_socket_close (udp_sock);
-  udp_sock = NULL;
-  return GNUNET_OK;
+  ret = GNUNET_NETWORK_socket_close (udp_sock);
+  if (ret != GNUNET_SYSERR)
+    udp_sock = NULL;
+  return ret;
 }
 
 /**
