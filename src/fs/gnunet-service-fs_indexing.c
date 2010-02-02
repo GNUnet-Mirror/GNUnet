@@ -354,6 +354,8 @@ GNUNET_FS_handle_index_start (void *cls,
   memcpy (&ii[1], fn, slen);
   ii->file_id = ism->file_id;  
   ii->tc = GNUNET_SERVER_transmit_context_create (client);
+  mydev = 0;
+  myino = 0;
   if ( ( (dev != 0) ||
 	 (ino != 0) ) &&
        (GNUNET_OK == GNUNET_DISK_file_get_identifiers (fn,

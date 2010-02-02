@@ -373,12 +373,13 @@ process_hash (void *cls,
   req.header.type = htons (GNUNET_MESSAGE_TYPE_FS_UNINDEX);
   req.reserved = 0;
   req.file_id = *file_id;
-  GNUNET_CLIENT_transmit_and_get_response (uc->client,
-					   &req.header,
-					   GNUNET_CONSTANTS_SERVICE_TIMEOUT,
-					   GNUNET_YES,
-					   &process_fs_response,
-					   uc);
+  GNUNET_break (GNUNET_OK == 
+		GNUNET_CLIENT_transmit_and_get_response (uc->client,
+							 &req.header,
+							 GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+							 GNUNET_YES,
+							 &process_fs_response,
+							 uc));
 }
 
 
