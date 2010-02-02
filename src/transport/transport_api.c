@@ -946,7 +946,6 @@ request_connect (void *cls, size_t size, void *buf)
   struct GNUNET_TRANSPORT_TransmitHandle *th = cls;
   struct TryConnectMessage *tcm;
   struct GNUNET_TRANSPORT_Handle *h;
-  struct NeighbourList *n;
 
   GNUNET_assert (th->notify_delay_task == GNUNET_SCHEDULER_NO_TASK);
   h = th->handle;
