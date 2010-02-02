@@ -1452,8 +1452,9 @@ shutdown:
 
   GNUNET_CONFIGURATION_destroy (cfg);
   i = 0;
-  while (sctx.addrs[i] != NULL)    
-    GNUNET_free (sctx.addrs[i++]);    
+  if (sctx.addrs != NULL)
+    while (sctx.addrs[i] != NULL)    
+      GNUNET_free (sctx.addrs[i++]);    
   GNUNET_free_non_null (sctx.addrs);
   GNUNET_free_non_null (sctx.addrlens);
   GNUNET_free_non_null (logfile);

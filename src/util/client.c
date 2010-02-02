@@ -34,8 +34,7 @@
 #include "gnunet_server_lib.h"
 #include "gnunet_scheduler_lib.h"
 
-#define DEBUG_CLIENT GNUNET_YES
-
+#define DEBUG_CLIENT GNUNET_NO
 
 /**
  * How often do we re-try tranmsitting requests before giving up?
@@ -195,6 +194,11 @@ struct GNUNET_CLIENT_Connection
   GNUNET_SCHEDULER_Task test_cb;
 
   /**
+   * Deadline for calling 'test_cb'.
+   */
+  struct GNUNET_TIME_Absolute test_deadline;
+
+  /**
    * If we are re-trying and are delaying to do so,
    * handle to the scheduled task managing the delay.
    */
@@ -321,6 +325,7 @@ GNUNET_CLIENT_connect (struct GNUNET_SCHEDULER_Handle *sched,
   ret->back_off = GNUNET_TIME_UNIT_MILLISECONDS;
   return ret;
 }
+
 
 /**
  * Configure this connection to ignore shutdown signals.
@@ -629,6 +634,7 @@ confirm_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 static size_t
 write_test (void *cls, size_t size, void *buf)
 {
+  struct GNUNET_CLIENT_Connection *conn = cls;
   struct GNUNET_MessageHeader *msg;
 
   if (size < sizeof (struct GNUNET_MessageHeader))
@@ -637,6 +643,7 @@ write_test (void *cls, size_t size, void *buf)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Failure to transmit TEST request.\n"));
 #endif
+      service_test_error (conn->sched, conn->test_cb, conn->test_cb_cls);
       return 0;                 /* client disconnected */
     }
 #if DEBUG_CLIENT
@@ -646,6 +653,10 @@ write_test (void *cls, size_t size, void *buf)
   msg = (struct GNUNET_MessageHeader *) buf;
   msg->type = htons (GNUNET_MESSAGE_TYPE_TEST);
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
+  GNUNET_CLIENT_receive (conn, 
+			 &confirm_handler, 
+			 conn, 
+			 GNUNET_TIME_absolute_get_remaining (conn->test_deadline));
   return sizeof (struct GNUNET_MessageHeader);
 }
 
@@ -687,20 +698,13 @@ GNUNET_CLIENT_service_test (struct GNUNET_SCHEDULER_Handle *sched,
     }
   conn->test_cb = task;
   conn->test_cb_cls = task_cls;
-  
+  conn->test_deadline = GNUNET_TIME_relative_to_absolute (timeout);
 
   if (NULL == GNUNET_CLIENT_notify_transmit_ready (conn,
-                                       sizeof (struct GNUNET_MessageHeader),
-                                       timeout,
-                                       GNUNET_YES,
-                                       &write_test, NULL))  
-  /*      
-  if (NULL ==
-      GNUNET_CONNECTION_notify_transmit_ready (conn->sock,
-                                               sizeof (struct
-                                                       GNUNET_MessageHeader),
-                                               timeout, &write_test, NULL))
-	  */
+						   sizeof (struct GNUNET_MessageHeader),
+						   timeout,
+						   GNUNET_YES,
+						   &write_test, conn))  
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("Failure to transmit request to service `%s'\n"),
@@ -709,7 +713,6 @@ GNUNET_CLIENT_service_test (struct GNUNET_SCHEDULER_Handle *sched,
       GNUNET_CLIENT_disconnect (conn);
       return;
     }
-  GNUNET_CLIENT_receive (conn, &confirm_handler, conn, timeout);
 }
 
 
@@ -739,7 +742,6 @@ client_delayed_retry (void *cls,
 {
   struct GNUNET_CLIENT_TransmitHandle *th = cls;
 
-  fprintf (stderr, "cdr running\n");
   th->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     {
@@ -768,9 +770,8 @@ client_delayed_retry (void *cls,
 
 
 /**
- * Connection notifies us about failure or success of
- * a transmission request.  Either pass it on to our
- * user or, if possible, retry.
+ * Connection notifies us about failure or success of a transmission
+ * request.  Either pass it on to our user or, if possible, retry.
  *
  * @param cls our "struct GNUNET_CLIENT_TransmissionHandle"
  * @param size number of bytes available for transmission
@@ -795,11 +796,6 @@ client_notify (void *cls, size_t size, void *buf)
 	   (0 == --th->attempts_left) || 
 	   (delay.value < 1) )
         {
-    	  fprintf (stderr, "Signaling timeout, reason: %d %d %d %d\n", 
-       (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & GNUNET_SCHEDULER_get_reason (th->sock->sched))),
-	   (GNUNET_YES != th->auto_retry),
-	   (0 == --th->attempts_left) , 
-	   (delay.value < 1) );
 #if DEBUG_CLIENT
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Transmission failed %u times, giving up.\n",
