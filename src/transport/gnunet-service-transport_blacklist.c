@@ -158,7 +158,7 @@ GNUNET_TRANSPORT_handle_blacklist (void *cls,
   const struct BlacklistMessage *msg = (const struct BlacklistMessage*) message;
 
   be = GNUNET_CONTAINER_multihashmap_get (blacklist,
-					  &be->peer.hashPubKey);
+					  &msg->peer.hashPubKey);
   if (be != NULL)
     {
       GNUNET_SCHEDULER_cancel (sched,
@@ -169,7 +169,7 @@ GNUNET_TRANSPORT_handle_blacklist (void *cls,
       be = GNUNET_malloc (sizeof (struct BlacklistEntry));
       be->peer = msg->peer;
       GNUNET_CONTAINER_multihashmap_put (blacklist,
-					 &be->peer.hashPubKey,
+					 &msg->peer.hashPubKey,
 					 be,
 					 GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
     }
