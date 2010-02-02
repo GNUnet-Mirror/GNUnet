@@ -34,7 +34,7 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_transport_service.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define START_ARM GNUNET_YES
 
@@ -42,7 +42,7 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 6)
 
 #define MTYPE 12345
 
@@ -192,7 +192,7 @@ transmit_ready (void *cls, size_t size, void *buf)
   m->size = htons (sizeof (struct GNUNET_MessageHeader));
   err_task = 
     GNUNET_SCHEDULER_add_delayed (sched,
-				  GNUNET_TIME_UNIT_MINUTES, &terminate_task_error, NULL);
+				  TIMEOUT, &terminate_task_error, NULL);
 
   return sizeof (struct GNUNET_MessageHeader);
 }
