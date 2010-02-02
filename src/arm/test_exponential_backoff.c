@@ -219,7 +219,8 @@ main (int argc, char *argv[])
 {
   int ret;
 
-
+  fprintf (stdout,
+	   "This test will print some warnings about 'do-nothing' being terminated.  That's expected!\n");
   GNUNET_log_setup ("test-exponential-backoff",
 #if VERBOSE
                     "DEBUG",

@@ -49,11 +49,11 @@ mockup_service_SOURCES = \
 check_PROGRAMS = \
  test_arm_api \
  test_exponential_backoff
- 
+
 check_SCRIPTS = \
  test_gnunet_arm.sh
 
-TESTS = test_arm_api $(check_SCRIPTS)
+TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
 
 test_arm_api_SOURCES = \
  test_arm_api.c
@@ -66,7 +66,6 @@ test_exponential_backoff_SOURCES = \
 test_exponential_backoff_LDADD = \
   $(top_builddir)/src/arm/libgnunetarm.la \
   $(top_builddir)/src/util/libgnunetutil.la
-  
-  
+
 EXTRA_DIST = \
   test_arm_api_data.conf
