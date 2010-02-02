@@ -1710,7 +1710,7 @@ handle_pong (void *cls, const struct GNUNET_MessageHeader *message,
   struct ValidationList *pos;
   struct ValidationAddress *va;
   struct GNUNET_PeerIdentity id;
-  struct TransportPongMessage *pong = (struct TransportPongMessage *)message;
+  const struct TransportPongMessage *pong = (const struct TransportPongMessage *)message;
   int count = 0;
   unsigned int challenge = ntohl(pong->challenge);
   pos = pending_validations;
@@ -2335,7 +2335,6 @@ static int handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
   struct PeerAddressList *peer_address;
   uint16_t msize;
   struct NeighborList *n;
-  pong = GNUNET_malloc(sizeof(struct TransportPongMessage));
 
 #if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,

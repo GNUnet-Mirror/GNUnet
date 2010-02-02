@@ -1623,7 +1623,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
                   "Receiving `%s' message for `%4s'.\n",
                   "CONNECT", GNUNET_i2s (&cim->id));
 #endif
-      if (find_neighbour(h, &cim->id) == NULL)
+      if (NULL == (n = find_neighbour(h, &cim->id)))
         {
 #if DEBUG_TRANSPORT
               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1636,11 +1636,10 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
       else
         {
 #if DEBUG_TRANSPORT
-              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                          "Do know neighbor, scheduling transmission!\n");
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Do know neighbor, scheduling transmission!\n");
 #endif
-          n = find_neighbour(h, &cim->id);
-          n->received_ack = GNUNET_YES;
+	  n->received_ack = GNUNET_YES;
           if (NULL != n->transmit_handle)
             {
 #if DEBUG_TRANSPORT
