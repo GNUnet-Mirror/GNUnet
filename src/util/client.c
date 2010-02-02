@@ -34,7 +34,7 @@
 #include "gnunet_server_lib.h"
 #include "gnunet_scheduler_lib.h"
 
-#define DEBUG_CLIENT GNUNET_NO
+#define DEBUG_CLIENT GNUNET_YES
 
 
 /**
@@ -687,11 +687,20 @@ GNUNET_CLIENT_service_test (struct GNUNET_SCHEDULER_Handle *sched,
     }
   conn->test_cb = task;
   conn->test_cb_cls = task_cls;
+  
+
+  if (NULL == GNUNET_CLIENT_notify_transmit_ready (conn,
+                                       sizeof (struct GNUNET_MessageHeader),
+                                       timeout,
+                                       GNUNET_YES,
+                                       &write_test, NULL))  
+  /*      
   if (NULL ==
       GNUNET_CONNECTION_notify_transmit_ready (conn->sock,
                                                sizeof (struct
                                                        GNUNET_MessageHeader),
                                                timeout, &write_test, NULL))
+	  */
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("Failure to transmit request to service `%s'\n"),
@@ -730,6 +739,7 @@ client_delayed_retry (void *cls,
 {
   struct GNUNET_CLIENT_TransmitHandle *th = cls;
 
+  fprintf (stderr, "cdr running\n");
   th->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     {
@@ -785,6 +795,11 @@ client_notify (void *cls, size_t size, void *buf)
 	   (0 == --th->attempts_left) || 
 	   (delay.value < 1) )
         {
+    	  fprintf (stderr, "Signaling timeout, reason: %d %d %d %d\n", 
+       (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & GNUNET_SCHEDULER_get_reason (th->sock->sched))),
+	   (GNUNET_YES != th->auto_retry),
+	   (0 == --th->attempts_left) , 
+	   (delay.value < 1) );
 #if DEBUG_CLIENT
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Transmission failed %u times, giving up.\n",
@@ -803,7 +818,7 @@ client_notify (void *cls, size_t size, void *buf)
 					 th->sock->ignore_shutdown);
       delay = GNUNET_TIME_relative_min (delay, th->sock->back_off);
       th->sock->back_off 
-	= GNUNET_TIME_relative_min (GNUNET_TIME_relative_multiply (th->sock->back_off, 2),
+	  = GNUNET_TIME_relative_min (GNUNET_TIME_relative_multiply (th->sock->back_off, 2),
 				    GNUNET_TIME_UNIT_SECONDS);
 #if DEBUG_CLIENT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

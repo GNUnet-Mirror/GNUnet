@@ -42,12 +42,14 @@ run (void *cls,
 int main(int argc, char *const *argv)
 {
 	int ret;
-	
+
+	fprintf (stderr, "mockup starting\n");
 	ret = (GNUNET_OK ==
           GNUNET_SERVICE_run (argc,
                              argv,
                              "do-nothing", GNUNET_SERVICE_OPTION_NONE,
                              &run, NULL)) ? 0 : 1;
 	
+	fprintf (stderr, "mockup stopping\n");
 	return ret;
 }

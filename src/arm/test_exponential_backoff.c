@@ -27,8 +27,11 @@
 #include "gnunet_configuration_lib.h"
 #include "gnunet_program_lib.h"
 
+#define VERBOSE GNUNET_YES
 #define START_ARM GNUNET_YES
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define SERVICE_TEST_TIMEOUT GNUNET_TIME_UNIT_FOREVER_REL
+#define FIVE_MILLISECONDS GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 5)
 
 static struct GNUNET_SCHEDULER_Handle *sched;
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -36,6 +39,7 @@ static struct GNUNET_ARM_Handle *arm;
 static int ok = 1;
 static FILE *killLogFilePtr;
 static char *killLogFileName;
+
 
 static void
 arm_notify_stop (void *cls, int success)
@@ -47,8 +51,12 @@ arm_notify_stop (void *cls, int success)
 }
 
 
+<<<<<<< .mine
+static void
+=======
 
 static void
+>>>>>>> .r10190
 do_nothing_notify (void *cls, int success)
 {
 	GNUNET_assert (success == GNUNET_YES);
@@ -68,13 +76,24 @@ static void
 kill_task (void *cbData,
 		   const struct GNUNET_SCHEDULER_TaskContext *tc);
 static void
-do_nothing_restarted_notify_task (void *unused,
+do_nothing_restarted_notify_task (void *cls,
 		   const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
+{	
 	static char a;
 	static int trialCount = 0;
-	
+
 	trialCount++;
+<<<<<<< .mine
+	
+	if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0) { 
+		fprintf(killLogFilePtr, "%d.Reason is shutdown!\n", trialCount);
+	}
+	else if ((tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT) != 0) {
+		fprintf(killLogFilePtr, "%d.Reason is timeout!\n", trialCount);
+	}
+	else if ((tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE) != 0) {
+		fprintf(killLogFilePtr, "%d.Service is running!\n", trialCount);
+=======
 	if (trialCount >= 11) {
 		if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0) 
 			fprintf(killLogFilePtr, "Reason is shutdown!\n");
@@ -82,9 +101,10 @@ do_nothing_restarted_notify_task (void *unused,
 		  fprintf(killLogFilePtr, "%d.Reason is timeout!\n", trialCount);
 		else if ((tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE) != 0)
 			fprintf(killLogFilePtr, "%d.Service is running!\n", trialCount);
+>>>>>>> .r10190
 	}
 		
-	GNUNET_SCHEDULER_add_now (sched, &kill_task, &a); // checks if this was too fast
+	GNUNET_SCHEDULER_add_now (sched, &kill_task, &a);
 }
 
 
@@ -92,12 +112,16 @@ static void
 kill_task (void *cbData,
 		   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-	int* reason;
-	struct GNUNET_CLIENT_Connection * doNothingConnection = NULL;
+	static struct GNUNET_CLIENT_Connection * doNothingConnection = NULL;
 	static struct GNUNET_TIME_Absolute startedWaitingAt;
 	struct GNUNET_TIME_Relative waitedFor;
 	static int trialCount = 0;
 	
+<<<<<<< .mine
+	if (NULL != cbData) {
+		waitedFor = GNUNET_TIME_absolute_get_duration (startedWaitingAt);
+		fprintf(killLogFilePtr, "Waited for: %lld milliseconds\n\n", waitedFor.value);
+=======
 	reason = cbData;
 	if (NULL != reason) {
 		waitedFor = GNUNET_TIME_absolute_get_duration(startedWaitingAt);
@@ -108,32 +132,25 @@ kill_task (void *cbData,
 			  trialCount, 
 			  (unsigned long long) startedWaitingAt.value, 
 			  (unsigned long long) waitedFor.value);
+>>>>>>> .r10190
 	}
 	
-	 /* Connect to the doNothing task */ 
+	 /* Connect to the doNothing task */
 	doNothingConnection = GNUNET_CLIENT_connect (sched, "do-nothing", cfg);
 	if (NULL == doNothingConnection)
 		fprintf(killLogFilePtr, "Unable to connect to do-nothing process!\n");
-	else if (trialCount == 20) {
+	
+	if (trialCount == 20) {
 		GNUNET_ARM_stop_service (arm, "do-nothing", TIMEOUT, &arm_notify_stop, NULL);
 		return;
 	}
 	
-	/* Use the created connection to kill the doNothingTask */ 
+	/* Use the created connection to kill the doNothingTask */
 	GNUNET_CLIENT_service_shutdown(doNothingConnection);
-	sleep(0.005);
+	trialCount++;
 	startedWaitingAt = GNUNET_TIME_absolute_get();
-	/* 
-	 * There is something wrong here!
-	 * TIMEOUT value is set to 10 seconds (a drastically large value)
-	 * debugging is showing that the reason for which
-	 * do_nothing_restarted_notify_task is called is "always"
-	 * TIMEOUT which means that the "do-nothing" service is not running 
-	 * however the overall execution time doesn't exceed 2 seconds
-	 * which means there is something tricky about the TIMOUT passed
-	 * to function GNUNET_CLIENT_service_test()
-	 */
-	GNUNET_CLIENT_service_test(sched, "do-nothing", cfg, TIMEOUT, &do_nothing_restarted_notify_task, NULL);
+	sleep(1);
+	GNUNET_CLIENT_service_test(sched, "do-nothing", cfg, GNUNET_TIME_UNIT_SECONDS, &do_nothing_restarted_notify_task, NULL);
 }
 
 static void
