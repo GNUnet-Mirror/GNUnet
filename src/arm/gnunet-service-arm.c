@@ -812,13 +812,20 @@ delayed_restart_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	    }
 	}
       pos = pos->next;
-    }
+    }  
   if (lowestRestartDelay.value != GNUNET_TIME_UNIT_FOREVER_REL.value)
-    child_restart_task
-      = GNUNET_SCHEDULER_add_delayed (sched,
-				      lowestRestartDelay,
-				      &delayed_restart_task,
-				      NULL);
+    {
+#if DEBUG_ARM
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Will restart process in %llums\n",
+		  (unsigned long long) lowestRestartDelay.value);
+#endif
+      child_restart_task
+	= GNUNET_SCHEDULER_add_delayed (sched,
+					lowestRestartDelay,
+					&delayed_restart_task,
+					NULL);
+    }
 }
 
 

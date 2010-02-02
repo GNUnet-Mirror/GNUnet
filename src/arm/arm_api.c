@@ -181,6 +181,8 @@ arm_service_report (void *cls,
 	      "gnunet-service-arm");
 #endif
   /* FIXME: should we check that HOSTNAME for 'arm' is localhost? */
+  /* FIXME: interpret 'PREFIX' and 'OPTIONS' configuration options
+     (as done by 'gnunet-service-arm.c::start_process') */
   /* start service */
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (pos->h->cfg,

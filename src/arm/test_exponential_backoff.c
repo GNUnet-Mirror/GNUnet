@@ -27,7 +27,7 @@
 #include "gnunet_configuration_lib.h"
 #include "gnunet_program_lib.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 #define START_ARM GNUNET_YES
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 #define SERVICE_TEST_TIMEOUT GNUNET_TIME_UNIT_FOREVER_REL
@@ -51,16 +51,17 @@ arm_notify_stop (void *cls, int success)
 }
 
 
-<<<<<<< .mine
 static void
-=======
+kill_task (void *cbData,
+	   const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 
 static void
->>>>>>> .r10190
 do_nothing_notify (void *cls, int success)
 {
-	GNUNET_assert (success == GNUNET_YES);
-	ok = 1;
+  GNUNET_assert (success == GNUNET_YES);
+  ok = 1;
+  GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_UNIT_SECONDS, &kill_task, NULL);
 }
 
 
@@ -75,6 +76,8 @@ arm_notify (void *cls, int success)
 static void
 kill_task (void *cbData,
 		   const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
 static void
 do_nothing_restarted_notify_task (void *cls,
 		   const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -83,7 +86,6 @@ do_nothing_restarted_notify_task (void *cls,
 	static int trialCount = 0;
 
 	trialCount++;
-<<<<<<< .mine
 	
 	if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0) { 
 		fprintf(killLogFilePtr, "%d.Reason is shutdown!\n", trialCount);
@@ -93,18 +95,18 @@ do_nothing_restarted_notify_task (void *cls,
 	}
 	else if ((tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE) != 0) {
 		fprintf(killLogFilePtr, "%d.Service is running!\n", trialCount);
-=======
-	if (trialCount >= 11) {
-		if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0) 
-			fprintf(killLogFilePtr, "Reason is shutdown!\n");
-		else if ((tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT) != 0)
-		  fprintf(killLogFilePtr, "%d.Reason is timeout!\n", trialCount);
-		else if ((tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE) != 0)
-			fprintf(killLogFilePtr, "%d.Service is running!\n", trialCount);
->>>>>>> .r10190
 	}
 		
 	GNUNET_SCHEDULER_add_now (sched, &kill_task, &a);
+}
+
+
+static void
+do_test (void *cbData,
+		   const struct GNUNET_SCHEDULER_TaskContext *tc)
+{				      
+	GNUNET_CLIENT_service_test(sched, "do-nothing", cfg, TIMEOUT,
+				   &do_nothing_restarted_notify_task, NULL);
 }
 
 
@@ -117,42 +119,35 @@ kill_task (void *cbData,
 	struct GNUNET_TIME_Relative waitedFor;
 	static int trialCount = 0;
 	
-<<<<<<< .mine
 	if (NULL != cbData) {
-		waitedFor = GNUNET_TIME_absolute_get_duration (startedWaitingAt);
-		fprintf(killLogFilePtr, "Waited for: %lld milliseconds\n\n", waitedFor.value);
-=======
-	reason = cbData;
-	if (NULL != reason) {
-		waitedFor = GNUNET_TIME_absolute_get_duration(startedWaitingAt);
-		trialCount++;
-		if (trialCount >= 11) 
-		  fprintf(killLogFilePtr,
-			  "Trial no.%d, Started waiting at: %llu. Waited for: %llu\n", 
-			  trialCount, 
-			  (unsigned long long) startedWaitingAt.value, 
-			  (unsigned long long) waitedFor.value);
->>>>>>> .r10190
+	  waitedFor = GNUNET_TIME_absolute_get_duration (startedWaitingAt);
+	  fprintf(killLogFilePtr, "Waited for: %llu milliseconds\n\n", 
+		  (unsigned long long) waitedFor.value);
 	}
-	
-	 /* Connect to the doNothing task */
+	/* Connect to the doNothing task */
 	doNothingConnection = GNUNET_CLIENT_connect (sched, "do-nothing", cfg);
 	if (NULL == doNothingConnection)
 		fprintf(killLogFilePtr, "Unable to connect to do-nothing process!\n");
 	
-	if (trialCount == 20) {
-		GNUNET_ARM_stop_service (arm, "do-nothing", TIMEOUT, &arm_notify_stop, NULL);
+	if (trialCount == 12) {
+	  GNUNET_ARM_stop_service (arm, "do-nothing", TIMEOUT, &arm_notify_stop, NULL);
+	  ok = 0;
 		return;
 	}
 	
 	/* Use the created connection to kill the doNothingTask */
 	GNUNET_CLIENT_service_shutdown(doNothingConnection);
 	trialCount++;
+	if (startedWaitingAt.value == 0)
+	  waitedFor.value = 0;	
 	startedWaitingAt = GNUNET_TIME_absolute_get();
-	sleep(1);
-	GNUNET_CLIENT_service_test(sched, "do-nothing", cfg, GNUNET_TIME_UNIT_SECONDS, &do_nothing_restarted_notify_task, NULL);
+	GNUNET_SCHEDULER_add_delayed (sched,
+				      waitedFor,
+				      &do_test,
+				      NULL);
 }
 
+       
 static void
 task (void *cls,
       struct GNUNET_SCHEDULER_Handle *s,
@@ -165,11 +160,10 @@ task (void *cls,
   
   arm = GNUNET_ARM_connect (cfg, sched, NULL);
 #if START_ARM
-  GNUNET_ARM_start_service (arm, "arm", TIMEOUT, &arm_notify, NULL);
+  GNUNET_ARM_start_service (arm, "arm", GNUNET_TIME_UNIT_ZERO, &arm_notify, NULL);
 #else
   arm_do_nothing (NULL, GNUNET_YES);
 #endif
-  GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_UNIT_SECONDS, &kill_task, NULL);
 }
 
 static int
