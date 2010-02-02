@@ -322,26 +322,6 @@ struct ClientList
 
 
 /**
- * Hash map entry of requests we are performing
- * on behalf of the same peer.
- */
-struct PeerRequestEntry
-{
-
-  /**
-   * Request this entry represents.
-   */
-  struct PendingRequest *req;
-
-  /**
-   * Entry of peer responsible for this entry.
-   */
-  struct ConnectedPeer *cp;
-
-};
-
-
-/**
  * Doubly-linked list of messages we are performing
  * due to a pending request.
  */
@@ -389,12 +369,12 @@ struct PendingRequest
    * client request list; otherwise NULL.
    */
   struct ClientRequestList *client_request_list;
-  
+
   /**
-   * If this request was made by a peer, this is our entry in the
-   * per-peer multi-hash map; otherwise NULL.
+   * Entry of peer responsible for this entry (if this request
+   * was made by a peer).
    */
-  struct PeerRequestEntry *pht_entry;
+  struct ConnectedPeer *cp;
 
   /**
    * If this is a namespace query, pointer to the hash of the public
@@ -670,15 +650,14 @@ destroy_pending_request (struct PendingRequest *pr)
       GNUNET_free (pr->client_request_list);
       pr->client_request_list = NULL;
     }
-  if (pr->pht_entry != NULL)
+  if (pr->cp != NULL)
     {
-      GNUNET_PEER_resolve (pr->pht_entry->cp->pid,
+      GNUNET_PEER_resolve (pr->cp->pid,
 			   &pid);
       GNUNET_CONTAINER_multihashmap_remove (peer_request_map,
 					    &pid.hashPubKey,
-					    pr->pht_entry);
-      GNUNET_free (pr->pht_entry);
-      pr->pht_entry = NULL;
+					    pr);
+      pr->cp = NULL;
     }
   if (pr->bf != NULL)
     {
@@ -1253,7 +1232,7 @@ target_reservation_cb (void *cls,
   no_route = GNUNET_NO;
   if (amount != DBLOCK_SIZE) 
     {
-      if (pr->pht_entry == NULL)
+      if (pr->cp == NULL)
 	return;  /* this target round failed */
       /* FIXME: if we are "quite" busy, we may still want to skip
 	 this round; need more load detection code! */
@@ -1295,7 +1274,7 @@ target_reservation_cb (void *cls,
   ext = (GNUNET_HashCode*) &gm[1];
   k = 0;
   if (GNUNET_YES == no_route)
-    GNUNET_PEER_resolve (pr->pht_entry->cp->pid, (struct GNUNET_PeerIdentity*) &ext[k++]);
+    GNUNET_PEER_resolve (pr->cp->pid, (struct GNUNET_PeerIdentity*) &ext[k++]);
   if (pr->namespace != NULL)
     memcpy (&ext[k++], pr->namespace, sizeof (GNUNET_HashCode));
   if (pr->target_pid != 0)
@@ -1767,7 +1746,7 @@ process_reply (void *cls,
     }
   else
     {
-      cp = pr->pht_entry->cp;
+      cp = pr->cp;
 #if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Transmitting result for query `%s' to other peer (PID=%u)\n",
@@ -2125,7 +2104,6 @@ handle_p2p_get (void *cls,
 		uint32_t distance)
 {
   struct PendingRequest *pr;
-  struct PeerRequestEntry *pre;
   struct ConnectedPeer *cp;
   struct ConnectedPeer *cps;
   struct CheckDuplicateRequestClosure cdc;
@@ -2281,11 +2259,13 @@ handle_p2p_get (void *cls,
 	}
     }
 
-  pre = GNUNET_malloc (sizeof (struct PeerRequestEntry));
-  pre->cp = cp;
-  pre->req = pr;
+  pr->cp = cp;
   GNUNET_CONTAINER_multihashmap_put (query_request_map,
 				     &gm->query,
+				     pr,
+				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  GNUNET_CONTAINER_multihashmap_put (peer_request_map,
+				     &other->hashPubKey,
 				     pr,
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   
