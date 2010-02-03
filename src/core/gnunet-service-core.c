@@ -1744,7 +1744,7 @@ handle_client_send (void *cls,
     {
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Core received `%s' request for `%4s', will try to establish connection within %llu ms\n",
+                  "\n\n\nCore received `%s' request for `%4s', will try to establish connection within %llu ms\n\n\n",
 		  "SEND",
                   GNUNET_i2s (&sm->peer),
 		  GNUNET_TIME_absolute_get_remaining
@@ -1917,6 +1917,22 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
 
 
 /**
+ * Task that will retry "send_key" if our previous attempt failed
+ * to yield a PONG.
+ */
+static void
+set_key_retry_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Neighbour *n = cls;
+
+  n->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
+  n->set_key_retry_frequency =
+    GNUNET_TIME_relative_multiply (n->set_key_retry_frequency, 2);
+  send_key (n);
+}
+
+
+/**
  * PEERINFO is giving us a HELLO for a peer.  Add the public key to
  * the neighbour's struct and retry send_key.  Or, if we did not get a
  * HELLO, just do nothing.
@@ -1936,11 +1952,36 @@ process_hello_retry_send_key (void *cls,
 
   if (peer == NULL)
     {
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Entered process_hello_retry_send_key Peer is null!\n");
+#endif
       n->pitr = NULL;
+      if (n->public_key != NULL)
+        send_key (n);
+      else
+        n->retry_set_key_task
+                = GNUNET_SCHEDULER_add_delayed (sched,
+                                                n->set_key_retry_frequency,
+                                                &set_key_retry_task, n);
       return;
     }
+
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "process_hello_retry_send_key for peer %s\n",
+              GNUNET_i2s (peer));
+#endif
   if (n->public_key != NULL)
-    return;
+    {
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "already have public key for peer %s!! (so why are we here?)\n",
+              GNUNET_i2s (peer));
+#endif
+      return;
+    }
+
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received new `%s' message for `%4s', initiating key exchange.\n",
@@ -1953,25 +1994,12 @@ process_hello_retry_send_key (void *cls,
     {
       GNUNET_free (n->public_key);
       n->public_key = NULL;
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "GNUNET_HELLO_get_key returned awfully\n");
+#endif
       return;
     }
-  send_key (n);
-}
-
-
-/**
- * Task that will retry "send_key" if our previous attempt failed
- * to yield a PONG.
- */
-static void
-set_key_retry_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct Neighbour *n = cls;
-
-  n->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
-  n->set_key_retry_frequency =
-    GNUNET_TIME_relative_multiply (n->set_key_retry_frequency, 2);
-  send_key (n);
 }
 
 
@@ -1990,7 +2018,15 @@ send_key (struct Neighbour *n)
 
   if ( (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK) ||
        (n->pitr != NULL) )
-    return; /* already in progress */
+    {
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Key exchange in progress with `%4s'.\n",
+                  GNUNET_i2s (&n->peer));
+#endif
+      return; /* already in progress */
+    }
+
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asked to perform key exchange with `%4s'.\n",
@@ -2001,15 +2037,16 @@ send_key (struct Neighbour *n)
       /* lookup n's public key, then try again */
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Lacking public key for `%4s', trying to obtain one.\n",
+                  "Lacking public key for `%4s', trying to obtain one (send_key).\n",
                   GNUNET_i2s (&n->peer));
 #endif
       GNUNET_assert (n->pitr == NULL);
+      //sleep(10);
       n->pitr = GNUNET_PEERINFO_iterate (cfg,
 					 sched,
 					 &n->peer,
 					 0,
-					 GNUNET_TIME_UNIT_MINUTES,
+					 GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 20),
 					 &process_hello_retry_send_key, n);
       return;
     }
@@ -2266,7 +2303,7 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
     {
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Lacking public key for peer, trying to obtain one.\n");
+                  "Lacking public key for peer, trying to obtain one (handle_set_key).\n");
 #endif
       m_cpy = GNUNET_malloc (sizeof (struct SetKeyMessage));
       memcpy (m_cpy, m, sizeof (struct SetKeyMessage));
@@ -2428,10 +2465,10 @@ handle_pong (struct Neighbour *n, const struct PingMessage *m)
       /* PONG malformed */
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Received malfromed `%s' wanted sender `%4s' with challenge %u\n",
+                  "Received malformed `%s' wanted sender `%4s' with challenge %u\n",
                   "PONG", GNUNET_i2s (&n->peer), n->ping_challenge);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Received malfromed `%s' received from `%4s' with challenge %u\n",
+                  "Received malformed `%s' received from `%4s' with challenge %u\n",
                   "PONG", GNUNET_i2s (&t.target), ntohl (t.challenge));
 #endif
       GNUNET_break_op (0);
@@ -2447,6 +2484,11 @@ handle_pong (struct Neighbour *n, const struct PingMessage *m)
       return;
     case PEER_STATE_KEY_RECEIVED:
       n->status = PEER_STATE_KEY_CONFIRMED;
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Confirmed key via %s for peer %s\n",
+                  "PONG", GNUNET_i2s (&n->peer));
+#endif
       if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
         {
           GNUNET_SCHEDULER_cancel (sched, n->retry_set_key_task);
