@@ -2385,6 +2385,12 @@ static int handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
   if (peer_address == NULL)
     peer_address = add_peer_address(n, sender_address, sender_address_len);
 
+  peer_address->timeout = GNUNET_TIME_relative_to_absolute(GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+
+  /* We don't use the peer_address because the address we received the message from may not
+   * be a reliable way to send it back!  We add it to the list which should queue up a separate
+   * ping to determine if the address is viable.
+   */
   transmit_to_peer(NULL, NULL, TRANSPORT_DEFAULT_PRIORITY, (char *)pong, ntohs(pong->header.size), GNUNET_NO, n);
 
   GNUNET_free(pong);
