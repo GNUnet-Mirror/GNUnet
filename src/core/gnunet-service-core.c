@@ -855,6 +855,7 @@ handle_client_init (void *cls,
       send_to_client (c, &cnm.header, GNUNET_NO);
       n = n->next;
     }
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -1744,7 +1745,7 @@ handle_client_send (void *cls,
     {
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "\n\n\nCore received `%s' request for `%4s', will try to establish connection within %llu ms\n\n\n",
+                  "Core received `%s' request for `%4s', will try to establish connection within %llu ms\n",
 		  "SEND",
                   GNUNET_i2s (&sm->peer),
 		  GNUNET_TIME_absolute_get_remaining
