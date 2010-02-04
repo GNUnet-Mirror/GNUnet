@@ -267,10 +267,10 @@ send_icmp (const struct in_addr *my_ip,
   off += sizeof (ip_pkt);
   
   memset(&udp_pkt, 0, sizeof (udp_pkt));
-  udp_pkt.source_port = htons (target_port_number);
+  udp_pkt.source_port = htons (target_port_number); /* this one will be re-written by NAT */
   udp_pkt.dst_port = htons (NAT_TRAV_PORT);
   udp_pkt.mlen_aka_reply_port_magic = htons (source_port_number);
-  udp_pkt.checksum_aka_my_magic = htons (target_port_number);
+  udp_pkt.checksum_aka_my_magic = htons (target_port_number); /* this one should be bounced back to me as 'reply_port_magic' */
   memcpy (&packet[off], &udp_pkt, sizeof (udp_pkt));
   off += sizeof (udp_pkt);
   

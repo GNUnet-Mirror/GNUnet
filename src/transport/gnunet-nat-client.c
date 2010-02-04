@@ -405,7 +405,7 @@ process_icmp_response (const struct in_addr *my_ip,
     }
   else
     {
-      send_icmp (my_ip, &target, reply_magic, my_magic);
+      send_icmp (my_ip, &target, my_magic, reply_magic);
       printf ("%s:%u\n",
 	      inet_ntop (AF_INET,
 			 &sip,
