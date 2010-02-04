@@ -1152,12 +1152,12 @@ find_ready_address(struct NeighborList *neighbor)
         {
           if ((addresses->connected == GNUNET_YES) &&
               (addresses->transmit_ready == GNUNET_YES) &&
-              ((addresses->latency.value < min_latency.value) || (best_address == NULL)))
+              ((best_address == NULL) || (addresses->latency.value < best_address->latency.value)))
             {
 #if DEBUG_TRANSPORT
               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                          "Found address with latency %llu, setting as best found yet!\n",
-                          addresses->latency.value);
+                          "Found address with latency %llu (previous best was %llu), setting as best found yet!\n",
+                          addresses->latency.value, best_address == NULL ? min_latency.value : best_address->latency.value);
 #endif
               best_address = addresses;
             }
@@ -1746,8 +1746,8 @@ handle_pong (void *cls, const struct GNUNET_MessageHeader *message,
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Confirmed validity of address, peer `%4s' has address `%s'.\n",
                       GNUNET_i2s (peer),
-                      GNUNET_a2s ((const struct sockaddr *) sender_address,
-                                  sender_address_len));
+                      GNUNET_a2s ((const struct sockaddr *) va->peer_address->addr,
+                                  va->peer_address->addrlen));
 #endif
           GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
                       _
@@ -1759,13 +1759,13 @@ handle_pong (void *cls, const struct GNUNET_MessageHeader *message,
             GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
           matched = GNUNET_YES;
           va->peer_address->connected = GNUNET_YES;
-          va->peer_address->latency = GNUNET_TIME_absolute_get_difference(va->peer_address->validation->send_time, GNUNET_TIME_absolute_get());
+          va->peer_address->latency = GNUNET_TIME_absolute_get_difference(va->send_time, GNUNET_TIME_absolute_get());
 #if DEBUG_TRANSPORT
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Confirmed validity of address, peer `%4s' has address `%s', latency of %llu\n",
                       GNUNET_i2s (peer),
-                      GNUNET_a2s ((const struct sockaddr *) sender_address,
-                                  sender_address_len), (unsigned long long)va->peer_address->latency.value);
+                          GNUNET_a2s ((const struct sockaddr *) va->peer_address->addr,
+                          va->peer_address->addrlen), (unsigned long long)va->peer_address->latency.value);
 #endif
           va->peer_address->transmit_ready = GNUNET_YES;
           va->peer_address->expires = GNUNET_TIME_relative_to_absolute
@@ -2011,7 +2011,7 @@ run_validation (void *cls,
   memcpy(&ping->target, &id, sizeof(struct GNUNET_PeerIdentity));
 
 #if DEBUG_TRANSPORT
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "hello size is %d, ping size is %d, total size is %d", hello_size, sizeof(struct TransportPingMessage), tsize);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "hello size is %d, ping size is %d, total size is %d\n", hello_size, sizeof(struct TransportPingMessage), tsize);
 #endif
   memcpy(message_buf, our_hello, hello_size);
   memcpy(&message_buf[hello_size], ping, sizeof(struct TransportPingMessage));
@@ -2192,8 +2192,6 @@ process_hello (struct TransportPlugin *plugin,
               "Notifying peerinfo about peer %s\n",
               GNUNET_i2s (&target));
 #endif
-  /* For some reason the line below causes something to hang up... maybe peerinfo isn't ready yet? */
-  /*GNUNET_PEERINFO_add_peer (cfg, sched, &target, hello); */
 
   /* check if a HELLO for this peer is already on the validation list */
   e = pending_validations;
@@ -2507,11 +2505,16 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING |
                   GNUNET_ERROR_TYPE_BULK,
                   _
-                  ("Dropping incoming message due to repeated bandwidth quota violations.\n"));
+                  ("Dropping incoming message due to repeated bandwidth quota violations (total of %u).\n"), n->quota_violation_count);
       /* TODO: call stats */
       GNUNET_assert ((service_context == NULL) ||
                      (NULL != service_context->neighbor));
-      return;
+
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING |
+                        GNUNET_ERROR_TYPE_BULK,
+                        _
+                        ("NOT Dropping incoming message due to repeated bandwidth quota violations (total of %u).\n"), n->quota_violation_count);
+      /* return; */
     }
   switch (ntohs (message->type))
     {
@@ -2524,9 +2527,19 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
       process_hello (plugin, message);
       break;
     case GNUNET_MESSAGE_TYPE_TRANSPORT_PING:
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Receiving `%s' message from `%4s'.\n", "PING",
+                  GNUNET_i2s (peer));
+#endif
       handle_ping(plugin, message, peer, sender_address, sender_address_len);
       break;
     case GNUNET_MESSAGE_TYPE_TRANSPORT_PONG:
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Receiving `%s' message from `%4s'.\n", "PONG",
+                  GNUNET_i2s (peer));
+#endif
       handle_pong(plugin, message, peer, sender_address, sender_address_len);
       break;
     default:
