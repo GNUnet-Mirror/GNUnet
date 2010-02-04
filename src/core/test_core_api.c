@@ -34,7 +34,7 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_transport_service.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define START_ARM GNUNET_YES
 
@@ -42,7 +42,7 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 6)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 
 #define MTYPE 12345
 
@@ -78,6 +78,9 @@ static void
 terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_assert (ok == 6);
+#if VERBOSE
+  fprintf(stderr, "ENDING WELL %u\n", ok);
+#endif
   GNUNET_CORE_disconnect (p1.ch);
   GNUNET_CORE_disconnect (p2.ch);
   GNUNET_TRANSPORT_disconnect (p1.th);
@@ -91,6 +94,9 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+#if VERBOSE
+  fprintf(stderr, "ENDING ANGRILY %u\n", ok);
+#endif
   GNUNET_break (0);
   GNUNET_CORE_disconnect (p1.ch);
   GNUNET_CORE_disconnect (p2.ch);
@@ -192,7 +198,7 @@ transmit_ready (void *cls, size_t size, void *buf)
   m->size = htons (sizeof (struct GNUNET_MessageHeader));
   err_task = 
     GNUNET_SCHEDULER_add_delayed (sched,
-				  TIMEOUT, &terminate_task_error, NULL);
+        GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 120), &terminate_task_error, NULL);
 
   return sizeof (struct GNUNET_MessageHeader);
 }
@@ -238,12 +244,18 @@ init_notify (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Asking core (1) for transmission to peer `%4s'\n",
                   GNUNET_i2s (&p2.id));
-      GNUNET_CORE_notify_transmit_ready (p1.ch,
+
+      if (NULL == GNUNET_CORE_notify_transmit_ready (p1.ch,
                                          0,
-                                         TIMEOUT,
+                                         GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15),
                                          &p2.id,
                                          sizeof (struct GNUNET_MessageHeader),
-                                         &transmit_ready, &p1);
+                                         &transmit_ready, &p1))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "RECEIVED NULL when asking core (1) for transmission to peer `%4s'\n",
+                      GNUNET_i2s (&p2.id));
+        }
 
     }
 }
