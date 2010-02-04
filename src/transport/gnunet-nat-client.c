@@ -394,14 +394,14 @@ process_icmp_response (const struct in_addr *my_ip,
       return;
     }
   fprintf (stderr,
-	   "Received ICMP from `%s' with hints %u and %u to local port %u\n",
+	   "Received ICMP from `%s' with outgoing port %u, listen port %u and incoming for other peer %u\n",
 	   inet_ntop (AF_INET,
 		      &sip,
 		      buf,
 		      sizeof (buf)),
 	   my_magic,
-	   reply_magic,
-	   local_port);
+	   local_port,
+	   reply_magic);
   if (my_magic == 0)
     {
       try_connect (my_ip, &sip, reply_magic);

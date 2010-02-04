@@ -381,12 +381,13 @@ process_icmp_response (const struct in_addr *my_ip,
   my_magic = ntohs (udp_pkt.mlen_aka_reply_port_magic);
   local_port = ntohs (udp_pkt.source_port);
   fprintf (stderr,
-	   "Received ICMP from `%s' with hints %u and %u\n",
+	   "Received ICMP from `%s' with outgoing port %u, listen port %u and incoming port hint for other peer %u\n",
 	   inet_ntop (AF_INET,
 		      &sip,
 		      buf,
 		      sizeof (buf)),
 	   my_magic,
+	   local_port,
 	   reply_magic);
   if (my_magic == 0)
     {
