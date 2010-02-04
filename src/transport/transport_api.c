@@ -1555,9 +1555,22 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
               h->network_handle = NULL;
               h->transmission_scheduled = GNUNET_NO;
               th = h->connect_ready_head;
-              /* add timeout again, we cancelled the transmit_ready task! */
+              /* add timeout again, we canceled the transmit_ready task! */
+
+              /*GNUNET_assert (th->notify_delay_task ==
+                             GNUNET_SCHEDULER_NO_TASK);*/
+
+              /* START - somehow we are getting here when th->notify_delay_task is already
+               * set.  Not sure why, so just checking and canceling instead of asserting and
+               * dying.  Probably not a *fix*.  */
+              if (th->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
+                {
+                  GNUNET_SCHEDULER_cancel (h->sched, th->notify_delay_task);
+                  th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
+                }
+              /* END */
               GNUNET_assert (th->notify_delay_task ==
-                             GNUNET_SCHEDULER_NO_TASK);
+                                           GNUNET_SCHEDULER_NO_TASK);
               th->notify_delay_task =
                 GNUNET_SCHEDULER_add_delayed (h->sched,
                                               GNUNET_TIME_absolute_get_remaining
