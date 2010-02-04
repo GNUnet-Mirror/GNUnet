@@ -325,6 +325,7 @@ process_icmp_response (const struct in_addr *my_ip,
   struct in_addr sip;
   uint16_t my_magic;
   uint16_t reply_magic;
+  uint16_t local_port;
   struct ip_packet ip_pkt;
   struct icmp_packet icmp_pkt;
   struct udp_packet udp_pkt;  
@@ -378,6 +379,7 @@ process_icmp_response (const struct in_addr *my_ip,
   memcpy(&sip, &ip_pkt.src_ip, sizeof (sip));
   reply_magic = ntohs (udp_pkt.checksum_aka_my_magic);
   my_magic = ntohs (udp_pkt.mlen_aka_reply_port_magic);
+  local_port = ntohs (udp_pkt.source_port);
   fprintf (stderr,
 	   "Received ICMP from `%s' with hints %u and %u\n",
 	   inet_ntop (AF_INET,
@@ -392,12 +394,14 @@ process_icmp_response (const struct in_addr *my_ip,
     }
   else
     {
-      printf ("%s:%u\n",
+      /* FIXME: should close 'local_port' */
+      printf ("%s:%u listen on %u\n",
 	      inet_ntop (AF_INET,
 			 &sip,
 			 buf,
 			 sizeof(buf)),
-	      my_magic);    
+	      my_magic,
+	      local_port);    
     }
 }
 
