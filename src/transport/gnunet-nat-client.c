@@ -380,8 +380,8 @@ process_icmp_response (const struct in_addr *my_ip,
       return;
     }
   memcpy(&sip, &ip_pkt.src_ip, sizeof (sip));
-  my_magic = ntohs (udp_pkt.checksum_aka_my_magic);
-  reply_magic = ntohs (udp_pkt.mlen_aka_reply_port_magic);
+  reply_magic = ntohs (udp_pkt.checksum_aka_my_magic);
+  my_magic = ntohs (udp_pkt.mlen_aka_reply_port_magic);
   if  (my_magic == 0)
     {
 #if 0
