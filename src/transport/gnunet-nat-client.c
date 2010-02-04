@@ -19,7 +19,7 @@
 */
 
 /**
- * @file src/transport/gnunet-nat-server.c
+ * @file src/transport/gnunet-nat-client.c
  * @brief Tool to help bypass NATs using ICMP method; must run as root (for now, later SUID will do)
  *        This code will work under GNU/Linux only (or maybe BSDs, but never W32)
  * @author Christian Grothoff
@@ -64,7 +64,6 @@
 
 struct ip_packet 
 {
-
   uint8_t vers_ihl;
   uint8_t tos;
   uint16_t pkt_len;
@@ -269,6 +268,9 @@ send_icmp (const struct in_addr *my_ip,
   memset(&udp_pkt, 0, sizeof (udp_pkt));
   udp_pkt.source_port = htons (target_port_number);
   udp_pkt.dst_port = htons (NAT_TRAV_PORT);
+  fprintf (stderr,
+	   "** Generating ICMP with rpm %u\n",
+	   target_port_number);
   udp_pkt.mlen_aka_reply_port_magic = htons (source_port_number);
   udp_pkt.checksum_aka_my_magic = htons (target_port_number);
   memcpy (&packet[off], &udp_pkt, sizeof (udp_pkt));
@@ -310,7 +312,7 @@ try_connect (const struct in_addr *my_ip,
 		      other,
 		      sbuf,
 		      sizeof (sbuf)),
-	   port_magic);  
+	   port_magic);
   for (i=0;i<NUM_UDP_PORTS;i++)
     send_icmp (my_ip, other, make_port(), port_magic);
 }
@@ -339,7 +341,7 @@ process_icmp_response (const struct in_addr *my_ip,
       /* What now? */
       return; 
     }
-  if (have != 2 * sizeof (struct ip_packet) + sizeof (struct icmp_packet) + 
+  if (have != sizeof (struct ip_packet) *2 + sizeof (struct icmp_packet) + 
       sizeof (struct udp_packet))
     {
       fprintf (stderr,
@@ -378,6 +380,15 @@ process_icmp_response (const struct in_addr *my_ip,
   memcpy(&sip, &ip_pkt.src_ip, sizeof (sip));
   my_magic = ntohs (udp_pkt.checksum_aka_my_magic);
   reply_magic = ntohs (udp_pkt.mlen_aka_reply_port_magic);
+  if  (my_magic == 0)
+    {
+#if 0
+      /* we get these a lot during loopback testing... */
+      fprintf (stderr,
+	       "Received ICMP without hint as to which port worked, dropping\n");
+#endif
+      return;
+    }
   fprintf (stderr,
 	   "Received ICMP from `%s' with hints %u and %u\n",
 	   inet_ntop (AF_INET,
@@ -468,21 +479,24 @@ make_raw_socket ()
 int
 main (int argc, char *const *argv)
 {
+  struct in_addr target;
   struct in_addr external;
   unsigned int i;  
   unsigned int pos;
   fd_set rs;
   struct timeval tv;
   struct sockaddr_in dst;  
+  uint16_t p;
   
-  if (argc != 3)
+  if (argc != 4)
     {
       fprintf (stderr,
-	       "This program must be started with our external IP and the dummy IP address as arguments.\n");
+	       "This program must be started with our IP, the targets external IP and the dummy IP address as arguments.\n");
       return 1;
     }
   if ( (1 != inet_pton (AF_INET, argv[1], &external)) ||
-       (1 != inet_pton (AF_INET, argv[2], &dummy)) )
+       (1 != inet_pton (AF_INET, argv[2], &target)) ||
+       (1 != inet_pton (AF_INET, argv[3], &dummy)) )
     {
       fprintf (stderr,
 	       "Error parsing IPv4 address: %s\n",
@@ -519,9 +533,8 @@ main (int argc, char *const *argv)
 	}
       fprintf (stderr,
 	       "Sending UDP message to %s:%u\n",
-	       argv[2],
-	       NAT_TRAV_PORT);
-	       
+	       argv[3],
+	       NAT_TRAV_PORT);      
       if (-1 == sendto (udpsocks[pos],
 			NULL, 0, 0,
 			(struct sockaddr*) &dst, sizeof (dst)))
@@ -532,10 +545,19 @@ main (int argc, char *const *argv)
 	  close (udpsocks[pos]);
 	  udpsocks[pos] = make_udp_socket (&udpports[pos]);
 	}
+      p = make_port ();
+      fprintf (stderr,
+	       "Sending fake ICMP message to %s with port %u\n",
+	       argv[1],
+	       p);      
+      send_icmp (&external,
+		 &target,
+		 p,
+		 0);
       pos = (pos+1) % NUM_UDP_PORTS;
     }  
   return 0;
 }
 
 
-/* end of gnunet-nat-server.c */
+/* end of gnunet-nat-client.c */

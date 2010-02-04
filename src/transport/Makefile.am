@@ -30,10 +30,15 @@ libgnunettransport_la_LDFLAGS = \
 bin_PROGRAMS = \
  gnunet-transport \
  gnunet-service-transport \
- gnunet-nat-server 
+ gnunet-nat-server \
+ gnunet-nat-client
 
 gnunet_nat_server_SOURCES = \
  gnunet-nat-server.c         
+
+gnunet_nat_client_SOURCES = \
+ gnunet-nat-client.c 
+
 
 
 gnunet_transport_SOURCES = \
