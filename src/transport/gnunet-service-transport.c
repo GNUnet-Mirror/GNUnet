@@ -2186,6 +2186,15 @@ process_hello (struct TransportPlugin *plugin,
               "Processing `%s' message for `%4s' of size %d (hsize is %d)\n",
               "HELLO", GNUNET_i2s (&target), GNUNET_HELLO_size(hello), hsize);
 #endif
+
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Notifying peerinfo about peer %s\n",
+              GNUNET_i2s (&target));
+#endif
+  /* For some reason the line below causes something to hang up... maybe peerinfo isn't ready yet? */
+  /*GNUNET_PEERINFO_add_peer (cfg, sched, &target, hello); */
+
   /* check if a HELLO for this peer is already on the validation list */
   e = pending_validations;
   while (e != NULL)

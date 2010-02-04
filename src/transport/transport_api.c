@@ -104,6 +104,7 @@ struct NeighbourList
    */
   int transmit_ok;
 
+#if ACK
   /**
    * Set to GNUNET_YES if we have received an ACK for the
    * given peer.  Peers that receive our HELLO always respond
@@ -114,7 +115,7 @@ struct NeighbourList
    * transport API itself).
    */
   int received_ack;
-
+#endif
 };
 
 
@@ -1639,7 +1640,9 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Do know neighbor, scheduling transmission!\n");
 #endif
+#if ACK
 	  n->received_ack = GNUNET_YES;
+#endif
           if (NULL != n->transmit_handle)
             {
 #if DEBUG_TRANSPORT
@@ -1736,7 +1739,6 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
           GNUNET_SCHEDULER_cancel (h->sched,
                                    n->transmit_handle->notify_delay_task);
           n->transmit_handle->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
-          GNUNET_assert (GNUNET_YES == n->received_ack);
           schedule_request (n->transmit_handle);
         }
       break;
@@ -1767,24 +1769,6 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
                       "Receiving `%s' message from `%4s'.\n",
                       "ACK", GNUNET_i2s (&im->peer));
 #endif
-          n = find_neighbour (h, &im->peer);
-          if (n == NULL)
-            {
-              GNUNET_break (0);
-              break;
-            }
-          if (n->received_ack == GNUNET_NO)
-            {
-              n->received_ack = GNUNET_YES;
-              if (NULL != n->transmit_handle)
-                {
-#if DEBUG_TRANSPORT
-                  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                              "Peer connected, scheduling delayed message for delivery now.\n");
-#endif
-                  schedule_request (n->transmit_handle);
-                }
-            }
           break;
         default:
 #if DEBUG_TRANSPORT
@@ -1792,6 +1776,22 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
                       "Received message of type %u from `%4s'.\n",
                       ntohs (imm->type), GNUNET_i2s (&im->peer));
 #endif
+
+          n = find_neighbour (h, &im->peer);
+          if (n == NULL)
+            {
+              GNUNET_break (0);
+              break;
+            }
+
+          if (NULL != n->transmit_handle)
+            {
+#if DEBUG_TRANSPORT
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          "Peer connected, scheduling delayed message for delivery now.\n");
+#endif
+              schedule_request (n->transmit_handle);
+            }
           if (h->rec != NULL)
             h->rec (h->cls, &im->peer, imm,
                     GNUNET_TIME_relative_ntoh (im->latency), ntohs(im->distance));
