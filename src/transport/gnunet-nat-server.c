@@ -118,6 +118,8 @@ static uint16_t udpports[NUM_UDP_PORTS];
  
 static int icmpsock;
 
+static int rawsock;
+
 static struct in_addr dummy;
  
 
@@ -284,7 +286,7 @@ send_icmp (const struct in_addr *my_ip,
   memset (&dst, 0, sizeof (dst));
   dst.sin_family = AF_INET;
   dst.sin_addr = *other;
-  err = sendto(icmpsock, 
+  err = sendto(rawsock, 
 	       packet, 
 	       off, 0, 
 	       (struct sockaddr*)&dst, 
@@ -354,12 +356,22 @@ process_icmp_response (const struct in_addr *my_ip,
   off += sizeof (struct udp_packet);
 
   /* If not ICMP and not TTL exceeded */
+  if ( (ip_pkt.proto == IPPROTO_ICMP) &&
+       (icmp_pkt.type == ICMP_DEST_UNREACH) && 
+       (icmp_pkt.code == ICMP_HOST_UNREACH) )
+    {
+      /* this is what is normal due to our UDP traffic */
+      return;
+    }
   if ( (ip_pkt.proto != IPPROTO_ICMP) ||
        (icmp_pkt.type != ICMP_TIME_EXCEEDED) || 
        (icmp_pkt.code != ICMP_NET_UNREACH) )
     {
       fprintf (stderr,
-	       "Received unexpected ICMP message contents, ignoring\n");
+	       "Received unexpected ICMP message contents (%u, %u, %u), ignoring\n",
+	       ip_pkt.proto,
+	       icmp_pkt.type,
+	       icmp_pkt.code);
       return;
     }
   memcpy(&sip, &ip_pkt.src_ip, sizeof (sip));
@@ -392,10 +404,36 @@ process_icmp_response (const struct in_addr *my_ip,
 static int
 make_icmp_socket ()
 {
+  int ret;
+
+  ret = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
+  if (-1 == ret)
+    {
+      fprintf (stderr,
+	       "Error opening RAW socket: %s\n",
+	       strerror (errno));
+      return -1;
+    }  
+  if (ret >= FD_SETSIZE) 
+    {
+      fprintf (stderr,
+	       "Socket number too large (%d > %u)\n",
+	       ret,
+	       (unsigned int) FD_SETSIZE);
+      close (ret);
+      return -1;
+    }
+  return ret;
+}
+
+
+static int
+make_raw_socket ()
+{
   const int one = 1;
   int ret;
 
-  ret = socket (AF_INET, SOCK_RAW, 0);
+  ret = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
   if (-1 == ret)
     {
       fprintf (stderr,
@@ -454,8 +492,14 @@ main (int argc, char *const *argv)
   dst.sin_family = AF_INET;
   dst.sin_port = htons (NAT_TRAV_PORT);
   dst.sin_addr = dummy;
+
   if (-1 == (icmpsock = make_icmp_socket()))
     return 1; 
+  if (-1 == (rawsock = make_raw_socket()))
+    {
+      close (icmpsock);
+      return 1; 
+    }
   for (i=0;i<NUM_UDP_PORTS;i++)
     udpsocks[i] = make_udp_socket (&udpports[i]);
   pos = 0;
@@ -464,11 +508,16 @@ main (int argc, char *const *argv)
       FD_ZERO (&rs);
       FD_SET (icmpsock, &rs);
       tv.tv_sec = 0;
-      tv.tv_usec = UDP_SEND_FREQUENCY_MS * 1000 * 1000; 
+      tv.tv_usec = UDP_SEND_FREQUENCY_MS * 1000; 
       select (icmpsock + 1, &rs, NULL, NULL, &tv);
       /* FIXME: do I need my external IP here? */
       if (FD_ISSET (icmpsock, &rs))
 	process_icmp_response (&external, icmpsock);
+      fprintf (stderr,
+	       "Sending UDP message to %s:%u\n",
+	       argv[2],
+	       NAT_TRAV_PORT);
+	       
       if (-1 == sendto (udpsocks[pos],
 			NULL, 0, 0,
 			(struct sockaddr*) &dst, sizeof (dst)))
