@@ -309,7 +309,10 @@ request_start (void *cls, size_t size, void *buf)
   struct GNUNET_CORE_Handle *h = cls;
   struct GNUNET_CORE_TransmitHandle *th;
   size_t ret;
-
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "request_start called\n");
+#endif
   h->th = NULL;
   th = h->pending_head;
   if (buf == NULL)
@@ -348,7 +351,11 @@ trigger_next_request (struct GNUNET_CORE_Handle *h)
   struct GNUNET_CORE_TransmitHandle *th;
 
   if (h->currently_down)
-    return;                     /* connection temporarily down */
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "\nIn trigger_next_request, connection currently down...\n");
+      return;                     /* connection temporarily down */
+    }
   if (NULL == (th = h->pending_head))
     return;                     /* no requests pending */
   GNUNET_assert (NULL == h->th);
@@ -845,12 +852,17 @@ produce_send (void *cls, size_t size, void *buf)
   dt = notify (notify_cls, size - sizeof (struct SendMessage), &sm[1]);
   if (0 == dt)
     {
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Size of clients message to peer %s is 0!\n",
+              GNUNET_i2s(&th->peer));
+#endif
       /* client decided to send nothing! */
       return 0;
     }
   GNUNET_assert (dt >= sizeof (struct GNUNET_MessageHeader));
   sm->header.size = htons (dt + sizeof (struct SendMessage));
-  GNUNET_assert (dt + sizeof (struct SendMessage) < size);
+  GNUNET_assert (dt + sizeof (struct SendMessage) <= size);
   return dt + sizeof (struct SendMessage);
 }
 
