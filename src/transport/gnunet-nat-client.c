@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <time.h>
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/in.h> 
@@ -498,6 +499,7 @@ main (int argc, char *const *argv)
 	       strerror (errno));
       return 1;
     }
+  srand (time(NULL));
   memset (&dst, 0, sizeof (dst));
   dst.sin_family = AF_INET;
   dst.sin_port = htons (NAT_TRAV_PORT);
