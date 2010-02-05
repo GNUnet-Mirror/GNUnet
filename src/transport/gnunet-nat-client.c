@@ -42,27 +42,27 @@
 #include <netinet/ip_icmp.h>
 #include <netinet/in.h> 
 
-#define DEBUG 0
+#define DEBUG 1
 
 /**
  * Number of UDP ports to keep open (typically >= 256)
  */
-#define NUM_UDP_PORTS 256
+#define NUM_UDP_PORTS  1024
 
 /**
  * Number of ICMP replies to send per message received (typically >= 1024)
  */
-#define NUM_ICMP_REPLIES 1024
+#define NUM_ICMP_REPLIES 10240
 
 /**
  * How often do we send our UDP messages to keep ports open? (typically < 100ms)
  */
-#define UDP_SEND_FREQUENCY_MS 50
+#define UDP_SEND_FREQUENCY_MS 10
 
 /**
  * Port we use for the dummy target.
  */
-#define NAT_TRAV_PORT 2222
+#define NAT_TRAV_PORT 22223
 
 /**
  * How often do we retry to open and bind a UDP socket before giving up?

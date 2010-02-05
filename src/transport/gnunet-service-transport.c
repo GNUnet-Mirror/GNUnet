@@ -1136,7 +1136,6 @@ find_ready_address(struct NeighborList *neighbor)
   struct ReadyList *head = neighbor->plugins;
   struct PeerAddressList *addresses;
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
-  struct GNUNET_TIME_Relative min_latency = GNUNET_TIME_relative_get_forever();
   struct PeerAddressList *best_address;
 
   best_address = NULL;
@@ -1168,7 +1167,7 @@ find_ready_address(struct NeighborList *neighbor)
 #if DEBUG_TRANSPORT
               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                           "Found address with latency %llu (previous best was %llu), setting as best found yet!\n",
-                          addresses->latency.value, best_address == NULL ? min_latency.value : best_address->latency.value);
+                          addresses->latency.value, best_address == NULL ? -1LL : best_address->latency.value);
 #endif
               best_address = addresses;
             }
