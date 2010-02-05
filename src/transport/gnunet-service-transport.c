@@ -855,6 +855,12 @@ update_quota (struct NeighborList *n)
   if (delta.value < MIN_QUOTA_REFRESH_TIME)
     return;                     /* not enough time passed for doing quota update */
   allowed = delta.value * n->quota_in;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING |
+              GNUNET_ERROR_TYPE_BULK,
+              _
+              ("Update quota: last received is %u, allowed is %u\n"), n->last_received, allowed);
+
   if (n->last_received < allowed)
     {
       remaining = allowed - n->last_received;
@@ -1107,6 +1113,7 @@ transmit_send_continuation (void *cls,
       transmit_to_client (mq->client, &send_ok_msg.header, GNUNET_NO);
     }
   GNUNET_free (mq->message_buf);
+  GNUNET_free (mq->neighbor_id);
   GNUNET_free (mq);
   /* one plugin just became ready again, try transmitting
      another message (if available) */
@@ -2251,6 +2258,7 @@ disconnect_neighbor (struct NeighborList *current_handle, int check)
   struct NeighborList *n;
   struct MessageQueue *mq;
   struct PeerAddressList *peer_addresses;
+  struct PeerAddressList *peer_pos;
 
   if (neighbors == NULL)
     return; /* We don't have any neighbors, so client has an already removed handle! */
@@ -2308,6 +2316,16 @@ disconnect_neighbor (struct NeighborList *current_handle, int check)
       GNUNET_assert (rpos->neighbor == n);
       if (GNUNET_YES == rpos->connected)
         rpos->plugin->api->disconnect (rpos->plugin->api->cls, &n->id);
+
+      peer_pos = rpos->addresses;
+      rpos->addresses = peer_pos->next;
+      while (peer_pos != NULL)
+        {
+          GNUNET_free(peer_pos);
+          GNUNET_free(peer_pos->addr);
+          peer_pos = rpos->addresses;
+          rpos->addresses = peer_pos->next;
+        }
       GNUNET_free (rpos);
     }
 
@@ -2316,6 +2334,7 @@ disconnect_neighbor (struct NeighborList *current_handle, int check)
     {
       n->messages = mq->next;
       GNUNET_assert (0 == memcmp(mq->neighbor_id, &n->id, sizeof(struct GNUNET_PeerIdentity)));
+      GNUNET_free (mq->neighbor_id);
       GNUNET_free (mq);
     }
   if (n->timeout_task != GNUNET_SCHEDULER_NO_TASK)
@@ -2510,11 +2529,7 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_assert ((service_context == NULL) ||
                      (NULL != service_context->neighbor));
 
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING |
-                        GNUNET_ERROR_TYPE_BULK,
-                        _
-                        ("NOT Dropping incoming message due to repeated bandwidth quota violations (total of %u).\n"), n->quota_violation_count);
-      /* return; */
+      return;
     }
   switch (ntohs (message->type))
     {
