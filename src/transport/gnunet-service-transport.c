@@ -859,7 +859,7 @@ update_quota (struct NeighborList *n)
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING |
               GNUNET_ERROR_TYPE_BULK,
               _
-              ("Update quota: last received is %llu, allowed is %u\n"), n->last_received, allowed);
+              ("Update quota: last received is %llu, allowed is %llu\n"), n->last_received, allowed);
 
   if (n->last_received < allowed)
     {
@@ -885,7 +885,7 @@ update_quota (struct NeighborList *n)
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING |
                       GNUNET_ERROR_TYPE_BULK,
                       _
-                      ("LAST RECEIVED: %llu greater than allowed : %u\n"), n->last_received, allowed);
+                      ("LAST RECEIVED: %llu greater than allowed : %llu\n"), n->last_received, allowed);
           /* more than twice the allowed rate! */
           n->quota_violation_count += 10;
         }
@@ -2325,8 +2325,8 @@ disconnect_neighbor (struct NeighborList *current_handle, int check)
       rpos->addresses = peer_pos->next;
       while (peer_pos != NULL)
         {
-          GNUNET_free(peer_pos);
           GNUNET_free(peer_pos->addr);
+          GNUNET_free(peer_pos);
           peer_pos = rpos->addresses;
           rpos->addresses = peer_pos->next;
         }
