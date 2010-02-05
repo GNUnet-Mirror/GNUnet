@@ -2939,7 +2939,14 @@ neighbour_quota_update (void *cls,
   /* check if we want to disconnect for good due to inactivity */
   if ( (GNUNET_TIME_absolute_get_duration (n->last_activity).value > GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.value) &&
        (GNUNET_TIME_absolute_get_duration (n->time_established).value > GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.value) )
-    q_in = 0; /* force disconnect */
+    {
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Forcing disconnect of `%4s' due to inactivity (?).\n",
+              GNUNET_i2s (&n->peer));
+#endif
+      q_in = 0; /* force disconnect */
+    }
   if ( (n->bpm_in + MIN_BPM_CHANGE < q_in) ||
        (n->bpm_in - MIN_BPM_CHANGE > q_in) ) 
     {
@@ -2992,6 +2999,7 @@ handle_transport_notify_connect (void *cls,
   GNUNET_CRYPTO_aes_create_session_key (&n->encrypt_key);
   n->encrypt_key_created = now;
   n->set_key_retry_frequency = INITIAL_SET_KEY_RETRY_FREQUENCY;
+  n->last_activity = now;
   n->last_asw_update = now;
   n->last_arw_update = now;
   n->bpm_in = GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT;
