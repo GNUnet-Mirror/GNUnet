@@ -41,15 +41,22 @@
 #include <netinet/ip_icmp.h>
 #include <netinet/in.h> 
 
-/**
- * Number of UDP ports to keep open.
- */
-#define NUM_UDP_PORTS 512
+#define DEBUG 0
 
 /**
- * How often do we send our UDP messages to keep ports open?
+ * Number of UDP ports to keep open (typically >= 256)
  */
-#define UDP_SEND_FREQUENCY_MS 500
+#define NUM_UDP_PORTS 256
+
+/**
+ * Number of ICMP replies to send per message received (typically >= 1024)
+ */
+#define NUM_ICMP_REPLIES 1024
+
+/**
+ * How often do we send our UDP messages to keep ports open? (typically < 100ms)
+ */
+#define UDP_SEND_FREQUENCY_MS 50
 
 /**
  * Port we use for the dummy target.
@@ -60,7 +67,6 @@
  * How often do we retry to open and bind a UDP socket before giving up?
  */
 #define MAX_TRIES 10
-
 
 struct ip_packet 
 {
@@ -76,14 +82,6 @@ struct ip_packet
   uint32_t dst_ip;
 };
 
-struct icmp_packet 
-{
-  uint8_t type;
-  uint8_t code;
-  uint16_t checksum;
-  uint32_t reserved;
-};
-
 struct udp_packet
 {
   uint16_t source_port;
@@ -92,24 +90,16 @@ struct udp_packet
   uint16_t checksum_aka_my_magic;
 };
 
-
-/**
- * Structure of the data we tack on to the fake ICMP reply
- * (last 4 bytes of the 64 bytes).
- */
-struct extra_packet
+struct icmp_packet 
 {
-  /**
-   * if this is a reply to an icmp, what was the 'my_magic'
-   * value from the original icmp?
-   */
-  uint16_t reply_port_magic;
-
-  /**
-   * magic value of the sender of this icmp message.
-   */
-  uint16_t my_magic;
+  uint8_t type;
+  uint8_t code;
+  uint16_t checksum;
+  uint32_t reserved;
+  struct ip_packet ip;
+  struct udp_packet udp;
 };
+
 
 static int udpsocks[NUM_UDP_PORTS];
 
@@ -217,9 +207,8 @@ send_icmp (const struct in_addr *my_ip,
 {
   struct ip_packet ip_pkt;
   struct icmp_packet icmp_pkt;
-  struct udp_packet udp_pkt;
   struct sockaddr_in dst;
-  char packet[sizeof (ip_pkt) + sizeof (icmp_pkt) + sizeof (udp_pkt)];
+  char packet[sizeof (ip_pkt) + sizeof (icmp_pkt)];
   size_t off;
   int err;
 
@@ -233,7 +222,7 @@ send_icmp (const struct in_addr *my_ip,
   ip_pkt.flags_frag_offset = 0;
   ip_pkt.ttl = IPDEFTTL;
   ip_pkt.proto = IPPROTO_ICMP;
-  ip_pkt.checksum = 0; /* maybe the kernel helps us out..? */
+  ip_pkt.checksum = 0;
   ip_pkt.src_ip = my_ip->s_addr;
   ip_pkt.dst_ip = other->s_addr;
   ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt, sizeof (ip_pkt)));
@@ -243,40 +232,30 @@ send_icmp (const struct in_addr *my_ip,
   /* icmp reply: time exceeded */
   memset(&icmp_pkt, 0, sizeof(icmp_pkt));
   icmp_pkt.type = ICMP_TIME_EXCEEDED;
-  icmp_pkt.code = ICMP_NET_UNREACH;
+  icmp_pkt.code = ICMP_HOST_UNREACH;
   icmp_pkt.reserved = 0;
   icmp_pkt.checksum = 0;
+
+  /* ip header of the presumably 'lost' udp packet */
+  icmp_pkt.ip.vers_ihl = 0x45;
+  icmp_pkt.ip.tos = 0;
+  /* no idea why i need to shift the bits here, but not on ip_pkt->pkt_len... */
+  icmp_pkt.ip.pkt_len = (sizeof (ip_pkt) + sizeof (icmp_pkt)) << 8;
+  icmp_pkt.ip.id = 1; /* kernel sets proper value htons(ip_id_counter); */
+  icmp_pkt.ip.flags_frag_offset = 0;
+  icmp_pkt.ip.ttl = 1; /* real TTL would be 1 on a time exceeded packet */
+  icmp_pkt.ip.proto = IPPROTO_UDP;
+  icmp_pkt.ip.src_ip = other->s_addr;
+  icmp_pkt.ip.dst_ip = dummy.s_addr;
+  icmp_pkt.ip.checksum = 0;
+  icmp_pkt.ip.checksum = htons(calc_checksum((uint16_t*)&icmp_pkt.ip, sizeof (icmp_pkt.ip)));
+  icmp_pkt.udp.source_port = htons (target_port_number);
+  icmp_pkt.udp.dst_port = htons (NAT_TRAV_PORT);
+  icmp_pkt.udp.mlen_aka_reply_port_magic = htons (source_port_number);
+  icmp_pkt.udp.checksum_aka_my_magic = htons (target_port_number);
   icmp_pkt.checksum = htons(calc_checksum((uint16_t*)&icmp_pkt, sizeof (icmp_pkt)));
   memcpy (&packet[off], &icmp_pkt, sizeof (icmp_pkt));
   off += sizeof (icmp_pkt);
-
-  /* ip header of the presumably 'lost' udp packet */
-  memset(&ip_pkt, 0, sizeof (ip_pkt));
-  ip_pkt.vers_ihl = 0x45;
-  ip_pkt.tos = 0;
-  /* no idea why i need to shift the bits here, but not on ip_pkt->pkt_len... */
-  ip_pkt.pkt_len = (sizeof (ip_pkt) + sizeof (icmp_pkt)) << 8;
-  ip_pkt.id = 1; /* kernel sets proper value htons(ip_id_counter); */
-  ip_pkt.flags_frag_offset = 0;
-  ip_pkt.ttl = 1; /* real TTL would be 1 on a time exceeded packet */
-  ip_pkt.proto = IPPROTO_UDP;
-  ip_pkt.src_ip = other->s_addr;
-  ip_pkt.dst_ip = dummy.s_addr;
-  ip_pkt.checksum = 0;
-  ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt, sizeof (ip_pkt)));
-  memcpy (&packet[off], &ip_pkt, sizeof (ip_pkt));
-  off += sizeof (ip_pkt);
-  
-  memset(&udp_pkt, 0, sizeof (udp_pkt));
-  udp_pkt.source_port = htons (target_port_number);
-  udp_pkt.dst_port = htons (NAT_TRAV_PORT);
-  fprintf (stderr,
-	   "** Generating ICMP with rpm %u\n",
-	   target_port_number);
-  udp_pkt.mlen_aka_reply_port_magic = htons (source_port_number);
-  udp_pkt.checksum_aka_my_magic = htons (target_port_number);
-  memcpy (&packet[off], &udp_pkt, sizeof (udp_pkt));
-  off += sizeof (udp_pkt);
   
   memset (&dst, 0, sizeof (dst));
   dst.sin_family = AF_INET;
@@ -309,13 +288,13 @@ try_connect (const struct in_addr *my_ip,
 
   fprintf (stderr,
 	   "Sending %u ICMPs to `%s' with reply magic %u\n",
-	   NUM_UDP_PORTS,
+	   NUM_ICMP_REPLIES,
 	   inet_ntop (AF_INET,
 		      other,
 		      sbuf,
 		      sizeof (sbuf)),
 	   port_magic);
-  for (i=0;i<NUM_UDP_PORTS;i++)
+  for (i=0;i<NUM_ICMP_REPLIES;i++)
     send_icmp (my_ip, other, make_port(), port_magic);
 }
 
@@ -332,7 +311,6 @@ process_icmp_response (const struct in_addr *my_ip,
   uint16_t local_port;
   struct ip_packet ip_pkt;
   struct icmp_packet icmp_pkt;
-  struct udp_packet udp_pkt;  
   size_t off;
   
   have = read (s, buf, sizeof (buf));
@@ -344,8 +322,7 @@ process_icmp_response (const struct in_addr *my_ip,
       /* What now? */
       return; 
     }
-  if (have != sizeof (struct ip_packet) *2 + sizeof (struct icmp_packet) + 
-      sizeof (struct udp_packet))
+  if (have != sizeof (struct ip_packet) + sizeof (struct icmp_packet))
     {
       fprintf (stderr,
 	       "Received ICMP message of unexpected size: %u bytes\n",
@@ -357,9 +334,6 @@ process_icmp_response (const struct in_addr *my_ip,
   off += sizeof (ip_pkt);
   memcpy (&icmp_pkt, &buf[off], sizeof (icmp_pkt));
   off += sizeof (icmp_pkt);
-  off += sizeof (ip_pkt);
-  memcpy (&udp_pkt, &buf[off], sizeof (udp_pkt));
-  off += sizeof (struct udp_packet);
 
   if ( (ip_pkt.proto == IPPROTO_ICMP) &&
        (icmp_pkt.type == ICMP_DEST_UNREACH) && 
@@ -368,31 +342,43 @@ process_icmp_response (const struct in_addr *my_ip,
       /* this is what is normal due to our UDP traffic */
       return;
     }
+  if ( (ip_pkt.proto == IPPROTO_ICMP) &&
+       (icmp_pkt.type == ICMP_TIME_EXCEEDED) &&
+       (icmp_pkt.code == ICMP_HOST_UNREACH) )
+    {
+      /* this is what we might see on loopback: this is the format
+	 we as the client send out (the host uses 'ICMP_NET_UNREACH');
+	 Ignore! */
+      return;
+    }
   if ( (ip_pkt.proto != IPPROTO_ICMP) ||
        (icmp_pkt.type != ICMP_TIME_EXCEEDED) || 
        (icmp_pkt.code != ICMP_NET_UNREACH) )
     {
       /* Note the expected client response and not the normal network response */
+#if DEBUG
       fprintf (stderr,
 	       "Received unexpected ICMP message contents (%u, %u, %u), ignoring\n",
 	       ip_pkt.proto,
 	       icmp_pkt.type,
 	       icmp_pkt.code);
+#endif
       return;
     }
   memcpy(&sip, &ip_pkt.src_ip, sizeof (sip));
-  reply_magic = ntohs (udp_pkt.checksum_aka_my_magic);
-  my_magic = ntohs (udp_pkt.mlen_aka_reply_port_magic);
-  local_port = ntohs (udp_pkt.source_port);
+  reply_magic = ntohs (icmp_pkt.udp.checksum_aka_my_magic);
+  my_magic = ntohs (icmp_pkt.udp.mlen_aka_reply_port_magic);
+  local_port = ntohs (icmp_pkt.udp.source_port);
   if  (my_magic == 0)
     {
-#if 0
+#if DEBUG
       /* we get these a lot during loopback testing... */
       fprintf (stderr,
 	       "Received ICMP without hint as to which port worked, dropping\n");
 #endif
       return;
     }
+#if DEBUG
   fprintf (stderr,
 	   "Received ICMP from `%s' with outgoing port %u, listen port %u and incoming for other peer %u\n",
 	   inet_ntop (AF_INET,
@@ -402,6 +388,7 @@ process_icmp_response (const struct in_addr *my_ip,
 	   my_magic,
 	   local_port,
 	   reply_magic);
+#endif
   if (my_magic == 0)
     {
       try_connect (my_ip, &sip, reply_magic);
@@ -417,6 +404,7 @@ process_icmp_response (const struct in_addr *my_ip,
 	      my_magic,
 	      local_port);
       /* technically, we're done here! */      
+      exit (0);
     }
 }
 
@@ -538,10 +526,12 @@ main (int argc, char *const *argv)
 	  process_icmp_response (&external, icmpsock);
 	  continue;
 	}
+#if DEBUG
       fprintf (stderr,
 	       "Sending UDP message to %s:%u\n",
 	       argv[3],
 	       NAT_TRAV_PORT);      
+#endif
       if (-1 == sendto (udpsocks[pos],
 			NULL, 0, 0,
 			(struct sockaddr*) &dst, sizeof (dst)))
@@ -553,10 +543,12 @@ main (int argc, char *const *argv)
 	  udpsocks[pos] = make_udp_socket (&udpports[pos]);
 	}
       p = make_port ();
+#if DEBUG
       fprintf (stderr,
 	       "Sending fake ICMP message to %s:%u\n",
 	       argv[1],
 	       p);      
+#endif
       send_icmp (&external,
 		 &target,
 		 p,
