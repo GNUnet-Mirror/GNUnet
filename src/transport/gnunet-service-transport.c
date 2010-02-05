@@ -882,6 +882,10 @@ update_quota (struct NeighborList *n)
       n->last_quota_update = GNUNET_TIME_absolute_get ();
       if (n->last_received > allowed)
         {
+          GNUNET_log (GNUNET_ERROR_TYPE_WARNING |
+                      GNUNET_ERROR_TYPE_BULK,
+                      _
+                      ("LAST RECEIVED: %u greater than allowed : %u\n"), n->last_received, allowed);
           /* more than twice the allowed rate! */
           n->quota_violation_count += 10;
         }
