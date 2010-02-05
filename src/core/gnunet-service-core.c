@@ -1508,6 +1508,21 @@ retry_plaintext_processing (void *cls,
  */
 static void send_key (struct Neighbour *n);
 
+/**
+ * Task that will retry "send_key" if our previous attempt failed
+ * to yield a PONG.
+ */
+static void
+set_key_retry_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Neighbour *n = cls;
+
+  n->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
+  n->set_key_retry_frequency =
+    GNUNET_TIME_relative_multiply (n->set_key_retry_frequency, 2);
+  send_key (n);
+}
+
 
 /**
  * Check if we have plaintext messages for the specified neighbour
@@ -1545,6 +1560,13 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
 #endif
       return;
     case PEER_STATE_KEY_SENT:
+      if (n->retry_set_key_task == GNUNET_SCHEDULER_NO_TASK)
+        {
+          n->retry_set_key_task
+                = GNUNET_SCHEDULER_add_delayed (sched,
+                                                n->set_key_retry_frequency,
+                                                &set_key_retry_task, n);
+        }
       GNUNET_assert (n->retry_set_key_task !=
                      GNUNET_SCHEDULER_NO_TASK);
 #if DEBUG_CORE
@@ -1554,6 +1576,13 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
 #endif
       return;
     case PEER_STATE_KEY_RECEIVED:
+      if (n->retry_set_key_task == GNUNET_SCHEDULER_NO_TASK)
+        {
+          n->retry_set_key_task
+                = GNUNET_SCHEDULER_add_delayed (sched,
+                                                n->set_key_retry_frequency,
+                                                &set_key_retry_task, n);
+        }
       GNUNET_assert (n->retry_set_key_task !=
                      GNUNET_SCHEDULER_NO_TASK);
 #if DEBUG_CORE
@@ -1918,22 +1947,6 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
 
 
 /**
- * Task that will retry "send_key" if our previous attempt failed
- * to yield a PONG.
- */
-static void
-set_key_retry_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct Neighbour *n = cls;
-
-  n->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
-  n->set_key_retry_frequency =
-    GNUNET_TIME_relative_multiply (n->set_key_retry_frequency, 2);
-  send_key (n);
-}
-
-
-/**
  * PEERINFO is giving us a HELLO for a peer.  Add the public key to
  * the neighbour's struct and retry send_key.  Or, if we did not get a
  * HELLO, just do nothing.
@@ -1962,9 +1975,9 @@ process_hello_retry_send_key (void *cls,
         send_key (n);
       else
         n->retry_set_key_task
-                = GNUNET_SCHEDULER_add_delayed (sched,
-                                                n->set_key_retry_frequency,
-                                                &set_key_retry_task, n);
+          = GNUNET_SCHEDULER_add_delayed (sched,
+                                          n->set_key_retry_frequency,
+                                          &set_key_retry_task, n);
       return;
     }
 
