@@ -41,6 +41,8 @@
 #include "core.h"
 
 
+#define DEBUG_HANDSHAKE 1
+
 /**
  * Receive and send buffer windows grow over time.  For
  * how long can 'unused' bandwidth accumulate before we
@@ -319,7 +321,14 @@ struct MessageEntry
    * Was this message selected for transmission in the
    * current round? GNUNET_YES or GNUNET_NO.
    */
-  int16_t do_transmit;
+  int8_t do_transmit;
+
+  /**
+   * Did we give this message some slack (delayed sending) previously
+   * (and hence should not give it any more slack)? GNUNET_YES or
+   * GNUNET_NO.
+   */
+  int8_t got_slack;
 
 };
 
@@ -1011,6 +1020,10 @@ notify_encrypted_transmit_ready (void *cls, size_t size, void *buf)
       ret = m->size;
       n->available_send_window -= m->size;
       process_encrypted_neighbour_queue (n);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Copied message of type %u and size %u into transport buffer for `%4s'\n",
+                  ntohs (((struct GNUNET_MessageHeader *) &m[1])->type),
+                  ret, GNUNET_i2s (&n->peer));
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Copied message of type %u and size %u into transport buffer for `%4s'\n",
@@ -1268,13 +1281,20 @@ select_messages (struct Neighbour *n,
                      and relative deadlines caused by other messages
                      with their respective load */
                   slack = GNUNET_MIN (slack, avail / n->bpm_out);
-                  if (pos->deadline.value < now.value)
-                    slack = 0;
+                  if ( (pos->deadline.value < now.value) ||
+		       (GNUNET_YES == pos->got_slack) )		       
+		    {
+		      slack = 0;
+		    }
                   else
-                    slack =
-                      GNUNET_MIN (slack, pos->deadline.value - now.value);
+		    {
+		      slack =
+			GNUNET_MIN (slack, pos->deadline.value - now.value);
+		      pos->got_slack = GNUNET_YES;
+		    }
                 }
             }
+
           off += pos->size;
           t.value = GNUNET_MAX (pos->deadline.value, t.value);
           if (pos->priority <= min_prio)
@@ -1297,16 +1317,21 @@ select_messages (struct Neighbour *n,
      urgent deadlines */
   if ( (slack > 1000) && (size > 4 * off) )
     {
-      /* less than 25% of message would be filled with
-         deadlines still being met if we delay by one
-         second or more; so just wait for more data */
-      retry_time->value = slack / 2;
+      /* less than 25% of message would be filled with deadlines still
+         being met if we delay by one second or more; so just wait for
+         more data; but do not wait longer than 1s (since we don't want
+	 to delay messages for a really long time either). */
+      retry_time->value = 1000;
       /* reset do_transmit values for next time */
       while (pos != last)
         {
-          pos->do_transmit = GNUNET_NO;
+          pos->do_transmit = GNUNET_NO;	  
           pos = pos->next;
         }
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Deferring transmission for 1s due to underfull message buffer size\n");
+#endif
       return 0;
     }
   /* select marked messages (up to size) for transmission */
@@ -1410,6 +1435,11 @@ batch_message (struct Neighbour *n,
 	  send_to_all_clients (&ntm->header,
 			       GNUNET_YES,
 			       GNUNET_CORE_OPTION_SEND_FULL_OUTBOUND); 	 
+#if DEBUG_HANDSHAKE
+	  fprintf (stderr,
+		   "Encrypting message of type %u\n",
+		   ntohs(((struct GNUNET_MessageHeader*)&pos[1])->type));
+#endif
 	  /* copy for encrypted transmission */
           memcpy (&buf[ret], &pos[1], pos->size);
           ret += pos->size;
@@ -2338,7 +2368,8 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
 		   sizeof (struct GNUNET_PeerIdentity)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Received `%s' message that was not for me.  Ignoring.\n"));
+		  _("Received `%s' message that was not for me.  Ignoring.\n"),
+		  "SET_KEY");
       return;
     }
   if ((ntohl (m->purpose.size) !=
@@ -2576,6 +2607,12 @@ deliver_message (struct Neighbour *sender,
   int deliver_full;
 
   type = ntohs (m->type);
+#if DEBUG_HANDSHAKE
+  fprintf (stderr,
+	   "Received encapsulated message of type %u from `%4s'\n",
+	   type,
+	   GNUNET_i2s (&sender->peer));
+#endif
   cpos = clients;
   while (cpos != NULL)
     {
@@ -2814,6 +2851,12 @@ handle_transport_receive (void *cls,
   up = (n->status == PEER_STATE_KEY_CONFIRMED);
   type = ntohs (message->type);
   size = ntohs (message->size);
+#if DEBUG_HANDSHAKE
+  fprintf (stderr,
+	   "Received message of type %u from `%4s'\n",
+	   type,
+	   GNUNET_i2s (peer));
+#endif
   switch (type)
     {
     case GNUNET_MESSAGE_TYPE_CORE_SET_KEY:
