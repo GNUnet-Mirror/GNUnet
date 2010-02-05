@@ -247,7 +247,7 @@ init_notify (void *cls,
 
       if (NULL == GNUNET_CORE_notify_transmit_ready (p1.ch,
                                          0,
-                                         GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15),
+                                         GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 45),
                                          &p2.id,
                                          sizeof (struct GNUNET_MessageHeader),
                                          &transmit_ready, &p1))
