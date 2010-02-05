@@ -2321,14 +2321,12 @@ disconnect_neighbor (struct NeighborList *current_handle, int check)
       if (GNUNET_YES == rpos->connected)
         rpos->plugin->api->disconnect (rpos->plugin->api->cls, &n->id);
 
-      peer_pos = rpos->addresses;
-      rpos->addresses = peer_pos->next;
-      while (peer_pos != NULL)
+      while (rpos->addresses != NULL)
         {
-          GNUNET_free(peer_pos->addr);
-          GNUNET_free(peer_pos);
           peer_pos = rpos->addresses;
           rpos->addresses = peer_pos->next;
+          GNUNET_free(peer_pos->addr);
+          GNUNET_free(peer_pos);
         }
       GNUNET_free (rpos);
     }
