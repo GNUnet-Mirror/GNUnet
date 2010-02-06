@@ -10,6 +10,13 @@ if USE_COVERAGE
   AM_CFLAGS = --coverage -O0
 endif
 
+if LINUX
+NATBIN = gnunet-nat-server gnunet-nat-client
+install-exec-hook:
+	chown root $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client || true
+	chmod u+s $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client || true
+endif
+
 
 lib_LTLIBRARIES = \
   libgnunettransport.la
@@ -29,7 +36,14 @@ libgnunettransport_la_LDFLAGS = \
 
 bin_PROGRAMS = \
  gnunet-transport \
- gnunet-service-transport 
+ gnunet-service-transport $(NATBIN)
+
+
+gnunet_nat_server_SOURCES = \
+ gnunet-nat-server.c         
+
+gnunet_nat_client_SOURCES = \
+ gnunet-nat-client.c         
 
 
 gnunet_transport_SOURCES = \

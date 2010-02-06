@@ -23,6 +23,21 @@
  * @brief Tool to help bypass NATs using ICMP method; must run as root (SUID will do)
  *        This code will work under GNU/Linux only (or maybe BSDs, but never W32)
  * @author Christian Grothoff
+ *
+ * This program will send ONE ICMP message every 500 ms RAW sockets
+ * to a DUMMY IP address and also listens for ICMP replies.  Since
+ * it uses RAW sockets, it must be installed SUID or run as 'root'.
+ * In order to keep the security risk of the resulting SUID binary
+ * minimal, the program ONLY opens the two RAW sockets with root
+ * priviledges, then drops them and only then starts to process
+ * command line arguments.  The code also does not link against
+ * any shared libraries (except libc) and is strictly minimal
+ * (except for checking for errors).  The following list of people
+ * have reviewed this code and considered it safe since the last
+ * modification (if you reviewed it, please have your name added
+ * to the list):
+ *
+ * - Christian Grothoff
  */
 #define _GNU_SOURCE
 #include <sys/types.h> 
