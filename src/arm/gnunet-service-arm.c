@@ -809,6 +809,8 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   int statcode;
   int ret;
   char c[16];
+  enum GNUNET_OS_ProcessStatusType statusType;
+  unsigned long statusCode;
 
   child_death_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
@@ -826,9 +828,6 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   next = running;
   while (NULL != (pos = next))
     {
-      enum GNUNET_OS_ProcessStatusType statusType;
-      unsigned long statusCode;
-
       next = pos->next;
       if (pos->pid == 0) 
 	{
