@@ -102,10 +102,14 @@ struct ServiceList
    */
   time_t mtime;
 
-  /* Process exponential backoff time */
+  /**
+   * Process exponential backoff time 
+   */
   struct GNUNET_TIME_Relative backoff;
 
-  /* Absolute time at which the process is scheduled to restart in case of death */
+  /**
+   * Absolute time at which the process is scheduled to restart in case of death 
+   */
   struct GNUNET_TIME_Absolute restartAt;
 
   /**
@@ -578,6 +582,15 @@ stop_service (struct GNUNET_SERVER_Client *client, const char *servicename)
 	      "Sending kill signal to service `%s', waiting for process to die.\n",
 	      servicename);
 #endif
+  if (pos->pid == 0)
+    {
+      /* process is in delayed restart, simply remove it! */
+      free_entry (pos);
+      signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
+      GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      return;
+    }
+
   if (0 != PLIBC_KILL (pos->pid, SIGTERM))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   pos->next = running;
@@ -867,7 +880,7 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	  else
 	    prev->next = next;
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-		      "Service `%s' stopped\n",
+		      _("Service `%s' stopped\n"),
 		      pos->name);
 	  signal_result (pos->killing_client, 
 			 pos->name, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
