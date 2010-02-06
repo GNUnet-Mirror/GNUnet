@@ -577,11 +577,6 @@ stop_service (struct GNUNET_SERVER_Client *client, const char *servicename)
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return;
     }
-#if DEBUG_ARM
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Sending kill signal to service `%s', waiting for process to die.\n",
-	      servicename);
-#endif
   if (pos->pid == 0)
     {
       /* process is in delayed restart, simply remove it! */
@@ -590,7 +585,11 @@ stop_service (struct GNUNET_SERVER_Client *client, const char *servicename)
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return;
     }
-
+#if DEBUG_ARM
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending kill signal to service `%s', waiting for process to die.\n",
+	      servicename);
+#endif
   if (0 != PLIBC_KILL (pos->pid, SIGTERM))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   pos->next = running;
