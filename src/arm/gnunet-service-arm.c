@@ -61,15 +61,6 @@
 struct ServiceList;
 
 /**
- * Function to call if waitpid informs us that
- * a process has died.
- *
- * @param cls closure
- * @param pos entry in the service list of the process that died
- */
-typedef void (*CleanCallback) (void *cls, struct ServiceList * pos);
-
-/**
  * List of our services.
  */
 struct ServiceList
@@ -95,15 +86,10 @@ struct ServiceList
   char *config;
 
   /**
-   * Function to call upon kill completion (waitpid), NULL
+   * Client to notify upon kill completion (waitpid), NULL
    * if we should simply restart the process.
    */
-  CleanCallback kill_continuation;
-
-  /**
-   * Closure for kill_continuation.
-   */
-  void *kill_continuation_cls;
+  struct GNUNET_SERVER_Client *killing_client;
 
   /**
    * Process ID of the child.
@@ -528,26 +514,6 @@ start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
 
 
 /**
- * Free the given entry in the service list and signal
- * the given client that the service is now down.
- *
- * @param cls pointer to the client ("struct GNUNET_SERVER_Client*")
- * @param pos entry for the service
- */
-static void
-free_and_signal (void *cls, struct ServiceList *pos)
-{
-  struct GNUNET_SERVER_Client *client = cls;
-  /* find_name will remove "pos" from the list! */
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Service `%s' stopped\n", pos->name);
-  signal_result (client, pos->name, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  GNUNET_SERVER_client_drop (client);
-  free_entry (pos);
-}
-
-
-/**
  * Stop the specified service.
  *
  * @param client who is asking for this
@@ -584,7 +550,7 @@ stop_service (struct GNUNET_SERVER_Client *client, const char *servicename)
     }
   if (pos->rc == 1)
     pos->rc--;			/* decrement RC to zero */
-  if (pos->kill_continuation != NULL)
+  if (pos->killing_client != NULL)
     {
       /* killing already in progress */
 #if DEBUG_ARM
@@ -607,8 +573,6 @@ stop_service (struct GNUNET_SERVER_Client *client, const char *servicename)
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return;
     }
-
-
 #if DEBUG_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending kill signal to service `%s', waiting for process to die.\n",
@@ -618,8 +582,7 @@ stop_service (struct GNUNET_SERVER_Client *client, const char *servicename)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   pos->next = running;
   running = pos;
-  pos->kill_continuation = &free_and_signal;
-  pos->kill_continuation_cls = client;
+  pos->killing_client = client;
   GNUNET_SERVER_client_keep (client);
 }
 
@@ -830,7 +793,8 @@ delayed_restart_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * 
+ * Task triggered whenever we receive a SIGCHLD (child
+ * process died).  
  *
  * @param cls closure, NULL if we need to self-restart
  * @param tc context
@@ -844,7 +808,7 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   const char *statstr;
   int statcode;
   int ret;
-  char c;
+  char c[16];
 
   child_death_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
@@ -897,13 +861,20 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	  statcode = 0;
 	}
       pos->pid = 0;
-      if (NULL != pos->kill_continuation) 
+      if (NULL != pos->killing_client) 
 	{
 	  if (prev == NULL)
 	    running = next;
 	  else
 	    prev->next = next;
-	  pos->kill_continuation (pos->kill_continuation_cls, pos);
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+		      "Service `%s' stopped\n",
+		      pos->name);
+	  signal_result (pos->killing_client, 
+			 pos->name, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
+	  GNUNET_SERVER_receive_done (pos->killing_client, GNUNET_OK);
+	  GNUNET_SERVER_client_drop (pos->killing_client);
+	  free_entry (pos);
 	  continue;
 	}
       if (GNUNET_YES != in_shutdown)
@@ -962,7 +933,8 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
 };
 
 /**
- * Signal handler called for signals that should cause us to shutdown.
+ * Signal handler called for SIGCHLD.  Triggers the
+ * respective handler by writing to the trigger pipe.
  */
 static void
 sighandler_child_death ()
