@@ -226,6 +226,7 @@ process_icmp_response ()
 		      &sip,
 		      buf,
 		      sizeof (buf)));
+  fflush (stdout);
 }
 
 
