@@ -90,7 +90,7 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 /**
  * Our configuration.
  */
-const struct GNUNET_CONFIGURATION_Handle *cfg;
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
  * Head of request queue for the datastore, sorted by timeout.
