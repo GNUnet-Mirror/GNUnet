@@ -41,7 +41,7 @@
 #include "core.h"
 
 
-#define DEBUG_HANDSHAKE 1
+#define DEBUG_HANDSHAKE GNUNET_NO
 
 /**
  * Receive and send buffer windows grow over time.  For
@@ -1020,10 +1020,7 @@ notify_encrypted_transmit_ready (void *cls, size_t size, void *buf)
       ret = m->size;
       n->available_send_window -= m->size;
       process_encrypted_neighbour_queue (n);
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Copied message of type %u and size %u into transport buffer for `%4s'\n",
-                  ntohs (((struct GNUNET_MessageHeader *) &m[1])->type),
-                  ret, GNUNET_i2s (&n->peer));
+
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Copied message of type %u and size %u into transport buffer for `%4s'\n",
