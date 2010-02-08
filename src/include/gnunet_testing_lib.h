@@ -70,6 +70,28 @@ typedef void (*GNUNET_TESTING_NotifyDaemonRunning)(void *cls,
 
 
 /**
+ * Prototype of a function that will be called whenever
+ * two daemons are connected by the testing library.
+ *
+ * @param cls closure
+ * @param first peer id for first daemon
+ * @param second peer id for the second daemon
+ * @param first_cfg config for the first daemon
+ * @param second_cfg config for the second daemon
+ * @param first_daemon handle for the first daemon
+ * @param second_daemon handle for the second daemon
+ * @param emsg error message (NULL on success)
+ */
+typedef void (*GNUNET_TESTING_NotifyConnection)(void *cls,
+                                                   const struct GNUNET_PeerIdentity *first,
+                                                   const struct GNUNET_PeerIdentity *second,
+                                                   const struct GNUNET_CONFIGURATION_Handle *first_cfg,
+                                                   const struct GNUNET_CONFIGURATION_Handle *second_cfg,
+                                                   struct GNUNET_TESTING_Daemon *first_daemon,
+                                                   struct GNUNET_TESTING_Daemon *second_daemon,
+                                                   const char *emsg);
+
+/**
  * Starts a GNUnet daemon.  GNUnet must be installed on the target
  * system and available in the PATH.  The machine must furthermore be
  * reachable via "ssh" (unless the hostname is "NULL") without the
@@ -127,6 +149,13 @@ void GNUNET_TESTING_daemon_reconfigure (struct GNUNET_TESTING_Daemon *d,
 					GNUNET_TESTING_NotifyCompletion cb,
 					void * cb_cls);
 
+/*
+ * Get the short name of a running peer
+ *
+ * @param d the daemon handle
+ */
+char *
+GNUNET_TESTING_daemon_get_shortname(struct GNUNET_TESTING_Daemon *d);
 
 /**
  * Establish a connection between two GNUnet daemons.
@@ -141,7 +170,7 @@ void GNUNET_TESTING_daemon_reconfigure (struct GNUNET_TESTING_Daemon *d,
 void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 				     struct GNUNET_TESTING_Daemon *d2,
 				     struct GNUNET_TIME_Relative timeout,
-				     GNUNET_TESTING_NotifyCompletion cb,
+				     GNUNET_TESTING_NotifyConnection cb,
 				     void *cb_cls);
 
 
@@ -163,6 +192,8 @@ struct GNUNET_TESTING_PeerGroup;
  * @param total number of daemons to start
  * @param cb function to call on each daemon that was started
  * @param cb_cls closure for cb
+ * @param connect_callback function to call each time two hosts are connected
+ * @param connect_callback_cls closure for connect_callback
  * @param hostnames space-separated list of hostnames to use, 
  *        NULL to use localhost only
  * @return NULL on error, otherwise handle to control peer group
@@ -173,6 +204,8 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
 			      unsigned int total,
 			      GNUNET_TESTING_NotifyDaemonRunning cb,
 			      void *cb_cls,
+			      GNUNET_TESTING_NotifyConnection connect_callback,
+                              void *connect_callback_cls,
 			      const char *hostnames);
 
 
@@ -220,6 +253,12 @@ enum GNUNET_TESTING_Topology
    * Random graph.
    */
   GNUNET_TESTING_TOPOLOGY_ERDOS_RENYI,
+
+  /*
+   * Certain percentage of peers are unable to communicate directly
+   * replicating NAT conditions
+   */
+  GNUNET_TESTING_TOPOLOGY_INTERNAT,
 
   /**
    * All peers are disconnected.
