@@ -28,28 +28,26 @@
 
 static int ok;
 
-static void end_cb(void *cls,
-		   const char *emsg)
+static void
+end_cb (void *cls, const char *emsg)
 {
-  GNUNET_assert (emsg == NULL); 
+  GNUNET_assert (emsg == NULL);
 #if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Daemon terminated, will now exit.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Daemon terminated, will now exit.\n");
 #endif
- ok = 0;
+  ok = 0;
 }
 
-static void my_cb(void *cls,
-		  const struct GNUNET_PeerIdentity *id,
-		  const struct GNUNET_CONFIGURATION_Handle *cfg,
-		  struct GNUNET_TESTING_Daemon *d,
-		  const char *emsg)
+static void
+my_cb (void *cls,
+       const struct GNUNET_PeerIdentity *id,
+       const struct GNUNET_CONFIGURATION_Handle *cfg,
+       struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
   GNUNET_assert (id != NULL);
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Daemon `%s' started, will now stop it.\n",
-	      GNUNET_i2s (id));
+              "Daemon `%s' started, will now stop it.\n", GNUNET_i2s (id));
 #endif
   GNUNET_TESTING_daemon_stop (d, &end_cb, NULL);
 }
@@ -59,21 +57,15 @@ static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *sched,
      char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_TESTING_Daemon *d;
 
   ok = 1;
 #if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Starting daemon.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemon.\n");
 #endif
-  d = GNUNET_TESTING_daemon_start (sched,
-				   cfg,
-				   NULL,
-				   &my_cb,
-				   NULL);
+  d = GNUNET_TESTING_daemon_start (sched, cfg, NULL, &my_cb, NULL);
   GNUNET_assert (d != NULL);
 }
 
@@ -92,8 +84,7 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-testing", "nohelp",
-                      options, &run, &ok);
+                      argv, "test-testing", "nohelp", options, &run, &ok);
   return ok;
 }
 
@@ -110,7 +101,7 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
-  sleep (1); /* FIXME: make this unnecessary */
+  sleep (1);                    /* FIXME: make this unnecessary */
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-testing");
   return ret;
 }

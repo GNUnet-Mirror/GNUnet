@@ -45,71 +45,62 @@ static struct GNUNET_CONFIGURATION_Handle *c2;
 
 static struct GNUNET_SCHEDULER_Handle *sched;
 
-static void end2_cb(void *cls,
-		   const char *emsg)
+static void
+end2_cb (void *cls, const char *emsg)
 {
-  GNUNET_assert (emsg == NULL); 
+  GNUNET_assert (emsg == NULL);
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Both daemons terminated, will now exit.\n");
+              "Both daemons terminated, will now exit.\n");
 #endif
- ok = 0;
+  ok = 0;
 }
 
-static void end1_cb(void *cls,
-		    const char *emsg)
+static void
+end1_cb (void *cls, const char *emsg)
 {
-  GNUNET_assert (emsg == NULL); 
+  GNUNET_assert (emsg == NULL);
   GNUNET_TESTING_daemon_stop (d2, &end2_cb, NULL);
   d2 = NULL;
 }
 
 
 static void
-my_connect_complete (void *cls,
-		     const char *emsg)
+my_connect_complete (void *cls, const char *emsg)
 {
   GNUNET_TESTING_daemon_stop (d1, &end1_cb, NULL);
   d1 = NULL;
 }
 
 
-static void my_cb2(void *cls,
-		   const struct GNUNET_PeerIdentity *id,
-		   const struct GNUNET_CONFIGURATION_Handle *cfg,
-		   struct GNUNET_TESTING_Daemon *d,
-		   const char *emsg)
+static void
+my_cb2 (void *cls,
+        const struct GNUNET_PeerIdentity *id,
+        const struct GNUNET_CONFIGURATION_Handle *cfg,
+        struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
   GNUNET_assert (id != NULL);
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Daemon `%s' started.\n",
-	      GNUNET_i2s (id));
+              "Daemon `%s' started.\n", GNUNET_i2s (id));
 #endif
   GNUNET_TESTING_daemons_connect (d1, d2,
-				  TIMEOUT,
-				  &my_connect_complete,
-				  NULL);
+                                  TIMEOUT, &my_connect_complete, NULL);
 }
 
 
-static void my_cb1(void *cls,
-		   const struct GNUNET_PeerIdentity *id,
-		   const struct GNUNET_CONFIGURATION_Handle *cfg,
-		   struct GNUNET_TESTING_Daemon *d,
-		   const char *emsg)
+static void
+my_cb1 (void *cls,
+        const struct GNUNET_PeerIdentity *id,
+        const struct GNUNET_CONFIGURATION_Handle *cfg,
+        struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
   GNUNET_assert (id != NULL);
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Daemon `%s' started.\n",
-	      GNUNET_i2s (id));
+              "Daemon `%s' started.\n", GNUNET_i2s (id));
 #endif
-  d2 = GNUNET_TESTING_daemon_start (sched,
-				    c2,
-				    NULL,
-				    &my_cb2,
-				    NULL);
+  d2 = GNUNET_TESTING_daemon_start (sched, c2, NULL, &my_cb2, NULL);
   GNUNET_assert (d2 != NULL);
 
 }
@@ -119,26 +110,18 @@ static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   sched = s;
   ok = 1;
 #if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Starting daemon.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemon.\n");
 #endif
   c1 = GNUNET_CONFIGURATION_create ();
-  GNUNET_CONFIGURATION_parse (c1,
-			      "test_testing_connect_peer1.conf");
+  GNUNET_CONFIGURATION_parse (c1, "test_testing_connect_peer1.conf");
   c2 = GNUNET_CONFIGURATION_create ();
-  GNUNET_CONFIGURATION_parse (c2,
-			      "test_testing_connect_peer2.conf");
-  d1 = GNUNET_TESTING_daemon_start (sched,
-				    c1,
-				    NULL,
-				    &my_cb1,
-				    NULL);
+  GNUNET_CONFIGURATION_parse (c2, "test_testing_connect_peer2.conf");
+  d1 = GNUNET_TESTING_daemon_start (sched, c1, NULL, &my_cb1, NULL);
   GNUNET_assert (d1 != NULL);
 }
 

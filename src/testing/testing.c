@@ -58,40 +58,40 @@
  * Phases of starting GNUnet on a system.
  */
 enum StartPhase
-  {
+{
     /**
      * Copy the configuration file to the target system.
      */
-    SP_COPYING,
+  SP_COPYING,
 
     /**
      * Configuration file has been copied, start ARM on target system.
      */
-    SP_COPIED,
+  SP_COPIED,
 
     /**
      * ARM has been started, check that it has properly daemonized and
      * then try to connect to the CORE service (which should be
      * auto-started by ARM).
      */
-    SP_START_ARMING,
+  SP_START_ARMING,
 
     /**
      * We're waiting for CORE to start.
      */
-    SP_START_CORE,
+  SP_START_CORE,
 
     /**
      * Core has notified us that we've established a connection to the service.
      * The main FSM halts here and waits to be moved to UPDATE or CLEANUP.
      */
-    SP_START_DONE,
+  SP_START_DONE,
 
     /**
      * We've been asked to terminate the instance and are now waiting for
      * the remote command to delete the configuration file to complete.
      */
-    SP_CLEANUP,
+  SP_CLEANUP,
 
     /**
      * We've received a configuration update and are currently waiting for
@@ -99,8 +99,8 @@ enum StartPhase
      * return to "SP_START_DONE" (and rely on ARM to restart all affected
      * services).
      */
-    SP_CONFIG_UPDATE
-  };
+  SP_CONFIG_UPDATE
+};
 
 
 /**
@@ -124,6 +124,9 @@ struct GNUNET_TESTING_Daemon
    * Host to run GNUnet on.
    */
   char *hostname;
+
+  /* Result of GNUNET_i2s of this peer, for printing */
+  char *shortname;
 
   /**
    * Username we are using.
@@ -201,8 +204,8 @@ struct GNUNET_TESTING_Daemon
 
   /**
    * Handle to the server.
-   */ 
-  struct GNUNET_CORE_Handle * server;
+   */
+  struct GNUNET_CORE_Handle *server;
 };
 
 
@@ -220,12 +223,9 @@ struct GNUNET_TESTING_Daemon
  */
 static void
 testing_init (void *cls,
-	      struct GNUNET_CORE_Handle * server,
-	      const struct GNUNET_PeerIdentity *
-	      my_identity,
-	      const struct
-	      GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *
-	      publicKey)
+              struct GNUNET_CORE_Handle *server,
+              const struct GNUNET_PeerIdentity *my_identity,
+              const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
 {
   struct GNUNET_TESTING_Daemon *d = cls;
   GNUNET_TESTING_NotifyDaemonRunning cb;
@@ -238,18 +238,18 @@ testing_init (void *cls,
     {
       d->server = NULL;
       if (GNUNET_YES == d->dead)
-	GNUNET_TESTING_daemon_stop (d, d->dead_cb, d->dead_cb_cls);
+        GNUNET_TESTING_daemon_stop (d, d->dead_cb, d->dead_cb_cls);
       else if (NULL != cb)
-	cb (d->cb_cls, NULL, d->cfg, d,
-	    _("Failed to connect to core service\n"));
+        cb (d->cb_cls, NULL, d->cfg, d,
+            _("Failed to connect to core service\n"));
       return;
     }
 #if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Successfully started peer `%4s'.\n",
-	      GNUNET_i2s(my_identity));
+              "Successfully started peer `%4s'.\n", GNUNET_i2s (my_identity));
 #endif
   d->id = *my_identity;
+  d->shortname = strdup (GNUNET_i2s (my_identity));
   d->server = server;
   if (GNUNET_YES == d->dead)
     GNUNET_TESTING_daemon_stop (d, d->dead_cb, d->dead_cb_cls);
@@ -265,179 +265,150 @@ testing_init (void *cls,
  * @param tc unused
  */
 static void
-start_fsm (void *cls,
-	   const struct GNUNET_SCHEDULER_TaskContext *tc)
+start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  static struct GNUNET_CORE_MessageHandler no_handlers[] =
-    { { NULL, 0, 0 } };
-  struct GNUNET_TESTING_Daemon * d = cls;
+  static struct GNUNET_CORE_MessageHandler no_handlers[] = { {NULL, 0, 0} };
+  struct GNUNET_TESTING_Daemon *d = cls;
   GNUNET_TESTING_NotifyDaemonRunning cb;
   enum GNUNET_OS_ProcessStatusType type;
   unsigned long code;
   char *dst;
- 
+
 #if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Peer FSM is in phase %u.\n",
-	      d->phase);
+              "Peer FSM is in phase %u.\n", d->phase);
 #endif
   d->task = GNUNET_SCHEDULER_NO_TASK;
   switch (d->phase)
     {
     case SP_COPYING:
       /* confirm copying complete */
-      if (GNUNET_OK != 
-	  GNUNET_OS_process_status (d->pid,
-				    &type,
-				    &code))
-	{
-	  d->wait_runs++;
-	  if (d->wait_runs > MAX_EXEC_WAIT_RUNS)
-	    {
-	      cb = d->cb;
-	      d->cb = NULL;
-	      if (NULL != cb)
-		cb (d->cb_cls,
-		    NULL,
-		    d->cfg,
-		    d,
-		    _("`scp' does not seem to terminate.\n"));
-	      return;
-	    }
-	  /* wait some more */
-	  d->task
-	    = GNUNET_SCHEDULER_add_delayed (d->sched, 
-					    GNUNET_CONSTANTS_EXEC_WAIT,
-					    &start_fsm,
-					    d);
-	  return;
-	}
-      if ( (type != GNUNET_OS_PROCESS_EXITED) ||
-	   (code != 0) )
-	{
-	  cb = d->cb;
-	  d->cb = NULL;
-	  if (NULL != cb)
-	    cb (d->cb_cls,
-		NULL,
-		d->cfg,
-		d,
-		_("`scp' did not complete cleanly.\n"));	  
-	  return;
-	}	  
+      if (GNUNET_OK != GNUNET_OS_process_status (d->pid, &type, &code))
+        {
+          d->wait_runs++;
+          if (d->wait_runs > MAX_EXEC_WAIT_RUNS)
+            {
+              cb = d->cb;
+              d->cb = NULL;
+              if (NULL != cb)
+                cb (d->cb_cls,
+                    NULL,
+                    d->cfg, d, _("`scp' does not seem to terminate.\n"));
+              return;
+            }
+          /* wait some more */
+          d->task
+            = GNUNET_SCHEDULER_add_delayed (d->sched,
+                                            GNUNET_CONSTANTS_EXEC_WAIT,
+                                            &start_fsm, d);
+          return;
+        }
+      if ((type != GNUNET_OS_PROCESS_EXITED) || (code != 0))
+        {
+          cb = d->cb;
+          d->cb = NULL;
+          if (NULL != cb)
+            cb (d->cb_cls,
+                NULL, d->cfg, d, _("`scp' did not complete cleanly.\n"));
+          return;
+        }
 #if DEBUG_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Successfully copied configuration file.\n");
+                  "Successfully copied configuration file.\n");
 #endif
       d->phase = SP_COPIED;
       /* fall-through */
     case SP_COPIED:
       /* start GNUnet on remote host */
-      if (NULL == d->hostname)        
-	{
-	  d->pid = GNUNET_OS_start_process ("gnunet-service-arm",
-					    "gnunet-service-arm",
-					    "-c",
-					    d->cfgfile,
+      if (NULL == d->hostname)
+        {
+          d->pid = GNUNET_OS_start_process ("gnunet-service-arm",
+                                            "gnunet-service-arm",
+                                            "-c", d->cfgfile,
 #if DEBUG_TESTING
-					    "-L", "DEBUG",
+                                            "-L", "DEBUG",
 #endif
-					    "-d",
-					    NULL);
-	}
+                                            "-d", NULL);
+        }
       else
-	{
-	  if (d->username != NULL)
-	    GNUNET_asprintf (&dst,
-			     "%s@%s",
-			     d->username,
-			     d->hostname);
-	  else
-	    dst = GNUNET_strdup (d->hostname);
-	  d->pid = GNUNET_OS_start_process ("ssh",
-					    "ssh",
-					    dst,
-					    "gnunet-service-arm",
-					    "-c",
-					    d->cfgfile,
-					    "-d",
-					    NULL);
-	  GNUNET_free (dst);
-	}
+        {
+          if (d->username != NULL)
+            GNUNET_asprintf (&dst, "%s@%s", d->username, d->hostname);
+          else
+            dst = GNUNET_strdup (d->hostname);
+          d->pid = GNUNET_OS_start_process ("ssh",
+                                            "ssh",
+                                            dst,
+                                            "gnunet-service-arm",
+                                            "-c", d->cfgfile, "-d", NULL);
+          GNUNET_free (dst);
+        }
       if (-1 == d->pid)
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		      _("Could not start `%s' process to start GNUnet.\n"),
-		      (NULL == d->hostname) ? "gnunet-service-arm" : "ssh");
-	  cb = d->cb;
-	  d->cb = NULL;
-	  if (NULL != cb)
-	    cb (d->cb_cls,
-		NULL,
-		d->cfg,
-		d,
-		(NULL == d->hostname) 
-		? _("Failed to start `gnunet-service-arm' process.\n") 
-		: _("Failed to start `ssh' process.\n"));
-	}      
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      _("Could not start `%s' process to start GNUnet.\n"),
+                      (NULL == d->hostname) ? "gnunet-service-arm" : "ssh");
+          cb = d->cb;
+          d->cb = NULL;
+          if (NULL != cb)
+            cb (d->cb_cls,
+                NULL,
+                d->cfg,
+                d,
+                (NULL == d->hostname)
+                ? _("Failed to start `gnunet-service-arm' process.\n")
+                : _("Failed to start `ssh' process.\n"));
+        }
 #if DEBUG_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Started `%s', waiting for `%s' to be up.\n",
-		  "gnunet-service-arm",
-		  "gnunet-service-core");
+                  "Started `%s', waiting for `%s' to be up.\n",
+                  "gnunet-service-arm", "gnunet-service-core");
 #endif
       d->phase = SP_START_ARMING;
       d->wait_runs = 0;
       d->task
-	= GNUNET_SCHEDULER_add_delayed (d->sched, 
-					GNUNET_CONSTANTS_EXEC_WAIT,
-					&start_fsm,
-					d);
-      break;     
+        = GNUNET_SCHEDULER_add_delayed (d->sched,
+                                        GNUNET_CONSTANTS_EXEC_WAIT,
+                                        &start_fsm, d);
+      break;
     case SP_START_ARMING:
-      if (GNUNET_OK != 
-	  GNUNET_OS_process_status (d->pid,
-				    &type,
-				    &code))
-	{
-	  d->wait_runs++;
-	  if (d->wait_runs > MAX_EXEC_WAIT_RUNS)
-	    {
-	      cb = d->cb;
-	      d->cb = NULL;
-	      if (NULL != cb)
-		cb (d->cb_cls,
-		    NULL,
-		    d->cfg,
-		    d,
-		    (NULL == d->hostname) 
-		    ? _("`gnunet-service-arm' does not seem to terminate.\n") 
-		    : _("`ssh' does not seem to terminate.\n"));
-	      return;
-	    }
-	  /* wait some more */
-	  d->task
-	    = GNUNET_SCHEDULER_add_delayed (d->sched, 
-					    GNUNET_CONSTANTS_EXEC_WAIT,
-					    &start_fsm,
-					    d);
-	  return;
-	}
+      if (GNUNET_OK != GNUNET_OS_process_status (d->pid, &type, &code))
+        {
+          d->wait_runs++;
+          if (d->wait_runs > MAX_EXEC_WAIT_RUNS)
+            {
+              cb = d->cb;
+              d->cb = NULL;
+              if (NULL != cb)
+                cb (d->cb_cls,
+                    NULL,
+                    d->cfg,
+                    d,
+                    (NULL == d->hostname)
+                    ? _("`gnunet-service-arm' does not seem to terminate.\n")
+                    : _("`ssh' does not seem to terminate.\n"));
+              return;
+            }
+          /* wait some more */
+          d->task
+            = GNUNET_SCHEDULER_add_delayed (d->sched,
+                                            GNUNET_CONSTANTS_EXEC_WAIT,
+                                            &start_fsm, d);
+          return;
+        }
 #if DEBUG_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Successfully started `%s'.\n",
-		  "gnunet-service-arm");
+                  "Successfully started `%s'.\n", "gnunet-service-arm");
 #endif
       d->phase = SP_START_CORE;
       d->server = GNUNET_CORE_connect (d->sched,
-				       d->cfg,
-				       ARM_START_WAIT,
-				       d,
-				       &testing_init,
-				       NULL, NULL, NULL,
-				       NULL, GNUNET_NO,
-				       NULL, GNUNET_NO,
-				       no_handlers);     
+                                       d->cfg,
+                                       ARM_START_WAIT,
+                                       d,
+                                       &testing_init,
+                                       NULL, NULL, NULL,
+                                       NULL, GNUNET_NO,
+                                       NULL, GNUNET_NO, no_handlers);
       break;
     case SP_START_CORE:
       GNUNET_break (0);
@@ -447,95 +418,82 @@ start_fsm (void *cls,
       break;
     case SP_CLEANUP:
       /* confirm copying complete */
-      if (GNUNET_OK != 
-	  GNUNET_OS_process_status (d->pid,
-				    &type,
-				    &code))
-	{
-	  d->wait_runs++;
-	  if (d->wait_runs > MAX_EXEC_WAIT_RUNS)
-	    {
-	      d->dead_cb (d->dead_cb_cls,
-			  _("`ssh' does not seem to terminate.\n"));
-	      GNUNET_free (d->cfgfile);
-	      GNUNET_free_non_null (d->hostname);
-	      GNUNET_free_non_null (d->username);
-	      GNUNET_free (d);
-	      return;
-	    }
-	  /* wait some more */
-	  d->task
-	    = GNUNET_SCHEDULER_add_delayed (d->sched, 
-					    GNUNET_CONSTANTS_EXEC_WAIT,
-					    &start_fsm,
-					    d);
-	  return;
-	}
-      if ( (type != GNUNET_OS_PROCESS_EXITED) ||
-	   (code != 0) )
-	{
-	  if (NULL != d->dead_cb)
-	    d->dead_cb (d->dead_cb_cls,
-			_("`ssh' did not complete cleanly.\n"));	  
-	  GNUNET_free (d->cfgfile);
-	  GNUNET_free_non_null (d->hostname);
-	  GNUNET_free_non_null (d->username);
-	  GNUNET_free (d);
-	  return;
-	}	 
+      if (GNUNET_OK != GNUNET_OS_process_status (d->pid, &type, &code))
+        {
+          d->wait_runs++;
+          if (d->wait_runs > MAX_EXEC_WAIT_RUNS)
+            {
+              d->dead_cb (d->dead_cb_cls,
+                          _("`ssh' does not seem to terminate.\n"));
+              GNUNET_free (d->cfgfile);
+              GNUNET_free_non_null (d->hostname);
+              GNUNET_free_non_null (d->username);
+              GNUNET_free (d);
+              return;
+            }
+          /* wait some more */
+          d->task
+            = GNUNET_SCHEDULER_add_delayed (d->sched,
+                                            GNUNET_CONSTANTS_EXEC_WAIT,
+                                            &start_fsm, d);
+          return;
+        }
+      if ((type != GNUNET_OS_PROCESS_EXITED) || (code != 0))
+        {
+          if (NULL != d->dead_cb)
+            d->dead_cb (d->dead_cb_cls,
+                        _("`ssh' did not complete cleanly.\n"));
+          GNUNET_free (d->cfgfile);
+          GNUNET_free_non_null (d->hostname);
+          GNUNET_free_non_null (d->username);
+          GNUNET_free (d);
+          return;
+        }
 #if DEBUG_TESTING
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Peer shutdown complete.\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer shutdown complete.\n");
 #endif
       GNUNET_free (d->cfgfile);
       GNUNET_free_non_null (d->hostname);
       GNUNET_free_non_null (d->username);
       if (NULL != d->dead_cb)
-	d->dead_cb (d->dead_cb_cls, NULL);
+        d->dead_cb (d->dead_cb_cls, NULL);
       GNUNET_free (d);
       break;
     case SP_CONFIG_UPDATE:
       /* confirm copying complete */
-      if (GNUNET_OK != 
-	  GNUNET_OS_process_status (d->pid,
-				    &type,
-				    &code))
-	{
-	  d->wait_runs++;
-	  if (d->wait_runs > MAX_EXEC_WAIT_RUNS)
-	    {
-	      cb = d->cb;
-	      d->cb = NULL;
-	      if (NULL != cb)
-		cb (d->cb_cls,
-		    NULL,
-		    d->cfg,
-		    d,
-		    _("`scp' does not seem to terminate.\n"));
-	      return;
-	    }
-	  /* wait some more */
-	  d->task
-	    = GNUNET_SCHEDULER_add_delayed (d->sched, 
-					    GNUNET_CONSTANTS_EXEC_WAIT,
-					    &start_fsm,
-					    d);
-	  return;
-	}
-      if ( (type != GNUNET_OS_PROCESS_EXITED) ||
-	   (code != 0) )
-	{
-	  if (NULL != d->update_cb)
-	    d->update_cb (d->update_cb_cls,
-			  _("`scp' did not complete cleanly.\n"));	  
-	  return;
-	}	  
+      if (GNUNET_OK != GNUNET_OS_process_status (d->pid, &type, &code))
+        {
+          d->wait_runs++;
+          if (d->wait_runs > MAX_EXEC_WAIT_RUNS)
+            {
+              cb = d->cb;
+              d->cb = NULL;
+              if (NULL != cb)
+                cb (d->cb_cls,
+                    NULL,
+                    d->cfg, d, _("`scp' does not seem to terminate.\n"));
+              return;
+            }
+          /* wait some more */
+          d->task
+            = GNUNET_SCHEDULER_add_delayed (d->sched,
+                                            GNUNET_CONSTANTS_EXEC_WAIT,
+                                            &start_fsm, d);
+          return;
+        }
+      if ((type != GNUNET_OS_PROCESS_EXITED) || (code != 0))
+        {
+          if (NULL != d->update_cb)
+            d->update_cb (d->update_cb_cls,
+                          _("`scp' did not complete cleanly.\n"));
+          return;
+        }
 #if DEBUG_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Successfully copied configuration file.\n");
+                  "Successfully copied configuration file.\n");
 #endif
-      if  (NULL != d->update_cb)
-	d->update_cb (d->update_cb_cls, NULL);
+      if (NULL != d->update_cb)
+        d->update_cb (d->update_cb_cls, NULL);
       d->phase = SP_START_DONE;
       break;
     }
@@ -558,26 +516,26 @@ start_fsm (void *cls,
  */
 struct GNUNET_TESTING_Daemon *
 GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
-			     const struct GNUNET_CONFIGURATION_Handle *cfg,
-			     const char *hostname,
-			     GNUNET_TESTING_NotifyDaemonRunning cb,
-			     void *cb_cls)
+                             const struct GNUNET_CONFIGURATION_Handle *cfg,
+                             const char *hostname,
+                             GNUNET_TESTING_NotifyDaemonRunning cb,
+                             void *cb_cls)
 {
-  struct GNUNET_TESTING_Daemon * ret;
+  struct GNUNET_TESTING_Daemon *ret;
   char *arg;
   char *username;
 
-  ret = GNUNET_malloc (sizeof(struct GNUNET_TESTING_Daemon));
+  ret = GNUNET_malloc (sizeof (struct GNUNET_TESTING_Daemon));
   ret->sched = sched;
   ret->hostname = (hostname == NULL) ? NULL : GNUNET_strdup (hostname);
   ret->cfgfile = GNUNET_DISK_mktemp ("gnunet-testing-config");
 #if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Setting up peer with configuration file `%s'.\n",
-	      ret->cfgfile);
+              "Setting up peer with configuration file `%s'.\n",
+              ret->cfgfile);
 #endif
   if (NULL == ret->cfgfile)
-    {						
+    {
       GNUNET_free_non_null (ret->hostname);
       GNUNET_free (ret);
       return NULL;
@@ -586,18 +544,14 @@ GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
   ret->cb_cls = cb_cls;
   ret->cfg = GNUNET_CONFIGURATION_dup (cfg);
   GNUNET_CONFIGURATION_set_value_string (ret->cfg,
-					 "PATHS",
-					 "DEFAULTCONFIG",
-					 ret->cfgfile);
+                                         "PATHS",
+                                         "DEFAULTCONFIG", ret->cfgfile);
   /* 1) write configuration to temporary file */
-  if (GNUNET_OK != 
-      GNUNET_CONFIGURATION_write (ret->cfg,
-				  ret->cfgfile))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_write (ret->cfg, ret->cfgfile))
     {
       if (0 != UNLINK (ret->cfgfile))
-	  GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-				    "unlink",
-				    ret->cfgfile);
+        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+                                  "unlink", ret->cfgfile);
       GNUNET_CONFIGURATION_destroy (ret->cfg);
       GNUNET_free_non_null (ret->hostname);
       GNUNET_free (ret->cfgfile);
@@ -606,75 +560,62 @@ GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
     }
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
-					     "TESTING",
-					     "USERNAME",
-					     &username))
+                                             "TESTING",
+                                             "USERNAME", &username))
     {
       if (NULL != getenv ("USER"))
-	username = GNUNET_strdup (getenv("USER"));
+        username = GNUNET_strdup (getenv ("USER"));
       else
-	username = NULL;
+        username = NULL;
     }
   ret->username = username;
 
-  /* 2) copy file to remote host */  
-  if (NULL != hostname) 
+  /* 2) copy file to remote host */
+  if (NULL != hostname)
     {
 #if DEBUG_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Copying configuration file to host `%s'.\n",
-		  hostname);
+                  "Copying configuration file to host `%s'.\n", hostname);
 #endif
       ret->phase = SP_COPYING;
       if (NULL != username)
-	GNUNET_asprintf (&arg,
-			 "%s@%s:%s", 
-			 username,
-			 hostname,
-			 ret->cfgfile);
+        GNUNET_asprintf (&arg, "%s@%s:%s", username, hostname, ret->cfgfile);
       else
-	GNUNET_asprintf (&arg,
-			 "%s:%s", 
-			 hostname,
-			 ret->cfgfile);
+        GNUNET_asprintf (&arg, "%s:%s", hostname, ret->cfgfile);
       ret->pid = GNUNET_OS_start_process ("scp",
-					  "scp",
-					  ret->cfgfile,
-					  arg,
-					  NULL);
+                                          "scp", ret->cfgfile, arg, NULL);
       GNUNET_free (arg);
       if (-1 == ret->pid)
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		      _("Could not start `%s' process to copy configuration file.\n"),
-		      "scp");
-	  if (0 != UNLINK (ret->cfgfile))
-	    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-				      "unlink",
-				      ret->cfgfile);
-	  GNUNET_CONFIGURATION_destroy (ret->cfg);
-	  GNUNET_free_non_null (ret->hostname);
-	  GNUNET_free_non_null (ret->username);
-	  GNUNET_free (ret->cfgfile);
-	  GNUNET_free (ret);
- 	  return NULL;
-	}
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      _
+                      ("Could not start `%s' process to copy configuration file.\n"),
+                      "scp");
+          if (0 != UNLINK (ret->cfgfile))
+            GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+                                      "unlink", ret->cfgfile);
+          GNUNET_CONFIGURATION_destroy (ret->cfg);
+          GNUNET_free_non_null (ret->hostname);
+          GNUNET_free_non_null (ret->username);
+          GNUNET_free (ret->cfgfile);
+          GNUNET_free (ret);
+          return NULL;
+        }
       ret->task
-	= GNUNET_SCHEDULER_add_delayed (sched, 
-					GNUNET_CONSTANTS_EXEC_WAIT,
-					&start_fsm,
-					ret);
+        = GNUNET_SCHEDULER_add_delayed (sched,
+                                        GNUNET_CONSTANTS_EXEC_WAIT,
+                                        &start_fsm, ret);
       return ret;
     }
 #if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "No need to copy configuration file since we are running locally.\n");
+              "No need to copy configuration file since we are running locally.\n");
 #endif
   ret->phase = SP_COPIED;
   GNUNET_SCHEDULER_add_continuation (sched,
-				     &start_fsm,
-				     ret,
-				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+                                     &start_fsm,
+                                     ret,
+                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
   return ret;
 }
 
@@ -686,9 +627,9 @@ GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
  * @param cb function called once the daemon was stopped
  * @param cb_cls closure for cb
  */
-void GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
-				 GNUNET_TESTING_NotifyCompletion cb,
-				 void * cb_cls)
+void
+GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
+                            GNUNET_TESTING_NotifyCompletion cb, void *cb_cls)
 {
   struct GNUNET_CLIENT_Connection *cc;
   char *dst;
@@ -702,8 +643,7 @@ void GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
     }
   if (d->phase == SP_CONFIG_UPDATE)
     {
-      GNUNET_SCHEDULER_cancel (d->sched,
-			       d->task);
+      GNUNET_SCHEDULER_cancel (d->sched, d->task);
       d->phase = SP_START_DONE;
     }
   if (d->server != NULL)
@@ -714,60 +654,49 @@ void GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
   /* shutdown ARM process (will also terminate others) */
 #if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      _("Terminating peer `%4s'\n"),
-	      GNUNET_i2s(&d->id));
+              _("Terminating peer `%4s'\n"), GNUNET_i2s (&d->id));
 #endif
-  cc = GNUNET_CLIENT_connect (d->sched,
-			      "arm",
-			      d->cfg);
+  cc = GNUNET_CLIENT_connect (d->sched, "arm", d->cfg);
   GNUNET_CLIENT_service_shutdown (cc);
-  
+
   /* state clean up and notifications */
   if (0 != UNLINK (d->cfgfile))
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-			      "unlink",
-			      d->cfgfile);
+                              "unlink", d->cfgfile);
   if (d->hostname != NULL)
     {
 #if DEBUG_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Removing configuration file on remote host `%s'.\n",
-		  d->hostname);
+                  "Removing configuration file on remote host `%s'.\n",
+                  d->hostname);
 #endif
       if (NULL != d->username)
-	GNUNET_asprintf (&dst,
-			 "%s@%s",
-			 d->username,
-			 d->hostname);
+        GNUNET_asprintf (&dst, "%s@%s", d->username, d->hostname);
       else
-	dst = GNUNET_strdup (d->hostname);
+        dst = GNUNET_strdup (d->hostname);
       d->pid = GNUNET_OS_start_process ("ssh",
-					"ssh",
-					dst,
-					"rm",
-					d->cfgfile,
-					NULL);
+                                        "ssh", dst, "rm", d->cfgfile, NULL);
       GNUNET_free (dst);
       if (-1 == d->pid)
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		      _("Could not start `%s' process to delete configuration file.\n"),
-		      "ssh");
-	  GNUNET_free (d->cfgfile);
-	  GNUNET_free_non_null (d->hostname);
-	  GNUNET_free_non_null (d->username);
-	  GNUNET_free (d);
-	  cb (cb_cls, _("Error cleaning up configuration file.\n"));
-	  return;
-	}
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      _
+                      ("Could not start `%s' process to delete configuration file.\n"),
+                      "ssh");
+          GNUNET_free (d->cfgfile);
+          GNUNET_free_non_null (d->hostname);
+          GNUNET_free_non_null (d->username);
+          GNUNET_free (d);
+          cb (cb_cls, _("Error cleaning up configuration file.\n"));
+          return;
+        }
       d->phase = SP_CLEANUP;
       d->dead_cb = cb;
       d->dead_cb_cls = cb_cls;
       d->task
-	= GNUNET_SCHEDULER_add_delayed (d->sched, 
-					GNUNET_CONSTANTS_EXEC_WAIT,
-					&start_fsm,
-					d);
+        = GNUNET_SCHEDULER_add_delayed (d->sched,
+                                        GNUNET_CONSTANTS_EXEC_WAIT,
+                                        &start_fsm, d);
       return;
     }
   GNUNET_CONFIGURATION_destroy (d->cfg);
@@ -788,81 +717,68 @@ void GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
  * @param cb function called once the configuration was changed
  * @param cb_cls closure for cb
  */
-void GNUNET_TESTING_daemon_reconfigure (struct GNUNET_TESTING_Daemon *d,
-					struct GNUNET_CONFIGURATION_Handle *cfg,
-					GNUNET_TESTING_NotifyCompletion cb,
-					void * cb_cls)
+void
+GNUNET_TESTING_daemon_reconfigure (struct GNUNET_TESTING_Daemon *d,
+                                   struct GNUNET_CONFIGURATION_Handle *cfg,
+                                   GNUNET_TESTING_NotifyCompletion cb,
+                                   void *cb_cls)
 {
   char *arg;
 
   if (d->phase != SP_START_DONE)
     {
       if (NULL != cb)
-	cb (cb_cls,
-	    _("Peer not yet running, can not change configuration at this point."));
-      return;      
-    }
-
-  /* 1) write configuration to temporary file */
-  if (GNUNET_OK != 
-      GNUNET_CONFIGURATION_write (cfg,
-				  d->cfgfile))
-    {
-      if (NULL != cb)
-	cb (cb_cls,
-	  _("Failed to write new configuration to disk."));
+        cb (cb_cls,
+            _
+            ("Peer not yet running, can not change configuration at this point."));
       return;
     }
 
-  /* 2) copy file to remote host (if necessary) */  
+  /* 1) write configuration to temporary file */
+  if (GNUNET_OK != GNUNET_CONFIGURATION_write (cfg, d->cfgfile))
+    {
+      if (NULL != cb)
+        cb (cb_cls, _("Failed to write new configuration to disk."));
+      return;
+    }
+
+  /* 2) copy file to remote host (if necessary) */
   if (NULL == d->hostname)
     {
       /* signal success */
       if (NULL != cb)
-	cb (cb_cls, NULL); 
+        cb (cb_cls, NULL);
       return;
     }
 #if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Copying updated configuration file to remote host `%s'.\n",
-	      d->hostname);
+              "Copying updated configuration file to remote host `%s'.\n",
+              d->hostname);
 #endif
   d->phase = SP_CONFIG_UPDATE;
   if (NULL != d->username)
-    GNUNET_asprintf (&arg,
-		     "%s@%s:%s", 
-		     d->username,
-		     d->hostname,
-		     d->cfgfile);
+    GNUNET_asprintf (&arg, "%s@%s:%s", d->username, d->hostname, d->cfgfile);
   else
-    GNUNET_asprintf (&arg,
-		     "%s:%s", 
-		     d->hostname,
-		     d->cfgfile);
-  d->pid = GNUNET_OS_start_process ("scp",
-				    "scp",
-				    d->cfgfile,
-				    arg,
-				    NULL);
+    GNUNET_asprintf (&arg, "%s:%s", d->hostname, d->cfgfile);
+  d->pid = GNUNET_OS_start_process ("scp", "scp", d->cfgfile, arg, NULL);
   GNUNET_free (arg);
   if (-1 == d->pid)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Could not start `%s' process to copy configuration file.\n"),
-		  "scp");
+                  _
+                  ("Could not start `%s' process to copy configuration file.\n"),
+                  "scp");
       if (NULL != cb)
-	cb (cb_cls,
-	    _("Failed to copy new configuration to remote machine."));
+        cb (cb_cls, _("Failed to copy new configuration to remote machine."));
       d->phase = SP_START_DONE;
       return;
     }
   d->update_cb = cb;
   d->update_cb_cls = cb_cls;
   d->task
-    = GNUNET_SCHEDULER_add_delayed (d->sched, 
-				    GNUNET_CONSTANTS_EXEC_WAIT,
-				    &start_fsm,
-				    d);
+    = GNUNET_SCHEDULER_add_delayed (d->sched,
+                                    GNUNET_CONSTANTS_EXEC_WAIT,
+                                    &start_fsm, d);
 }
 
 
@@ -895,7 +811,7 @@ struct ConnectContext
   /**
    * Function to call once we are done (or have timed out).
    */
-  GNUNET_TESTING_NotifyCompletion cb;
+  GNUNET_TESTING_NotifyConnection cb;
 
   /**
    * Closure for "nb".
@@ -926,16 +842,19 @@ struct ConnectContext
  */
 static void
 notify_connect_result (void *cls,
-		       const struct GNUNET_SCHEDULER_TaskContext *tc)
+                       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ConnectContext *ctx = cls;
 
   if (ctx->cb != NULL)
     {
       if ((tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT) != 0)
-	ctx->cb (ctx->cb_cls, _("Peers failed to connect"));
+        ctx->cb (ctx->cb_cls, &ctx->d1->id, &ctx->d2->id, ctx->d1->cfg,
+                 ctx->d2->cfg, ctx->d1, ctx->d2,
+                 _("Peers failed to connect"));
       else
-	ctx->cb (ctx->cb_cls, NULL);
+        ctx->cb (ctx->cb_cls, &ctx->d1->id, &ctx->d2->id, ctx->d1->cfg,
+                 ctx->d2->cfg, ctx->d1, ctx->d2, NULL);
     }
   GNUNET_free (ctx);
 }
@@ -964,28 +883,24 @@ transmit_ready (void *cls, size_t size, void *buf)
   GNUNET_TRANSPORT_disconnect (ctx->d2th);
   ctx->d2th = NULL;
   GNUNET_SCHEDULER_add_continuation (ctx->d1->sched,
-				     &notify_connect_result,
-				     ctx,
-				     (buf == NULL) ? 
-				     GNUNET_SCHEDULER_REASON_TIMEOUT :
-				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+                                     &notify_connect_result,
+                                     ctx,
+                                     (buf == NULL) ?
+                                     GNUNET_SCHEDULER_REASON_TIMEOUT :
+                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
   return 0;
 }
 
 
 #if 0
 static void
-timeout_hello_task (void *cls,
-		    const struct GNUNET_SCHEDULER_TaskContext *tc)
+timeout_hello_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_TRANSPORT_get_hello_cancel (ctx->d1th, 
-				     &process_hello, 
-				     ctx);
+  GNUNET_TRANSPORT_get_hello_cancel (ctx->d1th, &process_hello, ctx);
   GNUNET_TRANSPORT_disconnect (ctx->d1th);
   GNUNET_TRANSPORT_disconnect (ctx->d2th);
   if (NULL != ctx->cb)
-    ctx->cb (ctx->cb_cls,
-	     _("Failed to receive `HELLO' from peer\n"));
+    ctx->cb (ctx->cb_cls, _("Failed to receive `HELLO' from peer\n"));
   GNUNET_free (ctx);
 }
 #endif
@@ -999,31 +914,38 @@ timeout_hello_task (void *cls,
  * @param message HELLO message of peer
  */
 static void
-process_hello (void *cls,
-               const struct GNUNET_MessageHeader *message)
+process_hello (void *cls, const struct GNUNET_MessageHeader *message)
 {
   struct ConnectContext *ctx = cls;
 
   /* first of all, stop the notification stuff */
-  GNUNET_TRANSPORT_get_hello_cancel (ctx->d1th, 
-				     &process_hello, 
-				     ctx);
+  GNUNET_TRANSPORT_get_hello_cancel (ctx->d1th, &process_hello, ctx);
 #if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' from transport service of `%4s'\n",
-              "HELLO", GNUNET_i2s (peer));
+              "HELLO", GNUNET_i2s (&ctx->d1->id));
 #endif
   GNUNET_assert (message != NULL);
   GNUNET_TRANSPORT_offer_hello (ctx->d2th, message);
-  ctx->ntr 
+  ctx->ntr
     = GNUNET_CORE_notify_transmit_ready (ctx->d2->server,
-					 0,
-					 GNUNET_TIME_absolute_get_remaining (ctx->timeout),
-					 &ctx->d1->id,
-					 sizeof (struct GNUNET_MessageHeader),
-					 &transmit_ready, ctx);
+                                         0,
+                                         GNUNET_TIME_absolute_get_remaining
+                                         (ctx->timeout), &ctx->d1->id,
+                                         sizeof (struct GNUNET_MessageHeader),
+                                         &transmit_ready, ctx);
 }
 
+/*
+ * Accessor function since we have hidden what GNUNET_TESTING_Daemon is
+ *
+ * FIXME: Either expose members or figure out a better way!
+ */
+char *
+GNUNET_TESTING_daemon_get_shortname (struct GNUNET_TESTING_Daemon *d)
+{
+  return d->shortname;
+}
 
 /**
  * Establish a connection between two GNUnet daemons.
@@ -1035,55 +957,72 @@ process_hello (void *cls,
  * @param cb function to call at the end
  * @param cb_cls closure for cb
  */
-void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
-				     struct GNUNET_TESTING_Daemon *d2,
-				     struct GNUNET_TIME_Relative timeout,
-				     GNUNET_TESTING_NotifyCompletion cb,
-				     void *cb_cls)
+void
+GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
+                                struct GNUNET_TESTING_Daemon *d2,
+                                struct GNUNET_TIME_Relative timeout,
+                                GNUNET_TESTING_NotifyConnection cb,
+                                void *cb_cls)
 {
   struct ConnectContext *ctx;
 
-  if ( (d1->server == NULL) ||
-       (d2->server == NULL) )
+  if ((d1->server == NULL) || (d2->server == NULL))
     {
       if (NULL != cb)
-	cb (cb_cls, _("Peers are not fully running yet, can not connect!\n"));
+        cb (cb_cls, &d1->id, &d2->id, d1->cfg, d2->cfg, d1, d2,
+            _("Peers are not fully running yet, can not connect!\n"));
       return;
     }
-  ctx = GNUNET_malloc (sizeof(struct ConnectContext));
+  ctx = GNUNET_malloc (sizeof (struct ConnectContext));
   ctx->d1 = d1;
   ctx->d2 = d2;
   ctx->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   ctx->cb = cb;
   ctx->cb_cls = cb_cls;
+#if DEBUG_TESTING
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Asked to connect peer %s to peer %s\n",
+              d1->shortname, d2->shortname);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Connecting to transport service of peer %s\n", d1->shortname);
+#endif
   ctx->d1th = GNUNET_TRANSPORT_connect (d1->sched,
-					d1->cfg, 
-					d1,
-					NULL, NULL, NULL);
+                                        d1->cfg, d1, NULL, NULL, NULL);
   if (ctx->d1th == NULL)
     {
       GNUNET_free (ctx);
       if (NULL != cb)
-	cb (cb_cls, _("Failed to connect to transport service!\n"));
+        cb (cb_cls, &d1->id, &d2->id, d1->cfg, d2->cfg, d1, d2,
+            _("Failed to connect to transport service!\n"));
       return;
     }
+#if DEBUG_TESTING
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Asked to connect peer %s to peer %s\n",
+              d1->shortname, d2->shortname);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Connecting to transport service of peer %s\n", d2->shortname);
+
+#endif
   ctx->d2th = GNUNET_TRANSPORT_connect (d2->sched,
-					d2->cfg, 
-					d2, 
-					NULL, NULL, NULL);
+                                        d2->cfg, d2, NULL, NULL, NULL);
   if (ctx->d2th == NULL)
     {
       GNUNET_TRANSPORT_disconnect (ctx->d1th);
       GNUNET_free (ctx);
       if (NULL != cb)
-	cb (cb_cls, _("Failed to connect to transport service!\n"));
+        cb (cb_cls, &d1->id, &d2->id, d1->cfg, d2->cfg, d1, d2,
+            _("Failed to connect to transport service!\n"));
       return;
-    }					       
+    }
+
+#if DEBUG_TESTING
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Asking for hello from peer %s\n", GNUNET_i2s (&d1->id));
+#endif
   /* FIXME: need to handle timeout: start timeout task 
      as well here! (use 'timeout_hello_task') */
-  GNUNET_TRANSPORT_get_hello (ctx->d1th, 
-			      &process_hello, 
-			      ctx);
+  GNUNET_TRANSPORT_get_hello (ctx->d1th, &process_hello, ctx);
 }
 
 

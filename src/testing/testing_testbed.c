@@ -59,13 +59,11 @@ struct GNUNET_TESTING_Testbed
  */
 struct GNUNET_TESTING_Testbed *
 GNUNET_TESTING_testbed_start (struct GNUNET_SCHEDULER_Handle *sched,
-			      const struct GNUNET_CONFIGURATION_Handle *cfg,
-			      unsigned int count,
-			      enum GNUNET_TESTING_Topology topology,
-			      GNUNET_TESTING_NotifyDaemonRunning cb,
-			      void *cb_cls,
-			      const char *hostname,
-			      ...)
+                              const struct GNUNET_CONFIGURATION_Handle *cfg,
+                              unsigned int count,
+                              enum GNUNET_TESTING_Topology topology,
+                              GNUNET_TESTING_NotifyDaemonRunning cb,
+                              void *cb_cls, const char *hostname, ...)
 {
   GNUNET_break (0);
   return NULL;
@@ -81,8 +79,7 @@ GNUNET_TESTING_testbed_start (struct GNUNET_SCHEDULER_Handle *sched,
  */
 void
 GNUNET_TESTING_testbed_stop (struct GNUNET_TESTING_Testbed *tb,
-			     GNUNET_TESTING_NotifyCompletion cb,
-			     void *cb_cls)
+                             GNUNET_TESTING_NotifyCompletion cb, void *cb_cls)
 {
   GNUNET_break (0);
 }
@@ -110,10 +107,10 @@ GNUNET_TESTING_testbed_stop (struct GNUNET_TESTING_Testbed *tb,
  */
 void
 GNUNET_TESTING_testbed_churn (struct GNUNET_TESTING_Testbed *tb,
-			      unsigned int voff,
-			      unsigned int von,
-			      GNUNET_TESTING_NotifyCompletion cb,
-			      void *cb_cls)
+                              unsigned int voff,
+                              unsigned int von,
+                              GNUNET_TESTING_NotifyCompletion cb,
+                              void *cb_cls)
 {
   GNUNET_break (0);
 }

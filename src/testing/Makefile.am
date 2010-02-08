@@ -23,12 +23,14 @@ libgnunettesting_la_LIBADD = $(XLIB) \
 check_PROGRAMS = \
  test_testing \
  test_testing_connect \
- test_testing_group
+ test_testing_group \
+ test_testing_topology_clique
 
 TESTS = \
  test_testing \
  test_testing_connect \
- test_testing_group
+ test_testing_group \
+ test_testing_topology_clique
 #$(check_PROGRAMS)
 
 test_testing_SOURCES = \
@@ -46,6 +48,12 @@ test_testing_connect_LDADD = \
 test_testing_group_SOURCES = \
  test_testing_group.c
 test_testing_group_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
+ 
+test_testing_topology_clique_SOURCES = \
+ test_testing_topology_clique.c
+test_testing_topology_clique_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 

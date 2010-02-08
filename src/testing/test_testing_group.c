@@ -42,11 +42,11 @@ static struct GNUNET_TESTING_PeerGroup *pg;
 static struct GNUNET_SCHEDULER_Handle *sched;
 
 
-static void my_cb(void *cls,
-		   const struct GNUNET_PeerIdentity *id,
-		   const struct GNUNET_CONFIGURATION_Handle *cfg,
-		   struct GNUNET_TESTING_Daemon *d,
-		   const char *emsg)
+static void
+my_cb (void *cls,
+       const struct GNUNET_PeerIdentity *id,
+       const struct GNUNET_CONFIGURATION_Handle *cfg,
+       struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
   GNUNET_assert (id != NULL);
   peers_left--;
@@ -62,19 +62,17 @@ static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   sched = s;
   ok = 1;
 #if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Starting daemons.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemons.\n");
 #endif
-  peers_left = 4;
-  pg = GNUNET_TESTING_daemons_start (sched, cfg, 
-				     peers_left,
-				     &my_cb, NULL, NULL);
+  peers_left = 8;
+  pg = GNUNET_TESTING_daemons_start (sched, cfg,
+                                     peers_left,
+                                     &my_cb, NULL, NULL, NULL, NULL);
   GNUNET_assert (pg != NULL);
 }
 
