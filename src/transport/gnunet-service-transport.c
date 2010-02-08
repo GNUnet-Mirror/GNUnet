@@ -856,11 +856,6 @@ update_quota (struct NeighborList *n)
     return;                     /* not enough time passed for doing quota update */
   allowed = delta.value * n->quota_in;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING |
-              GNUNET_ERROR_TYPE_BULK,
-              _
-              ("Update quota: last received is %llu, allowed is %llu\n"), n->last_received, allowed);
-
   if (n->last_received < allowed)
     {
       remaining = allowed - n->last_received;
@@ -882,10 +877,6 @@ update_quota (struct NeighborList *n)
       n->last_quota_update = GNUNET_TIME_absolute_get ();
       if (n->last_received > allowed)
         {
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING |
-                      GNUNET_ERROR_TYPE_BULK,
-                      _
-                      ("LAST RECEIVED: %llu greater than allowed : %llu\n"), n->last_received, allowed);
           /* more than twice the allowed rate! */
           n->quota_violation_count += 10;
         }
@@ -2768,17 +2759,19 @@ handle_set_quota (void *cls,
   struct TransportPlugin *p;
   struct ReadyList *rl;
 
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' request from client for peer `%4s'\n",
-              "SET_QUOTA", GNUNET_i2s (&qsm->peer));
-#endif
   n = find_neighbor (&qsm->peer);
   if (n == NULL)
     {
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return;
     }
+
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s' request (new quota %u, old quota %u) from client for peer `%4s'\n",
+              "SET_QUOTA", ntohl(qsm->quota_in), n->quota_in, GNUNET_i2s (&qsm->peer));
+#endif
+
   update_quota (n);
   if (n->quota_in < ntohl (qsm->quota_in))
     n->last_quota_update = GNUNET_TIME_absolute_get ();
@@ -2822,7 +2815,7 @@ handle_try_connect (void *cls,
   else
     {
 #if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Client asked to connect to `%4s', but connection already exists\n",
                   "TRY_CONNECT", GNUNET_i2s (&tcm->peer));
 #endif
