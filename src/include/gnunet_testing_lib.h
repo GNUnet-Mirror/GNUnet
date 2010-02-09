@@ -217,6 +217,9 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
 void
 GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg);
 
+int
+GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg);
+
 
 /**
  * Handle to an entire testbed of GNUnet peers.
