@@ -240,6 +240,11 @@ write_result (void *cls, size_t size, void *buf)
 		  _("Could not send status result to client\n"));
       return 0;			/* error, not much we can do */
     }
+#if DEBUG_ARM
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending status response %u to client\n",
+	      (unsigned int) *res);
+#endif
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   msg = buf;
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
@@ -856,6 +861,7 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	  prev = pos;
 	  continue;
 	}
+
       if (statusType == GNUNET_OS_PROCESS_EXITED)
 	{
 	  statstr = _( /* process termination method */ "exit");
