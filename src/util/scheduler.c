@@ -60,10 +60,9 @@ struct Task
   struct GNUNET_NETWORK_FDSet *read_set;
 
   /**
-   * Set of file descriptors this task is waiting
-   * for for writing.  Once ready, this is updated
-   * to reflect the set of file descriptors ready
-   * for operation.
+   * Set of file descriptors this task is waiting for for writing.
+   * Once ready, this is updated to reflect the set of file
+   * descriptors ready for operation.
    */
   struct GNUNET_NETWORK_FDSet *write_set;
 
@@ -334,8 +333,11 @@ is_ready (struct GNUNET_SCHEDULER_Handle *sched,
 static void
 queue_ready_task (struct GNUNET_SCHEDULER_Handle *handle, struct Task *task)
 {
-  task->next = handle->ready[check_priority (task->priority)];
-  handle->ready[check_priority (task->priority)] = task;
+  enum GNUNET_SCHEDULER_Priority p = task->priority;
+  if (0 != (task->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    p = GNUNET_SCHEDULER_PRIORITY_SHUTDOWN;
+  task->next = handle->ready[check_priority (p)];
+  handle->ready[check_priority (p)] = task;
   handle->ready_count++;
 }
 
@@ -472,7 +474,7 @@ run_ready (struct GNUNET_SCHEDULER_Handle *sched)
       GNUNET_assert (pos != NULL);      /* ready_count wrong? */
       sched->ready[p] = pos->next;
       sched->ready_count--;
-      sched->current_priority = p;
+      sched->current_priority = pos->priority;
       GNUNET_assert (pos->priority == p);
       sched->active_task = pos;
       tc.sched = sched;

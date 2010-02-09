@@ -779,7 +779,7 @@ process_incoming (void *cls,
       (client->shutdown_now == GNUNET_YES) ||
       (GNUNET_YES != client->check (client->client_closure)))
     {
-      /* other side closed connection, error connecting, etc. */
+      /* other side closed connection, error connecting, etc. */      
       shutdown_incoming_processing (client);
       return;
     }

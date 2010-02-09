@@ -142,10 +142,20 @@ enum GNUNET_SCHEDULER_Priority
   GNUNET_SCHEDULER_PRIORITY_URGENT = 6,
 
   /**
+   * This is an internal priority level that is only used for tasks
+   * that are being triggered due to shutdown (they have automatically
+   * highest priority).  User code must not use this priority level
+   * directly.  Tasks run with this priority level that internally
+   * schedule other tasks will see their original priority level
+   * be inherited (unless otherwise specified).
+   */
+  GNUNET_SCHEDULER_PRIORITY_SHUTDOWN = 7,
+
+  /**
    * Number of priorities (must be the last priority).
    * This priority must not be used by clients.
    */
-  GNUNET_SCHEDULER_PRIORITY_COUNT = 7
+  GNUNET_SCHEDULER_PRIORITY_COUNT = 8
 };
 
 #include "gnunet_time_lib.h"
