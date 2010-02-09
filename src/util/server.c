@@ -135,17 +135,15 @@ struct GNUNET_SERVER_Handle
   GNUNET_SCHEDULER_TaskIdentifier listen_task;
 
   /**
-   * Do we ignore messages of types that we do not
-   * understand or do we require that a handler
-   * is found (and if not kill the connection)?
+   * Do we ignore messages of types that we do not understand or do we
+   * require that a handler is found (and if not kill the connection)?
    */
   int require_found;
 
   /**
-   * Should all of the clients of this server continue
-   * to process connections as usual even if we get
-   * a shutdown request? (the listen socket always ignores
-   * shutdown).
+   * Should all of the clients of this server continue to process
+   * connections as usual even if we get a shutdown request? (the
+   * listen socket always ignores shutdown).
    */
   int clients_ignore_shutdown;
 
@@ -483,7 +481,6 @@ GNUNET_SERVER_create (struct GNUNET_SCHEDULER_Handle *sched,
   ret->require_found = require_found;
   if (lsocks != NULL)
     {
-
       r = GNUNET_NETWORK_fdset_create ();
       i = 0;
       while (NULL != ret->listen_sockets[i])
@@ -853,7 +850,15 @@ static void
 restart_processing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_SERVER_Client *client = cls;
+  struct GNUNET_SERVER_Handle *server = client->server;
 
+  if ( (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)) &&
+       ( (server == NULL) ||
+	 (GNUNET_NO == server->clients_ignore_shutdown) ) )
+    {
+      shutdown_incoming_processing (client);
+      return;
+    }
   GNUNET_SERVER_client_keep (client);
   process_client_buffer (client);
   if (0 == client->suspended)
