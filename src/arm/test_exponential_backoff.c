@@ -27,7 +27,7 @@
 #include "gnunet_configuration_lib.h"
 #include "gnunet_program_lib.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 #define START_ARM GNUNET_YES
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 #define SERVICE_TEST_TIMEOUT GNUNET_TIME_UNIT_FOREVER_REL
