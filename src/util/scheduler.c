@@ -475,7 +475,6 @@ run_ready (struct GNUNET_SCHEDULER_Handle *sched)
       sched->ready[p] = pos->next;
       sched->ready_count--;
       sched->current_priority = pos->priority;
-      GNUNET_assert (pos->priority == p);
       sched->active_task = pos;
       tc.sched = sched;
       tc.reason = pos->reason;
