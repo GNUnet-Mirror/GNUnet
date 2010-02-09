@@ -66,7 +66,14 @@ end1_cb (void *cls, const char *emsg)
 
 
 static void
-my_connect_complete (void *cls, const char *emsg)
+my_connect_complete (void *cls,
+                     const struct GNUNET_PeerIdentity *first,
+                     const struct GNUNET_PeerIdentity *second,
+                     const struct GNUNET_CONFIGURATION_Handle *first_cfg,
+                     const struct GNUNET_CONFIGURATION_Handle *second_cfg,
+                     struct GNUNET_TESTING_Daemon *first_daemon,
+                     struct GNUNET_TESTING_Daemon *second_daemon,
+                     const char *emsg)
 {
   GNUNET_TESTING_daemon_stop (d1, &end1_cb, NULL);
   d1 = NULL;
