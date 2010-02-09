@@ -60,7 +60,13 @@ clean_up_task (void *cls,
 
 static void 
 notify_connect_complete(void *cls,
-			const char *emsg)
+                        const struct GNUNET_PeerIdentity *first,
+                        const struct GNUNET_PeerIdentity *second,
+                        const struct GNUNET_CONFIGURATION_Handle *first_cfg,
+                        const struct GNUNET_CONFIGURATION_Handle *second_cfg,
+                        struct GNUNET_TESTING_Daemon *first_daemon,
+                        struct GNUNET_TESTING_Daemon *second_daemon,
+                        const char *emsg)
 {
   if (NULL != emsg)
     {
@@ -128,7 +134,7 @@ run (void *cls,
   peers_left = NUM_PEERS;
   pg = GNUNET_TESTING_daemons_start (sched, cfg, 
 				     peers_left,
-				     &my_cb, NULL, NULL);
+				     &my_cb, NULL, NULL, NULL, NULL);
   GNUNET_assert (pg != NULL);
 }
 
