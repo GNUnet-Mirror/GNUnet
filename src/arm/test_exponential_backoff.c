@@ -134,6 +134,8 @@ kill_task (void *cbData,
 	    "Waited for: %llu ms\n\n", 
 	    (unsigned long long) waitedFor.value);
   }
+  else
+    waitedFor.value = 0;
   /* Connect to the doNothing task */
   doNothingConnection = GNUNET_CLIENT_connect (sched, "do-nothing", cfg);
   if (NULL == doNothingConnection)
@@ -152,8 +154,6 @@ kill_task (void *cbData,
   /* Use the created connection to kill the doNothingTask */
   GNUNET_CLIENT_service_shutdown(doNothingConnection);
   trialCount++;
-  if (startedWaitingAt.value == 0)
-    waitedFor.value = 0;	
   startedWaitingAt = GNUNET_TIME_absolute_get();
   GNUNET_SCHEDULER_add_delayed (sched,
 				waitedFor,
