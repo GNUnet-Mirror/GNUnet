@@ -107,7 +107,9 @@ static void
 end_badly ()
 {
   /* do work here */
+#if VERBOSE
   fprintf(stderr, "Ending on an unhappy note.\n");
+#endif
 
   GNUNET_TRANSPORT_disconnect (p1.th);
   GNUNET_TRANSPORT_disconnect (p2.th);

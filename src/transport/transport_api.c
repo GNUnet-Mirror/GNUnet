@@ -146,18 +146,6 @@ struct HelloWaitList
    */
   void *rec_cls;
 
-  /**
-   * When to time out (call rec with NULL).
-   */
-  struct GNUNET_TIME_Absolute timeout;
-
-  /**
-   * Timeout task (used to trigger timeout,
-   * cancel if we get the HELLO in time).
-   */
-  GNUNET_SCHEDULER_TaskIdentifier task;
-
-
 };
 
 
@@ -888,7 +876,7 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
   if (handle->client == NULL)
     {
 #if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Not connected to transport service, dropping offered HELLO\n");
 #endif
       return;
@@ -1478,7 +1466,6 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
   while (NULL != (hwl = handle->hwl_head))
     {
       handle->hwl_head = hwl->next;
-      GNUNET_SCHEDULER_cancel (handle->sched, hwl->task);
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _
                   ("Disconnect while notification for `%s' still registered.\n"),
@@ -1926,6 +1913,11 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
   if (size + sizeof (struct OutboundMessage) >=
       GNUNET_SERVER_MAX_MESSAGE_SIZE)
     {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Message size is %d, max allowed is %d.\n",
+                  size + sizeof (struct OutboundMessage), GNUNET_SERVER_MAX_MESSAGE_SIZE);
+#endif
       GNUNET_break (0);
       return NULL;
     }
