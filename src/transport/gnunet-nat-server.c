@@ -317,7 +317,7 @@ main (int argc, char *const *argv)
 	       strerror (errno));
       return 1;
     }
-  inet_pton (AF_INET, DUMMY_IP, &dummy);
+  if (1 != inet_pton (AF_INET, DUMMY_IP, &dummy)) abort ();
   while (1)
     {
       FD_ZERO (&rs);
