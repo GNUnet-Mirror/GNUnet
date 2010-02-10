@@ -2342,6 +2342,15 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
 #endif
   if (n->public_key == NULL)
     {
+      if (n->pitr != NULL)
+	{
+#if DEBUG_CORE
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Ignoring `%s' message due to lack of public key for peer (still trying to obtain one).\n",
+		      "SET_KEY");
+#endif
+	  return;
+	}
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Lacking public key for peer, trying to obtain one (handle_set_key).\n");
@@ -2349,7 +2358,6 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
       m_cpy = GNUNET_malloc (sizeof (struct SetKeyMessage));
       memcpy (m_cpy, m, sizeof (struct SetKeyMessage));
       /* lookup n's public key, then try again */
-      GNUNET_assert (n->pitr == NULL);
       GNUNET_assert (n->skm == NULL);
       n->skm = m_cpy;
       n->pitr = GNUNET_PEERINFO_iterate (cfg,
