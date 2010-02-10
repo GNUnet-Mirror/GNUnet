@@ -1186,24 +1186,22 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
         server->clients = pos->next;
       else
         prev->next = pos->next;
+      if (client->restart_task != GNUNET_SCHEDULER_NO_TASK)
+	GNUNET_SCHEDULER_cancel (server->sched,
+				 client->restart_task);
       n = server->disconnect_notify_list;
       while (n != NULL)
         {
           n->callback (n->callback_cls, client);
           n = n->next;
         }
-      if (client->restart_task != GNUNET_SCHEDULER_NO_TASK)
-	GNUNET_SCHEDULER_cancel (client->server->sched,
-				 client->restart_task);
     }
   if (rc > 0)
     return;
   if (client->in_process_client_buffer)
     return;
   client->destroy (client->client_closure);
-  GNUNET_free (client);
-
-  
+  GNUNET_free (client);  
 }
 
 
