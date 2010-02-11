@@ -64,6 +64,12 @@ end1_cb (void *cls, const char *emsg)
   d2 = NULL;
 }
 
+static void
+finish_testing(void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  GNUNET_TESTING_daemon_stop (d1, &end1_cb, NULL);
+  d1 = NULL;
+}
 
 static void
 my_connect_complete (void *cls,
@@ -75,8 +81,7 @@ my_connect_complete (void *cls,
                      struct GNUNET_TESTING_Daemon *second_daemon,
                      const char *emsg)
 {
-  GNUNET_TESTING_daemon_stop (d1, &end1_cb, NULL);
-  d1 = NULL;
+  GNUNET_SCHEDULER_add_now (sched, &finish_testing, NULL);
 }
 
 

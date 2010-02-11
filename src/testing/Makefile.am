@@ -60,4 +60,5 @@ test_testing_topology_clique_LDADD = \
 EXTRA_DIST = \
  test_testing_data.conf \
  test_testing_connect_peer1.conf \
- test_testing_connect_peer2.conf 
+ test_testing_connect_peer2.conf \
+ test_testing_data_topology_clique.conf

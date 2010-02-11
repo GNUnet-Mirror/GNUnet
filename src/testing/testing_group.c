@@ -46,6 +46,20 @@
 
 #define CONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 
+struct PeerConnection
+{
+  /*
+   * Linked list
+   */
+  struct PeerConnection *next;
+
+  /*
+   * Pointer to daemon handle
+   */
+  struct GNUNET_TESTING_Daemon *daemon;
+
+};
+
 /**
  * Data we keep per peer.
  */
@@ -63,6 +77,12 @@ struct PeerData
    * Handle for controlling the daemon.
    */
   struct GNUNET_TESTING_Daemon *daemon;
+
+  /*
+   * Linked list of peer connections (simply indexes of PeerGroup)
+   * FIXME: Question, store pointer or integer?  Pointer for now...
+   */
+  struct PeerConnection *connected_peers;
 };
 
 
@@ -202,6 +222,79 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg, uint16_t * port)
   return uc.ret;
 }
 
+/*
+ * Add entries to the peers connected list
+ *
+ * @param pg the peer group we are working with
+ * @param first index of the first peer
+ * @param second index of the second peer
+ *
+ * @return the number of connections added (can be 0 1 or 2)
+ *
+ * FIXME: add both, or only add one?
+ *      - if both are added, then we have to keep track
+ *        when connecting so we don't double connect
+ *      - if only one is added, we need to iterate over
+ *        both lists to find out if connection already exists
+ *      - having both allows the whitelisting/friend file
+ *        creation to be easier
+ *
+ *      -- For now, add both, we have to iterate over each to
+ *         check for duplicates anyways, so we'll take the performance
+ *         hit assuming we don't have __too__ many connections
+ *
+ */
+static int
+add_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first, unsigned int second)
+{
+  int added;
+  struct PeerConnection *first_iter;
+  struct PeerConnection *second_iter;
+  int add_first;
+  int add_second;
+  struct PeerConnection *new_first;
+  struct PeerConnection *new_second;
+
+  first_iter = pg->peers[first].connected_peers;
+  add_first = GNUNET_YES;
+  while (first_iter != NULL)
+    {
+      if (first_iter->daemon == pg->peers[second].daemon)
+        add_first = GNUNET_NO;
+      first_iter = first_iter->next;
+    }
+
+  second_iter = pg->peers[second].connected_peers;
+  add_second = GNUNET_YES;
+  while (second_iter != NULL)
+    {
+      if (second_iter->daemon == pg->peers[first].daemon)
+        add_second = GNUNET_NO;
+      second_iter = second_iter->next;
+    }
+
+  added = 0;
+  if (add_first)
+    {
+      new_first = GNUNET_malloc(sizeof(struct PeerConnection));
+      new_first->daemon = pg->peers[second].daemon;
+      new_first->next = pg->peers[first].connected_peers;
+      pg->peers[first].connected_peers = new_first;
+      added++;
+    }
+
+  if (add_second)
+    {
+      new_second = GNUNET_malloc(sizeof(struct PeerConnection));
+      new_second->daemon = pg->peers[first].daemon;
+      new_second->next = pg->peers[second].connected_peers;
+      pg->peers[second].connected_peers = new_second;
+      added++;
+    }
+
+  return added;
+}
+
 static int
 create_clique (struct GNUNET_TESTING_PeerGroup *pg)
 {
@@ -221,16 +314,121 @@ create_clique (struct GNUNET_TESTING_PeerGroup *pg)
                       "Connecting peer %d to peer %d\n",
                       outer_count, inner_count);
 #endif
-          GNUNET_TESTING_daemons_connect (pg->peers[outer_count].daemon,
+          connect_attempts += add_connections(pg, outer_count, inner_count);
+          /*GNUNET_TESTING_daemons_connect (pg->peers[outer_count].daemon,
                                           pg->peers[inner_count].daemon,
                                           CONNECT_TIMEOUT,
                                           pg->notify_connection,
-                                          pg->notify_connection_cls);
-          connect_attempts++;
+                                          pg->notify_connection_cls);*/
         }
     }
 
   return connect_attempts;
+}
+
+
+/*
+ * Create the friend files based on the PeerConnection's
+ * of each peer in the peer group, and copy the files
+ * to the appropriate place
+ *
+ * @param pg the peer group we are dealing with
+ */
+static void
+create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
+{
+  FILE *temp_friend_handle;
+  unsigned int pg_iter;
+  struct PeerConnection *connection_iter;
+  struct GNUNET_CRYPTO_HashAsciiEncoded peer_enc;
+  char *temp_service_path;
+  pid_t pid;
+  char *arg;
+  struct GNUNET_PeerIdentity *temppeer;
+  const char * mytemp;
+
+  for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
+    {
+      mytemp = GNUNET_DISK_mktemp("friends");
+      temp_friend_handle = fopen (mytemp, "wt");
+      connection_iter = pg->peers[pg_iter].connected_peers;
+      while (connection_iter != NULL)
+        {
+          temppeer = &connection_iter->daemon->id;
+          GNUNET_CRYPTO_hash_to_enc(&temppeer->hashPubKey, &peer_enc);
+          fprintf(temp_friend_handle, "%s\n", (char *)&peer_enc);
+          connection_iter = connection_iter->next;
+        }
+
+      fclose(temp_friend_handle);
+
+      GNUNET_CONFIGURATION_get_value_string(pg->peers[pg_iter].daemon->cfg, "PATHS", "SERVICEHOME", &temp_service_path);
+
+      if (temp_service_path == NULL)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                    _("No SERVICEHOME specified in peer configuration, can't copy friends file!\n"));
+          fclose(temp_friend_handle);
+          unlink(mytemp);
+          break;
+        }
+
+      if (pg->peers[pg_iter].daemon->hostname == NULL) /* Local, just copy the file */
+        {
+          GNUNET_asprintf (&arg, "%s/friends", temp_service_path);
+          pid = GNUNET_OS_start_process ("mv",
+                                         "mv", mytemp, arg, NULL);
+#if VERBOSE_TESTING
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      _("Copying file with command cp %s %s\n"), mytemp, arg);
+#endif
+          GNUNET_free(arg);
+        }
+      else /* Remote, scp the file to the correct place */
+        {
+          if (NULL != pg->peers[pg_iter].daemon->username)
+            GNUNET_asprintf (&arg, "%s@%s:%s/friends", pg->peers[pg_iter].daemon->username, pg->peers[pg_iter].daemon->hostname, temp_service_path);
+          else
+            GNUNET_asprintf (&arg, "%s:%s/friends", pg->peers[pg_iter].daemon->hostname, temp_service_path);
+          pid = GNUNET_OS_start_process ("scp",
+                                         "scp", mytemp, arg, NULL);
+#if VERBOSE_TESTING
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      _("Copying file with command scp %s %s\n"), mytemp, arg);
+#endif
+          GNUNET_free(arg);
+        }
+
+    }
+}
+
+
+
+/*
+ * Connect the topology as specified by the PeerConnection's
+ * of each peer in the peer group
+ *
+ * @param pg the peer group we are dealing with
+ */
+static void
+connect_topology (struct GNUNET_TESTING_PeerGroup *pg)
+{
+  unsigned int pg_iter;
+  struct PeerConnection *connection_iter;
+
+  for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
+    {
+      connection_iter = pg->peers[pg_iter].connected_peers;
+      while (connection_iter != NULL)
+        {
+          GNUNET_TESTING_daemons_connect (pg->peers[pg_iter].daemon,
+                                          connection_iter->daemon,
+                                          CONNECT_TIMEOUT,
+                                          pg->notify_connection,
+                                          pg->notify_connection_cls);
+          connection_iter = connection_iter->next;
+        }
+    }
 }
 
 
@@ -247,7 +445,6 @@ create_clique (struct GNUNET_TESTING_PeerGroup *pg)
 int
 GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg)
 {
-  /* Put stuff at home in here... */
   unsigned long long topology_num;
   int ret;
 
@@ -330,6 +527,11 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg)
           ret = GNUNET_SYSERR;
           break;
         }
+
+      if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (pg->cfg, "TESTING", "F2F"))
+        create_and_copy_friend_files(pg);
+
+      connect_topology(pg);
     }
   else
     {
@@ -374,6 +576,7 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
   const char *hostname;
   char *baseservicehome;
   char *newservicehome;
+  char *tmpdir;
   struct GNUNET_CONFIGURATION_Handle *pcfg;
   unsigned int off;
   unsigned int hostcnt;
@@ -475,7 +678,9 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
         }
       else
         {
-          tempsize = snprintf (NULL, 0, "%s/%d/", "/tmp/gnunet-testing-test-test", off) + 1;    /* FIXME: set a default path, or read the TMPDIR variable or something */
+          tmpdir = getenv ("TMPDIR");
+          tmpdir = tmpdir ? tmpdir : "/tmp";
+          tempsize = snprintf (NULL, 0, "%s/%s/%d/", tmpdir, "gnunet-testing-test-test", off) + 1;
           newservicehome = GNUNET_malloc (tempsize);
           snprintf (newservicehome, tempsize, "%s/%d/",
                     "/tmp/gnunet-testing-test-test", off);
@@ -496,6 +701,18 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
   return pg;
 }
 
+/*
+ * Get a daemon by number, so callers don't have to do nasty
+ * offsetting operation.
+ */
+struct GNUNET_TESTING_Daemon *
+GNUNET_TESTING_daemon_get (struct GNUNET_TESTING_PeerGroup *pg, unsigned int position)
+{
+  if (position < pg->total)
+    return pg->peers[position].daemon;
+  else
+    return NULL;
+}
 
 /**
  * Shutdown all peers started in the given group.
@@ -513,6 +730,7 @@ GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg)
          continuations to be called here? This
          would require us to take a continuation
          as well... */
+
       if (NULL != pg->peers[off].daemon)
         GNUNET_TESTING_daemon_stop (pg->peers[off].daemon, NULL, NULL);
       if (NULL != pg->peers[off].cfg)
