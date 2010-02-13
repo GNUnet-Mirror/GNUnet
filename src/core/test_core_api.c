@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -34,10 +34,9 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_transport_service.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define START_ARM GNUNET_YES
-
 
 /**
  * How long until we give up on transmitting the message?
@@ -53,6 +52,7 @@ struct PeerContext
   struct GNUNET_PeerIdentity id;   
   struct GNUNET_TRANSPORT_Handle *th;
   struct GNUNET_MessageHeader *hello;
+  int connect_status;
 #if START_ARM
   pid_t arm_pid;
 #endif
@@ -114,7 +114,9 @@ connect_notify (void *cls,
 		struct GNUNET_TIME_Relative latency,
 		uint32_t distance)
 {
-  GNUNET_assert ((ok == 5) || (ok == 6));
+  struct PeerContext *pc = cls;
+  GNUNET_assert (pc->connect_status == 0);
+  pc->connect_status = 1;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Encrypted connection established to peer `%4s'\n",
               GNUNET_i2s (peer));
@@ -125,6 +127,9 @@ static void
 disconnect_notify (void *cls,
                    const struct GNUNET_PeerIdentity *peer)
 {
+  struct PeerContext *pc = cls;
+  GNUNET_assert (pc->connect_status == 1);
+  pc->connect_status = 0;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Encrypted connection to `%4s' cut\n", GNUNET_i2s (peer));
 }
