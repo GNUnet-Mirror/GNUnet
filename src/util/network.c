@@ -38,7 +38,11 @@
 
 struct GNUNET_NETWORK_Handle
 {
+#ifndef MINGW
   int fd;
+#else
+  SOCKET fd;
+#endif
 };
 
 
@@ -57,7 +61,7 @@ struct GNUNET_NETWORK_FDSet
 
 #ifdef WINDOWS
   /**
-   * Linked list of handles 
+   * Linked list of handles
    */
   struct GNUNET_CONTAINER_SList *handles;
 #endif
@@ -368,12 +372,16 @@ GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle
   int pending;
 
   /* How much is there to be read? */
+#ifndef WINDOWS
   error = ioctl (desc->fd, FIONREAD, &pending);
-
   if (error == 0)
+#else
+  error = ioctlsocket (desc->fd, FIONREAD, &pending);
+  if (error != SOCKET_ERROR)
+#endif
     return pending;
   else
-    return error;
+    return GNUNET_NO;
 }
 
 /**
