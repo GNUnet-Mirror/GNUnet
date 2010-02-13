@@ -176,10 +176,13 @@ GNUNET_HELLO_create (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
 
   max = sizeof (buffer);
   used = 0;
-  while (0 != (ret = addrgen (addrgen_cls, max, &buffer[used])))
+  if (addrgen != NULL)
     {
-      max -= ret;
-      used += ret;
+      while (0 != (ret = addrgen (addrgen_cls, max, &buffer[used])))
+	{
+	  max -= ret;
+	  used += ret;
+	}
     }
   hello = GNUNET_malloc (sizeof (struct GNUNET_HELLO_Message) + used);
   hello->header.type = htons (GNUNET_MESSAGE_TYPE_HELLO);
