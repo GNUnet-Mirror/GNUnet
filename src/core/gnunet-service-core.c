@@ -1588,14 +1588,10 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
       return;
     case PEER_STATE_KEY_SENT:
       if (n->retry_set_key_task == GNUNET_SCHEDULER_NO_TASK)
-        {
-          n->retry_set_key_task
-                = GNUNET_SCHEDULER_add_delayed (sched,
-                                                n->set_key_retry_frequency,
-                                                &set_key_retry_task, n);
-        }
-      GNUNET_assert (n->retry_set_key_task !=
-                     GNUNET_SCHEDULER_NO_TASK);
+	n->retry_set_key_task
+	  = GNUNET_SCHEDULER_add_delayed (sched,
+					  n->set_key_retry_frequency,
+					  &set_key_retry_task, n);    
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Not yet connected to `%4s', deferring processing of plaintext messages.\n",
@@ -1603,15 +1599,11 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
 #endif
       return;
     case PEER_STATE_KEY_RECEIVED:
-      if (n->retry_set_key_task == GNUNET_SCHEDULER_NO_TASK)
-        {
-          n->retry_set_key_task
-                = GNUNET_SCHEDULER_add_delayed (sched,
-                                                n->set_key_retry_frequency,
-                                                &set_key_retry_task, n);
-        }
-      GNUNET_assert (n->retry_set_key_task !=
-                     GNUNET_SCHEDULER_NO_TASK);
+      if (n->retry_set_key_task == GNUNET_SCHEDULER_NO_TASK)        
+	n->retry_set_key_task
+	  = GNUNET_SCHEDULER_add_delayed (sched,
+					  n->set_key_retry_frequency,
+					  &set_key_retry_task, n);        
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Not yet connected to `%4s', deferring processing of plaintext messages.\n",
@@ -1999,12 +1991,17 @@ process_hello_retry_send_key (void *cls,
 #endif
       n->pitr = NULL;
       if (n->public_key != NULL)
-        send_key (n);
+	{
+	  send_key (n);
+	}
       else
-        n->retry_set_key_task
-          = GNUNET_SCHEDULER_add_delayed (sched,
-                                          n->set_key_retry_frequency,
-                                          &set_key_retry_task, n);
+	{
+	  if (GNUNET_SCHEDULER_NO_TASK == n->retry_set_key_task)
+	    n->retry_set_key_task
+	      = GNUNET_SCHEDULER_add_delayed (sched,
+					      n->set_key_retry_frequency,
+					      &set_key_retry_task, n);
+	}
       return;
     }
 
@@ -2177,14 +2174,12 @@ send_key (struct Neighbour *n)
 #endif
   /* trigger queue processing */
   process_encrypted_neighbour_queue (n);
-  if (n->status != PEER_STATE_KEY_CONFIRMED)
-    {
-      GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == n->retry_set_key_task);
-      n->retry_set_key_task
-	= GNUNET_SCHEDULER_add_delayed (sched,
-					n->set_key_retry_frequency,
-					&set_key_retry_task, n);
-    }
+  if ( (n->status != PEER_STATE_KEY_CONFIRMED) &&
+       (GNUNET_SCHEDULER_NO_TASK == n->retry_set_key_task) )
+    n->retry_set_key_task
+      = GNUNET_SCHEDULER_add_delayed (sched,
+				      n->set_key_retry_frequency,
+				      &set_key_retry_task, n);    
 }
 
 
