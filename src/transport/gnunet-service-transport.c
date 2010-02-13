@@ -79,7 +79,10 @@
  */
 #define TRANSPORT_DEFAULT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
-#define TRANSPORT_DEFAULT_PRIORITY 4 /* Tired of remembering arbitrary priority names */
+/**
+ * FIXME: document!
+ */
+#define TRANSPORT_DEFAULT_PRIORITY 4
 
 /**
  * How often do we re-add (cheaper) plugins to our list of plugins
@@ -143,14 +146,6 @@ struct PeerAddressList
   char *addr;
 
   /**
-   * Is this plugin ready to transmit to the specific target?
-   * GNUNET_NO if not.  Initially, all plugins are marked ready.  If a
-   * transmission is in progress, "transmit_ready" is set to
-   * GNUNET_NO.
-   */
-  int transmit_ready;
-
-  /**
    * What was the last latency observed for this plugin
    * and peer?  Invalid if connected is GNUNET_NO.
    */
@@ -178,6 +173,14 @@ struct PeerAddressList
    * and remove it from the eligible list.
    */
   int connected;
+
+  /**
+   * Is this plugin ready to transmit to the specific target?
+   * GNUNET_NO if not.  Initially, all plugins are marked ready.  If a
+   * transmission is in progress, "transmit_ready" is set to
+   * GNUNET_NO.
+   */
+  int transmit_ready;
 
   /**
    * How often have we tried to connect using this plugin?
@@ -269,6 +272,7 @@ struct TransportPlugin
    * to the list and wait for the commit call.
    */
   int rebuild;
+
 };
 
 struct NeighborList;
@@ -291,7 +295,7 @@ struct MessageQueue
    */
   char *message_buf;
 
-  /*
+  /**
    * Size of the message buf
    */
   size_t message_buf_size;
@@ -302,6 +306,11 @@ struct MessageQueue
    * pending for the same target.  Can be NULL.
    */
   struct TransportClient *client;
+
+  /**
+   * Using which specific address should we send this message?
+   */
+  struct PeerAddressList *specific_peer;
 
   /**
    * Neighbor this entry belongs to.
@@ -333,11 +342,6 @@ struct MessageQueue
    */
   unsigned int priority;
 
-  /*
-   * Using which specific address should we send this message?
-   */
-  struct PeerAddressList *specific_peer;
-
 };
 
 
@@ -363,7 +367,7 @@ struct ReadyList
    */
   struct NeighborList *neighbor;
 
-  /*
+  /**
    * Transport addresses, latency, and readiness for
    * this particular plugin.
    */
@@ -377,7 +381,7 @@ struct ReadyList
    */
   int plugin_transmit_ready;
 
-  /*
+  /**
    * Are any of our PeerAddressList addresses still connected?
    */
   int connected; /* FIXME: dynamically check PeerAddressList addresses when asked to! */
@@ -437,6 +441,16 @@ struct NeighborList
   struct GNUNET_TIME_Absolute retry_plugins_time;
 
   /**
+   * The latency we have seen for this particular address for
+   * this particular peer.  This latency may have been calculated
+   * over multiple transports.  This value reflects how long it took
+   * us to receive a response when SENDING via this particular
+   * transport/neighbor/address combination!
+   * FIXME: why is this NBO?
+   */
+  struct GNUNET_TIME_RelativeNBO latency;
+
+  /**
    * How many bytes have we received since the "last_quota_update"
    * timestamp?
    */
@@ -461,14 +475,6 @@ struct NeighborList
    * the neighbor connected to us).
    */
   int received_pong;
-
-  /* The latency we have seen for this particular address for
-   * this particular peer.  This latency may have been calculated
-   * over multiple transports.  This value reflects how long it took
-   * us to receive a response when SENDING via this particular
-   * transport/neighbor/address combination!
-   */
-  struct GNUNET_TIME_RelativeNBO latency;
 
 };
 
@@ -544,7 +550,7 @@ struct TransportPongMessage
    */
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded signer;
 
-  /*
+  /**
    * Size of address appended to this message
    */
   size_t addrlen;
@@ -620,7 +626,7 @@ struct ValidationAddress
    */
   struct ValidationAddress *next;
 
-  /*
+  /**
    * What peer_address does this validation belong to?
    */
   struct PeerAddressList *peer_address;
@@ -635,7 +641,7 @@ struct ValidationAddress
    */
   struct GNUNET_TIME_Absolute expiration;
 
-  /*
+  /**
    * At what time did we send this validation?
    */
   struct GNUNET_TIME_Absolute send_time;
@@ -1218,7 +1224,7 @@ try_transmission_to_peer (struct NeighborList *neighbor)
     mq->specific_peer->transmit_ready = GNUNET_NO;
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Giving message of size `%u' for `%4s' to plugin `%s'\n",
+              "Giving message of size %u for `%4s' to plugin `%s'\n",
               mq->message_buf_size,
               GNUNET_i2s (&neighbor->id), rl->plugin->short_name);
 #endif
@@ -1951,11 +1957,11 @@ run_validation (void *cls,
   struct GNUNET_PeerIdentity id;
   struct NeighborList *neighbor;
   struct PeerAddressList *peer_address;
-  int sent;
+  ssize_t sent;
   struct TransportPingMessage *ping;
   char * message_buf;
-  int hello_size;
-  int tsize;
+  uint16_t hello_size;
+  size_t tsize;
 
   tp = find_transport (tname);
   if (tp == NULL)
@@ -2012,20 +2018,32 @@ run_validation (void *cls,
   memcpy(&ping->target, &id, sizeof(struct GNUNET_PeerIdentity));
 
 #if DEBUG_TRANSPORT
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "hello size is %d, ping size is %d, total size is %d\n", hello_size, sizeof(struct TransportPingMessage), tsize);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
+	     "`%s' message size is %u, ping size is %u, total size is %u\n", 
+	     "HELLO",
+	     hello_size, 
+	     sizeof(struct TransportPingMessage), 
+	     tsize);
 #endif
   memcpy(message_buf, our_hello, hello_size);
-  memcpy(&message_buf[hello_size], ping, sizeof(struct TransportPingMessage));
+  memcpy(&message_buf[hello_size], 
+	 ping, 
+	 sizeof(struct TransportPingMessage));
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending ping message of size %d to address `%s' via `%s' for `%4s'\n",
-                tsize, GNUNET_a2s (addr, addrlen), tname, GNUNET_i2s (&id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending `%s' message of size %u to address `%s' via `%s' for `%4s'\n",
+	      "PING",
+	      tsize, GNUNET_a2s (addr, addrlen), 
+	      tname, GNUNET_i2s (&id));
 #endif
-  sent = transmit_to_peer(NULL, peer_address, GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                   message_buf, tsize, GNUNET_NO, neighbor);
+  sent = transmit_to_peer(NULL, peer_address, 
+			  GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+			  message_buf, tsize, GNUNET_NO, neighbor);
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transport returned %d from send!\n", sent);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Transport returned %d from send!\n", sent);
 #endif
 
   GNUNET_free(ping);
@@ -2033,35 +2051,6 @@ run_validation (void *cls,
   return GNUNET_OK;
 }
 
-#if WHY
-/*
- * @param cls handle to the plugin (for sending)
- * @param target the peer identity of the peer we are sending to
- * @param challenge the challenge number
- * @param timeout how long to await validation?
- * @param addr the address to validate
- * @param addrlen the length of the address
- *
- * Perform address validation, which means sending a PING PONG to
- * the address via the transport plugin.  If not validated, then
- * do not count this as a good peer/address...
- *
- * Currently this function is not used, ping/pongs get sent from the
- * run_validation function.  Haven't decided yet how to do this.
- */
-static void
-validate_address (void *cls, struct ValidationAddress *va,
-                  const struct GNUNET_PeerIdentity *target,
-                  struct GNUNET_TIME_Relative timeout,
-                  const void *addr, size_t addrlen)
-{
-  /* struct Plugin *plugin = cls;
-  int challenge = va->challenge; */
-
-
-  return;
-}
-#endif
 
 /**
  * Check if addresses in validated hello "h" overlap with
@@ -2479,7 +2468,7 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     }
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-              "Processing message of type `%u' received by plugin...\n",
+              "Processing message of type %u received by plugin...\n",
               ntohs (message->type));
 #endif
   if (service_context != NULL)
