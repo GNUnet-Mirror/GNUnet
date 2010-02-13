@@ -1994,8 +1994,8 @@ process_hello_retry_send_key (void *cls,
   if (peer == NULL)
     {
 #if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Entered process_hello_retry_send_key Peer is null!\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Entered `process_hello_retry_send_key' and `peer' is NULL!\n");
 #endif
       n->pitr = NULL;
       if (n->public_key != NULL)
