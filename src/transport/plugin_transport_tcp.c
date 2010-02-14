@@ -572,7 +572,7 @@ disconnect_session (struct Session *session)
 static ssize_t
 tcp_plugin_send (void *cls,
                  const struct GNUNET_PeerIdentity *target,
-                 char *msg,
+                 const char *msg,
                  size_t msgbuf_size,
                  uint32_t priority,
                  struct GNUNET_TIME_Relative timeout,
@@ -722,23 +722,30 @@ tcp_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
                    "Asked to cancel session with `%4s'\n",
                    GNUNET_i2s (target));
 #endif
-  while (NULL != (session = find_session_by_target (plugin, target)))
+  session = plugin->sessions;
+  while (NULL != session)
     {
-      pm = session->pending_messages;
-      while (pm != NULL)
+      if (0 == memcmp (target,
+		       &session->target,
+		       sizeof (struct GNUNET_PeerIdentity)))
 	{
-	  pm->transmit_cont = NULL;
-	  pm->transmit_cont_cls = NULL;
-	  pm = pm->next;
+	  pm = session->pending_messages;
+	  while (pm != NULL)
+	    {
+	      pm->transmit_cont = NULL;
+	      pm->transmit_cont_cls = NULL;
+	      pm = pm->next;
+	    }
+	  if (session->client != NULL)
+	    {
+	      GNUNET_SERVER_client_drop (session->client);
+	      session->client = NULL;
+	    }
+	  /* rest of the clean-up of the session will be done as part of
+	     disconnect_notify which should be triggered any time now
+	     (or which may be triggering this call in the first place) */
 	}
-      if (session->client != NULL)
-	{
-	  GNUNET_SERVER_client_drop (session->client);
-	  session->client = NULL;
-	}
-      /* rest of the clean-up of the session will be done as part of
-	 disconnect_notify which should be triggered any time now
-	 (or which may be triggering this call in the first place) */
+      session = session->next;
     }
 }
 
