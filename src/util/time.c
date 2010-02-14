@@ -153,6 +153,23 @@ GNUNET_TIME_absolute_min (struct
   return (t1.value < t2.value) ? t1 : t2;
 }
 
+
+/**
+ * Return the maximum of two relative time values.
+ *
+ * @param t1 first timestamp
+ * @param t2 other timestamp
+ * @return timestamp that is smaller
+ */
+struct GNUNET_TIME_Absolute
+GNUNET_TIME_absolute_max (struct
+                          GNUNET_TIME_Absolute
+                          t1, struct GNUNET_TIME_Absolute t2)
+{
+  return (t1.value > t2.value) ? t1 : t2;
+}
+
+
 /**
  * Given a timestamp in the future, how much time
  * remains until then?
