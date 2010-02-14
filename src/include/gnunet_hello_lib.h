@@ -120,6 +120,7 @@ struct GNUNET_HELLO_Message *GNUNET_HELLO_merge (const struct
                                                  GNUNET_HELLO_Message *h2);
 
 
+
 /**
  * Iterator callback to go over all addresses.
  *
