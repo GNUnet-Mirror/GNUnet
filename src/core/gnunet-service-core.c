@@ -2007,7 +2007,7 @@ process_hello_retry_send_key (void *cls,
 
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "process_hello_retry_send_key for peer %s\n",
+              "Entered `process_hello_retry_send_key' for peer `%4s'\n",
               GNUNET_i2s (peer));
 #endif
   if (n->public_key != NULL)
@@ -2531,7 +2531,7 @@ handle_pong (struct Neighbour *n, const struct PingMessage *m)
       n->status = PEER_STATE_KEY_CONFIRMED;
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Confirmed key via %s for peer %s\n",
+                  "Confirmed key via `%s' message for peer `%4s'\n",
                   "PONG", GNUNET_i2s (&n->peer));
 #endif
       if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)

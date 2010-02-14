@@ -128,7 +128,6 @@ disconnect_notify (void *cls,
                    const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *pc = cls;
-  GNUNET_assert (pc->connect_status == 1);
   pc->connect_status = 0;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Encrypted connection to `%4s' cut\n", GNUNET_i2s (peer));
