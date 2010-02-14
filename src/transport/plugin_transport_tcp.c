@@ -416,7 +416,8 @@ do_transmit (void *cls, size_t size, void *buf)
                            &session->target, GNUNET_OK);
       GNUNET_free (pm);
     }
-  process_pending_messages (session);
+  if (session->client != NULL)
+    process_pending_messages (session);
 #if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "tcp", "Transmitting %u bytes\n", ret);
@@ -1112,22 +1113,18 @@ handle_tcp_data (void *cls,
   session = find_session_by_client (plugin, client);
 
   if (GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME == ntohs(message->type))
-  {
-#if DEBUG_TCP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "tcp", "Received a welcome, NOT sending to clients!\n");
-#endif
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
-    return; /* We don't want to propagate WELCOME messages up! */
-  }
-  else
     {
+#if DEBUG_TCP
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		       "tcp", "Received a welcome, NOT sending to clients!\n");
+#endif
+      GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      return; /* We don't want to propagate WELCOME messages up! */
+    }    
 #if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "tcp", "Received DATA message, checking session!\n");
 #endif
-    }
-
   if ( (NULL == session) || (GNUNET_NO != session->expecting_welcome))
     {
       GNUNET_break_op (0);

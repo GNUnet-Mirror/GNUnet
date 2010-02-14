@@ -206,7 +206,7 @@ udp_transport_server_stop (void *cls)
 static ssize_t
 udp_plugin_send (void *cls,
                  const struct GNUNET_PeerIdentity *target,
-                 char *msgbuf,
+                 const char *msgbuf,
                  size_t msgbuf_size,
                  unsigned int priority,
                  struct GNUNET_TIME_Relative timeout,

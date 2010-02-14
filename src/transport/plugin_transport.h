@@ -197,7 +197,7 @@ typedef ssize_t
   (*GNUNET_TRANSPORT_TransmitFunction) (void *cls,
                                         const struct GNUNET_PeerIdentity *
                                         target,
-                                        char *msgbuf,
+                                        const char *msgbuf,
                                         size_t msgbuf_size,
                                         uint32_t priority,
                                         struct GNUNET_TIME_Relative timeout,

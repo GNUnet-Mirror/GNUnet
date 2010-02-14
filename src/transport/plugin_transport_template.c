@@ -148,7 +148,7 @@ static ssize_t
 template_plugin_send (void *cls,
                       const struct GNUNET_PeerIdentity *
                       target,
-                      char *msgbuf,
+                      const char *msgbuf,
                       size_t msgbuf_size,
                       unsigned int priority,
                       struct GNUNET_TIME_Relative timeout,

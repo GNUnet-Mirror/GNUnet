@@ -103,6 +103,7 @@ stop_arm (struct PeerContext *p)
   GNUNET_CONFIGURATION_destroy (p->cfg);
 }
 
+
 static void
 end_badly ()
 {
