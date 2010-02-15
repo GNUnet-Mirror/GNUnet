@@ -38,7 +38,7 @@
 #include "plugin_transport.h"
 #include "transport.h"
 
-#define DEBUG_TCP GNUNET_NO
+#define DEBUG_TCP GNUNET_YES
 
 /**
  * How long until we give up on transmitting the welcome message?
@@ -90,10 +90,10 @@ struct PendingMessage
   /**
    * The pending message
    */
-  char *msg;
+  const char *msg;
 
-  /*
-   * So that the gnunet_transport_service can group messages together,
+  /**
+   * So that the gnunet-service-transport can group messages together,
    * these pending messages need to accept a message buffer and size
    * instead of just a GNUNET_MessageHeader.
    */
@@ -302,15 +302,15 @@ static struct PendingMessage *
 create_welcome (struct Plugin *plugin)
 {
   struct PendingMessage *pm;
-  struct WelcomeMessage *welcome;
+  struct WelcomeMessage welcome;
 
-  pm = GNUNET_malloc (sizeof (struct PendingMessage));
-  pm->msg = GNUNET_malloc(sizeof(struct WelcomeMessage));
-  welcome = (struct WelcomeMessage *)pm->msg;
+  pm = GNUNET_malloc (sizeof (struct PendingMessage) + sizeof (struct WelcomeMessage));
+  pm->msg = (const char*) &pm[1];
   pm->message_size = sizeof (struct WelcomeMessage);
-  welcome->header.size = htons (sizeof (struct WelcomeMessage));
-  welcome->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME);
-  welcome->clientIdentity = *plugin->env->my_identity;
+  welcome.header.size = htons (sizeof (struct WelcomeMessage));
+  welcome.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME);
+  welcome.clientIdentity = *plugin->env->my_identity;
+  memcpy (&pm[1], &welcome, sizeof (welcome));
   pm->timeout = GNUNET_TIME_relative_to_absolute (WELCOME_TIMEOUT);
   return pm;
 }
@@ -507,7 +507,6 @@ disconnect_session (struct Session *session)
       if (NULL != pm->transmit_cont)
         pm->transmit_cont (pm->transmit_cont_cls,
                            &session->target, GNUNET_SYSERR);
-      GNUNET_free(pm->msg);
       GNUNET_free (pm);
     }
   if (GNUNET_NO == session->expecting_welcome)
@@ -660,9 +659,9 @@ tcp_plugin_send (void *cls,
                        msgbuf_size);
 #endif
   /* create new message entry */
-  pm = GNUNET_malloc (sizeof (struct PendingMessage));
-  pm->msg = GNUNET_malloc(msgbuf_size);
-  memcpy (pm->msg, msg, msgbuf_size);
+  pm = GNUNET_malloc (sizeof (struct PendingMessage) + msgbuf_size);
+  pm->msg = (const char*) &pm[1];
+  memcpy (&pm[1], msg, msgbuf_size);
   pm->message_size = msgbuf_size;
   pm->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   pm->transmit_cont = cont;
