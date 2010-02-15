@@ -39,7 +39,7 @@
 #include "plugin_transport.h"
 #include "transport.h"
 
-#define DEBUG_TCP GNUNET_YES
+#define DEBUG_TCP GNUNET_NO
 
 /**
  * How long until we give up on transmitting the welcome message?
@@ -522,7 +522,7 @@ disconnect_session (struct Session *session)
 #if DEBUG_TCP
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                        "tcp",
-                       "Notifying transport service about loss of data connection with `%4s'.\n",
+                       "Notifying transport service about loss of connection with `%4s'.\n",
                        GNUNET_i2s (&session->target));
 #endif
       /* Data session that actually went past the initial handshake;

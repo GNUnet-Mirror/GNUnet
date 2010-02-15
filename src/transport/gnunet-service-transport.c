@@ -1763,7 +1763,9 @@ handle_pong (void *cls, const struct GNUNET_MessageHeader *message,
              const char *sender_address,
              size_t sender_address_len)
 {
-#if DEBUG_TRANSPORT
+#if DEBUG_TRANSPORT > 1
+  /* we get tons of these that just get discarded, only log
+     if we are quite verbose */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Receiving `%s' message from `%4s'.\n", "PONG",
 	      GNUNET_i2s (peer));
@@ -1780,7 +1782,7 @@ handle_pong (void *cls, const struct GNUNET_MessageHeader *message,
 	 per PING, and all but the first PONG will end up
 	 here. So really we should not print anything here
 	 unless we want to be very, very verbose... */
-#if DEBUG_TRANSPORT > 1
+#if DEBUG_TRANSPORT > 2
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Received `%s' message from `%4s' but have no record of a matching `%s' message. Ignoring.\n",
                   "PONG",
