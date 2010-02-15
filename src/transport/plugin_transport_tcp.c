@@ -597,6 +597,9 @@ tcp_plugin_send (void *cls,
   int af;
 
   session = plugin->sessions;
+  /* FIXME: we could do this a cheaper with a hash table
+     where we could restrict the iteration to entries that match
+     the target peer... */
   while ( (session != NULL) &&
 	  ( (0 != memcmp (target,
 			  &session->target, 
