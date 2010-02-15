@@ -376,6 +376,13 @@ struct Neighbour
   struct PingMessage *pending_ping;
 
   /**
+   * We received a PONG message before we got the "public_key"
+   * (or the SET_KEY).  We keep it here until we have a key
+   * to decrypt it.  NULL if no PONG is pending.
+   */
+  struct PingMessage *pending_pong;
+
+  /**
    * Non-NULL if we are currently looking up HELLOs for this peer.
    * for this peer.
    */
@@ -2315,6 +2322,93 @@ handle_ping (struct Neighbour *n, const struct PingMessage *m)
 
 
 /**
+ * We received a PONG message.  Validate and update our status.
+ *
+ * @param n sender of the PONG
+ * @param m the encrypted PONG message itself
+ */
+static void
+handle_pong (struct Neighbour *n, const struct PingMessage *m)
+{
+  struct PingMessage t;
+  struct ConnectNotifyMessage cnm;
+
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Core service receives `%s' request from `%4s'.\n",
+              "PONG", GNUNET_i2s (&n->peer));
+#endif
+  if (GNUNET_OK !=
+      do_decrypt (n,
+                  &n->peer.hashPubKey,
+                  &m->challenge,
+                  &t.challenge,
+                  sizeof (struct PingMessage) -
+                  sizeof (struct GNUNET_MessageHeader)))
+    return;
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Decrypted `%s' from `%4s' with challenge %u using key %u\n",
+              "PONG",
+              GNUNET_i2s (&t.target),
+              ntohl (t.challenge), n->decrypt_key.crc32);
+#endif
+  if ((0 != memcmp (&t.target,
+                    &n->peer,
+                    sizeof (struct GNUNET_PeerIdentity))) ||
+      (n->ping_challenge != ntohl (t.challenge)))
+    {
+      /* PONG malformed */
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Received malformed `%s' wanted sender `%4s' with challenge %u\n",
+                  "PONG", GNUNET_i2s (&n->peer), n->ping_challenge);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Received malformed `%s' received from `%4s' with challenge %u\n",
+                  "PONG", GNUNET_i2s (&t.target), ntohl (t.challenge));
+#endif
+      GNUNET_break_op (0);
+      return;
+    }
+  switch (n->status)
+    {
+    case PEER_STATE_DOWN:
+      GNUNET_break (0);         /* should be impossible */
+      return;
+    case PEER_STATE_KEY_SENT:
+      GNUNET_break (0);         /* should be impossible, how did we decrypt? */
+      return;
+    case PEER_STATE_KEY_RECEIVED:
+      n->status = PEER_STATE_KEY_CONFIRMED;
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Confirmed key via `%s' message for peer `%4s'\n",
+                  "PONG", GNUNET_i2s (&n->peer));
+#endif
+      if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
+        {
+          GNUNET_SCHEDULER_cancel (sched, n->retry_set_key_task);
+          n->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
+        }      
+      cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
+      cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
+      cnm.distance = htonl (n->last_distance);
+      cnm.latency = GNUNET_TIME_relative_hton (n->last_latency);
+      cnm.peer = n->peer;
+      send_to_all_clients (&cnm.header, GNUNET_YES, GNUNET_CORE_OPTION_SEND_CONNECT);
+      process_encrypted_neighbour_queue (n);
+      break;
+    case PEER_STATE_KEY_CONFIRMED:
+      /* duplicate PONG? */
+      break;
+    default:
+      GNUNET_break (0);
+      break;
+    }
+}
+
+
+/**
  * We received a SET_KEY message.  Validate and update
  * our key material and status.
  *
@@ -2328,6 +2422,7 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
   struct GNUNET_TIME_Absolute t;
   struct GNUNET_CRYPTO_AesSessionKey k;
   struct PingMessage *ping;
+  struct PingMessage *pong;
   enum PeerStateMachine sender_status;
 
 #if DEBUG_CORE
@@ -2467,92 +2562,12 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
       handle_ping (n, ping);
       GNUNET_free (ping);
     }
-}
-
-
-/**
- * We received a PONG message.  Validate and update our status.
- *
- * @param n sender of the PONG
- * @param m the encrypted PONG message itself
- */
-static void
-handle_pong (struct Neighbour *n, const struct PingMessage *m)
-{
-  struct PingMessage t;
-  struct ConnectNotifyMessage cnm;
-
-#if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core service receives `%s' request from `%4s'.\n",
-              "PONG", GNUNET_i2s (&n->peer));
-#endif
-  if (GNUNET_OK !=
-      do_decrypt (n,
-                  &n->peer.hashPubKey,
-                  &m->challenge,
-                  &t.challenge,
-                  sizeof (struct PingMessage) -
-                  sizeof (struct GNUNET_MessageHeader)))
-    return;
-#if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Decrypted `%s' from `%4s' with challenge %u using key %u\n",
-              "PONG",
-              GNUNET_i2s (&t.target),
-              ntohl (t.challenge), n->decrypt_key.crc32);
-#endif
-  if ((0 != memcmp (&t.target,
-                    &n->peer,
-                    sizeof (struct GNUNET_PeerIdentity))) ||
-      (n->ping_challenge != ntohl (t.challenge)))
+  if (n->pending_pong != NULL)
     {
-      /* PONG malformed */
-#if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Received malformed `%s' wanted sender `%4s' with challenge %u\n",
-                  "PONG", GNUNET_i2s (&n->peer), n->ping_challenge);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Received malformed `%s' received from `%4s' with challenge %u\n",
-                  "PONG", GNUNET_i2s (&t.target), ntohl (t.challenge));
-#endif
-      GNUNET_break_op (0);
-      return;
-    }
-  switch (n->status)
-    {
-    case PEER_STATE_DOWN:
-      GNUNET_break (0);         /* should be impossible */
-      return;
-    case PEER_STATE_KEY_SENT:
-      GNUNET_break (0);         /* should be impossible, how did we decrypt? */
-      return;
-    case PEER_STATE_KEY_RECEIVED:
-      n->status = PEER_STATE_KEY_CONFIRMED;
-#if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Confirmed key via `%s' message for peer `%4s'\n",
-                  "PONG", GNUNET_i2s (&n->peer));
-#endif
-      if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
-        {
-          GNUNET_SCHEDULER_cancel (sched, n->retry_set_key_task);
-          n->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
-        }      
-      cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
-      cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
-      cnm.distance = htonl (n->last_distance);
-      cnm.latency = GNUNET_TIME_relative_hton (n->last_latency);
-      cnm.peer = n->peer;
-      send_to_all_clients (&cnm.header, GNUNET_YES, GNUNET_CORE_OPTION_SEND_CONNECT);
-      process_encrypted_neighbour_queue (n);
-      break;
-    case PEER_STATE_KEY_CONFIRMED:
-      /* duplicate PONG? */
-      break;
-    default:
-      GNUNET_break (0);
-      break;
+      pong = n->pending_pong;
+      n->pending_pong = NULL;
+      handle_pong (n, pong);
+      GNUNET_free (pong);
     }
 }
 
@@ -2909,12 +2924,17 @@ handle_transport_receive (void *cls,
           GNUNET_break_op (0);
           return;
         }
-      if ((n->status != PEER_STATE_KEY_SENT) &&
-          (n->status != PEER_STATE_KEY_RECEIVED) &&
-          (n->status != PEER_STATE_KEY_CONFIRMED))
+      if ( (n->status != PEER_STATE_KEY_RECEIVED) &&
+	   (n->status != PEER_STATE_KEY_CONFIRMED) )
         {
-          /* could not decrypt pong, oops! */
-          GNUNET_break_op (0);
+#if DEBUG_CORE
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Core service receives `%s' request from `%4s' but have not processed key; marking as pending.\n",
+                      "PONG", GNUNET_i2s (&n->peer));
+#endif
+          GNUNET_free_non_null (n->pending_pong);
+          n->pending_pong = GNUNET_malloc (sizeof (struct PingMessage));
+          memcpy (n->pending_pong, message, sizeof (struct PingMessage));
           return;
         }
       handle_pong (n, (const struct PingMessage *) message);
@@ -3121,6 +3141,7 @@ free_neighbour (struct Neighbour *n)
     GNUNET_SCHEDULER_cancel (sched, n->quota_update_task);
   GNUNET_free_non_null (n->public_key);
   GNUNET_free_non_null (n->pending_ping);
+  GNUNET_free_non_null (n->pending_pong);
   GNUNET_free (n);
 }
 

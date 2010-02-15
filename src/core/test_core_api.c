@@ -34,7 +34,7 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_transport_service.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define START_ARM GNUNET_YES
 
@@ -78,9 +78,6 @@ static void
 terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_assert (ok == 6);
-#if VERBOSE
-  fprintf(stderr, "ENDING WELL %u\n", ok);
-#endif
   GNUNET_CORE_disconnect (p1.ch);
   GNUNET_CORE_disconnect (p2.ch);
   GNUNET_TRANSPORT_disconnect (p1.th);
