@@ -194,8 +194,6 @@ struct Session
 
   /**
    * Are we still expecting the welcome message? (GNUNET_YES/GNUNET_NO)
-   * GNUNET_SYSERR is used to mark non-welcoming connections (HELLO
-   * validation only).
    */
   int expecting_welcome;
 
@@ -426,7 +424,7 @@ do_transmit (void *cls, size_t size, void *buf)
     }
   if (session->client != NULL)
     process_pending_messages (session);
-#if DEBUG_TCP
+#if DEBUG_TCP > 1
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "tcp", "Transmitting %u bytes\n", ret);
 #endif
@@ -598,14 +596,18 @@ tcp_plugin_send (void *cls,
   struct GNUNET_CONNECTION_Handle *sa;
   int af;
 
-  session = find_session_by_target (plugin, target);
-  if ( (session != NULL) && ((GNUNET_YES == force_address) &&
-       ( (session->connect_alen != addrlen) ||
-	 (0 != memcmp (session->connect_addr,
-		       addr,
-		       addrlen)) )) )
-    session = NULL; /* ignore existing session */
-
+  session = plugin->sessions;
+  while ( (session != NULL) &&
+	  ( (0 != memcmp (target,
+			  &session->target, 
+			  sizeof (struct GNUNET_PeerIdentity))) ||
+	    ( (GNUNET_YES == force_address) &&
+	      (addr != NULL) &&
+	      ( (addrlen != session->connect_alen) ||
+		(0 != memcmp (session->connect_addr,
+			      addr,
+			      addrlen)) ) ) ) )
+    session = session->next;
   if ( (session == NULL) &&
        (addr == NULL) )
     {
@@ -646,8 +648,9 @@ tcp_plugin_send (void *cls,
 #if DEBUG_TCP
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                        "tcp",
-                       "Asked to transmit to `%4s', creating fresh session.\n",
-		       GNUNET_i2s (target));
+                       "Asked to transmit to `%4s', creating fresh session using address `%s'.\n",
+		       GNUNET_i2s (target),
+		       GNUNET_a2s (addr, addrlen));
 #endif
       session = create_session (plugin,
 				target,
@@ -662,12 +665,6 @@ tcp_plugin_send (void *cls,
   GNUNET_assert (session != NULL);
   GNUNET_assert (session->client != NULL);
 
-#if DEBUG_TCP
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                       "tcp",
-                       "Creating pending message of size %d\n",
-                       msgbuf_size);
-#endif
   /* create new message entry */
   pm = GNUNET_malloc (sizeof (struct PendingMessage) + msgbuf_size);
   pm->msg = (const char*) &pm[1];
@@ -995,10 +992,10 @@ handle_tcp_welcome (void *cls,
 #if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "tcp",
-                   "Received `%s' message from a `%4s/%p'.\n", "WELCOME",
+                   "Received %s message from a `%4s/%p'.\n", 
+		   "WELCOME",
                    GNUNET_i2s (&wm->clientIdentity), client);
 #endif
-
   session = find_session_by_client (plugin, client);
   if (session == NULL)
     {
