@@ -14,14 +14,19 @@ away), in order in which they will likely be done:
 
 Urgent items (before announcing ng.gnunet.org):
 * TRANSPORT:
-  - nondeterministic transport testcase failures [Nate]
+  - nondeterministic transport testcase failures in UDP [Nate]
+  - disconnect notifications from TCP not always as nice as we might want
+    them to be (but how can we do this cleanly given that UDP is connectionless?)
+  - connect/disconnect notifications of tranport service via transport-API are
+    likely too eager (do they only happen after PING+PONG succeed? I think not, 
+    which is not nice: we should wait for this prior to telling core & others
+    about a connection "existing")
 * CORE:
-  - test currently fails
-  - request connect not working [Christian, need transport first]
+  - needs more testing
 * TOPOLOGY:
-  - needs testing [need transport first]
+  - needs testing
 * HOSTLIST:
-  - needs testing [need transport first]
+  - needs testing
 * FS (basic anonymous FS only)
   - test multi-peer search/download [needs core first]
 * new webpage
