@@ -127,6 +127,7 @@ pid_t
 GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin, struct GNUNET_DISK_PipeHandle *pipe_stdout, const char *filename, ...)
 {
   /* FIXME:  Make this work on windows!!! */
+  /* FIXME:  Make this work with stdin as well as stdout! */
   va_list ap;
 
 #ifndef MINGW
@@ -149,6 +150,8 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin, struct GNUNE
   va_end (ap);
   if (pipe_stdout != NULL)
     GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle(pipe_stdout, GNUNET_DISK_PIPE_END_WRITE), &fd_stdout_write, sizeof (int));
+  if (pipe_stdin != NULL)
+    GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle(pipe_stdout, GNUNET_DISK_PIPE_END_READ), &fd_stdin_read, sizeof (int));
 
 #if HAVE_WORKING_VFORK
   ret = vfork ();
@@ -175,15 +178,24 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin, struct GNUNE
           sleep (1);
           if (pipe_stdout != NULL)
             GNUNET_DISK_pipe_close_end(pipe_stdout, GNUNET_DISK_PIPE_END_WRITE);
+          if (pipe_stdin != NULL)
+            GNUNET_DISK_pipe_close_end(pipe_stdin, GNUNET_DISK_PIPE_END_READ);
 #endif
         }
       GNUNET_free (argv);
       return ret;
     }
+
   if (pipe_stdout != NULL)
     {
       dup2(fd_stdout_write, 1);
       close (fd_stdout_write);
+    }
+
+  if (pipe_stdout != NULL)
+    {
+      dup2(fd_stdin_read, 0);
+      close (fd_stdin_read);
     }
 
   execvp (filename, argv);
