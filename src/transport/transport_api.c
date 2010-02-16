@@ -1528,10 +1528,9 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
 #endif      
       n = neighbour_find (h, &im->peer);
       if (n == NULL)
-	{
-	  GNUNET_break (0);
-	  break;
-	}      
+	n = neighbour_add (h, &im->peer);
+      if (n == NULL) 
+	break;
       if (h->rec != NULL)
 	h->rec (h->cls, &im->peer, imm,
 		GNUNET_TIME_relative_ntoh (im->latency), ntohs(im->distance));

@@ -2976,11 +2976,9 @@ handle_transport_receive (void *cls,
 #endif
   n = find_neighbour (peer);
   if (n == NULL)
-    {
-      GNUNET_break (0);
-      return;
-    }
-  GNUNET_break (n->is_connected);
+    n = create_neighbour (peer);
+  if (n == NULL)
+    return;   
   n->last_latency = latency;
   n->last_distance = distance;
   up = (n->status == PEER_STATE_KEY_CONFIRMED);

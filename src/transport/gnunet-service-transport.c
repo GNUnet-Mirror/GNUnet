@@ -2630,16 +2630,6 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
       handle_pong(plugin, message, peer, sender_address, sender_address_len);
       break;
     default:
-      if (! n->received_pong)
-	{
-	  GNUNET_break_op (0);
-#if DEBUG_TRANSPORT || 1
-	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		      "Received message of type %u from `%4s', prior to key confirmation (dropped).\n",
-		      ntohs (message->type), GNUNET_i2s (peer));
-#endif
-	  break;
-	}
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Received message of type %u from `%4s', sending to all clients.\n",
@@ -2652,7 +2642,6 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
       im->latency = GNUNET_TIME_relative_hton (n->latency);
       im->peer = *peer;
       memcpy (&im[1], message, msize);
-
       cpos = clients;
       while (cpos != NULL)
         {
