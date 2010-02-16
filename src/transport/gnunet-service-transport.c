@@ -91,9 +91,9 @@
 #define TRANSPORT_DEFAULT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
 /**
- * FIXME: document!
+ * Priority to use for PONG messages.
  */
-#define TRANSPORT_DEFAULT_PRIORITY 4
+#define TRANSPORT_PONG_PRIORITY 4
 
 /**
  * How often do we re-add (cheaper) plugins to our list of plugins
@@ -107,6 +107,14 @@
  * create a HELLO.
  */
 #define HELLO_ADDRESS_EXPIRATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 12)
+
+
+/**
+ * How long before an existing address expires should we again try to
+ * validate it?  Must be (significantly) smaller than
+ * HELLO_ADDRESS_EXPIRATION.
+ */
+#define HELLO_REVALIDATION_START_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 1)
 
 
 /**
@@ -2174,7 +2182,7 @@ check_hello_validated (void *cls,
 				    n);
   GNUNET_HELLO_iterate_new_addresses (chvc->hello,
 				      h,
-				      GNUNET_TIME_absolute_get (),
+				      GNUNET_TIME_relative_to_absolute (HELLO_REVALIDATION_START_TIME),
 				      &run_validation, 
 				      chvc);
 }
@@ -2425,7 +2433,7 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
       while (fal != NULL)
 	{
 	  transmit_to_peer(NULL, fal,
-			   TRANSPORT_DEFAULT_PRIORITY, 
+			   TRANSPORT_PONG_PRIORITY, 
 			   (const char *)pong, 
 			   ntohs(pong->header.size), 
 			   GNUNET_YES, 
