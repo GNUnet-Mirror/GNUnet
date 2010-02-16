@@ -2628,19 +2628,20 @@ handle_start (void *cls,
       cim.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
       cim.quota_out =
         htonl (GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT / (60 * 1000));
-      cim.latency = GNUNET_TIME_relative_hton (GNUNET_TIME_UNIT_ZERO);  /* FIXME? */
+      /* FIXME: this ACK stuff is not nice! */
       im = GNUNET_malloc (sizeof (struct InboundMessage) +
                           sizeof (struct GNUNET_MessageHeader));
       im->header.size = htons (sizeof (struct InboundMessage) +
                                sizeof (struct GNUNET_MessageHeader));
       im->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
-      im->latency = GNUNET_TIME_relative_hton (GNUNET_TIME_UNIT_ZERO);  /* FIXME? */
+      im->latency = GNUNET_TIME_relative_hton (GNUNET_TIME_UNIT_ZERO);
       ack = (struct GNUNET_MessageHeader *) &im[1];
       ack->size = htons (sizeof (struct GNUNET_MessageHeader));
       ack->type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ACK);
       for (n = neighbors; n != NULL; n = n->next)
         {
           cim.id = n->id;
+	  cim.latency = GNUNET_TIME_relative_hton (n->latency);
           transmit_to_client (c, &cim.header, GNUNET_NO);
           if (n->received_pong)
             {
