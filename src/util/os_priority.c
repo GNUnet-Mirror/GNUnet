@@ -218,6 +218,10 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin, struct GNUNE
   char *cmd, *idx;
   STARTUPINFO start;
   PROCESS_INFORMATION proc;
+#if NILS
+  HANDLE stdin_handle;
+  HANDLE stdout_handle;
+#endif
   char *fn;
   int len;
 
@@ -236,6 +240,19 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin, struct GNUNE
   memset (&start, 0, sizeof (start));
   start.cb = sizeof (start);
 
+#if NILS
+  if (pipe_stdin != NULL)
+    {
+      GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle(pipe_stdin, GNUNET_DISK_PIPE_END_READ), &stdin_handle, sizeof (HANDLE));
+      start.hStdInput = stdin_handle;
+    }
+
+  if (pipe_stdout != NULL)
+    {
+      GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle(pipe_stdout, GNUNET_DISK_PIPE_END_WRITE), &stdout_handle, sizeof (HANDLE));
+      start.hStdOutput = stdout_handle;
+    }
+#endif
   len = strlen (filename);
   if (strnicmp (filename + len - 4, ".exe", 4) == 0)
     fn = filename;
