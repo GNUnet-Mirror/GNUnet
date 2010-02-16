@@ -213,7 +213,7 @@ arm_service_report (void *cls,
       GNUNET_free (pos);
       return;
     }
-  pid = GNUNET_OS_start_process (binary, binary, "-d", "-c", config,
+  pid = GNUNET_OS_start_process (NULL, NULL, binary, binary, "-d", "-c", config,
 #if DEBUG_ARM
                                  "-L", "DEBUG",
 #endif

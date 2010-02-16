@@ -792,7 +792,7 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
       if (pg->peers[pg_iter].daemon->hostname == NULL) /* Local, just copy the file */
         {
           GNUNET_asprintf (&arg, "%s/friends", temp_service_path);
-          pid = GNUNET_OS_start_process ("mv",
+          pid = GNUNET_OS_start_process (NULL, NULL, "mv",
                                          "mv", mytemp, arg, NULL);
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -806,7 +806,7 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
             GNUNET_asprintf (&arg, "%s@%s:%s/friends", pg->peers[pg_iter].daemon->username, pg->peers[pg_iter].daemon->hostname, temp_service_path);
           else
             GNUNET_asprintf (&arg, "%s:%s/friends", pg->peers[pg_iter].daemon->hostname, temp_service_path);
-          pid = GNUNET_OS_start_process ("scp",
+          pid = GNUNET_OS_start_process (NULL, NULL, "scp",
                                          "scp", mytemp, arg, NULL);
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

@@ -129,7 +129,7 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  pid = GNUNET_OS_start_process ("gnunet-service-statistics",
+  pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
                                  "gnunet-service-statistics",
 #if DEBUG_STATISTICS
                                  "-L", "DEBUG",
@@ -147,7 +147,7 @@ check ()
     return ok;
   ok = 1;
   /* restart to check persistence! */
-  pid = GNUNET_OS_start_process ("gnunet-service-statistics",
+  pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
                                  "gnunet-service-statistics",
 #if DEBUG_STATISTICS
                                  "-L", "DEBUG",

@@ -175,7 +175,7 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  pid = GNUNET_OS_start_process ("gnunet-service-peerinfo",
+  pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-peerinfo",
                                  "gnunet-service-peerinfo",
 #if DEBUG_PEERINFO
                                  "-L", "DEBUG",

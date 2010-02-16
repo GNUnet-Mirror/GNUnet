@@ -168,7 +168,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       /* start GNUnet on remote host */
       if (NULL == d->hostname)
         {
-          d->pid = GNUNET_OS_start_process ("gnunet-service-arm",
+          d->pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
                                             "gnunet-service-arm",
                                             "-c", d->cfgfile,
 #if DEBUG_TESTING
@@ -182,7 +182,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
             GNUNET_asprintf (&dst, "%s@%s", d->username, d->hostname);
           else
             dst = GNUNET_strdup (d->hostname);
-          d->pid = GNUNET_OS_start_process ("ssh",
+          d->pid = GNUNET_OS_start_process (NULL, NULL, "ssh",
                                             "ssh",
                                             dst,
                                             "gnunet-service-arm",
@@ -428,7 +428,7 @@ GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
         GNUNET_asprintf (&arg, "%s@%s:%s", username, hostname, ret->cfgfile);
       else
         GNUNET_asprintf (&arg, "%s:%s", hostname, ret->cfgfile);
-      ret->pid = GNUNET_OS_start_process ("scp",
+      ret->pid = GNUNET_OS_start_process (NULL, NULL, "scp",
                                           "scp", ret->cfgfile, arg, NULL);
       GNUNET_free (arg);
       if (-1 == ret->pid)
@@ -520,7 +520,7 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
         GNUNET_asprintf (&dst, "%s@%s", d->username, d->hostname);
       else
         dst = GNUNET_strdup (d->hostname);
-      d->pid = GNUNET_OS_start_process ("ssh",
+      d->pid = GNUNET_OS_start_process (NULL, NULL, "ssh",
                                         "ssh", dst, "rm", d->cfgfile, NULL);
       GNUNET_free (dst);
       if (-1 == d->pid)
@@ -606,7 +606,7 @@ GNUNET_TESTING_daemon_reconfigure (struct GNUNET_TESTING_Daemon *d,
     GNUNET_asprintf (&arg, "%s@%s:%s", d->username, d->hostname, d->cfgfile);
   else
     GNUNET_asprintf (&arg, "%s:%s", d->hostname, d->cfgfile);
-  d->pid = GNUNET_OS_start_process ("scp", "scp", d->cfgfile, arg, NULL);
+  d->pid = GNUNET_OS_start_process (NULL, NULL, "scp", "scp", d->cfgfile, arg, NULL);
   GNUNET_free (arg);
   if (-1 == d->pid)
     {

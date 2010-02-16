@@ -177,7 +177,7 @@ check ()
                   pfx,
                   DIR_SEPARATOR);
   GNUNET_free (pfx);
-  pid = GNUNET_OS_start_process (fn,
+  pid = GNUNET_OS_start_process (NULL, NULL, fn,
                                  "gnunet-service-resolver",
 #if VERBOSE
                                  "-L", "DEBUG",
