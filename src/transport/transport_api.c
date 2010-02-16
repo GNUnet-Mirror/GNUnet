@@ -503,6 +503,8 @@ schedule_peer_transmission (struct GNUNET_TRANSPORT_Handle *h)
 	  available = n->last_sent + th->notify_size - available;
 	  duration = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
 						    available / n->quota_out);
+	  if (duration.value == 0)
+	    duration = GNUNET_TIME_UNIT_MILLISECONDS;
 	  if (th->timeout.value <
 	      GNUNET_TIME_relative_to_absolute (duration).value)
 	    {
@@ -632,6 +634,7 @@ transport_notify_ready (void *cls, size_t size, void *buf)
 	  obm.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SEND);
 	  obm.header.size = htons (mret + sizeof (struct OutboundMessage));
 	  obm.priority = htonl (th->priority);
+	  obm.timeout = GNUNET_TIME_relative_hton (GNUNET_TIME_absolute_get_remaining (th->timeout));
 	  obm.peer = n->id;
 	  memcpy (&cbuf[ret], &obm, sizeof (struct OutboundMessage));
 	  ret += (mret + sizeof (struct OutboundMessage));

@@ -30,7 +30,7 @@
 #include "gnunet_time_lib.h"
 #include "gnunet_transport_service.h"
 
-#define DEBUG_TRANSPORT GNUNET_YES
+#define DEBUG_TRANSPORT GNUNET_NO
 
 /**
  * For how long do we allow unused bandwidth
@@ -210,6 +210,11 @@ struct OutboundMessage
    * Message priority.
    */
   uint32_t priority GNUNET_PACKED;
+
+  /**
+   * Allowed delay.
+   */
+  struct GNUNET_TIME_RelativeNBO timeout;
 
   /**
    * Which peer should receive the message?

@@ -427,6 +427,11 @@ struct Neighbour
   GNUNET_SCHEDULER_TaskIdentifier quota_update_task;
 
   /**
+   * ID of task used for cleaning up dead neighbour entries.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier dead_clean_task;
+
+  /**
    * At what time did we generate our encryption key?
    */
   struct GNUNET_TIME_Absolute encrypt_key_created;
@@ -552,6 +557,10 @@ struct Neighbour
    */
   enum PeerStateMachine status;
 
+  /**
+   * Are we currently connected to this neighbour?
+   */ 
+  int is_connected;
 };
 
 
@@ -861,14 +870,17 @@ handle_client_init (void *cls,
   n = neighbours;
   while (n != NULL)
     {
+      if (n->status == PEER_STATE_KEY_CONFIRMED)
+	{
 #if DEBUG_CORE_CLIENT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Sending `%s' message to client.\n", "NOTIFY_CONNECT");
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Sending `%s' message to client.\n", "NOTIFY_CONNECT");
 #endif
-      cnm.distance = htonl (n->last_distance);
-      cnm.latency = GNUNET_TIME_relative_hton (n->last_latency);
-      cnm.peer = n->peer;
-      send_to_client (c, &cnm.header, GNUNET_NO);
+	  cnm.distance = htonl (n->last_distance);
+	  cnm.latency = GNUNET_TIME_relative_hton (n->last_latency);
+	  cnm.peer = n->peer;
+	  send_to_client (c, &cnm.header, GNUNET_NO);
+	}
       n = n->next;
     }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -935,7 +947,7 @@ handle_client_request_info (void *cls,
   rcm = (const struct RequestInfoMessage *) message;
   n = find_neighbour (&rcm->peer);
   memset (&cim, 0, sizeof (cim));
-  if ((n != NULL) && (n->status == PEER_STATE_KEY_CONFIRMED))
+  if (n != NULL) 
     {
       update_window (GNUNET_YES,
 		     &n->available_send_window,
@@ -983,6 +995,129 @@ handle_client_request_info (void *cls,
   GNUNET_SERVER_transmit_context_append_message (tc, &cim.header);
   GNUNET_SERVER_transmit_context_run (tc,
 				      GNUNET_TIME_UNIT_FOREVER_REL);
+}
+
+
+/**
+ * Free the given entry for the neighbour (it has
+ * already been removed from the list at this point).
+ *
+ * @param n neighbour to free
+ */
+static void
+free_neighbour (struct Neighbour *n)
+{
+  struct MessageEntry *m;
+
+  if (n->pitr != NULL)
+    {
+      GNUNET_PEERINFO_iterate_cancel (n->pitr);
+      n->pitr = NULL;
+    }
+  if (n->skm != NULL)
+    {
+      GNUNET_free (n->skm);
+      n->skm = NULL;
+    }
+  while (NULL != (m = n->messages))
+    {
+      n->messages = m->next;
+      GNUNET_free (m);
+    }
+  while (NULL != (m = n->encrypted_head))
+    {
+      n->encrypted_head = m->next;
+      GNUNET_free (m);
+    }
+  if (NULL != n->th)
+    GNUNET_TRANSPORT_notify_transmit_ready_cancel (n->th);
+  if (n->retry_plaintext_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (sched, n->retry_plaintext_task);
+  if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (sched, n->retry_set_key_task);
+  if (n->quota_update_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (sched, n->quota_update_task);
+  if (n->dead_clean_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (sched, n->dead_clean_task);
+  GNUNET_free_non_null (n->public_key);
+  GNUNET_free_non_null (n->pending_ping);
+  GNUNET_free_non_null (n->pending_pong);
+  GNUNET_free (n);
+}
+
+
+/**
+ * Consider freeing the given neighbour since we may not need
+ * to keep it around anymore.
+ *
+ * @param n neighbour to consider discarding
+ */
+static void
+consider_free_neighbour (struct Neighbour *n);
+
+
+/**
+ * Task triggered when a neighbour entry might have gotten stale.
+ *
+ * @param cls the 'struct Neighbour'
+ * @param tc scheduler context (not used)
+ */
+static void
+consider_free_task (void *cls,
+		    const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Neighbour *n = cls;
+  n->dead_clean_task = GNUNET_SCHEDULER_NO_TASK;
+  consider_free_neighbour (n);
+}
+
+
+/**
+ * Consider freeing the given neighbour since we may not need
+ * to keep it around anymore.
+ *
+ * @param n neighbour to consider discarding
+ */
+static void
+consider_free_neighbour (struct Neighbour *n)
+{ 
+  struct Neighbour *pos;
+  struct Neighbour *prev;
+  struct GNUNET_TIME_Relative left;
+
+  if ( (n->th != NULL) ||
+       (n->pitr != NULL) ||
+       (n->status == PEER_STATE_KEY_CONFIRMED) ||
+       (GNUNET_YES == n->is_connected) )
+    return; /* no chance */
+  
+  left = GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_add (n->last_activity,
+								       MAX_PONG_DELAY));
+  if (left.value > 0)
+    {
+      if (n->dead_clean_task != GNUNET_SCHEDULER_NO_TASK)
+	GNUNET_SCHEDULER_cancel (sched, n->dead_clean_task);
+      n->dead_clean_task = GNUNET_SCHEDULER_add_delayed (sched,
+							 left,
+							 &consider_free_task,
+							 n);
+      return;
+    }
+  /* actually free the neighbour... */
+  prev = NULL;
+  pos = neighbours;
+  while (pos != n)
+    {
+      prev = pos;
+      pos = pos->next;
+    }
+  if (prev == NULL)
+    neighbours = n->next;
+  else
+    prev->next = n->next;
+  GNUNET_assert (neighbour_count > 0);
+  neighbour_count--;
+  free_neighbour (n);
 }
 
 
@@ -1038,11 +1173,12 @@ notify_encrypted_transmit_ready (void *cls, size_t size, void *buf)
   else
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Transmission for message of type %u and size %u failed\n",
+                  "Transmission of message of type %u and size %u failed\n",
                   ntohs (((struct GNUNET_MessageHeader *) &m[1])->type),
                   m->size);
     }
   GNUNET_free (m);
+  consider_free_neighbour (n);
   return ret;
 }
 
@@ -1702,53 +1838,69 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
 
 
 /**
- * Handle CORE_SEND request.
- *
- * @param cls unused
- * @param client the client issuing the request
- * @param message the "struct SendMessage"
+ * Function that recalculates the bandwidth quota for the
+ * given neighbour and transmits it to the transport service.
+ * 
+ * @param cls neighbour for the quota update
+ * @param tc context
  */
 static void
-handle_client_send (void *cls,
-                    struct GNUNET_SERVER_Client *client,
-                    const struct GNUNET_MessageHeader *message);
+neighbour_quota_update (void *cls,
+			const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
- * Function called to notify us that we either succeeded
- * or failed to connect (at the transport level) to another
- * peer.  We should either free the message we were asked
- * to transmit or re-try adding it to the queue.
- *
- * @param cls closure
- * @param size number of bytes available in buf
- * @param buf where the callee should write the message
- * @return number of bytes written to buf
+ * Schedule the task that will recalculate the bandwidth
+ * quota for this peer (and possibly force a disconnect of
+ * idle peers by calculating a bandwidth of zero).
  */
-static size_t
-send_connect_continuation (void *cls, size_t size, void *buf)
+static void
+schedule_quota_update (struct Neighbour *n)
 {
-  struct SendMessage *sm = cls;
-
-  if (buf == NULL)
-    {
-#if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "Asked to send message to disconnected peer `%4s' and connection failed.  Discarding message.\n",
-                  GNUNET_i2s (&sm->peer));
-#endif
-      GNUNET_free (sm);
-      return 0;
-    }
-#if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connection to peer `%4s' succeeded, retrying original transmission request\n",
-              GNUNET_i2s (&sm->peer));
-#endif
-  handle_client_send (NULL, NULL, &sm->header);
-  GNUNET_free (sm);
-  return 0;
+  GNUNET_assert (n->quota_update_task ==
+		 GNUNET_SCHEDULER_NO_TASK);
+  n->quota_update_task
+    = GNUNET_SCHEDULER_add_delayed (sched,
+				    QUOTA_UPDATE_FREQUENCY,
+				    &neighbour_quota_update,
+				    n);
 }
+
+
+/**
+ * Initialize a new 'struct Neighbour'.
+ *
+ * @param pid ID of the new neighbour
+ * @return handle for the new neighbour
+ */
+static struct Neighbour *
+create_neighbour (const struct GNUNET_PeerIdentity *pid)
+{
+  struct Neighbour *n;
+  struct GNUNET_TIME_Absolute now;
+
+  n = GNUNET_malloc (sizeof (struct Neighbour));
+  n->next = neighbours;
+  neighbours = n;
+  neighbour_count++;
+  n->peer = *pid;
+  GNUNET_CRYPTO_aes_create_session_key (&n->encrypt_key);
+  now = GNUNET_TIME_absolute_get ();
+  n->encrypt_key_created = now;
+  n->last_activity = now;
+  n->set_key_retry_frequency = INITIAL_SET_KEY_RETRY_FREQUENCY;
+  n->bpm_in = GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT;
+  n->bpm_out = GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT;
+  n->bpm_out_internal_limit = (uint32_t) - 1;
+  n->bpm_out_external_limit = GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT;
+  n->ping_challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                                (uint32_t) - 1);
+  schedule_quota_update (n);
+  return n;
+}
+
+
+
 
 
 /**
@@ -1764,7 +1916,6 @@ handle_client_send (void *cls,
                     const struct GNUNET_MessageHeader *message)
 {
   const struct SendMessage *sm;
-  struct SendMessage *smc;
   const struct GNUNET_MessageHeader *mh;
   struct Neighbour *n;
   struct MessageEntry *prev;
@@ -1797,41 +1948,7 @@ handle_client_send (void *cls,
     }
   n = find_neighbour (&sm->peer);
   if (n == NULL)
-    {
-#if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Core received `%s' request for `%4s', will try to establish connection within %llu ms\n",
-		  "SEND",
-                  GNUNET_i2s (&sm->peer),
-		  GNUNET_TIME_absolute_get_remaining
-		  (GNUNET_TIME_absolute_ntoh(sm->deadline)).value);
-#endif
-      msize += sizeof (struct SendMessage);
-      /* ask transport to connect to the peer */
-      smc = GNUNET_malloc (msize);
-      memcpy (smc, sm, msize);
-      if (NULL ==
-	  GNUNET_TRANSPORT_notify_transmit_ready (transport,
-						  &sm->peer,
-						  0, 0,
-						  GNUNET_TIME_absolute_get_remaining
-						  (GNUNET_TIME_absolute_ntoh
-						   (sm->deadline)),
-						  &send_connect_continuation,
-						  smc))
-	{
-	  /* transport has already a request pending for this peer! */
-#if DEBUG_CORE
-	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		      "Dropped second message destined for `%4s' since connection is still down.\n",
-		      GNUNET_i2s(&sm->peer));
-#endif
-	  GNUNET_free (smc);
-	}
-      if (client != NULL)
-        GNUNET_SERVER_receive_done (client, GNUNET_OK);
-      return;
-    }
+    n = create_neighbour (&sm->peer);
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core received `%s' request, queueing %u bytes of plaintext data for transmission to `%4s'.\n",
@@ -1934,7 +2051,10 @@ handle_client_request_connect (void *cls,
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   n = find_neighbour (&cm->peer);
-  if (n != NULL)
+  if (n == NULL)
+    n = create_neighbour (&cm->peer);
+  if ( (n->is_connected) ||
+       (n->th != NULL) )
     return; /* already connected, or at least trying */
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1943,13 +2063,13 @@ handle_client_request_connect (void *cls,
 	      GNUNET_i2s (&cm->peer));
 #endif
   /* ask transport to connect to the peer */
-  /* FIXME: timeout zero OK? need for cancellation? */
-  GNUNET_TRANSPORT_notify_transmit_ready (transport,
-					  &cm->peer,
-					  0, 0,
-					  GNUNET_TIME_UNIT_ZERO,
-					  NULL,
-					  NULL);
+  /* FIXME: timeout zero OK? */
+  n->th = GNUNET_TRANSPORT_notify_transmit_ready (transport,
+						  &cm->peer,
+						  0, 0,
+						  GNUNET_TIME_UNIT_ZERO,
+						  NULL,
+						  NULL);
 }
 
 
@@ -1977,7 +2097,7 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
  * the neighbour's struct and retry send_key.  Or, if we did not get a
  * HELLO, just do nothing.
  *
- * @param cls NULL
+ * @param cls the 'struct Neighbour' to retry sending the key for
  * @param peer the peer for which this is the HELLO
  * @param hello HELLO message of that peer
  * @param trust amount of trust we currently have in that peer
@@ -2086,7 +2206,6 @@ send_key (struct Neighbour *n)
                   GNUNET_i2s (&n->peer));
 #endif
       GNUNET_assert (n->pitr == NULL);
-      //sleep(10);
       n->pitr = GNUNET_PEERINFO_iterate (cfg,
 					 sched,
 					 &n->peer,
@@ -2861,6 +2980,7 @@ handle_transport_receive (void *cls,
       GNUNET_break (0);
       return;
     }
+  GNUNET_break (n->is_connected);
   n->last_latency = latency;
   n->last_distance = distance;
   up = (n->status == PEER_STATE_KEY_CONFIRMED);
@@ -2963,36 +3083,6 @@ handle_transport_receive (void *cls,
  */
 static void
 neighbour_quota_update (void *cls,
-			const struct GNUNET_SCHEDULER_TaskContext *tc);
-
-
-/**
- * Schedule the task that will recalculate the bandwidth
- * quota for this peer (and possibly force a disconnect of
- * idle peers by calculating a bandwidth of zero).
- */
-static void
-schedule_quota_update (struct Neighbour *n)
-{
-  GNUNET_assert (n->quota_update_task ==
-		 GNUNET_SCHEDULER_NO_TASK);
-  n->quota_update_task
-    = GNUNET_SCHEDULER_add_delayed (sched,
-				    QUOTA_UPDATE_FREQUENCY,
-				    &neighbour_quota_update,
-				    n);
-}
-
-
-/**
- * Function that recalculates the bandwidth quota for the
- * given neighbour and transmits it to the transport service.
- * 
- * @param cls neighbour for the quota update
- * @param tc context
- */
-static void
-neighbour_quota_update (void *cls,
 			const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Neighbour *n = cls;
@@ -3060,36 +3150,28 @@ handle_transport_notify_connect (void *cls,
   n = find_neighbour (peer);
   if (n != NULL)
     {
-      /* duplicate connect notification!? */
-      GNUNET_break (0);
-      return;
+      if (n->is_connected)
+	{
+	  /* duplicate connect notification!? */
+	  GNUNET_break (0);
+	  return;
+	}
+    }
+  else
+    {
+      n = create_neighbour (peer);
     }
   now = GNUNET_TIME_absolute_get ();
-  n = GNUNET_malloc (sizeof (struct Neighbour));
-  n->next = neighbours;
-  neighbours = n;
-  neighbour_count++;
-  n->peer = *peer;
+  n->is_connected = GNUNET_YES;      
   n->last_latency = latency;
   n->last_distance = distance;
-  GNUNET_CRYPTO_aes_create_session_key (&n->encrypt_key);
-  n->encrypt_key_created = now;
-  n->set_key_retry_frequency = INITIAL_SET_KEY_RETRY_FREQUENCY;
-  n->last_activity = now;
   n->last_asw_update = now;
   n->last_arw_update = now;
-  n->bpm_in = GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT;
-  n->bpm_out = GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT;
-  n->bpm_out_internal_limit = (uint32_t) - 1;
-  n->bpm_out_external_limit = GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT;
-  n->ping_challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                                (uint32_t) - 1);
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received connection from `%4s'.\n",
               GNUNET_i2s (&n->peer));
 #endif
-  schedule_quota_update (n);
   cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
   cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_PRE_CONNECT);
   cnm.distance = htonl (n->last_distance);
@@ -3097,52 +3179,6 @@ handle_transport_notify_connect (void *cls,
   cnm.peer = *peer;
   send_to_all_clients (&cnm.header, GNUNET_YES, GNUNET_CORE_OPTION_SEND_PRE_CONNECT);
   send_key (n);
-}
-
-
-/**
- * Free the given entry for the neighbour (it has
- * already been removed from the list at this point).
- *
- * @param n neighbour to free
- */
-static void
-free_neighbour (struct Neighbour *n)
-{
-  struct MessageEntry *m;
-
-  if (n->pitr != NULL)
-    {
-      GNUNET_PEERINFO_iterate_cancel (n->pitr);
-      n->pitr = NULL;
-    }
-  if (n->skm != NULL)
-    {
-      GNUNET_free (n->skm);
-      n->skm = NULL;
-    }
-  while (NULL != (m = n->messages))
-    {
-      n->messages = m->next;
-      GNUNET_free (m);
-    }
-  while (NULL != (m = n->encrypted_head))
-    {
-      n->encrypted_head = m->next;
-      GNUNET_free (m);
-    }
-  if (NULL != n->th)
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (n->th);
-  if (n->retry_plaintext_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (sched, n->retry_plaintext_task);
-  if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (sched, n->retry_set_key_task);
-  if (n->quota_update_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (sched, n->quota_update_task);
-  GNUNET_free_non_null (n->public_key);
-  GNUNET_free_non_null (n->pending_ping);
-  GNUNET_free_non_null (n->pending_pong);
-  GNUNET_free (n);
 }
 
 
@@ -3159,36 +3195,18 @@ handle_transport_notify_disconnect (void *cls,
 {
   struct DisconnectNotifyMessage cnm;
   struct Neighbour *n;
-  struct Neighbour *p;
 
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer `%4s' disconnected from us.\n", GNUNET_i2s (peer));
 #endif
-  p = NULL;
-  n = neighbours;
-  while ((n != NULL) &&
-         (0 != memcmp (&n->peer, peer, sizeof (struct GNUNET_PeerIdentity))))
-    {
-      p = n;
-      n = n->next;
-    }
-  if (n == NULL)
-    {
-      GNUNET_break (0);
-      return;
-    }
-  if (p == NULL)
-    neighbours = n->next;
-  else
-    p->next = n->next;
-  GNUNET_assert (neighbour_count > 0);
-  neighbour_count--;
+  n = find_neighbour (peer);
+  GNUNET_break (n->is_connected);
   cnm.header.size = htons (sizeof (struct DisconnectNotifyMessage));
   cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT);
   cnm.peer = *peer;
   send_to_all_clients (&cnm.header, GNUNET_YES, GNUNET_CORE_OPTION_SEND_DISCONNECT);
-  free_neighbour (n);
+  n->is_connected = GNUNET_NO;
 }
 
 
