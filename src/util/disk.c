@@ -1678,6 +1678,62 @@ GNUNET_DISK_pipe (int blocking)
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
 int
+GNUNET_DISK_pipe_close_end (struct GNUNET_DISK_PipeHandle *p, enum GNUNET_DISK_PipeEnd end)
+{
+  int ret = GNUNET_OK;
+  int save;
+
+  /* FIXME: What can we safely set HANDLE to once we've closed an end, NULL? */
+#ifdef MINGW
+  if (end == GNUNET_DISK_PIPE_END_READ)
+    {
+      if (!CloseHandle (p->fd[0]->h))
+        {
+          SetErrnoFromWinError (GetLastError ());
+          ret = GNUNET_SYSERR;
+        }
+    }
+  else if (end == GNUNET_DISK_PIPE_END_WRITE)
+    {
+      if (!CloseHandle (p->fd[1]->h))
+        {
+          SetErrnoFromWinError (GetLastError ());
+          ret = GNUNET_SYSERR;
+        }
+    }
+  save = errno;
+#else
+  save = 0;
+  if (end == GNUNET_DISK_PIPE_END_READ)
+    {
+      if (0 != close (p->fd[0]->fd))
+        {
+          ret = GNUNET_SYSERR;
+          save = errno;
+        }
+      p->fd[0]->fd = -1;
+    }
+  else if (end == GNUNET_DISK_PIPE_END_WRITE)
+    {
+      if (0 != close (p->fd[1]->fd))
+        {
+          ret = GNUNET_SYSERR;
+          save = errno;
+        }
+      p->fd[1]->fd = -1;
+    }
+#endif
+  errno = save;
+  return ret;
+}
+
+/**
+ * Closes an interprocess channel
+ *
+ * @param p pipe to close
+ * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ */
+int
 GNUNET_DISK_pipe_close (struct GNUNET_DISK_PipeHandle *p)
 {
   int ret = GNUNET_OK;
@@ -1697,15 +1753,22 @@ GNUNET_DISK_pipe_close (struct GNUNET_DISK_PipeHandle *p)
   save = errno;
 #else
   save = 0;
-  if (0 != close (p->fd[0]->fd))
+  if (p->fd[0]->fd != -1)
     {
-      ret = GNUNET_SYSERR;
-      save = errno;
+      if (0 != close (p->fd[0]->fd))
+        {
+          ret = GNUNET_SYSERR;
+          save = errno;
+        }
     }
-  if (0 != close (p->fd[1]->fd))
+
+  if (p->fd[1]->fd != -1)
     {
-      ret = GNUNET_SYSERR;
-      save = errno;
+      if (0 != close (p->fd[1]->fd))
+        {
+          ret = GNUNET_SYSERR;
+          save = errno;
+        }
     }
 #endif
   GNUNET_free (p);

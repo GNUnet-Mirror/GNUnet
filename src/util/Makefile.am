@@ -142,7 +142,8 @@ check_PROGRAMS = \
  test_service \
  test_strings \
  test_time \
- perf_crypto_hash
+ perf_crypto_hash \
+ test_os_start_process 
 
 TESTS = $(check_SCRIPTS) $(check_PROGRAMS)
 
@@ -153,6 +154,11 @@ test_bio_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 
 
+test_os_start_process_SOURCES = \
+ test_os_start_process.c
+test_os_start_process_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la
+ 
 test_client_SOURCES = \
  test_client.c
 test_client_LDADD = \

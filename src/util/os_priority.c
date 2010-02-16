@@ -27,6 +27,7 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_os_lib.h"
+#include "disk.h"
 
 /**
  * Set process priority
@@ -115,7 +116,6 @@ GNUNET_OS_set_process_priority (pid_t proc,
   return GNUNET_OK;
 }
 
-
 /**
  * Start a process.
  *
@@ -124,14 +124,31 @@ GNUNET_OS_set_process_priority (pid_t proc,
  * @return process ID of the new process, -1 on error
  */
 pid_t
-GNUNET_OS_start_process (const char *filename, ...)
+GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin, struct GNUNET_DISK_PipeHandle *pipe_stdout, const char *filename, ...)
 {
+  /* FIXME:  Make this work on windows!!! */
   va_list ap;
 
 #ifndef MINGW
   pid_t ret;
   char **argv;
   int argc;
+  int fd_stdout_write;
+  int fd_stdin_read;
+
+  argc = 0;
+  va_start (ap, filename);
+  while (NULL != va_arg (ap, char *))
+      argc++;
+  va_end (ap);
+  argv = GNUNET_malloc (sizeof (char *) * (argc + 1));
+  argc = 0;
+  va_start (ap, filename);
+  while (NULL != (argv[argc] = va_arg (ap, char *)))
+    argc++;
+  va_end (ap);
+  if (pipe_stdout != NULL)
+    GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle(pipe_stdout, GNUNET_DISK_PIPE_END_WRITE), &fd_stdout_write, sizeof (int));
 
 #if HAVE_WORKING_VFORK
   ret = vfork ();
@@ -156,21 +173,19 @@ GNUNET_OS_start_process (const char *filename, ...)
           /* let's give the child process a chance to run execvp, 1s should
              be plenty in practice */
           sleep (1);
+          if (pipe_stdout != NULL)
+            GNUNET_DISK_pipe_close_end(pipe_stdout, GNUNET_DISK_PIPE_END_WRITE);
 #endif
         }
+      GNUNET_free (argv);
       return ret;
     }
-  argc = 0;
-  va_start (ap, filename);
-  while (NULL != va_arg (ap, char *))
-      argc++;
-  va_end (ap);
-  argv = GNUNET_malloc (sizeof (char *) * (argc + 1));
-  argc = 0;
-  va_start (ap, filename);
-  while (NULL != (argv[argc] = va_arg (ap, char *)))
-      argc++;
-  va_end (ap);
+  if (pipe_stdout != NULL)
+    {
+      dup2(fd_stdout_write, 1);
+      close (fd_stdout_write);
+    }
+
   execvp (filename, argv);
   GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "execvp", filename);
   _exit (1);
@@ -221,8 +236,8 @@ GNUNET_OS_start_process (const char *filename, ...)
 
   return proc.dwProcessId;
 #endif
-}
 
+}
 
 
 
