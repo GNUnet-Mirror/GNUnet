@@ -127,7 +127,6 @@ pid_t
 GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin, struct GNUNET_DISK_PipeHandle *pipe_stdout, const char *filename, ...)
 {
   /* FIXME:  Make this work on windows!!! */
-  /* FIXME:  Make this work with stdin as well as stdout! */
   va_list ap;
 
 #ifndef MINGW
@@ -135,7 +134,9 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin, struct GNUNE
   char **argv;
   int argc;
   int fd_stdout_write;
+  int fd_stdout_read;
   int fd_stdin_read;
+  int fd_stdin_write;
 
   argc = 0;
   va_start (ap, filename);
@@ -149,9 +150,15 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin, struct GNUNE
     argc++;
   va_end (ap);
   if (pipe_stdout != NULL)
-    GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle(pipe_stdout, GNUNET_DISK_PIPE_END_WRITE), &fd_stdout_write, sizeof (int));
+    {
+      GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle(pipe_stdout, GNUNET_DISK_PIPE_END_WRITE), &fd_stdout_write, sizeof (int));
+      GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle(pipe_stdout, GNUNET_DISK_PIPE_END_READ), &fd_stdout_read, sizeof (int));
+    }
   if (pipe_stdin != NULL)
-    GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle(pipe_stdout, GNUNET_DISK_PIPE_END_READ), &fd_stdin_read, sizeof (int));
+    {
+      GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle(pipe_stdin, GNUNET_DISK_PIPE_END_READ), &fd_stdin_read, sizeof (int));
+      GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle(pipe_stdin, GNUNET_DISK_PIPE_END_WRITE), &fd_stdin_write, sizeof (int));
+    }
 
 #if HAVE_WORKING_VFORK
   ret = vfork ();
@@ -166,6 +173,7 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin, struct GNUNE
         }
       else
         {
+
 #if HAVE_WORKING_VFORK
           /* let's hope vfork actually works; for some extreme cases (including
              a testcase) we need 'execvp' to have run before we return, since
@@ -175,11 +183,11 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin, struct GNUNE
 #else
           /* let's give the child process a chance to run execvp, 1s should
              be plenty in practice */
-          sleep (1);
           if (pipe_stdout != NULL)
             GNUNET_DISK_pipe_close_end(pipe_stdout, GNUNET_DISK_PIPE_END_WRITE);
           if (pipe_stdin != NULL)
             GNUNET_DISK_pipe_close_end(pipe_stdin, GNUNET_DISK_PIPE_END_READ);
+          sleep (1);
 #endif
         }
       GNUNET_free (argv);
@@ -190,12 +198,15 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin, struct GNUNE
     {
       dup2(fd_stdout_write, 1);
       close (fd_stdout_write);
+      close (fd_stdout_read);
     }
 
-  if (pipe_stdout != NULL)
+  if (pipe_stdin != NULL)
     {
+
       dup2(fd_stdin_read, 0);
       close (fd_stdin_read);
+      close (fd_stdin_write);
     }
 
   execvp (filename, argv);
