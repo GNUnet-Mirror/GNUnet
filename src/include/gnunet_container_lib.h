@@ -654,34 +654,32 @@ int GNUNET_CONTAINER_multihashmap_get_multiple (const struct
 /* ******************** doubly-linked list *************** */
 
 /**
- * Insert an element into a DLL. Assumes
- * that head, tail and element are structs
- * with prev and next fields.
+ * Insert an element at the head of a DLL. Assumes that head, tail and
+ * element are structs with prev and next fields.
  *
  * @param head pointer to the head of the DLL
  * @param tail pointer to the tail of the DLL
  * @param element element to insert
  */
-#define GNUNET_CONTAINER_DLL_insert(head,tail,element) \
+#define GNUNET_CONTAINER_DLL_insert(head,tail,element) do { \
   (element)->next = (head); \
   (element)->prev = NULL; \
   if ((tail) == NULL) \
     (tail) = element; \
   else \
     (head)->prev = element; \
-  (head) = (element);
+  (head) = (element); } while (0)
 
 /**
- * Insert an element into a DLL after the given other
- * element.  Insert at the head if the other
- * element is NULL.
+ * Insert an element into a DLL after the given other element.  Insert
+ * at the head if the other element is NULL.
  *
  * @param head pointer to the head of the DLL
  * @param tail pointer to the tail of the DLL
  * @param other prior element, NULL for insertion at head of DLL
  * @param element element to insert
  */
-#define GNUNET_CONTAINER_DLL_insert_after(head,tail,other,element) \
+#define GNUNET_CONTAINER_DLL_insert_after(head,tail,other,element) do { \
   (element)->prev = (other); \
   if (NULL == other) \
     { \
@@ -696,7 +694,7 @@ int GNUNET_CONTAINER_multihashmap_get_multiple (const struct
   if (NULL == (element)->next) \
     (tail) = (element); \
   else \
-    (element)->next->prev = (element);
+    (element)->next->prev = (element); } while (0)
 
 
 
@@ -710,7 +708,7 @@ int GNUNET_CONTAINER_multihashmap_get_multiple (const struct
  * @param tail pointer to the tail of the DLL
  * @param element element to remove
  */
-#define GNUNET_CONTAINER_DLL_remove(head,tail,element) \
+#define GNUNET_CONTAINER_DLL_remove(head,tail,element) do { \
   if ((element)->prev == NULL) \
     (head) = (element)->next;  \
   else \
@@ -718,7 +716,7 @@ int GNUNET_CONTAINER_multihashmap_get_multiple (const struct
   if ((element)->next == NULL) \
     (tail) = (element)->prev;  \
   else \
-    (element)->next->prev = (element)->prev;
+    (element)->next->prev = (element)->prev; } while (0)
 
 
 
