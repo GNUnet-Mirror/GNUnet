@@ -192,17 +192,6 @@ struct GNUNET_CORE_TransmitHandle
   void *get_message_cls;
 
   /**
-   * If this entry is for a configuration request, pointer
-   * to the information callback; otherwise NULL.
-   */
-  GNUNET_CORE_PeerConfigurationInfoCallback info;
-
-  /**
-   * Closure for info.
-   */
-  void *info_cls;
-
-  /**
    * If this entry is for a transmission request, pointer
    * to the notify callback; otherwise NULL.
    */

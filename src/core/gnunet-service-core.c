@@ -504,11 +504,6 @@ struct Neighbour
   unsigned int last_packets_bitmap;
 
   /**
-   * Number of messages in the message queue for this peer.
-   */
-  unsigned int message_queue_size;
-
-  /**
    * last sequence number received on this connection (highest)
    */
   uint32_t last_sequence_number_received;
