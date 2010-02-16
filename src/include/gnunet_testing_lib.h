@@ -410,6 +410,11 @@ enum GNUNET_TESTING_Topology
   GNUNET_TESTING_TOPOLOGY_SMALL_WORLD,
 
   /**
+   * Small-world network (ring plus random links).
+   */
+  GNUNET_TESTING_TOPOLOGY_SMALL_WORLD_RING,
+
+  /**
    * Ring topology.
    */
   GNUNET_TESTING_TOPOLOGY_RING,

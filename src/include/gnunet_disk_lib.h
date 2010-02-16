@@ -335,6 +335,14 @@ struct GNUNET_DISK_PipeHandle *GNUNET_DISK_pipe (int blocking);
  */
 int GNUNET_DISK_pipe_close (struct GNUNET_DISK_PipeHandle *p);
 
+/**
+ * Closes one half of an interprocess channel
+ *
+ * @param p pipe to close end of
+ * @param end which end of the pipe to close
+ */
+int
+GNUNET_DISK_pipe_close_end (struct GNUNET_DISK_PipeHandle *p, enum GNUNET_DISK_PipeEnd end);
 
 /**
  * Close an open file.
