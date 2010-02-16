@@ -14,13 +14,10 @@ away), in order in which they will likely be done:
 
 Urgent items (before announcing ng.gnunet.org):
 * TRANSPORT:
-  - nondeterministic transport testcase failures in UDP [Nate]
+  - nondeterministic transport testcase failures in UDP 
   - disconnect notifications from TCP not always as nice as we might want
     them to be (but how can we do this cleanly given that UDP is connectionless?)
-  - connect/disconnect notifications of tranport service via transport-API are
-    likely too eager (do they only happen after PING+PONG succeed? I think not, 
-    which is not nice: we should wait for this prior to telling core & others
-    about a connection "existing")
+  - TCP not used bi-directionally (especially important also for PONG!)
 * CORE:
   - needs more testing
 * TOPOLOGY:
