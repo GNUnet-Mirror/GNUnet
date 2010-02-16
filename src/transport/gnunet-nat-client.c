@@ -29,7 +29,7 @@
  * it uses RAW sockets, it must be installed SUID or run as 'root'.
  * In order to keep the security risk of the resulting SUID binary
  * minimal, the program ONLY opens the RAW socket with root
- * priviledges, then drops them and only then starts to process
+ * privileges, then drops them and only then starts to process
  * command line arguments.  The code also does not link against
  * any shared libraries (except libc) and is strictly minimal
  * (except for checking for errors).  The following list of people
