@@ -293,7 +293,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 {
   p->cfg = GNUNET_CONFIGURATION_create ();
 #if START_ARM
-  p->arm_pid = GNUNET_OS_start_process ("gnunet-service-arm",
+  p->arm_pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
                                         "gnunet-service-arm",
 #if VERBOSE
                                         "-L", "DEBUG",
