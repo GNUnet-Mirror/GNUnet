@@ -161,7 +161,6 @@ struct ForeignAddressList
    * transport simply stalls writing to the stream but does not
    * formerly get a signal that the other peer died.
    */
-  /* FIXME: Do we need this? */
   struct GNUNET_TIME_Absolute timeout;
 
   /**
@@ -368,15 +367,6 @@ struct ReadyList
    * this particular plugin.
    */
   struct ForeignAddressList *addresses;
-
-  /**
-   * Is this plugin ready to transmit to the specific target?
-   * GNUNET_NO if not.  Initially, all plugins are marked ready.  If a
-   * transmission is in progress, "transmit_ready" is set to
-   * GNUNET_NO.
-   */
-  // FIXME: is this dead?
-  int plugin_transmit_ready;
 
   /**
    * Is the plugin represented by this entry currently connected to
