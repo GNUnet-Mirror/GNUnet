@@ -36,17 +36,6 @@ sane end-user should care about this codebase yet anyway.
       a way to easily "veto" addresses off the list!
       => If MiM attacker uses vetoed address, blacklist the specific IP for
          the presumed neighbour!
-  - not sure current way of doing ACKs works well-enough 
-    with unreliable transports where the ACK maybe lost;
-    the "is_new" check would then possibly prevent future
-    ACKs to be delivered, all while we're happily 
-    receiving messages from that peer!  Worse, the other
-    peer won't generate another ACK since it thinks we're
-    connected just fine...
-    Key questions:
-    + How necessary is ACKing in the first place? (alternatives?)
-    + Should we transmit ACKs in response to every HELLO? (would that 
-      fully address the problem?)
   - [./transport/gnunet-service-transport.c:173]: (style) struct or union member 'TransportPlugin::rebuild' is never used
   - [./transport/plugin_transport_tcp.c:391]: (style) struct or union member 'Plugin::address_update_task' is never used
 * FS:
@@ -90,11 +79,6 @@ sane end-user should care about this codebase yet anyway.
   - better crash management (attach debugging support, capture and analyze
     debug output, detect random vs. deterministic crashes)
   - shutdown sequence?
-* CORE: 
-  - test case (test_core_api) hangs for a while (some timeout task not killed somewhere?)
-  - [./core/gnunet-service-core.c:469]: (style) struct or union member 'Neighbour::message_queue_size' is never used
-  - [./core/test_core_api_start_only.c:50]: (style) struct or union member 'PeerContext::id' is never used
-
 * HTTPS transport
   - Better SSL-support for MHD
   - https integration
