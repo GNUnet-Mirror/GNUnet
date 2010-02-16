@@ -30,7 +30,7 @@
 #include "gnunet_time_lib.h"
 #include "gnunet_transport_service.h"
 
-#define DEBUG_TRANSPORT GNUNET_NO
+#define DEBUG_TRANSPORT GNUNET_YES
 
 /**
  * For how long do we allow unused bandwidth
@@ -57,10 +57,9 @@ struct ConnectInfoMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Current quota for outbound traffic in bytes/ms.
-   * (should be equal to system default)
+   * Transport distance metric (i.e. hops for DV)
    */
-  uint32_t quota_out GNUNET_PACKED;
+  uint32_t distance;
 
   /**
    * Latency estimate.
@@ -71,11 +70,6 @@ struct ConnectInfoMessage
    * Identity of the new neighbour.
    */
   struct GNUNET_PeerIdentity id;
-
-  /**
-   * Transport distance metric (i.e. hops for DV)
-   */
-  uint32_t distance;
 
 };
 
@@ -127,31 +121,6 @@ struct QuotaSetMessage
   /**
    * About which peer are we talking here?
    */
-  struct GNUNET_PeerIdentity peer;
-
-};
-
-
-/**
- * Message used to ask the transport service to connect
- * to a particular peer.
- */
-struct TryConnectMessage
-{
-
-  /**
-   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_TRY_CONNECT.
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Always zero.
-   */
-  uint32_t reserved GNUNET_PACKED;
-
-  /**
-   * About which peer are we talking here?
-  */
   struct GNUNET_PeerIdentity peer;
 
 };
@@ -211,6 +180,11 @@ struct SendOkMessage
    * send us another message for the given peer.
    */
   uint32_t success GNUNET_PACKED;
+
+  /**
+   * Latency estimate.
+   */
+  struct GNUNET_TIME_RelativeNBO latency;
 
   /**
    * Which peer can send more now?

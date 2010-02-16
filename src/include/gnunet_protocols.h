@@ -164,48 +164,36 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA 26
 
 /**
- * Message telling transport to try to connect to the
- * given peer.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_TRY_CONNECT 27
-
-/**
- * Response to another peer confirming that communication was
- * established.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_ACK 28
-
-/**
  * Request to look addresses of peers in server.
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP 29
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP 27
 
 /**
  * Response to the address lookup request. 
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY 30
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY 28
 
 /**
  * Change in blacklisting status of a peer.
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST 31
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST 29
 
 /**
  * Request to transport to notify us about any blacklisting status
  * changes on this connection (and to immediately send all
  * active blacklist entries).
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_NOTIFY 32
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_NOTIFY 30
 
 /**
  * Transport PING message
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_PING 33
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_PING 32
 
 /**
  * Transport PONG message
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_PONG 34
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_PONG 33
 
 /**
  * Request addition of a HELLO

@@ -81,7 +81,7 @@ static void
 end ()
 {
   /* do work here */
-  GNUNET_assert (ok == 8);
+  GNUNET_assert (ok == 6);
   GNUNET_SCHEDULER_cancel (sched, die_task);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transports!\n");
   GNUNET_TRANSPORT_disconnect (p1.th);
@@ -132,7 +132,7 @@ notify_receive (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received message of type %d from peer (%p)!\n",
                 ntohs(message->type), cls);
 
-  GNUNET_assert (ok == 7);
+  GNUNET_assert (ok == 5);
   OKPP;
 
   GNUNET_assert (MTYPE == ntohs (message->type));
@@ -144,23 +144,51 @@ notify_receive (void *cls,
 }
 
 
+static size_t
+notify_ready (void *cls, size_t size, void *buf)
+{
+  struct GNUNET_MessageHeader *hdr;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Transmitting message to peer (%p) - %u!\n", cls, size);
+  GNUNET_assert (size >= 256);
+  GNUNET_assert (ok == 4);
+  OKPP;
+  if (buf != NULL)
+  {
+    hdr = buf;
+    hdr->size = htons (sizeof (struct GNUNET_MessageHeader));
+    hdr->type = htons (MTYPE);
+  }
+
+  return sizeof (struct GNUNET_MessageHeader);
+}
+
+
 static void
 notify_connect (void *cls,
                 const struct GNUNET_PeerIdentity *peer,
                 struct GNUNET_TIME_Relative latency,
 		uint32_t distance)
 {
+  if (cls == &p1)
+    {
+      GNUNET_TRANSPORT_notify_transmit_ready (p1.th,
+					      &p2.id,
+					      256, 0, TIMEOUT, &notify_ready,
+					      &p1);
+    }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer `%4s' connected to us (%p)!\n", GNUNET_i2s (peer), cls);
-  GNUNET_assert ((ok >= 1) && (ok <= 6));
-  OKPP;
 }
 
 
 static void
 notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
-  ok--;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Peer `%4s' disconnected (%p)!\n",
+	      GNUNET_i2s (peer), cls);
 }
 
 
@@ -183,27 +211,6 @@ setup_peer (struct PeerContext *p, const char *cfgname)
                                     &notify_receive,
                                     &notify_connect, &notify_disconnect);
   GNUNET_assert (p->th != NULL);
-}
-
-
-static size_t
-notify_ready (void *cls, size_t size, void *buf)
-{
-  struct GNUNET_MessageHeader *hdr;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmitting message to peer (%p) - %u!\n", cls, size);
-  GNUNET_assert (size >= 256);
-  GNUNET_assert ((ok >= 5) && (ok <= 6));
-  OKPP;
-  if (buf != NULL)
-  {
-    hdr = buf;
-    hdr->size = htons (sizeof (struct GNUNET_MessageHeader));
-    hdr->type = htons (MTYPE);
-  }
-
-  return sizeof (struct GNUNET_MessageHeader);
 }
 
 
@@ -231,11 +238,6 @@ exchange_hello_last (void *cls,
   /* both HELLOs exchanged, get ready to test transmission! */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Finished exchanging HELLOs, now waiting for transmission!\n");
-
-  GNUNET_TRANSPORT_notify_transmit_ready (p1.th,
-                                            &p2.id,
-                                            256, 0, TIMEOUT, &notify_ready,
-                                            &p1);
 }
 
 static void

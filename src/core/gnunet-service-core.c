@@ -1096,7 +1096,7 @@ process_encrypted_neighbour_queue (struct Neighbour *n)
                                             n);
   if (n->th == NULL)
     {
-      /* message request too large (oops) */
+      /* message request too large or duplicate request */
       GNUNET_break (0);
       /* discard encrypted message */
       GNUNET_assert (NULL != (m = n->encrypted_head));

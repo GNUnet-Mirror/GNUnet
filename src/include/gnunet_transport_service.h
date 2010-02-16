@@ -22,10 +22,6 @@
  * @file include/gnunet_transport_service.h
  * @brief low-level P2P IO
  * @author Christian Grothoff
- *
- * TODO:
- * - define API for blacklisting, un-blacklisting and notifications
- *   about blacklisted peers
  */
 
 #ifndef GNUNET_TRANSPORT_SERVICE_H

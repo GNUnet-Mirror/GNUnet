@@ -197,6 +197,12 @@ struct ForeignAddressList
    */
   unsigned int connect_attempts;
 
+  /**
+   * DV distance to this peer (1 if no DV is used). 
+   * FIXME: need to set this from transport plugins!
+   */
+  uint32_t distance;
+
 };
 
 
@@ -446,6 +452,11 @@ struct NeighborList
   struct GNUNET_TIME_Relative latency;
 
   /**
+   * DV distance to this peer (1 if no DV is used). 
+   */
+  uint32_t distance;
+
+  /**
    * How many bytes have we received since the "last_quota_update"
    * timestamp?
    */
@@ -465,9 +476,8 @@ struct NeighborList
   unsigned int quota_violation_count;
 
   /**
-   * Have we seen an ACK from this neighbor in the past?
-   * (used to make up a fake ACK for clients connecting after
-   * the neighbor connected to us).
+   * Have we seen an PONG from this neighbor in the past (and
+   * not had a disconnect since)?
    */
   int received_pong;
 
@@ -771,7 +781,6 @@ static struct CheckHelloValidatedContext *chvc_tail;
 static struct GNUNET_CONTAINER_MultiHashMap *validation_map;
 
 
-
 /**
  * The peer specified by the given neighbor has timed-out or a plugin
  * has disconnected.  We may either need to do nothing (other plugins
@@ -1000,6 +1009,30 @@ transmit_to_client (struct TransportClient *client,
 
 
 /**
+ * Transmit a 'SEND_OK' notification to the given client for the
+ * given neighbor.
+ *
+ * @param client who to notify
+ * @param n neighbor to notify about
+ * @param result status code for the transmission request
+ */
+static void
+transmit_send_ok (struct TransportClient *client,
+		  struct NeighborList *n,
+		  int result)
+{
+  struct SendOkMessage send_ok_msg;
+
+  send_ok_msg.header.size = htons (sizeof (send_ok_msg));
+  send_ok_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
+  send_ok_msg.success = htonl (result);
+  send_ok_msg.latency = GNUNET_TIME_relative_hton (n->latency);
+  send_ok_msg.peer = n->id;
+  transmit_to_client (client, &send_ok_msg.header, GNUNET_NO); 
+}
+
+
+/**
  * Function called by the GNUNET_TRANSPORT_TransmitFunction
  * upon "completion" of a send request.  This tells the API
  * that it is now legal to send another message to the given
@@ -1019,60 +1052,32 @@ transmit_send_continuation (void *cls,
                             int result)
 {
   struct MessageQueue *mq = cls;
-  /*struct ReadyList *rl;*/ /* We no longer use the ReadyList for anything here, safe to remove? */
-  struct SendOkMessage send_ok_msg;
   struct NeighborList *n;
 
-  GNUNET_assert (mq != NULL);
   n = find_neighbor(&mq->neighbor_id);
-  if (n == NULL) /* Neighbor must have been removed asynchronously! */
-    return;
-
-  /* Otherwise, let's make sure we've got the right peer */
-  GNUNET_assert (0 ==
-                 memcmp (&n->id, target,
-                         sizeof (struct GNUNET_PeerIdentity)));
-
-  if (result == GNUNET_OK)
+  GNUNET_assert (n != NULL);
+  if (mq->specific_address != NULL)
     {
-      if (mq->specific_address != NULL)
+      if (result == GNUNET_OK)    
 	{
 	  mq->specific_address->timeout =
 	    GNUNET_TIME_relative_to_absolute
 	    (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
 	  mq->specific_address->connected = GNUNET_YES;
-	}
+	}    
+      else
+	{
+	  mq->specific_address->connected = GNUNET_NO;
+	}    
+      if (! mq->internal_msg) 
+	mq->specific_address->in_transmit = GNUNET_NO;
     }
-  else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Transmission to peer `%s' failed, marking connection as down.\n",
-                  GNUNET_i2s (target));
-      if (mq->specific_address != NULL)
-	mq->specific_address->connected = GNUNET_NO;
-    }
-  if ( (! mq->internal_msg) &&
-       (mq->specific_address != NULL) )
-    mq->specific_address->in_transmit = GNUNET_NO;
-
   if (mq->client != NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Notifying client %p about transmission to peer `%4s'.\n",
-                  mq->client, GNUNET_i2s (target));
-      send_ok_msg.header.size = htons (sizeof (send_ok_msg));
-      send_ok_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
-      send_ok_msg.success = htonl (result);
-      send_ok_msg.peer = n->id;
-      transmit_to_client (mq->client, &send_ok_msg.header, GNUNET_NO);
-    }
+    transmit_send_ok (mq->client, n, result);
   GNUNET_free (mq);
-  /* one plugin just became ready again, try transmitting
-     another message (if available) */
-  if (result == GNUNET_OK)
-    try_transmission_to_peer (n);
-  else
-    disconnect_neighbor (n, GNUNET_YES);
+  try_transmission_to_peer (n);
+  if (result != GNUNET_OK)
+    disconnect_neighbor (n, GNUNET_YES);    
 }
 
 
@@ -1159,8 +1164,12 @@ try_transmission_to_peer (struct NeighborList *neighbor)
   min_latency = GNUNET_TIME_UNIT_FOREVER_REL;
   rl = NULL;
   mq = neighbor->messages_head;
+  /* FIXME: support bi-directional use of TCP */
   if (mq->specific_address == NULL)
     mq->specific_address = find_ready_address(neighbor); 
+  GNUNET_CONTAINER_DLL_remove (neighbor->messages_head,
+			       neighbor->messages_tail,
+			       mq);
   if (mq->specific_address == NULL)
     {
 #if DEBUG_TRANSPORT
@@ -1169,14 +1178,14 @@ try_transmission_to_peer (struct NeighborList *neighbor)
 		  mq->message_buf_size,
 		  GNUNET_i2s (&mq->neighbor_id));
 #endif
+      if (mq->client != NULL)
+	transmit_send_ok (mq->client, neighbor, GNUNET_NO);
+      GNUNET_free (mq);
       return;                   /* nobody ready */
     }
   if (mq->specific_address->connected == GNUNET_NO)
     mq->specific_address->connect_attempts++;
   rl = mq->specific_address->ready_list;
-  GNUNET_CONTAINER_DLL_remove (neighbor->messages_head,
-			       neighbor->messages_tail,
-			       mq);
   mq->plugin = rl->plugin;
   if (!mq->internal_msg)
     mq->specific_address->in_transmit = GNUNET_YES;
@@ -1251,7 +1260,6 @@ transmit_to_peer (struct TransportClient *client,
   memcpy(&mq->neighbor_id, &neighbor->id, sizeof(struct GNUNET_PeerIdentity));
   mq->internal_msg = is_internal;
   mq->priority = priority;
-
   if (is_internal)    
     GNUNET_CONTAINER_DLL_insert (neighbor->messages_head,
 				 neighbor->messages_tail,
@@ -1495,14 +1503,20 @@ plugin_env_notify_address (void *cls,
  */
 static void
 notify_clients_connect (const struct GNUNET_PeerIdentity *peer,
-                        struct GNUNET_TIME_Relative latency)
+                        struct GNUNET_TIME_Relative latency,
+			uint32_t distance)
 {
   struct ConnectInfoMessage cim;
   struct TransportClient *cpos;
 
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Notifying clients about connection from `%s'\n",
+	      GNUNET_i2s (peer));
+#endif
   cim.header.size = htons (sizeof (struct ConnectInfoMessage));
   cim.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
-  cim.quota_out = htonl (GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT / (60 * 1000));
+  cim.distance = htonl (distance);
   cim.latency = GNUNET_TIME_relative_hton (latency);
   memcpy (&cim.id, peer, sizeof (struct GNUNET_PeerIdentity));
   cpos = clients;
@@ -1523,6 +1537,11 @@ notify_clients_disconnect (const struct GNUNET_PeerIdentity *peer)
   struct DisconnectInfoMessage dim;
   struct TransportClient *cpos;
 
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Notifying clients about lost connection to `%s'\n",
+	      GNUNET_i2s (peer));
+#endif
   dim.header.size = htons (sizeof (struct DisconnectInfoMessage));
   dim.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT);
   dim.reserved = htonl (0);
@@ -1612,6 +1631,7 @@ add_peer_address(struct NeighborList *neighbor,
   ret->expires = GNUNET_TIME_relative_to_absolute
     (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
   ret->latency = GNUNET_TIME_relative_get_forever();
+  ret->distance = -1;
   ret->timeout = GNUNET_TIME_relative_to_absolute
     (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT); 
   ret->ready_list = head;
@@ -1731,6 +1751,12 @@ check_pending_validation (void *cls,
 	n->latency = fal->latency;
       else
 	n->latency.value = (fal->latency.value + n->latency.value) / 2;
+      n->distance = fal->distance;
+      if (GNUNET_NO == n->received_pong)
+	{
+	  notify_clients_connect (&target, n->latency, n->distance);
+	  n->received_pong = GNUNET_YES;
+	}
     }
 
   /* clean up validation entry */
@@ -1795,6 +1821,7 @@ handle_pong (void *cls, const struct GNUNET_MessageHeader *message,
 #endif
       return;
     }
+  
 #if 0
   /* FIXME: add given address to potential pool of our addresses
      (for voting) */
@@ -1809,7 +1836,7 @@ handle_pong (void *cls, const struct GNUNET_MessageHeader *message,
 
 static void
 neighbor_timeout_task (void *cls,
-                        const struct GNUNET_SCHEDULER_TaskContext *tc)
+		       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct NeighborList *n = cls;
 
@@ -1861,13 +1888,13 @@ setup_new_neighbor (const struct GNUNET_PeerIdentity *peer)
       tp = tp->next;
     }
   n->latency = GNUNET_TIME_UNIT_FOREVER_REL;
+  n->distance = -1;
   n->timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
                                                   GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                                   &neighbor_timeout_task, n);
   transmit_to_peer (NULL, NULL, 0,
                     (const char *) our_hello, GNUNET_HELLO_size(our_hello),
                     GNUNET_NO, n);
-  notify_clients_connect (peer, GNUNET_TIME_UNIT_FOREVER_REL);
   return n;
 }
 
@@ -2266,27 +2293,14 @@ process_hello (struct TransportPlugin *plugin,
  *        disconnect?
  */
 static void
-disconnect_neighbor (struct NeighborList *current_handle, int check)
+disconnect_neighbor (struct NeighborList *n, int check)
 {
   struct ReadyList *rpos;
   struct NeighborList *npos;
   struct NeighborList *nprev;
-  struct NeighborList *n;
   struct MessageQueue *mq;
   struct ForeignAddressList *peer_addresses;
   struct ForeignAddressList *peer_pos;
-
-  if (neighbors == NULL)
-    return; /* We don't have any neighbors, so client has an already removed handle! */
-
-  npos = neighbors;
-  while ((npos != NULL) && (current_handle != npos))
-    npos = npos->next;
-
-  if (npos == NULL)
-    return; /* Couldn't find neighbor in existing list, must have been already removed! */
-  else
-    n = npos;
 
   if (GNUNET_YES == check)
     {
@@ -2303,10 +2317,10 @@ disconnect_neighbor (struct NeighborList *current_handle, int check)
           rpos = rpos->next;
         }
     }
-
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-              "Disconnecting from `%4s'\n", GNUNET_i2s (&n->id));
+              "Disconnecting from `%4s'\n",
+	      GNUNET_i2s (&n->id));
 #endif
   /* remove n from neighbors list */
   nprev = NULL;
@@ -2323,7 +2337,8 @@ disconnect_neighbor (struct NeighborList *current_handle, int check)
     nprev->next = n->next;
 
   /* notify all clients about disconnect */
-  notify_clients_disconnect (&n->id);
+  if (GNUNET_YES == n->received_pong)
+    notify_clients_disconnect (&n->id);
 
   /* clean up all plugins, cancel connections and pending transmissions */
   while (NULL != (rpos = n->plugins))
@@ -2352,7 +2367,10 @@ disconnect_neighbor (struct NeighborList *current_handle, int check)
       GNUNET_free (mq);
     }
   if (n->timeout_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (sched, n->timeout_task);
+    {
+      GNUNET_SCHEDULER_cancel (sched, n->timeout_task);
+      n->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    }
   /* finally, free n itself */
   GNUNET_free (n);
 }
@@ -2504,9 +2522,10 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   peer_address = add_peer_address(n, 
 				  plugin->short_name,
 				  sender_address, 
-				  sender_address_len);
+				  sender_address_len);  
   if (peer_address != NULL)
     {
+      peer_address->distance = distance;
       if (peer_address->connected == GNUNET_NO)
         {
 	  peer_address->connected = GNUNET_YES;
@@ -2520,10 +2539,12 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* update traffic received amount ... */
   msize = ntohs (message->size);
   n->last_received += msize;
-  GNUNET_SCHEDULER_cancel (sched, n->timeout_task);
+  n->distance = distance;
   n->peer_timeout =
     GNUNET_TIME_relative_to_absolute
     (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+  GNUNET_SCHEDULER_cancel (sched,
+			   n->timeout_task);
   n->timeout_task =
     GNUNET_SCHEDULER_add_delayed (sched,
                                   GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
@@ -2551,6 +2572,11 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
       handle_pong(plugin, message, peer, sender_address, sender_address_len);
       break;
     default:
+      if (! n->received_pong)
+	{
+	  GNUNET_break_op (0);
+	  break;
+	}
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Received message of type %u from `%4s', sending to all clients.\n",
@@ -2591,8 +2617,6 @@ handle_start (void *cls,
   struct TransportClient *c;
   struct ConnectInfoMessage cim;
   struct NeighborList *n;
-  struct InboundMessage *im;
-  struct GNUNET_MessageHeader *ack;
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2626,34 +2650,18 @@ handle_start (void *cls,
       /* tell new client about all existing connections */
       cim.header.size = htons (sizeof (struct ConnectInfoMessage));
       cim.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
-      cim.quota_out =
-        htonl (GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT / (60 * 1000));
-      /* FIXME: this ACK stuff is not nice! */
-      im = GNUNET_malloc (sizeof (struct InboundMessage) +
-                          sizeof (struct GNUNET_MessageHeader));
-      im->header.size = htons (sizeof (struct InboundMessage) +
-                               sizeof (struct GNUNET_MessageHeader));
-      im->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
-      im->latency = GNUNET_TIME_relative_hton (GNUNET_TIME_UNIT_ZERO);
-      ack = (struct GNUNET_MessageHeader *) &im[1];
-      ack->size = htons (sizeof (struct GNUNET_MessageHeader));
-      ack->type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ACK);
-      for (n = neighbors; n != NULL; n = n->next)
-        {
-          cim.id = n->id;
-	  cim.latency = GNUNET_TIME_relative_hton (n->latency);
-          transmit_to_client (c, &cim.header, GNUNET_NO);
-          if (n->received_pong)
-            {
-              im->peer = n->id;
-              transmit_to_client (c, &im->header, GNUNET_NO);
+      n = neighbors; 
+      while (n != NULL)
+	{
+	  if (GNUNET_YES == n->received_pong)
+	    {
+	      cim.id = n->id;
+	      cim.latency = GNUNET_TIME_relative_hton (n->latency);
+	      cim.distance = htonl (n->distance);
+	      transmit_to_client (c, &cim.header, GNUNET_NO);
             }
+	    n = n->next;
         }
-      GNUNET_free (im);
-    }
-  else
-    {
-      fprintf(stderr, "Our hello is NULL!\n");
     }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -2725,7 +2733,7 @@ handle_send (void *cls,
     }
   n = find_neighbor (&obm->peer);
   if (n == NULL)
-    n = setup_new_neighbor (&obm->peer); /* But won't ever add address, we have none! */
+    n = setup_new_neighbor (&obm->peer);
   tc = clients;
   while ((tc != NULL) && (tc->client != client))
     tc = tc->next;
@@ -2785,33 +2793,6 @@ handle_set_quota (void *cls,
                                  &qsm->peer, ntohl (qsm->quota_in));
       rl = rl->next;
     }
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-}
-
-
-/**
- * Handle TRY_CONNECT-message.
- *
- * @param cls closure (always NULL)
- * @param client identification of the client
- * @param message the actual message
- */
-static void
-handle_try_connect (void *cls,
-                    struct GNUNET_SERVER_Client *client,
-                    const struct GNUNET_MessageHeader *message)
-{
-  const struct TryConnectMessage *tcm;
-  struct NeighborList *neighbor;
-  tcm = (const struct TryConnectMessage *) message;
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' request from client %p asking to connect to `%4s'\n",
-              "TRY_CONNECT", client, GNUNET_i2s (&tcm->peer));
-#endif
-  neighbor = find_neighbor(&tcm->peer);
-  if (neighbor == NULL)
-    setup_new_neighbor (&tcm->peer);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -2909,9 +2890,6 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
    GNUNET_MESSAGE_TYPE_TRANSPORT_SEND, 0},
   {&handle_set_quota, NULL,
    GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA, sizeof (struct QuotaSetMessage)},
-  {&handle_try_connect, NULL,
-   GNUNET_MESSAGE_TYPE_TRANSPORT_TRY_CONNECT,
-   sizeof (struct TryConnectMessage)},
   {&handle_address_lookup, NULL,
    GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP,
    0},
