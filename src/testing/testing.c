@@ -40,7 +40,7 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_transport_service.h"
 
-#define DEBUG_TESTING GNUNET_NO
+#define DEBUG_TESTING GNUNET_YES
 
 /**
  * How long do we wait after starting gnunet-service-arm
@@ -800,13 +800,13 @@ connect_notify (void *cls, const struct GNUNET_PeerIdentity * peer, struct GNUNE
 
 #if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core notified us about connection to a peer\n\n\n");
+              "Core notified us about connection to a peer\n");
 #endif
   if (memcmp(&ctx->d2->id, peer, sizeof(struct GNUNET_PeerIdentity)) == 0)
     {
 #if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core notified us about connection to peer %s\n\n\n", GNUNET_i2s(peer));
+              "Core notified us about connection to peer %s\n", GNUNET_i2s(peer));
 #endif
       /*
        * If we disconnect here, then the hello may never get sent (if it was delayed!)
@@ -825,10 +825,12 @@ send_hello(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ConnectContext *ctx = cls;
 
-  GNUNET_assert (ctx->hello != NULL);
-  GNUNET_TRANSPORT_offer_hello (ctx->d2th, ctx->hello);
+  if (ctx->hello != NULL)
+    {
+      GNUNET_TRANSPORT_offer_hello (ctx->d2th, ctx->hello);
+      ctx->timeout_hello = GNUNET_TIME_relative_add(ctx->timeout_hello, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 200));
+    }
 
-  ctx->timeout_hello = GNUNET_TIME_relative_multiply(ctx->timeout_hello, 2);
   ctx->hello_send_task = GNUNET_SCHEDULER_add_delayed(ctx->d1->sched, ctx->timeout_hello, &send_hello, ctx);
 }
 
@@ -904,7 +906,7 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
   ctx->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   ctx->cb = cb;
   ctx->cb_cls = cb_cls;
-  ctx->timeout_hello = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 800);
+  ctx->timeout_hello = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 400);
   ctx->connected = GNUNET_NO;
 #if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

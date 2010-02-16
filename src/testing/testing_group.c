@@ -44,7 +44,7 @@
  */
 #define HIGH_PORT 32000
 
-#define CONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+#define CONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 180)
 
 struct PeerConnection
 {
@@ -295,6 +295,401 @@ add_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first, unsigne
   return added;
 }
 
+int
+create_small_world_ring(struct GNUNET_TESTING_PeerGroup *pg)
+{
+  unsigned int i, j;
+  int nodeToConnect;
+  unsigned int natLog;
+  unsigned int randomPeer;
+  double random, logNModifier, percentage;
+  unsigned int smallWorldConnections;
+  int connsPerPeer;
+  char *p_string;
+  int max;
+  int min;
+  unsigned int useAnd;
+  int connect_attempts;
+  struct GNUNET_TIME_Absolute time;
+
+  GNUNET_CONFIGURATION_get_value_string(pg->cfg, "TESTING", "LOGNMODIFIER", &p_string);
+  if (p_string != NULL)
+    logNModifier = atof(p_string);
+  else
+    logNModifier = 0.5; /* FIXME: default modifier? */
+
+  GNUNET_free_non_null(p_string);
+
+  GNUNET_CONFIGURATION_get_value_string(pg->cfg, "TESTING", "PERCENTAGE", &p_string);
+  if (p_string != NULL)
+    percentage = atof(p_string);
+  else
+    percentage = 0.5; /* FIXME: default percentage? */
+
+  GNUNET_free_non_null(p_string);
+
+  natLog = log (pg->total);
+  connsPerPeer = ceil (natLog * logNModifier);
+
+  if (connsPerPeer % 2 == 1)
+    connsPerPeer += 1;
+
+  time = GNUNET_TIME_absolute_get ();
+  srand ((unsigned int) time.value);
+  smallWorldConnections = 0;
+  connect_attempts = 0;
+  for (i = 0; i < pg->total; i++)
+    {
+      useAnd = 0;
+      max = i + connsPerPeer / 2;
+      min = i - connsPerPeer / 2;
+
+      if (max > pg->total - 1)
+        {
+          max = max - pg->total;
+          useAnd = 1;
+        }
+
+      if (min < 0)
+        {
+          min = pg->total - 1 + min;
+          useAnd = 1;
+        }
+
+      for (j = 0; j < connsPerPeer / 2; j++)
+        {
+          random = ((double) rand () / RAND_MAX);
+          if (random < percentage)
+            {
+              /* Connect to uniformly selected random peer */
+              randomPeer =
+                GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                   pg->total);
+              while ((((randomPeer < max) && (randomPeer > min))
+                      && (useAnd == 0)) || (((randomPeer > min)
+                                             || (randomPeer < max))
+                                            && (useAnd == 1)))
+                {
+                  randomPeer =
+                      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                                         pg->total);
+                }
+              smallWorldConnections +=
+                add_connections (pg, i, randomPeer);
+            }
+          else
+            {
+              nodeToConnect = i + j + 1;
+              if (nodeToConnect > pg->total - 1)
+                {
+                  nodeToConnect = nodeToConnect - pg->total;
+                }
+              connect_attempts +=
+                add_connections (pg, i, nodeToConnect);
+            }
+        }
+
+    }
+
+  connect_attempts += smallWorldConnections;
+
+  return GNUNET_OK;
+}
+
+
+static int
+create_nated_internet (struct GNUNET_TESTING_PeerGroup *pg)
+{
+  unsigned int outer_count, inner_count;
+  unsigned int cutoff;
+  int connect_attempts;
+  double nat_percentage;
+  char *p_string;
+
+  GNUNET_CONFIGURATION_get_value_string(pg->cfg, "TESTING", "NATPERCENTAGE", &p_string);
+  if (p_string != NULL)
+    nat_percentage = atof(p_string);
+  else
+    nat_percentage = 0.0; /* FIXME: default modifier? */
+
+  GNUNET_free_non_null(p_string);
+
+  cutoff = (unsigned int) (nat_percentage * pg->total);
+
+  connect_attempts = 0;
+
+  for (outer_count = 0; outer_count < pg->total - 1; outer_count++)
+    {
+      for (inner_count = outer_count + 1; inner_count < pg->total;
+           inner_count++)
+        {
+          if ((outer_count > cutoff) || (inner_count > cutoff))
+            {
+#if VERBOSE_TESTING
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          "Connecting peer %d to peer %d\n",
+                          outer_count, inner_count);
+#endif
+              connect_attempts += add_connections(pg, outer_count, inner_count);
+            }
+        }
+    }
+
+  return connect_attempts;
+
+}
+
+
+
+static int
+create_small_world (struct GNUNET_TESTING_PeerGroup *pg)
+{
+  unsigned int i, j, k;
+  unsigned int square;
+  unsigned int rows;
+  unsigned int cols;
+  unsigned int toggle = 1;
+  unsigned int nodeToConnect;
+  unsigned int natLog;
+  unsigned int node1Row;
+  unsigned int node1Col;
+  unsigned int node2Row;
+  unsigned int node2Col;
+  unsigned int distance;
+  double probability, random, percentage;
+  unsigned int smallWorldConnections;
+  char *p_string;
+  int connect_attempts;
+  square = floor (sqrt (pg->total));
+  rows = square;
+  cols = square;
+
+  GNUNET_CONFIGURATION_get_value_string(pg->cfg, "TESTING", "PERCENTAGE", &p_string);
+  if (p_string != NULL)
+    percentage = atof(p_string);
+  else
+    percentage = 0.5; /* FIXME: default percentage? */
+
+  GNUNET_free_non_null(p_string);
+
+  GNUNET_CONFIGURATION_get_value_string(pg->cfg, "TESTING", "PROBABILITY", &p_string);
+  if (p_string != NULL)
+    probability = atof(p_string);
+  else
+    probability = 0.5; /* FIXME: default probability? */
+
+  GNUNET_free_non_null(p_string);
+
+  if (square * square != pg->total)
+    {
+      while (rows * cols < pg->total)
+        {
+          if (toggle % 2 == 0)
+            rows++;
+          else
+            cols++;
+
+          toggle++;
+        }
+    }
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Connecting nodes in 2d torus topology: %u rows %u columns\n"),
+                  rows, cols);
+#endif
+
+  connect_attempts = 0;
+  /* Rows and columns are all sorted out, now iterate over all nodes and connect each
+   * to the node to its right and above.  Once this is over, we'll have our torus!
+   * Special case for the last node (if the rows and columns are not equal), connect
+   * to the first in the row to maintain topology.
+   */
+  for (i = 0; i < pg->total; i++)
+    {
+      /* First connect to the node to the right */
+      if (((i + 1) % cols != 0) && (i + 1 != pg->total))
+        nodeToConnect = i + 1;
+      else if (i + 1 == pg->total)
+        nodeToConnect = rows * cols - cols;
+      else
+        nodeToConnect = i - cols + 1;
+
+      connect_attempts += add_connections (pg, i, nodeToConnect);
+
+      if (i < cols)
+        nodeToConnect = (rows * cols) - cols + i;
+      else
+        nodeToConnect = i - cols;
+
+      if (nodeToConnect < pg->total)
+        connect_attempts += add_connections (pg, i, nodeToConnect);
+    }
+  natLog = log (pg->total);
+#if VERBOSE_TESTING
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              _("natural log of %d is %d, will run %d iterations\n"),
+             pg->total, natLog, (int) (natLog * percentage));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Total connections added thus far: %u!\n"), connect_attempts);
+#endif
+  smallWorldConnections = 0;
+  for (i = 0; i < (int) (natLog * percentage); i++)
+    {
+      for (j = 0; j < pg->total; j++)
+        {
+          /* Determine the row and column of node at position j on the 2d torus */
+          node1Row = j / cols;
+          node1Col = j - (node1Row * cols);
+          for (k = 0; k < pg->total; k++)
+            {
+              /* Determine the row and column of node at position k on the 2d torus */
+              node2Row = k / cols;
+              node2Col = k - (node2Row * cols);
+              /* Simple Cartesian distance */
+              distance = abs (node1Row - node2Row) + abs (node1Col - node2Col);
+              if (distance > 1)
+                {
+                  /* Calculate probability as 1 over the square of the distance */
+                  probability = 1.0 / (distance * distance);
+                  /* Choose a random, divide by RAND_MAX to get a number between 0 and 1 */
+                  random = ((double) rand () / RAND_MAX);
+                  /* If random < probability, then connect the two nodes */
+                  if (random < probability)
+                    smallWorldConnections += add_connections (pg, j, k);
+
+                }
+            }
+        }
+    }
+  connect_attempts += smallWorldConnections;
+#if VERBOSE_TESTING
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      _("Total connections added for small world: %d!\n"),
+                      smallWorldConnections);
+#endif
+  return GNUNET_OK;
+}
+
+
+
+static int
+create_erdos_renyi (struct GNUNET_TESTING_PeerGroup *pg)
+{
+  double temp_rand;
+  unsigned int outer_count;
+  unsigned int inner_count;
+  int connect_attempts;
+  double probability;
+  char *p_string;
+  connect_attempts = 0;
+
+  probability = GNUNET_CONFIGURATION_get_value_string(pg->cfg, "TESTING", "PROBABILITY", &p_string);
+  if (p_string != NULL)
+    {
+      probability = atof(p_string);
+    }
+  else
+    {
+      probability = 0.0; /* FIXME: default probability? */
+    }
+  for (outer_count = 0; outer_count < pg->total - 1; outer_count++)
+    {
+      for (inner_count = outer_count + 1; inner_count < pg->total;
+           inner_count++)
+        {
+          temp_rand = ((double) RANDOM () / RAND_MAX);
+#if VERBOSE_TESTING
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      _("rand is %f probability is %f\n"), temp_rand,
+                      probability);
+#endif
+          if (temp_rand < probability)
+            {
+              connect_attempts += add_connections (pg, outer_count, inner_count);
+            }
+        }
+    }
+
+  return connect_attempts;
+}
+
+static int
+create_2d_torus (struct GNUNET_TESTING_PeerGroup *pg)
+{
+  unsigned int i;
+  unsigned int square;
+  unsigned int rows;
+  unsigned int cols;
+  unsigned int toggle = 1;
+  unsigned int nodeToConnect;
+  int connect_attempts;
+
+  connect_attempts = 0;
+
+  square = floor (sqrt (pg->total));
+  rows = square;
+  cols = square;
+
+  if (square * square != pg->total)
+    {
+      while (rows * cols < pg->total)
+        {
+          if (toggle % 2 == 0)
+            rows++;
+          else
+            cols++;
+
+          toggle++;
+        }
+    }
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Connecting nodes in 2d torus topology: %u rows %u columns\n"),
+                  rows, cols);
+#endif
+  /* Rows and columns are all sorted out, now iterate over all nodes and connect each
+   * to the node to its right and above.  Once this is over, we'll have our torus!
+   * Special case for the last node (if the rows and columns are not equal), connect
+   * to the first in the row to maintain topology.
+   */
+  for (i = 0; i < pg->total; i++)
+    {
+      /* First connect to the node to the right */
+      if (((i + 1) % cols != 0) && (i + 1 != pg->total))
+        nodeToConnect = i + 1;
+      else if (i + 1 == pg->total)
+        nodeToConnect = rows * cols - cols;
+      else
+        nodeToConnect = i - cols + 1;
+#if VERBOSE_TESTING
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Connecting peer %d to peer %d\n",
+                      i, nodeToConnect);
+#endif
+      connect_attempts += add_connections(pg, i, nodeToConnect);
+
+      /* Second connect to the node immediately above */
+      if (i < cols)
+        nodeToConnect = (rows * cols) - cols + i;
+      else
+        nodeToConnect = i - cols;
+
+      if (nodeToConnect < pg->total)
+        {
+#if VERBOSE_TESTING
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Connecting peer %d to peer %d\n",
+                      i, nodeToConnect);
+#endif
+          connect_attempts += add_connections(pg, i, nodeToConnect);
+        }
+
+    }
+
+  return connect_attempts;
+}
+
+
+
 static int
 create_clique (struct GNUNET_TESTING_PeerGroup *pg)
 {
@@ -315,13 +710,34 @@ create_clique (struct GNUNET_TESTING_PeerGroup *pg)
                       outer_count, inner_count);
 #endif
           connect_attempts += add_connections(pg, outer_count, inner_count);
-          /*GNUNET_TESTING_daemons_connect (pg->peers[outer_count].daemon,
-                                          pg->peers[inner_count].daemon,
-                                          CONNECT_TIMEOUT,
-                                          pg->notify_connection,
-                                          pg->notify_connection_cls);*/
         }
     }
+
+  return connect_attempts;
+}
+
+
+static int
+create_ring (struct GNUNET_TESTING_PeerGroup *pg)
+{
+  unsigned int count;
+  int connect_attempts;
+
+  connect_attempts = 0;
+
+  /* Connect each peer to the next highest numbered peer */
+  for (count = 0; count < pg->total - 1; count++)
+    {
+#if VERBOSE_TESTING
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Connecting peer %d to peer %d\n",
+                      count, count + 1);
+#endif
+      connect_attempts += add_connections(pg, count, count + 1);
+    }
+
+  /* Connect the last peer to the first peer */
+  connect_attempts += add_connections(pg, pg->total - 1, 0);
 
   return connect_attempts;
 }
@@ -460,65 +876,50 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg)
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Creating clique topology (may take a bit!)\n"));
+#endif
           ret = create_clique (pg);
           break;
-        case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD:
+        case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD_RING:
+#if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      _("Creating small world topology (may take a bit!)\n"));
+                      _("Creating small world (ring) topology (may take a bit!)\n"));
 #endif
-          ret = GNUNET_SYSERR;
-/*        ret =
-          GNUNET_REMOTE_connect_small_world_ring (&totalConnections,
-                                                  number_of_daemons,
-                                                  list_as_array, dotOutFile,
-                                                  percentage, logNModifier);
-                                                  */
+          ret = create_small_world_ring (pg);
+          break;
+        case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD:
+#if VERBOSE_TESTING
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      _("Creating small world (2d-torus) topology (may take a bit!)\n"));
+#endif
+          ret = create_small_world (pg);
           break;
         case GNUNET_TESTING_TOPOLOGY_RING:
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Creating ring topology (may take a bit!)\n"));
 #endif
-          /*
-             ret = GNUNET_REMOTE_connect_ring (&totalConnections, head, dotOutFile);
-           */
-          ret = GNUNET_SYSERR;
+          ret = create_ring (pg);
           break;
         case GNUNET_TESTING_TOPOLOGY_2D_TORUS:
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Creating 2d torus topology (may take a bit!)\n"));
 #endif
-          /*
-             ret =
-             GNUNET_REMOTE_connect_2d_torus (&totalConnections, number_of_daemons,
-             list_as_array, dotOutFile);
-           */
-          ret = GNUNET_SYSERR;
+          ret = create_2d_torus (pg);
           break;
         case GNUNET_TESTING_TOPOLOGY_ERDOS_RENYI:
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Creating Erdos-Renyi topology (may take a bit!)\n"));
 #endif
-          /* ret =
-             GNUNET_REMOTE_connect_erdos_renyi (&totalConnections, percentage,
-             head, dotOutFile);
-           */
-          ret = GNUNET_SYSERR;
+          ret = create_erdos_renyi (pg);
           break;
         case GNUNET_TESTING_TOPOLOGY_INTERNAT:
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Creating InterNAT topology (may take a bit!)\n"));
 #endif
-          /*
-             ret =
-             GNUNET_REMOTE_connect_nated_internet (&totalConnections, percentage,
-             number_of_daemons, head,
-             dotOutFile);
-           */
-          ret = GNUNET_SYSERR;
+          ret = create_nated_internet (pg);
           break;
         case GNUNET_TESTING_TOPOLOGY_NONE:
           ret = 0;
