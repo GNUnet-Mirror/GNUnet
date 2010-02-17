@@ -13,19 +13,14 @@ away), in order in which they will likely be done:
 * ARM [Safey]
 
 Urgent items (before announcing ng.gnunet.org):
-* TRANSPORT:
-  - nondeterministic transport testcase failures in UDP 
-  - disconnect notifications from TCP not always as nice as we might want
-    them to be (but how can we do this cleanly given that UDP is connectionless?)
-  - TCP not used bi-directionally (especially important also for PONG!)
 * CORE:
   - needs more testing
 * TOPOLOGY:
-  - needs testing
+  - needs more testing
 * HOSTLIST:
   - needs testing
 * FS (basic anonymous FS only)
-  - test multi-peer search/download [needs core first]
+  - test multi-peer search/download
 * new webpage
   - run peer => have a 0.9.x hostlist
   - improve basic documentation (configure, dependencies, what works, etc.)
@@ -40,6 +35,10 @@ Urgent items (before announcing ng.gnunet.org):
            (async peerinfo would not be right)
   - OS: existing waitpid call is not nice (not integratable with scheduler! fix this!)
     => should 'scheduler' support SIGCHILD explicitly? Always?
+* TRANSPORT:
+  - disconnect notifications from TCP not always as nice as we might want
+    them to be (but how can we do this cleanly given that UDP is connectionless?)
+  - TCP not used bi-directionally (especially important also for PONG!)
 * STATISTICS:
   - synchronous/asynchronous API (& implementation) is not nice;
     => provide notification-based API
