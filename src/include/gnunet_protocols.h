@@ -317,11 +317,6 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CORE_HANGUP 84
 
 /**
- * Dummy message send by the topology service to create connections.
- */
-#define GNUNET_MESSAGE_TYPE_TOPOLOGY_DUMMY 91
-
-/**
  * Message sent by datastore client on join.
  */
 #define GNUNET_MESSAGE_TYPE_DATASTORE_RESERVE 92
