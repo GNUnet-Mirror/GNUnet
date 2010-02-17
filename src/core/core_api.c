@@ -276,8 +276,6 @@ timeout_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CORE_TransmitHandle *th = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Transmission request timed out.\n");
   th->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (0 == th->get_message (th->get_message_cls, 0, NULL));
 }
@@ -298,10 +296,7 @@ request_start (void *cls, size_t size, void *buf)
   struct GNUNET_CORE_Handle *h = cls;
   struct GNUNET_CORE_TransmitHandle *th;
   size_t ret;
-#if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "request_start called\n");
-#endif
+
   h->th = NULL;
   th = h->pending_head;
   if (buf == NULL)

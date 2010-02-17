@@ -2045,13 +2045,9 @@ static size_t
 notify_transport_connect_done (void *cls, size_t size, void *buf)
 {
   struct Neighbour *n = cls;
-  struct GNUNET_MessageHeader hdr;
-
   n->th = NULL;
-  hdr.type = htons (GNUNET_MESSAGE_TYPE_TOPOLOGY_DUMMY);
-  hdr.size = htons (sizeof(hdr));
-  memcpy (buf, &hdr, sizeof (hdr));
-  return sizeof (hdr);
+  send_key (n);
+  return 0;
 }
 
 
