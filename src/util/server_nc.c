@@ -172,6 +172,11 @@ handle_client_disconnect (void *cls,
       GNUNET_free (pml);
     }
   GNUNET_SERVER_client_drop (client);
+  if (pos->th != NULL)
+    {
+      GNUNET_CONNECTION_notify_transmit_ready_cancel (pos->th);
+      pos->th = NULL;
+    }
   GNUNET_free (pos);
 }
 
