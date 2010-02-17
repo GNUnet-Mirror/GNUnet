@@ -3085,6 +3085,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct OwnAddressList *al;
   struct CheckHelloValidatedContext *chvc;
 
+  while (neighbours != NULL)
+    disconnect_neighbour (neighbours, GNUNET_NO);
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transport service is unloading plugins...\n");
