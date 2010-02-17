@@ -241,6 +241,9 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin, struct GNUNE
   start.cb = sizeof (start);
 
 #if NILS
+  if ((pipe_stdin != NULL) || (pipe_stdout != NULL))
+    start.dwFlags |= STARTF_USESTDHANDLES;
+
   if (pipe_stdin != NULL)
     {
       GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle(pipe_stdin, GNUNET_DISK_PIPE_END_READ), &stdin_handle, sizeof (HANDLE));

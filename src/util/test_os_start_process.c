@@ -25,6 +25,10 @@
  * giving a file descriptor to write stdout to.  If the
  * correct data "HELLO" is read then all is well.
  *
+ * TODO: This test case will not work on windows because
+ * there is no cat (unless there is).  Perhaps we should
+ * add a gnunet_cat program/test program to util so we can
+ * adequately test this functionality on windows?
  */
 #include "platform.h"
 #include "gnunet_common.h"
@@ -36,20 +40,74 @@
 
 #define VERBOSE GNUNET_NO
 
-static int
-check ()
+static char *test_phrase = "HELLO WORLD";
+static int ok;
+
+pid_t pid;
+/* Pipe to write to started processes stdin (on write end) */
+struct GNUNET_DISK_PipeHandle *hello_pipe_stdin;
+/* Pipe to read from started processes stdout (on read end) */
+struct GNUNET_DISK_PipeHandle *hello_pipe_stdout;
+
+GNUNET_SCHEDULER_TaskIdentifier die_task;
+
+static void
+end_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+
+  if (0 != PLIBC_KILL (pid, SIGTERM))
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+    }
+  GNUNET_OS_process_wait (pid);
+  GNUNET_DISK_pipe_close(hello_pipe_stdout);
+  GNUNET_DISK_pipe_close(hello_pipe_stdin);
+}
+
+static void
+read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_DISK_FileHandle *stdout_read_handle = cls;
+  char buf[16];
+  memset(&buf, 0, sizeof(buf));
+  int bytes;
+  bytes = GNUNET_DISK_file_read(stdout_read_handle, &buf, sizeof(buf));
+
+  if (bytes < 1)
+    {
+      ok = 1;
+      GNUNET_SCHEDULER_cancel(tc->sched, die_task);
+      GNUNET_SCHEDULER_add_now(tc->sched, &end_task, NULL);
+      return;
+    }
+
+  ok = strncmp(&buf[0], test_phrase, strlen(test_phrase));
+#if VERBOSE
+  fprintf(stderr, "read %s\n", &buf[0]);
+#endif
+  if (ok == 0)
+    {
+      GNUNET_SCHEDULER_cancel(tc->sched, die_task);
+      GNUNET_SCHEDULER_add_now(tc->sched, &end_task, NULL);
+      return;
+    }
+
+  GNUNET_SCHEDULER_add_read_file (tc->sched,
+                                       GNUNET_TIME_UNIT_FOREVER_REL,
+                                       stdout_read_handle, &read_call, stdout_read_handle);
+
+}
+
+
+static void
+task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   char *fn;
-  pid_t pid;
   char *buf;
   int fd_stdout;
   int fd_stdin;
-  int ret;
-  static char *test_phrase = "HELLO WORLD";
-  /* Pipe to write to started processes stdin (on write end) */
-  struct GNUNET_DISK_PipeHandle *hello_pipe_stdin;
-  /* Pipe to read from started processes stdout (on read end) */
-  struct GNUNET_DISK_PipeHandle *hello_pipe_stdout;
+
+  const struct GNUNET_DISK_FileHandle *stdout_read_handle;
 
   buf = GNUNET_malloc(strlen(test_phrase) + 1);
   GNUNET_asprintf(&fn, "cat");
@@ -58,7 +116,10 @@ check ()
   hello_pipe_stdout = GNUNET_DISK_pipe(GNUNET_YES);
 
   if ((hello_pipe_stdout == NULL) || (hello_pipe_stdin == NULL))
-    return GNUNET_SYSERR;
+    {
+      ok = 1;
+      return;
+    }
 
   pid = GNUNET_OS_start_process (hello_pipe_stdin, hello_pipe_stdout, fn,
                                  "test_gnunet_echo_hello", NULL);
@@ -73,28 +134,43 @@ check ()
   GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle(hello_pipe_stdin, GNUNET_DISK_PIPE_END_WRITE), &fd_stdin, sizeof (int));
 
   /* Write the test_phrase to the cat process */
-  ret = write(fd_stdin, test_phrase, strlen(test_phrase) + 1);
+  if (write(fd_stdin, test_phrase, strlen(test_phrase) + 1) == GNUNET_SYSERR)
+    {
+      ok = 1;
+      return;
+    }
 
   /* Close the write end to end the cycle! */
   GNUNET_DISK_pipe_close_end(hello_pipe_stdin, GNUNET_DISK_PIPE_END_WRITE);
 
-  ret = 0;
+  stdout_read_handle = GNUNET_DISK_pipe_handle(hello_pipe_stdout, GNUNET_DISK_PIPE_END_READ);
+
+  die_task = GNUNET_SCHEDULER_add_delayed(tc->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 1), &end_task, NULL);
+
+  GNUNET_SCHEDULER_add_read_file (tc->sched,
+                                  GNUNET_TIME_UNIT_FOREVER_REL,
+                                  stdout_read_handle, &read_call, (void *)stdout_read_handle);
   /* Read from the cat process, hopefully get the phrase we wrote to it! */
-  while (read(fd_stdout, buf, strlen(test_phrase) + 1) > 0)
+
+  /*while (read(fd_stdout, buf, strlen(test_phrase) + 1) > 0)
     {
       ret = strncmp(buf, test_phrase, strlen(test_phrase));
     }
-
-  if (0 != PLIBC_KILL (pid, SIGTERM))
-    {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-    }
-  GNUNET_OS_process_wait (pid);
-  GNUNET_DISK_pipe_close(hello_pipe_stdout);
-  GNUNET_DISK_pipe_close(hello_pipe_stdin);
-
-  return ret;
+  */
 }
+
+/**
+ * Main method, starts scheduler with task1,
+ * checks that "ok" is correct at the end.
+ */
+static int
+check ()
+{
+  ok = 1;
+  GNUNET_SCHEDULER_run (&task, &ok);
+  return ok;
+}
+
 
 int
 main (int argc, char *argv[])
