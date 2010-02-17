@@ -1561,8 +1561,12 @@ peer_transmit_timeout (void *cls,
 {
   struct GNUNET_TRANSPORT_TransmitHandle *th = cls;
   struct NeighbourList *n;
+  GNUNET_CONNECTION_TransmitReadyNotify notify;
+  void *notify_cls;
 
   th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
+  notify = th->notify;
+  notify_cls = th->notify_cls;
   n = th->neighbour;
   switch (n->transmit_stage)
     {
@@ -1583,8 +1587,8 @@ peer_transmit_timeout (void *cls,
     default:
       GNUNET_break (0);
     }
-  if (NULL != th->notify)
-    th->notify (th->notify_cls, 0, NULL);
+  if (NULL != notify)
+    notify (notify_cls, 0, NULL);
 }
 
 
