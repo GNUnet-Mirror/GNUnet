@@ -1220,6 +1220,13 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 							    timeout,
 							    &retry_transmission_task,
 							    neighbour);
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "No validated destination address available to transmit message of size %u to peer `%4s', will wait %llums to find an address.\n",
+		  mq->message_buf_size,
+		  GNUNET_i2s (&mq->neighbour_id),
+		  timeout.value);
+#endif
       return;    
     }
   if (mq->specific_address->connected == GNUNET_NO)
@@ -2179,10 +2186,11 @@ add_to_foreign_address_list (void *cls,
     {
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Adding address `%s' (%s) for peer `%4s' due to peerinfo data.\n",
+		  "Adding address `%s' (%s) for peer `%4s' due to peerinfo data for %llums.\n",
 		  GNUNET_a2s (addr, addrlen),
 		  tname,
-		  GNUNET_i2s (&n->id));
+		  GNUNET_i2s (&n->id),
+		  expiration.value);
 #endif
       fal = add_peer_address (n, tname, addr, addrlen);
     }
@@ -2254,10 +2262,13 @@ check_hello_validated (void *cls,
   chvc->hello_known = GNUNET_YES;
   n = find_neighbour (peer);
   if (n != NULL)
-    GNUNET_HELLO_iterate_addresses (h,
-				    GNUNET_NO,
-				    &add_to_foreign_address_list,
-				    n);
+    {
+      GNUNET_HELLO_iterate_addresses (h,
+				      GNUNET_NO,
+				      &add_to_foreign_address_list,
+				      n);
+      try_transmission_to_peer (n);
+    }
   GNUNET_HELLO_iterate_new_addresses (chvc->hello,
 				      h,
 				      GNUNET_TIME_relative_to_absolute (HELLO_REVALIDATION_START_TIME),
