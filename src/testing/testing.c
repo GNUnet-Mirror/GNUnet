@@ -639,7 +639,7 @@ struct ConnectContext
    */
   struct GNUNET_TESTING_Daemon *d1;
 
-  /*
+  /**
    * Handle to core of first daemon (to check connect)
    */
   struct GNUNET_CORE_Handle * d1core;
@@ -649,7 +649,7 @@ struct ConnectContext
    */
   struct GNUNET_TESTING_Daemon *d2;
 
-  /*
+  /**
    * Handle to core of second daemon (to check connect)
    */
   struct GNUNET_CORE_Handle * d2core;
@@ -686,12 +686,12 @@ struct ConnectContext
    */
   struct GNUNET_TIME_Absolute timeout;
 
-  /*
+  /**
    * Hello timeout task
    */
   GNUNET_SCHEDULER_TaskIdentifier hello_send_task;
 
-  /*
+  /**
    * Connect timeout task
    */
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
@@ -702,12 +702,12 @@ struct ConnectContext
    */
   struct GNUNET_TIME_Relative timeout_hello;
 
-  /*
+  /**
    * The current hello message we have (for d1)
    */
   struct GNUNET_MessageHeader *hello;
 
-  /*
+  /**
    * Was the connection successful?
    */
   int connected;
@@ -966,7 +966,7 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 
 #if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Asking for hello from peer %s\n", GNUNET_i2s (&d1->id));
+              "Asking for HELLO from peer %s\n", GNUNET_i2s (&d1->id));
 #endif
 
   ctx->timeout_task = GNUNET_SCHEDULER_add_delayed (d1->sched,
