@@ -220,8 +220,8 @@ GNUNET_SERVER_notification_context_destroy (struct GNUNET_SERVER_NotificationCon
   while (NULL != (pos = nc->clients))
     {
       nc->clients = pos->next;
-      GNUNET_SERVER_receive_done (pos->client, GNUNET_NO);
       GNUNET_SERVER_client_drop (pos->client); 
+      GNUNET_SERVER_receive_done (pos->client, GNUNET_NO);
       while (NULL != (pml = pos->pending_head))
 	{
 	  pos->pending_head = pml->next;

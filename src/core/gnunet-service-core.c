@@ -3194,6 +3194,11 @@ handle_transport_notify_disconnect (void *cls,
               "Peer `%4s' disconnected from us.\n", GNUNET_i2s (peer));
 #endif
   n = find_neighbour (peer);
+  if (n == NULL)
+    {
+      GNUNET_break (0);
+      return;
+    }
   GNUNET_break (n->is_connected);
   cnm.header.size = htons (sizeof (struct DisconnectNotifyMessage));
   cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT);
