@@ -1464,7 +1464,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
                   "DISCONNECT",
 		  GNUNET_i2s (&dim->peer));
 #endif
-      n = neighbour_find (h, &dim->id);
+      n = neighbour_find (h, &dim->peer);
       GNUNET_break (n != NULL);
       if (n != NULL)
 	neighbour_disconnect (n);      
