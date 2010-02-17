@@ -1025,7 +1025,10 @@ free_neighbour (struct Neighbour *n)
       GNUNET_free (m);
     }
   if (NULL != n->th)
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (n->th);
+    {
+      GNUNET_TRANSPORT_notify_transmit_ready_cancel (n->th);
+      n->th = NULL;
+    }
   if (n->retry_plaintext_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (sched, n->retry_plaintext_task);
   if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
@@ -2030,6 +2033,24 @@ handle_client_send (void *cls,
 
 
 /**
+ * Function called when the transport service is ready to
+ * receive a message.  Only resets 'n->th' to NULL.
+ *
+ * @param cls neighbour to use message from
+ * @param size number of bytes we can transmit
+ * @param buf where to copy the message
+ * @return number of bytes transmitted
+ */
+static size_t
+notify_transport_connect_done (void *cls, size_t size, void *buf)
+{
+  struct Neighbour *n = cls;
+  n->th = NULL;
+  return 0;
+}
+
+
+/**
  * Handle CORE_REQUEST_CONNECT request.
  *
  * @param cls unused
@@ -2063,8 +2084,9 @@ handle_client_request_connect (void *cls,
 						  &cm->peer,
 						  0, 0,
 						  GNUNET_TIME_UNIT_ZERO,
-						  NULL,
-						  NULL);
+						  &notify_transport_connect_done,
+						  n);
+  GNUNET_break (NULL != n->th);
 }
 
 
