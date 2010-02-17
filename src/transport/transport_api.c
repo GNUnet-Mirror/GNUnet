@@ -1120,6 +1120,7 @@ reconnect (void *cls,
   struct ControlMessage *pos;
   struct NeighbourList *n;
 
+  h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     {
       /* shutdown, just give up */
@@ -1136,7 +1137,6 @@ reconnect (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to transport service.\n");
 #endif
   GNUNET_assert (h->client == NULL);
-  h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   h->client = GNUNET_CLIENT_connect (h->sched, "transport", h->cfg);
   GNUNET_assert (h->client != NULL);
   /* make sure we don't send "START" twice, remove existing entry from
