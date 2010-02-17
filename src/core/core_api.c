@@ -231,6 +231,10 @@ struct GNUNET_CORE_TransmitHandle
 };
 
 
+static void
+reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
 /**
  * Function called when we are ready to transmit our
  * "START" message (or when this operation timed out).
@@ -252,15 +256,22 @@ static size_t transmit_start (void *cls, size_t size, void *buf);
 static void
 reconnect (struct GNUNET_CORE_Handle *h)
 {
-  GNUNET_CLIENT_disconnect (h->client_notifications);
+  if (h->client_notifications != NULL)
+    GNUNET_CLIENT_disconnect (h->client_notifications);
   h->currently_down = GNUNET_YES;
   h->client_notifications = GNUNET_CLIENT_connect (h->sched, "core", h->cfg);
-  h->th = GNUNET_CLIENT_notify_transmit_ready (h->client_notifications,
-                                               sizeof (struct InitMessage) +
-                                               sizeof (uint16_t) * h->hcnt,
-                                               GNUNET_TIME_UNIT_SECONDS,
-					       GNUNET_NO,
-                                               &transmit_start, h);
+  if (h->client_notifications == NULL)
+    h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->sched,
+						      GNUNET_TIME_UNIT_SECONDS,
+						      &reconnect_task,
+						      h);
+  else
+    h->th = GNUNET_CLIENT_notify_transmit_ready (h->client_notifications,
+						 sizeof (struct InitMessage) +
+						 sizeof (uint16_t) * h->hcnt,
+						 GNUNET_TIME_UNIT_SECONDS,
+						 GNUNET_NO,
+						 &transmit_start, h);
 }
 
 
@@ -336,8 +347,10 @@ trigger_next_request (struct GNUNET_CORE_Handle *h)
 
   if (h->currently_down)
     {
+#if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "\nIn trigger_next_request, connection currently down...\n");
+                  "In trigger_next_request, connection currently down...\n");
+#endif
       return;                     /* connection temporarily down */
     }
   if (NULL == (th = h->pending_head))
@@ -569,8 +582,7 @@ init_reply_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   /* start our message processing loop */
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _
-              ("Successfully connected to core service, starting processing loop.\n"));
+	      "Successfully connected to core service, starting processing loop.\n");
 #endif
   h->currently_down = GNUNET_NO;
   trigger_next_request (h);
@@ -580,10 +592,6 @@ init_reply_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     {
       /* mark so we don't call init on reconnect */
       h->init = NULL;
-#if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("Successfully connected to core service.\n"));
-#endif
       GNUNET_CRYPTO_hash (&m->publicKey,
                           sizeof (struct
                                   GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
@@ -784,7 +792,8 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
     GNUNET_CORE_notify_transmit_ready_cancel (handle->solicit_transmit_req);
   if (handle->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (handle->sched, handle->reconnect_task);
-  GNUNET_CLIENT_disconnect (handle->client_notifications);
+  if (handle->client_notifications != NULL)
+    GNUNET_CLIENT_disconnect (handle->client_notifications);
   GNUNET_free_non_null (handle->solicit_buffer);
   GNUNET_free (handle);
 }
