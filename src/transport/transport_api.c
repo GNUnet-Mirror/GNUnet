@@ -1647,13 +1647,14 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
       n->transmit_stage = TS_QUEUED;
       break;
     case TS_QUEUED:
-      break;
+      GNUNET_break (0);
+      return NULL;
     case TS_TRANSMITTED:
       n->transmit_stage = TS_TRANSMITTED_QUEUED;
       break;
     case TS_TRANSMITTED_QUEUED:
+      GNUNET_break (0);
       return NULL;
-      break;
     default:
       GNUNET_break (0);
       return NULL;
