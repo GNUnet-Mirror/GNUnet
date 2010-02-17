@@ -57,6 +57,11 @@ struct GNUNET_CORE_PeerRequestHandle
   void *cont_cls;
 
   /**
+   * When to time out.
+   */
+  struct GNUNET_TIME_Absolute timeout;
+
+  /**
    * Identity of the peer to connect to.
    */
   struct GNUNET_PeerIdentity peer;
@@ -98,6 +103,7 @@ send_request (void *cls,
   msg.header.type = htons (prh->type);
   msg.header.size = htons (sizeof (struct ConnectMessage));
   msg.reserved = htonl (0);
+  msg.timeout = GNUNET_TIME_relative_hton (GNUNET_TIME_absolute_get_remaining (prh->timeout));
   msg.peer = prh->peer;
   memcpy (buf, &msg, sizeof (msg));
   GNUNET_SCHEDULER_add_continuation (prh->sched,
@@ -149,6 +155,7 @@ GNUNET_CORE_peer_request_connect (struct GNUNET_SCHEDULER_Handle *sched,
   ret->cont_cls = cont_cls;
   ret->peer = *peer;
   ret->type = GNUNET_MESSAGE_TYPE_CORE_REQUEST_CONNECT;
+  ret->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   GNUNET_CLIENT_notify_transmit_ready (client,
 				       sizeof (struct ConnectMessage),
 				       timeout,

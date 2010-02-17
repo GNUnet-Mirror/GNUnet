@@ -29,7 +29,7 @@
 /**
  * General core debugging.
  */
-#define DEBUG_CORE GNUNET_NO
+#define DEBUG_CORE GNUNET_YES
 
 /**
  * Debugging interaction core-clients.
@@ -327,6 +327,11 @@ struct ConnectMessage
    * For alignment.
    */
   uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * When to time out.
+   */
+  struct GNUNET_TIME_RelativeNBO timeout;
 
   /**
    * Identity of the other peer.

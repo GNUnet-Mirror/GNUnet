@@ -2045,8 +2045,13 @@ static size_t
 notify_transport_connect_done (void *cls, size_t size, void *buf)
 {
   struct Neighbour *n = cls;
+  struct GNUNET_MessageHeader hdr;
+
   n->th = NULL;
-  return 0;
+  hdr.type = htons (GNUNET_MESSAGE_TYPE_TOPOLOGY_DUMMY);
+  hdr.size = htons (sizeof(hdr));
+  memcpy (buf, &hdr, sizeof (hdr));
+  return sizeof (hdr);
 }
 
 
@@ -2064,6 +2069,7 @@ handle_client_request_connect (void *cls,
 {
   const struct ConnectMessage *cm = (const struct ConnectMessage*) message;
   struct Neighbour *n;
+  struct GNUNET_TIME_Relative timeout;
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   n = find_neighbour (&cm->peer);
@@ -2078,12 +2084,12 @@ handle_client_request_connect (void *cls,
 	      "REQUEST_CONNECT",
 	      GNUNET_i2s (&cm->peer));
 #endif
+  timeout = GNUNET_TIME_relative_ntoh (cm->timeout);
   /* ask transport to connect to the peer */
-  /* FIXME: timeout zero OK? */
   n->th = GNUNET_TRANSPORT_notify_transmit_ready (transport,
 						  &cm->peer,
-						  0, 0,
-						  GNUNET_TIME_UNIT_ZERO,
+						  sizeof (struct GNUNET_MessageHeader), 0,
+						  timeout,
 						  &notify_transport_connect_done,
 						  n);
   GNUNET_break (NULL != n->th);
