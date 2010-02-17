@@ -640,6 +640,26 @@ transport_notify_ready (void *cls, size_t size, void *buf)
 	  ret += (mret + sizeof (struct OutboundMessage));
 	  size -= (mret + sizeof (struct OutboundMessage));
 	}
+      else
+	{
+	  switch (n->transmit_stage)
+	    {
+	    case TS_NEW:
+	      GNUNET_break (0);
+	      break;
+	    case TS_QUEUED:
+	      GNUNET_break (0);
+	      break;
+	    case TS_TRANSMITTED:
+	      n->transmit_stage = TS_NEW;
+	      break;
+	    case TS_TRANSMITTED_QUEUED:
+	      GNUNET_break (0);
+	      break;
+	    default:
+	      GNUNET_break (0);
+	    }
+	}
     }
   schedule_transmission (h);
 #if DEBUG_TRANSPORT
@@ -1565,9 +1585,15 @@ peer_transmit_timeout (void *cls,
   void *notify_cls;
 
   th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
+  n = th->neighbour;
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Triggering timeout for request to transmit to `%4s' (%d)\n",
+	      GNUNET_i2s (&n->id),
+	      n->transmit_stage);
+#endif  
   notify = th->notify;
   notify_cls = th->notify_cls;
-  n = th->neighbour;
   switch (n->transmit_stage)
     {
     case TS_NEW:

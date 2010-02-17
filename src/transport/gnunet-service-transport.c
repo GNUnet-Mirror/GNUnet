@@ -1194,9 +1194,6 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
   /* FIXME: support bi-directional use of TCP */
   if (mq->specific_address == NULL)
     mq->specific_address = find_ready_address(neighbour); 
-  GNUNET_CONTAINER_DLL_remove (neighbour->messages_head,
-			       neighbour->messages_tail,
-			       mq);
   if (mq->specific_address == NULL)
     {
       timeout = GNUNET_TIME_absolute_get_remaining (mq->timeout);
@@ -1210,6 +1207,9 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 #endif
 	  if (mq->client != NULL)
 	    transmit_send_ok (mq->client, neighbour, GNUNET_NO);
+	  GNUNET_CONTAINER_DLL_remove (neighbour->messages_head,
+				       neighbour->messages_tail,
+				       mq);
 	  GNUNET_free (mq);
 	  return;               /* nobody ready */ 
 	}
@@ -1229,6 +1229,9 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 #endif
       return;    
     }
+  GNUNET_CONTAINER_DLL_remove (neighbour->messages_head,
+			       neighbour->messages_tail,
+			       mq);
   if (mq->specific_address->connected == GNUNET_NO)
     mq->specific_address->connect_attempts++;
   rl = mq->specific_address->ready_list;
