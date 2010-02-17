@@ -507,6 +507,9 @@ free_peer (struct PeerList *peer)
    if (pos->hello_delay_task != GNUNET_SCHEDULER_NO_TASK)
      GNUNET_SCHEDULER_cancel (sched,
 			      pos->hello_delay_task);
+   GNUNET_free_non_null (pos->hello);   
+   if (pos->filter != NULL)
+     GNUNET_CONTAINER_bloomfilter_free (peer->filter);
    GNUNET_free (pos);
 }
 
@@ -841,7 +844,6 @@ consider_for_advertising (const struct GNUNET_HELLO_Message *hello)
   if (peer == NULL)
     peer = make_peer (&pid, hello, GNUNET_NO);
   // FIXME: check if 'hello' is any different from peer->hello?
-  GNUNET_free_non_null (peer->hello);
 #if DEBUG_TOPOLOGY
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Found `%s' from peer `%s' for advertising\n",
@@ -849,6 +851,7 @@ consider_for_advertising (const struct GNUNET_HELLO_Message *hello)
 	      GNUNET_i2s (&pid));
 #endif 
   size = GNUNET_HELLO_size (hello);
+  GNUNET_free_non_null (peer->hello);
   peer->hello = GNUNET_malloc (size);
   memcpy (peer->hello, hello, size);
   if (peer->filter != NULL)
