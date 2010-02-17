@@ -910,6 +910,8 @@ process_peer (void *cls,
     }
   consider_for_advertising (hello);
   pos = find_peer (peer);  
+  if (pos == NULL)
+    pos = make_peer (peer, hello, GNUNET_NO);
   GNUNET_assert (NULL != pos);
 #if DEBUG_TOPOLOGY
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1213,7 +1215,6 @@ hello_advertising_ready (void *cls,
 	  memcpy (buf, pos->hello, want);
 	  GNUNET_CONTAINER_bloomfilter_add (pos->filter,
 					    &pl->id.hashPubKey);
-	  pl->next_hello_allowed = GNUNET_TIME_relative_to_absolute (HELLO_ADVERTISEMENT_MIN_FREQUENCY);
 #if DEBUG_TOPOLOGY
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Sending %u bytes of `%s's",
@@ -1222,6 +1223,7 @@ hello_advertising_ready (void *cls,
 #endif 	
 	}
     }
+  pl->next_hello_allowed = GNUNET_TIME_relative_to_absolute (HELLO_ADVERTISEMENT_MIN_FREQUENCY);
   pl->hello_delay_task 
     = GNUNET_SCHEDULER_add_now (sched,
 				&schedule_next_hello,
