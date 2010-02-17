@@ -73,6 +73,7 @@ notify_connect_complete(void *cls,
       fprintf (stderr,
 	       "Failed to connect two peers: %s\n",
 	       emsg);
+      GNUNET_TESTING_daemons_stop (pg);
       GNUNET_assert (0);
       return;
     }
