@@ -64,6 +64,11 @@ struct GNUNET_FS_TestDaemon
   struct GNUNET_PeerIdentity id;
 
   /**
+   * Scheduler to use (for publish_cont).
+   */
+  struct GNUNET_SCHEDULER_Handle *publish_sched;
+
+  /**
    * Function to call when upload is done.
    */
   GNUNET_FS_TEST_UriContinuation publish_cont;
@@ -77,6 +82,21 @@ struct GNUNET_FS_TestDaemon
    * Task to abort publishing (timeout).
    */
   GNUNET_SCHEDULER_TaskIdentifier publish_timeout_task;
+
+  /**
+   * Seed for file generation.
+   */
+  uint32_t publish_seed;
+
+  /**
+   * Context for current publishing operation.
+   */
+  struct GNUNET_FS_PublishContext *publish_context;
+
+  /**
+   * Result URI.
+   */
+  struct GNUNET_FS_Uri *publish_uri;
 
   /**
    * Scheduler to use (for download_cont).
@@ -104,6 +124,11 @@ struct GNUNET_FS_TestDaemon
   GNUNET_SCHEDULER_TaskIdentifier download_timeout_task;
 
   /**
+   * Context for current download operation.
+   */  
+  struct GNUNET_FS_DownloadContext *download_context;
+
+  /**
    * Verbosity level of the current operation.
    */
   int verbose;
@@ -112,15 +137,74 @@ struct GNUNET_FS_TestDaemon
 };
 
 
+static void
+report_uri (void *cls,
+	    const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_FS_TestDaemon *daemon = cls;
+  GNUNET_FS_TEST_UriContinuation cont;
+  struct GNUNET_FS_Uri *uri;
+
+  GNUNET_FS_publish_stop (daemon->publish_context);
+  daemon->publish_context = NULL;
+  daemon->publish_sched = NULL;
+  cont = daemon->publish_cont;
+  daemon->publish_cont = NULL;
+  uri = daemon->publish_uri;
+  cont (daemon->publish_cont_cls,
+	uri);
+  GNUNET_FS_uri_destroy (uri);
+}	     
+
+
+static void
+report_success (void *cls,
+		const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_FS_TestDaemon *daemon = cls;
+
+  GNUNET_FS_download_stop (daemon->download_context, GNUNET_YES);
+  daemon->download_context = NULL;
+  GNUNET_SCHEDULER_add_continuation (daemon->download_sched,
+				     daemon->download_cont,
+				     daemon->download_cont_cls,
+				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);      
+  daemon->download_cont = NULL;
+  daemon->download_sched = NULL;
+}
+
 static void*
 progress_cb (void *cls,
 	     const struct GNUNET_FS_ProgressInfo *info)
 {
   struct GNUNET_FS_TestDaemon *daemon = cls;
 
-  if (daemon->verbose > 2)
+  switch (info->status)
     {
-      
+    case GNUNET_FS_STATUS_PUBLISH_COMPLETED:      
+      GNUNET_SCHEDULER_cancel (daemon->publish_sched,
+			       daemon->publish_timeout_task);
+      daemon->publish_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+      daemon->publish_uri = GNUNET_FS_uri_dup (info->value.publish.specifics.completed.chk_uri);
+      GNUNET_SCHEDULER_add_continuation (daemon->publish_sched,
+					 &report_uri,
+					 daemon,
+					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      break;
+    case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
+      GNUNET_SCHEDULER_cancel (daemon->download_sched,
+			       daemon->download_timeout_task);
+      daemon->download_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+      GNUNET_SCHEDULER_add_continuation (daemon->publish_sched,
+					 &report_success,
+					 daemon,
+					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      break;
+      /* FIXME: monitor data correctness during download progress */
+      /* FIXME: do performance reports given sufficient verbosity */
+      /* FIXME: advance timeout task to "immediate" on error */
+    default:
+      break;
     }
   return NULL;
 }
@@ -376,9 +460,29 @@ publish_timeout (void *cls,
   cont = daemon->publish_cont;
   daemon->publish_timeout_task = GNUNET_SCHEDULER_NO_TASK;
   daemon->publish_cont = NULL;
+  GNUNET_FS_publish_stop (daemon->publish_context);
+  daemon->publish_context = NULL;
   cont (daemon->publish_cont_cls,
 	NULL);
 }
+
+
+static size_t
+file_generator (void *cls, 
+		uint64_t offset,
+		size_t max, 
+		void *buf,
+		char **emsg)
+{
+  struct GNUNET_FS_TestDaemon *daemon = cls;
+  uint64_t pos;
+  uint8_t *cbuf = buf;
+
+  for (pos=0;pos<max;pos++)
+    cbuf[pos] = (uint8_t) ((offset * daemon->publish_seed) % (255 - (offset / 1024 / 32)));  
+  return max;
+}
+
 
 
 /**
@@ -410,13 +514,31 @@ GNUNET_FS_TEST_publish (struct GNUNET_SCHEDULER_Handle *sched,
 			void *cont_cls)
 {
   GNUNET_assert (daemon->publish_cont == NULL);
+  struct GNUNET_FS_FileInformation *fi;
 
   daemon->publish_cont = cont;
   daemon->publish_cont_cls = cont_cls;
-  daemon->download_timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
-								timeout,
-								&publish_timeout,
-								daemon);
+  daemon->publish_seed = seed;
+  daemon->verbose = verbose;
+  daemon->publish_sched = sched;
+  fi = GNUNET_FS_file_information_create_from_reader (daemon,
+						      size,
+						      &file_generator,
+						      daemon,
+						      NULL,
+						      NULL,
+						      do_index,
+						      anonymity,
+						      42 /* priority */,
+						      GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS));
+  daemon->publish_context = GNUNET_FS_publish_start (daemon->fs,
+						     fi,
+						     NULL, NULL, NULL,
+						     GNUNET_FS_PUBLISH_OPTION_NONE);
+  daemon->publish_timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
+							       timeout,
+							       &publish_timeout,
+							       daemon);
 }
 
 
@@ -460,11 +582,25 @@ GNUNET_FS_TEST_download (struct GNUNET_SCHEDULER_Handle *sched,
 			 GNUNET_SCHEDULER_Task cont,
 			 void *cont_cls)
 {
+  uint64_t size;
+ 
   GNUNET_assert (daemon->download_cont == NULL);
+  size = GNUNET_FS_uri_chk_get_file_size (uri);
+  daemon->verbose = verbose;
   daemon->download_sched = sched;
   daemon->download_cont = cont;
   daemon->download_cont_cls = cont_cls;
   daemon->download_seed = seed;  
+  daemon->download_context = GNUNET_FS_download_start (daemon->fs,
+						       uri,
+						       NULL,
+						       NULL,
+						       0,
+						       size,
+						       anonymity,
+						       GNUNET_FS_DOWNLOAD_OPTION_NONE,
+						       NULL,
+						       NULL);
   daemon->download_timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
 								timeout,
 								&download_timeout,
