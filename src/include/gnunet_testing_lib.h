@@ -429,7 +429,7 @@ enum GNUNET_TESTING_Topology
    */
   GNUNET_TESTING_TOPOLOGY_ERDOS_RENYI,
 
-  /*
+  /**
    * Certain percentage of peers are unable to communicate directly
    * replicating NAT conditions
    */
