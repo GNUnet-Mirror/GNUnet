@@ -372,16 +372,19 @@ multi_ready (void *cls,
 	      switch (msg->msg)
 		{
 		case CURLMSG_DONE:
-		  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-			      _("Download of hostlist `%s' completed.\n"),
-			      current_url);
 		  if ( (msg->data.result != CURLE_OK) &&
 		       (msg->data.result != CURLE_GOT_NOTHING) )		       
-		    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-			       _("%s failed at %s:%d: `%s'\n"),
-			       "curl_multi_perform", __FILE__,
+		    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+			       _("%s failed for `%s' at %s:%d: `%s'\n"),
+			       "curl_multi_perform", 
+			       current_url,
+			       __FILE__,
 			       __LINE__,
 			       curl_easy_strerror (msg->data.result));		  
+		  else
+		    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+				_("Download of hostlist `%s' completed.\n"),
+				current_url);
 		  clean_up ();
 		  return;
 		default:
@@ -394,7 +397,7 @@ multi_ready (void *cls,
   while (mret == CURLM_CALL_MULTI_PERFORM);
   if (mret != CURLM_OK)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  _("%s failed at %s:%d: `%s'\n"),
 		  "curl_multi_perform", __FILE__, __LINE__,
 		  curl_multi_strerror (mret));

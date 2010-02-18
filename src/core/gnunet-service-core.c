@@ -1177,10 +1177,12 @@ notify_encrypted_transmit_ready (void *cls, size_t size, void *buf)
     }
   else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Transmission of message of type %u and size %u failed\n",
                   ntohs (((struct GNUNET_MessageHeader *) &m[1])->type),
                   m->size);
+#endif
     }
   GNUNET_free (m);
   consider_free_neighbour (n);
