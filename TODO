@@ -30,6 +30,10 @@ Urgent items (before announcing ng.gnunet.org):
   - disconnect notifications from TCP not always as nice as we might want
     them to be (but how can we do this cleanly given that UDP is connectionless?)
   - TCP not used bi-directionally (especially important also for PONG!)
+  - hostlist testcase shows that (randomly) we jump to an address that
+    seems to be a plugin function *after* the plugin has been unloaded
+    (directly from scheduler); check that *all* plugin tasks are cancelled
+    after plugin is unloaded! (need better testcases for that...)
 * STATISTICS:
   - synchronous/asynchronous API (& implementation) is not nice;
     => provide notification-based API
