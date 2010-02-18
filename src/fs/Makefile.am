@@ -13,6 +13,8 @@ endif
 
 lib_LTLIBRARIES = libgnunetfs.la
 
+noinst_LIBRARIES = libgnunetfstest.a
+
 libgnunetfs_la_SOURCES = \
   fs.c \
   fs_collection.c \
@@ -38,6 +40,13 @@ libgnunetfs_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
   -version-info 0:0:0
 
+
+libgnunetfstest_a_SOURCES = \
+  test_fs_lib.c test_fs_lib.h
+
+libgnunetfstest_a_LIBADD = \
+  $(top_builddir)/src/fs/libgnunetfs.la \
+  $(top_builddir)/src/testing/libgnunettesting.la 
 
 bin_PROGRAMS = \
   gnunet-directory \
