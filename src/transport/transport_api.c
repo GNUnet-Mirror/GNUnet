@@ -1150,7 +1150,8 @@ reconnect (void *cls,
   n = h->neighbours;
   while (NULL != n)
     {
-      neighbour_disconnect (n);
+      if (n->is_connected)
+	neighbour_disconnect (n);
       n = n->next;
     }
 #if DEBUG_TRANSPORT
@@ -1485,9 +1486,9 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
 		  GNUNET_i2s (&dim->peer));
 #endif
       n = neighbour_find (h, &dim->peer);
-      GNUNET_break (n != NULL);
+      GNUNET_break (n != NULL);      
       if (n != NULL)
-	neighbour_disconnect (n);      
+	neighbour_disconnect (n);      	
       break;
     case GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK:
       if (size != sizeof (struct SendOkMessage))
