@@ -296,9 +296,14 @@ struct MessageEntry
 {
 
   /**
-   * We keep messages in a linked list (for now).
+   * We keep messages in a doubly linked list.
    */
   struct MessageEntry *next;
+
+  /**
+   * We keep messages in a doubly linked list.
+   */
+  struct MessageEntry *prev;
 
   /**
    * By when are we supposed to transmit this message?
@@ -1021,7 +1026,9 @@ free_neighbour (struct Neighbour *n)
     }
   while (NULL != (m = n->encrypted_head))
     {
-      n->encrypted_head = m->next;
+      GNUNET_CONTAINER_DLL_remove (n->encrypted_head,
+				   n->encrypted_tail,
+				   m);
       GNUNET_free (m);
     }
   if (NULL != n->th)
@@ -1148,9 +1155,9 @@ notify_encrypted_transmit_ready (void *cls, size_t size, void *buf)
 
   n->th = NULL;
   GNUNET_assert (NULL != (m = n->encrypted_head));
-  n->encrypted_head = m->next;
-  if (m->next == NULL)
-    n->encrypted_tail = NULL;
+  GNUNET_CONTAINER_DLL_remove (n->encrypted_head,
+			       n->encrypted_tail,
+			       m);
   ret = 0;
   cbuf = buf;
   if (buf != NULL)
@@ -1205,7 +1212,8 @@ process_encrypted_neighbour_queue (struct Neighbour *n)
  
   if (n->th != NULL)
     return;  /* request already pending */
-  if (n->encrypted_head == NULL)
+  m = n->encrypted_head;
+  if (m == NULL)
     {
       /* encrypted queue empty, try plaintext instead */
       process_plaintext_neighbour_queue (n);
@@ -1214,18 +1222,17 @@ process_encrypted_neighbour_queue (struct Neighbour *n)
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking transport for transmission of %u bytes to `%4s' in next %llu ms\n",
-              n->encrypted_head->size,
+              m->size,
               GNUNET_i2s (&n->peer),
-              GNUNET_TIME_absolute_get_remaining (n->
-                                                  encrypted_head->deadline).
+              GNUNET_TIME_absolute_get_remaining (m->deadline).
               value);
 #endif
   n->th =
     GNUNET_TRANSPORT_notify_transmit_ready (transport, &n->peer,
-                                            n->encrypted_head->size,
-					    n->encrypted_head->priority,
+                                            m->size,
+					    m->priority,
                                             GNUNET_TIME_absolute_get_remaining
-                                            (n->encrypted_head->deadline),
+                                            (m->deadline),
                                             &notify_encrypted_transmit_ready,
                                             n);
   if (n->th == NULL)
@@ -1233,10 +1240,9 @@ process_encrypted_neighbour_queue (struct Neighbour *n)
       /* message request too large or duplicate request */
       GNUNET_break (0);
       /* discard encrypted message */
-      GNUNET_assert (NULL != (m = n->encrypted_head));
-      n->encrypted_head = m->next;
-      if (m->next == NULL)
-	n->encrypted_tail = NULL;
+      GNUNET_CONTAINER_DLL_remove (n->encrypted_head,
+				   n->encrypted_tail,
+				   m);
       GNUNET_free (m);
       process_encrypted_neighbour_queue (n);
     }
@@ -1826,11 +1832,10 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
                              &ph->sequence_number,
                              &em->sequence_number, esize));
   /* append to transmission list */
-  if (n->encrypted_tail == NULL)
-    n->encrypted_head = me;
-  else
-    n->encrypted_tail->next = me;
-  n->encrypted_tail = me;
+  GNUNET_CONTAINER_DLL_insert_after (n->encrypted_head,
+				     n->encrypted_tail,
+				     n->encrypted_tail,
+				     me);
   process_encrypted_neighbour_queue (n);
 }
 
@@ -2239,11 +2244,10 @@ send_key (struct Neighbour *n)
   me->deadline = GNUNET_TIME_relative_to_absolute (MAX_SET_KEY_DELAY);
   me->priority = SET_KEY_PRIORITY;
   me->size = sizeof (struct SetKeyMessage);
-  if (n->encrypted_head == NULL)
-    n->encrypted_head = me;
-  else
-    n->encrypted_tail->next = me;
-  n->encrypted_tail = me;
+  GNUNET_CONTAINER_DLL_insert_after (n->encrypted_head,
+				     n->encrypted_tail,
+				     n->encrypted_tail,
+				     me);
   sm = (struct SetKeyMessage *) &me[1];
   sm->header.size = htons (sizeof (struct SetKeyMessage));
   sm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_SET_KEY);
@@ -2430,13 +2434,10 @@ handle_ping (struct Neighbour *n, const struct PingMessage *m)
     }
   me = GNUNET_malloc (sizeof (struct MessageEntry) +
                       sizeof (struct PingMessage));
-  if (n->encrypted_tail != NULL)
-    n->encrypted_tail->next = me;
-  else
-    {
-      n->encrypted_tail = me;
-      n->encrypted_head = me;
-    }
+  GNUNET_CONTAINER_DLL_insert_after (n->encrypted_head,
+				     n->encrypted_tail,
+				     n->encrypted_tail,
+				     me);
   me->deadline = GNUNET_TIME_relative_to_absolute (MAX_PONG_DELAY);
   me->priority = PONG_PRIORITY;
   me->size = sizeof (struct PingMessage);
