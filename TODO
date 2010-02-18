@@ -13,12 +13,6 @@ away), in order in which they will likely be done:
 * ARM [Safey]
 
 Urgent items (before announcing ng.gnunet.org):
-* CORE:
-  - needs more testing
-* TOPOLOGY:
-  - needs more testing
-* HOSTLIST:
-  - needs testing
 * FS (basic anonymous FS only)
   - test multi-peer search/download
 * new webpage
@@ -33,8 +27,6 @@ Urgent items (before announcing ng.gnunet.org):
   - load: need way to determine network load (up/down)
   - trust: need *fast* way to check/update trust in peers
            (async peerinfo would not be right)
-  - OS: existing waitpid call is not nice (not integratable with scheduler! fix this!)
-    => should 'scheduler' support SIGCHILD explicitly? Always?
 * TRANSPORT:
   - disconnect notifications from TCP not always as nice as we might want
     them to be (but how can we do this cleanly given that UDP is connectionless?)
@@ -48,6 +40,10 @@ Urgent items (before announcing ng.gnunet.org):
     [=> eliminate for need to tell ARM about service starts most of the time!] [Safey]
 * HELLO:
   - need function to test "equivalency" of HELLOs; use in topology!
+* TOPOLOGY:
+  - needs more testing (especially F2F topology)
+* CORE:
+  - needs more testing
 * Module features to implement:
   - advanced FS API parts
     + namespaces: fundamental namespace API
