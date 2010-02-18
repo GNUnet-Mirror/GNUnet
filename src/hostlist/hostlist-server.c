@@ -238,8 +238,6 @@ access_handler_callback (void *cls,
 		  method);
       return MHD_NO;
     }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      _("Received request for our hostlist\n"));
   if (NULL == *con_cls)
     {
       (*con_cls) = &dummy;
@@ -263,6 +261,8 @@ access_handler_callback (void *cls,
 		  _("Could not handle hostlist request since I do not have a response yet\n"));
       return MHD_NO;              /* internal error, no response yet */
     }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      _("Received request for our hostlist\n"));
   return MHD_queue_response (connection, MHD_HTTP_OK, response);
 }
 

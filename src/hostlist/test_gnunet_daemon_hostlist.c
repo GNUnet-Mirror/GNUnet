@@ -27,7 +27,7 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_transport_service.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define START_ARM GNUNET_YES
 
@@ -114,9 +114,8 @@ notify_connect (void *cls,
 			       timeout_task);
       timeout_task = GNUNET_SCHEDULER_NO_TASK;
     }
-  GNUNET_SCHEDULER_add_delayed (sched,
-				GNUNET_TIME_UNIT_MINUTES,
-				&clean_up, NULL);
+  GNUNET_SCHEDULER_add_now (sched,
+			    &clean_up, NULL);
 }
 
 

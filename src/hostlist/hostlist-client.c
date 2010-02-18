@@ -624,7 +624,9 @@ schedule_hostlist_task ()
 			 hostlist_delay.value,
 			 GNUNET_YES);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      _("Will consider downloading hostlist in %llums\n"),
+	      _("Have %u/%u connections.  Will consider downloading hostlist in %llums\n"),
+	      connection_count,
+	      MIN_CONNECTIONS,
 	      (unsigned long long) delay.value);
   current_task = GNUNET_SCHEDULER_add_delayed (sched,
 					       delay,
