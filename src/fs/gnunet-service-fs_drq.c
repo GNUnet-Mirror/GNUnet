@@ -300,6 +300,15 @@ struct GetClosure
  * complete.
  *
  * @param cls our 'struct GetClosure*'
+ * @param key key for the content
+ * @param size number of bytes in data
+ * @param data content stored
+ * @param type type of the content
+ * @param priority priority of the content
+ * @param anonymity anonymity-level for the content
+ * @param expiration expiration time for the content
+ * @param uid unique identifier for the datum;
+ *        maybe 0 if no unique identifier is available
  */
 static void
 get_iterator (void *cls,

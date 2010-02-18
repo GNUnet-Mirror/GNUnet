@@ -1083,7 +1083,7 @@ test_load_too_high ()
  * at transmitting a query to a peer.  
  *
  * @param cls the requests "struct PendingRequest*"
- * @param pid ID of receiving peer, 0 on transmission error
+ * @param tpid ID of receiving peer, 0 on transmission error
  */
 static void
 transmit_query_continuation (void *cls,
@@ -1414,7 +1414,7 @@ forward_request_task (void *cls,
  * at transmitting a reply to a peer.  
  *
  * @param cls the requests "struct PendingRequest*"
- * @param pid ID of receiving peer, 0 on transmission error
+ * @param tpid ID of receiving peer, 0 on transmission error
  */
 static void
 transmit_reply_continuation (void *cls,
@@ -2498,7 +2498,6 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
 /**
  * Process fs requests.
  *
- * @param cls closure
  * @param s scheduler to use
  * @param server the initialized server
  * @param c configuration to use

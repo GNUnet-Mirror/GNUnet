@@ -119,12 +119,16 @@ GNUNET_OS_set_process_priority (pid_t proc,
 /**
  * Start a process.
  *
+ * @param pipe_stdin pipe to use to send input to child process (or NULL)
+ * @param pipe_stdout pipe to use to get output from child process (or NULL)
  * @param filename name of the binary
  * @param ... NULL-terminated list of arguments to the process
  * @return process ID of the new process, -1 on error
  */
 pid_t
-GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin, struct GNUNET_DISK_PipeHandle *pipe_stdout, const char *filename, ...)
+GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin, 
+			 struct GNUNET_DISK_PipeHandle *pipe_stdout,
+			 const char *filename, ...)
 {
   /* FIXME:  Make this work on windows!!! */
   va_list ap;

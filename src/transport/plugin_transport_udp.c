@@ -75,8 +75,6 @@ struct UDPMessage
 
 };
 
-/* Forward definition */
-struct Plugin;
 
 struct PrettyPrinterContext
 {
@@ -111,6 +109,11 @@ struct Plugin
   struct GNUNET_RESOLVER_RequestHandle *hostname_dns;
 
   /**
+   * FD Read set
+   */
+  struct GNUNET_NETWORK_FDSet *rs;
+
+  /**
    * ID of task used to update our addresses when one expires.
    */
   GNUNET_SCHEDULER_TaskIdentifier address_update_task;
@@ -131,11 +134,6 @@ struct Plugin
    */
   uint16_t adv_port;
 
-  /*
-   * FD Read set
-   */
-  struct GNUNET_NETWORK_FDSet *rs;
-
 };
 
 /* *********** globals ************* */
@@ -148,13 +146,14 @@ static struct GNUNET_NETWORK_Handle *udp_sock;
 /**
  * Disconnect from a remote node.
  *
- * @param tsession the session that is closed
+ * @param cls closure ('struct Plugin'), unused
+ * @param target peer do disconnect
  * @return GNUNET_OK on success, GNUNET_SYSERR if the operation failed
  */
 void
 udp_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
 {
-  return;
+  /* nothing to do, UDP is stateless */
 }
 
 /**
@@ -187,7 +186,7 @@ udp_transport_server_stop (void *cls)
  * @param cls closure
  * @param target who should receive this message (ignored by UDP)
  * @param msgbuf one or more GNUNET_MessageHeader(s) strung together
- * @param msgbufsize the size of the msgbuf to send
+ * @param msgbuf_size the size of the msgbuf to send
  * @param priority how important is the message (ignored by UDP)
  * @param timeout when should we time out (give up) if we can not transmit?
  * @param addr the addr to send the message to, needs to be a sockaddr for us

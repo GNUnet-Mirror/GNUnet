@@ -1844,11 +1844,11 @@ check_pending_validation (void *cls,
  * (otherwise we may be seeing a MiM attack).
  *
  * @param cls closure
- * @param name name of the transport that generated the address
+ * @param message the pong message
  * @param peer who responded to our challenge
- * @param challenge the challenge number we presumably used
  * @param sender_addr string describing our sender address (as observed
- *         by the other peer in human-readable format)
+ *         by the other peer in binary format)
+ * @param sender_address_len number of bytes in 'sender_address'
  */
 static void
 handle_pong (void *cls, const struct GNUNET_MessageHeader *message,
@@ -2215,7 +2215,7 @@ add_to_foreign_address_list (void *cls,
  *
  * @param cls closure
  * @param peer id of the peer, NULL for last call
- * @param hello hello message for the peer (can be NULL)
+ * @param h hello message for the peer (can be NULL)
  * @param trust amount of trust we have in the peer (not used)
  */
 static void

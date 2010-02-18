@@ -196,7 +196,9 @@ int GNUNET_OS_set_process_priority (pid_t proc,
  * @return process ID of the new process, -1 on error
  */
 pid_t
-GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin, struct GNUNET_DISK_PipeHandle *pipe_stdout, const char *filename, ...);
+GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin, 
+			 struct GNUNET_DISK_PipeHandle *pipe_stdout, 
+			 const char *filename, ...);
 
 
 /**

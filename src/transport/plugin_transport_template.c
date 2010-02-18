@@ -136,13 +136,23 @@ struct Plugin
  * @param cls closure
  * @param target who should receive this message
  * @param priority how important is the message
- * @param msg the message to transmit
+ * @param msgbuf the message to transmit
+ * @param msgbuf_size number of bytes in 'msgbuf'
  * @param timeout when should we time out 
+ * @param addr the address to use (can be NULL if the plugin
+ *                is "on its own" (i.e. re-use existing TCP connection))
+ * @param addrlen length of the address in bytes
+ * @param force_address GNUNET_YES if the plugin MUST use the given address,
+ *                otherwise the plugin may use other addresses or
+ *                existing connections (if available)
  * @param cont continuation to call once the message has
  *        been transmitted (or if the transport is ready
  *        for the next transmission call; or if the
  *        peer disconnected...)
  * @param cont_cls closure for cont
+ * @return number of bytes used (on the physical network, with overheads);
+ *         -1 on hard errors (i.e. address invalid); 0 is a legal value
+ *         and does NOT mean that the message was not transmitted (DV)
  */
 static ssize_t
 template_plugin_send (void *cls,

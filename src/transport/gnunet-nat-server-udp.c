@@ -19,7 +19,7 @@
 */
 
 /**
- * @file src/transport/server-test.c
+ * @file src/transport/gnunet-nat-server-udp.c
  * @brief Test for NAT traversal using ICMP method.
  * @author Christian Grothoff
  */

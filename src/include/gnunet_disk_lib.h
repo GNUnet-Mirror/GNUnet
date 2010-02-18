@@ -340,9 +340,11 @@ int GNUNET_DISK_pipe_close (struct GNUNET_DISK_PipeHandle *p);
  *
  * @param p pipe to close end of
  * @param end which end of the pipe to close
+ * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
 int
-GNUNET_DISK_pipe_close_end (struct GNUNET_DISK_PipeHandle *p, enum GNUNET_DISK_PipeEnd end);
+GNUNET_DISK_pipe_close_end (struct GNUNET_DISK_PipeHandle *p, 
+			    enum GNUNET_DISK_PipeEnd end);
 
 /**
  * Close an open file.
@@ -355,6 +357,7 @@ int GNUNET_DISK_file_close (struct GNUNET_DISK_FileHandle *h);
 
 /**
  * Get the handle to a particular pipe end
+ *
  * @param p pipe
  * @param n end to access
  * @return handle for the respective end

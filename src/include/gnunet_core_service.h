@@ -240,6 +240,7 @@ struct GNUNET_CORE_PeerRequestHandle;
  * @param sched scheduler to use
  * @param cfg configuration to use
  * @param timeout how long to try to talk to core
+ * @param peer who should we connect to
  * @param cont function to call once the request has been completed (or timed out)
  * @param cont_cls closure for cont
  * @return NULL on error (cont will not be called), otherwise handle for cancellation

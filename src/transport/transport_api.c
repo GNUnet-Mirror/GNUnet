@@ -897,7 +897,6 @@ GNUNET_TRANSPORT_set_quota (struct GNUNET_TRANSPORT_Handle *handle,
  * Obtain the HELLO message for this peer.
  *
  * @param handle connection to transport service
- * @param timeout how long to wait for the HELLO
  * @param rec function to call with the HELLO, sender will be our peer
  *            identity; message and sender will be NULL on timeout
  *            (handshake with transport service pending/failed).
@@ -1059,7 +1058,6 @@ send_start (void *cls, size_t size, void *buf)
 /**
  * Free neighbour. 
  * 
- * @param h our state
  * @param n the entry to free
  */
 static void

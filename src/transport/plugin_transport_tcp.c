@@ -557,6 +557,7 @@ disconnect_session (struct Session *session)
  * @param cls closure
  * @param target who should receive this message
  * @param msg the message to transmit
+ * @param msgbuf_size number of bytes in 'msg'
  * @param priority how important is the message (most plugins will
  *                 ignore message priority and just FIFO)
  * @param timeout how long to wait at most for the transmission (does not

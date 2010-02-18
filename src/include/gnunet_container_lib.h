@@ -243,7 +243,7 @@ GNUNET_CONTAINER_meta_data_test_equal (const struct
  *
  * @param md metadata to extend
  * @param plugin_name name of the plugin that produced this value;
- *        special values can be used (i.e. '<zlib>' for zlib being
+ *        special values can be used (i.e. '&lt;zlib&gt;' for zlib being
  *        used in the main libextractor library and yielding
  *        meta data).
  * @param type libextractor-type describing the meta data

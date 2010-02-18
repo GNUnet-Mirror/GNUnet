@@ -250,6 +250,7 @@ GNUNET_TRANSPORT_blacklist_check (const struct GNUNET_PeerIdentity *id)
 /**
  * Initialize the blacklisting subsystem.
  *
+ * @param server server of the transport service
  * @param s scheduler to use
  */
 void 

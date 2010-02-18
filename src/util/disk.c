@@ -1675,10 +1675,12 @@ GNUNET_DISK_pipe (int blocking)
  * Closes an interprocess channel
  *
  * @param p pipe to close
+ * @param end which end of the pipe to close
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
 int
-GNUNET_DISK_pipe_close_end (struct GNUNET_DISK_PipeHandle *p, enum GNUNET_DISK_PipeEnd end)
+GNUNET_DISK_pipe_close_end (struct GNUNET_DISK_PipeHandle *p,
+			    enum GNUNET_DISK_PipeEnd end)
 {
   int ret = GNUNET_OK;
   int save;
@@ -1779,8 +1781,10 @@ GNUNET_DISK_pipe_close (struct GNUNET_DISK_PipeHandle *p)
 
 /**
  * Get the handle to a particular pipe end
+ *
  * @param p pipe
  * @param n end to access
+ * @return handle for the respective end
  */
 const struct GNUNET_DISK_FileHandle *
 GNUNET_DISK_pipe_handle (const struct GNUNET_DISK_PipeHandle *p,
