@@ -73,6 +73,10 @@ read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   int bytes;
   bytes = GNUNET_DISK_file_read(stdout_read_handle, &buf, sizeof(buf));
 
+#if VERBOSE
+  fprintf(stderr, "bytes is %d\n", bytes);
+#endif
+
   if (bytes < 1)
     {
       ok = 1;
@@ -122,7 +126,7 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
 
   pid = GNUNET_OS_start_process (hello_pipe_stdin, hello_pipe_stdout, fn,
-                                 "test_gnunet_echo_hello", NULL);
+                                 "test_gnunet_echo_hello", "-", NULL);
 
   /* Close the write end of the read pipe */
   GNUNET_DISK_pipe_close_end(hello_pipe_stdout, GNUNET_DISK_PIPE_END_WRITE);
@@ -150,13 +154,7 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_SCHEDULER_add_read_file (tc->sched,
                                   GNUNET_TIME_UNIT_FOREVER_REL,
                                   stdout_read_handle, &read_call, (void *)stdout_read_handle);
-  /* Read from the cat process, hopefully get the phrase we wrote to it! */
 
-  /*while (read(fd_stdout, buf, strlen(test_phrase) + 1) > 0)
-    {
-      ret = strncmp(buf, test_phrase, strlen(test_phrase));
-    }
-  */
 }
 
 /**
