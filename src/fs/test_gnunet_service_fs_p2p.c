@@ -92,8 +92,8 @@ do_connect (void *cls,
 {
   GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE));
   GNUNET_FS_TEST_daemons_connect (sched,
+				  daemons[0],
 				  daemons[1],
-				  daemons[2],
 				  TIMEOUT,
 				  &do_publish,
 				  NULL);  
