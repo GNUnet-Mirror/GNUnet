@@ -1326,7 +1326,10 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
 	  return;
 	}
     }
-  pkc->mdsize = GNUNET_CONTAINER_meta_data_get_serialized_size (meta);
+  if (meta == NULL)
+    pkc->mdsize = 0;
+  else
+    pkc->mdsize = GNUNET_CONTAINER_meta_data_get_serialized_size (meta);
   GNUNET_assert (pkc->mdsize >= 0);
   uris = GNUNET_FS_uri_to_string (uri);
   pkc->slen = strlen (uris) + 1;
@@ -1341,10 +1344,11 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
   memcpy (kbe, uris, pkc->slen);
   GNUNET_free (uris);
   sptr = &kbe[pkc->slen];
-  pkc->mdsize = GNUNET_CONTAINER_meta_data_serialize (meta,
-						      &sptr,
-						      pkc->mdsize,
-						      GNUNET_CONTAINER_META_DATA_SERIALIZE_PART);
+  if (meta != NULL)
+    pkc->mdsize = GNUNET_CONTAINER_meta_data_serialize (meta,
+							&sptr,
+							pkc->mdsize,
+							GNUNET_CONTAINER_META_DATA_SERIALIZE_PART);
   if (pkc->mdsize == -1)
     {
       GNUNET_break (0);
