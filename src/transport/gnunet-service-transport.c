@@ -2750,10 +2750,6 @@ handle_hello (void *cls,
 {
   int ret;
 
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' request from client\n", "HELLO");
-#endif
   ret = process_hello (NULL, message);
   GNUNET_SERVER_receive_done (client, ret);
 }

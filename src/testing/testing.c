@@ -40,7 +40,7 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_transport_service.h"
 
-#define DEBUG_TESTING GNUNET_YES
+#define DEBUG_TESTING GNUNET_NO
 
 /**
  * How long do we wait after starting gnunet-service-arm
@@ -828,10 +828,13 @@ send_hello(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (ctx->hello != NULL)
     {
       GNUNET_TRANSPORT_offer_hello (ctx->d2th, ctx->hello);
-      ctx->timeout_hello = GNUNET_TIME_relative_add(ctx->timeout_hello, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 200));
+      ctx->timeout_hello = GNUNET_TIME_relative_add(ctx->timeout_hello,
+						    GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 
+										  200));
     }
-
-  ctx->hello_send_task = GNUNET_SCHEDULER_add_delayed(ctx->d1->sched, ctx->timeout_hello, &send_hello, ctx);
+  ctx->hello_send_task = GNUNET_SCHEDULER_add_delayed(ctx->d1->sched, 
+						      ctx->timeout_hello, 
+						      &send_hello, ctx);
 }
 
 
@@ -974,7 +977,8 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
                                                     &notify_connect_result, ctx);
 
   GNUNET_TRANSPORT_get_hello (ctx->d1th, &process_hello, ctx);
-  ctx->hello_send_task = GNUNET_SCHEDULER_add_delayed(ctx->d1->sched, ctx->timeout_hello, &send_hello, ctx);
+  ctx->hello_send_task = GNUNET_SCHEDULER_add_delayed(ctx->d1->sched, ctx->timeout_hello,
+						      &send_hello, ctx);
 }
 
 

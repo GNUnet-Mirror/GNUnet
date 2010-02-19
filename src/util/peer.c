@@ -31,21 +31,18 @@
 struct PeerEntry
 {
   /**
-   * the identifier itself
+   * The identifier itself
    */
   struct GNUNET_PeerIdentity id;
 
   /**
-   * Short version of the identifier;
-   * if the RC==0, then index of next
-   * free slot in table, otherwise 
-   * equal to this slot in the table. 
+   * Short version of the identifier; if the RC==0, then index of next
+   * free slot in table, otherwise equal to this slot in the table.
    */
   GNUNET_PEER_Id pid;
 
   /**
-   * Reference counter, 0 if this slot
-   * is not used.
+   * Reference counter, 0 if this slot is not used.
    */
   unsigned int rc;
 };
@@ -144,6 +141,8 @@ GNUNET_PEER_decrement_rcs (const GNUNET_PEER_Id * ids, unsigned int count)
   for (i = count - 1; i >= 0; i--)
     {
       id = ids[i];
+      if (id == 0)
+	continue;
       GNUNET_assert (id < size);
       GNUNET_assert (table[id].rc > 0);
       table[id].rc--;

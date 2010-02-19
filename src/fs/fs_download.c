@@ -36,7 +36,7 @@
 #include "fs.h"
 #include "fs_tree.h"
 
-#define DEBUG_DOWNLOAD GNUNET_NO
+#define DEBUG_DOWNLOAD GNUNET_YES
 
 /**
  * We're storing the IBLOCKS after the
@@ -65,9 +65,9 @@ compute_disk_offset (uint64_t fsize,
 		     unsigned int treedepth)
 {
   unsigned int i;
-  uint64_t lsize; /* what is the size of all IBlocks for level "i"? */
-  uint64_t loff; /* where do IBlocks for level "i" start? */
-  unsigned int ioff; /* which IBlock corresponds to "off" at level "i"? */
+  uint64_t lsize; /* what is the size of all IBlocks for depth "i"? */
+  uint64_t loff; /* where do IBlocks for depth "i" start? */
+  unsigned int ioff; /* which IBlock corresponds to "off" at depth "i"? */
   
   if (depth == treedepth)
     return off;
@@ -113,7 +113,7 @@ compute_dblock_offset (uint64_t offset,
 {
   unsigned int i;
   uint64_t lsize; /* what is the size of the sum of all DBlocks 
-		     that a CHK at level i corresponds to? */
+		     that a CHK at depth i corresponds to? */
 
   if (depth == treedepth)
     return offset;
@@ -504,7 +504,7 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
     }
 #if DEBUG_DOWNLOAD
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Triggering downloads of children (this block was at level %u and offset %llu)\n",
+	      "Triggering downloads of children (this block was at depth %u and offset %llu)\n",
 	      sm->depth,
 	      (unsigned long long) sm->offset);
 #endif
@@ -919,62 +919,5 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
   GNUNET_FS_uri_destroy (dc->uri);
   GNUNET_free (dc);
 }
-
-
-
-#if 0
-
-
-/**
- * Check if self block is already present on the drive.  If the block
- * is a dblock and present, the ProgressModel is notified. If the
- * block is present and it is an iblock, downloading the children is
- * triggered.
- *
- * Also checks if the block is within the range of blocks
- * that we are supposed to download.  If not, the method
- * returns as if the block is present but does NOT signal
- * progress.
- *
- * @param node that is checked for presence
- * @return GNUNET_YES if present, GNUNET_NO if not.
- */
-static int
-check_node_present (const struct Node *node)
-{
-  int res;
-  int ret;
-  char *data;
-  unsigned int size;
-  GNUNET_HashCode hc;
-
-  size = get_node_size (node);
-  /* first check if node is within range.
-     For now, keeping it simple, we only do
-     this for level-0 nodes */
-  if ((node->level == 0) &&
-      ((node->offset + size < node->ctx->offset) ||
-       (node->offset >= node->ctx->offset + node->ctx->length)))
-    return GNUNET_YES;
-  data = GNUNET_malloc (size);
-  ret = GNUNET_NO;
-  res = read_from_files (node->ctx, node->level, node->offset, data, size);
-  if (res == size)
-    {
-      GNUNET_hash (data, size, &hc);
-      if (0 == memcmp (&hc, &node->chk.key, sizeof (GNUNET_HashCode)))
-        {
-          notify_client_about_progress (node, data, size);
-          if (node->level > 0)
-            iblock_download_children (node, data, size);
-          ret = GNUNET_YES;
-        }
-    }
-  GNUNET_free (data);
-  return ret;
-}
-
-#endif
-
 
 /* end of fs_download.c */

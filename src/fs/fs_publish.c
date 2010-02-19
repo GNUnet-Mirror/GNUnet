@@ -300,10 +300,8 @@ publish_sblock (struct GNUNET_FS_PublishContext *sc)
 
 
 /**
- * We've finished publishing a KBlock
- * as part of a larger upload.  Check
- * the result and continue the larger
- * upload.
+ * We've finished publishing a KBlock as part of a larger upload.
+ * Check the result and continue the larger upload.
  *
  * @param cls the "struct GNUNET_FS_PublishContext*"
  *        of the larger upload
@@ -865,16 +863,25 @@ do_upload (void *cls,
   if (NULL != p->chk_uri)
     {
       /* upload of "p" complete, publish KBlocks! */
-      GNUNET_FS_publish_ksk (sc->h,
-			     p->keywords,
-			     p->meta,
-			     p->chk_uri,
-			     p->expirationTime,
-			     p->anonymity,
-			     p->priority,
-			     sc->options,
-			     &publish_kblocks_cont,
-			     sc);
+      if (p->keywords != NULL)
+	{
+	  GNUNET_FS_publish_ksk (sc->h,
+				 p->keywords,
+				 p->meta,
+				 p->chk_uri,
+				 p->expirationTime,
+				 p->anonymity,
+				 p->priority,
+				 sc->options,
+				 &publish_kblocks_cont,
+				 sc);
+	}
+      else
+	{
+	  publish_kblocks_cont (sc,
+				p->chk_uri,
+				NULL);
+	}
       return;
     }
   if ( (!p->is_directory) &&

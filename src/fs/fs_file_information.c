@@ -847,7 +847,8 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
 			      "unlink",
 			      fi->serialization);
-  GNUNET_FS_uri_destroy (fi->keywords);
+  if (NULL != fi->keywords)
+    GNUNET_FS_uri_destroy (fi->keywords);
   GNUNET_CONTAINER_meta_data_destroy (fi->meta);
   GNUNET_free_non_null (fi->serialization);
   if (fi->te != NULL)

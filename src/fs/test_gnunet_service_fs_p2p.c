@@ -26,7 +26,7 @@
 #include "platform.h"
 #include "test_fs_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 /**
  * File-size we use for testing.
@@ -70,7 +70,7 @@ do_download (void *cls,
 	      "Downloading %llu bytes\n",
 	      (unsigned long long) FILESIZE);
   GNUNET_FS_TEST_download (sched,
-			   daemons[1],
+			   daemons[0],
 			   TIMEOUT,
 			   1, SEED, uri, 
 			   VERBOSE, 
@@ -87,7 +87,7 @@ do_publish (void *cls,
 	      "Publishing %llu bytes\n",
 	      (unsigned long long) FILESIZE);
   GNUNET_FS_TEST_publish (sched,
-			  daemons[1],
+			  daemons[0],
 			  TIMEOUT,
 			  1, GNUNET_NO, FILESIZE, SEED, 
 			  VERBOSE, 
@@ -100,6 +100,8 @@ do_connect (void *cls,
 	    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Daemons started, will now try to connect them\n");
   GNUNET_FS_TEST_daemons_connect (sched,
 				  daemons[0],
 				  daemons[1],
@@ -142,6 +144,7 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
+  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
   GNUNET_log_setup ("test_gnunet_service_fs_p2p", 
 #if VERBOSE
 		    "DEBUG",
@@ -152,6 +155,7 @@ main (int argc, char *argv[])
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1,
                       argvx, "test-gnunet-service-fs-p2p",
 		      "nohelp", options, &run, NULL);
+  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
   return 0;
 }
 
