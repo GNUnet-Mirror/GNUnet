@@ -52,6 +52,9 @@ do_stop (void *cls,
 	 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Finished download, shutting down\n",
+	      (unsigned long long) FILESIZE);
   GNUNET_FS_TEST_daemons_stop (sched,
 			       NUM_DAEMONS,
 			       daemons);
@@ -63,6 +66,9 @@ do_download (void *cls,
 	     const struct GNUNET_FS_Uri *uri)
 {
   GNUNET_assert (NULL != uri);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Downloading %llu bytes\n",
+	      (unsigned long long) FILESIZE);
   GNUNET_FS_TEST_download (sched,
 			   daemons[1],
 			   TIMEOUT,
@@ -77,6 +83,9 @@ do_publish (void *cls,
 	    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Publishing %llu bytes\n",
+	      (unsigned long long) FILESIZE);
   GNUNET_FS_TEST_publish (sched,
 			  daemons[1],
 			  TIMEOUT,
