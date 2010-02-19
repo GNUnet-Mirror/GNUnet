@@ -19,7 +19,12 @@
 */
 /**
  * @file transport/test_transport_api.c
- * @brief testcase for transport_api.c
+ * @brief base test case for transport implementations
+ *
+ * This test case serves as a base for tcp, udp, and udp-nat
+ * transport test cases.  Based on the executable being run
+ * the correct test case will be performed.  Conservation of
+ * C code apparently.
  */
 #include "platform.h"
 #include "gnunet_common.h"
@@ -31,13 +36,11 @@
 #include "gnunet_transport_service.h"
 #include "transport.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define VERBOSE_ARM GNUNET_NO
 
 #define START_ARM GNUNET_YES
-
-#define VERBOSE_TRANSPORT GNUNET_NO
 
 /**
  * How long until we give up on transmitting the message?
@@ -67,6 +70,8 @@ static int ok;
 static int is_tcp;
 
 static int is_udp;
+
+static int is_udp_nat;
 
 GNUNET_SCHEDULER_TaskIdentifier die_task;
 
@@ -231,7 +236,8 @@ exchange_hello_last (void *cls,
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
                                       message, &me->id));
 
-  GNUNET_TRANSPORT_offer_hello (p1.th, message);
+  /* Can't we get away with only offering one hello? */
+  /* GNUNET_TRANSPORT_offer_hello (p1.th, message); */
 
   /*sleep(1);*/ /* Make sure we are not falling prey to the "favorable timing" bug... */
 
@@ -264,44 +270,6 @@ exchange_hello (void *cls,
   GNUNET_TRANSPORT_get_hello (p2.th, &exchange_hello_last, &p2);
 }
 
-#if WRITECONFIG
-static void
-setTransportOptions(char * filename)
-{
-  struct GNUNET_CONFIGURATION_Handle * tempcfg;
-
-  tempcfg = GNUNET_CONFIGURATION_create();
-  GNUNET_CONFIGURATION_load (tempcfg, filename);
-
-  unsigned long long curr_port;
-  GNUNET_CONFIGURATION_get_value_number(tempcfg, "transport", "port", &curr_port);
-
-  if (is_udp)
-    {
-      GNUNET_CONFIGURATION_set_value_string(tempcfg, "transport", "plugins", "udp");
-      GNUNET_CONFIGURATION_set_value_number(tempcfg, "transport-udp", "PORT", curr_port + 3);
-    }
-  else if (is_tcp)
-    {
-      GNUNET_CONFIGURATION_set_value_string(tempcfg, "transport", "plugins", "tcp");
-      GNUNET_CONFIGURATION_set_value_number(tempcfg, "transport-tcp", "port", curr_port + 3);
-    }
-
-#if VERBOSE_TRANSPORT
-      GNUNET_CONFIGURATION_set_value_string(tempcfg, "transport", "DEBUG", "YES");
-      GNUNET_CONFIGURATION_set_value_string(tempcfg, "transport", "PREFIX", "xterm -e xterm -T transport -e gdb --args");
-#else
-      GNUNET_CONFIGURATION_set_value_string(tempcfg, "transport", "DEBUG", "NO");
-      GNUNET_CONFIGURATION_set_value_string(tempcfg, "transport", "PREFIX", "");
-#endif
-
-  GNUNET_CONFIGURATION_write(tempcfg, filename);
-
-  GNUNET_CONFIGURATION_destroy(tempcfg);
-  return;
-}
-#endif
-
 static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
@@ -325,6 +293,14 @@ run (void *cls,
       setup_peer (&p1, "test_transport_api_tcp_peer1.conf");
       setup_peer (&p2, "test_transport_api_tcp_peer2.conf");
     }
+  if (is_udp_nat)
+    {
+      setup_peer (&p1, "test_transport_api_udp_nat_peer1.conf");
+      setup_peer (&p2, "test_transport_api_udp_nat_peer2.conf");
+    }
+
+  GNUNET_assert(p1.th != NULL);
+  GNUNET_assert(p2.th != NULL);
 
   GNUNET_TRANSPORT_get_hello (p1.th, &exchange_hello, &p1);
 }
@@ -366,7 +342,13 @@ main (int argc, char *argv[])
 
   if (strstr(argv[0], "tcp") != NULL)
     {
+
       is_tcp = GNUNET_YES;
+    }
+  else if (strstr(argv[0], "udp_nat") != NULL)
+    {
+      fprintf(stderr, "this is a udp_nat test!\n");
+      is_udp_nat = GNUNET_YES;
     }
   else if (strstr(argv[0], "udp") != NULL)
     {
