@@ -125,7 +125,8 @@ check_PROGRAMS = \
  test_fs_search \
  test_fs_start_stop \
  test_fs_unindex \
- test_fs_uri
+ test_fs_uri \
+ test_gnunet_service_fs_p2p
 
 TESTS = \
  test_fs_directory \
@@ -136,8 +137,10 @@ TESTS = \
  test_fs_search \
  test_fs_start_stop \
  test_fs_unindex \
- test_fs_uri
+ test_fs_uri \
+ test_gnunet_service_fs_p2p
 # $(check_PROGRAMS)
+
 
 test_fs_collection_SOURCES = \
  test_fs_collection.c
@@ -217,11 +220,21 @@ test_fs_uri_LDADD = \
   $(top_builddir)/src/fs/libgnunetfs.la  \
   $(top_builddir)/src/util/libgnunetutil.la  
 
+test_gnunet_service_fs_p2p_SOURCES = \
+ test_gnunet_service_fs_p2p.c
+test_gnunet_service_fs_p2p_LDADD = \
+  $(top_builddir)/src/fs/libgnunetfstest.a \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/fs/libgnunetfs.la  \
+  $(top_builddir)/src/util/libgnunetutil.la  
+
+
 EXTRA_DIST = \
   test_fs_data.conf \
   test_fs_collection_data.conf \
   test_fs_download_data.conf \
   test_fs_file_information_data.conf \
+  test_fs_lib_data.conf \
   test_fs_list_indexed_data.conf \
   test_fs_namespace_data.conf \
   test_fs_publish_data.conf \
