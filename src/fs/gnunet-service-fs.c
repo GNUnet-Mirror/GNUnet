@@ -1665,6 +1665,11 @@ process_reply (void *cls,
       /* only possible reply, stop requesting! */
       while (NULL != pr->pending_head)
 	destroy_pending_message_list_entry (pr->pending_head);
+      if (pr->drq != NULL)
+	{
+	  GNUNET_FS_drq_get_cancel (pr->drq);
+	  pr->drq = NULL;
+	}
       GNUNET_break (GNUNET_YES ==
 		    GNUNET_CONTAINER_multihashmap_remove (query_request_map,
 							  key,
@@ -1985,7 +1990,8 @@ process_local_reply (void *cls,
   process_reply (&prq, key, pr);
   
   if ( (GNUNET_YES == test_load_too_high()) ||
-       (pr->results_found > 5 + 2 * pr->priority) )
+       (pr->results_found > 5 + 2 * pr->priority) ||
+       (type == GNUNET_DATASTORE_BLOCKTYPE_DBLOCK) )
     {
       GNUNET_FS_drq_get_next (GNUNET_NO);
       return;
