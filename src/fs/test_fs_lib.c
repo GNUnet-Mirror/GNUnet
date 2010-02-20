@@ -195,7 +195,7 @@ progress_cb (void *cls,
       GNUNET_SCHEDULER_cancel (daemon->download_sched,
 			       daemon->download_timeout_task);
       daemon->download_timeout_task = GNUNET_SCHEDULER_NO_TASK;
-      GNUNET_SCHEDULER_add_continuation (daemon->publish_sched,
+      GNUNET_SCHEDULER_add_continuation (daemon->download_sched,
 					 &report_success,
 					 daemon,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
