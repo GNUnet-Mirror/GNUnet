@@ -546,8 +546,9 @@ get_next(void *next_cls,
   if (status != GNUNET_OK)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  _("Failed to transmit an item to the client; aborting iteration.\n"));    
-      plugin->api->next_request (next_cls, GNUNET_YES);
+		  _("Failed to transmit an item to the client; aborting iteration.\n"));
+      if (plugin != NULL)
+	plugin->api->next_request (next_cls, GNUNET_YES);
       return;
     }
   plugin->api->next_request (next_cls, GNUNET_NO);
