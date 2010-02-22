@@ -42,7 +42,7 @@ libgnunetfs_la_LDFLAGS = \
 
 
 libgnunetfstest_a_SOURCES = \
-  test_fs_lib.c test_fs_lib.h
+  fs_test_lib.c fs_test_lib.h
 
 libgnunetfstest_a_LIBADD = \
   $(top_builddir)/src/fs/libgnunetfs.la \
@@ -138,6 +138,7 @@ TESTS = \
  test_fs_start_stop \
  test_fs_unindex \
  test_fs_uri \
+ test_fs_test_lib \
  test_gnunet_service_fs_p2p
 # $(check_PROGRAMS)
 
@@ -217,6 +218,14 @@ test_fs_unindex_LDADD = \
 test_fs_uri_SOURCES = \
  test_fs_uri.c
 test_fs_uri_LDADD = \
+  $(top_builddir)/src/fs/libgnunetfs.la  \
+  $(top_builddir)/src/util/libgnunetutil.la  
+
+test_fs_test_lib_SOURCES = \
+ test_fs_test_lib.c
+test_fs_test_lib_LDADD = \
+  $(top_builddir)/src/fs/libgnunetfstest.a \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/fs/libgnunetfs.la  \
   $(top_builddir)/src/util/libgnunetutil.la  
 

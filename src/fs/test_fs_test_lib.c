@@ -19,8 +19,8 @@
 */
 
 /**
- * @file fs/test_gnunet_service_fs_p2p.c
- * @brief test P2P routing using simple publish + download operation
+ * @file fs/test_fs_test_lib.c
+ * @brief test fs test library
  * @author Christian Grothoff
  */
 #include "platform.h"
@@ -87,7 +87,7 @@ do_publish (void *cls,
 	      "Publishing %llu bytes\n",
 	      (unsigned long long) FILESIZE);
   GNUNET_FS_TEST_publish (sched,
-			  daemons[1],
+			  daemons[0],
 			  TIMEOUT,
 			  1, GNUNET_NO, FILESIZE, SEED, 
 			  VERBOSE, 

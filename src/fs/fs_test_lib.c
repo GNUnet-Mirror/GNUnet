@@ -27,7 +27,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "test_fs_lib.h"
+#include "fs_test_lib.h"
 #include "gnunet_testing_lib.h"
 
 
@@ -443,6 +443,7 @@ GNUNET_FS_TEST_daemons_stop (struct GNUNET_SCHEDULER_Handle *sched,
   GNUNET_TESTING_daemons_stop (daemons[0]->group);
   for (i=0;i<total;i++)
     {
+      GNUNET_FS_stop (daemons[i]->fs);
       GNUNET_CONFIGURATION_destroy (daemons[i]->cfg);
       GNUNET_free (daemons[i]);
       daemons[i] = NULL;
