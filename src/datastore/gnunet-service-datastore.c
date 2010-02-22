@@ -528,6 +528,7 @@ transmit (struct GNUNET_SERVER_Client *client,
 	tc (tc_cls, GNUNET_SYSERR);
       GNUNET_free (msg);
       GNUNET_free (tcc);
+      return;
     }
   GNUNET_CONTAINER_DLL_insert (tcc_head,
 			       tcc_tail,
