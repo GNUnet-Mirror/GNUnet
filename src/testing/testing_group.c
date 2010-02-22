@@ -1088,7 +1088,7 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
       GNUNET_CONFIGURATION_set_value_string (pcfg,
                                              "PATHS",
                                              "SERVICEHOME", newservicehome);
-
+      GNUNET_free (newservicehome);
       pg->peers[off].cfg = pcfg;
       pg->peers[off].daemon = GNUNET_TESTING_daemon_start (sched,
                                                            pcfg,
