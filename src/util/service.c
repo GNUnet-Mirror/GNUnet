@@ -781,7 +781,6 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
 
   *addrs = NULL;
   *addr_lens = NULL;
-  resi = 0;
   if (GNUNET_CONFIGURATION_have_value (cfg,
                                        serviceName, "DISABLEV6"))
     {
