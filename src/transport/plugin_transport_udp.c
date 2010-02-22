@@ -349,7 +349,6 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct Plugin *plugin = cls;
   char *buf;
   struct UDPMessage *msg;
-  const struct GNUNET_MessageHeader *hdr;
   struct GNUNET_PeerIdentity *sender;
   unsigned int buflen;
   socklen_t fromlen;
@@ -413,7 +412,6 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_NETWORK_fdset_set (plugin->rs, udp_sock);
         return;
       }
-    hdr = (const struct GNUNET_MessageHeader *) &msg[1];
     msgbuf = (char *)&msg[1];
     sender = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
     memcpy (sender, &msg->sender, sizeof (struct GNUNET_PeerIdentity));

@@ -1184,14 +1184,12 @@ retry_transmission_task (void *cls,
 static void
 try_transmission_to_peer (struct NeighbourList *neighbour)
 {
-  struct GNUNET_TIME_Relative min_latency;
   struct ReadyList *rl;
   struct MessageQueue *mq;
   struct GNUNET_TIME_Relative timeout;
 
   if (neighbour->messages_head == NULL)
     return;                     /* nothing to do */
-  min_latency = GNUNET_TIME_UNIT_FOREVER_REL;
   rl = NULL;
   mq = neighbour->messages_head;
   /* FIXME: support bi-directional use of TCP */
