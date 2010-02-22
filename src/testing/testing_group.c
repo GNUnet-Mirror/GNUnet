@@ -982,7 +982,6 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
   unsigned int off;
   unsigned int hostcnt;
   uint16_t minport;
-  int tempsize;
 
   if (0 == total)
     {
@@ -1073,18 +1072,18 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
           GNUNET_CONFIGURATION_get_value_string (pcfg, "PATHS", "SERVICEHOME",
                                                  &baseservicehome))
         {
-          tempsize = snprintf (NULL, 0, "%s/%d/", baseservicehome, off) + 1;
-          newservicehome = GNUNET_malloc (tempsize);
-          snprintf (newservicehome, tempsize, "%s/%d/", baseservicehome, off);
+	  GNUNET_asprintf (&newservicehome,
+			   "%s/%d/", baseservicehome, off);
+	  GNUNET_free (baseservicehome);
         }
       else
         {
           tmpdir = getenv ("TMPDIR");
           tmpdir = tmpdir ? tmpdir : "/tmp";
-          tempsize = snprintf (NULL, 0, "%s/%s/%d/", tmpdir, "gnunet-testing-test-test", off) + 1;
-          newservicehome = GNUNET_malloc (tempsize);
-          snprintf (newservicehome, tempsize, "%s/%d/",
-                    "/tmp/gnunet-testing-test-test", off);
+	  GNUNET_asprintf (&newservicehome,
+			   "%s/%s/%d/",
+			   tmpdir,
+			   "gnunet-testing-test-test", off);
         }
       GNUNET_CONFIGURATION_set_value_string (pcfg,
                                              "PATHS",

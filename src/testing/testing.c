@@ -549,6 +549,7 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
   GNUNET_free (d->cfgfile);
   GNUNET_free_non_null (d->hostname);
   GNUNET_free_non_null (d->username);
+  GNUNET_free_non_null (d->shortname);
   GNUNET_free (d);
   if (NULL != cb)
     cb (cb_cls, NULL);
@@ -779,7 +780,7 @@ notify_connect_result (void *cls,
   ctx->d2th = NULL;
   GNUNET_CORE_disconnect (ctx->d1core);
   ctx->d1core = NULL;
-
+  GNUNET_free_non_null (ctx->hello);
   GNUNET_free (ctx);
 }
 
