@@ -45,7 +45,6 @@ libgnunetfstest_a_SOURCES = \
   fs_test_lib.c fs_test_lib.h
 
 libgnunetfstest_a_LIBADD = \
-  $(top_builddir)/src/fs/libgnunetfs.la \
   $(top_builddir)/src/testing/libgnunettesting.la 
 
 bin_PROGRAMS = \
