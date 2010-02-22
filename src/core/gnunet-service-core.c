@@ -717,13 +717,16 @@ update_window (int force,
                struct GNUNET_TIME_Absolute *ts, unsigned int bpm)
 {
   struct GNUNET_TIME_Relative since;
+  unsigned long long increment;
 
   since = GNUNET_TIME_absolute_get_duration (*ts);
+  increment = (bpm * since.value) / 60 / 1000;
   if ( (force == GNUNET_NO) &&
-       (since.value < 60 * 1000) )
+       (since.value < 60 * 1000) &&
+       (increment < 32 * 1024) )
     return;                     /* not even a minute has passed */
   *ts = GNUNET_TIME_absolute_get ();
-  *window += (bpm * since.value) / 60 / 1000;
+  *window += increment;
   if (*window > MAX_WINDOW_TIME * bpm)
     *window = MAX_WINDOW_TIME * bpm;
 }
@@ -936,7 +939,8 @@ handle_client_request_info (void *cls,
   const struct RequestInfoMessage *rcm;
   struct Neighbour *n;
   struct ConfigurationInfoMessage cim;
-  int reserv;
+  int want_reserv;
+  int got_reserv;
   unsigned long long old_preference;
   struct GNUNET_SERVER_TransmitContext *tc;
 
@@ -956,19 +960,21 @@ handle_client_request_info (void *cls,
       n->bpm_out_internal_limit = ntohl (rcm->limit_outbound_bpm);
       n->bpm_out = GNUNET_MAX (n->bpm_out_internal_limit,
                                n->bpm_out_external_limit);
-      reserv = ntohl (rcm->reserve_inbound);
-      if (reserv < 0)
+      want_reserv = ntohl (rcm->reserve_inbound);
+      if (want_reserv < 0)
         {
-          n->available_recv_window += reserv;
+          n->available_recv_window += want_reserv;
         }
-      else if (reserv > 0)
+      else if (want_reserv > 0)
         {
           update_window (GNUNET_NO,
 			 &n->available_recv_window,
                          &n->last_arw_update, n->bpm_in);
-          if (n->available_recv_window < reserv)
-            reserv = n->available_recv_window;
-          n->available_recv_window -= reserv;
+          if (n->available_recv_window < want_reserv)
+            got_reserv = n->available_recv_window;
+	  else
+	    got_reserv = want_reserv;
+          n->available_recv_window -= got_reserv;
         }
       old_preference = n->current_preference;
       n->current_preference += GNUNET_ntohll(rcm->preference_change);
@@ -978,7 +984,12 @@ handle_client_request_info (void *cls,
 	  n->current_preference = (unsigned long long) -1;
 	}
       update_preference_sum (n->current_preference - old_preference);
-      cim.reserved_amount = htonl (reserv);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  "Received reservation request for %d bytes for peer `%4s', reserved %d bytes\n",
+		  want_reserv,
+		  GNUNET_i2s (&rcm->peer),
+		  got_reserv);
+      cim.reserved_amount = htonl (got_reserv);
       cim.bpm_in = htonl (n->bpm_in);
       cim.bpm_out = htonl (n->bpm_out);
       cim.preference = n->current_preference;

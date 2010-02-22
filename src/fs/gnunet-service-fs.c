@@ -959,7 +959,7 @@ transmit_to_peer (void *cls,
     {
 #if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Dropping reply, core too busy.\n");
+		  "Dropping message, core too busy.\n");
 #endif
       return 0;
     }
@@ -984,6 +984,12 @@ transmit_to_peer (void *cls,
 						   &transmit_to_peer,
 						   pm);
     }
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmitting %u bytes to peer %u.\n",
+	      msize,
+	      cp->pid);
+#endif
   return msize;
 }
 
@@ -1039,6 +1045,10 @@ add_to_pending_messages_for_peer (struct ConnectedPeer *cp,
     }
   if (cp->cth == NULL)
     {
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Failed to schedule transmission with core!\n");
+#endif
       /* FIXME: call stats (rare, bad case) */
     }
 }
@@ -1227,19 +1237,41 @@ target_reservation_cb (void *cls,
   if (cp == NULL)
     {
       /* Peer must have just left */
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Selected peer disconnected!\n");
+#endif
       return;
     }
   no_route = GNUNET_NO;
-  if (amount != DBLOCK_SIZE) 
+  /* FIXME: check against DBLOCK_SIZE and possibly return
+     amount to reserve; however, this also needs to work
+     with testcases which currently start out with a far
+     too low per-peer bw limit, so they would never send
+     anything.  Big issue. */
+  if (amount == 0)
     {
       if (pr->cp == NULL)
-	return;  /* this target round failed */
+	{
+#if DEBUG_FS
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Failed to reserve bandwidth for reply (got %d/%u bytes only)!\n",
+		      amount,
+		      DBLOCK_SIZE);
+#endif
+	  return;  /* this target round failed */
+	}
       /* FIXME: if we are "quite" busy, we may still want to skip
 	 this round; need more load detection code! */
       no_route = GNUNET_YES;
     }
   
   /* build message and insert message into priority queue */
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Forwarding request to `%4s'!\n",
+	      GNUNET_i2s (peer));
+#endif
   k = 0;
   bm = 0;
   if (GNUNET_YES == no_route)
@@ -1389,7 +1421,13 @@ forward_request_task (void *cls,
 					 &target_peer_select_cb,
 					 &psc);  
   if (psc.target_score == DBL_MIN)
-    return; /* nobody selected */
+    {
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "No peer selected for forwarding!\n");
+#endif
+      return; /* nobody selected */
+    }
 
   /* (2) reserve reply bandwidth */
   cp = GNUNET_CONTAINER_multihashmap_get (connected_peers,
@@ -1913,6 +1951,10 @@ process_local_reply (void *cls,
   pr->drq = NULL;
   if (NULL == key)
     {
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Done processing local replies, forwarding request to other peers.\n");
+#endif
       if (pr->client_request_list != NULL)
 	GNUNET_SERVER_receive_done (pr->client_request_list->client_list->client, 
 				    GNUNET_YES);
@@ -1925,6 +1967,10 @@ process_local_reply (void *cls,
     }
   if (type == GNUNET_DATASTORE_BLOCKTYPE_ONDEMAND)
     {
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Found ONDEMAND block, performing on-demand encoding\n");
+#endif
       if (GNUNET_OK != 
 	  GNUNET_FS_handle_on_demand_block (key, size, data, type, priority, 
 					    anonymity, expiration, uid, 
@@ -1989,10 +2035,15 @@ process_local_reply (void *cls,
   prq.priority = priority;  
   process_reply (&prq, key, pr);
   
-  if ( (GNUNET_YES == test_load_too_high()) ||
-       (pr->results_found > 5 + 2 * pr->priority) ||
-       (type == GNUNET_DATASTORE_BLOCKTYPE_DBLOCK) )
+  if ( ( (pr->client_request_list == NULL) &&
+	 ( (GNUNET_YES == test_load_too_high()) ||
+	   (pr->results_found > 5 + 2 * pr->priority) ) ) ||
+       (type == GNUNET_DATASTORE_BLOCKTYPE_DBLOCK) ) 
     {
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Unique reply found or load too high, done with request\n");
+#endif
       GNUNET_FS_drq_get_next (GNUNET_NO);
       return;
     }
@@ -2164,7 +2215,18 @@ handle_p2p_get (void *cls,
     cp = cps;
   if (cp == NULL)
     {
-      /* FIXME: try connect? */
+#if DEBUG_FS
+      if (0 != (bm & GET_MESSAGE_BIT_RETURN_TO))
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "Failed to find RETURN-TO peer `%4s' in connection set. Dropping query.\n",
+		    GNUNET_i2s ((const struct GNUNET_PeerIdentity*) &opt[bits-1]));
+      
+      else
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "Failed to find peer `%4s' in connection set. Dropping query.\n",
+		    GNUNET_i2s (other));
+#endif
+     /* FIXME: try connect? */
       return GNUNET_OK;
     }
   /* note that we can really only check load here since otherwise
@@ -2250,6 +2312,11 @@ handle_p2p_get (void *cls,
 	  /* existing request has higher TTL, drop new one! */
 	  cdc.have->priority += pr->priority;
 	  destroy_pending_request (pr);
+#if DEBUG_FS
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Have existing request with higher TTL, dropping new request.\n",
+		      GNUNET_i2s (other));
+#endif
 	  return GNUNET_OK;
 	}
       else
@@ -2390,6 +2457,10 @@ handle_start_search (void *cls,
 	crl = crl->next;
       if (crl != NULL) 	
 	{ 
+#if DEBUG_FS
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Have existing request, merging content-seen lists.\n");
+#endif
 	  pr = crl->req;
 	  /* Duplicate request (used to send long list of
 	     known/blocked results); merge 'pr->replies_seen'

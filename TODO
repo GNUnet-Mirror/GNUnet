@@ -15,10 +15,16 @@ away), in order in which they will likely be done:
 Urgent items (before announcing ng.gnunet.org):
 * FS (basic anonymous FS only)
   - test multi-peer search/download
+    + existing bandwidth-reservation code does not work with FS: don't get
+      DBLOCK size bandwidth for reply for a while => trouble for testcase
+      => need to more aggressively increase bandwidth per connection 
+      => need to check that bandwidth is assigned properly to begin with
+    + Even with bandwidth-reservation code restricted, message is not
+      delivered to other core/peer/fs.  Why?
+    + Same query is sent to the same peer in rather rapid succession (10x/minute?),
+      should tune code to reduce repetition...
 * new webpage
   - run peer => have a 0.9.x hostlist
-  - improve basic documentation (configure, dependencies, what works, etc.)
-    => get books to work, integrate Ji Lu's page in dev book!
 => Deploy(able) development network
 
 
