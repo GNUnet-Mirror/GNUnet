@@ -226,6 +226,31 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_PEERINFO_NOTIFY 41
 
+/**
+ * UDP NAT probe message, send from NAT'd peer to
+ * other peer to negotiate punched address/port
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_NAT_PROBE 55
+
+/**
+ * UDP NAT probe reply, sent from a non-NAT'd peer to
+ * a NAT'd one to inform it we got the probe and of the
+ * address/port seen
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_NAT_PROBE_REPLY 56
+
+/**
+ * UDP NAT probe confirmation, sent from a NAT'd peer to
+ * a non-NAT'd one to inform it which port to send to us
+ * on
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_NAT_PROBE_CONFIRM 57
+
+/**
+ * UDP NAT probe keepalive, once a hole is punched the NAT'd peer
+ * needs to keep the hole alive
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_NAT_PROBE_KEEPALIVE 58
 
 /**
  * Welcome message between TCP transports.
