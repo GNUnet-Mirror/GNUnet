@@ -107,13 +107,11 @@ static void
 task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   char *fn;
-  char *buf;
   int fd_stdout;
   int fd_stdin;
 
   const struct GNUNET_DISK_FileHandle *stdout_read_handle;
 
-  buf = GNUNET_malloc(strlen(test_phrase) + 1);
   GNUNET_asprintf(&fn, "cat");
 
   hello_pipe_stdin = GNUNET_DISK_pipe(GNUNET_YES);
@@ -122,11 +120,13 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ((hello_pipe_stdout == NULL) || (hello_pipe_stdin == NULL))
     {
       ok = 1;
+      GNUNET_free (fn);
       return;
     }
 
   pid = GNUNET_OS_start_process (hello_pipe_stdin, hello_pipe_stdout, fn,
                                  "test_gnunet_echo_hello", "-", NULL);
+  GNUNET_free (fn);
 
   /* Close the write end of the read pipe */
   GNUNET_DISK_pipe_close_end(hello_pipe_stdout, GNUNET_DISK_PIPE_END_WRITE);
