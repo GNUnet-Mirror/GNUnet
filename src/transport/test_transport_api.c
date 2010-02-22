@@ -36,7 +36,7 @@
 #include "gnunet_transport_service.h"
 #include "transport.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define VERBOSE_ARM GNUNET_NO
 
@@ -335,20 +335,83 @@ check ()
   return ok;
 }
 
+
+static char *
+get_path_from_PATH ()
+{
+  char *path;
+  char *pos;
+  char *end;
+  char *buf;
+  const char *p;
+
+  p = getenv ("PATH");
+  if (p == NULL)
+    return NULL;
+  path = GNUNET_strdup (p);     /* because we write on it */
+  buf = GNUNET_malloc (strlen (path) + 20);
+  pos = path;
+
+  while (NULL != (end = strchr (pos, ':')))
+    {
+      *end = '\0';
+      sprintf (buf, "%s/%s", pos, "gnunet-nat-server");
+      if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
+        {
+          pos = GNUNET_strdup (buf);
+          GNUNET_free (buf);
+          GNUNET_free (path);
+          return pos;
+        }
+      pos = end + 1;
+    }
+  sprintf (buf, "%s/%s", pos, "gnunet-nat-server");
+  if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
+    {
+      pos = GNUNET_strdup (buf);
+      GNUNET_free (buf);
+      GNUNET_free (path);
+      return pos;
+    }
+  GNUNET_free (buf);
+  GNUNET_free (path);
+  return NULL;
+}
+
+
+static int check_gnunet_nat_server()
+{
+  struct stat statbuf;
+
+  stat(get_path_from_PATH(), &statbuf);
+  if ((statbuf.st_mode & S_ISUID) && (statbuf.st_uid == 0))
+    {
+      return GNUNET_YES;
+    }
+  else
+    {
+      return GNUNET_NO;
+    }
+}
+
 int
 main (int argc, char *argv[])
 {
   int ret;
-
+#ifdef MINGW
+  return GNUNET_SYSERR;
+#endif
   if (strstr(argv[0], "tcp") != NULL)
     {
-
       is_tcp = GNUNET_YES;
     }
   else if (strstr(argv[0], "udp_nat") != NULL)
     {
-      fprintf(stderr, "this is a udp_nat test!\n");
       is_udp_nat = GNUNET_YES;
+      if (check_gnunet_nat_server() == GNUNET_NO)
+        {
+          return GNUNET_SYSERR;
+        }
     }
   else if (strstr(argv[0], "udp") != NULL)
     {
