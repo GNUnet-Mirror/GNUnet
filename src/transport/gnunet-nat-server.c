@@ -313,7 +313,7 @@ main (int argc, char *const *argv)
   if (argc != 2)
     {
       fprintf (stderr,
-	       "This program must be started with our external IP as the only argument.\n");
+	       "This program must be started with our (internal NAT) IP as the only argument.\n");
       return 1;
     }
   if (1 != inet_pton (AF_INET, argv[1], &external))
