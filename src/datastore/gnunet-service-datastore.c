@@ -174,12 +174,31 @@ typedef void (*TransmitContinuation)(void *cls,
 				     int status);
 
 
+/**
+ * Context for transmitting replies to clients.
+ */
 struct TransmitCallbackContext 
 {
+  
+  /**
+   * We keep these in a doubly-linked list (for cleanup).
+   */
+  struct TransmitCallbackContext *next;
+  
+  /**
+   * We keep these in a doubly-linked list (for cleanup).
+   */
+  struct TransmitCallbackContext *prev;
+  
   /**
    * The message that we're asked to transmit.
    */
   struct GNUNET_MessageHeader *msg;
+  
+  /**
+   * Handle for the transmission request.
+   */
+  struct GNUNET_CONNECTION_TransmitHandle *th;
 
   /**
    * Client that we are transmitting to.
@@ -203,6 +222,17 @@ struct TransmitCallbackContext
    */
   int end;
 };
+
+  
+/**
+ * Head of the doubly-linked list (for cleanup).
+ */
+static struct TransmitCallbackContext *tcc_head;
+
+/**
+ * Tail of the doubly-linked list (for cleanup).
+ */
+static struct TransmitCallbackContext *tcc_tail;
 
 
 /**
@@ -410,6 +440,10 @@ transmit_callback (void *cls,
   struct TransmitCallbackContext *tcc = cls;
   size_t msize;
   
+  tcc->th = NULL;
+  GNUNET_CONTAINER_DLL_remove (tcc_head,
+			       tcc_tail,
+			       tcc);
   msize = ntohs(tcc->msg->size);
   if (size == 0)
     {
@@ -474,13 +508,12 @@ transmit (struct GNUNET_SERVER_Client *client,
   tcc->tc = tc;
   tcc->tc_cls = tc_cls;
   tcc->end = end;
-
   if (NULL ==
-      GNUNET_SERVER_notify_transmit_ready (client,
-					   ntohs(msg->size),
-					   GNUNET_TIME_UNIT_FOREVER_REL,
-					   &transmit_callback,
-					   tcc))
+      (tcc->th = GNUNET_SERVER_notify_transmit_ready (client,
+						     ntohs(msg->size),
+						     GNUNET_TIME_UNIT_FOREVER_REL,
+						     &transmit_callback,
+						      tcc)))
     {
       GNUNET_break (0);
       if (GNUNET_YES == end)
@@ -496,6 +529,9 @@ transmit (struct GNUNET_SERVER_Client *client,
       GNUNET_free (msg);
       GNUNET_free (tcc);
     }
+  GNUNET_CONTAINER_DLL_insert (tcc_head,
+			       tcc_tail,
+			       tcc);
 }
 
 
@@ -1260,6 +1296,36 @@ cleanup_reservations (void *cls,
 
 
 /**
+ * Function that removes all active reservations made
+ * by the given client and releases the space for other
+ * requests.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ */
+static void
+cleanup_transmits (void *cls,
+		   struct GNUNET_SERVER_Client
+		   * client)
+{
+  struct TransmitCallbackContext *tcc;
+
+  while (NULL != (tcc = tcc_head))
+    {
+      GNUNET_CONTAINER_DLL_remove (tcc_head,
+				   tcc_tail,
+				   tcc);
+      if (tcc->th != NULL)
+	GNUNET_CONNECTION_notify_transmit_ready_cancel (tcc->th);
+      GNUNET_free (tcc->msg);
+      GNUNET_free (tcc);
+    }
+
+}
+
+
+
+/**
  * Process datastore requests.
  *
  * @param cls closure
@@ -1323,6 +1389,7 @@ run (void *cls,
       return;
     }
   GNUNET_SERVER_disconnect_notify (server, &cleanup_reservations, NULL);
+  GNUNET_SERVER_disconnect_notify (server, &cleanup_transmits, NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
   expired_kill_task
     = GNUNET_SCHEDULER_add_with_priority (sched,
