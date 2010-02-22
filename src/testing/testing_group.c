@@ -582,7 +582,7 @@ create_erdos_renyi (struct GNUNET_TESTING_PeerGroup *pg)
   char *p_string;
   connect_attempts = 0;
 
-  probability = GNUNET_CONFIGURATION_get_value_string(pg->cfg, "TESTING", "PROBABILITY", &p_string);
+  GNUNET_CONFIGURATION_get_value_string(pg->cfg, "TESTING", "PROBABILITY", &p_string);
   if (p_string != NULL)
     {
       probability = atof(p_string);
@@ -591,6 +591,7 @@ create_erdos_renyi (struct GNUNET_TESTING_PeerGroup *pg)
     {
       probability = 0.0; /* FIXME: default probability? */
     }
+  GNUNET_free (p_string);
   for (outer_count = 0; outer_count < pg->total - 1; outer_count++)
     {
       for (inner_count = outer_count + 1; inner_count < pg->total;
@@ -761,7 +762,7 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
   pid_t pid;
   char *arg;
   struct GNUNET_PeerIdentity *temppeer;
-  const char * mytemp;
+  char * mytemp;
 
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
     {
@@ -784,8 +785,8 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
         {
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                     _("No SERVICEHOME specified in peer configuration, can't copy friends file!\n"));
-          fclose(temp_friend_handle);
           unlink(mytemp);
+	  GNUNET_free (mytemp);
           break;
         }
 
@@ -814,7 +815,8 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
 #endif
           GNUNET_free(arg);
         }
-
+      GNUNET_free (temp_service_path);
+      GNUNET_free (mytemp);
     }
 }
 
