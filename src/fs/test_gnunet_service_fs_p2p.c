@@ -24,7 +24,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "test_fs_lib.h"
+#include "fs_test_lib.h"
 
 #define VERBOSE GNUNET_YES
 
