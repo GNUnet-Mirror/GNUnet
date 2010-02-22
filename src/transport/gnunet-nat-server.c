@@ -62,6 +62,8 @@
  */
 #define DUMMY_IP "1.2.3.4"
 
+#define VERBOSE GNUNET_NO
+
 /**
  * How often do we send our ICMP messages to receive replies?
  */
@@ -169,8 +171,10 @@ send_icmp_echo (const struct in_addr *my_ip)
 	       sizeof(dst));
   if (err < 0) 
     {
+#if VERBOSE
       fprintf(stderr,
 	      "sendto failed: %s\n", strerror(errno));
+#endif
     }
   else if (err != off) 
     {
@@ -200,9 +204,11 @@ process_icmp_response ()
     }
   if (have != sizeof (struct ip_packet) *2 + sizeof (struct icmp_packet) * 2)
     {
+#if VERBOSE
       fprintf (stderr,
 	       "Received ICMP message of unexpected size: %u bytes\n",
 	       (unsigned int) have);
+#endif
       return;
     }
   off = 0;
