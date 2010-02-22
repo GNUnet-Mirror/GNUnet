@@ -568,6 +568,8 @@ stop_service (struct GNUNET_SERVER_Client *client, const char *servicename)
 #endif
       signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      pos->next = running;
+      running = pos;
       return;
     }
 
@@ -580,6 +582,8 @@ stop_service (struct GNUNET_SERVER_Client *client, const char *servicename)
 #endif
       signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      pos->next = running;
+      running = pos;
       return;
     }
   if (pos->pid == 0)
