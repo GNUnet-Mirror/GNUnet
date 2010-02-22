@@ -930,6 +930,7 @@ handle_get (void *cls,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
+  GNUNET_SERVER_client_keep (client);
   msg = (const struct GetMessage*) message;
   if ( (size == sizeof(struct GetMessage)) &&
        (GNUNET_YES != GNUNET_CONTAINER_bloomfilter_test (filter,
@@ -942,13 +943,11 @@ handle_get (void *cls,
 		  "GET",
 		  GNUNET_h2s (&msg->key));
 #endif	
-      GNUNET_SERVER_client_keep (client);
       transmit_item (client,
 		     NULL, NULL, 0, NULL, 0, 0, 0, 
 		     GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
-  GNUNET_SERVER_client_keep (client);
   plugin->api->get (plugin->api->cls,
 		    ((size == sizeof(struct GetMessage)) ? &msg->key : NULL),
 		    NULL,
@@ -1236,6 +1235,20 @@ unload_plugin (struct DatastorePlugin *plug)
 static void
 cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct TransmitCallbackContext *tcc;
+
+  while (NULL != (tcc = tcc_head))
+    {
+      GNUNET_CONTAINER_DLL_remove (tcc_head,
+				   tcc_tail,
+				   tcc);
+      if (tcc->th != NULL)
+	GNUNET_CONNECTION_notify_transmit_ready_cancel (tcc->th);
+      if (NULL != tcc->tc)
+	tcc->tc (tcc->tc_cls, GNUNET_SYSERR);
+      GNUNET_free (tcc->msg);
+      GNUNET_free (tcc);
+    }
   if (expired_kill_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (sched,
@@ -1293,36 +1306,6 @@ cleanup_reservations (void *cls,
       pos = next;
     }
 }
-
-
-/**
- * Function that removes all active reservations made
- * by the given client and releases the space for other
- * requests.
- *
- * @param cls closure
- * @param client identification of the client
- */
-static void
-cleanup_transmits (void *cls,
-		   struct GNUNET_SERVER_Client
-		   * client)
-{
-  struct TransmitCallbackContext *tcc;
-
-  while (NULL != (tcc = tcc_head))
-    {
-      GNUNET_CONTAINER_DLL_remove (tcc_head,
-				   tcc_tail,
-				   tcc);
-      if (tcc->th != NULL)
-	GNUNET_CONNECTION_notify_transmit_ready_cancel (tcc->th);
-      GNUNET_free (tcc->msg);
-      GNUNET_free (tcc);
-    }
-
-}
-
 
 
 /**
@@ -1389,7 +1372,6 @@ run (void *cls,
       return;
     }
   GNUNET_SERVER_disconnect_notify (server, &cleanup_reservations, NULL);
-  GNUNET_SERVER_disconnect_notify (server, &cleanup_transmits, NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
   expired_kill_task
     = GNUNET_SCHEDULER_add_with_priority (sched,
