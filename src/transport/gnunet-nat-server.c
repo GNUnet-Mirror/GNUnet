@@ -62,7 +62,7 @@
  */
 #define DUMMY_IP "1.2.3.4"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE 1
 
 /**
  * How often do we send our ICMP messages to receive replies?
@@ -193,6 +193,8 @@ process_icmp_response ()
   struct ip_packet ip_pkt;
   struct icmp_packet icmp_pkt;
   size_t off;
+  int have_port;
+  uint32_t port;
   
   have = read (icmpsock, buf, sizeof (buf));
   if (have == -1)
@@ -202,7 +204,12 @@ process_icmp_response ()
 	       strerror (errno));
       return; 
     }
-  if (have != sizeof (struct ip_packet) *2 + sizeof (struct icmp_packet) * 2)
+  have_port = 0;
+  if (have == sizeof (struct ip_packet) *2 + sizeof (struct icmp_packet) * 2 + sizeof(uint32_t))
+    {
+      have_port = 1;
+    }
+  else if (have != sizeof (struct ip_packet) *2 + sizeof (struct icmp_packet) * 2)
     {
 #if VERBOSE
       fprintf (stderr,
@@ -226,12 +233,26 @@ process_icmp_response ()
   memcpy(&sip, 
 	 &ip_pkt.src_ip, 
 	 sizeof (sip));
-  fprintf (stdout,
-	   "%s\n",
-	   inet_ntop (AF_INET,
-		      &sip,
-		      buf,
-		      sizeof (buf)));
+  if (have_port)
+    {
+      memcpy(&port, &buf[sizeof (struct ip_packet) *2 + sizeof (struct icmp_packet) * 2], sizeof(uint32_t));
+      port = ntohs(port);
+      fprintf (stdout,
+              "%s:%d\n",
+              inet_ntop (AF_INET,
+                         &sip,
+                         buf,
+                         sizeof (buf)), port);
+    }
+  else
+    {
+      fprintf (stdout,
+              "%s\n",
+              inet_ntop (AF_INET,
+                         &sip,
+                         buf,
+                         sizeof (buf)));
+    }
   fflush (stdout);
 }
 
