@@ -327,7 +327,7 @@ GNUNET_FS_TEST_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
   sctx->cfg = GNUNET_CONFIGURATION_create ();
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_load (sctx->cfg,
-				 "test_fs_lib_data.conf"))
+				 "fs_test_lib_data.conf"))
     {
       GNUNET_break (0);
       GNUNET_CONFIGURATION_destroy (sctx->cfg);

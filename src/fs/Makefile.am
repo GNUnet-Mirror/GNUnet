@@ -239,6 +239,7 @@ test_gnunet_service_fs_p2p_LDADD = \
 
 
 EXTRA_DIST = \
+  fs_test_lib_data.conf \
   test_fs_data.conf \
   test_fs_collection_data.conf \
   test_fs_download_data.conf \
