@@ -1687,12 +1687,14 @@ process_reply (void *cls,
   GNUNET_HashCode mhash;
   size_t msize;
   uint32_t prio;
+  int do_remove;
 
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Matched result for query `%s' with pending request\n",
 	      GNUNET_h2s (key));
 #endif  
+  do_remove = GNUNET_NO;
   GNUNET_CRYPTO_hash (prq->data,
 		      prq->size,
 		      &chash);
@@ -1708,10 +1710,7 @@ process_reply (void *cls,
 	  GNUNET_FS_drq_get_cancel (pr->drq);
 	  pr->drq = NULL;
 	}
-      GNUNET_break (GNUNET_YES ==
-		    GNUNET_CONTAINER_multihashmap_remove (query_request_map,
-							  key,
-							  pr));
+      do_remove = GNUNET_YES;
       break;
     case GNUNET_DATASTORE_BLOCKTYPE_SBLOCK:
       if (0 != memcmp (pr->namespace,
@@ -1810,7 +1809,11 @@ process_reply (void *cls,
       memcpy (&pm[1], prq->data, prq->size);
       add_to_pending_messages_for_peer (cp, reply, pr);
     }
-
+  if (GNUNET_YES == do_remove)
+    GNUNET_break (GNUNET_YES ==
+		  GNUNET_CONTAINER_multihashmap_remove (query_request_map,
+							key,
+							pr));
 
   // FIXME: implement hot-path routing statistics keeping!
   return GNUNET_YES;
