@@ -2465,7 +2465,7 @@ handle_start_search (void *cls,
       GNUNET_break (0);
       GNUNET_SERVER_receive_done (client,
 				  GNUNET_SYSERR);
-      return GNUNET_SYSERR;
+      return;
     }  
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
