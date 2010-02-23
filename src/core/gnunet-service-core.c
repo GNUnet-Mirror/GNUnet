@@ -859,9 +859,12 @@ handle_client_init (void *cls,
   for (i=0;i<c->tcnt;i++)
     wtypes[i] = ntohs (types[i]);
   c->options = ntohl (im->options);
+#if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Client %p is interested in %u message types\n",
+	      c,
 	      c->tcnt);
+#endif
   /* send init reply message */
   irm.header.size = htons (sizeof (struct InitReplyMessage));
   irm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_INIT_REPLY);
@@ -2825,10 +2828,12 @@ deliver_message (struct Neighbour *sender,
     }
   if (dropped == GNUNET_YES)
     {
+#if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Message of type %u from `%4s' not delivered to any client.\n",
 		  type,
 		  GNUNET_i2s (&sender->peer));
+#endif
       /* FIXME: stats... */
     }
 }
