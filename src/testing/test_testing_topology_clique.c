@@ -81,7 +81,7 @@ process_mtype (void *cls,
 {
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Receiving message from `%4s'.\n", GNUNET_i2s (peer));
+              "Receiving message from `%4s' of type %d.\n", GNUNET_i2s (peer), ntohs(message->type));
 #endif
   GNUNET_SCHEDULER_cancel (sched, die_task);
   GNUNET_SCHEDULER_add_now (sched, &finish_testing, NULL);
@@ -112,22 +112,6 @@ disconnect_notify (void *cls,
               "Encrypted connection to `%4s' cut\n", GNUNET_i2s (peer));
 #endif
 }
-
-
-static int
-inbound_notify (void *cls,
-                const struct GNUNET_PeerIdentity *other,
-                const struct GNUNET_MessageHeader *message,
-                struct GNUNET_TIME_Relative latency,
-                uint32_t distance)
-{
-#if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core provides inbound data from `%4s'.\n", GNUNET_i2s (other));
-#endif
-  return GNUNET_OK;
-}
-
 
 static int
 outbound_notify (void *cls,
@@ -229,7 +213,7 @@ init_notify (void *cls,
                            NULL,
                            &connect_notify,
                            &disconnect_notify,
-                           &inbound_notify,
+                           NULL,
                            GNUNET_YES,
                            &outbound_notify, GNUNET_YES, handlers);
     }
@@ -281,7 +265,7 @@ send_test_messages ()
                        NULL,
                        &connect_notify,
                        &disconnect_notify,
-                       &inbound_notify,
+                       NULL,
                        GNUNET_YES, &outbound_notify, GNUNET_YES, handlers);
 }
 
@@ -398,7 +382,7 @@ my_cb (void *cls,
                                                (GNUNET_TIME_UNIT_MINUTES, 5),
                                                &end_badly, NULL);
       create_topology ();
-      ok = 0;
+      ok = 477;
     }
 }
 
