@@ -324,9 +324,14 @@ struct Plugin
 
   /**
    * Starting port, will listen on num_ports (if available) starting
-   * at this number
+   * at this number (or will listen only on this port if non-nat'd)
    */
   uint16_t starting_port;
+
+  /**
+   * Main listen port, only needed for testing...
+   */
+  uint16_t listen_port;
 
   /**
    * Starting port for sending out crazy messages
@@ -338,11 +343,16 @@ struct Plugin
    */
   uint16_t num_ports;
 
-  /*
+  /**
    * The external address given to us by the user.  Must be actual
    * outside visible address for NAT punching to work.
    */
   char *external_address;
+
+  /**
+   * The internal address given to us by the user (or discovered).
+   */
+  char *internal_address;
 
   /*
    * FD Read set
@@ -634,6 +644,14 @@ udp_nat_plugin_send (void *cls,
   ssize_t sent;
   struct MessageQueue *temp_message;
   struct PeerSession *peer_session;
+  struct sockaddr_in *sockaddr = (struct sockaddr_in *)addr;
+  int other_peer_natd;
+
+  other_peer_natd = GNUNET_NO;
+  if ((sockaddr->sin_family == AF_INET) && (ntohs(sockaddr->sin_port) == 0))
+    {
+      other_peer_natd = GNUNET_YES;
+    }
 
   /**
    * FIXME: find which sock in udp_nat_socks to actually send the message on,
@@ -641,10 +659,9 @@ udp_nat_plugin_send (void *cls,
    * udp sock (or address, or index of udp sock array...)
    */
   sent = 0;
-#if DISTINGUISH
-  if (plugin->behind_nat == GNUNET_NO)
+
+  if (other_peer_natd == GNUNET_YES)
     {
-#endif
       peer_session = find_session(plugin, target);
       if (peer_session == NULL) /* We have a new peer to add */
         {
@@ -675,7 +692,7 @@ udp_nat_plugin_send (void *cls,
           peer_session->messages->cont_cls = cont_cls;
 #if DEBUG_UDP_NAT
           GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp-nat",
-                          _("Set up peer session for peer %s\n"), GNUNET_i2s(target));
+                          _("Other peer is NAT'd, set up peer session for peer %s\n"), GNUNET_i2s(target));
 #endif
           run_gnunet_nat_client(plugin, addr, addrlen);
 
@@ -699,13 +716,11 @@ udp_nat_plugin_send (void *cls,
               peer_session->messages = temp_message;
             }
         }
-#if DISTINGUISH
     }
-  else /* We are behind a NAT, so we can just send the message as is */
+  else /* Other peer not behind a NAT, so we can just send the message as is */
     {
-      sent = udp_nat_real_send(cls, udp_nat_socks[0], target, msgbuf, msgbuf_size, priority, timeout, addr, addrlen, cont, cont_cls);
+      sent = udp_nat_real_send(cls, udp_nat_socks[0]->desc, target, msgbuf, msgbuf_size, priority, timeout, addr, addrlen, cont, cont_cls);
     }
-#endif
 
   return sent;
 }
@@ -737,13 +752,22 @@ process_interfaces (void *cls,
   if (af == AF_INET)
     {
       v4 = (struct sockaddr_in *) addr;
-      v4->sin_port = htons (plugin->starting_port);
+      if (plugin->behind_nat == GNUNET_YES)
+        {
+          inet_pton(AF_INET, plugin->external_address, &v4->sin_addr);
+          v4->sin_port = htons (0); /* Indicates to receiver we are behind NAT */
+        }
+      else
+        v4->sin_port = htons (plugin->listen_port);
     }
   else
     {
       GNUNET_assert (af == AF_INET6);
       v6 = (struct sockaddr_in6 *) addr;
-      v6->sin6_port = htons (plugin->starting_port);
+      if (plugin->behind_nat == GNUNET_YES)
+        v6->sin6_port = htons (0);
+      else
+        v6->sin6_port = htons (plugin->listen_port);
     }
 
 #if !IPV6
@@ -1276,7 +1300,7 @@ udp_nat_transport_server_start (void *cls)
                    "Starting gnunet-nat-server process\n");
 #endif
       /* Start the server process */
-      plugin->server_pid = GNUNET_OS_start_process(NULL, plugin->server_stdout, "gnunet-nat-server", "gnunet-nat-server", plugin->external_address, NULL);
+      plugin->server_pid = GNUNET_OS_start_process(NULL, plugin->server_stdout, "gnunet-nat-server", "gnunet-nat-server", plugin->internal_address, NULL);
       if (plugin->server_pid == GNUNET_SYSERR)
         return GNUNET_SYSERR;
       /* Close the write end of the read pipe */
@@ -1331,7 +1355,7 @@ udp_nat_transport_server_start (void *cls)
               serverAddrv4.sin_family = AF_INET;
               serverAddrv4.sin_addr.s_addr = INADDR_ANY;
               if (i == 0)
-                serverAddrv4.sin_port = htons (plugin->starting_port);
+                serverAddrv4.sin_port = htons (plugin->listen_port);
               else
                 serverAddrv4.sin_port = htons (GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_STRONG, 33537) + 32000); /* Find a non-root port */
               addrlen = sizeof (serverAddrv4);
@@ -1575,8 +1599,10 @@ libgnunet_plugin_transport_udp_nat_init (void *cls)
   int sockets_created;
   int behind_nat;
 
+  char *internal_address;
   char *external_address;
   char *starting_port;
+  char *listen_port;
 
   service = GNUNET_SERVICE_start ("transport-udp-nat", env->sched, env->cfg);
   if (service == NULL)
@@ -1601,6 +1627,20 @@ libgnunet_plugin_transport_udp_nat_init (void *cls)
       GNUNET_SERVICE_stop (service);
     }
 
+  if (GNUNET_OK !=
+         GNUNET_CONFIGURATION_get_value_string (env->cfg,
+                                                "transport-udp-nat",
+                                                "INTERNAL_ADDRESS",
+                                                &internal_address))
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                       "udp_nat",
+                       _
+                       ("Require INTERNAL_ADDRESS for service `%s' in configuration!\n"),
+                       "transport-udp");
+      GNUNET_SERVICE_stop (service);
+    }
+
   if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
       "transport-udp-nat",
       "BEHIND_NAT"))
@@ -1611,9 +1651,18 @@ libgnunet_plugin_transport_udp_nat_init (void *cls)
   GNUNET_CONFIGURATION_get_value_string (env->cfg,
                                          "transport-udp-nat",
                                          "PORT",
+                                         &listen_port);
+
+  /* Yes we'll use PORT as the default configuration value, but
+   * for testing we need two different ports for the peers so
+   * STARTING_PORT will have to do!
+   */
+  GNUNET_CONFIGURATION_get_value_string (env->cfg,
+                                         "transport-udp-nat",
+                                         "STARTING_PORT",
                                          &starting_port);
 
-                                                mtu = 1240;
+  mtu = 1240;
   if (mtu < 1200)
     GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
                      "udp_nat",
@@ -1622,6 +1671,10 @@ libgnunet_plugin_transport_udp_nat_init (void *cls)
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->external_address = external_address;
+  plugin->internal_address = internal_address;
+  if (listen_port != NULL)
+    plugin->listen_port = atoi(listen_port);
+
   if (starting_port != NULL)
     plugin->starting_port = atoi(starting_port);
   else
