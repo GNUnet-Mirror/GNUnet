@@ -169,7 +169,7 @@ enum PeerStateMachine
  * Number of bytes (at the beginning) of "struct EncryptedMessage"
  * that are NOT encrypted.
  */
-#define ENCRYPTED_HEADER_SIZE (sizeof(struct GNUNET_MessageHeader) + sizeof(uint32_t) + sizeof(GNUNET_HashCode))
+#define ENCRYPTED_HEADER_SIZE (sizeof(struct GNUNET_MessageHeader) + sizeof(uint32_t))
 
 
 /**
@@ -184,15 +184,15 @@ struct EncryptedMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Always zero.
+   * Random value used for IV generation.  ENCRYPTED_HEADER_SIZE must
+   * be set to the offset of the *next* field.
    */
-  uint32_t reserved GNUNET_PACKED;
+  uint32_t iv_seed GNUNET_PACKED;
 
   /**
-   * Hash of the plaintext, used to verify message integrity;
-   * ALSO used as the IV for the symmetric cipher!  Everything
-   * after this hash will be encrypted.  ENCRYPTED_HEADER_SIZE
-   * must be set to the offset of the next field.
+   * Hash of the plaintext (starting at 'sequence_number'), used to
+   * verify message integrity.  Everything after this hash (including
+   * this hash itself) will be encrypted.  
    */
   GNUNET_HashCode plaintext_hash;
 
@@ -971,7 +971,7 @@ handle_client_request_info (void *cls,
 			 &n->available_recv_window,
                          &n->last_arw_update, n->bpm_in);
           if (n->available_recv_window < want_reserv)
-            got_reserv = n->available_recv_window;
+            got_reserv = 0; /* all or nothing */
 	  else
 	    got_reserv = want_reserv;
           n->available_recv_window -= got_reserv;
@@ -1730,6 +1730,7 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
   unsigned int priority;
   struct GNUNET_TIME_Absolute deadline;
   struct GNUNET_TIME_Relative retry_time;
+  GNUNET_HashCode iv;
 
   if (n->retry_plaintext_task != GNUNET_SCHEDULER_NO_TASK)
     {
@@ -1816,6 +1817,7 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
                                       &retry_plaintext_processing, n);
       return;
     }
+  ph->iv_seed = htonl (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, -1));
   ph->sequence_number = htonl (++n->last_sequence_number_sent);
   ph->inbound_bpm_limit = htonl (n->bpm_in);
   ph->timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
@@ -1828,9 +1830,12 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
   em = (struct EncryptedMessage *) &me[1];
   em->header.size = htons (used);
   em->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE);
-  em->reserved = htonl (0);
+  em->iv_seed = ph->iv_seed;
   esize = used - ENCRYPTED_HEADER_SIZE;
-  GNUNET_CRYPTO_hash (&ph->sequence_number, esize, &em->plaintext_hash);
+  GNUNET_CRYPTO_hash (&ph->sequence_number,
+		      esize - sizeof (GNUNET_HashCode), 
+		      &ph->plaintext_hash);
+  GNUNET_CRYPTO_hash (&ph->iv_seed, sizeof (uint32_t), &iv);
   /* encrypt */
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1841,9 +1846,9 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
 #endif
   GNUNET_assert (GNUNET_OK ==
                  do_encrypt (n,
-                             &em->plaintext_hash,
-                             &ph->sequence_number,
-                             &em->sequence_number, esize));
+                             &iv,
+                             &ph->plaintext_hash,
+                             &em->plaintext_hash, esize));
   /* append to transmission list */
   GNUNET_CONTAINER_DLL_insert_after (n->encrypted_head,
 				     n->encrypted_tail,
@@ -2893,25 +2898,30 @@ handle_encrypted_message (struct Neighbour *n,
   size_t off;
   uint32_t snum;
   struct GNUNET_TIME_Absolute t;
+  GNUNET_HashCode iv;
 
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core service receives `%s' request from `%4s'.\n",
               "ENCRYPTED_MESSAGE", GNUNET_i2s (&n->peer));
 #endif  
+  GNUNET_CRYPTO_hash (&m->iv_seed, sizeof (uint32_t), &iv);
   /* decrypt */
   if (GNUNET_OK !=
       do_decrypt (n,
+                  &iv,
                   &m->plaintext_hash,
-                  &m->sequence_number,
-                  &buf[ENCRYPTED_HEADER_SIZE], size - ENCRYPTED_HEADER_SIZE))
+                  &buf[ENCRYPTED_HEADER_SIZE], 
+		  size - ENCRYPTED_HEADER_SIZE))
     return;
   pt = (struct EncryptedMessage *) buf;
 
   /* validate hash */
   GNUNET_CRYPTO_hash (&pt->sequence_number,
-                      size - ENCRYPTED_HEADER_SIZE, &ph);
-  if (0 != memcmp (&ph, &m->plaintext_hash, sizeof (GNUNET_HashCode)))
+                      size - ENCRYPTED_HEADER_SIZE - sizeof (GNUNET_HashCode), &ph);
+  if (0 != memcmp (&ph, 
+		   &pt->plaintext_hash, 
+		   sizeof (GNUNET_HashCode)))
     {
       /* checksum failed */
       GNUNET_break_op (0);
