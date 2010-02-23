@@ -584,7 +584,7 @@ struct Client
    * about (with "tcnt" entries).  Allocated as part
    * of this client struct, do not free!
    */
-  uint16_t *types;
+  const uint16_t *types;
 
   /**
    * Options for messages this client cares about,
@@ -816,8 +816,10 @@ handle_client_init (void *cls,
   struct Client *c;
   uint16_t msize;
   const uint16_t *types;
+  uint16_t *wtypes;
   struct Neighbour *n;
   struct ConnectNotifyMessage cnm;
+  unsigned int i;
 
 #if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -851,10 +853,15 @@ handle_client_init (void *cls,
   c->client_handle = client;
   c->next = clients;
   clients = c;
-  memcpy (&c[1], types, msize);
-  c->types = (uint16_t *) & c[1];
-  c->options = ntohl (im->options);
   c->tcnt = msize / sizeof (uint16_t);
+  c->types = (const uint16_t *) &c[1];
+  wtypes = (uint16_t *) &c[1];
+  for (i=0;i<c->tcnt;i++)
+    wtypes[i] = ntohs (types[i]);
+  c->options = ntohl (im->options);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Client %p is interested in %u message types\n",
+	      c->tcnt);
   /* send init reply message */
   irm.header.size = htons (sizeof (struct InitReplyMessage));
   irm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_INIT_REPLY);
@@ -906,7 +913,8 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     return;
 #if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Client has disconnected from core service.\n");
+              "Client %p has disconnected from core service.\n",
+	      client);
 #endif
   prev = NULL;
   pos = clients;
@@ -2777,14 +2785,16 @@ deliver_message (struct Neighbour *sender,
   uint16_t type;
   unsigned int tpos;
   int deliver_full;
+  int dropped;
 
   type = ntohs (m->type);
-#if DEBUG_HANDSHAKE
-  fprintf (stderr,
-	   "Received encapsulated message of type %u from `%4s'\n",
-	   type,
-	   GNUNET_i2s (&sender->peer));
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received encapsulated message of type %u from `%4s'\n",
+	      type,
+	      GNUNET_i2s (&sender->peer));
 #endif
+  dropped = GNUNET_YES;
   cpos = clients;
   while (cpos != NULL)
     {
@@ -2802,11 +2812,24 @@ deliver_message (struct Neighbour *sender,
             }
         }
       if (GNUNET_YES == deliver_full)
-        send_p2p_message_to_client (sender, cpos, m, msize);
+	{
+	  send_p2p_message_to_client (sender, cpos, m, msize);
+	  dropped = GNUNET_NO;
+	}
       else if (cpos->options & GNUNET_CORE_OPTION_SEND_HDR_INBOUND)
-        send_p2p_message_to_client (sender, cpos, m,
-                                    sizeof (struct GNUNET_MessageHeader));
+	{
+	  send_p2p_message_to_client (sender, cpos, m,
+				      sizeof (struct GNUNET_MessageHeader));
+	}
       cpos = cpos->next;
+    }
+  if (dropped == GNUNET_YES)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Message of type %u from `%4s' not delivered to any client.\n",
+		  type,
+		  GNUNET_i2s (&sender->peer));
+      /* FIXME: stats... */
     }
 }
 
