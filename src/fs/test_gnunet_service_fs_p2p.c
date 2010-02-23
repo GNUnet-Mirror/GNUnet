@@ -134,7 +134,7 @@ main (int argc, char *argv[])
   char *const argvx[] = { 
     "test-gnunet-service-fs-p2p",
     "-c",
-    "test_fs_lib_data.conf",
+    "fs_test_lib_data.conf",
 #if VERBOSE
     "-L", "DEBUG",
 #endif
