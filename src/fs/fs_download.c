@@ -608,6 +608,10 @@ transmit_download_request (void *cls,
       memset (sm, 0, sizeof (struct SearchMessage));
       sm->header.size = htons (sizeof (struct SearchMessage));
       sm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_START_SEARCH);
+      if (dc->pending->depth == dc->treedepth)
+	sm->type = htonl (GNUNET_DATASTORE_BLOCKTYPE_DBLOCK);
+      else
+	sm->type = htonl (GNUNET_DATASTORE_BLOCKTYPE_IBLOCK);
       sm->anonymity_level = htonl (dc->anonymity);
       sm->target = dc->target.hashPubKey;
       sm->query = dc->pending->chk.query;

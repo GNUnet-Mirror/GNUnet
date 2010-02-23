@@ -2174,6 +2174,7 @@ handle_p2p_get (void *cls,
   uint32_t ttl_decrement;
   uint32_t type;
   double preference;
+  int have_ns;
 
   msize = ntohs(message->size);
   if (msize < sizeof (struct GetMessage))
@@ -2182,6 +2183,18 @@ handle_p2p_get (void *cls,
       return GNUNET_SYSERR;
     }
   gm = (const struct GetMessage*) message;
+  type = ntohl (gm->type);
+  switch (type)
+    {
+    case GNUNET_DATASTORE_BLOCKTYPE_DBLOCK:
+    case GNUNET_DATASTORE_BLOCKTYPE_IBLOCK:
+    case GNUNET_DATASTORE_BLOCKTYPE_KBLOCK:
+    case GNUNET_DATASTORE_BLOCKTYPE_SBLOCK:
+      break;
+    default:
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
   bm = ntohl (gm->hash_bitmap);
   bits = 0;
   while (bm > 0)
@@ -2249,11 +2262,12 @@ handle_p2p_get (void *cls,
 	      (unsigned int) ntohl (gm->type),
 	      GNUNET_i2s (other));
 #endif
+  have_ns = (0 != (bm & GET_MESSAGE_BIT_SKS_NAMESPACE));
   pr = GNUNET_malloc (sizeof (struct PendingRequest) + 
-		      (bm & GET_MESSAGE_BIT_SKS_NAMESPACE)?sizeof(GNUNET_HashCode):0);
-  if ((bm & GET_MESSAGE_BIT_SKS_NAMESPACE))
+		      (have_ns ? sizeof(GNUNET_HashCode) : 0));
+  if (have_ns)
     pr->namespace = (GNUNET_HashCode*) &pr[1];
-  pr->type = ntohl (gm->type);
+  pr->type = type;
   pr->mingle = ntohl (gm->filter_mutator);
   if (0 != (bm & GET_MESSAGE_BIT_SKS_NAMESPACE))
     memcpy (&pr[1], &opt[bits++], sizeof (GNUNET_HashCode));
@@ -2354,7 +2368,6 @@ handle_p2p_get (void *cls,
   cps->inc_preference += preference;
 
   /* process locally */
-  type = pr->type;
   if (type == GNUNET_DATASTORE_BLOCKTYPE_DBLOCK)
     type = GNUNET_DATASTORE_BLOCKTYPE_ANY; /* to get on-demand as well */
   timeout = GNUNET_TIME_relative_multiply (BASIC_DATASTORE_REQUEST_DELAY,
@@ -2438,6 +2451,19 @@ handle_start_search (void *cls,
       client_list = cl;
     }
   type = ntohl (sm->type);
+  switch (type)
+    {
+    case GNUNET_DATASTORE_BLOCKTYPE_DBLOCK:
+    case GNUNET_DATASTORE_BLOCKTYPE_IBLOCK:
+    case GNUNET_DATASTORE_BLOCKTYPE_KBLOCK:
+    case GNUNET_DATASTORE_BLOCKTYPE_SBLOCK:
+      break;
+    default:
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client,
+				  GNUNET_SYSERR);
+      return GNUNET_SYSERR;
+    }  
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received request for `%s' of type %u from local client\n",
