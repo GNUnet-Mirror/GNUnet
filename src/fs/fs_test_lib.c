@@ -19,7 +19,7 @@
 */
 
 /**
- * @file fs/test_fs_lib.c
+ * @file fs/fs_test_lib.c
  * @brief library routines for testing FS publishing and downloading
  *        with multiple peers; this code is limited to flat files
  *        and no keywords (those functions can be tested with
@@ -425,12 +425,8 @@ GNUNET_FS_TEST_daemons_connect (struct GNUNET_SCHEDULER_Handle *sched,
  * Stop daemons used for testing.
  *
  * @param sched scheduler to use
- * @param timeout if this operation cannot be completed within the
- *                given period, call the continuation with an error code
  * @param total number of daemons to stop
  * @param daemons array with the daemons (values will be clobbered)
- * @param cont function to call when done
- * @param cont_cls closure for cont
  */
 void
 GNUNET_FS_TEST_daemons_stop (struct GNUNET_SCHEDULER_Handle *sched,
@@ -568,6 +564,7 @@ download_timeout (void *cls,
  *                given period, call the continuation with an error code
  * @param anonymity option for download
  * @param seed used for file validation
+ * @param uri URI of file to download (CHK/LOC only)
  * @param verbose how verbose to be in reporting
  * @param cont function to call when done
  * @param cont_cls closure for cont

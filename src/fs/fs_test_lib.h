@@ -19,15 +19,15 @@
 */
 
 /**
- * @file fs/test_fs_lib.h
+ * @file fs/fs_test_lib.h
  * @brief library routines for testing FS publishing and downloading
  *        with multiple peers; this code is limited to flat files
  *        and no keywords (those functions can be tested with
  *        single-peer setups; this is for testing routing).
  * @author Christian Grothoff
  */
-#ifndef TEST_FS_LIB_H
-#define TEST_FS_LIB_H
+#ifndef FS_TEST_LIB_H
+#define FS_TEST_LIB_H
 
 #include "gnunet_util_lib.h"
 #include "gnunet_fs_service.h"
@@ -141,6 +141,7 @@ GNUNET_FS_TEST_publish (struct GNUNET_SCHEDULER_Handle *sched,
  *                given period, call the continuation with an error code
  * @param anonymity option for download
  * @param seed used for file validation
+ * @param uri URI of file to download (CHK/LOC only)
  * @param verbose how verbose to be in reporting
  * @param cont function to call when done
  * @param cont_cls closure for cont
