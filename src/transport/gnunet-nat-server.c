@@ -62,7 +62,7 @@
  */
 #define DUMMY_IP "1.2.3.4"
 
-#define VERBOSE 1
+#define VERBOSE 0
 
 /**
  * How often do we send our ICMP messages to receive replies?
