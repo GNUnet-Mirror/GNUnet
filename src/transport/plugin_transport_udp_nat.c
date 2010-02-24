@@ -1480,8 +1480,9 @@ udp_nat_check_address (void *cls, void *addr, size_t addrlen)
   char buf[sizeof (struct sockaddr_in6)];
 
   struct sockaddr_in *v4;
+#if IPV6
   struct sockaddr_in6 *v6;
-
+#endif
 #if IPV6
   if ((addrlen != sizeof (struct sockaddr_in)) &&
       (addrlen != sizeof (struct sockaddr_in6)))
