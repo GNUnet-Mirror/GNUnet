@@ -785,7 +785,9 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
         {
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                     _("No SERVICEHOME specified in peer configuration, can't copy friends file!\n"));
-          unlink(mytemp);
+          if (unlink(mytemp) != 0)
+            GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                                _("Couldn't remove friends file %s!\n"), mytemp);
 	  GNUNET_free (mytemp);
           break;
         }

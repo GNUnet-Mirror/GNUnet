@@ -789,9 +789,10 @@ notify_connect_result (void *cls,
  * Success, connection is up.  Signal client our success.
  *
  * @param cls our "struct ConnectContext"
- * @param size number of bytes available in buf
- * @param buf where to copy the message, NULL on error
- * @return number of bytes copied to buf
+ * @param peer identity of the peer that has connected
+ * @param latency the round trip latency of the connection to this peer
+ * @param distance distance the transport level distance to this peer
+ *
  */
 static void
 connect_notify (void *cls, const struct GNUNET_PeerIdentity * peer, struct GNUNET_TIME_Relative latency,
