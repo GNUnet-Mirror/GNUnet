@@ -557,7 +557,8 @@ check_port (struct Plugin *plugin, uint16_t in_port)
  * connect to it but simply to see if the binary format is technically
  * legal for establishing a connection.
  *
- * @param addr pointer to the address, may be modified (slightly)
+ * @param cls handle to Plugin
+ * @param addr address to check
  * @param addrlen length of addr
  * @return GNUNET_OK if this is a plausible address for this peer
  *         and transport, GNUNET_SYSERR if not

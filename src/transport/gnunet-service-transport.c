@@ -1844,7 +1844,7 @@ check_pending_validation (void *cls,
  * @param cls closure
  * @param message the pong message
  * @param peer who responded to our challenge
- * @param sender_addr string describing our sender address (as observed
+ * @param sender_address string describing our sender address (as observed
  *         by the other peer in binary format)
  * @param sender_address_len number of bytes in 'sender_address'
  */
