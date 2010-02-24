@@ -410,7 +410,9 @@ main (int argc, char *argv[])
       is_udp_nat = GNUNET_YES;
       if (check_gnunet_nat_server() == GNUNET_NO)
         {
-          return GNUNET_SYSERR;
+          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                      "gnunet-nat-server not installed as root, but not failing!\n");
+          return 0;
         }
     }
   else if (strstr(argv[0], "udp") != NULL)
