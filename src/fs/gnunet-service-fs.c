@@ -2456,6 +2456,7 @@ handle_start_search (void *cls,
   type = ntohl (sm->type);
   switch (type)
     {
+    case GNUNET_DATASTORE_BLOCKTYPE_ANY:
     case GNUNET_DATASTORE_BLOCKTYPE_DBLOCK:
     case GNUNET_DATASTORE_BLOCKTYPE_IBLOCK:
     case GNUNET_DATASTORE_BLOCKTYPE_KBLOCK:
