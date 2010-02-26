@@ -605,11 +605,15 @@ destroy_pending_message (struct PendingMessage *pm,
 			 GNUNET_PEER_Id tpid)
 {
   struct PendingMessageList *pml = pm->pml;
+  TransmissionContinuation cont;
+  void *cont_cls;
 
   GNUNET_assert (pml->pm == pm);
   GNUNET_assert ( (tpid == 0) || (tpid == pml->target->pid) );
-  pm->cont (pm->cont_cls, 0);  
+  cont = pm->cont;
+  cont_cls = pm->cont_cls;
   destroy_pending_message_list_entry (pml);
+  cont (cont_cls, 0);  
 }
 
 
