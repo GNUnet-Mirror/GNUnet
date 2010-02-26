@@ -25,7 +25,7 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_core_service.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 /**
  * How long until we give up on connecting the peers?
@@ -250,7 +250,9 @@ static size_t
 transmit_ready (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MessageHeader *m;
+#if VERBOSE
   struct GNUNET_PeerIdentity *peer = cls;
+#endif
   GNUNET_assert (buf != NULL);
   m = (struct GNUNET_MessageHeader *) buf;
   m->type = htons (MTYPE);
@@ -258,8 +260,8 @@ transmit_ready (void *cls, size_t size, void *buf)
 
   transmit_ready_called++;
 #if VERBOSE
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "transmit ready for peer %s\ntransmit_ready's scheduled %d, transmit_ready's called %d\n", GNUNET_i2s(peer), transmit_ready_scheduled, transmit_ready_called);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "transmit ready for peer %s\ntransmit_ready's scheduled %d, transmit_ready's called %d\n", GNUNET_i2s(peer), transmit_ready_scheduled, transmit_ready_called);
 #endif
   GNUNET_SCHEDULER_add_now(sched, &schedule_transmission, NULL);
   return sizeof (struct GNUNET_MessageHeader);
