@@ -78,7 +78,7 @@ typedef void (*TransmissionContinuation)(void * cls,
 
 
 /**
- * Information we keep for each pending reply.  The
+ * Information we keep for each pending message (GET/PUT).  The
  * actual message follows at the end of this struct.
  */
 struct PendingMessage
@@ -842,7 +842,7 @@ handle_client_disconnect (void *cls,
   struct ClientResponseMessage *creply;
 
   if (client == NULL)
-    return; /* huh? is this allowed? */
+    return;
   prev = NULL;
   pos = client_list;
   while ( (NULL != pos) &&
@@ -1463,7 +1463,7 @@ transmit_reply_continuation (void *cls,
 			     GNUNET_PEER_Id tpid)
 {
   struct PendingRequest *pr = cls;
-
+  
   switch (pr->type)
     {
     case GNUNET_DATASTORE_BLOCKTYPE_DBLOCK:
@@ -1955,13 +1955,13 @@ process_local_reply (void *cls,
   GNUNET_HashCode mhash;
   GNUNET_HashCode query;
   
-  pr->drq = NULL;
   if (NULL == key)
     {
 #if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Done processing local replies, forwarding request to other peers.\n");
 #endif
+      pr->drq = NULL;
       if (pr->client_request_list != NULL)
 	GNUNET_SERVER_receive_done (pr->client_request_list->client_list->client, 
 				    GNUNET_YES);
