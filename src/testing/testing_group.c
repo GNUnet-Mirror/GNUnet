@@ -393,7 +393,7 @@ create_small_world_ring(struct GNUNET_TESTING_PeerGroup *pg)
 
   connect_attempts += smallWorldConnections;
 
-  return GNUNET_OK;
+  return connect_attempts;
 }
 
 
@@ -410,7 +410,7 @@ create_nated_internet (struct GNUNET_TESTING_PeerGroup *pg)
   if (p_string != NULL)
     nat_percentage = atof(p_string);
   else
-    nat_percentage = 0.0; /* FIXME: default modifier? */
+    nat_percentage = 0.6; /* FIXME: default modifier? */
 
   GNUNET_free_non_null(p_string);
 
@@ -566,7 +566,7 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg)
                       _("Total connections added for small world: %d!\n"),
                       smallWorldConnections);
 #endif
-  return GNUNET_OK;
+  return connect_attempts;
 }
 
 
@@ -589,9 +589,9 @@ create_erdos_renyi (struct GNUNET_TESTING_PeerGroup *pg)
     }
   else
     {
-      probability = 0.0; /* FIXME: default probability? */
+      probability = 0.5; /* FIXME: default probability? */
     }
-  GNUNET_free (p_string);
+  GNUNET_free_non_null (p_string);
   for (outer_count = 0; outer_count < pg->total - 1; outer_count++)
     {
       for (inner_count = outer_count + 1; inner_count < pg->total;

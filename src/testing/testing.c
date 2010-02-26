@@ -840,44 +840,6 @@ send_hello(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-#if HIDDEN
-/*
- * Accessor function since we have hidden what GNUNET_TESTING_Daemon is
- *
- * FIXME: Either expose members or figure out a better way!
- */
-char *
-GNUNET_TESTING_daemon_get_shortname (struct GNUNET_TESTING_Daemon *d)
-{
-  return d->shortname;
-}
-
-char *
-GNUNET_TESTING_daemon_get_hostname (struct GNUNET_TESTING_Daemon *d)
-{
-  return d->hostname;
-}
-
-char *
-GNUNET_TESTING_daemon_get_username (struct GNUNET_TESTING_Daemon *d)
-{
-  return d->username;
-}
-
-struct GNUNET_PeerIdentity *
-GNUNET_TESTING_daemon_get_peer (struct GNUNET_TESTING_Daemon *d)
-{
-  return &d->id;
-}
-
-struct GNUNET_CONFIGURATION_Handle *
-GNUNET_TESTING_daemon_get_config (struct GNUNET_TESTING_Daemon *d)
-{
-  return d->cfg;
-}
-#endif
-
-
 /**
  * Establish a connection between two GNUnet daemons.
  *
