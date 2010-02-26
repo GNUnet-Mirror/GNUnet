@@ -218,6 +218,7 @@ struct EncryptedMessage
 
 };
 
+
 /**
  * We're sending an (encrypted) PING to the other peer to check if he
  * can decrypt.  The other peer should respond with a PONG with the
@@ -226,7 +227,7 @@ struct EncryptedMessage
 struct PingMessage
 {
   /**
-   * Message type is either CORE_PING or CORE_PONG.
+   * Message type is CORE_PING.
    */
   struct GNUNET_MessageHeader header;
 
@@ -234,6 +235,43 @@ struct PingMessage
    * Random number chosen to make reply harder.
    */
   uint32_t challenge GNUNET_PACKED;
+
+  /**
+   * Intended target of the PING, used primarily to check
+   * that decryption actually worked.
+   */
+  struct GNUNET_PeerIdentity target;
+};
+
+
+
+/**
+ * Response to a PING.  Includes data from the original PING
+ * plus initial bandwidth quota information.
+ */
+struct PongMessage
+{
+  /**
+   * Message type is CORE_PONG.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Random number proochosen to make reply harder.
+   */
+  uint32_t challenge GNUNET_PACKED;
+
+  /**
+   * Must be zero.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * Desired bandwidth (how much we should send to this
+   * peer / how much is the sender willing to receive),
+   * in bytes per minute.
+   */
+  uint32_t inbound_bpm_limit GNUNET_PACKED;
 
   /**
    * Intended target of the PING, used primarily to check
@@ -385,7 +423,7 @@ struct Neighbour
    * (or the SET_KEY).  We keep it here until we have a key
    * to decrypt it.  NULL if no PONG is pending.
    */
-  struct PingMessage *pending_pong;
+  struct PongMessage *pending_pong;
 
   /**
    * Non-NULL if we are currently looking up HELLOs for this peer.
@@ -721,10 +759,23 @@ update_window (int force,
 
   since = GNUNET_TIME_absolute_get_duration (*ts);
   increment = (bpm * since.value) / 60 / 1000;
+#if DEBUG_CORE_QUOTA
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Updating window with %u bpm after %llu ms by %llu\n",
+	      bpm,
+	      (unsigned long long) since.value,
+	      increment);
+#endif
   if ( (force == GNUNET_NO) &&
        (since.value < 60 * 1000) &&
        (increment < 32 * 1024) )
-    return;                     /* not even a minute has passed */
+    {
+#if DEBUG_CORE_QUOTA
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Not updating window, change too small.\n");
+#endif
+      return;                     /* not even a minute has passed */
+    }
   *ts = GNUNET_TIME_absolute_get ();
   *window += increment;
   if (*window > MAX_WINDOW_TIME * bpm)
@@ -964,14 +1015,15 @@ handle_client_request_info (void *cls,
   memset (&cim, 0, sizeof (cim));
   if (n != NULL) 
     {
-      update_window (GNUNET_YES,
-		     &n->available_send_window,
-		     &n->last_asw_update,
-		     n->bpm_out);
-      n->bpm_out_internal_limit = ntohl (rcm->limit_outbound_bpm);
-      n->bpm_out = GNUNET_MAX (n->bpm_out_internal_limit,
-                               n->bpm_out_external_limit);
       want_reserv = ntohl (rcm->reserve_inbound);
+      if (n->bpm_out_internal_limit != ntohl (rcm->limit_outbound_bpm))
+	update_window (GNUNET_YES,
+		       &n->available_send_window,
+		       &n->last_asw_update,
+		       n->bpm_out);
+      n->bpm_out_internal_limit = ntohl (rcm->limit_outbound_bpm);
+      n->bpm_out = GNUNET_MIN (n->bpm_out_internal_limit,
+                               n->bpm_out_external_limit);
       if (want_reserv < 0)
         {
           n->available_recv_window += want_reserv;
@@ -995,11 +1047,13 @@ handle_client_request_info (void *cls,
 	  n->current_preference = (unsigned long long) -1;
 	}
       update_preference_sum (n->current_preference - old_preference);
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+#if DEBUG_CORE_QUOTA
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Received reservation request for %d bytes for peer `%4s', reserved %d bytes\n",
 		  want_reserv,
 		  GNUNET_i2s (&rcm->peer),
 		  got_reserv);
+#endif
       cim.reserved_amount = htonl (got_reserv);
       cim.bpm_in = htonl (n->bpm_in);
       cim.bpm_out = htonl (n->bpm_out);
@@ -1828,6 +1882,12 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
                                       &retry_plaintext_processing, n);
       return;
     }
+#if DEBUG_CORE_QUOTA
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending %llu as new limit to peer `%4s'\n",
+	      (unsigned long long) n->bpm_in,
+	      GNUNET_i2s (&n->peer));
+#endif
   ph->iv_seed = htonl (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, -1));
   ph->sequence_number = htonl (++n->last_sequence_number_sent);
   ph->inbound_bpm_limit = htonl (n->bpm_in);
@@ -2429,7 +2489,8 @@ static void
 handle_ping (struct Neighbour *n, const struct PingMessage *m)
 {
   struct PingMessage t;
-  struct PingMessage *tp;
+  struct PongMessage tx;
+  struct PongMessage *tp;
   struct MessageEntry *me;
 
 #if DEBUG_CORE
@@ -2462,22 +2523,26 @@ handle_ping (struct Neighbour *n, const struct PingMessage *m)
       return;
     }
   me = GNUNET_malloc (sizeof (struct MessageEntry) +
-                      sizeof (struct PingMessage));
+                      sizeof (struct PongMessage));
   GNUNET_CONTAINER_DLL_insert_after (n->encrypted_head,
 				     n->encrypted_tail,
 				     n->encrypted_tail,
 				     me);
   me->deadline = GNUNET_TIME_relative_to_absolute (MAX_PONG_DELAY);
   me->priority = PONG_PRIORITY;
-  me->size = sizeof (struct PingMessage);
-  tp = (struct PingMessage *) &me[1];
+  me->size = sizeof (struct PongMessage);
+  tx.reserved = htonl (0);
+  tx.inbound_bpm_limit = htonl (n->bpm_in);
+  tx.challenge = t.challenge;
+  tx.target = t.target;
+  tp = (struct PongMessage *) &me[1];
   tp->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_PONG);
-  tp->header.size = htons (sizeof (struct PingMessage));
+  tp->header.size = htons (sizeof (struct PongMessage));
   do_encrypt (n,
               &my_identity.hashPubKey,
-              &t.challenge,
+              &tx.challenge,
               &tp->challenge,
-              sizeof (struct PingMessage) -
+              sizeof (struct PongMessage) -
               sizeof (struct GNUNET_MessageHeader));
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2496,9 +2561,10 @@ handle_ping (struct Neighbour *n, const struct PingMessage *m)
  * @param m the encrypted PONG message itself
  */
 static void
-handle_pong (struct Neighbour *n, const struct PingMessage *m)
+handle_pong (struct Neighbour *n, 
+	     const struct PongMessage *m)
 {
-  struct PingMessage t;
+  struct PongMessage t;
   struct ConnectNotifyMessage cnm;
 
 #if DEBUG_CORE
@@ -2511,9 +2577,14 @@ handle_pong (struct Neighbour *n, const struct PingMessage *m)
                   &n->peer.hashPubKey,
                   &m->challenge,
                   &t.challenge,
-                  sizeof (struct PingMessage) -
+                  sizeof (struct PongMessage) -
                   sizeof (struct GNUNET_MessageHeader)))
     return;
+  if (0 != ntohl (t.reserved))
+    {
+      GNUNET_break_op (0);
+      return;
+    }
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Decrypted `%s' from `%4s' with challenge %u using key %u\n",
@@ -2548,6 +2619,9 @@ handle_pong (struct Neighbour *n, const struct PingMessage *m)
       return;
     case PEER_STATE_KEY_RECEIVED:
       n->status = PEER_STATE_KEY_CONFIRMED;
+      n->bpm_out_external_limit = ntohl (t.inbound_bpm_limit);
+      n->bpm_out = GNUNET_MIN (n->bpm_out_external_limit,
+			       n->bpm_out_internal_limit);
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Confirmed key via `%s' message for peer `%4s'\n",
@@ -2590,7 +2664,7 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
   struct GNUNET_TIME_Absolute t;
   struct GNUNET_CRYPTO_AesSessionKey k;
   struct PingMessage *ping;
-  struct PingMessage *pong;
+  struct PongMessage *pong;
   enum PeerStateMachine sender_status;
 
 #if DEBUG_CORE
@@ -3004,12 +3078,21 @@ handle_encrypted_message (struct Neighbour *n,
     }
 
   /* process decrypted message(s) */
-  update_window (GNUNET_YES,
-		 &n->available_send_window,
-		 &n->last_asw_update,
-		 n->bpm_out);
+  if (n->bpm_out_external_limit != ntohl (pt->inbound_bpm_limit))
+    {
+      update_window (GNUNET_YES,
+		     &n->available_send_window,
+		     &n->last_asw_update,
+		     n->bpm_out);
+#if DEBUG_CORE_QUOTA
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Received %llu as new inbound limit for peer `%4s'\n",
+		  (unsigned long long) ntohl (pt->inbound_bpm_limit),
+		  GNUNET_i2s (&n->peer));
+#endif
+    }
   n->bpm_out_external_limit = ntohl (pt->inbound_bpm_limit);
-  n->bpm_out = GNUNET_MAX (n->bpm_out_external_limit,
+  n->bpm_out = GNUNET_MIN (n->bpm_out_external_limit,
                            n->bpm_out_internal_limit);
   n->last_activity = GNUNET_TIME_absolute_get ();
   off = sizeof (struct EncryptedMessage);
@@ -3108,7 +3191,7 @@ handle_transport_receive (void *cls,
       handle_ping (n, (const struct PingMessage *) message);
       break;
     case GNUNET_MESSAGE_TYPE_CORE_PONG:
-      if (size != sizeof (struct PingMessage))
+      if (size != sizeof (struct PongMessage))
         {
           GNUNET_break_op (0);
           return;
@@ -3122,11 +3205,11 @@ handle_transport_receive (void *cls,
                       "PONG", GNUNET_i2s (&n->peer));
 #endif
           GNUNET_free_non_null (n->pending_pong);
-          n->pending_pong = GNUNET_malloc (sizeof (struct PingMessage));
-          memcpy (n->pending_pong, message, sizeof (struct PingMessage));
+          n->pending_pong = GNUNET_malloc (sizeof (struct PongMessage));
+          memcpy (n->pending_pong, message, sizeof (struct PongMessage));
           return;
         }
-      handle_pong (n, (const struct PingMessage *) message);
+      handle_pong (n, (const struct PongMessage *) message);
       break;
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -3165,7 +3248,15 @@ neighbour_quota_update (void *cls,
      divides by a bit more to avoid division by zero AND to
      account for possibility of new neighbours joining any time 
      AND to convert to double... */
-  pref_rel = n->current_preference / (1.0 + preference_sum);
+  if (preference_sum == 0)
+    {
+      pref_rel = 1.0 / (double) neighbour_count;
+    }
+  else
+    {
+      pref_rel = n->current_preference / preference_sum;
+    }
+  
   distributable = 0;
   if (bandwidth_target_out > neighbour_count * MIN_BPM_PER_PEER)
     distributable = bandwidth_target_out - neighbour_count * MIN_BPM_PER_PEER;
@@ -3182,6 +3273,15 @@ neighbour_quota_update (void *cls,
 #endif
       q_in = 0; /* force disconnect */
     }
+#if DEBUG_CORE_QUOTA
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Current quota for `%4s' is %llu in (old: %llu) / %llu out (%llu internal)\n",
+	      GNUNET_i2s (&n->peer),
+	      (unsigned long long) q_in,
+	      (unsigned long long) n->bpm_in,
+	      (unsigned long long) n->bpm_out,
+	      (unsigned long long) n->bpm_out_internal_limit);
+#endif
   if ( (n->bpm_in + MIN_BPM_CHANGE < q_in) ||
        (n->bpm_in - MIN_BPM_CHANGE > q_in) ) 
     {
