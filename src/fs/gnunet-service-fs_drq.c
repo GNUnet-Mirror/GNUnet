@@ -324,10 +324,11 @@ get_iterator (void *cls,
 {
   struct GetClosure *gc = cls;
 
-  if (gc->iter == NULL)
+  if (gc->iter == NULL) 
     {
       /* stop the iteration */
-      GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
+      if (key != NULL)
+	GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
     }
   else
     {

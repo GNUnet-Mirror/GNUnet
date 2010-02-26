@@ -51,13 +51,13 @@ static void
 do_stop (void *cls,
 	 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_FS_TEST_daemons_stop (sched,
+			       NUM_DAEMONS,
+			       daemons);
   GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Finished download, shutting down\n",
 	      (unsigned long long) FILESIZE);
-  GNUNET_FS_TEST_daemons_stop (sched,
-			       NUM_DAEMONS,
-			       daemons);
 }
 
 
