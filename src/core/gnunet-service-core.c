@@ -43,6 +43,8 @@
 
 #define DEBUG_HANDSHAKE GNUNET_NO
 
+#define DEBUG_CORE_QUOTA GNUNET_YES
+
 /**
  * Receive and send buffer windows grow over time.  For
  * how long can 'unused' bandwidth accumulate before we
@@ -1242,14 +1244,13 @@ notify_encrypted_transmit_ready (void *cls, size_t size, void *buf)
       memcpy (cbuf, &m[1], m->size);
       ret = m->size;
       n->available_send_window -= m->size;
-      process_encrypted_neighbour_queue (n);
-
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Copied message of type %u and size %u into transport buffer for `%4s'\n",
                   ntohs (((struct GNUNET_MessageHeader *) &m[1])->type),
                   ret, GNUNET_i2s (&n->peer));
 #endif
+      process_encrypted_neighbour_queue (n);
     }
   else
     {
@@ -1444,6 +1445,7 @@ select_messages (struct Neighbour *n,
   unsigned long long slack;     /* how long could we wait before missing deadlines? */
   size_t off;
   int discard_low_prio;
+  unsigned int queue_size;
 
   GNUNET_assert (NULL != n->messages);
   now = GNUNET_TIME_absolute_get ();
@@ -1452,6 +1454,13 @@ select_messages (struct Neighbour *n,
   /* should we remove the entry with the lowest
      priority from consideration for scheduling at the
      end of the loop? */
+  queue_size = 0;
+  pos = n->messages;
+  while (pos != NULL)
+    {
+      queue_size++;
+      pos = pos->next;
+    }
   discard_low_prio = GNUNET_YES;
   while (GNUNET_YES == discard_low_prio)
     {
@@ -1477,7 +1486,7 @@ select_messages (struct Neighbour *n,
          sense since new message might be scheduled in the
          meantime... */
       while ((pos != NULL) && (off < size * 2))
-        {
+        {         
           if (pos->do_transmit == GNUNET_YES)
             {
               /* already removed from consideration */
@@ -1537,7 +1546,9 @@ select_messages (struct Neighbour *n,
     }
   /* guard against sending "tiny" messages with large headers without
      urgent deadlines */
-  if ( (slack > 1000) && (size > 4 * off) )
+  if ( (slack > 1000) && 
+       (size > 4 * off) &&
+       (queue_size < MAX_PEER_QUEUE_SIZE / 2) )
     {
       /* less than 25% of message would be filled with deadlines still
          being met if we delay by one second or more; so just wait for
@@ -1552,7 +1563,9 @@ select_messages (struct Neighbour *n,
         }
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Deferring transmission for 1s due to underfull message buffer size\n");
+		  "Deferring transmission for 1s due to underfull message buffer size (%u/%u)\n",
+		  (unsigned int) off,
+		  (unsigned int) size);
 #endif
       return 0;
     }
@@ -2076,7 +2089,11 @@ handle_client_send (void *cls,
 	  /* discard new entry */
 #if DEBUG_CORE
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Queue full, discarding new request\n");
+		      "Queue full (%u/%u), discarding new request (%u bytes of type %u)\n",
+		      queue_size,
+		      MAX_PEER_QUEUE_SIZE,
+		      msize,
+		      ntohs (message->type));
 #endif
 	  if (client != NULL)
 	    GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -3242,6 +3259,8 @@ neighbour_quota_update (void *cls,
   double pref_rel;
   double share;
   unsigned long long distributable;
+  uint32_t qin_ms;
+  uint32_t qout_ms;
   
   n->quota_update_task = GNUNET_SCHEDULER_NO_TASK;
   /* calculate relative preference among all neighbours;
@@ -3286,6 +3305,9 @@ neighbour_quota_update (void *cls,
        (n->bpm_in - MIN_BPM_CHANGE > q_in) ) 
     {
       n->bpm_in = q_in;
+      /* need to convert to bytes / ms, rounding up! */
+      qin_ms = (q_in == 0) ? 0 : 1 + q_in / 60000;
+      qout_ms = (n->bpm_out == 0) ? 0 : 1 + n->bpm_out / 60000;
       GNUNET_TRANSPORT_set_quota (transport,
 				  &n->peer,
 				  n->bpm_in, 
