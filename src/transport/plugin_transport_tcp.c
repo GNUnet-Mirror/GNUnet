@@ -333,6 +333,7 @@ create_session (struct Plugin *plugin,
   ret->client = client;
   ret->target = *target;
   ret->last_quota_update = GNUNET_TIME_absolute_get ();
+  // FIXME: This is simply wrong...
   ret->quota_in = plugin->env->default_quota_in;
   ret->expecting_welcome = GNUNET_YES;
   pm = GNUNET_malloc (sizeof (struct PendingMessage) + sizeof (struct WelcomeMessage));
@@ -902,6 +903,15 @@ tcp_plugin_set_receive_quota (void *cls,
   struct Plugin *plugin = cls;
   struct Session *session;
 
+  // FIXME: This is simply wrong:
+  // We may have multiple sessions for the target,
+  // and some OTHER session might be the one to 
+  // survive; not to mention the inbound-quota should
+  // be enforced across transports!
+  // => keep quota-related states in the service (globally, per peer)
+  //    and update/query the information when it is needed!
+  // => we can likely get rid of this entire function and
+  //    replace it with a query/update API!
   session = find_session_by_target (plugin, target);
   if (session == NULL)
     {
