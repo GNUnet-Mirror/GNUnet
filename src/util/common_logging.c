@@ -106,7 +106,7 @@ static const char *last_bulk_comp;
 /**
  * Running component.
  */
-static const char *component;
+static char *component;
 
 /**
  * Minimum log level.
@@ -163,7 +163,11 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
 {
   FILE *altlog;
 
-  component = comp;
+  GNUNET_free_non_null (component);
+  GNUNET_asprintf (&component,
+		   "%s-%d",
+		   comp,
+		   getpid());
   min_level = get_type (loglevel);
   if (logfile == NULL)
     return GNUNET_OK;
@@ -240,7 +244,7 @@ output_message (enum GNUNET_ErrorType kind,
 {
   struct CustomLogger *pos;
   if (GNUNET_stderr != NULL)
-    fprintf (GNUNET_stderr, "%s %s %s %s", datestr, comp,
+    fprintf (GNUNET_stderr, "%s %s %s %s", datestr, comp, 
              GNUNET_error_type_to_string (kind), msg);
   pos = loggers;
   while (pos != NULL)
