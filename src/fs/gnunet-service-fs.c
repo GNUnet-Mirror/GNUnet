@@ -618,7 +618,6 @@ destroy_pending_message (struct PendingMessage *pm,
 }
 
 
-
 /**
  * We're done processing a particular request.
  * Free all associated resources.
@@ -1258,7 +1257,7 @@ target_reservation_cb (void *cls,
     {
       if (pr->cp == NULL)
 	{
-#if DEBUG_FS
+#if DEBUG_FS > 1
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Failed to reserve bandwidth for reply (got %d/%u bytes only)!\n",
 		      amount,
@@ -1712,7 +1711,10 @@ process_reply (void *cls,
 	destroy_pending_message_list_entry (pr->pending_head);
       if (pr->drq != NULL)
 	{
-	  GNUNET_FS_drq_get_cancel (pr->drq);
+	  if (pr->client_request_list != NULL)
+	    GNUNET_SERVER_receive_done (pr->client_request_list->client_list->client, 
+					GNUNET_YES);
+ 	  GNUNET_FS_drq_get_cancel (pr->drq);
 	  pr->drq = NULL;
 	}
       do_remove = GNUNET_YES;
@@ -2048,7 +2050,7 @@ process_local_reply (void *cls,
 	   (pr->results_found > 5 + 2 * pr->priority) ) ) ||
        (type == GNUNET_DATASTORE_BLOCKTYPE_DBLOCK) ) 
     {
-#if DEBUG_FS
+#if DEBUG_FS > 2
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Unique reply found or load too high, done with request\n");
 #endif
@@ -2433,7 +2435,7 @@ handle_start_search (void *cls,
   uint16_t msize;
   unsigned int sc;
   uint32_t type;
-  
+
   msize = ntohs (message->size);
   if ( (msize < sizeof (struct SearchMessage)) ||
        (0 != (msize - sizeof (struct SearchMessage)) % sizeof (GNUNET_HashCode)) )
