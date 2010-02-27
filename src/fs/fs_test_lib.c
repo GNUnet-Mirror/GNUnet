@@ -195,7 +195,7 @@ progress_cb (void *cls,
       if (daemon->verbose)
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		    "Download at %llu/%llu bytes\n",
-		    (unsigned long long) info->value.download.specifics.progress.offset,
+		    (unsigned long long) info->value.download.completed,
 		    (unsigned long long) info->value.download.size);
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:

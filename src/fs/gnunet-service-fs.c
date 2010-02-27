@@ -988,7 +988,7 @@ transmit_to_peer (void *cls,
 						   &transmit_to_peer,
 						   pm);
     }
-#if DEBUG_FS
+#if DEBUG_FS > 2
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Transmitting %u bytes to peer %u.\n",
 	      msize,
@@ -1273,7 +1273,8 @@ target_reservation_cb (void *cls,
   /* build message and insert message into priority queue */
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Forwarding request to `%4s'!\n",
+	      "Forwarding request `%s' to `%4s'!\n",
+	      GNUNET_h2s (&pr->query),
 	      GNUNET_i2s (peer));
 #endif
   k = 0;
@@ -1960,7 +1961,7 @@ process_local_reply (void *cls,
   
   if (NULL == key)
     {
-#if DEBUG_FS
+#if DEBUG_FS > 1
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Done processing local replies, forwarding request to other peers.\n");
 #endif
