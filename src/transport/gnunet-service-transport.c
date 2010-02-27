@@ -2831,7 +2831,8 @@ handle_set_quota (void *cls,
     (const struct QuotaSetMessage *) message;
   struct NeighbourList *n;
   struct TransportPlugin *p;
-  struct ReadyList *rl;
+  struct ReadyList *rl;	  
+  uint32_t qin;
 
   n = find_neighbour (&qsm->peer);
   if (n == NULL)
@@ -2839,23 +2840,22 @@ handle_set_quota (void *cls,
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return;
     }
-
+  qin = ntohl (qsm->quota_in);
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' request (new quota %u, old quota %u) from client for peer `%4s'\n",
-              "SET_QUOTA", ntohl(qsm->quota_in), n->quota_in, GNUNET_i2s (&qsm->peer));
+              "SET_QUOTA", qin, n->quota_in, GNUNET_i2s (&qsm->peer));
 #endif
-
   update_quota (n);
-  if (n->quota_in < ntohl (qsm->quota_in))
+  if (n->quota_in < qin)
     n->last_quota_update = GNUNET_TIME_absolute_get ();
-  n->quota_in = ntohl (qsm->quota_in);
+  n->quota_in = qin;
   rl = n->plugins;
   while (rl != NULL)
     {
       p = rl->plugin;
       p->api->set_receive_quota (p->api->cls,
-                                 &qsm->peer, ntohl (qsm->quota_in));
+                                 &qsm->peer, qin);
       rl = rl->next;
     }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);

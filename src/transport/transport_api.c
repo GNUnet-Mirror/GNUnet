@@ -535,7 +535,8 @@ schedule_peer_transmission (struct GNUNET_TRANSPORT_Handle *h)
 	}
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Bandwidth available for transmission to `%4s'\n",
+		  "Have %u bytes of bandwidth available for transmission to `%4s' right now\n",
+		  th->notify_size,
 		  GNUNET_i2s (&n->id));
 #endif
       if ( (ret == NULL) ||

@@ -322,6 +322,10 @@ create_session (struct Plugin *plugin,
   struct PendingMessage *pm;
   struct WelcomeMessage welcome;
 
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		   "tcp",
+		   "Creating new session for peer `%4s'\n",
+		   GNUNET_i2s (target));
   ret = GNUNET_malloc (sizeof (struct Session));
   ret->plugin = plugin;
   ret->next = plugin->sessions;
@@ -900,9 +904,21 @@ tcp_plugin_set_receive_quota (void *cls,
 
   session = find_session_by_target (plugin, target);
   if (session == NULL)
-    return;                     /* peer must have disconnected, ignore */
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		       "tcp",
+		       "Could not find session for peer `%4s' to update quota.\n",
+		       GNUNET_i2s (target));
+      return;                     /* peer must have disconnected, ignore */
+    }
   if (session->quota_in != quota_in)
     {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		       "tcp",
+		       "Changing quota for peer `%4s' from %u to %u\n",
+		       GNUNET_i2s (target),
+		       session->quota_in,
+		       quota_in);
       update_quota (session, GNUNET_YES);
       if (session->quota_in > quota_in)
         session->last_quota_update = GNUNET_TIME_absolute_get ();
@@ -1076,6 +1092,12 @@ calculate_throttle_delay (struct Session *session)
     return GNUNET_TIME_UNIT_ZERO;       /* can receive right now */
   excess = session->last_received - avail;
   ret.value = excess / session->quota_in;
+  GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
+		   "tcp",
+		   "Throttling read (%llu bytes excess at %llu b/ms), waiting %llums before reading more.\n",
+		   (unsigned long long) excess,
+		   (unsigned long long) session->quota_in,
+		   (unsigned long long) ret.value);
   return ret;
 }
 
