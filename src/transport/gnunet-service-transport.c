@@ -863,50 +863,26 @@ find_transport (const char *short_name)
 
 /**
  * Update the quota values for the given neighbour now.
+ *
+ * @param n neighbour to update
+ * @param force GNUNET_YES to force recalculation now
  */
 static void
-update_quota (struct NeighbourList *n)
+update_quota (struct NeighbourList *n,
+	      int force)
 {
-  struct GNUNET_TIME_Relative delta;
+  struct GNUNET_TIME_Absolute now;
+  unsigned long long delta;
   uint64_t allowed;
   uint64_t remaining;
 
-#if 0
-  struct GNUNET_TIME_Absolute now;
-  unsigned long long delta;
-  unsigned long long total_allowed;
-  unsigned long long total_remaining;
-
   now = GNUNET_TIME_absolute_get ();
-  delta = now.value - session->last_quota_update.value;
-  if ((delta < MIN_QUOTA_REFRESH_TIME) && (!force))
+  delta = now.value - n->last_quota_update.value;
+  allowed = n->quota_in * delta;
+  if ( (delta < MIN_QUOTA_REFRESH_TIME) &&
+       (!force) &&
+       (allowed < 32 * 1024) )
     return;                     /* too early, not enough data */
-
-  total_allowed = session->quota_in * delta;
-  if (total_allowed > session->last_received)
-    {
-      /* got less than acceptable */
-      total_remaining = total_allowed - session->last_received;
-      session->last_received = 0;
-      delta = total_remaining / session->quota_in;      /* bonus seconds */
-      if (delta > MAX_BANDWIDTH_CARRY)
-        delta = MAX_BANDWIDTH_CARRY;    /* limit amount of carry-over */
-    }
-  else
-    {
-      /* got more than acceptable */
-      session->last_received -= total_allowed;
-      delta = 0;
-    }
-  session->last_quota_update.value = now.value - delta;
-#endif
-
-
-  delta = GNUNET_TIME_absolute_get_duration (n->last_quota_update);
-  if (delta.value < MIN_QUOTA_REFRESH_TIME)
-    return;                     /* not enough time passed for doing quota update */
-  allowed = delta.value * n->quota_in;
-
   if (n->last_received < allowed)
     {
       remaining = allowed - n->last_received;
@@ -917,7 +893,7 @@ update_quota (struct NeighbourList *n)
       if (remaining > MAX_BANDWIDTH_CARRY)
         remaining = MAX_BANDWIDTH_CARRY;
       n->last_received = 0;
-      n->last_quota_update = GNUNET_TIME_absolute_get ();
+      n->last_quota_update = now;
       n->last_quota_update.value -= remaining;
       if (n->quota_violation_count > 0)
         n->quota_violation_count--;
@@ -925,10 +901,10 @@ update_quota (struct NeighbourList *n)
   else
     {
       n->last_received -= allowed;
-      n->last_quota_update = GNUNET_TIME_absolute_get ();
+      n->last_quota_update = now;
       if (n->last_received > allowed)
         {
-          /* more than twice the allowed rate! */
+          /* much more than the allowed rate! */
           n->quota_violation_count += 10;
         }
     }
@@ -2589,7 +2565,7 @@ calculate_throttle_delay (struct NeighbourList *n)
   del = now.value - n->last_quota_update.value;
   if (del > MAX_BANDWIDTH_CARRY)
     {
-      update_quota (n /*, GNUNET_YES*/);
+      update_quota (n, GNUNET_YES);
       del = now.value - n->last_quota_update.value;
       GNUNET_assert (del <= MAX_BANDWIDTH_CARRY);
     }
@@ -2643,6 +2619,7 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   n = find_neighbour (peer);
   if (n == NULL)
     n = setup_new_neighbour (peer);    
+  update_quota (n, GNUNET_NO);
   service_context = n->plugins;
   while ((service_context != NULL) && (plugin != service_context->plugin))
     service_context = service_context->next;
@@ -2901,7 +2878,7 @@ handle_set_quota (void *cls,
               "Received `%s' request (new quota %u, old quota %u) from client for peer `%4s'\n",
               "SET_QUOTA", qin, n->quota_in, GNUNET_i2s (&qsm->peer));
 #endif
-  update_quota (n);
+  update_quota (n, GNUNET_YES);
   if (n->quota_in < qin)
     n->last_quota_update = GNUNET_TIME_absolute_get ();
   n->quota_in = qin;
