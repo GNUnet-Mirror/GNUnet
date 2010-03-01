@@ -2005,9 +2005,6 @@ create_neighbour (const struct GNUNET_PeerIdentity *pid)
 }
 
 
-
-
-
 /**
  * Handle CORE_SEND request.
  *
@@ -2021,7 +2018,6 @@ handle_client_send (void *cls,
                     const struct GNUNET_MessageHeader *message)
 {
   const struct SendMessage *sm;
-  const struct GNUNET_MessageHeader *mh;
   struct Neighbour *n;
   struct MessageEntry *prev;
   struct MessageEntry *pos;
@@ -2043,14 +2039,6 @@ handle_client_send (void *cls,
     }
   sm = (const struct SendMessage *) message;
   msize -= sizeof (struct SendMessage);
-  mh = (const struct GNUNET_MessageHeader *) &sm[1];
-  if (msize != ntohs (mh->size))
-    {
-      GNUNET_break (0);
-      if (client != NULL)
-        GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
   n = find_neighbour (&sm->peer);
   if (n == NULL)
     n = create_neighbour (&sm->peer);
@@ -2120,7 +2108,7 @@ handle_client_send (void *cls,
   e->deadline = GNUNET_TIME_absolute_ntoh (sm->deadline);
   e->priority = ntohl (sm->priority);
   e->size = msize;
-  memcpy (&e[1], mh, msize);
+  memcpy (&e[1], &sm[1], msize);
 
   /* insert, keep list sorted by deadline */
   prev = NULL;
