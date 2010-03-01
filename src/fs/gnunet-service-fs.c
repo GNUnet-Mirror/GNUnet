@@ -1696,7 +1696,8 @@ process_reply (void *cls,
 
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Matched result for query `%s' with pending request\n",
+	      "Matched result (type %u) for query `%s' with pending request\n",
+	      (unsigned int) prq->type,
 	      GNUNET_h2s (key));
 #endif  
   do_remove = GNUNET_NO;
@@ -1818,10 +1819,18 @@ process_reply (void *cls,
       add_to_pending_messages_for_peer (cp, reply, pr);
     }
   if (GNUNET_YES == do_remove)
-    GNUNET_break (GNUNET_YES ==
-		  GNUNET_CONTAINER_multihashmap_remove (query_request_map,
-							key,
-							pr));
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Removing request `%s' from request map (has been satisfied)\n",
+		  GNUNET_h2s (key));
+      GNUNET_break (GNUNET_YES ==
+		    GNUNET_CONTAINER_multihashmap_remove (query_request_map,
+							  key,
+							  pr));
+      // FIXME: request somehow does not fully
+      // disappear; how to fix? 
+      // destroy_pending_request (pr); (not like this!)
+    }
 
   // FIXME: implement hot-path routing statistics keeping!
   return GNUNET_YES;
