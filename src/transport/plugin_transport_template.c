@@ -219,23 +219,6 @@ template_plugin_address_pretty_printer (void *cls,
   asc (asc_cls, NULL);
 }
 
-/**
- * Set a quota for receiving data from the given peer; this is a
- * per-transport limit.  The transport should limit its read/select
- * calls to stay below the quota (in terms of incoming data).
- *
- * @param cls closure
- * @param target the peer for whom the quota is given
- * @param quota_in quota for receiving/sending data in bytes per ms
- */
-static void
-template_plugin_set_receive_quota (void *cls,
-                                   const struct GNUNET_PeerIdentity *target,
-                                   uint32_t quota_in)
-{
-  // struct Plugin *plugin = cls;
-  // FIXME!
-}
 
 
 /**
@@ -280,7 +263,6 @@ gnunet_plugin_transport_template_init (void *cls)
   api->send = &template_plugin_send;
   api->disconnect = &template_plugin_disconnect;
   api->address_pretty_printer = &template_plugin_address_pretty_printer;
-  api->set_receive_quota = &template_plugin_set_receive_quota;
   api->check_address = &template_plugin_address_suggested;
   return api;
 }

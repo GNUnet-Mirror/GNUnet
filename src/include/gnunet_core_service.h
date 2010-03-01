@@ -273,7 +273,8 @@ GNUNET_CORE_peer_request_connect_cancel (struct GNUNET_CORE_PeerRequestHandle *r
  * @param bpm_out set to the current bandwidth limit (sending) for this peer
  * @param latency current latency estimate, "FOREVER" if we have been
  *                disconnected
- * @param amount set to the amount that was actually reserved or unreserved
+ * @param amount set to the amount that was actually reserved or unreserved;
+ *               either the full requested amount or zero (no partial reservations)
  * @param preference current traffic preference for the given peer
  */
 typedef void

@@ -1595,23 +1595,6 @@ udp_nat_plugin_address_pretty_printer (void *cls,
                                 !numeric, timeout, &append_port, ppc);
 }
 
-/**
- * Set a quota for receiving data from the given peer; this is a
- * per-transport limit.  This call has no meaning for UDP, as if
- * we don't receive data it still comes in.  UDP has no friendliness
- * guarantees, and our buffers will fill at some level.
- *
- * @param cls closure
- * @param target the peer for whom the quota is given
- * @param quota_in quota for receiving/sending data in bytes per ms
- */
-static void
-udp_nat_plugin_set_receive_quota (void *cls,
-                              const struct GNUNET_PeerIdentity *target,
-                              uint32_t quota_in)
-{
-  return; /* Do nothing */
-}
 
 /**
  * The exported method. Makes the core api available via a global and
@@ -1715,7 +1698,6 @@ libgnunet_plugin_transport_udp_nat_init (void *cls)
   api->send = &udp_nat_plugin_send;
   api->disconnect = &udp_nat_disconnect;
   api->address_pretty_printer = &udp_nat_plugin_address_pretty_printer;
-  api->set_receive_quota = &udp_nat_plugin_set_receive_quota;
   api->check_address = &udp_nat_check_address;
 
   plugin->service = service;

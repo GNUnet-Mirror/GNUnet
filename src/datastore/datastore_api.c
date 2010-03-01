@@ -656,6 +656,7 @@ GNUNET_DATASTORE_get (struct GNUNET_DATASTORE_Handle *h,
     {
       gm->header.size = htons(sizeof (struct GetMessage) - sizeof(GNUNET_HashCode));
     }
+  GNUNET_assert (h->response_proc == NULL);
   transmit_for_result (h, iter, iter_cls, timeout);
 }
 
@@ -680,6 +681,7 @@ GNUNET_DATASTORE_get_random (struct GNUNET_DATASTORE_Handle *h,
   m = (struct GNUNET_MessageHeader*) &h[1];
   m->type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_GET_RANDOM);
   m->size = htons(sizeof (struct GNUNET_MessageHeader));
+  GNUNET_assert (h->response_proc == NULL);
   transmit_for_result (h, iter, iter_cls, timeout);
 }
 

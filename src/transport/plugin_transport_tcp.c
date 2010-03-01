@@ -165,27 +165,15 @@ struct Session
   struct GNUNET_PeerIdentity target;
 
   /**
-   * At what time did we reset last_received last?
+   * ID of task used to delay receiving more to throttle sender.
    */
-  struct GNUNET_TIME_Absolute last_quota_update;
+  GNUNET_SCHEDULER_TaskIdentifier receive_delay_task;
 
   /**
    * Address of the other peer (either based on our 'connect'
    * call or on our 'accept' call).
    */
   void *connect_addr;
-
-  /**
-   * How many bytes have we received since the "last_quota_update"
-   * timestamp?
-   */
-  uint64_t last_received;
-
-  /**
-   * Number of bytes per ms that this peer is allowed
-   * to send to us.
-   */
-  uint32_t quota_in;
 
   /**
    * Length of connect_addr.
@@ -266,28 +254,6 @@ struct Plugin
 
 
 /**
- * Find a session handle for the given peer. 
- * FIXME: using a hash map we could do this in O(1).
- *
- * @return NULL if no matching session exists
- */
-static struct Session *
-find_session_by_target (struct Plugin *plugin,
-                        const struct GNUNET_PeerIdentity *target)
-{
-  struct Session *ret;
-
-  ret = plugin->sessions;
-  while ( (ret != NULL) &&
-	  ((GNUNET_SYSERR == ret->expecting_welcome) ||
-	   (0 != memcmp (target,
-			 &ret->target, sizeof (struct GNUNET_PeerIdentity)))))
-    ret = ret->next;
-  return ret;
-}
-
-
-/**
  * Find the session handle for the given client.
  *
  * @return NULL if no matching session exists
@@ -332,9 +298,6 @@ create_session (struct Plugin *plugin,
   plugin->sessions = ret;
   ret->client = client;
   ret->target = *target;
-  ret->last_quota_update = GNUNET_TIME_absolute_get ();
-  // FIXME: This is simply wrong...
-  ret->quota_in = plugin->env->default_quota_in;
   ret->expecting_welcome = GNUNET_YES;
   pm = GNUNET_malloc (sizeof (struct PendingMessage) + sizeof (struct WelcomeMessage));
   pm->msg = (const char*) &pm[1];
@@ -534,18 +497,22 @@ disconnect_session (struct Session *session)
          transport service may know about this one, so we need to
          notify transport service about disconnect */
       // FIXME: we should have a very clear connect-disconnect
-      // protocol with gnunet-service-transport!
-      session->plugin->env->receive (session->plugin->env->cls,
-                                     &session->target, NULL,
-                                     1,
-				     session->connect_addr,
-				     session->connect_alen);
+      // protocol with gnunet-service-transport! 
+      // FIXME: but this is not possible for all plugins, so what gives?
+    }
+  if (session->receive_delay_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (session->plugin->env->sched,
+			       session->receive_delay_task);
+      if (session->client != NULL)
+	GNUNET_SERVER_receive_done (session->client, 
+				    GNUNET_SYSERR);
     }
   if (session->client != NULL)
     {
       GNUNET_SERVER_client_drop (session->client);
       session->client = NULL;
-    }
+    } 
   GNUNET_free_non_null (session->connect_addr);
   GNUNET_free (session);
 }
@@ -846,98 +813,6 @@ tcp_plugin_address_pretty_printer (void *cls,
 
 
 /**
- * Update the last-received and bandwidth quota values
- * for this session.
- *
- * @param session session to update
- * @param force set to GNUNET_YES if we should update even
- *        though the minimum refresh time has not yet expired
- */
-static void
-update_quota (struct Session *session, int force)
-{
-  struct GNUNET_TIME_Absolute now;
-  unsigned long long delta;
-  unsigned long long total_allowed;
-  unsigned long long total_remaining;
-
-  now = GNUNET_TIME_absolute_get ();
-  delta = now.value - session->last_quota_update.value;
-  if ((delta < MIN_QUOTA_REFRESH_TIME) && (!force))
-    return;                     /* too early, not enough data */
-
-  total_allowed = session->quota_in * delta;
-  if (total_allowed > session->last_received)
-    {
-      /* got less than acceptable */
-      total_remaining = total_allowed - session->last_received;
-      session->last_received = 0;
-      delta = total_remaining / session->quota_in;      /* bonus seconds */
-      if (delta > MAX_BANDWIDTH_CARRY)
-        delta = MAX_BANDWIDTH_CARRY;    /* limit amount of carry-over */
-    }
-  else
-    {
-      /* got more than acceptable */
-      session->last_received -= total_allowed;
-      delta = 0;
-    }
-  session->last_quota_update.value = now.value - delta;
-}
-
-
-/**
- * Set a quota for receiving data from the given peer; this is a
- * per-transport limit.  The transport should limit its read/select
- * calls to stay below the quota (in terms of incoming data).
- *
- * @param cls closure
- * @param target the peer for whom the quota is given
- * @param quota_in quota for receiving/sending data in bytes per ms
- */
-static void
-tcp_plugin_set_receive_quota (void *cls,
-                              const struct GNUNET_PeerIdentity *target,
-                              uint32_t quota_in)
-{
-  struct Plugin *plugin = cls;
-  struct Session *session;
-
-  // FIXME: This is simply wrong:
-  // We may have multiple sessions for the target,
-  // and some OTHER session might be the one to 
-  // survive; not to mention the inbound-quota should
-  // be enforced across transports!
-  // => keep quota-related states in the service (globally, per peer)
-  //    and update/query the information when it is needed!
-  // => we can likely get rid of this entire function and
-  //    replace it with a query/update API!
-  session = find_session_by_target (plugin, target);
-  if (session == NULL)
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		       "tcp",
-		       "Could not find session for peer `%4s' to update quota.\n",
-		       GNUNET_i2s (target));
-      return;                     /* peer must have disconnected, ignore */
-    }
-  if (session->quota_in != quota_in)
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		       "tcp",
-		       "Changing quota for peer `%4s' from %u to %u\n",
-		       GNUNET_i2s (target),
-		       session->quota_in,
-		       quota_in);
-      update_quota (session, GNUNET_YES);
-      if (session->quota_in > quota_in)
-        session->last_quota_update = GNUNET_TIME_absolute_get ();
-      session->quota_in = quota_in;
-    }
-}
-
-
-/**
  * Check if the given port is plausible (must be either
  * our listen port or our advertised port).  If it is
  * neither, we return one of these two ports at random.
@@ -1073,46 +948,6 @@ handle_tcp_welcome (void *cls,
 
 
 /**
- * Calculate how long we should delay reading from the TCP socket to
- * ensure that we stay within our bandwidth limits (push back).
- *
- * @param session for which client should this be calculated
- */
-static struct GNUNET_TIME_Relative
-calculate_throttle_delay (struct Session *session)
-{
-  struct GNUNET_TIME_Relative ret;
-  struct GNUNET_TIME_Absolute now;
-  uint64_t del;
-  uint64_t avail;
-  uint64_t excess;
-
-  now = GNUNET_TIME_absolute_get ();
-  del = now.value - session->last_quota_update.value;
-  if (del > MAX_BANDWIDTH_CARRY)
-    {
-      update_quota (session, GNUNET_YES);
-      del = now.value - session->last_quota_update.value;
-      GNUNET_assert (del <= MAX_BANDWIDTH_CARRY);
-    }
-  if (session->quota_in == 0)
-    session->quota_in = 1;      /* avoid divison by zero */
-  avail = del * session->quota_in;
-  if (avail > session->last_received)
-    return GNUNET_TIME_UNIT_ZERO;       /* can receive right now */
-  excess = session->last_received - avail;
-  ret.value = excess / session->quota_in;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
-		   "tcp",
-		   "Throttling read (%llu bytes excess at %llu b/ms), waiting %llums before reading more.\n",
-		   (unsigned long long) excess,
-		   (unsigned long long) session->quota_in,
-		   (unsigned long long) ret.value);
-  return ret;
-}
-
-
-/**
  * Task to signal the server that we can continue
  * receiving from the TCP client now.
  */
@@ -1120,7 +955,18 @@ static void
 delayed_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Session *session = cls;
-  GNUNET_SERVER_receive_done (session->client, GNUNET_OK);
+  struct GNUNET_TIME_Relative delay;
+
+  session->receive_delay_task = GNUNET_SCHEDULER_NO_TASK;
+  delay = session->plugin->env->receive (session->plugin->env->cls,
+					 &session->target,
+					 NULL, 0, NULL, 0);
+  if (delay.value == 0)
+    GNUNET_SERVER_receive_done (session->client, GNUNET_OK);
+  else
+    session->receive_delay_task = 
+      GNUNET_SCHEDULER_add_delayed (session->plugin->env->sched,
+				    delay, &delayed_done, session);
 }
 
 
@@ -1165,18 +1011,16 @@ handle_tcp_data (void *cls,
 		   (unsigned int) ntohs (message->type),
 		   GNUNET_i2s (&session->target));
 #endif
-  plugin->env->receive (plugin->env->cls, &session->target, message, 1,
-			session->connect_addr,
-			session->connect_alen);
-  /* update bandwidth used */
-  session->last_received += msize;
-  update_quota (session, GNUNET_NO);
-  delay = calculate_throttle_delay (session);
+  delay = plugin->env->receive (plugin->env->cls, &session->target, message, 1,
+				session->connect_addr,
+				session->connect_alen);
+
   if (delay.value == 0)
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
   else
-    GNUNET_SCHEDULER_add_delayed (session->plugin->env->sched,
-                                  delay, &delayed_done, session);
+    session->receive_delay_task = 
+      GNUNET_SCHEDULER_add_delayed (session->plugin->env->sched,
+				    delay, &delayed_done, session);
 }
 
 
@@ -1342,7 +1186,6 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   api->send = &tcp_plugin_send;
   api->disconnect = &tcp_plugin_disconnect;
   api->address_pretty_printer = &tcp_plugin_address_pretty_printer;
-  api->set_receive_quota = &tcp_plugin_set_receive_quota;
   api->check_address = &tcp_plugin_check_address;
   plugin->service = service;
   plugin->server = GNUNET_SERVICE_get_server (service);

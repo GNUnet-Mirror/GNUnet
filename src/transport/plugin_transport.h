@@ -26,14 +26,6 @@
  *        Note that the destructors of transport plugins will
  *        be given the value returned by the constructor
  *        and is expected to return a NULL pointer.
- *
- * TODO:
- * - consider moving DATA message (latency measurement)
- *   to service; avoids encapsulation overheads and
- *   would enable latency measurements for non-bidi
- *   transports.
- * -
- *
  * @author Christian Grothoff
  */
 #ifndef PLUGIN_TRANSPORT_H
@@ -51,21 +43,24 @@
  *
  * @param cls closure
  * @param peer (claimed) identity of the other peer
- * @param message the message, NULL if peer was disconnected
- * @param distance in overlay hops; use 1 unless DV
+ * @param message the message, NULL if we only care about
+ *                learning about the delay until we should receive again
+ * @param distance in overlay hops; use 1 unless DV (or 0 if message == NULL)
  * @param sender_address binary address of the sender (if observed)
  * @param sender_address_len number of bytes in sender_address
+ * @return how long the plugin should wait until receiving more data
+ *         (plugins that do not support this, can ignore the return value)
  */
-typedef void (*GNUNET_TRANSPORT_PluginReceiveCallback) (void *cls,
-                                                        const struct
-                                                        GNUNET_PeerIdentity *
-                                                        peer,
-							const struct
-                                                        GNUNET_MessageHeader *
-                                                        message,
-                                                        uint32_t distance,
-							const char *sender_address,
-							size_t sender_address_len);
+typedef struct GNUNET_TIME_Relative (*GNUNET_TRANSPORT_PluginReceiveCallback) (void *cls,
+									       const struct
+									       GNUNET_PeerIdentity *
+									       peer,
+									       const struct
+									       GNUNET_MessageHeader *
+									       message,
+									       uint32_t distance,
+									       const char *sender_address,
+									       size_t sender_address_len);
 
 
 /**
@@ -86,6 +81,27 @@ typedef void (*GNUNET_TRANSPORT_AddressNotification) (void *cls,
                                                       struct
                                                       GNUNET_TIME_Relative
                                                       expires);
+
+
+/**
+ * Function that will be called whenever the plugin receives data over
+ * the network and wants to determine how long it should wait until
+ * the next time it reads from the given peer.  Note that some plugins
+ * (such as UDP) may not be able to wait (for a particular peer), so
+ * the waiting part is optional.  Plugins that can wait should call
+ * this function, sleep the given amount of time, and call it again
+ * (with zero bytes read) UNTIL it returns zero and only then read.
+ * 
+ * @param cls closure
+ * @param peer which peer did we read data from 
+ * @param amount_recved number of bytes read (can be zero)
+ * @return how long to wait until reading more from this peer
+ *         (to enforce inbound quotas)
+ */
+typedef struct GNUNET_TIME_Relative (*GNUNET_TRANSPORT_TrafficReport) (void *cls,
+								       const struct 
+								       GNUNET_PeerIdentity *peer,
+								       size_t amount_recved);
 
 
 /**
@@ -129,10 +145,10 @@ struct GNUNET_TRANSPORT_PluginEnvironment
   GNUNET_TRANSPORT_AddressNotification notify_address;
 
   /**
-   * What is the default quota (in terms of incoming bytes per
-   * ms) for new connections?
+   * Inform service about traffic received, get information
+   * about when we might be willing to receive more.
    */
-  uint32_t default_quota_in;
+  GNUNET_TRANSPORT_TrafficReport traffic_report;
 
   /**
    * What is the maximum number of connections that this transport
@@ -270,21 +286,6 @@ typedef void
 
 
 /**
- * Set a quota for receiving data from the given peer; this is a
- * per-transport limit.  The transport should limit its read/select
- * calls to stay below the quota (in terms of incoming data).
- *
- * @param cls closure
- * @param peer the peer for whom the quota is given
- * @param quota_in quota for receiving/sending data in bytes per ms
- */
-typedef void
-  (*GNUNET_TRANSPORT_SetQuota) (void *cls,
-                                const struct GNUNET_PeerIdentity * target,
-                                uint32_t quota_in);
-
-
-/**
  * Another peer has suggested an address for this peer and transport
  * plugin.  Check that this could be a valid address.  This function
  * is not expected to 'validate' the address in the sense of trying to
@@ -336,14 +337,6 @@ struct GNUNET_TRANSPORT_PluginFunctions
    * once the transport-API has been completed.
    */
   GNUNET_TRANSPORT_AddressPrettyPrinter address_pretty_printer;
-
-  /**
-   * Function that the transport service can use to try to enforce a
-   * quota for the number of bytes received via this transport.
-   * Transports that can not refuse incoming data (such as UDP)
-   * are free to ignore these calls.
-   */
-  GNUNET_TRANSPORT_SetQuota set_receive_quota;
 
   /**
    * Function that will be called to check if a binary address
