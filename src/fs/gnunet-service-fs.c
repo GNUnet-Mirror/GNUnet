@@ -658,9 +658,9 @@ destroy_pending_request (struct PendingRequest *pr)
     {
       GNUNET_PEER_resolve (pr->cp->pid,
 			   &pid);
-      GNUNET_CONTAINER_multihashmap_remove (peer_request_map,
-					    &pid.hashPubKey,
-					    pr);
+      (void) GNUNET_CONTAINER_multihashmap_remove (peer_request_map,
+						   &pid.hashPubKey,
+						   pr);
       pr->cp = NULL;
     }
   if (pr->bf != NULL)
@@ -1925,6 +1925,56 @@ handle_p2p_put (void *cls,
 
 
 /**
+ * Closure for 'check_duplicate_request_{peer,client}'.
+ */
+struct CheckDuplicateRequestClosure
+{
+  /**
+   * The new request we should check if it already exists.
+   */
+  const struct PendingRequest *pr;
+
+  /**
+   * Existing request found by the checker, NULL if none.
+   */
+  struct PendingRequest *have;
+};
+
+
+/**
+ * Iterator over entries in the 'query_request_map' that
+ * tries to see if we have the same request pending from
+ * the same client already.
+ *
+ * @param cls closure (our 'struct CheckDuplicateRequestClosure')
+ * @param key current key code (query, ignored, must match)
+ * @param value value in the hash map (a 'struct PendingRequest' 
+ *              that already exists)
+ * @return GNUNET_YES if we should continue to
+ *         iterate (no match yet)
+ *         GNUNET_NO if not (match found).
+ */
+static int
+check_duplicate_request_client (void *cls,
+				const GNUNET_HashCode * key,
+				void *value)
+{
+  struct CheckDuplicateRequestClosure *cdc = cls;
+  struct PendingRequest *have = value;
+
+  if (have->client_request_list == NULL)
+    return GNUNET_YES;
+  if ( (cdc->pr->client_request_list->client_list->client == have->client_request_list->client_list->client) &&
+       (cdc->pr != have) )
+    {
+      cdc->have = have;
+      return GNUNET_NO;
+    }
+  return GNUNET_YES;
+}
+
+
+/**
  * We're processing (local) results for a search request
  * from another peer.  Pass applicable results to the
  * peer and if we are done either clean up (operation
@@ -1955,6 +2005,7 @@ process_local_reply (void *cls,
 {
   struct PendingRequest *pr = cls;
   struct ProcessReplyClosure prq;
+  struct CheckDuplicateRequestClosure cdrc;
   GNUNET_HashCode dhash;
   GNUNET_HashCode mhash;
   GNUNET_HashCode query;
@@ -1967,8 +2018,30 @@ process_local_reply (void *cls,
 #endif
       pr->drq = NULL;
       if (pr->client_request_list != NULL)
-	GNUNET_SERVER_receive_done (pr->client_request_list->client_list->client, 
-				    GNUNET_YES);
+	{
+	  GNUNET_SERVER_receive_done (pr->client_request_list->client_list->client, 
+				      GNUNET_YES);
+	  /* Figure out if this is a duplicate request and possibly
+	     merge 'struct PendingRequest' entries */
+	  cdrc.have = NULL;
+	  cdrc.pr = pr;
+	  GNUNET_CONTAINER_multihashmap_get_multiple (query_request_map,
+						      &pr->query,
+						      &check_duplicate_request_client,
+						      &cdrc);
+	  if (cdrc.have != NULL)
+	    {
+#if DEBUG_FS
+	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+			  "Received request for block `%s' twice from client, will only request once.\n",
+			  GNUNET_h2s (&pr->query));
+#endif
+	      
+	      destroy_pending_request (pr);
+	      return;
+	    }
+	}
+
       /* no more results */
       if (pr->task == GNUNET_SCHEDULER_NO_TASK)
 	pr->task = GNUNET_SCHEDULER_add_now (sched,
@@ -2106,23 +2179,6 @@ bound_priority (uint32_t prio_in,
 
 
 /**
- * Closure for 'check_duplicate_request'.
- */
-struct CheckDuplicateRequestClosure
-{
-  /**
-   * The new request we should check if it already exists.
-   */
-  const struct PendingRequest *pr;
-
-  /**
-   * Existing request found by the checker, NULL if none.
-   */
-  struct PendingRequest *have;
-};
-
-
-/**
  * Iterator over entries in the 'query_request_map' that
  * tries to see if we have the same request pending from
  * the same peer already.
@@ -2136,9 +2192,9 @@ struct CheckDuplicateRequestClosure
  *         GNUNET_NO if not (match found).
  */
 static int
-check_duplicate_request (void *cls,
-			 const GNUNET_HashCode * key,
-			 void *value)
+check_duplicate_request_peer (void *cls,
+			      const GNUNET_HashCode * key,
+			      void *value)
 {
   struct CheckDuplicateRequestClosure *cdc = cls;
   struct PendingRequest *have = value;
@@ -2327,7 +2383,7 @@ handle_p2p_get (void *cls,
   cdc.pr = pr;
   GNUNET_CONTAINER_multihashmap_get_multiple (query_request_map,
 					      &gm->query,
-					      &check_duplicate_request,
+					      &check_duplicate_request_peer,
 					      &cdc);
   if (cdc.have != NULL)
     {

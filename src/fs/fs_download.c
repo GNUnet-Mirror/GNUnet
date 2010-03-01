@@ -303,50 +303,69 @@ calculate_block_size (uint64_t fsize,
 
 
 /**
- * Process a download result.
- *
- * @param dc our download context
- * @param type type of the result
- * @param data the (encrypted) response
- * @param size size of data
+ * Closure for iterator processing results.
  */
-static void
-process_result (struct GNUNET_FS_DownloadContext *dc,
-		uint32_t type,
-		const void *data,
-		size_t size)
+struct ProcessResultClosure
 {
-  struct GNUNET_FS_ProgressInfo pi;
+  
+  /**
+   * Hash of data.
+   */
   GNUNET_HashCode query;
-  struct DownloadRequest *sm;
+
+  /**
+   * Data found in P2P network.
+   */ 
+  const void *data;
+
+  /**
+   * Our download context.
+   */
+  struct GNUNET_FS_DownloadContext *dc;
+		
+  /**
+   * Number of bytes in data.
+   */
+  size_t size;
+
+  /**
+   * Type of data.
+   */
+  uint32_t type;
+  
+};
+
+
+/**
+ * Iterator over entries in the pending requests in the 'active' map for the
+ * reply that we just got.
+ *
+ * @param cls closure (our 'struct ProcessResultClosure')
+ * @param value value in the hash map (a 'struct DownloadRequest')
+ * @return GNUNET_YES (we should continue to iterate); unless serious error
+ */
+static int
+process_result_with_request (void *cls,
+			     const GNUNET_HashCode * key,
+			     void *value)
+{
+  struct ProcessResultClosure *prc = cls;
+  struct DownloadRequest *sm = value;
+  struct GNUNET_FS_DownloadContext *dc = prc->dc;
   struct GNUNET_CRYPTO_AesSessionKey skey;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
-  char pt[size];
+  char pt[prc->size];
+  struct GNUNET_FS_ProgressInfo pi;
   uint64_t off;
   size_t app;
   int i;
   struct ContentHashKey *chk;
   char *emsg;
 
-
-  GNUNET_CRYPTO_hash (data, size, &query);
-#if DEBUG_DOWNLOAD
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received result for query `%s' from `%s'-service\n",
-	      GNUNET_h2s (&query),
-	      "FS");
-#endif
-  sm = GNUNET_CONTAINER_multihashmap_get (dc->active,
-					  &query);
-  if (NULL == sm)
-    {
-      GNUNET_break (0);
-      return;
-    }
-  if (size != calculate_block_size (GNUNET_ntohll (dc->uri->data.chk.file_length),
-				    dc->treedepth,
-				    sm->offset,
-				    sm->depth))
+  if (prc->size != calculate_block_size (GNUNET_ntohll (dc->uri->data.chk.file_length),
+					 dc->treedepth,
+					 sm->offset,
+					 sm->depth))
     {
 #if DEBUG_DOWNLOAD
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -355,7 +374,7 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
 					dc->treedepth,
 					sm->offset,
 					sm->depth),
-		  size);
+		  prc->size);
 #endif
       dc->emsg = GNUNET_strdup ("Internal error or bogus download URI");
       /* signal error */
@@ -372,15 +391,15 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
 	}
       GNUNET_CLIENT_disconnect (dc->client);
       dc->client = NULL;
-      return;
+      return GNUNET_NO;
     }
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove (dc->active,
-						       &query,
+						       &prc->query,
 						       sm));
   GNUNET_CRYPTO_hash_to_aes_key (&sm->chk.key, &skey, &iv);
-  GNUNET_CRYPTO_aes_decrypt (data,
-			     size,
+  GNUNET_CRYPTO_aes_decrypt (prc->data,
+			     prc->size,
 			     &skey,
 			     &iv,
 			     pt);
@@ -408,13 +427,13 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
 			 (unsigned long long) off,
 			 dc->filename,
 			 STRERROR (errno));
-      else if (size !=
+      else if (prc->size !=
 	       GNUNET_DISK_file_write (dc->handle,
 				       pt,
-				       size))
+				       prc->size))
 	GNUNET_asprintf (&emsg,
 			 _("Failed to write block of %u bytes at offset %llu in file `%s': %s\n"),
-			 (unsigned int) size,
+			 (unsigned int) prc->size,
 			 (unsigned long long) off,
 			 dc->filename,
 			 STRERROR (errno));
@@ -439,12 +458,12 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
 	  GNUNET_CLIENT_disconnect (dc->client);
 	  dc->client = NULL;
 	  GNUNET_free (sm);
-	  return;
+	  return GNUNET_NO;
 	}
     }
   if (sm->depth == dc->treedepth) 
     {
-      app = size;
+      app = prc->size;
       if (sm->offset < dc->offset)
 	{
 	  /* starting offset begins in the middle of pt,
@@ -452,12 +471,12 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
 	  GNUNET_assert (app > (dc->offset - sm->offset));
 	  app -= (dc->offset - sm->offset);	  
 	}
-      if (sm->offset + size > dc->offset + dc->length)
+      if (sm->offset + prc->size > dc->offset + dc->length)
 	{
 	  /* end of block is after relevant range,
 	     do not count last bytes as progress */
-	  GNUNET_assert (app > (sm->offset + size) - (dc->offset + dc->length));
-	  app -= (sm->offset + size) - (dc->offset + dc->length);
+	  GNUNET_assert (app > (sm->offset + prc->size) - (dc->offset + dc->length));
+	  app -= (sm->offset + prc->size) - (dc->offset + dc->length);
 	}
       dc->completed += app;
     }
@@ -466,7 +485,7 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
   make_download_status (&pi, dc);
   pi.value.download.specifics.progress.data = pt;
   pi.value.download.specifics.progress.offset = sm->offset;
-  pi.value.download.specifics.progress.data_len = size;
+  pi.value.download.specifics.progress.data_len = prc->size;
   pi.value.download.specifics.progress.depth = sm->depth;
   dc->client_info = dc->h->upcb (dc->h->upcb_cls,
 				 &pi);
@@ -500,7 +519,7 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
   if (sm->depth == dc->treedepth) 
     {
       GNUNET_free (sm);      
-      return;
+      return GNUNET_YES;
     }
 #if DEBUG_DOWNLOAD
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -508,9 +527,9 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
 	      sm->depth,
 	      (unsigned long long) sm->offset);
 #endif
-  GNUNET_assert (0 == (size % sizeof(struct ContentHashKey)));
+  GNUNET_assert (0 == (prc->size % sizeof(struct ContentHashKey)));
   chk = (struct ContentHashKey*) pt;
-  for (i=(size / sizeof(struct ContentHashKey))-1;i>=0;i--)
+  for (i=(prc->size / sizeof(struct ContentHashKey))-1;i>=0;i--)
     {
       off = compute_dblock_offset (sm->offset,
 				   sm->depth,
@@ -524,6 +543,41 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
 				 sm->depth + 1);
     }
   GNUNET_free (sm);
+  return GNUNET_YES;
+}
+
+
+/**
+ * Process a download result.
+ *
+ * @param dc our download context
+ * @param type type of the result
+ * @param data the (encrypted) response
+ * @param size size of data
+ */
+static void
+process_result (struct GNUNET_FS_DownloadContext *dc,
+		uint32_t type,
+		const void *data,
+		size_t size)
+{
+  struct ProcessResultClosure prc;
+
+  prc.dc = dc;
+  prc.data = data;
+  prc.size = size;
+  prc.type = type;
+  GNUNET_CRYPTO_hash (data, size, &prc.query);
+#if DEBUG_DOWNLOAD
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received result for query `%s' from `%s'-service\n",
+	      GNUNET_h2s (&prc.query),
+	      "FS");
+#endif
+  GNUNET_CONTAINER_multihashmap_get_multiple (dc->active,
+					      &prc.query,
+					      &process_result_with_request,
+					      &prc);
 }
 
 
