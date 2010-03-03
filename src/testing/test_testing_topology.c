@@ -177,8 +177,8 @@ process_mtype (void *cls,
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
-  char *msg = cls;
 #if VERBOSE
+  char *msg = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "End badly was called (%s)... stopping daemons.\n", msg);
 #endif
