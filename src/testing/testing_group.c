@@ -229,7 +229,7 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg, uint16_t * port)
  * @param first index of the first peer
  * @param second index of the second peer
  *
- * @return the number of connections added (can be 0 1 or 2)
+ * @return the number of connections added (can be 0, 1 or 2)
  *
  * FIXME: add both, or only add one?
  *      - if both are added, then we have to keep track
@@ -313,17 +313,13 @@ create_small_world_ring(struct GNUNET_TESTING_PeerGroup *pg)
   struct GNUNET_TIME_Absolute time;
 
   GNUNET_CONFIGURATION_get_value_string(pg->cfg, "TESTING", "LOGNMODIFIER", &p_string);
-  if (p_string != NULL)
-    logNModifier = atof(p_string);
-  else
+  if ((p_string == NULL) || (sscanf(p_string, "%lf", &logNModifier) != 1))
     logNModifier = 0.5; /* FIXME: default modifier? */
 
   GNUNET_free_non_null(p_string);
 
   GNUNET_CONFIGURATION_get_value_string(pg->cfg, "TESTING", "PERCENTAGE", &p_string);
-  if (p_string != NULL)
-    percentage = atof(p_string);
-  else
+  if ((p_string == NULL) || (sscanf(p_string, "%lf", &percentage) != 1))
     percentage = 0.5; /* FIXME: default percentage? */
 
   GNUNET_free_non_null(p_string);
@@ -407,9 +403,7 @@ create_nated_internet (struct GNUNET_TESTING_PeerGroup *pg)
   char *p_string;
 
   GNUNET_CONFIGURATION_get_value_string(pg->cfg, "TESTING", "NATPERCENTAGE", &p_string);
-  if (p_string != NULL)
-    nat_percentage = atof(p_string);
-  else
+  if ((p_string == NULL) || (sscanf(p_string, "%lf", &nat_percentage) != 1))
     nat_percentage = 0.6; /* FIXME: default modifier? */
 
   GNUNET_free_non_null(p_string);
@@ -465,17 +459,13 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg)
   cols = square;
 
   GNUNET_CONFIGURATION_get_value_string(pg->cfg, "TESTING", "PERCENTAGE", &p_string);
-  if (p_string != NULL)
-    percentage = atof(p_string);
-  else
+  if ((p_string == NULL) || (sscanf(p_string, "%lf", &percentage) != 1))
     percentage = 0.5; /* FIXME: default percentage? */
 
   GNUNET_free_non_null(p_string);
 
   GNUNET_CONFIGURATION_get_value_string(pg->cfg, "TESTING", "PROBABILITY", &p_string);
-  if (p_string != NULL)
-    probability = atof(p_string);
-  else
+  if ((p_string == NULL) || (sscanf(p_string, "%lf", &probability) != 1))
     probability = 0.5; /* FIXME: default probability? */
 
   GNUNET_free_non_null(p_string);
@@ -583,14 +573,9 @@ create_erdos_renyi (struct GNUNET_TESTING_PeerGroup *pg)
   connect_attempts = 0;
 
   GNUNET_CONFIGURATION_get_value_string(pg->cfg, "TESTING", "PROBABILITY", &p_string);
-  if (p_string != NULL)
-    {
-      probability = atof(p_string);
-    }
-  else
-    {
-      probability = 0.5; /* FIXME: default probability? */
-    }
+  if ((p_string == NULL) || (sscanf(p_string, "%lf", &probability) != 1))
+    probability = 0.5; /* FIXME: default probability? */
+
   GNUNET_free_non_null (p_string);
   for (outer_count = 0; outer_count < pg->total - 1; outer_count++)
     {
@@ -751,7 +736,7 @@ create_ring (struct GNUNET_TESTING_PeerGroup *pg)
  *
  * @param pg the peer group we are dealing with
  */
-static void
+static int
 create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
 {
   FILE *temp_friend_handle;
@@ -759,11 +744,17 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
   struct PeerConnection *connection_iter;
   struct GNUNET_CRYPTO_HashAsciiEncoded peer_enc;
   char *temp_service_path;
-  pid_t pid;
+  pid_t *pidarr;
   char *arg;
   struct GNUNET_PeerIdentity *temppeer;
   char * mytemp;
+  enum GNUNET_OS_ProcessStatusType type;
+  unsigned long return_code;
+  int count;
+  int ret;
+  int max_wait = 10;
 
+  pidarr = GNUNET_malloc(sizeof(pid_t) * pg->total);
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
     {
       mytemp = GNUNET_DISK_mktemp("friends");
@@ -794,12 +785,13 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
       if (pg->peers[pg_iter].daemon->hostname == NULL) /* Local, just copy the file */
         {
           GNUNET_asprintf (&arg, "%s/friends", temp_service_path);
-          pid = GNUNET_OS_start_process (NULL, NULL, "mv",
+          pidarr[pg_iter] = GNUNET_OS_start_process (NULL, NULL, "mv",
                                          "mv", mytemp, arg, NULL);
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Copying file with command cp %s %s\n"), mytemp, arg);
 #endif
+
           GNUNET_free(arg);
         }
       else /* Remote, scp the file to the correct place */
@@ -808,8 +800,9 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
             GNUNET_asprintf (&arg, "%s@%s:%s/friends", pg->peers[pg_iter].daemon->username, pg->peers[pg_iter].daemon->hostname, temp_service_path);
           else
             GNUNET_asprintf (&arg, "%s:%s/friends", pg->peers[pg_iter].daemon->hostname, temp_service_path);
-          pid = GNUNET_OS_start_process (NULL, NULL, "scp",
+          pidarr[pg_iter] = GNUNET_OS_start_process (NULL, NULL, "scp",
                                          "scp", mytemp, arg, NULL);
+
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Copying file with command scp %s %s\n"), mytemp, arg);
@@ -819,6 +812,47 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
       GNUNET_free (temp_service_path);
       GNUNET_free (mytemp);
     }
+
+  count = 0;
+  ret = GNUNET_SYSERR;
+  while ((count < max_wait) && (ret != GNUNET_OK))
+    {
+      ret = GNUNET_OK;
+      for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
+        {
+#if VERBOSE_TESTING
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      _("Checking copy status of file %d\n"), pg_iter);
+#endif
+          if (pidarr[pg_iter] != 0) /* Check for already completed! */
+            {
+              if (GNUNET_OS_process_status(pidarr[pg_iter], &type, &return_code) != GNUNET_OK)
+                {
+                  ret = GNUNET_SYSERR;
+                }
+              else if ((type != GNUNET_OS_PROCESS_EXITED) || (return_code != 0))
+                {
+                  ret = GNUNET_SYSERR;
+                }
+              else
+                {
+                  pidarr[pg_iter] = 0;
+#if VERBOSE_TESTING
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      _("File %d copied\n"), pg_iter);
+#endif
+                }
+            }
+        }
+      count++;
+      if (ret == GNUNET_SYSERR)
+        {
+          sleep(1);
+        }
+    }
+
+  GNUNET_free(pidarr);
+  return ret;
 }
 
 
@@ -834,7 +868,9 @@ connect_topology (struct GNUNET_TESTING_PeerGroup *pg)
 {
   unsigned int pg_iter;
   struct PeerConnection *connection_iter;
+  int connect_count;
 
+  connect_count = 0;
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
     {
       connection_iter = pg->peers[pg_iter].connected_peers;
@@ -846,6 +882,15 @@ connect_topology (struct GNUNET_TESTING_PeerGroup *pg)
                                           pg->notify_connection,
                                           pg->notify_connection_cls);
           connection_iter = connection_iter->next;
+          connect_count++;
+          if (connect_count % 50 == 0)
+            {
+#if VERBOSE_TESTING
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          _("Sleeping to give peers a chance to connect!\n"));
+#endif
+              sleep(2);
+            }
         }
     }
 }
@@ -860,12 +905,16 @@ connect_topology (struct GNUNET_TESTING_PeerGroup *pg)
  *
  * @param pg the peer group struct representing the running peers
  *
+ * @return the number of connections should be created by the topology, so the
+ * caller knows how many to wait for (if it so chooses)
+ *
  */
 int
 GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg)
 {
   unsigned long long topology_num;
   int ret;
+  int num_connections;
 
   GNUNET_assert (pg->notify_connection != NULL);
   ret = 0;
@@ -880,62 +929,72 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg)
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Creating clique topology (may take a bit!)\n"));
 #endif
-          ret = create_clique (pg);
+          num_connections = create_clique (pg);
           break;
         case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD_RING:
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Creating small world (ring) topology (may take a bit!)\n"));
 #endif
-          ret = create_small_world_ring (pg);
+          num_connections = create_small_world_ring (pg);
           break;
         case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD:
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Creating small world (2d-torus) topology (may take a bit!)\n"));
 #endif
-          ret = create_small_world (pg);
+          num_connections = create_small_world (pg);
           break;
         case GNUNET_TESTING_TOPOLOGY_RING:
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Creating ring topology (may take a bit!)\n"));
 #endif
-          ret = create_ring (pg);
+          num_connections = create_ring (pg);
           break;
         case GNUNET_TESTING_TOPOLOGY_2D_TORUS:
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Creating 2d torus topology (may take a bit!)\n"));
 #endif
-          ret = create_2d_torus (pg);
+          num_connections = create_2d_torus (pg);
           break;
         case GNUNET_TESTING_TOPOLOGY_ERDOS_RENYI:
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Creating Erdos-Renyi topology (may take a bit!)\n"));
 #endif
-          ret = create_erdos_renyi (pg);
+          num_connections = create_erdos_renyi (pg);
           break;
         case GNUNET_TESTING_TOPOLOGY_INTERNAT:
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Creating InterNAT topology (may take a bit!)\n"));
 #endif
-          ret = create_nated_internet (pg);
+          num_connections = create_nated_internet (pg);
           break;
         case GNUNET_TESTING_TOPOLOGY_NONE:
-          ret = 0;
+          num_connections = 0;
           break;
         default:
           ret = GNUNET_SYSERR;
           break;
         }
+      if (num_connections < 1)
+        return GNUNET_SYSERR;
 
       if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (pg->cfg, "TESTING", "F2F"))
-        create_and_copy_friend_files(pg);
-
-      connect_topology(pg);
+        ret = create_and_copy_friend_files(pg);
+      if (ret == GNUNET_OK)
+        connect_topology(pg);
+      else
+        {
+#if VERBOSE_TESTING
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      _("Failed during friend file copying!\n"));
+#endif
+          return GNUNET_SYSERR;
+        }
     }
   else
     {
@@ -943,7 +1002,7 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg)
                   _("No topology specified, was one intended?\n"));
     }
 
-  return ret;
+  return num_connections;
 }
 
 /**
@@ -1126,6 +1185,8 @@ void
 GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg)
 {
   unsigned int off;
+  struct PeerConnection *pos;
+  struct PeerConnection *next;
 
   for (off = 0; off < pg->total; off++)
     {
@@ -1138,6 +1199,15 @@ GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg)
         GNUNET_TESTING_daemon_stop (pg->peers[off].daemon, NULL, NULL);
       if (NULL != pg->peers[off].cfg)
         GNUNET_CONFIGURATION_destroy (pg->peers[off].cfg);
+
+      pos = pg->peers[off].connected_peers;
+      while (pos != NULL)
+        {
+          next = pos->next;
+          GNUNET_free(pos);
+          pos = next;
+        }
+
     }
   GNUNET_free (pg->peers);
   if (NULL != pg->hosts)
