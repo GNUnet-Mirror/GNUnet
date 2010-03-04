@@ -311,18 +311,34 @@ create_small_world_ring(struct GNUNET_TESTING_PeerGroup *pg)
   unsigned int useAnd;
   int connect_attempts;
 
-  GNUNET_CONFIGURATION_get_value_string(pg->cfg, "TESTING", "LOGNMODIFIER", &p_string);
-  if ((p_string == NULL) || (sscanf(p_string, "%lf", &logNModifier) != 1))
-    logNModifier = 0.5; /* FIXME: default modifier? */
-
-  GNUNET_free_non_null(p_string);
-
-  GNUNET_CONFIGURATION_get_value_string(pg->cfg, "TESTING", "PERCENTAGE", &p_string);
-  if ((p_string == NULL) || (sscanf(p_string, "%lf", &percentage) != 1))
-    percentage = 0.5; /* FIXME: default percentage? */
-
-  GNUNET_free_non_null(p_string);
-
+  logNModifier = 0.5; /* FIXME: default value? */
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(pg->cfg, 
+							 "TESTING",
+							 "LOGNMODIFIER", 
+							 &p_string))
+    {
+      if (sscanf(p_string, "%lf", &logNModifier) != 1)
+	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		    _("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
+		    p_string,
+		    "LOGNMODIFIER",
+		    "TESTING");
+      GNUNET_free (p_string);
+    }
+  percentage = 0.5; /* FIXME: default percentage? */
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(pg->cfg,
+							 "TESTING",
+							 "PERCENTAGE",
+							 &p_string))
+    {
+      if (sscanf(p_string, "%lf", &percentage) != 1)
+	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		    _("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
+		    p_string,
+		    "PERCENTAGE",
+		    "TESTING");
+      GNUNET_free (p_string);
+    }
   natLog = log (pg->total);
   connsPerPeer = ceil (natLog * logNModifier);
 
@@ -400,11 +416,22 @@ create_nated_internet (struct GNUNET_TESTING_PeerGroup *pg)
   double nat_percentage;
   char *p_string;
 
-  GNUNET_CONFIGURATION_get_value_string(pg->cfg, "TESTING", "NATPERCENTAGE", &p_string);
-  if ((p_string == NULL) || (sscanf(p_string, "%lf", &nat_percentage) != 1))
-    nat_percentage = 0.6; /* FIXME: default modifier? */
+  nat_percentage = 0.6; /* FIXME: default percentage? */
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(pg->cfg,
+							 "TESTING",
+							 "NATPERCENTAGE",
+							 &p_string))
+    {
+      if (sscanf(p_string, "%lf", &nat_percentage) != 1)
+	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		    _("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
+		    p_string,
+		    "NATPERCENTAGE",
+		    "TESTING");
+      GNUNET_free (p_string);
+    }
 
-  GNUNET_free_non_null(p_string);
+
 
   cutoff = (unsigned int) (nat_percentage * pg->total);
 
@@ -455,19 +482,35 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg)
   square = floor (sqrt (pg->total));
   rows = square;
   cols = square;
-
-  GNUNET_CONFIGURATION_get_value_string(pg->cfg, "TESTING", "PERCENTAGE", &p_string);
-  if ((p_string == NULL) || (sscanf(p_string, "%lf", &percentage) != 1))
-    percentage = 0.5; /* FIXME: default percentage? */
-
-  GNUNET_free_non_null(p_string);
-
-  GNUNET_CONFIGURATION_get_value_string(pg->cfg, "TESTING", "PROBABILITY", &p_string);
-  if ((p_string == NULL) || (sscanf(p_string, "%lf", &probability) != 1))
-    probability = 0.5; /* FIXME: default probability? */
-
-  GNUNET_free_non_null(p_string);
-
+  
+  percentage = 0.5; /* FIXME: default percentage? */
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(pg->cfg,
+							 "TESTING",
+							 "PERCENTAGE",
+							 &p_string))
+    {
+      if (sscanf(p_string, "%lf", &percentage) != 1)
+	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		    _("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
+		    p_string,
+		    "PERCENTAGE",
+		    "TESTING");
+      GNUNET_free (p_string);
+    }
+  probability = 0.5; /* FIXME: default percentage? */
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(pg->cfg,
+							 "TESTING",
+							 "PROBABILITY",
+							 &p_string))
+    {
+      if (sscanf(p_string, "%lf", &probability) != 1)
+	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		    _("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
+		    p_string,
+		    "PROBABILITY",
+		    "TESTING");
+      GNUNET_free (p_string);
+    }
   if (square * square != pg->total)
     {
       while (rows * cols < pg->total)
@@ -770,13 +813,14 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
 
       fclose(temp_friend_handle);
 
-      GNUNET_CONFIGURATION_get_value_string(pg->peers[pg_iter].daemon->cfg, "PATHS", "SERVICEHOME", &temp_service_path);
-
-      if (temp_service_path == NULL)
-        {
+      if (GNUNET_OK !=
+	  GNUNET_CONFIGURATION_get_value_string(pg->peers[pg_iter].daemon->cfg, "PATHS", "SERVICEHOME", &temp_service_path))
+	{	  
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    _("No SERVICEHOME specified in peer configuration, can't copy friends file!\n"));
-          if (unlink(mytemp) != 0)
+		      _("No `%s' specified in peer configuration in section `%s', cannot copy friends file!\n"),
+		      "SERVICEHOME",
+		      "PATHS");
+          if (UNLINK (mytemp) != 0)
             GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", mytemp);
 	  GNUNET_free (mytemp);
           break;
@@ -917,7 +961,7 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg)
   int num_connections;
 
   GNUNET_assert (pg->notify_connection != NULL);
-  ret = 0;
+  ret = GNUNET_OK;
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_number (pg->cfg, "testing", "topology",
                                              &topology_num))
@@ -977,7 +1021,7 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg)
           num_connections = 0;
           break;
         default:
-          ret = GNUNET_SYSERR;
+	  num_connections = 0;
           break;
         }
       if (num_connections < 1)
