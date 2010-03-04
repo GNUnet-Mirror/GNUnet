@@ -310,7 +310,6 @@ create_small_world_ring(struct GNUNET_TESTING_PeerGroup *pg)
   int min;
   unsigned int useAnd;
   int connect_attempts;
-  struct GNUNET_TIME_Absolute time;
 
   GNUNET_CONFIGURATION_get_value_string(pg->cfg, "TESTING", "LOGNMODIFIER", &p_string);
   if ((p_string == NULL) || (sscanf(p_string, "%lf", &logNModifier) != 1))
