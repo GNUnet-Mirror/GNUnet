@@ -1017,9 +1017,6 @@ udp_nat_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
   struct UDP_NAT_ProbeMessageReply *outgoing_probe_reply;
   struct UDP_NAT_ProbeMessageConfirmation *outgoing_probe_confirmation;
 
-  struct UDP_NAT_ProbeMessage *incoming_probe;
-  struct UDP_NAT_ProbeMessageReply *incoming_probe_reply;
-  struct UDP_NAT_ProbeMessageConfirmation *incoming_probe_confirmation;
   char addr_buf[INET_ADDRSTRLEN];
   struct UDP_NAT_Probes *outgoing_probe;
   struct PeerSession *peer_session;
@@ -1039,7 +1036,6 @@ udp_nat_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
   {
     case GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_NAT_PROBE:
       /* Send probe reply */
-      incoming_probe = (struct UDP_NAT_ProbeMessage *)currhdr;
       outgoing_probe_reply = GNUNET_malloc(sizeof(struct UDP_NAT_ProbeMessageReply));
       outgoing_probe_reply->header.size = htons(sizeof(struct UDP_NAT_ProbeMessageReply));
       outgoing_probe_reply->header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_NAT_PROBE_REPLY);
@@ -1055,6 +1051,7 @@ udp_nat_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
 			GNUNET_TIME_relative_get_unit(), 
 			sender_addr, fromlen, 
 			NULL, NULL);
+
 #if DEBUG_UDP_NAT
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp-nat",
                       _("Sent PROBE REPLY to port %d on outgoing port %d\n"), ntohs(((struct sockaddr_in *)sender_addr)->sin_port), sockinfo->port);
@@ -1063,7 +1060,6 @@ udp_nat_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
       break;
     case GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_NAT_PROBE_REPLY:
       /* Check for existing probe, check ports returned, send confirmation if all is well */
-      incoming_probe_reply = (struct UDP_NAT_ProbeMessageReply *)currhdr;
 #if DEBUG_UDP_NAT
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp-nat",
                       _("Received PROBE REPLY from port %d on incoming port %d\n"), ntohs(((struct sockaddr_in *)sender_addr)->sin_port), sockinfo->port);
@@ -1083,7 +1079,9 @@ udp_nat_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
               outgoing_probe_confirmation = GNUNET_malloc(sizeof(struct UDP_NAT_ProbeMessageConfirmation));
               outgoing_probe_confirmation->header.size = htons(sizeof(struct UDP_NAT_ProbeMessageConfirmation));
               outgoing_probe_confirmation->header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_NAT_PROBE_CONFIRM);
+
               udp_nat_real_send(plugin, sockinfo->desc, NULL, (char *)outgoing_probe_confirmation, ntohs(outgoing_probe_confirmation->header.size), 0, GNUNET_TIME_relative_get_unit(), sender_addr, fromlen, NULL, NULL);
+
               if (outgoing_probe->task != GNUNET_SCHEDULER_NO_TASK)
                 {
                   GNUNET_SCHEDULER_cancel(plugin->env->sched, outgoing_probe->task);
@@ -1102,7 +1100,6 @@ udp_nat_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
         }
       break;
     case GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_NAT_PROBE_CONFIRM:
-      incoming_probe_confirmation = (struct UDP_NAT_ProbeMessageConfirmation *)currhdr;
       peer_session = find_session(plugin, sender);
 #if DEBUG_UDP_NAT
           GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp-nat",
@@ -1201,7 +1198,6 @@ udp_nat_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct Plugin *plugin = cls;
   char *buf;
   struct UDPMessage *msg;
-  const struct GNUNET_MessageHeader *hdr;
   struct GNUNET_PeerIdentity *sender;
   unsigned int buflen;
   socklen_t fromlen;
@@ -1254,7 +1250,7 @@ udp_nat_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           GNUNET_free (buf);
           continue;
         }
-      hdr = (const struct GNUNET_MessageHeader *) &msg[1];
+
       msgbuf = (char *)&msg[1];
       sender = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
       memcpy (sender, &msg->sender, sizeof (struct GNUNET_PeerIdentity));
