@@ -358,20 +358,16 @@ get_path_from_PATH ()
       sprintf (buf, "%s/%s", pos, "gnunet-nat-server");
       if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
         {
-          pos = GNUNET_strdup (buf);
-          GNUNET_free (buf);
           GNUNET_free (path);
-          return pos;
+          return buf;
         }
       pos = end + 1;
     }
   sprintf (buf, "%s/%s", pos, "gnunet-nat-server");
   if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
     {
-      pos = GNUNET_strdup (buf);
-      GNUNET_free (buf);
       GNUNET_free (path);
-      return pos;
+      return buf;
     }
   GNUNET_free (buf);
   GNUNET_free (path);
@@ -383,9 +379,17 @@ static int
 check_gnunet_nat_server()
 {
   struct stat statbuf;
+  char *p;
 
-  if (0 != STAT (get_path_from_PATH(), &statbuf))
-    return GNUNET_SYSERR;
+  p = get_path_from_PATH ();
+  if (p == NULL)
+    return GNUNET_NO;
+  if (0 != STAT (p, &statbuf))
+    {
+      GNUNET_free (p);
+      return GNUNET_SYSERR;
+    }
+  GNUNET_free (p);
   if ( (0 != (statbuf.st_mode & S_ISUID)) && 
        (statbuf.st_uid == 0) )    
     return GNUNET_YES;
