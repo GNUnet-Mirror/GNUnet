@@ -1028,7 +1028,8 @@ handle_client_request_info (void *cls,
                                n->bpm_out_external_limit);
       if (want_reserv < 0)
         {
-          n->available_recv_window += want_reserv;
+	  got_reserv = want_reserv;
+          n->available_recv_window -= want_reserv;
         }
       else if (want_reserv > 0)
         {
@@ -3298,8 +3299,8 @@ neighbour_quota_update (void *cls,
       qout_ms = (n->bpm_out == 0) ? 0 : 1 + n->bpm_out / 60000;
       GNUNET_TRANSPORT_set_quota (transport,
 				  &n->peer,
-				  n->bpm_in, 
-				  n->bpm_out,
+				  qin_ms,
+				  qout_ms,
 				  GNUNET_TIME_UNIT_FOREVER_REL,
 				  NULL, NULL);
     }
