@@ -1691,7 +1691,6 @@ process_reply (void *cls,
   GNUNET_HashCode chash;
   GNUNET_HashCode mhash;
   size_t msize;
-  uint32_t prio;
   int do_remove;
 
 #if DEBUG_FS
@@ -1762,7 +1761,6 @@ process_reply (void *cls,
       GNUNET_break (0);
       return GNUNET_YES;
     }
-  prio = pr->priority;
   prq->priority += pr->remaining_priority;
   pr->remaining_priority = 0;
   if (pr->client_request_list != NULL)
@@ -2449,7 +2447,7 @@ handle_p2p_get (void *cls,
   timeout = GNUNET_TIME_relative_multiply (BASIC_DATASTORE_REQUEST_DELAY,
 					   (pr->priority + 1)); 
   pr->drq = GNUNET_FS_drq_get (&gm->query,
-			       pr->type,			       
+			       type,			       
 			       &process_local_reply,
 			       pr,
 			       timeout,
