@@ -327,12 +327,12 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE 81
 
 /**
- * Check that other peer is alife (challenge).
+ * Check that other peer is alive (challenge).
  */
 #define GNUNET_MESSAGE_TYPE_CORE_PING 82
 
 /**
- * Confirmation that other peer is alife.
+ * Confirmation that other peer is alive.
  */
 #define GNUNET_MESSAGE_TYPE_CORE_PONG 83
 
