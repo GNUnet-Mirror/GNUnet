@@ -44,6 +44,8 @@
  */
 #define HIGH_PORT 32000
 
+#define MAX_OUTSTANDING_CONNECTIONS 30
+
 #define CONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 180)
 
 struct PeerConnection
@@ -163,6 +165,22 @@ struct UpdateContext
   struct GNUNET_CONFIGURATION_Handle *ret;
   unsigned int nport;
 };
+
+
+struct ConnectContext
+{
+  struct GNUNET_TESTING_Daemon *first;
+
+  struct GNUNET_TESTING_Daemon *second;
+
+  struct GNUNET_TESTING_PeerGroup *pg;
+};
+
+/**
+ * Number of connects we are waiting on, allows us to rate limit
+ * connect attempts.
+ */
+static int outstanding_connects;
 
 /**
  * Function to iterate over options.  Copies
@@ -908,7 +926,53 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
   return ret;
 }
 
+/**
+ * Internal notification of a connection, kept so that we can ensure some connections
+ * happen instead of flooding all testing daemons with requests to connect.
+ */
+static void internal_connect_notify (void *cls,
+                                     const struct GNUNET_PeerIdentity *first,
+                                     const struct GNUNET_PeerIdentity *second,
+                                     const struct GNUNET_CONFIGURATION_Handle *first_cfg,
+                                     const struct GNUNET_CONFIGURATION_Handle *second_cfg,
+                                     struct GNUNET_TESTING_Daemon *first_daemon,
+                                     struct GNUNET_TESTING_Daemon *second_daemon,
+                                     const char *emsg)
+{
+  struct GNUNET_TESTING_PeerGroup *pg = cls;
+  outstanding_connects--;
 
+  pg->notify_connection(pg->notify_connection_cls, first, second, first_cfg, second_cfg, first_daemon, second_daemon, emsg);
+
+}
+
+static void schedule_connect(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct ConnectContext *connect_context = cls;
+
+  if (outstanding_connects > MAX_OUTSTANDING_CONNECTIONS)
+    {
+#if VERBOSE_TESTING
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      _("Delaying connect, we have too many outstanding connections!\n"));
+#endif
+      GNUNET_SCHEDULER_add_delayed(connect_context->pg->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3), &schedule_connect, connect_context);
+    }
+  else
+    {
+#if VERBOSE_TESTING
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      _("Creating connection, outstanding_connections is %d\n"), outstanding_connects);
+#endif
+      outstanding_connects++;
+      GNUNET_TESTING_daemons_connect (connect_context->first,
+                                      connect_context->second,
+                                      CONNECT_TIMEOUT,
+                                      &internal_connect_notify,
+                                      connect_context->pg);
+      GNUNET_free(connect_context);
+    }
+}
 
 /*
  * Connect the topology as specified by the PeerConnection's
@@ -921,29 +985,34 @@ connect_topology (struct GNUNET_TESTING_PeerGroup *pg)
 {
   unsigned int pg_iter;
   struct PeerConnection *connection_iter;
-  int connect_count;
+  struct ConnectContext *connect_context;
 
-  connect_count = 0;
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
     {
       connection_iter = pg->peers[pg_iter].connected_peers;
       while (connection_iter != NULL)
         {
-          GNUNET_TESTING_daemons_connect (pg->peers[pg_iter].daemon,
+          connect_context = GNUNET_malloc(sizeof(struct ConnectContext));
+          connect_context->pg = pg;
+          connect_context->first = pg->peers[pg_iter].daemon;
+          connect_context->second = connection_iter->daemon;
+
+          GNUNET_SCHEDULER_add_now(pg->sched, &schedule_connect, connect_context);
+          /*GNUNET_TESTING_daemons_connect (pg->peers[pg_iter].daemon,
                                           connection_iter->daemon,
                                           CONNECT_TIMEOUT,
                                           pg->notify_connection,
-                                          pg->notify_connection_cls);
+                                          pg->notify_connection_cls);*/
           connection_iter = connection_iter->next;
-          connect_count++;
-          if (connect_count % 50 == 0)
+
+          /*if (outstanding_connects > MAX_OUTSTANDING_CONNECTS)
             {
 #if VERBOSE_TESTING
               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                           _("Sleeping to give peers a chance to connect!\n"));
 #endif
               sleep(2);
-            }
+            } */
         }
     }
 }
