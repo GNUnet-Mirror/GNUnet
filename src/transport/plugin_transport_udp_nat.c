@@ -512,21 +512,20 @@ find_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *peer)
  *        for the next transmission call; or if the
  *        peer disconnected...)
  * @param cont_cls closure for cont
- *
  * @return the number of bytes written
- *
  */
 static ssize_t
 udp_nat_real_send (void *cls,
-                  struct GNUNET_NETWORK_Handle *send_handle,
-                  const struct GNUNET_PeerIdentity *target,
-                  const char *msgbuf,
-                  size_t msgbuf_size,
-                  unsigned int priority,
-                  struct GNUNET_TIME_Relative timeout,
-                  const void *addr,
-                  size_t addrlen,
-                  GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
+		   struct GNUNET_NETWORK_Handle *send_handle,
+		   const struct GNUNET_PeerIdentity *target,
+		   const char *msgbuf,
+		   size_t msgbuf_size,
+		   unsigned int priority,
+		   struct GNUNET_TIME_Relative timeout,
+		   const void *addr,
+		   size_t addrlen,
+		   GNUNET_TRANSPORT_TransmitContinuation cont,
+		   void *cont_cls)
 {
   struct Plugin *plugin = cls;
   struct UDPMessage *message;
@@ -834,7 +833,6 @@ send_udp_probe_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   struct UDP_NAT_Probes *probe = cls;
   struct UDP_NAT_ProbeMessage *message;
   struct Plugin *plugin = probe->plugin;
-  int sent;
 
   message = GNUNET_malloc(sizeof(struct UDP_NAT_ProbeMessage));
   message->header.size = htons(sizeof(struct UDP_NAT_ProbeMessage));
@@ -858,16 +856,13 @@ send_udp_probe_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   else
     probe->index = 0;
 
-  sent = udp_nat_real_send(plugin, udp_nat_socks[probe->index]->desc, NULL, (char *)message, ntohs(message->header.size), 0, GNUNET_TIME_relative_get_unit(), &probe->sock_addr, sizeof(probe->sock_addr), &udp_probe_continuation, probe);
+  udp_nat_real_send(plugin, udp_nat_socks[probe->index]->desc, NULL, 
+		    (char *)message, ntohs(message->header.size), 0, 
+		    GNUNET_TIME_relative_get_unit(), 
+		    &probe->sock_addr, sizeof(probe->sock_addr),
+		    &udp_probe_continuation, probe);
 
   GNUNET_free(message);
-}
-
-
-void
-dummy_continuation (void *cls, const struct GNUNET_PeerIdentity *target, int result)
-{
-  return;
 }
 
 
@@ -1030,7 +1025,6 @@ udp_nat_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
   struct PeerSession *peer_session;
   struct MessageQueue *pending_message;
   struct MessageQueue *pending_message_temp;
-  int sent;
 
   if (memcmp(sender, plugin->env->my_identity, sizeof(struct GNUNET_PeerIdentity)) == 0)
     {
@@ -1055,7 +1049,12 @@ udp_nat_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
                       _("Received a probe on listen port %d, sent_from port %d\n"), sockinfo->port, ntohs(((struct sockaddr_in *)sender_addr)->sin_port));
 #endif
 
-      sent = udp_nat_real_send(plugin, sockinfo->desc, NULL, (char *)outgoing_probe_reply, ntohs(outgoing_probe_reply->header.size), 0, GNUNET_TIME_relative_get_unit(), sender_addr, fromlen, &dummy_continuation, NULL);
+      udp_nat_real_send(plugin, sockinfo->desc, NULL, 
+			(char *)outgoing_probe_reply,
+			ntohs(outgoing_probe_reply->header.size), 0, 
+			GNUNET_TIME_relative_get_unit(), 
+			sender_addr, fromlen, 
+			NULL, NULL);
 #if DEBUG_UDP_NAT
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp-nat",
                       _("Sent PROBE REPLY to port %d on outgoing port %d\n"), ntohs(((struct sockaddr_in *)sender_addr)->sin_port), sockinfo->port);
@@ -1084,7 +1083,7 @@ udp_nat_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
               outgoing_probe_confirmation = GNUNET_malloc(sizeof(struct UDP_NAT_ProbeMessageConfirmation));
               outgoing_probe_confirmation->header.size = htons(sizeof(struct UDP_NAT_ProbeMessageConfirmation));
               outgoing_probe_confirmation->header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_NAT_PROBE_CONFIRM);
-              sent = udp_nat_real_send(plugin, sockinfo->desc, NULL, (char *)outgoing_probe_confirmation, ntohs(outgoing_probe_confirmation->header.size), 0, GNUNET_TIME_relative_get_unit(), sender_addr, fromlen, &dummy_continuation, NULL);
+              udp_nat_real_send(plugin, sockinfo->desc, NULL, (char *)outgoing_probe_confirmation, ntohs(outgoing_probe_confirmation->header.size), 0, GNUNET_TIME_relative_get_unit(), sender_addr, fromlen, NULL, NULL);
               if (outgoing_probe->task != GNUNET_SCHEDULER_NO_TASK)
                 {
                   GNUNET_SCHEDULER_cancel(plugin->env->sched, outgoing_probe->task);
