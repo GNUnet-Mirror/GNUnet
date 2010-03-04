@@ -259,7 +259,8 @@ struct PongMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Random number proochosen to make reply harder.
+   * Random number proochosen to make reply harder.  Must be
+   * first field after header (this is where we start to encrypt!).
    */
   uint32_t challenge GNUNET_PACKED;
 
@@ -1042,6 +1043,8 @@ handle_client_request_info (void *cls,
 	    got_reserv = want_reserv;
           n->available_recv_window -= got_reserv;
         }
+      else
+	got_reserv = 0;
       old_preference = n->current_preference;
       n->current_preference += GNUNET_ntohll(rcm->preference_change);
       if (old_preference > n->current_preference) 
