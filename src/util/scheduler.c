@@ -28,6 +28,12 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_signal_lib.h"
 #include "gnunet_time_lib.h"
+#ifdef LINUX
+#include "execinfo.h"
+#define EXECINFO GNUNET_YES
+#endif
+
+#define EXECINFO GNUNET_NO
 
 #define DEBUG_TASKS GNUNET_NO
 
@@ -93,6 +99,19 @@ struct Task
    * Task priority.
    */
   enum GNUNET_SCHEDULER_Priority priority;
+
+#if EXECINFO
+  /**
+   * Array of strings which make up a backtrace from the point when this
+   * task was scheduled (essentially, who scheduled the task?)
+   */
+  char **backtrace_strings;
+
+  /**
+   * Size of the backtrace_strings array
+   */
+  int num_backtrace_strings;
+#endif
 
 };
 
@@ -438,6 +457,9 @@ destroy_task (struct Task *t)
     GNUNET_NETWORK_fdset_destroy (t->read_set);
   if (NULL != t->write_set)
     GNUNET_NETWORK_fdset_destroy (t->write_set);
+#ifdef EXECINFO
+  GNUNET_free (t->backtrace_strings);
+#endif
   GNUNET_free (t);
 }
 
@@ -749,8 +771,14 @@ GNUNET_SCHEDULER_add_continuation (struct GNUNET_SCHEDULER_Handle *sched,
                                    enum GNUNET_SCHEDULER_Reason reason)
 {
   struct Task *t;
-
+#ifdef EXECINFO
+  void *backtrace_array[50];
+#endif
   t = GNUNET_malloc (sizeof (struct Task));
+#ifdef EXECINFO
+  t->num_backtrace_strings = backtrace(backtrace_array, 50);
+  t->backtrace_strings = backtrace_symbols(backtrace_array, t->num_backtrace_strings);
+#endif
   t->callback = task;
   t->callback_cls = task_cls;
   t->id = ++sched->last_id;
@@ -1068,10 +1096,16 @@ GNUNET_SCHEDULER_add_select (struct GNUNET_SCHEDULER_Handle * sched,
                              GNUNET_SCHEDULER_Task task, void *task_cls)
 {
   struct Task *t;
-
+#ifdef EXECINFO
+  void *backtrace_array[50];
+#endif
   t = GNUNET_malloc (sizeof (struct Task));
   t->callback = task;
   t->callback_cls = task_cls;
+#ifdef EXECINFO
+  t->num_backtrace_strings = backtrace(backtrace_array, 50);
+  t->backtrace_strings = backtrace_symbols(backtrace_array, t->num_backtrace_strings);
+#endif
   if (rs != NULL)
     {
       t->read_set = GNUNET_NETWORK_fdset_create ();
