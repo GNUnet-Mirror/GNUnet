@@ -496,9 +496,7 @@ struct NeighbourList
 
 /**
  * Message used to ask a peer to validate receipt (to check an address
- * from a HELLO).  Followed by the address used.  Note that the
- * recipients response does not affirm that he has this address,
- * only that he got the challenge message.
+ * from a HELLO).  
  */
 struct TransportPingMessage
 {
@@ -2472,13 +2470,11 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
   struct TransportPlugin *plugin = cls;
   struct TransportPingMessage *ping;
   struct TransportPongMessage *pong;
-  uint16_t msize;
   struct NeighbourList *n;
   struct ReadyList *rl;
   struct ForeignAddressList *fal;
 
-  msize = ntohs (message->size);
-  if (msize < sizeof (struct TransportPingMessage))
+  if (ntohs (message->size) != sizeof (struct TransportPingMessage))
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
@@ -2500,7 +2496,6 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
 	      GNUNET_a2s ((const struct sockaddr *)sender_address, 
 			  sender_address_len));
 #endif
-  msize -= sizeof (struct TransportPingMessage);
   pong = GNUNET_malloc (sizeof (struct TransportPongMessage) + sender_address_len);
   pong->header.size = htons (sizeof (struct TransportPongMessage) + sender_address_len);
   pong->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_PONG);
