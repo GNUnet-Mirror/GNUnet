@@ -976,7 +976,7 @@ send_hello (void *cls, size_t size, void *buf)
 
   if (buf == NULL)
     {
-#if DEBUG_TRANSPORT
+#if DEBUG_TRANSPORT_TIMEOUT
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Timeout while trying to transmit `%s' request.\n",
                   "HELLO");
@@ -1121,7 +1121,7 @@ neighbour_disconnect (struct NeighbourList *n)
  * @param cls closure (struct GNUNET_TRANSPORT_Handle *)
  * @param msg message received, NULL on timeout or fatal error
  */
-static void demultiplexer (void *cls, 
+static void demultiplexer (void *cls,
 			   const struct GNUNET_MessageHeader *msg);
 
 
@@ -1138,6 +1138,7 @@ reconnect (void *cls,
   struct GNUNET_TRANSPORT_Handle *h = cls;
   struct ControlMessage *pos;
   struct NeighbourList *n;
+  struct NeighbourList *next;
 
   h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
@@ -1149,9 +1150,10 @@ reconnect (void *cls,
   n = h->neighbours;
   while (NULL != n)
     {
+      next = n->next;
       if (n->is_connected)
 	neighbour_disconnect (n);
-      n = n->next;
+      n = next;
     }
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to transport service.\n");
@@ -1296,6 +1298,7 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
   struct NeighbourList *n;
   struct HelloWaitList *hwl;
   struct GNUNET_CLIENT_Connection *client;
+  struct ControlMessage *cm;
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transport disconnect called!\n");
@@ -1336,6 +1339,25 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
         hwl->rec (hwl->rec_cls, NULL);
       GNUNET_free (hwl);
     }
+
+  /* Check for still scheduled control messages, cancel delay tasks if so */
+  /* Added because somehow a notify_delay_task is remaining scheduled and is ever so annoying */
+  while ( (NULL != (cm = handle->control_head)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Disconnect before control message sent!\n"));
+      if (cm->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
+        {
+          GNUNET_SCHEDULER_cancel (handle->sched, cm->notify_delay_task);
+          cm->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
+        }
+      GNUNET_CONTAINER_DLL_remove (handle->control_head,
+                                   handle->control_tail,
+                                   cm);
+      GNUNET_free (cm);
+    }
+  /* end check */
+
   if (handle->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (handle->sched, handle->reconnect_task);
