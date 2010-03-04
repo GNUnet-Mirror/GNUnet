@@ -40,7 +40,7 @@
 #include "plugin_transport.h"
 #include "transport.h"
 
-#define DEBUG_UDP GNUNET_YES
+#define DEBUG_UDP GNUNET_NO
 
 /*
  * Transport cost to peer, always 1 for UDP (direct connection)
