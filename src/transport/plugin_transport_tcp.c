@@ -985,12 +985,9 @@ handle_tcp_data (void *cls,
 {
   struct Plugin *plugin = cls;
   struct Session *session;
-  uint16_t msize;
   struct GNUNET_TIME_Relative delay;
 
-  msize = ntohs (message->size);
   session = find_session_by_client (plugin, client);
-
   if (GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME == ntohs(message->type))
     {
       /* We don't want to propagate WELCOME messages up! */
@@ -1007,7 +1004,7 @@ handle_tcp_data (void *cls,
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "tcp", 
 		   "Passing %u bytes of type %u from `%4s' to transport service.\n",
-                   (unsigned int) msize, 
+                   (unsigned int) ntohs (message->size), 
 		   (unsigned int) ntohs (message->type),
 		   GNUNET_i2s (&session->target));
 #endif
