@@ -505,8 +505,10 @@ disconnect_session (struct Session *session)
       GNUNET_SCHEDULER_cancel (session->plugin->env->sched,
 			       session->receive_delay_task);
       if (session->client != NULL)
-	GNUNET_SERVER_receive_done (session->client, 
-				    GNUNET_SYSERR);
+	{
+	  GNUNET_SERVER_receive_done (session->client, 
+				      GNUNET_SYSERR);
+	}
     }
   if (session->client != NULL)
     {
