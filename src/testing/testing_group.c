@@ -330,8 +330,6 @@ create_small_world_ring(struct GNUNET_TESTING_PeerGroup *pg)
   if (connsPerPeer % 2 == 1)
     connsPerPeer += 1;
 
-  time = GNUNET_TIME_absolute_get ();
-  srand ((unsigned int) time.value);
   smallWorldConnections = 0;
   connect_attempts = 0;
   for (i = 0; i < pg->total; i++)
@@ -354,7 +352,8 @@ create_small_world_ring(struct GNUNET_TESTING_PeerGroup *pg)
 
       for (j = 0; j < connsPerPeer / 2; j++)
         {
-          random = ((double) rand () / RAND_MAX);
+          random = ((double) GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_WEAK,
+						      (uint64_t)-1LL)) / ( (double) (uint64_t) -1LL);
           if (random < percentage)
             {
               /* Connect to uniformly selected random peer */
@@ -540,8 +539,9 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg)
                 {
                   /* Calculate probability as 1 over the square of the distance */
                   probability = 1.0 / (distance * distance);
-                  /* Choose a random, divide by RAND_MAX to get a number between 0 and 1 */
-                  random = ((double) rand () / RAND_MAX);
+                  /* Choose a random value between 0 and 1 */
+		  random = ((double) GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_WEAK,
+							      (uint64_t)-1LL)) / ( (double) (uint64_t) -1LL);
                   /* If random < probability, then connect the two nodes */
                   if (random < probability)
                     smallWorldConnections += add_connections (pg, j, k);
@@ -582,7 +582,8 @@ create_erdos_renyi (struct GNUNET_TESTING_PeerGroup *pg)
       for (inner_count = outer_count + 1; inner_count < pg->total;
            inner_count++)
         {
-          temp_rand = ((double) RANDOM () / RAND_MAX);
+          temp_rand = ((double) GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_WEAK,
+							 (uint64_t)-1LL)) / ( (double) (uint64_t) -1LL);
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("rand is %f probability is %f\n"), temp_rand,
