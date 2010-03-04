@@ -437,7 +437,7 @@ start_process (struct ServiceList *sl)
       *optpos = '\0';
       optpos++;
     }
-  argv[argv_size++] = NULL;
+  argv[argv_size] = NULL;
   sl->pid = GNUNET_OS_start_process_v (firstarg, argv);
   /* FIXME: should check sl->pid */
   GNUNET_free (argv);
