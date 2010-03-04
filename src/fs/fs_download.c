@@ -341,6 +341,7 @@ struct ProcessResultClosure
  * reply that we just got.
  *
  * @param cls closure (our 'struct ProcessResultClosure')
+ * @param key query for the given value / request
  * @param value value in the hash map (a 'struct DownloadRequest')
  * @return GNUNET_YES (we should continue to iterate); unless serious error
  */
