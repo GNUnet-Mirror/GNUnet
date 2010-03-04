@@ -33,7 +33,8 @@
 
 #include "platform.h"
 #include "gnunet_fragmentation_lib.h"
-
+#include "gnunet_protocols.h"
+#include "gnunet_util_lib.h"
 /**
  * Message fragment.  This header is followed
  * by the actual data of the fragment.
@@ -53,6 +54,20 @@ struct Fragment
    */
   uint64_t id GNUNET_PACKED;
 
+  size_t mtu;
+  uint32_t totalNum;
+
+};
+
+struct GNUNET_FRAGEMENT_Ctxbuffer{
+	uint64_t id;
+    uint16_t size;
+    char * buff;
+    int counter;
+    struct GNUNET_TIME_Absolute receivedTime;
+    struct GNUNET_PeerIdentity *peerID;
+	struct GNUNET_FRAGEMENT_Ctxbuffer *next;
+	int * num;
 };
 
 
@@ -61,6 +76,8 @@ struct Fragment
  */
 struct GNUNET_FRAGMENT_Context
 {
+	uint32_t maxNum;
+	struct GNUNET_FRAGEMENT_Ctxbuffer *buffer;
 };
 
 
@@ -78,7 +95,36 @@ GNUNET_FRAGMENT_fragment (const struct GNUNET_MessageHeader *msg,
                           GNUNET_FRAGMENT_MessageProcessor proc,
                           void *proc_cls)
 {
-  GNUNET_assert (0);
+	uint32_t id = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 256);
+	size_t size = sizeof(struct Fragment);
+	if(msg->size > mtu){
+		uint16_t lastSize = (msg->size) % (mtu-size);
+		int num = ceil(msg->size / mtu - size);
+		int i;
+		for(i = 0; i<num; i++){
+			struct Fragment *frag = (struct Fragment *)GNUNET_malloc(size);
+			frag->header.type = htons(GNUNET_MESSAGE_TYPE_FRAGMENT);
+			frag->id = htonl(id);
+			frag->off = htons(mtu*i);
+			frag->mtu = htons(mtu);
+			if(lastSize!=0){
+				frag->totalNum = htons(num+1);
+			}
+			else{
+				frag->totalNum = htons(num);
+			}
+            if(i!=num-1){
+            	frag->header.size = htons(mtu - size);
+            	memcpy((char*)&frag[1], (char *)&msg[1]+frag->off, mtu - size);
+            }
+            else{
+            	frag->header.size = htons(lastSize);
+                memcpy((char*)&frag[1], (char *)&msg[1]+frag->off, lastSize);
+            }
+            proc(proc_cls, &frag->header);
+            free(frag);
+		}
+	}
 }
 
 
@@ -95,7 +141,10 @@ GNUNET_FRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
                                 GNUNET_FRAGMENT_MessageProcessor proc,
                                 void *proc_cls)
 {
-  return NULL;
+	struct GNUNET_FRAGMENT_Context *ctx = (struct GNUNET_FRAGMENT_Context*)GNUNET_malloc(sizeof(struct GNUNET_FRAGMENT_Context));
+	ctx->maxNum = 100;
+	ctx->buffer = NULL;
+	return ctx;
 }
 
 
@@ -105,7 +154,13 @@ GNUNET_FRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
 void
 GNUNET_FRAGMENT_context_destroy (struct GNUNET_FRAGMENT_Context *ctx)
 {
-  GNUNET_assert (0);
+	struct GNUNET_FRAGEMENT_Ctxbuffer *buffer;
+	for(buffer = ctx->buffer; buffer!=NULL; buffer = buffer->next){
+		GNUNET_free(buffer->num);
+		GNUNET_free(buffer);
+	}
+	GNUNET_free(ctx);
+	GNUNET_assert (0);
 }
 
 
@@ -121,7 +176,43 @@ GNUNET_FRAGMENT_process (struct GNUNET_FRAGMENT_Context *ctx,
                          const struct GNUNET_PeerIdentity *sender,
                          const struct GNUNET_MessageHeader *msg)
 {
-  GNUNET_assert (0);
+	   uint16_t type = ntohs(msg->type);
+	   int exited = 0, received = 0;
+       if(type!=GNUNET_MESSAGE_TYPE_FRAGMENT){
+    	   return;
+       }
+       struct Fragment *frag = (struct Fragment *)msg;
+       struct GNUNET_FRAGEMENT_Ctxbuffer* buffer;
+       for(buffer = ctx->buffer; buffer!= NULL; buffer = buffer->next){
+    	   if(ctx->buffer->counter == ntohs(frag->totalNum)){return;}
+    	   if(buffer->id == ntohl(frag->id)&&(buffer->peerID==sender)){
+    		   exited = 1;
+    		   int i;
+    	    	   for(i = 0; i<ntohs(frag->totalNum); i++){
+    	    	     if(buffer->num[i]==ntohs(frag->off)/ntohs(frag->mtu)){
+    	    	    	 received = 1;
+    	    	    	 break;
+    	    	     }
+    	       }
+    	    	   if(!received){
+    	    		   buffer->num[buffer->counter++]==ntohs(frag->off)/ntohs(frag->mtu);
+    	    	    	     }
+    		   buffer->receivedTime = GNUNET_TIME_absolute_get ();
+    		   uint16_t size = ntohs(frag->header.size);
+    		   memcpy(&buffer->buff[ntohs(frag->off)], &frag[1], size);
+    		   break;
+    	   }
+       }
+       if(!exited){
+    	   buffer = (struct GNUNET_FRAGEMENT_Ctxbuffer* )GNUNET_malloc(sizeof(struct GNUNET_FRAGEMENT_Ctxbuffer));
+    	   buffer->num = (int*)GNUNET_malloc(ntohs(frag->totalNum)*sizeof(int));
+    	   buffer->num[buffer->counter++]==ntohs(frag->off)/ntohs(frag->mtu);
+    	   memcpy(buffer->peerID,sender,sizeof(struct GNUNET_PeerIdentity));
+    	   buffer->receivedTime = GNUNET_TIME_absolute_get ();
+   		   uint16_t size = ntohs(frag->header.size);
+   		   memcpy(&buffer->buff[ntohs(frag->off)], &frag[1], size);
+       }
+
 }
 
 
