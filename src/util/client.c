@@ -568,7 +568,7 @@ write_shutdown (void *cls, size_t size, void *buf)
 /**
  * Request that the service should shutdown.
  * Afterwards, the connection will automatically be
- * disconnected.  Hence the "sock" shoud not
+ * disconnected.  Hence the "sock" should not
  * be used by the caller after this call
  * (calling this function frees "sock" after a while).
  *
