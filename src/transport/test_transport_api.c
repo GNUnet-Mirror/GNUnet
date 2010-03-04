@@ -379,19 +379,17 @@ get_path_from_PATH ()
 }
 
 
-static int check_gnunet_nat_server()
+static int 
+check_gnunet_nat_server()
 {
   struct stat statbuf;
 
-  stat(get_path_from_PATH(), &statbuf);
-  if ((statbuf.st_mode & S_ISUID) && (statbuf.st_uid == 0))
-    {
-      return GNUNET_YES;
-    }
-  else
-    {
-      return GNUNET_NO;
-    }
+  if (0 != STAT (get_path_from_PATH(), &statbuf))
+    return GNUNET_SYSERR;
+  if ( (0 != (statbuf.st_mode & S_ISUID)) && 
+       (statbuf.st_uid == 0) )    
+    return GNUNET_YES;
+  return GNUNET_NO;
 }
 
 int
@@ -408,10 +406,11 @@ main (int argc, char *argv[])
   else if (strstr(argv[0], "udp_nat") != NULL)
     {
       is_udp_nat = GNUNET_YES;
-      if (check_gnunet_nat_server() == GNUNET_NO)
+      if (check_gnunet_nat_server() != GNUNET_OK)
         {
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                      "gnunet-nat-server not installed as root, but not failing!\n");
+                      "`%s' not properly installed, cannot run NAT test!\n",
+		      "gnunet-nat-server");
           return 0;
         }
     }
