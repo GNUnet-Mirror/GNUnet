@@ -1150,6 +1150,9 @@ reconnect (void *cls,
   n = h->neighbours;
   while (NULL != n)
     {
+#if DEBUG_TRANSPORT_DISCONNECT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting due to reconnect being called\n");
+#endif
       next = n->next;
       if (n->is_connected)
 	neighbour_disconnect (n);
@@ -1500,7 +1503,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
           break;
         }
       dim = (const struct DisconnectInfoMessage *) msg;
-#if DEBUG_TRANSPORT
+#if DEBUG_TRANSPORT_DISCONNECT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Receiving `%s' message for `%4s'.\n",
                   "DISCONNECT",
