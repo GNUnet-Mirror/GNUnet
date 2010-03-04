@@ -612,13 +612,22 @@ create_erdos_renyi (struct GNUNET_TESTING_PeerGroup *pg)
   int connect_attempts;
   double probability;
   char *p_string;
+
+  probability = 0.5; /* FIXME: default percentage? */
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(pg->cfg,
+							 "TESTING",
+							 "PROBABILITY",
+							 &p_string))
+    {
+      if (sscanf(p_string, "%lf", &probability) != 1)
+	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		    _("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
+		    p_string,
+		    "PROBABILITY",
+		    "TESTING");
+      GNUNET_free (p_string);
+    }
   connect_attempts = 0;
-
-  GNUNET_CONFIGURATION_get_value_string(pg->cfg, "TESTING", "PROBABILITY", &p_string);
-  if ((p_string == NULL) || (sscanf(p_string, "%lf", &probability) != 1))
-    probability = 0.5; /* FIXME: default probability? */
-
-  GNUNET_free_non_null (p_string);
   for (outer_count = 0; outer_count < pg->total - 1; outer_count++)
     {
       for (inner_count = outer_count + 1; inner_count < pg->total;
@@ -1044,6 +1053,7 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("No topology specified, was one intended?\n"));
+      return GNUNET_SYSERR;
     }
 
   return num_connections;
