@@ -71,14 +71,14 @@ static struct GNUNET_RESOLVER_RequestHandle *hostname_dns;
  */
 #define HOSTNAME_RESOLVE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
-/*
+/**
  * How many ports do we want to listen on (and send on) in order to get replies?
  *
  * FIXME: make this value dynamic, specified by configuration
  */
 #define UDP_NAT_LISTEN_PORTS 257
 
-/*
+/**
  * Starting port for listening and sending, eventually a config value
  */
 #define UDP_NAT_STARTING_PORT 22086
@@ -332,7 +332,6 @@ struct Plugin
    * at this number (or will listen only on this port if non-nat'd)
    */
   uint16_t starting_port;
-
 
   /**
    * Starting port for sending out crazy messages
@@ -1603,18 +1602,16 @@ udp_nat_plugin_address_pretty_printer (void *cls,
 void *
 libgnunet_plugin_transport_udp_nat_init (void *cls)
 {
-  unsigned long long mtu;
-
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
+  unsigned long long mtu;
+  unsigned long long starting_port;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct Plugin *plugin;
   struct GNUNET_SERVICE_Context *service;
   int sockets_created;
   int behind_nat;
-
   char *internal_address;
   char *external_address;
-  char *starting_port;
 
   service = GNUNET_SERVICE_start ("transport-udp-nat", env->sched, env->cfg);
   if (service == NULL)
@@ -1657,17 +1654,31 @@ libgnunet_plugin_transport_udp_nat_init (void *cls)
     }
 
   if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
-      "transport-udp-nat",
-      "BEHIND_NAT"))
+							 "transport-udp-nat",
+							 "BEHIND_NAT"))
     behind_nat = GNUNET_NO; /* We are not behind nat, or so says the user! */
   else
     behind_nat = GNUNET_YES; /* Assume we are behind nat (default) */
 
-  GNUNET_CONFIGURATION_get_value_string (env->cfg,
-                                         "transport-udp-nat",
-                                         "PORT",
-                                         &starting_port);
-
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (env->cfg,
+					     "transport-udp-nat",
+					     "PORT",
+					     &starting_port))
+    starting_port = UDP_NAT_STARTING_PORT;
+  else if (starting_port > 65535)
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
+		       "udp_nat",
+		       _("Given `%s' option is out of range: %llu > %u\n"),
+		       "PORT",
+		       starting_port,
+		       65535);
+      GNUNET_SERVICE_stop (service);
+      GNUNET_free_non_null(external_address);
+      GNUNET_free_non_null(internal_address);
+      return NULL;      
+    }
 
   mtu = 1240;
   if (mtu < 1200)
@@ -1679,11 +1690,7 @@ libgnunet_plugin_transport_udp_nat_init (void *cls)
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->external_address = external_address;
   plugin->internal_address = internal_address;
-
-  if (starting_port != NULL)
-    plugin->starting_port = atoi(starting_port);
-  else
-    plugin->starting_port = UDP_NAT_STARTING_PORT;
+  plugin->starting_port = (uint16_t) UDP_NAT_STARTING_PORT;
   plugin->behind_nat = behind_nat;
   if (plugin->behind_nat == GNUNET_NO)
     plugin->num_ports = 1; /* Only use one port/socket */
@@ -1720,6 +1727,7 @@ libgnunet_plugin_transport_udp_nat_init (void *cls)
 
   return api;
 }
+
 
 void *
 libgnunet_plugin_transport_udp_nat_done (void *cls)
