@@ -97,6 +97,11 @@
 #define TRANSPORT_DEFAULT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
 /**
+ * How often will we re-validate for latency information
+ */
+#define TRANSPORT_DEFAULT_REVALIDATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+
+/**
  * Priority to use for PONG messages.
  */
 #define TRANSPORT_PONG_PRIORITY 4
@@ -143,6 +148,12 @@ struct ForeignAddressList
    * re-confirmed by the transport)?
    */
   struct GNUNET_TIME_Absolute expires;
+
+  /**
+   * Task used to re-validate addresses, updates latencies and
+   * verifies liveness.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier revalidate_task;
 
   /**
    * Length of addr.
@@ -720,6 +731,32 @@ struct CheckHelloValidatedContext
 
 };
 
+/**
+ * Struct for keeping information about addresses to validate
+ * so that we can re-use for sending around ping's and receiving
+ * pongs periodically to keep connections alive and also better
+ * estimate latency of connections.
+ *
+ */
+struct PeriodicValidationContext
+{
+
+  /**
+   * The address we are keeping alive
+   */
+  struct ForeignAddressList *foreign_address;
+
+  /**
+   * The name of the transport
+   */
+  char *transport;
+
+  /**
+   * Public Key of the peer to re-validate
+   */
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded publicKey;
+
+};
 
 /**
  * Our HELLO message.
@@ -1751,6 +1788,7 @@ add_validated_address (void *cls,
 				   max);
 }
 
+static void send_periodic_ping(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Iterator over hash map entries.  Checks if the given
@@ -1758,7 +1796,7 @@ add_validated_address (void *cls,
  * is given in the PONG.
  *
  * @param cls the 'struct TransportPongMessage*'
- * @param key peer identity 
+ * @param key peer identity
  * @param value value in the hash map ('struct ValidationEntry')
  * @return GNUNET_YES if we should continue to
  *         iterate (mismatch), GNUNET_NO if not (entry matched)
@@ -1776,10 +1814,11 @@ check_pending_validation (void *cls,
   struct GNUNET_PeerIdentity target;
   struct NeighbourList *n;
   struct ForeignAddressList *fal;
+  struct PeriodicValidationContext *periodic_validation_context;
 
   if (ve->challenge != challenge)
     return GNUNET_YES;
-  
+
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Confirmed validity of address, peer `%4s' has address `%s' (%s).\n",
@@ -1798,18 +1837,25 @@ check_pending_validation (void *cls,
 			       &add_validated_address,
 			       &avac);
   GNUNET_PEERINFO_add_peer (cfg, sched,
-			    &target, 
+			    &target,
 			    hello);
   GNUNET_free (hello);
   n = find_neighbour (&target);
   if (n != NULL)
     {
-      fal = add_peer_address (n, ve->transport_name, 
+      fal = add_peer_address (n, ve->transport_name,
 			      ve->addr,
 			      ve->addrlen);
       fal->expires = GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
       fal->validated = GNUNET_YES;
       fal->latency = GNUNET_TIME_absolute_get_duration (ve->send_time);
+
+      periodic_validation_context = GNUNET_malloc(sizeof(struct PeriodicValidationContext));
+      periodic_validation_context->foreign_address = fal;
+      periodic_validation_context->transport = strdup(ve->transport_name);
+      memcpy(&periodic_validation_context->publicKey, &ve->publicKey, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+
+      fal->revalidate_task = GNUNET_SCHEDULER_add_delayed(sched, TRANSPORT_DEFAULT_REVALIDATION, &send_periodic_ping, periodic_validation_context);
       if (n->latency.value == GNUNET_TIME_UNIT_FOREVER_REL.value)
 	n->latency = fal->latency;
       else
@@ -1824,7 +1870,7 @@ check_pending_validation (void *cls,
 	{
 	  GNUNET_SCHEDULER_cancel (sched,
 				   n->retry_task);
-	  n->retry_task = GNUNET_SCHEDULER_NO_TASK;	
+	  n->retry_task = GNUNET_SCHEDULER_NO_TASK;
 	  try_transmission_to_peer (n);
 	}
     }
@@ -1870,7 +1916,7 @@ handle_pong (void *cls, const struct GNUNET_MessageHeader *message,
 	      "Receiving `%s' message from `%4s'.\n", "PONG",
 	      GNUNET_i2s (peer));
 #endif
-  if (GNUNET_SYSERR != 
+  if (GNUNET_SYSERR !=
       GNUNET_CONTAINER_multihashmap_get_multiple (validation_map,
 						  &peer->hashPubKey,
 						  &check_pending_validation,
@@ -1891,15 +1937,15 @@ handle_pong (void *cls, const struct GNUNET_MessageHeader *message,
 #endif
       return;
     }
-  
+
 #if 0
   /* FIXME: add given address to potential pool of our addresses
      (for voting) */
   GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
 	      _("Another peer saw us using the address `%s' via `%s'.\n"),
 	      GNUNET_a2s ((const struct sockaddr *) &pong[1],
-			  ntohs(pong->addrlen)), 
-	      va->transport_name);  
+			  ntohs(pong->addrlen)),
+	      va->transport_name);
 #endif
 }
 
@@ -2052,6 +2098,153 @@ timeout_hello_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *
   GNUNET_free (va);
 }
 
+/**
+ * Check if the given address is already being validated; if not,
+ * append the given address to the list of entries that are being be
+ * validated and initiate validation.
+ *
+ * @param cls closure ('struct PeriodicValidationContext *')
+ * @param tname name of the transport
+ * @param expiration expiration time
+ * @param addr the address
+ * @param addrlen length of the address
+ * @return GNUNET_OK (always)
+ */
+static int
+rerun_validation (void *cls,
+                const char *tname,
+                struct GNUNET_TIME_Absolute expiration,
+                const void *addr, size_t addrlen)
+{
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey = cls;
+  struct GNUNET_PeerIdentity id;
+  struct TransportPlugin *tp;
+  struct ValidationEntry *va;
+  struct NeighbourList *neighbour;
+  struct ForeignAddressList *peer_address;
+  struct TransportPingMessage ping;
+  /*struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pk;*/
+  struct CheckAddressExistsClosure caec;
+  char * message_buf;
+  uint16_t hello_size;
+  size_t tsize;
+
+  tp = find_transport (tname);
+  if (tp == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO |
+                  GNUNET_ERROR_TYPE_BULK,
+                  _
+                  ("Transport `%s' not loaded, will not try to validate peer address using this transport.\n"),
+                  tname);
+      return GNUNET_OK;
+    }
+
+  GNUNET_CRYPTO_hash (publicKey,
+                      sizeof (struct
+                              GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                      &id.hashPubKey);
+  caec.addr = addr;
+  caec.addrlen = addrlen;
+  caec.tname = tname;
+  caec.exists = GNUNET_NO;
+  GNUNET_CONTAINER_multihashmap_iterate (validation_map,
+                                         &check_address_exists,
+                                         &caec);
+  if (caec.exists == GNUNET_YES)
+    {
+      /* During validation attempts we will likely trigger the other
+         peer trying to validate our address which in turn will cause
+         it to send us its HELLO, so we expect to hit this case rather
+         frequently.  Only print something if we are very verbose. */
+#if DEBUG_TRANSPORT > 1
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Some validation of address `%s' via `%s' for peer `%4s' already in progress.\n",
+                  GNUNET_a2s (addr, addrlen),
+                  tname,
+                  GNUNET_i2s (&id));
+#endif
+      return GNUNET_OK;
+    }
+  va = GNUNET_malloc (sizeof (struct ValidationEntry) + addrlen);
+  va->transport_name = GNUNET_strdup (tname);
+  va->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                            (unsigned int) -1);
+  va->send_time = GNUNET_TIME_absolute_get();
+  va->addr = (const void*) &va[1];
+  memcpy (&va[1], addr, addrlen);
+  va->addrlen = addrlen;
+  memcpy(&va->publicKey, publicKey, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+  va->timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
+                                                   HELLO_VERIFICATION_TIMEOUT,
+                                                   &timeout_hello_validation,
+                                                   va);
+  GNUNET_CONTAINER_multihashmap_put (validation_map,
+                                     &id.hashPubKey,
+                                     va,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  neighbour = find_neighbour(&id);
+  if (neighbour == NULL)
+    neighbour = setup_new_neighbour(&id);
+  peer_address = add_peer_address(neighbour, tname, addr, addrlen);
+  GNUNET_assert(peer_address != NULL);
+  hello_size = GNUNET_HELLO_size(our_hello);
+  tsize = sizeof(struct TransportPingMessage) + hello_size;
+  message_buf = GNUNET_malloc(tsize);
+  ping.challenge = htonl(va->challenge);
+  ping.header.size = htons(sizeof(struct TransportPingMessage));
+  ping.header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_PING);
+  memcpy(&ping.target, &id, sizeof(struct GNUNET_PeerIdentity));
+  memcpy(message_buf, our_hello, hello_size);
+  memcpy(&message_buf[hello_size],
+         &ping,
+         sizeof(struct TransportPingMessage));
+#if DEBUG_TRANSPORT_REVALIDATION
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Performing re-validation of address `%s' via `%s' for peer `%4s' sending `%s' (%u bytes) and `%s' (%u bytes)\n",
+              GNUNET_a2s (addr, addrlen),
+              tname,
+              GNUNET_i2s (&id),
+              "HELLO", hello_size,
+              "PING", sizeof (struct TransportPingMessage));
+#endif
+  transmit_to_peer (NULL, peer_address,
+                    GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                    HELLO_VERIFICATION_TIMEOUT,
+                    message_buf, tsize,
+                    GNUNET_YES, neighbour);
+  GNUNET_free(message_buf);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Send periodic ping messages to a give foreign address.
+ *
+ * cls closure, can be safely cast to ForeignAddressList
+ * tc task context
+ *
+ * FIXME: Since a _billion_ pongs are sent for every ping,
+ * maybe this should be a special message type or something
+ * that gets discarded on the other side instead of initiating
+ * a flood.
+ */
+static void send_periodic_ping(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct PeriodicValidationContext *periodic_validation_context = cls;
+
+  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+    {
+      GNUNET_free(periodic_validation_context->transport);
+      GNUNET_free(periodic_validation_context);
+      return; /* We have been shutdown, don't do anything! */
+    }
+
+  rerun_validation(&periodic_validation_context->publicKey, periodic_validation_context->transport, periodic_validation_context->foreign_address->expires, periodic_validation_context->foreign_address->addr, periodic_validation_context->foreign_address->addrlen);
+  GNUNET_free(periodic_validation_context->transport);
+  GNUNET_free(periodic_validation_context);
+}
+
 
 /**
  * Check if the given address is already being validated; if not,
@@ -2115,12 +2308,12 @@ run_validation (void *cls,
 #if DEBUG_TRANSPORT > 1
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Validation of address `%s' via `%s' for peer `%4s' already in progress.\n",
-		  GNUNET_a2s (addr, addrlen), 
-		  tname, 
+		  GNUNET_a2s (addr, addrlen),
+		  tname,
 		  GNUNET_i2s (&id));
 #endif
       return GNUNET_OK;
-    } 
+    }
   va = GNUNET_malloc (sizeof (struct ValidationEntry) + addrlen);
   va->transport_name = GNUNET_strdup (tname);
   va->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
@@ -2134,15 +2327,15 @@ run_validation (void *cls,
   va->timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
 						   HELLO_VERIFICATION_TIMEOUT,
 						   &timeout_hello_validation,
-						   va);  
+						   va);
   GNUNET_CONTAINER_multihashmap_put (validation_map,
 				     &id.hashPubKey,
 				     va,
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  neighbour = find_neighbour(&id);  
+  neighbour = find_neighbour(&id);
   if (neighbour == NULL)
     neighbour = setup_new_neighbour(&id);
-  peer_address = add_peer_address(neighbour, tname, addr, addrlen);    
+  peer_address = add_peer_address(neighbour, tname, addr, addrlen);
   GNUNET_assert(peer_address != NULL);
   hello_size = GNUNET_HELLO_size(our_hello);
   tsize = sizeof(struct TransportPingMessage) + hello_size;
@@ -2152,26 +2345,28 @@ run_validation (void *cls,
   ping.header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_PING);
   memcpy(&ping.target, &id, sizeof(struct GNUNET_PeerIdentity));
   memcpy(message_buf, our_hello, hello_size);
-  memcpy(&message_buf[hello_size], 
-	 &ping, 
+  memcpy(&message_buf[hello_size],
+	 &ping,
 	 sizeof(struct TransportPingMessage));
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Performing validation of address `%s' via `%s' for peer `%4s' sending `%s' (%u bytes) and `%s' (%u bytes)\n",
-              GNUNET_a2s (addr, addrlen), 
-	      tname, 
+              GNUNET_a2s (addr, addrlen),
+	      tname,
 	      GNUNET_i2s (&id),
 	      "HELLO", hello_size,
 	      "PING", sizeof (struct TransportPingMessage));
 #endif
-  transmit_to_peer (NULL, peer_address, 
+  transmit_to_peer (NULL, peer_address,
 		    GNUNET_SCHEDULER_PRIORITY_DEFAULT,
 		    HELLO_VERIFICATION_TIMEOUT,
-		    message_buf, tsize, 
+		    message_buf, tsize,
 		    GNUNET_YES, neighbour);
   GNUNET_free(message_buf);
   return GNUNET_OK;
 }
+
+
 
 
 /**
