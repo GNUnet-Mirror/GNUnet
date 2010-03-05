@@ -195,7 +195,7 @@ GNUNET_FRAGMENT_process (struct GNUNET_FRAGMENT_Context *ctx,
     	    	     }
     	       }
     	    	   if(!received){
-    	    		   buffer->num[buffer->counter++]==ntohs(frag->off)/ntohs(frag->mtu);
+    	    		   buffer->num[buffer->counter++]=ntohs(frag->off)/ntohs(frag->mtu);
     	    	    	     }
     		   buffer->receivedTime = GNUNET_TIME_absolute_get ();
     		   uint16_t size = ntohs(frag->header.size);
@@ -206,7 +206,7 @@ GNUNET_FRAGMENT_process (struct GNUNET_FRAGMENT_Context *ctx,
        if(!exited){
     	   buffer = (struct GNUNET_FRAGEMENT_Ctxbuffer* )GNUNET_malloc(sizeof(struct GNUNET_FRAGEMENT_Ctxbuffer));
     	   buffer->num = (int*)GNUNET_malloc(ntohs(frag->totalNum)*sizeof(int));
-    	   buffer->num[buffer->counter++]==ntohs(frag->off)/ntohs(frag->mtu);
+    	   buffer->num[buffer->counter++]=ntohs(frag->off)/ntohs(frag->mtu);
     	   memcpy(buffer->peerID,sender,sizeof(struct GNUNET_PeerIdentity));
     	   buffer->receivedTime = GNUNET_TIME_absolute_get ();
    		   uint16_t size = ntohs(frag->header.size);
