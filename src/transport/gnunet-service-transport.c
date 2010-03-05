@@ -829,7 +829,9 @@ static void try_transmission_to_peer (struct NeighbourList *neighbour);
  * if sender_address is not specified (NULL) then return the
  * first matching entry.  If sender_address is specified, then
  * make sure that the address and address_len also matches.
- *
+ * 
+ * FIXME: This description does not fit the function.
+ *  
  * @return NULL if not found.
  */
 static struct NeighbourList *
@@ -1095,8 +1097,10 @@ transmit_send_continuation (void *cls,
     transmit_send_ok (mq->client, n, result);
   GNUNET_free (mq);
   try_transmission_to_peer (n);
+  /** Never disconnect a neighbor here... 
   if (result != GNUNET_OK)
-    disconnect_neighbour (n, GNUNET_YES);    
+    disconnect_neighbour (n, GNUNET_YES);
+  */    
 }
 
 
