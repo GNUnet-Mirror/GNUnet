@@ -15,7 +15,6 @@ SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
   util \
   arm \
-  fragmentation \
   hello \
   peerinfo \
   statistics \
