@@ -24,6 +24,7 @@ endif
 lib_LTLIBRARIES = libgnunetutil.la
 
 libgnunetutil_la_SOURCES = \
+  bandwidth.c \
   bio.c \
   client.c \
   common_allocation.c \
