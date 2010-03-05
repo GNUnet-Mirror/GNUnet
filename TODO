@@ -13,14 +13,11 @@ away), in order in which they will likely be done:
 * ARM [Safey]
 
 Urgent items (before announcing ng.gnunet.org):
-* FS (basic anonymous FS only)
+* CORE/Transport:
+  - 'out' bandwidth limit is "stuck" at 1024 (minimum initial value), does not go up; why?
+     (shows in FS P2P test!)
+* FS (basic anonymous FS only:
   - test multi-peer search/download
-    + existing bandwidth-reservation code does not work with FS: don't get
-      DBLOCK size bandwidth for reply for a while => trouble for testcase
-      => need to more aggressively increase bandwidth per connection 
-      => need to check that bandwidth is assigned properly to begin with
-    + Even with bandwidth-reservation code restricted, message is not
-      delivered to other core/peer/fs.  Why?
     + Same query is sent to the same peer in rather rapid succession (10x/minute?),
       should tune code to reduce repetition...
 * new webpage
