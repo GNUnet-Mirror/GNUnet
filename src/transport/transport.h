@@ -30,15 +30,15 @@
 #include "gnunet_time_lib.h"
 #include "gnunet_transport_service.h"
 
-#define DEBUG_TRANSPORT GNUNET_NO
-#define DEBUG_TRANSPORT_TIMEOUT GNUNET_NO
-#define DEBUG_TRANSPORT_DISCONNECT GNUNET_NO
+#define DEBUG_TRANSPORT GNUNET_YES
+#define DEBUG_TRANSPORT_TIMEOUT GNUNET_YES
+#define DEBUG_TRANSPORT_DISCONNECT GNUNET_YES
 
 /**
  * For how long do we allow unused bandwidth
- * from the past to carry over into the future? (in ms)
+ * from the past to carry over into the future? (in seconds)
  */
-#define MAX_BANDWIDTH_CARRY 5000
+#define MAX_BANDWIDTH_CARRY_S 5
 
 /**
  * How often do we (at most) do a full quota
@@ -102,9 +102,9 @@ struct DisconnectInfoMessage
 
 
 /**
- * Message used to set a particular bandwidth quota.  Send
- * TO the service to set an incoming quota, send FROM the
- * service to update an outgoing quota.
+ * Message used to set a particular bandwidth quota.  Send TO the
+ * service to set an incoming quota, send FROM the service to update
+ * an outgoing quota.
  */
 struct QuotaSetMessage
 {
@@ -115,10 +115,9 @@ struct QuotaSetMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Quota in bytes per ms, 0 to drop everything;
-   * in network byte order.
+   * Quota.
    */
-  uint32_t quota_in GNUNET_PACKED;
+  struct GNUNET_BANDWIDTH_Value32NBO quota;
 
   /**
    * About which peer are we talking here?

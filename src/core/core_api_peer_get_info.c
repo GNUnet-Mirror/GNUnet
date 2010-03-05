@@ -61,12 +61,13 @@ receive_info (void *cls,
 {
   struct GNUNET_CORE_InformationRequestContext *irc = cls;
   const struct ConfigurationInfoMessage *cim;
+  static struct GNUNET_BANDWIDTH_Value32NBO zbw; /* zero bandwidth */
 
   if (msg == NULL)
     {
       if (irc->info != NULL)
 	irc->info (irc->info_cls, 
-		   NULL, 0, 0, 0, 0);     
+		   NULL, zbw, zbw, 0, 0);     
       GNUNET_CLIENT_disconnect (irc->client);
       GNUNET_free (irc);
       return;
@@ -77,7 +78,7 @@ receive_info (void *cls,
       GNUNET_break (0);
       if (irc->info != NULL)
 	irc->info (irc->info_cls, 
-		   NULL, 0, 0, 0, 0);     
+		   NULL, zbw, zbw, 0, 0);     
       GNUNET_CLIENT_disconnect (irc->client);
       GNUNET_free (irc);
       return;
@@ -86,8 +87,8 @@ receive_info (void *cls,
   if (irc->info != NULL)
     irc->info (irc->info_cls,
 	       &cim->peer,
-	       ntohl (cim->bpm_in),
-	       ntohl (cim->bpm_out),
+	       cim->bw_in,
+	       cim->bw_out,
 	       ntohl (cim->reserved_amount),
 	       GNUNET_ntohll (cim->preference));  
   GNUNET_CLIENT_disconnect (irc->client);
@@ -103,11 +104,11 @@ receive_info (void *cls,
  * @param peer identifies the peer
  * @param timeout after how long should we give up (and call "info" with NULL
  *                for "peer" to signal an error)?
- * @param bpm_out set to the current bandwidth limit (sending) for this peer,
- *                caller should set "bpm_out" to "-1" to avoid changing
- *                the current value; otherwise "bpm_out" will be lowered to
+ * @param bw_out set to the current bandwidth limit (sending) for this peer,
+ *                caller should set "bw_out" to "-1" to avoid changing
+ *                the current value; otherwise "bw_out" will be lowered to
  *                the specified value; passing a pointer to "0" can be used to force
- *                us to disconnect from the peer; "bpm_out" might not increase
+ *                us to disconnect from the peer; "bw_out" might not increase
  *                as specified since the upper bound is generally
  *                determined by the other peer!
  * @param amount reserve N bytes for receiving, negative
@@ -125,7 +126,7 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_SCHEDULER_Handle *sched,
 				    const struct GNUNET_CONFIGURATION_Handle *cfg,
 				    const struct GNUNET_PeerIdentity *peer,
 				    struct GNUNET_TIME_Relative timeout,
-				    uint32_t bpm_out,
+				    struct GNUNET_BANDWIDTH_Value32NBO bw_out,
 				    int32_t amount,
 				    uint64_t preference,
 				    GNUNET_CORE_PeerConfigurationInfoCallback info,
@@ -146,7 +147,7 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_SCHEDULER_Handle *sched,
   rim.header.size = htons (sizeof (struct RequestInfoMessage));
   rim.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_REQUEST_INFO);
   rim.reserved = htonl (0);
-  rim.limit_outbound_bpm = htonl (bpm_out);
+  rim.limit_outbound = bw_out;
   rim.reserve_inbound = htonl (amount);
   rim.preference_change = GNUNET_htonll(preference);
   rim.peer = *peer;

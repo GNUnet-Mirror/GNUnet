@@ -35,13 +35,15 @@ extern "C"
 #endif
 #endif
 
+#include "gnunet_bandwidth_lib.h"
+
 /**
- * Amount of bytes per minute (in/out) to assume initially (before
- * either peer has communicated any particular preference).  Should be
- * rather low; set so that at least one maximum-size message can be
- * send each minute.
+ * Bandwidth (in/out) to assume initially (before either peer has
+ * communicated any particular preference).  Should be rather low; set
+ * so that at least one maximum-size message can be send roughly once
+ * per minute.
  */
-#define GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT GNUNET_SERVER_MAX_MESSAGE_SIZE
+#define GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT GNUNET_BANDWIDTH_value_init (1024)
 
 /**
  * After how long do we consider a connection to a peer dead

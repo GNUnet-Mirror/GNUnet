@@ -79,7 +79,7 @@
  * How often must a peer violate bandwidth quotas before we start
  * to simply drop its messages?
  */
-#define QUOTA_VIOLATION_DROP_THRESHOLD 100
+#define QUOTA_VIOLATION_DROP_THRESHOLD 10
 
 /**
  * How long until a HELLO verification attempt should time out?
@@ -99,7 +99,7 @@
 /**
  * How often will we re-validate for latency information
  */
-#define TRANSPORT_DEFAULT_REVALIDATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+#define TRANSPORT_DEFAULT_REVALIDATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 
 /**
  * Priority to use for PONG messages.
@@ -456,9 +456,9 @@ struct NeighbourList
   struct GNUNET_TIME_Absolute peer_timeout;
 
   /**
-   * At what time did we reset last_received last?
+   * Tracker for inbound bandwidth.
    */
-  struct GNUNET_TIME_Absolute last_quota_update;
+  struct GNUNET_BANDWIDTH_Tracker in_tracker;
 
   /**
    * The latency we have seen for this particular address for
@@ -474,28 +474,17 @@ struct NeighbourList
   struct GNUNET_TIME_Relative latency;
 
   /**
-   * DV distance to this peer (1 if no DV is used). 
-   */
-  uint32_t distance;
-
-  /**
-   * How many bytes have we received since the "last_quota_update"
-   * timestamp?
-   */
-  uint64_t last_received;
-
-  /**
-   * Global quota for inbound traffic for the neighbour in bytes/ms.
-   */
-  uint32_t quota_in;
-
-  /**
    * How often has the other peer (recently) violated the
    * inbound traffic limit?  Incremented by 10 per violation,
    * decremented by 1 per non-violation (for each
    * time interval).
    */
   unsigned int quota_violation_count;
+
+  /**
+   * DV distance to this peer (1 if no DV is used). 
+   */
+  uint32_t distance;
 
   /**
    * Have we seen an PONG from this neighbour in the past (and
@@ -899,56 +888,6 @@ find_transport (const char *short_name)
 
 
 /**
- * Update the quota values for the given neighbour now.
- *
- * @param n neighbour to update
- * @param force GNUNET_YES to force recalculation now
- */
-static void
-update_quota (struct NeighbourList *n,
-	      int force)
-{
-  struct GNUNET_TIME_Absolute now;
-  unsigned long long delta;
-  uint64_t allowed;
-  uint64_t remaining;
-
-  now = GNUNET_TIME_absolute_get ();
-  delta = now.value - n->last_quota_update.value;
-  allowed = n->quota_in * delta;
-  if ( (delta < MIN_QUOTA_REFRESH_TIME) &&
-       (!force) &&
-       (allowed < 32 * 1024) )
-    return;                     /* too early, not enough data */
-  if (n->last_received < allowed)
-    {
-      remaining = allowed - n->last_received;
-      if (n->quota_in > 0)
-        remaining /= n->quota_in;
-      else
-        remaining = 0;
-      if (remaining > MAX_BANDWIDTH_CARRY)
-        remaining = MAX_BANDWIDTH_CARRY;
-      n->last_received = 0;
-      n->last_quota_update = now;
-      n->last_quota_update.value -= remaining;
-      if (n->quota_violation_count > 0)
-        n->quota_violation_count--;
-    }
-  else
-    {
-      n->last_received -= allowed;
-      n->last_quota_update = now;
-      if (n->last_received > allowed)
-        {
-          /* much more than the allowed rate! */
-          n->quota_violation_count += 10;
-        }
-    }
-}
-
-
-/**
  * Function called to notify a client about the socket being ready to
  * queue more data.  "buf" will be NULL and "size" zero if the socket
  * was closed for writing in the meantime.
@@ -1274,6 +1213,8 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 		  GNUNET_i2s (&mq->neighbour_id),
 		  timeout.value);
 #endif
+      /* FIXME: might want to trigger peerinfo lookup here
+	 (unless that's already pending...) */
       return;    
     }
   GNUNET_CONTAINER_DLL_remove (neighbour->messages_head,
@@ -1788,12 +1729,14 @@ add_validated_address (void *cls,
 				   max);
 }
 
-static void send_periodic_ping(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+static void send_periodic_ping(void *cls,
+			       const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 
 /**
- * Iterator over hash map entries.  Checks if the given
- * validation entry is for the same challenge as what
- * is given in the PONG.
+ * Iterator over hash map entries.  Checks if the given validation
+ * entry is for the same challenge as what is given in the PONG.
  *
  * @param cls the 'struct TransportPongMessage*'
  * @param key peer identity
@@ -1843,19 +1786,28 @@ check_pending_validation (void *cls,
   n = find_neighbour (&target);
   if (n != NULL)
     {
-      fal = add_peer_address (n, ve->transport_name,
+      fal = add_peer_address (n,
+			      ve->transport_name,
 			      ve->addr,
 			      ve->addrlen);
       fal->expires = GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
       fal->validated = GNUNET_YES;
       fal->latency = GNUNET_TIME_absolute_get_duration (ve->send_time);
-
       periodic_validation_context = GNUNET_malloc(sizeof(struct PeriodicValidationContext));
       periodic_validation_context->foreign_address = fal;
       periodic_validation_context->transport = strdup(ve->transport_name);
-      memcpy(&periodic_validation_context->publicKey, &ve->publicKey, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
-
-      fal->revalidate_task = GNUNET_SCHEDULER_add_delayed(sched, TRANSPORT_DEFAULT_REVALIDATION, &send_periodic_ping, periodic_validation_context);
+      memcpy(&periodic_validation_context->publicKey, 
+	     &ve->publicKey, 
+	     sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+      /* FIXME: this causes all of the revalidation PINGs for the same HELLO
+	 to be transmitted in bulk, which is not nice; also,
+	 triggering these HERE means that revalidations do NOT happen AT ALL
+	 for HELLOs a previous instance of this process validated (since
+	 there is no "initial" validation PING => no revalidation => BUG! */
+      fal->revalidate_task = GNUNET_SCHEDULER_add_delayed(sched, 
+							  TRANSPORT_DEFAULT_REVALIDATION, 
+							  &send_periodic_ping, 
+							  periodic_validation_context);
       if (n->latency.value == GNUNET_TIME_UNIT_FOREVER_REL.value)
 	n->latency = fal->latency;
       else
@@ -1985,11 +1937,12 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer)
   n->next = neighbours;
   neighbours = n;
   n->id = *peer;
-  n->last_quota_update = GNUNET_TIME_absolute_get ();
   n->peer_timeout =
     GNUNET_TIME_relative_to_absolute
     (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-  n->quota_in = (GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT + 59999) / (60 * 1000);
+  GNUNET_BANDWIDTH_tracker_init (&n->in_tracker,
+				 GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
+				 MAX_BANDWIDTH_CARRY_S);
   tp = plugins;
   while (tp != NULL)
     {
@@ -2097,6 +2050,7 @@ timeout_hello_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *
   GNUNET_free (va->transport_name);
   GNUNET_free (va);
 }
+
 
 /**
  * Check if the given address is already being validated; if not,
@@ -2229,7 +2183,9 @@ rerun_validation (void *cls,
  * that gets discarded on the other side instead of initiating
  * a flood.
  */
-static void send_periodic_ping(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+static void 
+send_periodic_ping (void *cls, 
+		    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeriodicValidationContext *periodic_validation_context = cls;
 
@@ -2239,8 +2195,11 @@ static void send_periodic_ping(void *cls, const struct GNUNET_SCHEDULER_TaskCont
       GNUNET_free(periodic_validation_context);
       return; /* We have been shutdown, don't do anything! */
     }
-
-  rerun_validation(&periodic_validation_context->publicKey, periodic_validation_context->transport, periodic_validation_context->foreign_address->expires, periodic_validation_context->foreign_address->addr, periodic_validation_context->foreign_address->addrlen);
+  rerun_validation(&periodic_validation_context->publicKey,
+		   periodic_validation_context->transport, 
+		   periodic_validation_context->foreign_address->expires,
+		   periodic_validation_context->foreign_address->addr, 
+		   periodic_validation_context->foreign_address->addrlen);
   GNUNET_free(periodic_validation_context->transport);
   GNUNET_free(periodic_validation_context);
 }
@@ -2367,8 +2326,6 @@ run_validation (void *cls,
 }
 
 
-
-
 /**
  * Add the given address to the list of foreign addresses
  * available for the given peer (check for duplicates).
@@ -2388,7 +2345,9 @@ add_to_foreign_address_list (void *cls,
 {
   struct NeighbourList *n = cls;
   struct ForeignAddressList *fal;
+  int try;
 
+  try = GNUNET_NO;
   fal = find_peer_address (n, tname, addr, addrlen);
   if (fal == NULL)
     {
@@ -2401,12 +2360,15 @@ add_to_foreign_address_list (void *cls,
 		  expiration.value);
 #endif
       fal = add_peer_address (n, tname, addr, addrlen);
+      try = GNUNET_YES;
     }
   if (fal == NULL)
     return GNUNET_OK;
   fal->expires = GNUNET_TIME_absolute_max (expiration,
 					   fal->expires);
-  fal->validated = GNUNET_YES;
+  fal->validated = GNUNET_YES;  
+  if (try == GNUNET_YES)
+    try_transmission_to_peer (n);
   return GNUNET_OK;
 }
 
@@ -2524,14 +2486,13 @@ process_hello (struct TransportPlugin *plugin,
   GNUNET_CRYPTO_hash (&publicKey,
                       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                       &target.hashPubKey);
-#if DEBUG_TRANSPORT
+#if DEBUG_TRANSPORT > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Processing `%s' message for `%4s' of size %u\n",
               "HELLO", 
 	      GNUNET_i2s (&target), 
 	      GNUNET_HELLO_size(hello));
 #endif
-
   chvc = GNUNET_malloc (sizeof (struct CheckHelloValidatedContext) + hsize);
   chvc->hello = (const struct GNUNET_HELLO_Message *) &chvc[1];
   memcpy (&chvc[1], hello, hsize);
@@ -2740,47 +2701,6 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
 
 
 /**
- * Calculate how long we should delay reading from the TCP socket to
- * ensure that we stay within our bandwidth limits (push back).
- *
- * @param n for which neighbour should this be calculated
- * @return how long to delay receiving more data
- */
-static struct GNUNET_TIME_Relative
-calculate_throttle_delay (struct NeighbourList *n)
-{
-  struct GNUNET_TIME_Relative ret;
-  struct GNUNET_TIME_Absolute now;
-  uint64_t del;
-  uint64_t avail;
-  uint64_t excess;
-
-  now = GNUNET_TIME_absolute_get ();
-  del = now.value - n->last_quota_update.value;
-  if (del > MAX_BANDWIDTH_CARRY)
-    {
-      update_quota (n, GNUNET_YES);
-      del = now.value - n->last_quota_update.value;
-      GNUNET_assert (del <= MAX_BANDWIDTH_CARRY);
-    }
-  if (n->quota_in == 0)
-    n->quota_in = 1;      /* avoid divison by zero */
-  avail = del * n->quota_in;
-  if (avail > n->last_received)
-    return GNUNET_TIME_UNIT_ZERO;       /* can receive right now */
-  excess = n->last_received - avail;
-  ret.value = excess / n->quota_in;
-  if (ret.value > 0)
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		"Throttling read (%llu bytes excess at %llu b/ms), waiting %llums before reading more.\n",
-		(unsigned long long) excess,
-		(unsigned long long) n->quota_in,
-		(unsigned long long) ret.value);
-  return ret;
-}
-
-
-/**
  * Function called by the plugin for each received message.
  * Update data volumes, possibly notify plugins about
  * reducing the rate at which they read from the socket
@@ -2809,11 +2729,11 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct ForeignAddressList *peer_address;
   uint16_t msize;
   struct NeighbourList *n;
+  struct GNUNET_TIME_Relative ret;
 
   n = find_neighbour (peer);
   if (n == NULL)
     n = setup_new_neighbour (peer);    
-  update_quota (n, GNUNET_NO);
   service_context = n->plugins;
   while ((service_context != NULL) && (plugin != service_context->plugin))
     service_context = service_context->next;
@@ -2838,7 +2758,7 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 	    (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
 	}
       /* update traffic received amount ... */
-      msize = ntohs (message->size);
+      msize = ntohs (message->size);      
       n->distance = distance;
       n->peer_timeout =
 	GNUNET_TIME_relative_to_absolute
@@ -2855,7 +2775,8 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING |
 		      GNUNET_ERROR_TYPE_BULK,
 		      _
-		      ("Dropping incoming message due to repeated bandwidth quota violations (total of %u).\n"), 
+		      ("Dropping incoming message due to repeated bandwidth quota (%u b/s) violations (total of %u).\n"), 
+		      n->in_tracker.available_bytes_per_s__,
 		      n->quota_violation_count);
 	  return GNUNET_TIME_UNIT_MINUTES; /* minimum penalty, likely ignored (UDP...) */
 	}
@@ -2876,6 +2797,11 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 		      "Received message of type %u from `%4s', sending to all clients.\n",
 		      ntohs (message->type), GNUNET_i2s (peer));
 #endif
+	  if (GNUNET_YES == GNUNET_BANDWIDTH_tracker_consume (&n->in_tracker,
+							      msize))
+	    n->quota_violation_count++;
+	  else 
+	    n->quota_violation_count = 0; /* back within limits */
 	  /* transmit message to all clients */
 	  im = GNUNET_malloc (sizeof (struct InboundMessage) + msize);
 	  im->header.size = htons (sizeof (struct InboundMessage) + msize);
@@ -2892,7 +2818,14 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 	  GNUNET_free (im);
 	}
     }  
-  return calculate_throttle_delay (n);
+  ret = GNUNET_BANDWIDTH_tracker_get_delay (&n->in_tracker, 0);
+  if (ret.value > 0)
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		"Throttling read (%llu bytes excess at %u b/s), waiting %llums before reading more.\n",
+		(unsigned long long) n->in_tracker.consumption_since_last_update__,
+		(unsigned int) n->in_tracker.available_bytes_per_s__,
+		(unsigned long long) ret.value);
+  return ret;
 }
 
 
@@ -3058,7 +2991,6 @@ handle_set_quota (void *cls,
   const struct QuotaSetMessage *qsm =
     (const struct QuotaSetMessage *) message;
   struct NeighbourList *n;
-  uint32_t qin;
 
   n = find_neighbour (&qsm->peer);
   if (n == NULL)
@@ -3066,16 +2998,16 @@ handle_set_quota (void *cls,
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return;
     }
-  qin = ntohl (qsm->quota_in);
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' request (new quota %u, old quota %u) from client for peer `%4s'\n",
-              "SET_QUOTA", qin, n->quota_in, GNUNET_i2s (&qsm->peer));
+              "SET_QUOTA", 
+	      (unsigned int) ntohl (qsm->quota.value__),
+	      (unsigned int) n->in_tracker.available_bytes_per_s__,
+	      GNUNET_i2s (&qsm->peer));
 #endif
-  update_quota (n, GNUNET_YES);
-  if (n->quota_in < qin)
-    n->last_quota_update = GNUNET_TIME_absolute_get ();
-  n->quota_in = qin;
+  GNUNET_BANDWIDTH_tracker_update_quota (&n->in_tracker,
+					 qsm->quota);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 

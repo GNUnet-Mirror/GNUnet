@@ -281,8 +281,8 @@ typedef void
   (*GNUNET_CORE_PeerConfigurationInfoCallback) (void *cls,
                                                 const struct
                                                 GNUNET_PeerIdentity * peer,
-                                                unsigned int bpm_in,
-                                                unsigned int bpm_out,
+                                                struct GNUNET_BANDWIDTH_Value32NBO bpm_in,
+                                                struct GNUNET_BANDWIDTH_Value32NBO bpm_out,
 						int amount,
                                                 uint64_t preference);
 
@@ -302,11 +302,11 @@ struct GNUNET_CORE_InformationRequestContext;
  * @param peer identifies the peer
  * @param timeout after how long should we give up (and call "info" with NULL
  *                for "peer" to signal an error)?
- * @param bpm_out set to the current bandwidth limit (sending) for this peer,
+ * @param bw_out set to the current bandwidth limit (sending) for this peer,
  *                caller should set "bpm_out" to "-1" to avoid changing
- *                the current value; otherwise "bpm_out" will be lowered to
+ *                the current value; otherwise "bw_out" will be lowered to
  *                the specified value; passing a pointer to "0" can be used to force
- *                us to disconnect from the peer; "bpm_out" might not increase
+ *                us to disconnect from the peer; "bw_out" might not increase
  *                as specified since the upper bound is generally
  *                determined by the other peer!
  * @param amount reserve N bytes for receiving, negative
@@ -324,7 +324,7 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_SCHEDULER_Handle *sched,
 				    const struct GNUNET_CONFIGURATION_Handle *cfg,
 				    const struct GNUNET_PeerIdentity *peer,
 				    struct GNUNET_TIME_Relative timeout,
-				    uint32_t bpm_out,
+				    struct GNUNET_BANDWIDTH_Value32NBO bw_out,
 				    int32_t amount,
 				    uint64_t preference,
 				    GNUNET_CORE_PeerConfigurationInfoCallback info,

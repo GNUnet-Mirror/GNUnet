@@ -24,6 +24,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#include "gnunet_bandwidth_lib.h"
 #include "gnunet_client_lib.h"
 #include "gnunet_constants.h"
 #include "gnunet_container_lib.h"
@@ -215,20 +216,9 @@ struct NeighbourList
   struct GNUNET_PeerIdentity id;
 
   /**
-   * At what time did we reset last_sent last?
+   * Outbound bandwidh tracker.
    */
-  struct GNUNET_TIME_Absolute last_quota_update;
-
-  /**
-   * How many bytes have we sent since the "last_quota_update"
-   * timestamp?
-   */
-  uint64_t last_sent;
-
-  /**
-   * Quota for outbound traffic to the neighbour in bytes/ms.
-   */
-  uint32_t quota_out;
+  struct GNUNET_BANDWIDTH_Tracker out_tracker;
 
   /**
    * Set to GNUNET_NO if we are currently allowed to accept a
@@ -417,41 +407,6 @@ quota_transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Update the quota values for the given neighbour now.
- *
- * @param n neighbour to update
- */
-static void
-update_quota (struct NeighbourList *n)
-{
-  struct GNUNET_TIME_Relative delta;
-  uint64_t allowed;
-  uint64_t remaining;
-
-  delta = GNUNET_TIME_absolute_get_duration (n->last_quota_update);
-  allowed = delta.value * n->quota_out;
-  if (n->last_sent < allowed)
-    {
-      remaining = allowed - n->last_sent;
-      if (n->quota_out > 0)
-        remaining /= n->quota_out;
-      else
-        remaining = 0;
-      if (remaining > MAX_BANDWIDTH_CARRY)
-        remaining = MAX_BANDWIDTH_CARRY;
-      n->last_sent = 0;
-      n->last_quota_update = GNUNET_TIME_absolute_get ();
-      n->last_quota_update.value -= remaining;
-    }
-  else
-    {
-      n->last_sent -= allowed;
-      n->last_quota_update = GNUNET_TIME_absolute_get ();
-    }
-}
-
-
-/**
  * Figure out which transmission to a peer can be done right now.
  * If none can, schedule a task to call 'schedule_transmission'
  * whenever a peer transmission can be done in the future and
@@ -470,7 +425,6 @@ schedule_peer_transmission (struct GNUNET_TRANSPORT_Handle *h)
   struct NeighbourList *next;
   struct GNUNET_TIME_Relative retry_time;
   struct GNUNET_TIME_Relative duration;
-  uint64_t available;
 
   if (h->quota_task != GNUNET_SCHEDULER_NO_TASK)
     {
@@ -487,47 +441,38 @@ schedule_peer_transmission (struct GNUNET_TRANSPORT_Handle *h)
       if (n->transmit_stage != TS_QUEUED)
 	continue; /* not eligible */
       th = &n->transmit_handle;
+      GNUNET_break (n == th->neighbour);
       /* check outgoing quota */
-      duration = GNUNET_TIME_absolute_get_duration (n->last_quota_update);
-      if (duration.value > MIN_QUOTA_REFRESH_TIME)
+      duration = GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker,
+						     th->notify_size - sizeof (struct OutboundMessage));
+      if (th->timeout.value < duration.value)
 	{
-	  update_quota (n);
-	  duration = GNUNET_TIME_absolute_get_duration (n->last_quota_update);
-	}
-      available = duration.value * n->quota_out;
-      if (available < n->last_sent + th->notify_size)
-	{
-	  /* calculate how much bandwidth we'd still need to
-	     accumulate and based on that how long we'll have
-	     to wait... */
-	  available = n->last_sent + th->notify_size - available;
-	  duration = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
-						    available / n->quota_out);
-	  if (duration.value == 0)
-	    duration = GNUNET_TIME_UNIT_MILLISECONDS;
-	  if (th->timeout.value <
-	      GNUNET_TIME_relative_to_absolute (duration).value)
-	    {
-	      /* signal timeout! */
-#if DEBUG_TRANSPORT
-	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-			  "Would need %llu ms before bandwidth is available for delivery to `%4s', that is too long.  Signaling timeout.\n",
-			  duration.value, GNUNET_i2s (&n->id));
-#endif
-	      if (th->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
-		{
-		  GNUNET_SCHEDULER_cancel (h->sched, th->notify_delay_task);
-		  th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
-		}	      
-	      n->transmit_stage = TS_NEW;
-	      if (NULL != th->notify)
-		GNUNET_assert (0 == th->notify (th->notify_cls, 0, NULL));
-	      continue;
-	    }
+	  /* signal timeout! */
 #if DEBUG_TRANSPORT
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Need more bandwidth, delaying delivery to `%4s' by %llu ms\n",
-		      GNUNET_i2s (&n->id), duration.value);
+		      "Would need %llu ms before bandwidth is available for delivery to `%4s', that is too long.  Signaling timeout.\n",
+		      duration.value, 
+		      GNUNET_i2s (&n->id));
+#endif
+	  if (th->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
+	    {
+	      GNUNET_SCHEDULER_cancel (h->sched, th->notify_delay_task);
+	      th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
+	    }	      
+	  n->transmit_stage = TS_NEW;
+	  if (NULL != th->notify)
+	    GNUNET_assert (0 == th->notify (th->notify_cls, 0, NULL));
+	  continue;
+	}
+      if (duration.value > 0)
+	{
+#if DEBUG_TRANSPORT
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Need more bandwidth (%u b/s allowed, %u b needed), delaying delivery to `%4s' by %llu ms\n",
+		      (unsigned int) n->out_tracker.available_bytes_per_s__,
+		      (unsigned int) th->notify_size - sizeof (struct OutboundMessage),
+		      GNUNET_i2s (&n->id), 
+		      duration.value);
 #endif
 	  retry_time = GNUNET_TIME_relative_min (retry_time,
 						 duration);
@@ -536,9 +481,9 @@ schedule_peer_transmission (struct GNUNET_TRANSPORT_Handle *h)
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Have %u bytes of bandwidth available for transmission to `%4s' right now\n",
-		  th->notify_size,
+		  th->notify_size - sizeof (struct OutboundMessage),
 		  GNUNET_i2s (&n->id));
-#endif
+#endif	
       if ( (ret == NULL) ||
 	   (ret->priority < th->priority) )
 	ret = th;
@@ -630,6 +575,13 @@ transport_notify_ready (void *cls, size_t size, void *buf)
 			 size - sizeof (struct OutboundMessage),
 			 &cbuf[ret + sizeof (struct OutboundMessage)]);
       GNUNET_assert (mret <= size - sizeof (struct OutboundMessage));
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Message of %u bytes with timeout %llums constructed for `%4s'\n",
+		  (unsigned int) mret, 
+		  (unsigned long long) GNUNET_TIME_absolute_get_remaining (th->timeout).value,
+		  GNUNET_i2s (&n->id));
+#endif
       if (mret != 0)	
 	{
 	  obm.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SEND);
@@ -640,6 +592,7 @@ transport_notify_ready (void *cls, size_t size, void *buf)
 	  memcpy (&cbuf[ret], &obm, sizeof (struct OutboundMessage));
 	  ret += (mret + sizeof (struct OutboundMessage));
 	  size -= (mret + sizeof (struct OutboundMessage));
+	  GNUNET_BANDWIDTH_tracker_consume (&n->out_tracker, mret);
 	}
       else
 	{
@@ -799,7 +752,7 @@ struct SetQuotaContext
 
   struct GNUNET_TIME_Absolute timeout;
 
-  uint32_t quota_in;
+  struct GNUNET_BANDWIDTH_Value32NBO quota_in;
 };
 
 
@@ -836,7 +789,7 @@ send_set_quota (void *cls, size_t size, void *buf)
   msg = buf;
   msg->header.size = htons (sizeof (struct QuotaSetMessage));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
-  msg->quota_in = htonl (sqc->quota_in);
+  msg->quota = sqc->quota_in;
   memcpy (&msg->peer, &sqc->target, sizeof (struct GNUNET_PeerIdentity));
   if (sqc->cont != NULL)
     GNUNET_SCHEDULER_add_continuation (sqc->handle->sched,
@@ -865,8 +818,8 @@ send_set_quota (void *cls, size_t size, void *buf)
 void
 GNUNET_TRANSPORT_set_quota (struct GNUNET_TRANSPORT_Handle *handle,
                             const struct GNUNET_PeerIdentity *target,
-                            uint32_t quota_in,
-                            uint32_t quota_out,
+                            struct GNUNET_BANDWIDTH_Value32NBO quota_in,
+                            struct GNUNET_BANDWIDTH_Value32NBO quota_out,
                             struct GNUNET_TIME_Relative timeout,
                             GNUNET_SCHEDULER_Task cont, void *cont_cls)
 {
@@ -876,10 +829,14 @@ GNUNET_TRANSPORT_set_quota (struct GNUNET_TRANSPORT_Handle *handle,
   n = neighbour_find (handle, target);
   if (n != NULL)
     {
-      update_quota (n);
-      if (n->quota_out < quota_out)
-        n->last_quota_update = GNUNET_TIME_absolute_get ();
-      n->quota_out = quota_out;
+      if (ntohl (quota_out.value__) != n->out_tracker.available_bytes_per_s__)
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "Quota changed from %u to %u for peer `%s'\n",
+		    (unsigned int) n->out_tracker.available_bytes_per_s__,
+		    (unsigned int) ntohl (quota_out.value__),
+		    GNUNET_i2s (target));
+      GNUNET_BANDWIDTH_tracker_update_quota (&n->out_tracker,
+					     quota_out);
     }
   sqc = GNUNET_malloc (sizeof (struct SetQuotaContext));
   sqc->handle = handle;
@@ -1247,9 +1204,10 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
 #endif
   n = GNUNET_malloc (sizeof (struct NeighbourList));
   n->id = *pid;
-  n->last_quota_update = GNUNET_TIME_absolute_get ();
+  GNUNET_BANDWIDTH_tracker_init (&n->out_tracker,
+				 GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
+				 MAX_BANDWIDTH_CARRY_S);
   n->next = h->neighbours;
-  n->quota_out = GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT;
   n->h = h;
   h->neighbours = n;  
   return n;
@@ -1688,8 +1646,9 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
     }
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Asking transport service for transmission of %u bytes to peer `%4s'.\n",
-              size, GNUNET_i2s (target));
+              "Asking transport service for transmission of %u bytes to peer `%4s' within %llu ms.\n",
+              size, GNUNET_i2s (target),
+	      (unsigned long long) timeout.value);
 #endif
   n = neighbour_find (handle, target);
   if (n == NULL)

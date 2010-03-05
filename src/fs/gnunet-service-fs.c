@@ -1217,8 +1217,8 @@ static void
 target_reservation_cb (void *cls,
 		       const struct
 		       GNUNET_PeerIdentity * peer,
-		       unsigned int bpm_in,
-		       unsigned int bpm_out,
+		       struct GNUNET_BANDWIDTH_Value32NBO bpm_in,
+		       struct GNUNET_BANDWIDTH_Value32NBO bpm_out,
 		       int amount,
 		       uint64_t preference)
 {
@@ -1440,7 +1440,7 @@ forward_request_task (void *cls,
   pr->irc = GNUNET_CORE_peer_change_preference (sched, cfg,
 						&psc.target,
 						GNUNET_CONSTANTS_SERVICE_TIMEOUT, 
-						(uint32_t) -1 /* no limit */, 
+						GNUNET_BANDWIDTH_value_init ((uint32_t) -1 /* no limit */), 
 						DBLOCK_SIZE, 
 						(uint64_t) cp->inc_preference,
 						&target_reservation_cb,

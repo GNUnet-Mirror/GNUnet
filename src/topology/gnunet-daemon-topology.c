@@ -832,6 +832,11 @@ consider_for_advertising (const struct GNUNET_HELLO_Message *hello)
   struct PeerList *pos;
   uint16_t size;
 
+  GNUNET_break (GNUNET_OK == GNUNET_HELLO_get_id (hello, &pid));
+  if (0 == memcmp (&pid,
+		   &my_identity,
+		   sizeof (struct GNUNET_PeerIdentity)))
+    return; /* that's me! */
   have_address = GNUNET_NO;
   GNUNET_HELLO_iterate_addresses (hello,
 				  GNUNET_NO,
@@ -839,7 +844,6 @@ consider_for_advertising (const struct GNUNET_HELLO_Message *hello)
 				  &have_address);
   if (GNUNET_NO == have_address)
     return; /* no point in advertising this one... */
-  GNUNET_break (GNUNET_OK == GNUNET_HELLO_get_id (hello, &pid));
   peer = find_peer (&pid);
   if (peer == NULL)
     peer = make_peer (&pid, hello, GNUNET_NO);
@@ -1098,13 +1102,24 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
 	}
       else
 	{
-	  entries_found++;
-	  fl = make_peer (&pid,
-			  NULL,
-			  GNUNET_YES);
-	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		      _("Found friend `%s' in configuration\n"),
-		      GNUNET_i2s (&fl->id));
+	  if (0 != memcmp (&pid,
+			   &my_identity,
+			   sizeof (struct GNUNET_PeerIdentity)))
+	    {
+	      entries_found++;
+	      fl = make_peer (&pid,
+			      NULL,
+			      GNUNET_YES);
+	      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+			  _("Found friend `%s' in configuration\n"),
+			  GNUNET_i2s (&fl->id));
+	    }
+	  else
+	    {
+	      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+			  _("Found myself `%s' in friend list (useless, ignored)\n"),
+			  GNUNET_i2s (&fl->id));
+	    }
 	}
       pos = pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded);
       while ((pos < frstat.st_size) && isspace (data[pos]))

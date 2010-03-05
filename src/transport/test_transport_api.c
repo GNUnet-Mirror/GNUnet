@@ -226,7 +226,6 @@ exchange_hello_last (void *cls,
   struct PeerContext *me = cls;
 
   GNUNET_TRANSPORT_get_hello_cancel (p2.th, &exchange_hello_last, me);
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Exchanging HELLO with peer (%p)!\n", cls);
   GNUNET_assert (ok >= 3);
@@ -266,7 +265,6 @@ exchange_hello (void *cls,
               "Received HELLO size %d\n", GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message));
 
   GNUNET_TRANSPORT_offer_hello (p2.th, message);
-
   GNUNET_TRANSPORT_get_hello (p2.th, &exchange_hello_last, &p2);
 }
 

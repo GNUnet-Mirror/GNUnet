@@ -48,9 +48,9 @@
 /**
  * Receive and send buffer windows grow over time.  For
  * how long can 'unused' bandwidth accumulate before we
- * need to cap it?  (specified in ms).
+ * need to cap it?  (specified in seconds).
  */
-#define MAX_WINDOW_TIME (5 * 60 * 1000)
+#define MAX_WINDOW_TIME_S (5 * 60)
 
 /**
  * How many messages do we queue up at most for optional
@@ -60,17 +60,11 @@
 #define MAX_NOTIFY_QUEUE 16
 
 /**
- * Minimum of bytes per minute (out) to assign to any connected peer.
- * Should be rather low; values larger than DEFAULT_BPM_IN_OUT make no
+ * Minimum bandwidth (out) to assign to any connected peer.
+ * Should be rather low; values larger than DEFAULT_BW_IN_OUT make no
  * sense.
  */
-#define MIN_BPM_PER_PEER GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT
-
-/**
- * What is the smallest change (in number of bytes per minute)
- * that we consider significant enough to bother triggering?
- */
-#define MIN_BPM_CHANGE 32
+#define MIN_BANDWIDTH_PER_PEER GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT
 
 /**
  * After how much time past the "official" expiration time do
@@ -84,27 +78,27 @@
 /**
  * What is the maximum delay for a SET_KEY message?
  */
-#define MAX_SET_KEY_DELAY GNUNET_TIME_UNIT_SECONDS
+#define MAX_SET_KEY_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
  * What how long do we wait for SET_KEY confirmation initially?
  */
-#define INITIAL_SET_KEY_RETRY_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
+#define INITIAL_SET_KEY_RETRY_FREQUENCY GNUNET_TIME_relative_multiply (MAX_SET_KEY_DELAY, 3)
 
 /**
  * What is the maximum delay for a PING message?
  */
-#define MAX_PING_DELAY GNUNET_TIME_UNIT_SECONDS
+#define MAX_PING_DELAY GNUNET_TIME_relative_multiply (MAX_SET_KEY_DELAY, 2)
 
 /**
  * What is the maximum delay for a PONG message?
  */
-#define MAX_PONG_DELAY GNUNET_TIME_UNIT_SECONDS
+#define MAX_PONG_DELAY GNUNET_TIME_relative_multiply (MAX_PING_DELAY, 2)
 
 /**
  * How often do we recalculate bandwidth quotas?
  */
-#define QUOTA_UPDATE_FREQUENCY GNUNET_TIME_UNIT_SECONDS
+#define QUOTA_UPDATE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
  * What is the priority for a SET_KEY message?
@@ -206,11 +200,10 @@ struct EncryptedMessage
   uint32_t sequence_number GNUNET_PACKED;
 
   /**
-   * Desired bandwidth (how much we should send to this
-   * peer / how much is the sender willing to receive),
-   * in bytes per minute.
+   * Desired bandwidth (how much we should send to this peer / how
+   * much is the sender willing to receive)?
    */
-  uint32_t inbound_bpm_limit GNUNET_PACKED;
+  struct GNUNET_BANDWIDTH_Value32NBO inbound_bw_limit;
 
   /**
    * Timestamp.  Used to prevent reply of ancient messages
@@ -271,10 +264,9 @@ struct PongMessage
 
   /**
    * Desired bandwidth (how much we should send to this
-   * peer / how much is the sender willing to receive),
-   * in bytes per minute.
+   * peer / how much is the sender willing to receive).
    */
-  uint32_t inbound_bpm_limit GNUNET_PACKED;
+  struct GNUNET_BANDWIDTH_Value32NBO inbound_bw_limit;
 
   /**
    * Intended target of the PING, used primarily to check
@@ -510,32 +502,14 @@ struct Neighbour
   struct GNUNET_TIME_Relative set_key_retry_frequency;
 
   /**
-   * Time of our last update to the "available_send_window".
+   * Tracking bandwidth for sending to this peer.
    */
-  struct GNUNET_TIME_Absolute last_asw_update;
+  struct GNUNET_BANDWIDTH_Tracker available_send_window;
 
   /**
-   * Time of our last update to the "available_recv_window".
+   * Tracking bandwidth for receiving from this peer.
    */
-  struct GNUNET_TIME_Absolute last_arw_update;
-
-  /**
-   * Number of bytes that we are eligible to transmit to this
-   * peer at this point.  Incremented every minute by max_out_bpm,
-   * bounded by max_bpm (no back-log larger than MAX_BUF_FACT minutes,
-   * bandwidth-hogs are sampled at a frequency of about 78s!);
-   * may get negative if we have VERY high priority content.
-   */
-  long long available_send_window; 
-
-  /**
-   * How much downstream capacity of this peer has been reserved for
-   * our traffic?  (Our clients can request that a certain amount of
-   * bandwidth is available for replies to them; this value is used to
-   * make sure that this reserved amount of bandwidth is actually
-   * available).
-   */
-  long long available_recv_window; 
+  struct GNUNET_BANDWIDTH_Tracker available_recv_window;
 
   /**
    * How valueable were the messages of this peer recently?
@@ -562,26 +536,26 @@ struct Neighbour
   /**
    * Available bandwidth in for this peer (current target).
    */
-  uint32_t bpm_in;
+  struct GNUNET_BANDWIDTH_Value32NBO bw_in;    
 
   /**
    * Available bandwidth out for this peer (current target).
    */
-  uint32_t bpm_out;
+  struct GNUNET_BANDWIDTH_Value32NBO bw_out;  
 
   /**
-   * Internal bandwidth limit set for this peer (initially
-   * typically set to "-1").  "bpm_out" is MAX of
-   * "bpm_out_internal_limit" and "bpm_out_external_limit".
+   * Internal bandwidth limit set for this peer (initially typically
+   * set to "-1").  Actual "bw_out" is MIN of
+   * "bpm_out_internal_limit" and "bw_out_external_limit".
    */
-  uint32_t bpm_out_internal_limit;
+  struct GNUNET_BANDWIDTH_Value32NBO bw_out_internal_limit;
 
   /**
    * External bandwidth limit set for this peer by the
-   * peer that we are communicating with.  "bpm_out" is MAX of
-   * "bpm_out_internal_limit" and "bpm_out_external_limit".
+   * peer that we are communicating with.  "bw_out" is MIN of
+   * "bw_out_internal_limit" and "bw_out_external_limit".
    */
-  uint32_t bpm_out_external_limit;
+  struct GNUNET_BANDWIDTH_Value32NBO bw_out_external_limit;
 
   /**
    * What was our PING challenge number (for this peer)?
@@ -602,6 +576,7 @@ struct Neighbour
    * Are we currently connected to this neighbour?
    */ 
   int is_connected;
+
 };
 
 
@@ -703,14 +678,15 @@ static unsigned long long preference_sum;
 static unsigned int neighbour_count;
 
 /**
- * How much inbound bandwidth are we supposed to be using?
+ * How much inbound bandwidth are we supposed to be using per second?
+ * FIXME: this value is not used!
  */
-static unsigned long long bandwidth_target_in;
+static unsigned long long bandwidth_target_in_bps;
 
 /**
- * How much outbound bandwidth are we supposed to be using?
+ * How much outbound bandwidth are we supposed to be using per second?
  */
-static unsigned long long bandwidth_target_out;
+static unsigned long long bandwidth_target_out_bps;
 
 
 
@@ -739,50 +715,6 @@ update_preference_sum (unsigned long long inc)
       preference_sum += n->current_preference;
       n = n->next;
     }    
-}
-
-
-/**
- * Recalculate the number of bytes we expect to
- * receive or transmit in a given window.
- *
- * @param force force an update now (even if not much time has passed)
- * @param window pointer to the byte counter (updated)
- * @param ts pointer to the timestamp (updated)
- * @param bpm number of bytes per minute that should
- *        be added to the window.
- */
-static void
-update_window (int force,
-	       long long *window,
-               struct GNUNET_TIME_Absolute *ts, unsigned int bpm)
-{
-  struct GNUNET_TIME_Relative since;
-  unsigned long long increment;
-
-  since = GNUNET_TIME_absolute_get_duration (*ts);
-  increment = (bpm * since.value) / 60 / 1000;
-#if DEBUG_CORE_QUOTA
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Updating window with %u bpm after %llu ms by %llu\n",
-	      bpm,
-	      (unsigned long long) since.value,
-	      increment);
-#endif
-  if ( (force == GNUNET_NO) &&
-       (since.value < 60 * 1000) &&
-       (increment < 32 * 1024) )
-    {
-#if DEBUG_CORE_QUOTA
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Not updating window, change too small.\n");
-#endif
-      return;                     /* not even a minute has passed */
-    }
-  *ts = GNUNET_TIME_absolute_get ();
-  *window += increment;
-  if (*window > MAX_WINDOW_TIME * bpm)
-    *window = MAX_WINDOW_TIME * bpm;
 }
 
 
@@ -1004,8 +936,8 @@ handle_client_request_info (void *cls,
   const struct RequestInfoMessage *rcm;
   struct Neighbour *n;
   struct ConfigurationInfoMessage cim;
-  int want_reserv;
-  int got_reserv;
+  int32_t want_reserv;
+  int32_t got_reserv;
   unsigned long long old_preference;
   struct GNUNET_SERVER_TransmitContext *tc;
 
@@ -1019,32 +951,27 @@ handle_client_request_info (void *cls,
   if (n != NULL) 
     {
       want_reserv = ntohl (rcm->reserve_inbound);
-      if (n->bpm_out_internal_limit != ntohl (rcm->limit_outbound_bpm))
-	update_window (GNUNET_YES,
-		       &n->available_send_window,
-		       &n->last_asw_update,
-		       n->bpm_out);
-      n->bpm_out_internal_limit = ntohl (rcm->limit_outbound_bpm);
-      n->bpm_out = GNUNET_MIN (n->bpm_out_internal_limit,
-                               n->bpm_out_external_limit);
+      n->bw_out_internal_limit = rcm->limit_outbound;
+      n->bw_out = GNUNET_BANDWIDTH_value_min (n->bw_out_internal_limit,
+					      n->bw_out_external_limit);
+      GNUNET_BANDWIDTH_tracker_update_quota (&n->available_recv_window,
+					     n->bw_out);
       if (want_reserv < 0)
         {
 	  got_reserv = want_reserv;
-          n->available_recv_window -= want_reserv;
         }
       else if (want_reserv > 0)
         {
-          update_window (GNUNET_NO,
-			 &n->available_recv_window,
-                         &n->last_arw_update, n->bpm_in);
-          if (n->available_recv_window < want_reserv)
-            got_reserv = 0; /* all or nothing */
-	  else
+	  if (GNUNET_BANDWIDTH_tracker_get_delay (&n->available_recv_window,
+						  want_reserv).value == 0)
 	    got_reserv = want_reserv;
-          n->available_recv_window -= got_reserv;
+	  else
+            got_reserv = 0; /* all or nothing */
         }
       else
 	got_reserv = 0;
+      GNUNET_BANDWIDTH_tracker_consume (&n->available_recv_window,
+					got_reserv);
       old_preference = n->current_preference;
       n->current_preference += GNUNET_ntohll(rcm->preference_change);
       if (old_preference > n->current_preference) 
@@ -1056,13 +983,13 @@ handle_client_request_info (void *cls,
 #if DEBUG_CORE_QUOTA
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Received reservation request for %d bytes for peer `%4s', reserved %d bytes\n",
-		  want_reserv,
+		  (int) want_reserv,
 		  GNUNET_i2s (&rcm->peer),
-		  got_reserv);
+		  (int) got_reserv);
 #endif
       cim.reserved_amount = htonl (got_reserv);
-      cim.bpm_in = htonl (n->bpm_in);
-      cim.bpm_out = htonl (n->bpm_out);
+      cim.bw_in = n->bw_in;
+      cim.bw_out = n->bw_out;
       cim.preference = n->current_preference;
     }
   cim.header.size = htons (sizeof (struct ConfigurationInfoMessage));
@@ -1247,7 +1174,8 @@ notify_encrypted_transmit_ready (void *cls, size_t size, void *buf)
       GNUNET_assert (size >= m->size);
       memcpy (cbuf, &m[1], m->size);
       ret = m->size;
-      n->available_send_window -= m->size;
+      GNUNET_BANDWIDTH_tracker_consume (&n->available_send_window,
+					m->size);
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Copied message of type %u and size %u into transport buffer for `%4s'\n",
@@ -1444,9 +1372,9 @@ select_messages (struct Neighbour *n,
   unsigned int min_prio;
   struct GNUNET_TIME_Absolute t;
   struct GNUNET_TIME_Absolute now;
-  uint64_t delta;
+  struct GNUNET_TIME_Relative delta;
   uint64_t avail;
-  unsigned long long slack;     /* how long could we wait before missing deadlines? */
+  struct GNUNET_TIME_Relative slack;     /* how long could we wait before missing deadlines? */
   size_t off;
   int discard_low_prio;
   unsigned int queue_size;
@@ -1472,18 +1400,13 @@ select_messages (struct Neighbour *n,
       min_prio = -1;
       discard_low_prio = GNUNET_NO;
       /* calculate number of bytes available for transmission at time "t" */
-      update_window (GNUNET_NO,
-		     &n->available_send_window,
-		     &n->last_asw_update,
-		     n->bpm_out);
-      avail = n->available_send_window;
-      t = n->last_asw_update;
+      avail = GNUNET_BANDWIDTH_tracker_get_available (&n->available_send_window);
+      t = now;
       /* how many bytes have we (hypothetically) scheduled so far */
       off = 0;
       /* maximum time we can wait before transmitting anything
          and still make all of our deadlines */
-      slack = -1;
-
+      slack = GNUNET_TIME_UNIT_FOREVER_REL;
       pos = n->messages;
       /* note that we use "*2" here because we want to look
          a bit further into the future; much more makes no
@@ -1499,14 +1422,17 @@ select_messages (struct Neighbour *n,
             }
           if (discard_low_prio == GNUNET_NO)
             {
-              delta = pos->deadline.value;
-              if (delta < t.value)
-                delta = 0;
-              else
-                delta = t.value - delta;
-              avail += delta * n->bpm_out / 1000 / 60;
+	      delta = GNUNET_TIME_absolute_get_difference (t, pos->deadline);
+	      if (delta.value > 0)
+		{
+		  // FIXME: HUH? Check!
+		  t = pos->deadline;
+		  avail += GNUNET_BANDWIDTH_value_get_available_until (n->bw_out,
+								       delta);
+		}
               if (avail < pos->size)
                 {
+		  // FIXME: HUH? Check!
                   discard_low_prio = GNUNET_YES;        /* we could not schedule this one! */
                 }
               else
@@ -1515,23 +1441,25 @@ select_messages (struct Neighbour *n,
                   /* update slack, considering both its absolute deadline
                      and relative deadlines caused by other messages
                      with their respective load */
-                  slack = GNUNET_MIN (slack, avail / n->bpm_out);
+                  slack = GNUNET_TIME_relative_min (slack,
+						    GNUNET_BANDWIDTH_value_get_delay_for (n->bw_out,
+											  avail));
                   if ( (pos->deadline.value < now.value) ||
 		       (GNUNET_YES == pos->got_slack) )		       
 		    {
-		      slack = 0;
+		      slack = GNUNET_TIME_UNIT_ZERO;
 		    }
                   else
 		    {
 		      slack =
-			GNUNET_MIN (slack, pos->deadline.value - now.value);
+			GNUNET_TIME_relative_min (slack, 
+						  GNUNET_TIME_absolute_get_difference (now, pos->deadline));
 		      pos->got_slack = GNUNET_YES;
 		    }
                 }
             }
-
           off += pos->size;
-          t.value = GNUNET_MAX (pos->deadline.value, t.value);
+          t = GNUNET_TIME_absolute_max (pos->deadline, t); // HUH? Check!
           if (pos->priority <= min_prio)
             {
               /* update min for discard */
@@ -1550,7 +1478,7 @@ select_messages (struct Neighbour *n,
     }
   /* guard against sending "tiny" messages with large headers without
      urgent deadlines */
-  if ( (slack > 1000) && 
+  if ( (slack.value > 1000) && 
        (size > 4 * off) &&
        (queue_size < MAX_PEER_QUEUE_SIZE / 2) )
     {
@@ -1786,6 +1714,9 @@ set_key_retry_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Neighbour *n = cls;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Retrying key transmission to `%4s'\n",
+	      GNUNET_i2s (&n->peer));
   n->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
   n->set_key_retry_frequency =
     GNUNET_TIME_relative_multiply (n->set_key_retry_frequency, 2);
@@ -1901,13 +1832,13 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
     }
 #if DEBUG_CORE_QUOTA
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Sending %llu as new limit to peer `%4s'\n",
-	      (unsigned long long) n->bpm_in,
+	      "Sending %u b/s as new limit to peer `%4s'\n",
+	      (unsigned int) ntohl (n->bw_in.value__),
 	      GNUNET_i2s (&n->peer));
 #endif
   ph->iv_seed = htonl (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, -1));
   ph->sequence_number = htonl (++n->last_sequence_number_sent);
-  ph->inbound_bpm_limit = htonl (n->bpm_in);
+  ph->inbound_bw_limit = n->bw_in;
   ph->timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
 
   /* setup encryption message header */
@@ -1998,10 +1929,10 @@ create_neighbour (const struct GNUNET_PeerIdentity *pid)
   n->encrypt_key_created = now;
   n->last_activity = now;
   n->set_key_retry_frequency = INITIAL_SET_KEY_RETRY_FREQUENCY;
-  n->bpm_in = GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT;
-  n->bpm_out = GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT;
-  n->bpm_out_internal_limit = (uint32_t) - 1;
-  n->bpm_out_external_limit = GNUNET_CONSTANTS_DEFAULT_BPM_IN_OUT;
+  n->bw_in = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT;
+  n->bw_out = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT;
+  n->bw_out_internal_limit = GNUNET_BANDWIDTH_value_init ((uint32_t) - 1);
+  n->bw_out_external_limit = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT;
   n->ping_challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                                 (uint32_t) - 1);
   schedule_quota_update (n);
@@ -2148,7 +2079,15 @@ static size_t
 notify_transport_connect_done (void *cls, size_t size, void *buf)
 {
   struct Neighbour *n = cls;
+
   n->th = NULL;
+  if (buf == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Failed to connect to `%4s': transport failed to connect\n"),
+		  GNUNET_i2s (&n->peer));
+      return 0;
+    }
   send_key (n);
   return 0;
 }
@@ -2170,6 +2109,12 @@ handle_client_request_connect (void *cls,
   struct Neighbour *n;
   struct GNUNET_TIME_Relative timeout;
 
+  if (0 == memcmp (&cm->peer, &my_identity, sizeof (struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   n = find_neighbour (&cm->peer);
   if (n == NULL)
@@ -2541,7 +2486,7 @@ handle_ping (struct Neighbour *n, const struct PingMessage *m)
   me->priority = PONG_PRIORITY;
   me->size = sizeof (struct PongMessage);
   tx.reserved = htonl (0);
-  tx.inbound_bpm_limit = htonl (n->bpm_in);
+  tx.inbound_bw_limit = n->bw_in;
   tx.challenge = t.challenge;
   tx.target = t.target;
   tp = (struct PongMessage *) &me[1];
@@ -2628,9 +2573,11 @@ handle_pong (struct Neighbour *n,
       return;
     case PEER_STATE_KEY_RECEIVED:
       n->status = PEER_STATE_KEY_CONFIRMED;
-      n->bpm_out_external_limit = ntohl (t.inbound_bpm_limit);
-      n->bpm_out = GNUNET_MIN (n->bpm_out_external_limit,
-			       n->bpm_out_internal_limit);
+      n->bw_out_external_limit = t.inbound_bw_limit;
+      n->bw_out = GNUNET_BANDWIDTH_value_min (n->bw_out_external_limit,
+					      n->bw_out_internal_limit);
+      GNUNET_BANDWIDTH_tracker_update_quota (&n->available_send_window,
+					     n->bw_out);
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Confirmed key via `%s' message for peer `%4s'\n",
@@ -3087,22 +3034,18 @@ handle_encrypted_message (struct Neighbour *n,
     }
 
   /* process decrypted message(s) */
-  if (n->bpm_out_external_limit != ntohl (pt->inbound_bpm_limit))
-    {
-      update_window (GNUNET_YES,
-		     &n->available_send_window,
-		     &n->last_asw_update,
-		     n->bpm_out);
 #if DEBUG_CORE_QUOTA
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Received %llu as new inbound limit for peer `%4s'\n",
-		  (unsigned long long) ntohl (pt->inbound_bpm_limit),
-		  GNUNET_i2s (&n->peer));
+  if (n->bw_out_external_limit.value__ != pt->inbound_bw_limit.value__)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Received %u b/s as new inbound limit for peer `%4s'\n",
+		(unsigned int) ntohl (pt->inbound_bw_limit.value__),
+		GNUNET_i2s (&n->peer));
 #endif
-    }
-  n->bpm_out_external_limit = ntohl (pt->inbound_bpm_limit);
-  n->bpm_out = GNUNET_MIN (n->bpm_out_external_limit,
-                           n->bpm_out_internal_limit);
+  n->bw_out_external_limit = pt->inbound_bw_limit;
+  n->bw_out = GNUNET_BANDWIDTH_value_min (n->bw_out_external_limit,
+					  n->bw_out_internal_limit);
+  GNUNET_BANDWIDTH_tracker_update_quota (&n->available_send_window,
+					 n->bw_out);
   n->last_activity = GNUNET_TIME_absolute_get ();
   off = sizeof (struct EncryptedMessage);
   deliver_messages (n, buf, size, off);
@@ -3247,12 +3190,12 @@ neighbour_quota_update (void *cls,
 			const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Neighbour *n = cls;
-  uint32_t q_in;
+  struct GNUNET_BANDWIDTH_Value32NBO q_in;
   double pref_rel;
   double share;
   unsigned long long distributable;
-  uint32_t qin_ms;
-  uint32_t qout_ms;
+  uint64_t need_per_peer;
+  uint64_t need_per_second;
   
   n->quota_update_task = GNUNET_SCHEDULER_NO_TASK;
   /* calculate relative preference among all neighbours;
@@ -3267,43 +3210,45 @@ neighbour_quota_update (void *cls,
     {
       pref_rel = n->current_preference / preference_sum;
     }
-  
+  need_per_peer = GNUNET_BANDWIDTH_value_get_available_until (MIN_BANDWIDTH_PER_PEER,
+							      GNUNET_TIME_UNIT_SECONDS);  
+  need_per_second = need_per_peer * neighbour_count;
   distributable = 0;
-  if (bandwidth_target_out > neighbour_count * MIN_BPM_PER_PEER)
-    distributable = bandwidth_target_out - neighbour_count * MIN_BPM_PER_PEER;
+  if (bandwidth_target_out_bps > need_per_second)
+    distributable = bandwidth_target_out_bps - need_per_second;
   share = distributable * pref_rel;
-  q_in = MIN_BPM_PER_PEER + (unsigned long long) share;
+  if (share + need_per_peer > ( (uint32_t)-1))
+    q_in = GNUNET_BANDWIDTH_value_init ((uint32_t) -1);
+  else
+    q_in = GNUNET_BANDWIDTH_value_init (need_per_peer + (uint32_t) share);
   /* check if we want to disconnect for good due to inactivity */
   if ( (GNUNET_TIME_absolute_get_duration (n->last_activity).value > GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.value) &&
        (GNUNET_TIME_absolute_get_duration (n->time_established).value > GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.value) )
     {
 #if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Forcing disconnect of `%4s' due to inactivity (?).\n",
-              GNUNET_i2s (&n->peer));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Forcing disconnect of `%4s' due to inactivity (?).\n",
+		  GNUNET_i2s (&n->peer));
 #endif
-      q_in = 0; /* force disconnect */
+      q_in = GNUNET_BANDWIDTH_value_init (0); /* force disconnect */
     }
 #if DEBUG_CORE_QUOTA
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Current quota for `%4s' is %llu in (old: %llu) / %llu out (%llu internal)\n",
+	      "Current quota for `%4s' is %u/%llu b/s in (old: %u b/s) / %u out (%u internal)\n",
 	      GNUNET_i2s (&n->peer),
-	      (unsigned long long) q_in,
-	      (unsigned long long) n->bpm_in,
-	      (unsigned long long) n->bpm_out,
-	      (unsigned long long) n->bpm_out_internal_limit);
+	      (unsigned int) ntohl (q_in.value__),
+	      bandwidth_target_out_bps,
+	      (unsigned int) ntohl (n->bw_in.value__),
+	      (unsigned int) ntohl (n->bw_out.value__),
+	      (unsigned int) ntohl (n->bw_out_internal_limit.value__));
 #endif
-  if ( (n->bpm_in + MIN_BPM_CHANGE < q_in) ||
-       (n->bpm_in - MIN_BPM_CHANGE > q_in) ) 
+  if (n->bw_in.value__ != q_in.value__) 
     {
-      n->bpm_in = q_in;
-      /* need to convert to bytes / ms, rounding up! */
-      qin_ms = (q_in == 0) ? 0 : 1 + q_in / 60000;
-      qout_ms = (n->bpm_out == 0) ? 0 : 1 + n->bpm_out / 60000;
+      n->bw_in = q_in;
       GNUNET_TRANSPORT_set_quota (transport,
 				  &n->peer,
-				  qin_ms,
-				  qout_ms,
+				  n->bw_in,
+				  n->bw_out,
 				  GNUNET_TIME_UNIT_FOREVER_REL,
 				  NULL, NULL);
     }
@@ -3348,8 +3293,12 @@ handle_transport_notify_connect (void *cls,
   n->is_connected = GNUNET_YES;      
   n->last_latency = latency;
   n->last_distance = distance;
-  n->last_asw_update = now;
-  n->last_arw_update = now;
+  GNUNET_BANDWIDTH_tracker_init (&n->available_send_window,
+				 n->bw_out,
+				 MAX_WINDOW_TIME_S);
+  GNUNET_BANDWIDTH_tracker_init (&n->available_recv_window,
+				 n->bw_in,
+				 MAX_WINDOW_TIME_S);  
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received connection from `%4s'.\n",
@@ -3445,11 +3394,6 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *serv,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-#if 0
-  unsigned long long qin;
-  unsigned long long qout;
-  unsigned long long tneigh;
-#endif
   char *keyfile;
 
   sched = s;
@@ -3460,12 +3404,12 @@ run (void *cls,
         GNUNET_CONFIGURATION_get_value_number (c,
                                                "CORE",
                                                "TOTAL_QUOTA_IN",
-                                               &bandwidth_target_in)) ||
+                                               &bandwidth_target_in_bps)) ||
        (GNUNET_OK !=
         GNUNET_CONFIGURATION_get_value_number (c,
                                                "CORE",
                                                "TOTAL_QUOTA_OUT",
-                                               &bandwidth_target_out)) ||
+                                               &bandwidth_target_out_bps)) ||
        (GNUNET_OK !=
         GNUNET_CONFIGURATION_get_value_filename (c,
                                                  "GNUNETD",

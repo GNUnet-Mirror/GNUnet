@@ -211,7 +211,7 @@ struct RequestInfoMessage
    * peer to at most the specified amount (naturally, the
    * amount is also limited by the receiving peer).
    */
-  uint32_t limit_outbound_bpm GNUNET_PACKED;
+  struct GNUNET_BANDWIDTH_Value32NBO limit_outbound;
 
   /**
    * Number of bytes of inbound traffic to reserve, can
@@ -253,16 +253,16 @@ struct ConfigurationInfoMessage
   int32_t reserved_amount GNUNET_PACKED;
 
   /**
-   * Available bandwidth in (in bytes per minute) for this peer.
+   * Available bandwidth in for this peer.
    * 0 if we have been disconnected.
    */
-  uint32_t bpm_in GNUNET_PACKED;
+  struct GNUNET_BANDWIDTH_Value32NBO bw_in;
 
   /**
-   * Available bandwidth out (in bytes per minute) for this peer,
+   * Available bandwidth out for this peer,
    * 0 if we have been disconnected.
    */
-  uint32_t bpm_out GNUNET_PACKED;
+  struct GNUNET_BANDWIDTH_Value32NBO bw_out;
 
   /**
    * Current traffic preference for the peer.

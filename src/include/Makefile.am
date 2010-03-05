@@ -13,6 +13,7 @@ nodist_gnunetinclude_HEADERS = \
 
 gnunetinclude_HEADERS = \
   gnunet_arm_service.h \
+  gnunet_bandwidth_lib.h \
   gnunet_bio_lib.h \
   gnunet_client_lib.h \
   gnunet_common.h \

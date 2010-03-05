@@ -35,6 +35,7 @@ extern "C"
 #endif
 #endif
 
+#include "gnunet_bandwidth_lib.h"
 #include "gnunet_configuration_lib.h"
 #include "gnunet_crypto_lib.h"
 #include "gnunet_connection_lib.h"
@@ -153,8 +154,8 @@ void GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle);
  *
  * @param handle connection to transport service
  * @param target who's bandwidth quota is being changed
- * @param quota_in incoming bandwidth quota in bytes per ms
- * @param quota_out outgoing bandwidth quota in bytes per ms
+ * @param quota_in incoming bandwidth quota
+ * @param quota_out outgoing bandwidth quota
  * @param timeout how long to wait until signaling failure if
  *        we can not communicate the quota change
  * @param cont continuation to call when done, will be called
@@ -164,8 +165,8 @@ void GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle);
 void
 GNUNET_TRANSPORT_set_quota (struct GNUNET_TRANSPORT_Handle *handle,
                             const struct GNUNET_PeerIdentity *target,
-                            uint32_t quota_in,
-                            uint32_t quota_out,
+                            struct GNUNET_BANDWIDTH_Value32NBO quota_in,
+                            struct GNUNET_BANDWIDTH_Value32NBO quota_out,
                             struct GNUNET_TIME_Relative timeout,
                             GNUNET_SCHEDULER_Task cont, void *cont_cls);
 
