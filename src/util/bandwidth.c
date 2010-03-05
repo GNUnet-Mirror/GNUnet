@@ -60,6 +60,48 @@ GNUNET_BANDWIDTH_value_min (struct GNUNET_BANDWIDTH_Value32NBO b1,
 
 
 /**
+ * At the given bandwidth, calculate how much traffic will be
+ * available until the given deadline.
+ *
+ * @param bps bandwidth
+ * @param deadline when is the deadline
+ * @return number of bytes available at bps until deadline
+ */
+uint64_t 
+GNUNET_BANDWIDTH_value_get_available_until (struct GNUNET_BANDWIDTH_Value32NBO bps,
+					    struct GNUNET_TIME_Relative deadline)
+{
+  uint64_t b;
+
+  b = ntohl (bps.value__);
+  return b * deadline.value / 1000LL;
+}
+
+
+/**
+ * At the given bandwidth, calculate how long it would take for
+ * 'size' bytes to be transmitted.
+ *
+ * @param bps bandwidth
+ * @param size number of bytes we want to have available
+ * @return how long it would take
+ */
+struct GNUNET_TIME_Relative
+GNUNET_BANDWIDTH_value_get_delay_for (struct GNUNET_BANDWIDTH_Value32NBO bps,
+				      uint64_t size)
+{
+  uint64_t b;
+  struct GNUNET_TIME_Relative ret;
+
+  b = ntohl (bps.value__);
+  if (b == 0)
+    return GNUNET_TIME_UNIT_FOREVER_REL;
+  ret.value = size * 1000LL / b;
+  return ret;
+}
+
+
+/**
  * Initialize bandwidth tracker.  Note that in addition to the
  * 'max_carry_s' limit, we also always allow at least
  * GNUNET_SERVER_MAX_MESSAGE_SIZE to accumulate.  So if the
@@ -135,7 +177,6 @@ update_tracker (struct GNUNET_BANDWIDTH_Tracker *av)
 }
 
 
-
 /**
  * Notify the tracker that a certain number of bytes of bandwidth have
  * been consumed.  Note that it is legal to consume bytes even if not
@@ -145,21 +186,33 @@ update_tracker (struct GNUNET_BANDWIDTH_Tracker *av)
  *
  * @param av tracker to update
  * @param size number of bytes consumed
+ * @return GNUNET_YES if this consumption is above the limit
  */
-void
+int
 GNUNET_BANDWIDTH_tracker_consume (struct GNUNET_BANDWIDTH_Tracker *av,
-				  size_t size)
+				  ssize_t size)
 {
   uint64_t nc;
 
-  nc = av->consumption_since_last_update__ + size;
-  if (nc < av->consumption_since_last_update__)
+  if (size > 0)
     {
-      GNUNET_break (0);
-      return;
+      nc = av->consumption_since_last_update__ + size;
+      if (nc < av->consumption_since_last_update__) 
+	{
+	  GNUNET_break (0);
+	  return GNUNET_SYSERR;
+	}
+      av->consumption_since_last_update__ = nc;
+      update_tracker (av);
+      if (av->consumption_since_last_update__ > 0)
+	return GNUNET_YES;
     }
-  av->consumption_since_last_update__ += size;
-  update_tracker (av);
+  else
+    {
+      av->last_update__.value -= (size * av->available_bytes_per_s__) / 1000LL;
+      update_tracker (av);
+    }
+  return GNUNET_NO;
 }
 
 
@@ -193,6 +246,29 @@ GNUNET_BANDWIDTH_tracker_get_delay (struct GNUNET_BANDWIDTH_Tracker *av,
   bytes_needed = size - delta_avail;
   ret.value = 1000LL * bytes_needed / (unsigned long long) av->available_bytes_per_s__;
   return ret;
+}
+
+
+/**
+ * Compute how many bytes are available for consumption right now.
+ * quota.
+ *
+ * @param av tracker to query
+ * @return number of bytes available for consumption right now
+ */
+int64_t 
+GNUNET_BANDWIDTH_tracker_get_available (struct GNUNET_BANDWIDTH_Tracker *av)
+{
+  struct GNUNET_BANDWIDTH_Value32NBO bps;
+  uint64_t avail;
+  uint64_t used;
+
+  update_tracker (av);
+  bps = GNUNET_BANDWIDTH_value_init (av->available_bytes_per_s__);
+  avail = GNUNET_BANDWIDTH_value_get_available_until (bps,
+						      GNUNET_TIME_absolute_get_duration (av->last_update__));
+  used = av->consumption_since_last_update__;
+  return (int64_t) (avail - used);
 }
 
 

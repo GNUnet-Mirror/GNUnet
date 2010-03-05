@@ -21,7 +21,6 @@
 /**
  * @file include/gnunet_bandwidth_lib.h
  * @brief functions related to bandwidth (unit)
- *
  * @author Christian Grothoff
  */
 
@@ -95,6 +94,33 @@ GNUNET_BANDWIDTH_value_init (uint32_t bytes_per_second);
 
 
 /**
+ * At the given bandwidth, calculate how much traffic will be
+ * available until the given deadline.
+ *
+ * @param bps bandwidth
+ * @param deadline when is the deadline
+ * @return number of bytes available at bps until deadline
+ */
+uint64_t 
+GNUNET_BANDWIDTH_value_get_available_until (struct GNUNET_BANDWIDTH_Value32NBO bps,
+					    struct GNUNET_TIME_Relative deadline);
+
+
+/**
+ * At the given bandwidth, calculate how long it would take for
+ * 'size' bytes to be transmitted.
+ *
+ * @param bps bandwidth
+ * @param size number of bytes we want to have available
+ * @return how long it would take
+ */
+struct GNUNET_TIME_Relative
+GNUNET_BANDWIDTH_value_get_delay_for (struct GNUNET_BANDWIDTH_Value32NBO bps,
+				      uint64_t size);
+
+
+
+/**
  * Compute the MIN of two bandwidth values.
  *
  * @param b1 first value
@@ -135,10 +161,11 @@ GNUNET_BANDWIDTH_tracker_init (struct GNUNET_BANDWIDTH_Tracker *av,
  *
  * @param av tracker to update
  * @param size number of bytes consumed
+ * @return GNUNET_YES if this consumption is above the limit
  */
-void
+int
 GNUNET_BANDWIDTH_tracker_consume (struct GNUNET_BANDWIDTH_Tracker *av,
-				  size_t size);
+				  ssize_t size);
 
 
 /**
@@ -153,6 +180,17 @@ GNUNET_BANDWIDTH_tracker_consume (struct GNUNET_BANDWIDTH_Tracker *av,
 struct GNUNET_TIME_Relative
 GNUNET_BANDWIDTH_tracker_get_delay (struct GNUNET_BANDWIDTH_Tracker *av,
 				    size_t size);
+
+
+/**
+ * Compute how many bytes are available for consumption right now.
+ * quota.
+ *
+ * @param av tracker to query
+ * @return number of bytes available for consumption right now
+ */
+int64_t 
+GNUNET_BANDWIDTH_tracker_get_available (struct GNUNET_BANDWIDTH_Tracker *av);
 
 
 /**
