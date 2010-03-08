@@ -156,19 +156,23 @@ update_tracker (struct GNUNET_BANDWIDTH_Tracker *av)
       left_bytes = delta_avail - av->consumption_since_last_update__;
       avail_per_ms = ((unsigned long long) av->available_bytes_per_s__) / 1000LL;
       if (avail_per_ms > 0)
-	left_time_ms = left_bytes / avail_per_ms;
-      else
-	left_time_ms = 0;
-      if (left_time_ms > ((unsigned long long) av->max_carry_s__) * 1000LL)
 	{
-	  /* need to limit accumulation of unused bandwidth */
-	  left_time_ms = ((unsigned long long) av->max_carry_s__) * 1000LL;
-	  if (left_time_ms * avail_per_ms < GNUNET_SERVER_MAX_MESSAGE_SIZE)
+	  left_time_ms = left_bytes / avail_per_ms;	  
+	  if (left_time_ms > ((unsigned long long) av->max_carry_s__) * 1000LL)
 	    {
-	      /* need to still allow GNUNET_SERVER_MAX_MESSAGE_SIZE accumulation */
-	      if (left_bytes > GNUNET_SERVER_MAX_MESSAGE_SIZE)
-		left_bytes = GNUNET_SERVER_MAX_MESSAGE_SIZE;
-	      left_time_ms = left_bytes / avail_per_ms;
+	      /* need to limit accumulation of unused bandwidth */
+	      left_time_ms = ((unsigned long long) av->max_carry_s__) * 1000LL;
+	      if (left_time_ms * avail_per_ms < GNUNET_SERVER_MAX_MESSAGE_SIZE)
+		{
+		  /* need to still allow GNUNET_SERVER_MAX_MESSAGE_SIZE accumulation */
+		  if (left_bytes > GNUNET_SERVER_MAX_MESSAGE_SIZE)
+		    left_bytes = GNUNET_SERVER_MAX_MESSAGE_SIZE;
+		  left_time_ms = left_bytes / avail_per_ms;
+		}
+	    }
+	  else
+	    {
+	      left_time_ms = 0;
 	    }
 	}
       av->consumption_since_last_update__ = 0;
