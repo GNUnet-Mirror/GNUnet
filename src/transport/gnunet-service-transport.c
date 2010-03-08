@@ -1790,6 +1790,7 @@ check_pending_validation (void *cls,
 			      ve->transport_name,
 			      ve->addr,
 			      ve->addrlen);
+      GNUNET_assert (fal != NULL);
       fal->expires = GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
       fal->validated = GNUNET_YES;
       fal->latency = GNUNET_TIME_absolute_get_duration (ve->send_time);
