@@ -55,17 +55,22 @@ struct DatastoreRequestQueue
   struct DatastoreRequestQueue *prev;
 
   /**
-   * Function to call (will issue the request).
+   * Function to call for each entry.
    */
-  RequestFunction req;
+  GNUNET_DATASTORE_Iterator iter;
 
   /**
-   * Closure for req.
+   * Closure for iter.
    */
-  void *req_cls;
+  void *iter_cls;
 
   /**
-   * When should this request time-out because we don't care anymore?
+   * Key we are doing the 'get' for.
+   */
+  GNUNET_HashCode key;
+
+  /**
+   * Timeout for this operation.
    */
   struct GNUNET_TIME_Absolute timeout;
     
@@ -73,6 +78,11 @@ struct DatastoreRequestQueue
    * ID of task used for signaling timeout.
    */
   GNUNET_SCHEDULER_TaskIdentifier task;
+
+  /**
+   * Datastore entry type we are doing the 'get' for.
+   */
+  uint32_t type;
 
   /**
    * Is this request at the head of the queue irrespective of its
@@ -115,21 +125,62 @@ static struct DatastoreRequestQueue *drq_running;
 
 
 /**
- * A datastore request had to be timed out. 
- *
- * @param cls closure (unused)
- * @param tc task context, unused
+ * Run the next DS request in our queue, we're done with the current
+ * one.
  */
 static void
-timeout_ds_request (void *cls,
-		    const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct DatastoreRequestQueue *e = cls;
+next_ds_request ();
 
-  e->task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_CONTAINER_DLL_remove (drq_head, drq_tail, e);
-  e->req (e->req_cls, GNUNET_NO);
-  GNUNET_free (e);  
+
+/**
+ * Wrapper for the datastore get operation.  Makes sure to trigger the
+ * next datastore operation in the queue once the operation is
+ * complete.
+ *
+ * @param cls our 'struct DatastoreRequestQueue*'
+ * @param key key for the content
+ * @param size number of bytes in data
+ * @param data content stored
+ * @param type type of the content
+ * @param priority priority of the content
+ * @param anonymity anonymity-level for the content
+ * @param expiration expiration time for the content
+ * @param uid unique identifier for the datum;
+ *        maybe 0 if no unique identifier is available
+ */
+static void
+get_iterator (void *cls,
+	      const GNUNET_HashCode * key,
+	      uint32_t size,
+	      const void *data,
+	      uint32_t type,
+	      uint32_t priority,
+	      uint32_t anonymity,
+	      struct GNUNET_TIME_Absolute
+	      expiration, 
+	      uint64_t uid)
+{
+  struct DatastoreRequestQueue *gc = cls;
+
+  if (gc->iter == NULL) 
+    {
+      /* stop the iteration */
+      if (key != NULL)
+	GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
+    }
+  else
+    {
+      gc->iter (gc->iter_cls,
+		key, size, data, type,
+		priority, anonymity, expiration, uid);
+    }
+  if (key == NULL)
+    {
+      GNUNET_assert (gc == drq_running);
+      GNUNET_free (gc);
+      drq_running = NULL;
+      next_ds_request ();
+    }
 }
 
 
@@ -143,9 +194,13 @@ static void
 run_next_request (void *cls,
 		  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct DatastoreRequestQueue *e = cls;
-  
-  e->req (e->req_cls, GNUNET_YES);
+  struct DatastoreRequestQueue *gc = cls;
+
+  gc->task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_DATASTORE_get (dsh, &gc->key, gc->type, 
+			&get_iterator,
+			gc,
+			GNUNET_TIME_absolute_get_remaining(gc->timeout));
 }
 
 
@@ -173,65 +228,24 @@ next_ds_request ()
 
 
 /**
- * Remove a pending request from the request queue.
+ * A datastore request had to be timed out. 
  *
- * @param req request to remove
+ * @param cls closure (unused)
+ * @param tc task context, unused
  */
 static void
-dequeue_ds_request (struct DatastoreRequestQueue *req)  
+timeout_ds_request (void *cls,
+		    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_CONTAINER_DLL_remove (drq_head, drq_tail, req);
-  GNUNET_SCHEDULER_cancel (sched, req->task);
-  GNUNET_free (req);
-}
+  struct DatastoreRequestQueue *e = cls;
 
-
-/**
- * Queue a request for the datastore.
- *
- * @param deadline by when the request should run
- * @param fun function to call once the request can be run
- * @param fun_cls closure for fun
- * @param immediate should this be queued immediately at
- *        the head of the queue (irrespecitive of the deadline)?
- * @return handle that can be used to dequeue the request
- */
-static struct DatastoreRequestQueue *
-queue_ds_request (struct GNUNET_TIME_Relative deadline,
-		  RequestFunction fun,
-		  void *fun_cls,
-		  int immediate)
-{
-  struct DatastoreRequestQueue *e;
-  struct DatastoreRequestQueue *bef;
-
-  e = GNUNET_malloc (sizeof (struct DatastoreRequestQueue));
-  e->timeout = GNUNET_TIME_relative_to_absolute (deadline);
-  e->req = fun;
-  e->req_cls = fun_cls;
-  e->forced_head = immediate;
-  if (GNUNET_YES == immediate)
-    {
-      /* local request, highest prio, put at head of queue
-	 regardless of deadline */
-      bef = NULL;
-    }
-  else
-    {
-      bef = drq_tail;
-      while ( (NULL != bef) &&
-	      (e->timeout.value < bef->timeout.value) &&
-	      (GNUNET_YES != e->forced_head) )
-	bef = bef->prev;
-    }
-  GNUNET_CONTAINER_DLL_insert_after (drq_head, drq_tail, bef, e);
-  e->task = GNUNET_SCHEDULER_add_delayed (sched,
-					  deadline,
-					  &timeout_ds_request,
-					  e);
-  if (drq_running == NULL)
-    next_ds_request ();
-  return e;				       
+  e->task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_CONTAINER_DLL_remove (drq_head, drq_tail, e);
+  if (e->iter != NULL)
+    e->iter (e->iter_cls,
+	     NULL, 0, NULL, 0, 0, 0, 
+	     GNUNET_TIME_UNIT_ZERO_ABS, 0);
+  GNUNET_free (e);  
 }
 
 
@@ -255,123 +269,13 @@ shutdown_task (void *cls,
     {
       drq_head = drq->next;
       GNUNET_SCHEDULER_cancel (sched, drq->task);
-      drq->req (drq->req_cls, GNUNET_NO);
+      if (drq->iter != NULL)
+	drq->iter (drq->iter_cls,
+		   NULL, 0, NULL, 0, 0, 0, 
+		   GNUNET_TIME_UNIT_ZERO_ABS, 0);
       GNUNET_free (drq);
     }
   drq_tail = NULL;
-}
-
-
-/**
- * Closure for 'do_get' and 'get_iterator'.
- */
-struct GetClosure
-{
-  /**
-   * Key we are doing the 'get' for.
-   */
-  GNUNET_HashCode key;
-
-  /**
-   * Datastore entry type we are doing the 'get' for.
-   */
-  uint32_t type;
-
-  /**
-   * Function to call for each entry.
-   */
-  GNUNET_DATASTORE_Iterator iter;
-
-  /**
-   * Closure for iter.
-   */
-  void *iter_cls;
-
-  /**
-   * Timeout for this operation.
-   */
-  struct GNUNET_TIME_Absolute timeout;
-};
-
-
-/**
- * Wrapper for the datastore get operation.  Makes sure to trigger the
- * next datastore operation in the queue once the operation is
- * complete.
- *
- * @param cls our 'struct GetClosure*'
- * @param key key for the content
- * @param size number of bytes in data
- * @param data content stored
- * @param type type of the content
- * @param priority priority of the content
- * @param anonymity anonymity-level for the content
- * @param expiration expiration time for the content
- * @param uid unique identifier for the datum;
- *        maybe 0 if no unique identifier is available
- */
-static void
-get_iterator (void *cls,
-	      const GNUNET_HashCode * key,
-	      uint32_t size,
-	      const void *data,
-	      uint32_t type,
-	      uint32_t priority,
-	      uint32_t anonymity,
-	      struct GNUNET_TIME_Absolute
-	      expiration, 
-	      uint64_t uid)
-{
-  struct GetClosure *gc = cls;
-
-  if (gc->iter == NULL) 
-    {
-      /* stop the iteration */
-      if (key != NULL)
-	GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
-    }
-  else
-    {
-      gc->iter (gc->iter_cls,
-		key, size, data, type,
-		priority, anonymity, expiration, uid);
-    }
-  if (key == NULL)
-    {
-      next_ds_request ();
-      GNUNET_free (gc);
-    }
-}
-
-
-/**
- * We're at the head of the reqeust queue, execute the
- * get operation (or signal error).
- *
- * @param cls the 'struct GetClosure'
- * @param ok GNUNET_OK if we can run the GET, otherwise
- *        we need to time out
- */
-static void
-do_get (void *cls,
-	int ok)
-{
-  struct GetClosure *gc = cls;
-
-  if (ok != GNUNET_OK)
-    {
-      if (gc->iter != NULL)
-	gc->iter (gc->iter_cls,
-		  NULL, 0, NULL, 0, 0, 0, 
-		  GNUNET_TIME_UNIT_ZERO_ABS, 0);
-      GNUNET_free (gc);
-      next_ds_request ();
-      return;
-    }
-  GNUNET_DATASTORE_get (dsh, &gc->key, gc->type, 
-			&get_iterator,
-			gc,
-			GNUNET_TIME_absolute_get_remaining(gc->timeout));
 }
 
 
@@ -399,18 +303,39 @@ GNUNET_FS_drq_get (const GNUNET_HashCode * key,
 		   struct GNUNET_TIME_Relative timeout,
 		   int immediate)
 {
-  struct GetClosure *gc;
+  struct DatastoreRequestQueue *e;
+  struct DatastoreRequestQueue *bef;
 
-  gc = GNUNET_malloc (sizeof (struct GetClosure));
-  gc->key = *key;
-  gc->type = type;
-  gc->iter = iter;
-  gc->iter_cls = iter_cls;
-  gc->timeout = GNUNET_TIME_relative_to_absolute (timeout);
-  return queue_ds_request (timeout,
-			   &do_get,
-			   gc,
-			   immediate);
+  e = GNUNET_malloc (sizeof (struct DatastoreRequestQueue));
+  e->timeout = GNUNET_TIME_relative_to_absolute (timeout);
+  e->forced_head = immediate;
+  e->key = *key;
+  e->type = type;
+  e->iter = iter;
+  e->iter_cls = iter_cls;
+  e->timeout = GNUNET_TIME_relative_to_absolute (timeout);
+  if (GNUNET_YES == immediate)
+    {
+      /* local request, highest prio, put at head of queue
+	 regardless of deadline */
+      bef = NULL;
+    }
+  else
+    {
+      bef = drq_tail;
+      while ( (NULL != bef) &&
+	      (e->timeout.value < bef->timeout.value) &&
+	      (GNUNET_YES != e->forced_head) )
+	bef = bef->prev;
+    }
+  GNUNET_CONTAINER_DLL_insert_after (drq_head, drq_tail, bef, e);
+  e->task = GNUNET_SCHEDULER_add_delayed (sched,
+					  timeout,
+					  &timeout_ds_request,
+					  e);
+  if (drq_running == NULL)
+    next_ds_request ();
+  return e;				       
 }
 
 
@@ -423,20 +348,20 @@ GNUNET_FS_drq_get (const GNUNET_HashCode * key,
 void
 GNUNET_FS_drq_get_cancel (struct DatastoreRequestQueue *drq)
 {
-  struct GetClosure *gc;
   if (drq == drq_running)
     {
       /* 'DATASTORE_get' has already been started (and this call might
 	 actually be be legal since it is possible that the client has
-	 not yet received any calls to its the iterator; so we need
-	 to cancel somehow; we do this by getting to the 'GetClosure'
-	 and zeroing the 'iter' field, which stops the iteration */
-      gc = drq_running->req_cls;
-      gc->iter = NULL;
+	 not yet received any calls to its the iterator; so we need to
+	 cancel somehow; we do this by zeroing the 'iter' field, which
+	 stops the iteration */
+      drq_running->iter = NULL;
     }
   else
     {
-      dequeue_ds_request (drq);  
+      GNUNET_CONTAINER_DLL_remove (drq_head, drq_tail, drq);
+      GNUNET_SCHEDULER_cancel (sched, drq->task);
+      GNUNET_free (drq);
     }
 }
 

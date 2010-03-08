@@ -132,7 +132,7 @@ int
 main (int argc, char *argv[])
 {
   char *const argvx[] = { 
-    "test-gnunet-service-fs-p2p",
+    "test-fs-test-lib",
     "-c",
     "fs_test_lib_data.conf",
 #if VERBOSE
@@ -145,7 +145,7 @@ main (int argc, char *argv[])
   };
 
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
-  GNUNET_log_setup ("test_gnunet_service_fs_p2p", 
+  GNUNET_log_setup ("test_fs_test_lib", 
 #if VERBOSE
 		    "DEBUG",
 #else
@@ -153,7 +153,7 @@ main (int argc, char *argv[])
 #endif
 		    NULL);
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1,
-                      argvx, "test-gnunet-service-fs-p2p",
+                      argvx, "test-fs-test-lib",
 		      "nohelp", options, &run, NULL);
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
   return 0;
