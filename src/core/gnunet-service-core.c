@@ -3331,7 +3331,6 @@ handle_transport_notify_connect (void *cls,
 				 unsigned int distance)
 {
   struct Neighbour *n;
-  struct GNUNET_TIME_Absolute now;
   struct ConnectNotifyMessage cnm;
 
   n = find_neighbour (peer);
@@ -3348,7 +3347,6 @@ handle_transport_notify_connect (void *cls,
     {
       n = create_neighbour (peer);
     }
-  now = GNUNET_TIME_absolute_get ();
   n->is_connected = GNUNET_YES;      
   n->last_latency = latency;
   n->last_distance = distance;
