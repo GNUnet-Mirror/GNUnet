@@ -963,11 +963,20 @@ handle_client_request_info (void *cls,
   if (n != NULL) 
     {
       want_reserv = ntohl (rcm->reserve_inbound);
-      n->bw_out_internal_limit = rcm->limit_outbound;
-      n->bw_out = GNUNET_BANDWIDTH_value_min (n->bw_out_internal_limit,
-					      n->bw_out_external_limit);
-      GNUNET_BANDWIDTH_tracker_update_quota (&n->available_recv_window,
-					     n->bw_out);
+      if (n->bw_out_internal_limit.value__ != rcm->limit_outbound.value__)
+	{
+	  n->bw_out_internal_limit = rcm->limit_outbound;
+	  n->bw_out = GNUNET_BANDWIDTH_value_min (n->bw_out_internal_limit,
+						  n->bw_out_external_limit);
+	  GNUNET_BANDWIDTH_tracker_update_quota (&n->available_recv_window,
+						 n->bw_out);
+	  GNUNET_TRANSPORT_set_quota (transport,
+				      &n->peer,
+				      n->bw_in,
+				      n->bw_out,
+				      GNUNET_TIME_UNIT_FOREVER_REL,
+				      NULL, NULL); 
+	}
       if (want_reserv < 0)
         {
 	  got_reserv = want_reserv;
@@ -1640,7 +1649,8 @@ batch_message (struct Neighbour *n,
           *priority += pos->priority;
 #if DEBUG_CORE
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Adding plaintext message with deadline %llu ms to batch\n",
+		      "Adding plaintext message of size %u with deadline %llu ms to batch\n",
+		      pos->size,
 		      GNUNET_TIME_absolute_get_remaining (pos->deadline).value);
 #endif
           deadline->value = GNUNET_MIN (deadline->value, pos->deadline.value);
@@ -2600,11 +2610,20 @@ handle_pong (struct Neighbour *n,
       return;
     case PEER_STATE_KEY_RECEIVED:
       n->status = PEER_STATE_KEY_CONFIRMED;
-      n->bw_out_external_limit = t.inbound_bw_limit;
-      n->bw_out = GNUNET_BANDWIDTH_value_min (n->bw_out_external_limit,
-					      n->bw_out_internal_limit);
-      GNUNET_BANDWIDTH_tracker_update_quota (&n->available_send_window,
-					     n->bw_out);
+      if (n->bw_out_external_limit.value__ != t.inbound_bw_limit.value__)
+	{
+	  n->bw_out_external_limit = t.inbound_bw_limit;
+	  n->bw_out = GNUNET_BANDWIDTH_value_min (n->bw_out_external_limit,
+						  n->bw_out_internal_limit);
+	  GNUNET_BANDWIDTH_tracker_update_quota (&n->available_send_window,
+						 n->bw_out);       
+	  GNUNET_TRANSPORT_set_quota (transport,
+				      &n->peer,
+				      n->bw_in,
+				      n->bw_out,
+				      GNUNET_TIME_UNIT_FOREVER_REL,
+				      NULL, NULL); 
+	}
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Confirmed key via `%s' message for peer `%4s'\n",
@@ -3061,18 +3080,24 @@ handle_encrypted_message (struct Neighbour *n,
     }
 
   /* process decrypted message(s) */
-#if DEBUG_CORE_QUOTA
   if (n->bw_out_external_limit.value__ != pt->inbound_bw_limit.value__)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Received %u b/s as new inbound limit for peer `%4s'\n",
-		(unsigned int) ntohl (pt->inbound_bw_limit.value__),
-		GNUNET_i2s (&n->peer));
-#endif
-  n->bw_out_external_limit = pt->inbound_bw_limit;
-  n->bw_out = GNUNET_BANDWIDTH_value_min (n->bw_out_external_limit,
-					  n->bw_out_internal_limit);
-  GNUNET_BANDWIDTH_tracker_update_quota (&n->available_send_window,
-					 n->bw_out);
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Received %u b/s as new inbound limit for peer `%4s'\n",
+		  (unsigned int) ntohl (pt->inbound_bw_limit.value__),
+		  GNUNET_i2s (&n->peer));
+      n->bw_out_external_limit = pt->inbound_bw_limit;
+      n->bw_out = GNUNET_BANDWIDTH_value_min (n->bw_out_external_limit,
+					      n->bw_out_internal_limit);
+      GNUNET_BANDWIDTH_tracker_update_quota (&n->available_send_window,
+					     n->bw_out);
+      GNUNET_TRANSPORT_set_quota (transport,
+				  &n->peer,
+				  n->bw_in,
+				  n->bw_out,
+				  GNUNET_TIME_UNIT_FOREVER_REL,
+				  NULL, NULL); 
+    }
   n->last_activity = GNUNET_TIME_absolute_get ();
   off = sizeof (struct EncryptedMessage);
   deliver_messages (n, buf, size, off);
@@ -3337,7 +3362,13 @@ handle_transport_notify_connect (void *cls,
   cnm.latency = GNUNET_TIME_relative_hton (n->last_latency);
   cnm.peer = *peer;
   send_to_all_clients (&cnm.header, GNUNET_YES, GNUNET_CORE_OPTION_SEND_PRE_CONNECT);
-  send_key (n);
+  GNUNET_TRANSPORT_set_quota (transport,
+			      &n->peer,
+			      n->bw_in,
+			      n->bw_out,
+			      GNUNET_TIME_UNIT_FOREVER_REL,
+			      NULL, NULL);
+  send_key (n); 
 }
 
 
