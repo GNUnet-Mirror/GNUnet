@@ -170,10 +170,10 @@ update_tracker (struct GNUNET_BANDWIDTH_Tracker *av)
 		  left_time_ms = left_bytes / avail_per_ms;
 		}
 	    }
-	  else
-	    {
-	      left_time_ms = 0;
-	    }
+	}
+      else
+        {
+           left_time_ms = 0;
 	}
       av->consumption_since_last_update__ = 0;
       av->last_update__.value = now.value - left_time_ms;
