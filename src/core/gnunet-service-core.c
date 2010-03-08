@@ -43,7 +43,7 @@
 
 #define DEBUG_HANDSHAKE GNUNET_NO
 
-#define DEBUG_CORE_QUOTA GNUNET_YES
+#define DEBUG_CORE_QUOTA GNUNET_NO
 
 /**
  * Receive and send buffer windows grow over time.  For
@@ -1750,9 +1750,11 @@ set_key_retry_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Neighbour *n = cls;
 
+#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Retrying key transmission to `%4s'\n",
 	      GNUNET_i2s (&n->peer));
+#endif
   n->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
   n->set_key_retry_frequency =
     GNUNET_TIME_relative_multiply (n->set_key_retry_frequency, 2);
@@ -2736,7 +2738,8 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
       return;
     }
 #if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Decrypting key material.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Decrypting key material.\n");
 #endif  
   if ((GNUNET_CRYPTO_rsa_decrypt (my_private_key,
                                   &m->encrypted_key,
@@ -3082,10 +3085,12 @@ handle_encrypted_message (struct Neighbour *n,
   /* process decrypted message(s) */
   if (n->bw_out_external_limit.value__ != pt->inbound_bw_limit.value__)
     {
+#if DEBUG_CORE_SET_QUOTA
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Received %u b/s as new inbound limit for peer `%4s'\n",
 		  (unsigned int) ntohl (pt->inbound_bw_limit.value__),
 		  GNUNET_i2s (&n->peer));
+#endif
       n->bw_out_external_limit = pt->inbound_bw_limit;
       n->bw_out = GNUNET_BANDWIDTH_value_min (n->bw_out_external_limit,
 					      n->bw_out_internal_limit);
