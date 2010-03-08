@@ -54,6 +54,17 @@
 
 
 /**
+ * What is the maximum delay for a P2P FS message (in our interaction
+ * with core)?  FS-internal delays are another story.  The value is
+ * chosen based on the 32k block size.  Given that peers typcially
+ * have at least 1 kb/s bandwidth, 45s waits give us a chance to
+ * transmit one message even to the lowest-bandwidth peers.
+ */
+#define MAX_TRANSMIT_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 45)
+
+
+
+/**
  * Maximum number of requests (from other peers) that we're
  * willing to have pending at any given point in time.
  * FIXME: set from configuration (and 32 is a tiny value for testing only).
@@ -1041,7 +1052,7 @@ add_to_pending_messages_for_peer (struct ConnectedPeer *cp,
       GNUNET_PEER_resolve (cp->pid, &pid);
       cp->cth = GNUNET_CORE_notify_transmit_ready (core,
 						   cp->pending_messages_head->priority,
-						   GNUNET_TIME_UNIT_FOREVER_REL,
+						   MAX_TRANSMIT_DELAY,
 						   &pid,
 						   cp->pending_messages_head->msize,
 						   &transmit_to_peer,
@@ -1092,6 +1103,42 @@ test_load_too_high ()
 /* ******************* Pending Request Refresh Task ******************** */
 
 
+
+/**
+ * We use a random delay to make the timing of requests less
+ * predictable.  This function returns such a random delay.
+ *
+ * FIXME: make schedule dependent on the specifics of the request?
+ * Or bandwidth and number of connected peers and load?
+ *
+ * @return random delay to use for some request, between 0 and TTL_DECREMENT ms
+ */
+static struct GNUNET_TIME_Relative
+get_processing_delay ()
+{
+  return GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+					GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+								  TTL_DECREMENT));
+}
+
+
+/**
+ * We're processing a GET request from another peer and have decided
+ * to forward it to other peers.  This function is called periodically
+ * and should forward the request to other peers until we have all
+ * possible replies.  If we have transmitted the *only* reply to
+ * the initiator we should destroy the pending request.  If we have
+ * many replies in the queue to the initiator, we should delay sending
+ * out more queries until the reply queue has shrunk some.
+ *
+ * @param cls our "struct ProcessGetContext *"
+ * @param tc unused
+ */
+static void
+forward_request_task (void *cls,
+		      const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
 /**
  * Function called after we either failed or succeeded
  * at transmitting a query to a peer.  
@@ -1105,14 +1152,26 @@ transmit_query_continuation (void *cls,
 {
   struct PendingRequest *pr = cls;
 
-  if (tpid == 0)    
-    return;    
+  if (tpid == 0)   
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Transmission of request failed, will try again later.\n");
+      pr->task = GNUNET_SCHEDULER_add_delayed (sched,
+					       get_processing_delay (),
+					       &forward_request_task,
+					       pr); 
+      return;    
+    }
   GNUNET_PEER_change_rc (tpid, 1);
   if (pr->used_pids_off == pr->used_pids_size)
     GNUNET_array_grow (pr->used_pids,
 		       pr->used_pids_size,
 		       pr->used_pids_size * 2 + 2);
   pr->used_pids[pr->used_pids_off++] = tpid;
+  pr->task = GNUNET_SCHEDULER_add_delayed (sched,
+					   get_processing_delay (),
+					   &forward_request_task,
+					   pr);
 }
 
 
@@ -1184,24 +1243,6 @@ refresh_bloomfilter (unsigned int count,
 
 
 /**
- * We use a random delay to make the timing of requests less
- * predictable.  This function returns such a random delay.
- *
- * FIXME: make schedule dependent on the specifics of the request?
- * Or bandwidth and number of connected peers and load?
- *
- * @return random delay to use for some request, between 0 and TTL_DECREMENT ms
- */
-static struct GNUNET_TIME_Relative
-get_processing_delay ()
-{
-  return GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
-					GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-								  TTL_DECREMENT));
-}
-
-
-/**
  * Function called after we've tried to reserve a certain amount of
  * bandwidth for a reply.  Check if we succeeded and if so send our
  * query.
@@ -1245,6 +1286,10 @@ target_reservation_cb (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Selected peer disconnected!\n");
 #endif
+      pr->task = GNUNET_SCHEDULER_add_delayed (sched,
+					       get_processing_delay (),
+					       &forward_request_task,
+					       pr);
       return;
     }
   no_route = GNUNET_NO;
@@ -1263,6 +1308,10 @@ target_reservation_cb (void *cls,
 		      amount,
 		      DBLOCK_SIZE);
 #endif
+	  pr->task = GNUNET_SCHEDULER_add_delayed (sched,
+						   get_processing_delay (),
+						   &forward_request_task,
+						   pr);
 	  return;  /* this target round failed */
 	}
       /* FIXME: if we are "quite" busy, we may still want to skip
@@ -1413,12 +1462,8 @@ forward_request_task (void *cls,
   struct PeerSelectionContext psc;
   struct ConnectedPeer *cp; 
 
-  pr->task = GNUNET_SCHEDULER_add_delayed (sched,
-					   get_processing_delay (),
-					   &forward_request_task,
-					   pr);
-  if (pr->irc != NULL)
-    return; /* previous request still pending */
+  pr->task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_assert (pr->irc == NULL);
   /* (1) select target */
   psc.pr = pr;
   psc.target_score = DBL_MIN;
@@ -1431,6 +1476,10 @@ forward_request_task (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "No peer selected for forwarding!\n");
 #endif
+      pr->task = GNUNET_SCHEDULER_add_delayed (sched,
+					       get_processing_delay (),
+					       &forward_request_task,
+					       pr);
       return; /* nobody selected */
     }
 
