@@ -1376,8 +1376,9 @@ select_messages (struct Neighbour *n,
   uint64_t avail;
   struct GNUNET_TIME_Relative slack;     /* how long could we wait before missing deadlines? */
   size_t off;
-  int discard_low_prio;
+  uint64_t tsize;
   unsigned int queue_size;
+  int discard_low_prio;
 
   GNUNET_assert (NULL != n->messages);
   now = GNUNET_TIME_absolute_get ();
@@ -1387,10 +1388,12 @@ select_messages (struct Neighbour *n,
      priority from consideration for scheduling at the
      end of the loop? */
   queue_size = 0;
+  tsize = 0;
   pos = n->messages;
   while (pos != NULL)
     {
       queue_size++;
+      tsize += pos->size;
       pos = pos->next;
     }
   discard_low_prio = GNUNET_YES;
@@ -1518,8 +1521,10 @@ select_messages (struct Neighbour *n,
     }
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Selected %u bytes of plaintext messages for transmission to `%4s'.\n",
-              off, GNUNET_i2s (&n->peer));
+              "Selected %u/%u bytes of %u/%u plaintext messages for transmission to `%4s'.\n",
+              off, tsize,
+	      queue_size, MAX_PEER_QUEUE_SIZE,
+	      GNUNET_i2s (&n->peer));
 #endif
   return off;
 }
@@ -2036,8 +2041,9 @@ handle_client_send (void *cls,
 
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Adding transmission request for `%4s' to queue\n",
-	      GNUNET_i2s (&sm->peer));
+	      "Adding transmission request for `%4s' of size %u to queue\n",
+	      GNUNET_i2s (&sm->peer),
+	      msize);
 #endif  
   e = GNUNET_malloc (sizeof (struct MessageEntry) + msize);
   e->deadline = GNUNET_TIME_absolute_ntoh (sm->deadline);
