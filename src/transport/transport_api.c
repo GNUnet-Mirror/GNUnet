@@ -829,14 +829,30 @@ GNUNET_TRANSPORT_set_quota (struct GNUNET_TRANSPORT_Handle *handle,
   n = neighbour_find (handle, target);
   if (n != NULL)
     {
+#if DEBUG_TRANSPORT
       if (ntohl (quota_out.value__) != n->out_tracker.available_bytes_per_s__)
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		    "Quota changed from %u to %u for peer `%s'\n",
 		    (unsigned int) n->out_tracker.available_bytes_per_s__,
 		    (unsigned int) ntohl (quota_out.value__),
 		    GNUNET_i2s (target));
+      else
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "Quota remains at %u for peer `%s'\n",
+		    (unsigned int) n->out_tracker.available_bytes_per_s__,
+		    GNUNET_i2s (target));
+#endif
       GNUNET_BANDWIDTH_tracker_update_quota (&n->out_tracker,
 					     quota_out);
+    }
+  else
+    {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Quota changed to %u for peer `%s', but I have no such neighbour!\n",
+		  (unsigned int) ntohl (quota_out.value__),
+		  GNUNET_i2s (target));
+#endif
     }
   sqc = GNUNET_malloc (sizeof (struct SetQuotaContext));
   sqc->handle = handle;
@@ -1108,7 +1124,8 @@ reconnect (void *cls,
   while (NULL != n)
     {
 #if DEBUG_TRANSPORT_DISCONNECT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting due to reconnect being called\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Disconnecting due to reconnect being called\n");
 #endif
       next = n->next;
       if (n->is_connected)
@@ -1116,7 +1133,8 @@ reconnect (void *cls,
       n = next;
     }
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to transport service.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Connecting to transport service.\n");
 #endif
   GNUNET_assert (h->client == NULL);
   h->client = GNUNET_CLIENT_connect (h->sched, "transport", h->cfg);
