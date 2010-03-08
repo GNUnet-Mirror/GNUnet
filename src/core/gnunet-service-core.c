@@ -1593,9 +1593,11 @@ batch_message (struct Neighbour *n,
   *retry_time = GNUNET_TIME_UNIT_FOREVER_REL;
   if (0 == select_messages (n, size, retry_time))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "No messages selected, will try again in %llu ms\n",
                   retry_time->value);
+#endif
       return 0;
     }
   ntm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_OUTBOUND);
