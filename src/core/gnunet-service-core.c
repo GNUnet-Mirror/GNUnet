@@ -76,6 +76,11 @@
 #define PAST_EXPIRATION_DISCARD_TIME GNUNET_TIME_UNIT_SECONDS
 
 /**
+ * How long do we delay messages to get larger packet sizes (CORKing)?
+ */
+#define MAX_CORK_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+
+/**
  * What is the maximum delay for a SET_KEY message?
  */
 #define MAX_SET_KEY_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
@@ -116,7 +121,8 @@
 #define PONG_PRIORITY 0xFFFFFF
 
 /**
- * How many messages do we queue per peer at most?
+ * How many messages do we queue per peer at most?  Must be at
+ * least two.
  */
 #define MAX_PEER_QUEUE_SIZE 16
 
@@ -342,6 +348,12 @@ struct MessageEntry
    * By when are we supposed to transmit this message?
    */
   struct GNUNET_TIME_Absolute deadline;
+
+  /**
+   * By when are we supposed to transmit this message (after
+   * giving slack)?
+   */
+  struct GNUNET_TIME_Absolute slack_deadline;
 
   /**
    * How important is this message to us?
@@ -1409,7 +1421,7 @@ select_messages (struct Neighbour *n,
       off = 0;
       /* maximum time we can wait before transmitting anything
          and still make all of our deadlines */
-      slack = GNUNET_TIME_UNIT_FOREVER_REL;
+      slack = MAX_CORK_DELAY;
       pos = n->messages;
       /* note that we use "*2" here because we want to look
          a bit further into the future; much more makes no
@@ -1447,10 +1459,16 @@ select_messages (struct Neighbour *n,
                   slack = GNUNET_TIME_relative_min (slack,
 						    GNUNET_BANDWIDTH_value_get_delay_for (n->bw_out,
 											  avail));
-                  if ( (pos->deadline.value < now.value) ||
-		       (GNUNET_YES == pos->got_slack) )		       
+                  if (pos->deadline.value <= now.value) 
 		    {
+		      /* now or never */
 		      slack = GNUNET_TIME_UNIT_ZERO;
+		    }
+		  else if (GNUNET_YES == pos->got_slack)
+		    {
+		      /* should be soon now! */
+		      slack = GNUNET_TIME_relative_min (slack,
+							GNUNET_TIME_absolute_get_remaining (pos->slack_deadline));
 		    }
                   else
 		    {
@@ -1458,6 +1476,8 @@ select_messages (struct Neighbour *n,
 			GNUNET_TIME_relative_min (slack, 
 						  GNUNET_TIME_absolute_get_difference (now, pos->deadline));
 		      pos->got_slack = GNUNET_YES;
+		      pos->slack_deadline = GNUNET_TIME_absolute_min (pos->deadline,
+								      GNUNET_TIME_relative_to_absolute (MAX_CORK_DELAY));
 		    }
                 }
             }
@@ -1481,15 +1501,15 @@ select_messages (struct Neighbour *n,
     }
   /* guard against sending "tiny" messages with large headers without
      urgent deadlines */
-  if ( (slack.value > 1000) && 
+  if ( (slack.value > 0) && 
        (size > 4 * off) &&
-       (queue_size < MAX_PEER_QUEUE_SIZE / 2) )
+       (queue_size <= MAX_PEER_QUEUE_SIZE - 2) )
     {
       /* less than 25% of message would be filled with deadlines still
          being met if we delay by one second or more; so just wait for
          more data; but do not wait longer than 1s (since we don't want
 	 to delay messages for a really long time either). */
-      retry_time->value = 1000;
+      *retry_time = MAX_CORK_DELAY;
       /* reset do_transmit values for next time */
       while (pos != last)
         {
@@ -1498,7 +1518,8 @@ select_messages (struct Neighbour *n,
         }
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Deferring transmission for 1s due to underfull message buffer size (%u/%u)\n",
+		  "Deferring transmission for %llums due to underfull message buffer size (%u/%u)\n",
+		  (unsigned long long) slack.value,
 		  (unsigned int) off,
 		  (unsigned int) size);
 #endif
