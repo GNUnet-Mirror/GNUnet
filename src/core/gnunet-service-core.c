@@ -1935,7 +1935,7 @@ create_neighbour (const struct GNUNET_PeerIdentity *pid)
   n->bw_out_external_limit = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT;
   n->ping_challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                                 (uint32_t) - 1);
-  schedule_quota_update (n);
+  neighbour_quota_update (n, NULL);
   return n;
 }
 
