@@ -1118,7 +1118,7 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
 	    {
 	      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 			  _("Found myself `%s' in friend list (useless, ignored)\n"),
-			  GNUNET_i2s (&fl->id));
+			  GNUNET_i2s (&pid));
 	    }
 	}
       pos = pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded);
