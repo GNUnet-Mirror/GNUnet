@@ -3009,6 +3009,8 @@ handle_set_quota (void *cls,
 #endif
   GNUNET_BANDWIDTH_tracker_update_quota (&n->in_tracker,
 					 qsm->quota);
+  if (0 == ntohl (qsm->quota.value__)) 
+    disconnect_neighbour (n, GNUNET_NO);    
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 

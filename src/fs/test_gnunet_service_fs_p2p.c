@@ -36,7 +36,7 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 600)
 
 #define NUM_DAEMONS 2
 
@@ -46,6 +46,8 @@ static struct GNUNET_FS_TestDaemon *daemons[NUM_DAEMONS];
 
 static struct GNUNET_SCHEDULER_Handle *sched;
 
+static int ok;
+
 
 static void
 do_stop (void *cls,
@@ -54,10 +56,18 @@ do_stop (void *cls,
   GNUNET_FS_TEST_daemons_stop (sched,
 			       NUM_DAEMONS,
 			       daemons);
-  GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Finished download, shutting down\n",
-	      (unsigned long long) FILESIZE);
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Finished download, shutting down\n",
+		  (unsigned long long) FILESIZE);
+    }
+  else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Timeout during download, shutting down with error\n");
+      ok = 1;
+    }
 }
 
 
@@ -156,7 +166,7 @@ main (int argc, char *argv[])
                       argvx, "test-gnunet-service-fs-p2p",
 		      "nohelp", options, &run, NULL);
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
-  return 0;
+  return ok;
 }
 
 /* end of test_gnunet_service_fs_p2p.c */
