@@ -566,6 +566,8 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
   unsigned int cnt;
   int ec;
   uint64_t fs;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
+  struct GNUNET_PeerIdentity pid;
 
   if (GNUNET_SYSERR == GNUNET_DISK_directory_create_for_file (filename))
     return NULL;
@@ -622,8 +624,12 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
         GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "fcntl",
                                   filename);
       GNUNET_assert (GNUNET_YES == GNUNET_DISK_file_close (fd));
+      GNUNET_CRYPTO_rsa_key_get_public (ret, &pub);
+      GNUNET_CRYPTO_hash (&pub, sizeof (pub), &pid.hashPubKey);
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("Stored new private key in `%s'.\n"), filename);
+                  _("I am host `%s'.  Stored new private key in `%s'.\n"), 
+		  GNUNET_i2s (&pid),
+		  filename);
       return ret;
     }
   /* hostkey file exists already, read it! */
@@ -716,6 +722,12 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
                                sizeof (struct RsaPrivateKeyBinaryEncoded)))
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "fcntl", filename);
   GNUNET_assert (GNUNET_YES == GNUNET_DISK_file_close (fd));
+  GNUNET_CRYPTO_rsa_key_get_public (ret, &pub);
+  GNUNET_CRYPTO_hash (&pub, sizeof (pub), &pid.hashPubKey);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      _("I am host `%s'.  Read private key from `%s'.\n"), 
+	      GNUNET_i2s (&pid),
+	      filename);
   return ret;
 }
 

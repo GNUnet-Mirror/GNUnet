@@ -1208,7 +1208,7 @@ GNUNET_DISK_file_open (const char *fn,
       return NULL;
     }
   if (flags & GNUNET_DISK_OPEN_FAILIFEXISTS)
-    oflags |= (O_CREAT & O_EXCL);
+    oflags |= (O_CREAT | O_EXCL);
   if (flags & GNUNET_DISK_OPEN_TRUNCATE)
     oflags |= O_TRUNC;
   if (flags & GNUNET_DISK_OPEN_APPEND)
