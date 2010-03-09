@@ -29,6 +29,7 @@
 
 #define VERBOSE GNUNET_NO
 #define START_ARM GNUNET_YES
+#define LOG_BACKOFF GNUNET_NO
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 #define SERVICE_TEST_TIMEOUT GNUNET_TIME_UNIT_FOREVER_REL
 #define FIVE_MILLISECONDS GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 5)
@@ -37,8 +38,11 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 static struct GNUNET_ARM_Handle *arm;
 static int ok = 1;
+
+#if LOG_BACKOFF
 static FILE *killLogFilePtr;
 static char *killLogFileName;
+#endif
 
 
 static void
@@ -89,22 +93,27 @@ do_nothing_restarted_notify_task (void *cls,
   static int trialCount = 0;
   
   trialCount++;
-  
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0) { 
-    fprintf(killLogFilePtr, 
-	    "%d.Reason is shutdown!\n",
-	    trialCount);
-  }
-  else if ((tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT) != 0) {
-    fprintf(killLogFilePtr, 
-	    "%d.Reason is timeout!\n", 
-	    trialCount);
-  }
-  else if ((tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE) != 0) {
-    fprintf(killLogFilePtr, 
-	    "%d.Service is running!\n", 
-	    trialCount);
-  }  
+
+#if LOG_BACKOFF  
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0) 
+    {
+      fprintf(killLogFilePtr, 
+	      "%d.Reason is shutdown!\n",
+	      trialCount);
+    } 
+  else if ((tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT) != 0) 
+    {
+      fprintf(killLogFilePtr, 
+	      "%d.Reason is timeout!\n", 
+	      trialCount);
+    }
+  else if ((tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE) != 0) 
+    {
+      fprintf(killLogFilePtr, 
+	      "%d.Service is running!\n", 
+	      trialCount);
+    }  
+#endif
   GNUNET_SCHEDULER_add_now (sched, &kill_task, &a);
 }
 
@@ -130,18 +139,21 @@ kill_task (void *cbData,
   
   if (NULL != cbData) {
     waitedFor = GNUNET_TIME_absolute_get_duration (startedWaitingAt);
+#if LOG_BACKOFF
     fprintf(killLogFilePtr, 
-	    "Waited for: %llu ms\n\n", 
+	    "Waited for: %llu ms\n", 
 	    (unsigned long long) waitedFor.value);
+#endif
   }
   else
     waitedFor.value = 0;
   /* Connect to the doNothing task */
   doNothingConnection = GNUNET_CLIENT_connect (sched, "do-nothing", cfg);
+#if LOG_BACKOFF
   if (NULL == doNothingConnection)
     fprintf(killLogFilePtr, 
 	    "Unable to connect to do-nothing process!\n");
-  
+#endif  
   if (trialCount == 12) {
     GNUNET_ARM_stop_service (arm, 
 			     "do-nothing", 
@@ -209,12 +221,14 @@ check ()
 static int
 init()
 {
+#if LOG_BACKOFF
   killLogFileName = GNUNET_DISK_mktemp("exponential-backoff-waiting.log");
   if (NULL == (killLogFilePtr = FOPEN(killLogFileName, "w"))) {
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "fopen", killLogFileName);
     GNUNET_free (killLogFileName);
     return GNUNET_SYSERR;
   }  
+#endif
   return GNUNET_OK;
 }
 
@@ -222,8 +236,10 @@ init()
 static void
 houseKeep()
 {
+#if LOG_BACKOFF
   GNUNET_assert (0 == fclose (killLogFilePtr));
   GNUNET_free(killLogFileName);
+#endif
 }
 
 
