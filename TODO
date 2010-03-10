@@ -13,13 +13,7 @@ away), in order in which they will likely be done:
 * ARM [Safey]
 
 Urgent items (before announcing ng.gnunet.org):
-* CORE/Transport:
-  - 'out' bandwidth limit is "stuck" at 1024 (minimum initial value), does not go up; why?
-     (shows in FS P2P test!)
-* FS (basic anonymous FS only:
-  - test multi-peer search/download
-    + Same query is sent to the same peer in rather rapid succession (10x/minute?),
-      should tune code to reduce repetition...
+* core fails to do keepalive on idle connections => disconnect!
 * new webpage
   - run peer => have a 0.9.x hostlist
 => Deploy(able) development network
@@ -51,6 +45,8 @@ Urgent items (before announcing ng.gnunet.org):
   - needs more testing (especially F2F topology)
 * CORE:
   - needs more testing
+* FS:
+  - 2-peer download is still too slow (why?)
 * Module features to implement:
   - advanced FS API parts
     + namespaces: fundamental namespace API
