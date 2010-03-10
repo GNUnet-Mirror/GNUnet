@@ -68,4 +68,5 @@ test_exponential_backoff_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la
 
 EXTRA_DIST = \
-  test_arm_api_data.conf
+  test_arm_api_data.conf \
+  do_start_process.c

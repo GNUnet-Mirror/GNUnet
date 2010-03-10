@@ -143,6 +143,8 @@ struct RequestContext
 
 };
 
+#include "do_start_process.c"
+
 
 /**
  * A client specifically requested starting of ARM itself.
@@ -161,6 +163,8 @@ arm_service_report (void *cls,
   pid_t pid;
   char *binary;
   char *config;
+  char *loprefix;
+  char *lopostfix;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
     {
@@ -181,9 +185,15 @@ arm_service_report (void *cls,
 	      "gnunet-service-arm");
 #endif
   /* FIXME: should we check that HOSTNAME for 'arm' is localhost? */
-  /* FIXME: interpret 'PREFIX' and 'OPTIONS' configuration options
-     (as done by 'gnunet-service-arm.c::start_process') */
-  /* start service */
+
+ if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (pos->h->cfg,
+					     "arm", "PREFIX", &loprefix))
+    loprefix = GNUNET_strdup ("");
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (pos->h->cfg,
+					     "arm", "OPTIONS", &lopostfix))
+    lopostfix = GNUNET_strdup ("");
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (pos->h->cfg,
 					     "arm",
@@ -197,6 +207,8 @@ arm_service_report (void *cls,
       if (pos->callback != NULL)
         pos->callback (pos->cls, GNUNET_SYSERR);
       GNUNET_free (pos);
+      GNUNET_free (loprefix);
+      GNUNET_free (lopostfix);
       return;
     }
   if (GNUNET_OK !=
@@ -211,15 +223,23 @@ arm_service_report (void *cls,
         pos->callback (pos->cls, GNUNET_SYSERR);
       GNUNET_free (binary);
       GNUNET_free (pos);
+      GNUNET_free (loprefix);
+      GNUNET_free (lopostfix);
       return;
     }
-  pid = GNUNET_OS_start_process (NULL, NULL, binary, binary, "-d", "-c", config,
+  pid = do_start_process (loprefix,
+			  binary, 
+			  "-c", config, 
 #if DEBUG_ARM
-                                 "-L", "DEBUG",
+			  "-L", "DEBUG",
 #endif
-                                 NULL);
+			  "-d",
+			  lopostfix,
+			  NULL);
   GNUNET_free (binary);
   GNUNET_free (config);
+  GNUNET_free (loprefix);
+  GNUNET_free (lopostfix);
   if (pid == -1)
     {
       if (pos->callback != NULL)

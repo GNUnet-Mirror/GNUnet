@@ -344,6 +344,7 @@ free_entry (struct ServiceList *pos)
   GNUNET_free (pos);
 }
 
+#include "do_start_process.c"
 
 /**
  * Actually start the process for the given service.
@@ -354,13 +355,8 @@ static void
 start_process (struct ServiceList *sl)
 {
   char *loprefix;
-  char *lopostfix;
   char *options;
-  char **argv;
-  unsigned int argv_size;
-  char *lopos;
   char *optpos;
-  const char *firstarg;
   int use_debug;
 
   /* start service */
@@ -372,7 +368,7 @@ start_process (struct ServiceList *sl)
       GNUNET_CONFIGURATION_get_value_string (cfg,
 					     sl->name, "OPTIONS", &options))
     {      
-      options = GNUNET_strdup (lopostfix);
+      options = GNUNET_strdup (final_option);
       /* replace '{}' with service name */
       if (NULL == strstr (options, "%"))
 	{
@@ -396,75 +392,22 @@ start_process (struct ServiceList *sl)
 	      "Starting service `%s' using binary `%s' and configuration `%s'\n",
 	      sl->name, sl->binary, sl->config);
 #endif
-  argv_size = 6;
-  if (use_debug)
-    argv_size += 2;
-  lopos = loprefix;
-  while ('\0' != *lopos)
-    {
-      if (*lopos == ' ')
-	argv_size++;
-      lopos++;
-    }
-  optpos = options;
-  while ('\0' != *optpos)
-    {
-      if (*optpos == ' ')
-	argv_size++;
-      optpos++;
-    }
-  firstarg = NULL;
-  argv = GNUNET_malloc (argv_size * sizeof (char *));
-  argv_size = 0;
-  lopos = loprefix;
-
-  while ('\0' != *lopos)
-    {
-      while (*lopos == ' ')
-	lopos++;
-      if (*lopos == '\0')
-	continue;
-      if (argv_size == 0)
-	firstarg = lopos;
-      argv[argv_size++] = lopos;
-      while (('\0' != *lopos) && (' ' != *lopos))
-	lopos++;
-      if ('\0' == *lopos)
-	continue;
-      *lopos = '\0';
-      lopos++;
-    }
-  if (argv_size == 0)
-    firstarg = sl->binary;
-  argv[argv_size++] = sl->binary;
-  argv[argv_size++] = "-c";
-  argv[argv_size++] = sl->config;
   if (GNUNET_YES == use_debug)
-    {
-      argv[argv_size++] = "-L";
-      argv[argv_size++] = "DEBUG";
-    }
-  optpos = options;
-  while ('\0' != *optpos)
-    {
-      while (*optpos == ' ')
-	optpos++;
-      if (*optpos == '\0')
-	continue;
-      argv[argv_size++] = optpos;
-      while (('\0' != *optpos) && (' ' != *optpos))
-	optpos++;
-      if ('\0' == *optpos)
-	continue;
-      *optpos = '\0';
-      optpos++;
-    }
-  argv[argv_size] = NULL;
-  sl->pid = GNUNET_OS_start_process_v (firstarg, argv);
-  /* FIXME: should check sl->pid */
-  GNUNET_free (argv);
+    sl->pid = do_start_process (loprefix,
+				sl->binary,
+				"-c", sl->config,
+				"-L", "DEBUG",
+				options,
+				NULL);
+  else
+    sl->pid = do_start_process (loprefix,
+				sl->binary,
+				"-c", sl->config,
+				options,
+				NULL);
   GNUNET_free (loprefix);
   GNUNET_free (options);
+  /* FIXME: should check sl->pid */
 }
 
 
