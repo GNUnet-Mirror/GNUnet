@@ -13,7 +13,6 @@ away), in order in which they will likely be done:
 * ARM [Safey]
 
 Urgent items (before announcing ng.gnunet.org):
-* core fails to do keepalive on idle connections => disconnect!
 * new webpage
   - run peer => have a 0.9.x hostlist
 => Deploy(able) development network

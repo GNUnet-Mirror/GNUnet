@@ -101,6 +101,11 @@
 #define MAX_PONG_DELAY GNUNET_TIME_relative_multiply (MAX_PING_DELAY, 2)
 
 /**
+ * What is the minimum frequency for a PING message?
+ */
+#define MIN_PING_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+
+/**
  * How often do we recalculate bandwidth quotas?
  */
 #define QUOTA_UPDATE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
@@ -475,6 +480,11 @@ struct Neighbour
    * ID of task used for updating bandwidth quota for this neighbour.
    */
   GNUNET_SCHEDULER_TaskIdentifier quota_update_task;
+
+  /**
+   * ID of task used for sending keep-alive pings.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier keep_alive_task;
 
   /**
    * ID of task used for cleaning up dead neighbour entries.
@@ -1074,10 +1084,59 @@ free_neighbour (struct Neighbour *n)
     GNUNET_SCHEDULER_cancel (sched, n->quota_update_task);
   if (n->dead_clean_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (sched, n->dead_clean_task);
+  if (n->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (sched, n->keep_alive_task);
   GNUNET_free_non_null (n->public_key);
   GNUNET_free_non_null (n->pending_ping);
   GNUNET_free_non_null (n->pending_pong);
   GNUNET_free (n);
+}
+
+
+/**
+ * Check if we have encrypted messages for the specified neighbour
+ * pending, and if so, check with the transport about sending them
+ * out.
+ *
+ * @param n neighbour to check.
+ */
+static void process_encrypted_neighbour_queue (struct Neighbour *n);
+
+
+/**
+ * Encrypt size bytes from in and write the result to out.  Use the
+ * key for outbound traffic of the given neighbour.
+ *
+ * @param n neighbour we are sending to
+ * @param iv initialization vector to use
+ * @param in ciphertext
+ * @param out plaintext
+ * @param size size of in/out
+ * @return GNUNET_OK on success
+ */
+static int
+do_encrypt (struct Neighbour *n,
+            const GNUNET_HashCode * iv,
+            const void *in, void *out, size_t size)
+{
+  if (size != (uint16_t) size)
+    {
+      GNUNET_break (0);
+      return GNUNET_NO;
+    }
+  GNUNET_assert (size ==
+                 GNUNET_CRYPTO_aes_encrypt (in,
+                                            (uint16_t) size,
+                                            &n->encrypt_key,
+                                            (const struct
+                                             GNUNET_CRYPTO_AesInitializationVector
+                                             *) iv, out));
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Encrypted %u bytes for `%4s' using key %u\n", size,
+              GNUNET_i2s (&n->peer), n->encrypt_key.crc32);
+#endif
+  return GNUNET_OK;
 }
 
 
@@ -1092,6 +1151,68 @@ consider_free_neighbour (struct Neighbour *n);
 
 
 /**
+ * Task triggered when a neighbour entry is about to time out 
+ * (and we should prevent this by sending a PING).
+ *
+ * @param cls the 'struct Neighbour'
+ * @param tc scheduler context (not used)
+ */
+static void
+send_keep_alive (void *cls,
+		 const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Neighbour *n = cls;
+  struct GNUNET_TIME_Relative retry;
+  struct GNUNET_TIME_Relative left;
+  struct MessageEntry *me;
+  struct PingMessage pp;
+  struct PingMessage *pm;
+
+  n->keep_alive_task = GNUNET_SCHEDULER_NO_TASK;
+  /* send PING */
+  me = GNUNET_malloc (sizeof (struct MessageEntry) +
+                      sizeof (struct PingMessage));
+  me->deadline = GNUNET_TIME_relative_to_absolute (MAX_PING_DELAY);
+  me->priority = PING_PRIORITY;
+  me->size = sizeof (struct PingMessage);
+  n->encrypted_tail->next = me;
+  n->encrypted_tail = me;
+  pm = (struct PingMessage *) &me[1];
+  pm->header.size = htons (sizeof (struct PingMessage));
+  pm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_PING);
+  pp.challenge = htonl (n->ping_challenge);
+  pp.target = n->peer;
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Encrypting `%s' and `%s' messages for `%4s'.\n",
+              "SET_KEY", "PING", GNUNET_i2s (&n->peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending `%s' to `%4s' with challenge %u encrypted using key %u\n",
+              "PING",
+              GNUNET_i2s (&n->peer), n->ping_challenge, n->encrypt_key.crc32);
+#endif
+  do_encrypt (n,
+              &n->peer.hashPubKey,
+              &pp.challenge,
+              &pm->challenge,
+              sizeof (struct PingMessage) -
+              sizeof (struct GNUNET_MessageHeader));
+  process_encrypted_neighbour_queue (n);
+  /* reschedule PING job */
+  left = GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_add (n->last_activity,
+								       GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT));
+  retry = GNUNET_TIME_relative_max (GNUNET_TIME_relative_divide (left, 2),
+				    MIN_PING_FREQUENCY);
+  n->keep_alive_task 
+    = GNUNET_SCHEDULER_add_delayed (sched, 
+				    GNUNET_TIME_relative_divide (left, 2),
+				    &send_keep_alive,
+				    n);
+
+}
+
+
+/**
  * Task triggered when a neighbour entry might have gotten stale.
  *
  * @param cls the 'struct Neighbour'
@@ -1102,6 +1223,7 @@ consider_free_task (void *cls,
 		    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Neighbour *n = cls;
+
   n->dead_clean_task = GNUNET_SCHEDULER_NO_TASK;
   consider_free_neighbour (n);
 }
@@ -1127,7 +1249,7 @@ consider_free_neighbour (struct Neighbour *n)
     return; /* no chance */
   
   left = GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_add (n->last_activity,
-								       MAX_PONG_DELAY));
+								       GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT));
   if (left.value > 0)
     {
       if (n->dead_clean_task != GNUNET_SCHEDULER_NO_TASK)
@@ -1154,16 +1276,6 @@ consider_free_neighbour (struct Neighbour *n)
   neighbour_count--;
   free_neighbour (n);
 }
-
-
-/**
- * Check if we have encrypted messages for the specified neighbour
- * pending, and if so, check with the transport about sending them
- * out.
- *
- * @param n neighbour to check.
- */
-static void process_encrypted_neighbour_queue (struct Neighbour *n);
 
 
 /**
@@ -1324,43 +1436,6 @@ do_decrypt (struct Neighbour *n,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Decrypted %u bytes from `%4s' using key %u\n",
               size, GNUNET_i2s (&n->peer), n->decrypt_key.crc32);
-#endif
-  return GNUNET_OK;
-}
-
-
-/**
- * Encrypt size bytes from in and write the result to out.  Use the
- * key for outbound traffic of the given neighbour.
- *
- * @param n neighbour we are sending to
- * @param iv initialization vector to use
- * @param in ciphertext
- * @param out plaintext
- * @param size size of in/out
- * @return GNUNET_OK on success
- */
-static int
-do_encrypt (struct Neighbour *n,
-            const GNUNET_HashCode * iv,
-            const void *in, void *out, size_t size)
-{
-  if (size != (uint16_t) size)
-    {
-      GNUNET_break (0);
-      return GNUNET_NO;
-    }
-  GNUNET_assert (size ==
-                 GNUNET_CRYPTO_aes_encrypt (in,
-                                            (uint16_t) size,
-                                            &n->encrypt_key,
-                                            (const struct
-                                             GNUNET_CRYPTO_AesInitializationVector
-                                             *) iv, out));
-#if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Encrypted %u bytes for `%4s' using key %u\n", size,
-              GNUNET_i2s (&n->peer), n->encrypt_key.crc32);
 #endif
   return GNUNET_OK;
 }
@@ -2645,9 +2720,16 @@ handle_pong (struct Neighbour *n,
       cnm.peer = n->peer;
       send_to_all_clients (&cnm.header, GNUNET_YES, GNUNET_CORE_OPTION_SEND_CONNECT);
       process_encrypted_neighbour_queue (n);
-      break;
+      /* fall-through! */
     case PEER_STATE_KEY_CONFIRMED:
-      /* duplicate PONG? */
+      n->last_activity = GNUNET_TIME_absolute_get ();
+      if (n->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)
+	GNUNET_SCHEDULER_cancel (sched, n->keep_alive_task);
+      n->keep_alive_task 
+	= GNUNET_SCHEDULER_add_delayed (sched, 
+					GNUNET_TIME_relative_divide (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT, 2),
+					&send_keep_alive,
+					n);
       break;
     default:
       GNUNET_break (0);
@@ -2711,8 +2793,9 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
 		   sizeof (struct GNUNET_PeerIdentity)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Received `%s' message that was not for me.  Ignoring.\n"),
-		  "SET_KEY");
+		  _("Received `%s' message that was for `%s', not for me.  Ignoring.\n"),
+		  "SET_KEY",
+		  GNUNET_i2s (&m->target));
       return;
     }
   if ((ntohl (m->purpose.size) !=
@@ -3106,6 +3189,13 @@ handle_encrypted_message (struct Neighbour *n,
 				  NULL, NULL); 
     }
   n->last_activity = GNUNET_TIME_absolute_get ();
+  if (n->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (sched, n->keep_alive_task);
+  n->keep_alive_task 
+    = GNUNET_SCHEDULER_add_delayed (sched, 
+				    GNUNET_TIME_relative_divide (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT, 2),
+				    &send_keep_alive,
+				    n);
   off = sizeof (struct EncryptedMessage);
   deliver_messages (n, buf, size, off);
 }
@@ -3233,6 +3323,13 @@ handle_transport_receive (void *cls,
       n->last_activity = now;
       if (!up)
         n->time_established = now;
+      if (n->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)
+	GNUNET_SCHEDULER_cancel (sched, n->keep_alive_task);
+      n->keep_alive_task 
+	= GNUNET_SCHEDULER_add_delayed (sched, 
+					GNUNET_TIME_relative_divide (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT, 2),
+					&send_keep_alive,
+					n);
     }
 }
 

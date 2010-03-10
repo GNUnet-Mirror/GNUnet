@@ -204,6 +204,20 @@ struct GNUNET_TIME_Relative GNUNET_TIME_relative_min (struct
 						      struct
 						      GNUNET_TIME_Relative t2);
 
+
+/**
+ * Return the maximum of two relative time values.
+ *
+ * @param t1 first timestamp
+ * @param t2 other timestamp
+ * @return timestamp that is larger
+ */
+struct GNUNET_TIME_Relative GNUNET_TIME_relative_max (struct
+						      GNUNET_TIME_Relative
+						      t1,
+						      struct
+						      GNUNET_TIME_Relative t2);
+
 /**
  * Return the minimum of two absolute time values.
  *
@@ -312,6 +326,19 @@ struct GNUNET_TIME_Relative GNUNET_TIME_relative_multiply (struct
                                                            rel,
                                                            unsigned int
                                                            factor);
+
+/**
+ * Divide relative time by a given factor.
+ *
+ * @param rel some duration
+ * @param factor integer to divide by
+ * @return FOREVER if rel=FOREVER or factor==0; otherwise rel/factor
+ */
+struct GNUNET_TIME_Relative GNUNET_TIME_relative_divide (struct
+							 GNUNET_TIME_Relative
+							 rel,
+							 unsigned int
+							 factor);
 
 /**
  * Add relative times together.
