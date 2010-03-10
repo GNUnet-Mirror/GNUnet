@@ -142,6 +142,11 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 static char *prefix_command;
 
 /**
+ * Option to append to each actual command.
+ */
+static char *final_option;
+
+/**
  * ID of task called whenever we get a SIGCHILD.
  */
 static GNUNET_SCHEDULER_TaskIdentifier child_death_task;
@@ -349,6 +354,7 @@ static void
 start_process (struct ServiceList *sl)
 {
   char *loprefix;
+  char *lopostfix;
   char *options;
   char **argv;
   unsigned int argv_size;
@@ -365,7 +371,23 @@ start_process (struct ServiceList *sl)
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
 					     sl->name, "OPTIONS", &options))
-    options = GNUNET_strdup ("");
+    {      
+      options = GNUNET_strdup (lopostfix);
+      /* replace '{}' with service name */
+      if (NULL == strstr (options, "%"))
+	{
+	  while (NULL != (optpos = strstr (options, "{}")))
+	    {
+	      optpos[0] = '%';
+	      optpos[1] = 's';
+	      GNUNET_asprintf (&optpos,
+			       options,
+			       sl->name);
+	      GNUNET_free (options);
+	      options = optpos;
+	    }
+	}
+    }
   use_debug = GNUNET_CONFIGURATION_get_value_yesno (cfg, sl->name, "DEBUG");
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Starting service `%s'\n"), sl->name);
@@ -1011,6 +1033,12 @@ run (void *cls,
 					     "GLOBAL_PREFIX",
 					     &prefix_command))
     prefix_command = GNUNET_strdup ("");
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+					     "ARM",
+					     "GLOBAL_POSTFIX",
+					     &final_option))
+    final_option = GNUNET_strdup ("");
   /* start default services... */
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_string (cfg,
