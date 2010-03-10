@@ -341,8 +341,10 @@ GNUNET_FS_file_information_create_from_reader (void *client_info,
   struct GNUNET_FS_FileInformation *ret;
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_FileInformation));
-  ret->client_info = client_info;
+  ret->client_info = client_info;  
   ret->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
+  if (ret->meta == NULL)
+    ret->meta = GNUNET_CONTAINER_meta_data_create ();
   ret->keywords = (keywords == NULL) ? NULL : GNUNET_FS_uri_dup (keywords);
   ret->expirationTime = expirationTime;
   ret->data.file.reader = reader; 
@@ -615,6 +617,8 @@ GNUNET_FS_file_information_create_from_directory (void *client_info,
   struct EntryProcCls dc;
   struct GNUNET_FS_Uri *ksk;
   struct GNUNET_CONTAINER_MetaData *meta;
+
+  
 
   dc.entries = NULL;
   meta = GNUNET_CONTAINER_meta_data_create ();

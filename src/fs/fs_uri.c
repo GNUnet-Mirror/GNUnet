@@ -1050,6 +1050,8 @@ GNUNET_FS_uri_dup (const struct GNUNET_FS_Uri *uri)
   struct GNUNET_FS_Uri *ret;
   unsigned int i;
 
+  if (uri == NULL)
+    return NULL;
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
   memcpy (ret, uri, sizeof (struct GNUNET_FS_Uri));
   switch (ret->type)

@@ -41,6 +41,8 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static struct GNUNET_FS_Handle *ctx;
 
+static struct GNUNET_SCHEDULER_Handle *sched;
+
 static struct GNUNET_FS_PublishContext *pc;
 
 static struct GNUNET_CONTAINER_MetaData *meta;
@@ -68,6 +70,21 @@ static int do_simulate;
 static int extract_only;
 
 static int do_disable_creation_time;
+
+
+static void 
+do_stop_task (void *cls,
+	      const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_FS_PublishContext *p;
+
+  if (pc != NULL)
+    {
+      p = pc;
+      pc = NULL;
+      GNUNET_FS_publish_stop (p);
+    }
+}
 
 
 /**
@@ -110,18 +127,23 @@ progress_cb (void *cls,
       fprintf (stderr,
 	       _("Error publishing: %s.\n"),
 	       info->value.publish.specifics.error.message);
-      GNUNET_FS_publish_stop (pc);      
+      GNUNET_SCHEDULER_add_continuation (sched,
+					 &do_stop_task,
+					 NULL,
+					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
     case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
       fprintf (stdout,
 	       _("Publishing `%s' done.\n"),
 	       info->value.publish.filename);
       if (info->value.publish.pctx == NULL)
-	GNUNET_FS_publish_stop (pc);
+	GNUNET_SCHEDULER_add_continuation (sched,
+					   &do_stop_task,
+					   NULL,
+					   GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
     case GNUNET_FS_STATUS_PUBLISH_STOPPED: 
-      if (info->value.publish.sc == pc)
-	GNUNET_FS_stop (ctx);
+      GNUNET_break (NULL == pc);
       return NULL;      
     default:
       fprintf (stderr,
@@ -203,10 +225,9 @@ meta_merger (void *cls,
 
 
 /**
- * Function called on all entries before the
- * publication.  This is where we perform
- * modifications to the default based on
- * command-line options.
+ * Function called on all entries before the publication.  This is
+ * where we perform modifications to the default based on command-line
+ * options.
  *
  * @param cls closure
  * @param fi the entry in the publish-structure
@@ -236,18 +257,23 @@ publish_inspector (void *cls,
   char *fs;
   struct GNUNET_FS_Uri *new_uri;
 
-  if (! do_disable_creation_time)
-    GNUNET_CONTAINER_meta_data_add_publication_date (meta);
   if (NULL != topKeywords)
     {
-      new_uri = GNUNET_FS_uri_ksk_merge (topKeywords,
-					 *uri);
-      GNUNET_FS_uri_destroy (*uri);
-      *uri = new_uri;
-      GNUNET_FS_uri_destroy (topKeywords);
+      if (*uri != NULL)
+	{
+	  new_uri = GNUNET_FS_uri_ksk_merge (topKeywords,
+					     *uri);
+	  GNUNET_FS_uri_destroy (*uri);	
+	  *uri = new_uri;
+	  GNUNET_FS_uri_destroy (topKeywords);
+	}
+      else
+	{
+	  *uri = topKeywords;
+	}
       topKeywords = NULL;
     }
-  if (NULL != meta)
+  if (NULL != meta) 
     {
       GNUNET_CONTAINER_meta_data_iterate (meta,
 					  &meta_merger,
@@ -255,9 +281,11 @@ publish_inspector (void *cls,
       GNUNET_CONTAINER_meta_data_destroy (meta);
       meta = NULL;
     }
+  if (! do_disable_creation_time)
+    GNUNET_CONTAINER_meta_data_add_publication_date (m);
   if (extract_only)
     {
-      fn = GNUNET_CONTAINER_meta_data_get_by_type (meta,
+      fn = GNUNET_CONTAINER_meta_data_get_by_type (m,
 						   EXTRACTOR_METATYPE_FILENAME);
       fs = GNUNET_STRINGS_byte_size_fancy (length);
       fprintf (stdout,
@@ -266,12 +294,12 @@ publish_inspector (void *cls,
 	       fs);
       GNUNET_free (fn);
       GNUNET_free (fs);
-      GNUNET_CONTAINER_meta_data_iterate (meta,
+      GNUNET_CONTAINER_meta_data_iterate (m,
 					  &meta_printer,
 					  NULL);
       fprintf (stdout, "\n");
     }
-  if (GNUNET_FS_meta_data_test_for_directory (meta))
+  if (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (m))
     GNUNET_FS_file_information_inspect (fi,
 					&publish_inspector,
 					NULL);
@@ -283,14 +311,14 @@ publish_inspector (void *cls,
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
- * @param sched the scheduler to use
+ * @param s the scheduler to use
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param c configuration
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *sched,
+     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
@@ -298,9 +326,11 @@ run (void *cls,
   struct GNUNET_FS_FileInformation *fi;
   struct GNUNET_FS_Namespace *namespace;
   struct EXTRACTOR_PluginList *l;
+  struct stat sbuf;
   char *ex;
   char *emsg;
   
+  sched = s;
   /* check arguments */
   if ( ( (uri_string == NULL) || (extract_only) ) 
        && ( (args[0] == NULL) || (args[1] != NULL) ) )
@@ -409,15 +439,33 @@ run (void *cls,
 	  GNUNET_free (ex);
 	}
     }
-  fi = GNUNET_FS_file_information_create_from_directory (NULL,
-							 args[0],
-							 &GNUNET_FS_directory_scanner_default,
-							 l,
-							 !do_insert,
-							 anonymity,
-							 priority,
-							 GNUNET_TIME_relative_to_absolute (DEFAULT_EXPIRATION),
-							 &emsg);
+  emsg = NULL;
+  if (0 != STAT (args[0], &sbuf))
+    GNUNET_asprintf (&emsg,
+		     _("Could not access file: %s\n"),
+		     STRERROR (errno));
+  else if (S_ISDIR (sbuf.st_mode))
+    fi = GNUNET_FS_file_information_create_from_directory (NULL,
+							   args[0],
+							   &GNUNET_FS_directory_scanner_default,
+							   l,
+							   !do_insert,
+							   anonymity,
+							   priority,
+							   GNUNET_TIME_relative_to_absolute (DEFAULT_EXPIRATION),
+							   &emsg);
+  else
+    {
+      fi = GNUNET_FS_file_information_create_from_file (NULL,
+							args[0],
+							NULL,
+							NULL,
+							!do_insert,
+							anonymity,
+							priority,
+							GNUNET_TIME_relative_to_absolute (DEFAULT_EXPIRATION));
+      GNUNET_break (fi != NULL);
+    }
   EXTRACTOR_plugin_remove_all (l);  
   if (fi == NULL)
     {
