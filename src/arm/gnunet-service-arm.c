@@ -357,7 +357,11 @@ start_process (struct ServiceList *sl)
   char *loprefix;
   char *options;
   char *optpos;
+  char *optend;
+  const char *next;
   int use_debug;
+  char b;
+  char *val;
 
   /* start service */
   if (GNUNET_OK !=
@@ -369,9 +373,9 @@ start_process (struct ServiceList *sl)
 					     sl->name, "OPTIONS", &options))
     {      
       options = GNUNET_strdup (final_option);
-      /* replace '{}' with service name */
       if (NULL == strstr (options, "%"))
 	{
+	  /* replace '{}' with service name */
 	  while (NULL != (optpos = strstr (options, "{}")))
 	    {
 	      optpos[0] = '%';
@@ -380,6 +384,33 @@ start_process (struct ServiceList *sl)
 			       options,
 			       sl->name);
 	      GNUNET_free (options);
+	      options = optpos;
+	    }
+	  /* replace '$PATH' with value associated with "PATH" */
+	  while (NULL != (optpos = strstr (options, "$")))
+	    {
+	      optend = optpos + 1;
+	      while (isupper (*optend)) optend++;	      
+	      b = *optend;
+	      if ('\0' == b)
+		next = "";
+	      else
+		next = optend+1;
+	      *optend = '\0';
+	      if (GNUNET_OK !=
+		  GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS",
+							 optpos+1,
+							 &val))
+		val = GNUNET_strdup ("");
+	      *optpos = '\0';
+	      GNUNET_asprintf (&optpos,
+			       "%s%s%c%s",
+			       options,
+			       val,
+			       b,
+			       next);
+	      GNUNET_free (options);
+	      GNUNET_free (val);
 	      options = optpos;
 	    }
 	}
