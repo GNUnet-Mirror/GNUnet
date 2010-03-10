@@ -138,6 +138,7 @@ GNUNET_PROGRAM_run (int argc,
   struct CommandContext cc;
   char *path;
   char *loglev;
+  char *logfile;
   int ret;
   unsigned int cnt;
   struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -145,11 +146,13 @@ GNUNET_PROGRAM_run (int argc,
     GNUNET_GETOPT_OPTION_CFG_FILE (&cc.cfgfile),
     GNUNET_GETOPT_OPTION_HELP (binaryHelp),
     GNUNET_GETOPT_OPTION_LOGLEVEL (&loglev),
+    GNUNET_GETOPT_OPTION_LOGFILE (&logfile),
     GNUNET_GETOPT_OPTION_VERSION (PACKAGE_VERSION)
   };
   struct GNUNET_GETOPT_CommandLineOption *allopts;
   const char *gargs;
 
+  logfile = NULL;
   gargs = getenv ("GNUNET_ARGS");
   if (gargs != NULL)
     {
@@ -207,7 +210,7 @@ GNUNET_PROGRAM_run (int argc,
       ((GNUNET_OK !=
         GNUNET_log_setup (binaryName,
                           loglev,
-                          NULL)) ||
+                          logfile)) ||
        (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cc.cfgfile))))
 
     {
