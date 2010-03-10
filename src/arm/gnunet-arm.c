@@ -33,7 +33,7 @@
 /**
  * Timeout for all operations.
  */
-#define TIMEOUT  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 50)
 
 /**
  * Set if we are to shutdown all services (including ARM).
