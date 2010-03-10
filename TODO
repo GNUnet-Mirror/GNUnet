@@ -13,10 +13,7 @@ away), in order in which they will likely be done:
 * ARM [Safey]
 
 Urgent items (before announcing ng.gnunet.org):
-* new webpage
-  - run peer => have a 0.9.x hostlist
-=> Deploy(able) development network
-
+* Get IPv6 hooked up, change DNS
 
 0.9.0pre0:
 * UTIL:
@@ -45,6 +42,7 @@ Urgent items (before announcing ng.gnunet.org):
 * CORE:
   - needs more testing
 * FS:
+  - gnunet-search cannot be aborted using CTRL-C (why?)
   - 2-peer download is still too slow (why?)
 * Module features to implement:
   - advanced FS API parts
