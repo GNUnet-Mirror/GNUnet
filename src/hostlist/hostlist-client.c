@@ -31,7 +31,7 @@
 #include "gnunet_transport_service.h"
 #include <curl/curl.h>
 
-#define DEBUG_HOSTLIST_CLIENT GNUNET_NO
+#define DEBUG_HOSTLIST_CLIENT GNUNET_YES
 
 /**
  * Number of connections that we must have to NOT download
@@ -607,6 +607,7 @@ check_task (void *cls,
 static void
 schedule_hostlist_task ()
 {
+  static int once;
   struct GNUNET_TIME_Relative delay;
 
   if (stats == NULL)
@@ -626,6 +627,11 @@ schedule_hostlist_task ()
 			 gettext_noop("Minimum time between hostlist downloads"),
 			 hostlist_delay.value,
 			 GNUNET_YES);
+  if (0 == once)
+    {
+      delay = GNUNET_TIME_UNIT_ZERO;
+      once = 1;
+    }  
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("Have %u/%u connections.  Will consider downloading hostlist in %llums\n"),
 	      connection_count,
