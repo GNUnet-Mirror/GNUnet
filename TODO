@@ -13,6 +13,10 @@ away), in order in which they will likely be done:
 * ARM [Safey]
 
 0.9.0pre0:
+* HOSTLIST/PEERINFO/CORE/TRANSPORT/TOPOLOGY:
+  - hostlist server learns about 2nd peer, but soon forgets!
+  - peers do not seem to connect (at least not for long!)
+  - urgently need statistics!
 * UTIL:
   - load: need way to determine network load (up/down)
   - trust: need *fast* way to check/update trust in peers
@@ -40,6 +44,9 @@ away), in order in which they will likely be done:
   - needs more testing
 * FS:
   - gnunet-publish cannot be aborted using CTRL-C
+  - gnunet-publish segfaults if file does not exist
+  - on some systems, keyword search does not find locally published content
+    (need testcase of command-line tools!)
   - 2-peer download is still too slow (why?)
 * Module features to implement:
   - advanced FS API parts
