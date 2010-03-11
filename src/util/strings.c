@@ -364,7 +364,7 @@ GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative delta)
   uint64_t dval = delta.value;
 
   if (delta.value == GNUNET_TIME_UNIT_FOREVER_REL.value)
-    return GNUNET_strdup (_("forever"));
+    return GNUNET_strdup (_("eternity"));
   if (dval > 5 * 1000)
     {
       dval = dval / 1000;
