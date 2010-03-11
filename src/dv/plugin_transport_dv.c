@@ -146,12 +146,12 @@ struct Plugin
   /**
    * Our server.
    */
-  struct GNUNET_SERVER_Handle *server;
+  //struct GNUNET_SERVER_Handle *server;
 
   /*
    * Handle to the running service.
    */
-  struct GNUNET_SERVICE_Context *service;
+  //struct GNUNET_SERVICE_Context *service;
 
   /**
    * Copy of the handler array where the closures are
@@ -268,7 +268,7 @@ dv_plugin_disconnect (void *cls,
                             const struct GNUNET_PeerIdentity *target)
 {
   // struct Plugin *plugin = cls;
-  // FIXME
+  // TODO: Add message type to send to dv service to "disconnect" a peer
 }
 
 
@@ -288,13 +288,13 @@ dv_plugin_disconnect (void *cls,
  */
 static void
 dv_plugin_address_pretty_printer (void *cls,
-                                        const char *type,
-                                        const void *addr,
-                                        size_t addrlen,
-                                        int numeric,
-                                        struct GNUNET_TIME_Relative timeout,
-                                        GNUNET_TRANSPORT_AddressStringCallback
-                                        asc, void *asc_cls)
+                                  const char *type,
+                                  const void *addr,
+                                  size_t addrlen,
+                                  int numeric,
+                                  struct GNUNET_TIME_Relative timeout,
+                                  GNUNET_TRANSPORT_AddressStringCallback
+                                  asc, void *asc_cls)
 {
   asc (asc_cls, NULL);
 }
@@ -323,7 +323,7 @@ dv_plugin_address_suggested (void *cls,
 
   /* check if the address is plausible; if so,
      add it to our list! */
-  return GNUNET_OK;
+  return GNUNET_NO;
 }
 
 
@@ -331,14 +331,17 @@ dv_plugin_address_suggested (void *cls,
  * Entry point for the plugin.
  */
 void *
-gnunet_plugin_transport_dv_init (void *cls)
+libgnunet_plugin_transport_dv_init (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct Plugin *plugin;
-  unsigned long long port;
   struct GNUNET_SERVICE_Context *service;
 
+  /**
+   * Do we not even need a service for this thing?  That's peculiar.
+   */
+  /*
   service = GNUNET_SERVICE_start ("transport-dv", env->sched, env->cfg);
   if (service == NULL)
     {
@@ -349,7 +352,13 @@ gnunet_plugin_transport_dv_init (void *cls)
                        "dv");
       return NULL;
     }
-
+   */
+  /**
+   * I don't think we need a port, the only way we get stuff is being directly
+   * called by service transport or by responses from the dv-service via our
+   * client handle
+   */
+  /*
   if ((GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_number (env->cfg,
                                               "transport-dv",
@@ -364,14 +373,21 @@ gnunet_plugin_transport_dv_init (void *cls)
       GNUNET_SERVICE_stop (service);
       return NULL;
     }
+    */
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
   plugin->statistics = NULL;
-  plugin->service = service;
-  plugin->server = GNUNET_SERVICE_get_server (service);
+  //plugin->service = service;
+  //plugin->server = GNUNET_SERVICE_get_server (service);
 
   plugin->dv_handle = GNUNET_DV_connect(env->sched, env->cfg, &handle_dv_message_received, plugin);
+
+  if (plugin->dv_handle == NULL)
+  {
+    GNUNET_free(plugin);
+    return NULL;
+  }
 
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
@@ -387,7 +403,7 @@ gnunet_plugin_transport_dv_init (void *cls)
  * Exit point from the plugin.
  */
 void *
-gnunet_plugin_transport_dv_done (void *cls)
+libgnunet_plugin_transport_dv_done (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;

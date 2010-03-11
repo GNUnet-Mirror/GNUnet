@@ -41,13 +41,33 @@
 /**
  * DV Service Context stuff goes here...
  */
+
+/**
+ * Handle to the core service api.
+ */
 static struct GNUNET_CORE_Handle *coreAPI;
 
+/**
+ * The identity of our peer.
+ */
 static struct GNUNET_PeerIdentity *my_identity;
 
+/**
+ * The configuration for this service.
+ */
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-struct GNUNET_SCHEDULER_Handle *sched;
+/**
+ * The scheduler for this service.
+ */
+static struct GNUNET_SCHEDULER_Handle *sched;
+
+/**
+ * The client, should be the DV plugin connected to us.  Hopefully
+ * this client will never change, although if the plugin dies
+ * and returns for some reason it may happen.
+ */
+static struct GNUNET_SERVER_Client * client_handle;
 
 GNUNET_SCHEDULER_TaskIdentifier cleanup_task;
 
@@ -61,17 +81,20 @@ GNUNET_SCHEDULER_TaskIdentifier cleanup_task;
  * @param client identification of the client
  * @param message the actual message
  */
-void handle_dv_data_message (void *cls,
-                             struct GNUNET_SERVER_Client *
-                             client,
+static void handle_dv_data_message (void *cls,
+                             struct GNUNET_PeerIdentity *
+                             peer,
                              const struct
                              GNUNET_MessageHeader *
-                             message)
+                             message,
+                             struct GNUNET_TIME_Relative latency,
+                             uint32_t distance)
 {
 #if DEBUG_DV
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s: Receives %s message!\n", "dv", "DV DATA");
 #endif
+
 }
 
 /**
@@ -85,16 +108,17 @@ void handle_dv_data_message (void *cls,
  * @param client identification of the client
  * @param message the actual message
  */
-void handle_dv_gossip_message (void *cls,
-                               struct GNUNET_SERVER_Client *
-                               client,
-                               const struct GNUNET_MessageHeader *
-                               message)
+static void handle_dv_gossip_message (void *cls,
+                               struct GNUNET_PeerIdentity * peer,
+                               const struct GNUNET_MessageHeader * message,
+                               struct GNUNET_TIME_Relative latency,
+                               uint32_t distance)
 {
 #if DEBUG_DV
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s: Receives %s message!\n", "dv", "DV GOSSIP");
 #endif
+
 }
 
 
@@ -114,6 +138,21 @@ void send_dv_message (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s: Receives %s message!\n", "dv", "SEND");
 #endif
+  if (client_handle == NULL)
+  {
+    client_handle = client;
+#if DEBUG_DV
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%s: Setting initial client handle!\n", "dv");
+#endif
+  }
+  else if (client_handle != client)
+  {
+    client_handle = client;
+    /* What should we do in this case, assert fail or just log the warning? */
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "%s: Setting client handle (was a different client!)!\n", "dv");
+  }
 }
 
 /**
@@ -126,10 +165,10 @@ void send_dv_message (void *cls,
  * transport) and then our server should be getting messages
  * from the dv_plugin, right?
  */
-static struct GNUNET_SERVER_MessageHandler core_handlers[] = {
-  {&handle_dv_data_message, NULL, GNUNET_MESSAGE_TYPE_DV_DATA, 0},
-  {&handle_dv_gossip_message, NULL, GNUNET_MESSAGE_TYPE_DV_GOSSIP, 0},
-  {NULL, NULL, 0, 0}
+static struct GNUNET_CORE_MessageHandler core_handlers[] = {
+  {&handle_dv_data_message, GNUNET_MESSAGE_TYPE_DV_DATA, 0},
+  {&handle_dv_gossip_message, GNUNET_MESSAGE_TYPE_DV_GOSSIP, 0},
+  {NULL, 0, 0}
 };
 
 static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
@@ -165,10 +204,11 @@ void core_init (void *cls,
     {
       GNUNET_SCHEDULER_cancel(sched, cleanup_task);
       GNUNET_SCHEDULER_add_now(sched, &shutdown_task, NULL);
+      return;
     }
 #if DEBUG_DV
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%s: Core initialized, I am peer: %s\n", "dv", GNUNET_i2s(my_identity));
+              "%s: Core connection initialized, I am peer: %s\n", "dv", GNUNET_i2s(my_identity));
 #endif
   coreAPI = server;
 }
@@ -202,13 +242,11 @@ void handle_core_connect (void *cls,
  * @param distance reported distance (DV) to 'other'
  */
 void handle_core_disconnect (void *cls,
-                             const struct GNUNET_PeerIdentity * peer,
-                             struct GNUNET_TIME_Relative latency,
-                             uint32_t distance)
+                             const struct GNUNET_PeerIdentity * peer)
 {
 #if DEBUG_DV
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%s: Receives core disconnect message!\n", "dv");
+              "%s: Receives core peer disconnect message!\n", "dv");
 #endif
 }
 
@@ -228,6 +266,8 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_TIME_Relative timeout;
+
+  timeout = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5);
   sched = scheduler;
   cfg = c;
   GNUNET_SERVER_add_handlers (server, plugin_handlers);
@@ -241,9 +281,9 @@ run (void *cls,
                        &handle_core_connect,
                        &handle_core_disconnect,
                        NULL,
+                       GNUNET_NO,
                        NULL,
-                       NULL,
-                       NULL,
+                       GNUNET_NO,
                        core_handlers);
 
   if (coreAPI == NULL)
