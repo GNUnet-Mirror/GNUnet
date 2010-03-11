@@ -12,9 +12,6 @@ away), in order in which they will likely be done:
 * UPNP [Milan]
 * ARM [Safey]
 
-Urgent items (before announcing ng.gnunet.org):
-* Get IPv6 hooked up, change DNS
-
 0.9.0pre0:
 * UTIL:
   - load: need way to determine network load (up/down)
@@ -90,6 +87,9 @@ Urgent items (before announcing ng.gnunet.org):
     + test basic peer re-configure [Nate]
     + test topology creation [Nate]
     + test churn generation [Nate]
+* WWW:
+  - Get IPv6 hooked up
+  - change DNS
 
 0.9.0pre1:
 * Module features to implement:
