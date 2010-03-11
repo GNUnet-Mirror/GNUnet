@@ -42,7 +42,7 @@ Urgent items (before announcing ng.gnunet.org):
 * CORE:
   - needs more testing
 * FS:
-  - gnunet-search cannot be aborted using CTRL-C (why?)
+  - gnunet-publish cannot be aborted using CTRL-C
   - 2-peer download is still too slow (why?)
 * Module features to implement:
   - advanced FS API parts
