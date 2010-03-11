@@ -167,7 +167,7 @@ shutdown_task (void *cls,
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
- * @param sched the scheduler to use
+ * @param s the scheduler to use
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param c configuration
