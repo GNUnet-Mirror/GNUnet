@@ -36,7 +36,7 @@
 #include "fs.h"
 #include "fs_tree.h"
 
-#define DEBUG_DOWNLOAD GNUNET_YES
+#define DEBUG_DOWNLOAD GNUNET_NO
 
 /**
  * We're storing the IBLOCKS after the
@@ -152,6 +152,10 @@ make_download_status (struct GNUNET_FS_ProgressInfo *pi,
     = dc->completed;
   pi->value.download.anonymity
     = dc->anonymity;
+  pi->value.download.eta
+    = GNUNET_TIME_calculate_eta (dc->start_time,
+				 dc->completed,
+				 dc->length);
 }
 
 /**
@@ -851,6 +855,7 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
   dc->uri = GNUNET_FS_uri_dup (uri);
   dc->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
   dc->client_info = cctx;
+  dc->start_time = GNUNET_TIME_absolute_get ();
   if (NULL != filename)
     {
       dc->filename = GNUNET_strdup (filename);
