@@ -41,11 +41,38 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static struct GNUNET_FS_Handle *ctx;
 
+static struct GNUNET_SCHEDULER_Handle *sched;
+
 static struct GNUNET_FS_DownloadContext *dc;
 
 static unsigned int anonymity = 1;
 
 static char *filename;
+
+
+static void
+cleanup_task (void *cls,
+	      const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_FS_stop (ctx);
+  ctx = NULL;
+}
+
+
+static void
+shutdown_task (void *cls,
+	      const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_FS_DownloadContext *d;
+
+  if (dc != NULL)
+    {
+      d = dc;
+      dc = NULL;
+      GNUNET_FS_download_stop (d, delete_incomplete);
+    }
+}
+
 
 /**
  * Called by FS client to give information about the progress of an 
@@ -91,7 +118,7 @@ progress_cb (void *cls,
       fprintf (stderr,
 	       _("Error downloading: %s.\n"),
 	       info->value.download.specifics.error.message);
-      GNUNET_FS_download_stop (dc, delete_incomplete); 
+      GNUNET_SCHEDULER_shutdown (sched);
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
       s = GNUNET_STRINGS_byte_size_fancy(info->value.download.completed * 1000 / (info->value.download.duration.value + 1));
@@ -101,11 +128,14 @@ progress_cb (void *cls,
 	       s);
       GNUNET_free (s);
       if (info->value.download.dc == dc)
-	GNUNET_FS_download_stop (dc, delete_incomplete);
+	GNUNET_SCHEDULER_shutdown (sched);
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_STOPPED: 
       if (info->value.download.dc == dc)
-	GNUNET_FS_stop (ctx);
+	GNUNET_SCHEDULER_add_continuation (sched,
+					   &cleanup_task,
+					   NULL,
+					   GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;      
     default:
       fprintf (stderr,
@@ -121,14 +151,14 @@ progress_cb (void *cls,
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
- * @param sched the scheduler to use
+ * @param s the scheduler to use
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param c configuration
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *sched,
+     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
@@ -137,6 +167,7 @@ run (void *cls,
   char *emsg;
   enum GNUNET_FS_DownloadOptions options;
 
+  sched = s;
   /* FIXME: check arguments */
   uri = GNUNET_FS_uri_parse (args[0],
 			     &emsg);
@@ -194,6 +225,16 @@ run (void *cls,
 				 NULL,
 				 NULL);
   GNUNET_FS_uri_destroy (uri);
+  if (dc == NULL)
+    {
+      GNUNET_FS_stop (ctx);
+      ctx = NULL;
+      return;
+    }
+  GNUNET_SCHEDULER_add_delayed (sched,
+				GNUNET_TIME_UNIT_FOREVER_REL,
+				&shutdown_task,
+				NULL);
 }
 
 
