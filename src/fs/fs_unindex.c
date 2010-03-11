@@ -215,7 +215,7 @@ unindex_process (void *cls,
   else /* on-demand encoded DBLOCK */
     {
       size = sizeof(struct OnDemandBlock);
-      odb.offset = offset;
+      odb.offset = GNUNET_htonll (offset);
       odb.file_id = uc->file_id;
       data = &odb;
     }

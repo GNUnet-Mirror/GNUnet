@@ -497,7 +497,7 @@ block_proc (void *cls,
 		  (unsigned long long) offset,
 		  sizeof (struct OnDemandBlock));
 #endif
-      odb.offset = offset;
+      odb.offset = GNUNET_htonll (offset);
       odb.file_id = p->data.file.file_id;
       GNUNET_DATASTORE_put (sc->dsh,
 			    sc->rid,

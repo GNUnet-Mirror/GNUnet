@@ -125,6 +125,9 @@ progress_cb (void *cls,
       break;
     case GNUNET_FS_STATUS_SEARCH_UPDATE:
       break;
+    case GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED:
+      /* ignore */
+      break;
     case GNUNET_FS_STATUS_SEARCH_ERROR:
       fprintf (stderr,
 	       _("Error searching: %s.\n"),

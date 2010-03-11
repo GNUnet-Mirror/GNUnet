@@ -1059,7 +1059,7 @@ struct OnDemandBlock
 
   /**
    * At which offset should we be able to find
-   * this on-demand encoded block?
+   * this on-demand encoded block? (in NBO)
    */
   uint64_t offset GNUNET_PACKED;
 
