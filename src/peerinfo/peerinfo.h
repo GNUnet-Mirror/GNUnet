@@ -27,7 +27,7 @@
 #include "gnunet_time_lib.h"
 #include "gnunet_peerinfo_service.h"
 
-#define DEBUG_PEERINFO GNUNET_NO
+#define DEBUG_PEERINFO GNUNET_YES
 
 /**
  * Add the given peer to the list.  This message
