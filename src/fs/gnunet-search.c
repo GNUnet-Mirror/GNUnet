@@ -35,6 +35,8 @@ static int ret;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+static struct GNUNET_SCHEDULER_Handle *sched;
+
 static struct GNUNET_FS_Handle *ctx;
 
 static struct GNUNET_FS_SearchContext *sc;
@@ -60,6 +62,14 @@ item_printer (void *cls,
                     EXTRACTOR_metatype_to_string (type)),
 	  data);
   return GNUNET_OK;
+}
+
+static void
+clean_task (void *cls,
+	    const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_FS_stop (ctx);
+  ctx = NULL;
 }
 
 
@@ -119,10 +129,14 @@ progress_cb (void *cls,
       fprintf (stderr,
 	       _("Error searching: %s.\n"),
 	       info->value.search.specifics.error.message);
-      GNUNET_FS_search_stop (sc);      
+      GNUNET_SCHEDULER_shutdown (sched);
       break;
     case GNUNET_FS_STATUS_SEARCH_STOPPED: 
-      GNUNET_FS_stop (ctx);
+      sc = NULL;
+      GNUNET_SCHEDULER_add_continuation (sched,
+					 &clean_task, 
+					 NULL,
+					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;      
     default:
       fprintf (stderr,
@@ -131,6 +145,18 @@ progress_cb (void *cls,
       break;
     }
   return NULL;
+}
+
+
+static void
+shutdown_task (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if (sc != NULL)
+    {
+      GNUNET_FS_search_stop (sc); 
+      sc = NULL;
+    }
 }
 
 
@@ -145,7 +171,7 @@ progress_cb (void *cls,
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *sched,
+     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
@@ -153,6 +179,7 @@ run (void *cls,
   struct GNUNET_FS_Uri *uri;
   unsigned int argc;
 
+  sched = s;
   argc = 0;
   while (NULL != args[argc])
     argc++;
@@ -193,9 +220,14 @@ run (void *cls,
     {
       fprintf (stderr,
 	       _("Could not start searching.\n"));
+      GNUNET_FS_stop (ctx);
       ret = 1;
       return;
     }
+  GNUNET_SCHEDULER_add_delayed (sched,
+				GNUNET_TIME_UNIT_FOREVER_REL,
+				&shutdown_task,
+				NULL);
 }
 
 
