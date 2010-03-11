@@ -901,12 +901,15 @@ do_upload (void *cls,
 	hash_for_index_cb (sc,
 			   &p->data.file.file_id);
       else
-	GNUNET_CRYPTO_hash_file (sc->h->sched,
-				 GNUNET_SCHEDULER_PRIORITY_IDLE,
-				 p->data.file.filename,
-				 HASHING_BLOCKSIZE,
-				 &hash_for_index_cb,
-				 sc);
+	{
+	  p->start_time = GNUNET_TIME_absolute_get ();
+	  GNUNET_CRYPTO_hash_file (sc->h->sched,
+				   GNUNET_SCHEDULER_PRIORITY_IDLE,
+				   p->data.file.filename,
+				   HASHING_BLOCKSIZE,
+				   &hash_for_index_cb,
+				   sc);
+	}
       return;
     }
   publish_content (sc);

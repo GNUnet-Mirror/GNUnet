@@ -213,7 +213,12 @@ GNUNET_FS_file_information_create_from_file (void *client_info,
       return NULL;
     }
   fi = GNUNET_malloc (sizeof(struct FileInfo));
-  fi->filename = GNUNET_strdup (filename);
+  fi->filename = GNUNET_STRINGS_filename_expand (filename);
+  if (fi->filename == NULL)
+    {
+      GNUNET_free (fi);
+      return NULL;
+    }
   ret = GNUNET_FS_file_information_create_from_reader (client_info,
 						       sbuf.st_size,
 						       &data_reader_file,
