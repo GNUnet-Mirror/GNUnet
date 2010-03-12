@@ -441,19 +441,24 @@ run (void *cls,
     }
   emsg = NULL;
   if (0 != STAT (args[0], &sbuf))
-    GNUNET_asprintf (&emsg,
-		     _("Could not access file: %s\n"),
-		     STRERROR (errno));
+    {
+      GNUNET_asprintf (&emsg,
+		       _("Could not access file: %s\n"),
+		       STRERROR (errno));
+      fi = NULL;
+    }
   else if (S_ISDIR (sbuf.st_mode))
-    fi = GNUNET_FS_file_information_create_from_directory (NULL,
-							   args[0],
-							   &GNUNET_FS_directory_scanner_default,
-							   l,
-							   !do_insert,
-							   anonymity,
-							   priority,
-							   GNUNET_TIME_relative_to_absolute (DEFAULT_EXPIRATION),
-							   &emsg);
+    {
+      fi = GNUNET_FS_file_information_create_from_directory (NULL,
+							     args[0],
+							     &GNUNET_FS_directory_scanner_default,
+							     l,
+							     !do_insert,
+							     anonymity,
+							     priority,
+							     GNUNET_TIME_relative_to_absolute (DEFAULT_EXPIRATION),
+							     &emsg);
+    }
   else
     {
       fi = GNUNET_FS_file_information_create_from_file (NULL,
