@@ -829,6 +829,21 @@ GNUNET_CONTAINER_heap_iterate (const struct GNUNET_CONTAINER_Heap *heap,
 
 
 /**
+ * Return a *uniform* random element from the heap.  Choose a random
+ * number between 0 and heap size and then walk directly to it.
+ * This cost can be between 0 and n, amortized cost of logN.
+ *
+ * @param heap heap to choose random element from
+ * @param max how many nodes from the heap to choose from
+ *
+ * @return data stored at the chosen random node,
+ *         NULL if the heap is empty.
+ *
+ */
+void *
+GNUNET_CONTAINER_heap_get_random (struct GNUNET_CONTAINER_Heap *heap, uint32_t max);
+
+/**
  * Perform a random walk of the tree.  The walk is biased
  * towards elements closer to the root of the tree (since
  * each walk starts at the root and ends at a random leaf).
