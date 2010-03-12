@@ -103,6 +103,11 @@ void GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
 typedef void (*GNUNET_STATISTICS_Callback) (void *cls, int success);
 
 /**
+ * Handle that can be used to cancel a statistics 'get' operation.
+ */
+struct GNUNET_STATISTICS_GetHandle;
+
+/**
  * Get statistic from the peer.
  *
  * @param handle identification of the statistics service
@@ -113,14 +118,26 @@ typedef void (*GNUNET_STATISTICS_Callback) (void *cls, int success);
  * @param cont continuation to call when done (can be NULL)
  * @param proc function to call on each value
  * @param cls closure for proc and cont
+ * @return NULL on error
  */
-void
+struct GNUNET_STATISTICS_GetHandle *
 GNUNET_STATISTICS_get (struct GNUNET_STATISTICS_Handle *handle,
                        const char *subsystem,
                        const char *name,
                        struct GNUNET_TIME_Relative timeout,
                        GNUNET_STATISTICS_Callback cont,
                        GNUNET_STATISTICS_Iterator proc, void *cls);
+
+
+/**
+ * Cancel a 'get' request.  Must be called before the 'cont' 
+ * function is called.
+ *
+ * @param gh handle of the request to cancel
+ */
+void
+GNUNET_STATISTICS_get_cancel (struct GNUNET_STATISTICS_GetHandle *gh);
+
 
 /**
  * Set statistic value for the peer.  Will always use our

@@ -140,8 +140,9 @@ run (void *cls,
       ret = 1;
       return;
     }
-  GNUNET_STATISTICS_get (h,
-                         subsystem, name, GET_TIMEOUT, &cleanup, &printer, h);
+  if (NULL == GNUNET_STATISTICS_get (h,
+				     subsystem, name, GET_TIMEOUT, &cleanup, &printer, h))
+    cleanup (h, GNUNET_SYSERR);
 }
 
 /**

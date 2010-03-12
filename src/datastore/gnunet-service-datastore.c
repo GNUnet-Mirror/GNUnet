@@ -1230,6 +1230,24 @@ unload_plugin (struct DatastorePlugin *plug)
 
 
 /**
+ * Final task run after shutdown.  Unloads plugins and disconnects us from
+ * statistics.
+ */
+static void
+unload_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  unload_plugin (plugin);
+  plugin = NULL;
+  if (filter != NULL)
+    {
+      GNUNET_CONTAINER_bloomfilter_free (filter);
+      filter = NULL;
+    }
+  GNUNET_ARM_stop_services (cfg, tc->sched, "statistics", NULL);
+}
+
+
+/**
  * Last task run during shutdown.  Disconnects us from
  * the transport and core.
  */
@@ -1256,14 +1274,10 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 			       expired_kill_task);
       expired_kill_task = GNUNET_SCHEDULER_NO_TASK;
     }
-  unload_plugin (plugin);
-  plugin = NULL;
-  if (filter != NULL)
-    {
-      GNUNET_CONTAINER_bloomfilter_free (filter);
-      filter = NULL;
-    }
-  GNUNET_ARM_stop_services (cfg, tc->sched, "statistics", NULL);
+  GNUNET_SCHEDULER_add_continuation (sched,
+				     &unload_task,
+				     NULL,
+				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 

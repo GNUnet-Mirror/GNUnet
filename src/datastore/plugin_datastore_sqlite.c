@@ -91,6 +91,7 @@
 #define BUSY_TIMEOUT_MS 250
 
 
+
 /**
  * Context for all functions in this plugin.
  */
@@ -125,6 +126,11 @@ struct Plugin
    * Handle to the statistics service.
    */
   struct GNUNET_STATISTICS_Handle *statistics;
+
+  /**
+   * Handle for pending get request.
+   */
+  struct GNUNET_STATISTICS_GetHandle *stat_get;
   
   /**
    * How much data are we currently storing
@@ -1559,6 +1565,15 @@ process_stat_in (void *cls,
 #endif
   return GNUNET_OK;
 }
+
+
+static void
+process_stat_done (void *cls,
+		   int success)
+{
+  struct Plugin *plugin = cls;
+  plugin->stat_get = NULL;
+}
 			 		 
 
 /**
@@ -1581,13 +1596,13 @@ libgnunet_plugin_datastore_sqlite_init (void *cls)
   plugin.statistics = GNUNET_STATISTICS_create (env->sched,
 						"sqlite",
 						env->cfg);
-  GNUNET_STATISTICS_get (plugin.statistics,
-			 "sqlite",
-			 QUOTA_STAT_NAME,
-			 GNUNET_TIME_UNIT_MINUTES,
-			 NULL,
-			 &process_stat_in,
-			 &plugin);
+  plugin.stat_get = GNUNET_STATISTICS_get (plugin.statistics,
+					   "sqlite",
+					   QUOTA_STAT_NAME,
+					   GNUNET_TIME_UNIT_MINUTES,
+					   &process_stat_done,
+					   &process_stat_in,
+					   &plugin);
   if (GNUNET_OK !=
       database_setup (env->cfg, &plugin))
     {
@@ -1626,6 +1641,11 @@ libgnunet_plugin_datastore_sqlite_done (void *cls)
   struct GNUNET_DATASTORE_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
 
+  if (plugin->stat_get != NULL)
+    {
+      GNUNET_STATISTICS_get_cancel (plugin->stat_get);
+      plugin->stat_get = NULL;
+    }
   fn = NULL;
   if (plugin->drop_on_shutdown)
     fn = GNUNET_strdup (plugin->fn);

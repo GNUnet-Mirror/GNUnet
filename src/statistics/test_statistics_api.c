@@ -83,8 +83,9 @@ static void
 next (void *cls, int success)
 {
   GNUNET_assert (success == GNUNET_OK);
-  GNUNET_STATISTICS_get (h, NULL, "test-2",
-                         GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, cls);
+  GNUNET_break (NULL !=
+		GNUNET_STATISTICS_get (h, NULL, "test-2",
+				       GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, cls));
 }
 
 static void
@@ -100,8 +101,9 @@ run (void *cls,
   GNUNET_STATISTICS_set (h, "test-2", 2, GNUNET_NO);
   GNUNET_STATISTICS_set (h, "test-3", 2, GNUNET_NO);
   GNUNET_STATISTICS_update (h, "test-3", 1, GNUNET_YES);
-  GNUNET_STATISTICS_get (h, NULL, "test-1",
-                         GNUNET_TIME_UNIT_SECONDS, &next, &check_1, cls);
+  GNUNET_break (NULL != 
+		GNUNET_STATISTICS_get (h, NULL, "test-1",
+				       GNUNET_TIME_UNIT_SECONDS, &next, &check_1, cls));
 }
 
 static void
@@ -112,8 +114,9 @@ run_more (void *cls,
 	  const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   h = GNUNET_STATISTICS_create (sched, "test-statistics-api", cfg);
-  GNUNET_STATISTICS_get (h, NULL, "test-3",
-                         GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_3, cls);
+  GNUNET_break (NULL !=
+		GNUNET_STATISTICS_get (h, NULL, "test-3",
+				       GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_3, cls));
 }
 
 static int
