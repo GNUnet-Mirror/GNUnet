@@ -1175,8 +1175,10 @@ send_keep_alive (void *cls,
   me->deadline = GNUNET_TIME_relative_to_absolute (MAX_PING_DELAY);
   me->priority = PING_PRIORITY;
   me->size = sizeof (struct PingMessage);
-  n->encrypted_tail->next = me;
-  n->encrypted_tail = me;
+  GNUNET_CONTAINER_DLL_insert_after (n->encrypted_head,
+				     n->encrypted_tail,
+				     n->encrypted_tail,
+				     me);
   pm = (struct PingMessage *) &me[1];
   pm->header.size = htons (sizeof (struct PingMessage));
   pm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_PING);
@@ -2436,8 +2438,10 @@ send_key (struct Neighbour *n)
   me->deadline = GNUNET_TIME_relative_to_absolute (MAX_PING_DELAY);
   me->priority = PING_PRIORITY;
   me->size = sizeof (struct PingMessage);
-  n->encrypted_tail->next = me;
-  n->encrypted_tail = me;
+  GNUNET_CONTAINER_DLL_insert_after (n->encrypted_head,
+				     n->encrypted_tail,
+				     n->encrypted_tail,
+				     me);
   pm = (struct PingMessage *) &me[1];
   pm->header.size = htons (sizeof (struct PingMessage));
   pm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_PING);
