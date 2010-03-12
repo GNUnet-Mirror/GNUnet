@@ -1205,7 +1205,7 @@ send_keep_alive (void *cls,
 				    MIN_PING_FREQUENCY);
   n->keep_alive_task 
     = GNUNET_SCHEDULER_add_delayed (sched, 
-				    GNUNET_TIME_relative_divide (left, 2),
+				    retry,
 				    &send_keep_alive,
 				    n);
 
