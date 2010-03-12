@@ -33,7 +33,8 @@
 
 typedef void (*GNUNET_DV_MessageReceivedHandler) (void *cls,
                                                   struct GNUNET_PeerIdentity *sender,
-                                                  struct GNUNET_MessageHeader *msg,
+                                                  char *msg,
+                                                  size_t msg_len,
                                                   unsigned int distance,
                                                   char *sender_address,
                                                   size_t sender_address_len);
@@ -42,7 +43,8 @@ typedef void (*GNUNET_DV_MessageReceivedHandler) (void *cls,
  * DV Message, contains a message that was received
  * via DV for this peer!
  *
- * Sender address is copied to the end of this struct.
+ * Sender address is copied to the end of this struct,
+ * followed by the actual message received.
  */
 struct GNUNET_DV_MessageReceived
 {
@@ -59,7 +61,7 @@ struct GNUNET_DV_MessageReceived
   /**
    * The message that was sent
    */
-  struct GNUNET_MessageHeader *msg;
+  size_t msg_len;
 
   /**
    * The distance to the peer that we received the message from

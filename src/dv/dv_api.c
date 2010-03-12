@@ -250,7 +250,10 @@ void handle_message_receipt (void *cls,
 {
   struct GNUNET_DV_Handle *handle = cls;
   struct GNUNET_DV_MessageReceived *received_msg;
+  size_t packed_msg_len;
+  size_t sender_address_len;
   char *sender_address;
+  char *packed_msg;
 
   GNUNET_assert(ntohs(msg->type) == GNUNET_MESSAGE_TYPE_TRANSPORT_DV_RECEIVE);
 
@@ -258,17 +261,22 @@ void handle_message_receipt (void *cls,
     return;
 
   received_msg = (struct GNUNET_DV_MessageReceived *)msg;
-  GNUNET_assert(ntohs(msg->size) == (sizeof(struct GNUNET_DV_MessageReceived) + ntohs(received_msg->msg->size) + ntohs(received_msg->sender_address_len)));
+  packed_msg_len = ntohs(received_msg->msg_len);
+  sender_address_len = ntohs(received_msg->sender_address_len);
+  GNUNET_assert(ntohs(msg->size) == (sizeof(struct GNUNET_DV_MessageReceived) + packed_msg_len + sender_address_len));
 
-  sender_address = GNUNET_malloc(ntohs(received_msg->sender_address_len));
-  sender_address = memcpy(sender_address, &received_msg[1], ntohs(received_msg->sender_address_len));
+  sender_address = GNUNET_malloc(sender_address_len);
+  memcpy(sender_address, &received_msg[1], sender_address_len);
+  packed_msg = GNUNET_malloc(packed_msg_len);
+  memcpy(packed_msg, &received_msg[1 + sender_address_len], packed_msg_len);
 
   handle->receive_handler(handle->receive_cls,
                           &received_msg->sender,
-                          received_msg->msg,
+                          packed_msg,
+                          packed_msg_len,
                           ntohl(received_msg->distance),
                           sender_address,
-                          ntohs(received_msg->sender_address_len));
+                          sender_address_len);
 
   GNUNET_free(sender_address);
 
@@ -281,6 +289,7 @@ void handle_message_receipt (void *cls,
  * Send a message from the plugin to the DV service indicating that
  * a message should be sent via DV to some peer.
  *
+ * @param dv_handle the handle to the DV api
  * @param target the final target of the message
  * @param msgbuf the msg(s) to send
  * @param msgbuf_size the size of msgbuf
