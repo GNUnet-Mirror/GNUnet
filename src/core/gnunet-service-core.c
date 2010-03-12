@@ -885,24 +885,27 @@ handle_client_init (void *cls,
               "Sending `%s' message to client.\n", "INIT_REPLY");
 #endif
   send_to_client (c, &irm.header, GNUNET_NO);
-  /* notify new client about existing neighbours */
-  cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
-  cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
-  n = neighbours;
-  while (n != NULL)
+  if (c->options & GNUNET_CORE_OPTION_SEND_CONNECT)
     {
-      if (n->status == PEER_STATE_KEY_CONFIRMED)
+      /* notify new client about existing neighbours */
+      cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
+      cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
+      n = neighbours;
+      while (n != NULL)
 	{
+	  if (n->status == PEER_STATE_KEY_CONFIRMED)
+	    {
 #if DEBUG_CORE_CLIENT
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Sending `%s' message to client.\n", "NOTIFY_CONNECT");
+	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+			  "Sending `%s' message to client.\n", "NOTIFY_CONNECT");
 #endif
-	  cnm.distance = htonl (n->last_distance);
-	  cnm.latency = GNUNET_TIME_relative_hton (n->last_latency);
-	  cnm.peer = n->peer;
-	  send_to_client (c, &cnm.header, GNUNET_NO);
+	      cnm.distance = htonl (n->last_distance);
+	      cnm.latency = GNUNET_TIME_relative_hton (n->last_latency);
+	      cnm.peer = n->peer;
+	      send_to_client (c, &cnm.header, GNUNET_NO);
+	    }
+	  n = n->next;
 	}
-      n = n->next;
     }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
