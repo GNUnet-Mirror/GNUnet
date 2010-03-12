@@ -30,7 +30,8 @@
 #include "gnunet_time_lib.h"
 #ifdef LINUX
 #include "execinfo.h"
-#define EXECINFO GNUNET_NO
+#define EXECINFO GNUNET_YES
+#define MAX_TRACE_DEPTH 50
 #endif
 
 #define DEBUG_TASKS GNUNET_NO
@@ -1095,13 +1096,13 @@ GNUNET_SCHEDULER_add_select (struct GNUNET_SCHEDULER_Handle * sched,
 {
   struct Task *t;
 #if EXECINFO
-  void *backtrace_array[50];
+  void *backtrace_array[MAX_TRACE_DEPTH];
 #endif
   t = GNUNET_malloc (sizeof (struct Task));
   t->callback = task;
   t->callback_cls = task_cls;
 #if EXECINFO
-  t->num_backtrace_strings = backtrace(backtrace_array, 50);
+  t->num_backtrace_strings = backtrace(backtrace_array, MAX_TRACE_DEPTH);
   t->backtrace_strings = backtrace_symbols(backtrace_array, t->num_backtrace_strings);
 #endif
   if (rs != NULL)

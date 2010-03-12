@@ -1538,8 +1538,11 @@ GNUNET_CONNECTION_notify_transmit_ready_cancel (struct
     }
   else
     {
-      GNUNET_SCHEDULER_cancel (h->sh->sched, h->sh->write_task);
-      h->sh->write_task = GNUNET_SCHEDULER_NO_TASK;
+      if (h->sh->write_task != GNUNET_SCHEDULER_NO_TASK)
+	{
+	  GNUNET_SCHEDULER_cancel (h->sh->sched, h->sh->write_task);
+	  h->sh->write_task = GNUNET_SCHEDULER_NO_TASK;
+	}
     }
   h->notify_ready = NULL;
 }

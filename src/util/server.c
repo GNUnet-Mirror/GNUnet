@@ -1274,6 +1274,11 @@ GNUNET_SERVER_receive_done (struct GNUNET_SERVER_Client *client, int success)
       GNUNET_free (sb);
       return;
     }
+  if (client->server == NULL)
+    {
+      GNUNET_SERVER_client_disconnect (client);
+      return;
+    }
   client->restart_task = GNUNET_SCHEDULER_add_now (client->server->sched,
 						   &restart_processing,
 						   client);
