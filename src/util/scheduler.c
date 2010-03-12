@@ -30,7 +30,7 @@
 #include "gnunet_time_lib.h"
 #ifdef LINUX
 #include "execinfo.h"
-#define EXECINFO GNUNET_YES
+#define EXECINFO GNUNET_NO
 #define MAX_TRACE_DEPTH 50
 #endif
 
