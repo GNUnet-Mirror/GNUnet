@@ -553,6 +553,8 @@ download_timeout (void *cls,
   struct GNUNET_FS_TestDaemon *daemon = cls;
 
   daemon->download_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_FS_download_stop (daemon->download_context, GNUNET_YES);
+  daemon->download_context = NULL;
   GNUNET_SCHEDULER_add_continuation (daemon->download_sched,
 				     daemon->download_cont,
 				     daemon->download_cont_cls,
