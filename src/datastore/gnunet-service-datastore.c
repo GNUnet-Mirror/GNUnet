@@ -454,9 +454,8 @@ transmit_callback (void *cls,
       if (tcc->tc != NULL)
 	tcc->tc (tcc->tc_cls, GNUNET_SYSERR);
       if (GNUNET_YES == tcc->end)
-	{
-	  GNUNET_SERVER_receive_done (tcc->client, GNUNET_SYSERR);
-	}
+	GNUNET_SERVER_receive_done (tcc->client, GNUNET_SYSERR);       
+      GNUNET_SERVER_client_drop (tcc->client);
       GNUNET_free (tcc->msg);
       GNUNET_free (tcc);
       return 0;
@@ -476,6 +475,7 @@ transmit_callback (void *cls,
 		  "Response transmitted, more pending!\n");
 #endif
     }
+  GNUNET_SERVER_client_drop (tcc->client);
   GNUNET_free (tcc->msg);
   GNUNET_free (tcc);
   return msize;
@@ -510,9 +510,9 @@ transmit (struct GNUNET_SERVER_Client *client,
   tcc->end = end;
   if (NULL ==
       (tcc->th = GNUNET_SERVER_notify_transmit_ready (client,
-						     ntohs(msg->size),
-						     GNUNET_TIME_UNIT_FOREVER_REL,
-						     &transmit_callback,
+						      ntohs(msg->size),
+						      GNUNET_TIME_UNIT_FOREVER_REL,
+						      &transmit_callback,
 						      tcc)))
     {
       GNUNET_break (0);
@@ -530,6 +530,7 @@ transmit (struct GNUNET_SERVER_Client *client,
       GNUNET_free (tcc);
       return;
     }
+  GNUNET_SERVER_client_keep (client);
   GNUNET_CONTAINER_DLL_insert (tcc_head,
 			       tcc_tail,
 			       tcc);
