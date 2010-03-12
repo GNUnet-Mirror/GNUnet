@@ -171,6 +171,11 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
   min_level = get_type (loglevel);
   if (logfile == NULL)
     return GNUNET_OK;
+  if (GNUNET_OK !=
+      GNUNET_DISK_directory_create_for_file (logfile))    
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("Failed to create or access directory for log file `%s'"), 
+		logfile);
   altlog = FOPEN (logfile, "a");
   if (altlog == NULL)
     {
