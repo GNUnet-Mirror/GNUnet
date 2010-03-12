@@ -1263,8 +1263,11 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 				   tcc_tail,
 				   tcc);
       if (tcc->th != NULL)
-	GNUNET_CONNECTION_notify_transmit_ready_cancel (tcc->th);
-      if (NULL != tcc->tc)
+	{
+	  GNUNET_CONNECTION_notify_transmit_ready_cancel (tcc->th);
+	  GNUNET_SERVER_client_drop (tcc->client);
+	}
+   if (NULL != tcc->tc)
 	tcc->tc (tcc->tc_cls, GNUNET_SYSERR);
       GNUNET_free (tcc->msg);
       GNUNET_free (tcc);

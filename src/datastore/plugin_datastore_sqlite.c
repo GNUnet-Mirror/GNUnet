@@ -133,6 +133,11 @@ struct Plugin
   struct GNUNET_STATISTICS_GetHandle *stat_get;
 
   /**
+   * Closure of the 'next_task' (must be freed if 'next_task' is cancelled).
+   */
+  struct NextContext *next_task_nc;
+
+  /**
    * Pending task with scheduler for running the next request.
    */
   GNUNET_SCHEDULER_TaskIdentifier next_task;
@@ -533,7 +538,7 @@ static void
 sqlite_next_request_cont (void *cls,
 			  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct NextContext * nc= cls;
+  struct NextContext * nc = cls;
   struct Plugin *plugin;
   unsigned long long rowid;
   sqlite3_stmt *stmtd;
@@ -548,6 +553,7 @@ sqlite_next_request_cont (void *cls,
   
   plugin = nc->plugin;
   plugin->next_task = GNUNET_SCHEDULER_NO_TASK;
+  plugin->next_task_nc = NULL;
   if ( (GNUNET_YES == nc->end_it) ||
        (GNUNET_OK != (nc->prep(nc->prep_cls,
 			       nc))) )
@@ -673,6 +679,7 @@ sqlite_next_request (void *next_cls,
 
   if (GNUNET_YES == end_it)
     nc->end_it = GNUNET_YES;
+  nc->plugin->next_task_nc = nc;
   nc->plugin->next_task = GNUNET_SCHEDULER_add_now (nc->plugin->env->sched,
 						    &sqlite_next_request_cont,
 						    nc);
@@ -1655,6 +1662,9 @@ libgnunet_plugin_datastore_sqlite_done (void *cls)
       GNUNET_SCHEDULER_cancel (plugin->env->sched,
 			       plugin->next_task);
       plugin->next_task = GNUNET_SCHEDULER_NO_TASK;
+      plugin->next_task_nc->prep (plugin->next_task_nc->prep_cls, NULL);
+      GNUNET_free (plugin->next_task_nc);
+      plugin->next_task_nc = NULL;
     }
   fn = NULL;
   if (plugin->drop_on_shutdown)
