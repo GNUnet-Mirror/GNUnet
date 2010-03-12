@@ -227,6 +227,30 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_PEERINFO_NOTIFY 41
 
 /**
+ * DV service to DV Plugin message, when a message is
+ * unwrapped by the DV service and handed to the plugin
+ * for processing
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_DV_RECEIVE 44
+
+/**
+ * DV Plugin to DV service message, indicating a message
+ * should be sent out.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND 45
+
+/**
+ * P2P DV message encapsulating some real message
+ */
+#define GNUNET_MESSAGE_TYPE_DV_DATA 46
+
+/**
+ * P2P DV message gossipping peer information
+ */
+#define GNUNET_MESSAGE_TYPE_DV_GOSSIP 47
+
+
+/**
  * UDP NAT probe message, send from NAT'd peer to
  * other peer to negotiate punched address/port
  */
