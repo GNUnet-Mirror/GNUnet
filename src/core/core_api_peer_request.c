@@ -95,7 +95,7 @@ send_request (void *cls,
 					 prh->cont,
 					 prh->cont_cls,
 					 GNUNET_SCHEDULER_REASON_TIMEOUT);
-      GNUNET_CLIENT_disconnect (prh->client);
+      GNUNET_CLIENT_disconnect (prh->client, GNUNET_NO);
       GNUNET_free (prh);
       return 0;
     }
@@ -110,7 +110,7 @@ send_request (void *cls,
 				     prh->cont,
 				     prh->cont_cls,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-  GNUNET_CLIENT_disconnect (prh->client);
+  GNUNET_CLIENT_disconnect (prh->client, GNUNET_YES);
   GNUNET_free (prh);
   return sizeof (msg);
 }
@@ -176,7 +176,7 @@ GNUNET_CORE_peer_request_connect (struct GNUNET_SCHEDULER_Handle *sched,
 void
 GNUNET_CORE_peer_request_connect_cancel (struct GNUNET_CORE_PeerRequestHandle *req)
 {
-  GNUNET_CLIENT_disconnect (req->client);
+  GNUNET_CLIENT_disconnect (req->client, GNUNET_NO);
   GNUNET_free (req);
 }
 

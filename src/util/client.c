@@ -350,14 +350,18 @@ GNUNET_CLIENT_ignore_shutdown (struct GNUNET_CLIENT_Connection *h,
  * *NOT* be called, not even with a NULL message).  Any pending
  * transmission request will also be cancelled UNLESS the callback for
  * the transmission request has already been called, in which case the
- * transmission is guaranteed to complete before the socket is fully
- * destroyed (unless, of course, there is an error with the server
- * in which case the message may still be lost).
+ * transmission 'finish_pending_write' argument determines whether or
+ * not the write is guaranteed to complete before the socket is fully
+ * destroyed (unless, of course, there is an error with the server in
+ * which case the message may still be lost).
  *
+ * @param finish_pending_write should a transmission already passed to the
+ *          handle be completed?
  * @param sock handle to the service connection
  */
 void
-GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock)
+GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock,
+			  int finish_pending_write)
 {
   GNUNET_assert (sock->sock != NULL);
   if (sock->in_receive == GNUNET_YES)
@@ -365,7 +369,7 @@ GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock)
       GNUNET_CONNECTION_receive_cancel (sock->sock);
       sock->in_receive = GNUNET_NO;
     }
-  GNUNET_CONNECTION_destroy (sock->sock);
+  GNUNET_CONNECTION_destroy (sock->sock, finish_pending_write);
   sock->sock = NULL;
   if (sock->tag != NULL)
     {
@@ -551,7 +555,7 @@ write_shutdown (void *cls, size_t size, void *buf)
   struct GNUNET_MessageHeader *msg;
   struct GNUNET_CLIENT_Connection *sock = cls;
 
-  GNUNET_CLIENT_disconnect (sock);
+  GNUNET_CLIENT_disconnect (sock, GNUNET_YES);
   if (size < sizeof (struct GNUNET_MessageHeader))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -627,7 +631,7 @@ confirm_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     {
       service_test_error (conn->sched, conn->test_cb, conn->test_cb_cls);
     }
-  GNUNET_CLIENT_disconnect (conn);
+  GNUNET_CLIENT_disconnect (conn, GNUNET_NO);
 }
 
 
@@ -710,7 +714,7 @@ GNUNET_CLIENT_service_test (struct GNUNET_SCHEDULER_Handle *sched,
                   _("Failure to transmit request to service `%s'\n"),
                   service);
       service_test_error (sched, task, task_cls);
-      GNUNET_CLIENT_disconnect (conn);
+      GNUNET_CLIENT_disconnect (conn, GNUNET_NO);
       return;
     }
 }
@@ -806,7 +810,7 @@ client_notify (void *cls, size_t size, void *buf)
           return 0;
         }
       /* auto-retry */
-      GNUNET_CONNECTION_destroy (th->sock->sock);
+      GNUNET_CONNECTION_destroy (th->sock->sock, GNUNET_NO);
       th->sock->sock = do_connect (th->sock->sched,
                                    th->sock->service_name, th->sock->cfg);
       GNUNET_assert (NULL != th->sock->sock);

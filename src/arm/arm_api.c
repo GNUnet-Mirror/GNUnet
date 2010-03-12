@@ -104,7 +104,7 @@ void
 GNUNET_ARM_disconnect (struct GNUNET_ARM_Handle *h)
 {
   if (h->client != NULL)
-    GNUNET_CLIENT_disconnect (h->client);
+    GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
   GNUNET_CONFIGURATION_destroy (h->cfg);
   GNUNET_free (h);
 }
@@ -274,7 +274,7 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
 		  ? "START"
 		  : "STOP",
 		  (const char*) &sc[1]);
-      GNUNET_CLIENT_disconnect (sc->h->client);
+      GNUNET_CLIENT_disconnect (sc->h->client, GNUNET_NO);
       sc->h->client = GNUNET_CLIENT_connect (sc->h->sched, 
 					     "arm", 
 					     sc->h->cfg);

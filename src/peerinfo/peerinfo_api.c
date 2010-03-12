@@ -56,7 +56,7 @@ copy_and_free (void *cls, size_t size, void *buf)
                   ntohs (msg->type), "peerinfo");
 #endif
       GNUNET_free (msg);
-      GNUNET_CLIENT_disconnect (cc->client);
+      GNUNET_CLIENT_disconnect (cc->client, GNUNET_NO);
       GNUNET_free (cc);
       return 0;
     }
@@ -64,7 +64,7 @@ copy_and_free (void *cls, size_t size, void *buf)
   GNUNET_assert (size >= msize);
   memcpy (buf, msg, msize);
   GNUNET_free (msg);
-  GNUNET_CLIENT_disconnect (cc->client);
+  GNUNET_CLIENT_disconnect (cc->client, GNUNET_YES);
   GNUNET_free (cc);
   return msize;
 }
@@ -175,7 +175,7 @@ info_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                   _("Failed to receive response from `%s' service.\n"),
                   "peerinfo");
       ic->callback (ic->callback_cls, NULL, NULL, 1);
-      GNUNET_CLIENT_disconnect (ic->client);
+      GNUNET_CLIENT_disconnect (ic->client, GNUNET_NO);
       GNUNET_free (ic);
       return;
     }
@@ -186,7 +186,7 @@ info_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 		  "Received end of list of peers from peerinfo database\n");
 #endif
       ic->callback (ic->callback_cls, NULL, NULL, 0);
-      GNUNET_CLIENT_disconnect (ic->client);
+      GNUNET_CLIENT_disconnect (ic->client, GNUNET_NO);
       GNUNET_free (ic);
       return;
     }
@@ -196,7 +196,7 @@ info_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     {
       GNUNET_break (0);
       ic->callback (ic->callback_cls, NULL, NULL, 2);
-      GNUNET_CLIENT_disconnect (ic->client);
+      GNUNET_CLIENT_disconnect (ic->client, GNUNET_NO);
       GNUNET_free (ic);
       return;
     }
@@ -209,7 +209,7 @@ info_handler (void *cls, const struct GNUNET_MessageHeader *msg)
         {
           GNUNET_break (0);
           ic->callback (ic->callback_cls, NULL, NULL, 2);
-          GNUNET_CLIENT_disconnect (ic->client);
+          GNUNET_CLIENT_disconnect (ic->client, GNUNET_NO);
           GNUNET_free (ic);
           return;
         }
@@ -307,7 +307,7 @@ GNUNET_PEERINFO_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
 					       ihc))
     {
       GNUNET_break (0);
-      GNUNET_CLIENT_disconnect (ihc->client);
+      GNUNET_CLIENT_disconnect (ihc->client, GNUNET_NO);
       GNUNET_free (ihc);
       return NULL;
     }
@@ -323,7 +323,7 @@ GNUNET_PEERINFO_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_PEERINFO_iterate_cancel (struct GNUNET_PEERINFO_IteratorContext *ic)
 {
-  GNUNET_CLIENT_disconnect (ic->client);
+  GNUNET_CLIENT_disconnect (ic->client, GNUNET_NO);
   GNUNET_free (ic);
 }
 
@@ -406,7 +406,7 @@ process_notification (void *cls,
 
   if (msg == NULL)
     {
-      GNUNET_CLIENT_disconnect (nc->client);
+      GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
       nc->client = GNUNET_CLIENT_connect (nc->sched, "peerinfo", nc->cfg);
       request_notifications (nc);
       return;
@@ -416,7 +416,7 @@ process_notification (void *cls,
       (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_PEERINFO_INFO))
     {
       GNUNET_break (0);
-      GNUNET_CLIENT_disconnect (nc->client);
+      GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
       nc->client = GNUNET_CLIENT_connect (nc->sched, "peerinfo", nc->cfg);
       request_notifications (nc);
       return;
@@ -429,7 +429,7 @@ process_notification (void *cls,
       if (ms != sizeof (struct InfoMessage) + GNUNET_HELLO_size (hello))
         {
           GNUNET_break (0);
-	  GNUNET_CLIENT_disconnect (nc->client);
+	  GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
 	  nc->client = GNUNET_CLIENT_connect (nc->sched, "peerinfo", nc->cfg);
 	  request_notifications (nc);
           return;
@@ -480,7 +480,7 @@ transmit_notify_request (void *cls,
   nc->init = NULL;
   if (buf == NULL)
     {
-      GNUNET_CLIENT_disconnect (nc->client);
+      GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
       nc->client = GNUNET_CLIENT_connect (nc->sched, "peerinfo", nc->cfg);
       request_notifications (nc);
       return 0;
@@ -564,7 +564,7 @@ GNUNET_PEERINFO_notify_cancel (struct GNUNET_PEERINFO_NotifyContext *nc)
       GNUNET_CLIENT_notify_transmit_ready_cancel (nc->init);
       nc->init = NULL;
     }
-  GNUNET_CLIENT_disconnect (nc->client);
+  GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
   GNUNET_free (nc);
 }
 

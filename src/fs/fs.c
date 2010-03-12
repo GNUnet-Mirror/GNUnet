@@ -97,7 +97,7 @@ GNUNET_FS_stop (struct GNUNET_FS_Handle *h)
 {
   // FIXME: serialize state!? (or is it always serialized???)
   // FIXME: terminate receive-loop with client  
-  GNUNET_CLIENT_disconnect (h->client);
+  GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
   GNUNET_free (h->client_name);
   GNUNET_free (h);
 }

@@ -197,15 +197,23 @@ int GNUNET_CONNECTION_get_address (struct
                                            *sock, void **addr,
                                            size_t * addrlen);
 
+
 /**
- * Close the socket and free associated resources.  Pending
- * transmissions are simply dropped.  A pending receive call will be
- * called with an error code of "EPIPE".
+ * Close the socket and free associated resources. Pending
+ * transmissions may be completed or dropped depending on the
+ * arguments.   If a receive call is pending and should 
+ * NOT be completed, 'GNUNET_CONNECTION_receive_cancel'
+ * should be called explicitly first.
  *
  * @param sock socket to destroy
+ * @param finish_pending_write should pending writes be completed or aborted?
+ *        (this applies to transmissions where the data has already been
+ *        read from the application; all other transmissions should be
+ *        aborted using 'GNUNET_CONNECTION_notify_transmit_ready_cancel').
  */
-void GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle
-                                        *sock);
+void
+GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *sock,
+			   int finish_pending_write);
 
 
 /**

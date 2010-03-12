@@ -664,7 +664,7 @@ process_index_start_response (void *cls,
   const char *emsg;
   uint16_t msize;
 
-  GNUNET_CLIENT_disconnect (sc->client);
+  GNUNET_CLIENT_disconnect (sc->client, GNUNET_NO);
   sc->client = NULL;
   p = sc->fi_pos;
   if (msg == NULL)

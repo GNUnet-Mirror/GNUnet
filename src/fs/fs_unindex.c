@@ -284,7 +284,7 @@ process_fs_response (void *cls,
 {
   struct GNUNET_FS_UnindexContext *uc = cls;
 
-  GNUNET_CLIENT_disconnect (uc->client);
+  GNUNET_CLIENT_disconnect (uc->client, GNUNET_NO);
   uc->client = NULL;
   if (uc->state != UNINDEX_STATE_FS_NOTIFY) 
     {

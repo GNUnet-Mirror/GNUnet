@@ -75,19 +75,24 @@ GNUNET_CLIENT_ignore_shutdown (struct GNUNET_CLIENT_Connection *h,
 			       int do_ignore);
 
 
+
 /**
  * Destroy connection with the service.  This will automatically
  * cancel any pending "receive" request (however, the handler will
  * *NOT* be called, not even with a NULL message).  Any pending
  * transmission request will also be cancelled UNLESS the callback for
  * the transmission request has already been called, in which case the
- * transmission is guaranteed to complete before the socket is fully
- * destroyed  (unless, of course, there is an error with the server
- * in which case the message may still be lost).
+ * transmission 'finish_pending_write' argument determines whether or
+ * not the write is guaranteed to complete before the socket is fully
+ * destroyed (unless, of course, there is an error with the server in
+ * which case the message may still be lost).
  *
  * @param sock handle to the service connection
+ * @param finish_pending_write should a transmission already passed to the
+ *          handle be completed?
  */
-void GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock);
+void GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock,
+			       int finish_pending_write);
 
 /**
  * Type of a function to call when we receive a message

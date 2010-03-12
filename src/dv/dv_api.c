@@ -384,7 +384,7 @@ void GNUNET_DV_disconnect(struct GNUNET_DV_Handle *handle)
     }
   if (handle->client != NULL) /* Finally, disconnect from the service */
     {
-      GNUNET_CLIENT_disconnect (handle->client);
+      GNUNET_CLIENT_disconnect (handle->client, GNUNET_NO);
       handle->client = NULL;
     }
 

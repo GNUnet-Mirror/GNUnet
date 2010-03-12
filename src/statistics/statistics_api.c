@@ -304,7 +304,7 @@ receive_stats (void *cls, const struct GNUNET_MessageHeader *msg)
     {
       if (NULL != h->client)
 	{
-	  GNUNET_CLIENT_disconnect (h->client);
+	  GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
 	  h->client = NULL;
 	}
 #if DEBUG_STATISTICS
@@ -342,7 +342,7 @@ receive_stats (void *cls, const struct GNUNET_MessageHeader *msg)
     }
   if (NULL != h->client)
     {
-      GNUNET_CLIENT_disconnect (h->client);
+      GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
       h->client = NULL;
     }
   finish (h, GNUNET_SYSERR);
@@ -579,7 +579,7 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
     }
   if (h->client != NULL)
     {
-      GNUNET_CLIENT_disconnect (h->client);
+      GNUNET_CLIENT_disconnect (h->client, GNUNET_YES);
       h->client = NULL;
     }
   GNUNET_free (h->subsystem);

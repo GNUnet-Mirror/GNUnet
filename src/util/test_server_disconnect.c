@@ -119,7 +119,7 @@ disconnect_notify (void *cls, const struct GNUNET_MessageHeader *msg)
   GNUNET_assert (msg == NULL);
   GNUNET_assert (ok == 7);
   ok = 0;
-  GNUNET_CLIENT_disconnect (client);
+  GNUNET_CLIENT_disconnect (client, GNUNET_YES);
   client = NULL;
   GNUNET_SERVER_destroy (server);
   server = NULL;

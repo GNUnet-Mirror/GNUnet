@@ -937,7 +937,7 @@ sock_check (void *cls)
 static void
 sock_destroy (void *cls)
 {
-  GNUNET_CONNECTION_destroy (cls);
+  GNUNET_CONNECTION_destroy (cls, GNUNET_NO);
 }
 
 

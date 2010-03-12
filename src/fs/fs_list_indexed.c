@@ -94,7 +94,7 @@ handle_index_info (void *cls,
 					 gic->cont,
 					 gic->cont_cls,
 					 GNUNET_SCHEDULER_REASON_TIMEOUT);
-      GNUNET_CLIENT_disconnect (gic->client);
+      GNUNET_CLIENT_disconnect (gic->client, GNUNET_NO);
       GNUNET_free (gic);
       return;
     }
@@ -105,7 +105,7 @@ handle_index_info (void *cls,
 					 gic->cont,
 					 gic->cont_cls,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-      GNUNET_CLIENT_disconnect (gic->client);
+      GNUNET_CLIENT_disconnect (gic->client, GNUNET_NO);
       GNUNET_free (gic);
       return;
     }
@@ -125,7 +125,7 @@ handle_index_info (void *cls,
 					 gic->cont,
 					 gic->cont_cls,
 					 GNUNET_SCHEDULER_REASON_TIMEOUT);
-      GNUNET_CLIENT_disconnect (gic->client);
+      GNUNET_CLIENT_disconnect (gic->client, GNUNET_NO);
       GNUNET_free (gic);
       return;
     }
@@ -138,7 +138,7 @@ handle_index_info (void *cls,
 					 gic->cont,
 					 gic->cont_cls,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-      GNUNET_CLIENT_disconnect (gic->client);
+      GNUNET_CLIENT_disconnect (gic->client, GNUNET_NO);
       GNUNET_free (gic);
       return;
     }

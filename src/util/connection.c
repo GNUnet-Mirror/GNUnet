@@ -916,18 +916,34 @@ GNUNET_CONNECTION_check (struct GNUNET_CONNECTION_Handle *sock)
 
 /**
  * Close the socket and free associated resources. Pending
- * transmissions are simply dropped.  A pending receive call will be
- * called with an error code of "EPIPE".
+ * transmissions may be completed or dropped depending on the
+ * arguments.   If a receive call is pending and should 
+ * NOT be completed, 'GNUNET_CONNECTION_receive_cancel'
+ * should be called explicitly first.
  *
  * @param sock socket to destroy
+ * @param finish_pending_write should pending writes be completed or aborted?
+ *        (this applies to transmissions where the data has already been
+ *        read from the application; all other transmissions should be
+ *        aborted using 'GNUNET_CONNECTION_notify_transmit_ready_cancel').
  */
 void
-GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *sock)
+GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *sock,
+			   int finish_pending_write)
 {
   if ((sock->write_buffer_off == 0) && (sock->dns_active != NULL))
     {
       GNUNET_RESOLVER_request_cancel (sock->dns_active);
       sock->dns_active = NULL;
+    }
+  if (GNUNET_NO == finish_pending_write)
+    {
+      if (sock->write_task != GNUNET_SCHEDULER_NO_TASK)
+	{
+	  GNUNET_SCHEDULER_cancel (sock->sched,
+				   sock->write_task);
+	  sock->write_task = GNUNET_SCHEDULER_NO_TASK;
+	}
     }
   GNUNET_assert (sock->sched != NULL);
   GNUNET_SCHEDULER_add_now (sock->sched,
@@ -1316,6 +1332,20 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (sock->write_task != GNUNET_SCHEDULER_NO_TASK);
   sock->write_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (sock->nth.timeout_task == GNUNET_SCHEDULER_NO_TASK);
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)) 
+    {
+      if (sock->ignore_shutdown == GNUNET_YES)
+	goto SCHEDULE_WRITE;    /* ignore shutdown, go again immediately */
+#if DEBUG_CONNECTION
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Transmit to `%s' fails, shutdown happened (%p).\n",
+                  GNUNET_a2s (sock->addr, sock->addrlen), sock);
+#endif
+      notify = sock->nth.notify_ready;
+      sock->nth.notify_ready = NULL;
+      notify (sock->nth.notify_ready_cls, 0, NULL);
+      return;
+    }
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
     {
 #if DEBUG_CONNECTION

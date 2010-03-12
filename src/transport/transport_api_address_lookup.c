@@ -30,7 +30,7 @@ address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
     {
       /* timeout */
       alucb->cb (alucb->cls, NULL);
-      GNUNET_CLIENT_disconnect (alucb->client);
+      GNUNET_CLIENT_disconnect (alucb->client. GNUNET_NO);
       GNUNET_free (alucb);
       return;
     }
@@ -48,7 +48,7 @@ address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
           /* invalid reply */
           GNUNET_break_op (0);
           alucb->cb (alucb->cls, NULL);
-          GNUNET_CLIENT_disconnect (alucb->client);
+          GNUNET_CLIENT_disconnect (alucb->client, GNUNET_NO);
           GNUNET_free (alucb);
           return;
         }
@@ -65,7 +65,7 @@ address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
   if (address == NULL)
     {
       /* done! */
-      GNUNET_CLIENT_disconnect (alucb->client);
+      GNUNET_CLIENT_disconnect (alucb->client, GNUNET_NO);
       GNUNET_free (alucb);
     }
 }

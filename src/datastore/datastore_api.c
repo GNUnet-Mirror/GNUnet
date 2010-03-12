@@ -159,7 +159,7 @@ void GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
       GNUNET_break (0);
     }
   if (h->client != NULL)
-    GNUNET_CLIENT_disconnect (h->client);
+    GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
   GNUNET_ARM_stop_services (h->cfg, h->sched, "datastore", NULL);
   GNUNET_free (h);
 }
@@ -188,7 +188,7 @@ with_status_response_handler (void *cls,
   if (msg == NULL)
     {
       h->response_proc = NULL;
-      GNUNET_CLIENT_disconnect (h->client);
+      GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
       h->client = GNUNET_CLIENT_connect (h->sched, "datastore", h->cfg);
       cont (h->response_proc_cls, 
 	    GNUNET_SYSERR,
@@ -200,7 +200,7 @@ with_status_response_handler (void *cls,
     {
       GNUNET_break (0);
       h->response_proc = NULL;
-      GNUNET_CLIENT_disconnect (h->client);
+      GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
       h->client = GNUNET_CLIENT_connect (h->sched, "datastore", h->cfg);
       cont (h->response_proc_cls, 
 	    GNUNET_SYSERR,
@@ -469,7 +469,7 @@ with_result_response_handler (void *cls,
   if (msg == NULL)
     {
       h->response_proc = NULL;
-      GNUNET_CLIENT_disconnect (h->client);
+      GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
       h->client = GNUNET_CLIENT_connect (h->sched, "datastore", h->cfg);
       cont (h->response_proc_cls, 
 	    NULL, 0, NULL, 0, 0, 0, 
@@ -493,7 +493,7 @@ with_result_response_handler (void *cls,
        (ntohs(msg->type) != GNUNET_MESSAGE_TYPE_DATASTORE_DATA) ) 
     {
       GNUNET_break (0);
-      GNUNET_CLIENT_disconnect (h->client);
+      GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
       h->client = GNUNET_CLIENT_connect (h->sched, "datastore", h->cfg);
       h->response_proc = NULL;
       cont (h->response_proc_cls, 
@@ -506,7 +506,7 @@ with_result_response_handler (void *cls,
   if (ntohs(msg->size) != msize + sizeof(struct DataMessage))
     {
       GNUNET_break (0);
-      GNUNET_CLIENT_disconnect (h->client);
+      GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
       h->client = GNUNET_CLIENT_connect (h->sched, "datastore", h->cfg);
       h->response_proc = NULL;
       cont (h->response_proc_cls, 
@@ -558,7 +558,7 @@ GNUNET_DATASTORE_get_next (struct GNUNET_DATASTORE_Handle *h,
     }
   cont = h->response_proc;
   h->response_proc = NULL;
-  GNUNET_CLIENT_disconnect (h->client);
+  GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
   h->client = GNUNET_CLIENT_connect (h->sched, "datastore", h->cfg);
   cont (h->response_proc_cls, 
 	NULL, 0, NULL, 0, 0, 0, 

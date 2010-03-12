@@ -68,7 +68,7 @@ receive_info (void *cls,
       if (irc->info != NULL)
 	irc->info (irc->info_cls, 
 		   NULL, zbw, zbw, 0, 0);     
-      GNUNET_CLIENT_disconnect (irc->client);
+      GNUNET_CLIENT_disconnect (irc->client, GNUNET_NO);
       GNUNET_free (irc);
       return;
     }
@@ -79,7 +79,7 @@ receive_info (void *cls,
       if (irc->info != NULL)
 	irc->info (irc->info_cls, 
 		   NULL, zbw, zbw, 0, 0);     
-      GNUNET_CLIENT_disconnect (irc->client);
+      GNUNET_CLIENT_disconnect (irc->client, GNUNET_NO);
       GNUNET_free (irc);
       return;
     }
@@ -91,7 +91,7 @@ receive_info (void *cls,
 	       cim->bw_out,
 	       ntohl (cim->reserved_amount),
 	       GNUNET_ntohll (cim->preference));  
-  GNUNET_CLIENT_disconnect (irc->client);
+  GNUNET_CLIENT_disconnect (irc->client, GNUNET_NO);
   GNUNET_free (irc);
 }
 
@@ -170,7 +170,7 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_SCHEDULER_Handle *sched,
 void
 GNUNET_CORE_peer_change_preference_cancel (struct GNUNET_CORE_InformationRequestContext *irc)
 {
-  GNUNET_CLIENT_disconnect (irc->client);
+  GNUNET_CLIENT_disconnect (irc->client, GNUNET_NO);
   GNUNET_free (irc);
 }
 

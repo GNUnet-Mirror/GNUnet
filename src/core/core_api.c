@@ -257,7 +257,7 @@ static void
 reconnect (struct GNUNET_CORE_Handle *h)
 {
   if (h->client_notifications != NULL)
-    GNUNET_CLIENT_disconnect (h->client_notifications);
+    GNUNET_CLIENT_disconnect (h->client_notifications, GNUNET_NO);
   h->currently_down = GNUNET_YES;
   h->client_notifications = GNUNET_CLIENT_connect (h->sched, "core", h->cfg);
   if (h->client_notifications == NULL)
@@ -793,7 +793,7 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
   if (handle->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (handle->sched, handle->reconnect_task);
   if (handle->client_notifications != NULL)
-    GNUNET_CLIENT_disconnect (handle->client_notifications);
+    GNUNET_CLIENT_disconnect (handle->client_notifications, GNUNET_NO);
   GNUNET_free_non_null (handle->solicit_buffer);
   GNUNET_free (handle);
 }

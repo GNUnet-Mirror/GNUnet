@@ -231,7 +231,7 @@ handle_address_response (void *cls, const struct GNUNET_MessageHeader *msg)
                   _("Timeout trying to resolve hostname `%s'.\n"),
 		  rh->hostname);
       rh->addr_callback (rh->cls, NULL, 0);
-      GNUNET_CLIENT_disconnect (rh->client);
+      GNUNET_CLIENT_disconnect (rh->client, GNUNET_NO);
       GNUNET_free (rh);
       return;
     }
@@ -239,7 +239,7 @@ handle_address_response (void *cls, const struct GNUNET_MessageHeader *msg)
     {
       GNUNET_break (0);
       rh->addr_callback (rh->cls, NULL, 0);
-      GNUNET_CLIENT_disconnect (rh->client);
+      GNUNET_CLIENT_disconnect (rh->client, GNUNET_NO);
       GNUNET_free (rh);
       return;
     }
@@ -253,7 +253,7 @@ handle_address_response (void *cls, const struct GNUNET_MessageHeader *msg)
 		  rh->hostname);
 #endif
       rh->addr_callback (rh->cls, NULL, 0);
-      GNUNET_CLIENT_disconnect (rh->client);
+      GNUNET_CLIENT_disconnect (rh->client, GNUNET_NO);
       GNUNET_free (rh);
       return;
     }
@@ -263,7 +263,7 @@ handle_address_response (void *cls, const struct GNUNET_MessageHeader *msg)
     {
       GNUNET_break (0);
       rh->addr_callback (rh->cls, NULL, 0);
-      GNUNET_CLIENT_disconnect (rh->client);
+      GNUNET_CLIENT_disconnect (rh->client, GNUNET_NO);
       GNUNET_free (rh);
       return;
     }
@@ -488,7 +488,7 @@ GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
                                                &handle_address_response, rh))
     {
       GNUNET_free (rh);
-      GNUNET_CLIENT_disconnect (client);
+      GNUNET_CLIENT_disconnect (client, GNUNET_NO);
       return NULL;
     }
   return rh;
@@ -514,7 +514,7 @@ handle_hostname_response (void *cls, const struct GNUNET_MessageHeader *msg)
                   _("Timeout trying to resolve IP address `%s'.\n"),
 		  GNUNET_a2s ((const void*) &rh[1], rh->salen));
       rh->name_callback (rh->cls, NULL);
-      GNUNET_CLIENT_disconnect (rh->client);
+      GNUNET_CLIENT_disconnect (rh->client, GNUNET_NO);
       GNUNET_free (rh);
       return;
     }
@@ -527,7 +527,7 @@ handle_hostname_response (void *cls, const struct GNUNET_MessageHeader *msg)
 		  GNUNET_a2s ((const void*) &rh[1], rh->salen));
 #endif
       rh->name_callback (rh->cls, NULL);
-      GNUNET_CLIENT_disconnect (rh->client);
+      GNUNET_CLIENT_disconnect (rh->client, GNUNET_NO);
       GNUNET_free (rh);
       return;
     }
@@ -536,7 +536,7 @@ handle_hostname_response (void *cls, const struct GNUNET_MessageHeader *msg)
     {
       GNUNET_break (0);
       rh->name_callback (rh->cls, NULL);
-      GNUNET_CLIENT_disconnect (rh->client);
+      GNUNET_CLIENT_disconnect (rh->client, GNUNET_NO);
       GNUNET_free (rh);
       return;
     }
@@ -659,7 +659,7 @@ GNUNET_RESOLVER_hostname_get (struct GNUNET_SCHEDULER_Handle *sched,
                                                GNUNET_YES,
                                                &handle_hostname_response, rh))
     {
-      GNUNET_CLIENT_disconnect (client);
+      GNUNET_CLIENT_disconnect (client, GNUNET_NO);
       GNUNET_free (rh);
       return NULL;
     }
@@ -717,7 +717,7 @@ void
 GNUNET_RESOLVER_request_cancel (struct GNUNET_RESOLVER_RequestHandle *h)
 {
   if (h->client != NULL)
-    GNUNET_CLIENT_disconnect (h->client);
+    GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
   if (h->task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (h->sched, h->task);
   GNUNET_free (h);

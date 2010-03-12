@@ -1363,7 +1363,7 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
                   "Disconnecting from transport service for good.\n");
 #endif
       handle->client = NULL;
-      GNUNET_CLIENT_disconnect (client);
+      GNUNET_CLIENT_disconnect (client, GNUNET_NO);
     }
   GNUNET_free (handle);
 }
@@ -1408,7 +1408,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
 	  GNUNET_CLIENT_notify_transmit_ready_cancel (h->network_handle);
 	  h->network_handle = NULL;
 	}
-      GNUNET_CLIENT_disconnect (h->client);
+      GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
       h->client = NULL;
       schedule_reconnect (h);
       return;

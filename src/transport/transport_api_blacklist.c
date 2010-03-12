@@ -243,7 +243,7 @@ request_notifications (struct GNUNET_TRANSPORT_BlacklistNotification *bn);
 static void
 retry_get_notifications (struct GNUNET_TRANSPORT_BlacklistNotification *bn)
 {
-  GNUNET_CLIENT_disconnect (bn->client);
+  GNUNET_CLIENT_disconnect (bn->client, GNUNET_NO);
   bn->client = GNUNET_CLIENT_connect (bn->sched, "transport", bn->cfg);
   request_notifications (bn);
 }
@@ -379,7 +379,7 @@ GNUNET_TRANSPORT_blacklist_notify_cancel (struct GNUNET_TRANSPORT_BlacklistNotif
 {
   if (bn->th != NULL)
     GNUNET_CLIENT_notify_transmit_ready_cancel (bn->th);
-  GNUNET_CLIENT_disconnect (bn->client);
+  GNUNET_CLIENT_disconnect (bn->client, GNUNET_NO);
   GNUNET_free (bn);
 }
 

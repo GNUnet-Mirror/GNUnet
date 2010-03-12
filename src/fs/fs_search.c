@@ -715,7 +715,7 @@ try_reconnect (struct GNUNET_FS_SearchContext *sc)
 {
   if (NULL != sc->client)
     {
-      GNUNET_CLIENT_disconnect (sc->client);
+      GNUNET_CLIENT_disconnect (sc->client, GNUNET_NO);
       sc->client = NULL;
     }
   sc->task
@@ -858,7 +858,7 @@ GNUNET_FS_search_pause (struct GNUNET_FS_SearchContext *sc)
 			     sc->task);
   sc->task = GNUNET_SCHEDULER_NO_TASK;
   if (NULL != sc->client)
-    GNUNET_CLIENT_disconnect (sc->client);
+    GNUNET_CLIENT_disconnect (sc->client, GNUNET_NO);
   sc->client = NULL;
   // FIXME: make persistent!
   // FIXME: should this freeze all active probes?
@@ -967,7 +967,7 @@ GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc)
     GNUNET_SCHEDULER_cancel (sc->h->sched,
 			     sc->task);
   if (NULL != sc->client)
-    GNUNET_CLIENT_disconnect (sc->client);
+    GNUNET_CLIENT_disconnect (sc->client, GNUNET_NO);
   GNUNET_CONTAINER_multihashmap_destroy (sc->master_result_map);
   for (i=0;i<sc->uri->data.ksk.keywordCount;i++)
     GNUNET_CONTAINER_multihashmap_destroy (sc->requests[i].results);
