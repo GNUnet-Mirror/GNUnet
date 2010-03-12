@@ -805,7 +805,14 @@ send_to_all_clients (const struct GNUNET_MessageHeader *msg,
   while (c != NULL)
     {
       if (0 != (c->options & options))
-	send_to_client (c, msg, can_drop);
+	{
+#if DEBUG_CORE_CLIENT
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Sending message of type %u to client.\n",
+		      ntohs (msg->type));
+#endif
+	  send_to_client (c, msg, can_drop);
+	}
       c = c->next;
     }
 }
@@ -885,7 +892,7 @@ handle_client_init (void *cls,
               "Sending `%s' message to client.\n", "INIT_REPLY");
 #endif
   send_to_client (c, &irm.header, GNUNET_NO);
-  if (c->options & GNUNET_CORE_OPTION_SEND_CONNECT)
+  if (0 != (c->options & GNUNET_CORE_OPTION_SEND_CONNECT))
     {
       /* notify new client about existing neighbours */
       cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));

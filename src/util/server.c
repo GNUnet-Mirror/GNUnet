@@ -1198,7 +1198,7 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
     }
   if (rc > 0)
     return;
-  if (client->in_process_client_buffer)
+  if (client->in_process_client_buffer == GNUNET_YES)
     return;
   client->destroy (client->client_closure);
   GNUNET_free (client);  

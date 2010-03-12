@@ -234,6 +234,11 @@ static struct TransmitCallbackContext *tcc_head;
  */
 static struct TransmitCallbackContext *tcc_tail;
 
+/**
+ * Have we already clean ed up the TCCs and are hence no longer
+ * willing (or able) to transmit anything to anyone?
+ */
+static int cleaning_done;
 
 /**
  * Task that is used to remove expired entries from
@@ -502,6 +507,12 @@ transmit (struct GNUNET_SERVER_Client *client,
 {
   struct TransmitCallbackContext *tcc;
 
+  if (GNUNET_YES == cleaning_done)
+    {
+      if (NULL != tc)
+	tc (tc_cls, GNUNET_SYSERR);
+      return;
+    }
   tcc = GNUNET_malloc (sizeof(struct TransmitCallbackContext));
   tcc->msg = msg;
   tcc->client = client;
@@ -1257,6 +1268,7 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct TransmitCallbackContext *tcc;
 
+  cleaning_done = GNUNET_YES;
   while (NULL != (tcc = tcc_head))
     {
       GNUNET_CONTAINER_DLL_remove (tcc_head,

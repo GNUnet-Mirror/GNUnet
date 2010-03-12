@@ -1239,7 +1239,10 @@ GNUNET_DISK_file_open (const char *fn,
   fd = open (expfn, oflags | O_LARGEFILE, mode);
   if (fd == -1)
     {
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "open", expfn);
+      if (0 == (flags & GNUNET_DISK_OPEN_FAILIFEXISTS))
+	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "open", expfn);
+      else
+	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_DEBUG, "open", expfn);
       GNUNET_free (expfn);
       return NULL;
     }

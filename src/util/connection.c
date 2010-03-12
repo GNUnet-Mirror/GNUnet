@@ -931,11 +931,6 @@ void
 GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *sock,
 			   int finish_pending_write)
 {
-  if ((sock->write_buffer_off == 0) && (sock->dns_active != NULL))
-    {
-      GNUNET_RESOLVER_request_cancel (sock->dns_active);
-      sock->dns_active = NULL;
-    }
   if (GNUNET_NO == finish_pending_write)
     {
       if (sock->write_task != GNUNET_SCHEDULER_NO_TASK)
@@ -943,7 +938,13 @@ GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *sock,
 	  GNUNET_SCHEDULER_cancel (sock->sched,
 				   sock->write_task);
 	  sock->write_task = GNUNET_SCHEDULER_NO_TASK;
+	  sock->write_buffer_off = 0;
 	}
+    }
+  if ((sock->write_buffer_off == 0) && (sock->dns_active != NULL))
+    {
+      GNUNET_RESOLVER_request_cancel (sock->dns_active);
+      sock->dns_active = NULL;
     }
   GNUNET_assert (sock->sched != NULL);
   GNUNET_SCHEDULER_add_now (sock->sched,
