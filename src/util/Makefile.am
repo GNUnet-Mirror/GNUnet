@@ -97,9 +97,6 @@ libgnunet_plugin_test_la_SOURCES = \
 libgnunet_plugin_test_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
-check_SCRIPTS = \
- prep_script.sh
-
 check_PROGRAMS = \
  test_bio \
  test_client \
@@ -146,7 +143,7 @@ check_PROGRAMS = \
  perf_crypto_hash \
  test_os_start_process 
 
-TESTS = $(check_SCRIPTS) $(check_PROGRAMS)
+TESTS = $(check_PROGRAMS)
 
 
 test_bio_SOURCES = \
