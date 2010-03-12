@@ -54,7 +54,7 @@ struct GNUNET_DV_MessageReceived
   /**
    * The sender of the message
    */
-  struct GNUNET_PeerIdentity *sender;
+  struct GNUNET_PeerIdentity sender;
 
   /**
    * The message that was sent
@@ -155,6 +155,54 @@ struct GNUNET_DV_SendMessage
    */
 
 };
+
+/**
+ * Message that gets sent between nodes updating dv infos
+ */
+typedef struct
+{
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Cost from received from node to neighbor node, takes distance into account
+   */
+  unsigned int cost GNUNET_PACKED;
+
+  /**
+   * Identity of neighbor we learned information about
+   */
+  struct GNUNET_PeerIdentity neighbor;
+
+  /**
+   * Neighbor ID to use when sending to this peer
+   */
+  unsigned int neighbor_id GNUNET_PACKED;
+
+} p2p_dv_MESSAGE_NeighborInfo;
+
+/**
+ * Message that gets sent between nodes carrying information
+ */
+typedef struct
+{
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Identity of peer that ultimately sent the message.
+   * Should be looked up in the set of 'neighbor_id's of
+   * the referring peer.
+   */
+  unsigned int sender GNUNET_PACKED;
+
+  /**
+   * Identity of neighbor this message is going to.  Should
+   * be looked up in the set of our own identifiers for
+   * neighbors!
+   */
+  unsigned int recipient GNUNET_PACKED;
+
+} p2p_dv_MESSAGE_Data;
+
 
 struct GNUNET_DV_Handle *
 GNUNET_DV_connect (struct GNUNET_SCHEDULER_Handle *sched,

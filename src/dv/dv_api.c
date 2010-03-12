@@ -19,7 +19,7 @@
 */
 
 /**
- * @file transport/dv_api.c
+ * @file dv/dv_api.c
  * @brief library to access the DV service
  * @author Christian Grothoff
  * @author Not Nathan Evans
@@ -264,7 +264,7 @@ void handle_message_receipt (void *cls,
   sender_address = memcpy(sender_address, &received_msg[1], ntohs(received_msg->sender_address_len));
 
   handle->receive_handler(handle->receive_cls,
-                          received_msg->sender,
+                          &received_msg->sender,
                           received_msg->msg,
                           ntohl(received_msg->distance),
                           sender_address,
@@ -281,13 +281,13 @@ void handle_message_receipt (void *cls,
  * Send a message from the plugin to the DV service indicating that
  * a message should be sent via DV to some peer.
  *
- * @target the final target of the message
- * @msgbuf the msg(s) to send
- * @msgbuf_size the size of msgbuf
- * @priority priority to pass on to core when sending the message
- * @timeout how long can this message be delayed (pass through to core)
- * @addr the address of this peer (internally known to DV)
- * @addrlen the length of the peer address
+ * @param target the final target of the message
+ * @param msgbuf the msg(s) to send
+ * @param msgbuf_size the size of msgbuf
+ * @param priority priority to pass on to core when sending the message
+ * @param timeout how long can this message be delayed (pass through to core)
+ * @param addr the address of this peer (internally known to DV)
+ * @param addrlen the length of the peer address
  *
  */
 int GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
@@ -324,6 +324,8 @@ int GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
  *
  * @param sched the scheduler to use
  * @param cfg the configuration to use
+ * @param receive_handler method call when on receipt from the service
+ * @param receive_handler_cls closure for receive_handler
  *
  * @return handle to the DV service
  */

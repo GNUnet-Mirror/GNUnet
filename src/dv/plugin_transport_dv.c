@@ -19,7 +19,7 @@
 */
 
 /**
- * @file transport/plugin_transport_dv.c
+ * @file dv/plugin_transport_dv.c
  * @brief DV transport service, takes incoming DV requests and deals with
  * the DV service
  * @author Christian Grothoff
