@@ -28,6 +28,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_protocols.h"
+#include "gnunet_statistics_service.h"
 #include "plugin_datastore.h"
 #include "datastore.h"
 
@@ -162,6 +163,12 @@ const struct GNUNET_CONFIGURATION_Handle *cfg;
  * Our scheduler.
  */
 struct GNUNET_SCHEDULER_Handle *sched; 
+
+/**
+ * Handle for reporting statistics.
+ */
+static struct GNUNET_STATISTICS_Handle *stats;
+
 
 /**
  * Function called once the transmit operation has
@@ -313,6 +320,10 @@ expired_processor (void *cls,
 	      "Deleting content that expired %llu ms ago\n",
 	      (unsigned long long) (now.value - expiration.value));
 #endif
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# bytes expired"),
+			    size,
+			    GNUNET_NO);
   GNUNET_CONTAINER_bloomfilter_remove (filter,
 				       key);
   return GNUNET_NO; /* delete */
@@ -390,6 +401,10 @@ manage (void *cls,
 	      size + GNUNET_DATASTORE_ENTRY_OVERHEAD,
 	      *need);
 #endif
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# bytes purged (low-priority)"),
+			    size,
+			    GNUNET_NO);
   GNUNET_CONTAINER_bloomfilter_remove (filter,
 				       key);
   return GNUNET_NO;
@@ -671,6 +686,10 @@ transmit_item (void *cls,
 	      "Transmitting `%s' message\n",
 	      "DATA");
 #endif
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# results found"),
+			    1,
+			    GNUNET_NO);
   transmit (client, &dm->header, &get_next, next_cls, GNUNET_NO);
   return GNUNET_OK;
 }
@@ -897,6 +916,10 @@ handle_put (void *cls,
 			  &msg);
   if (GNUNET_OK == ret)
     {
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# bytes stored"),
+				size,
+				GNUNET_NO);
       GNUNET_CONTAINER_bloomfilter_add (filter,
 					&dm->key);
 #if DEBUG_DATASTORE
@@ -943,6 +966,10 @@ handle_get (void *cls,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# GET requests received"),
+			    1,
+			    GNUNET_NO);
   GNUNET_SERVER_client_keep (client);
   msg = (const struct GetMessage*) message;
   if ( (size == sizeof(struct GetMessage)) &&
@@ -956,6 +983,10 @@ handle_get (void *cls,
 		  "GET",
 		  GNUNET_h2s (&msg->key));
 #endif	
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# requests filtered by bloomfilter"),
+				1,
+				GNUNET_NO);
       transmit_item (client,
 		     NULL, NULL, 0, NULL, 0, 0, 0, 
 		     GNUNET_TIME_UNIT_ZERO_ABS, 0);
@@ -991,6 +1022,10 @@ handle_update (void *cls,
 	      "Processing `%s' request\n",
 	      "UPDATE");
 #endif
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# UPDATE requests received"),
+			    1,
+			    GNUNET_NO);
   msg = (const struct UpdateMessage*) message;
   emsg = NULL;
   ret = plugin->api->update (plugin->api->cls,
@@ -1020,6 +1055,10 @@ handle_get_random (void *cls,
 	      "Processing `%s' request\n",
 	      "GET_RANDOM");
 #endif
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# GET RANDOM requests received"),
+			    1,
+			    GNUNET_NO);
   GNUNET_SERVER_client_keep (client);
   plugin->api->iter_migration_order (plugin->api->cls,
 				     0,
@@ -1085,6 +1124,10 @@ remove_callback (void *cls,
 	      (unsigned long long) uid,
 	      "REMOVE");
 #endif	
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# bytes removed (explicit request)"),
+			    size,
+			    GNUNET_NO);
   GNUNET_CONTAINER_bloomfilter_remove (filter,
 				       key);
   plugin->api->next_request (next_cls, GNUNET_YES);
@@ -1119,6 +1162,10 @@ handle_remove (void *cls,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# REMOVE requests received"),
+			    1,
+			    GNUNET_NO);
   rc = GNUNET_malloc (sizeof(struct RemoveContext));
   GNUNET_SERVER_client_keep (client);
   rc->client = client;
@@ -1256,6 +1303,11 @@ unload_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       filter = NULL;
     }
   GNUNET_ARM_stop_services (cfg, tc->sched, "statistics", NULL);
+  if (stats != NULL)
+    {
+      GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
+      stats = NULL;
+    }
 }
 
 
@@ -1368,6 +1420,7 @@ run (void *cls,
 		  "DATASTORE");
       return;
     }
+  stats = GNUNET_STATISTICS_create (sched, "datastore", cfg);
   cache_size = quota / 8; /* Or should we make this an option? */
   bf_size = quota / 32; /* 8 bit per entry, 1 bit per 32 kb in DB */
   fn = NULL;
@@ -1391,6 +1444,11 @@ run (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Failed to initialize bloomfilter.\n"));
+      if (stats != NULL)
+	{
+	  GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
+	  stats = NULL;
+	}
       return;
     }
   GNUNET_ARM_start_services (cfg, sched, "statistics", NULL);
@@ -1400,6 +1458,11 @@ run (void *cls,
       GNUNET_CONTAINER_bloomfilter_free (filter);
       filter = NULL;
       GNUNET_ARM_stop_services (cfg, sched, "statistics", NULL);
+      if (stats != NULL)
+	{
+	  GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
+	  stats = NULL;
+	}
       return;
     }
   GNUNET_SERVER_disconnect_notify (server, &cleanup_reservations, NULL);

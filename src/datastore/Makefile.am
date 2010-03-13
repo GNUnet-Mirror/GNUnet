@@ -33,6 +33,7 @@ gnunet_service_datastore_SOURCES = \
  gnunet-service-datastore.c plugin_datastore.h
 gnunet_service_datastore_LDADD = \
   $(top_builddir)/src/arm/libgnunetarm.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 

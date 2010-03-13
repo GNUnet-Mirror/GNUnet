@@ -31,8 +31,9 @@
 #define PLUGIN_DATASTORE_H
 
 #include "gnunet_configuration_lib.h"
-#include "gnunet_scheduler_lib.h"
 #include "gnunet_datastore_service.h"
+#include "gnunet_statistics_service.h"
+#include "gnunet_scheduler_lib.h"
 
 
 /**
