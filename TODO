@@ -11,20 +11,30 @@ away), in order in which they will likely be done:
 * MySQL / Postgres plugins (datastore, datacache)
 * UPNP [Milan]
 * ARM [Safey]
+* FS [Christian]
 
 0.9.0pre0:
 * HOSTLIST/PEERINFO/CORE/TRANSPORT/TOPOLOGY:
   - hostlist server learns about 2nd peer, but soon forgets!
   - peers do not seem to connect (at least not for long!)
-  - urgently need statistics!
+* TOPOLOGY:
+  - needs more testing (especially F2F topology)
+* CORE:
+  - needs more testing
 * UTIL:
-  - load: need way to determine network load (up/down)
+  - load: need way to determine network load (up/down) -- and quickly so!
   - trust: need *fast* way to check/update trust in peers
            (async peerinfo would not be right)
+  - scheduler should change OS process priority based on task priority;   
+    should make better use of task priorities in general
 * TRANSPORT:
   - disconnect notifications from TCP not always as nice as we might want
     them to be (but how can we do this cleanly given that UDP is connectionless?)
   - TCP not used bi-directionally (especially important also for PONG!)
+    Need a way for plugin to tell to service that it can *reliably* transmit
+    PONGs.  Need *good* way to ensure only one (plugin) session is active at 
+    any given point in time; need systematic way to periodically probe latency/
+    transport cost changes
   - hostlist testcase shows that (randomly) we jump to an address that
     seems to be a plugin function *after* the plugin has been unloaded
     (directly from scheduler); check that *all* plugin tasks are cancelled
@@ -33,16 +43,13 @@ away), in order in which they will likely be done:
   - synchronous/asynchronous API (& implementation) is not nice;
     => provide notification-based API
   - does not seem to work with timeouts (especially if service is not running)
-  - add stats to dvstore (# bytes available, # bytes used, # PUTs, # GETs, # GETs satisfied)
+* DATACACHE:
+  - add stats (# bytes available, # bytes used, # PUTs, # GETs, # GETs satisfied)
 * ARM:
   - need to get rid of synchronous API for service starts (cause all kinds of problems)
     [=> eliminate for need to tell ARM about service starts most of the time!] [Safey]
 * HELLO:
   - need function to test "equivalency" of HELLOs; use in topology!
-* TOPOLOGY:
-  - needs more testing (especially F2F topology)
-* CORE:
-  - needs more testing
 * FS:
   - gnunet-publish cannot be aborted using CTRL-C
   - gnunet-publish segfaults if file does not exist
