@@ -148,7 +148,12 @@ discard_expired (void *cls,
 {
   const struct GNUNET_TIME_Absolute *now = cls;
   if (now->value > expiration.value)
-    return GNUNET_NO;
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Removing expired address of transport `%s'\n"),
+		  tname);
+      return GNUNET_NO;
+    }
   return GNUNET_OK;
 }
 
@@ -584,9 +589,6 @@ discard_hosts_helper (void *cls, const char *fn)
   new_hello = GNUNET_HELLO_iterate_addresses (hello,
                                               GNUNET_YES,
                                               &discard_expired, now);
-  if ((new_hello == NULL) && (0 != UNLINK (fn)))
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING |
-                              GNUNET_ERROR_TYPE_BULK, "unlink", fn);
   if (new_hello != NULL)
     {
       GNUNET_DISK_fn_write (fn, 
@@ -595,6 +597,12 @@ discard_hosts_helper (void *cls, const char *fn)
 			    GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE
 			    | GNUNET_DISK_PERM_GROUP_READ | GNUNET_DISK_PERM_OTHER_READ);
       GNUNET_free (new_hello);
+    }
+  else
+    {
+      if (0 != UNLINK (fn))
+	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING |
+				  GNUNET_ERROR_TYPE_BULK, "unlink", fn);      
     }
   return GNUNET_OK;
 }
