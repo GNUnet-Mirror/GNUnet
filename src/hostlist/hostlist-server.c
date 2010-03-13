@@ -58,6 +58,11 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 static struct GNUNET_SCHEDULER_Handle *sched;
 
 /**
+ * For keeping statistics.
+ */ 
+static struct GNUNET_STATISTICS_Handle *stats;
+
+/**
  * Our primary task for IPv4.
  */
 static GNUNET_SCHEDULER_TaskIdentifier hostlist_task_v4;
@@ -87,7 +92,7 @@ static struct GNUNET_PEERINFO_IteratorContext *pitr;
  */
 struct HostSet
 {
-  unsigned int size;
+  size_t size;
 
   char *data;
 };
@@ -123,7 +128,7 @@ finish_response (struct HostSet *results)
     {
       freq = RESPONSE_UPDATE_FREQUENCY;
       if (results->size == 0)
-	freq = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 50);
+	freq = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250);
       /* schedule next update of the response */  
       response_task = GNUNET_SCHEDULER_add_delayed (sched,
 						    freq,
@@ -136,6 +141,10 @@ finish_response (struct HostSet *results)
       MHD_destroy_response (response);
       response = NULL;
     }
+  GNUNET_STATISTICS_set (stats,
+			 gettext_noop("bytes in hostlist"),
+			 results->size,
+			 GNUNET_YES);
   GNUNET_free (results);
 }
 
@@ -236,6 +245,10 @@ access_handler_callback (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Refusing `%s' request to hostlist server\n"),
 		  method);
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop("hostlist requests refused (not HTTP GET)"),
+				1,
+				GNUNET_YES);
       return MHD_NO;
     }
   if (NULL == *con_cls)
@@ -253,16 +266,28 @@ access_handler_callback (void *cls,
 		  _("Refusing `%s' request with %llu bytes of upload data\n"),
 		  method,
 		  (unsigned long long) *upload_data_size);
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop("hostlist requests refused (upload data)"),
+				1,
+				GNUNET_YES);
       return MHD_NO;              /* do not support upload data */
     }
   if (response == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Could not handle hostlist request since I do not have a response yet\n"));
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop("hostlist requests refused (not ready)"),
+				1,
+				GNUNET_YES);
       return MHD_NO;              /* internal error, no response yet */
     }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("Received request for our hostlist\n"));
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop("hostlist requests processed"),
+			    1,
+			    GNUNET_YES);
   return MHD_queue_response (connection, MHD_HTTP_OK, response);
 }
 
@@ -369,6 +394,7 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 
   sched = s;
   cfg = c;
+  stats = st;
   if (-1 == GNUNET_CONFIGURATION_get_value_number (cfg,
 						   "HOSTLIST",
 						   "HTTPPORT", 
