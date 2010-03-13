@@ -33,7 +33,6 @@ away), in order in which they will likely be done:
   - synchronous/asynchronous API (& implementation) is not nice;
     => provide notification-based API
   - does not seem to work with timeouts (especially if service is not running)
-  - add stats to fs service (# queries, # replies, # routed, # found, # pending)
   - add stats to dvstore (# bytes available, # bytes used, # PUTs, # GETs, # GETs satisfied)
 * ARM:
   - need to get rid of synchronous API for service starts (cause all kinds of problems)

@@ -39,6 +39,7 @@
 #include "gnunet_peer_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_signatures.h"
+#include "gnunet_statistics_service.h"
 #include "gnunet_util_lib.h"
 #include "gnunet-service-fs_drq.h"
 #include "gnunet-service-fs_indexing.h"
@@ -570,15 +571,20 @@ static struct GNUNET_CONTAINER_MultiHashMap *query_request_map;
 static struct GNUNET_CONTAINER_Heap *requests_by_expiration_heap;
 
 /**
+ * Handle for reporting statistics.
+ */
+static struct GNUNET_STATISTICS_Handle *stats;
+
+/**
  * Linked list of clients we are currently processing requests for.
  */
-struct ClientList *client_list;
+static struct ClientList *client_list;
 
 /**
  * Pointer to handle to the core service (points to NULL until we've
  * connected to it).
  */
-struct GNUNET_CORE_Handle *core;
+static struct GNUNET_CORE_Handle *core;
 
 
 /* ******************* clean up functions ************************ */
@@ -645,6 +651,17 @@ destroy_pending_request (struct PendingRequest *pr)
       GNUNET_CONTAINER_heap_remove_node (requests_by_expiration_heap,
 					 pr->hnode);
       pr->hnode = NULL;
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# P2P searches active"),
+				-1,
+				GNUNET_NO);
+    }
+  else
+    {
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# client searches active"),
+				-1,
+				GNUNET_NO);
     }
   /* might have already been removed from map in 'process_reply' (if
      there was a unique reply) or never inserted if it was a
@@ -938,6 +955,11 @@ shutdown_task (void *cls,
   GNUNET_assert (NULL != core);
   GNUNET_CORE_disconnect (core);
   core = NULL;
+  if (stats != NULL)
+    {
+      GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
+      stats = NULL;
+    }
   sched = NULL;
   cfg = NULL;  
 }
@@ -1162,6 +1184,10 @@ transmit_query_continuation (void *cls,
 					       pr); 
       return;    
     }
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# queries forwarded"),
+			    1,
+			    GNUNET_NO);
   GNUNET_PEER_change_rc (tpid, 1);
   if (pr->used_pids_off == pr->used_pids_size)
     GNUNET_array_grow (pr->used_pids,
@@ -1308,6 +1334,10 @@ target_reservation_cb (void *cls,
 		      amount,
 		      DBLOCK_SIZE);
 #endif
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# reply bandwidth reservation requests failed"),
+				    1,
+				    GNUNET_NO);
 	  pr->task = GNUNET_SCHEDULER_add_delayed (sched,
 						   get_processing_delay (),
 						   &forward_request_task,
@@ -1319,6 +1349,10 @@ target_reservation_cb (void *cls,
       no_route = GNUNET_YES;
     }
   
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# requests forwarded"),
+			    1,
+			    GNUNET_NO);
   /* build message and insert message into priority queue */
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1748,6 +1782,10 @@ process_reply (void *cls,
 	      (unsigned int) prq->type,
 	      GNUNET_h2s (key));
 #endif  
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# replies received and matched"),
+			    1,
+			    GNUNET_NO);
   do_remove = GNUNET_NO;
   GNUNET_CRYPTO_hash (prq->data,
 		      prq->size,
@@ -1819,6 +1857,10 @@ process_reply (void *cls,
 		  "Transmitting result for query `%s' to local client\n",
 		  GNUNET_h2s (key));
 #endif  
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# replies received for local clients"),
+				1,
+				GNUNET_NO);
       cl = pr->client_request_list->client_list;
       msize = sizeof (struct PutMessage) + prq->size;
       creply = GNUNET_malloc (msize + sizeof (struct ClientResponseMessage));
@@ -1851,6 +1893,10 @@ process_reply (void *cls,
 		  GNUNET_h2s (key),
 		  (unsigned int) cp->pid);
 #endif  
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# replies received for other peers"),
+				1,
+				GNUNET_NO);
       msize = sizeof (struct PutMessage) + prq->size;
       reply = GNUNET_malloc (msize + sizeof (struct PendingMessage));
       reply->cont = &transmit_reply_continuation;
@@ -1960,6 +2006,10 @@ handle_p2p_put (void *cls,
 	      GNUNET_h2s (&query),
 	      GNUNET_i2s (other));
 #endif
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# replies received (overall)"),
+			    1,
+			    GNUNET_NO);
   /* now, lookup 'query' */
   prq.data = (const void*) &put[1];
   prq.size = dsize;
@@ -2111,6 +2161,10 @@ process_local_reply (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Found ONDEMAND block, performing on-demand encoding\n");
 #endif
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# on-demand blocks matched requests"),
+				1,
+				GNUNET_NO);
       if (GNUNET_OK != 
 	  GNUNET_FS_handle_on_demand_block (key, size, data, type, priority, 
 					    anonymity, expiration, uid, 
@@ -2133,6 +2187,10 @@ process_local_reply (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Result from datastore filtered by bloomfilter (duplicate).\n");
 #endif
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# results filtered by query bloomfilter"),
+				1,
+				GNUNET_NO);
       GNUNET_FS_drq_get_next (GNUNET_YES);
       return;
     }
@@ -2141,6 +2199,10 @@ process_local_reply (void *cls,
 	      "Found result for query `%s' in local datastore\n",
 	      GNUNET_h2s (key));
 #endif
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# results found locally"),
+			    1,
+			    GNUNET_NO);
   pr->results_found++;
   if ( (pr->type == GNUNET_DATASTORE_BLOCKTYPE_KBLOCK) ||
        (pr->type == GNUNET_DATASTORE_BLOCKTYPE_SBLOCK) ||
@@ -2184,6 +2246,11 @@ process_local_reply (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Unique reply found or load too high, done with request\n");
 #endif
+      if (type != GNUNET_DATASTORE_BLOCKTYPE_DBLOCK)
+	GNUNET_STATISTICS_update (stats,
+				  gettext_noop ("# processing result set cut short due to load"),
+				  1,
+				  GNUNET_NO);
       GNUNET_FS_drq_get_next (GNUNET_NO);
       return;
     }
@@ -2362,6 +2429,10 @@ handle_p2p_get (void *cls,
 		    "Failed to find peer `%4s' in connection set. Dropping query.\n",
 		    GNUNET_i2s (other));
 #endif
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# requests dropped due to missing reverse route"),
+				1,
+				GNUNET_NO);
      /* FIXME: try connect? */
       return GNUNET_OK;
     }
@@ -2375,6 +2446,10 @@ handle_p2p_get (void *cls,
 		  "Dropping query from `%s', this peer is too busy.\n",
 		  GNUNET_i2s (other));
 #endif
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# requests dropped due to high load"),
+				1,
+				GNUNET_NO);
       return GNUNET_OK;
     }
 
@@ -2393,7 +2468,9 @@ handle_p2p_get (void *cls,
   pr->type = type;
   pr->mingle = ntohl (gm->filter_mutator);
   if (0 != (bm & GET_MESSAGE_BIT_SKS_NAMESPACE))
-    memcpy (&pr[1], &opt[bits++], sizeof (GNUNET_HashCode));
+    {
+      memcpy (&pr[1], &opt[bits++], sizeof (GNUNET_HashCode));
+    }
   else if (pr->type == GNUNET_DATASTORE_BLOCKTYPE_SBLOCK)
     {
       GNUNET_break_op (0);
@@ -2419,6 +2496,10 @@ handle_p2p_get (void *cls,
 		  "Dropping query from `%s' due to TTL underflow.\n",
 		  GNUNET_i2s (other));
 #endif
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# requests dropped due TTL underflow"),
+				1,
+				GNUNET_NO);
       /* integer underflow => drop (should be very rare)! */
       GNUNET_free (pr);
       return GNUNET_OK;
@@ -2454,6 +2535,10 @@ handle_p2p_get (void *cls,
 		      "Have existing request with higher TTL, dropping new request.\n",
 		      GNUNET_i2s (other));
 #endif
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# requests dropped due to existing request with higher TTL"),
+				    1,
+				    GNUNET_NO);
 	  return GNUNET_OK;
 	}
       else
@@ -2483,6 +2568,10 @@ handle_p2p_get (void *cls,
 					    pr,
 					    pr->start_time.value + pr->ttl);
 
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# P2P searches active"),
+			    1,
+			    GNUNET_NO);
 
   /* calculate change in traffic preference */
   preference = (double) pr->priority;
@@ -2628,11 +2717,19 @@ handle_start_search (void *cls,
 					&pr->mingle,
 					&pr->bf_size,
 					pr->replies_seen);
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# client searches updated (merged content seen list)"),
+				    1,
+				    GNUNET_NO);
 	  GNUNET_SERVER_receive_done (client,
 				      GNUNET_OK);
 	  return;
 	}
     }
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# client searches active"),
+			    1,
+			    GNUNET_NO);
   pr = GNUNET_malloc (sizeof (struct PendingRequest) + 
 		      ((type == GNUNET_DATASTORE_BLOCKTYPE_SBLOCK)?sizeof(GNUNET_HashCode):0));
   crl = GNUNET_malloc (sizeof (struct ClientRequestList));
@@ -2736,6 +2833,7 @@ main_init (struct GNUNET_SCHEDULER_Handle *s,
 {
   sched = s;
   cfg = c;
+  stats = GNUNET_STATISTICS_create (sched, "fs", cfg);
   connected_peers = GNUNET_CONTAINER_multihashmap_create (128); // FIXME: get size from config
   query_request_map = GNUNET_CONTAINER_multihashmap_create (128); // FIXME: get size from config
   peer_request_map = GNUNET_CONTAINER_multihashmap_create (128); // FIXME: get size from config
