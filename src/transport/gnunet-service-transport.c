@@ -818,13 +818,11 @@ static struct CheckHelloValidatedContext *chvc_head;
  */
 static struct CheckHelloValidatedContext *chvc_tail;
 
-
 /**
  * Map of PeerIdentities to 'struct ValidationEntry*'s (addresses
  * of the given peer that we are currently validating).
  */
 static struct GNUNET_CONTAINER_MultiHashMap *validation_map;
-
 
 /**
  * Handle for reporting statistics.
