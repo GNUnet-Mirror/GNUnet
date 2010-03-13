@@ -29,6 +29,7 @@
 #include "gnunet_core_service.h"
 #include "gnunet_protocols.h"
 #include "gnunet_peerinfo_service.h"
+#include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
 #include "gnunet_util_lib.h"
 
@@ -209,6 +210,11 @@ static struct GNUNET_PeerIdentity my_identity;
 static struct PeerList *peers;
 
 /**
+ * Handle for reporting statistics.
+ */
+static struct GNUNET_STATISTICS_Handle *stats;
+
+/**
  * Flag to disallow non-friend connections (pure F2F mode).
  */
 static int friends_only;
@@ -263,6 +269,10 @@ disconnect_done (void *cls,
 {
   struct DisconnectList *dl = cls;
 
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# peers blacklisted"),
+			    1,
+			    GNUNET_NO);
   GNUNET_CONTAINER_DLL_remove (disconnect_head,
 			       disconnect_tail,
 			       dl);
@@ -314,6 +324,10 @@ whitelist_done (void *cls,
   struct PeerList *pl = cls;
 
   pl->wh = NULL;
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# peers blacklisted"),
+			    -1,
+			    GNUNET_NO);
 }
 
 
@@ -386,6 +400,10 @@ attempt_connect (struct PeerList *pos)
 	      "Asking core to connect to `%s'\n",
 	      GNUNET_i2s (&pos->id));
 #endif
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# connect requests issued to core"),
+			    1,
+			    GNUNET_NO);
   pos->connect_req = GNUNET_CORE_peer_request_connect (sched, cfg,
 						       GNUNET_TIME_UNIT_MINUTES,
 						       &pos->id,
@@ -669,6 +687,10 @@ connect_notify (void *cls,
 	      GNUNET_i2s (peer));
 #endif
   connection_count++;
+  GNUNET_STATISTICS_set (stats,
+			 gettext_noop ("# peers connected"),
+			 connection_count,
+			 GNUNET_NO);
   pos = find_peer (peer);
   if (pos == NULL)    
     {
@@ -698,6 +720,10 @@ connect_notify (void *cls,
 	   (GNUNET_YES != friends_only) )	
 	whitelist_peers ();       
       friend_count++;
+      GNUNET_STATISTICS_set (stats,
+			     gettext_noop ("# friends connected"),
+			     connection_count,
+			     GNUNET_NO);
     }
   reschedule_hellos (pos);
 }
@@ -780,8 +806,18 @@ disconnect_notify (void *cls,
       return;
     }
   connection_count--;
+  GNUNET_STATISTICS_set (stats,
+			 gettext_noop ("# peers connected"),
+			 connection_count,
+			 GNUNET_NO);
   if (pos->is_friend)
-    friend_count--; 
+    {
+      friend_count--; 
+      GNUNET_STATISTICS_set (stats,
+			     gettext_noop ("# friends connected"),
+			     connection_count,
+			     GNUNET_NO);
+    }
   if ( (connection_count < target_connection_count) ||
        (friend_count < minimum_friend_count) )
     try_add_peers ();   
@@ -1127,6 +1163,10 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
     }
   GNUNET_free (data);
   GNUNET_free (fn);
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# friends in configuration"),
+			    entries_found,
+			    GNUNET_NO);
   if ( (minimum_friend_count > entries_found) &&
        (friends_only == GNUNET_NO) )
     {
@@ -1169,6 +1209,10 @@ handle_encrypted_hello (void *cls,
 	      "HELLO",
 	      GNUNET_i2s (other));
 #endif 	
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# HELLO messages received"),
+			    1,
+			    GNUNET_NO);
   if (transport != NULL)
     GNUNET_TRANSPORT_offer_hello (transport,
 				  message);
@@ -1236,6 +1280,10 @@ hello_advertising_ready (void *cls,
 		      (unsigned int) want,
 		      "HELLO");
 #endif 	
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# HELLO messages gossipped"),
+				    1,
+				    GNUNET_NO);
 	}
     }
   pl->next_hello_allowed = GNUNET_TIME_relative_to_absolute (HELLO_ADVERTISEMENT_MIN_FREQUENCY);
@@ -1278,6 +1326,11 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_TRANSPORT_blacklist_cancel (dl->rh);
       GNUNET_free (dl);
     }
+  if (stats != NULL)
+    {
+      GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
+      stats = NULL;
+    }
 }
 
 
@@ -1306,6 +1359,7 @@ run (void *cls,
 
   sched = s;
   cfg = c;
+  stats = GNUNET_STATISTICS_create (sched, "topology", cfg);
   autoconnect = GNUNET_CONFIGURATION_get_value_yesno (cfg,
 						      "TOPOLOGY",
 						      "AUTOCONNECT");
