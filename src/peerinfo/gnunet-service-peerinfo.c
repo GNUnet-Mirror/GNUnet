@@ -37,6 +37,7 @@
 #include "gnunet_hello_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_service_lib.h"
+#include "gnunet_statistics_service.h"
 #include "peerinfo.h"
 
 /**
@@ -107,6 +108,11 @@ static char *networkIdDirectory;
  * Where do we store trust information?
  */
 static char *trustDirectory;
+
+/**
+ * Handle for reporting statistics.
+ */
+static struct GNUNET_STATISTICS_Handle *stats;
 
 
 /**
@@ -251,6 +257,10 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
   entry = lookup_host_entry (identity);
   if (entry != NULL)
     return;
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# peers known"),
+			    1,
+			    GNUNET_NO);
   entry = GNUNET_malloc (sizeof (struct HostEntry));
   entry->identity = *identity;
   fn = get_trust_filename (identity);
@@ -763,6 +773,11 @@ shutdown_task (void *cls,
 {
   GNUNET_SERVER_notification_context_destroy (notify_list);
   notify_list = NULL;
+  if (stats != NULL)
+    {
+      GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
+      stats = NULL;
+    }
 }
 
 
@@ -780,6 +795,7 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  stats = GNUNET_STATISTICS_create (sched, "statistics", cfg);
   notify_list = GNUNET_SERVER_notification_context_create (server, 0);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_filename (cfg,

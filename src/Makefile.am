@@ -14,10 +14,10 @@ endif
 SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
   util \
+  statistics \
   arm \
   hello \
   peerinfo \
-  statistics \
   datacache \
   datastore \
   template \
