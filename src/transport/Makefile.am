@@ -58,6 +58,7 @@ gnunet_service_transport_SOURCES = \
  gnunet-service-transport_blacklist.c gnunet-service-transport_blacklist.h
 gnunet_service_transport_LDADD = \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 

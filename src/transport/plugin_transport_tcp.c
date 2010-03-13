@@ -310,6 +310,10 @@ create_session (struct Plugin *plugin,
   GNUNET_CONTAINER_DLL_insert (ret->pending_messages_head,
 			       ret->pending_messages_tail,
 			       pm);
+  GNUNET_STATISTICS_update (plugin->env->stats,
+			    gettext_noop ("# TCP sessions active"),
+			    1,
+			    GNUNET_NO);      
   return ret;
 }
 
@@ -396,6 +400,10 @@ do_transmit (void *cls, size_t size, void *buf)
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "tcp", "Transmitting %u bytes\n", ret);
 #endif
+  GNUNET_STATISTICS_update (session->plugin->env->stats,
+			    gettext_noop ("# bytes transmitted via TCP"),
+			    ret,
+			    GNUNET_NO);      
   return ret;
 }
 
@@ -515,6 +523,10 @@ disconnect_session (struct Session *session)
       GNUNET_SERVER_client_drop (session->client);
       session->client = NULL;
     } 
+  GNUNET_STATISTICS_update (session->plugin->env->stats,
+			    gettext_noop ("# TCP sessions active"),
+			    -1,
+			    GNUNET_NO);      
   GNUNET_free_non_null (session->connect_addr);
   GNUNET_free (session);
 }
@@ -903,6 +915,10 @@ handle_tcp_welcome (void *cls,
 		   "WELCOME",
                    GNUNET_i2s (&wm->clientIdentity), client);
 #endif
+  GNUNET_STATISTICS_update (plugin->env->stats,
+			    gettext_noop ("# TCP WELCOME messages received"),
+			    1,
+			    GNUNET_NO);      
   session = find_session_by_client (plugin, client);
   if (session == NULL)
     {
@@ -1010,6 +1026,10 @@ handle_tcp_data (void *cls,
 		   (unsigned int) ntohs (message->type),
 		   GNUNET_i2s (&session->target));
 #endif
+  GNUNET_STATISTICS_update (plugin->env->stats,
+			    gettext_noop ("# bytes received via TCP"),
+			    ntohs (message->size),
+			    GNUNET_NO); 
   delay = plugin->env->receive (plugin->env->cls, &session->target, message, 1,
 				session->connect_addr,
 				session->connect_alen);

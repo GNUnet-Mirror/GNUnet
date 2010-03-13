@@ -33,6 +33,7 @@
 
 #include "gnunet_configuration_lib.h"
 #include "gnunet_scheduler_lib.h"
+#include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
 
 
@@ -130,6 +131,11 @@ struct GNUNET_TRANSPORT_PluginEnvironment
    * Closure for the various callbacks.
    */
   void *cls;
+
+  /**
+   * Handle for reporting statistics.
+   */
+  struct GNUNET_STATISTICS_Handle *stats;
 
   /**
    * Function that should be called by the transport plugin

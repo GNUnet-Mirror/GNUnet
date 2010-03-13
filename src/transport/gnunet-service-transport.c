@@ -827,6 +827,12 @@ static struct GNUNET_CONTAINER_MultiHashMap *validation_map;
 
 
 /**
+ * Handle for reporting statistics.
+ */
+static struct GNUNET_STATISTICS_Handle *stats;
+
+
+/**
  * The peer specified by the given neighbour has timed-out or a plugin
  * has disconnected.  We may either need to do nothing (other plugins
  * still up), or trigger a full disconnect and clean up.  This
@@ -1073,10 +1079,6 @@ transmit_send_continuation (void *cls,
     transmit_send_ok (mq->client, n, result);
   GNUNET_free (mq);
   try_transmission_to_peer (n);
-  /** Never disconnect a neighbor here... 
-  if (result != GNUNET_OK)
-    disconnect_neighbour (n, GNUNET_YES);
-  */    
 }
 
 
@@ -1235,6 +1237,10 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 			  mq->specific_address->addrlen),
 	      rl->plugin->short_name);
 #endif
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# bytes transmitted to other peers"),
+			    mq->message_buf_size,
+			    GNUNET_NO);
   rl->plugin->api->send (rl->plugin->api->cls,
 			 &mq->neighbour_id,
 			 mq->message_buf,
@@ -1372,6 +1378,10 @@ refresh_hello ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
               "Refreshed my `%s', new size is %d\n", "HELLO", GNUNET_HELLO_size(hello));
 #endif
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# refreshed my HELLO"),
+			    1,
+			    GNUNET_NO);
   cpos = clients;
   while (cpos != NULL)
     {
@@ -1393,6 +1403,10 @@ refresh_hello ()
                   "Transmitting updated `%s' to neighbour `%4s'\n",
                   "HELLO", GNUNET_i2s (&npos->id));
 #endif
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# transmitted my HELLO to other peers"),
+				1,
+				GNUNET_NO);
       transmit_to_peer (NULL, NULL, 0,
 			HELLO_ADDRESS_EXPIRATION,
                         (const char *) our_hello, 
@@ -1555,6 +1569,10 @@ notify_clients_connect (const struct GNUNET_PeerIdentity *peer,
 	      "Notifying clients about connection from `%s'\n",
 	      GNUNET_i2s (peer));
 #endif
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# peers connected"),
+			    1,
+			    GNUNET_NO);
   cim.header.size = htons (sizeof (struct ConnectInfoMessage));
   cim.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
   cim.distance = htonl (distance);
@@ -1583,6 +1601,10 @@ notify_clients_disconnect (const struct GNUNET_PeerIdentity *peer)
 	      "Notifying clients about lost connection to `%s'\n",
 	      GNUNET_i2s (peer));
 #endif
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# peers connected"),
+			    -1,
+			    GNUNET_NO);
   dim.header.size = htons (sizeof (struct DisconnectInfoMessage));
   dim.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT);
   dim.reserved = htonl (0);
@@ -1770,6 +1792,10 @@ check_pending_validation (void *cls,
 			  ve->addrlen),
 	      ve->transport_name);
 #endif
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# address validation successes"),
+			    1,
+			    GNUNET_NO);
   /* create the updated HELLO */
   GNUNET_CRYPTO_hash (&ve->publicKey,
                       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
@@ -1869,6 +1895,10 @@ handle_pong (void *cls, const struct GNUNET_MessageHeader *message,
 	      "Receiving `%s' message from `%4s'.\n", "PONG",
 	      GNUNET_i2s (peer));
 #endif
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# PONG messages received"),
+			    1,
+			    GNUNET_NO);
   if (GNUNET_SYSERR !=
       GNUNET_CONTAINER_multihashmap_get_multiple (validation_map,
 						  &peer->hashPubKey,
@@ -1913,6 +1943,10 @@ neighbour_timeout_task (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
               "Neighbour `%4s' has timed out!\n", GNUNET_i2s (&n->id));
 #endif
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# disconnects due to timeout"),
+			    1,
+			    GNUNET_NO);
   n->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   disconnect_neighbour (n, GNUNET_NO);
 }
@@ -2041,6 +2075,10 @@ timeout_hello_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *
   struct ValidationEntry *va = cls;
   struct GNUNET_PeerIdentity pid;
 
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# address validation timeouts"),
+			    1,
+			    GNUNET_NO);
   GNUNET_CRYPTO_hash (&va->publicKey,
 		      sizeof (struct
 			      GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
@@ -2163,6 +2201,10 @@ rerun_validation (void *cls,
               "HELLO", hello_size,
               "PING", sizeof (struct TransportPingMessage));
 #endif
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# PING messages sent"),
+			    1,
+			    GNUNET_NO);
   transmit_to_peer (NULL, peer_address,
                     GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                     HELLO_VERIFICATION_TIMEOUT,
@@ -2657,6 +2699,10 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
 	      GNUNET_a2s ((const struct sockaddr *)sender_address, 
 			  sender_address_len));
 #endif
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# PING messages received"),
+			    1,
+			    GNUNET_NO);
   pong = GNUNET_malloc (sizeof (struct TransportPongMessage) + sender_address_len);
   pong->header.size = htons (sizeof (struct TransportPongMessage) + sender_address_len);
   pong->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_PONG);
@@ -2760,6 +2806,10 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 	}
       /* update traffic received amount ... */
       msize = ntohs (message->size);      
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# bytes received from other peers"),
+				msize,
+				GNUNET_NO);
       n->distance = distance;
       n->peer_timeout =
 	GNUNET_TIME_relative_to_absolute
@@ -2779,11 +2829,19 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 		      ("Dropping incoming message due to repeated bandwidth quota (%u b/s) violations (total of %u).\n"), 
 		      n->in_tracker.available_bytes_per_s__,
 		      n->quota_violation_count);
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# bandwidth quota violations by other peers"),
+				    1,
+				    GNUNET_NO);
 	  return GNUNET_TIME_UNIT_MINUTES; /* minimum penalty, likely ignored (UDP...) */
 	}
       switch (ntohs (message->type))
 	{
 	case GNUNET_MESSAGE_TYPE_HELLO:
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# HELLO messages received from other peers"),
+				    1,
+				    GNUNET_NO);
 	  process_hello (plugin, message);
 	  break;
 	case GNUNET_MESSAGE_TYPE_TRANSPORT_PING:
@@ -2803,6 +2861,10 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 	    n->quota_violation_count++;
 	  else 
 	    n->quota_violation_count = 0; /* back within limits */
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# payload received from other peers"),
+				    msize,
+				    GNUNET_NO);
 	  /* transmit message to all clients */
 	  im = GNUNET_malloc (sizeof (struct InboundMessage) + msize);
 	  im->header.size = htons (sizeof (struct InboundMessage) + msize);
@@ -2821,11 +2883,17 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     }  
   ret = GNUNET_BANDWIDTH_tracker_get_delay (&n->in_tracker, 0);
   if (ret.value > 0)
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		"Throttling read (%llu bytes excess at %u b/s), waiting %llums before reading more.\n",
-		(unsigned long long) n->in_tracker.consumption_since_last_update__,
-		(unsigned int) n->in_tracker.available_bytes_per_s__,
-		(unsigned long long) ret.value);
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  "Throttling read (%llu bytes excess at %u b/s), waiting %llums before reading more.\n",
+		  (unsigned long long) n->in_tracker.consumption_since_last_update__,
+		  (unsigned int) n->in_tracker.available_bytes_per_s__,
+		  (unsigned long long) ret.value);
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# ms throttling suggested"),
+				(int64_t) ret.value,
+				GNUNET_NO);      
+    }
   return ret;
 }
 
@@ -2942,6 +3010,10 @@ handle_send (void *cls,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# payload received for other peers"),
+			    size,
+			    GNUNET_NO);      
   obm = (const struct OutboundMessage *) message;
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2992,11 +3064,19 @@ handle_set_quota (void *cls,
   const struct QuotaSetMessage *qsm =
     (const struct QuotaSetMessage *) message;
   struct NeighbourList *n;
-
+  
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# SET QUOTA messages received"),
+			    1,
+			    GNUNET_NO);      
   n = find_neighbour (&qsm->peer);
   if (n == NULL)
     {
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# SET QUOTA messages ignored (no such peer)"),
+				1,
+				GNUNET_NO);      
       return;
     }
 #if DEBUG_TRANSPORT
@@ -3128,6 +3208,7 @@ create_environment (struct TransportPlugin *plug)
   plug->env.receive = &plugin_env_receive;
   plug->env.notify_address = &plugin_env_notify_address;
   plug->env.max_connections = max_connect_per_transport;
+  plug->env.stats = stats;
 }
 
 
@@ -3291,6 +3372,12 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 					 &abort_validation,
 					 NULL);
   GNUNET_CONTAINER_multihashmap_destroy (validation_map);
+  validation_map = NULL;
+  if (stats != NULL)
+    {
+      GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
+      stats = NULL;
+    }
 }
 
 
@@ -3316,6 +3403,7 @@ run (void *cls,
 
   sched = s;
   cfg = c;
+  stats = GNUNET_STATISTICS_create (sched, "transport", cfg);
   validation_map = GNUNET_CONTAINER_multihashmap_create (64);
   /* parse configuration */
   if ((GNUNET_OK !=
@@ -3332,6 +3420,13 @@ run (void *cls,
                   _
                   ("Transport service is lacking key configuration settings.  Exiting.\n"));
       GNUNET_SCHEDULER_shutdown (s);
+      if (stats != NULL)
+	{
+	  GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
+	  stats = NULL;
+	}
+      GNUNET_CONTAINER_multihashmap_destroy (validation_map);
+      validation_map = NULL;
       return;
     }
   max_connect_per_transport = (uint32_t) tneigh;
@@ -3343,6 +3438,13 @@ run (void *cls,
                   _
                   ("Transport service could not access hostkey.  Exiting.\n"));
       GNUNET_SCHEDULER_shutdown (s);
+      if (stats != NULL)
+	{
+	  GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
+	  stats = NULL;
+	}
+      GNUNET_CONTAINER_multihashmap_destroy (validation_map);
+      validation_map = NULL;
       return;
     }
   GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
