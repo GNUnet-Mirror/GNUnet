@@ -166,19 +166,20 @@ struct Plugin
 
 };
 
-
 void handle_dv_message_received (void *cls,
                                  struct GNUNET_PeerIdentity *sender,
-                                 struct GNUNET_MessageHeader *msg,
+                                 char *msg,
+                                 size_t msg_len,
                                  unsigned int distance,
                                  char *sender_address,
                                  size_t sender_address_len)
 {
   struct Plugin *plugin = cls;
 
+  /* TODO: Add in demultiplexing if we think we'll be receiving multiple messages at once */
   plugin->env->receive(plugin,
                        sender,
-                       msg,
+                       (struct GNUNET_MessageHeader *)msg,
                        distance,
                        sender_address,
                        sender_address_len);
@@ -336,7 +337,7 @@ libgnunet_plugin_transport_dv_init (void *cls)
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct Plugin *plugin;
-  struct GNUNET_SERVICE_Context *service;
+  /*struct GNUNET_SERVICE_Context *service;*/
 
   /**
    * Do we not even need a service for this thing?  That's peculiar.

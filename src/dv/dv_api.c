@@ -151,6 +151,7 @@ transmit_pending (void *cls, size_t size, void *buf)
 {
   struct GNUNET_DV_Handle *handle = cls;
   size_t ret;
+  size_t tsize;
 
   if (buf == NULL)
     {
@@ -158,6 +159,21 @@ transmit_pending (void *cls, size_t size, void *buf)
       return 0;
     }
   handle->th = NULL;
+
+  ret = 0;
+
+  if (handle->current != NULL)
+  {
+    tsize = ntohs(handle->current->msg->header.size);
+    if (size >= tsize)
+    {
+      memcpy(buf, handle->current->msg, tsize);
+    }
+    else
+    {
+      return ret;
+    }
+  }
 
   return ret;
 }
@@ -255,6 +271,11 @@ void handle_message_receipt (void *cls,
   char *sender_address;
   char *packed_msg;
 
+  if (msg == NULL)
+  {
+    return; /* Connection closed? */
+  }
+
   GNUNET_assert(ntohs(msg->type) == GNUNET_MESSAGE_TYPE_TRANSPORT_DV_RECEIVE);
 
   if (ntohs(msg->size) < sizeof(struct GNUNET_DV_MessageReceived))
@@ -323,7 +344,6 @@ int GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
   memcpy(&msg[1], addr, addrlen);
 
   add_pending(dv_handle, msg);
-  process_pending_message(dv_handle);
 
   return GNUNET_OK;
 }

@@ -51,7 +51,7 @@ static struct GNUNET_CORE_Handle *coreAPI;
 /**
  * The identity of our peer.
  */
-const struct GNUNET_PeerIdentity *my_identity;
+struct GNUNET_PeerIdentity my_identity;
 
 /**
  * The configuration for this service.
@@ -155,6 +155,30 @@ struct PendingMessage
 
 
 /**
+ * Context created whenever a direct peer connects to us,
+ * used to gossip other peers to it.
+ */
+struct NeighborSendContext
+{
+  /**
+   * The peer we will gossip to.
+   */
+  struct DirectNeighbor *toNeighbor;
+
+  /**
+   * The timeout for this task.
+   */
+  struct GNUNET_TIME_Relative timeout;
+
+  /**
+   * The task associated with this context.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier task;
+
+};
+
+
+/**
  * Struct to hold information for updating existing neighbors
  */
 struct NeighborUpdateInfo
@@ -201,6 +225,11 @@ struct DirectNeighbor
    * Tail of DLL of nodes that this direct neighbor referred to us.
    */
   struct DistantNeighbor *referee_tail;
+
+  /**
+   * The sending context for gossiping peers to this neighbor.
+   */
+  struct NeighborSendContext *send_context;
 
   /**
    * Is this one of the direct neighbors that we are "hiding"
@@ -311,8 +340,6 @@ struct GNUNET_DV_Context
   unsigned long long fisheye_depth;
 
   unsigned long long max_table_size;
-
-  struct GNUNET_TIME_Relative send_interval;
 
   unsigned int neighbor_id_loc;
 
@@ -470,7 +497,7 @@ send_message (const struct GNUNET_PeerIdentity * recipient,
                                       &sender->hashPubKey);
   if (source == NULL)
     {
-      if (0 != (memcmp (my_identity,
+      if (0 != (memcmp (&my_identity,
                         sender, sizeof (struct GNUNET_PeerIdentity))))
         {
           /* sender unknown to us, drop! */
@@ -634,10 +661,11 @@ static void
 neighbor_send_task (void *cls,
                       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct NeighborSendContext *send_context = cls;
 #if DEBUG_DV
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%s: Entering neighbor_send_thread...\n",
-              GNUNET_i2s(my_identity));
+              "%s: Entering neighbor_send_task...\n",
+              GNUNET_i2s(&my_identity));
   char * encPeerAbout;
   char * encPeerTo;
 #endif
@@ -648,10 +676,30 @@ neighbor_send_task (void *cls,
   struct PendingMessage *pending_message;
 
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  {
+#if DEBUG_DV
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%s: Called with reason shutdown, shutting down!\n",
+              GNUNET_i2s(&my_identity));
+#endif
+    send_context->toNeighbor->send_context = NULL;
+    GNUNET_free(send_context);
     return;
+  }
 
+
+  /* FIXME: this may become a problem, because the heap walk has only one internal "walker".  This means
+   * that if two neighbor_send_tasks are operating in lockstep (which is quite possible, given default
+   * values for all connected peers) there may be a serious bias as to which peers get gossiped about!
+   * Probably the *best* way to fix would be to have an opaque pointer to the walk position passed as
+   * part of the walk_get_next call.  Then the heap would have to keep a list of walks, or reset the walk
+   * whenever a modification has been detected.  Yuck either way.  Perhaps we could iterate over the heap
+   * once to get a list of peers to gossip about and gossip them over time... But then if one goes away
+   * in the mean time that becomes nasty.  For now we'll just assume that the walking is done
+   * asynchronously enough to avoid major problems (-;
+   */
   about = GNUNET_CONTAINER_heap_walk_get_next (ctx.neighbor_min_heap);
-  to = GNUNET_CONTAINER_heap_get_random (ctx.neighbor_min_heap, GNUNET_CONTAINER_multihashmap_size(ctx.direct_neighbors));
+  to = send_context->toNeighbor;
 
   if ((about != NULL) && (to != about->referrer /* split horizon */ ) &&
 #if SUPPORT_HIDING
@@ -666,7 +714,7 @@ neighbor_send_task (void *cls,
       encPeerTo = GNUNET_strdup(GNUNET_i2s(&to->identity));
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                      "%s: Sending info about peer %s to directly connected peer %s\n",
-                     GNUNET_i2s(my_identity),
+                     GNUNET_i2s(&my_identity),
                      encPeerAbout, encPeerTo);
 #endif
       pending_message = GNUNET_malloc(sizeof(struct PendingMessage));
@@ -692,7 +740,7 @@ neighbor_send_task (void *cls,
                                 ctx.send_interval);*/
     }
 
-  gossip_task = GNUNET_SCHEDULER_add_delayed(sched, ctx.send_interval, &neighbor_send_task, NULL);
+  GNUNET_SCHEDULER_add_delayed(sched, send_context->timeout, &neighbor_send_task, send_context);
   return;
 }
 
@@ -816,7 +864,7 @@ void core_init (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s: Core connection initialized, I am peer: %s\n", "dv", GNUNET_i2s(identity));
 #endif
-  my_identity = identity;
+  memcpy(&my_identity, identity, sizeof(struct GNUNET_PeerIdentity));
   coreAPI = server;
 }
 
@@ -985,7 +1033,7 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer,
 
 
 /**
- * Method called whenever a given peer either connects.
+ * Method called whenever a peer connects.
  *
  * @param cls closure
  * @param peer peer identity this notification is about
@@ -1003,12 +1051,27 @@ void handle_core_connect (void *cls,
               "%s: Receives core connect message for peer %s distance %d!\n", "dv", GNUNET_i2s(peer), distance);
 #endif
 
-  neighbor = GNUNET_malloc (sizeof (struct DirectNeighbor));
-  memcpy (&neighbor->identity, peer, sizeof (struct GNUNET_PeerIdentity));
-  GNUNET_CONTAINER_multihashmap_put (ctx.direct_neighbors,
-                             &peer->hashPubKey,
-                             neighbor, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-  addUpdateNeighbor (peer, 0, neighbor, 0);
+  if ((distance == 0) && (GNUNET_CONTAINER_multihashmap_get(ctx.direct_neighbors, &peer->hashPubKey) == NULL))
+  {
+    neighbor = GNUNET_malloc (sizeof (struct DirectNeighbor));
+    neighbor->send_context = GNUNET_malloc(sizeof(struct NeighborSendContext));
+    neighbor->send_context->toNeighbor = neighbor;
+    neighbor->send_context->timeout = default_dv_delay; /* FIXME: base this on total gossip tasks, or bandwidth */
+    memcpy (&neighbor->identity, peer, sizeof (struct GNUNET_PeerIdentity));
+    GNUNET_CONTAINER_multihashmap_put (ctx.direct_neighbors,
+                               &peer->hashPubKey,
+                               neighbor, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    addUpdateNeighbor (peer, 0, neighbor, 0);
+    neighbor->send_context->task = GNUNET_SCHEDULER_add_now(sched, &neighbor_send_task, neighbor->send_context);
+  }
+  else
+  {
+#if DEBUG_DV
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%s: Distance (%d) greater than 0 or already know about peer (%s), not re-adding!\n", "dv", distance, GNUNET_i2s(peer));
+#endif
+    return;
+  }
 }
 
 /**
@@ -1039,6 +1102,8 @@ void handle_core_disconnect (void *cls,
   GNUNET_assert (neighbor->referee_tail == NULL);
   GNUNET_CONTAINER_multihashmap_remove (ctx.direct_neighbors,
                                 &peer->hashPubKey, neighbor);
+  if ((neighbor->send_context != NULL) && (neighbor->send_context->task != GNUNET_SCHEDULER_NO_TASK))
+    GNUNET_SCHEDULER_cancel(sched, neighbor->send_context->task);
   GNUNET_free (neighbor);
 }
 
@@ -1058,10 +1123,24 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_TIME_Relative timeout;
-
+  unsigned long long max_hosts;
   timeout = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5);
   sched = scheduler;
   cfg = c;
+
+  /* FIXME: Read from config, or calculate, or something other than this! */
+  max_hosts = 50;
+  ctx.max_table_size = 100;
+  ctx.fisheye_depth = 3;
+
+  ctx.neighbor_min_heap =
+    GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
+  ctx.neighbor_max_heap =
+    GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MAX);
+
+  ctx.direct_neighbors = GNUNET_CONTAINER_multihashmap_create (max_hosts);
+  ctx.extended_neighbors =
+    GNUNET_CONTAINER_multihashmap_create (ctx.max_table_size * 3);
 
   client_transmit_timeout = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5);
   default_dv_delay = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5);
@@ -1086,8 +1165,6 @@ run (void *cls,
   /* load (server); Huh? */
 
   /* Scheduled the task to clean up when shutdown is called */
-
-  gossip_task = GNUNET_SCHEDULER_add_delayed(sched, ctx.send_interval, &neighbor_send_task, NULL);
   cleanup_task = GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &shutdown_task,
