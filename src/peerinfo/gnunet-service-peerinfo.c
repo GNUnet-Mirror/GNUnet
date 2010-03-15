@@ -795,7 +795,7 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  stats = GNUNET_STATISTICS_create (sched, "statistics", cfg);
+  stats = GNUNET_STATISTICS_create (sched, "peerinfo", cfg);
   notify_list = GNUNET_SERVER_notification_context_create (server, 0);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_filename (cfg,
