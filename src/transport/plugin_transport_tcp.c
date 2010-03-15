@@ -369,6 +369,10 @@ do_transmit (void *cls, size_t size, void *buf)
 			   pm->message_size,
                            GNUNET_i2s (&session->target));
 #endif
+	  GNUNET_STATISTICS_update (session->plugin->env->stats,
+				    gettext_noop ("# bytes discarded by TCP (timeout)"),
+				    pm->message_size,
+				    GNUNET_NO);      
           if (pm->transmit_cont != NULL)
             pm->transmit_cont (pm->transmit_cont_cls,
                                &session->target, GNUNET_SYSERR);
@@ -583,6 +587,10 @@ tcp_plugin_send (void *cls,
   struct GNUNET_CONNECTION_Handle *sa;
   int af;
 
+  GNUNET_STATISTICS_update (plugin->env->stats,
+			    gettext_noop ("# bytes TCP was asked to transmit"),
+			    msgbuf_size,
+			    GNUNET_NO);      
   session = plugin->sessions;
   /* FIXME: we could do this a cheaper with a hash table
      where we could restrict the iteration to entries that match
@@ -607,6 +615,10 @@ tcp_plugin_send (void *cls,
                        "Asked to transmit to `%4s' without address and I have no existing connection (failing).\n",
                        GNUNET_i2s (target));
 #endif
+      GNUNET_STATISTICS_update (plugin->env->stats,
+				gettext_noop ("# bytes discarded by TCP (no address and no connection)"),
+				msgbuf_size,
+				GNUNET_NO);      
       return -1;
     }
   if (session == NULL)
@@ -632,6 +644,10 @@ tcp_plugin_send (void *cls,
 			   GNUNET_i2s (target),
 			   GNUNET_a2s (addr, addrlen));
 #endif
+	  GNUNET_STATISTICS_update (plugin->env->stats,
+				    gettext_noop ("# bytes discarded by TCP (failed to connect)"),
+				    msgbuf_size,
+				    GNUNET_NO);      
 	  return -1;
 	}
 
