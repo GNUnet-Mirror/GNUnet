@@ -1049,6 +1049,9 @@ core_init (void *cls,
 				BLACKLIST_AFTER_ATTEMPT,
 				&discard_old_blacklist_entries,
 				NULL);
+  peerinfo_notify = GNUNET_PEERINFO_notify (cfg, sched,
+					    &process_peer,
+					    NULL);
 }
 
 
@@ -1427,9 +1430,6 @@ run (void *cls,
       GNUNET_SCHEDULER_shutdown (sched);
       return;
     }
-  peerinfo_notify = GNUNET_PEERINFO_notify (cfg, sched,
-					    &process_peer,
-					    NULL);
 }
 
 
