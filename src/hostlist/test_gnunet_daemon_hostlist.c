@@ -225,8 +225,7 @@ run (void *cls,
   ok++;
   sched = s;
   timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
-					       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-									      15),
+					       TIMEOUT,
 					       &timeout_error,
 					       NULL);
   GNUNET_SCHEDULER_add_delayed (sched,

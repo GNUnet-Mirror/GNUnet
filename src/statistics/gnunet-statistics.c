@@ -30,7 +30,7 @@
 #include "gnunet_statistics_service.h"
 #include "statistics.h"
 
-#define GET_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+#define GET_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 /**
  * Final status code.
@@ -89,7 +89,11 @@ cleanup (void *cls, int success)
   struct GNUNET_STATISTICS_Handle *h = cls;
 
   if (success != GNUNET_OK)
-    ret = 1;
+    {
+      fprintf (stderr,
+	       _("Failed to obtain statistics.\n"));
+      ret = 1;
+    }
   if (h != NULL)
     GNUNET_STATISTICS_destroy (h,
 			       GNUNET_NO);

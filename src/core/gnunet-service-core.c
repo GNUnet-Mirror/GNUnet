@@ -3295,6 +3295,13 @@ handle_transport_receive (void *cls,
           (n->status != PEER_STATE_KEY_CONFIRMED))
         {
           GNUNET_break_op (0);
+	  /* blacklist briefly (?); might help recover (?) */
+	  GNUNET_TRANSPORT_blacklist (sched, cfg,
+				      &n->peer, 
+				      GNUNET_TIME_UNIT_SECONDS,
+				      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+								     5),
+				      NULL, NULL);
           return;
         }
       handle_encrypted_message (n, (const struct EncryptedMessage *) message);

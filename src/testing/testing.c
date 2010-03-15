@@ -504,6 +504,10 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
 #endif
   cc = GNUNET_CLIENT_connect (d->sched, "arm", d->cfg);
   GNUNET_CLIENT_service_shutdown (cc);
+  /* FIXME: replace shutdown sequence via client with
+     shutdown via signal and waitpid; then we don't need
+     to sleep here any longer... */
+  sleep (1);
 
   /* state clean up and notifications */
   if (0 != UNLINK (d->cfgfile))
