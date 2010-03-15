@@ -69,7 +69,7 @@ printer (void *cls,
 	 uint64_t value, int is_persistent)
 {
   FPRINTF (stdout,
-           "%s%-20s %-40s: %16llu\n",
+           "%s%-12s %-50s: %16llu\n",
            is_persistent ? "!" : " ", subsystem, _(name),
 	   (unsigned long long) value);
   return GNUNET_OK;
