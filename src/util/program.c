@@ -204,6 +204,7 @@ GNUNET_PROGRAM_run (int argc,
   qsort (allopts, cnt, sizeof (struct GNUNET_GETOPT_CommandLineOption),
          &cmd_sorter);
   loglev = GNUNET_strdup ("WARNING");
+  cc.cfgfile = GNUNET_strdup (GNUNET_DEFAULT_USER_CONFIG_FILE);
   if ((-1 == (ret = GNUNET_GETOPT_run (binaryName,
                                        allopts,
                                        (unsigned int) argc, argv))) ||
