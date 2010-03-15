@@ -37,6 +37,7 @@
 #include "gnunet_peerinfo_service.h"
 #include "gnunet_protocols.h"
 #include "gnunet_signatures.h"
+#include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
 #include "core.h"
 
@@ -690,6 +691,11 @@ static struct GNUNET_SERVER_NotificationContext *notifier;
 static struct Neighbour *neighbours;
 
 /**
+ * For creating statistics.
+ */
+static struct GNUNET_STATISTICS_Handle *stats;
+
+/**
  * Sum of all preferences among all neighbours.
  */
 static unsigned long long preference_sum;
@@ -737,6 +743,7 @@ update_preference_sum (unsigned long long inc)
       preference_sum += n->current_preference;
       n = n->next;
     }    
+  GNUNET_STATISTICS_set (stats, gettext_noop ("# total peer preference"), preference_sum, GNUNET_NO);
 }
 
 
@@ -1094,8 +1101,10 @@ free_neighbour (struct Neighbour *n)
     GNUNET_SCHEDULER_cancel (sched, n->quota_update_task);
   if (n->dead_clean_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (sched, n->dead_clean_task);
-  if (n->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (sched, n->keep_alive_task);
+  if (n->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)    
+      GNUNET_SCHEDULER_cancel (sched, n->keep_alive_task);
+  if (n->status == PEER_STATE_KEY_CONFIRMED)
+    GNUNET_STATISTICS_update (stats, gettext_noop ("# peers connected"), -1, GNUNET_NO);
   GNUNET_free_non_null (n->public_key);
   GNUNET_free_non_null (n->pending_ping);
   GNUNET_free_non_null (n->pending_pong);
@@ -1141,6 +1150,7 @@ do_encrypt (struct Neighbour *n,
                                             (const struct
                                              GNUNET_CRYPTO_AesInitializationVector
                                              *) iv, out));
+  GNUNET_STATISTICS_update (stats, gettext_noop ("# bytes encrypted"), size, GNUNET_NO);
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Encrypted %u bytes for `%4s' using key %u\n", size,
@@ -1286,6 +1296,7 @@ consider_free_neighbour (struct Neighbour *n)
     prev->next = n->next;
   GNUNET_assert (neighbour_count > 0);
   neighbour_count--;
+  GNUNET_STATISTICS_set (stats, gettext_noop ("# active neighbours"), neighbour_count, GNUNET_NO);
   free_neighbour (n);
 }
 
@@ -1444,6 +1455,7 @@ do_decrypt (struct Neighbour *n,
       GNUNET_break (0);
       return GNUNET_SYSERR;
     }
+  GNUNET_STATISTICS_update (stats, gettext_noop ("# bytes decrypted"), size, GNUNET_NO);
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Decrypted %u bytes from `%4s' using key %u\n",
@@ -2050,6 +2062,7 @@ create_neighbour (const struct GNUNET_PeerIdentity *pid)
   n->next = neighbours;
   neighbours = n;
   neighbour_count++;
+  GNUNET_STATISTICS_set (stats, gettext_noop ("# active neighbours"), neighbour_count, GNUNET_NO);
   n->peer = *pid;
   GNUNET_CRYPTO_aes_create_session_key (&n->encrypt_key);
   now = GNUNET_TIME_absolute_get ();
@@ -2250,6 +2263,7 @@ handle_client_request_connect (void *cls,
   if ( (n->is_connected) ||
        (n->th != NULL) )
     return; /* already connected, or at least trying */
+  GNUNET_STATISTICS_update (stats, gettext_noop ("# connection requests received"), 1, GNUNET_NO);
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Core received `%s' request for `%4s', will try to establish connection\n",
@@ -2721,7 +2735,7 @@ handle_pong (struct Neighbour *n,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Confirmed key via `%s' message for peer `%4s'\n",
                   "PONG", GNUNET_i2s (&n->peer));
-#endif
+#endif      
       if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
         {
           GNUNET_SCHEDULER_cancel (sched, n->retry_set_key_task);
@@ -3267,6 +3281,7 @@ handle_transport_receive (void *cls,
           GNUNET_break_op (0);
           return;
         }
+      GNUNET_STATISTICS_update (stats, gettext_noop ("# session keys received"), 1, GNUNET_NO);
       handle_set_key (n, (const struct SetKeyMessage *) message);
       break;
     case GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE:
@@ -3290,6 +3305,7 @@ handle_transport_receive (void *cls,
           GNUNET_break_op (0);
           return;
         }
+      GNUNET_STATISTICS_update (stats, gettext_noop ("# ping messages received"), 1, GNUNET_NO);
       if ((n->status != PEER_STATE_KEY_RECEIVED) &&
           (n->status != PEER_STATE_KEY_CONFIRMED))
         {
@@ -3311,6 +3327,7 @@ handle_transport_receive (void *cls,
           GNUNET_break_op (0);
           return;
         }
+      GNUNET_STATISTICS_update (stats, gettext_noop ("# pong messages received"), 1, GNUNET_NO);
       if ( (n->status != PEER_STATE_KEY_RECEIVED) &&
 	   (n->status != PEER_STATE_KEY_CONFIRMED) )
         {
@@ -3336,7 +3353,10 @@ handle_transport_receive (void *cls,
       now = GNUNET_TIME_absolute_get ();
       n->last_activity = now;
       if (!up)
-        n->time_established = now;
+	{
+	  GNUNET_STATISTICS_update (stats, gettext_noop ("# peers connected"), 1, GNUNET_NO);
+	  n->time_established = now;
+	}
       if (n->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)
 	GNUNET_SCHEDULER_cancel (sched, n->keep_alive_task);
       n->keep_alive_task 
@@ -3545,12 +3565,15 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       neighbour_count--;
       free_neighbour (n);
     }
+  GNUNET_STATISTICS_set (stats, gettext_noop ("# active neighbours"), neighbour_count, GNUNET_NO);
   GNUNET_SERVER_notification_context_destroy (notifier);
   notifier = NULL;
   while (NULL != (c = clients))
     handle_client_disconnect (NULL, c->client_handle);
   if (my_private_key != NULL)
     GNUNET_CRYPTO_rsa_key_free (my_private_key);
+  if (stats != NULL)
+    GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
 }
 
 
@@ -3620,6 +3643,7 @@ run (void *cls,
                                         &handle_transport_notify_connect,
                                         &handle_transport_notify_disconnect);
   GNUNET_assert (NULL != transport);
+  stats = GNUNET_STATISTICS_create (sched, "core", cfg);
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &cleaning_task, NULL);

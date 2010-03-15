@@ -28,6 +28,7 @@
 #include "hostlist-client.h"
 #include "gnunet_core_service.h"
 #include "gnunet_hello_lib.h"
+#include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
 #include <curl/curl.h>
 
@@ -142,6 +143,10 @@ download_hostlist_processor (void *ptr,
     {
       return total;  /* ok, no data or bogus data */
     }
+  GNUNET_STATISTICS_update (stats, 
+			    gettext_noop ("# bytes downloaded from hostlist servers"), 
+			    (int64_t) total, 
+			    GNUNET_NO);  
   left = total;
   while (left > 0)
     {
@@ -159,6 +164,10 @@ download_hostlist_processor (void *ptr,
       msize = ntohs(msg->size);
       if (msize < sizeof(struct GNUNET_MessageHeader))
 	{	 
+	  GNUNET_STATISTICS_update (stats, 
+				    gettext_noop ("# invalid HELLOs downloaded from hostlist servers"), 
+				    1, 
+				    GNUNET_NO);  
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		      _("Invalid `%s' message received from hostlist at `%s'\n"),
 		      "HELLO",
@@ -175,10 +184,18 @@ download_hostlist_processor (void *ptr,
 		      "Received valid `%s' message from hostlist server.\n",
 		      "HELLO");
 #endif
+	  GNUNET_STATISTICS_update (stats, 
+				    gettext_noop ("# valid HELLOs downloaded from hostlist servers"), 
+				    1, 
+				    GNUNET_NO);  
 	  GNUNET_TRANSPORT_offer_hello (transport, msg);
 	}
       else
 	{
+	  GNUNET_STATISTICS_update (stats, 
+				    gettext_noop ("# invalid HELLOs downloaded from hostlist servers"), 
+				    1, 
+				    GNUNET_NO);  
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		      _("Invalid `%s' message received from hostlist at `%s'\n"),
 		      "HELLO",
@@ -495,7 +512,10 @@ download_hostlist ()
   GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
 	      _("Bootstrapping using hostlist at `%s'.\n"), 
 	      current_url);
-
+  GNUNET_STATISTICS_update (stats, 
+			    gettext_noop ("# hostlist downloads initiated"), 
+			    1, 
+			    GNUNET_NO);  
   if (proxy != NULL)
     CURL_EASY_SETOPT (curl, CURLOPT_PROXY, proxy);    
   download_pos = 0;
@@ -660,6 +680,10 @@ connect_handler (void *cls,
 		 uint32_t distance)
 {
   connection_count++;
+  GNUNET_STATISTICS_update (stats, 
+			    gettext_noop ("# active connections"), 
+			    1, 
+			    GNUNET_NO);  
 }
 
 
@@ -675,6 +699,10 @@ disconnect_handler (void *cls,
 		    GNUNET_PeerIdentity * peer)
 {
   connection_count--;
+  GNUNET_STATISTICS_update (stats, 
+			    gettext_noop ("# active connections"), 
+			    -1, 
+			    GNUNET_NO);  
 }
 
 
@@ -783,7 +811,6 @@ GNUNET_HOSTLIST_client_stop ()
   proxy = NULL;
   cfg = NULL;
   sched = NULL;
-  stats = NULL;
 }
 
 /* end of hostlist-client.c */

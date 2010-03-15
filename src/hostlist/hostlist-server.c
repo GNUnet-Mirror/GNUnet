@@ -92,7 +92,7 @@ static struct GNUNET_PEERINFO_IteratorContext *pitr;
  */
 struct HostSet
 {
-  size_t size;
+  unsigned int size;
 
   char *data;
 };
