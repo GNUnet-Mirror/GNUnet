@@ -1140,10 +1140,18 @@ GNUNET_CONFIGURATION_load (struct GNUNET_CONFIGURATION_Handle *cfg,
       (!((filename == NULL) ||
          (GNUNET_OK == GNUNET_CONFIGURATION_parse (cfg, filename)))))
     {
-     GNUNET_free (baseconfig);
+      GNUNET_free (baseconfig);
       return GNUNET_SYSERR;
     }
   GNUNET_free (baseconfig);
+  if ( ((GNUNET_YES != GNUNET_CONFIGURATION_have_value (cfg,
+							"PATHS",
+							"DEFAULTCONFIG"))) &&
+       (filename != NULL) )
+    GNUNET_CONFIGURATION_set_value_string (cfg,
+					   "PATHS",
+					   "DEFAULTCONFIG",
+					   filename);
   if ((GNUNET_YES == GNUNET_CONFIGURATION_have_value (cfg,
                                                       "TESTING",
                                                       "WEAKRANDOM")) &&

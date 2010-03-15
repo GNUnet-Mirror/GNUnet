@@ -999,8 +999,13 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
           GNUNET_CONFIGURATION_get_value_time (sctx->cfg,
                                                sctx->serviceName,
                                                "TIMEOUT", &idleout))
-        return GNUNET_SYSERR;
-
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      _("Specified value for `%s' of service `%s' is invalid\n"),
+		      "TIMEOUT",
+		      sctx->serviceName);
+	  return GNUNET_SYSERR;
+	}
       sctx->timeout = idleout;
     }
   else
@@ -1012,7 +1017,13 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
           GNUNET_CONFIGURATION_get_value_number (sctx->cfg,
                                                  sctx->serviceName,
                                                  "MAXBUF", &maxbuf))
-        return GNUNET_SYSERR;
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      _("Specified value for `%s' of service `%s' is invalid\n"),
+		      "MAXBUF",
+		      sctx->serviceName);
+	  return GNUNET_SYSERR;
+	}
     }
   else
     maxbuf = GNUNET_SERVER_MAX_MESSAGE_SIZE;
@@ -1023,7 +1034,13 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
           (sctx->allow_shutdown =
            GNUNET_CONFIGURATION_get_value_yesno (sctx->cfg, sctx->serviceName,
                                                  "ALLOW_SHUTDOWN")))
-        return GNUNET_SYSERR;
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      _("Specified value for `%s' of service `%s' is invalid\n"),
+		      "ALLOW_SHUTDOWN",
+		      sctx->serviceName);
+	  return GNUNET_SYSERR;
+	}
     }
   else
     sctx->allow_shutdown = GNUNET_NO;
@@ -1036,7 +1053,13 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
           (tolerant = GNUNET_CONFIGURATION_get_value_yesno (sctx->cfg,
                                                             sctx->serviceName,
                                                             "TOLERANT")))
-        return GNUNET_SYSERR;
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      _("Specified value for `%s' of service `%s' is invalid\n"),
+		      "TOLERANT",
+		      sctx->serviceName);
+	  return GNUNET_SYSERR;
+	}
     }
   else
     tolerant = GNUNET_NO;
@@ -1417,17 +1440,17 @@ GNUNET_SERVICE_run (int argc,
   /* setup subsystems */
   if (GNUNET_SYSERR == GNUNET_GETOPT_run (serviceName, service_options, argc,
       argv))    
-    HANDLE_ERROR;
+    goto shutdown;
   if (GNUNET_OK != GNUNET_log_setup (serviceName, loglev, logfile))
     HANDLE_ERROR;
   if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cfg_fn))
-    HANDLE_ERROR;
+    goto shutdown;
   if (GNUNET_OK != setup_service (&sctx))
-    HANDLE_ERROR;
+    goto shutdown;
   if ( (do_daemonize == 1) && (GNUNET_OK != detach_terminal (&sctx)))    
     HANDLE_ERROR;
   if (GNUNET_OK != set_user_id (&sctx))
-    HANDLE_ERROR;
+    goto shutdown;
 #if DEBUG_SERVICE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Service `%s' runs with configuration from `%s'\n",
