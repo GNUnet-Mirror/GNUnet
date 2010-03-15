@@ -1098,6 +1098,8 @@ GNUNET_SCHEDULER_add_select (struct GNUNET_SCHEDULER_Handle * sched,
 #if EXECINFO
   void *backtrace_array[MAX_TRACE_DEPTH];
 #endif
+
+  GNUNET_assert (NULL != task);
   t = GNUNET_malloc (sizeof (struct Task));
   t->callback = task;
   t->callback_cls = task_cls;
