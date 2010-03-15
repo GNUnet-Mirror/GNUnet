@@ -50,6 +50,12 @@
 #define BULK_TRACK_SIZE 256
 
 /**
+ * How many characters do we use for matching of
+ * bulk components?
+ */
+#define COMP_TRACK_SIZE 32
+
+/**
  * How many characters can a date/time string
  * be at most?
  */
@@ -99,9 +105,9 @@ static struct GNUNET_TIME_Absolute last_bulk_time;
 static unsigned int last_bulk_repeat;
 
 /**
- * Component when the last bulk was logged.
+ * Component when the last bulk was logged.  Will be 0-terminated.
  */
-static const char *last_bulk_comp;
+static char last_bulk_comp[COMP_TRACK_SIZE+1];
 
 /**
  * Running component.
@@ -379,7 +385,7 @@ mylog (enum GNUNET_ErrorType kind,
   last_bulk_repeat = 0;
   last_bulk_kind = kind;
   last_bulk_time = GNUNET_TIME_absolute_get ();
-  last_bulk_comp = comp;
+  strncpy (last_bulk_comp, comp, sizeof (last_bulk_comp));
   output_message (kind, comp, date, buf);
   free (buf);
 }
