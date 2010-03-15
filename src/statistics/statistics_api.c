@@ -32,7 +32,12 @@
 #include "gnunet_strings_lib.h"
 #include "statistics.h"
 
-#define SET_TRANSMIT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+/**
+ * How long do we wait until a statistics request for setting
+ * a value times out?  (The update will be lost if the
+ * service does not react within this timeframe).  
+ */
+#define SET_TRANSMIT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250)
 
 
 /**

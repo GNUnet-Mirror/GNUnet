@@ -957,7 +957,7 @@ shutdown_task (void *cls,
   core = NULL;
   if (stats != NULL)
     {
-      GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
+      GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
       stats = NULL;
     }
   sched = NULL;

@@ -3580,7 +3580,7 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (my_private_key != NULL)
     GNUNET_CRYPTO_rsa_key_free (my_private_key);
   if (stats != NULL)
-    GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
+    GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
 }
 
 

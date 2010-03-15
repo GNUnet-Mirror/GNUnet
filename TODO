@@ -17,8 +17,12 @@ away), in order in which they will likely be done:
 * HOSTLIST/PEERINFO/CORE/TRANSPORT/TOPOLOGY:
   - hostlist server learns about 2nd peer, but soon forgets!
   - peers do not seem to connect (at least not for long!)
+  
 * TOPOLOGY:
   - needs more testing (especially F2F topology)
+  - calls 'GNUNET_CORE_peer_request_connect' with 'my_identity' as the PID,
+    despite having specific checks to prevent exactly that (!?)
+    => assertion failure in gnunet-service-core:2255 (hostlist test)
 * CORE:
   - needs more testing
 * UTIL:

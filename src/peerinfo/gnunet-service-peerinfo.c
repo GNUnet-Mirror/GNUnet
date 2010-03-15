@@ -775,7 +775,7 @@ shutdown_task (void *cls,
   notify_list = NULL;
   if (stats != NULL)
     {
-      GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
+      GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
       stats = NULL;
     }
 }

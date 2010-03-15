@@ -1331,7 +1331,7 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
   if (stats != NULL)
     {
-      GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
+      GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
       stats = NULL;
     }
 }
