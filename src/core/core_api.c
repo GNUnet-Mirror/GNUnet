@@ -854,6 +854,11 @@ produce_send (void *cls, size_t size, void *buf)
       return 0;
     }
   GNUNET_assert (dt >= sizeof (struct GNUNET_MessageHeader));
+  if (dt + sizeof (struct SendMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+    {
+      GNUNET_break (0);
+      return 0;
+    }
   sm->header.size = htons (dt + sizeof (struct SendMessage));
   GNUNET_assert (dt + sizeof (struct SendMessage) <= size);
   return dt + sizeof (struct SendMessage);
