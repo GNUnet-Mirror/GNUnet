@@ -26,7 +26,7 @@
  * BUGS:
  * - bi-directional nature of TCP is not exploited
  * - re-validation is broken (triggered only on successful validation,
- *   does not consider expiration times
+ *   does not consider expiration times)
  * 
  *
  * NOTE:
@@ -1187,7 +1187,7 @@ find_ready_address(struct NeighbourList *neighbour)
   else
     {
       GNUNET_STATISTICS_update (stats,
-				gettext_noop ("# transmission attempts failed (no validated address)"),
+				gettext_noop ("# transmission attempts failed (no address)"),
 				1,
 				GNUNET_NO);
     }
@@ -1259,7 +1259,7 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 	  return;               /* nobody ready */ 
 	}
       GNUNET_STATISTICS_update (stats,
-				gettext_noop ("# message delivery deferred (no validated address)"),
+				gettext_noop ("# message delivery deferred (no address)"),
 				1,
 				GNUNET_NO);
       if (neighbour->retry_task != GNUNET_SCHEDULER_NO_TASK)
@@ -1930,8 +1930,7 @@ neighbour_timeout_task (void *cls,
 
 /**
  * Create a fresh entry in our neighbour list for the given peer.
- * Will try to transmit our current HELLO to the new neighbour.  Also
- * notifies our clients about the new "connection".
+ * Will try to transmit our current HELLO to the new neighbour.
  *
  * @param peer the peer for which we create the entry
  * @return the new neighbour list entry
@@ -1976,6 +1975,8 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer)
   n->timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
                                                   GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                                   &neighbour_timeout_task, n);
+  // FIXME: query PEERINFO for HELLO for this peer & 
+  // add addresses!?
   transmit_to_peer (NULL, NULL, 0,
 		    HELLO_ADDRESS_EXPIRATION,
                     (const char *) our_hello, GNUNET_HELLO_size(our_hello),
@@ -2074,6 +2075,8 @@ send_periodic_ping (void *cls,
                                      va,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   neighbour = find_neighbour(&id);
+  /* FIXME: can neighbour be NULL here? (why do we still PING?)?  If so,
+     should we even do this? */
   if (neighbour == NULL)
     neighbour = setup_new_neighbour(&id);
   peer_address = add_peer_address(neighbour, tname, addr, addrlen);
@@ -2174,6 +2177,10 @@ check_pending_validation (void *cls,
       GNUNET_assert (fal != NULL);
       fal->expires = GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
       fal->validated = GNUNET_YES;
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# peer addresses considered valid"),
+				1,
+				GNUNET_NO);      
       fal->latency = GNUNET_TIME_absolute_get_duration (ve->send_time);
       periodic_validation_context = GNUNET_malloc(sizeof(struct PeriodicValidationContext));
       periodic_validation_context->foreign_address = fal;
@@ -2446,6 +2453,10 @@ add_to_foreign_address_list (void *cls,
   struct ForeignAddressList *fal;
   int try;
 
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# valid peer addresses returned by peerinfo"),
+			    1,
+			    GNUNET_NO);      
   try = GNUNET_NO;
   fal = find_peer_address (n, tname, addr, addrlen);
   if (fal == NULL)
@@ -2459,13 +2470,27 @@ add_to_foreign_address_list (void *cls,
 		  expiration.value);
 #endif
       fal = add_peer_address (n, tname, addr, addrlen);
+      if (fal == NULL)
+	{
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# previously validated addresses lacking transport"),
+				    1,
+				    GNUNET_NO); 
+	}
       try = GNUNET_YES;
     }
   if (fal == NULL)
     return GNUNET_OK;
   fal->expires = GNUNET_TIME_absolute_max (expiration,
 					   fal->expires);
-  fal->validated = GNUNET_YES;  
+  if (fal->validated == GNUNET_NO)
+    {
+      fal->validated = GNUNET_YES;  
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# peer addresses considered valid"),
+				1,
+				GNUNET_NO);      
+    }
   if (try == GNUNET_YES)
     try_transmission_to_peer (n);
   return GNUNET_OK;
@@ -2555,6 +2580,17 @@ check_hello_validated (void *cls,
 				      n);
       try_transmission_to_peer (n);
     }
+  else
+    {
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# no existing neighbour record while validating HELLO"),
+				1,
+				GNUNET_NO);      
+    }
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# HELLO validations (update case)"),
+			    1,
+			    GNUNET_NO);      
   GNUNET_HELLO_iterate_new_addresses (chvc->hello,
 				      h,
 				      GNUNET_TIME_relative_to_absolute (HELLO_REVALIDATION_START_TIME),
@@ -2586,6 +2622,10 @@ process_hello (struct TransportPlugin *plugin,
       GNUNET_break (0);
       return GNUNET_SYSERR;
     }
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# HELLOs received for validation"),
+			    1,
+			    GNUNET_NO);      
   /* first, check if load is too high */
   if (GNUNET_SCHEDULER_get_load (sched,
 				 GNUNET_SCHEDULER_PRIORITY_BACKGROUND) > MAX_HELLO_LOAD)
@@ -2714,7 +2754,12 @@ disconnect_neighbour (struct NeighbourList *n, int check)
 	    GNUNET_STATISTICS_update (stats,
 				      gettext_noop ("# connected addresses"),
 				      -1,
-				      GNUNET_NO);	    
+				      GNUNET_NO); 
+	  if (GNUNET_YES == peer_pos->validated)
+	    GNUNET_STATISTICS_update (stats,
+				      gettext_noop ("# peer addresses considered valid"),
+				      -1,
+				      GNUNET_NO);      
           GNUNET_free(peer_pos);
         }
       GNUNET_free (rpos);
