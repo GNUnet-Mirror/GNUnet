@@ -374,7 +374,7 @@ do_transmit (void *cls, size_t size, void *buf)
 			   pm->message_size,
                            GNUNET_i2s (&session->target));
 #endif
-	  GNUNET_STATISTICS_update (plugin->env->stats,
+	  GNUNET_STATISTICS_update (session->plugin->env->stats,
 				    gettext_noop ("# bytes currently in TCP buffers"),
 				    -pm->message_size,
 				    GNUNET_NO); 
@@ -402,7 +402,7 @@ do_transmit (void *cls, size_t size, void *buf)
       GNUNET_CONTAINER_DLL_remove (session->pending_messages_head,
 				   session->pending_messages_tail,
 				   pm);
-      GNUNET_STATISTICS_update (plugin->env->stats,
+      GNUNET_STATISTICS_update (session->plugin->env->stats,
 				gettext_noop ("# bytes currently in TCP buffers"),
 				-pm->message_size,
 				GNUNET_NO);       
@@ -502,11 +502,11 @@ disconnect_session (struct Session *session)
                        "Could not deliver message to `%4s', notifying.\n",
                        GNUNET_i2s (&session->target));
 #endif
-      GNUNET_STATISTICS_update (plugin->env->stats,
+      GNUNET_STATISTICS_update (session->plugin->env->stats,
 				gettext_noop ("# bytes currently in TCP buffers"),
 				-pm->message_size,
 				GNUNET_NO);      
-      GNUNET_STATISTICS_update (plugin->env->stats,
+      GNUNET_STATISTICS_update (session->plugin->env->stats,
 				gettext_noop ("# bytes discarded by TCP (disconnect)"),
 				pm->message_size,
 				GNUNET_NO);      
