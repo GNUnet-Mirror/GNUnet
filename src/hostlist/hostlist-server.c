@@ -214,7 +214,7 @@ host_processor (void *cls,
       GNUNET_STATISTICS_update (stats,
 				gettext_noop("HELLOs without addresses encountered (ignored)"),
 				1,
-				GNUNET_YES);
+				GNUNET_NO);
       return; 
     }
   old = results->size;
