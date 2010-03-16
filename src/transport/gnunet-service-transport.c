@@ -2200,7 +2200,7 @@ rerun_validation (void *cls,
               "PING", sizeof (struct TransportPingMessage));
 #endif
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# PING messages sent"),
+			    gettext_noop ("# PING messages sent for re-validation"),
 			    1,
 			    GNUNET_NO);
   transmit_to_peer (NULL, peer_address,
@@ -2277,6 +2277,10 @@ run_validation (void *cls,
   uint16_t hello_size;
   size_t tsize;
 
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# peer addresses scheduled for validation"),
+			    1,
+			    GNUNET_NO);      
   tp = find_transport (tname);
   if (tp == NULL)
     {
@@ -2285,6 +2289,10 @@ run_validation (void *cls,
                   _
                   ("Transport `%s' not loaded, will not try to validate peer address using this transport.\n"),
                   tname);
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# peer addresses not validated (no applicable transport plugin available)"),
+				1,
+				GNUNET_NO);      
       return GNUNET_OK;
     }
   GNUNET_HELLO_get_key (chvc->hello, &pk);
@@ -2312,6 +2320,10 @@ run_validation (void *cls,
 		  tname,
 		  GNUNET_i2s (&id));
 #endif
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# peer addresses not validated (already in progress)"),
+				1,
+				GNUNET_NO);      
       return GNUNET_OK;
     }
   va = GNUNET_malloc (sizeof (struct ValidationEntry) + addrlen);
@@ -2357,6 +2369,10 @@ run_validation (void *cls,
 	      "HELLO", hello_size,
 	      "PING", sizeof (struct TransportPingMessage));
 #endif
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# PING messages sent for initial validation"),
+			    1,
+			    GNUNET_NO);      
   transmit_to_peer (NULL, peer_address,
 		    GNUNET_SCHEDULER_PRIORITY_DEFAULT,
 		    HELLO_VERIFICATION_TIMEOUT,
@@ -2460,16 +2476,33 @@ check_hello_validated (void *cls,
 		      "HELLO",
 		      GNUNET_i2s (&target));
 #endif
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# new HELLOs requiring full validation"),
+				    1,
+				    GNUNET_NO);      
 	  GNUNET_HELLO_iterate_addresses (chvc->hello,
 					  GNUNET_NO, 
 					  &run_validation, 
 					  chvc);
 	}
+      else
+	{
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# duplicate HELLO (peer known)"),
+				    1,
+				    GNUNET_NO);      
+	}
       GNUNET_free (chvc);
       return;
-    }
+    } 
   if (h == NULL)
     return;
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Peerinfo had `%s' message for peer `%4s', validating only new addresses.\n",
+	      "HELLO",
+	      GNUNET_i2s (peer));
+#endif
   chvc->hello_known = GNUNET_YES;
   n = find_neighbour (peer);
   if (n != NULL)
@@ -2515,7 +2548,10 @@ process_hello (struct TransportPlugin *plugin,
   if (GNUNET_SCHEDULER_get_load (sched,
 				 GNUNET_SCHEDULER_PRIORITY_BACKGROUND) > MAX_HELLO_LOAD)
     {
-      /* TODO: call to stats? */
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# HELLOs ignored due to high load"),
+				1,
+				GNUNET_NO);      
       return GNUNET_OK;
     }
   hello = (const struct GNUNET_HELLO_Message *) message;
@@ -2527,6 +2563,16 @@ process_hello (struct TransportPlugin *plugin,
   GNUNET_CRYPTO_hash (&publicKey,
                       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                       &target.hashPubKey);
+  if (0 == memcmp (&my_identity,
+		   &target,
+		   sizeof (struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# HELLOs ignored for validation (is my own HELLO)"),
+				1,
+				GNUNET_NO);      
+      return GNUNET_OK;      
+    }
 #if DEBUG_TRANSPORT > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Processing `%s' message for `%4s' of size %u\n",
@@ -2976,6 +3022,10 @@ handle_hello (void *cls,
 {
   int ret;
 
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# HELLOs received from clients"),
+			    1,
+			    GNUNET_NO);      
   ret = process_hello (NULL, message);
   GNUNET_SERVER_receive_done (client, ret);
 }

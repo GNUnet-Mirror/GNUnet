@@ -179,7 +179,7 @@ main (int argc, char *const *argv)
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc,
                               argv,
-                              "gnunet-statistics",
+                              "gnunet-statistics [options [value]]",
                               gettext_noop
                               ("Print statistics about GNUnet operations."),
                               options, &run, NULL)) ? ret : 1;

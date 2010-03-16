@@ -34,7 +34,7 @@
 #include "gnunet_util_lib.h"
 
 
-#define DEBUG_TOPOLOGY GNUNET_NO
+#define DEBUG_TOPOLOGY GNUNET_YES
 
 /**
  * For how long do we blacklist a peer after a failed connection
