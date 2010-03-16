@@ -2514,6 +2514,10 @@ send_key (struct Neighbour *n)
       GNUNET_break (0);
       break;
     }
+  GNUNET_STATISTICS_update (stats, 
+			    gettext_noop ("# SETKEY and PING messages created"), 
+			    1, 
+			    GNUNET_NO);
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Have %llu ms left for `%s' transmission.\n",
@@ -2626,7 +2630,10 @@ handle_ping (struct Neighbour *n, const struct PingMessage *m)
               "Target of `%s' request is `%4s'.\n",
               "PING", GNUNET_i2s (&t.target));
 #endif
-  GNUNET_STATISTICS_update (stats, gettext_noop ("# PING messages decrypted"), 1, GNUNET_NO);
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# PING messages decrypted"), 
+			    1,
+			    GNUNET_NO);
   if (0 != memcmp (&t.target,
                    &my_identity, sizeof (struct GNUNET_PeerIdentity)))
     {
@@ -2655,6 +2662,10 @@ handle_ping (struct Neighbour *n, const struct PingMessage *m)
               &tp->challenge,
               sizeof (struct PongMessage) -
               sizeof (struct GNUNET_MessageHeader));
+  GNUNET_STATISTICS_update (stats, 
+			    gettext_noop ("# PONG messages created"), 
+			    1, 
+			    GNUNET_NO);
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Encrypting `%s' with challenge %u using key %u\n", "PONG",
@@ -2690,7 +2701,10 @@ handle_pong (struct Neighbour *n,
                   &t.challenge,
                   sizeof (struct PongMessage) -
                   sizeof (struct GNUNET_MessageHeader)))
-    return;
+    {
+      GNUNET_break_op (0);
+      return;
+    }
   GNUNET_STATISTICS_update (stats, 
 			    gettext_noop ("# PONG messages decrypted"), 
 			    1, 
@@ -2890,7 +2904,10 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
       GNUNET_break_op (0);
       return;
     }
-
+  GNUNET_STATISTICS_update (stats, 
+			    gettext_noop ("# SETKEY messages decrypted"), 
+			    1, 
+			    GNUNET_NO);
   n->decrypt_key = k;
   if (n->decrypt_key_created.value != t.value)
     {
