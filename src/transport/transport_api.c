@@ -983,15 +983,23 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
 {
   struct GNUNET_MessageHeader *hc;
   uint16_t size;
+  struct GNUNET_PeerIdentity peer;
 
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Offering `%s' message to transport for validation.\n",
-	      "HELLO");
-#endif
   GNUNET_break (ntohs (hello->type) == GNUNET_MESSAGE_TYPE_HELLO);
   size = ntohs (hello->size);
   GNUNET_break (size >= sizeof (struct GNUNET_MessageHeader));
+  if (GNUNET_OK != GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message*) hello,
+					&peer))
+    {
+      GNUNET_break (0);
+      return;
+    }
+#if DEBUG_TRANSPORT 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Offering `%s' message of `%4s' to transport for validation.\n",
+	      "HELLO",
+	      GNUNET_i2s (&peer));
+#endif
   hc = GNUNET_malloc (size);
   memcpy (hc, hello, size);
   schedule_control_transmit (handle,
