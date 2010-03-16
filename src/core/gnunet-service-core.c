@@ -2626,7 +2626,7 @@ handle_ping (struct Neighbour *n, const struct PingMessage *m)
               "Target of `%s' request is `%4s'.\n",
               "PING", GNUNET_i2s (&t.target));
 #endif
-  GNUNET_STATISTICS_update (stats, gettext_noop ("# ping messages decrypted"), 1, GNUNET_NO);
+  GNUNET_STATISTICS_update (stats, gettext_noop ("# PING messages decrypted"), 1, GNUNET_NO);
   if (0 != memcmp (&t.target,
                    &my_identity, sizeof (struct GNUNET_PeerIdentity)))
     {
@@ -2691,6 +2691,10 @@ handle_pong (struct Neighbour *n,
                   sizeof (struct PongMessage) -
                   sizeof (struct GNUNET_MessageHeader)))
     return;
+  GNUNET_STATISTICS_update (stats, 
+			    gettext_noop ("# PONG messages decrypted"), 
+			    1, 
+			    GNUNET_NO);
   if (0 != ntohl (t.reserved))
     {
       GNUNET_break_op (0);
@@ -2729,6 +2733,10 @@ handle_pong (struct Neighbour *n,
       GNUNET_break (0);         /* should be impossible, how did we decrypt? */
       return;
     case PEER_STATE_KEY_RECEIVED:
+      GNUNET_STATISTICS_update (stats, 
+				gettext_noop ("# Session keys confirmed via PONG"), 
+				1, 
+				GNUNET_NO);
       n->status = PEER_STATE_KEY_CONFIRMED;
       if (n->bw_out_external_limit.value__ != t.inbound_bw_limit.value__)
 	{
@@ -2827,7 +2835,10 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
 					 0,
 					 GNUNET_TIME_UNIT_MINUTES,
 					 &process_hello_retry_handle_set_key, n);
-      GNUNET_STATISTICS_update (stats, gettext_noop ("# SETKEY messages deferred (need public key)"), 1, GNUNET_NO);
+      GNUNET_STATISTICS_update (stats, 
+				gettext_noop ("# SETKEY messages deferred (need public key)"), 
+				1, 
+				GNUNET_NO);
       return;
     }
   if (0 != memcmp (&m->target,
@@ -3326,7 +3337,7 @@ handle_transport_receive (void *cls,
           GNUNET_break_op (0);
           return;
         }
-      GNUNET_STATISTICS_update (stats, gettext_noop ("# ping messages received"), 1, GNUNET_NO);
+      GNUNET_STATISTICS_update (stats, gettext_noop ("# PING messages received"), 1, GNUNET_NO);
       if ((n->status != PEER_STATE_KEY_RECEIVED) &&
           (n->status != PEER_STATE_KEY_CONFIRMED))
         {
@@ -3348,7 +3359,7 @@ handle_transport_receive (void *cls,
           GNUNET_break_op (0);
           return;
         }
-      GNUNET_STATISTICS_update (stats, gettext_noop ("# pong messages received"), 1, GNUNET_NO);
+      GNUNET_STATISTICS_update (stats, gettext_noop ("# PONG messages received"), 1, GNUNET_NO);
       if ( (n->status != PEER_STATE_KEY_RECEIVED) &&
 	   (n->status != PEER_STATE_KEY_CONFIRMED) )
         {
