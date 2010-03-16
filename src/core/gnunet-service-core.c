@@ -2328,10 +2328,18 @@ process_hello_retry_send_key (void *cls,
       n->pitr = NULL;
       if (n->public_key != NULL)
 	{
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# SETKEY messages deferred (need public key)"), 
+				    -1, 
+				    GNUNET_NO);
 	  send_key (n);
 	}
       else
 	{
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# Delayed connecting due to lack of public key"),
+				    1,
+				    GNUNET_NO);      
 	  if (GNUNET_SCHEDULER_NO_TASK == n->retry_set_key_task)
 	    n->retry_set_key_task
 	      = GNUNET_SCHEDULER_add_delayed (sched,
@@ -2366,6 +2374,10 @@ process_hello_retry_send_key (void *cls,
     GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
   if (GNUNET_OK != GNUNET_HELLO_get_key (hello, n->public_key))
     {
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# Error extracting public key from HELLO"),
+				1,
+				GNUNET_NO);      
       GNUNET_free (n->public_key);
       n->public_key = NULL;
 #if DEBUG_CORE
@@ -2614,6 +2626,7 @@ handle_ping (struct Neighbour *n, const struct PingMessage *m)
               "Target of `%s' request is `%4s'.\n",
               "PING", GNUNET_i2s (&t.target));
 #endif
+  GNUNET_STATISTICS_update (stats, gettext_noop ("# ping messages decrypted"), 1, GNUNET_NO);
   if (0 != memcmp (&t.target,
                    &my_identity, sizeof (struct GNUNET_PeerIdentity)))
     {
@@ -2814,6 +2827,7 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
 					 0,
 					 GNUNET_TIME_UNIT_MINUTES,
 					 &process_hello_retry_handle_set_key, n);
+      GNUNET_STATISTICS_update (stats, gettext_noop ("# SETKEY messages deferred (need public key)"), 1, GNUNET_NO);
       return;
     }
   if (0 != memcmp (&m->target,
