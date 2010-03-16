@@ -260,8 +260,11 @@ output_message (enum GNUNET_ErrorType kind,
 {
   struct CustomLogger *pos;
   if (GNUNET_stderr != NULL)
-    fprintf (GNUNET_stderr, "%s %s %s %s", datestr, comp, 
-             GNUNET_error_type_to_string (kind), msg);
+    {
+      fprintf (GNUNET_stderr, "%s %s %s %s", datestr, comp, 
+	       GNUNET_error_type_to_string (kind), msg);
+      fflush (GNUNET_stderr);
+    }
   pos = loggers;
   while (pos != NULL)
     {
