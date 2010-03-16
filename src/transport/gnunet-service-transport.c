@@ -25,9 +25,6 @@
  *
  * BUGS:
  * - bi-directional nature of TCP is not exploited
- * - re-validation is broken (triggered only on successful validation,
- *   does not consider expiration times)
- * 
  *
  * NOTE:
  * - This code uses 'GNUNET_a2s' for debug printing in many places,
@@ -103,11 +100,6 @@
 #define TRANSPORT_DEFAULT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
 /**
- * How often will we re-validate for latency information
- */
-#define TRANSPORT_DEFAULT_REVALIDATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
-
-/**
  * Priority to use for PONG messages.
  */
 #define TRANSPORT_PONG_PRIORITY 4
@@ -132,6 +124,16 @@
  * HELLO_ADDRESS_EXPIRATION.
  */
 #define HELLO_REVALIDATION_START_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 1)
+
+/**
+ * Maximum frequency for re-evaluating latencies for all transport addresses.
+ */
+#define LATENCY_EVALUATION_MAX_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 1)
+
+/**
+ * Maximum frequency for re-evaluating latencies for connected addresses.
+ */
+#define CONNECTED_LATENCY_EVALUATION_MAX_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1)
 
 
 /**
@@ -172,8 +174,7 @@ struct ForeignAddressList
   const void *addr;
 
   /**
-   * What was the last latency observed for this plugin
-   * and peer?  Invalid if connected is GNUNET_NO.
+   * What was the last latency observed for this address, plugin and peer?
    */
   struct GNUNET_TIME_Relative latency;
 
@@ -187,27 +188,6 @@ struct ForeignAddressList
   struct GNUNET_TIME_Absolute timeout;
 
   /**
-   * Are we currently connected via this address?  The first time we
-   * successfully transmit or receive data to a peer via a particular
-   * address, we set this to GNUNET_YES.  If we later get an error
-   * (disconnect notification, transmission failure, timeout), we set
-   * it back to GNUNET_NO.  
-   */
-  int connected;
-
-  /**
-   * Is this plugin currently busy transmitting to the specific target?
-   * GNUNET_NO if not (initial, default state is GNUNET_NO).   Internal
-   * messages do not count as 'in transmit'.
-   */
-  int in_transmit;
-
-  /**
-   * Has this address been validated yet?
-   */
-  int validated;
-
-  /**
    * How often have we tried to connect using this plugin?  Used to
    * discriminate against addresses that do not work well.
    * FIXME: not yet used, but should be!
@@ -219,6 +199,34 @@ struct ForeignAddressList
    * FIXME: need to set this from transport plugins!
    */
   uint32_t distance;
+
+  /**
+   * Have we ever estimated the latency of this address?  Used to
+   * ensure that the first time we add an address, we immediately
+   * probe its latency.
+   */
+  int8_t estimated;
+
+  /**
+   * Are we currently connected via this address?  The first time we
+   * successfully transmit or receive data to a peer via a particular
+   * address, we set this to GNUNET_YES.  If we later get an error
+   * (disconnect notification, transmission failure, timeout), we set
+   * it back to GNUNET_NO.  
+   */
+  int8_t connected;
+
+  /**
+   * Is this plugin currently busy transmitting to the specific target?
+   * GNUNET_NO if not (initial, default state is GNUNET_NO).   Internal
+   * messages do not count as 'in transmit'.
+   */
+  int8_t in_transmit;
+
+  /**
+   * Has this address been validated yet?
+   */
+  int8_t validated;
 
 };
 
@@ -405,6 +413,11 @@ struct ReadyList
    */
   struct ForeignAddressList *addresses;
 
+  /**
+   * To which neighbour does this ready list belong to?
+   */
+  struct NeighbourList *neighbour;
+
 };
 
 
@@ -442,6 +455,11 @@ struct NeighbourList
    * NULL after we are done processing peerinfo's information.
    */
   struct GNUNET_PEERINFO_IteratorContext *piter;
+
+  /**
+   * Public key for this peer.   Valid only if the respective flag is set below.
+   */
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded publicKey;
 
   /**
    * Identity of this neighbour.
@@ -505,6 +523,11 @@ struct NeighbourList
    * not had a disconnect since)?
    */
   int received_pong;
+
+  /**
+   * Do we have a valid public key for this neighbour?
+   */
+  int public_key_valid;
 
 };
 
@@ -734,32 +757,6 @@ struct CheckHelloValidatedContext
 
 };
 
-/**
- * Struct for keeping information about addresses to validate
- * so that we can re-use for sending around ping's and receiving
- * pongs periodically to keep connections alive and also better
- * estimate latency of connections.
- *
- */
-struct PeriodicValidationContext
-{
-
-  /**
-   * The address we are keeping alive
-   */
-  struct ForeignAddressList *foreign_address;
-
-  /**
-   * The name of the transport
-   */
-  char *transport;
-
-  /**
-   * Public Key of the peer to re-validate
-   */
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded publicKey;
-
-};
 
 /**
  * Our HELLO message.
@@ -1571,6 +1568,8 @@ update_addresses (struct TransportPlugin *plugin, int fresh)
             plugin->addresses = pos->next;
           else
             prev->next = pos->next;
+
+	  
           GNUNET_free (pos);
         }
       else
@@ -1964,6 +1963,15 @@ neighbour_timeout_task (void *cls,
 }
 
 
+/**
+ * Schedule the job that will cause us to send a PING to the
+ * foreign address to evaluate its validity and latency.
+ *
+ * @param fal address to PING
+ */
+static void
+schedule_next_ping (struct ForeignAddressList *fal);
+
 
 /**
  * Add the given address to the list of foreign addresses
@@ -2010,7 +2018,18 @@ add_to_foreign_address_list (void *cls,
 				    1,
 				    GNUNET_NO); 
 	}
+      else
+	{
+	  fal->expires = GNUNET_TIME_absolute_max (expiration,
+						   fal->expires);
+	  schedule_next_ping (fal);
+	}
       try = GNUNET_YES;
+    }
+  else
+    {
+      fal->expires = GNUNET_TIME_absolute_max (expiration,
+					       fal->expires);
     }
   if (fal == NULL)
     {
@@ -2019,8 +2038,6 @@ add_to_foreign_address_list (void *cls,
 		  GNUNET_i2s (&n->id));
       return GNUNET_OK;
     }
-  fal->expires = GNUNET_TIME_absolute_max (expiration,
-					   fal->expires);
   if (fal->validated == GNUNET_NO)
     {
       fal->validated = GNUNET_YES;  
@@ -2069,6 +2086,11 @@ add_hello_for_peer (void *cls,
 	      "HELLO",
 	      GNUNET_i2s (peer));
 #endif
+  if (GNUNET_YES != n->public_key_valid)
+    {
+      GNUNET_HELLO_get_key (h, &n->publicKey);
+      n->public_key_valid = GNUNET_YES;
+    }
   GNUNET_HELLO_iterate_addresses (h,
 				  GNUNET_NO,
 				  &add_to_foreign_address_list,
@@ -2111,6 +2133,7 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer)
       if (tp->api->send != NULL)
         {
           rl = GNUNET_malloc (sizeof (struct ReadyList));
+	  rl->neighbour = n;
           rl->next = n->plugins;
           n->plugins = rl;
           rl->plugin = tp;
@@ -2144,48 +2167,31 @@ static void
 send_periodic_ping (void *cls, 
 		    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct PeriodicValidationContext *pvc = cls;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded publicKey = pvc->publicKey;
-  char *tname = pvc->transport;
-  const void *addr = pvc->foreign_address->addr;
-  size_t addrlen = pvc->foreign_address->addrlen;
+  struct ForeignAddressList *peer_address = cls;
   struct GNUNET_PeerIdentity id;
   struct TransportPlugin *tp;
   struct ValidationEntry *va;
   struct NeighbourList *neighbour;
-  struct ForeignAddressList *peer_address;
   struct TransportPingMessage ping;
   struct CheckAddressExistsClosure caec;
   char * message_buf;
   uint16_t hello_size;
   size_t tsize;
 
-  GNUNET_free (pvc);
+  peer_address->revalidate_task = GNUNET_SCHEDULER_NO_TASK;
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+    return; 
+  tp = peer_address->ready_list->plugin;
+  neighbour = peer_address->ready_list->neighbour;
+  if (GNUNET_YES != neighbour->public_key_valid)
     {
-      /* We have been shutdown, don't do anything! */
-      GNUNET_free (tname);
-      return; 
-    }
-  tp = find_transport (tname);
-  if (tp == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO |
-                  GNUNET_ERROR_TYPE_BULK,
-                  _
-                  ("Transport `%s' not loaded, will not try to validate peer address using this transport.\n"),
-                  tname);
-      GNUNET_free (tname);
+      /* no public key yet, try again later */
+      schedule_next_ping (peer_address);     
       return;
     }
-
-  GNUNET_CRYPTO_hash (&publicKey,
-                      sizeof (struct
-                              GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                      &id.hashPubKey);
-  caec.addr = addr;
-  caec.addrlen = addrlen;
-  caec.tname = tname;
+  caec.addr = peer_address->addr;
+  caec.addrlen = peer_address->addrlen;
+  caec.tname = tp->short_name;
   caec.exists = GNUNET_NO;
   GNUNET_CONTAINER_multihashmap_iterate (validation_map,
                                          &check_address_exists,
@@ -2199,37 +2205,35 @@ send_periodic_ping (void *cls,
 #if DEBUG_TRANSPORT > 1
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Some validation of address `%s' via `%s' for peer `%4s' already in progress.\n",
-                  GNUNET_a2s (addr, addrlen),
-                  tname,
-                  GNUNET_i2s (&id));
+                  GNUNET_a2s (peer_address->addr,
+			      peer_address->addrlen),
+                  tp->short_name,
+                  GNUNET_i2s (&neighbour->id));
 #endif
-      GNUNET_free (tname);
+      schedule_next_ping (peer_address);     
       return;
     }
-  va = GNUNET_malloc (sizeof (struct ValidationEntry) + addrlen);
-  va->transport_name = tname;
+  va = GNUNET_malloc (sizeof (struct ValidationEntry) + peer_address->addrlen);
+  va->transport_name = GNUNET_strdup (tp->short_name);
   va->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                             (unsigned int) -1);
   va->send_time = GNUNET_TIME_absolute_get();
   va->addr = (const void*) &va[1];
-  memcpy (&va[1], addr, addrlen);
-  va->addrlen = addrlen;
-  memcpy(&va->publicKey, &publicKey, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+  memcpy (&va[1], peer_address->addr, peer_address->addrlen);
+  va->addrlen = peer_address->addrlen;
+
+  memcpy(&va->publicKey,
+	 &neighbour->publicKey, 
+	 sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+
   va->timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
                                                    HELLO_VERIFICATION_TIMEOUT,
                                                    &timeout_hello_validation,
                                                    va);
   GNUNET_CONTAINER_multihashmap_put (validation_map,
-                                     &id.hashPubKey,
+                                     &neighbour->id.hashPubKey,
                                      va,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  neighbour = find_neighbour(&id);
-  /* FIXME: can neighbour be NULL here? (why do we still PING?)?  If so,
-     should we even do this? */
-  if (neighbour == NULL)
-    neighbour = setup_new_neighbour(&id);
-  peer_address = add_peer_address(neighbour, tname, addr, addrlen);
-  GNUNET_assert(peer_address != NULL);
   hello_size = GNUNET_HELLO_size(our_hello);
   tsize = sizeof(struct TransportPingMessage) + hello_size;
   message_buf = GNUNET_malloc(tsize);
@@ -2244,9 +2248,10 @@ send_periodic_ping (void *cls,
 #if DEBUG_TRANSPORT_REVALIDATION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Performing re-validation of address `%s' via `%s' for peer `%4s' sending `%s' (%u bytes) and `%s' (%u bytes)\n",
-              GNUNET_a2s (addr, addrlen),
-              tname,
-              GNUNET_i2s (&id),
+              GNUNET_a2s (peer_address->addr,
+			  peer_address->addrlen),
+              tp->short_name,
+              GNUNET_i2s (&neighbour->id),
               "HELLO", hello_size,
               "PING", sizeof (struct TransportPingMessage));
 #endif
@@ -2260,6 +2265,48 @@ send_periodic_ping (void *cls,
                     message_buf, tsize,
                     GNUNET_YES, neighbour);
   GNUNET_free(message_buf);
+  schedule_next_ping (peer_address);
+}
+
+
+/**
+ * Schedule the job that will cause us to send a PING to the
+ * foreign address to evaluate its validity and latency.
+ *
+ * @param fal address to PING
+ */
+static void
+schedule_next_ping (struct ForeignAddressList *fal)
+{
+  struct GNUNET_TIME_Relative delay;
+
+  if (fal->revalidate_task != GNUNET_SCHEDULER_NO_TASK)
+    return;
+  delay = GNUNET_TIME_absolute_get_remaining (fal->expires);
+  delay.value /= 2; /* do before expiration */
+  delay = GNUNET_TIME_relative_min (delay,
+				    LATENCY_EVALUATION_MAX_DELAY);
+  if (GNUNET_YES != fal->estimated)
+    {
+      delay = GNUNET_TIME_UNIT_ZERO;
+      fal->estimated = GNUNET_YES;
+    }				    
+  if (GNUNET_YES == fal->connected)
+    {
+      delay = GNUNET_TIME_relative_min (delay,
+					CONNECTED_LATENCY_EVALUATION_MAX_DELAY);
+    }  
+  /* FIXME: also adjust delay based on how close the last
+     observed latency is to the latency of the best alternative */
+  /* bound how fast we can go */
+  delay = GNUNET_TIME_relative_max (delay,
+				    GNUNET_TIME_UNIT_SECONDS);
+  /* randomize a bit (to avoid doing all at the same time) */
+  delay.value += GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 1000);
+  fal->revalidate_task = GNUNET_SCHEDULER_add_delayed(sched, 
+						      delay,
+						      &send_periodic_ping, 
+						      fal);
 }
 
 
@@ -2286,7 +2333,6 @@ check_pending_validation (void *cls,
   struct GNUNET_PeerIdentity target;
   struct NeighbourList *n;
   struct ForeignAddressList *fal;
-  struct PeriodicValidationContext *periodic_validation_context;
 
   if (ve->challenge != challenge)
     return GNUNET_YES;
@@ -2319,6 +2365,8 @@ check_pending_validation (void *cls,
   n = find_neighbour (&target);
   if (n != NULL)
     {
+      n->publicKey = ve->publicKey;
+      n->public_key_valid = GNUNET_YES;
       fal = add_peer_address (n,
 			      ve->transport_name,
 			      ve->addr,
@@ -2331,21 +2379,7 @@ check_pending_validation (void *cls,
 				1,
 				GNUNET_NO);      
       fal->latency = GNUNET_TIME_absolute_get_duration (ve->send_time);
-      periodic_validation_context = GNUNET_malloc(sizeof(struct PeriodicValidationContext));
-      periodic_validation_context->foreign_address = fal;
-      periodic_validation_context->transport = strdup(ve->transport_name);
-      memcpy(&periodic_validation_context->publicKey, 
-	     &ve->publicKey, 
-	     sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
-      /* FIXME: this causes all of the revalidation PINGs for the same HELLO
-	 to be transmitted in bulk, which is not nice; also,
-	 triggering these HERE means that revalidations do NOT happen AT ALL
-	 for HELLOs a previous instance of this process validated (since
-	 there is no "initial" validation PING => no revalidation => BUG! */
-      fal->revalidate_task = GNUNET_SCHEDULER_add_delayed(sched, 
-							  TRANSPORT_DEFAULT_REVALIDATION, 
-							  &send_periodic_ping, 
-							  periodic_validation_context);
+      schedule_next_ping (fal);
       if (n->latency.value == GNUNET_TIME_UNIT_FOREVER_REL.value)
 	n->latency = fal->latency;
       else
@@ -2545,6 +2579,8 @@ run_validation (void *cls,
   neighbour = find_neighbour(&id);
   if (neighbour == NULL)
     neighbour = setup_new_neighbour(&id);
+  neighbour->publicKey = va->publicKey;
+  neighbour->public_key_valid = GNUNET_YES;
   peer_address = add_peer_address(neighbour, tname, addr, addrlen);
   GNUNET_assert(peer_address != NULL);
   hello_size = GNUNET_HELLO_size(our_hello);
@@ -2844,6 +2880,12 @@ disconnect_neighbour (struct NeighbourList *n, int check)
 				      gettext_noop ("# peer addresses considered valid"),
 				      -1,
 				      GNUNET_NO);      
+	  if (GNUNET_SCHEDULER_NO_TASK != peer_pos->revalidate_task)
+	    {
+	      GNUNET_SCHEDULER_cancel (sched,
+				       peer_pos->revalidate_task);
+	      peer_pos->revalidate_task = GNUNET_SCHEDULER_NO_TASK;
+	    }
           GNUNET_free(peer_pos);
         }
       GNUNET_free (rpos);
@@ -3032,8 +3074,9 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 	  peer_address->distance = distance;
 	  if (peer_address->connected == GNUNET_NO)
 	    {
+	      /* FIXME: be careful here to not mark
+		 MULTIPLE addresses as connected! */
 	      peer_address->connected = GNUNET_YES;
-	      peer_address->connect_attempts++;
 	      GNUNET_STATISTICS_update (stats,
 					gettext_noop ("# connected addresses"),
 					1,
@@ -3043,6 +3086,7 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 	    =
 	    GNUNET_TIME_relative_to_absolute
 	    (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+	  schedule_next_ping (peer_address);
 	}
       /* update traffic received amount ... */
       msize = ntohs (message->size);      
