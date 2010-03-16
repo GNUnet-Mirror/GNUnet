@@ -150,6 +150,37 @@ finish_response (struct HostSet *results)
 
 
 /**
+ * Set 'cls' to GNUNET_YES (we have an address!).
+ *
+ * @param cls closure, an 'int*'
+ * @param tname name of the transport (ignored)
+ * @param expiration expiration time (call is ignored if this is in the past)
+ * @param addr the address (ignored)
+ * @param addrlen length of the address (ignored)
+ * @return  GNUNET_SYSERR to stop iterating (unless expiration has occured)
+ */
+static int
+check_has_addr (void *cls,
+		const char *tname,
+		struct GNUNET_TIME_Absolute expiration,
+		const void *addr, size_t addrlen)
+{
+  int *arg = cls;
+
+  if (GNUNET_TIME_absolute_get_remaining (expiration).value == 0)
+    {
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop("expired addresses encountered"),
+				1,
+				GNUNET_YES);
+      return GNUNET_YES; /* ignore this address */
+    }
+  *arg = GNUNET_YES;
+  return GNUNET_SYSERR;
+}
+
+
+/**
  * Callback that processes each of the known HELLOs for the
  * hostlist response construction.
  */
@@ -162,12 +193,29 @@ host_processor (void *cls,
   struct HostSet *results = cls;
   size_t old;
   size_t s;
+  int has_addr;
   
   if (peer == NULL)
     {
       pitr = NULL;
       finish_response (results);
       return;
+    }
+  has_addr = GNUNET_NO;
+  GNUNET_HELLO_iterate_addresses (hello,
+				  GNUNET_NO,
+				  &check_has_addr,
+				  &has_addr);
+  if (GNUNET_NO == has_addr)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "HELLO for peer `%4s' has no address, not suitable for hostlist!\n",
+		  GNUNET_i2s (peer));
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop("HELLOs without addresses encountered (ignored)"),
+				1,
+				GNUNET_YES);
+      return; 
     }
   old = results->size;
   s = GNUNET_HELLO_size(hello);

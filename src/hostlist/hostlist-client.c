@@ -148,7 +148,8 @@ download_hostlist_processor (void *ptr,
 			    (int64_t) total, 
 			    GNUNET_NO);  
   left = total;
-  while (left > 0)
+  while ( (left > 0) ||
+	  (download_pos > 0) )
     {
       cpy = GNUNET_MIN (total, GNUNET_SERVER_MAX_MESSAGE_SIZE - download_pos);
       GNUNET_assert (cpy > 0);

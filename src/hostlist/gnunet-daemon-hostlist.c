@@ -174,10 +174,6 @@ run (void *cls,
       return;
     }
   stats = GNUNET_STATISTICS_create (sched, "hostlist", cfg);
-  if (learning)
-    {
-      /* FIXME (register handler with core for hostlist ads) */
-    }
   if (bootstrapping)
     {
       GNUNET_HOSTLIST_client_start (cfg, sched, stats,
@@ -186,6 +182,10 @@ run (void *cls,
   if (provide_hostlist)
     {      
       GNUNET_HOSTLIST_server_start (cfg, sched, stats);
+    }
+  if (learning)
+    {
+      /* FIXME (register handler with core for hostlist ads) */
     }
   core = GNUNET_CORE_connect (sched, cfg,
 			      GNUNET_TIME_UNIT_FOREVER_REL,
