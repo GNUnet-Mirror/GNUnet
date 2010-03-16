@@ -2168,7 +2168,6 @@ send_periodic_ping (void *cls,
 		    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ForeignAddressList *peer_address = cls;
-  struct GNUNET_PeerIdentity id;
   struct TransportPlugin *tp;
   struct ValidationEntry *va;
   struct NeighbourList *neighbour;
@@ -2240,7 +2239,7 @@ send_periodic_ping (void *cls,
   ping.challenge = htonl(va->challenge);
   ping.header.size = htons(sizeof(struct TransportPingMessage));
   ping.header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_PING);
-  memcpy(&ping.target, &id, sizeof(struct GNUNET_PeerIdentity));
+  memcpy(&ping.target, &neighbour->id, sizeof(struct GNUNET_PeerIdentity));
   memcpy(message_buf, our_hello, hello_size);
   memcpy(&message_buf[hello_size],
          &ping,
