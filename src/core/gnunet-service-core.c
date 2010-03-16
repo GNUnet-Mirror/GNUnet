@@ -2425,6 +2425,7 @@ send_key (struct Neighbour *n)
 	  n->th = GNUNET_TRANSPORT_notify_transmit_ready (transport,
 							  &n->peer,
 							  sizeof (struct SetKeyMessage) + sizeof (struct PingMessage),
+							  0,
 							  GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
 							  &notify_encrypted_transmit_ready,
 							  n);
