@@ -919,6 +919,10 @@ transmit_to_client_callback (void *cls, size_t size, void *buf)
       /* fatal error with client, free message queue! */
       while (NULL != (q = client->message_queue_head))
         {
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# bytes discarded (could not transmit to client)"),
+				    ntohs (((const struct GNUNET_MessageHeader*)&q[1])->size),
+				    GNUNET_NO);      
 	  GNUNET_CONTAINER_DLL_remove (client->message_queue_head,
 				       client->message_queue_tail,
 				       q);
@@ -1055,6 +1059,20 @@ transmit_send_continuation (void *cls,
   struct MessageQueue *mq = cls;
   struct NeighbourList *n;
 
+  if (result == GNUNET_OK)
+    {
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# bytes successfully transmitted by plugins"),
+				mq->message_buf_size,
+				GNUNET_NO);      
+    }
+  else
+    {
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# bytes with transmission failure by plugins"),
+				mq->message_buf_size,
+				GNUNET_NO);      
+    }  
   n = find_neighbour(&mq->neighbour_id);
   GNUNET_assert (n != NULL);
   if (mq->specific_address != NULL)
@@ -1191,6 +1209,10 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 		      mq->message_buf_size,
 		      GNUNET_i2s (&mq->neighbour_id));
 #endif
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# bytes discarded (no destination address available)"),
+				    mq->message_buf_size,
+				    GNUNET_NO);      
 	  if (mq->client != NULL)
 	    transmit_send_ok (mq->client, neighbour, GNUNET_NO);
 	  GNUNET_CONTAINER_DLL_remove (neighbour->messages_head,
