@@ -438,6 +438,12 @@ struct NeighbourList
   struct MessageQueue *messages_tail;
 
   /**
+   * Context for peerinfo iteration.
+   * NULL after we are done processing peerinfo's information.
+   */
+  struct GNUNET_PEERINFO_IteratorContext *piter;
+
+  /**
    * Identity of this neighbour.
    */
   struct GNUNET_PeerIdentity id;
@@ -1167,6 +1173,17 @@ find_ready_address(struct NeighbourList *neighbour)
       addresses = head->addresses;
       while (addresses != NULL)
         {
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Have address `%s' for peer `%4s' (status: %d, %d, %d, %u, %llums, %u)\n",
+		      GNUNET_a2s (addresses->addr,
+				  addresses->addrlen),
+		      GNUNET_i2s (&neighbour->id),
+		      addresses->connected,
+		      addresses->in_transmit,
+		      addresses->validated,
+		      addresses->connect_attempts,
+		      (unsigned long long) addresses->timeout.value,
+		      (unsigned int) addresses->distance);
           if ( ( (best_address == NULL) || 
 		 (addresses->connected == GNUNET_YES) ||
 		 (best_address->connected == GNUNET_NO) ) &&
@@ -1229,14 +1246,29 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
   struct GNUNET_TIME_Relative timeout;
 
   if (neighbour->messages_head == NULL)
-    return;                     /* nothing to do */
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Transmission queue for `%4s' is empty\n",
+		  GNUNET_i2s (&neighbour->id));
+      return;                     /* nothing to do */
+    }
   rl = NULL;
   mq = neighbour->messages_head;
   /* FIXME: support bi-directional use of TCP */
   if (mq->specific_address == NULL)
-    mq->specific_address = find_ready_address(neighbour); 
+    {
+      mq->specific_address = find_ready_address(neighbour); 
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# transport selected peer address freely"),
+				1,
+				GNUNET_NO); 
+    }
   if (mq->specific_address == NULL)
     {
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# transport failed to selected peer address"),
+				1,
+				GNUNET_NO); 
       timeout = GNUNET_TIME_absolute_get_remaining (mq->timeout);
       if (timeout.value == 0)
 	{
@@ -1740,10 +1772,10 @@ find_peer_address(struct NeighbourList *neighbour,
  * @return NULL if we do not have a transport plugin for 'tname'
  */
 static struct ForeignAddressList *
-add_peer_address(struct NeighbourList *neighbour,
-		 const char *tname,
-		 const char *addr, 
-		 size_t addrlen)
+add_peer_address (struct NeighbourList *neighbour,
+		  const char *tname,
+		  const char *addr, 
+		  size_t addrlen)
 {
   struct ReadyList *head;
   struct ForeignAddressList *ret;
@@ -1932,6 +1964,118 @@ neighbour_timeout_task (void *cls,
 }
 
 
+
+/**
+ * Add the given address to the list of foreign addresses
+ * available for the given peer (check for duplicates).
+ *
+ * @param cls the respective 'struct NeighbourList' to update
+ * @param tname name of the transport
+ * @param expiration expiration time
+ * @param addr the address
+ * @param addrlen length of the address
+ * @return GNUNET_OK (always)
+ */
+static int
+add_to_foreign_address_list (void *cls,
+			     const char *tname,
+			     struct GNUNET_TIME_Absolute expiration,
+			     const void *addr, size_t addrlen)
+{
+  struct NeighbourList *n = cls;
+  struct ForeignAddressList *fal;
+  int try;
+
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# valid peer addresses returned by peerinfo"),
+			    1,
+			    GNUNET_NO);      
+  try = GNUNET_NO;
+  fal = find_peer_address (n, tname, addr, addrlen);
+  if (fal == NULL)
+    {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Adding address `%s' (%s) for peer `%4s' due to peerinfo data for %llums.\n",
+		  GNUNET_a2s (addr, addrlen),
+		  tname,
+		  GNUNET_i2s (&n->id),
+		  expiration.value);
+#endif
+      fal = add_peer_address (n, tname, addr, addrlen);
+      if (fal == NULL)
+	{
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# previously validated addresses lacking transport"),
+				    1,
+				    GNUNET_NO); 
+	}
+      try = GNUNET_YES;
+    }
+  if (fal == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Failed to add new address for `%4s'\n",
+		  GNUNET_i2s (&n->id));
+      return GNUNET_OK;
+    }
+  fal->expires = GNUNET_TIME_absolute_max (expiration,
+					   fal->expires);
+  if (fal->validated == GNUNET_NO)
+    {
+      fal->validated = GNUNET_YES;  
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# peer addresses considered valid"),
+				1,
+				GNUNET_NO);      
+    }
+  if (try == GNUNET_YES)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Have new addresses, will try to trigger transmissions.\n");
+      try_transmission_to_peer (n);
+    }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Add addresses in validated HELLO "h" to the set of addresses
+ * we have for this peer.
+ *
+ * @param cls closure ('struct NeighbourList*')
+ * @param peer id of the peer, NULL for last call
+ * @param h hello message for the peer (can be NULL)
+ * @param trust amount of trust we have in the peer (not used)
+ */
+static void
+add_hello_for_peer (void *cls,
+		    const struct GNUNET_PeerIdentity *peer,
+		    const struct GNUNET_HELLO_Message *h, 
+		    uint32_t trust)
+{
+  struct NeighbourList *n = cls;
+
+  if (peer == NULL)
+    {
+      n->piter = NULL;
+      return;
+    } 
+  if (h == NULL)
+    return; /* no HELLO available */
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Peerinfo had `%s' message for peer `%4s', adding existing addresses.\n",
+	      "HELLO",
+	      GNUNET_i2s (peer));
+#endif
+  GNUNET_HELLO_iterate_addresses (h,
+				  GNUNET_NO,
+				  &add_to_foreign_address_list,
+				  n);
+}
+
+
 /**
  * Create a fresh entry in our neighbour list for the given peer.
  * Will try to transmit our current HELLO to the new neighbour.
@@ -1979,8 +2123,9 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer)
   n->timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
                                                   GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                                   &neighbour_timeout_task, n);
-  // FIXME: query PEERINFO for HELLO for this peer & 
-  // add addresses!?
+  n->piter = GNUNET_PEERINFO_iterate (cfg, sched, peer,
+				      0, GNUNET_TIME_UNIT_FOREVER_REL,
+				      &add_hello_for_peer, n);
   transmit_to_peer (NULL, NULL, 0,
 		    HELLO_ADDRESS_EXPIRATION,
                     (const char *) our_hello, GNUNET_HELLO_size(our_hello),
@@ -2437,71 +2582,6 @@ run_validation (void *cls,
 
 
 /**
- * Add the given address to the list of foreign addresses
- * available for the given peer (check for duplicates).
- *
- * @param cls the respective 'struct NeighbourList' to update
- * @param tname name of the transport
- * @param expiration expiration time
- * @param addr the address
- * @param addrlen length of the address
- * @return GNUNET_OK (always)
- */
-static int
-add_to_foreign_address_list (void *cls,
-			     const char *tname,
-			     struct GNUNET_TIME_Absolute expiration,
-			     const void *addr, size_t addrlen)
-{
-  struct NeighbourList *n = cls;
-  struct ForeignAddressList *fal;
-  int try;
-
-  GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# valid peer addresses returned by peerinfo"),
-			    1,
-			    GNUNET_NO);      
-  try = GNUNET_NO;
-  fal = find_peer_address (n, tname, addr, addrlen);
-  if (fal == NULL)
-    {
-#if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Adding address `%s' (%s) for peer `%4s' due to peerinfo data for %llums.\n",
-		  GNUNET_a2s (addr, addrlen),
-		  tname,
-		  GNUNET_i2s (&n->id),
-		  expiration.value);
-#endif
-      fal = add_peer_address (n, tname, addr, addrlen);
-      if (fal == NULL)
-	{
-	  GNUNET_STATISTICS_update (stats,
-				    gettext_noop ("# previously validated addresses lacking transport"),
-				    1,
-				    GNUNET_NO); 
-	}
-      try = GNUNET_YES;
-    }
-  if (fal == NULL)
-    return GNUNET_OK;
-  fal->expires = GNUNET_TIME_absolute_max (expiration,
-					   fal->expires);
-  if (fal->validated == GNUNET_NO)
-    {
-      fal->validated = GNUNET_YES;  
-      GNUNET_STATISTICS_update (stats,
-				gettext_noop ("# peer addresses considered valid"),
-				1,
-				GNUNET_NO);      
-    }
-  if (try == GNUNET_YES)
-    try_transmission_to_peer (n);
-  return GNUNET_OK;
-}
-
-
-/**
  * Check if addresses in validated hello "h" overlap with
  * those in "chvc->hello" and validate the rest.
  *
@@ -2797,6 +2877,11 @@ disconnect_neighbour (struct NeighbourList *n, int check)
     {
       GNUNET_SCHEDULER_cancel (sched, n->retry_task);
       n->retry_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  if (n->piter != NULL)
+    {
+      GNUNET_PEERINFO_iterate_cancel (n->piter);
+      n->piter = NULL;
     }
   /* finally, free n itself */
   GNUNET_STATISTICS_update (stats,

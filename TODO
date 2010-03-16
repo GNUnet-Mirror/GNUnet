@@ -15,16 +15,22 @@ away), in order in which they will likely be done:
 
 0.9.0pre0:
 * HOSTLIST/PEERINFO/CORE/TRANSPORT/TOPOLOGY:
-  - hostlist server learns about 2nd peer, but soon forgets!
-  - peers do not seem to connect (at least not for long!)
-  
+  - hostlist server learns about 2nd peer, but soon forgets (not 
+    clear if this is still an issue, or if validation failed or
+    if this was an issue with the client's parsing of the reply, which
+    was broken...)
 * TOPOLOGY:
   - needs more testing (especially F2F topology)
-  - calls 'GNUNET_CORE_peer_request_connect' with 'my_identity' as the PID,
-    despite having specific checks to prevent exactly that (!?)
-    => assertion failure in gnunet-service-core:2255 (hostlist test)
+  - needs to re-try connecting after disconnect (currently, it
+    initially triggers a connection request, but if that connection
+    fails / goes down, it does not retry in a timely fashion;
+    cause seems to be the 'blacklist_after_attempt' being set to 1h,
+    which is rather long -- and should probably be adjusted based on
+    the number of connections / known peers)
 * CORE:
-  - needs more testing
+  - peers do not seem to connect (setkey, ping are there; PONG is sent,
+    not sure what else happens; eventually, the "neighbour" entry times
+    out and is removed)
 * UTIL:
   - load: need way to determine network load (up/down) -- and quickly so!
   - trust: need *fast* way to check/update trust in peers
