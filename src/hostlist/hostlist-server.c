@@ -179,7 +179,17 @@ host_processor (void *cls,
 	      GNUNET_i2s (peer));
 #endif
   if (old + s >= GNUNET_MAX_MALLOC_CHECKED)
-    return; /* too large, skip! */
+    {
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop("bytes not included in hostlist (size limit)"),
+				s,
+				GNUNET_NO);
+      return; /* too large, skip! */
+    }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "Adding peer `%s' to hostlist (%u bytes)\n",
+	      GNUNET_i2s (peer),
+	      (unsigned int) s);
   GNUNET_array_grow (results->data,
                      results->size,
                      old + s);

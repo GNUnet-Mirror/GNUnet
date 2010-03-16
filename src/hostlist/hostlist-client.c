@@ -159,7 +159,10 @@ download_hostlist_processor (void *ptr,
       download_pos += cpy;
       left -= cpy;
       if (download_pos < sizeof(struct GNUNET_MessageHeader))
-	break;
+	{
+	  GNUNET_assert (left == 0);
+	  break;
+	}
       msg = (const struct GNUNET_MessageHeader *) download_buffer;
       msize = ntohs(msg->size);
       if (msize < sizeof(struct GNUNET_MessageHeader))
@@ -176,7 +179,10 @@ download_hostlist_processor (void *ptr,
 	  return total;
 	}
       if (download_pos < msize)
-	break;
+	{
+	  GNUNET_assert (left == 0);
+	  break;
+	}
       if (GNUNET_HELLO_size ((const struct GNUNET_HELLO_Message*)msg) == msize)
 	{
 #if DEBUG_HOSTLIST_CLIENT
@@ -200,7 +206,7 @@ download_hostlist_processor (void *ptr,
 		      _("Invalid `%s' message received from hostlist at `%s'\n"),
 		      "HELLO",
 		      current_url);
-	  bogus_url = 1;
+	  bogus_url = GNUNET_YES;
 	  return total;
 	}
       memmove (download_buffer,
