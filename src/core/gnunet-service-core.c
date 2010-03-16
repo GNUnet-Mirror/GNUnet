@@ -1104,7 +1104,7 @@ free_neighbour (struct Neighbour *n)
   if (n->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)    
       GNUNET_SCHEDULER_cancel (sched, n->keep_alive_task);
   if (n->status == PEER_STATE_KEY_CONFIRMED)
-    GNUNET_STATISTICS_update (stats, gettext_noop ("# peers connected"), -1, GNUNET_NO);
+    GNUNET_STATISTICS_update (stats, gettext_noop ("# established sessions"), -1, GNUNET_NO);
   GNUNET_free_non_null (n->public_key);
   GNUNET_free_non_null (n->pending_ping);
   GNUNET_free_non_null (n->pending_pong);
@@ -1319,7 +1319,9 @@ notify_encrypted_transmit_ready (void *cls, size_t size, void *buf)
   char *cbuf;
 
   n->th = NULL;
-  GNUNET_assert (NULL != (m = n->encrypted_head));
+  m = n->encrypted_head;
+  if (m == NULL)
+    return 0;
   GNUNET_CONTAINER_DLL_remove (n->encrypted_head,
 			       n->encrypted_tail,
 			       m);
@@ -2412,7 +2414,23 @@ send_key (struct Neighbour *n)
 #endif
       return; /* already in progress */
     }
-
+  if (! n->is_connected)
+    {
+      if (NULL == n->th)
+	{
+	  GNUNET_STATISTICS_update (stats, 
+				    gettext_noop ("# Asking transport to connect (for SETKEY)"), 
+				    1, 
+				    GNUNET_NO);
+	  n->th = GNUNET_TRANSPORT_notify_transmit_ready (transport,
+							  &n->peer,
+							  sizeof (struct SetKeyMessage) + sizeof (struct PingMessage),
+							  GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+							  &notify_encrypted_transmit_ready,
+							  n);
+	}
+      return; 
+    }
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asked to perform key exchange with `%4s'.\n",
@@ -3403,7 +3421,7 @@ handle_transport_receive (void *cls,
       n->last_activity = now;
       if (!up)
 	{
-	  GNUNET_STATISTICS_update (stats, gettext_noop ("# peers connected"), 1, GNUNET_NO);
+	  GNUNET_STATISTICS_update (stats, gettext_noop ("# established sessions"), 1, GNUNET_NO);
 	  n->time_established = now;
 	}
       if (n->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)
@@ -3527,6 +3545,10 @@ handle_transport_notify_connect (void *cls,
     {
       n = create_neighbour (peer);
     }
+  GNUNET_STATISTICS_update (stats, 
+			    gettext_noop ("# peers connected"), 
+			    1, 
+			    GNUNET_NO);
   n->is_connected = GNUNET_YES;      
   n->last_latency = latency;
   n->last_distance = distance;
@@ -3587,6 +3609,10 @@ handle_transport_notify_disconnect (void *cls,
   cnm.peer = *peer;
   send_to_all_clients (&cnm.header, GNUNET_YES, GNUNET_CORE_OPTION_SEND_DISCONNECT);
   n->is_connected = GNUNET_NO;
+  GNUNET_STATISTICS_update (stats, 
+			    gettext_noop ("# peers connected"), 
+			    -1, 
+			    GNUNET_NO);
 }
 
 

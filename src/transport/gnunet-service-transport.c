@@ -1066,7 +1066,11 @@ transmit_send_continuation (void *cls,
 {
   struct MessageQueue *mq = cls;
   struct NeighbourList *n;
-
+  
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# bytes pending with plugins"),
+			    -mq->message_buf_size,
+			    GNUNET_NO);
   if (result == GNUNET_OK)
     {
       GNUNET_STATISTICS_update (stats,
@@ -1303,7 +1307,7 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 			    -mq->message_buf_size,
 			    GNUNET_NO);
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# bytes transmitted to other peers"),
+			    gettext_noop ("# bytes pending with plugins"),
 			    mq->message_buf_size,
 			    GNUNET_NO);
   rl->plugin->api->send (rl->plugin->api->cls,
@@ -2583,7 +2587,7 @@ check_hello_validated (void *cls,
   else
     {
       GNUNET_STATISTICS_update (stats,
-				gettext_noop ("# no existing neighbour record while validating HELLO"),
+				gettext_noop ("# no existing neighbour record (validating HELLO)"),
 				1,
 				GNUNET_NO);      
     }

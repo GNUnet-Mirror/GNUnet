@@ -179,9 +179,9 @@ struct GNUNET_TRANSPORT_TransmitHandle;
 
 /**
  * Check if we could queue a message of the given size for
- * transmission.  The transport service will take both its
- * internal buffers and bandwidth limits imposed by the
- * other peer into consideration when answering this query.
+ * transmission.  The transport service will take both its internal
+ * buffers and bandwidth limits imposed by the other peer into
+ * consideration when answering this query.
  *
  * @param handle connection to transport service
  * @param target who should receive the message
