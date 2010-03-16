@@ -308,6 +308,10 @@ create_session (struct Plugin *plugin,
   welcome.clientIdentity = *plugin->env->my_identity;
   memcpy (&pm[1], &welcome, sizeof (welcome));
   pm->timeout = GNUNET_TIME_UNIT_FOREVER_ABS;
+  GNUNET_STATISTICS_update (plugin->env->stats,
+			    gettext_noop ("# bytes currently in TCP buffers"),
+			    pm->message_size,
+			    GNUNET_NO);      
   GNUNET_CONTAINER_DLL_insert (ret->pending_messages_head,
 			       ret->pending_messages_tail,
 			       pm);
@@ -370,6 +374,10 @@ do_transmit (void *cls, size_t size, void *buf)
 			   pm->message_size,
                            GNUNET_i2s (&session->target));
 #endif
+	  GNUNET_STATISTICS_update (plugin->env->stats,
+				    gettext_noop ("# bytes currently in TCP buffers"),
+				    -pm->message_size,
+				    GNUNET_NO); 
 	  GNUNET_STATISTICS_update (session->plugin->env->stats,
 				    gettext_noop ("# bytes discarded by TCP (timeout)"),
 				    pm->message_size,
@@ -394,6 +402,10 @@ do_transmit (void *cls, size_t size, void *buf)
       GNUNET_CONTAINER_DLL_remove (session->pending_messages_head,
 				   session->pending_messages_tail,
 				   pm);
+      GNUNET_STATISTICS_update (plugin->env->stats,
+				gettext_noop ("# bytes currently in TCP buffers"),
+				-pm->message_size,
+				GNUNET_NO);       
       if (pm->transmit_cont != NULL)
         pm->transmit_cont (pm->transmit_cont_cls,
                            &session->target, GNUNET_OK);
@@ -490,6 +502,14 @@ disconnect_session (struct Session *session)
                        "Could not deliver message to `%4s', notifying.\n",
                        GNUNET_i2s (&session->target));
 #endif
+      GNUNET_STATISTICS_update (plugin->env->stats,
+				gettext_noop ("# bytes currently in TCP buffers"),
+				-pm->message_size,
+				GNUNET_NO);      
+      GNUNET_STATISTICS_update (plugin->env->stats,
+				gettext_noop ("# bytes discarded by TCP (disconnect)"),
+				pm->message_size,
+				GNUNET_NO);      
       GNUNET_CONTAINER_DLL_remove (session->pending_messages_head,
 				   session->pending_messages_tail,
 				   pm);
@@ -673,6 +693,10 @@ tcp_plugin_send (void *cls,
   GNUNET_assert (session != NULL);
   GNUNET_assert (session->client != NULL);
 
+  GNUNET_STATISTICS_update (plugin->env->stats,
+			    gettext_noop ("# bytes currently in TCP buffers"),
+			    msgbuf_size,
+			    GNUNET_NO);      
   /* create new message entry */
   pm = GNUNET_malloc (sizeof (struct PendingMessage) + msgbuf_size);
   pm->msg = (const char*) &pm[1];
