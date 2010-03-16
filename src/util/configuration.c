@@ -765,9 +765,9 @@ GNUNET_CONFIGURATION_expand_dollar (const struct GNUNET_CONFIGURATION_Handle
       orig[i] = '\0';
       post = &orig[i + 1];
     }
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg,
-                                                          "PATHS",
-                                                          &orig[1], &prefix))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg,
+							    "PATHS",
+							    &orig[1], &prefix))
     {
       if (NULL == (env = getenv (&orig[1])))
         {
