@@ -222,6 +222,7 @@ checkDiffs (struct GNUNET_CONFIGURATION_Handle *cfgDefault, int option)
     GNUNET_DISK_mktemp ("gnunet-test-configurations-diffs.conf");
   if (diffsFileName == NULL)
     {
+      GNUNET_break (0);
       GNUNET_CONFIGURATION_destroy (cfg);
       GNUNET_CONFIGURATION_destroy (cfgDiffs);      
       return 1;
@@ -283,26 +284,42 @@ testConfig ()
   GNUNET_free (c);
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (cfg,
 							  "test", "five", &l))
-    return 3;
+    {
+      GNUNET_break (0);
+      return 3;
+    }
   if (5 != l)
-    return 4;
+    {
+      GNUNET_break (0);
+      return 4;
+    }
   GNUNET_CONFIGURATION_set_value_string (cfg, "more", "c", "YES");
   if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_yesno (cfg, "more", "c"))
-    return 5;
+    {
+      GNUNET_break (0);
+      return 5;
+    }
   GNUNET_CONFIGURATION_set_value_number (cfg, "NUMBERS", "TEN", 10);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "NUMBERS", "TEN", &c))
-    return 6;
+    {
+      GNUNET_break (0);
+      return 6;
+    }
   if (0 != strcmp (c, "10"))
     {
       GNUNET_free (c);
+      GNUNET_break (0);
       return 7;
     }
   GNUNET_free (c);
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (cfg, "last", "test", &c))
-    return 8;
+    {
+      GNUNET_break (0);
+      return 8;
+    }
 #ifndef MINGW
   if (0 != strcmp (c, "/hello/world"))
 #else
@@ -310,6 +327,7 @@ testConfig ()
   if (strstr (c, HI) != c + strlen (c) - strlen (HI))
 #endif
     {
+      GNUNET_break (0);
       GNUNET_free (c);
       return 9;
     }
@@ -336,6 +354,7 @@ check (void *data, const char *fn)
       (*idx)++;
       return GNUNET_OK;
     }
+  GNUNET_break (0);
   return GNUNET_SYSERR;
 }
 
@@ -349,48 +368,72 @@ testConfigFilenames ()
 							 "FILENAMES",
 							 "test",
 							 &check, &idx))
-    return 8;
+    {
+      GNUNET_break (0);
+      return 8;
+    }
   if (idx != 3)
     return 16;
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_remove_value_filename (cfg,
 						  "FILENAMES",
 						  "test", "/File Name"))
-    return 24;
+    {
+      GNUNET_break (0);
+      return 24;
+    }
 
   if (GNUNET_NO !=
       GNUNET_CONFIGURATION_remove_value_filename (cfg,
 						  "FILENAMES",
 						  "test", "/File Name"))
-    return 32;
+    {
+      GNUNET_break (0);
+      return 32;
+    }
   if (GNUNET_NO !=
       GNUNET_CONFIGURATION_remove_value_filename (cfg,
 						  "FILENAMES",
 						  "test", "Stuff"))
-    return 40;
+    {
+      GNUNET_break (0);
+      return 40;
+    }
 
   if (GNUNET_NO !=
       GNUNET_CONFIGURATION_append_value_filename (cfg,
 						  "FILENAMES",
 						  "test", "/Hello"))
-    return 48;
+    {
+      GNUNET_break (0);
+      return 48;
+    }
   if (GNUNET_NO !=
       GNUNET_CONFIGURATION_append_value_filename (cfg,
 						  "FILENAMES",
 						  "test", "/World"))
-    return 56;
+    {
+      GNUNET_break (0);
+      return 56;
+    }
 
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_append_value_filename (cfg,
 						  "FILENAMES",
 						  "test", "/File 1"))
-    return 64;
+    {
+      GNUNET_break (0);
+      return 64;
+    }
 
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_append_value_filename (cfg,
 						  "FILENAMES",
 						  "test", "/File 2"))
-    return 72;
+    {
+      GNUNET_break (0);
+      return 72;
+    }
 
   idx = 0;
   want[1] = "/World";
@@ -400,9 +443,15 @@ testConfigFilenames ()
 							 "FILENAMES",
 							 "test",
 							 &check, &idx))
-    return 80;
+    {
+      GNUNET_break (0);
+      return 80;
+    }
   if (idx != 4)
-    return 88;
+    {
+      GNUNET_break (0);
+      return 88;
+    }
   return 0;
 }
 
@@ -448,15 +497,7 @@ main (int argc, char *argv[])
 					      &c))
       || (0 != strcmp (c, "YES")))
     {
-      GNUNET_CONFIGURATION_destroy (cfg);
-      return 1;
-    }
-  GNUNET_free (c);
-  if ((GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS", "SERVICEHOME",
-					      &c))
-      || (0 != strcmp (c, "/var/lib/gnunet/")))
-    {
+      GNUNET_break (0);
       GNUNET_CONFIGURATION_destroy (cfg);
       return 1;
     }
