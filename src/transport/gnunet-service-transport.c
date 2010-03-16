@@ -1210,6 +1210,10 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 		      GNUNET_i2s (&mq->neighbour_id));
 #endif
 	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# bytes in message queue for other peers"),
+				    -mq->message_buf_size,
+				    GNUNET_NO);
+	  GNUNET_STATISTICS_update (stats,
 				    gettext_noop ("# bytes discarded (no destination address available)"),
 				    mq->message_buf_size,
 				    GNUNET_NO);      
@@ -1257,6 +1261,10 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 			  mq->specific_address->addrlen),
 	      rl->plugin->short_name);
 #endif
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# bytes in message queue for other peers"),
+			    -mq->message_buf_size,
+			    GNUNET_NO);
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# bytes transmitted to other peers"),
 			    mq->message_buf_size,
@@ -1308,7 +1316,7 @@ transmit_to_peer (struct TransportClient *client,
           if (mq->client == client)
             {
               /* client transmitted to same peer twice
-                 before getting SendOk! */
+                 before getting SEND_OK! */
               GNUNET_break (0);
               return;
             }
@@ -1316,6 +1324,10 @@ transmit_to_peer (struct TransportClient *client,
         }
     }
 #endif
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# bytes in message queue for other peers"),
+			    message_buf_size,
+			    GNUNET_NO);
   mq = GNUNET_malloc (sizeof (struct MessageQueue) + message_buf_size);
   mq->specific_address = peer_address;
   mq->client = client;
@@ -2699,6 +2711,14 @@ disconnect_neighbour (struct NeighbourList *n, int check)
   /* free all messages on the queue */
   while (NULL != (mq = n->messages_head))
     {
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# bytes in message queue for other peers"),
+				-mq->message_buf_size,
+				GNUNET_NO);
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# bytes discarded due to disconnect"),
+				mq->message_buf_size,
+				GNUNET_NO);
       GNUNET_CONTAINER_DLL_remove (n->messages_head,
 				   n->messages_tail,
 				   mq);
