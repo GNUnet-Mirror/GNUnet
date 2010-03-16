@@ -169,6 +169,7 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
 {
   FILE *altlog;
   int dirwarn;
+  char *fn;
 
   GNUNET_free_non_null (component);
   GNUNET_asprintf (&component,
@@ -178,17 +179,20 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
   min_level = get_type (loglevel);
   if (logfile == NULL)
     return GNUNET_OK;
-  dirwarn = (GNUNET_OK !=  GNUNET_DISK_directory_create_for_file (logfile));
-  altlog = FOPEN (logfile, "a");
+  fn = GNUNET_STRINGS_filename_expand (logfile);
+  dirwarn = (GNUNET_OK !=  GNUNET_DISK_directory_create_for_file (fn));
+  altlog = FOPEN (fn, "a");
   if (altlog == NULL)
     {
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", logfile);
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
       if (dirwarn) 
 	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		    _("Failed to create or access directory for log file `%s'\n"), 
-		    logfile);
+		    fn);
+      GNUNET_free (fn);
       return GNUNET_SYSERR;
     }
+  GNUNET_free (fn);
   if (GNUNET_stderr != NULL)
     fclose (GNUNET_stderr);
   GNUNET_stderr = altlog;
