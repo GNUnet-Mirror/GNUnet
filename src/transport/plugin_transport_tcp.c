@@ -288,6 +288,7 @@ create_session (struct Plugin *plugin,
   struct PendingMessage *pm;
   struct WelcomeMessage welcome;
 
+  GNUNET_assert (client != NULL);
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "tcp",
 		   "Creating new session for peer `%4s'\n",
@@ -596,6 +597,7 @@ tcp_plugin_send (void *cls,
      where we could restrict the iteration to entries that match
      the target peer... */
   while ( (session != NULL) &&
+	  (session->client != NULL) &&
 	  ( (0 != memcmp (target,
 			  &session->target, 
 			  sizeof (struct GNUNET_PeerIdentity))) ||

@@ -2321,7 +2321,7 @@ run_validation (void *cls,
 		  GNUNET_i2s (&id));
 #endif
       GNUNET_STATISTICS_update (stats,
-				gettext_noop ("# peer addresses not validated (already in progress)"),
+				gettext_noop ("# peer addresses not validated (in progress)"),
 				1,
 				GNUNET_NO);      
       return GNUNET_OK;
