@@ -42,7 +42,7 @@
 #include "core.h"
 
 
-#define DEBUG_HANDSHAKE GNUNET_NO
+#define DEBUG_HANDSHAKE GNUNET_YES
 
 #define DEBUG_CORE_QUOTA GNUNET_NO
 
