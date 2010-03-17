@@ -33,6 +33,43 @@ typedef void (*GNUNET_DHT_MessageReceivedHandler) (void *cls,
                                                   struct GNUNET_MessageHeader *msg);
 
 /**
+ * Generic DHT message, wrapper for other message types
+ */
+struct GNUNET_DHT_Message
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_DHT_MESSAGE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * The key to search for
+   */
+  GNUNET_HashCode key;
+
+  /**
+   * Replication level for this message
+   */
+  uint16_t desired_replication_level;
+
+  /**
+   * Message options
+   */
+  uint16_t options;
+
+  /**
+   * Is this message uniquely identified?  If so it has
+   * a unique_id appended to it.
+   */
+  /* uint16_t unique; I don't think we need this, it should be held in the encapsulated message */
+
+  /* uint64_t unique_id*/
+  /* */
+  /* GNUNET_MessageHeader *enc actual DHT message, copied to end of this dealy do */
+
+};
+
+/**
  * Message to insert data into the DHT
  */
 struct GNUNET_DHT_PutMessage
@@ -48,11 +85,6 @@ struct GNUNET_DHT_PutMessage
   size_t type;
 
   /**
-   * The key to insert data under.
-   */
-  GNUNET_HashCode key;
-
-  /**
    * The size of the data, appended to the end of this message.
    */
   size_t data_size;
@@ -60,7 +92,7 @@ struct GNUNET_DHT_PutMessage
   /**
    * How long should this data persist?
    */
-  struct GNUNET_TIME_Relative timeout;
+  struct GNUNET_TIME_Absolute expiration;
 
 };
 
@@ -115,32 +147,44 @@ struct GNUNET_DHT_GetResultMessage
 };
 
 /**
- * Response to PUT request from the DHT
+ * Message to request data from the DHT
  */
-struct GNUNET_DHT_PutResultMessage
+struct GNUNET_DHT_FindPeerMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_PUT_RESULT
+   * Type: GNUNET_MESSAGE_TYPE_DHT_FIND_PEER
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * The type for the data for the GET request
-   */
-  size_t type;
-
-  /**
-   * The key to search for
+   * The key being looked up
    */
   GNUNET_HashCode key;
 
-  /**
-   * Was the put successful?  GNUNET_YES or GNUNET_NO
-   */
-  size_t result;
-
 };
 
+/**
+ * Message to return data from the DHT
+ */
+struct GNUNET_DHT_FindPeerResultMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_RESULT
+   */
+  struct GNUNET_MessageHeader header;
 
+  /**
+   * The peer that was searched for
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * The size of the HELLO for the returned peer,
+   * appended to the end of this message, 0 if
+   * no hello.
+   */
+  size_t data_size;
+
+};
 
 #endif /* DHT_H_ */

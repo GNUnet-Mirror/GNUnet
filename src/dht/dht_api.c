@@ -135,11 +135,14 @@ void service_message_handler (void *cls,
  *
  * @param cfg configuration to use
  * @param sched scheduler to use
+ * @param ht_len size of the internal hash table to use for
+ *               processing multiple GET/FIND requests in parallel
  * @return NULL on error
  */
 struct GNUNET_DHT_Handle *
 GNUNET_DHT_connect (struct GNUNET_SCHEDULER_Handle *sched,
-                    const struct GNUNET_CONFIGURATION_Handle *cfg)
+                    const struct GNUNET_CONFIGURATION_Handle *cfg,
+                    unsigned int ht_len)
 {
   struct GNUNET_DHT_Handle *handle;
 
@@ -233,6 +236,11 @@ struct GNUNET_DHT_GetHandle
    * Closure for the iterator callback
    */
   void *iter_cls;
+
+  /**
+   * Main handle to this DHT api
+   */
+  struct GNUNET_DHT_Handle *dht_handle;
 };
 
 /**
@@ -303,7 +311,6 @@ static size_t
 transmit_pending (void *cls, size_t size, void *buf)
 {
   struct GNUNET_DHT_Handle *handle = cls;
-  size_t ret;
   size_t tsize;
 
   if (buf == NULL)
@@ -318,7 +325,6 @@ transmit_pending (void *cls, size_t size, void *buf)
     }
 
   handle->th = NULL;
-  ret = 0;
 
   if (handle->current != NULL)
   {
@@ -330,14 +336,15 @@ transmit_pending (void *cls, size_t size, void *buf)
                   "`%s': Sending message size %d\n", "DHT API", tsize);
 #endif
       memcpy(buf, handle->current->msg, tsize);
+      return tsize;
     }
     else
     {
-      return ret;
+      return 0;
     }
   }
-
-  return ret;
+  /* Have no pending request */
+  return 0;
 }
 
 
@@ -483,6 +490,10 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
   get_handle->iter = iter;
   get_handle->iter_cls = iter_cls;
 
+#if DEBUG_DHT_API
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "`%s': Inserting pending get request with key %s\n", "DHT API", GNUNET_h2s(key));
+#endif
   GNUNET_CONTAINER_multihashmap_put(handle->outstanding_get_requests, key, get_handle, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
 
   get_msg = GNUNET_malloc(sizeof(struct GNUNET_DHT_GetMessage));
@@ -503,9 +514,10 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
  * @param record GET operation to stop.
  */
 void
-GNUNET_DHT_get_stop (struct GNUNET_DHT_Handle *handle, struct GNUNET_DHT_GetHandle *get_handle)
+GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *get_handle)
 {
   struct GNUNET_DHT_GetMessage *get_msg;
+  struct GNUNET_DHT_Handle *handle;
 
   if (handle->do_destroy == GNUNET_NO)
     {
@@ -517,7 +529,10 @@ GNUNET_DHT_get_stop (struct GNUNET_DHT_Handle *handle, struct GNUNET_DHT_GetHand
 
       add_pending(handle, &get_msg->header);
     }
-
+#if DEBUG_DHT_API
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "`%s': Removing pending get request with key %s\n", "DHT API", GNUNET_h2s(&get_handle->key));
+#endif
   GNUNET_assert(GNUNET_CONTAINER_multihashmap_remove(handle->outstanding_get_requests, &get_handle->key, get_handle) == GNUNET_YES);
   GNUNET_free(get_handle);
 }
@@ -539,14 +554,16 @@ GNUNET_DHT_get_stop (struct GNUNET_DHT_Handle *handle, struct GNUNET_DHT_GetHand
  *
  * @return GNUNET_YES if put message is queued for transmission
  */
-int GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
-                    const GNUNET_HashCode * key,
-                    uint32_t type,
-                    uint32_t size,
-                    const char *data,
-                    struct GNUNET_TIME_Relative exp,
-                    GNUNET_SCHEDULER_Task cont,
-                    void *cont_cls)
+void
+GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
+                const GNUNET_HashCode * key,
+                uint32_t type,
+                uint32_t size,
+                const char *data,
+                struct GNUNET_TIME_Absolute exp,
+                struct GNUNET_TIME_Relative timeout,
+                GNUNET_SCHEDULER_Task cont,
+                void *cont_cls)
 {
   struct GNUNET_DHT_PutMessage *put_msg;
   struct GNUNET_DHT_PutHandle *put_handle;
@@ -560,12 +577,17 @@ int GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
        * A put has been previously queued, but not yet sent.
        * FIXME: change the continuation function and callback or something?
        */
-      return GNUNET_NO;
+      return;
     }
 
   put_handle = GNUNET_malloc(sizeof(struct GNUNET_DHT_PutHandle));
   put_handle->type = type;
   memcpy(&put_handle->key, key, sizeof(GNUNET_HashCode));
+
+#if DEBUG_DHT_API
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "`%s': Inserting pending put request with key %s\n", "DHT API", GNUNET_h2s(key));
+#endif
 
   GNUNET_CONTAINER_multihashmap_put(handle->outstanding_put_requests, key, put_handle, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
 
@@ -579,5 +601,5 @@ int GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
 
   add_pending(handle, &put_msg->header);
 
-  return GNUNET_YES;
+  return;
 }
