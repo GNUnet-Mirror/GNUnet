@@ -184,7 +184,7 @@ enum GNUNET_DHT_RouteOption
 /**
  * Perform an asynchronous FIND_PEER operation on the DHT.
  *
- * @param h handle to the DHT service
+ * @param handle handle to the DHT service
  * @param key the key to look up
  * @param desired_replication_level how many peers should ultimately receive
  *                this message (advisory only, target may be too high for the
@@ -202,7 +202,7 @@ enum GNUNET_DHT_RouteOption
  * @return handle to stop the request
  */
 struct GNUNET_DHT_FindPeerHandle *
-GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *h,
+GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
 			const GNUNET_HashCode *key,
 			unsigned int desired_replication_level,
 			enum GNUNET_DHT_RouteOption options,
@@ -210,7 +210,6 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *h,
 			struct GNUNET_TIME_Relative timeout,
 			GNUNET_DHT_ReplyProcessor iter,
 			void *iter_cls,
-			struct GNUNET_TIME_Relative timeout,
 			GNUNET_SCHEDULER_Task cont,
 			void *cont_cls);
 

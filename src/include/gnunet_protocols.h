@@ -483,6 +483,48 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_FS_PUT 138
 
+
+/**
+ * DHT Message Types
+ */
+
+/**
+ * Local DHT Get message, from API to service
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_GET 143
+
+/**
+ * Local DHT Get stop message, from API to service
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_GET_STOP 144
+
+/**
+ * Local DHT Get message, from API to service
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_FIND_PEER 145
+
+/**
+ * Local DHT Get stop message, from API to service
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_STOP 146
+
+/**
+ * Local DHT Put message, from API to service
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_PUT 147
+
+/**
+ * Local DHT Get result message, from service to API
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_GET_RESULT 149
+
+/**
+ * Local DHT Put result message, from service to API
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_PUT_RESULT 151
+
+
+
 /**
  * Type used to match 'all' message types.
  */
