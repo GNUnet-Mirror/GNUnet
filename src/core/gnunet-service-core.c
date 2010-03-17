@@ -1066,6 +1066,9 @@ free_neighbour (struct Neighbour *n)
 {
   struct MessageEntry *m;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Destroying neighbour entry for peer `%4s'\n",
+	      GNUNET_i2s (&n->peer));
   if (n->pitr != NULL)
     {
       GNUNET_PEERINFO_iterate_cancel (n->pitr);
@@ -2060,6 +2063,9 @@ create_neighbour (const struct GNUNET_PeerIdentity *pid)
   struct Neighbour *n;
   struct GNUNET_TIME_Absolute now;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Creating neighbour entry for peer `%4s'\n",
+	      GNUNET_i2s (pid));
   n = GNUNET_malloc (sizeof (struct Neighbour));
   n->next = neighbours;
   neighbours = n;
@@ -2116,6 +2122,14 @@ handle_client_send (void *cls,
     }
   sm = (const struct SendMessage *) message;
   msize -= sizeof (struct SendMessage);
+  if (0 == memcmp (&sm->peer, &my_identity, sizeof (struct GNUNET_PeerIdentity)))
+    {
+      /* FIXME: should we not allow loopback-injection here? */
+      GNUNET_break (0);
+      if (client != NULL)
+        GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
   n = find_neighbour (&sm->peer);
   if (n == NULL)
     n = create_neighbour (&sm->peer);
@@ -3318,11 +3332,14 @@ handle_transport_receive (void *cls,
               "Received message of type %u from `%4s', demultiplexing.\n",
               ntohs (message->type), GNUNET_i2s (peer));
 #endif
+  if (0 == memcmp (peer, &my_identity, sizeof (struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_break (0);
+      return;
+    }
   n = find_neighbour (peer);
   if (n == NULL)
     n = create_neighbour (peer);
-  if (n == NULL)
-    return;   
   n->last_latency = latency;
   n->last_distance = distance;
   up = (n->status == PEER_STATE_KEY_CONFIRMED);
@@ -3532,6 +3549,11 @@ handle_transport_notify_connect (void *cls,
   struct Neighbour *n;
   struct ConnectNotifyMessage cnm;
 
+  if (0 == memcmp (peer, &my_identity, sizeof (struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_break (0);
+      return;
+    }
   n = find_neighbour (peer);
   if (n != NULL)
     {

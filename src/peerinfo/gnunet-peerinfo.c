@@ -90,7 +90,7 @@ run (void *cls,
 				      NULL,
 				      0,
 				      GNUNET_TIME_relative_multiply
-				      (GNUNET_TIME_UNIT_SECONDS, 30),
+				      (GNUNET_TIME_UNIT_SECONDS, 2),
 				      &print_peer_info, NULL);
     }
   else
