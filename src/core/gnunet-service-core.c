@@ -1299,7 +1299,10 @@ consider_free_neighbour (struct Neighbour *n)
     prev->next = n->next;
   GNUNET_assert (neighbour_count > 0);
   neighbour_count--;
-  GNUNET_STATISTICS_set (stats, gettext_noop ("# active neighbours"), neighbour_count, GNUNET_NO);
+  GNUNET_STATISTICS_set (stats,
+			 gettext_noop ("# active neighbours"), 
+			 neighbour_count,
+			 GNUNET_NO);
   free_neighbour (n);
 }
 
@@ -3051,6 +3054,7 @@ static void
 deliver_message (struct Neighbour *sender,
                  const struct GNUNET_MessageHeader *m, size_t msize)
 {
+  char buf[256];
   struct Client *cpos;
   uint16_t type;
   unsigned int tpos;
@@ -3064,6 +3068,14 @@ deliver_message (struct Neighbour *sender,
 	      type,
 	      GNUNET_i2s (&sender->peer));
 #endif
+  GNUNET_snprintf (buf,
+		   sizeof(buf),
+		   gettext_noop ("# bytes of messages of type %u received"),
+		   type);
+  GNUNET_STATISTICS_set (stats,
+			 buf,
+			 msize,
+			 GNUNET_NO);     
   dropped = GNUNET_YES;
   cpos = clients;
   while (cpos != NULL)
@@ -3190,7 +3202,6 @@ handle_encrypted_message (struct Neighbour *n,
   char buf[size];
   struct EncryptedMessage *pt;  /* plaintext */
   GNUNET_HashCode ph;
-  size_t off;
   uint32_t snum;
   struct GNUNET_TIME_Absolute t;
   GNUNET_HashCode iv;
@@ -3230,6 +3241,10 @@ handle_encrypted_message (struct Neighbour *n,
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "Received duplicate message, ignoring.\n");
       /* duplicate, ignore */
+      GNUNET_STATISTICS_set (stats,
+			     gettext_noop ("# bytes dropped (duplicates)"),
+			     size,
+			     GNUNET_NO);      
       return;
     }
   if ((n->last_sequence_number_received > snum) &&
@@ -3238,6 +3253,10 @@ handle_encrypted_message (struct Neighbour *n,
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "Received ancient out of sequence message, ignoring.\n");
       /* ancient out of sequence, ignore */
+      GNUNET_STATISTICS_set (stats,
+			     gettext_noop ("# bytes dropped (out of sequence)"),
+			     size,
+			     GNUNET_NO);      
       return;
     }
   if (n->last_sequence_number_received > snum)
@@ -3248,6 +3267,10 @@ handle_encrypted_message (struct Neighbour *n,
         {
           GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                       "Received duplicate message, ignoring.\n");
+	  GNUNET_STATISTICS_set (stats,
+				 gettext_noop ("# bytes dropped (duplicates)"),
+				 size,
+				 GNUNET_NO);      
           /* duplicate, ignore */
           return;
         }
@@ -3267,6 +3290,10 @@ handle_encrypted_message (struct Neighbour *n,
                   _
                   ("Message received far too old (%llu ms). Content ignored.\n"),
                   GNUNET_TIME_absolute_get_duration (t).value);
+      GNUNET_STATISTICS_set (stats,
+			     gettext_noop ("# bytes dropped (ancient message)"),
+			     size,
+			     GNUNET_NO);      
       return;
     }
 
@@ -3299,8 +3326,11 @@ handle_encrypted_message (struct Neighbour *n,
 				    GNUNET_TIME_relative_divide (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT, 2),
 				    &send_keep_alive,
 				    n);
-  off = sizeof (struct EncryptedMessage);
-  deliver_messages (n, buf, size, off);
+  GNUNET_STATISTICS_set (stats,
+			 gettext_noop ("# bytes of payload decrypted"),
+			 size - sizeof (struct EncryptedMessage),
+			 GNUNET_NO);      
+  deliver_messages (n, buf, size, sizeof (struct EncryptedMessage));
 }
 
 
