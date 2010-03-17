@@ -2002,6 +2002,13 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
 		      esize - sizeof (GNUNET_HashCode), 
 		      &ph->plaintext_hash);
   GNUNET_CRYPTO_hash (&ph->iv_seed, sizeof (uint32_t), &iv);
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Hashed %u bytes of plaintext (`%s') using IV `%d'\n",
+	      esize - sizeof (GNUNET_HashCode),
+	      GNUNET_h2s (&ph->plaintext_hash),
+	      (int) ph->iv_seed);
+#endif
   /* encrypt */
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -3221,10 +3228,16 @@ handle_encrypted_message (struct Neighbour *n,
 		  size - ENCRYPTED_HEADER_SIZE))
     return;
   pt = (struct EncryptedMessage *) buf;
-
   /* validate hash */
   GNUNET_CRYPTO_hash (&pt->sequence_number,
                       size - ENCRYPTED_HEADER_SIZE - sizeof (GNUNET_HashCode), &ph);
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "V-Hashed %u bytes of plaintext (`%s') using IV `%d'\n",
+	      size - ENCRYPTED_HEADER_SIZE - sizeof (GNUNET_HashCode),
+	      GNUNET_h2s (&ph),
+	      (int) m->iv_seed);
+#endif
   if (0 != memcmp (&ph, 
 		   &pt->plaintext_hash, 
 		   sizeof (GNUNET_HashCode)))
