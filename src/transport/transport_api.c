@@ -608,8 +608,8 @@ transport_notify_ready (void *cls, size_t size, void *buf)
 	      n->transmit_stage = TS_NEW;
 	      break;
 	    case TS_TRANSMITTED_QUEUED:
-	      GNUNET_break (0);
-	      break;
+	      n->transmit_stage = TS_QUEUED;
+	      continue;
 	    default:
 	      GNUNET_break (0);
 	    }
