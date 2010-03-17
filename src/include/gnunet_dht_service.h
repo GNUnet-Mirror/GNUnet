@@ -52,8 +52,8 @@ struct GNUNET_DHT_Handle;
  * @return NULL on error
  */
 struct GNUNET_DHT_Handle *
-GNUNET_DHT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-		    struct GNUNET_SCHEDULER_Handle *sched);
+GNUNET_DHT_connect (struct GNUNET_SCHEDULER_Handle *sched,
+                    const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -62,7 +62,7 @@ GNUNET_DHT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param h connection to shut down
  */
 void
-GNUNET_DHT_connect (struct GNUNET_DHT_Handle *h);
+GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *h);
 
 
 /**
@@ -90,6 +90,7 @@ typedef void (*GNUNET_DHT_Iterator)(void *cls,
 				    const void *data);
 		      
 
+
 /**
  * Perform an asynchronous GET operation on the DHT identified.
  *
@@ -109,12 +110,40 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *h,
 
 
 /**
+ * Iterator called on each result obtained from a FIND_PEER
+ * operation
+ *
+ * @param cls closure
+ * @param key the key that was searched
+ * @param data the HELLO of the peer that was returned
+ */
+typedef void (*GNUNET_DHT_PeerIterator)(void *cls,
+                                    const GNUNET_HashCode * key,
+                                    const void *data);
+
+/**
+ * Perform an asynchronous FIND_PEER operation on the DHT.
+ *
+ * @param h handle to the DHT service
+ * @param key the key to look up
+ * @param iter function to call on each result
+ * @param iter_cls closure for iter
+ *
+ * @return handle to stop the request
+ */
+struct GNUNET_DHT_GetHandle *
+GNUNET_DHT_find_peer_start (struct GNUNET_DHT_Handle *h,
+                      const GNUNET_HashCode * key,
+                      GNUNET_DHT_PeerIterator iter,
+                      void *iter_cls);
+
+/**
  * Stop async DHT-get.  Frees associated resources.
  *
  * @param record GET operation to stop.
  */
 void
-GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *record);
+GNUNET_DHT_get_stop (struct GNUNET_DHT_Handle *handle, struct GNUNET_DHT_GetHandle *get_handle);
 
 
 /**
