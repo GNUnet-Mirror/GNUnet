@@ -1019,7 +1019,7 @@ transmit_to_peer (void *cls,
 						   &pid,
 						   pm->msize,
 						   &transmit_to_peer,
-						   pm);
+						   cp);
     }
 #if DEBUG_FS > 2
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
