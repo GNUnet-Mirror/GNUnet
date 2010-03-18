@@ -1178,10 +1178,11 @@ transmit_query_continuation (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Transmission of request failed, will try again later.\n");
-      pr->task = GNUNET_SCHEDULER_add_delayed (sched,
-					       get_processing_delay (),
-					       &forward_request_task,
-					       pr); 
+      if (pr->task == GNUNET_SCHEDULER_NO_TASK)
+	pr->task = GNUNET_SCHEDULER_add_delayed (sched,
+						 get_processing_delay (),
+						 &forward_request_task,
+						 pr); 
       return;    
     }
   GNUNET_STATISTICS_update (stats,
@@ -1194,10 +1195,11 @@ transmit_query_continuation (void *cls,
 		       pr->used_pids_size,
 		       pr->used_pids_size * 2 + 2);
   pr->used_pids[pr->used_pids_off++] = tpid;
-  pr->task = GNUNET_SCHEDULER_add_delayed (sched,
-					   get_processing_delay (),
-					   &forward_request_task,
-					   pr);
+  if (pr->task == GNUNET_SCHEDULER_NO_TASK)
+    pr->task = GNUNET_SCHEDULER_add_delayed (sched,
+					     get_processing_delay (),
+					     &forward_request_task,
+					     pr);
 }
 
 
@@ -1312,10 +1314,11 @@ target_reservation_cb (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Selected peer disconnected!\n");
 #endif
-      pr->task = GNUNET_SCHEDULER_add_delayed (sched,
-					       get_processing_delay (),
-					       &forward_request_task,
-					       pr);
+      if (pr->task == GNUNET_SCHEDULER_NO_TASK)
+	pr->task = GNUNET_SCHEDULER_add_delayed (sched,
+						 get_processing_delay (),
+						 &forward_request_task,
+						 pr);
       return;
     }
   no_route = GNUNET_NO;
@@ -1338,10 +1341,11 @@ target_reservation_cb (void *cls,
 				    gettext_noop ("# reply bandwidth reservation requests failed"),
 				    1,
 				    GNUNET_NO);
-	  pr->task = GNUNET_SCHEDULER_add_delayed (sched,
-						   get_processing_delay (),
-						   &forward_request_task,
-						   pr);
+	  if (pr->task == GNUNET_SCHEDULER_NO_TASK)
+	    pr->task = GNUNET_SCHEDULER_add_delayed (sched,
+						     get_processing_delay (),
+						     &forward_request_task,
+						     pr);
 	  return;  /* this target round failed */
 	}
       /* FIXME: if we are "quite" busy, we may still want to skip
@@ -1497,7 +1501,8 @@ forward_request_task (void *cls,
   struct ConnectedPeer *cp; 
 
   pr->task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_assert (pr->irc == NULL);
+  if (pr->irc != NULL)
+    return; /* already pending */
   /* (1) select target */
   psc.pr = pr;
   psc.target_score = DBL_MIN;
