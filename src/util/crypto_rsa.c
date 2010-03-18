@@ -713,8 +713,14 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _
-                  ("File `%s' does not contain a valid private key.  You should delete it.\n"),
+                  ("File `%s' does not contain a valid private key.  Deleting it.\n"),
                   filename);
+      if (0 != UNLINK (filename))
+	{
+	  GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+				    "unlink",
+				    filename);
+	}
     }
   GNUNET_free (enc);
   if (GNUNET_YES !=
@@ -722,12 +728,15 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
                                sizeof (struct RsaPrivateKeyBinaryEncoded)))
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "fcntl", filename);
   GNUNET_assert (GNUNET_YES == GNUNET_DISK_file_close (fd));
-  GNUNET_CRYPTO_rsa_key_get_public (ret, &pub);
-  GNUNET_CRYPTO_hash (&pub, sizeof (pub), &pid.hashPubKey);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      _("I am host `%s'.  Read private key from `%s'.\n"), 
-	      GNUNET_i2s (&pid),
-	      filename);
+  if (ret != NULL)
+    {
+      GNUNET_CRYPTO_rsa_key_get_public (ret, &pub);
+      GNUNET_CRYPTO_hash (&pub, sizeof (pub), &pid.hashPubKey);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("I am host `%s'.  Read private key from `%s'.\n"), 
+		  GNUNET_i2s (&pid),
+		  filename);
+    }
   return ret;
 }
 
