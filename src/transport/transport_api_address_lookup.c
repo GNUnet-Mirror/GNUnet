@@ -70,10 +70,26 @@ address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
     }
 }
 
+/**
+ * Convert a binary address into a human readable address.
+ *
+ * @param sched scheduler to use
+ * @param cfg configuration to use
+ * @param address address to convert (binary format)
+ * @param addressLen number of bytes in address
+ * @param numeric should (IP) addresses be displayed in numeric form 
+ *                (otherwise do reverse DNS lookup)
+ * @param nameTrans name of the transport to which the address belongs
+ * @param timeout how long is the lookup allowed to take at most
+ * @param aluc function to call with the results
+ * @param aluc_cls closure for aluc
+ */
 void
 GNUNET_TRANSPORT_address_lookup (struct GNUNET_SCHEDULER_Handle *sched,
-                                 const struct GNUNET_CONFIGURATION_Handle
-                                 *cfg, const char *address, size_t addressLen,
+                                 const struct GNUNET_CONFIGURATION_Handle  *cfg, 
+				 const char *address, 
+				 size_t addressLen,
+				 int numeric,
                                  const char *nameTrans,
                                  struct GNUNET_TIME_Relative timeout,
                                  GNUNET_TRANSPORT_AddressLookUpCallback aluc,

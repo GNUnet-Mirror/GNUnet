@@ -22,40 +22,58 @@ away), in order in which they will likely be done:
     transport cost changes
   - disconnect notifications from TCP not always as nice as we might want
     them to be (but how can we do this cleanly given that UDP is connectionless?)
-  - hostlist testcase shows that (randomly) we jump to an address that
-    seems to be a plugin function *after* the plugin has been unloaded
-    (directly from scheduler); check that *all* plugin tasks are cancelled
-    after plugin is unloaded! (need better testcases for that...)
   - implement transport API to pretty-print transport address 
     + transport_api extension (API extension!)
     + service-transport extension (protocol extension)
-  - implement gnunet-transport (transport configurator / tester)
   - instantly filter addresses from *other* peers that 
     are *equal* to our own address + port (i.e., localhost:2086).  We 
     no longer filter those for outgoing (helps with loopback testing
     and keeps the code clean), but we should filter strictly *impossible*
     incoming addresses!  This is for efficiency, not correctness.
-  - UPnP-based IP detection
-    (Note: build library always, build service when libxml2/etc. are available)
-  - We currently are happy to take any address told to us in a WELCOME
-    to our set of addresses; we should have some minimal threshold-based
-    scheme, limiting both the total number of addresses that we accept 
-    this way as well as requiring multiple confirmations; also, we
-    should possibly try to confirm that the given address works for
-    us ourselves (loopback-style) before adding it to the list
-    [SECURITY issue]
-    + we may be able to simplify WELCOME messages (no need to add 
-      addresses there anymore, but may help to learn them there anyway...).
-    + we probably want some kind of voting/counting for learning IP addresses
-      (maybe including IP addresses in ads proportional to how often others
-       report them? we at least need some protection against >64k HELLOs!),
-    + provide a way to give the user a list of "learned" IP addresses and
-      a way to easily "veto" addresses off the list!
-      => If MiM attacker uses vetoed address, blacklist the specific IP for
-         the presumed neighbour!
   - [./transport/gnunet-service-transport.c:173]: (style) struct or union member 'TransportPlugin::rebuild' is never used
   - [./transport/plugin_transport_tcp.c:391]: (style) struct or union member 'Plugin::address_update_task' is never used
+* CORE:
+  - SET_KEY is triggered every 2.5 minutes (after session is up); should
+    just do PING (not SET_KEY + PING)
+  - "Forcing disconnect of XXX due to inactivity" -- can happen every few MS!?
+    (disconnect does not really succeed, or what?)
+* HELLO:
+  - need function to test "equivalency" of HELLOs; use in topology!
 * FS:
+  - GAP improvements:
+    + active reply route caching design & implementation of service,
+      gap extension!
+  - gnunet-publish cannot be aborted using CTRL-C
+  - on some systems, keyword search does not find locally published content
+    (need testcase of command-line tools!)
+  - 2-peer download is still too slow (why?)
+  - advanced FS API parts
+    + namespaces: fundamental namespace API
+    + search: SBlocks, KSBlocks, probes, notify FS-service of known results
+    + collection
+    + location URIs (publish, search, download)
+    + indexing: index-failure-cleanup
+    + download: management/bounding of parallel downloads (for recursive dl.)
+    + datastore reservation (publishing)
+    + gnunet-publish (URI args)
+    + gnunet-download (directory)
+    + gnunet-search (options, incl. namespace search)
+    + gnunet-download (many options)
+    + gnunet-directory (man page, options)
+    + gnunet-pseudonym (all of it)
+    + gnunet-service-fs (remove failing on-demand blocks, hot-path routing, load-based routing, nitpicks)
+  - implement adv. FS testcases 
+    + getopt API
+    + insert: sblocks, loc uris
+    + download: loc uris
+    + search: sblocks, skblocks, loc uris
+    + namespaces
+    + collection
+  - implement FS performance tests
+    + insert
+    + download
+    + search
+    + unindex
   - [./fs/gnunet-service-fs.c:208]: (style) struct or union member 'LocalGetContext::results_bf_size' is never used
   - [./fs/gnunet-service-fs.c:501]: (style) struct or union member 'PendingRequest::used_pids_size' is never used
   - [./fs/gnunet-service-fs.c:654]: (style) struct or union member 'ConnectedPeer::last_client_replies' is never used
@@ -64,11 +82,49 @@ away), in order in which they will likely be done:
   - [./fs/gnunet-service-fs.c:688]: (style) struct or union member 'ConnectedPeer::pending_requests' is never used
   - [./fs/gnunet-service-fs.c:694]: (style) struct or union member 'ConnectedPeer::last_p2p_replies_woff' is never used
   - [./fs/gnunet-service-fs.c:700]: (style) struct or union member 'ConnectedPeer::last_client_replies_woff' is never used
-* CORE:
-  - SET_KEY is triggered every 2.5 minutes (after session is up); should
-    just do PING (not SET_KEY + PING)
-  - "Forcing disconnect of XXX due to inactivity" -- can happen every few MS!?
-    (disconnect does not really succeed, or what?)
+
+* WWW:
+  - Get IPv6 hooked up
+  - change DNS
+
+0.9.0pre1:
+* Module features to implement:
+  - tbench (RC-pre1)
+    + good to have for DV evaluation!
+  - DV (RC-pre1)
+    + write DV API 
+    + implement DV service [Nate & CG]
+    + implement DV library [Nate]
+    + implement DV transport plugin [Nate & CG]
+    + implement testcases [Nate]
+    + implement performance tests [Nate]
+* SETUP:
+  - design & implement new setup tool
+* GUIs to implement:
+  - gtk (RC-pre1)
+    + how to integrate scheduler with GTK event loop!
+* HOSTLIST:
+  - 'server' uses 'GNUNET_PEERINFO_iterate', should probably switch to notification API
+    (for more instant / up-to-date hostlists at lower cost) [OPTIMIZATION]
+* STATISTICS:
+  - does not seem to work with timeouts (especially if service is not running)
+* UTIL:
+  - trust: need *fast* way to check/update trust in peers
+           (async peerinfo would not be right)
+  - scheduler should change OS process priority based on task priority;   
+    should make better use of task priorities in general
+  - only connect() sockets that are ready (select()) [Nils]
+    [On W32, we need to select after calling socket before
+     doing connect etc.]
+* DATACACHE:
+  - add stats (# bytes available, # bytes used, # PUTs, # GETs, # GETs satisfied)
+* FS:
+  - persistence support (publish, unindex, search, download)
+  - non-anonymous FS service (needs DHT)
+    + basic DHT integration
+    + CS-DHT-functions (DHT-put of LOC)
+    + P2P-functions (DHT-get)
+  - active migration support (in fs or in datastore?)
 * TOPOLOGY:
   - needs more testing (especially F2F topology)
   - needs to re-try connecting after disconnect (currently, it
@@ -97,112 +153,6 @@ away), in order in which they will likely be done:
     more balanced load)
   - check if new HELLO learned is different from old HELLO
     before resetting entire state!
-* UTIL:
-  - trust: need *fast* way to check/update trust in peers
-           (async peerinfo would not be right)
-  - scheduler should change OS process priority based on task priority;   
-    should make better use of task priorities in general
-  - only connect() sockets that are ready (select()) [Nils]
-    [On W32, we need to select after calling socket before
-     doing connect etc.]
-* STATISTICS:
-  - synchronous/asynchronous API (& implementation) is not nice;
-    => provide notification-based API
-  - does not seem to work with timeouts (especially if service is not running)
-* DATACACHE:
-  - add stats (# bytes available, # bytes used, # PUTs, # GETs, # GETs satisfied)
-* ARM:
-  - need to get rid of synchronous API for service starts (cause all kinds of problems)
-    [=> eliminate for need to tell ARM about service starts most of the time!] [Safey]
-  - better tracking of which config changes actually need to cause process restarts by ARM.
-  - listen for requests to discover dependencies between services (and avoid
-    having to explicitly program start requests)
-  - better crash management (attach debugging support, capture and analyze
-    debug output, detect random vs. deterministic crashes)
-  - shutdown sequence?
-* HELLO:
-  - need function to test "equivalency" of HELLOs; use in topology!
-* FS:
-  - GAP improvements:
-    + active reply route caching design & implementation of service,
-      gap extension!
-  - gnunet-publish cannot be aborted using CTRL-C
-  - gnunet-publish segfaults if file does not exist
-  - on some systems, keyword search does not find locally published content
-    (need testcase of command-line tools!)
-  - 2-peer download is still too slow (why?)
-* Module features to implement:
-  - advanced FS API parts
-    + namespaces: fundamental namespace API
-    + search: SBlocks, KSBlocks, probes, notify FS-service of known results
-    + collection
-    + location URIs (publish, search, download)
-    + persistence support (publish, unindex, search, download)
-    + indexing: index-failure-cleanup
-    + download: management/bounding of parallel downloads (for recursive dl.)
-    + datastore reservation (publishing)
-    + gnunet-publish (URI args)
-    + gnunet-download (directory)
-    + gnunet-search (options, incl. namespace search)
-    + gnunet-download (many options)
-    + gnunet-directory (man page, options)
-    + gnunet-pseudonym (all of it)
-    + gnunet-service-fs (remove failing on-demand blocks, stats, hot-path routing, load-based routing, nitpicks)
-    + datastore: do active migration support here?   
-  - implement adv. FS testcases 
-    + getopt API
-    + insert: sblocks, loc uris
-    + download: loc uris
-    + search: sblocks, skblocks, loc uris
-    + namespaces
-    + collection
-  - implement FS performance tests (needs TESTING)
-    + insert
-    + download
-    + search
-    + unindex
-  - non-anonymous FS service (needs DHT)
-    + basic DHT integration
-    + CS-DHT-functions (DHT-put of LOC)
-    + P2P-functions (DHT-get)
-  - setup (RC-pre0)
-    + default generation
-    + need to settle basic design; do we want to keep guile?
-  - testing (RC-pre0)
-    + modify configuration to allow controlling connections for non-local starts
-    + testbed creation with topology (needs working F2F topology) [Nate]
-    + testbed with churn [Nate]
-    + implement library for distributed testing [Nate]
-    + implement testcases for distributed testing [Nate]
-    + test basic peer re-configure [Nate]
-    + test topology creation [Nate]
-    + test churn generation [Nate]
-* TESTING:
-  - consider changing API for peer-group termination to 
-    call continuation when done
-* WWW:
-  - Get IPv6 hooked up
-  - change DNS
-
-0.9.0pre1:
-* Module features to implement:
-  - tbench (RC-pre1)
-    + good to have for DV evaluation!
-  - DV (RC-pre1)
-    + write DV API 
-    + implement DV service [Nate & CG]
-    + implement DV library [Nate]
-    + implement DV transport plugin [Nate & CG]
-    + implement testcases [Nate]
-    + implement performance tests [Nate]
-* SETUP:
-  - design & implement new setup tool
-* GUIs to implement:
-  - gtk (RC-pre1)
-    + how to integrate scheduler with GTK event loop!
-* HOSTLIST:
-  - 'server' uses 'GNUNET_PEERINFO_iterate', should probably switch to notification API
-    (for more instant / up-to-date hostlists at lower cost) [OPTIMIZATION]
 
 0.9.0pre2:
 * Module features to implement:
@@ -220,12 +170,33 @@ away), in order in which they will likely be done:
     + Fragmentation library 
     + actual plugin
   - HTTP backend (RC-pre2)
+* ARM:
+  - need to get rid of synchronous API for service starts (cause all kinds of problems)
+    [=> eliminate for need to tell ARM about service starts most of the time!] [Safey]
+  - better tracking of which config changes actually need to cause process restarts by ARM.
+  - listen for requests to discover dependencies between services (and avoid
+    having to explicitly program start requests)
+  - better crash management (attach debugging support, capture and analyze
+    debug output, detect random vs. deterministic crashes)
+  - shutdown sequence?
+
 
 0.9.0pre3:
 * GUIs to implement:
   - qt (RC-pre3)
     + see discussions @ FISL about integration with event loop!
 * Determine RC bugs and fix those!
+* TESTING:
+  - modify configuration to allow controlling connections for non-local starts
+  - testbed creation with topology (needs working F2F topology) [Nate]
+  - testbed with churn [Nate]
+  - implement testcases for distributed testing [Nate]
+  - test basic peer re-configure [Nate]
+  - test topology creation [Nate]
+  - test churn generation [Nate]
+  - consider changing API for peer-group termination to 
+    call continuation when done
+
 
 0.9.0:
 * Documentation
@@ -253,14 +224,33 @@ away), in order in which they will likely be done:
 
 
 0.9.x:
-* Plugins to implement:
+* TRANSPORT:
   - SMTP transport backend
   - HTTPS transport backend
     + improved HTTPS support in MHD
     + actual plugin
-* Remove KBlocks in gnunet-unindex (see discussion with Kenneth Almquist on gnunet-devs in 9/2009)
-* Allow checking of presence of search results and/or content via command-line tools
-  (add options to gnunet-search / gnunet-download to limit search to local peer)
+  - Implement method of learning our external addresses from
+    other peers; need some kind of threshold-based
+    scheme, limiting both the total number of addresses that we accept 
+    this way as well as requiring multiple confirmations; also, we
+    should possibly try to confirm that the given address works for
+    us ourselves (loopback-style) before adding it to the list
+    + we may be able to simplify WELCOME messages (no need to add 
+      addresses there anymore, but may help to learn them there anyway...).
+    + we probably want some kind of voting/counting for learning IP addresses
+      (maybe including IP addresses in ads proportional to how often others
+       report them? we at least need some protection against >64k HELLOs!),
+    + provide a way to give the user a list of "learned" IP addresses and
+      a way to easily "veto" addresses off the list!
+      => If MiM attacker uses vetoed address, blacklist the specific IP for
+         the presumed neighbour!
+  - implement gnunet-transport (transport configurator / tester)
+  - UPnP-based IP detection
+    (Note: build library always, build service when libxml2/etc. are available)
+* FS:
+  - Remove KBlocks in gnunet-unindex (see discussion with Kenneth Almquist on gnunet-devs in 9/2009)
+  - Allow checking of presence of search results and/or content via command-line tools
+    (add options to gnunet-search / gnunet-download to limit search to local peer)
 * STATISTICS:
   - should use BIO instead of mmap
 * PEERINFO:
