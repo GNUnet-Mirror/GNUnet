@@ -489,40 +489,49 @@ extern "C"
  */
 
 /**
+ * Local and P2P generic DHT message start type
+ */
+#define GNUNET_MESSAGE_TYPE_DHT 142
+
+/**
+ * Local and P2P generic DHT message stop type
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_STOP 143
+
+/**
+ * Local and message acknowledgment
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_ACK 145
+
+/**
  * Local DHT Get message, from API to service
  */
-#define GNUNET_MESSAGE_TYPE_DHT_GET 143
+#define GNUNET_MESSAGE_TYPE_DHT_GET 146
 
 /**
  * Local DHT Get stop message, from API to service
  */
-#define GNUNET_MESSAGE_TYPE_DHT_GET_STOP 144
+#define GNUNET_MESSAGE_TYPE_DHT_GET_STOP 147
 
 /**
  * Local DHT Get message, from API to service
  */
-#define GNUNET_MESSAGE_TYPE_DHT_FIND_PEER 145
+#define GNUNET_MESSAGE_TYPE_DHT_FIND_PEER 148
 
 /**
  * Local DHT Get stop message, from API to service
  */
-#define GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_STOP 146
+#define GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_STOP 149
 
 /**
  * Local DHT Put message, from API to service
  */
-#define GNUNET_MESSAGE_TYPE_DHT_PUT 147
+#define GNUNET_MESSAGE_TYPE_DHT_PUT 150
 
 /**
  * Local DHT Get result message, from service to API
  */
-#define GNUNET_MESSAGE_TYPE_DHT_GET_RESULT 149
-
-/**
- * Local DHT Put result message, from service to API
- */
-#define GNUNET_MESSAGE_TYPE_DHT_PUT_RESULT 151
-
+#define GNUNET_MESSAGE_TYPE_DHT_GET_RESULT 151
 
 
 /**
