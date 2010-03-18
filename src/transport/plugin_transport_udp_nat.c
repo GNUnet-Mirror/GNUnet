@@ -54,7 +54,7 @@
 #include "plugin_transport.h"
 #include "transport.h"
 
-#define DEBUG_UDP_NAT GNUNET_YES
+#define DEBUG_UDP_NAT GNUNET_NO
 
 /*
  * Transport cost to peer, always 1 for UDP (direct connection)

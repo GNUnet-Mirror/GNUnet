@@ -29,7 +29,7 @@
 #include "plugin_datastore.h"
 #include <sqlite3.h>
 
-#define DEBUG_SQLITE GNUNET_YES
+#define DEBUG_SQLITE GNUNET_NO
 
 /**
  * After how many payload-changing operations

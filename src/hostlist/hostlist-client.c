@@ -32,7 +32,7 @@
 #include "gnunet_transport_service.h"
 #include <curl/curl.h>
 
-#define DEBUG_HOSTLIST_CLIENT GNUNET_YES
+#define DEBUG_HOSTLIST_CLIENT GNUNET_NO
 
 /**
  * Number of connections that we must have to NOT download

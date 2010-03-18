@@ -123,7 +123,7 @@ test_transport_api_udp_SOURCES = \
 test_transport_api_udp_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la  
- 
+
 test_transport_api_udp_nat_SOURCES = \
  test_transport_api.c
 test_transport_api_udp_nat_LDADD = \

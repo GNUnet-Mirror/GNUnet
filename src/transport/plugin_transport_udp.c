@@ -690,14 +690,13 @@ udp_plugin_address_pretty_printer (void *cls,
 void *
 libgnunet_plugin_transport_udp_init (void *cls)
 {
-  unsigned long long mtu;
-
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct Plugin *plugin;
   struct GNUNET_SERVICE_Context *service;
   unsigned long long aport;
   unsigned long long bport;
+  unsigned long long mtu;
 
   service = GNUNET_SERVICE_start ("transport-udp", env->sched, env->cfg);
   if (service == NULL)

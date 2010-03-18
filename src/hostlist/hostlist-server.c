@@ -30,7 +30,7 @@
 #include "gnunet_hello_lib.h"
 #include "gnunet_peerinfo_service.h"
 
-#define DEBUG_HOSTLIST_SERVER GNUNET_YES
+#define DEBUG_HOSTLIST_SERVER GNUNET_NO
 
 /**
  * How often should we recalculate our response to hostlist requests?
