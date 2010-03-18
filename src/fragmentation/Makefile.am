@@ -21,7 +21,7 @@ check_PROGRAMS = \
 TESTS = $(check_PROGRAMS)
 
 test_fragmentation_SOURCES = \
- test_fragmentation.c
+ test_frag_ji.c
 test_fragmentation_LDADD = \
  $(top_builddir)/src/fragmentation/libgnunetfragmentation.la \
  $(top_builddir)/src/util/libgnunetutil.la  
