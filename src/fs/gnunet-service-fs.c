@@ -1590,9 +1590,9 @@ check_kblock (const struct KBlock *kb,
       return GNUNET_SYSERR;
     }
   if (dsize - sizeof (struct KBlock) !=
-      ntohs (kb->purpose.size) 
+      ntohl (kb->purpose.size) 
       - sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) 
-      - sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) ) 
+      - sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) ) 
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
