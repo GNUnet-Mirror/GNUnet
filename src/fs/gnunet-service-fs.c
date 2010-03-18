@@ -2376,6 +2376,7 @@ handle_p2p_get (void *cls,
   type = ntohl (gm->type);
   switch (type)
     {
+    case GNUNET_DATASTORE_BLOCKTYPE_ANY:
     case GNUNET_DATASTORE_BLOCKTYPE_DBLOCK:
     case GNUNET_DATASTORE_BLOCKTYPE_IBLOCK:
     case GNUNET_DATASTORE_BLOCKTYPE_KBLOCK:
@@ -2402,7 +2403,7 @@ handle_p2p_get (void *cls,
   bfsize = msize - sizeof (struct GetMessage) + bits * sizeof (GNUNET_HashCode);
   bm = ntohl (gm->hash_bitmap);
   if ( (0 != (bm & GET_MESSAGE_BIT_SKS_NAMESPACE)) &&
-       (ntohl (gm->type) == GNUNET_DATASTORE_BLOCKTYPE_SBLOCK) )
+       (type != GNUNET_DATASTORE_BLOCKTYPE_SBLOCK) )
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;      
@@ -2457,7 +2458,7 @@ handle_p2p_get (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received request for `%s' of type %u from peer `%4s'\n",
 	      GNUNET_h2s (&gm->query),
-	      (unsigned int) ntohl (gm->type),
+	      (unsigned int) type,
 	      GNUNET_i2s (other));
 #endif
   have_ns = (0 != (bm & GET_MESSAGE_BIT_SKS_NAMESPACE));
@@ -2467,16 +2468,8 @@ handle_p2p_get (void *cls,
     pr->namespace = (GNUNET_HashCode*) &pr[1];
   pr->type = type;
   pr->mingle = ntohl (gm->filter_mutator);
-  if (0 != (bm & GET_MESSAGE_BIT_SKS_NAMESPACE))
-    {
-      memcpy (&pr[1], &opt[bits++], sizeof (GNUNET_HashCode));
-    }
-  else if (pr->type == GNUNET_DATASTORE_BLOCKTYPE_SBLOCK)
-    {
-      GNUNET_break_op (0);
-      GNUNET_free (pr);
-      return GNUNET_SYSERR;
-    }
+  if (0 != (bm & GET_MESSAGE_BIT_SKS_NAMESPACE))    
+    memcpy (&pr[1], &opt[bits++], sizeof (GNUNET_HashCode));
   if (0 != (bm & GET_MESSAGE_BIT_TRANSMIT_TO))
     pr->target_pid = GNUNET_PEER_intern ((const struct GNUNET_PeerIdentity*) &opt[bits++]);
 
