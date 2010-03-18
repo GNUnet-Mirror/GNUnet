@@ -250,50 +250,76 @@ void service_message_handler (void *cls,
                               const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_DHT_Handle *handle = cls;
-  struct GNUNET_DHT_Message *dht_msg = (struct GNUNET_DHT_Message *)msg;
+  struct GNUNET_DHT_Message *dht_msg;
+  struct GNUNET_DHT_StopMessage *stop_msg;
   struct GNUNET_MessageHeader *enc_msg;
   struct GNUNET_DHT_RouteHandle *route_handle;
+  uint64_t uid;
   GNUNET_HashCode *uid_hash;
   size_t enc_size;
   /* TODO: find out message type, handle callbacks for different types of messages.
    * Should be a non unique acknowledgment, or unique result. */
 
+  if (msg == NULL)
+  {
 #if DEBUG_DHT_API
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "`%s': Received response to message (uid %llu)\n", "DHT API", ntohl(dht_msg->unique_id));
+                      "`%s': Received NULL from server, connection down?\n", "DHT API");
 #endif
+    return;
+  }
 
-  if (ntohs(dht_msg->unique))
-    {
-      uid_hash = hash_from_uid(ntohl(dht_msg->unique_id));
 
-      route_handle = GNUNET_CONTAINER_multihashmap_get(handle->outstanding_requests, uid_hash);
-      if (route_handle == NULL) /* We have no recollection of this request */
-        {
+  if (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DHT)
+  {
+    dht_msg = (struct GNUNET_DHT_Message *)msg;
+    uid = GNUNET_ntohll(dht_msg->unique_id);
+#if DEBUG_DHT_API
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "`%s': Received response to message (uid %llu)\n", "DHT API", uid);
+#endif
+    if (ntohs(dht_msg->unique))
+      {
+        uid_hash = hash_from_uid(ntohl(dht_msg->unique_id));
+
+        route_handle = GNUNET_CONTAINER_multihashmap_get(handle->outstanding_requests, uid_hash);
+        if (route_handle == NULL) /* We have no recollection of this request */
+          {
 #if DEBUG_DHT_API
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "`%s': Received response to message (uid %llu), but have no recollection of it!\n", "DHT API", ntohl(dht_msg->unique_id));
 #endif
-        }
-      else
-        {
-          enc_size = ntohs(dht_msg->header.size) - sizeof(struct GNUNET_DHT_Message);
-          GNUNET_assert(enc_size > 0);
-          enc_msg = (struct GNUNET_MessageHeader *)&dht_msg[1];
-          route_handle->iter(route_handle->iter_cls, enc_msg);
-        }
-    }
-  else
-    {
-      if (handle->current->unique_id == ntohl(dht_msg->unique_id))
-        {
+          }
+        else
+          {
+            enc_size = ntohs(dht_msg->header.size) - sizeof(struct GNUNET_DHT_Message);
+            GNUNET_assert(enc_size > 0);
+            enc_msg = (struct GNUNET_MessageHeader *)&dht_msg[1];
+            route_handle->iter(route_handle->iter_cls, enc_msg);
+          }
+      }
+  }
+  else if (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DHT_STOP)
+  {
+    stop_msg = (struct GNUNET_DHT_StopMessage *)msg;
+    uid = GNUNET_ntohll(stop_msg->unique_id);
+#if DEBUG_DHT_API
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "`%s': Received response to message (uid %llu)\n", "DHT API", uid);
+#endif
+    if (handle->current->unique_id == uid)
+      {
+#if DEBUG_DHT_API
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "`%s': Have pending confirmation for this message!\n", "DHT API", uid);
+#endif
+        if (handle->current->cont != NULL)
           handle->current->cont(handle->current->cont_cls, GNUNET_OK);
-          GNUNET_free(handle->current->msg);
-          handle->current = NULL;
-          GNUNET_free(handle->current);
-        }
-    }
-
+        GNUNET_free(handle->current->msg);
+        handle->current = NULL;
+        GNUNET_free(handle->current);
+      }
+  }
 
 }
 
@@ -381,7 +407,10 @@ finish (struct GNUNET_DHT_Handle *handle, int code)
 {
   /* TODO: if code is not GNUNET_OK, do something! */
   struct PendingMessage *pos = handle->current;
-
+#if DEBUG_DHT_API
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "`%s': Finish called!\n", "DHT API");
+#endif
   GNUNET_assert(pos != NULL);
 
   if (pos->is_unique)
@@ -405,6 +434,10 @@ transmit_pending (void *cls, size_t size, void *buf)
   struct GNUNET_DHT_Handle *handle = cls;
   size_t tsize;
 
+#if DEBUG_DHT_API
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "`%s': In transmit_pending\n", "DHT API");
+#endif
   if (buf == NULL)
     {
 #if DEBUG_DHT_API
@@ -428,6 +461,7 @@ transmit_pending (void *cls, size_t size, void *buf)
                   "`%s': Sending message size %d\n", "DHT API", tsize);
 #endif
       memcpy(buf, handle->current->msg, tsize);
+      finish(handle, GNUNET_OK);
       return tsize;
     }
     else
@@ -467,7 +501,7 @@ try_connect (struct GNUNET_DHT_Handle *ret)
 static void process_pending_message(struct GNUNET_DHT_Handle *handle)
 {
 
-  if (handle->current != NULL)
+  if (handle->current == NULL)
     return;                     /* action already pending */
   if (GNUNET_YES != try_connect (handle))
     {
@@ -550,7 +584,9 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
   size_t msize;
   GNUNET_HashCode *uid_key;
   int count;
+  uint64_t uid;
 
+  uid = 0;
   is_unique = GNUNET_YES;
   if (iter == NULL)
     is_unique = GNUNET_NO;
@@ -565,7 +601,11 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
       route_handle->iter_cls = iter_cls;
       route_handle->dht_handle = handle;
       route_handle->uid = GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_WEAK, -1);
-
+      uid = route_handle->uid;
+#if DEBUG_DHT_API
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "`%s': Unique ID is %llu\n", "DHT API", uid);
+#endif
       count = 0;
       uid_key = hash_from_uid(route_handle->uid);
       /* While we have an outstanding request with the same identifier! */
@@ -578,7 +618,7 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
        * Store based on random identifier!
        */
       GNUNET_CONTAINER_multihashmap_put(handle->outstanding_requests, uid_key, route_handle, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-      msize = sizeof(struct GNUNET_DHT_Message) + ntohs(enc->size) + sizeof(route_handle->uid);
+      msize = sizeof(struct GNUNET_DHT_Message) + ntohs(enc->size);
       GNUNET_free(uid_key);
     }
   else
@@ -593,6 +633,8 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
   message->options = htons(options);
   message->desired_replication_level = htons(options);
   message->unique = htons(is_unique);
+  message->unique_id = GNUNET_htonll(uid);
+  memcpy(&message[1], enc, ntohs(enc->size));
 
   pending = GNUNET_malloc(sizeof(struct PendingMessage));
   pending->msg = &message->header;
@@ -602,6 +644,8 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
   pending->is_unique = is_unique;
 
   GNUNET_assert(handle->current == NULL);
+
+  handle->current = pending;
 
   process_pending_message(handle);
 
@@ -674,7 +718,11 @@ GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle)
   message = GNUNET_malloc(msize);
   message->header.size = htons(msize);
   message->header.type = htons(GNUNET_MESSAGE_TYPE_DHT_STOP);
-  message->unique_id = htonl(route_handle->uid);
+#if DEBUG_DHT_API
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "`%s': Remove outstanding request for uid %llu\n", "DHT API", route_handle->uid);
+#endif
+  message->unique_id = GNUNET_htonll(route_handle->uid);
 
   pending = GNUNET_malloc(sizeof(struct PendingMessage));
   pending->msg = (struct GNUNET_MessageHeader *)message;
@@ -684,6 +732,8 @@ GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle)
   pending->is_unique = GNUNET_NO;
 
   GNUNET_assert(route_handle->dht_handle->current == NULL);
+
+  route_handle->dht_handle->current = pending;
 
   process_pending_message(route_handle->dht_handle);
 

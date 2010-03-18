@@ -86,13 +86,19 @@ struct ClientList
 };
 
 /**
- * Server handler for initiating local dht get requests
+ * Server handler for handling locally received dht requests
  */
-static void handle_dht_plugin_message (void *cls, struct GNUNET_SERVER_Client * client,
-                            const struct GNUNET_MessageHeader *message);
+static void
+handle_dht_start_message(void *cls, struct GNUNET_SERVER_Client * client,
+                         const struct GNUNET_MessageHeader *message);
+
+static void
+handle_dht_stop_message(void *cls, struct GNUNET_SERVER_Client * client,
+                         const struct GNUNET_MessageHeader *message);
 
 static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
-  {&handle_dht_plugin_message, NULL, GNUNET_MESSAGE_TYPE_DHT, 0},
+  {&handle_dht_start_message, NULL, GNUNET_MESSAGE_TYPE_DHT, 0},
+  {&handle_dht_stop_message, NULL, GNUNET_MESSAGE_TYPE_DHT_STOP, 0},
 /*  {&handle_dht_get_stop, NULL, GNUNET_MESSAGE_TYPE_DHT_GET_STOP, 0},
   {&handle_dht_put, NULL, GNUNET_MESSAGE_TYPE_DHT_PUT, 0},
   {&handle_dht_find_peer, NULL, GNUNET_MESSAGE_TYPE_DHT_FIND_PEER, 0},
@@ -203,10 +209,64 @@ static void handle_dht_put (void *cls, struct GNUNET_DHT_PutMessage *put_msg, GN
   GNUNET_free(data);
 }
 
+/**
+ * Context for sending receipt confirmations. Not used yet.
+ */
+struct SendConfirmationContext
+{
+  /**
+   * The message to send.
+   */
+  struct GNUNET_DHT_StopMessage *message;
+
+  /**
+   * Transmit handle.
+   */
+  struct GNUNET_CONNECTION_TransmitHandle * transmit_handle;
+};
+
+size_t send_confirmation (void *cls,
+                          size_t size, void *buf)
+{
+  struct GNUNET_DHT_StopMessage *confirmation_message = cls;
+
+  if (buf == NULL) /* Message timed out, that's crappy... */
+  {
+    GNUNET_free(confirmation_message);
+    return 0;
+  }
+
+  if (size >= ntohs(confirmation_message->header.size))
+  {
+    memcpy(buf, confirmation_message, ntohs(confirmation_message->header.size));
+    return ntohs(confirmation_message->header.size);
+  }
+  else
+    return 0;
+}
 
 static void
-handle_dht_start_message(void *cls, struct GNUNET_DHT_Message *dht_msg)
+send_client_receipt_confirmation(struct GNUNET_SERVER_Client *client, uint64_t uid)
 {
+  struct GNUNET_DHT_StopMessage *confirm_message;
+
+  confirm_message = GNUNET_malloc(sizeof(struct GNUNET_DHT_StopMessage));
+  confirm_message->header.type = htons(GNUNET_MESSAGE_TYPE_DHT_STOP);
+  confirm_message->header.size = htons(sizeof(struct GNUNET_DHT_StopMessage));
+  confirm_message->unique_id = GNUNET_htonll(uid);
+
+  GNUNET_SERVER_notify_transmit_ready (client,
+                                       sizeof(struct GNUNET_DHT_StopMessage),
+                                       GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5),
+                                       &send_confirmation, confirm_message);
+
+}
+
+static void
+handle_dht_start_message(void *cls, struct GNUNET_SERVER_Client * client,
+                         const struct GNUNET_MessageHeader *message)
+{
+  struct GNUNET_DHT_Message *dht_msg = (struct GNUNET_DHT_Message *)message;
   struct GNUNET_MessageHeader *enc_msg;
   size_t enc_type;
 
@@ -216,7 +276,7 @@ handle_dht_start_message(void *cls, struct GNUNET_DHT_Message *dht_msg)
 
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s': Received `%s' request from client, message type %d, key %s, uid %llu\n", "DHT", "GENERIC", enc_type, GNUNET_h2s(&dht_msg->key), ntohl(dht_msg->unique_id));
+              "`%s': Received `%s' request from client, message type %d, key %s, uid %llu\n", "DHT", "GENERIC", enc_type, GNUNET_h2s(&dht_msg->key), GNUNET_ntohll(dht_msg->unique_id));
 #endif
 
   /* FIXME: Implement demultiplexing functionality here */
@@ -238,43 +298,25 @@ handle_dht_start_message(void *cls, struct GNUNET_DHT_Message *dht_msg)
 #endif
     }
 
+  GNUNET_SERVER_receive_done(client, GNUNET_OK);
+
 }
 
 
 static void
-handle_dht_stop_message(void *cls, struct GNUNET_DHT_StopMessage *dht_stop_msg)
+handle_dht_stop_message(void *cls, struct GNUNET_SERVER_Client * client,
+                        const struct GNUNET_MessageHeader *message)
 {
+  struct GNUNET_DHT_StopMessage * dht_stop_msg = (struct GNUNET_DHT_StopMessage *)message;
 
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s': Received `%s' request from client, uid %llu\n", "DHT", "GENERIC STOP", ntohl(dht_stop_msg->unique_id));
+              "`%s': Received `%s' request from client, uid %llu\n", "DHT", "GENERIC STOP", GNUNET_ntohll(dht_stop_msg->unique_id));
 #endif
-}
-
-
-
-/**
- * Server handler for initiating local dht get requests
- */
-static void handle_dht_plugin_message (void *cls, struct GNUNET_SERVER_Client * client,
-                            const struct GNUNET_MessageHeader *message)
-{
-
-  #if DEBUG_DHT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s': Received `%s' request from client, message type %d, size %d\n", "DHT", "GENERIC", ntohs(message->type), ntohs(message->size));
-#endif
-
-  switch(ntohs(message->type))
-    {
-    case GNUNET_MESSAGE_TYPE_DHT:
-      handle_dht_start_message(cls, (struct GNUNET_DHT_Message *)message);
-    case GNUNET_MESSAGE_TYPE_DHT_STOP:
-      handle_dht_stop_message(cls, (struct GNUNET_DHT_StopMessage *)message);
-    }
-
+  send_client_receipt_confirmation(client, GNUNET_ntohll(dht_stop_msg->unique_id));
   GNUNET_SERVER_receive_done(client, GNUNET_OK);
 }
+
 
 /**
  * Core handler for p2p dht get requests.

@@ -51,8 +51,8 @@ struct PeerContext
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_DHT_Handle *dht_handle;
   struct GNUNET_PeerIdentity id;
-  struct GNUNET_DHT_GetHandle *get_handle;
-  struct GNUNET_DHT_GetHandle *find_peer_handle;
+  struct GNUNET_DHT_RouteHandle *get_handle;
+  struct GNUNET_DHT_RouteHandle *find_peer_handle;
 
 #if START_ARM
   pid_t arm_pid;
@@ -133,7 +133,7 @@ void test_put (void *cls,
 
   GNUNET_assert (peer->dht_handle != NULL);
 
-  GNUNET_DHT_put(peer->dht_handle, &hash, 0, data_size, data, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 360), NULL, NULL);
+  GNUNET_DHT_put(peer->dht_handle, &hash, 0, data_size, data, GNUNET_TIME_relative_to_absolute(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 360)) ,GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 360), NULL, NULL);
 
   //GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1), &test_put, &p1);
 
@@ -155,9 +155,10 @@ void test_get_stop (void *cls,
 
   GNUNET_assert (peer->dht_handle != NULL);
 
-  GNUNET_DHT_get_stop(peer->dht_handle, peer->get_handle);
+  GNUNET_DHT_get_stop(peer->get_handle);
 
-  GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1), &test_put, &p1);
+  //GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1), &test_put, &p1);
+  GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1), &end, &p1);
 
 }
 
@@ -174,10 +175,10 @@ void test_get (void *cls,
   GNUNET_HashCode hash;
   memset(&hash, 42, sizeof(GNUNET_HashCode));
 
-  peer->dht_handle = GNUNET_DHT_connect (sched, peer->cfg);
+  peer->dht_handle = GNUNET_DHT_connect (sched, peer->cfg, 100);
   GNUNET_assert (peer->dht_handle != NULL);
 
-  peer->get_handle = GNUNET_DHT_get_start(peer->dht_handle, 42, &hash, NULL, NULL);
+  peer->get_handle = GNUNET_DHT_get_start(peer->dht_handle, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 100), 42, &hash, NULL, NULL);
 
   if (peer->get_handle == NULL)
     GNUNET_SCHEDULER_add_now(sched, &end_badly, &p1);
