@@ -35,6 +35,24 @@ typedef void (*GNUNET_DHT_MessageReceivedHandler) (void *cls,
 /**
  * Generic DHT message, wrapper for other message types
  */
+struct GNUNET_DHT_StopMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_DHT_MESSAGE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique ID identifying this request
+   */
+  uint64_t unique_id;
+
+};
+
+
+/**
+ * Generic DHT message, wrapper for other message types
+ */
 struct GNUNET_DHT_Message
 {
   /**
@@ -58,12 +76,18 @@ struct GNUNET_DHT_Message
   uint16_t options;
 
   /**
-   * Is this message uniquely identified?  If so it has
-   * a unique_id appended to it.
+   * Is this message uniquely identified?  If so it will
+   * be fire and forget, if not we will wait for a receipt
+   * from the service.
    */
-  /* uint16_t unique; I don't think we need this, it should be held in the encapsulated message */
+  uint16_t unique;
 
-  /* uint64_t unique_id*/
+
+  /**
+   * Unique ID identifying this request
+   */
+  uint64_t unique_id;
+
   /* */
   /* GNUNET_MessageHeader *enc actual DHT message, copied to end of this dealy do */
 
@@ -112,11 +136,6 @@ struct GNUNET_DHT_GetMessage
    */
   size_t type;
 
-  /**
-   * The key to search for
-   */
-  GNUNET_HashCode key;
-
 };
 
 /**
@@ -155,11 +174,6 @@ struct GNUNET_DHT_FindPeerMessage
    * Type: GNUNET_MESSAGE_TYPE_DHT_FIND_PEER
    */
   struct GNUNET_MessageHeader header;
-
-  /**
-   * The key being looked up
-   */
-  GNUNET_HashCode key;
 
 };
 
