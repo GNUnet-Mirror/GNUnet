@@ -23,8 +23,10 @@ away), in order in which they will likely be done:
   - disconnect notifications from TCP not always as nice as we might want
     them to be (but how can we do this cleanly given that UDP is connectionless?)
   - implement transport API to pretty-print transport address 
-    + transport_api extension (API extension!)
-    + service-transport extension (protocol extension)
+    + resolve cyclic dependency (gnunet-peerinfo -> transport_api -> peerinfo!)
+    + gnunet-transport-service crashes when asked to resolve address (!)
+    + asynchronous transport lookup and non-CPS iterator in peerinfo require
+      some work to ensure printing in the proper order...
   - instantly filter addresses from *other* peers that 
     are *equal* to our own address + port (i.e., localhost:2086).  We 
     no longer filter those for outgoing (helps with loopback testing

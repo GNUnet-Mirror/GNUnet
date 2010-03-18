@@ -28,6 +28,7 @@
 #include "gnunet_configuration_lib.h"
 #include "gnunet_getopt_lib.h"
 #include "gnunet_peerinfo_service.h"
+#include "gnunet_transport_service.h"
 #include "gnunet_program_lib.h"
 
 static int no_resolve;
@@ -35,6 +36,63 @@ static int no_resolve;
 static int be_quiet;
 
 static int get_self;
+
+static struct GNUNET_SCHEDULER_Handle *sched;
+
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+#if FIXME
+/**
+ * Function to call with a human-readable format of an address
+ *
+ * @param cls closure
+ * @param address NULL on error, otherwise 0-terminated printable UTF-8 string
+ */
+static void
+print_resolved_address (void *cls,
+			const char *address)
+{
+  /* FIXME: need to buffer output from all requests and print it at
+     once, otherwise we mix results... */
+  if (address == NULL)
+    {
+      fprintf (stderr, "\n");
+      return;
+    }
+  fprintf (stderr, " %s\n", address);
+}
+#endif
+
+/**
+ * Iterator callback to go over all addresses.
+ *
+ * @param cls closure
+ * @param tname name of the transport
+ * @param expiration expiration time
+ * @param addr the address
+ * @param addrlen length of the address
+ * @return GNUNET_OK to keep the address and continue
+ */
+static int
+print_address (void *cls,
+	       const char *tname,
+	       struct GNUNET_TIME_Absolute expiration,
+	       const void *addr, size_t addrlen)
+{
+#if FIXME
+  GNUNET_TRANSPORT_address_lookup (sched,
+				   cfg,
+				   addr,
+				   addrlen,
+				   no_resolve,
+				   tname,
+				   GNUNET_TIME_UNIT_SECONDS,
+				   &print_resolved_address,
+				   NULL);
+#endif
+  return GNUNET_OK;
+}
+
 
 /**
  * Print information about the peer.
@@ -48,34 +106,33 @@ print_peer_info (void *cls,
 {
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
 
-  /* FIXME: add printing of address information!
-     => need extended transport API! */
-  if (peer == NULL)
-    {
-      return;    
-    }
+  if (peer == NULL)    
+    return;    
   GNUNET_CRYPTO_hash_to_enc (&peer->hashPubKey, &enc);
   if (be_quiet)
-    printf ("%s\n", (const char *) &enc);
-  else
-    printf (_("Peer `%s' with trust %8u\n"), (const char *) &enc, trust);
+    {
+      printf ("%s\n", (const char *) &enc);
+      return;
+    }
+  printf (_("Peer `%s' with trust %8u\n"), (const char *) &enc, trust);
+  GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &print_address, NULL);
 }
 
 /**
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
- * @param sched the scheduler to use
+ * @param s the scheduler to use
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
- * @param cfg configuration
+ * @param c configuration
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *sched,
+     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile, 
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_CRYPTO_RsaPrivateKey *priv;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
@@ -83,6 +140,8 @@ run (void *cls,
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
   char *fn;
 
+  sched = s;
+  cfg = c;
   if (get_self != GNUNET_YES)
     {
       (void) GNUNET_PEERINFO_iterate (cfg,
