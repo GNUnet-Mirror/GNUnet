@@ -1560,6 +1560,7 @@ transmit_reply_continuation (void *cls,
       /* only one reply expected, done with the request! */
       destroy_pending_request (pr);
       break;
+    case GNUNET_DATASTORE_BLOCKTYPE_ANY:
     case GNUNET_DATASTORE_BLOCKTYPE_KBLOCK:
     case GNUNET_DATASTORE_BLOCKTYPE_SBLOCK:
       break;
