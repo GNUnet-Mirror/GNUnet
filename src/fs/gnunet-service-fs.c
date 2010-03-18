@@ -2592,9 +2592,10 @@ handle_p2p_get (void *cls,
       /* only one result, wait for datastore */
       break;
     default:
-      pr->task = GNUNET_SCHEDULER_add_now (sched,
-					   &forward_request_task,
-					   pr);
+      if (pr->task == GNUNET_SCHEDULER_NO_TASK)
+	pr->task = GNUNET_SCHEDULER_add_now (sched,
+					     &forward_request_task,
+					     pr);
     }
 
   /* make sure we don't track too many requests */
