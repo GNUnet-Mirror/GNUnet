@@ -1241,6 +1241,7 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
   struct ReadyList *rl;
   struct MessageQueue *mq;
   struct GNUNET_TIME_Relative timeout;
+  ssize_t ret;
 
   if (neighbour->messages_head == NULL)
     {
@@ -1339,16 +1340,24 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 			    gettext_noop ("# bytes pending with plugins"),
 			    mq->message_buf_size,
 			    GNUNET_NO);
-  rl->plugin->api->send (rl->plugin->api->cls,
-			 &mq->neighbour_id,
-			 mq->message_buf,
-			 mq->message_buf_size,
-			 mq->priority,
-			 GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-			 mq->specific_address->addr,
-			 mq->specific_address->addrlen,
-			 GNUNET_YES /* FIXME: sometimes, we want to be more tolerant here! */,
-			 &transmit_send_continuation, mq);
+  ret = rl->plugin->api->send (rl->plugin->api->cls,
+			       &mq->neighbour_id,
+			       mq->message_buf,
+			       mq->message_buf_size,
+			       mq->priority,
+			       GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+			       mq->specific_address->addr,
+			       mq->specific_address->addrlen,
+			       GNUNET_YES /* FIXME: sometimes, we want to be more tolerant here! */,
+			       &transmit_send_continuation, mq);
+  if (ret == -1)
+    {
+      /* failure, but 'send' would not call continuation in this case,
+	 so we need to do it here! */
+      transmit_send_continuation (mq, 
+				  &mq->neighbour_id,
+				  GNUNET_SYSERR);
+    }
 }
 
 
