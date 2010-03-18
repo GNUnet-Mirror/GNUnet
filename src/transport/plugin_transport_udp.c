@@ -199,9 +199,8 @@ udp_transport_server_stop (void *cls)
  *        peer disconnected...)
  * @param cont_cls closure for cont
  *
- * @return the number of bytes written
+ * @return the number of bytes written, -1 on error (in this case, cont is not called)
  */
-
 static ssize_t
 udp_plugin_send (void *cls,
                  const struct GNUNET_PeerIdentity *target,
@@ -220,15 +219,13 @@ udp_plugin_send (void *cls,
   ssize_t sent;
 
   GNUNET_assert(udp_sock != NULL);
-
-  if ((addr == NULL) || (addrlen == 0))
+  if ( (addr == NULL) || (addrlen == 0) )
     {
 #if DEBUG_UDP
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
                    ("udp_plugin_send called without address, returning!\n"));
 #endif
-      cont (cont_cls, target, GNUNET_OK);
-      return 0; /* Can never send if we don't have an address!! */
+      return -1; /* Can never send if we don't have an address!! */
     }
 
   /* Build the message to be sent */
@@ -244,26 +241,13 @@ udp_plugin_send (void *cls,
   memcpy (&message->sender, plugin->env->my_identity,
           sizeof (struct GNUNET_PeerIdentity));
   memcpy (&message[1], msgbuf, msgbuf_size);
-
-  /* Actually send the message */
   sent =
     GNUNET_NETWORK_socket_sendto (udp_sock, message, ssize,
                                   addr,
                                   addrlen);
-
-  if (cont != NULL)
-    {
-      if (sent == GNUNET_SYSERR)
-        cont (cont_cls, target, GNUNET_SYSERR);
-      else
-        {
-#if DEBUG_UDP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
-                   ("Sucessfully sent message, calling transmit continuation!\n"));
-#endif
-          cont (cont_cls, target, GNUNET_OK);
-        }
-    }
+  if ( (cont != NULL) &&
+       (sent != -1) )
+    cont (cont_cls, target, GNUNET_OK);
   GNUNET_free (message);
   return sent;
 }
