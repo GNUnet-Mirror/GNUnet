@@ -135,6 +135,9 @@ GNUNET_CONTAINER_heap_create (enum GNUNET_CONTAINER_HeapOrder order)
   struct GNUNET_CONTAINER_Heap *heap;
 
   heap = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_Heap));
+  heap->walk_pos = NULL;
+  heap->root = NULL;
+  heap->size = 0;
   heap->order = order;
   return heap;
 }
