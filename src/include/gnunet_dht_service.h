@@ -52,7 +52,7 @@ typedef void (*GNUNET_DHT_MessageCallback)(void *cls,
 
 /**
  * Initialize the connection with the DHT service.
- * 
+ *
  * @param cfg configuration to use
  * @param sched scheduler to use
  * @param ht_len size of the internal hash table to use for
@@ -87,7 +87,7 @@ GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *h);
  * @param exp desired expiration time for the value
  * @param timeout when to abort with an error if we fail to get
  *                a confirmation for the PUT from the local DHT service
- * @param cont continuation to call when done; 
+ * @param cont continuation to call when done;
  *             reason will be TIMEOUT on error,
  *             reason will be PREREQ_DONE on success
  * @param cont_cls closure for cont
@@ -95,12 +95,12 @@ GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *h);
 void
 GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
 		const GNUNET_HashCode * key,
-		uint32_t type, 		    
-		uint32_t size, 
+		uint32_t type,
+		uint32_t size,
 		const char *data,
 		struct GNUNET_TIME_Absolute exp,
 		struct GNUNET_TIME_Relative timeout,
-		GNUNET_DHT_MessageCallback cont,
+		GNUNET_SCHEDULER_Task cont,
 		void *cont_cls);
 
 
@@ -127,7 +127,7 @@ typedef void (*GNUNET_DHT_GetIterator)(void *cls,
 				    uint32_t type,
 				    uint32_t size,
 				    const void *data);
-		      
+
 
 
 /**
@@ -140,6 +140,9 @@ typedef void (*GNUNET_DHT_GetIterator)(void *cls,
  * @param key the key to look up
  * @param iter function to call on each result
  * @param iter_cls closure for iter
+ * @param cont continuation to call once message sent
+ * @param cont_cls closure for continuation
+ *
  * @return handle to stop the async get, NULL on error
  */
 struct GNUNET_DHT_RouteHandle *
@@ -148,7 +151,9 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *h,
 		      uint32_t type,
 		      const GNUNET_HashCode * key,
 		      GNUNET_DHT_GetIterator iter,
-		      void *iter_cls);
+		      void *iter_cls,
+		      GNUNET_SCHEDULER_Task cont,
+          void *cont_cls);
 
 /**
  * Stop async DHT-get.  Frees associated resources.
@@ -229,7 +234,7 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
 			struct GNUNET_TIME_Relative timeout,
 			GNUNET_DHT_ReplyProcessor iter,
 			void *iter_cls,
-			GNUNET_DHT_MessageCallback cont,
+			GNUNET_SCHEDULER_Task cont,
 			void *cont_cls);
 
 void
@@ -244,5 +249,5 @@ GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *fph);
 #endif
 
 
-#endif 
+#endif
 /* gnunet_dht_service.h */
