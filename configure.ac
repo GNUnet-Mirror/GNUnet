@@ -655,6 +655,7 @@ src/nat/Makefile
 src/nat/libnatpmp/Makefile
 src/nat/miniupnp/Makefile
 src/peerinfo/Makefile
+src/peerinfo-tool/Makefile
 src/statistics/Makefile
 src/template/Makefile
 src/testing/Makefile

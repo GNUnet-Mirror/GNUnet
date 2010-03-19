@@ -22,6 +22,7 @@ SUBDIRS = \
   datastore \
   template \
   transport \
+  peerinfo-tool \
   core \
   testing \
   $(HOSTLIST_DIR) \

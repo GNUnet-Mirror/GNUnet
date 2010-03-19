@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2006, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2001, 2002, 2003, 2004, 2006, 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -19,7 +19,7 @@
 */
 
 /**
- * @file peerinfo/gnunet-peerinfo.c
+ * @file peerinfo-tool/gnunet-peerinfo.c
  * @brief Print information about other known peers.
  * @author Christian Grothoff
  */
@@ -41,6 +41,8 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+#define FIXME 0
+
 #if FIXME
 /**
  * Function to call with a human-readable format of an address
@@ -56,7 +58,6 @@ print_resolved_address (void *cls,
      once, otherwise we mix results... */
   if (address == NULL)
     {
-      fprintf (stderr, "\n");
       return;
     }
   fprintf (stderr, " %s\n", address);

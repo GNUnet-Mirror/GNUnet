@@ -6,7 +6,7 @@ include files:
 - _plugin: plugin definition
 - _protocol: structs used in network protocol
 - exceptions:
-  * GNUNET_config.h      --- generated // FIXME: decapitalize
+  * gnunet_config.h      --- generated
   * platform.h           --- first included
   * plibc.h              --- external library
   * gnunet_common.h      --- fundamental routines

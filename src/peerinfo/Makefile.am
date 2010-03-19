@@ -23,14 +23,7 @@ libgnunetpeerinfo_la_LDFLAGS = \
 
 
 bin_PROGRAMS = \
- gnunet-peerinfo \
  gnunet-service-peerinfo
-
-gnunet_peerinfo_SOURCES = \
- gnunet-peerinfo.c         
-gnunet_peerinfo_LDADD = \
-  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
-  $(top_builddir)/src/util/libgnunetutil.la 
 
 gnunet_service_peerinfo_SOURCES = \
  gnunet-service-peerinfo.c         
@@ -54,6 +47,3 @@ test_peerinfo_api_LDADD = \
 
 EXTRA_DIST = \
   test_peerinfo_api_data.conf 
-
-#check_SCRIPTS = \
-#  test_gnunet_peerinfo.sh

@@ -15,30 +15,20 @@ away), in order in which they will likely be done:
 
 0.9.0pre0:
 * TRANSPORT:
-  - TCP not used bi-directionally (especially important also for PONG!)
-    Need a way for plugin to tell to service that it can *reliably* transmit
-    PONGs.  Need *good* way to ensure only one (plugin) session is active at 
-    any given point in time; need systematic way to periodically probe latency/
-    transport cost changes
-  - disconnect notifications from TCP not always as nice as we might want
-    them to be (but how can we do this cleanly given that UDP is connectionless?)
   - implement transport API to pretty-print transport address 
     + resolve cyclic dependency (gnunet-peerinfo -> transport_api -> peerinfo!)
     + gnunet-transport-service crashes when asked to resolve address (!)
     + asynchronous transport lookup and non-CPS iterator in peerinfo require
       some work to ensure printing in the proper order...
-  - instantly filter addresses from *other* peers that 
-    are *equal* to our own address + port (i.e., localhost:2086).  We 
-    no longer filter those for outgoing (helps with loopback testing
-    and keeps the code clean), but we should filter strictly *impossible*
-    incoming addresses!  This is for efficiency, not correctness.
-  - [./transport/gnunet-service-transport.c:173]: (style) struct or union member 'TransportPlugin::rebuild' is never used
-  - [./transport/plugin_transport_tcp.c:391]: (style) struct or union member 'Plugin::address_update_task' is never used
 * CORE:
   - SET_KEY is triggered every 2.5 minutes (after session is up); should
     just do PING (not SET_KEY + PING)
   - "Forcing disconnect of XXX due to inactivity" -- can happen every few MS!?
     (disconnect does not really succeed, or what?)
+    Also, core does not seem to actually decrement the number of active
+    sessions even if no connections exist for a while! (likely related...)
+  - transport reports bw quota violations on big-endian systems (core or
+    transport issue?)
 * HELLO:
   - need function to test "equivalency" of HELLOs; use in topology!
 * FS:
@@ -253,10 +243,38 @@ away), in order in which they will likely be done:
   - Remove KBlocks in gnunet-unindex (see discussion with Kenneth Almquist on gnunet-devs in 9/2009)
   - Allow checking of presence of search results and/or content via command-line tools
     (add options to gnunet-search / gnunet-download to limit search to local peer)
-* STATISTICS:
-  - should use BIO instead of mmap
 * PEERINFO:
   - expire 'ancient' HELLOs (those without valid addresses AND that 
     we have not 'used' (for their public keys) in a while; need a way
     to track actual 'use')
   - make sue we also trigger notifications whenever HELLOs expire
+
+
+
+Optimizations:
+* TCP:
+  - should use hash map to look up sessions
+* PEERINFO:
+  - api creates many, many short-lived TCP connections; either some
+    clients should use the API differently or we need to change the
+    API to enable re-use of connections to the service
+* STATISTICS:
+  - should use BIO instead of mmap
+* TRANSPORT:
+  - need to periodically probe latency/transport cost changes & possibly switch transport
+  - instantly filter addresses from *other* peers that 
+    are *equal* to our own address + port (i.e., localhost:2086).  We 
+    no longer filter those for outgoing (helps with loopback testing
+    and keeps the code clean), but we should filter strictly *impossible*
+    incoming addresses!  This is for efficiency, not correctness.
+  - should use hash map to look up Neighbours
+
+Minor features:
+* TCP:
+  - repeatedly resolve hostname and look up interfaces to determine our own IP
+  - [./transport/plugin_transport_tcp.c:391]: (style) struct or union member 'Plugin::address_update_task' is never used (related to issue above)
+* TRANSPORT:
+  - [./transport/gnunet-service-transport.c:173]: (style) struct or union member 'TransportPlugin::rebuild' is never used (related to TCP not refreshing external addresses?)
+
+
+
