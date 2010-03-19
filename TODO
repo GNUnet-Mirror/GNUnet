@@ -16,8 +16,6 @@ away), in order in which they will likely be done:
 0.9.0pre0:
 * TRANSPORT:
   - implement transport API to pretty-print transport address 
-    + resolve cyclic dependency (gnunet-peerinfo -> transport_api -> peerinfo!)
-    + gnunet-transport-service crashes when asked to resolve address (!)
     + asynchronous transport lookup and non-CPS iterator in peerinfo require
       some work to ensure printing in the proper order...
 * CORE:
