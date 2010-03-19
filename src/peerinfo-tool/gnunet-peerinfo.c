@@ -41,9 +41,40 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-#define FIXME 0
+struct PrintContext
+{
+  struct GNUNET_PeerIdentity peer;
+  char **address_list;
+  unsigned int num_addresses;
+  uint32_t off;
+  uint32_t trust;
+};
 
-#if FIXME
+
+static void
+dump_pc (struct PrintContext *pc)
+{
+  struct GNUNET_CRYPTO_HashAsciiEncoded enc;
+  unsigned int i;
+
+  GNUNET_CRYPTO_hash_to_enc (&pc->peer.hashPubKey, &enc);
+  printf (_("Peer `%s' with trust %8u\n"), 
+	  (const char *) &enc,
+	  pc->trust);
+  for (i=0;i<pc->num_addresses;i++)
+    {
+      printf ("\t%s\n",
+	      pc->address_list[i]);
+      GNUNET_free (pc->address_list[i]);
+    }
+  printf ("\n");
+  GNUNET_array_grow (pc->address_list,
+		     pc->num_addresses,
+		     0);
+  GNUNET_free (pc);
+}
+
+
 /**
  * Function to call with a human-readable format of an address
  *
@@ -51,18 +82,45 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
  * @param address NULL on error, otherwise 0-terminated printable UTF-8 string
  */
 static void
-print_resolved_address (void *cls,
-			const char *address)
+process_resolved_address (void *cls,
+			  const char *address)
 {
-  /* FIXME: need to buffer output from all requests and print it at
-     once, otherwise we mix results... */
+  struct PrintContext *pc = cls;
+
   if (address == NULL)
     {
+      pc->off--;
+      if (pc->off == 0)
+	dump_pc (pc);
       return;
     }
-  fprintf (stderr, " %s\n", address);
+  GNUNET_array_append (pc->address_list,
+		       pc->num_addresses,
+		       GNUNET_strdup (address));
 }
-#endif
+
+
+/**
+ * Iterator callback to go over all addresses.
+ *
+ * @param cls closure
+ * @param tname name of the transport
+ * @param expiration expiration time
+ * @param addr the address
+ * @param addrlen length of the address
+ * @return GNUNET_OK to keep the address and continue
+ */
+static int
+count_address (void *cls,
+	       const char *tname,
+	       struct GNUNET_TIME_Absolute expiration,
+	       const void *addr, size_t addrlen)
+{
+  struct PrintContext *pc = cls;
+  pc->off++;
+  return GNUNET_OK;
+}
+
 
 /**
  * Iterator callback to go over all addresses.
@@ -80,7 +138,7 @@ print_address (void *cls,
 	       struct GNUNET_TIME_Absolute expiration,
 	       const void *addr, size_t addrlen)
 {
-#if FIXME
+  struct PrintContext *pc = cls;
   GNUNET_TRANSPORT_address_lookup (sched,
 				   cfg,
 				   addr,
@@ -88,9 +146,8 @@ print_address (void *cls,
 				   no_resolve,
 				   tname,
 				   GNUNET_TIME_UNIT_SECONDS,
-				   &print_resolved_address,
-				   NULL);
-#endif
+				   &process_resolved_address,
+				   pc);
   return GNUNET_OK;
 }
 
@@ -106,18 +163,28 @@ print_peer_info (void *cls,
                  const struct GNUNET_HELLO_Message *hello, uint32_t trust)
 {
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
+  struct PrintContext *pc;
 
   if (peer == NULL)    
     return;    
-  GNUNET_CRYPTO_hash_to_enc (&peer->hashPubKey, &enc);
   if (be_quiet)
     {
+      GNUNET_CRYPTO_hash_to_enc (&peer->hashPubKey, &enc);
       printf ("%s\n", (const char *) &enc);
       return;
     }
-  printf (_("Peer `%s' with trust %8u\n"), (const char *) &enc, trust);
-  GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &print_address, NULL);
+  pc = GNUNET_malloc (sizeof (struct PrintContext));
+  pc->peer = *peer;  
+  pc->trust = trust;
+  GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &count_address, pc);
+  if (0 == pc->off)
+    {
+      dump_pc (pc);
+      return;
+    }
+  GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &print_address, pc);
 }
+
 
 /**
  * Main function that will be run by the scheduler.
