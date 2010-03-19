@@ -1072,7 +1072,7 @@ transmit_send_continuation (void *cls,
   
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# bytes pending with plugins"),
-			    -mq->message_buf_size,
+			    - (int64_t) mq->message_buf_size,
 			    GNUNET_NO);
   if (result == GNUNET_OK)
     {
@@ -1278,7 +1278,7 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 #endif
 	  GNUNET_STATISTICS_update (stats,
 				    gettext_noop ("# bytes in message queue for other peers"),
-				    -mq->message_buf_size,
+				    - (int64_t) mq->message_buf_size,
 				    GNUNET_NO);
 	  GNUNET_STATISTICS_update (stats,
 				    gettext_noop ("# bytes discarded (no destination address available)"),
@@ -1334,7 +1334,7 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 #endif
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# bytes in message queue for other peers"),
-			    -mq->message_buf_size,
+			    - (int64_t) mq->message_buf_size,
 			    GNUNET_NO);
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# bytes pending with plugins"),
@@ -2904,7 +2904,7 @@ disconnect_neighbour (struct NeighbourList *n, int check)
     {
       GNUNET_STATISTICS_update (stats,
 				gettext_noop ("# bytes in message queue for other peers"),
-				-mq->message_buf_size,
+				- (int64_t) mq->message_buf_size,
 				GNUNET_NO);
       GNUNET_STATISTICS_update (stats,
 				gettext_noop ("# bytes discarded due to disconnect"),

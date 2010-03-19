@@ -376,7 +376,7 @@ do_transmit (void *cls, size_t size, void *buf)
 #endif
 	  GNUNET_STATISTICS_update (session->plugin->env->stats,
 				    gettext_noop ("# bytes currently in TCP buffers"),
-				    -pm->message_size,
+				    - (int64_t) pm->message_size,
 				    GNUNET_NO); 
 	  GNUNET_STATISTICS_update (session->plugin->env->stats,
 				    gettext_noop ("# bytes discarded by TCP (timeout)"),
@@ -404,7 +404,7 @@ do_transmit (void *cls, size_t size, void *buf)
 				   pm);
       GNUNET_STATISTICS_update (session->plugin->env->stats,
 				gettext_noop ("# bytes currently in TCP buffers"),
-				-pm->message_size,
+				- (int64_t) pm->message_size,
 				GNUNET_NO);       
       if (pm->transmit_cont != NULL)
         pm->transmit_cont (pm->transmit_cont_cls,
@@ -504,7 +504,7 @@ disconnect_session (struct Session *session)
 #endif
       GNUNET_STATISTICS_update (session->plugin->env->stats,
 				gettext_noop ("# bytes currently in TCP buffers"),
-				-pm->message_size,
+				- (int64_t) pm->message_size,
 				GNUNET_NO);      
       GNUNET_STATISTICS_update (session->plugin->env->stats,
 				gettext_noop ("# bytes discarded by TCP (disconnect)"),
