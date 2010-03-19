@@ -186,8 +186,11 @@ udp_transport_server_stop (void *cls)
  * @param timeout when should we time out (give up) if we can not transmit?
  * @param addr the addr to send the message to, needs to be a sockaddr for us
  * @param addrlen the len of addr
- * @param force_address not used, we had better have an address to send to
- *        because we are stateless!!
+ * @param force_address GNUNET_YES if the plugin MUST use the given address,
+ *                GNUNET_NO means the plugin may use any other address and
+ *                GNUNET_SYSERR means that only reliable existing
+ *                bi-directional connections should be used (regardless
+ *                of address)
  * @param cont continuation to call once the message has
  *        been transmitted (or if the transport is ready
  *        for the next transmission call; or if the
@@ -222,6 +225,8 @@ udp_plugin_send (void *cls,
 #endif
       return -1; /* Can never send if we don't have an address!! */
     }
+  if (force_address == GNUNET_SYSERR)
+    return -1; /* never reliable */
 
   /* Build the message to be sent */
   message = GNUNET_malloc (sizeof (struct UDPMessage) + msgbuf_size);

@@ -45,7 +45,7 @@
  * @param cls closure
  * @param peer (claimed) identity of the other peer
  * @param message the message, NULL if we only care about
- *                learning about the delay until we should receive again
+ *                learning about the delay until we should receive again -- FIXME!
  * @param distance in overlay hops; use 1 unless DV (or 0 if message == NULL)
  * @param sender_address binary address of the sender (if observed)
  * @param sender_address_len number of bytes in sender_address
@@ -205,8 +205,10 @@ typedef void
  *                is "on its own" (i.e. re-use existing TCP connection))
  * @param addrlen length of the address in bytes
  * @param force_address GNUNET_YES if the plugin MUST use the given address,
- *                otherwise the plugin may use other addresses or
- *                existing connections (if available)
+ *                GNUNET_NO means the plugin may use any other address and
+ *                GNUNET_SYSERR means that only reliable existing
+ *                bi-directional connections should be used (regardless
+ *                of address)
  * @param cont continuation to call once the message has
  *        been transmitted (or if the transport is ready
  *        for the next transmission call; or if the
@@ -350,7 +352,6 @@ struct GNUNET_TRANSPORT_PluginFunctions
    * up information such as port numbers.
    */
   GNUNET_TRANSPORT_CheckAddress check_address;
-
 
 };
 

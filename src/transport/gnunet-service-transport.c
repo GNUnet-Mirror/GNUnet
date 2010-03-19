@@ -305,11 +305,10 @@ struct TransportPlugin
   GNUNET_SCHEDULER_TaskIdentifier address_update_task;
 
   /**
-   * Set to GNUNET_YES if we need to scrap the existing
-   * list of "addresses" and start fresh when we receive
-   * the next address update from a transport.  Set to
-   * GNUNET_NO if we should just add the new address
-   * to the list and wait for the commit call.
+   * Set to GNUNET_YES if we need to scrap the existing list of
+   * "addresses" and start fresh when we receive the next address
+   * update from a transport.  Set to GNUNET_NO if we should just add
+   * the new address to the list and wait for the commit call.
    */
   int rebuild;
 
