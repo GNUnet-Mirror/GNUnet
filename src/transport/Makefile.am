@@ -75,6 +75,7 @@ libgnunet_plugin_transport_tcp_la_SOURCES = \
   plugin_transport_tcp.c
 libgnunet_plugin_transport_tcp_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/util/libgnunetutil.la 
 libgnunet_plugin_transport_tcp_la_LDFLAGS = \
@@ -91,6 +92,7 @@ libgnunet_plugin_transport_udp_la_SOURCES = \
   plugin_transport_udp.c
 libgnunet_plugin_transport_udp_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/util/libgnunetutil.la 
 libgnunet_plugin_transport_udp_la_LDFLAGS = \
@@ -100,6 +102,7 @@ libgnunet_plugin_transport_udp_nat_la_SOURCES = \
   plugin_transport_udp_nat.c
 libgnunet_plugin_transport_udp_nat_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/util/libgnunetutil.la 
 libgnunet_plugin_transport_udp_nat_la_LDFLAGS = \
