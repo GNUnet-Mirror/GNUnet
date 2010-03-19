@@ -14,10 +14,6 @@ away), in order in which they will likely be done:
 * FS [Christian]
 
 0.9.0pre0:
-* TRANSPORT:
-  - implement transport API to pretty-print transport address 
-    + asynchronous transport lookup and non-CPS iterator in peerinfo require
-      some work to ensure printing in the proper order...
 * CORE:
   - SET_KEY is triggered every 2.5 minutes (after session is up); should
     just do PING (not SET_KEY + PING)
@@ -93,9 +89,6 @@ away), in order in which they will likely be done:
 * GUIs to implement:
   - gtk (RC-pre1)
     + how to integrate scheduler with GTK event loop!
-* HOSTLIST:
-  - 'server' uses 'GNUNET_PEERINFO_iterate', should probably switch to notification API
-    (for more instant / up-to-date hostlists at lower cost) [OPTIMIZATION]
 * STATISTICS:
   - does not seem to work with timeouts (especially if service is not running)
 * UTIL:
@@ -106,8 +99,6 @@ away), in order in which they will likely be done:
   - only connect() sockets that are ready (select()) [Nils]
     [On W32, we need to select after calling socket before
      doing connect etc.]
-* DATACACHE:
-  - add stats (# bytes available, # bytes used, # PUTs, # GETs, # GETs satisfied)
 * FS:
   - persistence support (publish, unindex, search, download)
   - non-anonymous FS service (needs DHT)
@@ -266,6 +257,9 @@ Optimizations:
     and keeps the code clean), but we should filter strictly *impossible*
     incoming addresses!  This is for efficiency, not correctness.
   - should use hash map to look up Neighbours
+* HOSTLIST:
+  - 'server' uses 'GNUNET_PEERINFO_iterate', should probably switch to notification API
+    (for more instant / up-to-date hostlists at lower cost) [OPTIMIZATION]
 
 Minor features:
 * TCP:
@@ -273,6 +267,6 @@ Minor features:
   - [./transport/plugin_transport_tcp.c:391]: (style) struct or union member 'Plugin::address_update_task' is never used (related to issue above)
 * TRANSPORT:
   - [./transport/gnunet-service-transport.c:173]: (style) struct or union member 'TransportPlugin::rebuild' is never used (related to TCP not refreshing external addresses?)
-
-
+* DATACACHE:
+  - add stats (# bytes available, # bytes used, # PUTs, # GETs, # GETs satisfied)
 
