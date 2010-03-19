@@ -789,6 +789,8 @@ GNUNET_STATISTICS_set (struct GNUNET_STATISTICS_Handle *handle,
                        const char *name,
                        uint64_t value, int make_persistent)
 {
+  if (handle == NULL)
+    return;
   GNUNET_assert (GNUNET_NO == handle->do_destroy);
   add_setter_action (handle, name, make_persistent, value, ACTION_SET);
 }
@@ -808,6 +810,10 @@ GNUNET_STATISTICS_update (struct GNUNET_STATISTICS_Handle *handle,
                           const char *name,
                           int64_t delta, int make_persistent)
 {
+  if (handle == NULL)
+    return;
+  if (delta == 0)
+    return;
   GNUNET_assert (GNUNET_NO == handle->do_destroy);
   add_setter_action (handle, name, make_persistent,
                      (unsigned long long) delta, ACTION_UPDATE);
