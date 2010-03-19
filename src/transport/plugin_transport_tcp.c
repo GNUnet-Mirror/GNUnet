@@ -617,8 +617,8 @@ tcp_plugin_send (void *cls,
      where we could restrict the iteration to entries that match
      the target peer... */
   while ( (session != NULL) &&
-	  (session->client != NULL) &&
-	  ( (0 != memcmp (target,
+	  ( (session->client == NULL) ||
+	    (0 != memcmp (target,
 			  &session->target, 
 			  sizeof (struct GNUNET_PeerIdentity))) ||
 	    ( (GNUNET_YES == force_address) &&
