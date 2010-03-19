@@ -23,9 +23,6 @@
  * @brief low-level P2P messaging
  * @author Christian Grothoff
  *
- * BUGS:
- * - bi-directional nature of TCP is not exploited
- *
  * NOTE:
  * - This code uses 'GNUNET_a2s' for debug printing in many places,
  *   which is technically wrong since it assumes we have IP+Port 
@@ -3003,11 +3000,44 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_rsa_sign (my_private_key,
                                          &pong->purpose, &pong->signature));
-
   n = find_neighbour(peer);
   if (n == NULL)
     n = setup_new_neighbour(peer);
-  /* broadcast 'PONG' to all available addresses */
+  /* first try reliable response transmission */
+  rl = n->plugins;
+  while (rl != NULL)
+    {
+      fal = rl->addresses;
+      while (fal != NULL)
+	{
+	  if (-1 != rl->plugin->api->send (rl->plugin->api->cls,
+					   peer,
+					   (const char*) pong,
+					   ntohs (pong->header.size),
+					   TRANSPORT_PONG_PRIORITY, 
+					   HELLO_VERIFICATION_TIMEOUT,
+					   fal->addr,
+					   fal->addrlen,
+					   GNUNET_SYSERR,
+					   NULL, NULL))
+	    {
+	      /* done! */
+	      GNUNET_STATISTICS_update (stats,
+					gettext_noop ("# PONGs unicast via reliable transport"),
+					1,
+					GNUNET_NO);      
+	      GNUNET_free (pong);
+	      return GNUNET_OK;
+	    }
+	  fal = fal->next;
+	}
+      rl = rl->next;
+    }
+  /* no reliable method found, do multicast */
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# PONGs multicast to all available addresses"),
+			    1,
+			    GNUNET_NO);      
   rl = n->plugins;
   while (rl != NULL)
     {

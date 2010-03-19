@@ -1110,6 +1110,7 @@ handle_tcp_welcome (void *cls,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
+  session->last_activity = GNUNET_TIME_absolute_get ();
   session->expecting_welcome = GNUNET_NO;
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
