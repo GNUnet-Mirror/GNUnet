@@ -64,7 +64,7 @@ struct PendingMessage
    * Continuation to call on message send
    * or message receipt confirmation
    */
-  GNUNET_DHT_MessageCallback cont;
+  GNUNET_SCHEDULER_Task cont;
 
   /**
    * Continuation closure
@@ -269,7 +269,6 @@ void service_message_handler (void *cls,
     return;
   }
 
-
   if (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DHT)
   {
     dht_msg = (struct GNUNET_DHT_Message *)msg;
@@ -305,7 +304,7 @@ void service_message_handler (void *cls,
     uid = GNUNET_ntohll(stop_msg->unique_id);
 #if DEBUG_DHT_API
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "`%s': Received response to message (uid %llu)\n", "DHT API", uid);
+                "`%s': Received response to message (uid %llu), current uid %llu\n", "DHT API", uid, handle->current->unique_id);
 #endif
     if (handle->current->unique_id == uid)
       {
@@ -314,12 +313,24 @@ void service_message_handler (void *cls,
                     "`%s': Have pending confirmation for this message!\n", "DHT API", uid);
 #endif
         if (handle->current->cont != NULL)
-          handle->current->cont(handle->current->cont_cls, GNUNET_OK);
+          GNUNET_SCHEDULER_add_continuation(handle->sched, handle->current->cont, handle->current->cont_cls, GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+
         GNUNET_free(handle->current->msg);
-        handle->current = NULL;
         GNUNET_free(handle->current);
+        handle->current = NULL;
       }
   }
+  else
+  {
+#if DEBUG_DHT_API
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "`%s': Received unknown message type %d\n", "DHT API", ntohs(msg->type));
+#endif
+  }
+
+  GNUNET_CLIENT_receive (handle->client,
+                         &service_message_handler,
+                         handle, GNUNET_TIME_UNIT_FOREVER_REL);
 
 }
 
@@ -416,7 +427,12 @@ finish (struct GNUNET_DHT_Handle *handle, int code)
   if (pos->is_unique)
     {
       if (pos->cont != NULL)
-        pos->cont(pos->cont_cls, code);
+      {
+        if (code == GNUNET_SYSERR)
+          GNUNET_SCHEDULER_add_continuation(handle->sched, pos->cont, pos->cont_cls, GNUNET_SCHEDULER_REASON_TIMEOUT);
+        else
+          GNUNET_SCHEDULER_add_continuation(handle->sched, pos->cont, pos->cont_cls, GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      }
 
       GNUNET_free(pos->msg);
       handle->current = NULL;
@@ -480,12 +496,12 @@ transmit_pending (void *cls, size_t size, void *buf)
  * @return GNUNET_YES on success, GNUNET_NO on failure.
  */
 static int
-try_connect (struct GNUNET_DHT_Handle *ret)
+try_connect (struct GNUNET_DHT_Handle *handle)
 {
-  if (ret->client != NULL)
+  if (handle->client != NULL)
     return GNUNET_OK;
-  ret->client = GNUNET_CLIENT_connect (ret->sched, "dht", ret->cfg);
-  if (ret->client != NULL)
+  handle->client = GNUNET_CLIENT_connect (handle->sched, "dht", handle->cfg);
+  if (handle->client != NULL)
     return GNUNET_YES;
 #if DEBUG_STATISTICS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -574,7 +590,7 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
                         struct GNUNET_TIME_Relative timeout,
                         GNUNET_DHT_ReplyProcessor iter,
                         void *iter_cls,
-                        GNUNET_DHT_MessageCallback cont,
+                        GNUNET_SCHEDULER_Task cont,
                         void *cont_cls)
 {
   struct GNUNET_DHT_RouteHandle *route_handle;
@@ -583,15 +599,21 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
   size_t is_unique;
   size_t msize;
   GNUNET_HashCode *uid_key;
-  int count;
   uint64_t uid;
 
-  uid = 0;
   is_unique = GNUNET_YES;
   if (iter == NULL)
     is_unique = GNUNET_NO;
 
   route_handle = NULL;
+  uid_key = NULL;
+
+  do
+  {
+    GNUNET_free_non_null(uid_key);
+    uid = GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_WEAK, -1);
+    uid_key = hash_from_uid(uid);
+  } while (GNUNET_CONTAINER_multihashmap_contains(handle->outstanding_requests, uid_key) == GNUNET_YES);
 
   if (is_unique)
     {
@@ -600,32 +622,24 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
       route_handle->iter = iter;
       route_handle->iter_cls = iter_cls;
       route_handle->dht_handle = handle;
-      route_handle->uid = GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_WEAK, -1);
-      uid = route_handle->uid;
+      route_handle->uid = uid;
 #if DEBUG_DHT_API
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "`%s': Unique ID is %llu\n", "DHT API", uid);
 #endif
-      count = 0;
-      uid_key = hash_from_uid(route_handle->uid);
-      /* While we have an outstanding request with the same identifier! */
-      while (GNUNET_CONTAINER_multihashmap_contains(handle->outstanding_requests, uid_key) == GNUNET_YES)
-        {
-          GNUNET_free(uid_key);
-          uid_key = hash_from_uid(route_handle->uid);
-        }
       /**
        * Store based on random identifier!
        */
       GNUNET_CONTAINER_multihashmap_put(handle->outstanding_requests, uid_key, route_handle, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
       msize = sizeof(struct GNUNET_DHT_Message) + ntohs(enc->size);
-      GNUNET_free(uid_key);
+
     }
   else
     {
       msize = sizeof(struct GNUNET_DHT_Message) + ntohs(enc->size);
     }
 
+  GNUNET_free(uid_key);
   message = GNUNET_malloc(msize);
   message->header.size = htons(msize);
   message->header.type = htons(GNUNET_MESSAGE_TYPE_DHT);
@@ -642,6 +656,7 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
   pending->cont = cont;
   pending->cont_cls = cont_cls;
   pending->is_unique = is_unique;
+  pending->unique_id = uid;
 
   GNUNET_assert(handle->current == NULL);
 
@@ -670,6 +685,9 @@ void dht_get_processor (void *cls,
  * @param key the key to look up
  * @param iter function to call on each result
  * @param iter_cls closure for iter
+ * @param cont continuation to call once message sent
+ * @param cont_cls closure for continuation
+ *
  * @return handle to stop the async get
  */
 struct GNUNET_DHT_RouteHandle *
@@ -678,7 +696,9 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
                       uint32_t type,
                       const GNUNET_HashCode * key,
                       GNUNET_DHT_GetIterator iter,
-                      void *iter_cls)
+                      void *iter_cls,
+                      GNUNET_SCHEDULER_Task cont,
+                      void *cont_cls)
 {
   struct GNUNET_DHT_GetContext *get_context;
   struct GNUNET_DHT_GetMessage *get_msg;
@@ -700,7 +720,7 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
   get_msg->header.size = htons(sizeof(struct GNUNET_DHT_GetMessage));
   get_msg->type = htonl(type);
 
-  return GNUNET_DHT_route_start(handle, key, 0, 0, &get_msg->header, timeout, &get_reply_iterator, get_context, NULL, NULL);
+  return GNUNET_DHT_route_start(handle, key, 0, 0, &get_msg->header, timeout, &get_reply_iterator, get_context, cont, cont_cls);
 
 }
 
@@ -724,12 +744,15 @@ GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle)
 #endif
   message->unique_id = GNUNET_htonll(route_handle->uid);
 
+  GNUNET_assert(route_handle->dht_handle->current == NULL);
+
   pending = GNUNET_malloc(sizeof(struct PendingMessage));
   pending->msg = (struct GNUNET_MessageHeader *)message;
   pending->timeout = DEFAULT_DHT_TIMEOUT;
   pending->cont = NULL;
   pending->cont_cls = NULL;
   pending->is_unique = GNUNET_NO;
+  pending->unique_id = route_handle->uid;
 
   GNUNET_assert(route_handle->dht_handle->current == NULL);
 
@@ -811,7 +834,7 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
                 const char *data,
                 struct GNUNET_TIME_Absolute exp,
                 struct GNUNET_TIME_Relative timeout,
-                GNUNET_DHT_MessageCallback cont,
+                GNUNET_SCHEDULER_Task cont,
                 void *cont_cls)
 {
   struct GNUNET_DHT_PutMessage *put_msg;
@@ -819,7 +842,7 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
 
   if (handle->current != NULL)
     {
-      cont(cont_cls, GNUNET_SYSERR);
+      GNUNET_SCHEDULER_add_continuation(handle->sched, cont, cont_cls, GNUNET_SCHEDULER_REASON_TIMEOUT);
       return;
     }
 
@@ -833,6 +856,8 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
   put_msg->header.type = htons(GNUNET_MESSAGE_TYPE_DHT_PUT);
   put_msg->header.size = htons(msize);
   put_msg->type = htonl(type);
+  put_msg->data_size = htons(size);
+  put_msg->expiration = exp;
   memcpy(&put_msg[1], data, size);
 
   GNUNET_DHT_route_start(handle, key, 0, 0, &put_msg->header, timeout, NULL, NULL, cont, cont_cls);

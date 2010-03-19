@@ -193,6 +193,10 @@ static void handle_dht_put (void *cls, struct GNUNET_DHT_PutMessage *put_msg, GN
 
   put_type = ntohs(put_msg->type);
   data_size = ntohs(put_msg->data_size);
+#if DEBUG_DHT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "`%s': %s msg total size is %d, data size %d, struct size %d\n", "DHT", "PUT", ntohs(put_msg->header.size), data_size, sizeof(struct GNUNET_DHT_PutMessage));
+#endif
   GNUNET_assert(ntohs(put_msg->header.size) == sizeof(struct GNUNET_DHT_PutMessage) + data_size);
   data = GNUNET_malloc(data_size);
   memcpy(data, &put_msg[1], data_size);
@@ -201,6 +205,7 @@ static void handle_dht_put (void *cls, struct GNUNET_DHT_PutMessage *put_msg, GN
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "`%s': Received `%s' request from client, message type %d, key %s\n", "DHT", "PUT", put_type, GNUNET_h2s(key));
 #endif
+
 
   /**
    * FIXME: Implement dht put request functionality here!
@@ -250,6 +255,10 @@ send_client_receipt_confirmation(struct GNUNET_SERVER_Client *client, uint64_t u
 {
   struct GNUNET_DHT_StopMessage *confirm_message;
 
+#if DEBUG_DHT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "`%s': Sending receipt confirmation for uid %llu\n", "DHT", uid);
+#endif
   confirm_message = GNUNET_malloc(sizeof(struct GNUNET_DHT_StopMessage));
   confirm_message->header.type = htons(GNUNET_MESSAGE_TYPE_DHT_STOP);
   confirm_message->header.size = htons(sizeof(struct GNUNET_DHT_StopMessage));
@@ -287,6 +296,7 @@ handle_dht_start_message(void *cls, struct GNUNET_SERVER_Client * client,
       break;
     case GNUNET_MESSAGE_TYPE_DHT_PUT:
       handle_dht_put(cls, (struct GNUNET_DHT_PutMessage *)enc_msg, &dht_msg->key);
+      send_client_receipt_confirmation(client, GNUNET_ntohll(dht_msg->unique_id));
       break;
     case GNUNET_MESSAGE_TYPE_DHT_FIND_PEER:
       handle_dht_find_peer(cls, (struct GNUNET_DHT_FindPeerMessage *)enc_msg, &dht_msg->key);
