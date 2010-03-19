@@ -3501,7 +3501,8 @@ handle_address_lookup (void *cls,
       return;
     }
   tc = GNUNET_SERVER_transmit_context_create (client);
-  lsPlugin->api->address_pretty_printer (cls, nameTransport,
+  lsPlugin->api->address_pretty_printer (lsPlugin->api->cls,
+					 nameTransport,
                                          address, addressLen, 
 					 numeric,
                                          rtimeout,
