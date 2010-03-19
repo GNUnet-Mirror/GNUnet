@@ -866,11 +866,6 @@ static void try_transmission_to_peer (struct NeighbourList *neighbour);
 
 /**
  * Find an entry in the neighbour list for a particular peer.
- * if sender_address is not specified (NULL) then return the
- * first matching entry.  If sender_address is specified, then
- * make sure that the address and address_len also matches.
- * 
- * FIXME: This description does not fit the function.
  *  
  * @return NULL if not found.
  */
@@ -1241,6 +1236,7 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
   struct MessageQueue *mq;
   struct GNUNET_TIME_Relative timeout;
   ssize_t ret;
+  int force_address;
 
   if (neighbour->messages_head == NULL)
     {
@@ -1252,6 +1248,7 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
   rl = NULL;
   mq = neighbour->messages_head;
   /* FIXME: support bi-directional use of TCP */
+  force_address = GNUNET_YES;
   if (mq->specific_address == NULL)
     {
       mq->specific_address = find_ready_address(neighbour); 
@@ -1259,6 +1256,7 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 				gettext_noop ("# transport selected peer address freely"),
 				1,
 				GNUNET_NO); 
+      force_address = GNUNET_NO;
     }
   if (mq->specific_address == NULL)
     {
@@ -1347,7 +1345,7 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 			       GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
 			       mq->specific_address->addr,
 			       mq->specific_address->addrlen,
-			       GNUNET_YES /* FIXME: sometimes, we want to be more tolerant here! */,
+			       force_address,
 			       &transmit_send_continuation, mq);
   if (ret == -1)
     {

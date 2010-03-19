@@ -174,6 +174,12 @@ struct Session
   void *connect_addr;
 
   /**
+   * Last activity on this connection.  Used to select preferred
+   * connection.
+   */
+  struct GNUNET_TIME_Absolute last_activity;
+
+  /**
    * Length of connect_addr.
    */
   size_t connect_alen;
@@ -297,6 +303,7 @@ create_session (struct Plugin *plugin,
 		   "Creating new session for peer `%4s'\n",
 		   GNUNET_i2s (target));
   ret = GNUNET_malloc (sizeof (struct Session));
+  ret->last_activity = GNUNET_TIME_absolute_get ();
   ret->plugin = plugin;
   ret->next = plugin->sessions;
   plugin->sessions = ret;
@@ -438,6 +445,7 @@ do_transmit (void *cls, size_t size, void *buf)
      cancel everything don't cause us to use a session that no longer
      exists... */
   process_pending_messages (session);  
+  session->last_activity = GNUNET_TIME_absolute_get ();
   pid = session->target;
   /* we'll now call callbacks that may cancel the session; hence
      we should not use 'session' after this point */
@@ -580,6 +588,41 @@ disconnect_session (struct Session *session)
 
 
 /**
+ * Given two otherwise equivalent sessions, pick the better one.
+ * 
+ * @param s1 one session (also default)
+ * @param s2 other session
+ * @return "better" session (more active)
+ */
+static struct Session *
+select_better_session (struct Session *s1,
+		       struct Session *s2)
+{
+  if (s1 == NULL)
+    return s2;
+  if (s2 == NULL)
+    return s1;
+  if ( (s1->expecting_welcome == GNUNET_NO) &&
+       (s2->expecting_welcome == GNUNET_YES) )
+    return s1;
+  if ( (s1->expecting_welcome == GNUNET_YES) &&
+       (s2->expecting_welcome == GNUNET_NO) )
+    return s2;
+  if (s1->last_activity.value < s2->last_activity.value)
+    return s2;
+  if (s1->last_activity.value > s2->last_activity.value)
+    return s1;
+  if ( (GNUNET_YES == s1->inbound) &&
+       (GNUNET_NO  == s2->inbound) )
+    return s1;
+  if ( (GNUNET_NO  == s1->inbound) &&
+       (GNUNET_YES == s2->inbound) )
+    return s2;
+  return s1;
+}
+
+
+/**
  * Function that can be used by the transport service to transmit
  * a message using the plugin.   Note that in the case of a
  * peer disconnecting, the continuation MUST be called
@@ -628,6 +671,7 @@ tcp_plugin_send (void *cls,
 {
   struct Plugin *plugin = cls;
   struct Session *session;
+  struct Session *cand_session;
   struct Session *next;
   struct PendingMessage *pm;
   struct GNUNET_CONNECTION_Handle *sa;
@@ -640,25 +684,24 @@ tcp_plugin_send (void *cls,
   /* FIXME: we could do this a cheaper with a hash table
      where we could restrict the iteration to entries that match
      the target peer... */
+  cand_session = NULL;
   next = plugin->sessions;
   while (NULL != (session = next)) 
     {
       next = session->next;
-      if (session->client == NULL) 
-	continue;
+      GNUNET_assert (session->client != NULL);
       if (0 != memcmp (target,
 		       &session->target, 
 		       sizeof (struct GNUNET_PeerIdentity)))
 	continue;
-      if (GNUNET_SYSERR == force_address) 
+      if ( ( (GNUNET_SYSERR == force_address) &&
+	     (session->expecting_welcome == GNUNET_NO) ) ||
+	   (GNUNET_NO == force_address) )   
 	{
-	  if (session->expecting_welcome == GNUNET_NO)
-	    break; /* established and reliable (TCP!) */
-	  else
-	    continue; /* not established */
+	  cand_session = select_better_session (cand_session,
+						session);
+	  continue;
 	}
-      if (GNUNET_NO == force_address)
-	break;
       GNUNET_break (GNUNET_YES == force_address);
       if (addr == NULL)
 	{
@@ -669,11 +712,14 @@ tcp_plugin_send (void *cls,
 	continue;
       if (addrlen != session->connect_alen)
 	continue;
-      if (0 == memcmp (session->connect_addr,
+      if (0 != memcmp (session->connect_addr,
 		       addr,
 		       addrlen))
-	break;
+	continue;
+      cand_session = select_better_session (cand_session,
+					    session);	      
     }
+  session = cand_session;
   if ( (session == NULL) &&
        (addr == NULL) )
     {
@@ -1112,18 +1158,19 @@ handle_tcp_data (void *cls,
   struct Session *session;
   struct GNUNET_TIME_Relative delay;
 
-  session = find_session_by_client (plugin, client);
   if (GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME == ntohs(message->type))
     {
       /* We don't want to propagate WELCOME messages up! */
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return; 
     }    
+  session = find_session_by_client (plugin, client);
   if ( (NULL == session) || (GNUNET_NO != session->expecting_welcome))
     {
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
+  session->last_activity = GNUNET_TIME_absolute_get ();
 #if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "tcp", 
