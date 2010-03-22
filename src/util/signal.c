@@ -39,8 +39,12 @@ struct GNUNET_SIGNAL_Context
 #endif
 };
 
+#ifdef WINDOWS
+GNUNET_SIGNAL_Handler w32_sigchld_handler = NULL;
+#endif
+
 struct GNUNET_SIGNAL_Context *
-GNUNET_SIGNAL_handler_install (int signal, GNUNET_SIGNAL_Handler handler)
+GNUNET_SIGNAL_handler_install (int signum, GNUNET_SIGNAL_Handler handler)
 {
   struct GNUNET_SIGNAL_Context *ret;
 #ifndef MINGW
@@ -48,7 +52,7 @@ GNUNET_SIGNAL_handler_install (int signal, GNUNET_SIGNAL_Handler handler)
 #endif
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_SIGNAL_Context));
-  ret->sig = signal;
+  ret->sig = signum;
   ret->method = handler;
 #ifndef MINGW
   sig.sa_handler = (void *) handler;
@@ -58,7 +62,12 @@ GNUNET_SIGNAL_handler_install (int signal, GNUNET_SIGNAL_Handler handler)
 #else
   sig.sa_flags = SA_RESTART;
 #endif
-  sigaction (signal, &sig, &ret->oldsig);
+  sigaction (signum, &sig, &ret->oldsig);
+#else
+  if (signum == GNUNET_SIGCHLD)
+    w32_sigchld_handler = handler;
+  else
+    signal (signum, handler);
 #endif
   return ret;
 }

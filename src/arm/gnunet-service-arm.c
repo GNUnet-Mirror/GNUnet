@@ -986,7 +986,7 @@ run (void *cls,
   sched = s;
   server = serv;
   GNUNET_assert (serv != NULL);
-  shc_chld = GNUNET_SIGNAL_handler_install (SIGCHLD, &sighandler_child_death);
+  shc_chld = GNUNET_SIGNAL_handler_install (GNUNET_SIGCHLD, &sighandler_child_death);
   GNUNET_assert (sigpipe == NULL);
   sigpipe = GNUNET_DISK_pipe (GNUNET_NO);
   GNUNET_assert (sigpipe != NULL);

@@ -40,8 +40,10 @@
 
 #ifdef WINDOWS
 #define BREAKPOINT asm("int $3;");
+#define GNUNET_SIGCHLD 17
 #else
 #define BREAKPOINT
+#define GNUNET_SIGCHLD SIGCHLD
 #endif
 
 #ifdef HAVE_SYS_TYPES_H

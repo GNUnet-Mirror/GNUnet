@@ -29,6 +29,27 @@
 #include "gnunet_os_lib.h"
 #include "disk.h"
 
+#if WINDOWS
+#include "gnunet_signal_lib.h"
+
+extern GNUNET_SIGNAL_Handler w32_sigchld_handler;
+
+/**
+ * @brief Waits for a process to terminate and invokes the SIGCHLD handler
+ * @param h handle to the process
+ */
+static DWORD WINAPI
+ChildWaitThread (HANDLE h)
+{
+  WaitForSingleObject (h, INFINITE);
+
+  if (w32_sigchld_handler)
+    w32_sigchld_handler ();
+
+  CloseHandle (h);
+}
+#endif
+
 /**
  * Set process priority
  *
@@ -274,9 +295,11 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "CreateProcess", fn);
       return -1;
     }
+
+  CreateThread (NULL, 64000, ChildWaitThread, proc.hProcess, 0, NULL);
+
   if (fn != filename)
     GNUNET_free (fn);
-  CloseHandle (proc.hProcess);
   CloseHandle (proc.hThread);
 
   GNUNET_free (cmd);
@@ -365,9 +388,10 @@ GNUNET_OS_start_process_v (const char *filename, char *const argv[])
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "fork");
       return -1;
     }
-  CloseHandle (proc.hProcess);
-  CloseHandle (proc.hThread);
 
+  CreateThread (NULL, 64000, ChildWaitThread, proc.hProcess, 0, NULL);
+
+  CloseHandle (proc.hThread);
   GNUNET_free (cmd);
 
   return proc.dwProcessId;
