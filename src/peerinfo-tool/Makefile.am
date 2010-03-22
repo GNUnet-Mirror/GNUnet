@@ -1,7 +1,7 @@
 INCLUDES = -I$(top_srcdir)/src/include
 
 if MINGW
- WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols -lole32 -lshell32 -luuid -liconv -lstdc++ -lcomdlg32 -lgdi32
+ WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols -lole32 -lshell32 -liconv -lstdc++ -lcomdlg32 -lgdi32
 endif
 
 if USE_COVERAGE

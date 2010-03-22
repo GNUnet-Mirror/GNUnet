@@ -11,7 +11,7 @@ libgnunetutilwin_la_SOURCES = \
 libgnunetutilwin_la_LDFLAGS = \
   -Wl,--no-undefined -Wl,--export-all-symbols 
 libgnunetutilwin_la_LIBADD = \
-  -lshell32 -luuid -liconv -lstdc++ \
+  -lshell32 -liconv -lstdc++ \
   -lcomdlg32 -lgdi32
 WINLIB = libgnunetutilwin.la
 endif
@@ -65,8 +65,7 @@ libgnunetutil_la_SOURCES = \
   service.c \
   signal.c \
   strings.c \
-  time.c \
-  $(WINSRC)
+  time.c
 
 
 libgnunetutil_la_LIBADD = \
