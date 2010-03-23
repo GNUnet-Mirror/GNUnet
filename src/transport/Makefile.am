@@ -15,6 +15,8 @@ NATBIN = gnunet-nat-server gnunet-nat-client
 install-exec-hook:
 	chown root $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client || true
 	chmod u+s $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client || true
+else
+install-exec-hook:
 endif
 
 
