@@ -109,18 +109,48 @@ publish_cont (void *cls,
   search = GNUNET_FS_search_start (fs, uri, 1, "ns-search");
 }
 
+static void
+adv_cont (void *cls,
+	      const struct GNUNET_FS_Uri *uri,
+	      const char *emsg)
+{
+  struct GNUNET_FS_SearchContext *search;
+  struct GNUNET_CONTAINER_MetaData *meta;
+  struct GNUNET_FS_Namespace *ns;
+  struct GNUNET_TIME_Absolute expiration;
+
+  expiration = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
+  ns = GNUNET_FS_namespace_create (fs,
+				   "testNamespace");
+  meta = GNUNET_CONTAINER_meta_data_create ();
+  GNUNET_assert (NULL == emsg);
+  fprintf (stderr, "Starting namespace search...\n");
+  search = GNUNET_FS_search_start (fs, uri, 1, "ns-search");
+  GNUNET_FS_publish_sks (fs,
+			 ns,
+			 "this",
+			 "next",
+			 meta,
+			 uri,
+			 expiration,
+			 1, 1,
+			 GNUNET_FS_PUBLISH_OPTION_NONE,
+			 &publish_cont,
+			 NULL);
+  GNUNET_CONTAINER_meta_data_destroy (meta);
+  GNUNET_FS_namespace_delete (ns, GNUNET_NO);
+}
+
 
 static void
 testNamespace ()
 {
   struct GNUNET_FS_Namespace *ns;
-  struct GNUNET_FS_Uri *adv;
-  struct GNUNET_CONTAINER_MetaData *meta;
   struct GNUNET_TIME_Absolute expiration;
+  struct GNUNET_CONTAINER_MetaData *meta;
 
   expiration = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
   meta = GNUNET_CONTAINER_meta_data_create ();
-  adv = GNUNET_FS_uri_ksk_create ("testNamespace", NULL);
   ns = GNUNET_FS_namespace_create (fs,
 				   "testNamespace");
   GNUNET_FS_namespace_advertise (fs,
@@ -129,20 +159,8 @@ testNamespace ()
 				 1, 1,
 				 expiration,					   
 				 "root",
-				 &publish_cont, NULL);
-#if 0
-  GNUNET_FS_publish_sks (fs,
-			 ns,
-			 "this",
-			 "next",
-			 meta,
-			 rootUri,
-			 expiration,
-			 1, 1,
-			 GNUNET_FS_PUBLISH_OPTION_NONE,
-			 &publish_cont,
-			 NULL);
-#endif
+				 &adv_cont, NULL);
+  GNUNET_FS_namespace_delete (ns, GNUNET_NO);
   GNUNET_CONTAINER_meta_data_destroy (meta);
 }
 
