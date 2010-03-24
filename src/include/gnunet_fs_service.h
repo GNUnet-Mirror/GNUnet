@@ -435,9 +435,9 @@ GNUNET_FS_getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext*
  */
 int
 GNUNET_FS_getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext* ctx, 
-					 void *scls,
-					 const char *option,
-					 const char *value);
+			       void *scls,
+			       const char *option,
+			       const char *value);
 
 
 
@@ -2044,22 +2044,20 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc);
  * @param anonymity for the namespace advertismement
  * @param priority for the namespace advertisement
  * @param expiration for the namespace advertisement
- * @param advertisementURI the keyword (!) URI to advertise the
- *        namespace under (we will create a GNUNET_EC_KNBlock)
- * @param rootEntry name of the root entry in the namespace (for
- *        the namespace advertisement)
- *
- * @return uri of the advertisement
+ * @param rootEntry name of the root of the namespace
+ * @param cont continuation
+ * @param cont_cls closure for cont
  */
-struct GNUNET_FS_Uri *
+void
 GNUNET_FS_namespace_advertise (struct GNUNET_FS_Handle *h,
 			       struct GNUNET_FS_Namespace *namespace,
 			       const struct GNUNET_CONTAINER_MetaData *meta,
 			       uint32_t anonymity,
 			       uint32_t priority,
 			       struct GNUNET_TIME_Absolute expiration,
-			       const struct GNUNET_FS_Uri *advertisementURI,
-			       const char *rootEntry);
+			       const char *rootEntry,
+			       GNUNET_FS_PublishContinuation cont,
+			       void *cont_cls);
 
 
 /**

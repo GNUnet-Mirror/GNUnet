@@ -1847,8 +1847,8 @@ process_reply (void *cls,
 	      
 	}
       break;
-    case GNUNET_DATASTORE_BLOCKTYPE_SKBLOCK:
-      // FIXME: any checks against duplicates for SKBlocks?
+    case GNUNET_DATASTORE_BLOCKTYPE_NBLOCK:
+      // FIXME: any checks against duplicates for NBlocks?
       break;
     default:
       GNUNET_break (0);
@@ -1996,8 +1996,8 @@ handle_p2p_put (void *cls,
 			&prq.namespace))
 	return GNUNET_SYSERR;
       break;
-    case GNUNET_DATASTORE_BLOCKTYPE_SKBLOCK:
-      // FIXME -- validate SKBLOCK!
+    case GNUNET_DATASTORE_BLOCKTYPE_NBLOCK:
+      // FIXME -- validate NBLOCK!
       GNUNET_break (0);
       return GNUNET_OK;
     default:
@@ -2212,7 +2212,7 @@ process_local_reply (void *cls,
   pr->results_found++;
   if ( (pr->type == GNUNET_DATASTORE_BLOCKTYPE_KBLOCK) ||
        (pr->type == GNUNET_DATASTORE_BLOCKTYPE_SBLOCK) ||
-       (pr->type == GNUNET_DATASTORE_BLOCKTYPE_SKBLOCK) )
+       (pr->type == GNUNET_DATASTORE_BLOCKTYPE_NBLOCK) )
     {
       if (pr->bf == NULL)
 	{

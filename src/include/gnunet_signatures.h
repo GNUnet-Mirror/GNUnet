@@ -77,9 +77,14 @@ extern "C"
 #define GNUNET_SIGNATURE_PURPOSE_FS_SBLOCK 6
 
 /**
+ * Signature of advertisment for a namespace.
+ */
+#define GNUNET_SIGNATURE_PURPOSE_FS_NBLOCK 7
+
+/**
  *
  */
-#define GNUNET_SIGNATURE_PURPOSE_RESOLVER_RESPONSE 7
+#define GNUNET_SIGNATURE_PURPOSE_RESOLVER_RESPONSE 8
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

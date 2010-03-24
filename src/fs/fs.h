@@ -35,6 +35,20 @@
  */
 #define DBLOCK_SIZE (32*1024)
 
+/**
+ * Maximum legal size for a kblock.
+ */
+#define MAX_KBLOCK_SIZE (60 * 1024)
+
+/**
+ * Maximum legal size for an sblock.
+ */
+#define MAX_SBLOCK_SIZE (60 * 1024)
+
+/**
+ * Maximum legal size for an nblock.
+ */
+#define MAX_NBLOCK_SIZE (60 * 1024)
 
 /**
  * Pick a multiple of 2 here to achive 8-byte alignment!
@@ -1037,6 +1051,11 @@ struct GNUNET_FS_Namespace
   struct GNUNET_CRYPTO_RsaPrivateKey *key;
 
   /**
+   * Name of the file with the private key.
+   */
+  char *filename;
+
+  /**
    * Reference counter.
    */
   unsigned int rc;
@@ -1124,7 +1143,35 @@ struct SBlock
 
   /* 0-terminated update-identifier here */
 
-  /* 0-terminated URI here */
+  /* 0-terminated URI here (except for NBlocks) */
+
+  /* variable-size Meta-Data follows here */
+
+};
+
+
+/**
+ * @brief namespace advertisement block (advertising root of a namespace)
+ */
+struct NBlock
+{
+
+  /**
+   * GNUNET_RSA_Signature using RSA-key of the namespace
+   */
+  struct GNUNET_CRYPTO_RsaSignature signature;
+
+  /**
+   * What is being signed and why?
+   */
+  struct GNUNET_CRYPTO_RsaSignaturePurpose purpose;
+
+  /**
+   * Public key of the namespace.
+   */
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded subspace;
+
+  /* 0-terminated root identifier here */
 
   /* variable-size Meta-Data follows here */
 

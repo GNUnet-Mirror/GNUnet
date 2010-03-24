@@ -107,8 +107,8 @@ struct GNUNET_PeerIdentity
 /**
  * Function called with a filename.
  *
- * @param filename complete filename (absolute path)
  * @param cls closure
+ * @param filename complete filename (absolute path)
  * @return GNUNET_OK to continue to iterate,
  *  GNUNET_SYSERR to abort iteration with error!
  */

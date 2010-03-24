@@ -23,24 +23,15 @@ away), in order in which they will likely be done:
     sessions even if no connections exist for a while! (likely related...)
   - transport reports bw quota violations on big-endian systems (core or
     transport issue?)
-* HELLO:
-  - need function to test "equivalency" of HELLOs; use in topology!
 * FS:
-  - GAP improvements:
-    + active reply route caching design & implementation of service,
-      gap extension!
   - gnunet-publish cannot be aborted using CTRL-C
   - on some systems, keyword search does not find locally published content
     (need testcase of command-line tools!)
   - 2-peer download is still too slow (why?)
   - advanced FS API parts
-    + namespaces: fundamental namespace API
-    + search: SBlocks, KSBlocks, probes, notify FS-service of known results
-    + collection
+    + search: SBlocks, NBlocks, probes, notify FS-service of known results
     + location URIs (publish, search, download)
     + indexing: index-failure-cleanup
-    + download: management/bounding of parallel downloads (for recursive dl.)
-    + datastore reservation (publishing)
     + gnunet-publish (URI args)
     + gnunet-download (directory)
     + gnunet-search (options, incl. namespace search)
@@ -52,14 +43,8 @@ away), in order in which they will likely be done:
     + getopt API
     + insert: sblocks, loc uris
     + download: loc uris
-    + search: sblocks, skblocks, loc uris
+    + search: sblocks, nblocks, loc uris
     + namespaces
-    + collection
-  - implement FS performance tests
-    + insert
-    + download
-    + search
-    + unindex
   - [./fs/gnunet-service-fs.c:208]: (style) struct or union member 'LocalGetContext::results_bf_size' is never used
   - [./fs/gnunet-service-fs.c:501]: (style) struct or union member 'PendingRequest::used_pids_size' is never used
   - [./fs/gnunet-service-fs.c:654]: (style) struct or union member 'ConnectedPeer::last_client_replies' is never used
@@ -100,12 +85,16 @@ away), in order in which they will likely be done:
     [On W32, we need to select after calling socket before
      doing connect etc.]
 * FS:
+  - datastore reservation (publishing)
   - persistence support (publish, unindex, search, download)
+  - download: management/bounding of parallel downloads (for recursive dl.)
   - non-anonymous FS service (needs DHT)
     + basic DHT integration
     + CS-DHT-functions (DHT-put of LOC)
     + P2P-functions (DHT-get)
-  - active migration support (in fs or in datastore?)
+  - active migration support (in fs or in datastore or new daemon?)
+  - GAP improvements:
+    + active reply route caching design & implementation of service; gap extension!
 * TOPOLOGY:
   - needs more testing (especially F2F topology)
   - needs to re-try connecting after disconnect (currently, it
@@ -134,6 +123,8 @@ away), in order in which they will likely be done:
     more balanced load)
   - check if new HELLO learned is different from old HELLO
     before resetting entire state!
+* HELLO:
+  - need function to test "equivalency" of HELLOs (or integrate with "merge"?); use in PEERINFO
 
 0.9.0pre2:
 * Module features to implement:
@@ -160,6 +151,13 @@ away), in order in which they will likely be done:
   - better crash management (attach debugging support, capture and analyze
     debug output, detect random vs. deterministic crashes)
   - shutdown sequence?
+* FS:
+  - collection API & tests
+  - implement FS performance tests
+    + insert
+    + download
+    + search
+    + unindex
 
 
 0.9.0pre3:

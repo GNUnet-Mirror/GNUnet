@@ -510,6 +510,4 @@ GNUNET_HELLO_get_id (const struct GNUNET_HELLO_Message *hello,
   return GNUNET_OK;
 }
 
-
-
 /* end of hello.c */

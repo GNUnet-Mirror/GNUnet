@@ -72,9 +72,9 @@ extern "C"
 #define GNUNET_DATASTORE_BLOCKTYPE_ONDEMAND 5
 
 /**
- * FIXME.
+ * Type of a block that is used to advertise a namespace.  
  */
-#define GNUNET_DATASTORE_BLOCKTYPE_SKBLOCK 6 /* not yet used */
+#define GNUNET_DATASTORE_BLOCKTYPE_NBLOCK 6
 
 
 /**

@@ -883,7 +883,6 @@ consider_for_advertising (const struct GNUNET_HELLO_Message *hello)
   peer = find_peer (&pid);
   if (peer == NULL)
     peer = make_peer (&pid, hello, GNUNET_NO);
-  // FIXME: check if 'hello' is any different from peer->hello?
 #if DEBUG_TOPOLOGY
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Found `%s' from peer `%s' for advertising\n",
