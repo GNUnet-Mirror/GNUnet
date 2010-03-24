@@ -115,7 +115,6 @@ testNamespace ()
 {
   struct GNUNET_FS_Namespace *ns;
   struct GNUNET_FS_Uri *adv;
-  struct GNUNET_FS_Uri *rootUri;
   struct GNUNET_CONTAINER_MetaData *meta;
   struct GNUNET_TIME_Absolute expiration;
 
@@ -124,14 +123,14 @@ testNamespace ()
   adv = GNUNET_FS_uri_ksk_create ("testNamespace", NULL);
   ns = GNUNET_FS_namespace_create (fs,
 				   "testNamespace");
-  rootUri = GNUNET_FS_namespace_advertise (fs,
-					   ns,
-					   meta,
-					   1, 1,
-					   expiration,
-					   adv,
-					   "root");
-  GNUNET_assert (NULL != rootUri);
+  GNUNET_FS_namespace_advertise (fs,
+				 ns,
+				 meta,
+				 1, 1,
+				 expiration,					   
+				 "root",
+				 &publish_cont, NULL);
+#if 0
   GNUNET_FS_publish_sks (fs,
 			 ns,
 			 "this",
@@ -143,6 +142,7 @@ testNamespace ()
 			 GNUNET_FS_PUBLISH_OPTION_NONE,
 			 &publish_cont,
 			 NULL);
+#endif
   GNUNET_CONTAINER_meta_data_destroy (meta);
 }
 
