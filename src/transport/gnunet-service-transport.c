@@ -3147,7 +3147,7 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 				    gettext_noop ("# bandwidth quota violations by other peers"),
 				    1,
 				    GNUNET_NO);
-	  return GNUNET_TIME_UNIT_MINUTES; /* minimum penalty, likely ignored (UDP...) */
+	  return GNUNET_CONSTANTS_QUOTA_VIOLATION_TIMEOUT;
 	}
       switch (ntohs (message->type))
 	{

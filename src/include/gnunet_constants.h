@@ -52,6 +52,11 @@ extern "C"
 #define GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 /**
+ * How long do we delay reading more from a peer after a quota violation?
+ */
+#define GNUNET_CONSTANTS_QUOTA_VIOLATION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2)
+
+/**
  * How long do we wait after a FORK+EXEC before testing for the
  * resulting process to be up (port open, waitpid, etc.)?
  */
