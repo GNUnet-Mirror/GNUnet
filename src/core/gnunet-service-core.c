@@ -77,11 +77,6 @@
 #define PAST_EXPIRATION_DISCARD_TIME GNUNET_TIME_UNIT_SECONDS
 
 /**
- * How long do we delay messages to get larger packet sizes (CORKing)?
- */
-#define MAX_CORK_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
-
-/**
  * What is the maximum delay for a SET_KEY message?
  */
 #define MAX_SET_KEY_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
@@ -784,7 +779,7 @@ send_to_client (struct Client *client,
 #if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Preparing to send message of type %u to client.\n",
-              ntohs (msg->type));
+              (unsigned int) ntohs (msg->type));
 #endif  
   GNUNET_SERVER_notification_context_unicast (notifier,
 					      client->client_handle,
@@ -816,7 +811,7 @@ send_to_all_clients (const struct GNUNET_MessageHeader *msg,
 #if DEBUG_CORE_CLIENT
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Sending message of type %u to client.\n",
-		      ntohs (msg->type));
+		      (unsigned int) ntohs (msg->type));
 #endif
 	  send_to_client (c, msg, can_drop);
 	}
@@ -885,7 +880,7 @@ handle_client_init (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Client %p is interested in %u message types\n",
 	      c,
-	      c->tcnt);
+	      (unsigned int) c->tcnt);
 #endif
   /* send init reply message */
   irm.header.size = htons (sizeof (struct InitReplyMessage));
@@ -1156,8 +1151,10 @@ do_encrypt (struct Neighbour *n,
   GNUNET_STATISTICS_update (stats, gettext_noop ("# bytes encrypted"), size, GNUNET_NO);
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Encrypted %u bytes for `%4s' using key %u\n", size,
-              GNUNET_i2s (&n->peer), n->encrypt_key.crc32);
+              "Encrypted %u bytes for `%4s' using key %u\n", 
+	      (unsigned int) size,
+              GNUNET_i2s (&n->peer),
+	      (unsigned int) n->encrypt_key.crc32);
 #endif
   return GNUNET_OK;
 }
@@ -1207,14 +1204,13 @@ send_keep_alive (void *cls,
   pm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_PING);
   pp.challenge = htonl (n->ping_challenge);
   pp.target = n->peer;
-#if DEBUG_CORE
+#if DEBUG_HANDSHAKE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Encrypting `%s' and `%s' messages for `%4s'.\n",
-              "SET_KEY", "PING", GNUNET_i2s (&n->peer));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending `%s' to `%4s' with challenge %u encrypted using key %u\n",
-              "PING",
-              GNUNET_i2s (&n->peer), n->ping_challenge, n->encrypt_key.crc32);
+              "Encrypting `%s' message with challenge %u for `%4s' using key %u.\n",
+              "PING", 
+	      (unsigned int) n->ping_challenge,
+	      GNUNET_i2s (&n->peer),
+	      (unsigned int) n->encrypt_key.crc32);
 #endif
   do_encrypt (n,
               &n->peer.hashPubKey,
@@ -1343,8 +1339,9 @@ notify_encrypted_transmit_ready (void *cls, size_t size, void *buf)
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Copied message of type %u and size %u into transport buffer for `%4s'\n",
-                  ntohs (((struct GNUNET_MessageHeader *) &m[1])->type),
-                  ret, GNUNET_i2s (&n->peer));
+                  (unsigned int) ntohs (((struct GNUNET_MessageHeader *) &m[1])->type),
+                  (unsigned int) ret, 
+		  GNUNET_i2s (&n->peer));
 #endif
       process_encrypted_neighbour_queue (n);
     }
@@ -1353,8 +1350,8 @@ notify_encrypted_transmit_ready (void *cls, size_t size, void *buf)
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Transmission of message of type %u and size %u failed\n",
-                  ntohs (((struct GNUNET_MessageHeader *) &m[1])->type),
-                  m->size);
+                  (unsigned int) ntohs (((struct GNUNET_MessageHeader *) &m[1])->type),
+                  (unsigned int) m->size);
 #endif
     }
   GNUNET_free (m);
@@ -1397,9 +1394,9 @@ process_encrypted_neighbour_queue (struct Neighbour *n)
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking transport for transmission of %u bytes to `%4s' in next %llu ms\n",
-              m->size,
+              (unsigned int) m->size,
               GNUNET_i2s (&n->peer),
-              GNUNET_TIME_absolute_get_remaining (m->deadline).
+              (unsigned long long) GNUNET_TIME_absolute_get_remaining (m->deadline).
               value);
 #endif
   n->th =
@@ -1467,7 +1464,9 @@ do_decrypt (struct Neighbour *n,
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Decrypted %u bytes from `%4s' using key %u\n",
-              size, GNUNET_i2s (&n->peer), n->decrypt_key.crc32);
+              (unsigned int) size, 
+	      GNUNET_i2s (&n->peer),
+	      (unsigned int) n->decrypt_key.crc32);
 #endif
   return GNUNET_OK;
 }
@@ -1537,7 +1536,7 @@ select_messages (struct Neighbour *n,
       off = 0;
       /* maximum time we can wait before transmitting anything
          and still make all of our deadlines */
-      slack = MAX_CORK_DELAY;
+      slack = GNUNET_CONSTANTS_MAX_CORK_DELAY;
       pos = n->messages;
       /* note that we use "*2" here because we want to look
          a bit further into the future; much more makes no
@@ -1593,7 +1592,7 @@ select_messages (struct Neighbour *n,
 						  GNUNET_TIME_absolute_get_difference (now, pos->deadline));
 		      pos->got_slack = GNUNET_YES;
 		      pos->slack_deadline = GNUNET_TIME_absolute_min (pos->deadline,
-								      GNUNET_TIME_relative_to_absolute (MAX_CORK_DELAY));
+								      GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_MAX_CORK_DELAY));
 		    }
                 }
             }
@@ -1625,7 +1624,7 @@ select_messages (struct Neighbour *n,
          being met if we delay by one second or more; so just wait for
          more data; but do not wait longer than 1s (since we don't want
 	 to delay messages for a really long time either). */
-      *retry_time = MAX_CORK_DELAY;
+      *retry_time = GNUNET_CONSTANTS_MAX_CORK_DELAY;
       /* reset do_transmit values for next time */
       while (pos != last)
         {
@@ -1749,7 +1748,7 @@ batch_message (struct Neighbour *n,
 #if DEBUG_HANDSHAKE
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Encrypting message of type %u\n",
-		      ntohs(((struct GNUNET_MessageHeader*)&pos[1])->type));
+		      (unsigned int) ntohs(((struct GNUNET_MessageHeader*)&pos[1])->type));
 #endif
 	  /* copy for encrypted transmission */
           memcpy (&buf[ret], &pos[1], pos->size);
@@ -1759,8 +1758,8 @@ batch_message (struct Neighbour *n,
 #if DEBUG_CORE
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Adding plaintext message of size %u with deadline %llu ms to batch\n",
-		      pos->size,
-		      GNUNET_TIME_absolute_get_remaining (pos->deadline).value);
+		      (unsigned int) pos->size,
+		      (unsigned long long) GNUNET_TIME_absolute_get_remaining (pos->deadline).value);
 #endif
           deadline->value = GNUNET_MIN (deadline->value, pos->deadline.value);
           GNUNET_free (pos);
@@ -2002,18 +2001,18 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
 		      esize - sizeof (GNUNET_HashCode), 
 		      &ph->plaintext_hash);
   GNUNET_CRYPTO_hash (&ph->iv_seed, sizeof (uint32_t), &iv);
-#if DEBUG_CORE
+#if DEBUG_HANDSHAKE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Hashed %u bytes of plaintext (`%s') using IV `%d'\n",
-	      esize - sizeof (GNUNET_HashCode),
+	      (unsigned int) (esize - sizeof (GNUNET_HashCode)),
 	      GNUNET_h2s (&ph->plaintext_hash),
 	      (int) ph->iv_seed);
 #endif
   /* encrypt */
-#if DEBUG_CORE
+#if DEBUG_HANDSHAKE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Encrypting %u bytes of plaintext messages for `%4s' for transmission in %llums.\n",
-	      esize,
+	      (unsigned int) esize,
 	      GNUNET_i2s(&n->peer),
 	      (unsigned long long) GNUNET_TIME_absolute_get_remaining (deadline).value);
 #endif
@@ -2147,7 +2146,7 @@ handle_client_send (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core received `%s' request, queueing %u bytes of plaintext data for transmission to `%4s'.\n",
 	      "SEND",
-              msize, 
+              (unsigned int) msize, 
 	      GNUNET_i2s (&sm->peer));
 #endif
   /* bound queue size */
@@ -2180,9 +2179,9 @@ handle_client_send (void *cls,
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Queue full (%u/%u), discarding new request (%u bytes of type %u)\n",
 		      queue_size,
-		      MAX_PEER_QUEUE_SIZE,
-		      msize,
-		      ntohs (message->type));
+		      (unsigned int) MAX_PEER_QUEUE_SIZE,
+		      (unsigned int) msize,
+		      (unsigned int) ntohs (message->type));
 #endif
 	  if (client != NULL)
 	    GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -2204,7 +2203,7 @@ handle_client_send (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Adding transmission request for `%4s' of size %u to queue\n",
 	      GNUNET_i2s (&sm->peer),
-	      msize);
+	      (unsigned int) msize);
 #endif  
   e = GNUNET_malloc (sizeof (struct MessageEntry) + msize);
   e->deadline = GNUNET_TIME_absolute_ntoh (sm->deadline);
@@ -2526,14 +2525,13 @@ send_key (struct Neighbour *n)
   pm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_PING);
   pp.challenge = htonl (n->ping_challenge);
   pp.target = n->peer;
-#if DEBUG_CORE
+#if DEBUG_HANDSHAKE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Encrypting `%s' and `%s' messages for `%4s'.\n",
-              "SET_KEY", "PING", GNUNET_i2s (&n->peer));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending `%s' to `%4s' with challenge %u encrypted using key %u\n",
-              "PING",
-              GNUNET_i2s (&n->peer), n->ping_challenge, n->encrypt_key.crc32);
+              "Encrypting `%s' and `%s' messages with challenge %u for `%4s' using key %u.\n",
+              "SET_KEY", "PING",
+	      (unsigned int) n->ping_challenge,
+	      GNUNET_i2s (&n->peer),
+	      (unsigned int) n->encrypt_key.crc32);
 #endif
   do_encrypt (n,
               &n->peer.hashPubKey,
@@ -2663,15 +2661,13 @@ handle_ping (struct Neighbour *n, const struct PingMessage *m)
                   sizeof (struct PingMessage) -
                   sizeof (struct GNUNET_MessageHeader)))
     return;
-#if DEBUG_CORE
+#if DEBUG_HANDSHAKE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Decrypted `%s' to `%4s' with challenge %u decrypted using key %u\n",
               "PING",
               GNUNET_i2s (&t.target),
-              ntohl (t.challenge), n->decrypt_key.crc32);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Target of `%s' request is `%4s'.\n",
-              "PING", GNUNET_i2s (&t.target));
+              (unsigned int) ntohl (t.challenge), 
+	      (unsigned int) n->decrypt_key.crc32);
 #endif
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# PING messages decrypted"), 
@@ -2709,10 +2705,12 @@ handle_ping (struct Neighbour *n, const struct PingMessage *m)
 			    gettext_noop ("# PONG messages created"), 
 			    1, 
 			    GNUNET_NO);
-#if DEBUG_CORE
+#if DEBUG_HANDSHAKE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Encrypting `%s' with challenge %u using key %u\n", "PONG",
-              ntohl (t.challenge), n->encrypt_key.crc32);
+              "Encrypting `%s' with challenge %u using key %u\n",
+	      "PONG",
+              (unsigned int) ntohl (t.challenge),
+	      (unsigned int) n->encrypt_key.crc32);
 #endif
   /* trigger queue processing */
   process_encrypted_neighbour_queue (n);
@@ -2757,12 +2755,13 @@ handle_pong (struct Neighbour *n,
       GNUNET_break_op (0);
       return;
     }
-#if DEBUG_CORE
+#if DEBUG_HANDSHAKE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Decrypted `%s' from `%4s' with challenge %u using key %u\n",
               "PONG",
               GNUNET_i2s (&t.target),
-              ntohl (t.challenge), n->decrypt_key.crc32);
+              (unsigned int) ntohl (t.challenge),
+	      (unsigned int) n->decrypt_key.crc32);
 #endif
   if ((0 != memcmp (&t.target,
                     &n->peer,
@@ -2773,10 +2772,13 @@ handle_pong (struct Neighbour *n,
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Received malformed `%s' wanted sender `%4s' with challenge %u\n",
-                  "PONG", GNUNET_i2s (&n->peer), n->ping_challenge);
+                  "PONG", 
+		  GNUNET_i2s (&n->peer),
+		  (unsigned int) n->ping_challenge);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Received malformed `%s' received from `%4s' with challenge %u\n",
-                  "PONG", GNUNET_i2s (&t.target), ntohl (t.challenge));
+                  "PONG", GNUNET_i2s (&t.target), 
+		  (unsigned int) ntohl (t.challenge));
 #endif
       GNUNET_break_op (0);
       return;
@@ -2979,7 +2981,8 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
 #if DEBUG_CORE
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Responding to `%s' with my own key (other peer has status %u).\n",
-                      "SET_KEY", sender_status);
+                      "SET_KEY",
+		      (unsigned int) sender_status);
 #endif
           send_key (n);
         }
@@ -2991,7 +2994,8 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
 #if DEBUG_CORE
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Responding to `%s' with my own key (other peer has status %u), I was already fully up.\n",
-                      "SET_KEY", sender_status);
+                      "SET_KEY", 
+		      (unsigned int) sender_status);
 #endif
           send_key (n);
         }
@@ -3037,7 +3041,7 @@ send_p2p_message_to_client (struct Neighbour *sender,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core service passes message from `%4s' of type %u to client.\n",
 	      GNUNET_i2s(&sender->peer),
-              ntohs (((const struct GNUNET_MessageHeader *) m)->type));
+              (unsigned int) ntohs (((const struct GNUNET_MessageHeader *) m)->type));
 #endif
   ntm = (struct NotifyTrafficMessage *) buf;
   ntm->header.size = htons (msize + sizeof (struct NotifyTrafficMessage));
@@ -3072,13 +3076,13 @@ deliver_message (struct Neighbour *sender,
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received encapsulated message of type %u from `%4s'\n",
-	      type,
+	      (unsigned int) type,
 	      GNUNET_i2s (&sender->peer));
 #endif
   GNUNET_snprintf (buf,
 		   sizeof(buf),
 		   gettext_noop ("# bytes of messages of type %u received"),
-		   type);
+		   (unsigned int) type);
   GNUNET_STATISTICS_set (stats,
 			 buf,
 			 msize,
@@ -3117,7 +3121,7 @@ deliver_message (struct Neighbour *sender,
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Message of type %u from `%4s' not delivered to any client.\n",
-		  type,
+		  (unsigned int) type,
 		  GNUNET_i2s (&sender->peer));
 #endif
       /* FIXME: stats... */
@@ -3231,10 +3235,10 @@ handle_encrypted_message (struct Neighbour *n,
   /* validate hash */
   GNUNET_CRYPTO_hash (&pt->sequence_number,
                       size - ENCRYPTED_HEADER_SIZE - sizeof (GNUNET_HashCode), &ph);
-#if DEBUG_HANDSHAKE
+#if DEBUG_HANDSHAKE 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "V-Hashed %u bytes of plaintext (`%s') using IV `%d'\n",
-	      size - ENCRYPTED_HEADER_SIZE - sizeof (GNUNET_HashCode),
+	      (unsigned int) (size - ENCRYPTED_HEADER_SIZE - sizeof (GNUNET_HashCode)),
 	      GNUNET_h2s (&ph),
 	      (int) m->iv_seed);
 #endif
@@ -3373,7 +3377,8 @@ handle_transport_receive (void *cls,
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received message of type %u from `%4s', demultiplexing.\n",
-              ntohs (message->type), GNUNET_i2s (peer));
+              (unsigned int) ntohs (message->type), 
+	      GNUNET_i2s (peer));
 #endif
   if (0 == memcmp (peer, &my_identity, sizeof (struct GNUNET_PeerIdentity)))
     {
@@ -3389,10 +3394,10 @@ handle_transport_receive (void *cls,
   type = ntohs (message->type);
   size = ntohs (message->size);
 #if DEBUG_HANDSHAKE
-  fprintf (stderr,
-	   "Received message of type %u from `%4s'\n",
-	   type,
-	   GNUNET_i2s (peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received message of type %u from `%4s'\n",
+	      (unsigned int) type,
+	      GNUNET_i2s (peer));
 #endif
   switch (type)
     {
@@ -3473,7 +3478,8 @@ handle_transport_receive (void *cls,
       break;
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("Unsupported message of type %u received.\n"), type);
+                  _("Unsupported message of type %u received.\n"),
+		  (unsigned int) type);
       return;
     }
   if (n->status == PEER_STATE_KEY_CONFIRMED)
