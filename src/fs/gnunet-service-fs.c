@@ -53,6 +53,13 @@
  */
 #define MAX_QUEUE_PER_PEER 2
 
+/**
+ * Inverse of the probability that we will submit the same query
+ * to the same peer again.  If the same peer already got the query
+ * repeatedly recently, the probability is multiplied by the inverse
+ * of this number each time.
+ */
+#define RETRY_PROBABILITY_INV 8
 
 /**
  * What is the maximum delay for a P2P FS message (in our interaction
@@ -631,7 +638,7 @@ destroy_pending_message (struct PendingMessage *pm,
   cont = pm->cont;
   cont_cls = pm->cont_cls;
   destroy_pending_message_list_entry (pml);
-  cont (cont_cls, 0);  
+  cont (cont_cls, tpid);  
 }
 
 
@@ -1128,19 +1135,22 @@ test_load_too_high ()
 
 /**
  * We use a random delay to make the timing of requests less
- * predictable.  This function returns such a random delay.
+ * predictable.  This function returns such a random delay.  We add a base
+ * delay of MAX_CORK_DELAY (1s).
  *
  * FIXME: make schedule dependent on the specifics of the request?
  * Or bandwidth and number of connected peers and load?
  *
- * @return random delay to use for some request, between 0 and TTL_DECREMENT ms
+ * @return random delay to use for some request, between 1s and 1000+TTL_DECREMENT ms
  */
 static struct GNUNET_TIME_Relative
 get_processing_delay ()
 {
-  return GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
-					GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-								  TTL_DECREMENT));
+  return 
+    GNUNET_TIME_relative_add (GNUNET_CONSTANTS_MAX_CORK_DELAY,
+			      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+							     GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+										       TTL_DECREMENT)));
 }
 
 
@@ -1462,7 +1472,9 @@ target_peer_select_cb (void *cls,
   
   /* 1) check if we have already (recently) forwarded to this peer */
   for (i=0;i<pr->used_pids_off;i++)
-    if (pr->used_pids[i] == cp->pid)
+    if ( (pr->used_pids[i] == cp->pid) &&
+	 (0 != GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+					 RETRY_PROBABILITY_INV)) )
       return GNUNET_YES; /* skip */
   // 2) calculate how much we'd like to forward to this peer
   score = 42; // FIXME!
@@ -1513,7 +1525,8 @@ forward_request_task (void *cls,
     {
 #if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "No peer selected for forwarding!\n");
+		  "No peer selected for forwarding of query `%s'!\n",
+		  GNUNET_h2s (&pr->query));
 #endif
       pr->task = GNUNET_SCHEDULER_add_delayed (sched,
 					       get_processing_delay (),

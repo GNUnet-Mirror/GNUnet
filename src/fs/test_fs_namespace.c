@@ -99,22 +99,51 @@ spcb (void *cls,
 
 static void
 publish_cont (void *cls,
-	      const struct GNUNET_FS_Uri *uri,
+	      const struct GNUNET_FS_Uri *ksk_uri,
 	      const char *emsg)
 {
   struct GNUNET_FS_SearchContext *search;
 
   GNUNET_assert (NULL == emsg);
-  fprintf (stderr, "Starting namespace search...\n");
-  search = GNUNET_FS_search_start (fs, uri, 1, "ns-search");
+  fprintf (stderr, "Starting keyword search...\n");
+  search = GNUNET_FS_search_start (fs, ksk_uri, 1, NULL);
 }
+
+
+static void
+sks_cont (void *cls,
+	  const struct GNUNET_FS_Uri *uri,
+	  const char *emsg)
+{
+  struct GNUNET_CONTAINER_MetaData *meta;
+  struct GNUNET_TIME_Absolute expiration;
+  struct GNUNET_FS_Uri *ksk_uri;
+  char * msg;
+
+  expiration = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
+  meta = GNUNET_CONTAINER_meta_data_create ();
+  msg = NULL;
+  ksk_uri = GNUNET_FS_uri_parse ("gnunet://fs/ksk/ns-search", &msg);
+  GNUNET_assert (NULL == msg);
+  fprintf (stderr, "Advertising update 'this' namespace entry under keyword...\n");
+  GNUNET_FS_publish_ksk (fs,
+			 ksk_uri,
+			 meta,
+			 uri,
+			 expiration,
+			 1, 1,
+			 GNUNET_FS_PUBLISH_OPTION_NONE,
+			 &publish_cont,
+			 NULL);
+  GNUNET_CONTAINER_meta_data_destroy (meta);
+}
+
 
 static void
 adv_cont (void *cls,
 	      const struct GNUNET_FS_Uri *uri,
 	      const char *emsg)
 {
-  struct GNUNET_FS_SearchContext *search;
   struct GNUNET_CONTAINER_MetaData *meta;
   struct GNUNET_FS_Namespace *ns;
   struct GNUNET_TIME_Absolute expiration;
@@ -124,18 +153,17 @@ adv_cont (void *cls,
 				   "testNamespace");
   meta = GNUNET_CONTAINER_meta_data_create ();
   GNUNET_assert (NULL == emsg);
-  fprintf (stderr, "Starting namespace search...\n");
-  search = GNUNET_FS_search_start (fs, uri, 1, "ns-search");
+  fprintf (stderr, "Advertising update 'this->next' namespace update...\n");
   GNUNET_FS_publish_sks (fs,
 			 ns,
 			 "this",
 			 "next",
 			 meta,
-			 uri,
+			 uri, /* FIXME: this is non-sense (use CHK URI!) */
 			 expiration,
 			 1, 1,
 			 GNUNET_FS_PUBLISH_OPTION_NONE,
-			 &publish_cont,
+			 &sks_cont,
 			 NULL);
   GNUNET_CONTAINER_meta_data_destroy (meta);
   GNUNET_FS_namespace_delete (ns, GNUNET_NO);
@@ -153,6 +181,7 @@ testNamespace ()
   meta = GNUNET_CONTAINER_meta_data_create ();
   ns = GNUNET_FS_namespace_create (fs,
 				   "testNamespace");
+  fprintf (stderr, "Advertising namespace root...\n");
   GNUNET_FS_namespace_advertise (fs,
 				 ns,
 				 meta,
