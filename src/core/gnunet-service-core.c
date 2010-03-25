@@ -42,9 +42,9 @@
 #include "core.h"
 
 
-#define DEBUG_HANDSHAKE GNUNET_YES
+#define DEBUG_HANDSHAKE GNUNET_NO
 
-#define DEBUG_CORE_QUOTA GNUNET_NO
+#define DEBUG_CORE_QUOTA GNUNET_YES
 
 /**
  * Receive and send buffer windows grow over time.  For
@@ -1747,9 +1747,9 @@ batch_message (struct Neighbour *n,
 			       GNUNET_YES,
 			       GNUNET_CORE_OPTION_SEND_FULL_OUTBOUND); 	 
 #if DEBUG_HANDSHAKE
-	  fprintf (stderr,
-		   "Encrypting message of type %u\n",
-		   ntohs(((struct GNUNET_MessageHeader*)&pos[1])->type));
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Encrypting message of type %u\n",
+		      ntohs(((struct GNUNET_MessageHeader*)&pos[1])->type));
 #endif
 	  /* copy for encrypted transmission */
           memcpy (&buf[ret], &pos[1], pos->size);
@@ -3231,7 +3231,7 @@ handle_encrypted_message (struct Neighbour *n,
   /* validate hash */
   GNUNET_CRYPTO_hash (&pt->sequence_number,
                       size - ENCRYPTED_HEADER_SIZE - sizeof (GNUNET_HashCode), &ph);
-#if DEBUG_CORE
+#if DEBUG_HANDSHAKE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "V-Hashed %u bytes of plaintext (`%s') using IV `%d'\n",
 	      size - ENCRYPTED_HEADER_SIZE - sizeof (GNUNET_HashCode),
