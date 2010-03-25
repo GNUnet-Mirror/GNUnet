@@ -1302,9 +1302,9 @@ publish_ksk_cont (void *cls,
  */
 void
 GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
-		       struct GNUNET_FS_Uri *ksk_uri,
-		       struct GNUNET_CONTAINER_MetaData *meta,
-		       struct GNUNET_FS_Uri *uri,
+		       const struct GNUNET_FS_Uri *ksk_uri,
+		       const struct GNUNET_CONTAINER_MetaData *meta,
+		       const struct GNUNET_FS_Uri *uri,
 		       struct GNUNET_TIME_Absolute expirationTime,
 		       uint32_t anonymity,
 		       uint32_t priority,
