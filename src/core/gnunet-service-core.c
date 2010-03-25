@@ -1658,9 +1658,9 @@ select_messages (struct Neighbour *n,
     }
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Selected %u/%u bytes of %u/%u plaintext messages for transmission to `%4s'.\n",
-              off, tsize,
-	      queue_size, MAX_PEER_QUEUE_SIZE,
+              "Selected %llu/%llu bytes of %u/%u plaintext messages for transmission to `%4s'.\n",
+              (unsigned long long) off, (unsigned long long) tsize,
+	      queue_size, (unsigned int) MAX_PEER_QUEUE_SIZE,
 	      GNUNET_i2s (&n->peer));
 #endif
   return off;
