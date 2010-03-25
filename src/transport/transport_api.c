@@ -356,6 +356,12 @@ struct GNUNET_TRANSPORT_Handle
    * Delay until we try to reconnect.
    */
   struct GNUNET_TIME_Relative reconnect_delay;
+  
+  /**
+   * Set once we are in the process of disconnecting from the
+   * service.
+   */
+  int in_disconnect;
 
 };
 
@@ -1215,6 +1221,8 @@ schedule_reconnect (struct GNUNET_TRANSPORT_Handle *h)
 
 /**
  * Add neighbour to our list
+ *
+ * @return NULL if this API is currently disconnecting from the service
  */
 static struct NeighbourList *
 neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
@@ -1222,6 +1230,8 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
 {
   struct NeighbourList *n;
 
+  if (GNUNET_YES == h->in_disconnect)
+    return NULL;
   /* check for duplicates */
   if (NULL != (n = neighbour_find (h, pid)))
     {
@@ -1295,6 +1305,7 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transport disconnect called!\n");
 #endif
+  handle->in_disconnect = GNUNET_YES;
   while (NULL != (n = handle->neighbours))
     {
       handle->neighbours = n->next;
@@ -1478,6 +1489,8 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
       if (n == NULL)
 	n = neighbour_add (h,
 			   &cim->id);
+      if (n == NULL)
+	return;
       GNUNET_break (n->is_connected == GNUNET_NO);
       n->is_connected = GNUNET_YES;
       if (h->nc_cb != NULL)
