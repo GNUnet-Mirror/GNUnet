@@ -1313,7 +1313,16 @@ target_reservation_cb (void *cls,
   uint32_t bm;
 
   pr->irc = NULL;
-  GNUNET_assert (peer != NULL);
+  if (peer == NULL)
+    {
+      /* error in communication with core, try again later */
+      if (pr->task == GNUNET_SCHEDULER_NO_TASK)
+	pr->task = GNUNET_SCHEDULER_add_delayed (sched,
+						 get_processing_delay (),
+						 &forward_request_task,
+						 pr);
+      return;
+    }
   // (3) transmit, update ttl/priority
   cp = GNUNET_CONTAINER_multihashmap_get (connected_peers,
 					  &peer->hashPubKey);
