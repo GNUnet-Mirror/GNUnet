@@ -702,6 +702,8 @@ tcp_plugin_send (void *cls,
 						session);
 	  continue;
 	}
+      if (GNUNET_SYSERR == force_address)
+	continue;
       GNUNET_break (GNUNET_YES == force_address);
       if (addr == NULL)
 	{
