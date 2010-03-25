@@ -3171,10 +3171,22 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 		      ntohs (message->type), GNUNET_i2s (peer));
 #endif
 	  if (GNUNET_YES == GNUNET_BANDWIDTH_tracker_consume (&n->in_tracker,
-							      msize))
-	    n->quota_violation_count++;
+							      (ssize_t) msize))
+	    {
+	      n->quota_violation_count++;
+	      if (n->quota_violation_count > QUOTA_VIOLATION_DROP_THRESHOLD)
+		{
+		  /* since we'll be dropping, only count this message for half so that
+		     peers that send aggressively at the quota don't get "punished"
+		     forever */
+		  GNUNET_BANDWIDTH_tracker_consume (&n->in_tracker,
+						    - (ssize_t) msize / 2);
+		}
+	    }
 	  else 
-	    n->quota_violation_count = 0; /* back within limits */
+	    {
+	      n->quota_violation_count = 0; /* back within limits */
+	    }
 	  GNUNET_STATISTICS_update (stats,
 				    gettext_noop ("# payload received from other peers"),
 				    msize,
