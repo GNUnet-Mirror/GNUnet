@@ -1244,7 +1244,6 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
     }
   rl = NULL;
   mq = neighbour->messages_head;
-  /* FIXME: support bi-directional use of TCP */
   force_address = GNUNET_YES;
   if (mq->specific_address == NULL)
     {
@@ -2939,10 +2938,6 @@ disconnect_neighbour (struct NeighbourList *n, int check)
 /**
  * We have received a PING message from someone.  Need to send a PONG message
  * in response to the peer by any means necessary. 
- *
- * FIXME: With something like TCP where a connection exists, we may
- * want to send it that way.  But the current API does not seem to
- * allow us to do so (can't tell this to the transport!)
  */
 static int 
 handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
