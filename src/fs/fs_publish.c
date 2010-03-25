@@ -833,10 +833,20 @@ do_upload (void *cls,
 	  fn = GNUNET_CONTAINER_meta_data_get_by_type (p->meta,
 						       EXTRACTOR_METATYPE_FILENAME);
 	  p = p->dir;
-	  GNUNET_asprintf (&p->emsg, 
-			   _("Recursive upload failed at `%s'"),
-			   fn);
-	  GNUNET_free (fn);
+	  if (fn != NULL)
+	    {
+	      GNUNET_asprintf (&p->emsg, 
+			       _("Recursive upload failed at `%s': %s"),
+			       fn,
+			       p->emsg);
+	      GNUNET_free (fn);
+	    }
+	  else
+	    {
+	      GNUNET_asprintf (&p->emsg, 
+			       _("Recursive upload failed: %s"),
+			       p->emsg);	      
+	    }
 	  GNUNET_FS_file_information_sync (p);
 	  pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
 	  make_publish_status (&pi, sc, p, 0);
