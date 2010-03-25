@@ -783,26 +783,28 @@ search_start (struct GNUNET_FS_Handle *h,
   sc->parent = parent;
   sc->master_result_map = GNUNET_CONTAINER_multihashmap_create (16);
   sc->client_info = cctx;
-
-  sc->requests = GNUNET_malloc (sizeof (struct SearchRequestEntry) *
-				sc->uri->data.ksk.keywordCount);
-  for (i=0;i<sc->uri->data.ksk.keywordCount;i++)
+  if (GNUNET_FS_uri_test_ksk (uri))
     {
-      keyword = &sc->uri->data.ksk.keywords[i][1];
-      GNUNET_CRYPTO_hash (keyword, strlen (keyword), &hc);
-      pk = GNUNET_CRYPTO_rsa_key_create_from_hash (&hc);
-      GNUNET_CRYPTO_rsa_key_get_public (pk, &pub);
-      GNUNET_CRYPTO_rsa_key_free (pk);
-      GNUNET_CRYPTO_hash (&pub,
-			  sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), 
-			  &sc->requests[i].query);
-      sc->requests[i].mandatory = (sc->uri->data.ksk.keywords[i][0] == '+');
-      if (sc->requests[i].mandatory)
-	sc->mandatory_count++;
-      sc->requests[i].results = GNUNET_CONTAINER_multihashmap_create (4);
-      GNUNET_CRYPTO_hash (keyword,
-			  strlen (keyword),
-			  &sc->requests[i].key);
+      sc->requests = GNUNET_malloc (sizeof (struct SearchRequestEntry) *
+				    sc->uri->data.ksk.keywordCount);
+      for (i=0;i<sc->uri->data.ksk.keywordCount;i++)
+	{
+	  keyword = &sc->uri->data.ksk.keywords[i][1];
+	  GNUNET_CRYPTO_hash (keyword, strlen (keyword), &hc);
+	  pk = GNUNET_CRYPTO_rsa_key_create_from_hash (&hc);
+	  GNUNET_CRYPTO_rsa_key_get_public (pk, &pub);
+	  GNUNET_CRYPTO_rsa_key_free (pk);
+	  GNUNET_CRYPTO_hash (&pub,
+			      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), 
+			      &sc->requests[i].query);
+	  sc->requests[i].mandatory = (sc->uri->data.ksk.keywords[i][0] == '+');
+	  if (sc->requests[i].mandatory)
+	    sc->mandatory_count++;
+	  sc->requests[i].results = GNUNET_CONTAINER_multihashmap_create (4);
+	  GNUNET_CRYPTO_hash (keyword,
+			      strlen (keyword),
+			      &sc->requests[i].key);
+	}
     }
   if (NULL != parent)
     {
