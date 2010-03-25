@@ -75,7 +75,16 @@ static void
 do_download (void *cls,
 	     const struct GNUNET_FS_Uri *uri)
 {
-  GNUNET_assert (NULL != uri);
+  if (NULL == uri)
+    {
+      GNUNET_FS_TEST_daemons_stop (sched,
+				   NUM_DAEMONS,
+				   daemons);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Timeout during upload attempt, shutting down with error\n");
+      ok = 1;
+      return;
+    }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Downloading %llu bytes\n",
 	      (unsigned long long) FILESIZE);
@@ -92,7 +101,16 @@ static void
 do_publish (void *cls,
 	    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE));
+  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
+    {
+      GNUNET_FS_TEST_daemons_stop (sched,
+				   NUM_DAEMONS,
+				   daemons);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Timeout during connect attempt, shutting down with error\n");
+      ok = 1;
+      return;
+    }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Publishing %llu bytes\n",
 	      (unsigned long long) FILESIZE);

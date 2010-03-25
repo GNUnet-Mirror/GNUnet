@@ -47,14 +47,6 @@ struct PeerContext
 };
 
 
-static void *
-progress_cb (void *cls, 
-	     const struct GNUNET_FS_ProgressInfo *event)
-{
-  return NULL;
-}
-
-
 static void
 setup_peer (struct PeerContext *p, const char *cfgname)
 {
@@ -95,6 +87,15 @@ spcb (void *cls,
 {
 }
 #endif
+
+
+
+static void *
+progress_cb (void *cls, 
+	     const struct GNUNET_FS_ProgressInfo *event)
+{
+  return NULL;
+}
 
 
 static void
