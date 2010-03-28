@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -40,7 +40,7 @@
 #include "fs.h"
 #include "fs_tree.h"
 
-#define DEBUG_PUBLISH GNUNET_NO
+#define DEBUG_PUBLISH GNUNET_YES
 
 /**
  * Main function that performs the upload.
@@ -1487,8 +1487,9 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   struct SBlock *sb;
   struct SBlock *sb_enc;
   char *dest;
-  GNUNET_HashCode key;           /* hash of thisId = key */
+  GNUNET_HashCode key;         /* hash of thisId = key */
   GNUNET_HashCode id;          /* hash of hc = identifier */
+  GNUNET_HashCode query;       /* id ^ nsid = DB query */
 
   uris = GNUNET_FS_uri_to_string (uri);
   slen = strlen (uris) + 1;
@@ -1575,10 +1576,12 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
 		   _("Failed to connect to datastore."));
       return;
     }
-
+  GNUNET_CRYPTO_hash_xor (&sks_uri->data.sks.namespace,
+			  &id,
+			  &query);  
   GNUNET_DATASTORE_put (psc->dsh,
 			0,
-			&sb->identifier,
+			&sb_enc->identifier,
 			size,
 			sb_enc,
 			GNUNET_DATASTORE_BLOCKTYPE_SBLOCK, 
@@ -1588,133 +1591,9 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
 			GNUNET_CONSTANTS_SERVICE_TIMEOUT,
 			&sb_put_cont,
 			psc);
+
   GNUNET_free (sb);
   GNUNET_free (sb_enc);
 }
-
-
-#if 0
-
-/**
- * Add an entry into a namespace.
- *
- * @param dstU to which URI should the namespace entry refer?
- * @param md what meta-data should be associated with the
- *        entry?
- * @param thisId name of this entry in the namespace (keyword/identifier)
- * @param nextId name of the update for this entry (to be published in
- *               the future; maybe NULL)
- * @param pid unique identifier of the namespace/pseudonym
- * @return URI on success, NULL on error
- */
-struct GNUNET_ECRS_URI *
-GNUNET_ECRS_namespace_add_content (struct GNUNET_GE_Context *ectx,
-                                   struct GNUNET_GC_Configuration *cfg,
-                                   const GNUNET_HashCode * pid,
-                                   uint32_t anonymityLevel,
-                                   uint32_t priority,
-                                   GNUNET_CronTime expiration,
-                                   const char *thisId,
-                                   const char *nextId,
-                                   const struct GNUNET_ECRS_URI *dstU,
-                                   const struct GNUNET_MetaData *md)
-{
-  struct GNUNET_ECRS_URI *uri;
-  struct GNUNET_ClientServerConnection *sock;
-  GNUNET_DatastoreValue *value;
-  unsigned int size;
-  unsigned int mdsize;
-  struct GNUNET_RSA_PrivateKey *hk;
-  GNUNET_EC_SBlock *sb;
-  char *dstURI;
-  char *destPos;
-  GNUNET_HashCode hc;           /* hash of thisId = key */
-  GNUNET_HashCode hc2;          /* hash of hc = identifier */
-  int ret;
-  unsigned int nidlen;
-
-  hk = read_namespace_key (cfg, pid);
-  if (hk == NULL)
-    return NULL;
-
-  /* THEN: construct GNUNET_EC_SBlock */
-  dstURI = GNUNET_ECRS_uri_to_string (dstU);
-  mdsize = GNUNET_meta_data_get_serialized_size (md, GNUNET_SERIALIZE_PART);
-  if (nextId == NULL)
-    nextId = "";
-  nidlen = strlen (nextId) + 1;
-  size = mdsize + sizeof (GNUNET_EC_SBlock) + strlen (dstURI) + 1 + nidlen;
-  if (size > MAX_SBLOCK_SIZE)
-    {
-      size = MAX_SBLOCK_SIZE;
-      mdsize =
-        size - (sizeof (GNUNET_EC_SBlock) + strlen (dstURI) + 1 + nidlen);
-    }
-  value = GNUNET_malloc (sizeof (GNUNET_DatastoreValue) + size);
-  sb = (GNUNET_EC_SBlock *) & value[1];
-  sb->type = htonl (GNUNET_ECRS_BLOCKTYPE_SIGNED);
-  destPos = (char *) &sb[1];
-  memcpy (destPos, nextId, nidlen);
-  destPos += nidlen;
-  memcpy (destPos, dstURI, strlen (dstURI) + 1);
-  destPos += strlen (dstURI) + 1;
-  mdsize = GNUNET_meta_data_serialize (ectx,
-                                       md,
-                                       destPos,
-                                       mdsize, GNUNET_SERIALIZE_PART);
-  if (mdsize == -1)
-    {
-      GNUNET_GE_BREAK (ectx, 0);
-      GNUNET_free (dstURI);
-      GNUNET_RSA_free_key (hk);
-      GNUNET_free (value);
-      return NULL;
-    }
-  size = sizeof (GNUNET_EC_SBlock) + mdsize + strlen (dstURI) + 1 + nidlen;
-  value->size = htonl (sizeof (GNUNET_DatastoreValue) + size);
-  value->type = htonl (GNUNET_ECRS_BLOCKTYPE_SIGNED);
-  value->priority = htonl (priority);
-  value->anonymity_level = htonl (anonymityLevel);
-  value->expiration_time = GNUNET_htonll (expiration);
-  GNUNET_hash (thisId, strlen (thisId), &hc);
-  GNUNET_hash (&hc, sizeof (GNUNET_HashCode), &hc2);
-  uri = GNUNET_malloc (sizeof (URI));
-  uri->type = sks;
-  GNUNET_RSA_get_public_key (hk, &sb->subspace);
-  GNUNET_hash (&sb->subspace,
-               sizeof (GNUNET_RSA_PublicKey), &uri->data.sks.namespace);
-  GNUNET_GE_BREAK (ectx, 0 == memcmp (&uri->data.sks.namespace,
-                                      pid, sizeof (GNUNET_HashCode)));
-  uri->data.sks.identifier = GNUNET_strdup (thisId);
-  GNUNET_hash_xor (&hc2, &uri->data.sks.namespace, &sb->identifier);
-  GNUNET_ECRS_encryptInPlace (&hc, &sb[1], size - sizeof (GNUNET_EC_SBlock));
-  GNUNET_GE_ASSERT (ectx,
-                    GNUNET_OK == GNUNET_RSA_sign (hk,
-                                                  size
-                                                  -
-                                                  sizeof
-                                                  (GNUNET_RSA_Signature) -
-                                                  sizeof
-                                                  (GNUNET_RSA_PublicKey) -
-                                                  sizeof (unsigned int),
-                                                  &sb->identifier,
-                                                  &sb->signature));
-  GNUNET_RSA_free_key (hk);
-  sock = GNUNET_client_connection_create (ectx, cfg);
-  ret = GNUNET_FS_insert (sock, value);
-  if (ret != GNUNET_OK)
-    {
-      GNUNET_free (uri);
-      uri = NULL;
-    }
-  GNUNET_client_connection_destroy (sock);
-  GNUNET_free (value);
-  GNUNET_free (dstURI);
-
-  return uri;
-}
-
-#endif
-
 
 /* end of fs_publish.c */

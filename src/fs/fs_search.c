@@ -38,7 +38,7 @@
 #include "gnunet_protocols.h"
 #include "fs.h"
 
-#define DEBUG_SEARCH GNUNET_NO
+#define DEBUG_SEARCH GNUNET_YES
 
 
 
@@ -161,8 +161,8 @@ struct GetResultContext
 
 
 /**
- * Check if the given result is identical
- * to the given URI and if so return it.
+ * Check if the given result is identical to the given URI and if so
+ * return it.
  * 
  * @param cls a "struct GetResultContext"
  * @param key not used
@@ -186,9 +186,8 @@ get_result_present (void *cls,
 
 
 /**
- * We have received a KSK result.  Check
- * how it fits in with the overall query
- * and notify the client accordingly.
+ * We have received a KSK result.  Check how it fits in with the
+ * overall query and notify the client accordingly.
  *
  * @param sc context for the overall query
  * @param ent entry for the specific keyword
@@ -208,14 +207,7 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
   int is_new;
 
   /* check if new */
-  if (! GNUNET_FS_uri_test_chk (uri))
-    {
-      GNUNET_break_op (0);
-      return;
-    }
-  GNUNET_CRYPTO_hash_xor (&uri->data.chk.chk.key,
-			  &uri->data.chk.chk.query,
-			  &key);
+  GNUNET_FS_uri_to_key (uri, &key);
   if (GNUNET_SYSERR ==
       GNUNET_CONTAINER_multihashmap_get_multiple (ent->results,
 						  &key,
@@ -281,9 +273,8 @@ search_start (struct GNUNET_FS_Handle *h,
 
 
 /**
- * We have received an SKS result.  Start
- * searching for updates and notify the
- * client if it is a new result.
+ * We have received an SKS result.  Start searching for updates and
+ * notify the client if it is a new result.
  *
  * @param sc context for the overall query
  * @param id_update identifier for updates, NULL for none
@@ -301,11 +292,7 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc,
   struct SearchResult *sr;
 
   /* check if new */
-  if (! GNUNET_FS_uri_test_ksk (uri))
-    {
-      GNUNET_break_op (0);
-      return;
-    }
+  GNUNET_FS_uri_to_key (uri, &key);
   GNUNET_CRYPTO_hash_xor (&uri->data.chk.chk.key,
 			  &uri->data.chk.chk.query,
 			  &key);
@@ -618,6 +605,7 @@ transmit_search_request (void *cls,
   struct SearchMessage *sm;
   unsigned int i;
   const char *identifier;
+  GNUNET_HashCode key;
   GNUNET_HashCode idh;
 
   if (NULL == buf)
@@ -635,28 +623,34 @@ transmit_search_request (void *cls,
 	{
 	  sm[i].header.size = htons (sizeof (struct SearchMessage));
 	  sm[i].header.type = htons (GNUNET_MESSAGE_TYPE_FS_START_SEARCH);
-	  sm[i].anonymity_level = htonl (sc->anonymity);
+	  sm[i].type = htonl (GNUNET_DATASTORE_BLOCKTYPE_KBLOCK);
+  sm[i].anonymity_level = htonl (sc->anonymity);
 	  sm[i].query = sc->requests[i].query;
 	}
     }
   else
     {
+      GNUNET_assert (GNUNET_FS_uri_test_sks (sc->uri));
       msize = sizeof (struct SearchMessage);
       GNUNET_assert (size >= msize);
       sm = buf;
       memset (sm, 0, msize);
       sm->header.size = htons (sizeof (struct SearchMessage));
       sm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_START_SEARCH);
+      sm->type = htonl (GNUNET_DATASTORE_BLOCKTYPE_SBLOCK);
       sm->anonymity_level = htonl (sc->anonymity);
       sm->target = sc->uri->data.sks.namespace;
       identifier = sc->uri->data.sks.identifier;
       GNUNET_CRYPTO_hash (identifier,
 			  strlen (identifier),
+			  &key);
+      GNUNET_CRYPTO_hash (&key,
+			  sizeof (GNUNET_HashCode),
 			  &idh);
       GNUNET_CRYPTO_hash_xor (&idh,
 			      &sm->target,
 			      &sm->query);
-    }
+   }
   GNUNET_CLIENT_receive (sc->client,
 			 &receive_results,
 			 sc,
@@ -785,6 +779,7 @@ search_start (struct GNUNET_FS_Handle *h,
   sc->client_info = cctx;
   if (GNUNET_FS_uri_test_ksk (uri))
     {
+      GNUNET_assert (0 != sc->uri->data.ksk.keywordCount);
       sc->requests = GNUNET_malloc (sizeof (struct SearchRequestEntry) *
 				    sc->uri->data.ksk.keywordCount);
       for (i=0;i<sc->uri->data.ksk.keywordCount;i++)

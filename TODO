@@ -23,14 +23,20 @@ away), in order in which they will likely be done:
     sessions even if no connections exist for a while! (likely related...)
   - transport reports bw quota violations on big-endian systems (core or
     transport issue?)
+* DATASTORE:
+  - utilization can (easily, restart?) go out of control (very large), causing
+    content expiration job to go crazy and delete everything!
 * FS:
+  ! fs_search test fails (hangs) since blocktype was changed from "ANY" to "KBLOCK"!
+    (insert blocktype wrong? or what!?)
+  ! fs_namespace test fails (hangs), but local fs service has found results; somehow
+    they are not passed to the client and/or the shutdown sequence is not working
   - gnunet-publish cannot be aborted using CTRL-C
   - on some systems, keyword search does not find locally published content
-    (need testcase of command-line tools!)
+    (need testcase of command-line tools! - also good to cover getopt API!)
   - 2-peer download is still too slow (why?)
   - advanced FS API parts
     + search: SBlocks, NBlocks, probes, notify FS-service of known results
-    + location URIs (publish, search, download)
     + indexing: index-failure-cleanup
     + gnunet-publish (URI args)
     + gnunet-download (directory)
@@ -38,13 +44,9 @@ away), in order in which they will likely be done:
     + gnunet-download (many options)
     + gnunet-directory (man page, options)
     + gnunet-pseudonym (all of it)
-    + gnunet-service-fs (remove failing on-demand blocks, hot-path routing, load-based routing, nitpicks)
+    + gnunet-service-fs (remove failing on-demand blocks, hot-path routing, 
+      load-based routing, nitpicks)
   - implement adv. FS testcases 
-    + getopt API
-    + insert: sblocks, loc uris
-    + download: loc uris
-    + search: sblocks, nblocks, loc uris
-    + namespaces
   - [./fs/gnunet-service-fs.c:208]: (style) struct or union member 'LocalGetContext::results_bf_size' is never used
   - [./fs/gnunet-service-fs.c:501]: (style) struct or union member 'PendingRequest::used_pids_size' is never used
   - [./fs/gnunet-service-fs.c:654]: (style) struct or union member 'ConnectedPeer::last_client_replies' is never used
@@ -53,7 +55,6 @@ away), in order in which they will likely be done:
   - [./fs/gnunet-service-fs.c:688]: (style) struct or union member 'ConnectedPeer::pending_requests' is never used
   - [./fs/gnunet-service-fs.c:694]: (style) struct or union member 'ConnectedPeer::last_p2p_replies_woff' is never used
   - [./fs/gnunet-service-fs.c:700]: (style) struct or union member 'ConnectedPeer::last_client_replies_woff' is never used
-
 * WWW:
   - Get IPv6 hooked up
   - change DNS
@@ -61,7 +62,7 @@ away), in order in which they will likely be done:
 0.9.0pre1:
 * Module features to implement:
   - tbench (RC-pre1)
-    + good to have for DV evaluation!
+    + good to have for DV evaluation! [MW]
   - DV (RC-pre1)
     + write DV API 
     + implement DV service [Nate & CG]
@@ -76,9 +77,11 @@ away), in order in which they will likely be done:
     + how to integrate scheduler with GTK event loop!
 * STATISTICS:
   - does not seem to work with timeouts (especially if service is not running)
-* UTIL:
+* PEERINFO:
   - trust: need *fast* way to check/update trust in peers
-           (async peerinfo would not be right)
+           (async peerinfo would not be right; certainly not with the
+            current API)
+* UTIL:
   - scheduler should change OS process priority based on task priority;   
     should make better use of task priorities in general
   - only connect() sockets that are ready (select()) [Nils]
@@ -152,6 +155,7 @@ away), in order in which they will likely be done:
     debug output, detect random vs. deterministic crashes)
   - shutdown sequence?
 * FS:
+  - location URIs (publish, search, download)
   - collection API & tests
   - implement FS performance tests
     + insert

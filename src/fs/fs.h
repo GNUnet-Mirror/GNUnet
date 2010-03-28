@@ -1306,7 +1306,6 @@ struct SearchMessage
 
   /**
    * Type of the content that we're looking for.
-   * 0 for any.
    */
   uint32_t type GNUNET_PACKED;
 

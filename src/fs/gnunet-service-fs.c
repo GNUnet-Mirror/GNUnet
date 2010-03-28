@@ -1657,7 +1657,7 @@ check_sblock (const struct SBlock *sb,
       return GNUNET_SYSERR;
     }
   if (dsize !=
-      ntohs (sb->purpose.size) + sizeof (struct GNUNET_CRYPTO_RsaSignature))
+      ntohl (sb->purpose.size) + sizeof (struct GNUNET_CRYPTO_RsaSignature))
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
@@ -1836,6 +1836,11 @@ process_reply (void *cls,
       do_remove = GNUNET_YES;
       break;
     case GNUNET_DATASTORE_BLOCKTYPE_SBLOCK:
+      if (pr->namespace == NULL)
+	{
+	  GNUNET_break (0);
+	  return GNUNET_YES;
+	}
       if (0 != memcmp (pr->namespace,
 		       &prq->namespace,
 		       sizeof (GNUNET_HashCode)))
@@ -2484,10 +2489,11 @@ handle_p2p_get (void *cls,
 
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received request for `%s' of type %u from peer `%4s'\n",
+	      "Received request for `%s' of type %u from peer `%4s' with flags %u\n",
 	      GNUNET_h2s (&gm->query),
 	      (unsigned int) type,
-	      GNUNET_i2s (other));
+	      GNUNET_i2s (other),
+	      (unsigned int) bm);
 #endif
   have_ns = (0 != (bm & GET_MESSAGE_BIT_SKS_NAMESPACE));
   pr = GNUNET_malloc (sizeof (struct PendingRequest) + 
@@ -2685,9 +2691,14 @@ handle_start_search (void *cls,
       client_list = cl;
     }
   type = ntohl (sm->type);
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received request for `%s' of type %u from local client\n",
+	      GNUNET_h2s (&sm->query),
+	      (unsigned int) type);
+#endif
   switch (type)
     {
-    case GNUNET_DATASTORE_BLOCKTYPE_ANY:
     case GNUNET_DATASTORE_BLOCKTYPE_DBLOCK:
     case GNUNET_DATASTORE_BLOCKTYPE_IBLOCK:
     case GNUNET_DATASTORE_BLOCKTYPE_KBLOCK:
@@ -2699,12 +2710,6 @@ handle_start_search (void *cls,
 				  GNUNET_SYSERR);
       return;
     }  
-#if DEBUG_FS
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received request for `%s' of type %u from local client\n",
-	      GNUNET_h2s (&sm->query),
-	      (unsigned int) type);
-#endif
 
   /* detect duplicate KBLOCK requests */
   if (type == GNUNET_DATASTORE_BLOCKTYPE_KBLOCK)
