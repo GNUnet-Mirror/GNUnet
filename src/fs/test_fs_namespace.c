@@ -23,6 +23,9 @@
  * @brief Test for fs_namespace.c
  * @author Christian Grothoff
  *
+ *
+ * FIXME:
+ * - child search of "sks" search (the "next" identifier) is not stopped => no termination!
  * TODO:
  * - add timeout task
  */
@@ -105,7 +108,10 @@ abort_ksk_search_task (void *cls,
       GNUNET_FS_search_stop (ksk_search);
       ksk_search = NULL;
       if (sks_search == NULL)
-	GNUNET_FS_stop (fs);
+	{
+	  fprintf (stderr, "initiating shutdown\n");
+	  GNUNET_FS_stop (fs);
+	}
     }
 }
 
@@ -116,16 +122,18 @@ abort_sks_search_task (void *cls,
 {
   struct GNUNET_FS_Namespace *ns;
 
-  if (sks_search != NULL)
+  if (sks_search == NULL)
+    return;
+  GNUNET_FS_search_stop (sks_search); 
+  sks_search = NULL;
+  ns = GNUNET_FS_namespace_create (fs,
+				   "testNamespace");
+  GNUNET_assert (GNUNET_OK == GNUNET_FS_namespace_delete (ns, GNUNET_YES));
+  if (ksk_search == NULL)
     {
-      GNUNET_FS_search_stop (sks_search);
-      sks_search = NULL;
-      ns = GNUNET_FS_namespace_create (fs,
-				       "testNamespace");
-      GNUNET_assert (GNUNET_OK == GNUNET_FS_namespace_delete (ns, GNUNET_YES));
-      if (ksk_search == NULL)
-	GNUNET_FS_stop (fs);
-    }
+      fprintf (stderr, "initiating shutdown\n");
+      GNUNET_FS_stop (fs);
+    }    
 }
 
 
@@ -202,26 +210,26 @@ progress_cb (void *cls,
 		      (0 == strcmp ("ksk_search", event->value.search.cctx)));
       if (NULL == event->value.search.cctx)
 	{
-	  GNUNET_assert (sks_search == event->value.search.pctx);
+	  GNUNET_assert (0 == strcmp ("sks_search", event->value.search.pctx));
 	  update_started = GNUNET_YES;
 	}
       GNUNET_assert (1 == event->value.search.anonymity);
       break;
     case GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED:
-      break;
+      return NULL;
     case GNUNET_FS_STATUS_SEARCH_STOPPED:
       fprintf (stderr,
 	       "Search stop event received\n");
       GNUNET_assert ( (ksk_search == event->value.search.sc) ||
 		      (sks_search == event->value.search.sc));
-      break;
+      return NULL;
     default:
       fprintf (stderr,
 	       "Unexpected event: %d\n", 
 	       event->status);
       break;
     }
-  return NULL;
+  return event->value.search.cctx;
 }
 
 

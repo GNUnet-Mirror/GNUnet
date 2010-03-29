@@ -438,7 +438,7 @@ process_sblock (struct GNUNET_FS_SearchContext *sc,
 		      strlen (identifier), 
 		      &key);
   GNUNET_CRYPTO_hash_to_aes_key (&key, &skey, &iv);
-  GNUNET_CRYPTO_aes_encrypt (&sb[1],
+  GNUNET_CRYPTO_aes_decrypt (&sb[1],
 			     len,
 			     &skey,
 			     &iv,
@@ -464,6 +464,9 @@ process_sblock (struct GNUNET_FS_SearchContext *sc,
   uri = GNUNET_FS_uri_parse (uris, &emsg);
   if (uri == NULL)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Failed to parse URI `%s': %s\n",
+		  uris, emsg);
       GNUNET_break_op (0);     /* sblock malformed */
       GNUNET_free_non_null (emsg);
       GNUNET_CONTAINER_meta_data_destroy (meta);
@@ -494,7 +497,11 @@ process_result (struct GNUNET_FS_SearchContext *sc,
 		size_t size)
 {
   if (GNUNET_TIME_absolute_get_duration (expiration).value > 0)
-    return; /* result expired */
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Result received has already expired.\n");
+      return; /* result expired */
+    }
   switch (type)
     {
     case GNUNET_DATASTORE_BLOCKTYPE_KBLOCK:
@@ -511,7 +518,7 @@ process_result (struct GNUNET_FS_SearchContext *sc,
       process_kblock (sc, data, size);
       break;
     case GNUNET_DATASTORE_BLOCKTYPE_SBLOCK:
-      if (! GNUNET_FS_uri_test_ksk (sc->uri))
+      if (! GNUNET_FS_uri_test_sks (sc->uri))
 	{
 	  GNUNET_break (0);
 	  return;
@@ -572,6 +579,9 @@ receive_results (void *cls,
       return;
     }
   msize = ntohs (msg->size);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Receiving %u bytes of result from fs service\n",
+	      msize);
   cm = (const struct PutMessage*) msg;
   process_result (sc, 
 		  ntohl (cm->type),
@@ -624,7 +634,7 @@ transmit_search_request (void *cls,
 	  sm[i].header.size = htons (sizeof (struct SearchMessage));
 	  sm[i].header.type = htons (GNUNET_MESSAGE_TYPE_FS_START_SEARCH);
 	  sm[i].type = htonl (GNUNET_DATASTORE_BLOCKTYPE_KBLOCK);
-  sm[i].anonymity_level = htonl (sc->anonymity);
+	  sm[i].anonymity_level = htonl (sc->anonymity);
 	  sm[i].query = sc->requests[i].query;
 	}
     }
@@ -966,8 +976,12 @@ GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc)
   if (NULL != sc->client)
     GNUNET_CLIENT_disconnect (sc->client, GNUNET_NO);
   GNUNET_CONTAINER_multihashmap_destroy (sc->master_result_map);
-  for (i=0;i<sc->uri->data.ksk.keywordCount;i++)
-    GNUNET_CONTAINER_multihashmap_destroy (sc->requests[i].results);
+  if (sc->requests != NULL)
+    {
+      GNUNET_assert (GNUNET_FS_uri_test_ksk (sc->uri));
+      for (i=0;i<sc->uri->data.ksk.keywordCount;i++)
+	GNUNET_CONTAINER_multihashmap_destroy (sc->requests[i].results);
+    }
   GNUNET_free_non_null (sc->requests);
   GNUNET_FS_uri_destroy (sc->uri);
   GNUNET_free (sc);

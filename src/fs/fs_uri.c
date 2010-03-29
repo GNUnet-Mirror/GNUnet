@@ -361,7 +361,7 @@ uri_sks_parse (const char *s, char **emsg)
        (0 != strncmp (s, GNUNET_FS_URI_PREFIX GNUNET_FS_URI_SKS_INFIX, 
 		      pos) ) )
     return NULL; /* not an SKS URI */
-  if ( (slen < pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) + 1) ||
+  if ( (slen < pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)) ||
        (s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1] != '/') )
     {
       *emsg = GNUNET_strdup (_("Malformed SKS URI"));

@@ -23,6 +23,8 @@
  * @brief gnunet anonymity protocol implementation
  * @author Christian Grothoff
  *
+ * FIXME:
+ * - code not clear in terms of which function initializes bloomfilter when!
  * TODO:
  * - have non-zero preference / priority for requests we initiate!
  * - track stats for hot-path routing
@@ -1844,7 +1846,11 @@ process_reply (void *cls,
       if (0 != memcmp (pr->namespace,
 		       &prq->namespace,
 		       sizeof (GNUNET_HashCode)))
-	return GNUNET_YES; /* wrong namespace */	
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		      _("Reply mismatched in terms of namespace.  Discarded.\n"));
+	  return GNUNET_YES; /* wrong namespace */	
+	}
       /* then: fall-through! */
     case GNUNET_DATASTORE_BLOCKTYPE_KBLOCK:
       if (pr->bf != NULL) 
@@ -1852,7 +1858,19 @@ process_reply (void *cls,
 	  mingle_hash (&chash, pr->mingle, &mhash);
 	  if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (pr->bf,
 							       &mhash))
-	    return GNUNET_YES; /* duplicate */
+	    {
+	      GNUNET_STATISTICS_update (stats,
+					gettext_noop ("# duplicate replies discarded (bloomfilter)"),
+					1,
+					GNUNET_NO);
+	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+			  "Duplicate response `%s', discarding.\n",
+			  GNUNET_h2s (&mhash));
+	      return GNUNET_YES; /* duplicate */
+	    }
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "New response `%s', adding to filter.\n",
+		      GNUNET_h2s (&mhash));
 	  GNUNET_CONTAINER_bloomfilter_add (pr->bf,
 					    &mhash);
 	}
@@ -1870,8 +1888,7 @@ process_reply (void *cls,
 					    &pr->bf_size,
 					    pr->replies_seen);
 	    }
-  	    pr->replies_seen[pr->replies_seen_off++] = chash;
-	      
+  	    pr->replies_seen[pr->replies_seen_off++] = chash;	      
 	}
       break;
     case GNUNET_DATASTORE_BLOCKTYPE_NBLOCK:
@@ -1910,11 +1927,18 @@ process_reply (void *cls,
       pm->expiration = GNUNET_TIME_absolute_hton (prq->expiration);
       memcpy (&pm[1], prq->data, prq->size);      
       if (NULL == cl->th)
-	cl->th = GNUNET_SERVER_notify_transmit_ready (cl->client,
-						      msize,
-						      GNUNET_TIME_UNIT_FOREVER_REL,
-						      &transmit_to_client,
-						      cl);
+	{
+#if DEBUG_FS
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Transmitting result for query `%s' to client\n",
+		      GNUNET_h2s (key));
+#endif  
+	  cl->th = GNUNET_SERVER_notify_transmit_ready (cl->client,
+							msize,
+							GNUNET_TIME_UNIT_FOREVER_REL,
+							&transmit_to_client,
+							cl);
+	}
       GNUNET_break (cl->th != NULL);
     }
   else
@@ -1953,11 +1977,9 @@ process_reply (void *cls,
 		    GNUNET_CONTAINER_multihashmap_remove (query_request_map,
 							  key,
 							  pr));
-      // FIXME: request somehow does not fully
-      // disappear; how to fix? 
+      // FIXME: request somehow does not fully disappear; how to fix? 
       // destroy_pending_request (pr); (not like this!)
     }
-
   // FIXME: implement hot-path routing statistics keeping!
   return GNUNET_YES;
 }
@@ -2188,6 +2210,10 @@ process_local_reply (void *cls,
 					     pr);      
       return;
     }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "New local response to `%s' of type %u.\n",
+	      GNUNET_h2s (key),
+	      type);
   if (type == GNUNET_DATASTORE_BLOCKTYPE_ONDEMAND)
     {
 #if DEBUG_FS
@@ -2248,8 +2274,13 @@ process_local_reply (void *cls,
 						      pr->bf_size, 
 						      BLOOMFILTER_K);
 	}
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "New local response `%s', adding to filter.\n",
+		  GNUNET_h2s (&mhash));
+#if 0
       GNUNET_CONTAINER_bloomfilter_add (pr->bf, 
 					&mhash);
+#endif
     }
   memset (&prq, 0, sizeof (prq));
   prq.data = data;

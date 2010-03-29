@@ -1498,7 +1498,6 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
     update = "";
   nidlen = strlen (update) + 1;
   mdsize = GNUNET_CONTAINER_meta_data_get_serialized_size (meta);
-
   size = sizeof (struct SBlock) + slen + nidlen + mdsize;
   if (size > MAX_SBLOCK_SIZE)
     {
@@ -1526,7 +1525,7 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
       return;
     }
   size = sizeof (struct SBlock) + mdsize + slen + nidlen;
-  sb_enc = GNUNET_malloc (sizeof (struct SBlock) + size);
+  sb_enc = GNUNET_malloc (size);
   GNUNET_CRYPTO_hash (identifier, idlen, &key);
   GNUNET_CRYPTO_hash (&key, sizeof (GNUNET_HashCode), &id);
   sks_uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
