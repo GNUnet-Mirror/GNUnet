@@ -127,13 +127,13 @@ confirm_cb (void *cls, int success)
   switch (success)
     {
     case GNUNET_OK:
-      fprintf (stdout, _("Service `%s' is now running.\n"), service);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Service `%s' is now running.\n"), service);
       break;
     case GNUNET_NO:
-      fprintf (stdout, _("Service `%s' is not running.\n"), service);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Service `%s' is not running.\n"), service);
       break;
     case GNUNET_SYSERR:
-      fprintf (stdout,
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                _("Error updating service `%s': ARM not running\n"), service);
       break;
     }
@@ -157,9 +157,9 @@ confirm_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   const char *service = cls;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
-    fprintf (stdout, _("Service `%s' is running.\n"), service);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Service `%s' is running.\n"), service);
   else
-    fprintf (stdout, _("Service `%s' is not running.\n"), service);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Service `%s' is not running.\n"), service);
   GNUNET_SCHEDULER_add_continuation (sched,
 				     &cps_loop,
 				     NULL,
@@ -194,7 +194,7 @@ run (void *cls,
   h = GNUNET_ARM_connect (cfg, sched, NULL);
   if (h == NULL)
     {
-      fprintf (stderr,
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 	       _("Fatal error initializing ARM API.\n"));
       ret = 1;
       return;
@@ -212,17 +212,17 @@ run (void *cls,
  */
 static void delete_files()
 {
-  fprintf(stderr, "Will attempt to remove configuration file %s and service directory %s\n", config_file, dir);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Will attempt to remove configuration file %s and service directory %s\n", config_file, dir);
 
   if (UNLINK(config_file) != 0)
   {
-    fprintf (stderr,
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
            _("Failed to remove configuration file %s\n"), config_file);
   }
 
   if (GNUNET_DISK_directory_remove(dir) != GNUNET_OK)
   {
-    fprintf (stderr,
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
         _("Failed to remove servicehome directory %s\n"), dir);
 
   }
