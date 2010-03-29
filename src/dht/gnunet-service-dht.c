@@ -99,10 +99,6 @@ handle_dht_stop_message(void *cls, struct GNUNET_SERVER_Client * client,
 static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
   {&handle_dht_start_message, NULL, GNUNET_MESSAGE_TYPE_DHT, 0},
   {&handle_dht_stop_message, NULL, GNUNET_MESSAGE_TYPE_DHT_STOP, 0},
-/*  {&handle_dht_get_stop, NULL, GNUNET_MESSAGE_TYPE_DHT_GET_STOP, 0},
-  {&handle_dht_put, NULL, GNUNET_MESSAGE_TYPE_DHT_PUT, 0},
-  {&handle_dht_find_peer, NULL, GNUNET_MESSAGE_TYPE_DHT_FIND_PEER, 0},
-  {&handle_dht_find_peer_stop, NULL, GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_STOP, 0},*/
   {NULL, NULL, 0, 0}
 };
 
@@ -137,7 +133,7 @@ static int handle_dht_p2p_find_peer (void *cls,
 static struct GNUNET_CORE_MessageHandler core_handlers[] = {
   {&handle_dht_p2p_get, GNUNET_MESSAGE_TYPE_DHT_GET, 0},
   {&handle_dht_p2p_put, GNUNET_MESSAGE_TYPE_DHT_PUT, 0},
-  {&handle_dht_p2p_find_peer, GNUNET_MESSAGE_TYPE_DHT_PUT, 0},
+  {&handle_dht_p2p_find_peer, GNUNET_MESSAGE_TYPE_DHT_FIND_PEER, 0},
   {NULL, 0, 0}
 };
 
@@ -230,7 +226,7 @@ struct SendConfirmationContext
   struct GNUNET_CONNECTION_TransmitHandle * transmit_handle;
 };
 
-size_t send_confirmation (void *cls,
+static size_t send_confirmation (void *cls,
                           size_t size, void *buf)
 {
   struct GNUNET_DHT_StopMessage *confirmation_message = cls;
@@ -464,7 +460,7 @@ run (void *cls,
 
 
 /**
- * The main function for the dv service.
+ * The main function for the dht service.
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments

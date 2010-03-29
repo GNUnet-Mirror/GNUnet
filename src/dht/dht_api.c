@@ -674,12 +674,6 @@ void
 GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *fph);
 
 
-void dht_get_processor (void *cls,
-                        const struct GNUNET_MessageHeader *reply)
-{
-
-}
-
 /**
  * Perform an asynchronous GET operation on the DHT identified.
  *
