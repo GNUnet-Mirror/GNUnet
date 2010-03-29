@@ -931,7 +931,7 @@ distant_neighbor_free (struct DistantNeighbor *referee)
  * needs to be updated.
  *
  * @param peer identity of the peer whose info is being added/updated
- * @param peer_id id to use when sending to 'peer'
+ * @param referrer_peer_id id to use when sending to 'peer'
  * @param referrer if this is a gossiped peer, who did we hear it from?
  * @param cost the cost of communicating with this peer via 'referrer'
  */
