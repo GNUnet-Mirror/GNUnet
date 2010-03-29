@@ -92,7 +92,7 @@ typedef void (*GNUNET_TESTING_NotifyConnection)(void *cls,
  * reachable via "ssh" (unless the hostname is "NULL") without the
  * need to enter a password.
  *
- * @param sched scheduler to use 
+ * @param sched scheduler to use
  * @param cfg configuration to use
  * @param hostname name of the machine where to run GNUnet
  *        (use NULL for localhost).
@@ -198,14 +198,14 @@ struct GNUNET_TESTING_PeerGroup;
  * adjusted to ensure that no two peers running on the same system
  * have the same port(s) in their respective configurations.
  *
- * @param sched scheduler to use 
+ * @param sched scheduler to use
  * @param cfg configuration template to use
  * @param total number of daemons to start
  * @param cb function to call on each daemon that was started
  * @param cb_cls closure for cb
  * @param connect_callback function to call each time two hosts are connected
  * @param connect_callback_cls closure for connect_callback
- * @param hostnames space-separated list of hostnames to use, 
+ * @param hostnames space-separated list of hostnames to use,
  *        NULL to use localhost only
  * @return NULL on error, otherwise handle to control peer group
  */
@@ -222,7 +222,7 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
 
 /**
  * Shutdown all peers started in the given group.
- * 
+ *
  * @param pg handle to the peer group
  */
 void
@@ -272,9 +272,10 @@ enum StartPhase
 
     /**
      * We've been asked to terminate the instance and are now waiting for
-     * the remote command to delete the configuration file to complete.
+     * the remote command to stop the gnunet-arm process and delete temporary
+     * files.
      */
-  SP_CLEANUP,
+  SP_SHUTDOWN_START,
 
     /**
      * We've received a configuration update and are currently waiting for
@@ -445,7 +446,7 @@ enum GNUNET_TESTING_Topology
 /**
  * Start "count" GNUnet daemons with a particular topology.
  *
- * @param sched scheduler to use 
+ * @param sched scheduler to use
  * @param cfg configuration template to use
  * @param count number of peers the testbed should have
  * @param topology desired topology (enforced via F2F)
