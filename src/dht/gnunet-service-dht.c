@@ -19,7 +19,7 @@
 */
 
 /**
- * @file dht/gnunet_dht_service.c
+ * @file dht/gnunet-service-dht.c
  * @brief main DHT service shell, building block for DHT implementations
  * @author Christian Grothoff
  * @author Nathan Evans

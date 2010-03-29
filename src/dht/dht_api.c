@@ -338,11 +338,12 @@ void service_message_handler (void *cls,
 /**
  * Initialize the connection with the DHT service.
  *
- * @param cfg configuration to use
  * @param sched scheduler to use
+ * @param cfg configuration to use
  * @param ht_len size of the internal hash table to use for
  *               processing multiple GET/FIND requests in parallel
- * @return NULL on error
+ *
+ * @return handle to the DHT service, or NULL on error
  */
 struct GNUNET_DHT_Handle *
 GNUNET_DHT_connect (struct GNUNET_SCHEDULER_Handle *sched,
@@ -381,7 +382,7 @@ GNUNET_DHT_connect (struct GNUNET_SCHEDULER_Handle *sched,
 /**
  * Shutdown connection with the DHT service.
  *
- * @param h connection to shut down
+ * @param handle handle of the DHT connection to stop
  */
 void
 GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle)
@@ -574,12 +575,14 @@ void get_reply_iterator (void *cls,
  * @param iter function to call on each result, NULL if no replies are expected
  * @param iter_cls closure for iter
  * @param timeout when to abort with an error if we fail to get
- *                a confirmation for the PUT from the local DHT service
+ *                a confirmation for the request (when necessary) or how long
+ *                to wait for tramission to the service
  * @param cont continuation to call when done;
  *             reason will be TIMEOUT on error,
  *             reason will be PREREQ_DONE on success
  * @param cont_cls closure for cont
- * @return handle to stop the request
+ *
+ * @return handle to stop the request, NULL if the request is "fire and forget"
  */
 struct GNUNET_DHT_RouteHandle *
 GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
@@ -680,7 +683,8 @@ void dht_get_processor (void *cls,
 /**
  * Perform an asynchronous GET operation on the DHT identified.
  *
- * @param h handle to the DHT service
+ * @param handle handle to the DHT service
+ * @param timeout how long to wait for transmission of this request to the service
  * @param type expected type of the response object
  * @param key the key to look up
  * @param iter function to call on each result
@@ -775,12 +779,12 @@ GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle)
 
 
 /**
- * Stop async DHT-get.  Frees associated resources.
+ * Stop async DHT-get.
  *
- * @param record GET operation to stop.
+ * @param get_handle handle to the GET operation to stop
  */
 void
-GNUNET_DHT_get_stop (struct GNUNET_DHT_RouteHandle *handle)
+GNUNET_DHT_get_stop (struct GNUNET_DHT_RouteHandle *get_handle)
 {
 #if OLDREMOVE
   struct GNUNET_DHT_GetMessage *get_msg;
@@ -788,7 +792,7 @@ GNUNET_DHT_get_stop (struct GNUNET_DHT_RouteHandle *handle)
   GNUNET_HashCode *uid_key;
 #endif
 
-  GNUNET_DHT_route_stop(handle);
+  GNUNET_DHT_route_stop(get_handle);
 
 #if OLDREMOVE
   uid_key = hash_from_uid(get_handle->uid);
@@ -805,7 +809,7 @@ GNUNET_DHT_get_stop (struct GNUNET_DHT_RouteHandle *handle)
 #endif
 #if DEBUG_DHT_API
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s': Removing pending get request with key %s, uid %llu\n", "DHT API", GNUNET_h2s(&handle->key), handle->uid);
+              "`%s': Removing pending get request with key %s, uid %llu\n", "DHT API", GNUNET_h2s(&get_handle->key), get_handle->uid);
 #endif
 }
 
