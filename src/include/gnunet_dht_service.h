@@ -53,8 +53,8 @@ typedef void (*GNUNET_DHT_MessageCallback)(void *cls,
 /**
  * Initialize the connection with the DHT service.
  *
- * @param cfg configuration to use
  * @param sched scheduler to use
+ * @param cfg configuration to use
  * @param ht_len size of the internal hash table to use for
  *               processing multiple GET/FIND requests in parallel
  * @return NULL on error
@@ -68,10 +68,10 @@ GNUNET_DHT_connect (struct GNUNET_SCHEDULER_Handle *sched,
 /**
  * Shutdown connection with the DHT service.
  *
- * @param h connection to shut down
+ * @param handle connection to shut down
  */
 void
-GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *h);
+GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle);
 
 
 /**
@@ -79,12 +79,12 @@ GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *h);
  * a binding of 'key' to 'value'.  The peer does not have to be part
  * of the table (if so, we will attempt to locate a peer that is!)
  *
- * @param h handle to DHT service
+ * @param handle handle to DHT service
  * @param key the key to store under
  * @param type type of the value
  * @param size number of bytes in data; must be less than 64k
  * @param data the data to store
- * @param exp desired expiration time for the value
+ * @param exp desired expiration time for the data
  * @param timeout when to abort with an error if we fail to get
  *                a confirmation for the PUT from the local DHT service
  * @param cont continuation to call when done;
@@ -94,14 +94,14 @@ GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *h);
  */
 void
 GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
-		const GNUNET_HashCode * key,
-		uint32_t type,
-		uint32_t size,
-		const char *data,
-		struct GNUNET_TIME_Absolute exp,
-		struct GNUNET_TIME_Relative timeout,
-		GNUNET_SCHEDULER_Task cont,
-		void *cont_cls);
+                const GNUNET_HashCode * key,
+                uint32_t type,
+                uint32_t size,
+                const char *data,
+                struct GNUNET_TIME_Absolute exp,
+                struct GNUNET_TIME_Relative timeout,
+                GNUNET_SCHEDULER_Task cont,
+                void *cont_cls);
 
 
 /**
@@ -133,7 +133,7 @@ typedef void (*GNUNET_DHT_GetIterator)(void *cls,
 /**
  * Perform an asynchronous GET operation on the DHT identified.
  *
- * @param h handle to the DHT service
+ * @param handle handle to the DHT service
  * @param timeout timeout for this request to be sent to the
  *        service
  * @param type expected type of the response object
@@ -146,7 +146,7 @@ typedef void (*GNUNET_DHT_GetIterator)(void *cls,
  * @return handle to stop the async get, NULL on error
  */
 struct GNUNET_DHT_RouteHandle *
-GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *h,
+GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
                       struct GNUNET_TIME_Relative timeout,
 		      uint32_t type,
 		      const GNUNET_HashCode * key,
@@ -216,10 +216,12 @@ struct GNUNET_DHT_RouteHandle;
  *                given DHT or not hit exactly).
  * @param options options for routing
  * @param enc send the encapsulated message to a peer close to the key
+ * @param timeout when to abort with an error if we fail to get
+ *                a confirmation for the request (when necessary) or how long
+ *                to wait for tramission to the service
  * @param iter function to call on each result, NULL if no replies are expected
  * @param iter_cls closure for iter
- * @param timeout when to abort with an error if we fail to get
- *                a confirmation for the PUT from the local DHT service
+
  * @param cont continuation to call when done, GNUNET_SYSERR if failed
  *             GNUNET_OK otherwise
  * @param cont_cls closure for cont
