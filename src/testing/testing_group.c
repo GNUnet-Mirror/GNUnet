@@ -27,7 +27,7 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_testing_lib.h"
 
-#define VERBOSE_TESTING GNUNET_YES
+#define VERBOSE_TESTING GNUNET_NO
 
 /**
  * Lowest port used for GNUnet testing.  Should be high enough to not
@@ -213,8 +213,8 @@ update_config (void *cls,
  * Create a new configuration using the given configuration
  * as a template; however, each PORT in the existing cfg
  * must be renumbered by incrementing "*port".  If we run
- * out of "*port" numbers, return NULL. 
- * 
+ * out of "*port" numbers, return NULL.
+ *
  * @param cfg template configuration
  * @param port port numbers to use, update to reflect
  *             port numbers that were used
@@ -330,9 +330,9 @@ create_small_world_ring(struct GNUNET_TESTING_PeerGroup *pg)
   int connect_attempts;
 
   logNModifier = 0.5; /* FIXME: default value? */
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(pg->cfg, 
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(pg->cfg,
 							 "TESTING",
-							 "LOGNMODIFIER", 
+							 "LOGNMODIFIER",
 							 &p_string))
     {
       if (sscanf(p_string, "%lf", &logNModifier) != 1)
@@ -500,7 +500,7 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg)
   square = floor (sqrt (pg->total));
   rows = square;
   cols = square;
-  
+
   percentage = 0.5; /* FIXME: default percentage? */
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(pg->cfg,
 							 "TESTING",
@@ -842,7 +842,7 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
 
       if (GNUNET_OK !=
 	  GNUNET_CONFIGURATION_get_value_string(pg->peers[pg_iter].daemon->cfg, "PATHS", "SERVICEHOME", &temp_service_path))
-	{	  
+	{
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		      _("No `%s' specified in peer configuration in section `%s', cannot copy friends file!\n"),
 		      "SERVICEHOME",
@@ -1134,7 +1134,7 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg)
  * adjusted to ensure that no two peers running on the same system
  * have the same port(s) in their respective configurations.
  *
- * @param sched scheduler to use 
+ * @param sched scheduler to use
  * @param cfg configuration template to use
  * @param total number of daemons to start
  * @param cb function to call on each daemon that was started
@@ -1301,7 +1301,7 @@ GNUNET_TESTING_daemon_get (struct GNUNET_TESTING_PeerGroup *pg, unsigned int pos
 
 /**
  * Shutdown all peers started in the given group.
- * 
+ *
  * @param pg handle to the peer group
  */
 void

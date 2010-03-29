@@ -101,8 +101,7 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
-  sleep (1);                    /* FIXME: make this unnecessary */
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-testing");
+
   return ret;
 }
 

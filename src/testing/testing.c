@@ -168,13 +168,13 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       /* start GNUnet on remote host */
       if (NULL == d->hostname)
         {
-          d->pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
-                                            "gnunet-service-arm",
+          d->pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-arm",
+                                            "gnunet-arm",
                                             "-c", d->cfgfile,
 #if DEBUG_TESTING
                                             "-L", "DEBUG",
 #endif
-                                            "-d", NULL);
+                                            "-s", NULL);
         }
       else
         {
@@ -186,6 +186,9 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                             "ssh",
                                             dst,
                                             "gnunet-arm",
+#if DEBUG_TESTING
+                                            "-L", "DEBUG",
+#endif
                                             "-c", d->cfgfile, "-s", NULL);
           GNUNET_free (dst);
         }
@@ -528,6 +531,9 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
 
       d->pid = GNUNET_OS_start_process (NULL, NULL, "ssh", "ssh",
                                               arg, "gnunet-arm",
+#if DEBUG_TESTING
+                                              "-L", "DEBUG",
+#endif
                                               "-c", d->cfgfile, "-e", "-d", NULL);
       /* Use -e to end arm, and -d to remove temp files */
 
@@ -541,7 +547,10 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
 #endif
     d->pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-arm",
                                             "gnunet-arm",
-                                            "-c", d->cfgfile, "-e", NULL);
+#if DEBUG_TESTING
+                                            "-L", "DEBUG",
+#endif
+                                            "-c", d->cfgfile, "-e", "-d", NULL);
   }
 
   d->wait_runs = 0;

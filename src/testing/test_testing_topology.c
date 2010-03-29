@@ -619,7 +619,11 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
-  sleep (1);
+
+  /**
+   * Need to remove base directory, subdirectories taken care
+   * of by the testing framework.
+   */
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-testing");
   GNUNET_free(our_binary_name);
   return ret;

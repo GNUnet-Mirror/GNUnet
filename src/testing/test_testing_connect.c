@@ -170,10 +170,10 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
-  sleep (1);
+  /*sleep (1);
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-testing");
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-testing-connect-peer1");
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-testing-connect-peer2");
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-testing-connect-peer2");*/
   return ret;
 }
 

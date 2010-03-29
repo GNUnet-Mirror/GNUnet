@@ -109,7 +109,13 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
-  sleep (1);
+  /**
+   * Still need to remove the base testing directory here,
+   * because group starts will create subdirectories under this
+   * main dir.  However, we no longer need to sleep, as the
+   * shutdown sequence won't return until everything is cleaned
+   * up.
+   */
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-testing");
   return ret;
 }
