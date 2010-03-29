@@ -46,6 +46,11 @@ static int end;
 static int start;
 
 /**
+ * Set if we should delete configuration and temp directory on exit.
+ */
+static int delete;
+
+/**
  * Set to the name of a service to start.
  */
 static char *init;
@@ -59,6 +64,16 @@ static char *term;
  * Set to the name of a service to test.
  */
 static char *test;
+
+/**
+ * Set to the name of the config file used.
+ */
+static const char *config_file;
+
+/**
+ * Set to the directory where runtime files are stored.
+ */
+static char *dir;
 
 /**
  * Final status code.
@@ -89,7 +104,7 @@ static unsigned int phase;
 /**
  * Main continuation-passing-style loop.  Runs the various
  * jobs that we've been asked to do in order.
- * 
+ *
  * @param cls closure, unused
  * @param tc context, unused
  */
@@ -165,11 +180,17 @@ static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
-     const char *cfgfile, 
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   sched = s;
   cfg = c;
+  config_file = cfgfile;
+  if (GNUNET_CONFIGURATION_get_value_string(cfg, "PATHS", "SERVICEHOME", &dir) != GNUNET_OK)
+  {
+    dir = NULL;
+  }
+
   h = GNUNET_ARM_connect (cfg, sched, NULL);
   if (h == NULL)
     {
@@ -184,11 +205,33 @@ run (void *cls,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
+/**
+ * Attempts to delete configuration file and SERVICEHOME
+ * on arm shutdown provided the end and delete options
+ * were specified when gnunet-arm was run.
+ */
+static void delete_files()
+{
+  fprintf(stderr, "Will attempt to remove configuration file %s and service directory %s\n", config_file, dir);
+
+  if (UNLINK(config_file) != 0)
+  {
+    fprintf (stderr,
+           _("Failed to remove configuration file %s\n"), config_file);
+  }
+
+  if (GNUNET_DISK_directory_remove(dir) != GNUNET_OK)
+  {
+    fprintf (stderr,
+        _("Failed to remove servicehome directory %s\n"), dir);
+
+  }
+}
 
 /**
  * Main continuation-passing-style loop.  Runs the various
  * jobs that we've been asked to do in order.
- * 
+ *
  * @param cls closure, unused
  * @param tc context, unused
  */
@@ -237,6 +280,8 @@ cps_loop (void *cls,
 	  break;
 	default: /* last phase */
 	  GNUNET_ARM_disconnect (h);
+	  if ((end == GNUNET_YES) && (delete == GNUNET_YES))
+	    delete_files();
 	  return;
 	}
     }
@@ -258,6 +303,8 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
   {'t', "test", "SERVICE",
    gettext_noop ("test if a particular service is running"),
    GNUNET_YES, &GNUNET_GETOPT_set_string, &test},
+  {'d', "delete", NULL, gettext_noop ("delete config file and directory on exit"),
+   GNUNET_NO, &GNUNET_GETOPT_set_one, &delete},
   GNUNET_GETOPT_OPTION_END
 };
 
