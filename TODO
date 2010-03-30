@@ -15,8 +15,6 @@ away), in order in which they will likely be done:
 
 0.9.0pre0:
 * CORE:
-  - SET_KEY is triggered every 2.5 minutes (after session is up); should
-    just do PING (not SET_KEY + PING)
   - "Forcing disconnect of XXX due to inactivity" -- can happen every few MS!?
     (disconnect does not really succeed, or what?)
     Also, core does not seem to actually decrement the number of active
@@ -34,15 +32,15 @@ away), in order in which they will likely be done:
   - 2-peer download is still too slow (why?)
   - advanced FS API parts
     + search: SBlocks, NBlocks, probes, notify FS-service of known results
-    + indexing: index-failure-cleanup
     + gnunet-publish (URI args)
     + gnunet-download (directory)
     + gnunet-search (options, incl. namespace search)
     + gnunet-download (many options)
     + gnunet-directory (man page, options)
-    + gnunet-pseudonym (all of it)
+    + gnunet-pseudonym (listing of namespaces, advertisement uris, testing)
     + gnunet-service-fs (remove failing on-demand blocks, hot-path routing, 
       load-based routing, nitpicks)
+    + indexing: index-failure-cleanup
   - implement adv. FS testcases 
   - [./fs/gnunet-service-fs.c:208]: (style) struct or union member 'LocalGetContext::results_bf_size' is never used
   - [./fs/gnunet-service-fs.c:501]: (style) struct or union member 'PendingRequest::used_pids_size' is never used
@@ -154,6 +152,7 @@ away), in order in which they will likely be done:
 * FS:
   - location URIs (publish, search, download)
   - collection API & tests
+    + gnunet-pseudonym (collection support)
   - implement FS performance tests
     + insert
     + download

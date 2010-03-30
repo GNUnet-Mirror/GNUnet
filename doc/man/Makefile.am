@@ -3,6 +3,7 @@ man_MANS = \
   gnunet-directory.1 \
   gnunet-download.1 \
   gnunet-peerinfo.1 \
+  gnunet-pseudonym.1 \
   gnunet-publish.1 \
   gnunet-search.1 \
   gnunet-statistics.1 \

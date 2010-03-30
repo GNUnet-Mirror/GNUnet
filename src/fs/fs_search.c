@@ -38,7 +38,7 @@
 #include "gnunet_protocols.h"
 #include "fs.h"
 
-#define DEBUG_SEARCH GNUNET_YES
+#define DEBUG_SEARCH GNUNET_NO
 
 
 

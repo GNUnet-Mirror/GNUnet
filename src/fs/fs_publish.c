@@ -40,7 +40,7 @@
 #include "fs.h"
 #include "fs_tree.h"
 
-#define DEBUG_PUBLISH GNUNET_YES
+#define DEBUG_PUBLISH GNUNET_NO
 
 /**
  * Main function that performs the upload.

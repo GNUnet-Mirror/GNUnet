@@ -47,7 +47,7 @@
 #include "gnunet-service-fs_indexing.h"
 #include "fs.h"
 
-#define DEBUG_FS 2
+#define DEBUG_FS GNUNET_NO
 
 /**
  * Maximum number of outgoing messages we queue per peer.
@@ -1188,8 +1188,10 @@ transmit_query_continuation (void *cls,
 
   if (tpid == 0)   
     {
+#if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Transmission of request failed, will try again later.\n");
+#endif
       if (pr->task == GNUNET_SCHEDULER_NO_TASK)
 	pr->task = GNUNET_SCHEDULER_add_delayed (sched,
 						 get_processing_delay (),
@@ -1863,14 +1865,18 @@ process_reply (void *cls,
 					gettext_noop ("# duplicate replies discarded (bloomfilter)"),
 					1,
 					GNUNET_NO);
+#if DEBUG_FS
 	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 			  "Duplicate response `%s', discarding.\n",
 			  GNUNET_h2s (&mhash));
+#endif
 	      return GNUNET_YES; /* duplicate */
 	    }
+#if DEBUG_FS
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "New response `%s', adding to filter.\n",
 		      GNUNET_h2s (&mhash));
+#endif
 	  GNUNET_CONTAINER_bloomfilter_add (pr->bf,
 					    &mhash);
 	}
@@ -1970,9 +1976,11 @@ process_reply (void *cls,
     }
   if (GNUNET_YES == do_remove)
     {
+#if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Removing request `%s' from request map (has been satisfied)\n",
 		  GNUNET_h2s (key));
+#endif
       GNUNET_break (GNUNET_YES ==
 		    GNUNET_CONTAINER_multihashmap_remove (query_request_map,
 							  key,
@@ -2210,10 +2218,12 @@ process_local_reply (void *cls,
 					     pr);      
       return;
     }
+#if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "New local response to `%s' of type %u.\n",
 	      GNUNET_h2s (key),
 	      type);
+#endif
   if (type == GNUNET_DATASTORE_BLOCKTYPE_ONDEMAND)
     {
 #if DEBUG_FS
@@ -2274,10 +2284,14 @@ process_local_reply (void *cls,
 						      pr->bf_size, 
 						      BLOOMFILTER_K);
 	}
+#if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "New local response `%s', adding to filter.\n",
 		  GNUNET_h2s (&mhash));
+#endif
 #if 0
+      /* this would break stuff since we will check the bf later
+	 again (and would then discard the reply!) */
       GNUNET_CONTAINER_bloomfilter_add (pr->bf, 
 					&mhash);
 #endif
