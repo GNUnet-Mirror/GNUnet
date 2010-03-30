@@ -69,7 +69,7 @@ gnunet_service_transport_LDADD = \
 plugin_LTLIBRARIES = \
   libgnunet_plugin_transport_tcp.la \
   libgnunet_plugin_transport_udp.la \
-    libgnunet_plugin_transport_udp_nat.la \
+  libgnunet_plugin_transport_udp_nat.la \
   libgnunet_plugin_transport_template.la 
 # TODO: add http, nat, etc.
 
@@ -110,6 +110,7 @@ libgnunet_plugin_transport_udp_nat_la_LIBADD = \
 libgnunet_plugin_transport_udp_nat_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
+ 
 check_PROGRAMS = \
  test_transport_api_tcp \
  test_transport_api_udp \
