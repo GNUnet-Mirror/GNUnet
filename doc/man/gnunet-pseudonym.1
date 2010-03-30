@@ -1,0 +1,91 @@
+.TH GNUNET-PSEUDONYM "1" "30 Mar 2010" "GNUnet"
+.SH NAME
+gnunet\-pseudonym \- create, delete or list pseudonyms
+.SH SYNOPSIS
+.B gnunet\-pseudonym
+[options]
+.SH DESCRIPTION
+.PP
+gnunet\-pseudonym is a tool for managing pseudonyms and namespaces.  A pseudonym is the persona that controls a namespace.  As such, it is identical to a public\-private RSA key pair.  A namespace is a collection of files that have been signed by the corresponding private RSA key.  A namespace is typically associated with a nickname and other metadata.
+
+Namespaces are an important tool for providing assurances about content integrity and authenticity in GNUnet.  Since all of the content in the namespace must have been provided by the same entity, users can form an opinion about that entity and learn to search (or avoid) certain namespaces.
+
+gnunet\-pseudonym can be used to list all of the pseudonyms that were created locally, to create new pseudonyms, to delete existing pseudonyms (the namespace will continue to exist, but it will be impossible to add additional data to it) and to list all of the namespaces (with their meta-data) known to the local user.  By default, gnunet\-pseudonym lists all pseudonyms that were discovered so far.
+
+Creating a new pseudonym requires using the \-C option together with a nickname that is to be used for the namespace.  Nicknames must be unique for each user, global uniqueness is desireable but not necessary.  If two namespaces in GNUnet use the same nickname all GNUnet tools will display the nickname together with a number which ensures that the name becomes locally unique to avoid ambiguity.  Additional options can be passed together with the \-C option to provide additional meta\-data that describes the namespace.  Possible meta\-data includes the 'realname' of the person controlling the namespace, a description, the mime\-type for content in the namespace (useful if the namespace is dedicated to some specific type of content) and contact information.  One important piece of meta\-data that can be specified is the identifier of a document root, that is the name of a file in the namespace that is a portal to the rest of the content.  This is useful to help users find this root in the absence of conventions.  Note that all of this meta\-data is optional and should never be trusted blindly.
+
+As mentioned before, by default, gnunet\-pseudonym simply lists the meta\-data available for other namespaces.  Namespaces can be discovered whenever the peer obtains the namespace advertisement.  Namespace advertisements can be found using ordinary keyword\-based searches (by default gnunet\-pseudonym publishes the namespace advertisement under the keyword 'namespace', but the \-k option can be used to specify other keywords) and under the 'empty' identifier of the respective namespace (using a namespace\-search if the namespace ID is already known).
+
+For more details about GNUnet namespaces and content encoding please read the 'Encoding for Censorship\-resistant Sharing' (ECRS) paper which can be found on the GNUnet webpage.
+
+.TP
+\fB\-a \fILEVEL\fR, \fB\-\-anonymity=LEVEL\fR
+set desired level of sender anonymity.  Default is 1.
+
+.TP
+\fB\-A\fR, \fB\-\-automate\fR
+Start a (new) collection.  Works only in conjunction with the \-C option.  A collection is an automatically managed directory in a namespace.  In essence, after starting the collection every file that you insert into GNUnet will automatically be placed into the collection.  Other users can browse your collection and be certain (thanks to cryptography) that all of these files were inserted into GNUnet by the same user (they do not necessarily know who it is, but if you specify your realname (\-r) they will be able to see that handle).  Collections are useful for establishing a reputation for your GNUnet content, such that readers can form an opinion about quality and availability.  Namespaces can be used to achieve the same thing, but collections are automatic and thus less work for you.
+
+Using collections has some security implications since it is possible for an adversary to see that all of these files originate from the same user.  This may help a correlation attack to break anonymity.  Nevertheless we encourage using collections, they are likely to be the right choice for most users.
+
+.TP
+\fB\-C NAME\fR, \fB\-\-create=NAME\fR
+Creates a new pseudonym with the given NAME or creates a new advertisement for the pseudonym with the given NAME (if the pseudonym already exists).
+
+.TP
+\fB\-D NAME\fR, \fB\-\-delete=NAME\fR
+Delete the pseudonym with the given NAME.
+
+.TP
+\fB\-e\fR, \fB\-\-end\fR
+End a collection.  This option is the opposite of the \-A option in that it stops the collection.  Note that currently, once you stop a collection you can never restart it.  However, you can start a new collection.  There can only be one collection at any given point in time for a particular user.
+
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help page.
+
+.TP
+\fB\-k KEYWORD\fR, \fB\-\-keyword=KEYWORD\fR
+Publish a namespace advertisement under the keyword 'KEYWORD'.  Default is 'namespace' (use with \-C).  You can specify \-k multiple times.  In that case, the namespace will be published under each of those keywords.
+
+.TP
+\fB\-l\fR, \fB\-\-local\-only\fR
+display names of local namespaces (those that we can extend with content because we created them)
+
+.TP
+\fB\-m \fITYPE:VALUE\fR, \fB\-\-meta=\fITYPE:VALUE\fR
+For the main file (or directory), set the metadata of the given TYPE to the given VALUE.  Note that this will not add the respective VALUE to the set of keywords under which the file can be found.
+
+.TP
+\fB\-n\fR, \fB\-\-no\-advertisement\fR
+Do not generate an advertisement for the namespace (use with \-C).
+
+.TP
+\fB\-p \fIPRIORITY\fR, \fB\-\-prio=\fIPRIORITY\fR
+Set the priority of the namespace advertisement (default: 365).  If the local database is full, GNUnet will discard the content with the lowest ranking.  Note that ranks change over time depending on popularity.  The default should be high enough to preserve the locally inserted content in favor of content that migrates from other peers.
+
+.TP
+\fB\-q\fR, \fB\-\-quiet\fR
+Do not print the list of pseudonyms (only perform create or delete operation).
+
+.TP
+\fB\-r IDENTIFIER\fR, \fB\-\-root=IDENTIFIER\fR
+Specify the identifier for the root of the namespace.  Used in the namespace advertisement to tell users that find the namespace advertisement about an entry\-point into the namespace (use with \-C).
+
+.TP
+\fB\-s ID:VALUE\fR, \fB\-\-set-rating=ID:VALUE\fR
+Change the rating for the namespace identified by ID by VALUE.  For example, "\-s test:-3" decrements the rating of the pseudonym "test" by 3.  Note that ratings are purely local.  Each user has his own independent rating of namespaces.  The rating is merely a way for each user to keep track of his own experience with a given namespace.
+
+.SH FILES
+.TP
+~/.gnunet/data/pseudonyms/
+Directory where the pseudonyms are stored
+
+.TP
+~/.gnunet/data/collection
+File where information about the currently active collection is kept (if any)
+
+.SH "REPORTING BUGS"
+Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+.SH "SEE ALSO"
+\fBgnunet\-publish\fP(1), \fBgnunet\-search\fP(1)
