@@ -51,12 +51,12 @@ static struct GNUNET_CORE_Handle *coreAPI;
 /**
  * The identity of our peer.
  */
-struct GNUNET_PeerIdentity my_identity;
+static struct GNUNET_PeerIdentity my_identity;
 
 /**
  * The configuration for this service.
  */
-const struct GNUNET_CONFIGURATION_Handle *cfg;
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
  * The scheduler for this service.
@@ -444,18 +444,19 @@ size_t core_transmit_notify (void *cls,
                              size_t size, void *buf)
 {
   struct PendingMessage *pending_message = cls;
-  char *send_buf = buf;
-  if ((buf == NULL) || (size < pending_message->msg_size))
+  size_t ssize;
+
+  if (buf == NULL)
     {
+      /* FIXME: error handling: try again? free pending_message? */
       return 0;
     }
-
-  memcpy(send_buf, pending_message->msg, pending_message->msg_size);
-
+  ssize = pending_message->msg_size;
+  GNUNET_assert(size >= ssize);
+  memcpy(buf, pending_message->msg, ssize);
   GNUNET_free(pending_message->msg);
   GNUNET_free(pending_message);
-
-  return size;
+  return ssize;
 }
 
 /**
@@ -841,7 +842,6 @@ static void
 shutdown_task (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-
   GNUNET_CORE_disconnect (coreAPI);
 }
 
