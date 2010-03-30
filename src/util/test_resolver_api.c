@@ -310,7 +310,7 @@ run (void *cls,
    
     memset (&sa, 0, sizeof (sa));
     sa.sin_family = AF_INET;
-    inet_aton(ROOTSERVER_IP, &sa.sin_addr.s_addr);
+    inet_aton(ROOTSERVER_IP, &sa.sin_addr);
     
     GNUNET_RESOLVER_hostname_get (sched,
                                 cfg,
