@@ -27,7 +27,7 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_testing_lib.h"
 
-#define VERBOSE_TESTING GNUNET_NO
+#define VERBOSE_TESTING GNUNET_YES
 
 /**
  * Lowest port used for GNUnet testing.  Should be high enough to not
@@ -44,7 +44,7 @@
  */
 #define HIGH_PORT 32000
 
-#define MAX_OUTSTANDING_CONNECTIONS 30
+#define MAX_OUTSTANDING_CONNECTIONS 50
 
 #define CONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 180)
 
@@ -225,10 +225,13 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg, uint16_t * port)
 {
   struct UpdateContext uc;
   uint16_t orig;
+  char *control_host;
+  char *allowed_hosts;
 
   orig = *port;
   uc.nport = *port;
   uc.ret = GNUNET_CONFIGURATION_create ();
+
   GNUNET_CONFIGURATION_iterate (cfg, &update_config, &uc);
   if (uc.nport >= HIGH_PORT)
     {
@@ -236,6 +239,15 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg, uint16_t * port)
       GNUNET_CONFIGURATION_destroy (uc.ret);
       return NULL;
     }
+
+  if (GNUNET_CONFIGURATION_get_value_string(cfg, "testing", "control_host", &control_host) == GNUNET_OK)
+    {
+      GNUNET_asprintf(&allowed_hosts, "%s; 127.0.0.1;", control_host);
+      fprintf(stderr, "FOUND CONTROL_HOST OPTION %s, setting to %s\n", control_host, allowed_hosts);
+      GNUNET_CONFIGURATION_set_value_string(uc.ret, "core", "ACCEPT_FROM", allowed_hosts);
+      GNUNET_free(allowed_hosts);
+    }
+
   *port = (uint16_t) uc.nport;
   return uc.ret;
 }
@@ -1173,6 +1185,7 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
       GNUNET_break (0);
       return NULL;
     }
+
   pg = GNUNET_malloc (sizeof (struct GNUNET_TESTING_PeerGroup));
   pg->sched = sched;
   pg->cfg = cfg;

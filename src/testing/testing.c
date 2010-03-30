@@ -40,7 +40,7 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_transport_service.h"
 
-#define DEBUG_TESTING GNUNET_NO
+#define DEBUG_TESTING GNUNET_YES
 
 /**
  * How long do we wait after starting gnunet-service-arm
@@ -168,6 +168,13 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       /* start GNUnet on remote host */
       if (NULL == d->hostname)
         {
+#if DEBUG_TESTING
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Starting `%s', with command `%s %s %s %s %s %s'.\n",
+                      "gnunet-arm", "gnunet-arm", "-c", d->cfgfile,
+                      "-L", "DEBUG",
+                      "-s");
+#endif
           d->pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-arm",
                                             "gnunet-arm",
                                             "-c", d->cfgfile,
@@ -182,6 +189,13 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
             GNUNET_asprintf (&dst, "%s@%s", d->username, d->hostname);
           else
             dst = GNUNET_strdup (d->hostname);
+
+#if DEBUG_TESTING
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Starting `%s', with command `%s %s %s %s %s %s %s %s'.\n",
+                      "gnunet-arm", "ssh", dst, "gnunet-arm", "-c", d->cfgfile,
+                      "-L", "DEBUG", "-s");
+#endif
           d->pid = GNUNET_OS_start_process (NULL, NULL, "ssh",
                                             "ssh",
                                             dst,
@@ -534,7 +548,7 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
 #if DEBUG_TESTING
                                               "-L", "DEBUG",
 #endif
-                                              "-c", d->cfgfile, "-e", "-d", NULL);
+                                              "-c", d->cfgfile, "-e", NULL);
       /* Use -e to end arm, and -d to remove temp files */
 
       GNUNET_free (arg);
