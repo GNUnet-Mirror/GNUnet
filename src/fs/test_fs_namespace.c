@@ -23,9 +23,6 @@
  * @brief Test for fs_namespace.c
  * @author Christian Grothoff
  *
- *
- * FIXME:
- * - child search of "sks" search (the "next" identifier) is not stopped => no termination!
  * TODO:
  * - add timeout task
  */
@@ -220,8 +217,6 @@ progress_cb (void *cls,
     case GNUNET_FS_STATUS_SEARCH_STOPPED:
       fprintf (stderr,
 	       "Search stop event received\n");
-      GNUNET_assert ( (ksk_search == event->value.search.sc) ||
-		      (sks_search == event->value.search.sc));
       return NULL;
     default:
       fprintf (stderr,

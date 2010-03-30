@@ -27,13 +27,10 @@ away), in order in which they will likely be done:
   - utilization can (easily, restart?) go out of control (very large), causing
     content expiration job to go crazy and delete everything!
 * FS:
-  ! fs_search test fails (hangs) since blocktype was changed from "ANY" to "KBLOCK"!
-    (insert blocktype wrong? or what!?)
-  ! fs_namespace test fails (hangs), but local fs service has found results; somehow
-    they are not passed to the client and/or the shutdown sequence is not working
   - gnunet-publish cannot be aborted using CTRL-C
   - on some systems, keyword search does not find locally published content
     (need testcase of command-line tools! - also good to cover getopt API!)
+    [could be related to datastore issue above!]
   - 2-peer download is still too slow (why?)
   - advanced FS API parts
     + search: SBlocks, NBlocks, probes, notify FS-service of known results

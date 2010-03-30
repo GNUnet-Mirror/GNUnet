@@ -134,6 +134,7 @@ TESTS = \
  test_fs_download \
  test_fs_file_information \
  test_fs_list_indexed \
+ test_fs_namespace \
  test_fs_publish \
  test_fs_search \
  test_fs_start_stop \

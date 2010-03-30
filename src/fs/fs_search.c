@@ -812,10 +812,9 @@ search_start (struct GNUNET_FS_Handle *h,
 	}
     }
   if (NULL != parent)
-    {
-      // FIXME: need to track children
-      // in parent in case parent is stopped!
-    }
+    GNUNET_CONTAINER_DLL_insert (parent->child_head,
+				 parent->child_tail,
+				 sc);
   pi.status = GNUNET_FS_STATUS_SEARCH_START;
   make_search_status (&pi, sc);
   sc->client_info = h->upcb (h->upcb_cls,
@@ -955,13 +954,18 @@ GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc)
 {
   struct GNUNET_FS_ProgressInfo pi;
   unsigned int i;
+  struct GNUNET_FS_SearchContext *parent;
 
   // FIXME: make un-persistent!
-  if (NULL != sc->parent)
+  if (NULL != (parent = sc->parent))
     {
-      // FIXME: need to untrack sc
-      // in parent!
+      GNUNET_CONTAINER_DLL_remove (parent->child_head,
+				   parent->child_tail,
+				   sc);
+      sc->parent = NULL;
     }
+  while (NULL != sc->child_head)
+    GNUNET_FS_search_stop (sc->child_head);
   GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
 					 &search_result_free,
 					 sc);

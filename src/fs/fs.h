@@ -815,6 +815,33 @@ struct GNUNET_FS_SearchContext
   struct GNUNET_FS_SearchContext *parent;
 
   /**
+   * For update-searches, link to the
+   * first child search that triggered the
+   * update search; otherwise NULL.
+   */
+  struct GNUNET_FS_SearchContext *child_head;
+
+  /**
+   * For update-searches, link to the
+   * last child search that triggered the
+   * update search; otherwise NULL.
+   */
+  struct GNUNET_FS_SearchContext *child_tail;
+
+  /**
+   * For update-searches, link to the
+   * next child belonging to the same parent.
+   */
+  struct GNUNET_FS_SearchContext *next;
+
+  /**
+   * For update-searches, link to the
+   * previous child belonging to the same
+   * parent.
+   */
+  struct GNUNET_FS_SearchContext *prev;
+
+  /**
    * Connection to the FS service.
    */
   struct GNUNET_CLIENT_Connection *client;
