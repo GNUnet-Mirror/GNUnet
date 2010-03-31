@@ -183,6 +183,7 @@ struct ConnectContext
  */
 static int outstanding_connects;
 
+
 /**
  * Function to iterate over options.  Copies
  * the options to the target configuration,
@@ -209,7 +210,7 @@ update_config (void *cls,
 
   if ((0 == strcmp (option, "HOSTNAME")) && (ctx->hostname != NULL))
     {
-      GNUNET_CONFIGURATION_set_value_string (ctx->ret, section, option, ctx->hostname);
+      value = ctx->hostname;
     }
 
   GNUNET_CONFIGURATION_set_value_string (ctx->ret, section, option, value);
@@ -250,10 +251,19 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg, uint16_t * port, con
 
   if (GNUNET_CONFIGURATION_get_value_string(cfg, "testing", "control_host", &control_host) == GNUNET_OK)
     {
-      GNUNET_asprintf(&allowed_hosts, "%s; 127.0.0.1;", control_host);
-      fprintf(stderr, "FOUND CONTROL_HOST OPTION %s, setting to %s\n", control_host, allowed_hosts);
+      GNUNET_asprintf(&allowed_hosts, "%s 127.0.0.1;", control_host);
       GNUNET_CONFIGURATION_set_value_string(uc.ret, "core", "ACCEPT_FROM", allowed_hosts);
       GNUNET_free_non_null(control_host);
+      GNUNET_free(allowed_hosts);
+    }
+
+
+  /* arm needs to know to allow connections from the host on which it is running,
+   * otherwise gnunet-arm is unable to connect to it in some instances */
+  if (hostname != NULL)
+    {
+      GNUNET_asprintf(&allowed_hosts, "%s; 127.0.0.1;", hostname);
+      GNUNET_CONFIGURATION_set_value_string(uc.ret, "arm", "ACCEPT_FROM", allowed_hosts);
       GNUNET_free(allowed_hosts);
     }
 
@@ -1266,6 +1276,7 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
           hostname = NULL;
           pcfg = make_config (cfg, &minport, hostname);
         }
+
       if (NULL == pcfg)
         {
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING,

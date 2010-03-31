@@ -531,7 +531,7 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
     {
 #if DEBUG_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Stopping gnunet-arm on with config `%s' on host `%s'.\n", d->cfgfile, d->hostname);
+                  "Stopping gnunet-arm with config `%s' on host `%s'.\n", d->cfgfile, d->hostname);
 #endif
 
       if (d->username != NULL)
