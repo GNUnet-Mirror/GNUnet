@@ -23,10 +23,10 @@
  * @author Christian Grothoff
  *
  * TODO:
+ * - handle recursive downloads (need directory & 
+ *   fs-level download-parallelism management)
  * - location URI suppport (can wait, easy)
  * - check if blocks exist already (can wait, easy)
- * - handle recursive downloads (need directory & 
- *   fs-level download-parallelism management, can wait)
  * - check if iblocks can be computed from existing blocks (can wait, hard)
  * - persistence (can wait)
  */

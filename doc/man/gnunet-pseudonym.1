@@ -57,10 +57,6 @@ display names of local namespaces (those that we can extend with content because
 For the main file (or directory), set the metadata of the given TYPE to the given VALUE.  Note that this will not add the respective VALUE to the set of keywords under which the file can be found.
 
 .TP
-\fB\-n\fR, \fB\-\-no\-advertisement\fR
-Do not generate an advertisement for the namespace (use with \-C).
-
-.TP
 \fB\-p \fIPRIORITY\fR, \fB\-\-prio=\fIPRIORITY\fR
 Set the priority of the namespace advertisement (default: 365).  If the local database is full, GNUnet will discard the content with the lowest ranking.  Note that ranks change over time depending on popularity.  The default should be high enough to preserve the locally inserted content in favor of content that migrates from other peers.
 
@@ -70,7 +66,7 @@ Do not print the list of pseudonyms (only perform create or delete operation).
 
 .TP
 \fB\-r IDENTIFIER\fR, \fB\-\-root=IDENTIFIER\fR
-Specify the identifier for the root of the namespace.  Used in the namespace advertisement to tell users that find the namespace advertisement about an entry\-point into the namespace (use with \-C).
+Specify the identifier for the root of the namespace.  Used in the namespace advertisement to tell users that find the namespace advertisement about an entry\-point into the namespace (use with \-C).  Advertisements are only created if "\-C" and "\-r" are specified.
 
 .TP
 \fB\-s ID:VALUE\fR, \fB\-\-set-rating=ID:VALUE\fR

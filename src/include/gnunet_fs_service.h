@@ -312,6 +312,26 @@ GNUNET_FS_uri_test_sks (const struct GNUNET_FS_Uri *uri);
 
 
 /**
+ * Handle to one of our namespaces.
+ */
+struct GNUNET_FS_Namespace;
+
+
+/**
+ * Create an SKS URI from a namespace and an identifier.
+ *
+ * @param ns namespace
+ * @param id identifier
+ * @param emsg where to store an error message
+ * @return an FS URI for the given namespace and identifier
+ */
+struct GNUNET_FS_Uri *
+GNUNET_FS_uri_sks_create (struct GNUNET_FS_Namespace *ns,
+			  const char *id,
+			  char **emsg);
+
+
+/**
  * Get the ID of a namespace from the given
  * namespace URI.
  *
@@ -652,12 +672,6 @@ enum GNUNET_FS_Status
   GNUNET_FS_STATUS_UNINDEX_STOPPED
 
 };
-
-
-/**
- * Handle to one of our namespaces.
- */
-struct GNUNET_FS_Namespace;
 
 
 /**

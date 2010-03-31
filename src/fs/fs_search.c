@@ -24,12 +24,11 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - handle SKS updates searches nicely (can wait)
- * - handle availability probes (can wait)
- * - make operations persistent (can wait)
- * - handle namespace advertisements (can wait)
+ * - handle namespace advertisements (can wait; might already work!?)
  * - add support for pushing "already seen" information
  *   to FS service for bloomfilter (can wait)
+ * - handle availability probes (can wait)
+ * - make operations persistent (can wait)
  */
 
 #include "platform.h"

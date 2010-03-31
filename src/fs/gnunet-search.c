@@ -24,9 +24,6 @@
  * @author Krista Bennett
  * @author James Blackwell
  * @author Igor Wronsky
- *
- * TODO:
- * - add many options (timeout, namespace search, etc.)
  */
 #include "platform.h"
 #include "gnunet_fs_service.h"
@@ -40,6 +37,10 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 static struct GNUNET_FS_Handle *ctx;
 
 static struct GNUNET_FS_SearchContext *sc;
+
+static char *output_filename;
+
+static struct GNUNET_FS_DirectoryBuilder *db;
 
 static unsigned int anonymity = 1;
 
@@ -64,12 +65,39 @@ item_printer (void *cls,
   return GNUNET_OK;
 }
 
+
 static void
 clean_task (void *cls,
 	    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  size_t dsize;
+  void *ddata;
+
   GNUNET_FS_stop (ctx);
   ctx = NULL;
+  if (output_filename == NULL)
+    return;
+  if (GNUNET_OK !=
+      GNUNET_FS_directory_builder_finish (db,
+					  &dsize,	
+					  &ddata))
+    {
+      GNUNET_break (0);
+      GNUNET_free (output_filename);    
+      return;
+    }
+  if (dsize != 
+      GNUNET_DISK_fn_write (output_filename,
+			    ddata,
+			    dsize,
+			    GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE))
+    {
+      fprintf (stderr,
+	       _("Failed to write directory with search results to `%s'\n"),
+	       output_filename);
+    }
+  GNUNET_free_non_null (ddata);
+  GNUNET_free (output_filename);
 }
 
 
@@ -99,6 +127,11 @@ progress_cb (void *cls,
     case GNUNET_FS_STATUS_SEARCH_START:
       break;
     case GNUNET_FS_STATUS_SEARCH_RESULT:
+      if (db != NULL)
+	GNUNET_FS_directory_builder_add (db,
+					 info->value.search.specifics.result.uri,
+					 info->value.search.specifics.result.meta,
+					 NULL);
       uri = GNUNET_FS_uri_to_string (info->value.search.specifics.result.uri);
       printf ("%s:\n", uri);
       filename =
@@ -135,7 +168,6 @@ progress_cb (void *cls,
       GNUNET_SCHEDULER_shutdown (sched);
       break;
     case GNUNET_FS_STATUS_SEARCH_STOPPED: 
-      sc = NULL;
       GNUNET_SCHEDULER_add_continuation (sched,
 					 &clean_task, 
 					 NULL,
@@ -214,6 +246,8 @@ run (void *cls,
       ret = 1;
       return;
     }
+  if (output_filename != NULL)
+    db = GNUNET_FS_directory_builder_create (NULL);
   sc = GNUNET_FS_search_start (ctx,
 			       uri,
 			       anonymity,
@@ -241,7 +275,10 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
   {'a', "anonymity", "LEVEL",
    gettext_noop ("set the desired LEVEL of receiver-anonymity"),
    1, &GNUNET_GETOPT_set_uint, &anonymity},
-  // FIXME: options!
+  {'o', "output", "PREFIX",
+   gettext_noop
+   ("write search results to file starting with PREFIX"),
+   1, &GNUNET_GETOPT_set_string, &output_filename},
   GNUNET_GETOPT_OPTION_END
 };
 

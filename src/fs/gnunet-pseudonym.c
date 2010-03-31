@@ -66,11 +66,6 @@ static int print_local_only;
 static struct GNUNET_CONTAINER_MetaData *adv_metadata;
 
 /**
- * -n option.
- */
-static int no_advertising;
-
-/**
  * -p option.
  */
 static unsigned int priority = 365;
@@ -100,6 +95,10 @@ static struct GNUNET_FS_Handle *h;
  */
 static struct GNUNET_FS_Namespace *ns;
 
+/**
+ * Our configuration.
+ */
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static int ret;
 
@@ -126,11 +125,45 @@ ns_printer (void *cls,
 }
 
 
+static int
+pseudo_printer (void *cls,
+		const GNUNET_HashCode *
+		pseudonym,
+		const struct
+		GNUNET_CONTAINER_MetaData * md,
+		int rating)
+{
+  char *id;
+
+  id = GNUNET_PSEUDONYM_id_to_name (cfg,
+				    pseudonym);
+  if (id == NULL)
+    {
+      GNUNET_break (0);
+      return GNUNET_OK;
+    }
+  fprintf (stdout, 
+	   "%s (%d):\n",
+	   id,
+	   rating);
+  GNUNET_CONTAINER_meta_data_iterate (md,
+				      &EXTRACTOR_meta_data_print, 
+				      stdout);
+  fprintf (stdout, "\n");
+  GNUNET_free (id);
+  return GNUNET_OK;
+}
+
+
 static void
 post_advertising (void *cls,
 		  const struct GNUNET_FS_Uri *uri,
 		  const char *emsg)
 {
+  GNUNET_HashCode nsid;
+  char *set;
+  int delta;
+
   if (emsg != NULL)
     {
       fprintf (stderr, "%s", emsg);
@@ -153,7 +186,39 @@ post_advertising (void *cls,
     }
   if (NULL != rating_change)
     {
-      GNUNET_break (0); // FIXME: not implemented
+      set = rating_change;
+      while ((*set != '\0') && (*set != ':'))
+        set++;
+      if (*set != ':')
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      _("Invalid argument `%s'\n"),
+		      rating_change);
+	}
+      else
+	{
+	  *set = '\0';
+	  delta = strtol (&set[1], NULL, /* no error handling yet */
+                          10);
+	  if (GNUNET_OK ==
+	      GNUNET_PSEUDONYM_name_to_id (cfg,
+					   rating_change,
+					   &nsid))
+	    {
+	      GNUNET_PSEUDONYM_rank (cfg,
+				     &nsid,
+				     delta);
+	      
+	    }
+	  else
+	    {
+	      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+			  _("Namespace `%s' unknown.\n"),
+			  rating_change);
+	    }
+	}
+      GNUNET_free (rating_change);
+      rating_change = NULL;
     }
   if (0 != print_local_only)
     {
@@ -163,10 +228,10 @@ post_advertising (void *cls,
     }  
   else if (0 == no_remote_printing)
     {
-      GNUNET_break (0); // FIXME: not implemented
+      GNUNET_PSEUDONYM_list_all (cfg,
+				 &pseudo_printer,
+				 NULL);
     }
-  /* FIXME: is this OK here, or do we need
-     for completion of previous requests? */
   GNUNET_FS_stop (h);
 }
 
@@ -178,18 +243,20 @@ post_advertising (void *cls,
  * @param sched the scheduler to use
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
- * @param cfg configuration
+ * @param c configuration
  */
 static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *sched,
      char *const *args,
      const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_FS_Uri *ns_uri;
   struct GNUNET_TIME_Absolute expiration;
+  char *emsg;
 
+  cfg = c;
   h = GNUNET_FS_start (sched,
 		       cfg,
 		       "gnunet-pseudonym",
@@ -221,11 +288,18 @@ run (void *cls,
 	}
       else
 	{
-	  if (0 == no_advertising)
+	  if (NULL != root_identifier)
 	    {
-	      GNUNET_break (0); // FIXME: not implemented
-	      ns_uri = NULL; // FIXME!!
+	      emsg = NULL;
+	      ns_uri = GNUNET_FS_uri_sks_create (ns, root_identifier, &emsg);
+	      GNUNET_assert (emsg == NULL);
 	      expiration = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_YEARS);
+	      if (ksk_uri == NULL)
+		{
+		  emsg = NULL;
+		  ksk_uri = GNUNET_FS_uri_parse ("gnunet://fs/ksk/namespace", &emsg);
+		  GNUNET_assert (NULL == emsg);
+		}
 	      GNUNET_FS_publish_ksk (h,
 				     ksk_uri,
 				     adv_metadata,
@@ -275,9 +349,6 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
   {'m', "meta", "TYPE:VALUE",
    gettext_noop ("set the meta-data for the given TYPE to the given VALUE"),
    1, &GNUNET_FS_getopt_set_metadata, &adv_metadata},
-  {'n', "no-advertisement", NULL,
-   gettext_noop ("do not create an advertisement"),
-   0, &GNUNET_GETOPT_set_one, &no_advertising},
   {'p', "priority", "PRIORITY",
    gettext_noop ("use the given PRIORITY for the advertisments"),
    1, &GNUNET_GETOPT_set_uint, &priority},

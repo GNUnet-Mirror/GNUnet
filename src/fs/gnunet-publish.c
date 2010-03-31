@@ -24,9 +24,6 @@
  * @author Krista Bennett
  * @author James Blackwell
  * @author Igor Wronsky
- *
- * TODO:
- * - support for some options is still missing (uri argument)
  */
 #include "platform.h"
 #include "gnunet_fs_service.h"
@@ -307,6 +304,22 @@ publish_inspector (void *cls,
 }
 
 
+static void 
+uri_ksk_continuation (void *cls,
+		      const struct GNUNET_FS_Uri *uri,
+		      const char *emsg)
+{
+  if (emsg != NULL)
+    {
+      fprintf (stderr,
+	       "%s\n",
+	       emsg);
+      ret = 1;
+    }
+  GNUNET_FS_stop (ctx);
+}
+
+
 /**
  * Main function that will be run by the scheduler.
  *
@@ -329,6 +342,7 @@ run (void *cls,
   struct stat sbuf;
   char *ex;
   char *emsg;
+  struct GNUNET_FS_Uri *uri;
   
   sched = s;
   /* check arguments */
@@ -421,11 +435,32 @@ run (void *cls,
 	}
     }
   if (NULL != uri_string)
-    {
-      // FIXME -- implement!
+    {      
+      emsg = NULL;
+      uri = GNUNET_FS_uri_parse (uri_string,
+				 &emsg);
+      if (uri == NULL)
+	{
+	  fprintf (stderr, 
+		   _("Failed to parse URI: %s\n"),
+		   emsg);
+	  GNUNET_free (emsg);
+	  GNUNET_FS_stop (ctx);
+	  ret = 1;
+	  return;	  
+	}
+      GNUNET_FS_publish_ksk (ctx,
+			     topKeywords,
+			     meta,
+			     uri,
+			     GNUNET_TIME_relative_to_absolute (DEFAULT_EXPIRATION),
+			     anonymity,
+			     priority,
+			     GNUNET_FS_PUBLISH_OPTION_NONE,
+			     &uri_ksk_continuation,
+			     NULL);
       return;
     }
-
   l = NULL;
   if (! disable_extractor)
     {

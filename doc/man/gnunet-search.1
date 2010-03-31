@@ -31,14 +31,14 @@ print help page
 Change the loglevel.  Possible values for LOGLEVEL are 
 ERROR, WARNING, INFO and DEBUG. 
 .TP
-\fB\-o \fIPREFIX\fR, \fB\-\-output=\fIPREFIX\fR
-Writes the encountered (unencrypted) RBlocks or SBlocks to files with name PREFIX.XXX, where XXX is a number. This is useful to keep search results around.
+\fB\-o \fIFILENAME\fR, \fB\-\-output=\fIFILENAME\fR
+Writes a GNUnet directory containing all of the search results to FILENAME.
 .TP
 \fB\-v\fR, \fB\-\-version\fR
 print the version number
 .SH NOTES
 
-You can run gnunet\-search with an URI instead of a keyword.  The URI can have the format for a namespace search or for a keyword search.  For a namespace search, the format is gnunet://fs/sks/NAMESPACE/IDENTIFIER.  For a keyword search, use gnunet://ecrs/ksk/KEYWORD[+KEYWORD]*.  If the format does not correspond to a GNUnet URI, GNUnet will automatically assume that keywords are supplied directly.  
+You can run gnunet\-search with an URI instead of a keyword.  The URI can have the format for a namespace search or for a keyword search.  For a namespace search, the format is gnunet://fs/sks/NAMESPACE/IDENTIFIER.  For a keyword search, use gnunet://fs/ksk/KEYWORD[+KEYWORD]*.  If the format does not correspond to a GNUnet URI, GNUnet will automatically assume that keywords are supplied directly.  
 
 If multiple keywords are passed, gnunet-search will look for content matching any of the keywords.  The prefix "+" makes a keyword mandatory.  
 
@@ -60,13 +60,13 @@ Search results are printed by gnunet\-search like this:
 		Mime-type: text/plain
 .ad b
 
-The first line contains the command to run to download the file.  The suggested filename in the example is COPYING.  The GNUnet URI consists of the key and query hash of the file and finally the size of the file.  After the command to download the file GNUnet will print meta\-data about the file as advertised in the search result, here "The GNU Public License" and the mime\-type (see the options for gnunet\-insert on how to supply meta-data by hand).
+The first line contains the command to run to download the file.  The suggested filename in the example is COPYING.  The GNUnet URI consists of the key and query hash of the file and finally the size of the file.  After the command to download the file GNUnet will print meta\-data about the file as advertised in the search result, here "The GNU Public License" and the mime\-type (see the options for gnunet\-publish on how to supply meta-data by hand).
 
 .SH FILES
 .TP
 ~/.gnunet/gnunet.conf
 GNUnet configuration file; specifies the default value for the timeout
 .SH "REPORTING BUGS"
-Report bugs to <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet-developers@gnu.org>
+Report bugs to <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
 .SH "SEE ALSO"
 \fBgnunet\-gtk\fP(1), \fBgnunet\-publish\fP(1), \fBgnunet\-download\fP(1), \fBgnunet\-pseudonym\fP(1), \fBgnunet.conf\fP(5), \fBgnunetd\fP(1)

@@ -82,6 +82,7 @@ gnunet_pseudonym_SOURCES = \
 gnunet_pseudonym_LDADD = \
   $(top_builddir)/src/fs/libgnunetfs.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  -lextractor \
   $(GN_LIBINTL)
 
 gnunet_search_SOURCES = \

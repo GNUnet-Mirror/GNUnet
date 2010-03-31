@@ -291,7 +291,10 @@ GNUNET_FS_directory_builder_create (const struct GNUNET_CONTAINER_MetaData *mdir
   struct GNUNET_FS_DirectoryBuilder *ret;
 
   ret = GNUNET_malloc(sizeof(struct GNUNET_FS_DirectoryBuilder));
-  ret->meta = GNUNET_CONTAINER_meta_data_duplicate (mdir);
+  if (mdir != NULL)
+    ret->meta = GNUNET_CONTAINER_meta_data_duplicate (mdir);
+  else
+    ret->meta = GNUNET_CONTAINER_meta_data_create ();
   GNUNET_FS_meta_data_make_directory (ret->meta);
   return ret;
 }

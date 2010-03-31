@@ -882,6 +882,34 @@ GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *baseUri,
 
 
 /**
+ * Create an SKS URI from a namespace and an identifier.
+ *
+ * @param ns namespace
+ * @param id identifier
+ * @param emsg where to store an error message
+ * @return an FS URI for the given namespace and identifier
+ */
+struct GNUNET_FS_Uri *
+GNUNET_FS_uri_sks_create (struct GNUNET_FS_Namespace *ns,
+			  const char *id,
+			  char **emsg)
+{
+  struct GNUNET_FS_Uri *ns_uri;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pk;
+	      
+  ns_uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
+  ns_uri->type = sks;
+  GNUNET_CRYPTO_rsa_key_get_public (ns->key,
+				    &pk);
+  GNUNET_CRYPTO_hash (&pk,
+		      sizeof (pk),
+		      &ns_uri->data.sks.namespace);
+  ns_uri->data.sks.identifier = GNUNET_strdup (id);
+  return ns_uri;
+}
+
+
+/**
  * Canonicalize a keyword.
  * 
  * @param in input string (the keyword)
