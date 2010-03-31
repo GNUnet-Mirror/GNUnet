@@ -53,7 +53,8 @@ check_PROGRAMS = \
 check_SCRIPTS = \
  test_gnunet_arm.sh
 
-TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
+TESTS = $(check_PROGRAMS) 
+#$(check_SCRIPTS)
 
 test_arm_api_SOURCES = \
  test_arm_api.c

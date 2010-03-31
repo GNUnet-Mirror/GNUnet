@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2004, 2005, 2006, 2007, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2001, 2002, 2004, 2005, 2006, 2007, 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -68,6 +68,8 @@ static int extract_only;
 
 static int do_disable_creation_time;
 
+static GNUNET_SCHEDULER_TaskIdentifier kill_task;
+
 
 static void 
 do_stop_task (void *cls,
@@ -124,6 +126,12 @@ progress_cb (void *cls,
       fprintf (stderr,
 	       _("Error publishing: %s.\n"),
 	       info->value.publish.specifics.error.message);
+      if (kill_task != GNUNET_SCHEDULER_NO_TASK)
+	{
+	  GNUNET_SCHEDULER_cancel (sched,
+				   kill_task);
+	  kill_task = GNUNET_SCHEDULER_NO_TASK;
+	}
       GNUNET_SCHEDULER_add_continuation (sched,
 					 &do_stop_task,
 					 NULL,
@@ -133,11 +141,24 @@ progress_cb (void *cls,
       fprintf (stdout,
 	       _("Publishing `%s' done.\n"),
 	       info->value.publish.filename);
+      s = GNUNET_FS_uri_to_string (info->value.publish.specifics.completed.chk_uri);
+      fprintf (stdout,
+	       _("URI is `%s'.\n"),
+	       s);
+      GNUNET_free (s);
       if (info->value.publish.pctx == NULL)
-	GNUNET_SCHEDULER_add_continuation (sched,
-					   &do_stop_task,
-					   NULL,
-					   GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+	{
+	  if (kill_task != GNUNET_SCHEDULER_NO_TASK)
+	    {
+	      GNUNET_SCHEDULER_cancel (sched,
+				       kill_task);
+	      kill_task = GNUNET_SCHEDULER_NO_TASK;
+	    }
+	  GNUNET_SCHEDULER_add_continuation (sched,
+					     &do_stop_task,
+					     NULL,
+					     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+	}
       break;
     case GNUNET_FS_STATUS_PUBLISH_STOPPED: 
       GNUNET_break (NULL == pc);
@@ -547,6 +568,10 @@ run (void *cls,
       ret = 1;
       return;
     }
+  kill_task = GNUNET_SCHEDULER_add_delayed (sched,
+					    GNUNET_TIME_UNIT_FOREVER_REL,
+					    &do_stop_task,
+					    NULL);
 }
 
 

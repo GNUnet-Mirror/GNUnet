@@ -955,6 +955,26 @@ struct GNUNET_FS_DownloadContext
   struct GNUNET_FS_DownloadContext *parent;
 
   /**
+   * Head of list of child downloads.
+   */
+  struct GNUNET_FS_DownloadContext *child_head;
+
+  /**
+   * Tail of list of child downloads.
+   */
+  struct GNUNET_FS_DownloadContext *child_tail;
+
+  /**
+   * Previous download belonging to the same parent.
+   */
+  struct GNUNET_FS_DownloadContext *prev;
+
+  /**
+   * Next download belonging to the same parent.
+   */
+  struct GNUNET_FS_DownloadContext *next;
+
+  /**
    * Context kept for the client.
    */
   void *client_info;
@@ -980,6 +1000,13 @@ struct GNUNET_FS_DownloadContext
    * file, can be NULL!).
    */
   char *filename;
+
+  /**
+   * Where are we writing the data temporarily (name of the
+   * file, can be NULL!); used if we do not have a permanent
+   * name and we are a directory and we do a recursive download.
+   */
+  char *temp_filename;
 
   /**
    * Map of active requests (those waiting

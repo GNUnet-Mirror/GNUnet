@@ -24,9 +24,6 @@
  * @author Krista Bennett
  * @author James Blackwell
  * @author Igor Wronsky
- *
- * TODO:
- * - download-directory option support (do_directory)
  */
 #include "platform.h"
 #include "gnunet_fs_service.h"
@@ -50,8 +47,6 @@ static unsigned int anonymity = 1;
 static unsigned int parallelism = 16;
 
 static int do_recursive;
-
-static int do_directory;
 
 static char *filename;
 
@@ -133,15 +128,8 @@ progress_cb (void *cls,
 	       info->value.download.filename,
 	       s);
       GNUNET_free (s);
-      if (do_directory)
-	{
-	  GNUNET_break (0); //FIXME: not implemented
-	}
-      else
-	{
-	  if (info->value.download.dc == dc)
-	    GNUNET_SCHEDULER_shutdown (sched);
-	}
+      if (info->value.download.dc == dc)
+	GNUNET_SCHEDULER_shutdown (sched);
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_STOPPED: 
       if (info->value.download.dc == dc)
@@ -181,31 +169,24 @@ run (void *cls,
   enum GNUNET_FS_DownloadOptions options;
 
   sched = s;
-  if (do_directory)
+  uri = GNUNET_FS_uri_parse (args[0],
+			     &emsg);
+  if (NULL == uri)
     {
-      GNUNET_break (0); //FIXME: not implemented    
+      fprintf (stderr,
+	       _("Failed to parse URI: %s\n"),
+	       emsg);
+      GNUNET_free (emsg);
+      ret = 1;
+      return;
     }
-  else
+  if (! GNUNET_FS_uri_test_chk (uri))
     {
-      uri = GNUNET_FS_uri_parse (args[0],
-				 &emsg);
-      if (NULL == uri)
-	{
-	  fprintf (stderr,
-		   _("Failed to parse URI: %s\n"),
-		   emsg);
-	  GNUNET_free (emsg);
-	  ret = 1;
-	  return;
-	}
-      if (! GNUNET_FS_uri_test_chk (uri))
-	{
-	  fprintf (stderr,
-		   "Only CHK URIs supported right now.\n");
-	  ret = 1;
-	  GNUNET_FS_uri_destroy (uri);
-	  return;		 
-	}
+      fprintf (stderr,
+	       "Only CHK URIs supported right now.\n");
+      ret = 1;
+      GNUNET_FS_uri_destroy (uri);
+      return;		 
     }
   if (NULL == filename)
     {
@@ -237,29 +218,22 @@ run (void *cls,
   options = GNUNET_FS_DOWNLOAD_OPTION_NONE;
   if (do_recursive)
     options |= GNUNET_FS_DOWNLOAD_OPTION_RECURSIVE;
-  if (do_directory)
+  dc = GNUNET_FS_download_start (ctx,
+				 uri,
+				 NULL,
+				 filename,
+				 0,
+				 GNUNET_FS_uri_chk_get_file_size (uri),
+				 anonymity,
+				 options,
+				 NULL,
+				 NULL);
+  GNUNET_FS_uri_destroy (uri);
+  if (dc == NULL)
     {
-      GNUNET_break (0); //FIXME: not implemented
-    }
-  else
-    {  
-      dc = GNUNET_FS_download_start (ctx,
-				     uri,
-				     NULL,
-				     filename,
-				     0,
-				     GNUNET_FS_uri_chk_get_file_size (uri),
-				     anonymity,
-				     options,
-				     NULL,
-				     NULL);
-      GNUNET_FS_uri_destroy (uri);
-      if (dc == NULL)
-	{
-	  GNUNET_FS_stop (ctx);
-	  ctx = NULL;
-	  return;
-	}
+      GNUNET_FS_stop (ctx);
+      ctx = NULL;
+      return;
     }
   GNUNET_SCHEDULER_add_delayed (sched,
 				GNUNET_TIME_UNIT_FOREVER_REL,
@@ -275,10 +249,6 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
   {'a', "anonymity", "LEVEL",
    gettext_noop ("set the desired LEVEL of receiver-anonymity"),
    1, &GNUNET_GETOPT_set_uint, &anonymity},
-  {'d', "directory", NULL,
-   gettext_noop
-   ("download a GNUnet directory that has already been downloaded.  Requires that a filename of an existing file is specified instead of the URI.  The download will only download the top-level files in the directory unless the `-R' option is also specified."),
-   0, &GNUNET_GETOPT_set_one, &do_directory},
   {'D', "delete-incomplete", NULL,
    gettext_noop ("delete incomplete downloads (when aborted with CTRL-C)"),
    0, &GNUNET_GETOPT_set_one, &delete_incomplete},

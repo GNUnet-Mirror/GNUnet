@@ -312,7 +312,7 @@ GNUNET_DISK_mktemp (const char *t);
  * @param fn file name to be opened
  * @param flags opening flags, a combination of GNUNET_DISK_OPEN_xxx bit flags
  * @param perm permissions for the newly created file, use
- *             GNUNET_DISK_PERM_USER_NONE if a file could not be created by this
+ *             GNUNET_DISK_PERM_NONE if a file could not be created by this
  *             call (because of flags)
  * @return IO handle on success, NULL on error
  */

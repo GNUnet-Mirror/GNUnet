@@ -22,9 +22,6 @@
  * @file fs/gnunet-service-fs_indexing.c
  * @brief program that provides indexing functions of the file-sharing service
  * @author Christian Grothoff
- *
- * TODO:
- * - indexed files/blocks not removed on errors
  */
 #include "platform.h"
 #include <float.h>
@@ -180,7 +177,7 @@ read_index_list ()
     }
   if (GNUNET_NO == GNUNET_DISK_file_test (fn))
     {
-      /* no index info  yet */
+      /* no index info yet */
       GNUNET_free (fn);
       return;
     }
@@ -596,8 +593,12 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
 		  STRERROR (errno));
       if (fh != NULL)
 	GNUNET_DISK_file_close (fh);
-      /* FIXME: if this happens often, we need
-	 to remove the OnDemand block from the DS! */
+      GNUNET_FS_drq_remove (key,
+			    size,
+			    data,
+			    &remove_cont,
+			    NULL,
+			    GNUNET_TIME_UNIT_FOREVER_REL);
       return GNUNET_SYSERR;
     }
   GNUNET_DISK_file_close (fh);
@@ -621,8 +622,12 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
 		  _("Indexed file `%s' changed at offset %llu\n"),
 		  fn,
 		  (unsigned long long) off);
-      /* FIXME: if this happens often, we need
-	 to remove the OnDemand block from the DS! */
+      GNUNET_FS_drq_remove (key,
+			    size,
+			    data,
+			    &remove_cont,
+			    NULL,
+			    GNUNET_TIME_UNIT_FOREVER_REL);
       return GNUNET_SYSERR;
     }
 #if DEBUG_FS

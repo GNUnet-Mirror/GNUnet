@@ -587,13 +587,6 @@ AC_ARG_WITH(daemon-config-dir,
                 [default daemon config directory (/etc)]),
         [gn_daemon_config_dir=$withval])
 AC_SUBST(GN_DAEMON_CONFIG_DIR, $gn_daemon_config_dir)
-gn_daemon_pidfile="/var/run/gnunetd/pid"
-AC_ARG_WITH(daemon-pidfile,
-        AC_HELP_STRING(
-                [--with-daemon-pidfile=FILE],
-                [default daemon pidfile (/var/run/gnunetd/pid)]),
-        [gn_daemon_pidfile=$withval])
-AC_SUBST(GN_DAEMON_PIDFILE, $gn_daemon_pidfile)
 
 GN_INTLINCL=""
 GN_LIBINTL="$LTLIBINTL"

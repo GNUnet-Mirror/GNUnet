@@ -26,17 +26,18 @@ away), in order in which they will likely be done:
   - utilization can (easily, restart?) go out of control (very large), causing
     content expiration job to go crazy and delete everything!
 * FS: [CG]
-  T gnunet-publish cannot be aborted using CTRL-C
   - on some systems, keyword search does not find locally published content
     (need testcase of command-line tools! - also good to cover getopt API!)
     [could be related to datastore issue above!]
   - 2-peer download is still too slow (why?)
   - advanced FS API parts
-    T gnunet-download (directory-file download [easy])
-    T fs_download (recursive download; bounded parallelism)
-    T indexing: index-failure-cleanup [easy]
-    + gnunet-service-fs (remove failing on-demand blocks, hot-path routing, 
-      load-based routing, nitpicks)
+    + pick correct filenames for recursive downloads (mkdir, .gnd)
+    + support recursive download even if filename is NULL and we hence
+      do not generate files on disk (use temp_filename)
+    + bound parallelism (# fs downloads)
+    + distinguish in performance tracking and event signalling between
+      downloads that are actually running and those that are merely in the queue
+    + gnunet-service-fs (hot-path routing, load-based routing, nitpicks)
   - [gnunet-service-fs.c:208]: member 'LocalGetContext::results_bf_size' is never used
   - [gnunet-service-fs.c:501]: member 'PendingRequest::used_pids_size' is never used
   - [gnunet-service-fs.c:654]: member 'ConnectedPeer::last_client_replies' is never used
@@ -160,6 +161,14 @@ away), in order in which they will likely be done:
   - test churn generation 
   - consider changing API for peer-group termination to 
     call continuation when done
+* NAT/UPNP: [MW]
+  - finalize API design
+  - code clean up
+  - testing
+  - integration with transport service
+* MYSQL database backends: [CG]
+  - datacache
+  - datastore
 
 0.9.0:
 * new webpage:
@@ -171,14 +180,9 @@ away), in order in which they will likely be done:
     enable developers to publish TGZs nicely
   - port "contact" page
   - add content type for "todo" items?
-* Plugins to implement: [CG]
-  - MySQL database backends
-    + datacache
-    + datastore
-  - Postgres database backends
-    + datacache
-    + datastore
-* VPN
+* POSTGRES database backends: [CG]
+  - datacache
+  - datastore
 * Determine RC bugs and fix those!
 
 0.9.x:
@@ -214,6 +218,7 @@ away), in order in which they will likely be done:
     we have not 'used' (for their public keys) in a while; need a way
     to track actual 'use')
   - make sue we also trigger notifications whenever HELLOs expire
+* VPN
 
 
 
@@ -246,4 +251,5 @@ Minor features:
   - [./transport/gnunet-service-transport.c:173]: (style) struct or union member 'TransportPlugin::rebuild' is never used (related to TCP not refreshing external addresses?)
 * DATACACHE:
   - add stats (# bytes available, # bytes used, # PUTs, # GETs, # GETs satisfied)
-
+* FS:
+  - support inline data in directories for recursive file downloads (fs_download)

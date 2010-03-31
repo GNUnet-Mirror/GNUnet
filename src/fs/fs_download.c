@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2008, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2008, 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -25,6 +25,8 @@
  * TODO:
  * - handle recursive downloads (need directory & 
  *   fs-level download-parallelism management)
+ * - handle recursive downloads where directory file is
+ *   NOT saved on disk (need temporary file instead then!)
  * - location URI suppport (can wait, easy)
  * - check if blocks exist already (can wait, easy)
  * - check if iblocks can be computed from existing blocks (can wait, hard)
@@ -39,15 +41,12 @@
 #define DEBUG_DOWNLOAD GNUNET_NO
 
 /**
- * We're storing the IBLOCKS after the
- * DBLOCKS on disk (so that we only have
- * to truncate the file once we're done).
+ * We're storing the IBLOCKS after the DBLOCKS on disk (so that we
+ * only have to truncate the file once we're done).
  *
- * Given the offset of a block (with respect
- * to the DBLOCKS) and its depth, return the
- * offset where we would store this block
- * in the file.
-
+ * Given the offset of a block (with respect to the DBLOCKS) and its
+ * depth, return the offset where we would store this block in the
+ * file.
  * 
  * @param fsize overall file size
  * @param off offset of the block in the file
@@ -245,8 +244,7 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
 						  GNUNET_CONSTANTS_SERVICE_TIMEOUT,
 						  GNUNET_NO,
 						  &transmit_download_request,
-						  dc); 
-
+						  dc);
 }
 
 
@@ -338,6 +336,129 @@ struct ProcessResultClosure
   uint32_t type;
   
 };
+
+
+/**
+ * We found an entry in a directory.  Check if the respective child
+ * already exists and if not create the respective child download.
+ *
+ * @param cls the parent download
+ * @param filename name of the file in the directory
+ * @param uri URI of the file (CHK or LOC)
+ * @param meta meta data of the file
+ * @param length number of bytes in data
+ * @param data contents of the file (or NULL if they were not inlined)
+ */
+static void 
+trigger_recursive_download (void *cls,
+			    const char *filename,
+			    const struct GNUNET_FS_Uri *uri,
+			    const struct GNUNET_CONTAINER_MetaData *meta,
+			    size_t length,
+			    const void *data)
+{
+  struct GNUNET_FS_DownloadContext *dc = cls;  
+  struct GNUNET_FS_DownloadContext *cpos;
+
+  cpos = dc->child_head;
+  while (cpos != NULL)
+    {
+      if (0 == strcmp (cpos->filename,
+		       filename))
+	{
+	  GNUNET_break_op (GNUNET_FS_uri_test_equal (uri,
+						     cpos->uri));
+	  break;
+	}
+      cpos = cpos->next;
+    }
+  if (cpos != NULL)
+    return; /* already exists */
+  if (data != NULL)
+    {
+      /* determine on-disk filename, write data! */
+      GNUNET_break (0); // FIXME: not implemented
+    }
+  GNUNET_FS_download_start (dc->h,
+			    uri,
+			    meta,
+			    filename, /* FIXME: prepend directory name! */
+			    0,
+			    GNUNET_FS_uri_chk_get_file_size (uri),
+			    dc->anonymity,
+			    dc->options,
+			    NULL,
+			    dc);
+}
+
+
+/**
+ * We're done downloading a directory.  Open the file and
+ * trigger all of the (remaining) child downloads.
+ *
+ * @param dc context of download that just completed
+ */
+static void
+full_recursive_download (struct GNUNET_FS_DownloadContext *dc)
+{
+  size_t size;
+  uint64_t size64;
+  void *data;
+  struct GNUNET_DISK_FileHandle *h;
+  struct GNUNET_DISK_MapHandle *m;
+  
+  size64 = GNUNET_FS_uri_chk_get_file_size (dc->uri);
+  size = (size_t) size64;
+  if (size64 != (uint64_t) size)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Recursive downloads of directories larger than 4 GB are not supported on 32-bit systems\n"));
+      return;
+    }
+  if (dc->filename != NULL)
+    {
+      h = GNUNET_DISK_file_open (dc->filename,
+				 GNUNET_DISK_OPEN_READ,
+				 GNUNET_DISK_PERM_NONE);
+    }
+  else
+    {
+      /* FIXME: need to initialize (and use) temp_filename
+	 in various places in order for this assertion to
+	 not fail; right now, it will always fail! */
+      GNUNET_assert (dc->temp_filename != NULL);
+      h = GNUNET_DISK_file_open (dc->temp_filename,
+				 GNUNET_DISK_OPEN_READ,
+				 GNUNET_DISK_PERM_NONE);
+    }
+  if (h == NULL)
+    return; /* oops */
+  data = GNUNET_DISK_file_map (h, &m, GNUNET_DISK_MAP_TYPE_READ, size);
+  if (data == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Directory too large for system address space\n"));
+    }
+  else
+    {
+      GNUNET_FS_directory_list_contents (size,
+					 data,
+					 0,
+					 &trigger_recursive_download,
+					 dc);         
+      GNUNET_DISK_file_unmap (m);
+    }
+  GNUNET_DISK_file_close (h);
+  if (dc->filename == NULL)
+    {
+      if (0 != UNLINK (dc->temp_filename))
+	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+				  "unlink",
+				  dc->temp_filename);
+      GNUNET_free (dc->temp_filename);
+      dc->temp_filename = NULL;
+    }
+}
 
 
 /**
@@ -484,6 +605,17 @@ process_result_with_request (void *cls,
 	  app -= (sm->offset + prc->size) - (dc->offset + dc->length);
 	}
       dc->completed += app;
+
+      if ( (0 != (dc->options & GNUNET_FS_DOWNLOAD_OPTION_RECURSIVE)) &&
+	   (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (dc->meta)) )
+	{
+	  GNUNET_FS_directory_list_contents (prc->size,
+					     pt,
+					     off,
+					     &trigger_recursive_download,
+					     dc);         
+	}
+
     }
 
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_PROGRESS;
@@ -513,11 +645,18 @@ process_result_with_request (void *cls,
 				      "truncate",
 				      dc->filename);
 	}
-      /* signal completion */
-      pi.status = GNUNET_FS_STATUS_DOWNLOAD_COMPLETED;
-      make_download_status (&pi, dc);
-      dc->client_info = dc->h->upcb (dc->h->upcb_cls,
-				     &pi);
+
+      if ( (0 != (dc->options & GNUNET_FS_DOWNLOAD_OPTION_RECURSIVE)) &&
+	   (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (dc->meta)) )
+	full_recursive_download (dc);
+      if (dc->child_head == NULL)
+	{
+	  /* signal completion */
+	  pi.status = GNUNET_FS_STATUS_DOWNLOAD_COMPLETED;
+	  make_download_status (&pi, dc);
+	  dc->client_info = dc->h->upcb (dc->h->upcb_cls,
+					 &pi);
+	}
       GNUNET_assert (sm->depth == dc->treedepth);
     }
   // FIXME: make persistent
@@ -836,11 +975,6 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
       GNUNET_break (0);
       return NULL;
     }
-  client = GNUNET_CLIENT_connect (h->sched,
-				  "fs",
-				  h->cfg);
-  if (NULL == client)
-    return NULL;
   // FIXME: add support for "loc" URIs!
 #if DEBUG_DOWNLOAD
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -850,8 +984,13 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 #endif
   dc = GNUNET_malloc (sizeof(struct GNUNET_FS_DownloadContext));
   dc->h = h;
-  dc->client = client;
   dc->parent = parent;
+  if (parent != NULL)
+    {
+      GNUNET_CONTAINER_DLL_insert (parent->child_head,
+				   parent->child_tail,
+				   dc);
+    }
   dc->uri = GNUNET_FS_uri_dup (uri);
   dc->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
   dc->client_info = cctx;
@@ -897,6 +1036,12 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 	      dc->treedepth);
 #endif
   // FIXME: make persistent
+  
+  // FIXME: bound parallelism here!
+  client = GNUNET_CLIENT_connect (h->sched,
+				  "fs",
+				  h->cfg);
+  dc->client = client;
   schedule_block_download (dc, 
 			   &dc->uri->data.chk.chk,
 			   0, 
@@ -945,7 +1090,15 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
 {
   struct GNUNET_FS_ProgressInfo pi;
 
+  while (NULL != dc->child_head)
+    GNUNET_FS_download_stop (dc->child_head, 
+			     do_delete);
   // FIXME: make unpersistent  
+  if (dc->parent != NULL)
+    GNUNET_CONTAINER_DLL_remove (dc->parent->child_head,
+				 dc->parent->child_tail,
+				 dc);
+  
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_STOPPED;
   make_download_status (&pi, dc);
   dc->client_info = dc->h->upcb (dc->h->upcb_cls,
