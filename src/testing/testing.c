@@ -544,7 +544,7 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
 #if DEBUG_TESTING
                                               "-L", "DEBUG",
 #endif
-                                              "-c", d->cfgfile, "-e", NULL);
+                                              "-c", d->cfgfile, "-e", "-d", NULL);
       /* Use -e to end arm, and -d to remove temp files */
 
       GNUNET_free (arg);
