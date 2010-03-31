@@ -714,9 +714,11 @@ neighbor_send_task (void *cls,
       encPeerAbout = GNUNET_strdup(GNUNET_i2s(&about->identity));
       encPeerTo = GNUNET_strdup(GNUNET_i2s(&to->identity));
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                     "%s: Sending info about peer %s to directly connected peer %s\n",
-                     GNUNET_i2s(&my_identity),
-                     encPeerAbout, encPeerTo);
+                  "%s: Sending info about peer %s to directly connected peer %s\n",
+                  GNUNET_i2s(&my_identity),
+                  encPeerAbout, encPeerTo);
+      GNUNET_free(encPeerAbout);
+      GNUNET_free(encPeerTo);
 #endif
       pending_message = GNUNET_malloc(sizeof(struct PendingMessage));
       pending_message->msg = GNUNET_malloc(sizeof(p2p_dv_MESSAGE_NeighborInfo));
@@ -968,6 +970,7 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer,
       if (cost > ctx.fisheye_depth)
         {
           /* too costly */
+          GNUNET_free(neighbor_update);
           return;
         }
       if (ctx.max_table_size <=
@@ -978,6 +981,7 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer,
           if (cost > max->cost)
             {
               /* new entry most expensive, don't create */
+              GNUNET_free(neighbor_update);
               return;
             }
           if (max->cost > 0)
@@ -1008,10 +1012,9 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer,
       GNUNET_CONTAINER_multihashmap_put (ctx.extended_neighbors, &peer->hashPubKey,
                                  neighbor,
                                  GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-
-      return;
     }
 
+  GNUNET_free(neighbor_update);
   /* Old logic to remove entry and replace, not needed now as we only want to remove when full
    * or when the referring peer disconnects from us.
    */

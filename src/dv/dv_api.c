@@ -22,7 +22,7 @@
  * @file dv/dv_api.c
  * @brief library to access the DV service
  * @author Christian Grothoff
- * @author Not Nathan Evans
+ * @author Nathan Evans
  */
 #include "platform.h"
 #include "gnunet_bandwidth_lib.h"
@@ -379,7 +379,10 @@ GNUNET_DV_connect (struct GNUNET_SCHEDULER_Handle *sched,
   handle->receive_cls = receive_handler_cls;
 
   if (handle->client == NULL)
-    return NULL;
+    {
+      GNUNET_free(handle);
+      return NULL;
+    }
 
   GNUNET_CLIENT_receive (handle->client,
                          &handle_message_receipt,
