@@ -245,6 +245,7 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg, uint16_t * port)
       GNUNET_asprintf(&allowed_hosts, "%s; 127.0.0.1;", control_host);
       fprintf(stderr, "FOUND CONTROL_HOST OPTION %s, setting to %s\n", control_host, allowed_hosts);
       GNUNET_CONFIGURATION_set_value_string(uc.ret, "core", "ACCEPT_FROM", allowed_hosts);
+      GNUNET_free_non_null(control_host);
       GNUNET_free(allowed_hosts);
     }
 
