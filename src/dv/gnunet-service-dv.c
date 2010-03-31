@@ -390,15 +390,18 @@ size_t transmit_to_plugin (void *cls,
                size_t size, void *buf)
 {
   struct GNUNET_DV_MessageReceived *msg = cls;
+  int msize;
 
   if (buf == NULL)
     return 0;
 
-  GNUNET_assert(size >= ntohs(msg->header.size));
+  msize = ntohs(msg->header.size);
+  GNUNET_assert(size >= msize);
 
-  memcpy(buf, msg, size);
+
+  memcpy(buf, msg, msize);
   GNUNET_free(msg);
-  return size;
+  return msize;
 }
 
 
@@ -730,6 +733,7 @@ neighbor_send_task (void *cls,
       memcpy (&message->neighbor,
               &about->identity, sizeof (struct GNUNET_PeerIdentity));
 
+      pending_message->msg_size = sizeof(p2p_dv_MESSAGE_NeighborInfo);
       pending_message->transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, default_dv_priority, default_dv_delay, &to->identity, sizeof(p2p_dv_MESSAGE_NeighborInfo), &core_transmit_notify, pending_message);
 
       if (NULL == pending_message->transmit_handle)
@@ -745,33 +749,6 @@ neighbor_send_task (void *cls,
 
   GNUNET_SCHEDULER_add_delayed(sched, send_context->timeout, &neighbor_send_task, send_context);
   return;
-}
-
-/**
- * Core handler for dv gossip messages.  These will be used
- * by us to create a HELLO message for the newly peer containing
- * which direct peer we can connect through, and what the cost
- * is.  This HELLO will then be scheduled for validation by the
- * transport service so that it can be used by all others.
- *
- * @param cls closure
- * @param peer peer which sent the message (immediate sender)
- * @param message the message
- * @param latency the latency of the connection we received the message from
- * @param distance the distance to the immediate peer
- */
-static int handle_dv_gossip_message (void *cls,
-                                     const struct GNUNET_PeerIdentity *peer,
-                                     const struct GNUNET_MessageHeader *message,
-                                     struct GNUNET_TIME_Relative latency,
-                                     uint32_t distance)
-{
-#if DEBUG_DV
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%s: Receives %s message!\n", "dv", "DV GOSSIP");
-#endif
-
-  return 0;
 }
 
 
@@ -810,6 +787,11 @@ void send_dv_message (void *cls,
   GNUNET_SERVER_receive_done(client, GNUNET_OK);
 }
 
+static int handle_dv_gossip_message (void *cls,
+                                     const struct GNUNET_PeerIdentity *peer,
+                                     const struct GNUNET_MessageHeader *message,
+                                     struct GNUNET_TIME_Relative latency,
+                                     uint32_t distance);
 
 /**
  * List of handlers for the messages understood by this
@@ -886,9 +868,9 @@ static int update_matching_neighbors (void *cls,
                                       void *value)
 {
   struct NeighborUpdateInfo * update_info = cls;
-  struct DirectNeighbor *direct_neighbor = value;
+  struct DistantNeighbor *distant_neighbor = value;
 
-  if (update_info->referrer == direct_neighbor) /* Direct neighbor matches, update it's info and return GNUNET_NO */
+  if (update_info->referrer == distant_neighbor->referrer) /* Direct neighbor matches, update it's info and return GNUNET_NO */
   {
     /* same referrer, cost change! */
     GNUNET_CONTAINER_heap_update_cost (ctx.neighbor_max_heap,
@@ -929,7 +911,7 @@ distant_neighbor_free (struct DistantNeighbor *referee)
 
 /**
  * Handles when a peer is either added due to being newly connected
- * or having been gossiped about, also called when a cost for a neighbor
+ * or having been gossiped about, also called when the cost for a neighbor
  * needs to be updated.
  *
  * @param peer identity of the peer whose info is being added/updated
@@ -1013,7 +995,17 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer,
                                  neighbor,
                                  GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     }
-
+  else
+    {
+#if DEBUG_DV
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%s: Already know peer %s distance %d, referrer id %d!\n", "dv", GNUNET_i2s(peer), cost, referrer_peer_id);
+#endif
+    }
+#if DEBUG_DV
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%s: Size of extended_neighbors is %d\n", "dv", GNUNET_CONTAINER_multihashmap_size(ctx.extended_neighbors));
+#endif
   GNUNET_free(neighbor_update);
   /* Old logic to remove entry and replace, not needed now as we only want to remove when full
    * or when the referring peer disconnects from us.
@@ -1034,6 +1026,56 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer,
   */
 }
 
+/**
+ * Core handler for dv gossip messages.  These will be used
+ * by us to create a HELLO message for the newly peer containing
+ * which direct peer we can connect through, and what the cost
+ * is.  This HELLO will then be scheduled for validation by the
+ * transport service so that it can be used by all others.
+ *
+ * @param cls closure
+ * @param peer peer which sent the message (immediate sender)
+ * @param message the message
+ * @param latency the latency of the connection we received the message from
+ * @param distance the distance to the immediate peer
+ */
+static int handle_dv_gossip_message (void *cls,
+                                     const struct GNUNET_PeerIdentity *peer,
+                                     const struct GNUNET_MessageHeader *message,
+                                     struct GNUNET_TIME_Relative latency,
+                                     uint32_t distance)
+{
+#if DEBUG_DV
+  char * encPeerAbout;
+  char * encPeerFrom;
+#endif
+  struct DirectNeighbor *referrer;
+  p2p_dv_MESSAGE_NeighborInfo *enc_message = (p2p_dv_MESSAGE_NeighborInfo *)message;
+#if DEBUG_DV
+  encPeerAbout = GNUNET_strdup(GNUNET_i2s(&enc_message->neighbor));
+  encPeerFrom = GNUNET_strdup(GNUNET_i2s(peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%s: Receives %s message from peer %s about peer %s!\n", "dv", "DV GOSSIP", encPeerFrom, encPeerAbout);
+  GNUNET_free(encPeerAbout);
+  GNUNET_free(encPeerFrom);
+#endif
+
+  if (ntohs (message->size) < sizeof (p2p_dv_MESSAGE_NeighborInfo))
+    {
+      return GNUNET_SYSERR;     /* invalid message */
+    }
+
+  referrer = GNUNET_CONTAINER_multihashmap_get (ctx.direct_neighbors,
+                                                &peer->hashPubKey);
+  if (referrer == NULL)
+    return GNUNET_OK;
+
+  addUpdateNeighbor (&enc_message->neighbor,
+                     ntohl (enc_message->neighbor_id),
+                     referrer, ntohl (enc_message->cost) + 1);
+
+  return GNUNET_OK;
+}
 
 /**
  * Method called whenever a peer connects.
