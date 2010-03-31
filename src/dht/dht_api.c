@@ -280,8 +280,8 @@ void service_message_handler (void *cls,
     if (ntohs(dht_msg->unique))
       {
         uid_hash = hash_from_uid(ntohl(dht_msg->unique_id));
-
         route_handle = GNUNET_CONTAINER_multihashmap_get(handle->outstanding_requests, uid_hash);
+        GNUNET_free(uid_hash);
         if (route_handle == NULL) /* We have no recollection of this request */
           {
 #if DEBUG_DHT_API
@@ -366,7 +366,10 @@ GNUNET_DHT_connect (struct GNUNET_SCHEDULER_Handle *sched,
   handle->outstanding_requests = GNUNET_CONTAINER_multihashmap_create(ht_len);
 
   if (handle->client == NULL)
-    return NULL;
+    {
+      GNUNET_free(handle);
+      return NULL;
+    }
 #if DEBUG_DHT_API
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "`%s': Connection to service in progress\n", "DHT API");
@@ -767,7 +770,7 @@ GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle)
                   "`%s': Remove outstanding request from hashmap failed for key %s, uid %llu\n", "DHT API", GNUNET_h2s(uid_key), route_handle->uid);
 #endif
     }
-
+  GNUNET_free(uid_key);
   return;
 }
 
@@ -860,4 +863,5 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
 
   GNUNET_DHT_route_start(handle, key, 0, 0, &put_msg->header, timeout, NULL, NULL, cont, cont_cls);
 
+  GNUNET_free(put_msg);
 }
