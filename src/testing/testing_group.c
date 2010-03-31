@@ -164,6 +164,7 @@ struct UpdateContext
 {
   struct GNUNET_CONFIGURATION_Handle *ret;
   unsigned int nport;
+  const char *hostname;
 };
 
 
@@ -205,6 +206,12 @@ update_config (void *cls,
       GNUNET_snprintf (cval, sizeof (cval), "%u", ctx->nport++);
       value = cval;
     }
+
+  if ((0 == strcmp (option, "HOSTNAME")) && (ctx->hostname != NULL))
+    {
+      GNUNET_CONFIGURATION_set_value_string (ctx->ret, section, option, ctx->hostname);
+    }
+
   GNUNET_CONFIGURATION_set_value_string (ctx->ret, section, option, value);
 }
 
@@ -221,7 +228,7 @@ update_config (void *cls,
  * @return new configuration, NULL on error
  */
 static struct GNUNET_CONFIGURATION_Handle *
-make_config (const struct GNUNET_CONFIGURATION_Handle *cfg, uint16_t * port)
+make_config (const struct GNUNET_CONFIGURATION_Handle *cfg, uint16_t * port, const char *hostname)
 {
   struct UpdateContext uc;
   uint16_t orig;
@@ -231,6 +238,7 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg, uint16_t * port)
   orig = *port;
   uc.nport = *port;
   uc.ret = GNUNET_CONFIGURATION_create ();
+  uc.hostname = hostname;
 
   GNUNET_CONFIGURATION_iterate (cfg, &update_config, &uc);
   if (uc.nport >= HIGH_PORT)
@@ -1251,12 +1259,12 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
       if (hostcnt > 0)
         {
           hostname = pg->hosts[off % hostcnt].hostname;
-          pcfg = make_config (cfg, &pg->hosts[off % hostcnt].minport);
+          pcfg = make_config (cfg, &pg->hosts[off % hostcnt].minport, hostname);
         }
       else
         {
           hostname = NULL;
-          pcfg = make_config (cfg, &minport);
+          pcfg = make_config (cfg, &minport, hostname);
         }
       if (NULL == pcfg)
         {
