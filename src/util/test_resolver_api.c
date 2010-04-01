@@ -266,7 +266,7 @@ run(void *cls, struct GNUNET_SCHEDULER_Handle *sched, char * const *args,
       = gethostbyaddr(&rootserver_addr, sizeof(rootserver_addr), AF_INET);
   if (rootserver == NULL)
     {
-      /* Error: resolving ip addresses does not work */
+      /* Error: resolving IP addresses does not work */
 #if DEBUG_RESOLVER
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
           _("gethostbyaddr() could not lookup hostname: %s\n"),
@@ -274,14 +274,16 @@ run(void *cls, struct GNUNET_SCHEDULER_Handle *sched, char * const *args,
 #endif
       GNUNET_break(0);
     }
-
-  if (0 != strcmp(rootserver->h_name, ROOTSERVER_NAME))
+  else
+  {
+    if (0 != strcmp(rootserver->h_name, ROOTSERVER_NAME))
     {
 #if DEBUG_RESOLVER
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received hostname and hostname for root name server differ\n");
 #endif
       GNUNET_break(0);
     }
+  }
 
 #if DEBUG_RESOLVER
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "System's own reverse name resolution is working\n");
