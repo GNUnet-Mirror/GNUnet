@@ -32,9 +32,11 @@
 
 #define VERBOSE GNUNET_NO
 
-// Using dns rootservers to check gnunet's resolver service
-// a.root-servers.net <-> 198.41.0.4 is a fix 1:1 mapping that should not change over years
-// For more information have a look at IANA's website http://www.root-servers.org/
+/** 
+ * Using dns rootservers to check gnunet's resolver service
+ * a.root-servers.net <-> 198.41.0.4 is a fix 1:1 mapping that should not change over years
+ * For more information have a look at IANA's website http://www.root-servers.org/
+ */
 #define ROOTSERVER_NAME "a.root-servers.net"
 #define ROOTSERVER_IP 	"198.41.0.4"
 
@@ -219,20 +221,14 @@ run (void *cls,
   if (rootserver == NULL)
     {
       // Error: resolving ip addresses does not work
-      #if DEBUG_RESOLVER
-      switch (h_errno)
-	{
-	
-	case HOST_NOT_FOUND: GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "gethostbyname() could not lookup ip address: HOST_NOT_FOUND\n");break;
-	case NO_ADDRESS: GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "gethostbyname() could not lookup ip address: NO_ADDRESS\n");break;
-	case NO_RECOVERY: GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "gethostbyname() could not lookup ip address: NO_RECOVERY\n");break;
-	case TRY_AGAIN: GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "gethostbyname() could not lookup ip address: TRY_AGAIN\n");break;
-	}
-      #endif
+#if DEBUG_RESOLVER
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
+		  _("gethostbyname() could not lookup IP address: %s\n"),
+		  hstrerror (h_errno));
+#endif
       GNUNET_break (0);
+      return;
     }
-  else 
-  {
     // Counting returned ip addresses
     int count_ips =0 ;
     while (rootserver->h_addr_list[count_ips]!=NULL)
@@ -240,12 +236,12 @@ run (void *cls,
       count_ips++;
     }    
     if ( count_ips > 1) 
-    {
-      #if DEBUG_RESOLVER
+      {
+#if DEBUG_RESOLVER
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received ip range for root name server, but a root nameserver has only 1 ip\n");
-      #endif
-      GNUNET_break (0);
-    }
+#endif
+	GNUNET_break (0);
+      }
     
     // Comparing to resolved address to the address the root nameserver should have
     if ( strcmp(inet_ntoa( *(struct in_addr *) rootserver->h_addr_list[0]),ROOTSERVER_IP) !=0)
@@ -318,9 +314,8 @@ run (void *cls,
                                 sizeof (struct sockaddr),
                                 GNUNET_YES,
                                 timeout, &check_rootserver_name, cls);
-    
-    // Success: reverse lookups work as exptected    
-  } 
+   
+ 
 }
 
 static int
