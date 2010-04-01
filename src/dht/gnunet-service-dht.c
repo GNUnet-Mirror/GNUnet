@@ -34,13 +34,13 @@
 #include "gnunet_core_service.h"
 #include "gnunet_signal_lib.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_datastore_service.h"
+#include "gnunet_datacache_lib.h"
 #include "dht.h"
 
 /**
- * Handle to the datastore service (for inserting/retrieving data)
+ * Handle to the datacache service (for inserting/retrieving data)
  */
-static struct GNUNET_DATASTORE_Handle *datastore;
+  struct GNUNET_DATACACHE_Handle *datacache;
 
 /**
  * The main scheduler to use for the DHT service
@@ -428,7 +428,7 @@ run (void *cls,
   sched = scheduler;
   cfg = c;
 
-  datastore = GNUNET_DATASTORE_connect(c, scheduler);
+  datacache = GNUNET_DATACACHE_create (sched, cfg, "dhtcache");
 
   client_transmit_timeout = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5);
   GNUNET_SERVER_add_handlers (server, plugin_handlers);

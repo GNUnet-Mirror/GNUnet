@@ -29,7 +29,7 @@ gnunet_service_dht_SOURCES = \
 gnunet_service_dht_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/datastore/libgnunetdatastore.la \
+  $(top_builddir)/src/datacache/libgnunetdatacache.la \
   $(top_builddir)/src/util/libgnunetutil.la 
 
 
