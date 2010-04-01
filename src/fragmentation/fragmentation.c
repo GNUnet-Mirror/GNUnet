@@ -66,7 +66,7 @@ struct GNUNET_FRAGEMENT_Ctxbuffer{
 	char * buff;
 	int counter;
 	struct GNUNET_TIME_Absolute receivedTime;
-	struct GNUNET_PeerIdentity *peerID;
+	struct GNUNET_PeerIdentity peerID;
 	int * num;
 };
 
@@ -214,7 +214,8 @@ GNUNET_FRAGMENT_process (struct GNUNET_FRAGMENT_Context *ctx,
 	buffer = ctx->buffer;
 	while (buffer != NULL)
 	{
-		if(buffer->id == ntohl(frag->id)&&(buffer->peerID==sender)){
+		if ((buffer->id == ntohl(frag->id))&&(0 == memcmp (&buffer->peerID,
+                             sender, sizeof (struct GNUNET_PeerIdentity)))){
 			exist = 1;
 			break;
 		}
@@ -234,18 +235,18 @@ GNUNET_FRAGMENT_process (struct GNUNET_FRAGMENT_Context *ctx,
 	}
 
 	if(!exist){
-		buffer = (struct GNUNET_FRAGEMENT_Ctxbuffer*)GNUNET_malloc(sizeof(struct GNUNET_FRAGEMENT_Ctxbuffer));
-		buffer->num = (int*)GNUNET_malloc(ntohs(frag->totalNum)*sizeof(int));
+		buffer = GNUNET_malloc(sizeof(struct GNUNET_FRAGEMENT_Ctxbuffer));
+		buffer->num = GNUNET_malloc(ntohs(frag->totalNum)*sizeof(int));
 		int j;
 		for(j = 0; j<ntohs(frag->totalNum); j++){
 			buffer->num[j] = -10;
 		}
-		buffer->peerID = sender;
+		buffer->peerID = *sender;
 		buffer->id = ntohl(frag->id);
 		buffer->receivedTime = GNUNET_TIME_absolute_get ();
 		uint16_t si = ntohs(frag->totalSize);
 		buffer->size = si;
-		buffer->buff = (char*)GNUNET_malloc(si);
+		buffer->buff = GNUNET_malloc(si);
 		buffer->next = ctx->buffer;
 		ctx->buffer = buffer;
 	}
