@@ -234,6 +234,7 @@ GNUNET_FS_namespace_create (struct GNUNET_FS_Handle *h,
 		   dn,
 		   DIR_SEPARATOR_STR,
 		   name);
+  GNUNET_free (dn);
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Namespace));
   ret->rc = 1;
   ret->key = GNUNET_CRYPTO_rsa_key_create_from_file (fn);

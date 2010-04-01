@@ -529,15 +529,15 @@ process_result_with_request (void *cls,
 			     &skey,
 			     &iv,
 			     pt);
+  off = compute_disk_offset (GNUNET_ntohll (dc->uri->data.chk.file_length),
+			     sm->offset,
+			     sm->depth,
+			     dc->treedepth);
   /* save to disk */
   if ( (NULL != dc->handle) &&
        ( (sm->depth == dc->treedepth) ||
 	 (0 == (dc->options & GNUNET_FS_DOWNLOAD_NO_TEMPORARIES)) ) )
     {
-      off = compute_disk_offset (GNUNET_ntohll (dc->uri->data.chk.file_length),
-				 sm->offset,
-				 sm->depth,
-				 dc->treedepth);
       emsg = NULL;
 #if DEBUG_DOWNLOAD
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

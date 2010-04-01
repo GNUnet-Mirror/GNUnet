@@ -205,10 +205,9 @@ post_advertising (void *cls,
 					   rating_change,
 					   &nsid))
 	    {
-	      GNUNET_PSEUDONYM_rank (cfg,
-				     &nsid,
-				     delta);
-	      
+	      (void) GNUNET_PSEUDONYM_rank (cfg,
+					    &nsid,
+					    delta);	      
 	    }
 	  else
 	    {
@@ -310,6 +309,7 @@ run (void *cls,
 				     GNUNET_FS_PUBLISH_OPTION_NONE,
 				     &post_advertising,
 				     NULL);
+	      GNUNET_FS_uri_destroy (ns_uri);
 	      return;
 	    }
 	}

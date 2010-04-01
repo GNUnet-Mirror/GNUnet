@@ -259,6 +259,7 @@ publish_cont (void *cls,
 	       msg);
       err = 1;
       GNUNET_FS_stop (fs);
+      GNUNET_free (msg);
       return;
     }
   fprintf (stderr, "Starting keyword search...\n");

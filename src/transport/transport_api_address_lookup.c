@@ -167,12 +167,13 @@ GNUNET_TRANSPORT_address_lookup (struct GNUNET_SCHEDULER_Handle *sched,
   aluCB->cb_cls = aluc_cls;
   aluCB->timeout = abs_timeout;
   aluCB->client = client;
-  GNUNET_CLIENT_transmit_and_get_response (client, 
-					   &msg->header, 
-					   timeout,
-                                           GNUNET_YES,
-                                           &address_response_processor,
-                                           aluCB);
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CLIENT_transmit_and_get_response (client, 
+							  &msg->header, 
+							  timeout,
+							  GNUNET_YES,
+							  &address_response_processor,
+							  aluCB));
   GNUNET_free (msg);
 }
 
