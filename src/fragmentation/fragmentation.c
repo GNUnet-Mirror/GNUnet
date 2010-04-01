@@ -47,21 +47,22 @@ struct Fragment
 	/**
 	 * Fragment offset.
 	 */
-	uint32_t off GNUNET_PACKED;
+	uint16_t off GNUNET_PACKED;
 
 	/**
-	 * "unique" id for the fragment
-	 */
-	uint64_t id GNUNET_PACKED;
+			 * "unique" id for the fragment
+			 */
+	uint32_t id GNUNET_PACKED;
 
-	size_t mtu;
-	uint32_t totalNum;
-	uint64_t totalSize;
+	uint16_t mtu;
+	uint16_t totalNum;
+	uint16_t totalSize;
+
 };
 
 struct GNUNET_FRAGEMENT_Ctxbuffer{
 	struct GNUNET_FRAGEMENT_Ctxbuffer *next;
-	uint64_t id;
+	uint32_t id;
 	uint16_t size;
 	char * buff;
 	int counter;
@@ -99,6 +100,7 @@ GNUNET_FRAGMENT_fragment (const struct GNUNET_MessageHeader *msg,
 {
 	uint32_t id = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 256);
 	size_t size = sizeof(struct Fragment);
+
 	if(ntohs(msg->size) > mtu-size){
 		uint16_t lastSize;
 		uint16_t num;
@@ -115,14 +117,14 @@ GNUNET_FRAGMENT_fragment (const struct GNUNET_MessageHeader *msg,
 			struct Fragment *frag;
 			if(actualNum != num){
 							if(i!=actualNum-1){
-								frag = GNUNET_malloc(mtu);
+								frag = (struct Fragment *)GNUNET_malloc(mtu);
 							}
 							else{
-							    frag = GNUNET_malloc(lastSize+size);
+							    frag = (struct Fragment *)GNUNET_malloc(lastSize+size);
 								}
 							}
 			else{
-					frag = GNUNET_malloc(mtu);
+					frag = (struct Fragment *)GNUNET_malloc(mtu);
 				}
 			frag->header.type = htons(GNUNET_MESSAGE_TYPE_FRAGMENT);
 			frag->id = htonl(id);
@@ -130,19 +132,20 @@ GNUNET_FRAGMENT_fragment (const struct GNUNET_MessageHeader *msg,
 			frag->mtu = htons(mtu);
 			frag->totalNum = htons(actualNum);
 			frag->totalSize = msg->size;
+			char *m =  (char *)msg;
 			if(actualNum != num){
 				if(i!=actualNum-1){
-					frag->header.size = htons(mtu);
-					memcpy(&frag[1], msg + ntohs(frag->off), mtu - size);
+					frag->header.size = frag->mtu;
+					memcpy(&frag[1], m + (mtu-size)*i, mtu - size);
 				}
 				else{
 					frag->header.size = htons(lastSize+size);
-					memcpy(&frag[1], msg + ntohs(frag->off), lastSize);
+					memcpy(&frag[1], m + (mtu-size)*i, lastSize);
 				}
 			}
 			else{
-				frag->header.size = htons(mtu);
-				memcpy(&frag[1], msg + ntohs(frag->off), mtu - size);
+				frag->header.size = frag->mtu;
+				memcpy(&frag[1], m + (mtu-size)*i, mtu - size);
 			}
 			proc(proc_cls, &frag->header);
 			GNUNET_free(frag);
@@ -234,7 +237,7 @@ GNUNET_FRAGMENT_process (struct GNUNET_FRAGMENT_Context *ctx,
 	}
 
 	if(!exist){
-		buffer = GNUNET_malloc(sizeof(struct GNUNET_FRAGEMENT_Ctxbuffer));
+		buffer = (struct GNUNET_FRAGEMENT_Ctxbuffer*)GNUNET_malloc(sizeof(struct GNUNET_FRAGEMENT_Ctxbuffer));
 		buffer->num = (int*)GNUNET_malloc(ntohs(frag->totalNum)*sizeof(int));
 		int j;
 		for(j = 0; j<ntohs(frag->totalNum); j++){
@@ -243,9 +246,9 @@ GNUNET_FRAGMENT_process (struct GNUNET_FRAGMENT_Context *ctx,
 		buffer->peerID = sender;
 		buffer->id = ntohl(frag->id);
 		buffer->receivedTime = GNUNET_TIME_absolute_get ();
-		uint64_t si = ntohs(frag->totalSize);
+		uint16_t si = ntohs(frag->totalSize);
 		buffer->size = si;
-		buffer->buff = (char *)GNUNET_malloc(si);
+		buffer->buff = (char*)GNUNET_malloc(si);
 		buffer->next = ctx->buffer;
 		ctx->buffer = buffer;
 	}
