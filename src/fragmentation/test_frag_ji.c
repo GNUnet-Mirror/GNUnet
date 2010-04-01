@@ -41,7 +41,7 @@ main(int argc, char * argv[]){
 	struct GNUNET_FRAGMENT_Context * ctx;
 	struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader *)GNUNET_malloc(sizeof(struct GNUNET_MessageHeader)+2*mtu);
 	ctx = GNUNET_FRAGMENT_context_create(NULL, message_proc1, msg);
-	msg->size = htons(sizeof(struct GNUNET_MessageHeader)+2*mtu);
+	msg->size = htons(sizeof(struct GNUNET_MessageHeader)+4*mtu);
 	msg->type = htons(GNUNET_MESSAGE_TYPE_HELLO);
 	struct GNUNET_PeerIdentity *sender;
 	sender = (struct GNUNET_PeerIdentity *)GNUNET_malloc(sizeof(struct GNUNET_PeerIdentity));

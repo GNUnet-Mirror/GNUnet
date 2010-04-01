@@ -50,10 +50,9 @@ struct Fragment
 	uint16_t off GNUNET_PACKED;
 
 	/**
-			 * "unique" id for the fragment
-			 */
+	* "unique" id for the fragment
+	 */
 	uint32_t id GNUNET_PACKED;
-
 	uint16_t mtu;
 	uint16_t totalNum;
 	uint16_t totalSize;
@@ -153,7 +152,6 @@ GNUNET_FRAGMENT_fragment (const struct GNUNET_MessageHeader *msg,
 	}
 }
 
-
 /**
  * Create a defragmentation context.
  *
@@ -216,7 +214,6 @@ GNUNET_FRAGMENT_process (struct GNUNET_FRAGMENT_Context *ctx,
 	buffer = ctx->buffer;
 	while (buffer != NULL)
 	{
-//for(buffer = ctx->buffer; buffer != NULL; buffer = buffer->next){
 		if(buffer->id == ntohl(frag->id)&&(buffer->peerID==sender)){
 			exist = 1;
 			break;
