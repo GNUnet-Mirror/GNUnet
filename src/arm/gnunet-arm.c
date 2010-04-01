@@ -51,6 +51,11 @@ static int start;
 static int delete;
 
 /**
+ * Set if we should not print status messages.
+ */
+static int quiet;
+
+/**
  * Set to the name of a service to start.
  */
 static char *init;
@@ -127,14 +132,17 @@ confirm_cb (void *cls, int success)
   switch (success)
     {
     case GNUNET_OK:
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Service `%s' is now running.\n"), service);
+      if (quiet != GNUNET_YES)
+        fprintf(stdout, _("Service `%s' is now running.\n"), service);
       break;
     case GNUNET_NO:
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Service `%s' is not running.\n"), service);
+      if (quiet != GNUNET_YES)
+        fprintf(stdout, _("Service `%s' is not running.\n"), service);
       break;
     case GNUNET_SYSERR:
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-               _("Error updating service `%s': ARM not running\n"), service);
+      if (quiet != GNUNET_YES)
+        fprintf(stdout,
+                _("Error updating service `%s': ARM not running\n"), service);
       break;
     }
   GNUNET_SCHEDULER_add_continuation (sched,
@@ -157,9 +165,15 @@ confirm_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   const char *service = cls;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Service `%s' is running.\n"), service);
+    {
+      if (quiet != GNUNET_YES)
+        fprintf(stdout, _("Service `%s' is running.\n"), service);
+    }
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Service `%s' is not running.\n"), service);
+    {
+      if (quiet != GNUNET_YES)
+        fprintf(stdout, _("Service `%s' is not running.\n"), service);
+    }
   GNUNET_SCHEDULER_add_continuation (sched,
 				     &cps_loop,
 				     NULL,
@@ -305,6 +319,8 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
    GNUNET_YES, &GNUNET_GETOPT_set_string, &test},
   {'d', "delete", NULL, gettext_noop ("delete config file and directory on exit"),
    GNUNET_NO, &GNUNET_GETOPT_set_one, &delete},
+  {'q', "quiet", NULL, gettext_noop ("don't print status messages"),
+   GNUNET_NO, &GNUNET_GETOPT_set_one, &quiet},
   GNUNET_GETOPT_OPTION_END
 };
 
