@@ -166,6 +166,9 @@ struct Plugin
 
 };
 
+/**
+ * Handler for messages received from the DV service.
+ */
 void handle_dv_message_received (void *cls,
                                  struct GNUNET_PeerIdentity *sender,
                                  char *msg,
@@ -176,7 +179,10 @@ void handle_dv_message_received (void *cls,
 {
   struct Plugin *plugin = cls;
 
-  /* TODO: Add in demultiplexing if we think we'll be receiving multiple messages at once */
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                   "plugin_transport_dv",
+                   _("Received message from %s of type %d!\n"),
+                   "DV SERVICE", ntohs(((struct GNUNET_MessageHeader *)msg)->type));
   plugin->env->receive(plugin,
                        sender,
                        (struct GNUNET_MessageHeader *)msg,

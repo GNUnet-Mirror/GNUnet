@@ -57,6 +57,8 @@ struct PendingMessages
 
 };
 
+
+
 /**
  * Handle for the service.
  */
@@ -107,6 +109,21 @@ struct GNUNET_DV_Handle
    */
   void *receive_cls;
 
+};
+
+
+struct StartContext
+{
+
+  /**
+   * Start message
+   */
+  struct GNUNET_MessageHeader *message;
+
+  /**
+   * Handle to service, in case of timeout
+   */
+  struct GNUNET_DV_Handle *handle;
 };
 
 
@@ -215,7 +232,7 @@ static void process_pending_message(struct GNUNET_DV_Handle *handle)
                                                     GNUNET_YES,
                                                     &transmit_pending, handle)))
     {
-#if DEBUG_STATISTICS
+#if DEBUG_DV
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Failed to transmit request to dv service.\n");
 #endif
@@ -259,8 +276,6 @@ static void add_pending(struct GNUNET_DV_Handle *handle, struct GNUNET_DV_SendMe
 }
 
 
-
-
 void handle_message_receipt (void *cls,
                              const struct GNUNET_MessageHeader * msg)
 {
@@ -276,6 +291,9 @@ void handle_message_receipt (void *cls,
     return; /* Connection closed? */
   }
 
+#if DEBUG_DV
+  fprintf(stdout, "dv api receives message of type %d or raw %d\n", ntohs(msg->type), msg->type);
+#endif
   GNUNET_assert(ntohs(msg->type) == GNUNET_MESSAGE_TYPE_TRANSPORT_DV_RECEIVE);
 
   if (ntohs(msg->size) < sizeof(struct GNUNET_DV_MessageReceived))
@@ -348,6 +366,34 @@ int GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
   return GNUNET_OK;
 }
 
+/* Forward declaration */
+void GNUNET_DV_disconnect(struct GNUNET_DV_Handle *handle);
+
+static size_t
+transmit_start (void *cls, size_t size, void *buf)
+{
+  struct StartContext *start_context = cls;
+  struct GNUNET_DV_Handle *handle = start_context->handle;
+  size_t tsize;
+
+  if (buf == NULL)
+    {
+      GNUNET_free(start_context->message);
+      GNUNET_free(start_context);
+      GNUNET_DV_disconnect(handle);
+      return 0;
+    }
+
+  tsize = ntohs(start_context->message->size);
+  if (size >= tsize)
+  {
+    memcpy(buf, start_context->message, tsize);
+    return tsize;
+  }
+
+  return 0;
+}
+
 /**
  * Connect to the DV service
  *
@@ -365,7 +411,8 @@ GNUNET_DV_connect (struct GNUNET_SCHEDULER_Handle *sched,
                   void *receive_handler_cls)
 {
   struct GNUNET_DV_Handle *handle;
-
+  struct GNUNET_MessageHeader *start_message;
+  struct StartContext *start_context;
   handle = GNUNET_malloc(sizeof(struct GNUNET_DV_Handle));
 
   handle->cfg = cfg;
@@ -383,6 +430,19 @@ GNUNET_DV_connect (struct GNUNET_SCHEDULER_Handle *sched,
       GNUNET_free(handle);
       return NULL;
     }
+
+  start_message = GNUNET_malloc(sizeof(struct GNUNET_MessageHeader));
+  start_message->size = htons(sizeof(struct GNUNET_MessageHeader));
+  start_message->type = htons(GNUNET_MESSAGE_TYPE_DV_START);
+
+  start_context = GNUNET_malloc(sizeof(struct StartContext));
+  start_context->handle = handle;
+  start_context->message = start_message;
+  GNUNET_CLIENT_notify_transmit_ready (handle->client,
+                                       sizeof(struct GNUNET_MessageHeader),
+                                       GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60),
+                                       GNUNET_YES,
+                                       &transmit_start, start_context);
 
   GNUNET_CLIENT_receive (handle->client,
                          &handle_message_receipt,

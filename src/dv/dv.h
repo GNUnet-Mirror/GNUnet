@@ -163,6 +163,7 @@ struct GNUNET_DV_SendMessage
  */
 typedef struct
 {
+  /* Message Header */
   struct GNUNET_MessageHeader header;
 
   /**
@@ -174,6 +175,11 @@ typedef struct
    * Identity of neighbor we learned information about
    */
   struct GNUNET_PeerIdentity neighbor;
+
+  /**
+   * PublicKey of neighbor.
+   */
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
 
   /**
    * Neighbor ID to use when sending to this peer
