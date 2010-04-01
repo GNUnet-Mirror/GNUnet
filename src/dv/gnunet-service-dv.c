@@ -472,7 +472,7 @@ void send_to_plugin(const struct GNUNET_PeerIdentity * sender,
   received_msg = GNUNET_malloc(size);
   received_msg->header.size = htons(size);
   received_msg->header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_DV_RECEIVE);
-  received_msg->sender_address_len = sizeof(struct GNUNET_PeerIdentity);
+  received_msg->sender_address_len = htons(sizeof(struct GNUNET_PeerIdentity));
   received_msg->distance = htonl(cost);
   received_msg->msg_len = htons(message_size);
   /* Set the sender in this message to be the original sender! */
@@ -833,7 +833,6 @@ handle_start (void *cls,
               "Received `%s' request from client\n", "START");
 #endif
 
-  GNUNET_assert(client_handle == NULL);
   client_handle = client;
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);

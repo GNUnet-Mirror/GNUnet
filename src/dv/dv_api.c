@@ -291,9 +291,6 @@ void handle_message_receipt (void *cls,
     return; /* Connection closed? */
   }
 
-#if DEBUG_DV
-  fprintf(stdout, "dv api receives message of type %d or raw %d\n", ntohs(msg->type), msg->type);
-#endif
   GNUNET_assert(ntohs(msg->type) == GNUNET_MESSAGE_TYPE_TRANSPORT_DV_RECEIVE);
 
   if (ntohs(msg->size) < sizeof(struct GNUNET_DV_MessageReceived))
@@ -302,6 +299,9 @@ void handle_message_receipt (void *cls,
   received_msg = (struct GNUNET_DV_MessageReceived *)msg;
   packed_msg_len = ntohs(received_msg->msg_len);
   sender_address_len = ntohs(received_msg->sender_address_len);
+#if DEBUG_DV
+  fprintf(stdout, "dv api receives message from service: total len: %lu, packed len: %lu, sender_address_len: %lu, base message len: %lu\ntotal is %lu, should be %lu\n", ntohs(msg->size), packed_msg_len, sender_address_len, sizeof(struct GNUNET_DV_MessageReceived), sizeof(struct GNUNET_DV_MessageReceived) + packed_msg_len + sender_address_len, ntohs(msg->size));
+#endif
   GNUNET_assert(ntohs(msg->size) == (sizeof(struct GNUNET_DV_MessageReceived) + packed_msg_len + sender_address_len));
 
   sender_address = GNUNET_malloc(sender_address_len);
