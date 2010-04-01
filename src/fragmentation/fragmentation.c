@@ -28,7 +28,7 @@
  *        fragmented packet at any given point in time (prevents
  *        DoS attacks).  Fragmented messages that have not been
  *        completed after a certain amount of time are discarded.
- * @author Christian Grothoff
+ * @author Ji Lu
  */
 
 #include "platform.h"
@@ -115,13 +115,13 @@ GNUNET_FRAGMENT_fragment (const struct GNUNET_MessageHeader *msg,
 		{
 			struct Fragment *frag;
 			if(actualNum != num){
-							if(i!=actualNum-1){
-								frag = (struct Fragment *)GNUNET_malloc(mtu);
-							}
-							else{
-							    frag = (struct Fragment *)GNUNET_malloc(lastSize+size);
-								}
-							}
+				if(i!=actualNum-1){
+					frag = (struct Fragment *)GNUNET_malloc(mtu);
+				}
+				else{
+					frag = (struct Fragment *)GNUNET_malloc(lastSize+size);
+					}
+				}
 			else{
 					frag = (struct Fragment *)GNUNET_malloc(mtu);
 				}
@@ -131,20 +131,20 @@ GNUNET_FRAGMENT_fragment (const struct GNUNET_MessageHeader *msg,
 			frag->mtu = htons(mtu);
 			frag->totalNum = htons(actualNum);
 			frag->totalSize = msg->size;
-			char *m =  (char *)msg;
+			char *tmpMsg =  (char *)msg;
 			if(actualNum != num){
 				if(i!=actualNum-1){
-					frag->header.size = frag->mtu;
-					memcpy(&frag[1], m + (mtu-size)*i, mtu - size);
+					frag->header.size = htons(mtu);
+					memcpy(&frag[1], tmpMsg + (mtu-size)*i, mtu - size);
 				}
 				else{
 					frag->header.size = htons(lastSize+size);
-					memcpy(&frag[1], m + (mtu-size)*i, lastSize);
+					memcpy(&frag[1], tmpMsg + (mtu-size)*i, lastSize);
 				}
 			}
 			else{
-				frag->header.size = frag->mtu;
-				memcpy(&frag[1], m + (mtu-size)*i, mtu - size);
+				frag->header.size = htons(mtu);
+				memcpy(&frag[1], tmpMsg + (mtu-size)*i, mtu - size);
 			}
 			proc(proc_cls, &frag->header);
 			GNUNET_free(frag);
