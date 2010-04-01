@@ -33,7 +33,7 @@
 #define VERBOSE GNUNET_NO
 
 /** 
- * Using dns rootservers to check gnunet's resolver service
+ * Using DNS root servers to check gnunet's resolver service
  * a.root-servers.net <-> 198.41.0.4 is a fix 1:1 mapping that should not change over years
  * For more information have a look at IANA's website http://www.root-servers.org/
  */
@@ -188,121 +188,116 @@ run (void *cls,
 {
   struct sockaddr_in sa;
   struct GNUNET_TIME_Relative timeout =
-    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
-                                   2500);
+		  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+		  2500);
+  int count_ips =0 ;
+
   memset (&sa, 0, sizeof (sa));
   sa.sin_family = AF_INET;
   sa.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
   GNUNET_RESOLVER_ip_get (sched,
-                          cfg,
-                          "localhost", AF_INET, timeout, &check_127, cls);
+		cfg,
+		"localhost", AF_INET, timeout, &check_127, cls);
   GNUNET_RESOLVER_hostname_get (sched,
-                                cfg,
-                                (const struct sockaddr *) &sa,
-                                sizeof (struct sockaddr),
-                                GNUNET_YES, timeout, &check_localhost, cls);
+		cfg,
+		(const struct sockaddr *) &sa,
+		sizeof (struct sockaddr),
+		GNUNET_YES, timeout, &check_localhost, cls);
   GNUNET_RESOLVER_hostname_get (sched,
-                                cfg,
-                                (const struct sockaddr *) &sa,
-                                sizeof (struct sockaddr),
-                                GNUNET_NO,
-                                timeout, &check_localhost_num, cls);
+		cfg,
+		(const struct sockaddr *) &sa,
+		sizeof (struct sockaddr),
+		GNUNET_NO,
+		timeout, &check_localhost_num, cls);
   GNUNET_RESOLVER_hostname_resolve (sched,
-                                    cfg,
-                                    AF_UNSPEC, timeout, &check_hostname, cls);
-  // Testing non-local dns resolution
-  // DNS Rootserver to test: a.root-servers.net - 198.41.0.4  
+		cfg,
+		AF_UNSPEC, timeout, &check_hostname, cls);
+  /*
+   * Testing non-local DNS resolution
+   * DNS rootserver to test: a.root-servers.net - 198.41.0.4
+   */
   
   char const * rootserver_name = ROOTSERVER_NAME;
-  
   struct hostent *rootserver;
   
   rootserver = gethostbyname(rootserver_name);
   if (rootserver == NULL)
     {
-      // Error: resolving ip addresses does not work
+  /* Error: resolving ip addresses does not work */
 #if DEBUG_RESOLVER
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("gethostbyname() could not lookup IP address: %s\n"),
 		  hstrerror (h_errno));
 #endif
-      GNUNET_break (0);
+	  GNUNET_break (0);
       return;
     }
-    // Counting returned ip addresses
-    int count_ips =0 ;
+
+    /* Counting returned IP addresses */
     while (rootserver->h_addr_list[count_ips]!=NULL)
-    {
       count_ips++;
-    }    
     if ( count_ips > 1) 
-      {
-#if DEBUG_RESOLVER
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received ip range for root name server, but a root nameserver has only 1 ip\n");
-#endif
-	GNUNET_break (0);
-      }
-    
-    // Comparing to resolved address to the address the root nameserver should have
-    if ( strcmp(inet_ntoa( *(struct in_addr *) rootserver->h_addr_list[0]),ROOTSERVER_IP) !=0)
     {
-      #if DEBUG_RESOLVER
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received ip and ip for root name server differ\n");
-      #endif
-      GNUNET_break (0);      
+#if DEBUG_RESOLVER
+    	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "IP received range for root name server, but a root name server has only 1 IP\n");
+#endif
+		GNUNET_break (0);
     }
     
-    #if DEBUG_RESOLVER
+    /* Comparing to resolved address to the address the root name server should have */
+    if ( strcmp(inet_ntoa( *(struct in_addr *) rootserver->h_addr_list[0]),ROOTSERVER_IP) !=0)
+    {
+#if DEBUG_RESOLVER
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "IP received and IP for root name server differ\n");
+#endif
+      GNUNET_break (0);      
+    }
+#if DEBUG_RESOLVER
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, "System's own forward name resolution is working\n");
-    #endif
+#endif
     
-    // Resolve the same using GNUNET
+    /* Resolve the same using GNUNET */
     GNUNET_RESOLVER_ip_get (sched, cfg, ROOTSERVER_NAME, AF_INET, timeout, &check_rootserver_ip, cls);
     
-    // Success: forward lookups work as exptected
+    /*
+     * Success: forward lookups work as expected
+     * Next step: reverse lookups
+     */
     
-    
-    // Next step: reverse lookups
-
     struct in_addr rootserver_addr;
     rootserver->h_name="";
     if ( 1 != inet_pton(AF_INET, ROOTSERVER_IP, &rootserver_addr))
     {
-      #if DEBUG_RESOLVER
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Could not transform root nameserver ip addressr\n");
-      #endif
+#if DEBUG_RESOLVER
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Could not transform root name server IP address\n");
+#endif
       GNUNET_break (0); 
     }
     
     rootserver = gethostbyaddr(&rootserver_addr, sizeof(rootserver_addr), AF_INET);
     if (rootserver == NULL)
     {
-      // Error: resolving ip addresses does not work
-      #if DEBUG_RESOLVER
-      switch (h_errno)
-	{
-	
-	case HOST_NOT_FOUND: GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "gethostbyaddr() could not lookup ip address: HOST_NOT_FOUND\n");break;
-	case NO_ADDRESS: GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "gethostbyaddr() could not lookup ip address: NO_ADDRESS\n");break;
-	case NO_RECOVERY: GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "gethostbyaddr() could not lookup ip address: NO_RECOVERY\n");break;
-	case TRY_AGAIN: GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "gethostbyaddr() could not lookup ip address: TRY_AGAIN\n");break;
-	}
-      #endif
+    /* Error: resolving ip addresses does not work */
+#if DEBUG_RESOLVER
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("gethostbyaddr() could not lookup hostname: %s\n"),
+		  hstrerror (h_errno));
+#endif
       GNUNET_break (0);
     }
 
     if ( 0 != strcmp( rootserver->h_name,ROOTSERVER_NAME))
     {
-      #if DEBUG_RESOLVER
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received hostname and hostname for root name server differ\n");
-      #endif
-      GNUNET_break (0); 
+#if DEBUG_RESOLVER
+    	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received hostname and hostname for root name server differ\n");
+#endif
+    	GNUNET_break (0);
     }
     
-    #if DEBUG_RESOLVER
+#if DEBUG_RESOLVER
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, "System's own reverse name resolution is working\n");
-    #endif
-    // Resolve the same using GNUNET
+#endif
+    /* Resolve the same using GNUNET */
    
     memset (&sa, 0, sizeof (sa));
     sa.sin_family = AF_INET;
@@ -314,8 +309,6 @@ run (void *cls,
                                 sizeof (struct sockaddr),
                                 GNUNET_YES,
                                 timeout, &check_rootserver_name, cls);
-   
- 
 }
 
 static int
