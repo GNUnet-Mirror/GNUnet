@@ -56,6 +56,8 @@ GNUNET_FS_meta_data_test_for_directory (const struct GNUNET_CONTAINER_MetaData *
   char *mime;
   int ret;
   
+  if (NULL == md)
+    return GNUNET_SYSERR;
   mime = GNUNET_CONTAINER_meta_data_get_by_type (md, EXTRACTOR_METATYPE_MIMETYPE);
   if (mime == NULL)
     return GNUNET_SYSERR;
