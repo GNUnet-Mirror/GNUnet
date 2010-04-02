@@ -204,6 +204,8 @@ GNUNET_FS_file_information_create_from_file (void *client_info,
   struct FileInfo *fi;
   struct stat sbuf;
   struct GNUNET_FS_FileInformation *ret;
+  const char *fn;
+  const char *ss;
 
   if (0 != STAT (filename, &sbuf))
     {
@@ -230,6 +232,17 @@ GNUNET_FS_file_information_create_from_file (void *client_info,
 						       priority,
 						       expirationTime);
   ret->data.file.filename = GNUNET_strdup (filename);
+  fn = filename;
+  while (NULL != (ss = strstr (fn,
+			       DIR_SEPARATOR_STR)))
+    fn = ss + 1;
+  GNUNET_CONTAINER_meta_data_insert (ret->meta,
+				     "<gnunet>",
+				     EXTRACTOR_METATYPE_FILENAME,
+				     EXTRACTOR_METAFORMAT_C_STRING,
+				     "text/plain",
+				     fn,
+				     strlen (fn) + 1);
   return ret;
 }
 
@@ -622,13 +635,12 @@ GNUNET_FS_file_information_create_from_directory (void *client_info,
   struct EntryProcCls dc;
   struct GNUNET_FS_Uri *ksk;
   struct GNUNET_CONTAINER_MetaData *meta;
-
-  
+  const char *fn;
+  const char *ss;
 
   dc.entries = NULL;
   meta = GNUNET_CONTAINER_meta_data_create ();
   GNUNET_FS_meta_data_make_directory (meta);
-  
   scanner (scanner_cls,
 	   filename,
 	   do_index,
@@ -654,6 +666,18 @@ GNUNET_FS_file_information_create_from_directory (void *client_info,
       GNUNET_FS_file_information_sync (dc.entries);
       dc.entries = dc.entries->next;
     }
+  fn = filename;
+  while (NULL != (ss = strstr (fn,
+			       DIR_SEPARATOR_STR)))
+    fn = ss + 1;
+  GNUNET_CONTAINER_meta_data_insert (ret->meta,
+				     "<gnunet>",
+				     EXTRACTOR_METATYPE_FILENAME,
+				     EXTRACTOR_METAFORMAT_C_STRING,
+				     "text/plain",
+				     fn,
+				     strlen (fn) + 1);
+  ret->data.dir.dirname = GNUNET_strdup (filename);
   GNUNET_FS_file_information_sync (ret);
   return ret;
 }

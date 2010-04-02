@@ -601,7 +601,6 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
    ("add an additional keyword for the top-level file or directory"
     " (this option can be specified multiple times)"),
    1, &GNUNET_FS_getopt_set_keywords, &topKeywords},
-  // *: option not yet used... (can handle in a pass over FI)
   {'m', "meta", "TYPE:VALUE",
    gettext_noop ("set the meta-data for the given TYPE to the given VALUE"),
    1, &GNUNET_FS_getopt_set_metadata, &meta},
@@ -621,7 +620,6 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
    gettext_noop
    ("publish the files under the pseudonym NAME (place file into namespace)"),
    1, &GNUNET_GETOPT_set_string, &pseudonym},
-  // *: option not yet used... (need FS API support!)
   {'s', "simulate-only", NULL,
    gettext_noop ("only simulate the process but do not do any "
                  "actual publishing (useful to compute URIs)"),
@@ -630,7 +628,6 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
    gettext_noop ("set the ID of this version of the publication"
                  " (for namespace insertions only)"),
    1, &GNUNET_GETOPT_set_string, &this_id},
-  // *: option not yet used... (need FS API support!)
   {'u', "uri", "URI",
    gettext_noop ("URI to be published (can be used instead of passing a "
                  "file to add keywords to the file with the respective URI)"),
@@ -660,88 +657,5 @@ main (int argc, char *const *argv)
                               ("Publish files on GNUnet."),
                               options, &run, NULL)) ? ret : 1;
 }
-
-/* end of gnunet-publish.c */
-
-////////////////////////////////////////////////////////////////
-
-#if 0
-/**
- * Print progess message.
- */
-static void *
-printstatus (void *ctx, const GNUNET_FSUI_Event * event)
-{
-  unsigned long long delta;
-  char *fstring;
-
-  switch (event->type)
-    {
-    case GNUNET_FSUI_upload_progress:
-      if (*verboselevel)
-        {
-          char *ret;
-          GNUNET_CronTime now;
-
-          now = GNUNET_get_time ();
-          delta = event->data.UploadProgress.eta - now;
-          if (event->data.UploadProgress.eta < now)
-            delta = 0;
-          ret = GNUNET_get_time_interval_as_fancy_string (delta);
-          PRINTF (_("%16llu of %16llu bytes inserted "
-                    "(estimating %6s to completion) - %s\n"),
-                  event->data.UploadProgress.completed,
-                  event->data.UploadProgress.total,
-                  ret, event->data.UploadProgress.filename);
-          GNUNET_free (ret);
-        }
-      break;
-    case GNUNET_FSUI_upload_completed:
-      if (*verboselevel)
-        {
-          delta = GNUNET_get_time () - start_time;
-          PRINTF (_("Upload of `%s' complete, "
-                    "%llu bytes took %llu seconds (%8.3f KiB/s).\n"),
-                  event->data.UploadCompleted.filename,
-                  event->data.UploadCompleted.total,
-                  delta / GNUNET_CRON_SECONDS,
-                  (delta == 0)
-                  ? (double) (-1.0)
-                  : (double) (event->data.UploadCompleted.total
-                              / 1024.0 * GNUNET_CRON_SECONDS / delta));
-        }
-      fstring = GNUNET_ECRS_uri_to_string (event->data.UploadCompleted.uri);
-      printf (_("File `%s' has URI: %s\n"),
-              event->data.UploadCompleted.filename, fstring);
-      GNUNET_free (fstring);
-      if (ul == event->data.UploadCompleted.uc.pos)
-        {
-          postProcess (event->data.UploadCompleted.uri);
-          errorCode = 0;
-          GNUNET_shutdown_initiate ();
-        }
-      break;
-    case GNUNET_FSUI_upload_aborted:
-      printf (_("\nUpload aborted.\n"));
-      errorCode = 2;
-      GNUNET_shutdown_initiate ();
-      break;
-    case GNUNET_FSUI_upload_error:
-      printf (_("\nError uploading file: %s"),
-              event->data.UploadError.message);
-      errorCode = 3;
-      GNUNET_shutdown_initiate ();
-      break;
-    case GNUNET_FSUI_upload_started:
-    case GNUNET_FSUI_upload_stopped:
-      break;
-    default:
-      printf (_("\nUnexpected event: %d\n"), event->type);
-      GNUNET_GE_BREAK (ectx, 0);
-      break;
-    }
-  return NULL;
-}
-#endif
 
 /* end of gnunet-publish.c */

@@ -322,14 +322,19 @@ GNUNET_FS_meta_data_suggest_filename (const struct GNUNET_CONTAINER_MetaData *md
     {"video/x-msvideo", ".avi"},
     {NULL, NULL},
   };
-
+  char *ret;
   unsigned int i;
   char *mime;
+  char *base;
   const char *ext;
-  
-  ext = "";
-  mime = NULL;
-  // FIXME: get mime from meta data
+
+  ret = GNUNET_CONTAINER_meta_data_get_by_type (md,
+						EXTRACTOR_METATYPE_FILENAME);
+  if (ret != NULL)
+    return ret;  
+  ext = NULL;
+  mime = GNUNET_CONTAINER_meta_data_get_by_type (md,
+						 EXTRACTOR_METATYPE_MIMETYPE);
   if (mime != NULL)
     {
       i = 0;
@@ -343,70 +348,39 @@ GNUNET_FS_meta_data_suggest_filename (const struct GNUNET_CONTAINER_MetaData *md
 		    mime);
       else
 	ext = mimeMap[i][1];
+      GNUNET_free (mime);
     }
-  // FIXME: try to get some base name...
-#if 0
-  const char *key;
-  const char *mime;
-  char *path;
-  unsigned int j;
-  char *renameTo;
-  char *ret;
-  size_t max;
-  struct stat filestat;
-
-  key = EXTRACTOR_extractLast (EXTRACTOR_TITLE, list);
-  if (key == NULL)
-    key = EXTRACTOR_extractLast (EXTRACTOR_SOFTWARE, list);
-  if (key == NULL)
-    key = EXTRACTOR_extractLast (EXTRACTOR_DESCRIPTION, list);
-  if (key == NULL)
-    key = EXTRACTOR_extractLast (EXTRACTOR_COMMENT, list);
-  if (key == NULL)
-    key = EXTRACTOR_extractLast (EXTRACTOR_SUBJECT, list);
-  if (key == NULL)
-    key = EXTRACTOR_extractLast (EXTRACTOR_ALBUM, list);
-  if (key == NULL)
-    key = EXTRACTOR_extractLast (EXTRACTOR_UNKNOWN, list);
-  mime = EXTRACTOR_extractLast (EXTRACTOR_MIMETYPE, list);
-  if (mime != NULL)
-    {
-    }
-  if (key == NULL)
-    {
-      key = &filename[strlen (filename) - 1];
-      while ((key != filename) && (key[0] != DIR_SEPARATOR))
-        key--;
-      if (key[0] == DIR_SEPARATOR)
-        key++;
-    }
-      GNUNET_snprintf (renameTo,
-                       max,
-                       "%s%s%.*s%s",
-                       path,
-                       (path[strlen (path) - 1] !=
-                        DIR_SEPARATOR) ? DIR_SEPARATOR_STR : "",
-                       GNUNET_MIN (255 - strlen (mime),
-                                   PATH_MAX - strlen (path) - 64), key,
-                       (strcasecmp
-                        (renameTo + strlen (renameTo) - strlen (mime),
-                         mime) != 0) ? mime : "");
-
-
-    }
-  for (i = strlen (renameTo) - 1; i >= 0; i--)
-    if (!isprint (renameTo[i]))
-      renameTo[i] = '_';
-    else if (renameTo[i] == '.' && i > 0 && renameTo[i - 1] == '.')
-      {
-        /* remove .. to avoid directory traversal */
-        renameTo[i - 1] = renameTo[i] = '_';
-        i--;
-      }
-#endif
-
-  GNUNET_break (0); // FIXME: not implemented
-  return NULL;
+  base = GNUNET_CONTAINER_meta_data_get_first_by_types (md,
+							EXTRACTOR_METATYPE_TITLE,
+							EXTRACTOR_METATYPE_BOOK_TITLE,
+							EXTRACTOR_METATYPE_ORIGINAL_TITLE,
+							EXTRACTOR_METATYPE_PACKAGE_NAME,
+							EXTRACTOR_METATYPE_URL,
+							EXTRACTOR_METATYPE_URI, 
+							EXTRACTOR_METATYPE_DESCRIPTION,
+							EXTRACTOR_METATYPE_ISRC,
+							EXTRACTOR_METATYPE_JOURNAL_NAME,
+							EXTRACTOR_METATYPE_AUTHOR_NAME,
+							EXTRACTOR_METATYPE_SUBJECT,
+							EXTRACTOR_METATYPE_ALBUM,
+							EXTRACTOR_METATYPE_ARTIST,
+							EXTRACTOR_METATYPE_KEYWORDS,
+							EXTRACTOR_METATYPE_COMMENT,
+							EXTRACTOR_METATYPE_UNKNOWN,
+							-1);
+  if ( (base == NULL) &&
+       (ext == NULL) )
+    return NULL;
+  if (base == NULL)
+    return GNUNET_strdup (ext);
+  if (ext == NULL)
+    return base;
+  GNUNET_asprintf (&ret,
+		   "%s%s",
+		   base,
+		   ext);
+  GNUNET_free (base);
+  return ret;
 }
 
 
@@ -521,6 +495,7 @@ trigger_recursive_download (void *cls,
 {
   struct GNUNET_FS_DownloadContext *dc = cls;  
   struct GNUNET_FS_DownloadContext *cpos;
+  struct GNUNET_DISK_FileHandle *fh;
   char *fn;
   char *us;
   char *ext;
@@ -573,11 +548,15 @@ trigger_recursive_download (void *cls,
   else
     {
       dn = GNUNET_strdup (dc->filename);
-      GNUNET_break ( (strlen (dn) < strlen (GNUNET_FS_DIRECTORY_EXT)) ||
-		     (NULL ==
+      GNUNET_break ( (strlen (dn) >= strlen (GNUNET_FS_DIRECTORY_EXT)) &&
+		     (NULL !=
 		      strstr (dn + strlen(dn) - strlen(GNUNET_FS_DIRECTORY_EXT),
 			      GNUNET_FS_DIRECTORY_EXT)) );
-      dn[strlen(dn) - strlen (GNUNET_FS_DIRECTORY_EXT)] = '\0';      
+      if ( (strlen (dn) >= strlen (GNUNET_FS_DIRECTORY_EXT)) &&
+	   (NULL !=
+	    strstr (dn + strlen(dn) - strlen(GNUNET_FS_DIRECTORY_EXT),
+		    GNUNET_FS_DIRECTORY_EXT)) )      
+	dn[strlen(dn) - strlen (GNUNET_FS_DIRECTORY_EXT)] = '\0';      
       if ( (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (meta)) &&
 	   ( (strlen (filename) < strlen (GNUNET_FS_DIRECTORY_EXT)) ||
 	     (NULL ==
@@ -617,8 +596,28 @@ trigger_recursive_download (void *cls,
     {
       if (full_name != NULL)
 	{
-	  /* determine on-disk filename, write data! */
-	  GNUNET_break (0); // FIXME: not implemented
+	  fh = GNUNET_DISK_file_open (full_name,
+				      GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_TRUNCATE | GNUNET_DISK_OPEN_CREATE,
+				      GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
+	  if (fh == NULL)
+	    {
+	      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+					"open",
+					full_name);	      
+	      GNUNET_free (full_name);
+	      GNUNET_free_non_null (fn);
+	      return;
+	    }
+	  if (length != 
+	      GNUNET_DISK_file_write (fh,
+				      data,
+				      length))
+	    {
+	      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+					"write",
+					full_name);	      
+	    }
+	  GNUNET_DISK_file_close (fh);
 	}
       else
 	{
@@ -866,15 +865,13 @@ process_result_with_request (void *cls,
 		 ( (strlen (dc->filename) >= strlen (GNUNET_FS_DIRECTORY_EXT)) &&
 		   (NULL !=
 		    strstr (dc->filename + strlen(dc->filename) - strlen(GNUNET_FS_DIRECTORY_EXT),
-			    GNUNET_FS_DIRECTORY_EXT)) ) ) ) ) )
-	{
-	  GNUNET_FS_directory_list_contents (prc->size,
-					     pt,
-					     off,
-					     &trigger_recursive_download,
-					     dc);         
-	}
-
+			    GNUNET_FS_DIRECTORY_EXT)) ) ) ) ) )	
+	GNUNET_FS_directory_list_contents (prc->size,
+					   pt,
+					   off,
+					   &trigger_recursive_download,
+					   dc);         
+	    
     }
 
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_PROGRESS;
@@ -906,7 +903,13 @@ process_result_with_request (void *cls,
 	}
 
       if ( (0 != (dc->options & GNUNET_FS_DOWNLOAD_OPTION_RECURSIVE)) &&
-	   (GNUNET_NO != GNUNET_FS_meta_data_test_for_directory (dc->meta)) )
+	   ( (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (dc->meta)) ||
+	     ( (dc->meta == NULL) &&
+	       ( (NULL == dc->filename) ||	       
+		 ( (strlen (dc->filename) >= strlen (GNUNET_FS_DIRECTORY_EXT)) &&
+		   (NULL !=
+		    strstr (dc->filename + strlen(dc->filename) - strlen(GNUNET_FS_DIRECTORY_EXT),
+			    GNUNET_FS_DIRECTORY_EXT)) ) ) ) ) )	
 	full_recursive_download (dc);
       if (dc->child_head == NULL)
 	{
