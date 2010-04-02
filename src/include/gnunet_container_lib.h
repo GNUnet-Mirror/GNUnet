@@ -439,18 +439,6 @@ struct GNUNET_CONTAINER_MetaData
   *GNUNET_CONTAINER_meta_data_deserialize (const char *input,
                                            size_t size);
 
-/**
- * Does the meta-data claim that this is a directory?
- * Checks if the mime-type is that of a GNUnet directory.
- *
- * @param md metadata to inspect
- * @return GNUNET_YES if it is, GNUNET_NO if it is not, GNUNET_SYSERR if
- *  we have no mime-type information (treat as 'GNUNET_NO')
- */
-int GNUNET_CONTAINER_meta_data_test_for_directory (const struct
-                                                   GNUNET_CONTAINER_MetaData
-                                                   *md);
-
 
 /* ******************************* HashMap **************************** */
 
