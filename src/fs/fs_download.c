@@ -360,16 +360,17 @@ trigger_recursive_download (void *cls,
   struct GNUNET_FS_DownloadContext *dc = cls;  
   struct GNUNET_FS_DownloadContext *cpos;
 
+  if (NULL == uri)
+    return; /* entry for the directory itself */
   cpos = dc->child_head;
   while (cpos != NULL)
     {
-      if (0 == strcmp (cpos->filename,
-		       filename))
-	{
-	  GNUNET_break_op (GNUNET_FS_uri_test_equal (uri,
-						     cpos->uri));
-	  break;
-	}
+      if ( (GNUNET_FS_uri_test_equal (uri,
+				      cpos->uri)) ||
+	   ( (filename != NULL) &&
+	     (0 == strcmp (cpos->filename,
+			   filename)) ) )
+	break;	
       cpos = cpos->next;
     }
   if (cpos != NULL)
@@ -379,6 +380,7 @@ trigger_recursive_download (void *cls,
       /* determine on-disk filename, write data! */
       GNUNET_break (0); // FIXME: not implemented
     }
+  /* FIXME: filename MAY be NULL => make one up! */
   GNUNET_FS_download_start (dc->h,
 			    uri,
 			    meta,
@@ -607,7 +609,7 @@ process_result_with_request (void *cls,
       dc->completed += app;
 
       if ( (0 != (dc->options & GNUNET_FS_DOWNLOAD_OPTION_RECURSIVE)) &&
-	   (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (dc->meta)) )
+	   (GNUNET_NO != GNUNET_FS_meta_data_test_for_directory (dc->meta)) )
 	{
 	  GNUNET_FS_directory_list_contents (prc->size,
 					     pt,
@@ -647,7 +649,7 @@ process_result_with_request (void *cls,
 	}
 
       if ( (0 != (dc->options & GNUNET_FS_DOWNLOAD_OPTION_RECURSIVE)) &&
-	   (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (dc->meta)) )
+	   (GNUNET_NO != GNUNET_FS_meta_data_test_for_directory (dc->meta)) )
 	full_recursive_download (dc);
       if (dc->child_head == NULL)
 	{
