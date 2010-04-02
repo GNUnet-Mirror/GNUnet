@@ -29,8 +29,8 @@
  * - have non-zero preference / priority for requests we initiate!
  * - track stats for hot-path routing
  * - implement hot-path routing decision procedure
- * - implement: bound_priority, test_load_too_high, validate_skblock
- * - add content migration support (store locally)
+ * - implement: bound_priority, test_load_too_high, validate_nblock
+ * - add content migration support (store locally) [or create new service]
  * - statistics
  */
 #include "platform.h"

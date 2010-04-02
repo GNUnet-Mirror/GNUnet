@@ -1,19 +1,3 @@
-Implementable right now (but not necessarily important), with caveats
-(unavailable components that will limit what can be implemented right
-away), in order in which they will likely be done:
-* TESTING [Nate]
-* DV [Nate]
-* DHT [Nate]
-* TBENCH [MW]
-* TRACEKIT [MW]
-* FRAGMENTATION [Ji Lu]
-* HTTP transport [Matthias]
-* UPNP [Milan]
-* ARM [Safey]
-* FS [CG]
-* SETUP
-* MySQL / Postgres plugins (datastore, datacache)
-
 0.9.0pre0 [April]:
 * CORE: [CG]
   - "Forcing disconnect of XXX due to inactivity" -- can happen every few MS!?
@@ -29,25 +13,10 @@ away), in order in which they will likely be done:
   - on some systems, keyword search does not find locally published content
     (need testcase of command-line tools! - also good to cover getopt API!)
     [could be related to datastore issue above!]
-  - 2-peer download is still too slow (why?)
-  - advanced FS API parts
-    + support recursive download even if filename is NULL and we hence
-      do not generate files on disk (use temp_filename)
-    + bound parallelism (# fs downloads)
-    + distinguish in performance tracking and event signalling between
-      downloads that are actually running and those that are merely in the queue
-    + gnunet-service-fs (hot-path routing, load-based routing, nitpicks)
-  - [gnunet-service-fs.c:208]: member 'LocalGetContext::results_bf_size' is never used
-  - [gnunet-service-fs.c:501]: member 'PendingRequest::used_pids_size' is never used
-  - [gnunet-service-fs.c:654]: member 'ConnectedPeer::last_client_replies' is never used
-  - [gnunet-service-fs.c:669]: member 'ConnectedPeer::avg_delay' is never used
-  - [gnunet-service-fs.c:675]: member 'ConnectedPeer::avg_priority' is never used
-  - [gnunet-service-fs.c:688]: member 'ConnectedPeer::pending_requests' is never used
-  - [gnunet-service-fs.c:694]: member 'ConnectedPeer::last_p2p_replies_woff' is never used
-  - [gnunet-service-fs.c:700]: member 'ConnectedPeer::last_client_replies_woff' is never used
+  - 2-peer download is still too slow (why? testcases fail on slow systems!)
 * WWW:
-  - Get IPv6 hooked up
-  - change DNS
+  - Get IPv6 hooked up [AK, after April 12th]
+  - change DNS [CG, need DNS]
 
 0.9.0pre1:
 * PEERINFO:
@@ -106,10 +75,22 @@ away), in order in which they will likely be done:
   - check if new HELLO learned is different from old HELLO
     before resetting entire state!
 * FS: [CG]
-  - datastore reservation (publishing)
-  - search: availability probes
+  - support recursive download even if filename is NULL and we hence
+    do not generate files on disk (use temp_filename)
+  - bound parallelism (# fs downloads)
+  - distinguish in performance tracking and event signalling between
+    downloads that are actually running and those that are merely in the queue
   - persistence support (publish, unindex, search, download)
   - active migration support (in fs or in datastore or new daemon?)
+  - gnunet-service-fs (hot-path routing, load-based routing, nitpicks)
+  - [gnunet-service-fs.c:208]: member 'LocalGetContext::results_bf_size' is never used
+  - [gnunet-service-fs.c:501]: member 'PendingRequest::used_pids_size' is never used
+  - [gnunet-service-fs.c:654]: member 'ConnectedPeer::last_client_replies' is never used
+  - [gnunet-service-fs.c:669]: member 'ConnectedPeer::avg_delay' is never used
+  - [gnunet-service-fs.c:675]: member 'ConnectedPeer::avg_priority' is never used
+  - [gnunet-service-fs.c:688]: member 'ConnectedPeer::pending_requests' is never used
+  - [gnunet-service-fs.c:694]: member 'ConnectedPeer::last_p2p_replies_woff' is never used
+  - [gnunet-service-fs.c:700]: member 'ConnectedPeer::last_client_replies_woff' is never used
   - GAP improvements:
     + active reply route caching design & implementation of service; gap extension!
 * GNUNET-GTK:
@@ -135,6 +116,8 @@ away), in order in which they will likely be done:
     debug output, detect random vs. deterministic crashes)
   - shutdown sequence?
 * FS: [CG]
+  - datastore reservation (publishing)
+  - search: availability probes
   - location URIs (publish, search, download)
   - non-anonymous FS service (needs DHT)
     + DHT integration for search
