@@ -84,6 +84,15 @@ print_entry (void *cls,
 {
   char *string;
 
+  if (uri == NULL)
+    {
+      printf (_("Directory summary:\n"));
+      GNUNET_CONTAINER_meta_data_iterate (meta,
+					  &item_printer,
+					  NULL);
+      printf ("\n");
+      return;
+    }
   string = GNUNET_FS_uri_to_string (uri);
   printf ("%s:\n", string);
   GNUNET_free (string);
