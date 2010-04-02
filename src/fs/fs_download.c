@@ -375,6 +375,10 @@ trigger_recursive_download (void *cls,
     }
   if (cpos != NULL)
     return; /* already exists */
+  if (NULL == filename)
+    {
+      
+    }
   if (data != NULL)
     {
       /* determine on-disk filename, write data! */

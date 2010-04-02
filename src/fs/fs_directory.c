@@ -97,6 +97,68 @@ GNUNET_FS_meta_data_make_directory (struct GNUNET_CONTAINER_MetaData *md)
 
 
 /**
+ * Closure for 'find_full_data'.
+ */
+struct GetFullDataClosure 
+{
+
+  /**
+   * Extracted binary meta data.
+   */
+  void *data;
+
+  /**
+   * Number of bytes stored in data.
+   */
+  size_t size;
+};
+
+
+/**
+ * Type of a function that libextractor calls for each
+ * meta data item found.
+ *
+ * @param cls closure (user-defined)
+ * @param plugin_name name of the plugin that produced this value;
+ *        special values can be used (i.e. '<zlib>' for zlib being
+ *        used in the main libextractor library and yielding
+ *        meta data).
+ * @param type libextractor-type describing the meta data
+ * @param format basic format information about data 
+ * @param data_mime_type mime-type of data (not of the original file);
+ *        can be NULL (if mime-type is not known)
+ * @param data actual meta-data found
+ * @param data_len number of bytes in data
+ * @return 0 to continue extracting, 1 to abort
+ */ 
+static int
+find_full_data (void *cls,
+		const char *plugin_name,
+		enum EXTRACTOR_MetaType type,
+		enum EXTRACTOR_MetaFormat format,
+		const char *data_mime_type,
+		const char *data,
+		size_t data_len)
+{
+  struct GetFullDataClosure *gfdc = cls;
+
+  if (type == EXTRACTOR_METATYPE_GNUNET_FULL_DATA)
+    {
+      gfdc->size = data_len;
+      if (data_len > 0)
+	{
+	  gfdc->data = GNUNET_malloc (data_len);
+	  memcpy (gfdc->data,
+		  data,
+		  data_len);
+	}
+      return 1;
+    }
+  return 0;
+}
+
+
+/**
  * Iterate over all entries in a directory.  Note that directories
  * are structured such that it is possible to iterate over the
  * individual blocks as well as over the entire directory.  Thus
@@ -125,6 +187,7 @@ GNUNET_FS_directory_list_contents (size_t size,
 				   GNUNET_FS_DirectoryEntryProcessor dep, 
 				   void *dep_cls)
 {
+  struct GetFullDataClosure full_data;
   const char *cdata = data;
   char *file_data;
   char *emsg;
@@ -228,16 +291,21 @@ GNUNET_FS_directory_list_contents (size_t size,
       pos += mdSize;
       filename = GNUNET_CONTAINER_meta_data_get_by_type (md,
 							 EXTRACTOR_METATYPE_FILENAME);
-      file_data = GNUNET_CONTAINER_meta_data_get_by_type (md,
-							  EXTRACTOR_METATYPE_GNUNET_FULL_DATA);
+      full_data.size = 0;
+      full_data.data = NULL;
+      GNUNET_CONTAINER_meta_data_iterate (md,
+					  &find_full_data,
+					  &full_data);
       if (dep != NULL) 
-         dep (dep_cls,
-	      filename,
-	      uri,
-	      md,
-	      (file_data != NULL) ? strlen(file_data) : 0,
-	      file_data);
-      GNUNET_free_non_null (file_data);
+	{
+	  dep (dep_cls,
+	       filename,
+	       uri,
+	       md,
+	       full_data.data,
+	       full_data.size);
+	}
+      GNUNET_free_non_null (full_data.file_data);
       GNUNET_free_non_null (filename);
       GNUNET_CONTAINER_meta_data_destroy (md);
       GNUNET_FS_uri_destroy (uri);
