@@ -159,7 +159,7 @@ GNUNET_STRINGS_byte_size_fancy (unsigned long long size)
         }
     }
   ret = GNUNET_malloc (32);
-  GNUNET_snprintf (ret, 32, "%llu%s", size, unit);
+  GNUNET_snprintf (ret, 32, "%llu %s", size, unit);
   return ret;
 }
 
