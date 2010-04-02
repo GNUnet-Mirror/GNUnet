@@ -385,7 +385,7 @@ GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative delta)
             }
         }
     }
-  GNUNET_asprintf (&ret, "%llu%s", dval, unit);
+  GNUNET_asprintf (&ret, "%llu %s", dval, unit);
   return ret;
 }
 

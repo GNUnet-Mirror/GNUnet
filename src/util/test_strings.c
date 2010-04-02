@@ -38,28 +38,28 @@ check ()
   char *b;
   struct GNUNET_TIME_Absolute at;
 
-  sprintf (buf, "4%s", _( /* size unit */ "b"));
+  sprintf (buf, "4 %s", _( /* size unit */ "b"));
   b = GNUNET_STRINGS_byte_size_fancy (4);
   WANT (buf, b);
-  sprintf (buf, "10%s", _( /* size unit */ "KiB"));
+  sprintf (buf, "10 %s", _( /* size unit */ "KiB"));
   b = GNUNET_STRINGS_byte_size_fancy (10240);
   WANT (buf, b);
-  sprintf (buf, "10%s", _( /* size unit */ "TiB"));
+  sprintf (buf, "10 %s", _( /* size unit */ "TiB"));
   b = GNUNET_STRINGS_byte_size_fancy (10240LL * 1024LL * 1024LL * 1024LL);
   WANT (buf, b);
-  sprintf (buf, "4%s", _( /* time unit */ "ms"));
+  sprintf (buf, "4 %s", _( /* time unit */ "ms"));
   b =
     GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_relative_multiply
                                             (GNUNET_TIME_UNIT_MILLISECONDS,
                                              4));
   WANT (buf, b);
-  sprintf (buf, "7%s", _( /* time unit */ "s"));
+  sprintf (buf, "7 %s", _( /* time unit */ "s"));
   b =
     GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_relative_multiply
                                             (GNUNET_TIME_UNIT_MILLISECONDS,
                                              7 * 1000));
   WANT (buf, b);
-  sprintf (buf, "7%s", _( /* time unit */ "h"));
+  sprintf (buf, "7 %s", _( /* time unit */ "h"));
   b =
     GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_relative_multiply
                                             (GNUNET_TIME_UNIT_MILLISECONDS,
