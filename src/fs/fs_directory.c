@@ -189,7 +189,6 @@ GNUNET_FS_directory_list_contents (size_t size,
 {
   struct GetFullDataClosure full_data;
   const char *cdata = data;
-  char *file_data;
   char *emsg;
   uint64_t pos;
   uint64_t align;
@@ -302,10 +301,10 @@ GNUNET_FS_directory_list_contents (size_t size,
 	       filename,
 	       uri,
 	       md,
-	       full_data.data,
-	       full_data.size);
+	       full_data.size,
+	       full_data.data);
 	}
-      GNUNET_free_non_null (full_data.file_data);
+      GNUNET_free_non_null (full_data.data);
       GNUNET_free_non_null (filename);
       GNUNET_CONTAINER_meta_data_destroy (md);
       GNUNET_FS_uri_destroy (uri);
