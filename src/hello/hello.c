@@ -510,4 +510,23 @@ GNUNET_HELLO_get_id (const struct GNUNET_HELLO_Message *hello,
   return GNUNET_OK;
 }
 
+/**
+ * Get the header from a HELLO message, used so other code
+ * can correctly send HELLO messages.
+ *
+ * @param hello the hello message
+ *
+ * @return header or NULL if the HELLO was malformed
+ */
+struct GNUNET_MessageHeader *
+GNUNET_HELLO_get_header (struct GNUNET_HELLO_Message *hello)
+{
+  uint16_t ret = ntohs (hello->header.size);
+  if ((ret < sizeof (struct GNUNET_HELLO_Message)) ||
+      (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO))
+    return NULL;
+
+  return &hello->header;
+}
+
 /* end of hello.c */
