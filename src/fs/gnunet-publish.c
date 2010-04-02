@@ -275,6 +275,8 @@ publish_inspector (void *cls,
   char *fs;
   struct GNUNET_FS_Uri *new_uri;
 
+  if (cls == fi)
+    return GNUNET_OK;
   if (NULL != topKeywords)
     {
       if (*uri != NULL)
@@ -320,7 +322,7 @@ publish_inspector (void *cls,
   if (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (m))
     GNUNET_FS_file_information_inspect (fi,
 					&publish_inspector,
-					NULL);
+					fi);
   return GNUNET_OK;
 }
 

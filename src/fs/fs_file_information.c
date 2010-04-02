@@ -752,8 +752,7 @@ GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
 {
   struct GNUNET_FS_FileInformation *pos;
 
-  if (dir->is_directory)
-    {
+  if (GNUNET_OK !=
       proc (proc_cls, 
 	    dir,
 	    dir->data.dir.dir_size,
@@ -762,10 +761,14 @@ GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
 	    &dir->anonymity,
 	    &dir->priority,
 	    &dir->expirationTime,
-	    &dir->client_info);
-      pos = dir->data.dir.entries;
-      while (pos != NULL)
-	{
+	    &dir->client_info))
+    return;
+  if (! dir->is_directory)
+    return;
+  pos = dir->data.dir.entries;
+  while (pos != NULL)
+    {
+      if (GNUNET_OK != 
 	  proc (proc_cls, 
 		pos,
 		(pos->is_directory) ? pos->data.dir.dir_size : pos->data.file.file_size,
@@ -774,21 +777,9 @@ GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
 		&pos->anonymity,
 		&pos->priority,
 		&pos->expirationTime,
-		&pos->client_info);
-	  pos = pos->next;
-	}
-    }
-  else
-    {
-      proc (proc_cls, 
-	    dir,
-	    dir->data.file.file_size,
-	    dir->meta,
-	    &dir->keywords,
-	    &dir->anonymity,
-	    &dir->priority,
-	    &dir->expirationTime,
-	    &dir->client_info);
+		&pos->client_info))
+	break;
+      pos = pos->next;
     }
 }
 
