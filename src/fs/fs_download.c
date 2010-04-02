@@ -409,7 +409,8 @@ trigger_recursive_download (void *cls,
 	  us = GNUNET_FS_uri_to_string (uri);
 	  GNUNET_asprintf (&fn,
 			   "%s%s",
-			   us, ext);
+			   &us[strlen (GNUNET_FS_URI_PREFIX 
+				       GNUNET_FS_URI_CHK_INFIX)], ext);
 	  GNUNET_free (ext);
 	  GNUNET_free (us);
 	}
@@ -1114,7 +1115,6 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 	  GNUNET_CONTAINER_meta_data_destroy (dc->meta);
 	  GNUNET_FS_uri_destroy (dc->uri);
 	  GNUNET_free (dc->filename);
-	  GNUNET_CLIENT_disconnect (dc->client, GNUNET_NO);
 	  GNUNET_free (dc);
 	  return NULL;
 	}
