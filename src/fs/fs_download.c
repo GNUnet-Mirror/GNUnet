@@ -711,6 +711,39 @@ full_recursive_download (struct GNUNET_FS_DownloadContext *dc)
 
 
 /**
+ * Check if all child-downloads have completed and
+ * if so, signal completion (and possibly recurse to
+ * parent).
+ */
+static void
+check_completed (struct GNUNET_FS_DownloadContext *dc)
+{
+  struct GNUNET_FS_ProgressInfo pi;
+  struct GNUNET_FS_DownloadContext *pos;
+
+  pos = dc->child_head;
+  while (pos != NULL)
+    {
+      if ( (pos->emsg == NULL) &&
+	   (pos->completed < pos->length) )
+	return; /* not done yet */
+      if ( (pos->child_head != NULL) &&
+	   (pos->has_finished != GNUNET_YES) )
+	return; /* not transitively done yet */
+      pos = pos->next;
+    }
+  dc->has_finished = GNUNET_YES;
+  /* signal completion */
+  pi.status = GNUNET_FS_STATUS_DOWNLOAD_COMPLETED;
+  make_download_status (&pi, dc);
+  dc->client_info = dc->h->upcb (dc->h->upcb_cls,
+				 &pi);
+  if (dc->parent != NULL)
+    check_completed (dc->parent);  
+}
+
+
+/**
  * Iterator over entries in the pending requests in the 'active' map for the
  * reply that we just got.
  *
@@ -918,6 +951,8 @@ process_result_with_request (void *cls,
 	  make_download_status (&pi, dc);
 	  dc->client_info = dc->h->upcb (dc->h->upcb_cls,
 					 &pi);
+	  if (dc->parent != NULL)
+	    check_completed (dc->parent);
 	}
       GNUNET_assert (sm->depth == dc->treedepth);
     }

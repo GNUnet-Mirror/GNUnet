@@ -1094,6 +1094,13 @@ struct GNUNET_FS_DownloadContext
    */
   enum GNUNET_FS_DownloadOptions options;
 
+  /**
+   * Flag set upon transitive completion (includes child downloads).
+   * This flag is only set to GNUNET_YES for directories where all
+   * child-downloads have also completed (and signalled completion).
+   */
+  int has_finished;
+
 };
 
 struct GNUNET_FS_Namespace
