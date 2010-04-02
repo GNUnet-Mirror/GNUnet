@@ -248,6 +248,20 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
 }
 
 
+
+/**
+ * Suggest a filename based on given metadata.
+ * 
+ * @param md given meta data
+ * @return NULL if meta data is useless for suggesting a filename
+ */
+char *
+GNUNET_FS_meta_data_suggest_filename (const struct GNUNET_CONTAINER_MetaData *md)
+{
+  return NULL;
+}
+
+
 /**
  * We've lost our connection with the FS service.
  * Re-establish it and re-transmit all of our
@@ -359,6 +373,11 @@ trigger_recursive_download (void *cls,
 {
   struct GNUNET_FS_DownloadContext *dc = cls;  
   struct GNUNET_FS_DownloadContext *cpos;
+  char *fn;
+  char *us;
+  char *ext;
+  char *dn;
+  char *full_name;
 
   if (NULL == uri)
     return; /* entry for the directory itself */
@@ -375,26 +394,88 @@ trigger_recursive_download (void *cls,
     }
   if (cpos != NULL)
     return; /* already exists */
+  fn = NULL;
   if (NULL == filename)
     {
-      
+      fn = GNUNET_FS_meta_data_suggest_filename (meta);      
+      if (fn == NULL)
+	{
+	  fn = GNUNET_FS_uri_to_string (uri);
+	  
+	}
+      else if (fn[0] == '.')
+	{
+	  ext = fn;
+	  us = GNUNET_FS_uri_to_string (uri);
+	  GNUNET_asprintf (&fn,
+			   "%s%s",
+			   us, ext);
+	  GNUNET_free (ext);
+	  GNUNET_free (us);
+	}
+      filename = fn;
     }
-  if (data != NULL)
+  if (dc->filename == NULL)
     {
-      /* determine on-disk filename, write data! */
-      GNUNET_break (0); // FIXME: not implemented
+      full_name = NULL;
     }
-  /* FIXME: filename MAY be NULL => make one up! */
+  else
+    {
+      dn = GNUNET_strdup (dc->filename);
+      GNUNET_break ( (strlen (dn) < strlen (GNUNET_FS_DIRECTORY_EXT)) ||
+		     (NULL ==
+		      strstr (dn + strlen(dn) - strlen(GNUNET_FS_DIRECTORY_EXT),
+			      GNUNET_FS_DIRECTORY_EXT)) );
+      dn[strlen(dn) - strlen (GNUNET_FS_DIRECTORY_EXT)] = '\0';      
+      if ( (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (meta)) &&
+	   ( (strlen (filename) < strlen (GNUNET_FS_DIRECTORY_EXT)) ||
+	     (NULL ==
+	      strstr (filename + strlen(filename) - strlen(GNUNET_FS_DIRECTORY_EXT),
+		      GNUNET_FS_DIRECTORY_EXT)) ) )
+	{
+	  GNUNET_asprintf (&full_name,
+			   "%s%s%s%s",
+			   dn,
+			   DIR_SEPARATOR_STR,
+			   filename,
+			   GNUNET_FS_DIRECTORY_EXT);
+	}
+      else
+	{
+	  GNUNET_asprintf (&full_name,
+			   "%s%s%s",
+			   dn,
+			   DIR_SEPARATOR_STR,
+			   filename);
+	}
+      GNUNET_free (dn);
+    }
+  if (data != NULL) 
+    {
+      if (full_name != NULL)
+	{
+	  /* determine on-disk filename, write data! */
+	  GNUNET_break (0); // FIXME: not implemented
+	}
+      else
+	{
+	  /* FIXME: generate 'progress' events and move to
+	     instant completion! */
+	  GNUNET_break (0); // FIXME: not implemented
+	}
+    }
   GNUNET_FS_download_start (dc->h,
 			    uri,
 			    meta,
-			    filename, /* FIXME: prepend directory name! */
+			    full_name,
 			    0,
 			    GNUNET_FS_uri_chk_get_file_size (uri),
 			    dc->anonymity,
 			    dc->options,
 			    NULL,
 			    dc);
+  GNUNET_free_non_null (full_name);
+  GNUNET_free_non_null (fn);
 }
 
 
@@ -612,8 +693,17 @@ process_result_with_request (void *cls,
 	}
       dc->completed += app;
 
+      /* do recursive download if option is set and either meta data
+	 says it is a directory or if no meta data is given AND filename 
+	 ends in '.gnd' (top-level case) */
       if ( (0 != (dc->options & GNUNET_FS_DOWNLOAD_OPTION_RECURSIVE)) &&
-	   (GNUNET_NO != GNUNET_FS_meta_data_test_for_directory (dc->meta)) )
+	   ( (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (dc->meta)) ||
+	     ( (dc->meta == NULL) &&
+	       ( (NULL == dc->filename) ||	       
+		 ( (strlen (dc->filename) >= strlen (GNUNET_FS_DIRECTORY_EXT)) &&
+		   (NULL !=
+		    strstr (dc->filename + strlen(dc->filename) - strlen(GNUNET_FS_DIRECTORY_EXT),
+			    GNUNET_FS_DIRECTORY_EXT)) ) ) ) ) )
 	{
 	  GNUNET_FS_directory_list_contents (prc->size,
 					     pt,
