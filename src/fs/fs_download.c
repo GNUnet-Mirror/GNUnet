@@ -258,6 +258,154 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
 char *
 GNUNET_FS_meta_data_suggest_filename (const struct GNUNET_CONTAINER_MetaData *md)
 {
+  static const char *mimeMap[][2] = {
+    {"application/bz2", ".bz2"},
+    {"application/gnunet-directory", ".gnd"},
+    {"application/java", ".class"},
+    {"application/msword", ".doc"},
+    {"application/ogg", ".ogg"},
+    {"application/pdf", ".pdf"},
+    {"application/pgp-keys", ".key"},
+    {"application/pgp-signature", ".pgp"},
+    {"application/postscript", ".ps"},
+    {"application/rar", ".rar"},
+    {"application/rtf", ".rtf"},
+    {"application/xml", ".xml"},
+    {"application/x-debian-package", ".deb"},
+    {"application/x-dvi", ".dvi"},
+    {"applixation/x-flac", ".flac"},
+    {"applixation/x-gzip", ".gz"},
+    {"application/x-java-archive", ".jar"},
+    {"application/x-java-vm", ".class"},
+    {"application/x-python-code", ".pyc"},
+    {"application/x-redhat-package-manager", ".rpm"},
+    {"application/x-rpm", ".rpm"},
+    {"application/x-tar", ".tar"},
+    {"application/x-tex-pk", ".pk"},
+    {"application/x-texinfo", ".texinfo"},
+    {"application/x-xcf", ".xcf"},
+    {"application/x-xfig", ".xfig"},
+    {"application/zip", ".zip"},
+    
+    {"audio/midi", ".midi"},
+    {"audio/mpeg", ".mp3"},
+    {"audio/real", ".rm"},
+    {"audio/x-wav", ".wav"},
+    
+    {"image/gif", ".gif"},
+    {"image/jpeg", ".jpg"},
+    {"image/pcx", ".pcx"},
+    {"image/png", ".png"},
+    {"image/tiff", ".tiff"},
+    {"image/x-ms-bmp", ".bmp"},
+    {"image/x-xpixmap", ".xpm"},
+    
+    {"text/css", ".css"},
+    {"text/html", ".html"},
+    {"text/plain", ".txt"},
+    {"text/rtf", ".rtf"},
+    {"text/x-c++hdr", ".h++"},
+    {"text/x-c++src", ".c++"},
+    {"text/x-chdr", ".h"},
+    {"text/x-csrc", ".c"},
+    {"text/x-java", ".java"},
+    {"text/x-moc", ".moc"},
+    {"text/x-pascal", ".pas"},
+    {"text/x-perl", ".pl"},
+    {"text/x-python", ".py"},
+    {"text/x-tex", ".tex"},
+    
+    {"video/avi", ".avi"},
+    {"video/mpeg", ".mpeg"},
+    {"video/quicktime", ".qt"},
+    {"video/real", ".rm"},
+    {"video/x-msvideo", ".avi"},
+    {NULL, NULL},
+  };
+
+  unsigned int i;
+  char *mime;
+  const char *ext;
+  
+  ext = "";
+  mime = NULL;
+  // FIXME: get mime from meta data
+  if (mime != NULL)
+    {
+      i = 0;
+      while ( (mimeMap[i][0] != NULL) && 
+	      (0 != strcmp (mime, mimeMap[i][0])))
+        i++;
+      if (mimeMap[i][1] == NULL)
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | 
+		    GNUNET_ERROR_TYPE_BULK,
+		    _("Did not find mime type `%s' in extension list.\n"),
+		    mime);
+      else
+	ext = mimeMap[i][1];
+    }
+  // FIXME: try to get some base name...
+#if 0
+  const char *key;
+  const char *mime;
+  char *path;
+  unsigned int j;
+  char *renameTo;
+  char *ret;
+  size_t max;
+  struct stat filestat;
+
+  key = EXTRACTOR_extractLast (EXTRACTOR_TITLE, list);
+  if (key == NULL)
+    key = EXTRACTOR_extractLast (EXTRACTOR_SOFTWARE, list);
+  if (key == NULL)
+    key = EXTRACTOR_extractLast (EXTRACTOR_DESCRIPTION, list);
+  if (key == NULL)
+    key = EXTRACTOR_extractLast (EXTRACTOR_COMMENT, list);
+  if (key == NULL)
+    key = EXTRACTOR_extractLast (EXTRACTOR_SUBJECT, list);
+  if (key == NULL)
+    key = EXTRACTOR_extractLast (EXTRACTOR_ALBUM, list);
+  if (key == NULL)
+    key = EXTRACTOR_extractLast (EXTRACTOR_UNKNOWN, list);
+  mime = EXTRACTOR_extractLast (EXTRACTOR_MIMETYPE, list);
+  if (mime != NULL)
+    {
+    }
+  if (key == NULL)
+    {
+      key = &filename[strlen (filename) - 1];
+      while ((key != filename) && (key[0] != DIR_SEPARATOR))
+        key--;
+      if (key[0] == DIR_SEPARATOR)
+        key++;
+    }
+      GNUNET_snprintf (renameTo,
+                       max,
+                       "%s%s%.*s%s",
+                       path,
+                       (path[strlen (path) - 1] !=
+                        DIR_SEPARATOR) ? DIR_SEPARATOR_STR : "",
+                       GNUNET_MIN (255 - strlen (mime),
+                                   PATH_MAX - strlen (path) - 64), key,
+                       (strcasecmp
+                        (renameTo + strlen (renameTo) - strlen (mime),
+                         mime) != 0) ? mime : "");
+
+
+    }
+  for (i = strlen (renameTo) - 1; i >= 0; i--)
+    if (!isprint (renameTo[i]))
+      renameTo[i] = '_';
+    else if (renameTo[i] == '.' && i > 0 && renameTo[i - 1] == '.')
+      {
+        /* remove .. to avoid directory traversal */
+        renameTo[i - 1] = renameTo[i] = '_';
+        i--;
+      }
+#endif
+
+  GNUNET_break (0); // FIXME: not implemented
   return NULL;
 }
 
@@ -400,8 +548,10 @@ trigger_recursive_download (void *cls,
       fn = GNUNET_FS_meta_data_suggest_filename (meta);      
       if (fn == NULL)
 	{
-	  fn = GNUNET_FS_uri_to_string (uri);
-	  
+	  us = GNUNET_FS_uri_to_string (uri);
+	  fn = GNUNET_strdup (&us [strlen (GNUNET_FS_URI_PREFIX 
+					   GNUNET_FS_URI_CHK_INFIX)]);
+	  GNUNET_free (us);
 	}
       else if (fn[0] == '.')
 	{
@@ -451,6 +601,18 @@ trigger_recursive_download (void *cls,
 	}
       GNUNET_free (dn);
     }
+  if ( (full_name != NULL) &&
+       (GNUNET_OK !=
+	GNUNET_DISK_directory_create_for_file (full_name)) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Failed to create directory for recursive download of `%s'\n"),
+		  full_name);
+      GNUNET_free (full_name);
+      GNUNET_free_non_null (fn);
+      return;
+    }
+    
   if (data != NULL) 
     {
       if (full_name != NULL)
