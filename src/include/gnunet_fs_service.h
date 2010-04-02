@@ -2376,6 +2376,16 @@ GNUNET_FS_meta_data_make_directory (struct GNUNET_CONTAINER_MetaData *md);
 
 
 /**
+ * Suggest a filename based on given metadata.
+ * 
+ * @param md given meta data
+ * @return NULL if meta data is useless for suggesting a filename
+ */
+char *
+GNUNET_FS_meta_data_suggest_filename (const struct GNUNET_CONTAINER_MetaData *md);
+
+
+/**
  * Function used to process entries in a directory.
  *
  * @param cls closure

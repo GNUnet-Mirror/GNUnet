@@ -34,7 +34,7 @@ write the file to FILENAME.  Hint: when recursively downloading a directory, app
 set the maximum number of parallel downloads that is allowed.  More parallel downloads can, to some extent, improve the overall time to download content.  However, parallel downloads also take more memory.  The specified number is the number of files that are downloaded in parallel, not the number of blocks that are concurrently requested.  As a result, the number only matters for recursive downloads.  The default value is 32.
 .TP
 \fB\-R\fR, \fB\-\-recursive\fR
-download directories recursively (and in parallel); note that the URI must belong to a GNUnet directory and that the filename given must end with a '/' \-\- otherwise, only the file corresponding to the URI will be downloaded.
+download directories recursively (and in parallel); note that the URI must belong to a GNUnet directory and that the filename given must end with a '/' \-\- otherwise, only the file corresponding to the URI will be downloaded.  Note that in addition to using '-R', you must also specify a filename ending in '.gnd' so that the code realizes that the top-level file is a directory (since we have no meta data).
 .TP
 \fB\-v\fR, \fB\-\-version\fR
 print the version number
