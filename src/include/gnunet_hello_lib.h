@@ -207,6 +207,18 @@ int
 GNUNET_HELLO_get_id (const struct GNUNET_HELLO_Message *hello,
 		     struct GNUNET_PeerIdentity *peer);
 
+
+/**
+ * Get the header from a HELLO message, used so other code
+ * can correctly send HELLO messages.
+ *
+ * @param hello the hello message
+ *
+ * @return header or NULL if the HELLO was malformed
+ */
+struct GNUNET_MessageHeader *
+GNUNET_HELLO_get_header (struct GNUNET_HELLO_Message *hello);
+
 /* ifndef GNUNET_HELLO_LIB_H */
 #endif
 /* end of gnunet_hello_lib.h */

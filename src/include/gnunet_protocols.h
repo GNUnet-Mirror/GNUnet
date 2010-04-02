@@ -249,6 +249,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_DV_GOSSIP 47
 
+/**
+ * DV Plugin to DV service message, indicating
+ * startup.
+ */
+#define GNUNET_MESSAGE_TYPE_DV_START 48
 
 /**
  * UDP NAT probe message, send from NAT'd peer to
