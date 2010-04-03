@@ -287,7 +287,7 @@ run (void *cls,
   sched = s;
 
   die_task = GNUNET_SCHEDULER_add_delayed (sched,
-      GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 1), &end_badly, NULL);
+      GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5), &end_badly, NULL);
 
   setup_peer (&p1, "test_transport_api_dv_peer1.conf");
   setup_peer (&p2, "test_transport_api_dv_peer2.conf");

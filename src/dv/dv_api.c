@@ -170,8 +170,15 @@ transmit_pending (void *cls, size_t size, void *buf)
   size_t ret;
   size_t tsize;
 
+#if DEBUG_DV
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV API: Transmit pending called with message type %d\n", ntohs(handle->current->msg->header.type));
+#endif
+
   if (buf == NULL)
     {
+#if DEBUG_DV
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV API: Transmit pending FAILED!\n\n\n");
+#endif
       finish(handle, GNUNET_SYSERR);
       return 0;
     }
@@ -185,11 +192,13 @@ transmit_pending (void *cls, size_t size, void *buf)
     if (size >= tsize)
     {
       memcpy(buf, handle->current->msg, tsize);
+#if DEBUG_DV
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV API: Copied %d bytes into buffer!\n\n\n", tsize);
+#endif
+      finish(handle, GNUNET_OK);
+      return tsize;
     }
-    else
-    {
-      return ret;
-    }
+
   }
 
   return ret;
@@ -200,7 +209,6 @@ transmit_pending (void *cls, size_t size, void *buf)
  */
 static void process_pending_message(struct GNUNET_DV_Handle *handle)
 {
-  struct GNUNET_TIME_Relative timeout;
 
   if (handle->current != NULL)
     return;                     /* action already pending */
@@ -224,11 +232,10 @@ static void process_pending_message(struct GNUNET_DV_Handle *handle)
   handle->pending_list = handle->pending_list->next;
   handle->current->next = NULL;
 
-  timeout = GNUNET_TIME_absolute_get_remaining (handle->current->timeout);
   if (NULL ==
       (handle->th = GNUNET_CLIENT_notify_transmit_ready (handle->client,
                                                     ntohs(handle->current->msg->msgbuf_size),
-                                                    timeout,
+                                                    handle->current->msg->timeout,
                                                     GNUNET_YES,
                                                     &transmit_pending, handle)))
     {
@@ -285,6 +292,7 @@ void handle_message_receipt (void *cls,
   size_t sender_address_len;
   char *sender_address;
   char *packed_msg;
+  char *packed_msg_start;
 
   if (msg == NULL)
   {
@@ -299,16 +307,20 @@ void handle_message_receipt (void *cls,
   received_msg = (struct GNUNET_DV_MessageReceived *)msg;
   packed_msg_len = ntohs(received_msg->msg_len);
   sender_address_len = ntohs(received_msg->sender_address_len);
-#if DEBUG_DV
-  fprintf(stdout, "dv api receives message from service: total len: %lu, packed len: %lu, sender_address_len: %lu, base message len: %lu\ntotal is %lu, should be %lu\n", ntohs(msg->size), packed_msg_len, sender_address_len, sizeof(struct GNUNET_DV_MessageReceived), sizeof(struct GNUNET_DV_MessageReceived) + packed_msg_len + sender_address_len, ntohs(msg->size));
-#endif
-  GNUNET_assert(ntohs(msg->size) == (sizeof(struct GNUNET_DV_MessageReceived) + packed_msg_len + sender_address_len));
 
+  GNUNET_assert(ntohs(msg->size) == (sizeof(struct GNUNET_DV_MessageReceived) + packed_msg_len + sender_address_len));
+#if DEBUG_DV
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "dv api receives message, size checks out!\n");
+#endif
   sender_address = GNUNET_malloc(sender_address_len);
   memcpy(sender_address, &received_msg[1], sender_address_len);
+  packed_msg_start = (char *)&received_msg[1];
   packed_msg = GNUNET_malloc(packed_msg_len);
-  memcpy(packed_msg, &received_msg[1 + sender_address_len], packed_msg_len);
+  memcpy(packed_msg, &packed_msg_start[sender_address_len], packed_msg_len);
 
+#if DEBUG_DV
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "packed message type: %d or %d\n", ntohs(((struct GNUNET_MessageHeader *)packed_msg)->type), ((struct GNUNET_MessageHeader *)packed_msg)->type);
+#endif
   handle->receive_handler(handle->receive_cls,
                           &received_msg->sender,
                           packed_msg,
@@ -348,19 +360,23 @@ int GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
                     size_t addrlen)
 {
   struct GNUNET_DV_SendMessage *msg;
-
-  msg = GNUNET_malloc(sizeof(struct GNUNET_DV_SendMessage) + msgbuf_size + addrlen);
-  msg->header.size = htons(sizeof(struct GNUNET_DV_SendMessage) + msgbuf_size + addrlen);
+  char *end_of_message;
+  /* FIXME: Copy message to end of thingy, can't just allocate dummy! */
+#if DEBUG_DV
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV SEND called with message of size %d, address size %d, total size to send is %d\n", msgbuf_size, addrlen, sizeof(struct GNUNET_DV_SendMessage) + msgbuf_size + addrlen);
+#endif
+  msg = GNUNET_malloc(sizeof(struct GNUNET_DV_SendMessage) + addrlen + msgbuf_size);
+  msg->header.size = htons(sizeof(struct GNUNET_DV_SendMessage) + addrlen + msgbuf_size);
   msg->header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND);
   memcpy(&msg->target, target, sizeof(struct GNUNET_PeerIdentity));
-  msg->msgbuf = GNUNET_malloc(msgbuf_size);
-  memcpy(msg->msgbuf, msgbuf, msgbuf_size);
   msg->msgbuf_size = htons(msgbuf_size);
   msg->priority = htonl(priority);
   msg->timeout = timeout;
   msg->addrlen = htons(addrlen);
   memcpy(&msg[1], addr, addrlen);
-
+  end_of_message = (char *)&msg[1];
+  end_of_message = &end_of_message[addrlen];
+  memcpy(end_of_message, msgbuf, msgbuf_size);
   add_pending(dv_handle, msg);
 
   return GNUNET_OK;

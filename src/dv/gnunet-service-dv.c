@@ -287,7 +287,7 @@ struct DistantNeighbor
   /**
    * PublicKey of neighbor.
    */
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pkey;
 
   /**
    * Last time we received routing information from this peer
@@ -466,22 +466,57 @@ void send_to_plugin(const struct GNUNET_PeerIdentity * sender,
                     size_t cost)
 {
   struct GNUNET_DV_MessageReceived *received_msg;
+#if DEBUG_DV
+  struct GNUNET_MessageHeader * packed_message_header;
+  struct GNUNET_HELLO_Message *hello_msg;
+  struct GNUNET_PeerIdentity hello_identity;
+#endif
+  char *sender_address;
+  size_t sender_address_len;
+  char *packed_msg_start;
   int size;
 
-  size = sizeof(struct GNUNET_DV_MessageReceived) + sizeof(struct GNUNET_PeerIdentity) + message_size;
+  if (memcmp(sender, distant_neighbor, sizeof(struct GNUNET_PeerIdentity)) != 0)
+  {
+    sender_address_len = sizeof(struct GNUNET_PeerIdentity) * 2;
+    sender_address = GNUNET_malloc(sender_address_len);
+    memcpy(sender_address, distant_neighbor, sizeof(struct GNUNET_PeerIdentity));
+    memcpy(&sender_address[sizeof(struct GNUNET_PeerIdentity)], sender, sizeof(struct GNUNET_PeerIdentity));
+  }
+  else
+  {
+    sender_address_len = sizeof(struct GNUNET_PeerIdentity);
+    sender_address = GNUNET_malloc(sender_address_len);
+    memcpy(sender_address, sender, sizeof(struct GNUNET_PeerIdentity));
+  }
+
+  size = sizeof(struct GNUNET_DV_MessageReceived) + sender_address_len + message_size;
   received_msg = GNUNET_malloc(size);
   received_msg->header.size = htons(size);
   received_msg->header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_DV_RECEIVE);
-  received_msg->sender_address_len = htons(sizeof(struct GNUNET_PeerIdentity));
+  received_msg->sender_address_len = htons(sender_address_len);
   received_msg->distance = htonl(cost);
   received_msg->msg_len = htons(message_size);
   /* Set the sender in this message to be the original sender! */
   memcpy(&received_msg->sender, &distant_neighbor, sizeof(struct GNUNET_PeerIdentity));
   /* Copy the intermediate sender to the end of the message, this is how the transport identifies this peer */
-  memcpy(&received_msg[1], sender, sizeof(struct GNUNET_PeerIdentity));
+  memcpy(&received_msg[1], sender_address, sender_address_len);
+  GNUNET_free(sender_address);
   /* Copy the actual message after the sender */
-  memcpy(&received_msg[1 + sizeof(struct GNUNET_PeerIdentity)], message, message_size);
-
+  packed_msg_start = (char *)&received_msg[1];
+  packed_msg_start = &packed_msg_start[sender_address_len];
+  memcpy(packed_msg_start, message, message_size);
+#if DEBUG_DV
+  packed_message_header = (struct GNUNET_MessageHeader *)packed_msg_start;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "dv service created received message. sender_address_len %lu, packed message len %d, total len %d\n", sender_address_len, ntohs(received_msg->msg_len), ntohs(received_msg->header.size));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "dv packed message len %d, type %d\n", ntohs(packed_message_header->size), ntohs(packed_message_header->type));
+  if (ntohs(packed_message_header->type) == GNUNET_MESSAGE_TYPE_HELLO)
+  {
+    hello_msg = (struct GNUNET_HELLO_Message *)packed_message_header;
+    GNUNET_HELLO_get_id(hello_msg, &hello_identity);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Packed HELLO message is about peer %s\n", GNUNET_i2s(&hello_identity));
+  }
+#endif
   if (client_handle != NULL)
     {
       GNUNET_SERVER_notify_transmit_ready (client_handle,
@@ -732,6 +767,7 @@ neighbor_send_task (void *cls,
               GNUNET_i2s(&my_identity));
   char * encPeerAbout;
   char * encPeerTo;
+  struct GNUNET_PeerIdentity about_peer_id;
 #endif
   struct DistantNeighbor *about;
   struct DirectNeighbor *to;
@@ -771,7 +807,8 @@ neighbor_send_task (void *cls,
 #endif
       (to != NULL) &&
       (0 != memcmp (&about->identity,
-                        &to->identity, sizeof (struct GNUNET_PeerIdentity))))
+                        &to->identity, sizeof (struct GNUNET_PeerIdentity))) &&
+      (about->pkey != NULL))
     {
 #if DEBUG_DV
       encPeerAbout = GNUNET_strdup(GNUNET_i2s(&about->identity));
@@ -791,9 +828,17 @@ neighbor_send_task (void *cls,
       message->cost = htonl (about->cost);
       message->neighbor_id = htonl (about->our_id);
 
-      memcpy (&message->pkey, &about->pkey, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+      memcpy (&message->pkey, about->pkey, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
       memcpy (&message->neighbor,
               &about->identity, sizeof (struct GNUNET_PeerIdentity));
+
+#if DEBUG_DV
+      GNUNET_CRYPTO_hash (about->pkey,
+                          sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                          &about_peer_id.hashPubKey);
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Peer id from message %s\n", GNUNET_i2s(&about->identity));
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Peer id from pubkey  %s\n", GNUNET_i2s(&about_peer_id));
+#endif
 
       pending_message->msg_size = sizeof(p2p_dv_MESSAGE_NeighborInfo);
       pending_message->transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, default_dv_priority, default_dv_delay, &to->identity, sizeof(p2p_dv_MESSAGE_NeighborInfo), &core_transmit_notify, pending_message);
@@ -809,7 +854,7 @@ neighbor_send_task (void *cls,
                                 ctx.send_interval);*/
     }
 
-  GNUNET_SCHEDULER_add_delayed(sched, send_context->timeout, &neighbor_send_task, send_context);
+  send_context->task = GNUNET_SCHEDULER_add_delayed(sched, send_context->timeout, &neighbor_send_task, send_context);
   return;
 }
 
@@ -835,6 +880,7 @@ handle_start (void *cls,
 
   client_handle = client;
 
+  GNUNET_SERVER_client_keep(client_handle);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -853,7 +899,7 @@ void send_dv_message (void *cls,
 {
 #if DEBUG_DV
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%s: Receives %s message!\n", "dv", "SEND");
+              "%s: Receives %s message!\n\n\n", "dv", "SEND");
 #endif
   if (client_handle == NULL)
   {
@@ -897,9 +943,23 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
 };
 
 
+#if DEBUG_DV
+static void handle_any(void *cls,
+                       struct GNUNET_SERVER_Client * client,
+                       const struct GNUNET_MessageHeader * message)
+{
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "\n\n\n\n\n\nDV service receives message of type %d, size %d\n\n\n\n\n\n", ntohs(message->type), ntohs(message->size));
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+#endif
+
+
 static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
   {&send_dv_message, NULL, GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND, 0},
   {&handle_start, NULL, GNUNET_MESSAGE_TYPE_DV_START, 0},
+#if DEBUG_DV
+  {&handle_any, NULL, GNUNET_MESSAGE_TYPE_ALL, 0},
+#endif
   {NULL, NULL, 0, 0}
 };
 
@@ -940,6 +1000,42 @@ void core_init (void *cls,
   coreAPI = server;
 }
 
+/**
+ * Iterator over hash map entries.
+ *
+ * @param cls closure
+ * @param key current key code
+ * @param value value in the hash map
+ * @return GNUNET_YES if we should continue to
+ *         iterate,
+ *         GNUNET_NO if not.
+ */
+static int add_pkey_to_extended (void *cls,
+                                 const GNUNET_HashCode * key,
+                                 void *value)
+{
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pkey = cls;
+  struct DistantNeighbor *distant_neighbor = value;
+#if DEBUG_DV
+  struct GNUNET_PeerIdentity about_peer_id;
+#endif
+
+  if (distant_neighbor->pkey == NULL)
+  {
+    distant_neighbor->pkey = GNUNET_malloc(sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+    memcpy(distant_neighbor->pkey, pkey, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+#if DEBUG_DV
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Updating pkey for extended list for peer %s\n", GNUNET_i2s(&distant_neighbor->identity));
+    GNUNET_CRYPTO_hash (distant_neighbor->pkey,
+                        sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                        &about_peer_id.hashPubKey);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Peer id from setup %s\n", GNUNET_i2s(&distant_neighbor->identity));
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Peer id from pkey  %s\n", GNUNET_i2s(&about_peer_id));
+#endif
+  }
+
+  return GNUNET_YES;
+}
 
 /**
  * Iterator over hash map entries.
@@ -1074,7 +1170,13 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer, struct GNUNET_CRYPTO
       neighbor->referrer = referrer;
       memcpy (&neighbor->identity, peer, sizeof (struct GNUNET_PeerIdentity));
       if (pkey != NULL) /* pkey will be null on direct neighbor addition */
-        memcpy (&neighbor->pkey, pkey, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+      {
+        neighbor->pkey = GNUNET_malloc(sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+        memcpy (neighbor->pkey, pkey, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+      }
+      else
+        neighbor->pkey = pkey;
+
       neighbor->last_activity = now;
       neighbor->cost = cost;
       neighbor->referrer_id = referrer_peer_id;
@@ -1132,7 +1234,6 @@ generate_hello_address (void *cls, size_t max, void *buf)
 
   /* Hello "address" will be concatenation of distant peer and direct peer identities */
   size = 2 * sizeof(struct GNUNET_PeerIdentity);
-  fprintf(stdout, "size is %lu, max is %lu\n", size, max);
   GNUNET_assert(max >= size);
 
   addr_buffer = GNUNET_malloc(size);
@@ -1174,6 +1275,7 @@ static int handle_dv_gossip_message (void *cls,
 {
   struct HelloContext *hello_context;
   struct GNUNET_HELLO_Message *hello_msg;
+  struct GNUNET_MessageHeader *hello_hdr;
   struct DirectNeighbor *referrer;
   p2p_dv_MESSAGE_NeighborInfo *enc_message = (p2p_dv_MESSAGE_NeighborInfo *)message;
 
@@ -1209,12 +1311,13 @@ static int handle_dv_gossip_message (void *cls,
   hello_context->addresses_to_add = 1;
   hello_msg = GNUNET_HELLO_create(&enc_message->pkey, &generate_hello_address, hello_context);
 
+  hello_hdr = GNUNET_HELLO_get_header(hello_msg);
 #if DEBUG_DV
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%s: Sending %s message to plugin!\n", "dv", "HELLO");
+              "%s: Sending %s message to plugin, type is %d, size %d!\n", "dv", "HELLO", ntohs(hello_hdr->type), ntohs(hello_hdr->size));
 #endif
 
-  send_to_plugin(&enc_message->neighbor, GNUNET_HELLO_get_header(hello_msg), GNUNET_HELLO_size(hello_msg), hello_context->distant_peer, ntohl(enc_message->cost) + 1);
+  send_to_plugin(hello_context->direct_peer, GNUNET_HELLO_get_header(hello_msg), GNUNET_HELLO_size(hello_msg), hello_context->distant_peer, ntohl(enc_message->cost) + 1);
   return GNUNET_OK;
 }
 
@@ -1227,6 +1330,7 @@ process_peerinfo (void *cls,
   struct DirectNeighbor *neighbor = peerinfo_iterator->neighbor;
 
 #if DEBUG_DV
+  struct GNUNET_PeerIdentity about_peer_id;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s: process_peerinfo called!\n", "dv");
 #endif
@@ -1242,6 +1346,18 @@ process_peerinfo (void *cls,
 
   if ((hello != NULL) && (GNUNET_HELLO_get_key (hello, &neighbor->pkey) == GNUNET_OK))
     {
+#if DEBUG_DV
+      GNUNET_CRYPTO_hash (&neighbor->pkey,
+                          sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                          &about_peer_id.hashPubKey);
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "(peerinfo) Peer id from setup %s\n", GNUNET_i2s(&neighbor->identity));
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "(peerinfo) Peer id from hello %s\n", GNUNET_i2s(&about_peer_id));
+#endif
+
+      GNUNET_CONTAINER_multihashmap_get_multiple(ctx.extended_neighbors,
+                                                 &peer->hashPubKey,
+                                                 &add_pkey_to_extended,
+                                                 &neighbor->pkey);
       neighbor->send_context->task = GNUNET_SCHEDULER_add_now(sched, &neighbor_send_task, neighbor->send_context);
     }
 }
@@ -1303,7 +1419,7 @@ void handle_core_connect (void *cls,
 }
 
 /**
- * Method called whenever a given peer either connects.
+ * Method called whenever a given peer disconnects.
  *
  * @param cls closure
  * @param peer peer identity this notification is about

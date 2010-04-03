@@ -183,7 +183,7 @@ void handle_dv_message_received (void *cls,
                    "plugin_transport_dv",
                    _("Received message from %s of type %d!\n"),
                    "DV SERVICE", ntohs(((struct GNUNET_MessageHeader *)msg)->type));
-  plugin->env->receive(plugin,
+  plugin->env->receive(plugin->env->cls,
                        sender,
                        (struct GNUNET_MessageHeader *)msg,
                        distance,
@@ -242,6 +242,9 @@ dv_plugin_send (void *cls,
   /* FIXME: do we want the dv plugin to remember sent messages to call continuation once message actually goes out?
    * Or do we just call the continuation once we've notified the plugin?
    */
+#if DEBUG_DV
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV API: Received send request from transport, calling GNUNET_DV_send\n");
+#endif
   ret = GNUNET_DV_send(plugin->dv_handle,
                        target,
                        msgbuf,
@@ -250,12 +253,11 @@ dv_plugin_send (void *cls,
                        timeout,
                        addr,
                        addrlen);
-  /*, cont, cont_cls);*/
 
   if (ret == 0)
-    cont(cls, target, GNUNET_OK);
+    cont(cont_cls, target, GNUNET_OK);
   else
-    cont(cls, target, GNUNET_SYSERR);
+    cont(cont_cls, target, GNUNET_SYSERR);
 
   return ret;
 }
@@ -343,44 +345,6 @@ libgnunet_plugin_transport_dv_init (void *cls)
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct Plugin *plugin;
-  /*struct GNUNET_SERVICE_Context *service;*/
-
-  /**
-   * Do we not even need a service for this thing?  That's peculiar.
-   */
-  /*
-  service = GNUNET_SERVICE_start ("transport-dv", env->sched, env->cfg);
-  if (service == NULL)
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
-                       "dv",
-                       _
-                       ("Failed to start service for `%s' transport plugin.\n"),
-                       "dv");
-      return NULL;
-    }
-   */
-  /**
-   * I don't think we need a port, the only way we get stuff is being directly
-   * called by service transport or by responses from the dv-service via our
-   * client handle
-   */
-  /*
-  if ((GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_number (env->cfg,
-                                              "transport-dv",
-                                              "PORT",
-                                              &port)))
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-                       "dv",
-                       _
-                       ("Require valid port number for service `%s' in configuration!\n"),
-                       "transport-dv");
-      GNUNET_SERVICE_stop (service);
-      return NULL;
-    }
-    */
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
