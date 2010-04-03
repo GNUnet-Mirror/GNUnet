@@ -29,7 +29,7 @@
 #include "plugin_datastore.h"
 #include <sqlite3.h>
 
-#define DEBUG_SQLITE GNUNET_NO
+#define DEBUG_SQLITE GNUNET_YES
 
 /**
  * After how many payload-changing operations
@@ -159,6 +159,11 @@ struct Plugin
    * Should the database be dropped on shutdown?
    */
   int drop_on_shutdown;
+
+  /**
+   * Did we get an answer from statistics?
+   */
+  int stats_worked;
 };
 
 
@@ -285,9 +290,13 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
                        "PRAGMA synchronous=OFF", NULL, NULL, ENULL));
   CHECK (SQLITE_OK ==
          sqlite3_exec (plugin->dbh,
+                       "PRAGMA auto_vacuum=INCREMENTAL", NULL, NULL, ENULL));
+  CHECK (SQLITE_OK ==
+         sqlite3_exec (plugin->dbh,
                        "PRAGMA count_changes=OFF", NULL, NULL, ENULL));
   CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh, "PRAGMA page_size=4092", NULL, NULL, ENULL));
+         sqlite3_exec (plugin->dbh, 
+		       "PRAGMA page_size=4092", NULL, NULL, ENULL));
 
   CHECK (SQLITE_OK == sqlite3_busy_timeout (plugin->dbh, BUSY_TIMEOUT_MS));
 
@@ -642,7 +651,11 @@ sqlite_next_request_cont (void *cls,
   if ( (ret == GNUNET_NO) &&
        (GNUNET_OK == delete_by_rowid (plugin, rowid)) )
     {
-      plugin->payload -= (size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
+      if (plugin->payload >= size + GNUNET_DATASTORE_ENTRY_OVERHEAD)
+	plugin->payload -= (size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
+      else
+	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		    _("Datastore payload inaccurate, please fix and restart!\n"));
       plugin->lastSync++; 
 #if DEBUG_SQLITE
       if (ret == GNUNET_NO)
@@ -651,7 +664,7 @@ sqlite_next_request_cont (void *cls,
 			 "Removed entry %llu (%u bytes), new payload is %llu\n",
 			 (unsigned long long) rowid,
 			 size + GNUNET_DATASTORE_ENTRY_OVERHEAD,
-			 (unsigned long long) plugin->payload);
+			 plugin->payload);
 #endif
       if (plugin->lastSync >= MAX_STAT_SYNC_LAG)
 	sync_stats (plugin);
@@ -779,7 +792,7 @@ sqlite_plugin_put (void *cls,
 		   "sqlite",
 		   "Stored new entry (%u bytes), new payload is %llu\n",
 		   size + GNUNET_DATASTORE_ENTRY_OVERHEAD,
-		   (unsigned long long) plugin->payload);
+		   plugin->payload);
 #endif
   if (plugin->lastSync >= MAX_STAT_SYNC_LAG)
     sync_stats (plugin);
@@ -1566,13 +1579,15 @@ process_stat_in (void *cls,
 		 int is_persistent)
 {
   struct Plugin *plugin = cls;
+
+  plugin->stats_worked = GNUNET_YES;
   plugin->payload += value;
 #if DEBUG_SQLITE
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "sqlite",
 		   "Notification from statistics about existing payload (%llu), new payload is %llu\n",
 		   value,
-		   (unsigned long long) plugin->payload);
+		   plugin->payload);
 #endif
   return GNUNET_OK;
 }
@@ -1583,7 +1598,35 @@ process_stat_done (void *cls,
 		   int success)
 {
   struct Plugin *plugin = cls;
+  sqlite3_stmt *stmt;
+  uint64_t pages;
+  uint64_t free_pages;
+
   plugin->stat_get = NULL;
+  if (plugin->stats_worked == GNUNET_NO)
+    {
+      CHECK (SQLITE_OK ==
+	     sq_prepare (plugin->dbh,
+			 "PRAGMA page_count",
+			 &stmt));
+      CHECK (SQLITE_ROW ==
+	     sqlite3_step (stmt));
+      pages = sqlite3_column_int64 (stmt, 0);
+      sqlite3_finalize (stmt);
+      CHECK (SQLITE_OK ==
+	     sq_prepare (plugin->dbh,
+			 "PRAGMA freelist_count",
+			 &stmt));
+      CHECK (SQLITE_ROW ==
+	     sqlite3_step (stmt));
+      free_pages = sqlite3_column_int64 (stmt, 0);
+      sqlite3_finalize (stmt);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Using sqlite page utilization to estimate payload (%llu pages total, %llu free)\n"),
+		  (unsigned long long) pages,
+		  (unsigned long long) free_pages);
+      plugin->payload = (pages - free_pages) * 4092LL;
+    }
 }
 			 		 
 
@@ -1610,7 +1653,7 @@ libgnunet_plugin_datastore_sqlite_init (void *cls)
   plugin.stat_get = GNUNET_STATISTICS_get (plugin.statistics,
 					   "datastore-sqlite",
 					   QUOTA_STAT_NAME,
-					   GNUNET_TIME_UNIT_MINUTES,
+					   GNUNET_TIME_UNIT_SECONDS,
 					   &process_stat_done,
 					   &process_stat_in,
 					   &plugin);
@@ -1635,6 +1678,9 @@ libgnunet_plugin_datastore_sqlite_init (void *cls)
   api->drop = &sqlite_plugin_drop;
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
                    "sqlite", _("Sqlite database running\n"));
+  fprintf (stderr,
+	   "Initial payload: %llu\n",
+	   plugin.payload);
   return api;
 }
 

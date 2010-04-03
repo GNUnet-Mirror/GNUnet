@@ -297,7 +297,6 @@ expired_processor (void *cls,
 {
   struct GNUNET_TIME_Absolute now;
 
-  expired_kill_task = GNUNET_SCHEDULER_NO_TASK;
   if (key == NULL) 
     {
       expired_kill_task 
@@ -343,6 +342,7 @@ static void
 delete_expired (void *cls,
 		const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  expired_kill_task = GNUNET_SCHEDULER_NO_TASK;
   plugin->api->iter_ascending_expiration (plugin->api->cls, 
 					  0,
 					  &expired_processor,
