@@ -561,7 +561,7 @@ size_t core_transmit_notify (void *cls,
  * Send a DV data message via DV.
  *
  * @param recipient the ultimate recipient of this message
- * @param the original sender of the message
+ * @param sender the original sender of the message
  * @param message the packed message
  * @param importance what priority to send this message with
  * @param timeout how long to possibly delay sending this message
@@ -893,10 +893,13 @@ handle_start (void *cls,
  * @param client identification of the client
  * @param message the actual message
  */
-void send_dv_message (void *cls,
+void handle_dv_send_message (void *cls,
                       struct GNUNET_SERVER_Client * client,
                       const struct GNUNET_MessageHeader * message)
 {
+  struct GNUNET_DV_SendMessage *send_msg;
+  size_t address_len;
+  size_t message_size;
 #if DEBUG_DV
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s: Receives %s message!\n\n\n", "dv", "SEND");
@@ -904,10 +907,8 @@ void send_dv_message (void *cls,
   if (client_handle == NULL)
   {
     client_handle = client;
-#if DEBUG_DV
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%s: Setting initial client handle!\n", "dv");
-#endif
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "%s: Setting initial client handle, never received `%s' message?\n", "dv", "START");
   }
   else if (client_handle != client)
   {
@@ -917,6 +918,30 @@ void send_dv_message (void *cls,
                 "%s: Setting client handle (was a different client!)!\n", "dv");
   }
 
+  GNUNET_assert(ntohs(message->size) > sizeof(struct GNUNET_DV_SendMessage));
+  send_msg = (struct GNUNET_DV_SendMessage *)message;
+  address_len = ntohs(send_msg->addrlen);
+  message_size = ntohs(send_msg->msgbuf_size);
+  GNUNET_assert(ntohs(message->size) == sizeof(struct GNUNET_DV_SendMessage) + address_len + message_size);
+
+#if DEBUG_DV
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV SEND called with message of size %d, address size %d\n", message_size, address_len);
+#endif
+/*  How this was created, opposite to get data */
+  /*
+  msg = GNUNET_malloc(sizeof(struct GNUNET_DV_SendMessage) + addrlen + msgbuf_size);
+  msg->header.size = htons(sizeof(struct GNUNET_DV_SendMessage) + addrlen + msgbuf_size);
+  msg->header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND);
+  memcpy(&msg->target, target, sizeof(struct GNUNET_PeerIdentity));
+  msg->msgbuf_size = htons(msgbuf_size);
+  msg->priority = htonl(priority);
+  msg->timeout = timeout;
+  msg->addrlen = htons(addrlen);
+  memcpy(&msg[1], addr, addrlen);
+  end_of_message = (char *)&msg[1];
+  end_of_message = &end_of_message[addrlen];
+  memcpy(end_of_message, msgbuf, msgbuf_size);
+  */
   GNUNET_SERVER_receive_done(client, GNUNET_OK);
 }
 
@@ -955,7 +980,7 @@ static void handle_any(void *cls,
 
 
 static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
-  {&send_dv_message, NULL, GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND, 0},
+  {&handle_dv_send_message, NULL, GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND, 0},
   {&handle_start, NULL, GNUNET_MESSAGE_TYPE_DV_START, 0},
 #if DEBUG_DV
   {&handle_any, NULL, GNUNET_MESSAGE_TYPE_ALL, 0},
