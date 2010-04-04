@@ -847,7 +847,14 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
   return get_handle;
 }
 
-
+/**
+ * Stop a previously issued routing request
+ *
+ * @param route_handle handle to the request to stop
+ * @param cont continuation to call once this message is sent to the service or times out
+ * @param cont_cls closure for the continuation
+ *
+ */
 void
 GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle,
                        GNUNET_SCHEDULER_Task cont, void *cont_cls)
@@ -906,6 +913,8 @@ GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle,
  * Stop async DHT-get.
  *
  * @param get_handle handle to the GET operation to stop
+ * @param cont continuation to call once this message is sent to the service or times out
+ * @param cont_cls closure for the continuation
  */
 void
 GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *get_handle,
@@ -932,8 +941,8 @@ GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *get_handle,
  * @param options routing options for this message
  * @param message a message to inject at found peers (may be null)
  * @param key the key to look up
- * @param iter function to call on each result
- * @param iter_cls closure for iter
+ * @param proc function to call on each result
+ * @param proc_cls closure for proc
  * @param cont continuation to call once message sent
  * @param cont_cls closure for continuation
  *
@@ -995,6 +1004,8 @@ GNUNET_DHT_find_peer_start (struct GNUNET_DHT_Handle *handle,
  * Stop async find peer.  Frees associated resources.
  *
  * @param find_peer_handle GET operation to stop.
+ * @param cont continuation to call once this message is sent to the service or times out
+ * @param cont_cls closure for the continuation
  */
 void
 GNUNET_DHT_find_peer_stop (struct GNUNET_DHT_FindPeerHandle *find_peer_handle,
