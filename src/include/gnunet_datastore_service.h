@@ -42,32 +42,34 @@ extern "C"
 #endif
 
 /**
- * FIXME.
+ * Any type of block, used as a wildcard when searching.  Should
+ * never be attached to a specific block.
  */
 #define GNUNET_DATASTORE_BLOCKTYPE_ANY 0
 
 /**
- * FIXME.
+ * Data block (leaf) in the CHK tree.
  */
 #define GNUNET_DATASTORE_BLOCKTYPE_DBLOCK 1
 
 /**
- * FIXME.
+ * Inner block in the CHK tree.
  */
 #define GNUNET_DATASTORE_BLOCKTYPE_IBLOCK 2
 
 /**
- * FIXME.
+ * Type of a block representing a keyword search result.
  */
 #define GNUNET_DATASTORE_BLOCKTYPE_KBLOCK 3
 
 /**
- * FIXME.
+ * Type of a block that is used to advertise content in a namespace.
  */
 #define GNUNET_DATASTORE_BLOCKTYPE_SBLOCK 4
 
 /**
- * FIXME.
+ * Type of a block representing a block to be encoded on demand from disk.
+ * Should never appear on the network directly.
  */
 #define GNUNET_DATASTORE_BLOCKTYPE_ONDEMAND 5
 
