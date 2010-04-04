@@ -1680,9 +1680,6 @@ libgnunet_plugin_datastore_sqlite_init (void *cls)
   api->drop = &sqlite_plugin_drop;
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
                    "sqlite", _("Sqlite database running\n"));
-  fprintf (stderr,
-	   "Initial payload: %llu\n",
-	   plugin.payload);
   return api;
 }
 
