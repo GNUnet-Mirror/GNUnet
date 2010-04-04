@@ -37,7 +37,7 @@
  * How long are we willing to wait for a service operation during the multi-operation
  * request processing?
  */
-#define MULTI_TIMEOUT  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define MULTI_TIMEOUT  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 
 /**
