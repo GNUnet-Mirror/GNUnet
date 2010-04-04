@@ -143,23 +143,26 @@ transmit_drop (void *cls,
 void GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
 				  int drop)
 {
-  GNUNET_assert (0 == h->message_size);
-  GNUNET_assert (NULL == h->response_proc);
-  if ( (GNUNET_YES == drop) &&
-       (h->client != NULL) )
-    {
-      if (NULL != 
-	  GNUNET_CLIENT_notify_transmit_ready (h->client,
-					       sizeof(struct GNUNET_MessageHeader),
-					       GNUNET_TIME_UNIT_MINUTES,
-					       GNUNET_YES,
-					       &transmit_drop,
-					       h))
-	return;
-      GNUNET_break (0);
-    }
   if (h->client != NULL)
     GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+  h->client = NULL;
+  if (GNUNET_YES == drop) 
+    {
+      h->client = GNUNET_CLIENT_connect (h->sched, "datastore", h->cfg);
+      if (h->client != NULL)
+	{
+	  if (NULL != 
+	      GNUNET_CLIENT_notify_transmit_ready (h->client,
+						   sizeof(struct GNUNET_MessageHeader),
+						   GNUNET_TIME_UNIT_MINUTES,
+						   GNUNET_YES,
+						   &transmit_drop,
+						   h))
+	    return;
+	  GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+	}
+      GNUNET_break (0);
+    }
   GNUNET_ARM_stop_services (h->cfg, h->sched, "datastore", NULL);
   GNUNET_free (h);
 }
@@ -445,6 +448,22 @@ GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h,
 }
 
 
+/**
+ * Helper function that will initiate the transmission of a message to
+ * the datastore service.  The message must already be prepared and
+ * stored in the buffer at the end of the handle.  The message must be
+ * of a type that expects a "DataMessage" in response.
+ *
+ * @param h handle to the service with prepared message
+ * @param cont function to call with result
+ * @param cont_cls closure
+ * @param timeout timeout for the operation
+ */
+static void
+transmit_for_result (struct GNUNET_DATASTORE_Handle *h,
+		     GNUNET_DATASTORE_Iterator cont,
+		     void *cont_cls,
+		     struct GNUNET_TIME_Relative timeout);
 
 
 /**
@@ -464,18 +483,35 @@ with_result_response_handler (void *cls,
   GNUNET_DATASTORE_Iterator cont = h->response_proc;
   const struct DataMessage *dm;
   size_t msize;
+  struct GNUNET_TIME_Relative remaining;
 
-  h->message_size = 0;
   if (msg == NULL)
     {
+#if DEBUG_DATASTORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Got disconnected from datastore\n");
+#endif
       h->response_proc = NULL;
       GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
       h->client = GNUNET_CLIENT_connect (h->sched, "datastore", h->cfg);
-      cont (h->response_proc_cls, 
-	    NULL, 0, NULL, 0, 0, 0, 
-	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
+      remaining = GNUNET_TIME_absolute_get_remaining (h->timeout);
+      if (remaining.value > 0)
+	{
+	  transmit_for_result (h,
+			       cont,
+			       h->response_proc_cls,
+			       remaining);
+	}
+      else
+	{
+	  h->message_size = 0;
+	  cont (h->response_proc_cls, 
+		NULL, 0, NULL, 0, 0, 0, 
+		GNUNET_TIME_UNIT_ZERO_ABS, 0);
+	}
       return;
     }
+  h->message_size = 0;
   if (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END) 
     {
       GNUNET_break (ntohs(msg->size) == sizeof(struct GNUNET_MessageHeader));

@@ -870,22 +870,19 @@ handle_put (void *cls,
   struct ReservationList *pos;
   uint32_t size;
 
-#if DEBUG_DATASTORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Processing `%s' request\n",
-	      "PUT");
-#endif
-  if (ntohl(dm->type) == 0) 
-    {
-      GNUNET_break (0);
-      dm = NULL;
-    }
-  if (dm == NULL)
+  if ( (dm == NULL) ||
+       (ntohl(dm->type) == 0) ) 
     {
       GNUNET_break (0);
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Processing `%s' request for `%s'\n",
+	      "PUT",
+	      GNUNET_h2s (&dm->key));
+#endif
   rid = ntohl(dm->rid);
   size = ntohl(dm->size);
   if (rid > 0)
@@ -947,17 +944,12 @@ handle_put (void *cls,
  */
 static void
 handle_get (void *cls,
-	     struct GNUNET_SERVER_Client *client,
-	     const struct GNUNET_MessageHeader *message)
+	    struct GNUNET_SERVER_Client *client,
+	    const struct GNUNET_MessageHeader *message)
 {
   const struct GetMessage *msg;
   uint16_t size;
 
-#if DEBUG_DATASTORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Processing `%s' request\n",
-	      "GET");
-#endif
   size = ntohs(message->size);
   if ( (size != sizeof(struct GetMessage)) &&
        (size != sizeof(struct GetMessage) - sizeof(GNUNET_HashCode)) )
@@ -966,12 +958,19 @@ handle_get (void *cls,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
+  msg = (const struct GetMessage*) message;
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Processing `%s' request for `%s' of type %u\n",
+	      "GET",
+	      GNUNET_h2s (&msg->key),
+	      ntohl (msg->type));
+#endif
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# GET requests received"),
 			    1,
 			    GNUNET_NO);
   GNUNET_SERVER_client_keep (client);
-  msg = (const struct GetMessage*) message;
   if ( (size == sizeof(struct GetMessage)) &&
        (GNUNET_YES != GNUNET_CONTAINER_bloomfilter_test (filter,
 							 &msg->key)) )
@@ -1017,17 +1016,18 @@ handle_update (void *cls,
   int ret;
   char *emsg;
 
-#if DEBUG_DATASTORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Processing `%s' request\n",
-	      "UPDATE");
-#endif
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# UPDATE requests received"),
 			    1,
 			    GNUNET_NO);
   msg = (const struct UpdateMessage*) message;
   emsg = NULL;
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Processing `%s' request for %llu\n",
+	      "UPDATE",
+	      (unsigned long long) GNUNET_ntohll (msg->uid));
+#endif
   ret = plugin->api->update (plugin->api->cls,
 			     GNUNET_ntohll(msg->uid),
 			     (int32_t) ntohl(msg->priority),
@@ -1120,9 +1120,10 @@ remove_callback (void *cls,
   rc->found = GNUNET_YES;
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Item %llu matches `%s' request.\n",
+	      "Item %llu matches `%s' request for key `%s'.\n",
 	      (unsigned long long) uid,
-	      "REMOVE");
+	      "REMOVE",
+	      GNUNET_h2s (key));
 #endif	
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# bytes removed (explicit request)"),
@@ -1151,17 +1152,18 @@ handle_remove (void *cls,
   GNUNET_HashCode vhash;
   struct RemoveContext *rc;
 
-#if DEBUG_DATASTORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Processing `%s' request\n",
-	      "REMOVE");
-#endif
   if (dm == NULL)
     {
       GNUNET_break (0);
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Processing `%s' request for `%s'\n",
+	      "REMOVE",
+	      GNUNET_h2s (&dm->key));
+#endif
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# REMOVE requests received"),
 			    1,
