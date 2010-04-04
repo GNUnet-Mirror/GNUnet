@@ -1609,9 +1609,11 @@ process_stat_done (void *cls,
 	     sq_prepare (plugin->dbh,
 			 "PRAGMA page_count",
 			 &stmt));
-      CHECK (SQLITE_ROW ==
-	     sqlite3_step (stmt));
-      pages = sqlite3_column_int64 (stmt, 0);
+      if (SQLITE_ROW ==
+	  sqlite3_step (stmt))
+	pages = sqlite3_column_int64 (stmt, 0);
+      else
+	pages = 0;
       sqlite3_finalize (stmt);
       CHECK (SQLITE_OK ==
 	     sq_prepare (plugin->dbh,
