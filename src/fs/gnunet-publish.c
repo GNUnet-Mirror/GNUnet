@@ -46,6 +46,8 @@ static struct GNUNET_CONTAINER_MetaData *meta;
 
 static struct GNUNET_FS_Uri *topKeywords;
 
+static struct GNUNET_FS_Uri *uri;
+
 static unsigned int anonymity = 1;
 
 static unsigned int priority = 365;
@@ -328,8 +330,8 @@ publish_inspector (void *cls,
 
 
 static void 
-uri_ksk_continuation (void *cls,
-		      const struct GNUNET_FS_Uri *uri,
+uri_sks_continuation (void *cls,
+		      const struct GNUNET_FS_Uri *ksk_uri,
 		      const char *emsg)
 {
   if (emsg != NULL)
@@ -339,7 +341,61 @@ uri_ksk_continuation (void *cls,
 	       emsg);
       ret = 1;
     }
+  GNUNET_FS_uri_destroy (uri);
+  uri = NULL;
   GNUNET_FS_stop (ctx);
+  ctx = NULL;
+}
+
+
+static void 
+uri_ksk_continuation (void *cls,
+		      const struct GNUNET_FS_Uri *ksk_uri,
+		      const char *emsg)
+{
+  struct GNUNET_FS_Namespace *ns;
+
+  if (emsg != NULL)
+    {
+      fprintf (stderr,
+	       "%s\n",
+	       emsg);
+      ret = 1;
+    }
+  if (pseudonym != NULL)
+    {
+      ns = GNUNET_FS_namespace_create (ctx,
+				       pseudonym);
+      if (ns == NULL)
+	{
+	  fprintf (stderr,
+		   _("Failed to create namespace `%s'\n"),
+		   pseudonym);
+	  ret = 1;
+	}
+      else
+	{
+	  GNUNET_FS_publish_sks (ctx,
+				 ns,
+				 this_id,
+				 next_id,
+				 meta,
+				 uri,
+				 GNUNET_TIME_relative_to_absolute (DEFAULT_EXPIRATION),
+				 anonymity,
+				 priority,
+				 GNUNET_FS_PUBLISH_OPTION_NONE,
+				 uri_sks_continuation,
+				 NULL);
+	  GNUNET_assert (GNUNET_OK ==
+			 GNUNET_FS_namespace_delete (ns, GNUNET_NO));
+	  return;
+	}
+    }
+  GNUNET_FS_uri_destroy (uri);
+  uri = NULL;
+  GNUNET_FS_stop (ctx);
+  ctx = NULL;
 }
 
 
@@ -365,7 +421,6 @@ run (void *cls,
   struct stat sbuf;
   char *ex;
   char *emsg;
-  struct GNUNET_FS_Uri *uri;
   
   sched = s;
   /* check arguments */
@@ -419,7 +474,8 @@ run (void *cls,
 	  return;
         }
     }
-  if (args[0] == NULL)
+  if ( (args[0] == NULL) &&
+       (uri_string == NULL) )
     {
       fprintf (stderr,
 	       _("Need the name of a file to publish!\n"));

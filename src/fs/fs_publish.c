@@ -707,6 +707,7 @@ hash_for_index_cb (void *cls,
   struct GNUNET_CLIENT_Connection *client;
   uint32_t dev;
   uint64_t ino;
+  char *fn;
 
   p = sc->fi_pos;
   if (NULL == res) 
@@ -724,13 +725,15 @@ hash_for_index_cb (void *cls,
       publish_content (sc);
       return;
     }
-  slen = strlen (p->data.file.filename) + 1;
+  fn = GNUNET_STRINGS_filename_expand (p->data.file.filename);
+  slen = strlen (fn) + 1;
   if (slen > GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof(struct IndexStartMessage))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Can not index file `%s': %s.  Will try to insert instead.\n"),
-		  p->data.file.filename,
+		  fn,
 		  _("filename too long"));
+      GNUNET_free (fn);
       p->data.file.do_index = GNUNET_NO;
       publish_content (sc);
       return;
@@ -752,6 +755,7 @@ hash_for_index_cb (void *cls,
 		  _("could not connect to `fs' service"));
       p->data.file.do_index = GNUNET_NO;
       publish_content (sc);
+      GNUNET_free (fn);
       return;
     }
   p->data.file.file_id = *res;
@@ -777,8 +781,9 @@ hash_for_index_cb (void *cls,
     }
   ism->file_id = *res;
   memcpy (&ism[1],
-	  p->data.file.filename,
+	  fn,
 	  slen);
+  GNUNET_free (fn);
   sc->client = client;
   GNUNET_break (GNUNET_YES ==
 		GNUNET_CLIENT_transmit_and_get_response (client,
@@ -1465,7 +1470,7 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
 		       struct GNUNET_FS_Namespace *namespace,
 		       const char *identifier,
 		       const char *update,
-		       struct GNUNET_CONTAINER_MetaData *meta,
+		       const struct GNUNET_CONTAINER_MetaData *meta,
 		       const struct GNUNET_FS_Uri *uri,
 		       struct GNUNET_TIME_Absolute expirationTime,
 		       uint32_t anonymity,
@@ -1487,17 +1492,22 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   struct SBlock *sb;
   struct SBlock *sb_enc;
   char *dest;
+  struct GNUNET_CONTAINER_MetaData *mmeta;
   GNUNET_HashCode key;         /* hash of thisId = key */
   GNUNET_HashCode id;          /* hash of hc = identifier */
   GNUNET_HashCode query;       /* id ^ nsid = DB query */
 
+  if (NULL == meta)
+    mmeta = GNUNET_CONTAINER_meta_data_create ();
+  else
+    mmeta = GNUNET_CONTAINER_meta_data_duplicate (meta);
   uris = GNUNET_FS_uri_to_string (uri);
   slen = strlen (uris) + 1;
   idlen = strlen (identifier);
   if (update == NULL)
     update = "";
   nidlen = strlen (update) + 1;
-  mdsize = GNUNET_CONTAINER_meta_data_get_serialized_size (meta);
+  mdsize = GNUNET_CONTAINER_meta_data_get_serialized_size (mmeta);
   size = sizeof (struct SBlock) + slen + nidlen + mdsize;
   if (size > MAX_SBLOCK_SIZE)
     {
@@ -1510,10 +1520,11 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   dest += nidlen;
   memcpy (dest, uris, slen);
   dest += slen;
-  mdsize = GNUNET_CONTAINER_meta_data_serialize (meta,
+  mdsize = GNUNET_CONTAINER_meta_data_serialize (mmeta,
 						 &dest,
 						 mdsize, 
 						 GNUNET_CONTAINER_META_DATA_SERIALIZE_PART);
+  GNUNET_CONTAINER_meta_data_destroy (mmeta);
   if (mdsize == -1)
     {
       GNUNET_break (0);

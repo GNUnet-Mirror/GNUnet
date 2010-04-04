@@ -24,7 +24,9 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - handle namespace advertisements (can wait; might already work!?)
+ * - handle namespace advertisements (NBlocks, see FIXME;
+ *   note that we currently use KBLOCK instead of ANY when
+ *   searching => NBLOCKS would not fit! FIX this as well!)
  * - add support for pushing "already seen" information
  *   to FS service for bloomfilter (can wait)
  * - handle availability probes (can wait)
@@ -382,8 +384,11 @@ process_kblock (struct GNUNET_FS_SearchContext *sc,
       return;
     }
   j = eos - pt + 1;
-  meta = GNUNET_CONTAINER_meta_data_deserialize (&pt[j],
-						 sizeof (pt) - j);
+  if (sizeof (pt) == j)
+    meta = GNUNET_CONTAINER_meta_data_create ();
+  else
+    meta = GNUNET_CONTAINER_meta_data_deserialize (&pt[j],
+						   sizeof (pt) - j);
   if (meta == NULL)
     {
       GNUNET_break_op (0);       /* kblock malformed */
@@ -528,6 +533,9 @@ process_result (struct GNUNET_FS_SearchContext *sc,
 	  return;
 	}
       process_sblock (sc, data, size);
+      break;
+    case GNUNET_DATASTORE_BLOCKTYPE_NBLOCK:
+      GNUNET_break (0); // FIXME: not implemented!
       break;
     case GNUNET_DATASTORE_BLOCKTYPE_ANY:
     case GNUNET_DATASTORE_BLOCKTYPE_DBLOCK:

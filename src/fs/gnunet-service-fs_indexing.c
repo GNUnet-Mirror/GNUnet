@@ -322,7 +322,7 @@ GNUNET_FS_handle_index_start (void *cls,
 			      const struct GNUNET_MessageHeader *message)
 {
   const struct IndexStartMessage *ism;
-  const char *fn;
+  char *fn;
   uint16_t msize;
   struct IndexInfo *ii;
   size_t slen;
@@ -341,7 +341,7 @@ GNUNET_FS_handle_index_start (void *cls,
       return;
     }
   ism = (const struct IndexStartMessage*) message;
-  fn = (const char*) &ism[1];
+  fn = GNUNET_STRINGS_filename_expand ((const char*) &ism[1]);
   dev = ntohl (ism->device);
   ino = GNUNET_ntohll (ism->inode);
   ism = (const struct IndexStartMessage*) message;
@@ -363,6 +363,7 @@ GNUNET_FS_handle_index_start (void *cls,
     {      
       /* fast validation OK! */
       signal_index_ok (ii);
+      GNUNET_free (fn);
       return;
     }
 #if DEBUG_FS
@@ -380,6 +381,7 @@ GNUNET_FS_handle_index_start (void *cls,
 			   HASHING_BLOCKSIZE,
 			   &hash_for_index_val,
 			   ii);
+  GNUNET_free (fn);
 }
 
 

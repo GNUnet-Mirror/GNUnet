@@ -26,6 +26,7 @@
 #include "platform.h"
 #include "gnunet-service-fs_drq.h"
 
+#define DEBUG_DRQ GNUNET_NO
 
 /**
  * Signature of a function that is called whenever a datastore
@@ -165,17 +166,32 @@ get_iterator (void *cls,
   if (gc->iter == NULL) 
     {
       /* stop the iteration */
+#if DEBUG_DRQ
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Iteration terminated\n");
+#endif
       if (key != NULL)
 	GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
     }
   else
     {
+#if DEBUG_DRQ
+      if (key != NULL)
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "Iteration produced %u-byte result for `%s'\n",
+		    size,
+		    GNUNET_h2s (key));
+#endif
       gc->iter (gc->iter_cls,
 		key, size, data, type,
 		priority, anonymity, expiration, uid);
     }
   if (key == NULL)
     {
+#if DEBUG_DRQ
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Iteration completed\n");
+#endif
       GNUNET_assert (gc == drq_running);
       GNUNET_free (gc);
       drq_running = NULL;
@@ -197,6 +213,12 @@ run_next_request (void *cls,
   struct DatastoreRequestQueue *gc = cls;
 
   gc->task = GNUNET_SCHEDULER_NO_TASK;
+#if DEBUG_DRQ
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Running datastore request for `%s' of type %u\n",
+	      GNUNET_h2s (&gc->key),
+	      gc->type);
+#endif
   GNUNET_DATASTORE_get (dsh, &gc->key, gc->type, 
 			&get_iterator,
 			gc,
@@ -239,6 +261,10 @@ timeout_ds_request (void *cls,
 {
   struct DatastoreRequestQueue *e = cls;
 
+#if DEBUG_DRQ
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Datastore request timed out in queue before transmission\n");
+#endif
   e->task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_CONTAINER_DLL_remove (drq_head, drq_tail, e);
   if (e->iter != NULL)
@@ -261,6 +287,10 @@ shutdown_task (void *cls,
 {
   struct DatastoreRequestQueue *drq;
 
+#if DEBUG_DRQ
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "DRQ shutdown initiated\n");
+#endif
   GNUNET_assert (NULL != dsh);
   GNUNET_DATASTORE_disconnect (dsh,
 			       GNUNET_NO);
@@ -306,6 +336,12 @@ GNUNET_FS_drq_get (const GNUNET_HashCode * key,
   struct DatastoreRequestQueue *e;
   struct DatastoreRequestQueue *bef;
 
+#if DEBUG_DRQ
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "DRQ receives request for `%s' of type %u\n",
+	      GNUNET_h2s (key),
+	      type);
+#endif
   e = GNUNET_malloc (sizeof (struct DatastoreRequestQueue));
   e->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   e->forced_head = immediate;
@@ -348,6 +384,10 @@ GNUNET_FS_drq_get (const GNUNET_HashCode * key,
 void
 GNUNET_FS_drq_get_cancel (struct DatastoreRequestQueue *drq)
 {
+#if DEBUG_DRQ
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "DRQ receives request cancellation request\n");
+#endif
   if (drq == drq_running)
     {
       /* 'DATASTORE_get' has already been started (and this call might
@@ -376,7 +416,38 @@ GNUNET_FS_drq_get_cancel (struct DatastoreRequestQueue *drq)
 void
 GNUNET_FS_drq_get_next (int more)
 {
+#if DEBUG_DRQ
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "DRQ receives request for next result (more is %d)\n",
+	      more);
+#endif
   GNUNET_DATASTORE_get_next (dsh, more);
+}
+
+
+/**
+ * Closure for 'drq_remove_cont'.
+ */
+struct RemoveContext
+{
+  struct GNUNET_DATASTORE_Handle *rmdsh; 
+  GNUNET_DATASTORE_ContinuationWithStatus cont;
+  void *cont_cls;
+};
+
+
+static void 
+drq_remove_cont (void *cls,
+		 int success,
+		 const char *msg)
+{
+  struct RemoveContext *rc = cls;
+
+  rc->cont (rc->cont_cls,
+	    success,
+	    msg);
+  GNUNET_DATASTORE_disconnect (rc->rmdsh, GNUNET_NO);
+  GNUNET_free (rc);
 }
 
 
@@ -401,13 +472,26 @@ GNUNET_FS_drq_remove (const GNUNET_HashCode *key,
 		      void *cont_cls,
 		      struct GNUNET_TIME_Relative timeout)
 {
-  if (dsh == NULL)
+  struct GNUNET_DATASTORE_Handle *rmdsh; 
+  struct RemoveContext *rc;
+
+  rmdsh = GNUNET_DATASTORE_connect (cfg,
+				    sched);
+  if (rmdsh == NULL)
     {
       GNUNET_break (0);
+      cont (cont_cls,
+	    GNUNET_SYSERR,
+	    _("Failed to connect to datastore"));
       return;
     }
-  GNUNET_DATASTORE_remove (dsh, key, size, data,
-			   cont, cont_cls, timeout);
+  rc = GNUNET_malloc (sizeof (struct RemoveContext));
+  rc->cont = cont;
+  rc->cont_cls = cont_cls;
+  rc->rmdsh = rmdsh;
+  GNUNET_DATASTORE_remove (rmdsh, key, size, data,
+			   &drq_remove_cont, 
+			   rc, timeout);
 }
 
 

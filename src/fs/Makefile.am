@@ -130,7 +130,12 @@ check_PROGRAMS = \
  test_fs_uri \
  test_gnunet_service_fs_p2p
 
-TESTS = \
+if HAVE_PYTHON_PEXPECT
+check_SCRIPTS = \
+ test_gnunet_fs.py
+endif
+
+TESTS = $(check_SCRIPTS) \
  test_fs_directory \
  test_fs_download \
  test_fs_file_information \

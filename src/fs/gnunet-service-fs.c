@@ -2852,7 +2852,7 @@ handle_start_search (void *cls,
 			       type,			       
 			       &process_local_reply,
 			       pr,
-			       GNUNET_TIME_UNIT_FOREVER_REL,
+			       GNUNET_CONSTANTS_SERVICE_TIMEOUT,
 			       GNUNET_YES);
 }
 
