@@ -75,8 +75,7 @@ GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 
 static void
-end (void *cls,
-    const struct GNUNET_SCHEDULER_TaskContext * tc)
+end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   /* do work here */
   GNUNET_SCHEDULER_cancel (sched, die_task);
@@ -86,15 +85,17 @@ end (void *cls,
   die_task = GNUNET_SCHEDULER_NO_TASK;
 
   if (tc->reason == GNUNET_SCHEDULER_REASON_TIMEOUT)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "DHT disconnected, returning FAIL!\n");
-    ok = 365;
-  }
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "DHT disconnected, returning FAIL!\n");
+      ok = 365;
+    }
   else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "DHT disconnected, returning success!\n");
-    ok = 0;
-  }
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "DHT disconnected, returning success!\n");
+      ok = 0;
+    }
 }
 
 static void
@@ -114,7 +115,7 @@ end_badly ()
 {
   /* do work here */
 #if VERBOSE
-  fprintf(stderr, "Ending on an unhappy note.\n");
+  fprintf (stderr, "Ending on an unhappy note.\n");
 #endif
 
   GNUNET_DHT_disconnect (p1.dht_handle);
@@ -129,18 +130,18 @@ end_badly ()
  * @param cls closure
  * @param tc context information (why was this task triggered now)
  */
-void test_find_peer_stop (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext * tc)
+void
+test_find_peer_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerContext *peer = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Called test_find_peer_stop!\n");
   if (tc->reason == GNUNET_SCHEDULER_REASON_TIMEOUT)
-    GNUNET_SCHEDULER_add_now(sched, &end_badly, NULL);
+    GNUNET_SCHEDULER_add_now (sched, &end_badly, NULL);
 
   GNUNET_assert (peer->dht_handle != NULL);
 
-  GNUNET_DHT_find_peer_stop(peer->find_peer_handle, &end, &p1);
+  GNUNET_DHT_find_peer_stop (peer->find_peer_handle, &end, &p1);
 
   //GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1), &end, &p1);
 
@@ -152,20 +153,22 @@ void test_find_peer_stop (void *cls,
  * @param cls closure
  * @param tc context information (why was this task triggered now)
  */
-void test_find_peer (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext * tc)
+void
+test_find_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerContext *peer = cls;
   GNUNET_HashCode hash;
-  memset(&hash, 42, sizeof(GNUNET_HashCode));
+  memset (&hash, 42, sizeof (GNUNET_HashCode));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Called test_find_peer!\n");
   GNUNET_assert (peer->dht_handle != NULL);
 
-  peer->find_peer_handle = GNUNET_DHT_find_peer_start(peer->dht_handle, TIMEOUT, 0, NULL, &hash, NULL, NULL, &test_find_peer_stop, &p1);
+  peer->find_peer_handle =
+    GNUNET_DHT_find_peer_start (peer->dht_handle, TIMEOUT, 0, NULL, &hash,
+                                NULL, NULL, &test_find_peer_stop, &p1);
 
   if (peer->find_peer_handle == NULL)
-    GNUNET_SCHEDULER_add_now(sched, &end_badly, &p1);
+    GNUNET_SCHEDULER_add_now (sched, &end_badly, &p1);
 }
 
 /**
@@ -174,44 +177,34 @@ void test_find_peer (void *cls,
  * @param cls closure
  * @param tc context information (why was this task triggered now)
  */
-void test_put (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext * tc)
-{
-  struct PeerContext *peer = cls;
-  GNUNET_HashCode hash;
-  char *data;
-  size_t data_size = 42;
-  memset(&hash, 42, sizeof(GNUNET_HashCode));
-  data = GNUNET_malloc(data_size);
-  memset(data, 43, data_size);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Called test_put!\n");
-  GNUNET_assert (peer->dht_handle != NULL);
-
-  GNUNET_DHT_put(peer->dht_handle, &hash, 0, data_size, data, GNUNET_TIME_relative_to_absolute(TIMEOUT), TIMEOUT, &test_find_peer, &p1);
-
-}
-
-/**
- * Signature of the main function of a task.
- *
- * @param cls closure
- * @param tc context information (why was this task triggered now)
- */
-void test_get_stop (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext * tc)
+void
+test_get_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerContext *peer = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Called test_get_stop!\n");
   if (tc->reason == GNUNET_SCHEDULER_REASON_TIMEOUT)
-    GNUNET_SCHEDULER_add_now(sched, &end_badly, NULL);
+    GNUNET_SCHEDULER_add_now (sched, &end_badly, NULL);
 
   GNUNET_assert (peer->dht_handle != NULL);
 
-  GNUNET_DHT_get_stop(peer->get_handle, &test_put, &p1);
+  GNUNET_DHT_get_stop (peer->get_handle, &test_find_peer, &p1);
 
   //GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1), &test_put, &p1);
 
+}
+
+void
+test_get_iterator (void *cls,
+                   struct GNUNET_TIME_Absolute exp,
+                   const GNUNET_HashCode * key,
+                   uint32_t type, uint32_t size, const void *data)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "test_get_iterator called (we got a result), stopping get request!\n");
+
+  GNUNET_SCHEDULER_add_continuation (sched, &test_get_stop, &p1,
+                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 /**
@@ -220,21 +213,50 @@ void test_get_stop (void *cls,
  * @param cls closure
  * @param tc context information (why was this task triggered now)
  */
-void test_get (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext * tc)
+void
+test_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerContext *peer = cls;
   GNUNET_HashCode hash;
-  memset(&hash, 42, sizeof(GNUNET_HashCode));
+  memset (&hash, 42, sizeof (GNUNET_HashCode));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Called test_get!\n");
-  peer->dht_handle = GNUNET_DHT_connect (sched, peer->cfg, 100);
+
   GNUNET_assert (peer->dht_handle != NULL);
 
-  peer->get_handle = GNUNET_DHT_get_start(peer->dht_handle, TIMEOUT, 42, &hash, NULL, NULL, &test_get_stop, &p1);
+  peer->get_handle =
+    GNUNET_DHT_get_start (peer->dht_handle, TIMEOUT, 42, &hash,
+                          &test_get_iterator, NULL, NULL, NULL);
 
   if (peer->get_handle == NULL)
-    GNUNET_SCHEDULER_add_now(sched, &end_badly, &p1);
+    GNUNET_SCHEDULER_add_now (sched, &end_badly, &p1);
+}
+
+/**
+ * Signature of the main function of a task.
+ *
+ * @param cls closure
+ * @param tc context information (why was this task triggered now)
+ */
+void
+test_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct PeerContext *peer = cls;
+  GNUNET_HashCode hash;
+  char *data;
+  size_t data_size = 42;
+  memset (&hash, 42, sizeof (GNUNET_HashCode));
+  data = GNUNET_malloc (data_size);
+  memset (data, 43, data_size);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Called test_put!\n");
+  peer->dht_handle = GNUNET_DHT_connect (sched, peer->cfg, 100);
+
+  GNUNET_assert (peer->dht_handle != NULL);
+
+  GNUNET_DHT_put (peer->dht_handle, &hash, 0, data_size, data,
+                  GNUNET_TIME_relative_to_absolute (TIMEOUT), TIMEOUT,
+                  &test_get, &p1);
+
 }
 
 static void
@@ -264,11 +286,16 @@ run (void *cls,
   sched = s;
 
   die_task = GNUNET_SCHEDULER_add_delayed (sched,
-      GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 1), &end_badly, NULL);
+                                           GNUNET_TIME_relative_multiply
+                                           (GNUNET_TIME_UNIT_MINUTES, 1),
+                                           &end_badly, NULL);
 
   setup_peer (&p1, "test_dht_api_peer1.conf");
 
-  GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1), &test_get, &p1);
+  GNUNET_SCHEDULER_add_delayed (sched,
+                                GNUNET_TIME_relative_multiply
+                                (GNUNET_TIME_UNIT_SECONDS, 1), &test_put,
+                                &p1);
 }
 
 static int
@@ -290,8 +317,7 @@ check ()
 
   ok = 1;
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-dht-api", "nohelp",
-                      options, &run, &ok);
+                      argv, "test-dht-api", "nohelp", options, &run, &ok);
   stop_arm (&p1);
   return ok;
 }
@@ -314,7 +340,7 @@ main (int argc, char *argv[])
                     NULL);
   ret = check ();
 
-  //GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-dht-peer-1");
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-dht-peer-1");
 
   return ret;
 }

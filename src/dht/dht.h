@@ -30,7 +30,8 @@
 #define DEBUG_DHT GNUNET_NO
 
 typedef void (*GNUNET_DHT_MessageReceivedHandler) (void *cls,
-                                                  struct GNUNET_MessageHeader *msg);
+                                                   struct GNUNET_MessageHeader
+                                                   * msg);
 
 /**
  * Generic DHT message, wrapper for other message types
@@ -157,6 +158,11 @@ struct GNUNET_DHT_GetResultMessage
    * The key to search for
    */
   GNUNET_HashCode key;
+
+  /**
+   * When does this entry expire?
+   */
+  struct GNUNET_TIME_Absolute expiration;
 
   /**
    * The size of the data, appended to the end of this message.
