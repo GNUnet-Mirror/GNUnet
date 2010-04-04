@@ -144,7 +144,9 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
  */
 static void handle_dht_get (void *cls, struct GNUNET_DHT_GetMessage *get_msg, GNUNET_HashCode *key)
 {
+#if DEBUG_DHT
   GNUNET_HashCode get_key;
+#endif
   size_t get_type;
 
   GNUNET_assert(ntohs(get_msg->header.size) >= sizeof(struct GNUNET_DHT_GetMessage));
@@ -164,13 +166,12 @@ static void handle_dht_get (void *cls, struct GNUNET_DHT_GetMessage *get_msg, GN
  */
 static void handle_dht_find_peer (void *cls, struct GNUNET_DHT_FindPeerMessage *find_msg, GNUNET_HashCode *key)
 {
-
-  GNUNET_assert(ntohs(find_msg->header.size) == sizeof(struct GNUNET_DHT_FindPeerMessage));
-
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s': Received `%s' request from client, key %s\n", "DHT", "FIND PEER", GNUNET_h2s(key));
+              "`%s': Received `%s' request from client, key %s (msg size %d, we expected %d)\n", "DHT", "FIND PEER", GNUNET_h2s(key), ntohs(find_msg->header.size), sizeof(struct GNUNET_DHT_FindPeerMessage));
 #endif
+
+  GNUNET_assert(ntohs(find_msg->header.size) >= sizeof(struct GNUNET_DHT_FindPeerMessage));
 
   /* FIXME: Implement find peer functionality here */
 }
@@ -298,10 +299,8 @@ handle_dht_start_message(void *cls, struct GNUNET_SERVER_Client * client,
       handle_dht_find_peer(cls, (struct GNUNET_DHT_FindPeerMessage *)enc_msg, &dht_msg->key);
       break;
     default:
-#if DEBUG_DHT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "`%s': Message type (%d) not handled\n", "DHT", enc_type);
-#endif
     }
 
   GNUNET_SERVER_receive_done(client, GNUNET_OK);

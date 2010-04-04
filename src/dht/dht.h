@@ -27,7 +27,7 @@
 #ifndef DHT_H_
 #define DHT_H_
 
-#define DEBUG_DHT GNUNET_YES
+#define DEBUG_DHT GNUNET_NO
 
 typedef void (*GNUNET_DHT_MessageReceivedHandler) (void *cls,
                                                   struct GNUNET_MessageHeader *msg);
@@ -166,7 +166,7 @@ struct GNUNET_DHT_GetResultMessage
 };
 
 /**
- * Message to request data from the DHT
+ * Message to issue find peer request to the DHT
  */
 struct GNUNET_DHT_FindPeerMessage
 {
@@ -174,6 +174,13 @@ struct GNUNET_DHT_FindPeerMessage
    * Type: GNUNET_MESSAGE_TYPE_DHT_FIND_PEER
    */
   struct GNUNET_MessageHeader header;
+
+  /**
+   * Size of inject message (may be zero)
+   */
+  size_t msg_len;
+
+  /* Followed by message to inject at found peers */
 
 };
 
@@ -188,14 +195,15 @@ struct GNUNET_DHT_FindPeerResultMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * The peer that was searched for
+   * The peer that was found
    */
   struct GNUNET_PeerIdentity peer;
 
   /**
-   * The size of the HELLO for the returned peer,
+   * The size of the return message from the peer
+   * (defaults to HELLO for the peer),
    * appended to the end of this message, 0 if
-   * no hello.
+   * no message.
    */
   size_t data_size;
 

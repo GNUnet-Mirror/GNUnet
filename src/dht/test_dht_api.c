@@ -51,8 +51,8 @@ struct PeerContext
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_DHT_Handle *dht_handle;
   struct GNUNET_PeerIdentity id;
-  struct GNUNET_DHT_RouteHandle *get_handle;
-  struct GNUNET_DHT_RouteHandle *find_peer_handle;
+  struct GNUNET_DHT_GetHandle *get_handle;
+  struct GNUNET_DHT_FindPeerHandle *find_peer_handle;
 
 #if START_ARM
   pid_t arm_pid;
@@ -123,6 +123,50 @@ end_badly ()
   return;
 }
 
+/**
+ * Signature of the main function of a task.
+ *
+ * @param cls closure
+ * @param tc context information (why was this task triggered now)
+ */
+void test_find_peer_stop (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct PeerContext *peer = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Called test_find_peer_stop!\n");
+  if (tc->reason == GNUNET_SCHEDULER_REASON_TIMEOUT)
+    GNUNET_SCHEDULER_add_now(sched, &end_badly, NULL);
+
+  GNUNET_assert (peer->dht_handle != NULL);
+
+  GNUNET_DHT_find_peer_stop(peer->find_peer_handle, &end, &p1);
+
+  //GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1), &end, &p1);
+
+}
+
+/**
+ * Signature of the main function of a task.
+ *
+ * @param cls closure
+ * @param tc context information (why was this task triggered now)
+ */
+void test_find_peer (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct PeerContext *peer = cls;
+  GNUNET_HashCode hash;
+  memset(&hash, 42, sizeof(GNUNET_HashCode));
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Called test_find_peer!\n");
+  GNUNET_assert (peer->dht_handle != NULL);
+
+  peer->find_peer_handle = GNUNET_DHT_find_peer_start(peer->dht_handle, TIMEOUT, 0, NULL, &hash, NULL, NULL, &test_find_peer_stop, &p1);
+
+  if (peer->find_peer_handle == NULL)
+    GNUNET_SCHEDULER_add_now(sched, &end_badly, &p1);
+}
 
 /**
  * Signature of the main function of a task.
@@ -143,11 +187,8 @@ void test_put (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Called test_put!\n");
   GNUNET_assert (peer->dht_handle != NULL);
 
-  GNUNET_DHT_put(peer->dht_handle, &hash, 0, data_size, data, GNUNET_TIME_relative_to_absolute(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 360)) ,GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 360), &end, NULL);
+  GNUNET_DHT_put(peer->dht_handle, &hash, 0, data_size, data, GNUNET_TIME_relative_to_absolute(TIMEOUT), TIMEOUT, &test_find_peer, &p1);
 
-  //GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1), &test_put, &p1);
-
-  //GNUNET_SCHEDULER_add_now(sched, &end, NULL);
 }
 
 /**
@@ -160,8 +201,6 @@ void test_get_stop (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   struct PeerContext *peer = cls;
-  GNUNET_HashCode hash;
-  memset(&hash, 42, sizeof(GNUNET_HashCode));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Called test_get_stop!\n");
   if (tc->reason == GNUNET_SCHEDULER_REASON_TIMEOUT)
@@ -169,10 +208,9 @@ void test_get_stop (void *cls,
 
   GNUNET_assert (peer->dht_handle != NULL);
 
-  GNUNET_DHT_get_stop(peer->get_handle);
+  GNUNET_DHT_get_stop(peer->get_handle, &test_put, &p1);
 
   //GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1), &test_put, &p1);
-  GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1), &test_put, &p1);
 
 }
 
@@ -193,12 +231,10 @@ void test_get (void *cls,
   peer->dht_handle = GNUNET_DHT_connect (sched, peer->cfg, 100);
   GNUNET_assert (peer->dht_handle != NULL);
 
-  peer->get_handle = GNUNET_DHT_get_start(peer->dht_handle, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 100), 42, &hash, NULL, NULL, &test_get_stop, &p1);
+  peer->get_handle = GNUNET_DHT_get_start(peer->dht_handle, TIMEOUT, 42, &hash, NULL, NULL, &test_get_stop, &p1);
 
   if (peer->get_handle == NULL)
     GNUNET_SCHEDULER_add_now(sched, &end_badly, &p1);
-
-  //GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1), &test_get_stop, &p1);
 }
 
 static void
