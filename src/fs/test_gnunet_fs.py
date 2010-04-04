@@ -60,8 +60,8 @@ try:
   pub.expect (pexpect.EOF)
 
 #  search = pexpect.spawn ('gnunet-search licenses')
-# FIXME: check that namespace was found
-# FIXME: check for meta-data!
+# FIXME: check that namespace was found (code currently does not work for NBLOCKS!)
+# FIXME: check for meta-data! (use gnunet-pseudonym to display?)
 
 finally:
   os.system ('gnunet-arm -e')
