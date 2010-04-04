@@ -44,6 +44,22 @@ extern "C"
 struct GNUNET_DHT_Handle;
 
 /**
+ * Handle to control a route operation.
+ */
+struct GNUNET_DHT_RouteHandle;
+
+/**
+ * Handle to control a get operation.
+ */
+struct GNUNET_DHT_GetHandle;
+
+/**
+ * Handle to control a find peer operation.
+ */
+struct GNUNET_DHT_FindPeerHandle;
+
+
+/**
  * Iterator called on each result obtained from a generic route
  * operation
  */
@@ -62,7 +78,7 @@ typedef void (*GNUNET_DHT_MessageCallback)(void *cls,
 struct GNUNET_DHT_Handle *
 GNUNET_DHT_connect (struct GNUNET_SCHEDULER_Handle *sched,
                     const struct GNUNET_CONFIGURATION_Handle *cfg,
-		    unsigned int ht_len);
+                    unsigned int ht_len);
 
 
 /**
@@ -105,12 +121,6 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
 
 
 /**
- * Handle to control a GET operation.
- */
-struct GNUNET_DHT_GetHandle;
-
-
-/**
  * Iterator called on each result obtained for a DHT
  * operation that expects a reply
  *
@@ -131,7 +141,7 @@ typedef void (*GNUNET_DHT_GetIterator)(void *cls,
 
 
 /**
- * Perform an asynchronous GET operation on the DHT identified.
+ * Perform an asynchronous GET operation on the DHT.
  *
  * @param handle handle to the DHT service
  * @param timeout timeout for this request to be sent to the
@@ -145,15 +155,15 @@ typedef void (*GNUNET_DHT_GetIterator)(void *cls,
  *
  * @return handle to stop the async get, NULL on error
  */
-struct GNUNET_DHT_RouteHandle *
+struct GNUNET_DHT_GetHandle *
 GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
                       struct GNUNET_TIME_Relative timeout,
-		      uint32_t type,
-		      const GNUNET_HashCode * key,
-		      GNUNET_DHT_GetIterator iter,
-		      void *iter_cls,
-		      GNUNET_SCHEDULER_Task cont,
-          void *cont_cls);
+                      uint32_t type,
+                      const GNUNET_HashCode * key,
+                      GNUNET_DHT_GetIterator iter,
+                      void *iter_cls,
+                      GNUNET_SCHEDULER_Task cont,
+                      void *cont_cls);
 
 /**
  * Stop async DHT-get.  Frees associated resources.
@@ -161,27 +171,7 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
  * @param get_handle GET operation to stop.
  */
 void
-GNUNET_DHT_get_stop (struct GNUNET_DHT_RouteHandle *get_handle);
-
-
-/**
- * Iterator called on each result obtained from a find peer
- * operation
- *
- * @param cls closure
- * @param reply response
- */
-typedef void (*GNUNET_DHT_FindPeerProcessor)(void *cls,
-					  const struct GNUNET_PeerIdentity *peer,
-					  const struct GNUNET_MessageHeader *reply);
-
-
-/**
- * Iterator called on each result obtained from a generic route
- * operation
- */
-typedef void (*GNUNET_DHT_ReplyProcessor)(void *cls,
-                                          const struct GNUNET_MessageHeader *reply);
+GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *get_handle, GNUNET_SCHEDULER_Task cont, void *cont_cls);
 
 
 /**
@@ -201,10 +191,60 @@ enum GNUNET_DHT_RouteOption
     GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE = 1
   };
 
+
 /**
- * Handle to control a route operation.
+ * Iterator called on each result obtained from a find peer
+ * operation
+ *
+ * @param cls closure
+ * @param reply response
  */
-struct GNUNET_DHT_RouteHandle;
+typedef void (*GNUNET_DHT_FindPeerProcessor)(void *cls,
+					  const struct GNUNET_PeerIdentity *peer,
+					  const struct GNUNET_MessageHeader *reply);
+
+
+/**
+ * Perform an asynchronous FIND PEER operation on the DHT.
+ *
+ * @param handle handle to the DHT service
+ * @param timeout timeout for this request to be sent to the
+ *        service
+ * @param options routing options for this message
+ * @param message a message to inject at found peers (may be null)
+ * @param key the key to look up
+ * @param iter function to call on each result
+ * @param iter_cls closure for iter
+ * @param cont continuation to call once message sent
+ * @param cont_cls closure for continuation
+ *
+ * @return handle to stop the async get, NULL on error
+ */
+struct GNUNET_DHT_FindPeerHandle *
+GNUNET_DHT_find_peer_start (struct GNUNET_DHT_Handle *handle,
+                      struct GNUNET_TIME_Relative timeout,
+                      enum GNUNET_DHT_RouteOption options,
+                      struct GNUNET_MessageHeader *message,
+                      const GNUNET_HashCode * key,
+                      GNUNET_DHT_FindPeerProcessor iter,
+                      void *iter_cls,
+                      GNUNET_SCHEDULER_Task cont,
+                      void *cont_cls);
+
+/**
+ * Stop async find peer.  Frees associated resources.
+ *
+ * @param find_peer_handle GET operation to stop.
+ */
+void
+GNUNET_DHT_find_peer_stop (struct GNUNET_DHT_FindPeerHandle *find_peer_handle, GNUNET_SCHEDULER_Task cont, void *cont_cls);
+
+/**
+ * Iterator called on each result obtained from a generic route
+ * operation
+ */
+typedef void (*GNUNET_DHT_ReplyProcessor)(void *cls,
+                                          const struct GNUNET_MessageHeader *reply);
 
 /**
  * Perform an asynchronous FIND_PEER operation on the DHT.
@@ -218,7 +258,7 @@ struct GNUNET_DHT_RouteHandle;
  * @param enc send the encapsulated message to a peer close to the key
  * @param timeout when to abort with an error if we fail to get
  *                a confirmation for the request (when necessary) or how long
- *                to wait for tramission to the service
+ *                to wait for transmission to the service
  * @param iter function to call on each result, NULL if no replies are expected
  * @param iter_cls closure for iter
 
@@ -240,7 +280,7 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
 			void *cont_cls);
 
 void
-GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *fph);
+GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle, GNUNET_SCHEDULER_Task cont, void *cont_cls);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

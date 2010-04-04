@@ -169,7 +169,7 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP 27
 
 /**
- * Response to the address lookup request. 
+ * Response to the address lookup request.
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY 28
 
@@ -506,7 +506,12 @@ extern "C"
 /**
  * Local and message acknowledgment
  */
-#define GNUNET_MESSAGE_TYPE_DHT_ACK 145
+#define GNUNET_MESSAGE_TYPE_DHT_ACK 144
+
+/**
+ * Local DHT Put message, from API to service
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_PUT 145
 
 /**
  * Local DHT Get message, from API to service
@@ -519,24 +524,24 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_DHT_GET_STOP 147
 
 /**
+ * Local DHT Get result message, from service to API
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_GET_RESULT 148
+
+/**
  * Local DHT Get message, from API to service
  */
-#define GNUNET_MESSAGE_TYPE_DHT_FIND_PEER 148
+#define GNUNET_MESSAGE_TYPE_DHT_FIND_PEER 150
 
 /**
  * Local DHT Get stop message, from API to service
  */
-#define GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_STOP 149
+#define GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_STOP 151
 
 /**
- * Local DHT Put message, from API to service
+ * Local DHT find peer result message, from service to API
  */
-#define GNUNET_MESSAGE_TYPE_DHT_PUT 150
-
-/**
- * Local DHT Get result message, from service to API
- */
-#define GNUNET_MESSAGE_TYPE_DHT_GET_RESULT 151
+#define GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_RESULT 152
 
 
 /**
