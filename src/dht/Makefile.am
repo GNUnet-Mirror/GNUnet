@@ -49,9 +49,9 @@ gnunet_dht_put_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
 
 check_PROGRAMS = \
- test_dht_api
+ test_dht_api 
 
-TESTS = $(check_PROGRAMS) # $(check_SCRIPTS)
+TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
 
 test_dht_api_SOURCES = \
  test_dht_api.c
@@ -62,5 +62,5 @@ test_dht_api_LDADD = \
 EXTRA_DIST = \
   test_dht_api_data.conf 
 
-#check_SCRIPTS = \
-#  test_gnunet_peerinfo.sh
+check_SCRIPTS = \
+  test_dht_tools.sh
