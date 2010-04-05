@@ -120,7 +120,7 @@ struct GetFullDataClosure
  *
  * @param cls closure (user-defined)
  * @param plugin_name name of the plugin that produced this value;
- *        special values can be used (i.e. '<zlib>' for zlib being
+ *        special values can be used (i.e. '&lt;zlib&gt;' for zlib being
  *        used in the main libextractor library and yielding
  *        meta data).
  * @param type libextractor-type describing the meta data
