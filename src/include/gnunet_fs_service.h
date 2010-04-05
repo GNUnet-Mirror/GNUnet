@@ -2053,6 +2053,7 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc);
  * Publish an advertismement for a namespace.  
  *
  * @param h handle to the file sharing subsystem
+ * @param ksk_uri keywords to use for advertisment
  * @param namespace handle for the namespace that should be advertised
  * @param meta meta-data for the namespace advertisement
  * @param anonymity for the namespace advertismement
@@ -2064,6 +2065,7 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc);
  */
 void
 GNUNET_FS_namespace_advertise (struct GNUNET_FS_Handle *h,
+			       struct GNUNET_FS_Uri *ksk_uri,
 			       struct GNUNET_FS_Namespace *namespace,
 			       const struct GNUNET_CONTAINER_MetaData *meta,
 			       uint32_t anonymity,

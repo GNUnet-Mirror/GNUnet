@@ -1218,19 +1218,36 @@ struct NBlock
 {
 
   /**
-   * GNUNET_RSA_Signature using RSA-key of the namespace
+   * GNUNET_RSA_Signature using RSA-key generated from search keyword.
    */
-  struct GNUNET_CRYPTO_RsaSignature signature;
+  struct GNUNET_CRYPTO_RsaSignature ksk_signature;
 
   /**
    * What is being signed and why?
    */
-  struct GNUNET_CRYPTO_RsaSignaturePurpose purpose;
+  struct GNUNET_CRYPTO_RsaSignaturePurpose ksk_purpose;
+
+  /**
+   * Key generated (!) from the H(keyword) as the seed!
+   */
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded keyspace;
+
+  /**
+   * GNUNET_RSA_Signature using RSA-key of the namespace
+   */
+  struct GNUNET_CRYPTO_RsaSignature ns_signature;
+
+  /**
+   * What is being signed and why?
+   */
+  struct GNUNET_CRYPTO_RsaSignaturePurpose ns_purpose;
 
   /**
    * Public key of the namespace.
    */
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded subspace;
+
+  /* from here on, data is encrypted with H(keyword) */
 
   /* 0-terminated root identifier here */
 

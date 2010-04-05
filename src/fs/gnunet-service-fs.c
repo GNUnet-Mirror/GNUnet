@@ -1641,6 +1641,64 @@ check_kblock (const struct KBlock *kb,
 
 
 /**
+ * Check if the given NBlock is well-formed.
+ *
+ * @param nb the nblock data (or at least "dsize" bytes claiming to be one)
+ * @param dsize size of "nb" in bytes; check for < sizeof(struct NBlock)!
+ * @param query where to store the query that this block answers
+ * @return GNUNET_OK if this is actually a well-formed NBlock
+ */
+static int
+check_nblock (const struct NBlock *nb,
+	      size_t dsize,
+	      GNUNET_HashCode *query)
+{
+  if (dsize < sizeof (struct NBlock))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+  if (dsize - sizeof (struct NBlock) !=
+      ntohl (nb->ns_purpose.size) 
+      - sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) 
+      - sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) ) 
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+  if (dsize !=
+      ntohl (nb->ksk_purpose.size) + sizeof (struct GNUNET_CRYPTO_RsaSignature))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_FS_NBLOCK_KSIG,
+				&nb->ksk_purpose,
+				&nb->ksk_signature,
+				&nb->keyspace)) 
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_FS_NBLOCK,
+				&nb->ns_purpose,
+				&nb->ns_signature,
+				&nb->subspace)) 
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+  if (query != NULL)
+    GNUNET_CRYPTO_hash (&nb->keyspace,
+			sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+			query);
+  return GNUNET_OK;
+}
+
+
+/**
  * Check if the given SBlock is well-formed.
  *
  * @param sb the sblock data (or at least "dsize" bytes claiming to be one)
@@ -1855,6 +1913,7 @@ process_reply (void *cls,
 	}
       /* then: fall-through! */
     case GNUNET_DATASTORE_BLOCKTYPE_KBLOCK:
+    case GNUNET_DATASTORE_BLOCKTYPE_NBLOCK:
       if (pr->bf != NULL) 
 	{
 	  mingle_hash (&chash, pr->mingle, &mhash);
@@ -1896,9 +1955,6 @@ process_reply (void *cls,
 	    }
   	    pr->replies_seen[pr->replies_seen_off++] = chash;	      
 	}
-      break;
-    case GNUNET_DATASTORE_BLOCKTYPE_NBLOCK:
-      // FIXME: any checks against duplicates for NBlocks?
       break;
     default:
       GNUNET_break (0);
@@ -2054,8 +2110,11 @@ handle_p2p_put (void *cls,
 	return GNUNET_SYSERR;
       break;
     case GNUNET_DATASTORE_BLOCKTYPE_NBLOCK:
-      // FIXME -- validate NBLOCK!
-      GNUNET_break (0);
+      if (GNUNET_OK !=
+	  check_nblock ((const struct NBlock*) &put[1],
+			dsize,
+			&query))
+	return GNUNET_SYSERR;
       return GNUNET_OK;
     default:
       /* unknown block type */
@@ -2744,10 +2803,12 @@ handle_start_search (void *cls,
 #endif
   switch (type)
     {
+    case GNUNET_DATASTORE_BLOCKTYPE_ANY:
     case GNUNET_DATASTORE_BLOCKTYPE_DBLOCK:
     case GNUNET_DATASTORE_BLOCKTYPE_IBLOCK:
     case GNUNET_DATASTORE_BLOCKTYPE_KBLOCK:
     case GNUNET_DATASTORE_BLOCKTYPE_SBLOCK:
+    case GNUNET_DATASTORE_BLOCKTYPE_NBLOCK:
       break;
     default:
       GNUNET_break (0);
@@ -2757,7 +2818,9 @@ handle_start_search (void *cls,
     }  
 
   /* detect duplicate KBLOCK requests */
-  if (type == GNUNET_DATASTORE_BLOCKTYPE_KBLOCK)
+  if ( (type == GNUNET_DATASTORE_BLOCKTYPE_KBLOCK) ||
+       (type == GNUNET_DATASTORE_BLOCKTYPE_NBLOCK) ||
+       (type == GNUNET_DATASTORE_BLOCKTYPE_ANY) )
     {
       crl = cl->rl_head;
       while ( (crl != NULL) &&

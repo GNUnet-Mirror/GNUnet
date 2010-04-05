@@ -251,7 +251,6 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  struct GNUNET_FS_Uri *ns_uri;
   struct GNUNET_TIME_Absolute expiration;
   char *emsg;
 
@@ -289,9 +288,6 @@ run (void *cls,
 	{
 	  if (NULL != root_identifier)
 	    {
-	      emsg = NULL;
-	      ns_uri = GNUNET_FS_uri_sks_create (ns, root_identifier, &emsg);
-	      GNUNET_assert (emsg == NULL);
 	      expiration = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_YEARS);
 	      if (ksk_uri == NULL)
 		{
@@ -299,17 +295,16 @@ run (void *cls,
 		  ksk_uri = GNUNET_FS_uri_parse ("gnunet://fs/ksk/namespace", &emsg);
 		  GNUNET_assert (NULL == emsg);
 		}
-	      GNUNET_FS_publish_ksk (h,
-				     ksk_uri,
-				     adv_metadata,
-				     ns_uri,
-				     expiration,
-				     anonymity,
-				     priority,
-				     GNUNET_FS_PUBLISH_OPTION_NONE,
-				     &post_advertising,
-				     NULL);
-	      GNUNET_FS_uri_destroy (ns_uri);
+	      GNUNET_FS_namespace_advertise (h,
+					     ksk_uri,
+					     ns,
+					     adv_metadata,
+					     anonymity,
+					     priority,					     
+					     expiration,
+					     root_identifier,
+					     &post_advertising,
+					     NULL);
 	      return;
 	    }
 	}

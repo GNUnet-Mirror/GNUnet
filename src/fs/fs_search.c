@@ -24,9 +24,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - handle namespace advertisements (NBlocks, see FIXME;
- *   note that we currently use KBLOCK instead of ANY when
- *   searching => NBLOCKS would not fit! FIX this as well!)
  * - add support for pushing "already seen" information
  *   to FS service for bloomfilter (can wait)
  * - handle availability probes (can wait)
@@ -412,6 +409,88 @@ process_kblock (struct GNUNET_FS_SearchContext *sc,
 
 
 /**
+ * Process a keyword-search result with a namespace advertisment.
+ *
+ * @param sc our search context
+ * @param nb the nblock
+ * @param size size of nb
+ */
+static void
+process_nblock (struct GNUNET_FS_SearchContext *sc,
+		const struct NBlock *nb,
+		size_t size)
+{
+  unsigned int i;
+  size_t j;
+  GNUNET_HashCode q;
+  char pt[size - sizeof (struct NBlock)];
+  struct GNUNET_CRYPTO_AesSessionKey skey;
+  struct GNUNET_CRYPTO_AesInitializationVector iv;
+  const char *eos;
+  struct GNUNET_CONTAINER_MetaData *meta;
+  struct GNUNET_FS_Uri *uri;
+  
+  GNUNET_CRYPTO_hash (&nb->keyspace,
+		      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+		      &q);
+  /* find key */
+  for (i=0;i<sc->uri->data.ksk.keywordCount;i++)
+    if (0 == memcmp (&q,
+		     &sc->requests[i].query,
+		     sizeof (GNUNET_HashCode)))
+      break;
+  if (i == sc->uri->data.ksk.keywordCount)
+    {
+      /* oops, does not match any of our keywords!? */
+      GNUNET_break (0);
+      return;
+    }
+  /* decrypt */
+  GNUNET_CRYPTO_hash_to_aes_key (&sc->requests[i].key, &skey, &iv);
+  GNUNET_CRYPTO_aes_decrypt (&nb[1],
+			     size - sizeof (struct NBlock),
+			     &skey,
+			     &iv,
+			     pt);
+  /* parse */
+  eos = memchr (pt, 0, sizeof (pt));
+  if (NULL == eos)
+    {
+      GNUNET_break_op (0);
+      return;
+    }
+  j = eos - pt + 1;
+  if (sizeof (pt) == j)
+    meta = GNUNET_CONTAINER_meta_data_create ();
+  else
+    meta = GNUNET_CONTAINER_meta_data_deserialize (&pt[j],
+						   sizeof (pt) - j);
+  if (meta == NULL)
+    {
+      GNUNET_break_op (0);       /* nblock malformed */
+      return;
+    }
+
+  uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
+  uri->type = sks;
+  uri->data.sks.identifier = GNUNET_strdup (pt);
+  GNUNET_CRYPTO_hash (&nb->subspace,
+		      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+		      &uri->data.sks.namespace);
+  /* FIXME: should store 'root' in meta? */
+  GNUNET_PSEUDONYM_add (sc->h->cfg,
+			&uri->data.sks.namespace,
+			meta);
+  /* process */
+  process_ksk_result (sc, &sc->requests[i], uri, meta);
+
+  /* clean up */
+  GNUNET_CONTAINER_meta_data_destroy (meta);
+  GNUNET_FS_uri_destroy (uri);
+}
+
+
+/**
  * Process a namespace-search result.
  *
  * @param sc our search context
@@ -535,7 +614,17 @@ process_result (struct GNUNET_FS_SearchContext *sc,
       process_sblock (sc, data, size);
       break;
     case GNUNET_DATASTORE_BLOCKTYPE_NBLOCK:
-      GNUNET_break (0); // FIXME: not implemented!
+      if (! GNUNET_FS_uri_test_ksk (sc->uri))
+	{
+	  GNUNET_break (0);
+	  return;
+	}
+      if (sizeof (struct NBlock) > size)
+	{
+	  GNUNET_break_op (0);
+	  return;
+	}
+      process_nblock (sc, data, size);
       break;
     case GNUNET_DATASTORE_BLOCKTYPE_ANY:
     case GNUNET_DATASTORE_BLOCKTYPE_DBLOCK:
@@ -640,7 +729,7 @@ transmit_search_request (void *cls,
 	{
 	  sm[i].header.size = htons (sizeof (struct SearchMessage));
 	  sm[i].header.type = htons (GNUNET_MESSAGE_TYPE_FS_START_SEARCH);
-	  sm[i].type = htonl (GNUNET_DATASTORE_BLOCKTYPE_KBLOCK);
+	  sm[i].type = htonl (GNUNET_DATASTORE_BLOCKTYPE_ANY);
 	  sm[i].anonymity_level = htonl (sc->anonymity);
 	  sm[i].query = sc->requests[i].query;
 	}
