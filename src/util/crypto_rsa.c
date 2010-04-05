@@ -583,7 +583,19 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
       if (NULL == fd)
         {
           if (errno == EEXIST)
-            continue;
+	    {	      
+	      if (GNUNET_YES != GNUNET_DISK_file_test (filename))
+		{
+		  /* must exist but not be accessible, fail for good! */
+		  if (0 != ACCESS (filenae, R_OK))		    
+		    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+					      "access", filename);
+		  else
+		    GNUNET_break (0); /* what is going on!? */
+		  return NULL;
+		}
+	      continue;
+	    }
           GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
                                     "open", filename);
           return NULL;

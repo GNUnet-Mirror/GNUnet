@@ -504,6 +504,7 @@ GNUNET_PSEUDONYM_list_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
   return ret;
 }
 
+
 /**
  * Change the ranking of a pseudonym.
  *
@@ -535,6 +536,7 @@ GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_free_non_null (name);
   return ranking;
 }
+
 
 /**
  * Insert metadata into existing MD record (passed as cls).
@@ -607,9 +609,6 @@ GNUNET_PSEUDONYM_add (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_free (fn);
   internal_notify (id, meta, ranking);
 }
-
-
-
 
 
 /* end of pseudonym.c */
