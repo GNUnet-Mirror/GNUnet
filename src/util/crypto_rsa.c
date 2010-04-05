@@ -578,8 +578,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
                                   GNUNET_DISK_OPEN_CREATE |
                                   GNUNET_DISK_OPEN_FAILIFEXISTS,
                                   GNUNET_DISK_PERM_USER_READ |
-                                  GNUNET_DISK_PERM_USER_WRITE |
-                                  GNUNET_DISK_PERM_GROUP_READ);
+                                  GNUNET_DISK_PERM_USER_WRITE);
       if (NULL == fd)
         {
           if (errno == EEXIST)
