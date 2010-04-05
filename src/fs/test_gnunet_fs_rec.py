@@ -23,16 +23,16 @@ import os
 import signal
 import re
 
-os.system ('rm -rf /tmp/gnunet-test-fs-py/')
-os.system ('gnunet-arm -sq -c test_gnunet_fs_data.conf')
+os.system ('rm -rf /tmp/gnunet-test-fs-py-rec/')
+os.system ('gnunet-arm -sq -c test_gnunet_fs_rec_data.conf')
 os.system ('tar xfz test_gnunet_fs_rec_data.tgz')
 try:
-  pub = pexpect.spawn ('gnunet-publish -c test_gnunet_fs_data.conf -d -k testdir dir/')
+  pub = pexpect.spawn ('gnunet-publish -c test_gnunet_fs_rec_data.conf -d -k testdir dir/')
   pub.expect ('Publishing `dir/\' done.\r')
   pub.expect ("URI is `gnunet://fs/chk/P5BPKNHH7CECDQA1A917G5EB67PPVG99NVO5QMJ8AJP2C02NM8O1ALNGOJPLLO0RMST0FNM0ATJV95PDAGATHDGH7AGIK2N3O0OOC70.OSG2JS3JDSI0AV8LMOL9MKPJ70DNG2RBL2CBTUCHK563VEM7L00RN8I2K0VPB459JRVBFOIKJG72LIQPDP9RFCVEVI37BUD76RJ3KK0.20169\'.")
   pub.expect (pexpect.EOF)
 
-  down = pexpect.spawn ('gnunet-download -c test_gnunet_fs_data.conf -R -o rdir.gnd gnunet://fs/chk/P5BPKNHH7CECDQA1A917G5EB67PPVG99NVO5QMJ8AJP2C02NM8O1ALNGOJPLLO0RMST0FNM0ATJV95PDAGATHDGH7AGIK2N3O0OOC70.OSG2JS3JDSI0AV8LMOL9MKPJ70DNG2RBL2CBTUCHK563VEM7L00RN8I2K0VPB459JRVBFOIKJG72LIQPDP9RFCVEVI37BUD76RJ3KK0.20169\'.')
+  down = pexpect.spawn ('gnunet-download -c test_gnunet_fs_rec_data.conf -R -o rdir.gnd gnunet://fs/chk/P5BPKNHH7CECDQA1A917G5EB67PPVG99NVO5QMJ8AJP2C02NM8O1ALNGOJPLLO0RMST0FNM0ATJV95PDAGATHDGH7AGIK2N3O0OOC70.OSG2JS3JDSI0AV8LMOL9MKPJ70DNG2RBL2CBTUCHK563VEM7L00RN8I2K0VPB459JRVBFOIKJG72LIQPDP9RFCVEVI37BUD76RJ3KK0.20169\'.')
 
   down.expect (re.compile ("Downloading `rdir.gnd\' done \(.*\).\r"));
   down.expect (pexpect.EOF);
@@ -47,5 +47,5 @@ try:
     raise Exception ("Unexpected difference between source directory and downloaded result")
   
 finally:
-  os.system ('gnunet-arm -c test_gnunet_fs_data.conf -eq')
+  os.system ('gnunet-arm -c test_gnunet_fs_rec_data.conf -eq')
   os.system ('rm -r dir rdir rdir.gnd')

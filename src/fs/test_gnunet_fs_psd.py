@@ -23,25 +23,25 @@ import os
 import signal
 import re
 
-os.system ('rm -rf /tmp/gnunet-test-fs-py/')
-os.system ('gnunet-arm -sq -c test_gnunet_fs_data.conf')
+os.system ('rm -rf /tmp/gnunet-test-fs-py-psd/')
+os.system ('gnunet-arm -sq -c test_gnunet_fs_psd_data.conf')
 try:
 # first, basic publish-search-download run
-  pub = pexpect.spawn ('gnunet-publish -n -c test_gnunet_fs_data.conf -m "description:The GNU Public License" -k gpl ../../COPYING')
+  pub = pexpect.spawn ('gnunet-publish -n -c test_gnunet_fs_psd_data.conf -m "description:The GNU Public License" -k gpl ../../COPYING')
   pub.expect ('Publishing `../../COPYING\' done.\r')
   pub.expect ("URI is `gnunet://fs/chk/PC0M19QMQC0BPSHR6BGA228PP6INER1D610MGEMOMEM87222FN8HVUO7PQGO0O9HD2GVLHF2N5IDHEQUNK6LKE428FPO96SKQEA486O.PG7K85JGQ6N599MD5HEP3CHEVFPKQD9JB6NPSLVA3T1SKDS66CFI499VS6MGQ88B0QUAVT1282TCRD4GGFVUKDLGI8F0SPIANA3J2LG.35147'.\r")
   pub.expect (pexpect.EOF)
 
-  search = pexpect.spawn ('gnunet-search -V -c test_gnunet_fs_data.conf gpl')
+  search = pexpect.spawn ('gnunet-search -V -c test_gnunet_fs_psd_data.conf gpl')
   search.expect ("gnunet-download -o \"COPYING\" gnunet://fs/chk/PC0M19QMQC0BPSHR6BGA228PP6INER1D610MGEMOMEM87222FN8HVUO7PQGO0O9HD2GVLHF2N5IDHEQUNK6LKE428FPO96SKQEA486O.PG7K85JGQ6N599MD5HEP3CHEVFPKQD9JB6NPSLVA3T1SKDS66CFI499VS6MGQ88B0QUAVT1282TCRD4GGFVUKDLGI8F0SPIANA3J2LG.35147\r")
   search.expect (re.compile (" *description: The GNU Public License\r"));
   search.kill (signal.SIGTERM)
   search.expect (pexpect.EOF)
   
-  down = pexpect.spawn ('gnunet-download -c test_gnunet_fs_data.conf -o \"COPYING\" gnunet://fs/chk/PC0M19QMQC0BPSHR6BGA228PP6INER1D610MGEMOMEM87222FN8HVUO7PQGO0O9HD2GVLHF2N5IDHEQUNK6LKE428FPO96SKQEA486O.PG7K85JGQ6N599MD5HEP3CHEVFPKQD9JB6NPSLVA3T1SKDS66CFI499VS6MGQ88B0QUAVT1282TCRD4GGFVUKDLGI8F0SPIANA3J2LG.35147')
+  down = pexpect.spawn ('gnunet-download -c test_gnunet_fs_psd_data.conf -o \"COPYING\" gnunet://fs/chk/PC0M19QMQC0BPSHR6BGA228PP6INER1D610MGEMOMEM87222FN8HVUO7PQGO0O9HD2GVLHF2N5IDHEQUNK6LKE428FPO96SKQEA486O.PG7K85JGQ6N599MD5HEP3CHEVFPKQD9JB6NPSLVA3T1SKDS66CFI499VS6MGQ88B0QUAVT1282TCRD4GGFVUKDLGI8F0SPIANA3J2LG.35147')
   down.expect (re.compile ("Downloading `COPYING\' done \(.*\).\r"));
   down.expect (pexpect.EOF);
   os.system ('rm COPYING');
 
 finally:
-  os.system ('gnunet-arm -c test_gnunet_fs_data.conf -eq')
+  os.system ('gnunet-arm -c test_gnunet_fs_psd_data.conf -eq')
