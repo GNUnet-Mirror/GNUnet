@@ -7,9 +7,6 @@
   - transport reports bw quota violations on slow systems (core or
     transport issue? tracking issue or actual violation?)
 * FS: [CG]
-  - Need more work on testcase of command-line tools: 
-    * recursive insert, download; gnunet-directory
-    * namespace advertisment creation, search, listing using gnunet-pseudonym, ranking
   - 2-peer download is still too slow (why? testcases fail on slow systems!)
 * WWW:
   - Get IPv6 hooked up [AK, after April 12th]
