@@ -18,18 +18,14 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file dht/gnunet-dht-get.c
- * @brief search for data in DHT
+ * @file dht/gnunet-dht-get-peer.c
+ * @brief search for peers close to key using the DHT
  * @author Christian Grothoff
  * @author Nathan Evans
  */
 #include "platform.h"
 #include "gnunet_dht_service.h"
-
-/**
- * The type of the query
- */
-static unsigned int query_type;
+#include "gnunet_hello_lib.h"
 
 /**
  * The key for the query
@@ -67,9 +63,9 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
- * Handle for the get request
+ * Handle for the request
  */
-static struct GNUNET_DHT_GetHandle *get_handle;
+static struct GNUNET_DHT_FindPeerHandle *find_peer_handle;
 
 /**
  * Count of results found
@@ -94,34 +90,30 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (get_handle != NULL)
-    GNUNET_DHT_get_stop (get_handle, &shutdown_task, NULL);
+  if (find_peer_handle != NULL)
+    GNUNET_DHT_find_peer_stop (find_peer_handle, &shutdown_task, NULL);
   else
     GNUNET_SCHEDULER_add_now (sched, &shutdown_task, NULL);
 }
 
-
 /**
- * Iterator called on each result obtained for a DHT
- * operation that expects a reply
+ * Iterator called on each result obtained from a find peer
+ * operation
  *
- * @param cls closure
- * @param exp when will this value expire
- * @param key key of the result
- * @param type type of the result
- * @param size number of bytes in data
- * @param data pointer to the result data
+ * @param cls closure (NULL)
+ * @param peer the peer we learned about
+ * @param reply the response message, should be a HELLO
  */
-void
-get_result_iterator (void *cls,
-                     struct GNUNET_TIME_Absolute exp,
-                     const GNUNET_HashCode * key,
-                     uint32_t type, uint32_t size, const void *data)
+void find_peer_processor (void *cls,
+                          const struct GNUNET_PeerIdentity *peer,
+                          const struct GNUNET_MessageHeader *reply)
 {
-  fprintf (stdout, "Result %d, type %d:\n%.*s\n", result_count, type, size,
-           (char *) data);
-  result_count++;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "test_find_peer_processor called (peer `%s'), stopping find peer request!\n", GNUNET_i2s(peer));
+
 }
+
 
 /**
  * Signature of the main function of a task.
@@ -136,14 +128,14 @@ message_sent_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       if (verbose)
         fprintf (stderr,
-                 "Failed to send GET request to service, quitting.\n");
+                 "Failed to send FIND PEER request to service, quitting.\n");
       ret = 1;
       GNUNET_SCHEDULER_add_now (sched, &shutdown_task, NULL);
     }
   else
     {
       if (verbose)
-        fprintf (stderr, "GET request sent, awaiting results!\n");
+        fprintf (stderr, "FIND PEER request sent, awaiting results!\n");
       GNUNET_SCHEDULER_add_delayed (sched,
                                     GNUNET_TIME_absolute_get_remaining
                                     (absolute_timeout), &cleanup_task, NULL);
@@ -197,9 +189,10 @@ run (void *cls,
   absolute_timeout = GNUNET_TIME_relative_to_absolute (timeout);
 
   if (verbose)
-    fprintf (stderr, "Issuing GET request for %s!\n", query_key);
-  get_handle = GNUNET_DHT_get_start (dht_handle, timeout, query_type, &key,
-                        &get_result_iterator, NULL, &message_sent_cont, NULL);
+    fprintf (stderr, "Issuing FIND PEER request for %s!\n", query_key);
+
+  find_peer_handle = GNUNET_DHT_find_peer_start (dht_handle, timeout, 0, NULL, &key,
+                        &find_peer_processor, NULL, &message_sent_cont, NULL);
 
 }
 
@@ -211,9 +204,6 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
   {'k', "key", "KEY",
    gettext_noop ("the query key"),
    1, &GNUNET_GETOPT_set_string, &query_key},
-  {'t', "type", "TYPE",
-   gettext_noop ("the type of data to look for"),
-   1, &GNUNET_GETOPT_set_uint, &query_type},
   {'T', "timeout", "TIMEOUT",
    gettext_noop ("how long to execute this query before giving up?"),
    1, &GNUNET_GETOPT_set_ulong, &timeout_request},
@@ -225,7 +215,7 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
 
 
 /**
- * Entry point for gnunet-dht-get
+ * Entry point for gnunet-dht-get-peer
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments

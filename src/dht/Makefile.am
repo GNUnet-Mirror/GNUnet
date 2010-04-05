@@ -24,6 +24,7 @@ libgnunetdht_la_LDFLAGS = \
 bin_PROGRAMS = \
  gnunet-service-dht \
  gnunet-dht-get \
+ gnunet-dht-get-peer \
  gnunet-dht-put
 
 gnunet_service_dht_SOURCES = \
@@ -40,6 +41,14 @@ gnunet_dht_get_SOURCES = \
  gnunet-dht-get.c         
 gnunet_dht_get_LDADD = \
   $(top_builddir)/src/dht/libgnunetdht.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
+  
+gnunet_dht_get_peer_SOURCES = \
+ gnunet-dht-get-peer.c         
+gnunet_dht_get_peer_LDADD = \
+  $(top_builddir)/src/dht/libgnunetdht.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/util/libgnunetutil.la 
 
