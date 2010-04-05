@@ -213,8 +213,8 @@ typedef void (*GNUNET_DHT_FindPeerProcessor)(void *cls,
  * @param options routing options for this message
  * @param message a message to inject at found peers (may be null)
  * @param key the key to look up
- * @param iter function to call on each result
- * @param iter_cls closure for iter
+ * @param proc function to call on each result
+ * @param proc_cls closure for proc
  * @param cont continuation to call once message sent
  * @param cont_cls closure for continuation
  *
@@ -226,8 +226,8 @@ GNUNET_DHT_find_peer_start (struct GNUNET_DHT_Handle *handle,
                       enum GNUNET_DHT_RouteOption options,
                       struct GNUNET_MessageHeader *message,
                       const GNUNET_HashCode * key,
-                      GNUNET_DHT_FindPeerProcessor iter,
-                      void *iter_cls,
+                      GNUNET_DHT_FindPeerProcessor proc,
+                      void *proc_cls,
                       GNUNET_SCHEDULER_Task cont,
                       void *cont_cls);
 
