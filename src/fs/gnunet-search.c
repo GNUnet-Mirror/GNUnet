@@ -118,6 +118,7 @@ static void *
 progress_cb (void *cls,
 	     const struct GNUNET_FS_ProgressInfo *info)
 {
+  static unsigned int cnt;
   char *uri;
   char *dotdot;
   char *filename;
@@ -133,7 +134,7 @@ progress_cb (void *cls,
 					 info->value.search.specifics.result.meta,
 					 NULL);
       uri = GNUNET_FS_uri_to_string (info->value.search.specifics.result.uri);
-      printf ("%s:\n", uri);
+      printf ("#%u:\n", cnt++);
       filename =
         GNUNET_CONTAINER_meta_data_get_by_type (info->value.search.specifics.result.meta,
 						EXTRACTOR_METATYPE_FILENAME);
@@ -278,7 +279,10 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
   {'o', "output", "PREFIX",
    gettext_noop
    ("write search results to file starting with PREFIX"),
-   1, &GNUNET_GETOPT_set_string, &output_filename},
+   1, &GNUNET_GETOPT_set_string, &output_filename}, 
+  {'V', "verbose", NULL,
+   gettext_noop ("be verbose (print progress information)"),
+   0, &GNUNET_GETOPT_set_one, &verbose},
   GNUNET_GETOPT_OPTION_END
 };
 
