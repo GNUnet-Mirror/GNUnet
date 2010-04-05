@@ -226,6 +226,8 @@ update_config (void *cls,
  * @param cfg template configuration
  * @param port port numbers to use, update to reflect
  *             port numbers that were used
+ * @param hostname hostname of the controlling host, to allow control connections from
+ *
  * @return new configuration, NULL on error
  */
 static struct GNUNET_CONFIGURATION_Handle *
