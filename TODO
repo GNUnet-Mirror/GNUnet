@@ -8,6 +8,7 @@
     transport issue? tracking issue or actual violation?)
 * FS: [CG]
   - Need more work on testcase of command-line tools!
+    => use test-case specific configuration file for py test!
   - 2-peer download is still too slow (why? testcases fail on slow systems!)
 * WWW:
   - Get IPv6 hooked up [AK, after April 12th]
