@@ -662,6 +662,10 @@ find_peer_reply_iterator (void *cls, const struct GNUNET_MessageHeader *reply)
   size_t data_size;
   struct GNUNET_MessageHeader *result_data;
 
+#if DEBUG_DHT_API
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Find peer iterator called.\n");
+#endif
   if (ntohs (reply->type) != GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_RESULT)
     return;
 
@@ -670,7 +674,7 @@ find_peer_reply_iterator (void *cls, const struct GNUNET_MessageHeader *reply)
   result = (struct GNUNET_DHT_FindPeerResultMessage *) reply;
   data_size = ntohs (result->data_size);
   GNUNET_assert (ntohs (reply->size) ==
-                 sizeof (struct GNUNET_DHT_GetResultMessage) + data_size);
+                 sizeof (struct GNUNET_DHT_FindPeerResultMessage) + data_size);
 
   if (data_size > 0)
     result_data = (struct GNUNET_MessageHeader *) &result[1];   /* Set data pointer to end of message */

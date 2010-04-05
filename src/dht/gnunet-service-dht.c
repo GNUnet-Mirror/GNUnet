@@ -35,6 +35,8 @@
 #include "gnunet_signal_lib.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_datacache_lib.h"
+#include "gnunet_transport_service.h"
+#include "gnunet_hello_lib.h"
 #include "dht.h"
 
 /**
@@ -63,9 +65,19 @@ static struct GNUNET_TIME_Relative client_transmit_timeout;
 static struct GNUNET_CORE_Handle *coreAPI;
 
 /**
+ * Handle to the transport service, for getting our hello
+ */
+static struct GNUNET_TRANSPORT_Handle *transport_handle;
+
+/**
  * The identity of our peer.
  */
 static struct GNUNET_PeerIdentity my_identity;
+
+/**
+ * Our HELLO
+ */
+static struct GNUNET_MessageHeader *my_hello;
 
 /**
  * Task to run when we shut down, cleaning up all our trash
@@ -395,7 +407,6 @@ send_reply_to_client (struct ClientList *client,
 
   pending_message = GNUNET_malloc (sizeof (struct PendingMessage));
   pending_message->msg = &reply->header;
-  pending_message->next = NULL; /* We insert at the end of the list */
 
   add_pending_message (client, pending_message);
 }
@@ -506,6 +517,9 @@ static void
 handle_dht_find_peer (void *cls, struct GNUNET_DHT_FindPeerMessage *find_msg,
                       struct DHT_MessageContext *message_context)
 {
+  struct GNUNET_DHT_FindPeerResultMessage *find_peer_result;
+  size_t hello_size;
+  size_t tsize;
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "`%s': Received `%s' request from client, key %s (msg size %d, we expected %d)\n",
@@ -516,6 +530,29 @@ handle_dht_find_peer (void *cls, struct GNUNET_DHT_FindPeerMessage *find_msg,
 
   GNUNET_assert (ntohs (find_msg->header.size) >=
                  sizeof (struct GNUNET_DHT_FindPeerMessage));
+
+  if (my_hello == NULL)
+  {
+#if DEBUG_DHT
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "`%s': Our HELLO is null, can't return.\n",
+                "DHT");
+#endif
+
+    return;
+  }
+
+  /* Simplistic find_peer functionality, always return our hello */
+  hello_size = ntohs(my_hello->size);
+  tsize = hello_size + sizeof (struct GNUNET_DHT_FindPeerResultMessage);
+  find_peer_result = GNUNET_malloc (tsize);
+  find_peer_result->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_RESULT);
+  find_peer_result->header.size = htons (tsize);
+  find_peer_result->data_size = htons (hello_size);
+  memcpy(&find_peer_result->peer, &my_identity, sizeof(struct GNUNET_PeerIdentity));
+  memcpy (&find_peer_result[1], &my_hello, hello_size);
+
+  send_reply_to_client(message_context->client, &find_peer_result->header, message_context->unique_id);
 
   /* FIXME: Implement find peer functionality here */
 }
@@ -784,6 +821,29 @@ handle_dht_p2p_find_peer (void *cls,
   return GNUNET_YES;
 }
 
+
+/**
+ * Receive the HELLO from transport service,
+ * free current and replace if necessary.
+ *
+ * @param cls NULL
+ * @param message HELLO message of peer
+ */
+static void
+process_hello (void *cls, const struct GNUNET_MessageHeader *message)
+{
+#if DEBUG_DHT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received our `%s' from transport service\n",
+              "HELLO");
+#endif
+
+  GNUNET_assert (message != NULL);
+  GNUNET_free_non_null(my_hello);
+  my_hello = GNUNET_malloc(ntohs(message->size));
+  memcpy(my_hello, message, ntohs(message->size));
+}
+
 /**
  * Task run during shutdown.
  *
@@ -793,8 +853,15 @@ handle_dht_p2p_find_peer (void *cls,
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (transport_handle != NULL)
+  {
+    GNUNET_free_non_null(my_hello);
+    GNUNET_TRANSPORT_get_hello_cancel(transport_handle, &process_hello, NULL);
+    GNUNET_TRANSPORT_disconnect(transport_handle);
+  }
   GNUNET_CORE_disconnect (coreAPI);
 }
+
 
 /**
  * To be called on core init/fail.
@@ -827,6 +894,7 @@ core_init (void *cls,
   /* Set the server to local variable */
   coreAPI = server;
 }
+
 
 /**
  * Process dht requests.
@@ -864,6 +932,14 @@ run (void *cls,
                                  NULL,  /* Don't want notified about all outbound messages */
                                  GNUNET_NO,     /* For header only outbound notification */
                                  core_handlers);        /* Register these handlers */
+
+  transport_handle = GNUNET_TRANSPORT_connect(sched, cfg, NULL, NULL, NULL, NULL);
+
+  if (transport_handle != NULL)
+    GNUNET_TRANSPORT_get_hello (transport_handle, &process_hello, NULL);
+  else
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Failed to connect to transport service!\n");
+
 
   if (coreAPI == NULL)
     return;

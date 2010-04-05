@@ -147,6 +147,28 @@ test_find_peer_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 }
 
+
+/**
+ * Iterator called on each result obtained from a find peer
+ * operation
+ *
+ * @param cls closure (NULL)
+ * @param peer the peer we learned about
+ * @param reply response
+ */
+void test_find_peer_processor (void *cls,
+                          const struct GNUNET_PeerIdentity *peer,
+                          const struct GNUNET_MessageHeader *reply)
+{
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "test_find_peer_processor called (peer `%s'), stopping find peer request!\n", GNUNET_i2s(peer));
+
+  GNUNET_SCHEDULER_add_continuation (sched, &test_find_peer_stop, &p1,
+                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+}
+
+
 /**
  * Signature of the main function of a task.
  *
@@ -165,7 +187,7 @@ test_find_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   peer->find_peer_handle =
     GNUNET_DHT_find_peer_start (peer->dht_handle, TIMEOUT, 0, NULL, &hash,
-                                NULL, NULL, &test_find_peer_stop, &p1);
+                                &test_find_peer_processor, NULL, NULL, NULL);
 
   if (peer->find_peer_handle == NULL)
     GNUNET_SCHEDULER_add_now (sched, &end_badly, &p1);
