@@ -1027,7 +1027,7 @@ GNUNET_DHT_find_peer_stop (struct GNUNET_DHT_FindPeerHandle *find_peer_handle,
 /**
  * Perform a PUT operation storing data in the DHT.
  *
- * @param h handle to DHT service
+ * @param handle handle to DHT service
  * @param key the key to store under
  * @param type type of the value
  * @param size number of bytes in data; must be less than 64k
