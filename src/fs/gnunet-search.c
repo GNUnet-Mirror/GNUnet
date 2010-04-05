@@ -46,6 +46,23 @@ static unsigned int anonymity = 1;
 
 static int verbose;
 
+/**
+ * Type of a function that libextractor calls for each
+ * meta data item found.
+ *
+ * @param cls closure (user-defined, unused)
+ * @param plugin_name name of the plugin that produced this value;
+ *        special values can be used (i.e. '&lt;zlib&gt;' for zlib being
+ *        used in the main libextractor library and yielding
+ *        meta data).
+ * @param type libextractor-type describing the meta data
+ * @param format basic format information about data 
+ * @param data_mime_type mime-type of data (not of the original file);
+ *        can be NULL (if mime-type is not known)
+ * @param data actual meta-data found
+ * @param data_len number of bytes in data
+ * @return 0 to continue extracting, 1 to abort
+ */ 
 static int
 item_printer (void *cls,
 	      const char *plugin_name,
@@ -62,7 +79,7 @@ item_printer (void *cls,
           dgettext (LIBEXTRACTOR_GETTEXT_DOMAIN,
                     EXTRACTOR_metatype_to_string (type)),
 	  data);
-  return GNUNET_OK;
+  return 0;
 }
 
 
