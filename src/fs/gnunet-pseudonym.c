@@ -307,8 +307,21 @@ run (void *cls,
 					     NULL);
 	      return;
 	    }
+	  else
+	    {
+	      if (ksk_uri != NULL)
+		fprintf (stderr, _("Option `%s' ignored\n"), "-k");   
+	    }
 	}
     }
+  else
+    {
+      if (root_identifier != NULL) 
+	fprintf (stderr, _("Option `%s' ignored\n"), "-r");
+      if (ksk_uri != NULL)
+	fprintf (stderr, _("Option `%s' ignored\n"), "-k");   
+    }    
+    
   post_advertising (NULL, NULL, NULL);
 }
 
