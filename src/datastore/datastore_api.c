@@ -163,7 +163,6 @@ void GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
 	}
       GNUNET_break (0);
     }
-  GNUNET_ARM_stop_services (h->cfg, h->sched, "datastore", NULL);
   GNUNET_free (h);
 }
 
