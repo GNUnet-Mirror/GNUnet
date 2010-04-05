@@ -143,8 +143,6 @@ progress_cb (void *cls,
     case GNUNET_FS_STATUS_SEARCH_RESULT:
       if (sks_search == event->value.search.sc)
 	{
-	  fprintf (stderr,
-		   "Search result for sks received\n");
 	  if (! GNUNET_FS_uri_test_equal (sks_expect_uri,
 					  event->value.search.specifics.result.uri))
 	    {
@@ -160,8 +158,6 @@ progress_cb (void *cls,
 	}
       else if (ksk_search == event->value.search.sc)
 	{
-	  fprintf (stderr,
-		   "Search result for ksk received\n");
 	  if (! GNUNET_FS_uri_test_equal (ksk_expect_uri,
 					  event->value.search.specifics.result.uri))
 	    {
@@ -177,7 +173,7 @@ progress_cb (void *cls,
       else 
 	{
 	  fprintf (stderr,
-		   "Search result received!?\n");
+		   "Unexpected search result received!\n");
 	  GNUNET_break (0);
 	}
       break;
@@ -199,9 +195,6 @@ progress_cb (void *cls,
 	GNUNET_break (0);
       break;
     case GNUNET_FS_STATUS_SEARCH_START:
-      fprintf (stderr,
-	       "Search start event for `%s' received\n",
-	       (const char*) event->value.search.cctx);
       GNUNET_assert ( (NULL == event->value.search.cctx) ||
 		      (0 == strcmp ("sks_search", event->value.search.cctx)) ||
 		      (0 == strcmp ("ksk_search", event->value.search.cctx)));
@@ -215,8 +208,6 @@ progress_cb (void *cls,
     case GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED:
       return NULL;
     case GNUNET_FS_STATUS_SEARCH_STOPPED:
-      fprintf (stderr,
-	       "Search stop event received\n");
       return NULL;
     default:
       fprintf (stderr,
@@ -262,9 +253,7 @@ publish_cont (void *cls,
       GNUNET_free (msg);
       return;
     }
-  fprintf (stderr, "Starting keyword search...\n");
   ksk_search = GNUNET_FS_search_start (fs, ksk_uri, 1, "ksk_search");
-  fprintf (stderr, "Starting namespace search...\n") ;
   sks_search = GNUNET_FS_search_start (fs, sks_uri, 1, "sks_search");
   GNUNET_FS_uri_destroy (sks_uri);
 }
@@ -285,7 +274,6 @@ sks_cont (void *cls,
   msg = NULL;
   ksk_uri = GNUNET_FS_uri_parse ("gnunet://fs/ksk/ns-search", &msg);
   GNUNET_assert (NULL == msg);
-  fprintf (stderr, "Advertising update 'this' namespace entry under keyword...\n");
   ksk_expect_uri = GNUNET_FS_uri_dup (uri);
   GNUNET_FS_publish_ksk (fs,
 			 ksk_uri,
@@ -322,7 +310,6 @@ adv_cont (void *cls,
 				   "testNamespace");
   meta = GNUNET_CONTAINER_meta_data_create ();
   GNUNET_assert (NULL == emsg);
-  fprintf (stderr, "Advertising update 'this->next' namespace update...\n");
   sks_expect_uri = GNUNET_FS_uri_dup (uri);
   GNUNET_FS_publish_sks (fs,
 			 ns,
@@ -376,7 +363,6 @@ testNamespace ()
       err = 1;
       return;
     }
-  fprintf (stderr, "Advertising namespace root...\n");
   expiration = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
   meta = GNUNET_CONTAINER_meta_data_create ();
   ksk_uri = GNUNET_FS_uri_parse ("gnunet://fs/ksk/testnsa", NULL);
