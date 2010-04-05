@@ -47,3 +47,4 @@ try:
 
 finally:
   os.system ('gnunet-arm -c test_gnunet_fs_ns_data.conf -eq')
+  os.system ('rm -rf /tmp/gnunet-test-fs-py-ns/')

@@ -49,3 +49,4 @@ try:
 finally:
   os.system ('gnunet-arm -c test_gnunet_fs_rec_data.conf -eq')
   os.system ('rm -r dir rdir rdir.gnd')
+  os.system ('rm -rf /tmp/gnunet-test-fs-py-rec/')

@@ -45,3 +45,4 @@ try:
 
 finally:
   os.system ('gnunet-arm -c test_gnunet_fs_psd_data.conf -eq')
+  os.system ('rm -rf /tmp/gnunet-test-fs-py-psd/')
