@@ -85,6 +85,7 @@ GNUNET_CONTAINER_multihashmap_create (unsigned int len)
 {
   struct GNUNET_CONTAINER_MultiHashMap *ret;
 
+  GNUNET_assert (len > 0);
   ret = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_MultiHashMap));
   ret->map = GNUNET_malloc (len * sizeof (struct MapEntry *));
   ret->map_length = len;
