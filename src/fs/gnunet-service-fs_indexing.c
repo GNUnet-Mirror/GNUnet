@@ -35,7 +35,7 @@
 #include "gnunet-service-fs_indexing.h"
 #include "fs.h"
 
-#define DEBUG_FS GNUNET_NO
+#define DEBUG_FS GNUNET_YES
 
 /**
  * In-memory information about indexed files (also available

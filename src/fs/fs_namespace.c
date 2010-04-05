@@ -170,7 +170,6 @@ advertisement_cont (void *cls,
       GNUNET_free (ac);
       return;
     }
-
   keyword = ac->ksk_uri->data.ksk.keywords[ac->pos++];
   /* first character of keyword indicates if it is
      mandatory or not -- ignore for hashing */

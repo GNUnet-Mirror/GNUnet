@@ -132,7 +132,10 @@ check_PROGRAMS = \
 
 if HAVE_PYTHON_PEXPECT
 check_SCRIPTS = \
- test_gnunet_fs.py
+ test_gnunet_fs_psd.py \
+ test_gnunet_fs_rec.py \
+ test_gnunet_fs_ns.py \
+ test_gnunet_fs_idx.py
 endif
 
 TESTS = $(check_SCRIPTS) \
@@ -258,4 +261,6 @@ EXTRA_DIST = \
   test_fs_publish_data.conf \
   test_fs_search_data.conf \
   test_fs_unindex_data.conf \
-  test_fs_uri_data.conf
+  test_fs_uri_data.conf \
+  test_gnunet_fs_data.conf \
+  test_gnunet_fs_rec_data.tgz

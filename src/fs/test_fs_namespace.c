@@ -303,8 +303,8 @@ sks_cont (void *cls,
 
 static void
 adv_cont (void *cls,
-	      const struct GNUNET_FS_Uri *uri,
-	      const char *emsg)
+	  const struct GNUNET_FS_Uri *uri,
+	  const char *emsg)
 {
   struct GNUNET_CONTAINER_MetaData *meta;
   struct GNUNET_FS_Namespace *ns;
@@ -361,6 +361,7 @@ testNamespace ()
   struct GNUNET_FS_Namespace *ns;
   struct GNUNET_TIME_Absolute expiration;
   struct GNUNET_CONTAINER_MetaData *meta;
+  struct GNUNET_FS_Uri *ksk_uri;
   int ok;
 
   ns = GNUNET_FS_namespace_create (fs,
@@ -378,13 +379,16 @@ testNamespace ()
   fprintf (stderr, "Advertising namespace root...\n");
   expiration = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
   meta = GNUNET_CONTAINER_meta_data_create ();
+  ksk_uri = GNUNET_FS_uri_parse ("gnunet://fs/ksk/testnsa", NULL);
   GNUNET_FS_namespace_advertise (fs,
+				 ksk_uri,
 				 ns,
 				 meta,
 				 1, 1,
 				 expiration,					   
 				 "root",
 				 &adv_cont, NULL);
+  GNUNET_FS_uri_destroy (ksk_uri);
   GNUNET_FS_namespace_delete (ns, GNUNET_NO);
   GNUNET_CONTAINER_meta_data_destroy (meta);
 }

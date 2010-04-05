@@ -26,7 +26,7 @@
 #include "platform.h"
 #include "gnunet-service-fs_drq.h"
 
-#define DEBUG_DRQ GNUNET_NO
+#define DEBUG_DRQ GNUNET_YES
 
 /**
  * Signature of a function that is called whenever a datastore

@@ -906,7 +906,6 @@ process_result_with_request (void *cls,
 					   dc);         
 	    
     }
-
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_PROGRESS;
   make_download_status (&pi, dc);
   pi.value.download.specifics.progress.data = pt;
@@ -1324,7 +1323,7 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
   dc->length = length;
   dc->anonymity = anonymity;
   dc->options = options;
-  dc->active = GNUNET_CONTAINER_multihashmap_create (2 * (length / DBLOCK_SIZE));
+  dc->active = GNUNET_CONTAINER_multihashmap_create (1 + 2 * (length / DBLOCK_SIZE));
   dc->treedepth = GNUNET_FS_compute_depth (GNUNET_ntohll(dc->uri->data.chk.file_length));
 #if DEBUG_DOWNLOAD
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
