@@ -301,9 +301,13 @@ publish_inspector (void *cls,
       topKeywords = NULL;
     }
   if (NULL != meta) 
-    GNUNET_CONTAINER_meta_data_iterate (meta,
-					&meta_merger,
-					m);
+    {
+      GNUNET_CONTAINER_meta_data_iterate (meta,
+					  &meta_merger,
+					  m);
+      GNUNET_CONTAINER_meta_data_destroy (meta);
+      meta = NULL;
+    }
   if (! do_disable_creation_time)
     GNUNET_CONTAINER_meta_data_add_publication_date (m);
   if (extract_only)
