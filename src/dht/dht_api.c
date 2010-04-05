@@ -39,7 +39,7 @@
 #include "gnunet_dht_service.h"
 #include "dht.h"
 
-#define DEBUG_DHT_API GNUNET_YES
+#define DEBUG_DHT_API GNUNET_NO
 
 #define DEFAULT_DHT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
@@ -1033,6 +1033,7 @@ GNUNET_DHT_find_peer_stop (struct GNUNET_DHT_FindPeerHandle *find_peer_handle,
  * @param size number of bytes in data; must be less than 64k
  * @param data the data to store
  * @param exp desired expiration time for the value
+ * @param timeout how long to wait for transmission of this request
  * @param cont continuation to call when done;
  *             reason will be TIMEOUT on error,
  *             reason will be PREREQ_DONE on success

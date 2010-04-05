@@ -72,6 +72,54 @@ static struct GNUNET_PeerIdentity my_identity;
  */
 static GNUNET_SCHEDULER_TaskIdentifier cleanup_task;
 
+
+/**
+ * Linked list of messages to send to clients.
+ */
+struct PendingMessage
+{
+  /**
+   * Pointer to next item in the list
+   */
+  struct PendingMessage *next;
+
+  /**
+   * Actual message to be sent
+   */
+  struct GNUNET_MessageHeader *msg;
+
+};
+
+/**
+ * Struct containing information about a client,
+ * handle to connect to it, and any pending messages
+ * that need to be sent to it.
+ */
+struct ClientList
+{
+  /**
+   * Linked list of active clients
+   */
+  struct ClientList *next;
+
+  /**
+   * The handle to this client
+   */
+  struct GNUNET_SERVER_Client *client_handle;
+
+  /**
+   * Handle to the current transmission request, NULL
+   * if none pending.
+   */
+  struct GNUNET_CONNECTION_TransmitHandle *transmit_handle;
+
+  /**
+   * Linked list of pending messages for this client
+   */
+  struct PendingMessage *pending_head;
+
+};
+
 /**
  * Context for handling results from a get request.
  */
@@ -80,7 +128,7 @@ struct DatacacheGetContext
   /**
    * The client to send the result to.
    */
-  struct GNUNET_SERVER_Client *client;
+  struct ClientList *client;
 
   /**
    * The unique id of this request
@@ -88,13 +136,15 @@ struct DatacacheGetContext
   unsigned long long unique_id;
 };
 
-
+/**
+ * Context containing information about a DHT message received.
+ */
 struct DHT_MessageContext
 {
   /**
    * The client this request was received from.
    */
-  struct GNUNET_SERVER_Client *client;
+  struct ClientList *client;
 
   /**
    * The key this request was about
@@ -118,7 +168,13 @@ struct DHT_MessageContext
 };
 
 /**
- * Server handler for handling locally received dht requests
+ * List of active clients.
+ */
+static struct ClientList *client_list;
+
+
+/**
+ * Server handlers for handling locally received dht requests
  */
 static void
 handle_dht_start_message (void *cls, struct GNUNET_SERVER_Client *client,
@@ -170,34 +226,157 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
   {NULL, 0, 0}
 };
 
+/**
+ * Forward declaration.
+ */
+static size_t send_generic_reply (void *cls, size_t size, void *buf);
 
-static size_t
-send_reply (void *cls, size_t size, void *buf)
+/**
+ * Task run to check for messages that need to be sent to a client.
+ *
+ * @param cls a ClientList, containing the client and any messages to be sent to it
+ * @param tc reason this was called
+ */
+static void
+process_pending_messages (void *cls,
+                          const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_DHT_Message *reply = cls;
+  struct ClientList *client = cls;
 
+  if (client->pending_head == NULL)     /* No messages queued */
+    {
+#if DEBUG_DHT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "`%s': Have no pending messages for client.\n", "DHT");
+#endif
+      return;
+    }
+
+  if (client->transmit_handle == NULL)  /* No current pending messages, we can try to send! */
+    client->transmit_handle =
+      GNUNET_SERVER_notify_transmit_ready (client->client_handle,
+                                           ntohs (client->pending_head->msg->
+                                                  size),
+                                           GNUNET_TIME_relative_multiply
+                                           (GNUNET_TIME_UNIT_SECONDS, 5),
+                                           &send_generic_reply, client);
+  else
+    {
+#if DEBUG_DHT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "`%s': Transmit handle is non-null.\n", "DHT");
+#endif
+    }
+}
+
+/**
+ * Callback called as a result of issuing a GNUNET_SERVER_notify_transmit_ready
+ * request.  A ClientList is passed as closure, take the head of the list
+ * and copy it into buf, which has the result of sending the message to the
+ * client.
+ *
+ * @param cls closure to this call
+ * @param size maximum number of bytes available to send
+ * @param buf where to copy the actual message to
+ *
+ * @return the number of bytes actually copied, 0 indicates failure
+ */
+static size_t
+send_generic_reply (void *cls, size_t size, void *buf)
+{
+  struct ClientList *client = cls;
+  struct PendingMessage *reply = client->pending_head;
+  int ret;
+
+  client->transmit_handle = NULL;
   if (buf == NULL)              /* Message timed out, that's crappy... */
     {
+#if DEBUG_DHT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s': buffer was NULL\n", "DHT");
+#endif
+      client->pending_head = reply->next;
+      GNUNET_free (reply->msg);
       GNUNET_free (reply);
       return 0;
     }
 
-  if (size >= ntohs (reply->header.size))
+  if (size >= ntohs (reply->msg->size))
     {
-      memcpy (buf, reply, ntohs (reply->header.size));
-      return ntohs (reply->header.size);
+#if DEBUG_DHT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "`%s': Copying reply to buffer, REALLY SENT\n", "DHT");
+#endif
+      memcpy (buf, reply->msg, ntohs (reply->msg->size));
+
+      ret = ntohs (reply->msg->size);
     }
   else
-    return 0;
+    ret = 0;
+
+  client->pending_head = reply->next;
+  GNUNET_free (reply->msg);
+  GNUNET_free (reply);
+
+  GNUNET_SCHEDULER_add_now (sched, &process_pending_messages, client);
+  return ret;
 }
 
-
+/**
+ * Add a PendingMessage to the clients list of messages to be sent
+ *
+ * @param client the active client to send the message to
+ * @param pending_message the actual message to send
+ */
 static void
-send_reply_to_client (struct GNUNET_SERVER_Client *client,
+add_pending_message (struct ClientList *client,
+                     struct PendingMessage *pending_message)
+{
+  struct PendingMessage *pos;
+  struct PendingMessage *prev;
+
+  pos = client->pending_head;
+
+#if DEBUG_DHT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "`%s': Adding pending message for client.\n", "DHT");
+#endif
+
+  if (pos == NULL)
+    {
+      client->pending_head = pending_message;
+    }
+  else                          /* This means another request is already queued, rely on send_reply to process all pending messages */
+    {
+      while (pos != NULL)       /* Find end of list */
+        {
+          prev = pos;
+          pos = pos->next;
+        }
+
+      GNUNET_assert (prev != NULL);
+      prev->next = pending_message;
+    }
+
+  GNUNET_SCHEDULER_add_now (sched, &process_pending_messages, client);
+
+}
+
+/**
+ * Called when a reply needs to be sent to a client, either as
+ * a result it found to a GET or FIND PEER request.
+ *
+ * @param client the client to send the reply to
+ * @param message the encapsulated message to send
+ * @param uid the unique identifier of this request
+ */
+static void
+send_reply_to_client (struct ClientList *client,
                       struct GNUNET_MessageHeader *message,
                       unsigned long long uid)
 {
   struct GNUNET_DHT_Message *reply;
+  struct PendingMessage *pending_message;
+
   size_t msize;
   size_t tsize;
 #if DEBUG_DHT
@@ -214,18 +393,25 @@ send_reply_to_client (struct GNUNET_SERVER_Client *client,
   reply->unique_id = GNUNET_htonll (uid);
   memcpy (&reply[1], message, msize);
 
-  GNUNET_SERVER_notify_transmit_ready (client,
-                                       tsize,
-                                       GNUNET_TIME_relative_multiply
-                                       (GNUNET_TIME_UNIT_SECONDS, 5),
-                                       &send_reply, reply);
+  pending_message = GNUNET_malloc (sizeof (struct PendingMessage));
+  pending_message->msg = &reply->header;
+  pending_message->next = NULL; /* We insert at the end of the list */
 
+  add_pending_message (client, pending_message);
 }
 
 
 /**
- * Iterator for local get request results, return
- * GNUNET_OK to continue iteration, anything else
+ * Iterator for local get request results,
+ *
+ * @param cls closure for iterator, a DatacacheGetContext
+ * @param exp when does this value expire?
+ * @param key the key this data is stored under
+ * @param size the size of the data identified by key
+ * @param data the actual data
+ * @param type the type of the data
+ *
+ * @return GNUNET_OK to continue iteration, anything else
  * to stop iteration.
  */
 static int
@@ -236,7 +422,10 @@ datacache_get_iterator (void *cls,
 {
   struct DatacacheGetContext *datacache_get_ctx = cls;
   struct GNUNET_DHT_GetResultMessage *get_result;
-
+#if DEBUG_DHT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "`%s': Received `%s' response from datacache\n", "DHT", "GET");
+#endif
   get_result =
     GNUNET_malloc (sizeof (struct GNUNET_DHT_GetResultMessage) + size);
   get_result->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_GET_RESULT);
@@ -257,6 +446,11 @@ datacache_get_iterator (void *cls,
 
 /**
  * Server handler for initiating local dht get requests
+ *
+ * @param cls closure for service
+ * @param get_msg the actual get message
+ * @param message_context struct containing pertinent information about the get request
+ *
  */
 static void
 handle_dht_get (void *cls, struct GNUNET_DHT_GetMessage *get_msg,
@@ -288,7 +482,7 @@ handle_dht_get (void *cls, struct GNUNET_DHT_GetMessage *get_msg,
   if (datacache != NULL)
     results =
       GNUNET_DATACACHE_get (datacache, message_context->key, get_type,
-                            datacache_get_iterator, datacache_get_context);
+                            &datacache_get_iterator, datacache_get_context);
 
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -302,6 +496,11 @@ handle_dht_get (void *cls, struct GNUNET_DHT_GetMessage *get_msg,
 
 /**
  * Server handler for initiating local dht find peer requests
+ *
+ * @param cls closure for service
+ * @param find_msg the actual find peer message
+ * @param message_context struct containing pertinent information about the request
+ *
  */
 static void
 handle_dht_find_peer (void *cls, struct GNUNET_DHT_FindPeerMessage *find_msg,
@@ -324,6 +523,10 @@ handle_dht_find_peer (void *cls, struct GNUNET_DHT_FindPeerMessage *find_msg,
 
 /**
  * Server handler for initiating local dht put requests
+ *
+ * @param cls closure for service
+ * @param put_msg the actual put message
+ * @param message_context struct containing pertinent information about the request
  */
 static void
 handle_dht_put (void *cls, struct GNUNET_DHT_PutMessage *put_msg,
@@ -365,49 +568,51 @@ handle_dht_put (void *cls, struct GNUNET_DHT_PutMessage *put_msg,
 
 }
 
+
 /**
- * Context for sending receipt confirmations. Not used yet.
+ * Find a client if it exists, add it otherwise.
+ *
+ * @param client the server handle to the client
+ *
+ * @return the client if found, a new client otherwise
  */
-struct SendConfirmationContext
+static struct ClientList *
+find_active_client (struct GNUNET_SERVER_Client *client)
 {
-  /**
-   * The message to send.
-   */
-  struct GNUNET_DHT_StopMessage *message;
+  struct ClientList *pos = client_list;
+  struct ClientList *ret;
 
-  /**
-   * Transmit handle.
-   */
-  struct GNUNET_CONNECTION_TransmitHandle *transmit_handle;
-};
-
-static size_t
-send_confirmation (void *cls, size_t size, void *buf)
-{
-  struct GNUNET_DHT_StopMessage *confirmation_message = cls;
-
-  if (buf == NULL)              /* Message timed out, that's crappy... */
+  while (pos != NULL)
     {
-      GNUNET_free (confirmation_message);
-      return 0;
+      if (pos->client_handle == client)
+        return pos;
+      pos = pos->next;
     }
 
-  if (size >= ntohs (confirmation_message->header.size))
-    {
-      memcpy (buf, confirmation_message,
-              ntohs (confirmation_message->header.size));
-      return ntohs (confirmation_message->header.size);
-    }
-  else
-    return 0;
+  ret = GNUNET_malloc (sizeof (struct ClientList));
+  ret->client_handle = client;
+  ret->next = client_list;
+  client_list = ret;
+  ret->pending_head = NULL;
+
+  return ret;
 }
 
-
+/**
+ * Construct a message receipt confirmation for a particular uid.
+ * Receipt confirmations are used for any requests that don't expect
+ * a reply otherwise (i.e. put requests, stop requests).
+ *
+ * @param client the handle for the client
+ * @param uid the unique identifier of this message
+ */
 static void
 send_client_receipt_confirmation (struct GNUNET_SERVER_Client *client,
                                   uint64_t uid)
 {
   struct GNUNET_DHT_StopMessage *confirm_message;
+  struct ClientList *active_client;
+  struct PendingMessage *pending_message;
 
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -420,14 +625,23 @@ send_client_receipt_confirmation (struct GNUNET_SERVER_Client *client,
     htons (sizeof (struct GNUNET_DHT_StopMessage));
   confirm_message->unique_id = GNUNET_htonll (uid);
 
-  GNUNET_SERVER_notify_transmit_ready (client,
-                                       sizeof (struct GNUNET_DHT_StopMessage),
-                                       GNUNET_TIME_relative_multiply
-                                       (GNUNET_TIME_UNIT_SECONDS, 5),
-                                       &send_confirmation, confirm_message);
+  active_client = find_active_client (client);
+  pending_message = GNUNET_malloc (sizeof (struct PendingMessage));
+  pending_message->msg = &confirm_message->header;
+
+  add_pending_message (active_client, pending_message);
 
 }
 
+/**
+ * Handler for any generic DHT messages, calls the appropriate handler
+ * depending on message type, sends confirmation if responses aren't otherwise
+ * expected.
+ *
+ * @param cls closure for the service
+ * @param client the client we received this message from
+ * @param message the actual message received
+ */
 static void
 handle_dht_start_message (void *cls, struct GNUNET_SERVER_Client *client,
                           const struct GNUNET_MessageHeader *message)
@@ -435,6 +649,7 @@ handle_dht_start_message (void *cls, struct GNUNET_SERVER_Client *client,
   struct GNUNET_DHT_Message *dht_msg = (struct GNUNET_DHT_Message *) message;
   struct GNUNET_MessageHeader *enc_msg;
   struct DHT_MessageContext *message_context;
+
   size_t enc_type;
 
   enc_msg = (struct GNUNET_MessageHeader *) &dht_msg[1];
@@ -449,7 +664,7 @@ handle_dht_start_message (void *cls, struct GNUNET_SERVER_Client *client,
 #endif
 
   message_context = GNUNET_malloc (sizeof (struct DHT_MessageContext));
-  message_context->client = client;
+  message_context->client = find_active_client (client);
   message_context->key = &dht_msg->key;
   message_context->unique_id = GNUNET_ntohll (dht_msg->unique_id);
   message_context->replication = ntohs (dht_msg->desired_replication_level);
@@ -482,7 +697,17 @@ handle_dht_start_message (void *cls, struct GNUNET_SERVER_Client *client,
 
 }
 
-
+/**
+ * Handler for any generic DHT stop messages, calls the appropriate handler
+ * depending on message type, sends confirmation by default (stop messages
+ * do not otherwise expect replies)
+ *
+ * @param cls closure for the service
+ * @param client the client we received this message from
+ * @param message the actual message received
+ *
+ * TODO: add demultiplexing for stop message types.
+ */
 static void
 handle_dht_stop_message (void *cls, struct GNUNET_SERVER_Client *client,
                          const struct GNUNET_MessageHeader *message)
@@ -573,6 +798,11 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * To be called on core init/fail.
+ *
+ * @param cls service closure
+ * @param server handle to the server for this service
+ * @param identity the public identity of this peer
+ * @param publicKey the public key of this peer
  */
 void
 core_init (void *cls,
@@ -592,7 +822,9 @@ core_init (void *cls,
               "%s: Core connection initialized, I am peer: %s\n", "dht",
               GNUNET_i2s (identity));
 #endif
+  /* Copy our identity so we can use it */
   memcpy (&my_identity, identity, sizeof (struct GNUNET_PeerIdentity));
+  /* Set the server to local variable */
   coreAPI = server;
 }
 
