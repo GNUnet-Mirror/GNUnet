@@ -26,7 +26,7 @@
 #include "platform.h"
 #include "gnunet-service-fs_drq.h"
 
-#define DEBUG_DRQ GNUNET_YES
+#define DEBUG_DRQ GNUNET_NO
 
 /**
  * Signature of a function that is called whenever a datastore
@@ -219,7 +219,9 @@ run_next_request (void *cls,
 	      GNUNET_h2s (&gc->key),
 	      gc->type);
 #endif
-  GNUNET_DATASTORE_get (dsh, &gc->key, gc->type, 
+  GNUNET_DATASTORE_get (dsh, 
+			&gc->key,
+			gc->type, 
 			&get_iterator,
 			gc,
 			GNUNET_TIME_absolute_get_remaining(gc->timeout));
@@ -306,6 +308,16 @@ shutdown_task (void *cls,
       GNUNET_free (drq);
     }
   drq_tail = NULL;
+  if (drq_running != NULL)
+    {
+      GNUNET_SCHEDULER_cancel (sched,
+			       drq_running->task);
+      drq_running->iter (drq_running->iter_cls,
+			 NULL, 0, NULL, 0, 0, 0, 
+			 GNUNET_TIME_UNIT_ZERO_ABS, 0);
+      GNUNET_free (drq_running);
+      drq_running = NULL;
+    }
 }
 
 
