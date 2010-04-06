@@ -543,6 +543,10 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_RESULT 152
 
+/**
+ * Hostlist advertisement message
+ */
+#define GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT 160
 
 /**
  * Type used to match 'all' message types.
