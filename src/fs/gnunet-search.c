@@ -60,7 +60,7 @@ static int verbose;
  * @param data_mime_type mime-type of data (not of the original file);
  *        can be NULL (if mime-type is not known)
  * @param data actual meta-data found
- * @param data_len number of bytes in data
+ * @param data_size number of bytes in data
  * @return 0 to continue extracting, 1 to abort
  */ 
 static int
