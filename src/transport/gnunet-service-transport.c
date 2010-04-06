@@ -1161,6 +1161,7 @@ find_ready_address(struct NeighbourList *neighbour)
       addresses = head->addresses;
       while (addresses != NULL)
         {
+#if DEBUG_TRANSPORT > 1
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Have address `%s' for peer `%4s' (status: %d, %d, %d, %u, %llums, %u)\n",
 		      GNUNET_a2s (addresses->addr,
@@ -1172,6 +1173,7 @@ find_ready_address(struct NeighbourList *neighbour)
 		      addresses->connect_attempts,
 		      (unsigned long long) addresses->timeout.value,
 		      (unsigned int) addresses->distance);
+#endif
           if ( ( (best_address == NULL) || 
 		 (addresses->connected == GNUNET_YES) ||
 		 (best_address->connected == GNUNET_NO) ) &&
@@ -1237,9 +1239,11 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 
   if (neighbour->messages_head == NULL)
     {
+#if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Transmission queue for `%4s' is empty\n",
 		  GNUNET_i2s (&neighbour->id));
+#endif
       return;                     /* nothing to do */
     }
   rl = NULL;
@@ -3174,6 +3178,12 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 							      (ssize_t) msize))
 	    {
 	      n->quota_violation_count++;
+	      GNUNET_log (GNUNET_ERROR_TYPE_WARNING |
+			  GNUNET_ERROR_TYPE_BULK,
+			  _
+			  ("Bandwidth quota (%u b/s) violation detected (total of %u).\n"), 
+			  n->in_tracker.available_bytes_per_s__,
+			  n->quota_violation_count);
 	      if (n->quota_violation_count > QUOTA_VIOLATION_DROP_THRESHOLD)
 		{
 		  /* since we'll be dropping, only count this message for half so that
