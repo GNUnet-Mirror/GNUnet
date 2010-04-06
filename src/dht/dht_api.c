@@ -843,7 +843,7 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
   get_msg = GNUNET_malloc (sizeof (struct GNUNET_DHT_GetMessage));
   get_msg->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_GET);
   get_msg->header.size = htons (sizeof (struct GNUNET_DHT_GetMessage));
-  get_msg->type = htonl (type);
+  get_msg->type = htons (type);
 
   get_handle->route_handle =
     GNUNET_DHT_route_start (handle, key, 0, 0, &get_msg->header, timeout,
@@ -1075,7 +1075,7 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
   put_msg = GNUNET_malloc (msize);
   put_msg->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_PUT);
   put_msg->header.size = htons (msize);
-  put_msg->type = htonl (type);
+  put_msg->type = htons (type);
   put_msg->data_size = htons (size);
   put_msg->expiration = exp;
   memcpy (&put_msg[1], data, size);

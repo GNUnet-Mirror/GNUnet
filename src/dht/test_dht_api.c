@@ -33,7 +33,7 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_dht_service.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define VERBOSE_ARM GNUNET_NO
 

@@ -108,9 +108,9 @@ void find_peer_processor (void *cls,
                           const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_MessageHeader *reply)
 {
-
+  result_count++;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test_find_peer_processor called (peer `%s'), stopping find peer request!\n", GNUNET_i2s(peer));
+              "test_find_peer_processor called (peer `%s'), total results %d!\n", GNUNET_i2s(peer), result_count);
 
 }
 
