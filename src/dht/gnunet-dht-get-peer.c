@@ -70,7 +70,7 @@ static struct GNUNET_DHT_FindPeerHandle *find_peer_handle;
 /**
  * Count of results found
  */
-// static unsigned int result_count;
+static unsigned int result_count;
 
 /**
  * Global status value
