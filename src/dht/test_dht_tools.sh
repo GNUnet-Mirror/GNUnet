@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 armexe="gnunet-arm -c test_dht_api_peer1.conf "
 putexe="gnunet-dht-put -c test_dht_api_peer1.conf "
