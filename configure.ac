@@ -650,6 +650,8 @@ src/arm/Makefile
 src/core/Makefile
 src/datacache/Makefile
 src/datastore/Makefile
+src/dv/Makefile
+src/dht/Makefile
 src/fragmentation/Makefile
 src/fs/Makefile
 src/hello/Makefile
