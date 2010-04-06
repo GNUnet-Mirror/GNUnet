@@ -33,7 +33,7 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_dht_service.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define VERBOSE_ARM GNUNET_NO
 
@@ -316,7 +316,7 @@ run (void *cls,
 
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_SECONDS, 1), &test_put,
+                                (GNUNET_TIME_UNIT_SECONDS, 10), &test_put,
                                 &p1);
 }
 
