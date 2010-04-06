@@ -37,7 +37,7 @@ try:
   down.expect (re.compile ("Downloading `rdir.gnd\' done \(.*\).\r"));
   down.expect (pexpect.EOF);
 
-  dir = pexpect.spawn ('gnunet-directory rdir/a.gnd')
+  dir = pexpect.spawn ('gnunet-directory -c test_gnunet_fs_rec_data.conf  rdir/a.gnd')
   dir.expect (re.compile (" *embedded filename: a"));
   dir.expect (re.compile (" *embedded filename: COPYING"));
   dir.expect (pexpect.EOF)
