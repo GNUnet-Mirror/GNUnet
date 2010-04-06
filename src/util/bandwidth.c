@@ -84,10 +84,10 @@ GNUNET_BANDWIDTH_value_get_available_until (struct GNUNET_BANDWIDTH_Value32NBO b
 #if DEBUG_BANDWIDTH
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Bandwidth has %llu bytes available until deadline in %llums\n",
-	      (unsigned long long) (b * deadline.value / 1000LL),
+	      (unsigned long long) ((b * deadline.value + 500LL) / 1000LL),
 	      deadline.value);
 #endif
-  return b * deadline.value / 1000LL;
+  return (b * deadline.value + 500LL) / 1000LL;
 }
 
 
@@ -177,7 +177,7 @@ update_tracker (struct GNUNET_BANDWIDTH_Tracker *av)
 
   now = GNUNET_TIME_absolute_get ();
   delta_time = now.value - av->last_update__.value;
-  delta_avail = (delta_time * ((unsigned long long) av->available_bytes_per_s__)) / 1000LL;
+  delta_avail = (delta_time * ((unsigned long long) av->available_bytes_per_s__) + 500LL) / 1000LL;
   if (av->consumption_since_last_update__ >= delta_avail)
     {
       av->consumption_since_last_update__ -= delta_avail;
@@ -186,7 +186,7 @@ update_tracker (struct GNUNET_BANDWIDTH_Tracker *av)
   else
     {
       left_bytes = delta_avail - av->consumption_since_last_update__;
-      avail_per_ms = ((unsigned long long) av->available_bytes_per_s__) / 1000LL;
+      avail_per_ms = ((unsigned long long) av->available_bytes_per_s__ + 500LL) / 1000LL;
       if (avail_per_ms > 0)
 	{
 	  left_time_ms = left_bytes / avail_per_ms;	  
@@ -266,7 +266,7 @@ GNUNET_BANDWIDTH_tracker_consume (struct GNUNET_BANDWIDTH_Tracker *av,
     }
   else
     {
-      av->last_update__.value -= (size * av->available_bytes_per_s__) / 1000LL;
+      av->last_update__.value -= (size * av->available_bytes_per_s__ + 500LL) / 1000LL;
       update_tracker (av);
     }
   return GNUNET_NO;
@@ -304,7 +304,7 @@ GNUNET_BANDWIDTH_tracker_get_delay (struct GNUNET_BANDWIDTH_Tracker *av,
   update_tracker (av);
   now = GNUNET_TIME_absolute_get ();
   delta_time = now.value - av->last_update__.value;
-  delta_avail = (delta_time * ((unsigned long long) av->available_bytes_per_s__)) / 1000LL;
+  delta_avail = (delta_time * ((unsigned long long) av->available_bytes_per_s__) + 500LL) / 1000LL;
   if (delta_avail >= size)
     {
 #if DEBUG_BANDWIDTH
