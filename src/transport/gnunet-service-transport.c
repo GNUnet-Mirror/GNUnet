@@ -3178,24 +3178,25 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 							      (ssize_t) msize))
 	    {
 	      n->quota_violation_count++;
-	      GNUNET_log (GNUNET_ERROR_TYPE_WARNING |
-			  GNUNET_ERROR_TYPE_BULK,
-			  _
-			  ("Bandwidth quota (%u b/s) violation detected (total of %u).\n"), 
+#if DEBUG_TRANSPORT
+	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,			  
+			  "Bandwidth quota (%u b/s) violation detected (total of %u).\n", 
 			  n->in_tracker.available_bytes_per_s__,
 			  n->quota_violation_count);
-	      if (n->quota_violation_count > QUOTA_VIOLATION_DROP_THRESHOLD)
-		{
-		  /* since we'll be dropping, only count this message for half so that
-		     peers that send aggressively at the quota don't get "punished"
-		     forever */
-		  GNUNET_BANDWIDTH_tracker_consume (&n->in_tracker,
-						    - (ssize_t) msize / 2);
-		}
+#endif
+	      /* Discount 32k per violation */
+	      GNUNET_BANDWIDTH_tracker_consume (&n->in_tracker,
+						- 32 * 1024);		
 	    }
 	  else 
 	    {
-	      n->quota_violation_count = 0; /* back within limits */
+	      if (n->quota_violation_count > 0)
+		{
+		  /* try to add 32k back */
+		  GNUNET_BANDWIDTH_tracker_consume (&n->in_tracker,
+						    32 * 1024);
+		  n->quota_violation_count--;
+		}
 	    }
 	  GNUNET_STATISTICS_update (stats,
 				    gettext_noop ("# payload received from other peers"),
