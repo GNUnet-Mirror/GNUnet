@@ -553,7 +553,7 @@ handle_dht_find_peer (void *cls, struct GNUNET_DHT_FindPeerMessage *find_msg,
   memcpy (&find_peer_result[1], &my_hello, hello_size);
 
   send_reply_to_client(message_context->client, &find_peer_result->header, message_context->unique_id);
-
+  GNUNET_free(find_peer_result);
   /* FIXME: Implement find peer functionality here */
 }
 
@@ -859,7 +859,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TRANSPORT_get_hello_cancel(transport_handle, &process_hello, NULL);
     GNUNET_TRANSPORT_disconnect(transport_handle);
   }
-  GNUNET_CORE_disconnect (coreAPI);
+  if (coreAPI != NULL)
+    GNUNET_CORE_disconnect (coreAPI);
 }
 
 
@@ -880,6 +881,11 @@ core_init (void *cls,
 
   if (server == NULL)
     {
+#if DEBUG_DHT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%s: Connection to core FAILED!\n", "dht",
+              GNUNET_i2s (identity));
+#endif
       GNUNET_SCHEDULER_cancel (sched, cleanup_task);
       GNUNET_SCHEDULER_add_now (sched, &shutdown_task, NULL);
       return;
