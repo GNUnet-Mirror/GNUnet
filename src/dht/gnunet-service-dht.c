@@ -467,9 +467,6 @@ static void
 handle_dht_get (void *cls, struct GNUNET_DHT_GetMessage *get_msg,
                 struct DHT_MessageContext *message_context)
 {
-#if DEBUG_DHT
-  GNUNET_HashCode get_key;
-#endif
   size_t get_type;
   unsigned int results;
   struct DatacacheGetContext *datacache_get_context;
@@ -481,7 +478,7 @@ handle_dht_get (void *cls, struct GNUNET_DHT_GetMessage *get_msg,
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "`%s': Received `%s' request from client, message type %d, key %s, uid %llu\n",
-              "DHT", "GET", get_type, GNUNET_h2s (&get_key),
+              "DHT", "GET", get_type, GNUNET_h2s (message_context->key),
               message_context->unique_id);
 #endif
 
