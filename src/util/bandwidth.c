@@ -257,8 +257,9 @@ GNUNET_BANDWIDTH_tracker_consume (struct GNUNET_BANDWIDTH_Tracker *av,
 	{
 #if DEBUG_BANDWIDTH
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Tracker %p consumption is above limit\n",
-		      av);
+		      "Tracker %p consumption %llu bytes above limit\n",
+		      av,
+		      (unsigned long long) av->consumption_since_last_update__);
 #endif
 	  return GNUNET_YES;
 	}
