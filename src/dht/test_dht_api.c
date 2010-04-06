@@ -275,7 +275,7 @@ test_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_assert (peer->dht_handle != NULL);
 
-  GNUNET_DHT_put (peer->dht_handle, &hash, 0, data_size, data,
+  GNUNET_DHT_put (peer->dht_handle, &hash, 42, data_size, data,
                   GNUNET_TIME_relative_to_absolute (TIMEOUT), TIMEOUT,
                   &test_get, &p1);
 
@@ -316,7 +316,7 @@ run (void *cls,
 
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_SECONDS, 10), &test_put,
+                                (GNUNET_TIME_UNIT_SECONDS, 3), &test_put,
                                 &p1);
 }
 
