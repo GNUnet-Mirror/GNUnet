@@ -42,6 +42,8 @@
 #include "gnunet_time_lib.h"
 #include "gnunet_util_lib.h"
 
+#define DEBUG_HOSTLIST_LEARNING GNUNET_YES
+#define VERBOSE GNUNET_YES
 
 /**
  * Set if we are allowed to advertise our hostlist to others.
@@ -110,6 +112,22 @@ core_init (void *cls,
     }
 }
 
+/**
+ * Core handler for p2p hostlist advertisements
+ */
+static int handle_hostlist_advertisement (void *cls,
+                             const struct GNUNET_PeerIdentity * peer,
+                             const struct GNUNET_MessageHeader * message,
+                             struct GNUNET_TIME_Relative latency,
+                             uint32_t distance)
+{
+#if DEBUG_HOSTLIST_LEARNING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Recieved hostlist advertisement\n"));
+#endif
+
+      return GNUNET_OK;
+}
 
 /**
  * Last task run during shutdown.  Disconnects us from
@@ -119,7 +137,7 @@ static void
 cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Hostlist daemon is shutting down.\n");
+	      "Hostlist daemon is shutting down\n");
   if (bootstrapping)
     {
       GNUNET_HOSTLIST_client_stop ();
@@ -141,6 +159,14 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
 }
 
+/**
+ * List of handlers for the messages understood by this
+ * service.
+ */
+static struct GNUNET_CORE_MessageHandler handlers[] = {
+    { &handle_hostlist_advertisement, GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT, 0},
+    { NULL, 0, 0 }
+};
 
 /**
  * Main function that will be run.
@@ -160,10 +186,14 @@ run (void *cls,
 {
   GNUNET_CORE_ConnectEventHandler ch = NULL;
   GNUNET_CORE_DisconnectEventHandler dh = NULL;
-  struct GNUNET_CORE_MessageHandler handlers[] = 
-    {
+
+
+
+  struct GNUNET_CORE_MessageHandler null_handler[] = {
       { NULL, 0, 0 }
-    };
+  };
+
+  struct GNUNET_CORE_MessageHandler *used_handler = null_handler;
 
   if ( (! bootstrapping) &&
        (! learning) &&
@@ -185,16 +215,18 @@ run (void *cls,
     }
   if (learning)
     {
-      /* FIXME (register handler with core for hostlist ads) */
+      used_handler = handlers;
     }
+
   core = GNUNET_CORE_connect (sched, cfg,
-			      GNUNET_TIME_UNIT_FOREVER_REL,
-			      NULL,
-			      &core_init,
-			      NULL, ch, dh,
-			      NULL, GNUNET_NO,
-			      NULL, GNUNET_NO,
-			      handlers);
+                            GNUNET_TIME_UNIT_FOREVER_REL,
+                            NULL,
+                            &core_init,
+                            NULL, ch, dh,
+                            NULL, GNUNET_NO,
+                            NULL, GNUNET_NO,
+                            used_handler);
+
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &cleaning_task, NULL);
@@ -220,6 +252,14 @@ int
 main (int argc, char *const *argv)
 {
   int ret;
+  GNUNET_log_setup ("hostlist","DEBUG",NULL);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "ERROR\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "DEBUG\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "INFO\n");
 
   ret = (GNUNET_OK ==
          GNUNET_PROGRAM_run (argc,
@@ -228,6 +268,7 @@ main (int argc, char *const *argv)
 			     _("GNUnet hostlist server and client"),
 			     options,
 			     &run, NULL)) ? 0 : 1;
+
   return ret;
 }
 
