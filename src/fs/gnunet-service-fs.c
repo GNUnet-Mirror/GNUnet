@@ -1010,7 +1010,6 @@ transmit_to_peer (void *cls,
   struct GNUNET_PeerIdentity pid;
   struct PendingMessage *pm;
   size_t msize;
-  struct PendingRequest *pr;
  
   cp->cth = NULL;
   if (NULL == buf)
@@ -1028,7 +1027,6 @@ transmit_to_peer (void *cls,
       memcpy (&cbuf[msize], &pm[1], pm->msize);
       msize += pm->msize;
       size -= pm->msize;
-      pr = pm->pml->req;
       destroy_pending_message (pm, cp->pid);
     }
   if (NULL != pm)
