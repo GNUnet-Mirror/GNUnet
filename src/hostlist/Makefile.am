@@ -28,7 +28,9 @@ gnunet_daemon_hostlist_CPPFLAGS = \
  @LIBCURL_CPPFLAGS@ 
 
 check_PROGRAMS = \
- test_gnunet_daemon_hostlist
+ test_gnunet_daemon_hostlist \
+ test_gnunet_daemon_hostlist_learning
+ 
 
 TESTS = $(check_PROGRAMS)
 
@@ -39,8 +41,19 @@ test_gnunet_daemon_hostlist_LDADD = \
   $(top_builddir)/src/arm/libgnunetarm.la \
   $(top_builddir)/src/util/libgnunetutil.la  
 
+test_gnunet_daemon_hostlist_learning_SOURCES = \
+ test_gnunet_daemon_hostlist_learning.c
+test_gnunet_daemon_hostlist_learning_LDADD = \
+  $(top_builddir)/src/transport/libgnunettransport.la \
+  $(top_builddir)/src/arm/libgnunetarm.la \
+  $(top_builddir)/src/util/libgnunetutil.la  
+
 EXTRA_DIST = \
   test_gnunet_daemon_hostlist_data.conf \
   test_gnunet_daemon_hostlist_data_peer1.conf \
-  test_gnunet_daemon_hostlist_data_peer2.conf 
+  test_gnunet_daemon_hostlist_data_peer2.conf \
+  learning_data.conf \
+  learning_data_peer1.conf \
+  learning_data_peer2.conf
+  
 
