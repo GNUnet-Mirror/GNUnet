@@ -42,9 +42,6 @@
 #include "gnunet_time_lib.h"
 #include "gnunet_util_lib.h"
 
-#define DEBUG_HOSTLIST_LEARNING GNUNET_YES
-#define VERBOSE GNUNET_YES
-
 /**
  * Set if we are allowed to advertise our hostlist to others.
  */
@@ -253,13 +250,6 @@ main (int argc, char *const *argv)
 {
   int ret;
   GNUNET_log_setup ("hostlist","DEBUG",NULL);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "ERROR\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "DEBUG\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "INFO\n");
 
   ret = (GNUNET_OK ==
          GNUNET_PROGRAM_run (argc,
