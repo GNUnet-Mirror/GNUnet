@@ -40,11 +40,40 @@
 #define START_ARM GNUNET_YES
 
 /**
- * How long until we give up on transmitting the message?
+ * How long until we really give up on a particular testcase portion?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 50)
+#define TOTAL_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 50)
+
+/**
+ * How long until we give up on any particular operation (and retry)?
+ */
+#define BASE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
 
 #define MTYPE 12345
+
+struct RetryContext
+{
+  /**
+   * When to really abort the operation.
+   */
+  struct GNUNET_TIME_Absolute real_timeout;
+
+  /**
+   * What timeout to set for the current attempt (increases)
+   */
+  struct GNUNET_TIME_Relative next_timeout;
+
+  /**
+   * The context of the peer we are dealing with.
+   */
+  struct PeerContext *peer_ctx;
+
+  /**
+   * The task identifier of the retry task, so it can be cancelled.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier retry_task;
+
+};
 
 struct PeerContext
 {
@@ -160,9 +189,13 @@ void test_find_peer_processor (void *cls,
                           const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_MessageHeader *reply)
 {
+  struct RetryContext *retry_ctx = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "test_find_peer_processor called (peer `%s'), stopping find peer request!\n", GNUNET_i2s(peer));
+
+  if (retry_ctx->retry_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(sched, retry_ctx->retry_task);
 
   GNUNET_SCHEDULER_add_continuation (sched, &test_find_peer_stop, &p1,
                                      GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -170,7 +203,63 @@ void test_find_peer_processor (void *cls,
 
 
 /**
- * Signature of the main function of a task.
+ * Retry the find_peer task on timeout.
+ *
+ * @param cls closure
+ * @param tc context information (why was this task triggered now)
+ */
+void
+retry_find_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct RetryContext *retry_ctx = cls;
+  GNUNET_HashCode hash;
+  memset (&hash, 42, sizeof (GNUNET_HashCode));
+
+  if (GNUNET_TIME_absolute_get_remaining(retry_ctx->real_timeout).value > 0)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "test_find_peer timed out, retrying!\n");
+
+      retry_ctx->peer_ctx->find_peer_handle =
+          GNUNET_DHT_find_peer_start (retry_ctx->peer_ctx->dht_handle, retry_ctx->next_timeout, 0, NULL, &hash,
+                                      &test_find_peer_processor, retry_ctx, NULL, NULL);
+    }
+  else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "test_find_peer timed out for good, failing!\n");
+
+      retry_ctx->peer_ctx->find_peer_handle = NULL;
+    }
+
+  if (retry_ctx->peer_ctx->find_peer_handle == NULL)
+    GNUNET_SCHEDULER_add_now (sched, &end_badly, &p1);
+  else
+    retry_ctx->retry_task = GNUNET_SCHEDULER_add_delayed(sched, retry_ctx->next_timeout, &retry_find_peer, retry_ctx);
+}
+
+/**
+ * Retry the find_peer task on timeout.
+ *
+ * @param cls closure
+ * @param tc context information (why was this task triggered now)
+ */
+void
+retry_find_peer_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct RetryContext *retry_ctx = cls;
+  GNUNET_HashCode hash;
+  memset (&hash, 42, sizeof (GNUNET_HashCode));
+
+  if (retry_ctx->peer_ctx->find_peer_handle != NULL)
+    GNUNET_DHT_find_peer_stop(retry_ctx->peer_ctx->find_peer_handle, &retry_find_peer, retry_ctx);
+  else
+    GNUNET_SCHEDULER_add_now (sched, &retry_find_peer, retry_ctx);
+
+}
+
+/**
+ * Entry point for test of find_peer functionality.
  *
  * @param cls closure
  * @param tc context information (why was this task triggered now)
@@ -181,16 +270,24 @@ test_find_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct PeerContext *peer = cls;
   GNUNET_HashCode hash;
   memset (&hash, 42, sizeof (GNUNET_HashCode));
+  struct RetryContext *retry_ctx;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Called test_find_peer!\n");
   GNUNET_assert (peer->dht_handle != NULL);
 
+  retry_ctx = GNUNET_malloc(sizeof(struct RetryContext));
+  retry_ctx->real_timeout = GNUNET_TIME_relative_to_absolute(TOTAL_TIMEOUT);
+  retry_ctx->next_timeout = BASE_TIMEOUT;
+  retry_ctx->peer_ctx = peer;
+
   peer->find_peer_handle =
-    GNUNET_DHT_find_peer_start (peer->dht_handle, TIMEOUT, 0, NULL, &hash,
-                                &test_find_peer_processor, NULL, NULL, NULL);
+    GNUNET_DHT_find_peer_start (peer->dht_handle, retry_ctx->next_timeout, 0, NULL, &hash,
+                                &test_find_peer_processor, retry_ctx, NULL, NULL);
 
   if (peer->find_peer_handle == NULL)
     GNUNET_SCHEDULER_add_now (sched, &end_badly, &p1);
+  else
+    retry_ctx->retry_task = GNUNET_SCHEDULER_add_delayed(sched, retry_ctx->next_timeout, &retry_find_peer_stop, retry_ctx);
 }
 
 /**
@@ -247,7 +344,7 @@ test_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (peer->dht_handle != NULL);
 
   peer->get_handle =
-    GNUNET_DHT_get_start (peer->dht_handle, TIMEOUT, 42, &hash,
+    GNUNET_DHT_get_start (peer->dht_handle, TOTAL_TIMEOUT, 42, &hash,
                           &test_get_iterator, NULL, NULL, NULL);
 
   if (peer->get_handle == NULL)
@@ -276,7 +373,7 @@ test_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (peer->dht_handle != NULL);
 
   GNUNET_DHT_put (peer->dht_handle, &hash, 42, data_size, data,
-                  GNUNET_TIME_relative_to_absolute (TIMEOUT), TIMEOUT,
+                  GNUNET_TIME_relative_to_absolute (TOTAL_TIMEOUT), TOTAL_TIMEOUT,
                   &test_get, &p1);
 
 }
@@ -316,7 +413,7 @@ run (void *cls,
 
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_SECONDS, 3), &test_put,
+                                (GNUNET_TIME_UNIT_SECONDS, 1), &test_put,
                                 &p1);
 }
 

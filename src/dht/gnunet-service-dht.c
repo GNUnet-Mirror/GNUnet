@@ -492,11 +492,10 @@ handle_dht_get (void *cls, struct GNUNET_DHT_GetMessage *get_msg,
       GNUNET_DATACACHE_get (datacache, message_context->key, get_type,
                             &datacache_get_iterator, datacache_get_context);
 
-#if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "`%s': Found %d results for local `%s' request\n", "DHT",
               results, "GET");
-#endif
+
   GNUNET_free (datacache_get_context);
   /* FIXME: Implement get functionality here */
 }
