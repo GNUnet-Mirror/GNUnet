@@ -266,7 +266,7 @@ GNUNET_BANDWIDTH_tracker_consume (struct GNUNET_BANDWIDTH_Tracker *av,
     }
   else
     {
-      av->last_update__.value -= (size * av->available_bytes_per_s__ + 500LL) / 1000LL;
+      av->last_update__.value -= ((-size) * av->available_bytes_per_s__ + 500LL) / 1000LL;
       update_tracker (av);
     }
   return GNUNET_NO;
