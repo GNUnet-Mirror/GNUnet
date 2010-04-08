@@ -194,6 +194,7 @@ GNUNET_CONTAINER_multihashmap_iterate (const struct
   unsigned int i;
   struct MapEntry *e;
   struct MapEntry *n;
+  GNUNET_HashCode kc;
 
   count = 0;
   for (i = 0; i < map->map_length; i++)
@@ -202,8 +203,12 @@ GNUNET_CONTAINER_multihashmap_iterate (const struct
       while (NULL != (e = n))
         {
 	  n = e->next;
-          if ((NULL != it) && (GNUNET_OK != it (it_cls, &e->key, e->value)))
-            return GNUNET_SYSERR;
+          if (NULL != it)
+	    {
+	      kc = e->key;
+	      if (GNUNET_OK != it (it_cls, &kc, e->value))
+		return GNUNET_SYSERR;
+	    }
           count++;
         }
     }
@@ -446,7 +451,7 @@ GNUNET_CONTAINER_multihashmap_get_multiple (const struct
       n = e->next;
       if (0 != memcmp (key, &e->key, sizeof (GNUNET_HashCode)))
 	continue;
-      if ((it != NULL) && (GNUNET_OK != it (it_cls, &e->key, e->value)))
+      if ((it != NULL) && (GNUNET_OK != it (it_cls, key, e->value)))
 	return GNUNET_SYSERR;
       count++;
     }
