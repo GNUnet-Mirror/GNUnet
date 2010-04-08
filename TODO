@@ -4,11 +4,6 @@
     (disconnect does not really succeed, or what?)
     Also, core does not seem to actually decrement the number of active
     sessions even if no connections exist for a while! (likely related...)
-* FS: [CG]
-  - 2-peer download is still too slow (why? testcases fail on slow systems!)
-    => now seems to work well with high BW quota ("\infty"), but not so well with the 
-       typical small quota
-    => should print kb/s in testcase output!
 * WWW:
   - Get IPv6 hooked up [AK, after April 12th]
   - change DNS [CG, need DNS]
