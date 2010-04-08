@@ -26,12 +26,12 @@
 #include "platform.h"
 #include "fs_test_lib.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 /**
  * File-size we use for testing.
  */
-#define FILESIZE (1024 * 1024 * 2)
+#define FILESIZE (1024 * 1024 * 20)
 
 /**
  * How long until we give up on transmitting the message?
@@ -48,16 +48,28 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 
 static int ok;
 
+static struct GNUNET_TIME_Absolute start_time;
 
 static void
 do_stop (void *cls,
 	 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct GNUNET_TIME_Relative del;
+  char *fancy;
+
   GNUNET_FS_TEST_daemons_stop (sched,
 			       NUM_DAEMONS,
 			       daemons);
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
     {
+      del = GNUNET_TIME_absolute_get_duration (start_time);
+      if (del.value == 0)
+	del.value = 1;
+      fancy = GNUNET_STRINGS_byte_size_fancy (((unsigned long long)FILESIZE) * 1000LL / del.value);
+      fprintf (stdout,
+	       "Download speed was %s/s\n",
+	       fancy);
+      GNUNET_free (fancy);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Finished download, shutting down\n",
 		  (unsigned long long) FILESIZE);
@@ -88,6 +100,7 @@ do_download (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Downloading %llu bytes\n",
 	      (unsigned long long) FILESIZE);
+  start_time = GNUNET_TIME_absolute_get ();
   GNUNET_FS_TEST_download (sched,
 			   daemons[0],
 			   TIMEOUT,

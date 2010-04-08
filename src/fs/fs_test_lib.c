@@ -481,9 +481,15 @@ file_generator (void *cls,
   struct GNUNET_FS_TestDaemon *daemon = cls;
   uint64_t pos;
   uint8_t *cbuf = buf;
+  int mod;
 
   for (pos=0;pos<max;pos++)
-    cbuf[pos] = (uint8_t) ((offset * daemon->publish_seed) % (255 - (offset / 1024 / 32)));  
+    {
+      mod = (255 - (offset / 1024 / 32));
+      if (mod == 0)
+	mod = 1;
+      cbuf[pos] = (uint8_t) ((offset * daemon->publish_seed) % mod));  
+    }
   return max;
 }
 

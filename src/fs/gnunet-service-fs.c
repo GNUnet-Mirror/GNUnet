@@ -47,7 +47,7 @@
 #include "gnunet-service-fs_indexing.h"
 #include "fs.h"
 
-#define DEBUG_FS GNUNET_YES
+#define DEBUG_FS GNUNET_NO
 
 /**
  * Maximum number of outgoing messages we queue per peer.
@@ -1594,7 +1594,7 @@ forward_request_task (void *cls,
 						&psc.target,
 						GNUNET_CONSTANTS_SERVICE_TIMEOUT, 
 						GNUNET_BANDWIDTH_value_init ((uint32_t) -1 /* no limit */), 
-						DBLOCK_SIZE, 
+						DBLOCK_SIZE * 2, 
 						(uint64_t) cp->inc_preference,
 						&target_reservation_cb,
 						pr);
@@ -2011,11 +2011,6 @@ process_reply (void *cls,
   pr->remaining_priority = 0;
   if (pr->client_request_list != NULL)
     {
-#if DEBUG_FS
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Transmitting result for query `%s' to local client\n",
-		  GNUNET_h2s (key));
-#endif  
       GNUNET_STATISTICS_update (stats,
 				gettext_noop ("# replies received for local clients"),
 				1,
