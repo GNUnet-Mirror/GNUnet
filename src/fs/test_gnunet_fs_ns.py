@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!python
 #    This file is part of GNUnet.
 #    (C) 2010 Christian Grothoff (and other contributing authors)
 #
