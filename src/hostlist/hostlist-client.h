@@ -40,6 +40,7 @@
  * @param st hande for publishing statistics
  * @param ch set to handler for connect notifications
  * @param dh set to handler for disconnect notifications
+ * @param msgh set to handler for message handler notifications
  * @return GNUNET_OK on success
  */
 int
@@ -47,7 +48,8 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
 			      struct GNUNET_SCHEDULER_Handle *s,
 			      struct GNUNET_STATISTICS_Handle *st,
 			      GNUNET_CORE_ConnectEventHandler *ch,
-			      GNUNET_CORE_DisconnectEventHandler *dh);
+			      GNUNET_CORE_DisconnectEventHandler *dh,
+			      GNUNET_CORE_MessageCallback *msgh);
 
 
 /**

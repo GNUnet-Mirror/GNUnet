@@ -75,6 +75,12 @@ static struct GNUNET_STATISTICS_Handle *stats;
 struct GNUNET_CORE_Handle *core;
 
 /**
+ * Handle to the hostlist client's advertisement handler
+ */
+GNUNET_CORE_MessageCallback client_adv_handler = NULL;
+
+
+/**
  * gnunet-daemon-hostlist command line options.
  */
 static struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -112,19 +118,40 @@ core_init (void *cls,
 /**
  * Core handler for p2p hostlist advertisements
  */
-static int handle_hostlist_advertisement (void *cls,
+static int advertisement_handler (void *cls,
                              const struct GNUNET_PeerIdentity * peer,
                              const struct GNUNET_MessageHeader * message,
                              struct GNUNET_TIME_Relative latency,
                              uint32_t distance)
 {
-#if DEBUG_HOSTLIST_LEARNING
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  _("Recieved hostlist advertisement\n"));
-#endif
-
-      return GNUNET_OK;
+  if (advertising && (NULL != client_adv_handler))
+    {
+        (*client_adv_handler) (cls, peer, message, latency, distance);
+        return GNUNET_YES;
+    }
+  return GNUNET_NO;
 }
+
+/**
+ * Method called whenever a given peer connects.
+ *
+ * @param cls closure
+ * @param peer peer identity this notification is about
+ * @param latency reported latency of the connection with 'other'
+ * @param distance reported distance (DV) to 'other'
+ */
+static void
+connect_handler (void *cls,
+                 const struct
+                 GNUNET_PeerIdentity * peer,
+                 struct GNUNET_TIME_Relative latency,
+                 uint32_t distance)
+{
+  /* call hostlist client connection handler*/
+
+  /* do my own stuff */
+}
+
 
 /**
  * Last task run during shutdown.  Disconnects us from
@@ -161,7 +188,7 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * service.
  */
 static struct GNUNET_CORE_MessageHandler handlers[] = {
-    { &handle_hostlist_advertisement, GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT, 0},
+    { &advertisement_handler, GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT, 0},
     { NULL, 0, 0 }
 };
 
@@ -184,14 +211,6 @@ run (void *cls,
   GNUNET_CORE_ConnectEventHandler ch = NULL;
   GNUNET_CORE_DisconnectEventHandler dh = NULL;
 
-
-
-  struct GNUNET_CORE_MessageHandler null_handler[] = {
-      { NULL, 0, 0 }
-  };
-
-  struct GNUNET_CORE_MessageHandler *used_handler = null_handler;
-
   if ( (! bootstrapping) &&
        (! learning) &&
        (! provide_hostlist) )
@@ -204,7 +223,7 @@ run (void *cls,
   if (bootstrapping)
     {
       GNUNET_HOSTLIST_client_start (cfg, sched, stats,
-				    &ch, &dh);
+				    &ch, &dh, &client_adv_handler);
     }
   if (provide_hostlist)
     {      
@@ -212,8 +231,13 @@ run (void *cls,
     }
   if (learning)
     {
-      used_handler = handlers;
+
     }
+
+
+  struct GNUNET_TIME_Relative a;
+  advertisement_handler(NULL,NULL,NULL,a,6);
+
 
   core = GNUNET_CORE_connect (sched, cfg,
                             GNUNET_TIME_UNIT_FOREVER_REL,
@@ -222,7 +246,7 @@ run (void *cls,
                             NULL, ch, dh,
                             NULL, GNUNET_NO,
                             NULL, GNUNET_NO,
-                            used_handler);
+                            handlers);
 
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_TIME_UNIT_FOREVER_REL,

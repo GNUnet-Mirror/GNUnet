@@ -32,7 +32,7 @@
 #include "gnunet_transport_service.h"
 #include <curl/curl.h>
 
-#define DEBUG_HOSTLIST_CLIENT GNUNET_NO
+#define DEBUG_HOSTLIST_CLIENT GNUNET_YES
 
 /**
  * Number of connections that we must have to NOT download
@@ -695,7 +695,7 @@ connect_handler (void *cls,
 
 
 /**
- * Method called whenever a given peer connects.
+ * Method called whenever a given peer disconnects.
  *
  * @param cls closure
  * @param peer peer identity this notification is about
@@ -712,6 +712,31 @@ disconnect_handler (void *cls,
 			    GNUNET_NO);  
 }
 
+/**
+ * Method called whenever an advertisement message arrives.
+ *
+ * @param cls closure (always NULL)
+ * @param client identification of the client
+ * @param message the actual message
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+static int
+advertisement_handler (void *cls,
+    const struct GNUNET_PeerIdentity * peer,
+    const struct GNUNET_MessageHeader * message,
+    struct GNUNET_TIME_Relative latency,
+    uint32_t distance)
+{
+#if DEBUG_HOSTLIST_CLIENT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Hostlist client recieved advertisement message\n");
+#endif
+
+     /* put code to use message here */
+
+     return GNUNET_YES;
+}
 
 /**
  * Continuation called by the statistics code once 
@@ -757,7 +782,8 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
 			      struct GNUNET_SCHEDULER_Handle *s,
 			      struct GNUNET_STATISTICS_Handle *st,
 			      GNUNET_CORE_ConnectEventHandler *ch,
-			      GNUNET_CORE_DisconnectEventHandler *dh)
+			      GNUNET_CORE_DisconnectEventHandler *dh,
+			      GNUNET_CORE_MessageCallback *msgh)
 {
   if (0 != curl_global_init (CURL_GLOBAL_WIN32))
     {
@@ -781,6 +807,7 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
     proxy = NULL;
   *ch = &connect_handler;
   *dh = &disconnect_handler;
+  *msgh = &advertisement_handler;
   GNUNET_STATISTICS_get (stats,
 			 "hostlist",
 			 gettext_noop("Minimum time between hostlist downloads"),
