@@ -42,6 +42,8 @@
 #include "gnunet_time_lib.h"
 #include "gnunet_util_lib.h"
 
+#define DEBUG_HOSTLIST GNUNET_YES
+
 /**
  * Set if we are allowed to advertise our hostlist to others.
  */
@@ -79,6 +81,25 @@ struct GNUNET_CORE_Handle *core;
  */
 GNUNET_CORE_MessageCallback client_adv_handler = NULL;
 
+/**
+ * Handle to hostlist client's connect handler
+ */
+GNUNET_CORE_ConnectEventHandler client_ch = NULL;
+
+/**
+ * Handle to hostlist client's disconnect handler
+ */
+GNUNET_CORE_DisconnectEventHandler client_dh = NULL;
+
+/**
+ * Handle to hostlist server's connect handler
+ */
+GNUNET_CORE_ConnectEventHandler server_ch = NULL;
+
+/**
+ * Handle to hostlist server's disconnect handler
+ */
+GNUNET_CORE_DisconnectEventHandler server_dh = NULL;
 
 /**
  * gnunet-daemon-hostlist command line options.
@@ -133,7 +154,7 @@ static int advertisement_handler (void *cls,
 }
 
 /**
- * Method called whenever a given peer connects.
+ * Method called whenever a given peer connects.  Wrapper to call both client's and server's functions
  *
  * @param cls closure
  * @param peer peer identity this notification is about
@@ -147,11 +168,36 @@ connect_handler (void *cls,
                  struct GNUNET_TIME_Relative latency,
                  uint32_t distance)
 {
-  /* call hostlist client connection handler*/
-
-  /* do my own stuff */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "A new peer connected, notifying client and server\n");
+  if ( NULL != client_ch)
+    (*client_ch) (cls, peer, latency, distance);
+  if ( NULL != server_ch)
+    (*server_ch) (cls, peer, latency, distance);
 }
 
+/**
+ * Method called whenever a given peer disconnects. Wrapper to call both client's and server's functions
+ *
+ * @param cls closure
+ * @param peer peer identity this notification is about
+ * @param latency reported latency of the connection with 'other'
+ * @param distance reported distance (DV) to 'other'
+ */
+static void
+disconnect_handler (void *cls,
+                    const struct
+                    GNUNET_PeerIdentity * peer)
+{
+
+  /* call hostlist client disconnect handler*/
+  if ( NULL != client_dh)
+    (*client_dh) (cls, peer);
+
+  /* call hostlist server disconnect handler*/
+  if ( NULL != server_dh)
+    (*server_dh) (cls, peer);
+}
 
 /**
  * Last task run during shutdown.  Disconnects us from
@@ -208,9 +254,6 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle * cfg)
 {
-  GNUNET_CORE_ConnectEventHandler ch = NULL;
-  GNUNET_CORE_DisconnectEventHandler dh = NULL;
-
   if ( (! bootstrapping) &&
        (! learning) &&
        (! provide_hostlist) )
@@ -223,27 +266,22 @@ run (void *cls,
   if (bootstrapping)
     {
       GNUNET_HOSTLIST_client_start (cfg, sched, stats,
-				    &ch, &dh, &client_adv_handler);
+				    &client_ch, &client_dh, &client_adv_handler);
     }
   if (provide_hostlist)
     {      
-      GNUNET_HOSTLIST_server_start (cfg, sched, stats);
+      GNUNET_HOSTLIST_server_start (cfg, sched, stats, &server_ch, &server_dh);
     }
   if (learning)
     {
 
     }
 
-
-  struct GNUNET_TIME_Relative a;
-  advertisement_handler(NULL,NULL,NULL,a,6);
-
-
   core = GNUNET_CORE_connect (sched, cfg,
                             GNUNET_TIME_UNIT_FOREVER_REL,
                             NULL,
                             &core_init,
-                            NULL, ch, dh,
+                            NULL, &connect_handler, &disconnect_handler,
                             NULL, GNUNET_NO,
                             NULL, GNUNET_NO,
                             handlers);

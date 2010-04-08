@@ -30,7 +30,8 @@
 
 #define START_ARM GNUNET_YES
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
+#define DEBUG GNUNET_YES
 
 /**
  * How long until we give up on transmitting the message?

@@ -349,6 +349,40 @@ access_handler_callback (void *cls,
   return MHD_queue_response (connection, MHD_HTTP_OK, response);
 }
 
+/**
+ * Method called whenever a given peer connects.
+ *
+ * @param cls closure
+ * @param peer peer identity this notification is about
+ * @param latency reported latency of the connection with 'other'
+ * @param distance reported distance (DV) to 'other'
+ */
+static void
+connect_handler (void *cls,
+                 const struct
+                 GNUNET_PeerIdentity * peer,
+                 struct GNUNET_TIME_Relative latency,
+                 uint32_t distance)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "A new peer connected to the server, preparing to send hostlist advertisement\n");
+}
+
+
+/**
+ * Method called whenever a given peer disconnects.
+ *
+ * @param cls closure
+ * @param peer peer identity this notification is about
+ */
+static void
+disconnect_handler (void *cls,
+                    const struct
+                    GNUNET_PeerIdentity * peer)
+{
+
+}
+
 
 /**
  * Function that queries MHD's select sets and
@@ -446,7 +480,9 @@ prepare_daemon (struct MHD_Daemon *daemon_handle)
 int
 GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 			      struct GNUNET_SCHEDULER_Handle *s,
-			      struct GNUNET_STATISTICS_Handle *st)
+			      struct GNUNET_STATISTICS_Handle *st,
+	                      GNUNET_CORE_ConnectEventHandler *server_ch,
+                              GNUNET_CORE_DisconnectEventHandler *server_dh)
 {
   unsigned long long port;
 
@@ -500,6 +536,10 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 		  (unsigned short) port);
       return GNUNET_SYSERR;    
     }
+
+  *server_ch = &connect_handler;
+  *server_dh = &disconnect_handler;
+
   if (daemon_handle_v4 != NULL)
     hostlist_task_v4 = prepare_daemon (daemon_handle_v4);
   if (daemon_handle_v6 != NULL)
