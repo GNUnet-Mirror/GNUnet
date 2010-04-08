@@ -488,7 +488,7 @@ file_generator (void *cls,
       mod = (255 - (offset / 1024 / 32));
       if (mod == 0)
 	mod = 1;
-      cbuf[pos] = (uint8_t) ((offset * daemon->publish_seed) % mod));  
+      cbuf[pos] = (uint8_t) ((offset * daemon->publish_seed) % mod);  
     }
   return max;
 }
