@@ -29,6 +29,8 @@
 #include "hostlist-server.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_peerinfo_service.h"
+#include "gnunet-daemon-hostlist.h"
+#include "gnunet_resolver_service.h"
 
 #define DEBUG_HOSTLIST_SERVER GNUNET_NO
 
@@ -97,7 +99,6 @@ struct HostSet
   char *data;
 };
 
-
 /**
  * Task that will produce a new response object.
  */
@@ -105,6 +106,46 @@ static void
 update_response (void *cls,
 		 const struct GNUNET_SCHEDULER_TaskContext *tc);
 
+/**
+ * Function that assembles our hostlist adv message.
+ */
+static int
+create_hostlist_adv_message (void)
+{
+  int length  = 0;
+  unsigned long long port;
+
+  char *uri;
+  char hostname[HOST_NAME_MAX];
+  char *protocol = "http://";
+  char *port_s = malloc(6 * sizeof(char));
+
+  if (0 != gethostname (hostname, sizeof (hostname) - 1))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+        "Could not get system's hostname, unable to create advertisement message");
+    return GNUNET_NO;
+  }
+  if (-1 == GNUNET_CONFIGURATION_get_value_number (cfg,
+                                                   "HOSTLIST",
+                                                   "HTTPPORT",
+                                                   &port))
+    return GNUNET_SYSERR;
+
+  sprintf(port_s, "%llu", port);
+  length = strlen(hostname)+strlen(protocol)+strlen(port_s)+2;
+
+  uri = malloc(length * sizeof(char));
+  uri = strcpy(uri, protocol);
+  uri = strcat(uri, hostname);
+  uri = strcat(uri, ":");
+  uri = strcat(uri, port_s);
+  uri = strcat(uri, "/");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Address to obtain hostlist: %s\n", uri);
+
+
+  return GNUNET_OK;
+}
 
 /**
  * Function that assembles our response.
@@ -113,27 +154,27 @@ static void
 finish_response (struct HostSet *results)
 {
   struct GNUNET_TIME_Relative freq;
-  
+
   if (response != NULL)
     MHD_destroy_response (response);
 #if DEBUG_HOSTLIST_SERVER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Creating hostlist response with %u bytes\n",
-	      (unsigned int) results->size);
+              "Creating hostlist response with %u bytes\n",
+              (unsigned int) results->size);
 #endif
   response = MHD_create_response_from_data (results->size,
                                             results->data, MHD_YES, MHD_NO);
   if ( (daemon_handle_v4 != NULL) ||
-       (daemon_handle_v6 != NULL) )    
+       (daemon_handle_v6 != NULL) )
     {
       freq = RESPONSE_UPDATE_FREQUENCY;
       if (results->size == 0)
-	freq = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250);
-      /* schedule next update of the response */  
+        freq = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250);
+      /* schedule next update of the response */
       response_task = GNUNET_SCHEDULER_add_delayed (sched,
-						    freq,
-						    &update_response,
-						    NULL);
+                                                    freq,
+                                                    &update_response,
+                                                    NULL);
     }
   else
     {
@@ -142,9 +183,9 @@ finish_response (struct HostSet *results)
       response = NULL;
     }
   GNUNET_STATISTICS_set (stats,
-			 gettext_noop("bytes in hostlist"),
-			 results->size,
-			 GNUNET_YES);
+                         gettext_noop("bytes in hostlist"),
+                         results->size,
+                         GNUNET_YES);
   GNUNET_free (results);
 }
 
@@ -366,6 +407,9 @@ connect_handler (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "A new peer connected to the server, preparing to send hostlist advertisement\n");
+  /* create a new advertisement message */
+  create_hostlist_adv_message();
+
 }
 
 

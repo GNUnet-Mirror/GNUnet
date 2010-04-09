@@ -42,8 +42,6 @@
 #include "gnunet_time_lib.h"
 #include "gnunet_util_lib.h"
 
-#define DEBUG_HOSTLIST GNUNET_YES
-
 /**
  * Set if we are allowed to advertise our hostlist to others.
  */
@@ -118,6 +116,31 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
     gettext_noop ("provide a hostlist server"),
     GNUNET_NO, &GNUNET_GETOPT_set_one, &provide_hostlist},
   GNUNET_GETOPT_OPTION_END
+};
+
+/**
+ * A HOSTLIST_ADV message is used to exchange information about
+ * hostlist advertisements.  This struct is always
+ * followed by the actual url under which the hostlist can be obtained:
+ *
+ * 1) transport-name (0-terminated)
+ * 2) address-length (uint32_t, network byte order; possibly
+ *    unaligned!)
+ * 3) address expiration (GNUNET_TIME_AbsoluteNBO); possibly
+ *    unaligned!)
+ * 4) address (address-length bytes; possibly unaligned!)
+ */
+struct GNUNET_HOSTLIST_ADV_Message
+{
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Always zero (for alignment).
+   */
+  uint32_t reserved GNUNET_PACKED;
 };
 
 

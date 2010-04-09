@@ -108,6 +108,7 @@ notify_connect (void *cls,
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Peers connected, shutting down.\n");
+  /*
   ok = 0;
   if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
     {
@@ -117,6 +118,7 @@ notify_connect (void *cls,
     }
   GNUNET_SCHEDULER_add_now (sched,
 			    &clean_up, NULL);
+			    */
 }
 
 
