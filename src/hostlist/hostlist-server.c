@@ -105,11 +105,6 @@ struct HostSet
 };
 
 /**
- * Local max hostname length (some platforms use sysconf() for it)
- */
-static int max_hostname_length;
-
-/**
  * Task that will produce a new response object.
  */
 static void
@@ -405,11 +400,11 @@ adv_create_message ( const struct GNUNET_PeerIdentity * peer,
   unsigned long long port;
 
   char *uri;
-  char hostname[max_hostname_length + 1];
+  char hostname[GNUNET_OS_get_hostname_max_length() + 1];
   char *protocol = "http://";
   char *port_s = GNUNET_malloc(6 * sizeof(char));
 
-  if (0 != gethostname (hostname, sizeof (hostname)))
+  if (0 != gethostname (hostname, sizeof (hostname) - 1))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
         "Could not get system's hostname, unable to create advertisement message");
@@ -617,16 +612,6 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
                               GNUNET_CORE_DisconnectEventHandler *server_dh)
 {
   unsigned long long port;
-
-#if HAVE_SYSCONF && defined(_SC_HOST_NAME_MAX)
-  max_hostname_length = sysconf(_SC_HOST_NAME_MAX);
-  if (-1 == max_hostname_length)
-    return GNUNET_SYSERR;
-#elif defined(HOST_NAME_MAX)
-  max_hostname_length = HOST_NAME_MAX;
-#else
-  max_hostname_length = 255; /* sensible default? */
-#endif
 
   sched = s;
   cfg = c;

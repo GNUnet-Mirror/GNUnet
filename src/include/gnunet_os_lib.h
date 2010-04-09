@@ -155,6 +155,18 @@ void GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor
                                         proc, void *proc_cls);
 
 /**
+ * @brief Get maximum string length returned by gethostname()
+ */
+#if HAVE_SYSCONF && defined(_SC_HOST_NAME_MAX)
+#define GNUNET_OS_get_hostname_max_length() ({ int __sc_tmp = sysconf(_SC_HOST_NAME_MAX); __sc_tmp <= 0 ? 255 : __sc_tmp; })
+#elif defined(HOST_NAME_MAX)
+#define GNUNET_OS_get_hostname_max_length() HOST_NAME_MAX
+#else
+#define GNUNET_OS_get_hostname_max_length() 255
+#endif
+
+
+/**
  * Get the current CPU load.
  *
  * @param cfg to determine acceptable load level (LOAD::MAXCPULOAD)

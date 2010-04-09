@@ -25,6 +25,7 @@
  */
 #include "platform.h"
 #include "gnunet_getopt_lib.h"
+#include "gnunet_os_lib.h"
 #include "gnunet_client_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_resolver_service.h"
@@ -686,7 +687,7 @@ GNUNET_RESOLVER_hostname_resolve (struct GNUNET_SCHEDULER_Handle *sched,
                                   GNUNET_RESOLVER_AddressCallback callback,
                                   void *cls)
 {
-  char hostname[MAX_HOSTNAME];
+  char hostname[GNUNET_OS_get_hostname_max_length() + 1];
 
   check_config (cfg);
   if (0 != gethostname (hostname, sizeof (hostname) - 1))
