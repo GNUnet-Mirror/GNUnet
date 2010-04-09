@@ -110,9 +110,10 @@ update_response (void *cls,
  * Function that assembles our hostlist adv message.
  */
 static int
-create_hostlist_adv_message (void)
+create_hostlist_adv_message (struct GNUNET_HOSTLIST_ADV_Message *adv_msg)
 {
   int length  = 0;
+  int size    = 0;
   unsigned long long port;
 
   char *uri;
@@ -134,8 +135,8 @@ create_hostlist_adv_message (void)
 
   sprintf(port_s, "%llu", port);
   length = strlen(hostname)+strlen(protocol)+strlen(port_s)+2;
-
-  uri = GNUNET_malloc(length * sizeof(char));
+  size = (length+1) * sizeof (char);
+  uri = GNUNET_malloc(size);
   uri = strcpy(uri, protocol);
   uri = strcat(uri, hostname);
   uri = strcat(uri, ":");
@@ -144,6 +145,29 @@ create_hostlist_adv_message (void)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Address to obtain hostlist: %s\n", uri);
 
 
+  adv_msg = GNUNET_malloc ( sizeof(struct GNUNET_HOSTLIST_ADV_Message) + size);
+  if ( NULL == adv_msg)
+    {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+        "Could not allocate memory for the message");
+    return GNUNET_NO;
+    }
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+      "size ADV_Message: %u\n",sizeof(struct GNUNET_HOSTLIST_ADV_Message));
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+      "size uri: %u\n", (length + 1) * sizeof (char));
+
+
+  if ( ( size + sizeof( struct GNUNET_HOSTLIST_ADV_Message )) > GNUNET_SERVER_MAX_MESSAGE_SIZE)
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+          "Advertisement message is bigger than GNUNET allows");
+      return GNUNET_NO;
+    }
+
+  adv_msg->header.type = htons (GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT);
+  adv_msg->header.size = htons (sizeof (struct GNUNET_HOSTLIST_ADV_Message) + size);
+  memcpy(&adv_msg[1],uri,size);
 
   return GNUNET_OK;
 }
@@ -409,8 +433,8 @@ connect_handler (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "A new peer connected to the server, preparing to send hostlist advertisement\n");
   /* create a new advertisement message */
-  struct GNUNET_HOSTLIST_ADV_Message *adv_msg =
-  create_hostlist_adv_message();
+  struct GNUNET_HOSTLIST_ADV_Message *adv_msg;
+  create_hostlist_adv_message(adv_msg);
 
 }
 
