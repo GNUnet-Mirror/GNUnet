@@ -254,11 +254,13 @@ dv_plugin_send (void *cls,
                        addr,
                        addrlen);
 
-  if (ret == 0)
-    cont(cont_cls, target, GNUNET_OK);
-  else
-    cont(cont_cls, target, GNUNET_SYSERR);
-
+  if (cont != NULL)
+    {
+      if (ret == 0)
+        cont(cont_cls, target, GNUNET_OK);
+      else
+        cont(cont_cls, target, GNUNET_SYSERR);
+    }
   return ret;
 }
 

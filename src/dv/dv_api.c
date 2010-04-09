@@ -171,7 +171,8 @@ transmit_pending (void *cls, size_t size, void *buf)
   size_t tsize;
 
 #if DEBUG_DV
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV API: Transmit pending called with message type %d\n", ntohs(handle->current->msg->header.type));
+  if (handle->current != NULL)
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV API: Transmit pending called with message type %d\n", ntohs(handle->current->msg->header.type));
 #endif
 
   if (buf == NULL)
@@ -320,6 +321,7 @@ void handle_message_receipt (void *cls,
 
 #if DEBUG_DV
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "packed message type: %d or %d\n", ntohs(((struct GNUNET_MessageHeader *)packed_msg)->type), ((struct GNUNET_MessageHeader *)packed_msg)->type);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "message sender reported as %s\n", GNUNET_i2s(&received_msg->sender));
 #endif
   handle->receive_handler(handle->receive_cls,
                           &received_msg->sender,
