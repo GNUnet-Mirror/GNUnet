@@ -354,6 +354,7 @@ access_handler_callback (void *cls,
   return MHD_queue_response (connection, MHD_HTTP_OK, response);
 }
 
+#if 0
 static size_t
 adv_transmit_ready ( void *cls, size_t size, void *buf)
 {
@@ -384,6 +385,7 @@ adv_transmit_message ( const struct GNUNET_PeerIdentity * peer, int size )
                                      &adv_transmit_ready, NULL);
   return GNUNET_YES;
 }
+#endif
 
 /**
  * Function that assembles our hostlist adv message.
