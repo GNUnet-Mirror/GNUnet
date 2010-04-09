@@ -31,6 +31,7 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_util_lib.h"
 
+#define GNUNET_ADV_TIMEOUT 2500
 
 /**
  * Start server offering our hostlist.
@@ -41,6 +42,7 @@ int
 GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 			      struct GNUNET_SCHEDULER_Handle *s,
 			      struct GNUNET_STATISTICS_Handle *st,
+			      struct GNUNET_CORE_Handle *core,
                               GNUNET_CORE_ConnectEventHandler *server_ch,
 	                      GNUNET_CORE_DisconnectEventHandler *server_dh);
 

@@ -65,6 +65,11 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 static struct GNUNET_STATISTICS_Handle *stats;
 
 /**
+ * Handle to the core service (NULL until we've connected to it).
+ */
+struct GNUNET_CORE_Handle *core;
+
+/**
  * Our primary task for IPv4.
  */
 static GNUNET_SCHEDULER_TaskIdentifier hostlist_task_v4;
@@ -105,72 +110,6 @@ struct HostSet
 static void
 update_response (void *cls,
 		 const struct GNUNET_SCHEDULER_TaskContext *tc);
-
-/**
- * Function that assembles our hostlist adv message.
- */
-static int
-create_hostlist_adv_message (struct GNUNET_HOSTLIST_ADV_Message *adv_msg)
-{
-  int length  = 0;
-  int size    = 0;
-  unsigned long long port;
-
-  char *uri;
-  char hostname[HOST_NAME_MAX];
-  char *protocol = "http://";
-  char *port_s = GNUNET_malloc(6 * sizeof(char));
-
-  if (0 != gethostname (hostname, sizeof (hostname) - 1))
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
-        "Could not get system's hostname, unable to create advertisement message");
-    return GNUNET_NO;
-  }
-  if (-1 == GNUNET_CONFIGURATION_get_value_number (cfg,
-                                                   "HOSTLIST",
-                                                   "HTTPPORT",
-                                                   &port))
-    return GNUNET_SYSERR;
-
-  sprintf(port_s, "%llu", port);
-  length = strlen(hostname)+strlen(protocol)+strlen(port_s)+2;
-  size = (length+1) * sizeof (char);
-  uri = GNUNET_malloc(size);
-  uri = strcpy(uri, protocol);
-  uri = strcat(uri, hostname);
-  uri = strcat(uri, ":");
-  uri = strcat(uri, port_s);
-  uri = strcat(uri, "/");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Address to obtain hostlist: %s\n", uri);
-
-
-  adv_msg = GNUNET_malloc ( sizeof(struct GNUNET_HOSTLIST_ADV_Message) + size);
-  if ( NULL == adv_msg)
-    {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
-        "Could not allocate memory for the message");
-    return GNUNET_NO;
-    }
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-      "size ADV_Message: %u\n",sizeof(struct GNUNET_HOSTLIST_ADV_Message));
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-      "size uri: %u\n", (length + 1) * sizeof (char));
-
-
-  if ( ( size + sizeof( struct GNUNET_HOSTLIST_ADV_Message )) > GNUNET_SERVER_MAX_MESSAGE_SIZE)
-    {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
-          "Advertisement message is bigger than GNUNET allows");
-      return GNUNET_NO;
-    }
-
-  adv_msg->header.type = htons (GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT);
-  adv_msg->header.size = htons (sizeof (struct GNUNET_HOSTLIST_ADV_Message) + size);
-  memcpy(&adv_msg[1],uri,size);
-
-  return GNUNET_OK;
-}
 
 /**
  * Function that assembles our response.
@@ -415,6 +354,116 @@ access_handler_callback (void *cls,
   return MHD_queue_response (connection, MHD_HTTP_OK, response);
 }
 
+static size_t
+adv_transmit_ready ( void *cls, size_t size, void *buf)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              _("Ready to transmit %u bytes of adv\n"), size);
+  return size;
+}
+
+static int
+adv_transmit_message ( const struct GNUNET_PeerIdentity * peer, int size )
+{
+  /* transmit message to peer */
+  if ( NULL == core)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Not connected to core, unable to send advertisement message\n"));
+      return GNUNET_NO;
+    }
+
+  struct GNUNET_TIME_Relative timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, GNUNET_ADV_TIMEOUT);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              _("Asked to transmit %u bytes of adv\n"), size);
+  GNUNET_CORE_notify_transmit_ready (core,
+                                     0,
+                                     timeout,
+                                     peer,
+                                     size,
+                                     &adv_transmit_ready, NULL);
+  return GNUNET_YES;
+}
+
+/**
+ * Function that assembles our hostlist adv message.
+ */
+static int
+adv_create_message ( const struct GNUNET_PeerIdentity * peer,
+                     struct GNUNET_HOSTLIST_ADV_Message * adv_msg )
+
+{
+  int length  = 0;
+  int size    = 0;
+  unsigned long long port;
+
+  char *uri;
+  char hostname[HOST_NAME_MAX];
+  char *protocol = "http://";
+  char *port_s = GNUNET_malloc(6 * sizeof(char));
+
+  if (0 != gethostname (hostname, sizeof (hostname) - 1))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+        "Could not get system's hostname, unable to create advertisement message");
+    return GNUNET_NO;
+  }
+  if (-1 == GNUNET_CONFIGURATION_get_value_number (cfg,
+                                                   "HOSTLIST",
+                                                   "HTTPPORT",
+                                                   &port))
+    return GNUNET_SYSERR;
+
+  sprintf(port_s, "%llu", port);
+  length = strlen(hostname)+strlen(protocol)+strlen(port_s)+2;
+  size = (length+1) * sizeof (char);
+  uri = GNUNET_malloc(size);
+  uri = strcpy(uri, protocol);
+  uri = strcat(uri, hostname);
+  uri = strcat(uri, ":");
+  uri = strcat(uri, port_s);
+  uri = strcat(uri, "/");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Address to obtain hostlist: %s\n", uri);
+
+
+  adv_msg = GNUNET_malloc ( sizeof(struct GNUNET_HOSTLIST_ADV_Message) + size);
+  if (adv_msg==NULL)
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+      "Creating message:address null\n",sizeof(struct GNUNET_HOSTLIST_ADV_Message));
+
+  if ( NULL == adv_msg)
+    {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+        "Could not allocate memory for the message");
+    return GNUNET_NO;
+    }
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+      "size ADV_Message: %u\n",sizeof(struct GNUNET_HOSTLIST_ADV_Message));
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+      "size uri: %u\n", (length + 1) * sizeof (char));
+
+
+  if ( ( size + sizeof( struct GNUNET_HOSTLIST_ADV_Message )) > GNUNET_SERVER_MAX_MESSAGE_SIZE)
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+          "Advertisement message is bigger than GNUNET allows");
+      return GNUNET_NO;
+    }
+
+  adv_msg->header.type = htons (GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT);
+  adv_msg->header.size = htons (sizeof (struct GNUNET_HOSTLIST_ADV_Message) + size);
+  memcpy(&adv_msg[1],uri,size);
+
+  /* Request core to transmit message to peer
+  adv_transmit_message(peer, size); */
+
+  GNUNET_free ( port_s );
+  GNUNET_free ( uri );
+  GNUNET_free ( adv_msg );
+
+  return GNUNET_OK;
+}
+
 /**
  * Method called whenever a given peer connects.
  *
@@ -430,12 +479,17 @@ connect_handler (void *cls,
                  struct GNUNET_TIME_Relative latency,
                  uint32_t distance)
 {
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "A new peer connected to the server, preparing to send hostlist advertisement\n");
   /* create a new advertisement message */
-  struct GNUNET_HOSTLIST_ADV_Message *adv_msg;
-  create_hostlist_adv_message(adv_msg);
-
+  struct GNUNET_HOSTLIST_ADV_Message *adv_msg = NULL;
+  if ( (GNUNET_OK != adv_create_message(peer, adv_msg)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _(" GNUNET_OK Could not create a hostlist advertisement message, impossible to advertise hostlist\n"));
+    return;
+  }
 }
 
 
@@ -551,6 +605,7 @@ int
 GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 			      struct GNUNET_SCHEDULER_Handle *s,
 			      struct GNUNET_STATISTICS_Handle *st,
+			      struct GNUNET_CORE_Handle *co,
 	                      GNUNET_CORE_ConnectEventHandler *server_ch,
                               GNUNET_CORE_DisconnectEventHandler *server_dh)
 {
@@ -606,7 +661,7 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 		  (unsigned short) port);
       return GNUNET_SYSERR;    
     }
-
+  core=co;
   *server_ch = &connect_handler;
   *server_dh = &disconnect_handler;
 

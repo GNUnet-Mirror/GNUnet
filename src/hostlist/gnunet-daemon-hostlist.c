@@ -293,7 +293,7 @@ run (void *cls,
     }
   if (provide_hostlist)
     {      
-      GNUNET_HOSTLIST_server_start (cfg, sched, stats, &server_ch, &server_dh);
+      GNUNET_HOSTLIST_server_start (cfg, sched, stats, core, &server_ch, &server_dh);
     }
   if (learning)
     {
