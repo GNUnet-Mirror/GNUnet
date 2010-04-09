@@ -1,4 +1,4 @@
-#!python
+#!/usr/bin/env python -c
 #    This file is part of GNUnet.
 #    (C) 2010 Christian Grothoff (and other contributing authors)
 #
