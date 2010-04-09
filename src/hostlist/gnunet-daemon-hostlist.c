@@ -72,32 +72,32 @@ static struct GNUNET_STATISTICS_Handle *stats;
 /**
  * Handle to the core service (NULL until we've connected to it).
  */
-struct GNUNET_CORE_Handle *core;
+static struct GNUNET_CORE_Handle *core;
 
 /**
  * Handle to the hostlist client's advertisement handler
  */
-GNUNET_CORE_MessageCallback client_adv_handler = NULL;
+static GNUNET_CORE_MessageCallback client_adv_handler = NULL;
 
 /**
  * Handle to hostlist client's connect handler
  */
-GNUNET_CORE_ConnectEventHandler client_ch = NULL;
+static GNUNET_CORE_ConnectEventHandler client_ch = NULL;
 
 /**
  * Handle to hostlist client's disconnect handler
  */
-GNUNET_CORE_DisconnectEventHandler client_dh = NULL;
+static GNUNET_CORE_DisconnectEventHandler client_dh = NULL;
 
 /**
  * Handle to hostlist server's connect handler
  */
-GNUNET_CORE_ConnectEventHandler server_ch = NULL;
+static GNUNET_CORE_ConnectEventHandler server_ch = NULL;
 
 /**
  * Handle to hostlist server's disconnect handler
  */
-GNUNET_CORE_DisconnectEventHandler server_dh = NULL;
+static GNUNET_CORE_DisconnectEventHandler server_dh = NULL;
 
 /**
  * gnunet-daemon-hostlist command line options.
