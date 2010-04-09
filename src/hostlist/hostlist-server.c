@@ -118,7 +118,7 @@ create_hostlist_adv_message (void)
   char *uri;
   char hostname[HOST_NAME_MAX];
   char *protocol = "http://";
-  char *port_s = malloc(6 * sizeof(char));
+  char *port_s = GNUNET_malloc(6 * sizeof(char));
 
   if (0 != gethostname (hostname, sizeof (hostname) - 1))
   {
@@ -135,13 +135,14 @@ create_hostlist_adv_message (void)
   sprintf(port_s, "%llu", port);
   length = strlen(hostname)+strlen(protocol)+strlen(port_s)+2;
 
-  uri = malloc(length * sizeof(char));
+  uri = GNUNET_malloc(length * sizeof(char));
   uri = strcpy(uri, protocol);
   uri = strcat(uri, hostname);
   uri = strcat(uri, ":");
   uri = strcat(uri, port_s);
   uri = strcat(uri, "/");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Address to obtain hostlist: %s\n", uri);
+
 
 
   return GNUNET_OK;
@@ -408,6 +409,7 @@ connect_handler (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "A new peer connected to the server, preparing to send hostlist advertisement\n");
   /* create a new advertisement message */
+  struct GNUNET_HOSTLIST_ADV_Message *adv_msg =
   create_hostlist_adv_message();
 
 }
