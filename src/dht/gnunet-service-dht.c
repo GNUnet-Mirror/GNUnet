@@ -253,7 +253,6 @@ send_generic_reply (void *cls, size_t size, void *buf)
 				   client->pending_tail,
 				   reply);
       memcpy (&cbuf[off], reply->msg, msize);
-      GNUNET_free (reply->msg);
       GNUNET_free (reply);
       off += msize;
     }
@@ -313,7 +312,7 @@ send_reply_to_client (struct ClientList *client,
       return;
     }
   reply = GNUNET_malloc (tsize);
-  reply->header.type = htons (GNUNET_MESSAGE_TYPE_DHT);
+  reply->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_ROUTE_RESULT);
   reply->header.size = htons (tsize);
   if (uid != 0)
     reply->unique = htonl (GNUNET_YES); // ????

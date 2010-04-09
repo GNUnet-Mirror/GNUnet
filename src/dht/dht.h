@@ -59,10 +59,10 @@ struct GNUNET_DHT_StopMessage
 /**
  * Generic DHT message, wrapper for other message types
  */
-struct GNUNET_DHT_Message
+struct GNUNET_DHT_RouteMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_MESSAGE
+   * Type: GNUNET_MESSAGE_TYPE_DHT_ROUTE
    */
   struct GNUNET_MessageHeader header;
 
@@ -95,6 +95,31 @@ struct GNUNET_DHT_Message
 
   /* GNUNET_MessageHeader *enc actual DHT message, copied to end of this dealy do */
 
+};
+
+struct GNUNET_DHT_RouteResultMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_DHT_ROUTE_RESULT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Message options
+   */
+  uint32_t options GNUNET_PACKED;
+
+  /**
+   * The key that was searched for
+   */
+  GNUNET_HashCode key;
+
+  /**
+   * Unique ID identifying this request
+   */
+  uint64_t unique_id GNUNET_PACKED;
+
+  /* GNUNET_MessageHeader *enc actual DHT message, copied to end of this dealy do */
 };
 
 /**
