@@ -30,11 +30,11 @@
 #define DEBUG_DHT GNUNET_NO
 
 typedef void (*GNUNET_DHT_MessageReceivedHandler) (void *cls,
-                                                   struct GNUNET_MessageHeader
+                                                   const struct GNUNET_MessageHeader
                                                    * msg);
 
 /**
- * Generic DHT message, wrapper for other message types
+ * FIXME.
  */
 struct GNUNET_DHT_StopMessage
 {
@@ -44,9 +44,14 @@ struct GNUNET_DHT_StopMessage
   struct GNUNET_MessageHeader header;
 
   /**
+   * Always zero.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
    * Unique ID identifying this request
    */
-  uint64_t unique_id;
+  uint64_t unique_id GNUNET_PACKED;
 
 };
 
@@ -62,34 +67,32 @@ struct GNUNET_DHT_Message
   struct GNUNET_MessageHeader header;
 
   /**
+   * Message options
+   */
+  uint32_t options GNUNET_PACKED;
+
+  /**
    * The key to search for
    */
   GNUNET_HashCode key;
 
   /**
-   * Replication level for this message
+   * Unique ID identifying this request
    */
-  uint16_t desired_replication_level;
+  uint64_t unique_id GNUNET_PACKED;
 
   /**
-   * Message options
+   * Replication level for this message
    */
-  uint16_t options;
+  uint32_t desired_replication_level GNUNET_PACKED;
 
   /**
    * Is this message uniquely identified?  If so it will
    * be fire and forget, if not we will wait for a receipt
    * from the service.
    */
-  uint16_t unique;
+  uint32_t unique GNUNET_PACKED;
 
-
-  /**
-   * Unique ID identifying this request
-   */
-  uint64_t unique_id;
-
-  /* */
   /* GNUNET_MessageHeader *enc actual DHT message, copied to end of this dealy do */
 
 };
@@ -107,17 +110,17 @@ struct GNUNET_DHT_PutMessage
   /**
    * The type of data to insert.
    */
-  size_t type;
-
-  /**
-   * The size of the data, appended to the end of this message.
-   */
-  size_t data_size;
+  size_t type GNUNET_PACKED;
 
   /**
    * How long should this data persist?
    */
-  struct GNUNET_TIME_Absolute expiration;
+  struct GNUNET_TIME_AbsoluteNBO expiration;
+
+  /**
+   * The size of the data, appended to the end of this message.
+   */
+  size_t data_size GNUNET_PACKED;
 
 };
 
@@ -135,7 +138,7 @@ struct GNUNET_DHT_GetMessage
   /**
    * The type for the data for the GET request
    */
-  size_t type;
+  uint32_t type;
 
 };
 
@@ -152,7 +155,7 @@ struct GNUNET_DHT_GetResultMessage
   /**
    * The type for the data for the GET request
    */
-  size_t type;
+  uint32_t type;
 
   /**
    * The key to search for
@@ -164,55 +167,7 @@ struct GNUNET_DHT_GetResultMessage
    */
   struct GNUNET_TIME_Absolute expiration;
 
-  /**
-   * The size of the data, appended to the end of this message.
-   */
-  size_t data_size;
-
 };
 
-/**
- * Message to issue find peer request to the DHT
- */
-struct GNUNET_DHT_FindPeerMessage
-{
-  /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_FIND_PEER
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Size of inject message (may be zero)
-   */
-  size_t msg_len;
-
-  /* Followed by message to inject at found peers */
-
-};
-
-/**
- * Message to return data from the DHT
- */
-struct GNUNET_DHT_FindPeerResultMessage
-{
-  /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_RESULT
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * The peer that was found
-   */
-  struct GNUNET_PeerIdentity peer;
-
-  /**
-   * The size of the return message from the peer
-   * (defaults to HELLO for the peer),
-   * appended to the end of this message, 0 if
-   * no message.
-   */
-  size_t data_size;
-
-};
 
 #endif /* DHT_H_ */

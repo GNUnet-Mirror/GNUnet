@@ -24,7 +24,6 @@ SUBDIRS = \
   transport \
   peerinfo-tool \
   core \
-  dht \
   testing \
   $(HOSTLIST_DIR) \
   topology \

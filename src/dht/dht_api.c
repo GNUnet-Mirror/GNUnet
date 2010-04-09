@@ -248,38 +248,27 @@ struct GNUNET_DHT_Handle
   struct GNUNET_DHT_NonUniqueHandle *non_unique_request;
 
   /**
-   * Kill off the connection and any pending messages.
+   * Generator for unique ids.
    */
-  int do_destroy;
+  uint64_t uid_gen;
 
 };
 
-static struct GNUNET_TIME_Relative default_request_timeout;
 
-/* Forward declaration */
-static void process_pending_message (struct GNUNET_DHT_Handle *handle);
-
-static GNUNET_HashCode *
-hash_from_uid (uint64_t uid)
+/**
+ * Convert unique ID to hash code.
+ *
+ * @param uid unique ID to convert
+ * @param hash set to uid (extended with zeros)
+ */
+static void
+hash_from_uid (uint64_t uid,
+	       GNUNET_HashCode *hash)
 {
-  int count;
-  int remaining;
-  GNUNET_HashCode *hash;
-  hash = GNUNET_malloc (sizeof (GNUNET_HashCode));
-  count = 0;
-
-  while (count < sizeof (GNUNET_HashCode))
-    {
-      remaining = sizeof (GNUNET_HashCode) - count;
-      if (remaining > sizeof (uid))
-        remaining = sizeof (uid);
-
-      memcpy (hash, &uid, remaining);
-      count += remaining;
-    }
-
-  return hash;
+  memset (hash, 0, sizeof(GNUNET_HashCode));
+  *((uint64_t*)hash) = uid;
 }
+
 
 /**
  * Handler for messages received from the DHT service
@@ -287,7 +276,8 @@ hash_from_uid (uint64_t uid)
  *
  */
 void
-service_message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
+service_message_handler (void *cls,
+			 const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_DHT_Handle *handle = cls;
   struct GNUNET_DHT_Message *dht_msg;
@@ -295,7 +285,7 @@ service_message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   struct GNUNET_MessageHeader *enc_msg;
   struct GNUNET_DHT_RouteHandle *route_handle;
   uint64_t uid;
-  GNUNET_HashCode *uid_hash;
+  GNUNET_HashCode uid_hash;
   size_t enc_size;
   /* TODO: find out message type, handle callbacks for different types of messages.
    * Should be a non unique acknowledgment, or unique result. */
@@ -304,9 +294,15 @@ service_message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     {
 #if DEBUG_DHT_API
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "`%s': Received NULL from server, connection down?\n",
+                  "`%s': Received NULL from server, connection down!\n",
                   "DHT API");
 #endif
+      GNUNET_CLIENT_disconnect (handle->client);
+      handle->client = GNUNET_CLIENT_connect (handle->sched, 
+					      "dht", 
+					      handle->cfg);
+      /* FIXME: re-transmit *all* of our GET requests AND re-start
+	 receiving responses! */
       return;
     }
 
@@ -321,13 +317,12 @@ service_message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                     "`%s': Received response to message (uid %llu)\n",
                     "DHT API", uid);
 #endif
-        if (ntohs (dht_msg->unique))
+        if (ntohl (dht_msg->unique))
           {
-            uid_hash = hash_from_uid (uid);
+            hash_from_uid (uid, &uid_hash);
             route_handle =
               GNUNET_CONTAINER_multihashmap_get (handle->outstanding_requests,
-                                                 uid_hash);
-            GNUNET_free (uid_hash);
+                                                 &uid_hash);
             if (route_handle == NULL)   /* We have no recollection of this request */
               {
 #if DEBUG_DHT_API
@@ -344,7 +339,6 @@ service_message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                 GNUNET_assert (enc_size > 0);
                 enc_msg = (struct GNUNET_MessageHeader *) &dht_msg[1];
                 route_handle->iter (route_handle->iter_cls, enc_msg);
-
               }
           }
         break;
@@ -409,25 +403,16 @@ GNUNET_DHT_connect (struct GNUNET_SCHEDULER_Handle *sched,
   struct GNUNET_DHT_Handle *handle;
 
   handle = GNUNET_malloc (sizeof (struct GNUNET_DHT_Handle));
-
-  default_request_timeout =
-    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5);
   handle->cfg = cfg;
   handle->sched = sched;
-
-  handle->current = NULL;
-  handle->do_destroy = GNUNET_NO;
-  handle->th = NULL;
-
   handle->client = GNUNET_CLIENT_connect (sched, "dht", cfg);
-  handle->outstanding_requests =
-    GNUNET_CONTAINER_multihashmap_create (ht_len);
-
   if (handle->client == NULL)
     {
       GNUNET_free (handle);
       return NULL;
     }
+  handle->outstanding_requests =
+    GNUNET_CONTAINER_multihashmap_create (ht_len);
 #if DEBUG_DHT_API
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "`%s': Connection to service in progress\n", "DHT API");
@@ -435,7 +420,6 @@ GNUNET_DHT_connect (struct GNUNET_SCHEDULER_Handle *sched,
   GNUNET_CLIENT_receive (handle->client,
                          &service_message_handler,
                          handle, GNUNET_TIME_UNIT_FOREVER_REL);
-
   return handle;
 }
 
@@ -453,7 +437,6 @@ GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle)
               "`%s': Called GNUNET_DHT_disconnect\n", "DHT API");
 #endif
   GNUNET_assert (handle != NULL);
-
   if (handle->th != NULL)       /* We have a live transmit request in the Aether */
     {
       GNUNET_CLIENT_notify_transmit_ready_cancel (handle->th);
@@ -467,7 +450,8 @@ GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle)
       GNUNET_CLIENT_disconnect (handle->client, GNUNET_NO);
       handle->client = NULL;
     }
-
+  /* Either assert that outstanding_requests is empty */
+  /* FIXME: handle->outstanding_requests not freed! */
   GNUNET_free (handle);
 }
 
@@ -505,6 +489,7 @@ finish (struct GNUNET_DHT_Handle *handle, int code)
     }
   /* Otherwise we need to wait for a response to this message! */
 }
+
 
 /**
  * Transmit the next pending message, called by notify_transmit_ready
@@ -591,13 +576,6 @@ process_pending_message (struct GNUNET_DHT_Handle *handle)
       return;
     }
 
-  /* TODO: set do_destroy somewhere's, see what needs to happen in that case! */
-  if (handle->do_destroy)
-    {
-      //GNUNET_DHT_disconnect (handle); /* FIXME: replace with proper disconnect stuffs */
-    }
-
-
   if (NULL ==
       (handle->th = GNUNET_CLIENT_notify_transmit_ready (handle->client,
                                                          ntohs (handle->
@@ -613,6 +591,7 @@ process_pending_message (struct GNUNET_DHT_Handle *handle)
                   "Failed to transmit request to dht service.\n");
 #endif
       finish (handle, GNUNET_SYSERR);
+      return;
     }
 #if DEBUG_DHT_API
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -722,28 +701,21 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
   struct GNUNET_DHT_RouteHandle *route_handle;
   struct PendingMessage *pending;
   struct GNUNET_DHT_Message *message;
-  size_t is_unique;
-  size_t msize;
-  GNUNET_HashCode *uid_key;
+  size_t expects_response;
+  uint16_t msize;
+  GNUNET_HashCode uid_key;
   uint64_t uid;
 
-  is_unique = GNUNET_YES;
-  if (iter == NULL)
-    is_unique = GNUNET_NO;
-
-  route_handle = NULL;
-  uid_key = NULL;
-
-  do
+  if (sizeof (struct GNUNET_DHT_Message) + ntohs (enc->size) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
     {
-      GNUNET_free_non_null (uid_key);
-      uid = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, -1);
-      uid_key = hash_from_uid (uid);
+      GNUNET_break (0);
+      return NULL;
     }
-  while (GNUNET_CONTAINER_multihashmap_contains
-         (handle->outstanding_requests, uid_key) == GNUNET_YES);
-
-  if (is_unique)
+  expects_response = GNUNET_YES;
+  if (iter == NULL)
+    expects_response = GNUNET_NO;
+  uid = handle->uid_gen++;
+  if (expects_response)
     {
       route_handle = GNUNET_malloc (sizeof (struct GNUNET_DHT_RouteHandle));
       memcpy (&route_handle->key, key, sizeof (GNUNET_HashCode));
@@ -755,51 +727,33 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "`%s': Unique ID is %llu\n", "DHT API", uid);
 #endif
-      /**
-       * Store based on random identifier!
-       */
       GNUNET_CONTAINER_multihashmap_put (handle->outstanding_requests,
-                                         uid_key, route_handle,
+                                         &uid_key, route_handle,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-      msize = sizeof (struct GNUNET_DHT_Message) + ntohs (enc->size);
-
     }
-  else
-    {
-      msize = sizeof (struct GNUNET_DHT_Message) + ntohs (enc->size);
-    }
-
-  GNUNET_free (uid_key);
+  msize = sizeof (struct GNUNET_DHT_Message) + ntohs (enc->size);
   message = GNUNET_malloc (msize);
   message->header.size = htons (msize);
   message->header.type = htons (GNUNET_MESSAGE_TYPE_DHT);
   memcpy (&message->key, key, sizeof (GNUNET_HashCode));
-  message->options = htons (options);
-  message->desired_replication_level = htons (options);
-  message->unique = htons (is_unique);
+  message->options = htonl (options);
+  message->desired_replication_level = htonl (options);
+  message->unique = htonl (expects_response);
   message->unique_id = GNUNET_htonll (uid);
   memcpy (&message[1], enc, ntohs (enc->size));
-
   pending = GNUNET_malloc (sizeof (struct PendingMessage));
   pending->msg = &message->header;
   pending->timeout = timeout;
   pending->cont = cont;
   pending->cont_cls = cont_cls;
-  pending->is_unique = is_unique;
+  pending->expects_response = expects_response;
   pending->unique_id = uid;
-
   GNUNET_assert (handle->current == NULL);
-
   handle->current = pending;
-
   process_pending_message (handle);
-
   return route_handle;
 }
 
-void
-GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle,
-                       GNUNET_SCHEDULER_Task cont, void *cont_cls);
 
 /**
  * Perform an asynchronous GET operation on the DHT identified.
@@ -851,13 +805,13 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
   return get_handle;
 }
 
+
 /**
  * Stop a previously issued routing request
  *
  * @param route_handle handle to the request to stop
  * @param cont continuation to call once this message is sent to the service or times out
  * @param cont_cls closure for the continuation
- *
  */
 void
 GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle,
@@ -866,10 +820,9 @@ GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle,
   struct PendingMessage *pending;
   struct GNUNET_DHT_StopMessage *message;
   size_t msize;
-  GNUNET_HashCode *uid_key;
+  GNUNET_HashCode uid_key;
 
   msize = sizeof (struct GNUNET_DHT_StopMessage);
-
   message = GNUNET_malloc (msize);
   message->header.size = htons (msize);
   message->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_STOP);
@@ -879,37 +832,20 @@ GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle,
               route_handle->uid);
 #endif
   message->unique_id = GNUNET_htonll (route_handle->uid);
-
   GNUNET_assert (route_handle->dht_handle->current == NULL);
-
   pending = GNUNET_malloc (sizeof (struct PendingMessage));
   pending->msg = (struct GNUNET_MessageHeader *) message;
   pending->timeout = DEFAULT_DHT_TIMEOUT;
   pending->cont = cont;
   pending->cont_cls = cont_cls;
-  pending->is_unique = GNUNET_NO;
   pending->unique_id = route_handle->uid;
-
   GNUNET_assert (route_handle->dht_handle->current == NULL);
-
   route_handle->dht_handle->current = pending;
-
   process_pending_message (route_handle->dht_handle);
-
-  uid_key = hash_from_uid (route_handle->uid);
-
-  if (GNUNET_CONTAINER_multihashmap_remove
-      (route_handle->dht_handle->outstanding_requests, uid_key,
-       route_handle) != GNUNET_YES)
-    {
-#if DEBUG_DHT_API
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "`%s': Remove outstanding request from hashmap failed for key %s, uid %llu\n",
-                  "DHT API", GNUNET_h2s (uid_key), route_handle->uid);
-#endif
-    }
-  GNUNET_free (uid_key);
-  return;
+  hash_from_uid (route_handle->uid, &uid_key);
+  GNUNET_assert (GNUNET_CONTAINER_multihashmap_remove
+		 (route_handle->dht_handle->outstanding_requests, &uid_key,
+		  route_handle) == GNUNET_YES);
 }
 
 
@@ -932,7 +868,6 @@ GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *get_handle,
 #endif
   GNUNET_DHT_route_stop (get_handle->route_handle, cont, cont_cls);
   GNUNET_free (get_handle);
-
 }
 
 
