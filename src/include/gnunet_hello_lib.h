@@ -120,6 +120,29 @@ struct GNUNET_HELLO_Message *GNUNET_HELLO_merge (const struct
                                                  GNUNET_HELLO_Message *h2);
 
 
+/**
+ * Test if two HELLO messages contain the same addresses.
+ * If they only differ in expiration time, the lowest
+ * expiration time larger than 'now' where they differ
+ * is returned.
+ *
+ * @param h1 first HELLO message
+ * @param h2 the second HELLO message
+ * @param now time to use for deciding which addresses have
+ *            expired and should not be considered at all
+ * @return absolute time forever if the two HELLOs are 
+ *         totally identical; smallest timestamp >= now if
+ *         they only differ in timestamps; 
+ *         zero if the some addresses with expirations >= now
+ *         do not match at all
+ */
+struct GNUNET_TIME_Absolute 
+GNUNET_HELLO_equals (const struct
+		     GNUNET_HELLO_Message *h1,
+		     const struct
+		     GNUNET_HELLO_Message *h2,
+		     struct GNUNET_TIME_Absolute now);
+
 
 /**
  * Iterator callback to go over all addresses.

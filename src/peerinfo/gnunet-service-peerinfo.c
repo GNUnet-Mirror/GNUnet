@@ -441,6 +441,7 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
   char *fn;
   struct HostEntry *host;
   struct GNUNET_HELLO_Message *mrg;
+  struct GNUNET_TIME_Absolute delta;
 
   add_host_to_known_hosts (peer);
   host = lookup_host_entry (peer);
@@ -453,8 +454,14 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
   else
     {
       mrg = GNUNET_HELLO_merge (host->hello, hello);
-      /* FIXME: check if old and merged hello are equal,
-	 and if so, bail out early... */
+      delta = GNUNET_HELLO_equals (mrg,
+				   host->hello,
+				   GNUNET_TIME_absolute_get ());
+      if (delta.value == GNUNET_TIME_UNIT_FOREVER_ABS.value)
+	{
+	  GNUNET_free (mrg);
+	  return;
+	}
       GNUNET_free (host->hello);
       host->hello = mrg;
     }

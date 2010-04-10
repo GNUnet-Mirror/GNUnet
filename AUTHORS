@@ -1,9 +1,10 @@
 Primary developers (0.9.x series):
 Christian Grothoff <christian@grothoff.org>
 Heikki Lindholm <holin@iki.fi>
-Nils Durner <durner@gnunet.org>
+Matthias Wachs <wachs@net.in.tum.de>
 Milan Bouchet-Valat <nalimilan@club.fr>
 Nathan Evans <evans@net.in.tum.de>
+Nils Durner <durner@gnunet.org>
 
 Code contributions also came from:
 Adam Warrington [ UPnP ]
@@ -76,8 +77,7 @@ new GNU in Net: Nicklas Larsson <whybill@gmail.com>
 
 Maintainers:
 FreeBSD         : Kirill Ponomarew <ponomarew@oberon.net>
-Debian GNU/Linux: Daniel Baumann <daniel.baumann@panthera-systems.net> and
-                  Arnaud Kyheng <Arnaud.Kyheng@free.fr>
+Debian GNU/Linux: Daniel Baumann <daniel.baumann@panthera-systems.net>
 OS X            : Jussi Eloranta <eloranta@cc.jyu.fi>
 
 

@@ -510,6 +510,7 @@ GNUNET_HELLO_get_id (const struct GNUNET_HELLO_Message *hello,
   return GNUNET_OK;
 }
 
+
 /**
  * Get the header from a HELLO message, used so other code
  * can correctly send HELLO messages.
@@ -528,5 +529,126 @@ GNUNET_HELLO_get_header (struct GNUNET_HELLO_Message *hello)
 
   return &hello->header;
 }
+
+
+struct EqualsContext
+{
+  struct GNUNET_TIME_Absolute expiration_limit;
+
+  struct GNUNET_TIME_Absolute result;
+
+  const struct GNUNET_HELLO_Message *h2;
+  
+  const char *tname;
+  
+  const void *addr;
+  
+  struct GNUNET_TIME_Absolute expiration;
+
+  size_t addrlen;
+
+  int found;
+};
+
+
+static int
+find_other_matching (void *cls,
+		     const char *tname,
+		     struct GNUNET_TIME_Absolute expiration,
+		     const void *addr, size_t addrlen)
+{
+  struct EqualsContext *ec = cls;
+
+  if (expiration.value < ec->expiration_limit.value)
+    return GNUNET_YES;
+  if ( (addrlen == ec->addrlen) && 
+       (0 == strcmp (tname,
+		     ec->tname)) &&
+       (0 == memcmp (addr,
+		     ec->addr,
+		     addrlen)) )
+    {
+      ec->found = GNUNET_YES;
+      if (expiration.value < ec->expiration.value)
+	{
+	  ec->result = GNUNET_TIME_absolute_min (expiration,
+						 ec->result);
+	}
+      return GNUNET_SYSERR;
+    }
+  return GNUNET_YES;
+}
+
+
+static int
+find_matching (void *cls,
+               const char *tname,
+               struct GNUNET_TIME_Absolute expiration,
+               const void *addr, size_t addrlen)
+{
+  struct EqualsContext *ec = cls;
+
+  if (expiration.value < ec->expiration_limit.value)
+    return GNUNET_YES;
+  ec->tname = tname;
+  ec->expiration = expiration;
+  ec->addr = addr;
+  ec->addrlen = addrlen;
+  ec->found = GNUNET_NO;
+  GNUNET_HELLO_iterate_addresses (ec->h2,
+				  GNUNET_NO,
+				  &find_other_matching,
+				  ec);
+  if (ec->found == GNUNET_NO)
+    {
+      ec->result = GNUNET_TIME_UNIT_ZERO_ABS;
+      return GNUNET_SYSERR;
+    }
+  return GNUNET_OK;
+}
+
+/**
+ * Test if two HELLO messages contain the same addresses.
+ * If they only differ in expiration time, the lowest
+ * expiration time larger than 'now' where they differ
+ * is returned.
+ *
+ * @param h1 first HELLO message
+ * @param h2 the second HELLO message
+ * @param now time to use for deciding which addresses have
+ *            expired and should not be considered at all
+ * @return absolute time zero if the two HELLOs are 
+ *         totally identical; smallest timestamp >= now if
+ *         they only differ in timestamps; 
+ *         forever if the some addresses with expirations >= now
+ *         do not match at all
+ */
+struct GNUNET_TIME_Absolute 
+GNUNET_HELLO_equals (const struct
+		     GNUNET_HELLO_Message *h1,
+		     const struct
+		     GNUNET_HELLO_Message *h2,
+		     struct GNUNET_TIME_Absolute now)
+{
+  struct EqualsContext ec;
+
+  ec.expiration_limit = now;
+  ec.result = GNUNET_TIME_UNIT_FOREVER_ABS;
+  ec.h2 = h2;
+  GNUNET_HELLO_iterate_addresses (h1,
+				   GNUNET_NO,
+				   &find_matching,
+				   &ec);
+  if (ec.result.value ==
+      GNUNET_TIME_UNIT_ZERO.value)
+    return ec.result; 
+  ec.h2 = h1;
+  GNUNET_HELLO_iterate_addresses (h2,
+				   GNUNET_NO,
+				   &find_matching,
+				   &ec);
+  return ec.result;
+}
+
 
 /* end of hello.c */

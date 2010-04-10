@@ -1,5 +1,12 @@
 0.9.0pre0 [April]:
 * HOSTLIST: seems to have NO 'tcp' in it, so cannot have any addresses!? [CG]
+* FS-acceptance testing [CG]
+* Release checks:
+  - portability
+  - coverity
+  - clang
+  - cppcheck
+* ChangeLog update
 * WWW:
   - Get IPv6 hooked up [AK, after April 12th]
   - change DNS [CG, need DNS]
@@ -15,8 +22,6 @@
   - only connect() sockets that are ready (select()) [Nils]
     [On W32, we need to select after calling socket before
      doing connect etc.]
-* HELLO: [CG]
-  - need function to test "equivalency" of HELLOs (or integrate with "merge"?); use in PEERINFO
 * SETUP:
   - design & implement new setup tool
 * TBENCH: [MW]
