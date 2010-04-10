@@ -1650,10 +1650,10 @@ libgnunet_plugin_datastore_sqlite_init (void *cls)
   memset (&plugin, 0, sizeof(struct Plugin));
   plugin.env = env;
   plugin.statistics = GNUNET_STATISTICS_create (env->sched,
-						"datastore-sqlite",
+						"ds-sqlite",
 						env->cfg);
   plugin.stat_get = GNUNET_STATISTICS_get (plugin.statistics,
-					   "datastore-sqlite",
+					   "ds-sqlite",
 					   QUOTA_STAT_NAME,
 					   GNUNET_TIME_UNIT_SECONDS,
 					   &process_stat_done,
