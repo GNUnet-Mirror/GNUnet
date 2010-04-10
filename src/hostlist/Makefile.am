@@ -30,7 +30,7 @@ gnunet_daemon_hostlist_CPPFLAGS = \
 check_PROGRAMS = \
  test_gnunet_daemon_hostlist \
  test_gnunet_daemon_hostlist_learning
- 
+
 
 TESTS = $(check_PROGRAMS)
 
@@ -55,5 +55,4 @@ EXTRA_DIST = \
   learning_data.conf \
   learning_data_peer1.conf \
   learning_data_peer2.conf
-  
 

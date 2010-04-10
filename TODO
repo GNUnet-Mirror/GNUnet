@@ -1,9 +1,5 @@
 0.9.0pre0 [April]:
-* CORE: [CG]
-  - "Forcing disconnect of XXX due to inactivity" -- can happen every few MS!?
-    (disconnect does not really succeed, or what?)
-    Also, core does not seem to actually decrement the number of active
-    sessions even if no connections exist for a while! (likely related...)
+* HOSTLIST: seems to have NO 'tcp' in it, so cannot have any addresses!? [CG]
 * WWW:
   - Get IPv6 hooked up [AK, after April 12th]
   - change DNS [CG, need DNS]

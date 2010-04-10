@@ -61,9 +61,9 @@ gnunet-service-transport
 gnunet-service-core
 gnunet-daemon-hostlist
 gnunet-daemon-topology
-gnunet-service-datastore
 gnunet-service-statistics
-gnunet-service-dv
+gnunet-service-datastore
+gnunet-service-datacache
 gnunet-service-dht
 gnunet-service-fs (or just lib?)
 
