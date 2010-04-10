@@ -42,9 +42,9 @@
 #include "core.h"
 
 
-#define DEBUG_HANDSHAKE GNUNET_NO
+#define DEBUG_HANDSHAKE GNUNET_YES
 
-#define DEBUG_CORE_QUOTA GNUNET_NO
+#define DEBUG_CORE_QUOTA GNUNET_YES
 
 /**
  * Receive and send buffer windows grow over time.  For
@@ -2079,7 +2079,7 @@ create_neighbour (const struct GNUNET_PeerIdentity *pid)
   n->next = neighbours;
   neighbours = n;
   neighbour_count++;
-  GNUNET_STATISTICS_set (stats, gettext_noop ("# active neighbours"), neighbour_count, GNUNET_NO);
+  GNUNET_STATISTICS_set (stats, gettext_noop ("# neighbours entries allocated"), neighbour_count, GNUNET_NO);
   n->peer = *pid;
   GNUNET_CRYPTO_aes_create_session_key (&n->encrypt_key);
   now = GNUNET_TIME_absolute_get ();
@@ -2093,6 +2093,7 @@ create_neighbour (const struct GNUNET_PeerIdentity *pid)
   n->ping_challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                                 (uint32_t) - 1);
   neighbour_quota_update (n, NULL);
+  consider_free_neighbour (n);
   return n;
 }
 
@@ -2285,7 +2286,7 @@ handle_client_request_connect (void *cls,
   n = find_neighbour (&cm->peer);
   if (n == NULL)
     n = create_neighbour (&cm->peer);
-  if ( (n->is_connected) ||
+  if ( (GNUNET_YES == n->is_connected) ||
        (n->th != NULL) )
     return; /* already connected, or at least trying */
   GNUNET_STATISTICS_update (stats, gettext_noop ("# connection requests received"), 1, GNUNET_NO);
@@ -3551,7 +3552,7 @@ neighbour_quota_update (void *cls,
     {
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Forcing disconnect of `%4s' due to inactivity (?).\n",
+		  "Forcing disconnect of `%4s' due to inactivity\n",
 		  GNUNET_i2s (&n->peer));
 #endif
       q_in = GNUNET_BANDWIDTH_value_init (0); /* force disconnect */
@@ -3569,12 +3570,13 @@ neighbour_quota_update (void *cls,
   if (n->bw_in.value__ != q_in.value__) 
     {
       n->bw_in = q_in;
-      GNUNET_TRANSPORT_set_quota (transport,
-				  &n->peer,
-				  n->bw_in,
-				  n->bw_out,
-				  GNUNET_TIME_UNIT_FOREVER_REL,
-				  NULL, NULL);
+      if (GNUNET_YES == n->is_connected)
+	GNUNET_TRANSPORT_set_quota (transport,
+				    &n->peer,
+				    n->bw_in,
+				    n->bw_out,
+				    GNUNET_TIME_UNIT_FOREVER_REL,
+				    NULL, NULL);
     }
   schedule_quota_update (n);
 }
@@ -3606,7 +3608,7 @@ handle_transport_notify_connect (void *cls,
   n = find_neighbour (peer);
   if (n != NULL)
     {
-      if (n->is_connected)
+      if (GNUNET_YES == n->is_connected)
 	{
 	  /* duplicate connect notification!? */
 	  GNUNET_break (0);
