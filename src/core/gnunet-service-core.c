@@ -1296,7 +1296,7 @@ consider_free_neighbour (struct Neighbour *n)
   GNUNET_assert (neighbour_count > 0);
   neighbour_count--;
   GNUNET_STATISTICS_set (stats,
-			 gettext_noop ("# active neighbours"), 
+			 gettext_noop ("# neighbour entries allocated"), 
 			 neighbour_count,
 			 GNUNET_NO);
   free_neighbour (n);
@@ -2079,7 +2079,7 @@ create_neighbour (const struct GNUNET_PeerIdentity *pid)
   n->next = neighbours;
   neighbours = n;
   neighbour_count++;
-  GNUNET_STATISTICS_set (stats, gettext_noop ("# neighbours entries allocated"), neighbour_count, GNUNET_NO);
+  GNUNET_STATISTICS_set (stats, gettext_noop ("# neighbour entries allocated"), neighbour_count, GNUNET_NO);
   n->peer = *pid;
   GNUNET_CRYPTO_aes_create_session_key (&n->encrypt_key);
   now = GNUNET_TIME_absolute_get ();
@@ -3714,7 +3714,7 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       neighbour_count--;
       free_neighbour (n);
     }
-  GNUNET_STATISTICS_set (stats, gettext_noop ("# active neighbours"), neighbour_count, GNUNET_NO);
+  GNUNET_STATISTICS_set (stats, gettext_noop ("# neighbour entries allocated"), neighbour_count, GNUNET_NO);
   GNUNET_SERVER_notification_context_destroy (notifier);
   notifier = NULL;
   while (NULL != (c = clients))
