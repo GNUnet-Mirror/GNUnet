@@ -3620,7 +3620,7 @@ handle_transport_notify_connect (void *cls,
       n = create_neighbour (peer);
     }
   GNUNET_STATISTICS_update (stats, 
-			    gettext_noop ("# peers connected"), 
+			    gettext_noop ("# peers connected (transport)"), 
 			    1, 
 			    GNUNET_NO);
   n->is_connected = GNUNET_YES;      
@@ -3684,7 +3684,7 @@ handle_transport_notify_disconnect (void *cls,
   send_to_all_clients (&cnm.header, GNUNET_YES, GNUNET_CORE_OPTION_SEND_DISCONNECT);
   n->is_connected = GNUNET_NO;
   GNUNET_STATISTICS_update (stats, 
-			    gettext_noop ("# peers connected"), 
+			    gettext_noop ("# peers connected (transport)"), 
 			    -1, 
 			    GNUNET_NO);
 }
