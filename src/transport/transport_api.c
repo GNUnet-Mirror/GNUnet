@@ -521,6 +521,7 @@ transport_notify_ready (void *cls, size_t size, void *buf)
   struct OutboundMessage obm;
   size_t ret;
   size_t mret;
+  size_t nret;
   char *cbuf;
 
   h->network_handle = NULL;
@@ -546,9 +547,10 @@ transport_notify_ready (void *cls, size_t size, void *buf)
       GNUNET_CONTAINER_DLL_remove (h->control_head,
 				   h->control_tail,
 				   cm);
-      ret += cm->notify (cm->notify_cls, size, &cbuf[ret]);
+      nret = cm->notify (cm->notify_cls, size, &cbuf[ret]);
       GNUNET_free (cm);
-      size -= ret;
+      ret += nret;
+      size -= nret;
     }
   while ( (NULL != (th = schedule_peer_transmission (h))) &&
 	  (th->notify_size <= size) )
