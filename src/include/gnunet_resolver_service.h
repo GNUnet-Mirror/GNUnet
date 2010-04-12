@@ -111,6 +111,19 @@ GNUNET_RESOLVER_hostname_resolve (struct GNUNET_SCHEDULER_Handle *sched,
 typedef void (*GNUNET_RESOLVER_HostnameCallback) (void *cls,
                                                   const char *hostname);
 
+/**
+ * Get local hostname
+ *
+ * @param sched scheduler to use
+ * @param cfg configuration to use
+ * @param callback function to call with addresses
+ * @param cls closure for callback
+ */
+void
+GNUNET_RESOLVER_local_hostname_get (struct GNUNET_SCHEDULER_Handle *sched,
+                                    const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                    GNUNET_RESOLVER_HostnameCallback callback,
+                                    void *cls);
 
 /**
  * Perform a reverse DNS lookup.
