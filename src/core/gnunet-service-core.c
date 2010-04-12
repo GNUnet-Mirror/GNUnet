@@ -1323,7 +1323,14 @@ notify_encrypted_transmit_ready (void *cls, size_t size, void *buf)
   n->th = NULL;
   m = n->encrypted_head;
   if (m == NULL)
-    return 0;
+    {
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Encrypted message queue empty, no messages added to buffer for `%4s'\n",
+		  GNUNET_i2s (&n->peer));
+#endif
+      return 0;
+    }
   GNUNET_CONTAINER_DLL_remove (n->encrypted_head,
 			       n->encrypted_tail,
 			       m);
@@ -3416,12 +3423,6 @@ handle_transport_receive (void *cls,
   up = (n->status == PEER_STATE_KEY_CONFIRMED);
   type = ntohs (message->type);
   size = ntohs (message->size);
-#if DEBUG_HANDSHAKE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received message of type %u from `%4s'\n",
-	      (unsigned int) type,
-	      GNUNET_i2s (peer));
-#endif
   switch (type)
     {
     case GNUNET_MESSAGE_TYPE_CORE_SET_KEY:
