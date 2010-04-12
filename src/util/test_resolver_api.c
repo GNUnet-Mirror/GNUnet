@@ -128,6 +128,38 @@ check_127(void *cls, const struct sockaddr *sa, socklen_t salen)
 }
 
 static void
+check_local_hostname(void *cls, const char *hostname)
+{
+  int result = 0;
+
+  char own_hostname[GNUNET_OS_get_hostname_max_length() + 1];
+#if DEBUG_RESOLVER
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+          "Hostname resolved here is `%s'.\n", own_hostname);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+          "Hostname resolved using resolver is `%s'.\n", hostname);
+#endif
+
+  result = gethostname (own_hostname, sizeof (own_hostname) - 1);
+
+  if ( 0 != result )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Could not resolve local hostname\n", own_hostname);
+  }
+  GNUNET_assert( 0 == result);
+
+  result = strcmp(hostname, own_hostname);
+  if ( 0 != result )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Local resolved and resolver resolved hostnames are not equal\n", own_hostname);
+  }
+  GNUNET_assert( 0 == result);
+}
+
+
+static void
 check_rootserver_ip(void *cls, const struct sockaddr *sa, socklen_t salen)
 {
   int *ok = cls;
@@ -198,6 +230,13 @@ run(void *cls, struct GNUNET_SCHEDULER_Handle *sched, char * const *args,
       sizeof(struct sockaddr), GNUNET_NO, timeout, &check_localhost_num, cls);
   GNUNET_RESOLVER_hostname_resolve(sched, cfg, AF_UNSPEC, timeout,
       &check_hostname, cls);
+
+  /*
+   * Looking up our own hostname
+   */
+  GNUNET_RESOLVER_local_hostname_get(sched, cfg, &check_local_hostname, cls);
+
+
   /*
    * Testing non-local DNS resolution
    * DNS rootserver to test: a.root-servers.net - 198.41.0.4
