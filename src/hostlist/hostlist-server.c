@@ -206,6 +206,8 @@ host_processor (void *cls,
       finish_response (results);
       return;
     }
+  if (hello == NULL)
+    return;
   has_addr = GNUNET_NO;
   GNUNET_HELLO_iterate_addresses (hello,
 				  GNUNET_NO,

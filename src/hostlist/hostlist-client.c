@@ -151,11 +151,10 @@ download_hostlist_processor (void *ptr,
   while ( (left > 0) ||
 	  (download_pos > 0) )
     {
-      cpy = GNUNET_MIN (total, GNUNET_SERVER_MAX_MESSAGE_SIZE - download_pos);
-      GNUNET_assert (cpy > 0);
+      cpy = GNUNET_MIN (left, GNUNET_SERVER_MAX_MESSAGE_SIZE - download_pos);
       memcpy (&download_buffer[download_pos],
 	      cbuf,
-	      cpy);
+	      cpy);      
       cbuf += cpy;
       download_pos += cpy;
       left -= cpy;
