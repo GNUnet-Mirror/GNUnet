@@ -2627,7 +2627,7 @@ process_hello_retry_handle_set_key (void *cls,
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Received `%s' for `%4s', continuing processing of `%s' message.\n",
 		      "HELLO",
-		      GNUNET_i2s (peer),
+		      GNUNET_i2s (&n->peer),
 		      "SET_KEY");
 #endif
 	  handle_set_key (n, sm);
