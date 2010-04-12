@@ -2354,6 +2354,11 @@ process_hello_retry_send_key (void *cls,
       n->pitr = NULL;
       if (n->public_key != NULL)
 	{
+	  if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
+	    {
+	      GNUNET_SCHEDULER_cancel (sched, n->retry_set_key_task);
+	      n->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
+	    }      
 	  GNUNET_STATISTICS_update (stats,
 				    gettext_noop ("# SETKEY messages deferred (need public key)"), 
 				    -1, 
@@ -2428,8 +2433,12 @@ send_key (struct Neighbour *n)
   struct PingMessage pp;
   struct PingMessage *pm;
 
-  if ( (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK) ||
-       (n->pitr != NULL) )
+  if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (sched, n->retry_set_key_task);
+      n->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
+    }        
+  if (n->pitr != NULL)
     {
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
