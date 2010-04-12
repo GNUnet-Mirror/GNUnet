@@ -286,6 +286,16 @@ run (void *cls,
       return;
     }
   stats = GNUNET_STATISTICS_create (sched, "hostlist", cfg);
+
+  core = GNUNET_CORE_connect (sched, cfg,
+                            GNUNET_TIME_UNIT_FOREVER_REL,
+                            NULL,
+                            &core_init,
+                            NULL, &connect_handler, &disconnect_handler,
+                            NULL, GNUNET_NO,
+                            NULL, GNUNET_NO,
+                            handlers);
+
   if (bootstrapping)
     {
       GNUNET_HOSTLIST_client_start (cfg, sched, stats,
@@ -299,15 +309,6 @@ run (void *cls,
     {
 
     }
-
-  core = GNUNET_CORE_connect (sched, cfg,
-                            GNUNET_TIME_UNIT_FOREVER_REL,
-                            NULL,
-                            &core_init,
-                            NULL, &connect_handler, &disconnect_handler,
-                            NULL, GNUNET_NO,
-                            NULL, GNUNET_NO,
-                            handlers);
 
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
