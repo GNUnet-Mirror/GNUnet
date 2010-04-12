@@ -37,7 +37,7 @@
  */
 #define MAX_STAT_SYNC_LAG 50
 
-#define QUOTA_STAT_NAME gettext_noop ("file-sharing datastore utilization (in bytes)")
+#define QUOTA_STAT_NAME gettext_noop ("# bytes used in file-sharing datastore")
 
 /**
  * Log an error message at log-level 'level' that indicates
