@@ -8,9 +8,6 @@
   - clang
   - cppcheck
 * ChangeLog update
-* WWW:
-  - Get IPv6 hooked up [AK, after April 12th]
-  - change DNS [CG, need DNS]
 
 0.9.0pre1:
 * PEERINFO:
