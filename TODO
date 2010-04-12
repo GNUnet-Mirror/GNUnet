@@ -1,5 +1,6 @@
 0.9.0pre0 [April]:
-* HOSTLIST: seems to have NO 'tcp' in it, so cannot have any addresses!? [CG]
+* NAT: peer behind NAT fails to bootstrap: we never get a session key from the other peer
+       (but we DO get a PONG to our PING!) [CG]
 * FS-acceptance testing [CG]
 * Release checks:
   - portability
