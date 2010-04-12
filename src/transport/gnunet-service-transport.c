@@ -23,6 +23,15 @@
  * @brief low-level P2P messaging
  * @author Christian Grothoff
  *
+ * TODO:
+ * - Need to validate *inbound* bi-directional transports (i.e., TCP)
+ *   using PING-PONG and then SIGNAL 'connected' to core/etc.!
+ *   (currently we neither validate those nor do we signal the
+ *    connection); only after those, we should transmit data
+ *   (we currently send and receive arbitrary data on inbound TCP 
+ *    connections even if they have not been validated and hand it
+ *    to our clients!)
+ *
  * NOTE:
  * - This code uses 'GNUNET_a2s' for debug printing in many places,
  *   which is technically wrong since it assumes we have IP+Port 
@@ -2341,6 +2350,15 @@ check_pending_validation (void *cls,
 
   if (ve->challenge != challenge)
     return GNUNET_YES;
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PING,
+				&pong->purpose, 
+				&pong->signature,
+				&ve->publicKey))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_YES;
+    }
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2392,8 +2410,8 @@ check_pending_validation (void *cls,
       n->distance = fal->distance;
       if (GNUNET_NO == n->received_pong)
 	{
-	  notify_clients_connect (&target, n->latency, n->distance);
 	  n->received_pong = GNUNET_YES;
+	  notify_clients_connect (&target, n->latency, n->distance);
 	}
       if (n->retry_task != GNUNET_SCHEDULER_NO_TASK)
 	{
@@ -2989,7 +3007,7 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
     htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) +
            sizeof (uint32_t) +
            sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) + sender_address_len);
-  pong->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_TCP_PING);
+  pong->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PING);
   pong->challenge = ping->challenge;
   pong->addrlen = htons(sender_address_len);
   memcpy(&pong->signer, 
@@ -3163,10 +3181,10 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 	  process_hello (plugin, message);
 	  break;
 	case GNUNET_MESSAGE_TYPE_TRANSPORT_PING:
-	  handle_ping(plugin, message, peer, sender_address, sender_address_len);
+	  handle_ping (plugin, message, peer, sender_address, sender_address_len);
 	  break;
 	case GNUNET_MESSAGE_TYPE_TRANSPORT_PONG:
-	  handle_pong(plugin, message, peer, sender_address, sender_address_len);
+	  handle_pong (plugin, message, peer, sender_address, sender_address_len);
 	  break;
 	default:
 #if DEBUG_TRANSPORT
