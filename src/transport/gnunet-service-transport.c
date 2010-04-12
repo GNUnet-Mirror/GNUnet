@@ -1607,8 +1607,10 @@ static void
 expire_address_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct TransportPlugin *plugin = cls;
+
   plugin->address_update_task = GNUNET_SCHEDULER_NO_TASK;
-  update_addresses (plugin, GNUNET_NO);
+  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    update_addresses (plugin, GNUNET_NO);
 }
 
 
@@ -3695,6 +3697,12 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   while (NULL != (plug = plugins))
     {
       plugins = plug->next;
+      if (plug->address_update_task != GNUNET_SCHEDULER_NO_TASK)
+	{
+	  GNUNET_SCHEDULER_cancel (plug->env.sched, 
+				   plug->address_update_task);
+	  plug->address_update_task = GNUNET_SCHEDULER_NO_TASK;
+	}
       GNUNET_break (NULL == GNUNET_PLUGIN_unload (plug->lib_name, plug->api));
       GNUNET_free (plug->lib_name);
       GNUNET_free (plug->short_name);
