@@ -727,12 +727,14 @@ advertisement_handler (void *cls,
     struct GNUNET_TIME_Relative latency,
     uint32_t distance)
 {
+  int size = ntohs (message->size);
+  int type = ntohs (message->type);
+  if ( type != GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT)
+    return GNUNET_NO;
 #if DEBUG_HOSTLIST_CLIENT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Hostlist client recieved advertisement message\n");
+                  "Hostlist client recieved advertisement message, size %u, type %u\n",size,type);
 #endif
-
-     /* put code to use message here */
 
      return GNUNET_YES;
 }
