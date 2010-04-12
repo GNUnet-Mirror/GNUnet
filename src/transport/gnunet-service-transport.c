@@ -92,11 +92,6 @@
 #define HELLO_VERIFICATION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 /**
- * How long will we allow sending of a ping to be delayed?
- */
-#define TRANSPORT_DEFAULT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
-
-/**
  * Priority to use for PONG messages.
  */
 #define TRANSPORT_PONG_PRIORITY 4
@@ -1548,6 +1543,7 @@ expire_address_task (void *cls,
 static void
 update_addresses (struct TransportPlugin *plugin, int fresh)
 {
+  static struct GNUNET_TIME_Absolute last_update;
   struct GNUNET_TIME_Relative min_remaining;
   struct GNUNET_TIME_Relative remaining;
   struct GNUNET_TIME_Absolute now;
@@ -1561,7 +1557,7 @@ update_addresses (struct TransportPlugin *plugin, int fresh)
   plugin->address_update_task = GNUNET_SCHEDULER_NO_TASK;
   now = GNUNET_TIME_absolute_get ();
   min_remaining = GNUNET_TIME_UNIT_FOREVER_REL;
-  expired = GNUNET_NO;
+  expired = (GNUNET_TIME_absolute_get_duration (last_update).value > (HELLO_ADDRESS_EXPIRATION.value / 4));
   prev = NULL;
   pos = plugin->addresses;
   while (pos != NULL)
@@ -1573,9 +1569,7 @@ update_addresses (struct TransportPlugin *plugin, int fresh)
           if (prev == NULL)
             plugin->addresses = pos->next;
           else
-            prev->next = pos->next;
-
-	  
+            prev->next = pos->next;  
           GNUNET_free (pos);
         }
       else
@@ -1589,13 +1583,17 @@ update_addresses (struct TransportPlugin *plugin, int fresh)
     }
 
   if (expired || fresh)
-    refresh_hello ();
-  if (min_remaining.value < GNUNET_TIME_UNIT_FOREVER_REL.value)
-    plugin->address_update_task
-      = GNUNET_SCHEDULER_add_delayed (plugin->env.sched,
-                                      min_remaining,
-                                      &expire_address_task, plugin);
-
+    {
+      last_update = now;
+      refresh_hello ();
+    }
+  min_remaining = GNUNET_TIME_relative_min (min_remaining,
+					    GNUNET_TIME_relative_divide (HELLO_ADDRESS_EXPIRATION,
+									 2));
+  plugin->address_update_task
+    = GNUNET_SCHEDULER_add_delayed (plugin->env.sched,
+				    min_remaining,
+				    &expire_address_task, plugin);
 }
 
 
