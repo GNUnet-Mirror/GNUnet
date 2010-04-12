@@ -2349,7 +2349,9 @@ process_hello_retry_send_key (void *cls,
     {
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Entered `process_hello_retry_send_key' and `peer' is NULL!\n");
+		  "Entered `%s' and `%s' is NULL!\n",
+		  "process_hello_retry_send_key",
+		  "peer");
 #endif
       n->pitr = NULL;
       if (n->public_key != NULL)
@@ -2382,16 +2384,14 @@ process_hello_retry_send_key (void *cls,
 
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Entered `process_hello_retry_send_key' for peer `%4s'\n",
+              "Entered `%s' for peer `%4s'\n",
+	      "process_hello_retry_send_key",
               GNUNET_i2s (peer));
 #endif
   if (n->public_key != NULL)
     {
-#if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "already have public key for peer %s!! (so why are we here?)\n",
-              GNUNET_i2s (peer));
-#endif
+      /* already have public key, why are we here? */
+      GNUNET_break (0);
       return;
     }
 
@@ -2594,7 +2594,8 @@ send_key (struct Neighbour *n)
  * @param m the set key message we received
  */
 static void
-handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m);
+handle_set_key (struct Neighbour *n,
+		const struct SetKeyMessage *m);
 
 
 /**
@@ -2618,9 +2619,28 @@ process_hello_retry_handle_set_key (void *cls,
 
   if (peer == NULL)
     {
-      GNUNET_free (sm);
       n->skm = NULL;
       n->pitr = NULL;
+      if (n->public_key != NULL)
+	{
+#if DEBUG_CORE
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Received `%s' for `%4s', continuing processing of `%s' message.\n",
+		      "HELLO",
+		      GNUNET_i2s (peer),
+		      "SET_KEY");
+#endif
+	  handle_set_key (n, sm);
+	}
+      else
+	{
+#if DEBUG_CORE
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Ignoring `%s' message due to lack of public key for peer (failed to obtain one).\n",
+		      "SET_KEY");
+#endif
+	}
+      GNUNET_free (sm);
       return;
     }
   if (n->public_key != NULL)
@@ -2632,14 +2652,7 @@ process_hello_retry_handle_set_key (void *cls,
       GNUNET_break_op (0);
       GNUNET_free (n->public_key);
       n->public_key = NULL;
-      return;
     }
-#if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' for `%4s', continuing processing of `%s' message.\n",
-              "HELLO", GNUNET_i2s (peer), "SET_KEY");
-#endif
-  handle_set_key (n, sm);
 }
 
 
