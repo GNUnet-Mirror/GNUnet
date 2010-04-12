@@ -216,15 +216,11 @@ info_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     }
 #if DEBUG_PEERINFO
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received information about peer `%s' from peerinfo database\n",
+	      "Received %u bytes of `%s' information about peer `%s' from PEERINFO database\n",
+	      (hello == NULL) ? 0 : (unsigned int) GNUNET_HELLO_size (hello),
+	      "HELLO",
 	      GNUNET_i2s (&im->peer));
 #endif
-#if DEBUG_PEERINFO
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Size of `%s' is %u bytes\n",
-	      "HELLO",
-	      (hello == NULL) ? 0 : (unsigned int) GNUNET_HELLO_size (hello));
-#endif  
   ic->callback (ic->callback_cls, &im->peer, hello, ntohl (im->trust));
   GNUNET_CLIENT_receive (ic->client,
                          &info_handler,

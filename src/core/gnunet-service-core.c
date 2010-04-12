@@ -2454,8 +2454,13 @@ send_key (struct Neighbour *n)
 #endif
       return; /* already in progress */
     }
-  if (! n->is_connected)
+  if (GNUNET_YES != n->is_connected)
     {
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Not yet connected to peer `%4s'!\n",
+                  GNUNET_i2s (&n->peer));
+#endif
       if (NULL == n->th)
 	{
 	  GNUNET_STATISTICS_update (stats, 

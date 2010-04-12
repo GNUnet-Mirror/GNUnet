@@ -1,6 +1,10 @@
 0.9.0pre0 [April]:
-* NAT: peer behind NAT fails to bootstrap: we never get a session key from the other peer
-       (but we DO get a PONG to our PING!) [CG]
+* TRANSPORT: inbound sessions are not properly PING-PONG validated,
+  connect-event is then not properly signalled (peer behind NAT
+  never gets a 'connect' message) and finally we DO transmit 
+  data messages over the invalidated, only half-connect-signalled
+  channel (which confuses the core state machine, or now causes
+  transport-api assertion failures). [CG]
 * FS-acceptance testing [CG]
 * Release checks:
   - portability
