@@ -109,12 +109,24 @@ struct HostSet
  */
 static int advertising;
 
+/*
+ * How many times was the hostlist advertised?
+ */
+static uint64_t hostlist_adv_count = 0;
+
+/*
+ * Buffer for the hostlist address
+ */
+char hostlist_uri[255];
+
+
 /**
  * Task that will produce a new response object.
  */
 static void
 update_response (void *cls,
 		 const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 
 /**
  * Function that assembles our response.
@@ -361,11 +373,6 @@ access_handler_callback (void *cls,
   return MHD_queue_response (connection, MHD_HTTP_OK, response);
 }
 
-/*
- * Buffer for the hostlist address
- */
-char hostlist_uri[255];
-
 /**
  * Handler called by core when core is ready to transmit message
  * @param cls   closure
@@ -406,6 +413,12 @@ adv_transmit_ready ( void *cls, size_t size, void *buf)
       GNUNET_free ( adv_message );
       return transmission_size;
     }
+
+  hostlist_adv_count++;
+  GNUNET_STATISTICS_set (stats,
+                         gettext_noop("# hostlist advertisements send"),
+                         hostlist_adv_count,
+                         GNUNET_YES);
 
   GNUNET_free (adv_message  );
   return size;

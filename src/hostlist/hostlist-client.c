@@ -112,10 +112,22 @@ static int bogus_url;
 static unsigned int connection_count;
 
 /**
+ * Set if the user allows us to learn about new hostlists
+ * from the network.
+ */
+static int learning;
+
+/**
  * At what time MUST the current hostlist request be done?
  */
 static struct GNUNET_TIME_Absolute end_time;
 
+/**
+ * Hashmap of PeerIdentities to "struct GNUNET_Hostlist"
+ * (for fast lookup).  NULL until the library
+ * is actually being used.
+ */
+static struct GNUNET_CONTAINER_MultiHashMap *hostlist_hashmap;
 
 /**
  * Process downloaded bits by calling callback on each HELLO.
@@ -728,28 +740,37 @@ advertisement_handler (void *cls,
     struct GNUNET_TIME_Relative latency,
     uint32_t distance)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Hostlist client recieved advertisement, checking message: %s\n");
+  if ( !learning )
+    return GNUNET_NO;
+
   int size = ntohs (message->size);
   int uri_size = size - sizeof ( struct GNUNET_HOSTLIST_ADV_Message );
-  int type = ntohs (message->type);
   char * uri = GNUNET_malloc ( uri_size );
+  struct GNUNET_Hostlist * hostlist;
 
-  if ( type != GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT)
+  if ( ntohs (message->type) != GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT)
     return GNUNET_NO;
 
   const struct GNUNET_HOSTLIST_ADV_Message * incoming = (const struct GNUNET_HOSTLIST_ADV_Message *) message;
-  //struct GNUNET_HOSTLIST_ADV_Message * msg = message;
   memcpy ( uri, &incoming[1], uri_size );
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Hostlist client recieved advertisement uri: %s\n", uri);
-  #if DEBUG_HOSTLIST_CLIENT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Hostlist client recieved advertisement message, type %u, message size %u, headersize %u, uri length %u, uri: %s\n",type,size,sizeof( struct GNUNET_HOSTLIST_ADV_Message ),uri_size,uri);
-#endif
+              "Hostlist client recieved advertisement from peer '%4s' containing URI %s\n", GNUNET_i2s (peer), uri );
+
+  hostlist = GNUNET_malloc ( sizeof (struct GNUNET_Hostlist) );
 
 
-     return GNUNET_YES;
+  /* search in map for peer identity */
+  if ( NULL != hostlist_hashmap)
+    /* GNUNET_CONTAINER_multihashmap_contains( hostlist_hashmap, )*/
+  /* if it is not existing in map, create new a hostlist */
+  hostlist->peer = (*peer);
+  hostlist->hello_count = 0;
+  hostlist->hostlist_uri = GNUNET_malloc ( uri_size);
+  memcpy ( hostlist->hostlist_uri, &incoming[1], uri_size );
+  hostlist->time_creation = GNUNET_TIME_absolute_get();
+  hostlist->time_last_usage = GNUNET_TIME_absolute_get_zero();
+
+  return GNUNET_YES;
 }
 
 /**
@@ -806,6 +827,9 @@ static int load_hostlist_file ()
                   "HOSTLISTFILE", "HOSTLIST");
       return GNUNET_SYSERR;
     }
+
+  /* add code to write hostlists to file using bio */
+
   return GNUNET_OK;
 }
 
@@ -824,11 +848,12 @@ static int save_hostlist_file ()
                                              &servers))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("No `%s' specified in `%s' configuration, cannot save hostlist to file.\n"),
+                  _("No `%s' specified in `%s' configuration, cannot save hostlists to file.\n"),
                   "HOSTLISTFILE", "HOSTLIST");
       return GNUNET_SYSERR;
     }
 
+  /* add code to write hostlists to file using bio */
 
   return GNUNET_OK;
 }
@@ -842,7 +867,8 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
 			      struct GNUNET_STATISTICS_Handle *st,
 			      GNUNET_CORE_ConnectEventHandler *ch,
 			      GNUNET_CORE_DisconnectEventHandler *dh,
-			      GNUNET_CORE_MessageCallback *msgh)
+			      GNUNET_CORE_MessageCallback *msgh,
+			      int learn)
 {
   if (0 != curl_global_init (CURL_GLOBAL_WIN32))
     {
@@ -868,6 +894,11 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   *dh = &disconnect_handler;
   *msgh = &advertisement_handler;
 
+  learning = learn;
+  if ( learning )
+  {
+    hostlist_hashmap = GNUNET_CONTAINER_multihashmap_create (16);
+  }
   load_hostlist_file ();
 
   GNUNET_STATISTICS_get (stats,
@@ -892,6 +923,11 @@ GNUNET_HOSTLIST_client_stop ()
 	      "Hostlist client shutdown\n");
 #endif
   save_hostlist_file ();
+
+  if ( learning )
+  {
+    GNUNET_CONTAINER_multihashmap_destroy ( hostlist_hashmap );
+  }
 
   if (current_task != GNUNET_SCHEDULER_NO_TASK)
     {

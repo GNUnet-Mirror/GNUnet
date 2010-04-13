@@ -30,6 +30,22 @@
 #include "gnunet_core_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_time_lib.h"
+
+/*
+ * a single hostlist obtained by hostlist advertisements
+ */
+struct GNUNET_Hostlist
+{
+
+  struct GNUNET_PeerIdentity    peer;
+  char *                        hostlist_uri;
+  unsigned long                 hello_count;
+  unsigned long                 times_used;
+  struct GNUNET_TIME_Absolute   time_creation;
+  struct GNUNET_TIME_Absolute   time_last_usage;
+  uint64_t                      quality;
+};
 
 
 /**
@@ -41,6 +57,7 @@
  * @param ch set to handler for connect notifications
  * @param dh set to handler for disconnect notifications
  * @param msgh set to handler for message handler notifications
+ * @param learn set if client is learning new hostlists
  * @return GNUNET_OK on success
  */
 int
@@ -49,7 +66,8 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
 			      struct GNUNET_STATISTICS_Handle *st,
 			      GNUNET_CORE_ConnectEventHandler *ch,
 			      GNUNET_CORE_DisconnectEventHandler *dh,
-			      GNUNET_CORE_MessageCallback *msgh);
+			      GNUNET_CORE_MessageCallback *msgh,
+			      int learn);
 
 
 /**

@@ -306,7 +306,7 @@ run (void *cls,
   if (bootstrapping)
     {
       GNUNET_HOSTLIST_client_start (cfg, sched, stats,
-				    &client_ch, &client_dh, &client_adv_handler);
+				    &client_ch, &client_dh, &client_adv_handler, learning);
     }
   if (provide_hostlist)
     {      
