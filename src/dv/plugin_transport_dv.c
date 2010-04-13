@@ -187,6 +187,7 @@ void handle_dv_message_received (void *cls,
                        sender,
                        (struct GNUNET_MessageHeader *)msg,
                        distance,
+		       NULL, /* FIXME: pass session! */
                        sender_address,
                        sender_address_len);
 
@@ -230,6 +231,7 @@ dv_plugin_send (void *cls,
                 size_t msgbuf_size,
                 unsigned int priority,
                 struct GNUNET_TIME_Relative timeout,
+		struct Session *session,
                 const void *addr,
                 size_t addrlen,
                 int force_address,
@@ -242,6 +244,7 @@ dv_plugin_send (void *cls,
   /* FIXME: do we want the dv plugin to remember sent messages to call continuation once message actually goes out?
    * Or do we just call the continuation once we've notified the plugin?
    */
+  // FIXME: does it make sense for us to use sessions?
 #if DEBUG_DV
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV API: Received send request from transport, calling GNUNET_DV_send\n");
 #endif
