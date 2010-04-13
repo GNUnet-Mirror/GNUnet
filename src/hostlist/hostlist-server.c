@@ -356,45 +356,63 @@ access_handler_callback (void *cls,
   return MHD_queue_response (connection, MHD_HTTP_OK, response);
 }
 
-struct GNUNET_HOSTLIST_ADV_Message adv_message;
-char hostlist_uri[1024];
+/*
+ * Buffer for the hostlist address
+ */
+char hostlist_uri[255];
 
+/**
+ * Handler called by core when core is ready to transmit message
+ * @param cls   closure
+ * @param size  size of buffer to copy message to
+ * @param buf   buffer to copy message to
+ */
 static size_t
 adv_transmit_ready ( void *cls, size_t size, void *buf)
 {
-  int transmission_size;
+  size_t transmission_size;
+  size_t uri_size; /* Including \0 termination! */
+  uri_size = strlen ( hostlist_uri ) + 1;
 
-  transmission_size = sizeof (struct GNUNET_HOSTLIST_ADV_Message) + strlen(hostlist_uri) +1;
-  adv_message.header.size = htons (transmission_size);
+  struct GNUNET_HOSTLIST_ADV_Message * adv_message;
+  adv_message = GNUNET_malloc ( sizeof(struct GNUNET_HOSTLIST_ADV_Message) + uri_size);
+  if ( NULL == adv_message)
+   {
+   GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+       "Could not allocate memory for the message");
+   return GNUNET_NO;
+   }
+  transmission_size = sizeof (struct GNUNET_HOSTLIST_ADV_Message) + uri_size;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Assembled message size %u\n", transmission_size);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Size Messageheader %u\n", sizeof (struct GNUNET_HOSTLIST_ADV_Message));
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Size URI %u\n", strlen(hostlist_uri));
+  adv_message->header.type = htons (GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT);
+  adv_message->header.size = htons (transmission_size);
+  memcpy(&adv_message[1],hostlist_uri,uri_size);
+
   if (buf == NULL)
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Transmission failed, buffer invalid!\n");
+      GNUNET_log ( GNUNET_ERROR_TYPE_DEBUG, "Transmission failed, buffer invalid!\n" );
       return 0;
     }
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              _("Buffer valid of size %u\n"), size);
 
-  if (size >= transmission_size)
+  if ( size >= transmission_size )
     {
-      memcpy(buf, &adv_message, transmission_size);
-
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Sent advertisement message: Copied %d bytes into buffer!\n\n\n", transmission_size);
-
+      memcpy ( buf, adv_message, transmission_size );
+      GNUNET_log ( GNUNET_ERROR_TYPE_DEBUG, "Sent advertisement message: Copied %d bytes into buffer!\n", transmission_size);
+      GNUNET_free ( adv_message );
       return transmission_size;
     }
-  return size;
 
+  GNUNET_free (adv_message  );
+  return size;
 }
 
-static int
-adv_transmit_message ( const struct GNUNET_PeerIdentity * peer, int size )
+/**
+ * Method that asks core service to transmit the message to the peer
+ * @param peer peer to transmit message to
+ * @param size size of the message
+ */
+static size_t
+adv_transmit_message ( const struct GNUNET_PeerIdentity * peer, size_t size )
 {
   /* transmit message to peer */
   if ( NULL == core)
@@ -405,8 +423,8 @@ adv_transmit_message ( const struct GNUNET_PeerIdentity * peer, int size )
     }
 
   struct GNUNET_TIME_Relative timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, GNUNET_ADV_TIMEOUT);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              _("Asked to transmit %u bytes of adv\n"), size);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              _("Asked core to transmit advertisement message with a size of %u bytes\n"), size);
   struct GNUNET_CORE_TransmitHandle * th;
   th = GNUNET_CORE_notify_transmit_ready (core,
                                      0,
@@ -423,14 +441,15 @@ adv_transmit_message ( const struct GNUNET_PeerIdentity * peer, int size )
 }
 
 /**
- * Function that assembles our hostlist adv message.
+ * Method that assembles our hostlist advertisement message
+ * @param peer peer to send the hostlist advertisement
  */
-static int
+static size_t
 adv_create_message ( const struct GNUNET_PeerIdentity * peer )
 
 {
-  int length  = 0;
-  int size    = 0;
+  size_t length  = 0;
+  size_t size    = 0;
   unsigned long long port;
 
   char *uri;
@@ -460,21 +479,7 @@ adv_create_message ( const struct GNUNET_PeerIdentity * peer )
   uri = strcat(uri, port_s);
   uri = strcat(uri, "/");
   strcpy(hostlist_uri,uri);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Address to obtain hostlist: %s\n", uri);
-
-
-   /* adv_msg = GNUNET_malloc ( sizeof(struct GNUNET_HOSTLIST_ADV_Message) + size);
-    if (adv_msg==NULL)
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-       "Creating message:address null\n",sizeof(struct GNUNET_HOSTLIST_ADV_Message));
-
-   if ( NULL == adv_msg)
-    {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
-        "Could not allocate memory for the message");
-    return GNUNET_NO;
-    }
-  */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Address to obtain hostlist: %s\n", hostlist_uri);
 
   if ( ( size + sizeof( struct GNUNET_HOSTLIST_ADV_Message )) > GNUNET_SERVER_MAX_MESSAGE_SIZE)
     {
@@ -483,19 +488,12 @@ adv_create_message ( const struct GNUNET_PeerIdentity * peer )
       return GNUNET_NO;
     }
 
-  //adv_msg->header.type = htons (GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT);
-  //adv_msg->header.size = htons (sizeof (struct GNUNET_HOSTLIST_ADV_Message) + size);
-  // memcpy(&adv_msg[1],uri,size);
-
-  adv_message.header.type = htons (GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT);
-
   /* Request core to transmit message to peer */
-  size = size + sizeof(struct GNUNET_HOSTLIST_ADV_Message);
+  size = size + sizeof ( struct GNUNET_HOSTLIST_ADV_Message );
   adv_transmit_message(peer, size);
 
   GNUNET_free ( port_s );
   GNUNET_free ( uri );
-  //GNUNET_free ( adv_msg );
 
   return GNUNET_OK;
 }
