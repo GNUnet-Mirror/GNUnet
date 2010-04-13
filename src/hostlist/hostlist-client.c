@@ -787,6 +787,51 @@ process_stat (void *cls,
   return GNUNET_OK;
 }
 
+/**
+ * Method to load persistent hostlist file during hostlist client startup
+ * param c configuration to use
+ */
+static int load_hostlist_file ()
+{
+  char *servers;
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             "HOSTLIST",
+                                             "HOSTLISTFILE",
+                                             &servers))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("No `%s' specified in `%s' configuration, cannot load hostlists from file.\n"),
+                  "HOSTLISTFILE", "HOSTLIST");
+      return GNUNET_SYSERR;
+    }
+  return GNUNET_OK;
+}
+
+/**
+ * Method to load persistent hostlist file during hostlist client shutdown
+ * param c configuration to use
+ */
+static int save_hostlist_file ()
+{
+  char *servers;
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             "HOSTLIST",
+                                             "HOSTLISTFILE",
+                                             &servers))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("No `%s' specified in `%s' configuration, cannot save hostlist to file.\n"),
+                  "HOSTLISTFILE", "HOSTLIST");
+      return GNUNET_SYSERR;
+    }
+
+
+  return GNUNET_OK;
+}
 
 /**
  * Start downloading hostlists from hostlist servers as necessary.
@@ -822,6 +867,9 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   *ch = &connect_handler;
   *dh = &disconnect_handler;
   *msgh = &advertisement_handler;
+
+  load_hostlist_file ();
+
   GNUNET_STATISTICS_get (stats,
 			 "hostlist",
 			 gettext_noop("# seconds between hostlist downloads"),
@@ -843,6 +891,8 @@ GNUNET_HOSTLIST_client_stop ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Hostlist client shutdown\n");
 #endif
+  save_hostlist_file ();
+
   if (current_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (sched,
