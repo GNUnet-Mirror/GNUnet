@@ -30,6 +30,7 @@
 #include "gnunet_hello_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
+#include "gnunet-daemon-hostlist.h"
 #include <curl/curl.h>
 
 #define DEBUG_HOSTLIST_CLIENT GNUNET_YES
@@ -727,14 +728,26 @@ advertisement_handler (void *cls,
     struct GNUNET_TIME_Relative latency,
     uint32_t distance)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Hostlist client recieved advertisement, checking message: %s\n");
   int size = ntohs (message->size);
+  int uri_size = size - sizeof ( struct GNUNET_HOSTLIST_ADV_Message );
   int type = ntohs (message->type);
+  char * uri = GNUNET_malloc ( uri_size );
+
   if ( type != GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT)
     return GNUNET_NO;
-#if DEBUG_HOSTLIST_CLIENT
+
+  const struct GNUNET_HOSTLIST_ADV_Message * incoming = (const struct GNUNET_HOSTLIST_ADV_Message *) message;
+  //struct GNUNET_HOSTLIST_ADV_Message * msg = message;
+  memcpy ( uri, &incoming[1], uri_size );
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Hostlist client recieved advertisement uri: %s\n", uri);
+  #if DEBUG_HOSTLIST_CLIENT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Hostlist client recieved advertisement message, size %u, type %u\n",size,type);
+                  "Hostlist client recieved advertisement message, type %u, message size %u, headersize %u, uri length %u, uri: %s\n",type,size,sizeof( struct GNUNET_HOSTLIST_ADV_Message ),uri_size,uri);
 #endif
+
 
      return GNUNET_YES;
 }

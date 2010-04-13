@@ -168,7 +168,14 @@ static int advertisement_handler (void *cls,
                              struct GNUNET_TIME_Relative latency,
                              uint32_t distance)
 {
-  if (advertising && (NULL != client_adv_handler))
+  if ( !learning )
+    {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Recieved hostlist advertisement, but I am not learning!\n");
+    return GNUNET_NO;
+    }
+
+  if (learning && (NULL != client_adv_handler))
     {
         (*client_adv_handler) (cls, peer, message, latency, distance);
         return GNUNET_YES;
@@ -303,7 +310,7 @@ run (void *cls,
     }
   if (provide_hostlist)
     {      
-      GNUNET_HOSTLIST_server_start (cfg, sched, stats, core, &server_ch, &server_dh);
+      GNUNET_HOSTLIST_server_start (cfg, sched, stats, core, &server_ch, &server_dh, advertising );
     }
   if (learning)
     {

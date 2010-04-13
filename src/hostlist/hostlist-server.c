@@ -105,6 +105,11 @@ struct HostSet
 };
 
 /**
+ * Set if we are allowed to advertise our hostlist to others.
+ */
+static int advertising;
+
+/**
  * Task that will produce a new response object.
  */
 static void
@@ -478,7 +483,9 @@ adv_create_message ( const struct GNUNET_PeerIdentity * peer )
   uri = strcat(uri, ":");
   uri = strcat(uri, port_s);
   uri = strcat(uri, "/");
-  strcpy(hostlist_uri,uri);
+  if ( length < 255);
+    strcpy(hostlist_uri,uri);
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Address to obtain hostlist: %s\n", hostlist_uri);
 
   if ( ( size + sizeof( struct GNUNET_HOSTLIST_ADV_Message )) > GNUNET_SERVER_MAX_MESSAGE_SIZE)
@@ -513,6 +520,9 @@ connect_handler (void *cls,
                  struct GNUNET_TIME_Relative latency,
                  uint32_t distance)
 {
+  if ( !advertising )
+    return;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "A new peer connected to the server, preparing to send hostlist advertisement\n");
   /* create a new advertisement message */
@@ -639,10 +649,18 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 			      struct GNUNET_STATISTICS_Handle *st,
 			      struct GNUNET_CORE_Handle *co,
 	                      GNUNET_CORE_ConnectEventHandler *server_ch,
-                              GNUNET_CORE_DisconnectEventHandler *server_dh)
+                              GNUNET_CORE_DisconnectEventHandler *server_dh,
+                              int advertise)
 {
   unsigned long long port;
 
+  advertising = advertise;
+  if  ( !advertising )
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Advertising not enabled on this hostlist server\n");
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Advertising enabled on this hostlist server\n");
   sched = s;
   cfg = c;
   stats = st;
