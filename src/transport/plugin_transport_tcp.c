@@ -640,6 +640,7 @@ select_better_session (struct Session *s1,
  *                require plugins to discard the message after the timeout,
  *                just advisory for the desired delay; most plugins will ignore
  *                this as well)
+ * @param session which session must be used (or NULL for "any")
  * @param addr the address to use (can be NULL if the plugin
  *                is "on its own" (i.e. re-use existing TCP connection))
  * @param addrlen length of the address in bytes
@@ -664,13 +665,13 @@ tcp_plugin_send (void *cls,
                  size_t msgbuf_size,
                  uint32_t priority,
                  struct GNUNET_TIME_Relative timeout,
+		 struct Session *session,
 		 const void *addr,
 		 size_t addrlen,
 		 int force_address,
                  GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
   struct Plugin *plugin = cls;
-  struct Session *session;
   struct Session *cand_session;
   struct Session *next;
   struct PendingMessage *pm;
@@ -684,44 +685,47 @@ tcp_plugin_send (void *cls,
   /* FIXME: we could do this a cheaper with a hash table
      where we could restrict the iteration to entries that match
      the target peer... */
-  cand_session = NULL;
-  next = plugin->sessions;
-  while (NULL != (session = next)) 
+  if (session == NULL)
     {
-      next = session->next;
-      GNUNET_assert (session->client != NULL);
-      if (0 != memcmp (target,
-		       &session->target, 
-		       sizeof (struct GNUNET_PeerIdentity)))
-	continue;
-      if ( ( (GNUNET_SYSERR == force_address) &&
-	     (session->expecting_welcome == GNUNET_NO) ) ||
-	   (GNUNET_NO == force_address) )   
+      cand_session = NULL;
+      next = plugin->sessions;
+      while (NULL != (session = next)) 
 	{
+	  next = session->next;
+	  GNUNET_assert (session->client != NULL);
+	  if (0 != memcmp (target,
+			   &session->target, 
+			   sizeof (struct GNUNET_PeerIdentity)))
+	    continue;
+	  if ( ( (GNUNET_SYSERR == force_address) &&
+		 (session->expecting_welcome == GNUNET_NO) ) ||
+	       (GNUNET_NO == force_address) )   
+	    {
+	      cand_session = select_better_session (cand_session,
+						    session);
+	      continue;
+	    }
+	  if (GNUNET_SYSERR == force_address)
+	    continue;
+	  GNUNET_break (GNUNET_YES == force_address);
+	  if (addr == NULL)
+	    {
+	      GNUNET_break (0);
+	      break;
+	    }
+	  if (session->inbound == GNUNET_YES) 
+	    continue;
+	  if (addrlen != session->connect_alen)
+	    continue;
+	  if (0 != memcmp (session->connect_addr,
+			   addr,
+			   addrlen))
+	    continue;
 	  cand_session = select_better_session (cand_session,
-						session);
-	  continue;
+						session);	      
 	}
-      if (GNUNET_SYSERR == force_address)
-	continue;
-      GNUNET_break (GNUNET_YES == force_address);
-      if (addr == NULL)
-	{
-	  GNUNET_break (0);
-	  break;
-	}
-      if (session->inbound == GNUNET_YES) 
-	continue;
-      if (addrlen != session->connect_alen)
-	continue;
-      if (0 != memcmp (session->connect_addr,
-		       addr,
-		       addrlen))
-	continue;
-      cand_session = select_better_session (cand_session,
-					    session);	      
+      session = cand_session;
     }
-  session = cand_session;
   if ( (session == NULL) &&
        (addr == NULL) )
     {
@@ -1134,7 +1138,9 @@ delayed_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   session->receive_delay_task = GNUNET_SCHEDULER_NO_TASK;
   delay = session->plugin->env->receive (session->plugin->env->cls,
 					 &session->target,
-					 NULL, 0, NULL, 0);
+					 NULL, 0, 
+					 session,
+					 NULL, 0);
   if (delay.value == 0)
     GNUNET_SERVER_receive_done (session->client, GNUNET_OK);
   else
@@ -1187,9 +1193,9 @@ handle_tcp_data (void *cls,
 			    ntohs (message->size),
 			    GNUNET_NO); 
   delay = plugin->env->receive (plugin->env->cls, &session->target, message, 1,
-				session->connect_addr,
-				session->connect_alen);
-
+				session, 
+				(GNUNET_YES == session->inbound) ? NULL : session->connect_addr,
+				(GNUNET_YES == session->inbound) ? 0 : session->connect_alen);
   if (delay.value == 0)
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
   else

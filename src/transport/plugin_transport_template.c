@@ -139,6 +139,7 @@ struct Plugin
  * @param msgbuf the message to transmit
  * @param msgbuf_size number of bytes in 'msgbuf'
  * @param timeout when should we time out 
+ * @param session which session must be used (or NULL for "any")
  * @param addr the address to use (can be NULL if the plugin
  *                is "on its own" (i.e. re-use existing TCP connection))
  * @param addrlen length of the address in bytes
@@ -162,6 +163,7 @@ template_plugin_send (void *cls,
                       size_t msgbuf_size,
                       unsigned int priority,
                       struct GNUNET_TIME_Relative timeout,
+		      struct Session *session,
                       const void *addr,
                       size_t addrlen,
                       int force_address,

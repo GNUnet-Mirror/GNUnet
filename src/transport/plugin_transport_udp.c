@@ -184,6 +184,7 @@ udp_transport_server_stop (void *cls)
  * @param msgbuf_size the size of the msgbuf to send
  * @param priority how important is the message (ignored by UDP)
  * @param timeout when should we time out (give up) if we can not transmit?
+ * @param session which session must be used (always NULL for UDP)
  * @param addr the addr to send the message to, needs to be a sockaddr for us
  * @param addrlen the len of addr
  * @param force_address GNUNET_YES if the plugin MUST use the given address,
@@ -206,6 +207,7 @@ udp_plugin_send (void *cls,
                  size_t msgbuf_size,
                  unsigned int priority,
                  struct GNUNET_TIME_Relative timeout,
+		 struct Session *session,
                  const void *addr,
                  size_t addrlen,
                  int force_address,
@@ -216,6 +218,7 @@ udp_plugin_send (void *cls,
   int ssize;
   ssize_t sent;
 
+  GNUNET_assert (NULL == session);
   GNUNET_assert(udp_sock != NULL);
   if ( (addr == NULL) || (addrlen == 0) )
     {
@@ -417,7 +420,8 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                      count, ntohs(currhdr->type), ntohs(currhdr->size), offset);
 #endif
         plugin->env->receive (plugin->env->cls,
-            sender, currhdr, UDP_DIRECT_DISTANCE, (char *)&addr, fromlen);
+			      sender, currhdr, UDP_DIRECT_DISTANCE, 
+			      NULL, (const char *)&addr, fromlen);
         offset += ntohs(currhdr->size);
 #if DEBUG_UDP
     GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _

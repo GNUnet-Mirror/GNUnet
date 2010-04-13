@@ -175,6 +175,12 @@ struct ForeignAddressList
   const void *addr;
 
   /**
+   * Session (or NULL if no valid session currently exists or if the
+   * plugin does not use sessions).
+   */
+  struct Session *session;
+
+  /**
    * What was the last latency observed for this address, plugin and peer?
    */
   struct GNUNET_TIME_Relative latency;
@@ -1347,6 +1353,7 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 			       mq->message_buf_size,
 			       mq->priority,
 			       GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+			       mq->specific_address->session,
 			       mq->specific_address->addr,
 			       mq->specific_address->addrlen,
 			       force_address,
@@ -1624,6 +1631,61 @@ expire_address_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Function that will be called whenever the plugin internally
+ * cleans up a session pointer and hence the service needs to
+ * discard all of those sessions as well.  Plugins that do not
+ * use sessions can simply omit calling this function and always
+ * use NULL wherever a session pointer is needed.
+ * 
+ * @param cls closure
+ * @param peer which peer was the session for 
+ * @param session which session is being destoyed
+ */
+static void
+plugin_env_session_end  (void *cls,
+			 const struct GNUNET_PeerIdentity *peer,
+			 struct Session *session)
+{
+  struct TransportPlugin *p = cls;
+  struct NeighbourList *nl;
+  struct ReadyList *rl;
+  struct ForeignAddressList *pos;
+  struct ForeignAddressList *prev;
+
+  nl = find_neighbour (peer);
+  if (nl == NULL)
+    return;
+  rl = nl->plugins;
+  while (rl != NULL)
+    {
+      if (rl->plugin == p)
+	break;
+      rl = rl->next;
+    }
+  if (rl == NULL)
+    return;
+  prev = NULL;
+  pos = rl->addresses;
+  while ( (pos != NULL) &&
+	  (pos->session != session) )
+    {
+      prev = pos;
+      pos = pos->next;
+    }
+  if (pos == NULL)
+    return;
+  pos->session = NULL;
+  if (pos->addrlen != 0)
+    return;
+  if (prev == NULL)
+    rl->addresses = pos->next;
+  else
+    prev->next = pos->next;
+  GNUNET_free (pos);
+}
+
+
+/**
  * Function that must be called by each plugin to notify the
  * transport service about the addresses under which the transport
  * provided by the plugin can be reached.
@@ -1743,6 +1805,8 @@ notify_clients_disconnect (const struct GNUNET_PeerIdentity *peer)
  *
  * @param neighbour which peer we care about
  * @param tname name of the transport plugin
+ * @param session session to look for, NULL for 'any'; otherwise
+ *        can be used for the service to "learn" this session ID
  * @param addr binary address
  * @param addrlen length of addr
  * @return NULL if no such entry exists
@@ -1750,6 +1814,7 @@ notify_clients_disconnect (const struct GNUNET_PeerIdentity *peer)
 static struct ForeignAddressList *
 find_peer_address(struct NeighbourList *neighbour,
 		  const char *tname,
+		  struct Session *session,
 		  const char *addr,
 		  size_t addrlen)
 {
@@ -1771,6 +1836,8 @@ find_peer_address(struct NeighbourList *neighbour,
 	  ( (address_head->addrlen != addrlen) ||
 	    (memcmp(address_head->addr, addr, addrlen) != 0) ) )
     address_head = address_head->next;
+  if (session != NULL)
+    address_head->session = session; /* learn it! */
   return address_head;
 }
 
@@ -1781,6 +1848,7 @@ find_peer_address(struct NeighbourList *neighbour,
  *
  * @param neighbour which peer we care about
  * @param tname name of the transport plugin
+ * @param session session of the plugin, or NULL for none
  * @param addr binary address
  * @param addrlen length of addr
  * @return NULL if we do not have a transport plugin for 'tname'
@@ -1788,13 +1856,14 @@ find_peer_address(struct NeighbourList *neighbour,
 static struct ForeignAddressList *
 add_peer_address (struct NeighbourList *neighbour,
 		  const char *tname,
+		  struct Session *session,
 		  const char *addr, 
 		  size_t addrlen)
 {
   struct ReadyList *head;
   struct ForeignAddressList *ret;
 
-  ret = find_peer_address (neighbour, tname, addr, addrlen);
+  ret = find_peer_address (neighbour, tname, session, addr, addrlen);
   if (ret != NULL)
     return ret;
   head = neighbour->plugins;
@@ -1807,6 +1876,7 @@ add_peer_address (struct NeighbourList *neighbour,
   if (head == NULL)
     return NULL;
   ret = GNUNET_malloc(sizeof(struct ForeignAddressList) + addrlen);
+  ret->session = session;
   ret->addr = (const char*) &ret[1];
   memcpy (&ret[1], addr, addrlen);
   ret->addrlen = addrlen;
@@ -2014,7 +2084,7 @@ add_to_foreign_address_list (void *cls,
 			    1,
 			    GNUNET_NO);      
   try = GNUNET_NO;
-  fal = find_peer_address (n, tname, addr, addrlen);
+  fal = find_peer_address (n, tname, NULL, addr, addrlen);
   if (fal == NULL)
     {
 #if DEBUG_TRANSPORT
@@ -2025,7 +2095,7 @@ add_to_foreign_address_list (void *cls,
 		  GNUNET_i2s (&n->id),
 		  expiration.value);
 #endif
-      fal = add_peer_address (n, tname, addr, addrlen);
+      fal = add_peer_address (n, tname, NULL, addr, addrlen);
       if (fal == NULL)
 	{
 	  GNUNET_STATISTICS_update (stats,
@@ -2392,6 +2462,7 @@ check_pending_validation (void *cls,
       n->public_key_valid = GNUNET_YES;
       fal = add_peer_address (n,
 			      ve->transport_name,
+			      NULL,
 			      ve->addr,
 			      ve->addrlen);
       GNUNET_assert (fal != NULL);
@@ -2604,7 +2675,7 @@ run_validation (void *cls,
     neighbour = setup_new_neighbour(&id);
   neighbour->publicKey = va->publicKey;
   neighbour->public_key_valid = GNUNET_YES;
-  peer_address = add_peer_address(neighbour, tname, addr, addrlen);
+  peer_address = add_peer_address(neighbour, tname, NULL, addr, addrlen);
   GNUNET_assert(peer_address != NULL);
   hello_size = GNUNET_HELLO_size(our_hello);
   tsize = sizeof(struct TransportPingMessage) + hello_size;
@@ -3018,8 +3089,7 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
                  GNUNET_CRYPTO_rsa_sign (my_private_key,
                                          &pong->purpose, &pong->signature));
   n = find_neighbour(peer);
-  if (n == NULL)
-    n = setup_new_neighbour(peer);
+  GNUNET_assert (n != NULL);
   /* first try reliable response transmission */
   rl = n->plugins;
   while (rl != NULL)
@@ -3033,6 +3103,7 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
 					   ntohs (pong->header.size),
 					   TRANSPORT_PONG_PRIORITY, 
 					   HELLO_VERIFICATION_TIMEOUT,
+					   fal->session,
 					   fal->addr,
 					   fal->addrlen,
 					   GNUNET_SYSERR,
@@ -3088,6 +3159,7 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
  * @param message the message, NULL if we only care about
  *                learning about the delay until we should receive again
  * @param distance in overlay hops; use 1 unless DV (or 0 if message == NULL)
+ * @param session identifier used for this session (can be NULL)
  * @param sender_address binary address of the sender (if observed)
  * @param sender_address_len number of bytes in sender_address
  * @return how long the plugin should wait until receiving more data
@@ -3096,11 +3168,13 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
 static struct GNUNET_TIME_Relative
 plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_MessageHeader *message,
-                    unsigned int distance, const char *sender_address,
+                    unsigned int distance,
+		    struct Session *session,
+		    const char *sender_address,
                     size_t sender_address_len)
 {
-  struct ReadyList *service_context;
   struct TransportPlugin *plugin = cls;
+  struct ReadyList *service_context;
   struct TransportClient *cpos;
   struct InboundMessage *im;
   struct ForeignAddressList *peer_address;
@@ -3119,6 +3193,7 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     {
       peer_address = add_peer_address(n, 
 				      plugin->short_name,
+				      session,
 				      sender_address, 
 				      sender_address_len);  
       if (peer_address != NULL)
@@ -3577,6 +3652,7 @@ create_environment (struct TransportPlugin *plug)
   plug->env.cls = plug;
   plug->env.receive = &plugin_env_receive;
   plug->env.notify_address = &plugin_env_notify_address;
+  plug->env.session_end = &plugin_env_session_end;
   plug->env.max_connections = max_connect_per_transport;
   plug->env.stats = stats;
 }

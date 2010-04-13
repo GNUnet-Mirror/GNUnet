@@ -36,6 +36,33 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
 
+/**
+ * Opaque pointer that plugins can use to distinguish specific
+ * connections to a given peer.  Typically used by stateful plugins to
+ * allow the service to refer to specific streams instead of a more
+ * general notion of "some connection" to the given peer.  This is
+ * useful since sometimes (i.e. for inbound TCP connections) a
+ * connection may not have an address that can be used for meaningful
+ * distinction between sessions to the same peer.
+ */
+struct Session;
+
+
+/**
+ * Function that will be called whenever the plugin internally
+ * cleans up a session pointer and hence the service needs to
+ * discard all of those sessions as well.  Plugins that do not
+ * use sessions can simply omit calling this function and always
+ * use NULL wherever a session pointer is needed.
+ * 
+ * @param cls closure
+ * @param peer which peer was the session for 
+ * @param session which session is being destoyed
+ */
+typedef void (*GNUNET_TRANSPORT_SessionEnd) (void *cls,
+					     const struct GNUNET_PeerIdentity *peer,
+					     struct Session *session);
+
 
 /**
  * Function called by the transport for each received message.
@@ -47,6 +74,7 @@
  * @param message the message, NULL if we only care about
  *                learning about the delay until we should receive again -- FIXME!
  * @param distance in overlay hops; use 1 unless DV (or 0 if message == NULL)
+ * @param session identifier used for this session (can be NULL)
  * @param sender_address binary address of the sender (if observed)
  * @param sender_address_len number of bytes in sender_address
  * @return how long the plugin should wait until receiving more data
@@ -60,6 +88,7 @@ typedef struct GNUNET_TIME_Relative (*GNUNET_TRANSPORT_PluginReceiveCallback) (v
 									       GNUNET_MessageHeader *
 									       message,
 									       uint32_t distance,
+									       struct Session *session,
 									       const char *sender_address,
 									       size_t sender_address_len);
 
@@ -157,6 +186,12 @@ struct GNUNET_TRANSPORT_PluginEnvironment
   GNUNET_TRANSPORT_TrafficReport traffic_report;
 
   /**
+   * Function that must be called by the plugin when a non-NULL
+   * session handle stops being valid (is destroyed).
+   */
+  GNUNET_TRANSPORT_SessionEnd session_end;
+
+  /**
    * What is the maximum number of connections that this transport
    * should allow?  Transports that do not have sessions (such as
    * UDP) can ignore this value.
@@ -201,6 +236,7 @@ typedef void
  *                require plugins to discard the message after the timeout,
  *                just advisory for the desired delay; most plugins will ignore
  *                this as well)
+ * @param session which session must be used (or NULL for "any")
  * @param addr the address to use (can be NULL if the plugin
  *                is "on its own" (i.e. re-use existing TCP connection))
  * @param addrlen length of the address in bytes
@@ -226,6 +262,7 @@ typedef ssize_t
                                         size_t msgbuf_size,
                                         uint32_t priority,
                                         struct GNUNET_TIME_Relative timeout,
+					struct Session *session,
                                         const void *addr,
 					size_t addrlen,
 					int force_address,
@@ -323,7 +360,7 @@ struct GNUNET_TRANSPORT_PluginFunctions
 
   /**
    * Function that the transport service will use to transmit data to
-   * another peer.  May be null for plugins that only support
+   * another peer.  May be NULL for plugins that only support
    * receiving data.  After this call, the plugin call the specified
    * continuation with success or error before notifying us about the
    * target having disconnected.

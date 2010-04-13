@@ -627,6 +627,7 @@ run_gnunet_nat_client (struct Plugin *plugin, const char *addr, size_t addrlen)
  * @param msgbuf_size the size of the msgbuf to send
  * @param priority how important is the message (ignored by UDP)
  * @param timeout when should we time out (give up) if we can not transmit?
+ * @param session identifier used for this session (can be NULL)
  * @param addr the addr to send the message to, needs to be a sockaddr for us
  * @param addrlen the len of addr
  * @param force_address not used, we had better have an address to send to
@@ -642,15 +643,16 @@ run_gnunet_nat_client (struct Plugin *plugin, const char *addr, size_t addrlen)
  */
 static ssize_t
 udp_nat_plugin_send (void *cls,
-                 const struct GNUNET_PeerIdentity *target,
-                 const char *msgbuf,
-                 size_t msgbuf_size,
-                 unsigned int priority,
-                 struct GNUNET_TIME_Relative timeout,
-                 const void *addr,
-                 size_t addrlen,
-                 int force_address,
-                 GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
+		     const struct GNUNET_PeerIdentity *target,
+		     const char *msgbuf,
+		     size_t msgbuf_size,
+		     unsigned int priority,
+		     struct GNUNET_TIME_Relative timeout,
+		     struct Session *session,
+		     const void *addr,
+		     size_t addrlen,
+		     int force_address,
+		     GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
   struct Plugin *plugin = cls;
   ssize_t sent;
@@ -659,6 +661,7 @@ udp_nat_plugin_send (void *cls,
   struct sockaddr_in *sockaddr = (struct sockaddr_in *)addr;
   int other_peer_natd;
 
+  GNUNET_assert (NULL == session);
   other_peer_natd = GNUNET_NO;
   if ((sockaddr->sin_family == AF_INET) && (ntohs(sockaddr->sin_port) == 0))
     {
@@ -1177,7 +1180,8 @@ udp_nat_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
       /* If we receive these just ignore! */
       break;
     default:
-      plugin->env->receive (plugin->env->cls, sender, currhdr, UDP_DIRECT_DISTANCE, (char *)sender_addr, fromlen);
+      plugin->env->receive (plugin->env->cls, sender, currhdr, UDP_DIRECT_DISTANCE, 
+			    NULL, (char *)sender_addr, fromlen);
   }
 
 }
