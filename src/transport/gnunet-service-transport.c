@@ -24,13 +24,14 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - Need to validate *inbound* bi-directional transports (i.e., TCP)
- *   using PING-PONG and then SIGNAL 'connected' to core/etc.!
- *   (currently we neither validate those nor do we signal the
- *    connection); only after those, we should transmit data
- *   (we currently send and receive arbitrary data on inbound TCP 
- *    connections even if they have not been validated and hand it
- *    to our clients!)
+ * - Need to SIGNAL connection in 'mark_address_connected'
+ *   (if cnt == GNUNET_YES at the end!)
+ * - Need to SIGNAL disconnect when we no longer have any validated
+ *   address (NAT case!)
+ * - Need to defer forwarding messages until after CONNECT message
+ * - MIGHT want to track connected state with neighbour
+ * - CHECK that 'address' being NULL in 'struct ForeignAddressList' is
+ *   tolerated in the code everywhere (could not happen before)
  *
  * NOTE:
  * - This code uses 'GNUNET_a2s' for debug printing in many places,
@@ -716,6 +717,11 @@ struct ValidationEntry
   struct GNUNET_TIME_Absolute send_time;
 
   /**
+   * Session being validated (or NULL for none).
+   */
+  struct Session *session;
+
+  /**
    * Length of addr.
    */
   size_t addrlen;
@@ -979,6 +985,42 @@ transmit_to_client_callback (void *cls, size_t size, void *buf)
 
 
 /**
+ * Mark the given FAL entry as 'connected' (and hence preferred for
+ * sending); also mark all others for the same peer as 'not connected'
+ * (since only one can be preferred).
+ *
+ * @param fal address to set to 'connected'
+ */
+static void
+mark_address_connected (struct ForeignAddressList *fal)
+{
+  struct ForeignAddressList *pos;
+  int cnt;
+
+  if (fal->connected == GNUNET_YES)
+    return; /* nothing to do */
+  cnt = GNUNET_YES;
+  pos = fal->ready_list->addresses;
+  while (pos != NULL)
+    {
+      if (GNUNET_YES == pos->connected)
+	{
+	  GNUNET_break (cnt == GNUNET_YES);
+	  cnt = GNUNET_NO;
+	  pos->connected = GNUNET_NO;
+	}
+      pos = pos->next;
+    }
+  fal->connected = GNUNET_YES;
+  if (GNUNET_YES == cnt)
+    GNUNET_STATISTICS_update (stats,
+			      gettext_noop ("# connected addresses"),
+			      1,
+			      GNUNET_NO);
+}
+
+
+/**
  * Send the specified message to the specified client.  Since multiple
  * messages may be pending for the same client at a time, this code
  * makes sure that no message is lost.
@@ -1098,14 +1140,7 @@ transmit_send_continuation (void *cls,
 	  mq->specific_address->timeout =
 	    GNUNET_TIME_relative_to_absolute
 	    (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-	  if (mq->specific_address->connected != GNUNET_YES)
-	    {
-	      GNUNET_STATISTICS_update (stats,
-					gettext_noop ("# connected addresses"),
-					1,
-					GNUNET_NO);
-	      mq->specific_address->connected = GNUNET_YES;
-	    }
+	  mark_address_connected (mq->specific_address);
 	}    
       else
 	{
@@ -1631,6 +1666,29 @@ expire_address_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Iterator over hash map entries that NULLs the session of validation
+ * entries that match the given session.
+ *
+ * @param cls closure (the 'struct Session*' to match against)
+ * @param key current key code (peer ID, not used)
+ * @param value value in the hash map ('struct ValidationEntry*')
+ * @return GNUNET_YES (we should continue to iterate)
+ */
+static int 
+remove_session_validations (void *cls,
+			    const GNUNET_HashCode * key,
+			    void *value)
+{
+  struct Session *session = cls;
+  struct ValidationEntry *ve = value;
+
+  if (session == ve->session)
+    ve->session = NULL;
+  return GNUNET_YES;
+}
+
+
+/**
  * Function that will be called whenever the plugin internally
  * cleans up a session pointer and hence the service needs to
  * discard all of those sessions as well.  Plugins that do not
@@ -1652,6 +1710,9 @@ plugin_env_session_end  (void *cls,
   struct ForeignAddressList *pos;
   struct ForeignAddressList *prev;
 
+  GNUNET_CONTAINER_multihashmap_iterate (validation_map,
+					 &remove_session_validations,
+					 session);
   nl = find_neighbour (peer);
   if (nl == NULL)
     return;
@@ -1877,8 +1938,15 @@ add_peer_address (struct NeighbourList *neighbour,
     return NULL;
   ret = GNUNET_malloc(sizeof(struct ForeignAddressList) + addrlen);
   ret->session = session;
-  ret->addr = (const char*) &ret[1];
-  memcpy (&ret[1], addr, addrlen);
+  if (addrlen > 0)
+    {
+      ret->addr = (const char*) &ret[1];
+      memcpy (&ret[1], addr, addrlen);
+    }
+  else
+    {
+      ret->addr = NULL;
+    }
   ret->addrlen = addrlen;
   ret->expires = GNUNET_TIME_relative_to_absolute
     (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
@@ -2302,6 +2370,7 @@ send_periodic_ping (void *cls,
   va->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                             (unsigned int) -1);
   va->send_time = GNUNET_TIME_absolute_get();
+  va->session = peer_address->session;
   va->addr = (const void*) &va[1];
   memcpy (&va[1], peer_address->addr, peer_address->addrlen);
   va->addrlen = peer_address->addrlen;
@@ -2431,12 +2500,13 @@ check_pending_validation (void *cls,
     }
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Confirmed validity of address, peer `%4s' has address `%s' (%s).\n",
-	      GNUNET_h2s (key),
-	      GNUNET_a2s ((const struct sockaddr *) ve->addr,
-			  ve->addrlen),
-	      ve->transport_name);
+  if (ve->addr != NULL)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Confirmed validity of address, peer `%4s' has address `%s' (%s).\n",
+		GNUNET_h2s (key),
+		GNUNET_a2s ((const struct sockaddr *) ve->addr,
+			    ve->addrlen),
+		ve->transport_name);
 #endif
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# address validation successes"),
@@ -2462,12 +2532,13 @@ check_pending_validation (void *cls,
       n->public_key_valid = GNUNET_YES;
       fal = add_peer_address (n,
 			      ve->transport_name,
-			      NULL,
+			      ve->session,
 			      ve->addr,
 			      ve->addrlen);
       GNUNET_assert (fal != NULL);
       fal->expires = GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
       fal->validated = GNUNET_YES;
+      mark_address_connected (fal);
       GNUNET_STATISTICS_update (stats,
 				gettext_noop ("# peer addresses considered valid"),
 				1,
@@ -2675,7 +2746,7 @@ run_validation (void *cls,
     neighbour = setup_new_neighbour(&id);
   neighbour->publicKey = va->publicKey;
   neighbour->public_key_valid = GNUNET_YES;
-  peer_address = add_peer_address(neighbour, tname, NULL, addr, addrlen);
+  peer_address = add_peer_address (neighbour, tname, NULL, addr, addrlen);
   GNUNET_assert(peer_address != NULL);
   hello_size = GNUNET_HELLO_size(our_hello);
   tsize = sizeof(struct TransportPingMessage) + hello_size;
@@ -3184,31 +3255,26 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   n = find_neighbour (peer);
   if (n == NULL)
-    n = setup_new_neighbour (peer);    
+    n = setup_new_neighbour (peer);
   service_context = n->plugins;
   while ((service_context != NULL) && (plugin != service_context->plugin))
     service_context = service_context->next;
   GNUNET_assert ((plugin->api->send == NULL) || (service_context != NULL));
+  peer_address = NULL;
   if (message != NULL)
     {
-      peer_address = add_peer_address(n, 
-				      plugin->short_name,
-				      session,
-				      sender_address, 
-				      sender_address_len);  
+      if ( (session != NULL) ||
+	   (sender_address != NULL) )
+	peer_address = add_peer_address (n, 
+					 plugin->short_name,
+					 session,
+					 sender_address, 
+					 sender_address_len);  
       if (peer_address != NULL)
 	{
 	  peer_address->distance = distance;
-	  if (peer_address->connected == GNUNET_NO)
-	    {
-	      /* FIXME: be careful here to not mark
-		 MULTIPLE addresses as connected! */
-	      peer_address->connected = GNUNET_YES;
-	      GNUNET_STATISTICS_update (stats,
-					gettext_noop ("# connected addresses"),
-					1,
-					GNUNET_NO);
-	    }
+	  if (GNUNET_YES == peer_address->validated)
+	    mark_address_connected (peer_address);
 	  peer_address->timeout
 	    =
 	    GNUNET_TIME_relative_to_absolute
