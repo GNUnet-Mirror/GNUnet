@@ -1836,7 +1836,7 @@ find_peer_address(struct NeighbourList *neighbour,
 	  ( (address_head->addrlen != addrlen) ||
 	    (memcmp(address_head->addr, addr, addrlen) != 0) ) )
     address_head = address_head->next;
-  if (session != NULL)
+  if ( (session != NULL) && (address_head != NULL) )
     address_head->session = session; /* learn it! */
   return address_head;
 }
