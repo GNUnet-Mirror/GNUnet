@@ -32,6 +32,8 @@
 #include "gnunet_transport_service.h"
 #include "gnunet-daemon-hostlist.h"
 #include <curl/curl.h>
+#include "gnunet_common.h"
+#include "gnunet_bio_lib.h"
 
 #define DEBUG_HOSTLIST_CLIENT GNUNET_YES
 
@@ -754,15 +756,31 @@ advertisement_handler (void *cls,
   const struct GNUNET_HOSTLIST_ADV_Message * incoming = (const struct GNUNET_HOSTLIST_ADV_Message *) message;
   memcpy ( uri, &incoming[1], uri_size );
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Hostlist client recieved advertisement from peer '%4s' containing URI %s\n", GNUNET_i2s (peer), uri );
-
-  hostlist = GNUNET_malloc ( sizeof (struct GNUNET_Hostlist) );
-
+              "Hostlist client recieved advertisement from '%s' containing URI %s\n", GNUNET_i2s (peer), uri );
 
   /* search in map for peer identity */
-  if ( NULL != hostlist_hashmap)
+  GNUNET_HashCode * peer_ident_hash = (GNUNET_HashCode * ) &(peer->hashPubKey);
+  if ( GNUNET_YES != GNUNET_CONTAINER_multihashmap_contains (hostlist_hashmap, peer_ident_hash) )
+    {
+    if ( MAX_NUMBER_HOSTLISTS > GNUNET_CONTAINER_multihashmap_size (hostlist_hashmap) )
+      {
+        /* Entries available, add hostlist to hashmap */
+      }
+    else
+      {
+        /* No free entries available, replace existing entry  */
+      }
+    }
+  else
+    {
+      /* hostlist entry already existing in hashmap */
+      /* compare uri to new uri ? */
+      /* update recieved date (vs using last download time to check reachability)? */
+    }
+
     /* GNUNET_CONTAINER_multihashmap_contains( hostlist_hashmap, )*/
   /* if it is not existing in map, create new a hostlist */
+  hostlist = GNUNET_malloc ( sizeof (struct GNUNET_Hostlist) );
   hostlist->peer = (*peer);
   hostlist->hello_count = 0;
   hostlist->hostlist_uri = GNUNET_malloc ( uri_size);
@@ -814,13 +832,13 @@ process_stat (void *cls,
  */
 static int load_hostlist_file ()
 {
-  char *servers;
+  char *filename;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
                                              "HOSTLIST",
                                              "HOSTLISTFILE",
-                                             &servers))
+                                             &filename))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("No `%s' specified in `%s' configuration, cannot load hostlists from file.\n"),
@@ -828,8 +846,23 @@ static int load_hostlist_file ()
       return GNUNET_SYSERR;
     }
 
-  /* add code to write hostlists to file using bio */
+  struct GNUNET_BIO_ReadHandle * rh = GNUNET_BIO_read_open (filename);
+  if ( NULL == rh)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  ("Could not open file %s for reading to load hostlists\n"), filename);
+      return GNUNET_SYSERR;
+    }
 
+  /* add code to read hostlists to file using bio */
+  char  * buffer = GNUNET_malloc (100 * sizeof (char));
+  GNUNET_BIO_read_string (rh, NULL , &buffer, 100);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              ("Read from file %s : %s \n"), filename, buffer);
+
+  if ( GNUNET_OK != GNUNET_BIO_read_close ( rh , &buffer) )
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                ("Error while closing file %s\n"), filename);
   return GNUNET_OK;
 }
 
@@ -839,13 +872,13 @@ static int load_hostlist_file ()
  */
 static int save_hostlist_file ()
 {
-  char *servers;
+  char *filename;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
                                              "HOSTLIST",
                                              "HOSTLISTFILE",
-                                             &servers))
+                                             &filename))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("No `%s' specified in `%s' configuration, cannot save hostlists to file.\n"),
@@ -853,8 +886,22 @@ static int save_hostlist_file ()
       return GNUNET_SYSERR;
     }
 
-  /* add code to write hostlists to file using bio */
+  struct GNUNET_BIO_WriteHandle * wh = GNUNET_BIO_write_open (filename);
+  if ( NULL == wh)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  ("Could not open file %s for writing to save hostlists\n"),
+                  filename);
+      return GNUNET_SYSERR;
+    }
 
+  /* add code to write hostlists to file using bio */
+  GNUNET_BIO_write_string ( wh, "DUMMY TEXT");
+
+  if ( GNUNET_OK != GNUNET_BIO_write_close ( wh ) )
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                ("Error while closing file %s\n"),
+                filename);
   return GNUNET_OK;
 }
 
@@ -897,7 +944,7 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   learning = learn;
   if ( learning )
   {
-    hostlist_hashmap = GNUNET_CONTAINER_multihashmap_create (16);
+    hostlist_hashmap = GNUNET_CONTAINER_multihashmap_create ( MAX_NUMBER_HOSTLISTS );
   }
   load_hostlist_file ();
 

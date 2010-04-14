@@ -32,6 +32,8 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_time_lib.h"
 
+#define MAX_NUMBER_HOSTLISTS 16
+
 /*
  * a single hostlist obtained by hostlist advertisements
  */
