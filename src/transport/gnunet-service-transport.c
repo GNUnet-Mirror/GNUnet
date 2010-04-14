@@ -23,10 +23,6 @@
  * @brief low-level P2P messaging
  * @author Christian Grothoff
  *
- * TODO:
- * - CHECK that 'address' being NULL in 'struct ForeignAddressList' is
- *   tolerated in the code everywhere (could not happen before)
- *
  * NOTE:
  * - This code uses 'GNUNET_a2s' for debug printing in many places,
  *   which is technically wrong since it assumes we have IP+Port 
@@ -1213,17 +1209,18 @@ find_ready_address(struct NeighbourList *neighbour)
       while (addresses != NULL)
         {
 #if DEBUG_TRANSPORT > 1
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Have address `%s' for peer `%4s' (status: %d, %d, %d, %u, %llums, %u)\n",
-		      GNUNET_a2s (addresses->addr,
-				  addresses->addrlen),
-		      GNUNET_i2s (&neighbour->id),
-		      addresses->connected,
-		      addresses->in_transmit,
-		      addresses->validated,
-		      addresses->connect_attempts,
-		      (unsigned long long) addresses->timeout.value,
-		      (unsigned int) addresses->distance);
+	  if (addresses->addr != NULL)
+	    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+			"Have address `%s' for peer `%4s' (status: %d, %d, %d, %u, %llums, %u)\n",
+			GNUNET_a2s (addresses->addr,
+				    addresses->addrlen),
+			GNUNET_i2s (&neighbour->id),
+			addresses->connected,
+			addresses->in_transmit,
+			addresses->validated,
+			addresses->connect_attempts,
+			(unsigned long long) addresses->timeout.value,
+			(unsigned int) addresses->distance);
 #endif
           if ( ( (best_address == NULL) || 
 		 (addresses->connected == GNUNET_YES) ||
@@ -1376,8 +1373,10 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
               "Sending message of size %u for `%4s' to `%s' via plugin `%s'\n",
               mq->message_buf_size,
               GNUNET_i2s (&neighbour->id), 
-	      GNUNET_a2s (mq->specific_address->addr,
-			  mq->specific_address->addrlen),
+	      (mq->specific_address->addr != NULL)
+	      ? GNUNET_a2s (mq->specific_address->addr,
+			    mq->specific_address->addrlen)
+	      : "<inbound>",
 	      rl->plugin->short_name);
 #endif
   GNUNET_STATISTICS_update (stats,
@@ -1787,9 +1786,9 @@ plugin_env_notify_address (void *cls,
   struct OwnAddressList *al;
   struct GNUNET_TIME_Absolute abex;
 
+  GNUNET_assert (addr != NULL);
   abex = GNUNET_TIME_relative_to_absolute (expires);
   GNUNET_assert (p == find_transport (name));
-
   al = p->addresses;
   while (al != NULL)
     {
@@ -1886,6 +1885,7 @@ notify_clients_disconnect (const struct GNUNET_PeerIdentity *peer)
  * @param tname name of the transport plugin
  * @param session session to look for, NULL for 'any'; otherwise
  *        can be used for the service to "learn" this session ID
+ *        if 'addr' matches
  * @param addr binary address
  * @param addrlen length of addr
  * @return NULL if no such entry exists
@@ -1898,7 +1898,7 @@ find_peer_address(struct NeighbourList *neighbour,
 		  size_t addrlen)
 {
   struct ReadyList *head;
-  struct ForeignAddressList *address_head;
+  struct ForeignAddressList *pos;
 
   head = neighbour->plugins;
   while (head != NULL)
@@ -1909,15 +1909,19 @@ find_peer_address(struct NeighbourList *neighbour,
     }
   if (head == NULL)
     return NULL;
-
-  address_head = head->addresses;
-  while ( (address_head != NULL) &&
-	  ( (address_head->addrlen != addrlen) ||
-	    (memcmp(address_head->addr, addr, addrlen) != 0) ) )
-    address_head = address_head->next;
-  if ( (session != NULL) && (address_head != NULL) )
-    address_head->session = session; /* learn it! */
-  return address_head;
+  pos = head->addresses;
+  while ( (pos != NULL) &&
+	  ( (pos->addrlen != addrlen) ||
+	    (memcmp(pos->addr, addr, addrlen) != 0) ) )
+    {
+      if ( (session != NULL) &&
+	   (pos->session == session) )
+	return pos;
+      pos = pos->next;
+    }
+  if ( (session != NULL) && (pos != NULL) )
+    pos->session = session; /* learn it! */
+  return pos;
 }
 
 
@@ -2044,6 +2048,11 @@ struct CheckAddressExistsClosure
   const char *tname;
 
   /**
+   * Session, or NULL.
+   */
+  struct Session *session;
+
+  /**
    * Length of addr.
    */
   size_t addrlen;
@@ -2073,12 +2082,19 @@ check_address_exists (void *cls,
 {
   struct CheckAddressExistsClosure *caec = cls;
   struct ValidationEntry *ve = value;
+
   if ( (0 == strcmp (caec->tname,
 		     ve->transport_name)) &&
        (caec->addrlen == ve->addrlen) &&
        (0 == memcmp (caec->addr,
 		     ve->addr,
 		     caec->addrlen)) )
+    {
+      caec->exists = GNUNET_YES;
+      return GNUNET_NO;
+    }
+  if ( (ve->session != NULL) &&
+       (caec->session == ve->session) )
     {
       caec->exists = GNUNET_YES;
       return GNUNET_NO;
@@ -2362,6 +2378,7 @@ send_periodic_ping (void *cls,
   caec.addr = peer_address->addr;
   caec.addrlen = peer_address->addrlen;
   caec.tname = tp->short_name;
+  caec.session = peer_address->session;
   caec.exists = GNUNET_NO;
   GNUNET_CONTAINER_multihashmap_iterate (validation_map,
                                          &check_address_exists,
@@ -2375,8 +2392,10 @@ send_periodic_ping (void *cls,
 #if DEBUG_TRANSPORT > 1
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Some validation of address `%s' via `%s' for peer `%4s' already in progress.\n",
-                  GNUNET_a2s (peer_address->addr,
-			      peer_address->addrlen),
+		  (peer_address->addr != NULL)
+                  ? GNUNET_a2s (peer_address->addr,
+				peer_address->addrlen)
+		  : "<inbound>",
                   tp->short_name,
                   GNUNET_i2s (&neighbour->id));
 #endif
@@ -2389,10 +2408,12 @@ send_periodic_ping (void *cls,
                                             (unsigned int) -1);
   va->send_time = GNUNET_TIME_absolute_get();
   va->session = peer_address->session;
-  va->addr = (const void*) &va[1];
-  memcpy (&va[1], peer_address->addr, peer_address->addrlen);
-  va->addrlen = peer_address->addrlen;
-
+  if (peer_address->addr != NULL)
+    {
+      va->addr = (const void*) &va[1];
+      memcpy (&va[1], peer_address->addr, peer_address->addrlen);
+      va->addrlen = peer_address->addrlen;
+    }
   memcpy(&va->publicKey,
 	 &neighbour->publicKey, 
 	 sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
@@ -2419,8 +2440,10 @@ send_periodic_ping (void *cls,
 #if DEBUG_TRANSPORT_REVALIDATION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Performing re-validation of address `%s' via `%s' for peer `%4s' sending `%s' (%u bytes) and `%s' (%u bytes)\n",
-              GNUNET_a2s (peer_address->addr,
-			  peer_address->addrlen),
+              (peer_address->addr != NULL) 
+	      ? GNUNET_a2s (peer_address->addr,
+			    peer_address->addrlen)
+	      : "<inbound>",
               tp->short_name,
               GNUNET_i2s (&neighbour->id),
               "HELLO", hello_size,
@@ -2595,13 +2618,14 @@ check_pending_validation (void *cls,
     }
 
 #if DEBUG_TRANSPORT
-  if (ve->addr != NULL)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Confirmed validity of address, peer `%4s' has address `%s' (%s).\n",
-		GNUNET_h2s (key),
-		GNUNET_a2s ((const struct sockaddr *) ve->addr,
-			    ve->addrlen),
-		ve->transport_name);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Confirmed validity of address, peer `%4s' has address `%s' (%s).\n",
+	      GNUNET_h2s (key),
+	      (ve->addr != NULL) 
+	      ? GNUNET_a2s ((const struct sockaddr *) ve->addr,
+			    ve->addrlen)
+	      : "<inbound>",
+	      ve->transport_name);
 #endif
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# address validation successes"),
@@ -2611,15 +2635,18 @@ check_pending_validation (void *cls,
   GNUNET_CRYPTO_hash (&ve->publicKey,
                       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                       &target.hashPubKey);
-  avac.done = GNUNET_NO;
-  avac.ve = ve;
-  hello = GNUNET_HELLO_create (&ve->publicKey,
-			       &add_validated_address,
-			       &avac);
-  GNUNET_PEERINFO_add_peer (cfg, sched,
-			    &target,
-			    hello);
-  GNUNET_free (hello);
+  if (ve->addr != NULL)
+    {
+      avac.done = GNUNET_NO;
+      avac.ve = ve;
+      hello = GNUNET_HELLO_create (&ve->publicKey,
+				   &add_validated_address,
+				   &avac);
+      GNUNET_PEERINFO_add_peer (cfg, sched,
+				&target,
+				hello);
+      GNUNET_free (hello);
+    }
   n = find_neighbour (&target);
   if (n != NULL)
     {
@@ -2775,6 +2802,7 @@ run_validation (void *cls,
   uint16_t hello_size;
   size_t tsize;
 
+  GNUNET_assert (addr != NULL);
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# peer addresses scheduled for validation"),
 			    1,
