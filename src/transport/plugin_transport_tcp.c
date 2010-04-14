@@ -535,7 +535,7 @@ disconnect_session (struct Session *session)
     session->plugin->sessions = session->next;
   else
     prev->next = session->next;
-  plugin->env->session_end (session->plugin->env->cls,
+  session->plugin->env->session_end (session->plugin->env->cls,
 			    &session->target,
 			    session);
   /* clean up state */
