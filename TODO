@@ -5,6 +5,7 @@
   data messages over the invalidated, only half-connect-signalled
   channel (which confuses the core state machine, or now causes
   transport-api assertion failures). [CG]
+  => now fixed, but needs testing!
 * FS-acceptance testing [CG]
 * Release checks:
   - portability
