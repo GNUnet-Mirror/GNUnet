@@ -20,7 +20,7 @@
 
 /**
  * @file hostlist/hostlist-server.c
- * @author Christian Grothoff
+ * @author Christian Grothoff, Matthias Wachs
  * @brief application to provide an integrated hostlist HTTP server
  */
 

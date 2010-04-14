@@ -726,6 +726,38 @@ disconnect_handler (void *cls,
 			    GNUNET_NO);  
 }
 
+struct compare_struct
+{
+  uint64_t lowest_quality;
+  const GNUNET_HashCode * key;
+  struct GNUNET_Hostlist * value;
+};
+
+static int iterate_hashmap_for_replacing ( void *cls, const GNUNET_HashCode *key, void *value )
+{
+  struct compare_struct * cmp = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              ("Now iterating over peer entry: %s\n"), GNUNET_i2s ( (const struct GNUNET_PeerIdentity *) key));
+  if ( NULL == cmp->key )
+  {
+    cmp->key = key;
+    cmp->lowest_quality =  ((struct GNUNET_Hostlist *) value)->quality;
+    cmp->value = (struct GNUNET_Hostlist *) value;
+  }
+  else
+  {
+    if ( cmp->lowest_quality > ((struct GNUNET_Hostlist *) value)->quality)
+      {
+        cmp->lowest_quality = ((struct GNUNET_Hostlist *) value)->quality;
+        cmp->key = key;
+        cmp->value = (struct GNUNET_Hostlist *) value;
+      }
+  }
+
+  return GNUNET_YES;
+}
+
 /**
  * Method called whenever an advertisement message arrives.
  *
@@ -768,6 +800,9 @@ advertisement_handler (void *cls,
   memcpy ( hostlist->hostlist_uri, &incoming[1], uri_size );
   hostlist->time_creation = GNUNET_TIME_absolute_get();
   hostlist->time_last_usage = GNUNET_TIME_absolute_get_zero();
+  hostlist->times_used = 0;
+  hostlist->quality = HOSTLIST_INITIAL;
+
 
   GNUNET_HashCode * peer_ident_hash = (GNUNET_HashCode * ) &(peer->hashPubKey);
 
@@ -775,14 +810,17 @@ advertisement_handler (void *cls,
   struct GNUNET_Hostlist * hostlist2;
   hostlist2 = GNUNET_malloc ( sizeof (struct GNUNET_Hostlist) );
   char * str = "test";
+  GNUNET_HashCode * peer_ident_test = GNUNET_malloc ( sizeof (GNUNET_HashCode) );
+  GNUNET_CRYPTO_hash_from_string( "TEST", peer_ident_test);
 
-  hostlist2->peer = (*peer);
+  hostlist2->peer.hashPubKey = (*peer_ident_test) ;
   hostlist2->hello_count = 0;
   hostlist2->hostlist_uri = GNUNET_malloc ( strlen(str) +1 );
   strcpy(hostlist2->hostlist_uri,str);
   hostlist2->time_creation = GNUNET_TIME_absolute_get();
   hostlist2->time_last_usage = GNUNET_TIME_absolute_get_zero();
-  GNUNET_CONTAINER_multihashmap_put ( hostlist_hashmap, peer_ident_hash, hostlist2, GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE  );
+  hostlist2->quality = HOSTLIST_INITIAL - 100;
+  GNUNET_CONTAINER_multihashmap_put ( hostlist_hashmap, peer_ident_test, hostlist2, GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE  );
   /* test */
 
   if ( GNUNET_YES != GNUNET_CONTAINER_multihashmap_contains (hostlist_hashmap, peer_ident_hash) )
@@ -798,13 +836,32 @@ advertisement_handler (void *cls,
     else
       {
         /* No free entries available, replace existing entry  */
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "No free slots for hostlist available, searching for hostlist to replace\n", GNUNET_i2s (peer) );
+        /* iterate over all entries in hashmap */
+        struct compare_struct * cmp = GNUNET_malloc( sizeof( struct compare_struct) );
+        cmp->lowest_quality = 0;
+        cmp->key = NULL;
+        GNUNET_CONTAINER_multihashmap_iterate ( hostlist_hashmap,
+                                                &iterate_hashmap_for_replacing,
+                                                cmp );
+
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Peer %4s's hostlist has the worst quality of all peers with value %u \n", GNUNET_h2s (cmp->key), cmp->lowest_quality );
+        /* replacing the entry with worst quality, if quality is below initial quality value */
+        if ( cmp->lowest_quality < HOSTLIST_INITIAL)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Peer %4s' removed, added peer %4s \n", GNUNET_h2s (cmp->key), GNUNET_h2s ( peer_ident_hash) );
+          GNUNET_CONTAINER_multihashmap_remove ( hostlist_hashmap, cmp->key, cmp->value );
+          GNUNET_CONTAINER_multihashmap_put ( hostlist_hashmap, peer_ident_hash, hostlist, GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE );
+        }
 
         return GNUNET_YES;
       }
     }
   else
     {
-
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
             "Peer already in hashmap\n");
       /* hostlist entry already existing in hashmap */
@@ -920,7 +977,7 @@ static int load_hostlist_file ()
 }
 
 
-static int iterate_hashmap ( void *cls, const GNUNET_HashCode *key, void *value )
+static int iterate_hashmap_for_saving ( void *cls, const GNUNET_HashCode *key, void *value )
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               ("Now iterating over peer entry: %s\n"), GNUNET_i2s ( (const struct GNUNET_PeerIdentity *) key));
@@ -972,7 +1029,7 @@ static int save_hostlist_file ()
 
   /* iterate over all entries in hashmap */
   GNUNET_CONTAINER_multihashmap_iterate ( hostlist_hashmap,
-                                          &iterate_hashmap,
+                                          &iterate_hashmap_for_saving,
                                           wh );
 
   if ( GNUNET_OK != GNUNET_BIO_write_close ( wh ) )

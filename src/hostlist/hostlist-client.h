@@ -32,20 +32,53 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_time_lib.h"
 
-#define MAX_NUMBER_HOSTLISTS 16
+#define MAX_NUMBER_HOSTLISTS 1
+
+/*
+ * Defines concerning the hostlist quality metric
+ */
+
+#define HOSTLIST_INITIAL 10000
+#define HOSTLIST_FAILED_DOWNLOAD 100
+#define HOSTLIST_SUCCESSFUL_DOWNLOAD 100
 
 /*
  * a single hostlist obtained by hostlist advertisements
  */
 struct GNUNET_Hostlist
 {
-
+  /*
+   * peer offering the hostlist
+   */
   struct GNUNET_PeerIdentity    peer;
+  /*
+   * URI where hostlist can be obtained
+   */
   char *                        hostlist_uri;
+  /*
+   * number of HELLO messages obtained during last download
+   */
   unsigned long                 hello_count;
+  /*
+   * number of times the hostlist was obtained
+   */
   unsigned long                 times_used;
+  /*
+   * time the hostlist advertisement was recieved and the entry was created
+   */
   struct GNUNET_TIME_Absolute   time_creation;
+  /*
+   * last time the hostlist was obtained
+   */
   struct GNUNET_TIME_Absolute   time_last_usage;
+  /*
+   * value describing the quality of the hostlist, the bigger the better but (should) never < 0
+   * used for deciding which hostlist is replaced if MAX_NUMBER_HOSTLISTS in data structure is reached
+   * intial value = HOSTLIST_INITIAL
+   * increased every successful download by HOSTLIST_SUCCESSFULL_DOWNLOAD
+   * increased every successful download by number of obtained HELLO messages
+   * decreased every failed download by HOSTLIST_SUCCESSFULL_DOWNLOAD
+   */
   uint64_t                      quality;
 };
 
