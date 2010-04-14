@@ -21,7 +21,7 @@
 /**
  * @file hostlist/hostlist-client.c
  * @brief hostlist support.  Downloads HELLOs via HTTP.
- * @author Christian Grothoff
+ * @author Christian Grothoff, Matthias Wachs
  */
 
 #include "platform.h"
@@ -749,6 +749,7 @@ advertisement_handler (void *cls,
   int uri_size = size - sizeof ( struct GNUNET_HOSTLIST_ADV_Message );
   char * uri = GNUNET_malloc ( uri_size );
   struct GNUNET_Hostlist * hostlist;
+  struct GNUNET_Hostlist * existing_hostlist;
 
   if ( ntohs (message->type) != GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT)
     return GNUNET_NO;
@@ -760,7 +761,7 @@ advertisement_handler (void *cls,
 
   /* search in map for peer identity */
   hostlist = GNUNET_malloc ( sizeof (struct GNUNET_Hostlist) );
-  hostlist = GNUNET_malloc ( sizeof (struct GNUNET_Hostlist) );
+
   hostlist->peer = (*peer);
   hostlist->hello_count = 0;
   hostlist->hostlist_uri = GNUNET_malloc ( uri_size);
@@ -769,26 +770,76 @@ advertisement_handler (void *cls,
   hostlist->time_last_usage = GNUNET_TIME_absolute_get_zero();
 
   GNUNET_HashCode * peer_ident_hash = (GNUNET_HashCode * ) &(peer->hashPubKey);
+
+  /* test */
+  struct GNUNET_Hostlist * hostlist2;
+  hostlist2 = GNUNET_malloc ( sizeof (struct GNUNET_Hostlist) );
+  char * str = "test";
+
+  hostlist2->peer = (*peer);
+  hostlist2->hello_count = 0;
+  hostlist2->hostlist_uri = GNUNET_malloc ( strlen(str) +1 );
+  strcpy(hostlist2->hostlist_uri,str);
+  hostlist2->time_creation = GNUNET_TIME_absolute_get();
+  hostlist2->time_last_usage = GNUNET_TIME_absolute_get_zero();
+  GNUNET_CONTAINER_multihashmap_put ( hostlist_hashmap, peer_ident_hash, hostlist2, GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE  );
+  /* test */
+
   if ( GNUNET_YES != GNUNET_CONTAINER_multihashmap_contains (hostlist_hashmap, peer_ident_hash) )
     {
     if ( MAX_NUMBER_HOSTLISTS > GNUNET_CONTAINER_multihashmap_size (hostlist_hashmap) )
       {
         /* Entries available, add hostlist to hashmap */
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Adding peer '%s' to hashmap %s\n", GNUNET_i2s (peer), uri );
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Adding peer '%s' to hashmap\n", GNUNET_i2s (peer) );
         GNUNET_CONTAINER_multihashmap_put ( hostlist_hashmap, peer_ident_hash, hostlist, GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE  );
+        return GNUNET_YES;
       }
     else
       {
         /* No free entries available, replace existing entry  */
+
+        return GNUNET_YES;
       }
     }
   else
     {
+
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+            "Peer already in hashmap\n");
       /* hostlist entry already existing in hashmap */
-      /* compare uri to new uri ? */
+      /* compare uri to new uri and update if different */
       /* update recieved date (vs using last download time to check reachability)? */
+      existing_hostlist = GNUNET_CONTAINER_multihashmap_get ( hostlist_hashmap, peer_ident_hash );
+      if ( 0 != strcmp (hostlist->hostlist_uri, ((struct GNUNET_Hostlist *) existing_hostlist)->hostlist_uri) )
+        {
+          /* uri is different */
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Updating peer '%s' from old URI '%s' to new URI '%s'\n", GNUNET_i2s (peer), existing_hostlist->hostlist_uri , hostlist->hostlist_uri);
+          existing_hostlist->hostlist_uri = GNUNET_realloc( existing_hostlist->hostlist_uri,  strlen(hostlist->hostlist_uri) +1 );
+          if ( NULL != existing_hostlist->hostlist_uri )
+            {
+              strcpy(existing_hostlist->hostlist_uri,hostlist->hostlist_uri);
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "URI updated to %s \n", existing_hostlist->hostlist_uri);
+              /* reset hostlist usage information*/
+              existing_hostlist->hello_count = 0;
+              existing_hostlist->time_last_usage = GNUNET_TIME_absolute_get_zero();
+              existing_hostlist->times_used = 0;
+              return GNUNET_YES;
+            }
+          else
+            {
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Updating peer '%s' failed \n", GNUNET_i2s (peer));
+              return GNUNET_NO;
+            }
+        }
     }
+
+  /* since hostlist already existed in hashmap, object can be destroyed */
+  GNUNET_free ( hostlist->hostlist_uri );
+  GNUNET_free ( hostlist );
 
   return GNUNET_YES;
 }
@@ -869,18 +920,21 @@ static int load_hostlist_file ()
 }
 
 
-static int iterate_hashmap(void *cls, const GNUNET_HashCode *key, void *value)
+static int iterate_hashmap ( void *cls, const GNUNET_HashCode *key, void *value )
 {
-  /* add code to process hostlist entries */
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               ("Now iterating over peer entry: %s\n"), GNUNET_i2s ( (const struct GNUNET_PeerIdentity *) key));
 
-  /* Testing */
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              ("Entry url: %s \n"), ((struct GNUNET_Hostlist *) value)->hostlist_uri );
+  /* code to serialize hostlists to file*/
+  GNUNET_BIO_write_string ( (struct GNUNET_BIO_WriteHandle *) cls, ((struct GNUNET_Hostlist *) value)->hostlist_uri );
 
+  /* code to free hostlist */
   if ( NULL != value )
-    GNUNET_free ( value );
+    {
+
+      GNUNET_free ( value );
+      GNUNET_free ( ((struct GNUNET_Hostlist *) value)->hostlist_uri );
+    }
 
   return GNUNET_YES;
 }
@@ -919,9 +973,7 @@ static int save_hostlist_file ()
   /* iterate over all entries in hashmap */
   GNUNET_CONTAINER_multihashmap_iterate ( hostlist_hashmap,
                                           &iterate_hashmap,
-                                          NULL );
-
-  GNUNET_BIO_write_string ( wh, "DUMMY TEXT" );
+                                          wh );
 
   if ( GNUNET_OK != GNUNET_BIO_write_close ( wh ) )
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -967,10 +1019,7 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   *msgh = &advertisement_handler;
 
   learning = learn;
-  if ( learning )
-  {
-    hostlist_hashmap = GNUNET_CONTAINER_multihashmap_create ( MAX_NUMBER_HOSTLISTS );
-  }
+  hostlist_hashmap = GNUNET_CONTAINER_multihashmap_create ( MAX_NUMBER_HOSTLISTS );
   load_hostlist_file ();
 
   GNUNET_STATISTICS_get (stats,
@@ -995,11 +1044,7 @@ GNUNET_HOSTLIST_client_stop ()
 	      "Hostlist client shutdown\n");
 #endif
   save_hostlist_file ();
-
-  if ( learning )
-  {
-    GNUNET_CONTAINER_multihashmap_destroy ( hostlist_hashmap );
-  }
+  GNUNET_CONTAINER_multihashmap_destroy ( hostlist_hashmap );
 
   if (current_task != GNUNET_SCHEDULER_NO_TASK)
     {
