@@ -24,12 +24,7 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - Need to SIGNAL connection in 'mark_address_connected'
- *   (if cnt == GNUNET_YES at the end!)
- * - Need to SIGNAL disconnect when we no longer have any validated
- *   address (NAT case!)
  * - Need to defer forwarding messages until after CONNECT message
- * - MIGHT want to track connected state with neighbour
  * - CHECK that 'address' being NULL in 'struct ForeignAddressList' is
  *   tolerated in the code everywhere (could not happen before)
  *
@@ -997,6 +992,7 @@ mark_address_connected (struct ForeignAddressList *fal)
   struct ForeignAddressList *pos;
   int cnt;
 
+  GNUNET_assert (GNUNET_YES == fal->validated);
   if (fal->connected == GNUNET_YES)
     return; /* nothing to do */
   cnt = GNUNET_YES;
@@ -1013,10 +1009,12 @@ mark_address_connected (struct ForeignAddressList *fal)
     }
   fal->connected = GNUNET_YES;
   if (GNUNET_YES == cnt)
-    GNUNET_STATISTICS_update (stats,
-			      gettext_noop ("# connected addresses"),
-			      1,
-			      GNUNET_NO);
+    {
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# connected addresses"),
+				1,
+				GNUNET_NO);
+    }
 }
 
 
@@ -1140,7 +1138,8 @@ transmit_send_continuation (void *cls,
 	  mq->specific_address->timeout =
 	    GNUNET_TIME_relative_to_absolute
 	    (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-	  mark_address_connected (mq->specific_address);
+	  if (mq->specific_address->validated == GNUNET_YES)
+	    mark_address_connected (mq->specific_address);
 	}    
       else
 	{
@@ -1743,6 +1742,18 @@ plugin_env_session_end  (void *cls,
   else
     prev->next = pos->next;
   GNUNET_free (pos);
+  if (nl->received_pong == GNUNET_NO)
+    return; /* nothing to do */
+  /* check if we have any validated addresses left */
+  pos = rl->addresses;
+  while (pos != NULL)
+    {
+      if (pos->validated)
+	return;
+      pos = pos->next;
+    }
+  /* no valid addresses left, signal disconnect! */
+  disconnect_neighbour (nl, GNUNET_NO);  
 }
 
 
@@ -3728,7 +3739,8 @@ create_environment (struct TransportPlugin *plug)
  * Start the specified transport (load the plugin).
  */
 static void
-start_transport (struct GNUNET_SERVER_Handle *server, const char *name)
+start_transport (struct GNUNET_SERVER_Handle *server, 
+		 const char *name)
 {
   struct TransportPlugin *plug;
   char *libname;
