@@ -671,33 +671,26 @@ GNUNET_RESOLVER_hostname_get (struct GNUNET_SCHEDULER_Handle *sched,
 /**
  * Get local hostname
  *
- * @param sched scheduler to use
- * @param cfg configuration to use
- * @param callback function to call with addresses
- * @param cls closure for callback
- * @return handle that can be used to cancel the request, NULL on error
+ * @param
  */
-void
-GNUNET_RESOLVER_local_hostname_get (struct GNUNET_SCHEDULER_Handle *sched,
-                                    const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                    GNUNET_RESOLVER_HostnameCallback callback,
-                                    void *cls)
+char *
+GNUNET_RESOLVER_local_hostname_get ( )
 {
 
   char hostname[GNUNET_OS_get_hostname_max_length() + 1];
 
-  check_config (cfg);
+
   if (0 != gethostname (hostname, sizeof (hostname) - 1))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR |
                            GNUNET_ERROR_TYPE_BULK, "gethostname");
-      return;
+      return NULL;
     }
 #if DEBUG_RESOLVER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               _("Resolving our hostname `%s'\n"), hostname);
 #endif
-  callback (cls, hostname);
+  return GNUNET_strdup (hostname);
 }
 
 /**
