@@ -1747,6 +1747,12 @@ plugin_env_session_end  (void *cls,
     rl->addresses = pos->next;
   else
     prev->next = pos->next;
+  if (GNUNET_SCHEDULER_NO_TASK != pos->revalidate_task)
+    {
+      GNUNET_SCHEDULER_cancel (sched,
+			       pos->revalidate_task);
+      pos->revalidate_task = GNUNET_SCHEDULER_NO_TASK;
+    }
   GNUNET_free (pos);
   if (nl->received_pong == GNUNET_NO)
     return; /* nothing to do */
