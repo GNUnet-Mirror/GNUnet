@@ -1049,9 +1049,10 @@ load_hostlist_file ()
 	  (GNUNET_OK == GNUNET_BIO_read_int64 (rh, &created)) &&
 	  (GNUNET_OK == GNUNET_BIO_read_int32 (rh, &hellos_returned)) )
     {
-      hostlist = GNUNET_malloc ( sizeof (struct Hostlist));
+      hostlist = GNUNET_malloc (sizeof (struct Hostlist) + strlen (uri) + 1);
       hostlist->hello_count = hellos_returned;
-      strcpy(hostlist->hostlist_uri, uri);
+      hostlist->hostlist_uri = (const char *) &hostlist[1];
+      memcpy (&hostlist[1], uri, strlen(uri)+1);
       hostlist->quality = quality;
       hostlist->time_creation.value = created;
       hostlist->time_last_usage.value = last_used;
