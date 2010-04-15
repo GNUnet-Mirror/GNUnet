@@ -1025,14 +1025,24 @@ static int load_hostlist_file ()
     }
 
   /* add code to read hostlists to file using bio */
-  char  * buffer = GNUNET_malloc (100 * sizeof (char));
-  GNUNET_BIO_read_string (rh, NULL , &buffer, 100);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              ("Read from file %s : %s \n"), filename, buffer);
+  char *buffer = GNUNET_malloc (1000 * sizeof (char));
+  /* char *token;
 
-  if ( GNUNET_OK != GNUNET_BIO_read_close ( rh , &buffer) )
+  while (GNUNET_OK == GNUNET_BIO_read_string (rh, NULL , &buffer, 1000) )
+    {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                ("Error while closing file %s\n"), filename);
+                ("Read from file %s : %s \n"), filename, buffer);
+
+    pch = strtok (str," ,.-");
+    while (pch != NULL)
+    {
+      printf ("%s\n",pch);
+      pch = strtok (NULL, " ,.-");
+    }
+
+    }
+  */
+  GNUNET_BIO_read_close ( rh , &buffer);
   return GNUNET_OK;
 }
 
@@ -1066,8 +1076,52 @@ static int save_hostlist_file ()
     }
 
   /* add code to write hostlists to file using bio */
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Writing hostlist to disk\n");
+  struct GNUNET_Hostlist * actual = dll_head;
+  struct GNUNET_Hostlist * next;
+  char * content = GNUNET_malloc(1000 * sizeof (char));
+  char * buffer  = GNUNET_malloc(1000 * sizeof (char));
 
-  /* iterate over all entries in dll */
+  actual = dll_head;
+  while ( GNUNET_YES)
+  {
+    /* serialize content */
+    /* uri;hello_count;quality; */
+    strcpy(content,actual->hostlist_uri);
+    strcat(content,";");
+    sprintf(buffer, "%lu", actual->hello_count);
+    strcat(content,buffer);
+    strcat(content,";");
+    sprintf(buffer, "%llu", (long long unsigned int) actual->quality);
+    strcat(content,buffer);
+    strcat(content,";");
+    sprintf(buffer, "%llu", (long long unsigned int) actual->time_creation.value);
+    strcat(content,buffer);
+    strcat(content,";");
+    sprintf(buffer, "%llu", (long long unsigned int) actual->time_last_usage.value);
+    strcat(content,buffer);
+    strcat(content,";");
+    sprintf(buffer, "%lu", actual->times_used);
+    strcat(content,buffer);
+    strcat(content,";");
+
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                ("Content to write: %s\n"),
+                content);
+
+    GNUNET_BIO_write_string ( wh, content );
+
+
+    if (actual == dll_tail) break;
+    next = actual->next;
+    GNUNET_free (actual->hostlist_uri);
+    GNUNET_free (actual);
+    actual = next;
+  }
+  GNUNET_free (actual->hostlist_uri);
+  GNUNET_free (actual);
+  GNUNET_free (content);
 
   if ( GNUNET_OK != GNUNET_BIO_write_close ( wh ) )
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
