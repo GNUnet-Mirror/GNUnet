@@ -168,20 +168,10 @@ static int advertisement_handler (void *cls,
                              struct GNUNET_TIME_Relative latency,
                              uint32_t distance)
 {
-  if ( !learning )
-    {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Recieved hostlist advertisement, but I am not learning!\n");
-    return GNUNET_NO;
-    }
-
-  if (learning && (NULL != client_adv_handler))
-    {
-        (*client_adv_handler) (cls, peer, message, latency, distance);
-        return GNUNET_YES;
-    }
-  return GNUNET_NO;
+  GNUNET_assert (NULL != client_adv_handler);
+  return (*client_adv_handler) (cls, peer, message, latency, distance);
 }
+
 
 /**
  * Method called whenever a given peer connects.  Wrapper to call both client's and server's functions
@@ -260,13 +250,21 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 /**
- * List of handlers for the messages understood by this
- * service.
+ * List of handlers if we are learning.
  */
-static struct GNUNET_CORE_MessageHandler handlers[] = {
-    { &advertisement_handler, GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT, 0},
+static struct GNUNET_CORE_MessageHandler learn_handlers[] = {
+  { &advertisement_handler, GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT, 0},
+  { NULL, 0, 0 }
+};
+
+
+/**
+ * List of handlers if we are not learning.
+ */
+static struct GNUNET_CORE_MessageHandler no_learn_handlers[] = {
     { NULL, 0, 0 }
 };
+
 
 /**
  * Main function that will be run.
@@ -295,13 +293,13 @@ run (void *cls,
   stats = GNUNET_STATISTICS_create (sched, "hostlist", cfg);
 
   core = GNUNET_CORE_connect (sched, cfg,
-                            GNUNET_TIME_UNIT_FOREVER_REL,
-                            NULL,
-                            &core_init,
-                            NULL, &connect_handler, &disconnect_handler,
-                            NULL, GNUNET_NO,
-                            NULL, GNUNET_NO,
-                            handlers);
+			      GNUNET_TIME_UNIT_FOREVER_REL,
+			      NULL,
+			      &core_init,
+			      NULL, &connect_handler, &disconnect_handler,
+			      NULL, GNUNET_NO,
+			      NULL, GNUNET_NO,
+			      learning? learn_handlers : no_learn_handlers);
 
   if (bootstrapping)
     {
@@ -311,10 +309,6 @@ run (void *cls,
   if (provide_hostlist)
     {      
       GNUNET_HOSTLIST_server_start (cfg, sched, stats, core, &server_ch, &server_dh, advertising );
-    }
-  if (learning)
-    {
-
     }
 
   GNUNET_SCHEDULER_add_delayed (sched,

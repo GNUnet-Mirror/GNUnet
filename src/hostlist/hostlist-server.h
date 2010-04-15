@@ -31,7 +31,7 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_util_lib.h"
 
-#define GNUNET_ADV_TIMEOUT 2500
+#define GNUNET_ADV_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 /**
  * Start server offering our hostlist.
