@@ -31,7 +31,7 @@
 #include "platform.h"
 #include "fs_tree.h"
 
-#define DEBUG_TREE GNUNET_NO
+#define DEBUG_TREE GNUNET_YES
 
 /**
  * Context for an ECRS-based file encoder that computes
@@ -257,9 +257,8 @@ compute_chk_offset (unsigned int height,
 
 
 /**
- * Encrypt the next block of the file (and 
- * call proc and progress accordingly; or 
- * of course "cont" if we have already completed
+ * Encrypt the next block of the file (and call proc and progress
+ * accordingly; or of course "cont" if we have already completed
  * encoding of the entire file).
  *
  * @param te tree encoder to use

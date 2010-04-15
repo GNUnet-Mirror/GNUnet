@@ -40,7 +40,7 @@
 #include "fs.h"
 #include "fs_tree.h"
 
-#define DEBUG_PUBLISH GNUNET_NO
+#define DEBUG_PUBLISH GNUNET_YES
 
 /**
  * Main function that performs the upload.
@@ -1080,8 +1080,6 @@ GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *sc)
 {
   if (GNUNET_SCHEDULER_NO_TASK != sc->upload_task)
     GNUNET_SCHEDULER_cancel (sc->h->sched, sc->upload_task);
-  else
-    GNUNET_assert (sc->all_done == GNUNET_YES);
   // FIXME: remove from persistence DB (?) --- think more about
   //        shutdown / persistent-resume APIs!!!
   GNUNET_FS_file_information_inspect (sc->fi,

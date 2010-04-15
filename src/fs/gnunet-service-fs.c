@@ -48,7 +48,7 @@
 #include "gnunet-service-fs_indexing.h"
 #include "fs.h"
 
-#define DEBUG_FS GNUNET_NO
+#define DEBUG_FS GNUNET_YES
 
 /**
  * Maximum number of outgoing messages we queue per peer.
@@ -2689,7 +2689,7 @@ handle_p2p_get (void *cls,
     GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
 			      TTL_DECREMENT);
   if ( (pr->ttl < 0) &&
-       (pr->ttl - ttl_decrement > 0) )
+       (((int32_t)(pr->ttl - ttl_decrement)) > 0) )
     {
 #if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2967,7 +2967,7 @@ handle_start_search (void *cls,
 				&pr->mingle,
 				&pr->bf_size,
 				pr->replies_seen);
- pr->query = sm->query;
+  pr->query = sm->query;
   switch (type)
     {
     case GNUNET_DATASTORE_BLOCKTYPE_DBLOCK:

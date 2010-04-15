@@ -38,7 +38,7 @@
 #include "fs.h"
 #include "fs_tree.h"
 
-#define DEBUG_DOWNLOAD GNUNET_NO
+#define DEBUG_DOWNLOAD GNUNET_YES
 
 /**
  * We're storing the IBLOCKS after the DBLOCKS on disk (so that we
@@ -175,8 +175,7 @@ transmit_download_request (void *cls,
 
 
 /**
- * Schedule the download of the specified
- * block in the tree.
+ * Schedule the download of the specified block in the tree.
  *
  * @param dc overall download this block belongs to
  * @param chk content-hash-key of the block
