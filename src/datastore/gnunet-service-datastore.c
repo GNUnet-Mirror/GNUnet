@@ -322,7 +322,7 @@ expired_processor (void *cls,
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# bytes expired"),
 			    size,
-			    GNUNET_NO);
+			    GNUNET_YES);
   GNUNET_CONTAINER_bloomfilter_remove (filter,
 				       key);
   return GNUNET_NO; /* delete */
@@ -404,7 +404,7 @@ manage (void *cls,
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# bytes purged (low-priority)"),
 			    size,
-			    GNUNET_NO);
+			    GNUNET_YES);
   GNUNET_CONTAINER_bloomfilter_remove (filter,
 				       key);
   return GNUNET_NO;
@@ -916,7 +916,7 @@ handle_put (void *cls,
       GNUNET_STATISTICS_update (stats,
 				gettext_noop ("# bytes stored"),
 				size,
-				GNUNET_NO);
+				GNUNET_YES);
       GNUNET_CONTAINER_bloomfilter_add (filter,
 					&dm->key);
 #if DEBUG_DATASTORE
@@ -1128,7 +1128,7 @@ remove_callback (void *cls,
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# bytes removed (explicit request)"),
 			    size,
-			    GNUNET_NO);
+			    GNUNET_YES);
   GNUNET_CONTAINER_bloomfilter_remove (filter,
 				       key);
   plugin->api->next_request (next_cls, GNUNET_YES);
