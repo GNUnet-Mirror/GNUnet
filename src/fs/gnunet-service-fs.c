@@ -25,6 +25,7 @@
  *
  * FIXME:
  * - code not clear in terms of which function initializes bloomfilter when!
+ * - TTL/priority calculations are absent!
  * TODO:
  * - have non-zero preference / priority for requests we initiate!
  * - track stats for hot-path routing
@@ -1197,6 +1198,10 @@ transmit_query_continuation (void *cls,
 {
   struct PendingRequest *pr = cls;
 
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# queries scheduled for forwarding"),
+			    -1,
+			    GNUNET_NO);
   if (tpid == 0)   
     {
 #if DEBUG_FS
@@ -1388,7 +1393,7 @@ target_reservation_cb (void *cls,
     }
   
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# requests forwarded"),
+			    gettext_noop ("# queries scheduled for forwarding"),
 			    1,
 			    GNUNET_NO);
   /* build message and insert message into priority queue */
@@ -1535,6 +1540,33 @@ target_peer_select_cb (void *cls,
   
 
 /**
+ * The priority level imposes a bound on the maximum
+ * value for the ttl that can be requested.
+ *
+ * @param ttl_in requested ttl
+ * @param prio given priority
+ * @return ttl_in if ttl_in is below the limit,
+ *         otherwise the ttl-limit for the given priority
+ */
+static int32_t
+bound_ttl (int32_t ttl_in, uint32_t prio)
+{
+  unsigned long long allowed;
+
+  if (ttl_in <= 0)
+    return ttl_in;
+  allowed = ((unsigned long long) prio) * TTL_DECREMENT / 1000; 
+  if (ttl_in > allowed)      
+    {
+      if (allowed >= (1 << 30))
+        return 1 << 30;
+      return allowed;
+    }
+  return ttl_in;
+}
+
+
+/**
  * We're processing a GET request from another peer and have decided
  * to forward it to other peers.  This function is called periodically
  * and should forward the request to other peers until we have all
@@ -1586,8 +1618,30 @@ forward_request_task (void *cls,
 					       pr);
       return; /* nobody selected */
     }
+  /* (3) update TTL/priority */
+  
+  if (pr->client_request_list != NULL)
+    {
+      /* FIXME: use better algorithm!? */
+      if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+					 4))
+	pr->priority++;
+      /* FIXME: bound priority by "customary" priority used by other peers
+	 at this time! */
+      pr->ttl = bound_ttl (pr->ttl + TTL_DECREMENT * 2,
+			   pr->priority);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  "Trying query `%s' with priority %u and TTL %d.\n",
+		  GNUNET_h2s (&pr->query),
+		  pr->priority,
+		  pr->ttl);
+    }
+  else
+    {
+      /* FIXME: should we do something here as well!? */
+    }
 
-  /* (2) reserve reply bandwidth */
+  /* (3) reserve reply bandwidth */
   cp = GNUNET_CONTAINER_multihashmap_get (connected_peers,
 					  &psc.target.hashPubKey);
   pr->irc = GNUNET_CORE_peer_change_preference (sched, cfg,
@@ -2430,33 +2484,6 @@ process_local_reply (void *cls,
 
 
 /**
- * The priority level imposes a bound on the maximum
- * value for the ttl that can be requested.
- *
- * @param ttl_in requested ttl
- * @param prio given priority
- * @return ttl_in if ttl_in is below the limit,
- *         otherwise the ttl-limit for the given priority
- */
-static int32_t
-bound_ttl (int32_t ttl_in, uint32_t prio)
-{
-  unsigned long long allowed;
-
-  if (ttl_in <= 0)
-    return ttl_in;
-  allowed = ((unsigned long long) prio) * TTL_DECREMENT / 1000; 
-  if (ttl_in > allowed)      
-    {
-      if (allowed >= (1 << 30))
-        return 1 << 30;
-      return allowed;
-    }
-  return ttl_in;
-}
-
-
-/**
  * We've received a request with the specified priority.  Bound it
  * according to how much we trust the given peer.
  * 
@@ -2666,8 +2693,10 @@ handle_p2p_get (void *cls,
     {
 #if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Dropping query from `%s' due to TTL underflow.\n",
-		  GNUNET_i2s (other));
+		  "Dropping query from `%s' due to TTL underflow (%d - %u).\n",
+		  GNUNET_i2s (other),
+		  pr->ttl,
+		  ttl_decrement);
 #endif
       GNUNET_STATISTICS_update (stats,
 				gettext_noop ("# requests dropped due TTL underflow"),
@@ -2741,6 +2770,10 @@ handle_p2p_get (void *cls,
 					    pr,
 					    pr->start_time.value + pr->ttl);
 
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# P2P searches received"),
+			    1,
+			    GNUNET_NO);
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# P2P searches active"),
 			    1,
@@ -2821,6 +2854,10 @@ handle_start_search (void *cls,
 				  GNUNET_SYSERR);
       return;
     }
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# client searches received"),
+			    1,
+			    GNUNET_NO);
   sc = (msize - sizeof (struct SearchMessage)) / sizeof (GNUNET_HashCode);
   sm = (const struct SearchMessage*) message;
 
