@@ -124,12 +124,9 @@ static int learning;
  */
 static struct GNUNET_TIME_Absolute end_time;
 
-/**
- * Hashmap of PeerIdentities to "struct GNUNET_Hostlist"
- * (for fast lookup).  NULL until the library
- * is actually being used.
- */
-static struct GNUNET_CONTAINER_MultiHashMap *hostlist_hashmap;
+struct GNUNET_Hostlist * dll_head;
+struct GNUNET_Hostlist * dll_tail;
+int    dll_size;
 
 /**
  * Process downloaded bits by calling callback on each HELLO.
@@ -726,36 +723,151 @@ disconnect_handler (void *cls,
 			    GNUNET_NO);  
 }
 
-struct compare_struct
+static int dll_contains ( char * uri)
 {
-  uint64_t lowest_quality;
-  const GNUNET_HashCode * key;
-  struct GNUNET_Hostlist * value;
-};
+  struct GNUNET_Hostlist * actual = dll_head;
 
-static int iterate_hashmap_for_replacing ( void *cls, const GNUNET_HashCode *key, void *value )
+  if (dll_size == 0)
+    return GNUNET_NO;
+  actual = dll_head;
+
+  while ( GNUNET_YES )
+  {
+    if ( 0 == strcmp(actual->hostlist_uri,uri) ) return GNUNET_YES;
+    if (actual == dll_tail) break;
+    actual = actual->next;
+  }
+
+  return GNUNET_NO;
+}
+
+struct GNUNET_Hostlist *  dll_get  ( char * uri )
 {
-  struct compare_struct * cmp = cls;
+  struct GNUNET_Hostlist * actual = dll_head;
 
+  if (dll_size == 0)
+    return NULL;
+  actual = dll_head;
+
+  while ( GNUNET_YES)
+  {
+    if ( 0 == strcmp(actual->hostlist_uri,uri) ) return actual;
+    if (actual == dll_tail) break;
+    actual = actual->next;
+  }
+
+  return NULL;
+}
+
+struct GNUNET_Hostlist *  dll_get_lowest_quality ( )
+{
+  struct GNUNET_Hostlist * actual = dll_head;
+  struct GNUNET_Hostlist * lowest = NULL;
+
+  if (dll_size == 0)
+    return lowest;
+
+  lowest = dll_tail;
+  actual = dll_head;
+
+  while ( GNUNET_YES)
+  {
+    if ( actual->quality < lowest->quality) lowest = actual;
+    if (actual == dll_tail) break;
+    actual = actual->next;
+  }
+
+  return lowest;
+}
+
+static int dll_insert ( struct GNUNET_Hostlist * elem)
+{
+  if (dll_size <= MAX_NUMBER_HOSTLISTS)
+  {
+    GNUNET_CONTAINER_DLL_insert(dll_head, dll_tail,elem);
+    dll_size++;
+    return GNUNET_OK;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              ("Now iterating over peer entry: %s\n"), GNUNET_i2s ( (const struct GNUNET_PeerIdentity *) key));
-  if ( NULL == cmp->key )
-  {
-    cmp->key = key;
-    cmp->lowest_quality =  ((struct GNUNET_Hostlist *) value)->quality;
-    cmp->value = (struct GNUNET_Hostlist *) value;
-  }
-  else
-  {
-    if ( cmp->lowest_quality > ((struct GNUNET_Hostlist *) value)->quality)
-      {
-        cmp->lowest_quality = ((struct GNUNET_Hostlist *) value)->quality;
-        cmp->key = key;
-        cmp->value = (struct GNUNET_Hostlist *) value;
-      }
-  }
+              "Maximum number of %u for hostlist entries reached, \n", MAX_NUMBER_HOSTLISTS );
+  return GNUNET_SYSERR;
+}
 
-  return GNUNET_YES;
+static int dll_remove ( struct GNUNET_Hostlist * elem)
+{
+  if ( GNUNET_YES == dll_contains (elem->hostlist_uri))
+  {
+    GNUNET_CONTAINER_DLL_remove(dll_head, dll_tail,elem);
+    dll_size--;
+    return GNUNET_OK;
+  }
+  return GNUNET_SYSERR;
+}
+
+void create_dummy_entries ()
+{
+
+  /* test */
+  struct GNUNET_Hostlist * hostlist1;
+  hostlist1 = GNUNET_malloc ( sizeof (struct GNUNET_Hostlist) );
+  char * str = "uri_1";
+
+  GNUNET_CRYPTO_hash_create_random ( GNUNET_CRYPTO_QUALITY_WEAK , &hostlist1->peer.hashPubKey);
+  hostlist1->hello_count = 0;
+  hostlist1->hostlist_uri = GNUNET_malloc ( strlen(str) +1 );
+  strcpy(hostlist1->hostlist_uri,str);
+  hostlist1->time_creation = GNUNET_TIME_absolute_get();
+  hostlist1->time_last_usage = GNUNET_TIME_absolute_get_zero();
+  hostlist1->quality = HOSTLIST_INITIAL - 100;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "Adding test peer '%s' with URI %s and quality %u to dll \n", GNUNET_h2s (&hostlist1->peer.hashPubKey) , hostlist1->hostlist_uri, hostlist1->quality);
+  dll_insert (hostlist1);
+
+  struct GNUNET_Hostlist * hostlist2;
+  hostlist2 = GNUNET_malloc ( sizeof (struct GNUNET_Hostlist) );
+  char * str2 = "uri_2";
+
+  GNUNET_CRYPTO_hash_create_random ( GNUNET_CRYPTO_QUALITY_WEAK , &hostlist2->peer.hashPubKey);
+  hostlist2->hello_count = 0;
+  hostlist2->hostlist_uri = GNUNET_malloc ( strlen(str2) +1 );
+  strcpy(hostlist2->hostlist_uri,str2);
+  hostlist2->time_creation = GNUNET_TIME_absolute_get();
+  hostlist2->time_last_usage = GNUNET_TIME_absolute_get_zero();
+  hostlist2->quality = HOSTLIST_INITIAL - 200;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "Adding test peer '%s' with URI %s and quality %u to dll \n", GNUNET_h2s (&hostlist2->peer.hashPubKey) , hostlist2->hostlist_uri, hostlist2->quality);
+  dll_insert (hostlist2);
+
+  struct GNUNET_Hostlist * hostlist3;
+  hostlist3 = GNUNET_malloc ( sizeof (struct GNUNET_Hostlist) );
+  char * str3 = "uri_3";
+
+  GNUNET_CRYPTO_hash_create_random ( GNUNET_CRYPTO_QUALITY_WEAK , &hostlist3->peer.hashPubKey);
+  hostlist3->hello_count = 0;
+  hostlist3->hostlist_uri = GNUNET_malloc ( strlen(str3) +1 );
+  strcpy(hostlist3->hostlist_uri,str3);
+  hostlist3->time_creation = GNUNET_TIME_absolute_get();
+  hostlist3->time_last_usage = GNUNET_TIME_absolute_get_zero();
+  hostlist3->quality = HOSTLIST_INITIAL - 300;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+            "Adding test peer '%s' with URI %s and quality %u to dll \n", GNUNET_h2s (&hostlist3->peer.hashPubKey) , hostlist3->hostlist_uri, hostlist3->quality);
+  dll_insert (hostlist3);
+
+
+  struct GNUNET_Hostlist * hostlist4;
+  hostlist4 = GNUNET_malloc ( sizeof (struct GNUNET_Hostlist) );
+  char * str4 = "uri_4";
+
+  GNUNET_CRYPTO_hash_create_random ( GNUNET_CRYPTO_QUALITY_WEAK , &hostlist4->peer.hashPubKey);
+  hostlist4->hello_count = 0;
+  hostlist4->hostlist_uri = GNUNET_malloc ( strlen(str4) +1 );
+  strcpy(hostlist4->hostlist_uri,str4);
+  hostlist4->time_creation = GNUNET_TIME_absolute_get();
+  hostlist4->time_last_usage = GNUNET_TIME_absolute_get_zero();
+  hostlist4->quality = HOSTLIST_INITIAL - 400;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "Adding test peer '%s' with URI %s and quality %u to dll \n", GNUNET_h2s (&hostlist4->peer.hashPubKey) , hostlist4->hostlist_uri, hostlist4->quality);
+  dll_insert (hostlist4);
 }
 
 /**
@@ -781,7 +893,6 @@ advertisement_handler (void *cls,
   int uri_size = size - sizeof ( struct GNUNET_HOSTLIST_ADV_Message );
   char * uri = GNUNET_malloc ( uri_size );
   struct GNUNET_Hostlist * hostlist;
-  struct GNUNET_Hostlist * existing_hostlist;
 
   if ( ntohs (message->type) != GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT)
     return GNUNET_NO;
@@ -791,7 +902,8 @@ advertisement_handler (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Hostlist client recieved advertisement from '%s' containing URI %s\n", GNUNET_i2s (peer), uri );
 
-  /* search in map for peer identity */
+  create_dummy_entries();
+
   hostlist = GNUNET_malloc ( sizeof (struct GNUNET_Hostlist) );
 
   hostlist->peer = (*peer);
@@ -803,95 +915,43 @@ advertisement_handler (void *cls,
   hostlist->times_used = 0;
   hostlist->quality = HOSTLIST_INITIAL;
 
-
-  GNUNET_HashCode * peer_ident_hash = (GNUNET_HashCode * ) &(peer->hashPubKey);
-
-  /* test */
-  struct GNUNET_Hostlist * hostlist2;
-  hostlist2 = GNUNET_malloc ( sizeof (struct GNUNET_Hostlist) );
-  char * str = "test";
-  GNUNET_HashCode * peer_ident_test = GNUNET_malloc ( sizeof (GNUNET_HashCode) );
-  GNUNET_CRYPTO_hash_from_string( "TEST", peer_ident_test);
-
-  hostlist2->peer.hashPubKey = (*peer_ident_test) ;
-  hostlist2->hello_count = 0;
-  hostlist2->hostlist_uri = GNUNET_malloc ( strlen(str) +1 );
-  strcpy(hostlist2->hostlist_uri,str);
-  hostlist2->time_creation = GNUNET_TIME_absolute_get();
-  hostlist2->time_last_usage = GNUNET_TIME_absolute_get_zero();
-  hostlist2->quality = HOSTLIST_INITIAL - 100;
-  GNUNET_CONTAINER_multihashmap_put ( hostlist_hashmap, peer_ident_test, hostlist2, GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE  );
-  /* test */
-
-  if ( GNUNET_YES != GNUNET_CONTAINER_multihashmap_contains (hostlist_hashmap, peer_ident_hash) )
+  if ( GNUNET_YES != dll_contains (hostlist->hostlist_uri) )
     {
-    if ( MAX_NUMBER_HOSTLISTS > GNUNET_CONTAINER_multihashmap_size (hostlist_hashmap) )
+    if ( MAX_NUMBER_HOSTLISTS > dll_size )
       {
-        /* Entries available, add hostlist to hashmap */
+        /* Entries available, add hostlist to dll */
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Adding peer '%s' to hashmap\n", GNUNET_i2s (peer) );
-        GNUNET_CONTAINER_multihashmap_put ( hostlist_hashmap, peer_ident_hash, hostlist, GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE  );
+                  "Adding uri '%s' to dll\n", hostlist->hostlist_uri );
+        dll_insert ( hostlist );
         return GNUNET_YES;
       }
     else
       {
         /* No free entries available, replace existing entry  */
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "No free slots for hostlist available, searching for hostlist to replace\n", GNUNET_i2s (peer) );
-        /* iterate over all entries in hashmap */
-        struct compare_struct * cmp = GNUNET_malloc( sizeof( struct compare_struct) );
-        cmp->lowest_quality = 0;
-        cmp->key = NULL;
-        GNUNET_CONTAINER_multihashmap_iterate ( hostlist_hashmap,
-                                                &iterate_hashmap_for_replacing,
-                                                cmp );
+                "No free slots for hostlist available, searching for hostlist to replace\n" );
+
+        struct GNUNET_Hostlist * lowest_quality = dll_get_lowest_quality();
 
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Peer %4s's hostlist has the worst quality of all peers with value %u \n", GNUNET_h2s (cmp->key), cmp->lowest_quality );
+                "Hostlist with URI %s has the worst quality of all with value %u \n", lowest_quality->hostlist_uri, lowest_quality->quality );
         /* replacing the entry with worst quality, if quality is below initial quality value */
-        if ( cmp->lowest_quality < HOSTLIST_INITIAL)
+        if ( lowest_quality->quality < HOSTLIST_INITIAL)
         {
+          dll_remove(lowest_quality);
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Peer %4s' removed, added peer %4s \n", GNUNET_h2s (cmp->key), GNUNET_h2s ( peer_ident_hash) );
-          GNUNET_CONTAINER_multihashmap_remove ( hostlist_hashmap, cmp->key, cmp->value );
-          GNUNET_CONTAINER_multihashmap_put ( hostlist_hashmap, peer_ident_hash, hostlist, GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE );
+                  "URI '%s' removed \n",lowest_quality->hostlist_uri);
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "URI '%s' added %s\n", hostlist->hostlist_uri);
+          dll_insert ( hostlist );
         }
-
         return GNUNET_YES;
       }
     }
   else
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-            "Peer already in hashmap\n");
-      /* hostlist entry already existing in hashmap */
-      /* compare uri to new uri and update if different */
-      /* update recieved date (vs using last download time to check reachability)? */
-      existing_hostlist = GNUNET_CONTAINER_multihashmap_get ( hostlist_hashmap, peer_ident_hash );
-      if ( 0 != strcmp (hostlist->hostlist_uri, ((struct GNUNET_Hostlist *) existing_hostlist)->hostlist_uri) )
-        {
-          /* uri is different */
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Updating peer '%s' from old URI '%s' to new URI '%s'\n", GNUNET_i2s (peer), existing_hostlist->hostlist_uri , hostlist->hostlist_uri);
-          existing_hostlist->hostlist_uri = GNUNET_realloc( existing_hostlist->hostlist_uri,  strlen(hostlist->hostlist_uri) +1 );
-          if ( NULL != existing_hostlist->hostlist_uri )
-            {
-              strcpy(existing_hostlist->hostlist_uri,hostlist->hostlist_uri);
-              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "URI updated to %s \n", existing_hostlist->hostlist_uri);
-              /* reset hostlist usage information*/
-              existing_hostlist->hello_count = 0;
-              existing_hostlist->time_last_usage = GNUNET_TIME_absolute_get_zero();
-              existing_hostlist->times_used = 0;
-              return GNUNET_YES;
-            }
-          else
-            {
-              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Updating peer '%s' failed \n", GNUNET_i2s (peer));
-              return GNUNET_NO;
-            }
-        }
+            "Hostlist URI already in database\n");
     }
 
   /* since hostlist already existed in hashmap, object can be destroyed */
@@ -976,26 +1036,6 @@ static int load_hostlist_file ()
   return GNUNET_OK;
 }
 
-
-static int iterate_hashmap_for_saving ( void *cls, const GNUNET_HashCode *key, void *value )
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              ("Now iterating over peer entry: %s\n"), GNUNET_i2s ( (const struct GNUNET_PeerIdentity *) key));
-
-  /* code to serialize hostlists to file*/
-  GNUNET_BIO_write_string ( (struct GNUNET_BIO_WriteHandle *) cls, ((struct GNUNET_Hostlist *) value)->hostlist_uri );
-
-  /* code to free hostlist */
-  if ( NULL != value )
-    {
-
-      GNUNET_free ( value );
-      GNUNET_free ( ((struct GNUNET_Hostlist *) value)->hostlist_uri );
-    }
-
-  return GNUNET_YES;
-}
-
 /**
  * Method to load persistent hostlist file during hostlist client shutdown
  * param c configuration to use
@@ -1027,10 +1067,7 @@ static int save_hostlist_file ()
 
   /* add code to write hostlists to file using bio */
 
-  /* iterate over all entries in hashmap */
-  GNUNET_CONTAINER_multihashmap_iterate ( hostlist_hashmap,
-                                          &iterate_hashmap_for_saving,
-                                          wh );
+  /* iterate over all entries in dll */
 
   if ( GNUNET_OK != GNUNET_BIO_write_close ( wh ) )
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -1076,7 +1113,8 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   *msgh = &advertisement_handler;
 
   learning = learn;
-  hostlist_hashmap = GNUNET_CONTAINER_multihashmap_create ( MAX_NUMBER_HOSTLISTS );
+  dll_head = NULL;
+  dll_tail = NULL;
   load_hostlist_file ();
 
   GNUNET_STATISTICS_get (stats,
@@ -1101,7 +1139,6 @@ GNUNET_HOSTLIST_client_stop ()
 	      "Hostlist client shutdown\n");
 #endif
   save_hostlist_file ();
-  GNUNET_CONTAINER_multihashmap_destroy ( hostlist_hashmap );
 
   if (current_task != GNUNET_SCHEDULER_NO_TASK)
     {

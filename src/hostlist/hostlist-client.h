@@ -32,7 +32,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_time_lib.h"
 
-#define MAX_NUMBER_HOSTLISTS 1
+#define MAX_NUMBER_HOSTLISTS 4
 
 /*
  * Defines concerning the hostlist quality metric
@@ -47,6 +47,8 @@
  */
 struct GNUNET_Hostlist
 {
+  struct GNUNET_Hostlist * prev;
+  struct GNUNET_Hostlist * next;
   /*
    * peer offering the hostlist
    */
