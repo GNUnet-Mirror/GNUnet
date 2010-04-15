@@ -2582,7 +2582,15 @@ handle_p2p_get (void *cls,
   bits = 0;
   cps = GNUNET_CONTAINER_multihashmap_get (connected_peers,
 					   &other->hashPubKey);
-  GNUNET_assert (NULL != cps);
+  if (NULL == cps)
+    {
+      /* peer must have just disconnected */
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# requests dropped due to initiator not being connected"),
+				1,
+				GNUNET_NO);
+      return GNUNET_SYSERR;
+    }
   if (0 != (bm & GET_MESSAGE_BIT_RETURN_TO))
     cp = GNUNET_CONTAINER_multihashmap_get (connected_peers,
 					    &opt[bits++]);
