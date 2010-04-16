@@ -333,7 +333,7 @@ run(void *cls, struct GNUNET_SCHEDULER_Handle *sched, char * const *args,
 
   memset(&sa, 0, sizeof(sa));
   sa.sin_family = AF_INET;
-  inet_aton(ROOTSERVER_IP, &sa.sin_addr);
+  sa.sin_addr.S_un.S_addr = inet_addr(ROOTSERVER_IP);
 
   GNUNET_RESOLVER_hostname_get(sched, cfg, (const struct sockaddr *) &sa,
       sizeof(struct sockaddr), GNUNET_YES, timeout, &check_rootserver_name, cls);
