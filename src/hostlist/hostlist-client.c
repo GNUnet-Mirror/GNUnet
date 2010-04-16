@@ -179,14 +179,25 @@ static unsigned int connection_count;
  */
 static struct GNUNET_TIME_Absolute end_time;
 
-/* Head of the linked list used to store hostlists */
+/**
+ * Head of the linked list used to store hostlists
+ */
 static struct Hostlist * linked_list_head;
 
-/* Tail of the linked list used to store hostlists */
+/**
+ *  Tail of the linked list used to store hostlists
+ */
 static struct Hostlist * linked_list_tail;
 
-/* Size of the linke list  used to store hostlists */
+/*
+ *  Size of the linke list  used to store hostlists
+ */
 static unsigned int linked_list_size;
+
+/**
+ * Value saying if preconfigured  is used
+ */
+static unsigned int use_preconfigured_list;
 
 /**
  * Process downloaded bits by calling callback on each HELLO.
@@ -296,7 +307,7 @@ download_hostlist_processor (void *ptr,
  * @return NULL if there is no URL available
  */
 static char *
-get_url ()
+get_bootstrap_url ()
 {
   char *servers;
   char *ret;
@@ -305,13 +316,13 @@ get_url ()
 
   if (GNUNET_OK != 
       GNUNET_CONFIGURATION_get_value_string (cfg,
-					     "HOSTLIST",
-					     "SERVERS",
-					     &servers))
+                                             "HOSTLIST",
+                                             "SERVERS",
+                                             &servers))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("No `%s' specified in `%s' configuration, will not bootstrap.\n"),
-		  "SERVERS", "HOSTLIST");
+                  _("No `%s' specified in `%s' configuration, will not bootstrap.\n"),
+                  "SERVERS", "HOSTLIST");
       return NULL;
     }
 
@@ -330,8 +341,8 @@ get_url ()
   if (urls == 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("No `%s' specified in `%s' configuration, will not bootstrap.\n"),
-		  "SERVERS", "HOSTLIST");
+                  _("No `%s' specified in `%s' configuration, will not bootstrap.\n"),
+                  "SERVERS", "HOSTLIST");
       GNUNET_free (servers);
       return NULL;
     }
@@ -355,6 +366,38 @@ get_url ()
   ret = GNUNET_strdup (&servers[pos]);
   GNUNET_free (servers);
   return ret;
+}
+
+/**
+ * Method deciding if a preconfigured or advertisied hostlist is used on a 50:50 ratio
+ * @return uri to use, NULL if there is no URL available
+ */
+static char *
+get_list_url ()
+{
+  uint32_t index;
+  unsigned int counter;
+  struct Hostlist * pos;
+
+  if ( GNUNET_YES == use_preconfigured_list)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Using preconfigured bootstrap server\n");
+    use_preconfigured_list = GNUNET_NO;
+    return get_bootstrap_url();
+  }
+  index = GNUNET_CRYPTO_random_u32 ( GNUNET_CRYPTO_QUALITY_WEAK, linked_list_size);
+  counter = 0;
+  pos = linked_list_head;
+  while ( counter < index )
+    {
+      pos = pos->next;
+      counter ++;
+    }
+  use_preconfigured_list = GNUNET_YES;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Using learned hostlist `%s'\n", pos->hostlist_uri);
+  return strdup(pos->hostlist_uri);
 }
 
 
@@ -591,7 +634,7 @@ download_hostlist ()
       clean_up ();
       return;
     }
-  current_url = get_url ();
+  current_url = get_list_url ();
   GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
 	      _("Bootstrapping using hostlist at `%s'.\n"), 
 	      current_url);
@@ -747,9 +790,9 @@ schedule_hostlist_task ()
 }
 
 /**
- * Task that checks if we should try to download a hostlist.
- * If so, we initiate the download, otherwise we schedule
- * this task again for a later time.
+ * Task that writes hostlist entries to a file on a regular base
+ * cls closure
+ * tc TaskContext
  */
 static void
 hostlist_saving_task (void *cls,
@@ -1175,6 +1218,7 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
     *msgh = NULL;
   linked_list_head = NULL;
   linked_list_tail = NULL;
+  use_preconfigured_list = GNUNET_YES;
   load_hostlist_file ();
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
