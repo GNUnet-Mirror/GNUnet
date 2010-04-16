@@ -379,15 +379,14 @@ get_list_url ()
   unsigned int counter;
   struct Hostlist * pos;
 
-  if ( GNUNET_YES == use_preconfigured_list)
+  if ( (GNUNET_YES == use_preconfigured_list) ||
+       (linked_list_size == 0) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Using preconfigured bootstrap server\n");
     use_preconfigured_list = GNUNET_NO;
     return get_bootstrap_url();
   }
-  if (linked_list_size == 0)
-    return NULL;
   index = GNUNET_CRYPTO_random_u32 ( GNUNET_CRYPTO_QUALITY_WEAK, linked_list_size);
   counter = 0;
   pos = linked_list_head;
@@ -628,6 +627,9 @@ download_hostlist ()
   CURLcode ret;
   CURLMcode mret;
 
+  current_url = get_list_url ();
+  if (current_url == NULL)
+    return;
   curl = curl_easy_init ();
   multi = NULL;
   if (curl == NULL)
@@ -636,7 +638,6 @@ download_hostlist ()
       clean_up ();
       return;
     }
-  current_url = get_list_url ();
   GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
 	      _("Bootstrapping using hostlist at `%s'.\n"), 
 	      current_url);
