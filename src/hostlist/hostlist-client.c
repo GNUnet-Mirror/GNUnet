@@ -887,6 +887,7 @@ static void create_dummy_entries ()
       "Adding test peer '%s' with URI %s and quality %u to dll \n", GNUNET_h2s (&hostlist4->peer.hashPubKey) , hostlist4->hostlist_uri, hostlist4->quality);
   GNUNET_CONTAINER_DLL_insert(linked_list_head, linked_list_tail, hostlist4);
   linked_list_size++;
+
 }
 
 /**
@@ -930,8 +931,13 @@ advertisement_handler (void *cls,
               "Hostlist client recieved advertisement from `%s' containing URI `%s'\n", 
 	      GNUNET_i2s (peer), 
 	      uri);
-  if (GNUNET_YES != linked_list_contains (uri))
-    return GNUNET_OK;
+  if (GNUNET_NO != linked_list_contains (uri))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "URI `%s' is already known\n",
+                uri);
+      return GNUNET_OK;
+    }
   hostlist = GNUNET_malloc (sizeof (struct Hostlist) + uri_size);
   hostlist->peer = *peer;
   hostlist->hostlist_uri = (const char*) &hostlist[1];
