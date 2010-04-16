@@ -386,6 +386,8 @@ get_list_url ()
     use_preconfigured_list = GNUNET_NO;
     return get_bootstrap_url();
   }
+  if (linked_list_size == 0)
+    return NULL;
   index = GNUNET_CRYPTO_random_u32 ( GNUNET_CRYPTO_QUALITY_WEAK, linked_list_size);
   counter = 0;
   pos = linked_list_head;
