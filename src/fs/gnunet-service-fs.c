@@ -1502,8 +1502,12 @@ target_peer_select_cb (void *cls,
   double score;
   unsigned int i;
   unsigned int pc;
-  
-  /* 1) check if we have already (recently) forwarded to this peer */
+
+  /* 1) check that this peer is not the initiator */
+  if (cp == pr->cp)
+    return GNUNET_YES; /* skip */	   
+
+  /* 2) check if we have already (recently) forwarded to this peer */
   pc = 0;
   for (i=0;i<pr->used_pids_off;i++)
     if (pr->used_pids[i] == cp->pid) 
@@ -1526,7 +1530,7 @@ target_peer_select_cb (void *cls,
 		"Re-trying query that was previously transmitted %u times to this peer\n",
 		(unsigned int) pc);
 #endif
-  // 2) calculate how much we'd like to forward to this peer
+  // 3) calculate how much we'd like to forward to this peer
   score = 42; // FIXME!
   // FIXME: also need API to gather data on responsiveness
   // of this peer (we have fields for that in 'cp', but
