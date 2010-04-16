@@ -52,9 +52,11 @@ test_statistics_api_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la  
 
-EXTRA_DIST = \
-  test_statistics_api_data.conf 
-
 check_SCRIPTS = \
   test_gnunet_statistics.sh
+
+EXTRA_DIST = \
+  test_statistics_api_data.conf \
+  $(check_SCRIPTS) 
+
 

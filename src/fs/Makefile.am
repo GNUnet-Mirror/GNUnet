@@ -266,4 +266,5 @@ EXTRA_DIST = \
   test_gnunet_fs_ns_data.conf \
   test_gnunet_fs_psd_data.conf \
   test_gnunet_fs_rec_data.conf \
-  test_gnunet_fs_rec_data.tgz
+  test_gnunet_fs_rec_data.tgz \
+  $(check_SCRIPTS)
