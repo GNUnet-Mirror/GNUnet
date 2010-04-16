@@ -819,76 +819,6 @@ linked_list_get_lowest_quality ( )
   return lowest;
 }
 
-static void create_dummy_entries ()
-{
-
-  /* test */
-  struct Hostlist * hostlist1;
-  hostlist1 = GNUNET_malloc ( sizeof (struct Hostlist) );
-  char str[] = "uri_1";
-
-  GNUNET_CRYPTO_hash_create_random ( GNUNET_CRYPTO_QUALITY_WEAK , &hostlist1->peer.hashPubKey);
-  hostlist1->hello_count = 0;
-  hostlist1->hostlist_uri = GNUNET_malloc ( strlen(str) +1 );
-  strcpy( (char *) hostlist1->hostlist_uri,str);
-  hostlist1->time_creation = GNUNET_TIME_absolute_get();
-  hostlist1->time_last_usage = GNUNET_TIME_absolute_get_zero();
-  hostlist1->quality = HOSTLIST_INITIAL - 100;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "Adding test peer '%s' with URI %s and quality %u to dll \n", GNUNET_h2s (&hostlist1->peer.hashPubKey) , hostlist1->hostlist_uri, hostlist1->quality);
-  GNUNET_CONTAINER_DLL_insert(linked_list_head, linked_list_tail, hostlist1);
-  linked_list_size++;
-
-  struct Hostlist * hostlist2;
-  hostlist2 = GNUNET_malloc ( sizeof (struct Hostlist) );
-  char * str2 = "uri_2";
-
-  GNUNET_CRYPTO_hash_create_random ( GNUNET_CRYPTO_QUALITY_WEAK , &hostlist2->peer.hashPubKey);
-  hostlist2->hello_count = 0;
-  hostlist2->hostlist_uri = GNUNET_malloc ( strlen(str2) +1 );
-  strcpy( (char *) hostlist2->hostlist_uri,str2);
-  hostlist2->time_creation = GNUNET_TIME_absolute_get();
-  hostlist2->time_last_usage = GNUNET_TIME_absolute_get_zero();
-  hostlist2->quality = HOSTLIST_INITIAL - 200;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "Adding test peer '%s' with URI %s and quality %u to dll \n", GNUNET_h2s (&hostlist2->peer.hashPubKey) , hostlist2->hostlist_uri, hostlist2->quality);
-  GNUNET_CONTAINER_DLL_insert(linked_list_head, linked_list_tail, hostlist2);
-  linked_list_size++;
-
-  struct Hostlist * hostlist3;
-  hostlist3 = GNUNET_malloc ( sizeof (struct Hostlist) );
-  char * str3 = "uri_3";
-
-  GNUNET_CRYPTO_hash_create_random ( GNUNET_CRYPTO_QUALITY_WEAK , &hostlist3->peer.hashPubKey);
-  hostlist3->hello_count = 0;
-  hostlist3->hostlist_uri = GNUNET_malloc ( strlen(str3) +1 );
-  strcpy( (char *)hostlist3->hostlist_uri,str3);
-  hostlist3->time_creation = GNUNET_TIME_absolute_get();
-  hostlist3->time_last_usage = GNUNET_TIME_absolute_get_zero();
-  hostlist3->quality = HOSTLIST_INITIAL - 300;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-            "Adding test peer '%s' with URI %s and quality %u to dll \n", GNUNET_h2s (&hostlist3->peer.hashPubKey) , hostlist3->hostlist_uri, hostlist3->quality);
-  GNUNET_CONTAINER_DLL_insert(linked_list_head, linked_list_tail, hostlist3);
-  linked_list_size++;
-
-
-  struct Hostlist * hostlist4;
-  hostlist4 = GNUNET_malloc ( sizeof (struct Hostlist) );
-  char * str4 = "uri_4";
-
-  GNUNET_CRYPTO_hash_create_random ( GNUNET_CRYPTO_QUALITY_WEAK , &hostlist4->peer.hashPubKey);
-  hostlist4->hello_count = 0;
-  hostlist4->hostlist_uri = GNUNET_malloc ( strlen(str4) +1 );
-  strcpy((char *) hostlist4->hostlist_uri,str4);
-  hostlist4->time_creation = GNUNET_TIME_absolute_get();
-  hostlist4->time_last_usage = GNUNET_TIME_absolute_get_zero();
-  hostlist4->quality = HOSTLIST_INITIAL - 400;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "Adding test peer '%s' with URI %s and quality %u to dll \n", GNUNET_h2s (&hostlist4->peer.hashPubKey) , hostlist4->hostlist_uri, hostlist4->quality);
-  GNUNET_CONTAINER_DLL_insert(linked_list_head, linked_list_tail, hostlist4);
-  linked_list_size++;
-
-}
 
 /**
  * Method called whenever an advertisement message arrives.
@@ -945,9 +875,7 @@ advertisement_handler (void *cls,
   hostlist->time_creation = GNUNET_TIME_absolute_get();
   hostlist->time_last_usage = GNUNET_TIME_absolute_get_zero();
   hostlist->quality = HOSTLIST_INITIAL;  
-#if DUMMY
-  create_dummy_entries(); /* FIXME: remove later... */
-#endif
+
   GNUNET_CONTAINER_DLL_insert(linked_list_head, linked_list_tail, hostlist);
   linked_list_size++;
   
@@ -1014,6 +942,13 @@ load_hostlist_file ()
   char *uri;
   char *emsg;
   struct Hostlist * hostlist;
+  uri = NULL;
+  uint32_t times_used;
+  uint32_t hellos_returned;
+  uint64_t quality;
+  uint64_t last_used;
+  uint64_t created;
+  uint32_t counter;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
@@ -1027,6 +962,9 @@ load_hostlist_file ()
       return;
     }
 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Loading saved hostlist entries from file `%s' \n"), filename);
+
   struct GNUNET_BIO_ReadHandle * rh = GNUNET_BIO_read_open (filename);
   if (NULL == rh)
     {
@@ -1038,13 +976,6 @@ load_hostlist_file ()
       return;
     }
 
-  /* add code to read hostlists to file using bio */
-  uri = NULL;
-  uint32_t times_used;
-  uint32_t hellos_returned;
-  uint64_t quality;
-  uint64_t last_used;
-  uint64_t created;
 
   while ( (GNUNET_OK == GNUNET_BIO_read_string (rh, "url" , &uri, MAX_URL_LEN)) &&
 	  (GNUNET_OK == GNUNET_BIO_read_int32 (rh, &times_used)) &&
@@ -1065,7 +996,12 @@ load_hostlist_file ()
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Added hostlist entry eith URI `%s' \n", hostlist->hostlist_uri);
       uri = NULL;
+      counter++;
     }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("%u hostlist URIs loaded from file\n"), counter);
+
   GNUNET_free_non_null (uri);
   emsg = NULL;
   GNUNET_BIO_read_close (rh, &emsg);
@@ -1077,8 +1013,9 @@ load_hostlist_file ()
 
 /**
  * Method to load persistent hostlist file during hostlist client shutdown
+ * @param shutdown set if called because of shutdown, entries in linked list will be destroyed
  */
-static void save_hostlist_file ()
+static void save_hostlist_file ( int shutdown )
 {
   char *filename;
   struct Hostlist *pos;
@@ -1113,8 +1050,11 @@ static void save_hostlist_file ()
   ok = GNUNET_YES;
   while (NULL != (pos = linked_list_head))
     {
-      GNUNET_CONTAINER_DLL_remove (linked_list_head, linked_list_tail, pos);
-      linked_list_size--;
+      if ( GNUNET_YES == shutdown)
+      {
+        GNUNET_CONTAINER_DLL_remove (linked_list_head, linked_list_tail, pos);
+        linked_list_size--;
+      }
       if (GNUNET_YES == ok)
 	{
 	  if ( (GNUNET_OK !=
@@ -1136,7 +1076,8 @@ static void save_hostlist_file ()
 	      ok = GNUNET_NO;
 	    }
 	}
-      GNUNET_free (pos);
+      if ( GNUNET_YES == shutdown)
+        GNUNET_free (pos);
     }  
   if ( GNUNET_OK != GNUNET_BIO_write_close ( wh ) )
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -1208,7 +1149,7 @@ GNUNET_HOSTLIST_client_stop ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Hostlist client shutdown\n");
 #endif
-  save_hostlist_file ();
+  save_hostlist_file ( GNUNET_YES );
 
   if (current_task != GNUNET_SCHEDULER_NO_TASK)
     {
