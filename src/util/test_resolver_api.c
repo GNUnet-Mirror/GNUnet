@@ -218,6 +218,7 @@ run(void *cls, struct GNUNET_SCHEDULER_Handle *sched, char * const *args,
   struct GNUNET_TIME_Relative timeout = GNUNET_TIME_relative_multiply(
       GNUNET_TIME_UNIT_MILLISECONDS, 2500);
   int count_ips = 0;
+  char * own_hostname;
 
   memset(&sa, 0, sizeof(sa));
   sa.sin_family = AF_INET;
@@ -234,8 +235,10 @@ run(void *cls, struct GNUNET_SCHEDULER_Handle *sched, char * const *args,
   /*
    * Looking up our own hostname
    */
-  GNUNET_RESOLVER_local_hostname_get(sched, cfg, &check_local_hostname, cls);
-
+  own_hostname = GNUNET_malloc(GNUNET_OS_get_hostname_max_length() + 1);
+  own_hostname = GNUNET_RESOLVER_local_hostname_get();
+  check_local_hostname( NULL, own_hostname);
+  GNUNET_free (own_hostname);
 
   /*
    * Testing non-local DNS resolution
