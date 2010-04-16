@@ -2834,6 +2834,7 @@ run_validation (void *cls,
                       &id.hashPubKey);
   caec.addr = addr;
   caec.addrlen = addrlen;
+  caec.session = NULL;
   caec.tname = tname;
   caec.exists = GNUNET_NO;
   GNUNET_CONTAINER_multihashmap_iterate (validation_map,
