@@ -69,4 +69,5 @@ test_exponential_backoff_LDADD = \
 
 EXTRA_DIST = \
   test_arm_api_data.conf \
-  do_start_process.c
+  do_start_process.c \
+  $(check_SCRIPTS) 
