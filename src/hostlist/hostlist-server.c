@@ -613,6 +613,7 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
       size = strlen (hostname);
       if (size + 15 > MAX_URL_LEN)
 	{
+          GNUNET_free ( hostname );
 	  GNUNET_break (0);
 	}
       else
@@ -627,6 +628,7 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 		      hostlist_uri);
 	}
     }
+  GNUNET_free ( hostname );
   daemon_handle_v6 = MHD_start_daemon (MHD_USE_IPv6 
 #if DEBUG_HOSTLIST_SERVER
 				       | MHD_USE_DEBUG

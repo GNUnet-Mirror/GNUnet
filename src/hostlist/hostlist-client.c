@@ -1053,7 +1053,7 @@ load_hostlist_file ()
       return;
     }
 
-
+  counter = 0;
   while ( (GNUNET_OK == GNUNET_BIO_read_string (rh, "url" , &uri, MAX_URL_LEN)) &&
 	  (GNUNET_OK == GNUNET_BIO_read_int32 (rh, &times_used)) &&
 	  (GNUNET_OK == GNUNET_BIO_read_int64 (rh, &quality)) &&
@@ -1072,6 +1072,7 @@ load_hostlist_file ()
       linked_list_size++;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Added hostlist entry eith URI `%s' \n", hostlist->hostlist_uri);
+      GNUNET_free (uri);
       uri = NULL;
       counter++;
       if ( counter >= MAX_NUMBER_HOSTLISTS ) break;
@@ -1114,6 +1115,7 @@ static void save_hostlist_file ( int shutdown )
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("No `%s' specified in `%s' configuration, cannot save hostlists to file.\n"),
                   "HOSTLISTFILE", "HOSTLIST");
+                  GNUNET_free (filename);
       return;
     }
   wh = GNUNET_BIO_write_open (filename);
@@ -1123,6 +1125,7 @@ static void save_hostlist_file ( int shutdown )
                   _("Could not open file `%s' for writing to save hostlists: %s\n"),
                   filename,
 		  STRERROR (errno));
+                  GNUNET_free (filename);
       return;
     }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
