@@ -139,6 +139,10 @@ test_transport_api_udp_nat_LDADD = \
 
 EXTRA_DIST = \
   test_transport_api_data.conf \
-  test_transport_api_peer1.conf \
-  test_transport_api_peer2.conf \
+  test_transport_api_tcp_peer1.conf \
+  test_transport_api_tcp_peer2.conf \
+  test_transport_api_udp_peer1.conf \
+  test_transport_api_udp_peer2.conf \
+  test_transport_api_udp_nat_peer1.conf \
+  test_transport_api_udp_nat_peer2.conf \
   test_plugin_transport_data.conf

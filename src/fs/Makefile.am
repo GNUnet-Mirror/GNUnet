@@ -255,12 +255,15 @@ EXTRA_DIST = \
   test_fs_collection_data.conf \
   test_fs_download_data.conf \
   test_fs_file_information_data.conf \
-  test_fs_lib_data.conf \
+  fs_test_lib_data.conf \
   test_fs_list_indexed_data.conf \
   test_fs_namespace_data.conf \
   test_fs_publish_data.conf \
   test_fs_search_data.conf \
   test_fs_unindex_data.conf \
   test_fs_uri_data.conf \
-  test_gnunet_fs_data.conf \
+  test_gnunet_fs_idx_data.conf \
+  test_gnunet_fs_ns_data.conf \
+  test_gnunet_fs_psd_data.conf \
+  test_gnunet_fs_rec_data.conf \
   test_gnunet_fs_rec_data.tgz

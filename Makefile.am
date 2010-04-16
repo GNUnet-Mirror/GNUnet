@@ -6,8 +6,6 @@ EXTRA_DIST = \
  config.rpath \
  install-sh \
  HACKING \
- UPDATING \
- PLATFORMS \
  acinclude.m4
 
 ACLOCAL_AMFLAGS = -I m4

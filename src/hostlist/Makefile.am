@@ -50,9 +50,9 @@ test_gnunet_daemon_hostlist_learning_LDADD = \
 
 EXTRA_DIST = \
   test_gnunet_daemon_hostlist_data.conf \
-  test_gnunet_daemon_hostlist_data_peer1.conf \
-  test_gnunet_daemon_hostlist_data_peer2.conf \
+  test_gnunet_daemon_hostlist_peer1.conf \
+  test_gnunet_daemon_hostlist_peer2.conf \
   learning_data.conf \
-  learning_data_peer1.conf \
-  learning_data_peer2.conf
+  learning_peer1.conf \
+  learning_peer2.conf
 

@@ -15,7 +15,7 @@ lib_LTLIBRARIES = libgnunetnat.la
 libgnunetnat_la_SOURCES = \
   upnp.c upnp.h \
   natpmp.c natpmp.h \
-  nat.c nat.h
+  nat.c 
 
 libgnunetnat_la_CFLAGS = \
  -I$(top_scrdir)/include
