@@ -173,14 +173,14 @@ static unsigned int connection_count;
  */
 static struct GNUNET_TIME_Absolute end_time;
 
-/* DLL_? */
-static struct Hostlist * dll_head;
+/* Head of the linked list used to store hostlists */
+static struct Hostlist * linked_list_head;
 
-/* DLL_? */
-static struct Hostlist * dll_tail;
+/* Tail of the linked list used to store hostlists */
+static struct Hostlist * linked_list_tail;
 
-/* DLL_? */
-static unsigned int dll_size;
+/* Size of the linke list  used to store hostlists */
+static unsigned int linked_list_size;
 
 /**
  * Process downloaded bits by calling callback on each HELLO.
@@ -778,13 +778,17 @@ disconnect_handler (void *cls,
 }
 
 
-/* DLL_? */
+/**
+ * Method to check if URI is in hostlist linked list
+ * @param uri uri to check
+ * @return GNUNET_YES if existing in linked list, GNUNET_NO if not
+ */
 static int 
-dll_contains (const char * uri)
+linked_list_contains (const char * uri)
 {
   struct Hostlist * pos;
 
-  pos = dll_head;
+  pos = linked_list_head;
   while (pos != NULL)
     {
       if (0 == strcmp(pos->hostlist_uri, uri) ) 
@@ -795,17 +799,17 @@ dll_contains (const char * uri)
 }
 
 
-/* DLL_? */
+/* linked_list_? */
 static struct Hostlist *
-dll_get_lowest_quality ( )
+linked_list_get_lowest_quality ( )
 {
   struct Hostlist * pos;
   struct Hostlist * lowest;
 
-  if (dll_size == 0)
+  if (linked_list_size == 0)
     return NULL;
-  lowest = dll_head;
-  pos = dll_head->next;
+  lowest = linked_list_head;
+  pos = linked_list_head->next;
   while (pos != NULL)
     {
       if (pos->quality < lowest->quality) 
@@ -815,33 +819,25 @@ dll_get_lowest_quality ( )
   return lowest;
 }
 
-
-#if DUMMY
-/* TO BE REMOVED later */
-static void dll_insert ( struct Hostlist *hostlist)
-{
-  GNUNET_CONTAINER_DLL_insert(dll_head, dll_tail, hostlist);
-  dll_size++;
-}
-
 static void create_dummy_entries ()
 {
 
   /* test */
   struct Hostlist * hostlist1;
   hostlist1 = GNUNET_malloc ( sizeof (struct Hostlist) );
-  char * str = "uri_1";
+  char str[] = "uri_1";
 
   GNUNET_CRYPTO_hash_create_random ( GNUNET_CRYPTO_QUALITY_WEAK , &hostlist1->peer.hashPubKey);
   hostlist1->hello_count = 0;
   hostlist1->hostlist_uri = GNUNET_malloc ( strlen(str) +1 );
-  strcpy(hostlist1->hostlist_uri,str);
+  strcpy( (char *) hostlist1->hostlist_uri,str);
   hostlist1->time_creation = GNUNET_TIME_absolute_get();
   hostlist1->time_last_usage = GNUNET_TIME_absolute_get_zero();
   hostlist1->quality = HOSTLIST_INITIAL - 100;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
       "Adding test peer '%s' with URI %s and quality %u to dll \n", GNUNET_h2s (&hostlist1->peer.hashPubKey) , hostlist1->hostlist_uri, hostlist1->quality);
-  dll_insert (hostlist1);
+  GNUNET_CONTAINER_DLL_insert(linked_list_head, linked_list_tail, hostlist1);
+  linked_list_size++;
 
   struct Hostlist * hostlist2;
   hostlist2 = GNUNET_malloc ( sizeof (struct Hostlist) );
@@ -850,13 +846,14 @@ static void create_dummy_entries ()
   GNUNET_CRYPTO_hash_create_random ( GNUNET_CRYPTO_QUALITY_WEAK , &hostlist2->peer.hashPubKey);
   hostlist2->hello_count = 0;
   hostlist2->hostlist_uri = GNUNET_malloc ( strlen(str2) +1 );
-  strcpy(hostlist2->hostlist_uri,str2);
+  strcpy( (char *) hostlist2->hostlist_uri,str2);
   hostlist2->time_creation = GNUNET_TIME_absolute_get();
   hostlist2->time_last_usage = GNUNET_TIME_absolute_get_zero();
   hostlist2->quality = HOSTLIST_INITIAL - 200;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
       "Adding test peer '%s' with URI %s and quality %u to dll \n", GNUNET_h2s (&hostlist2->peer.hashPubKey) , hostlist2->hostlist_uri, hostlist2->quality);
-  dll_insert (hostlist2);
+  GNUNET_CONTAINER_DLL_insert(linked_list_head, linked_list_tail, hostlist2);
+  linked_list_size++;
 
   struct Hostlist * hostlist3;
   hostlist3 = GNUNET_malloc ( sizeof (struct Hostlist) );
@@ -865,13 +862,14 @@ static void create_dummy_entries ()
   GNUNET_CRYPTO_hash_create_random ( GNUNET_CRYPTO_QUALITY_WEAK , &hostlist3->peer.hashPubKey);
   hostlist3->hello_count = 0;
   hostlist3->hostlist_uri = GNUNET_malloc ( strlen(str3) +1 );
-  strcpy(hostlist3->hostlist_uri,str3);
+  strcpy( (char *)hostlist3->hostlist_uri,str3);
   hostlist3->time_creation = GNUNET_TIME_absolute_get();
   hostlist3->time_last_usage = GNUNET_TIME_absolute_get_zero();
   hostlist3->quality = HOSTLIST_INITIAL - 300;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
             "Adding test peer '%s' with URI %s and quality %u to dll \n", GNUNET_h2s (&hostlist3->peer.hashPubKey) , hostlist3->hostlist_uri, hostlist3->quality);
-  dll_insert (hostlist3);
+  GNUNET_CONTAINER_DLL_insert(linked_list_head, linked_list_tail, hostlist3);
+  linked_list_size++;
 
 
   struct Hostlist * hostlist4;
@@ -881,15 +879,15 @@ static void create_dummy_entries ()
   GNUNET_CRYPTO_hash_create_random ( GNUNET_CRYPTO_QUALITY_WEAK , &hostlist4->peer.hashPubKey);
   hostlist4->hello_count = 0;
   hostlist4->hostlist_uri = GNUNET_malloc ( strlen(str4) +1 );
-  strcpy(hostlist4->hostlist_uri,str4);
+  strcpy((char *) hostlist4->hostlist_uri,str4);
   hostlist4->time_creation = GNUNET_TIME_absolute_get();
   hostlist4->time_last_usage = GNUNET_TIME_absolute_get_zero();
   hostlist4->quality = HOSTLIST_INITIAL - 400;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
       "Adding test peer '%s' with URI %s and quality %u to dll \n", GNUNET_h2s (&hostlist4->peer.hashPubKey) , hostlist4->hostlist_uri, hostlist4->quality);
-  dll_insert (hostlist4);
+  GNUNET_CONTAINER_DLL_insert(linked_list_head, linked_list_tail, hostlist4);
+  linked_list_size++;
 }
-#endif
 
 /**
  * Method called whenever an advertisement message arrives.
@@ -932,7 +930,7 @@ advertisement_handler (void *cls,
               "Hostlist client recieved advertisement from `%s' containing URI `%s'\n", 
 	      GNUNET_i2s (peer), 
 	      uri);
-  if (GNUNET_YES != dll_contains (uri))
+  if (GNUNET_YES != linked_list_contains (uri))
     return GNUNET_OK;
   hostlist = GNUNET_malloc (sizeof (struct Hostlist) + uri_size);
   hostlist->peer = *peer;
@@ -944,22 +942,22 @@ advertisement_handler (void *cls,
 #if DUMMY
   create_dummy_entries(); /* FIXME: remove later... */
 #endif
-  GNUNET_CONTAINER_DLL_insert(dll_head, dll_tail, hostlist);
-  dll_size++;
+  GNUNET_CONTAINER_DLL_insert(linked_list_head, linked_list_tail, hostlist);
+  linked_list_size++;
   
-  if (MAX_NUMBER_HOSTLISTS >= dll_size)
+  if (MAX_NUMBER_HOSTLISTS >= linked_list_size)
     return GNUNET_OK;
 
   /* No free entries available, replace existing entry  */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Removing lowest quality entry\n" );  
-  struct Hostlist * lowest_quality = dll_get_lowest_quality();
+  struct Hostlist * lowest_quality = linked_list_get_lowest_quality();
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Hostlist with URI `%s' has the worst quality of all with value %llu\n", 
 	      lowest_quality->hostlist_uri,
 	      (unsigned long long) lowest_quality->quality);
-  GNUNET_CONTAINER_DLL_remove (dll_head, dll_tail, lowest_quality);
-  dll_size--;
+  GNUNET_CONTAINER_DLL_remove (linked_list_head, linked_list_tail, lowest_quality);
+  linked_list_size--;
   GNUNET_free (lowest_quality);
   return GNUNET_OK;
 }
@@ -1056,8 +1054,8 @@ load_hostlist_file ()
       hostlist->quality = quality;
       hostlist->time_creation.value = created;
       hostlist->time_last_usage.value = last_used;
-      GNUNET_CONTAINER_DLL_insert(dll_head, dll_tail, hostlist);
-      dll_size++;
+      GNUNET_CONTAINER_DLL_insert(linked_list_head, linked_list_tail, hostlist);
+      linked_list_size++;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Added hostlist entry eith URI `%s' \n", hostlist->hostlist_uri);
       uri = NULL;
@@ -1102,15 +1100,15 @@ static void save_hostlist_file ()
       return;
     }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Writing hostlist URIs to `%s'\n"),
-	      filename);
+              _("Writing %u hostlist URIs to `%s'\n" ),
+              linked_list_size, filename);
 
   /* add code to write hostlists to file using bio */
   ok = GNUNET_YES;
-  while (NULL != (pos = dll_head))
+  while (NULL != (pos = linked_list_head))
     {
-      GNUNET_CONTAINER_DLL_remove (dll_head, dll_tail, pos);
-      dll_size--;
+      GNUNET_CONTAINER_DLL_remove (linked_list_head, linked_list_tail, pos);
+      linked_list_size--;
       if (GNUNET_YES == ok)
 	{
 	  if ( (GNUNET_OK !=
@@ -1179,8 +1177,8 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
     *msgh = &advertisement_handler;
   else
     *msgh = NULL;
-  dll_head = NULL;
-  dll_tail = NULL;
+  linked_list_head = NULL;
+  linked_list_tail = NULL;
   load_hostlist_file ();
 
   GNUNET_STATISTICS_get (stats,
