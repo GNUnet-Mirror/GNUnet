@@ -32,7 +32,7 @@ check_PROGRAMS = \
  test_gnunet_daemon_hostlist_learning
 
 
-TESTS = $(check_PROGRAMS)
+TESTS = test_gnunet_daemon_hostlist 
 
 test_gnunet_daemon_hostlist_SOURCES = \
  test_gnunet_daemon_hostlist.c
