@@ -613,7 +613,6 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
       size = strlen (hostname);
       if (size + 15 > MAX_URL_LEN)
 	{
-          GNUNET_free ( hostname );
 	  GNUNET_break (0);
 	}
       else
@@ -622,7 +621,6 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 			   "http://%s:%u/",
 			   hostname,
 			   (unsigned int) port);
-	  GNUNET_free (hostname);
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		      _("Address to obtain hostlist: `%s'\n"), 
 		      hostlist_uri);
