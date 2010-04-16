@@ -24,7 +24,6 @@
  * @author Christian Grothoff
  *
  * FIXME:
- * - code not clear in terms of which function initializes bloomfilter when!
  * - TTL/priority calculations are absent!
  * TODO:
  * - have non-zero preference / priority for requests we initiate!
@@ -1267,39 +1266,36 @@ compute_bloomfilter_size (unsigned int entry_count)
 
 
 /**
- * Recalculate our bloom filter for filtering replies.
+ * Recalculate our bloom filter for filtering replies.  This function
+ * will create a new bloom filter from scratch, so it should only be
+ * called if we have no bloomfilter at all (and hence can create a
+ * fresh one of minimal size without problems) OR if our peer is the
+ * initiator (in which case we may resize to larger than mimimum size).
  *
- * @param count number of entries we are filtering right now
- * @param mingle set to our new mingling value
- * @param bf_size set to the size of the bloomfilter
- * @param entries the entries to filter
- * @return updated bloomfilter, NULL for none
+ * @param pr request for which the BF is to be recomputed
  */
-static struct GNUNET_CONTAINER_BloomFilter *
-refresh_bloomfilter (unsigned int count,
-		     int32_t * mingle,
-		     size_t *bf_size,
-		     const GNUNET_HashCode *entries)
+static void
+refresh_bloomfilter (struct PendingRequest *pr)
 {
-  struct GNUNET_CONTAINER_BloomFilter *bf;
-  size_t nsize;
   unsigned int i;
+  size_t nsize;
   GNUNET_HashCode mhash;
 
-  if (0 == count)
-    return NULL;
-  nsize = compute_bloomfilter_size (count);
-  *mingle = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, -1);
-  *bf_size = nsize;
-  bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 
-					  nsize,
-					  BLOOMFILTER_K);
-  for (i=0;i<count;i++)
+  nsize = compute_bloomfilter_size (pr->replies_seen_off);
+  if (nsize == pr->bf_size)
+    return; /* size not changed */
+  if (pr->bf != NULL)
+    GNUNET_CONTAINER_bloomfilter_free (pr->bf);
+  pr->bf_size = nsize;
+  pr->mingle = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, -1);
+  pr->bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 
+					      pr->bf_size,
+					      BLOOMFILTER_K);
+  for (i=0;i<pr->replies_seen_off;i++)
     {
-      mingle_hash (&entries[i], *mingle, &mhash);
-      GNUNET_CONTAINER_bloomfilter_add (bf, &mhash);
+      mingle_hash (&pr->replies_seen[i], pr->mingle, &mhash);
+      GNUNET_CONTAINER_bloomfilter_add (pr->bf, &mhash);
     }
-  return bf;
 }
 
 
@@ -2044,25 +2040,20 @@ process_reply (void *cls,
 		      "New response `%s', adding to filter.\n",
 		      GNUNET_h2s (&mhash));
 #endif
-	  GNUNET_CONTAINER_bloomfilter_add (pr->bf,
-					    &mhash);
 	}
       if (pr->client_request_list != NULL)
 	{
 	  if (pr->replies_seen_size == pr->replies_seen_off)
-	    {
-	      GNUNET_array_grow (pr->replies_seen,
-				 pr->replies_seen_size,
-				 pr->replies_seen_size * 2 + 4);
-	      if (pr->bf != NULL)
-		GNUNET_CONTAINER_bloomfilter_free (pr->bf);
-	      pr->bf = refresh_bloomfilter (pr->replies_seen_off,
-					    &pr->mingle,
-					    &pr->bf_size,
-					    pr->replies_seen);
-	    }
+	    GNUNET_array_grow (pr->replies_seen,
+			       pr->replies_seen_size,
+			       pr->replies_seen_size * 2 + 4);	
   	    pr->replies_seen[pr->replies_seen_off++] = chash;	      
 	}
+      if ( (pr->bf == NULL) ||
+	   (pr->client_request_list != NULL) )
+	refresh_bloomfilter (pr);
+      GNUNET_CONTAINER_bloomfilter_add (pr->bf,
+					&mhash);
       break;
     default:
       GNUNET_break (0);
@@ -2423,29 +2414,6 @@ process_local_reply (void *cls,
 			    1,
 			    GNUNET_NO);
   pr->results_found++;
-  if ( (pr->type == GNUNET_DATASTORE_BLOCKTYPE_KBLOCK) ||
-       (pr->type == GNUNET_DATASTORE_BLOCKTYPE_SBLOCK) ||
-       (pr->type == GNUNET_DATASTORE_BLOCKTYPE_NBLOCK) )
-    {
-      if (pr->bf == NULL)
-	{
-	  pr->bf_size = 32;
-	  pr->bf = GNUNET_CONTAINER_bloomfilter_init (NULL,
-						      pr->bf_size, 
-						      BLOOMFILTER_K);
-	}
-#if DEBUG_FS
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "New local response `%s', adding to filter.\n",
-		  GNUNET_h2s (&mhash));
-#endif
-#if 0
-      /* this would break stuff since we will check the bf later
-	 again (and would then discard the reply!) */
-      GNUNET_CONTAINER_bloomfilter_add (pr->bf, 
-					&mhash);
-#endif
-    }
   memset (&prq, 0, sizeof (prq));
   prq.data = data;
   prq.expiration = expiration;
@@ -2931,12 +2899,7 @@ handle_start_search (void *cls,
 		  &sm[1],
 		  sc * sizeof (GNUNET_HashCode));
 	  pr->replies_seen_off += sc;
-	  if (pr->bf != NULL)
-	    GNUNET_CONTAINER_bloomfilter_free (pr->bf);
-	  pr->bf = refresh_bloomfilter (pr->replies_seen_off,
-					&pr->mingle,
-					&pr->bf_size,
-					pr->replies_seen);
+	  refresh_bloomfilter (pr);
 	  GNUNET_STATISTICS_update (stats,
 				    gettext_noop ("# client searches updated (merged content seen list)"),
 				    1,
@@ -2969,10 +2932,7 @@ handle_start_search (void *cls,
 	  sc * sizeof (GNUNET_HashCode));
   pr->replies_seen_off = sc;
   pr->anonymity_level = ntohl (sm->anonymity_level); 
-  pr->bf = refresh_bloomfilter (pr->replies_seen_off,
-				&pr->mingle,
-				&pr->bf_size,
-				pr->replies_seen);
+  refresh_bloomfilter (pr);
   pr->query = sm->query;
   switch (type)
     {
