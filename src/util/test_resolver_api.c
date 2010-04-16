@@ -235,7 +235,6 @@ run(void *cls, struct GNUNET_SCHEDULER_Handle *sched, char * const *args,
   /*
    * Looking up our own hostname
    */
-  own_hostname = GNUNET_malloc(GNUNET_OS_get_hostname_max_length() + 1);
   own_hostname = GNUNET_RESOLVER_local_hostname_get();
   check_local_hostname( NULL, own_hostname);
   GNUNET_free (own_hostname);
