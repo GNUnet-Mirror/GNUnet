@@ -638,7 +638,10 @@ AC_ARG_ENABLE([coverage], AS_HELP_STRING([--enable-coverage],
                                         [use_gcov=yes], [use_gcov=no])
 AM_CONDITIONAL([USE_COVERAGE], [test "x$use_gcov" = "xyes"])
 
-
+# Not in 0.9.0pre0
+# src/dv/Makefile
+# src/dht/Makefile
+# src/fragmentation/Makefile
 
 AC_CONFIG_FILES([ 
 Makefile
@@ -650,9 +653,6 @@ src/arm/Makefile
 src/core/Makefile
 src/datacache/Makefile
 src/datastore/Makefile
-src/dv/Makefile
-src/dht/Makefile
-src/fragmentation/Makefile
 src/fs/Makefile
 src/hello/Makefile
 src/include/Makefile

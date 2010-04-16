@@ -57,7 +57,7 @@ libgnunetutil_la_SOURCES = \
   plugin.c \
   program.c \
   pseudonym.c \
-  resolver_api.c \
+  resolver_api.c resolver.h \
   scheduler.c \
   server.c \
   server_nc.c \

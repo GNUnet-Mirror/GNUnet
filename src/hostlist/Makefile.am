@@ -9,7 +9,7 @@ bin_PROGRAMS = \
  gnunet-daemon-hostlist
 
 gnunet_daemon_hostlist_SOURCES = \
- gnunet-daemon-hostlist.c \
+ gnunet-daemon-hostlist.c gnunet-daemon-hostlist.h \
  hostlist-client.c hostlist-client.h \
  hostlist-server.c hostlist-server.h 
 

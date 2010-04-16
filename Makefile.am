@@ -1,5 +1,5 @@
 INCLUDES = -I$(top_srcdir)/src/include
-SUBDIRS  = contrib src po
+SUBDIRS  = contrib m4 src po
 
 EXTRA_DIST = \
  ABOUT-NLS \
