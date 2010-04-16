@@ -31,7 +31,7 @@
 #include "platform.h"
 #include "fs_tree.h"
 
-#define DEBUG_TREE GNUNET_YES
+#define DEBUG_TREE GNUNET_NO
 
 /**
  * Context for an ECRS-based file encoder that computes
@@ -251,6 +251,8 @@ compute_chk_offset (unsigned int height,
 				  corresponds to */
   for (i=0;i<height;i++)
     bds *= CHK_PER_INODE;
+  if (height > 0)
+    offset--; /* round down since for height > 0 offset is at the END of the block */
   ret = offset / bds;
   return ret % CHK_PER_INODE; 
 }

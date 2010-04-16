@@ -40,7 +40,7 @@
 #include "fs.h"
 #include "fs_tree.h"
 
-#define DEBUG_PUBLISH GNUNET_YES
+#define DEBUG_PUBLISH GNUNET_NO
 
 /**
  * Main function that performs the upload.
@@ -129,6 +129,8 @@ publish_cleanup (struct GNUNET_FS_PublishContext *sc)
   GNUNET_free_non_null (sc->nid);  
   GNUNET_free_non_null (sc->nuid);
   GNUNET_DATASTORE_disconnect (sc->dsh, GNUNET_NO);
+  if (sc->client != NULL)
+    GNUNET_CLIENT_disconnect (sc->client, GNUNET_NO);
   GNUNET_free (sc);
 }
 
