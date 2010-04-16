@@ -155,6 +155,11 @@ static CURLM *multi;
 static GNUNET_SCHEDULER_TaskIdentifier current_task;
 
 /**
+ * ID of the current hostlist saving task scheduled.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier saving_task;
+
+/**
  * Amount of time we wait between hostlist downloads.
  */
 static struct GNUNET_TIME_Relative hostlist_delay;
@@ -363,6 +368,11 @@ get_url ()
 static void
 schedule_hostlist_task (void);
 
+/**
+ * Method to load persistent hostlist file during hostlist client shutdown
+ * @param shutdown set if called because of shutdown, entries in linked list will be destroyed
+ */
+static void save_hostlist_file ( int shutdown );
 
 /**
  * Clean up the state from the task that downloaded the
@@ -736,6 +746,47 @@ schedule_hostlist_task ()
 					       NULL);
 }
 
+/**
+ * Compute when we should save the hostlist entries the next time;
+ * then schedule the task accordingly.
+ */
+static void
+schedule_hostlist_saving_task ();
+
+/**
+ * Task that checks if we should try to download a hostlist.
+ * If so, we initiate the download, otherwise we schedule
+ * this task again for a later time.
+ */
+static void
+hostlist_saving_task (void *cls,
+            const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  saving_task = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Scheduled saving of hostlists\n"));
+  save_hostlist_file ( GNUNET_NO );
+  /*schedule_hostlist_saving_task ();*/
+}
+
+/**
+ * Compute when we should save the hostlist entries the next time;
+ * then schedule the task accordingly.
+ */
+static void
+schedule_hostlist_saving_task ()
+{
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Hostlists will be saved to file again in  %llums\n"),
+              (unsigned long long) SAVING_INTERVALL.value);
+  saving_task = GNUNET_SCHEDULER_add_delayed (sched,
+                                               SAVING_INTERVALL,
+                                               &hostlist_saving_task,
+                                               NULL);
+}
 
 /**
  * Method called whenever a given peer connects.
@@ -997,10 +1048,15 @@ load_hostlist_file ()
                   "Added hostlist entry eith URI `%s' \n", hostlist->hostlist_uri);
       uri = NULL;
       counter++;
+      if ( counter >= MAX_NUMBER_HOSTLISTS ) break;
     }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("%u hostlist URIs loaded from file\n"), counter);
+  GNUNET_STATISTICS_set (stats,
+                         gettext_noop("# hostlis URIs read from file"),
+                         counter,
+                         GNUNET_YES);
 
   GNUNET_free_non_null (uri);
   emsg = NULL;
@@ -1021,6 +1077,7 @@ static void save_hostlist_file ( int shutdown )
   struct Hostlist *pos;
   struct GNUNET_BIO_WriteHandle * wh;
   int ok;
+  uint32_t counter;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
@@ -1048,6 +1105,7 @@ static void save_hostlist_file ( int shutdown )
 
   /* add code to write hostlists to file using bio */
   ok = GNUNET_YES;
+  counter = 0;
   while (NULL != (pos = linked_list_head))
     {
       if ( GNUNET_YES == shutdown)
@@ -1076,9 +1134,17 @@ static void save_hostlist_file ( int shutdown )
 	      ok = GNUNET_NO;
 	    }
 	}
+
       if ( GNUNET_YES == shutdown)
         GNUNET_free (pos);
+      counter ++;
+      if ( counter >= MAX_NUMBER_HOSTLISTS) break;
     }  
+  GNUNET_STATISTICS_set (stats,
+                         gettext_noop("# hostlist URIs written to file"),
+                         counter,
+                         GNUNET_YES);
+
   if ( GNUNET_OK != GNUNET_BIO_write_close ( wh ) )
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Error writing hostlist URIs to file `%s'\n"),
@@ -1127,6 +1193,7 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   linked_list_head = NULL;
   linked_list_tail = NULL;
   load_hostlist_file ();
+  // schedule_hostlist_saving_task ();
 
   GNUNET_STATISTICS_get (stats,
 			 "hostlist",
