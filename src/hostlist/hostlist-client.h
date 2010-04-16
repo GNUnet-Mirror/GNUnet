@@ -33,7 +33,7 @@
 #include "gnunet_time_lib.h"
 
 #define MAX_NUMBER_HOSTLISTS 30
-#define SAVING_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
+#define SAVING_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 30)
 
 /*
  * Defines concerning the hostlist quality metric

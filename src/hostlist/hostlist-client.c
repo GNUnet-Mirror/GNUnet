@@ -747,13 +747,6 @@ schedule_hostlist_task ()
 }
 
 /**
- * Compute when we should save the hostlist entries the next time;
- * then schedule the task accordingly.
- */
-static void
-schedule_hostlist_saving_task ();
-
-/**
  * Task that checks if we should try to download a hostlist.
  * If so, we initiate the download, otherwise we schedule
  * this task again for a later time.
@@ -768,19 +761,9 @@ hostlist_saving_task (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Scheduled saving of hostlists\n"));
   save_hostlist_file ( GNUNET_NO );
-  /*schedule_hostlist_saving_task ();*/
-}
-
-/**
- * Compute when we should save the hostlist entries the next time;
- * then schedule the task accordingly.
- */
-static void
-schedule_hostlist_saving_task ()
-{
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Hostlists will be saved to file again in  %llums\n"),
+              _("Hostlists will be saved to file again in %llums\n"),
               (unsigned long long) SAVING_INTERVALL.value);
   saving_task = GNUNET_SCHEDULER_add_delayed (sched,
                                                SAVING_INTERVALL,
@@ -1193,7 +1176,14 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   linked_list_head = NULL;
   linked_list_tail = NULL;
   load_hostlist_file ();
-  // schedule_hostlist_saving_task ();
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Hostlists will be saved to file again in  %llums\n"),
+              (unsigned long long) SAVING_INTERVALL.value);
+  saving_task = GNUNET_SCHEDULER_add_delayed (sched,
+                                               SAVING_INTERVALL,
+                                               &hostlist_saving_task,
+                                               NULL);
 
   GNUNET_STATISTICS_get (stats,
 			 "hostlist",
