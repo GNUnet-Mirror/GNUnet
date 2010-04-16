@@ -117,7 +117,7 @@ typedef void (*GNUNET_RESOLVER_HostnameCallback) (void *cls,
  * @param hostname
  */
 char *
-GNUNET_RESOLVER_local_hostname_get ();
+GNUNET_RESOLVER_local_hostname_get ( void );
 
 /**
  * Perform a reverse DNS lookup.
