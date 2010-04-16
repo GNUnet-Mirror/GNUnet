@@ -3272,8 +3272,10 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
 	      "Processing `%s' from `%s'\n",
 	      "PING", 
-	      GNUNET_a2s ((const struct sockaddr *)sender_address, 
-			  sender_address_len));
+	      (sender_address != NULL) 
+	      ? GNUNET_a2s ((const struct sockaddr *)sender_address, 
+			    sender_address_len)
+	      : "<inbound>");
 #endif
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# PING messages received"),
@@ -3292,7 +3294,8 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
   memcpy(&pong->signer, 
 	 &my_public_key, 
 	 sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
-  memcpy (&pong[1], sender_address, sender_address_len);
+  if (sender_address != NULL)
+    memcpy (&pong[1], sender_address, sender_address_len);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_rsa_sign (my_private_key,
                                          &pong->purpose, &pong->signature));
