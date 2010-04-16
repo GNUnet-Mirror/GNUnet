@@ -51,19 +51,20 @@
  */
 struct Hostlist
 {
+  /**
+   * previous entry, used to manage entries in a double linked list
+   */
   struct Hostlist * prev;
 
+  /**
+   * next entry, used to manage entries in a double linked list
+   */
   struct Hostlist * next;
 
   /**
    * URI where hostlist can be obtained
    */
   const char *hostlist_uri;
-
-  /**
-   * Peer offering the hostlist.  TO BE REMOVED.
-   */
-  struct GNUNET_PeerIdentity peer;
 
   /**
    * Value describing the quality of the hostlist, the bigger the better but (should) never < 0
@@ -78,22 +79,22 @@ struct Hostlist
   /**
    * Time the hostlist advertisement was recieved and the entry was created
    */
-  struct GNUNET_TIME_Absolute   time_creation;
+  struct GNUNET_TIME_Absolute time_creation;
 
   /**
    * Last time the hostlist was obtained
    */
-  struct GNUNET_TIME_Absolute   time_last_usage;
+  struct GNUNET_TIME_Absolute time_last_usage;
 
   /**
    * Number of HELLO messages obtained during last download
    */
-  uint32_t                 hello_count;
+  uint32_t hello_count;
 
   /**
    * Number of times the hostlist was obtained
    */
-  uint32_t                 times_used;
+  uint32_t times_used;
 
 };
 
@@ -869,7 +870,6 @@ advertisement_handler (void *cls,
       return GNUNET_OK;
     }
   hostlist = GNUNET_malloc (sizeof (struct Hostlist) + uri_size);
-  hostlist->peer = *peer;
   hostlist->hostlist_uri = (const char*) &hostlist[1];
   memcpy (&hostlist[1], uri, uri_size);
   hostlist->time_creation = GNUNET_TIME_absolute_get();
