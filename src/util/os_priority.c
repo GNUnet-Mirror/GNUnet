@@ -249,6 +249,7 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
 #endif
   char *fn;
   int len;
+  char path[MAX_PATH + 1];
 
   cmdlen = 0;
   va_start (ap, filename);
@@ -281,14 +282,15 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
       start.hStdOutput = stdout_handle;
     }
 #endif
-  len = strlen (filename);
-  if (strnicmp (filename + len - 4, ".exe", 4) == 0)
-    fn = filename;
-  else
-    GNUNET_asprintf (&fn, "%s.exe", filename);
+  if (FindExecutable(filename, NULL, path) <= 32)
+    {
+      SetErrnoFromWinError (GetLastError ());
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "FindExecutable", fn);
+      return -1;
+    }
 
   if (!CreateProcess
-      (fn, cmd, NULL, NULL, FALSE, DETACHED_PROCESS, NULL, NULL, &start,
+      (path, cmd, NULL, NULL, FALSE, DETACHED_PROCESS, NULL, NULL, &start,
        &proc))
     {
       SetErrnoFromWinError (GetLastError ());
