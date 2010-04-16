@@ -667,6 +667,9 @@ destroy_pending_request (struct PendingRequest *pr)
       GNUNET_CONTAINER_heap_remove_node (requests_by_expiration_heap,
 					 pr->hnode);
       pr->hnode = NULL;
+    }
+  if (NULL == pr->client_request_list)
+    {
       GNUNET_STATISTICS_update (stats,
 				gettext_noop ("# P2P searches active"),
 				-1,
@@ -2738,7 +2741,7 @@ handle_p2p_get (void *cls,
 		      GNUNET_i2s (other));
 #endif
 	  GNUNET_STATISTICS_update (stats,
-				    gettext_noop ("# requests dropped due to existing request with higher TTL"),
+				    gettext_noop ("# requests dropped due to higher-TTL request"),
 				    1,
 				    GNUNET_NO);
 	  return GNUNET_OK;
@@ -2860,19 +2863,6 @@ handle_start_search (void *cls,
 			    GNUNET_NO);
   sc = (msize - sizeof (struct SearchMessage)) / sizeof (GNUNET_HashCode);
   sm = (const struct SearchMessage*) message;
-
-  cl = client_list;
-  while ( (cl != NULL) &&
-	  (cl->client != client) )
-    cl = cl->next;
-  if (cl == NULL)
-    {
-      cl = GNUNET_malloc (sizeof (struct ClientList));
-      cl->client = client;
-      GNUNET_SERVER_client_keep (client);
-      cl->next = client_list;
-      client_list = cl;
-    }
   type = ntohl (sm->type);
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2896,6 +2886,18 @@ handle_start_search (void *cls,
       return;
     }  
 
+  cl = client_list;
+  while ( (cl != NULL) &&
+	  (cl->client != client) )
+    cl = cl->next;
+  if (cl == NULL)
+    {
+      cl = GNUNET_malloc (sizeof (struct ClientList));
+      cl->client = client;
+      GNUNET_SERVER_client_keep (client);
+      cl->next = client_list;
+      client_list = cl;
+    }
   /* detect duplicate KBLOCK requests */
   if ( (type == GNUNET_DATASTORE_BLOCKTYPE_KBLOCK) ||
        (type == GNUNET_DATASTORE_BLOCKTYPE_NBLOCK) ||
@@ -2945,7 +2947,7 @@ handle_start_search (void *cls,
 			    1,
 			    GNUNET_NO);
   pr = GNUNET_malloc (sizeof (struct PendingRequest) + 
-		      ((type == GNUNET_DATASTORE_BLOCKTYPE_SBLOCK)?sizeof(GNUNET_HashCode):0));
+		      ((type == GNUNET_DATASTORE_BLOCKTYPE_SBLOCK) ? sizeof(GNUNET_HashCode) : 0));
   crl = GNUNET_malloc (sizeof (struct ClientRequestList));
   memset (crl, 0, sizeof (struct ClientRequestList));
   crl->client_list = cl;
