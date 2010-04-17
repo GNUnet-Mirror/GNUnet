@@ -2,10 +2,18 @@
 * PEERINFO:
   - trust: need *fast* way to check/update trust in peers
            (async peerinfo would not be right; certainly not with the current API)
-* UTIL:
-  - only connect() sockets that are ready (select()) [Nils]
-    [On W32, we need to select after calling socket before doing connect etc.]
 * TOPOLOGY:
+  - move code to use hash table instead of linked list
+  - check if new HELLO learned is different from old HELLO
+    before resetting entire state!
+  - the code uses the term 'blacklist' for both peers that are forbidden
+    to connect (i.e. F2F mode) as well as peers that we currently
+    won't try to actively connect to ourselves (since we just tried);
+    This is confusing.  We need two distinct terms (greylist?).
+  - instead of periodically discarding blacklisted entries,
+    simply add task that is triggered at the right time (earlier free,
+    more balanced load)
+
   - needs more testing (especially F2F topology)
   - needs to re-try connecting after disconnect (currently, it
     initially triggers a connection request, but if that connection
@@ -25,16 +33,6 @@
      a minor issue; OTOH, we might want to be more explicit about
      allowing/forbidding connects on pre-connect to avoid 
      entering connect attempts to just be blacklisted shortly afterwards).
-  - the code uses the term 'blacklist' for both peers that are forbidden
-    to connect (i.e. F2F mode) as well as peers that we currently
-    won't try to actively connect to ourselves (since we just tried);
-    This is confusing.  We need two distinct terms (greylist?).
-  - move code to use hash table instead of linked list
-  - instead of periodically discarding blacklisted entries,
-    simply add task that is triggered at the right time (earlier free,
-    more balanced load)
-  - check if new HELLO learned is different from old HELLO
-    before resetting entire state!
 * DATASTORE:
   - API lacks cancellation methods (needed? or is disconnect enough?)
   - may also want to integrate request queuing here instead of gnunet-service-fs_drq.c 
@@ -66,6 +64,9 @@
   - implement DV transport plugin
   - implement testcases 
   - implement performance tests
+* UTIL:
+  - only connect() sockets that are ready (select()) [Nils]
+    [On W32, we need to select after calling socket before doing connect etc.]
 * GNUNET-GTK:
   - use g_main_context_set_poll_func to integrate GTK with GNUnet Scheduler!? (YUCK!)
   - OR: add scheduler API to enable integration with GTK main loop instead of doing our own select
