@@ -1016,6 +1016,8 @@ consider_for_advertising (const struct GNUNET_HELLO_Message *hello)
 {
   int have_address;
   struct GNUNET_PeerIdentity pid;
+  struct GNUNET_TIME_Absolute dt;
+  struct GNUNET_HELLO_Message *nh;
   struct Peer *peer;
   uint16_t size;
 
@@ -1034,17 +1036,36 @@ consider_for_advertising (const struct GNUNET_HELLO_Message *hello)
   peer = GNUNET_CONTAINER_multihashmap_get (peers,
 					    &pid.hashPubKey);
   if (peer == NULL)
-    peer = make_peer (&pid, hello, GNUNET_NO);
+    {
+      peer = make_peer (&pid, hello, GNUNET_NO);
+    }
+  else if (peer->hello != NULL)
+    {
+      dt = GNUNET_HELLO_equals (peer->hello,
+				hello,
+				GNUNET_TIME_absolute_get());
+      if (dt.value == GNUNET_TIME_UNIT_FOREVER_ABS.value)
+	return; /* nothing new here */
+    }
 #if DEBUG_TOPOLOGY
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Found `%s' from peer `%s' for advertising\n",
 	      "HELLO",
 	      GNUNET_i2s (&pid));
 #endif 
-  size = GNUNET_HELLO_size (hello);
-  GNUNET_free_non_null (peer->hello);
-  peer->hello = GNUNET_malloc (size);
-  memcpy (peer->hello, hello, size);
+  if (peer->hello != NULL)
+    {
+      nh = GNUNET_HELLO_merge (peer->hello,
+			       hello);
+      GNUNET_free (peer->hello);
+      peer->hello = nh;
+    }
+  else
+    {
+      size = GNUNET_HELLO_size (hello);
+      peer->hello = GNUNET_malloc (size);
+      memcpy (peer->hello, hello, size);
+    }
   if (peer->filter != NULL)
     GNUNET_CONTAINER_bloomfilter_free (peer->filter);
   setup_filter (peer);

@@ -1,17 +1,14 @@
 0.9.0pre1:
-* PEERINFO:
+* PEERINFO: [CG]
   - trust: need *fast* way to check/update trust in peers
            (async peerinfo would not be right; certainly not with the current API)
-* TOPOLOGY:
-  - check if new HELLO learned is different from old HELLO
-    before resetting entire state!
-  - needs more testing (especially F2F topology)
+* TOPOLOGY: [CG]
   - needs to re-try connecting after disconnect (currently, it
     initially triggers a connection request, but if that connection
     fails / goes down, it does not retry in a timely fashion;
-    cause seems to be the 'blacklist_after_attempt' being set to 1h,
+    cause seems to be the 'greylist_after_attempt' being set to 1h,
     which is rather long -- and should probably be adjusted based on
-    the number of connections / known peers)
+    the number of connections / known peers & use some form of back-off)
   - If the topology daemon crashes, peers that were put on the
     blacklist with transport will never be removed from it (until
     transport service dies); we should use the blacklist notification
@@ -24,9 +21,7 @@
      a minor issue; OTOH, we might want to be more explicit about
      allowing/forbidding connects on pre-connect to avoid 
      entering connect attempts to just be blacklisted shortly afterwards).
-* DATASTORE:
-  - API lacks cancellation methods (needed? or is disconnect enough?)
-  - may also want to integrate request queuing here instead of gnunet-service-fs_drq.c 
+  - needs more testing (especially F2F topology)
 * FS: [CG]
   - support recursive download even if filename is NULL and we hence
     do not generate files on disk (use temp_filename)
@@ -180,10 +175,6 @@
 Optimizations:
 * TCP:
   - should use hash map to look up sessions
-* PEERINFO:
-  - api creates many, many short-lived TCP connections; either some
-    clients should use the API differently or we need to change the
-    API to enable re-use of connections to the service
 * STATISTICS:
   - should use BIO instead of mmap
 * TRANSPORT:
@@ -196,7 +187,7 @@ Optimizations:
   - should use hash map to look up Neighbours
 * HOSTLIST:
   - 'server' uses 'GNUNET_PEERINFO_iterate', should probably switch to notification API
-    (for more instant / up-to-date hostlists at lower cost) [OPTIMIZATION]
+    (for more instant / up-to-date hostlists at lower cost)
 * DATASTORE (?):
   - check for duplicates on insertion (currently, same content is frequently
     stored again [seen with KBLOCKS and SBLOCKS]!)
