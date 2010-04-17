@@ -86,7 +86,6 @@
   - good to have for DV/DHT evaluation!
 * DHT: [Nate]
   - implement DHT service 
-  - implement DHT library
   - implement testcases
   - implement performance tests
 * TRANSPORT:
