@@ -1633,11 +1633,13 @@ forward_request_task (void *cls,
 	 at this time! */
       pr->ttl = bound_ttl (pr->ttl + TTL_DECREMENT * 2,
 			   pr->priority);
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Trying query `%s' with priority %u and TTL %d.\n",
 		  GNUNET_h2s (&pr->query),
 		  pr->priority,
 		  pr->ttl);
+#endif
     }
   else
     {

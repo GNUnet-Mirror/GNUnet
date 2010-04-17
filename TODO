@@ -6,8 +6,7 @@
   - does not seem to work with timeouts (especially if service is not running)
 * UTIL:
   - only connect() sockets that are ready (select()) [Nils]
-    [On W32, we need to select after calling socket before
-     doing connect etc.]
+    [On W32, we need to select after calling socket before doing connect etc.]
 * TOPOLOGY:
   - needs more testing (especially F2F topology)
   - needs to re-try connecting after disconnect (currently, it
@@ -39,8 +38,8 @@
   - check if new HELLO learned is different from old HELLO
     before resetting entire state!
 * DATASTORE:
-  - API lacks cancellation methods (needed? or is disconnect enough?); 
-    may also want to integrate request queuing here instead of gnunet-service-fs_drq.c 
+  - API lacks cancellation methods (needed? or is disconnect enough?)
+  - may also want to integrate request queuing here instead of gnunet-service-fs_drq.c 
 * FS: [CG]
   - support recursive download even if filename is NULL and we hence
     do not generate files on disk (use temp_filename)
