@@ -62,6 +62,8 @@ GNUNET_OS_set_process_priority (pid_t proc,
                                 enum GNUNET_SCHEDULER_Priority prio)
 {
   int rprio = 0;
+  int have;
+  int delta;
 
   GNUNET_assert (prio < GNUNET_SCHEDULER_PRIORITY_COUNT);
   if (prio == GNUNET_SCHEDULER_PRIORITY_KEEP)
@@ -69,20 +71,31 @@ GNUNET_OS_set_process_priority (pid_t proc,
   /* convert to MINGW/Unix values */
   switch (prio)
     {
-    case GNUNET_SCHEDULER_PRIORITY_DEFAULT:
+    case GNUNET_SCHEDULER_PRIORITY_UI:
+    case GNUNET_SCHEDULER_PRIORITY_URGENT:
 #ifdef MINGW
-      rprio = NORMAL_PRIORITY_CLASS;
+      rprio = HIGH_PRIORITY_CLASS;
 #else
       rprio = 0;
 #endif
       break;
+
     case GNUNET_SCHEDULER_PRIORITY_HIGH:
 #ifdef MINGW
       rprio = ABOVE_NORMAL_PRIORITY_CLASS;
 #else
-      rprio = -5;
+      rprio = 5;
 #endif
       break;
+
+    case GNUNET_SCHEDULER_PRIORITY_DEFAULT:
+#ifdef MINGW
+      rprio = NORMAL_PRIORITY_CLASS;
+#else
+      rprio = 7;
+#endif
+      break;
+
     case GNUNET_SCHEDULER_PRIORITY_BACKGROUND:
 #ifdef MINGW
       rprio = BELOW_NORMAL_PRIORITY_CLASS;
@@ -90,14 +103,7 @@ GNUNET_OS_set_process_priority (pid_t proc,
       rprio = 10;
 #endif
       break;
-    case GNUNET_SCHEDULER_PRIORITY_UI:
-    case GNUNET_SCHEDULER_PRIORITY_URGENT:
-#ifdef MINGW
-      rprio = HIGH_PRIORITY_CLASS;
-#else
-      rprio = -10;
-#endif
-      break;
+
     case GNUNET_SCHEDULER_PRIORITY_IDLE:
 #ifdef MINGW
       rprio = IDLE_PRIORITY_CLASS;
@@ -113,10 +119,15 @@ GNUNET_OS_set_process_priority (pid_t proc,
 #ifdef MINGW
   SetPriorityClass (GetCurrentProcess (), rprio);
 #else
-  if (proc == getpid ())
+  if ( (0 == proc) ||
+       (proc == getpid () ) )
     {
+      have = nice (0);
+      delta = rprio - have;
       errno = 0;
-      if ((-1 == nice (rprio)) && (errno != 0))
+      if ( (rprio != 0) &&
+	   (-1 == nice (delta)) && 
+	   (errno != 0) )
         {
           GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING |
                                GNUNET_ERROR_TYPE_BULK, "nice");

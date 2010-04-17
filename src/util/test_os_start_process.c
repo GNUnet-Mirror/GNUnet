@@ -103,7 +103,7 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   char *fn;
   const struct GNUNET_DISK_FileHandle *stdout_read_handle;
-  struct GNUNET_DISK_FileHandle *wh;
+  const struct GNUNET_DISK_FileHandle *wh;
 
   GNUNET_asprintf(&fn, "cat");
 

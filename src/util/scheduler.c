@@ -25,6 +25,7 @@
  */
 #include "platform.h"
 #include "gnunet_common.h"
+#include "gnunet_os_lib.h"
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_signal_lib.h"
 #include "gnunet_time_lib.h"
@@ -166,6 +167,11 @@ struct GNUNET_SCHEDULER_Handle
    * valid while a task is running.
    */
   enum GNUNET_SCHEDULER_Priority current_priority;
+
+  /**
+   * How 'nice' are we right now?
+   */
+  int nice_level;
 
 };
 
@@ -495,7 +501,11 @@ run_ready (struct GNUNET_SCHEDULER_Handle *sched)
       GNUNET_assert (pos != NULL);      /* ready_count wrong? */
       sched->ready[p] = pos->next;
       sched->ready_count--;
-      sched->current_priority = pos->priority;
+      if (sched->current_priority != pos->priority)
+	{
+	  sched->current_priority = pos->priority;
+	  GNUNET_OS_set_process_priority (0, pos->priority);
+	}
       sched->active_task = pos;
       tc.sched = sched;
       tc.reason = pos->reason;
