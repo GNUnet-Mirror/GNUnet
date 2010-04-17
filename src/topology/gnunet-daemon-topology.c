@@ -41,13 +41,25 @@
  * For how long do we blacklist a peer after a failed connection
  * attempt?
  */
-#define GREYLIST_AFTER_ATTEMPT GNUNET_TIME_UNIT_HOURS
+#define GREYLIST_AFTER_ATTEMPT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
 
 /**
  * For how long do we blacklist a friend after a failed connection
  * attempt?
  */
-#define GREYLIST_AFTER_ATTEMPT_FRIEND GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
+#define GREYLIST_AFTER_ATTEMPT_FRIEND GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 2)
+
+/**
+ * For how long do we blacklist anyone under any cirumstances after a failed connection
+ * attempt?
+ */
+#define GREYLIST_AFTER_ATTEMPT_MIN GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+
+/**
+ * For how long do we blacklist anyone under any cirumstances after a failed connection
+ * attempt?
+ */
+#define GREYLIST_AFTER_ATTEMPT_MAX GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 18)
 
 /**
  * How often do we at most advertise any HELLO to a peer?
@@ -125,6 +137,11 @@ struct Peer
    * ID of task we use to clear peers from the greylist.
    */
   GNUNET_SCHEDULER_TaskIdentifier greylist_clean_task;
+
+  /**
+   * How often have we tried so far?
+   */
+  unsigned int connect_attempts;
 
   /**
    * Is this peer listed here because he is a friend?
@@ -512,7 +529,15 @@ attempt_connect (struct Peer *pos)
     rem = GREYLIST_AFTER_ATTEMPT_FRIEND;
   else
     rem = GREYLIST_AFTER_ATTEMPT;
-  /* FIXME: do exponential back-off? */
+  rem = GNUNET_TIME_relative_multiply (rem, connection_count);
+  rem = GNUNET_TIME_relative_divide (rem, target_connection_count);
+  if (pos->connect_attempts > 30)
+    pos->connect_attempts = 30;
+  rem = GNUNET_TIME_relative_multiply (rem, 1 << (++pos->connect_attempts));
+  rem = GNUNET_TIME_relative_max (rem,
+				  GREYLIST_AFTER_ATTEMPT_MIN);
+  rem = GNUNET_TIME_relative_min (rem,
+				  GREYLIST_AFTER_ATTEMPT_MAX);
   pos->greylisted_until = GNUNET_TIME_relative_to_absolute (rem);
   if (pos->greylist_clean_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (sched,
@@ -857,6 +882,7 @@ connect_notify (void *cls,
       pos->greylisted_until.value = 0; /* remove greylisting */
     }
   pos->is_connected = GNUNET_YES;
+  pos->connect_attempts = 0; /* re-set back-off factor */
   if (pos->is_friend)
     {
       if ( (friend_count == minimum_friend_count - 1) &&

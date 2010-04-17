@@ -3,12 +3,6 @@
   - trust: need *fast* way to check/update trust in peers
            (async peerinfo would not be right; certainly not with the current API)
 * TOPOLOGY: [CG]
-  - needs to re-try connecting after disconnect (currently, it
-    initially triggers a connection request, but if that connection
-    fails / goes down, it does not retry in a timely fashion;
-    cause seems to be the 'greylist_after_attempt' being set to 1h,
-    which is rather long -- and should probably be adjusted based on
-    the number of connections / known peers & use some form of back-off)
   - If the topology daemon crashes, peers that were put on the
     blacklist with transport will never be removed from it (until
     transport service dies); we should use the blacklist notification
