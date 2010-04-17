@@ -102,8 +102,8 @@ static void
 task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   char *fn;
-
   const struct GNUNET_DISK_FileHandle *stdout_read_handle;
+  struct GNUNET_DISK_FileHandle *wh;
 
   GNUNET_asprintf(&fn, "cat");
 
@@ -126,8 +126,10 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   /* Close the read end of the write pipe */
   GNUNET_DISK_pipe_close_end(hello_pipe_stdin, GNUNET_DISK_PIPE_END_READ);
 
+  wh = GNUNET_DISK_pipe_handle (hello_pipe_stdin, GNUNET_DISK_PIPE_END_WRITE);
+
   /* Write the test_phrase to the cat process */
-  if (GNUNET_DISK_file_write(hello_pipe_stdin, test_phrase, strlen(test_phrase) + 1) != GNUNET_YES)
+  if (GNUNET_DISK_file_write(wh, test_phrase, strlen(test_phrase) + 1) != GNUNET_YES)
     {
       ok = 1;
       return;

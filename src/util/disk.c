@@ -1688,7 +1688,6 @@ GNUNET_DISK_pipe_close_end (struct GNUNET_DISK_PipeHandle *p,
   int ret = GNUNET_OK;
   int save;
 
-  /* FIXME: What can we safely set HANDLE to once we've closed an end, NULL? */
 #ifdef MINGW
   if (end == GNUNET_DISK_PIPE_END_READ)
     {
@@ -1697,6 +1696,7 @@ GNUNET_DISK_pipe_close_end (struct GNUNET_DISK_PipeHandle *p,
           SetErrnoFromWinError (GetLastError ());
           ret = GNUNET_SYSERR;
         }
+      p->fd[0]->h = INVALID_HANDLE_VALUE;
     }
   else if (end == GNUNET_DISK_PIPE_END_WRITE)
     {
@@ -1705,6 +1705,7 @@ GNUNET_DISK_pipe_close_end (struct GNUNET_DISK_PipeHandle *p,
           SetErrnoFromWinError (GetLastError ());
           ret = GNUNET_SYSERR;
         }
+      p->fd[1]->h = INVALID_HANDLE_VALUE;
     }
   save = errno;
 #else
