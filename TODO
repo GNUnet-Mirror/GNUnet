@@ -3,17 +3,8 @@
   - trust: need *fast* way to check/update trust in peers
            (async peerinfo would not be right; certainly not with the current API)
 * TOPOLOGY:
-  - move code to use hash table instead of linked list
   - check if new HELLO learned is different from old HELLO
     before resetting entire state!
-  - the code uses the term 'blacklist' for both peers that are forbidden
-    to connect (i.e. F2F mode) as well as peers that we currently
-    won't try to actively connect to ourselves (since we just tried);
-    This is confusing.  We need two distinct terms (greylist?).
-  - instead of periodically discarding blacklisted entries,
-    simply add task that is triggered at the right time (earlier free,
-    more balanced load)
-
   - needs more testing (especially F2F topology)
   - needs to re-try connecting after disconnect (currently, it
     initially triggers a connection request, but if that connection
