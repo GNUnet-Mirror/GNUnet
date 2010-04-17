@@ -33,18 +33,18 @@
 #include "gnunet_scheduler_lib.h"
 #include "disk.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 static char *test_phrase = "HELLO WORLD";
 static int ok;
 
-pid_t pid;
+static pid_t pid;
 /* Pipe to write to started processes stdin (on write end) */
-struct GNUNET_DISK_PipeHandle *hello_pipe_stdin;
+static struct GNUNET_DISK_PipeHandle *hello_pipe_stdin;
 /* Pipe to read from started processes stdout (on read end) */
-struct GNUNET_DISK_PipeHandle *hello_pipe_stdout;
+static struct GNUNET_DISK_PipeHandle *hello_pipe_stdout;
 
-GNUNET_SCHEDULER_TaskIdentifier die_task;
+static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 static void
 end_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -166,7 +166,7 @@ main (int argc, char *argv[])
 {
   int ret;
 
-  GNUNET_log_setup ("test-start-process",
+  GNUNET_log_setup ("test-os-start-process",
 #if VERBOSE
                     "DEBUG",
 #else
