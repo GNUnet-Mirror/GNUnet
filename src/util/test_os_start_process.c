@@ -33,7 +33,7 @@
 #include "gnunet_scheduler_lib.h"
 #include "disk.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 static char *test_phrase = "HELLO WORLD";
 static int ok;
@@ -74,6 +74,7 @@ read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (bytes < 1)
     {
+      GNUNET_break (0);
       ok = 1;
       GNUNET_SCHEDULER_cancel(tc->sched, die_task);
       GNUNET_SCHEDULER_add_now(tc->sched, &end_task, NULL);
@@ -112,6 +113,7 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if ((hello_pipe_stdout == NULL) || (hello_pipe_stdin == NULL))
     {
+      GNUNET_break (0);
       ok = 1;
       GNUNET_free (fn);
       return;
@@ -129,8 +131,9 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   wh = GNUNET_DISK_pipe_handle (hello_pipe_stdin, GNUNET_DISK_PIPE_END_WRITE);
 
   /* Write the test_phrase to the cat process */
-  if (GNUNET_DISK_file_write(wh, test_phrase, strlen(test_phrase) + 1) != GNUNET_YES)
+  if (GNUNET_DISK_file_write(wh, test_phrase, strlen(test_phrase) + 1) != strlen(test_phrase) + 1)
     {
+      GNUNET_break (0);
       ok = 1;
       return;
     }
