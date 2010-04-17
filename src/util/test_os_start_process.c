@@ -24,11 +24,6 @@
  * This testcase simply calls the os start process code
  * giving a file descriptor to write stdout to.  If the
  * correct data "HELLO" is read then all is well.
- *
- * TODO: This test case will not work on windows because
- * there is no cat (unless there is).  Perhaps we should
- * add a gnunet_cat program/test program to util so we can
- * adequately test this functionality on windows?
  */
 #include "platform.h"
 #include "gnunet_common.h"
@@ -107,8 +102,6 @@ static void
 task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   char *fn;
-  int fd_stdout;
-  int fd_stdin;
 
   const struct GNUNET_DISK_FileHandle *stdout_read_handle;
 
@@ -132,13 +125,9 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_DISK_pipe_close_end(hello_pipe_stdout, GNUNET_DISK_PIPE_END_WRITE);
   /* Close the read end of the write pipe */
   GNUNET_DISK_pipe_close_end(hello_pipe_stdin, GNUNET_DISK_PIPE_END_READ);
-  /* Get the FD to read from */
-  GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle(hello_pipe_stdout, GNUNET_DISK_PIPE_END_READ), &fd_stdout, sizeof (int));
-  /* Get the FD to write to */
-  GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle(hello_pipe_stdin, GNUNET_DISK_PIPE_END_WRITE), &fd_stdin, sizeof (int));
 
   /* Write the test_phrase to the cat process */
-  if (write(fd_stdin, test_phrase, strlen(test_phrase) + 1) == GNUNET_SYSERR)
+  if (GNUNET_DISK_file_write(hello_pipe_stdin, test_phrase, strlen(test_phrase) + 1) != GNUNET_YES)
     {
       ok = 1;
       return;
