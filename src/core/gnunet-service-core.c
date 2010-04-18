@@ -3450,13 +3450,6 @@ handle_transport_receive (void *cls,
           (n->status != PEER_STATE_KEY_CONFIRMED))
         {
           GNUNET_break_op (0);
-	  /* blacklist briefly (?); might help recover (?) */
-	  GNUNET_TRANSPORT_blacklist (sched, cfg,
-				      &n->peer, 
-				      GNUNET_TIME_UNIT_SECONDS,
-				      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
-								     5),
-				      NULL, NULL);
           return;
         }
       handle_encrypted_message (n, (const struct EncryptedMessage *) message);
@@ -3626,7 +3619,6 @@ handle_transport_notify_connect (void *cls,
 				 unsigned int distance)
 {
   struct Neighbour *n;
-  struct ConnectNotifyMessage cnm;
 
   if (0 == memcmp (peer, &my_identity, sizeof (struct GNUNET_PeerIdentity)))
     {
@@ -3665,12 +3657,6 @@ handle_transport_notify_connect (void *cls,
               "Received connection from `%4s'.\n",
               GNUNET_i2s (&n->peer));
 #endif
-  cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
-  cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_PRE_CONNECT);
-  cnm.distance = htonl (n->last_distance);
-  cnm.latency = GNUNET_TIME_relative_hton (n->last_latency);
-  cnm.peer = *peer;
-  send_to_all_clients (&cnm.header, GNUNET_YES, GNUNET_CORE_OPTION_SEND_PRE_CONNECT);
   GNUNET_TRANSPORT_set_quota (transport,
 			      &n->peer,
 			      n->bw_in,

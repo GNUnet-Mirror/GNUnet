@@ -296,7 +296,7 @@ run (void *cls,
 			      GNUNET_TIME_UNIT_FOREVER_REL,
 			      NULL,
 			      &core_init,
-			      NULL, &connect_handler, &disconnect_handler,
+			      &connect_handler, &disconnect_handler,
 			      NULL, GNUNET_NO,
 			      NULL, GNUNET_NO,
 			      learning? learn_handlers : no_learn_handlers);

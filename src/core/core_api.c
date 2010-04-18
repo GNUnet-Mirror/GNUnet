@@ -56,12 +56,6 @@ struct GNUNET_CORE_Handle
   GNUNET_CORE_StartupCallback init;
 
   /**
-   * Function to call whenever we're notified about a peer connecting
-   * (pre-connects, no session key exchange yet).
-   */
-  GNUNET_CORE_ConnectEventHandler pre_connects;
-
-  /**
    * Function to call whenever we're notified about a peer connecting.
    */
   GNUNET_CORE_ConnectEventHandler connects;
@@ -406,23 +400,6 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 #endif
   switch (ntohs (msg->type))
     {
-    case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_PRE_CONNECT:
-      if (NULL == h->pre_connects)
-        {
-          GNUNET_break (0);
-          break;
-        }
-      if (msize != sizeof (struct ConnectNotifyMessage))
-        {
-          GNUNET_break (0);
-          break;
-        }
-      cnm = (const struct ConnectNotifyMessage *) msg;
-      h->pre_connects (h->cls,
-		       &cnm->peer,
-		       GNUNET_TIME_relative_ntoh (cnm->latency),
-		       ntohl (cnm->distance));
-      break;
     case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT:
       if (NULL == h->connects)
         {
@@ -662,8 +639,6 @@ transmit_start (void *cls, size_t size, void *buf)
   init->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_INIT);
   init->header.size = htons (msize);
   opt = GNUNET_CORE_OPTION_NOTHING;
-  if (h->pre_connects != NULL)
-    opt |= GNUNET_CORE_OPTION_SEND_PRE_CONNECT;
   if (h->connects != NULL)
     opt |= GNUNET_CORE_OPTION_SEND_CONNECT;
   if (h->disconnects != NULL)
@@ -705,7 +680,6 @@ transmit_start (void *cls, size_t size, void *buf)
  * @param cls closure for the various callbacks that follow (including handlers in the handlers array)
  * @param init callback to call on timeout or once we have successfully
  *        connected to the core service; note that timeout is only meaningful if init is not NULL
- * @param pre_connects function to call on peer pre-connect (no session key yet), can be NULL
  * @param connects function to call on peer connect, can be NULL
  * @param disconnects function to call on peer disconnect / timeout, can be NULL
  * @param inbound_notify function to call for all inbound messages, can be NULL
@@ -726,7 +700,6 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
                      struct GNUNET_TIME_Relative timeout,
                      void *cls,
                      GNUNET_CORE_StartupCallback init,
-                     GNUNET_CORE_ConnectEventHandler pre_connects,
                      GNUNET_CORE_ConnectEventHandler connects,
                      GNUNET_CORE_DisconnectEventHandler disconnects,
                      GNUNET_CORE_MessageCallback inbound_notify,
@@ -742,7 +715,6 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
   h->cfg = cfg;
   h->cls = cls;
   h->init = init;
-  h->pre_connects = pre_connects;
   h->connects = connects;
   h->disconnects = disconnects;
   h->inbound_notify = inbound_notify;

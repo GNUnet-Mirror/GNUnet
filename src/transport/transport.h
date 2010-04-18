@@ -268,26 +268,21 @@ struct BlacklistMessage
 {
 
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST
+   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY or
+   * GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_REPLY.
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * Reserved (for alignment).
+   * 0 for the query, GNUNET_OK (allowed) or GNUNET_SYSERR (disallowed)
+   * for the response.
    */
-  uint32_t reserved GNUNET_PACKED;
+  uint32_t is_allowed GNUNET_PACKED;
 
   /**
-   * Which peer is being blacklisted (or has seen its
-   * blacklisting expire)?
+   * Which peer is being blacklisted or queried?
    */
   struct GNUNET_PeerIdentity peer;
-
-  /**
-   * Until what time is this peer blacklisted (zero for
-   * no longer blacklisted).
-   */
-  struct GNUNET_TIME_AbsoluteNBO until;
 
 };
 

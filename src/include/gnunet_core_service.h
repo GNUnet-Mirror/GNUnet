@@ -51,7 +51,7 @@ struct GNUNET_CORE_Handle;
 
 
 /**
- * Method called whenever a given peer either connects.
+ * Method called whenever a given peer connects.
  *
  * @param cls closure
  * @param peer peer identity this notification is about
@@ -164,7 +164,6 @@ typedef void
  * @param cls closure for the various callbacks that follow (including handlers in the handlers array)
  * @param init callback to call on timeout or once we have successfully
  *        connected to the core service; note that timeout is only meaningful if init is not NULL
- * @param pre_connects function to call on peer pre-connect (no session key yet), can be NULL
  * @param connects function to call on peer connect, can be NULL
  * @param disconnects function to call on peer disconnect / timeout, can be NULL
  * @param inbound_notify function to call for all inbound messages, can be NULL
@@ -200,7 +199,6 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
                      struct GNUNET_TIME_Relative timeout,
                      void *cls,
                      GNUNET_CORE_StartupCallback init,
-		     GNUNET_CORE_ConnectEventHandler pre_connects,
                      GNUNET_CORE_ConnectEventHandler connects,
                      GNUNET_CORE_DisconnectEventHandler disconnects,
                      GNUNET_CORE_MessageCallback inbound_notify,

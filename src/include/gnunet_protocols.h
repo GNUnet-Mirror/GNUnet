@@ -174,16 +174,19 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY 28
 
 /**
- * Change in blacklisting status of a peer.
+ * Register a client that wants to do blacklisting.
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST 29
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_INIT 29
 
 /**
- * Request to transport to notify us about any blacklisting status
- * changes on this connection (and to immediately send all
- * active blacklist entries).
+ * Query to a blacklisting client (is this peer blacklisted)?
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_NOTIFY 30
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY 30
+
+/**
+ * Reply from blacklisting client (answer to blacklist query).
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_REPLY 31
 
 /**
  * Transport PING message

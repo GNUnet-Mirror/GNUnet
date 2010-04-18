@@ -265,7 +265,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                        ARM_START_WAIT,
                                        d,
                                        &testing_init,
-                                       NULL, NULL, NULL,
+                                       NULL, NULL,
                                        NULL, GNUNET_NO,
                                        NULL, GNUNET_NO, no_handlers);
       break;
@@ -904,7 +904,7 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
                                      timeout,
                                      ctx,
                                      NULL,
-                                     NULL, &connect_notify, NULL,
+                                     &connect_notify, NULL,
                                      NULL, GNUNET_NO,
                                      NULL, GNUNET_NO, no_handlers);
   if (ctx->d1core == NULL)

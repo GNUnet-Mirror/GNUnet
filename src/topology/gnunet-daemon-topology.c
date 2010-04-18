@@ -106,12 +106,6 @@ struct Peer
   struct GNUNET_CONTAINER_BloomFilter *filter;
 
   /**
-   * Our request handle for *whitelisting* this peer (NULL if
-   * no whitelisting request is pending).
-   */
-  struct GNUNET_TRANSPORT_BlacklistRequest *wh;
-
-  /**
    * Until what time should we not try to connect again
    * to this peer?
    */
@@ -152,39 +146,6 @@ struct Peer
    * Are we connected to this peer right now?
    */
   int is_connected;
-
-  /**
-   * Are we currently blocking this peer (via blacklist)?
-   */
-  int is_blocked;
-
-};
-
-
-/**
- * Entry in linked list of active 'disconnect' requests that we have issued.
- */
-struct DisconnectList
-{
-  /**
-   * This is a doubly-linked list.
-   */
-  struct DisconnectList *next;
-
-  /**
-   * This is a doubly-linked list.
-   */
-  struct DisconnectList *prev;
-  
-  /**
-   * Our request handle.
-   */
-  struct GNUNET_TRANSPORT_BlacklistRequest *rh;
-  
-  /**
-   * Peer we tried to disconnect.
-   */
-  struct GNUNET_PeerIdentity peer;
 
 };
 
@@ -233,6 +194,11 @@ static struct GNUNET_CONTAINER_MultiHashMap *peers;
 static struct GNUNET_STATISTICS_Handle *stats;
 
 /**
+ * Blacklist (NULL if we have none).
+ */
+static struct GNUNET_TRANSPORT_Blacklist *blacklist;
+
+/**
  * Flag to disallow non-friend connections (pure F2F mode).
  */
 static int friends_only;
@@ -263,119 +229,31 @@ static unsigned int friend_count;
  */
 static int autoconnect;
 
-/**
- * Head of doubly-linked list of active 'disconnect' requests that we have issued.
- */
-static struct DisconnectList *disconnect_head;
 
 /**
- * Head of doubly-linked list of active 'disconnect' requests that we have issued.
- */
-static struct DisconnectList *disconnect_tail;
-
-
-/**
- * Function called once our request to 'disconnect' a peer
- * has completed.
+ * Function that decides if a connection is acceptable or not.  
+ * If we have a blacklist, only friends are allowed, so the check
+ * is rather simple.
  *
- * @param cls our 'struct DisconnectList'
- * @param tc unused
+ * @param cls closure
+ * @param pid peer to approve or disapproave
+ * @return GNUNET_OK if the connection is allowed
  */
-static void
-disconnect_done (void *cls,
-		 const struct GNUNET_SCHEDULER_TaskContext *tc)
+static int
+blacklist_check (void *cls,
+		 const struct GNUNET_PeerIdentity *pid)
 {
-  struct DisconnectList *dl = cls;
+  struct Peer *pos;
 
+  pos = GNUNET_CONTAINER_multihashmap_get (peers, &pid->hashPubKey);
+  if ( (pos != NULL) &&
+       (pos->is_friend == GNUNET_YES) )
+    return GNUNET_OK;
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# peers blacklisted"),
 			    1,
 			    GNUNET_NO);
-  GNUNET_CONTAINER_DLL_remove (disconnect_head,
-			       disconnect_tail,
-			       dl);
-  GNUNET_free (dl);
-}
-
-
-/**
- * Force a disconnect from the specified peer. 
- *
- * @param pl peer to disconnect
- */
-static void
-force_disconnect (struct Peer *pl)
-{
-  const struct GNUNET_PeerIdentity *peer = &pl->pid;
-  struct DisconnectList *dl;
-
-  if (NULL != pl->wh)
-    {
-      GNUNET_TRANSPORT_blacklist_cancel (pl->wh);
-      pl->wh = NULL;
-    }
-  pl->is_blocked = GNUNET_YES;
-  dl = GNUNET_malloc (sizeof (struct DisconnectList));
-  dl->peer = *peer;
-  GNUNET_CONTAINER_DLL_insert (disconnect_head,
-			       disconnect_tail,
-			       dl);
-  dl->rh = GNUNET_TRANSPORT_blacklist (sched, cfg,						
-				       peer,
-				       GNUNET_TIME_UNIT_FOREVER_REL,
-				       GNUNET_TIME_UNIT_FOREVER_REL,
-				       &disconnect_done,
-				       dl);
-}
-
-
-
-/**
- * Function called once our request to 'whitelist' a peer
- * has completed.
- *
- * @param cls our 'struct Peer'
- * @param tc unused
- */
-static void
-whitelist_done (void *cls,
-		const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct Peer *pl = cls;
-
-  pl->wh = NULL;
-  GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# peers blacklisted"),
-			    -1,
-			    GNUNET_NO);
-}
-
-
-/**
- * Whitelist the given peer (if it was blacklisted before).
- *
- * @param cls closure (not used)
- * @param pid identity of the peer
- * @param value peer to free
- * @return GNUNET_YES (always: continue to iterate)
- */
-static int
-whitelist_peer (void *cls,
-		const GNUNET_HashCode *pid,
-		void *value)
-{
-  struct Peer *pl = value;
-
-  if (! pl->is_blocked)
-    return GNUNET_YES;
-  pl->wh = GNUNET_TRANSPORT_blacklist (sched, cfg,						
-				       &pl->pid,
-				       GNUNET_TIME_UNIT_ZERO,
-				       GNUNET_TIME_UNIT_FOREVER_REL,
-				       &whitelist_done,
-				       pl);
-  pl->is_blocked = GNUNET_NO;
-  return GNUNET_YES;
+  return GNUNET_SYSERR;
 }
 
 
@@ -386,22 +264,11 @@ whitelist_peer (void *cls,
 static void
 whitelist_peers ()
 {
-  struct DisconnectList *dl;
-
-  /* first, cancel all blacklisting requests */
-  while (NULL != (dl = disconnect_head))
+  if (blacklist != NULL)
     {
-      GNUNET_CONTAINER_DLL_remove (disconnect_head,
-				   disconnect_tail,
-				   dl);
-      GNUNET_TRANSPORT_blacklist_cancel (dl->rh);
-      GNUNET_free (dl);
+      GNUNET_TRANSPORT_blacklist_cancel (blacklist);
+      blacklist = NULL;
     }
-  /* then, specifically whitelist all peers that we
-     know to have blacklisted */
-  GNUNET_CONTAINER_multihashmap_iterate (peers,
-					 &whitelist_peer,
-					 NULL);
 }
 
 
@@ -477,8 +344,6 @@ free_peer (void *cls,
 						      pos));
   if (pos->hello_req != NULL)
     GNUNET_CORE_notify_transmit_ready_cancel (pos->hello_req);
-  if (pos->wh != NULL)
-    GNUNET_TRANSPORT_blacklist_cancel (pos->wh);
   if (pos->connect_req != NULL)
     GNUNET_CORE_peer_request_connect_cancel (pos->connect_req);	      
   if (pos->hello_delay_task != GNUNET_SCHEDULER_NO_TASK)
@@ -520,8 +385,6 @@ attempt_connect (struct Peer *pos)
   if (GNUNET_YES == pos->is_connected)
     return;
   if (GNUNET_OK != is_connection_allowed (pos))
-    return;
-  if (GNUNET_YES == pos->is_blocked)
     return;
   if (GNUNET_TIME_absolute_get_remaining (pos->greylisted_until).value > 0)
     return;
@@ -593,7 +456,6 @@ remove_from_greylist (void *cls,
 					pos);
     }
   if ( (GNUNET_NO == pos->is_friend) &&
-       (GNUNET_NO == pos->is_blocked) &&
        (GNUNET_NO == pos->is_connected) )
     {
       free_peer (NULL, &pos->pid.hashPubKey, pos);
@@ -863,18 +725,7 @@ connect_notify (void *cls,
   if (pos == NULL)    
     {
       pos = make_peer (peer, NULL, GNUNET_NO);
-      if (GNUNET_OK != is_connection_allowed (pos))
-	{
-	  GNUNET_assert (pos->is_friend == GNUNET_NO);
-	  pos->is_connected = GNUNET_YES;
-#if DEBUG_TOPOLOGY
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Connection to `%s' is forbidden, forcing disconnect!\n",
-		      GNUNET_i2s (peer));
-#endif       
-	  force_disconnect (pos);
-	  return;
-	}
+      GNUNET_break (GNUNET_OK == is_connection_allowed (pos));
     }
   else
     {
@@ -895,35 +746,6 @@ connect_notify (void *cls,
 			     GNUNET_NO);
     }
   reschedule_hellos (NULL, &peer->hashPubKey, pos);
-}
-
-
-/**
- * Disconnect from all non-friends (we're below quota).
- *
- * @param cls closure, not used
- * @param pid identity of a peer
- * @param value 'struct Peer*' for the peer
- * @return GNUNET_YES (continue to iterate)
- */
-static int
-drop_non_friends (void *cls,
-		  const GNUNET_HashCode *pid,
-		  void *value)
-{
-  struct Peer *pos = value;
-
-  if ( (GNUNET_NO == pos->is_friend) &&
-       (GNUNET_YES == pos->is_connected) )
-    {
-#if DEBUG_TOPOLOGY
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Connection to `%s' is not from a friend, forcing disconnect!\n",
-		  GNUNET_i2s (&pos->pid));
-#endif       
-      force_disconnect (pos);
-    }
-  return GNUNET_YES;
 }
 
 
@@ -995,17 +817,10 @@ disconnect_notify (void *cls,
     GNUNET_CONTAINER_multihashmap_iterate (peers,
 					   &try_add_peers,
 					   NULL);
-  if (friend_count < minimum_friend_count)
-    {
-      /* disconnect from all non-friends */
-#if DEBUG_TOPOLOGY
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Not enough friendly connections, dropping all non-friend connections\n");
-#endif       
-      GNUNET_CONTAINER_multihashmap_iterate (peers,
-					     &drop_non_friends,
-					     NULL);
-    }
+  if ( (friend_count < minimum_friend_count) &&
+       (blacklist == NULL) )
+    blacklist = GNUNET_TRANSPORT_blacklist (sched, cfg,
+					    &blacklist_check, NULL);
 }
 
 
@@ -1389,13 +1204,21 @@ handle_encrypted_hello (void *cls,
 			    GNUNET_NO);
   peer = GNUNET_CONTAINER_multihashmap_get (peers,
 					    &pid.hashPubKey);
-  if ( (peer != NULL) &&
-       (peer->is_blocked) )
-    return GNUNET_OK; /* ignore: currently blocked */
-  if ( (GNUNET_YES == friends_only) &&
-       ( (peer == NULL) ||
-	 (GNUNET_YES != peer->is_friend) ) )
-    return GNUNET_OK; /* ignore: not a friend */
+  if (peer == NULL)
+    {
+      if ( (GNUNET_YES == friends_only) ||
+	   (friend_count < minimum_friend_count) )
+	return GNUNET_OK;      
+    }
+  else
+    {
+      if ( (GNUNET_YES != peer->is_friend) &&
+	   (GNUNET_YES == friends_only) )
+	return GNUNET_OK;
+      if ( (GNUNET_YES != peer->is_friend) &&
+	   (friend_count < minimum_friend_count) )
+	return GNUNET_OK;      
+    }
   if (transport != NULL)
     GNUNET_TRANSPORT_offer_hello (transport,
 				  message);
@@ -1468,8 +1291,6 @@ static void
 cleaning_task (void *cls, 
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct DisconnectList *dl;
-
   if (NULL != peerinfo_notify)
     {
       GNUNET_PEERINFO_notify_cancel (peerinfo_notify);
@@ -1486,14 +1307,7 @@ cleaning_task (void *cls,
       GNUNET_CORE_disconnect (handle);
       handle = NULL;
     }
-  while (NULL != (dl = disconnect_head))
-    {
-      GNUNET_CONTAINER_DLL_remove (disconnect_head,
-				   disconnect_tail,
-				   dl);
-      GNUNET_TRANSPORT_blacklist_cancel (dl->rh);
-      GNUNET_free (dl);
-    }
+  whitelist_peers ();
   if (stats != NULL)
     {
       GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
@@ -1560,6 +1374,9 @@ run (void *cls,
 	      minimum_friend_count,
 	      autoconnect ? "autoconnect enabled" : "autoconnect disabled");
 #endif       
+  if (friend_count < minimum_friend_count) 
+    blacklist = GNUNET_TRANSPORT_blacklist (sched, cfg,
+					    &blacklist_check, NULL);
   transport = GNUNET_TRANSPORT_connect (sched,
 					cfg,
 					NULL,
@@ -1571,7 +1388,6 @@ run (void *cls,
 				GNUNET_TIME_UNIT_FOREVER_REL,
 				NULL,
 				&core_init,
-				NULL,
 				&connect_notify,
 				&disconnect_notify,
 				NULL, GNUNET_NO,

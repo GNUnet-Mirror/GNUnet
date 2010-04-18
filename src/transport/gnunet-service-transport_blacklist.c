@@ -43,15 +43,58 @@ struct BlacklistEntry
   struct GNUNET_PeerIdentity peer;
 
   /**
-   * How long until this entry times out?
+   * Client responsible for this entry.
    */
-  struct GNUNET_TIME_Absolute until;
+  struct GNUNET_SERVER_Client *client;
+
+};
+
+
+/**
+ * Information kept for each client registered to perform
+ * blacklisting.
+ */
+struct Blacklisters
+{
+  /**
+   * This is a linked list.
+   */
+  struct Blacklisters *next;
 
   /**
-   * Task scheduled to run the moment the time does run out.
+   * This is a linked list.
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct Blacklisters *prev;
+
+  /**
+   * Client responsible for this entry.
+   */
+  struct GNUNET_SERVER_Client *client;
+
 };
+
+
+/**
+ * State of blacklist check to be performed for each
+ * connecting peer.
+ */
+struct BlacklistCheck
+{
+
+  
+
+  /**
+   * Identity of the peer being checked.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * Clients we still need to ask.
+   */
+  struct GNUNET_SERVER_Client *pending;
+
+};
+
 
 
 /**
@@ -61,14 +104,14 @@ struct BlacklistEntry
 static struct GNUNET_CONTAINER_MultiHashMap *blacklist;
 
 /**
- * Notifications for blacklisting.
+ * Head of DLL of blacklisting clients.
  */
-static struct GNUNET_SERVER_NotificationContext *blacklist_notifiers;
+static struct Blacklisters *bl_head;
 
 /**
- * Our scheduler.
+ * Tail of DLL of blacklisting clients.
  */
-static struct GNUNET_SCHEDULER_Handle *sched;
+static struct Blacklisters *bl_tail;
 
 
 /**
@@ -86,8 +129,6 @@ free_blacklist_entry (void *cls,
 {
   struct BlacklistEntry *be = value;
 
-  GNUNET_SCHEDULER_cancel (sched,
-			   be->timeout_task);
   GNUNET_free (be);
   return GNUNET_YES;
 }
@@ -108,37 +149,28 @@ shutdown_task (void *cls,
 					 NULL);
   GNUNET_CONTAINER_multihashmap_destroy (blacklist);
   blacklist = NULL;
-  GNUNET_SERVER_notification_context_destroy (blacklist_notifiers);
-  blacklist_notifiers = NULL;
 }
 
 
 /**
- * Task run when a blacklist entry times out.
+ * Handle a request to start a blacklist.
  *
- * @param cls closure (the 'struct BlacklistEntry*')
- * @param tc scheduler context (unused)
+ * @param cls closure (always NULL)
+ * @param client identification of the client
+ * @param message the actual message
  */
-static void
-timeout_task (void *cls,
-	      const struct GNUNET_SCHEDULER_TaskContext *tc)
+void
+GNUNET_TRANSPORT_handle_blacklist_init (void *cls,
+					struct GNUNET_SERVER_Client *client,
+					const struct GNUNET_MessageHeader *message)
 {
-  struct BlacklistEntry *be = cls;
-  struct BlacklistMessage msg;
-  
-  be->timeout_task = GNUNET_SCHEDULER_NO_TASK; 
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST);
-  msg.header.size = htons (sizeof (struct BlacklistMessage));
-  msg.reserved = htonl (0);
-  msg.peer = be->peer;
-  msg.until = GNUNET_TIME_absolute_hton (GNUNET_TIME_UNIT_ZERO_ABS);
-  GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (blacklist,
-								     &be->peer.hashPubKey,
-								     be));
-  GNUNET_free (be);
-  GNUNET_SERVER_notification_context_broadcast (blacklist_notifiers,
-						&msg.header,
-						GNUNET_NO);
+  struct Blacklisters *bl;
+
+  bl = GNUNET_malloc (sizeof (struct Blacklisters));
+  bl->client = client;
+  GNUNET_SERVER_client_keep (client);
+  GNUNET_CONTAINER_DLL_insert (bl_head, bl_tail, bl);
+  /* FIXME: confirm that all existing connections are OK! */
 }
 
 
@@ -150,38 +182,33 @@ timeout_task (void *cls,
  * @param message the actual message
  */
 void
-GNUNET_TRANSPORT_handle_blacklist (void *cls,
-				   struct GNUNET_SERVER_Client *client,
-				   const struct GNUNET_MessageHeader *message)
+GNUNET_TRANSPORT_handle_blacklist_reply (void *cls,
+					 struct GNUNET_SERVER_Client *client,
+					 const struct GNUNET_MessageHeader *message)
 {
-  struct BlacklistEntry *be;
+  struct Blacklisters *bl;
   const struct BlacklistMessage *msg = (const struct BlacklistMessage*) message;
 
-  be = GNUNET_CONTAINER_multihashmap_get (blacklist,
-					  &msg->peer.hashPubKey);
-  if (be != NULL)
+  bl = bl_head;
+  while ( (bl != NULL) &&
+	  (bl->client != client) )
+    bl = bl->next;
+  if (bl == NULL)
     {
-      GNUNET_SCHEDULER_cancel (sched,
-			       be->timeout_task);
+      GNUNET_SERVER_client_done (client, GNUNET_SYSERR);
+      return;
     }
-  else
-    {
+  if (ntohl (msg->is_allowed) == GNUNET_SYSERR)
+    {    
       be = GNUNET_malloc (sizeof (struct BlacklistEntry));
       be->peer = msg->peer;
+      be->client = client;
       GNUNET_CONTAINER_multihashmap_put (blacklist,
 					 &msg->peer.hashPubKey,
 					 be,
-					 GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+					 GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     }
-  be->until = GNUNET_TIME_absolute_ntoh (msg->until);
-  be->timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
-						   GNUNET_TIME_absolute_get_remaining (be->until),
-						   &timeout_task,
-						   be);
-  GNUNET_SERVER_notification_context_broadcast (blacklist_notifiers,
-						&msg->header,
-						GNUNET_NO);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  /* FIXME: trigger continuation... */
 }
 
 
@@ -243,7 +270,9 @@ GNUNET_TRANSPORT_handle_blacklist_notify (void *cls,
 int
 GNUNET_TRANSPORT_blacklist_check (const struct GNUNET_PeerIdentity *id)
 {
-  return GNUNET_CONTAINER_multihashmap_contains (blacklist, &id->hashPubKey);
+  if (GNUNET_CONTAINER_multihashmap_contains (blacklist, &id->hashPubKey))    
+    return GNUNET_YES;
+  
 }
 
 
@@ -263,7 +292,6 @@ GNUNET_TRANSPORT_blacklist_init (struct GNUNET_SERVER_Handle *server,
 				GNUNET_TIME_UNIT_FOREVER_REL,
 				&shutdown_task,
 				NULL);
-  blacklist_notifiers = GNUNET_SERVER_notification_context_create (server, 0);
 }
 
 

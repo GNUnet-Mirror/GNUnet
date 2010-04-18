@@ -2,20 +2,10 @@
 * PEERINFO: [CG]
   - trust: need *fast* way to check/update trust in peers
            (async peerinfo would not be right; certainly not with the current API)
+* TRANSPORT: [CG]
+  - need to implement and test new blacklisting code (server-side only, client API exists)
 * TOPOLOGY: [CG]
-  - If the topology daemon crashes, peers that were put on the
-    blacklist with transport will never be removed from it (until
-    transport service dies); we should use the blacklist notification
-    API to learn about the exact set of blacklisted peers at all times
-    (FIXME: the transport_api implementation of blacklisting
-     also does not work nicely for this since it won't let us know about
-     disconnect-reconnect events and the implicit whitelisting
-     that might happen here; that's not so bad since we will
-     re-blacklist on pre-connect attempts anyway, so this is 
-     a minor issue; OTOH, we might want to be more explicit about
-     allowing/forbidding connects on pre-connect to avoid 
-     entering connect attempts to just be blacklisted shortly afterwards).
-  - needs more testing (especially F2F topology)
+  - needs more testing (especially F2F topology) -- need transport blacklisting to be implemented first!
 * FS: [CG]
   - support recursive download even if filename is NULL and we hence
     do not generate files on disk (use temp_filename)

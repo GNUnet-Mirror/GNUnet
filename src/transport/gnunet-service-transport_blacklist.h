@@ -31,16 +31,16 @@
 #include "transport.h"
 
 /**
- * Handle a request to blacklist a peer.
+ * Handle a request to start a blacklist.
  *
  * @param cls closure (always NULL)
  * @param client identification of the client
  * @param message the actual message
  */
 void
-GNUNET_TRANSPORT_handle_blacklist (void *cls,
-				   struct GNUNET_SERVER_Client *client,
-				   const struct GNUNET_MessageHeader *message);
+GNUNET_TRANSPORT_handle_blacklist_init (void *cls,
+					struct GNUNET_SERVER_Client *client,
+					const struct GNUNET_MessageHeader *message);
 
 
 /**
@@ -51,30 +51,9 @@ GNUNET_TRANSPORT_handle_blacklist (void *cls,
  * @param message the actual message
  */
 void
-GNUNET_TRANSPORT_handle_blacklist_notify (void *cls,
-					  struct GNUNET_SERVER_Client *client,
-					  const struct GNUNET_MessageHeader *message);
-
-
-/**
- * Is the given peer currently blacklisted?
- *
- * @param id identity of the peer
- * @return GNUNET_YES if the peer is blacklisted, GNUNET_NO if not
- */
-int
-GNUNET_TRANSPORT_blacklist_check (const struct GNUNET_PeerIdentity *id);
-
-
-/**
- * Initialize the blacklisting subsystem.
- *
- * @param server server we handle requests from (transport service server)
- * @param s scheduler to use
- */
-void 
-GNUNET_TRANSPORT_blacklist_init (struct GNUNET_SERVER_Handle *server,
-				 struct GNUNET_SCHEDULER_Handle *s);
+GNUNET_TRANSPORT_handle_blacklist_reply (void *cls,
+					 struct GNUNET_SERVER_Client *client,
+					 const struct GNUNET_MessageHeader *message);
 
 
 #endif
