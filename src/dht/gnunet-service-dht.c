@@ -457,7 +457,7 @@ handle_dht_find_peer (void *cls,
  * Server handler for initiating local dht put requests
  *
  * @param cls closure for service
- * @param put_msg the actual put message
+ * @param msg the actual put message
  * @param message_context struct containing pertinent information about the request
  */
 static void
