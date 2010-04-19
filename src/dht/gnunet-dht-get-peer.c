@@ -101,17 +101,18 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * operation
  *
  * @param cls closure (NULL)
- * @param peer the peer we learned about
- * @param reply the response message, should be a HELLO
+ * @param hello the response message, a HELLO
  */
 void find_peer_processor (void *cls,
-                          const struct GNUNET_PeerIdentity *peer,
-                          const struct GNUNET_MessageHeader *reply)
+                          const struct GNUNET_HELLO_Message *hello)
 {
-  result_count++;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test_find_peer_processor called (peer `%s'), total results %d!\n", GNUNET_i2s(peer), result_count);
-
+  struct GNUNET_PeerIdentity peer;
+  if (GNUNET_OK == GNUNET_HELLO_get_id(hello, &peer))
+    {
+      result_count++;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "test_find_peer_processor called (peer `%s'), total results %d!\n", GNUNET_i2s(&peer), result_count);
+    }
 }
 
 
@@ -191,8 +192,14 @@ run (void *cls,
   if (verbose)
     fprintf (stderr, "Issuing FIND PEER request for %s!\n", query_key);
 
-  find_peer_handle = GNUNET_DHT_find_peer_start (dht_handle, timeout, 0, NULL, &key,
-                        &find_peer_processor, NULL, &message_sent_cont, NULL);
+  find_peer_handle = GNUNET_DHT_find_peer_start (dht_handle,
+                                                 timeout,
+                                                 0,
+                                                 &key,
+                                                 &find_peer_processor,
+                                                 NULL,
+                                                 &message_sent_cont,
+                                                 NULL);
 
 }
 

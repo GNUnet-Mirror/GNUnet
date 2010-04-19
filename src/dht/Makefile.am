@@ -68,6 +68,7 @@ test_dht_api_SOURCES = \
  test_dht_api.c
 test_dht_api_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/dht/libgnunetdht.la    
 
 EXTRA_DIST = \

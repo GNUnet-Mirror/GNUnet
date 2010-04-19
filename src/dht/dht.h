@@ -34,12 +34,13 @@ typedef void (*GNUNET_DHT_MessageReceivedHandler) (void *cls,
                                                    * msg);
 
 /**
- * FIXME.
+ * Message which indicates the DHT should cancel outstanding
+ * requests and discard any state.
  */
 struct GNUNET_DHT_StopMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_MESSAGE
+   * Type: GNUNET_MESSAGE_TYPE_DHT_STOP
    */
   struct GNUNET_MessageHeader header;
 
@@ -57,7 +58,8 @@ struct GNUNET_DHT_StopMessage
 
 
 /**
- * Generic DHT message, wrapper for other message types
+ * Generic DHT message, indicates that a route request
+ * should be issued.
  */
 struct GNUNET_DHT_RouteMessage
 {
@@ -77,7 +79,8 @@ struct GNUNET_DHT_RouteMessage
   GNUNET_HashCode key;
 
   /**
-   * Unique ID identifying this request
+   * Unique ID identifying this request, if 0 then
+   * the client will not expect a response
    */
   uint64_t unique_id GNUNET_PACKED;
 
@@ -86,12 +89,6 @@ struct GNUNET_DHT_RouteMessage
    */
   uint32_t desired_replication_level GNUNET_PACKED;
 
-  /**
-   * Is this message uniquely identified?  If so it will
-   * be fire and forget, if not we will wait for a receipt
-   * from the service.
-   */
-  uint32_t unique GNUNET_PACKED;
 
   /* GNUNET_MessageHeader *enc actual DHT message, copied to end of this dealy do */
 
