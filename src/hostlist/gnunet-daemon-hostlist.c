@@ -201,8 +201,6 @@ connect_handler (void *cls,
  *
  * @param cls closure
  * @param peer peer identity this notification is about
- * @param latency reported latency of the connection with 'other'
- * @param distance reported distance (DV) to 'other'
  */
 static void
 disconnect_handler (void *cls,
