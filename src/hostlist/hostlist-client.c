@@ -92,7 +92,7 @@ struct Hostlist
   uint32_t hello_count;
 
   /**
-   * Number of times the hostlist was obtained
+   * Number of times the hostlist was successfully obtained
    */
   uint32_t times_used;
 
@@ -189,6 +189,12 @@ static struct Hostlist * linked_list_head;
  */
 static struct Hostlist * linked_list_tail;
 
+/**
+ *  Current hostlist used for downloading
+ */
+static struct Hostlist * current_hostlist;
+
+
 /*
  *  Size of the linke list  used to store hostlists
  */
@@ -198,6 +204,21 @@ static unsigned int linked_list_size;
  * Value saying if preconfigured  is used
  */
 static unsigned int use_preconfigured_list;
+
+/**
+ * Set if we are allowed to learn new hostlists and use them
+ */
+static int learning;
+
+/**
+ * Value saying how many valid HELLO messages were obtained during download
+ */
+static unsigned int hellos_obtained;
+
+/**
+ * Value saying how many valid HELLO messages were obtained during download
+ */
+static unsigned int download_successful;
 
 /**
  * Process downloaded bits by calling callback on each HELLO.
@@ -276,7 +297,8 @@ download_hostlist_processor (void *ptr,
 	  GNUNET_STATISTICS_update (stats, 
 				    gettext_noop ("# valid HELLOs downloaded from hostlist servers"), 
 				    1, 
-				    GNUNET_NO);  
+				    GNUNET_NO);
+	  hellos_obtained++;
 	  GNUNET_TRANSPORT_offer_hello (transport, msg);
 	}
       else
@@ -379,12 +401,19 @@ get_list_url ()
   unsigned int counter;
   struct Hostlist * pos;
 
+  if ( GNUNET_NO == learning)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Using preconfigured bootstrap server\n");
+    current_hostlist = NULL;
+    return get_bootstrap_url();
+  }
   if ( (GNUNET_YES == use_preconfigured_list) ||
        (linked_list_size == 0) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Using preconfigured bootstrap server\n");
-    use_preconfigured_list = GNUNET_NO;
+    current_hostlist = NULL;
     return get_bootstrap_url();
   }
   index = GNUNET_CRYPTO_random_u32 ( GNUNET_CRYPTO_QUALITY_WEAK, linked_list_size);
@@ -395,9 +424,9 @@ get_list_url ()
       pos = pos->next;
       counter ++;
     }
-  use_preconfigured_list = GNUNET_YES;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Using learned hostlist `%s'\n", pos->hostlist_uri);
+  current_hostlist = pos;
   return strdup(pos->hostlist_uri);
 }
 
@@ -417,6 +446,78 @@ schedule_hostlist_task (void);
  * @param shutdown set if called because of shutdown, entries in linked list will be destroyed
  */
 static void save_hostlist_file ( int shutdown );
+
+/**
+ * add val2 to val1 with overflow check
+ * return = val1 + val2
+ * @val1 value 1
+ * @val2 value 2
+ * @return result
+ */
+static uint64_t checked_add (uint64_t val1, uint64_t val2)
+{
+  static uint64_t temp;
+  static uint64_t maxv;
+
+  maxv = 0;
+  maxv--;
+
+  temp = val1+val2;
+  if ( temp < val1)
+    return maxv;
+  else
+    return temp;
+}
+
+/**
+ * substract val2 from val1 with underflow check
+ * return = val1 - val2
+ * @val1 value 1
+ * @val2 value 2
+ * @return result
+ */
+static uint64_t checked_sub (uint64_t val1, uint64_t val2)
+{
+  if ( val1 <= val2)
+    return 0;
+  else
+    return (val1-val2);
+}
+
+
+/**
+ * Method updating hostlist statistics
+ */
+static void update_hostlist ( )
+{
+  if ( (use_preconfigured_list == GNUNET_NO) && ( NULL != current_hostlist ) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Updating hostlist statics for URI `%s'\n",current_hostlist->hostlist_uri );
+     current_hostlist->hello_count = hellos_obtained;
+     current_hostlist->time_last_usage = GNUNET_TIME_absolute_get();
+     current_hostlist->quality = checked_add ( current_hostlist->quality, (hellos_obtained * HOSTLIST_SUCCESSFUL_HELLO));
+     if ( GNUNET_YES == download_successful )
+     {
+       current_hostlist->times_used++;
+       current_hostlist->quality = checked_add( current_hostlist->quality, HOSTLIST_SUCCESSFUL_DOWNLOAD);
+     }
+     else
+       current_hostlist->quality = checked_sub ( current_hostlist->quality, HOSTLIST_FAILED_DOWNLOAD );
+  }
+  current_hostlist = NULL;
+  /* Alternating the usage of preconfigured and learned hostlists */
+
+  if ( GNUNET_YES == learning)
+    {
+    if (use_preconfigured_list == GNUNET_YES)
+      use_preconfigured_list = GNUNET_NO;
+    else
+      use_preconfigured_list = GNUNET_YES;
+    }
+  else
+    use_preconfigured_list = GNUNET_YES;
+}
 
 /**
  * Clean up the state from the task that downloaded the
@@ -452,6 +553,7 @@ clean_up ()
     }  
   GNUNET_free_non_null (current_url);
   current_url = NULL;
+
   schedule_hostlist_task ();
 }
 
@@ -486,6 +588,7 @@ multi_ready (void *cls,
 		  "Shutdown requested while trying to download hostlist from `%s'\n",
 		  current_url);
 #endif
+      update_hostlist();
       clean_up ();
       return;
     }
@@ -494,6 +597,7 @@ multi_ready (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Timeout trying to download hostlist from `%s'\n"),
 		  current_url);
+      update_hostlist();
       clean_up ();
       return;
     }
@@ -526,9 +630,13 @@ multi_ready (void *cls,
 			       __LINE__,
 			       curl_easy_strerror (msg->data.result));		  
 		  else
+		    {
 		    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 				_("Download of hostlist `%s' completed.\n"),
 				current_url);
+		    download_successful = GNUNET_YES;
+		    update_hostlist();
+		    }
 		  clean_up ();
 		  return;
 		default:
@@ -641,6 +749,8 @@ download_hostlist ()
   GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
 	      _("Bootstrapping using hostlist at `%s'.\n"), 
 	      current_url);
+  hellos_obtained = 0;
+  download_successful = GNUNET_NO;
   GNUNET_STATISTICS_update (stats, 
 			    gettext_noop ("# hostlist downloads initiated"), 
 			    1, 
@@ -1225,16 +1335,25 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   linked_list_head = NULL;
   linked_list_tail = NULL;
   use_preconfigured_list = GNUNET_YES;
-  load_hostlist_file ();
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  learning = learn;
+  if ( GNUNET_YES == learning )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Learning is enabled on this peer\n"));
+    load_hostlist_file ();
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Hostlists will be saved to file again in  %llums\n"),
               (unsigned long long) SAVING_INTERVALL.value);
-  saving_task = GNUNET_SCHEDULER_add_delayed (sched,
+    saving_task = GNUNET_SCHEDULER_add_delayed (sched,
                                                SAVING_INTERVALL,
                                                &hostlist_saving_task,
                                                NULL);
-
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Learning is not enabled on this peer\n"));
+  }
   GNUNET_STATISTICS_get (stats,
 			 "hostlist",
 			 gettext_noop("# seconds between hostlist downloads"),
