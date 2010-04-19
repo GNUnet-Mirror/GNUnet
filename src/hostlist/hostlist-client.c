@@ -1371,6 +1371,7 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
                 _("Hostlist file `%s' could not be removed\n"),filename);
       }
     }
+    GNUNET_free ( filename );
   }
   GNUNET_STATISTICS_get (stats,
 			 "hostlist",
