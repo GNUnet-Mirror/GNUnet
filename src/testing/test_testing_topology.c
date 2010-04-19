@@ -601,13 +601,15 @@ main (int argc, char *argv[])
   int ret;
   char *binary_start_pos;
   char *our_binary_name;
-  binary_start_pos = rindex(argv[0], '/');
-  if (strstr(binary_start_pos, "test_testing_topology_") == NULL)
-    {
-      return GNUNET_SYSERR;
-    }
 
-  topology_string = &binary_start_pos[23];
+  binary_start_pos = rindex(argv[0], '/');
+  topology_string = strstr (binary_start_pos,
+			    "_topology");
+  GNUNET_assert (topology_string != NULL);
+  topology_string++;
+  topology_string = strstr (topology_string, "_");
+  GNUNET_assert (topology_string != NULL);
+  topology_string++;
 
   GNUNET_asprintf(&our_binary_name, "test-testing-topology_%s", topology_string);
   GNUNET_log_setup (our_binary_name,
