@@ -73,7 +73,7 @@ static void
 do_download (void *cls,
 	     const struct GNUNET_FS_Uri *uri)
 {
-  if ((NULL == uri)
+  if (NULL == uri)
     {
       GNUNET_break (0);
       GNUNET_SCHEDULER_add_now (sched,
