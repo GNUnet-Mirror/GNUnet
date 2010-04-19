@@ -613,7 +613,7 @@ void send_to_plugin(const struct GNUNET_PeerIdentity * sender,
   if (ntohs(packed_message_header->type) == GNUNET_MESSAGE_TYPE_HELLO)
   {
     hello_msg = (struct GNUNET_HELLO_Message *)packed_message_header;
-    GNUNET_HELLO_get_id(hello_msg, &hello_identity);
+    GNUNET_assert(GNUNET_OK == GNUNET_HELLO_get_id(hello_msg, &hello_identity));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Packed HELLO message is about peer %s\n", GNUNET_i2s(&hello_identity));
   }
 #endif
@@ -1617,7 +1617,6 @@ static int handle_dv_gossip_message (void *cls,
 {
   struct HelloContext *hello_context;
   struct GNUNET_HELLO_Message *hello_msg;
-  struct GNUNET_MessageHeader *hello_hdr;
   struct DirectNeighbor *referrer;
   p2p_dv_MESSAGE_NeighborInfo *enc_message = (p2p_dv_MESSAGE_NeighborInfo *)message;
 
@@ -1652,7 +1651,6 @@ static int handle_dv_gossip_message (void *cls,
   memcpy(&hello_context->distant_peer, &enc_message->neighbor, sizeof(struct GNUNET_PeerIdentity));
   hello_context->addresses_to_add = 1;
   hello_msg = GNUNET_HELLO_create(&enc_message->pkey, &generate_hello_address, hello_context);
-  hello_hdr = GNUNET_HELLO_get_header(hello_msg);
 #if DEBUG_DV_GOSSIP
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s: Sending %s message to plugin, type is %d, size %d!\n", "dv", "HELLO", ntohs(hello_hdr->type), ntohs(hello_hdr->size));
@@ -1825,7 +1823,6 @@ run (void *cls,
                        timeout,
                        NULL, /* FIXME: anything we want to pass around? */
                        &core_init,
-                       NULL, /* Don't care about pre-connects */
                        &handle_core_connect,
                        &handle_core_disconnect,
                        NULL,
