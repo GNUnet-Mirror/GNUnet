@@ -194,7 +194,6 @@ static struct Hostlist * linked_list_tail;
  */
 static struct Hostlist * current_hostlist;
 
-
 /*
  *  Size of the linke list  used to store hostlists
  */
@@ -216,7 +215,7 @@ static int learning;
 static unsigned int hellos_obtained;
 
 /**
- * Value saying how many valid HELLO messages were obtained during download
+ * Value saying if hostlist download was successful
  */
 static unsigned int download_successful;
 
@@ -470,7 +469,7 @@ static uint64_t checked_add (uint64_t val1, uint64_t val2)
 }
 
 /**
- * substract val2 from val1 with underflow check
+ * Subtract val2 from val1 with underflow check
  * return = val1 - val2
  * @val1 value 1
  * @val2 value 2
@@ -500,7 +499,7 @@ static void update_hostlist ( )
      if ( GNUNET_YES == download_successful )
      {
        current_hostlist->times_used++;
-       current_hostlist->quality = checked_add( current_hostlist->quality, HOSTLIST_SUCCESSFUL_DOWNLOAD);
+       current_hostlist->quality = checked_add ( current_hostlist->quality, HOSTLIST_SUCCESSFUL_DOWNLOAD);
      }
      else
        current_hostlist->quality = checked_sub ( current_hostlist->quality, HOSTLIST_FAILED_DOWNLOAD );
@@ -1306,6 +1305,9 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
 			      GNUNET_CORE_MessageCallback *msgh,
 			      int learn)
 {
+  char *filename;
+  int result;
+
   if (0 != curl_global_init (CURL_GLOBAL_WIN32))
     {
       GNUNET_break (0);
@@ -1353,6 +1355,22 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Learning is not enabled on this peer\n"));
+    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                            "HOSTLIST",
+                                                            "HOSTLISTFILE",
+                                                            &filename))
+    {
+    if ( GNUNET_YES == GNUNET_DISK_file_test (filename) )
+      {
+        result = remove (filename);
+        if (result == 0)
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Since learning is not enabled on this peer, hostlist file `%s' was removed\n"),filename);
+        else
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Hostlist file `%s' could not be removed\n"),filename);
+      }
+    }
   }
   GNUNET_STATISTICS_get (stats,
 			 "hostlist",
