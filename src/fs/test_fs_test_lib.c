@@ -46,15 +46,23 @@ static struct GNUNET_FS_TestDaemon *daemons[NUM_DAEMONS];
 
 static struct GNUNET_SCHEDULER_Handle *sched;
 
+static int ret;
 
 static void
 do_stop (void *cls,
 	 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Finished download, shutting down\n",
-	      (unsigned long long) FILESIZE);
+  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
+    {
+      GNUNET_break (0);
+      ret = 1;
+    }
+  else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Finished download, shutting down\n",
+		  (unsigned long long) FILESIZE);
+    }
   GNUNET_FS_TEST_daemons_stop (sched,
 			       NUM_DAEMONS,
 			       daemons);
@@ -65,7 +73,15 @@ static void
 do_download (void *cls,
 	     const struct GNUNET_FS_Uri *uri)
 {
-  GNUNET_assert (NULL != uri);
+  if ((NULL == uri)
+    {
+      GNUNET_break (0);
+      GNUNET_SCHEDULER_add_now (sched,
+				&do_stop,
+				NULL);
+      ret = 1;
+      return;
+    }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Downloading %llu bytes\n",
 	      (unsigned long long) FILESIZE);
@@ -82,7 +98,14 @@ static void
 do_publish (void *cls,
 	    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE));
+  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
+    {
+      GNUNET_break (0);
+      ret = 1;
+      GNUNET_SCHEDULER_add_now (sched,
+				&do_stop,
+				NULL);
+    }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Publishing %llu bytes\n",
 	      (unsigned long long) FILESIZE);
@@ -99,7 +122,15 @@ static void
 do_connect (void *cls,
 	    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE));
+  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
+    {
+      GNUNET_break (0);
+      ret = 1;
+      GNUNET_SCHEDULER_add_now (sched,
+				&do_stop,
+				NULL);
+      return;
+    }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Daemons started, will now try to connect them\n");
   GNUNET_FS_TEST_daemons_connect (sched,
@@ -156,7 +187,7 @@ main (int argc, char *argv[])
                       argvx, "test-fs-test-lib",
 		      "nohelp", options, &run, NULL);
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
-  return 0;
+  return ret;
 }
 
-/* end of test_gnunet_service_fs_p2p.c */
+/* end of test_fs_test_lib.c */
