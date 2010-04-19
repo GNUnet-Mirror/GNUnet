@@ -125,8 +125,8 @@ GNUNET_OS_set_process_priority (pid_t proc,
       have = nice (0);
       delta = rprio - have;
       errno = 0;
-      if ( (rprio != 0) &&
-	   (-1 == nice (delta)) && 
+      if ( (delta != 0) &&
+	   (rprio == nice (delta)) && 
 	   (errno != 0) )
         {
           GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING |

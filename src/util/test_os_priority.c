@@ -35,6 +35,26 @@ testprio ()
       GNUNET_OS_set_process_priority (getpid (),
                                       GNUNET_SCHEDULER_PRIORITY_DEFAULT))
     return 1;
+  if (GNUNET_OK !=
+      GNUNET_OS_set_process_priority (getpid (),
+                                      GNUNET_SCHEDULER_PRIORITY_UI))
+    return 1;
+  if (GNUNET_OK !=
+      GNUNET_OS_set_process_priority (getpid (),
+                                      GNUNET_SCHEDULER_PRIORITY_IDLE))
+    return 1;
+  if (GNUNET_OK !=
+      GNUNET_OS_set_process_priority (getpid (),
+                                      GNUNET_SCHEDULER_PRIORITY_BACKGROUND))
+    return 1;
+  if (GNUNET_OK !=
+      GNUNET_OS_set_process_priority (getpid (),
+                                      GNUNET_SCHEDULER_PRIORITY_HIGH))
+    return 1;
+  if (GNUNET_OK !=
+      GNUNET_OS_set_process_priority (getpid (),
+                                      GNUNET_SCHEDULER_PRIORITY_HIGH))
+    return 1;
 #ifndef MINGW
   child = fork ();
   if (child == 0)
