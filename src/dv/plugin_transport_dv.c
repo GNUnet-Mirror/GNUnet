@@ -209,6 +209,7 @@ void handle_dv_message_received (void *cls,
  * @param msgbuf the message to transmit
  * @param msgbuf_size number of bytes in 'msgbuf'
  * @param timeout when should we time out
+ * @param session the session used
  * @param addr the address to use (can be NULL if the plugin
  *                is "on its own" (i.e. re-use existing TCP connection))
  * @param addrlen length of the address in bytes
