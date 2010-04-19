@@ -105,6 +105,7 @@ do_publish (void *cls,
       GNUNET_SCHEDULER_add_now (sched,
 				&do_stop,
 				NULL);
+      return;
     }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Publishing %llu bytes\n",

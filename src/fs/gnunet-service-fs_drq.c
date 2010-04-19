@@ -310,11 +310,17 @@ shutdown_task (void *cls,
   drq_tail = NULL;
   if (drq_running != NULL)
     {
-      GNUNET_SCHEDULER_cancel (sched,
-			       drq_running->task);
-      drq_running->iter (drq_running->iter_cls,
-			 NULL, 0, NULL, 0, 0, 0, 
-			 GNUNET_TIME_UNIT_ZERO_ABS, 0);
+      if (drq_running->task != GNUNET_SCHEDULER_NO_TASK)
+	{
+	  GNUNET_SCHEDULER_cancel (sched,
+				   drq_running->task);
+	}
+      if (drq_running->iter != NULL)
+	{
+	  drq_running->iter (drq_running->iter_cls,
+			     NULL, 0, NULL, 0, 0, 0, 
+			     GNUNET_TIME_UNIT_ZERO_ABS, 0);
+	}
       GNUNET_free (drq_running);
       drq_running = NULL;
     }
