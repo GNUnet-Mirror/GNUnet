@@ -670,8 +670,7 @@ GNUNET_RESOLVER_hostname_get (struct GNUNET_SCHEDULER_Handle *sched,
 
 /**
  * Get local hostname
- *
- * @param
+ * @return hostname
  */
 char *
 GNUNET_RESOLVER_local_hostname_get ( )
