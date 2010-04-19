@@ -692,9 +692,7 @@ size_t core_transmit_notify (void *cls,
  *
  * @param sender the original sender of the message
  * @param specific_neighbor the specific DistantNeighbor to use, complete with referrer!
- * @param message the packed message
- * @param importance what priority to send this message with
- * @param timeout how long to possibly delay sending this message
+ * @param send_context the send context
  */
 static int
 send_message_via (const struct GNUNET_PeerIdentity * sender,
@@ -776,6 +774,7 @@ send_message_via (const struct GNUNET_PeerIdentity * sender,
  * @param sender the original sender of the message
  * @param specific_neighbor the specific neighbor to send this message via
  * @param message the packed message
+ * @param message_size size of the message
  * @param importance what priority to send this message with
  * @param timeout how long to possibly delay sending this message
  */
