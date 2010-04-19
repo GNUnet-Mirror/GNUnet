@@ -349,6 +349,9 @@ free_peer (void *cls,
   if (pos->hello_delay_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (sched,
 			     pos->hello_delay_task);
+  if (pos->greylist_clean_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (sched,
+			     pos->greylist_clean_task);
   GNUNET_free_non_null (pos->hello);   
   if (pos->filter != NULL)
     GNUNET_CONTAINER_bloomfilter_free (pos->filter);
