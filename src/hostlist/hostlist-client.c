@@ -448,9 +448,8 @@ static void save_hostlist_file ( int shutdown );
 
 /**
  * add val2 to val1 with overflow check
- * return = val1 + val2
- * @val1 value 1
- * @val2 value 2
+ * @param val1 value 1
+ * @param val2 value 2
  * @return result
  */
 static uint64_t checked_add (uint64_t val1, uint64_t val2)
@@ -470,9 +469,8 @@ static uint64_t checked_add (uint64_t val1, uint64_t val2)
 
 /**
  * Subtract val2 from val1 with underflow check
- * return = val1 - val2
- * @val1 value 1
- * @val2 value 2
+ * @param val1 value 1
+ * @param val2 value 2
  * @return result
  */
 static uint64_t checked_sub (uint64_t val1, uint64_t val2)
@@ -1014,8 +1012,10 @@ linked_list_get_lowest_quality ( )
  * Method called whenever an advertisement message arrives.
  *
  * @param cls closure (always NULL)
- * @param client identification of the client
+ * @param peer the peer sending the message
  * @param message the actual message
+ * @param latency latency
+ * @param distance distance
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
