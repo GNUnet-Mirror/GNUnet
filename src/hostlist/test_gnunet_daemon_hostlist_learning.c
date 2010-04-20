@@ -206,6 +206,8 @@ static struct GNUNET_CORE_MessageHandler learn_handlers[] = {
 static void
 setup_learn_peer (struct PeerContext *p, const char *cfgname)
 {
+  char * filename;
+  unsigned int result;
   p->cfg = GNUNET_CONFIGURATION_create ();
 #if START_ARM
   p->arm_pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
@@ -216,6 +218,20 @@ setup_learn_peer (struct PeerContext *p, const char *cfgname)
                                         "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (p->cfg,
+                                                          "HOSTLIST",
+                                                          "HOSTLISTFILE",
+                                                          &filename))
+  {
+  if ( GNUNET_YES == GNUNET_DISK_file_test (filename) )
+    {
+      result = remove (filename);
+      if (result == 0)
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+            _("Hostlist hostlist file `%s' was removed\n"),filename);
+    }
+  }
+  GNUNET_free ( filename );
   GNUNET_ARM_start_services (p->cfg, sched, "core", NULL);
 
   p->core = GNUNET_CORE_connect (sched, p->cfg,
