@@ -25,9 +25,10 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_arm_service.h"
+#include "gnunet_core_service.h"
 #include "gnunet_transport_service.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define START_ARM GNUNET_YES
 
@@ -37,7 +38,8 @@
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
-static int failure;
+static int timeout;
+static int adv_arrived;
 
 static struct GNUNET_SCHEDULER_Handle *sched;
 
@@ -49,6 +51,7 @@ struct PeerContext
   struct GNUNET_TRANSPORT_Handle *th;
   struct GNUNET_MessageHeader *hello;
   struct GNUNET_ARM_Handle *arm;
+  struct GNUNET_CORE_Handle *core;
 #if START_ARM
   pid_t arm_pid;
 #endif
@@ -71,6 +74,16 @@ clean_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_TRANSPORT_disconnect (learn_peer.th);
       learn_peer.th = NULL;
     }
+  if (adv_peer.core != NULL)
+    {
+      GNUNET_CORE_disconnect (adv_peer.core);
+      adv_peer.core = NULL;
+    }
+  if (learn_peer.core != NULL)
+    {
+      GNUNET_CORE_disconnect (learn_peer.core);
+      learn_peer.core = NULL;
+    }
   GNUNET_SCHEDULER_shutdown (sched);
 }
 
@@ -83,9 +96,50 @@ timeout_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Timeout while executing testcase, test failed.\n");
-  failure = GNUNET_YES;
+  timeout = GNUNET_YES;
   clean_up (NULL, tc);
 }
+
+/**
+ * Core handler for p2p hostlist advertisements
+ */
+static void ad_arrive_handler (void *cls,
+                             const struct GNUNET_PeerIdentity * peer,
+                             const struct GNUNET_MessageHeader * message,
+                             struct GNUNET_TIME_Relative latency,
+                             uint32_t distance)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "A ADV message, notifying client and server\n");
+  if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (sched,
+                               timeout_task);
+      timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  adv_arrived = GNUNET_YES;
+  GNUNET_SCHEDULER_add_now (sched,
+                            &clean_up, NULL);
+}
+
+static void
+connect_handler (void *cls,
+                 const struct
+                 GNUNET_PeerIdentity * peer,
+                 struct GNUNET_TIME_Relative latency,
+                 uint32_t distance)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "A new peer connected, notifying client and server\n");
+}
+
+/**
+ * List of handlers if we are learning.
+ */
+static struct GNUNET_CORE_MessageHandler learn_handlers[] = {
+  { &ad_arrive_handler, GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT, 0},
+  { NULL, 0, 0 }
+};
 
 static void
 setup_learn_peer (struct PeerContext *p, const char *cfgname)
@@ -101,9 +155,18 @@ setup_learn_peer (struct PeerContext *p, const char *cfgname)
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
   GNUNET_ARM_start_services (p->cfg, sched, "core", NULL);
-  p->th = GNUNET_TRANSPORT_connect (sched, p->cfg, p, NULL,
-                                    NULL, NULL);
-  GNUNET_assert (p->th != NULL);
+
+  p->core = GNUNET_CORE_connect (sched, p->cfg,
+                              GNUNET_TIME_UNIT_FOREVER_REL,
+                              NULL,
+                              NULL,
+                              &connect_handler, NULL,
+                              NULL, GNUNET_NO,
+                              NULL, GNUNET_NO,
+                              learn_handlers );
+  GNUNET_assert ( NULL != p->core );
+
+
 }
 
 
@@ -121,9 +184,6 @@ setup_adv_peer (struct PeerContext *p, const char *cfgname)
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
   GNUNET_ARM_start_services (p->cfg, sched, "core", NULL);
-  p->th = GNUNET_TRANSPORT_connect (sched, p->cfg, p, NULL, 
-                                    NULL, NULL);
-  GNUNET_assert (p->th != NULL);
 }
 
 
@@ -196,7 +256,8 @@ run (void *cls,
      const char *cfgfile, 
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  failure = GNUNET_NO;
+  timeout = GNUNET_NO;
+  adv_arrived = GNUNET_NO;
   sched = s;
   timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
                                                TIMEOUT,
@@ -224,11 +285,15 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  failure = GNUNET_NO;
+
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "test-gnunet-daemon-hostlist",
                       "nohelp", options, &run, NULL);
-  return failure;
+
+  if ( (timeout == GNUNET_YES) || (adv_arrived == GNUNET_NO))
+    return GNUNET_YES;
+  else
+    return GNUNET_NO;
 }
 
 int
