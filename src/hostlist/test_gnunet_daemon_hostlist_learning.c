@@ -29,15 +29,16 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_resolver_service.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define START_ARM GNUNET_YES
 #define MAX_URL_LEN 1000
 
 /**
- * How long until we give up on transmitting the message?
+ * How long until wait until testcases fails
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20)
+#define CHECK_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2)
 
 static int timeout;
 static int adv_arrived;
@@ -45,6 +46,7 @@ static int adv_arrived;
 static struct GNUNET_SCHEDULER_Handle *sched;
 
 static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+static GNUNET_SCHEDULER_TaskIdentifier check_task;
     
 struct PeerContext
 {
@@ -96,6 +98,12 @@ static void shutdown_testcase()
                              timeout_task);
     timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  if (check_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (sched,
+        check_task);
+    check_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   GNUNET_SCHEDULER_add_now (sched,
                             &clean_up, NULL);
 }
@@ -111,6 +119,20 @@ timeout_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               "Timeout while executing testcase, test failed.\n");
   timeout = GNUNET_YES;
   clean_up (NULL, tc);
+}
+
+/**
+ * Check the server statistics regularly
+ */
+static void
+check_statistics (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Checking server stats...\n");
+  check_task = GNUNET_SCHEDULER_add_delayed (sched,
+                                CHECK_INTERVALL,
+                                &check_statistics,
+                                NULL);
 }
 
 /**
@@ -301,6 +323,10 @@ run (void *cls,
                                                TIMEOUT,
                                                &timeout_error,
                                                NULL);
+  check_task = GNUNET_SCHEDULER_add_delayed (sched,
+                                CHECK_INTERVALL,
+                                &check_statistics,
+                                NULL);
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &shutdown_task,
