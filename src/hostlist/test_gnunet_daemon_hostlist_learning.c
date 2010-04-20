@@ -27,11 +27,12 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_core_service.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_resolver_service.h"
 
 #define VERBOSE GNUNET_NO
 
 #define START_ARM GNUNET_YES
-
+#define MAX_URL_LEN 1000
 
 /**
  * How long until we give up on transmitting the message?
@@ -65,26 +66,38 @@ static void
 clean_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (adv_peer.th != NULL)
-    {
-      GNUNET_TRANSPORT_disconnect (adv_peer.th);
-      adv_peer.th = NULL;
-    }
+  {
+    GNUNET_TRANSPORT_disconnect (adv_peer.th);
+    adv_peer.th = NULL;
+  }
   if (learn_peer.th != NULL)
-    {
-      GNUNET_TRANSPORT_disconnect (learn_peer.th);
-      learn_peer.th = NULL;
-    }
+  {
+    GNUNET_TRANSPORT_disconnect (learn_peer.th);
+    learn_peer.th = NULL;
+  }
   if (adv_peer.core != NULL)
-    {
-      GNUNET_CORE_disconnect (adv_peer.core);
-      adv_peer.core = NULL;
-    }
+  {
+    GNUNET_CORE_disconnect (adv_peer.core);
+    adv_peer.core = NULL;
+  }
   if (learn_peer.core != NULL)
-    {
-      GNUNET_CORE_disconnect (learn_peer.core);
-      learn_peer.core = NULL;
-    }
+  {
+    GNUNET_CORE_disconnect (learn_peer.core);
+    learn_peer.core = NULL;
+  }
   GNUNET_SCHEDULER_shutdown (sched);
+}
+
+static void shutdown_testcase()
+{
+  if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (sched,
+                             timeout_task);
+    timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  GNUNET_SCHEDULER_add_now (sched,
+                            &clean_up, NULL);
 }
 
 /**
@@ -103,34 +116,61 @@ timeout_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Core handler for p2p hostlist advertisements
  */
-static void ad_arrive_handler (void *cls,
+static int ad_arrive_handler (void *cls,
                              const struct GNUNET_PeerIdentity * peer,
                              const struct GNUNET_MessageHeader * message,
                              struct GNUNET_TIME_Relative latency,
                              uint32_t distance)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "A ADV message, notifying client and server\n");
-  if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (sched,
-                               timeout_task);
-      timeout_task = GNUNET_SCHEDULER_NO_TASK;
-    }
-  adv_arrived = GNUNET_YES;
-  GNUNET_SCHEDULER_add_now (sched,
-                            &clean_up, NULL);
-}
+  char *hostname;
+  char *expected_uri = GNUNET_malloc (MAX_URL_LEN);
+  char *recv_uri;
 
-static void
-connect_handler (void *cls,
-                 const struct
-                 GNUNET_PeerIdentity * peer,
-                 struct GNUNET_TIME_Relative latency,
-                 uint32_t distance)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "A new peer connected, notifying client and server\n");
+  unsigned long long port;
+  size_t size;
+  const struct GNUNET_MessageHeader * incoming;
+
+  if (-1 == GNUNET_CONFIGURATION_get_value_number (adv_peer.cfg,
+                                                   "HOSTLIST",
+                                                   "HTTPPORT",
+                                                   &port))
+    {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Could not read advertising server's configuration\n" );
+    return GNUNET_SYSERR;
+    }
+  hostname = GNUNET_RESOLVER_local_hostname_get ();
+  if (NULL != hostname)
+    {
+      size = strlen (hostname);
+      if (size + 15 > MAX_URL_LEN)
+        {
+          GNUNET_break (0);
+        }
+      else
+        {
+          GNUNET_asprintf (&expected_uri,
+                           "http://%s:%u/",
+                           hostname,
+                           (unsigned int) port);
+        }
+    }
+
+  incoming = (const struct GNUNET_MessageHeader *) message;
+  recv_uri = (char*) &incoming[1];
+  if ( 0 == strcmp( expected_uri, recv_uri ) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Recieved hostlist advertisement with URI `%s'as expected\n", recv_uri);
+    adv_arrived = GNUNET_YES;
+  }
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Expected URI `%s' and recieved URI `%s' differ\n", expected_uri, recv_uri);
+  GNUNET_free ( expected_uri );
+  GNUNET_free ( hostname );
+  shutdown_testcase();
+  return GNUNET_OK;
 }
 
 /**
@@ -160,13 +200,11 @@ setup_learn_peer (struct PeerContext *p, const char *cfgname)
                               GNUNET_TIME_UNIT_FOREVER_REL,
                               NULL,
                               NULL,
-                              &connect_handler, NULL,
+                              NULL, NULL,
                               NULL, GNUNET_NO,
                               NULL, GNUNET_NO,
                               learn_handlers );
   GNUNET_assert ( NULL != p->core );
-
-
 }
 
 
