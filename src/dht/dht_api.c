@@ -365,7 +365,7 @@ finish (struct GNUNET_DHT_Handle *handle, int code)
                                            GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     }
 
-  if (pos->unique_id != 0)
+  if (pos->unique_id == 0)
     GNUNET_free(pos->msg);
   GNUNET_free (pos);
   handle->current = NULL;
@@ -849,6 +849,9 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
   uint16_t msize;
   GNUNET_HashCode uid_key;
 
+  if ((handle->current != NULL) && (handle->retransmit_stage != DHT_RETRANSMITTING))
+    return NULL;
+
   if (sizeof (struct GNUNET_DHT_RouteMessage) + ntohs (enc->size) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
     {
       GNUNET_break (0);
@@ -903,6 +906,7 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
     handle->retransmit_stage = DHT_RETRANSMITTING_MESSAGE_QUEUED;
     handle->retransmission_buffer = pending;
   }
+
   route_handle->message = message;
   return route_handle;
 }
@@ -1012,6 +1016,9 @@ GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle,
   GNUNET_assert (GNUNET_CONTAINER_multihashmap_remove
 		 (route_handle->dht_handle->outstanding_requests, &uid_key,
 		  route_handle) == GNUNET_YES);
+
+  GNUNET_free(route_handle->message);
+  GNUNET_free(route_handle);
 }
 
 

@@ -399,7 +399,7 @@ test_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_DHT_put (peer->dht_handle, &hash, 42, data_size, data,
                   GNUNET_TIME_relative_to_absolute (TOTAL_TIMEOUT), TOTAL_TIMEOUT,
                   &test_get, &p1);
-
+  GNUNET_free(data);
 }
 
 static void
