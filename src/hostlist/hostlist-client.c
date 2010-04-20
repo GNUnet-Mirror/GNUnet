@@ -497,6 +497,10 @@ static void update_hostlist ( )
      {
        current_hostlist->times_used++;
        current_hostlist->quality = checked_add ( current_hostlist->quality, HOSTLIST_SUCCESSFUL_DOWNLOAD);
+       GNUNET_STATISTICS_update ( stats,
+                                  gettext_noop("Learned URI downloaded"),
+                                  1,
+                                  GNUNET_YES);
      }
      else
        current_hostlist->quality = checked_sub ( current_hostlist->quality, HOSTLIST_FAILED_DOWNLOAD );
@@ -1192,7 +1196,7 @@ load_hostlist_file ()
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("%u hostlist URIs loaded from file\n"), counter);
   GNUNET_STATISTICS_set (stats,
-                         gettext_noop("# hostlis URIs read from file"),
+                         gettext_noop("# hostlist URIs read from file"),
                          counter,
                          GNUNET_YES);
 

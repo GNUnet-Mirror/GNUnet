@@ -48,6 +48,7 @@ test_gnunet_daemon_hostlist_learning_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/arm/libgnunetarm.la \
   $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \  
   $(top_builddir)/src/util/libgnunetutil.la  
 
 EXTRA_DIST = \

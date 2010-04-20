@@ -28,6 +28,7 @@
 #include "gnunet_core_service.h"
 #include "gnunet_transport_service.h"
 #include "gnunet_resolver_service.h"
+#include "gnunet_statistics_service.h"
 
 #define VERBOSE GNUNET_YES
 
@@ -42,6 +43,7 @@
 
 static int timeout;
 static int adv_arrived;
+static int learned_hostlist_downloaded;
 
 static struct GNUNET_SCHEDULER_Handle *sched;
 
@@ -55,6 +57,7 @@ struct PeerContext
   struct GNUNET_MessageHeader *hello;
   struct GNUNET_ARM_Handle *arm;
   struct GNUNET_CORE_Handle *core;
+  struct GNUNET_STATISTICS_Handle *stats;
 #if START_ARM
   pid_t arm_pid;
 #endif
@@ -121,14 +124,38 @@ timeout_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   clean_up (NULL, tc);
 }
 
+static int
+process_stat (void *cls,
+              const char *subsystem,
+              const char *name,
+              uint64_t value,
+              int is_persistent)
+{
+
+  if ( GNUNET_YES == GNUNET_YES)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Client has successfully downloaded advertised URI \n"));
+    learned_hostlist_downloaded = GNUNET_YES;
+  }
+  if ( GNUNET_NO != learned_hostlist_downloaded )
+    shutdown_testcase();
+  return GNUNET_OK;
+}
+
 /**
  * Check the server statistics regularly
  */
 static void
 check_statistics (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Checking server stats...\n");
+  GNUNET_STATISTICS_get (learn_peer.stats,
+                         "hostlist",
+                         gettext_noop("Learned URI downloaded"),
+                         GNUNET_TIME_UNIT_MINUTES,
+                         NULL,
+                         &process_stat,
+                         NULL);
   check_task = GNUNET_SCHEDULER_add_delayed (sched,
                                 CHECK_INTERVALL,
                                 &check_statistics,
@@ -191,7 +218,6 @@ static int ad_arrive_handler (void *cls,
                 "Expected URI `%s' and recieved URI `%s' differ\n", expected_uri, recv_uri);
   GNUNET_free ( expected_uri );
   GNUNET_free ( hostname );
-  shutdown_testcase();
   return GNUNET_OK;
 }
 
@@ -228,10 +254,11 @@ setup_learn_peer (struct PeerContext *p, const char *cfgname)
       result = remove (filename);
       if (result == 0)
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-            _("Hostlist hostlist file `%s' was removed\n"),filename);
+            _("Hostlist file `%s' was removed\n"),filename);
     }
   }
-  GNUNET_free ( filename );
+  if ( NULL != filename)  GNUNET_free ( filename );
+
   GNUNET_ARM_start_services (p->cfg, sched, "core", NULL);
 
   p->core = GNUNET_CORE_connect (sched, p->cfg,
@@ -243,6 +270,8 @@ setup_learn_peer (struct PeerContext *p, const char *cfgname)
                               NULL, GNUNET_NO,
                               learn_handlers );
   GNUNET_assert ( NULL != p->core );
+  p->stats = GNUNET_STATISTICS_create (sched, "hostlist", p->cfg);
+  GNUNET_assert ( NULL != p->stats );
 }
 
 
@@ -334,6 +363,7 @@ run (void *cls,
 {
   timeout = GNUNET_NO;
   adv_arrived = GNUNET_NO;
+  learned_hostlist_downloaded = GNUNET_NO;
   sched = s;
   timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
                                                TIMEOUT,
@@ -370,10 +400,25 @@ check ()
                       argv, "test-gnunet-daemon-hostlist",
                       "nohelp", options, &run, NULL);
 
-  if ( (timeout == GNUNET_YES) || (adv_arrived == GNUNET_NO))
+  if (timeout == GNUNET_YES)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Testcase could not set up two communicating peers, timeout\n");
     return GNUNET_YES;
-  else
-    return GNUNET_NO;
+  }
+  if (adv_arrived == GNUNET_NO)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Learning peer did not recieve advertisement from server\n");
+    return GNUNET_YES;
+  }
+  if (learned_hostlist_downloaded == GNUNET_NO)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Advertisement hostlist could not be downloaded from server\n");
+    return GNUNET_YES;
+  }
+  return GNUNET_NO;
 }
 
 int
