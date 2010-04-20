@@ -38,7 +38,6 @@
 
 #define DEBUG_HOSTLIST_CLIENT GNUNET_YES
 
-#define MAX_URL_LEN 1000
 
 /**
  * Number of connections that we must have to NOT download

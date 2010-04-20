@@ -114,9 +114,6 @@ static int advertising;
  */
 static uint64_t hostlist_adv_count;
 
-/* FIXME: define once... */
-#define MAX_URL_LEN 1000
-
 /**
  * Buffer for the hostlist address
  */
