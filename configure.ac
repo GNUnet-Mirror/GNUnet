@@ -486,7 +486,7 @@ LIBS=$SAVE_LIBS
 
 # check for python & pexpect (used for some testcases only)
 AC_MSG_CHECKING([for python and pexpect])
-python -c "import pexpect" &> /dev/null
+/usr/bin/python -c "import pexpect" &> /dev/null
 PYEX=$?
 AM_CONDITIONAL(HAVE_PYTHON_PEXPECT, test $PYEX -eq 0)
 if test $PYEX -eq 0
