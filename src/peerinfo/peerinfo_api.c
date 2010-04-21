@@ -286,7 +286,6 @@ trigger_transmit (struct GNUNET_PEERINFO_Handle *h)
  * merge the two HELLOs prior to transmission to the service.
  *
  * @param h handle to the peerinfo service
- * @param peer identity of the peer
  * @param hello the verified (!) HELLO message
  */
 void

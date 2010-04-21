@@ -114,7 +114,7 @@ typedef void (*GNUNET_RESOLVER_HostnameCallback) (void *cls,
 /**
  * Get local hostname
  *
- * @param hostname
+ * @return local hostname, caller must free
  */
 char *
 GNUNET_RESOLVER_local_hostname_get ( void );
