@@ -95,6 +95,11 @@ static struct MHD_Response *response;
 static struct GNUNET_PEERINFO_IteratorContext *pitr;
 
 /**
+ * Handle for accessing peerinfo service.
+ */
+static struct GNUNET_PEERINFO_Handle *peerinfo;
+
+/**
  * Context for host processor.
  */
 struct HostSet
@@ -280,7 +285,8 @@ update_response (void *cls,
 
   response_task = GNUNET_SCHEDULER_NO_TASK;
   results = GNUNET_malloc(sizeof(struct HostSet));
-  pitr = GNUNET_PEERINFO_iterate (cfg, sched, 
+  GNUNET_assert (peerinfo != NULL);
+  pitr = GNUNET_PEERINFO_iterate (peerinfo,
 				  NULL,
 				  0, 
 				  GNUNET_TIME_UNIT_MINUTES,
@@ -596,6 +602,13 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
   sched = s;
   cfg = c;
   stats = st;
+  peerinfo = GNUNET_PEERINFO_connect (sched, cfg);
+  if (peerinfo == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Could not access PEERINFO service.  Exiting.\n"));	    
+      return GNUNET_SYSERR;
+    }
   if (-1 == GNUNET_CONFIGURATION_get_value_number (cfg,
 						   "HOSTLIST",
 						   "HTTPPORT", 
@@ -723,6 +736,11 @@ GNUNET_HOSTLIST_server_stop ()
     {
       MHD_destroy_response (response);
       response = NULL;
+    }
+  if (peerinfo != NULL)
+    {
+      GNUNET_PEERINFO_disconnect (peerinfo);
+      peerinfo = NULL;
     }
 }
 

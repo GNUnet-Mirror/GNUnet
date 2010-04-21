@@ -656,6 +656,11 @@ static struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
 struct GNUNET_SCHEDULER_Handle *sched;
 
 /**
+ * Handle to peerinfo service.
+ */
+static struct GNUNET_PEERINFO_Handle *peerinfo;
+
+/**
  * Our configuration.
  */
 const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -2491,8 +2496,7 @@ send_key (struct Neighbour *n)
                   GNUNET_i2s (&n->peer));
 #endif
       GNUNET_assert (n->pitr == NULL);
-      n->pitr = GNUNET_PEERINFO_iterate (cfg,
-					 sched,
+      n->pitr = GNUNET_PEERINFO_iterate (peerinfo,
 					 &n->peer,
 					 0,
 					 GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 20),
@@ -2923,8 +2927,7 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
       /* lookup n's public key, then try again */
       GNUNET_assert (n->skm == NULL);
       n->skm = m_cpy;
-      n->pitr = GNUNET_PEERINFO_iterate (cfg,
-					 sched,
+      n->pitr = GNUNET_PEERINFO_iterate (peerinfo,
 					 &n->peer,
 					 0,
 					 GNUNET_TIME_UNIT_MINUTES,
@@ -3737,6 +3740,8 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CRYPTO_rsa_key_free (my_private_key);
   if (stats != NULL)
     GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
+  if (peerinfo != NULL)
+    GNUNET_PEERINFO_disconnect (peerinfo);
 }
 
 
@@ -3781,12 +3786,21 @@ run (void *cls,
       GNUNET_SCHEDULER_shutdown (s);
       return;
     }
+  peerinfo = GNUNET_PEERINFO_connect (sched, cfg);
+  if (NULL == peerinfo)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Could not access PEERINFO service.  Exiting.\n"));
+      GNUNET_SCHEDULER_shutdown (s);
+      return;
+    }
   my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
   if (my_private_key == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Core service could not access hostkey.  Exiting.\n"));
+      GNUNET_PEERINFO_disconnect (peerinfo);
       GNUNET_SCHEDULER_shutdown (s);
       return;
     }

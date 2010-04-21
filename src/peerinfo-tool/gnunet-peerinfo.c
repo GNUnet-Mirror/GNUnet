@@ -39,6 +39,8 @@ static int get_self;
 
 static struct GNUNET_SCHEDULER_Handle *sched;
 
+static struct GNUNET_PEERINFO_Handle *peerinfo;
+
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 struct PrintContext
@@ -166,7 +168,10 @@ print_peer_info (void *cls,
   struct PrintContext *pc;
 
   if (peer == NULL)    
-    return;    
+    {
+      GNUNET_PEERINFO_disconnect (peerinfo);
+      return;    
+    }
   if (be_quiet)
     {
       GNUNET_CRYPTO_hash_to_enc (&peer->hashPubKey, &enc);
@@ -212,8 +217,14 @@ run (void *cls,
   cfg = c;
   if (get_self != GNUNET_YES)
     {
-      (void) GNUNET_PEERINFO_iterate (cfg,
-				      sched,
+      peerinfo = GNUNET_PEERINFO_connect (sched, cfg);
+      if (peerinfo == NULL)
+	{
+	  fprintf (stderr,
+		   _("Could not access PEERINFO service.  Exiting.\n"));
+	  return;
+	}
+      (void) GNUNET_PEERINFO_iterate (peerinfo,
 				      NULL,
 				      0,
 				      GNUNET_TIME_relative_multiply

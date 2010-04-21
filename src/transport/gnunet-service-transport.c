@@ -835,6 +835,11 @@ static struct TransportPlugin *plugins;
 static struct GNUNET_SERVER_Handle *server;
 
 /**
+ * Handle to peerinfo service.
+ */
+static struct GNUNET_PEERINFO_Handle *peerinfo;
+
+/**
  * All known neighbours and their HELLOs.
  */
 static struct NeighbourList *neighbours;
@@ -1775,7 +1780,7 @@ refresh_hello ()
   GNUNET_free_non_null (our_hello);
   our_hello = hello;
   our_hello_version++;
-  GNUNET_PEERINFO_add_peer (cfg, sched, &my_identity, our_hello);
+  GNUNET_PEERINFO_add_peer (peerinfo, our_hello);
   npos = neighbours;
   while (npos != NULL)
     {
@@ -2567,7 +2572,7 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer,
                                                   &neighbour_timeout_task, n);
   if (do_hello)
     {
-      n->piter = GNUNET_PEERINFO_iterate (cfg, sched, peer,
+      n->piter = GNUNET_PEERINFO_iterate (peerinfo, peer,
 					  0, GNUNET_TIME_UNIT_FOREVER_REL,
 					  &add_hello_for_peer, n);
       transmit_to_peer (NULL, NULL, 0,
@@ -3245,8 +3250,7 @@ check_pending_validation (void *cls,
       hello = GNUNET_HELLO_create (&ve->publicKey,
 				   &add_validated_address,
 				   &avac);
-      GNUNET_PEERINFO_add_peer (cfg, sched,
-				&target,
+      GNUNET_PEERINFO_add_peer (peerinfo,
 				hello);
       GNUNET_free (hello);
     }
@@ -3596,7 +3600,7 @@ check_hello_validated (void *cls,
 	  plain_hello = GNUNET_HELLO_create (&pk,
 					     NULL, 
 					     NULL);
-	  GNUNET_PEERINFO_add_peer (cfg, sched, &target, plain_hello);
+	  GNUNET_PEERINFO_add_peer (peerinfo, plain_hello);
 	  GNUNET_free (plain_hello);
 #if DEBUG_TRANSPORT
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -3732,8 +3736,7 @@ process_hello (struct TransportPlugin *plugin,
 			       chvc);
   /* finally, check if HELLO was previously validated
      (continuation will then schedule actual validation) */
-  chvc->piter = GNUNET_PEERINFO_iterate (cfg,
-                                         sched,
+  chvc->piter = GNUNET_PEERINFO_iterate (peerinfo,
                                          &target,
                                          0,
                                          HELLO_VERIFICATION_TIMEOUT,
@@ -4788,6 +4791,22 @@ run (void *cls,
       return;
     }
   max_connect_per_transport = (uint32_t) tneigh;
+  peerinfo = GNUNET_PEERINFO_connect (sched, cfg);
+  if (peerinfo == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Could not access PEERINFO service.  Exiting.\n"));	    
+      GNUNET_SCHEDULER_shutdown (s);
+      if (stats != NULL)
+	{
+	  GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
+	  stats = NULL;
+	}
+      GNUNET_CONTAINER_multihashmap_destroy (validation_map);
+      validation_map = NULL;
+      GNUNET_free (keyfile);
+      return;
+    }
   my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
   if (my_private_key == NULL)

@@ -30,31 +30,6 @@
 #define DEBUG_PEERINFO GNUNET_NO
 
 /**
- * Add the given peer to the list.  This message
- * is always followed by a verified HELLO message.
- */
-struct PeerAddMessage
-{
-
-  /**
-   * Type will be GNUNET_MESSAGE_TYPE_PEERINFO_ADD
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Always zero.
-   */
-  uint32_t reserved GNUNET_PACKED;
-
-  /**
-   * For which peer do we provide a HELLO message here?
-   */
-  struct GNUNET_PeerIdentity peer;
-
-};
-
-
-/**
  * Message requesting a listing of all known peers,
  * possibly modified by the specified trust value
  * and restricted to the specified peer identity.

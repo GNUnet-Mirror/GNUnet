@@ -199,11 +199,6 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_PONG 33
 
 /**
- * Request addition of a HELLO
- */
-#define GNUNET_MESSAGE_TYPE_PEERINFO_ADD 36
-
-/**
  * Request update and listing of a peer.
  */
 #define GNUNET_MESSAGE_TYPE_PEERINFO_GET 37

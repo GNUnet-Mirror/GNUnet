@@ -29,8 +29,6 @@
  *
  * TODO:
  * - HostEntries are never 'free'd (add expiration, upper bound?)
- * - AddPeer message is obsolete with NEW peerinfo API (remove handler,
- *   message struct and protocol)
  */
 
 #include "platform.h"
@@ -649,43 +647,6 @@ cron_clean_data_hosts (void *cls,
 
 
 /**
- * Handle ADD-message.
- *
- * @param cls closure
- * @param client identification of the client
- * @param message the actual message
- */
-static void
-handle_add (void *cls,
-            struct GNUNET_SERVER_Client *client,
-            const struct GNUNET_MessageHeader *message)
-{
-  const struct PeerAddMessage *pam;
-  const struct GNUNET_MessageHeader *hello;
-  uint16_t size;
-
-  size = ntohs (message->size);
-  if (size <
-      sizeof (struct PeerAddMessage) + sizeof (struct GNUNET_MessageHeader))
-    {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
-  pam = (const struct PeerAddMessage *) message;
-  hello = (const struct GNUNET_MessageHeader *) &pam[1];
-  if (size != sizeof (struct PeerAddMessage) + ntohs (hello->size))
-    {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
-  bind_address (&pam->peer, (const struct GNUNET_HELLO_Message *) hello);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-}
-
-
-/**
  * Handle HELLO-message.
  *
  * @param cls closure
@@ -787,7 +748,6 @@ handle_notify (void *cls,
  */
 static struct GNUNET_SERVER_MessageHandler handlers[] = {
   {&handle_hello, NULL, GNUNET_MESSAGE_TYPE_HELLO, 0},
-  {&handle_add, NULL, GNUNET_MESSAGE_TYPE_PEERINFO_ADD, 0},
   {&handle_get, NULL, GNUNET_MESSAGE_TYPE_PEERINFO_GET,
    sizeof (struct ListPeerMessage)},
   {&handle_get_all, NULL, GNUNET_MESSAGE_TYPE_PEERINFO_GET_ALL,

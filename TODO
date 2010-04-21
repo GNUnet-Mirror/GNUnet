@@ -1,9 +1,4 @@
 0.9.0pre1:
-* PEERINFO: [CG]
-  - finish implementing NEW API (cancel, timeout, submit-during-receive prevention)
-  - test new API
-  - transition existing code to new API
-  - remove support for old API
 * FS: [CG]
   - support recursive download even if filename is NULL and we hence
     do not generate files on disk (use temp_filename)
@@ -175,6 +170,11 @@ Optimizations:
 * DATASTORE (?):
   - check for duplicates on insertion (currently, same content is frequently
     stored again [seen with KBLOCKS and SBLOCKS]!)
+* PEERINFO:
+  - merge multiple HELLOs of the same peer in the transmission queue
+    (theoretically reduces overhead; bounds message queue size)
+  - merge multiple iteration requests over "all" peers in the queue
+    (theoretically reduces overhead; bounds messgae queue size)
 
 Minor features:
 * TCP:
