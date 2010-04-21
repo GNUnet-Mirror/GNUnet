@@ -88,7 +88,6 @@ GNUNET_PEERINFO_disconnect (struct GNUNET_PEERINFO_Handle *h);
  */
 void
 GNUNET_PEERINFO_add_peer_new (struct GNUNET_PEERINFO_Handle *h,
-			      const struct GNUNET_PeerIdentity *peer,
 			      const struct GNUNET_HELLO_Message *hello);
 
 

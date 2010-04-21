@@ -29,6 +29,8 @@
  *
  * TODO:
  * - HostEntries are never 'free'd (add expiration, upper bound?)
+ * - AddPeer message is obsolete with NEW peerinfo API (remove handler,
+ *   message struct and protocol)
  */
 
 #include "platform.h"
@@ -684,6 +686,33 @@ handle_add (void *cls,
 
 
 /**
+ * Handle HELLO-message.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_hello (void *cls,
+	      struct GNUNET_SERVER_Client *client,
+	      const struct GNUNET_MessageHeader *message)
+{
+  const struct GNUNET_HELLO_Message *hello;
+  struct GNUNET_PeerIdentity pid;
+
+  hello = (const struct GNUNET_HELLO_Message *) message;
+  if (GNUNET_OK !=  GNUNET_HELLO_get_id (hello, &pid))
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+  bind_address (&pid, hello);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
  * Handle GET-message.
  *
  * @param cls closure
@@ -757,6 +786,7 @@ handle_notify (void *cls,
  * service.
  */
 static struct GNUNET_SERVER_MessageHandler handlers[] = {
+  {&handle_hello, NULL, GNUNET_MESSAGE_TYPE_HELLO, 0},
   {&handle_add, NULL, GNUNET_MESSAGE_TYPE_PEERINFO_ADD, 0},
   {&handle_get, NULL, GNUNET_MESSAGE_TYPE_PEERINFO_GET,
    sizeof (struct ListPeerMessage)},
