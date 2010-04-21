@@ -2590,6 +2590,192 @@ typedef void (*SetupContinuation)(void *cls,
 				  struct NeighbourList *n);
 
 
+/**
+ * Information kept for each client registered to perform
+ * blacklisting.
+ */
+struct Blacklisters
+{
+  /**
+   * This is a linked list.
+   */
+  struct Blacklisters *next;
+
+  /**
+   * This is a linked list.
+   */
+  struct Blacklisters *prev;
+
+  /**
+   * Client responsible for this entry.
+   */
+  struct GNUNET_SERVER_Client *client;
+
+  /**
+   * Blacklist check that we're currently performing.
+   */
+  struct BlacklistCheck *bc;
+
+};
+
+
+/**
+ * Head of DLL of blacklisting clients.
+ */
+static struct Blacklisters *bl_head;
+
+/**
+ * Tail of DLL of blacklisting clients.
+ */
+static struct Blacklisters *bl_tail;
+
+
+/**
+ * Context we use when performing a blacklist check.
+ */
+struct BlacklistCheck
+{
+  
+  /**
+   * This is a linked list.
+   */
+  struct BlacklistCheck *next;
+  
+  /**
+   * This is a linked list.
+   */
+  struct BlacklistCheck *prev;
+
+  /**
+   * Peer being checked.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * Option for setup neighbour afterwards.
+   */
+  int do_hello;
+
+  /**
+   * Continuation to call with the result.
+   */
+  SetupContinuation cont;
+
+  /**
+   * Closure for cont.
+   */
+  void *cont_cls;
+
+  /**
+   * Current transmission request handle for this client, or NULL if no
+   * request is pending.
+   */
+  struct GNUNET_CONNECTION_TransmitHandle *th;
+
+  /**
+   * Our current position in the blacklisters list.
+   */
+  struct Blacklisters *bl_pos;
+
+  /**
+   * Current task performing the check.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier task;
+
+};
+
+/**
+ * Head of DLL of active blacklisting queries.
+ */
+static struct BlacklistCheck *bc_head;
+
+/**
+ * Tail of DLL of active blacklisting queries.
+ */
+static struct BlacklistCheck *bc_tail;
+
+
+/**
+ * Perform next action in the blacklist check.
+ *
+ * @param cls the 'struct BlacklistCheck*'
+ * @param tc unused 
+ */
+static void
+do_blacklist_check (void *cls,
+		    const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
+ * Transmit blacklist query to the client.
+ *
+ * @param cls the 'struct BlacklistCheck'
+ * @param size number of bytes allowed
+ * @param buf where to copy the message
+ * @return number of bytes copied to buf
+ */
+static size_t
+transmit_blacklist_message (void *cls,
+			    size_t size,
+			    void *buf)
+{
+  struct BlacklistCheck *bc = cls;
+  struct Blacklisters *bl;
+  struct BlacklistMessage bm;
+
+  bc->th = NULL;
+  if (size == 0)
+    {
+      GNUNET_assert (bc->task == GNUNET_SCHEDULER_NO_TASK);
+      bc->task = GNUNET_SCHEDULER_add_now (sched,
+					   &do_blacklist_check,
+					   bc);
+      return 0;
+    }
+  bl = bc->bl_pos;
+  bm.header.size = htons (sizeof (struct BlacklistMessage));
+  bm.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY);
+  bm.is_allowed = htonl (0);
+  bm.peer = bc->peer;
+  memcpy (buf, &bm, sizeof (bm)); 
+  GNUNET_SERVER_receive_done (bl->client, GNUNET_OK);
+  return sizeof (bm);
+}
+
+
+/**
+ * Perform next action in the blacklist check.
+ *
+ * @param cls the 'struct BlacklistCheck*'
+ * @param tc unused 
+ */
+static void
+do_blacklist_check (void *cls,
+		    const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct BlacklistCheck *bc = cls;
+  struct Blacklisters *bl;
+
+  bc->task = GNUNET_SCHEDULER_NO_TASK;
+  bl = bc->bl_pos;
+  if (bl == NULL)
+    {
+      bc->cont (bc->cont_cls,
+		setup_new_neighbour (&bc->peer, bc->do_hello));		
+      GNUNET_free (bc);
+      return;
+    }
+  if (bl->bc == NULL) 
+    {
+      bl->bc = bc;
+      bc->th = GNUNET_SERVER_notify_transmit_ready (bl->client,
+						    sizeof (struct BlacklistMessage),
+						    GNUNET_TIME_UNIT_FOREVER_REL,
+						    &transmit_blacklist_message,
+						    bc); 
+    }
+}
+
 
 /**
  * Obtain a 'struct NeighbourList' for the given peer.  If such an entry
@@ -2610,6 +2796,7 @@ setup_peer_check_blacklist (const struct GNUNET_PeerIdentity *peer,
 			    void *cont_cls)
 {
   struct NeighbourList *n;
+  struct BlacklistCheck *bc;
 
   n = find_neighbour(peer);
   if (n != NULL)
@@ -2617,9 +2804,146 @@ setup_peer_check_blacklist (const struct GNUNET_PeerIdentity *peer,
       cont (cont_cls, n);
       return;
     }
-  /* FIXME: do actual blacklist checking here... */
-  cont (cont_cls,
-	setup_new_neighbour (peer, do_hello));
+  if (bl_head == NULL)
+    {
+      cont (cont_cls,
+	    setup_new_neighbour (peer, do_hello));
+      return;
+    }
+  bc = GNUNET_malloc (sizeof (struct BlacklistCheck));
+  GNUNET_CONTAINER_DLL_insert (bc_head, bc_tail, bc);
+  bc->peer = *peer;
+  bc->do_hello = do_hello;
+  bc->cont = cont;
+  bc->cont_cls = cont_cls;
+  bc->bl_pos = bl_head;
+  bc->task = GNUNET_SCHEDULER_add_now (sched,
+				       &do_blacklist_check,
+				       bc);
+}
+
+
+/**
+ * Function called with the result of querying a new blacklister about 
+ * it being allowed (or not) to continue to talk to an existing neighbour.
+ *
+ * @param cls the original 'struct NeighbourList'
+ * @param n NULL if we need to disconnect
+ */
+static void
+confirm_or_drop_neighbour (void *cls,
+			   struct NeighbourList *n)
+{
+  struct NeighbourList * orig = cls;
+
+  if (n == NULL)
+    disconnect_neighbour (orig, GNUNET_NO);
+}
+
+
+/**
+ * Handle a request to start a blacklist.
+ *
+ * @param cls closure (always NULL)
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_blacklist_init (void *cls,
+		       struct GNUNET_SERVER_Client *client,
+		       const struct GNUNET_MessageHeader *message)
+{
+  struct Blacklisters *bl;
+  struct BlacklistCheck *bc;
+  struct NeighbourList *n;
+
+  bl = bl_head;
+  while (bl != NULL)
+    {
+      if (bl->client == client)
+	{
+	  GNUNET_break (0);
+	  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+	  return;
+	}
+      bl = bl->next;
+    }
+  bl = GNUNET_malloc (sizeof (struct Blacklisters));
+  bl->client = client;
+  GNUNET_SERVER_client_keep (client);
+  GNUNET_CONTAINER_DLL_insert_after (bl_head, bl_tail, bl_tail, bl);
+  /* confirm that all existing connections are OK! */
+  n = neighbours;
+  while (NULL != n)
+    {
+      bc = GNUNET_malloc (sizeof (struct BlacklistCheck));
+      GNUNET_CONTAINER_DLL_insert (bc_head, bc_tail, bc);
+      bc->peer = n->id;
+      bc->do_hello = GNUNET_NO;
+      bc->cont = &confirm_or_drop_neighbour;
+      bc->cont_cls = n;
+      bc->bl_pos = bl;
+      if (n == neighbours) /* all would wait for the same client, no need to
+			      create more than just the first task right now */
+	bc->task = GNUNET_SCHEDULER_add_now (sched,
+					     &do_blacklist_check,
+					     bc);
+      n = n->next;
+    }
+}
+
+
+/**
+ * Handle a request to blacklist a peer.
+ *
+ * @param cls closure (always NULL)
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_blacklist_reply (void *cls,
+			struct GNUNET_SERVER_Client *client,
+			const struct GNUNET_MessageHeader *message)
+{
+  const struct BlacklistMessage *msg = (const struct BlacklistMessage*) message;
+  struct Blacklisters *bl;
+  struct BlacklistCheck *bc;
+
+  bl = bl_head;
+  while ( (bl != NULL) &&
+	  (bl->client != client) )
+    bl = bl->next;  
+  if (bl == NULL)
+    {
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+  bc = bl->bc;
+  bl->bc = NULL;  
+  if (ntohl (msg->is_allowed) == GNUNET_SYSERR)
+    {    
+      bc->cont (bc->cont_cls, NULL);
+      GNUNET_CONTAINER_DLL_remove (bc_head, bc_tail, bc);
+      GNUNET_free (bc);
+    }
+  else
+    {
+      bc->bl_pos = bc->bl_pos->next;
+      bc->task = GNUNET_SCHEDULER_add_now (sched,
+					   &do_blacklist_check,
+					   bc);      
+    }
+  /* check if any other bc's are waiting for this blacklister */
+  bc = bc_head;
+  while (bc != NULL)
+    {
+      if ( (bc->bl_pos == bl) &&
+	   (GNUNET_SCHEDULER_NO_TASK == bc->task) )
+	bc->task = GNUNET_SCHEDULER_add_now (sched,
+					     &do_blacklist_check,
+					     bc);      
+      bc = bc->next;
+    }
 }
 
 
@@ -4170,6 +4494,10 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
   {&handle_address_lookup, NULL,
    GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP,
    0},
+  {&handle_blacklist_init, NULL,
+   GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_INIT, sizeof (struct GNUNET_MessageHeader)},
+  {&handle_blacklist_reply, NULL,
+   GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_REPLY, sizeof (struct BlacklistMessage)},
   {NULL, NULL, 0, 0}
 };
 
@@ -4238,6 +4566,8 @@ client_disconnect_notification (void *cls,
   struct TransportClient *pos;
   struct TransportClient *prev;
   struct ClientMessageQueueEntry *mqe;
+  struct Blacklisters *bl;
+  struct BlacklistCheck *bc;
 
   if (client == NULL)
     return;
@@ -4245,6 +4575,41 @@ client_disconnect_notification (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
               "Client disconnected, cleaning up.\n");
 #endif
+  /* clean up blacklister */
+  bl = bl_head;
+  while (bl != NULL)
+    {
+      if (bl->client == client)
+	{
+	  bc = bc_head;
+	  while (bc != NULL)
+	    {
+	      if (bc->bl_pos == bl)
+		{
+		  bc->bl_pos = bl->next;
+		  if (bc->th != NULL)
+		    {
+		      GNUNET_CONNECTION_notify_transmit_ready_cancel (bc->th);
+		      bc->th = NULL;		      
+		    }
+		  if (bc->task == GNUNET_SCHEDULER_NO_TASK)
+		    bc->task = GNUNET_SCHEDULER_add_now (sched,
+							 &do_blacklist_check,
+							 bc);
+		  break;
+		}
+	      bc = bc->next;
+	    }
+	  GNUNET_CONTAINER_DLL_remove (bl_head,
+				       bl_tail,
+				       bl);
+	  GNUNET_SERVER_client_drop (bl->client);
+	  GNUNET_free (bl);
+	  break;
+	}
+      bl = bl->next;
+    }
+  /* clean up 'normal' clients */
   prev = NULL;
   pos = clients;
   while ((pos != NULL) && (pos->client != client))
@@ -4365,6 +4730,11 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
       stats = NULL;
     }
+
+  /* Can we assume those are gone by now, or do we need to clean up
+     explicitly!? */
+  GNUNET_break (bl_head == NULL);
+  GNUNET_break (bc_head == NULL);
 }
 
 
