@@ -2,10 +2,8 @@
 * PEERINFO: [CG]
   - trust: need *fast* way to check/update trust in peers
            (async peerinfo would not be right; certainly not with the current API)
-* TRANSPORT: [CG]
-  - need to implement and test new blacklisting code (server-side only, client API exists)
 * TOPOLOGY: [CG]
-  - needs more testing (especially F2F topology) -- need transport blacklisting to be implemented first!
+  - needs more testing (especially F2F topology) & transport blacklisting
 * FS: [CG]
   - support recursive download even if filename is NULL and we hence
     do not generate files on disk (use temp_filename)
