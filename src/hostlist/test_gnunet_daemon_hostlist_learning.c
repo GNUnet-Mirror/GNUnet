@@ -111,7 +111,7 @@ static void shutdown_testcase()
         check_task);
     check_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_free (current_adv_uri);
+  if ( NULL != current_adv_uri ) GNUNET_free (current_adv_uri);
   GNUNET_SCHEDULER_add_now (sched,
                             &clean_up, NULL);
 }
@@ -126,7 +126,7 @@ timeout_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Timeout while executing testcase, test failed.\n");
   timeout = GNUNET_YES;
-  clean_up (NULL, tc);
+  shutdown_testcase();
 }
 
 static int
