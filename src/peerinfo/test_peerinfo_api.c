@@ -40,7 +40,9 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-static struct GNUNET_PEERINFO_IteratorContext *ic;
+static struct GNUNET_PEERINFO_NewIteratorContext *ic;
+
+static struct GNUNET_PEERINFO_Handle *h;
 
 static unsigned int retries;
 
@@ -91,7 +93,7 @@ add_peer ()
   memset (&pkey, 32, sizeof (pkey));
   GNUNET_CRYPTO_hash (&pkey, sizeof (pkey), &pid.hashPubKey);
   h2 = GNUNET_HELLO_create (&pkey, &address_generator, &agc);
-  GNUNET_PEERINFO_add_peer (cfg, sched, &pid, h2);
+  GNUNET_PEERINFO_add_peer_new (h, h2);
   GNUNET_free (h2);
 
 }
@@ -114,18 +116,19 @@ process (void *cls,
 	  /* try again */
 	  retries++;	  
 	  add_peer ();
-	  ic = GNUNET_PEERINFO_iterate (cfg,
-					sched,
-					NULL,
-					0,
-					GNUNET_TIME_relative_multiply
-					(GNUNET_TIME_UNIT_SECONDS, 15), 
-					&process, cls);
+	  ic = GNUNET_PEERINFO_iterate_new (h,
+					    NULL,
+					    0,
+					    GNUNET_TIME_relative_multiply
+					    (GNUNET_TIME_UNIT_SECONDS, 15), 
+					    &process, cls);
 	  return;
 	}
       GNUNET_assert (peer == NULL);
       GNUNET_assert (2 == *ok);
       GNUNET_assert (trust == 0);
+      GNUNET_PEERINFO_disconnect (h);
+      h = NULL;
       *ok = 0;
       return;
     }
@@ -149,13 +152,14 @@ run (void *cls,
 {
   sched = s;
   cfg = c;
+  h = GNUNET_PEERINFO_connect (cfg, sched);
   add_peer ();
-  ic = GNUNET_PEERINFO_iterate (cfg,
-				sched,
-				NULL,
-				0,
-				GNUNET_TIME_relative_multiply
-				(GNUNET_TIME_UNIT_SECONDS, 15), &process, cls);
+  ic = GNUNET_PEERINFO_iterate_new (h,
+				    NULL,
+				    0,
+				    GNUNET_TIME_relative_multiply
+				    (GNUNET_TIME_UNIT_SECONDS, 15),
+				    &process, cls);
 }
 
 
