@@ -27,6 +27,7 @@
  * - document NEW API implementation
  * - add timeout for iteration
  * - implement cancellation of iteration
+ * - prevent transmit during receive!
  */
 #include "platform.h"
 #include "gnunet_client_lib.h"
@@ -37,44 +38,48 @@
 #include "peerinfo.h"
 
 /**
- *
+ * Function to call after transmission has succeeded.
+ * 
+ * @param cls closure
+ * @param success GNUNET_OK if transmission worked, GNUNET_SYSERR on error
  */
 typedef void (*TransmissionContinuation)(void *cls,
 					 int success);
 
 
 /**
- *
+ * Entry in the transmission queue to PEERINFO service.
  */
 struct TransmissionQueueEntry
 {
   /**
-   *
+   * This is a linked list.
    */
   struct TransmissionQueueEntry *next;
   
   /**
-   *
+   * This is a linked list.
    */
   struct TransmissionQueueEntry *prev;
 
   /**
-   *
+   * Function to call after request has been transmitted, or NULL (in which
+   * case we must consider sending the next entry immediately).
    */
   TransmissionContinuation cont;
   
   /**
-   *
+   * Closure for 'cont'.
    */
   void *cont_cls;
 
   /**
-   *
+   * When this request times out.
    */
   struct GNUNET_TIME_Absolute timeout;
 
   /**
-   *
+   * Number of bytes of the request message (follows after this struct).
    */
   size_t size;
 
@@ -102,19 +107,20 @@ struct GNUNET_PEERINFO_Handle
   struct GNUNET_CLIENT_Connection *client;
 
   /**
-   *
+   * Head of transmission queue.
    */
   struct TransmissionQueueEntry *tq_head;
 
   /**
-   *
+   * Tail of transmission queue.
    */
   struct TransmissionQueueEntry *tq_tail;
 
   /**
-   *
+   * Handle for the current transmission request, or NULL if none is pending.
    */
   struct GNUNET_CLIENT_TransmitHandle *th;
+
 };
 
 
@@ -173,14 +179,19 @@ GNUNET_PEERINFO_disconnect (struct GNUNET_PEERINFO_Handle *h)
 
 
 /**
+ * Check if we have a request pending in the transmission queue and are
+ * able to transmit it right now.  If so, schedule transmission.
  *
+ * @param h handle to the service
  */
 static void
 trigger_transmit (struct GNUNET_PEERINFO_Handle *h);
 
 
 /**
+ * Close the existing connection to PEERINFO and reconnect.
  *
+ * @param h handle to the service
  */
 static void
 reconnect (struct GNUNET_PEERINFO_Handle *h)
@@ -192,7 +203,13 @@ reconnect (struct GNUNET_PEERINFO_Handle *h)
 
 
 /**
+ * Transmit the request at the head of the transmission queue
+ * and trigger continuation (if any).
  *
+ * @param cls the 'struct GNUNET_PEERINFO_Handle' (with the queue)
+ * @param size size of the buffer (0 on error)
+ * @param buf where to copy the message
+ * @return number of bytes copied to buf
  */
 static size_t
 do_transmit (void *cls, size_t size, void *buf)
@@ -235,11 +252,19 @@ do_transmit (void *cls, size_t size, void *buf)
 }
 
 
+/**
+ * Check if we have a request pending in the transmission queue and are
+ * able to transmit it right now.  If so, schedule transmission.
+ *
+ * @param h handle to the service
+ */
 static void
 trigger_transmit (struct GNUNET_PEERINFO_Handle *h)
 {
   struct TransmissionQueueEntry *tqe;
 
+  /* FIXME: need to handle case where we are still *receiving* (and then
+     do nothing here as well!) */
   if (NULL == (tqe = h->tq_head))
     return;
   if (h->th != NULL)
@@ -292,33 +317,31 @@ GNUNET_PEERINFO_add_peer_new (struct GNUNET_PEERINFO_Handle *h,
 }
 
 
-
 /**
- *
+ * Context for an iteration request.
  */
 struct GNUNET_PEERINFO_NewIteratorContext
 {
   /**
-   *
+   * Handle to the PEERINFO service.
    */
   struct GNUNET_PEERINFO_Handle *h;
 
   /**
-   *
+   * Function to call with the results.
    */
   GNUNET_PEERINFO_Processor callback;
 
   /**
-   *
+   * Closure for 'callback'.
    */
   void *callback_cls;
 
   /**
-   *
+   * Timeout for the operation.
    */
   struct GNUNET_TIME_Absolute timeout;
 };
-
 
 
 /**
@@ -400,7 +423,11 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 
 
 /**
+ * We've transmitted the iteration request.  Now get ready to process
+ * the results (or handle transmission error).
  *
+ * @param cls the 'struct GNUNET_PEERINFO_NewIteratorContext'
+ * @param transmit_success GNUNET_OK if transmission worked
  */
 static void
 iterator_start_receive (void *cls,

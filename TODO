@@ -1,9 +1,9 @@
 0.9.0pre1:
 * PEERINFO: [CG]
-  - trust: need *fast* way to check/update trust in peers
-           (async peerinfo would not be right; certainly not with the current API)
-* TOPOLOGY: [CG]
-  - needs more testing (especially F2F topology) & transport blacklisting
+  - finish implementing NEW API (cancel, timeout, submit-during-receive prevention)
+  - test new API
+  - transition existing code to new API
+  - remove support for old API
 * FS: [CG]
   - support recursive download even if filename is NULL and we hence
     do not generate files on disk (use temp_filename)
@@ -31,7 +31,9 @@
   - implement DV library (looks done)
   - implement DV transport plugin
   - implement testcases 
-  - implement performance tests
+  - implement performance tests (needs tbench)
+* TOPOLOGY:
+  - needs more testing (especially F2F topology) & transport blacklisting
 * UTIL:
   - only connect() sockets that are ready (select()) [Nils]
     [On W32, we need to select after calling socket before doing connect etc.]
