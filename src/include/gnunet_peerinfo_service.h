@@ -160,6 +160,8 @@ GNUNET_PEERINFO_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
                          void *callback_cls);
 
 
+struct GNUNET_PEERINFO_NewIteratorContext;
+
 
 /**
  * Call a method for each known matching host and change its trust
@@ -183,7 +185,7 @@ GNUNET_PEERINFO_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return NULL on error (in this case, 'callback' is never called!), 
  *         otherwise an iterator context
  */
-struct GNUNET_PEERINFO_IteratorContext *
+struct GNUNET_PEERINFO_NewIteratorContext *
 GNUNET_PEERINFO_iterate_new (struct GNUNET_PEERINFO_Handle *h,
 			     const struct GNUNET_PeerIdentity *peer,
 			     int trust_delta,
@@ -191,6 +193,15 @@ GNUNET_PEERINFO_iterate_new (struct GNUNET_PEERINFO_Handle *h,
 			     GNUNET_PEERINFO_Processor callback,
 			     void *callback_cls);
 
+
+
+/**
+ * Cancel an iteration over peer information.
+ *
+ * @param ic context of the iterator to cancel
+ */
+void
+GNUNET_PEERINFO_iterate_cancel_new (struct GNUNET_PEERINFO_NewIteratorContext *ic);
 
 
 /**
