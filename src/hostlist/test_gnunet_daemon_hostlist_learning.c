@@ -43,6 +43,7 @@
 
 static int timeout;
 static int adv_arrived;
+static int adv_sent;
 static int learned_hostlist_saved;
 static int learned_hostlist_downloaded;
 
@@ -110,6 +111,7 @@ static void shutdown_testcase()
         check_task);
     check_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  GNUNET_free (current_adv_uri);
   GNUNET_SCHEDULER_add_now (sched,
                             &clean_up, NULL);
 }
@@ -161,6 +163,22 @@ process_uris_recv (void *cls,
   return GNUNET_OK;
 }
 
+static int
+process_adv_sent (void *cls,
+              const char *subsystem,
+              const char *name,
+              uint64_t value,
+              int is_persistent)
+{
+  if ( (value == 1) && (adv_sent == GNUNET_NO))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Server has successfully sent advertisement\n"));
+    adv_sent = GNUNET_YES;
+  }
+  return GNUNET_OK;
+}
+
 /**
  * Check the server statistics regularly
  */
@@ -169,7 +187,7 @@ check_statistics (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   char *stat;
   GNUNET_asprintf (&stat,
-                   gettext_noop("Learned URI `%s' downloaded"),
+                   gettext_noop("Advertised URI `%s' downloaded"),
                    current_adv_uri);
   GNUNET_STATISTICS_get (learn_peer.stats,
                          "hostlist",
@@ -185,6 +203,13 @@ check_statistics (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                          GNUNET_TIME_UNIT_MINUTES,
                          NULL,
                          &process_uris_recv,
+                         NULL);
+  GNUNET_STATISTICS_get (adv_peer.stats,
+                         "hostlist",
+                         gettext_noop("# hostlist advertisements send"),
+                         GNUNET_TIME_UNIT_MINUTES,
+                         NULL,
+                         &process_adv_sent,
                          NULL);
   check_task = GNUNET_SCHEDULER_add_delayed (sched,
                                 CHECK_INTERVALL,
@@ -318,6 +343,8 @@ setup_adv_peer (struct PeerContext *p, const char *cfgname)
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
   GNUNET_ARM_start_services (p->cfg, sched, "core", NULL);
+  p->stats = GNUNET_STATISTICS_create (sched, "hostlist", p->cfg);
+  GNUNET_assert ( NULL != p->stats );
 }
 
 
@@ -392,6 +419,7 @@ run (void *cls,
 {
   timeout = GNUNET_NO;
   adv_arrived = GNUNET_NO;
+  adv_sent =GNUNET_NO;
   learned_hostlist_downloaded = GNUNET_NO;
   sched = s;
   timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
@@ -451,6 +479,13 @@ check ()
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Advertisement hostlist could not be downloaded from server\n");
+    return GNUNET_YES;
+  }
+
+  if (adv_sent == GNUNET_NO)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Advertisement was not sent from server to client\n");
     return GNUNET_YES;
   }
   return GNUNET_NO;

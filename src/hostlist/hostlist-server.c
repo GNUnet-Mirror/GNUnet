@@ -410,7 +410,7 @@ adv_transmit_ready ( void *cls, size_t size, void *buf)
   GNUNET_STATISTICS_set (stats,
                          gettext_noop("# hostlist advertisements send"),
                          hostlist_adv_count,
-                         GNUNET_YES);
+                         GNUNET_NO);
   return transmission_size;
 }
 
