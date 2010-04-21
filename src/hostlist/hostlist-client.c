@@ -1168,11 +1168,19 @@ load_hostlist_file ()
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("No `%s' specified in `%s' configuration, cannot load hostlists from file.\n"),
                   "HOSTLISTFILE", "HOSTLIST");
+      GNUNET_free ( filename );
       return;
     }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Loading saved hostlist entries from file `%s' \n"), filename);
+  if ( GNUNET_NO == GNUNET_DISK_file_test (filename) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Hostlist file `%s' is not existing\n"), filename);
+    if ( NULL != filename ) GNUNET_free ( filename );
+    return;
+  }
 
   struct GNUNET_BIO_ReadHandle * rh = GNUNET_BIO_read_open (filename);
   if (NULL == rh)
@@ -1181,7 +1189,7 @@ load_hostlist_file ()
                   _("Could not open file `%s' for reading to load hostlists: %s\n"), 
 		  filename,
 		  STRERROR (errno));
-      GNUNET_free (filename);
+      if ( NULL != filename ) GNUNET_free (filename);
       return;
     }
 

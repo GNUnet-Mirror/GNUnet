@@ -30,7 +30,7 @@
 #include "gnunet_resolver_service.h"
 #include "gnunet_statistics_service.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define START_ARM GNUNET_YES
 #define MAX_URL_LEN 1000
@@ -71,9 +71,62 @@ static struct PeerContext adv_peer;
 
 static struct PeerContext learn_peer;
 
+
 static void
-clean_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+waitpid_task (void *cls,
+              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct PeerContext *p = cls;
+
+#if START_ARM
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Killing ARM process.\n");
+  if (0 != PLIBC_KILL (p->arm_pid, SIGTERM))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+  if (GNUNET_OS_process_wait(p->arm_pid) != GNUNET_OK)
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "ARM process %u stopped\n", p->arm_pid);
+#endif
+  GNUNET_CONFIGURATION_destroy (p->cfg);
+}
+
+
+static void
+stop_cb (void *cls,
+         int success)
+{
+  struct PeerContext *p = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              success
+              ? "ARM stopped core service\n"
+              : "ARM failed to stop core service\n");
+  GNUNET_ARM_disconnect (p->arm);
+  p->arm = NULL;
+  /* make sure this runs after all other tasks are done */
+  GNUNET_SCHEDULER_add_delayed (sched,
+                                GNUNET_TIME_UNIT_SECONDS,
+                                &waitpid_task, p);
+}
+
+
+static void shutdown_testcase()
+{
+  if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (sched,
+                             timeout_task);
+    timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (check_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (sched,
+        check_task);
+    check_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if ( NULL != current_adv_uri ) GNUNET_free (current_adv_uri);
+
   if (adv_peer.th != NULL)
   {
     GNUNET_TRANSPORT_disconnect (adv_peer.th);
@@ -94,26 +147,16 @@ clean_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CORE_disconnect (learn_peer.core);
     learn_peer.core = NULL;
   }
-  GNUNET_SCHEDULER_shutdown (sched);
-}
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Asking ARM to stop core services\n");
+  learn_peer.arm = GNUNET_ARM_connect (learn_peer.cfg, sched, NULL);
+  GNUNET_ARM_stop_service (learn_peer.arm, "core", GNUNET_TIME_UNIT_SECONDS,
+                           &stop_cb, &learn_peer);
+  adv_peer.arm = GNUNET_ARM_connect (adv_peer.cfg, sched, NULL);
+  GNUNET_ARM_stop_service (adv_peer.arm, "core", GNUNET_TIME_UNIT_SECONDS,
+                           &stop_cb, &adv_peer);
 
-static void shutdown_testcase()
-{
-  if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (sched,
-                             timeout_task);
-    timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  if (check_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (sched,
-        check_task);
-    check_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  if ( NULL != current_adv_uri ) GNUNET_free (current_adv_uri);
-  GNUNET_SCHEDULER_add_now (sched,
-                            &clean_up, NULL);
+  GNUNET_SCHEDULER_shutdown (sched);
 }
 
 /**
@@ -178,6 +221,7 @@ process_adv_sent (void *cls,
   }
   return GNUNET_OK;
 }
+
 
 /**
  * Check the server statistics regularly
@@ -347,69 +391,6 @@ setup_adv_peer (struct PeerContext *p, const char *cfgname)
   GNUNET_assert ( NULL != p->stats );
 }
 
-
-
-static void
-waitpid_task (void *cls, 
-              const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct PeerContext *p = cls;
-
-#if START_ARM 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Killing ARM process.\n");
-  if (0 != PLIBC_KILL (p->arm_pid, SIGTERM))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  if (GNUNET_OS_process_wait(p->arm_pid) != GNUNET_OK)
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "ARM process %u stopped\n", p->arm_pid);
-#endif
-  GNUNET_CONFIGURATION_destroy (p->cfg);
-}
-
-
-static void
-stop_cb (void *cls, 
-         int success)
-{
-  struct PeerContext *p = cls;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              success
-              ? "ARM stopped core service\n"
-              : "ARM failed to stop core service\n");
-  GNUNET_ARM_disconnect (p->arm);
-  p->arm = NULL;
-  /* make sure this runs after all other tasks are done */
-  GNUNET_SCHEDULER_add_delayed (sched,
-                                GNUNET_TIME_UNIT_SECONDS,
-                                &waitpid_task, p);
-}
-
-
-static void
-stop_arm (struct PeerContext *p)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Asking ARM to stop core service\n");
-  p->arm = GNUNET_ARM_connect (p->cfg, sched, NULL);
-  GNUNET_ARM_stop_service (p->arm, "core", GNUNET_TIME_UNIT_SECONDS,
-                           &stop_cb, p);
-}
-
-
-/**
- * Try again to connect to transport service.
- */
-static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  stop_arm (&adv_peer);
-  stop_arm (&learn_peer);
-}
-
-
 static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
@@ -430,10 +411,7 @@ run (void *cls,
                                 CHECK_INTERVALL,
                                 &check_statistics,
                                 NULL);
-  GNUNET_SCHEDULER_add_delayed (sched,
-                                GNUNET_TIME_UNIT_FOREVER_REL,
-                                &shutdown_task,
-                                NULL);
+
   setup_adv_peer (&adv_peer, "test_learning_adv_peer.conf");
   setup_learn_peer (&learn_peer, "test_learning_learn_peer.conf");
 }
@@ -442,6 +420,7 @@ run (void *cls,
 static int
 check ()
 {
+  unsigned int failed;
   char *const argv[] = { "test-gnunet-daemon-hostlist",
     "-c", "learning_data.conf",
 #if VERBOSE
@@ -457,38 +436,43 @@ check ()
                       argv, "test-gnunet-daemon-hostlist",
                       "nohelp", options, &run, NULL);
 
+  failed = GNUNET_NO;
+
   if (timeout == GNUNET_YES)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Testcase could not set up two communicating peers, timeout\n");
-    return GNUNET_YES;
+    failed = GNUNET_YES;
   }
   if (adv_arrived == GNUNET_NO)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Learning peer did not recieve advertisement from server\n");
-    return GNUNET_YES;
+    failed = GNUNET_YES;
   }
   if ( learned_hostlist_saved == GNUNET_NO )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Advertisement hostlist was not saved in datastore\n");
-      return GNUNET_YES;
+                  "Advertised hostlist was not saved in datastore\n");
+      failed = GNUNET_YES;
     }
   if (learned_hostlist_downloaded == GNUNET_NO)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Advertisement hostlist could not be downloaded from server\n");
-    return GNUNET_YES;
+                "Advertised hostlist could not be downloaded from server\n");
+    failed = GNUNET_YES;
   }
 
   if (adv_sent == GNUNET_NO)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Advertisement was not sent from server to client\n");
-    return GNUNET_YES;
+                "Advertised was not sent from server to client\n");
+    failed = GNUNET_YES;
   }
-  return GNUNET_NO;
+  if ( GNUNET_YES == failed )
+    return GNUNET_YES;
+  else
+    return GNUNET_NO;
 }
 
 int
