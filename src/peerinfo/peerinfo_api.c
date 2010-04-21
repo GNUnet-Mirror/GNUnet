@@ -22,12 +22,6 @@
  * @file peerinfo/peerinfo_api.c
  * @brief API to access peerinfo service
  * @author Christian Grothoff
- *
- * TODO:
- * - document NEW API implementation
- * - add timeout for iteration
- * - implement cancellation of iteration
- * - prevent transmit during receive!
  */
 #include "platform.h"
 #include "gnunet_client_lib.h"
@@ -74,7 +68,7 @@ struct TransmissionQueueEntry
   void *cont_cls;
 
   /**
-   * When this request times out.
+   * Timeout for the operation.
    */
   struct GNUNET_TIME_Absolute timeout;
 
@@ -120,6 +114,12 @@ struct GNUNET_PEERINFO_Handle
    * Handle for the current transmission request, or NULL if none is pending.
    */
   struct GNUNET_CLIENT_TransmitHandle *th;
+
+  /**
+   * Set to GNUNET_YES if we are currently receiving replies from the
+   * service.
+   */
+  int in_receive;
 
 };
 
@@ -269,6 +269,8 @@ trigger_transmit (struct GNUNET_PEERINFO_Handle *h)
     return;
   if (h->th != NULL)
     return;
+  if (h->in_receive == GNUNET_YES)
+    return;
   h->th = GNUNET_CLIENT_notify_transmit_ready (h->client,
 					       tqe->size,
 					       GNUNET_TIME_absolute_get_remaining (tqe->timeout),
@@ -337,9 +339,24 @@ struct GNUNET_PEERINFO_NewIteratorContext
   void *callback_cls;
 
   /**
+   * Our entry in the transmission queue.
+   */
+  struct TransmissionQueueEntry *tqe;
+
+  /**
+   * Task responsible for timeout.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+  /**
    * Timeout for the operation.
    */
   struct GNUNET_TIME_Absolute timeout;
+
+  /**
+   * Are we now receiving?
+   */
+  int in_receive;
 };
 
 
@@ -358,6 +375,7 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   const struct GNUNET_HELLO_Message *hello;
   uint16_t ms;
 
+  ic->h->in_receive = GNUNET_NO;
   if (msg == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -365,7 +383,11 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                   "peerinfo");
       reconnect (ic->h);
       trigger_transmit (ic->h);
-      ic->callback (ic->callback_cls, NULL, NULL, 1);
+      if (ic->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+	GNUNET_SCHEDULER_cancel (ic->h->sched, 
+				 ic->timeout_task);
+      if (ic->callback != NULL)
+	ic->callback (ic->callback_cls, NULL, NULL, 1);
       GNUNET_free (ic);
       return;
     }
@@ -376,7 +398,11 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 		  "Received end of list of peers from peerinfo database\n");
 #endif
       trigger_transmit (ic->h);
-      ic->callback (ic->callback_cls, NULL, NULL, 0);
+      if (ic->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+	GNUNET_SCHEDULER_cancel (ic->h->sched, 
+				 ic->timeout_task);
+      if (ic->callback != NULL)
+	ic->callback (ic->callback_cls, NULL, NULL, 0);
       GNUNET_free (ic);
       return;
     }
@@ -387,7 +413,11 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       GNUNET_break (0);
       reconnect (ic->h);
       trigger_transmit (ic->h);
-      ic->callback (ic->callback_cls, NULL, NULL, 2);
+      if (ic->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+	GNUNET_SCHEDULER_cancel (ic->h->sched, 
+				 ic->timeout_task);
+      if (ic->callback != NULL)
+	ic->callback (ic->callback_cls, NULL, NULL, 2);
       GNUNET_free (ic);
       return;
     }
@@ -401,7 +431,11 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 	  GNUNET_break (0);
 	  reconnect (ic->h);
 	  trigger_transmit (ic->h);
-	  ic->callback (ic->callback_cls, NULL, NULL, 2);
+	  if (ic->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+	    GNUNET_SCHEDULER_cancel (ic->h->sched, 
+				     ic->timeout_task);
+	  if (ic->callback != NULL)
+	    ic->callback (ic->callback_cls, NULL, NULL, 2);
 	  GNUNET_free (ic);
           return;
         }
@@ -413,7 +447,9 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 	      "HELLO",
 	      GNUNET_i2s (&im->peer));
 #endif
-  ic->callback (ic->callback_cls, &im->peer, hello, ntohl (im->trust));
+  ic->h->in_receive = GNUNET_YES;
+  if (ic->callback != NULL)
+    ic->callback (ic->callback_cls, &im->peer, hello, ntohl (im->trust));
   GNUNET_CLIENT_receive (ic->h->client,
                          &peerinfo_handler,
                          ic,
@@ -442,10 +478,38 @@ iterator_start_receive (void *cls,
       GNUNET_free (ic);
       return;
     }  
+  ic->h->in_receive = GNUNET_YES;
+  ic->in_receive = GNUNET_YES;
+  ic->tqe = NULL;
   GNUNET_CLIENT_receive (ic->h->client,
                          &peerinfo_handler,
                          ic,
                          GNUNET_TIME_absolute_get_remaining (ic->timeout));
+}
+
+
+/**
+ * Peerinfo iteration request has timed out.  
+ *
+ * @param cls the 'struct GNUNET_PEERINFO_NewIteratorContext*'
+ * @param tc scheduler context
+ */
+static void
+signal_timeout (void *cls,
+		const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_PEERINFO_NewIteratorContext *ic = cls;
+
+  ic->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  ic->callback (ic->callback_cls, NULL, NULL, 1);
+  ic->callback = NULL;
+  if (ic->in_receive)
+    return; /* need to finish processing */
+  GNUNET_CONTAINER_DLL_remove (ic->h->tq_head,
+			       ic->h->tq_tail,
+			       ic->tqe);
+  GNUNET_free (ic->tqe);
+  GNUNET_free (ic);
 }
 
 
@@ -510,14 +574,19 @@ GNUNET_PEERINFO_iterate_new (struct GNUNET_PEERINFO_Handle *h,
       memcpy (&lpm->peer, peer, sizeof (struct GNUNET_PeerIdentity));
     }
   ic = GNUNET_malloc (sizeof (struct GNUNET_PEERINFO_NewIteratorContext));
+  ic->h = h;
+  ic->tqe = tqe;
   ic->callback = callback;
   ic->callback_cls = callback_cls;
   ic->timeout = GNUNET_TIME_relative_to_absolute (timeout);
+  ic->timeout_task = GNUNET_SCHEDULER_add_delayed (h->sched, 
+						   timeout,
+						   &signal_timeout,
+						   ic);
   tqe->timeout = ic->timeout;
   tqe->cont = &iterator_start_receive;
   tqe->cont_cls = ic;
-  /* FIXME: sort DLL by timeout? */
-  /* FIXME: add timeout task!? */
+  tqe->timeout = ic->timeout;
   GNUNET_CONTAINER_DLL_insert_after (h->tq_head,
 				     h->tq_tail,
 				     h->tq_tail,
@@ -536,11 +605,21 @@ GNUNET_PEERINFO_iterate_new (struct GNUNET_PEERINFO_Handle *h,
 void
 GNUNET_PEERINFO_iterate_cancel_new (struct GNUNET_PEERINFO_NewIteratorContext *ic)
 {
-  GNUNET_assert (0); 
-  // FIXME: not implemented
+  if (ic->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (ic->h->sched,
+			       ic->timeout_task);
+      ic->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  ic->callback = NULL;
+  if (ic->in_receive)
+    return; /* need to finish processing */
+  GNUNET_CONTAINER_DLL_remove (ic->h->tq_head,
+			       ic->h->tq_tail,
+			       ic->tqe);
+  GNUNET_free (ic->tqe);
+  GNUNET_free (ic);
 }
-
-
 
 
 
