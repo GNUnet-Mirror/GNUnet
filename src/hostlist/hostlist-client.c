@@ -486,6 +486,7 @@ static uint64_t checked_sub (uint64_t val1, uint64_t val2)
  */
 static void update_hostlist ( )
 {
+  char *stat;
   if ( (use_preconfigured_list == GNUNET_NO) && ( NULL != current_hostlist ) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -497,10 +498,15 @@ static void update_hostlist ( )
      {
        current_hostlist->times_used++;
        current_hostlist->quality = checked_add ( current_hostlist->quality, HOSTLIST_SUCCESSFUL_DOWNLOAD);
+       GNUNET_asprintf (&stat,
+                        gettext_noop("Learned URI `%s' downloaded"),
+                        current_hostlist->hostlist_uri);
+
        GNUNET_STATISTICS_update ( stats,
-                                  gettext_noop("Learned URI downloaded"),
+                                  stat,
                                   1,
                                   GNUNET_YES);
+       GNUNET_free (stat);
      }
      else
        current_hostlist->quality = checked_sub ( current_hostlist->quality, HOSTLIST_FAILED_DOWNLOAD );
@@ -1071,6 +1077,11 @@ advertisement_handler (void *cls,
   GNUNET_CONTAINER_DLL_insert(linked_list_head, linked_list_tail, hostlist);
   linked_list_size++;
   
+  GNUNET_STATISTICS_set (stats,
+                         gettext_noop("# advertised hostlist URIs"),
+                         linked_list_size,
+                         GNUNET_NO);
+
   if (MAX_NUMBER_HOSTLISTS >= linked_list_size)
     return GNUNET_OK;
 
@@ -1084,6 +1095,12 @@ advertisement_handler (void *cls,
 	      (unsigned long long) lowest_quality->quality);
   GNUNET_CONTAINER_DLL_remove (linked_list_head, linked_list_tail, lowest_quality);
   linked_list_size--;
+
+  GNUNET_STATISTICS_set (stats,
+                         gettext_noop("# advertised hostlist URIs"),
+                         linked_list_size,
+                         GNUNET_NO);
+
   GNUNET_free (lowest_quality);
   return GNUNET_OK;
 }
@@ -1199,6 +1216,10 @@ load_hostlist_file ()
                          gettext_noop("# hostlist URIs read from file"),
                          counter,
                          GNUNET_YES);
+  GNUNET_STATISTICS_set (stats,
+                         gettext_noop("# advertised hostlist URIs"),
+                         linked_list_size,
+                         GNUNET_NO);
 
   GNUNET_free_non_null (uri);
   emsg = NULL;

@@ -39,11 +39,14 @@
  * How long until wait until testcases fails
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20)
-#define CHECK_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2)
+#define CHECK_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 static int timeout;
 static int adv_arrived;
+static int learned_hostlist_saved;
 static int learned_hostlist_downloaded;
+
+static char * current_adv_uri;
 
 static struct GNUNET_SCHEDULER_Handle *sched;
 
@@ -125,14 +128,13 @@ timeout_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 static int
-process_stat (void *cls,
+process_downloads (void *cls,
               const char *subsystem,
               const char *name,
               uint64_t value,
               int is_persistent)
 {
-
-  if ( GNUNET_YES == GNUNET_YES)
+  if ( (value == 1) && (learned_hostlist_downloaded == GNUNET_NO) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _("Client has successfully downloaded advertised URI \n"));
@@ -143,18 +145,46 @@ process_stat (void *cls,
   return GNUNET_OK;
 }
 
+static int
+process_uris_recv (void *cls,
+              const char *subsystem,
+              const char *name,
+              uint64_t value,
+              int is_persistent)
+{
+  if ( (value == 1) && (learned_hostlist_saved == GNUNET_NO))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Client has successfully saved advertised URI \n"));
+    learned_hostlist_saved = GNUNET_YES;
+  }
+  return GNUNET_OK;
+}
+
 /**
  * Check the server statistics regularly
  */
 static void
 check_statistics (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  char *stat;
+  GNUNET_asprintf (&stat,
+                   gettext_noop("Learned URI `%s' downloaded"),
+                   current_adv_uri);
   GNUNET_STATISTICS_get (learn_peer.stats,
                          "hostlist",
-                         gettext_noop("Learned URI downloaded"),
+                         stat,
                          GNUNET_TIME_UNIT_MINUTES,
                          NULL,
-                         &process_stat,
+                         &process_downloads,
+                         NULL);
+  GNUNET_free (stat);
+  GNUNET_STATISTICS_get (learn_peer.stats,
+                         "hostlist",
+                         gettext_noop("# advertised hostlist URIs"),
+                         GNUNET_TIME_UNIT_MINUTES,
+                         NULL,
+                         &process_uris_recv,
                          NULL);
   check_task = GNUNET_SCHEDULER_add_delayed (sched,
                                 CHECK_INTERVALL,
@@ -173,7 +203,6 @@ static int ad_arrive_handler (void *cls,
 {
   char *hostname;
   char *expected_uri = GNUNET_malloc (MAX_URL_LEN);
-  char *recv_uri;
 
   unsigned long long port;
   size_t size;
@@ -206,16 +235,16 @@ static int ad_arrive_handler (void *cls,
     }
 
   incoming = (const struct GNUNET_MessageHeader *) message;
-  recv_uri = (char*) &incoming[1];
-  if ( 0 == strcmp( expected_uri, recv_uri ) )
+  current_adv_uri = strdup ((char*) &incoming[1]);
+  if ( 0 == strcmp( expected_uri, current_adv_uri ) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Recieved hostlist advertisement with URI `%s'as expected\n", recv_uri);
+                "Recieved hostlist advertisement with URI `%s'as expected\n", current_adv_uri);
     adv_arrived = GNUNET_YES;
   }
   else
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Expected URI `%s' and recieved URI `%s' differ\n", expected_uri, recv_uri);
+                "Expected URI `%s' and recieved URI `%s' differ\n", expected_uri, current_adv_uri);
   GNUNET_free ( expected_uri );
   GNUNET_free ( hostname );
   return GNUNET_OK;
@@ -412,6 +441,12 @@ check ()
                 "Learning peer did not recieve advertisement from server\n");
     return GNUNET_YES;
   }
+  if ( learned_hostlist_saved == GNUNET_NO )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Advertisement hostlist was not saved in datastore\n");
+      return GNUNET_YES;
+    }
   if (learned_hostlist_downloaded == GNUNET_NO)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
