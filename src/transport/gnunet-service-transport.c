@@ -67,6 +67,11 @@
 #define MAX_PENDING 128
 
 /**
+ * Size of the per-transport blacklist hash maps.
+ */
+#define TRANSPORT_BLACKLIST_HT_SIZE 16
+
+/**
  * How often should we try to reconnect to a peer using a particular
  * transport plugin before giving up?  Note that the plugin may be
  * added back to the list after PLUGIN_RETRY_FREQUENCY expires.
@@ -944,25 +949,23 @@ is_blacklisted (const struct GNUNET_PeerIdentity *peer, struct TransportPlugin *
   return GNUNET_NO;
 }
 
+
 static void
 add_peer_to_blacklist (struct GNUNET_PeerIdentity *peer, char *transport_name)
 {
   struct TransportPlugin *plugin;
 
   plugin = find_transport(transport_name);
-
   if (plugin == NULL) /* Nothing to do */
     return;
-
-  if (plugin->blacklist == NULL)
-    {
-      plugin->blacklist = GNUNET_CONTAINER_multihashmap_create(100); /* FIXME: estimated number of peers or what? */
-    }
-
+  if (plugin->blacklist == NULL)    
+    plugin->blacklist = GNUNET_CONTAINER_multihashmap_create(TRANSPORT_BLACKLIST_HT_SIZE);    
   GNUNET_assert(plugin->blacklist != NULL);
-
-  GNUNET_CONTAINER_multihashmap_put(plugin->blacklist, &peer->hashPubKey, NULL, GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
+  GNUNET_CONTAINER_multihashmap_put(plugin->blacklist, &peer->hashPubKey,
+				    NULL, 
+				    GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
 }
+
 
 /**
  * Read the blacklist file, containing transport:peer entries.
@@ -1014,6 +1017,7 @@ read_blacklist_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
       GNUNET_free (fn);
       return;
     }
+  /* FIXME: use mmap */
   data = GNUNET_malloc_large (frstat.st_size);
   if (frstat.st_size !=
       GNUNET_DISK_fn_read (fn, data, frstat.st_size))
@@ -1122,8 +1126,8 @@ read_blacklist_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
     }
   GNUNET_free (data);
   GNUNET_free (fn);
-
 }
+
 
 /**
  * Function called to notify a client about the socket being ready to
@@ -2512,13 +2516,16 @@ add_hello_for_peer (void *cls,
 
 /**
  * Create a fresh entry in our neighbour list for the given peer.
- * Will try to transmit our current HELLO to the new neighbour.
+ * Will try to transmit our current HELLO to the new neighbour. 
+ * Do not call this function directly, use 'setup_peer_check_blacklist.
  *
  * @param peer the peer for which we create the entry
+ * @param do_hello should we schedule transmitting a HELLO
  * @return the new neighbour list entry
  */
 static struct NeighbourList *
-setup_new_neighbour (const struct GNUNET_PeerIdentity *peer)
+setup_new_neighbour (const struct GNUNET_PeerIdentity *peer,
+		     int do_hello)
 {
   struct NeighbourList *n;
   struct TransportPlugin *tp;
@@ -2558,14 +2565,61 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer)
   n->timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
                                                   GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                                   &neighbour_timeout_task, n);
-  n->piter = GNUNET_PEERINFO_iterate (cfg, sched, peer,
-				      0, GNUNET_TIME_UNIT_FOREVER_REL,
-				      &add_hello_for_peer, n);
-  transmit_to_peer (NULL, NULL, 0,
-		    HELLO_ADDRESS_EXPIRATION,
-                    (const char *) our_hello, GNUNET_HELLO_size(our_hello),
-                    GNUNET_NO, n);
+  if (do_hello)
+    {
+      n->piter = GNUNET_PEERINFO_iterate (cfg, sched, peer,
+					  0, GNUNET_TIME_UNIT_FOREVER_REL,
+					  &add_hello_for_peer, n);
+      transmit_to_peer (NULL, NULL, 0,
+			HELLO_ADDRESS_EXPIRATION,
+			(const char *) our_hello, GNUNET_HELLO_size(our_hello),
+			GNUNET_NO, n);
+    }
   return n;
+}
+
+
+/**
+ * Function called after we have checked if communicating
+ * with a given peer is acceptable.  
+ *
+ * @param cls closure
+ * @param n NULL if communication is not acceptable
+ */
+typedef void (*SetupContinuation)(void *cls,
+				  struct NeighbourList *n);
+
+
+
+/**
+ * Obtain a 'struct NeighbourList' for the given peer.  If such an entry
+ * does not yet exist, check the blacklist.  If the blacklist says creating
+ * one is acceptable, create one and call the continuation; otherwise
+ * call the continuation with NULL.
+ *
+ * @param peer peer to setup or look up a struct NeighbourList for
+ * @param do_hello should we also schedule sending our HELLO to the peer
+ *        if this is a new record
+ * @param cont function to call with the 'struct NeigbhbourList*'
+ * @param cont_cls closure for cont
+ */
+static void
+setup_peer_check_blacklist (const struct GNUNET_PeerIdentity *peer,
+			    int do_hello,
+			    SetupContinuation cont,
+			    void *cont_cls)
+{
+  struct NeighbourList *n;
+
+  n = find_neighbour(peer);
+  if (n != NULL)
+    {
+      cont (cont_cls, n);
+      return;
+    }
+  /* FIXME: do actual blacklist checking here... */
+  cont (cont_cls,
+	setup_new_neighbour (peer, do_hello));
 }
 
 
@@ -2997,6 +3051,79 @@ handle_pong (void *cls, const struct GNUNET_MessageHeader *message,
 
 
 /**
+ * Try to validate a neighbour's address by sending him our HELLO and a PING.
+ *
+ * @param cls the 'struct ValidationEntry*'
+ * @param neighbour neighbour to validate, NULL if validation failed
+ */
+static void
+transmit_hello_and_ping (void *cls,
+			 struct NeighbourList *neighbour)
+{
+  struct ValidationEntry *va = cls;
+  struct ForeignAddressList *peer_address;
+  struct TransportPingMessage ping;
+  uint16_t hello_size;
+  size_t tsize;
+  char * message_buf;
+
+  if (neighbour == NULL)
+    {
+      /* FIXME: stats... */
+      GNUNET_free (va->transport_name);
+      GNUNET_free (va);
+      return;
+    }
+  neighbour->publicKey = va->publicKey;
+  neighbour->public_key_valid = GNUNET_YES;
+  peer_address = add_peer_address (neighbour,
+				   va->transport_name, NULL,
+				   (const void*) &va[1],
+				   va->addrlen);
+  if (peer_address == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Failed to add peer `%4s' for plugin `%s'\n",
+                  GNUNET_i2s (&neighbour->id), 
+		  va->transport_name);
+      GNUNET_free (va->transport_name);
+      GNUNET_free (va);
+      return;
+    }
+  hello_size = GNUNET_HELLO_size(our_hello);
+  tsize = sizeof(struct TransportPingMessage) + hello_size;
+  message_buf = GNUNET_malloc(tsize);
+  ping.challenge = htonl(va->challenge);
+  ping.header.size = htons(sizeof(struct TransportPingMessage));
+  ping.header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_PING);
+  memcpy(&ping.target, &neighbour->id, sizeof(struct GNUNET_PeerIdentity));
+  memcpy(message_buf, our_hello, hello_size);
+  memcpy(&message_buf[hello_size],
+	 &ping,
+	 sizeof(struct TransportPingMessage));
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Performing validation of address `%s' via `%s' for peer `%4s' sending `%s' (%u bytes) and `%s' (%u bytes)\n",
+              GNUNET_a2s ((const void*) &va[1], va->addrlen),
+	      va->transport_name,
+	      GNUNET_i2s (&neighbour->id),
+	      "HELLO", hello_size,
+	      "PING", sizeof (struct TransportPingMessage));
+#endif
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# PING messages sent for initial validation"),
+			    1,
+			    GNUNET_NO);      
+  transmit_to_peer (NULL, peer_address,
+		    GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+		    HELLO_VERIFICATION_TIMEOUT,
+		    message_buf, tsize,
+		    GNUNET_YES, neighbour);
+  GNUNET_free(message_buf);
+}
+
+
+/**
  * Check if the given address is already being validated; if not,
  * append the given address to the list of entries that are being be
  * validated and initiate validation.
@@ -3018,14 +3145,8 @@ run_validation (void *cls,
   struct GNUNET_PeerIdentity id;
   struct TransportPlugin *tp;
   struct ValidationEntry *va;
-  struct NeighbourList *neighbour;
-  struct ForeignAddressList *peer_address;
-  struct TransportPingMessage ping;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pk;
   struct CheckAddressExistsClosure caec;
-  char * message_buf;
-  uint16_t hello_size;
-  size_t tsize;
 
   GNUNET_assert (addr != NULL);
   GNUNET_STATISTICS_update (stats,
@@ -3106,49 +3227,9 @@ run_validation (void *cls,
 				     &id.hashPubKey,
 				     va,
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  neighbour = find_neighbour(&id);
-  if (neighbour == NULL)
-    neighbour = setup_new_neighbour(&id);
-  neighbour->publicKey = va->publicKey;
-  neighbour->public_key_valid = GNUNET_YES;
-  peer_address = add_peer_address (neighbour, tname, NULL, addr, addrlen);
-  if (peer_address == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Attempted to add peer `%4s' for plugin `%s'\n",
-                  GNUNET_i2s (&id), tname);
-    }
-  GNUNET_assert(peer_address != NULL);
-  hello_size = GNUNET_HELLO_size(our_hello);
-  tsize = sizeof(struct TransportPingMessage) + hello_size;
-  message_buf = GNUNET_malloc(tsize);
-  ping.challenge = htonl(va->challenge);
-  ping.header.size = htons(sizeof(struct TransportPingMessage));
-  ping.header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_PING);
-  memcpy(&ping.target, &id, sizeof(struct GNUNET_PeerIdentity));
-  memcpy(message_buf, our_hello, hello_size);
-  memcpy(&message_buf[hello_size],
-	 &ping,
-	 sizeof(struct TransportPingMessage));
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Performing validation of address `%s' via `%s' for peer `%4s' sending `%s' (%u bytes) and `%s' (%u bytes)\n",
-              GNUNET_a2s (addr, addrlen),
-	      tname,
-	      GNUNET_i2s (&id),
-	      "HELLO", hello_size,
-	      "PING", sizeof (struct TransportPingMessage));
-#endif
-  GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# PING messages sent for initial validation"),
-			    1,
-			    GNUNET_NO);      
-  transmit_to_peer (NULL, peer_address,
-		    GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-		    HELLO_VERIFICATION_TIMEOUT,
-		    message_buf, tsize,
-		    GNUNET_YES, neighbour);
-  GNUNET_free(message_buf);
+  setup_peer_check_blacklist (&id, GNUNET_NO,
+			      &transmit_hello_and_ping,
+			      va);
   return GNUNET_OK;
 }
 
@@ -3627,12 +3708,12 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct NeighbourList *n;
   struct GNUNET_TIME_Relative ret;
 
-  if (is_blacklisted(peer, plugin))
+  if (is_blacklisted (peer, plugin))
     return GNUNET_TIME_UNIT_FOREVER_REL;
 
   n = find_neighbour (peer);
   if (n == NULL)
-    n = setup_new_neighbour (peer);
+    n = setup_new_neighbour (peer, GNUNET_YES);
   service_context = n->plugins;
   while ((service_context != NULL) && (plugin != service_context->plugin))
     service_context = service_context->next;
@@ -3820,6 +3901,64 @@ handle_hello (void *cls,
 
 
 /**
+ * Closure for 'transmit_client_message'; followed by
+ * 'msize' bytes of the actual message.
+ */
+struct TransmitClientMessageContext 
+{
+  /**
+   * Client on whom's behalf we are sending.
+   */
+  struct GNUNET_SERVER_Client *client;
+
+  /**
+   * Timeout for the transmission.
+   */
+  struct GNUNET_TIME_Absolute timeout;
+  
+  /**
+   * Message priority.
+   */
+  uint32_t priority;
+
+  /**
+   * Size of the message in bytes.
+   */ 
+  uint16_t msize;
+};
+
+
+/**
+ * Schedule transmission of a message we got from a client to a peer.
+ *
+ * @param cls the 'struct TransmitClientMessageContext*'
+ * @param n destination, or NULL on error (in that case, drop the message)
+ */
+static void
+transmit_client_message (void *cls,
+			 struct NeighbourList *n)
+{
+  struct TransmitClientMessageContext *tcmc = cls;
+  struct TransportClient *tc;
+
+  tc = clients;
+  while ((tc != NULL) && (tc->client != tcmc->client))
+    tc = tc->next;
+
+  if (n != NULL)
+    {
+      transmit_to_peer (tc, NULL, tcmc->priority, 
+			GNUNET_TIME_absolute_get_remaining (tcmc->timeout),
+			(char *)&tcmc[1],
+			tcmc->msize, GNUNET_NO, n);
+    }
+  GNUNET_SERVER_receive_done (tcmc->client, GNUNET_OK);
+  GNUNET_SERVER_client_drop (tcmc->client);
+  GNUNET_free (tcmc);
+}
+
+
+/**
  * Handle SEND-message.
  *
  * @param cls closure (always NULL)
@@ -3831,10 +3970,9 @@ handle_send (void *cls,
              struct GNUNET_SERVER_Client *client,
              const struct GNUNET_MessageHeader *message)
 {
-  struct TransportClient *tc;
-  struct NeighbourList *n;
   const struct OutboundMessage *obm;
   const struct GNUNET_MessageHeader *obmm;
+  struct TransmitClientMessageContext *tcmc;
   uint16_t size;
   uint16_t msize;
 
@@ -3851,37 +3989,31 @@ handle_send (void *cls,
 			    size,
 			    GNUNET_NO);      
   obm = (const struct OutboundMessage *) message;
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' request from client with target `%4s'\n",
-              "SEND", GNUNET_i2s (&obm->peer));
-#endif
   obmm = (const struct GNUNET_MessageHeader *) &obm[1];
   msize = ntohs (obmm->size);
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s' request from client with target `%4s' and message of type %u and size %u\n",
+              "SEND", GNUNET_i2s (&obm->peer),
+              ntohs (obmm->type),
+              msize);
+#endif
   if (size != msize + sizeof (struct OutboundMessage))
     {
       GNUNET_break (0);
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
-  n = find_neighbour (&obm->peer);
-  if (n == NULL)
-    n = setup_new_neighbour (&obm->peer);
-  tc = clients;
-  while ((tc != NULL) && (tc->client != client))
-    tc = tc->next;
-
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Client asked to transmit %u-byte message of type %u to `%4s'\n",
-              ntohs (obmm->size),
-              ntohs (obmm->type), GNUNET_i2s (&obm->peer));
-#endif
-  transmit_to_peer (tc, NULL, ntohl (obm->priority), 
-		    GNUNET_TIME_relative_ntoh (obm->timeout),
-		    (char *)obmm, 
-		    ntohs (obmm->size), GNUNET_NO, n);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  tcmc = GNUNET_malloc (sizeof (struct TransmitClientMessageContext) + msize);
+  tcmc->client = client;
+  tcmc->priority = ntohl (obm->priority);
+  tcmc->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_ntoh (obm->timeout));
+  tcmc->msize = msize;
+  memcpy (&tcmc[1], obmm, msize);
+  GNUNET_SERVER_client_keep (client);
+  setup_peer_check_blacklist (&obm->peer, GNUNET_YES,
+			      &transmit_client_message,
+			      tcmc);
 }
 
 
