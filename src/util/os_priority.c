@@ -118,7 +118,7 @@ GNUNET_OS_set_process_priority (pid_t proc,
   /* Set process priority */
 #ifdef MINGW
   SetPriorityClass (GetCurrentProcess (), rprio);
-#else
+#elif LINUX
   if ( (0 == proc) ||
        (proc == getpid () ) )
     {
@@ -144,6 +144,9 @@ GNUNET_OS_set_process_priority (pid_t proc,
           return GNUNET_SYSERR;
         }
     }
+#else
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+	      "Priority management not availabe for this platform\n");
 #endif
   return GNUNET_OK;
 }
