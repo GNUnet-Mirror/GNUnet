@@ -139,7 +139,7 @@ check_local_fqdn(void *cls, const char *gnunet_fqdn)
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR |
                            GNUNET_ERROR_TYPE_BULK, "gethostname");
-      return NULL;
+      return;
     }
 #if DEBUG_RESOLVER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -151,7 +151,7 @@ check_local_fqdn(void *cls, const char *gnunet_fqdn)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Could not resolve our FQDN : %s %u\n"),
                 hstrerror (h_errno), h_errno);
-    return NULL;
+    return;
   }
 
   GNUNET_assert( 0 != host);
@@ -165,36 +165,6 @@ check_local_fqdn(void *cls, const char *gnunet_fqdn)
   GNUNET_assert( 0 == result);
 }
 
-static void
-check_local_hostname(void *cls, const char *hostname)
-{
-  int result = 0;
-
-  char own_hostname[GNUNET_OS_get_hostname_max_length() + 1];
-#if DEBUG_RESOLVER
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-          "Hostname resolved here is `%s'.\n", own_hostname);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-          "Hostname resolved using resolver is `%s'.\n", hostname);
-#endif
-
-  result = gethostname (own_hostname, sizeof (own_hostname) - 1);
-
-  if ( 0 != result )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-        "Could not resolve local hostname\n", own_hostname);
-  }
-  GNUNET_assert( 0 == result);
-
-  result = strcmp(hostname, own_hostname);
-  if ( 0 != result )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-        "Local resolved and resolver resolved hostnames are not equal\n", own_hostname);
-  }
-  GNUNET_assert( 0 == result);
-}
 
 
 static void
@@ -256,7 +226,6 @@ run(void *cls, struct GNUNET_SCHEDULER_Handle *sched, char * const *args,
   struct GNUNET_TIME_Relative timeout = GNUNET_TIME_relative_multiply(
       GNUNET_TIME_UNIT_MILLISECONDS, 2500);
   int count_ips = 0;
-  char * own_hostname;
   char * own_fqdn;
 
   memset(&sa, 0, sizeof(sa));
@@ -271,12 +240,6 @@ run(void *cls, struct GNUNET_SCHEDULER_Handle *sched, char * const *args,
   GNUNET_RESOLVER_hostname_resolve(sched, cfg, AF_UNSPEC, timeout,
       &check_hostname, cls);
 
-  /*
-   * Looking up our own hostname
-   */
-  own_hostname = GNUNET_RESOLVER_local_hostname_get();
-  check_local_hostname( NULL, own_hostname);
-  GNUNET_free (own_hostname);
 
   /*
    * Looking up our own fqdn
