@@ -198,9 +198,9 @@ GNUNET_FS_tree_encoder_create (struct GNUNET_FS_Handle *h,
  * @param offset current offset in the overall file
  * @return size of the corresponding IBlock
  */
-static uint16_t 
-compute_iblock_size (unsigned int height,
-		     uint64_t offset)
+uint16_t 
+GNUNET_FS_tree_compute_iblock_size (unsigned int height,
+				    uint64_t offset)
 {
   unsigned int ret;
   unsigned int i;
@@ -227,6 +227,52 @@ compute_iblock_size (unsigned int height,
 	ret++; 
     }
   return (uint16_t) (ret * sizeof(struct ContentHashKey));
+}
+
+
+/**
+ * Compute how many bytes of data should be stored in
+ * the specified node.
+ *
+ * @param fsize overall file size
+ * @param totaldepth depth of the entire tree
+ * @param offset offset of the node
+ * @param depth depth of the node
+ * @return number of bytes stored in this node
+ */
+size_t
+GNUNET_FS_tree_calculate_block_size (uint64_t fsize,
+				     unsigned int totaldepth,
+				     uint64_t offset,
+				     unsigned int depth)
+{
+  unsigned int i;
+  size_t ret;
+  uint64_t rsize;
+  uint64_t epos;
+  unsigned int chks;
+
+  GNUNET_assert (offset < fsize);
+  if (depth == totaldepth)
+    {
+      ret = DBLOCK_SIZE;
+      if (offset + ret > fsize)
+        ret = (size_t) (fsize - offset);
+      return ret;
+    }
+  /* FIXME: this code should be *equivalent* to the
+     GNUNET_FS_tree_compute_iblock_size function above! Remove duplication! */
+  rsize = DBLOCK_SIZE;
+  for (i = totaldepth-1; i > depth; i--)
+    rsize *= CHK_PER_INODE;
+  epos = offset + rsize * CHK_PER_INODE;
+  GNUNET_assert (epos > offset);
+  if (epos > fsize)
+    epos = fsize;
+  /* round up when computing #CHKs in our IBlock */
+  chks = (epos - offset + rsize - 1) / rsize;
+  GNUNET_assert (chks <= CHK_PER_INODE);
+  return chks * sizeof (struct ContentHashKey);
 }
 
 
@@ -297,8 +343,8 @@ void GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder * te)
     }
   else
     {
-      pt_size = compute_iblock_size (te->chk_tree_depth - te->current_depth,
-				     te->publish_offset); 
+      pt_size = GNUNET_FS_tree_compute_iblock_size (te->chk_tree_depth - te->current_depth,
+						    te->publish_offset); 
       pt_block = &te->chk_tree[te->current_depth *
 			       CHK_PER_INODE];
     }

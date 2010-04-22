@@ -77,7 +77,6 @@ setup_peer (struct PeerContext *p, const char *cfgname)
                                         "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
-  GNUNET_ARM_start_services (p->cfg, sched, "core", NULL);
 }
 
 
@@ -106,7 +105,6 @@ abort_ksk_search_task (void *cls,
       ksk_search = NULL;
       if (sks_search == NULL)
 	{
-	  fprintf (stderr, "initiating shutdown\n");
 	  GNUNET_FS_stop (fs);
 	}
     }
@@ -128,7 +126,6 @@ abort_sks_search_task (void *cls,
   GNUNET_assert (GNUNET_OK == GNUNET_FS_namespace_delete (ns, GNUNET_YES));
   if (ksk_search == NULL)
     {
-      fprintf (stderr, "initiating shutdown\n");
       GNUNET_FS_stop (fs);
     }    
 }

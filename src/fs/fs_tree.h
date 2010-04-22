@@ -144,6 +144,36 @@ void GNUNET_FS_tree_encoder_finish (struct GNUNET_FS_TreeEncoder * te,
 				    char **emsg);
 
 
+/**
+ * Compute the size of the current IBlock.
+ *
+ * @param height height of the IBlock in the tree (aka overall
+ *               number of tree levels minus depth); 0 == DBlock
+ * @param offset current offset in the overall file
+ * @return size of the corresponding IBlock
+ */
+uint16_t 
+GNUNET_FS_tree_compute_iblock_size (unsigned int height,
+				    uint64_t offset);
+
+
+/**
+ * Compute how many bytes of data should be stored in
+ * the specified node.
+ *
+ * @param fsize overall file size
+ * @param totaldepth depth of the entire tree
+ * @param offset offset of the node
+ * @param depth depth of the node
+ * @return number of bytes stored in this node
+ */
+size_t
+GNUNET_FS_tree_calculate_block_size (uint64_t fsize,
+				     unsigned int totaldepth,
+				     uint64_t offset,
+				     unsigned int depth);
+
+
 #if 0
 /* the functions below will be needed for persistence
    but are not yet implemented -- FIXME... */

@@ -29,6 +29,8 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_fs_service.h"
 
+#define VERBOSE GNUNET_NO
+
 #define START_ARM GNUNET_YES
 
 static struct GNUNET_SCHEDULER_Handle *sched;
@@ -65,7 +67,6 @@ setup_peer (struct PeerContext *p, const char *cfgname)
                                         "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
-  GNUNET_ARM_start_services (p->cfg, sched, "core", NULL);
 }
 
 
