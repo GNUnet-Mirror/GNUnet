@@ -30,6 +30,7 @@
 #include "fs_test_lib.h"
 #include "gnunet_testing_lib.h"
 
+#define CONNECT_ATTEMPTS 4
 
 /**
  * Handle for a daemon started for testing FS.
@@ -423,6 +424,7 @@ GNUNET_FS_TEST_daemons_connect (struct GNUNET_SCHEDULER_Handle *sched,
   GNUNET_TESTING_daemons_connect (daemon1->daemon,
 				  daemon2->daemon,
 				  timeout,
+				  CONNECT_ATTEMPTS,
 				  &notify_connection,
 				  ncc);
 }
