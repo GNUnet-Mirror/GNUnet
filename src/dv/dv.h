@@ -29,6 +29,7 @@
 #include "gnunet_common.h"
 
 #define DEBUG_DV_GOSSIP GNUNET_NO
+#define DEBUG_DV_GOSSIP_RECEIPT GNUNET_YES
 #define DEBUG_DV GNUNET_YES
 #define DEBUG_DV_API GNUNET_YES
 
@@ -62,17 +63,17 @@ struct GNUNET_DV_MessageReceived
   /**
    * The message that was sent
    */
-  size_t msg_len;
+  uint32_t msg_len;
 
   /**
    * The distance to the peer that we received the message from
    */
-  size_t distance;
+  uint32_t distance;
 
   /**
    * Length of the sender address, appended to end of this message
    */
-  size_t sender_address_len;
+  uint32_t sender_address_len;
 
 };
 
@@ -102,12 +103,12 @@ struct GNUNET_DV_ConnectMessage
   /**
    * The distance to the peer that we received the message from
    */
-  size_t distance;
+  uint32_t distance;
 
   /**
    * Length of the sender address, appended to end of this message
    */
-  size_t sender_address_len;
+  uint32_t sender_address_len;
 
 };
 
@@ -128,19 +129,14 @@ struct GNUNET_DV_SendMessage
   struct GNUNET_PeerIdentity target;
 
   /**
-   * The message(s) to be sent.
-   */
-  char *msgbuf;
-
-  /**
    * The size of the msgbuf
    */
-  size_t msgbuf_size;
+  uint32_t msgbuf_size;
 
   /**
    * Message priority
    */
-  size_t priority;
+  uint32_t priority;
 
   /**
    * How long can we delay sending?
@@ -150,7 +146,12 @@ struct GNUNET_DV_SendMessage
   /**
    * Size of the address (appended to end of struct)
    */
-  size_t addrlen;
+  uint32_t addrlen;
+
+  /**
+   * The message(s) to be sent.
+   */
+  char *msgbuf;
 
   /*
    * Sender, appended to end of struct tells via whom
@@ -185,7 +186,7 @@ typedef struct
   /**
    * Neighbor ID to use when sending to this peer
    */
-  unsigned int neighbor_id GNUNET_PACKED;
+  uint32_t neighbor_id GNUNET_PACKED;
 
 } p2p_dv_MESSAGE_NeighborInfo;
 

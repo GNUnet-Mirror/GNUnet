@@ -235,7 +235,7 @@ static void process_pending_message(struct GNUNET_DV_Handle *handle)
 
   if (NULL ==
       (handle->th = GNUNET_CLIENT_notify_transmit_ready (handle->client,
-                                                    ntohs(handle->current->msg->msgbuf_size),
+                                                    ntohl(handle->current->msg->msgbuf_size),
                                                     handle->current->msg->timeout,
                                                     GNUNET_YES,
                                                     &transmit_pending, handle)))
@@ -306,8 +306,8 @@ void handle_message_receipt (void *cls,
     return;
 
   received_msg = (struct GNUNET_DV_MessageReceived *)msg;
-  packed_msg_len = ntohs(received_msg->msg_len);
-  sender_address_len = ntohs(received_msg->sender_address_len);
+  packed_msg_len = ntohl(received_msg->msg_len);
+  sender_address_len = ntohl(received_msg->sender_address_len);
 
   GNUNET_assert(ntohs(msg->size) == (sizeof(struct GNUNET_DV_MessageReceived) + packed_msg_len + sender_address_len));
 #if DEBUG_DV
@@ -371,10 +371,10 @@ int GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
   msg->header.size = htons(sizeof(struct GNUNET_DV_SendMessage) + addrlen + msgbuf_size);
   msg->header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND);
   memcpy(&msg->target, target, sizeof(struct GNUNET_PeerIdentity));
-  msg->msgbuf_size = htons(msgbuf_size);
+  msg->msgbuf_size = htonl(msgbuf_size);
   msg->priority = htonl(priority);
   msg->timeout = timeout;
-  msg->addrlen = htons(addrlen);
+  msg->addrlen = htonl(addrlen);
   memcpy(&msg[1], addr, addrlen);
   end_of_message = (char *)&msg[1];
   end_of_message = &end_of_message[addrlen];
