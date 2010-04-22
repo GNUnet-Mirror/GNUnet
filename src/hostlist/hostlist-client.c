@@ -330,7 +330,6 @@ static char *
 get_bootstrap_url ()
 {
   char *servers;
-  char *ret;
   size_t urls;
   size_t pos;
 
@@ -383,9 +382,8 @@ get_bootstrap_url ()
         }
       pos--;    
     }
-  ret = GNUNET_strdup (&servers[pos]);
   GNUNET_free (servers);
-  return ret;
+  return GNUNET_strdup (&servers[pos]);
 }
 
 /**
@@ -1168,7 +1166,6 @@ load_hostlist_file ()
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("No `%s' specified in `%s' configuration, cannot load hostlists from file.\n"),
                   "HOSTLISTFILE", "HOSTLIST");
-      GNUNET_free ( filename );
       return;
     }
 
@@ -1178,7 +1175,7 @@ load_hostlist_file ()
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _("Hostlist file `%s' is not existing\n"), filename);
-    if ( NULL != filename ) GNUNET_free ( filename );
+    GNUNET_free ( filename );
     return;
   }
 
@@ -1189,7 +1186,7 @@ load_hostlist_file ()
                   _("Could not open file `%s' for reading to load hostlists: %s\n"), 
 		  filename,
 		  STRERROR (errno));
-      if ( NULL != filename ) GNUNET_free (filename);
+      GNUNET_free (filename);
       return;
     }
 
@@ -1239,7 +1236,7 @@ load_hostlist_file ()
 
 
 /**
- * Method to load persistent hostlist file during hostlist client shutdown
+ * Method to save persistent hostlist file during hostlist client shutdown
  * @param shutdown set if called because of shutdown, entries in linked list will be destroyed
  */
 static void save_hostlist_file ( int shutdown )
@@ -1259,7 +1256,6 @@ static void save_hostlist_file ( int shutdown )
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("No `%s' specified in `%s' configuration, cannot save hostlists to file.\n"),
                   "HOSTLISTFILE", "HOSTLIST");
-                  GNUNET_free (filename);
       return;
     }
   wh = GNUNET_BIO_write_open (filename);
@@ -1269,7 +1265,7 @@ static void save_hostlist_file ( int shutdown )
                   _("Could not open file `%s' for writing to save hostlists: %s\n"),
                   filename,
 		  STRERROR (errno));
-                  GNUNET_free (filename);
+      GNUNET_free (filename);
       return;
     }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -1360,18 +1356,16 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
 					     "HTTP-PROXY", 
 					     &proxy))
     proxy = NULL;
+  learning = learn;
   *ch = &connect_handler;
   *dh = &disconnect_handler;
-  if (learn)
-    *msgh = &advertisement_handler;
-  else
-    *msgh = NULL;
   linked_list_head = NULL;
   linked_list_tail = NULL;
   use_preconfigured_list = GNUNET_YES;
-  learning = learn;
+
   if ( GNUNET_YES == learning )
   {
+    *msgh = &advertisement_handler;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Learning is enabled on this peer\n"));
     load_hostlist_file ();
@@ -1387,6 +1381,7 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Learning is not enabled on this peer\n"));
+    *msgh = NULL;
     if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg,
                                                             "HOSTLIST",
                                                             "HOSTLISTFILE",
@@ -1426,7 +1421,8 @@ GNUNET_HOSTLIST_client_stop ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Hostlist client shutdown\n");
 #endif
-  save_hostlist_file ( GNUNET_YES );
+  if ( GNUNET_YES == learning )
+    save_hostlist_file ( GNUNET_YES );
 
   if (current_task != GNUNET_SCHEDULER_NO_TASK)
     {
