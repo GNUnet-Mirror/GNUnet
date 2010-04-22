@@ -287,7 +287,7 @@ static int ad_arrive_handler (void *cls,
     if ( NULL != expected_uri ) GNUNET_free ( expected_uri );
     return GNUNET_SYSERR;
     }
-  hostname = GNUNET_RESOLVER_local_hostname_get ();
+  hostname = GNUNET_RESOLVER_local_fqdn_get ();
   if (NULL != hostname)
     {
       size = strlen (hostname);
