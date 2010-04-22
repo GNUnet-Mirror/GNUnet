@@ -231,7 +231,7 @@ check_statistics (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   char *stat;
   GNUNET_asprintf (&stat,
-                   gettext_noop("Advertised URI `%s' downloaded"),
+                   gettext_noop("# advertised URI `%s' downloaded"),
                    current_adv_uri);
   GNUNET_STATISTICS_get (learn_peer.stats,
                          "hostlist",
@@ -284,6 +284,7 @@ static int ad_arrive_handler (void *cls,
     {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Could not read advertising server's configuration\n" );
+    if ( NULL != expected_uri ) GNUNET_free ( expected_uri );
     return GNUNET_SYSERR;
     }
   hostname = GNUNET_RESOLVER_local_hostname_get ();
@@ -314,8 +315,8 @@ static int ad_arrive_handler (void *cls,
   else
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Expected URI `%s' and recieved URI `%s' differ\n", expected_uri, current_adv_uri);
-  GNUNET_free ( expected_uri );
-  GNUNET_free ( hostname );
+  if ( NULL != expected_uri ) GNUNET_free ( expected_uri );
+  if ( NULL != expected_uri )  GNUNET_free ( hostname );
   return GNUNET_OK;
 }
 
@@ -462,7 +463,6 @@ check ()
                 "Advertised hostlist could not be downloaded from server\n");
     failed = GNUNET_YES;
   }
-
   if (adv_sent == GNUNET_NO)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
