@@ -693,6 +693,38 @@ GNUNET_RESOLVER_local_hostname_get ( )
 }
 
 /**
+ * Get local fully qualified domain name
+ * @return fqdn
+ */
+char *
+GNUNET_RESOLVER_local_fqdn_get ( void )
+{
+  struct hostent *host;
+  char hostname[GNUNET_OS_get_hostname_max_length() + 1];
+
+
+  if (0 != gethostname (hostname, sizeof (hostname) - 1))
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR |
+                           GNUNET_ERROR_TYPE_BULK, "gethostname");
+      return NULL;
+    }
+#if DEBUG_RESOLVER
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              _("Resolving our FQDN `%s'\n"), hostname);
+#endif
+  host = gethostbyname ( hostname );
+  if ( NULL == host)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Could not resolve our FQDN : %s\n"),
+                hstrerror (h_errno));
+    return NULL;
+  }
+  return GNUNET_strdup (host->h_name);
+}
+
+/**
  * Looking our own hostname.
  *
  * @param sched scheduler to use

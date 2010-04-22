@@ -128,6 +128,44 @@ check_127(void *cls, const struct sockaddr *sa, socklen_t salen)
 }
 
 static void
+check_local_fqdn(void *cls, const char *gnunet_fqdn)
+{
+  int result = 0;
+
+  struct hostent *host;
+  char hostname[GNUNET_OS_get_hostname_max_length() + 1];
+
+  if (0 != gethostname (hostname, sizeof (hostname) - 1))
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR |
+                           GNUNET_ERROR_TYPE_BULK, "gethostname");
+      return NULL;
+    }
+#if DEBUG_RESOLVER
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              _("Resolving our FQDN `%s'\n"), hostname);
+#endif
+  host = gethostbyname ( hostname );
+  if ( NULL == host)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Could not resolve our FQDN : %s %u\n"),
+                hstrerror (h_errno), h_errno);
+    return NULL;
+  }
+
+  GNUNET_assert( 0 != host);
+
+  result = strcmp(host->h_name, gnunet_fqdn);
+  if ( 0 != result )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Local resolved and resolver resolved fqdns are not equal\n");
+  }
+  GNUNET_assert( 0 == result);
+}
+
+static void
 check_local_hostname(void *cls, const char *hostname)
 {
   int result = 0;
@@ -219,6 +257,7 @@ run(void *cls, struct GNUNET_SCHEDULER_Handle *sched, char * const *args,
       GNUNET_TIME_UNIT_MILLISECONDS, 2500);
   int count_ips = 0;
   char * own_hostname;
+  char * own_fqdn;
 
   memset(&sa, 0, sizeof(sa));
   sa.sin_family = AF_INET;
@@ -238,6 +277,13 @@ run(void *cls, struct GNUNET_SCHEDULER_Handle *sched, char * const *args,
   own_hostname = GNUNET_RESOLVER_local_hostname_get();
   check_local_hostname( NULL, own_hostname);
   GNUNET_free (own_hostname);
+
+  /*
+   * Looking up our own fqdn
+   */
+  own_fqdn = GNUNET_RESOLVER_local_fqdn_get();
+  check_local_fqdn( NULL, own_fqdn);
+  GNUNET_free_non_null (own_fqdn);
 
   /*
    * Testing non-local DNS resolution
