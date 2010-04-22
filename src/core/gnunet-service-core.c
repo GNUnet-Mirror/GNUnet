@@ -2774,6 +2774,8 @@ handle_pong (struct Neighbour *n,
               "Core service receives `%s' request from `%4s'.\n",
               "PONG", GNUNET_i2s (&n->peer));
 #endif
+  /* mark as garbage, just to be sure */
+  memset (&t, 255, sizeof (t));
   if (GNUNET_OK !=
       do_decrypt (n,
                   &n->peer.hashPubKey,
