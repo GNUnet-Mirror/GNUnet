@@ -617,7 +617,7 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("Hostlist service starts on port %llu\n"),
 	      port);
-  hostname = GNUNET_RESOLVER_local_hostname_get ();
+  hostname = GNUNET_RESOLVER_local_fqdn_get ();
   if (NULL != hostname)
     {
       size = strlen (hostname);
