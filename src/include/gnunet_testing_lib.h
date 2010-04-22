@@ -175,12 +175,15 @@ GNUNET_TESTING_daemon_get_config (struct GNUNET_TESTING_Daemon *d);
  * @param d2 handle for the second daemon
  * @param timeout how long is the connection attempt
  *        allowed to take?
+ * @param max_connect_attempts how many times should we try to reconnect
+ *        (within timeout)
  * @param cb function to call at the end
  * @param cb_cls closure for cb
  */
 void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 				     struct GNUNET_TESTING_Daemon *d2,
 				     struct GNUNET_TIME_Relative timeout,
+				     unsigned int max_connect_attempts,
 				     GNUNET_TESTING_NotifyConnection cb,
 				     void *cb_cls);
 
@@ -393,6 +396,16 @@ struct GNUNET_TESTING_Daemon
    * Handle to the server.
    */
   struct GNUNET_CORE_Handle *server;
+
+  /**
+   * Handle to the transport service of this peer
+   */
+  struct GNUNET_TRANSPORT_Handle *th;
+
+  /**
+   * HELLO message for this peer
+   */
+  struct GNUNET_HELLO_Message *hello;
 };
 
 /**

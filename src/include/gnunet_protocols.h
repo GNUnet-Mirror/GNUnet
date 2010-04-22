@@ -183,6 +183,7 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY 30
 
+
 /**
  * Reply from blacklisting client (answer to blacklist query).
  */
@@ -494,37 +495,42 @@ extern "C"
 /**
  * Local and P2P generic DHT message start type
  */
-#define GNUNET_MESSAGE_TYPE_DHT 142
+#define GNUNET_MESSAGE_TYPE_DHT_ROUTE 142
+
+/**
+ * Local and P2P generic DHT message start type
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_ROUTE_RESULT 143
 
 /**
  * Local and P2P generic DHT message stop type
  */
-#define GNUNET_MESSAGE_TYPE_DHT_STOP 143
+#define GNUNET_MESSAGE_TYPE_DHT_STOP 144
 
 /**
  * Local and message acknowledgment
  */
-#define GNUNET_MESSAGE_TYPE_DHT_ACK 144
+#define GNUNET_MESSAGE_TYPE_DHT_ACK 145
 
 /**
  * Local DHT Put message, from API to service
  */
-#define GNUNET_MESSAGE_TYPE_DHT_PUT 145
+#define GNUNET_MESSAGE_TYPE_DHT_PUT 146
 
 /**
  * Local DHT Get message, from API to service
  */
-#define GNUNET_MESSAGE_TYPE_DHT_GET 146
+#define GNUNET_MESSAGE_TYPE_DHT_GET 147
 
 /**
  * Local DHT Get stop message, from API to service
  */
-#define GNUNET_MESSAGE_TYPE_DHT_GET_STOP 147
+#define GNUNET_MESSAGE_TYPE_DHT_GET_STOP 148
 
 /**
  * Local DHT Get result message, from service to API
  */
-#define GNUNET_MESSAGE_TYPE_DHT_GET_RESULT 148
+#define GNUNET_MESSAGE_TYPE_DHT_GET_RESULT 149
 
 /**
  * Local DHT Get message, from API to service
