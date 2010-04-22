@@ -472,6 +472,12 @@ iterator_start_receive (void *cls,
 
   if (GNUNET_OK != transmit_success)
     {
+      if (ic->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+	{
+	  GNUNET_SCHEDULER_cancel (ic->h->sched,
+				   ic->timeout_task);
+	  ic->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+	}
       ic->callback (ic->callback_cls, NULL, NULL, 2);
       reconnect (ic->h);
       trigger_transmit (ic->h);
