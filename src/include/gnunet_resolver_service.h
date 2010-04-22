@@ -112,12 +112,13 @@ typedef void (*GNUNET_RESOLVER_HostnameCallback) (void *cls,
                                                   const char *hostname);
 
 /**
- * Get local hostname
+ * Get local fully qualified domain name
  *
  * @return local hostname, caller must free
  */
 char *
-GNUNET_RESOLVER_local_hostname_get ( void );
+GNUNET_RESOLVER_local_fqdn_get ( void );
+
 
 /**
  * Perform a reverse DNS lookup.
