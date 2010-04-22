@@ -685,7 +685,7 @@ tcp_plugin_send (void *cls,
 			    gettext_noop ("# bytes TCP was asked to transmit"),
 			    msgbuf_size,
 			    GNUNET_NO);      
-  /* FIXME: we could do this a cheaper with a hash table
+  /* FIXME: we could do this cheaper with a hash table
      where we could restrict the iteration to entries that match
      the target peer... */
   if (session == NULL)
@@ -1253,6 +1253,12 @@ disconnect_notify (void *cls, struct GNUNET_SERVER_Client *client)
 /**
  * Add the IP of our network interface to the list of
  * our external IP addresses.
+ *
+ * @param cls the 'struct Plugin*'
+ * @param name name of the interface
+ * @param isDefault do we think this may be our default interface
+ * @param addr address of the interface
+ * @param addrlen number of bytes in addr
  */
 static int
 process_interfaces (void *cls,

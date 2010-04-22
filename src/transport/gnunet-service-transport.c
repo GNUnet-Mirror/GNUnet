@@ -3475,6 +3475,7 @@ run_validation (void *cls,
   struct ValidationEntry *va;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pk;
   struct CheckAddressExistsClosure caec;
+  struct OwnAddressList *oal;
 
   GNUNET_assert (addr != NULL);
   GNUNET_STATISTICS_update (stats,
@@ -3490,10 +3491,28 @@ run_validation (void *cls,
                   ("Transport `%s' not loaded, will not try to validate peer address using this transport.\n"),
                   tname);
       GNUNET_STATISTICS_update (stats,
-				gettext_noop ("# peer addresses not validated (no applicable transport plugin available)"),
+				gettext_noop ("# peer addresses not validated (plugin not available)"),
 				1,
 				GNUNET_NO);      
       return GNUNET_OK;
+    }
+  /* check if this is one of our own addresses */
+  oal = tp->addresses;
+  while (NULL != oal)
+    {
+      if ( (oal->addrlen == addrlen) &&
+	   (0 == memcmp (oal->addr,
+			 addr,
+			 addrlen)) )
+	{
+	  /* not plausible, this address is equivalent to our own address! */
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# peer addresses not validated (loopback)"),
+				    1,
+				    GNUNET_NO);      
+	  return GNUNET_OK;
+	}
+      oal = oal->next;
     }
   GNUNET_HELLO_get_key (chvc->hello, &pk);
   GNUNET_CRYPTO_hash (&pk,
