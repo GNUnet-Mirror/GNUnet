@@ -499,7 +499,7 @@ static void update_hostlist ( )
        current_hostlist->times_used++;
        current_hostlist->quality = checked_add ( current_hostlist->quality, HOSTLIST_SUCCESSFUL_DOWNLOAD);
        GNUNET_asprintf (&stat,
-                        gettext_noop("Advertised URI `%s' downloaded"),
+                        gettext_noop("# advertised URI `%s' downloaded"),
                         current_hostlist->hostlist_uri);
 
        GNUNET_STATISTICS_update ( stats,
