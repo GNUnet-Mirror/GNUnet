@@ -33,6 +33,8 @@
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 
+#define CONNECT_ATTEMPTS 3
+
 
 static int ok;
 
@@ -106,13 +108,13 @@ static void my_cb(void *cls,
       last = d;
       return;
     }
-  GNUNET_TESTING_daemons_connect (last, d, TIMEOUT,
+  GNUNET_TESTING_daemons_connect (last, d, TIMEOUT, CONNECT_ATTEMPTS,
 				  &notify_connect_complete,
 				  NULL);
   if (peers_left == 0)
     {
       /* close circle */
-      GNUNET_TESTING_daemons_connect (d, first, TIMEOUT,
+      GNUNET_TESTING_daemons_connect (d, first, TIMEOUT, CONNECT_ATTEMPTS,
 				      &notify_connect_complete,
 				      NULL);
     }
