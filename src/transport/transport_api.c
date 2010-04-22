@@ -1375,8 +1375,7 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
     }
   GNUNET_free_non_null (handle->my_hello);
   handle->my_hello = NULL;
-  GNUNET_ARM_stop_services (handle->cfg, handle->sched, "transport",
-                            "peerinfo", NULL);
+
   if (NULL != handle->network_handle)
     {
       GNUNET_CLIENT_notify_transmit_ready_cancel (handle->network_handle);
