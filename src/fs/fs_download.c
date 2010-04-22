@@ -25,8 +25,6 @@
  * TODO:
  * - handle recursive downloads (need directory & 
  *   fs-level download-parallelism management)
- * - handle recursive downloads where directory file is
- *   NOT saved on disk (need temporary file instead then!)
  * - location URI suppport (can wait, easy)
  * - check if blocks exist already (can wait, easy)
  * - check if iblocks can be computed from existing blocks (can wait, hard)
@@ -39,6 +37,24 @@
 #include "fs_tree.h"
 
 #define DEBUG_DOWNLOAD GNUNET_NO
+
+/**
+ * Determine if the given download (options and meta data) should cause
+ * use to try to do a recursive download.
+ */
+static int
+is_recursive_download (struct GNUNET_FS_DownloadContext *dc)
+{
+  return  (0 != (dc->options & GNUNET_FS_DOWNLOAD_OPTION_RECURSIVE)) &&
+    ( (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (dc->meta)) ||
+      ( (dc->meta == NULL) &&
+	( (NULL == dc->filename) ||	       
+	  ( (strlen (dc->filename) >= strlen (GNUNET_FS_DIRECTORY_EXT)) &&
+	    (NULL !=
+	     strstr (dc->filename + strlen(dc->filename) - strlen(GNUNET_FS_DIRECTORY_EXT),
+		     GNUNET_FS_DIRECTORY_EXT)) ) ) ) );		     
+}
+
 
 /**
  * We're storing the IBLOCKS after the DBLOCKS on disk (so that we
@@ -293,7 +309,6 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
 			       block,
 			       len)) )
     {
-      /* FIXME: also check query matches!? */
       if (0 == memcmp (&key,
 		       &chk->key,
 		       sizeof (GNUNET_HashCode)))
@@ -698,9 +713,6 @@ full_recursive_download (struct GNUNET_FS_DownloadContext *dc)
     }
   else
     {
-      /* FIXME: need to initialize (and use) temp_filename
-	 in various places in order for this assertion to
-	 not fail; right now, it will always fail! */
       GNUNET_assert (dc->temp_filename != NULL);
       h = GNUNET_DISK_file_open (dc->temp_filename,
 				 GNUNET_DISK_OPEN_READ,
@@ -917,14 +929,7 @@ process_result_with_request (void *cls,
       /* do recursive download if option is set and either meta data
 	 says it is a directory or if no meta data is given AND filename 
 	 ends in '.gnd' (top-level case) */
-      if ( (0 != (dc->options & GNUNET_FS_DOWNLOAD_OPTION_RECURSIVE)) &&
-	   ( (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (dc->meta)) ||
-	     ( (dc->meta == NULL) &&
-	       ( (NULL == dc->filename) ||	       
-		 ( (strlen (dc->filename) >= strlen (GNUNET_FS_DIRECTORY_EXT)) &&
-		   (NULL !=
-		    strstr (dc->filename + strlen(dc->filename) - strlen(GNUNET_FS_DIRECTORY_EXT),
-			    GNUNET_FS_DIRECTORY_EXT)) ) ) ) ) )	
+      if (is_recursive_download (dc))
 	GNUNET_FS_directory_list_contents (prc->size,
 					   pt,
 					   off,
@@ -960,14 +965,7 @@ process_result_with_request (void *cls,
 				      dc->filename);
 	}
 
-      if ( (0 != (dc->options & GNUNET_FS_DOWNLOAD_OPTION_RECURSIVE)) &&
-	   ( (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (dc->meta)) ||
-	     ( (dc->meta == NULL) &&
-	       ( (NULL == dc->filename) ||	       
-		 ( (strlen (dc->filename) >= strlen (GNUNET_FS_DIRECTORY_EXT)) &&
-		   (NULL !=
-		    strstr (dc->filename + strlen(dc->filename) - strlen(GNUNET_FS_DIRECTORY_EXT),
-			    GNUNET_FS_DIRECTORY_EXT)) ) ) ) ) )	
+      if (is_recursive_download (dc))
 	full_recursive_download (dc);
       if (dc->child_head == NULL)
 	{
@@ -1352,6 +1350,10 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
   dc->options = options;
   dc->active = GNUNET_CONTAINER_multihashmap_create (1 + 2 * (length / DBLOCK_SIZE));
   dc->treedepth = GNUNET_FS_compute_depth (GNUNET_ntohll(dc->uri->data.chk.file_length));
+  if ( (filename == NULL) &&
+       (is_recursive_download (dc) ) )
+    dc->temp_filename = GNUNET_DISK_mktemp ("gnunet-directory-download-tmp");    
+
 #if DEBUG_DOWNLOAD
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Download tree has depth %u\n",
@@ -1456,6 +1458,14 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
     }
   GNUNET_CONTAINER_meta_data_destroy (dc->meta);
   GNUNET_FS_uri_destroy (dc->uri);
+  if (NULL != dc->temp_filename)
+    {
+      if (0 != UNLINK (dc->temp_filename))
+	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+				  "unlink",
+				  dc->temp_filename);
+      GNUNET_free (dc->temp_filename);
+    }
   GNUNET_free (dc);
 }
 

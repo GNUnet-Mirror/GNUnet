@@ -1,13 +1,12 @@
 0.9.0pre1:
 * FS: [CG]
-  - support recursive download even if filename is NULL and we hence
-    do not generate files on disk (use temp_filename)
   - bound parallelism (# fs downloads)
   - distinguish in performance tracking and event signalling between
     downloads that are actually running and those that are merely in the queue
   - persistence support (publish, unindex, search, download)
   - active migration support (in fs or in datastore or new daemon?)
-  - gnunet-service-fs (hot-path routing, load-based routing, nitpicks)
+  - support for in-line files in directories (FIXME in fs_download)
+  - gnunet-service-fs (hot-path routing, load-based routing, nitpicks)  
   - [gnunet-service-fs.c:208]: member 'LocalGetContext::results_bf_size' is never used
   - [gnunet-service-fs.c:501]: member 'PendingRequest::used_pids_size' is never used
   - [gnunet-service-fs.c:654]: member 'ConnectedPeer::last_client_replies' is never used
@@ -98,6 +97,9 @@
 * MYSQL database backends: [CG]
   - datacache
   - datastore
+* FS:
+  - reconstruct IBLOCKS from DBLOCKS if possible (during download; see FIXME in fs_download)
+
 
 0.9.0:
 * new webpage:
