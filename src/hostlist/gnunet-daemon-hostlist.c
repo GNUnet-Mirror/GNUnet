@@ -157,12 +157,7 @@ core_init (void *cls,
 	   GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *
 	   publicKey)
 {
-#if HAVE_MHD
-  if (advertising && (NULL != server))
-    {    
-      /* FIXME: provide "server" to 'hostlist' module */
-    }
-#endif
+ /* Nothing to do here */
 }
 
 /**
