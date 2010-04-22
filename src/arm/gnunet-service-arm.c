@@ -112,12 +112,14 @@ struct ServiceList
    */
   struct GNUNET_TIME_Absolute restartAt;
 
+#if RC
   /**
    * Reference counter (counts how many times we've been
    * asked to start the service).  We only actually stop
    * it once rc hits zero.
    */
   unsigned int rc;
+#endif
 
 };
 
@@ -468,9 +470,11 @@ start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
   if (sl != NULL)
     {
       /* already running, just increment RC */
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  _("Service `%s' already running.\n"), servicename);
+#if RC
       sl->rc++;
+#endif
       sl->next = running;
       running = sl;
       signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_UP);
@@ -504,7 +508,9 @@ start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
   sl = GNUNET_malloc (sizeof (struct ServiceList));
   sl->name = GNUNET_strdup (servicename);
   sl->next = running;
+#if RC
   sl->rc = 1;
+#endif
   sl->binary = binary;
   sl->config = config;
   sl->mtime = sbuf.st_mtime;
@@ -538,6 +544,7 @@ stop_service (struct GNUNET_SERVER_Client *client, const char *servicename)
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return;
     }
+#if RC
   if (pos->rc > 1)
     {
       /* RC>1, just decrement RC */
@@ -555,6 +562,7 @@ stop_service (struct GNUNET_SERVER_Client *client, const char *servicename)
     }
   if (pos->rc == 1)
     pos->rc--;			/* decrement RC to zero */
+#endif
   if (pos->killing_client != NULL)
     {
       /* killing already in progress */

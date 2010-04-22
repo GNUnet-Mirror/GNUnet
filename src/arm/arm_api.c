@@ -399,10 +399,11 @@ GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h,
 {
   struct RequestContext *sctx;
   size_t slen;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+#if DEBUG_ARM
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               _("Asked to start service `%s' within %llu ms\n"), service_name,
 	      (unsigned long long) timeout.value);
+#endif
   if (0 == strcasecmp ("arm", service_name))
     {
       slen = strlen ("arm") + 1;
@@ -592,6 +593,8 @@ GNUNET_ARM_start_services (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Stop multiple services in the specified order.  Convenience
  * function.  Works asynchronously, failures are not reported.
+ * Should normally only be called from gnunet-arm or testcases,
+ * stopping a service is generally otherwise a bad idea.
  *
  * @param cfg configuration to use (needed to contact ARM;
  *        the ARM service may internally use a different
