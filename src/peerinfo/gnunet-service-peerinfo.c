@@ -131,7 +131,8 @@ make_info_message (const struct HostEntry *he)
   im->header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_INFO);
   im->trust = htonl (he->trust);
   im->peer = he->identity;
-  memcpy (&im[1], he->hello, hs);
+  if (he->hello != NULL)
+    memcpy (&im[1], he->hello, hs);
   return im;
 }
 

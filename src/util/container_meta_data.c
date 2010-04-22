@@ -869,8 +869,9 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
   clen = 0;
   cdata = NULL;
   left = size;
+  i = 0;
   pos = md->items;
-  for (i=0;i<md->item_count;i++)
+  while (pos != NULL)
     {           
       comp = GNUNET_NO;
       if (0 == (opt & GNUNET_CONTAINER_META_DATA_SERIALIZE_NO_COMPRESS))	
@@ -967,6 +968,7 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
       if (pos->mime_type != NULL)
 	left -= strlen (pos->mime_type) + 1;
       pos = pos->next;
+      i++;
     }
   GNUNET_free (ent);
 
