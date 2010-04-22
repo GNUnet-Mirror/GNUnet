@@ -30,6 +30,18 @@
 #include <gcrypt.h>
 
 /**
+ * Create a cryptographically weak pseudo-random number in the interval of 0 to 1.
+ * 
+ * @return number between 0 and 1.
+ */
+static double
+weak_random ()
+{
+  return ((double) RANDOM () / RAND_MAX);
+}
+
+
+/**
  * Produce a random value.
  *
  * @param mode desired quality of the random number
@@ -59,7 +71,7 @@ GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, uint32_t i)
     }
   else
     {
-      ret = i * ((double) RANDOM () / RAND_MAX);
+      ret = i * weak_random ();
       if (ret >= i)
         ret = i - 1;
       return ret;
@@ -119,7 +131,7 @@ GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode, uint64_t max)
     }
   else
     {
-      ret = max * ((double) RANDOM () / RAND_MAX);
+      ret = max * weak_random ();
       if (ret >= max)
         ret = max - 1;
       return ret;
