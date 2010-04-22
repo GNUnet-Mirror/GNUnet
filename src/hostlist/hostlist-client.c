@@ -199,6 +199,13 @@ static struct Hostlist * current_hostlist;
 static unsigned int linked_list_size;
 
 /**
+ * Head of the linked list used to store hostlists
+ */
+static struct Hostlist * hostlist_to_test;
+
+static int test_locked;
+
+/**
  * Value saying if preconfigured  is used
  */
 static unsigned int use_preconfigured_list;
@@ -563,13 +570,81 @@ clean_up ()
   schedule_hostlist_task ();
 }
 
+/**
+ * Task that is run when we are ready to receive more data from the hostlist
+ * server.
+ *
+ * @param cls closure, unused
+ * @param tc task context, unused
+ */
+static void
+multi_ready (void *cls,
+             const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Ask CURL for the select set and then schedule the
  * receiving task with the scheduler.
  */
 static void
-run_multi (void);
+run_multi ()
+{
+  CURLMcode mret;
+  fd_set rs;
+  fd_set ws;
+  fd_set es;
+  int max;
+  struct GNUNET_NETWORK_FDSet *grs;
+  struct GNUNET_NETWORK_FDSet *gws;
+  long timeout;
+  struct GNUNET_TIME_Relative rtime;
+
+  max = -1;
+  FD_ZERO (&rs);
+  FD_ZERO (&ws);
+  FD_ZERO (&es);
+  mret = curl_multi_fdset (multi, &rs, &ws, &es, &max);
+  if (mret != CURLM_OK)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("%s failed at %s:%d: `%s'\n"),
+                  "curl_multi_fdset", __FILE__, __LINE__,
+                  curl_multi_strerror (mret));
+      clean_up ();
+      return;
+    }
+  mret = curl_multi_timeout (multi, &timeout);
+  if (mret != CURLM_OK)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("%s failed at %s:%d: `%s'\n"),
+                  "curl_multi_timeout", __FILE__, __LINE__,
+                  curl_multi_strerror (mret));
+      clean_up ();
+      return;
+    }
+  rtime = GNUNET_TIME_relative_min (GNUNET_TIME_absolute_get_remaining (end_time),
+                                    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+                                                                   timeout));
+  grs = GNUNET_NETWORK_fdset_create ();
+  gws = GNUNET_NETWORK_fdset_create ();
+  GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
+  GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
+#if DEBUG_HOSTLIST_CLIENT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Scheduling task for hostlist download using cURL\n");
+#endif
+  current_task
+    = GNUNET_SCHEDULER_add_select (sched,
+                                   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                   GNUNET_SCHEDULER_NO_TASK,
+                                   rtime,
+                                   grs,
+                                   gws,
+                                   &multi_ready,
+                                   multi);
+  GNUNET_NETWORK_fdset_destroy (gws);
+  GNUNET_NETWORK_fdset_destroy (grs);
+}
 
 
 /**
@@ -583,6 +658,7 @@ static void
 multi_ready (void *cls,
 	     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  unsigned int counter;
   int running;
   struct CURLMsg *msg;
   CURLMcode mret;
@@ -611,6 +687,7 @@ multi_ready (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Ready for processing hostlist client request\n");
 #endif
+  counter = 0;
   do 
     {
       running = 0;
@@ -619,7 +696,18 @@ multi_ready (void *cls,
 	{
 	  do
 	    {
+
 	      msg = curl_multi_info_read (multi, &running);
+	      /*
+              if (counter >= MAX_HELLO_PER_HOSTLISTS)
+              {
+                GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                            _("Maximum number of %u HELLOs per hostlist exceeded, stopping download...\n"),
+                            MAX_HELLO_PER_HOSTLISTS);
+                clean_up ();
+                break;
+              }*/
+	      counter ++;
 	      GNUNET_break (msg != NULL);
 	      if (msg == NULL)
 		break;
@@ -648,6 +736,7 @@ multi_ready (void *cls,
 		default:
 		  break;
 		}
+
 	    }
 	  while (running > 0);
 	}
@@ -662,72 +751,6 @@ multi_ready (void *cls,
       clean_up ();
     }
   run_multi ();
-}
-
-
-/**
- * Ask CURL for the select set and then schedule the
- * receiving task with the scheduler.
- */
-static void
-run_multi () 
-{
-  CURLMcode mret;
-  fd_set rs;
-  fd_set ws;
-  fd_set es;
-  int max;
-  struct GNUNET_NETWORK_FDSet *grs;
-  struct GNUNET_NETWORK_FDSet *gws;
-  long timeout;
-  struct GNUNET_TIME_Relative rtime;
-  
-  max = -1;
-  FD_ZERO (&rs);
-  FD_ZERO (&ws);
-  FD_ZERO (&es);
-  mret = curl_multi_fdset (multi, &rs, &ws, &es, &max);
-  if (mret != CURLM_OK)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("%s failed at %s:%d: `%s'\n"),
-		  "curl_multi_fdset", __FILE__, __LINE__,
-		  curl_multi_strerror (mret));
-      clean_up ();
-      return;
-    }
-  mret = curl_multi_timeout (multi, &timeout);
-  if (mret != CURLM_OK)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("%s failed at %s:%d: `%s'\n"),
-		  "curl_multi_timeout", __FILE__, __LINE__,
-		  curl_multi_strerror (mret));
-      clean_up ();
-      return;
-    }
-  rtime = GNUNET_TIME_relative_min (GNUNET_TIME_absolute_get_remaining (end_time),
-				    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
-								   timeout));
-  grs = GNUNET_NETWORK_fdset_create ();
-  gws = GNUNET_NETWORK_fdset_create ();
-  GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
-  GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);  
-#if DEBUG_HOSTLIST_CLIENT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Scheduling task for hostlist download using cURL\n");
-#endif
-  current_task 
-    = GNUNET_SCHEDULER_add_select (sched,
-				   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-				   GNUNET_SCHEDULER_NO_TASK,
-				   rtime,
-				   grs,
-				   gws,
-				   &multi_ready,
-				   multi);
-  GNUNET_NETWORK_fdset_destroy (gws);
-  GNUNET_NETWORK_fdset_destroy (grs);
 }
 
 
@@ -1016,6 +1039,47 @@ linked_list_get_lowest_quality ( )
   return lowest;
 }
 
+/**
+ * Task that checks if we should try to download a hostlist.
+ * If so, we initiate the download, otherwise we schedule
+ * this task again for a later time.
+ */
+static void
+check_hostlist_task (void *cls,
+            const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_CONTAINER_DLL_insert(linked_list_head, linked_list_tail, hostlist_to_test);
+  linked_list_size++;
+
+  GNUNET_STATISTICS_set (stats,
+                         gettext_noop("# advertised hostlist URIs"),
+                         linked_list_size,
+                         GNUNET_NO);
+
+  if (MAX_NUMBER_HOSTLISTS >= linked_list_size)
+    return;
+
+  /* No free entries available, replace existing entry  */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Removing lowest quality entry\n" );
+  struct Hostlist * lowest_quality = linked_list_get_lowest_quality();
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Hostlist with URI `%s' has the worst quality of all with value %llu\n",
+              lowest_quality->hostlist_uri,
+              (unsigned long long) lowest_quality->quality);
+  GNUNET_CONTAINER_DLL_remove (linked_list_head, linked_list_tail, lowest_quality);
+  linked_list_size--;
+
+  GNUNET_STATISTICS_set (stats,
+                         gettext_noop("# advertised hostlist URIs"),
+                         linked_list_size,
+                         GNUNET_NO);
+
+  GNUNET_free (lowest_quality);
+
+  test_locked = GNUNET_NO;
+  return;
+}
 
 /**
  * Method called whenever an advertisement message arrives.
@@ -1067,43 +1131,30 @@ advertisement_handler (void *cls,
                 uri);
       return GNUNET_OK;
     }
+
+  if ( GNUNET_YES == test_locked )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Currently not accepting adverts\n");
+      return GNUNET_OK;
+    }
+
   hostlist = GNUNET_malloc (sizeof (struct Hostlist) + uri_size);
   hostlist->hostlist_uri = (const char*) &hostlist[1];
   memcpy (&hostlist[1], uri, uri_size);
   hostlist->time_creation = GNUNET_TIME_absolute_get();
   hostlist->time_last_usage = GNUNET_TIME_absolute_get_zero();
-  hostlist->quality = HOSTLIST_INITIAL;  
+  hostlist->quality = HOSTLIST_INITIAL;
+  hostlist_to_test = hostlist;
 
-  GNUNET_CONTAINER_DLL_insert(linked_list_head, linked_list_tail, hostlist);
-  linked_list_size++;
-  
-  GNUNET_STATISTICS_set (stats,
-                         gettext_noop("# advertised hostlist URIs"),
-                         linked_list_size,
-                         GNUNET_NO);
+  test_locked = GNUNET_YES;
 
-  if (MAX_NUMBER_HOSTLISTS >= linked_list_size)
-    return GNUNET_OK;
 
-  /* No free entries available, replace existing entry  */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Removing lowest quality entry\n" );  
-  struct Hostlist * lowest_quality = linked_list_get_lowest_quality();
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Hostlist with URI `%s' has the worst quality of all with value %llu\n", 
-	      lowest_quality->hostlist_uri,
-	      (unsigned long long) lowest_quality->quality);
-  GNUNET_CONTAINER_DLL_remove (linked_list_head, linked_list_tail, lowest_quality);
-  linked_list_size--;
-
-  GNUNET_STATISTICS_set (stats,
-                         gettext_noop("# advertised hostlist URIs"),
-                         linked_list_size,
-                         GNUNET_NO);
-
-  GNUNET_free (lowest_quality);
-  return GNUNET_OK;
+  GNUNET_SCHEDULER_add_now (sched,
+                           &check_hostlist_task,
+                           NULL);
 }
+
 
 
 /**
@@ -1364,6 +1415,7 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   linked_list_head = NULL;
   linked_list_tail = NULL;
   use_preconfigured_list = GNUNET_YES;
+  test_locked = GNUNET_NO;
 
   if ( GNUNET_YES == learning )
   {
