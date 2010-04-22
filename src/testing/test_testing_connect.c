@@ -32,6 +32,7 @@
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 
+#define CONNECT_ATTEMPTS 3
 
 static int ok;
 
@@ -97,7 +98,7 @@ my_cb2 (void *cls,
               "Daemon `%s' started.\n", GNUNET_i2s (id));
 #endif
   GNUNET_TESTING_daemons_connect (d1, d2,
-                                  TIMEOUT, &my_connect_complete, NULL);
+                                  TIMEOUT, CONNECT_ATTEMPTS, &my_connect_complete, NULL);
 }
 
 

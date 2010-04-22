@@ -27,7 +27,7 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_testing_lib.h"
 
-#define VERBOSE_TESTING GNUNET_YES
+#define VERBOSE_TESTING GNUNET_NO
 
 /**
  * Lowest port used for GNUnet testing.  Should be high enough to not
@@ -46,7 +46,9 @@
 
 #define MAX_OUTSTANDING_CONNECTIONS 50
 
-#define CONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 180)
+#define CONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 160)
+
+#define CONNECT_ATTEMPTS 8
 
 struct PeerConnection
 {
@@ -607,7 +609,7 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg)
         connect_attempts += add_connections (pg, i, nodeToConnect);
     }
   natLog = log (pg->total);
-#if VERBOSE_TESTING
+#if VERBOSE_TESTING > 2
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               _("natural log of %d is %d, will run %d iterations\n"),
              pg->total, natLog, (int) (natLog * percentage));
@@ -644,7 +646,7 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg)
         }
     }
   connect_attempts += smallWorldConnections;
-#if VERBOSE_TESTING
+#if VERBOSE_TESTING > 2
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Total connections added for small world: %d!\n"),
                       smallWorldConnections);
@@ -983,9 +985,12 @@ static void schedule_connect(void *cls, const struct GNUNET_SCHEDULER_TaskContex
 {
   struct ConnectContext *connect_context = cls;
 
+  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+    return;
+
   if (outstanding_connects > MAX_OUTSTANDING_CONNECTIONS)
     {
-#if VERBOSE_TESTING
+#if VERBOSE_TESTING > 2
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Delaying connect, we have too many outstanding connections!\n"));
 #endif
@@ -993,7 +998,7 @@ static void schedule_connect(void *cls, const struct GNUNET_SCHEDULER_TaskContex
     }
   else
     {
-#if VERBOSE_TESTING
+#if VERBOSE_TESTING > 2
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Creating connection, outstanding_connections is %d\n"), outstanding_connects);
 #endif
@@ -1001,6 +1006,7 @@ static void schedule_connect(void *cls, const struct GNUNET_SCHEDULER_TaskContex
       GNUNET_TESTING_daemons_connect (connect_context->first,
                                       connect_context->second,
                                       CONNECT_TIMEOUT,
+                                      CONNECT_ATTEMPTS,
                                       &internal_connect_notify,
                                       connect_context->pg);
       GNUNET_free(connect_context);
@@ -1029,23 +1035,8 @@ connect_topology (struct GNUNET_TESTING_PeerGroup *pg)
           connect_context->pg = pg;
           connect_context->first = pg->peers[pg_iter].daemon;
           connect_context->second = connection_iter->daemon;
-
           GNUNET_SCHEDULER_add_now(pg->sched, &schedule_connect, connect_context);
-          /*GNUNET_TESTING_daemons_connect (pg->peers[pg_iter].daemon,
-                                          connection_iter->daemon,
-                                          CONNECT_TIMEOUT,
-                                          pg->notify_connection,
-                                          pg->notify_connection_cls);*/
           connection_iter = connection_iter->next;
-
-          /*if (outstanding_connects > MAX_OUTSTANDING_CONNECTS)
-            {
-#if VERBOSE_TESTING
-              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                          _("Sleeping to give peers a chance to connect!\n"));
-#endif
-              sleep(2);
-            } */
         }
     }
 }

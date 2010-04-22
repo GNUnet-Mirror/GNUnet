@@ -25,7 +25,8 @@ check_PROGRAMS = \
  test_testing \
  test_testing_connect \
  test_testing_group \
- test_testing_topology_clique
+ test_testing_topology_clique 
+# test_testing_group_remote 
 # test_testing_topology_ring \
 # test_testing_topology_2d_torus \
 # test_testing_topology_small_world_ring \
@@ -38,6 +39,7 @@ TESTS = \
  test_testing_connect \
  test_testing_group \
  test_testing_topology_clique 
+# test_testing_group_remote  
 # test_testing_topology_ring \
 # test_testing_topology_2d_torus \
 # test_testing_topology_small_world_ring \
@@ -69,6 +71,12 @@ test_testing_topology_clique_SOURCES = \
 test_testing_topology_clique_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la  
+
+#test_testing_group_remote_SOURCES = \
+# test_testing_group_remote.c
+#test_testing_group_remote_LDADD = \
+# $(top_builddir)/src/testing/libgnunettesting.la \
+# $(top_builddir)/src/util/libgnunetutil.la  
 
 #test_testing_topology_ring_SOURCES = \
 # test_testing_topology.c

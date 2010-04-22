@@ -27,8 +27,11 @@
 
 #define VERBOSE GNUNET_NO
 
+/**
+ * How long until we fail the whole testcase?
+ */
+#define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 600)
 
-#define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 360)
 /**
  * How long until we give up on connecting the peers?
  */
@@ -36,11 +39,15 @@
 
 #define DEFAULT_NUM_PEERS 4;
 
+static float fail_percentage = 0.05;
+
 static int ok;
 
 static unsigned long long num_peers;
 
 static unsigned int total_connections;
+
+static unsigned int failed_connections;
 
 static unsigned int total_server_connections;
 
@@ -177,11 +184,9 @@ process_mtype (void *cls,
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
-#if VERBOSE
   char *msg = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "End badly was called (%s)... stopping daemons.\n", msg);
-#endif
   struct Connection *pos;
 
   pos = global_connections;
@@ -266,7 +271,7 @@ transmit_ready (void *cls, size_t size, void *buf)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "transmit ready for peer %s\ntransmit_ready's scheduled %d, transmit_ready's called %d\n", GNUNET_i2s(peer), transmit_ready_scheduled, transmit_ready_called);
 #endif
-  GNUNET_SCHEDULER_add_now(sched, &schedule_transmission, NULL);
+  GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 50), &schedule_transmission, NULL);
   return sizeof (struct GNUNET_MessageHeader);
 }
 
@@ -299,9 +304,6 @@ send_test_messages ()
           if (conn_pos->peer == pos->peer1)
             {
               pos->peer1handle = conn_pos->server;
-              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                                "Peer matched conn_count %d\n",
-                                conn_count);
               break;
             }
           conn_count++;
@@ -328,11 +330,12 @@ send_test_messages ()
       */
       pos = pos->next;
       count++;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Prepared %d messages\n",
-                  count);
+
     }
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Prepared %d messages\n",
+              count);
   global_pos = test_messages;
 
   GNUNET_SCHEDULER_add_now(sched, &schedule_transmission, NULL);
@@ -437,7 +440,8 @@ topology_callback (void *cls,
 #if VERBOSE
   else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to connect peer %s to peer %s with error %s\n",
+      failed_connections++;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to connect peer %s to peer %s with error :\n%s\n",
                first_daemon->shortname,
                second_daemon->shortname, emsg);
     }
@@ -455,12 +459,27 @@ topology_callback (void *cls,
       /* die_task = GNUNET_SCHEDULER_add_now (sched, &setup_handlers, NULL); */
       die_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1), &setup_handlers, NULL);
     }
+  else if (total_connections + failed_connections == expected_connections)
+    {
+      if (failed_connections < (unsigned int)(fail_percentage * total_connections))
+        {
+          GNUNET_SCHEDULER_cancel (sched, die_task);
+          /* die_task = GNUNET_SCHEDULER_add_now (sched, &setup_handlers, NULL); */
+          die_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1), &setup_handlers, NULL);
+        }
+      else
+        {
+          GNUNET_SCHEDULER_cancel (sched, die_task);
+          die_task = GNUNET_SCHEDULER_add_now (sched,
+                                               &end_badly, "from topology_callback (too many failed connections)");
+        }
+    }
   else
     {
 #if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Have %d total connections, Need %d\n",
-                  total_connections, expected_connections);
+                  "Have %d total connections, %d failed connections, Want %d (at least %d)\n",
+                  total_connections, failed_connections, expected_connections, expected_connections - (unsigned int)(fail_percentage * expected_connections));
 #endif
     }
 }
