@@ -193,7 +193,7 @@ static struct Hostlist * linked_list_tail;
  */
 static struct Hostlist * current_hostlist;
 
-/*
+/**
  *  Size of the linke list  used to store hostlists
  */
 static unsigned int linked_list_size;
@@ -330,6 +330,7 @@ static char *
 get_bootstrap_url ()
 {
   char *servers;
+  char *ret;
   size_t urls;
   size_t pos;
 
@@ -382,8 +383,9 @@ get_bootstrap_url ()
         }
       pos--;    
     }
+  ret = GNUNET_strdup (&servers[pos]);
   GNUNET_free (servers);
-  return GNUNET_strdup (&servers[pos]);
+  return ret;
 }
 
 /**
