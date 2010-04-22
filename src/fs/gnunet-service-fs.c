@@ -1649,6 +1649,7 @@ forward_request_task (void *cls,
   /* (3) reserve reply bandwidth */
   cp = GNUNET_CONTAINER_multihashmap_get (connected_peers,
 					  &psc.target.hashPubKey);
+  GNUNET_assert (NULL != cp);
   pr->irc = GNUNET_CORE_peer_change_preference (sched, cfg,
 						&psc.target,
 						GNUNET_CONSTANTS_SERVICE_TIMEOUT, 

@@ -3792,6 +3792,7 @@ run (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Could not access PEERINFO service.  Exiting.\n"));
       GNUNET_SCHEDULER_shutdown (s);
+      GNUNET_free (keyfile);
       return;
     }
   my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);

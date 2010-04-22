@@ -163,7 +163,7 @@ Optimizations:
     no longer filter those for outgoing (helps with loopback testing
     and keeps the code clean), but we should filter strictly *impossible*
     incoming addresses!  This is for efficiency, not correctness.
-  - should use hash map to look up Neighbours
+  - should use hash map to look up Neighbours (service AND plugins!)
 * HOSTLIST:
   - 'server' uses 'GNUNET_PEERINFO_iterate', should probably switch to notification API
     (for more instant / up-to-date hostlists at lower cost)
