@@ -22,17 +22,11 @@
  * @file hostlist/gnunet-daemon-hostlist.c
  * @brief code for bootstrapping via hostlist servers
  * @author Christian Grothoff
- *
- * TODO:
- * - implement -a and -e switches (send P2P messages about our hostlist URL,
- *   receive such messages and automatically update our hostlist URL config
- *   value).
  */
 
 #include <stdlib.h>
 #include "platform.h"
 #include "hostlist-client.h"
-#include "hostlist-server.h"
 #include "gnunet_core_service.h"
 #include "gnunet_getopt_lib.h"
 #include "gnunet_protocols.h"
@@ -42,10 +36,31 @@
 #include "gnunet_time_lib.h"
 #include "gnunet_util_lib.h"
 
+#if HAVE_MHD
+
+#include "hostlist-server.h"
+
 /**
  * Set if we are allowed to advertise our hostlist to others.
  */
 static int advertising;
+
+/**
+ * Set if the user wants us to run a hostlist server.
+ */
+static int provide_hostlist;
+
+/**
+ * Handle to hostlist server's connect handler
+ */
+static GNUNET_CORE_ConnectEventHandler server_ch = NULL;
+
+/**
+ * Handle to hostlist server's disconnect handler
+ */
+static GNUNET_CORE_DisconnectEventHandler server_dh = NULL;
+
+#endif
 
 /**
  * Set if we are allowed to learn about peers by accessing
@@ -58,11 +73,6 @@ static int bootstrapping;
  * from the network.
  */
 static int learning;
-
-/**
- * Set if the user wants us to run a hostlist server.
- */
-static int provide_hostlist;
 
 /**
  * Statistics handle.
@@ -90,31 +100,25 @@ static GNUNET_CORE_ConnectEventHandler client_ch = NULL;
 static GNUNET_CORE_DisconnectEventHandler client_dh = NULL;
 
 /**
- * Handle to hostlist server's connect handler
- */
-static GNUNET_CORE_ConnectEventHandler server_ch = NULL;
-
-/**
- * Handle to hostlist server's disconnect handler
- */
-static GNUNET_CORE_DisconnectEventHandler server_dh = NULL;
-
-/**
  * gnunet-daemon-hostlist command line options.
  */
 static struct GNUNET_GETOPT_CommandLineOption options[] = {
+#if HAVE_MHD
   { 'a', "advertise", NULL, 
     gettext_noop ("advertise our hostlist to other peers"),
     GNUNET_NO, &GNUNET_GETOPT_set_one, &advertising },
+#endif
   { 'b', "bootstrap", NULL, 
     gettext_noop ("bootstrap using hostlists (it is highly recommended that you always use this option)"),
     GNUNET_NO, &GNUNET_GETOPT_set_one, &bootstrapping },
   { 'e', "enable-learning", NULL,
     gettext_noop ("enable learning about hostlist servers from other peers"),
     GNUNET_NO, &GNUNET_GETOPT_set_one, &learning},
+#if HAVE_MHD
   { 'p', "provide-hostlist", NULL, 
     gettext_noop ("provide a hostlist server"),
     GNUNET_NO, &GNUNET_GETOPT_set_one, &provide_hostlist},
+#endif
   GNUNET_GETOPT_OPTION_END
 };
 
@@ -153,10 +157,12 @@ core_init (void *cls,
 	   GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *
 	   publicKey)
 {
+#if HAVE_MHD
   if (advertising && (NULL != server))
     {    
       /* FIXME: provide "server" to 'hostlist' module */
     }
+#endif
 }
 
 /**
@@ -192,8 +198,10 @@ connect_handler (void *cls,
               "A new peer connected, notifying client and server\n");
   if ( NULL != client_ch)
     (*client_ch) (cls, peer, latency, distance);
+#if HAVE_MHD
   if ( NULL != server_ch)
     (*server_ch) (cls, peer, latency, distance);
+#endif
 }
 
 /**
@@ -211,10 +219,11 @@ disconnect_handler (void *cls,
   /* call hostlist client disconnect handler*/
   if ( NULL != client_dh)
     (*client_dh) (cls, peer);
-
+#if HAVE_MHD
   /* call hostlist server disconnect handler*/
   if ( NULL != server_dh)
     (*server_dh) (cls, peer);
+#endif
 }
 
 /**
@@ -230,10 +239,12 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       GNUNET_HOSTLIST_client_stop ();
     }
+#if HAVE_MHD
   if (provide_hostlist)
     {      
       GNUNET_HOSTLIST_server_stop ();
     }
+#endif
   if (core != NULL)
     {
       GNUNET_CORE_disconnect (core);
@@ -281,8 +292,11 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle * cfg)
 {
   if ( (! bootstrapping) &&
-       (! learning) &&
-       (! provide_hostlist) )
+       (! learning) 
+#if HAVE_MHD
+       && (! provide_hostlist) 
+#endif
+       )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("None of the functions for the hostlist daemon were enabled.  I have no reason to run!\n"));
@@ -304,11 +318,12 @@ run (void *cls,
       GNUNET_HOSTLIST_client_start (cfg, sched, stats,
 				    &client_ch, &client_dh, &client_adv_handler, learning);
     }
+#if HAVE_MHD
   if (provide_hostlist)
     {      
       GNUNET_HOSTLIST_server_start (cfg, sched, stats, core, &server_ch, &server_dh, advertising );
     }
-
+#endif
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &cleaning_task, NULL);

@@ -2,11 +2,6 @@
 #  INTLEMU_SUBDIRS = intlemu
 #endif
 
-
-if HAVE_MHD
- HOSTLIST_DIR = hostlist
-endif
-
 if !MINGW
  NAT_DIR = nat
 endif
@@ -25,7 +20,7 @@ SUBDIRS = \
   peerinfo-tool \
   core \
   testing \
-  $(HOSTLIST_DIR) \
+  hostlist \
   topology \
   $(NAT_DIR) \
   fs

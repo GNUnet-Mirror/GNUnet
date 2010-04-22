@@ -4,6 +4,10 @@ if USE_COVERAGE
   AM_CFLAGS = --coverage -O0
 endif
 
+if HAVE_MHD
+ HOSTLIST_SERVER_SOURCES =  hostlist-server.c hostlist-server.h 
+ GN_LIBMHD = -lmicrohttpd
+endif
 
 bin_PROGRAMS = \
  gnunet-daemon-hostlist
@@ -11,7 +15,7 @@ bin_PROGRAMS = \
 gnunet_daemon_hostlist_SOURCES = \
  gnunet-daemon-hostlist.c gnunet-daemon-hostlist.h \
  hostlist-client.c hostlist-client.h \
- hostlist-server.c hostlist-server.h 
+ $(HOSTLIST_SERVER_SOURCES)
 
 gnunet_daemon_hostlist_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la \
@@ -20,7 +24,7 @@ gnunet_daemon_hostlist_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  -lmicrohttpd \
+  $(GN_LIBMHD) \
   @LIBCURL@ \
   $(GN_LIBINTL)
 
@@ -31,9 +35,10 @@ check_PROGRAMS = \
  test_gnunet_daemon_hostlist \
  test_gnunet_daemon_hostlist_learning
 
-
+if HAVE_MHD
 TESTS = test_gnunet_daemon_hostlist \
  test_gnunet_daemon_hostlist_learning
+endif
 
 test_gnunet_daemon_hostlist_SOURCES = \
  test_gnunet_daemon_hostlist.c
@@ -48,7 +53,7 @@ test_gnunet_daemon_hostlist_learning_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/arm/libgnunetarm.la \
   $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \  
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la  
 
 EXTRA_DIST = \
