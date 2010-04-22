@@ -635,8 +635,8 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 		      _("Address to obtain hostlist: `%s'\n"), 
 		      hostlist_uri);
 	}
+      GNUNET_free ( hostname );
     }
-  GNUNET_free ( hostname );
   daemon_handle_v6 = MHD_start_daemon (MHD_USE_IPv6 
 #if DEBUG_HOSTLIST_SERVER
 				       | MHD_USE_DEBUG
