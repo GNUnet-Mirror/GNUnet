@@ -478,9 +478,9 @@ iterator_start_receive (void *cls,
 				   ic->timeout_task);
 	  ic->timeout_task = GNUNET_SCHEDULER_NO_TASK;
 	}
-      ic->callback (ic->callback_cls, NULL, NULL, 2);
       reconnect (ic->h);
       trigger_transmit (ic->h);
+      ic->callback (ic->callback_cls, NULL, NULL, 2);
       GNUNET_free (ic);
       return;
     }  
@@ -507,13 +507,14 @@ signal_timeout (void *cls,
   struct GNUNET_PEERINFO_IteratorContext *ic = cls;
 
   ic->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  if (! ic->in_receive)
+    GNUNET_CONTAINER_DLL_remove (ic->h->tq_head,
+				 ic->h->tq_tail,
+				 ic->tqe);
   ic->callback (ic->callback_cls, NULL, NULL, 1);
   ic->callback = NULL;
   if (ic->in_receive)
-    return; /* need to finish processing */
-  GNUNET_CONTAINER_DLL_remove (ic->h->tq_head,
-			       ic->h->tq_tail,
-			       ic->tqe);
+    return;
   GNUNET_free (ic->tqe);
   GNUNET_free (ic);
 }
