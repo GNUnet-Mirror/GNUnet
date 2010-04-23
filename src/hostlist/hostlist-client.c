@@ -203,7 +203,7 @@ static unsigned int linked_list_size;
  */
 static struct Hostlist * hostlist_to_test;
 
-static int test_locked;
+static int testing_hostlist;
 
 /**
  * Value saying if preconfigured  is used
@@ -413,6 +413,14 @@ get_list_url ()
     current_hostlist = NULL;
     return get_bootstrap_url();
   }
+
+  if ( ( GNUNET_YES == testing_hostlist) && (NULL != hostlist_to_test) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Testing new advertised hostlist if it is obtainable\n");
+    return strdup(hostlist_to_test->hostlist_uri);
+  }
+
   if ( (GNUNET_YES == use_preconfigured_list) ||
        (linked_list_size == 0) )
   {
@@ -487,6 +495,88 @@ static uint64_t checked_sub (uint64_t val1, uint64_t val2)
     return (val1-val2);
 }
 
+/**
+ * Method to check if URI is in hostlist linked list
+ * @param uri uri to check
+ * @return GNUNET_YES if existing in linked list, GNUNET_NO if not
+ */
+static int
+linked_list_contains (const char * uri)
+{
+  struct Hostlist * pos;
+
+  pos = linked_list_head;
+  while (pos != NULL)
+    {
+      if (0 == strcmp(pos->hostlist_uri, uri) )
+        return GNUNET_YES;
+      pos = pos->next;
+    }
+  return GNUNET_NO;
+}
+
+
+/* linked_list_? */
+static struct Hostlist *
+linked_list_get_lowest_quality ( )
+{
+  struct Hostlist * pos;
+  struct Hostlist * lowest;
+
+  if (linked_list_size == 0)
+    return NULL;
+  lowest = linked_list_head;
+  pos = linked_list_head->next;
+  while (pos != NULL)
+    {
+      if (pos->quality < lowest->quality)
+        lowest = pos;
+      pos = pos->next;
+    }
+  return lowest;
+}
+
+
+/**
+ * Task that checks if we should try to download a hostlist.
+ * If so, we initiate the download, otherwise we schedule
+ * this task again for a later time.
+ */
+static void
+insert_hostlist ( void )
+{
+  GNUNET_CONTAINER_DLL_insert(linked_list_head, linked_list_tail, hostlist_to_test);
+  linked_list_size++;
+
+  GNUNET_STATISTICS_set (stats,
+                         gettext_noop("# advertised hostlist URIs"),
+                         linked_list_size,
+                         GNUNET_NO);
+
+  if (MAX_NUMBER_HOSTLISTS >= linked_list_size)
+    return;
+
+  /* No free entries available, replace existing entry  */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Removing lowest quality entry\n" );
+  struct Hostlist * lowest_quality = linked_list_get_lowest_quality();
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Hostlist with URI `%s' has the worst quality of all with value %llu\n",
+              lowest_quality->hostlist_uri,
+              (unsigned long long) lowest_quality->quality);
+  GNUNET_CONTAINER_DLL_remove (linked_list_head, linked_list_tail, lowest_quality);
+  linked_list_size--;
+
+  GNUNET_STATISTICS_set (stats,
+                         gettext_noop("# advertised hostlist URIs"),
+                         linked_list_size,
+                         GNUNET_NO);
+
+  GNUNET_free (lowest_quality);
+
+  testing_hostlist = GNUNET_NO;
+  return;
+}
 
 /**
  * Method updating hostlist statistics
@@ -729,6 +819,13 @@ multi_ready (void *cls,
 				_("Download of hostlist `%s' completed.\n"),
 				current_url);
 		    download_successful = GNUNET_YES;
+		    if (GNUNET_YES == testing_hostlist)
+		     {
+                      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                                        _("Adding successfully tested hostlist `%s' datastore.\n"),current_url);
+		      insert_hostlist();
+		      testing_hostlist = GNUNET_NO;
+		     }
 		    update_hostlist();
 		    }
 		  clean_up ();
@@ -999,89 +1096,6 @@ disconnect_handler (void *cls,
 
 
 /**
- * Method to check if URI is in hostlist linked list
- * @param uri uri to check
- * @return GNUNET_YES if existing in linked list, GNUNET_NO if not
- */
-static int 
-linked_list_contains (const char * uri)
-{
-  struct Hostlist * pos;
-
-  pos = linked_list_head;
-  while (pos != NULL)
-    {
-      if (0 == strcmp(pos->hostlist_uri, uri) ) 
-	return GNUNET_YES;
-      pos = pos->next;
-    }
-  return GNUNET_NO;
-}
-
-
-/* linked_list_? */
-static struct Hostlist *
-linked_list_get_lowest_quality ( )
-{
-  struct Hostlist * pos;
-  struct Hostlist * lowest;
-
-  if (linked_list_size == 0)
-    return NULL;
-  lowest = linked_list_head;
-  pos = linked_list_head->next;
-  while (pos != NULL)
-    {
-      if (pos->quality < lowest->quality) 
-	lowest = pos;
-      pos = pos->next;
-    }
-  return lowest;
-}
-
-/**
- * Task that checks if we should try to download a hostlist.
- * If so, we initiate the download, otherwise we schedule
- * this task again for a later time.
- */
-static void
-check_hostlist_task (void *cls,
-            const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  GNUNET_CONTAINER_DLL_insert(linked_list_head, linked_list_tail, hostlist_to_test);
-  linked_list_size++;
-
-  GNUNET_STATISTICS_set (stats,
-                         gettext_noop("# advertised hostlist URIs"),
-                         linked_list_size,
-                         GNUNET_NO);
-
-  if (MAX_NUMBER_HOSTLISTS >= linked_list_size)
-    return;
-
-  /* No free entries available, replace existing entry  */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Removing lowest quality entry\n" );
-  struct Hostlist * lowest_quality = linked_list_get_lowest_quality();
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Hostlist with URI `%s' has the worst quality of all with value %llu\n",
-              lowest_quality->hostlist_uri,
-              (unsigned long long) lowest_quality->quality);
-  GNUNET_CONTAINER_DLL_remove (linked_list_head, linked_list_tail, lowest_quality);
-  linked_list_size--;
-
-  GNUNET_STATISTICS_set (stats,
-                         gettext_noop("# advertised hostlist URIs"),
-                         linked_list_size,
-                         GNUNET_NO);
-
-  GNUNET_free (lowest_quality);
-
-  test_locked = GNUNET_NO;
-  return;
-}
-
-/**
  * Method called whenever an advertisement message arrives.
  *
  * @param cls closure (always NULL)
@@ -1132,7 +1146,7 @@ advertisement_handler (void *cls,
       return GNUNET_OK;
     }
 
-  if ( GNUNET_YES == test_locked )
+  if ( GNUNET_YES == testing_hostlist )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Currently not accepting adverts\n");
@@ -1147,12 +1161,8 @@ advertisement_handler (void *cls,
   hostlist->quality = HOSTLIST_INITIAL;
   hostlist_to_test = hostlist;
 
-  test_locked = GNUNET_YES;
-
-
-  GNUNET_SCHEDULER_add_now (sched,
-                           &check_hostlist_task,
-                           NULL);
+  testing_hostlist = GNUNET_YES;
+  return GNUNET_OK;
 }
 
 
@@ -1415,7 +1425,7 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   linked_list_head = NULL;
   linked_list_tail = NULL;
   use_preconfigured_list = GNUNET_YES;
-  test_locked = GNUNET_NO;
+  testing_hostlist = GNUNET_NO;
 
   if ( GNUNET_YES == learning )
   {
