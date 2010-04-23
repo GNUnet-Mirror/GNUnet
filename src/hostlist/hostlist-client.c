@@ -159,6 +159,11 @@ static GNUNET_SCHEDULER_TaskIdentifier current_task;
 static GNUNET_SCHEDULER_TaskIdentifier saving_task;
 
 /**
+ * ID of the task checking the intervall between to hostlist tests
+ */
+static GNUNET_SCHEDULER_TaskIdentifier testing_intervall_task;
+
+/**
  * Amount of time we wait between hostlist downloads.
  */
 static struct GNUNET_TIME_Relative hostlist_delay;
@@ -204,6 +209,8 @@ static unsigned int linked_list_size;
 static struct Hostlist * hostlist_to_test;
 
 static int testing_hostlist;
+
+static int testing_allowed;
 
 /**
  * Value saying if preconfigured  is used
@@ -1055,6 +1062,21 @@ schedule_hostlist_task ()
 }
 
 /**
+ * This tasks sets hostlist testing to allowed after intervall between to testings is reached
+ * cls closure
+ * tc TaskContext
+ */
+static void
+testing_intervall_reset (void *cls,
+            const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+   testing_allowed = GNUNET_OK;
+   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+             "Testing new hostlist advertisements is allowed again\n");
+}
+
+
+/**
  * Task that writes hostlist entries to a file on a regular base
  * cls closure
  * tc TaskContext
@@ -1188,6 +1210,14 @@ advertisement_handler (void *cls,
   hostlist_to_test = hostlist;
 
   testing_hostlist = GNUNET_YES;
+  testing_allowed = GNUNET_NO;
+  testing_intervall_task = GNUNET_SCHEDULER_add_delayed (sched,
+                                                         TESTING_INTERVALL,
+                                                         &testing_intervall_reset,
+                                                         NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+            "Testing new hostlist advertisements is locked for the next %u seconds\n",
+            TESTING_INTERVALL);
   return GNUNET_OK;
 }
 
@@ -1452,6 +1482,7 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   linked_list_tail = NULL;
   use_preconfigured_list = GNUNET_YES;
   testing_hostlist = GNUNET_NO;
+  testing_allowed = GNUNET_YES;
 
   if ( GNUNET_YES == learning )
   {

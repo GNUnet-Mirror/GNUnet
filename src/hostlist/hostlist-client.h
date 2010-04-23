@@ -35,6 +35,7 @@
 #define MAX_NUMBER_HOSTLISTS 30
 #define MAX_HELLO_PER_HOSTLISTS 0
 #define SAVING_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 30)
+#define TESTING_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
 
 /*
  * Defines concerning the hostlist quality metric
