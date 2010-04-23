@@ -480,7 +480,7 @@ iterator_start_receive (void *cls,
 	}
       reconnect (ic->h);
       trigger_transmit (ic->h);
-      ic->callback (ic->callback_cls, NULL, NULL, 2);
+      ic->callback (ic->callback_cls, NULL, NULL, 1);
       GNUNET_free (ic);
       return;
     }  
