@@ -639,6 +639,23 @@ clean_up ()
 {
   CURLMcode mret;
 
+  if ( ( testing_hostlist == GNUNET_YES ) && ( GNUNET_NO == download_successful) && (NULL != hostlist_to_test))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Advertised hostlist with URI `%s' could not be downloaded. Advertised URI gets dismissed.\n"),hostlist_to_test->hostlist_uri);
+  }
+
+  if ( testing_hostlist == GNUNET_YES )
+    {
+    testing_hostlist = GNUNET_NO;
+    }
+  if ( NULL != hostlist_to_test)
+  {
+    GNUNET_free (hostlist_to_test);
+    hostlist_to_test = NULL;
+  }
+
+
   if (multi != NULL)
     {
       mret = curl_multi_remove_handle (multi, curl);
