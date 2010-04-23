@@ -309,7 +309,7 @@ static int ad_arrive_handler (void *cls,
   if ( 0 == strcmp( expected_uri, current_adv_uri ) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Recieved hostlist advertisement with URI `%s'as expected\n", current_adv_uri);
+                "Recieved hostlist advertisement with URI `%s' as expected\n", current_adv_uri);
     adv_arrived = GNUNET_YES;
   }
   else

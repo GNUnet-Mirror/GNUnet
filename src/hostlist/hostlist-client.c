@@ -456,14 +456,6 @@ get_list_url ()
 
 #define CURL_EASY_SETOPT(c, a, b) do { ret = curl_easy_setopt(c, a, b); if (ret != CURLE_OK) GNUNET_log(GNUNET_ERROR_TYPE_WARNING, _("%s failed at %s:%d: `%s'\n"), "curl_easy_setopt", __FILE__, __LINE__, curl_easy_strerror(ret)); } while (0);
 
-
-/**
- * Schedule the background task that will (possibly)
- * download a hostlist.
- */
-static void
-schedule_hostlist_task (void);
-
 /**
  * Method to load persistent hostlist file during hostlist client shutdown
  * @param shutdown set if called because of shutdown, entries in linked list will be destroyed
@@ -610,8 +602,6 @@ static void update_hostlist ( )
        GNUNET_asprintf (&stat,
                         gettext_noop("# advertised URI `%s' downloaded"),
                         current_hostlist->hostlist_uri);
-       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                   "Updating downloaded statics for URI to value\n" );
 
        GNUNET_STATISTICS_update ( stats,
                                   stat,
@@ -822,15 +812,6 @@ multi_ready (void *cls,
 	    {
 
 	      msg = curl_multi_info_read (multi, &running);
-	      /*
-              if (counter >= MAX_HELLO_PER_HOSTLISTS)
-              {
-                GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                            _("Maximum number of %u HELLOs per hostlist exceeded, stopping download...\n"),
-                            MAX_HELLO_PER_HOSTLISTS);
-                clean_up ();
-                break;
-              }*/
 	      counter ++;
 	      GNUNET_break (msg != NULL);
 	      if (msg == NULL)
@@ -896,7 +877,6 @@ download_hostlist ()
   CURLcode ret;
   CURLMcode mret;
 
-  download_in_progress = GNUNET_YES;
 
   current_url = get_list_url ();
   if (current_url == NULL)
@@ -912,8 +892,11 @@ download_hostlist ()
   GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
 	      _("Bootstrapping using hostlist at `%s'.\n"), 
 	      current_url);
-  hellos_obtained = 0;
+
+  download_in_progress = GNUNET_YES;
   download_successful = GNUNET_NO;
+  hellos_obtained = 0;
+
   GNUNET_STATISTICS_update (stats, 
 			    gettext_noop ("# hostlist downloads initiated"), 
 			    1, 
@@ -1038,27 +1021,14 @@ check_task (void *cls,
   current_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-  /*if ( GNUNET_YES == testing_hostlist )
-    download_hostlist();*/
+
   if (connection_count < MIN_CONNECTIONS)
   {
     GNUNET_SCHEDULER_add_now (sched,
                               &download_dispatcher,
                               NULL);
-    schedule_hostlist_task ();
   }
-  else
-    schedule_hostlist_task ();
-}
 
-
-/**
- * Compute when we should check the next time about downloading
- * a hostlist; then schedule the task accordingly.
- */
-static void
-schedule_hostlist_task ()
-{
   static int once;
   struct GNUNET_TIME_Relative delay;
 
@@ -1074,25 +1044,25 @@ schedule_hostlist_task ()
     hostlist_delay = GNUNET_TIME_relative_multiply (hostlist_delay, 2);
   if (hostlist_delay.value > GNUNET_TIME_UNIT_HOURS.value * (1 + connection_count))
     hostlist_delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS,
-						    (1 + connection_count));
+                                                    (1 + connection_count));
   GNUNET_STATISTICS_set (stats,
-			 gettext_noop("# seconds between hostlist downloads"),
-			 hostlist_delay.value,
-			 GNUNET_YES);
+                         gettext_noop("# seconds between hostlist downloads"),
+                         hostlist_delay.value,
+                         GNUNET_YES);
   if (0 == once)
     {
       delay = GNUNET_TIME_UNIT_ZERO;
       once = 1;
     }  
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      _("Have %u/%u connections.  Will consider downloading hostlist in %llums\n"),
-	      connection_count,
-	      MIN_CONNECTIONS,
-	      (unsigned long long) delay.value);
+              _("Have %u/%u connections.  Will consider downloading hostlist in %llums\n"),
+              connection_count,
+              MIN_CONNECTIONS,
+              (unsigned long long) delay.value);
   current_task = GNUNET_SCHEDULER_add_delayed (sched,
-					       delay,
-					       &check_task,
-					       NULL);
+                                               delay,
+                                               &check_task,
+                                               NULL);
 }
 
 /**
@@ -1227,11 +1197,17 @@ advertisement_handler (void *cls,
       return GNUNET_OK;
     }
 
-  if ( (GNUNET_YES == testing_hostlist) || ( GNUNET_NO == testing_allowed) )
+  if ( GNUNET_NO == testing_allowed )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Currently not accepting adverts\n");
-      return GNUNET_OK;
+                "Currently not accepting new advertisements: interval between to advertisements is not reached\n");
+      return GNUNET_SYSERR;
+    }
+  if ( GNUNET_YES == testing_hostlist )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Currently not accepting new advertisements: we are already testing a hostlist\n");
+      return GNUNET_SYSERR;
     }
 
   hostlist = GNUNET_malloc (sizeof (struct Hostlist) + uri_size);
@@ -1250,10 +1226,9 @@ advertisement_handler (void *cls,
                                                          NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-            "Testing new hostlist advertisements is locked for the next %u seconds\n",
+            "Testing new hostlist advertisements is locked for the next %u ms\n",
             TESTING_INTERVALL);
 
-  /* initiate download */
   testing_intervall_task = GNUNET_SCHEDULER_add_now (sched,
                                                      &download_dispatcher,
                                                      NULL);
@@ -1280,7 +1255,9 @@ primary_task (void *cls, int success)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Statistics request done, scheduling hostlist download\n");
 #endif
-  schedule_hostlist_task ();
+  current_task = GNUNET_SCHEDULER_add_now (sched,
+                                           &check_task,
+                                           NULL);
 }
 
 
