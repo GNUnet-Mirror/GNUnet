@@ -518,7 +518,10 @@ linked_list_contains (const char * uri)
 }
 
 
-/* linked_list_? */
+/**
+ * Method returning the uri with the lowest quality in the datastore
+ * @return hostlist with lowest quality
+ */
 static struct Hostlist *
 linked_list_get_lowest_quality ( )
 {
@@ -540,9 +543,7 @@ linked_list_get_lowest_quality ( )
 
 
 /**
- * Task that checks if we should try to download a hostlist.
- * If so, we initiate the download, otherwise we schedule
- * this task again for a later time.
+ * Method to insert a hostlist into the datastore. If datastore contains maximum number of elements, the elements with lowest quality is dismissed
  */
 static void
 insert_hostlist ( void )
