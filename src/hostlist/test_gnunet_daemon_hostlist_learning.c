@@ -30,7 +30,7 @@
 #include "gnunet_resolver_service.h"
 #include "gnunet_statistics_service.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define START_ARM GNUNET_YES
 #define MAX_URL_LEN 1000
@@ -38,7 +38,7 @@
 /**
  * How long until wait until testcases fails
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 #define CHECK_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 static int timeout;
@@ -179,7 +179,7 @@ process_downloads (void *cls,
               uint64_t value,
               int is_persistent)
 {
-  if ( (value == 1) && (learned_hostlist_downloaded == GNUNET_NO) )
+  if ( (value == 2) && (learned_hostlist_downloaded == GNUNET_NO) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _("Client has successfully downloaded advertised URI \n"));

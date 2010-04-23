@@ -418,6 +418,7 @@ get_list_url ()
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Testing new advertised hostlist if it is obtainable\n");
+    current_hostlist = hostlist_to_test;
     return strdup(hostlist_to_test->hostlist_uri);
   }
 
@@ -578,13 +579,15 @@ insert_hostlist ( void )
   return;
 }
 
+
 /**
  * Method updating hostlist statistics
  */
 static void update_hostlist ( )
 {
   char *stat;
-  if ( (use_preconfigured_list == GNUNET_NO) && ( NULL != current_hostlist ) )
+  if ( ((use_preconfigured_list == GNUNET_NO) && ( NULL != current_hostlist )) ||
+       ((testing_hostlist == GNUNET_YES) && ( NULL != current_hostlist )) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Updating hostlist statics for URI `%s'\n",current_hostlist->hostlist_uri );
@@ -598,6 +601,8 @@ static void update_hostlist ( )
        GNUNET_asprintf (&stat,
                         gettext_noop("# advertised URI `%s' downloaded"),
                         current_hostlist->hostlist_uri);
+       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                   "Updating downloaded statics for URI to value\n" );
 
        GNUNET_STATISTICS_update ( stats,
                                   stat,
@@ -610,6 +615,9 @@ static void update_hostlist ( )
   }
   current_hostlist = NULL;
   /* Alternating the usage of preconfigured and learned hostlists */
+
+  if (testing_hostlist == GNUNET_YES)
+    return;
 
   if ( GNUNET_YES == learning)
     {
@@ -819,14 +827,15 @@ multi_ready (void *cls,
 				_("Download of hostlist `%s' completed.\n"),
 				current_url);
 		    download_successful = GNUNET_YES;
+	            update_hostlist();
 		    if (GNUNET_YES == testing_hostlist)
 		     {
                       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                                         _("Adding successfully tested hostlist `%s' datastore.\n"),current_url);
 		      insert_hostlist();
+		      hostlist_to_test = NULL;
 		      testing_hostlist = GNUNET_NO;
 		     }
-		    update_hostlist();
 		    }
 		  clean_up ();
 		  return;
