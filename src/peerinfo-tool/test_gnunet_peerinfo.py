@@ -38,6 +38,11 @@ try:
   pinfo.expect (re.compile (".......................................................................................................\r"));
   pinfo.expect (pexpect.EOF);
 
+  pinfo = pexpect.spawn ('gnunet-peerinfo -c test_gnunet_peerinfo_data.conf invalid')
+  pinfo.expect (re.compile ("Invalid command line argument `invalid\'\r"));
+  pinfo.expect (pexpect.EOF);
+
+
   os.system ('gnunet-arm -q -i transport -c test_gnunet_peerinfo_data.conf')
 
   pinfo = pexpect.spawn ('gnunet-peerinfo -c test_gnunet_peerinfo_data.conf')
@@ -50,6 +55,17 @@ try:
   pinfo.expect (re.compile (" *127.0.0.1:24357\r"));
   pinfo.expect (pexpect.EOF);
 
+  pinfo = pexpect.spawn ('gnunet-peerinfo -c test_gnunet_peerinfo_data.conf -qs')
+  pid = pinfo.read (-1)
+  pid = pid.strip ()
+
+  pinfo = pexpect.spawn ('gnunet-peerinfo -c test_gnunet_peerinfo_data.conf 4 ' + pid)
+  pinfo.expect (re.compile ("Peer `" + pid + "\' with trust  *4\r"));
+  pinfo.expect (pexpect.EOF);  
+
+  pinfo = pexpect.spawn ('gnunet-peerinfo -c test_gnunet_peerinfo_data.conf -- -4 ' + pid)
+  pinfo.expect (re.compile ("Peer `" + pid + "\' with trust  *0\r"));
+  pinfo.expect (pexpect.EOF);  
 
 finally:
   os.system ('gnunet-arm -c test_gnunet_peerinfo_data.conf -eq')

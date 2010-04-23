@@ -228,9 +228,33 @@ run (void *cls,
   struct GNUNET_PeerIdentity pid;
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
   char *fn;
+  int delta;
 
   sched = s;
   cfg = c;
+  delta = 0;
+  if ( (args[0] != NULL) &&
+       (args[1] != NULL) &&
+       (1 == sscanf(args[0], "%d", &delta)) &&
+       (GNUNET_OK == 
+	GNUNET_CRYPTO_hash_from_string (args[1],
+					&pid.hashPubKey)) )
+    {
+      peerinfo = GNUNET_PEERINFO_connect (sched, cfg);
+      GNUNET_PEERINFO_iterate (peerinfo,
+			       &pid,
+			       delta,
+			       GNUNET_TIME_UNIT_SECONDS,
+			       &print_peer_info, NULL);				   
+      return;
+    }
+  else if (args[0] != NULL)
+    {
+      fprintf (stderr,
+	       _("Invalid command line argument `%s'\n"),
+	       args[0]);
+      return;    
+    }
   if (get_self != GNUNET_YES)
     {
       peerinfo = GNUNET_PEERINFO_connect (sched, cfg);

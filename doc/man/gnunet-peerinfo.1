@@ -10,7 +10,7 @@ gnunet\-peerinfo \- Display information about other peers.
 
 .SH DESCRIPTION
 .PP
-\fBgnunet\-peerinfo\fP display the known addresses and trust of known peers.
+\fBgnunet\-peerinfo\fP display the known addresses and trust of known peers.  The tool can also be used to change the amount of trust we have in another peer.  For this, the options should be first the amount of trust changed (prefix it with "\-\- " if the amount is negative) followed by the peer identity.
 
 .SH OPTIONS
 .B
@@ -35,8 +35,19 @@ Print the version number
 .IP "\-L LOGLEVEL, \-\-loglelvel=LOGLEVEL"
 Set the loglevel
 
+.SH EXAMPLE
+.TP
+gnunet\-peerinfo 4 S9LBDF6V770H8CELVKBFJMOTS25LB272JB81MRJHSRJI9B1FBVOSGJVSEIRIS5J4SRDU4HT3TBPLM4MNEND7FFUHMGCK4NBR8R2UTSG
+Increase the trust in a peer by 4
+.TP
+gnunet\-peerinfo \-\- \-2 S9LBDF6V770H8CELVKBFJMOTS25LB272JB81MRJHSRJI9B1FBVOSGJVSEIRIS5J4SRDU4HT3TBPLM4MNEND7FFUHMGCK4NBR8R2UTSG
+Decrease the trust in a peer by 2
+
+
+
+
 .SH BUGS
-Report bugs by using mantis <https://gnunet.org/mantis/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+Report bugs by using mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
 
 .SH SEE ALSO
 gnunet.conf(5)
