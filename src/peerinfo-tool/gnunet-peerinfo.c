@@ -170,6 +170,22 @@ print_peer_info (void *cls,
   if (peer == NULL)    
     {
       GNUNET_PEERINFO_disconnect (peerinfo);
+      switch (trust)
+	{
+	case 0:
+	  break;
+	case 1:
+	  fprintf (stderr,
+		   _("Timeout trying to interact with PEERINFO service\n"));
+	  break;
+	case 2:
+	  fprintf (stderr,
+		   _("Error in communication with PEERINFO service\n"));
+	  break;
+	default:
+	  GNUNET_break (0);
+	  break;
+	}
       return;    
     }
   if (be_quiet)
