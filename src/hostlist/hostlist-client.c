@@ -212,6 +212,8 @@ static int testing_hostlist;
 
 static int testing_allowed;
 
+static int download_in_progress;
+
 /**
  * Value saying if preconfigured  is used
  */
@@ -689,7 +691,7 @@ clean_up ()
   GNUNET_free_non_null (current_url);
   current_url = NULL;
 
-  schedule_hostlist_task ();
+  download_in_progress = GNUNET_NO;
 }
 
 /**
@@ -894,6 +896,8 @@ download_hostlist ()
   CURLcode ret;
   CURLMcode mret;
 
+  download_in_progress = GNUNET_YES;
+
   current_url = get_list_url ();
   if (current_url == NULL)
     return;
@@ -999,6 +1003,29 @@ download_hostlist ()
 }  
 
 
+static void
+download_dispatcher (void *cls,
+            const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+             "Download is initiated...\n");
+   if ( GNUNET_NO == download_in_progress )
+   {
+     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+               "Download can start immediately...\n");
+     download_hostlist();
+   }
+   else
+   {
+     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+               "Download in progess, have to wait...\n");
+     GNUNET_SCHEDULER_add_delayed (sched,
+          WAITING_INTERVALL,
+          &download_dispatcher,
+          NULL);
+   }
+}
+
 /**
  * Task that checks if we should try to download a hostlist.
  * If so, we initiate the download, otherwise we schedule
@@ -1011,8 +1038,15 @@ check_task (void *cls,
   current_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
+  /*if ( GNUNET_YES == testing_hostlist )
+    download_hostlist();*/
   if (connection_count < MIN_CONNECTIONS)
-    download_hostlist ();
+  {
+    GNUNET_SCHEDULER_add_now (sched,
+                              &download_dispatcher,
+                              NULL);
+    schedule_hostlist_task ();
+  }
   else
     schedule_hostlist_task ();
 }
@@ -1142,7 +1176,6 @@ disconnect_handler (void *cls,
 			    GNUNET_NO);  
 }
 
-
 /**
  * Method called whenever an advertisement message arrives.
  *
@@ -1194,7 +1227,7 @@ advertisement_handler (void *cls,
       return GNUNET_OK;
     }
 
-  if ( GNUNET_YES == testing_hostlist )
+  if ( (GNUNET_YES == testing_hostlist) || ( GNUNET_NO == testing_allowed) )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Currently not accepting adverts\n");
@@ -1215,9 +1248,16 @@ advertisement_handler (void *cls,
                                                          TESTING_INTERVALL,
                                                          &testing_intervall_reset,
                                                          NULL);
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
             "Testing new hostlist advertisements is locked for the next %u seconds\n",
             TESTING_INTERVALL);
+
+  /* initiate download */
+  testing_intervall_task = GNUNET_SCHEDULER_add_now (sched,
+                                                     &download_dispatcher,
+                                                     NULL);
+
   return GNUNET_OK;
 }
 
