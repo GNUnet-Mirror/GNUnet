@@ -451,7 +451,7 @@ static void
 block_proc (void *cls,
 	    const GNUNET_HashCode *query,
 	    uint64_t offset,
-	    uint32_t type,
+	    enum GNUNET_BLOCK_Type type,
 	    const void *block,
 	    uint16_t block_size)
 {
@@ -480,7 +480,7 @@ block_proc (void *cls,
   dpc_cls->p = p;
   if ( (! p->is_directory) &&
        (GNUNET_YES == p->data.file.do_index) &&
-       (type == GNUNET_DATASTORE_BLOCKTYPE_DBLOCK) )
+       (type == GNUNET_BLOCK_TYPE_DBLOCK) )
     {
 #if DEBUG_PUBLISH
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -496,7 +496,7 @@ block_proc (void *cls,
 			    query,
 			    sizeof(struct OnDemandBlock),
 			    &odb,
-			    GNUNET_DATASTORE_BLOCKTYPE_ONDEMAND,
+			    GNUNET_BLOCK_TYPE_ONDEMAND,
 			    p->priority,
 			    p->anonymity,
 			    p->expirationTime,
@@ -1281,7 +1281,7 @@ publish_ksk_cont (void *cls,
 			sizeof (struct KBlock) + 
 			pkc->slen,
 			pkc->cpy,
-			GNUNET_DATASTORE_BLOCKTYPE_KBLOCK, 
+			GNUNET_BLOCK_TYPE_KBLOCK, 
 			pkc->priority,
 			pkc->anonymity,
 			pkc->expirationTime,
@@ -1594,7 +1594,7 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
 			&sb_enc->identifier,
 			size,
 			sb_enc,
-			GNUNET_DATASTORE_BLOCKTYPE_SBLOCK, 
+			GNUNET_BLOCK_TYPE_SBLOCK, 
 			priority,
 			anonymity,
 			expirationTime,

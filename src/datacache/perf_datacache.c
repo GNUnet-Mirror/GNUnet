@@ -42,7 +42,7 @@ checkIt (void *cls,
 	 const GNUNET_HashCode * key,
          uint32_t size, 
 	 const char *data, 
-	 uint32_t type)
+	 enum GNUNET_BLOCK_Type type)
 {
   if ( (size == sizeof (GNUNET_HashCode)) &&
        (0 == memcmp (data, cls, size)) )

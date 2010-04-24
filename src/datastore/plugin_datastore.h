@@ -30,6 +30,7 @@
 #ifndef PLUGIN_DATASTORE_H
 #define PLUGIN_DATASTORE_H
 
+#include "gnunet_block_lib.h"
 #include "gnunet_configuration_lib.h"
 #include "gnunet_datastore_service.h"
 #include "gnunet_statistics_service.h"
@@ -103,7 +104,7 @@ typedef int (*PluginIterator) (void *cls,
 			       const GNUNET_HashCode * key,
 			       uint32_t size,
 			       const void *data,
-			       uint32_t type,
+			       enum GNUNET_BLOCK_Type type,
 			       uint32_t priority,
 			       uint32_t anonymity,
 			       struct GNUNET_TIME_Absolute
@@ -142,7 +143,7 @@ typedef int (*PluginPut) (void *cls,
 			  const GNUNET_HashCode * key,
 			  uint32_t size,
 			  const void *data,
-			  uint32_t type,
+			  enum GNUNET_BLOCK_Type type,
 			  uint32_t priority,
 			  uint32_t anonymity,
 			  struct GNUNET_TIME_Absolute expiration,
@@ -173,7 +174,7 @@ typedef int (*PluginPut) (void *cls,
 typedef void (*PluginGet) (void *cls,
 			   const GNUNET_HashCode * key,
 			   const GNUNET_HashCode * vhash,
-			   uint32_t type,
+			   enum GNUNET_BLOCK_Type type,
 			   PluginIterator iter, void *iter_cls);
 
 
@@ -222,7 +223,7 @@ typedef int (*PluginUpdate) (void *cls,
  * @param iter_cls closure for iter
  */
 typedef void (*PluginSelector) (void *cls,
-                                uint32_t type,
+                                enum GNUNET_BLOCK_Type type,
                                 PluginIterator iter,
                                 void *iter_cls);
 

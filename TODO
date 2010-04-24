@@ -1,11 +1,17 @@
 0.9.0pre1:
+* MIGRATION [CG]
+  - on-demand encoding => move logic to block-library!?
+  - peer selection => how to consider latency/bw/etc?
+  - content transmission => how often the same block?
+  - how to select delay before next migration? 
+  - testing
 * FS: [CG]
+  - migration (inbound)
+  - support for in-line files in directories (FIXME in fs_download)
   - bound parallelism (# fs downloads)
   - distinguish in performance tracking and event signalling between
     downloads that are actually running and those that are merely in the queue
   - persistence support (publish, unindex, search, download)
-  - active migration support (in fs or in datastore or new daemon?)
-  - support for in-line files in directories (FIXME in fs_download)
   - gnunet-service-fs (hot-path routing, load-based routing, nitpicks)  
   - [gnunet-service-fs.c:208]: member 'LocalGetContext::results_bf_size' is never used
   - [gnunet-service-fs.c:501]: member 'PendingRequest::used_pids_size' is never used
@@ -76,6 +82,8 @@
     + download
     + search
     + unindex
+* MIGRATION:
+  - improved content selection (not just 'get_random')
 
 0.9.0pre3:
 * Determine RC bugs and fix those!
@@ -183,4 +191,5 @@ Minor features:
   - add stats (# bytes available, # bytes used, # PUTs, # GETs, # GETs satisfied)
 * FS:
   - support inline data in directories for recursive file downloads (fs_download)
-
+* BLOCKS:
+  - testcase would be nice...

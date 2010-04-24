@@ -21,15 +21,15 @@ gnunet_daemon_topology_LDADD = \
 
 
 check_PROGRAMS = \
- test_gnunet_service_topology
+ test_gnunet_daemon_topology
 
 TESTS = $(check_PROGRAMS)
 
-test_gnunet_service_topology_SOURCES = \
- test_gnunet_service_topology.c
-test_gnunet_service_topology_LDADD = \
+test_gnunet_daemon_topology_SOURCES = \
+ test_gnunet_daemon_topology.c
+test_gnunet_daemon_topology_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 EXTRA_DIST = \
- test_gnunet_service_topology_data.conf 
+ test_gnunet_daemon_topology_data.conf 

@@ -540,7 +540,7 @@ struct PendingRequest
   /**
    * Type of the content that this request is for.
    */
-  uint32_t type;
+  enum GNUNET_BLOCK_Type type;
 
   /**
    * Remove this request after transmission of the current response.
@@ -1680,165 +1680,19 @@ transmit_reply_continuation (void *cls,
   
   switch (pr->type)
     {
-    case GNUNET_DATASTORE_BLOCKTYPE_DBLOCK:
-    case GNUNET_DATASTORE_BLOCKTYPE_IBLOCK:
+    case GNUNET_BLOCK_TYPE_DBLOCK:
+    case GNUNET_BLOCK_TYPE_IBLOCK:
       /* only one reply expected, done with the request! */
       destroy_pending_request (pr);
       break;
-    case GNUNET_DATASTORE_BLOCKTYPE_ANY:
-    case GNUNET_DATASTORE_BLOCKTYPE_KBLOCK:
-    case GNUNET_DATASTORE_BLOCKTYPE_SBLOCK:
+    case GNUNET_BLOCK_TYPE_ANY:
+    case GNUNET_BLOCK_TYPE_KBLOCK:
+    case GNUNET_BLOCK_TYPE_SBLOCK:
       break;
     default:
       GNUNET_break (0);
       break;
     }
-}
-
-
-/**
- * Check if the given KBlock is well-formed.
- *
- * @param kb the kblock data (or at least "dsize" bytes claiming to be one)
- * @param dsize size of "kb" in bytes; check for < sizeof(struct KBlock)!
- * @param query where to store the query that this block answers
- * @return GNUNET_OK if this is actually a well-formed KBlock
- */
-static int
-check_kblock (const struct KBlock *kb,
-	      size_t dsize,
-	      GNUNET_HashCode *query)
-{
-  if (dsize < sizeof (struct KBlock))
-    {
-      GNUNET_break_op (0);
-      return GNUNET_SYSERR;
-    }
-  if (dsize - sizeof (struct KBlock) !=
-      ntohl (kb->purpose.size) 
-      - sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) 
-      - sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) ) 
-    {
-      GNUNET_break_op (0);
-      return GNUNET_SYSERR;
-    }
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_FS_KBLOCK,
-				&kb->purpose,
-				&kb->signature,
-				&kb->keyspace)) 
-    {
-      GNUNET_break_op (0);
-      return GNUNET_SYSERR;
-    }
-  if (query != NULL)
-    GNUNET_CRYPTO_hash (&kb->keyspace,
-			sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-			query);
-  return GNUNET_OK;
-}
-
-
-/**
- * Check if the given NBlock is well-formed.
- *
- * @param nb the nblock data (or at least "dsize" bytes claiming to be one)
- * @param dsize size of "nb" in bytes; check for < sizeof(struct NBlock)!
- * @param query where to store the query that this block answers
- * @return GNUNET_OK if this is actually a well-formed NBlock
- */
-static int
-check_nblock (const struct NBlock *nb,
-	      size_t dsize,
-	      GNUNET_HashCode *query)
-{
-  if (dsize < sizeof (struct NBlock))
-    {
-      GNUNET_break_op (0);
-      return GNUNET_SYSERR;
-    }
-  if (dsize - sizeof (struct NBlock) !=
-      ntohl (nb->ns_purpose.size) 
-      - sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) 
-      - sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) ) 
-    {
-      GNUNET_break_op (0);
-      return GNUNET_SYSERR;
-    }
-  if (dsize !=
-      ntohl (nb->ksk_purpose.size) + sizeof (struct GNUNET_CRYPTO_RsaSignature))
-    {
-      GNUNET_break_op (0);
-      return GNUNET_SYSERR;
-    }
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_FS_NBLOCK_KSIG,
-				&nb->ksk_purpose,
-				&nb->ksk_signature,
-				&nb->keyspace)) 
-    {
-      GNUNET_break_op (0);
-      return GNUNET_SYSERR;
-    }
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_FS_NBLOCK,
-				&nb->ns_purpose,
-				&nb->ns_signature,
-				&nb->subspace)) 
-    {
-      GNUNET_break_op (0);
-      return GNUNET_SYSERR;
-    }
-  if (query != NULL)
-    GNUNET_CRYPTO_hash (&nb->keyspace,
-			sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-			query);
-  return GNUNET_OK;
-}
-
-
-/**
- * Check if the given SBlock is well-formed.
- *
- * @param sb the sblock data (or at least "dsize" bytes claiming to be one)
- * @param dsize size of "kb" in bytes; check for < sizeof(struct SBlock)!
- * @param query where to store the query that this block answers
- * @param namespace where to store the namespace that this block belongs to
- * @return GNUNET_OK if this is actually a well-formed SBlock
- */
-static int
-check_sblock (const struct SBlock *sb,
-	      size_t dsize,
-	      GNUNET_HashCode *query,	
-	      GNUNET_HashCode *namespace)
-{
-  if (dsize < sizeof (struct SBlock))
-    {
-      GNUNET_break_op (0);
-      return GNUNET_SYSERR;
-    }
-  if (dsize !=
-      ntohl (sb->purpose.size) + sizeof (struct GNUNET_CRYPTO_RsaSignature))
-    {
-      GNUNET_break_op (0);
-      return GNUNET_SYSERR;
-    }
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_FS_SBLOCK,
-				&sb->purpose,
-				&sb->signature,
-				&sb->subspace)) 
-    {
-      GNUNET_break_op (0);
-      return GNUNET_SYSERR;
-    }
-  if (query != NULL)
-    *query = sb->identifier;
-  if (namespace != NULL)
-    GNUNET_CRYPTO_hash (&sb->subspace,
-			sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-			namespace);
-  return GNUNET_OK;
 }
 
 
@@ -1931,7 +1785,7 @@ struct ProcessReplyClosure
   /**
    * Type of the block.
    */
-  uint32_t type;
+  enum GNUNET_BLOCK_Type type;
 
   /**
    * How much was this reply worth to us?
@@ -1979,8 +1833,8 @@ process_reply (void *cls,
 		      &chash);
   switch (prq->type)
     {
-    case GNUNET_DATASTORE_BLOCKTYPE_DBLOCK:
-    case GNUNET_DATASTORE_BLOCKTYPE_IBLOCK:
+    case GNUNET_BLOCK_TYPE_DBLOCK:
+    case GNUNET_BLOCK_TYPE_IBLOCK:
       /* only possible reply, stop requesting! */
       while (NULL != pr->pending_head)
 	destroy_pending_message_list_entry (pr->pending_head);
@@ -2004,7 +1858,7 @@ process_reply (void *cls,
 							  key,
 							  pr));
       break;
-    case GNUNET_DATASTORE_BLOCKTYPE_SBLOCK:
+    case GNUNET_BLOCK_TYPE_SBLOCK:
       if (pr->namespace == NULL)
 	{
 	  GNUNET_break (0);
@@ -2019,8 +1873,8 @@ process_reply (void *cls,
 	  return GNUNET_YES; /* wrong namespace */	
 	}
       /* then: fall-through! */
-    case GNUNET_DATASTORE_BLOCKTYPE_KBLOCK:
-    case GNUNET_DATASTORE_BLOCKTYPE_NBLOCK:
+    case GNUNET_BLOCK_TYPE_KBLOCK:
+    case GNUNET_BLOCK_TYPE_NBLOCK:
       if (pr->bf != NULL) 
 	{
 	  mingle_hash (&chash, pr->mingle, &mhash);
@@ -2156,10 +2010,11 @@ handle_p2p_put (void *cls,
   const struct PutMessage *put;
   uint16_t msize;
   size_t dsize;
-  uint32_t type;
+  enum GNUNET_BLOCK_Type type;
   struct GNUNET_TIME_Absolute expiration;
   GNUNET_HashCode query;
   struct ProcessReplyClosure prq;
+  const struct SBlock *sb;
 
   msize = ntohs (message->size);
   if (msize < sizeof (struct PutMessage))
@@ -2172,39 +2027,23 @@ handle_p2p_put (void *cls,
   type = ntohl (put->type);
   expiration = GNUNET_TIME_absolute_ntoh (put->expiration);
 
-  /* first, validate! */
-  switch (type)
+  if (GNUNET_OK !=
+      GNUNET_BLOCK_check_block (type,
+				&put[1],
+				dsize,
+				&query))
     {
-    case GNUNET_DATASTORE_BLOCKTYPE_DBLOCK:
-    case GNUNET_DATASTORE_BLOCKTYPE_IBLOCK:
-      GNUNET_CRYPTO_hash (&put[1], dsize, &query);
-      break;
-    case GNUNET_DATASTORE_BLOCKTYPE_KBLOCK:
-      if (GNUNET_OK !=
-	  check_kblock ((const struct KBlock*) &put[1],
-			dsize,
-			&query))
-	return GNUNET_SYSERR;
-      break;
-    case GNUNET_DATASTORE_BLOCKTYPE_SBLOCK:
-      if (GNUNET_OK !=
-	  check_sblock ((const struct SBlock*) &put[1],
-			dsize,
-			&query,
-			&prq.namespace))
-	return GNUNET_SYSERR;
-      break;
-    case GNUNET_DATASTORE_BLOCKTYPE_NBLOCK:
-      if (GNUNET_OK !=
-	  check_nblock ((const struct NBlock*) &put[1],
-			dsize,
-			&query))
-	return GNUNET_SYSERR;
-      return GNUNET_OK;
-    default:
-      /* unknown block type */
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
+    }
+  if (type == GNUNET_BLOCK_TYPE_ONDEMAND)
+    return GNUNET_SYSERR;
+  if (GNUNET_BLOCK_TYPE_SBLOCK == type)
+    { 
+      sb = (const struct SBlock*) &put[1];
+      GNUNET_CRYPTO_hash (&sb->subspace,
+			  sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+			  &prq.namespace);
     }
 
 #if DEBUG_FS
@@ -2309,7 +2148,7 @@ process_local_reply (void *cls,
 		     const GNUNET_HashCode * key,
 		     uint32_t size,
 		     const void *data,
-		     uint32_t type,
+		     enum GNUNET_BLOCK_Type type,
 		     uint32_t priority,
 		     uint32_t anonymity,
 		     struct GNUNET_TIME_Absolute
@@ -2319,6 +2158,7 @@ process_local_reply (void *cls,
   struct PendingRequest *pr = cls;
   struct ProcessReplyClosure prq;
   struct CheckDuplicateRequestClosure cdrc;
+  const struct SBlock *sb;
   GNUNET_HashCode dhash;
   GNUNET_HashCode mhash;
   GNUNET_HashCode query;
@@ -2368,7 +2208,7 @@ process_local_reply (void *cls,
 	      GNUNET_h2s (key),
 	      type);
 #endif
-  if (type == GNUNET_DATASTORE_BLOCKTYPE_ONDEMAND)
+  if (type == GNUNET_BLOCK_TYPE_ONDEMAND)
     {
 #if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2421,11 +2261,17 @@ process_local_reply (void *cls,
   prq.data = data;
   prq.expiration = expiration;
   prq.size = size;  
-  if ( (type == GNUNET_DATASTORE_BLOCKTYPE_SBLOCK) &&
-       (GNUNET_OK != check_sblock ((const struct SBlock*) data,
-				   size,
-				   &query,
-				   &prq.namespace)) )
+  if (GNUNET_BLOCK_TYPE_SBLOCK == type)
+    { 
+      sb = (const struct SBlock*) data;
+      GNUNET_CRYPTO_hash (&sb->subspace,
+			  sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+			  &prq.namespace);
+    }
+  if (GNUNET_OK != GNUNET_BLOCK_check_block (type,
+					     data,
+					     size,
+					     &query))
     {
       GNUNET_break (0);
       /* FIXME: consider removing the block? */
@@ -2436,8 +2282,8 @@ process_local_reply (void *cls,
   prq.priority = priority;  
   process_reply (&prq, key, pr);
 
-  if ( (type == GNUNET_DATASTORE_BLOCKTYPE_DBLOCK) ||
-       (type == GNUNET_DATASTORE_BLOCKTYPE_IBLOCK) ) 
+  if ( (type == GNUNET_BLOCK_TYPE_DBLOCK) ||
+       (type == GNUNET_BLOCK_TYPE_IBLOCK) ) 
     {
       GNUNET_FS_drq_get_next (GNUNET_NO);
       return;
@@ -2538,7 +2384,7 @@ handle_p2p_get (void *cls,
   uint32_t bm;
   size_t bfsize;
   uint32_t ttl_decrement;
-  uint32_t type;
+  enum GNUNET_BLOCK_Type type;
   double preference;
   int have_ns;
 
@@ -2552,11 +2398,11 @@ handle_p2p_get (void *cls,
   type = ntohl (gm->type);
   switch (type)
     {
-    case GNUNET_DATASTORE_BLOCKTYPE_ANY:
-    case GNUNET_DATASTORE_BLOCKTYPE_DBLOCK:
-    case GNUNET_DATASTORE_BLOCKTYPE_IBLOCK:
-    case GNUNET_DATASTORE_BLOCKTYPE_KBLOCK:
-    case GNUNET_DATASTORE_BLOCKTYPE_SBLOCK:
+    case GNUNET_BLOCK_TYPE_ANY:
+    case GNUNET_BLOCK_TYPE_DBLOCK:
+    case GNUNET_BLOCK_TYPE_IBLOCK:
+    case GNUNET_BLOCK_TYPE_KBLOCK:
+    case GNUNET_BLOCK_TYPE_SBLOCK:
       break;
     default:
       GNUNET_break_op (0);
@@ -2579,7 +2425,7 @@ handle_p2p_get (void *cls,
   bfsize = msize - sizeof (struct GetMessage) + bits * sizeof (GNUNET_HashCode);
   bm = ntohl (gm->hash_bitmap);
   if ( (0 != (bm & GET_MESSAGE_BIT_SKS_NAMESPACE)) &&
-       (type != GNUNET_DATASTORE_BLOCKTYPE_SBLOCK) )
+       (type != GNUNET_BLOCK_TYPE_SBLOCK) )
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;      
@@ -2764,8 +2610,8 @@ handle_p2p_get (void *cls,
   cps->inc_preference += preference;
 
   /* process locally */
-  if (type == GNUNET_DATASTORE_BLOCKTYPE_DBLOCK)
-    type = GNUNET_DATASTORE_BLOCKTYPE_ANY; /* to get on-demand as well */
+  if (type == GNUNET_BLOCK_TYPE_DBLOCK)
+    type = GNUNET_BLOCK_TYPE_ANY; /* to get on-demand as well */
   timeout = GNUNET_TIME_relative_multiply (BASIC_DATASTORE_REQUEST_DELAY,
 					   (pr->priority + 1)); 
   pr->drq = GNUNET_FS_drq_get (&gm->query,
@@ -2778,8 +2624,8 @@ handle_p2p_get (void *cls,
   /* Are multiple results possible?  If so, start processing remotely now! */
   switch (pr->type)
     {
-    case GNUNET_DATASTORE_BLOCKTYPE_DBLOCK:
-    case GNUNET_DATASTORE_BLOCKTYPE_IBLOCK:
+    case GNUNET_BLOCK_TYPE_DBLOCK:
+    case GNUNET_BLOCK_TYPE_IBLOCK:
       /* only one result, wait for datastore */
       break;
     default:
@@ -2821,7 +2667,7 @@ handle_start_search (void *cls,
   struct PendingRequest *pr;
   uint16_t msize;
   unsigned int sc;
-  uint32_t type;
+  enum GNUNET_BLOCK_Type type;
 
   msize = ntohs (message->size);
   if ( (msize < sizeof (struct SearchMessage)) ||
@@ -2847,12 +2693,12 @@ handle_start_search (void *cls,
 #endif
   switch (type)
     {
-    case GNUNET_DATASTORE_BLOCKTYPE_ANY:
-    case GNUNET_DATASTORE_BLOCKTYPE_DBLOCK:
-    case GNUNET_DATASTORE_BLOCKTYPE_IBLOCK:
-    case GNUNET_DATASTORE_BLOCKTYPE_KBLOCK:
-    case GNUNET_DATASTORE_BLOCKTYPE_SBLOCK:
-    case GNUNET_DATASTORE_BLOCKTYPE_NBLOCK:
+    case GNUNET_BLOCK_TYPE_ANY:
+    case GNUNET_BLOCK_TYPE_DBLOCK:
+    case GNUNET_BLOCK_TYPE_IBLOCK:
+    case GNUNET_BLOCK_TYPE_KBLOCK:
+    case GNUNET_BLOCK_TYPE_SBLOCK:
+    case GNUNET_BLOCK_TYPE_NBLOCK:
       break;
     default:
       GNUNET_break (0);
@@ -2874,9 +2720,9 @@ handle_start_search (void *cls,
       client_list = cl;
     }
   /* detect duplicate KBLOCK requests */
-  if ( (type == GNUNET_DATASTORE_BLOCKTYPE_KBLOCK) ||
-       (type == GNUNET_DATASTORE_BLOCKTYPE_NBLOCK) ||
-       (type == GNUNET_DATASTORE_BLOCKTYPE_ANY) )
+  if ( (type == GNUNET_BLOCK_TYPE_KBLOCK) ||
+       (type == GNUNET_BLOCK_TYPE_NBLOCK) ||
+       (type == GNUNET_BLOCK_TYPE_ANY) )
     {
       crl = cl->rl_head;
       while ( (crl != NULL) &&
@@ -2917,7 +2763,7 @@ handle_start_search (void *cls,
 			    1,
 			    GNUNET_NO);
   pr = GNUNET_malloc (sizeof (struct PendingRequest) + 
-		      ((type == GNUNET_DATASTORE_BLOCKTYPE_SBLOCK) ? sizeof(GNUNET_HashCode) : 0));
+		      ((type == GNUNET_BLOCK_TYPE_SBLOCK) ? sizeof(GNUNET_HashCode) : 0));
   crl = GNUNET_malloc (sizeof (struct ClientRequestList));
   memset (crl, 0, sizeof (struct ClientRequestList));
   crl->client_list = cl;
@@ -2939,14 +2785,14 @@ handle_start_search (void *cls,
   pr->query = sm->query;
   switch (type)
     {
-    case GNUNET_DATASTORE_BLOCKTYPE_DBLOCK:
-    case GNUNET_DATASTORE_BLOCKTYPE_IBLOCK:
+    case GNUNET_BLOCK_TYPE_DBLOCK:
+    case GNUNET_BLOCK_TYPE_IBLOCK:
       if (0 != memcmp (&sm->target,
 		       &all_zeros,
 		       sizeof (GNUNET_HashCode)))
 	pr->target_pid = GNUNET_PEER_intern ((const struct GNUNET_PeerIdentity*) &sm->target);
       break;
-    case GNUNET_DATASTORE_BLOCKTYPE_SBLOCK:
+    case GNUNET_BLOCK_TYPE_SBLOCK:
       pr->namespace = (GNUNET_HashCode*) &pr[1];
       memcpy (&pr[1], &sm->target, sizeof (GNUNET_HashCode));
       break;
@@ -2957,8 +2803,8 @@ handle_start_search (void *cls,
 				     &sm->query,
 				     pr,
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  if (type == GNUNET_DATASTORE_BLOCKTYPE_DBLOCK)
-    type = GNUNET_DATASTORE_BLOCKTYPE_ANY; /* get on-demand blocks too! */
+  if (type == GNUNET_BLOCK_TYPE_DBLOCK)
+    type = GNUNET_BLOCK_TYPE_ANY; /* get on-demand blocks too! */
   pr->drq = GNUNET_FS_drq_get (&sm->query,
 			       type,			       
 			       &process_local_reply,

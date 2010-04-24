@@ -56,7 +56,7 @@ template_plugin_put (void *cls,
 		     const GNUNET_HashCode * key,
 		     uint32_t size,
 		     const char *data,
-		     uint32_t type,
+		     enum GNUNET_BLOCK_Type type,
 		     struct GNUNET_TIME_Absolute discard_time)
 {
   GNUNET_break (0);
@@ -78,7 +78,7 @@ template_plugin_put (void *cls,
 static unsigned int 
 template_plugin_get (void *cls,
 		     const GNUNET_HashCode * key,
-		     uint32_t type,
+		     enum GNUNET_BLOCK_Type type,
 		     GNUNET_DATACACHE_Iterator iter,
 		     void *iter_cls)
 {

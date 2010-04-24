@@ -70,12 +70,12 @@ static unsigned long long template_plugin_get_size (void *cls)
  */
 static int
 template_plugin_put (void *cls,
-		   const GNUNET_HashCode * key,
-		   uint32_t size,
-		   const void *data,
-		   uint32_t type,
-		   uint32_t priority,
-		   uint32_t anonymity,
+		     const GNUNET_HashCode * key,
+		     uint32_t size,
+		     const void *data,
+		     enum GNUNET_BLOCK_Type type,
+		     uint32_t priority,
+		     uint32_t anonymity,
 		     struct GNUNET_TIME_Absolute expiration,
 		     char **msg)
 {
@@ -126,7 +126,7 @@ static void
 template_plugin_get (void *cls,
 		     const GNUNET_HashCode * key,
 		     const GNUNET_HashCode * vhash,
-		     uint32_t type,
+		     enum GNUNET_BLOCK_Type type,
 		     PluginIterator iter, void *iter_cls)
 {
   GNUNET_break (0);
@@ -181,7 +181,7 @@ template_plugin_update (void *cls,
  */
 static void
 template_plugin_iter_low_priority (void *cls,
-				   uint32_t type,
+				   enum GNUNET_BLOCK_Type type,
 				   PluginIterator iter,
 				   void *iter_cls)
 {
@@ -203,9 +203,9 @@ template_plugin_iter_low_priority (void *cls,
  */
 static void
 template_plugin_iter_zero_anonymity (void *cls,
-			uint32_t type,
-			PluginIterator iter,
-			void *iter_cls)
+				     enum GNUNET_BLOCK_Type type,
+				     PluginIterator iter,
+				     void *iter_cls)
 {
   GNUNET_break (0);
 }
@@ -225,9 +225,9 @@ template_plugin_iter_zero_anonymity (void *cls,
  */
 static void
 template_plugin_iter_ascending_expiration (void *cls,
-			uint32_t type,
-			PluginIterator iter,
-			void *iter_cls)
+					   enum GNUNET_BLOCK_Type type,
+					   PluginIterator iter,
+					   void *iter_cls)
 {
   GNUNET_break (0);
 }
@@ -247,9 +247,9 @@ template_plugin_iter_ascending_expiration (void *cls,
  */
 static void
 template_plugin_iter_migration_order (void *cls,
-			uint32_t type,
-			PluginIterator iter,
-			void *iter_cls)
+				      enum GNUNET_BLOCK_Type type,
+				      PluginIterator iter,
+				      void *iter_cls)
 {
   GNUNET_break (0);
 }
@@ -269,9 +269,9 @@ template_plugin_iter_migration_order (void *cls,
  */
 static void
 template_plugin_iter_all_now (void *cls,
-			uint32_t type,
-			PluginIterator iter,
-			void *iter_cls)
+			      enum GNUNET_BLOCK_Type type,
+			      PluginIterator iter,
+			      void *iter_cls)
 {
   GNUNET_break (0);
 }

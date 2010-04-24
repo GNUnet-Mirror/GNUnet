@@ -319,7 +319,7 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
                       const GNUNET_HashCode * key,
                       uint32_t size,
                       const void *data,
-                      uint32_t type,
+                      enum GNUNET_BLOCK_Type type,
                       uint32_t priority,
                       uint32_t anonymity,
                       struct GNUNET_TIME_Absolute expiration,
@@ -668,7 +668,7 @@ transmit_for_result (struct GNUNET_DATASTORE_Handle *h,
 void
 GNUNET_DATASTORE_get (struct GNUNET_DATASTORE_Handle *h,
                       const GNUNET_HashCode * key,
-                      uint32_t type,
+                      enum GNUNET_BLOCK_Type type,
                       GNUNET_DATASTORE_Iterator iter, void *iter_cls,
 		      struct GNUNET_TIME_Relative timeout)
 {

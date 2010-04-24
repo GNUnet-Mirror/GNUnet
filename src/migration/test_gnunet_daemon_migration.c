@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -18,8 +18,8 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file topology/test_gnunet_service_topology.c
- * @brief testcase for topology maintenance code
+ * @file topology/test_gnunet_daemon_migration.c
+ * @brief testcase for content migration code
  */
 #include "platform.h"
 #include "gnunet_testing_lib.h"
@@ -166,7 +166,7 @@ main (int argc, char *argv[])
 {
   int ret;
 
-  GNUNET_log_setup ("test-gnunet-service-topology",
+  GNUNET_log_setup ("test-gnunet-daemon-migration",
 #if VERBOSE
                     "DEBUG",
 #else
@@ -179,4 +179,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of test_gnunet_service_topology.c */
+/* end of test_gnunet_daemon_migration.c */

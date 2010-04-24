@@ -174,7 +174,7 @@ check_value (void *cls,
 	     const GNUNET_HashCode * key,
 	     uint32_t size,
 	     const void *data,
-	     uint32_t type,
+	     enum GNUNET_BLOCK_Type type,
 	     uint32_t priority,
 	     uint32_t anonymity,
 	     struct GNUNET_TIME_Absolute
@@ -209,14 +209,14 @@ check_value (void *cls,
 
 static void 
 delete_value (void *cls,
-	     const GNUNET_HashCode * key,
-	     uint32_t size,
-	     const void *data,
-	     uint32_t type,
-	     uint32_t priority,
-	     uint32_t anonymity,
-	     struct GNUNET_TIME_Absolute
-	     expiration, uint64_t uid)
+	      const GNUNET_HashCode * key,
+	      uint32_t size,
+	      const void *data,
+	      enum GNUNET_BLOCK_Type type,
+	      uint32_t priority,
+	      uint32_t anonymity,
+	      struct GNUNET_TIME_Absolute
+	      expiration, uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
   if (key == NULL)
@@ -239,14 +239,14 @@ delete_value (void *cls,
 
 static void 
 check_nothing (void *cls,
-	     const GNUNET_HashCode * key,
-	     uint32_t size,
-	     const void *data,
-	     uint32_t type,
-	     uint32_t priority,
-	     uint32_t anonymity,
-	     struct GNUNET_TIME_Absolute
-	     expiration, uint64_t uid)
+	       const GNUNET_HashCode * key,
+	       uint32_t size,
+	       const void *data,
+	       enum GNUNET_BLOCK_Type type,
+	       uint32_t priority,
+	       uint32_t anonymity,
+	       struct GNUNET_TIME_Absolute
+	       expiration, uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
   GNUNET_assert (key == NULL);
@@ -266,7 +266,7 @@ check_multiple (void *cls,
 		const GNUNET_HashCode * key,
 		uint32_t size,
 		const void *data,
-		uint32_t type,
+		enum GNUNET_BLOCK_Type type,
 		uint32_t priority,
 		uint32_t anonymity,
 		struct GNUNET_TIME_Absolute
@@ -296,7 +296,7 @@ check_update (void *cls,
 	      const GNUNET_HashCode * key,
 	      uint32_t size,
 	      const void *data,
-	      uint32_t type,
+	      enum GNUNET_BLOCK_Type type,
 	      uint32_t priority,
 	      uint32_t anonymity,
 	      struct GNUNET_TIME_Absolute

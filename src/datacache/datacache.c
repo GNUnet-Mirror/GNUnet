@@ -224,7 +224,7 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
 		      const GNUNET_HashCode * key,
 		      uint32_t size,
 		      const char *data,
-		      unsigned int type,
+		      enum GNUNET_BLOCK_Type type,
 		      struct GNUNET_TIME_Absolute discard_time)
 {
   uint32_t used;
@@ -259,7 +259,7 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
 unsigned int 
 GNUNET_DATACACHE_get (struct GNUNET_DATACACHE_Handle *h,
 		      const GNUNET_HashCode * key,
-		      unsigned int type, 
+		      enum GNUNET_BLOCK_Type type, 
 		      GNUNET_DATACACHE_Iterator iter,
 		      void *iter_cls)
 {

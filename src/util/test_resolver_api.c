@@ -265,7 +265,8 @@ run(void *cls, struct GNUNET_SCHEDULER_Handle *sched, char * const *args,
           _("gethostbyname() could not lookup IP address: %s\n"),
           hstrerror (h_errno));
 #endif
-      GNUNET_break(0);
+      fprintf (stderr,
+	       "System seems to be off-line, will not run all DNS tests\n");
       return;
     }
 

@@ -574,7 +574,7 @@ process_sblock (struct GNUNET_FS_SearchContext *sc,
  */
 static void
 process_result (struct GNUNET_FS_SearchContext *sc,
-		uint32_t type,
+		enum GNUNET_BLOCK_Type type,
 		struct GNUNET_TIME_Absolute expiration,
 		const void *data,
 		size_t size)
@@ -587,7 +587,7 @@ process_result (struct GNUNET_FS_SearchContext *sc,
     }
   switch (type)
     {
-    case GNUNET_DATASTORE_BLOCKTYPE_KBLOCK:
+    case GNUNET_BLOCK_TYPE_KBLOCK:
       if (! GNUNET_FS_uri_test_ksk (sc->uri))
 	{
 	  GNUNET_break (0);
@@ -600,7 +600,7 @@ process_result (struct GNUNET_FS_SearchContext *sc,
 	}
       process_kblock (sc, data, size);
       break;
-    case GNUNET_DATASTORE_BLOCKTYPE_SBLOCK:
+    case GNUNET_BLOCK_TYPE_SBLOCK:
       if (! GNUNET_FS_uri_test_sks (sc->uri))
 	{
 	  GNUNET_break (0);
@@ -613,7 +613,7 @@ process_result (struct GNUNET_FS_SearchContext *sc,
 	}
       process_sblock (sc, data, size);
       break;
-    case GNUNET_DATASTORE_BLOCKTYPE_NBLOCK:
+    case GNUNET_BLOCK_TYPE_NBLOCK:
       if (! GNUNET_FS_uri_test_ksk (sc->uri))
 	{
 	  GNUNET_break (0);
@@ -626,10 +626,10 @@ process_result (struct GNUNET_FS_SearchContext *sc,
 	}
       process_nblock (sc, data, size);
       break;
-    case GNUNET_DATASTORE_BLOCKTYPE_ANY:
-    case GNUNET_DATASTORE_BLOCKTYPE_DBLOCK:
-    case GNUNET_DATASTORE_BLOCKTYPE_ONDEMAND:
-    case GNUNET_DATASTORE_BLOCKTYPE_IBLOCK:
+    case GNUNET_BLOCK_TYPE_ANY:
+    case GNUNET_BLOCK_TYPE_DBLOCK:
+    case GNUNET_BLOCK_TYPE_ONDEMAND:
+    case GNUNET_BLOCK_TYPE_IBLOCK:
       GNUNET_break (0);
       break;
     default:
@@ -729,7 +729,7 @@ transmit_search_request (void *cls,
 	{
 	  sm[i].header.size = htons (sizeof (struct SearchMessage));
 	  sm[i].header.type = htons (GNUNET_MESSAGE_TYPE_FS_START_SEARCH);
-	  sm[i].type = htonl (GNUNET_DATASTORE_BLOCKTYPE_ANY);
+	  sm[i].type = htonl (GNUNET_BLOCK_TYPE_ANY);
 	  sm[i].anonymity_level = htonl (sc->anonymity);
 	  sm[i].query = sc->requests[i].query;
 	}
@@ -743,7 +743,7 @@ transmit_search_request (void *cls,
       memset (sm, 0, msize);
       sm->header.size = htons (sizeof (struct SearchMessage));
       sm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_START_SEARCH);
-      sm->type = htonl (GNUNET_DATASTORE_BLOCKTYPE_SBLOCK);
+      sm->type = htonl (GNUNET_BLOCK_TYPE_SBLOCK);
       sm->anonymity_level = htonl (sc->anonymity);
       sm->target = sc->uri->data.sks.namespace;
       identifier = sc->uri->data.sks.identifier;

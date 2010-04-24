@@ -9,6 +9,7 @@ endif
 SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
   util \
+  block \
   statistics \
   arm \
   hello \
@@ -23,4 +24,5 @@ SUBDIRS = \
   hostlist \
   topology \
   $(NAT_DIR) \
-  fs
+  fs \
+  migration

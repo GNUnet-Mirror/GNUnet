@@ -116,7 +116,7 @@ struct GNUNET_DATACACHE_PluginFunctions {
 		   const GNUNET_HashCode * key,
 		   uint32_t size,
 		   const char *data,
-		   uint32_t type,
+		   enum GNUNET_BLOCK_Type type,
 		   struct GNUNET_TIME_Absolute discard_time);
 
 
@@ -133,7 +133,7 @@ struct GNUNET_DATACACHE_PluginFunctions {
    */
   unsigned int (*get) (void *cls,
 		       const GNUNET_HashCode * key,
-		       uint32_t type,
+		       enum GNUNET_BLOCK_Type type,
 		       GNUNET_DATACACHE_Iterator iter,
 		       void *iter_cls);
 

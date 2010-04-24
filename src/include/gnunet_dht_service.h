@@ -147,7 +147,7 @@ typedef void (*GNUNET_DHT_GetIterator)(void *cls,
  * @param handle handle to the DHT service
  * @param timeout timeout for this request to be sent to the
  *        service (this is NOT a timeout for receiving responses)
- * @param type expected type of the response object (GNUNET_DATASTORE_BLOCKTYPE_*)
+ * @param type expected type of the response object (GNUNET_BLOCK_TYPE_*)
  * @param key the key to look up
  * @param iter function to call on each result
  * @param iter_cls closure for iter

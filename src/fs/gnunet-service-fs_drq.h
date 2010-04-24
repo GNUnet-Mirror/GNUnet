@@ -54,7 +54,7 @@ struct DatastoreRequestQueue;
  */
 struct DatastoreRequestQueue *
 GNUNET_FS_drq_get (const GNUNET_HashCode * key,
-		   uint32_t type,
+		   enum GNUNET_BLOCK_Type type,
 		   GNUNET_DATASTORE_Iterator iter, 
 		   void *iter_cls,
 		   struct GNUNET_TIME_Relative timeout,

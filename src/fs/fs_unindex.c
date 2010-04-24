@@ -198,7 +198,7 @@ static void
 unindex_process (void *cls,
 		 const GNUNET_HashCode *query,
 		 uint64_t offset,
-		 uint32_t type,
+		 enum GNUNET_BLOCK_Type type,
 		 const void *block,
 		 uint16_t block_size)
 {
@@ -207,7 +207,7 @@ unindex_process (void *cls,
   const void *data;
   struct OnDemandBlock odb;
 
-  if (type != GNUNET_DATASTORE_BLOCKTYPE_DBLOCK)
+  if (type != GNUNET_BLOCK_TYPE_DBLOCK)
     {
       size = block_size;
       data = block;

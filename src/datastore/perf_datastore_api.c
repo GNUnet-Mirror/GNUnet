@@ -198,7 +198,7 @@ delete_value (void *cls,
 	      const GNUNET_HashCode * key,
 	      uint32_t size,
 	      const void *data,
-	      uint32_t type,
+	      enum GNUNET_BLOCK_Type type,
 	      uint32_t priority,
 	      uint32_t anonymity,
 	      struct GNUNET_TIME_Absolute

@@ -719,7 +719,7 @@ sqlite_plugin_put (void *cls,
 		   const GNUNET_HashCode * key,
 		   uint32_t size,
 		   const void *data,
-		   uint32_t type,
+		   enum GNUNET_BLOCK_Type type,
 		   uint32_t priority,
 		   uint32_t anonymity,
 		   struct GNUNET_TIME_Absolute expiration,
@@ -892,7 +892,7 @@ struct IterContext
   /**
    * Desired type for blocks returned by this iterator.
    */
-  uint32_t type;
+  enum GNUNET_BLOCK_Type type;
 };
 
 
@@ -1026,7 +1026,7 @@ iter_next_prepare (void *cls,
  */
 static void
 basic_iter (struct Plugin *plugin,
-	    uint32_t type,
+	    enum GNUNET_BLOCK_Type type,
 	    int is_asc,
 	    int is_prio,
 	    int is_migr,
@@ -1110,7 +1110,7 @@ basic_iter (struct Plugin *plugin,
  */
 static void
 sqlite_plugin_iter_low_priority (void *cls,
-				 uint32_t type,
+				 enum GNUNET_BLOCK_Type type,
 				 PluginIterator iter,
 				 void *iter_cls)
 {
@@ -1137,7 +1137,7 @@ sqlite_plugin_iter_low_priority (void *cls,
  */
 static void
 sqlite_plugin_iter_zero_anonymity (void *cls,
-				   uint32_t type,
+				   enum GNUNET_BLOCK_Type type,
 				   PluginIterator iter,
 				   void *iter_cls)
 {
@@ -1176,7 +1176,7 @@ sqlite_plugin_iter_zero_anonymity (void *cls,
  */
 static void
 sqlite_plugin_iter_ascending_expiration (void *cls,
-					 uint32_t type,
+					 enum GNUNET_BLOCK_Type type,
 					 PluginIterator iter,
 					 void *iter_cls)
 {
@@ -1213,7 +1213,7 @@ sqlite_plugin_iter_ascending_expiration (void *cls,
  */
 static void
 sqlite_plugin_iter_migration_order (void *cls,
-				    uint32_t type,
+				    enum GNUNET_BLOCK_Type type,
 				    PluginIterator iter,
 				    void *iter_cls)
 {
@@ -1288,7 +1288,7 @@ all_next_prepare (void *cls,
  */
 static void
 sqlite_plugin_iter_all_now (void *cls,
-			    uint32_t type,
+			    enum GNUNET_BLOCK_Type type,
 			    PluginIterator iter,
 			    void *iter_cls)
 {
@@ -1439,7 +1439,7 @@ static void
 sqlite_plugin_get (void *cls,
 		   const GNUNET_HashCode * key,
 		   const GNUNET_HashCode * vhash,
-		   uint32_t type,
+		   enum GNUNET_BLOCK_Type type,
 		   PluginIterator iter, void *iter_cls)
 {
   struct Plugin *plugin = cls;

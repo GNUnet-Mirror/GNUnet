@@ -32,6 +32,7 @@
 #define GNUNET_DATASTORE_SERVICE_H
 
 #include "gnunet_util_lib.h"
+#include "gnunet_block_lib.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -40,43 +41,6 @@ extern "C"
 }
 #endif
 #endif
-
-/**
- * Any type of block, used as a wildcard when searching.  Should
- * never be attached to a specific block.
- */
-#define GNUNET_DATASTORE_BLOCKTYPE_ANY 0
-
-/**
- * Data block (leaf) in the CHK tree.
- */
-#define GNUNET_DATASTORE_BLOCKTYPE_DBLOCK 1
-
-/**
- * Inner block in the CHK tree.
- */
-#define GNUNET_DATASTORE_BLOCKTYPE_IBLOCK 2
-
-/**
- * Type of a block representing a keyword search result.
- */
-#define GNUNET_DATASTORE_BLOCKTYPE_KBLOCK 3
-
-/**
- * Type of a block that is used to advertise content in a namespace.
- */
-#define GNUNET_DATASTORE_BLOCKTYPE_SBLOCK 4
-
-/**
- * Type of a block representing a block to be encoded on demand from disk.
- * Should never appear on the network directly.
- */
-#define GNUNET_DATASTORE_BLOCKTYPE_ONDEMAND 5
-
-/**
- * Type of a block that is used to advertise a namespace.  
- */
-#define GNUNET_DATASTORE_BLOCKTYPE_NBLOCK 6
 
 
 /**
@@ -171,7 +135,7 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
                       const GNUNET_HashCode * key,
                       uint32_t size,
                       const void *data,
-                      uint32_t type,
+                      enum GNUNET_BLOCK_Type type,
                       uint32_t priority,
                       uint32_t anonymity,
                       struct GNUNET_TIME_Absolute expiration,
@@ -239,7 +203,7 @@ typedef void (*GNUNET_DATASTORE_Iterator) (void *cls,
 					   const GNUNET_HashCode * key,
 					   uint32_t size,
 					   const void *data,
-					   uint32_t type,
+					   enum GNUNET_BLOCK_Type type,
 					   uint32_t priority,
 					   uint32_t anonymity,
 					   struct GNUNET_TIME_Absolute
@@ -264,7 +228,7 @@ typedef void (*GNUNET_DATASTORE_Iterator) (void *cls,
 void
 GNUNET_DATASTORE_get (struct GNUNET_DATASTORE_Handle *h,
                       const GNUNET_HashCode * key,
-		      uint32_t type,
+		      enum GNUNET_BLOCK_Type type,
                       GNUNET_DATASTORE_Iterator iter, 
 		      void *iter_cls,
 		      struct GNUNET_TIME_Relative timeout);

@@ -219,7 +219,7 @@ struct ProcessResultClosure
   /**
    * Type of data.
    */
-  uint32_t type;
+  enum GNUNET_BLOCK_Type type;
 
   /**
    * Flag to indicate if this block should be stored on disk.
@@ -333,8 +333,8 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
 	      prc.data = enc;
 	      prc.size = len;
 	      prc.type = (dc->treedepth == depth) 
-		? GNUNET_DATASTORE_BLOCKTYPE_DBLOCK 
-		: GNUNET_DATASTORE_BLOCKTYPE_IBLOCK;
+		? GNUNET_BLOCK_TYPE_DBLOCK 
+		: GNUNET_BLOCK_TYPE_IBLOCK;
 	      prc.query = chk->query;
 	      prc.do_store = GNUNET_NO; /* useless */
 	      process_result_with_request (&prc,
@@ -1021,7 +1021,7 @@ process_result_with_request (void *cls,
  */
 static void
 process_result (struct GNUNET_FS_DownloadContext *dc,
-		uint32_t type,
+		enum GNUNET_BLOCK_Type type,
 		const void *data,
 		size_t size)
 {
@@ -1128,9 +1128,9 @@ transmit_download_request (void *cls,
       sm->header.size = htons (sizeof (struct SearchMessage));
       sm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_START_SEARCH);
       if (dc->pending->depth == dc->treedepth)
-	sm->type = htonl (GNUNET_DATASTORE_BLOCKTYPE_DBLOCK);
+	sm->type = htonl (GNUNET_BLOCK_TYPE_DBLOCK);
       else
-	sm->type = htonl (GNUNET_DATASTORE_BLOCKTYPE_IBLOCK);
+	sm->type = htonl (GNUNET_BLOCK_TYPE_IBLOCK);
       sm->anonymity_level = htonl (dc->anonymity);
       sm->target = dc->target.hashPubKey;
       sm->query = dc->pending->chk.query;

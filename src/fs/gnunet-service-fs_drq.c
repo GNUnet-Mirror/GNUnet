@@ -83,7 +83,7 @@ struct DatastoreRequestQueue
   /**
    * Datastore entry type we are doing the 'get' for.
    */
-  uint32_t type;
+  enum GNUNET_BLOCK_Type type;
 
   /**
    * Is this request at the head of the queue irrespective of its
@@ -154,7 +154,7 @@ get_iterator (void *cls,
 	      const GNUNET_HashCode * key,
 	      uint32_t size,
 	      const void *data,
-	      uint32_t type,
+	      enum GNUNET_BLOCK_Type type,
 	      uint32_t priority,
 	      uint32_t anonymity,
 	      struct GNUNET_TIME_Absolute
@@ -345,7 +345,7 @@ shutdown_task (void *cls,
  */
 struct DatastoreRequestQueue *
 GNUNET_FS_drq_get (const GNUNET_HashCode * key,
-		   uint32_t type,
+		   enum GNUNET_BLOCK_Type type,
 		   GNUNET_DATASTORE_Iterator iter, 
 		   void *iter_cls,
 		   struct GNUNET_TIME_Relative timeout,

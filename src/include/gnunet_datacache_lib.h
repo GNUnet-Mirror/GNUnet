@@ -32,6 +32,7 @@
 #define GNUNET_DATACACHE_LIB_H
 
 #include "gnunet_util_lib.h"
+#include "gnunet_block_lib.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -86,7 +87,7 @@ typedef int (*GNUNET_DATACACHE_Iterator) (void *cls,
 					  const GNUNET_HashCode * key,
 					  uint32_t size,
 					  const char *data,
-					  uint32_t type);
+					  enum GNUNET_BLOCK_Type type);
 
 
 /**
@@ -105,7 +106,7 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
 		      const GNUNET_HashCode * key,
 		      uint32_t size,
 		      const char *data,
-		      unsigned int type,
+		      enum GNUNET_BLOCK_Type type,
 		      struct GNUNET_TIME_Absolute discard_time);
 
 
@@ -123,7 +124,7 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
 unsigned int 
 GNUNET_DATACACHE_get (struct GNUNET_DATACACHE_Handle *h,
 		      const GNUNET_HashCode * key,
-		      unsigned int type, 
+		      enum GNUNET_BLOCK_Type type, 
 		      GNUNET_DATACACHE_Iterator iter,
 		      void *iter_cls);
 

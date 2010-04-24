@@ -26,6 +26,7 @@
 #ifndef GNUNET_SERVICE_FS_INDEXING_H
 #define GNUNET_SERVICE_FS_INDEXING_H
 
+#include "gnunet_block_lib.h"
 #include "gnunet_core_service.h"
 #include "gnunet_datastore_service.h"
 #include "gnunet_peer_lib.h"
@@ -57,7 +58,7 @@ int
 GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
 				  uint32_t size,
 				  const void *data,
-				  uint32_t type,
+				  enum GNUNET_BLOCK_Type type,
 				  uint32_t priority,
 				  uint32_t anonymity,
 				  struct GNUNET_TIME_Absolute
