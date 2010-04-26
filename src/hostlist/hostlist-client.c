@@ -149,45 +149,34 @@ static CURL *curl;
 static CURLM *multi;
 
 /**
- * ID of the current task scheduled.
- */
-static GNUNET_SCHEDULER_TaskIdentifier ti_check_download;
-
-/**
- * ID of the current task scheduled.
- */
-static GNUNET_SCHEDULER_TaskIdentifier ti_download;
-
-/**
- * ID of the current hostlist saving task scheduled.
- */
-static GNUNET_SCHEDULER_TaskIdentifier ti_saving_task;
-
-/**
- * ID of the current hostlist saving task scheduled.
- */
-static GNUNET_SCHEDULER_TaskIdentifier ti_download_dispatcher_task;
-
-
-/**
- * ID of the task checking the intervall between to hostlist tests
- */
-static GNUNET_SCHEDULER_TaskIdentifier ti_testing_intervall_task;
-
-/**
  * Amount of time we wait between hostlist downloads.
  */
 static struct GNUNET_TIME_Relative hostlist_delay;
 
 /**
- * Set to GNUNET_YES if the current URL had some problems.
- */ 
-static int bogus_url;
+ * ID of the task, checking if hostlist download should take plate
+ */
+static GNUNET_SCHEDULER_TaskIdentifier ti_check_download;
 
 /**
- * Number of active connections (according to core service).
+ * ID of the task downloading the hostlist
  */
-static unsigned int connection_count;
+static GNUNET_SCHEDULER_TaskIdentifier ti_download;
+
+/**
+ * ID of the task saving the hostlsit in a regular intervall
+ */
+static GNUNET_SCHEDULER_TaskIdentifier ti_saving_task;
+
+/**
+ * ID of the task called to initiate a download
+ */
+static GNUNET_SCHEDULER_TaskIdentifier ti_download_dispatcher_task;
+
+/**
+ * ID of the task controlling the locking between two hostlist tests
+ */
+static GNUNET_SCHEDULER_TaskIdentifier ti_testing_intervall_task;
 
 /**
  * At what time MUST the current hostlist request be done?
@@ -219,31 +208,50 @@ static unsigned int linked_list_size;
  */
 static struct Hostlist * hostlist_to_test;
 
-static int testing_hostlist;
-
-static int testing_allowed;
-
-static int download_in_progress;
+/**
+ * Set to GNUNET_YES if the current URL had some problems.
+ */
+static int stat_bogus_url;
 
 /**
- * Value saying if preconfigured  is used
+ * Value controlling if a hostlist is tested at the moment
  */
-static unsigned int use_preconfigured_list;
+static int stat_testing_hostlist;
 
+/**
+ * Value controlling if a hostlist testing is allowed at the moment
+ */
+static int stat_testing_allowed;
+
+/**
+ * Value controlling if a hostlist download is running at the moment
+ */
+static int stat_download_in_progress;
+
+/**
+ * Value saying if a preconfigured bootstrap server is used
+ */
+static unsigned int stat_use_bootstrap;
 /**
  * Set if we are allowed to learn new hostlists and use them
  */
-static int learning;
-
-/**
- * Value saying how many valid HELLO messages were obtained during download
- */
-static unsigned int hellos_obtained;
+static int stat_learning;
 
 /**
  * Value saying if hostlist download was successful
  */
-static unsigned int download_successful;
+static unsigned int stat_download_successful;
+
+/**
+ * Value saying how many valid HELLO messages were obtained during download
+ */
+static unsigned int stat_hellos_obtained;
+
+/**
+ * Number of active connections (according to core service).
+ */
+static unsigned int stat_connection_count;
+
 
 /**
  * Process downloaded bits by calling callback on each HELLO.
@@ -255,7 +263,7 @@ static unsigned int download_successful;
  * @return number of bytes that were processed (always size*nmemb)
  */
 static size_t
-download_hostlist_processor (void *ptr, 
+callback_download (void *ptr, 
 			     size_t size, 
 			     size_t nmemb, 
 			     void *ctx)
@@ -268,7 +276,7 @@ download_hostlist_processor (void *ptr,
   uint16_t msize;
 
   total = size * nmemb;
-  if ( (total == 0) || (bogus_url) )
+  if ( (total == 0) || (stat_bogus_url) )
     {
       return total;  /* ok, no data or bogus data */
     }
@@ -304,7 +312,7 @@ download_hostlist_processor (void *ptr,
 		      _("Invalid `%s' message received from hostlist at `%s'\n"),
 		      "HELLO",
 		      current_url); 
-	  bogus_url = 1;
+	  stat_bogus_url = 1;
 	  return total;
 	}
       if (download_pos < msize)
@@ -323,7 +331,7 @@ download_hostlist_processor (void *ptr,
 				    gettext_noop ("# valid HELLOs downloaded from hostlist servers"), 
 				    1, 
 				    GNUNET_NO);
-	  hellos_obtained++;
+	  stat_hellos_obtained++;
 	  GNUNET_TRANSPORT_offer_hello (transport, msg);
 	}
       else
@@ -336,7 +344,7 @@ download_hostlist_processor (void *ptr,
 		      _("Invalid `%s' message received from hostlist at `%s'\n"),
 		      "HELLO",
 		      current_url);
-	  bogus_url = GNUNET_YES;
+	  stat_bogus_url = GNUNET_YES;
 	  return total;
 	}
       memmove (download_buffer,
@@ -354,7 +362,7 @@ download_hostlist_processor (void *ptr,
  * @return NULL if there is no URL available
  */
 static char *
-get_bootstrap_url ()
+get_bootstrap_server ()
 {
   char *servers;
   char *ret;
@@ -420,21 +428,21 @@ get_bootstrap_url ()
  * @return uri to use, NULL if there is no URL available
  */
 static char *
-get_list_url ()
+download_get_url ()
 {
   uint32_t index;
   unsigned int counter;
   struct Hostlist * pos;
 
-  if ( GNUNET_NO == learning)
+  if ( GNUNET_NO == stat_learning)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Using preconfigured bootstrap server\n");
     current_hostlist = NULL;
-    return get_bootstrap_url();
+    return get_bootstrap_server();
   }
 
-  if ( ( GNUNET_YES == testing_hostlist) && (NULL != hostlist_to_test) )
+  if ( ( GNUNET_YES == stat_testing_hostlist) && (NULL != hostlist_to_test) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Testing new advertised hostlist if it is obtainable\n");
@@ -442,13 +450,13 @@ get_list_url ()
     return strdup(hostlist_to_test->hostlist_uri);
   }
 
-  if ( (GNUNET_YES == use_preconfigured_list) ||
+  if ( (GNUNET_YES == stat_use_bootstrap) ||
        (linked_list_size == 0) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Using preconfigured bootstrap server\n");
     current_hostlist = NULL;
-    return get_bootstrap_url();
+    return get_bootstrap_server();
   }
   index = GNUNET_CRYPTO_random_u32 ( GNUNET_CRYPTO_QUALITY_WEAK, linked_list_size);
   counter = 0;
@@ -468,7 +476,7 @@ get_list_url ()
 #define CURL_EASY_SETOPT(c, a, b) do { ret = curl_easy_setopt(c, a, b); if (ret != CURLE_OK) GNUNET_log(GNUNET_ERROR_TYPE_WARNING, _("%s failed at %s:%d: `%s'\n"), "curl_easy_setopt", __FILE__, __LINE__, curl_easy_strerror(ret)); } while (0);
 
 /**
- * Method to load persistent hostlist file during hostlist client shutdown
+ * Method to save hostlist to a file during hostlist client shutdown
  * @param shutdown set if called because of shutdown, entries in linked list will be destroyed
  */
 static void save_hostlist_file ( int shutdown );
@@ -509,7 +517,7 @@ static uint64_t checked_sub (uint64_t val1, uint64_t val2)
 }
 
 /**
- * Method to check if URI is in hostlist linked list
+ * Method to check if  a URI is in hostlist linked list
  * @param uri uri to check
  * @return GNUNET_YES if existing in linked list, GNUNET_NO if not
  */
@@ -530,7 +538,7 @@ linked_list_contains (const char * uri)
 
 
 /**
- * Method returning the uri with the lowest quality in the datastore
+ * Method returning the hostlist element with the lowest quality in the datastore
  * @return hostlist with lowest quality
  */
 static struct Hostlist *
@@ -588,7 +596,7 @@ insert_hostlist ( void )
 
   GNUNET_free (lowest_quality);
 
-  testing_hostlist = GNUNET_NO;
+  stat_testing_hostlist = GNUNET_NO;
   return;
 }
 
@@ -599,15 +607,15 @@ insert_hostlist ( void )
 static void update_hostlist ( )
 {
   char *stat;
-  if ( ((use_preconfigured_list == GNUNET_NO) && ( NULL != current_hostlist )) ||
-       ((testing_hostlist == GNUNET_YES) && ( NULL != current_hostlist )) )
+  if ( ((stat_use_bootstrap == GNUNET_NO) && ( NULL != current_hostlist )) ||
+       ((stat_testing_hostlist == GNUNET_YES) && ( NULL != current_hostlist )) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Updating hostlist statics for URI `%s'\n",current_hostlist->hostlist_uri );
-     current_hostlist->hello_count = hellos_obtained;
+     current_hostlist->hello_count = stat_hellos_obtained;
      current_hostlist->time_last_usage = GNUNET_TIME_absolute_get();
-     current_hostlist->quality = checked_add ( current_hostlist->quality, (hellos_obtained * HOSTLIST_SUCCESSFUL_HELLO));
-     if ( GNUNET_YES == download_successful )
+     current_hostlist->quality = checked_add ( current_hostlist->quality, (stat_hellos_obtained * HOSTLIST_SUCCESSFUL_HELLO));
+     if ( GNUNET_YES == stat_download_successful )
      {
        current_hostlist->times_used++;
        current_hostlist->quality = checked_add ( current_hostlist->quality, HOSTLIST_SUCCESSFUL_DOWNLOAD);
@@ -627,18 +635,18 @@ static void update_hostlist ( )
   current_hostlist = NULL;
   /* Alternating the usage of preconfigured and learned hostlists */
 
-  if (testing_hostlist == GNUNET_YES)
+  if (stat_testing_hostlist == GNUNET_YES)
     return;
 
-  if ( GNUNET_YES == learning)
+  if ( GNUNET_YES == stat_learning)
     {
-    if (use_preconfigured_list == GNUNET_YES)
-      use_preconfigured_list = GNUNET_NO;
+    if (stat_use_bootstrap == GNUNET_YES)
+      stat_use_bootstrap = GNUNET_NO;
     else
-      use_preconfigured_list = GNUNET_YES;
+      stat_use_bootstrap = GNUNET_YES;
     }
   else
-    use_preconfigured_list = GNUNET_YES;
+    stat_use_bootstrap = GNUNET_YES;
 }
 
 /**
@@ -650,15 +658,15 @@ clean_up ()
 {
   CURLMcode mret;
 
-  if ( ( testing_hostlist == GNUNET_YES ) && ( GNUNET_NO == download_successful) && (NULL != hostlist_to_test))
+  if ( ( stat_testing_hostlist == GNUNET_YES ) && ( GNUNET_NO == stat_download_successful) && (NULL != hostlist_to_test))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _("Advertised hostlist with URI `%s' could not be downloaded. Advertised URI gets dismissed.\n"),hostlist_to_test->hostlist_uri);
   }
 
-  if ( testing_hostlist == GNUNET_YES )
+  if ( stat_testing_hostlist == GNUNET_YES )
     {
-    testing_hostlist = GNUNET_NO;
+    stat_testing_hostlist = GNUNET_NO;
     }
   if ( NULL != hostlist_to_test)
   {
@@ -693,7 +701,7 @@ clean_up ()
   GNUNET_free_non_null (current_url);
   current_url = NULL;
 
-  download_in_progress = GNUNET_NO;
+  stat_download_in_progress = GNUNET_NO;
 }
 
 /**
@@ -704,7 +712,7 @@ clean_up ()
  * @param tc task context, unused
  */
 static void
-multi_ready (void *cls,
+task_download (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
@@ -712,7 +720,7 @@ multi_ready (void *cls,
  * receiving task with the scheduler.
  */
 static void
-run_multi ()
+download_prepare ()
 {
   CURLMcode mret;
   fd_set rs;
@@ -766,7 +774,7 @@ run_multi ()
                                    rtime,
                                    grs,
                                    gws,
-                                   &multi_ready,
+                                   &task_download,
                                    multi);
   GNUNET_NETWORK_fdset_destroy (gws);
   GNUNET_NETWORK_fdset_destroy (grs);
@@ -781,7 +789,7 @@ run_multi ()
  * @param tc task context, unused
  */
 static void
-multi_ready (void *cls,
+task_download (void *cls,
 	     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned int counter;
@@ -847,15 +855,15 @@ multi_ready (void *cls,
 		    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 				_("Download of hostlist `%s' completed.\n"),
 				current_url);
-		    download_successful = GNUNET_YES;
+		    stat_download_successful = GNUNET_YES;
 	            update_hostlist();
-		    if (GNUNET_YES == testing_hostlist)
+		    if (GNUNET_YES == stat_testing_hostlist)
 		     {
                       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                                         _("Adding successfully tested hostlist `%s' datastore.\n"),current_url);
 		      insert_hostlist();
 		      hostlist_to_test = NULL;
-		      testing_hostlist = GNUNET_NO;
+		      stat_testing_hostlist = GNUNET_NO;
 		     }
 		    }
 		  clean_up ();
@@ -877,7 +885,7 @@ multi_ready (void *cls,
 		  curl_multi_strerror (mret));
       clean_up ();
     }
-  run_multi ();
+  download_prepare ();
 }
 
 
@@ -892,7 +900,7 @@ download_hostlist ()
   CURLMcode mret;
 
 
-  current_url = get_list_url ();
+  current_url = download_get_url ();
   if (current_url == NULL)
     return;
   curl = curl_easy_init ();
@@ -907,9 +915,9 @@ download_hostlist ()
 	      _("Bootstrapping using hostlist at `%s'.\n"), 
 	      current_url);
 
-  download_in_progress = GNUNET_YES;
-  download_successful = GNUNET_NO;
-  hellos_obtained = 0;
+  stat_download_in_progress = GNUNET_YES;
+  stat_download_successful = GNUNET_NO;
+  stat_hellos_obtained = 0;
 
   GNUNET_STATISTICS_update (stats, 
 			    gettext_noop ("# hostlist downloads initiated"), 
@@ -918,10 +926,10 @@ download_hostlist ()
   if (proxy != NULL)
     CURL_EASY_SETOPT (curl, CURLOPT_PROXY, proxy);    
   download_pos = 0;
-  bogus_url = 0;
+  stat_bogus_url = 0;
   CURL_EASY_SETOPT (curl,
 		    CURLOPT_WRITEFUNCTION, 
-		    &download_hostlist_processor);
+		    &callback_download);
   if (ret != CURLE_OK)
     {
       clean_up ();
@@ -996,12 +1004,12 @@ download_hostlist ()
       return;
     }
   end_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
-  run_multi ();
+  download_prepare ();
 }  
 
 
 static void
-download_dispatcher (void *cls,
+task_download_dispatcher (void *cls,
             const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   ti_download_dispatcher_task = GNUNET_SCHEDULER_NO_TASK;
@@ -1009,7 +1017,7 @@ download_dispatcher (void *cls,
       return;
    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
              "Download is initiated...\n");
-   if ( GNUNET_NO == download_in_progress )
+   if ( GNUNET_NO == stat_download_in_progress )
    {
      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                "Download can start immediately...\n");
@@ -1021,7 +1029,7 @@ download_dispatcher (void *cls,
                "Download in progess, have to wait...\n");
      ti_download_dispatcher_task = GNUNET_SCHEDULER_add_delayed (sched,
                                                               WAITING_INTERVALL,
-                                                              &download_dispatcher,
+                                                              &task_download_dispatcher,
                                                               NULL);
    }
 }
@@ -1032,17 +1040,17 @@ download_dispatcher (void *cls,
  * this task again for a later time.
  */
 static void
-check_task (void *cls,
+task_check (void *cls,
 	    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   ti_check_download = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  if (connection_count < MIN_CONNECTIONS)
+  if (stat_connection_count < MIN_CONNECTIONS)
   {
     ti_download_dispatcher_task = GNUNET_SCHEDULER_add_now ( sched,
-                                                          &download_dispatcher,
+                                                          &task_download_dispatcher,
                                                           NULL);
   }
 
@@ -1059,9 +1067,9 @@ check_task (void *cls,
     hostlist_delay = GNUNET_TIME_UNIT_SECONDS;
   else
     hostlist_delay = GNUNET_TIME_relative_multiply (hostlist_delay, 2);
-  if (hostlist_delay.value > GNUNET_TIME_UNIT_HOURS.value * (1 + connection_count))
+  if (hostlist_delay.value > GNUNET_TIME_UNIT_HOURS.value * (1 + stat_connection_count))
     hostlist_delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS,
-                                                    (1 + connection_count));
+                                                    (1 + stat_connection_count));
   GNUNET_STATISTICS_set (stats,
                          gettext_noop("# seconds between hostlist downloads"),
                          hostlist_delay.value,
@@ -1073,12 +1081,12 @@ check_task (void *cls,
     }  
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Have %u/%u connections.  Will consider downloading hostlist in %llums\n"),
-              connection_count,
+              stat_connection_count,
               MIN_CONNECTIONS,
               (unsigned long long) delay.value);
   ti_check_download = GNUNET_SCHEDULER_add_delayed (sched,
                                                delay,
-                                               &check_task,
+                                               &task_check,
                                                NULL);
 }
 
@@ -1094,7 +1102,7 @@ task_testing_intervall_reset (void *cls,
   ti_testing_intervall_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-   testing_allowed = GNUNET_OK;
+   stat_testing_allowed = GNUNET_OK;
    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
              "Testing new hostlist advertisements is allowed again\n");
 }
@@ -1140,7 +1148,7 @@ handler_connect (void *cls,
 		 struct GNUNET_TIME_Relative latency,
 		 uint32_t distance)
 {
-  connection_count++;
+  stat_connection_count++;
   GNUNET_STATISTICS_update (stats, 
 			    gettext_noop ("# active connections"), 
 			    1, 
@@ -1159,7 +1167,7 @@ handler_disconnect (void *cls,
 		    const struct
 		    GNUNET_PeerIdentity * peer)
 {
-  connection_count--;
+  stat_connection_count--;
   GNUNET_STATISTICS_update (stats, 
 			    gettext_noop ("# active connections"), 
 			    -1, 
@@ -1217,13 +1225,13 @@ handler_advertisement (void *cls,
       return GNUNET_OK;
     }
 
-  if ( GNUNET_NO == testing_allowed )
+  if ( GNUNET_NO == stat_testing_allowed )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Currently not accepting new advertisements: interval between to advertisements is not reached\n");
       return GNUNET_SYSERR;
     }
-  if ( GNUNET_YES == testing_hostlist )
+  if ( GNUNET_YES == stat_testing_hostlist )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Currently not accepting new advertisements: we are already testing a hostlist\n");
@@ -1238,8 +1246,8 @@ handler_advertisement (void *cls,
   hostlist->quality = HOSTLIST_INITIAL;
   hostlist_to_test = hostlist;
 
-  testing_hostlist = GNUNET_YES;
-  testing_allowed = GNUNET_NO;
+  stat_testing_hostlist = GNUNET_YES;
+  stat_testing_allowed = GNUNET_NO;
   ti_testing_intervall_task = GNUNET_SCHEDULER_add_delayed (sched,
                                                          TESTING_INTERVALL,
                                                          &task_testing_intervall_reset,
@@ -1250,7 +1258,7 @@ handler_advertisement (void *cls,
             TESTING_INTERVALL);
 
   ti_download_dispatcher_task = GNUNET_SCHEDULER_add_now (sched,
-                                                     &download_dispatcher,
+                                                     &task_download_dispatcher,
                                                      NULL);
 
   return GNUNET_OK;
@@ -1276,7 +1284,7 @@ primary_task (void *cls, int success)
 	      "Statistics request done, scheduling hostlist download\n");
 #endif
   ti_check_download = GNUNET_SCHEDULER_add_now (sched,
-                                           &check_task,
+                                           &task_check,
                                            NULL);
 }
 
@@ -1512,16 +1520,16 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
 					     "HTTP-PROXY", 
 					     &proxy))
     proxy = NULL;
-  learning = learn;
+  stat_learning = learn;
   *ch = &handler_connect;
   *dh = &handler_disconnect;
   linked_list_head = NULL;
   linked_list_tail = NULL;
-  use_preconfigured_list = GNUNET_YES;
-  testing_hostlist = GNUNET_NO;
-  testing_allowed = GNUNET_YES;
+  stat_use_bootstrap = GNUNET_YES;
+  stat_testing_hostlist = GNUNET_NO;
+  stat_testing_allowed = GNUNET_YES;
 
-  if ( GNUNET_YES == learning )
+  if ( GNUNET_YES == stat_learning )
   {
     *msgh = &handler_advertisement;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -1579,7 +1587,7 @@ GNUNET_HOSTLIST_client_stop ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Hostlist client shutdown\n");
 #endif
-  if ( GNUNET_YES == learning )
+  if ( GNUNET_YES == stat_learning )
     save_hostlist_file ( GNUNET_YES );
 
   if (ti_saving_task != GNUNET_SCHEDULER_NO_TASK)
