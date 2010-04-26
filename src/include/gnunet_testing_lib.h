@@ -42,10 +42,13 @@ extern "C"
 #endif
 #endif
 
-/* Forward declaration */
+/**
+ * Handle for a GNUnet daemon (technically a set of
+ * daemons; the handle is really for the master ARM
+ * daemon) started by the testing library.
+ */
 struct GNUNET_TESTING_Daemon;
-/* Forward declaration */
-struct GNUNET_TESTING_PeerGroup;
+
 
 /**
  * Prototype of a function that will be called whenever
@@ -62,6 +65,142 @@ typedef void (*GNUNET_TESTING_NotifyDaemonRunning)(void *cls,
 						   const struct GNUNET_CONFIGURATION_Handle *cfg,
 						   struct GNUNET_TESTING_Daemon *d,
 						   const char *emsg);
+
+
+/**
+ * Handle to an entire testbed of GNUnet peers.
+ */
+struct GNUNET_TESTING_Testbed;
+
+/**
+ * Phases of starting GNUnet on a system.
+ */
+enum GNUNET_TESTING_StartPhase;
+
+
+/**
+ * Handle for a GNUnet daemon (technically a set of
+ * daemons; the handle is really for the master ARM
+ * daemon) started by the testing library.
+ */
+struct GNUNET_TESTING_Daemon
+{
+  /**
+   * Our scheduler.
+   */
+  struct GNUNET_SCHEDULER_Handle *sched;
+
+  /**
+   * Our configuration.
+   */
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * Host to run GNUnet on.
+   */
+  char *hostname;
+
+  /**
+   * Result of GNUNET_i2s of this peer,
+   * for printing
+   */
+  char *shortname;
+
+  /**
+   * Username we are using.
+   */
+  char *username;
+
+  /**
+   * Name of the configuration file
+   */
+  char *cfgfile;
+
+  /**
+   * Function to call when the peer is running.
+   */
+  GNUNET_TESTING_NotifyDaemonRunning cb;
+
+  /**
+   * Closure for cb.
+   */
+  void *cb_cls;
+
+  /**
+   * Arguments from "daemon_stop" call.
+   */
+  GNUNET_TESTING_NotifyCompletion dead_cb;
+
+  /**
+   * Closure for 'dead_cb'.
+   */
+  void *dead_cb_cls;
+
+  /**
+   * Arguments from "daemon_stop" call.
+   */
+  GNUNET_TESTING_NotifyCompletion update_cb;
+
+  /**
+   * Closure for 'update_cb'.
+   */
+  void *update_cb_cls;
+
+  /**
+   * Identity of this peer (once started).
+   */
+  struct GNUNET_PeerIdentity id;
+
+  /**
+   * Flag to indicate that we've already been asked
+   * to terminate (but could not because some action
+   * was still pending).
+   */
+  int dead;
+
+  /**
+   * PID of the process that we started last.
+   */
+  pid_t pid;
+
+  /**
+   * How many iterations have we been waiting for
+   * the started process to complete?
+   */
+  unsigned int wait_runs;
+
+  /**
+   * In which phase are we during the start of
+   * this process?
+   */
+  enum GNUNET_TESTING_StartPhase phase;
+
+  /**
+   * ID of the current task.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier task;
+
+  /**
+   * Handle to the server.
+   */
+  struct GNUNET_CORE_Handle *server;
+
+  /**
+   * Handle to the transport service of this peer
+   */
+  struct GNUNET_TRANSPORT_Handle *th;
+
+  /**
+   * HELLO message for this peer
+   */
+  struct GNUNET_HELLO_Message *hello;
+};
+
+
+/**
+ * Handle to a group of GNUnet peers.
+ */
+struct GNUNET_TESTING_PeerGroup;
 
 
 /**
@@ -146,27 +285,6 @@ void GNUNET_TESTING_daemon_reconfigure (struct GNUNET_TESTING_Daemon *d,
 					GNUNET_TESTING_NotifyCompletion cb,
 					void * cb_cls);
 
-#if HIDDEN
-/*
- * Get the short name of a running peer
- *
- * @param d the daemon handle
- */
-char *
-GNUNET_TESTING_daemon_get_shortname(struct GNUNET_TESTING_Daemon *d);
-
-char *
-GNUNET_TESTING_daemon_get_hostname (struct GNUNET_TESTING_Daemon *d);
-
-char *
-GNUNET_TESTING_daemon_get_username (struct GNUNET_TESTING_Daemon *d);
-
-struct GNUNET_PeerIdentity *
-GNUNET_TESTING_daemon_get_peer (struct GNUNET_TESTING_Daemon *d);
-
-struct GNUNET_CONFIGURATION_Handle *
-GNUNET_TESTING_daemon_get_config (struct GNUNET_TESTING_Daemon *d);
-#endif
 
 /**
  * Establish a connection between two GNUnet daemons.
@@ -188,11 +306,6 @@ void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 				     void *cb_cls);
 
 
-
-/**
- * Handle to a group of GNUnet peers.
- */
-struct GNUNET_TESTING_PeerGroup;
 
 
 /**
@@ -231,182 +344,6 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
 void
 GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg);
 
-int
-GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg);
-
-
-/**
- * Handle to an entire testbed of GNUnet peers.
- */
-struct GNUNET_TESTING_Testbed;
-
-/**
- * Phases of starting GNUnet on a system.
- */
-enum StartPhase
-{
-    /**
-     * Copy the configuration file to the target system.
-     */
-  SP_COPYING,
-
-    /**
-     * Configuration file has been copied, start ARM on target system.
-     */
-  SP_COPIED,
-
-    /**
-     * ARM has been started, check that it has properly daemonized and
-     * then try to connect to the CORE service (which should be
-     * auto-started by ARM).
-     */
-  SP_START_ARMING,
-
-    /**
-     * We're waiting for CORE to start.
-     */
-  SP_START_CORE,
-
-    /**
-     * Core has notified us that we've established a connection to the service.
-     * The main FSM halts here and waits to be moved to UPDATE or CLEANUP.
-     */
-  SP_START_DONE,
-
-    /**
-     * We've been asked to terminate the instance and are now waiting for
-     * the remote command to stop the gnunet-arm process and delete temporary
-     * files.
-     */
-  SP_SHUTDOWN_START,
-
-    /**
-     * We've received a configuration update and are currently waiting for
-     * the copy process for the update to complete.  Once it is, we will
-     * return to "SP_START_DONE" (and rely on ARM to restart all affected
-     * services).
-     */
-  SP_CONFIG_UPDATE
-};
-
-
-/**
- * Handle for a GNUnet daemon (technically a set of
- * daemons; the handle is really for the master ARM
- * daemon) started by the testing library.
- */
-struct GNUNET_TESTING_Daemon
-{
-  /**
-   * Our scheduler.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
-
-  /**
-   * Our configuration.
-   */
-  struct GNUNET_CONFIGURATION_Handle *cfg;
-
-  /**
-   * Host to run GNUnet on.
-   */
-  char *hostname;
-
-  /*
-   * Result of GNUNET_i2s of this peer,
-   * for printing
-   */
-  char *shortname;
-
-  /**
-   * Username we are using.
-   */
-  char *username;
-
-  /**
-   * Name of the configuration file
-   */
-  char *cfgfile;
-
-  /**
-   * Function to call when the peer is running.
-   */
-  GNUNET_TESTING_NotifyDaemonRunning cb;
-
-  /**
-   * Closure for cb.
-   */
-  void *cb_cls;
-
-  /**
-   * Arguments from "daemon_stop" call.
-   */
-  GNUNET_TESTING_NotifyCompletion dead_cb;
-
-  /**
-   * Closure for 'dead_cb'.
-   */
-  void *dead_cb_cls;
-
-  /**
-   * Arguments from "daemon_stop" call.
-   */
-  GNUNET_TESTING_NotifyCompletion update_cb;
-
-  /**
-   * Closure for 'update_cb'.
-   */
-  void *update_cb_cls;
-
-  /**
-   * Identity of this peer (once started).
-   */
-  struct GNUNET_PeerIdentity id;
-
-  /**
-   * Flag to indicate that we've already been asked
-   * to terminate (but could not because some action
-   * was still pending).
-   */
-  int dead;
-
-  /**
-   * PID of the process that we started last.
-   */
-  pid_t pid;
-
-  /**
-   * How many iterations have we been waiting for
-   * the started process to complete?
-   */
-  unsigned int wait_runs;
-
-  /**
-   * In which phase are we during the start of
-   * this process?
-   */
-  enum StartPhase phase;
-
-  /**
-   * ID of the current task.
-   */
-  GNUNET_SCHEDULER_TaskIdentifier task;
-
-  /**
-   * Handle to the server.
-   */
-  struct GNUNET_CORE_Handle *server;
-
-  /**
-   * Handle to the transport service of this peer
-   */
-  struct GNUNET_TRANSPORT_Handle *th;
-
-  /**
-   * HELLO message for this peer
-   */
-  struct GNUNET_HELLO_Message *hello;
-};
 
 /**
  * Topologies supported for testbeds.
@@ -450,10 +387,23 @@ enum GNUNET_TESTING_Topology
   GNUNET_TESTING_TOPOLOGY_INTERNAT,
 
   /**
+   * FIXME: implement
+   */
+  GNUNET_TESTING_TOPOLOGY_SCALE_FREE,
+
+  /**
    * All peers are disconnected.
    */
   GNUNET_TESTING_TOPOLOGY_NONE
 };
+
+
+/**
+ * FIXME: document
+ */
+int
+GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg
+				/* enum GNUNET_TESTING_Topology topo */);
 
 
 /**
