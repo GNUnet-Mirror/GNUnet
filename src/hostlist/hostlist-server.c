@@ -32,7 +32,7 @@
 #include "gnunet-daemon-hostlist.h"
 #include "gnunet_resolver_service.h"
 
-#define DEBUG_HOSTLIST_SERVER GNUNET_NO
+#define DEBUG_HOSTLIST_SERVER GNUNET_YES
 
 /**
  * How often should we recalculate our response to hostlist requests?
@@ -282,7 +282,6 @@ update_response (void *cls,
 		 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct HostSet *results;
-
   response_task = GNUNET_SCHEDULER_NO_TASK;
   results = GNUNET_malloc(sizeof(struct HostSet));
   GNUNET_assert (peerinfo != NULL);
@@ -438,6 +437,11 @@ connect_handler (void *cls,
 {
   size_t size;
 
+  /* FIXME: Change this way to update the list to peerinfo_notify */
+  response_task = GNUNET_SCHEDULER_add_now (sched,
+                                            &update_response,
+                                            NULL);
+
   if ( !advertising )
     return;
   if (hostlist_uri == NULL)
@@ -455,8 +459,8 @@ connect_handler (void *cls,
       return;
     }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Asked core to transmit advertisement message with a size of %u bytes\n", 
-	      size);
+              "Asked core to transmit advertisement message with a size of %u bytes to peer `%s'\n",
+	      size,GNUNET_i2s(peer));
   if (NULL == GNUNET_CORE_notify_transmit_ready (core,
 						 0,
 						 GNUNET_ADV_TIMEOUT,

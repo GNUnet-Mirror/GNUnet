@@ -252,6 +252,7 @@ static unsigned int stat_hellos_obtained;
  */
 static unsigned int stat_connection_count;
 
+unsigned int downloaded_hellos;
 
 /**
  * Process downloaded bits by calling callback on each HELLO.
@@ -280,6 +281,15 @@ callback_download (void *ptr,
     {
       return total;  /* ok, no data or bogus data */
     }
+
+  if ( downloaded_hellos >= MAX_HELLO_PER_HOSTLISTS )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  _("Maximum number of HELLO Messages per download reached: %u'\n"),
+                  MAX_HELLO_PER_HOSTLISTS );
+    return total;
+
+  }
   GNUNET_STATISTICS_update (stats, 
 			    gettext_noop ("# bytes downloaded from hostlist servers"), 
 			    (int64_t) total, 
@@ -311,7 +321,9 @@ callback_download (void *ptr,
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		      _("Invalid `%s' message received from hostlist at `%s'\n"),
 		      "HELLO",
-		      current_url); 
+		      current_url);
+          stat_hellos_obtained++;
+          downloaded_hellos++;
 	  stat_bogus_url = 1;
 	  return total;
 	}
@@ -332,6 +344,7 @@ callback_download (void *ptr,
 				    1, 
 				    GNUNET_NO);
 	  stat_hellos_obtained++;
+	  downloaded_hellos++;
 	  GNUNET_TRANSPORT_offer_hello (transport, msg);
 	}
       else
@@ -345,6 +358,8 @@ callback_download (void *ptr,
 		      "HELLO",
 		      current_url);
 	  stat_bogus_url = GNUNET_YES;
+          stat_hellos_obtained++;
+          downloaded_hellos++;
 	  return total;
 	}
       memmove (download_buffer,
@@ -674,7 +689,6 @@ clean_up ()
     hostlist_to_test = NULL;
   }
 
-
   if (multi != NULL)
     {
       mret = curl_multi_remove_handle (multi, curl);
@@ -700,7 +714,7 @@ clean_up ()
     }  
   GNUNET_free_non_null (current_url);
   current_url = NULL;
-
+  downloaded_hellos = 0;
   stat_download_in_progress = GNUNET_NO;
 }
 
@@ -792,7 +806,7 @@ static void
 task_download (void *cls,
 	     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  unsigned int counter;
+
   int running;
   struct CURLMsg *msg;
   CURLMcode mret;
@@ -823,7 +837,6 @@ task_download (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Ready for processing hostlist client request\n");
 #endif
-  counter = 0;
   do 
     {
       running = 0;
@@ -834,7 +847,6 @@ task_download (void *cls,
 	    {
 
 	      msg = curl_multi_info_read (multi, &running);
-	      counter ++;
 	      GNUNET_break (msg != NULL);
 	      if (msg == NULL)
 		break;
@@ -855,6 +867,8 @@ task_download (void *cls,
 		    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 				_("Download of hostlist `%s' completed.\n"),
 				current_url);
+                    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                                      _("HELLOs recieved: %u \n"),downloaded_hellos);
 		    stat_download_successful = GNUNET_YES;
 	            update_hostlist();
 		    if (GNUNET_YES == stat_testing_hostlist)
@@ -918,6 +932,7 @@ download_hostlist ()
   stat_download_in_progress = GNUNET_YES;
   stat_download_successful = GNUNET_NO;
   stat_hellos_obtained = 0;
+  downloaded_hellos = 0;
 
   GNUNET_STATISTICS_update (stats, 
 			    gettext_noop ("# hostlist downloads initiated"), 

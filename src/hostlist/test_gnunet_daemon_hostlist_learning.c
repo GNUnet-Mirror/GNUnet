@@ -71,6 +71,8 @@ static struct PeerContext adv_peer;
 
 static struct PeerContext learn_peer;
 
+static struct PeerContext learn_peer2;
+
 
 static void
 waitpid_task (void *cls,
@@ -137,6 +139,11 @@ static void shutdown_testcase()
     GNUNET_TRANSPORT_disconnect (learn_peer.th);
     learn_peer.th = NULL;
   }
+  if (learn_peer2.th != NULL)
+  {
+    GNUNET_TRANSPORT_disconnect (learn_peer2.th);
+    learn_peer2.th = NULL;
+  }
   if (adv_peer.core != NULL)
   {
     GNUNET_CORE_disconnect (adv_peer.core);
@@ -147,11 +154,19 @@ static void shutdown_testcase()
     GNUNET_CORE_disconnect (learn_peer.core);
     learn_peer.core = NULL;
   }
+  if (learn_peer2.core != NULL)
+  {
+    GNUNET_CORE_disconnect (learn_peer2.core);
+    learn_peer2.core = NULL;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking ARM to stop core services\n");
   learn_peer.arm = GNUNET_ARM_connect (learn_peer.cfg, sched, NULL);
   GNUNET_ARM_stop_service (learn_peer.arm, "core", GNUNET_TIME_UNIT_SECONDS,
                            &stop_cb, &learn_peer);
+  learn_peer2.arm = GNUNET_ARM_connect (learn_peer2.cfg, sched, NULL);
+  GNUNET_ARM_stop_service (learn_peer2.arm, "core", GNUNET_TIME_UNIT_SECONDS,
+                           &stop_cb, &learn_peer2);
   adv_peer.arm = GNUNET_ARM_connect (adv_peer.cfg, sched, NULL);
   GNUNET_ARM_stop_service (adv_peer.arm, "core", GNUNET_TIME_UNIT_SECONDS,
                            &stop_cb, &adv_peer);
@@ -415,6 +430,8 @@ run (void *cls,
 
   setup_adv_peer (&adv_peer, "test_learning_adv_peer.conf");
   setup_learn_peer (&learn_peer, "test_learning_learn_peer.conf");
+  setup_learn_peer (&learn_peer2, "test_learning_learn_peer2.conf");
+
 }
 
 
