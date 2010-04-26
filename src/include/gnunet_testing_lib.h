@@ -75,8 +75,61 @@ struct GNUNET_TESTING_Testbed;
 /**
  * Phases of starting GNUnet on a system.
  */
-enum GNUNET_TESTING_StartPhase;
+enum GNUNET_TESTING_StartPhase
+{
+  /**
+   * Copy the configuration file to the target system.
+   */
+  SP_COPYING,
 
+  /**
+   * Configuration file has been copied, start ARM on target system.
+   */
+  SP_COPIED,
+
+  /**
+   * ARM has been started, check that it has properly daemonized and
+   * then try to connect to the CORE service (which should be
+   * auto-started by ARM).
+   */
+  SP_START_ARMING,
+
+  /**
+   * We're waiting for CORE to start.
+   */
+  SP_START_CORE,
+
+  /**
+   * Core has notified us that we've established a connection to the service.
+   * The main FSM halts here and waits to be moved to UPDATE or CLEANUP.
+   */
+  SP_START_DONE,
+
+  /**
+   * We've been asked to terminate the instance and are now waiting for
+   * the remote command to stop the gnunet-arm process and delete temporary
+   * files.
+   */
+  SP_SHUTDOWN_START,
+
+  /**
+   * We've received a configuration update and are currently waiting for
+   * the copy process for the update to complete.  Once it is, we will
+   * return to "SP_START_DONE" (and rely on ARM to restart all affected
+   * services).
+   */
+  SP_CONFIG_UPDATE
+};
+
+/**
+ * Prototype of a function that will be called when a
+ * particular operation was completed the testing library.
+ *
+ * @param cls closure
+ * @param emsg NULL on success
+ */
+typedef void (*GNUNET_TESTING_NotifyCompletion)(void *cls,
+                                                const char *emsg);
 
 /**
  * Handle for a GNUnet daemon (technically a set of
@@ -248,16 +301,6 @@ GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
 
 struct GNUNET_TESTING_Daemon *
 GNUNET_TESTING_daemon_get (struct GNUNET_TESTING_PeerGroup *pg, unsigned int position);
-
-/**
- * Prototype of a function that will be called when a
- * particular operation was completed the testing library.
- *
- * @param cls closure
- * @param emsg NULL on success
- */
-typedef void (*GNUNET_TESTING_NotifyCompletion)(void *cls,
-						const char *emsg);
 
 
 /**
