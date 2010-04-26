@@ -30,6 +30,161 @@
 
 
 /**
+ * Start the given job (send signal, remove from pending queue, update
+ * counters and state).
+ *
+ * @param qe job to start
+ */
+static void
+start_job (struct GNUNET_FS_QueueEntry *qe)
+{
+  qe->client = GNUNET_CLIENT_connect (qe->h->sched, "fs", qe->h->cfg);
+  if (qe->client == NULL)
+    {
+      GNUNET_break (0);
+      return;
+    }
+  qe->start (qe->cls, qe->client);
+  switch (qe->category)
+    {
+    case GNUNET_FS_QC_DOWNLOAD:
+      qe->h->active_downloads++;
+      break;
+    case GNUNET_FS_QC_PROBE:
+      qe->h->active_probes++;
+      break;
+    }
+  qe->start_time = GNUNET_TIME_absolute_get ();
+  GNUNET_CONTAINER_DLL_remove (qe->h->pending_head,
+			       qe->h->pending_tail,
+			       qe);
+  GNUNET_CONTAINER_DLL_insert_after (qe->h->pending_head,
+				     qe->h->running_tail,
+				     qe->h->running_tail,
+				     qe);
+}
+
+
+/**
+ * Stop the given job (send signal, remove from active queue, update
+ * counters and state).
+ *
+ * @param qe job to stop
+ */
+static void
+stop_job (struct GNUNET_FS_QueueEntry *qe)
+{
+  qe->client = NULL;
+  qe->stop (qe->cls);
+  switch (qe->category)
+    {
+    case GNUNET_FS_QC_DOWNLOAD:
+      qe->h->active_downloads--;
+      break;
+    case GNUNET_FS_QC_PROBE:
+      qe->h->active_probes--;
+      break;
+    }
+  qe->run_time = GNUNET_TIME_relative_add (qe->run_time,
+					   GNUNET_TIME_absolute_get_duration (qe->start_time));
+  GNUNET_CONTAINER_DLL_remove (qe->h->running_head,
+			       qe->h->running_tail,
+			       qe);
+  GNUNET_CONTAINER_DLL_insert_after (qe->h->pending_head,
+				     qe->h->pending_tail,
+				     qe->h->pending_tail,
+				     qe);
+}
+
+
+/**
+ * Process the jobs in the job queue, possibly starting some
+ * and stopping others.
+ *
+ * @param cls the 'struct GNUNET_FS_Handle'
+ * @param tc scheduler context
+ */
+static void
+process_job_queue (void *cls,
+		   const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_FS_Handle *h = cls;
+
+  h->queue_job = GNUNET_SCHEDULER_NO_TASK;
+  /* FIXME: stupid implementation that just starts everything follows... */
+  while (NULL != h->pending_head)
+    start_job (h->pending_head);
+  
+  /* FIXME: possibly re-schedule queue-job! */
+}
+
+/**
+ * Add a job to the queue.
+ *
+ * @param h handle to the overall FS state
+ * @param start function to call to begin the job
+ * @param stop function to call to pause the job, or on dequeue (if the job was running)
+ * @param cls closure for start and stop
+ * @param cat category of the job
+ * @return queue handle
+ */
+struct GNUNET_FS_QueueEntry *
+GNUNET_FS_queue_ (struct GNUNET_FS_Handle *h,
+		  GNUNET_FS_QueueStart start,
+		  GNUNET_FS_QueueStop stop,
+		  void *cls,
+		  enum GNUNET_FS_QueueCategory cat)
+{
+  struct GNUNET_FS_QueueEntry *qe;
+
+  qe = GNUNET_malloc (sizeof (struct GNUNET_FS_QueueEntry));
+  qe->h = h;
+  qe->start = start;
+  qe->stop = stop;
+  qe->cls = cls;
+  qe->queue_time = GNUNET_TIME_absolute_get ();
+  qe->category = cat;
+  GNUNET_CONTAINER_DLL_insert_after (h->pending_head,
+				     h->pending_tail,
+				     h->pending_tail,
+				     qe);
+  if (h->queue_job != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (h->sched,
+			     h->queue_job);
+  h->queue_job 
+    = GNUNET_SCHEDULER_add_now (h->sched,
+				&process_job_queue,
+				h);
+  return qe;
+}
+
+
+/**
+ * Dequeue a job from the queue.
+ * @param qh handle for the job
+ */
+void
+GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qh)
+{
+  if (qh->client != NULL)    
+    {
+      if (qh->h->queue_job != GNUNET_SCHEDULER_NO_TASK)
+	GNUNET_SCHEDULER_cancel (qh->h->sched,
+				 qh->h->queue_job);
+      qh->h->queue_job 
+	= GNUNET_SCHEDULER_add_now (qh->h->sched,
+				    &process_job_queue,
+				    qh->h);
+      stop_job (qh);
+    }
+  GNUNET_CONTAINER_DLL_remove (qh->h->pending_head,
+			       qh->h->pending_tail,
+			       qh);
+  GNUNET_free (qh);
+}
+
+
+/**
  * Setup a connection to the file-sharing service.
  *
  * @param sched scheduler to use
@@ -97,6 +252,9 @@ GNUNET_FS_stop (struct GNUNET_FS_Handle *h)
 {
   // FIXME: serialize state!? (or is it always serialized???)
   // FIXME: terminate receive-loop with client  
+  if (h->queue_job != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (h->sched,
+			     h->queue_job);
   GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
   GNUNET_free (h->client_name);
   GNUNET_free (h);

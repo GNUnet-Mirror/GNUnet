@@ -446,6 +446,131 @@ struct GNUNET_FS_FileInformation
 
 
 /**
+ * The job is now ready to run and should use the given client
+ * handle to communicate with the FS service.
+ *
+ * @param cls closure
+ * @param client handle to use for FS communication
+ */
+typedef void (*GNUNET_FS_QueueStart)(void *cls,
+				     struct GNUNET_CLIENT_Connection *client);
+
+
+/**
+ * The job must now stop to run and should destry the client handle as
+ * soon as possible (ideally prior to returning).
+ */
+typedef void (*GNUNET_FS_QueueStop)(void *cls);
+
+/**
+ * Categories of jobs in the FS queue.
+ */
+enum GNUNET_FS_QueueCategory 
+  {
+    /**
+     * File download.
+     */
+    GNUNET_FS_QC_DOWNLOAD,
+
+    /**
+     * Availability probe (related to search).
+     */
+    GNUNET_FS_QC_PROBE
+
+  };
+
+/**
+ * Entry in the job queue.
+ */
+struct GNUNET_FS_QueueEntry
+{
+  /**
+   * This is a linked list.
+   */
+  struct GNUNET_FS_QueueEntry *next;
+
+  /**
+   * This is a linked list.
+   */
+  struct GNUNET_FS_QueueEntry *prev;
+
+  /**
+   * Function to call when the job is started.
+   */
+  GNUNET_FS_QueueStart start;
+
+  /**
+   * Function to call when the job needs to stop (or is done / dequeued).
+   */
+  GNUNET_FS_QueueStop stop;
+
+  /**
+   * Closure for start and stop.
+   */
+  void *cls;
+
+  /**
+   * Handle to FS primary context.
+   */ 
+  struct GNUNET_FS_Handle *h;
+
+  /**
+   * Client handle, or NULL if job is not running.
+   */
+  struct GNUNET_CLIENT_Connection *client;
+
+  /**
+   * Time the job was originally queued.
+   */
+  struct GNUNET_TIME_Absolute queue_time;
+
+  /**
+   * Time the job was started last.
+   */
+  struct GNUNET_TIME_Absolute start_time;
+
+  /**
+   * Total amount of time the job has been running (except for the
+   * current run).
+   */
+  struct GNUNET_TIME_Relative run_time;
+
+  /**
+   * What type of job is this?
+   */
+  enum GNUNET_FS_QueueCategory category;
+
+};
+
+
+
+
+/**
+ * Add a job to the queue.
+ *
+ * @param h handle to the overall FS state
+ * @param start function to call to begin the job
+ * @param stop function to call to pause the job, or on dequeue (if the job was running)
+ * @param cls closure for start and stop
+ * @return queue handle
+ */
+struct GNUNET_FS_QueueEntry *
+GNUNET_FS_queue_ (struct GNUNET_FS_Handle *h,
+		  GNUNET_FS_QueueStart start,
+		  GNUNET_FS_QueueStop stop,
+		  void *cls,
+		  enum GNUNET_FS_QueueCategory cat);
+
+
+/**
+ * Dequeue a job from the queue.
+ * @param qh handle for the job
+ */
+void
+GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qh);
+
+
+/**
  * Master context for most FS operations.
  */
 struct GNUNET_FS_Handle
@@ -481,11 +606,41 @@ struct GNUNET_FS_Handle
   struct GNUNET_CLIENT_Connection *client;
 
   /**
-   * How many downloads probing availability
-   * of search results do we have running
-   * right now?
+   * Head of DLL of running jobs.
+   */
+  struct GNUNET_FS_QueueEntry *running_head;
+
+  /**
+   * Tail of DLL of running jobs.
+   */
+  struct GNUNET_FS_QueueEntry *running_tail;
+
+  /**
+   * Head of DLL of pending jobs.
+   */
+  struct GNUNET_FS_QueueEntry *pending_head;
+
+  /**
+   * Tail of DLL of pending jobs.
+   */
+  struct GNUNET_FS_QueueEntry *pending_tail;
+
+  /**
+   * Task that processes the jobs in the running and pending queues
+   * (and moves jobs around as needed).
+   */
+  GNUNET_SCHEDULER_TaskIdentifier queue_job;
+
+  /**
+   * How many downloads probing availability of search results do we
+   * have running right now?
    */
   unsigned int active_probes;
+
+  /**
+   * How many actual downloads do we have running right now?
+   */
+  unsigned int active_downloads;
 
   /**
    * General flags.

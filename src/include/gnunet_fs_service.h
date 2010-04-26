@@ -557,6 +557,18 @@ enum GNUNET_FS_Status
   GNUNET_FS_STATUS_DOWNLOAD_STOPPED,
 
   /**
+   * Notification that this download is now actively being
+   * pursued (as opposed to waiting in the queue).
+   */
+  GNUNET_FS_STATUS_DOWNLOAD_ACTIVE,
+
+  /**
+   * Notification that this download is no longer actively
+   * being pursued (back in the queue).
+   */
+  GNUNET_FS_STATUS_DOWNLOAD_INACTIVE,
+
+  /**
    * First event generated when a client requests 
    * a search to begin or when a namespace result
    * automatically triggers the search for updates.

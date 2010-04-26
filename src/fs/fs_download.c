@@ -1396,26 +1396,31 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 	      dc->treedepth);
 #endif
   // FIXME: make persistent
-  
-  // FIXME: bound parallelism here!
-  client = GNUNET_CLIENT_connect (h->sched,
-				  "fs",
-				  h->cfg);
-  dc->client = client;
-  schedule_block_download (dc, 
-			   &dc->uri->data.chk.chk,
-			   0, 
-			   1 /* 0 == CHK, 1 == top */);
-  GNUNET_CLIENT_receive (client,
-			 &receive_results,
-			 dc,
-			 GNUNET_TIME_UNIT_FOREVER_REL);
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_START;
   make_download_status (&pi, dc);
   pi.value.download.specifics.start.meta = meta;
   dc->client_info = dc->h->upcb (dc->h->upcb_cls,
 				 &pi);
 
+  
+  // FIXME: bound parallelism here
+  client = GNUNET_CLIENT_connect (h->sched,
+				  "fs",
+				  h->cfg);
+  GNUNET_assert (NULL != client);
+  dc->client = client;
+  GNUNET_CLIENT_receive (client,
+			 &receive_results,
+			 dc,
+			 GNUNET_TIME_UNIT_FOREVER_REL);
+  pi.status = GNUNET_FS_STATUS_DOWNLOAD_ACTIVE;
+  make_download_status (&pi, dc);
+  dc->client_info = dc->h->upcb (dc->h->upcb_cls,
+				 &pi);
+  schedule_block_download (dc, 
+			   &dc->uri->data.chk.chk,
+			   0, 
+			   1 /* 0 == CHK, 1 == top */);
   return dc;
 }
 
