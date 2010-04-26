@@ -52,7 +52,7 @@ try:
 
   pinfo = pexpect.spawn ('gnunet-peerinfo -c test_gnunet_peerinfo_data.conf -n')
   pinfo.expect (re.compile ("Peer `.*\' with trust  *0\r"));
-  pinfo.expect (re.compile (" *127.0.0.1:24357\r"));
+  pinfo.expect (re.compile (" *127..*:24357\r"));
   pinfo.expect (pexpect.EOF);
 
   pinfo = pexpect.spawn ('gnunet-peerinfo -c test_gnunet_peerinfo_data.conf -qs')
