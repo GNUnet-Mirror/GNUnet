@@ -2255,6 +2255,10 @@ enum GNUNET_FS_DownloadOptions
  * @param meta known metadata for the file (can be NULL)
  * @param filename where to store the file, maybe NULL (then no file is
  *        created on disk and data must be grabbed from the callbacks)
+ * @param tempname where to store temporary file data, not used if filename is non-NULL;
+ *        can be NULL (in which case we will pick a name if needed); the temporary file
+ *        may already exist, in which case we will try to use the data that is there and
+ *        if it is not what is desired, will overwrite it
  * @param offset at what offset should we start the download (typically 0)
  * @param length how many bytes should be downloaded starting at offset
  * @param anonymity anonymity level to use for the download
@@ -2269,6 +2273,7 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 			  const struct GNUNET_FS_Uri *uri,
 			  const struct GNUNET_CONTAINER_MetaData *meta,
 			  const char *filename,
+			  const char *tempname,
 			  uint64_t offset,
 			  uint64_t length,
 			  uint32_t anonymity,

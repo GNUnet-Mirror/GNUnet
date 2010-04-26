@@ -1,13 +1,5 @@
 0.9.0pre1:
-* MIGRATION [CG]
-  - on-demand encoding => move logic to block-library!?
-  - peer selection => how to consider latency/bw/etc?
-  - content transmission => how often the same block?
-  - how to select delay before next migration? 
-  - testing
 * FS: [CG]
-  - migration (inbound)
-  - support for in-line files in directories (FIXME in fs_download)
   - bound parallelism (# fs downloads)
   - distinguish in performance tracking and event signalling between
     downloads that are actually running and those that are merely in the queue
@@ -23,6 +15,15 @@
   - [gnunet-service-fs.c:700]: member 'ConnectedPeer::last_client_replies_woff' is never used
   - GAP improvements:
     + active reply route caching design & implementation of service; gap extension!
+* MIGRATION [CG]
+  - on-demand encoding => move logic to block-library!?
+  - peer selection => how to consider latency/bw/etc?
+  - content transmission => how often the same block?
+  - how to select delay before next migration? 
+  - migration to us
+  - testing
+  - integrate with FS or not? (peer list, index/on-demand encoding, block code,
+    inbound priority assignment; all would be easier with tight integration!)
 * TBENCH: [MW]
   - good to have for transport/DV evaluation! 
 * DV: [Nate]

@@ -532,154 +532,7 @@ trigger_recursive_download (void *cls,
 			    const struct GNUNET_FS_Uri *uri,
 			    const struct GNUNET_CONTAINER_MetaData *meta,
 			    size_t length,
-			    const void *data)
-{
-  struct GNUNET_FS_DownloadContext *dc = cls;  
-  struct GNUNET_FS_DownloadContext *cpos;
-  struct GNUNET_DISK_FileHandle *fh;
-  char *fn;
-  char *us;
-  char *ext;
-  char *dn;
-  char *full_name;
-
-  if (NULL == uri)
-    return; /* entry for the directory itself */
-  cpos = dc->child_head;
-  while (cpos != NULL)
-    {
-      if ( (GNUNET_FS_uri_test_equal (uri,
-				      cpos->uri)) ||
-	   ( (filename != NULL) &&
-	     (0 == strcmp (cpos->filename,
-			   filename)) ) )
-	break;	
-      cpos = cpos->next;
-    }
-  if (cpos != NULL)
-    return; /* already exists */
-  fn = NULL;
-  if (NULL == filename)
-    {
-      fn = GNUNET_FS_meta_data_suggest_filename (meta);      
-      if (fn == NULL)
-	{
-	  us = GNUNET_FS_uri_to_string (uri);
-	  fn = GNUNET_strdup (&us [strlen (GNUNET_FS_URI_PREFIX 
-					   GNUNET_FS_URI_CHK_INFIX)]);
-	  GNUNET_free (us);
-	}
-      else if (fn[0] == '.')
-	{
-	  ext = fn;
-	  us = GNUNET_FS_uri_to_string (uri);
-	  GNUNET_asprintf (&fn,
-			   "%s%s",
-			   &us[strlen (GNUNET_FS_URI_PREFIX 
-				       GNUNET_FS_URI_CHK_INFIX)], ext);
-	  GNUNET_free (ext);
-	  GNUNET_free (us);
-	}
-      filename = fn;
-    }
-  if (dc->filename == NULL)
-    {
-      full_name = NULL;
-    }
-  else
-    {
-      dn = GNUNET_strdup (dc->filename);
-      GNUNET_break ( (strlen (dn) >= strlen (GNUNET_FS_DIRECTORY_EXT)) &&
-		     (NULL !=
-		      strstr (dn + strlen(dn) - strlen(GNUNET_FS_DIRECTORY_EXT),
-			      GNUNET_FS_DIRECTORY_EXT)) );
-      if ( (strlen (dn) >= strlen (GNUNET_FS_DIRECTORY_EXT)) &&
-	   (NULL !=
-	    strstr (dn + strlen(dn) - strlen(GNUNET_FS_DIRECTORY_EXT),
-		    GNUNET_FS_DIRECTORY_EXT)) )      
-	dn[strlen(dn) - strlen (GNUNET_FS_DIRECTORY_EXT)] = '\0';      
-      if ( (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (meta)) &&
-	   ( (strlen (filename) < strlen (GNUNET_FS_DIRECTORY_EXT)) ||
-	     (NULL ==
-	      strstr (filename + strlen(filename) - strlen(GNUNET_FS_DIRECTORY_EXT),
-		      GNUNET_FS_DIRECTORY_EXT)) ) )
-	{
-	  GNUNET_asprintf (&full_name,
-			   "%s%s%s%s",
-			   dn,
-			   DIR_SEPARATOR_STR,
-			   filename,
-			   GNUNET_FS_DIRECTORY_EXT);
-	}
-      else
-	{
-	  GNUNET_asprintf (&full_name,
-			   "%s%s%s",
-			   dn,
-			   DIR_SEPARATOR_STR,
-			   filename);
-	}
-      GNUNET_free (dn);
-    }
-  if ( (full_name != NULL) &&
-       (GNUNET_OK !=
-	GNUNET_DISK_directory_create_for_file (full_name)) )
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Failed to create directory for recursive download of `%s'\n"),
-		  full_name);
-      GNUNET_free (full_name);
-      GNUNET_free_non_null (fn);
-      return;
-    }
-    
-  if (data != NULL) 
-    {
-      if (full_name != NULL)
-	{
-	  fh = GNUNET_DISK_file_open (full_name,
-				      GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_TRUNCATE | GNUNET_DISK_OPEN_CREATE,
-				      GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
-	  if (fh == NULL)
-	    {
-	      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-					"open",
-					full_name);	      
-	      GNUNET_free (full_name);
-	      GNUNET_free_non_null (fn);
-	      return;
-	    }
-	  if (length != 
-	      GNUNET_DISK_file_write (fh,
-				      data,
-				      length))
-	    {
-	      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-					"write",
-					full_name);	      
-	    }
-	  GNUNET_DISK_file_close (fh);
-	}
-      else
-	{
-	  /* FIXME: generate 'progress' events and move to
-	     instant completion! */
-	  GNUNET_break (0); // FIXME: not implemented
-	}
-    }
-  GNUNET_FS_download_start (dc->h,
-			    uri,
-			    meta,
-			    full_name,
-			    0,
-			    GNUNET_FS_uri_chk_get_file_size (uri),
-			    dc->anonymity,
-			    dc->options,
-			    NULL,
-			    dc);
-  GNUNET_free_non_null (full_name);
-  GNUNET_free_non_null (fn);
-}
+			    const void *data);
 
 
 /**
@@ -778,6 +631,179 @@ check_completed (struct GNUNET_FS_DownloadContext *dc)
 				 &pi);
   if (dc->parent != NULL)
     check_completed (dc->parent);  
+}
+
+
+/**
+ * We found an entry in a directory.  Check if the respective child
+ * already exists and if not create the respective child download.
+ *
+ * @param cls the parent download
+ * @param filename name of the file in the directory
+ * @param uri URI of the file (CHK or LOC)
+ * @param meta meta data of the file
+ * @param length number of bytes in data
+ * @param data contents of the file (or NULL if they were not inlined)
+ */
+static void 
+trigger_recursive_download (void *cls,
+			    const char *filename,
+			    const struct GNUNET_FS_Uri *uri,
+			    const struct GNUNET_CONTAINER_MetaData *meta,
+			    size_t length,
+			    const void *data)
+{
+  struct GNUNET_FS_DownloadContext *dc = cls;  
+  struct GNUNET_FS_DownloadContext *cpos;
+  struct GNUNET_DISK_FileHandle *fh;
+  char *temp_name;
+  const char *real_name;
+  char *fn;
+  char *us;
+  char *ext;
+  char *dn;
+  char *full_name;
+
+  if (NULL == uri)
+    return; /* entry for the directory itself */
+  cpos = dc->child_head;
+  while (cpos != NULL)
+    {
+      if ( (GNUNET_FS_uri_test_equal (uri,
+				      cpos->uri)) ||
+	   ( (filename != NULL) &&
+	     (0 == strcmp (cpos->filename,
+			   filename)) ) )
+	break;	
+      cpos = cpos->next;
+    }
+  if (cpos != NULL)
+    return; /* already exists */
+  fn = NULL;
+  if (NULL == filename)
+    {
+      fn = GNUNET_FS_meta_data_suggest_filename (meta);      
+      if (fn == NULL)
+	{
+	  us = GNUNET_FS_uri_to_string (uri);
+	  fn = GNUNET_strdup (&us [strlen (GNUNET_FS_URI_PREFIX 
+					   GNUNET_FS_URI_CHK_INFIX)]);
+	  GNUNET_free (us);
+	}
+      else if (fn[0] == '.')
+	{
+	  ext = fn;
+	  us = GNUNET_FS_uri_to_string (uri);
+	  GNUNET_asprintf (&fn,
+			   "%s%s",
+			   &us[strlen (GNUNET_FS_URI_PREFIX 
+				       GNUNET_FS_URI_CHK_INFIX)], ext);
+	  GNUNET_free (ext);
+	  GNUNET_free (us);
+	}
+      filename = fn;
+    }
+  if (dc->filename == NULL)
+    {
+      full_name = NULL;
+    }
+  else
+    {
+      dn = GNUNET_strdup (dc->filename);
+      GNUNET_break ( (strlen (dn) >= strlen (GNUNET_FS_DIRECTORY_EXT)) &&
+		     (NULL !=
+		      strstr (dn + strlen(dn) - strlen(GNUNET_FS_DIRECTORY_EXT),
+			      GNUNET_FS_DIRECTORY_EXT)) );
+      if ( (strlen (dn) >= strlen (GNUNET_FS_DIRECTORY_EXT)) &&
+	   (NULL !=
+	    strstr (dn + strlen(dn) - strlen(GNUNET_FS_DIRECTORY_EXT),
+		    GNUNET_FS_DIRECTORY_EXT)) )      
+	dn[strlen(dn) - strlen (GNUNET_FS_DIRECTORY_EXT)] = '\0';      
+      if ( (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (meta)) &&
+	   ( (strlen (filename) < strlen (GNUNET_FS_DIRECTORY_EXT)) ||
+	     (NULL ==
+	      strstr (filename + strlen(filename) - strlen(GNUNET_FS_DIRECTORY_EXT),
+		      GNUNET_FS_DIRECTORY_EXT)) ) )
+	{
+	  GNUNET_asprintf (&full_name,
+			   "%s%s%s%s",
+			   dn,
+			   DIR_SEPARATOR_STR,
+			   filename,
+			   GNUNET_FS_DIRECTORY_EXT);
+	}
+      else
+	{
+	  GNUNET_asprintf (&full_name,
+			   "%s%s%s",
+			   dn,
+			   DIR_SEPARATOR_STR,
+			   filename);
+	}
+      GNUNET_free (dn);
+    }
+  if ( (full_name != NULL) &&
+       (GNUNET_OK !=
+	GNUNET_DISK_directory_create_for_file (full_name)) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Failed to create directory for recursive download of `%s'\n"),
+		  full_name);
+      GNUNET_free (full_name);
+      GNUNET_free_non_null (fn);
+      return;
+    }
+
+  temp_name = NULL;
+  if ( (data != NULL) &&
+       (GNUNET_FS_uri_chk_get_file_size (uri) == length) )
+    {
+      if (full_name == NULL)
+	{
+	  temp_name = GNUNET_DISK_mktemp ("gnunet-directory-download-tmp");
+	  real_name = temp_name;
+	}
+      else
+	{
+	  real_name = full_name;
+	}
+      /* write to disk, then trigger normal download which will instantly progress to completion */
+      fh = GNUNET_DISK_file_open (real_name,
+				  GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_TRUNCATE | GNUNET_DISK_OPEN_CREATE,
+				  GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
+      if (fh == NULL)
+	{
+	  GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+				    "open",
+				    real_name);	      
+	  GNUNET_free (full_name);
+	  GNUNET_free_non_null (fn);
+	  return;
+	}
+      if (length != 
+	  GNUNET_DISK_file_write (fh,
+				  data,
+				  length))
+	{
+	  GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+				    "write",
+				    full_name);	      
+	}
+      GNUNET_DISK_file_close (fh);
+    }
+  GNUNET_FS_download_start (dc->h,
+			    uri,
+			    meta,
+			    full_name, temp_name,
+			    0,
+			    GNUNET_FS_uri_chk_get_file_size (uri),
+			    dc->anonymity,
+			    dc->options,
+			    NULL,
+			    dc);
+  GNUNET_free_non_null (full_name);
+  GNUNET_free_non_null (temp_name);
+  GNUNET_free_non_null (fn);
 }
 
 
@@ -1264,6 +1290,10 @@ try_reconnect (struct GNUNET_FS_DownloadContext *dc)
  * @param meta known metadata for the file (can be NULL)
  * @param filename where to store the file, maybe NULL (then no file is
  *        created on disk and data must be grabbed from the callbacks)
+ * @param tempname where to store temporary file data, not used if filename is non-NULL;
+ *        can be NULL (in which case we will pick a name if needed); the temporary file
+ *        may already exist, in which case we will try to use the data that is there and
+ *        if it is not what is desired, will overwrite it
  * @param offset at what offset should we start the download (typically 0)
  * @param length how many bytes should be downloaded starting at offset
  * @param anonymity anonymity level to use for the download
@@ -1278,6 +1308,7 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 			  const struct GNUNET_FS_Uri *uri,
 			  const struct GNUNET_CONTAINER_MetaData *meta,
 			  const char *filename,
+			  const char *tempname,
 			  uint64_t offset,
 			  uint64_t length,
 			  uint32_t anonymity,
@@ -1352,7 +1383,12 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
   dc->treedepth = GNUNET_FS_compute_depth (GNUNET_ntohll(dc->uri->data.chk.file_length));
   if ( (filename == NULL) &&
        (is_recursive_download (dc) ) )
-    dc->temp_filename = GNUNET_DISK_mktemp ("gnunet-directory-download-tmp");    
+    {
+      if (tempname != NULL)
+	dc->temp_filename = GNUNET_strdup (tempname);
+      else
+	dc->temp_filename = GNUNET_DISK_mktemp ("gnunet-directory-download-tmp");    
+    }
 
 #if DEBUG_DOWNLOAD
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

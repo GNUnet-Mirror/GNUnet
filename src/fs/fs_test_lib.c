@@ -608,7 +608,7 @@ GNUNET_FS_TEST_download (struct GNUNET_SCHEDULER_Handle *sched,
   daemon->download_seed = seed;  
   daemon->download_context = GNUNET_FS_download_start (daemon->fs,
 						       uri,
-						       NULL,
+						       NULL, NULL,
 						       NULL,
 						       0,
 						       size,
