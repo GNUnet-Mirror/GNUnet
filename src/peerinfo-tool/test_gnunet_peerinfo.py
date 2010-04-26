@@ -44,7 +44,7 @@ try:
 
 
   os.system ('gnunet-arm -q -i transport -c test_gnunet_peerinfo_data.conf')
-
+  os.system ('sleep 1')
   pinfo = pexpect.spawn ('gnunet-peerinfo -c test_gnunet_peerinfo_data.conf')
   pinfo.expect (re.compile ("Peer `.*\' with trust  *0\r"));
   pinfo.expect (re.compile (" *localhost:24357\r"));
