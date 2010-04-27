@@ -236,10 +236,12 @@ host_processor (void *cls,
 				GNUNET_NO);
       return; /* too large, skip! */
     }
+#if DEBUG_HOSTLIST_SERVER
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "Adding peer `%s' to hostlist (%u bytes)\n",
 	      GNUNET_i2s (peer),
 	      (unsigned int) s);
+#endif
   GNUNET_array_grow (results->data,
                      results->size,
                      old + s);
@@ -366,6 +368,9 @@ adv_transmit_ready ( void *cls, size_t size, void *buf)
 	      "Sent advertisement message: Copied %u bytes into buffer!\n", 
 	      (unsigned int) transmission_size);
   hostlist_adv_count++;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              " # Sent advertisement message: %u\n",
+              hostlist_adv_count);
   GNUNET_STATISTICS_set (stats,
                          gettext_noop("# hostlist advertisements send"),
                          hostlist_adv_count,
@@ -453,9 +458,10 @@ process_notify (void *cls,
                 uint32_t trust)
 {
   struct HostSet *results;
-
+#if DEBUG_HOSTLIST_SERVER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
             "Peerinfo is notifying us to rebuild our hostlist\n");
+#endif
   results = GNUNET_malloc(sizeof(struct HostSet));
   GNUNET_assert (peerinfo != NULL);
   pitr = GNUNET_PEERINFO_iterate (peerinfo,
