@@ -247,6 +247,11 @@ struct GNUNET_TESTING_Daemon
    * HELLO message for this peer
    */
   struct GNUNET_HELLO_Message *hello;
+
+  /**
+   * Set to GNUNET_YES once the peer is up.
+   */
+  int running;
 };
 
 
