@@ -260,7 +260,8 @@ run (void *cls,
 		       "gnunet-pseudonym",
 		       &progress_cb,
 		       NULL,
-		       GNUNET_FS_FLAGS_NONE);
+		       GNUNET_FS_FLAGS_NONE,
+		       GNUNET_FS_OPTIONS_END);
   if (NULL != delete_ns)
     {
       ns = GNUNET_FS_namespace_create (h, delete_ns);
