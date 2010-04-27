@@ -1022,19 +1022,10 @@ search_result_free (void *cls,
   GNUNET_FS_uri_destroy (sr->uri);
   GNUNET_CONTAINER_meta_data_destroy (sr->meta);
   if (sr->probe_ctx != NULL)
-    {
-      GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);
-      h->active_probes--;
-      /* FIXME: trigger starting of new
-	 probes here!? Maybe not -- could
-	 cause new probes to be immediately
-	 stopped again... */
-    }
+    GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);    
   if (sr->probe_cancel_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (h->sched,
-			       sr->probe_cancel_task);
-    }
+    GNUNET_SCHEDULER_cancel (h->sched,
+			     sr->probe_cancel_task);    
   GNUNET_free (sr);
   return GNUNET_OK;
 }

@@ -23,12 +23,9 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - handle recursive downloads (need directory & 
- *   fs-level download-parallelism management)
  * - location URI suppport (can wait, easy)
- * - check if blocks exist already (can wait, easy)
- * - check if iblocks can be computed from existing blocks (can wait, hard)
  * - persistence (can wait)
+ * - check if iblocks can be computed from existing blocks (can wait, hard)
  */
 #include "platform.h"
 #include "gnunet_constants.h"
@@ -990,7 +987,11 @@ process_result_with_request (void *cls,
 				      "truncate",
 				      dc->filename);
 	}
-
+      if (dc->job_queue != NULL)
+	{
+	  GNUNET_FS_dequeue_ (dc->job_queue);
+	  dc->job_queue = NULL;
+	}
       if (is_recursive_download (dc))
 	full_recursive_download (dc);
       if (dc->child_head == NULL)
@@ -1273,6 +1274,73 @@ try_reconnect (struct GNUNET_FS_DownloadContext *dc)
 }
 
 
+
+/**
+ * We're allowed to ask the FS service for our blocks.  Start the download.
+ *
+ * @param cls the 'struct GNUNET_FS_DownloadContext'
+ * @param client handle to use for communcation with FS (we must destroy it!)
+ */
+static void
+activate_fs_download (void *cls,
+		      struct GNUNET_CLIENT_Connection *client)
+{
+  struct GNUNET_FS_DownloadContext *dc = cls;
+  struct GNUNET_FS_ProgressInfo pi;
+
+  GNUNET_assert (NULL != client);
+  dc->client = client;
+  GNUNET_CLIENT_receive (client,
+			 &receive_results,
+			 dc,
+			 GNUNET_TIME_UNIT_FOREVER_REL);
+  pi.status = GNUNET_FS_STATUS_DOWNLOAD_ACTIVE;
+  make_download_status (&pi, dc);
+  dc->client_info = dc->h->upcb (dc->h->upcb_cls,
+				 &pi);
+  GNUNET_CONTAINER_multihashmap_iterate (dc->active,
+					 &retry_entry,
+					 dc);
+  if ( (dc->th == NULL) &&
+       (dc->client != NULL) )
+    dc->th = GNUNET_CLIENT_notify_transmit_ready (dc->client,
+						  sizeof (struct SearchMessage),
+						  GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+						  GNUNET_NO,
+						  &transmit_download_request,
+						  dc);
+}
+
+
+/**
+ * We must stop to ask the FS service for our blocks.  Pause the download.
+ *
+ * @param cls the 'struct GNUNET_FS_DownloadContext'
+ * @param client handle to use for communcation with FS (we must destroy it!)
+ */
+static void
+deactivate_fs_download (void *cls)
+{
+  struct GNUNET_FS_DownloadContext *dc = cls;
+  struct GNUNET_FS_ProgressInfo pi;
+  
+  if (NULL != dc->th)
+    {
+      GNUNET_CLIENT_notify_transmit_ready_cancel (dc->th);
+      dc->th = NULL;
+    }
+  if (NULL != dc->client)
+    {
+      GNUNET_CLIENT_disconnect (dc->client, GNUNET_NO);
+      dc->client = NULL;
+    }
+  pi.status = GNUNET_FS_STATUS_DOWNLOAD_INACTIVE;
+  make_download_status (&pi, dc);
+  dc->client_info = dc->h->upcb (dc->h->upcb_cls,
+				 &pi);
+}
+
+
 /**
  * Download parts of a file.  Note that this will store
  * the blocks at the respective offset in the given file.  Also, the
@@ -1318,7 +1386,6 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 {
   struct GNUNET_FS_ProgressInfo pi;
   struct GNUNET_FS_DownloadContext *dc;
-  struct GNUNET_CLIENT_Connection *client;
 
   GNUNET_assert (GNUNET_FS_uri_test_chk (uri));
   if ( (offset + length < offset) ||
@@ -1401,26 +1468,15 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
   pi.value.download.specifics.start.meta = meta;
   dc->client_info = dc->h->upcb (dc->h->upcb_cls,
 				 &pi);
-
-  
-  // FIXME: bound parallelism here
-  client = GNUNET_CLIENT_connect (h->sched,
-				  "fs",
-				  h->cfg);
-  GNUNET_assert (NULL != client);
-  dc->client = client;
-  GNUNET_CLIENT_receive (client,
-			 &receive_results,
-			 dc,
-			 GNUNET_TIME_UNIT_FOREVER_REL);
-  pi.status = GNUNET_FS_STATUS_DOWNLOAD_ACTIVE;
-  make_download_status (&pi, dc);
-  dc->client_info = dc->h->upcb (dc->h->upcb_cls,
-				 &pi);
   schedule_block_download (dc, 
 			   &dc->uri->data.chk.chk,
 			   0, 
-			   1 /* 0 == CHK, 1 == top */);
+			   1 /* 0 == CHK, 1 == top */); 
+  dc->job_queue = GNUNET_FS_queue_ (h, 
+				    &activate_fs_download,
+				    &deactivate_fs_download,
+				    dc,
+				    (length + DBLOCK_SIZE-1) / DBLOCK_SIZE);
   return dc;
 }
 
@@ -1455,6 +1511,11 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
 {
   struct GNUNET_FS_ProgressInfo pi;
 
+  if (dc->job_queue != NULL)
+    {
+      GNUNET_FS_dequeue_ (dc->job_queue);
+      dc->job_queue = NULL;
+    }
   while (NULL != dc->child_head)
     GNUNET_FS_download_stop (dc->child_head, 
 			     do_delete);
@@ -1472,13 +1533,6 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
   if (GNUNET_SCHEDULER_NO_TASK != dc->task)
     GNUNET_SCHEDULER_cancel (dc->h->sched,
 			     dc->task);
-  if (NULL != dc->th)
-    {
-      GNUNET_CLIENT_notify_transmit_ready_cancel (dc->th);
-      dc->th = NULL;
-    }
-  if (NULL != dc->client)
-    GNUNET_CLIENT_disconnect (dc->client, GNUNET_NO);
   GNUNET_CONTAINER_multihashmap_iterate (dc->active,
 					 &free_entry,
 					 NULL);

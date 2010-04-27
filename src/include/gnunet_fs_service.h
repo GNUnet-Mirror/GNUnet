@@ -1476,7 +1476,15 @@ enum GNUNET_FS_OPTIONS
      * followed by an "unsigned int" giving the desired maximum number
      * of parallel downloads).
      */
-    GNUNET_FS_OPTIONS_DOWNLOAD_PARALLELISM = 1
+    GNUNET_FS_OPTIONS_DOWNLOAD_PARALLELISM = 1,
+
+    /**
+     * Maximum number of requests that should be pending at a given
+     * point in time (invidivual downloads may go above this, but
+     * if we are above this threshold, we should not activate any
+     * additional downloads.
+     */
+    GNUNET_FS_OPTIONS_REQUEST_PARALLELISM = 2
 
   };
 

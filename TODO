@@ -1,8 +1,9 @@
 0.9.0pre1:
 * FS: [CG]
-  - bound parallelism (# fs downloads)
-  - distinguish in performance tracking and event signalling between
-    downloads that are actually running and those that are merely in the queue
+  - search: availability probes [needed for full persistence support...]
+  - Allow checking of presence of search results and/or content via command-line tools
+    (add options to gnunet-search / gnunet-download to limit search to local peer) 
+    [needed for full persistence support...]
   - persistence support (publish, unindex, search, download)
   - gnunet-service-fs (hot-path routing, load-based routing, nitpicks)  
   - [gnunet-service-fs.c:208]: member 'LocalGetContext::results_bf_size' is never used
@@ -70,7 +71,6 @@
   - shutdown sequence?
 * FS: [CG]
   - datastore reservation (publishing)
-  - search: availability probes
   - location URIs (publish, search, download)
   - non-anonymous FS service (needs DHT)
     + DHT integration for search
@@ -116,8 +116,7 @@
   - convert documentation pages to books
   - update books (especially for developers)
   - create good Drupal theme for GNUnet
-  - make a NICE download page and figure out how to 
-    enable developers to publish TGZs nicely
+  - make a NICE download page and figure out how to enable developers to publish TGZs nicely
   - port "contact" page
   - add content type for "todo" items?
 * POSTGRES database backends: [CG]
@@ -151,8 +150,6 @@
     (Note: build library always, build service when libxml2/etc. are available)
 * FS: [CG]
   - Remove KBlocks in gnunet-unindex (see discussion with Kenneth Almquist on gnunet-devs in 9/2009)
-  - Allow checking of presence of search results and/or content via command-line tools
-    (add options to gnunet-search / gnunet-download to limit search to local peer)
 * PEERINFO: [CG]
   - expire 'ancient' HELLOs (those without valid addresses AND that 
     we have not 'used' (for their public keys) in a while; need a way

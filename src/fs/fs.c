@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2008, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2008, 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -45,20 +45,13 @@ start_job (struct GNUNET_FS_QueueEntry *qe)
       return;
     }
   qe->start (qe->cls, qe->client);
-  switch (qe->category)
-    {
-    case GNUNET_FS_QC_DOWNLOAD:
-      qe->h->active_downloads++;
-      break;
-    case GNUNET_FS_QC_PROBE:
-      qe->h->active_probes++;
-      break;
-    }
+  qe->start_times++;
+  qe->h->active_blocks += qe->blocks;
   qe->start_time = GNUNET_TIME_absolute_get ();
   GNUNET_CONTAINER_DLL_remove (qe->h->pending_head,
 			       qe->h->pending_tail,
 			       qe);
-  GNUNET_CONTAINER_DLL_insert_after (qe->h->pending_head,
+  GNUNET_CONTAINER_DLL_insert_after (qe->h->running_head,
 				     qe->h->running_tail,
 				     qe->h->running_tail,
 				     qe);
@@ -76,15 +69,8 @@ stop_job (struct GNUNET_FS_QueueEntry *qe)
 {
   qe->client = NULL;
   qe->stop (qe->cls);
-  switch (qe->category)
-    {
-    case GNUNET_FS_QC_DOWNLOAD:
-      qe->h->active_downloads--;
-      break;
-    case GNUNET_FS_QC_PROBE:
-      qe->h->active_probes--;
-      break;
-    }
+  qe->h->active_downloads--;
+  qe->h->active_blocks -= qe->blocks;
   qe->run_time = GNUNET_TIME_relative_add (qe->run_time,
 					   GNUNET_TIME_absolute_get_duration (qe->start_time));
   GNUNET_CONTAINER_DLL_remove (qe->h->running_head,
@@ -109,13 +95,54 @@ process_job_queue (void *cls,
 		   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_FS_Handle *h = cls;
+  struct GNUNET_FS_QueueEntry *qe;
+  struct GNUNET_FS_QueueEntry *next;
+  struct GNUNET_TIME_Relative run_time;
+  struct GNUNET_TIME_Relative restart_at;
+  struct GNUNET_TIME_Relative rst;
+  struct GNUNET_TIME_Absolute end_time;
 
   h->queue_job = GNUNET_SCHEDULER_NO_TASK;
-  /* FIXME: stupid implementation that just starts everything follows... */
-  while (NULL != h->pending_head)
-    start_job (h->pending_head);
-  
-  /* FIXME: possibly re-schedule queue-job! */
+  next = h->pending_head;
+  while (NULL != (qe = next))
+    {
+      next = qe->next;
+      if (h->running_head == NULL)
+	{
+	  start_job (qe);
+	  continue;
+	}
+      if ( (qe->blocks + h->active_blocks <= h->max_parallel_requests) &&
+	   (h->active_downloads + 1 <= h->max_parallel_downloads) )
+	{
+	  start_job (qe);
+	  continue;
+	}
+    }
+  if (h->pending_head == NULL)
+    return; /* no need to stop anything */
+  restart_at = GNUNET_TIME_UNIT_FOREVER_REL;
+  next = h->running_head;
+  while (NULL != (qe = next))
+    {
+      next = qe->next;
+      /* FIXME: might be faster/simpler to do this calculation only once
+	 when we start a job (OTOH, this would allow us to dynamically
+	 and easily adjust qe->blocks over time, given the right API...) */
+      run_time = GNUNET_TIME_relative_multiply (h->avg_block_latency,
+						qe->blocks * qe->start_times);
+      end_time = GNUNET_TIME_absolute_add (qe->start_time,
+					   run_time);
+      rst = GNUNET_TIME_absolute_get_remaining (end_time);
+      restart_at = GNUNET_TIME_relative_min (rst, restart_at);
+      if (rst.value > 0)
+	continue;	
+      stop_job (qe);
+    }
+  h->queue_job = GNUNET_SCHEDULER_add_delayed (h->sched,
+					       restart_at,
+					       &process_job_queue,
+					       h);
 }
 
 /**
@@ -125,7 +152,7 @@ process_job_queue (void *cls,
  * @param start function to call to begin the job
  * @param stop function to call to pause the job, or on dequeue (if the job was running)
  * @param cls closure for start and stop
- * @param cat category of the job
+ * @param blocks number of blocks this jobs uses
  * @return queue handle
  */
 struct GNUNET_FS_QueueEntry *
@@ -133,7 +160,7 @@ GNUNET_FS_queue_ (struct GNUNET_FS_Handle *h,
 		  GNUNET_FS_QueueStart start,
 		  GNUNET_FS_QueueStop stop,
 		  void *cls,
-		  enum GNUNET_FS_QueueCategory cat)
+		  unsigned int blocks)
 {
   struct GNUNET_FS_QueueEntry *qe;
 
@@ -143,7 +170,7 @@ GNUNET_FS_queue_ (struct GNUNET_FS_Handle *h,
   qe->stop = stop;
   qe->cls = cls;
   qe->queue_time = GNUNET_TIME_absolute_get ();
-  qe->category = cat;
+  qe->blocks = blocks;
   GNUNET_CONTAINER_DLL_insert_after (h->pending_head,
 				     h->pending_tail,
 				     h->pending_tail,
@@ -166,21 +193,22 @@ GNUNET_FS_queue_ (struct GNUNET_FS_Handle *h,
 void
 GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qh)
 {
+  struct GNUNET_FS_Handle *h;
+
+  h = qh->h;
   if (qh->client != NULL)    
-    {
-      if (qh->h->queue_job != GNUNET_SCHEDULER_NO_TASK)
-	GNUNET_SCHEDULER_cancel (qh->h->sched,
-				 qh->h->queue_job);
-      qh->h->queue_job 
-	= GNUNET_SCHEDULER_add_now (qh->h->sched,
-				    &process_job_queue,
-				    qh->h);
-      stop_job (qh);
-    }
-  GNUNET_CONTAINER_DLL_remove (qh->h->pending_head,
-			       qh->h->pending_tail,
+    stop_job (qh);    
+  GNUNET_CONTAINER_DLL_remove (h->pending_head,
+			       h->pending_tail,
 			       qh);
   GNUNET_free (qh);
+  if (h->queue_job != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (h->sched,
+			     h->queue_job);
+  h->queue_job 
+    = GNUNET_SCHEDULER_add_now (h->sched,
+				&process_job_queue,
+				h);
 }
 
 
@@ -207,7 +235,9 @@ GNUNET_FS_start (struct GNUNET_SCHEDULER_Handle *sched,
 {
   struct GNUNET_FS_Handle *ret;
   struct GNUNET_CLIENT_Connection *client;
-  
+  enum GNUNET_FS_OPTIONS opt;
+  va_list ap;
+
   client = GNUNET_CLIENT_connect (sched,
 				  "fs",
 				  cfg);
@@ -221,7 +251,29 @@ GNUNET_FS_start (struct GNUNET_SCHEDULER_Handle *sched,
   ret->upcb_cls = upcb_cls;
   ret->client = client;
   ret->flags = flags;
-  // FIXME: process varargs!
+  ret->max_parallel_downloads = 1;
+  ret->max_parallel_requests = 1;
+  ret->avg_block_latency = GNUNET_TIME_UNIT_MINUTES; /* conservative starting point */
+  va_start (ap, flags);  
+  while (GNUNET_FS_OPTIONS_END != (opt = va_arg (ap, enum GNUNET_FS_OPTIONS)))
+    {
+      switch (opt)
+	{
+	case GNUNET_FS_OPTIONS_DOWNLOAD_PARALLELISM:
+	  ret->max_parallel_downloads = va_arg (ap, unsigned int);
+	  break;
+	case GNUNET_FS_OPTIONS_REQUEST_PARALLELISM:
+	  ret->max_parallel_requests = va_arg (ap, unsigned int);
+	  break;
+	default:
+	  GNUNET_break (0);
+	  GNUNET_free (ret->client_name);
+	  GNUNET_free (ret);
+	  va_end (ap);
+	  return NULL;
+	}
+    }
+  va_end (ap);
   // FIXME: setup receive-loop with client
 
   // FIXME: deserialize state; use client-name to find master-directory!

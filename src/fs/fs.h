@@ -462,22 +462,6 @@ typedef void (*GNUNET_FS_QueueStart)(void *cls,
  */
 typedef void (*GNUNET_FS_QueueStop)(void *cls);
 
-/**
- * Categories of jobs in the FS queue.
- */
-enum GNUNET_FS_QueueCategory 
-  {
-    /**
-     * File download.
-     */
-    GNUNET_FS_QC_DOWNLOAD,
-
-    /**
-     * Availability probe (related to search).
-     */
-    GNUNET_FS_QC_PROBE
-
-  };
 
 /**
  * Entry in the job queue.
@@ -536,9 +520,14 @@ struct GNUNET_FS_QueueEntry
   struct GNUNET_TIME_Relative run_time;
 
   /**
-   * What type of job is this?
+   * How many blocks do the active downloads have?
    */
-  enum GNUNET_FS_QueueCategory category;
+  unsigned int blocks;
+
+  /**
+   * How often have we (re)started this download?
+   */
+  unsigned int start_times;
 
 };
 
@@ -552,6 +541,7 @@ struct GNUNET_FS_QueueEntry
  * @param start function to call to begin the job
  * @param stop function to call to pause the job, or on dequeue (if the job was running)
  * @param cls closure for start and stop
+ * @param blocks number of blocks this download has
  * @return queue handle
  */
 struct GNUNET_FS_QueueEntry *
@@ -559,7 +549,7 @@ GNUNET_FS_queue_ (struct GNUNET_FS_Handle *h,
 		  GNUNET_FS_QueueStart start,
 		  GNUNET_FS_QueueStop stop,
 		  void *cls,
-		  enum GNUNET_FS_QueueCategory cat);
+		  unsigned int blocks);
 
 
 /**
@@ -632,10 +622,10 @@ struct GNUNET_FS_Handle
   GNUNET_SCHEDULER_TaskIdentifier queue_job;
 
   /**
-   * How many downloads probing availability of search results do we
-   * have running right now?
+   * Average time we take for a single request to be satisfied.
+   * FIXME: not yet calcualted properly...
    */
-  unsigned int active_probes;
+  struct GNUNET_TIME_Relative avg_block_latency;
 
   /**
    * How many actual downloads do we have running right now?
@@ -643,9 +633,24 @@ struct GNUNET_FS_Handle
   unsigned int active_downloads;
 
   /**
+   * How many blocks do the active downloads have?
+   */
+  unsigned int active_blocks;
+
+  /**
    * General flags.
    */
   enum GNUNET_FS_Flags flags;
+
+  /**
+   * Maximum number of parallel downloads.
+   */
+  unsigned int max_parallel_downloads;
+
+  /**
+   * Maximum number of parallel requests.
+   */
+  unsigned int max_parallel_requests;
 
 };
 
@@ -1187,6 +1192,11 @@ struct GNUNET_FS_DownloadContext
    * transmission pending with the client handle.
    */
   struct GNUNET_CLIENT_TransmitHandle *th;
+
+  /**
+   * Our entry in the job queue.
+   */
+  struct GNUNET_FS_QueueEntry *job_queue;
 
   /**
    * Identity of the peer having the content, or all-zeros

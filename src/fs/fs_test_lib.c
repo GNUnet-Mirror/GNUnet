@@ -208,6 +208,9 @@ progress_cb (void *cls,
 					 daemon,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
+    case GNUNET_FS_STATUS_DOWNLOAD_ACTIVE:
+    case GNUNET_FS_STATUS_DOWNLOAD_INACTIVE:
+      break;
       /* FIXME: monitor data correctness during download progress */
       /* FIXME: do performance reports given sufficient verbosity */
       /* FIXME: advance timeout task to "immediate" on error */

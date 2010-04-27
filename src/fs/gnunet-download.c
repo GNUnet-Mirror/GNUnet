@@ -138,6 +138,9 @@ progress_cb (void *cls,
 					   NULL,
 					   GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;      
+    case GNUNET_FS_STATUS_DOWNLOAD_ACTIVE:
+    case GNUNET_FS_STATUS_DOWNLOAD_INACTIVE:
+      break;
     default:
       fprintf (stderr,
 	       _("Unexpected status: %d\n"),
