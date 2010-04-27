@@ -38,6 +38,7 @@
 #include "gnunet_hello_lib.h"
 
 #define DEBUG_TESTING GNUNET_NO
+#define DEBUG_TESTING_RECONNECT GNUNET_YES
 
 /**
  * How long do we wait after starting gnunet-service-arm
@@ -64,14 +65,26 @@ static void
 process_hello (void *cls, const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_TESTING_Daemon *daemon = cls;
-  GNUNET_TRANSPORT_get_hello_cancel(daemon->th, &process_hello, daemon);
+  if (daemon == NULL)
+    return;
+
+  if (daemon->server != NULL)
+    {
+      GNUNET_CORE_disconnect(daemon->server);
+      daemon->server = NULL;
+    }
+
+  GNUNET_assert (message != NULL);
+  if (daemon->th != NULL)
+    {
+      GNUNET_TRANSPORT_get_hello_cancel(daemon->th, &process_hello, daemon);
+    }
 #if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' from transport service of `%4s'\n",
               "HELLO", GNUNET_i2s (&daemon->id));
 #endif
 
-  GNUNET_assert (message != NULL);
   GNUNET_free_non_null(daemon->hello);
   daemon->hello = GNUNET_malloc(ntohs(message->size));
   memcpy(daemon->hello, message, ntohs(message->size));
@@ -126,6 +139,7 @@ testing_init (void *cls,
   d->id = *my_identity;
   d->shortname = strdup (GNUNET_i2s (my_identity));
   d->server = server;
+  d->running = GNUNET_YES;
   if (GNUNET_YES == d->dead)
     GNUNET_TESTING_daemon_stop (d, d->dead_cb, d->dead_cb_cls);
   else if (NULL != cb)
@@ -344,6 +358,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                 }
               GNUNET_CONFIGURATION_destroy (d->cfg);
               GNUNET_free (d->cfgfile);
+              GNUNET_free_non_null(d->hello);
               GNUNET_free_non_null (d->hostname);
               GNUNET_free_non_null (d->username);
               GNUNET_free_non_null (d->shortname);
@@ -370,6 +385,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
             }
           GNUNET_CONFIGURATION_destroy (d->cfg);
           GNUNET_free (d->cfgfile);
+          GNUNET_free_non_null(d->hello);
           GNUNET_free_non_null (d->hostname);
           GNUNET_free_non_null (d->username);
           GNUNET_free_non_null (d->shortname);
@@ -388,6 +404,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       /* state clean up and notifications */
       GNUNET_CONFIGURATION_destroy (d->cfg);
       GNUNET_free (d->cfgfile);
+      GNUNET_free_non_null(d->hello);
       GNUNET_free_non_null (d->hostname);
       GNUNET_free_non_null (d->username);
       GNUNET_free_non_null (d->shortname);
@@ -633,14 +650,11 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
                                             "-c", d->cfgfile, "-e", "-d", "-q", NULL);
   }
 
-  GNUNET_free_non_null(d->hello);
-
   d->wait_runs = 0;
   d->task
     = GNUNET_SCHEDULER_add_delayed (d->sched,
                                     GNUNET_CONSTANTS_EXEC_WAIT,
                                     &start_fsm, d);
-  return;
 }
 
 
@@ -820,6 +834,12 @@ notify_connect_result (void *cls,
       ctx->hello_send_task = GNUNET_SCHEDULER_NO_TASK;
     }
 
+  if ((ctx->timeout_task != GNUNET_SCHEDULER_NO_TASK) && (tc->reason != GNUNET_SCHEDULER_REASON_TIMEOUT))
+    {
+      GNUNET_SCHEDULER_cancel(ctx->d1->sched, ctx->timeout_task);
+      ctx->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     {
       if (ctx->d2th != NULL)
@@ -842,10 +862,20 @@ notify_connect_result (void *cls,
           ctx->cb (ctx->cb_cls, &ctx->d1->id, &ctx->d2->id, ctx->d1->cfg,
                    ctx->d2->cfg, ctx->d1, ctx->d2, NULL);
         }
-      GNUNET_SCHEDULER_cancel(ctx->d1->sched, ctx->timeout_task);
     }
   else if (remaining.value > 0)
     {
+      if (ctx->d1core != NULL)
+        {
+          GNUNET_CORE_disconnect(ctx->d1core);
+          ctx->d1core = NULL;
+        }
+
+      if (ctx->d2th != NULL)
+        {
+          GNUNET_TRANSPORT_disconnect(ctx->d2th);
+          ctx->d2th = NULL;
+        }
       GNUNET_SCHEDULER_add_now(ctx->d1->sched, &reattempt_daemons_connect, ctx);
       return;
     }
@@ -858,7 +888,6 @@ notify_connect_result (void *cls,
                    _("Peers failed to connect"));
         }
     }
-
 
   GNUNET_TRANSPORT_disconnect (ctx->d2th);
   ctx->d2th = NULL;
@@ -886,6 +915,8 @@ connect_notify (void *cls, const struct GNUNET_PeerIdentity * peer, struct GNUNE
   if (memcmp(&ctx->d2->id, peer, sizeof(struct GNUNET_PeerIdentity)) == 0)
     {
       ctx->connected = GNUNET_YES;
+      GNUNET_SCHEDULER_cancel(ctx->d1->sched, ctx->timeout_task);
+      ctx->timeout_task = GNUNET_SCHEDULER_NO_TASK;
       GNUNET_SCHEDULER_add_now (ctx->d1->sched,
                                 &notify_connect_result,
                                 ctx);
@@ -935,7 +966,7 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 {
   struct ConnectContext *ctx;
 
-  if ((d1->server == NULL) || (d2->server == NULL))
+  if ((d1->running == GNUNET_NO) || (d2->running == GNUNET_NO))
     {
       if (NULL != cb)
         cb (cb_cls, &d1->id, &d2->id, d1->cfg, d2->cfg, d1, d2,
@@ -988,6 +1019,7 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
                                         d2->cfg, d2, NULL, NULL, NULL);
   if (ctx->d2th == NULL)
     {
+      GNUNET_CORE_disconnect(ctx->d1core);
       GNUNET_free (ctx);
       if (NULL != cb)
         cb (cb_cls, &d1->id, &d2->id, d1->cfg, d2->cfg, d1, d2,
@@ -1011,22 +1043,12 @@ reattempt_daemons_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
     {
       return;
     }
-#if DEBUG_TESTING
+#if DEBUG_TESTING_RECONNECT
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "re-attempting connect of peer %s to peer %s\n",
               ctx->d1->shortname, ctx->d2->shortname);
 #endif
 
-  if (ctx->d1core != NULL)
-    {
-      GNUNET_CORE_disconnect(ctx->d1core);
-      ctx->d1core = NULL;
-    }
-
-  if (ctx->d2th != NULL)
-    {
-      GNUNET_TRANSPORT_disconnect(ctx->d2th);
-      ctx->d2th = NULL;
-    }
+  GNUNET_assert(ctx->d1core == NULL);
 
   ctx->d1core = GNUNET_CORE_connect (ctx->d1->sched,
                                      ctx->d1->cfg,
@@ -1049,6 +1071,7 @@ reattempt_daemons_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
                                         ctx->d2->cfg, ctx->d2, NULL, NULL, NULL);
   if (ctx->d2th == NULL)
     {
+      GNUNET_CORE_disconnect(ctx->d1core);
       GNUNET_free (ctx);
       if (NULL != ctx->cb)
         ctx->cb (ctx->cb_cls, &ctx->d1->id, &ctx->d2->id, ctx->d1->cfg, ctx->d2->cfg, ctx->d1, ctx->d2,

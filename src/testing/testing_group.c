@@ -84,7 +84,6 @@ struct PeerData
 
   /*
    * Linked list of peer connections (simply indexes of PeerGroup)
-   * FIXME: Question, store pointer or integer?  Pointer for now...
    */
   struct PeerConnection *connected_peers;
 };
@@ -255,7 +254,7 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg, uint16_t * port, con
 
   if (GNUNET_CONFIGURATION_get_value_string(cfg, "testing", "control_host", &control_host) == GNUNET_OK)
     {
-      GNUNET_asprintf(&allowed_hosts, "%s 127.0.0.1;", control_host);
+      GNUNET_asprintf(&allowed_hosts, "%s; 127.0.0.1;", control_host);
       GNUNET_CONFIGURATION_set_value_string(uc.ret, "core", "ACCEPT_FROM", allowed_hosts);
       GNUNET_free_non_null(control_host);
       GNUNET_free(allowed_hosts);
@@ -957,6 +956,10 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
         }
     }
 
+#if VERBOSE_TESTING
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                _("Finished copying all friend files!\n"));
+#endif
   GNUNET_free(pidarr);
   return ret;
 }
