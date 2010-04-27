@@ -24,13 +24,14 @@
 #include "platform.h"
 #include "gnunet_testing_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
+#define NUM_PEERS 4
 
 /**
  * How long until we give up on connecting the peers?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
 
 
 static int ok;
@@ -48,10 +49,17 @@ my_cb (void *cls,
        const struct GNUNET_CONFIGURATION_Handle *cfg,
        struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
-  GNUNET_assert (id != NULL);
+  if (id == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Start callback called with error (too long starting peers), aborting test!\n");
+      GNUNET_TESTING_daemons_stop (pg);
+      ok = 7;
+    }
   peers_left--;
   if (peers_left == 0)
     {
+      sleep(2); /* Give other services a chance to initialize before killing */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers started successfully, ending test!\n");
       GNUNET_TESTING_daemons_stop (pg);
       ok = 0;
     }
@@ -69,7 +77,7 @@ run (void *cls,
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemons.\n");
 #endif
-  peers_left = 8;
+  peers_left = NUM_PEERS;
   pg = GNUNET_TESTING_daemons_start (sched, cfg,
                                      peers_left,
                                      &my_cb, NULL, NULL, NULL, NULL);

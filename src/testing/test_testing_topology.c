@@ -57,7 +57,7 @@ static unsigned int expected_messages;
 
 static unsigned int expected_connections;
 
-static int peers_left;
+static unsigned long long peers_left;
 
 static struct GNUNET_TESTING_PeerGroup *pg;
 
@@ -524,7 +524,7 @@ my_cb (void *cls,
 {
   GNUNET_assert (id != NULL);
 #if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Started daemon %d out of %d\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Started daemon %llu out of %llu\n",
               (num_peers - peers_left) + 1, num_peers);
 #endif
   peers_left--;
