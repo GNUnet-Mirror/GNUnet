@@ -32,12 +32,7 @@
 #include "gnunet-daemon-hostlist.h"
 #include "gnunet_resolver_service.h"
 
-#define DEBUG_HOSTLIST_SERVER GNUNET_YES
-
-/**
- * How often should we recalculate our response to hostlist requests?
- */
-#define RESPONSE_UPDATE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
+#define DEBUG_HOSTLIST_SERVER GNUNET_NO
 
 /**
  * Handle to the HTTP server as provided by libmicrohttpd for IPv6.
@@ -70,6 +65,11 @@ static struct GNUNET_STATISTICS_Handle *stats;
 struct GNUNET_CORE_Handle *core;
 
 /**
+ * Handle to the peerinfo notify service (NULL until we've connected to it).
+ */
+struct GNUNET_PEERINFO_NotifyContext *notify;
+
+/**
  * Our primary task for IPv4.
  */
 static GNUNET_SCHEDULER_TaskIdentifier hostlist_task_v4;
@@ -78,11 +78,6 @@ static GNUNET_SCHEDULER_TaskIdentifier hostlist_task_v4;
  * Our primary task for IPv6.
  */
 static GNUNET_SCHEDULER_TaskIdentifier hostlist_task_v6;
-
-/**
- * Task that updates our HTTP response.
- */
-static GNUNET_SCHEDULER_TaskIdentifier response_task;
 
 /**
  * Our canonical response.
@@ -126,21 +121,11 @@ static char * hostlist_uri;
 
 
 /**
- * Task that will produce a new response object.
- */
-static void
-update_response (void *cls,
-		 const struct GNUNET_SCHEDULER_TaskContext *tc);
-
-
-/**
  * Function that assembles our response.
  */
 static void
 finish_response (struct HostSet *results)
 {
-  struct GNUNET_TIME_Relative freq;
-
   if (response != NULL)
     MHD_destroy_response (response);
 #if DEBUG_HOSTLIST_SERVER
@@ -150,24 +135,12 @@ finish_response (struct HostSet *results)
 #endif
   response = MHD_create_response_from_data (results->size,
                                             results->data, MHD_YES, MHD_NO);
-  if ( (daemon_handle_v4 != NULL) ||
-       (daemon_handle_v6 != NULL) )
-    {
-      freq = RESPONSE_UPDATE_FREQUENCY;
-      if (results->size == 0)
-        freq = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250);
-      /* schedule next update of the response */
-      response_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                                    freq,
-                                                    &update_response,
-                                                    NULL);
-    }
-  else
-    {
-      /* already past shutdown */
-      MHD_destroy_response (response);
-      response = NULL;
-    }
+  if ( (daemon_handle_v4 == NULL) &&
+       (daemon_handle_v6 == NULL) )
+  {
+    MHD_destroy_response (response);
+    response = NULL;
+  }
   GNUNET_STATISTICS_set (stats,
                          gettext_noop("bytes in hostlist"),
                          results->size,
@@ -273,25 +246,6 @@ host_processor (void *cls,
   memcpy (&results->data[old], hello, s);
 }
 
-
-/**
- * Task that will produce a new response object.
- */
-static void
-update_response (void *cls,
-		 const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct HostSet *results;
-  response_task = GNUNET_SCHEDULER_NO_TASK;
-  results = GNUNET_malloc(sizeof(struct HostSet));
-  GNUNET_assert (peerinfo != NULL);
-  pitr = GNUNET_PEERINFO_iterate (peerinfo,
-				  NULL,
-				  0, 
-				  GNUNET_TIME_UNIT_MINUTES,
-				  &host_processor,
-				  results);
-}
 
 
 /**
@@ -437,11 +391,6 @@ connect_handler (void *cls,
 {
   size_t size;
 
-  /* FIXME: Change this way to update the list to peerinfo_notify */
-  response_task = GNUNET_SCHEDULER_add_now (sched,
-                                            &update_response,
-                                            NULL);
-
   if ( !advertising )
     return;
   if (hostlist_uri == NULL)
@@ -488,6 +437,34 @@ disconnect_handler (void *cls,
   /* nothing to do */
 }
 
+/**
+ * PEERINFO calls this function to let us know about a possible peer
+ * that we might want to connect to.
+ *
+ * @param cls closure (not used)
+ * @param peer potential peer to connect to
+ * @param hello HELLO for this peer (or NULL)
+ * @param trust how much we trust the peer (not used)
+ */
+static void
+process_notify (void *cls,
+                const struct GNUNET_PeerIdentity *peer,
+                const struct GNUNET_HELLO_Message *hello,
+                uint32_t trust)
+{
+  struct HostSet *results;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+            "Peerinfo is notifying us to rebuild our hostlist\n");
+  results = GNUNET_malloc(sizeof(struct HostSet));
+  GNUNET_assert (peerinfo != NULL);
+  pitr = GNUNET_PEERINFO_iterate (peerinfo,
+                                  NULL,
+                                  0,
+                                  GNUNET_TIME_UNIT_MINUTES,
+                                  &host_processor,
+                                  results);
+}
 
 /**
  * Function that queries MHD's select sets and
@@ -690,9 +667,9 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
     hostlist_task_v4 = prepare_daemon (daemon_handle_v4);
   if (daemon_handle_v6 != NULL)
     hostlist_task_v6 = prepare_daemon (daemon_handle_v6);
-  response_task = GNUNET_SCHEDULER_add_now (sched,
-					    &update_response,
-					    NULL);
+
+  notify = GNUNET_PEERINFO_notify ( cfg, sched, process_notify, NULL);
+
   return GNUNET_OK;
 }
 
@@ -706,6 +683,11 @@ GNUNET_HOSTLIST_server_stop ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Hostlist server shutdown\n");
 #endif
+  if (NULL != notify)
+    {
+      GNUNET_PEERINFO_notify_cancel (notify);
+      notify = NULL;
+    }
   if (GNUNET_SCHEDULER_NO_TASK != hostlist_task_v6)
     {
       GNUNET_SCHEDULER_cancel (sched, hostlist_task_v6);
@@ -720,11 +702,6 @@ GNUNET_HOSTLIST_server_stop ()
     {
       GNUNET_PEERINFO_iterate_cancel (pitr);
       pitr = NULL;
-    }
-  if (GNUNET_SCHEDULER_NO_TASK != response_task)
-    {
-      GNUNET_SCHEDULER_cancel (sched, response_task);
-      response_task = GNUNET_SCHEDULER_NO_TASK;
     }
   if (NULL != daemon_handle_v4)
     {
