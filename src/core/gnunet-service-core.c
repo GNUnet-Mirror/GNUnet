@@ -79,7 +79,7 @@
 /**
  * What is the maximum delay for a SET_KEY message?
  */
-#define MAX_SET_KEY_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define MAX_SET_KEY_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 /**
  * What how long do we wait for SET_KEY confirmation initially?
