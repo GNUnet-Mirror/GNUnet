@@ -43,7 +43,7 @@
  * How long do we wait after starting gnunet-service-arm
  * for the core service to be alive?
  */
-#define ARM_START_WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+#define ARM_START_WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
 
 /**
  * How many times are we willing to try to wait for "scp" or
