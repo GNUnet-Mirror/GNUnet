@@ -36,7 +36,7 @@
 #include "gnunet_common.h"
 #include "gnunet_bio_lib.h"
 
-#define DEBUG_HOSTLIST_CLIENT GNUNET_YES
+#define DEBUG_HOSTLIST_CLIENT GNUNET_NO
 
 
 /**
