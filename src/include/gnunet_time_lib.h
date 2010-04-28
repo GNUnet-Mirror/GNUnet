@@ -353,6 +353,17 @@ struct GNUNET_TIME_Relative GNUNET_TIME_relative_add (struct
                                                       GNUNET_TIME_Relative
                                                       a2);
 
+/**
+ * Subtract relative timestamp from the other.
+ *
+ * @param a1 first timestamp
+ * @param a2 second timestamp
+ * @return ZERO if a2>=a1 (including both FOREVER), FOREVER if a1 is FOREVER, a1-a2 otherwise
+ */
+struct GNUNET_TIME_Relative
+GNUNET_TIME_relative_subtract (struct GNUNET_TIME_Relative a1,
+			       struct GNUNET_TIME_Relative a2);
+
 
 /**
  * Convert relative time to network byte order.

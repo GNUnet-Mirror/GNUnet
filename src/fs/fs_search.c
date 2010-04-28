@@ -46,8 +46,9 @@
  *
  * @param pi structure to fill in
  * @param sc overall search context
+ * @return value returned by the callback
  */
-static void
+static void *
 make_search_status (struct GNUNET_FS_ProgressInfo *pi,
 		    struct GNUNET_FS_SearchContext *sc)
 {
@@ -60,6 +61,8 @@ make_search_status (struct GNUNET_FS_ProgressInfo *pi,
     = sc->uri;
   pi->value.search.duration = GNUNET_TIME_absolute_get_duration (sc->start_time);
   pi->value.search.anonymity = sc->anonymity;
+  return sc->h->upcb (sc->h->upcb_cls,
+		      pi);
 }
 
 
@@ -103,11 +106,9 @@ notify_client_chk_result (struct GNUNET_FS_SearchContext *sc,
   struct GNUNET_FS_ProgressInfo pi;
 
   pi.status = GNUNET_FS_STATUS_SEARCH_RESULT;
-  make_search_status (&pi, sc);
   pi.value.search.specifics.result.meta = sr->meta;
   pi.value.search.specifics.result.uri = sr->uri;
-  sr->client_info = sc->h->upcb (sc->h->upcb_cls,
-				 &pi);
+  sr->client_info = make_search_status (&pi, sc);
 }
 
 
@@ -125,7 +126,6 @@ notify_client_chk_update (struct GNUNET_FS_SearchContext *sc,
   struct GNUNET_FS_ProgressInfo pi;
 
   pi.status = GNUNET_FS_STATUS_SEARCH_UPDATE;
-  make_search_status (&pi, sc);
   pi.value.search.specifics.update.cctx = sr->client_info;
   pi.value.search.specifics.update.meta = sr->meta;
   pi.value.search.specifics.update.uri = sr->uri;
@@ -135,8 +135,7 @@ notify_client_chk_update (struct GNUNET_FS_SearchContext *sc,
     = sr->availability_trials;
   pi.value.search.specifics.update.applicability_rank 
     = sr->optional_support;
-  sr->client_info = sc->h->upcb (sc->h->upcb_cls,
-				 &pi);
+  sr->client_info = make_search_status (&pi, sc);
 }
 
 
@@ -184,6 +183,206 @@ get_result_present (void *cls,
 
 
 /**
+ * Start download probes for the given search result.
+ *
+ * @param sr the search result
+ */
+static void
+start_probe (struct SearchResult *sr);
+
+
+/**
+ * Signal result of last probe to client and then schedule next
+ * probe.
+ */
+static void
+signal_probe_result (struct SearchResult *sr)
+{
+  struct GNUNET_FS_ProgressInfo pi;
+
+  pi.status = GNUNET_FS_STATUS_SEARCH_START;
+  pi.value.search.specifics.update.cctx = sr->client_info;
+  pi.value.search.specifics.update.meta = sr->meta;
+  pi.value.search.specifics.update.uri = sr->uri;
+  pi.value.search.specifics.update.availability_rank = sr->availability_success;
+  pi.value.search.specifics.update.availability_certainty = sr->availability_trials;
+  pi.value.search.specifics.update.applicability_rank = sr->optional_support;
+  sr->sc->client_info = make_search_status (&pi, sr->sc);
+  start_probe (sr);
+}
+
+
+/**
+ * Handle the case where we have failed to receive a response for our probe.
+ *
+ * @param cls our 'struct SearchResult*'
+ * @param tc scheduler context
+ */
+static void
+probe_failure_handler (void *cls,
+		       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct SearchResult *sr = cls;
+  sr->availability_trials++;
+  signal_probe_result (sr);
+}
+
+
+/**
+ * Handle the case where we have gotten a response for our probe.
+ *
+ * @param cls our 'struct SearchResult*'
+ * @param tc scheduler context
+ */
+static void
+probe_success_handler (void *cls,
+		       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct SearchResult *sr = cls;
+  sr->availability_trials++;
+  sr->availability_success++;
+  signal_probe_result (sr);
+}
+
+
+/**
+ * Notification of FS that a search probe has made progress.
+ * This function is used INSTEAD of the client's event handler
+ * for downloads where the GNUNET_FS_DOWNLOAD_IS_PROBE flag is set.
+ *
+ * @param cls closure, always NULL (!), actual closure
+ *        is in the client-context of the info struct
+ * @param info details about the event, specifying the event type
+ *        and various bits about the event
+ * @return client-context (for the next progress call
+ *         for this operation; should be set to NULL for
+ *         SUSPEND and STOPPED events).  The value returned
+ *         will be passed to future callbacks in the respective
+ *         field in the GNUNET_FS_ProgressInfo struct.
+ */
+void*
+GNUNET_FS_search_probe_progress_ (void *cls,
+				  const struct GNUNET_FS_ProgressInfo *info)
+{
+  struct SearchResult *sr = info->value.download.cctx;
+  struct GNUNET_TIME_Relative dur;
+
+  switch (info->status)
+    {
+    case GNUNET_FS_STATUS_DOWNLOAD_START:
+      /* ignore */
+      break;
+    case GNUNET_FS_STATUS_DOWNLOAD_RESUME:
+      /* probes should never be resumed */
+      GNUNET_assert (0);
+      break;
+    case GNUNET_FS_STATUS_DOWNLOAD_SUSPEND:
+      /* probes should never be suspended */
+      GNUNET_break (0);
+      break;
+    case GNUNET_FS_STATUS_DOWNLOAD_PROGRESS:
+      /* ignore */
+      break;
+    case GNUNET_FS_STATUS_DOWNLOAD_ERROR:
+      if (sr->probe_cancel_task != GNUNET_SCHEDULER_NO_TASK)
+	{
+	  GNUNET_SCHEDULER_cancel (sr->sc->h->sched,
+				   sr->probe_cancel_task);
+	  sr->probe_cancel_task = GNUNET_SCHEDULER_NO_TASK;
+	}     
+      sr->probe_cancel_task = GNUNET_SCHEDULER_add_delayed (sr->sc->h->sched,
+							    sr->remaining_probe_time,
+							    &probe_failure_handler,
+							    sr);
+      break;
+    case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
+      if (sr->probe_cancel_task != GNUNET_SCHEDULER_NO_TASK)
+	{
+	  GNUNET_SCHEDULER_cancel (sr->sc->h->sched,
+				   sr->probe_cancel_task);
+	  sr->probe_cancel_task = GNUNET_SCHEDULER_NO_TASK;
+	}     
+      sr->probe_cancel_task = GNUNET_SCHEDULER_add_delayed (sr->sc->h->sched,
+							    sr->remaining_probe_time,
+							    &probe_success_handler,
+							    sr);
+      break;
+    case GNUNET_FS_STATUS_DOWNLOAD_STOPPED:
+      /* FIXME: clean up? schedule next probe? or already done? */
+      sr = NULL;
+      break;
+    case GNUNET_FS_STATUS_DOWNLOAD_ACTIVE:
+      GNUNET_assert (sr->probe_cancel_task == GNUNET_SCHEDULER_NO_TASK);
+      sr->probe_active_time = GNUNET_TIME_absolute_get ();
+      sr->probe_cancel_task = GNUNET_SCHEDULER_add_delayed (sr->sc->h->sched,
+							    sr->remaining_probe_time,
+							    &probe_failure_handler,
+							    sr);
+      break;
+    case GNUNET_FS_STATUS_DOWNLOAD_INACTIVE:
+      if (sr->probe_cancel_task != GNUNET_SCHEDULER_NO_TASK)
+	{
+	  GNUNET_SCHEDULER_cancel (sr->sc->h->sched,
+				   sr->probe_cancel_task);
+	  sr->probe_cancel_task = GNUNET_SCHEDULER_NO_TASK;
+	}
+      dur = GNUNET_TIME_absolute_get_duration (sr->probe_active_time);
+      sr->remaining_probe_time = GNUNET_TIME_relative_subtract (sr->remaining_probe_time,
+								dur);
+      break;
+    default:
+      GNUNET_break (0);
+      return NULL;
+    }
+  return sr;
+}
+
+
+/**
+ * Start download probes for the given search result.
+ *
+ * @param sr the search result
+ */
+static void
+start_probe (struct SearchResult *sr)
+{
+  uint64_t off;
+  uint64_t len;
+  
+  if (sr->probe_ctx != NULL)
+    return;
+  if (0 == (sr->sc->h->flags & GNUNET_FS_FLAGS_DO_PROBES))
+    return;
+  if (sr->availability_trials > AVAILABILITY_TRIALS_MAX)
+    return;
+  len = GNUNET_FS_uri_chk_get_file_size (sr->uri);
+  if (len == 0)
+    return;
+  if ( (len <= DBLOCK_SIZE) && (sr->availability_success > 0))
+    return;
+  off = len / DBLOCK_SIZE;
+  if (off > 0)
+    off = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, off);
+  off *= DBLOCK_SIZE;
+  if (len - off < DBLOCK_SIZE)
+    len = len - off;
+  else
+    len = DBLOCK_SIZE;
+  sr->remaining_probe_time = GNUNET_TIME_relative_multiply (sr->sc->h->avg_block_latency,
+							    2 * (1 + sr->availability_trials));
+  sr->probe_ctx = GNUNET_FS_download_start (sr->sc->h,
+					    sr->uri,
+					    sr->meta,
+					    NULL, NULL,
+					    off, len, 
+					    sr->sc->anonymity,
+					    GNUNET_FS_DOWNLOAD_NO_TEMPORARIES |
+					    GNUNET_FS_DOWNLOAD_IS_PROBE,
+					    sr, NULL);    
+}
+
+
+/**
  * We have received a KSK result.  Check how it fits in with the
  * overall query and notify the client accordingly.
  *
@@ -224,6 +423,7 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
   if (NULL == sr)
     {
       sr = GNUNET_malloc (sizeof (struct SearchResult));
+      sr->sc = sc;
       sr->uri = GNUNET_FS_uri_dup (uri);
       sr->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
       sr->mandatory_missing = sc->mandatory_count;
@@ -247,7 +447,7 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
     notify_client_chk_result (sc, sr);
   else
     notify_client_chk_update (sc, sr);
-  /* FIXME: consider starting probes for "sr" */
+  start_probe (sr);
 }
 
 
@@ -301,14 +501,14 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc,
 						  (void*) uri))
     return; /* duplicate result */
   sr = GNUNET_malloc (sizeof (struct SearchResult));
+  sr->sc = sc;
   sr->uri = GNUNET_FS_uri_dup (uri);
   sr->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
   GNUNET_CONTAINER_multihashmap_put (sc->master_result_map,
 				     &key,
 				     sr,
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  /* FIXME: consider starting probes for "sr" */
-
+  start_probe (sr);
   /* notify client */
   notify_client_chk_result (sc, sr);
   /* search for updates */
@@ -921,9 +1121,7 @@ search_start (struct GNUNET_FS_Handle *h,
 				 parent->child_tail,
 				 sc);
   pi.status = GNUNET_FS_STATUS_SEARCH_START;
-  make_search_status (&pi, sc);
-  sc->client_info = h->upcb (h->upcb_cls,
-			     &pi);
+  sc->client_info = make_search_status (&pi, sc);
   GNUNET_CLIENT_notify_transmit_ready (client,
 				       size,
                                        GNUNET_CONSTANTS_SERVICE_TIMEOUT,
@@ -974,9 +1172,7 @@ GNUNET_FS_search_pause (struct GNUNET_FS_SearchContext *sc)
   // FIXME: make persistent!
   // FIXME: should this freeze all active probes?
   pi.status = GNUNET_FS_STATUS_SEARCH_PAUSED;
-  make_search_status (&pi, sc);
-  sc->client_info = sc->h->upcb (sc->h->upcb_cls,
-				 &pi);
+  sc->client_info = make_search_status (&pi, sc);
 }
 
 
@@ -995,9 +1191,7 @@ GNUNET_FS_search_continue (struct GNUNET_FS_SearchContext *sc)
   do_reconnect (sc, NULL);
   // FIXME: make persistent!
   pi.status = GNUNET_FS_STATUS_SEARCH_CONTINUED;
-  make_search_status (&pi, sc);
-  sc->client_info = sc->h->upcb (sc->h->upcb_cls,
-				 &pi);
+  sc->client_info = make_search_status (&pi, sc);
 }
 
 
@@ -1020,12 +1214,10 @@ search_result_free (void *cls,
   struct GNUNET_FS_ProgressInfo pi;
 
   pi.status = GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED;
-  make_search_status (&pi, sc);
   pi.value.search.specifics.result_stopped.cctx = sr->client_info;
   pi.value.search.specifics.result_stopped.meta = sr->meta;
   pi.value.search.specifics.result_stopped.uri = sr->uri;
-  sr->client_info = h->upcb (h->upcb_cls,
-			     &pi);
+  sr->client_info = make_search_status (&pi, sc);
   GNUNET_break (NULL == sr->client_info);
   
   GNUNET_FS_uri_destroy (sr->uri);
@@ -1066,9 +1258,7 @@ GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc)
 					 &search_result_free,
 					 sc);
   pi.status = GNUNET_FS_STATUS_SEARCH_STOPPED;
-  make_search_status (&pi, sc);
-  sc->client_info = sc->h->upcb (sc->h->upcb_cls,
-				 &pi);
+  sc->client_info = make_search_status (&pi, sc);
   GNUNET_break (NULL == sc->client_info);
   if (sc->task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (sc->h->sched,

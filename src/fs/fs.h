@@ -84,6 +84,11 @@
 #define BLOOMFILTER_K 16
 
 /**
+ * Number of availability trials we perform per search result.
+ */
+#define AVAILABILITY_TRIALS_MAX 8
+
+/**
  * By how much (in ms) do we decrement the TTL
  * at each hop?
  */
@@ -560,6 +565,28 @@ void
 GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qh);
 
 
+
+/**
+ * Notification of FS that a search probe has made progress.
+ * This function is used INSTEAD of the client's event handler
+ * for downloads where the GNUNET_FS_DOWNLOAD_IS_PROBE flag is set.
+ *
+ * @param cls closure, always NULL (!), actual closure
+ *        is in the client-context of the info struct
+ * @param info details about the event, specifying the event type
+ *        and various bits about the event
+ * @return client-context (for the next progress call
+ *         for this operation; should be set to NULL for
+ *         SUSPEND and STOPPED events).  The value returned
+ *         will be passed to future callbacks in the respective
+ *         field in the GNUNET_FS_ProgressInfo struct.
+ */
+void*
+GNUNET_FS_search_probe_progress_ (void *cls,
+				  const struct GNUNET_FS_ProgressInfo *info);
+
+
+
 /**
  * Master context for most FS operations.
  */
@@ -799,16 +826,14 @@ struct GNUNET_FS_UnindexContext
   char *filename;
 
   /**
-   * Connection to the FS service,
-   * only valid during the UNINDEX_STATE_FS_NOTIFY
-   * phase.
+   * Connection to the FS service, only valid during the
+   * UNINDEX_STATE_FS_NOTIFY phase.
    */
   struct GNUNET_CLIENT_Connection *client;
 
   /**
-   * Connection to the datastore service,
-   * only valid during the UNINDEX_STATE_DS_NOTIFY
-   * phase.
+   * Connection to the datastore service, only valid during the
+   * UNINDEX_STATE_DS_NOTIFY phase.
    */
   struct GNUNET_DATASTORE_Handle *dsh;
 
@@ -838,8 +863,7 @@ struct GNUNET_FS_UnindexContext
   struct GNUNET_TIME_Absolute start_time;
 
   /**
-   * Hash of the file's contents (once
-   * computed).
+   * Hash of the file's contents (once computed).
    */
   GNUNET_HashCode file_id;
  
@@ -858,8 +882,12 @@ struct SearchResult
 {
 
   /**
-   * URI to which this search result
-   * refers to.
+   * Search context this result belongs to.
+   */
+  struct GNUNET_FS_SearchContext *sc;
+
+  /**
+   * URI to which this search result refers to.
    */
   struct GNUNET_FS_Uri *uri;
 
@@ -874,43 +902,49 @@ struct SearchResult
   void *client_info;
 
   /**
-   * ID of a job that is currently probing
-   * this results' availability (NULL if we
-   * are not currently probing).
+   * ID of a job that is currently probing this results' availability
+   * (NULL if we are not currently probing).
    */
   struct GNUNET_FS_DownloadContext *probe_ctx;
-  
+
   /**
-   * ID of the task that will clean up the probe_ctx
-   * should it not complete on time (and that will
-   * need to be cancelled if we clean up the search
-   * result before then).
+   * ID of the task that will clean up the probe_ctx should it not
+   * complete on time (and that will need to be cancelled if we clean
+   * up the search result before then).
    */
   GNUNET_SCHEDULER_TaskIdentifier probe_cancel_task;
 
   /**
-   * Number of mandatory keywords for which
-   * we have NOT yet found the search result;
-   * when this value hits zero, the search
-   * result is given to the callback.
+   * When did the current probe become active?
+   */
+  struct GNUNET_TIME_Absolute probe_active_time;
+
+  /**
+   * How much longer should we run the current probe before giving up?
+   */
+  struct GNUNET_TIME_Relative remaining_probe_time;
+
+  /**
+   * Number of mandatory keywords for which we have NOT yet found the
+   * search result; when this value hits zero, the search result is
+   * given to the callback.
    */
   uint32_t mandatory_missing;
 
   /**
-   * Number of optional keywords under which
-   * this result was also found.
+   * Number of optional keywords under which this result was also
+   * found.
    */
   uint32_t optional_support;
 
   /**
-   * Number of availability tests that
-   * have succeeded for this result.
+   * Number of availability tests that have succeeded for this result.
    */
   uint32_t availability_success;
 
   /**
-   * Number of availability trials that we
-   * have performed for this search result.
+   * Number of availability trials that we have performed for this
+   * search result.
    */
   uint32_t availability_trials;
 
@@ -969,36 +1003,32 @@ struct GNUNET_FS_SearchContext
   struct GNUNET_FS_Uri *uri;
 
   /**
-   * For update-searches, link to the
-   * base-SKS search that triggered the
-   * update search; otherwise NULL.
+   * For update-searches, link to the base-SKS search that triggered
+   * the update search; otherwise NULL.
    */
   struct GNUNET_FS_SearchContext *parent;
 
   /**
-   * For update-searches, link to the
-   * first child search that triggered the
-   * update search; otherwise NULL.
+   * For update-searches, link to the first child search that
+   * triggered the update search; otherwise NULL.
    */
   struct GNUNET_FS_SearchContext *child_head;
 
   /**
-   * For update-searches, link to the
-   * last child search that triggered the
-   * update search; otherwise NULL.
+   * For update-searches, link to the last child search that triggered
+   * the update search; otherwise NULL.
    */
   struct GNUNET_FS_SearchContext *child_tail;
 
   /**
-   * For update-searches, link to the
-   * next child belonging to the same parent.
+   * For update-searches, link to the next child belonging to the same
+   * parent.
    */
   struct GNUNET_FS_SearchContext *next;
 
   /**
-   * For update-searches, link to the
-   * previous child belonging to the same
-   * parent.
+   * For update-searches, link to the previous child belonging to the
+   * same parent.
    */
   struct GNUNET_FS_SearchContext *prev;
 
@@ -1021,9 +1051,8 @@ struct GNUNET_FS_SearchContext
   struct GNUNET_CONTAINER_MultiHashMap *master_result_map;
 
   /**
-   * Per-keyword information for a keyword search.
-   * This array will have exactly as many entries
-   * as there were keywords.
+   * Per-keyword information for a keyword search.  This array will
+   * have exactly as many entries as there were keywords.
    */
   struct SearchRequestEntry *requests;
   
@@ -1033,12 +1062,10 @@ struct GNUNET_FS_SearchContext
   struct GNUNET_TIME_Absolute start_time;
 
   /**
-   * ID of a task that is using this struct
-   * and that must be cancelled when the search
-   * is being stopped (if not GNUNET_SCHEDULER_NO_TASK).
-   * Used for the task that adds some artificial
-   * delay when trying to reconnect to the FS
-   * service.
+   * ID of a task that is using this struct and that must be cancelled
+   * when the search is being stopped (if not
+   * GNUNET_SCHEDULER_NO_TASK).  Used for the task that adds some
+   * artificial delay when trying to reconnect to the FS service.
    */
   GNUNET_SCHEDULER_TaskIdentifier task;
   
@@ -1051,6 +1078,8 @@ struct GNUNET_FS_SearchContext
    * Number of mandatory keywords in this query.
    */
   uint32_t mandatory_count;
+
+  
 };
 
 
@@ -1060,8 +1089,7 @@ struct GNUNET_FS_SearchContext
 struct DownloadRequest
 {
   /**
-   * While pending, we keep all download requests
-   * in a linked list.
+   * While pending, we keep all download requests in a linked list.
    */
   struct DownloadRequest *next;
 

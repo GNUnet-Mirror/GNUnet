@@ -345,6 +345,8 @@ GNUNET_TIME_calculate_eta (struct GNUNET_TIME_Absolute start,
 /**
  * Add relative times together.
  *
+ * @param a1 first timestamp
+ * @param a2 second timestamp
  * @return FOREVER if either argument is FOREVER or on overflow; a1+a2 otherwise
  */
 struct GNUNET_TIME_Relative
@@ -366,7 +368,32 @@ GNUNET_TIME_relative_add (struct GNUNET_TIME_Relative a1,
 
 
 /**
+ * Subtract relative timestamp from the other.
+ *
+ * @param a1 first timestamp
+ * @param a2 second timestamp
+ * @return ZERO if a2>=a1 (including both FOREVER), FOREVER if a1 is FOREVER, a1-a2 otherwise
+ */
+struct GNUNET_TIME_Relative
+GNUNET_TIME_relative_subtract (struct GNUNET_TIME_Relative a1,
+			       struct GNUNET_TIME_Relative a2)
+{
+  struct GNUNET_TIME_Relative ret;
+
+  if (a2.value >= a1.value)
+    return GNUNET_TIME_relative_get_zero ();
+  if (a1.value == (uint64_t) - 1LL) 
+    return GNUNET_TIME_relative_get_forever ();
+  ret.value = a1.value - a2.value;
+  return ret;
+}
+
+
+/**
  * Convert relative time to network byte order.
+ *
+ * @param a time to convert
+ * @return time in network byte order
  */
 struct GNUNET_TIME_RelativeNBO
 GNUNET_TIME_relative_hton (struct GNUNET_TIME_Relative a)
@@ -378,6 +405,9 @@ GNUNET_TIME_relative_hton (struct GNUNET_TIME_Relative a)
 
 /**
  * Convert relative time from network byte order.
+ *
+ * @param a time to convert
+ * @return time in host byte order
  */
 struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_ntoh (struct GNUNET_TIME_RelativeNBO a)
@@ -390,6 +420,9 @@ GNUNET_TIME_relative_ntoh (struct GNUNET_TIME_RelativeNBO a)
 
 /**
  * Convert absolute time to network byte order.
+ *
+ * @param a time to convert
+ * @return time in network byte order
  */
 struct GNUNET_TIME_AbsoluteNBO
 GNUNET_TIME_absolute_hton (struct GNUNET_TIME_Absolute a)
@@ -401,6 +434,9 @@ GNUNET_TIME_absolute_hton (struct GNUNET_TIME_Absolute a)
 
 /**
  * Convert absolute time from network byte order.
+ *
+ * @param a time to convert
+ * @return time in host byte order
  */
 struct GNUNET_TIME_Absolute
 GNUNET_TIME_absolute_ntoh (struct GNUNET_TIME_AbsoluteNBO a)

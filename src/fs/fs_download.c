@@ -23,8 +23,9 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - location URI suppport (can wait, easy)
  * - persistence (can wait)
+ * - location URI suppport (can wait, easy)
+ * - different priority for scheduling probe downloads?
  * - check if iblocks can be computed from existing blocks (can wait, hard)
  */
 #include "platform.h"
@@ -137,8 +138,8 @@ compute_dblock_offset (uint64_t offset,
 
 
 /**
- * Fill in all of the generic fields for 
- * a download event.
+ * Fill in all of the generic fields for a download event and call the
+ * callback.
  *
  * @param pi structure to fill in
  * @param dc overall download context
@@ -168,6 +169,12 @@ make_download_status (struct GNUNET_FS_ProgressInfo *pi,
     = GNUNET_TIME_calculate_eta (dc->start_time,
 				 dc->completed,
 				 dc->length);
+  if (0 == (dc->options & GNUNET_FS_DOWNLOAD_IS_PROBE))
+    dc->client_info = dc->h->upcb (dc->h->upcb_cls,
+				   pi);
+  else
+    dc->client_info = GNUNET_FS_search_probe_progress_ (NULL,
+							pi);
 }
 
 /**
@@ -624,8 +631,6 @@ check_completed (struct GNUNET_FS_DownloadContext *dc)
   /* signal completion */
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_COMPLETED;
   make_download_status (&pi, dc);
-  dc->client_info = dc->h->upcb (dc->h->upcb_cls,
-				 &pi);
   if (dc->parent != NULL)
     check_completed (dc->parent);  
 }
@@ -847,10 +852,8 @@ process_result_with_request (void *cls,
       dc->emsg = GNUNET_strdup ("Internal error or bogus download URI");
       /* signal error */
       pi.status = GNUNET_FS_STATUS_DOWNLOAD_ERROR;
-      make_download_status (&pi, dc);
       pi.value.download.specifics.error.message = dc->emsg;
-      dc->client_info = dc->h->upcb (dc->h->upcb_cls,
-				     &pi);
+      make_download_status (&pi, dc);
       /* abort all pending requests */
       if (NULL != dc->th)
 	{
@@ -913,11 +916,8 @@ process_result_with_request (void *cls,
 
 	  /* signal error */
 	  pi.status = GNUNET_FS_STATUS_DOWNLOAD_ERROR;
-	  make_download_status (&pi, dc);
 	  pi.value.download.specifics.error.message = emsg;
-	  dc->client_info = dc->h->upcb (dc->h->upcb_cls,
-					 &pi);
-
+	  make_download_status (&pi, dc);
 	  /* abort all pending requests */
 	  if (NULL != dc->th)
 	    {
@@ -961,13 +961,11 @@ process_result_with_request (void *cls,
 	    
     }
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_PROGRESS;
-  make_download_status (&pi, dc);
   pi.value.download.specifics.progress.data = pt;
   pi.value.download.specifics.progress.offset = sm->offset;
   pi.value.download.specifics.progress.data_len = prc->size;
   pi.value.download.specifics.progress.depth = sm->depth;
-  dc->client_info = dc->h->upcb (dc->h->upcb_cls,
-				 &pi);
+  make_download_status (&pi, dc);
   GNUNET_assert (dc->completed <= dc->length);
   if (dc->completed == dc->length)
     {
@@ -999,8 +997,6 @@ process_result_with_request (void *cls,
 	  /* signal completion */
 	  pi.status = GNUNET_FS_STATUS_DOWNLOAD_COMPLETED;
 	  make_download_status (&pi, dc);
-	  dc->client_info = dc->h->upcb (dc->h->upcb_cls,
-					 &pi);
 	  if (dc->parent != NULL)
 	    check_completed (dc->parent);
 	}
@@ -1296,8 +1292,6 @@ activate_fs_download (void *cls,
 			 GNUNET_TIME_UNIT_FOREVER_REL);
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_ACTIVE;
   make_download_status (&pi, dc);
-  dc->client_info = dc->h->upcb (dc->h->upcb_cls,
-				 &pi);
   GNUNET_CONTAINER_multihashmap_iterate (dc->active,
 					 &retry_entry,
 					 dc);
@@ -1336,8 +1330,6 @@ deactivate_fs_download (void *cls)
     }
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_INACTIVE;
   make_download_status (&pi, dc);
-  dc->client_info = dc->h->upcb (dc->h->upcb_cls,
-				 &pi);
 }
 
 
@@ -1464,10 +1456,8 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 #endif
   // FIXME: make persistent
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_START;
-  make_download_status (&pi, dc);
   pi.value.download.specifics.start.meta = meta;
-  dc->client_info = dc->h->upcb (dc->h->upcb_cls,
-				 &pi);
+  make_download_status (&pi, dc);
   schedule_block_download (dc, 
 			   &dc->uri->data.chk.chk,
 			   0, 
@@ -1527,9 +1517,6 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
   
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_STOPPED;
   make_download_status (&pi, dc);
-  dc->client_info = dc->h->upcb (dc->h->upcb_cls,
-				 &pi);
-
   if (GNUNET_SCHEDULER_NO_TASK != dc->task)
     GNUNET_SCHEDULER_cancel (dc->h->sched,
 			     dc->task);

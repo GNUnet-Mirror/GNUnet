@@ -1455,7 +1455,14 @@ enum GNUNET_FS_Flags
      * Is persistence of operations desired?
      * (will create SUSPEND/RESUME events).
      */
-    GNUNET_FS_FLAGS_PERSISTENCE = 1
+    GNUNET_FS_FLAGS_PERSISTENCE = 1,
+
+    /**
+     * Should we automatically trigger probes for search results
+     * to determine availability?
+     * (will create GNUNET_FS_STATUS_SEARCH_UPDATE events).
+     */
+    GNUNET_FS_FLAGS_DO_PROBES = 2
 
   };
 
@@ -2252,7 +2259,16 @@ enum GNUNET_FS_DownloadOptions
      * Do not append temporary data to
      * the target file (for the IBlocks).
      */
-    GNUNET_FS_DOWNLOAD_NO_TEMPORARIES = 2
+    GNUNET_FS_DOWNLOAD_NO_TEMPORARIES = 2,
+
+    /**
+     * Internal option used to flag this download as a 'probe' for a
+     * search result.  Impacts the priority with which the download is
+     * run and causes signalling callbacks to be done differently.
+     * Also, probe downloads are not serialized on suspension.  Normal
+     * clients should not use this!
+     */
+    GNUNET_FS_DOWNLOAD_IS_PROBE = (1<<31)
 
   };
 
