@@ -296,7 +296,7 @@ deserialize_file_information (struct GNUNET_FS_Handle *h,
     return NULL;
   
   ret = NULL;
-
+  /* FIXME: not implemented! */
 
   if (GNUNET_OK !=
       GNUNET_BIO_read_close (rh, &emsg))
@@ -593,6 +593,7 @@ GNUNET_FS_start (struct GNUNET_SCHEDULER_Handle *sched,
   if (0 != (GNUNET_FS_FLAGS_PERSISTENCE & flags))
     {
       deserialize_publish (ret);
+      /* FIXME: not implemented! */
       // Deserialize Search:
       // * read search queries
       // * for each query, read file with search results
