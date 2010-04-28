@@ -3177,6 +3177,7 @@ handle_payload_message (const struct GNUNET_MessageHeader *message,
   im->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
   im->latency = GNUNET_TIME_relative_hton (n->latency);
   im->peer = n->id;
+  im->distance = ntohl(n->distance);
   memcpy (&im[1], message, msize);
   cpos = clients;
   while (cpos != NULL)
@@ -3278,6 +3279,7 @@ check_pending_validation (void *cls,
 	n->latency = fal->latency;
       else
 	n->latency.value = (fal->latency.value + n->latency.value) / 2;
+
       n->distance = fal->distance;
       if (GNUNET_NO == n->received_pong)
 	{
@@ -4043,7 +4045,7 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
 static struct GNUNET_TIME_Relative
 plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_MessageHeader *message,
-                    unsigned int distance,
+                    uint32_t distance,
 		    struct Session *session,
 		    const char *sender_address,
                     size_t sender_address_len)

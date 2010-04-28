@@ -1497,7 +1497,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
       if (h->nc_cb != NULL)
 	h->nc_cb (h->cls, &n->id,
 		  GNUNET_TIME_relative_ntoh (cim->latency), 
-		  ntohs (cim->distance));
+		  ntohl (cim->distance));
       break;
     case GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT:
       if (size != sizeof (struct DisconnectInfoMessage))
@@ -1587,7 +1587,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
 	}
       if (h->rec != NULL)
 	h->rec (h->cls, &im->peer, imm,
-		GNUNET_TIME_relative_ntoh (im->latency), ntohs(im->distance));
+		GNUNET_TIME_relative_ntoh (im->latency), ntohl(im->distance));
       break;
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
