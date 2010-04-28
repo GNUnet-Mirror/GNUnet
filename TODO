@@ -169,7 +169,7 @@ Optimizations:
   - should use hash map to look up Neighbours (service AND plugins!)
 * HOSTLIST:
   - 'server' uses 'GNUNET_PEERINFO_iterate', should probably switch to notification API
-    (for more instant / up-to-date hostlists at lower cost)
+    (for more instant / up-to-date hostlists at lower cost) [done by MW?]
 * DATASTORE (?):
   - check for duplicates on insertion (currently, same content is frequently
     stored again [seen with KBLOCKS and SBLOCKS]!)
@@ -185,9 +185,5 @@ Minor features:
   - [./transport/plugin_transport_tcp.c:391]: (style) struct or union member 'Plugin::address_update_task' is never used (related to issue above)
 * TRANSPORT:
   - [./transport/gnunet-service-transport.c:173]: (style) struct or union member 'TransportPlugin::rebuild' is never used (related to TCP not refreshing external addresses?)
-* DATACACHE:
-  - add stats (# bytes available, # bytes used, # PUTs, # GETs, # GETs satisfied)
-* FS:
-  - support inline data in directories for recursive file downloads (fs_download)
 * BLOCKS:
   - testcase would be nice...

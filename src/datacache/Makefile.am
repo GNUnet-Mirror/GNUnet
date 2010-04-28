@@ -18,6 +18,7 @@ lib_LTLIBRARIES = \
 libgnunetdatacache_la_SOURCES = \
   datacache.c plugin_datacache.h
 libgnunetdatacache_la_LIBADD = \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL) 
 libgnunetdatacache_la_LDFLAGS = \

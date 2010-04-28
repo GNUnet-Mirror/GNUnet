@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2004, 2005, 2006, 2007, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2004, 2005, 2006, 2007, 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -26,6 +26,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_datacache_lib.h"
+#include "gnunet_statistics_service.h"
 #include "plugin_datacache.h"
 
 /**
@@ -43,6 +44,11 @@ struct GNUNET_DATACACHE_Handle
    * Our configuration.
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * Opaque handle for the statistics service.
+   */
+  struct GNUNET_STATISTICS_Handle *stats;
 
   /**
    * Configuration section to use.
@@ -100,6 +106,10 @@ env_delete_notify (void *cls,
   GNUNET_assert (h->utilization >= size);
   h->utilization -= size;
   GNUNET_CONTAINER_bloomfilter_remove (h->filter, key);
+  GNUNET_STATISTICS_update (h->stats,
+			    gettext_noop ("# bytes stored"),
+			    -size,
+			    GNUNET_NO);
 }
 
 
@@ -157,6 +167,9 @@ GNUNET_DATACACHE_create (struct GNUNET_SCHEDULER_Handle *sched,
     {
       ret->filter = GNUNET_CONTAINER_bloomfilter_load (NULL, bf_size, 5);  /* approx. 3% false positives at max use */  
     }
+  ret->stats = GNUNET_STATISTICS_create (sched,
+					 "datacache",
+					 cfg);
   ret->section = GNUNET_strdup (section);
   ret->env.sched = sched;
   ret->env.cfg = cfg;
@@ -204,6 +217,8 @@ void GNUNET_DATACACHE_destroy (struct GNUNET_DATACACHE_Handle *h)
 				  h->bloom_name);
       GNUNET_free (h->bloom_name);
     }
+  GNUNET_STATISTICS_destroy (h->stats,
+			     GNUNET_NO);
   GNUNET_free (h);
 }
 
@@ -237,6 +252,10 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
 		      discard_time);
   if (used == 0)
     return GNUNET_SYSERR;
+  GNUNET_STATISTICS_update (h->stats,
+			    gettext_noop ("# bytes stored"),
+			    size,
+			    GNUNET_NO);
   GNUNET_CONTAINER_bloomfilter_add (h->filter, key);
   while (h->utilization + used > h->env.quota)
     GNUNET_assert (GNUNET_OK == h->api->del (h->api->cls));
@@ -263,9 +282,19 @@ GNUNET_DATACACHE_get (struct GNUNET_DATACACHE_Handle *h,
 		      GNUNET_DATACACHE_Iterator iter,
 		      void *iter_cls)
 {
+  GNUNET_STATISTICS_update (h->stats,
+			    gettext_noop ("# requests received"),
+			    1,
+			    GNUNET_NO);
   if (GNUNET_OK != GNUNET_CONTAINER_bloomfilter_test (h->filter,
 						      key))
-    return 0; /* can not be present */
+    {
+      GNUNET_STATISTICS_update (h->stats,
+				gettext_noop ("# requests filtered by bloom filter"),
+				1,
+				GNUNET_NO);
+      return 0; /* can not be present */
+    } 
   return h->api->get (h->api->cls,
 		      key,
 		      type,
