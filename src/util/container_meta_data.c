@@ -311,6 +311,54 @@ GNUNET_CONTAINER_meta_data_insert (struct GNUNET_CONTAINER_MetaData *md,
 
 
 /**
+ * Merge given meta data.
+ *
+ * @param cls the 'struct GNUNET_CONTAINER_MetaData' to merge into
+ * @param plugin_name name of the plugin that produced this value;
+ *        special values can be used (i.e. '<zlib>' for zlib being
+ *        used in the main libextractor library and yielding
+ *        meta data).
+ * @param type libextractor-type describing the meta data
+ * @param format basic format information about data 
+ * @param data_mime_type mime-type of data (not of the original file);
+ *        can be NULL (if mime-type is not known)
+ * @param data actual meta-data found
+ * @param data_len number of bytes in data
+ * @return 0 (to continue)
+ */ 
+static int 
+merge_helper(void *cls,
+	     const char *plugin_name,
+	     enum EXTRACTOR_MetaType type,
+	     enum EXTRACTOR_MetaFormat format,
+	     const char *data_mime_type,
+	     const char *data,
+	     size_t data_len)
+{
+  struct GNUNET_CONTAINER_MetaData *md = cls;
+  (void) GNUNET_CONTAINER_meta_data_insert (md, plugin_name,
+					    type, format,
+					    data_mime_type, data, data_len);
+  return 0;
+}
+
+
+/**
+ * Extend metadata.  Merges the meta data from the second argument
+ * into the first, discarding duplicate key-value pairs.
+ *
+ * @param md metadata to extend
+ * @param in metadata to merge
+ */
+void 
+GNUNET_CONTAINER_meta_data_merge (struct GNUNET_CONTAINER_MetaData *md,
+				  const struct GNUNET_CONTAINER_MetaData *in)
+{
+  GNUNET_CONTAINER_meta_data_iterate (in, &merge_helper, md);
+}
+
+
+/**
  * Remove an item.
  *
  * @param md metadata to manipulate

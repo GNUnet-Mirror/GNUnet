@@ -266,6 +266,18 @@ GNUNET_CONTAINER_meta_data_insert (struct GNUNET_CONTAINER_MetaData *md,
 
 
 /**
+ * Extend metadata.  Merges the meta data from the second argument
+ * into the first, discarding duplicate key-value pairs.
+ *
+ * @param md metadata to extend
+ * @param in metadata to merge
+ */
+void 
+GNUNET_CONTAINER_meta_data_merge (struct GNUNET_CONTAINER_MetaData *md,
+				  const struct GNUNET_CONTAINER_MetaData *in);
+
+
+/**
  * Remove an item.
  *
  * @param md metadata to manipulate

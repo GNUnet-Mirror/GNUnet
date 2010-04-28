@@ -539,38 +539,6 @@ GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Insert metadata into existing MD record (passed as cls).
- *
- * @param cls metadata to add to
- * @param plugin_name name of the plugin that generated the meta data
- * @param type type of entry to insert
- * @param format format of data
- * @param data_mime_type mime type of data
- * @param data value of the meta data
- * @param data_len number of bytes in data
- * @return always 0
- */
-static int
-merge_meta_helper (void *cls, 
-		   const char *plugin_name,
-		   enum EXTRACTOR_MetaType type, 
-		   enum EXTRACTOR_MetaFormat format,
-		   const char *data_mime_type,
-		   const char *data,
-		   size_t data_len)
-{
-  struct GNUNET_CONTAINER_MetaData *meta = cls;
-
-  (void) GNUNET_CONTAINER_meta_data_insert (meta, plugin_name,
-					    type, format,
-					    data_mime_type,
-					    data, data_len);
-  return 0;
-}
-
-
-
-/**
  * Add a pseudonym to the set of known pseudonyms.
  * For all pseudonym advertisements that we discover
  * FS should automatically call this function.
@@ -597,7 +565,7 @@ GNUNET_PSEUDONYM_add (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if ((0 == STAT (fn, &sbuf)) &&
       (GNUNET_OK == read_info (cfg, id, &old, &ranking, &name)))
     {
-      GNUNET_CONTAINER_meta_data_iterate (meta, &merge_meta_helper, old);
+      GNUNET_CONTAINER_meta_data_merge (old, meta);
       write_pseudonym_info (cfg, id, old, ranking, name);
       GNUNET_CONTAINER_meta_data_destroy (old);
       GNUNET_free_non_null (name);

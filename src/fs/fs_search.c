@@ -234,7 +234,7 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
     }
   else
     {
-      /* FIXME: consider combining the meta data */
+      GNUNET_CONTAINER_meta_data_merge (sr->meta, meta);
     }
   /* check if mandatory satisfied */
   if (ent->mandatory)

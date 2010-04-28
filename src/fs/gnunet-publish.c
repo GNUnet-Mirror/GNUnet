@@ -216,40 +216,6 @@ meta_printer (void *cls,
 
 
 /**
- * Merge metadata entries.
- *
- * @param cls closure, target metadata structure
- * @param plugin_name name of the plugin that generated the meta data
- * @param type type of the meta data
- * @param format format of data
- * @param data_mime_type mime type of data
- * @param data value of the meta data
- * @param data_size number of bytes in data
- * @return always 0
- */
-static int
-meta_merger (void *cls,
-	      const char *plugin_name,
-	      enum EXTRACTOR_MetaType type, 
-	      enum EXTRACTOR_MetaFormat format,
-	      const char *data_mime_type,
-	      const char *data,
-	      size_t data_size)
-{
-  struct GNUNET_CONTAINER_MetaData *m = cls;
-
-  GNUNET_CONTAINER_meta_data_insert (m,
-				     plugin_name,
-				     type, 
-				     format,
-				     data_mime_type,
-				     data,
-				     data_size);
-  return 0;
-}
-
-
-/**
  * Function called on all entries before the publication.  This is
  * where we perform modifications to the default based on command-line
  * options.
@@ -302,9 +268,7 @@ publish_inspector (void *cls,
     }
   if (NULL != meta) 
     {
-      GNUNET_CONTAINER_meta_data_iterate (meta,
-					  &meta_merger,
-					  m);
+      GNUNET_CONTAINER_meta_data_merge (m, meta);
       GNUNET_CONTAINER_meta_data_destroy (meta);
       meta = NULL;
     }
