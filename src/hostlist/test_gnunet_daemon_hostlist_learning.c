@@ -38,7 +38,7 @@
 /**
  * How long until wait until testcases fails
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 240)
 #define CHECK_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 static int timeout;
@@ -410,10 +410,7 @@ run (void *cls,
   learned_hostlist_downloaded = GNUNET_NO;
 
   sched = s;
-  timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                               TIMEOUT,
-                                               &timeout_error,
-                                               NULL);
+
   check_task = GNUNET_SCHEDULER_add_delayed (sched,
                                 CHECK_INTERVALL,
                                 &check_statistics,
@@ -421,6 +418,10 @@ run (void *cls,
 
   setup_adv_peer (&adv_peer, "test_learning_adv_peer.conf");
   setup_learn_peer (&learn_peer, "test_learning_learn_peer.conf");
+  timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
+                                               TIMEOUT,
+                                               &timeout_error,
+                                               NULL);
 }
 
 
