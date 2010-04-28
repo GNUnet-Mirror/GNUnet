@@ -52,6 +52,7 @@ static int do_recursive;
 
 static char *filename;
 
+static int local_only;
 
 static void
 cleanup_task (void *cls,
@@ -225,6 +226,8 @@ run (void *cls,
   options = GNUNET_FS_DOWNLOAD_OPTION_NONE;
   if (do_recursive)
     options |= GNUNET_FS_DOWNLOAD_OPTION_RECURSIVE;
+  if (local_only)
+    options |= GNUNET_FS_DOWNLOAD_OPTION_LOOPBACK_ONLY;
   dc = GNUNET_FS_download_start (ctx,
 				 uri,
 				 NULL,
@@ -259,6 +262,9 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
   {'D', "delete-incomplete", NULL,
    gettext_noop ("delete incomplete downloads (when aborted with CTRL-C)"),
    0, &GNUNET_GETOPT_set_one, &delete_incomplete},
+  {'n', "no-network", NULL,
+   gettext_noop ("only search the local peer (no P2P network search)"),
+   1, &GNUNET_GETOPT_set_uint, &local_only},
   {'o', "output", "FILENAME",
    gettext_noop ("write the file to FILENAME"),
    1, &GNUNET_GETOPT_set_string, &filename},

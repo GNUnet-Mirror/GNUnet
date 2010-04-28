@@ -46,6 +46,8 @@ static unsigned int anonymity = 1;
 
 static int verbose;
 
+static int local_only;
+
 /**
  * Type of a function that libextractor calls for each
  * meta data item found.
@@ -231,6 +233,7 @@ run (void *cls,
 {
   struct GNUNET_FS_Uri *uri;
   unsigned int argc;
+  enum GNUNET_FS_SearchOptions options;
 
   sched = s;
   argc = 0;
@@ -266,9 +269,13 @@ run (void *cls,
     }
   if (output_filename != NULL)
     db = GNUNET_FS_directory_builder_create (NULL);
+  options = GNUNET_FS_SEARCH_OPTION_NONE;
+  if (local_only)
+    options |= GNUNET_FS_SEARCH_OPTION_LOOPBACK_ONLY;
   sc = GNUNET_FS_search_start (ctx,
 			       uri,
 			       anonymity,
+			       options,
 			       NULL);
   GNUNET_FS_uri_destroy (uri);
   if (NULL == sc)
@@ -293,6 +300,9 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
   {'a', "anonymity", "LEVEL",
    gettext_noop ("set the desired LEVEL of receiver-anonymity"),
    1, &GNUNET_GETOPT_set_uint, &anonymity},
+  {'n', "no-network", NULL,
+   gettext_noop ("only search the local peer (no P2P network search)"),
+   1, &GNUNET_GETOPT_set_uint, &local_only},
   {'o', "output", "PREFIX",
    gettext_noop
    ("write search results to file starting with PREFIX"),

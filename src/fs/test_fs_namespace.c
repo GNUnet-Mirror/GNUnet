@@ -250,8 +250,8 @@ publish_cont (void *cls,
       GNUNET_free (msg);
       return;
     }
-  ksk_search = GNUNET_FS_search_start (fs, ksk_uri, 1, "ksk_search");
-  sks_search = GNUNET_FS_search_start (fs, sks_uri, 1, "sks_search");
+  ksk_search = GNUNET_FS_search_start (fs, ksk_uri, 1, GNUNET_FS_SEARCH_OPTION_NONE, "ksk_search");
+  sks_search = GNUNET_FS_search_start (fs, sks_uri, 1, GNUNET_FS_SEARCH_OPTION_NONE, "sks_search");
   GNUNET_FS_uri_destroy (sks_uri);
 }
 

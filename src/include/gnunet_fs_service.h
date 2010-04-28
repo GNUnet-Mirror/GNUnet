@@ -2193,12 +2193,32 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
 
 
 /**
+ * Options for searching.  Compatible options
+ * can be OR'ed together.
+ */
+enum GNUNET_FS_SearchOptions 
+  {
+    /**
+     * No options (use defaults for everything).
+     */
+    GNUNET_FS_SEARCH_OPTION_NONE = 0,
+
+    /**
+     * Only search the local host, do not search remote systems (no P2P)
+     */
+    GNUNET_FS_SEARCH_OPTION_LOOPBACK_ONLY = 1
+
+  };
+
+
+/**
  * Start search for content.
  *
  * @param h handle to the file sharing subsystem
  * @param uri specifies the search parameters; can be
  *        a KSK URI or an SKS URI.
  * @param anonymity desired level of anonymity
+ * @param options options for the search
  * @param cctx initial value for the client context
  * @return context that can be used to control the search
  */
@@ -2206,6 +2226,7 @@ struct GNUNET_FS_SearchContext *
 GNUNET_FS_search_start (struct GNUNET_FS_Handle *h,
 			const struct GNUNET_FS_Uri *uri,
 			uint32_t anonymity,
+			enum GNUNET_FS_SearchOptions options,
 			void *cctx);
 
 
@@ -2248,18 +2269,23 @@ enum GNUNET_FS_DownloadOptions
      * No options (use defaults for everything).
      */
     GNUNET_FS_DOWNLOAD_OPTION_NONE = 0,
+
+    /**
+     * Only download from the local host, do not access remote systems (no P2P)
+     */
+    GNUNET_FS_DOWNLOAD_OPTION_LOOPBACK_ONLY = 1,
     
     /**
      * Do a recursive download (that is, automatically trigger the
      * download of files in directories).
      */
-    GNUNET_FS_DOWNLOAD_OPTION_RECURSIVE = 1,
+    GNUNET_FS_DOWNLOAD_OPTION_RECURSIVE = 2,
 
     /**
      * Do not append temporary data to
      * the target file (for the IBlocks).
      */
-    GNUNET_FS_DOWNLOAD_NO_TEMPORARIES = 2,
+    GNUNET_FS_DOWNLOAD_NO_TEMPORARIES = 4,
 
     /**
      * Internal option used to flag this download as a 'probe' for a

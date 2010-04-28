@@ -1079,7 +1079,10 @@ struct GNUNET_FS_SearchContext
    */
   uint32_t mandatory_count;
 
-  
+  /**
+   * Options for the search.
+   */
+  enum GNUNET_FS_SearchOptions options;  
 };
 
 
@@ -1439,9 +1442,10 @@ struct SearchMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Should be zero.
+   * Bitmask with options.  Zero for no options, one for loopback-only.  
+   * Other bits are currently not defined.
    */
-  int32_t reserved GNUNET_PACKED;
+  int32_t options GNUNET_PACKED;
 
   /**
    * Type of the content that we're looking for.
@@ -1536,7 +1540,7 @@ struct GetMessage
   uint32_t priority GNUNET_PACKED;
 
   /**
-   * Relative time to live in GNUNET_CRON_MILLISECONDS (network byte order)
+   * Relative time to live in MILLISECONDS (network byte order)
    */
   int32_t ttl GNUNET_PACKED;
 

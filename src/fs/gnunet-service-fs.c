@@ -545,7 +545,12 @@ struct PendingRequest
   /**
    * Remove this request after transmission of the current response.
    */
-  int do_remove;
+  int16_t do_remove;
+
+  /**
+   * GNUNET_YES if we should not forward this request to other peers.
+   */
+  int16_t local_only;
 
 };
 
@@ -1600,6 +1605,8 @@ forward_request_task (void *cls,
 #endif
       return; /* already pending */
     }
+  if (GNUNET_YES == pr->local_only)
+    return; /* configured to not do P2P search */
   /* (1) select target */
   psc.pr = pr;
   psc.target_score = DBL_MIN;
@@ -2783,6 +2790,10 @@ handle_start_search (void *cls,
   pr->anonymity_level = ntohl (sm->anonymity_level); 
   refresh_bloomfilter (pr);
   pr->query = sm->query;
+  if (0 == (1 & ntohl (sm->options)))
+    pr->local_only = GNUNET_NO;
+  else
+    pr->local_only = GNUNET_YES;
   switch (type)
     {
     case GNUNET_BLOCK_TYPE_DBLOCK:

@@ -115,6 +115,7 @@ progress_cb (void *cls,
       search = GNUNET_FS_search_start (fs,
 				       kuri,
 				       1,
+				       GNUNET_FS_SEARCH_OPTION_NONE,
 				       "search");
       GNUNET_FS_uri_destroy (kuri);
       GNUNET_assert (search != NULL);

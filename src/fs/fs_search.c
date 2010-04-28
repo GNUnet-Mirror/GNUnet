@@ -458,6 +458,7 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
  * @param uri specifies the search parameters; can be
  *        a KSK URI or an SKS URI.
  * @param anonymity desired level of anonymity
+ * @param options options for the search
  * @param cctx client context
  * @param parent parent search (for namespace update searches)
  * @return context that can be used to control the search
@@ -466,6 +467,7 @@ static struct GNUNET_FS_SearchContext *
 search_start (struct GNUNET_FS_Handle *h,
 	      const struct GNUNET_FS_Uri *uri,
 	      uint32_t anonymity,
+	      enum GNUNET_FS_SearchOptions options,
 	      void *cctx,
 	      struct GNUNET_FS_SearchContext *parent);
 
@@ -523,6 +525,7 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc,
   search_start (sc->h,
 		&uu,
 		sc->anonymity,
+		sc->options,
 		NULL,
 		sc);
 }
@@ -938,6 +941,10 @@ transmit_search_request (void *cls,
 	{
 	  sm[i].header.size = htons (sizeof (struct SearchMessage));
 	  sm[i].header.type = htons (GNUNET_MESSAGE_TYPE_FS_START_SEARCH);
+	  if (0 != (sc->options & GNUNET_FS_SEARCH_OPTION_LOOPBACK_ONLY))
+	    sm[i].options = htonl (1);
+	  else
+	    sm[i].options = htonl (0);      	  
 	  sm[i].type = htonl (GNUNET_BLOCK_TYPE_ANY);
 	  sm[i].anonymity_level = htonl (sc->anonymity);
 	  sm[i].query = sc->requests[i].query;
@@ -952,6 +959,10 @@ transmit_search_request (void *cls,
       memset (sm, 0, msize);
       sm->header.size = htons (sizeof (struct SearchMessage));
       sm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_START_SEARCH);
+      if (0 != (sc->options & GNUNET_FS_SEARCH_OPTION_LOOPBACK_ONLY))
+	sm->options = htonl (1);
+      else
+	sm->options = htonl (0);      
       sm->type = htonl (GNUNET_BLOCK_TYPE_SBLOCK);
       sm->anonymity_level = htonl (sc->anonymity);
       sm->target = sc->uri->data.sks.namespace;
@@ -1042,6 +1053,7 @@ try_reconnect (struct GNUNET_FS_SearchContext *sc)
  * @param uri specifies the search parameters; can be
  *        a KSK URI or an SKS URI.
  * @param anonymity desired level of anonymity
+ * @param options options for the search
  * @param cctx initial value for the client context
  * @param parent parent search (for namespace update searches)
  * @return context that can be used to control the search
@@ -1050,6 +1062,7 @@ static struct GNUNET_FS_SearchContext *
 search_start (struct GNUNET_FS_Handle *h,
 	      const struct GNUNET_FS_Uri *uri,
 	      uint32_t anonymity,
+	      enum GNUNET_FS_SearchOptions options,
 	      void *cctx,
 	      struct GNUNET_FS_SearchContext *parent)
 {
@@ -1085,6 +1098,7 @@ search_start (struct GNUNET_FS_Handle *h,
     return NULL;
   sc = GNUNET_malloc (sizeof(struct GNUNET_FS_SearchContext));
   sc->h = h;
+  sc->options = options;
   sc->uri = GNUNET_FS_uri_dup (uri);
   sc->anonymity = anonymity;
   sc->start_time = GNUNET_TIME_absolute_get ();
@@ -1139,6 +1153,7 @@ search_start (struct GNUNET_FS_Handle *h,
  * @param uri specifies the search parameters; can be
  *        a KSK URI or an SKS URI.
  * @param anonymity desired level of anonymity
+ * @param options options for the search
  * @param cctx initial value for the client context
  * @return context that can be used to control the search
  */
@@ -1146,9 +1161,10 @@ struct GNUNET_FS_SearchContext *
 GNUNET_FS_search_start (struct GNUNET_FS_Handle *h,
 			const struct GNUNET_FS_Uri *uri,
 			uint32_t anonymity,
+			enum GNUNET_FS_SearchOptions options,
 			void *cctx)
 {
-  return search_start (h, uri, anonymity, cctx, NULL);
+  return search_start (h, uri, anonymity, options, cctx, NULL);
 }
 
 

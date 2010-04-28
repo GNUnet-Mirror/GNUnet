@@ -1,8 +1,5 @@
 0.9.0pre1:
 * FS: [CG]
-  - Allow checking of presence of search results and/or content via command-line tools
-    (add options to gnunet-search / gnunet-download to limit search to local peer) 
-    [needed for full persistence support...]
   - persistence support (publish, unindex, search, download)
   - gnunet-service-fs (hot-path routing, load-based routing, nitpicks)  
   - [gnunet-service-fs.c:208]: member 'LocalGetContext::results_bf_size' is never used
@@ -174,6 +171,8 @@ Optimizations:
     (theoretically reduces overhead; bounds message queue size)
   - merge multiple iteration requests over "all" peers in the queue
     (theoretically reduces overhead; bounds messgae queue size)
+* FS:
+  - use different queue prioritization for probe-downloads vs. normal downloads (!?)
 
 Minor features:
 * TCP:
