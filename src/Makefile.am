@@ -20,6 +20,7 @@ SUBDIRS = \
   transport \
   peerinfo-tool \
   core \
+  dht \
   testing \
   hostlist \
   topology \
