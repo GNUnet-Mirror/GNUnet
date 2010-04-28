@@ -1314,7 +1314,6 @@ activate_fs_download (void *cls,
  * We must stop to ask the FS service for our blocks.  Pause the download.
  *
  * @param cls the 'struct GNUNET_FS_DownloadContext'
- * @param client handle to use for communcation with FS (we must destroy it!)
  */
 static void
 deactivate_fs_download (void *cls)
