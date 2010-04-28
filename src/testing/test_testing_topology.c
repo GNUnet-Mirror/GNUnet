@@ -69,7 +69,7 @@ const struct GNUNET_CONFIGURATION_Handle *main_cfg;
 
 GNUNET_SCHEDULER_TaskIdentifier die_task;
 
-static char *dotOutFileName = "topology.dot";
+static char *dotOutFileName;
 
 static FILE *dotOutFile;
 
@@ -661,6 +661,8 @@ main (int argc, char *argv[])
   topology_string++;
 
   GNUNET_asprintf(&our_binary_name, "test-testing-topology_%s", topology_string);
+  GNUNET_asprintf(&dotOutFileName, "topology_%s.dot", topology_string);
+
   GNUNET_log_setup (our_binary_name,
 #if VERBOSE
                     "DEBUG",
