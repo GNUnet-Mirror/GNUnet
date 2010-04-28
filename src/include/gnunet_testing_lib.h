@@ -435,7 +435,7 @@ enum GNUNET_TESTING_Topology
   GNUNET_TESTING_TOPOLOGY_INTERNAT,
 
   /**
-   * FIXME: implement
+   * Scale free topology.
    */
   GNUNET_TESTING_TOPOLOGY_SCALE_FREE,
 
@@ -447,11 +447,14 @@ enum GNUNET_TESTING_Topology
 
 
 /**
- * FIXME: document
+ * Create a topology out for a group of started peers.
+ *
+ * @param pg the peergroup that has already been started
+ * @param topology the topology to connect the peers into
  */
 int
-GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg
-				/* enum GNUNET_TESTING_Topology topo */);
+GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
+				enum GNUNET_TESTING_Topology topology);
 
 
 /**
