@@ -30,7 +30,7 @@
 #include "gnunet_resolver_service.h"
 #include "gnunet_statistics_service.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define START_ARM GNUNET_YES
 #define MAX_URL_LEN 1000
@@ -43,14 +43,10 @@
 
 static int timeout;
 static int adv_sent;
+static int adv_arrived;
 
-static int adv_arrived_p1;
-static int learned_hostlist_saved_p1;
-static int learned_hostlist_downloaded_p1;
-
-static int adv_arrived_p2;
-static int learned_hostlist_saved_p2;
-static int learned_hostlist_downloaded_p2;
+static int learned_hostlist_saved;
+static int learned_hostlist_downloaded;
 
 static char * current_adv_uri;
 
@@ -75,9 +71,6 @@ struct PeerContext
 static struct PeerContext adv_peer;
 
 static struct PeerContext learn_peer;
-
-static struct PeerContext learn_peer2;
-
 
 static void
 waitpid_task (void *cls,
@@ -144,12 +137,6 @@ static void shutdown_testcase()
     GNUNET_TRANSPORT_disconnect (learn_peer.th);
     learn_peer.th = NULL;
   }
-  /*
-  if (learn_peer2.th != NULL)
-  {
-    GNUNET_TRANSPORT_disconnect (learn_peer2.th);
-    learn_peer2.th = NULL;
-  }*/
   if (adv_peer.core != NULL)
   {
     GNUNET_CORE_disconnect (adv_peer.core);
@@ -160,20 +147,11 @@ static void shutdown_testcase()
     GNUNET_CORE_disconnect (learn_peer.core);
     learn_peer.core = NULL;
   }
-  /*
-  if (learn_peer2.core != NULL)
-  {
-    GNUNET_CORE_disconnect (learn_peer2.core);
-    learn_peer2.core = NULL;
-  }*/
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking ARM to stop core services\n");
   learn_peer.arm = GNUNET_ARM_connect (learn_peer.cfg, sched, NULL);
   GNUNET_ARM_stop_service (learn_peer.arm, "core", GNUNET_TIME_UNIT_SECONDS,
                            &stop_cb, &learn_peer);
-  /* learn_peer2.arm = GNUNET_ARM_connect (learn_peer2.cfg, sched, NULL);
-  GNUNET_ARM_stop_service (learn_peer2.arm, "core", GNUNET_TIME_UNIT_SECONDS,
-                           &stop_cb, &learn_peer2);*/
   adv_peer.arm = GNUNET_ARM_connect (adv_peer.cfg, sched, NULL);
   GNUNET_ARM_stop_service (adv_peer.arm, "core", GNUNET_TIME_UNIT_SECONDS,
                            &stop_cb, &adv_peer);
@@ -203,20 +181,13 @@ process_downloads (void *cls,
 {
 
 
-  if ( ((struct PeerContext *) cls == &learn_peer) && (value == 2) && (learned_hostlist_downloaded_p1 == GNUNET_NO) )
+  if ( ((struct PeerContext *) cls == &learn_peer) && (value == 2) && (learned_hostlist_downloaded == GNUNET_NO) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Peer1 has successfully downloaded advertised URI \n"));
-    learned_hostlist_downloaded_p1 = GNUNET_YES;
+                _("Peer has successfully downloaded advertised URI \n"));
+    learned_hostlist_downloaded = GNUNET_YES;
   }
-  /*
-  if ( ((struct PeerContext *) cls == &learn_peer2) && (value == 2) && (learned_hostlist_downloaded_p2 == GNUNET_NO) )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Peer2 has successfully downloaded advertised URI \n"));
-    learned_hostlist_downloaded_p2 = GNUNET_YES;
-  }*/
-  if ( (GNUNET_NO != learned_hostlist_downloaded_p1) /*&& (GNUNET_NO != learned_hostlist_downloaded_p2)*/ )
+  if (GNUNET_NO != learned_hostlist_downloaded)
     shutdown_testcase();
   return GNUNET_OK;
 }
@@ -228,19 +199,12 @@ process_uris_recv (void *cls,
               uint64_t value,
               int is_persistent)
 {
-  if ( ((struct PeerContext *) cls == &learn_peer) && (value == 1) && (learned_hostlist_saved_p1 == GNUNET_NO))
+  if ( ((struct PeerContext *) cls == &learn_peer) && (value == 1) && (learned_hostlist_saved == GNUNET_NO))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Peer1 has successfully saved advertised URI \n"));
-    learned_hostlist_saved_p1 = GNUNET_YES;
+                _("Peer has successfully saved advertised URI \n"));
+    learned_hostlist_saved = GNUNET_YES;
   }
-  /*
-  if ( ((struct PeerContext *) cls == &learn_peer2) && (value == 1) && (learned_hostlist_saved_p2 == GNUNET_NO))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Peer2 has successfully saved advertised URI \n"));
-    learned_hostlist_saved_p2 = GNUNET_YES;
-  }*/
   return GNUNET_OK;
 }
 
@@ -278,13 +242,6 @@ check_statistics (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                          NULL,
                          &process_downloads,
                          &learn_peer);
-  /*GNUNET_STATISTICS_get (learn_peer2.stats,
-                         "hostlist",
-                         stat,
-                         GNUNET_TIME_UNIT_MINUTES,
-                         NULL,
-                         &process_downloads,
-                         &learn_peer2);*/
   GNUNET_free (stat);
 
   GNUNET_STATISTICS_get (learn_peer.stats,
@@ -294,13 +251,6 @@ check_statistics (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                          NULL,
                          &process_uris_recv,
                          &learn_peer);
-  /*GNUNET_STATISTICS_get (learn_peer2.stats,
-                         "hostlist",
-                         gettext_noop("# advertised hostlist URIs"),
-                         GNUNET_TIME_UNIT_MINUTES,
-                         NULL,
-                         &process_uris_recv,
-                         &learn_peer2);*/
   GNUNET_STATISTICS_get (adv_peer.stats,
                          "hostlist",
                          gettext_noop("# hostlist advertisements send"),
@@ -363,8 +313,7 @@ static int ad_arrive_handler (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Recieved hostlist advertisement with URI `%s' as expected\n", current_adv_uri);
-    adv_arrived_p1 = GNUNET_YES;
-    adv_arrived_p2 = GNUNET_YES;
+    adv_arrived = GNUNET_YES;
   }
   else
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -456,13 +405,9 @@ run (void *cls,
   timeout = GNUNET_NO;
   adv_sent =GNUNET_NO;
 
-  adv_arrived_p1 = GNUNET_NO;
-  learned_hostlist_downloaded_p1 = GNUNET_NO;
-  learned_hostlist_saved_p1 = GNUNET_NO;
-
-  /*adv_arrived_p2 = GNUNET_NO;
-  learned_hostlist_downloaded_p2 = GNUNET_NO;
-  learned_hostlist_saved_p2 = GNUNET_NO;*/
+  adv_arrived = 0;
+  learned_hostlist_saved = GNUNET_NO;
+  learned_hostlist_downloaded = GNUNET_NO;
 
   sched = s;
   timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
@@ -476,8 +421,6 @@ run (void *cls,
 
   setup_adv_peer (&adv_peer, "test_learning_adv_peer.conf");
   setup_learn_peer (&learn_peer, "test_learning_learn_peer.conf");
-  // setup_learn_peer (&learn_peer2, "test_learning_learn_peer2.conf");
-
 }
 
 
@@ -508,44 +451,24 @@ check ()
                 "Testcase could not set up two communicating peers, timeout\n");
     failed = GNUNET_YES;
   }
-  if (adv_arrived_p1 == GNUNET_NO)
+  if (adv_arrived != GNUNET_YES)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Peer1: Learning peer did not recieve advertisement from server\n");
+                "Learning peer did not receive advertisement from server\n");
     failed = GNUNET_YES;
   }
-  if ( learned_hostlist_saved_p1 == GNUNET_NO )
+  if ( learned_hostlist_saved == GNUNET_NO )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Peer1: Advertised hostlist was not saved in datastore\n");
       failed = GNUNET_YES;
     }
-  if (learned_hostlist_downloaded_p1 == GNUNET_NO)
+  if (learned_hostlist_downloaded == GNUNET_NO)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Peer1: Advertised hostlist could not be downloaded from server\n");
     failed = GNUNET_YES;
   }
-  /*
-  if (adv_arrived_p2 == GNUNET_NO)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Peer2: Learning peer did not recieve advertisement from server\n");
-    failed = GNUNET_YES;
-  }
-  if ( learned_hostlist_saved_p2 == GNUNET_NO )
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Peer2: Advertised hostlist was not saved in datastore\n");
-      failed = GNUNET_YES;
-    }
-  if (learned_hostlist_downloaded_p2 == GNUNET_NO)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Peer2: Advertised hostlist could not be downloaded from server\n");
-    failed = GNUNET_YES;
-  }*/
-
   if (adv_sent == GNUNET_NO)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

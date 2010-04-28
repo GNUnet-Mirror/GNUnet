@@ -36,7 +36,7 @@
 #include "gnunet_common.h"
 #include "gnunet_bio_lib.h"
 
-#define DEBUG_HOSTLIST_CLIENT GNUNET_YES
+#define DEBUG_HOSTLIST_CLIENT GNUNET_NO
 
 
 /**
@@ -151,7 +151,7 @@ static CURLM *multi;
 /**
  *
  */
-static uint32_t bytes_downloaded;
+static uint32_t stat_bytes_downloaded;
 /**
  * Amount of time we wait between hostlist downloads.
  */
@@ -280,15 +280,11 @@ callback_download (void *ptr,
   uint16_t msize;
 
   total = size * nmemb;
-  bytes_downloaded = total;
+  stat_bytes_downloaded += total;
   if ( (total == 0) || (stat_bogus_url) )
     {
       return total;  /* ok, no data or bogus data */
     }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Total: %u, nmeb: %u, size %u \n"),
-                    total, nmemb, size);
 
   GNUNET_STATISTICS_update (stats, 
 			    gettext_noop ("# bytes downloaded from hostlist servers"), 
@@ -711,7 +707,7 @@ clean_up ()
     }  
   GNUNET_free_non_null (current_url);
   current_url = NULL;
-  bytes_downloaded = 0;
+  stat_bytes_downloaded = 0;
   stat_download_in_progress = GNUNET_NO;
 }
 
@@ -808,7 +804,6 @@ task_download (void *cls,
   struct CURLMsg *msg;
   CURLMcode mret;
   
-  bytes_downloaded = 0;
   ti_download = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     {
@@ -838,7 +833,7 @@ task_download (void *cls,
   do 
     {
       running = 0;
-      if (bytes_downloaded > MAX_BYTES_PER_HOSTLISTS)
+      if (stat_bytes_downloaded > MAX_BYTES_PER_HOSTLISTS)
         {
         GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                                   _("Download limit of %u bytes exceeded, stopping download\n"),MAX_BYTES_PER_HOSTLISTS);
@@ -937,6 +932,7 @@ download_hostlist ()
   stat_download_in_progress = GNUNET_YES;
   stat_download_successful = GNUNET_NO;
   stat_hellos_obtained = 0;
+  stat_bytes_downloaded = 0;
 
   GNUNET_STATISTICS_update (stats, 
 			    gettext_noop ("# hostlist downloads initiated"), 
