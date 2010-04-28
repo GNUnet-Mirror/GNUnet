@@ -1,4 +1,4 @@
-.TH GNUNET-DOWNLOAD "1" "6 Sep 2009" "GNUnet"
+.TH GNUNET-DOWNLOAD "1" "28 Apr 2010" "GNUnet"
 .SH NAME
 gnunet\-download \- a command line interface for downloading files from GNUnet
 .SH SYNOPSIS
@@ -31,7 +31,10 @@ ERROR, WARNING, INFO and DEBUG.
 write the file to FILENAME.  Hint: when recursively downloading a directory, append a '/' to the end of the FILENAME to create a directory of that name.  If no FILENAME is specified, gnunet\-download constructs a temporary ID from the URI of the file.  The final filename is constructed based on meta\-data extracted using libextractor (if available).
 .TP
 \fB\-p \fIDOWNLOADS\fR, \fB\-\-parallelism=DOWNLOADS\fR
-set the maximum number of parallel downloads that is allowed.  More parallel downloads can, to some extent, improve the overall time to download content.  However, parallel downloads also take more memory.  The specified number is the number of files that are downloaded in parallel, not the number of blocks that are concurrently requested.  As a result, the number only matters for recursive downloads.  The default value is 32.
+set the maximum number of parallel downloads that is allowed.  More parallel downloads can, to some extent, improve the overall time to download content.  However, parallel downloads also take more memory (see also option \-r which can be used to limit memory utilization) and more sockets.  GNUnet typically only supports 1024 sockets per process, and each parallel download requires a new socket.  Hence it is not possible to run more than about 1000 downloads in parallel.   This option is used to limit the number of files that are downloaded in parallel (\-r can be used to limit the number of blocks that are concurrently requested).  As a result, the value only matters for recursive downloads.  The default value is 32.  Note that the overall limit of 1000 downloads applies to gnunet\-service\-fs as well and using multiple gnunet\-download processes hence does not increase this limit.
+.TP
+\fB\-r \fIREQUESTS\fR, \fB\-\-request-parallelism=REQUESTS\fR
+set the maximum number of parallel requests that is allowed.  If multiple files are downloaded, gnunet\-download will not run them in parallel if this would cause the number of pending requests to possibly exceed the given value.  This is useful since, for example, downloading dozens of multi\-gigabyte files in parallel could exhaust memory resources and would hardly improve performance.   Note that the limit only applies to this specific process and that other download activities by other processes are not included in this limit.  Consider raising this limit for large recursive downloads with many large files if memory and network bandwidth are not fully utilized and if the parallelism limit (\-p option) is not reached.  This option also only matters for recursive downloads.  The default value is 4092.
 .TP
 \fB\-R\fR, \fB\-\-recursive\fR
 download directories recursively (and in parallel); note that the URI must belong to a GNUnet directory and that the filename given must end with a '/' \-\- otherwise, only the file corresponding to the URI will be downloaded.  Note that in addition to using '-R', you must also specify a filename ending in '.gnd' so that the code realizes that the top-level file is a directory (since we have no meta data).
@@ -62,4 +65,4 @@ GNUnet configuration file
 .SH "REPORTING BUGS"
 Report bugs to <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
 .SH "SEE ALSO"
-\fBgnunet\-gtk\fP(1), \fBgnunet\-publish\fP(1), \fBgnunet\-gtk\fP(1), \fBgnunet\-search\fP(1), \fBgnunet\-download\fP(1), \fBgnunet.conf\fP(5), \fBgnunetd\fP(1)
+\fBgnunet\-gtk\fP(1), \fBgnunet\-publish\fP(1), \fBgnunet\-gtk\fP(1), \fBgnunet\-search\fP(1), \fBgnunet\-download\fP(1), \fBgnunet.conf\fP(5), \fBgnunet\-service\-fs\fP(1)

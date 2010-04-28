@@ -46,6 +46,8 @@ static unsigned int anonymity = 1;
 
 static unsigned int parallelism = 16;
 
+static unsigned int request_parallelism = 4092;
+
 static int do_recursive;
 
 static char *filename;
@@ -208,6 +210,8 @@ run (void *cls,
 			 GNUNET_FS_FLAGS_NONE,
 			 GNUNET_FS_OPTIONS_DOWNLOAD_PARALLELISM,
 			 parallelism,
+			 GNUNET_FS_OPTIONS_REQUEST_PARALLELISM,
+			 request_parallelism,
 			 GNUNET_FS_OPTIONS_END);
   if (NULL == ctx)
     {
@@ -260,8 +264,12 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
    1, &GNUNET_GETOPT_set_string, &filename},
   {'p', "parallelism", "DOWNLOADS",
    gettext_noop
-   ("set the maximum number of parallel downloads that are allowed"),
+   ("set the maximum number of parallel downloads that is allowed"),
    1, &GNUNET_GETOPT_set_uint, &parallelism},
+  {'r', "request-parallelism", "REQUESTS",
+   gettext_noop
+   ("set the maximum number of parallel requests for blocks that is allowed"),
+   1, &GNUNET_GETOPT_set_uint, &request_parallelism},
   {'R', "recursive", NULL,
    gettext_noop ("download a GNUnet directory recursively"),
    0, &GNUNET_GETOPT_set_one, &do_recursive},
