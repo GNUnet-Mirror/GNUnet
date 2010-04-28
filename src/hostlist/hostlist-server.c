@@ -228,7 +228,7 @@ host_processor (void *cls,
 	      "HELLO",
 	      GNUNET_i2s (peer));
 #endif
-  if (old + s >= GNUNET_MAX_MALLOC_CHECKED)
+  if (old + s >= MAX_BYTES_PER_HOSTLISTS)
     {
       GNUNET_STATISTICS_update (stats,
 				gettext_noop("bytes not included in hostlist (size limit)"),

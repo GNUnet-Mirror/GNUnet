@@ -42,5 +42,6 @@
 #define DEBUG_HOSTLIST GNUNET_NO
 
 #define MAX_URL_LEN 1000
+#define MAX_BYTES_PER_HOSTLISTS 500000
 
 /* end of gnunet-daemon-hostlist.h */
