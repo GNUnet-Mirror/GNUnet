@@ -27,7 +27,7 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_testing_lib.h"
 
-#define VERBOSE_TESTING GNUNET_NO
+#define VERBOSE_TESTING GNUNET_YES
 
 /**
  * Lowest port used for GNUnet testing.  Should be high enough to not
@@ -354,14 +354,28 @@ add_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first, unsigne
   return added;
 }
 
+/**
+ * Scale free network construction as described in:
+ *
+ * "Emergence of Scaling in Random Networks." Science 286, 509-512, 1999.
+ *
+ * Start with a network of "one" peer, then progressively add
+ * peers up to the total number.  At each step, iterate over
+ * all possible peers and connect new peer based on number of
+ * existing connections of the target peer.
+ *
+ * @param pg the peer group we are dealing with
+ *
+ * @return the number of connections created
+ */
 static int
 create_scale_free (struct GNUNET_TESTING_PeerGroup *pg)
 {
 
-  int total_connections;
-  int outer_count;
-  int i;
-  int previous_total_connections;
+  unsigned int total_connections;
+  unsigned int outer_count;
+  unsigned int i;
+  unsigned int previous_total_connections;
   double random;
   double probability;
 
@@ -370,14 +384,19 @@ create_scale_free (struct GNUNET_TESTING_PeerGroup *pg)
   /* Add a connection between the first two nodes */
   total_connections = add_connections(pg, 0, 1);
 
-  for (outer_count = 1; outer_count < pg->total - 1; outer_count++)
+  for (outer_count = 1; outer_count < pg->total; outer_count++)
     {
       previous_total_connections = total_connections;
       for (i = 0; i < outer_count; i++)
         {
-          probability = pg->peers[i].num_connections / previous_total_connections;
+          probability = pg->peers[i].num_connections / (double)previous_total_connections;
           random = ((double) GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_WEAK,
                                                       (uint64_t)-1LL)) / ( (double) (uint64_t) -1LL);
+#if VERBOSE_TESTING
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Considering connecting peer %d to peer %d\n",
+                      outer_count, i);
+#endif
           if (random < probability)
             {
 #if VERBOSE_TESTING
@@ -1099,109 +1118,99 @@ connect_topology (struct GNUNET_TESTING_PeerGroup *pg)
  * the connection actually happened.
  *
  * @param pg the peer group struct representing the running peers
+ * @param topology which topology to connect the peers in
  *
  * @return the number of connections should be created by the topology, so the
  * caller knows how many to wait for (if it so chooses)
  *
  */
 int
-GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg)
+GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg, enum GNUNET_TESTING_Topology topology)
 {
-  unsigned long long topology_num;
   int ret;
   int num_connections;
 
   GNUNET_assert (pg->notify_connection != NULL);
   ret = GNUNET_OK;
-  if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_number (pg->cfg, "testing", "topology",
-                                             &topology_num))
-    {
-      switch (topology_num)
-        {
-        case GNUNET_TESTING_TOPOLOGY_CLIQUE:
-#if VERBOSE_TESTING
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      _("Creating clique topology\n"));
-#endif
-          num_connections = create_clique (pg);
-          break;
-        case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD_RING:
-#if VERBOSE_TESTING
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      _("Creating small world (ring) topology\n"));
-#endif
-          num_connections = create_small_world_ring (pg);
-          break;
-        case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD:
-#if VERBOSE_TESTING
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      _("Creating small world (2d-torus) topology\n"));
-#endif
-          num_connections = create_small_world (pg);
-          break;
-        case GNUNET_TESTING_TOPOLOGY_RING:
-#if VERBOSE_TESTING
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      _("Creating ring topology\n"));
-#endif
-          num_connections = create_ring (pg);
-          break;
-        case GNUNET_TESTING_TOPOLOGY_2D_TORUS:
-#if VERBOSE_TESTING
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      _("Creating 2d torus topology\n"));
-#endif
-          num_connections = create_2d_torus (pg);
-          break;
-        case GNUNET_TESTING_TOPOLOGY_ERDOS_RENYI:
-#if VERBOSE_TESTING
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      _("Creating Erdos-Renyi topology\n"));
-#endif
-          num_connections = create_erdos_renyi (pg);
-          break;
-        case GNUNET_TESTING_TOPOLOGY_INTERNAT:
-#if VERBOSE_TESTING
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      _("Creating InterNAT topology\n"));
-#endif
-          num_connections = create_nated_internet (pg);
-          break;
-        case GNUNET_TESTING_TOPOLOGY_SCALE_FREE:
-#if VERBOSE_TESTING
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      _("Creating Scale Free topology\n"));
-#endif
-          num_connections = create_scale_free (pg);
-          break;
-        case GNUNET_TESTING_TOPOLOGY_NONE:
-          num_connections = 0;
-          break;
-        default:
-	  num_connections = 0;
-          break;
-        }
-      if (num_connections < 1)
-        return GNUNET_SYSERR;
 
-      if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (pg->cfg, "TESTING", "F2F"))
-        ret = create_and_copy_friend_files(pg);
-      if (ret == GNUNET_OK)
-        connect_topology(pg);
-      else
-        {
+  switch (topology)
+    {
+    case GNUNET_TESTING_TOPOLOGY_CLIQUE:
 #if VERBOSE_TESTING
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      _("Failed during friend file copying!\n"));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Creating clique topology\n"));
 #endif
-          return GNUNET_SYSERR;
-        }
+      num_connections = create_clique (pg);
+      break;
+    case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD_RING:
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Creating small world (ring) topology\n"));
+#endif
+      num_connections = create_small_world_ring (pg);
+      break;
+    case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD:
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Creating small world (2d-torus) topology\n"));
+#endif
+      num_connections = create_small_world (pg);
+      break;
+    case GNUNET_TESTING_TOPOLOGY_RING:
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Creating ring topology\n"));
+#endif
+      num_connections = create_ring (pg);
+      break;
+    case GNUNET_TESTING_TOPOLOGY_2D_TORUS:
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Creating 2d torus topology\n"));
+#endif
+      num_connections = create_2d_torus (pg);
+      break;
+    case GNUNET_TESTING_TOPOLOGY_ERDOS_RENYI:
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Creating Erdos-Renyi topology\n"));
+#endif
+      num_connections = create_erdos_renyi (pg);
+      break;
+    case GNUNET_TESTING_TOPOLOGY_INTERNAT:
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Creating InterNAT topology\n"));
+#endif
+      num_connections = create_nated_internet (pg);
+      break;
+    case GNUNET_TESTING_TOPOLOGY_SCALE_FREE:
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Creating Scale Free topology\n"));
+#endif
+      num_connections = create_scale_free (pg);
+      break;
+    case GNUNET_TESTING_TOPOLOGY_NONE:
+      num_connections = 0;
+      break;
+    default:
+      num_connections = 0;
+      break;
     }
+  if (num_connections < 1)
+    return GNUNET_SYSERR;
+
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (pg->cfg, "TESTING", "F2F"))
+    ret = create_and_copy_friend_files(pg);
+  if (ret == GNUNET_OK)
+    connect_topology(pg);
   else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("No topology specified, was one intended?\n"));
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Failed during friend file copying!\n"));
+#endif
       return GNUNET_SYSERR;
     }
 

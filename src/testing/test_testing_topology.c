@@ -25,7 +25,7 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_core_service.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 /**
  * How long until we fail the whole testcase?
@@ -80,6 +80,8 @@ static int transmit_ready_scheduled;
 static int transmit_ready_failed;
 
 static int transmit_ready_called;
+
+static enum GNUNET_TESTING_Topology topology;
 
 #define MTYPE 12345
 
@@ -518,7 +520,7 @@ create_topology ()
          maybe this way is best so that the client can know both
          when peers are started, and when they are connected.
        */
-      expected_connections = GNUNET_TESTING_create_topology (pg);
+      expected_connections = GNUNET_TESTING_create_topology (pg, topology);
 #if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Have %d expected connections\n", expected_connections);
@@ -575,6 +577,7 @@ run (void *cls,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  unsigned long long topology_num;
   sched = s;
   ok = 1;
 
@@ -588,6 +591,12 @@ run (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Starting daemons based on config file %s\n", cfgfile);
 #endif
+
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "topology",
+                                             &topology_num))
+    topology = topology_num;
+
   if (GNUNET_SYSERR ==
       GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "num_peers",
                                              &num_peers))

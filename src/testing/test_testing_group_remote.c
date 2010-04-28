@@ -18,21 +18,23 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file testing/test_testing_group.c
- * @brief testcase for functions to connect two peers in testing.c
+ * @file testing/test_testing_group_remote.c
+ * @brief testcase for testing remote and local starting and connecting
+ *        of hosts from the testing library.  The test_testing_data_remote.conf
+ *        file should be modified if this testcase is intended to be used.
  */
 #include "platform.h"
 #include "gnunet_testing_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
-#define NUM_PEERS 4
 
 /**
  * How long until we give up on connecting the peers?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 
+#define DEFAULT_NUM_PEERS 8;
 
 static int ok;
 
@@ -42,6 +44,10 @@ static struct GNUNET_TESTING_PeerGroup *pg;
 
 static struct GNUNET_SCHEDULER_Handle *sched;
 
+static unsigned long long num_peers;
+
+static char *hostnames;
+
 
 static void
 my_cb (void *cls,
@@ -49,17 +55,10 @@ my_cb (void *cls,
        const struct GNUNET_CONFIGURATION_Handle *cfg,
        struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
-  if (id == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Start callback called with error (too long starting peers), aborting test!\n");
-      GNUNET_TESTING_daemons_stop (pg);
-      ok = 7;
-    }
+  GNUNET_assert (id != NULL);
   peers_left--;
   if (peers_left == 0)
     {
-      sleep(2); /* Give other services a chance to initialize before killing */
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers started successfully, ending test!\n");
       GNUNET_TESTING_daemons_stop (pg);
       ok = 0;
     }
@@ -77,10 +76,19 @@ run (void *cls,
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemons.\n");
 #endif
-  peers_left = NUM_PEERS;
+
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "num_peers",
+                                             &num_peers))
+    num_peers = DEFAULT_NUM_PEERS;
+
+  GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "hosts",
+                                         &hostnames);
+
+  peers_left = num_peers;
   pg = GNUNET_TESTING_daemons_start (sched, cfg,
                                      peers_left,
-                                     &my_cb, NULL, NULL, NULL, NULL);
+                                     &my_cb, NULL, NULL, NULL, hostnames);
   GNUNET_assert (pg != NULL);
 }
 
@@ -89,7 +97,7 @@ check ()
 {
   char *const argv[] = { "test-testing",
     "-c",
-    "test_testing_data.conf",
+    "test_testing_data_remote.conf",
 #if VERBOSE
     "-L", "DEBUG",
 #endif
