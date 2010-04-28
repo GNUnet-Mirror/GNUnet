@@ -1,6 +1,5 @@
 0.9.0pre1:
 * FS: [CG]
-  - search: availability probes [needed for full persistence support...]
   - Allow checking of presence of search results and/or content via command-line tools
     (add options to gnunet-search / gnunet-download to limit search to local peer) 
     [needed for full persistence support...]
@@ -167,9 +166,6 @@ Optimizations:
 * TRANSPORT:
   - need to periodically probe latency/transport cost changes & possibly switch transport
   - should use hash map to look up Neighbours (service AND plugins!)
-* HOSTLIST:
-  - 'server' uses 'GNUNET_PEERINFO_iterate', should probably switch to notification API
-    (for more instant / up-to-date hostlists at lower cost) [done by MW?]
 * DATASTORE (?):
   - check for duplicates on insertion (currently, same content is frequently
     stored again [seen with KBLOCKS and SBLOCKS]!)
