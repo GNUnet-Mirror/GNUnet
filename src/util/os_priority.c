@@ -62,8 +62,6 @@ GNUNET_OS_set_process_priority (pid_t proc,
                                 enum GNUNET_SCHEDULER_Priority prio)
 {
   int rprio = 0;
-  int have;
-  int delta;
 
   GNUNET_assert (prio < GNUNET_SCHEDULER_PRIORITY_COUNT);
   if (prio == GNUNET_SCHEDULER_PRIORITY_KEEP)
@@ -118,12 +116,12 @@ GNUNET_OS_set_process_priority (pid_t proc,
   /* Set process priority */
 #ifdef MINGW
   SetPriorityClass (GetCurrentProcess (), rprio);
-#elif LINUX
+#elif LINUX 
   if ( (0 == proc) ||
        (proc == getpid () ) )
     {
-      have = nice (0);
-      delta = rprio - have;
+      int have = nice (0);
+      int delta = rprio - have;
       errno = 0;
       if ( (delta != 0) &&
 	   (rprio == nice (delta)) && 

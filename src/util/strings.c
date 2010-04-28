@@ -199,7 +199,7 @@ GNUNET_STRINGS_to_utf8 (const char *input, size_t len, const char *charset)
   itmp = tmp;
   finSize = tmpSize;
   if (iconv (cd,
-#if FREEBSD
+#if FREEBSD || DARWIN
              (const char **) &input,
 #else
              (char **) &input,
