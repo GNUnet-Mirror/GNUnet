@@ -173,7 +173,7 @@ void handle_dv_message_received (void *cls,
                                  struct GNUNET_PeerIdentity *sender,
                                  char *msg,
                                  size_t msg_len,
-                                 unsigned int distance,
+                                 uint32_t distance,
                                  char *sender_address,
                                  size_t sender_address_len)
 {
@@ -181,8 +181,9 @@ void handle_dv_message_received (void *cls,
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "plugin_transport_dv",
-                   _("Received message from %s of type %d!\n"),
-                   "DV SERVICE", ntohs(((struct GNUNET_MessageHeader *)msg)->type));
+                   _("PLUGIN Received message from %s of type %d, distance %u!\n"),
+                   "DV SERVICE", ntohs(((struct GNUNET_MessageHeader *)msg)->type), distance);
+
   plugin->env->receive(plugin->env->cls,
                        sender,
                        (struct GNUNET_MessageHeader *)msg,

@@ -30,14 +30,14 @@
 
 #define DEBUG_DV_GOSSIP GNUNET_NO
 #define DEBUG_DV_GOSSIP_RECEIPT GNUNET_YES
-#define DEBUG_DV GNUNET_YES
+#define DEBUG_DV GNUNET_NO
 #define DEBUG_DV_API GNUNET_YES
 
 typedef void (*GNUNET_DV_MessageReceivedHandler) (void *cls,
                                                   struct GNUNET_PeerIdentity *sender,
                                                   char *msg,
                                                   size_t msg_len,
-                                                  unsigned int distance,
+                                                  uint32_t distance,
                                                   char *sender_address,
                                                   size_t sender_address_len);
 

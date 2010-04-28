@@ -42,9 +42,9 @@
 #include "gnunet_transport_service.h"
 #include "../transport/transport.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
-#define VERBOSE_ARM GNUNET_YES
+#define VERBOSE_ARM GNUNET_NO
 
 #define START_ARM GNUNET_YES
 
@@ -112,7 +112,7 @@ stop_arm (struct PeerContext *p)
 #if VERBOSE
                                         "-L", "DEBUG",
 #endif
-                                        "-c", p->cfg_file, "-e", NULL);
+                                        "-c", p->cfg_file, "-e", "-q", NULL);
 
   GNUNET_OS_process_wait (p->arm_pid);
 #endif
@@ -129,9 +129,8 @@ restart_transport (struct PeerContext *p)
 #if VERBOSE
                                         "-L", "DEBUG",
 #endif
-                                        "-c", p->cfg_file, "-k", "transport", NULL);
+                                        "-c", p->cfg_file, "-k", "transport", "-q", NULL);
 
-  fprintf(stderr, "stop arm command returned %d\n", p->arm_pid);
   GNUNET_OS_process_wait (p->arm_pid);
 #endif
 
@@ -141,7 +140,7 @@ restart_transport (struct PeerContext *p)
 #if VERBOSE
                                         "-L", "DEBUG",
 #endif
-                                        "-c", p->cfg_file, "-i", "transport", NULL);
+                                        "-c", p->cfg_file, "-i", "transport", "-q", NULL);
 
   GNUNET_OS_process_wait (p->arm_pid);
 #endif
@@ -232,7 +231,7 @@ notify_connect (void *cls,
     {
 
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                 "Peer 1 notified about connection to peer 3, distance %d!\n", GNUNET_i2s (peer), cls, distance);
+                 "Peer 1 notified about connection to peer 3, distance %u!\n", GNUNET_i2s (peer), cls, distance);
 
       GNUNET_TRANSPORT_notify_transmit_ready (p1.th,
 					      &p3.id,
@@ -264,7 +263,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 #if VERBOSE_ARM
                                         "-L", "DEBUG",
 #endif
-                                        "-c", cfgname, "-s", NULL);
+                                        "-c", cfgname, "-s", "-q", NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
 

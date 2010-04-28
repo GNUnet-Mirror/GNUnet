@@ -27,13 +27,7 @@
  * @author Christian Grothoff
  * @author Nathan Evans
  *
- * TODO: Currently the final hop of a DV message assigns a 0 to the receiver
- * id field.  This probably can't work(!) even if we know that the peer is
- * a direct neighbor (unless we can trust that transport will choose that
- * address for the peer).  So the DV message will likely need to have the
- * peer identity of the recipient.
- *
- * Also the gossip rates need to be worked out.  Probably many other things
+ * TODO: The gossip rates need to be worked out.  Probably many other things
  * as well.
  *
  */
@@ -114,6 +108,11 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 #define DV_PRIORITY 0
 
 /**
+ * The cost to a direct neighbor.  We used to use 0, but 1 makes more sense.
+ */
+#define DIRECT_NEIGHBOR_COST 1
+
+/**
  * The client, should be the DV plugin connected to us.  Hopefully
  * this client will never change, although if the plugin dies
  * and returns for some reason it may happen.
@@ -179,6 +178,10 @@ struct PendingMessage *plugin_pending_head;
  */
 struct PendingMessage *plugin_pending_tail;
 
+/**
+ * Handle to the peerinfo service
+ */
+struct GNUNET_PEERINFO_Handle *peerinfo_handle;
 
 /**
  * Transmit handle to core service.
@@ -194,8 +197,6 @@ struct PendingMessage *core_pending_head;
  * Tail of DLL for core messages
  */
 struct PendingMessage *core_pending_tail;
-
-
 
 
 /**
@@ -674,7 +675,7 @@ size_t core_transmit_notify (void *cls,
           (size >= off + (msize = ntohs (reply->msg->size))))
     {
 #if DEBUG_DV
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "`%s' : transmit_notify (core) called with size %d\n", "dv service", msize);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "`%s' : transmit_notify (core) called with size %d\n", "dv service", msize);
 #endif
       GNUNET_CONTAINER_DLL_remove (core_pending_head,
                                    core_pending_tail,
@@ -751,7 +752,7 @@ send_message_via (const struct GNUNET_PeerIdentity * sender,
 #if DEBUG_DV
   memcpy(&shortname, GNUNET_i2s(&specific_neighbor->identity), 4);
   shortname[4] = '\0';
-  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s: Notifying core of send to destination `%s' via `%s' size %u\n", "DV", &shortname, GNUNET_i2s(&specific_neighbor->referrer->identity), msg_size);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: Notifying core of send to destination `%s' via `%s' size %u\n", "DV", &shortname, GNUNET_i2s(&specific_neighbor->referrer->identity), msg_size);
 #endif
 
   GNUNET_CONTAINER_DLL_insert_after (core_pending_head,
@@ -761,7 +762,7 @@ send_message_via (const struct GNUNET_PeerIdentity * sender,
   if (core_transmit_handle == NULL)
     core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, send_context->importance, send_context->timeout, &specific_neighbor->referrer->identity, msg_size, &core_transmit_notify, NULL);
   else
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "`%s': Failed to schedule pending transmission (must be one in progress!)\n", "dv service");
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "`%s': Failed to schedule pending transmission (must be one in progress!)\n", "dv service");
 
   return (int) cost;
 }
@@ -840,7 +841,7 @@ send_message (const struct GNUNET_PeerIdentity * recipient,
                                      core_pending_tail,
                                      pending_message);
 #if DEBUG_DV
-  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s: Notifying core of send size %d to destination `%s'\n", "DV SEND MESSAGE", msg_size, GNUNET_i2s(recipient));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: Notifying core of send size %d to destination `%s'\n", "DV SEND MESSAGE", msg_size, GNUNET_i2s(recipient));
 #endif
   if (core_transmit_handle == NULL)
     core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, importance, timeout, &target->referrer->identity, msg_size, &core_transmit_notify, NULL);
@@ -913,7 +914,7 @@ static int handle_dv_data_message (void *cls,
   if (pos == NULL)
     {
 #if DEBUG_DV
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "%s: unknown sender (%d), size of extended_peers is %d!\n", "dv", ntohl(incoming->sender), GNUNET_CONTAINER_multihashmap_size (ctx.extended_neighbors));
 #endif
       /* unknown sender */
@@ -931,8 +932,8 @@ static int handle_dv_data_message (void *cls,
         {
           packed_message = (struct GNUNET_MessageHeader *)&cbuf[offset];
 #if DEBUG_DV
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                      "%s: Receives %s message for me, size %d type %d!\n", "dv", "DV DATA", ntohs(packed_message->size), ntohs(packed_message->type));
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "%s: Receives %s message for me, size %d type %d, cost %u!\n", "dv", "DV DATA", ntohs(packed_message->size), ntohs(packed_message->type), pos->cost);
 #endif
           GNUNET_break_op (ntohs (packed_message->type) != GNUNET_MESSAGE_TYPE_DV_GOSSIP);
           GNUNET_break_op (ntohs (packed_message->type) != GNUNET_MESSAGE_TYPE_DV_DATA);
@@ -1174,7 +1175,7 @@ void handle_dv_send_message (void *cls,
   if (client_handle == NULL)
   {
     client_handle = client;
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s: Setting initial client handle, never received `%s' message?\n", "dv", "START");
   }
   else if (client_handle != client)
@@ -1290,6 +1291,7 @@ shutdown_task (void *cls,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "calling CORE_DISCONNECT\n");
 #endif
   GNUNET_CORE_disconnect (coreAPI);
+  GNUNET_PEERINFO_disconnect(peerinfo_handle);
 #if DEBUG_DV
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "CORE_DISCONNECT completed\n");
 #endif
@@ -1487,7 +1489,7 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer, struct GNUNET_CRYPTO
               GNUNET_free(neighbor_update);
               return;
             }
-          if (max->cost > 0)
+          if (max->cost > 1)
             {
               /* only free if this is not a direct connection;
                  we could theoretically have more direct
@@ -1518,7 +1520,7 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer, struct GNUNET_CRYPTO
       neighbor->referrer_id = referrer_peer_id;
       neighbor->our_id = our_id;
       neighbor->hidden =
-        (cost == 0) ? (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 4) ==
+        (cost == DIRECT_NEIGHBOR_COST) ? (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 4) ==
                        0) : GNUNET_NO;
       GNUNET_CONTAINER_multihashmap_put (ctx.extended_neighbors, &peer->hashPubKey,
                                  neighbor,
@@ -1537,25 +1539,7 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer, struct GNUNET_CRYPTO
     GNUNET_CONTAINER_multihashmap_iterate(ctx.extended_neighbors, &print_neighbors, NULL);
 #endif
   GNUNET_free(neighbor_update);
-  /* Old logic to remove entry and replace, not needed now as we only want to remove when full
-   * or when the referring peer disconnects from us.
-   *
-   * FIXME: add new functionality, or check if it already exists (i forget)
-   */
-  /*
-  GNUNET_DLL_remove (neighbor->referrer->referee_head,
-                     neighbor->referrer->referee_tail, neighbor);
-  neighbor->referrer = referrer;
-  GNUNET_DLL_insert (referrer->referee_head,
-                     referrer->referee_tail, neighbor);
-  GNUNET_CONTAINER_heap_update_cost (ctx.neighbor_max_heap,
-                                     neighbor->max_loc, cost);
-  GNUNET_CONTAINER_heap_update_cost (ctx.neighbor_min_heap,
-                                     neighbor->min_loc, cost);
-  neighbor->referrer_id = referrer_peer_id;
-  neighbor->last_activity = now;
-  neighbor->cost = cost;
-  */
+
 }
 
 
@@ -1658,8 +1642,8 @@ static int handle_dv_gossip_message (void *cls,
 
 static void
 process_peerinfo (void *cls,
-         const struct GNUNET_PeerIdentity *peer,
-         const struct GNUNET_HELLO_Message *hello, uint32_t trust)
+                  const struct GNUNET_PeerIdentity *peer,
+                  const struct GNUNET_HELLO_Message *hello, uint32_t trust)
 {
   struct PeerIteratorContext *peerinfo_iterator = cls;
   struct DirectNeighbor *neighbor = peerinfo_iterator->neighbor;
@@ -1704,7 +1688,7 @@ void handle_core_connect (void *cls,
               "%s: Receives core connect message for peer %s distance %d!\n", "dv", GNUNET_i2s(peer), distance);
 #endif
 
-  if ((distance == 0) && (GNUNET_CONTAINER_multihashmap_get(ctx.direct_neighbors, &peer->hashPubKey) == NULL))
+  if ((distance == DIRECT_NEIGHBOR_COST) && (GNUNET_CONTAINER_multihashmap_get(ctx.direct_neighbors, &peer->hashPubKey) == NULL))
   {
     peerinfo_iterator = GNUNET_malloc(sizeof(struct PeerIteratorContext));
     neighbor = GNUNET_malloc (sizeof (struct DirectNeighbor));
@@ -1716,15 +1700,14 @@ void handle_core_connect (void *cls,
     GNUNET_CONTAINER_multihashmap_put (ctx.direct_neighbors,
                                &peer->hashPubKey,
                                neighbor, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-    addUpdateNeighbor (peer, NULL, 0, neighbor, 0);
+    addUpdateNeighbor (peer, NULL, 0, neighbor, DIRECT_NEIGHBOR_COST);
     peerinfo_iterator->neighbor = neighbor;
-    peerinfo_iterator->ic = GNUNET_PEERINFO_iterate (cfg,
-                                            sched,
-                                            peer,
-                                            0,
-                                            GNUNET_TIME_relative_multiply
-                                            (GNUNET_TIME_UNIT_SECONDS, 15),
-                                            &process_peerinfo, peerinfo_iterator);
+    peerinfo_iterator->ic = GNUNET_PEERINFO_iterate (peerinfo_handle,
+                                                     peer,
+                                                     0,
+                                                     GNUNET_TIME_UNIT_FOREVER_REL,
+                                                     &process_peerinfo,
+                                                     peerinfo_iterator);
     /* Only add once we get the publicKey of this guy
      *
      * neighbor->send_context->task = GNUNET_SCHEDULER_add_now(sched, &neighbor_send_task, neighbor->send_context);
@@ -1734,7 +1717,7 @@ void handle_core_connect (void *cls,
   {
 #if DEBUG_DV
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "%s: Distance (%d) greater than 0 or already know about peer (%s), not re-adding!\n", "dv", distance, GNUNET_i2s(peer));
+                "%s: Distance (%d) greater than %d or already know about peer (%s), not re-adding!\n", "dv", distance, DIRECT_NEIGHBOR_COST, GNUNET_i2s(peer));
 #endif
     return;
   }
@@ -1810,8 +1793,6 @@ run (void *cls,
   client_transmit_timeout = GNUNET_TIME_relative_get_forever(); /* Only timeout on disconnect */
   default_dv_delay = GNUNET_TIME_relative_get_forever(); /* Only timeout on disconnect */
 
-  //client_transmit_timeout = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5);
-  //default_dv_delay = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5);
   GNUNET_SERVER_add_handlers (server, plugin_handlers);
   coreAPI =
   GNUNET_CORE_connect (sched,
@@ -1829,7 +1810,14 @@ run (void *cls,
 
   if (coreAPI == NULL)
     return;
-  /* load (server); Huh? */
+
+   peerinfo_handle = GNUNET_PEERINFO_connect(sched, cfg);
+
+   if (peerinfo_handle == NULL)
+     {
+       GNUNET_CORE_disconnect(coreAPI);
+       return;
+     }
 
   /* Scheduled the task to clean up when shutdown is called */
   cleanup_task = GNUNET_SCHEDULER_add_delayed (sched,

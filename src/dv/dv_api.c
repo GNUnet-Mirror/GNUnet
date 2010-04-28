@@ -320,9 +320,11 @@ void handle_message_receipt (void *cls,
   memcpy(packed_msg, &packed_msg_start[sender_address_len], packed_msg_len);
 
 #if DEBUG_DV
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "packed message type: %d or %d\n", ntohs(((struct GNUNET_MessageHeader *)packed_msg)->type), ((struct GNUNET_MessageHeader *)packed_msg)->type);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "message sender reported as %s\n", GNUNET_i2s(&received_msg->sender));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: packed message type: %d or %d\n", ntohs(((struct GNUNET_MessageHeader *)packed_msg)->type), ((struct GNUNET_MessageHeader *)packed_msg)->type);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: message sender reported as %s\n", GNUNET_i2s(&received_msg->sender));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: distance is %u\n", ntohl(received_msg->distance));
 #endif
+
   handle->receive_handler(handle->receive_cls,
                           &received_msg->sender,
                           packed_msg,
