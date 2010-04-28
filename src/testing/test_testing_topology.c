@@ -116,6 +116,9 @@ struct TestMessageContext
   /* Identifier for this message, so we don't disconnect other peers! */
   uint32_t uid;
 
+  /* Task for disconnecting cores, allow task to be cancelled on shutdown */
+  GNUNET_SCHEDULER_TaskIdentifier disconnect_task;
+
 };
 
 static struct TestMessageContext *test_messages;
@@ -147,6 +150,10 @@ finish_testing ()
         }
       free_pos = pos;
       pos = pos->next;
+      if (free_pos->disconnect_task != GNUNET_SCHEDULER_NO_TASK)
+        {
+          GNUNET_SCHEDULER_cancel(sched, free_pos->disconnect_task);
+        }
       GNUNET_free(free_pos);
     }
 #if VERBOSE
@@ -194,6 +201,7 @@ disconnect_cores (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   /* Set handles to NULL so test case can be ended properly */
   pos->peer1handle = NULL;
   pos->peer2handle = NULL;
+  pos->disconnect_task = GNUNET_SCHEDULER_NO_TASK;
   /* Decrement total connections so new can be established */
   total_server_connections -= 2;
 }
@@ -225,7 +233,7 @@ process_mtype (void *cls,
     }
   else
     {
-      GNUNET_SCHEDULER_add_now(sched, &disconnect_cores, pos);
+      pos->disconnect_task = GNUNET_SCHEDULER_add_now(sched, &disconnect_cores, pos);
     }
 
   return GNUNET_OK;
@@ -443,6 +451,7 @@ topology_callback (void *cls,
       temp_context->peer2 = second_daemon;
       temp_context->next = test_messages;
       temp_context->uid = total_connections;
+      temp_context->disconnect_task = GNUNET_SCHEDULER_NO_TASK;
       test_messages = temp_context;
 
       expected_messages++;

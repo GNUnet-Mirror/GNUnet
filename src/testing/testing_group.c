@@ -82,10 +82,15 @@ struct PeerData
    */
   struct GNUNET_TESTING_Daemon *daemon;
 
-  /*
+  /**
    * Linked list of peer connections (simply indexes of PeerGroup)
    */
   struct PeerConnection *connected_peers;
+
+  /**
+   * Total number of connections this peer has
+   */
+  int num_connections;
 };
 
 
@@ -332,6 +337,7 @@ add_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first, unsigne
       new_first->daemon = pg->peers[second].daemon;
       new_first->next = pg->peers[first].connected_peers;
       pg->peers[first].connected_peers = new_first;
+      pg->peers[first].num_connections++;
       added++;
     }
 
@@ -341,10 +347,50 @@ add_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first, unsigne
       new_second->daemon = pg->peers[first].daemon;
       new_second->next = pg->peers[second].connected_peers;
       pg->peers[second].connected_peers = new_second;
+      pg->peers[first].num_connections++;
       added++;
     }
 
   return added;
+}
+
+static int
+create_scale_free (struct GNUNET_TESTING_PeerGroup *pg)
+{
+
+  int total_connections;
+  int outer_count;
+  int i;
+  int previous_total_connections;
+  double random;
+  double probability;
+
+  GNUNET_assert(pg->total > 1);
+
+  /* Add a connection between the first two nodes */
+  total_connections = add_connections(pg, 0, 1);
+
+  for (outer_count = 1; outer_count < pg->total - 1; outer_count++)
+    {
+      previous_total_connections = total_connections;
+      for (i = 0; i < outer_count; i++)
+        {
+          probability = pg->peers[i].num_connections / previous_total_connections;
+          random = ((double) GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_WEAK,
+                                                      (uint64_t)-1LL)) / ( (double) (uint64_t) -1LL);
+          if (random < probability)
+            {
+#if VERBOSE_TESTING
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          "Connecting peer %d to peer %d\n",
+                          outer_count, i);
+#endif
+              total_connections += add_connections(pg, outer_count, i);
+            }
+        }
+    }
+
+  return total_connections;
 }
 
 int
@@ -1076,51 +1122,58 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg)
         case GNUNET_TESTING_TOPOLOGY_CLIQUE:
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      _("Creating clique topology (may take a bit!)\n"));
+                      _("Creating clique topology\n"));
 #endif
           num_connections = create_clique (pg);
           break;
         case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD_RING:
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      _("Creating small world (ring) topology (may take a bit!)\n"));
+                      _("Creating small world (ring) topology\n"));
 #endif
           num_connections = create_small_world_ring (pg);
           break;
         case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD:
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      _("Creating small world (2d-torus) topology (may take a bit!)\n"));
+                      _("Creating small world (2d-torus) topology\n"));
 #endif
           num_connections = create_small_world (pg);
           break;
         case GNUNET_TESTING_TOPOLOGY_RING:
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      _("Creating ring topology (may take a bit!)\n"));
+                      _("Creating ring topology\n"));
 #endif
           num_connections = create_ring (pg);
           break;
         case GNUNET_TESTING_TOPOLOGY_2D_TORUS:
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      _("Creating 2d torus topology (may take a bit!)\n"));
+                      _("Creating 2d torus topology\n"));
 #endif
           num_connections = create_2d_torus (pg);
           break;
         case GNUNET_TESTING_TOPOLOGY_ERDOS_RENYI:
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      _("Creating Erdos-Renyi topology (may take a bit!)\n"));
+                      _("Creating Erdos-Renyi topology\n"));
 #endif
           num_connections = create_erdos_renyi (pg);
           break;
         case GNUNET_TESTING_TOPOLOGY_INTERNAT:
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      _("Creating InterNAT topology (may take a bit!)\n"));
+                      _("Creating InterNAT topology\n"));
 #endif
           num_connections = create_nated_internet (pg);
+          break;
+        case GNUNET_TESTING_TOPOLOGY_SCALE_FREE:
+#if VERBOSE_TESTING
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      _("Creating Scale Free topology\n"));
+#endif
+          num_connections = create_scale_free (pg);
           break;
         case GNUNET_TESTING_TOPOLOGY_NONE:
           num_connections = 0;
