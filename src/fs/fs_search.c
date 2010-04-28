@@ -429,6 +429,7 @@ process_nblock (struct GNUNET_FS_SearchContext *sc,
   const char *eos;
   struct GNUNET_CONTAINER_MetaData *meta;
   struct GNUNET_FS_Uri *uri;
+  char *uris;
   
   GNUNET_CRYPTO_hash (&nb->keyspace,
 		      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
@@ -477,7 +478,15 @@ process_nblock (struct GNUNET_FS_SearchContext *sc,
   GNUNET_CRYPTO_hash (&nb->subspace,
 		      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
 		      &uri->data.sks.namespace);
-  /* FIXME: should store 'root' in meta? */
+  uris = GNUNET_FS_uri_to_string (uri);
+  GNUNET_CONTAINER_meta_data_insert (meta,
+				     "<gnunet>",
+				     EXTRACTOR_METATYPE_URI,
+				     EXTRACTOR_METAFORMAT_UTF8,
+				     "text/plain",
+				     uris,
+				     strlen (uris)+1);
+  GNUNET_free (uris);
   GNUNET_PSEUDONYM_add (sc->h->cfg,
 			&uri->data.sks.namespace,
 			meta);
