@@ -659,7 +659,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
                                  sizeof (struct RsaPrivateKeyBinaryEncoded),
                                  GNUNET_NO))
         {
-          if (0 == ++cnt % 10)
+          if (0 == ++cnt % 60)
             {
               ec = errno;
               GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
