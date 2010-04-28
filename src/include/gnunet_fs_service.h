@@ -1467,8 +1467,7 @@ enum GNUNET_FS_Flags
   };
 
 /**
- * Options specified in the VARARGs
- * portion of GNUNET_FS_start.
+ * Options specified in the VARARGs portion of GNUNET_FS_start.
  */
 enum GNUNET_FS_OPTIONS
   {
@@ -1941,15 +1940,15 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
 
 
 /**
- * Stop an upload.  Will abort incomplete uploads (but 
- * not remove blocks that have already been publishd) or
- * simply clean up the state for completed uploads.
+ * Stop a publication.  Will abort incomplete publications (but 
+ * not remove blocks that have already been published) or
+ * simply clean up the state for completed publications.
  * Must NOT be called from within the event callback!
  *
- * @param sc context for the upload to stop
+ * @param pc context for the publication to stop
  */
 void 
-GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *sc);
+GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *pc);
 
 
 /**

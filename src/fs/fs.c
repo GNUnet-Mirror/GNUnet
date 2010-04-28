@@ -25,6 +25,7 @@
  */
 
 #include "platform.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_fs_service.h"
 #include "fs.h"
 
@@ -145,6 +146,7 @@ process_job_queue (void *cls,
 					       h);
 }
 
+
 /**
  * Add a job to the queue.
  *
@@ -213,6 +215,318 @@ GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qh)
 
 
 /**
+ * Return the full filename where we would store state information
+ * (for serialization/deserialization).
+ *
+ * @param h master context
+ * @param ext component of the path 
+ * @param ent entity identifier (or emtpy string for the directory)
+ * @return NULL on error
+ */
+static char *
+get_serialization_file_name (struct GNUNET_FS_Handle *h,
+			     const char *ext,
+			     const char *ent)
+{
+  char *basename;
+  char *ret;
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (h->cfg,
+					       "fs",
+					       "STATE_DIR",
+					       &basename))
+    return NULL;
+  GNUNET_asprintf (&ret,
+		   "%s%s%s-%s%s%s",
+		   basename,
+		   DIR_SEPARATOR_STR,
+		   h->client_name,
+		   ext,
+		   DIR_SEPARATOR_STR,
+		   ent);
+  GNUNET_free (basename);
+  return ret;
+}
+
+
+/**
+ * Return a read handle for deserialization.
+ *
+ * @param h master context
+ * @param ext component of the path 
+ * @param ent entity identifier (or emtpy string for the directory)
+ * @return NULL on error
+ */
+static struct GNUNET_BIO_ReadHandle *
+get_read_handle (struct GNUNET_FS_Handle *h,
+		 const char *ext,
+		 const char *ent)
+{
+  char *fn;
+  struct GNUNET_BIO_ReadHandle *ret;
+
+  fn = get_serialization_file_name (h, ext, ent);
+  if (fn == NULL)
+    return NULL;
+  ret = GNUNET_BIO_read_open (fn);
+  GNUNET_free (fn);
+  return ret;
+}
+
+
+/**
+ * Using the given serialization filename, try to deserialize
+ * the file-information tree associated with it.
+ *
+ * @param h master context
+ * @param filename name of the file (without directory) with
+ *        the infromation
+ * @return NULL on error
+ */
+static struct GNUNET_FS_FileInformation *
+deserialize_file_information (struct GNUNET_FS_Handle *h,
+			      const char *filename)
+{
+  struct GNUNET_FS_FileInformation *ret;
+  struct GNUNET_BIO_ReadHandle *rh;
+  char *emsg;
+
+  rh = get_read_handle (h, "publish-fi", filename);
+  if (rh == NULL)
+    return NULL;
+  
+  ret = NULL;
+
+
+  if (GNUNET_OK !=
+      GNUNET_BIO_read_close (rh, &emsg))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Failed to resume publishing information `%s': %s\n"),
+		  filename,
+		  emsg);
+      GNUNET_free (emsg);
+    }
+  return ret;
+}
+
+
+/**
+ * Find the entry in the file information struct where the
+ * serialization filename matches the given name.
+ *
+ * @param pos file information to search
+ * @param srch filename to search for
+ * @return NULL if srch was not found in this subtree
+ */
+static struct GNUNET_FS_FileInformation *
+find_file_position (struct GNUNET_FS_FileInformation *pos,
+		    const char *srch)
+{
+  struct GNUNET_FS_FileInformation *r;
+
+  while (pos != NULL)
+    {
+      if (0 == strcmp (srch,
+		       pos->serialization_name))
+	return pos;
+      if (pos->is_directory)
+	{
+	  r = find_file_position (pos->data.dir.entries,
+				  srch);
+	  if (r != NULL)
+	    return r;
+	}
+      pos = pos->next;
+    }
+  return NULL;
+}
+
+
+/**
+ * Signal the FS's progress function that we are resuming
+ * an upload.
+ *
+ * @param cls closure (of type "struct GNUNET_FS_PublishContext*")
+ * @param fi the entry in the publish-structure
+ * @param length length of the file or directory
+ * @param meta metadata for the file or directory (can be modified)
+ * @param uri pointer to the keywords that will be used for this entry (can be modified)
+ * @param anonymity pointer to selected anonymity level (can be modified)
+ * @param priority pointer to selected priority (can be modified)
+ * @param expirationTime pointer to selected expiration time (can be modified)
+ * @param client_info pointer to client context set upon creation (can be modified)
+ * @return GNUNET_OK to continue (always)
+ */
+static int
+fip_signal_resume(void *cls,
+		  struct GNUNET_FS_FileInformation *fi,
+		  uint64_t length,
+		  struct GNUNET_CONTAINER_MetaData *meta,
+		  struct GNUNET_FS_Uri **uri,
+		  uint32_t *anonymity,
+		  uint32_t *priority,
+		  struct GNUNET_TIME_Absolute *expirationTime,
+		  void **client_info)
+{
+  struct GNUNET_FS_PublishContext *sc = cls;
+  struct GNUNET_FS_ProgressInfo pi;
+
+  pi.status = GNUNET_FS_STATUS_PUBLISH_RESUME;
+  pi.value.publish.specifics.resume.message = sc->fi->emsg;
+  pi.value.publish.specifics.resume.chk_uri = sc->fi->chk_uri;
+  *client_info = GNUNET_FS_publish_make_status_ (&pi, sc, fi, 0);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Function called with a filename of serialized publishing operation
+ * to deserialize.
+ *
+ * @param cls the 'struct GNUNET_FS_Handle*'
+ * @param filename complete filename (absolute path)
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int
+deserialize_publish_file (void *cls,
+			  const char *filename)
+{
+  struct GNUNET_FS_Handle *h = cls;
+  struct GNUNET_BIO_ReadHandle *rh;
+  struct GNUNET_FS_PublishContext *pc;
+  int32_t options;
+  int32_t all_done;
+  char *fi_root;
+  char *ns;
+  char *fi_pos;
+  char *emsg;
+
+  rh = GNUNET_BIO_read_open (filename);
+  if (rh == NULL)
+    {
+      if (0 != UNLINK (filename))
+	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+				  "unlink", 
+				  filename);
+      return GNUNET_OK;
+    }
+  while (1)
+    {
+      fi_root = NULL;
+      fi_pos = NULL;
+      ns = NULL;
+      pc = GNUNET_malloc (sizeof (struct GNUNET_FS_PublishContext));
+      pc->h = h;
+      if ( (GNUNET_OK !=
+	    GNUNET_BIO_read_string (rh, "publish-nid", &pc->nid, 1024)) ||
+	   (GNUNET_OK !=
+	    GNUNET_BIO_read_string (rh, "publish-nuid", &pc->nuid, 1024)) ||
+	   (GNUNET_OK !=
+	    GNUNET_BIO_read_int32 (rh, &options)) ||
+	   (GNUNET_OK !=
+	    GNUNET_BIO_read_int32 (rh, &all_done)) ||
+	   (GNUNET_OK !=
+	    GNUNET_BIO_read_string (rh, "publish-firoot", &fi_root, 128)) ||
+	   (GNUNET_OK !=
+	    GNUNET_BIO_read_string (rh, "publish-fipos", &fi_pos, 128)) ||
+	   (GNUNET_OK !=
+	    GNUNET_BIO_read_string (rh, "publish-ns", &ns, 1024)) )
+	{
+	  GNUNET_free_non_null (pc->nid);
+	  GNUNET_free_non_null (pc->nuid);
+	  GNUNET_free_non_null (fi_root);
+	  GNUNET_free_non_null (ns);
+	  GNUNET_free (pc);
+	  break;
+	}      
+       pc->options = options;
+       pc->all_done = all_done;
+       pc->fi = deserialize_file_information (h, fi_root);
+       if (pc->fi == NULL)
+	 {
+	   GNUNET_free_non_null (pc->nid);
+	   GNUNET_free_non_null (pc->nuid);
+	   GNUNET_free_non_null (fi_root);
+	   GNUNET_free_non_null (ns);
+	   GNUNET_free (pc);
+	   continue;
+	 }
+       if (ns != NULL)
+	 {
+	   pc->namespace = GNUNET_FS_namespace_create (h, ns);
+	   if (pc->namespace == NULL)
+	     {
+	       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+			   _("Failed to recover namespace `%s', cannot resume publishing operation.\n"),
+			   ns);
+	       GNUNET_free_non_null (pc->nid);
+	       GNUNET_free_non_null (pc->nuid);
+	       GNUNET_free_non_null (fi_root);
+	       GNUNET_free_non_null (ns);
+	       GNUNET_free (pc);
+	       continue;
+	     }
+	 }
+       if (fi_pos != NULL)
+	 {
+	   pc->fi_pos = find_file_position (pc->fi,
+					    fi_pos);
+	   GNUNET_free (fi_pos);
+	   if (pc->fi_pos == NULL)
+	     {
+	       /* failed to find position for resuming, outch! Will start from root! */
+	       GNUNET_break (0);
+	       if (pc->all_done != GNUNET_YES)
+		 pc->fi_pos = pc->fi;
+	     }
+	 }
+       pc->serialization = GNUNET_strdup (filename);
+       /* generate RESUME event(s) */
+       GNUNET_FS_file_information_inspect (pc->fi,
+					   &fip_signal_resume,
+					   pc);
+       
+       /* re-start publishing (if needed)... */
+       if (pc->all_done != GNUNET_YES)
+	 pc->upload_task 
+	   = GNUNET_SCHEDULER_add_with_priority (h->sched,
+						 GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+						 &GNUNET_FS_publish_main_,
+						 pc);       
+    }
+  if (GNUNET_OK !=
+      GNUNET_BIO_read_close (rh, &emsg))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Failed to resume publishing operation `%s': %s\n"),
+		  filename,
+		  emsg);
+      GNUNET_free (emsg);
+    }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Deserialize information about pending publish operations.
+ *
+ * @param h master context
+ */
+static void
+deserialize_publish (struct GNUNET_FS_Handle *h)
+{
+  char *dn;
+
+  dn = get_serialization_file_name (h, "publish", "");
+  if (dn == NULL)
+    return;
+  GNUNET_DISK_directory_scan (dn, &deserialize_publish_file, h);
+  GNUNET_free (dn);
+}
+
+
+/**
  * Setup a connection to the file-sharing service.
  *
  * @param sched scheduler to use
@@ -274,20 +588,21 @@ GNUNET_FS_start (struct GNUNET_SCHEDULER_Handle *sched,
 	}
     }
   va_end (ap);
-  // FIXME: setup receive-loop with client
+  // FIXME: setup receive-loop with client (do we need one?)
 
-  // FIXME: deserialize state; use client-name to find master-directory!
-  // Deserialize-Upload:
-  // * read FNs for upload FIs, deserialize each
-  // Deserialize Search:
-  // * read search queries
-  // * for each query, read file with search results
-  // * for each search result with active download, deserialize download
-  // * for each directory search result, check for active downloads of contents
-  // Deserialize Download:
-  // * always part of search???
-  // Deserialize Unindex:
-  // * read FNs for unindex with progress offset
+  if (0 != (GNUNET_FS_FLAGS_PERSISTENCE & flags))
+    {
+      deserialize_publish (ret);
+      // Deserialize Search:
+      // * read search queries
+      // * for each query, read file with search results
+      // * for each search result with active download, deserialize download
+      // * for each directory search result, check for active downloads of contents
+      // Deserialize Download:
+      // * always part of search???
+      // Deserialize Unindex:
+      // * read FNs for unindex with progress offset
+    }
   return ret;
 }
 
@@ -302,8 +617,11 @@ GNUNET_FS_start (struct GNUNET_SCHEDULER_Handle *sched,
 void 
 GNUNET_FS_stop (struct GNUNET_FS_Handle *h)
 {
-  // FIXME: serialize state!? (or is it always serialized???)
-  // FIXME: terminate receive-loop with client  
+  if (0 != (GNUNET_FS_FLAGS_PERSISTENCE & h->flags))
+    {
+      // FIXME: generate SUSPEND events and clean up state!
+    }
+  // FIXME: terminate receive-loop with client  (do we need one?)
   if (h->queue_job != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (h->sched,
 			     h->queue_job);

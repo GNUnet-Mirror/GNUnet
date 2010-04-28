@@ -42,15 +42,6 @@
 
 #define DEBUG_PUBLISH GNUNET_NO
 
-/**
- * Main function that performs the upload.
- * @param cls "struct GNUNET_FS_PublishContext" identifies the upload
- * @param tc task context
- */
-static void
-do_upload (void *cls,
-	   const struct GNUNET_SCHEDULER_TaskContext *tc);
-
 
 /**
  * Context for "ds_put_cont".
@@ -81,18 +72,19 @@ struct PutContCtx
 
 /**
  * Fill in all of the generic fields for 
- * a publish event.
+ * a publish event and call the callback.
  *
  * @param pi structure to fill in
  * @param sc overall publishing context
  * @param p file information for the file being published
  * @param offset where in the file are we so far
+ * @return value returned from callback
  */
-static void
-make_publish_status (struct GNUNET_FS_ProgressInfo *pi,
-		     struct GNUNET_FS_PublishContext *sc,
-		     const struct GNUNET_FS_FileInformation *p,
-		     uint64_t offset)
+void *
+GNUNET_FS_publish_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
+				struct GNUNET_FS_PublishContext *sc,
+				const struct GNUNET_FS_FileInformation *p,
+				uint64_t offset)
 {
   pi->value.publish.sc = sc;
   pi->value.publish.fi = p;
@@ -111,27 +103,29 @@ make_publish_status (struct GNUNET_FS_ProgressInfo *pi,
   pi->value.publish.completed = offset;
   pi->value.publish.duration = GNUNET_TIME_absolute_get_duration (p->start_time);
   pi->value.publish.anonymity = p->anonymity;
+  return sc->h->upcb (sc->h->upcb_cls,
+		      pi);
 }
 
 
 /**
- * Cleanup the publish context, we're done
- * with it.
+ * Cleanup the publish context, we're done with it.
  *
- * @param sc struct to clean up after
+ * @param pc struct to clean up after
  */
 static void
-publish_cleanup (struct GNUNET_FS_PublishContext *sc)
+publish_cleanup (struct GNUNET_FS_PublishContext *pc)
 {
-  GNUNET_FS_file_information_destroy (sc->fi, NULL, NULL);
-  if (sc->namespace != NULL)
-    GNUNET_FS_namespace_delete (sc->namespace, GNUNET_NO);
-  GNUNET_free_non_null (sc->nid);  
-  GNUNET_free_non_null (sc->nuid);
-  GNUNET_DATASTORE_disconnect (sc->dsh, GNUNET_NO);
-  if (sc->client != NULL)
-    GNUNET_CLIENT_disconnect (sc->client, GNUNET_NO);
-  GNUNET_free (sc);
+  GNUNET_FS_file_information_destroy (pc->fi, NULL, NULL);
+  if (pc->namespace != NULL)
+    GNUNET_FS_namespace_delete (pc->namespace, GNUNET_NO);
+  GNUNET_free_non_null (pc->nid);  
+  GNUNET_free_non_null (pc->nuid);
+  GNUNET_free_non_null (pc->serialization);
+  GNUNET_DATASTORE_disconnect (pc->dsh, GNUNET_NO);
+  if (pc->client != NULL)
+    GNUNET_CLIENT_disconnect (pc->client, GNUNET_NO);
+  GNUNET_free (pc);
 }
 
 
@@ -167,12 +161,9 @@ ds_put_cont (void *cls,
 		       msg);
       GNUNET_FS_file_information_sync (pcc->p);
       pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
-      make_publish_status (&pi, pcc->sc, pcc->p, 0);
       pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
       pi.value.publish.specifics.error.message = pcc->p->emsg;
-      pcc->p->client_info
-	= pcc->sc->h->upcb (pcc->sc->h->upcb_cls,
-			    &pi);
+      pcc->p->client_info = GNUNET_FS_publish_make_status_ (&pi, pcc->sc, pcc->p, 0);
     }
   GNUNET_FS_file_information_sync (pcc->p);
   if (NULL != pcc->cont)
@@ -200,13 +191,10 @@ signal_publish_completion (struct GNUNET_FS_FileInformation *p,
   struct GNUNET_FS_ProgressInfo pi;
   
   pi.status = GNUNET_FS_STATUS_PUBLISH_COMPLETED;
-  make_publish_status (&pi, sc, p,
-		       GNUNET_ntohll (p->chk_uri->data.chk.file_length));
   pi.value.publish.eta = GNUNET_TIME_UNIT_ZERO;
   pi.value.publish.specifics.completed.chk_uri = p->chk_uri;
-  p->client_info
-    = sc->h->upcb (sc->h->upcb_cls,
-		  &pi);
+  p->client_info = GNUNET_FS_publish_make_status_ (&pi, sc, p,
+					GNUNET_ntohll (p->chk_uri->data.chk.file_length));
 }
 
 
@@ -228,12 +216,9 @@ signal_publish_error (struct GNUNET_FS_FileInformation *p,
   
   p->emsg = GNUNET_strdup (emsg);
   pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
-  make_publish_status (&pi, sc, p, 0);
   pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
   pi.value.publish.specifics.error.message =emsg;
-  p->client_info
-    = sc->h->upcb (sc->h->upcb_cls,
-		  &pi);
+  p->client_info = GNUNET_FS_publish_make_status_ (&pi, sc, p, 0);
 }
 
 
@@ -314,7 +299,7 @@ publish_kblocks_cont (void *cls,
       sc->upload_task 
 	= GNUNET_SCHEDULER_add_with_priority (sc->h->sched,
 					      GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
-					      &do_upload,
+					      &GNUNET_FS_publish_main_,
 					      sc);
       return;
     }
@@ -329,7 +314,7 @@ publish_kblocks_cont (void *cls,
   sc->upload_task 
     = GNUNET_SCHEDULER_add_with_priority (sc->h->sched,
 					  GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
-					  &do_upload,
+					  &GNUNET_FS_publish_main_,
 					  sc);
 }
 
@@ -418,19 +403,16 @@ encode_cont (void *cls,
       GNUNET_free (emsg);
       GNUNET_FS_file_information_sync (p);
       pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
-      make_publish_status (&pi, sc, p, 0);
       pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
       pi.value.publish.specifics.error.message = p->emsg;
-      p->client_info
-	= sc->h->upcb (sc->h->upcb_cls,
-		       &pi);
+      p->client_info =  GNUNET_FS_publish_make_status_ (&pi, sc, p, 0);
     }
   /* continue with main */
   sc->upload_task 
     = GNUNET_SCHEDULER_add_with_priority (sc->h->sched,
 					  GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
-				    &do_upload,
-				    sc);
+					  &GNUNET_FS_publish_main_,
+					  sc);
 }
 
 
@@ -465,16 +447,16 @@ block_proc (void *cls,
     {
       sc->upload_task
 	= GNUNET_SCHEDULER_add_with_priority (sc->h->sched,
-					GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
-					&do_upload,
-					sc);
+					      GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+					      &GNUNET_FS_publish_main_,
+					      sc);
       return;
     }
   
   GNUNET_assert (GNUNET_NO == sc->in_network_wait);
   sc->in_network_wait = GNUNET_YES;
   dpc_cls = GNUNET_malloc(sizeof(struct PutContCtx));
-  dpc_cls->cont = &do_upload;
+  dpc_cls->cont = &GNUNET_FS_publish_main_;
   dpc_cls->cont_cls = sc;
   dpc_cls->sc = sc;
   dpc_cls->p = p;
@@ -550,14 +532,11 @@ progress_proc (void *cls,
 
   p = sc->fi_pos;
   pi.status = GNUNET_FS_STATUS_PUBLISH_PROGRESS;
-  make_publish_status (&pi, sc, p, offset);
   pi.value.publish.specifics.progress.data = pt_block;
   pi.value.publish.specifics.progress.offset = offset;
   pi.value.publish.specifics.progress.data_len = pt_size;
   pi.value.publish.specifics.progress.depth = depth;
-  p->client_info 
-    = sc->h->upcb (sc->h->upcb_cls,
-		   &pi);
+  p->client_info = GNUNET_FS_publish_make_status_ (&pi, sc, p, offset);
 }
 
 
@@ -800,12 +779,13 @@ hash_for_index_cb (void *cls,
 
 /**
  * Main function that performs the upload.
+ *
  * @param cls "struct GNUNET_FS_PublishContext" identifies the upload
  * @param tc task context
  */
-static void
-do_upload (void *cls,
-	   const struct GNUNET_SCHEDULER_TaskContext *tc)
+void
+GNUNET_FS_publish_main_ (void *cls,
+			 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_FS_PublishContext *sc = cls;
   struct GNUNET_FS_ProgressInfo pi;
@@ -856,12 +836,9 @@ do_upload (void *cls,
 	    }
 	  GNUNET_FS_file_information_sync (p);
 	  pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
-	  make_publish_status (&pi, sc, p, 0);
 	  pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
 	  pi.value.publish.specifics.error.message = p->emsg;
-	  p->client_info
-	    = sc->h->upcb (sc->h->upcb_cls,
-			   &pi);
+	  p->client_info = GNUNET_FS_publish_make_status_ (&pi, sc, p, 0);
 	}
       sc->all_done = GNUNET_YES;
       return;
@@ -953,9 +930,7 @@ fip_signal_start(void *cls,
   struct GNUNET_FS_ProgressInfo pi;
 
   pi.status = GNUNET_FS_STATUS_PUBLISH_START;
-  make_publish_status (&pi, sc, fi, 0);
-  *client_info = sc->h->upcb (sc->h->upcb_cls,
-			      &pi);
+  *client_info = GNUNET_FS_publish_make_status_ (&pi, sc, fi, 0);
   return GNUNET_OK;
 }
 
@@ -1018,12 +993,12 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
 
   // FIXME: calculate space needed for "fi"
   // and reserve as first task (then trigger
-  // "do_upload" from that continuation)!
+  // "publish_main" from that continuation)!
   ret->upload_task 
     = GNUNET_SCHEDULER_add_with_priority (h->sched,
-				    GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
-				    &do_upload,
-				    ret);
+					  GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+					  &GNUNET_FS_publish_main_,
+					  ret);
   return ret;
 }
 
@@ -1058,12 +1033,20 @@ fip_signal_stop(void *cls,
   struct GNUNET_FS_ProgressInfo pi;
   uint64_t off;
 
+  if (fi->serialization != NULL) 
+    {
+      if (0 != UNLINK (fi->serialization))
+	{
+	  GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+				    "unlink",
+				    fi->serialization); 
+	}
+      GNUNET_free (fi->serialization);
+      fi->serialization = NULL;
+    }
   off = (fi->chk_uri == NULL) ? 0 : length;
   pi.status = GNUNET_FS_STATUS_PUBLISH_STOPPED;
-  make_publish_status (&pi, sc, fi, off);
-  GNUNET_break (NULL ==
-		sc->h->upcb (sc->h->upcb_cls,
-			     &pi));
+  GNUNET_break (NULL == GNUNET_FS_publish_make_status_ (&pi, sc, fi, off));
   *client_info = NULL;
   return GNUNET_OK;
 }
@@ -1075,24 +1058,31 @@ fip_signal_stop(void *cls,
  * simply clean up the state for completed uploads.
  * Must NOT be called from within the event callback!
  *
- * @param sc context for the upload to stop
+ * @param pc context for the upload to stop
  */
 void 
-GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *sc)
+GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *pc)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != sc->upload_task)
-    GNUNET_SCHEDULER_cancel (sc->h->sched, sc->upload_task);
-  // FIXME: remove from persistence DB (?) --- think more about
-  //        shutdown / persistent-resume APIs!!!
-  GNUNET_FS_file_information_inspect (sc->fi,
-				      &fip_signal_stop,
-				      sc);
-  if (GNUNET_YES == sc->in_network_wait)
+  if (GNUNET_SCHEDULER_NO_TASK != pc->upload_task)
+    GNUNET_SCHEDULER_cancel (pc->h->sched, pc->upload_task);
+  if (pc->serialization != NULL) 
     {
-      sc->in_network_wait = GNUNET_SYSERR;
+      if (0 != UNLINK (pc->serialization))
+	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+				  "unlink",
+				  pc->serialization);          
+      GNUNET_free (pc->serialization);
+      pc->serialization = NULL;
+    }
+  GNUNET_FS_file_information_inspect (pc->fi,
+				      &fip_signal_stop,
+				      pc);
+  if (GNUNET_YES == pc->in_network_wait)
+    {
+      pc->in_network_wait = GNUNET_SYSERR;
       return;
     }
-  publish_cleanup (sc);
+  publish_cleanup (pc);
 }
 
 

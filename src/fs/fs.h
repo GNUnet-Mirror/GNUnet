@@ -326,7 +326,8 @@ struct GNUNET_FS_FileInformation
 
   /**
    * Under what filename is this struct serialized
-   * (for operational persistence).
+   * (for operational persistence).  Should be determined
+   * using 'mktemp'.
    */
   char *serialization;
   
@@ -340,6 +341,12 @@ struct GNUNET_FS_FileInformation
    * failed).
    */
   char *emsg;
+
+  /**
+   * Filename on disk that is used to track the progress of this
+   * upload (short name, not the full path).
+   */
+  char *serialization_name;
 
   /**
    * Data describing either the file or the directory.
@@ -586,6 +593,32 @@ GNUNET_FS_search_probe_progress_ (void *cls,
 				  const struct GNUNET_FS_ProgressInfo *info);
 
 
+/**
+ * Main function that performs the upload.
+ *
+ * @param cls "struct GNUNET_FS_PublishContext" identifies the upload
+ * @param tc task context
+ */
+void
+GNUNET_FS_publish_main_ (void *cls,
+			 const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
+ * Fill in all of the generic fields for a publish event and call the
+ * callback.
+ *
+ * @param pi structure to fill in
+ * @param sc overall publishing context
+ * @param p file information for the file being published
+ * @param offset where in the file are we so far
+ * @return value returned from callback
+ */
+void *
+GNUNET_FS_publish_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
+				struct GNUNET_FS_PublishContext *sc,
+				const struct GNUNET_FS_FileInformation *p,
+				uint64_t offset);
 
 /**
  * Master context for most FS operations.
@@ -683,7 +716,7 @@ struct GNUNET_FS_Handle
 
 
 /**
- * Handle for controlling an upload.
+ * Handle for controlling a publication process.
  */
 struct GNUNET_FS_PublishContext
 {
@@ -713,15 +746,19 @@ struct GNUNET_FS_PublishContext
   char *nuid;
 
   /**
-   * Our own client handle for the FS service;
-   * only briefly used when we start to index a
-   * file, otherwise NULL.
+   * Filename used for serializing information about this operation
+   * (should be determined using 'mktemp').
+   */
+  char *serialization;
+
+  /**
+   * Our own client handle for the FS service; only briefly used when
+   * we start to index a file, otherwise NULL.
    */
   struct GNUNET_CLIENT_Connection *client;
 
   /**
-   * Current position in the file-tree for the
-   * upload.
+   * Current position in the file-tree for the upload.
    */
   struct GNUNET_FS_FileInformation *fi_pos;
 
@@ -731,23 +768,19 @@ struct GNUNET_FS_PublishContext
   struct GNUNET_DATASTORE_Handle *dsh;
 
   /**
-   * ID of the task performing the upload. NO_TASK
-   * if the upload has completed.
+   * ID of the task performing the upload. NO_TASK if the upload has
+   * completed.
    */
   GNUNET_SCHEDULER_TaskIdentifier upload_task;
 
   /**
-   * Typically GNUNET_NO.  Set to GNUNET_YES if
-   * "upload_task" is GNUNET_SCHEDULER_NO_TASK
-   * and we're waiting for a response from the
-   * datastore service (in which case this
-   * struct must not be freed until we have that
-   * response).  If someone tries to stop the
-   * download for good during this period, 
-   * "in_network_wait" is set to GNUNET_SYSERR
-   * which will cause the struct to be destroyed
-   * right after we have the reply (or timeout)
-   * from the datastore service.
+   * Typically GNUNET_NO.  Set to GNUNET_YES if "upload_task" is
+   * GNUNET_SCHEDULER_NO_TASK and we're waiting for a response from
+   * the datastore service (in which case this struct must not be
+   * freed until we have that response).  If someone tries to stop the
+   * download for good during this period, "in_network_wait" is set to
+   * GNUNET_SYSERR which will cause the struct to be destroyed right
+   * after we have the reply (or timeout) from the datastore service.
    */
   int in_network_wait;
 
