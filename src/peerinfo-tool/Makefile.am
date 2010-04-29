@@ -25,4 +25,3 @@ TESTS = \
  test_gnunet_peerinfo.py 
 endif
 
-TESTS = $(check_SCRIPTS) 
