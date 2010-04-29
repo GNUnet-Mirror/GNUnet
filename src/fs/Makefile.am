@@ -131,7 +131,12 @@ check_PROGRAMS = \
  test_fs_uri \
  test_gnunet_service_fs_p2p
 
+
 if HAVE_PYTHON_PEXPECT
+TEST_EXTENSIONS = .py
+PY_LOG_COMPILER = $(PYTHON)
+AM_PY_LOG_FLAGS = -v
+
 check_SCRIPTS = \
  test_gnunet_fs_psd.py \
  test_gnunet_fs_rec.py \
