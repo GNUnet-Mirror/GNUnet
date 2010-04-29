@@ -25,7 +25,7 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_core_service.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 /**
  * How long until we fail the whole testcase?
@@ -82,6 +82,8 @@ static int transmit_ready_failed;
 static int transmit_ready_called;
 
 static enum GNUNET_TESTING_Topology topology;
+
+static char *test_directory;
 
 #define MTYPE 12345
 
@@ -592,6 +594,12 @@ run (void *cls,
               "Starting daemons based on config file %s\n", cfgfile);
 #endif
 
+  if (GNUNET_YES != GNUNET_CONFIGURATION_get_value_string(cfg, "paths", "servicehome", &test_directory))
+    {
+      ok = 404;
+      return;
+    }
+
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "topology",
                                              &topology_num))
@@ -625,6 +633,7 @@ check ()
   char *config_file_name;
   GNUNET_asprintf(&binary_name, "test-testing-topology-%s", topology_string);
   GNUNET_asprintf(&config_file_name, "test_testing_data_topology_%s.conf", topology_string);
+  int ret;
   char *const argv[] = {binary_name,
     "-c",
     config_file_name,
@@ -636,9 +645,13 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
+  ret = GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, binary_name, "nohelp",
                       options, &run, &ok);
+  if (ret != GNUNET_OK)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "`test-testing-topology-%s': Failed with error code %d\n", topology_string, ret);
+    }
   GNUNET_free(binary_name);
   GNUNET_free(config_file_name);
   return ok;
@@ -676,7 +689,10 @@ main (int argc, char *argv[])
    * Need to remove base directory, subdirectories taken care
    * of by the testing framework.
    */
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-testing");
+  if (GNUNET_DISK_directory_remove (test_directory) != GNUNET_OK)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Failed to remove testing directory %s\n", test_directory);
+    }
   GNUNET_free(our_binary_name);
   return ret;
 }
