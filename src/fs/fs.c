@@ -359,6 +359,11 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
       ret->data.file.do_index = GNUNET_NO;
       ret->data.file.have_hash = GNUNET_NO;
       ret->data.file.index_start_confirmed = GNUNET_NO;
+      /* FIXME: what's our approach for dealing with the
+	 'reader' and 'reader_cls' fields?  I guess the only
+	 good way would be to dump "small" files into 
+	 'rh' and to not support serialization of "large"
+	 files (!?) */
       break;
     case 1: /* file-index, no hash */
       if (GNUNET_OK !=
@@ -368,6 +373,9 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
       ret->data.file.do_index = GNUNET_YES;
       ret->data.file.have_hash = GNUNET_NO;
       ret->data.file.index_start_confirmed = GNUNET_NO;
+      /* FIXME: what's our approach for dealing with the
+	 'reader' and 'reader_cls' fields? 
+	 (should be easy for indexing since we must have a file) */
       break;
     case 2: /* file-index-with-hash */
       if ( (GNUNET_OK !=
@@ -379,6 +387,9 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
       ret->data.file.do_index = GNUNET_YES;
       ret->data.file.have_hash = GNUNET_YES;
       ret->data.file.index_start_confirmed = GNUNET_NO;
+      /* FIXME: what's our approach for dealing with the
+	 'reader' and 'reader_cls' fields? 
+	 (should be easy for indexing since we must have a file) */
       break;
     case 3: /* file-index-with-hash-confirmed */
       if ( (GNUNET_OK !=
@@ -390,6 +401,9 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
       ret->data.file.do_index = GNUNET_YES;
       ret->data.file.have_hash = GNUNET_YES;
       ret->data.file.index_start_confirmed = GNUNET_YES;
+      /* FIXME: what's our approach for dealing with the
+	 'reader' and 'reader_cls' fields? 
+	 (should be easy for indexing since we must have a file) */
       break;
     case 4: /* directory */
       if ( (GNUNET_OK !=
