@@ -231,7 +231,7 @@ GNUNET_FS_file_information_create_from_file (void *client_info,
 						       anonymity,
 						       priority,
 						       expirationTime);
-  ret->data.file.filename = GNUNET_strdup (filename);
+  ret->filename = GNUNET_strdup (filename);
   fn = filename;
   while (NULL != (ss = strstr (fn,
 			       DIR_SEPARATOR_STR)))
@@ -677,7 +677,7 @@ GNUNET_FS_file_information_create_from_directory (void *client_info,
 				     "text/plain",
 				     fn,
 				     strlen (fn) + 1);
-  ret->data.dir.dirname = GNUNET_strdup (filename);
+  ret->filename = GNUNET_strdup (filename);
   GNUNET_FS_file_information_sync (ret);
   return ret;
 }
@@ -845,7 +845,6 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
 		 &fi->expirationTime,
 		 &fi->client_info);
       GNUNET_free_non_null (fi->data.dir.dir_data);
-      GNUNET_free_non_null (fi->data.dir.dirname);
     }
   else
     {
@@ -863,6 +862,7 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
 		 &fi->expirationTime,
 		 &fi->client_info);
     }
+  GNUNET_free_non_null (fi->filename);
   GNUNET_free_non_null (fi->serialization);
   GNUNET_free_non_null (fi->emsg);
   GNUNET_free_non_null (fi->chk_uri);

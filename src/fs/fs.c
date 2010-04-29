@@ -284,6 +284,22 @@ get_read_handle (struct GNUNET_FS_Handle *h,
  * @return NULL on error
  */
 static struct GNUNET_FS_FileInformation *
+deserialize_fi_node (struct GNUNET_BIO_ReadHandle *rh)
+{
+  return NULL;
+}
+
+
+/**
+ * Using the given serialization filename, try to deserialize
+ * the file-information tree associated with it.
+ *
+ * @param h master context
+ * @param filename name of the file (without directory) with
+ *        the infromation
+ * @return NULL on error
+ */
+static struct GNUNET_FS_FileInformation *
 deserialize_file_information (struct GNUNET_FS_Handle *h,
 			      const char *filename)
 {
@@ -294,10 +310,7 @@ deserialize_file_information (struct GNUNET_FS_Handle *h,
   rh = get_read_handle (h, "publish-fi", filename);
   if (rh == NULL)
     return NULL;
-  
-  ret = NULL;
-  /* FIXME: not implemented! */
-
+  ret = deserialize_fi_node (rh);
   if (GNUNET_OK !=
       GNUNET_BIO_read_close (rh, &emsg))
     {

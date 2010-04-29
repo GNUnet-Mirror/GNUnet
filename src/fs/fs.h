@@ -349,6 +349,11 @@ struct GNUNET_FS_FileInformation
   char *serialization_name;
 
   /**
+   * Name of the file or directory (must be an absolute path). 
+   */
+  char *filename;
+
+  /**
    * Data describing either the file or the directory.
    */
   union
@@ -370,16 +375,8 @@ struct GNUNET_FS_FileInformation
       void *reader_cls;
 
       /**
-       * Name of the file (must be an absolute path).
-       * Only required for indexing.  FIXME: not yet
-       * initialized!
-       */
-      char *filename;
-
-      /**
-       * If this file is being indexed, this value
-       * is set to the hash over the entire file
-       * (when the indexing process is started). 
+       * If this file is being indexed, this value is set to the hash
+       * over the entire file (when the indexing process is started).
        * Otherwise this field is not used.
        */
       GNUNET_HashCode file_id;
@@ -395,8 +392,8 @@ struct GNUNET_FS_FileInformation
       int do_index;
 
       /**
-       * Is "file_id" already valid?  Set to GNUNET_YES
-       * once the hash has been calculated.
+       * Is "file_id" already valid?  Set to GNUNET_YES once the hash
+       * has been calculated.
        */
       int have_hash;
 
@@ -412,11 +409,6 @@ struct GNUNET_FS_FileInformation
      * Data for a directory.
      */
     struct {
-      
-      /**
-       * Name of the directory.
-       */
-      char *dirname;
       
       /**
        * Linked list of entries in the directory.

@@ -92,9 +92,8 @@ GNUNET_FS_publish_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
     = p->client_info;
   pi->value.publish.pctx
     = (NULL == p->dir) ? NULL : p->dir->client_info;
-  pi->value.publish.filename
-    = (p->is_directory) ? p->data.dir.dirname : p->data.file.filename;
-  pi->value.publish.size
+  pi->value.publish.filename = p->filename;
+  pi->value.publish.size 
     = (p->is_directory) ? p->data.dir.dir_size : p->data.file.file_size;
   pi->value.publish.eta 
     = GNUNET_TIME_calculate_eta (p->start_time,
@@ -642,7 +641,7 @@ process_index_start_response (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Can not index file `%s': %s.  Will try to insert instead.\n"),
-		  p->data.file.filename,
+		  p->filename,
 		  _("timeout on index-start request to `fs' service"));
       p->data.file.do_index = GNUNET_NO;
       publish_content (sc);
@@ -657,7 +656,7 @@ process_index_start_response (void *cls,
 	emsg = gettext_noop ("unknown error");
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Can not index file `%s': %s.  Will try to insert instead.\n"),
-		  p->data.file.filename,
+		  p->filename,
 		  gettext (emsg));
       p->data.file.do_index = GNUNET_NO;
       publish_content (sc);
@@ -695,7 +694,7 @@ hash_for_index_cb (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Can not index file `%s': %s.  Will try to insert instead.\n"),
-		  p->data.file.filename,
+		  p->filename,
 		  _("failed to compute hash"));
       p->data.file.do_index = GNUNET_NO;
       publish_content (sc);
@@ -706,7 +705,7 @@ hash_for_index_cb (void *cls,
       publish_content (sc);
       return;
     }
-  fn = GNUNET_STRINGS_filename_expand (p->data.file.filename);
+  fn = GNUNET_STRINGS_filename_expand (p->filename);
   slen = strlen (fn) + 1;
   if (slen > GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof(struct IndexStartMessage))
     {
@@ -732,7 +731,7 @@ hash_for_index_cb (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Can not index file `%s': %s.  Will try to insert instead.\n"),
-		  p->data.file.filename,
+		  p->filename,
 		  _("could not connect to `fs' service"));
       p->data.file.do_index = GNUNET_NO;
       publish_content (sc);
@@ -747,7 +746,7 @@ hash_for_index_cb (void *cls,
 			   slen);
   ism->header.type = htons(GNUNET_MESSAGE_TYPE_FS_INDEX_START);
   if (GNUNET_OK ==
-      GNUNET_DISK_file_get_identifiers (p->data.file.filename,
+      GNUNET_DISK_file_get_identifiers (p->filename,
 					&dev,
 					&ino))
     {
@@ -758,7 +757,7 @@ hash_for_index_cb (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Failed to get file identifiers for `%s'\n"),
-		  p->data.file.filename);
+		  p->filename);
     }
   ism->file_id = *res;
   memcpy (&ism[1],
@@ -871,7 +870,7 @@ GNUNET_FS_publish_main_ (void *cls,
   if ( (!p->is_directory) &&
        (p->data.file.do_index) )
     {
-      if (NULL == p->data.file.filename)
+      if (NULL == p->filename)
 	{
 	  p->data.file.do_index = GNUNET_NO;
 	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -889,7 +888,7 @@ GNUNET_FS_publish_main_ (void *cls,
 	  p->start_time = GNUNET_TIME_absolute_get ();
 	  GNUNET_CRYPTO_hash_file (sc->h->sched,
 				   GNUNET_SCHEDULER_PRIORITY_IDLE,
-				   p->data.file.filename,
+				   p->filename,
 				   HASHING_BLOCKSIZE,
 				   &hash_for_index_cb,
 				   sc);
