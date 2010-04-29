@@ -343,12 +343,6 @@ struct GNUNET_FS_FileInformation
   char *emsg;
 
   /**
-   * Filename on disk that is used to track the progress of this
-   * upload (short name, not the full path).
-   */
-  char *serialization_name;
-
-  /**
    * Name of the file or directory (must be an absolute path). 
    */
   char *filename;

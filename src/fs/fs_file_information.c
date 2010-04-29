@@ -849,7 +849,9 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
   else
     {
       /* call clean-up function of the reader */
-      fi->data.file.reader (fi->data.file.reader_cls, 0, 0, NULL, NULL);
+      if (fi->data.file.reader != NULL)
+	fi->data.file.reader (fi->data.file.reader_cls, 0, 0, 
+			      NULL, NULL);
       /* clean up client-info */
       if (NULL != cleaner)
 	cleaner (cleaner_cls, 
@@ -874,7 +876,8 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
 			      fi->serialization);
   if (NULL != fi->keywords)
     GNUNET_FS_uri_destroy (fi->keywords);
-  GNUNET_CONTAINER_meta_data_destroy (fi->meta);
+  if (NULL != fi->meta)
+    GNUNET_CONTAINER_meta_data_destroy (fi->meta);
   GNUNET_free_non_null (fi->serialization);
   if (fi->te != NULL)
     {

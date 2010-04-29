@@ -284,9 +284,160 @@ get_read_handle (struct GNUNET_FS_Handle *h,
  * @return NULL on error
  */
 static struct GNUNET_FS_FileInformation *
-deserialize_fi_node (struct GNUNET_BIO_ReadHandle *rh)
+deserialize_file_information (struct GNUNET_FS_Handle *h,
+			      const char *filename);
+
+
+/**
+ * Using the given serialization filename, try to deserialize
+ * the file-information tree associated with it.
+ *
+ * @param h master context
+ * @param fn name of the file (without directory) with
+ *        the infromation
+ * @param rh handle for reading
+ * @return NULL on error
+ */
+static struct GNUNET_FS_FileInformation *
+deserialize_fi_node (struct GNUNET_FS_Handle *h,
+		     const char *fn,
+		     struct GNUNET_BIO_ReadHandle *rh)
 {
+  struct GNUNET_FS_FileInformation *ret;
+  struct GNUNET_FS_FileInformation *nxt;
+  char b;
+  char *ksks;
+  char *chks;
+  char *filename;
+  uint32_t dsize;
+
+  if (GNUNET_OK !=
+      GNUNET_BIO_read (rh, "termination flag", &b, sizeof(b)))
+    {
+      GNUNET_break (0);
+      return NULL;
+    }
+  ret = GNUNET_malloc (sizeof (struct GNUNET_FS_FileInformation));
+  ksks = NULL;
+  chks = NULL;
+  filename = NULL;
+  if ( (GNUNET_OK !=
+	GNUNET_BIO_read_meta_data (rh, "metadata", &ret->meta)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_string (rh, "ksk-uri", &ksks, 32*1024)) ||
+       (NULL == 
+	(ret->keywords = GNUNET_FS_uri_parse (ksks, NULL))) ||
+       (GNUNET_YES !=
+	GNUNET_FS_uri_test_ksk (ret->keywords)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_string (rh, "chk-uri", &chks, 1024)) ||
+       ( (chks != NULL) &&
+	 ( (NULL == 
+	    (ret->chk_uri = GNUNET_FS_uri_parse (chks, NULL))) ||
+	   (GNUNET_YES !=
+	    GNUNET_FS_uri_test_chk (ret->chk_uri)) ) ) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int64 (rh, &ret->expirationTime.value)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int64 (rh, &ret->start_time.value)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_string (rh, "emsg", &ret->emsg, 16*1024)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_string (rh, "fn", &ret->filename, 16*1024)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int32 (rh, &ret->anonymity)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int32 (rh, &ret->priority)) )
+    goto cleanup;
+  switch (b)
+    {
+    case 0: /* file-insert */
+      if (GNUNET_OK !=
+	  GNUNET_BIO_read_int64 (rh, &ret->data.file.file_size))
+	goto cleanup;
+      ret->is_directory = GNUNET_NO;
+      ret->data.file.do_index = GNUNET_NO;
+      ret->data.file.have_hash = GNUNET_NO;
+      ret->data.file.index_start_confirmed = GNUNET_NO;
+      break;
+    case 1: /* file-index, no hash */
+      if (GNUNET_OK !=
+	  GNUNET_BIO_read_int64 (rh, &ret->data.file.file_size))
+	goto cleanup;
+      ret->is_directory = GNUNET_NO;
+      ret->data.file.do_index = GNUNET_YES;
+      ret->data.file.have_hash = GNUNET_NO;
+      ret->data.file.index_start_confirmed = GNUNET_NO;
+      break;
+    case 2: /* file-index-with-hash */
+      if ( (GNUNET_OK !=
+	    GNUNET_BIO_read_int64 (rh, &ret->data.file.file_size)) ||
+	   (GNUNET_OK !=
+	    GNUNET_BIO_read (rh, "fileid", &ret->data.file.file_id, sizeof (GNUNET_HashCode))) )
+	goto cleanup;
+      ret->is_directory = GNUNET_NO;
+      ret->data.file.do_index = GNUNET_YES;
+      ret->data.file.have_hash = GNUNET_YES;
+      ret->data.file.index_start_confirmed = GNUNET_NO;
+      break;
+    case 3: /* file-index-with-hash-confirmed */
+      if ( (GNUNET_OK !=
+	    GNUNET_BIO_read_int64 (rh, &ret->data.file.file_size)) ||
+	   (GNUNET_OK !=
+	    GNUNET_BIO_read (rh, "fileid", &ret->data.file.file_id, sizeof (GNUNET_HashCode))) )
+	goto cleanup;
+      ret->is_directory = GNUNET_NO;
+      ret->data.file.do_index = GNUNET_YES;
+      ret->data.file.have_hash = GNUNET_YES;
+      ret->data.file.index_start_confirmed = GNUNET_YES;
+      break;
+    case 4: /* directory */
+      if ( (GNUNET_OK !=
+	    GNUNET_BIO_read_int32 (rh, &dsize)) ||
+	   (NULL == (ret->data.dir.dir_data = GNUNET_malloc_large (dsize))) ||
+	   (GNUNET_OK !=
+	    GNUNET_BIO_read (rh, "dir-data", ret->data.dir.dir_data, dsize)) ||
+	   (GNUNET_OK !=
+	    GNUNET_BIO_read_string (rh, "ent-filename", &filename, 16*1024)) )
+	goto cleanup;
+      ret->data.dir.dir_size = (uint32_t) dsize;
+      ret->is_directory = GNUNET_YES;
+      if (filename != NULL)
+	{
+	  ret->data.dir.entries = deserialize_file_information (h, filename);
+	  GNUNET_free (filename);
+	  filename = NULL;
+	  nxt = ret->data.dir.entries;
+	  while (nxt != NULL)
+	    {
+	      nxt->dir = ret;
+	      nxt = nxt->next;
+	    }  
+	}
+      break;
+    default:
+      GNUNET_break (0);
+      goto cleanup;
+    }
+  /* FIXME: adjust ret->start_time! */
+  ret->serialization = GNUNET_strdup (fn);
+  if (GNUNET_OK !=
+      GNUNET_BIO_read_string (rh, "nxt-filename", &filename, 16*1024))
+    goto cleanup;  
+  if (filename != NULL)
+    {
+      ret->next = deserialize_file_information (h, filename);
+      GNUNET_free (filename);
+      filename = NULL;
+    }
+  return ret;
+ cleanup:
+  GNUNET_free_non_null (ksks);
+  GNUNET_free_non_null (chks);
+  GNUNET_free_non_null (filename);
+  GNUNET_FS_file_information_destroy (ret, NULL, NULL);
   return NULL;
+   
 }
 
 
@@ -310,7 +461,7 @@ deserialize_file_information (struct GNUNET_FS_Handle *h,
   rh = get_read_handle (h, "publish-fi", filename);
   if (rh == NULL)
     return NULL;
-  ret = deserialize_fi_node (rh);
+  ret = deserialize_fi_node (h, filename, rh);
   if (GNUNET_OK !=
       GNUNET_BIO_read_close (rh, &emsg))
     {
@@ -341,7 +492,7 @@ find_file_position (struct GNUNET_FS_FileInformation *pos,
   while (pos != NULL)
     {
       if (0 == strcmp (srch,
-		       pos->serialization_name))
+		       pos->serialization))
 	return pos;
       if (pos->is_directory)
 	{
