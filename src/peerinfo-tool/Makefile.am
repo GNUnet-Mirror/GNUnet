@@ -19,9 +19,9 @@ gnunet_peerinfo_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/util/libgnunetutil.la 
 
-
 if HAVE_PYTHON_PEXPECT
-check_SCRIPTS = \
+TESTS_ENVIRONMENT = $(PYTHON)
+TESTS = \
  test_gnunet_peerinfo.py 
 endif
 

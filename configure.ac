@@ -485,15 +485,21 @@ AC_DEFINE_UNQUOTED([HAVE_MHD], $lmhd, [We have libmicrohttpd])
 LIBS=$SAVE_LIBS
 
 # check for python & pexpect (used for some testcases only)
-AC_MSG_CHECKING([for python and pexpect])
-/usr/bin/python -c "import pexpect" > /dev/null 2> /dev/null
-PYEX=$?
-AM_CONDITIONAL(HAVE_PYTHON_PEXPECT, test $PYEX -eq 0)
-if test $PYEX -eq 0
+AM_PATH_PYTHON([2.5],, [:])
+AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
+
+if test "$PYTHON" != :
 then
-  AC_MSG_RESULT([yes])
-else
-  AC_MSG_RESULT([not found])
+  AC_MSG_CHECKING([for pexpect])
+  $PYTHON -c "import pexpect" > /dev/null 2> /dev/null
+  PYEX=$?
+  AM_CONDITIONAL(HAVE_PYTHON_PEXPECT, test $PYEX -eq 0)
+  if test $PYEX -eq 0
+  then
+    AC_MSG_RESULT([yes])
+  else
+    AC_MSG_RESULT([not found])
+  fi
 fi
 
 # libesmtp
