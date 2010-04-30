@@ -506,6 +506,12 @@ main (int argc, char *argv[])
   ret = check ();
   GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-hostlist-peer-1");
   GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-hostlist-peer-2");
+  if ( GNUNET_YES == GNUNET_DISK_file_test ("hostlists_learn_peer.file") )
+    {
+      if ( remove ("hostlists_learn_peer.file")  == 0)
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+            _("Hostlist file hostlists_learn_peer.file was removed\n"));
+    }
   return ret; 
 }
 
