@@ -47,19 +47,36 @@ static LONG mem_used = 0;
  *  this function (or GNUNET_malloc) to allocate more than several MB
  *  of memory, if you are possibly needing a very large chunk use
  *  GNUNET_xmalloc_unchecked_ instead.
- * @param filename where in the code was the call to GNUNET_array_grow
- * @param linenumber where in the code was the call to GNUNET_array_grow
+ * @param filename where in the code was the call to GNUNET_malloc
+ * @param linenumber where in the code was the call to GNUNET_malloc
  * @return pointer to size bytes of memory
  */
 void *
 GNUNET_xmalloc_ (size_t size, const char *filename, int linenumber)
 {
+  void *ret;
   /* As a security precaution, we generally do not allow very large
      allocations using the default 'GNUNET_malloc' macro */
   GNUNET_assert_at (size <= GNUNET_MAX_MALLOC_CHECKED, filename, linenumber);
-  return GNUNET_xmalloc_unchecked_ (size, filename, linenumber);
+  ret = GNUNET_xmalloc_unchecked_ (size, filename, linenumber);
+  if (ret == NULL)
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "malloc");
+      abort ();
+    }
+  return ret;
 }
 
+
+/**
+ * Wrapper around malloc. Allocates size bytes of memory.
+ * The memory will be zero'ed out.
+ *
+ * @param size the number of bytes to allocate
+ * @param filename where in the code was the call to GNUNET_malloc_large
+ * @param linenumber where in the code was the call to GNUNET_malloc_large
+ * @return pointer to size bytes of memory, NULL if we do not have enough memory
+ */
 void *
 GNUNET_xmalloc_unchecked_ (size_t size, const char *filename, int linenumber)
 {
@@ -74,10 +91,7 @@ GNUNET_xmalloc_unchecked_ (size_t size, const char *filename, int linenumber)
   GNUNET_assert_at (size < INT_MAX, filename, linenumber);
   result = malloc (size);
   if (result == NULL)
-    {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "malloc");
-      abort ();
-    }
+    return NULL;
   memset (result, 0, size);
 
 #ifdef W32_MEM_LIMIT
@@ -148,8 +162,8 @@ GNUNET_xfree_ (void *ptr, const char *filename, int linenumber)
  * Dup a string (same semantics as strdup).
  *
  * @param str the string to dup
- * @param filename where in the code was the call to GNUNET_array_grow
- * @param linenumber where in the code was the call to GNUNET_array_grow
+ * @param filename where in the code was the call to GNUNET_strdup
+ * @param linenumber where in the code was the call to GNUNET_strdup
  * @return strdup(str)
  */
 char *

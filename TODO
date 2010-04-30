@@ -1,6 +1,7 @@
 0.9.0pre1:
 * FS: [CG]
-  - persistence support (publish, unindex, search, download)
+  - persistence support (unindex, search, download)
+  - persistence testing (publish)
   - gnunet-service-fs (hot-path routing, load-based routing, nitpicks)  
   - [gnunet-service-fs.c:208]: member 'LocalGetContext::results_bf_size' is never used
   - [gnunet-service-fs.c:501]: member 'PendingRequest::used_pids_size' is never used

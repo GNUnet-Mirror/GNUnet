@@ -602,6 +602,30 @@ void *
 GNUNET_FS_make_file_reader_context_ (const char *filename);
 
 
+
+/**
+ * Function that provides data by copying from a buffer.
+ *
+ * @param cls closure (points to the buffer)
+ * @param offset offset to read from; it is possible
+ *            that the caller might need to go backwards
+ *            a bit at times
+ * @param max maximum number of bytes that should be 
+ *            copied to buf; readers are not allowed
+ *            to provide less data unless there is an error;
+ *            a value of "0" will be used at the end to allow
+ *            the reader to clean up its internal state
+ * @param buf where the reader should write the data
+ * @param emsg location for the reader to store an error message
+ * @return number of bytes written, usually "max", 0 on error
+ */
+size_t
+GNUNET_FS_data_reader_copy_(void *cls, 
+			    uint64_t offset,
+			    size_t max, 
+			    void *buf,
+			    char **emsg);
+
 /**
  * Notification of FS that a search probe has made progress.
  * This function is used INSTEAD of the client's event handler

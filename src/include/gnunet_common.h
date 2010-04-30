@@ -322,7 +322,7 @@ unsigned long long GNUNET_htonll (unsigned long long n);
  *
  * @param size the number of bytes to allocate, must be
  *        smaller than 40 MB.
- * @return pointer to size bytes of memory
+ * @return pointer to size bytes of memory, never NULL (!)
  */
 #define GNUNET_malloc(size) GNUNET_xmalloc_(size, __FILE__, __LINE__)
 
@@ -331,7 +331,7 @@ unsigned long long GNUNET_htonll (unsigned long long n);
  * The memory will be zero'ed out.
  *
  * @param size the number of bytes to allocate
- * @return pointer to size bytes of memory
+ * @return pointer to size bytes of memory, NULL if we do not have enough memory
  */
 #define GNUNET_malloc_large(size) GNUNET_xmalloc_unchecked_(size, __FILE__, __LINE__)
 
@@ -452,16 +452,16 @@ void *GNUNET_xmalloc_ (size_t size, const char *filename, int linenumber);
 
 
 /**
- * Allocate memory.  This function does not check if the
- * allocation request is within reasonable bounds, allowing
- * allocations larger than 40 MB.  If you don't expect the
- * possibility of very large allocations, use GNUNET_malloc instead.
- * The memory will be zero'ed out.
+ * Allocate memory.  This function does not check if the allocation
+ * request is within reasonable bounds, allowing allocations larger
+ * than 40 MB.  If you don't expect the possibility of very large
+ * allocations, use GNUNET_malloc instead.  The memory will be zero'ed
+ * out.
  *
  * @param size number of bytes to allocate
  * @param filename where is this call being made (for debugging)
  * @param linenumber line where this call is being made (for debugging)
- * @return allocated memory, never NULL
+ * @return pointer to size bytes of memory, NULL if we do not have enough memory
  */
 void *GNUNET_xmalloc_unchecked_ (size_t size,
                                  const char *filename, int linenumber);

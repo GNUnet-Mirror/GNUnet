@@ -325,6 +325,42 @@ GNUNET_FS_make_file_reader_context_ (const char *filename)
 
 
 /**
+ * Function that provides data by copying from a buffer.
+ *
+ * @param cls closure (points to the buffer)
+ * @param offset offset to read from; it is possible
+ *            that the caller might need to go backwards
+ *            a bit at times
+ * @param max maximum number of bytes that should be 
+ *            copied to buf; readers are not allowed
+ *            to provide less data unless there is an error;
+ *            a value of "0" will be used at the end to allow
+ *            the reader to clean up its internal state
+ * @param buf where the reader should write the data
+ * @param emsg location for the reader to store an error message
+ * @return number of bytes written, usually "max", 0 on error
+ */
+size_t
+GNUNET_FS_data_reader_copy_ (void *cls, 
+			     uint64_t offset,
+			     size_t max, 
+			     void *buf,
+			     char **emsg)
+{
+  char *data = cls;
+
+  if (max == 0)
+    {
+      GNUNET_free_non_null (data);
+      return 0;
+    }  
+  memcpy (buf, &data[offset], max);
+  return max;
+}
+
+
+
+/**
  * Return the full filename where we would store state information
  * (for serialization/deserialization).
  *
@@ -525,11 +561,24 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
       ret->data.file.do_index = GNUNET_NO;
       ret->data.file.have_hash = GNUNET_NO;
       ret->data.file.index_start_confirmed = GNUNET_NO;
-      /* FIXME: what's our approach for dealing with the
-	 'reader' and 'reader_cls' fields?  I guess the only
-	 good way would be to dump "small" files into 
-	 'rh' and to not support serialization of "large"
-	 files (!?) */
+      if (GNUNET_NO == ret->is_published) 
+	{
+	  if (NULL == ret->filename)
+	    {
+	      ret->data.file.reader = &GNUNET_FS_data_reader_copy_;
+	      ret->data.file.reader_cls = GNUNET_malloc_large (ret->data.file.file_size);
+	      if (ret->data.file.reader_cls == NULL)
+		goto cleanup;
+	      if (GNUNET_OK !=
+		  GNUNET_BIO_read (rh, "file-data", ret->data.file.reader_cls, ret->data.file.file_size))
+		goto cleanup;
+	    }      
+	  else
+	    {
+	      ret->data.file.reader = &GNUNET_FS_data_reader_file_;
+	      ret->data.file.reader_cls = GNUNET_FS_make_file_reader_context_ (ret->filename);
+	    }
+	}
       break;
     case 1: /* file-index, no hash */
       if (NULL == ret->filename)

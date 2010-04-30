@@ -131,41 +131,6 @@ GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
 
 
 /**
- * Function that provides data by copying from a buffer.
- *
- * @param cls closure (points to the buffer)
- * @param offset offset to read from; it is possible
- *            that the caller might need to go backwards
- *            a bit at times
- * @param max maximum number of bytes that should be 
- *            copied to buf; readers are not allowed
- *            to provide less data unless there is an error;
- *            a value of "0" will be used at the end to allow
- *            the reader to clean up its internal state
- * @param buf where the reader should write the data
- * @param emsg location for the reader to store an error message
- * @return number of bytes written, usually "max", 0 on error
- */
-static size_t
-data_reader_copy(void *cls, 
-		 uint64_t offset,
-		 size_t max, 
-		 void *buf,
-		 char **emsg)
-{
-  char *data = cls;
-
-  if (max == 0)
-    {
-      GNUNET_free (data);
-      return 0;
-    }  
-  memcpy (buf, &data[offset], max);
-  return max;
-}
-
-
-/**
  * Create an entry for a file in a publish-structure.
  *
  * @param h handle to the file sharing subsystem
@@ -205,7 +170,7 @@ GNUNET_FS_file_information_create_from_data (struct GNUNET_FS_Handle *h,
   return GNUNET_FS_file_information_create_from_reader (h,
 							client_info,
 							length,
-							&data_reader_copy,
+							&GNUNET_FS_data_reader_copy_,
 							data,
 							keywords,
 							meta,
