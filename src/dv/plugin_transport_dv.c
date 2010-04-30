@@ -257,15 +257,10 @@ dv_plugin_send (void *cls,
                        priority,
                        timeout,
                        addr,
-                       addrlen);
+                       addrlen,
+                       cont,
+                       cont_cls);
 
-  if (cont != NULL)
-    {
-      if (ret == 0)
-        cont(cont_cls, target, GNUNET_OK);
-      else
-        cont(cont_cls, target, GNUNET_SYSERR);
-    }
   return ret;
 }
 

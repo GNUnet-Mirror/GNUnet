@@ -42,7 +42,7 @@
 #include "gnunet_transport_service.h"
 #include "../transport/transport.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define VERBOSE_ARM GNUNET_NO
 
@@ -212,6 +212,8 @@ notify_connect (void *cls,
 {
   int peer_num = 0;
   int connect_num = 0;
+  struct PeerContext *from_peer = cls;
+  char *from_peer_str;
 
   if (cls == &p1)
     peer_num = 1;
@@ -231,15 +233,16 @@ notify_connect (void *cls,
     {
 
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                 "Peer 1 notified about connection to peer 3, distance %u!\n", GNUNET_i2s (peer), cls, distance);
+                 "Peer 1 notified about connection to peer 3, distance %u!\n", distance);
 
       GNUNET_TRANSPORT_notify_transmit_ready (p1.th,
 					      &p3.id,
 					      256, 0, TIMEOUT, &notify_ready,
 					      &p1);
     }
+  GNUNET_asprintf(&from_peer_str, "%s", GNUNET_i2s(&from_peer->id));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer `%d' connected to peer `%d' distance %d!\n", peer_num, connect_num, distance);
+              "Peer `%d' %4s connected to peer `%d' %4s distance %d!\n", peer_num, from_peer_str, connect_num, GNUNET_i2s(peer), distance);
 }
 
 
@@ -266,12 +269,6 @@ setup_peer (struct PeerContext *p, const char *cfgname)
                                         "-c", cfgname, "-s", "-q", NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
-
-  /*p->th = GNUNET_TRANSPORT_connect (sched, p->cfg,
-                                    p,
-                                    &notify_receive,
-                                    &notify_connect, &notify_disconnect);*/
-  /*GNUNET_assert (p->th != NULL);*/
 }
 
 

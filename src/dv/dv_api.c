@@ -36,6 +36,7 @@
 #include "gnunet_time_lib.h"
 #include "gnunet_dv_service.h"
 #include "dv.h"
+#include "../transport/plugin_transport.h"
 
 
 struct PendingMessages
@@ -109,12 +110,21 @@ struct GNUNET_DV_Handle
    */
   void *receive_cls;
 
+  /**
+   * Current unique ID
+   */
+  uint32_t uid_gen;
+
+  /**
+   * Hashmap containing outstanding send requests awaiting confirmation.
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *send_callbacks;
+
 };
 
 
 struct StartContext
 {
-
   /**
    * Start message
    */
@@ -126,6 +136,37 @@ struct StartContext
   struct GNUNET_DV_Handle *handle;
 };
 
+struct SendCallbackContext
+{
+  /**
+   * The continuation to call once a message is confirmed sent (or failed)
+   */
+  GNUNET_TRANSPORT_TransmitContinuation cont;
+
+  /**
+   * Closure to call with send continuation.
+   */
+  void *cont_cls;
+
+  /**
+   * Target of the message.
+   */
+  struct GNUNET_PeerIdentity target;
+};
+
+/**
+ * Convert unique ID to hash code.
+ *
+ * @param uid unique ID to convert
+ * @param hash set to uid (extended with zeros)
+ */
+static void
+hash_from_uid (uint32_t uid,
+               GNUNET_HashCode *hash)
+{
+  memset (hash, 0, sizeof(GNUNET_HashCode));
+  *((uint32_t*)hash) = uid;
+}
 
 /**
  * Try to (re)connect to the dv service.
@@ -283,58 +324,98 @@ static void add_pending(struct GNUNET_DV_Handle *handle, struct GNUNET_DV_SendMe
   process_pending_message(handle);
 }
 
-
+/**
+ * Handles a message sent from the DV service to us.
+ * Parse it out and give it to the plugin.
+ *
+ * @param cls the handle to the DV API
+ * @param msg the message that was received
+ */
 void handle_message_receipt (void *cls,
                              const struct GNUNET_MessageHeader * msg)
 {
   struct GNUNET_DV_Handle *handle = cls;
   struct GNUNET_DV_MessageReceived *received_msg;
+  struct GNUNET_DV_SendResultMessage *send_result_msg;
   size_t packed_msg_len;
   size_t sender_address_len;
   char *sender_address;
   char *packed_msg;
   char *packed_msg_start;
+  GNUNET_HashCode uidhash;
+  struct SendCallbackContext *send_ctx;
 
   if (msg == NULL)
   {
     return; /* Connection closed? */
   }
 
-  GNUNET_assert(ntohs(msg->type) == GNUNET_MESSAGE_TYPE_TRANSPORT_DV_RECEIVE);
+  GNUNET_assert((ntohs(msg->type) == GNUNET_MESSAGE_TYPE_TRANSPORT_DV_RECEIVE) || (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND_RESULT));
 
-  if (ntohs(msg->size) < sizeof(struct GNUNET_DV_MessageReceived))
-    return;
+  switch (ntohs(msg->type))
+  {
+  case GNUNET_MESSAGE_TYPE_TRANSPORT_DV_RECEIVE:
+    if (ntohs(msg->size) < sizeof(struct GNUNET_DV_MessageReceived))
+      return;
 
-  received_msg = (struct GNUNET_DV_MessageReceived *)msg;
-  packed_msg_len = ntohl(received_msg->msg_len);
-  sender_address_len = ntohl(received_msg->sender_address_len);
+    received_msg = (struct GNUNET_DV_MessageReceived *)msg;
+    packed_msg_len = ntohl(received_msg->msg_len);
+    sender_address_len = ntohl(received_msg->sender_address_len);
 
-  GNUNET_assert(ntohs(msg->size) == (sizeof(struct GNUNET_DV_MessageReceived) + packed_msg_len + sender_address_len));
+    GNUNET_assert(ntohs(msg->size) == (sizeof(struct GNUNET_DV_MessageReceived) + packed_msg_len + sender_address_len));
 #if DEBUG_DV
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "dv api receives message, size checks out!\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "dv api receives message, size checks out!\n");
 #endif
-  sender_address = GNUNET_malloc(sender_address_len);
-  memcpy(sender_address, &received_msg[1], sender_address_len);
-  packed_msg_start = (char *)&received_msg[1];
-  packed_msg = GNUNET_malloc(packed_msg_len);
-  memcpy(packed_msg, &packed_msg_start[sender_address_len], packed_msg_len);
+    sender_address = GNUNET_malloc(sender_address_len);
+    memcpy(sender_address, &received_msg[1], sender_address_len);
+    packed_msg_start = (char *)&received_msg[1];
+    packed_msg = GNUNET_malloc(packed_msg_len);
+    memcpy(packed_msg, &packed_msg_start[sender_address_len], packed_msg_len);
 
 #if DEBUG_DV
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: packed message type: %d or %d\n", ntohs(((struct GNUNET_MessageHeader *)packed_msg)->type), ((struct GNUNET_MessageHeader *)packed_msg)->type);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: message sender reported as %s\n", GNUNET_i2s(&received_msg->sender));
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: distance is %u\n", ntohl(received_msg->distance));
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: packed message type: %d or %d\n", ntohs(((struct GNUNET_MessageHeader *)packed_msg)->type), ((struct GNUNET_MessageHeader *)packed_msg)->type);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: message sender reported as %s\n", GNUNET_i2s(&received_msg->sender));
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: distance is %u\n", ntohl(received_msg->distance));
 #endif
 
-  handle->receive_handler(handle->receive_cls,
-                          &received_msg->sender,
-                          packed_msg,
-                          packed_msg_len,
-                          ntohl(received_msg->distance),
-                          sender_address,
-                          sender_address_len);
+    handle->receive_handler(handle->receive_cls,
+                            &received_msg->sender,
+                            packed_msg,
+                            packed_msg_len,
+                            ntohl(received_msg->distance),
+                            sender_address,
+                            sender_address_len);
 
-  GNUNET_free(sender_address);
+    GNUNET_free(sender_address);
+    break;
+  case GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND_RESULT:
+    if (ntohs(msg->size) < sizeof(struct GNUNET_DV_SendResultMessage))
+      return;
 
+    send_result_msg = (struct GNUNET_DV_SendResultMessage *)msg;
+    hash_from_uid(ntohl(send_result_msg->uid), &uidhash);
+    send_ctx = GNUNET_CONTAINER_multihashmap_get(handle->send_callbacks, &uidhash);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "got uid of %u or %u, hash of %s !!!!\n", ntohl(send_result_msg->uid), send_result_msg->uid, GNUNET_h2s(&uidhash));
+
+    if ((send_ctx != NULL) && (send_ctx->cont != NULL))
+      {
+#if DEBUG_DV
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "dv api notifies transport of send result (%u)!\n", ntohl(send_result_msg->result));
+#endif
+        if (ntohl(send_result_msg->result) == 0)
+          {
+            send_ctx->cont(send_ctx->cont_cls, &send_ctx->target, GNUNET_OK);
+          }
+        else
+          {
+            send_ctx->cont(send_ctx->cont_cls, &send_ctx->target, GNUNET_SYSERR);
+          }
+      }
+    GNUNET_free_non_null(send_ctx);
+    break;
+  default:
+    break;
+  }
   GNUNET_CLIENT_receive (handle->client,
                          &handle_message_receipt,
                          handle, GNUNET_TIME_UNIT_FOREVER_REL);
@@ -361,14 +442,18 @@ int GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
                     unsigned int priority,
                     struct GNUNET_TIME_Relative timeout,
                     const void *addr,
-                    size_t addrlen)
+                    size_t addrlen,
+                    GNUNET_TRANSPORT_TransmitContinuation
+                    cont, void *cont_cls)
 {
   struct GNUNET_DV_SendMessage *msg;
+  struct SendCallbackContext *send_ctx;
   char *end_of_message;
-  /* FIXME: Copy message to end of thingy, can't just allocate dummy! */
+  GNUNET_HashCode uidhash;
 #if DEBUG_DV
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV SEND called with message of size %d, address size %d, total size to send is %d\n", msgbuf_size, addrlen, sizeof(struct GNUNET_DV_SendMessage) + msgbuf_size + addrlen);
 #endif
+  dv_handle->uid_gen++;
   msg = GNUNET_malloc(sizeof(struct GNUNET_DV_SendMessage) + addrlen + msgbuf_size);
   msg->header.size = htons(sizeof(struct GNUNET_DV_SendMessage) + addrlen + msgbuf_size);
   msg->header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND);
@@ -377,11 +462,25 @@ int GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
   msg->priority = htonl(priority);
   msg->timeout = timeout;
   msg->addrlen = htonl(addrlen);
+  msg->uid = htonl(dv_handle->uid_gen);
   memcpy(&msg[1], addr, addrlen);
   end_of_message = (char *)&msg[1];
   end_of_message = &end_of_message[addrlen];
   memcpy(end_of_message, msgbuf, msgbuf_size);
   add_pending(dv_handle, msg);
+
+  send_ctx = GNUNET_malloc(sizeof(struct SendCallbackContext));
+
+  send_ctx->cont = cont;
+  if (cont == NULL)
+    fprintf(stderr, "DV_SEND called with null continuation!\n");
+  send_ctx->cont_cls = cont_cls;
+  memcpy(&send_ctx->target, target, sizeof(struct GNUNET_PeerIdentity));
+
+  hash_from_uid(dv_handle->uid_gen, &uidhash);
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "set uid of %u or %u, hash of %s !!!!\n", dv_handle->uid_gen, htonl(dv_handle->uid_gen), GNUNET_h2s(&uidhash));
+  GNUNET_CONTAINER_multihashmap_put(dv_handle->send_callbacks, &uidhash, send_ctx, GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
 
   return GNUNET_OK;
 }
@@ -463,6 +562,8 @@ GNUNET_DV_connect (struct GNUNET_SCHEDULER_Handle *sched,
                                        GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60),
                                        GNUNET_YES,
                                        &transmit_start, start_context);
+
+  handle->send_callbacks = GNUNET_CONTAINER_multihashmap_create(100);
 
   GNUNET_CLIENT_receive (handle->client,
                          &handle_message_receipt,

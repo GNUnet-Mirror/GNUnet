@@ -29,8 +29,9 @@
 #include "gnunet_common.h"
 
 #define DEBUG_DV_GOSSIP GNUNET_NO
+#define DEBUG_DV_GOSSIP_SEND GNUNET_YES
 #define DEBUG_DV_GOSSIP_RECEIPT GNUNET_YES
-#define DEBUG_DV GNUNET_NO
+#define DEBUG_DV GNUNET_YES
 #define DEBUG_DV_API GNUNET_YES
 
 typedef void (*GNUNET_DV_MessageReceivedHandler) (void *cls,
@@ -112,6 +113,27 @@ struct GNUNET_DV_ConnectMessage
 
 };
 
+/**
+ * Message to return result from a send attempt
+ */
+struct GNUNET_DV_SendResultMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_DV_SEND_RESULT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique ID for attempted sent message.
+   */
+  uint32_t uid;
+
+  /**
+   * Result of attempted send, 0 for send okay,
+   * 1 for failure of any reason.
+   */
+  uint32_t result;
+};
 
 /**
  * Message to send a message over DV via a specific peer
@@ -137,6 +159,11 @@ struct GNUNET_DV_SendMessage
    * Message priority
    */
   uint32_t priority;
+
+  /**
+   * Unique ID for this message, for confirm callback.
+   */
+  uint32_t uid;
 
   /**
    * How long can we delay sending?
@@ -212,6 +239,21 @@ typedef struct
   unsigned int recipient GNUNET_PACKED;
 
 } p2p_dv_MESSAGE_Data;
+
+/**
+ * Message that gets sent between nodes indicating a peer
+ * was disconnected.
+ */
+typedef struct
+{
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Identity of neighbor that was disconnected.
+   */
+  uint32_t peer_id GNUNET_PACKED;
+
+} p2p_dv_MESSAGE_Disconnect;
 
 
 struct GNUNET_DV_Handle *
