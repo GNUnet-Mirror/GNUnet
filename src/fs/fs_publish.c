@@ -1060,10 +1060,7 @@ GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *pc)
     GNUNET_SCHEDULER_cancel (pc->h->sched, pc->upload_task);
   if (pc->serialization != NULL) 
     {
-      if (0 != UNLINK (pc->serialization))
-	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-				  "unlink",
-				  pc->serialization);          
+      GNUNET_FS_remove_sync_file_ (pc->h, "publish", pc->serialization);
       GNUNET_free (pc->serialization);
       pc->serialization = NULL;
     }

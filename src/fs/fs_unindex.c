@@ -445,7 +445,11 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc)
       uc->state = UNINDEX_STATE_ABORTED;
       return;
     }
-  // FIXME: make unpersistent!
+  if (uc->serialization != NULL)
+    {
+      GNUNET_FS_remove_sync_file_ (uc->h, "unindex", uc->serialization);
+      uc->serialization = NULL;
+    }
   make_unindex_status (&pi, uc, 
 		       (uc->state == UNINDEX_STATE_COMPLETE)
 		       ? uc->file_size : 0);
@@ -456,6 +460,7 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc)
 		   &pi);
   GNUNET_break (NULL == uc->client_info);
   GNUNET_free (uc->filename);
+  GNUNET_free_non_null (uc->serialization);
   GNUNET_free (uc);
 }
 

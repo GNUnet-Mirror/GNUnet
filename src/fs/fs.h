@@ -675,6 +675,19 @@ GNUNET_FS_publish_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
 
 
 /**
+ * Remove serialization/deserialization file from disk.
+ *
+ * @param h master context
+ * @param ext component of the path 
+ * @param ent entity identifier 
+ */
+void
+GNUNET_FS_remove_sync_file_ (struct GNUNET_FS_Handle *h,
+			     const char *ext,
+			     const char *ent);
+
+
+/**
  * Synchronize this file-information struct with its mirror
  * on disk.  Note that all internal FS-operations that change
  * file information data should already call "sync" internally,
@@ -936,6 +949,11 @@ struct GNUNET_FS_UnindexContext
    * Name of the file that we are unindexing.
    */
   char *filename;
+
+  /**
+   * Short name under which we are serializing the state of this operation.
+   */
+  char *serialization;
 
   /**
    * Connection to the FS service, only valid during the

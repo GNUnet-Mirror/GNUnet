@@ -452,10 +452,10 @@ get_write_handle (struct GNUNET_FS_Handle *h,
  * @param ext component of the path 
  * @param ent entity identifier 
  */
-static void
-remove_sync_file (struct GNUNET_FS_Handle *h,
-		  const char *ext,
-		  const char *ent)
+void
+GNUNET_FS_remove_sync_file_ (struct GNUNET_FS_Handle *h,
+			     const char *ext,
+			     const char *ent)
 {
   char *filename;
 
@@ -1034,6 +1034,7 @@ deserialize_publish_file (void *cls,
 
   pc = GNUNET_malloc (sizeof (struct GNUNET_FS_PublishContext));
   pc->h = h;
+  pc->serialization = get_serialization_short_name (filename);
   fi_root = NULL;
   fi_pos = NULL;
   ns = NULL;
@@ -1084,7 +1085,6 @@ deserialize_publish_file (void *cls,
 	    pc->fi_pos = pc->fi;
 	}
     }
-  pc->serialization = get_serialization_short_name (filename);
   /* generate RESUME event(s) */
   GNUNET_FS_file_information_inspect (pc->fi,
 				      &fip_signal_resume,
@@ -1101,7 +1101,7 @@ deserialize_publish_file (void *cls,
       GNUNET_BIO_read_close (rh, &emsg))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Failed to resume publishing operation `%s': %s\n"),
+		  _("Failure while resuming publishing operation `%s': %s\n"),
 		  filename,
 		  emsg);
       GNUNET_free (emsg);
@@ -1124,7 +1124,8 @@ deserialize_publish_file (void *cls,
     }
   if (pc->fi != NULL)
     GNUNET_FS_file_information_destroy (pc->fi, NULL, NULL);
-  remove_sync_file (h, "publish", pc->serialization);
+  if (pc->serialization != NULL)
+    GNUNET_FS_remove_sync_file_ (h, "publish", pc->serialization);
   GNUNET_free_non_null (pc->serialization);
   GNUNET_free (pc);
   return GNUNET_OK;
@@ -1173,7 +1174,7 @@ GNUNET_FS_publish_sync_ (struct GNUNET_FS_PublishContext *pc)
 	GNUNET_BIO_write_string (wh, (pc->namespace == NULL) ? NULL : pc->namespace->name)) )
    {
      (void) GNUNET_BIO_write_close (wh);
-     remove_sync_file (pc->h, "publish", pc->serialization);
+     GNUNET_FS_remove_sync_file_ (pc->h, "publish", pc->serialization);
      GNUNET_free (pc->serialization);
      pc->serialization = NULL;
      return;
@@ -1181,7 +1182,7 @@ GNUNET_FS_publish_sync_ (struct GNUNET_FS_PublishContext *pc)
  if (GNUNET_OK !=
      GNUNET_BIO_write_close (wh))
    {
-     remove_sync_file (pc->h, "publish", pc->serialization);
+     GNUNET_FS_remove_sync_file_ (pc->h, "publish", pc->serialization);
      GNUNET_free (pc->serialization);
      pc->serialization = NULL;
      return;     
@@ -1203,6 +1204,119 @@ deserialize_publish (struct GNUNET_FS_Handle *h)
   if (dn == NULL)
     return;
   GNUNET_DISK_directory_scan (dn, &deserialize_publish_file, h);
+  GNUNET_free (dn);
+}
+
+
+
+
+/**
+ * Function called with a filename of serialized unindexing operation
+ * to deserialize.
+ *
+ * @param cls the 'struct GNUNET_FS_Handle*'
+ * @param filename complete filename (absolute path)
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int
+deserialize_unindex_file (void *cls,
+			  const char *filename)
+{
+  struct GNUNET_FS_Handle *h = cls;
+  struct GNUNET_BIO_ReadHandle *rh;
+  struct GNUNET_FS_UnindexContext *uc;
+  char *emsg;
+
+  uc = GNUNET_malloc (sizeof (struct GNUNET_FS_UnindexContext));
+  uc->h = h;
+  uc->serialization = get_serialization_short_name (filename);
+  rh = GNUNET_BIO_read_open (filename);
+  if (rh == NULL)
+    goto cleanup;
+  /* FIXME: do unindex state here! */
+#if 0
+  if ( (GNUNET_OK !=
+	GNUNET_BIO_read_string (rh, "publish-nid", &pc->nid, 1024)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_string (rh, "publish-nuid", &pc->nuid, 1024)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int32 (rh, &options)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int32 (rh, &all_done)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_string (rh, "publish-firoot", &fi_root, 128)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_string (rh, "publish-fipos", &fi_pos, 128)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_string (rh, "publish-ns", &ns, 1024)) )
+    goto cleanup;          
+  pc->options = options;
+  pc->all_done = all_done;
+  pc->fi = deserialize_file_information (h, fi_root);
+  if (pc->fi == NULL)
+    goto cleanup;    
+#endif
+  /* FIXME: generate RESUME event */
+  /* FIXME: re-start unindexing (if needed)... */
+  switch (uc->state)
+    {
+    default:
+      break;
+    }
+  if (GNUNET_OK !=
+      GNUNET_BIO_read_close (rh, &emsg))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Failure while resuming unindexing operation `%s': %s\n"),
+		  filename,
+		  emsg);
+      GNUNET_free (emsg);
+      rh = NULL;
+      goto cleanup;
+    }
+  return GNUNET_OK;
+ cleanup:
+  /* FIXME: clean unindex state here! */
+#if 0
+  GNUNET_free_non_null (pc->nid);
+  GNUNET_free_non_null (pc->nuid);
+  GNUNET_free_non_null (fi_root);
+  GNUNET_free_non_null (ns);
+#endif
+  if ( (rh != NULL) &&
+       (GNUNET_OK !=
+	GNUNET_BIO_read_close (rh, &emsg)) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Failed to resume unindexing operation `%s': %s\n"),
+		  filename,
+		  emsg);
+      GNUNET_free (emsg);
+    }
+  if (uc->serialization != NULL)
+    GNUNET_FS_remove_sync_file_ (h, "unindex", uc->serialization);
+  GNUNET_free_non_null (uc->serialization);
+  GNUNET_free (uc);
+  return GNUNET_OK;
+}
+
+
+
+
+/**
+ * Deserialize information about pending publish operations.
+ *
+ * @param h master context
+ */
+static void
+deserialize_unindex (struct GNUNET_FS_Handle *h)
+{
+  char *dn;
+
+  dn = get_serialization_file_name (h, "unindex", "");
+  if (dn == NULL)
+    return;
+  GNUNET_DISK_directory_scan (dn, &deserialize_unindex_file, h);
   GNUNET_free (dn);
 }
 
@@ -1282,8 +1396,7 @@ GNUNET_FS_start (struct GNUNET_SCHEDULER_Handle *sched,
       // * for each directory search result, check for active downloads of contents
       // Deserialize Download:
       // * always part of search???
-      // Deserialize Unindex:
-      // * read FNs for unindex with progress offset
+      deserialize_unindex (ret);
     }
   return ret;
 }
