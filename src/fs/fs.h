@@ -624,6 +624,18 @@ void
 GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation *f);
 
 
+/**
+ * Synchronize this publishing struct with its mirror
+ * on disk.  Note that all internal FS-operations that change
+ * publishing structs should already call "sync" internally,
+ * so this function is likely not useful for clients.
+ * 
+ * @param pc the struct to sync
+ */
+void
+GNUNET_FS_publish_sync_ (struct GNUNET_FS_PublishContext *pc);
+
+
 
 /**
  * Master context for most FS operations.
@@ -1350,6 +1362,11 @@ struct GNUNET_FS_Namespace
    * Name of the file with the private key.
    */
   char *filename;
+
+  /**
+   * Name of the namespace.
+   */ 
+  char *name;
 
   /**
    * Reference counter.

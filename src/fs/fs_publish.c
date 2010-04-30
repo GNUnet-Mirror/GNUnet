@@ -977,8 +977,7 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
       if (NULL != nuid)
 	ret->nuid = GNUNET_strdup (nuid);
     }
-  // FIXME: make upload persistent!
-
+  GNUNET_FS_publish_sync_ (ret);
   /* signal start */
   GNUNET_FS_file_information_inspect (ret->fi,
 				      &fip_signal_start,

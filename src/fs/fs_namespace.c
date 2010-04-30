@@ -343,6 +343,7 @@ GNUNET_FS_namespace_create (struct GNUNET_FS_Handle *h,
       GNUNET_free (fn);
       return NULL;
     }
+  ret->name = GNUNET_strdup (name);
   ret->filename = fn;
   return ret;
 }
@@ -375,6 +376,7 @@ GNUNET_FS_namespace_delete (struct GNUNET_FS_Namespace *namespace,
     {
       GNUNET_CRYPTO_rsa_key_free (namespace->key);
       GNUNET_free (namespace->filename);
+      GNUNET_free (namespace->name);
       GNUNET_free (namespace);
     }
   return GNUNET_OK;

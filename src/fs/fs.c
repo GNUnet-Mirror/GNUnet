@@ -300,6 +300,36 @@ get_write_handle (struct GNUNET_FS_Handle *h,
 
 
 /**
+ * Remove serialization/deserialization file from disk.
+ *
+ * @param h master context
+ * @param ext component of the path 
+ * @param ent entity identifier 
+ */
+static void
+remove_sync_file (struct GNUNET_FS_Handle *h,
+		  const char *ext,
+		  const char *ent)
+{
+  char *filename;
+
+  if ( (NULL == ent) ||
+       (0 == strlen (ent)) )
+    {
+      GNUNET_break (0);
+      return;
+    }
+  filename = get_serialization_file_name (h, ext, ent);
+  if (0 != UNLINK (filename))
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+			      "unlink", 
+			      filename);
+  GNUNET_free (filename);
+}
+
+
+
+/**
  * Using the given serialization filename, try to deserialize
  * the file-information tree associated with it.
  *
@@ -516,6 +546,68 @@ deserialize_file_information (struct GNUNET_FS_Handle *h,
 
 
 /**
+ * Given a serialization name (full absolute path), return the
+ * basename of the file (without the path), which must only
+ * consist of the 6 random characters.
+ * 
+ * @param fullname name to extract the basename from
+ * @return copy of the basename, NULL on error
+ */
+static char *
+get_serialization_short_name (const char *fullname)
+{
+  const char *end;
+  const char *nxt;
+
+  end = NULL;
+  nxt = fullname;
+  /* FIXME: we could do this faster since we know
+     the length of 'end'... */
+  while ('\0' != nxt)
+    {
+      if (DIR_SEPARATOR == *nxt)
+	end = nxt + 1;
+      nxt++;
+    }
+  if ( (end == NULL) ||
+       (strlen (end) == 0) )
+    {
+      GNUNET_break (0);
+      return NULL;
+    }
+  GNUNET_break (6 == strlen (end));
+  return GNUNET_strdup (end);  
+}
+
+
+/**
+ * Create a new random name for serialization.
+ *
+ * @param h master context
+ * @param ext component of the path 
+ * @return NULL on errror
+ */
+static char *
+make_serialization_file_name (struct GNUNET_FS_Handle *h,
+			      const char *ext)
+{
+  char *fn;
+  char *dn;
+  char *ret;
+
+  /* FIXME: check if persistence option was set! */
+  dn = get_serialization_file_name (h, ext, "");
+  fn = GNUNET_DISK_mktemp (dn);
+  GNUNET_free (dn);
+  if (fn == NULL)
+    return NULL; /* epic fail */
+  ret = get_serialization_short_name (fn);
+  GNUNET_free (fn);
+  return ret;
+}
+
+
+/**
  * Create a temporary file on disk to store the current
  * state of "fi" in.
  *
@@ -525,40 +617,16 @@ void
 GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation * fi)
 {
   char *fn;
-  char *dn;
-  const char *end;
-  const char *nxt;
   struct GNUNET_BIO_WriteHandle *wh;
   char b;
   char *ksks;
   char *chks;
 
+  /* FIXME: check if persistence option was set! */
+  if (NULL == fi->serialization)    
+    fi->serialization = make_serialization_file_name (fi->h, "publish-fi");
   if (NULL == fi->serialization)
-    {
-      dn = get_serialization_file_name (fi->h, "publish-fi", "");
-      fn = GNUNET_DISK_mktemp (dn);
-      GNUNET_free (dn);
-      if (fn == NULL)
-	return; /* epic fail */
-      end = NULL;
-      nxt = fn;
-      while ('\0' != nxt)
-	{
-	  if (DIR_SEPARATOR == *nxt)
-	    end = nxt + 1;
-	  nxt++;
-	}
-      if ( (end == NULL) ||
-	   (strlen (end) == 0) )
-	{
-	  GNUNET_break (0);
-	  GNUNET_free (fn);
-	  return;
-	}
-      GNUNET_break (6 == strlen (end));
-      fi->serialization = GNUNET_strdup (end);
-      GNUNET_free (fn);
-    }
+    return;
   wh = get_write_handle (fi->h, "publish-fi", fi->serialization);
   if (wh == NULL)
     {
@@ -658,7 +726,7 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation * fi)
       GNUNET_BIO_write_close (wh))
     return; /* done! */
  cleanup:
-  GNUNET_BIO_write_close (wh);
+  (void) GNUNET_BIO_write_close (wh);
   GNUNET_free_non_null (chks);
   GNUNET_free_non_null (ksks);
   fn = get_serialization_file_name (fi->h, "publish-fi", fi->serialization);
@@ -762,99 +830,71 @@ deserialize_publish_file (void *cls,
   char *fi_pos;
   char *emsg;
 
+  pc = GNUNET_malloc (sizeof (struct GNUNET_FS_PublishContext));
+  pc->h = h;
+  fi_root = NULL;
+  fi_pos = NULL;
+  ns = NULL;
   rh = GNUNET_BIO_read_open (filename);
   if (rh == NULL)
+    goto cleanup;
+  if ( (GNUNET_OK !=
+	GNUNET_BIO_read_string (rh, "publish-nid", &pc->nid, 1024)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_string (rh, "publish-nuid", &pc->nuid, 1024)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int32 (rh, &options)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int32 (rh, &all_done)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_string (rh, "publish-firoot", &fi_root, 128)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_string (rh, "publish-fipos", &fi_pos, 128)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_string (rh, "publish-ns", &ns, 1024)) )
+    goto cleanup;          
+  pc->options = options;
+  pc->all_done = all_done;
+  pc->fi = deserialize_file_information (h, fi_root);
+  if (pc->fi == NULL)
+    goto cleanup;    
+  if (ns != NULL)
     {
-      if (0 != UNLINK (filename))
-	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-				  "unlink", 
-				  filename);
-      return GNUNET_OK;
-    }
-  while (1)
-    {
-      fi_root = NULL;
-      fi_pos = NULL;
-      ns = NULL;
-      pc = GNUNET_malloc (sizeof (struct GNUNET_FS_PublishContext));
-      pc->h = h;
-      if ( (GNUNET_OK !=
-	    GNUNET_BIO_read_string (rh, "publish-nid", &pc->nid, 1024)) ||
-	   (GNUNET_OK !=
-	    GNUNET_BIO_read_string (rh, "publish-nuid", &pc->nuid, 1024)) ||
-	   (GNUNET_OK !=
-	    GNUNET_BIO_read_int32 (rh, &options)) ||
-	   (GNUNET_OK !=
-	    GNUNET_BIO_read_int32 (rh, &all_done)) ||
-	   (GNUNET_OK !=
-	    GNUNET_BIO_read_string (rh, "publish-firoot", &fi_root, 128)) ||
-	   (GNUNET_OK !=
-	    GNUNET_BIO_read_string (rh, "publish-fipos", &fi_pos, 128)) ||
-	   (GNUNET_OK !=
-	    GNUNET_BIO_read_string (rh, "publish-ns", &ns, 1024)) )
+      pc->namespace = GNUNET_FS_namespace_create (h, ns);
+      if (pc->namespace == NULL)
 	{
-	  GNUNET_free_non_null (pc->nid);
-	  GNUNET_free_non_null (pc->nuid);
-	  GNUNET_free_non_null (fi_root);
-	  GNUNET_free_non_null (ns);
-	  GNUNET_free (pc);
-	  break;
-	}      
-       pc->options = options;
-       pc->all_done = all_done;
-       pc->fi = deserialize_file_information (h, fi_root);
-       if (pc->fi == NULL)
-	 {
-	   GNUNET_free_non_null (pc->nid);
-	   GNUNET_free_non_null (pc->nuid);
-	   GNUNET_free_non_null (fi_root);
-	   GNUNET_free_non_null (ns);
-	   GNUNET_free (pc);
-	   continue;
-	 }
-       if (ns != NULL)
-	 {
-	   pc->namespace = GNUNET_FS_namespace_create (h, ns);
-	   if (pc->namespace == NULL)
-	     {
-	       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-			   _("Failed to recover namespace `%s', cannot resume publishing operation.\n"),
-			   ns);
-	       GNUNET_free_non_null (pc->nid);
-	       GNUNET_free_non_null (pc->nuid);
-	       GNUNET_free_non_null (fi_root);
-	       GNUNET_free_non_null (ns);
-	       GNUNET_free (pc);
-	       continue;
-	     }
-	 }
-       if (fi_pos != NULL)
-	 {
-	   pc->fi_pos = find_file_position (pc->fi,
-					    fi_pos);
-	   GNUNET_free (fi_pos);
-	   if (pc->fi_pos == NULL)
-	     {
-	       /* failed to find position for resuming, outch! Will start from root! */
-	       GNUNET_break (0);
-	       if (pc->all_done != GNUNET_YES)
-		 pc->fi_pos = pc->fi;
-	     }
-	 }
-       pc->serialization = GNUNET_strdup (filename);
-       /* generate RESUME event(s) */
-       GNUNET_FS_file_information_inspect (pc->fi,
-					   &fip_signal_resume,
-					   pc);
-       
-       /* re-start publishing (if needed)... */
-       if (pc->all_done != GNUNET_YES)
-	 pc->upload_task 
-	   = GNUNET_SCHEDULER_add_with_priority (h->sched,
-						 GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
-						 &GNUNET_FS_publish_main_,
-						 pc);       
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		      _("Failed to recover namespace `%s', cannot resume publishing operation.\n"),
+		      ns);
+	  goto cleanup;
+	}
     }
+  if (fi_pos != NULL)
+    {
+      pc->fi_pos = find_file_position (pc->fi,
+				       fi_pos);
+      GNUNET_free (fi_pos);
+      if (pc->fi_pos == NULL)
+	{
+	  /* failed to find position for resuming, outch! Will start from root! */
+	  GNUNET_break (0);
+	  if (pc->all_done != GNUNET_YES)
+	    pc->fi_pos = pc->fi;
+	}
+    }
+  pc->serialization = get_serialization_short_name (filename);
+  /* generate RESUME event(s) */
+  GNUNET_FS_file_information_inspect (pc->fi,
+				      &fip_signal_resume,
+				      pc);
+  
+  /* re-start publishing (if needed)... */
+  if (pc->all_done != GNUNET_YES)
+    pc->upload_task 
+      = GNUNET_SCHEDULER_add_with_priority (h->sched,
+					    GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+					    &GNUNET_FS_publish_main_,
+					    pc);       
   if (GNUNET_OK !=
       GNUNET_BIO_read_close (rh, &emsg))
     {
@@ -865,6 +905,85 @@ deserialize_publish_file (void *cls,
       GNUNET_free (emsg);
     }
   return GNUNET_OK;
+ cleanup:
+  GNUNET_free_non_null (pc->nid);
+  GNUNET_free_non_null (pc->nuid);
+  GNUNET_free_non_null (fi_root);
+  GNUNET_free_non_null (ns);
+  if ( (rh != NULL) &&
+       (GNUNET_OK !=
+	GNUNET_BIO_read_close (rh, &emsg)) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Failed to resume publishing operation `%s': %s\n"),
+		  filename,
+		  emsg);
+      GNUNET_free (emsg);
+    }
+  if (pc->fi != NULL)
+    GNUNET_FS_file_information_destroy (pc->fi, NULL, NULL);
+  remove_sync_file (h, "publish", pc->serialization);
+  GNUNET_free_non_null (pc->serialization);
+  GNUNET_free (pc);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Synchronize this publishing struct with its mirror
+ * on disk.  Note that all internal FS-operations that change
+ * publishing structs should already call "sync" internally,
+ * so this function is likely not useful for clients.
+ * 
+ * @param pc the struct to sync
+ */
+void
+GNUNET_FS_publish_sync_ (struct GNUNET_FS_PublishContext *pc)
+{  
+  struct GNUNET_BIO_WriteHandle *wh;
+
+  if (NULL == pc->serialization)
+    pc->serialization = make_serialization_file_name (pc->h,
+						      "publish");
+  if (NULL == pc->serialization)
+    return;
+  if (NULL == pc->fi)
+    return;
+  if (NULL == pc->fi->serialization)
+    {
+      GNUNET_break (0);
+      return;
+    }
+  wh = get_write_handle (pc->h, "publish", pc->serialization);
+ if ( (GNUNET_OK !=
+	GNUNET_BIO_write_string (wh, pc->nid)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_string (wh, pc->nuid)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_int32 (wh, pc->options)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_int32 (wh, pc->all_done)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_string (wh, pc->fi->serialization)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_string (wh, (pc->fi_pos == NULL) ? NULL : pc->fi_pos->serialization)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_string (wh, (pc->namespace == NULL) ? NULL : pc->namespace->name)) )
+   {
+     (void) GNUNET_BIO_write_close (wh);
+     remove_sync_file (pc->h, "publish", pc->serialization);
+     GNUNET_free (pc->serialization);
+     pc->serialization = NULL;
+     return;
+   }
+ if (GNUNET_OK !=
+     GNUNET_BIO_write_close (wh))
+   {
+     remove_sync_file (pc->h, "publish", pc->serialization);
+     GNUNET_free (pc->serialization);
+     pc->serialization = NULL;
+     return;     
+   }  
 }
 
 
