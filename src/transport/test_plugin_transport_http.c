@@ -18,11 +18,9 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file transport/test_transport_api.c
- * @brief testcase for transport_api.c
- * @author Sailor Siraj
- * @author Christian Grothoff
- * @author Nathan Evans
+ * @file transport/test_plugin_transport_http.c
+ * @brief testcase for plugin_transport_http.c
+ * @author Matthias Wachs
  */
 
 #include "platform.h"
@@ -38,7 +36,7 @@
 #include "plugin_transport.h"
 #include "transport.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 /**
  * How long until we give up on transmitting the message?
@@ -223,15 +221,15 @@ run (void *cls,
 
   /* load plugins... */
   setup_plugin_environment ();
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading udp transport plugin\n"));
-  GNUNET_asprintf (&libname, "libgnunet_plugin_transport_udp");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading http transport plugin\n"));
+  GNUNET_asprintf (&libname, "libgnunet_plugin_transport_http");
 
   api = GNUNET_PLUGIN_load (libname, &env);
   GNUNET_free (libname);
   if (api == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Failed to load transport plugin for udp\n"));
+                  _("Failed to load transport plugin for http\n"));
       /* FIXME: set some error code for main */
       return;
     }
@@ -254,9 +252,9 @@ main (int argc, char *const *argv)
   };
   int ret;
   char *const argv_prog[] = {
-    "test_plugin_transport",
+    "test-gnunetd-plugin-transport_http",
     "-c",
-    "test_plugin_transport_data_udp.conf",
+    "test_plugin_transport_data_http.conf",
     "-L",
 #if VERBOSE
     "DEBUG",
@@ -265,7 +263,7 @@ main (int argc, char *const *argv)
 #endif
     NULL
   };
-  GNUNET_log_setup ("test-plugin-transport",
+  GNUNET_log_setup ("test-gnunetd-plugin-transport_http",
 #if VERBOSE
                     "DEBUG",
 #else
@@ -276,12 +274,12 @@ main (int argc, char *const *argv)
   ret = (GNUNET_OK ==
          GNUNET_PROGRAM_run (5,
                              argv_prog,
-                             "test-plugin-transport",
+                             "test-plugin-transport_http",
                              "testcase", options, &run, NULL)) ? ok : 1;
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-plugin-transport");
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-plugin-transport_http");
   /* FIXME: return correct value */
   /* return ret; */
   return GNUNET_NO;
 }
 
-/* end of test_plugin_transport_udp.c */
+/* end of test_plugin_transport_http.c */
