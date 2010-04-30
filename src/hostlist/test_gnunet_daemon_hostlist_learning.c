@@ -293,7 +293,7 @@ static int ad_arrive_handler (void *cls,
 
   if ( GNUNET_SYSERR  == GNUNET_CONFIGURATION_get_value_string (adv_peer.cfg,
                                                    "HOSTLIST",
-                                                   "HOSTNAME",
+                                                   "EXTERNAL_DNS_NAME",
                                                    &hostname))
     hostname = GNUNET_RESOLVER_local_fqdn_get ();
 

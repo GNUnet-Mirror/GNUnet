@@ -602,10 +602,9 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 						   &port))
     return GNUNET_SYSERR;
 
-
   if ( GNUNET_SYSERR  == GNUNET_CONFIGURATION_get_value_string (cfg,
                                                    "HOSTLIST",
-                                                   "HOSTNAME",
+                                                   "EXTERNAL_DNS_NAME",
                                                    &hostname))
     hostname = GNUNET_RESOLVER_local_fqdn_get ();
 
