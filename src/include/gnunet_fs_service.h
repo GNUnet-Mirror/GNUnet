@@ -1562,16 +1562,6 @@ typedef int (*GNUNET_FS_FileInformationProcessor)(void *cls,
 
 
 /**
- * Recover file information structure from disk.
- *
- * @param fn filename for the structure on disk
- * @return NULL on error 
- */
-struct GNUNET_FS_FileInformation *
-GNUNET_FS_file_information_recover (const char *fn);
-
-
-/**
  * Obtain the name under which this file information
  * structure is stored on disk.  Only works for top-level
  * file information structures.
@@ -1585,21 +1575,11 @@ const char *
 GNUNET_FS_file_information_get_id (struct GNUNET_FS_FileInformation *s);
 
 
-/**
- * Synchronize this file-information struct with its mirror
- * on disk.  Note that all internal FS-operations that change
- * file information data should already call "sync" internally,
- * so this function is likely not useful for clients.
- * 
- * @param fi the struct to sync
- */
-void
-GNUNET_FS_file_information_sync (struct GNUNET_FS_FileInformation *f);
-
 
 /**
  * Create an entry for a file in a publish-structure.
  *
+ * @param h handle to the file sharing subsystem
  * @param client_info initial client-info value for this entry
  * @param filename name of the file or directory to publish
  * @param keywords under which keywords should this file be available
@@ -1615,7 +1595,8 @@ GNUNET_FS_file_information_sync (struct GNUNET_FS_FileInformation *f);
  * @return publish structure entry for the file
  */
 struct GNUNET_FS_FileInformation *
-GNUNET_FS_file_information_create_from_file (void *client_info,
+GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
+					     void *client_info,
 					     const char *filename,
 					     const struct GNUNET_FS_Uri *keywords,
 					     const struct GNUNET_CONTAINER_MetaData *meta,
@@ -1628,6 +1609,7 @@ GNUNET_FS_file_information_create_from_file (void *client_info,
 /**
  * Create an entry for a file in a publish-structure.
  *
+ * @param h handle to the file sharing subsystem
  * @param client_info initial client-info value for this entry
  * @param length length of the file
  * @param data data for the file (should not be used afterwards by
@@ -1645,7 +1627,8 @@ GNUNET_FS_file_information_create_from_file (void *client_info,
  * @return publish structure entry for the file
  */
 struct GNUNET_FS_FileInformation *
-GNUNET_FS_file_information_create_from_data (void *client_info,
+GNUNET_FS_file_information_create_from_data (struct GNUNET_FS_Handle *h,
+					     void *client_info,
 					     uint64_t length,
 					     void *data,
 					     const struct GNUNET_FS_Uri *keywords,
@@ -1682,6 +1665,7 @@ typedef size_t (*GNUNET_FS_DataReader)(void *cls,
 /**
  * Create an entry for a file in a publish-structure.
  *
+ * @param h handle to the file sharing subsystem
  * @param client_info initial client-info value for this entry
  * @param length length of the file
  * @param reader function that can be used to obtain the data for the file 
@@ -1699,7 +1683,8 @@ typedef size_t (*GNUNET_FS_DataReader)(void *cls,
  * @return publish structure entry for the file
  */
 struct GNUNET_FS_FileInformation *
-GNUNET_FS_file_information_create_from_reader (void *client_info,
+GNUNET_FS_file_information_create_from_reader (struct GNUNET_FS_Handle *h,
+					       void *client_info,
 					       uint64_t length,
 					       GNUNET_FS_DataReader reader,
 					       void *reader_cls,
@@ -1730,6 +1715,7 @@ typedef void (*GNUNET_FS_FileProcessor)(void *cls,
  * Type of a function that will be used to scan a directory.
  * 
  * @param cls closure
+ * @param h handle to the file sharing subsystem
  * @param dirname name of the directory to scan
  * @param do_index should files be indexed or inserted
  * @param anonymity desired anonymity level
@@ -1741,6 +1727,7 @@ typedef void (*GNUNET_FS_FileProcessor)(void *cls,
  * @return GNUNET_OK on success
  */
 typedef int (*GNUNET_FS_DirectoryScanner)(void *cls,
+					  struct GNUNET_FS_Handle *h,
 					  const char *dirname,
 					  int do_index,
 					  uint32_t anonymity,
@@ -1764,6 +1751,7 @@ typedef int (*GNUNET_FS_DirectoryScanner)(void *cls,
  * convenience function.
  *
  * @param cls must be of type "struct EXTRACTOR_Extractor*"
+ * @param h handle to the file sharing subsystem
  * @param dirname name of the directory to scan
  * @param do_index should files be indexed or inserted
  * @param anonymity desired anonymity level
@@ -1776,6 +1764,7 @@ typedef int (*GNUNET_FS_DirectoryScanner)(void *cls,
  */
 int
 GNUNET_FS_directory_scanner_default (void *cls,
+				     struct GNUNET_FS_Handle *h,
 				     const char *dirname,
 				     int do_index,
 				     uint32_t anonymity,
@@ -1796,6 +1785,7 @@ GNUNET_FS_directory_scanner_default (void *cls,
  * passed (GNUNET_FS_directory_scanner_default).  This is strictly a
  * convenience function.
  *
+ * @param h handle to the file sharing subsystem
  * @param client_info initial client-info value for this entry
  * @param filename name of the top-level file or directory
  * @param scanner function used to get a list of files in a directory
@@ -1810,7 +1800,8 @@ GNUNET_FS_directory_scanner_default (void *cls,
  * @return publish structure entry for the directory, NULL on error
  */
 struct GNUNET_FS_FileInformation *
-GNUNET_FS_file_information_create_from_directory (void *client_info,
+GNUNET_FS_file_information_create_from_directory (struct GNUNET_FS_Handle *h,
+						  void *client_info,
 						  const char *filename,
 						  GNUNET_FS_DirectoryScanner scanner,
 						  void *scanner_cls,
@@ -1827,6 +1818,7 @@ GNUNET_FS_file_information_create_from_directory (void *client_info,
  * use of "GNUNET_FS_file_information_create_from_directory"
  * is not appropriate.
  *
+ * @param h handle to the file sharing subsystem
  * @param client_info initial client-info value for this entry
  * @param keywords under which keywords should this directory be available
  *         directly; can be NULL
@@ -1839,7 +1831,8 @@ GNUNET_FS_file_information_create_from_directory (void *client_info,
  * @return publish structure entry for the directory , NULL on error
  */
 struct GNUNET_FS_FileInformation *
-GNUNET_FS_file_information_create_empty_directory (void *client_info,
+GNUNET_FS_file_information_create_empty_directory (struct GNUNET_FS_Handle *h,
+						   void *client_info,
 						   const struct GNUNET_FS_Uri *keywords,
 						   const struct GNUNET_CONTAINER_MetaData *meta,
 						   uint32_t anonymity,

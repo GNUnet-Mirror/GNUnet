@@ -36,40 +36,6 @@
 
 
 /**
- * Create a temporary file on disk to store the current
- * state of "fi" in.
- *
- * @param fi file information to sync with disk
- */
-void
-GNUNET_FS_file_information_sync (struct GNUNET_FS_FileInformation * fi)
-{
-  if (NULL == fi->serialization)
-    {
-      fi->serialization = NULL; // FIXME -- need cfg!
-    }
-  // FIXME...
-}
-
-
-/**
- * Load file information from the file to which
- * it was sync'ed.
- *
- * @param fn name of the file to use
- * @return NULL on error
- */
-struct GNUNET_FS_FileInformation *
-GNUNET_FS_file_information_recover (const char *fn)
-{
-  struct GNUNET_FS_FileInformation *ret;
-  ret = NULL;
-  // FIXME!
-  return ret;
-}
-
-
-/**
  * Obtain the name under which this file information
  * structure is stored on disk.  Only works for top-level
  * file information structures.
@@ -177,6 +143,7 @@ data_reader_file(void *cls,
 /**
  * Create an entry for a file in a publish-structure.
  *
+ * @param h handle to the file sharing subsystem
  * @param client_info initial value for the client-info value for this entry
  * @param filename name of the file or directory to publish
  * @param keywords under which keywords should this file be available
@@ -192,7 +159,8 @@ data_reader_file(void *cls,
  * @return publish structure entry for the file
  */
 struct GNUNET_FS_FileInformation *
-GNUNET_FS_file_information_create_from_file (void *client_info,
+GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
+					     void *client_info,
 					     const char *filename,
 					     const struct GNUNET_FS_Uri *keywords,
 					     const struct GNUNET_CONTAINER_MetaData *meta,
@@ -221,7 +189,8 @@ GNUNET_FS_file_information_create_from_file (void *client_info,
       GNUNET_free (fi);
       return NULL;
     }
-  ret = GNUNET_FS_file_information_create_from_reader (client_info,
+  ret = GNUNET_FS_file_information_create_from_reader (h,
+						       client_info,
 						       sbuf.st_size,
 						       &data_reader_file,
 						       fi,
@@ -231,6 +200,7 @@ GNUNET_FS_file_information_create_from_file (void *client_info,
 						       anonymity,
 						       priority,
 						       expirationTime);
+  ret->h = h;
   ret->filename = GNUNET_strdup (filename);
   fn = filename;
   while (NULL != (ss = strstr (fn,
@@ -285,6 +255,7 @@ data_reader_copy(void *cls,
 /**
  * Create an entry for a file in a publish-structure.
  *
+ * @param h handle to the file sharing subsystem
  * @param client_info initial value for the client-info value for this entry
  * @param length length of the file
  * @param data data for the file (should not be used afterwards by
@@ -302,7 +273,8 @@ data_reader_copy(void *cls,
  * @return publish structure entry for the file
  */
 struct GNUNET_FS_FileInformation *
-GNUNET_FS_file_information_create_from_data (void *client_info,
+GNUNET_FS_file_information_create_from_data (struct GNUNET_FS_Handle *h,
+					     void *client_info,
 					     uint64_t length,
 					     void *data,
 					     const struct GNUNET_FS_Uri *keywords,
@@ -312,7 +284,8 @@ GNUNET_FS_file_information_create_from_data (void *client_info,
 					     uint32_t priority,
 					     struct GNUNET_TIME_Absolute expirationTime)
 {
-  return GNUNET_FS_file_information_create_from_reader (client_info,
+  return GNUNET_FS_file_information_create_from_reader (h,
+							client_info,
 							length,
 							&data_reader_copy,
 							data,
@@ -328,6 +301,7 @@ GNUNET_FS_file_information_create_from_data (void *client_info,
 /**
  * Create an entry for a file in a publish-structure.
  *
+ * @param h handle to the file sharing subsystem
  * @param client_info initial value for the client-info value for this entry
  * @param length length of the file
  * @param reader function that can be used to obtain the data for the file 
@@ -345,7 +319,8 @@ GNUNET_FS_file_information_create_from_data (void *client_info,
  * @return publish structure entry for the file
  */
 struct GNUNET_FS_FileInformation *
-GNUNET_FS_file_information_create_from_reader (void *client_info,
+GNUNET_FS_file_information_create_from_reader (struct GNUNET_FS_Handle *h,
+					       void *client_info,
 					       uint64_t length,
 					       GNUNET_FS_DataReader reader,
 					       void *reader_cls,
@@ -359,6 +334,7 @@ GNUNET_FS_file_information_create_from_reader (void *client_info,
   struct GNUNET_FS_FileInformation *ret;
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_FileInformation));
+  ret->h = h;
   ret->client_info = client_info;  
   ret->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
   if (ret->meta == NULL)
@@ -371,7 +347,6 @@ GNUNET_FS_file_information_create_from_reader (void *client_info,
   ret->data.file.file_size = length;
   ret->anonymity = anonymity;
   ret->priority = priority;
-  GNUNET_FS_file_information_sync (ret);
   return ret;
 }
 
@@ -385,6 +360,11 @@ struct DirScanCls
    * Metadata extractors to use.
    */
   struct EXTRACTOR_PluginList *extractors;
+
+  /**
+   * Master context.
+   */ 
+  struct GNUNET_FS_Handle *h;
 
   /**
    * Function to call on each directory entry.
@@ -462,7 +442,8 @@ dir_scan_cb (void *cls,
     }
   if (S_ISDIR (sbuf.st_mode))
     {
-      fi = GNUNET_FS_file_information_create_from_directory (NULL,
+      fi = GNUNET_FS_file_information_create_from_directory (dsc->h,
+							     NULL,
 							     filename,
 							     dsc->scanner,
 							     dsc->scanner_cls,
@@ -486,7 +467,8 @@ dir_scan_cb (void *cls,
       // FIXME: remove path from filename in metadata!
       keywords = GNUNET_FS_uri_ksk_create_from_meta_data (meta);
       ksk_uri = GNUNET_FS_uri_ksk_canonicalize (keywords);
-      fi = GNUNET_FS_file_information_create_from_file (NULL,
+      fi = GNUNET_FS_file_information_create_from_file (dsc->h,
+							NULL,
 							filename,
 							ksk_uri,
 							meta,
@@ -517,6 +499,7 @@ dir_scan_cb (void *cls,
  * convenience function.
  *
  * @param cls must be of type "struct EXTRACTOR_Extractor*"
+ * @param h handle to the file sharing subsystem
  * @param dirname name of the directory to scan
  * @param do_index should files be indexed or inserted
  * @param anonymity desired anonymity level
@@ -529,6 +512,7 @@ dir_scan_cb (void *cls,
  */
 int
 GNUNET_FS_directory_scanner_default (void *cls,
+				     struct GNUNET_FS_Handle *h,
 				     const char *dirname,
 				     int do_index,
 				     uint32_t anonymity,
@@ -541,6 +525,7 @@ GNUNET_FS_directory_scanner_default (void *cls,
   struct EXTRACTOR_PluginList *ex = cls;
   struct DirScanCls dsc;
 
+  dsc.h = h;
   dsc.extractors = ex;
   dsc.proc = proc;
   dsc.proc_cls = proc_cls;
@@ -607,6 +592,7 @@ dirproc (void *cls,
  * passed (GNUNET_FS_directory_scanner_default).  This is strictly a
  * convenience function.
  *
+ * @param h handle to the file sharing subsystem
  * @param client_info initial value for the client-info value for this entry
  * @param filename name of the top-level file or directory
  * @param scanner function used to get a list of files in a directory
@@ -621,7 +607,8 @@ dirproc (void *cls,
  * @return publish structure entry for the directory, NULL on error
  */
 struct GNUNET_FS_FileInformation *
-GNUNET_FS_file_information_create_from_directory (void *client_info,
+GNUNET_FS_file_information_create_from_directory (struct GNUNET_FS_Handle *h,
+						  void *client_info,
 						  const char *filename,
 						  GNUNET_FS_DirectoryScanner scanner,
 						  void *scanner_cls,
@@ -642,6 +629,7 @@ GNUNET_FS_file_information_create_from_directory (void *client_info,
   meta = GNUNET_CONTAINER_meta_data_create ();
   GNUNET_FS_meta_data_make_directory (meta);
   scanner (scanner_cls,
+	   h,
 	   filename,
 	   do_index,
 	   anonymity,
@@ -652,7 +640,8 @@ GNUNET_FS_file_information_create_from_directory (void *client_info,
 	   emsg);
   ksk = NULL; // FIXME...
   // FIXME: create meta!
-  ret = GNUNET_FS_file_information_create_empty_directory (client_info,
+  ret = GNUNET_FS_file_information_create_empty_directory (h,
+							   client_info,
 							   ksk,
 							   meta,
 							   anonymity,
@@ -663,7 +652,6 @@ GNUNET_FS_file_information_create_from_directory (void *client_info,
   while (dc.entries != NULL)
     {
       dc.entries->dir = ret;
-      GNUNET_FS_file_information_sync (dc.entries);
       dc.entries = dc.entries->next;
     }
   fn = filename;
@@ -678,7 +666,6 @@ GNUNET_FS_file_information_create_from_directory (void *client_info,
 				     fn,
 				     strlen (fn) + 1);
   ret->filename = GNUNET_strdup (filename);
-  GNUNET_FS_file_information_sync (ret);
   return ret;
 }
 
@@ -689,6 +676,7 @@ GNUNET_FS_file_information_create_from_directory (void *client_info,
  * use of "GNUNET_FS_file_information_create_from_directory"
  * is not appropriate.
  *
+ * @param h handle to the file sharing subsystem
  * @param client_info initial value for the client-info value for this entry
  * @param meta metadata for the directory
  * @param keywords under which keywords should this directory be available
@@ -701,7 +689,8 @@ GNUNET_FS_file_information_create_from_directory (void *client_info,
  * @return publish structure entry for the directory , NULL on error
  */
 struct GNUNET_FS_FileInformation *
-GNUNET_FS_file_information_create_empty_directory (void *client_info,
+GNUNET_FS_file_information_create_empty_directory (struct GNUNET_FS_Handle *h,
+						   void *client_info,
 						   const struct GNUNET_FS_Uri *keywords,
 						   const struct GNUNET_CONTAINER_MetaData *meta,
 						   uint32_t anonymity,
@@ -711,6 +700,7 @@ GNUNET_FS_file_information_create_empty_directory (void *client_info,
   struct GNUNET_FS_FileInformation *ret;
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_FileInformation));
+  ret->h = h;
   ret->client_info = client_info;
   ret->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
   ret->keywords = GNUNET_FS_uri_dup (keywords);
@@ -718,7 +708,6 @@ GNUNET_FS_file_information_create_empty_directory (void *client_info,
   ret->is_directory = GNUNET_YES;
   ret->anonymity = anonymity;
   ret->priority = priority;
-  GNUNET_FS_file_information_sync (ret);
   return ret;
 }
 
@@ -749,8 +738,6 @@ GNUNET_FS_file_information_add (struct GNUNET_FS_FileInformation *dir,
   ent->next = dir->data.dir.entries;
   dir->data.dir.entries = ent;
   dir->data.dir.dir_size = 0;
-  GNUNET_FS_file_information_sync (ent);
-  GNUNET_FS_file_information_sync (dir);
   return GNUNET_OK;
 }
 

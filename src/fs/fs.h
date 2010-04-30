@@ -294,6 +294,11 @@ struct GNUNET_FS_FileInformation
   struct GNUNET_FS_FileInformation *dir;
 
   /**
+   * Handle to the master context.
+   */
+  struct GNUNET_FS_Handle *h;
+
+  /**
    * Pointer kept for the client.
    */
   void *client_info;
@@ -605,6 +610,20 @@ GNUNET_FS_publish_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
 				struct GNUNET_FS_PublishContext *sc,
 				const struct GNUNET_FS_FileInformation *p,
 				uint64_t offset);
+
+
+/**
+ * Synchronize this file-information struct with its mirror
+ * on disk.  Note that all internal FS-operations that change
+ * file information data should already call "sync" internally,
+ * so this function is likely not useful for clients.
+ * 
+ * @param fi the struct to sync
+ */
+void
+GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation *f);
+
+
 
 /**
  * Master context for most FS operations.

@@ -293,7 +293,10 @@ int GNUNET_DISK_file_get_identifiers (const char *filename,
  
 
 /**
- * Create an (empty) temporary file on disk.
+ * Create an (empty) temporary file on disk.  If the given name is not
+ * an absolute path, the current 'TMPDIR' will be prepended.  In any case,
+ * 6 random characters will be appended to the name to create a unique
+ * filename.
  * 
  * @param t component to use for the name;
  *        does NOT contain "XXXXXX" or "/tmp/".

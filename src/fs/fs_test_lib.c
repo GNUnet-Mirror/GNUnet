@@ -536,7 +536,8 @@ GNUNET_FS_TEST_publish (struct GNUNET_SCHEDULER_Handle *sched,
   daemon->publish_seed = seed;
   daemon->verbose = verbose;
   daemon->publish_sched = sched;
-  fi = GNUNET_FS_file_information_create_from_reader (daemon,
+  fi = GNUNET_FS_file_information_create_from_reader (daemon->fs,
+						      daemon,						      
 						      size,
 						      &file_generator,
 						      daemon,

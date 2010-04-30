@@ -83,8 +83,12 @@ run (void *cls,
   struct GNUNET_FS_FileInformation *fi1;
   struct GNUNET_FS_FileInformation *fi2;
   struct GNUNET_FS_FileInformation *fidir;
+  struct GNUNET_FS_Handle *fs;
   size_t i;
 
+  fs = GNUNET_FS_start (s, cfg, "test-fs-file-information", NULL, NULL, 
+			GNUNET_FS_FLAGS_NONE,
+			GNUNET_FS_OPTIONS_END);
   fn1 = GNUNET_DISK_mktemp ("gnunet-file_information-test-dst");
   buf = GNUNET_malloc (FILESIZE);
   for (i = 0; i < FILESIZE; i++)
@@ -109,7 +113,8 @@ run (void *cls,
 
   meta = GNUNET_CONTAINER_meta_data_create ();
   kuri = GNUNET_FS_uri_ksk_create_from_args (2, keywords);
-  fi1 = GNUNET_FS_file_information_create_from_file ("file_information-context1",
+  fi1 = GNUNET_FS_file_information_create_from_file (fs,
+						     "file_information-context1",
 						     fn1,
 						     kuri,
 						     meta,
@@ -117,7 +122,8 @@ run (void *cls,
 						     1,
 						     42,
 						     GNUNET_TIME_relative_to_absolute (LIFETIME)); 
-  fi2 = GNUNET_FS_file_information_create_from_file ("file_information-context2",
+  fi2 = GNUNET_FS_file_information_create_from_file (fs,
+						     "file_information-context2",
 						     fn2,
 						     kuri,
 						     meta,
@@ -125,7 +131,8 @@ run (void *cls,
 						     1,
 						     42,
 						     GNUNET_TIME_relative_to_absolute (LIFETIME)); 
-  fidir = GNUNET_FS_file_information_create_empty_directory ("file_information-context-dir",
+  fidir = GNUNET_FS_file_information_create_empty_directory (fs,
+							     "file_information-context-dir",
 							     kuri,
 							     meta,
 							     1,
@@ -144,6 +151,7 @@ run (void *cls,
   GNUNET_DISK_directory_remove (fn2);
   GNUNET_free_non_null (fn1);
   GNUNET_free_non_null (fn2);
+  GNUNET_FS_stop (fs);
 }
 
 

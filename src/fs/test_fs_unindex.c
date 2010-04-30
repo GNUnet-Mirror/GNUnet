@@ -261,7 +261,8 @@ run (void *cls,
   GNUNET_free (buf);
   meta = GNUNET_CONTAINER_meta_data_create ();
   kuri = GNUNET_FS_uri_ksk_create_from_args (2, keywords);
-  fi = GNUNET_FS_file_information_create_from_file ("publish-context",
+  fi = GNUNET_FS_file_information_create_from_file (fs,
+						    "publish-context",
 						    fn,
 						    kuri,
 						    meta,

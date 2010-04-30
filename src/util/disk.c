@@ -266,7 +266,10 @@ GNUNET_DISK_file_get_identifiers (const char *filename,
 
 
 /**
- * Create an (empty) temporary file on disk.
+ * Create an (empty) temporary file on disk.  If the given name is not
+ * an absolute path, the current 'TMPDIR' will be prepended.  In any case,
+ * 6 random characters will be appended to the name to create a unique
+ * filename.
  * 
  * @param t component to use for the name;
  *        does NOT contain "XXXXXX" or "/tmp/".
@@ -281,10 +284,17 @@ GNUNET_DISK_mktemp (const char *t)
   char *tmpl;
   char *fn;
 
-  tmpdir = getenv ("TMPDIR");
-  tmpdir = tmpdir ? tmpdir : "/tmp";
-
-  GNUNET_asprintf (&tmpl, "%s/%s%s", tmpdir, t, "XXXXXX");
+  if ( (t[0] != '/') &&
+       (t[0] != '\\') )
+    {
+      tmpdir = getenv ("TMPDIR");
+      tmpdir = tmpdir ? tmpdir : "/tmp";
+      GNUNET_asprintf (&tmpl, "%s/%s%s", tmpdir, t, "XXXXXX");
+    }
+  else
+    {
+      GNUNET_asprintf (&tmpl, "%s%s", t, "XXXXXX");
+    }
 #ifdef MINGW
   fn = (char *) GNUNET_malloc (MAX_PATH + 1);
   if (ERROR_SUCCESS != plibc_conv_to_win_path (tmpl, fn))

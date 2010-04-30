@@ -158,13 +158,11 @@ ds_put_cont (void *cls,
       GNUNET_asprintf (&pcc->p->emsg, 
 		       _("Upload failed: %s"),
 		       msg);
-      GNUNET_FS_file_information_sync (pcc->p);
       pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
       pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
       pi.value.publish.specifics.error.message = pcc->p->emsg;
       pcc->p->client_info = GNUNET_FS_publish_make_status_ (&pi, pcc->sc, pcc->p, 0);
     }
-  GNUNET_FS_file_information_sync (pcc->p);
   if (NULL != pcc->cont)
     pcc->sc->upload_task 
       = GNUNET_SCHEDULER_add_with_priority (pcc->sc->h->sched,
@@ -302,7 +300,6 @@ publish_kblocks_cont (void *cls,
 					      sc);
       return;
     }
-  GNUNET_FS_file_information_sync (p);
   if (NULL != p->dir)
     signal_publish_completion (p, sc);
   /* move on to next file */
@@ -400,7 +397,6 @@ encode_cont (void *cls,
 		       _("Upload failed: %s"),
 		       emsg);
       GNUNET_free (emsg);
-      GNUNET_FS_file_information_sync (p);
       pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
       pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
       pi.value.publish.specifics.error.message = p->emsg;
@@ -833,7 +829,6 @@ GNUNET_FS_publish_main_ (void *cls,
 			       _("Recursive upload failed: %s"),
 			       p->emsg);	      
 	    }
-	  GNUNET_FS_file_information_sync (p);
 	  pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
 	  pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
 	  pi.value.publish.specifics.error.message = p->emsg;

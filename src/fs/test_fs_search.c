@@ -249,7 +249,8 @@ run (void *cls,
     buf[i] = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 256);
   meta = GNUNET_CONTAINER_meta_data_create ();
   kuri = GNUNET_FS_uri_ksk_create_from_args (2, keywords);
-  fi = GNUNET_FS_file_information_create_from_data ("publish-context",
+  fi = GNUNET_FS_file_information_create_from_data (fs,
+						    "publish-context",
 						    FILESIZE,
 						    buf,
 						    kuri,

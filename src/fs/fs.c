@@ -275,6 +275,31 @@ get_read_handle (struct GNUNET_FS_Handle *h,
 
 
 /**
+ * Return a write handle for serialization.
+ *
+ * @param h master context
+ * @param ext component of the path 
+ * @param ent entity identifier (or emtpy string for the directory)
+ * @return NULL on error
+ */
+static struct GNUNET_BIO_WriteHandle *
+get_write_handle (struct GNUNET_FS_Handle *h,
+		 const char *ext,
+		 const char *ent)
+{
+  char *fn;
+  struct GNUNET_BIO_WriteHandle *ret;
+
+  fn = get_serialization_file_name (h, ext, ent);
+  if (fn == NULL)
+    return NULL;
+  ret = GNUNET_BIO_write_open (fn);
+  GNUNET_free (fn);
+  return ret;
+}
+
+
+/**
  * Using the given serialization filename, try to deserialize
  * the file-information tree associated with it.
  *
@@ -487,6 +512,60 @@ deserialize_file_information (struct GNUNET_FS_Handle *h,
     }
   return ret;
 }
+
+
+/**
+ * Create a temporary file on disk to store the current
+ * state of "fi" in.
+ *
+ * @param fi file information to sync with disk
+ */
+void
+GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation * fi)
+{
+  char *fn;
+  char *dn;
+  const char *end;
+  const char *nxt;
+  struct GNUNET_BIO_WriteHandle *wh;
+
+  if (NULL == fi->serialization)
+    {
+      dn = get_serialization_file_name (fi->h, "publish-fi", "");
+      fn = GNUNET_DISK_mktemp (dn);
+      GNUNET_free (dn);
+      if (fn == NULL)
+	return; /* epic fail */
+      end = NULL;
+      nxt = fn;
+      while ('\0' != nxt)
+	{
+	  if (DIR_SEPARATOR == *nxt)
+	    end = nxt + 1;
+	  nxt++;
+	}
+      if ( (end == NULL) ||
+	   (strlen (end) == 0) )
+	{
+	  GNUNET_break (0);
+	  GNUNET_free (fn);
+	  return;
+	}
+      GNUNET_break (6 == strlen (end));
+      fi->serialization = GNUNET_strdup (end);
+      GNUNET_free (fn);
+    }
+  wh = get_write_handle (fi->h, "publish-fi", fi->serialization);
+  if (wh == NULL)
+    {
+      GNUNET_free (fi->serialization);
+      fi->serialization = NULL;
+      return;
+    }
+  /* FIXME: actual serialization here! */
+  GNUNET_BIO_write_close (wh);
+}
+
 
 
 /**

@@ -532,7 +532,8 @@ run (void *cls,
     }
   else if (S_ISDIR (sbuf.st_mode))
     {
-      fi = GNUNET_FS_file_information_create_from_directory (NULL,
+      fi = GNUNET_FS_file_information_create_from_directory (ctx,
+							     NULL,
 							     args[0],
 							     &GNUNET_FS_directory_scanner_default,
 							     l,
@@ -544,7 +545,8 @@ run (void *cls,
     }
   else
     {
-      fi = GNUNET_FS_file_information_create_from_file (NULL,
+      fi = GNUNET_FS_file_information_create_from_file (ctx,
+							NULL,
 							args[0],
 							NULL,
 							NULL,
