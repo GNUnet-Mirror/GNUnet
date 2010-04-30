@@ -40,6 +40,7 @@ extern "C"
 #include "gnunet_common.h"
 #include "gnunet_configuration_lib.h"
 #include "gnunet_scheduler_lib.h"
+#include "../transport/plugin_transport.h"
 
 /**
  * Version of the dv API.
@@ -59,7 +60,9 @@ int GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
                     unsigned int priority,
                     struct GNUNET_TIME_Relative timeout,
                     const void *addr,
-                    size_t addrlen);
+                    size_t addrlen,
+                    GNUNET_TRANSPORT_TransmitContinuation
+                    cont, void *cont_cls);
 
 
 

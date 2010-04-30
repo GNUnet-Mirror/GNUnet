@@ -239,20 +239,31 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND 45
 
 /**
+ * DV service to DV api message, containing a confirmation
+ * or failure of a DV_SEND message.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND_RESULT 46
+
+/**
  * P2P DV message encapsulating some real message
  */
-#define GNUNET_MESSAGE_TYPE_DV_DATA 46
+#define GNUNET_MESSAGE_TYPE_DV_DATA 47
 
 /**
  * P2P DV message gossipping peer information
  */
-#define GNUNET_MESSAGE_TYPE_DV_GOSSIP 47
+#define GNUNET_MESSAGE_TYPE_DV_GOSSIP 48
 
 /**
  * DV Plugin to DV service message, indicating
  * startup.
  */
-#define GNUNET_MESSAGE_TYPE_DV_START 48
+#define GNUNET_MESSAGE_TYPE_DV_START 49
+
+/**
+ * P2P DV message notifying connected peers of a disconnect
+ */
+#define GNUNET_MESSAGE_TYPE_DV_DISCONNECT 50
 
 /**
  * UDP NAT probe message, send from NAT'd peer to
