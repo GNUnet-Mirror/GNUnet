@@ -20,7 +20,7 @@
 
 /**
  * @file fs/fs.c
- * @brief main FS functions
+ * @brief main FS functions (master initialization, serialization, deserialization, shared code)
  * @author Christian Grothoff
  */
 
@@ -211,6 +211,116 @@ GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qh)
     = GNUNET_SCHEDULER_add_now (h->sched,
 				&process_job_queue,
 				h);
+}
+
+
+
+
+/**
+ * Closure for "data_reader_file".
+ */
+struct FileInfo
+{
+  /**
+   * Name of the file to read.
+   */
+  char *filename;
+
+  /**
+   * File descriptor, NULL if it has not yet been opened.
+   */
+  struct GNUNET_DISK_FileHandle *fd;
+};
+
+
+/**
+ * Function that provides data by reading from a file.
+ *
+ * @param cls closure (points to the file information)
+ * @param offset offset to read from; it is possible
+ *            that the caller might need to go backwards
+ *            a bit at times
+ * @param max maximum number of bytes that should be 
+ *            copied to buf; readers are not allowed
+ *            to provide less data unless there is an error;
+ *            a value of "0" will be used at the end to allow
+ *            the reader to clean up its internal state
+ * @param buf where the reader should write the data
+ * @param emsg location for the reader to store an error message
+ * @return number of bytes written, usually "max", 0 on error
+ */
+size_t
+GNUNET_FS_data_reader_file_(void *cls, 
+			    uint64_t offset,
+			    size_t max, 
+			    void *buf,
+			    char **emsg)
+{
+  struct FileInfo *fi = cls;
+  ssize_t ret;
+
+  if (max == 0)
+    {
+      if (fi->fd != NULL)
+	GNUNET_DISK_file_close (fi->fd);
+      GNUNET_free (fi->filename);
+      GNUNET_free (fi);
+      return 0;
+    }  
+  if (fi->fd == NULL)
+    {
+      fi->fd = GNUNET_DISK_file_open (fi->filename,
+				      GNUNET_DISK_OPEN_READ,
+				      GNUNET_DISK_PERM_NONE);
+      if (fi->fd == NULL)
+	{
+	  GNUNET_asprintf (emsg, 
+			   _("Could not open file `%s': %s"),
+			   fi->filename,
+			   STRERROR (errno));
+	  return 0;
+	}
+    }
+  GNUNET_DISK_file_seek (fi->fd, offset, GNUNET_DISK_SEEK_SET);
+  ret = GNUNET_DISK_file_read (fi->fd, buf, max);
+  if (ret == -1)
+    {
+      GNUNET_asprintf (emsg, 
+		       _("Could not read file `%s': %s"),
+		       fi->filename,
+		       STRERROR (errno));
+      return 0;
+    }
+  if (ret != max)
+    {
+      GNUNET_asprintf (emsg, 
+		       _("Short read reading from file `%s'!"),
+		       fi->filename);
+      return 0;
+    }
+  return max;
+}
+
+
+/**
+ * Create the closure for the 'GNUNET_FS_data_reader_file_' callback.
+ *
+ * @param filename file to read
+ * @return closure to use, NULL on error
+ */
+void *
+GNUNET_FS_make_file_reader_context_ (const char *filename)
+{
+  struct FileInfo *fi;
+
+  fi = GNUNET_malloc (sizeof(struct FileInfo));
+  fi->filename = GNUNET_STRINGS_filename_expand (filename);
+  if (fi->filename == NULL)
+    {
+      GNUNET_free (fi);
+      return NULL;
+    }
+  return fi;
 }
 
 
@@ -422,6 +532,8 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
 	 files (!?) */
       break;
     case 1: /* file-index, no hash */
+      if (NULL == ret->filename)
+	goto cleanup;
       if (GNUNET_OK !=
 	  GNUNET_BIO_read_int64 (rh, &ret->data.file.file_size))
 	goto cleanup;
@@ -429,11 +541,12 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
       ret->data.file.do_index = GNUNET_YES;
       ret->data.file.have_hash = GNUNET_NO;
       ret->data.file.index_start_confirmed = GNUNET_NO;
-      /* FIXME: what's our approach for dealing with the
-	 'reader' and 'reader_cls' fields? 
-	 (should be easy for indexing since we must have a file) */
+      ret->data.file.reader = &GNUNET_FS_data_reader_file_;
+      ret->data.file.reader_cls = GNUNET_FS_make_file_reader_context_ (ret->filename);
       break;
     case 2: /* file-index-with-hash */
+      if (NULL == ret->filename)
+	goto cleanup;
       if ( (GNUNET_OK !=
 	    GNUNET_BIO_read_int64 (rh, &ret->data.file.file_size)) ||
 	   (GNUNET_OK !=
@@ -443,23 +556,24 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
       ret->data.file.do_index = GNUNET_YES;
       ret->data.file.have_hash = GNUNET_YES;
       ret->data.file.index_start_confirmed = GNUNET_NO;
-      /* FIXME: what's our approach for dealing with the
-	 'reader' and 'reader_cls' fields? 
-	 (should be easy for indexing since we must have a file) */
+      ret->data.file.reader = &GNUNET_FS_data_reader_file_;
+      ret->data.file.reader_cls = GNUNET_FS_make_file_reader_context_ (ret->filename);
       break;
     case 3: /* file-index-with-hash-confirmed */
+      if (NULL == ret->filename)
+	goto cleanup;
       if ( (GNUNET_OK !=
 	    GNUNET_BIO_read_int64 (rh, &ret->data.file.file_size)) ||
 	   (GNUNET_OK !=
 	    GNUNET_BIO_read (rh, "fileid", &ret->data.file.file_id, sizeof (GNUNET_HashCode))) )
 	goto cleanup;
+
       ret->is_directory = GNUNET_NO;
       ret->data.file.do_index = GNUNET_YES;
       ret->data.file.have_hash = GNUNET_YES;
       ret->data.file.index_start_confirmed = GNUNET_YES;
-      /* FIXME: what's our approach for dealing with the
-	 'reader' and 'reader_cls' fields? 
-	 (should be easy for indexing since we must have a file) */
+      ret->data.file.reader = &GNUNET_FS_data_reader_file_;
+      ret->data.file.reader_cls = GNUNET_FS_make_file_reader_context_ (ret->filename);
       break;
     case 4: /* directory */
       if ( (GNUNET_OK !=
@@ -507,7 +621,6 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
   GNUNET_free_non_null (filename);
   GNUNET_FS_file_information_destroy (ret, NULL, NULL);
   return NULL;
-   
 }
 
 
@@ -581,7 +694,8 @@ get_serialization_short_name (const char *fullname)
 
 
 /**
- * Create a new random name for serialization.
+ * Create a new random name for serialization.  Also checks if persistence
+ * is enabled and returns NULL if not.
  *
  * @param h master context
  * @param ext component of the path 
@@ -595,7 +709,8 @@ make_serialization_file_name (struct GNUNET_FS_Handle *h,
   char *dn;
   char *ret;
 
-  /* FIXME: check if persistence option was set! */
+  if (0 == (h->flags & GNUNET_FS_FLAGS_PERSISTENCE))
+    return NULL; /* persistence not requested */
   dn = get_serialization_file_name (h, ext, "");
   fn = GNUNET_DISK_mktemp (dn);
   GNUNET_free (dn);
@@ -604,6 +719,44 @@ make_serialization_file_name (struct GNUNET_FS_Handle *h,
   ret = get_serialization_short_name (fn);
   GNUNET_free (fn);
   return ret;
+}
+
+
+/**
+ * Copy all of the data from the reader to the write handle.
+ *
+ * @param wh write handle
+ * @param fi file with reader
+ * @return GNUNET_OK on success
+ */
+static int
+copy_from_reader (struct GNUNET_BIO_WriteHandle *wh,
+		  struct GNUNET_FS_FileInformation * fi)
+{
+  char buf[32 * 1024];
+  uint64_t off;
+  size_t ret;
+  char *emsg;
+
+  emsg = NULL;
+  off = 0;
+  while (off < fi->data.file.file_size)
+    {
+      ret = fi->data.file.reader (fi->data.file.reader_cls,
+				  off, sizeof (buf),
+				  buf,
+				  &emsg);
+      if (ret == 0)
+	{
+	  GNUNET_free (emsg);
+	  return GNUNET_SYSERR;
+	}
+      if (GNUNET_OK != 
+	  GNUNET_BIO_write (wh, buf, ret))
+	return GNUNET_SYSERR;
+      off += ret;
+    }
+  return GNUNET_OK;
 }
 
 
@@ -622,7 +775,6 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation * fi)
   char *ksks;
   char *chks;
 
-  /* FIXME: check if persistence option was set! */
   if (NULL == fi->serialization)    
     fi->serialization = make_serialization_file_name (fi->h, "publish-fi");
   if (NULL == fi->serialization)
@@ -684,27 +836,28 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation * fi)
       if (GNUNET_OK !=
 	  GNUNET_BIO_write_int64 (wh, fi->data.file.file_size))
 	goto cleanup;
-      /* FIXME: what's our approach for dealing with the
-	 'reader' and 'reader_cls' fields?  I guess the only
-	 good way would be to dump "small" files into 
-	 'rh' and to not support serialization of "large"
-	 files (!?) */
+      if ( (GNUNET_NO == fi->is_published) &&
+	   (NULL == fi->filename) )	
+	if (GNUNET_OK != 
+	    copy_from_reader (wh, fi))
+	  goto cleanup;
       break;
     case 1: /* file-index, no hash */
+      if (NULL == fi->filename)
+	goto cleanup;
       if (GNUNET_OK !=
 	  GNUNET_BIO_write_int64 (wh, fi->data.file.file_size))
 	goto cleanup;
       break;
     case 2: /* file-index-with-hash */
     case 3: /* file-index-with-hash-confirmed */
+      if (NULL == fi->filename)
+	goto cleanup;
       if ( (GNUNET_OK !=
 	    GNUNET_BIO_write_int64 (wh, fi->data.file.file_size)) ||
 	   (GNUNET_OK !=
 	    GNUNET_BIO_write (wh, &fi->data.file.file_id, sizeof (GNUNET_HashCode))) )
 	goto cleanup;
-      /* FIXME: what's our approach for dealing with the
-	 'reader' and 'reader_cls' fields? 
-	 (should be easy for indexing since we must have a file) */
       break;
     case 4: /* directory */
       if ( (GNUNET_OK !=

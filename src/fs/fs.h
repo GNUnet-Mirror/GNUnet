@@ -431,11 +431,6 @@ struct GNUNET_FS_FileInformation
   } data;
 
   /**
-   * Is this struct for a file or directory?
-   */
-  int is_directory;
-
-  /**
    * Desired anonymity level.
    */
   uint32_t anonymity;
@@ -444,6 +439,16 @@ struct GNUNET_FS_FileInformation
    * Desired priority (for keeping the content in the DB).
    */
   uint32_t priority;
+
+  /**
+   * Is this struct for a file or directory?
+   */
+  int is_directory;
+
+  /**
+   * Are we done publishing this file?
+   */
+  int is_published;
 
 };
 
@@ -562,6 +567,39 @@ GNUNET_FS_queue_ (struct GNUNET_FS_Handle *h,
 void
 GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qh);
 
+
+/**
+ * Function that provides data by reading from a file.
+ *
+ * @param cls closure (points to the file information)
+ * @param offset offset to read from; it is possible
+ *            that the caller might need to go backwards
+ *            a bit at times
+ * @param max maximum number of bytes that should be 
+ *            copied to buf; readers are not allowed
+ *            to provide less data unless there is an error;
+ *            a value of "0" will be used at the end to allow
+ *            the reader to clean up its internal state
+ * @param buf where the reader should write the data
+ * @param emsg location for the reader to store an error message
+ * @return number of bytes written, usually "max", 0 on error
+ */
+size_t
+GNUNET_FS_data_reader_file_(void *cls, 
+			    uint64_t offset,
+			    size_t max, 
+			    void *buf,
+			    char **emsg);
+
+
+/**
+ * Create the closure for the 'GNUNET_FS_data_reader_file_' callback.
+ *
+ * @param filename file to read
+ * @return closure to use
+ */
+void *
+GNUNET_FS_make_file_reader_context_ (const char *filename);
 
 
 /**

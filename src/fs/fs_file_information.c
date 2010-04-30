@@ -55,92 +55,6 @@ GNUNET_FS_file_information_get_id (struct GNUNET_FS_FileInformation *s)
 
 
 /**
- * Closure for "data_reader_file".
- */
-struct FileInfo
-{
-  /**
-   * Name of the file to read.
-   */
-  char *filename;
-
-  /**
-   * File descriptor, NULL if it has not yet been opened.
-   */
-  struct GNUNET_DISK_FileHandle *fd;
-};
-
-
-/**
- * Function that provides data by reading from a file.
- *
- * @param cls closure (points to the file information)
- * @param offset offset to read from; it is possible
- *            that the caller might need to go backwards
- *            a bit at times
- * @param max maximum number of bytes that should be 
- *            copied to buf; readers are not allowed
- *            to provide less data unless there is an error;
- *            a value of "0" will be used at the end to allow
- *            the reader to clean up its internal state
- * @param buf where the reader should write the data
- * @param emsg location for the reader to store an error message
- * @return number of bytes written, usually "max", 0 on error
- */
-static size_t
-data_reader_file(void *cls, 
-		 uint64_t offset,
-		 size_t max, 
-		 void *buf,
-		 char **emsg)
-{
-  struct FileInfo *fi = cls;
-  ssize_t ret;
-
-  if (max == 0)
-    {
-      if (fi->fd != NULL)
-	GNUNET_DISK_file_close (fi->fd);
-      GNUNET_free (fi->filename);
-      GNUNET_free (fi);
-      return 0;
-    }  
-  if (fi->fd == NULL)
-    {
-      fi->fd = GNUNET_DISK_file_open (fi->filename,
-				      GNUNET_DISK_OPEN_READ,
-				      GNUNET_DISK_PERM_NONE);
-      if (fi->fd == NULL)
-	{
-	  GNUNET_asprintf (emsg, 
-			   _("Could not open file `%s': %s"),
-			   fi->filename,
-			   STRERROR (errno));
-	  return 0;
-	}
-    }
-  GNUNET_DISK_file_seek (fi->fd, offset, GNUNET_DISK_SEEK_SET);
-  ret = GNUNET_DISK_file_read (fi->fd, buf, max);
-  if (ret == -1)
-    {
-      GNUNET_asprintf (emsg, 
-		       _("Could not read file `%s': %s"),
-		       fi->filename,
-		       STRERROR (errno));
-      return 0;
-    }
-  if (ret != max)
-    {
-      GNUNET_asprintf (emsg, 
-		       _("Short read reading from file `%s'!"),
-		       fi->filename);
-      return 0;
-    }
-  return max;
-}
-
-
-/**
  * Create an entry for a file in a publish-structure.
  *
  * @param h handle to the file sharing subsystem
@@ -182,17 +96,16 @@ GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
 				filename);
       return NULL;
     }
-  fi = GNUNET_malloc (sizeof(struct FileInfo));
-  fi->filename = GNUNET_STRINGS_filename_expand (filename);
-  if (fi->filename == NULL)
+  fi = GNUNET_FS_make_file_reader_context_ (filename);
+  if (fi == NULL)
     {
-      GNUNET_free (fi);
+      GNUNET_break (0);
       return NULL;
     }
   ret = GNUNET_FS_file_information_create_from_reader (h,
 						       client_info,
 						       sbuf.st_size,
-						       &data_reader_file,
+						       &GNUNET_FS_data_reader_file_,
 						       fi,
 						       keywords,
 						       meta,
@@ -284,6 +197,11 @@ GNUNET_FS_file_information_create_from_data (struct GNUNET_FS_Handle *h,
 					     uint32_t priority,
 					     struct GNUNET_TIME_Absolute expirationTime)
 {
+  if (GNUNET_YES == do_index)        
+    {
+      GNUNET_break (0);
+      return NULL;
+    }
   return GNUNET_FS_file_information_create_from_reader (h,
 							client_info,
 							length,
@@ -333,6 +251,12 @@ GNUNET_FS_file_information_create_from_reader (struct GNUNET_FS_Handle *h,
 {
   struct GNUNET_FS_FileInformation *ret;
 
+  if ( (GNUNET_YES == do_index) &&
+       (reader != &GNUNET_FS_data_reader_file_) )
+    {
+      GNUNET_break (0);
+      return NULL;
+    }
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_FileInformation));
   ret->h = h;
   ret->client_info = client_info;  
