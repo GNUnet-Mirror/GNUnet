@@ -8,7 +8,7 @@ checkout="check.out"
 
 stop_arm()
 {
-  if ! $armexe $DEBUG -e > $out ; then
+  if ! $armexe $DEBUG -e -d > $out ; then
     echo "FAIL: error running $armexe"
     echo "Command output was:"
     cat $out
