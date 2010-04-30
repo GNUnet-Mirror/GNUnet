@@ -20,8 +20,19 @@ gnunet_peerinfo_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
 
 if HAVE_PYTHON_PEXPECT
-TESTS_ENVIRONMENT = $(PYTHON)
-TESTS = \
+check_SCRIPTS = \
  test_gnunet_peerinfo.py 
 endif
 
+TESTS = $(check_SCRIPTS)
+
+do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
+
+test_gnunet_peerinfo.py: test_gnunet_peerinfo.py.in Makefile
+	$(do_subst) < $(srcdir)/test_gnunet_peerinfo.py.in > test_gnunet_peerinfo.py
+	chmod +x test_gnunet_peerinfo.py
+
+EXTRADIST = \
+  test_gnunet_peerinfo.py.in
+
+CLEANFILES = $(check_SCRIPTS)
