@@ -173,6 +173,11 @@ GNUNET_PEERINFO_disconnect (struct GNUNET_PEERINFO_Handle *h)
 	tqe->cont (tqe->cont_cls, GNUNET_SYSERR);
       GNUNET_free (tqe);
     }
+  if (h->th != NULL)
+    {
+      GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
+      h->th = NULL;
+    }
   GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
   GNUNET_free (h);
 }
