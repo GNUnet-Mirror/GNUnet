@@ -337,7 +337,7 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
   uint32_t dsize;
 
   if (GNUNET_OK !=
-      GNUNET_BIO_read (rh, "termination flag", &b, sizeof(b)))
+      GNUNET_BIO_read (rh, "status flag", &b, sizeof(b)))
     {
       GNUNET_break (0);
       return NULL;
@@ -350,8 +350,9 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
 	GNUNET_BIO_read_meta_data (rh, "metadata", &ret->meta)) ||
        (GNUNET_OK !=
 	GNUNET_BIO_read_string (rh, "ksk-uri", &ksks, 32*1024)) ||
-       (NULL == 
-	(ret->keywords = GNUNET_FS_uri_parse (ksks, NULL))) ||
+       ( (ksks != NULL) &&
+	 (NULL == 
+	  (ret->keywords = GNUNET_FS_uri_parse (ksks, NULL))) ) ||
        (GNUNET_YES !=
 	GNUNET_FS_uri_test_ksk (ret->keywords)) ||
        (GNUNET_OK !=
@@ -528,6 +529,9 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation * fi)
   const char *end;
   const char *nxt;
   struct GNUNET_BIO_WriteHandle *wh;
+  char b;
+  char *ksks;
+  char *chks;
 
   if (NULL == fi->serialization)
     {
@@ -562,8 +566,107 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation * fi)
       fi->serialization = NULL;
       return;
     }
-  /* FIXME: actual serialization here! */
+  if (GNUNET_YES == fi->is_directory)
+    b = 4;
+  else if (GNUNET_YES == fi->data.file.index_start_confirmed)
+    b = 3;
+  else if (GNUNET_YES == fi->data.file.have_hash)
+    b = 2;
+  else if (GNUNET_YES == fi->data.file.do_index)
+    b = 1;
+  else
+    b = 0;
+  if (fi->keywords != NULL)
+    ksks = GNUNET_FS_uri_to_string (fi->keywords);
+  else
+    ksks = NULL;
+  if (fi->chk_uri != NULL)
+    chks = GNUNET_FS_uri_to_string (fi->chk_uri);
+  else
+    chks = NULL;
+  if ( (GNUNET_OK !=
+	GNUNET_BIO_write (wh, &b, sizeof (b))) ||
+       (GNUNET_OK != 
+	GNUNET_BIO_write_meta_data (wh, fi->meta)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_string (wh, ksks)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_string (wh, chks)) ||
+       (GNUNET_OK != 
+	GNUNET_BIO_write_int64 (wh, fi->expirationTime.value)) ||
+       (GNUNET_OK != 
+	GNUNET_BIO_write_int64 (wh, fi->start_time.value)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_string (wh, fi->emsg)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_string (wh, fi->filename)) ||
+       (GNUNET_OK != 
+	GNUNET_BIO_write_int32 (wh, fi->anonymity)) ||
+       (GNUNET_OK != 
+	GNUNET_BIO_write_int32 (wh, fi->priority)) )
+    goto cleanup;
+  GNUNET_free_non_null (chks);
+  chks = NULL;
+  GNUNET_free_non_null (ksks);
+  ksks = NULL;
+  
+  switch (b)
+    {
+    case 0: /* file-insert */
+      if (GNUNET_OK !=
+	  GNUNET_BIO_write_int64 (wh, fi->data.file.file_size))
+	goto cleanup;
+      /* FIXME: what's our approach for dealing with the
+	 'reader' and 'reader_cls' fields?  I guess the only
+	 good way would be to dump "small" files into 
+	 'rh' and to not support serialization of "large"
+	 files (!?) */
+      break;
+    case 1: /* file-index, no hash */
+      if (GNUNET_OK !=
+	  GNUNET_BIO_write_int64 (wh, fi->data.file.file_size))
+	goto cleanup;
+      break;
+    case 2: /* file-index-with-hash */
+    case 3: /* file-index-with-hash-confirmed */
+      if ( (GNUNET_OK !=
+	    GNUNET_BIO_write_int64 (wh, fi->data.file.file_size)) ||
+	   (GNUNET_OK !=
+	    GNUNET_BIO_write (wh, &fi->data.file.file_id, sizeof (GNUNET_HashCode))) )
+	goto cleanup;
+      /* FIXME: what's our approach for dealing with the
+	 'reader' and 'reader_cls' fields? 
+	 (should be easy for indexing since we must have a file) */
+      break;
+    case 4: /* directory */
+      if ( (GNUNET_OK !=
+	    GNUNET_BIO_write_int32 (wh, fi->data.dir.dir_size)) ||
+	   (GNUNET_OK !=
+	    GNUNET_BIO_write (wh, fi->data.dir.dir_data, (uint32_t) fi->data.dir.dir_size)) ||
+	   (GNUNET_OK !=
+	    GNUNET_BIO_write_string (wh, fi->data.dir.entries->serialization)) )
+	goto cleanup;
+      break;
+    default:
+      GNUNET_assert (0);
+      goto cleanup;
+    }
+  if (GNUNET_OK !=
+      GNUNET_BIO_write_string (wh, fi->next->serialization))
+    goto cleanup;  
+  if (GNUNET_OK ==
+      GNUNET_BIO_write_close (wh))
+    return; /* done! */
+ cleanup:
   GNUNET_BIO_write_close (wh);
+  GNUNET_free_non_null (chks);
+  GNUNET_free_non_null (ksks);
+  fn = get_serialization_file_name (fi->h, "publish-fi", fi->serialization);
+  if (0 != UNLINK (fn))
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
+  GNUNET_free (fn);
+  GNUNET_free (fi->serialization);
+  fi->serialization = NULL;  
 }
 
 
