@@ -268,8 +268,6 @@ trigger_transmit (struct GNUNET_PEERINFO_Handle *h)
 {
   struct TransmissionQueueEntry *tqe;
 
-  /* FIXME: need to handle case where we are still *receiving* (and then
-     do nothing here as well!) */
   if (NULL == (tqe = h->tq_head))
     return;
   if (h->th != NULL)
