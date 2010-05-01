@@ -1244,6 +1244,60 @@ GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc)
 
 
 /**
+ * Synchronize this search struct with its mirror
+ * on disk.  Note that all internal FS-operations that change
+ * publishing structs should already call "sync" internally,
+ * so this function is likely not useful for clients.
+ * 
+ * @param sc the struct to sync
+ */
+void
+GNUNET_FS_search_sync_ (struct GNUNET_FS_SearchContext *sc)
+{  
+  struct GNUNET_BIO_WriteHandle *wh;
+
+  if (NULL == sc->serialization)
+    sc->serialization = make_serialization_file_name (sc->h,
+						      "search");
+  if (NULL == sc->serialization)
+    return;
+  wh = get_write_handle (sc->h, "search", sc->serialization);
+#if 0
+  if ( (GNUNET_OK !=
+	GNUNET_BIO_write_string (wh, pc->nid)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_string (wh, pc->nuid)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_int32 (wh, pc->options)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_int32 (wh, pc->all_done)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_string (wh, pc->fi->serialization)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_string (wh, (pc->fi_pos == NULL) ? NULL : pc->fi_pos->serialization)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_string (wh, (pc->namespace == NULL) ? NULL : pc->namespace->name)) )
+   {
+     (void) GNUNET_BIO_write_close (wh);
+     GNUNET_FS_remove_sync_file_ (pc->h, "publish", pc->serialization);
+     GNUNET_free (pc->serialization);
+     pc->serialization = NULL;
+     return;
+   }
+#endif
+  /* FIXME: do search-specific deserialization here! */
+  if (GNUNET_OK !=
+      GNUNET_BIO_write_close (wh))
+    {
+      GNUNET_FS_remove_sync_file_ (sc->h, "search", sc->serialization);
+      GNUNET_free (sc->serialization);
+      sc->serialization = NULL;
+      return;     
+    }  
+}
+
+
+/**
  * Deserialize information about pending publish operations.
  *
  * @param h master context

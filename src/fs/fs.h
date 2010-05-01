@@ -758,6 +758,19 @@ GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc);
 
 
 /**
+ * Synchronize this search struct with its mirror
+ * on disk.  Note that all internal FS-operations that change
+ * publishing structs should already call "sync" internally,
+ * so this function is likely not useful for clients.
+ * 
+ * @param sc the struct to sync
+ */
+void
+GNUNET_FS_search_sync_ (struct GNUNET_FS_SearchContext *sc);
+
+
+
+/**
  * Master context for most FS operations.
  */
 struct GNUNET_FS_Handle
@@ -1221,6 +1234,11 @@ struct GNUNET_FS_SearchContext
    * Pointer we keep for the client.
    */
   void *client_info;
+
+  /**
+   * Name of the file on disk we use for persistence.
+   */
+  char *serialization;
 
   /**
    * Map that contains a "struct SearchResult" for each result that
