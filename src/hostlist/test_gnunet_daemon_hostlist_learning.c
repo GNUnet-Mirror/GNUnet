@@ -324,8 +324,8 @@ static int ad_arrive_handler (void *cls,
   else
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Expected URI `%s' and recieved URI `%s' differ\n", expected_uri, current_adv_uri);
-  if ( NULL != expected_uri ) GNUNET_free ( expected_uri );
-  if ( NULL != expected_uri )  GNUNET_free ( hostname );
+  GNUNET_free_non_null (expected_uri);
+  GNUNET_free_non_null (hostname);
   return GNUNET_OK;
 }
 
