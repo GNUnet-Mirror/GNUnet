@@ -1191,6 +1191,21 @@ GNUNET_FS_publish_sync_ (struct GNUNET_FS_PublishContext *pc)
 
 
 /**
+ * Synchronize this unindex struct with its mirror
+ * on disk.  Note that all internal FS-operations that change
+ * publishing structs should already call "sync" internally,
+ * so this function is likely not useful for clients.
+ * 
+ * @param uc the struct to sync
+ */
+void
+GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc)
+{
+  /* FIXME */
+}
+
+
+/**
  * Deserialize information about pending publish operations.
  *
  * @param h master context
@@ -1225,7 +1240,9 @@ deserialize_unindex_file (void *cls,
   struct GNUNET_FS_Handle *h = cls;
   struct GNUNET_BIO_ReadHandle *rh;
   struct GNUNET_FS_UnindexContext *uc;
+  struct GNUNET_FS_ProgressInfo pi;
   char *emsg;
+  uint32_t state;
 
   uc = GNUNET_malloc (sizeof (struct GNUNET_FS_UnindexContext));
   uc->h = h;
@@ -1233,33 +1250,70 @@ deserialize_unindex_file (void *cls,
   rh = GNUNET_BIO_read_open (filename);
   if (rh == NULL)
     goto cleanup;
-  /* FIXME: do unindex state here! */
-#if 0
   if ( (GNUNET_OK !=
-	GNUNET_BIO_read_string (rh, "publish-nid", &pc->nid, 1024)) ||
+	GNUNET_BIO_read_string (rh, "unindex-fn", &uc->filename, 10*1024)) ||
        (GNUNET_OK !=
-	GNUNET_BIO_read_string (rh, "publish-nuid", &pc->nuid, 1024)) ||
+	GNUNET_BIO_read_int64 (rh, &uc->file_size)) ||
        (GNUNET_OK !=
-	GNUNET_BIO_read_int32 (rh, &options)) ||
+	GNUNET_BIO_read_int64 (rh, &uc->start_time.value)) ||
        (GNUNET_OK !=
-	GNUNET_BIO_read_int32 (rh, &all_done)) ||
-       (GNUNET_OK !=
-	GNUNET_BIO_read_string (rh, "publish-firoot", &fi_root, 128)) ||
-       (GNUNET_OK !=
-	GNUNET_BIO_read_string (rh, "publish-fipos", &fi_pos, 128)) ||
-       (GNUNET_OK !=
-	GNUNET_BIO_read_string (rh, "publish-ns", &ns, 1024)) )
+	GNUNET_BIO_read_int32 (rh, &state)) )
     goto cleanup;          
-  pc->options = options;
-  pc->all_done = all_done;
-  pc->fi = deserialize_file_information (h, fi_root);
-  if (pc->fi == NULL)
-    goto cleanup;    
-#endif
-  /* FIXME: generate RESUME event */
-  /* FIXME: re-start unindexing (if needed)... */
+  uc->state = (enum UnindexState) state;
+  switch (state)
+    {
+    case UNINDEX_STATE_HASHING:
+      break;
+    case UNINDEX_STATE_FS_NOTIFY:
+      if (GNUNET_OK !=
+	  GNUNET_BIO_read (rh, "unindex-hash", &uc->file_id, sizeof (GNUNET_HashCode)))
+	goto cleanup;
+      break;
+    case UNINDEX_STATE_DS_REMOVE:
+      break;
+    case UNINDEX_STATE_COMPLETE:
+      break;
+    case UNINDEX_STATE_ERROR:
+      if (GNUNET_OK !=
+	  GNUNET_BIO_read_string (rh, "unindex-emsg", &uc->emsg, 10*1024))
+	goto cleanup;
+      break;
+    case UNINDEX_STATE_ABORTED:
+      GNUNET_break (0);
+      goto cleanup;
+    default:
+      GNUNET_break (0);
+      goto cleanup;
+    }
+  pi.status = GNUNET_FS_STATUS_UNINDEX_RESUME;
+  pi.value.unindex.specifics.resume.message = uc->emsg;
+  GNUNET_FS_unindex_make_status_ (&pi,
+				  uc,
+				  (uc->state == UNINDEX_STATE_COMPLETE) 
+				  ? uc->file_size
+				  : 0);
   switch (uc->state)
     {
+    case UNINDEX_STATE_HASHING:
+      GNUNET_CRYPTO_hash_file (uc->h->sched,
+			       GNUNET_SCHEDULER_PRIORITY_IDLE,
+			       uc->filename,
+			       HASHING_BLOCKSIZE,
+			       &GNUNET_FS_unindex_process_hash_,
+			       uc);
+      break;
+    case UNINDEX_STATE_FS_NOTIFY:
+      uc->state = UNINDEX_STATE_HASHING;
+      GNUNET_FS_unindex_process_hash_ (uc,
+				       &uc->file_id);
+      break;
+    case UNINDEX_STATE_DS_REMOVE:
+      GNUNET_FS_unindex_do_remove_ (uc);
+      break;
+    case UNINDEX_STATE_COMPLETE:
+    case UNINDEX_STATE_ERROR:
+      /* no need to resume any operation, we were done */
+      break;
     default:
       break;
     }
@@ -1271,18 +1325,10 @@ deserialize_unindex_file (void *cls,
 		  filename,
 		  emsg);
       GNUNET_free (emsg);
-      rh = NULL;
-      goto cleanup;
     }
   return GNUNET_OK;
  cleanup:
-  /* FIXME: clean unindex state here! */
-#if 0
-  GNUNET_free_non_null (pc->nid);
-  GNUNET_free_non_null (pc->nuid);
-  GNUNET_free_non_null (fi_root);
-  GNUNET_free_non_null (ns);
-#endif
+  GNUNET_free_non_null (uc->filename);
   if ( (rh != NULL) &&
        (GNUNET_OK !=
 	GNUNET_BIO_read_close (rh, &emsg)) )
@@ -1299,8 +1345,6 @@ deserialize_unindex_file (void *cls,
   GNUNET_free (uc);
   return GNUNET_OK;
 }
-
-
 
 
 /**

@@ -658,6 +658,18 @@ GNUNET_FS_publish_main_ (void *cls,
 
 
 /**
+ * Function called once the hash of the file
+ * that is being unindexed has been computed.
+ *
+ * @param cls closure, unindex context
+ * @param file_id computed hash, NULL on error
+ */
+void 
+GNUNET_FS_unindex_process_hash_ (void *cls,
+				 const GNUNET_HashCode *file_id);
+
+
+/**
  * Fill in all of the generic fields for a publish event and call the
  * callback.
  *
@@ -672,6 +684,27 @@ GNUNET_FS_publish_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
 				struct GNUNET_FS_PublishContext *sc,
 				const struct GNUNET_FS_FileInformation *p,
 				uint64_t offset);
+
+/**
+ * Fill in all of the generic fields for 
+ * an unindex event and call the callback.
+ *
+ * @param pi structure to fill in
+ * @param uc overall unindex context
+ * @param offset where we are in the file (for progress)
+ */
+void
+GNUNET_FS_unindex_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
+				struct GNUNET_FS_UnindexContext *uc,
+				uint64_t offset);
+
+/**
+ * Connect to the datastore and remove the blocks.
+ *
+ * @param uc context for the unindex operation.
+ */
+void 
+GNUNET_FS_unindex_do_remove_ (struct GNUNET_FS_UnindexContext *uc);
 
 
 /**
@@ -709,6 +742,18 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation *f);
  */
 void
 GNUNET_FS_publish_sync_ (struct GNUNET_FS_PublishContext *pc);
+
+
+/**
+ * Synchronize this unindex struct with its mirror
+ * on disk.  Note that all internal FS-operations that change
+ * publishing structs should already call "sync" internally,
+ * so this function is likely not useful for clients.
+ * 
+ * @param uc the struct to sync
+ */
+void
+GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc);
 
 
 
@@ -981,6 +1026,11 @@ struct GNUNET_FS_UnindexContext
    * Handle used to read the file.
    */
   struct GNUNET_DISK_FileHandle *fh;
+
+  /**
+   * Error message, NULL on success.
+   */
+  char *emsg;
 
   /**
    * Overall size of the file.
