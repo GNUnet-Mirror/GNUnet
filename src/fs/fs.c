@@ -1158,7 +1158,7 @@ GNUNET_FS_publish_sync_ (struct GNUNET_FS_PublishContext *pc)
       return;
     }
   wh = get_write_handle (pc->h, "publish", pc->serialization);
- if ( (GNUNET_OK !=
+  if ( (GNUNET_OK !=
 	GNUNET_BIO_write_string (wh, pc->nid)) ||
        (GNUNET_OK !=
 	GNUNET_BIO_write_string (wh, pc->nuid)) ||
@@ -1201,7 +1201,45 @@ GNUNET_FS_publish_sync_ (struct GNUNET_FS_PublishContext *pc)
 void
 GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc)
 {
-  /* FIXME */
+  struct GNUNET_BIO_WriteHandle *wh;
+
+  if (UNINDEX_STATE_ABORTED == uc->state)
+    return;
+  if (NULL == uc->serialization)
+    uc->serialization = make_serialization_file_name (uc->h,
+						      "unindex");
+  if (NULL == uc->serialization)
+    return;
+  wh = get_write_handle (uc->h, "unindex", uc->serialization);
+  if ( (GNUNET_OK !=
+	GNUNET_BIO_write_string (wh, uc->filename)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_int64 (wh, uc->file_size)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_int64 (wh, uc->start_time.value)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_int32 (wh, (uint32_t) uc->state)) ||
+       ( (uc->state == UNINDEX_STATE_FS_NOTIFY) &&
+	 (GNUNET_OK !=
+	  GNUNET_BIO_write (wh, &uc->file_id, sizeof (GNUNET_HashCode))) ) ||
+       ( (uc->state == UNINDEX_STATE_ERROR) &&
+	 (GNUNET_OK !=
+	  GNUNET_BIO_write_string (wh, uc->emsg)) ) )
+    {
+      (void) GNUNET_BIO_write_close (wh);
+      GNUNET_FS_remove_sync_file_ (uc->h, "publish", uc->serialization);
+      GNUNET_free (uc->serialization);
+      uc->serialization = NULL;
+      return;
+    }
+  if (GNUNET_OK !=
+      GNUNET_BIO_write_close (wh))
+    {
+      GNUNET_FS_remove_sync_file_ (uc->h, "unindex", uc->serialization);
+      GNUNET_free (uc->serialization);
+      uc->serialization = NULL;
+      return;     
+    }  
 }
 
 
