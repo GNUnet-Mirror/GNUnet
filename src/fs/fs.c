@@ -1403,6 +1403,46 @@ deserialize_unindex (struct GNUNET_FS_Handle *h)
 }
 
 
+
+/**
+ * Function called with a filename of serialized search operation
+ * to deserialize.
+ *
+ * @param cls the 'struct GNUNET_FS_Handle*'
+ * @param filename complete filename (absolute path)
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int
+deserialize_search_file (void *cls,
+			  const char *filename)
+{
+  /* FIXME */
+  // Deserialize Search:
+  // * for each query, read file with search results
+  // * for each search result with active download, deserialize download
+  // * for each directory search result, check for active downloads of contents
+  return GNUNET_OK;
+}
+
+
+/**
+ * Deserialize information about pending search operations.
+ *
+ * @param h master context
+ */
+static void
+deserialize_search (struct GNUNET_FS_Handle *h)
+{
+  char *dn;
+
+  dn = get_serialization_file_name (h, "search", "");
+  if (dn == NULL)
+    return;
+  GNUNET_DISK_directory_scan (dn, &deserialize_search_file, h);
+  GNUNET_free (dn);
+}
+
+
 /**
  * Setup a connection to the file-sharing service.
  *
@@ -1466,18 +1506,13 @@ GNUNET_FS_start (struct GNUNET_SCHEDULER_Handle *sched,
     }
   va_end (ap);
   // FIXME: setup receive-loop with client (do we need one?)
-
   if (0 != (GNUNET_FS_FLAGS_PERSISTENCE & flags))
     {
+      /* FIXME: could write one generic deserialization
+	 function instead of these four... */
       deserialize_publish (ret);
-      /* FIXME: not implemented! */
-      // Deserialize Search:
-      // * read search queries
-      // * for each query, read file with search results
-      // * for each search result with active download, deserialize download
-      // * for each directory search result, check for active downloads of contents
-      // Deserialize Download:
-      // * always part of search???
+      deserialize_search (ret);
+      /* FIXME: deserialize downloads that are NOT part of searches */
       deserialize_unindex (ret);
     }
   return ret;
