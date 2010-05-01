@@ -313,6 +313,7 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
 			       block,
 			       len)) )
     {
+      GNUNET_CRYPTO_hash (block, len, &key);
       if (0 == memcmp (&key,
 		       &chk->key,
 		       sizeof (GNUNET_HashCode)))

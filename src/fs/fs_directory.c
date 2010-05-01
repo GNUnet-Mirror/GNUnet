@@ -627,6 +627,9 @@ GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
 			   "malloc");
       *rsize = 0;
       *rdata = NULL;
+      GNUNET_free_non_null (sizes);
+      GNUNET_free_non_null (perm);
+      GNUNET_free_non_null (bes);
       return GNUNET_SYSERR;
     }
   *rdata = data;

@@ -663,6 +663,8 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
       GNUNET_free (filename);
       filename = NULL;
     }
+  GNUNET_free_non_null (ksks);
+  GNUNET_free_non_null (chks);
   return ret;
  cleanup:
   GNUNET_free_non_null (ksks);
@@ -1077,6 +1079,7 @@ deserialize_publish_file (void *cls,
       pc->fi_pos = find_file_position (pc->fi,
 				       fi_pos);
       GNUNET_free (fi_pos);
+      fi_pos = NULL;
       if (pc->fi_pos == NULL)
 	{
 	  /* failed to find position for resuming, outch! Will start from root! */
@@ -1106,11 +1109,13 @@ deserialize_publish_file (void *cls,
 		  emsg);
       GNUNET_free (emsg);
     }
+  GNUNET_free_non_null (ns);
   return GNUNET_OK;
  cleanup:
   GNUNET_free_non_null (pc->nid);
   GNUNET_free_non_null (pc->nuid);
   GNUNET_free_non_null (fi_root);
+  GNUNET_free_non_null (fi_pos);
   GNUNET_free_non_null (ns);
   if ( (rh != NULL) &&
        (GNUNET_OK !=
