@@ -308,7 +308,7 @@ struct Plugin
  *
  * @param cls closure ('struct Plugin*')
  * @param addr binary address
- * @param addr_len length of the address
+ * @param addrlen length of the address
  * @return string representing the same address 
  */
 static const char* 

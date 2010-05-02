@@ -255,7 +255,7 @@ template_plugin_address_suggested (void *cls,
  *
  * @param cls closure
  * @param addr binary address
- * @param addr_len length of the address
+ * @param addrlen length of the address
  * @return string representing the same address 
  */
 static const char* 
