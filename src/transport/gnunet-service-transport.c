@@ -45,9 +45,9 @@
 #include "plugin_transport.h"
 #include "transport.h"
 
-#define DEBUG_BLACKLIST GNUNET_NO
+#define DEBUG_BLACKLIST GNUNET_YES
 
-#define DEBUG_PING_PONG GNUNET_NO
+#define DEBUG_PING_PONG GNUNET_YES
 
 /**
  * Should we do some additional checks (to validate behavior
@@ -1393,6 +1393,32 @@ transmit_send_continuation (void *cls,
 
 
 /**
+ * Convert an address to a string.
+ *
+ * @param plugin name of the plugin responsible for the address
+ * @param addr binary address
+ * @param addr_len number of bytes in addr
+ * @return NULL on error, otherwise address string
+ */
+static const char*
+a2s (const char *plugin,
+     const void *addr,
+     size_t addr_len)
+{
+  struct TransportPlugin *p;
+
+  if (plugin == NULL)
+    return NULL;
+  p = find_transport (plugin);
+  if (p == NULL)
+    return NULL;
+  return p->api->address_to_string (p->api->cls,
+				    addr,
+				    addr_len);
+}   
+
+
+/**
  * Find an address in any of the available transports for
  * the given neighbour that would be good for message
  * transmission.  This is essentially the transport selection
@@ -1439,8 +1465,9 @@ find_ready_address(struct NeighbourList *neighbour)
 	  if (addresses->addr != NULL)
 	    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 			"Have address `%s' for peer `%4s' (status: %d, %d, %d, %u, %llums, %u)\n",
-			GNUNET_a2s (addresses->addr,
-				    addresses->addrlen),
+			a2s (head->plugin->short_name,
+			     addresses->addr,
+			     addresses->addrlen),
 			GNUNET_i2s (&neighbour->id),
 			addresses->connected,
 			addresses->in_transmit,
@@ -1601,8 +1628,9 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
               mq->message_buf_size,
               GNUNET_i2s (&neighbour->id), 
 	      (mq->specific_address->addr != NULL)
-	      ? GNUNET_a2s (mq->specific_address->addr,
-			    mq->specific_address->addrlen)
+	      ? a2s (mq->specific_address->plugin->short_name,
+		     mq->specific_address->addr,
+		     mq->specific_address->addrlen)
 	      : "<inbound>",
 	      rl->plugin->short_name);
 #endif
@@ -2426,7 +2454,7 @@ add_to_foreign_address_list (void *cls,
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Adding address `%s' (%s) for peer `%4s' due to peerinfo data for %llums.\n",
-		  GNUNET_a2s (addr, addrlen),
+		  a2s (tname, addr, addrlen),
 		  tname,
 		  GNUNET_i2s (&n->id),
 		  expiration.value);
@@ -3001,8 +3029,9 @@ send_periodic_ping (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Some validation of address `%s' via `%s' for peer `%4s' already in progress.\n",
 		  (peer_address->addr != NULL)
-                  ? GNUNET_a2s (peer_address->addr,
-				peer_address->addrlen)
+                  ? a2s (peer_address->plugin->short_name,
+			 peer_address->addr,
+			 peer_address->addrlen)
 		  : "<inbound>",
                   tp->short_name,
                   GNUNET_i2s (&neighbour->id));
@@ -3049,8 +3078,9 @@ send_periodic_ping (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Performing re-validation of address `%s' via `%s' for peer `%4s' sending `%s' (%u bytes) and `%s' (%u bytes)\n",
               (peer_address->addr != NULL) 
-	      ? GNUNET_a2s (peer_address->addr,
-			    peer_address->addrlen)
+	      ? a2s (peer_address->plugin->short_name,
+		     peer_address->addr,
+		     peer_address->addrlen)
 	      : "<inbound>",
               tp->short_name,
               GNUNET_i2s (&neighbour->id),
@@ -3231,8 +3261,9 @@ check_pending_validation (void *cls,
 	      "Confirmed validity of address, peer `%4s' has address `%s' (%s).\n",
 	      GNUNET_h2s (key),
 	      (ve->addr != NULL) 
-	      ? GNUNET_a2s ((const struct sockaddr *) ve->addr,
-			    ve->addrlen)
+	      ? a2s (ve->transport_name,
+		     (const struct sockaddr *) ve->addr,
+		     ve->addrlen)
 	      : "<inbound>",
 	      ve->transport_name);
 #endif
@@ -3368,15 +3399,6 @@ handle_pong (void *cls, const struct GNUNET_MessageHeader *message,
       return;
     }
 
-#if 0
-  /* FIXME: add given address to potential pool of our addresses
-     (for voting) */
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
-	      _("Another peer saw us using the address `%s' via `%s'.\n"),
-	      GNUNET_a2s ((const struct sockaddr *) &pong[1],
-			  ntohs(pong->addrlen)),
-	      va->transport_name);
-#endif
 }
 
 
@@ -3434,7 +3456,8 @@ transmit_hello_and_ping (void *cls,
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Performing validation of address `%s' via `%s' for peer `%4s' sending `%s' (%u bytes) and `%s' (%u bytes)\n",
-              GNUNET_a2s ((const void*) &va[1], va->addrlen),
+              a2s (va->transport_name,
+		   (const void*) &va[1], va->addrlen),
 	      va->transport_name,
 	      GNUNET_i2s (&neighbour->id),
 	      "HELLO", hello_size,
@@ -3548,7 +3571,7 @@ run_validation (void *cls,
 #if DEBUG_TRANSPORT > 1
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Validation of address `%s' via `%s' for peer `%4s' already in progress.\n",
-		  GNUNET_a2s (addr, addrlen),
+		  a2s (tname, addr, addrlen),
 		  tname,
 		  GNUNET_i2s (&id));
 #endif
@@ -3939,8 +3962,9 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
 	      "Processing `%s' from `%s'\n",
 	      "PING", 
 	      (sender_address != NULL) 
-	      ? GNUNET_a2s ((const struct sockaddr *)sender_address, 
-			    sender_address_len)
+	      ? a2s (plugin->short_name,
+		     (const struct sockaddr *)sender_address, 
+		     sender_address_len)
 	      : "<inbound>");
 #endif
   GNUNET_STATISTICS_update (stats,
@@ -4895,6 +4919,7 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
+  a2s (NULL, NULL, 0); /* make compiler happy */
   return (GNUNET_OK ==
           GNUNET_SERVICE_run (argc,
                               argv,

@@ -36,7 +36,7 @@
 #include "plugin_transport.h"
 #include "transport.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 /**
  * How long until we give up on transmitting the message?
@@ -91,15 +91,17 @@ static int ok;
 /**
  * Initialize Environment for this plugin
  */
-static void
+static struct GNUNET_TIME_Relative
 receive (void *cls,
-        const struct GNUNET_PeerIdentity * peer,
-        const struct GNUNET_MessageHeader * message,
-        uint32_t distance,
-        const char *sender_address,
-        size_t sender_address_len)
+	 const struct GNUNET_PeerIdentity * peer,
+	 const struct GNUNET_MessageHeader * message,
+	 uint32_t distance,
+	 struct Session *session,
+	 const char *sender_address,
+	 size_t sender_address_len)
 {
   /* do nothing */
+  return GNUNET_TIME_UNIT_ZERO;
 }
 
 void

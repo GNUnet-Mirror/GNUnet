@@ -248,6 +248,29 @@ template_plugin_address_suggested (void *cls,
 
 
 /**
+ * Function called for a quick conversion of the binary address to
+ * a numeric address.  Note that the caller must not free the 
+ * address and that the next call to this function is allowed
+ * to override the address again.
+ *
+ * @param cls closure
+ * @param addr binary address
+ * @param addr_len length of the address
+ * @return string representing the same address 
+ */
+static const char* 
+template_plugin_address_to_string (void *cls,
+				   const void *addr,
+				   size_t addrlen)
+{
+  GNUNET_break (0);
+  return NULL;
+}
+
+
+
+
+/**
  * Entry point for the plugin.
  */
 void *
@@ -266,6 +289,7 @@ gnunet_plugin_transport_template_init (void *cls)
   api->disconnect = &template_plugin_disconnect;
   api->address_pretty_printer = &template_plugin_address_pretty_printer;
   api->check_address = &template_plugin_address_suggested;
+  api->address_to_string = &template_plugin_address_to_string;
   return api;
 }
 

@@ -346,6 +346,23 @@ typedef int
   (*GNUNET_TRANSPORT_CheckAddress) (void *cls,
 				    void *addr, size_t addrlen);
 
+
+/**
+ * Function called for a quick conversion of the binary address to
+ * a numeric address.  Note that the caller must not free the 
+ * address and that the next call to this function is allowed
+ * to override the address again.
+ *
+ * @param cls closure
+ * @param addr binary address
+ * @param addr_len length of the address
+ * @return string representing the same address 
+ */
+typedef const char* (*GNUNET_TRANSPORT_AddressToString) (void *cls,
+							 const void *addr,
+							 size_t addrlen);
+
+
 /**
  * Each plugin is required to return a pointer to a struct of this
  * type as the return value from its entry point.
@@ -387,8 +404,18 @@ struct GNUNET_TRANSPORT_PluginFunctions
    * Function that will be called to check if a binary address
    * for this plugin is well-formed.  If clearly needed, patch
    * up information such as port numbers.
+   * FIXME: this API will likely change in the near future since
+   * it currently does not allow the size of the patched address
+   * to be different!
    */
   GNUNET_TRANSPORT_CheckAddress check_address;
+
+
+  /**
+   * Function that will be called to convert a binary address
+   * to a string (numeric conversion only).
+   */
+  GNUNET_TRANSPORT_AddressToString address_to_string;
 
 };
 
