@@ -35,7 +35,7 @@
  * the format:
  *
  * 1) transport-name (0-terminated)
- * 2) address-length (uint32_t, network byte order; possibly
+ * 2) address-length (uint16_t, network byte order; possibly
  *    unaligned!)
  * 3) address expiration (GNUNET_TIME_AbsoluteNBO); possibly
  *    unaligned!)
@@ -78,21 +78,21 @@ size_t
 GNUNET_HELLO_add_address (const char *tname,
                           struct GNUNET_TIME_Absolute expiration,
                           const void *addr,
-                          size_t addr_len, char *target, size_t max)
+                          uint16_t addr_len, char *target, size_t max)
 {
-  uint32_t alen;
+  uint16_t alen;
   size_t slen;
   struct GNUNET_TIME_AbsoluteNBO exp;
 
   slen = strlen (tname) + 1;
-  if (slen + sizeof (uint32_t) + sizeof (struct GNUNET_TIME_AbsoluteNBO) +
+  if (slen + sizeof (uint16_t) + sizeof (struct GNUNET_TIME_AbsoluteNBO) +
       addr_len > max)
     return 0;
   exp = GNUNET_TIME_absolute_hton (expiration);
-  alen = htonl ((uint32_t) addr_len);
+  alen = htons (addr_len);
   memcpy (target, tname, slen);
-  memcpy (&target[slen], &alen, sizeof (uint32_t));
-  slen += sizeof (uint32_t);
+  memcpy (&target[slen], &alen, sizeof (uint16_t));
+  slen += sizeof (uint16_t);
   memcpy (&target[slen], &exp, sizeof (struct GNUNET_TIME_AbsoluteNBO));
   slen += sizeof (struct GNUNET_TIME_AbsoluteNBO);
   memcpy (&target[slen], addr, addr_len);
@@ -110,10 +110,10 @@ GNUNET_HELLO_add_address (const char *tname,
  * @return size of the entry, or 0 if max is not large enough
  */
 static size_t
-get_hello_address_size (const char *buf, size_t max, uint32_t * ralen)
+get_hello_address_size (const char *buf, size_t max, uint16_t * ralen)
 {
   const char *pos;
-  uint32_t alen;
+  uint16_t alen;
   size_t left;
   size_t slen;
 
@@ -134,16 +134,16 @@ get_hello_address_size (const char *buf, size_t max, uint32_t * ralen)
       return 0;
     }
   pos++;
-  if (left < sizeof (uint32_t) + sizeof (struct GNUNET_TIME_AbsoluteNBO))
+  if (left < sizeof (uint16_t) + sizeof (struct GNUNET_TIME_AbsoluteNBO))
     {
       /* not enough space for addrlen */
       GNUNET_break_op (0);
       return 0;
     }
-  memcpy (&alen, pos, sizeof (uint32_t));
-  alen = ntohl (alen);
+  memcpy (&alen, pos, sizeof (uint16_t));
+  alen = ntohs (alen);
   *ralen = alen;
-  slen += alen + sizeof (uint32_t) + sizeof (struct GNUNET_TIME_AbsoluteNBO);
+  slen += alen + sizeof (uint16_t) + sizeof (struct GNUNET_TIME_AbsoluteNBO);
   if (max < slen)
     {
       /* not enough space for addr */
@@ -215,7 +215,7 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
   size_t esize;
   size_t wpos;
   char *woff;
-  uint32_t alen;
+  uint16_t alen;
   struct GNUNET_TIME_AbsoluteNBO expire;
   int iret;
 
@@ -275,7 +275,7 @@ struct ExpireContext
 {
   const void *addr;
   const char *tname;
-  size_t addrlen;
+  uint16_t addrlen;
   int found;
   struct GNUNET_TIME_Absolute expiration;
 };
@@ -285,7 +285,7 @@ static int
 get_match_exp (void *cls,
                const char *tname,
                struct GNUNET_TIME_Absolute expiration,
-               const void *addr, size_t addrlen)
+               const void *addr, uint16_t addrlen)
 {
   struct ExpireContext *ec = cls;
 
@@ -318,7 +318,7 @@ static int
 copy_latest (void *cls,
              const char *tname,
              struct GNUNET_TIME_Absolute expiration,
-             const void *addr, size_t addrlen)
+             const void *addr, uint16_t addrlen)
 {
   struct MergeContext *mc = cls;
   struct ExpireContext ec;
@@ -400,7 +400,7 @@ static int
 delta_match (void *cls,
              const char *tname,
              struct GNUNET_TIME_Absolute expiration,
-             const void *addr, size_t addrlen)
+             const void *addr, uint16_t addrlen)
 {
   struct DeltaContext *dc = cls;
   int ret;
@@ -545,9 +545,10 @@ struct EqualsContext
   
   struct GNUNET_TIME_Absolute expiration;
 
-  size_t addrlen;
-
   int found;
+
+  uint16_t addrlen;
+
 };
 
 
@@ -555,7 +556,7 @@ static int
 find_other_matching (void *cls,
 		     const char *tname,
 		     struct GNUNET_TIME_Absolute expiration,
-		     const void *addr, size_t addrlen)
+		     const void *addr, uint16_t addrlen)
 {
   struct EqualsContext *ec = cls;
 
@@ -584,7 +585,7 @@ static int
 find_matching (void *cls,
                const char *tname,
                struct GNUNET_TIME_Absolute expiration,
-               const void *addr, size_t addrlen)
+               const void *addr, uint16_t addrlen)
 {
   struct EqualsContext *ec = cls;
 

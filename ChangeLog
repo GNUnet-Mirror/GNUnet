@@ -1,3 +1,9 @@
+Sun May  2 13:49:10 CEST 2010
+	Fixed problem with platform-dependence of format for IP addresses
+	in HELLOs for TCP and UDP transport. 
+	Reduced address length field in HELLOs to 16 bit (was 32 bit).
+	These changes break transport compatibility.
+
 Fri Apr 16 18:19:05 CEST 2010
 	Nearly complete rewrite and new overall architecture.  Many
 	features are still missing, but basic system seems to be

@@ -90,7 +90,7 @@ typedef struct GNUNET_TIME_Relative (*GNUNET_TRANSPORT_PluginReceiveCallback) (v
 									       uint32_t distance,
 									       struct Session *session,
 									       const char *sender_address,
-									       size_t sender_address_len);
+									       uint16_t sender_address_len);
 
 
 /**
@@ -107,7 +107,7 @@ typedef struct GNUNET_TIME_Relative (*GNUNET_TRANSPORT_PluginReceiveCallback) (v
 typedef void (*GNUNET_TRANSPORT_AddressNotification) (void *cls,
                                                       const char *name,
                                                       const void *addr,
-                                                      size_t addrlen,
+                                                      uint16_t addrlen,
                                                       struct
                                                       GNUNET_TIME_Relative
                                                       expires);

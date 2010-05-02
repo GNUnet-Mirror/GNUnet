@@ -64,7 +64,7 @@ size_t
 GNUNET_HELLO_add_address (const char *tname,
                           struct GNUNET_TIME_Absolute expiration,
                           const void *addr,
-                          size_t addr_len, char *target, size_t max);
+                          uint16_t addr_len, char *target, size_t max);
 
 
 /**
@@ -160,7 +160,8 @@ typedef int
   (*GNUNET_HELLO_AddressIterator) (void *cls,
                                    const char *tname,
                                    struct GNUNET_TIME_Absolute expiration,
-                                   const void *addr, size_t addrlen);
+                                   const void *addr, 
+				   uint16_t addrlen);
 
 
 /**

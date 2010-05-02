@@ -151,7 +151,7 @@ static int
 discard_expired (void *cls,
                  const char *tname,
                  struct GNUNET_TIME_Absolute expiration,
-                 const void *addr, size_t addrlen)
+                 const void *addr, uint16_t addrlen)
 {
   const struct GNUNET_TIME_Absolute *now = cls;
   if (now->value > expiration.value)

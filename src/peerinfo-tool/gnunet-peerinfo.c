@@ -116,7 +116,7 @@ static int
 count_address (void *cls,
 	       const char *tname,
 	       struct GNUNET_TIME_Absolute expiration,
-	       const void *addr, size_t addrlen)
+	       const void *addr, uint16_t addrlen)
 {
   struct PrintContext *pc = cls;
   pc->off++;
@@ -138,7 +138,7 @@ static int
 print_address (void *cls,
 	       const char *tname,
 	       struct GNUNET_TIME_Absolute expiration,
-	       const void *addr, size_t addrlen)
+	       const void *addr, uint16_t addrlen)
 {
   struct PrintContext *pc = cls;
   GNUNET_TRANSPORT_address_lookup (sched,

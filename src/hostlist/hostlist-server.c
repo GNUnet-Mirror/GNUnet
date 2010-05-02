@@ -163,7 +163,8 @@ static int
 check_has_addr (void *cls,
 		const char *tname,
 		struct GNUNET_TIME_Absolute expiration,
-		const void *addr, size_t addrlen)
+		const void *addr,
+		uint16_t addrlen)
 {
   int *arg = cls;
 

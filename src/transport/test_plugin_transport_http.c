@@ -98,7 +98,7 @@ receive (void *cls,
 	 uint32_t distance,
 	 struct Session *session,
 	 const char *sender_address,
-	 size_t sender_address_len)
+	 uint16_t sender_address_len)
 {
   /* do nothing */
   return GNUNET_TIME_UNIT_ZERO;
@@ -108,7 +108,8 @@ void
 notify_address (void *cls,
                 const char *name,
                 const void *addr,
-                size_t addrlen, struct GNUNET_TIME_Relative expires)
+                uint16_t addrlen, 
+		struct GNUNET_TIME_Relative expires)
 {
 }
 

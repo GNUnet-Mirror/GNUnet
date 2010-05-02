@@ -166,11 +166,6 @@ struct ForeignAddressList
   GNUNET_SCHEDULER_TaskIdentifier revalidate_task;
 
   /**
-   * Length of addr.
-   */
-  size_t addrlen;
-
-  /**
    * The address.
    */
   const void *addr;
@@ -207,6 +202,11 @@ struct ForeignAddressList
    * FIXME: need to set this from transport plugins!
    */
   uint32_t distance;
+
+  /**
+   * Length of addr.
+   */
+  uint16_t addrlen;
 
   /**
    * Have we ever estimated the latency of this address?  Used to
@@ -264,7 +264,7 @@ struct OwnAddressList
   /**
    * Length of addr.
    */
-  size_t addrlen;
+  uint16_t addrlen;
 
 };
 
@@ -623,7 +623,7 @@ struct TransportPongMessage
   /**
    * Size of address appended to this message
    */
-  size_t addrlen;
+  uint16_t addrlen;
 
 };
 
@@ -734,14 +734,14 @@ struct ValidationEntry
   struct Session *session;
 
   /**
-   * Length of addr.
-   */
-  size_t addrlen;
-
-  /**
    * Challenge number we used.
    */
   uint32_t challenge;
+
+  /**
+   * Length of addr.
+   */
+  uint16_t addrlen;
 
 };
 
@@ -1403,7 +1403,7 @@ transmit_send_continuation (void *cls,
 static const char*
 a2s (const char *plugin,
      const void *addr,
-     size_t addr_len)
+     uint16_t addr_len)
 {
   struct TransportPlugin *p;
 
@@ -2040,7 +2040,7 @@ static void
 plugin_env_notify_address (void *cls,
                            const char *name,
                            const void *addr,
-                           size_t addrlen,
+                           uint16_t addrlen,
                            struct GNUNET_TIME_Relative expires)
 {
   struct TransportPlugin *p = cls;
@@ -2156,7 +2156,7 @@ find_peer_address(struct NeighbourList *neighbour,
 		  const char *tname,
 		  struct Session *session,
 		  const char *addr,
-		  size_t addrlen)
+		  uint16_t addrlen)
 {
   struct ReadyList *head;
   struct ForeignAddressList *pos;
@@ -2202,7 +2202,7 @@ add_peer_address (struct NeighbourList *neighbour,
 		  const char *tname,
 		  struct Session *session,
 		  const char *addr, 
-		  size_t addrlen)
+		  uint16_t addrlen)
 {
   struct ReadyList *head;
   struct ForeignAddressList *ret;
@@ -2315,14 +2315,15 @@ struct CheckAddressExistsClosure
   struct Session *session;
 
   /**
-   * Length of addr.
-   */
-  size_t addrlen;
-
-  /**
    * Set to GNUNET_YES if the address exists.
    */
   int exists;
+
+  /**
+   * Length of addr.
+   */
+  uint16_t addrlen;
+
 };
 
 
@@ -2437,7 +2438,8 @@ static int
 add_to_foreign_address_list (void *cls,
 			     const char *tname,
 			     struct GNUNET_TIME_Absolute expiration,
-			     const void *addr, size_t addrlen)
+			     const void *addr,
+			     uint16_t addrlen)
 {
   struct NeighbourList *n = cls;
   struct ForeignAddressList *fal;
@@ -3492,7 +3494,8 @@ static int
 run_validation (void *cls,
                 const char *tname,
                 struct GNUNET_TIME_Absolute expiration,
-                const void *addr, size_t addrlen)
+                const void *addr, 
+		uint16_t addrlen)
 {
   struct CheckHelloValidatedContext *chvc = cls;
   struct GNUNET_PeerIdentity id;
@@ -3932,7 +3935,7 @@ static int
 handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
 	    const struct GNUNET_PeerIdentity *peer,
 	    const char *sender_address,
-	    size_t sender_address_len)
+	    uint16_t sender_address_len)
 {
   struct TransportPlugin *plugin = cls;
   struct TransportPingMessage *ping;
@@ -4072,7 +4075,7 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                     uint32_t distance,
 		    struct Session *session,
 		    const char *sender_address,
-                    size_t sender_address_len)
+                    uint16_t sender_address_len)
 {
   struct TransportPlugin *plugin = cls;
   struct ReadyList *service_context;
