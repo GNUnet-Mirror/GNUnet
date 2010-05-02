@@ -849,6 +849,9 @@ tcp_plugin_send (void *cls,
 	  t6 = addr;
 	  af = AF_INET6;
 	  memset (&a6, 0, sizeof (a6));
+#if HAVE_SOCKADDR_IN_SIN_LEN
+          a6.sin6_len = sizeof (a6);
+#endif
 	  a6.sin6_family = AF_INET6;
 	  a6.sin6_port = t6->t6_port;
 	  memcpy (a6.sin6_addr.s6_addr,
@@ -862,6 +865,9 @@ tcp_plugin_send (void *cls,
 	  t4 = addr;
 	  af = AF_INET;
 	  memset (&a4, 0, sizeof (a4));
+#if HAVE_SOCKADDR_IN_SIN_LEN
+          a4.sin_len = sizeof (a4);
+#endif
 	  a4.sin_family = AF_INET;
 	  a4.sin_port = t4->t_port;
 	  a4.sin_addr.s_addr = t4->ipv4_addr;
