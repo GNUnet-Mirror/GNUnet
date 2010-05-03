@@ -342,8 +342,7 @@ struct GNUNET_FS_FileInformation
   struct GNUNET_FS_TreeEncoder *te;
 
   /**
-   * Error message (non-NULL if this operation
-   * failed).
+   * Error message (non-NULL if this operation failed).
    */
   char *emsg;
 
@@ -543,6 +542,87 @@ struct GNUNET_FS_QueueEntry
 
 
 /**
+ * Information we store for each search result.
+ */
+struct SearchResult
+{
+
+  /**
+   * Search context this result belongs to.
+   */
+  struct GNUNET_FS_SearchContext *sc;
+
+  /**
+   * URI to which this search result refers to.
+   */
+  struct GNUNET_FS_Uri *uri;
+
+  /**
+   * Metadata for the search result.
+   */
+  struct GNUNET_CONTAINER_MetaData *meta;
+
+  /**
+   * Client info for this search result.
+   */
+  void *client_info;
+
+  /**
+   * ID of a job that is currently probing this results' availability
+   * (NULL if we are not currently probing).
+   */
+  struct GNUNET_FS_DownloadContext *probe_ctx;
+
+  /**
+   * Name under which this search result is stored on disk.
+   */
+  char *serialization;
+
+  /**
+   * ID of the task that will clean up the probe_ctx should it not
+   * complete on time (and that will need to be cancelled if we clean
+   * up the search result before then).
+   */
+  GNUNET_SCHEDULER_TaskIdentifier probe_cancel_task;
+
+  /**
+   * When did the current probe become active?
+   */
+  struct GNUNET_TIME_Absolute probe_active_time;
+
+  /**
+   * How much longer should we run the current probe before giving up?
+   */
+  struct GNUNET_TIME_Relative remaining_probe_time;
+
+  /**
+   * Number of mandatory keywords for which we have NOT yet found the
+   * search result; when this value hits zero, the search result is
+   * given to the callback.
+   */
+  uint32_t mandatory_missing;
+
+  /**
+   * Number of optional keywords under which this result was also
+   * found.
+   */
+  uint32_t optional_support;
+
+  /**
+   * Number of availability tests that have succeeded for this result.
+   */
+  uint32_t availability_success;
+
+  /**
+   * Number of availability trials that we have performed for this
+   * search result.
+   */
+  uint32_t availability_trials;
+
+};
+
+
+/**
  * Add a job to the queue.
  *
  * @param h handle to the overall FS state
@@ -699,6 +779,19 @@ GNUNET_FS_unindex_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
 				uint64_t offset);
 
 /**
+ * Fill in all of the generic fields for a search event and
+ * call the callback.
+ *
+ * @param pi structure to fill in
+ * @param sc overall search context
+ * @return value returned by the callback
+ */
+void *
+GNUNET_FS_search_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
+			       struct GNUNET_FS_SearchContext *sc);
+
+
+/**
  * Connect to the datastore and remove the blocks.
  *
  * @param uc context for the unindex operation.
@@ -706,6 +799,23 @@ GNUNET_FS_unindex_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
 void 
 GNUNET_FS_unindex_do_remove_ (struct GNUNET_FS_UnindexContext *uc);
 
+/**
+ * Build the request and actually initiate the search using the
+ * GNUnet FS service.
+ *
+ * @param sc search context
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc);
+
+/**
+ * Start download probes for the given search result.
+ *
+ * @param sr the search result
+ */
+void
+GNUNET_FS_search_start_probe_ (struct SearchResult *sr);
 
 /**
  * Remove serialization/deserialization file from disk.
@@ -731,7 +841,6 @@ GNUNET_FS_remove_sync_file_ (struct GNUNET_FS_Handle *h,
 void
 GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation *f);
 
-
 /**
  * Synchronize this publishing struct with its mirror
  * on disk.  Note that all internal FS-operations that change
@@ -742,7 +851,6 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation *f);
  */
 void
 GNUNET_FS_publish_sync_ (struct GNUNET_FS_PublishContext *pc);
-
 
 /**
  * Synchronize this unindex struct with its mirror
@@ -755,8 +863,6 @@ GNUNET_FS_publish_sync_ (struct GNUNET_FS_PublishContext *pc);
 void
 GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc);
 
-
-
 /**
  * Synchronize this search struct with its mirror
  * on disk.  Note that all internal FS-operations that change
@@ -768,6 +874,16 @@ GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc);
 void
 GNUNET_FS_search_sync_ (struct GNUNET_FS_SearchContext *sc);
 
+/**
+ * Synchronize this search result with its mirror
+ * on disk.  Note that all internal FS-operations that change
+ * publishing structs should already call "sync" internally,
+ * so this function is likely not useful for clients.
+ * 
+ * @param sc the struct to sync
+ */
+void
+GNUNET_FS_search_result_sync_ (struct SearchResult *sr);
 
 
 /**
@@ -1069,82 +1185,6 @@ struct GNUNET_FS_UnindexContext
 
 
 /**
- * Information we store for each search result.
- */
-struct SearchResult
-{
-
-  /**
-   * Search context this result belongs to.
-   */
-  struct GNUNET_FS_SearchContext *sc;
-
-  /**
-   * URI to which this search result refers to.
-   */
-  struct GNUNET_FS_Uri *uri;
-
-  /**
-   * Metadata for the search result.
-   */
-  struct GNUNET_CONTAINER_MetaData *meta;
-
-  /**
-   * Client info for this search result.
-   */
-  void *client_info;
-
-  /**
-   * ID of a job that is currently probing this results' availability
-   * (NULL if we are not currently probing).
-   */
-  struct GNUNET_FS_DownloadContext *probe_ctx;
-
-  /**
-   * ID of the task that will clean up the probe_ctx should it not
-   * complete on time (and that will need to be cancelled if we clean
-   * up the search result before then).
-   */
-  GNUNET_SCHEDULER_TaskIdentifier probe_cancel_task;
-
-  /**
-   * When did the current probe become active?
-   */
-  struct GNUNET_TIME_Absolute probe_active_time;
-
-  /**
-   * How much longer should we run the current probe before giving up?
-   */
-  struct GNUNET_TIME_Relative remaining_probe_time;
-
-  /**
-   * Number of mandatory keywords for which we have NOT yet found the
-   * search result; when this value hits zero, the search result is
-   * given to the callback.
-   */
-  uint32_t mandatory_missing;
-
-  /**
-   * Number of optional keywords under which this result was also
-   * found.
-   */
-  uint32_t optional_support;
-
-  /**
-   * Number of availability tests that have succeeded for this result.
-   */
-  uint32_t availability_success;
-
-  /**
-   * Number of availability trials that we have performed for this
-   * search result.
-   */
-  uint32_t availability_trials;
-
-};
-
-
-/**
  * Information we keep for each keyword in
  * a keyword search.
  */
@@ -1239,6 +1279,11 @@ struct GNUNET_FS_SearchContext
    * Name of the file on disk we use for persistence.
    */
   char *serialization;
+
+  /**
+   * Error message (non-NULL if this operation failed).
+   */
+  char *emsg;
 
   /**
    * Map that contains a "struct SearchResult" for each result that

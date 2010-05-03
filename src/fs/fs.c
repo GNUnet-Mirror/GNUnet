@@ -127,9 +127,6 @@ process_job_queue (void *cls,
   while (NULL != (qe = next))
     {
       next = qe->next;
-      /* FIXME: might be faster/simpler to do this calculation only once
-	 when we start a job (OTOH, this would allow us to dynamically
-	 and easily adjust qe->blocks over time, given the right API...) */
       run_time = GNUNET_TIME_relative_multiply (h->avg_block_latency,
 						qe->blocks * qe->start_times);
       end_time = GNUNET_TIME_absolute_add (qe->start_time,
@@ -1249,6 +1246,21 @@ GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc)
 
 
 /**
+ * Synchronize this search result with its mirror
+ * on disk.  Note that all internal FS-operations that change
+ * publishing structs should already call "sync" internally,
+ * so this function is likely not useful for clients.
+ * 
+ * @param sc the struct to sync
+ */
+void
+GNUNET_FS_search_result_sync_ (struct SearchResult *sr)
+{
+  /* FIXME */
+}
+
+
+/**
  * Synchronize this search struct with its mirror
  * on disk.  Note that all internal FS-operations that change
  * publishing structs should already call "sync" internally,
@@ -1290,7 +1302,7 @@ GNUNET_FS_search_sync_ (struct GNUNET_FS_SearchContext *sc)
      return;
    }
 #endif
-  /* FIXME: do search-specific deserialization here! */
+  /* FIXME: do search-specific serialization here! */
   if (GNUNET_OK !=
       GNUNET_BIO_write_close (wh))
     {
@@ -1462,6 +1474,250 @@ deserialize_unindex (struct GNUNET_FS_Handle *h)
 }
 
 
+/**
+ * Function called with a filename of serialized search result
+ * to deserialize.
+ *
+ * @param cls the 'struct GNUNET_FS_SearchContext*'
+ * @param filename complete filename (absolute path)
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int
+deserialize_search_result (void *cls,
+			   const char *filename)
+{
+  struct GNUNET_FS_SearchContext *sc = cls;
+  char pbuf[32];
+  char *ser;
+  char *uris;
+  char *emsg;
+  struct GNUNET_BIO_ReadHandle *rh;
+  struct SearchResult *sr;
+  GNUNET_HashCode key;
+
+  ser = get_serialization_short_name (filename);
+  rh = GNUNET_BIO_read_open (filename);
+  if (rh == NULL)
+    {
+      if (ser != NULL)
+	{
+	  GNUNET_snprintf (pbuf,
+			   sizeof (pbuf),
+			   "%s%s%s",
+			   "search-results",
+			   DIR_SEPARATOR_STR,
+			   sc->serialization);
+	  GNUNET_FS_remove_sync_file_ (sc->h, pbuf, ser);
+	  GNUNET_free (ser);
+	}
+      return GNUNET_OK;
+    }
+  emsg = NULL;
+  uris = NULL;
+  sr = GNUNET_malloc (sizeof (struct SearchResult));
+  sr->serialization = ser;  
+  if ( (GNUNET_OK !=
+	GNUNET_BIO_read_string (rh, "result-uri", &uris, 10*1024)) ||
+       (NULL == (sr->uri = GNUNET_FS_uri_parse (uris, &emsg))) ||       
+       ( (GNUNET_YES != GNUNET_FS_uri_test_chk (sr->uri)) &&
+	 (GNUNET_YES != GNUNET_FS_uri_test_loc (sr->uri)) ) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_meta_data (rh, "result-meta", &sr->meta)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read (rh, "result-key", &key, sizeof (key))) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int32 (rh, &sr->mandatory_missing)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int32 (rh, &sr->optional_support)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int32 (rh, &sr->availability_success)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int32 (rh, &sr->availability_trials)) )
+    goto cleanup;   
+  GNUNET_free (uris);
+  GNUNET_CONTAINER_multihashmap_put (sc->master_result_map,
+				     &key,
+				     sr,
+				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  return GNUNET_OK;
+ cleanup:
+  GNUNET_free_non_null (emsg);
+  GNUNET_free_non_null (uris);
+  if (sr->uri != NULL)
+    GNUNET_FS_uri_destroy (sr->uri);
+  if (sr->meta != NULL)
+    GNUNET_CONTAINER_meta_data_destroy (sr->meta);
+  GNUNET_free (sr->serialization);
+  GNUNET_free (sr);  
+  return GNUNET_OK;
+}
+
+
+/**
+ * Iterator over search results signaling resume to the client for
+ * each result.
+ *
+ * @param cls closure, the 'struct GNUNET_FS_SearchContext'
+ * @param key current key code
+ * @param value value in the hash map, the 'struct SearchResult'
+ * @return GNUNET_YES (we should continue to iterate)
+ */
+static int
+signal_result_resume (void *cls,
+		      const GNUNET_HashCode * key,
+		      void *value)
+{
+  struct GNUNET_FS_SearchContext *sc = cls;
+  struct GNUNET_FS_ProgressInfo pi;
+  struct SearchResult *sr = value;
+
+  if (0 == sr->mandatory_missing)
+    {
+      pi.status = GNUNET_FS_STATUS_SEARCH_RESUME_RESULT;
+      pi.value.search.specifics.resume_result.meta = sr->meta;
+      pi.value.search.specifics.resume_result.uri = sr->uri;
+      pi.value.search.specifics.resume_result.availability_rank = 2*sr->availability_success - sr->availability_trials;
+      pi.value.search.specifics.resume_result.availability_certainty = sr->availability_trials;
+      pi.value.search.specifics.resume_result.applicability_rank = sr->optional_support;
+      sr->client_info = GNUNET_FS_search_make_status_ (&pi,
+						       sc);
+    }
+  GNUNET_FS_search_start_probe_ (sr);
+  return GNUNET_YES;
+}
+
+
+/**
+ * Iterator over search results freeing each.
+ *
+ * @param cls closure, the 'struct GNUNET_FS_SearchContext'
+ * @param key current key code
+ * @param value value in the hash map, the 'struct SearchResult'
+ * @return GNUNET_YES (we should continue to iterate)
+ */
+static int
+free_result (void *cls,
+	     const GNUNET_HashCode * key,
+	     void *value)
+{
+  struct SearchResult *sr = value;
+
+  GNUNET_CONTAINER_meta_data_destroy (sr->meta);
+  GNUNET_FS_uri_destroy (sr->uri);
+  GNUNET_free (sr);
+  return GNUNET_YES;
+}
+
+
+/**
+ * Deserialize a search. 
+ *
+ * @param h overall context
+ * @param rh file to deserialize from
+ * @param parent parent search
+ * @param serialization name under which the search was serialized
+ */
+static struct GNUNET_FS_SearchContext *
+deserialize_search (struct GNUNET_FS_Handle *h,
+		    struct GNUNET_BIO_ReadHandle *rh,
+		    struct GNUNET_FS_SearchContext *parent,
+		    const char *serialization)
+{
+  struct GNUNET_FS_SearchContext *sc;
+  char pbuf[32];
+  struct GNUNET_FS_ProgressInfo pi;
+  char *emsg;
+  char *uris;
+  char *child_ser;
+  char *dn;
+  uint32_t options;
+  char in_pause;
+
+  uris = NULL;
+  child_ser = NULL;
+  emsg = NULL;
+  sc = GNUNET_malloc (sizeof (struct GNUNET_FS_SearchContext));
+  sc->parent = parent;
+  sc->h = h;
+  sc->serialization = GNUNET_strdup (serialization);
+  if ( (GNUNET_OK !=
+	GNUNET_BIO_read_string (rh, "search-uri", &uris, 10*1024)) ||
+       (NULL == (sc->uri = GNUNET_FS_uri_parse (uris, &emsg))) ||       
+       ( (GNUNET_YES != GNUNET_FS_uri_test_ksk (sc->uri)) &&
+	 (GNUNET_YES != GNUNET_FS_uri_test_sks (sc->uri)) ) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int64 (rh, &sc->start_time.value)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_string (rh, "child-serialization", &child_ser, 32)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_string (rh, "search-emsg", &sc->emsg, 10*1024)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int32 (rh, &options)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read (rh, "search-pause", &in_pause, sizeof (in_pause))) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int32 (rh, &sc->anonymity)) )
+    goto cleanup;          
+  /* FIXME: adjust start_time.value */
+  sc->options = (enum GNUNET_FS_SearchOptions) options;
+  sc->master_result_map = GNUNET_CONTAINER_multihashmap_create (16);
+  GNUNET_snprintf (pbuf,
+		   sizeof (pbuf),
+		   "%s%s%s",
+		   "search-results",
+		   DIR_SEPARATOR_STR,
+		   sc->serialization);
+  dn = get_serialization_file_name (h, pbuf, "");
+  if (dn != NULL)
+    {
+      GNUNET_DISK_directory_scan (dn, &deserialize_search_result, sc);
+      GNUNET_free (dn);
+    }
+  if ('\0' == in_pause)
+    {
+      if (GNUNET_OK !=
+	  GNUNET_FS_search_start_searching_ (sc))
+	goto cleanup;
+    }
+  if (child_ser != NULL)
+    {
+      /* FIXME: deserialize child-search! */
+    }
+  if (parent != NULL)
+    GNUNET_CONTAINER_DLL_insert (parent->child_head,
+				 parent->child_tail,
+				 sc);
+  pi.status = GNUNET_FS_STATUS_SEARCH_RESUME;
+  pi.value.search.specifics.resume.message = sc->emsg;
+  pi.value.search.specifics.resume.is_paused = ('\0' == in_pause) ? GNUNET_NO : GNUNET_YES;
+  sc->client_info = GNUNET_FS_search_make_status_ (&pi,
+						   sc);
+  GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
+					 &signal_result_resume,
+					 sc);
+  return sc;
+ cleanup:
+  GNUNET_free_non_null (child_ser);
+  GNUNET_free_non_null (sc->emsg);
+  GNUNET_free_non_null (emsg);
+  if (sc->serialization != NULL)
+    GNUNET_FS_remove_sync_file_ (h, "search", sc->serialization);
+  /* FIXME: remove 'pbuf' directory with search results as well! */
+  GNUNET_free_non_null (sc->serialization);
+  if (sc->uri != NULL)
+    GNUNET_FS_uri_destroy (sc->uri);
+  if (sc->master_result_map != NULL)
+    {
+      GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
+					     &free_result,
+					     sc);
+      GNUNET_CONTAINER_multihashmap_destroy (sc->master_result_map);
+    }
+  GNUNET_free (sc);
+  GNUNET_free_non_null (uris);
+  return NULL;
+}
+
 
 /**
  * Function called with a filename of serialized search operation
@@ -1475,11 +1731,34 @@ static int
 deserialize_search_file (void *cls,
 			  const char *filename)
 {
-  /* FIXME */
-  // Deserialize Search:
-  // * for each query, read file with search results
-  // * for each search result with active download, deserialize download
-  // * for each directory search result, check for active downloads of contents
+  struct GNUNET_FS_Handle *h = cls;
+  char *ser;
+  char *emsg;
+  struct GNUNET_BIO_ReadHandle *rh;
+  struct GNUNET_FS_SearchContext *sc;
+
+  ser = get_serialization_short_name (filename);
+  rh = GNUNET_BIO_read_open (filename);
+  if (rh == NULL)
+    {
+      if (ser != NULL)
+	{
+	  GNUNET_FS_remove_sync_file_ (h, "search", ser);
+	  GNUNET_free (ser);
+	}
+      return GNUNET_OK;
+    }
+  sc = deserialize_search (h, rh, NULL, ser);
+  GNUNET_free (ser);
+  if (GNUNET_OK !=
+      GNUNET_BIO_read_close (rh, &emsg))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Failure while resuming unindexing operation `%s': %s\n"),
+		  filename,
+		  emsg);
+      GNUNET_free (emsg);
+    }
   return GNUNET_OK;
 }
 
@@ -1490,7 +1769,7 @@ deserialize_search_file (void *cls,
  * @param h master context
  */
 static void
-deserialize_search (struct GNUNET_FS_Handle *h)
+deserialize_search_master (struct GNUNET_FS_Handle *h)
 {
   char *dn;
 
@@ -1570,7 +1849,7 @@ GNUNET_FS_start (struct GNUNET_SCHEDULER_Handle *sched,
       /* FIXME: could write one generic deserialization
 	 function instead of these four... */
       deserialize_publish (ret);
-      deserialize_search (ret);
+      deserialize_search_master (ret);
       /* FIXME: deserialize downloads that are NOT part of searches */
       deserialize_unindex (ret);
     }
