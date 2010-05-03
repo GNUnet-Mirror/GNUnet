@@ -1384,6 +1384,23 @@ deactivate_fs_download (void *cls)
 
 
 /**
+ * Create SUSPEND event for the given download operation
+ * and then clean up our state (without stop signal).
+ *
+ * @param cls the 'struct GNUNET_FS_UnindexContext' to signal for
+ */
+static void
+download_signal_suspend (void *cls)
+{
+  struct GNUNET_FS_DownloadContext *dc = cls;
+  
+  GNUNET_FS_end_top (dc->h, dc->top);
+  /* FIXME: signal! */
+  GNUNET_free (dc);
+}
+
+
+/**
  * Download parts of a file.  Note that this will store
  * the blocks at the respective offset in the given file.  Also, the
  * download is still using the blocking of the underlying FS
@@ -1496,6 +1513,11 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 			   0, 
 			   1 /* 0 == CHK, 1 == top */); 
   GNUNET_FS_download_start_downloading_ (dc);
+  if (parent == NULL)
+    dc->top = GNUNET_FS_make_top (dc->h,
+				  &download_signal_suspend,
+				  dc);
+
   return dc;
 }
 
@@ -1665,6 +1687,8 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
 {
   struct GNUNET_FS_ProgressInfo pi;
 
+  if (dc->top != NULL)
+    GNUNET_FS_end_top (dc->h, dc->top);
   if (dc->search != NULL)
     {
       dc->search->download = NULL;

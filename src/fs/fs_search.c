@@ -1161,6 +1161,21 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
 }
 
 
+/**
+ * Create SUSPEND event for the given search operation
+ * and then clean up our state (without stop signal).
+ *
+ * @param cls the 'struct GNUNET_FS_SearchContext' to signal for
+ */
+static void
+search_signal_suspend (void *cls)
+{
+  struct GNUNET_FS_SearchContext *sc = cls;
+
+  GNUNET_FS_end_top (sc->h, sc->top);
+  /* FIXME: signal! */
+  GNUNET_free (sc);
+}
 
 
 /**
@@ -1181,7 +1196,10 @@ GNUNET_FS_search_start (struct GNUNET_FS_Handle *h,
 			enum GNUNET_FS_SearchOptions options,
 			void *cctx)
 {
-  return search_start (h, uri, anonymity, options, cctx, NULL);
+  struct GNUNET_FS_SearchContext *ret;
+  ret = search_start (h, uri, anonymity, options, cctx, NULL);
+  ret->top = GNUNET_FS_make_top (h, &search_signal_suspend, ret);
+  return ret;
 }
 
 
@@ -1253,6 +1271,7 @@ search_result_free (void *cls,
       pi.status = GNUNET_FS_STATUS_DOWNLOAD_LOST_PARENT;
       GNUNET_FS_download_make_status_ (&pi,
 				       sr->download);
+      /* FIXME: promote download to top-level! */
       sr->download = NULL;     
     }
   pi.status = GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED;
@@ -1298,6 +1317,8 @@ GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc)
   unsigned int i;
   struct GNUNET_FS_SearchContext *parent;
 
+  if (sc->top != NULL)
+    GNUNET_FS_end_top (sc->h, sc->top);
   // FIXME: make un-persistent!
   if (NULL != (parent = sc->parent))
     {

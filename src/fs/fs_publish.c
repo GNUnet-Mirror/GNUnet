@@ -930,6 +930,22 @@ fip_signal_start(void *cls,
 
 
 /**
+ * Create SUSPEND event for the given publish operation
+ * and then clean up our state (without stop signal).
+ *
+ * @param cls the 'struct GNUNET_FS_PublishContext' to signal for
+ */
+static void
+publish_signal_suspend (void *cls)
+{
+  struct GNUNET_FS_PublishContext *pc = cls;
+
+  GNUNET_FS_end_top (pc->h, pc->top);
+  /* FIXME: signal! */
+  GNUNET_free (pc);
+}
+
+/**
  * Publish a file or directory.
  *
  * @param h handle to the file sharing subsystem
@@ -983,7 +999,7 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
 				      &fip_signal_start,
 				      ret);
   ret->fi_pos = ret->fi;
-
+  ret->top = GNUNET_FS_make_top (h, &publish_signal_suspend, ret);
   // FIXME: calculate space needed for "fi"
   // and reserve as first task (then trigger
   // "publish_main" from that continuation)!
@@ -1056,6 +1072,7 @@ fip_signal_stop(void *cls,
 void 
 GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *pc)
 {
+  GNUNET_FS_end_top (pc->h, pc->top);
   if (GNUNET_SCHEDULER_NO_TASK != pc->upload_task)
     GNUNET_SCHEDULER_cancel (pc->h->sched, pc->upload_task);
   if (pc->serialization != NULL) 

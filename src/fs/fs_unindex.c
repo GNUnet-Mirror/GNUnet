@@ -394,6 +394,23 @@ GNUNET_FS_unindex_process_hash_ (void *cls,
 
 
 /**
+ * Create SUSPEND event for the given unindex operation
+ * and then clean up our state (without stop signal).
+ *
+ * @param cls the 'struct GNUNET_FS_UnindexContext' to signal for
+ */
+static void
+unindex_signal_suspend (void *cls)
+{
+  struct GNUNET_FS_UnindexContext *uc = cls;
+
+  GNUNET_FS_end_top (uc->h, uc->top);
+  /* FIXME: signal! */
+  GNUNET_free (uc);
+}
+
+
+/**
  * Unindex a file.
  *
  * @param h handle to the file sharing subsystem
@@ -432,6 +449,9 @@ GNUNET_FS_unindex_start (struct GNUNET_FS_Handle *h,
 			   HASHING_BLOCKSIZE,
 			   &GNUNET_FS_unindex_process_hash_,
 			   ret);
+  ret->top = GNUNET_FS_make_top (h,
+				 &unindex_signal_suspend,
+				 ret);
   return ret;
 }
 
@@ -446,6 +466,7 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc)
 {  
   struct GNUNET_FS_ProgressInfo pi;
 
+  GNUNET_FS_end_top (uc->h, uc->top);
   if ( (uc->state != UNINDEX_STATE_COMPLETE) &&
        (uc->state != UNINDEX_STATE_ERROR) )
     {

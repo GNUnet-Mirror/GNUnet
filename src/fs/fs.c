@@ -213,6 +213,49 @@ GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qh)
 
 
 /**
+ * Create a top-level activity entry.
+ *
+ * @param h global fs handle
+ * @param ssf suspend signal function to use
+ * @param ssf_cls closure for ssf
+ * @return fresh top-level activity handle
+ */
+struct TopLevelActivity *
+GNUNET_FS_make_top (struct GNUNET_FS_Handle *h,
+		    SuspendSignalFunction ssf,
+		    void *ssf_cls)
+{
+  struct TopLevelActivity *ret;
+
+  ret = GNUNET_malloc (sizeof (struct TopLevelActivity));
+  ret->ssf = ssf;
+  ret->ssf_cls = ssf_cls;
+  GNUNET_CONTAINER_DLL_insert (h->top_head,
+			       h->top_tail,
+			       ret);
+  return ret;
+}
+
+
+/**
+ * Destroy a top-level activity entry.
+ * 
+ * @param h global fs handle
+ * @param top top level activity entry
+ */
+void
+GNUNET_FS_end_top (struct GNUNET_FS_Handle *h,
+		   struct TopLevelActivity *top)
+{
+  GNUNET_CONTAINER_DLL_remove (h->top_head,
+			       h->top_tail,
+			       top);
+  GNUNET_free (top);
+}
+
+
+
+/**
  * Closure for "data_reader_file".
  */
 struct FileInfo
@@ -2513,10 +2556,9 @@ GNUNET_FS_start (struct GNUNET_SCHEDULER_Handle *sched,
 void 
 GNUNET_FS_stop (struct GNUNET_FS_Handle *h)
 {
-  if (0 != (GNUNET_FS_FLAGS_PERSISTENCE & h->flags))
-    {
-      // FIXME: generate SUSPEND events and clean up state!
-    }
+  /* generate SUSPEND events and clean up state */
+  while (h->top_head != NULL)
+    h->top_head->ssf (h->top_head->ssf_cls);
   // FIXME: terminate receive-loop with client  (do we need one?)
   if (h->queue_job != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (h->sched,

@@ -158,7 +158,14 @@
  */
 struct ContentHashKey 
 {
+  /**
+   * Hash of the original content, used for encryption.
+   */
   GNUNET_HashCode key;
+
+  /**
+   * Hash of the encrypted content, used for querying.
+   */
   GNUNET_HashCode query;
 };
 
@@ -212,15 +219,42 @@ struct Location
 
 };
 
+/**
+ * Types of URIs.
+ */
 enum uri_types
-{ chk, sks, ksk, loc };
+  { 
+    /**
+     * Content-hash-key (simple file).
+     */
+    chk, 
+
+    /**
+     * Signed key space (file in namespace).
+     */
+    sks,
+
+    /**
+     * Keyword search key (query with keywords).
+     */
+    ksk,
+
+    /**
+     * Location (chk with identity of hosting peer).
+     */
+    loc 
+  };
 
 /**
  * A Universal Resource Identifier (URI), opaque.
  */
 struct GNUNET_FS_Uri
 {
+  /**
+   * Type of the URI.
+   */
   enum uri_types type;
+
   union
   {
     struct
@@ -930,6 +964,68 @@ GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc);
 
 
 /**
+ * Function signature of the functions that can be called
+ * to trigger suspend signals and clean-up for top-level
+ * activities.
+ *
+ * @param cls closure
+ */
+typedef void (*SuspendSignalFunction)(void *cls);				      
+
+/**
+ * We track all of the top-level activities of FS
+ * so that we can signal 'suspend' on shutdown.
+ */
+struct TopLevelActivity
+{
+  /**
+   * This is a doubly-linked list.
+   */ 
+  struct TopLevelActivity *next;
+
+  /**
+   * This is a doubly-linked list.
+   */  
+  struct TopLevelActivity *prev;
+
+  /**
+   * Function to call for suspend-signalling and clean up.
+   */
+  SuspendSignalFunction ssf;
+
+  /**
+   * Closure for 'ssf' (some struct GNUNET_FS_XXXHandle*)
+   */
+  void *ssf_cls;
+};
+
+
+/**
+ * Create a top-level activity entry.
+ *
+ * @param h global fs handle
+ * @param ssf suspend signal function to use
+ * @param ssf_cls closure for ssf
+ * @return fresh top-level activity handle
+ */
+struct TopLevelActivity *
+GNUNET_FS_make_top (struct GNUNET_FS_Handle *h,
+		    SuspendSignalFunction ssf,
+		    void *ssf_cls);
+
+
+/**
+ * Destroy a top-level activity entry.
+ * 
+ * @param h global fs handle
+ * @param top top level activity entry
+ */
+void
+GNUNET_FS_end_top (struct GNUNET_FS_Handle *h,
+		   struct TopLevelActivity *top);
+
+
+/**
  * Master context for most FS operations.
  */
 struct GNUNET_FS_Handle
@@ -963,6 +1059,16 @@ struct GNUNET_FS_Handle
    * Connection to the FS service.
    */
   struct GNUNET_CLIENT_Connection *client;
+
+  /**
+   * Head of DLL of top-level activities.
+   */
+  struct TopLevelActivity *top_head;
+
+  /**
+   * Tail of DLL of top-level activities.
+   */
+  struct TopLevelActivity *top_tail;
 
   /**
    * Head of DLL of running jobs.
@@ -1033,6 +1139,11 @@ struct GNUNET_FS_PublishContext
    * Handle to the global fs context.
    */ 
   struct GNUNET_FS_Handle *h;
+
+  /**
+   * Our top-level activity entry (if we are top-level, otherwise NULL).
+   */
+  struct TopLevelActivity *top;
 
   /**
    * File-structure that is being shared.
@@ -1163,6 +1274,11 @@ struct GNUNET_FS_UnindexContext
   struct GNUNET_FS_Handle *h;
 
   /**
+   * Our top-level activity entry.
+   */
+  struct TopLevelActivity *top;
+
+  /**
    * Name of the file that we are unindexing.
    */
   char *filename;
@@ -1272,6 +1388,11 @@ struct GNUNET_FS_SearchContext
    * Handle to the global FS context.
    */
   struct GNUNET_FS_Handle *h;
+
+  /**
+   * Our top-level activity entry (if we are top-level, otherwise NULL).
+   */
+  struct TopLevelActivity *top;
 
   /**
    * List of keywords that we're looking for.
@@ -1420,6 +1541,11 @@ struct GNUNET_FS_DownloadContext
    * Global FS context.
    */ 
   struct GNUNET_FS_Handle *h;
+
+  /**
+   * Our top-level activity entry (if we are top-level, otherwise NULL).
+   */
+  struct TopLevelActivity *top;
   
   /**
    * Connection to the FS service.

@@ -1,6 +1,8 @@
 0.9.0pre1:
 * FS: [CG]
   - implement linking of downloads to searches in syncing (serialize/deserialize) 
+  - generate SUSPEND events (publish, unindex, search, download) AND free memory!
+    => test SUSPEND events
   - actually call 'sync' functions (publish, unindex, search, download)
   - code review:
     => refactor fs.c to join common code segments!
@@ -9,9 +11,6 @@
   - persistence testing (publish, unindex, search, download):
     => need driver!
     => schedule suspending tasks DURING event handler => good coverage!
-  - track top-level operations in FS_Handle (needed for SUSPEND signalling)
-  - generate SUSPEND events (publish, unindex, search, download) AND free memory!
-    => test SUSPEND events
   - gnunet-service-fs (hot-path routing, load-based routing, nitpicks)  
   - [gnunet-service-fs.c:208]: member 'LocalGetContext::results_bf_size' is never used
   - [gnunet-service-fs.c:501]: member 'PendingRequest::used_pids_size' is never used
