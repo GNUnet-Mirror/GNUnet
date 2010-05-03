@@ -826,6 +826,8 @@ process_result_with_request (void *cls,
 {
   struct ProcessResultClosure *prc = cls;
   struct DownloadRequest *sm = value;
+  struct DownloadRequest *ppos;
+  struct DownloadRequest *pprev;
   struct GNUNET_FS_DownloadContext *dc = prc->dc;
   struct GNUNET_CRYPTO_AesSessionKey skey;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
@@ -869,6 +871,22 @@ process_result_with_request (void *cls,
 		 GNUNET_CONTAINER_multihashmap_remove (dc->active,
 						       &prc->query,
 						       sm));
+  /* if this request is on the pending list, remove it! */
+  pprev = NULL;
+  ppos = dc->pending;
+  while (ppos != NULL)
+    {
+      if (ppos == sm)
+	{
+	  if (pprev == NULL)
+	    dc->pending = ppos->next;
+	  else
+	    pprev->next = ppos->next;
+	  break;
+	}
+      pprev = ppos;
+      ppos = ppos->next;
+    }
   GNUNET_CRYPTO_hash_to_aes_key (&sm->chk.key, &skey, &iv);
   GNUNET_CRYPTO_aes_decrypt (prc->data,
 			     prc->size,
