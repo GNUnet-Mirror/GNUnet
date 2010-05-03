@@ -32,18 +32,48 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_time_lib.h"
 
+/**
+ * Maximum number of hostlist that are saved
+ */
 #define MAX_NUMBER_HOSTLISTS 30
+
+/**
+ * Time intervall hostlists are saved to disk
+ */
 #define SAVING_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 30)
+
+/**
+ * Time interval between two hostlist tests
+ */
 #define TESTING_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
+
+/**
+ * Time interval for download dispatcher before a download is re-scheduled
+ */
 #define WAITING_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
-/*
+/**
  * Defines concerning the hostlist quality metric
  */
 
+/**
+ * Initial quality of a new created hostlist
+ */
 #define HOSTLIST_INITIAL 10000
+
+/**
+ * Value subtracted each time a hostlist download fails
+ */
 #define HOSTLIST_FAILED_DOWNLOAD 100
+
+/**
+ * Value added each time a hostlist download is successful
+ */
 #define HOSTLIST_SUCCESSFUL_DOWNLOAD 100
+
+/**
+ * Value added for each valid HELLO recived during a hostlist download
+ */
 #define HOSTLIST_SUCCESSFUL_HELLO 1
 
 
