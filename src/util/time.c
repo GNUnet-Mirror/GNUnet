@@ -270,6 +270,33 @@ GNUNET_TIME_absolute_add (struct GNUNET_TIME_Absolute start,
   return ret;
 }
 
+
+/**
+ * Subtract a given relative duration from the
+ * given start time.
+ *
+ * @param start some absolute time
+ * @param duration some relative time to subtract
+ * @return ZERO if start <= duration, or FOREVER if start time is FOREVER; start-duration otherwise
+ */
+struct GNUNET_TIME_Absolute 
+GNUNET_TIME_absolute_subtract (struct
+			       GNUNET_TIME_Absolute
+			       start,
+			       struct
+			       GNUNET_TIME_Relative
+			       duration)
+{
+  struct GNUNET_TIME_Absolute ret;
+  if (start.value <= duration.value)
+    return GNUNET_TIME_UNIT_ZERO_ABS;
+  if (start.value == GNUNET_TIME_UNIT_FOREVER_ABS.value)
+    return GNUNET_TIME_UNIT_FOREVER_ABS;
+  ret.value = start.value - duration.value;
+  return ret;
+}
+
+
 /**
  * Multiply relative time by a given factor.
  *
