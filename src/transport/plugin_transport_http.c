@@ -33,6 +33,7 @@
 #include "gnunet_transport_service.h"
 #include "plugin_transport.h"
 #include "microhttpd.h"
+#include <curl/curl.h>
 
 #define VERBOSE GNUNET_YES
 #define DEBUG GNUNET_YES
@@ -136,6 +137,11 @@ struct Plugin
  * Daemon for listening for new connections.
  */
 static struct MHD_Daemon *http_daemon;
+
+/**
+ * Curl multi for managing client operations.
+ */
+static CURLM *curl_multi;
 
 /**
  * Function that can be used by the transport service to transmit
@@ -377,11 +383,14 @@ libgnunet_plugin_transport_http_init (void *cls)
                                          MHD_OPTION_END);
         }
     }
-  if ( NULL != http_daemon )
+
+  curl_multi = curl_multi_init ();
+
+  if ( (NULL != http_daemon) && (NULL != curl_multi))
     return api;
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"Starting MHD on port %u with IPv6 disabled\n",port);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"Initializing http plugin failed\n");
     return NULL;
   }
 }
@@ -401,6 +410,10 @@ libgnunet_plugin_transport_http_done (void *cls)
     MHD_stop_daemon (http_daemon);
     http_daemon = NULL;
   }
+
+  curl_multi_cleanup (curl_multi);
+  curl_multi = NULL;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Shutting down http plugin...\n");
 
   GNUNET_free (plugin);
