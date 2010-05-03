@@ -1120,14 +1120,14 @@ struct GNUNET_FS_ProgressInfo
 	   * On how many total queries is the given
 	   * availability_rank based?
 	   */
-	  uint32_t availabiliy_certainty;
+	  uint32_t availability_certainty;
 
 	  /**
 	   * Updated applicability rank (the larger,
 	   * the better the result fits the search
 	   * criteria).
 	   */
- 	  uint32_t applicabiliy_rank;	  
+ 	  uint32_t applicability_rank;	  
 	  
 	} resume_result;
 	
