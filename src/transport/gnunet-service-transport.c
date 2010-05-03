@@ -23,12 +23,6 @@
  * @brief low-level P2P messaging
  * @author Christian Grothoff
  *
- * NOTE:
- * - This code uses 'GNUNET_a2s' for debug printing in many places,
- *   which is technically wrong since it assumes we have IP+Port 
- *   (v4/v6) addresses.  Once we add transports like http or smtp
- *   this will have to be changed!
- * - Already wrong with dv.
  */
 #include "platform.h"
 #include "gnunet_client_lib.h"
@@ -1628,7 +1622,7 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
               mq->message_buf_size,
               GNUNET_i2s (&neighbour->id), 
 	      (mq->specific_address->addr != NULL)
-	      ? a2s (mq->specific_address->plugin->short_name,
+	      ? a2s (mq->plugin->short_name,
 		     mq->specific_address->addr,
 		     mq->specific_address->addrlen)
 	      : "<inbound>",
@@ -3031,7 +3025,7 @@ send_periodic_ping (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Some validation of address `%s' via `%s' for peer `%4s' already in progress.\n",
 		  (peer_address->addr != NULL)
-                  ? a2s (peer_address->plugin->short_name,
+                  ? a2s (tp->short_name,
 			 peer_address->addr,
 			 peer_address->addrlen)
 		  : "<inbound>",
