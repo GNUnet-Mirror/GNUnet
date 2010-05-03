@@ -426,8 +426,8 @@ get_read_handle (struct GNUNET_FS_Handle *h,
  */
 static struct GNUNET_BIO_WriteHandle *
 get_write_handle (struct GNUNET_FS_Handle *h,
-		 const char *ext,
-		 const char *ent)
+		  const char *ext,
+		  const char *ent)
 {
   char *fn;
   struct GNUNET_BIO_WriteHandle *ret;
@@ -469,6 +469,58 @@ GNUNET_FS_remove_sync_file_ (struct GNUNET_FS_Handle *h,
   GNUNET_free (filename);
 }
 
+
+/**
+ * Serialize a 'start_time'.  Since we use start-times to
+ * calculate the duration of some operation, we actually
+ * do not serialize the absolute time but the (relative)
+ * duration since the start time.  When we then
+ * deserialize the start time, we take the current time and
+ * subtract that duration so that we get again an absolute
+ * time stamp that will result in correct performance
+ * calculations.
+ *
+ * @param wh handle for writing
+ * @param timestamp time to serialize
+ * @return GNUNET_OK on success
+ */
+static int
+write_start_time (struct GNUNET_BIO_WriteHandle *wh,
+		  struct GNUNET_TIME_Absolute timestamp)
+{
+  struct GNUNET_TIME_Relative dur;
+
+  dur = GNUNET_TIME_absolute_get_duration (timestamp);
+  return GNUNET_BIO_write_int64 (wh, dur.value);
+}
+
+
+/**
+ * Serialize a 'start_time'.  Since we use start-times to
+ * calculate the duration of some operation, we actually
+ * do not serialize the absolute time but the (relative)
+ * duration since the start time.  When we then
+ * deserialize the start time, we take the current time and
+ * subtract that duration so that we get again an absolute
+ * time stamp that will result in correct performance
+ * calculations.
+ *
+ * @param rh handle for reading
+ * @param timestamp where to write the deserialized timestamp
+ * @return GNUNET_OK on success
+ */
+static int
+read_start_time (struct GNUNET_BIO_ReadHandle *rh,
+		 struct GNUNET_TIME_Absolute *timestamp)
+{
+  struct GNUNET_TIME_Relative dur;
+  if (GNUNET_OK !=
+      GNUNET_BIO_read_int64 (rh, &dur.value))
+    return GNUNET_SYSERR;
+  *timestamp = GNUNET_TIME_absolute_subtract (GNUNET_TIME_absolute_get (),
+					      dur);
+  return GNUNET_OK;
+}
 
 
 /**
@@ -537,7 +589,7 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
        (GNUNET_OK !=
 	GNUNET_BIO_read_int64 (rh, &ret->expirationTime.value)) ||
        (GNUNET_OK !=
-	GNUNET_BIO_read_int64 (rh, &ret->start_time.value)) ||
+	read_start_time (rh, &ret->start_time)) ||
        (GNUNET_OK !=
 	GNUNET_BIO_read_string (rh, "emsg", &ret->emsg, 16*1024)) ||
        (GNUNET_OK !=
@@ -648,7 +700,6 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
       GNUNET_break (0);
       goto cleanup;
     }
-  /* FIXME: adjust ret->start_time! */
   ret->serialization = GNUNET_strdup (fn);
   if (GNUNET_OK !=
       GNUNET_BIO_read_string (rh, "nxt-filename", &filename, 16*1024))
@@ -862,7 +913,7 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation * fi)
        (GNUNET_OK != 
 	GNUNET_BIO_write_int64 (wh, fi->expirationTime.value)) ||
        (GNUNET_OK != 
-	GNUNET_BIO_write_int64 (wh, fi->start_time.value)) ||
+	write_start_time (wh, fi->start_time)) ||
        (GNUNET_OK !=
 	GNUNET_BIO_write_string (wh, fi->emsg)) ||
        (GNUNET_OK !=
@@ -1217,7 +1268,7 @@ GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc)
        (GNUNET_OK !=
 	GNUNET_BIO_write_int64 (wh, uc->file_size)) ||
        (GNUNET_OK !=
-	GNUNET_BIO_write_int64 (wh, uc->start_time.value)) ||
+	write_start_time (wh, uc->start_time)) ||
        (GNUNET_OK !=
 	GNUNET_BIO_write_int32 (wh, (uint32_t) uc->state)) ||
        ( (uc->state == UNINDEX_STATE_FS_NOTIFY) &&
@@ -1376,7 +1427,7 @@ GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc)
        (GNUNET_OK !=
 	GNUNET_BIO_write_int64 (wh, dc->completed)) ||
        (GNUNET_OK !=
-	GNUNET_BIO_write_int64 (wh, dc->start_time.value)) ||
+	write_start_time (wh, dc->start_time)) ||
        (GNUNET_OK !=
 	GNUNET_BIO_write_int32 (wh, dc->anonymity)) ||
        (GNUNET_OK !=
@@ -1512,7 +1563,7 @@ GNUNET_FS_search_sync_ (struct GNUNET_FS_SearchContext *sc)
   if ( (GNUNET_OK !=
 	GNUNET_BIO_write_string (wh, uris)) ||
        (GNUNET_OK !=
-	GNUNET_BIO_write_int64 (wh, sc->start_time.value)) ||
+	write_start_time (wh, sc->start_time)) ||
        (GNUNET_OK !=
 	GNUNET_BIO_write_string (wh, sc->emsg)) ||
        (GNUNET_OK !=
@@ -1600,7 +1651,7 @@ deserialize_unindex_file (void *cls,
        (GNUNET_OK !=
 	GNUNET_BIO_read_int64 (rh, &uc->file_size)) ||
        (GNUNET_OK !=
-	GNUNET_BIO_read_int64 (rh, &uc->start_time.value)) ||
+	read_start_time (rh, &uc->start_time)) ||
        (GNUNET_OK !=
 	GNUNET_BIO_read_int32 (rh, &state)) )
     goto cleanup;          
@@ -2050,7 +2101,7 @@ deserialize_download (struct GNUNET_FS_Handle *h,
        (GNUNET_OK !=
 	GNUNET_BIO_read_int64 (rh, &dc->completed)) ||
        (GNUNET_OK !=
-	GNUNET_BIO_read_int64 (rh, &dc->start_time.value)) ||
+	read_start_time (rh, &dc->start_time)) ||
        (GNUNET_OK !=
 	GNUNET_BIO_read_int32 (rh, &dc->anonymity)) ||
        (GNUNET_OK !=
@@ -2060,7 +2111,6 @@ deserialize_download (struct GNUNET_FS_Handle *h,
        (GNUNET_OK !=
 	GNUNET_BIO_read_int32 (rh, &num_pending)) )
     goto cleanup;          
-  /* FIXME: adjust start_time.value */
   dc->options = (enum GNUNET_FS_DownloadOptions) options;
   dc->active = GNUNET_CONTAINER_multihashmap_create (16);
   dc->has_finished = (int) status;
@@ -2176,7 +2226,7 @@ deserialize_search (struct GNUNET_FS_Handle *h,
        ( (GNUNET_YES != GNUNET_FS_uri_test_ksk (sc->uri)) &&
 	 (GNUNET_YES != GNUNET_FS_uri_test_sks (sc->uri)) ) ||
        (GNUNET_OK !=
-	GNUNET_BIO_read_int64 (rh, &sc->start_time.value)) ||
+	read_start_time (rh, &sc->start_time)) ||
        (GNUNET_OK !=
 	GNUNET_BIO_read_string (rh, "search-emsg", &sc->emsg, 10*1024)) ||
        (GNUNET_OK !=
@@ -2186,7 +2236,6 @@ deserialize_search (struct GNUNET_FS_Handle *h,
        (GNUNET_OK !=
 	GNUNET_BIO_read_int32 (rh, &sc->anonymity)) )
     goto cleanup;          
-  /* FIXME: adjust start_time.value */
   sc->options = (enum GNUNET_FS_SearchOptions) options;
   sc->master_result_map = GNUNET_CONTAINER_multihashmap_create (16);
   GNUNET_snprintf (pbuf,
