@@ -433,6 +433,8 @@ void handle_message_receipt (void *cls,
  * @param timeout how long can this message be delayed (pass through to core)
  * @param addr the address of this peer (internally known to DV)
  * @param addrlen the length of the peer address
+ * @param cont continuation to call once the message has been sent (or failed)
+ * @param cont_cls closure for continuation
  *
  */
 int GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,

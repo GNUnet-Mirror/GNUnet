@@ -310,7 +310,47 @@ dv_plugin_address_pretty_printer (void *cls,
   asc (asc_cls, NULL);
 }
 
+/**
+ * Convert the DV address to a pretty string.
+ *
+ * @param cls closure
+ * @param addr the (hopefully) DV address
+ * @param addrlen the length of the address
+ *
+ * @return string representing the DV address
+ */
+static const char *address_to_string (void *cls,
+                                       const void *addr,
+                                       size_t addrlen)
+{
+  static char return_buffer[2 * 4 + 2]; // Two four character peer identity prefixes a ':' and '\0'
 
+  struct GNUNET_CRYPTO_HashAsciiEncoded peer_hash;
+  struct GNUNET_CRYPTO_HashAsciiEncoded via_hash;
+  struct GNUNET_PeerIdentity *peer;
+  struct GNUNET_PeerIdentity *via;
+  char *addr_buf = (char *)addr;
+
+  if (addrlen == (2 * sizeof(struct GNUNET_PeerIdentity)))
+    {
+      peer = (struct GNUNET_PeerIdentity *)addr_buf;
+      via = (struct GNUNET_PeerIdentity *)&addr_buf[sizeof(struct GNUNET_PeerIdentity)];
+
+      GNUNET_CRYPTO_hash_to_enc (&peer->hashPubKey, &peer_hash);
+      peer_hash.encoding[4] = '\0';
+      GNUNET_CRYPTO_hash_to_enc (&via->hashPubKey, &via_hash);
+      via_hash.encoding[4] = '\0';
+      GNUNET_snprintf (return_buffer,
+                       sizeof (return_buffer),
+                       "%s:%s",
+                       &peer_hash,
+                       &via_hash);
+    }
+  else
+    return NULL;
+
+  return return_buffer;
+}
 
 /**
  * Another peer has suggested an address for this
@@ -368,6 +408,7 @@ libgnunet_plugin_transport_dv_init (void *cls)
   api->disconnect = &dv_plugin_disconnect;
   api->address_pretty_printer = &dv_plugin_address_pretty_printer;
   api->check_address = &dv_plugin_address_suggested;
+  api->address_to_string = &address_to_string;
   return api;
 }
 
