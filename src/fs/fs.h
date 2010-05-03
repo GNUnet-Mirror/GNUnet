@@ -880,10 +880,12 @@ GNUNET_FS_search_sync_ (struct GNUNET_FS_SearchContext *sc);
  * publishing structs should already call "sync" internally,
  * so this function is likely not useful for clients.
  * 
- * @param sc the struct to sync
+ * @param key key for the search result
+ * @param sr the struct to sync
  */
 void
-GNUNET_FS_search_result_sync_ (struct SearchResult *sr);
+GNUNET_FS_search_result_sync_ (const GNUNET_HashCode *key,
+			       struct SearchResult *sr);
 
 
 /**

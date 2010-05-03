@@ -211,8 +211,6 @@ GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qh)
 }
 
 
-
-
 /**
  * Closure for "data_reader_file".
  */
@@ -1251,12 +1249,56 @@ GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc)
  * publishing structs should already call "sync" internally,
  * so this function is likely not useful for clients.
  * 
- * @param sc the struct to sync
+ * @param key key for the search result
+ * @param sr the struct to sync
  */
 void
-GNUNET_FS_search_result_sync_ (struct SearchResult *sr)
+GNUNET_FS_search_result_sync_ (const GNUNET_HashCode *key,
+			       struct SearchResult *sr)
 {
-  /* FIXME */
+  struct GNUNET_BIO_WriteHandle *wh;
+  char *uris;
+
+  GNUNET_assert ( (GNUNET_YES == GNUNET_FS_uri_test_chk (sr->uri)) ||
+		  (GNUNET_YES == GNUNET_FS_uri_test_loc (sr->uri)) );
+  uris = NULL;
+  if (NULL == sr->serialization)
+    sr->serialization = make_serialization_file_name (sr->sc->h,
+						      "search-results");
+  if (NULL == sr->serialization)
+    return;
+  wh = get_write_handle (sr->sc->h, "search-results", sr->serialization);
+  uris = GNUNET_FS_uri_to_string (sr->uri);
+  if ( (GNUNET_OK !=
+	GNUNET_BIO_write_string (wh, uris)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_meta_data (wh, sr->meta)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write (wh, key, sizeof (GNUNET_HashCode))) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_int32 (wh, sr->mandatory_missing)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_int32 (wh, sr->optional_support)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_int32 (wh, sr->availability_success)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_int32 (wh, sr->availability_trials)) )
+    goto cleanup;   
+  if (GNUNET_OK !=
+      GNUNET_BIO_write_close (wh))
+    {
+      wh = NULL;
+      goto cleanup;
+    }
+  GNUNET_free_non_null (uris);
+  return;
+ cleanup:
+  GNUNET_free_non_null (uris);
+  if (wh != NULL)
+    (void)  GNUNET_BIO_write_close (wh);
+  GNUNET_FS_remove_sync_file_ (sr->sc->h, "search-results", sr->serialization);
+  GNUNET_free (sr->serialization);
+  sr->serialization = NULL;
 }
 
 
@@ -1272,6 +1314,9 @@ void
 GNUNET_FS_search_sync_ (struct GNUNET_FS_SearchContext *sc)
 {  
   struct GNUNET_BIO_WriteHandle *wh;
+  struct GNUNET_FS_SearchContext *scc;
+  char *uris;
+  char in_pause;
 
   if (NULL == sc->serialization)
     sc->serialization = make_serialization_file_name (sc->h,
@@ -1279,38 +1324,50 @@ GNUNET_FS_search_sync_ (struct GNUNET_FS_SearchContext *sc)
   if (NULL == sc->serialization)
     return;
   wh = get_write_handle (sc->h, "search", sc->serialization);
-#if 0
+  GNUNET_assert ( (GNUNET_YES == GNUNET_FS_uri_test_ksk (sc->uri)) ||
+		  (GNUNET_YES == GNUNET_FS_uri_test_sks (sc->uri)) );
+  uris = GNUNET_FS_uri_to_string (sc->uri);
+  in_pause = (sc->task != GNUNET_SCHEDULER_NO_TASK) ? 'r' : '\0';
   if ( (GNUNET_OK !=
-	GNUNET_BIO_write_string (wh, pc->nid)) ||
+	GNUNET_BIO_write_string (wh, uris)) ||
        (GNUNET_OK !=
-	GNUNET_BIO_write_string (wh, pc->nuid)) ||
+	GNUNET_BIO_write_int64 (wh, sc->start_time.value)) ||
        (GNUNET_OK !=
-	GNUNET_BIO_write_int32 (wh, pc->options)) ||
+	GNUNET_BIO_write_string (wh, sc->emsg)) ||
        (GNUNET_OK !=
-	GNUNET_BIO_write_int32 (wh, pc->all_done)) ||
+	GNUNET_BIO_write_int32 (wh, (uint32_t) sc->options)) ||
        (GNUNET_OK !=
-	GNUNET_BIO_write_string (wh, pc->fi->serialization)) ||
+	GNUNET_BIO_write (wh, &in_pause, sizeof (in_pause))) ||
        (GNUNET_OK !=
-	GNUNET_BIO_write_string (wh, (pc->fi_pos == NULL) ? NULL : pc->fi_pos->serialization)) ||
-       (GNUNET_OK !=
-	GNUNET_BIO_write_string (wh, (pc->namespace == NULL) ? NULL : pc->namespace->name)) )
-   {
-     (void) GNUNET_BIO_write_close (wh);
-     GNUNET_FS_remove_sync_file_ (pc->h, "publish", pc->serialization);
-     GNUNET_free (pc->serialization);
-     pc->serialization = NULL;
-     return;
-   }
-#endif
-  /* FIXME: do search-specific serialization here! */
+	GNUNET_BIO_write_int32 (wh, sc->anonymity)) )
+    goto cleanup;          
+  GNUNET_free (uris);
+  uris = NULL;
+  scc = sc->child_head;
+  while (NULL != scc)
+    {
+      if (scc->serialization == NULL)
+	break;
+      if (GNUNET_OK !=
+	  GNUNET_BIO_write_string (wh, scc->serialization))
+	goto cleanup;
+      scc = scc->next;
+    }
+  GNUNET_BIO_write_string (wh, NULL);
   if (GNUNET_OK !=
       GNUNET_BIO_write_close (wh))
     {
-      GNUNET_FS_remove_sync_file_ (sc->h, "search", sc->serialization);
-      GNUNET_free (sc->serialization);
-      sc->serialization = NULL;
-      return;     
-    }  
+      wh = NULL;
+      goto cleanup;
+    }
+  return;
+ cleanup:
+  if (wh != NULL)
+    (void) GNUNET_BIO_write_close (wh);
+  GNUNET_free_non_null (uris);
+  GNUNET_FS_remove_sync_file_ (sc->h, "search", sc->serialization);
+  GNUNET_free (sc->serialization);
+  sc->serialization = NULL;
 }
 
 
@@ -1330,8 +1387,6 @@ deserialize_publish (struct GNUNET_FS_Handle *h)
   GNUNET_DISK_directory_scan (dn, &deserialize_publish_file, h);
   GNUNET_free (dn);
 }
-
-
 
 
 /**
@@ -1610,6 +1665,41 @@ free_result (void *cls,
 
 
 /**
+ * Free memory allocated by the search context and its children
+ *
+ * @param sc search context to free
+ */
+static void
+free_search_context (struct GNUNET_FS_SearchContext *sc)
+{
+  struct GNUNET_FS_SearchContext *scc;
+
+  while (NULL != (scc = sc->child_head))
+    {
+      GNUNET_CONTAINER_DLL_remove (sc->child_head,
+				   sc->child_tail,
+				   scc);      
+      free_search_context (scc);
+    }
+  GNUNET_free_non_null (sc->emsg);
+  if (sc->serialization != NULL)
+    GNUNET_FS_remove_sync_file_ (sc->h, "search", sc->serialization);
+  /* FIXME: remove 'pbuf' directory with search results as well! */
+  GNUNET_free_non_null (sc->serialization);
+  if (sc->uri != NULL)
+    GNUNET_FS_uri_destroy (sc->uri);
+  if (sc->master_result_map != NULL)
+    {
+      GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
+					     &free_result,
+					     sc);
+      GNUNET_CONTAINER_multihashmap_destroy (sc->master_result_map);
+    }
+  GNUNET_free (sc);
+}
+
+
+/**
  * Deserialize a search. 
  *
  * @param h overall context
@@ -1624,6 +1714,8 @@ deserialize_search (struct GNUNET_FS_Handle *h,
 		    const char *serialization)
 {
   struct GNUNET_FS_SearchContext *sc;
+  struct GNUNET_FS_SearchContext *scc;
+  struct GNUNET_BIO_ReadHandle *rhc;
   char pbuf[32];
   struct GNUNET_FS_ProgressInfo pi;
   char *emsg;
@@ -1634,7 +1726,6 @@ deserialize_search (struct GNUNET_FS_Handle *h,
   char in_pause;
 
   uris = NULL;
-  child_ser = NULL;
   emsg = NULL;
   sc = GNUNET_malloc (sizeof (struct GNUNET_FS_SearchContext));
   sc->parent = parent;
@@ -1647,8 +1738,6 @@ deserialize_search (struct GNUNET_FS_Handle *h,
 	 (GNUNET_YES != GNUNET_FS_uri_test_sks (sc->uri)) ) ||
        (GNUNET_OK !=
 	GNUNET_BIO_read_int64 (rh, &sc->start_time.value)) ||
-       (GNUNET_OK !=
-	GNUNET_BIO_read_string (rh, "child-serialization", &child_ser, 32)) ||
        (GNUNET_OK !=
 	GNUNET_BIO_read_string (rh, "search-emsg", &sc->emsg, 10*1024)) ||
        (GNUNET_OK !=
@@ -1679,9 +1768,33 @@ deserialize_search (struct GNUNET_FS_Handle *h,
 	  GNUNET_FS_search_start_searching_ (sc))
 	goto cleanup;
     }
-  if (child_ser != NULL)
+  while (1)
     {
-      /* FIXME: deserialize child-search! */
+      if ( (GNUNET_OK !=
+	    GNUNET_BIO_read_string (rh, "child-serialization", &child_ser, 32)))
+	goto cleanup;
+      if (child_ser == NULL)
+	break;    
+      rhc = get_read_handle (h, "search-children", child_ser);
+      if (rhc != NULL)
+	{
+	  scc = deserialize_search (h, rhc, sc, child_ser);
+	  if (scc != NULL)	    
+	    GNUNET_CONTAINER_DLL_insert (sc->child_head,
+					 sc->child_tail,
+					 scc);	    
+	  emsg = NULL;
+	  if (GNUNET_OK !=
+	      GNUNET_BIO_read_close (rhc, &emsg))
+	    {
+	      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+			  _("Failed to resume sub-search `%s': %s\n"),
+			  child_ser,
+			  emsg);
+	      GNUNET_free (emsg);
+	    }
+	}    
+      GNUNET_free (child_ser);  
     }
   if (parent != NULL)
     GNUNET_CONTAINER_DLL_insert (parent->child_head,
@@ -1692,28 +1805,25 @@ deserialize_search (struct GNUNET_FS_Handle *h,
   pi.value.search.specifics.resume.is_paused = ('\0' == in_pause) ? GNUNET_NO : GNUNET_YES;
   sc->client_info = GNUNET_FS_search_make_status_ (&pi,
 						   sc);
+  scc = sc->child_head;
+  while (NULL != scc)
+    {
+      pi.status = GNUNET_FS_STATUS_SEARCH_RESUME;
+      pi.value.search.specifics.resume.message = scc->emsg;
+      pi.value.search.specifics.resume.is_paused = ('\0' == in_pause) ? GNUNET_NO : GNUNET_YES;
+      scc->client_info = GNUNET_FS_search_make_status_ (&pi,
+							scc);
+
+      scc = scc->next;
+    }
   GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
 					 &signal_result_resume,
 					 sc);
+  GNUNET_free (uris);
   return sc;
  cleanup:
-  GNUNET_free_non_null (child_ser);
-  GNUNET_free_non_null (sc->emsg);
   GNUNET_free_non_null (emsg);
-  if (sc->serialization != NULL)
-    GNUNET_FS_remove_sync_file_ (h, "search", sc->serialization);
-  /* FIXME: remove 'pbuf' directory with search results as well! */
-  GNUNET_free_non_null (sc->serialization);
-  if (sc->uri != NULL)
-    GNUNET_FS_uri_destroy (sc->uri);
-  if (sc->master_result_map != NULL)
-    {
-      GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
-					     &free_result,
-					     sc);
-      GNUNET_CONTAINER_multihashmap_destroy (sc->master_result_map);
-    }
-  GNUNET_free (sc);
+  free_search_context (sc);
   GNUNET_free_non_null (uris);
   return NULL;
 }
