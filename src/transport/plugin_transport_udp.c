@@ -846,40 +846,41 @@ udp_address_to_string (void *cls,
 		       const void *addr,
 		       size_t addrlen)
 {
-  static char buf[INET6_ADDRSTRLEN];
+  static char rbuf[INET6_ADDRSTRLEN + 10];
+  char buf[INET6_ADDRSTRLEN];
   const void *sb;
-  struct sockaddr_in a4;
-  struct sockaddr_in6 a6;
+  struct in_addr a4;
+  struct in6_addr a6;
   const struct IPv4UdpAddress *t4;
   const struct IPv6UdpAddress *t6;
   int af;
+  uint16_t port;
 
   if (addrlen == sizeof (struct IPv6UdpAddress))
     {
       t6 = addr;
       af = AF_INET6;
-      memset (&a6, 0, sizeof (a6));
-      a6.sin6_family = AF_INET6;
-      a6.sin6_port = t6->u6_port;
-      memcpy (a6.sin6_addr.s6_addr,
-	      t6->ipv6_addr,
-	      16);      
+      port = ntohs (t6->u6_port);
+      memcpy (&a6, t6->ipv6_addr, sizeof (a6));
       sb = &a6;
     }
   else if (addrlen == sizeof (struct IPv4UdpAddress))
     {
       t4 = addr;
       af = AF_INET;
-      memset (&a4, 0, sizeof (a4));
-      a4.sin_family = AF_INET;
-      a4.sin_port = t4->u_port;
-      a4.sin_addr.s_addr = t4->ipv4_addr;
+      port = ntohs (t4->u_port);
+      memcpy (&a4, &t4->ipv4_addr, sizeof (a4));
       sb = &a4;
     }
   else
     return NULL;
-  
-  return inet_ntop (af, sb, buf, INET6_ADDRSTRLEN);
+  inet_ntop (af, sb, buf, INET6_ADDRSTRLEN);
+  GNUNET_snprintf (rbuf,
+		   sizeof (rbuf),
+		   "%s:%u",
+		   buf,
+		   port);
+  return rbuf;
 }
 
 
