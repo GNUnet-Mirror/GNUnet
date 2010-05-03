@@ -36,7 +36,8 @@
 #include "plugin_transport.h"
 #include "transport.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
+#define DEBUG GNUNET_YES
 
 /**
  * How long until we give up on transmitting the message?
@@ -124,7 +125,7 @@ static void
 unload_plugins (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (NULL ==
-                 GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_udp",
+                 GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_http",
                                        api));
   if (my_private_key != NULL)
     GNUNET_CRYPTO_rsa_key_free (my_private_key);
@@ -143,7 +144,6 @@ static void
 test_validation ()
 {
   struct sockaddr_in soaddr;
-
   memset (&soaddr, 0, sizeof (soaddr));
 #if HAVE_SOCKADDR_IN_SIN_LEN
   soaddr.sin_len = sizeof (soaddr);
@@ -207,6 +207,7 @@ run (void *cls,
       GNUNET_SCHEDULER_shutdown (s);
       return;
     }
+  /*
   max_connect_per_transport = (uint32_t) tneigh;
   my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
@@ -220,14 +221,18 @@ run (void *cls,
     }
   GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
   GNUNET_CRYPTO_hash (&my_public_key,
-                      sizeof (my_public_key), &my_identity.hashPubKey);
+                      sizeof (my_public_key), &my_identity.hashPubKey);*/
 
   /* load plugins... */
   setup_plugin_environment ();
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading http transport plugin\n"));
+
   GNUNET_asprintf (&libname, "libgnunet_plugin_transport_http");
 
   api = GNUNET_PLUGIN_load (libname, &env);
+  if (api != NULL )
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Loading transport plugin for http `%s' successful\n",libname);
+
   GNUNET_free (libname);
   if (api == NULL)
     {

@@ -32,8 +32,10 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
 #include "plugin_transport.h"
+#include "microhttpd.h"
 
-#define DEBUG_HTTP GNUNET_YES
+#define VERBOSE GNUNET_YES
+#define DEBUG GNUNET_YES
 
 /**
  * After how long do we expire an address that we
@@ -42,6 +44,7 @@
  */
 #define LEARNED_ADDRESS_EXPIRATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 6)
 
+#define HTTP_TIMEOUT 600
 
 /**
  * Encapsulation of all of the state of the plugin.
@@ -128,6 +131,11 @@ struct Plugin
   struct GNUNET_STATISTICS_Handle *statistics;
 
 };
+
+/**
+ * Daemon for listening for new connections.
+ */
+static struct MHD_Daemon *http_daemon;
 
 /**
  * Function that can be used by the transport service to transmit
@@ -247,6 +255,46 @@ http_plugin_address_suggested (void *cls,
   return GNUNET_OK;
 }
 
+/**
+ * Check if we are allowed to connect to the given IP.
+ */
+static int
+acceptPolicyCallback (void *cls,
+                      const struct sockaddr *addr, socklen_t addr_len)
+{
+  return MHD_YES;
+}
+
+/**
+ * Process GET or PUT request received via MHD.  For
+ * GET, queue response that will send back our pending
+ * messages.  For PUT, process incoming data and send
+ * to GNUnet core.  In either case, check if a session
+ * already exists and create a new one if not.
+ */
+static int
+accessHandlerCallback (void *cls,
+                       struct MHD_Connection *session,
+                       const char *url,
+                       const char *method,
+                       const char *version,
+                       const char *upload_data,
+                       size_t * upload_data_size, void **httpSessionCache)
+{
+  return MHD_YES;
+}
+
+/**
+ * MHD is done handling a request.  Cleanup
+ * the respective transport state.
+ */
+static void
+requestCompletedCallback (void *unused,
+                          struct MHD_Connection *session,
+                          void **httpSessionCache)
+{
+
+}
 
 /**
  * Entry point for the plugin.
@@ -257,6 +305,8 @@ libgnunet_plugin_transport_http_init (void *cls)
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct Plugin *plugin;
+  long long unsigned int port;
+  int use_ipv6;
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
@@ -267,7 +317,73 @@ libgnunet_plugin_transport_http_init (void *cls)
   api->disconnect = &http_plugin_disconnect;
   api->address_pretty_printer = &http_plugin_address_pretty_printer;
   api->check_address = &http_plugin_address_suggested;
-  return api;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting http plugin...\n");
+  /* Reading port number from config file */
+  if ((GNUNET_OK !=
+       GNUNET_CONFIGURATION_get_value_number (env->cfg,
+                                              "transport-http",
+                                              "PORT",
+                                              &port)) ||
+      (port > 65535) )
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                       "http",
+                       _
+                       ("Require valid port number for service `%s' in configuration!\n"),
+                       "transport-http");
+      return NULL;
+    }
+  use_ipv6 = GNUNET_YES;
+  use_ipv6 = GNUNET_CONFIGURATION_get_value_yesno  (env->cfg, "transport-http","USE_IPV6");
+  if ((http_daemon == NULL) && (port != 0))
+    {
+      if ( use_ipv6 == GNUNET_YES)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon could not started, http plugin not working\n");
+          http_daemon = MHD_start_daemon (MHD_USE_IPv6,
+                                         port,
+                                         &acceptPolicyCallback,
+                                         NULL, &accessHandlerCallback, NULL,
+                                         MHD_OPTION_CONNECTION_TIMEOUT,
+                                         (unsigned int) HTTP_TIMEOUT,
+                                         MHD_OPTION_CONNECTION_MEMORY_LIMIT,
+                                         (unsigned int) GNUNET_SERVER_MAX_MESSAGE_SIZE,
+                                         MHD_OPTION_CONNECTION_LIMIT,
+                                         (unsigned int) 128,
+                                         MHD_OPTION_PER_IP_CONNECTION_LIMIT,
+                                         (unsigned int) 8,
+                                         MHD_OPTION_NOTIFY_COMPLETED,
+                                         &requestCompletedCallback, NULL,
+                                         MHD_OPTION_END);
+        }
+      else
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD on port %u with IPv6 disabled\n",port);
+          http_daemon = MHD_start_daemon (MHD_NO_FLAG,
+                                         port,
+                                         &acceptPolicyCallback,
+                                         NULL, &accessHandlerCallback, NULL,
+                                         MHD_OPTION_CONNECTION_TIMEOUT,
+                                         (unsigned int) HTTP_TIMEOUT,
+                                         MHD_OPTION_CONNECTION_MEMORY_LIMIT,
+                                         (unsigned int) GNUNET_SERVER_MAX_MESSAGE_SIZE,
+                                         MHD_OPTION_CONNECTION_LIMIT,
+                                         (unsigned int) 128,
+                                         MHD_OPTION_PER_IP_CONNECTION_LIMIT,
+                                         (unsigned int) 8,
+                                         MHD_OPTION_NOTIFY_COMPLETED,
+                                         &requestCompletedCallback, NULL,
+                                         MHD_OPTION_END);
+        }
+    }
+  if ( NULL != http_daemon )
+    return api;
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"Starting MHD on port %u with IPv6 disabled\n",port);
+    return NULL;
+  }
 }
 
 
@@ -279,6 +395,13 @@ libgnunet_plugin_transport_http_done (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
+
+  if (http_daemon != NULL)
+  {
+    MHD_stop_daemon (http_daemon);
+    http_daemon = NULL;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Shutting down http plugin...\n");
 
   GNUNET_free (plugin);
   GNUNET_free (api);

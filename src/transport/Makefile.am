@@ -6,6 +6,12 @@ if MINGW
   WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
 endif
 
+if HAVE_MHD 
+ GN_LIBMHD = -lmicrohttpd
+ HTTP_PLUGIN_LA = libgnunet_plugin_transport_http.la
+ HTTP_PLGUIN_CHECK = test_plugin_transport_http
+endif
+
 if USE_COVERAGE
   AM_CFLAGS = --coverage -O0
 endif
@@ -69,8 +75,8 @@ plugin_LTLIBRARIES = \
   libgnunet_plugin_transport_tcp.la \
   libgnunet_plugin_transport_udp.la \
   libgnunet_plugin_transport_udp_nat.la \
+  $(HTTP_PLUGIN_LA) \
   libgnunet_plugin_transport_template.la
-# libgnunet_plugin_transport_http.la  
 # TODO: add http, nat, etc.
 
 libgnunet_plugin_transport_tcp_la_SOURCES = \
@@ -110,6 +116,7 @@ libgnunet_plugin_transport_udp_nat_la_LIBADD = \
 libgnunet_plugin_transport_udp_nat_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
+if HAVE_MHD 
 libgnunet_plugin_transport_http_la_SOURCES = \
   plugin_transport_http.c
 libgnunet_plugin_transport_http_la_LIBADD = \
@@ -118,14 +125,15 @@ libgnunet_plugin_transport_http_la_LIBADD = \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/util/libgnunetutil.la 
 libgnunet_plugin_transport_http_la_LDFLAGS = \
+ $(GN_LIBMHD) \
  $(GN_PLUGIN_LDFLAGS)
-
+endif
  
 check_PROGRAMS = \
  test_transport_api_tcp \
  test_transport_api_udp \
- test_transport_api_udp_nat \
- test_plugin_transport_http
+ $(HTTP_PLGUIN_CHECK) \ 
+ test_transport_api_udp_nat
 # test_transport_api_http \
 # TODO: add tests for http, nat, etc.
 
