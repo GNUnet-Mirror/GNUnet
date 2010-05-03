@@ -569,6 +569,14 @@ enum GNUNET_FS_Status
   GNUNET_FS_STATUS_DOWNLOAD_INACTIVE,
 
   /**
+   * Notification that this download is no longer part of a
+   * recursive download or search but now a 'stand-alone'
+   * download (and may thus need to be moved in the GUI
+   * into a different category).
+   */
+  GNUNET_FS_STATUS_DOWNLOAD_LOST_PARENT,
+
+  /**
    * First event generated when a client requests 
    * a search to begin or when a namespace result
    * automatically triggers the search for updates.
@@ -702,6 +710,14 @@ struct GNUNET_FS_UnindexContext;
  * Handle for controlling a search.
  */
 struct GNUNET_FS_SearchContext;
+
+
+/**
+ * Result from a search.  Opaque handle to refer to the search
+ * (typically used when starting a download associated with the search
+ * result).
+ */
+struct GNUNET_FS_SearchResult;
 
 
 /**
@@ -900,6 +916,14 @@ struct GNUNET_FS_ProgressInfo
        * (if this is a file in a directory or a subdirectory).
        */
       void *pctx;
+
+      /**
+       * Client context pointer for the associated search operation
+       * (specifically, context pointer for the specific search
+       * result, not the overall search); only set if this 
+       * download was started from a search result.
+       */
+      void *sctx;
       
       /**
        * URI used for this download.
@@ -1092,6 +1116,11 @@ struct GNUNET_FS_ProgressInfo
 	   */
 	  const struct GNUNET_FS_Uri *uri;
 
+	  /**
+	   * Handle to the result (for starting downloads).
+	   */
+	  struct GNUNET_FS_SearchResult *result;
+
 	} result;
 	
 	/**
@@ -1109,6 +1138,11 @@ struct GNUNET_FS_ProgressInfo
 	   * URI for the search result.
 	   */
 	  const struct GNUNET_FS_Uri *uri;
+
+	  /**
+	   * Handle to the result (for starting downloads).
+	   */
+	  struct GNUNET_FS_SearchResult *result;
 
 	  /**
 	   * Current availability rank (negative:
@@ -2334,6 +2368,52 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 			  enum GNUNET_FS_DownloadOptions options,
 			  void *cctx,
 			  struct GNUNET_FS_DownloadContext *parent);
+
+
+/**
+ * Download parts of a file based on a search result.  The download
+ * will be associated with the search result (and the association
+ * will be preserved when serializing/deserializing the state).
+ * If the search is stopped, the download will not be aborted but
+ * be 'promoted' to a stand-alone download.
+ *
+ * As with the other download function, this will store
+ * the blocks at the respective offset in the given file.  Also, the
+ * download is still using the blocking of the underlying FS
+ * encoding.  As a result, the download may *write* outside of the
+ * given boundaries (if offset and length do not match the 32k FS
+ * block boundaries). <p>
+ *
+ * The given range can be used to focus a download towards a
+ * particular portion of the file (optimization), not to strictly
+ * limit the download to exactly those bytes.
+ *
+ * @param h handle to the file sharing subsystem
+ * @param sr the search result to use for the download (determines uri and
+ *        meta data and associations)
+ * @param filename where to store the file, maybe NULL (then no file is
+ *        created on disk and data must be grabbed from the callbacks)
+ * @param tempname where to store temporary file data, not used if filename is non-NULL;
+ *        can be NULL (in which case we will pick a name if needed); the temporary file
+ *        may already exist, in which case we will try to use the data that is there and
+ *        if it is not what is desired, will overwrite it
+ * @param offset at what offset should we start the download (typically 0)
+ * @param length how many bytes should be downloaded starting at offset
+ * @param anonymity anonymity level to use for the download
+ * @param options various download options
+ * @param cctx initial value for the client context for this download
+ * @return context that can be used to control this download
+ */
+struct GNUNET_FS_DownloadContext *
+GNUNET_FS_download_start_from_search (struct GNUNET_FS_Handle *h,
+				      struct GNUNET_FS_SearchResult *sr,
+				      const char *filename,
+				      const char *tempname,
+				      uint64_t offset,
+				      uint64_t length,
+				      uint32_t anonymity,
+				      enum GNUNET_FS_DownloadOptions options,
+				      void *cctx);
 
 
 /**

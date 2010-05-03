@@ -73,7 +73,7 @@ GNUNET_FS_search_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
  * 
  * @param cls points to the URI we check against
  * @param key not used
- * @param value a "struct SearchResult" who's URI we
+ * @param value a "struct GNUNET_FS_SearchResult" who's URI we
  *        should compare with
  * @return GNUNET_SYSERR if the result is present,
  *         GNUNET_OK otherwise
@@ -84,7 +84,7 @@ test_result_present (void *cls,
 		     void *value)
 {
   const struct GNUNET_FS_Uri *uri = cls;
-  struct SearchResult *sr = value;
+  struct GNUNET_FS_SearchResult *sr = value;
 
   if (GNUNET_FS_uri_test_equal (uri,
 				sr->uri))
@@ -102,13 +102,14 @@ test_result_present (void *cls,
  */
 static void
 notify_client_chk_result (struct GNUNET_FS_SearchContext *sc, 
-			  struct SearchResult *sr)
+			  struct GNUNET_FS_SearchResult *sr)
 {			  
   struct GNUNET_FS_ProgressInfo pi;
 
   pi.status = GNUNET_FS_STATUS_SEARCH_RESULT;
   pi.value.search.specifics.result.meta = sr->meta;
   pi.value.search.specifics.result.uri = sr->uri;
+  pi.value.search.specifics.result.result = sr;
   sr->client_info = GNUNET_FS_search_make_status_ (&pi, sc);
 }
 
@@ -122,7 +123,7 @@ notify_client_chk_result (struct GNUNET_FS_SearchContext *sc,
  */
 static void
 notify_client_chk_update (struct GNUNET_FS_SearchContext *sc, 
-			  struct SearchResult *sr)
+			  struct GNUNET_FS_SearchResult *sr)
 {			  
   struct GNUNET_FS_ProgressInfo pi;
 
@@ -154,7 +155,7 @@ struct GetResultContext
    * Where to store a pointer to the search
    * result struct if we found a match.
    */
-  struct SearchResult *sr;
+  struct GNUNET_FS_SearchResult *sr;
 };
 
 
@@ -164,7 +165,7 @@ struct GetResultContext
  * 
  * @param cls a "struct GetResultContext"
  * @param key not used
- * @param value a "struct SearchResult" who's URI we
+ * @param value a "struct GNUNET_FS_SearchResult" who's URI we
  *        should compare with
  * @return GNUNET_OK
  */
@@ -174,7 +175,7 @@ get_result_present (void *cls,
 		     void *value)
 {
   struct GetResultContext *grc = cls;
-  struct SearchResult *sr = value;
+  struct GNUNET_FS_SearchResult *sr = value;
 
   if (GNUNET_FS_uri_test_equal (grc->uri,
 				sr->uri))
@@ -188,7 +189,7 @@ get_result_present (void *cls,
  * probe.
  */
 static void
-signal_probe_result (struct SearchResult *sr)
+signal_probe_result (struct GNUNET_FS_SearchResult *sr)
 {
   struct GNUNET_FS_ProgressInfo pi;
 
@@ -207,14 +208,14 @@ signal_probe_result (struct SearchResult *sr)
 /**
  * Handle the case where we have failed to receive a response for our probe.
  *
- * @param cls our 'struct SearchResult*'
+ * @param cls our 'struct GNUNET_FS_SearchResult*'
  * @param tc scheduler context
  */
 static void
 probe_failure_handler (void *cls,
 		       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct SearchResult *sr = cls;
+  struct GNUNET_FS_SearchResult *sr = cls;
   sr->availability_trials++;
   signal_probe_result (sr);
 }
@@ -223,14 +224,14 @@ probe_failure_handler (void *cls,
 /**
  * Handle the case where we have gotten a response for our probe.
  *
- * @param cls our 'struct SearchResult*'
+ * @param cls our 'struct GNUNET_FS_SearchResult*'
  * @param tc scheduler context
  */
 static void
 probe_success_handler (void *cls,
 		       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct SearchResult *sr = cls;
+  struct GNUNET_FS_SearchResult *sr = cls;
   sr->availability_trials++;
   sr->availability_success++;
   signal_probe_result (sr);
@@ -256,7 +257,7 @@ void*
 GNUNET_FS_search_probe_progress_ (void *cls,
 				  const struct GNUNET_FS_ProgressInfo *info)
 {
-  struct SearchResult *sr = info->value.download.cctx;
+  struct GNUNET_FS_SearchResult *sr = info->value.download.cctx;
   struct GNUNET_TIME_Relative dur;
 
   switch (info->status)
@@ -336,7 +337,7 @@ GNUNET_FS_search_probe_progress_ (void *cls,
  * @param sr the search result
  */
 void
-GNUNET_FS_search_start_probe_ (struct SearchResult *sr)
+GNUNET_FS_search_start_probe_ (struct GNUNET_FS_SearchResult *sr)
 {
   uint64_t off;
   uint64_t len;
@@ -391,7 +392,7 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
 		    const struct GNUNET_CONTAINER_MetaData *meta)
 {
   GNUNET_HashCode key;
-  struct SearchResult *sr;
+  struct GNUNET_FS_SearchResult *sr;
   struct GetResultContext grc;
   int is_new;
 
@@ -414,7 +415,7 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
   is_new = (NULL == sr) || (sr->mandatory_missing > 0);
   if (NULL == sr)
     {
-      sr = GNUNET_malloc (sizeof (struct SearchResult));
+      sr = GNUNET_malloc (sizeof (struct GNUNET_FS_SearchResult));
       sr->sc = sc;
       sr->uri = GNUNET_FS_uri_dup (uri);
       sr->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
@@ -481,7 +482,7 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc,
 {
   struct GNUNET_FS_Uri uu;
   GNUNET_HashCode key;
-  struct SearchResult *sr;
+  struct GNUNET_FS_SearchResult *sr;
 
   /* check if new */
   GNUNET_FS_uri_to_key (uri, &key);
@@ -494,7 +495,7 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc,
 						  &test_result_present,
 						  (void*) uri))
     return; /* duplicate result */
-  sr = GNUNET_malloc (sizeof (struct SearchResult));
+  sr = GNUNET_malloc (sizeof (struct GNUNET_FS_SearchResult));
   sr->sc = sc;
   sr->uri = GNUNET_FS_uri_dup (uri);
   sr->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
@@ -1243,9 +1244,17 @@ search_result_free (void *cls,
   struct GNUNET_FS_SearchContext *sc = cls;
   struct GNUNET_FS_Handle *h = sc->h;
   char pbuf[32];
-  struct SearchResult *sr = value;
+  struct GNUNET_FS_SearchResult *sr = value;
   struct GNUNET_FS_ProgressInfo pi;
 
+  if (NULL != sr->download)
+    {
+      sr->download->search = NULL;
+      pi.status = GNUNET_FS_STATUS_DOWNLOAD_LOST_PARENT;
+      GNUNET_FS_download_make_status_ (&pi,
+				       sr->download);
+      sr->download = NULL;     
+    }
   pi.status = GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED;
   pi.value.search.specifics.result_stopped.cctx = sr->client_info;
   pi.value.search.specifics.result_stopped.meta = sr->meta;

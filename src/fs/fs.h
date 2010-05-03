@@ -544,7 +544,7 @@ struct GNUNET_FS_QueueEntry
 /**
  * Information we store for each search result.
  */
-struct SearchResult
+struct GNUNET_FS_SearchResult
 {
 
   /**
@@ -572,6 +572,14 @@ struct SearchResult
    * (NULL if we are not currently probing).
    */
   struct GNUNET_FS_DownloadContext *probe_ctx;
+
+  /**
+   * ID of an associated download based on this search result (or
+   * NULL for none).
+   *
+   * FIXME: not yet serialized.
+   */
+  struct GNUNET_FS_DownloadContext *download;
 
   /**
    * Name under which this search result is stored on disk.
@@ -837,7 +845,7 @@ GNUNET_FS_download_start_downloading_ (struct GNUNET_FS_DownloadContext *dc);
  * @param sr the search result
  */
 void
-GNUNET_FS_search_start_probe_ (struct SearchResult *sr);
+GNUNET_FS_search_start_probe_ (struct GNUNET_FS_SearchResult *sr);
 
 /**
  * Remove serialization/deserialization file from disk.
@@ -907,7 +915,7 @@ GNUNET_FS_search_sync_ (struct GNUNET_FS_SearchContext *sc);
  */
 void
 GNUNET_FS_search_result_sync_ (const GNUNET_HashCode *key,
-			       struct SearchResult *sr);
+			       struct GNUNET_FS_SearchResult *sr);
 
 /**
  * Synchronize this download struct with its mirror
@@ -1237,7 +1245,7 @@ struct SearchRequestEntry
   GNUNET_HashCode query;  
 
   /**
-   * Map that contains a "struct SearchResult" for each result that
+   * Map that contains a "struct GNUNET_FS_SearchResult" for each result that
    * was found under this keyword.  Note that the entries will point
    * to the same locations as those in the master result map (in
    * "struct GNUNET_FS_SearchContext"), so they should not be freed.
@@ -1321,7 +1329,7 @@ struct GNUNET_FS_SearchContext
   char *emsg;
 
   /**
-   * Map that contains a "struct SearchResult" for each result that
+   * Map that contains a "struct GNUNET_FS_SearchResult" for each result that
    * was found in the search.  The key for each entry is the XOR of
    * the key and query in the CHK URI (as a unique identifier for the
    * search result).
@@ -1423,6 +1431,14 @@ struct GNUNET_FS_DownloadContext
    * in directories).
    */
   struct GNUNET_FS_DownloadContext *parent;
+
+  /**
+   * Associated search (used when downloading files
+   * based on search results), or NULL for none.
+   *
+   * FIXME: not yet serialized
+   */
+  struct GNUNET_FS_SearchResult *search;
 
   /**
    * Head of list of child downloads.

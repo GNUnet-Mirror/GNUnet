@@ -1486,7 +1486,7 @@ GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc)
  */
 void
 GNUNET_FS_search_result_sync_ (const GNUNET_HashCode *key,
-			       struct SearchResult *sr)
+			       struct GNUNET_FS_SearchResult *sr)
 {
   struct GNUNET_BIO_WriteHandle *wh;
   char *uris;
@@ -1779,7 +1779,7 @@ deserialize_search_result (void *cls,
   char *uris;
   char *emsg;
   struct GNUNET_BIO_ReadHandle *rh;
-  struct SearchResult *sr;
+  struct GNUNET_FS_SearchResult *sr;
   GNUNET_HashCode key;
 
   ser = get_serialization_short_name (filename);
@@ -1801,7 +1801,7 @@ deserialize_search_result (void *cls,
     }
   emsg = NULL;
   uris = NULL;
-  sr = GNUNET_malloc (sizeof (struct SearchResult));
+  sr = GNUNET_malloc (sizeof (struct GNUNET_FS_SearchResult));
   sr->serialization = ser;  
   if ( (GNUNET_OK !=
 	GNUNET_BIO_read_string (rh, "result-uri", &uris, 10*1024)) ||
@@ -1846,7 +1846,7 @@ deserialize_search_result (void *cls,
  *
  * @param cls closure, the 'struct GNUNET_FS_SearchContext'
  * @param key current key code
- * @param value value in the hash map, the 'struct SearchResult'
+ * @param value value in the hash map, the 'struct GNUNET_FS_SearchResult'
  * @return GNUNET_YES (we should continue to iterate)
  */
 static int
@@ -1856,13 +1856,14 @@ signal_result_resume (void *cls,
 {
   struct GNUNET_FS_SearchContext *sc = cls;
   struct GNUNET_FS_ProgressInfo pi;
-  struct SearchResult *sr = value;
+  struct GNUNET_FS_SearchResult *sr = value;
 
   if (0 == sr->mandatory_missing)
     {
       pi.status = GNUNET_FS_STATUS_SEARCH_RESUME_RESULT;
       pi.value.search.specifics.resume_result.meta = sr->meta;
       pi.value.search.specifics.resume_result.uri = sr->uri;
+      pi.value.search.specifics.resume_result.result = sr;
       pi.value.search.specifics.resume_result.availability_rank = 2*sr->availability_success - sr->availability_trials;
       pi.value.search.specifics.resume_result.availability_certainty = sr->availability_trials;
       pi.value.search.specifics.resume_result.applicability_rank = sr->optional_support;
@@ -1879,7 +1880,7 @@ signal_result_resume (void *cls,
  *
  * @param cls closure, the 'struct GNUNET_FS_SearchContext'
  * @param key current key code
- * @param value value in the hash map, the 'struct SearchResult'
+ * @param value value in the hash map, the 'struct GNUNET_FS_SearchResult'
  * @return GNUNET_YES (we should continue to iterate)
  */
 static int
@@ -1887,7 +1888,7 @@ free_result (void *cls,
 	     const GNUNET_HashCode * key,
 	     void *value)
 {
-  struct SearchResult *sr = value;
+  struct GNUNET_FS_SearchResult *sr = value;
 
   GNUNET_CONTAINER_meta_data_destroy (sr->meta);
   GNUNET_FS_uri_destroy (sr->uri);

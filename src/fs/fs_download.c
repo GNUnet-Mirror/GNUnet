@@ -153,6 +153,8 @@ GNUNET_FS_download_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
     = dc->client_info;
   pi->value.download.pctx
     = (dc->parent == NULL) ? NULL : dc->parent->client_info;
+  pi->value.download.sctx
+    = (dc->search == NULL) ? NULL : dc->search->client_info;
   pi->value.download.uri 
     = dc->uri;
   pi->value.download.filename
@@ -1434,7 +1436,6 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
       GNUNET_break (0);
       return NULL;
     }
-  // FIXME: add support for "loc" URIs!
 #if DEBUG_DOWNLOAD
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Starting download `%s' of %llu bytes\n",
@@ -1462,7 +1463,10 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 			       &dc->old_file_size,
 			       GNUNET_YES);
     }
-  // FIXME: set "dc->target" for LOC uris!
+  if (GNUNET_FS_uri_test_loc (dc->uri))
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_FS_uri_loc_get_peer_identity (dc->uri,
+							&dc->target));
   dc->offset = offset;
   dc->length = length;
   dc->anonymity = anonymity;
@@ -1493,6 +1497,125 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 			   1 /* 0 == CHK, 1 == top */); 
   GNUNET_FS_download_start_downloading_ (dc);
   return dc;
+}
+
+
+/**
+ * Download parts of a file based on a search result.  The download
+ * will be associated with the search result (and the association
+ * will be preserved when serializing/deserializing the state).
+ * If the search is stopped, the download will not be aborted but
+ * be 'promoted' to a stand-alone download.
+ *
+ * As with the other download function, this will store
+ * the blocks at the respective offset in the given file.  Also, the
+ * download is still using the blocking of the underlying FS
+ * encoding.  As a result, the download may *write* outside of the
+ * given boundaries (if offset and length do not match the 32k FS
+ * block boundaries). <p>
+ *
+ * The given range can be used to focus a download towards a
+ * particular portion of the file (optimization), not to strictly
+ * limit the download to exactly those bytes.
+ *
+ * @param h handle to the file sharing subsystem
+ * @param sr the search result to use for the download (determines uri and
+ *        meta data and associations)
+ * @param filename where to store the file, maybe NULL (then no file is
+ *        created on disk and data must be grabbed from the callbacks)
+ * @param tempname where to store temporary file data, not used if filename is non-NULL;
+ *        can be NULL (in which case we will pick a name if needed); the temporary file
+ *        may already exist, in which case we will try to use the data that is there and
+ *        if it is not what is desired, will overwrite it
+ * @param offset at what offset should we start the download (typically 0)
+ * @param length how many bytes should be downloaded starting at offset
+ * @param anonymity anonymity level to use for the download
+ * @param options various download options
+ * @param cctx initial value for the client context for this download
+ * @return context that can be used to control this download
+ */
+struct GNUNET_FS_DownloadContext *
+GNUNET_FS_download_start_from_search (struct GNUNET_FS_Handle *h,
+				      struct GNUNET_FS_SearchResult *sr,
+				      const char *filename,
+				      const char *tempname,
+				      uint64_t offset,
+				      uint64_t length,
+				      uint32_t anonymity,
+				      enum GNUNET_FS_DownloadOptions options,
+				      void *cctx)
+{
+  struct GNUNET_FS_ProgressInfo pi;
+  struct GNUNET_FS_DownloadContext *dc;
+
+  if (sr->download != NULL)
+    {
+      GNUNET_break (0);
+      return NULL;
+    }
+  GNUNET_assert (GNUNET_FS_uri_test_chk (sr->uri));
+  if ( (offset + length < offset) ||
+       (offset + length > sr->uri->data.chk.file_length) )
+    {      
+      GNUNET_break (0);
+      return NULL;
+    }
+#if DEBUG_DOWNLOAD
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Starting download `%s' of %llu bytes\n",
+	      filename,
+	      (unsigned long long) length);
+#endif
+  dc = GNUNET_malloc (sizeof(struct GNUNET_FS_DownloadContext));
+  dc->h = h;
+  dc->search = sr;
+  sr->download = dc;
+  dc->uri = GNUNET_FS_uri_dup (sr->uri);
+  dc->meta = GNUNET_CONTAINER_meta_data_duplicate (sr->meta);
+  dc->client_info = cctx;
+  dc->start_time = GNUNET_TIME_absolute_get ();
+  if (NULL != filename)
+    {
+      dc->filename = GNUNET_strdup (filename);
+      if (GNUNET_YES == GNUNET_DISK_file_test (filename))
+	GNUNET_DISK_file_size (filename,
+			       &dc->old_file_size,
+			       GNUNET_YES);
+    }
+  if (GNUNET_FS_uri_test_loc (dc->uri))
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_FS_uri_loc_get_peer_identity (dc->uri,
+							&dc->target));
+  dc->offset = offset;
+  dc->length = length;
+  dc->anonymity = anonymity;
+  dc->options = options;
+  dc->active = GNUNET_CONTAINER_multihashmap_create (1 + 2 * (length / DBLOCK_SIZE));
+  dc->treedepth = GNUNET_FS_compute_depth (GNUNET_ntohll(dc->uri->data.chk.file_length));
+  if ( (filename == NULL) &&
+       (is_recursive_download (dc) ) )
+    {
+      if (tempname != NULL)
+	dc->temp_filename = GNUNET_strdup (tempname);
+      else
+	dc->temp_filename = GNUNET_DISK_mktemp ("gnunet-directory-download-tmp");    
+    }
+
+#if DEBUG_DOWNLOAD
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Download tree has depth %u\n",
+	      dc->treedepth);
+#endif
+  // FIXME: make persistent
+  pi.status = GNUNET_FS_STATUS_DOWNLOAD_START;
+  pi.value.download.specifics.start.meta = dc->meta;
+  GNUNET_FS_download_make_status_ (&pi, dc);
+  schedule_block_download (dc, 
+			   &dc->uri->data.chk.chk,
+			   0, 
+			   1 /* 0 == CHK, 1 == top */); 
+  GNUNET_FS_download_start_downloading_ (dc);
+  return dc;  
 }
 
 
@@ -1542,6 +1665,11 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
 {
   struct GNUNET_FS_ProgressInfo pi;
 
+  if (dc->search != NULL)
+    {
+      dc->search->download = NULL;
+      dc->search = NULL;
+    }
   if (dc->job_queue != NULL)
     {
       GNUNET_FS_dequeue_ (dc->job_queue);
