@@ -1,6 +1,5 @@
 0.9.0pre1:
 * FS: [CG]
-  - serialization code (download)
   - linking of downloads to searches (expose opaque struct SearchResult;
     allow starting download based on search result (new API):
     => have meta data for instant completion!

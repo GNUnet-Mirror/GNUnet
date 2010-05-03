@@ -1245,6 +1245,53 @@ GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc)
 
 
 /**
+ * Serialize an active or pending download request.
+ * 
+ * @param cls the 'struct GNUNET_BIO_WriteHandle*'
+ * @param key unused, can be NULL
+ * @param value the 'struct DownloadRequest'
+ * @return GNUNET_YES on success, GNUNET_NO on error
+ */
+static int
+write_download_request (void *cls,
+			const GNUNET_HashCode *key,
+			void *value)
+{
+  struct GNUNET_BIO_WriteHandle *wh = cls;
+  struct DownloadRequest *dr = value;
+  
+  if ( (GNUNET_OK !=
+	GNUNET_BIO_write (wh, &dr->chk, sizeof (struct ContentHashKey))) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_int64 (wh, dr->offset)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_int32 (wh, dr->depth)) )    
+    return GNUNET_NO;    
+  return GNUNET_YES;
+}
+
+
+/**
+ * Count active download requests.
+ * 
+ * @param cls the 'uint32_t*' counter
+ * @param key unused, can be NULL
+ * @param value the 'struct DownloadRequest'
+ * @return GNUNET_YES (continue iteration)
+ */
+static int
+count_download_requests (void *cls,
+			const GNUNET_HashCode *key,
+			void *value)
+{
+  uint32_t *counter = cls;
+  
+  (*counter)++;
+  return GNUNET_YES;
+}
+
+
+/**
  * Synchronize this download struct with its mirror
  * on disk.  Note that all internal FS-operations that change
  * publishing structs should already call "sync" internally,
@@ -1255,7 +1302,125 @@ GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc)
 void
 GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc)
 {
-  /* FIXME */
+  struct GNUNET_BIO_WriteHandle *wh;
+  struct DownloadRequest *dr;
+  char pbuf[32];
+  const char *category;
+  char *uris;
+  char *fn;
+  uint32_t num_pending;
+
+  if (dc->parent != NULL)
+    {
+      if (dc->parent->serialization == NULL)
+	return;
+      GNUNET_snprintf (pbuf,
+		       sizeof (pbuf),
+		       "%s%s%s",
+		       "subdownloads",
+		       DIR_SEPARATOR_STR,
+		       dc->parent->serialization);
+      category = pbuf;
+    }
+  else
+    {
+      category = "download";
+    }
+  if (NULL == dc->serialization)    
+    dc->serialization = make_serialization_file_name (dc->h, 
+						      category);
+  if (NULL == dc->serialization)
+    return;
+  wh = get_write_handle (dc->h, category, dc->serialization);
+  if (wh == NULL)
+    {
+      GNUNET_free (dc->serialization);
+      dc->serialization = NULL;
+      return;
+    }
+  GNUNET_assert ( (GNUNET_YES == GNUNET_FS_uri_test_chk (dc->uri)) ||
+		  (GNUNET_YES == GNUNET_FS_uri_test_loc (dc->uri)) );
+  uris = GNUNET_FS_uri_to_string (dc->uri);
+  num_pending = 0;
+  if (dc->emsg != NULL)
+    {
+      dr = dc->pending;
+      while (dr != NULL)
+	{
+	  num_pending++;
+	  dr = dr->next;
+	}
+      (void) GNUNET_CONTAINER_multihashmap_iterate (dc->active,
+						    &count_download_requests,
+						    &num_pending);
+    }
+  GNUNET_assert ( (dc->length == dc->completed) ||
+		  (dc->emsg != NULL) ||
+		  (num_pending > 0) );
+  if ( (GNUNET_OK !=
+	GNUNET_BIO_write_string (wh, uris)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_meta_data (wh, dc->meta)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_string (wh, dc->emsg)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_string (wh, dc->filename)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_string (wh, dc->temp_filename)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_int64 (wh, dc->old_file_size)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_int64 (wh, dc->offset)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_int64 (wh, dc->length)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_int64 (wh, dc->completed)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_int64 (wh, dc->start_time.value)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_int32 (wh, dc->anonymity)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_int32 (wh, (uint32_t) dc->options)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_int32 (wh, (uint32_t) dc->has_finished)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_int32 (wh, num_pending)) )
+    goto cleanup; 
+  dr = dc->pending;
+  while (dr != NULL)
+    {
+      if (GNUNET_YES !=
+	  write_download_request (wh, NULL, dr))
+	goto cleanup;
+      dr = dr->next;
+    }
+  if (GNUNET_SYSERR ==
+      GNUNET_CONTAINER_multihashmap_iterate (dc->active,
+					     &write_download_request,
+					     wh))
+    goto cleanup;
+  while (0 < num_pending--)
+    {
+      dr = GNUNET_malloc (sizeof (struct DownloadRequest));
+
+      dr->is_pending = GNUNET_YES;
+      dr->next = dc->pending;
+      dc->pending = dr;
+      dr = NULL;
+    }
+  GNUNET_free_non_null (uris);
+  if (GNUNET_OK ==
+      GNUNET_BIO_write_close (wh))
+    return; /* done! */
+ cleanup:
+  (void) GNUNET_BIO_write_close (wh);
+  GNUNET_free_non_null (uris);
+  fn = get_serialization_file_name (dc->h, category, dc->serialization);
+  if (0 != UNLINK (fn))
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
+  GNUNET_free (fn);
+  GNUNET_free (dc->serialization);
+  dc->serialization = NULL;
 }
 
 

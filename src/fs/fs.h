@@ -920,6 +920,7 @@ GNUNET_FS_search_result_sync_ (const GNUNET_HashCode *key,
 void
 GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc);
 
+
 /**
  * Master context for most FS operations.
  */
