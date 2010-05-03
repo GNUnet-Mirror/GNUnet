@@ -144,9 +144,9 @@ compute_dblock_offset (uint64_t offset,
  * @param pi structure to fill in
  * @param dc overall download context
  */
-static void
-make_download_status (struct GNUNET_FS_ProgressInfo *pi,
-		      struct GNUNET_FS_DownloadContext *dc)
+void
+GNUNET_FS_download_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
+				 struct GNUNET_FS_DownloadContext *dc)
 {
   pi->value.download.dc = dc;
   pi->value.download.cctx
@@ -631,7 +631,7 @@ check_completed (struct GNUNET_FS_DownloadContext *dc)
   dc->has_finished = GNUNET_YES;
   /* signal completion */
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_COMPLETED;
-  make_download_status (&pi, dc);
+  GNUNET_FS_download_make_status_ (&pi, dc);
   if (dc->parent != NULL)
     check_completed (dc->parent);  
 }
@@ -856,7 +856,7 @@ process_result_with_request (void *cls,
       /* signal error */
       pi.status = GNUNET_FS_STATUS_DOWNLOAD_ERROR;
       pi.value.download.specifics.error.message = dc->emsg;
-      make_download_status (&pi, dc);
+      GNUNET_FS_download_make_status_ (&pi, dc);
       /* abort all pending requests */
       if (NULL != dc->th)
 	{
@@ -936,7 +936,7 @@ process_result_with_request (void *cls,
 	  /* signal error */
 	  pi.status = GNUNET_FS_STATUS_DOWNLOAD_ERROR;
 	  pi.value.download.specifics.error.message = emsg;
-	  make_download_status (&pi, dc);
+	  GNUNET_FS_download_make_status_ (&pi, dc);
 	  /* abort all pending requests */
 	  if (NULL != dc->th)
 	    {
@@ -984,7 +984,7 @@ process_result_with_request (void *cls,
   pi.value.download.specifics.progress.offset = sm->offset;
   pi.value.download.specifics.progress.data_len = prc->size;
   pi.value.download.specifics.progress.depth = sm->depth;
-  make_download_status (&pi, dc);
+  GNUNET_FS_download_make_status_ (&pi, dc);
   GNUNET_assert (dc->completed <= dc->length);
   if (dc->completed == dc->length)
     {
@@ -1015,7 +1015,7 @@ process_result_with_request (void *cls,
 	{
 	  /* signal completion */
 	  pi.status = GNUNET_FS_STATUS_DOWNLOAD_COMPLETED;
-	  make_download_status (&pi, dc);
+	  GNUNET_FS_download_make_status_ (&pi, dc);
 	  if (dc->parent != NULL)
 	    check_completed (dc->parent);
 	}
@@ -1314,7 +1314,7 @@ activate_fs_download (void *cls,
 			 dc,
 			 GNUNET_TIME_UNIT_FOREVER_REL);
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_ACTIVE;
-  make_download_status (&pi, dc);
+  GNUNET_FS_download_make_status_ (&pi, dc);
   GNUNET_CONTAINER_multihashmap_iterate (dc->active,
 					 &retry_entry,
 					 dc);
@@ -1351,7 +1351,7 @@ deactivate_fs_download (void *cls)
       dc->client = NULL;
     }
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_INACTIVE;
-  make_download_status (&pi, dc);
+  GNUNET_FS_download_make_status_ (&pi, dc);
 }
 
 
@@ -1479,7 +1479,7 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
   // FIXME: make persistent
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_START;
   pi.value.download.specifics.start.meta = meta;
-  make_download_status (&pi, dc);
+  GNUNET_FS_download_make_status_ (&pi, dc);
   schedule_block_download (dc, 
 			   &dc->uri->data.chk.chk,
 			   0, 
@@ -1538,7 +1538,7 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
 				 dc);
   
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_STOPPED;
-  make_download_status (&pi, dc);
+  GNUNET_FS_download_make_status_ (&pi, dc);
   if (GNUNET_SCHEDULER_NO_TASK != dc->task)
     GNUNET_SCHEDULER_cancel (dc->h->sched,
 			     dc->task);
@@ -1570,6 +1570,8 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
 				  dc->temp_filename);
       GNUNET_free (dc->temp_filename);
     }
+  /* FIXME: clean up serialization file itself! */
+  GNUNET_free_non_null (dc->serialization);
   GNUNET_free (dc);
 }
 

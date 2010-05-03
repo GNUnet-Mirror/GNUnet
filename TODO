@@ -1,11 +1,24 @@
 0.9.0pre1:
 * FS: [CG]
+  - resume signalling for search/download must be recursive!
   - deserialization code (download)
   - serialization code (download)
-  - linking of downloads to searches 
+  - linking of downloads to searches (expose opaque struct SearchResult;
+    allow starting download based on search result (new API):
+    => have meta data for instant completion!
+    => have URI
+    => linking of download to search
+    => expose link to search result in download events (including search result's
+       client-info pointer!)
   - generate SUSPEND events (publish, unindex, search, download)
   - actually call 'sync' functions (publish, unindex, search, download)
-  - persistence testing (publish, unindex)
+  - code review:
+    => refactor fs.c to join common code segments!
+    => document directory structure
+    => ensure all files & dirs are cleaned up! (at least during 'clean' runs)
+  - persistence testing (publish, unindex, search, download):
+    => need driver!
+    => schedule suspending tasks DURING event handler => good coverage!
   - gnunet-service-fs (hot-path routing, load-based routing, nitpicks)  
   - [gnunet-service-fs.c:208]: member 'LocalGetContext::results_bf_size' is never used
   - [gnunet-service-fs.c:501]: member 'PendingRequest::used_pids_size' is never used

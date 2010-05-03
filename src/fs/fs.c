@@ -1244,6 +1244,21 @@ GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc)
 
 
 /**
+ * Synchronize this download struct with its mirror
+ * on disk.  Note that all internal FS-operations that change
+ * publishing structs should already call "sync" internally,
+ * so this function is likely not useful for clients.
+ * 
+ * @param dc the struct to sync
+ */
+void
+GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc)
+{
+  /* FIXME */
+}
+
+
+/**
  * Synchronize this search result with its mirror
  * on disk.  Note that all internal FS-operations that change
  * publishing structs should already call "sync" internally,
@@ -1700,6 +1715,167 @@ free_search_context (struct GNUNET_FS_SearchContext *sc)
 
 
 /**
+ * Deserialize a download.
+ *
+ * @param h overall context
+ * @param rh file to deserialize from
+ * @param parent parent download
+ * @param serialization name under which the search was serialized
+ */
+static void
+deserialize_download (struct GNUNET_FS_Handle *h,
+		      struct GNUNET_BIO_ReadHandle *rh,
+		      struct GNUNET_FS_DownloadContext *parent,
+		      const char *serialization);
+
+
+/**
+ * Function called with a filename of serialized sub-download
+ * to deserialize.
+ *
+ * @param cls the 'struct GNUNET_FS_DownloadContext*' (parent)
+ * @param filename complete filename (absolute path)
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int
+deserialize_subdownload (void *cls,
+			 const char *filename)
+{
+  struct GNUNET_FS_DownloadContext *parent = cls;
+  char *ser;
+  char *emsg;
+  struct GNUNET_BIO_ReadHandle *rh;
+
+  ser = get_serialization_short_name (filename);
+  rh = GNUNET_BIO_read_open (filename);
+  deserialize_download (parent->h,
+			rh,
+			parent,
+			ser);
+  if (GNUNET_OK !=
+      GNUNET_BIO_read_close (rh, &emsg))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Failed to resume sub-download `%s': %s\n"),
+		  ser,
+		  emsg);
+      GNUNET_free (emsg);
+    }
+  GNUNET_free (ser);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Deserialize a download.
+ *
+ * @param h overall context
+ * @param rh file to deserialize from
+ * @param parent parent download
+ * @param serialization name under which the search was serialized
+ */
+static void
+deserialize_download (struct GNUNET_FS_Handle *h,
+		      struct GNUNET_BIO_ReadHandle *rh,
+		      struct GNUNET_FS_DownloadContext *parent,
+		      const char *serialization)
+{
+  struct GNUNET_FS_DownloadContext *dc;
+  struct GNUNET_FS_DownloadContext *dcc;
+  char pbuf[32];
+  struct GNUNET_FS_ProgressInfo pi;
+  char *emsg;
+  char *uris;
+  char *dn;
+
+  uris = NULL;
+  emsg = NULL;
+  dc = GNUNET_malloc (sizeof (struct GNUNET_FS_DownloadContext));
+  dc->parent = parent;
+  dc->h = h;
+  dc->serialization = GNUNET_strdup (serialization);
+#if 0
+  /* FIXME */
+  if ( (GNUNET_OK !=
+	GNUNET_BIO_read_string (rh, "-uri", &uris, 10*1024)) ||
+       (NULL == (sc->uri = GNUNET_FS_uri_parse (uris, &emsg))) ||       
+       ( (GNUNET_YES != GNUNET_FS_uri_test_ksk (sc->uri)) &&
+	 (GNUNET_YES != GNUNET_FS_uri_test_sks (sc->uri)) ) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int64 (rh, &sc->start_time.value)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_string (rh, "search-emsg", &sc->emsg, 10*1024)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int32 (rh, &options)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read (rh, "search-pause", &in_pause, sizeof (in_pause))) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int32 (rh, &sc->anonymity)) )
+    goto cleanup;          
+  /* FIXME: adjust start_time.value */
+  sc->options = (enum GNUNET_FS_SearchOptions) options;
+  sc->master_result_map = GNUNET_CONTAINER_multihashmap_create (16);
+#endif
+  GNUNET_snprintf (pbuf,
+		   sizeof (pbuf),
+		   "%s%s%s",
+		   "subdownloads",
+		   DIR_SEPARATOR_STR,
+		   dc->serialization);
+  dn = get_serialization_file_name (h, pbuf, "");
+  if (dn != NULL)
+    {
+      GNUNET_DISK_directory_scan (dn, &deserialize_subdownload, dc);
+      GNUNET_free (dn);
+    }
+#if 0
+  if ('\0' == in_pause)
+    {
+      if (GNUNET_OK !=
+	  GNUNET_FS_search_start_searching_ (sc))
+	goto cleanup;
+    }
+#endif
+  if (0)
+    goto cleanup;
+  if (parent != NULL)
+    GNUNET_CONTAINER_DLL_insert (parent->child_head,
+				 parent->child_tail,
+				 dc);
+  pi.status = GNUNET_FS_STATUS_DOWNLOAD_RESUME;
+#if 0
+  pi.value.search.specifics.resume.message = sc->emsg;
+  pi.value.search.specifics.resume.is_paused = ('\0' == in_pause) ? GNUNET_NO : GNUNET_YES;
+#endif
+  GNUNET_FS_download_make_status_ (&pi,
+				   dc);
+  dcc = dc->child_head;
+  while (NULL != dcc)
+    {
+      /* FIXME: wrong, need recursion! */
+      pi.status = GNUNET_FS_STATUS_DOWNLOAD_RESUME;
+#if 0
+      pi.value.search.specifics.resume.message = scc->emsg;
+      pi.value.search.specifics.resume.is_paused = ('\0' == in_pause) ? GNUNET_NO : GNUNET_YES;
+#endif
+      GNUNET_FS_download_make_status_ (&pi,
+				       dcc);
+      dcc = dcc->next;
+    }
+#if 0
+  GNUNET_free (uris);
+#endif
+  return;
+ cleanup:
+#if 0
+  GNUNET_free_non_null (emsg);
+  free_search_context (sc);
+#endif
+  GNUNET_free_non_null (uris);
+}
+
+
+/**
  * Deserialize a search. 
  *
  * @param h overall context
@@ -1808,6 +1984,7 @@ deserialize_search (struct GNUNET_FS_Handle *h,
   scc = sc->child_head;
   while (NULL != scc)
     {
+      /* FIXME: wrong, need recursion! */
       pi.status = GNUNET_FS_STATUS_SEARCH_RESUME;
       pi.value.search.specifics.resume.message = scc->emsg;
       pi.value.search.specifics.resume.is_paused = ('\0' == in_pause) ? GNUNET_NO : GNUNET_YES;
@@ -1864,7 +2041,7 @@ deserialize_search_file (void *cls,
       GNUNET_BIO_read_close (rh, &emsg))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Failure while resuming unindexing operation `%s': %s\n"),
+		  _("Failure while resuming search operation `%s': %s\n"),
 		  filename,
 		  emsg);
       GNUNET_free (emsg);
@@ -1887,6 +2064,67 @@ deserialize_search_master (struct GNUNET_FS_Handle *h)
   if (dn == NULL)
     return;
   GNUNET_DISK_directory_scan (dn, &deserialize_search_file, h);
+  GNUNET_free (dn);
+}
+
+
+/**
+ * Function called with a filename of serialized download operation
+ * to deserialize.
+ *
+ * @param cls the 'struct GNUNET_FS_Handle*'
+ * @param filename complete filename (absolute path)
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int
+deserialize_download_file (void *cls,
+			   const char *filename)
+{
+  struct GNUNET_FS_Handle *h = cls;
+  char *ser;
+  char *emsg;
+  struct GNUNET_BIO_ReadHandle *rh;
+
+  ser = get_serialization_short_name (filename);
+  rh = GNUNET_BIO_read_open (filename);
+  if (rh == NULL)
+    {
+      if (ser != NULL)
+	{
+	  GNUNET_FS_remove_sync_file_ (h, "download", ser);
+	  GNUNET_free (ser);
+	}
+      return GNUNET_OK;
+    }
+  deserialize_download (h, rh, NULL, ser);
+  GNUNET_free (ser);
+  if (GNUNET_OK !=
+      GNUNET_BIO_read_close (rh, &emsg))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Failure while resuming download operation `%s': %s\n"),
+		  filename,
+		  emsg);
+      GNUNET_free (emsg);
+    }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Deserialize information about pending download operations.
+ *
+ * @param h master context
+ */
+static void
+deserialize_download_master (struct GNUNET_FS_Handle *h)
+{
+  char *dn;
+
+  dn = get_serialization_file_name (h, "download", "");
+  if (dn == NULL)
+    return;
+  GNUNET_DISK_directory_scan (dn, &deserialize_download_file, h);
   GNUNET_free (dn);
 }
 
@@ -1960,7 +2198,7 @@ GNUNET_FS_start (struct GNUNET_SCHEDULER_Handle *sched,
 	 function instead of these four... */
       deserialize_publish (ret);
       deserialize_search_master (ret);
-      /* FIXME: deserialize downloads that are NOT part of searches */
+      deserialize_download_master (ret);
       deserialize_unindex (ret);
     }
   return ret;

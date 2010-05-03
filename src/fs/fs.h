@@ -765,6 +765,19 @@ GNUNET_FS_publish_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
 				const struct GNUNET_FS_FileInformation *p,
 				uint64_t offset);
 
+
+/**
+ * Fill in all of the generic fields for a download event and call the
+ * callback.
+ *
+ * @param pi structure to fill in
+ * @param dc overall download context
+ */
+void
+GNUNET_FS_download_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
+				 struct GNUNET_FS_DownloadContext *dc);
+
+
 /**
  * Fill in all of the generic fields for 
  * an unindex event and call the callback.
@@ -887,6 +900,16 @@ void
 GNUNET_FS_search_result_sync_ (const GNUNET_HashCode *key,
 			       struct SearchResult *sr);
 
+/**
+ * Synchronize this download struct with its mirror
+ * on disk.  Note that all internal FS-operations that change
+ * publishing structs should already call "sync" internally,
+ * so this function is likely not useful for clients.
+ * 
+ * @param dc the struct to sync
+ */
+void
+GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc);
 
 /**
  * Master context for most FS operations.
@@ -1431,6 +1454,12 @@ struct GNUNET_FS_DownloadContext
    * Error message, NULL if we're doing OK.
    */
   char *emsg;
+
+  /**
+   * Random portion of filename we use for syncing state of this
+   * download.
+   */
+  char *serialization;
 
   /**
    * Where are we writing the data (name of the
