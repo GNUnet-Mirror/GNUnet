@@ -28,6 +28,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_fs_service.h"
 #include "fs.h"
+#include "fs_tree.h"
 
 
 /**
@@ -1767,6 +1768,71 @@ deserialize_subdownload (void *cls,
 
 
 /**
+ * Send the 'resume' signal to the callback; also actually
+ * resume the download (put it in the queue).  Does this
+ * recursively for the top-level download and all child
+ * downloads.
+ * 
+ * @param dc download to resume
+ */
+static void
+signal_download_resume (struct GNUNET_FS_DownloadContext *dc)
+{
+  struct GNUNET_FS_DownloadContext *dcc;
+  struct GNUNET_FS_ProgressInfo pi;
+  
+  pi.status = GNUNET_FS_STATUS_DOWNLOAD_RESUME;
+  pi.value.download.specifics.resume.meta = dc->meta;
+  pi.value.download.specifics.resume.message = dc->emsg;
+  GNUNET_FS_download_make_status_ (&pi,
+				   dc);
+  dcc = dc->child_head;
+  while (NULL != dcc)
+    {
+      signal_download_resume (dcc);
+      dcc = dcc->next;
+    }
+  if (dc->pending != NULL)
+    GNUNET_FS_download_start_downloading_ (dc);
+}
+
+
+/**
+ * Free this download context and all of its descendants.
+ * (only works during deserialization since not all possible
+ * state it taken care of).
+ *
+ * @param dc context to free
+ */
+static void
+free_download_context (struct GNUNET_FS_DownloadContext *dc)
+{
+  struct GNUNET_FS_DownloadContext *dcc;
+  struct DownloadRequest *dr;
+  if (dc->meta != NULL)
+    GNUNET_CONTAINER_meta_data_destroy (dc->meta);
+  if (dc->uri != NULL)
+    GNUNET_FS_uri_destroy (dc->uri);
+  GNUNET_free_non_null (dc->temp_filename);
+  GNUNET_free_non_null (dc->emsg);
+  GNUNET_free_non_null (dc->filename);
+  while (NULL != (dcc = dc->child_head))
+    {
+      GNUNET_CONTAINER_DLL_remove (dc->child_head,
+				   dc->child_tail,
+				   dcc);
+      free_download_context (dcc);
+    }
+  while (NULL != (dr = dc->pending))
+    {
+      dc->pending = dr->next;
+      GNUNET_free (dr);
+    }
+  GNUNET_free (dc);
+}
+
+
+/**
  * Deserialize a download.
  *
  * @param h overall context
@@ -1781,41 +1847,81 @@ deserialize_download (struct GNUNET_FS_Handle *h,
 		      const char *serialization)
 {
   struct GNUNET_FS_DownloadContext *dc;
-  struct GNUNET_FS_DownloadContext *dcc;
+  struct DownloadRequest *dr;
   char pbuf[32];
-  struct GNUNET_FS_ProgressInfo pi;
   char *emsg;
   char *uris;
   char *dn;
+  uint32_t options;
+  uint32_t status;
+  uint32_t num_pending;
 
   uris = NULL;
   emsg = NULL;
+  dr = NULL;
   dc = GNUNET_malloc (sizeof (struct GNUNET_FS_DownloadContext));
   dc->parent = parent;
   dc->h = h;
   dc->serialization = GNUNET_strdup (serialization);
-#if 0
-  /* FIXME */
   if ( (GNUNET_OK !=
-	GNUNET_BIO_read_string (rh, "-uri", &uris, 10*1024)) ||
-       (NULL == (sc->uri = GNUNET_FS_uri_parse (uris, &emsg))) ||       
-       ( (GNUNET_YES != GNUNET_FS_uri_test_ksk (sc->uri)) &&
-	 (GNUNET_YES != GNUNET_FS_uri_test_sks (sc->uri)) ) ||
+	GNUNET_BIO_read_string (rh, "download-uri", &uris, 10*1024)) ||
+       (NULL == (dc->uri = GNUNET_FS_uri_parse (uris, &emsg))) ||       
+       ( (GNUNET_YES != GNUNET_FS_uri_test_chk (dc->uri)) &&
+	 (GNUNET_YES != GNUNET_FS_uri_test_loc (dc->uri)) ) ||
        (GNUNET_OK !=
-	GNUNET_BIO_read_int64 (rh, &sc->start_time.value)) ||
+	GNUNET_BIO_read_meta_data (rh, "download-meta", &dc->meta)) ||
        (GNUNET_OK !=
-	GNUNET_BIO_read_string (rh, "search-emsg", &sc->emsg, 10*1024)) ||
+	GNUNET_BIO_read_string (rh, "download-emsg", &dc->emsg, 10*1024)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_string (rh, "download-fn", &dc->filename, 10*1024)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_string (rh, "download-tfn", &dc->temp_filename, 10*1024)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int64 (rh, &dc->old_file_size)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int64 (rh, &dc->offset)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int64 (rh, &dc->length)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int64 (rh, &dc->completed)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int64 (rh, &dc->start_time.value)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int32 (rh, &dc->anonymity)) ||
        (GNUNET_OK !=
 	GNUNET_BIO_read_int32 (rh, &options)) ||
        (GNUNET_OK !=
-	GNUNET_BIO_read (rh, "search-pause", &in_pause, sizeof (in_pause))) ||
+	GNUNET_BIO_read_int32 (rh, &status)) ||
        (GNUNET_OK !=
-	GNUNET_BIO_read_int32 (rh, &sc->anonymity)) )
+	GNUNET_BIO_read_int32 (rh, &num_pending)) )
     goto cleanup;          
   /* FIXME: adjust start_time.value */
-  sc->options = (enum GNUNET_FS_SearchOptions) options;
-  sc->master_result_map = GNUNET_CONTAINER_multihashmap_create (16);
-#endif
+  dc->options = (enum GNUNET_FS_DownloadOptions) options;
+  dc->active = GNUNET_CONTAINER_multihashmap_create (16);
+  dc->has_finished = (int) status;
+  dc->treedepth = GNUNET_FS_compute_depth (GNUNET_FS_uri_chk_get_file_size (dc->uri));
+  if (GNUNET_FS_uri_test_loc (dc->uri))
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_FS_uri_loc_get_peer_identity (dc->uri,
+							&dc->target));
+  if ( (dc->length > dc->completed) &&
+       (num_pending == 0) )
+    goto cleanup;    
+  while (0 < num_pending--)
+    {
+      dr = GNUNET_malloc (sizeof (struct DownloadRequest));
+      if ( (GNUNET_OK !=
+	    GNUNET_BIO_read (rh, "chk", &dr->chk, sizeof (struct ContentHashKey))) ||
+	   (GNUNET_OK !=
+	    GNUNET_BIO_read_int64 (rh, &dr->offset)) ||
+	   (GNUNET_OK !=
+	    GNUNET_BIO_read_int32 (rh, &dr->depth)) )
+	goto cleanup;	   
+      dr->is_pending = GNUNET_YES;
+      dr->next = dc->pending;
+      dc->pending = dr;
+      dr = NULL;
+    }
   GNUNET_snprintf (pbuf,
 		   sizeof (pbuf),
 		   "%s%s%s",
@@ -1828,50 +1934,43 @@ deserialize_download (struct GNUNET_FS_Handle *h,
       GNUNET_DISK_directory_scan (dn, &deserialize_subdownload, dc);
       GNUNET_free (dn);
     }
-#if 0
-  if ('\0' == in_pause)
-    {
-      if (GNUNET_OK !=
-	  GNUNET_FS_search_start_searching_ (sc))
-	goto cleanup;
-    }
-#endif
-  if (0)
-    goto cleanup;
   if (parent != NULL)
     GNUNET_CONTAINER_DLL_insert (parent->child_head,
 				 parent->child_tail,
 				 dc);
-  pi.status = GNUNET_FS_STATUS_DOWNLOAD_RESUME;
-#if 0
-  pi.value.search.specifics.resume.message = sc->emsg;
-  pi.value.search.specifics.resume.is_paused = ('\0' == in_pause) ? GNUNET_NO : GNUNET_YES;
-#endif
-  GNUNET_FS_download_make_status_ (&pi,
-				   dc);
-  dcc = dc->child_head;
-  while (NULL != dcc)
-    {
-      /* FIXME: wrong, need recursion! */
-      pi.status = GNUNET_FS_STATUS_DOWNLOAD_RESUME;
-#if 0
-      pi.value.search.specifics.resume.message = scc->emsg;
-      pi.value.search.specifics.resume.is_paused = ('\0' == in_pause) ? GNUNET_NO : GNUNET_YES;
-#endif
-      GNUNET_FS_download_make_status_ (&pi,
-				       dcc);
-      dcc = dcc->next;
-    }
-#if 0
+  signal_download_resume (dc);
   GNUNET_free (uris);
-#endif
   return;
  cleanup:
-#if 0
-  GNUNET_free_non_null (emsg);
-  free_search_context (sc);
-#endif
   GNUNET_free_non_null (uris);
+  GNUNET_free_non_null (dr);
+  free_download_context (dc);
+}
+
+
+/**
+ * Signal resuming of a search to our clients (for the
+ * top level search and all sub-searches).
+ *
+ * @param sc search being resumed
+ */
+static void
+signal_search_resume (struct GNUNET_FS_SearchContext *sc)
+{
+  struct GNUNET_FS_SearchContext *scc;
+  struct GNUNET_FS_ProgressInfo pi;
+
+  pi.status = GNUNET_FS_STATUS_SEARCH_RESUME;
+  pi.value.search.specifics.resume.message = sc->emsg;
+  pi.value.search.specifics.resume.is_paused = (sc->client == NULL) ? GNUNET_YES : GNUNET_NO;
+  sc->client_info = GNUNET_FS_search_make_status_ (&pi,
+						   sc);
+  scc = sc->child_head;
+  while (NULL != scc)
+    {
+      signal_search_resume (scc);
+      scc = scc->next;
+    }
 }
 
 
@@ -1893,7 +1992,6 @@ deserialize_search (struct GNUNET_FS_Handle *h,
   struct GNUNET_FS_SearchContext *scc;
   struct GNUNET_BIO_ReadHandle *rhc;
   char pbuf[32];
-  struct GNUNET_FS_ProgressInfo pi;
   char *emsg;
   char *uris;
   char *child_ser;
@@ -1938,11 +2036,12 @@ deserialize_search (struct GNUNET_FS_Handle *h,
       GNUNET_DISK_directory_scan (dn, &deserialize_search_result, sc);
       GNUNET_free (dn);
     }
-  if ('\0' == in_pause)
+  if ( ('\0' == in_pause) &&
+       (GNUNET_OK !=
+	GNUNET_FS_search_start_searching_ (sc)) )
     {
-      if (GNUNET_OK !=
-	  GNUNET_FS_search_start_searching_ (sc))
-	goto cleanup;
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Could not resume running search, will resume as paused search\n"));    
     }
   while (1)
     {
@@ -1976,23 +2075,7 @@ deserialize_search (struct GNUNET_FS_Handle *h,
     GNUNET_CONTAINER_DLL_insert (parent->child_head,
 				 parent->child_tail,
 				 sc);
-  pi.status = GNUNET_FS_STATUS_SEARCH_RESUME;
-  pi.value.search.specifics.resume.message = sc->emsg;
-  pi.value.search.specifics.resume.is_paused = ('\0' == in_pause) ? GNUNET_NO : GNUNET_YES;
-  sc->client_info = GNUNET_FS_search_make_status_ (&pi,
-						   sc);
-  scc = sc->child_head;
-  while (NULL != scc)
-    {
-      /* FIXME: wrong, need recursion! */
-      pi.status = GNUNET_FS_STATUS_SEARCH_RESUME;
-      pi.value.search.specifics.resume.message = scc->emsg;
-      pi.value.search.specifics.resume.is_paused = ('\0' == in_pause) ? GNUNET_NO : GNUNET_YES;
-      scc->client_info = GNUNET_FS_search_make_status_ (&pi,
-							scc);
-
-      scc = scc->next;
-    }
+  signal_search_resume (sc);
   GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
 					 &signal_result_resume,
 					 sc);

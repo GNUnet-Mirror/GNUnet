@@ -1,7 +1,5 @@
 0.9.0pre1:
 * FS: [CG]
-  - resume signalling for search/download must be recursive!
-  - deserialization code (download)
   - serialization code (download)
   - linking of downloads to searches (expose opaque struct SearchResult;
     allow starting download based on search result (new API):
@@ -11,6 +9,7 @@
     => expose link to search result in download events (including search result's
        client-info pointer!)
   - generate SUSPEND events (publish, unindex, search, download)
+  - fix 'start_time' time stamps (search, publish, unindex, download)
   - actually call 'sync' functions (publish, unindex, search, download)
   - code review:
     => refactor fs.c to join common code segments!

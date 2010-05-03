@@ -273,6 +273,7 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
   char block[DBLOCK_SIZE];
   GNUNET_HashCode key;
   struct ProcessResultClosure prc;
+  struct GNUNET_DISK_FileHandle *fh;
 
 #if DEBUG_DOWNLOAD
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -301,15 +302,21 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
 				     &chk->query,
 				     sm,
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-
+  fh = NULL;
   if ( (dc->old_file_size > off) &&
-       (dc->handle != NULL) &&
+       (dc->filename != NULL) )
+    {
+      fh = GNUNET_DISK_file_open (dc->filename,
+				  GNUNET_DISK_OPEN_READ,
+				  GNUNET_DISK_PERM_NONE);
+    }
+  if ( (fh != NULL) &&
        (off  == 
-	GNUNET_DISK_file_seek (dc->handle,
+	GNUNET_DISK_file_seek (fh,
 			       off,
 			       GNUNET_DISK_SEEK_SET) ) &&
        (len == 
-	GNUNET_DISK_file_read (dc->handle,
+	GNUNET_DISK_file_read (fh,
 			       block,
 			       len)) )
     {
@@ -353,6 +360,8 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
 	  return;
 	}
     }
+  if (fh != NULL)
+    GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fh));
   if (depth < dc->treedepth)
     {
       // FIXME: try if we could
@@ -828,6 +837,7 @@ process_result_with_request (void *cls,
   struct DownloadRequest *sm = value;
   struct DownloadRequest *ppos;
   struct DownloadRequest *pprev;
+  struct GNUNET_DISK_FileHandle *fh;
   struct GNUNET_FS_DownloadContext *dc = prc->dc;
   struct GNUNET_CRYPTO_AesSessionKey skey;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
@@ -838,13 +848,13 @@ process_result_with_request (void *cls,
   size_t app;
   int i;
   struct ContentHashKey *chk;
-  char *emsg;
 
+  fh = NULL;
   bs = GNUNET_FS_tree_calculate_block_size (GNUNET_ntohll (dc->uri->data.chk.file_length),
 					    dc->treedepth,
 					    sm->offset,
 					    sm->depth);
-    if (prc->size != bs)
+  if (prc->size != bs)
     {
 #if DEBUG_DOWNLOAD
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -853,19 +863,7 @@ process_result_with_request (void *cls,
 		  prc->size);
 #endif
       dc->emsg = GNUNET_strdup ("Internal error or bogus download URI");
-      /* signal error */
-      pi.status = GNUNET_FS_STATUS_DOWNLOAD_ERROR;
-      pi.value.download.specifics.error.message = dc->emsg;
-      GNUNET_FS_download_make_status_ (&pi, dc);
-      /* abort all pending requests */
-      if (NULL != dc->th)
-	{
-	  GNUNET_CLIENT_notify_transmit_ready_cancel (dc->th);
-	  dc->th = NULL;
-	}
-      GNUNET_CLIENT_disconnect (dc->client, GNUNET_NO);
-      dc->client = NULL;
-      return GNUNET_NO;
+      goto signal_error;
     }
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove (dc->active,
@@ -899,55 +897,68 @@ process_result_with_request (void *cls,
 			     dc->treedepth);
   /* save to disk */
   if ( ( GNUNET_YES == prc->do_store) &&
-       (NULL != dc->handle) &&
+       ( (dc->filename != NULL) ||
+	 (is_recursive_download (dc)) ) &&
        ( (sm->depth == dc->treedepth) ||
 	 (0 == (dc->options & GNUNET_FS_DOWNLOAD_NO_TEMPORARIES)) ) )
     {
-      emsg = NULL;
+      fh = GNUNET_DISK_file_open (dc->filename != NULL 
+				  ? dc->filename 
+				  : dc->temp_filename, 
+				  GNUNET_DISK_OPEN_READWRITE | 
+				  GNUNET_DISK_OPEN_CREATE,
+				  GNUNET_DISK_PERM_USER_READ |
+				  GNUNET_DISK_PERM_USER_WRITE |
+				  GNUNET_DISK_PERM_GROUP_READ |
+				  GNUNET_DISK_PERM_OTHER_READ);
+    }
+  if ( (NULL == fh) &&
+       (GNUNET_YES == prc->do_store) &&
+       ( (dc->filename != NULL) ||
+	 (is_recursive_download (dc)) ) &&
+       ( (sm->depth == dc->treedepth) ||
+	 (0 == (dc->options & GNUNET_FS_DOWNLOAD_NO_TEMPORARIES)) ) )
+    {
+      GNUNET_asprintf (&dc->emsg,
+		       _("Download failed: could not open file `%s': %s\n"),
+		       dc->filename,
+		       STRERROR (errno));
+      goto signal_error;
+    }
+  if (fh != NULL)
+    {
 #if DEBUG_DOWNLOAD
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Saving decrypted block to disk at offset %llu\n",
 		  (unsigned long long) off);
 #endif
       if ( (off  != 
-	    GNUNET_DISK_file_seek (dc->handle,
+	    GNUNET_DISK_file_seek (fh,
 				   off,
 				   GNUNET_DISK_SEEK_SET) ) )
-	GNUNET_asprintf (&emsg,
-			 _("Failed to seek to offset %llu in file `%s': %s\n"),
-			 (unsigned long long) off,
-			 dc->filename,
-			 STRERROR (errno));
-      else if (prc->size !=
-	       GNUNET_DISK_file_write (dc->handle,
-				       pt,
-				       prc->size))
-	GNUNET_asprintf (&emsg,
-			 _("Failed to write block of %u bytes at offset %llu in file `%s': %s\n"),
-			 (unsigned int) prc->size,
-			 (unsigned long long) off,
-			 dc->filename,
-			 STRERROR (errno));
-      if (NULL != emsg)
 	{
-	  dc->emsg = emsg;
-	  // FIXME: make persistent
-
-	  /* signal error */
-	  pi.status = GNUNET_FS_STATUS_DOWNLOAD_ERROR;
-	  pi.value.download.specifics.error.message = emsg;
-	  GNUNET_FS_download_make_status_ (&pi, dc);
-	  /* abort all pending requests */
-	  if (NULL != dc->th)
-	    {
-	      GNUNET_CLIENT_notify_transmit_ready_cancel (dc->th);
-	      dc->th = NULL;
-	    }
-	  GNUNET_CLIENT_disconnect (dc->client, GNUNET_NO);
-	  dc->client = NULL;
-	  GNUNET_free (sm);
-	  return GNUNET_NO;
+	  GNUNET_asprintf (&dc->emsg,
+			   _("Failed to seek to offset %llu in file `%s': %s\n"),
+			   (unsigned long long) off,
+			   dc->filename,
+			   STRERROR (errno));
+	  goto signal_error;
 	}
+      if (prc->size !=
+	  GNUNET_DISK_file_write (fh,
+				  pt,
+				  prc->size))
+	{
+	  GNUNET_asprintf (&dc->emsg,
+			   _("Failed to write block of %u bytes at offset %llu in file `%s': %s\n"),
+			   (unsigned int) prc->size,
+			   (unsigned long long) off,
+			   dc->filename,
+			   STRERROR (errno));
+	  goto signal_error;
+	}
+      GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fh));
+      fh = NULL;
     }
   if (sm->depth == dc->treedepth) 
     {
@@ -994,10 +1005,8 @@ process_result_with_request (void *cls,
 		  (unsigned long long) GNUNET_ntohll (dc->uri->data.chk.file_length));
 #endif
       /* truncate file to size (since we store IBlocks at the end) */
-      if (dc->handle != NULL)
+      if (dc->filename != NULL)
 	{
-	  GNUNET_DISK_file_close (dc->handle);
-	  dc->handle = NULL;
 	  if (0 != truncate (dc->filename,
 			     GNUNET_ntohll (dc->uri->data.chk.file_length)))
 	    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
@@ -1050,6 +1059,23 @@ process_result_with_request (void *cls,
     }
   GNUNET_free (sm);
   return GNUNET_YES;
+
+ signal_error:
+  if (fh != NULL)
+    GNUNET_DISK_file_close (fh);
+  pi.status = GNUNET_FS_STATUS_DOWNLOAD_ERROR;
+  pi.value.download.specifics.error.message = dc->emsg;
+  GNUNET_FS_download_make_status_ (&pi, dc);
+  /* abort all pending requests */
+  if (NULL != dc->th)
+    {
+      GNUNET_CLIENT_notify_transmit_ready_cancel (dc->th);
+      dc->th = NULL;
+    }
+  GNUNET_CLIENT_disconnect (dc->client, GNUNET_NO);
+  dc->client = NULL;
+  GNUNET_free (sm);
+  return GNUNET_NO;
 }
 
 
@@ -1435,25 +1461,6 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 	GNUNET_DISK_file_size (filename,
 			       &dc->old_file_size,
 			       GNUNET_YES);
-      dc->handle = GNUNET_DISK_file_open (filename, 
-					  GNUNET_DISK_OPEN_READWRITE | 
-					  GNUNET_DISK_OPEN_CREATE,
-					  GNUNET_DISK_PERM_USER_READ |
-					  GNUNET_DISK_PERM_USER_WRITE |
-					  GNUNET_DISK_PERM_GROUP_READ |
-					  GNUNET_DISK_PERM_OTHER_READ);
-      if (dc->handle == NULL)
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		      _("Download failed: could not open file `%s': %s\n"),
-		      dc->filename,
-		      STRERROR (errno));
-	  GNUNET_CONTAINER_meta_data_destroy (dc->meta);
-	  GNUNET_FS_uri_destroy (dc->uri);
-	  GNUNET_free (dc->filename);
-	  GNUNET_free (dc);
-	  return NULL;
-	}
     }
   // FIXME: set "dc->target" for LOC uris!
   dc->offset = offset;
@@ -1484,12 +1491,24 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 			   &dc->uri->data.chk.chk,
 			   0, 
 			   1 /* 0 == CHK, 1 == top */); 
-  dc->job_queue = GNUNET_FS_queue_ (h, 
+  GNUNET_FS_download_start_downloading_ (dc);
+  return dc;
+}
+
+
+/**
+ * Start the downloading process (by entering the queue).
+ *
+ * @param dc our download context
+ */
+void
+GNUNET_FS_download_start_downloading_ (struct GNUNET_FS_DownloadContext *dc)
+{
+  dc->job_queue = GNUNET_FS_queue_ (dc->h, 
 				    &activate_fs_download,
 				    &deactivate_fs_download,
 				    dc,
-				    (length + DBLOCK_SIZE-1) / DBLOCK_SIZE);
-  return dc;
+				    (dc->length + DBLOCK_SIZE-1) / DBLOCK_SIZE);
 }
 
 
@@ -1548,8 +1567,6 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
   GNUNET_CONTAINER_multihashmap_destroy (dc->active);
   if (dc->filename != NULL)
     {
-      if (NULL != dc->handle)
-	GNUNET_DISK_file_close (dc->handle);
       if ( (dc->completed != dc->length) &&
 	   (GNUNET_YES == do_delete) )
 	{

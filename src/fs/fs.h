@@ -823,6 +823,15 @@ int
 GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc);
 
 /**
+ * Start the downloading process (by entering the queue).
+ *
+ * @param dc our download context
+ */
+void
+GNUNET_FS_download_start_downloading_ (struct GNUNET_FS_DownloadContext *dc);
+
+
+/**
  * Start download probes for the given search result.
  *
  * @param sr the search result
@@ -1382,7 +1391,7 @@ struct DownloadRequest
   /**
    * Set if this request is currently in the linked list of pending
    * requests.  Needed in case we get a response for a request that we
-   * have not yet send (due to FS bug or two blocks with identical
+   * have not yet send (i.e. due to two blocks with identical
    * content); in this case, we would need to remove the block from
    * the pending list (and need a fast way to check if the block is on
    * it).
@@ -1485,12 +1494,6 @@ struct GNUNET_FS_DownloadContext
    * Linked list of pending requests.
    */
   struct DownloadRequest *pending;
-
-  /**
-   * The file handle, NULL if we don't create
-   * a file.
-   */
-  struct GNUNET_DISK_FileHandle *handle;
 
   /**
    * Non-NULL if we are currently having a request for
