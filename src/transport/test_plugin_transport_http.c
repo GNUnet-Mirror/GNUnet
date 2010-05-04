@@ -231,13 +231,13 @@ run (void *cls,
   api = GNUNET_PLUGIN_load (libname, &env);
   if (api != NULL )
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Loading transport plugin for http `%s' successful\n",libname);
+              "Loading http transport plugin `%s' was successful\n",libname);
 
   GNUNET_free (libname);
   if (api == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Failed to load transport plugin for http\n"));
+                  _("Failed to load http transport plugin\n"));
       /* FIXME: set some error code for main */
       return;
     }

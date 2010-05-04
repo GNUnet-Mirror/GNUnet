@@ -346,7 +346,7 @@ libgnunet_plugin_transport_http_init (void *cls)
     {
       if ( use_ipv6 == GNUNET_YES)
         {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon could not started, http plugin not working\n");
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD on port %u with IPv6 enabled\n",port);
           http_daemon = MHD_start_daemon (MHD_USE_IPv6,
                                          port,
                                          &acceptPolicyCallback,
@@ -386,13 +386,13 @@ libgnunet_plugin_transport_http_init (void *cls)
 
   curl_multi = curl_multi_init ();
 
-  if ( (NULL != http_daemon) && (NULL != curl_multi))
-    return api;
-  else
+  if ( (NULL == http_daemon) || (NULL == curl_multi))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"Initializing http plugin failed\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Initializing http plugin failed\n");
     return NULL;
   }
+  else
+    return api;
 }
 
 
