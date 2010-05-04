@@ -24,7 +24,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - centralize code that sprintf's the 'pbuf[32]' strings
  * - add support for pushing "already seen" information
  *   to FS service for bloomfilter (can wait)
  */

@@ -23,10 +23,6 @@
  * @see http://gnunet.org/encoding.php3
  * @author Krista Bennett
  * @author Christian Grothoff
- *
- * TODO:
- * - decide if this API should be made public (gnunet_fs_service.h)
- *   or remain "internal" (but with exported symbols?)
  */
 #include "platform.h"
 #include "fs_tree.h"

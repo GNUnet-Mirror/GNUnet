@@ -822,6 +822,24 @@ trigger_recursive_download (void *cls,
 
 
 /**
+ * Free entries in the map.
+ *
+ * @param cls unused (NULL)
+ * @param key unused
+ * @param entry entry of type "struct DownloadRequest" which is freed
+ * @return GNUNET_OK
+ */
+static int
+free_entry (void *cls,
+	    const GNUNET_HashCode *key,
+	    void *entry)
+{
+  GNUNET_free (entry);
+  return GNUNET_OK;
+}
+
+
+/**
  * Iterator over entries in the pending requests in the 'active' map for the
  * reply that we just got.
  *
@@ -1076,7 +1094,10 @@ process_result_with_request (void *cls,
       dc->th = NULL;
     }
   GNUNET_CLIENT_disconnect (dc->client, GNUNET_NO);
-  /* FIXME: clean up dc->active / pending! */
+  GNUNET_CONTAINER_multihashmap_iterate (dc->active,
+					 &free_entry,
+					 NULL);
+  dc->pending = NULL;
   dc->client = NULL;
   GNUNET_free (sm);
   GNUNET_FS_download_sync_ (dc);
@@ -1383,24 +1404,6 @@ deactivate_fs_download (void *cls)
     }
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_INACTIVE;
   GNUNET_FS_download_make_status_ (&pi, dc);
-}
-
-
-/**
- * Free entries in the map.
- *
- * @param cls unused (NULL)
- * @param key unused
- * @param entry entry of type "struct DownloadRequest" which is freed
- * @return GNUNET_OK
- */
-static int
-free_entry (void *cls,
-	    const GNUNET_HashCode *key,
-	    void *entry)
-{
-  GNUNET_free (entry);
-  return GNUNET_OK;
 }
 
 
