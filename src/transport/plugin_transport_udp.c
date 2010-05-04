@@ -140,11 +140,6 @@ struct Plugin
   struct GNUNET_TRANSPORT_PluginEnvironment *env;
 
   /**
-   * Handle for the statistics service.
-   */
-  struct GNUNET_STATISTICS_Handle *statistics;
-
-  /**
    * Handle to the network service.
    */
   struct GNUNET_SERVICE_Context *service;
@@ -945,7 +940,6 @@ libgnunet_plugin_transport_udp_init (void *cls)
   plugin->open_port = bport;
   plugin->adv_port = aport;
   plugin->env = env;
-  plugin->statistics = NULL;
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
 

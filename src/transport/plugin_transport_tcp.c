@@ -254,11 +254,6 @@ struct Plugin
   struct Session *sessions;
 
   /**
-   * Handle for the statistics service.
-   */
-  struct GNUNET_STATISTICS_Handle *statistics;
-
-  /**
    * Handle to the network service.
    */
   struct GNUNET_SERVICE_Context *service;
@@ -1552,7 +1547,6 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   plugin->adv_port = aport;
   plugin->env = env;
   plugin->lsock = NULL;
-  plugin->statistics = NULL;
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
   api->send = &tcp_plugin_send;
