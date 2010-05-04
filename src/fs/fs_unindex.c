@@ -139,7 +139,6 @@ unindex_progress (void *cls,
  * unindexing.  Signal the client.
  *
  * @param uc context for the failed unindexing operation
- * @param emsg the error message
  */
 static void
 signal_unindex_error (struct GNUNET_FS_UnindexContext *uc)
