@@ -1592,6 +1592,11 @@ GNUNET_FS_download_start_from_search (struct GNUNET_FS_Handle *h,
   dc->h = h;
   dc->search = sr;
   sr->download = dc;
+  if (sr->probe_ctx != NULL)
+    {
+      GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);
+      sr->probe_ctx = NULL;      
+    }
   dc->uri = GNUNET_FS_uri_dup (sr->uri);
   dc->meta = GNUNET_CONTAINER_meta_data_duplicate (sr->meta);
   dc->client_info = cctx;

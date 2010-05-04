@@ -301,7 +301,12 @@ GNUNET_FS_search_probe_progress_ (void *cls,
 							    sr);
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_STOPPED:
-      /* FIXME: clean up? schedule next probe? or already done? */
+      if (sr->probe_cancel_task != GNUNET_SCHEDULER_NO_TASK)
+	{
+	  GNUNET_SCHEDULER_cancel (sr->sc->h->sched,
+				   sr->probe_cancel_task);
+	  sr->probe_cancel_task = GNUNET_SCHEDULER_NO_TASK;
+	}     
       sr = NULL;
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_ACTIVE:
@@ -343,6 +348,8 @@ GNUNET_FS_search_start_probe_ (struct GNUNET_FS_SearchResult *sr)
   uint64_t len;
   
   if (sr->probe_ctx != NULL)
+    return;
+  if (sr->download != NULL)
     return;
   if (0 == (sr->sc->h->flags & GNUNET_FS_FLAGS_DO_PROBES))
     return;

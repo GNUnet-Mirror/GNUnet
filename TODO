@@ -1,6 +1,5 @@
 0.9.0pre1:
 * FS: [CG]
-  - implement linking of downloads to searches in syncing (serialize/deserialize) 
   - generate SUSPEND events (publish, unindex, search, download) AND free memory!
     => test SUSPEND events
   - actually call 'sync' functions (publish, unindex, search, download)
