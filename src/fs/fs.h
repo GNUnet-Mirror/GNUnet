@@ -162,11 +162,6 @@
 #define GNUNET_FS_SYNC_PATH_CHILD_SEARCH "search-child"
 
 /**
- * Name of the directory with search results.
- */
-#define GNUNET_FS_SYNC_PATH_SEARCH_RESULT "search-result"
-
-/**
  * Name of the directory with master downloads (not associated
  * with search or part of another download).
  */

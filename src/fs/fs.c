@@ -398,7 +398,6 @@ GNUNET_FS_data_reader_copy_ (void *cls,
 }
 
 
-
 /**
  * Return the full filename where we would store state information
  * (for serialization/deserialization).
@@ -415,6 +414,9 @@ get_serialization_file_name (struct GNUNET_FS_Handle *h,
 {
   char *basename;
   char *ret;
+
+  if (0 == (h->flags & GNUNET_FS_FLAGS_PERSISTENCE))
+    return NULL; /* persistence not requested */
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (h->cfg,
 					       "fs",
@@ -428,6 +430,50 @@ get_serialization_file_name (struct GNUNET_FS_Handle *h,
 		   h->client_name,
 		   DIR_SEPARATOR_STR,
 		   ext,
+		   DIR_SEPARATOR_STR,
+		   ent);
+  GNUNET_free (basename);
+  return ret;
+}
+
+
+/**
+ * Return the full filename where we would store state information
+ * (for serialization/deserialization) that is associated with a
+ * parent operation.
+ *
+ * @param h master context
+ * @param ext component of the path 
+ * @param uni name of the parent operation
+ * @param ent entity identifier (or emtpy string for the directory)
+ * @return NULL on error
+ */
+static char *
+get_serialization_file_name_in_dir (struct GNUNET_FS_Handle *h,
+				    const char *ext,
+				    const char *uni,
+				    const char *ent)
+{
+  char *basename;
+  char *ret;
+
+  if (0 == (h->flags & GNUNET_FS_FLAGS_PERSISTENCE))
+    return NULL; /* persistence not requested */
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (h->cfg,
+					       "fs",
+					       "STATE_DIR",
+					       &basename))
+    return NULL;
+  GNUNET_asprintf (&ret,
+		   "%s%s%s%s%s%s%s%s",
+		   basename,
+		   DIR_SEPARATOR_STR,
+		   h->client_name,
+		   DIR_SEPARATOR_STR,
+		   ext,
+		   DIR_SEPARATOR_STR,
+		   uni,
 		   DIR_SEPARATOR_STR,
 		   ent);
   GNUNET_free (basename);
@@ -486,6 +532,33 @@ get_write_handle (struct GNUNET_FS_Handle *h,
 
 
 /**
+ * Return a write handle for serialization.
+ *
+ * @param h master context
+ * @param ext component of the path 
+ * @param uni name of parent
+ * @param ent entity identifier (or emtpy string for the directory)
+ * @return NULL on error
+ */
+static struct GNUNET_BIO_WriteHandle *
+get_write_handle_in_dir (struct GNUNET_FS_Handle *h,
+			 const char *ext,
+			 const char *uni,
+			 const char *ent)
+{
+  char *fn;
+  struct GNUNET_BIO_WriteHandle *ret;
+
+  fn = get_serialization_file_name_in_dir (h, ext, uni, ent);
+  if (fn == NULL)
+    return NULL;
+  ret = GNUNET_BIO_write_open (fn);
+  GNUNET_free (fn);
+  return ret;
+}
+
+
+/**
  * Remove serialization/deserialization file from disk.
  *
  * @param h master context
@@ -515,6 +588,37 @@ GNUNET_FS_remove_sync_file_ (struct GNUNET_FS_Handle *h,
 
 
 /**
+ * Remove serialization/deserialization file from disk.
+ *
+ * @param h master context
+ * @param ext component of the path 
+ * @param uni parent name
+ * @param ent entity identifier 
+ */
+static void
+remove_sync_file_in_dir (struct GNUNET_FS_Handle *h,
+			 const char *ext,
+			 const char *uni,
+			 const char *ent)
+{
+  char *filename;
+
+  if ( (NULL == ent) ||
+       (0 == strlen (ent)) )
+    {
+      GNUNET_break (0);
+      return;
+    }
+  filename = get_serialization_file_name_in_dir (h, ext, uni, ent);
+  if (0 != UNLINK (filename))
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+			      "unlink", 
+			      filename);
+  GNUNET_free (filename);
+}
+
+
+/**
  * Remove serialization/deserialization directory from disk.
  *
  * @param h master context
@@ -527,20 +631,14 @@ GNUNET_FS_remove_sync_dir_ (struct GNUNET_FS_Handle *h,
 			    const char *uni)
 {
   char *dn;
-  char pbuf[32];
 
   if (uni == NULL)
     return;
-  GNUNET_snprintf (pbuf,
-		   sizeof (pbuf),
-		   "%s%s%s",
-		   ext,
-		   DIR_SEPARATOR_STR,
-		   uni);
-  dn = get_serialization_file_name (h, ext, "");
+  dn = get_serialization_file_name_in_dir (h, ext, uni, "");
   if (dn == NULL)
     return;
-  if (GNUNET_OK != GNUNET_DISK_directory_remove (dn))
+  if ( (GNUNET_OK == GNUNET_DISK_directory_test (dn)) &&
+       (GNUNET_OK != GNUNET_DISK_directory_remove (dn)) )
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
 			      "rmdir", 
 			      dn);
@@ -888,6 +986,37 @@ make_serialization_file_name (struct GNUNET_FS_Handle *h,
   if (0 == (h->flags & GNUNET_FS_FLAGS_PERSISTENCE))
     return NULL; /* persistence not requested */
   dn = get_serialization_file_name (h, ext, "");
+  fn = GNUNET_DISK_mktemp (dn);
+  GNUNET_free (dn);
+  if (fn == NULL)
+    return NULL; /* epic fail */
+  ret = get_serialization_short_name (fn);
+  GNUNET_free (fn);
+  return ret;
+}
+
+
+/**
+ * Create a new random name for serialization.  Also checks if persistence
+ * is enabled and returns NULL if not.
+ *
+ * @param h master context
+ * @param ext component of the path 
+ * @param uni name of parent
+ * @return NULL on errror
+ */
+static char *
+make_serialization_file_name_in_dir (struct GNUNET_FS_Handle *h,
+				     const char *ext,
+				     const char *uni)
+{
+  char *fn;
+  char *dn;
+  char *ret;
+
+  if (0 == (h->flags & GNUNET_FS_FLAGS_PERSISTENCE))
+    return NULL; /* persistence not requested */
+  dn = get_serialization_file_name_in_dir (h, ext, uni, "");
   fn = GNUNET_DISK_mktemp (dn);
   GNUNET_free (dn);
   if (fn == NULL)
@@ -1421,6 +1550,42 @@ count_download_requests (void *cls,
 
 
 /**
+ * Compute the name of the sync file (or directory) for the given download
+ * context.
+ *
+ * @param dc download context to compute for
+ * @param uni unique filename to use, use "" for the directory name
+ * @return the expanded file name, NULL for none
+ */
+static char *
+get_download_sync_filename (struct GNUNET_FS_DownloadContext *dc,
+			    const char *uni)
+{
+  char *par;
+  char *epar;
+
+  if (dc->parent == NULL)
+    return get_serialization_file_name (dc->h,
+					(dc->search != NULL) ?
+					GNUNET_FS_SYNC_PATH_CHILD_DOWNLOAD :
+					GNUNET_FS_SYNC_PATH_MASTER_DOWNLOAD,
+					uni);
+  if (dc->parent->serialization == NULL)
+    return NULL;
+  par = get_download_sync_filename (dc->parent, dc->parent->serialization);
+  if (par == NULL)
+    return NULL;
+  GNUNET_asprintf (&epar,
+		   "%s.dir%s%s",
+		   par,
+		   DIR_SEPARATOR_STR,
+		   uni);
+  GNUNET_free (par);
+  return epar;
+}
+
+
+/**
  * Synchronize this download struct with its mirror
  * on disk.  Note that all internal FS-operations that change
  * publishing structs should already call "sync" internally,
@@ -1432,38 +1597,30 @@ void
 GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc)
 {
   struct GNUNET_BIO_WriteHandle *wh;
-  char pbuf[32];
-  const char *category;
   char *uris;
   char *fn;
+  char *dir;
   uint32_t num_pending;
 
-  if (dc->parent != NULL)
+  if (NULL == dc->serialization)    
     {
-      if (dc->parent->serialization == NULL)
+      dir = get_download_sync_filename (dc, "");
+      if (dir == NULL)
 	return;
-      GNUNET_snprintf (pbuf,
-		       sizeof (pbuf),
-		       "%s%s%s",
-		       GNUNET_FS_SYNC_PATH_CHILD_DOWNLOAD,
-		       DIR_SEPARATOR_STR,
-		       dc->parent->serialization);
-      category = pbuf;
+      fn = GNUNET_DISK_mktemp (dir);
+      GNUNET_free (dir);
+      dc->serialization = get_serialization_short_name (fn);
     }
   else
     {
-      category = GNUNET_FS_SYNC_PATH_MASTER_DOWNLOAD;
+      fn = get_download_sync_filename (dc, dc->serialization);
     }
-  if (NULL == dc->serialization)    
-    dc->serialization = make_serialization_file_name (dc->h, 
-						      category);
-  if (NULL == dc->serialization)
-    return;
-  wh = get_write_handle (dc->h, category, dc->serialization);
+  wh = GNUNET_BIO_write_open (fn);
   if (wh == NULL)
     {
       GNUNET_free (dc->serialization);
       dc->serialization = NULL;
+      GNUNET_free (fn);
       return;
     }
   GNUNET_assert ( (GNUNET_YES == GNUNET_FS_uri_test_chk (dc->uri)) ||
@@ -1512,13 +1669,18 @@ GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc)
 					     wh))
     goto cleanup;
   GNUNET_free_non_null (uris);
-  if (GNUNET_OK ==
+  if (GNUNET_OK !=
       GNUNET_BIO_write_close (wh))
-    return; /* done! */
+    {
+      wh = NULL;
+      goto cleanup;
+    }
+  GNUNET_free (fn);
+  return;
  cleanup:
-  (void) GNUNET_BIO_write_close (wh);
+  if (NULL != wh)
+    (void) GNUNET_BIO_write_close (wh);
   GNUNET_free_non_null (uris);
-  fn = get_serialization_file_name (dc->h, category, dc->serialization);
   if (0 != UNLINK (fn))
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
   GNUNET_free (fn);
@@ -1543,11 +1705,19 @@ GNUNET_FS_search_result_sync_ (struct GNUNET_FS_SearchResult *sr)
 
   uris = NULL;
   if (NULL == sr->serialization)
-    sr->serialization = make_serialization_file_name (sr->sc->h,
-						      GNUNET_FS_SYNC_PATH_SEARCH_RESULT);
+    sr->serialization = make_serialization_file_name_in_dir (sr->sc->h,
+							     (sr->sc->parent == NULL) 
+							     ? GNUNET_FS_SYNC_PATH_MASTER_SEARCH
+							     : GNUNET_FS_SYNC_PATH_CHILD_SEARCH,
+							     sr->sc->serialization);
   if (NULL == sr->serialization)
     return;
-  wh = get_write_handle (sr->sc->h, GNUNET_FS_SYNC_PATH_SEARCH_RESULT, sr->serialization);
+  wh = get_write_handle_in_dir (sr->sc->h, 
+				(sr->sc->parent == NULL) 
+				? GNUNET_FS_SYNC_PATH_MASTER_SEARCH
+				: GNUNET_FS_SYNC_PATH_CHILD_SEARCH,
+				sr->sc->serialization,
+				sr->serialization);
   uris = GNUNET_FS_uri_to_string (sr->uri);
   if ( (GNUNET_OK !=
 	GNUNET_BIO_write_string (wh, uris)) ||
@@ -1578,7 +1748,12 @@ GNUNET_FS_search_result_sync_ (struct GNUNET_FS_SearchResult *sr)
   GNUNET_free_non_null (uris);
   if (wh != NULL)
     (void)  GNUNET_BIO_write_close (wh);
-  GNUNET_FS_remove_sync_file_ (sr->sc->h, GNUNET_FS_SYNC_PATH_SEARCH_RESULT, sr->serialization);
+  remove_sync_file_in_dir (sr->sc->h,
+			   (sr->sc->parent == NULL) 
+			   ? GNUNET_FS_SYNC_PATH_MASTER_SEARCH
+			   : GNUNET_FS_SYNC_PATH_CHILD_SEARCH,
+			   sr->sc->serialization,
+			   sr->serialization);
   GNUNET_free (sr->serialization);
   sr->serialization = NULL;
 }
@@ -1808,7 +1983,6 @@ deserialize_search_result (void *cls,
 			   const char *filename)
 {
   struct GNUNET_FS_SearchContext *sc = cls;
-  char pbuf[32];
   char *ser;
   char *uris;
   char *emsg;
@@ -1823,13 +1997,12 @@ deserialize_search_result (void *cls,
     {
       if (ser != NULL)
 	{
-	  GNUNET_snprintf (pbuf,
-			   sizeof (pbuf),
-			   "%s%s%s",
-			   GNUNET_FS_SYNC_PATH_SEARCH_RESULT,
-			   DIR_SEPARATOR_STR,
-			   sc->serialization);
-	  GNUNET_FS_remove_sync_file_ (sc->h, pbuf, ser);
+	  remove_sync_file_in_dir (sc->h, 
+				   (sc->parent == NULL) 
+				   ? GNUNET_FS_SYNC_PATH_MASTER_SEARCH
+				   : GNUNET_FS_SYNC_PATH_CHILD_SEARCH,
+				   sc->serialization,
+				   ser);
 	  GNUNET_free (ser);
 	}
       return GNUNET_OK;
@@ -2011,8 +2184,18 @@ free_search_context (struct GNUNET_FS_SearchContext *sc)
     }
   GNUNET_free_non_null (sc->emsg);
   if (sc->serialization != NULL)
-    GNUNET_FS_remove_sync_file_ (sc->h, GNUNET_FS_SYNC_PATH_MASTER_SEARCH, sc->serialization);
-  /* FIXME: remove 'pbuf' directory with search results as well! */
+    {
+      GNUNET_FS_remove_sync_file_ (sc->h,
+				   (sc->parent == NULL) 
+				   ? GNUNET_FS_SYNC_PATH_MASTER_SEARCH
+				   : GNUNET_FS_SYNC_PATH_CHILD_SEARCH,
+				   sc->serialization);
+      GNUNET_FS_remove_sync_dir_ (sc->h,
+				   (sc->parent == NULL) 
+				   ? GNUNET_FS_SYNC_PATH_MASTER_SEARCH
+				   : GNUNET_FS_SYNC_PATH_CHILD_SEARCH,
+				  sc->serialization);
+    }
   GNUNET_free_non_null (sc->serialization);
   if (sc->uri != NULL)
     GNUNET_FS_uri_destroy (sc->uri);
@@ -2118,7 +2301,6 @@ deserialize_download (struct GNUNET_FS_Handle *h,
 {
   struct GNUNET_FS_DownloadContext *dc;
   struct DownloadRequest *dr;
-  char pbuf[32];
   char *emsg;
   char *uris;
   char *dn;
@@ -2191,13 +2373,7 @@ deserialize_download (struct GNUNET_FS_Handle *h,
       dc->pending = dr;
       dr = NULL;
     }
-  GNUNET_snprintf (pbuf,
-		   sizeof (pbuf),
-		   "%s%s%s",
-		   GNUNET_FS_SYNC_PATH_CHILD_DOWNLOAD,
-		   DIR_SEPARATOR_STR,
-		   dc->serialization);
-  dn = get_serialization_file_name (h, pbuf, "");
+  dn = get_download_sync_filename (dc, "");
   if (dn != NULL)
     {
       GNUNET_DISK_directory_scan (dn, &deserialize_subdownload, dc);
@@ -2265,7 +2441,6 @@ deserialize_search (struct GNUNET_FS_Handle *h,
   struct GNUNET_FS_SearchContext *sc;
   struct GNUNET_FS_SearchContext *scc;
   struct GNUNET_BIO_ReadHandle *rhc;
-  char pbuf[32];
   char *emsg;
   char *uris;
   char *child_ser;
@@ -2297,13 +2472,12 @@ deserialize_search (struct GNUNET_FS_Handle *h,
     goto cleanup;          
   sc->options = (enum GNUNET_FS_SearchOptions) options;
   sc->master_result_map = GNUNET_CONTAINER_multihashmap_create (16);
-  GNUNET_snprintf (pbuf,
-		   sizeof (pbuf),
-		   "%s%s%s",
-		   GNUNET_FS_SYNC_PATH_SEARCH_RESULT,
-		   DIR_SEPARATOR_STR,
-		   sc->serialization);
-  dn = get_serialization_file_name (h, pbuf, "");
+  dn = get_serialization_file_name_in_dir (h,
+					   (sc->parent == NULL) 
+					   ? GNUNET_FS_SYNC_PATH_MASTER_SEARCH
+					   : GNUNET_FS_SYNC_PATH_CHILD_SEARCH,
+					   sc->serialization,
+					   "");
   if (dn != NULL)
     {
       GNUNET_DISK_directory_scan (dn, &deserialize_search_result, sc);
@@ -2558,10 +2732,8 @@ GNUNET_FS_start (struct GNUNET_SCHEDULER_Handle *sched,
 void 
 GNUNET_FS_stop (struct GNUNET_FS_Handle *h)
 {
-  /* generate SUSPEND events and clean up state */
   while (h->top_head != NULL)
     h->top_head->ssf (h->top_head->ssf_cls);
-  /* FIXME: terminate receive-loop with client  (do we need one?) */
   if (h->queue_job != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (h->sched,
 			     h->queue_job);

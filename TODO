@@ -1,7 +1,5 @@
 0.9.0pre1:
 * FS: [CG]
-  - code review:
-    => address pbuf sprintf'ing
   - SKS update searches should be attached to individual search results, not to the 
     entire SKS search (!)
     => API change (event signalling) & serialization change (!)

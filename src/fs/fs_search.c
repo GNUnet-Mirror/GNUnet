@@ -1407,7 +1407,6 @@ search_result_free (void *cls,
 {
   struct GNUNET_FS_SearchContext *sc = cls;
   struct GNUNET_FS_Handle *h = sc->h;
-  char pbuf[32];
   struct GNUNET_FS_SearchResult *sr = value;
   struct GNUNET_FS_ProgressInfo pi;
 
@@ -1434,19 +1433,7 @@ search_result_free (void *cls,
   pi.value.search.specifics.result_stopped.uri = sr->uri;
   sr->client_info = GNUNET_FS_search_make_status_ (&pi, sc);
   GNUNET_break (NULL == sr->client_info);
-  if (sr->serialization != NULL)
-    {
-      GNUNET_snprintf (pbuf,
-		       sizeof (pbuf),
-		       "%s%s%s",
-		       GNUNET_FS_SYNC_PATH_SEARCH_RESULT,
-		       DIR_SEPARATOR_STR,
-		       sc->serialization);
-      GNUNET_FS_remove_sync_file_ (sc->h,
-				   pbuf,
-				   sr->serialization);
-      GNUNET_free (sr->serialization);
-    }
+  GNUNET_free_non_null (sr->serialization);
   GNUNET_FS_uri_destroy (sr->uri);
   GNUNET_CONTAINER_meta_data_destroy (sr->meta);
   if (sr->probe_ctx != NULL)
@@ -1470,16 +1457,9 @@ GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc)
   struct GNUNET_FS_ProgressInfo pi;
   unsigned int i;
   struct GNUNET_FS_SearchContext *parent;
-  int had_result;
 
   if (sc->top != NULL)
     GNUNET_FS_end_top (sc->h, sc->top);
-  if (sc->serialization != NULL)
-    GNUNET_FS_remove_sync_file_ (sc->h,
-				 (sc->parent != NULL)  
-				 ? GNUNET_FS_SYNC_PATH_CHILD_SEARCH 
-				 : GNUNET_FS_SYNC_PATH_MASTER_SEARCH,
-				 sc->serialization);
   if (NULL != (parent = sc->parent))
     {
       GNUNET_CONTAINER_DLL_remove (parent->child_head,
@@ -1489,14 +1469,22 @@ GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc)
     }
   while (NULL != sc->child_head)
     GNUNET_FS_search_stop (sc->child_head);
-  had_result = (0 != GNUNET_CONTAINER_multihashmap_size (sc->master_result_map)) ? GNUNET_YES : GNUNET_NO;
   GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
 					 &search_result_free,
 					 sc);
-  if (had_result)
-    GNUNET_FS_remove_sync_dir_ (sc->h, 
-				GNUNET_FS_SYNC_PATH_SEARCH_RESULT,
-				sc->serialization);
+  if (sc->serialization != NULL)
+    {
+      GNUNET_FS_remove_sync_file_ (sc->h,
+				   (sc->parent != NULL)  
+				   ? GNUNET_FS_SYNC_PATH_CHILD_SEARCH 
+				   : GNUNET_FS_SYNC_PATH_MASTER_SEARCH,
+				   sc->serialization);
+      GNUNET_FS_remove_sync_dir_ (sc->h,
+				  (sc->parent != NULL)  
+				  ? GNUNET_FS_SYNC_PATH_CHILD_SEARCH 
+				  : GNUNET_FS_SYNC_PATH_MASTER_SEARCH,
+				  sc->serialization);
+    }
   pi.status = GNUNET_FS_STATUS_SEARCH_STOPPED;
   sc->client_info = GNUNET_FS_search_make_status_ (&pi, sc);
   GNUNET_break (NULL == sc->client_info);
