@@ -168,6 +168,7 @@ test_plugin_transport_http_SOURCES = \
  test_plugin_transport_http.c
 test_plugin_transport_http_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 

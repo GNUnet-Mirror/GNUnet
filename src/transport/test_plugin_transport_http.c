@@ -34,6 +34,7 @@
 #include "gnunet_program_lib.h"
 #include "gnunet_signatures.h"
 #include "plugin_transport.h"
+#include "gnunet_statistics_service.h"
 #include "transport.h"
 
 #define VERBOSE GNUNET_YES
@@ -65,6 +66,12 @@ static struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
 struct GNUNET_SCHEDULER_Handle *sched;
 
 /**
+ * Our statistics handle.
+ */
+struct GNUNET_STATISTICS_Handle *stats;
+
+
+/**
  * Our configuration.
  */
 const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -87,7 +94,9 @@ struct GNUNET_TRANSPORT_PluginFunctions *api;
 /**
  * Did the test pass or fail?
  */
-static int ok;
+static int fail;
+
+static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
 /**
  * Initialize Environment for this plugin
@@ -129,8 +138,6 @@ unload_plugins (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
                                        api));
   if (my_private_key != NULL)
     GNUNET_CRYPTO_rsa_key_free (my_private_key);
-
-  ok = 0;
 }
 
 /**
@@ -141,29 +148,34 @@ unload_plugins (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
  * isn't enabled (eg. FreeBSD > 4)
  */
 static void
-test_validation ()
+shutdown_clean ()
 {
-  struct sockaddr_in soaddr;
-  memset (&soaddr, 0, sizeof (soaddr));
-#if HAVE_SOCKADDR_IN_SIN_LEN
-  soaddr.sin_len = sizeof (soaddr);
-#endif
-  soaddr.sin_family = AF_INET;
-  soaddr.sin_port = htons (2368 /* FIXME: get from config! */ );
-  soaddr.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
-
-  api->check_address(api->cls,
-      &soaddr, sizeof (soaddr));
-
+  if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel( sched, timeout_task );
   unload_plugins(env.cls, env.cfg);
 }
 
+/**
+ * Timeout, give up.
+ */
+static void
+timeout_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Timeout while executing testcase, test failed.\n");
+  fail = GNUNET_YES;
+  shutdown_clean();
+}
 
 static void
 setup_plugin_environment ()
 {
   env.cfg = cfg;
   env.sched = sched;
+  env.stats = stats;
   env.my_identity = &my_identity;
   env.cls = &env;
   env.receive = &receive;
@@ -190,6 +202,9 @@ run (void *cls,
 
   sched = s;
   cfg = c;
+
+  timeout_task = GNUNET_SCHEDULER_add_delayed ( sched,  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5), &timeout_error, NULL);
+
   /* parse configuration */
   if ((GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_number (c,
@@ -202,11 +217,14 @@ run (void *cls,
                                                 "HOSTKEY", &keyfile)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _
-                  ("Transport service is lacking key configuration settings.  Exiting.\n"));
+                  _("Transport service is lacking key configuration settings.  Exiting.\n"));
       GNUNET_SCHEDULER_shutdown (s);
       return;
     }
+
+
+  stats = GNUNET_STATISTICS_create (sched, "http-transport", cfg);
+
   /*
   max_connect_per_transport = (uint32_t) tneigh;
   my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
@@ -238,10 +256,12 @@ run (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Failed to load http transport plugin\n"));
-      /* FIXME: set some error code for main */
+      fail = GNUNET_YES;
       return;
+
     }
-  test_validation ();
+  fail = GNUNET_NO;
+  shutdown_clean ();
 }
 
 
@@ -278,16 +298,15 @@ main (int argc, char *const *argv)
                     "WARNING",
 #endif
                     NULL);
-  ok = 1;                       /* set to fail */
+  fail = GNUNET_YES;
   ret = (GNUNET_OK ==
          GNUNET_PROGRAM_run (5,
                              argv_prog,
                              "test-plugin-transport_http",
-                             "testcase", options, &run, NULL)) ? ok : 1;
+                             "testcase", options, &run, NULL)) ? fail : 1;
   GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-plugin-transport_http");
-  /* FIXME: return correct value */
-  /* return ret; */
-  return GNUNET_NO;
+
+  return fail;
 }
 
 /* end of test_plugin_transport_http.c */

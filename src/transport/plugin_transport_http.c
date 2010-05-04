@@ -125,13 +125,8 @@ struct Plugin
    * List of open sessions.
    */
   struct Session *sessions;
-
-  /**
-   * Handle for the statistics service.
-   */
-  struct GNUNET_STATISTICS_Handle *statistics;
-
 };
+
 
 /**
  * Daemon for listening for new connections.
@@ -268,6 +263,8 @@ static int
 acceptPolicyCallback (void *cls,
                       const struct sockaddr *addr, socklen_t addr_len)
 {
+
+  /* Currently all incoming connections are accepted, so nothing to do here */
   return MHD_YES;
 }
 
@@ -287,6 +284,17 @@ accessHandlerCallback (void *cls,
                        const char *upload_data,
                        size_t * upload_data_size, void **httpSessionCache)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has an incoming `%s' request from \n",method);
+
+  if ( 0 == strcmp (MHD_HTTP_METHOD_PUT, method) )
+  {
+    /* PUT method here */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got PUT Request with size %u \n",upload_data_size);
+
+    // GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# PUT requests"), 1, GNUNET_NO);
+  }
+  if ( 0 == strcmp (MHD_HTTP_METHOD_GET, method) )
+
   return MHD_YES;
 }
 
@@ -316,7 +324,7 @@ libgnunet_plugin_transport_http_init (void *cls)
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
-  plugin->statistics = NULL;
+
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
   api->send = &http_plugin_send;
@@ -385,6 +393,16 @@ libgnunet_plugin_transport_http_init (void *cls)
     }
 
   curl_multi = curl_multi_init ();
+
+
+  if (NULL == plugin->env->stats)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to retrieve statistics handle\n"));
+    return NULL;
+  }
+
+  GNUNET_STATISTICS_set ( env->stats, "# PUT requests", 0, GNUNET_NO);
 
   if ( (NULL == http_daemon) || (NULL == curl_multi))
   {
