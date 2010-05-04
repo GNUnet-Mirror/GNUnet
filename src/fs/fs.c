@@ -422,10 +422,11 @@ get_serialization_file_name (struct GNUNET_FS_Handle *h,
 					       &basename))
     return NULL;
   GNUNET_asprintf (&ret,
-		   "%s%s%s-%s%s%s",
+		   "%s%s%s%s%s%s",
 		   basename,
 		   DIR_SEPARATOR_STR,
 		   h->client_name,
+		   DIR_SEPARATOR_STR,
 		   ext,
 		   DIR_SEPARATOR_STR,
 		   ent);
@@ -510,6 +511,40 @@ GNUNET_FS_remove_sync_file_ (struct GNUNET_FS_Handle *h,
 			      "unlink", 
 			      filename);
   GNUNET_free (filename);
+}
+
+
+/**
+ * Remove serialization/deserialization directory from disk.
+ *
+ * @param h master context
+ * @param ext component of the path 
+ * @param uni unique name of parent 
+ */
+void
+GNUNET_FS_remove_sync_dir_ (struct GNUNET_FS_Handle *h,
+			    const char *ext,
+			    const char *uni)
+{
+  char *dn;
+  char pbuf[32];
+
+  if (uni == NULL)
+    return;
+  GNUNET_snprintf (pbuf,
+		   sizeof (pbuf),
+		   "%s%s%s",
+		   ext,
+		   DIR_SEPARATOR_STR,
+		   uni);
+  dn = get_serialization_file_name (h, ext, "");
+  if (dn == NULL)
+    return;
+  if (GNUNET_OK != GNUNET_DISK_directory_remove (dn))
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+			      "rmdir", 
+			      dn);
+  GNUNET_free (dn);
 }
 
 
@@ -1397,7 +1432,6 @@ void
 GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc)
 {
   struct GNUNET_BIO_WriteHandle *wh;
-  struct DownloadRequest *dr;
   char pbuf[32];
   const char *category;
   char *uris;
@@ -1437,17 +1471,9 @@ GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc)
   uris = GNUNET_FS_uri_to_string (dc->uri);
   num_pending = 0;
   if (dc->emsg != NULL)
-    {
-      dr = dc->pending;
-      while (dr != NULL)
-	{
-	  num_pending++;
-	  dr = dr->next;
-	}
-      (void) GNUNET_CONTAINER_multihashmap_iterate (dc->active,
-						    &count_download_requests,
-						    &num_pending);
-    }
+    (void) GNUNET_CONTAINER_multihashmap_iterate (dc->active,
+						  &count_download_requests,
+						  &num_pending);    
   GNUNET_assert ( (dc->length == dc->completed) ||
 		  (dc->emsg != NULL) ||
 		  (num_pending > 0) );
@@ -1480,28 +1506,11 @@ GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc)
        (GNUNET_OK !=
 	GNUNET_BIO_write_int32 (wh, num_pending)) )
     goto cleanup; 
-  dr = dc->pending;
-  while (dr != NULL)
-    {
-      if (GNUNET_YES !=
-	  write_download_request (wh, NULL, dr))
-	goto cleanup;
-      dr = dr->next;
-    }
   if (GNUNET_SYSERR ==
       GNUNET_CONTAINER_multihashmap_iterate (dc->active,
 					     &write_download_request,
 					     wh))
     goto cleanup;
-  while (0 < num_pending--)
-    {
-      dr = GNUNET_malloc (sizeof (struct DownloadRequest));
-
-      dr->is_pending = GNUNET_YES;
-      dr->next = dc->pending;
-      dc->pending = dr;
-      dr = NULL;
-    }
   GNUNET_free_non_null (uris);
   if (GNUNET_OK ==
       GNUNET_BIO_write_close (wh))
@@ -1524,18 +1533,14 @@ GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc)
  * publishing structs should already call "sync" internally,
  * so this function is likely not useful for clients.
  * 
- * @param key key for the search result
  * @param sr the struct to sync
  */
 void
-GNUNET_FS_search_result_sync_ (const GNUNET_HashCode *key,
-			       struct GNUNET_FS_SearchResult *sr)
+GNUNET_FS_search_result_sync_ (struct GNUNET_FS_SearchResult *sr)
 {
   struct GNUNET_BIO_WriteHandle *wh;
   char *uris;
 
-  GNUNET_assert ( (GNUNET_YES == GNUNET_FS_uri_test_chk (sr->uri)) ||
-		  (GNUNET_YES == GNUNET_FS_uri_test_loc (sr->uri)) );
   uris = NULL;
   if (NULL == sr->serialization)
     sr->serialization = make_serialization_file_name (sr->sc->h,
@@ -1551,7 +1556,7 @@ GNUNET_FS_search_result_sync_ (const GNUNET_HashCode *key,
        (GNUNET_OK !=
 	GNUNET_BIO_write_meta_data (wh, sr->meta)) ||
        (GNUNET_OK !=
-	GNUNET_BIO_write (wh, key, sizeof (GNUNET_HashCode))) ||
+	GNUNET_BIO_write (wh, &sr->key, sizeof (GNUNET_HashCode))) ||
        (GNUNET_OK !=
 	GNUNET_BIO_write_int32 (wh, sr->mandatory_missing)) ||
        (GNUNET_OK !=
@@ -1844,7 +1849,6 @@ deserialize_search_result (void *cls,
   struct GNUNET_BIO_ReadHandle *rh;
   struct GNUNET_BIO_ReadHandle *drh;
   struct GNUNET_FS_SearchResult *sr;
-  GNUNET_HashCode key;
 
   ser = get_serialization_short_name (filename);
   rh = GNUNET_BIO_read_open (filename);
@@ -1871,14 +1875,12 @@ deserialize_search_result (void *cls,
   if ( (GNUNET_OK !=
 	GNUNET_BIO_read_string (rh, "result-uri", &uris, 10*1024)) ||
        (NULL == (sr->uri = GNUNET_FS_uri_parse (uris, &emsg))) ||       
-       ( (GNUNET_YES != GNUNET_FS_uri_test_chk (sr->uri)) &&
-	 (GNUNET_YES != GNUNET_FS_uri_test_loc (sr->uri)) ) ||
        (GNUNET_OK !=
 	GNUNET_BIO_read_string (rh, "download-lnk", &download, 16)) ||
        (GNUNET_OK !=
 	GNUNET_BIO_read_meta_data (rh, "result-meta", &sr->meta)) ||
        (GNUNET_OK !=
-	GNUNET_BIO_read (rh, "result-key", &key, sizeof (key))) ||
+	GNUNET_BIO_read (rh, "result-key", &sr->key, sizeof (GNUNET_HashCode))) ||
        (GNUNET_OK !=
 	GNUNET_BIO_read_int32 (rh, &sr->mandatory_missing)) ||
        (GNUNET_OK !=
@@ -1911,7 +1913,7 @@ deserialize_search_result (void *cls,
       GNUNET_free (download);
     }
   GNUNET_CONTAINER_multihashmap_put (sc->master_result_map,
-				     &key,
+				     &sr->key,
 				     sr,
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   return GNUNET_OK;
@@ -2476,9 +2478,12 @@ deserialize_download_file (void *cls,
   rh = GNUNET_BIO_read_open (filename);
   if (rh == NULL)
     {
-      if (ser != NULL)
+      if (filename != NULL)
 	{
-	  GNUNET_FS_remove_sync_file_ (h, "download", ser);
+	  if (0 != UNLINK (filename))
+	    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+				      "unlink", 
+				      filename);
 	  GNUNET_free (ser);
 	}
       return GNUNET_OK;

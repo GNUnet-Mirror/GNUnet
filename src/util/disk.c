@@ -1202,7 +1202,6 @@ GNUNET_DISK_file_open (const char *fn,
   expfn = GNUNET_STRINGS_filename_expand (fn);
   if (NULL == expfn)
     return NULL;
-
 #ifndef MINGW
   mode = 0;
   if (GNUNET_DISK_OPEN_READWRITE == (flags & GNUNET_DISK_OPEN_READWRITE))
@@ -1225,6 +1224,7 @@ GNUNET_DISK_file_open (const char *fn,
     oflags |= O_APPEND;
   if (flags & GNUNET_DISK_OPEN_CREATE)
     {
+      (void) GNUNET_DISK_directory_create_for_file (expfn);
       oflags |= O_CREAT;
       if (perm & GNUNET_DISK_PERM_USER_READ)
         mode |= S_IRUSR;

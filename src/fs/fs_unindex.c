@@ -142,14 +142,13 @@ unindex_progress (void *cls,
  * @param emsg the error message
  */
 static void
-signal_unindex_error (struct GNUNET_FS_UnindexContext *uc,
-		      const char *emsg)
+signal_unindex_error (struct GNUNET_FS_UnindexContext *uc)
 {
   struct GNUNET_FS_ProgressInfo pi;
   
   pi.status = GNUNET_FS_STATUS_UNINDEX_ERROR;
   pi.value.unindex.eta = GNUNET_TIME_UNIT_FOREVER_REL;
-  pi.value.unindex.specifics.error.message = emsg;
+  pi.value.unindex.specifics.error.message = uc->emsg;
   GNUNET_FS_unindex_make_status_ (&pi, uc, 0);
 }
 
@@ -170,11 +169,10 @@ process_cont (void *cls,
   struct GNUNET_FS_UnindexContext *uc = cls;
   if (success == GNUNET_SYSERR)
     {
-      signal_unindex_error (uc,
-			    msg);
+      uc->emsg = GNUNET_strdup (msg);
+      signal_unindex_error (uc);
       return;
-    }
-  
+    }  
   GNUNET_FS_tree_encoder_next (uc->tc);
 }
 
@@ -254,8 +252,8 @@ unindex_finish (void *cls,
   uc->dsh = NULL;
   if (emsg != NULL)
     {
-      signal_unindex_error (uc, emsg);
-      GNUNET_free (emsg);
+      uc->emsg = emsg;
+      signal_unindex_error (uc);
     }
   else
     {   
@@ -263,6 +261,7 @@ unindex_finish (void *cls,
       pi.value.unindex.eta = GNUNET_TIME_UNIT_ZERO;
       GNUNET_FS_unindex_make_status_ (&pi, uc, uc->file_size);
     }
+  GNUNET_FS_unindex_sync_ (uc);
 }
 
 
@@ -292,18 +291,21 @@ process_fs_response (void *cls,
   if (NULL == msg)
     {
       uc->state = UNINDEX_STATE_ERROR;
-      signal_unindex_error (uc, 
-			    _("Timeout waiting for `fs' service."));
+      uc->emsg = GNUNET_strdup (_("Timeout waiting for `fs' service."));
+      GNUNET_FS_unindex_sync_ (uc);
+      signal_unindex_error (uc);
       return;
     }
   if (ntohs(msg->type) != GNUNET_MESSAGE_TYPE_FS_UNINDEX_OK)
     {
       uc->state = UNINDEX_STATE_ERROR;
-      signal_unindex_error (uc, 
-			    _("Invalid response from `fs' service."));
+      uc->emsg = GNUNET_strdup (_("Invalid response from `fs' service."));
+      GNUNET_FS_unindex_sync_ (uc);
+      signal_unindex_error (uc);			    
       return;      
     }
   uc->state = UNINDEX_STATE_DS_REMOVE;
+  GNUNET_FS_unindex_sync_ (uc);
   GNUNET_FS_unindex_do_remove_ (uc);
 }
 
@@ -321,8 +323,9 @@ GNUNET_FS_unindex_do_remove_ (struct GNUNET_FS_UnindexContext *uc)
   if (NULL == uc->dsh)
     {
       uc->state = UNINDEX_STATE_ERROR;
-      signal_unindex_error (uc, 
-			    _("Failed to connect to `datastore' service."));
+      uc->emsg = GNUNET_strdup (_("Failed to connect to `datastore' service."));
+      GNUNET_FS_unindex_sync_ (uc);
+      signal_unindex_error (uc);
       return;
     }
   uc->fh = GNUNET_DISK_file_open (uc->filename,
@@ -333,8 +336,9 @@ GNUNET_FS_unindex_do_remove_ (struct GNUNET_FS_UnindexContext *uc)
       GNUNET_DATASTORE_disconnect (uc->dsh, GNUNET_NO);
       uc->dsh = NULL;
       uc->state = UNINDEX_STATE_ERROR;
-      signal_unindex_error (uc, 
-			    _("Failed to open file for unindexing."));
+      uc->emsg = GNUNET_strdup (_("Failed to open file for unindexing."));
+      GNUNET_FS_unindex_sync_ (uc);
+      signal_unindex_error (uc);
       return;
     }
   uc->tc = GNUNET_FS_tree_encoder_create (uc->h,
@@ -370,12 +374,14 @@ GNUNET_FS_unindex_process_hash_ (void *cls,
   if (file_id == NULL)
     {
       uc->state = UNINDEX_STATE_ERROR;
-      signal_unindex_error (uc, 
-			    _("Failed to compute hash of file."));
+      uc->emsg = GNUNET_strdup (_("Failed to compute hash of file."));
+      GNUNET_FS_unindex_sync_ (uc);
+      signal_unindex_error (uc);
       return;
     }
   uc->file_id = *file_id;
   uc->state = UNINDEX_STATE_FS_NOTIFY;
+  GNUNET_FS_unindex_sync_ (uc);
   uc->client = GNUNET_CLIENT_connect (uc->h->sched,
 				      "fs",
 				      uc->h->cfg);
@@ -445,8 +451,7 @@ GNUNET_FS_unindex_start (struct GNUNET_FS_Handle *h,
   ret->start_time = GNUNET_TIME_absolute_get ();
   ret->file_size = size;
   ret->client_info = cctx;
-
-  // FIXME: make persistent!
+  GNUNET_FS_unindex_sync_ (ret);
   pi.status = GNUNET_FS_STATUS_UNINDEX_START;
   pi.value.unindex.eta = GNUNET_TIME_UNIT_FOREVER_REL;
   GNUNET_FS_unindex_make_status_ (&pi, ret, 0);

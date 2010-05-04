@@ -21,13 +21,12 @@
 /**
  * @file fs/fs_publish.c
  * @brief publish a file or directory in GNUnet
- * @see http://gnunet.org/encoding.php3
+ * @see http://gnunet.org/encoding
  * @author Krista Bennett
  * @author Christian Grothoff
  *
  * TODO:
  * - indexing cleanup: unindex on failure (can wait)
- * - persistence support (can wait)
  * - datastore reservation support (optimization)
  * - location URIs (publish with anonymity-level zero)
  */
@@ -191,7 +190,7 @@ signal_publish_completion (struct GNUNET_FS_FileInformation *p,
   pi.value.publish.eta = GNUNET_TIME_UNIT_ZERO;
   pi.value.publish.specifics.completed.chk_uri = p->chk_uri;
   p->client_info = GNUNET_FS_publish_make_status_ (&pi, sc, p,
-					GNUNET_ntohll (p->chk_uri->data.chk.file_length));
+						   GNUNET_ntohll (p->chk_uri->data.chk.file_length));
 }
 
 
@@ -232,17 +231,19 @@ publish_sblocks_cont (void *cls,
 		      const struct GNUNET_FS_Uri *uri,
 		      const char *emsg)
 {
-  struct GNUNET_FS_PublishContext *sc = cls;
+  struct GNUNET_FS_PublishContext *pc = cls;
   if (NULL != emsg)
     {
-      signal_publish_error (sc->fi,
-			    sc,
+      signal_publish_error (pc->fi,
+			    pc,
 			    emsg);
+      GNUNET_FS_publish_sync_ (pc);
       return;
     }  
   // FIXME: release the datastore reserve here!
-  signal_publish_completion (sc->fi, sc);
-  sc->all_done = GNUNET_YES;
+  signal_publish_completion (pc->fi, pc);
+  pc->all_done = GNUNET_YES;
+  GNUNET_FS_publish_sync_ (pc);
 }
 
 
@@ -287,31 +288,34 @@ publish_kblocks_cont (void *cls,
 		      const struct GNUNET_FS_Uri *uri,
 		      const char *emsg)
 {
-  struct GNUNET_FS_PublishContext *sc = cls;
-  struct GNUNET_FS_FileInformation *p = sc->fi_pos;
+  struct GNUNET_FS_PublishContext *pc = cls;
+  struct GNUNET_FS_FileInformation *p = pc->fi_pos;
 
   if (NULL != emsg)
     {
-      signal_publish_error (p, sc, emsg);
-      sc->upload_task 
-	= GNUNET_SCHEDULER_add_with_priority (sc->h->sched,
+      signal_publish_error (p, pc, emsg);
+      GNUNET_FS_file_information_sync_ (p);
+      GNUNET_FS_publish_sync_ (pc);
+      pc->upload_task 
+	= GNUNET_SCHEDULER_add_with_priority (pc->h->sched,
 					      GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
 					      &GNUNET_FS_publish_main_,
-					      sc);
+					      pc);
       return;
     }
   if (NULL != p->dir)
-    signal_publish_completion (p, sc);
+    signal_publish_completion (p, pc);    
   /* move on to next file */
   if (NULL != p->next)
-    sc->fi_pos = p->next;
+    pc->fi_pos = p->next;
   else
-    sc->fi_pos = p->dir;
-  sc->upload_task 
-    = GNUNET_SCHEDULER_add_with_priority (sc->h->sched,
+    pc->fi_pos = p->dir;
+  GNUNET_FS_publish_sync_ (pc);
+  pc->upload_task 
+    = GNUNET_SCHEDULER_add_with_priority (pc->h->sched,
 					  GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
 					  &GNUNET_FS_publish_main_,
-					  sc);
+					  pc);
 }
 
 
@@ -597,6 +601,7 @@ publish_content (struct GNUNET_FS_PublishContext *sc)
 	  GNUNET_FS_directory_builder_finish (db,
 					      &p->data.dir.dir_size,
 					      &p->data.dir.dir_data);
+	  GNUNET_FS_file_information_sync_ (p);
 	}
       size = (p->is_directory) 
 	? p->data.dir.dir_size 
@@ -640,6 +645,7 @@ process_index_start_response (void *cls,
 		  p->filename,
 		  _("timeout on index-start request to `fs' service"));
       p->data.file.do_index = GNUNET_NO;
+      GNUNET_FS_file_information_sync_ (p);
       publish_content (sc);
       return;
     }
@@ -655,11 +661,13 @@ process_index_start_response (void *cls,
 		  p->filename,
 		  gettext (emsg));
       p->data.file.do_index = GNUNET_NO;
+      GNUNET_FS_file_information_sync_ (p);
       publish_content (sc);
       return;
     }
   p->data.file.index_start_confirmed = GNUNET_YES;
   /* success! continue with indexing */
+  GNUNET_FS_file_information_sync_ (p);
   publish_content (sc);
 }
 
@@ -693,6 +701,7 @@ hash_for_index_cb (void *cls,
 		  p->filename,
 		  _("failed to compute hash"));
       p->data.file.do_index = GNUNET_NO;
+      GNUNET_FS_file_information_sync_ (p);
       publish_content (sc);
       return;
     }
@@ -711,6 +720,7 @@ hash_for_index_cb (void *cls,
 		  _("filename too long"));
       GNUNET_free (fn);
       p->data.file.do_index = GNUNET_NO;
+      GNUNET_FS_file_information_sync_ (p);
       publish_content (sc);
       return;
     }
@@ -734,8 +744,12 @@ hash_for_index_cb (void *cls,
       GNUNET_free (fn);
       return;
     }
-  p->data.file.file_id = *res;
-  p->data.file.have_hash = GNUNET_YES;
+  if (p->data.file.have_hash != GNUNET_YES)
+    {
+      p->data.file.file_id = *res;
+      p->data.file.have_hash = GNUNET_YES;
+      GNUNET_FS_file_information_sync_ (p);
+    }
   ism = GNUNET_malloc (sizeof(struct IndexStartMessage) +
 		       slen);
   ism->header.size = htons(sizeof(struct IndexStartMessage) +
@@ -793,6 +807,7 @@ GNUNET_FS_publish_main_ (void *cls,
     {
       /* upload of entire hierarchy complete,
 	 publish namespace entries */
+      GNUNET_FS_publish_sync_ (sc);
       publish_sblock (sc);
       return;
     }
@@ -804,6 +819,7 @@ GNUNET_FS_publish_main_ (void *cls,
     {
       p = p->data.dir.entries;
       sc->fi_pos = p;
+      GNUNET_FS_publish_sync_ (sc);
     }
   /* abort on error */
   if (NULL != p->emsg)
@@ -835,11 +851,13 @@ GNUNET_FS_publish_main_ (void *cls,
 	  p->client_info = GNUNET_FS_publish_make_status_ (&pi, sc, p, 0);
 	}
       sc->all_done = GNUNET_YES;
+      GNUNET_FS_publish_sync_ (sc);
       return;
     }
   /* handle completion */
   if (NULL != p->chk_uri)
     {
+      GNUNET_FS_publish_sync_ (sc);
       /* upload of "p" complete, publish KBlocks! */
       if (p->keywords != NULL)
 	{
@@ -872,12 +890,15 @@ GNUNET_FS_publish_main_ (void *cls,
 		      _("Can not index file `%s': %s.  Will try to insert instead.\n"),
 		      "<no-name>",
 		      _("needs to be an actual file"));
+	  GNUNET_FS_file_information_sync_ (p);
 	  publish_content (sc);
 	  return;
 	}      
       if (p->data.file.have_hash)
-	hash_for_index_cb (sc,
-			   &p->data.file.file_id);
+	{
+	  hash_for_index_cb (sc,
+			     &p->data.file.file_id);
+	}
       else
 	{
 	  p->start_time = GNUNET_TIME_absolute_get ();
@@ -925,6 +946,7 @@ fip_signal_start(void *cls,
 
   pi.status = GNUNET_FS_STATUS_PUBLISH_START;
   *client_info = GNUNET_FS_publish_make_status_ (&pi, sc, fi, 0);
+  GNUNET_FS_file_information_sync_ (fi);
   return GNUNET_OK;
 }
 
@@ -962,7 +984,7 @@ fip_signal_suspend(void *cls,
   GNUNET_free_non_null (fi->serialization);
   fi->serialization = NULL;    
   off = (fi->chk_uri == NULL) ? 0 : length;
-  pi.status = GNUNET_FS_STATUS_PUBLISH_STOPPED;
+  pi.status = GNUNET_FS_STATUS_PUBLISH_SUSPEND;
   GNUNET_break (NULL == GNUNET_FS_publish_make_status_ (&pi, sc, fi, off));
   *client_info = NULL;
   return GNUNET_OK;

@@ -621,6 +621,11 @@ struct GNUNET_FS_SearchResult
   char *serialization;
 
   /**
+   * Key for the search result
+   */
+  GNUNET_HashCode key;
+
+  /**
    * ID of the task that will clean up the probe_ctx should it not
    * complete on time (and that will need to be cancelled if we clean
    * up the search result before then).
@@ -895,6 +900,19 @@ GNUNET_FS_remove_sync_file_ (struct GNUNET_FS_Handle *h,
 
 
 /**
+ * Remove serialization/deserialization directory from disk.
+ *
+ * @param h master context
+ * @param ext component of the path 
+ * @param uni unique name of parent 
+ */
+void
+GNUNET_FS_remove_sync_dir_ (struct GNUNET_FS_Handle *h,
+			    const char *ext,
+			    const char *uni);
+
+
+/**
  * Synchronize this file-information struct with its mirror
  * on disk.  Note that all internal FS-operations that change
  * file information data should already call "sync" internally,
@@ -944,12 +962,10 @@ GNUNET_FS_search_sync_ (struct GNUNET_FS_SearchContext *sc);
  * publishing structs should already call "sync" internally,
  * so this function is likely not useful for clients.
  * 
- * @param key key for the search result
  * @param sr the struct to sync
  */
 void
-GNUNET_FS_search_result_sync_ (const GNUNET_HashCode *key,
-			       struct GNUNET_FS_SearchResult *sr);
+GNUNET_FS_search_result_sync_ (struct GNUNET_FS_SearchResult *sr);
 
 /**
  * Synchronize this download struct with its mirror

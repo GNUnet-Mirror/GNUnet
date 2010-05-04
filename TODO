@@ -1,10 +1,8 @@
 0.9.0pre1:
 * FS: [CG]
-  - actually call 'sync' functions (publish, unindex, search, download)
   - code review:
     => refactor fs.c to join common code segments!
     => document directory structure (and use #define's for the directory names!)
-    => ensure all files & dirs are cleaned up! (at least during 'clean' runs)
   - persistence testing (publish, unindex, search, download):
     => need driver!
     => schedule suspending tasks DURING event handler => good coverage!

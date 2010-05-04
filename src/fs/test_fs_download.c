@@ -193,6 +193,9 @@ progress_cb (void *cls,
 				&abort_download_task,
 				NULL);
       break;
+    case GNUNET_FS_STATUS_DOWNLOAD_ACTIVE:
+    case GNUNET_FS_STATUS_DOWNLOAD_INACTIVE:
+      break;
     case GNUNET_FS_STATUS_PUBLISH_START:
       GNUNET_assert (0 == strcmp ("publish-context", event->value.publish.cctx));
       GNUNET_assert (NULL == event->value.publish.pctx);

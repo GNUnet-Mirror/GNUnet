@@ -24,7 +24,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - insert code for serialization where needed
  * - remove *directory* with search results upon completion
  * - centralize code that sprintf's the 'pbuf[32]' strings
  * - add support for pushing "already seen" information
@@ -52,7 +51,8 @@
 void *
 GNUNET_FS_search_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
 			       struct GNUNET_FS_SearchContext *sc)
-{
+{  
+  void *ret;
   pi->value.search.sc = sc;
   pi->value.search.cctx
     = sc->client_info;
@@ -62,8 +62,9 @@ GNUNET_FS_search_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
     = sc->uri;
   pi->value.search.duration = GNUNET_TIME_absolute_get_duration (sc->start_time);
   pi->value.search.anonymity = sc->anonymity;
-  return sc->h->upcb (sc->h->upcb_cls,
+  ret =  sc->h->upcb (sc->h->upcb_cls,
 		      pi);
+  return ret;
 }
 
 
@@ -217,6 +218,7 @@ probe_failure_handler (void *cls,
 {
   struct GNUNET_FS_SearchResult *sr = cls;
   sr->availability_trials++;
+  GNUNET_FS_search_result_sync_ (sr);
   signal_probe_result (sr);
 }
 
@@ -234,6 +236,7 @@ probe_success_handler (void *cls,
   struct GNUNET_FS_SearchResult *sr = cls;
   sr->availability_trials++;
   sr->availability_success++;
+  GNUNET_FS_search_result_sync_ (sr);
   signal_probe_result (sr);
 }
 
@@ -327,6 +330,7 @@ GNUNET_FS_search_probe_progress_ (void *cls,
       dur = GNUNET_TIME_absolute_get_duration (sr->probe_active_time);
       sr->remaining_probe_time = GNUNET_TIME_relative_subtract (sr->remaining_probe_time,
 								dur);
+      GNUNET_FS_search_result_sync_ (sr);
       break;
     default:
       GNUNET_break (0);
@@ -427,6 +431,7 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
       sr->uri = GNUNET_FS_uri_dup (uri);
       sr->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
       sr->mandatory_missing = sc->mandatory_count;
+      sr->key = key;
       GNUNET_CONTAINER_multihashmap_put (sc->master_result_map,
 					 &key,
 					 sr,
@@ -447,6 +452,7 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
     notify_client_chk_result (sc, sr);
   else
     notify_client_chk_update (sc, sr);
+  GNUNET_FS_search_result_sync_ (sr);
   GNUNET_FS_search_start_probe_ (sr);
 }
 
@@ -506,10 +512,12 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc,
   sr->sc = sc;
   sr->uri = GNUNET_FS_uri_dup (uri);
   sr->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
+  sr->key = key;
   GNUNET_CONTAINER_multihashmap_put (sc->master_result_map,
 				     &key,
 				     sr,
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  GNUNET_FS_search_result_sync_ (sr);
   GNUNET_FS_search_start_probe_ (sr);
   /* notify client */
   notify_client_chk_result (sc, sr);
@@ -1090,6 +1098,7 @@ search_start (struct GNUNET_FS_Handle *h,
       GNUNET_free (sc);      
       return NULL;
     }
+  GNUNET_FS_search_sync_ (sc);
   pi.status = GNUNET_FS_STATUS_SEARCH_START;
   sc->client_info = GNUNET_FS_search_make_status_ (&pi, sc);
   return sc;
@@ -1299,7 +1308,7 @@ GNUNET_FS_search_pause (struct GNUNET_FS_SearchContext *sc)
   if (NULL != sc->client)
     GNUNET_CLIENT_disconnect (sc->client, GNUNET_NO);
   sc->client = NULL;
-  // FIXME: make persistent!
+  GNUNET_FS_search_sync_ (sc);
   // FIXME: should this freeze all active probes?
   pi.status = GNUNET_FS_STATUS_SEARCH_PAUSED;
   sc->client_info = GNUNET_FS_search_make_status_ (&pi, sc);
@@ -1319,7 +1328,7 @@ GNUNET_FS_search_continue (struct GNUNET_FS_SearchContext *sc)
   GNUNET_assert (sc->client == NULL);
   GNUNET_assert (sc->task == GNUNET_SCHEDULER_NO_TASK);
   do_reconnect (sc, NULL);
-  // FIXME: make persistent!
+  GNUNET_FS_search_sync_ (sc);
   pi.status = GNUNET_FS_STATUS_SEARCH_CONTINUED;
   sc->client_info = GNUNET_FS_search_make_status_ (&pi, sc);
 }
@@ -1395,10 +1404,14 @@ GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc)
   struct GNUNET_FS_ProgressInfo pi;
   unsigned int i;
   struct GNUNET_FS_SearchContext *parent;
+  int had_result;
 
   if (sc->top != NULL)
     GNUNET_FS_end_top (sc->h, sc->top);
-  // FIXME: make un-persistent!
+  if (sc->serialization != NULL)
+    GNUNET_FS_remove_sync_file_ (sc->h,
+				 (sc->parent != NULL) ? "search-children" : "search",
+				 sc->serialization);
   if (NULL != (parent = sc->parent))
     {
       GNUNET_CONTAINER_DLL_remove (parent->child_head,
@@ -1408,9 +1421,12 @@ GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc)
     }
   while (NULL != sc->child_head)
     GNUNET_FS_search_stop (sc->child_head);
+  had_result = (0 != GNUNET_CONTAINER_multihashmap_size (sc->master_result_map)) ? GNUNET_YES : GNUNET_NO;
   GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
 					 &search_result_free,
 					 sc);
+  if (had_result)
+    GNUNET_FS_remove_sync_dir_ (sc->h, "search-results", sc->serialization);
   pi.status = GNUNET_FS_STATUS_SEARCH_STOPPED;
   sc->client_info = GNUNET_FS_search_make_status_ (&pi, sc);
   GNUNET_break (NULL == sc->client_info);

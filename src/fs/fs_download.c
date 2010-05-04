@@ -23,7 +23,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - persistence (can wait)
  * - location URI suppport (can wait, easy)
  * - different priority for scheduling probe downloads?
  * - check if iblocks can be computed from existing blocks (can wait, hard)
@@ -640,6 +639,7 @@ check_completed (struct GNUNET_FS_DownloadContext *dc)
       pos = pos->next;
     }
   dc->has_finished = GNUNET_YES;
+  GNUNET_FS_download_sync_ (dc);
   /* signal completion */
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_COMPLETED;
   GNUNET_FS_download_make_status_ (&pi, dc);
@@ -1032,9 +1032,9 @@ process_result_with_request (void *cls,
 	}
       GNUNET_assert (sm->depth == dc->treedepth);
     }
-  // FIXME: make persistent
   if (sm->depth == dc->treedepth) 
     {
+      GNUNET_FS_download_sync_ (dc);
       GNUNET_free (sm);      
       return GNUNET_YES;
     }
@@ -1060,6 +1060,7 @@ process_result_with_request (void *cls,
 				 sm->depth + 1);
     }
   GNUNET_free (sm);
+  GNUNET_FS_download_sync_ (dc);
   return GNUNET_YES;
 
  signal_error:
@@ -1075,8 +1076,10 @@ process_result_with_request (void *cls,
       dc->th = NULL;
     }
   GNUNET_CLIENT_disconnect (dc->client, GNUNET_NO);
+  /* FIXME: clean up dc->active / pending! */
   dc->client = NULL;
   GNUNET_free (sm);
+  GNUNET_FS_download_sync_ (dc);
   return GNUNET_NO;
 }
 
@@ -1553,7 +1556,6 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 	      "Download tree has depth %u\n",
 	      dc->treedepth);
 #endif
-  // FIXME: make persistent
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_START;
   pi.value.download.specifics.start.meta = meta;
   GNUNET_FS_download_make_status_ (&pi, dc);
@@ -1561,6 +1563,7 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 			   &dc->uri->data.chk.chk,
 			   0, 
 			   1 /* 0 == CHK, 1 == top */); 
+  GNUNET_FS_download_sync_ (dc);
   GNUNET_FS_download_start_downloading_ (dc);
   if (parent == NULL)
     dc->top = GNUNET_FS_make_top (dc->h,
@@ -1682,7 +1685,6 @@ GNUNET_FS_download_start_from_search (struct GNUNET_FS_Handle *h,
 	      "Download tree has depth %u\n",
 	      dc->treedepth);
 #endif
-  // FIXME: make persistent
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_START;
   pi.value.download.specifics.start.meta = dc->meta;
   GNUNET_FS_download_make_status_ (&pi, dc);
@@ -1690,6 +1692,7 @@ GNUNET_FS_download_start_from_search (struct GNUNET_FS_Handle *h,
 			   &dc->uri->data.chk.chk,
 			   0, 
 			   1 /* 0 == CHK, 1 == top */); 
+  GNUNET_FS_download_sync_ (dc);
   GNUNET_FS_download_start_downloading_ (dc);
   return dc;  
 }
@@ -1722,6 +1725,7 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
 			 int do_delete)
 {
   struct GNUNET_FS_ProgressInfo pi;
+  int have_children;
 
   if (dc->top != NULL)
     GNUNET_FS_end_top (dc->h, dc->top);
@@ -1735,15 +1739,24 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
       GNUNET_FS_dequeue_ (dc->job_queue);
       dc->job_queue = NULL;
     }
+  have_children = (NULL != dc->child_head) ? GNUNET_YES : GNUNET_NO;
   while (NULL != dc->child_head)
     GNUNET_FS_download_stop (dc->child_head, 
 			     do_delete);
-  // FIXME: make unpersistent  
   if (dc->parent != NULL)
     GNUNET_CONTAINER_DLL_remove (dc->parent->child_head,
 				 dc->parent->child_tail,
-				 dc);
-  
+				 dc);  
+  if (dc->serialization != NULL)
+    GNUNET_FS_remove_sync_file_ (dc->h,
+				 (dc->parent != NULL) 
+				 ? "subdownloads" 
+				 : "download", 
+				 dc->serialization);
+  if (GNUNET_YES == have_children)
+    GNUNET_FS_remove_sync_dir_ (dc->h,			      
+				"subdownloads",
+				dc->serialization);  
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_STOPPED;
   GNUNET_FS_download_make_status_ (&pi, dc);
   if (GNUNET_SCHEDULER_NO_TASK != dc->task)
@@ -1775,7 +1788,6 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
 				  dc->temp_filename);
       GNUNET_free (dc->temp_filename);
     }
-  /* FIXME: clean up serialization file itself! */
   GNUNET_free_non_null (dc->serialization);
   GNUNET_free (dc);
 }
