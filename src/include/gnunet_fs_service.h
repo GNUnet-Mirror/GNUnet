@@ -21,10 +21,6 @@
  * @file include/gnunet_fs_service.h
  * @brief API for file-sharing via GNUnet 
  * @author Christian Grothoff
- *
- * TODO:
- * - extend API with support for publish simulation (-s)
- *   and URI-argument binding to keyword/namespace (-u)
  */
 #ifndef GNUNET_FS_LIB_H
 #define GNUNET_FS_LIB_H
@@ -1078,8 +1074,10 @@ struct GNUNET_FS_ProgressInfo
 
       /**
        * Client parent-context pointer; NULL for top-level searches,
-       * non-NULL for automatically triggered searches for updates in
-       * namespaces.
+       * refers to the client context of the associated search result
+       * for automatically triggered searches for updates in
+       * namespaces.  In this case, 'presult' refers to that search
+       * result.
        */
       void *pctx;
 

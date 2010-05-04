@@ -53,7 +53,7 @@ GNUNET_FS_search_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
   pi->value.search.cctx
     = sc->client_info;
   pi->value.search.pctx
-    = (sc->parent == NULL) ? NULL : sc->parent->client_info;
+    = (sc->psearch_result == NULL) ? NULL : sc->psearch_result->client_info;
   pi->value.search.query 
     = sc->uri;
   pi->value.search.duration = GNUNET_TIME_absolute_get_duration (sc->start_time);
@@ -462,7 +462,7 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
  * @param anonymity desired level of anonymity
  * @param options options for the search
  * @param cctx client context
- * @param parent parent search (for namespace update searches)
+ * @param psearch parent search result (for namespace update searches)
  * @return context that can be used to control the search
  */
 static struct GNUNET_FS_SearchContext *
@@ -471,7 +471,7 @@ search_start (struct GNUNET_FS_Handle *h,
 	      uint32_t anonymity,
 	      enum GNUNET_FS_SearchOptions options,
 	      void *cctx,
-	      struct GNUNET_FS_SearchContext *parent);
+	      struct GNUNET_FS_SearchResult *psearch);
 
 
 /**
@@ -523,14 +523,12 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc,
   uu.type = sks;
   uu.data.sks.namespace = sc->uri->data.sks.namespace;
   uu.data.sks.identifier = GNUNET_strdup (id_update);
-  /* FIXME: should attach update search to the individual result, not
-     the entire SKS search! */
-  search_start (sc->h,
-		&uu,
-		sc->anonymity,
-		sc->options,
-		NULL,
-		sc);
+  (void) search_start (sc->h,
+		       &uu,
+		       sc->anonymity,
+		       sc->options,
+		       NULL,
+		       sr);
 }
 
 
@@ -1064,7 +1062,7 @@ try_reconnect (struct GNUNET_FS_SearchContext *sc)
  * @param anonymity desired level of anonymity
  * @param options options for the search
  * @param cctx initial value for the client context
- * @param parent parent search (for namespace update searches)
+ * @param psearch parent search result (for namespace update searches)
  * @return context that can be used to control the search
  */
 static struct GNUNET_FS_SearchContext *
@@ -1073,7 +1071,7 @@ search_start (struct GNUNET_FS_Handle *h,
 	      uint32_t anonymity,
 	      enum GNUNET_FS_SearchOptions options,
 	      void *cctx,
-	      struct GNUNET_FS_SearchContext *parent)
+	      struct GNUNET_FS_SearchResult *psearch)
 {
   struct GNUNET_FS_SearchContext *sc;
   struct GNUNET_FS_ProgressInfo pi;
@@ -1084,13 +1082,13 @@ search_start (struct GNUNET_FS_Handle *h,
   sc->uri = GNUNET_FS_uri_dup (uri);
   sc->anonymity = anonymity;
   sc->start_time = GNUNET_TIME_absolute_get ();
-  sc->parent = parent;
+  if (psearch != NULL)
+    {
+      sc->psearch_result = psearch;  
+      psearch->update_search = sc;
+    }
   sc->master_result_map = GNUNET_CONTAINER_multihashmap_create (16);
   sc->client_info = cctx;
-  if (NULL != parent)
-    GNUNET_CONTAINER_DLL_insert (parent->child_head,
-				 parent->child_tail,
-				 sc);
   if (GNUNET_OK !=
       GNUNET_FS_search_start_searching_ (sc))
     {
@@ -1206,6 +1204,8 @@ search_result_freeze_probes (void *cls,
 			       sr->probe_cancel_task);  
       sr->probe_cancel_task = GNUNET_SCHEDULER_NO_TASK;
     }
+  if (sr->update_search != NULL)
+    GNUNET_FS_search_pause (sr->update_search);
   return GNUNET_OK;
 }
 
@@ -1226,8 +1226,20 @@ search_result_resume_probes (void *cls,
   struct GNUNET_FS_SearchResult *sr = value;
 
   GNUNET_FS_search_start_probe_ (sr);
+  if (sr->update_search != NULL)
+    GNUNET_FS_search_continue (sr->update_search);
   return GNUNET_OK;
 }
+
+
+/**
+ * Create SUSPEND event for the given search operation
+ * and then clean up our state (without stop signal).
+ *
+ * @param cls the 'struct GNUNET_FS_SearchContext' to signal for
+ */
+static void
+search_signal_suspend (void *cls);
 
 
 /**
@@ -1250,6 +1262,8 @@ search_result_suspend (void *cls,
 
   if (sr->download != NULL)
     GNUNET_FS_download_signal_suspend_ (sr->download);
+  if (sr->update_search != NULL)
+    search_signal_suspend (sr->update_search);
   pi.status = GNUNET_FS_STATUS_SEARCH_RESULT_SUSPEND;
   pi.value.search.specifics.result_suspend.cctx = sr->client_info;
   pi.value.search.specifics.result_suspend.meta = sr->meta;
@@ -1279,20 +1293,10 @@ static void
 search_signal_suspend (void *cls)
 {
   struct GNUNET_FS_SearchContext *sc = cls;
-  struct GNUNET_FS_SearchContext *parent = cls;
   struct GNUNET_FS_ProgressInfo pi;
   unsigned int i;
 
   GNUNET_FS_end_top (sc->h, sc->top);
-  if (NULL != (parent = sc->parent))
-    {
-      GNUNET_CONTAINER_DLL_remove (parent->child_head,
-				   parent->child_tail,
-				   sc);
-      sc->parent = NULL;
-    }
-  while (NULL != sc->child_head)
-    search_signal_suspend (sc->child_head);
   GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
 					 &search_result_suspend,
 					 sc);
@@ -1426,6 +1430,11 @@ search_result_free (void *cls,
       GNUNET_FS_download_sync_ (sr->download);
       sr->download = NULL;     
     }
+  if (NULL != sr->update_search)
+    {
+      GNUNET_FS_search_stop (sr->update_search);
+      GNUNET_assert (sr->update_search == NULL);
+    }
   pi.status = GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED;
   pi.value.search.specifics.result_stopped.cctx = sr->client_info;
   pi.value.search.specifics.result_stopped.meta = sr->meta;
@@ -1455,31 +1464,23 @@ GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc)
 {
   struct GNUNET_FS_ProgressInfo pi;
   unsigned int i;
-  struct GNUNET_FS_SearchContext *parent;
 
   if (sc->top != NULL)
     GNUNET_FS_end_top (sc->h, sc->top);
-  if (NULL != (parent = sc->parent))
-    {
-      GNUNET_CONTAINER_DLL_remove (parent->child_head,
-				   parent->child_tail,
-				   sc);
-      sc->parent = NULL;
-    }
-  while (NULL != sc->child_head)
-    GNUNET_FS_search_stop (sc->child_head);
+  if (sc->psearch_result != NULL)
+    sc->psearch_result->update_search = NULL;
   GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
 					 &search_result_free,
 					 sc);
   if (sc->serialization != NULL)
     {
       GNUNET_FS_remove_sync_file_ (sc->h,
-				   (sc->parent != NULL)  
+				   (sc->psearch_result != NULL)  
 				   ? GNUNET_FS_SYNC_PATH_CHILD_SEARCH 
 				   : GNUNET_FS_SYNC_PATH_MASTER_SEARCH,
 				   sc->serialization);
       GNUNET_FS_remove_sync_dir_ (sc->h,
-				  (sc->parent != NULL)  
+				  (sc->psearch_result != NULL)  
 				  ? GNUNET_FS_SYNC_PATH_CHILD_SEARCH 
 				  : GNUNET_FS_SYNC_PATH_MASTER_SEARCH,
 				  sc->serialization);

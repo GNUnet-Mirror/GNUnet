@@ -1,8 +1,5 @@
 0.9.0pre1:
 * FS: [CG]
-  - SKS update searches should be attached to individual search results, not to the 
-    entire SKS search (!)
-    => API change (event signalling) & serialization change (!)
   - persistence testing (publish, unindex, search, download):
     => need driver!
     => schedule suspending tasks DURING event handler => good coverage!

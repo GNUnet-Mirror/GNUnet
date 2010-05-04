@@ -646,10 +646,14 @@ struct GNUNET_FS_SearchResult
   /**
    * ID of an associated download based on this search result (or
    * NULL for none).
-   *
-   * FIXME: not yet serialized.
    */
   struct GNUNET_FS_DownloadContext *download;
+
+  /**
+   * If this search result triggered an update search, this field
+   * links to the update search.
+   */
+  struct GNUNET_FS_SearchContext *update_search;
 
   /**
    * Name under which this search result is stored on disk.
@@ -1457,34 +1461,10 @@ struct GNUNET_FS_SearchContext
   struct GNUNET_FS_Uri *uri;
 
   /**
-   * For update-searches, link to the base-SKS search that triggered
+   * For update-searches, link to the search result that triggered
    * the update search; otherwise NULL.
    */
-  struct GNUNET_FS_SearchContext *parent;
-
-  /**
-   * For update-searches, link to the first child search that
-   * triggered the update search; otherwise NULL.
-   */
-  struct GNUNET_FS_SearchContext *child_head;
-
-  /**
-   * For update-searches, link to the last child search that triggered
-   * the update search; otherwise NULL.
-   */
-  struct GNUNET_FS_SearchContext *child_tail;
-
-  /**
-   * For update-searches, link to the next child belonging to the same
-   * parent.
-   */
-  struct GNUNET_FS_SearchContext *next;
-
-  /**
-   * For update-searches, link to the previous child belonging to the
-   * same parent.
-   */
-  struct GNUNET_FS_SearchContext *prev;
+  struct GNUNET_FS_SearchResult *psearch_result;
 
   /**
    * Connection to the FS service.
@@ -1618,8 +1598,6 @@ struct GNUNET_FS_DownloadContext
   /**
    * Associated search (used when downloading files
    * based on search results), or NULL for none.
-   *
-   * FIXME: not yet serialized
    */
   struct GNUNET_FS_SearchResult *search;
 
