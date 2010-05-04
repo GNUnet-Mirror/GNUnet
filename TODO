@@ -1,13 +1,13 @@
 0.9.0pre1:
 * FS: [CG]
   - code review:
-    => refactor fs.c to join common code segments!
-       => pbuf sprintf'ing
-       => initial master directory scanning
-    => document directory structure (and use #define's for the directory names!)
+    => address pbuf sprintf'ing
   - SKS update searches should be attached to individual search results, not to the 
     entire SKS search (!)
     => API change (event signalling) & serialization change (!)
+  => update search results should be stored in different result directory due 
+     to possibility of naming conflicts!
+  => outch: ditto for recursive downloads (!)
   - persistence testing (publish, unindex, search, download):
     => need driver!
     => schedule suspending tasks DURING event handler => good coverage!

@@ -1657,24 +1657,6 @@ GNUNET_FS_search_sync_ (struct GNUNET_FS_SearchContext *sc)
 
 
 /**
- * Deserialize information about pending publish operations.
- *
- * @param h master context
- */
-static void
-deserialize_publish (struct GNUNET_FS_Handle *h)
-{
-  char *dn;
-
-  dn = get_serialization_file_name (h, GNUNET_FS_SYNC_PATH_MASTER_PUBLISH, "");
-  if (dn == NULL)
-    return;
-  GNUNET_DISK_directory_scan (dn, &deserialize_publish_file, h);
-  GNUNET_free (dn);
-}
-
-
-/**
  * Function called with a filename of serialized unindexing operation
  * to deserialize.
  *
@@ -1793,24 +1775,6 @@ deserialize_unindex_file (void *cls,
   GNUNET_free_non_null (uc->serialization);
   GNUNET_free (uc);
   return GNUNET_OK;
-}
-
-
-/**
- * Deserialize information about pending publish operations.
- *
- * @param h master context
- */
-static void
-deserialize_unindex (struct GNUNET_FS_Handle *h)
-{
-  char *dn;
-
-  dn = get_serialization_file_name (h,  GNUNET_FS_SYNC_PATH_MASTER_UNINDEX, "");
-  if (dn == NULL)
-    return;
-  GNUNET_DISK_directory_scan (dn, &deserialize_unindex_file, h);
-  GNUNET_free (dn);
 }
 
 
@@ -2443,24 +2407,6 @@ deserialize_search_file (void *cls,
 
 
 /**
- * Deserialize information about pending search operations.
- *
- * @param h master context
- */
-static void
-deserialize_search_master (struct GNUNET_FS_Handle *h)
-{
-  char *dn;
-
-  dn = get_serialization_file_name (h, GNUNET_FS_SYNC_PATH_MASTER_SEARCH, "");
-  if (dn == NULL)
-    return;
-  GNUNET_DISK_directory_scan (dn, &deserialize_search_file, h);
-  GNUNET_free (dn);
-}
-
-
-/**
  * Function called with a filename of serialized download operation
  * to deserialize.
  *
@@ -2507,20 +2453,24 @@ deserialize_download_file (void *cls,
 
 
 /**
- * Deserialize information about pending download operations.
+ * Deserialize informatin about pending operations.
  *
- * @param h master context
+ * @param master_path which master directory should be scanned
+ * @param proc function to call for each entry (will get 'h' for 'cls')
+ * @param h the 'struct GNUNET_FS_Handle*'
  */
 static void
-deserialize_download_master (struct GNUNET_FS_Handle *h)
+deserialization_master (const char *master_path,
+			GNUNET_FileNameCallback proc,
+			struct GNUNET_FS_Handle *h)
 {
   char *dn;
 
-  dn = get_serialization_file_name (h, GNUNET_FS_SYNC_PATH_MASTER_DOWNLOAD, "");
+  dn = get_serialization_file_name (h, master_path, "");
   if (dn == NULL)
     return;
-  GNUNET_DISK_directory_scan (dn, &deserialize_download_file, h);
-  GNUNET_free (dn);
+  GNUNET_DISK_directory_scan (dn, proc, h);
+  GNUNET_free (dn); 
 }
 
 
@@ -2581,12 +2531,18 @@ GNUNET_FS_start (struct GNUNET_SCHEDULER_Handle *sched,
   va_end (ap);
   if (0 != (GNUNET_FS_FLAGS_PERSISTENCE & flags))
     {
-      /* FIXME: could write one generic deserialization
-	 function instead of these four... */
-      deserialize_publish (ret);
-      deserialize_search_master (ret);
-      deserialize_download_master (ret);
-      deserialize_unindex (ret);
+      deserialization_master (GNUNET_FS_SYNC_PATH_MASTER_PUBLISH,
+			      &deserialize_publish_file,
+			      ret);
+      deserialization_master (GNUNET_FS_SYNC_PATH_MASTER_SEARCH, 
+			      &deserialize_search_file,
+			      ret);
+      deserialization_master (GNUNET_FS_SYNC_PATH_MASTER_DOWNLOAD, 
+			      &deserialize_download_file,
+			      ret);
+      deserialization_master (GNUNET_FS_SYNC_PATH_MASTER_UNINDEX,
+			      &deserialize_unindex_file,
+			      ret);
     }
   return ret;
 }
