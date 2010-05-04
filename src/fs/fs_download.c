@@ -305,12 +305,10 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   fh = NULL;
   if ( (dc->old_file_size > off) &&
-       (dc->filename != NULL) )
-    {
-      fh = GNUNET_DISK_file_open (dc->filename,
-				  GNUNET_DISK_OPEN_READ,
-				  GNUNET_DISK_PERM_NONE);
-    }
+       (dc->filename != NULL) )    
+    fh = GNUNET_DISK_file_open (dc->filename,
+				GNUNET_DISK_OPEN_READ,
+				GNUNET_DISK_PERM_NONE);    
   if ( (fh != NULL) &&
        (off  == 
 	GNUNET_DISK_file_seek (fh,
@@ -358,6 +356,7 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
 	    {
 	      GNUNET_break_op (0);
 	    }
+	  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fh));
 	  return;
 	}
     }

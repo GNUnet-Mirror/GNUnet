@@ -287,14 +287,16 @@ accessHandlerCallback (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has an incoming `%s' request from \n",method);
 
   if ( 0 == strcmp (MHD_HTTP_METHOD_PUT, method) )
-  {
-    /* PUT method here */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got PUT Request with size %u \n",upload_data_size);
-
-    // GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# PUT requests"), 1, GNUNET_NO);
-  }
+    {
+      /* PUT method here */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got PUT Request with size %u \n",upload_data_size);
+      
+      // GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# PUT requests"), 1, GNUNET_NO);
+    }
   if ( 0 == strcmp (MHD_HTTP_METHOD_GET, method) )
-
+    {
+      /* FIXME */
+    }
   return MHD_YES;
 }
 
@@ -346,6 +348,7 @@ libgnunet_plugin_transport_http_init (void *cls)
                        _
                        ("Require valid port number for service `%s' in configuration!\n"),
                        "transport-http");
+      GNUNET_free (api);
       return NULL;
     }
   use_ipv6 = GNUNET_YES;

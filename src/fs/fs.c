@@ -2440,6 +2440,7 @@ deserialize_download (struct GNUNET_FS_Handle *h,
  cleanup:
   GNUNET_free_non_null (uris);
   GNUNET_free_non_null (dr);
+  GNUNET_free_non_null (emsg);
   free_download_context (dc);
 }
 
@@ -2567,7 +2568,6 @@ deserialize_search_file (void *cls,
   char *ser;
   char *emsg;
   struct GNUNET_BIO_ReadHandle *rh;
-  struct GNUNET_FS_SearchContext *sc;
 
   ser = get_serialization_short_name (filename);
   rh = GNUNET_BIO_read_open (filename);
@@ -2580,7 +2580,7 @@ deserialize_search_file (void *cls,
 	}
       return GNUNET_OK;
     }
-  sc = deserialize_search (h, rh, NULL, ser);
+  (void) deserialize_search (h, rh, NULL, ser);
   GNUNET_free (ser);
   if (GNUNET_OK !=
       GNUNET_BIO_read_close (rh, &emsg))
