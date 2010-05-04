@@ -1149,7 +1149,7 @@ GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *pc)
     }
   if (pc->serialization != NULL) 
     {
-      GNUNET_FS_remove_sync_file_ (pc->h, "publish", pc->serialization);
+      GNUNET_FS_remove_sync_file_ (pc->h, GNUNET_FS_SYNC_PATH_MASTER_PUBLISH, pc->serialization);
       GNUNET_free (pc->serialization);
       pc->serialization = NULL;
     }

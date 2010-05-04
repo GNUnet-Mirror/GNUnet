@@ -2,7 +2,12 @@
 * FS: [CG]
   - code review:
     => refactor fs.c to join common code segments!
+       => pbuf sprintf'ing
+       => initial master directory scanning
     => document directory structure (and use #define's for the directory names!)
+  - SKS update searches should be attached to individual search results, not to the 
+    entire SKS search (!)
+    => API change (event signalling) & serialization change (!)
   - persistence testing (publish, unindex, search, download):
     => need driver!
     => schedule suspending tasks DURING event handler => good coverage!
@@ -113,7 +118,6 @@
   - datastore
 * FS:
   - reconstruct IBLOCKS from DBLOCKS if possible (during download; see FIXME in fs_download)
-
 
 0.9.0:
 * new webpage:

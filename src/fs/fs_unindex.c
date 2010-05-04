@@ -487,7 +487,7 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc)
     }
   if (uc->serialization != NULL)
     {
-      GNUNET_FS_remove_sync_file_ (uc->h, "unindex", uc->serialization);
+      GNUNET_FS_remove_sync_file_ (uc->h, GNUNET_FS_SYNC_PATH_MASTER_UNINDEX, uc->serialization);
       GNUNET_free (uc->serialization);
       uc->serialization = NULL;
     }

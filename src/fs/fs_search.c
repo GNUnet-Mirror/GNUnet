@@ -24,7 +24,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - remove *directory* with search results upon completion
  * - centralize code that sprintf's the 'pbuf[32]' strings
  * - add support for pushing "already seen" information
  *   to FS service for bloomfilter (can wait)
@@ -37,8 +36,6 @@
 #include "fs.h"
 
 #define DEBUG_SEARCH GNUNET_NO
-
-
 
 /**
  * Fill in all of the generic fields for a search event and
@@ -527,8 +524,7 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc,
   uu.type = sks;
   uu.data.sks.namespace = sc->uri->data.sks.namespace;
   uu.data.sks.identifier = GNUNET_strdup (id_update);
-  /* FIXME: should attach update search
-     to the individual result, not
+  /* FIXME: should attach update search to the individual result, not
      the entire SKS search! */
   search_start (sc->h,
 		&uu,
@@ -956,6 +952,9 @@ transmit_search_request (void *cls,
 	  sm[i].type = htonl (GNUNET_BLOCK_TYPE_ANY);
 	  sm[i].anonymity_level = htonl (sc->anonymity);
 	  sm[i].query = sc->requests[i].query;
+	  /* FIXME: should transmit hash codes of all already-known results here! 
+	     (and if they do not fit, add another message with the same 
+	     header and additional already-seen results!) */
 	}
     }
   else
@@ -984,6 +983,9 @@ transmit_search_request (void *cls,
       GNUNET_CRYPTO_hash_xor (&idh,
 			      &sm->target,
 			      &sm->query);
+      /* FIXME: should transmit hash codes of all already-known results here!
+	 (and if they do not fit, add another message with the same 
+	 header and additional already-seen results!) */      
    }
   GNUNET_CLIENT_receive (sc->client,
 			 &receive_results,
@@ -1177,6 +1179,57 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
 }
 
 
+/**
+ * Freeze probes for the given search result.
+ *
+ * @param cls the global FS handle
+ * @param key the key for the search result (unused)
+ * @param value the search result to free
+ * @return GNUNET_OK
+ */
+static int
+search_result_freeze_probes (void *cls,
+			     const GNUNET_HashCode * key,
+			     void *value)
+{
+  struct GNUNET_FS_SearchContext *sc = cls;
+  struct GNUNET_FS_Handle *h = sc->h;
+  struct GNUNET_FS_SearchResult *sr = value;
+
+  if (sr->probe_ctx != NULL)
+    {
+      GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);    
+      sr->probe_ctx = NULL;
+    }
+  if (sr->probe_cancel_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (h->sched,
+			       sr->probe_cancel_task);  
+      sr->probe_cancel_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Resume probes for the given search result.
+ *
+ * @param cls the global FS handle
+ * @param key the key for the search result (unused)
+ * @param value the search result to free
+ * @return GNUNET_OK
+ */
+static int
+search_result_resume_probes (void *cls,
+			     const GNUNET_HashCode * key,
+			     void *value)
+{
+  struct GNUNET_FS_SearchResult *sr = value;
+
+  GNUNET_FS_search_start_probe_ (sr);
+  return GNUNET_OK;
+}
+
 
 /**
  * Signal suspend and free the given search result.
@@ -1309,7 +1362,9 @@ GNUNET_FS_search_pause (struct GNUNET_FS_SearchContext *sc)
     GNUNET_CLIENT_disconnect (sc->client, GNUNET_NO);
   sc->client = NULL;
   GNUNET_FS_search_sync_ (sc);
-  // FIXME: should this freeze all active probes?
+  GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
+					 &search_result_freeze_probes,
+					 sc);
   pi.status = GNUNET_FS_STATUS_SEARCH_PAUSED;
   sc->client_info = GNUNET_FS_search_make_status_ (&pi, sc);
 }
@@ -1331,6 +1386,9 @@ GNUNET_FS_search_continue (struct GNUNET_FS_SearchContext *sc)
   GNUNET_FS_search_sync_ (sc);
   pi.status = GNUNET_FS_STATUS_SEARCH_CONTINUED;
   sc->client_info = GNUNET_FS_search_make_status_ (&pi, sc);
+  GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
+					 &search_result_resume_probes,
+					 sc);
 }
 
 
@@ -1356,10 +1414,18 @@ search_result_free (void *cls,
   if (NULL != sr->download)
     {
       sr->download->search = NULL;
+      if (NULL != sr->download->serialization)
+	{
+	  GNUNET_FS_remove_sync_file_ (sc->h,
+				       GNUNET_FS_SYNC_PATH_CHILD_DOWNLOAD,
+				       sr->download->serialization);
+	  GNUNET_free (sr->download->serialization);
+	  sr->download->serialization = NULL;
+	}
       pi.status = GNUNET_FS_STATUS_DOWNLOAD_LOST_PARENT;
       GNUNET_FS_download_make_status_ (&pi,
-				       sr->download);
-      /* FIXME: promote download to top-level! */
+				       sr->download);      
+      GNUNET_FS_download_sync_ (sr->download);
       sr->download = NULL;     
     }
   pi.status = GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED;
@@ -1373,7 +1439,7 @@ search_result_free (void *cls,
       GNUNET_snprintf (pbuf,
 		       sizeof (pbuf),
 		       "%s%s%s",
-		       "search-results",
+		       GNUNET_FS_SYNC_PATH_SEARCH_RESULT,
 		       DIR_SEPARATOR_STR,
 		       sc->serialization);
       GNUNET_FS_remove_sync_file_ (sc->h,
@@ -1410,7 +1476,9 @@ GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc)
     GNUNET_FS_end_top (sc->h, sc->top);
   if (sc->serialization != NULL)
     GNUNET_FS_remove_sync_file_ (sc->h,
-				 (sc->parent != NULL) ? "search-children" : "search",
+				 (sc->parent != NULL)  
+				 ? GNUNET_FS_SYNC_PATH_CHILD_SEARCH 
+				 : GNUNET_FS_SYNC_PATH_MASTER_SEARCH,
 				 sc->serialization);
   if (NULL != (parent = sc->parent))
     {
@@ -1426,7 +1494,9 @@ GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc)
 					 &search_result_free,
 					 sc);
   if (had_result)
-    GNUNET_FS_remove_sync_dir_ (sc->h, "search-results", sc->serialization);
+    GNUNET_FS_remove_sync_dir_ (sc->h, 
+				GNUNET_FS_SYNC_PATH_SEARCH_RESULT,
+				sc->serialization);
   pi.status = GNUNET_FS_STATUS_SEARCH_STOPPED;
   sc->client_info = GNUNET_FS_search_make_status_ (&pi, sc);
   GNUNET_break (NULL == sc->client_info);

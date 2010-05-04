@@ -151,6 +151,47 @@
  */
 #define IDLE_LOAD_THRESHOLD ((100 + GNUNET_CONSTANTS_IDLE_LOAD_THRESHOLD) / 2)
 
+/**
+ * Name of the directory with top-level searches.
+ */
+#define GNUNET_FS_SYNC_PATH_MASTER_SEARCH "search"
+
+/**
+ * Name of the directory with sub-searches (namespace-updates).
+ */
+#define GNUNET_FS_SYNC_PATH_CHILD_SEARCH "search-child"
+
+/**
+ * Name of the directory with search results.
+ */
+#define GNUNET_FS_SYNC_PATH_SEARCH_RESULT "search-result"
+
+/**
+ * Name of the directory with master downloads (not associated
+ * with search or part of another download).
+ */
+#define GNUNET_FS_SYNC_PATH_MASTER_DOWNLOAD "download"
+
+/**
+ * Name of the directory with downloads that are part of another
+ * download or a search.
+ */
+#define GNUNET_FS_SYNC_PATH_CHILD_DOWNLOAD "download-child"
+
+/**
+ * Name of the directory with publishing operations.
+ */
+#define GNUNET_FS_SYNC_PATH_MASTER_PUBLISH "publish"
+
+/**
+ * Name of the directory with files that are being published
+ */
+#define GNUNET_FS_SYNC_PATH_FILE_INFO "publish-file"
+
+/**
+ * Name of the directory with unindex operations.
+ */
+#define GNUNET_FS_SYNC_PATH_MASTER_UNINDEX "unindex"
 
 
 /**
@@ -1080,11 +1121,6 @@ struct GNUNET_FS_Handle
    * Closure for upcb.
    */
   void *upcb_cls;
-
-  /**
-   * Connection to the FS service.
-   */
-  struct GNUNET_CLIENT_Connection *client;
 
   /**
    * Head of DLL of top-level activities.

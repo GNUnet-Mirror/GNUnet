@@ -1749,13 +1749,13 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
 				 dc);  
   if (dc->serialization != NULL)
     GNUNET_FS_remove_sync_file_ (dc->h,
-				 (dc->parent != NULL) 
-				 ? "subdownloads" 
-				 : "download", 
+				 ( (dc->parent != NULL)  || (dc->search != NULL) )
+				 ? GNUNET_FS_SYNC_PATH_CHILD_DOWNLOAD 
+				 : GNUNET_FS_SYNC_PATH_MASTER_DOWNLOAD , 
 				 dc->serialization);
   if (GNUNET_YES == have_children)
     GNUNET_FS_remove_sync_dir_ (dc->h,			      
-				"subdownloads",
+				GNUNET_FS_SYNC_PATH_CHILD_DOWNLOAD,
 				dc->serialization);  
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_STOPPED;
   GNUNET_FS_download_make_status_ (&pi, dc);
