@@ -930,6 +930,46 @@ fip_signal_start(void *cls,
 
 
 /**
+ * Signal the FS's progress function that we are suspending
+ * an upload.
+ *
+ * @param cls closure (of type "struct GNUNET_FS_PublishContext*")
+ * @param fi the entry in the publish-structure
+ * @param length length of the file or directory
+ * @param meta metadata for the file or directory (can be modified)
+ * @param uri pointer to the keywords that will be used for this entry (can be modified)
+ * @param anonymity pointer to selected anonymity level (can be modified)
+ * @param priority pointer to selected priority (can be modified)
+ * @param expirationTime pointer to selected expiration time (can be modified)
+ * @param client_info pointer to client context set upon creation (can be modified)
+ * @return GNUNET_OK to continue (always)
+ */
+static int
+fip_signal_suspend(void *cls,
+		   struct GNUNET_FS_FileInformation *fi,
+		   uint64_t length,
+		   struct GNUNET_CONTAINER_MetaData *meta,
+		   struct GNUNET_FS_Uri **uri,
+		   uint32_t *anonymity,
+		   uint32_t *priority,
+		   struct GNUNET_TIME_Absolute *expirationTime,
+		   void **client_info)
+{
+  struct GNUNET_FS_PublishContext*sc = cls;
+  struct GNUNET_FS_ProgressInfo pi;
+  uint64_t off;
+
+  GNUNET_free_non_null (fi->serialization);
+  fi->serialization = NULL;    
+  off = (fi->chk_uri == NULL) ? 0 : length;
+  pi.status = GNUNET_FS_STATUS_PUBLISH_STOPPED;
+  GNUNET_break (NULL == GNUNET_FS_publish_make_status_ (&pi, sc, fi, off));
+  *client_info = NULL;
+  return GNUNET_OK;
+}
+
+
+/**
  * Create SUSPEND event for the given publish operation
  * and then clean up our state (without stop signal).
  *
@@ -940,9 +980,16 @@ publish_signal_suspend (void *cls)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
 
+  if (GNUNET_SCHEDULER_NO_TASK != pc->upload_task)
+    {
+      GNUNET_SCHEDULER_cancel (pc->h->sched, pc->upload_task);
+      pc->upload_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  GNUNET_FS_file_information_inspect (pc->fi,
+				      &fip_signal_suspend,
+				      pc);
   GNUNET_FS_end_top (pc->h, pc->top);
-  /* FIXME: signal! */
-  GNUNET_free (pc);
+  publish_cleanup (pc);
 }
 
 /**
@@ -1074,7 +1121,10 @@ GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *pc)
 {
   GNUNET_FS_end_top (pc->h, pc->top);
   if (GNUNET_SCHEDULER_NO_TASK != pc->upload_task)
-    GNUNET_SCHEDULER_cancel (pc->h->sched, pc->upload_task);
+    {
+      GNUNET_SCHEDULER_cancel (pc->h->sched, pc->upload_task);
+      pc->upload_task = GNUNET_SCHEDULER_NO_TASK;
+    }
   if (pc->serialization != NULL) 
     {
       GNUNET_FS_remove_sync_file_ (pc->h, "publish", pc->serialization);

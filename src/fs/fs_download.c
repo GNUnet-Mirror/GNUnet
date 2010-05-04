@@ -1384,18 +1384,67 @@ deactivate_fs_download (void *cls)
 
 
 /**
+ * Free entries in the map.
+ *
+ * @param cls unused (NULL)
+ * @param key unused
+ * @param entry entry of type "struct DownloadRequest" which is freed
+ * @return GNUNET_OK
+ */
+static int
+free_entry (void *cls,
+	    const GNUNET_HashCode *key,
+	    void *entry)
+{
+  GNUNET_free (entry);
+  return GNUNET_OK;
+}
+
+
+/**
  * Create SUSPEND event for the given download operation
  * and then clean up our state (without stop signal).
  *
- * @param cls the 'struct GNUNET_FS_UnindexContext' to signal for
+ * @param cls the 'struct GNUNET_FS_DownloadContext' to signal for
  */
-static void
-download_signal_suspend (void *cls)
+void
+GNUNET_FS_download_signal_suspend_ (void *cls)
 {
   struct GNUNET_FS_DownloadContext *dc = cls;
+  struct GNUNET_FS_ProgressInfo pi;
   
-  GNUNET_FS_end_top (dc->h, dc->top);
-  /* FIXME: signal! */
+  if (dc->top != NULL)
+    GNUNET_FS_end_top (dc->h, dc->top);
+  while (NULL != dc->child_head)
+    GNUNET_FS_download_signal_suspend_ (dc->child_head);  
+  if (dc->search != NULL)
+    {
+      dc->search->download = NULL;
+      dc->search = NULL;
+    }
+  if (dc->job_queue != NULL)
+    {
+      GNUNET_FS_dequeue_ (dc->job_queue);
+      dc->job_queue = NULL;
+    }
+  if (dc->parent != NULL)
+    GNUNET_CONTAINER_DLL_remove (dc->parent->child_head,
+				 dc->parent->child_tail,
+				 dc);  
+  pi.status = GNUNET_FS_STATUS_DOWNLOAD_SUSPEND;
+  GNUNET_FS_download_make_status_ (&pi, dc);
+  if (GNUNET_SCHEDULER_NO_TASK != dc->task)
+    GNUNET_SCHEDULER_cancel (dc->h->sched,
+			     dc->task);
+  GNUNET_CONTAINER_multihashmap_iterate (dc->active,
+					 &free_entry,
+					 NULL);
+  GNUNET_CONTAINER_multihashmap_destroy (dc->active);
+  GNUNET_free_non_null (dc->filename);
+  GNUNET_CONTAINER_meta_data_destroy (dc->meta);
+  GNUNET_FS_uri_destroy (dc->uri);
+  GNUNET_free_non_null (dc->temp_filename);
+  GNUNET_free_non_null (dc->serialization);
   GNUNET_free (dc);
 }
 
@@ -1515,7 +1564,7 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
   GNUNET_FS_download_start_downloading_ (dc);
   if (parent == NULL)
     dc->top = GNUNET_FS_make_top (dc->h,
-				  &download_signal_suspend,
+				  &GNUNET_FS_download_signal_suspend_,
 				  dc);
 
   return dc;
@@ -1659,24 +1708,6 @@ GNUNET_FS_download_start_downloading_ (struct GNUNET_FS_DownloadContext *dc)
 				    &deactivate_fs_download,
 				    dc,
 				    (dc->length + DBLOCK_SIZE-1) / DBLOCK_SIZE);
-}
-
-
-/**
- * Free entries in the map.
- *
- * @param cls unused (NULL)
- * @param key unused
- * @param entry entry of type "struct DownloadRequest" which is freed
- * @return GNUNET_OK
- */
-static int
-free_entry (void *cls,
-	    const GNUNET_HashCode *key,
-	    void *entry)
-{
-  GNUNET_free (entry);
-  return GNUNET_OK;
 }
 
 

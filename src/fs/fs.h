@@ -1026,6 +1026,16 @@ GNUNET_FS_end_top (struct GNUNET_FS_Handle *h,
 
 
 /**
+ * Create SUSPEND event for the given download operation
+ * and then clean up our state (without stop signal).
+ *
+ * @param cls the 'struct GNUNET_FS_DownloadContext' to signal for
+ */
+void
+GNUNET_FS_download_signal_suspend_ (void *cls);
+
+
+/**
  * Master context for most FS operations.
  */
 struct GNUNET_FS_Handle

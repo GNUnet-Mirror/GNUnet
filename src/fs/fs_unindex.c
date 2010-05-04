@@ -403,9 +403,16 @@ static void
 unindex_signal_suspend (void *cls)
 {
   struct GNUNET_FS_UnindexContext *uc = cls;
+  struct GNUNET_FS_ProgressInfo pi;
 
   GNUNET_FS_end_top (uc->h, uc->top);
-  /* FIXME: signal! */
+  pi.status = GNUNET_FS_STATUS_UNINDEX_SUSPEND;
+  GNUNET_FS_unindex_make_status_ (&pi, uc, 
+				  (uc->state == UNINDEX_STATE_COMPLETE)
+				  ? uc->file_size : 0);
+  GNUNET_break (NULL == uc->client_info);
+  GNUNET_free (uc->filename);
+  GNUNET_free_non_null (uc->serialization);
   GNUNET_free (uc);
 }
 
@@ -476,6 +483,7 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc)
   if (uc->serialization != NULL)
     {
       GNUNET_FS_remove_sync_file_ (uc->h, "unindex", uc->serialization);
+      GNUNET_free (uc->serialization);
       uc->serialization = NULL;
     }
   pi.status = GNUNET_FS_STATUS_UNINDEX_STOPPED;
@@ -485,7 +493,6 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc)
 				  ? uc->file_size : 0);
   GNUNET_break (NULL == uc->client_info);
   GNUNET_free (uc->filename);
-  GNUNET_free_non_null (uc->serialization);
   GNUNET_free (uc);
 }
 

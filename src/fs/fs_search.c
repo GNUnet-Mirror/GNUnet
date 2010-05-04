@@ -1168,6 +1168,46 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
 }
 
 
+
+/**
+ * Signal suspend and free the given search result.
+ *
+ * @param cls the global FS handle
+ * @param key the key for the search result (unused)
+ * @param value the search result to free
+ * @return GNUNET_OK
+ */
+static int
+search_result_suspend (void *cls,
+		       const GNUNET_HashCode * key,
+		       void *value)
+{
+  struct GNUNET_FS_SearchContext *sc = cls;
+  struct GNUNET_FS_Handle *h = sc->h;
+  struct GNUNET_FS_SearchResult *sr = value;
+  struct GNUNET_FS_ProgressInfo pi;
+
+  if (sr->download != NULL)
+    GNUNET_FS_download_signal_suspend_ (sr->download);
+  pi.status = GNUNET_FS_STATUS_SEARCH_RESULT_SUSPEND;
+  pi.value.search.specifics.result_suspend.cctx = sr->client_info;
+  pi.value.search.specifics.result_suspend.meta = sr->meta;
+  pi.value.search.specifics.result_suspend.uri = sr->uri;
+  sr->client_info = GNUNET_FS_search_make_status_ (&pi, sc);
+  GNUNET_break (NULL == sr->client_info);
+  GNUNET_free_non_null (sr->serialization);
+  GNUNET_FS_uri_destroy (sr->uri);
+  GNUNET_CONTAINER_meta_data_destroy (sr->meta);
+  if (sr->probe_ctx != NULL)
+    GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);    
+  if (sr->probe_cancel_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (h->sched,
+			     sr->probe_cancel_task);    
+  GNUNET_free (sr);
+  return GNUNET_OK;
+}
+
+
 /**
  * Create SUSPEND event for the given search operation
  * and then clean up our state (without stop signal).
@@ -1178,9 +1218,41 @@ static void
 search_signal_suspend (void *cls)
 {
   struct GNUNET_FS_SearchContext *sc = cls;
+  struct GNUNET_FS_SearchContext *parent = cls;
+  struct GNUNET_FS_ProgressInfo pi;
+  unsigned int i;
 
   GNUNET_FS_end_top (sc->h, sc->top);
-  /* FIXME: signal! */
+  if (NULL != (parent = sc->parent))
+    {
+      GNUNET_CONTAINER_DLL_remove (parent->child_head,
+				   parent->child_tail,
+				   sc);
+      sc->parent = NULL;
+    }
+  while (NULL != sc->child_head)
+    search_signal_suspend (sc->child_head);
+  GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
+					 &search_result_suspend,
+					 sc);
+  pi.status = GNUNET_FS_STATUS_SEARCH_SUSPEND;
+  sc->client_info = GNUNET_FS_search_make_status_ (&pi, sc);
+  GNUNET_break (NULL == sc->client_info);
+  if (sc->task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (sc->h->sched,
+			     sc->task);
+  if (NULL != sc->client)
+    GNUNET_CLIENT_disconnect (sc->client, GNUNET_NO);
+  GNUNET_CONTAINER_multihashmap_destroy (sc->master_result_map);
+  if (sc->requests != NULL)
+    {
+      GNUNET_assert (GNUNET_FS_uri_test_ksk (sc->uri));
+      for (i=0;i<sc->uri->data.ksk.keywordCount;i++)
+	GNUNET_CONTAINER_multihashmap_destroy (sc->requests[i].results);
+    }
+  GNUNET_free_non_null (sc->requests);
+  GNUNET_free_non_null (sc->emsg);
+  GNUNET_FS_uri_destroy (sc->uri);
   GNUNET_free (sc);
 }
 

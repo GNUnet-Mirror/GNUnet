@@ -647,6 +647,12 @@ enum GNUNET_FS_Status
   GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED,
 
   /**
+   * Event generated for each search result
+   * when the respective search is suspended.
+   */
+  GNUNET_FS_STATUS_SEARCH_RESULT_SUSPEND,
+
+  /**
    * Last message from a search; this signals
    * that there will be no further events associated
    * with this search.
