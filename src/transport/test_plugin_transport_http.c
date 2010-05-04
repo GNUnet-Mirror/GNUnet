@@ -204,7 +204,6 @@ run (void *cls,
   cfg = c;
 
   timeout_task = GNUNET_SCHEDULER_add_delayed ( sched,  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5), &timeout_error, NULL);
-
   /* parse configuration */
   if ((GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_number (c,
@@ -228,7 +227,9 @@ run (void *cls,
   /*
   max_connect_per_transport = (uint32_t) tneigh;
   my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+  */
   GNUNET_free (keyfile);
+  /*
   if (my_private_key == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

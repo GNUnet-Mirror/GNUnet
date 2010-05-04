@@ -402,6 +402,7 @@ libgnunet_plugin_transport_http_init (void *cls)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Failed to retrieve statistics handle\n"));
+    GNUNET_free (api);
     return NULL;
   }
 
@@ -410,6 +411,7 @@ libgnunet_plugin_transport_http_init (void *cls)
   if ( (NULL == http_daemon) || (NULL == curl_multi))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Initializing http plugin failed\n");
+    GNUNET_free (api);
     return NULL;
   }
   else
