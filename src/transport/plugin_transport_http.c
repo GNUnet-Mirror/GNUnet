@@ -419,7 +419,7 @@ libgnunet_plugin_transport_http_init (void *cls)
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   long long unsigned int port;
-  struct GNUNET_SERVICE_Context *service;
+  /* struct GNUNET_SERVICE_Context *service; */
   int use_ipv6;
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
@@ -540,6 +540,11 @@ libgnunet_plugin_transport_http_done (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
+
+  if ( http_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel(plugin->env->sched, http_task);
+  }
 
   if (http_daemon != NULL)
   {
