@@ -439,11 +439,13 @@ libgnunet_plugin_transport_http_done (void *cls)
   if ( http_task_v4 != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel(plugin->env->sched, http_task_v4);
+    http_task_v4 = GNUNET_SCHEDULER_NO_TASK;
   }
 
   if ( http_task_v6 != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel(plugin->env->sched, http_task_v6);
+    http_task_v6 = GNUNET_SCHEDULER_NO_TASK;
   }
 
   if (http_daemon_v4 != NULL)
