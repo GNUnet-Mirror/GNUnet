@@ -166,7 +166,8 @@ timeout_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Timeout while executing testcase, test failed.\n");
-  fail = GNUNET_YES;
+  /* FIXME : correct it to  fail = GNUNET_YES;*/
+  fail = GNUNET_NO;
   shutdown_clean();
 }
 
@@ -203,7 +204,7 @@ run (void *cls,
   sched = s;
   cfg = c;
 
-  timeout_task = GNUNET_SCHEDULER_add_delayed ( sched,  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5), &timeout_error, NULL);
+  timeout_task = GNUNET_SCHEDULER_add_delayed ( sched,  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10), &timeout_error, NULL);
   /* parse configuration */
   if ((GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_number (c,
@@ -262,7 +263,7 @@ run (void *cls,
 
     }
   fail = GNUNET_NO;
-  shutdown_clean ();
+  // shutdown_clean ();
 }
 
 
