@@ -147,6 +147,30 @@ GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h,
 
 
 /**
+ * Read the contents of a binary file into a buffer.
+ *
+ * @param h handle to an open file
+ * @param file name of the source file
+ * @param line line number in the source file
+ * @param result the buffer to write the result to
+ * @param len the number of bytes to read
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int GNUNET_BIO_read_fn (struct GNUNET_BIO_ReadHandle *h, 
+			const char *file, int line,
+			void *result, 
+			size_t len)
+{
+  char what[1024];
+  GNUNET_snprintf (what,
+		   sizeof(what),
+		   "%s:%d",
+		   file, line);
+  return GNUNET_BIO_read (h, what, result, len);
+}
+
+
+/**
  * Read 0-terminated string from a file.
  *
  * @param h handle to an open file
@@ -209,7 +233,7 @@ GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h,
   char *buf;
   struct GNUNET_CONTAINER_MetaData *meta;
 
-  if (GNUNET_BIO_read_int32__ (h, what, (int32_t *) &size) != GNUNET_OK)
+  if (GNUNET_BIO_read_int32 (h, (int32_t *) &size) != GNUNET_OK)
     return GNUNET_SYSERR;
   if (size > MAX_META_DATA)
     {
@@ -242,17 +266,20 @@ GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h,
  * Read an (u)int32_t.
  *
  * @param h hande to open file
- * @param what describes what is being read (for error message creation)
+ * @param file name of the source file
+ * @param line line number in the source file
  * @param i address of 32-bit integer to read
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
 GNUNET_BIO_read_int32__ (struct GNUNET_BIO_ReadHandle *h,
-                         const char *what, int32_t * i)
+                         const char *file,
+			 int line,
+			 int32_t * i)
 {
   int32_t big;
 
-  if (GNUNET_OK != GNUNET_BIO_read (h, what, &big, sizeof (int32_t)))
+  if (GNUNET_OK != GNUNET_BIO_read_fn (h, file, line, &big, sizeof (int32_t)))
     return GNUNET_SYSERR;
   *i = ntohl (big);
   return GNUNET_OK;
@@ -263,17 +290,20 @@ GNUNET_BIO_read_int32__ (struct GNUNET_BIO_ReadHandle *h,
  * Read an (u)int64_t.
  *
  * @param h hande to open file
- * @param what describes what is being read (for error message creation)
+ * @param file name of the source file
+ * @param line line number in the source file
  * @param i address of 64-bit integer to read
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
 GNUNET_BIO_read_int64__ (struct GNUNET_BIO_ReadHandle *h,
-                         const char *what, int64_t * i)
+                         const char *file, 
+			 int line,
+			 int64_t * i)
 {
   int64_t big;
 
-  if (GNUNET_OK != GNUNET_BIO_read (h, what, &big, sizeof (int64_t)))
+  if (GNUNET_OK != GNUNET_BIO_read_fn (h, file, line, &big, sizeof (int64_t)))
     return GNUNET_SYSERR;
   *i = GNUNET_ntohll (big);
   return GNUNET_OK;

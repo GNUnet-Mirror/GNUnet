@@ -243,7 +243,7 @@ read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
       GNUNET_free (fn);
       return GNUNET_SYSERR;
     }
-  if ( (GNUNET_OK != GNUNET_BIO_read_int32__(fileR, "Read int32 error!", ranking)) ||
+  if ( (GNUNET_OK != GNUNET_BIO_read_int32 (fileR, ranking)) ||
        (GNUNET_OK != GNUNET_BIO_read_string(fileR, "Read string error!", ns_name, 200)) ||
        (GNUNET_OK != GNUNET_BIO_read_meta_data(fileR, "Read meta data error!", meta)) )
     {
