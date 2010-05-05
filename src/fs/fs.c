@@ -986,6 +986,12 @@ make_serialization_file_name (struct GNUNET_FS_Handle *h,
   if (0 == (h->flags & GNUNET_FS_FLAGS_PERSISTENCE))
     return NULL; /* persistence not requested */
   dn = get_serialization_file_name (h, ext, "");
+  if (GNUNET_OK !=
+      GNUNET_DISK_directory_create_for_file (dn))
+    {
+      GNUNET_free (dn);
+      return NULL;
+    }
   fn = GNUNET_DISK_mktemp (dn);
   GNUNET_free (dn);
   if (fn == NULL)
@@ -1017,6 +1023,12 @@ make_serialization_file_name_in_dir (struct GNUNET_FS_Handle *h,
   if (0 == (h->flags & GNUNET_FS_FLAGS_PERSISTENCE))
     return NULL; /* persistence not requested */
   dn = get_serialization_file_name_in_dir (h, ext, uni, "");
+  if (GNUNET_OK !=
+      GNUNET_DISK_directory_create_for_file (dn))
+    {
+      GNUNET_free (dn);
+      return NULL;
+    }
   fn = GNUNET_DISK_mktemp (dn);
   GNUNET_free (dn);
   if (fn == NULL)
@@ -1607,6 +1619,12 @@ GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc)
       dir = get_download_sync_filename (dc, "");
       if (dir == NULL)
 	return;
+      if (GNUNET_OK !=
+	  GNUNET_DISK_directory_create_for_file (dir))
+	{
+	  GNUNET_free (dir);
+	  return;
+	}
       fn = GNUNET_DISK_mktemp (dir);
       GNUNET_free (dir);
       dc->serialization = get_serialization_short_name (fn);
@@ -2422,7 +2440,9 @@ deserialize_download (struct GNUNET_FS_Handle *h,
   dn = get_download_sync_filename (dc, "");
   if (dn != NULL)
     {
-      GNUNET_DISK_directory_scan (dn, &deserialize_subdownload, dc);
+      if (GNUNET_YES ==
+	  GNUNET_DISK_directory_test (dn))
+	GNUNET_DISK_directory_scan (dn, &deserialize_subdownload, dc);
       GNUNET_free (dn);
     }
   if (parent != NULL)
@@ -2531,7 +2551,9 @@ deserialize_search (struct GNUNET_FS_Handle *h,
 					   "");
   if (dn != NULL)
     {
-      GNUNET_DISK_directory_scan (dn, &deserialize_search_result, sc);
+      if (GNUNET_YES ==
+	  GNUNET_DISK_directory_test (dn))
+	GNUNET_DISK_directory_scan (dn, &deserialize_search_result, sc);
       GNUNET_free (dn);
     }
   if ( ('\0' == in_pause) &&
@@ -2658,7 +2680,9 @@ deserialization_master (const char *master_path,
   dn = get_serialization_file_name (h, master_path, "");
   if (dn == NULL)
     return;
-  GNUNET_DISK_directory_scan (dn, proc, h);
+  if (GNUNET_YES ==
+      GNUNET_DISK_directory_test (dn))
+    GNUNET_DISK_directory_scan (dn, proc, h);
   GNUNET_free (dn); 
 }
 
