@@ -1,9 +1,14 @@
 0.9.0pre1:
 * FS: [CG]
   - persistence testing (publish, unindex, search, download):
-    => need driver!
-    => schedule suspending tasks DURING event handler => good coverage!
-    => test SUSPEND events
+    * unindex:
+      + need to clean up state on stop/suspend (including file-hashing => util API change!) 
+    * download: 
+      + assertion fail (gdb)
+    * publish:
+      + valgrind errors
+    * search: 
+      + valgrind errors
   - gnunet-service-fs (hot-path routing, load-based routing, nitpicks)  
   - [gnunet-service-fs.c:208]: member 'LocalGetContext::results_bf_size' is never used
   - [gnunet-service-fs.c:501]: member 'PendingRequest::used_pids_size' is never used

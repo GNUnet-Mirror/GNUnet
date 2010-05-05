@@ -78,6 +78,22 @@ int GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h,
 		     void *result, 
 		     size_t len);
 
+
+/**
+ * Read the contents of a binary file into a buffer.
+ *
+ * @param h handle to an open file
+ * @param file name of the source file
+ * @param line line number in the source file
+ * @param result the buffer to write the result to
+ * @param len the number of bytes to read
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int GNUNET_BIO_read_fn (struct GNUNET_BIO_ReadHandle *h, 
+			const char *file, int line,
+			void *result, 
+			size_t len);
+
 /**
  * Read 0-terminated string from a file.
  *
@@ -113,7 +129,7 @@ int GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h,
  * @param h hande to open file
  * @param f address of float to read
  */ 
-#define GNUNET_BIO_read_float(h, f) (GNUNET_BIO_read (h, __FILE__ "##__LINE__##", f, sizeof(float)))
+#define GNUNET_BIO_read_float(h, f) (GNUNET_BIO_read_fn (h, __FILE__, __LINE__, f, sizeof(float)))
 
 
 
@@ -123,7 +139,7 @@ int GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h,
  * @param h hande to open file
  * @param f address of double to read
  */ 
-#define GNUNET_BIO_read_double(h, f) (GNUNET_BIO_read (h, __FILE__ "##__LINE__##", f, sizeof(double)))
+#define GNUNET_BIO_read_double(h, f) (GNUNET_BIO_read_fn (h, __FILE__, __LINE__, f, sizeof(double)))
 
 
 /**
@@ -131,11 +147,12 @@ int GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h,
  *
  * @param h hande to open file
  * @param what describes what is being read (for error message creation)
+ * @param line line number in the code
  * @param i address of 32-bit integer to read
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */ 
 int GNUNET_BIO_read_int32__ (struct GNUNET_BIO_ReadHandle *h, 
-			     const char *what,
+			     const char *what, int line,
 			     int32_t *i);
 
 
@@ -145,7 +162,7 @@ int GNUNET_BIO_read_int32__ (struct GNUNET_BIO_ReadHandle *h,
  * @param h hande to open file
  * @param i address of 32-bit integer to read
  */ 
-#define GNUNET_BIO_read_int32(h, i) GNUNET_BIO_read_int32__ (h, __FILE__ "##__LINE__##", (int32_t*) i)
+#define GNUNET_BIO_read_int32(h, i) GNUNET_BIO_read_int32__ (h, __FILE__, __LINE__, (int32_t*) i)
 
 
 /**
@@ -153,11 +170,12 @@ int GNUNET_BIO_read_int32__ (struct GNUNET_BIO_ReadHandle *h,
  *
  * @param h hande to open file
  * @param what describes what is being read (for error message creation)
+ * @param line line number in the code
  * @param i address of 64-bit integer to read
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */ 
 int GNUNET_BIO_read_int64__ (struct GNUNET_BIO_ReadHandle *h, 
-			     const char *what,
+			     const char *what, int line,
 			     int64_t *i);
 
 
@@ -167,7 +185,7 @@ int GNUNET_BIO_read_int64__ (struct GNUNET_BIO_ReadHandle *h,
  * @param h hande to open file
  * @param i address of 64-bit integer to read
  */ 
-#define GNUNET_BIO_read_int64(h, i) GNUNET_BIO_read_int64__ (h, __FILE__ "##__LINE__##", (int64_t*) i)
+#define GNUNET_BIO_read_int64(h, i) GNUNET_BIO_read_int64__ (h, __FILE__, __LINE__, (int64_t*) i)
 
 
 /**
