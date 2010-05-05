@@ -328,6 +328,7 @@ main (int argc, char *const *argv)
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
+  return GNUNET_NO;
   int ret;
   char *const argv_prog[] = {
     "test_plugin_transport_http",
