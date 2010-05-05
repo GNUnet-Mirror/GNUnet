@@ -144,12 +144,23 @@ static struct Plugin *plugin;
 /**
  * Daemon for listening for new connections.
  */
-static struct MHD_Daemon *http_daemon;
+static struct MHD_Daemon *http_daemon_v4;
+
+/**
+ * Daemon for listening for new connections.
+ */
+static struct MHD_Daemon *http_daemon_v6;
 
 /**
  * Our primary task for http
  */
-static GNUNET_SCHEDULER_TaskIdentifier http_task;
+static GNUNET_SCHEDULER_TaskIdentifier http_task_v4;
+
+/**
+ * Our primary task for http
+ */
+static GNUNET_SCHEDULER_TaskIdentifier http_task_v6;
+
 
 /**
  * Curl multi for managing client operations.
@@ -358,14 +369,18 @@ run_daemon (void *cls,
 {
   struct MHD_Daemon *daemon_handle = cls;
 
-  if (daemon_handle == http_daemon)
-    http_task = GNUNET_SCHEDULER_NO_TASK;
+  if (daemon_handle == http_daemon_v4)
+    http_task_v4 = GNUNET_SCHEDULER_NO_TASK;
+
+  if (daemon_handle == http_daemon_v6)
+    http_task_v6 = GNUNET_SCHEDULER_NO_TASK;
+
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_assert (MHD_YES == MHD_run (daemon_handle));
-  if (daemon_handle == http_daemon)
-    http_task = prepare_daemon (daemon_handle);
+  if (daemon_handle == http_daemon_v4)
+    http_task_v4 = prepare_daemon (daemon_handle);
 
 }
 
@@ -434,16 +449,27 @@ libgnunet_plugin_transport_http_done (void *cls)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Shutting down http plugin...\n");
 
-  if ( http_task != GNUNET_SCHEDULER_NO_TASK)
+  if ( http_task_v4 != GNUNET_SCHEDULER_NO_TASK)
   {
-    GNUNET_SCHEDULER_cancel(plugin->env->sched, http_task);
+    GNUNET_SCHEDULER_cancel(plugin->env->sched, http_task_v4);
   }
 
-  if (http_daemon != NULL)
+  if ( http_task_v6 != GNUNET_SCHEDULER_NO_TASK)
   {
-    MHD_stop_daemon (http_daemon);
-    http_daemon = NULL;
+    GNUNET_SCHEDULER_cancel(plugin->env->sched, http_task_v6);
   }
+
+  if (http_daemon_v4 != NULL)
+  {
+    MHD_stop_daemon (http_daemon_v4);
+    http_daemon_v4 = NULL;
+  }
+  if (http_daemon_v6 != NULL)
+  {
+    MHD_stop_daemon (http_daemon_v6);
+    http_daemon_v6 = NULL;
+  }
+
 
   if ( NULL != curl_multi)
   {
@@ -466,7 +492,6 @@ libgnunet_plugin_transport_http_init (void *cls)
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   long long unsigned int port;
   /* struct GNUNET_SERVICE_Context *service; */
-  int use_ipv6;
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
@@ -507,42 +532,36 @@ libgnunet_plugin_transport_http_init (void *cls)
       libgnunet_plugin_transport_http_done (api);
       return NULL;
     }
-  use_ipv6 = GNUNET_YES;
-  use_ipv6 = GNUNET_CONFIGURATION_get_value_yesno  (env->cfg, "transport-http","USE_IPV6");
-  if ((http_daemon == NULL) && (port != 0))
+  if ((http_daemon_v4 == NULL) && (http_daemon_v6 == NULL) && (port != 0))
     {
-      if ( use_ipv6 == GNUNET_YES)
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD on port %u with IPv6 enabled\n",port);
-          http_daemon = MHD_start_daemon (MHD_USE_IPv6,
-                                         port,
-                                         &acceptPolicyCallback,
-                                         NULL, &accessHandlerCallback, NULL,
-                                         MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
-                                         MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
-                                         MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
-                                         MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
-                                         MHD_OPTION_END);
-        }
-      else
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD on port %u with IPv6 disabled\n",port);
-          http_daemon = MHD_start_daemon (MHD_NO_FLAG,
-                                         port,
-                                         &acceptPolicyCallback,
-                                         NULL, &accessHandlerCallback, NULL,
-                                         MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
-                                         MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
-                                         MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
-                                         MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
-                                         MHD_OPTION_END);
-        }
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD on port %u with IPv6 disabled\n",port);
+      http_daemon_v4 = MHD_start_daemon (MHD_NO_FLAG,
+                                     port,
+                                     &acceptPolicyCallback,
+                                     NULL, &accessHandlerCallback, NULL,
+                                     MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
+                                     MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
+                                     MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
+                                     MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
+                                     MHD_OPTION_END);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD on port %u with IPv6 enabled\n",port);
+      http_daemon_v6 = MHD_start_daemon (MHD_USE_IPv6,
+                                     port,
+                                     &acceptPolicyCallback,
+                                     NULL, &accessHandlerCallback, NULL,
+                                     MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
+                                     MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
+                                     MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
+                                     MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
+                                     MHD_OPTION_END);
     }
 
   curl_multi = curl_multi_init ();
 
-  if (http_daemon != NULL)
-    http_task = prepare_daemon (http_daemon);
+  if (http_daemon_v4 != NULL)
+    http_task_v4 = prepare_daemon (http_daemon_v4);
+  if (http_daemon_v6 != NULL)
+    http_task_v6 = prepare_daemon (http_daemon_v6);
 
   if (NULL == plugin->env->stats)
   {
@@ -555,7 +574,7 @@ libgnunet_plugin_transport_http_init (void *cls)
   GNUNET_STATISTICS_set ( env->stats, "# PUT requests", 0, GNUNET_NO);
   GNUNET_STATISTICS_set ( env->stats, "# GET requests", 0, GNUNET_NO);
 
-  if ( (NULL == http_daemon) || (NULL == curl_multi))
+  if ( ((NULL == http_daemon_v4) && (NULL == http_daemon_v6)) || (NULL == curl_multi))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Initializing http plugin failed\n");
     libgnunet_plugin_transport_http_done (api);
