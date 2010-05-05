@@ -259,6 +259,7 @@ run (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Failed to load http transport plugin\n"));
       fail = GNUNET_YES;
+      shutdown_clean ();
       return;
 
     }

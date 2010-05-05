@@ -318,7 +318,7 @@ accessHandlerCallback (void *cls,
   }
   if ( 0 == strcmp (MHD_HTTP_METHOD_GET, method) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got GET Request with size %u \n",upload_data_size);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got GET Request with size\n");
     GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# GET requests"), 1, GNUNET_NO);
   }
 
@@ -423,6 +423,38 @@ prepare_daemon (struct MHD_Daemon *daemon_handle)
   return ret;
 }
 
+/**
+ * Exit point from the plugin.
+ */
+void *
+libgnunet_plugin_transport_http_done (void *cls)
+{
+  struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
+  struct Plugin *plugin = api->cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Shutting down http plugin...\n");
+
+  if ( http_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel(plugin->env->sched, http_task);
+  }
+
+  if (http_daemon != NULL)
+  {
+    MHD_stop_daemon (http_daemon);
+    http_daemon = NULL;
+  }
+
+  if ( NULL != curl_multi)
+  {
+    curl_multi_cleanup (curl_multi);
+    curl_multi = NULL;
+  }
+  /* GNUNET_SERVICE_stop (plugin->service); */
+  GNUNET_free (plugin);
+  GNUNET_free (api);
+  return NULL;
+}
 
 /**
  * Entry point for the plugin.
@@ -472,7 +504,7 @@ libgnunet_plugin_transport_http_init (void *cls)
                        _
                        ("Require valid port number for service `%s' in configuration!\n"),
                        "transport-http");
-      GNUNET_free (api);
+      libgnunet_plugin_transport_http_done (api);
       return NULL;
     }
   use_ipv6 = GNUNET_YES;
@@ -516,7 +548,7 @@ libgnunet_plugin_transport_http_init (void *cls)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Failed to retrieve statistics handle\n"));
-    GNUNET_free (api);
+    libgnunet_plugin_transport_http_done (api);
     return NULL;
   }
 
@@ -526,42 +558,11 @@ libgnunet_plugin_transport_http_init (void *cls)
   if ( (NULL == http_daemon) || (NULL == curl_multi))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Initializing http plugin failed\n");
-    GNUNET_free (api);
+    libgnunet_plugin_transport_http_done (api);
     return NULL;
   }
   else
     return api;
-}
-
-
-/**
- * Exit point from the plugin.
- */
-void *
-libgnunet_plugin_transport_http_done (void *cls)
-{
-  struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
-  struct Plugin *plugin = api->cls;
-
-  if ( http_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel(plugin->env->sched, http_task);
-  }
-
-  if (http_daemon != NULL)
-  {
-    MHD_stop_daemon (http_daemon);
-    http_daemon = NULL;
-  }
-
-  curl_multi_cleanup (curl_multi);
-  curl_multi = NULL;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Shutting down http plugin...\n");
-  /* GNUNET_SERVICE_stop (plugin->service); */
-  GNUNET_free (plugin);
-  GNUNET_free (api);
-  return NULL;
 }
 
 /* end of plugin_transport_http.c */
