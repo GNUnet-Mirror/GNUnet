@@ -48,6 +48,13 @@
 #define HTTP_TIMEOUT 600
 
 /**
+ * Text of the response sent back after the last bytes of a PUT
+ * request have been received (just to formally obey the HTTP
+ * protocol).
+ */
+#define HTTP_PUT_RESPONSE "Thank you!"
+
+/**
  * Encapsulation of all of the state of the plugin.
  */
 struct Plugin;
@@ -274,7 +281,7 @@ static int
 acceptPolicyCallback (void *cls,
                       const struct sockaddr *addr, socklen_t addr_len)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG," Incoming connection \n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Incoming connection \n");
   /* Currently all incoming connections are accepted, so nothing to do here */
   return MHD_YES;
 }
@@ -295,6 +302,8 @@ accessHandlerCallback (void *cls,
                        const char *upload_data,
                        size_t * upload_data_size, void **httpSessionCache)
 {
+  struct MHD_Response *response;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has an incoming `%s' request from \n",method);
 
   /* Find out if session exists, otherwise create one */
@@ -312,6 +321,11 @@ accessHandlerCallback (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got GET Request with size %u \n",upload_data_size);
     GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# GET requests"), 1, GNUNET_NO);
   }
+
+  response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),
+                                   HTTP_PUT_RESPONSE, MHD_NO, MHD_NO);
+  MHD_queue_response (session, MHD_HTTP_OK, response);
+  MHD_destroy_response (response);
 
   return MHD_YES;
 }
@@ -472,16 +486,10 @@ libgnunet_plugin_transport_http_init (void *cls)
                                          port,
                                          &acceptPolicyCallback,
                                          NULL, &accessHandlerCallback, NULL,
-                                         MHD_OPTION_CONNECTION_TIMEOUT,
-                                         (unsigned int) HTTP_TIMEOUT,
-                                         MHD_OPTION_CONNECTION_MEMORY_LIMIT,
-                                         (unsigned int) GNUNET_SERVER_MAX_MESSAGE_SIZE,
-                                         MHD_OPTION_CONNECTION_LIMIT,
-                                         (unsigned int) 128,
-                                         MHD_OPTION_PER_IP_CONNECTION_LIMIT,
-                                         (unsigned int) 8,
-                                         MHD_OPTION_NOTIFY_COMPLETED,
-                                         &requestCompletedCallback, NULL,
+                                         MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
+                                         MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
+                                         MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
+                                         MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
                                          MHD_OPTION_END);
         }
       else
@@ -491,16 +499,10 @@ libgnunet_plugin_transport_http_init (void *cls)
                                          port,
                                          &acceptPolicyCallback,
                                          NULL, &accessHandlerCallback, NULL,
-                                         MHD_OPTION_CONNECTION_TIMEOUT,
-                                         (unsigned int) HTTP_TIMEOUT,
-                                         MHD_OPTION_CONNECTION_MEMORY_LIMIT,
-                                         (unsigned int) GNUNET_SERVER_MAX_MESSAGE_SIZE,
-                                         MHD_OPTION_CONNECTION_LIMIT,
-                                         (unsigned int) 128,
-                                         MHD_OPTION_PER_IP_CONNECTION_LIMIT,
-                                         (unsigned int) 8,
-                                         MHD_OPTION_NOTIFY_COMPLETED,
-                                         &requestCompletedCallback, NULL,
+                                         MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
+                                         MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
+                                         MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
+                                         MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
                                          MHD_OPTION_END);
         }
     }
