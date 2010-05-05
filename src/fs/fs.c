@@ -424,7 +424,7 @@ get_serialization_file_name (struct GNUNET_FS_Handle *h,
 					       &basename))
     return NULL;
   GNUNET_asprintf (&ret,
-		   "%s%s%s%s%s%s",
+		   "%s%s%s%s%s%s%s",
 		   basename,
 		   DIR_SEPARATOR_STR,
 		   h->client_name,
@@ -466,7 +466,7 @@ get_serialization_file_name_in_dir (struct GNUNET_FS_Handle *h,
 					       &basename))
     return NULL;
   GNUNET_asprintf (&ret,
-		   "%s%s%s%s%s%s%s%s",
+		   "%s%s%s%s%s%s%s%s%s",
 		   basename,
 		   DIR_SEPARATOR_STR,
 		   h->client_name,
@@ -524,8 +524,14 @@ get_write_handle (struct GNUNET_FS_Handle *h,
 
   fn = get_serialization_file_name (h, ext, ent);
   if (fn == NULL)
-    return NULL;
+    {
+      return NULL;
+    }
   ret = GNUNET_BIO_write_open (fn);
+  if (ret == NULL)
+    fprintf (stderr,
+	     "Failed to create write handle for `%s' from `%s/%s'\n",
+	     fn, ext, ent);
   GNUNET_free (fn);
   return ret;
 }
@@ -950,7 +956,7 @@ get_serialization_short_name (const char *fullname)
   nxt = fullname;
   /* FIXME: we could do this faster since we know
      the length of 'end'... */
-  while ('\0' != nxt)
+  while ('\0' != *nxt)
     {
       if (DIR_SEPARATOR == *nxt)
 	end = nxt + 1;
@@ -1190,7 +1196,7 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation * fi)
       goto cleanup;
     }
   if (GNUNET_OK !=
-      GNUNET_BIO_write_string (wh, fi->next->serialization))
+      GNUNET_BIO_write_string (wh, (fi->next != NULL) ? fi->next->serialization : NULL))
     goto cleanup;  
   if (GNUNET_OK ==
       GNUNET_BIO_write_close (wh))
@@ -1429,6 +1435,8 @@ GNUNET_FS_publish_sync_ (struct GNUNET_FS_PublishContext *pc)
       return;
     }
   wh = get_write_handle (pc->h, GNUNET_FS_SYNC_PATH_MASTER_PUBLISH, pc->serialization);
+  if (wh == NULL)
+    goto cleanup;
   if ( (GNUNET_OK !=
 	GNUNET_BIO_write_string (wh, pc->nid)) ||
        (GNUNET_OK !=
@@ -1483,6 +1491,8 @@ GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc)
   if (NULL == uc->serialization)
     return;
   wh = get_write_handle (uc->h, GNUNET_FS_SYNC_PATH_MASTER_UNINDEX, uc->serialization);
+  if (wh == NULL)
+    goto cleanup;
   if ( (GNUNET_OK !=
 	GNUNET_BIO_write_string (wh, uc->filename)) ||
        (GNUNET_OK !=
@@ -1736,6 +1746,8 @@ GNUNET_FS_search_result_sync_ (struct GNUNET_FS_SearchResult *sr)
 				: GNUNET_FS_SYNC_PATH_CHILD_SEARCH,
 				sr->sc->serialization,
 				sr->serialization);
+  if (wh == NULL)
+    goto cleanup;
   uris = GNUNET_FS_uri_to_string (sr->uri);
   if ( (GNUNET_OK !=
 	GNUNET_BIO_write_string (wh, uris)) ||
@@ -1804,6 +1816,8 @@ GNUNET_FS_search_sync_ (struct GNUNET_FS_SearchContext *sc)
   if (NULL == sc->serialization)
     return;
   wh = get_write_handle (sc->h, category, sc->serialization);
+  if (wh == NULL)
+    goto cleanup;
   GNUNET_assert ( (GNUNET_YES == GNUNET_FS_uri_test_ksk (sc->uri)) ||
 		  (GNUNET_YES == GNUNET_FS_uri_test_sks (sc->uri)) );
   uris = GNUNET_FS_uri_to_string (sc->uri);

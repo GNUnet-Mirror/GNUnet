@@ -454,6 +454,7 @@ GNUNET_FS_unindex_start (struct GNUNET_FS_Handle *h,
   pi.status = GNUNET_FS_STATUS_UNINDEX_START;
   pi.value.unindex.eta = GNUNET_TIME_UNIT_FOREVER_REL;
   GNUNET_FS_unindex_make_status_ (&pi, ret, 0);
+  /* FIXME: must be able to abort hashing here! */
   GNUNET_CRYPTO_hash_file (h->sched,
 			   GNUNET_SCHEDULER_PRIORITY_IDLE,
 			   filename,
@@ -476,7 +477,12 @@ void
 GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc)
 {  
   struct GNUNET_FS_ProgressInfo pi;
-
+  
+  /* FIXME: stop hashing (if still ongoing) */
+  /* FIXME: disconnect uc->client (if still connected) */
+  /* FIXME: disconnect from datastore (if still connected) */
+  /* FIXME: other termination operations? */
+  /* FIXME: must do same cleanup in 'unindex_signal_suspend'! */
   GNUNET_FS_end_top (uc->h, uc->top);
   if ( (uc->state != UNINDEX_STATE_COMPLETE) &&
        (uc->state != UNINDEX_STATE_ERROR) )

@@ -557,6 +557,7 @@ publish_content (struct GNUNET_FS_PublishContext *sc)
   uint64_t size;
 
   p = sc->fi_pos;
+  GNUNET_assert (p != NULL);
   if (NULL == p->te)
     {
       if (p->is_directory)
@@ -1062,13 +1063,13 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
       if (NULL != nuid)
 	ret->nuid = GNUNET_strdup (nuid);
     }
-  GNUNET_FS_publish_sync_ (ret);
   /* signal start */
   GNUNET_FS_file_information_inspect (ret->fi,
 				      &fip_signal_start,
 				      ret);
   ret->fi_pos = ret->fi;
   ret->top = GNUNET_FS_make_top (h, &publish_signal_suspend, ret);
+  GNUNET_FS_publish_sync_ (ret);
   // FIXME: calculate space needed for "fi"
   // and reserve as first task (then trigger
   // "publish_main" from that continuation)!
