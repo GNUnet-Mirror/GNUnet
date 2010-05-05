@@ -122,16 +122,27 @@ struct Plugin
   struct GNUNET_TRANSPORT_PluginEnvironment *env;
 
   /**
+   * Handle to the network service.
+   */
+  struct GNUNET_SERVICE_Context *service;
+
+  /**
    * List of open sessions.
    */
   struct Session *sessions;
 };
 
+static struct Plugin *plugin;
 
 /**
  * Daemon for listening for new connections.
  */
 static struct MHD_Daemon *http_daemon;
+
+/**
+ * Our primary task for http
+ */
+static GNUNET_SCHEDULER_TaskIdentifier http_task;
 
 /**
  * Curl multi for managing client operations.
@@ -263,7 +274,7 @@ static int
 acceptPolicyCallback (void *cls,
                       const struct sockaddr *addr, socklen_t addr_len)
 {
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG," Incoming connection \n");
   /* Currently all incoming connections are accepted, so nothing to do here */
   return MHD_YES;
 }
@@ -286,17 +297,22 @@ accessHandlerCallback (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has an incoming `%s' request from \n",method);
 
+  /* Find out if session exists, otherwise create one */
+
+  /* Is it a PUT or a GET request */
   if ( 0 == strcmp (MHD_HTTP_METHOD_PUT, method) )
-    {
-      /* PUT method here */
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got PUT Request with size %u \n",upload_data_size);
-      
-      // GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# PUT requests"), 1, GNUNET_NO);
-    }
+  {
+    /* PUT method here */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got PUT Request with size %u \n",upload_data_size);
+
+    GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# PUT requests"), 1, GNUNET_NO);
+  }
   if ( 0 == strcmp (MHD_HTTP_METHOD_GET, method) )
-    {
-      /* FIXME */
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got GET Request with size %u \n",upload_data_size);
+    GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# GET requests"), 1, GNUNET_NO);
+  }
+
   return MHD_YES;
 }
 
@@ -312,6 +328,88 @@ requestCompletedCallback (void *unused,
 
 }
 
+
+/**
+ * Function that queries MHD's select sets and
+ * starts the task waiting for them.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier prepare_daemon (struct MHD_Daemon *daemon_handle);
+/**
+ * Call MHD to process pending requests and then go back
+ * and schedule the next run.
+ */
+static void
+run_daemon (void *cls,
+            const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct MHD_Daemon *daemon_handle = cls;
+
+  if (daemon_handle == http_daemon)
+    http_task = GNUNET_SCHEDULER_NO_TASK;
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+  GNUNET_assert (MHD_YES == MHD_run (daemon_handle));
+  if (daemon_handle == http_daemon)
+    http_task = prepare_daemon (daemon_handle);
+
+}
+
+/**
+ * Function that queries MHD's select sets and
+ * starts the task waiting for them.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier
+prepare_daemon (struct MHD_Daemon *daemon_handle)
+{
+  GNUNET_SCHEDULER_TaskIdentifier ret;
+  fd_set rs;
+  fd_set ws;
+  fd_set es;
+  struct GNUNET_NETWORK_FDSet *wrs;
+  struct GNUNET_NETWORK_FDSet *wws;
+  struct GNUNET_NETWORK_FDSet *wes;
+  int max;
+  unsigned long long timeout;
+  int haveto;
+  struct GNUNET_TIME_Relative tv;
+
+  FD_ZERO(&rs);
+  FD_ZERO(&ws);
+  FD_ZERO(&es);
+  wrs = GNUNET_NETWORK_fdset_create ();
+  wes = GNUNET_NETWORK_fdset_create ();
+  wws = GNUNET_NETWORK_fdset_create ();
+  max = -1;
+  GNUNET_assert (MHD_YES ==
+                 MHD_get_fdset (daemon_handle,
+                                &rs,
+                                &ws,
+                                &es,
+                                &max));
+  haveto = MHD_get_timeout (daemon_handle, &timeout);
+  if (haveto == MHD_YES)
+    tv.value = (uint64_t) timeout;
+  else
+    tv = GNUNET_TIME_UNIT_FOREVER_REL;
+  GNUNET_NETWORK_fdset_copy_native (wrs, &rs, max);
+  GNUNET_NETWORK_fdset_copy_native (wws, &ws, max);
+  GNUNET_NETWORK_fdset_copy_native (wes, &es, max);
+  ret = GNUNET_SCHEDULER_add_select (plugin->env->sched,
+                                     GNUNET_SCHEDULER_PRIORITY_HIGH,
+                                     GNUNET_SCHEDULER_NO_TASK,
+                                     tv,
+                                     wrs,
+                                     wws,
+                                     &run_daemon,
+                                     daemon_handle);
+  GNUNET_NETWORK_fdset_destroy (wrs);
+  GNUNET_NETWORK_fdset_destroy (wws);
+  GNUNET_NETWORK_fdset_destroy (wes);
+  return ret;
+}
+
+
 /**
  * Entry point for the plugin.
  */
@@ -320,8 +418,8 @@ libgnunet_plugin_transport_http_init (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
-  struct Plugin *plugin;
   long long unsigned int port;
+  struct GNUNET_SERVICE_Context *service;
   int use_ipv6;
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
@@ -334,6 +432,18 @@ libgnunet_plugin_transport_http_init (void *cls)
   api->address_pretty_printer = &http_plugin_address_pretty_printer;
   api->check_address = &http_plugin_address_suggested;
 
+  /*
+  service = GNUNET_SERVICE_start ("transport-http", env->sched, env->cfg);
+  if (service == NULL)
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                       "http",
+                       _("Failed to start service for `%s' transport plugin.\n"),
+                       "http");
+      return NULL;
+    }
+  plugin->service = service;
+  */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting http plugin...\n");
   /* Reading port number from config file */
   if ((GNUNET_OK !=
@@ -397,6 +507,8 @@ libgnunet_plugin_transport_http_init (void *cls)
 
   curl_multi = curl_multi_init ();
 
+  if (http_daemon != NULL)
+    http_task = prepare_daemon (http_daemon);
 
   if (NULL == plugin->env->stats)
   {
@@ -407,6 +519,7 @@ libgnunet_plugin_transport_http_init (void *cls)
   }
 
   GNUNET_STATISTICS_set ( env->stats, "# PUT requests", 0, GNUNET_NO);
+  GNUNET_STATISTICS_set ( env->stats, "# GET requests", 0, GNUNET_NO);
 
   if ( (NULL == http_daemon) || (NULL == curl_multi))
   {
@@ -438,7 +551,7 @@ libgnunet_plugin_transport_http_done (void *cls)
   curl_multi = NULL;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Shutting down http plugin...\n");
-
+  /* GNUNET_SERVICE_stop (plugin->service); */
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;
