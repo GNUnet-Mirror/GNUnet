@@ -33,6 +33,7 @@
 #include "gnunet_protocols.h"
 #include "gnunet_program_lib.h"
 #include "gnunet_signatures.h"
+#include "gnunet_service_lib.h"
 #include "plugin_transport.h"
 #include "gnunet_statistics_service.h"
 #include "transport.h"
@@ -84,12 +85,14 @@ static uint32_t max_connect_per_transport;
 /**
  * Environment for this plugin.
  */
-struct GNUNET_TRANSPORT_PluginEnvironment env;
+static struct GNUNET_TRANSPORT_PluginEnvironment env;
 
 /**
  *handle for the api provided by this plugin
  */
-struct GNUNET_TRANSPORT_PluginFunctions *api;
+static struct GNUNET_TRANSPORT_PluginFunctions *api;
+
+static struct GNUNET_SERVICE_Context *service;
 
 /**
  * Did the test pass or fail?
@@ -97,6 +100,8 @@ struct GNUNET_TRANSPORT_PluginFunctions *api;
 static int fail;
 
 static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+pid_t pid;
 
 /**
  * Initialize Environment for this plugin
@@ -152,6 +157,12 @@ shutdown_clean ()
 {
   if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel( sched, timeout_task );
+  if (NULL != service) GNUNET_SERVICE_stop (service);
+  if (0 != PLIBC_KILL (pid, SIGTERM))
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+      fail = 1;
+    }
   unload_plugins(env.cls, env.cfg);
 }
 
@@ -183,6 +194,20 @@ setup_plugin_environment ()
   env.notify_address = &notify_address;
   env.max_connections = max_connect_per_transport;
 }
+
+static int
+process_stat (void *cls,
+              const char *subsystem,
+              const char *name,
+              uint64_t value,
+              int is_persistent)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Value: %llums\n"),
+              (unsigned long long) value);
+  return GNUNET_OK;
+}
+
 
 /**
  * Runs the test.
@@ -222,9 +247,32 @@ run (void *cls,
       return;
     }
 
+  pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
+                                 "gnunet-service-statistics",
+                                 "-L", "DEBUG",
+                                 "-c", "test_plugin_transport_data_http.conf", NULL);
 
-  // stats = GNUNET_STATISTICS_create (sched, "http-transport", cfg);
 
+  if ( pid == -1)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                     _("Failed to start service for `%s' http transport plugin test.\n"),
+                     "statistics");
+    return;
+  }
+
+
+
+  stats = GNUNET_STATISTICS_create (sched, "http-transport", cfg);
+  env.stats = stats;
+
+  GNUNET_STATISTICS_get (stats,
+                         "http-transport",
+                         gettext_noop("# PUT requests"),
+                         GNUNET_TIME_UNIT_MINUTES,
+                         NULL,
+                         &process_stat,
+                         NULL);
   /*
   max_connect_per_transport = (uint32_t) tneigh;
   my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);

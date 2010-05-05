@@ -142,22 +142,22 @@ struct Plugin
 static struct Plugin *plugin;
 
 /**
- * Daemon for listening for new connections.
+ * Daemon for listening for new IPv4 connections.
  */
 static struct MHD_Daemon *http_daemon_v4;
 
 /**
- * Daemon for listening for new connections.
+ * Daemon for listening for new IPv6connections.
  */
 static struct MHD_Daemon *http_daemon_v6;
 
 /**
- * Our primary task for http
+ * Our primary task for http daemon handling IPv4 connections
  */
 static GNUNET_SCHEDULER_TaskIdentifier http_task_v4;
 
 /**
- * Our primary task for http
+ * Our primary task for http daemon handling IPv6 connections
  */
 static GNUNET_SCHEDULER_TaskIdentifier http_task_v6;
 
@@ -324,13 +324,12 @@ accessHandlerCallback (void *cls,
   {
     /* PUT method here */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got PUT Request with size %u \n",upload_data_size);
-
-    // GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# PUT requests"), 1, GNUNET_NO);
+    GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# PUT requests"), 1, GNUNET_NO);
   }
   if ( 0 == strcmp (MHD_HTTP_METHOD_GET, method) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got GET Request with size\n");
-    // GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# GET requests"), 1, GNUNET_NO);
+    GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# GET requests"), 1, GNUNET_NO);
   }
 
   response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),
@@ -368,7 +367,8 @@ run_daemon (void *cls,
   GNUNET_assert (MHD_YES == MHD_run (daemon_handle));
   if (daemon_handle == http_daemon_v4)
     http_task_v4 = prepare_daemon (daemon_handle);
-
+  if (daemon_handle == http_daemon_v6)
+    http_task_v6 = prepare_daemon (daemon_handle);
 }
 
 /**
@@ -463,7 +463,6 @@ libgnunet_plugin_transport_http_done (void *cls)
     curl_multi_cleanup (curl_multi);
     curl_multi = NULL;
   }
-  /* GNUNET_SERVICE_stop (plugin->service); */
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;
@@ -478,7 +477,6 @@ libgnunet_plugin_transport_http_init (void *cls)
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   long long unsigned int port;
-  /* struct GNUNET_SERVICE_Context *service; */
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
@@ -490,18 +488,7 @@ libgnunet_plugin_transport_http_init (void *cls)
   api->address_pretty_printer = &http_plugin_address_pretty_printer;
   api->check_address = &http_plugin_address_suggested;
 
-  /*
-  service = GNUNET_SERVICE_start ("transport-http", env->sched, env->cfg);
-  if (service == NULL)
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                       "http",
-                       _("Failed to start service for `%s' transport plugin.\n"),
-                       "http");
-      return NULL;
-    }
-  plugin->service = service;
-  */
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting http plugin...\n");
   /* Reading port number from config file */
   if ((GNUNET_OK !=
@@ -521,7 +508,6 @@ libgnunet_plugin_transport_http_init (void *cls)
     }
   if ((http_daemon_v4 == NULL) && (http_daemon_v6 == NULL) && (port != 0))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD on port %u with IPv6 disabled\n",port);
       http_daemon_v4 = MHD_start_daemon (MHD_NO_FLAG,
                                      port,
                                      &acceptPolicyCallback,
@@ -531,7 +517,6 @@ libgnunet_plugin_transport_http_init (void *cls)
                                      MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
                                      MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
                                      MHD_OPTION_END);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD on port %u with IPv6 enabled\n",port);
       http_daemon_v6 = MHD_start_daemon (MHD_USE_IPv6,
                                      port,
                                      &acceptPolicyCallback,
@@ -543,6 +528,14 @@ libgnunet_plugin_transport_http_init (void *cls)
                                      MHD_OPTION_END);
     }
 
+
+  if ((http_daemon_v4 != NULL) && (http_daemon_v6 != NULL))
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD on port %u with IPv4 and IPv6 enabled\n",port);
+  if ((http_daemon_v4 != NULL) && (http_daemon_v6 == NULL))
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD on port %u with IPv4 enabled\n",port);
+  if ((http_daemon_v4 == NULL) && (http_daemon_v6 != NULL))
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD on port %u with IPv6 enabled\n",port);
+
   curl_multi = curl_multi_init ();
 
   if (http_daemon_v4 != NULL)
@@ -550,14 +543,13 @@ libgnunet_plugin_transport_http_init (void *cls)
   if (http_daemon_v6 != NULL)
     http_task_v6 = prepare_daemon (http_daemon_v6);
 
-  /*
   if (NULL == plugin->env->stats)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Failed to retrieve statistics handle\n"));
     libgnunet_plugin_transport_http_done (api);
     return NULL;
-  }*/
+  }
 
   GNUNET_STATISTICS_set ( env->stats, "# PUT requests", 0, GNUNET_NO);
   GNUNET_STATISTICS_set ( env->stats, "# GET requests", 0, GNUNET_NO);
