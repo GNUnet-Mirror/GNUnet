@@ -342,19 +342,6 @@ accessHandlerCallback (void *cls,
 }
 
 /**
- * MHD is done handling a request.  Cleanup
- * the respective transport state.
- */
-static void
-requestCompletedCallback (void *unused,
-                          struct MHD_Connection *session,
-                          void **httpSessionCache)
-{
-
-}
-
-
-/**
  * Function that queries MHD's select sets and
  * starts the task waiting for them.
  */
