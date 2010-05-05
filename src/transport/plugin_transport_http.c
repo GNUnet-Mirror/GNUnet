@@ -325,12 +325,12 @@ accessHandlerCallback (void *cls,
     /* PUT method here */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got PUT Request with size %u \n",upload_data_size);
 
-    GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# PUT requests"), 1, GNUNET_NO);
+    // GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# PUT requests"), 1, GNUNET_NO);
   }
   if ( 0 == strcmp (MHD_HTTP_METHOD_GET, method) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got GET Request with size\n");
-    GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# GET requests"), 1, GNUNET_NO);
+    // GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# GET requests"), 1, GNUNET_NO);
   }
 
   response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),
@@ -563,13 +563,14 @@ libgnunet_plugin_transport_http_init (void *cls)
   if (http_daemon_v6 != NULL)
     http_task_v6 = prepare_daemon (http_daemon_v6);
 
+  /*
   if (NULL == plugin->env->stats)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Failed to retrieve statistics handle\n"));
     libgnunet_plugin_transport_http_done (api);
     return NULL;
-  }
+  }*/
 
   GNUNET_STATISTICS_set ( env->stats, "# PUT requests", 0, GNUNET_NO);
   GNUNET_STATISTICS_set ( env->stats, "# GET requests", 0, GNUNET_NO);

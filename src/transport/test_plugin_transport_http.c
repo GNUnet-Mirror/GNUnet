@@ -223,14 +223,13 @@ run (void *cls,
     }
 
 
-  stats = GNUNET_STATISTICS_create (sched, "http-transport", cfg);
+  // stats = GNUNET_STATISTICS_create (sched, "http-transport", cfg);
 
   /*
   max_connect_per_transport = (uint32_t) tneigh;
   my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
-  */
   GNUNET_free (keyfile);
-  /*
+
   if (my_private_key == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -283,7 +282,7 @@ main (int argc, char *const *argv)
   };
   int ret;
   char *const argv_prog[] = {
-    "test-gnunetd-plugin-transport_http",
+    "test_plugin_transport_http",
     "-c",
     "test_plugin_transport_data_http.conf",
     "-L",
@@ -294,7 +293,7 @@ main (int argc, char *const *argv)
 #endif
     NULL
   };
-  GNUNET_log_setup ("test-gnunetd-plugin-transport_http",
+  GNUNET_log_setup ("test_plugin_transport_http",
 #if VERBOSE
                     "DEBUG",
 #else
@@ -305,9 +304,9 @@ main (int argc, char *const *argv)
   ret = (GNUNET_OK ==
          GNUNET_PROGRAM_run (5,
                              argv_prog,
-                             "test-plugin-transport_http",
+                             "test_plugin_transport_http",
                              "testcase", options, &run, NULL)) ? fail : 1;
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-plugin-transport_http");
+  GNUNET_DISK_directory_remove ("/tmp/test_plugin_transport_http");
 
   return fail;
 }
