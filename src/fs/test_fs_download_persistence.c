@@ -19,8 +19,8 @@
 */
 
 /**
- * @file fs/test_fs_search_persistence.c
- * @brief simple testcase for persistence of search operation
+ * @file fs/test_fs_download_persistence.c
+ * @brief simple testcase for persistence of simple download operation
  * @author Christian Grothoff
  */
 
@@ -36,7 +36,7 @@
 /**
  * File-size we use for testing.
  */
-#define FILESIZE 1024
+#define FILESIZE (1024 * 1024 * 2)
 
 /**
  * How long until we give up on transmitting the message?
@@ -51,7 +51,6 @@
 struct PeerContext
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
-  struct GNUNET_PeerIdentity id;   
 #if START_ARM
   pid_t arm_pid;
 #endif
@@ -63,30 +62,68 @@ static struct GNUNET_TIME_Absolute start;
 
 static struct GNUNET_SCHEDULER_Handle *sched;
 
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
 static struct GNUNET_FS_Handle *fs;
 
-static struct GNUNET_FS_SearchContext *search;
+static struct GNUNET_FS_DownloadContext *download;
 
 static struct GNUNET_FS_PublishContext *publish;
 
-static const struct GNUNET_CONFIGURATION_Handle *cfg;
+static GNUNET_SCHEDULER_TaskIdentifier timeout_kill;
+
+static char *fn;
+
+static int err;
+
+static void
+timeout_kill_task (void *cls,
+		   const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if (download != NULL)
+    {
+      GNUNET_FS_download_stop (download, GNUNET_YES);
+      download = NULL;
+    }
+  else if (publish != NULL)
+    {
+      GNUNET_FS_publish_stop (publish);
+      publish = NULL;
+    }
+  timeout_kill = GNUNET_SCHEDULER_NO_TASK;
+  err = 1;
+}
 
 static void
 abort_publish_task (void *cls,
 		     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_FS_publish_stop (publish);
-  publish = NULL;
+  if (publish != NULL)
+    {
+      GNUNET_FS_publish_stop (publish);
+      publish = NULL;
+    }
 }
 
 
 static void
-abort_search_task (void *cls,
+abort_download_task (void *cls,
 		     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (search != NULL)
-    GNUNET_FS_search_stop (search);
-  search = NULL;
+  uint64_t size;
+  
+  if (download != NULL)
+    {
+      GNUNET_FS_download_stop (download, GNUNET_YES);
+      download = NULL;
+    }
+  GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_size (fn, &size, GNUNET_YES));
+  GNUNET_assert (size == FILESIZE); 
+  GNUNET_DISK_directory_remove (fn);
+  GNUNET_free (fn);
+  fn = NULL;
+  GNUNET_SCHEDULER_cancel (sched, timeout_kill);
+  timeout_kill = GNUNET_SCHEDULER_NO_TASK;
 }
 
 
@@ -102,14 +139,12 @@ restart_fs_task (void *cls,
   GNUNET_FS_stop (fs);
   fs = GNUNET_FS_start (sched,
 			cfg,
-			"test-fs-search-persistence",
+			"test-fs-download-persistence",
 			&progress_cb,
 			NULL,
 			GNUNET_FS_FLAGS_PERSISTENCE,
 			GNUNET_FS_OPTIONS_END);
 }
-
-
 
 
 /**
@@ -139,11 +174,7 @@ consider_restart (int ev)
 static void *
 progress_cb (void *cls, 
 	     const struct GNUNET_FS_ProgressInfo *event)
-{  
-  const char *keywords[] = {
-    "down_foo"
-  };
-  struct GNUNET_FS_Uri *kuri;
+{
 
   switch (event->status)
     {
@@ -157,25 +188,40 @@ progress_cb (void *cls,
 #endif      
       break;
     case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
-      kuri = GNUNET_FS_uri_ksk_create_from_args (1, keywords);
+      printf ("Publishing complete, %llu kbps.\n",
+	      (unsigned long long) (FILESIZE * 1000LL / (1+GNUNET_TIME_absolute_get_duration (start).value) / 1024LL));
+      fn = GNUNET_DISK_mktemp ("gnunet-download-test-dst");
       start = GNUNET_TIME_absolute_get ();
-      search = GNUNET_FS_search_start (fs,
-				       kuri,
-				       1,
-				       GNUNET_FS_SEARCH_OPTION_NONE,
-				       "search");
-      GNUNET_FS_uri_destroy (kuri);
-      GNUNET_assert (search != NULL);
+      download = GNUNET_FS_download_start (fs,
+					   event->value.publish.specifics.completed.chk_uri,
+					   NULL,
+					   fn, NULL,
+					   0,
+					   FILESIZE,
+					   1,
+					   GNUNET_FS_DOWNLOAD_OPTION_NONE,
+					   "download",
+					   NULL);
+      GNUNET_assert (download != NULL);
       break;
-    case GNUNET_FS_STATUS_SEARCH_RESULT:
+    case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
       consider_restart (event->status);
+      printf ("Download complete,  %llu kbps.\n",
+	      (unsigned long long) (FILESIZE * 1000LL / (1+GNUNET_TIME_absolute_get_duration (start).value) / 1024LL));
+      GNUNET_SCHEDULER_add_now (sched,
+				&abort_download_task,
+				NULL);
+      break;
+    case GNUNET_FS_STATUS_DOWNLOAD_PROGRESS:
+      consider_restart (event->status);
+      GNUNET_assert (download == event->value.download.dc);
 #if VERBOSE
-      printf ("Search complete.\n");
+      printf ("Download is progressing (%llu/%llu at level %u off %llu)...\n",
+              (unsigned long long) event->value.download.completed,
+              (unsigned long long) event->value.download.size,
+	      event->value.download.specifics.progress.depth,
+	      (unsigned long long) event->value.download.specifics.progress.offset);
 #endif
-      GNUNET_SCHEDULER_add_continuation (sched,
-					 &abort_search_task,
-					 NULL,
-					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
     case GNUNET_FS_STATUS_PUBLISH_ERROR:
       fprintf (stderr,
@@ -187,14 +233,19 @@ progress_cb (void *cls,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
-    case GNUNET_FS_STATUS_SEARCH_ERROR:
+    case GNUNET_FS_STATUS_DOWNLOAD_ERROR:
       fprintf (stderr,
-	       "Error searching file: %s\n",
-	       event->value.search.specifics.error.message);
-      GNUNET_SCHEDULER_add_continuation (sched,
-					 &abort_search_task,
-					 NULL,
-					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+	       "Error downloading file: %s\n",
+	       event->value.download.specifics.error.message);
+      GNUNET_SCHEDULER_add_now (sched,
+				&abort_download_task,
+				NULL);
+      break;
+    case GNUNET_FS_STATUS_DOWNLOAD_ACTIVE:
+      consider_restart (event->status);
+      break;
+    case GNUNET_FS_STATUS_DOWNLOAD_INACTIVE:
+      consider_restart (event->status);
       break;
     case GNUNET_FS_STATUS_PUBLISH_START:
       GNUNET_assert (0 == strcmp ("publish-context", event->value.publish.cctx));
@@ -210,26 +261,28 @@ progress_cb (void *cls,
       GNUNET_FS_stop (fs);
       fs = NULL;
       break;
-    case GNUNET_FS_STATUS_SEARCH_START:
+    case GNUNET_FS_STATUS_DOWNLOAD_START:
       consider_restart (event->status);
-      GNUNET_assert (search == NULL);
-      GNUNET_assert (0 == strcmp ("search", event->value.search.cctx));
-      GNUNET_assert (1 == event->value.search.anonymity);
+      GNUNET_assert (download == NULL);
+      GNUNET_assert (0 == strcmp ("download", event->value.download.cctx));
+      GNUNET_assert (NULL == event->value.download.pctx);
+      GNUNET_assert (NULL != event->value.download.uri);
+      GNUNET_assert (0 == strcmp (fn, event->value.download.filename));
+      GNUNET_assert (FILESIZE == event->value.download.size);
+      GNUNET_assert (0 == event->value.download.completed);
+      GNUNET_assert (1 == event->value.download.anonymity);
       break;
-    case GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED:
-      break;
-    case GNUNET_FS_STATUS_SEARCH_STOPPED:
+    case GNUNET_FS_STATUS_DOWNLOAD_STOPPED:
       consider_restart (event->status);
-      GNUNET_assert (search == event->value.search.sc);
+      GNUNET_assert (download == event->value.download.dc);
       GNUNET_SCHEDULER_add_continuation (sched,
 					 &abort_publish_task,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
     default:
-      fprintf (stderr,
-	       "Unexpected event: %d\n", 
-	       event->status);
+      printf ("Unexpected event: %d\n", 
+	      event->status);
       break;
     }
   return NULL;
@@ -276,7 +329,7 @@ run (void *cls,
 {
   const char *keywords[] = {
     "down_foo",
-    "down_bar"
+    "down_bar",
   };
   char *buf;
   struct GNUNET_CONTAINER_MetaData *meta;
@@ -286,10 +339,10 @@ run (void *cls,
 
   sched = s;
   cfg = c;
-  setup_peer (&p1, "test_fs_search_data.conf");
+  setup_peer (&p1, "test_fs_download_data.conf");
   fs = GNUNET_FS_start (sched,
 			cfg,
-			"test-fs-search-persistence",
+			"test-fs-download-persistence",
 			&progress_cb,
 			NULL,
 			GNUNET_FS_FLAGS_PERSISTENCE,
@@ -313,6 +366,10 @@ run (void *cls,
   GNUNET_FS_uri_destroy (kuri);
   GNUNET_CONTAINER_meta_data_destroy (meta);
   GNUNET_assert (NULL != fi);
+  timeout_kill = GNUNET_SCHEDULER_add_delayed (sched,
+					       TIMEOUT,
+					       &timeout_kill_task,
+					       NULL);
   start = GNUNET_TIME_absolute_get ();
   publish = GNUNET_FS_publish_start (fs,
 				    fi,
@@ -326,9 +383,9 @@ int
 main (int argc, char *argv[])
 {
   char *const argvx[] = { 
-    "test-fs-search-persistence",
+    "test-fs-download-persistence",
     "-c",
-    "test_fs_search_data.conf",
+    "test_fs_download_data.conf",
 #if VERBOSE
     "-L", "DEBUG",
 #endif
@@ -338,7 +395,7 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
-  GNUNET_log_setup ("test_fs_search_persistence", 
+  GNUNET_log_setup ("test_fs_download_persistence", 
 #if VERBOSE
 		    "DEBUG",
 #else
@@ -346,11 +403,11 @@ main (int argc, char *argv[])
 #endif
 		    NULL);
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1,
-                      argvx, "test-fs-search-persistencce",
+                      argvx, "test-fs-download-persistence",
 		      "nohelp", options, &run, NULL);
   stop_arm (&p1);
-  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-search/");
-  return 0;
+  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-download/");
+  return err;
 }
 
-/* end of test_fs_search_persistence.c */
+/* end of test_fs_download_persistence.c */
