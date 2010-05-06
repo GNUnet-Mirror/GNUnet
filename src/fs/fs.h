@@ -1018,6 +1018,41 @@ GNUNET_FS_search_result_sync_ (struct GNUNET_FS_SearchResult *sr);
 void
 GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc);
 
+/**
+ * Create SUSPEND event for the given publish operation
+ * and then clean up our state (without stop signal).
+ *
+ * @param cls the 'struct GNUNET_FS_PublishContext' to signal for
+ */
+void
+GNUNET_FS_publish_signal_suspend_ (void *cls);
+
+/**
+ * Create SUSPEND event for the given search operation
+ * and then clean up our state (without stop signal).
+ *
+ * @param cls the 'struct GNUNET_FS_SearchContext' to signal for
+ */
+void
+GNUNET_FS_search_signal_suspend_ (void *cls);
+
+/**
+ * Create SUSPEND event for the given download operation
+ * and then clean up our state (without stop signal).
+ *
+ * @param cls the 'struct GNUNET_FS_DownloadContext' to signal for
+ */
+void
+GNUNET_FS_download_signal_suspend_ (void *cls);
+
+/**
+ * Create SUSPEND event for the given unindex operation
+ * and then clean up our state (without stop signal).
+ *
+ * @param cls the 'struct GNUNET_FS_UnindexContext' to signal for
+ */
+void
+GNUNET_FS_unindex_signal_suspend_ (void *cls);
 
 /**
  * Function signature of the functions that can be called
@@ -1080,15 +1115,6 @@ void
 GNUNET_FS_end_top (struct GNUNET_FS_Handle *h,
 		   struct TopLevelActivity *top);
 
-
-/**
- * Create SUSPEND event for the given download operation
- * and then clean up our state (without stop signal).
- *
- * @param cls the 'struct GNUNET_FS_DownloadContext' to signal for
- */
-void
-GNUNET_FS_download_signal_suspend_ (void *cls);
 
 
 /**

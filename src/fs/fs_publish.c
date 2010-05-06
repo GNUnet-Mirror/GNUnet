@@ -797,19 +797,19 @@ void
 GNUNET_FS_publish_main_ (void *cls,
 			 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_FS_PublishContext *sc = cls;
+  struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_ProgressInfo pi;
   struct GNUNET_FS_FileInformation *p;
   char *fn;
 
-  sc->upload_task = GNUNET_SCHEDULER_NO_TASK;  
-  p = sc->fi_pos;
+  pc->upload_task = GNUNET_SCHEDULER_NO_TASK;  
+  p = pc->fi_pos;
   if (NULL == p)
     {
       /* upload of entire hierarchy complete,
 	 publish namespace entries */
-      GNUNET_FS_publish_sync_ (sc);
-      publish_sblock (sc);
+      GNUNET_FS_publish_sync_ (pc);
+      publish_sblock (pc);
       return;
     }
   /* find starting position */
@@ -819,8 +819,8 @@ GNUNET_FS_publish_main_ (void *cls,
 	  (NULL == p->data.dir.entries->chk_uri) )
     {
       p = p->data.dir.entries;
-      sc->fi_pos = p;
-      GNUNET_FS_publish_sync_ (sc);
+      pc->fi_pos = p;
+      GNUNET_FS_publish_sync_ (pc);
     }
   /* abort on error */
   if (NULL != p->emsg)
@@ -849,33 +849,33 @@ GNUNET_FS_publish_main_ (void *cls,
 	  pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
 	  pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
 	  pi.value.publish.specifics.error.message = p->emsg;
-	  p->client_info = GNUNET_FS_publish_make_status_ (&pi, sc, p, 0);
+	  p->client_info = GNUNET_FS_publish_make_status_ (&pi, pc, p, 0);
 	}
-      sc->all_done = GNUNET_YES;
-      GNUNET_FS_publish_sync_ (sc);
+      pc->all_done = GNUNET_YES;
+      GNUNET_FS_publish_sync_ (pc);
       return;
     }
   /* handle completion */
   if (NULL != p->chk_uri)
     {
-      GNUNET_FS_publish_sync_ (sc);
+      GNUNET_FS_publish_sync_ (pc);
       /* upload of "p" complete, publish KBlocks! */
       if (p->keywords != NULL)
 	{
-	  GNUNET_FS_publish_ksk (sc->h,
+	  GNUNET_FS_publish_ksk (pc->h,
 				 p->keywords,
 				 p->meta,
 				 p->chk_uri,
 				 p->expirationTime,
 				 p->anonymity,
 				 p->priority,
-				 sc->options,
+				 pc->options,
 				 &publish_kblocks_cont,
-				 sc);
+				 pc);
 	}
       else
 	{
-	  publish_kblocks_cont (sc,
+	  publish_kblocks_cont (pc,
 				p->chk_uri,
 				NULL);
 	}
@@ -892,27 +892,27 @@ GNUNET_FS_publish_main_ (void *cls,
 		      "<no-name>",
 		      _("needs to be an actual file"));
 	  GNUNET_FS_file_information_sync_ (p);
-	  publish_content (sc);
+	  publish_content (pc);
 	  return;
 	}      
       if (p->data.file.have_hash)
 	{
-	  hash_for_index_cb (sc,
+	  hash_for_index_cb (pc,
 			     &p->data.file.file_id);
 	}
       else
 	{
 	  p->start_time = GNUNET_TIME_absolute_get ();
-	  GNUNET_CRYPTO_hash_file (sc->h->sched,
+	  GNUNET_CRYPTO_hash_file (pc->h->sched,
 				   GNUNET_SCHEDULER_PRIORITY_IDLE,
 				   p->filename,
 				   HASHING_BLOCKSIZE,
 				   &hash_for_index_cb,
-				   sc);
+				   pc);
 	}
       return;
     }
-  publish_content (sc);
+  publish_content (pc);
 }
 
 
@@ -998,8 +998,8 @@ fip_signal_suspend(void *cls,
  *
  * @param cls the 'struct GNUNET_FS_PublishContext' to signal for
  */
-static void
-publish_signal_suspend (void *cls)
+void
+GNUNET_FS_publish_signal_suspend_ (void *cls)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
 
@@ -1068,7 +1068,7 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
 				      &fip_signal_start,
 				      ret);
   ret->fi_pos = ret->fi;
-  ret->top = GNUNET_FS_make_top (h, &publish_signal_suspend, ret);
+  ret->top = GNUNET_FS_make_top (h, &GNUNET_FS_publish_signal_suspend_, ret);
   GNUNET_FS_publish_sync_ (ret);
   // FIXME: calculate space needed for "fi"
   // and reserve as first task (then trigger

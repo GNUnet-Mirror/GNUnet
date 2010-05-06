@@ -1233,16 +1233,6 @@ search_result_resume_probes (void *cls,
 
 
 /**
- * Create SUSPEND event for the given search operation
- * and then clean up our state (without stop signal).
- *
- * @param cls the 'struct GNUNET_FS_SearchContext' to signal for
- */
-static void
-search_signal_suspend (void *cls);
-
-
-/**
  * Signal suspend and free the given search result.
  *
  * @param cls the global FS handle
@@ -1263,7 +1253,7 @@ search_result_suspend (void *cls,
   if (sr->download != NULL)
     GNUNET_FS_download_signal_suspend_ (sr->download);
   if (sr->update_search != NULL)
-    search_signal_suspend (sr->update_search);
+    GNUNET_FS_search_signal_suspend_ (sr->update_search);
   pi.status = GNUNET_FS_STATUS_SEARCH_RESULT_SUSPEND;
   pi.value.search.specifics.result_suspend.cctx = sr->client_info;
   pi.value.search.specifics.result_suspend.meta = sr->meta;
@@ -1289,8 +1279,8 @@ search_result_suspend (void *cls,
  *
  * @param cls the 'struct GNUNET_FS_SearchContext' to signal for
  */
-static void
-search_signal_suspend (void *cls)
+void
+GNUNET_FS_search_signal_suspend_ (void *cls)
 {
   struct GNUNET_FS_SearchContext *sc = cls;
   struct GNUNET_FS_ProgressInfo pi;
@@ -1342,7 +1332,7 @@ GNUNET_FS_search_start (struct GNUNET_FS_Handle *h,
 {
   struct GNUNET_FS_SearchContext *ret;
   ret = search_start (h, uri, anonymity, options, cctx, NULL);
-  ret->top = GNUNET_FS_make_top (h, &search_signal_suspend, ret);
+  ret->top = GNUNET_FS_make_top (h, &GNUNET_FS_search_signal_suspend_, ret);
   return ret;
 }
 

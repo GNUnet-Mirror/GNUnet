@@ -404,8 +404,8 @@ GNUNET_FS_unindex_process_hash_ (void *cls,
  *
  * @param cls the 'struct GNUNET_FS_UnindexContext' to signal for
  */
-static void
-unindex_signal_suspend (void *cls)
+void
+GNUNET_FS_unindex_signal_suspend_ (void *cls)
 {
   struct GNUNET_FS_UnindexContext *uc = cls;
   struct GNUNET_FS_ProgressInfo pi;
@@ -462,7 +462,7 @@ GNUNET_FS_unindex_start (struct GNUNET_FS_Handle *h,
 			   &GNUNET_FS_unindex_process_hash_,
 			   ret);
   ret->top = GNUNET_FS_make_top (h,
-				 &unindex_signal_suspend,
+				 &GNUNET_FS_unindex_signal_suspend_,
 				 ret);
   return ret;
 }

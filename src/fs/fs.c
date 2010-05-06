@@ -749,6 +749,7 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
       return NULL;
     }
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_FileInformation));
+  ret->h = h;
   ksks = NULL;
   chks = NULL;
   filename = NULL;
@@ -1382,6 +1383,7 @@ deserialize_publish_file (void *cls,
       GNUNET_free (emsg);
     }
   GNUNET_free_non_null (ns);
+  pc->top = GNUNET_FS_make_top (h, &GNUNET_FS_publish_signal_suspend_, pc);
   return GNUNET_OK;
  cleanup:
   GNUNET_free_non_null (pc->nid);
@@ -1914,6 +1916,9 @@ deserialize_unindex_file (void *cls,
       GNUNET_break (0);
       goto cleanup;
     }
+  uc->top = GNUNET_FS_make_top (h,
+				&GNUNET_FS_unindex_signal_suspend_,
+				uc);
   pi.status = GNUNET_FS_STATUS_UNINDEX_RESUME;
   pi.value.unindex.specifics.resume.message = uc->emsg;
   GNUNET_FS_unindex_make_status_ (&pi,
@@ -2468,7 +2473,12 @@ deserialize_download (struct GNUNET_FS_Handle *h,
       dc->search = search;
       search->download = dc;
     }
-  signal_download_resume (dc);
+  if ( (parent == NULL) || 
+       (search == NULL) )
+    dc->top = GNUNET_FS_make_top (dc->h,
+				  &GNUNET_FS_download_signal_suspend_,
+				  dc);
+  signal_download_resume (dc);  
   GNUNET_free (uris);
   return;
  cleanup:
@@ -2604,6 +2614,7 @@ deserialize_search_file (void *cls,
   char *ser;
   char *emsg;
   struct GNUNET_BIO_ReadHandle *rh;
+  struct GNUNET_FS_SearchContext *sc;
 
   ser = get_serialization_short_name (filename);
   rh = GNUNET_BIO_read_open (filename);
@@ -2616,7 +2627,8 @@ deserialize_search_file (void *cls,
 	}
       return GNUNET_OK;
     }
-  (void) deserialize_search (h, rh, NULL, ser);
+  sc = deserialize_search (h, rh, NULL, ser);
+  sc->top = GNUNET_FS_make_top (h, &GNUNET_FS_search_signal_suspend_, sc);
   GNUNET_free (ser);
   if (GNUNET_OK !=
       GNUNET_BIO_read_close (rh, &emsg))

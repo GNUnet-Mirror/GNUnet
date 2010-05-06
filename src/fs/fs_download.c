@@ -1558,6 +1558,10 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 	      "Download tree has depth %u\n",
 	      dc->treedepth);
 #endif
+  if (parent == NULL)
+    dc->top = GNUNET_FS_make_top (dc->h,
+				  &GNUNET_FS_download_signal_suspend_,
+				  dc);
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_START;
   pi.value.download.specifics.start.meta = meta;
   GNUNET_FS_download_make_status_ (&pi, dc);
@@ -1567,11 +1571,6 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 			   1 /* 0 == CHK, 1 == top */); 
   GNUNET_FS_download_sync_ (dc);
   GNUNET_FS_download_start_downloading_ (dc);
-  if (parent == NULL)
-    dc->top = GNUNET_FS_make_top (dc->h,
-				  &GNUNET_FS_download_signal_suspend_,
-				  dc);
-
   return dc;
 }
 
