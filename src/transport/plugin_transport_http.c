@@ -168,12 +168,18 @@ static GNUNET_SCHEDULER_TaskIdentifier http_task_v6;
  */
 static GNUNET_SCHEDULER_TaskIdentifier ti_download;
 
+static int running;
 
+/**
+ * Buffer for data downloaded via HTTP.
+ */
+static char download_buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE];
 
 /**
  * Curl multi for managing client operations.
  */
 static CURLM *curl_multi;
+static CURL  *curl;
 
 static char * get_url( const struct GNUNET_PeerIdentity * target)
 {
@@ -182,6 +188,7 @@ static char * get_url( const struct GNUNET_PeerIdentity * target)
 
 static size_t curl_read_function( void *ptr, size_t size, size_t nmemb, void *stream)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"curl read function\n");
   // strcpy ("Testmessa")
   return 0;
 }
@@ -197,7 +204,78 @@ static void
 task_download (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Download!!!");
+  ti_download = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Download!!!\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Logging shutdown\n");
+  GNUNET_STATISTICS_set(plugin->env->stats,"shutdown",2, GNUNET_NO);
+}
+/**
+ * Ask CURL for the select set and then schedule the
+ * receiving task with the scheduler.
+ */
+static void
+download_prepare ()
+{
+  CURLMcode mret;
+  fd_set rs;
+  fd_set ws;
+  fd_set es;
+  int max;
+  struct GNUNET_NETWORK_FDSet *grs;
+  struct GNUNET_NETWORK_FDSet *gws;
+  long timeout;
+  struct GNUNET_TIME_Relative rtime;
+
+  max = -1;
+  FD_ZERO (&rs);
+  FD_ZERO (&ws);
+  FD_ZERO (&es);
+  mret = curl_multi_fdset (curl_multi, &rs, &ws, &es, &max);
+  if (mret != CURLM_OK)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("%s failed at %s:%d: `%s'\n"),
+                  "curl_multi_fdset", __FILE__, __LINE__,
+                  curl_multi_strerror (mret));
+      /*clean_up ();*/
+      return;
+    }
+  mret = curl_multi_timeout (curl_multi, &timeout);
+  if (mret != CURLM_OK)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("%s failed at %s:%d: `%s'\n"),
+                  "curl_multi_timeout", __FILE__, __LINE__,
+                  curl_multi_strerror (mret));
+      /* clean_up ();*/
+      return;
+    }
+
+  rtime = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 0 );
+  /*rtime = GNUNET_TIME_relative_min (GNUNET_TIME_absolute_get_remaining (end_time),
+                                    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+                                                                   timeout));*/
+  grs = GNUNET_NETWORK_fdset_create ();
+  gws = GNUNET_NETWORK_fdset_create ();
+  GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
+  GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Scheduling http plugin send operation using cURL\n");
+  ti_download = GNUNET_SCHEDULER_add_select (plugin->env->sched,
+                                             GNUNET_SCHEDULER_PRIORITY_HIGH,
+                                             GNUNET_SCHEDULER_NO_TASK,
+                                             rtime,
+                                             grs,
+                                             gws,
+                                             &task_download,
+                                             curl_multi);
+  GNUNET_NETWORK_fdset_destroy (gws);
+  GNUNET_NETWORK_fdset_destroy (grs);
 }
 
 /**
@@ -241,45 +319,39 @@ http_plugin_send (void *cls,
                   void *cont_cls)
 {
   char * peer_url = get_url( target );
-  CURL *curl;
+
   CURLMcode mret;
   CURLcode ret;
 
   int bytes_sent = 0;
   /*  struct Plugin *plugin = cls; */
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sending %u bytes (`%s') to `%s'\n",msgbuf_size, msgbuf,GNUNET_i2s(target));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sending %u bytes (`%s')'\n",msgbuf_size, msgbuf);
   /* Insert code to send using cURL */
   curl = curl_easy_init ();
-
+  /*
   CURL_EASY_SETOPT (curl, CURLOPT_FOLLOWLOCATION, 1);
   CURL_EASY_SETOPT (curl, CURLOPT_MAXREDIRS, 4);
 
-   /* setting put options */
+
   CURL_EASY_SETOPT (curl, CURLOPT_UPLOAD, 1L);
   CURL_EASY_SETOPT (curl, CURLOPT_PUT, 1L);
   CURL_EASY_SETOPT (curl, CURLOPT_READDATA, msgbuf);
 
-
-  /* no need to abort if the above failed */
-  CURL_EASY_SETOPT (curl,
-                    CURLOPT_URL,
-                    peer_url);
+  CURL_EASY_SETOPT (curl, CURLOPT_URL, peer_url);
   if (ret != CURLE_OK)
-    {
+    {*/
       /* clean_up (); */
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  /*    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Peer URL is not correct\n");
       return 0;
     }
   CURL_EASY_SETOPT (curl,
                     CURLOPT_FAILONERROR,
                     1);
-#if 0
   CURL_EASY_SETOPT (curl,
                     CURLOPT_VERBOSE,
                     1);
-#endif
   CURL_EASY_SETOPT (curl,
                     CURLOPT_BUFFERSIZE,
                     GNUNET_SERVER_MAX_MESSAGE_SIZE);
@@ -290,8 +362,9 @@ http_plugin_send (void *cls,
                     60L);
   CURL_EASY_SETOPT (curl,
                     CURLOPT_TIMEOUT,
-                    60L);
+                    60L);*/
 
+  CURL_EASY_SETOPT (curl, CURLOPT_URL, "http://www.tum.de/");
   curl_multi = curl_multi_init ();
   if (curl_multi == NULL)
     {
@@ -319,67 +392,12 @@ http_plugin_send (void *cls,
       return 0;
     }
 
-
-
-  fd_set rs;
-  fd_set ws;
-  fd_set es;
-  int max;
-  struct GNUNET_NETWORK_FDSet *grs;
-  struct GNUNET_NETWORK_FDSet *gws;
-  struct GNUNET_TIME_Relative rtime;
-  long timeout_curl;
-  max = -1;
-  FD_ZERO (&rs);
-  FD_ZERO (&ws);
-  FD_ZERO (&es);
-  mret = curl_multi_fdset (curl_multi, &rs, &ws, &es, &max);
-  if (mret != CURLM_OK)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("%s failed at %s:%d: `%s'\n"),
-                  "curl_multi_fdset", __FILE__, __LINE__,
-                  curl_multi_strerror (mret));
-      /* clean_up (); */
-      return 0;
-    }
-  mret = curl_multi_timeout (curl_multi, &timeout_curl);
-  if (mret != CURLM_OK)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("%s failed at %s:%d: `%s'\n"),
-                  "curl_multi_timeout", __FILE__, __LINE__,
-                  curl_multi_strerror (mret));
-      /* clean_up (); */
-      return 0;
-    }
-  /*rtime = GNUNET_TIME_relative_min (GNUNET_TIME_absolute_get_remaining (end_time),
-                                    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
-                                                                   timeout));*/
-  grs = GNUNET_NETWORK_fdset_create ();
-  gws = GNUNET_NETWORK_fdset_create ();
-  GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
-  GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Scheduling task for hostlist download using cURL\n");
-
-  ti_download = GNUNET_SCHEDULER_add_select (plugin->env->sched,
-                                   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   GNUNET_SCHEDULER_NO_TASK,
-                                   GNUNET_TIME_UNIT_FOREVER_REL,
-                                   grs,
-                                   gws,
-                                   &task_download,
-                                   curl_multi);
-  GNUNET_NETWORK_fdset_destroy (gws);
-  GNUNET_NETWORK_fdset_destroy (grs);
+  download_prepare();
 
   GNUNET_free(peer_url);
   /* FIXME: */
   bytes_sent = msgbuf_size;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Logging shutdown\n");
-  GNUNET_STATISTICS_set(plugin->env->stats,"shutdown",2, GNUNET_NO);
+
   return bytes_sent;
 }
 
@@ -531,14 +549,15 @@ run_daemon (void *cls,
   if (daemon_handle == http_daemon_v6)
     http_task_v6 = GNUNET_SCHEDULER_NO_TASK;
 
-
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
+
   GNUNET_assert (MHD_YES == MHD_run (daemon_handle));
   if (daemon_handle == http_daemon_v4)
     http_task_v4 = prepare_daemon (daemon_handle);
   if (daemon_handle == http_daemon_v6)
     http_task_v6 = prepare_daemon (daemon_handle);
+  return;
 }
 
 /**

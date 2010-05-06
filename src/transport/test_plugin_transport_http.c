@@ -37,6 +37,7 @@
 #include "plugin_transport.h"
 #include "gnunet_statistics_service.h"
 #include "transport.h"
+#include <curl/curl.h>
 
 #define VERBOSE GNUNET_YES
 #define DEBUG GNUNET_YES
@@ -191,7 +192,7 @@ process_stat (void *cls,
     shutdown_clean();
     return;
     }
-  return GNUNET_OK;
+  return;
 }
 
 
@@ -204,13 +205,15 @@ static void
 task_check_stat (void *cls,
             const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "check...%u \n",  timeout_count);
+
   ti_check_stat = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  if ( timeout_count > 3 )
+  if ( timeout_count > 10 )
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testcase timeout\n",  timeout_count);
+    fail = GNUNET_YES;
     shutdown_clean();
     return;
   }
@@ -227,6 +230,21 @@ task_check_stat (void *cls,
   ti_check_stat = GNUNET_SCHEDULER_add_delayed (sched, STAT_INTERVALL, &task_check_stat, NULL);
   return;
 }
+
+static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *stream)
+{
+  size_t retcode;
+
+  /* in real-world cases, this would probably get this data differently
+     as this fread() stuff is exactly what the library already would do
+     by default internally */
+  retcode = fread(ptr, size, nmemb, stream);
+
+  fprintf(stderr, "*** We read %d bytes from file\n", retcode);
+
+  return retcode;
+}
+
 
 /**
  * Runs the test.
@@ -282,7 +300,7 @@ run (void *cls,
 
   stats = GNUNET_STATISTICS_create (sched, "http-transport", cfg);
   env.stats = stats;
-
+  /*
   max_connect_per_transport = (uint32_t) tneigh;
   my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
@@ -298,7 +316,7 @@ run (void *cls,
   GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
   GNUNET_CRYPTO_hash (&my_public_key,
                       sizeof (my_public_key), &my_identity.hashPubKey);
-
+  */
   /* load plugins... */
   setup_plugin_environment ();
 
@@ -332,7 +350,6 @@ run (void *cls,
   /* check statistics */
   ti_check_stat = GNUNET_SCHEDULER_add_now(sched, &task_check_stat, NULL);
 
-  //ps shutdown_clean ();
   return;
 }
 
