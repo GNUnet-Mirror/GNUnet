@@ -129,6 +129,7 @@ GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h,
           GNUNET_asprintf (&h->emsg,
                            _("Error reading `%s': %s"),
                            what, STRERROR (errno));
+	  abort ();
           return GNUNET_SYSERR;
         }
       if (ret == 0)
@@ -136,6 +137,7 @@ GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h,
           GNUNET_asprintf (&h->emsg,
                            _("Error reading `%s': %s"),
                            what, _("End of file"));
+	  abort ();
           return GNUNET_SYSERR;
         }
       h->pos = 0;
@@ -188,7 +190,13 @@ GNUNET_BIO_read_string (struct GNUNET_BIO_ReadHandle *h,
   uint32_t big;
 
   if (GNUNET_OK != GNUNET_BIO_read_int32 (h, &big))
-    return GNUNET_SYSERR;
+    {
+      GNUNET_free_non_null (h->emsg);
+      GNUNET_asprintf (&h->emsg,
+                       _("Error reading length of string `%s'"),
+                       what);
+      return GNUNET_SYSERR;
+    }
   if (big == 0)
     {
       *result = NULL;
@@ -235,6 +243,11 @@ GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h,
 
   if (GNUNET_BIO_read_int32 (h, (int32_t *) &size) != GNUNET_OK)
     return GNUNET_SYSERR;
+  if (size == 0)
+    {
+      *result = NULL;
+      return GNUNET_OK;
+    }
   if (size > MAX_META_DATA)
     {
       GNUNET_asprintf (&h->emsg,
@@ -463,7 +476,9 @@ GNUNET_BIO_write_meta_data (struct GNUNET_BIO_WriteHandle *h,
 {
   ssize_t size;
   char *buf;
-
+  
+  if (m == NULL)    
+    return GNUNET_BIO_write_int32 (h, 0);   
   buf = NULL;
   size = GNUNET_CONTAINER_meta_data_serialize (m,
 					       &buf,
