@@ -466,7 +466,7 @@ get_serialization_file_name_in_dir (struct GNUNET_FS_Handle *h,
 					       &basename))
     return NULL;
   GNUNET_asprintf (&ret,
-		   "%s%s%s%s%s%s%s%s%s",
+		   "%s%s%s%s%s%s%s.dir%s%s",
 		   basename,
 		   DIR_SEPARATOR_STR,
 		   h->client_name,
