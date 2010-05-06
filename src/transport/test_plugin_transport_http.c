@@ -158,11 +158,6 @@ shutdown_clean ()
   if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel( sched, timeout_task );
   if (NULL != service) GNUNET_SERVICE_stop (service);
-  if (0 != PLIBC_KILL (pid, SIGTERM))
-    {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-      fail = 1;
-    }
   unload_plugins(env.cls, env.cfg);
 }
 
@@ -261,18 +256,9 @@ run (void *cls,
     return;
   }
 
-
-
   stats = GNUNET_STATISTICS_create (sched, "http-transport", cfg);
   env.stats = stats;
 
-  GNUNET_STATISTICS_get (stats,
-                         "http-transport",
-                         gettext_noop("# PUT requests"),
-                         GNUNET_TIME_UNIT_MINUTES,
-                         NULL,
-                         &process_stat,
-                         NULL);
   /*
   max_connect_per_transport = (uint32_t) tneigh;
   my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
@@ -328,7 +314,6 @@ main (int argc, char *const *argv)
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  return GNUNET_NO;
   int ret;
   char *const argv_prog[] = {
     "test_plugin_transport_http",
@@ -357,6 +342,11 @@ main (int argc, char *const *argv)
                              "testcase", options, &run, NULL)) ? fail : 1;
   GNUNET_DISK_directory_remove ("/tmp/test_plugin_transport_http");
 
+  if (0 != PLIBC_KILL (pid, SIGTERM))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+    fail = 1;
+  }
   return fail;
 }
 
