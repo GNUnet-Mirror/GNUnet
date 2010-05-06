@@ -146,13 +146,13 @@ int GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h,
  * Read an (u)int32_t.
  *
  * @param h hande to open file
- * @param what describes what is being read (for error message creation)
+ * @param file name of the source file
  * @param line line number in the code
  * @param i address of 32-bit integer to read
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */ 
 int GNUNET_BIO_read_int32__ (struct GNUNET_BIO_ReadHandle *h, 
-			     const char *what, int line,
+			     const char *file, int line,
 			     int32_t *i);
 
 
@@ -169,13 +169,13 @@ int GNUNET_BIO_read_int32__ (struct GNUNET_BIO_ReadHandle *h,
  * Read an (u)int64_t.
  *
  * @param h hande to open file
- * @param what describes what is being read (for error message creation)
+ * @param file name of the source file
  * @param line line number in the code
  * @param i address of 64-bit integer to read
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */ 
 int GNUNET_BIO_read_int64__ (struct GNUNET_BIO_ReadHandle *h, 
-			     const char *what, int line,
+			     const char *file, int line,
 			     int64_t *i);
 
 
