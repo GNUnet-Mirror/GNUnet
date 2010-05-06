@@ -601,7 +601,7 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 
   if ((msg == NULL) && (shutdown_ctx->confirmed != GNUNET_YES)) /* Means the other side closed the connection and never confirmed a shutdown */
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Service handle shutdown before ACK!\n");
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Service handle shutdown before ACK!\n");
       if (shutdown_ctx->cont != NULL)
         shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_SYSERR);
 
@@ -611,7 +611,7 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     }
   else if ((msg == NULL) && (shutdown_ctx->confirmed == GNUNET_YES))
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Service shutdown complete.\n");
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Service shutdown complete.\n");
       if (shutdown_ctx->cont != NULL)
         shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_NO);
 
@@ -626,7 +626,7 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       switch (ntohs(msg->type))
       {
       case GNUNET_MESSAGE_TYPE_SHUTDOWN_ACK:
-        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received confirmation for service shutdown.\n");
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Received confirmation for service shutdown.\n");
         shutdown_ctx->confirmed = GNUNET_YES;
         GNUNET_CLIENT_receive (shutdown_ctx->sock, &service_shutdown_handler, shutdown_ctx, GNUNET_TIME_UNIT_FOREVER_REL);
         break;
@@ -654,7 +654,7 @@ void service_shutdown_cancel (void *cls,
                               const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   struct ShutdownContext *shutdown_ctx = cls;
-  fprintf(stderr, "service_shutdown_cancel called!\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "service_shutdown_cancel called!\n");
   shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_SYSERR);
   GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
   GNUNET_free(shutdown_ctx);
