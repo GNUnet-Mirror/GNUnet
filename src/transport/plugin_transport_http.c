@@ -268,6 +268,8 @@ http_plugin_send (void *cls,
   if (ret != CURLE_OK)
     {
       /* clean_up (); */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Peer URL is not correct\n");
       return 0;
     }
   CURL_EASY_SETOPT (curl,
@@ -294,6 +296,8 @@ http_plugin_send (void *cls,
   if (curl_multi == NULL)
     {
       GNUNET_break (0);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "curl multi is not correct\n");
       /* clean_up (); */
       return 0;
     }
@@ -314,6 +318,7 @@ http_plugin_send (void *cls,
       /* clean_up (); */
       return 0;
     }
+
 
 
   fd_set rs;
@@ -355,10 +360,8 @@ http_plugin_send (void *cls,
   gws = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
   GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
-#if DEBUG_HOSTLIST_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Scheduling task for hostlist download using cURL\n");
-#endif
 
   ti_download = GNUNET_SCHEDULER_add_select (plugin->env->sched,
                                    GNUNET_SCHEDULER_PRIORITY_DEFAULT,
@@ -374,7 +377,9 @@ http_plugin_send (void *cls,
   GNUNET_free(peer_url);
   /* FIXME: */
   bytes_sent = msgbuf_size;
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Logging shutdown\n");
+  GNUNET_STATISTICS_set(plugin->env->stats,"shutdown",2, GNUNET_NO);
   return bytes_sent;
 }
 
@@ -604,7 +609,7 @@ libgnunet_plugin_transport_http_done (void *cls)
   if ( ti_download != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel(plugin->env->sched, ti_download);
-    http_task_v4 = GNUNET_SCHEDULER_NO_TASK;
+    ti_download = GNUNET_SCHEDULER_NO_TASK;
   }
 
   if ( http_task_v4 != GNUNET_SCHEDULER_NO_TASK)

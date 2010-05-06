@@ -151,6 +151,7 @@ shutdown_clean ()
                                        api));
   if (my_private_key != NULL)
     GNUNET_CRYPTO_rsa_key_free (my_private_key);
+
   if (ti_check_stat != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel(sched, ti_check_stat);
   GNUNET_SCHEDULER_shutdown(sched);
@@ -177,9 +178,19 @@ process_stat (void *cls,
               uint64_t value,
               int is_persistent)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Value: %llums\n"),
-              (unsigned long long) value);
+  if (value==1)
+    {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown, plugin failed \n");
+    fail = GNUNET_YES;
+    shutdown_clean();
+    return;
+    }
+  if (value==2)
+    {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown, plugin not failed \n");
+    shutdown_clean();
+    return;
+    }
   return GNUNET_OK;
 }
 
@@ -195,6 +206,8 @@ task_check_stat (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "check...%u \n",  timeout_count);
   ti_check_stat = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
 
   if ( timeout_count > 3 )
   {
@@ -203,10 +216,16 @@ task_check_stat (void *cls,
   }
   timeout_count++;
 
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
+  GNUNET_STATISTICS_get (stats,
+                         "http-transport",
+                         gettext_noop("shutdown"),
+                         GNUNET_TIME_UNIT_MINUTES,
+                         NULL,
+                         &process_stat,
+                         NULL);
 
   ti_check_stat = GNUNET_SCHEDULER_add_delayed (sched, STAT_INTERVALL, &task_check_stat, NULL);
+  return;
 }
 
 /**
@@ -312,7 +331,6 @@ run (void *cls,
 
   /* check statistics */
   ti_check_stat = GNUNET_SCHEDULER_add_now(sched, &task_check_stat, NULL);
-  //GNUNET_STATISTICS_get(stats, "http-transport", )
 
   //ps shutdown_clean ();
   return;
