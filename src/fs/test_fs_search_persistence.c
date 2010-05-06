@@ -159,16 +159,25 @@ progress_cb (void *cls,
     case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
       kuri = GNUNET_FS_uri_ksk_create_from_args (1, keywords);
       start = GNUNET_TIME_absolute_get ();
-      search = GNUNET_FS_search_start (fs,
-				       kuri,
-				       1,
-				       GNUNET_FS_SEARCH_OPTION_NONE,
-				       "search");
+      GNUNET_FS_search_start (fs,
+			      kuri,
+			      1,
+			      GNUNET_FS_SEARCH_OPTION_NONE,
+			      "search");
       GNUNET_FS_uri_destroy (kuri);
       GNUNET_assert (search != NULL);
       break;
+    case GNUNET_FS_STATUS_PUBLISH_SUSPEND:
+      if  (event->value.publish.sc == publish)
+	publish = NULL;
+      break;
+    case GNUNET_FS_STATUS_PUBLISH_RESUME:
+      if (NULL == publish)
+	publish = event->value.publish.sc;
+      break;
     case GNUNET_FS_STATUS_SEARCH_RESULT:
-      consider_restart (event->status);
+      /* FIXME: consider_restart (event->status); cannot be tested with
+	 search result since we exit here after the first one... */
 #if VERBOSE
       printf ("Search complete.\n");
 #endif
@@ -196,6 +205,17 @@ progress_cb (void *cls,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
+    case GNUNET_FS_STATUS_SEARCH_SUSPEND:
+      if  (event->value.search.sc == search)
+	search = NULL;
+      break;
+    case GNUNET_FS_STATUS_SEARCH_RESUME:
+      if (NULL == search)
+	{
+	  search = event->value.search.sc;
+	  return "search";
+	}
+      break;
     case GNUNET_FS_STATUS_PUBLISH_START:
       GNUNET_assert (0 == strcmp ("publish-context", event->value.publish.cctx));
       GNUNET_assert (NULL == event->value.publish.pctx);
@@ -213,18 +233,19 @@ progress_cb (void *cls,
     case GNUNET_FS_STATUS_SEARCH_START:
       consider_restart (event->status);
       GNUNET_assert (search == NULL);
+      search = event->value.search.sc;
       GNUNET_assert (0 == strcmp ("search", event->value.search.cctx));
       GNUNET_assert (1 == event->value.search.anonymity);
       break;
     case GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED:
       break;
     case GNUNET_FS_STATUS_SEARCH_STOPPED:
-      consider_restart (event->status);
       GNUNET_assert (search == event->value.search.sc);
       GNUNET_SCHEDULER_add_continuation (sched,
 					 &abort_publish_task,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      search = NULL;
       break;
     default:
       fprintf (stderr,
