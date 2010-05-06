@@ -120,7 +120,8 @@ publish_cleanup (struct GNUNET_FS_PublishContext *pc)
   GNUNET_free_non_null (pc->nid);  
   GNUNET_free_non_null (pc->nuid);
   GNUNET_free_non_null (pc->serialization);
-  GNUNET_DATASTORE_disconnect (pc->dsh, GNUNET_NO);
+  if (pc->dsh != NULL)
+    GNUNET_DATASTORE_disconnect (pc->dsh, GNUNET_NO);
   if (pc->client != NULL)
     GNUNET_CLIENT_disconnect (pc->client, GNUNET_NO);
   GNUNET_free (pc);

@@ -1419,6 +1419,14 @@ deserialize_publish_file (void *cls,
 	  goto cleanup;
 	}
     }
+  if ( (0 == (pc->options & GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY)) &&
+       (GNUNET_YES != pc->all_done) )
+    {
+      pc->dsh = GNUNET_DATASTORE_connect (h->cfg,
+					  h->sched);
+      if (NULL == pc->dsh)
+	goto cleanup;
+    } 
   if (fi_pos != NULL)
     {
       pc->fi_pos = find_file_position (pc->fi,
