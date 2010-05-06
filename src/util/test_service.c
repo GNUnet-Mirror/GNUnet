@@ -43,6 +43,16 @@ static struct GNUNET_SERVICE_Context *sctx;
 
 static int ok = 1;
 
+void
+end_cont (void *cls,
+          int reason)
+{
+  if (sctx != NULL)
+    GNUNET_SERVICE_stop (sctx);
+  else
+    GNUNET_SCHEDULER_shutdown (sched);
+  ok = 0;
+}
 
 static void
 end_it (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -50,12 +60,7 @@ end_it (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_CLIENT_Connection *client = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down service\n");
-  GNUNET_CLIENT_service_shutdown (client);
-  if (sctx != NULL)
-    GNUNET_SERVICE_stop (sctx);
-  else
-    GNUNET_SCHEDULER_shutdown (sched);
-  ok = 0;
+  GNUNET_CLIENT_service_shutdown (sched, client, GNUNET_TIME_UNIT_FOREVER_REL, &end_cont, NULL);
 }
 
 

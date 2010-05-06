@@ -269,6 +269,13 @@ struct GNUNET_SERVER_Client
    * Are we currently trying to receive?
    */
   int receive_pending;
+
+  /**
+   * Persist the file handle for this client no matter what happens,
+   * force the OS to close once the process actually dies.  Should only
+   * be used in special cases!
+   */
+  int persist;
 };
 
 
@@ -933,11 +940,16 @@ sock_check (void *cls)
  * Destroy this socket (free resources).
  *
  * @param cls the socket
+ * @param persist set the socket to be persisted
  */
 static void
-sock_destroy (void *cls)
+sock_destroy (void *cls, int persist)
 {
-  GNUNET_CONNECTION_destroy (cls, GNUNET_NO);
+  struct GNUNET_CONNECTION_Handle *sock = cls;
+  if (persist == GNUNET_YES)
+    GNUNET_CONNECTION_persist_ (sock);
+
+  GNUNET_CONNECTION_destroy (sock, GNUNET_NO);
 }
 
 
@@ -1168,6 +1180,7 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
       client->receive_cancel (client->client_closure);
       client->receive_pending = GNUNET_NO;
     }
+
   rc = client->reference_count;  
   if (client->server != NULL)
     {
@@ -1200,7 +1213,7 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
     return;
   if (client->in_process_client_buffer == GNUNET_YES)
     return;
-  client->destroy (client->client_closure);
+  client->destroy (client->client_closure, client->persist);
   GNUNET_free (client);  
 }
 
@@ -1232,6 +1245,17 @@ GNUNET_SERVER_notify_transmit_ready (struct GNUNET_SERVER_Client *client,
                                         timeout, callback, callback_cls);
 }
 
+/**
+ * Set the persistent flag on this client, used to setup client connection
+ * to only be killed when the service it's connected to is actually dead.
+ *
+ * @param client the client to set the persistent flag on
+ */
+void
+GNUNET_SERVER_client_persist_ (struct GNUNET_SERVER_Client *client)
+{
+  client->persist = GNUNET_YES;
+}
 
 /**
  * Resume receiving from this client, we are done processing the

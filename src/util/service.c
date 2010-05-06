@@ -570,6 +570,45 @@ handle_test (void *cls,
 }
 
 
+static size_t
+transmit_shutdown_deny (void *cls, size_t size, void *buf)
+{
+  struct GNUNET_SERVER_Client *client = cls;
+  struct GNUNET_MessageHeader *msg;
+
+  if (size < sizeof (struct GNUNET_MessageHeader))
+    {
+      return 0;                 /* client disconnected */
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    }
+  msg = (struct GNUNET_MessageHeader *) buf;
+  msg->type = htons (GNUNET_MESSAGE_TYPE_SHUTDOWN_REFUSE);
+  msg->size = htons (sizeof (struct GNUNET_MessageHeader));
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVER_client_drop(client);
+  return sizeof (struct GNUNET_MessageHeader);
+}
+
+static size_t
+transmit_shutdown_ack (void *cls, size_t size, void *buf)
+{
+  struct GNUNET_SERVER_Client *client = cls;
+  struct GNUNET_MessageHeader *msg;
+
+  if (size < sizeof (struct GNUNET_MessageHeader))
+    {
+      return 0;                 /* client disconnected */
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    }
+
+  msg = (struct GNUNET_MessageHeader *) buf;
+  msg->type = htons (GNUNET_MESSAGE_TYPE_SHUTDOWN_ACK);
+  msg->size = htons (sizeof (struct GNUNET_MessageHeader));
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVER_client_drop(client);
+  return sizeof (struct GNUNET_MessageHeader);
+}
+
 /**
  * Handler for SHUTDOWN message.
  *
@@ -583,19 +622,31 @@ handle_shutdown (void *cls,
                  const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_SERVICE_Context *service = cls;
+
+  /* FIXME: why is this call necessary???? */
+  GNUNET_SERVER_client_keep(client);
   if (!service->allow_shutdown)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _
                   ("Received shutdown request, but configured to ignore!\n"));
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      GNUNET_SERVER_notify_transmit_ready (client,
+                                           sizeof(struct GNUNET_MessageHeader),
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           &transmit_shutdown_deny, client);
       return;
     }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Initiating shutdown as requested by client.\n"));
+
+  GNUNET_SERVER_notify_transmit_ready (client,
+                                       sizeof(struct GNUNET_MessageHeader),
+                                       GNUNET_TIME_UNIT_FOREVER_REL,
+                                       &transmit_shutdown_ack, client);
+
   GNUNET_assert (service->sched != NULL);
+  GNUNET_SERVER_client_persist_ (client);
   GNUNET_SCHEDULER_shutdown (service->sched);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 

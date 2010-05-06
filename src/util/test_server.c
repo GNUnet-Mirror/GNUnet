@@ -152,7 +152,7 @@ my_check (void *cls)
 }
 
 
-static void my_destroy (void *cls);
+static void my_destroy (void *cls, int persist);
 
 
 struct CopyContext
@@ -217,7 +217,7 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
 
 
 static void
-my_destroy (void *cls)
+my_destroy (void *cls, int persist)
 {
   int *ok = cls;
   GNUNET_assert (5 == *ok);

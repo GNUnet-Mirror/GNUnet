@@ -279,8 +279,27 @@ struct GNUNET_CONNECTION_Handle
    */
   uint16_t port;
 
+  /**
+   * When shutdown, do not ever actually close the socket, but
+   * free resources.  Only should ever be set if using program
+   * termination as a signal (because only then will the leaked
+   * socket be freed!)
+   */
+  int persist;
+
 };
 
+/**
+ * Set the persist option on this connection handle.  Indicates
+ * that the underlying socket or fd should never really be closed.
+ * Used for indicating process death.
+ *
+ * @param sock the connection to set persistent
+ */
+void GNUNET_CONNECTION_persist_(struct GNUNET_CONNECTION_Handle *sock)
+{
+  sock->persist = GNUNET_YES;
+}
 
 /**
  * Create a socket handle by boxing an existing OS socket.  The OS
@@ -486,7 +505,8 @@ destroy_continuation (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Shutting down socket (%p)\n", sock);
 #endif
-      GNUNET_NETWORK_socket_shutdown (sock->sock, SHUT_RDWR);
+      if (sock->persist != GNUNET_YES)
+        GNUNET_NETWORK_socket_shutdown (sock->sock, SHUT_RDWR);
     }
   if (sock->read_task != GNUNET_SCHEDULER_NO_TASK)
     {
@@ -518,8 +538,10 @@ destroy_continuation (void *cls,
       sock->nth.notify_ready = NULL;
       notify (sock->nth.notify_ready_cls, 0, NULL);
     }
-  if (sock->sock != NULL)
+
+  if ((sock->sock != NULL) && (sock->persist != GNUNET_YES))
     GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock->sock));
+
   GNUNET_free_non_null (sock->addr);
   GNUNET_free_non_null (sock->hostname);
 #if DEBUG_CONNECTION
