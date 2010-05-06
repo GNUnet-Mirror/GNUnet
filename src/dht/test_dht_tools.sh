@@ -13,7 +13,6 @@ stop_arm()
     echo "FAIL: error running $armexe"
     echo "Command output was:"
     cat $out
-    stop_arm
     exit 1
   fi
 }
