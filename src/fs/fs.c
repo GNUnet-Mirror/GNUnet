@@ -1925,6 +1925,7 @@ GNUNET_FS_search_sync_ (struct GNUNET_FS_SearchContext *sc)
 						      category);
   if (NULL == sc->serialization)
     return;
+  uris = NULL;
   wh = get_write_handle (sc->h, category, sc->serialization);
   if (wh == NULL)
     {
