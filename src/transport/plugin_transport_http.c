@@ -163,7 +163,11 @@ static GNUNET_SCHEDULER_TaskIdentifier http_task_v4;
  */
 static GNUNET_SCHEDULER_TaskIdentifier http_task_v6;
 
-static char * hd_src ;
+/**
+ * ID of the task downloading the hostlist
+ */
+static GNUNET_SCHEDULER_TaskIdentifier ti_download;
+
 
 
 /**
@@ -180,6 +184,20 @@ static size_t curl_read_function( void *ptr, size_t size, size_t nmemb, void *st
 {
   // strcpy ("Testmessa")
   return 0;
+}
+
+/**
+ * Task that is run when we are ready to receive more data from the hostlist
+ * server.
+ *
+ * @param cls closure, unused
+ * @param tc task context, unused
+ */
+static void
+task_download (void *cls,
+             const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Download!!!");
 }
 
 /**
@@ -224,6 +242,7 @@ http_plugin_send (void *cls,
 {
   char * peer_url = get_url( target );
   CURL *curl;
+  CURLMcode mret;
   CURLcode ret;
 
   int bytes_sent = 0;
@@ -271,7 +290,91 @@ http_plugin_send (void *cls,
                     CURLOPT_TIMEOUT,
                     60L);
 
+  curl_multi = curl_multi_init ();
+  if (curl_multi == NULL)
+    {
+      GNUNET_break (0);
+      /* clean_up (); */
+      return 0;
+    }
+  mret = curl_multi_add_handle (curl_multi, curl);
+  if (mret != CURLM_OK)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("%s failed at %s:%d: `%s'\n"),
+                  "curl_multi_add_handle", __FILE__, __LINE__,
+                  curl_multi_strerror (mret));
+      mret = curl_multi_cleanup (curl_multi);
+      if (mret != CURLM_OK)
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _("%s failed at %s:%d: `%s'\n"),
+                    "curl_multi_cleanup", __FILE__, __LINE__,
+                    curl_multi_strerror (mret));
+      curl_multi = NULL;
+      /* clean_up (); */
+      return 0;
+    }
+
+
+  fd_set rs;
+  fd_set ws;
+  fd_set es;
+  int max;
+  struct GNUNET_NETWORK_FDSet *grs;
+  struct GNUNET_NETWORK_FDSet *gws;
+  struct GNUNET_TIME_Relative rtime;
+  long timeout_curl;
+  max = -1;
+  FD_ZERO (&rs);
+  FD_ZERO (&ws);
+  FD_ZERO (&es);
+  mret = curl_multi_fdset (curl_multi, &rs, &ws, &es, &max);
+  if (mret != CURLM_OK)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("%s failed at %s:%d: `%s'\n"),
+                  "curl_multi_fdset", __FILE__, __LINE__,
+                  curl_multi_strerror (mret));
+      /* clean_up (); */
+      return 0;
+    }
+  mret = curl_multi_timeout (curl_multi, &timeout_curl);
+  if (mret != CURLM_OK)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("%s failed at %s:%d: `%s'\n"),
+                  "curl_multi_timeout", __FILE__, __LINE__,
+                  curl_multi_strerror (mret));
+      /* clean_up (); */
+      return 0;
+    }
+  /*rtime = GNUNET_TIME_relative_min (GNUNET_TIME_absolute_get_remaining (end_time),
+                                    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+                                                                   timeout));*/
+  grs = GNUNET_NETWORK_fdset_create ();
+  gws = GNUNET_NETWORK_fdset_create ();
+  GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
+  GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
+#if DEBUG_HOSTLIST_CLIENT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Scheduling task for hostlist download using cURL\n");
+#endif
+
+  ti_download = GNUNET_SCHEDULER_add_select (plugin->env->sched,
+                                   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                   GNUNET_SCHEDULER_NO_TASK,
+                                   GNUNET_TIME_UNIT_FOREVER_REL,
+                                   grs,
+                                   gws,
+                                   &task_download,
+                                   curl_multi);
+  GNUNET_NETWORK_fdset_destroy (gws);
+  GNUNET_NETWORK_fdset_destroy (grs);
+
   GNUNET_free(peer_url);
+  /* FIXME: */
+  bytes_sent = msgbuf_size;
+
   return bytes_sent;
 }
 
@@ -497,6 +600,12 @@ libgnunet_plugin_transport_http_done (void *cls)
   struct Plugin *plugin = api->cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Shutting down http plugin...\n");
+
+  if ( ti_download != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel(plugin->env->sched, ti_download);
+    http_task_v4 = GNUNET_SCHEDULER_NO_TASK;
+  }
 
   if ( http_task_v4 != GNUNET_SCHEDULER_NO_TASK)
   {

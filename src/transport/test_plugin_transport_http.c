@@ -46,6 +46,10 @@
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
+/**
+ * How long until we give up on transmitting the message?
+ */
+#define STAT_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 /**
  * Our public key.
@@ -101,6 +105,13 @@ static int fail;
 pid_t pid;
 
 /**
+ * ID of the task controlling the locking between two hostlist tests
+ */
+static GNUNET_SCHEDULER_TaskIdentifier ti_check_stat;
+
+static unsigned int timeout_count;
+
+/**
  * Initialize Environment for this plugin
  */
 static struct GNUNET_TIME_Relative
@@ -140,6 +151,8 @@ shutdown_clean ()
                                        api));
   if (my_private_key != NULL)
     GNUNET_CRYPTO_rsa_key_free (my_private_key);
+  if (ti_check_stat != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(sched, ti_check_stat);
   GNUNET_SCHEDULER_shutdown(sched);
   return;
 }
@@ -170,6 +183,31 @@ process_stat (void *cls,
   return GNUNET_OK;
 }
 
+
+/**
+ * Task that checks if we should try to download a hostlist.
+ * If so, we initiate the download, otherwise we schedule
+ * this task again for a later time.
+ */
+static void
+task_check_stat (void *cls,
+            const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "check...%u \n",  timeout_count);
+  ti_check_stat = GNUNET_SCHEDULER_NO_TASK;
+
+  if ( timeout_count > 3 )
+  {
+    shutdown_clean();
+    return;
+  }
+  timeout_count++;
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+
+  ti_check_stat = GNUNET_SCHEDULER_add_delayed (sched, STAT_INTERVALL, &task_check_stat, NULL);
+}
 
 /**
  * Runs the test.
@@ -265,11 +303,18 @@ run (void *cls,
   fail = GNUNET_NO;
 
   char * test_message  = "Hello World!";
+  size_t bs = 0;
   size_t size = strlen(test_message) +1;
 
   /* Testing to send */
-  api->send(NULL, &my_identity,test_message,size,0, TIMEOUT, NULL, NULL, 0, GNUNET_NO, NULL, NULL);
-  shutdown_clean ();
+  bs = api->send(NULL, &my_identity,test_message,size,0, TIMEOUT, NULL, NULL, 0, GNUNET_NO, NULL, NULL);
+  GNUNET_assert ( bs == size);
+
+  /* check statistics */
+  ti_check_stat = GNUNET_SCHEDULER_add_now(sched, &task_check_stat, NULL);
+  //GNUNET_STATISTICS_get(stats, "http-transport", )
+
+  //ps shutdown_clean ();
   return;
 }
 
