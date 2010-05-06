@@ -3,8 +3,6 @@
   - persistence testing (unindex, search):
     * unindex:
       + need to clean up state on stop/suspend (including file-hashing => util API change!) 
-    * search: 
-      + file-opening / dir-reading / naming issues (but testcase passes!?)
   - gnunet-service-fs (hot-path routing, load-based routing, nitpicks)  
   - [gnunet-service-fs.c:208]: member 'LocalGetContext::results_bf_size' is never used
   - [gnunet-service-fs.c:501]: member 'PendingRequest::used_pids_size' is never used
