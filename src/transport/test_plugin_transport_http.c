@@ -55,7 +55,7 @@
 /**
  * Our public key.
  */
-static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded my_public_key;
+/* static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded my_public_key; */
 
 /**
  * Our identity.
@@ -184,15 +184,15 @@ process_stat (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown, plugin failed \n");
     fail = GNUNET_YES;
     shutdown_clean();
-    return;
+    return GNUNET_YES;
     }
   if (value==2)
     {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown, plugin not failed \n");
     shutdown_clean();
-    return;
+    return GNUNET_YES;
     }
-  return;
+  return GNUNET_YES;
 }
 
 
@@ -230,21 +230,6 @@ task_check_stat (void *cls,
   ti_check_stat = GNUNET_SCHEDULER_add_delayed (sched, STAT_INTERVALL, &task_check_stat, NULL);
   return;
 }
-
-static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *stream)
-{
-  size_t retcode;
-
-  /* in real-world cases, this would probably get this data differently
-     as this fread() stuff is exactly what the library already would do
-     by default internally */
-  retcode = fread(ptr, size, nmemb, stream);
-
-  fprintf(stderr, "*** We read %d bytes from file\n", retcode);
-
-  return retcode;
-}
-
 
 /**
  * Runs the test.

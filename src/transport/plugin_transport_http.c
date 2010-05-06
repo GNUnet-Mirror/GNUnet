@@ -168,12 +168,7 @@ static GNUNET_SCHEDULER_TaskIdentifier http_task_v6;
  */
 static GNUNET_SCHEDULER_TaskIdentifier ti_download;
 
-static int running;
-
-/**
- * Buffer for data downloaded via HTTP.
- */
-static char download_buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE];
+/* static int running; */
 
 /**
  * Curl multi for managing client operations.
