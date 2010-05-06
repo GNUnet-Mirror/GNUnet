@@ -109,6 +109,20 @@ GNUNET_ARM_disconnect (struct GNUNET_ARM_Handle *h)
   GNUNET_free (h);
 }
 
+struct ARM_ShutdownContext
+{
+  /**
+   * Callback to call once shutdown complete.
+   */
+  GNUNET_ARM_Callback cb;
+
+  /**
+   * Closure for callback.
+   */
+  void *cb_cls;
+};
+
+
 
 /**
  * Internal state for a request with ARM.
@@ -421,6 +435,22 @@ GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h,
   change_service (h, service_name, timeout, cb, cb_cls, GNUNET_MESSAGE_TYPE_ARM_START);
 }
 
+/**
+ * Callback from the arm stop service call, indicates that the arm service
+ * is well and truly dead.
+ *
+ * @param cls closure for the callback
+ * @param tc scheduler context
+ */
+void arm_shutdown_callback (void *cls,
+                            int reason)
+{
+  struct ARM_ShutdownContext *arm_shutdown_ctx = cls;
+
+  if (arm_shutdown_ctx->cb != NULL)
+    arm_shutdown_ctx->cb (arm_shutdown_ctx->cb_cls, reason);
+}
+
 
 /**
  * Stop a service.
@@ -437,15 +467,19 @@ GNUNET_ARM_stop_service (struct GNUNET_ARM_Handle *h,
                          struct GNUNET_TIME_Relative timeout,
                          GNUNET_ARM_Callback cb, void *cb_cls)
 {
+  struct ARM_ShutdownContext *arm_shutdown_ctx;
+
+  arm_shutdown_ctx = GNUNET_malloc(sizeof(struct ARM_ShutdownContext));
+  arm_shutdown_ctx->cb = cb;
+  arm_shutdown_ctx->cb_cls = cb_cls;
+
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Stopping service `%s' within %llu ms\n"), service_name,
 	      (unsigned long long) timeout.value);
   if (0 == strcasecmp ("arm", service_name))
     {
-      GNUNET_CLIENT_service_shutdown (h->client);
+      GNUNET_CLIENT_service_shutdown (h->sched, h->client, timeout, &arm_shutdown_callback, arm_shutdown_ctx);
       h->client = NULL;
-      if (cb != NULL)
-        cb (cb_cls, GNUNET_NO);
       return;
     }
   change_service (h, service_name, timeout, cb, cb_cls, GNUNET_MESSAGE_TYPE_ARM_STOP);

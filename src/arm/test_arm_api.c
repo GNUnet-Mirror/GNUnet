@@ -34,7 +34,9 @@
 
 #define START_ARM GNUNET_YES
 
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define START_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 50)
+
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
 static struct GNUNET_SCHEDULER_Handle *sched;
 
@@ -44,13 +46,21 @@ static struct GNUNET_ARM_Handle *arm;
 
 static int ok = 1;
 
+static void
+arm_stopped (void *cls, int success)
+{
+  if (success != GNUNET_NO)
+    ok = 1;
+  else
+    ok = 0;
+}
 
 static void
 arm_notify_stop (void *cls, int success)
 {
   GNUNET_assert (success == GNUNET_NO);
 #if START_ARM
-  GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, NULL, NULL);
+  GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
 #endif
 }
 
@@ -83,7 +93,7 @@ static void
 arm_notify (void *cls, int success)
 {
   GNUNET_assert (success == GNUNET_YES);
-  GNUNET_ARM_start_service (arm, "resolver", TIMEOUT, &resolver_notify, NULL);
+  GNUNET_ARM_start_service (arm, "resolver", START_TIMEOUT, &resolver_notify, NULL);
 }
 
 
@@ -98,7 +108,7 @@ task (void *cls,
   sched = s;
   arm = GNUNET_ARM_connect (cfg, sched, NULL);
 #if START_ARM
-  GNUNET_ARM_start_service (arm, "arm", TIMEOUT, &arm_notify, NULL);
+  GNUNET_ARM_start_service (arm, "arm", START_TIMEOUT, &arm_notify, NULL);
 #else
   arm_notify (NULL, GNUNET_YES);
 #endif

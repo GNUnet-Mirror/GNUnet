@@ -31,9 +31,16 @@
 #include "gnunet_time_lib.h"
 
 /**
- * Timeout for all operations.
+ * Timeout for stopping services.  Long to give some services a real chance.
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 50)
+#define STOP_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20)
+
+/**
+ * Timeout for starting services, very short because of the strange way start works
+ * (by checking if running before starting, so really this time is always waited on
+ * startup (annoying)).
+ */
+#define START_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 50)
 
 /**
  * Set if we are to shutdown all services (including ARM).
@@ -44,6 +51,11 @@ static int end;
  * Set if we are to start default services (including ARM).
  */
 static int start;
+
+/**
+ * Set if we are to stop/start default services (including ARM).
+ */
+static int restart;
 
 /**
  * Set if we should delete configuration and temp directory on exit.
@@ -134,17 +146,31 @@ confirm_cb (void *cls, int success)
     case GNUNET_OK:
       if (quiet != GNUNET_YES)
         fprintf(stdout, _("Service `%s' is now running.\n"), service);
+      if ((phase - 1 != 2) && (phase - 1 != 3))
+        {
+          if (quiet != GNUNET_YES)
+            fprintf(stdout, _("Failed to stop service `%s'!\n"), service);
+          ret = 1;
+        }
       break;
     case GNUNET_NO:
       if (quiet != GNUNET_YES)
         fprintf(stdout, _("Service `%s' is not running.\n"), service);
+      if ((phase - 1 != 0) && (phase - 1 != 1))
+        {
+          if (quiet != GNUNET_YES)
+            fprintf(stdout, _("Failed to start service `%s'!\n"), service);
+          ret = 1;
+        }
       break;
     case GNUNET_SYSERR:
       if (quiet != GNUNET_YES)
         fprintf(stdout,
-                _("Error updating service `%s': ARM not running\n"), service);
+                _("Some error communicating with service `%s'.\n"), service);
+      ret = 1;
       break;
     }
+
   GNUNET_SCHEDULER_add_continuation (sched,
 				     &cps_loop,
 				     NULL,
@@ -260,38 +286,63 @@ cps_loop (void *cls,
 	case 0:
 	  if (term != NULL)
 	    {
-	      GNUNET_ARM_stop_service (h, term, TIMEOUT, &confirm_cb, term);
+	      GNUNET_ARM_stop_service (h, term, STOP_TIMEOUT, &confirm_cb, term);
 	      return;
 	    }
 	  break;
 	case 1:
-	  if (end)
+	  if ((end) || (restart))
 	    {
-	      GNUNET_ARM_stop_service (h, "arm", TIMEOUT, &confirm_cb, "arm");
+	      GNUNET_ARM_stop_service (h, "arm", STOP_TIMEOUT, &confirm_cb, "arm");
 	      return;
 	    }
 	  break;
 	case 2:
 	  if (start)
 	    {
-	      GNUNET_ARM_start_service (h, "arm", TIMEOUT, &confirm_cb, "arm");
+	      GNUNET_ARM_start_service (h, "arm", START_TIMEOUT, &confirm_cb, "arm");
 	      return;
 	    }
 	  break;
 	case 3:
 	  if (init != NULL)
 	    {
-	      GNUNET_ARM_start_service (h, init, TIMEOUT, &confirm_cb, init);
+	      GNUNET_ARM_start_service (h, init, START_TIMEOUT, &confirm_cb, init);
 	      return;
 	    }
 	  break;
 	case 4:
 	  if (test != NULL)
 	    {
-	      GNUNET_CLIENT_service_test (sched, test, cfg, TIMEOUT, &confirm_task, test);
+	      GNUNET_CLIENT_service_test (sched, test, cfg, START_TIMEOUT, &confirm_task, test);
 	      return;
 	    }
 	  break;
+	case 5:
+	  if (restart) /* FIXME:
+                        *  Restart should be a legal option but this is a hack.
+                        *  The proper thing to do would be have gnunet-service-arm
+                        *  signal us when actually shut down, and then initiate
+                        *  the startup.  Instead we just sleep for two seconds
+                        *  and hope that's enough time for shutdown to have happened.
+                        */
+	    {
+              GNUNET_ARM_disconnect (h);
+              phase = 0;
+              end = 0;
+              start = 1;
+              restart = 0;
+              h = GNUNET_ARM_connect (cfg, sched, NULL);
+              if (h == NULL)
+                {
+                  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                           _("Fatal error initializing ARM API.\n"));
+                  ret = 1;
+                  return;
+                }
+              GNUNET_SCHEDULER_add_now(sched, &cps_loop, NULL);
+              return;
+	    }
 	default: /* last phase */
 	  GNUNET_ARM_disconnect (h);
 	  if ((end == GNUNET_YES) && (delete == GNUNET_YES))
@@ -314,6 +365,8 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
    GNUNET_YES, &GNUNET_GETOPT_set_string, &term},
   {'s', "start", NULL, gettext_noop ("start all GNUnet default services"),
    GNUNET_NO, &GNUNET_GETOPT_set_one, &start},
+  {'r', "restart", NULL, gettext_noop ("stop and start all GNUnet default services"),
+    GNUNET_NO, &GNUNET_GETOPT_set_one, &restart},
   {'t', "test", "SERVICE",
    gettext_noop ("test if a particular service is running"),
    GNUNET_YES, &GNUNET_GETOPT_set_string, &test},

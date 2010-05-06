@@ -39,6 +39,10 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 static struct GNUNET_ARM_Handle *arm;
 static int ok = 1;
 
+static int trialCount;
+static struct GNUNET_TIME_Absolute startedWaitingAt;
+struct GNUNET_TIME_Relative waitedFor;
+
 #if LOG_BACKOFF
 static FILE *killLogFilePtr;
 static char *killLogFileName;
@@ -90,7 +94,6 @@ do_nothing_restarted_notify_task (void *cls,
 				  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {	
   static char a;
-  static int trialCount = 0;
   
   trialCount++;
 
@@ -129,16 +132,24 @@ do_test (void *cbData,
 
 
 static void
+shutdown_cont (void *cls, int reason)
+{
+  trialCount++;
+  startedWaitingAt = GNUNET_TIME_absolute_get();
+  GNUNET_SCHEDULER_add_delayed (sched,
+                                waitedFor,
+                                &do_test,
+                                NULL);
+}
+static void
 kill_task (void *cbData,
 		   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   static struct GNUNET_CLIENT_Connection * doNothingConnection = NULL;
-  static struct GNUNET_TIME_Absolute startedWaitingAt;
-  struct GNUNET_TIME_Relative waitedFor;
-  static int trialCount = 0;
-  
+
   if (NULL != cbData) {
     waitedFor = GNUNET_TIME_absolute_get_duration (startedWaitingAt);
+
 #if LOG_BACKOFF
     fprintf(killLogFilePtr, 
 	    "Waited for: %llu ms\n", 
@@ -164,13 +175,8 @@ kill_task (void *cbData,
   }
   
   /* Use the created connection to kill the doNothingTask */
-  GNUNET_CLIENT_service_shutdown(doNothingConnection);
-  trialCount++;
-  startedWaitingAt = GNUNET_TIME_absolute_get();
-  GNUNET_SCHEDULER_add_delayed (sched,
-				waitedFor,
-				&do_test,
-				NULL);
+  GNUNET_CLIENT_service_shutdown(sched, doNothingConnection, TIMEOUT, &shutdown_cont, NULL);
+
 }
 
        

@@ -54,6 +54,7 @@
  */
 #define EXPONENTIAL_BACKOFF_THRESHOLD (1000 * 60 * 30)
 
+#define DELAY_SHUTDOWN GNUNET_NO
 
 /**
  * List of our services.
@@ -720,6 +721,17 @@ do_shutdown ()
   child_death_task = GNUNET_SCHEDULER_NO_TASK;
 }
 
+#if DELAY_SHUTDOWN
+/**
+ * Dummy task to delay arm shutdown.
+ */
+void dummy_task (void *cls,
+                 const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Dummy task executing\n");
+  return;
+}
+#endif
 
 /**
  * Task run for shutdown.
@@ -731,7 +743,6 @@ static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ServiceList *pos;
- 
 #if DEBUG_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Stopping all services\n"));
 #endif
@@ -750,6 +761,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	}
       pos = pos->next;
     }
+#if DELAY_SHUTDOWN
+  GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 2), &dummy_task, NULL);
+#endif
   if (running == NULL)
     do_shutdown ();
 }
@@ -965,7 +979,6 @@ static void
 sighandler_child_death ()
 {
   static char c;
-
   GNUNET_break (1 == 
 		GNUNET_DISK_file_write (GNUNET_DISK_pipe_handle
 					(sigpipe, GNUNET_DISK_PIPE_END_WRITE), &c,
