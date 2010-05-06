@@ -1408,6 +1408,11 @@ struct GNUNET_FS_UnindexContext
   char *emsg;
 
   /**
+   * Context for hashing of the file.
+   */
+  struct GNUNET_CRYPTO_FileHashContext *fhc;
+
+  /**
    * Overall size of the file.
    */ 
   uint64_t file_size;

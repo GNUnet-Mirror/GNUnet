@@ -365,6 +365,7 @@ GNUNET_FS_unindex_process_hash_ (void *cls,
   struct GNUNET_FS_UnindexContext *uc = cls;
   struct UnindexMessage req;
 
+  uc->fhc = NULL;
   if (uc->state != UNINDEX_STATE_HASHING) 
     {
       GNUNET_FS_unindex_stop (uc);
@@ -410,6 +411,11 @@ GNUNET_FS_unindex_signal_suspend_ (void *cls)
   struct GNUNET_FS_UnindexContext *uc = cls;
   struct GNUNET_FS_ProgressInfo pi;
 
+  if (uc->fhc != NULL)
+    {
+      GNUNET_CRYPTO_hash_file_cancel (uc->fhc);
+      uc->fhc = NULL;
+    }
   GNUNET_FS_end_top (uc->h, uc->top);
   pi.status = GNUNET_FS_STATUS_UNINDEX_SUSPEND;
   GNUNET_FS_unindex_make_status_ (&pi, uc, 
@@ -454,13 +460,12 @@ GNUNET_FS_unindex_start (struct GNUNET_FS_Handle *h,
   pi.status = GNUNET_FS_STATUS_UNINDEX_START;
   pi.value.unindex.eta = GNUNET_TIME_UNIT_FOREVER_REL;
   GNUNET_FS_unindex_make_status_ (&pi, ret, 0);
-  /* FIXME: must be able to abort hashing here! */
-  GNUNET_CRYPTO_hash_file (h->sched,
-			   GNUNET_SCHEDULER_PRIORITY_IDLE,
-			   filename,
-			   HASHING_BLOCKSIZE,
-			   &GNUNET_FS_unindex_process_hash_,
-			   ret);
+  ret->fhc = GNUNET_CRYPTO_hash_file (h->sched,
+				      GNUNET_SCHEDULER_PRIORITY_IDLE,
+				      filename,
+				      HASHING_BLOCKSIZE,
+				      &GNUNET_FS_unindex_process_hash_,
+				      ret);
   ret->top = GNUNET_FS_make_top (h,
 				 &GNUNET_FS_unindex_signal_suspend_,
 				 ret);
@@ -478,7 +483,11 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc)
 {  
   struct GNUNET_FS_ProgressInfo pi;
   
-  /* FIXME: stop hashing (if still ongoing) */
+  if (uc->fhc != NULL)
+    {
+      GNUNET_CRYPTO_hash_file_cancel (uc->fhc);
+      uc->fhc = NULL;
+    }
   /* FIXME: disconnect uc->client (if still connected) */
   /* FIXME: disconnect from datastore (if still connected) */
   /* FIXME: other termination operations? */

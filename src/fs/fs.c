@@ -2058,12 +2058,12 @@ deserialize_unindex_file (void *cls,
   switch (uc->state)
     {
     case UNINDEX_STATE_HASHING:
-      GNUNET_CRYPTO_hash_file (uc->h->sched,
-			       GNUNET_SCHEDULER_PRIORITY_IDLE,
-			       uc->filename,
-			       HASHING_BLOCKSIZE,
-			       &GNUNET_FS_unindex_process_hash_,
-			       uc);
+      uc->fhc = GNUNET_CRYPTO_hash_file (uc->h->sched,
+					 GNUNET_SCHEDULER_PRIORITY_IDLE,
+					 uc->filename,
+					 HASHING_BLOCKSIZE,
+					 &GNUNET_FS_unindex_process_hash_,
+					 uc);
       break;
     case UNINDEX_STATE_FS_NOTIFY:
       uc->state = UNINDEX_STATE_HASHING;

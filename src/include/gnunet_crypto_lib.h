@@ -366,6 +366,11 @@ typedef void (*GNUNET_CRYPTO_HashCompletedCallback) (void *cls,
 
 
 /**
+ * Handle to file hashing operation.
+ */
+struct GNUNET_CRYPTO_FileHashContext;
+
+/**
  * Compute the hash of an entire file.
  *
  * @param sched scheduler to use
@@ -374,13 +379,24 @@ typedef void (*GNUNET_CRYPTO_HashCompletedCallback) (void *cls,
  * @param blocksize number of bytes to process in one task
  * @param callback function to call upon completion
  * @param callback_cls closure for callback
+ * @return NULL on (immediate) errror
  */
-void GNUNET_CRYPTO_hash_file (struct GNUNET_SCHEDULER_Handle *sched,
-                              enum GNUNET_SCHEDULER_Priority priority,
-                              const char *filename,
-                              size_t blocksize,
-                              GNUNET_CRYPTO_HashCompletedCallback callback,
-                              void *callback_cls);
+struct GNUNET_CRYPTO_FileHashContext *
+GNUNET_CRYPTO_hash_file (struct GNUNET_SCHEDULER_Handle *sched,
+			 enum GNUNET_SCHEDULER_Priority priority,
+			 const char *filename,
+			 size_t blocksize,
+			 GNUNET_CRYPTO_HashCompletedCallback callback,
+			 void *callback_cls);
+
+
+/**
+ * Cancel a file hashing operation.
+ *
+ * @param fhc operation to cancel (callback must not yet have been invoked)
+ */
+void
+GNUNET_CRYPTO_hash_file_cancel (struct GNUNET_CRYPTO_FileHashContext *fhc);
 
 
 /**

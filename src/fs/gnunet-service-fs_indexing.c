@@ -22,6 +22,11 @@
  * @file fs/gnunet-service-fs_indexing.c
  * @brief program that provides indexing functions of the file-sharing service
  * @author Christian Grothoff
+ *
+ * TODO:
+ * - consider doing GNUNET_CRYPTO_hash_file_cancel on active indexing
+ *   jobs during shutdown (currently, shutdown will only happen after
+ *   all of those are done, not sure if this is good or bad)
  */
 #include "platform.h"
 #include <float.h>
@@ -60,6 +65,11 @@ struct IndexInfo
    * NULL if we've done this already.
    */
   struct GNUNET_SERVER_TransmitContext *tc;
+
+  /**
+   * Context for hashing of the file.
+   */
+  struct GNUNET_CRYPTO_FileHashContext *fhc;
   
   /**
    * Hash of the contents of the file.
@@ -282,7 +292,8 @@ hash_for_index_val (void *cls,
 		    res)
 {
   struct IndexInfo *ii = cls;
-  
+
+  ii->fhc = NULL;
   if ( (res == NULL) ||
        (0 != memcmp (res,
 		     &ii->file_id,
@@ -375,12 +386,14 @@ GNUNET_FS_handle_index_start (void *cls,
 	      (unsigned int) mydev);
 #endif
   /* slow validation, need to hash full file (again) */
-  GNUNET_CRYPTO_hash_file (sched,
-			   GNUNET_SCHEDULER_PRIORITY_IDLE,
-			   fn,
-			   HASHING_BLOCKSIZE,
-			   &hash_for_index_val,
-			   ii);
+  ii->fhc = GNUNET_CRYPTO_hash_file (sched,
+				     GNUNET_SCHEDULER_PRIORITY_IDLE,
+				     fn,
+				     HASHING_BLOCKSIZE,
+				     &hash_for_index_val,
+				     ii);
+  if (ii->fhc == NULL)    
+    hash_for_index_val (ii, NULL);    
   GNUNET_free (fn);
 }
 

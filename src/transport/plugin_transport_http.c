@@ -181,12 +181,14 @@ static char * get_url( const struct GNUNET_PeerIdentity * target)
   return strdup("http://localhost:12389");
 }
 
+#if 0
 static size_t curl_read_function( void *ptr, size_t size, size_t nmemb, void *stream)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"curl read function\n");
   // strcpy ("Testmessa")
   return 0;
 }
+#endif
 
 /**
  * Task that is run when we are ready to receive more data from the hostlist
