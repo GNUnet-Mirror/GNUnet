@@ -1,10 +1,11 @@
 #!/bin/sh
 
-armexe="gnunet-arm -c test_dht_api_peer1.conf "
-putexe="gnunet-dht-put -c test_dht_api_peer1.conf "
-getexe="gnunet-dht-get -c test_dht_api_peer1.conf "
 out=`mktemp /tmp/test-gnunet-arm-logXXXXXXXX`
+tempcfg=`mktemp /tmp/test_dht_api_peer1.XXXXXXXX`
 checkout="check.out"
+armexe="gnunet-arm -c $tempcfg "
+putexe="gnunet-dht-put -c $tempcfg "
+getexe="gnunet-dht-get -c $tempcfg "
 
 stop_arm()
 {
@@ -16,6 +17,8 @@ stop_arm()
     exit 1
   fi
 }
+
+cp test_dht_api_peer1.conf $tempcfg
 
 echo -n "TEST: Starting ARM..."
 if ! $armexe $DEBUG -s > $out ; then
