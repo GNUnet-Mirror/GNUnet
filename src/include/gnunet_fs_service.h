@@ -755,6 +755,7 @@ struct GNUNET_FS_ProgressInfo
 
       /**
        * Context for controlling the upload.
+       * FIXME: rename to 'pc'.
        */
       struct GNUNET_FS_PublishContext *sc;
 
