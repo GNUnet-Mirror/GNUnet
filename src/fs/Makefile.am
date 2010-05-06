@@ -157,6 +157,7 @@ TESTS = $(check_SCRIPTS) \
  test_fs_search_persistence \
  test_fs_start_stop \
  test_fs_unindex \
+ test_fs_unindex_persistence \
  test_fs_uri \
  test_fs_test_lib \
  test_gnunet_service_fs_p2p

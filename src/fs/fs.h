@@ -1339,13 +1339,8 @@ enum UnindexState
     /**
      * We've encountered a fatal error.
      */
-    UNINDEX_STATE_ERROR = 4,
+    UNINDEX_STATE_ERROR = 4
 
-    /**
-     * We've been aborted.  The next callback should clean up the
-     * struct.
-     */
-    UNINDEX_STATE_ABORTED = 5
   };
 
 

@@ -1571,8 +1571,6 @@ GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc)
 {
   struct GNUNET_BIO_WriteHandle *wh;
 
-  if (UNINDEX_STATE_ABORTED == uc->state)
-    return;
   if (NULL == uc->serialization)
     uc->serialization = make_serialization_file_name (uc->h,
 						      GNUNET_FS_SYNC_PATH_MASTER_UNINDEX);
@@ -2038,9 +2036,6 @@ deserialize_unindex_file (void *cls,
 	  goto cleanup;
 	}
       break;
-    case UNINDEX_STATE_ABORTED:
-      GNUNET_break (0);
-      goto cleanup;
     default:
       GNUNET_break (0);
       goto cleanup;

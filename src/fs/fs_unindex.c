@@ -243,6 +243,7 @@ unindex_finish (void *cls,
   GNUNET_FS_tree_encoder_finish (uc->tc,
 				 &uri,
 				 &emsg);
+  uc->tc = NULL;
   if (uri != NULL)
     GNUNET_FS_uri_destroy (uri);
   GNUNET_DISK_file_close (uc->fh);
@@ -251,11 +252,13 @@ unindex_finish (void *cls,
   uc->dsh = NULL;
   if (emsg != NULL)
     {
+      uc->state = UNINDEX_STATE_ERROR;
       uc->emsg = emsg;
       signal_unindex_error (uc);
     }
-  else
+  else 
     {   
+      uc->state = UNINDEX_STATE_COMPLETE;
       pi.status = GNUNET_FS_STATUS_UNINDEX_COMPLETED;
       pi.value.unindex.eta = GNUNET_TIME_UNIT_ZERO;
       GNUNET_FS_unindex_make_status_ (&pi, uc, uc->file_size);
@@ -284,7 +287,10 @@ process_fs_response (void *cls,
     }
   if (uc->state != UNINDEX_STATE_FS_NOTIFY) 
     {
-      GNUNET_FS_unindex_stop (uc);
+      uc->state = UNINDEX_STATE_ERROR;
+      uc->emsg = GNUNET_strdup (_("Unexpected time for a response from `fs' service."));
+      GNUNET_FS_unindex_sync_ (uc);
+      signal_unindex_error (uc);			    
       return;
     }
   if (NULL == msg)
@@ -416,6 +422,28 @@ GNUNET_FS_unindex_signal_suspend_ (void *cls)
       GNUNET_CRYPTO_hash_file_cancel (uc->fhc);
       uc->fhc = NULL;
     }
+  if (uc->client != NULL)
+    {
+      GNUNET_CLIENT_disconnect (uc->client, GNUNET_NO);
+      uc->client = NULL;
+    }
+  if (NULL != uc->dsh)
+    {
+      GNUNET_DATASTORE_disconnect (uc->dsh, GNUNET_NO);
+      uc->dsh = NULL;
+    }
+  if (NULL != uc->tc)
+    {
+      GNUNET_FS_tree_encoder_finish (uc->tc,
+				     NULL, 
+				     NULL);
+      uc->tc = NULL;
+    }
+  if (uc->fh != NULL)
+    {
+      GNUNET_DISK_file_close (uc->fh);
+      uc->fh = NULL;
+    }
   GNUNET_FS_end_top (uc->h, uc->top);
   pi.status = GNUNET_FS_STATUS_UNINDEX_SUSPEND;
   GNUNET_FS_unindex_make_status_ (&pi, uc, 
@@ -488,17 +516,29 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc)
       GNUNET_CRYPTO_hash_file_cancel (uc->fhc);
       uc->fhc = NULL;
     }
-  /* FIXME: disconnect uc->client (if still connected) */
-  /* FIXME: disconnect from datastore (if still connected) */
-  /* FIXME: other termination operations? */
-  /* FIXME: must do same cleanup in 'unindex_signal_suspend'! */
-  GNUNET_FS_end_top (uc->h, uc->top);
-  if ( (uc->state != UNINDEX_STATE_COMPLETE) &&
-       (uc->state != UNINDEX_STATE_ERROR) )
+  if (uc->client != NULL)
     {
-      uc->state = UNINDEX_STATE_ABORTED;
-      return;
+      GNUNET_CLIENT_disconnect (uc->client, GNUNET_NO);
+      uc->client = NULL;
     }
+  if (NULL != uc->dsh)
+    {
+      GNUNET_DATASTORE_disconnect (uc->dsh, GNUNET_NO);
+      uc->dsh = NULL;
+    }
+  if (NULL != uc->tc)
+    {
+      GNUNET_FS_tree_encoder_finish (uc->tc,
+				     NULL, 
+				     NULL);
+      uc->tc = NULL;
+    }
+  if (uc->fh != NULL)
+    {
+      GNUNET_DISK_file_close (uc->fh);
+      uc->fh = NULL;
+    }
+  GNUNET_FS_end_top (uc->h, uc->top);
   if (uc->serialization != NULL)
     {
       GNUNET_FS_remove_sync_file_ (uc->h, GNUNET_FS_SYNC_PATH_MASTER_UNINDEX, uc->serialization);

@@ -161,7 +161,6 @@ progress_cb (void *cls,
       GNUNET_assert (unindex != NULL);
       break;
     case GNUNET_FS_STATUS_UNINDEX_COMPLETED:
-      consider_restart (event->status);
       printf ("Unindex complete,  %llu kbps.\n",
 	      (unsigned long long) (FILESIZE * 1000 / (1+GNUNET_TIME_absolute_get_duration (start).value) / 1024));
       GNUNET_SCHEDULER_add_continuation (sched,
@@ -180,6 +179,25 @@ progress_cb (void *cls,
 	      (unsigned long long) event->value.unindex.specifics.progress.offset);
 #endif
       break;
+    case GNUNET_FS_STATUS_PUBLISH_SUSPEND:
+      if  (event->value.publish.sc == publish)
+	publish = NULL;
+      break;
+    case GNUNET_FS_STATUS_PUBLISH_RESUME:
+      if (NULL == publish)
+	{
+	  publish = event->value.publish.sc;
+	  return "publish-context";
+	}
+      break;
+    case GNUNET_FS_STATUS_UNINDEX_SUSPEND:
+      GNUNET_assert (event->value.unindex.uc == unindex);
+      unindex = NULL;
+      break;
+    case GNUNET_FS_STATUS_UNINDEX_RESUME:
+      GNUNET_assert (NULL == unindex);
+      unindex = event->value.unindex.uc;
+      return "unindex";
     case GNUNET_FS_STATUS_PUBLISH_ERROR:
       fprintf (stderr,
 	       "Error publishing file: %s\n",
@@ -222,7 +240,6 @@ progress_cb (void *cls,
       GNUNET_assert (0 == event->value.unindex.completed);
       break;
     case GNUNET_FS_STATUS_UNINDEX_STOPPED:
-      consider_restart (event->status);
       GNUNET_assert (unindex == event->value.unindex.uc);
       GNUNET_SCHEDULER_add_continuation (sched,
 					 &abort_publish_task,
