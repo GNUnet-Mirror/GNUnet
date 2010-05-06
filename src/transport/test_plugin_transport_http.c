@@ -92,14 +92,10 @@ static struct GNUNET_TRANSPORT_PluginEnvironment env;
  */
 static struct GNUNET_TRANSPORT_PluginFunctions *api;
 
-static struct GNUNET_SERVICE_Context *service;
-
 /**
  * Did the test pass or fail?
  */
 static int fail;
-
-static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
 pid_t pid;
 
@@ -129,23 +125,6 @@ notify_address (void *cls,
 }
 
 /**
- * Function called when the service shuts
- * down.  Unloads our plugins.
- *
- * @param cls closure
- * @param cfg configuration to use
- */
-static void
-unload_plugins (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  GNUNET_assert (NULL ==
-                 GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_http",
-                                       api));
-  if (my_private_key != NULL)
-    GNUNET_CRYPTO_rsa_key_free (my_private_key);
-}
-
-/**
  * Simple example test that invokes
  * the check_address function of the plugin.
  */
@@ -155,26 +134,13 @@ unload_plugins (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 static void
 shutdown_clean ()
 {
-  if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel( sched, timeout_task );
-  if (NULL != service) GNUNET_SERVICE_stop (service);
-  unload_plugins(env.cls, env.cfg);
-}
+  GNUNET_assert (NULL ==
+                 GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_http",
+                                       api));
+  if (my_private_key != NULL)
+    GNUNET_CRYPTO_rsa_key_free (my_private_key);
 
-/**
- * Timeout, give up.
- */
-static void
-timeout_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Timeout while executing testcase, test failed.\n");
-  /* FIXME : correct it to  fail = GNUNET_YES;*/
-  fail = GNUNET_NO;
-  shutdown_clean();
+  return;
 }
 
 static void
@@ -224,7 +190,6 @@ run (void *cls,
   sched = s;
   cfg = c;
 
-  timeout_task = GNUNET_SCHEDULER_add_delayed ( sched,  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10), &timeout_error, NULL);
   /* parse configuration */
   if ((GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_number (c,
@@ -253,6 +218,7 @@ run (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                      _("Failed to start service for `%s' http transport plugin test.\n"),
                      "statistics");
+    GNUNET_SCHEDULER_shutdown (s);
     return;
   }
 
@@ -297,7 +263,8 @@ run (void *cls,
 
     }
   fail = GNUNET_NO;
-  // shutdown_clean ();
+  shutdown_clean ();
+  return;
 }
 
 
