@@ -175,7 +175,6 @@ static void *
 progress_cb (void *cls, 
 	     const struct GNUNET_FS_ProgressInfo *event)
 {
-
   switch (event->status)
     {
     case GNUNET_FS_STATUS_PUBLISH_PROGRESS:
@@ -192,17 +191,17 @@ progress_cb (void *cls,
 	      (unsigned long long) (FILESIZE * 1000LL / (1+GNUNET_TIME_absolute_get_duration (start).value) / 1024LL));
       fn = GNUNET_DISK_mktemp ("gnunet-download-test-dst");
       start = GNUNET_TIME_absolute_get ();
-      download = GNUNET_FS_download_start (fs,
-					   event->value.publish.specifics.completed.chk_uri,
-					   NULL,
-					   fn, NULL,
-					   0,
-					   FILESIZE,
-					   1,
-					   GNUNET_FS_DOWNLOAD_OPTION_NONE,
-					   "download",
-					   NULL);
-      GNUNET_assert (download != NULL);
+      GNUNET_assert (download == NULL);
+      GNUNET_FS_download_start (fs,
+				event->value.publish.specifics.completed.chk_uri,
+				NULL,
+				fn, NULL,
+				0,
+				FILESIZE,
+				1,
+				GNUNET_FS_DOWNLOAD_OPTION_NONE,
+				"download",
+				NULL);
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
       consider_restart (event->status);
@@ -241,6 +240,22 @@ progress_cb (void *cls,
 				&abort_download_task,
 				NULL);
       break;
+    case GNUNET_FS_STATUS_PUBLISH_SUSPEND:
+      GNUNET_assert (event->value.publish.sc == publish);
+      publish = NULL;
+      break;
+    case GNUNET_FS_STATUS_PUBLISH_RESUME:
+      GNUNET_assert (NULL == publish);
+      publish = event->value.publish.sc;
+      break;
+    case GNUNET_FS_STATUS_DOWNLOAD_SUSPEND:
+      GNUNET_assert (event->value.download.dc == download);
+      download = NULL;
+      break;
+    case GNUNET_FS_STATUS_DOWNLOAD_RESUME:
+      GNUNET_assert (NULL == download);
+      download = event->value.download.dc;
+      break;
     case GNUNET_FS_STATUS_DOWNLOAD_ACTIVE:
       consider_restart (event->status);
       break;
@@ -264,6 +279,7 @@ progress_cb (void *cls,
     case GNUNET_FS_STATUS_DOWNLOAD_START:
       consider_restart (event->status);
       GNUNET_assert (download == NULL);
+      download = event->value.download.dc;
       GNUNET_assert (0 == strcmp ("download", event->value.download.cctx));
       GNUNET_assert (NULL == event->value.download.pctx);
       GNUNET_assert (NULL != event->value.download.uri);
@@ -273,12 +289,12 @@ progress_cb (void *cls,
       GNUNET_assert (1 == event->value.download.anonymity);
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_STOPPED:
-      consider_restart (event->status);
       GNUNET_assert (download == event->value.download.dc);
       GNUNET_SCHEDULER_add_continuation (sched,
 					 &abort_publish_task,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      download = NULL;
       break;
     default:
       printf ("Unexpected event: %d\n", 
@@ -394,7 +410,6 @@ main (int argc, char *argv[])
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-
   GNUNET_log_setup ("test_fs_download_persistence", 
 #if VERBOSE
 		    "DEBUG",
@@ -402,6 +417,7 @@ main (int argc, char *argv[])
 		    "WARNING",
 #endif
 		    NULL);
+  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-download/");
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1,
                       argvx, "test-fs-download-persistence",
 		      "nohelp", options, &run, NULL);

@@ -1115,12 +1115,9 @@ fip_signal_stop(void *cls,
 
   if (fi->serialization != NULL) 
     {
-      if (0 != UNLINK (fi->serialization))
-	{
-	  GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-				    "unlink",
-				    fi->serialization); 
-	}
+      GNUNET_FS_remove_sync_file_ (sc->h,
+				   GNUNET_FS_SYNC_PATH_FILE_INFO,
+				   fi->serialization);
       GNUNET_free (fi->serialization);
       fi->serialization = NULL;
     }

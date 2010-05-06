@@ -529,9 +529,7 @@ get_write_handle (struct GNUNET_FS_Handle *h,
     }
   ret = GNUNET_BIO_write_open (fn);
   if (ret == NULL)
-    fprintf (stderr,
-	     "Failed to create write handle for `%s' from `%s/%s'\n",
-	     fn, ext, ent);
+    GNUNET_break (0);
   GNUNET_free (fn);
   return ret;
 }
@@ -1671,11 +1669,13 @@ count_download_requests (void *cls,
  *
  * @param dc download context to compute for
  * @param uni unique filename to use, use "" for the directory name
+ * @param ext extension to use, use ".dir" for our own subdirectory
  * @return the expanded file name, NULL for none
  */
 static char *
 get_download_sync_filename (struct GNUNET_FS_DownloadContext *dc,
-			    const char *uni)
+			    const char *uni,
+			    const char *ext)
 {
   char *par;
   char *epar;
@@ -1688,14 +1688,15 @@ get_download_sync_filename (struct GNUNET_FS_DownloadContext *dc,
 					uni);
   if (dc->parent->serialization == NULL)
     return NULL;
-  par = get_download_sync_filename (dc->parent, dc->parent->serialization);
+  par = get_download_sync_filename (dc->parent, dc->parent->serialization, "");
   if (par == NULL)
     return NULL;
   GNUNET_asprintf (&epar,
-		   "%s.dir%s%s",
+		   "%s.dir%s%s%s",
 		   par,
 		   DIR_SEPARATOR_STR,
-		   uni);
+		   uni,
+		   ext);
   GNUNET_free (par);
   return epar;
 }
@@ -1720,7 +1721,7 @@ GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc)
 
   if (NULL == dc->serialization)    
     {
-      dir = get_download_sync_filename (dc, "");
+      dir = get_download_sync_filename (dc, "", "");
       if (dir == NULL)
 	return;
       if (GNUNET_OK !=
@@ -1735,7 +1736,7 @@ GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc)
     }
   else
     {
-      fn = get_download_sync_filename (dc, dc->serialization);
+      fn = get_download_sync_filename (dc, dc->serialization, "");
     }
   wh = GNUNET_BIO_write_open (fn);
   if (wh == NULL)
@@ -2440,6 +2441,15 @@ deserialize_subdownload (void *cls,
 
   ser = get_serialization_short_name (filename);
   rh = GNUNET_BIO_read_open (filename);
+  if (rh == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Failed to resume sub-download `%s': could not open file `%s'\n"),
+		  ser,
+		  filename);
+      GNUNET_free (ser);
+      return GNUNET_OK;
+    }
   deserialize_download (parent->h,
 			rh,
 			parent,
@@ -2591,9 +2601,14 @@ deserialize_download (struct GNUNET_FS_Handle *h,
       dr->is_pending = GNUNET_YES;
       dr->next = dc->pending;
       dc->pending = dr;
+      GNUNET_CONTAINER_multihashmap_put (dc->active,
+					 &dr->chk.query,
+					 dr,
+					 GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+
       dr = NULL;
     }
-  dn = get_download_sync_filename (dc, "");
+  dn = get_download_sync_filename (dc, dc->serialization, ".dir");
   if (dn != NULL)
     {
       if (GNUNET_YES ==
@@ -2602,20 +2617,25 @@ deserialize_download (struct GNUNET_FS_Handle *h,
       GNUNET_free (dn);
     }
   if (parent != NULL)
-    GNUNET_CONTAINER_DLL_insert (parent->child_head,
-				 parent->child_tail,
-				 dc);
+    {
+      abort (); // for debugging for now
+      GNUNET_CONTAINER_DLL_insert (parent->child_head,
+				   parent->child_tail,
+				   dc);
+    }
   if (search != NULL)
     {
       dc->search = search;
       search->download = dc;
     }
-  if ( (parent == NULL) || 
+  if ( (parent == NULL) &&
        (search == NULL) )
-    dc->top = GNUNET_FS_make_top (dc->h,
-				  &GNUNET_FS_download_signal_suspend_,
-				  dc);
-  signal_download_resume (dc);  
+    {
+      dc->top = GNUNET_FS_make_top (dc->h,
+				    &GNUNET_FS_download_signal_suspend_,
+				    dc);      
+      signal_download_resume (dc);  
+    }
   GNUNET_free (uris);
   return;
  cleanup:

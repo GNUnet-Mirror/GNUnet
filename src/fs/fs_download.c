@@ -1359,6 +1359,8 @@ activate_fs_download (void *cls,
   struct GNUNET_FS_ProgressInfo pi;
 
   GNUNET_assert (NULL != client);
+  GNUNET_assert (dc->client == NULL);
+  GNUNET_assert (dc->th == NULL);
   dc->client = client;
   GNUNET_CLIENT_receive (client,
 			 &receive_results,
@@ -1369,14 +1371,12 @@ activate_fs_download (void *cls,
   GNUNET_CONTAINER_multihashmap_iterate (dc->active,
 					 &retry_entry,
 					 dc);
-  if ( (dc->th == NULL) &&
-       (dc->client != NULL) )
-    dc->th = GNUNET_CLIENT_notify_transmit_ready (dc->client,
-						  sizeof (struct SearchMessage),
-						  GNUNET_CONSTANTS_SERVICE_TIMEOUT,
-						  GNUNET_NO,
-						  &transmit_download_request,
-						  dc);
+  dc->th = GNUNET_CLIENT_notify_transmit_ready (dc->client,
+						sizeof (struct SearchMessage),
+						GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+						GNUNET_NO,
+						&transmit_download_request,
+						dc);    
 }
 
 
@@ -1559,9 +1559,11 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 	      dc->treedepth);
 #endif
   if (parent == NULL)
-    dc->top = GNUNET_FS_make_top (dc->h,
-				  &GNUNET_FS_download_signal_suspend_,
-				  dc);
+    {
+      dc->top = GNUNET_FS_make_top (dc->h,
+				    &GNUNET_FS_download_signal_suspend_,
+				    dc);
+    }
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_START;
   pi.value.download.specifics.start.meta = meta;
   GNUNET_FS_download_make_status_ (&pi, dc);
@@ -1707,6 +1709,7 @@ GNUNET_FS_download_start_from_search (struct GNUNET_FS_Handle *h,
 void
 GNUNET_FS_download_start_downloading_ (struct GNUNET_FS_DownloadContext *dc)
 {
+  GNUNET_assert (dc->job_queue == NULL);
   dc->job_queue = GNUNET_FS_queue_ (dc->h, 
 				    &activate_fs_download,
 				    &deactivate_fs_download,
