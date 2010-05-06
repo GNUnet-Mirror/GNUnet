@@ -2823,14 +2823,11 @@ deserialize_download_file (void *cls,
   rh = GNUNET_BIO_read_open (filename);
   if (rh == NULL)
     {
-      if (filename != NULL)
-	{
-	  if (0 != UNLINK (filename))
-	    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-				      "unlink", 
-				      filename);
-	  GNUNET_free (ser);
-	}
+       if (0 != UNLINK (filename))
+	 GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+				   "unlink", 
+				   filename);
+      GNUNET_free (ser);
       return GNUNET_OK;
     }
   deserialize_download (h, rh, NULL, NULL, ser);
