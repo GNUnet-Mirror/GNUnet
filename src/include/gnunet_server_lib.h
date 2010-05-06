@@ -187,6 +187,15 @@ struct GNUNET_CONNECTION_TransmitHandle
 
 
 /**
+ * Set the persistent flag on this client, used to setup client connection
+ * to only be killed when the service it's connected to is actually dead.
+ *
+ * @param client the client to set the persistent flag on
+ */
+void
+GNUNET_SERVER_client_persist_ (struct GNUNET_SERVER_Client *client);
+
+/**
  * Resume receiving from this client, we are done processing the
  * current request.  This function must be called from within each
  * GNUNET_SERVER_MessageCallback (or its respective continuations).
@@ -317,8 +326,9 @@ typedef int (*GNUNET_SERVER_CheckCallback) (void *cls);
  * Destroy this connection (free resources).
  *
  * @param cls closure
+ * @pararm persist when connection is closed, "leak" socket
  */
-typedef void (*GNUNET_SERVER_DestroyCallback) (void *cls);
+typedef void (*GNUNET_SERVER_DestroyCallback) (void *cls, int persist);
 
 
 /**

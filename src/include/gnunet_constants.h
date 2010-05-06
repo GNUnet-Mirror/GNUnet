@@ -60,7 +60,7 @@ extern "C"
  * How long do we wait after a FORK+EXEC before testing for the
  * resulting process to be up (port open, waitpid, etc.)?
  */
-#define GNUNET_CONSTANTS_EXEC_WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 100)
+#define GNUNET_CONSTANTS_EXEC_WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 200)
 
 /**
  * After how long do we consider a service irresponsive

@@ -84,6 +84,15 @@ typedef void (*GNUNET_CONNECTION_Receiver) (void *cls,
                                          const struct sockaddr * addr,
                                          socklen_t addrlen, int errCode);
 
+/**
+ * Set the persist option on this connection handle.  Indicates
+ * that the underlying socket or fd should never really be closed.
+ * Used for indicating process death.
+ *
+ * @param sock the connection to set persistent
+ */
+void
+GNUNET_CONNECTION_persist_(struct GNUNET_CONNECTION_Handle *sock);
 
 /**
  * Create a socket handle by boxing an existing OS socket.  The OS

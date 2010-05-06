@@ -106,6 +106,19 @@ typedef void (*GNUNET_CLIENT_MessageHandler) (void *cls,
                                               GNUNET_MessageHeader * msg);
 
 /**
+ * Type of a function to call when we have finished shutting
+ * down a service, or failed.
+ *
+ * @param cls closure
+ * @param reason what is the result of the shutdown
+ *        GNUNET_NO on shutdown (not running)
+ *        GNUNET_YES on running
+ *        GNUNET_SYSERR on failure to transmit message
+ */
+typedef void (*GNUNET_CLIENT_ShutdownTask) (void *cls,
+                                            int reason);
+
+/**
  * Read from the service.
  *
  * @param sock the service
@@ -202,9 +215,19 @@ GNUNET_CLIENT_transmit_and_get_response (struct GNUNET_CLIENT_Connection *sock,
  * be used by the caller after this call
  * (calling this function frees "sock" after a while).
  *
+ * @param sched the scheduler to use for calling shutdown continuation
  * @param sock the socket connected to the service
+ * @param timeout how long to wait before giving up on transmission
+ * @param cont continuation to call once the service is really down
+ * @param cont_cls closure for continuation
+ *
  */
-void GNUNET_CLIENT_service_shutdown (struct GNUNET_CLIENT_Connection *sock);
+void
+GNUNET_CLIENT_service_shutdown (struct GNUNET_SCHEDULER_Handle *sched,
+                                struct GNUNET_CLIENT_Connection *sock,
+                                struct GNUNET_TIME_Relative timeout,
+                                GNUNET_CLIENT_ShutdownTask cont,
+                                void *cont_cls);
 
 
 /**

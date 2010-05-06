@@ -104,6 +104,18 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_ARM_IS_UNKNOWN 12
 
+/**
+ * Acknowledge service shutting down, disconnect
+ * indicates service stopped.
+ */
+#define GNUNET_MESSAGE_TYPE_SHUTDOWN_ACK 13
+
+/**
+ * Deny service shutdown, disconnect indicates
+ * service won't be stopped as a result of shutdown
+ * message.
+ */
+#define GNUNET_MESSAGE_TYPE_SHUTDOWN_REFUSE 14
 
 /**
  * HELLO message used for communicating peer addresses.
