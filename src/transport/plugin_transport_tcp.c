@@ -338,7 +338,10 @@ tcp_address_to_string (void *cls,
       sb = &a4;
     }
   else
-    return NULL;
+    {
+      GNUNET_break_op (0);
+      return NULL;
+    }
   inet_ntop (af, sb, buf, INET6_ADDRSTRLEN);
   GNUNET_snprintf (rbuf,
 		   sizeof (rbuf),
