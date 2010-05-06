@@ -349,6 +349,7 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
+  return GNUNET_NO;
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
