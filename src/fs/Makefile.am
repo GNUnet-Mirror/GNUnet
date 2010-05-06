@@ -147,6 +147,7 @@ endif
 TESTS = $(check_SCRIPTS) \
  test_fs_directory \
  test_fs_download \
+ test_fs_download_persistence \
  test_fs_file_information \
  test_fs_list_indexed \
  test_fs_namespace \
