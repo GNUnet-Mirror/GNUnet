@@ -129,7 +129,6 @@ GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h,
           GNUNET_asprintf (&h->emsg,
                            _("Error reading `%s': %s"),
                            what, STRERROR (errno));
-	  abort ();
           return GNUNET_SYSERR;
         }
       if (ret == 0)
@@ -137,7 +136,6 @@ GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h,
           GNUNET_asprintf (&h->emsg,
                            _("Error reading `%s': %s"),
                            what, _("End of file"));
-	  abort ();
           return GNUNET_SYSERR;
         }
       h->pos = 0;
