@@ -46,6 +46,7 @@
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
+
 /**
  * Our public key.
  */
@@ -139,7 +140,7 @@ shutdown_clean ()
                                        api));
   if (my_private_key != NULL)
     GNUNET_CRYPTO_rsa_key_free (my_private_key);
-
+  GNUNET_SCHEDULER_shutdown(sched);
   return;
 }
 
@@ -225,7 +226,6 @@ run (void *cls,
   stats = GNUNET_STATISTICS_create (sched, "http-transport", cfg);
   env.stats = stats;
 
-  /*
   max_connect_per_transport = (uint32_t) tneigh;
   my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
@@ -240,7 +240,7 @@ run (void *cls,
     }
   GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
   GNUNET_CRYPTO_hash (&my_public_key,
-                      sizeof (my_public_key), &my_identity.hashPubKey);*/
+                      sizeof (my_public_key), &my_identity.hashPubKey);
 
   /* load plugins... */
   setup_plugin_environment ();
@@ -263,6 +263,12 @@ run (void *cls,
 
     }
   fail = GNUNET_NO;
+
+  char * test_message  = "Hello World!";
+  size_t size = strlen(test_message) +1;
+
+  /* Testing to send */
+  api->send(NULL, &my_identity,test_message,size,0, TIMEOUT, NULL, NULL, 0, GNUNET_NO, NULL, NULL);
   shutdown_clean ();
   return;
 }

@@ -47,6 +47,8 @@
 
 #define HTTP_TIMEOUT 600
 
+#define CURL_EASY_SETOPT(c, a, b) do { ret = curl_easy_setopt(c, a, b); if (ret != CURLE_OK) GNUNET_log(GNUNET_ERROR_TYPE_WARNING, _("%s failed at %s:%d: `%s'\n"), "curl_easy_setopt", __FILE__, __LINE__, curl_easy_strerror(ret)); } while (0);
+
 /**
  * Text of the response sent back after the last bytes of a PUT
  * request have been received (just to formally obey the HTTP
@@ -161,11 +163,24 @@ static GNUNET_SCHEDULER_TaskIdentifier http_task_v4;
  */
 static GNUNET_SCHEDULER_TaskIdentifier http_task_v6;
 
+static char * hd_src ;
+
 
 /**
  * Curl multi for managing client operations.
  */
 static CURLM *curl_multi;
+
+static char * get_url( const struct GNUNET_PeerIdentity * target)
+{
+  return strdup("http://localhost:12389");
+}
+
+static size_t curl_read_function( void *ptr, size_t size, size_t nmemb, void *stream)
+{
+  // strcpy ("Testmessa")
+  return 0;
+}
 
 /**
  * Function that can be used by the transport service to transmit
@@ -195,21 +210,68 @@ static CURLM *curl_multi;
  */
 static ssize_t
 http_plugin_send (void *cls,
-                      const struct GNUNET_PeerIdentity *
-                      target,
-                      const char *msgbuf,
-                      size_t msgbuf_size,
-                      unsigned int priority,
-                      struct GNUNET_TIME_Relative timeout,
-		      struct Session *session,
-                      const void *addr,
-                      size_t addrlen,
-                      int force_address,
-                      GNUNET_TRANSPORT_TransmitContinuation
-                      cont, void *cont_cls)
+                  const struct GNUNET_PeerIdentity * target,
+                  const char *msgbuf,
+                  size_t msgbuf_size,
+                  unsigned int priority,
+                  struct GNUNET_TIME_Relative timeout,
+                  struct Session *session,
+                  const void *addr,
+                  size_t addrlen,
+                  int force_address,
+                  GNUNET_TRANSPORT_TransmitContinuation cont,
+                  void *cont_cls)
 {
+  char * peer_url = get_url( target );
+  CURL *curl;
+  CURLcode ret;
+
   int bytes_sent = 0;
   /*  struct Plugin *plugin = cls; */
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sending %u bytes (`%s') to `%s'\n",msgbuf_size, msgbuf,GNUNET_i2s(target));
+  /* Insert code to send using cURL */
+  curl = curl_easy_init ();
+
+  CURL_EASY_SETOPT (curl, CURLOPT_FOLLOWLOCATION, 1);
+  CURL_EASY_SETOPT (curl, CURLOPT_MAXREDIRS, 4);
+
+   /* setting put options */
+  CURL_EASY_SETOPT (curl, CURLOPT_UPLOAD, 1L);
+  CURL_EASY_SETOPT (curl, CURLOPT_PUT, 1L);
+  CURL_EASY_SETOPT (curl, CURLOPT_READDATA, msgbuf);
+
+
+  /* no need to abort if the above failed */
+  CURL_EASY_SETOPT (curl,
+                    CURLOPT_URL,
+                    peer_url);
+  if (ret != CURLE_OK)
+    {
+      /* clean_up (); */
+      return 0;
+    }
+  CURL_EASY_SETOPT (curl,
+                    CURLOPT_FAILONERROR,
+                    1);
+#if 0
+  CURL_EASY_SETOPT (curl,
+                    CURLOPT_VERBOSE,
+                    1);
+#endif
+  CURL_EASY_SETOPT (curl,
+                    CURLOPT_BUFFERSIZE,
+                    GNUNET_SERVER_MAX_MESSAGE_SIZE);
+  if (0 == strncmp (peer_url, "http", 4))
+    CURL_EASY_SETOPT (curl, CURLOPT_USERAGENT, "GNUnet");
+  CURL_EASY_SETOPT (curl,
+                    CURLOPT_CONNECTTIMEOUT,
+                    60L);
+  CURL_EASY_SETOPT (curl,
+                    CURLOPT_TIMEOUT,
+                    60L);
+
+  GNUNET_free(peer_url);
   return bytes_sent;
 }
 
@@ -510,33 +572,25 @@ libgnunet_plugin_transport_http_init (void *cls)
     }
   if ((http_daemon_v4 == NULL) && (http_daemon_v6 == NULL) && (port != 0))
     {
-      http_daemon_v4 = MHD_start_daemon (MHD_NO_FLAG,
-                                     port,
-                                     &acceptPolicyCallback,
-                                     NULL, &accessHandlerCallback, NULL,
-                                     MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
-                                     MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
-                                     MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
-                                     MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
-                                     MHD_OPTION_END);
       http_daemon_v6 = MHD_start_daemon (MHD_USE_IPv6,
-                                     port,
-                                     &acceptPolicyCallback,
-                                     NULL, &accessHandlerCallback, NULL,
-                                     MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
-                                     MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
-                                     MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
-                                     MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
-                                     MHD_OPTION_END);
+                                         port,
+                                         &acceptPolicyCallback,
+                                         NULL, &accessHandlerCallback, NULL,
+                                         MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
+                                         MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
+                                         MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
+                                         MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
+                                         MHD_OPTION_END);
+      http_daemon_v4 = MHD_start_daemon (MHD_NO_FLAG,
+                                         port,
+                                         &acceptPolicyCallback,
+                                         NULL, &accessHandlerCallback, NULL,
+                                         MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
+                                         MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
+                                         MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
+                                         MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
+                                         MHD_OPTION_END);
     }
-
-
-  if ((http_daemon_v4 != NULL) && (http_daemon_v6 != NULL))
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD on port %u with IPv4 and IPv6 enabled\n",port);
-  if ((http_daemon_v4 != NULL) && (http_daemon_v6 == NULL))
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD on port %u with IPv4 enabled\n",port);
-  if ((http_daemon_v4 == NULL) && (http_daemon_v6 != NULL))
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD on port %u with IPv6 enabled\n",port);
 
   curl_multi = curl_multi_init ();
 
@@ -544,6 +598,10 @@ libgnunet_plugin_transport_http_init (void *cls)
     http_task_v4 = prepare_daemon (http_daemon_v4);
   if (http_daemon_v6 != NULL)
     http_task_v6 = prepare_daemon (http_daemon_v6);
+
+  if ((http_daemon_v4 == NULL) || (http_daemon_v6 != NULL))
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD on port %u\n",port);
+
 
   if (NULL == plugin->env->stats)
   {
