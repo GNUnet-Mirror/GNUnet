@@ -578,8 +578,8 @@ transmit_shutdown_deny (void *cls, size_t size, void *buf)
 
   if (size < sizeof (struct GNUNET_MessageHeader))
     {
-      return 0;                 /* client disconnected */
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return 0;                 /* client disconnected */
     }
   msg = (struct GNUNET_MessageHeader *) buf;
   msg->type = htons (GNUNET_MESSAGE_TYPE_SHUTDOWN_REFUSE);
@@ -597,9 +597,14 @@ transmit_shutdown_ack (void *cls, size_t size, void *buf)
 
   if (size < sizeof (struct GNUNET_MessageHeader))
     {
-      return 0;                 /* client disconnected */
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  _("Failed to transmit shutdown ACK.\n"));
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return 0;                 /* client disconnected */
     }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Transmitting shutdown ACK.\n"));
 
   msg = (struct GNUNET_MessageHeader *) buf;
   msg->type = htons (GNUNET_MESSAGE_TYPE_SHUTDOWN_ACK);
