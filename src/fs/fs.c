@@ -1240,7 +1240,10 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation * fi)
 	   (GNUNET_OK !=
 	    GNUNET_BIO_write (wh, fi->data.dir.dir_data, (uint32_t) fi->data.dir.dir_size)) ||
 	   (GNUNET_OK !=
-	    GNUNET_BIO_write_string (wh, fi->data.dir.entries->serialization)) )
+	    GNUNET_BIO_write_string (wh, 
+				     (fi->data.dir.entries == NULL) 
+				     ?  NULL
+				     : fi->data.dir.entries->serialization)) )
 	{
 	  GNUNET_break (0);
 	  goto cleanup;

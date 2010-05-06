@@ -152,6 +152,7 @@ TESTS = $(check_SCRIPTS) \
  test_fs_list_indexed \
  test_fs_namespace \
  test_fs_publish \
+ test_fs_publish_persistence \
  test_fs_search \
  test_fs_start_stop \
  test_fs_unindex \

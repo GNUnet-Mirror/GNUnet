@@ -149,7 +149,7 @@ progress_cb (void *cls,
       ret = event->value.publish.cctx;
       printf ("Publish complete,  %llu kbps.\n",
 	      (unsigned long long) (FILESIZE * 1000 / (1+GNUNET_TIME_absolute_get_duration (start).value) / 1024));
-      if (0 == strcmp ("list_indexed-context-dir", 
+      if (0 == strcmp ("publish-context-dir", 
 		       event->value.publish.cctx))	
 	GNUNET_SCHEDULER_add_continuation (sched,
 					   &abort_publish_task,
@@ -168,13 +168,24 @@ progress_cb (void *cls,
 	      (unsigned long long) event->value.publish.specifics.progress.offset);
 #endif
       break;
+    case GNUNET_FS_STATUS_PUBLISH_SUSPEND:
+      if  (event->value.publish.sc == publish)
+	publish = NULL;
+      break;
+    case GNUNET_FS_STATUS_PUBLISH_RESUME:
+      if (NULL == publish)
+	{
+	  publish = event->value.publish.sc;
+	  return "publish-context-dir";
+	}
+      break;
     case GNUNET_FS_STATUS_PUBLISH_ERROR:
       ret = event->value.publish.cctx;
       fprintf (stderr,
 	       "Error publishing file: %s\n",
 	       event->value.publish.specifics.error.message);
       err = 1;
-      if (0 == strcmp ("list_indexed-context-dir", 
+      if (0 == strcmp ("publish-context-dir", 
 		       event->value.publish.cctx))		
 	GNUNET_SCHEDULER_add_continuation (sched,
 					   &abort_publish_task,
@@ -183,6 +194,7 @@ progress_cb (void *cls,
       break;
     case GNUNET_FS_STATUS_PUBLISH_START:
       consider_restart (event->status);
+      publish = event->value.publish.sc;
       ret = event->value.publish.cctx;
       if (0 == strcmp ("publish-context1", 
 		       event->value.publish.cctx))
@@ -213,15 +225,9 @@ progress_cb (void *cls,
       break;
     case GNUNET_FS_STATUS_PUBLISH_STOPPED:
       consider_restart (event->status);
-      if (0 == strcmp ("list_indexed-context-dir", 
+      if (0 == strcmp ("publish-context-dir", 
 		       event->value.publish.cctx))	
-	{
-	  GNUNET_assert (publish == event->value.publish.sc);
-	  GNUNET_SCHEDULER_add_continuation (sched,
-					     &abort_publish_task,
-					     NULL,
-					     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-	}
+	GNUNET_assert (publish == event->value.publish.sc);
       break;
     default:
       printf ("Unexpected event: %d\n", 
@@ -348,10 +354,10 @@ run (void *cls,
   GNUNET_CONTAINER_meta_data_destroy (meta);
   GNUNET_assert (NULL != fidir);
   start = GNUNET_TIME_absolute_get ();
-  publish = GNUNET_FS_publish_start (fs,
-				     fidir,
-				     NULL, NULL, NULL,
-				     GNUNET_FS_PUBLISH_OPTION_NONE);
+  GNUNET_FS_publish_start (fs,
+			   fidir,
+			   NULL, NULL, NULL,
+			   GNUNET_FS_PUBLISH_OPTION_NONE);
   GNUNET_assert (publish != NULL);
 }
 
