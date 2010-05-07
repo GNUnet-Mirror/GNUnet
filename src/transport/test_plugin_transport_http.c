@@ -50,7 +50,7 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define STAT_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+#define STAT_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
 
 /**
  * Our public key.
@@ -103,6 +103,8 @@ static struct GNUNET_TRANSPORT_PluginFunctions *api;
  */
 static GNUNET_SCHEDULER_TaskIdentifier ti_check_stat;
 
+static struct GNUNET_STATISTICS_GetHandle * stat_get_handle;
+
 static unsigned int timeout_count;
 
 /**
@@ -138,6 +140,30 @@ notify_address (void *cls,
 
 }
 
+/**
+ * Simple example test that invokes
+ * the check_address function of the plugin.
+ */
+/* FIXME: won't work on IPv6 enabled systems where IPv4 mapping
+ * isn't enabled (eg. FreeBSD > 4)
+ */
+static void
+shutdown_clean ()
+{
+  if (stat_get_handle != NULL)
+  {
+    GNUNET_STATISTICS_get_cancel(stat_get_handle);
+  }
+
+  GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
+  if (ti_check_stat != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(sched,ti_check_stat);
+  ti_check_stat = GNUNET_SCHEDULER_NO_TASK;
+
+  GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_http", api));
+  GNUNET_SCHEDULER_shutdown(sched);
+  return;
+}
 
 static void
 setup_plugin_environment ()
@@ -152,23 +178,38 @@ setup_plugin_environment ()
   env.max_connections = max_connect_per_transport;
 }
 
-/**
- * Simple example test that invokes
- * the check_address function of the plugin.
- */
-/* FIXME: won't work on IPv6 enabled systems where IPv4 mapping
- * isn't enabled (eg. FreeBSD > 4)
- */
-static void
-shutdown_clean ()
+static int
+process_stat (void *cls,
+              const char *subsystem,
+              const char *name,
+              uint64_t value,
+              int is_persistent)
 {
-  if (ti_check_stat != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel(sched,ti_check_stat);
-  ti_check_stat = GNUNET_SCHEDULER_NO_TASK;
+  stat_get_handle = NULL;
+  if (value==1)
+    {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown, plugin failed \n");
+    fail = GNUNET_YES;
+    shutdown_clean();
+    return GNUNET_YES;
+    }
+  if (value==2)
+    {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown, plugin not failed \n");
+    shutdown_clean();
+    return GNUNET_YES;
+    }
+  return GNUNET_YES;
+}
 
-  GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_http", api));
-  GNUNET_SCHEDULER_shutdown(sched);
-  return;
+static void
+cont_func (void *cls,
+              const char *subsystem,
+              const char *name,
+              uint64_t value,
+              int is_persistent)
+{
+  stat_get_handle = NULL;
 }
 
 /**
@@ -193,6 +234,14 @@ task_check_stat (void *cls,
   }
   timeout_count++;
 
+  stat_get_handle = GNUNET_STATISTICS_get (stats,
+                                           "http-transport",
+                                           gettext_noop("shutdown"),
+                                           GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2),
+                                           &cont_func,
+                                           &process_stat,
+                                           NULL);
+
   ti_check_stat = GNUNET_SCHEDULER_add_delayed (sched, STAT_INTERVALL, &task_check_stat, NULL);
   return;
 }
@@ -215,6 +264,17 @@ run (void *cls,
   sched = s;
   cfg = c;
 
+  /* settings up statistics */
+  stats = GNUNET_STATISTICS_create (sched, "http-transport", cfg);
+  if (NULL == stats)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to retrieve statistics handle\n"));
+    fail = GNUNET_YES;
+    shutdown_clean;
+    return ;
+  }
+
   /* load plugins... */
   setup_plugin_environment ();
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading HTTP transport plugin\n"));
@@ -228,6 +288,7 @@ run (void *cls,
     fail = GNUNET_YES;
     return;
   }
+
 
   ti_check_stat = GNUNET_SCHEDULER_add_now (sched, &task_check_stat, NULL);
 }
