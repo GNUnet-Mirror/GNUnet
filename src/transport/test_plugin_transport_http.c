@@ -162,6 +162,7 @@ shutdown_clean ()
 
   GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_http", api));
   GNUNET_SCHEDULER_shutdown(sched);
+  fail = GNUNET_NO;
   return;
 }
 
@@ -352,6 +353,8 @@ main (int argc, char *const *argv)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "Failed to kill statistics service");
     fail = GNUNET_YES;
   }
+  if (GNUNET_OS_process_wait(pid) != GNUNET_OK)
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Killed statistics service\n");
   return fail;
 }
