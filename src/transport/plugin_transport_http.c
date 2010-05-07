@@ -19,9 +19,9 @@
 */
 
 /**
- * @file transport/plugin_transport_http.c
- * @brief Implementation of the HTTP transport service
- * @author Matthias Wachs
+ * @file transport/plugin_transport_template.c
+ * @brief template for a new transport service
+ * @author Christian Grothoff
  */
 
 #include "platform.h"
@@ -32,11 +32,8 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
 #include "plugin_transport.h"
-#include "microhttpd.h"
-#include <curl/curl.h>
 
-#define VERBOSE GNUNET_YES
-#define DEBUG GNUNET_YES
+#define DEBUG_TEMPLATE GNUNET_NO
 
 /**
  * After how long do we expire an address that we
@@ -45,16 +42,6 @@
  */
 #define LEARNED_ADDRESS_EXPIRATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 6)
 
-#define HTTP_TIMEOUT 600
-
-#define CURL_EASY_SETOPT(c, a, b) do { ret = curl_easy_setopt(c, a, b); if (ret != CURLE_OK) GNUNET_log(GNUNET_ERROR_TYPE_WARNING, _("%s failed at %s:%d: `%s'\n"), "curl_easy_setopt", __FILE__, __LINE__, curl_easy_strerror(ret)); } while (0);
-
-/**
- * Text of the response sent back after the last bytes of a PUT
- * request have been received (just to formally obey the HTTP
- * protocol).
- */
-#define HTTP_PUT_RESPONSE "Thank you!"
 
 /**
  * Encapsulation of all of the state of the plugin.
@@ -131,149 +118,11 @@ struct Plugin
   struct GNUNET_TRANSPORT_PluginEnvironment *env;
 
   /**
-   * Handle to the network service.
-   */
-  struct GNUNET_SERVICE_Context *service;
-
-  /**
    * List of open sessions.
    */
   struct Session *sessions;
+
 };
-
-static struct Plugin *plugin;
-
-/**
- * Daemon for listening for new IPv4 connections.
- */
-static struct MHD_Daemon *http_daemon_v4;
-
-/**
- * Daemon for listening for new IPv6connections.
- */
-static struct MHD_Daemon *http_daemon_v6;
-
-/**
- * Our primary task for http daemon handling IPv4 connections
- */
-static GNUNET_SCHEDULER_TaskIdentifier http_task_v4;
-
-/**
- * Our primary task for http daemon handling IPv6 connections
- */
-static GNUNET_SCHEDULER_TaskIdentifier http_task_v6;
-
-/**
- * ID of the task downloading the hostlist
- */
-static GNUNET_SCHEDULER_TaskIdentifier ti_download;
-
-/* static int running; */
-
-/**
- * Curl multi for managing client operations.
- */
-static CURLM *curl_multi;
-static CURL  *curl;
-
-static char * get_url( const struct GNUNET_PeerIdentity * target)
-{
-  return strdup("http://localhost:12389");
-}
-
-#if 0
-static size_t curl_read_function( void *ptr, size_t size, size_t nmemb, void *stream)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"curl read function\n");
-  // strcpy ("Testmessa")
-  return 0;
-}
-#endif
-
-/**
- * Task that is run when we are ready to receive more data from the hostlist
- * server.
- *
- * @param cls closure, unused
- * @param tc task context, unused
- */
-static void
-task_download (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  ti_download = GNUNET_SCHEDULER_NO_TASK;
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Download!!!\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Logging shutdown\n");
-  GNUNET_STATISTICS_set(plugin->env->stats,"shutdown",2, GNUNET_NO);
-}
-/**
- * Ask CURL for the select set and then schedule the
- * receiving task with the scheduler.
- */
-static void
-download_prepare ()
-{
-  CURLMcode mret;
-  fd_set rs;
-  fd_set ws;
-  fd_set es;
-  int max;
-  struct GNUNET_NETWORK_FDSet *grs;
-  struct GNUNET_NETWORK_FDSet *gws;
-  long timeout;
-  struct GNUNET_TIME_Relative rtime;
-
-  max = -1;
-  FD_ZERO (&rs);
-  FD_ZERO (&ws);
-  FD_ZERO (&es);
-  mret = curl_multi_fdset (curl_multi, &rs, &ws, &es, &max);
-  if (mret != CURLM_OK)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  _("%s failed at %s:%d: `%s'\n"),
-                  "curl_multi_fdset", __FILE__, __LINE__,
-                  curl_multi_strerror (mret));
-      /*clean_up ();*/
-      return;
-    }
-  mret = curl_multi_timeout (curl_multi, &timeout);
-  if (mret != CURLM_OK)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  _("%s failed at %s:%d: `%s'\n"),
-                  "curl_multi_timeout", __FILE__, __LINE__,
-                  curl_multi_strerror (mret));
-      /* clean_up ();*/
-      return;
-    }
-
-  rtime = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 0 );
-  /*rtime = GNUNET_TIME_relative_min (GNUNET_TIME_absolute_get_remaining (end_time),
-                                    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
-                                                                   timeout));*/
-  grs = GNUNET_NETWORK_fdset_create ();
-  gws = GNUNET_NETWORK_fdset_create ();
-  GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
-  GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Scheduling http plugin send operation using cURL\n");
-  ti_download = GNUNET_SCHEDULER_add_select (plugin->env->sched,
-                                             GNUNET_SCHEDULER_PRIORITY_HIGH,
-                                             GNUNET_SCHEDULER_NO_TASK,
-                                             rtime,
-                                             grs,
-                                             gws,
-                                             &task_download,
-                                             curl_multi);
-  GNUNET_NETWORK_fdset_destroy (gws);
-  GNUNET_NETWORK_fdset_destroy (grs);
-}
 
 /**
  * Function that can be used by the transport service to transmit
@@ -302,99 +151,22 @@ download_prepare ()
  *         and does NOT mean that the message was not transmitted (DV)
  */
 static ssize_t
-http_plugin_send (void *cls,
-                  const struct GNUNET_PeerIdentity * target,
-                  const char *msgbuf,
-                  size_t msgbuf_size,
-                  unsigned int priority,
-                  struct GNUNET_TIME_Relative timeout,
-                  struct Session *session,
-                  const void *addr,
-                  size_t addrlen,
-                  int force_address,
-                  GNUNET_TRANSPORT_TransmitContinuation cont,
-                  void *cont_cls)
+template_plugin_send (void *cls,
+                      const struct GNUNET_PeerIdentity *
+                      target,
+                      const char *msgbuf,
+                      size_t msgbuf_size,
+                      unsigned int priority,
+                      struct GNUNET_TIME_Relative timeout,
+		      struct Session *session,
+                      const void *addr,
+                      size_t addrlen,
+                      int force_address,
+                      GNUNET_TRANSPORT_TransmitContinuation
+                      cont, void *cont_cls)
 {
-  char * peer_url = get_url( target );
-
-  CURLMcode mret;
-  CURLcode ret;
-
   int bytes_sent = 0;
   /*  struct Plugin *plugin = cls; */
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sending %u bytes (`%s')'\n",msgbuf_size, msgbuf);
-  /* Insert code to send using cURL */
-  curl = curl_easy_init ();
-  /*
-  CURL_EASY_SETOPT (curl, CURLOPT_FOLLOWLOCATION, 1);
-  CURL_EASY_SETOPT (curl, CURLOPT_MAXREDIRS, 4);
-
-
-  CURL_EASY_SETOPT (curl, CURLOPT_UPLOAD, 1L);
-  CURL_EASY_SETOPT (curl, CURLOPT_PUT, 1L);
-  CURL_EASY_SETOPT (curl, CURLOPT_READDATA, msgbuf);
-
-  CURL_EASY_SETOPT (curl, CURLOPT_URL, peer_url);
-  if (ret != CURLE_OK)
-    {*/
-      /* clean_up (); */
-  /*    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Peer URL is not correct\n");
-      return 0;
-    }
-  CURL_EASY_SETOPT (curl,
-                    CURLOPT_FAILONERROR,
-                    1);
-  CURL_EASY_SETOPT (curl,
-                    CURLOPT_VERBOSE,
-                    1);
-  CURL_EASY_SETOPT (curl,
-                    CURLOPT_BUFFERSIZE,
-                    GNUNET_SERVER_MAX_MESSAGE_SIZE);
-  if (0 == strncmp (peer_url, "http", 4))
-    CURL_EASY_SETOPT (curl, CURLOPT_USERAGENT, "GNUnet");
-  CURL_EASY_SETOPT (curl,
-                    CURLOPT_CONNECTTIMEOUT,
-                    60L);
-  CURL_EASY_SETOPT (curl,
-                    CURLOPT_TIMEOUT,
-                    60L);*/
-
-  CURL_EASY_SETOPT (curl, CURLOPT_URL, "http://www.tum.de/");
-  curl_multi = curl_multi_init ();
-  if (curl_multi == NULL)
-    {
-      GNUNET_break (0);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "curl multi is not correct\n");
-      /* clean_up (); */
-      return 0;
-    }
-  mret = curl_multi_add_handle (curl_multi, curl);
-  if (mret != CURLM_OK)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("%s failed at %s:%d: `%s'\n"),
-                  "curl_multi_add_handle", __FILE__, __LINE__,
-                  curl_multi_strerror (mret));
-      mret = curl_multi_cleanup (curl_multi);
-      if (mret != CURLM_OK)
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    _("%s failed at %s:%d: `%s'\n"),
-                    "curl_multi_cleanup", __FILE__, __LINE__,
-                    curl_multi_strerror (mret));
-      curl_multi = NULL;
-      /* clean_up (); */
-      return 0;
-    }
-
-  download_prepare();
-
-  GNUNET_free(peer_url);
-  /* FIXME: */
-  bytes_sent = msgbuf_size;
-
   return bytes_sent;
 }
 
@@ -408,13 +180,12 @@ http_plugin_send (void *cls,
  * @param cls closure
  * @param target peer from which to disconnect
  */
-void
-http_plugin_disconnect (void *cls,
+static void
+template_plugin_disconnect (void *cls,
                             const struct GNUNET_PeerIdentity *target)
 {
   // struct Plugin *plugin = cls;
   // FIXME
-  return;
 }
 
 
@@ -433,14 +204,14 @@ http_plugin_disconnect (void *cls,
  * @param asc_cls closure for asc
  */
 static void
-http_plugin_address_pretty_printer (void *cls,
-                                    const char *type,
-                                    const void *addr,
-                                    size_t addrlen,
-                                    int numeric,
-                                    struct GNUNET_TIME_Relative timeout,
-                                    GNUNET_TRANSPORT_AddressStringCallback
-                                    asc, void *asc_cls)
+template_plugin_address_pretty_printer (void *cls,
+                                        const char *type,
+                                        const void *addr,
+                                        size_t addrlen,
+                                        int numeric,
+                                        struct GNUNET_TIME_Relative timeout,
+                                        GNUNET_TRANSPORT_AddressStringCallback
+                                        asc, void *asc_cls)
 {
   asc (asc_cls, NULL);
 }
@@ -460,7 +231,7 @@ http_plugin_address_pretty_printer (void *cls,
  *         and transport
  */
 static int
-http_plugin_address_suggested (void *cls,
+template_plugin_address_suggested (void *cls,
                                   void *addr, size_t addrlen)
 {
   /* struct Plugin *plugin = cls; */
@@ -470,146 +241,54 @@ http_plugin_address_suggested (void *cls,
   return GNUNET_OK;
 }
 
+
 /**
- * Check if we are allowed to connect to the given IP.
+ * Function called for a quick conversion of the binary address to
+ * a numeric address.  Note that the caller must not free the
+ * address and that the next call to this function is allowed
+ * to override the address again.
+ *
+ * @param cls closure
+ * @param addr binary address
+ * @param addrlen length of the address
+ * @return string representing the same address
  */
-static int
-acceptPolicyCallback (void *cls,
-                      const struct sockaddr *addr, socklen_t addr_len)
+static const char*
+template_plugin_address_to_string (void *cls,
+				   const void *addr,
+				   size_t addrlen)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Incoming connection \n");
-  /* Currently all incoming connections are accepted, so nothing to do here */
-  return MHD_YES;
+  GNUNET_break (0);
+  return NULL;
 }
 
+
+
+
 /**
- * Process GET or PUT request received via MHD.  For
- * GET, queue response that will send back our pending
- * messages.  For PUT, process incoming data and send
- * to GNUnet core.  In either case, check if a session
- * already exists and create a new one if not.
+ * Entry point for the plugin.
  */
-static int
-accessHandlerCallback (void *cls,
-                       struct MHD_Connection *session,
-                       const char *url,
-                       const char *method,
-                       const char *version,
-                       const char *upload_data,
-                       size_t * upload_data_size, void **httpSessionCache)
+void *
+libgnunet_plugin_transport_http_init (void *cls)
 {
-  struct MHD_Response *response;
+  struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
+  struct GNUNET_TRANSPORT_PluginFunctions *api;
+  struct Plugin *plugin;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has an incoming `%s' request from \n",method);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Init HTTP transport plugin\n"));
 
-  /* Find out if session exists, otherwise create one */
-
-  /* Is it a PUT or a GET request */
-  if ( 0 == strcmp (MHD_HTTP_METHOD_PUT, method) )
-  {
-    /* PUT method here */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got PUT Request with size %u \n",upload_data_size);
-    GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# PUT requests"), 1, GNUNET_NO);
-  }
-  if ( 0 == strcmp (MHD_HTTP_METHOD_GET, method) )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got GET Request with size\n");
-    GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# GET requests"), 1, GNUNET_NO);
-  }
-
-  response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),
-                                   HTTP_PUT_RESPONSE, MHD_NO, MHD_NO);
-  MHD_queue_response (session, MHD_HTTP_OK, response);
-  MHD_destroy_response (response);
-
-  return MHD_YES;
+  plugin = GNUNET_malloc (sizeof (struct Plugin));
+  plugin->env = env;
+  api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
+  api->cls = plugin;
+  api->send = &template_plugin_send;
+  api->disconnect = &template_plugin_disconnect;
+  api->address_pretty_printer = &template_plugin_address_pretty_printer;
+  api->check_address = &template_plugin_address_suggested;
+  api->address_to_string = &template_plugin_address_to_string;
+  return api;
 }
 
-/**
- * Function that queries MHD's select sets and
- * starts the task waiting for them.
- */
-static GNUNET_SCHEDULER_TaskIdentifier prepare_daemon (struct MHD_Daemon *daemon_handle);
-/**
- * Call MHD to process pending requests and then go back
- * and schedule the next run.
- */
-static void
-run_daemon (void *cls,
-            const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct MHD_Daemon *daemon_handle = cls;
-
-  if (daemon_handle == http_daemon_v4)
-    http_task_v4 = GNUNET_SCHEDULER_NO_TASK;
-
-  if (daemon_handle == http_daemon_v6)
-    http_task_v6 = GNUNET_SCHEDULER_NO_TASK;
-
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-
-  GNUNET_assert (MHD_YES == MHD_run (daemon_handle));
-  if (daemon_handle == http_daemon_v4)
-    http_task_v4 = prepare_daemon (daemon_handle);
-  if (daemon_handle == http_daemon_v6)
-    http_task_v6 = prepare_daemon (daemon_handle);
-  return;
-}
-
-/**
- * Function that queries MHD's select sets and
- * starts the task waiting for them.
- */
-static GNUNET_SCHEDULER_TaskIdentifier
-prepare_daemon (struct MHD_Daemon *daemon_handle)
-{
-  GNUNET_SCHEDULER_TaskIdentifier ret;
-  fd_set rs;
-  fd_set ws;
-  fd_set es;
-  struct GNUNET_NETWORK_FDSet *wrs;
-  struct GNUNET_NETWORK_FDSet *wws;
-  struct GNUNET_NETWORK_FDSet *wes;
-  int max;
-  unsigned long long timeout;
-  int haveto;
-  struct GNUNET_TIME_Relative tv;
-
-  FD_ZERO(&rs);
-  FD_ZERO(&ws);
-  FD_ZERO(&es);
-  wrs = GNUNET_NETWORK_fdset_create ();
-  wes = GNUNET_NETWORK_fdset_create ();
-  wws = GNUNET_NETWORK_fdset_create ();
-  max = -1;
-  GNUNET_assert (MHD_YES ==
-                 MHD_get_fdset (daemon_handle,
-                                &rs,
-                                &ws,
-                                &es,
-                                &max));
-  haveto = MHD_get_timeout (daemon_handle, &timeout);
-  if (haveto == MHD_YES)
-    tv.value = (uint64_t) timeout;
-  else
-    tv = GNUNET_TIME_UNIT_FOREVER_REL;
-  GNUNET_NETWORK_fdset_copy_native (wrs, &rs, max);
-  GNUNET_NETWORK_fdset_copy_native (wws, &ws, max);
-  GNUNET_NETWORK_fdset_copy_native (wes, &es, max);
-  ret = GNUNET_SCHEDULER_add_select (plugin->env->sched,
-                                     GNUNET_SCHEDULER_PRIORITY_HIGH,
-                                     GNUNET_SCHEDULER_NO_TASK,
-                                     tv,
-                                     wrs,
-                                     wws,
-                                     &run_daemon,
-                                     daemon_handle);
-  GNUNET_NETWORK_fdset_destroy (wrs);
-  GNUNET_NETWORK_fdset_destroy (wws);
-  GNUNET_NETWORK_fdset_destroy (wes);
-  return ret;
-}
 
 /**
  * Exit point from the plugin.
@@ -620,138 +299,11 @@ libgnunet_plugin_transport_http_done (void *cls)
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Shutting down http plugin...\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Shutting down HTTP transport plugin\n"));
 
-  if ( ti_download != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel(plugin->env->sched, ti_download);
-    ti_download = GNUNET_SCHEDULER_NO_TASK;
-  }
-
-  if ( http_task_v4 != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel(plugin->env->sched, http_task_v4);
-    http_task_v4 = GNUNET_SCHEDULER_NO_TASK;
-  }
-
-  if ( http_task_v6 != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel(plugin->env->sched, http_task_v6);
-    http_task_v6 = GNUNET_SCHEDULER_NO_TASK;
-  }
-
-  if (http_daemon_v4 != NULL)
-  {
-    MHD_stop_daemon (http_daemon_v4);
-    http_daemon_v4 = NULL;
-  }
-  if (http_daemon_v6 != NULL)
-  {
-    MHD_stop_daemon (http_daemon_v6);
-    http_daemon_v6 = NULL;
-  }
-
-
-  if ( NULL != curl_multi)
-  {
-    curl_multi_cleanup (curl_multi);
-    curl_multi = NULL;
-  }
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;
 }
 
-/**
- * Entry point for the plugin.
- */
-void *
-libgnunet_plugin_transport_http_init (void *cls)
-{
-  struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
-  struct GNUNET_TRANSPORT_PluginFunctions *api;
-  long long unsigned int port;
-
-  plugin = GNUNET_malloc (sizeof (struct Plugin));
-  plugin->env = env;
-
-  api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
-  api->cls = plugin;
-  api->send = &http_plugin_send;
-  api->disconnect = &http_plugin_disconnect;
-  api->address_pretty_printer = &http_plugin_address_pretty_printer;
-  api->check_address = &http_plugin_address_suggested;
-
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting http plugin...\n");
-  /* Reading port number from config file */
-  if ((GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_number (env->cfg,
-                                              "transport-http",
-                                              "PORT",
-                                              &port)) ||
-      (port > 65535) )
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-                       "http",
-                       _
-                       ("Require valid port number for service `%s' in configuration!\n"),
-                       "transport-http");
-      libgnunet_plugin_transport_http_done (api);
-      return NULL;
-    }
-  if ((http_daemon_v4 == NULL) && (http_daemon_v6 == NULL) && (port != 0))
-    {
-      http_daemon_v6 = MHD_start_daemon (MHD_USE_IPv6,
-                                         port,
-                                         &acceptPolicyCallback,
-                                         NULL, &accessHandlerCallback, NULL,
-                                         MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
-                                         MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
-                                         MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
-                                         MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
-                                         MHD_OPTION_END);
-      http_daemon_v4 = MHD_start_daemon (MHD_NO_FLAG,
-                                         port,
-                                         &acceptPolicyCallback,
-                                         NULL, &accessHandlerCallback, NULL,
-                                         MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
-                                         MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
-                                         MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
-                                         MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
-                                         MHD_OPTION_END);
-    }
-
-  curl_multi = curl_multi_init ();
-
-  if (http_daemon_v4 != NULL)
-    http_task_v4 = prepare_daemon (http_daemon_v4);
-  if (http_daemon_v6 != NULL)
-    http_task_v6 = prepare_daemon (http_daemon_v6);
-
-  if ((http_daemon_v4 == NULL) || (http_daemon_v6 != NULL))
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD on port %u\n",port);
-
-
-  if (NULL == plugin->env->stats)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to retrieve statistics handle\n"));
-    libgnunet_plugin_transport_http_done (api);
-    return NULL;
-  }
-
-  GNUNET_STATISTICS_set ( env->stats, "# PUT requests", 0, GNUNET_NO);
-  GNUNET_STATISTICS_set ( env->stats, "# GET requests", 0, GNUNET_NO);
-
-  if ( ((NULL == http_daemon_v4) && (NULL == http_daemon_v6)) || (NULL == curl_multi))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Initializing http plugin failed\n");
-    libgnunet_plugin_transport_http_done (api);
-    return NULL;
-  }
-  else
-    return api;
-}
-
-/* end of plugin_transport_http.c */
+/* end of plugin_transport_template.c */
