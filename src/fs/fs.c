@@ -1097,14 +1097,16 @@ copy_from_reader (struct GNUNET_BIO_WriteHandle *wh,
   char buf[32 * 1024];
   uint64_t off;
   size_t ret;
+  size_t left;
   char *emsg;
 
   emsg = NULL;
   off = 0;
   while (off < fi->data.file.file_size)
     {
+      left = GNUNET_MIN (sizeof(buf), fi->data.file.file_size - off);
       ret = fi->data.file.reader (fi->data.file.reader_cls,
-				  off, sizeof (buf),
+				  off, left,
 				  buf,
 				  &emsg);
       if (ret == 0)
