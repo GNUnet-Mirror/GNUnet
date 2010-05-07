@@ -319,13 +319,7 @@ cps_loop (void *cls,
 	    }
 	  break;
 	case 5:
-	  if (restart) /* FIXME:
-                        *  Restart should be a legal option but this is a hack.
-                        *  The proper thing to do would be have gnunet-service-arm
-                        *  signal us when actually shut down, and then initiate
-                        *  the startup.  Instead we just sleep for two seconds
-                        *  and hope that's enough time for shutdown to have happened.
-                        */
+	  if (restart)
 	    {
               GNUNET_ARM_disconnect (h);
               phase = 0;
@@ -343,6 +337,7 @@ cps_loop (void *cls,
               GNUNET_SCHEDULER_add_now(sched, &cps_loop, NULL);
               return;
 	    }
+	  /* Fall through */
 	default: /* last phase */
 	  GNUNET_ARM_disconnect (h);
 	  if ((end == GNUNET_YES) && (delete == GNUNET_YES))
