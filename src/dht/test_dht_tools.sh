@@ -26,6 +26,7 @@ if ! $peerinfo > $out ; then
   cat $out 
   exit 1
 fi
+echo "PASS"
 
 echo -n "TEST: Starting ARM..."
 if ! $armexe $DEBUG -s > $out ; then
