@@ -6,7 +6,7 @@ checkout="check.out"
 armexe="gnunet-arm -c $tempcfg "
 putexe="gnunet-dht-put -c $tempcfg "
 getexe="gnunet-dht-get -c $tempcfg "
-
+peerinfo="gnunet-peerinfo -c $tempcfg -sq"
 stop_arm()
 {
   if ! $armexe $DEBUG -e -d > $out ; then
@@ -18,6 +18,14 @@ stop_arm()
 }
 
 cp test_dht_api_peer1.conf $tempcfg
+
+echo -n "TEST: Generating hostkey..."
+if ! $peerinfo > $out ; then
+  echo "FAIL: error running $peerinfo"
+  echo "Command output was:"
+  cat $out 
+  exit 1
+fi
 
 echo -n "TEST: Starting ARM..."
 if ! $armexe $DEBUG -s > $out ; then
