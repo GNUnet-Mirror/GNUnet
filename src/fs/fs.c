@@ -965,6 +965,13 @@ deserialize_file_information (struct GNUNET_FS_Handle *h,
 		  emsg);
       GNUNET_free (emsg);
     }
+  if (ret == NULL)
+    {
+      if (0 != UNLINK (filename))
+	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+				  "unlink",
+				  filename);
+    }
   return ret;
 }
 
@@ -1486,7 +1493,7 @@ deserialize_publish_file (void *cls,
     GNUNET_FS_file_information_destroy (pc->fi, NULL, NULL);
   if (0 != UNLINK (filename))
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", filename);
-  GNUNET_free_non_null (pc->serialization);
+  GNUNET_free (pc->serialization);
   GNUNET_free (pc);
   return GNUNET_OK;
 }

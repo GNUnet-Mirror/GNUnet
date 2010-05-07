@@ -359,6 +359,7 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
+  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-search/");
   GNUNET_log_setup ("test_fs_search_persistence", 
 #if VERBOSE
 		    "DEBUG",
@@ -367,7 +368,7 @@ main (int argc, char *argv[])
 #endif
 		    NULL);
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1,
-                      argvx, "test-fs-search-persistencce",
+                      argvx, "test-fs-search-persistence",
 		      "nohelp", options, &run, NULL);
   stop_arm (&p1);
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-search/");
