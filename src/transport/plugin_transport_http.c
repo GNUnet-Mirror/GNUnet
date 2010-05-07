@@ -158,7 +158,7 @@ template_plugin_send (void *cls,
                       size_t msgbuf_size,
                       unsigned int priority,
                       struct GNUNET_TIME_Relative timeout,
-		      struct Session *session,
+                      struct Session *session,
                       const void *addr,
                       size_t addrlen,
                       int force_address,
@@ -255,8 +255,8 @@ template_plugin_address_suggested (void *cls,
  */
 static const char*
 template_plugin_address_to_string (void *cls,
-				   const void *addr,
-				   size_t addrlen)
+                                   const void *addr,
+                                   size_t addrlen)
 {
   GNUNET_break (0);
   return NULL;
@@ -274,8 +274,6 @@ libgnunet_plugin_transport_http_init (void *cls)
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct Plugin *plugin;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Init HTTP transport plugin\n"));
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
@@ -298,8 +296,6 @@ libgnunet_plugin_transport_http_done (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Shutting down HTTP transport plugin\n"));
 
   GNUNET_free (plugin);
   GNUNET_free (api);

@@ -42,6 +42,8 @@
 #define VERBOSE GNUNET_YES
 #define DEBUG GNUNET_YES
 
+#define PLUGIN libgnunet_plugin_transport_template
+
 /**
  * How long until we give up on transmitting the message?
  */
@@ -162,7 +164,7 @@ shutdown_clean ()
     GNUNET_SCHEDULER_cancel(sched,ti_check_stat);
   ti_check_stat = GNUNET_SCHEDULER_NO_TASK;
 
-  GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_http", api));
+  GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_template", api));
   GNUNET_SCHEDULER_shutdown(sched);
   /* FIXME: */ fail = GNUNET_NO;
   return;
@@ -276,8 +278,8 @@ run (void *cls,
 
   /* load plugins... */
   setup_plugin_environment ();
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading HTTP transport plugin\n"));
-  GNUNET_asprintf (&libname, "libgnunet_plugin_transport_http");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading HTTP transport plugin `%s'\n"),"libgnunet_plugin_transport_template");
+  GNUNET_asprintf (&libname, "libgnunet_plugin_transport_template");
   api = GNUNET_PLUGIN_load (libname, &env);
   GNUNET_free (libname);
   if (api == NULL)
