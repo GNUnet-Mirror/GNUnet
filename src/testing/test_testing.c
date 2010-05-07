@@ -31,7 +31,12 @@ static int ok;
 static void
 end_cb (void *cls, const char *emsg)
 {
-  GNUNET_assert (emsg == NULL);
+  if (emsg != NULL)
+    {
+      fprintf (stderr, "Error terminaing daemon: `%s'\n",
+	       emsg);
+      return;
+    }
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Daemon terminated, will now exit.\n");
 #endif
