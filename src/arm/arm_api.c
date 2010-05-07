@@ -449,6 +449,8 @@ void arm_shutdown_callback (void *cls,
 
   if (arm_shutdown_ctx->cb != NULL)
     arm_shutdown_ctx->cb (arm_shutdown_ctx->cb_cls, reason);
+
+  GNUNET_free(arm_shutdown_ctx);
 }
 
 
@@ -469,15 +471,14 @@ GNUNET_ARM_stop_service (struct GNUNET_ARM_Handle *h,
 {
   struct ARM_ShutdownContext *arm_shutdown_ctx;
 
-  arm_shutdown_ctx = GNUNET_malloc(sizeof(struct ARM_ShutdownContext));
-  arm_shutdown_ctx->cb = cb;
-  arm_shutdown_ctx->cb_cls = cb_cls;
-
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Stopping service `%s' within %llu ms\n"), service_name,
 	      (unsigned long long) timeout.value);
   if (0 == strcasecmp ("arm", service_name))
     {
+      arm_shutdown_ctx = GNUNET_malloc(sizeof(struct ARM_ShutdownContext));
+      arm_shutdown_ctx->cb = cb;
+      arm_shutdown_ctx->cb_cls = cb_cls;
       GNUNET_CLIENT_service_shutdown (h->sched, h->client, timeout, &arm_shutdown_callback, arm_shutdown_ctx);
       h->client = NULL;
       return;
