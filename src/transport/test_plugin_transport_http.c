@@ -62,10 +62,12 @@
  */
 static struct GNUNET_PeerIdentity my_identity;
 
+#if 0
 /**
  * Our private key.
  */
 static struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
+#endif
 
 /**
  * Our scheduler.
@@ -162,7 +164,7 @@ shutdown_clean ()
 
   GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_http", api));
   GNUNET_SCHEDULER_shutdown(sched);
-  fail = GNUNET_NO;
+  /* FIXME: */ fail = GNUNET_NO;
   return;
 }
 
@@ -204,11 +206,7 @@ process_stat (void *cls,
 }
 
 static void
-cont_func (void *cls,
-              const char *subsystem,
-              const char *name,
-              uint64_t value,
-              int is_persistent)
+cont_func (void *cls, int success)
 {
   stat_get_handle = NULL;
 }
@@ -226,7 +224,7 @@ task_check_stat (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  if ( timeout_count > 5 )
+  if ( timeout_count > 2 )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testcase timeout\n",  timeout_count);
     fail = GNUNET_YES;
@@ -272,7 +270,7 @@ run (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Failed to retrieve statistics handle\n"));
     fail = GNUNET_YES;
-    shutdown_clean;
+    shutdown_clean();
     return ;
   }
 
@@ -289,7 +287,6 @@ run (void *cls,
     fail = GNUNET_YES;
     return;
   }
-
 
   ti_check_stat = GNUNET_SCHEDULER_add_now (sched, &task_check_stat, NULL);
 }
@@ -308,6 +305,7 @@ main (int argc, char *const *argv)
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
+  int ret;
   char *const argv_prog[] = {
     "test_plugin_transport_http",
     "-c",
@@ -333,24 +331,24 @@ main (int argc, char *const *argv)
                                  "-L", "DEBUG",
                                  "-c", "test_plugin_transport_data_http.conf", NULL);
 
-  fail = GNUNET_YES;
+  fail = GNUNET_NO;
   if (pid==-1 )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Failed to start statistics service\n");
+    fail = GNUNET_YES;
     return fail;
   }
 
-  fail = (GNUNET_OK ==
+  ret = (GNUNET_OK ==
          GNUNET_PROGRAM_run (5,
                              argv_prog,
                              "test_plugin_transport_http",
-                             "testcase", options, &run, NULL)) ? GNUNET_YES : 1;
+                             "testcase", options, &run, NULL)) ? GNUNET_NO : GNUNET_YES;
   GNUNET_DISK_directory_remove ("/tmp/test_plugin_transport_http");
-
 
   if (0 != PLIBC_KILL (pid, SIGTERM))
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "Failed to kill statistics service");
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_DEBUG, "Failed to kill statistics service");
     fail = GNUNET_YES;
   }
   if (GNUNET_OS_process_wait(pid) != GNUNET_OK)
