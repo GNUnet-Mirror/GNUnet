@@ -49,9 +49,9 @@ static int ok = 1;
 static void
 arm_stopped (void *cls, int success)
 {
-  if (success != GNUNET_NO)
-    ok = 1;
-  else
+  if (success != GNUNET_NO)        
+    ok = 3;
+  else if (ok == 1)
     ok = 0;
 }
 
@@ -70,7 +70,11 @@ dns_notify (void *cls, const struct sockaddr *addr, socklen_t addrlen)
 {
   if (addr == NULL)
     {
-      GNUNET_assert (ok == 0);
+      if (ok != 0)
+	{
+	  GNUNET_break (0);
+	  ok = 2;
+	}
       GNUNET_ARM_stop_service (arm, "resolver", TIMEOUT, &arm_notify_stop, NULL);
       return;
     }
@@ -82,7 +86,15 @@ dns_notify (void *cls, const struct sockaddr *addr, socklen_t addrlen)
 static void
 resolver_notify (void *cls, int success)
 {
-  GNUNET_assert (success == GNUNET_YES);
+  if (success != GNUNET_YES)
+    {
+      GNUNET_break (0);
+      ok = 2;
+#if START_ARM
+      GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
+#endif
+      return;
+    }
   GNUNET_RESOLVER_ip_get (sched,
                           cfg,
                           "localhost", AF_INET, TIMEOUT, &dns_notify, NULL);
@@ -92,7 +104,14 @@ resolver_notify (void *cls, int success)
 static void
 arm_notify (void *cls, int success)
 {
-  GNUNET_assert (success == GNUNET_YES);
+  if (success != GNUNET_YES)
+    {
+      GNUNET_break (0);
+      ok = 2;
+#if START_ARM
+      GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
+#endif
+    }
   GNUNET_ARM_start_service (arm, "resolver", START_TIMEOUT, &resolver_notify, NULL);
 }
 
