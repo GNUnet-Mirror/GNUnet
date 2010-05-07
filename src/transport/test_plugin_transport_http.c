@@ -162,9 +162,11 @@ setup_plugin_environment ()
 static void
 shutdown_clean ()
 {
-  GNUNET_assert (NULL ==
-                 GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_http",
-                                       api));
+  if (ti_check_stat != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(sched,ti_check_stat);
+  ti_check_stat = GNUNET_SCHEDULER_NO_TASK;
+
+  GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_http", api));
   GNUNET_SCHEDULER_shutdown(sched);
   return;
 }
@@ -217,13 +219,13 @@ run (void *cls,
   setup_plugin_environment ();
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading HTTP transport plugin\n"));
   GNUNET_asprintf (&libname, "libgnunet_plugin_transport_http");
-
   api = GNUNET_PLUGIN_load (libname, &env);
   GNUNET_free (libname);
   if (api == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Failed to load transport plugin for udp\n"));
+    fail = GNUNET_YES;
     return;
   }
 
