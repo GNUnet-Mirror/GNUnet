@@ -110,6 +110,8 @@ static unsigned int timeout_count;
  */
 static int fail;
 
+pid_t pid;
+
 /**
  * Initialize Environment for this plugin
  */
@@ -242,7 +244,6 @@ main (int argc, char *const *argv)
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  int ret;
   char *const argv_prog[] = {
     "test_plugin_transport_http",
     "-c",
@@ -262,14 +263,34 @@ main (int argc, char *const *argv)
                     "WARNING",
 #endif
                     NULL);
-  ret = (GNUNET_OK ==
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting statistics service\n");
+  pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
+                                 "gnunet-service-statistics",
+                                 "-L", "DEBUG",
+                                 "-c", "test_plugin_transport_data_http.conf", NULL);
+
+  fail = GNUNET_YES;
+  if (pid==-1 )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Failed to start statistics service\n");
+    return fail;
+  }
+
+  fail = (GNUNET_OK ==
          GNUNET_PROGRAM_run (5,
                              argv_prog,
                              "test_plugin_transport_http",
                              "testcase", options, &run, NULL)) ? GNUNET_YES : 1;
   GNUNET_DISK_directory_remove ("/tmp/test_plugin_transport_http");
 
-  return GNUNET_NO;
+
+  if (0 != PLIBC_KILL (pid, SIGTERM))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "Failed to kill statistics service");
+    fail = GNUNET_YES;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Killed statistics service\n");
+  return fail;
 }
 
 /* end of test_plugin_transport_http.c */
