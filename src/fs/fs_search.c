@@ -529,6 +529,7 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc,
 		       sc->options,
 		       NULL,
 		       sr);
+  GNUNET_free (uu.data.sks.identifier);
 }
 
 
@@ -1308,6 +1309,7 @@ GNUNET_FS_search_signal_suspend_ (void *cls)
   GNUNET_free_non_null (sc->requests);
   GNUNET_free_non_null (sc->emsg);
   GNUNET_FS_uri_destroy (sc->uri);
+  GNUNET_free_non_null (sc->serialization);
   GNUNET_free (sc);
 }
 
@@ -1474,6 +1476,7 @@ GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc)
 				  ? GNUNET_FS_SYNC_PATH_CHILD_SEARCH 
 				  : GNUNET_FS_SYNC_PATH_MASTER_SEARCH,
 				  sc->serialization);
+      GNUNET_free (sc->serialization);
     }
   pi.status = GNUNET_FS_STATUS_SEARCH_STOPPED;
   sc->client_info = GNUNET_FS_search_make_status_ (&pi, sc);

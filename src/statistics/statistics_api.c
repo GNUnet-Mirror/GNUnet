@@ -556,6 +556,7 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
 		h->action_tail = NULL;
 	    }
 	}
+      h->do_destroy = GNUNET_YES;
       if ( (h->current != NULL) &&
 	   (h->th == NULL) )
 	{					
@@ -567,8 +568,8 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
 						       &transmit_action, h);
 	  GNUNET_assert (NULL != h->th);
 	}
-      h->do_destroy = GNUNET_YES;
-      return;
+      if (h->th != NULL)
+	return;
     }
   if (NULL != h->th)
     {

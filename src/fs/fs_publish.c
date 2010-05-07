@@ -149,6 +149,7 @@ ds_put_cont (void *cls,
       /* we were aborted in the meantime,
 	 finish shutdown! */
       publish_cleanup (pcc->sc);
+      GNUNET_free (pcc);
       return;
     }
   GNUNET_assert (GNUNET_YES == pcc->sc->in_network_wait);
@@ -1587,6 +1588,7 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   memcpy (dest, update, nidlen);
   dest += nidlen;
   memcpy (dest, uris, slen);
+  GNUNET_free (uris);
   dest += slen;
   mdsize = GNUNET_CONTAINER_meta_data_serialize (mmeta,
 						 &dest,
@@ -1596,7 +1598,6 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   if (mdsize == -1)
     {
       GNUNET_break (0);
-      GNUNET_free (uris);
       GNUNET_free (sb);
       cont (cont_cls,
 	    NULL,

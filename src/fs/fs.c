@@ -880,6 +880,7 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
       ret->data.file.reader_cls = GNUNET_FS_make_file_reader_context_ (ret->filename);
       break;
     case 4: /* directory */
+      ret->is_directory = GNUNET_YES;
       if ( (GNUNET_OK !=
 	    GNUNET_BIO_read_int32 (rh, &dsize)) ||
 	   (NULL == (ret->data.dir.dir_data = GNUNET_malloc_large (dsize))) ||
@@ -892,7 +893,6 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
 	  goto cleanup;
 	}
       ret->data.dir.dir_size = (uint32_t) dsize;
-      ret->is_directory = GNUNET_YES;
       if (filename != NULL)
 	{
 	  ret->data.dir.entries = deserialize_file_information (h, filename);
@@ -1451,6 +1451,8 @@ deserialize_publish_file (void *cls,
 	    pc->fi_pos = pc->fi;
 	}
     }
+  GNUNET_free (fi_root);
+  fi_root = NULL;
   /* generate RESUME event(s) */
   GNUNET_FS_file_information_inspect (pc->fi,
 				      &fip_signal_resume,

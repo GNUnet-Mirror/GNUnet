@@ -310,8 +310,11 @@ main (int argc, char *argv[])
 		      "nohelp", options, &run, NULL);
   stop_arm (&p1);
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-unindex/");
-  GNUNET_DISK_directory_remove (fn);
-  GNUNET_free_non_null (fn);
+  if (NULL != fn)
+    {
+      GNUNET_DISK_directory_remove (fn);
+      GNUNET_free (fn);
+    }
   return 0;
 }
 

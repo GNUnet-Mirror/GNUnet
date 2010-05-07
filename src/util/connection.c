@@ -539,9 +539,14 @@ destroy_continuation (void *cls,
       notify (sock->nth.notify_ready_cls, 0, NULL);
     }
 
-  if ((sock->sock != NULL) && (sock->persist != GNUNET_YES))
-    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock->sock));
-
+  if (sock->sock != NULL) 
+    {
+      if (sock->persist != GNUNET_YES)
+	GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock->sock));
+      else
+	GNUNET_free (sock->sock); /* at least no memory leak (we deliberately
+				     leak the socket in this special case) ... */
+    }
   GNUNET_free_non_null (sock->addr);
   GNUNET_free_non_null (sock->hostname);
 #if DEBUG_CONNECTION

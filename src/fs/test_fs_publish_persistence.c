@@ -390,10 +390,16 @@ main (int argc, char *argv[])
 		      "nohelp", options, &run, NULL);
   stop_arm (&p1);
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-publish/");
-  GNUNET_DISK_directory_remove (fn1);
-  GNUNET_free_non_null (fn1);
-  GNUNET_DISK_directory_remove (fn2);
-  GNUNET_free_non_null (fn2);
+  if (fn1 != NULL)
+    {
+      GNUNET_DISK_directory_remove (fn1);
+      GNUNET_free (fn1);
+    }
+  if (fn2 != NULL)
+    {
+      GNUNET_DISK_directory_remove (fn2);
+      GNUNET_free (fn2);
+    }
   return err;
 }
 
