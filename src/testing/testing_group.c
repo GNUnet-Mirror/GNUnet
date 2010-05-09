@@ -1904,6 +1904,17 @@ struct MinimumContext
    * Number of conns per peer
    */
   unsigned int num_to_add;
+
+  /**
+   * Permuted array of all possible connections.  Only add the Nth
+   * peer if it's in the Nth position.
+   */
+  unsigned int *pg_array;
+
+  /**
+   * What number is the current element we are iterating over?
+   */
+  unsigned int current;
 };
 
 /**
@@ -1956,21 +1967,29 @@ minimum_connect_iterator (void *cls,
   struct MinimumContext *min_ctx = cls;
   uint32_t second_pos;
   GNUNET_HashCode first_hash;
+  unsigned int i;
 
   if (GNUNET_CONTAINER_multihashmap_size(min_ctx->first->connect_peers_working_set) < min_ctx->num_to_add)
   {
-    GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(min_ctx->first->connect_peers_working_set, key, value, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-    GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(min_ctx->first->connect_peers_working_set, key, value, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-    /* Now we have added this particular connection, remove it from the second peer's map so it's not double counted */
-    uid_from_hash(key, &second_pos);
-    hash_from_uid(min_ctx->first_uid, &first_hash);
-    GNUNET_assert(min_ctx->pg->total > second_pos);
-    GNUNET_assert(GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(min_ctx->pg->peers[second_pos].connect_peers, &first_hash, min_ctx->first->daemon));
+    for (i = 0; i < min_ctx->num_to_add; i++)
+    {
+      if (min_ctx->pg_array[i] == min_ctx->current)
+      {
+        fprintf(stderr, "Adding another peer, hashmap size %u, minimum %u\n", GNUNET_CONTAINER_multihashmap_size(min_ctx->first->connect_peers_working_set), min_ctx->num_to_add);
+        GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(min_ctx->first->connect_peers_working_set, key, value, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+        uid_from_hash(key, &second_pos);
+        hash_from_uid(min_ctx->first_uid, &first_hash);
+        GNUNET_assert(min_ctx->pg->total > second_pos);
+        GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(min_ctx->pg->peers[second_pos].connect_peers_working_set, &first_hash, min_ctx->first->daemon, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+        /* Now we have added this particular connection, remove it from the second peer's map so it's not double counted */
+        GNUNET_assert(GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(min_ctx->pg->peers[second_pos].connect_peers, &first_hash, min_ctx->first->daemon));
+      }
+    }
+    min_ctx->current++;
     return GNUNET_YES;
   }
   else
     return GNUNET_NO; /* We can stop iterating, we have enough peers! */
-
 
 }
 
@@ -2022,8 +2041,11 @@ choose_minimum(struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
     {
       minimum_ctx.first_uid = pg_iter;
+      minimum_ctx.pg_array = GNUNET_CRYPTO_random_permute(GNUNET_CRYPTO_QUALITY_WEAK, GNUNET_CONTAINER_multihashmap_size(pg->peers[pg_iter].connect_peers));
       minimum_ctx.first = &pg->peers[pg_iter];
+      minimum_ctx.pg = pg;
       minimum_ctx.num_to_add = num;
+      minimum_ctx.current = 0;
       pg->peers[pg_iter].connect_peers_working_set = GNUNET_CONTAINER_multihashmap_create(pg->total);
       GNUNET_CONTAINER_multihashmap_iterate(pg->peers[pg_iter].connect_peers, &minimum_connect_iterator, &minimum_ctx);
     }
@@ -2034,6 +2056,7 @@ choose_minimum(struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
       GNUNET_CONTAINER_multihashmap_destroy(pg->peers[pg_iter].connect_peers);
       /* And replace with the working set */
       pg->peers[pg_iter].connect_peers = pg->peers[pg_iter].connect_peers_working_set;
+      fprintf(stderr, "Finished! Hashmap size %u\n", GNUNET_CONTAINER_multihashmap_size(pg->peers[pg_iter].connect_peers));
     }
 
 }
