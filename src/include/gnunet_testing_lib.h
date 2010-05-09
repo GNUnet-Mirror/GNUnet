@@ -49,6 +49,19 @@ extern "C"
  */
 struct GNUNET_TESTING_Daemon;
 
+/**
+ * Prototype of a function that will be called whenever
+ * a daemon was started by the testing library.
+ *
+ * @param cls closure
+ * @param id identifier for the daemon, NULL on error
+ * @param d handle for the daemon
+ * @param emsg error message (NULL on success)
+ */
+typedef void (*GNUNET_TESTING_NotifyHostkeyCreated)(void *cls,
+                                                    const struct GNUNET_PeerIdentity *id,
+                                                    struct GNUNET_TESTING_Daemon *d,
+                                                    const char *emsg);
 
 /**
  * Prototype of a function that will be called whenever
@@ -83,9 +96,24 @@ enum GNUNET_TESTING_StartPhase
   SP_COPYING,
 
   /**
-   * Configuration file has been copied, start ARM on target system.
+   * Configuration file has been copied, generate hostkey.
    */
   SP_COPIED,
+
+  /**
+   * Create the hostkey for the peer.
+   */
+  SP_HOSTKEY_CREATE,
+
+  /**
+   * Hostkey generated, wait for topology to be finished.
+   */
+  SP_HOSTKEY_CREATED,
+
+  /**
+   * Topology has been created, now start ARM.
+   */
+  SP_TOPOLOGY_SETUP,
 
   /**
    * ARM has been started, check that it has properly daemonized and
@@ -132,6 +160,16 @@ typedef void (*GNUNET_TESTING_NotifyCompletion)(void *cls,
                                                 const char *emsg);
 
 /**
+ * Prototype of a function that will be called with the
+ * number of connections created for a particular topology.
+ *
+ * @param cls closure
+ * @param num_connections the number of connections created
+ */
+typedef void (*GNUNET_TESTING_NotifyConnections)(void *cls,
+                                                unsigned int num_connections);
+
+/**
  * Handle for a GNUnet daemon (technically a set of
  * daemons; the handle is really for the master ARM
  * daemon) started by the testing library.
@@ -168,6 +206,17 @@ struct GNUNET_TESTING_Daemon
    * Name of the configuration file
    */
   char *cfgfile;
+
+  /**
+   * Callback to inform initiator that the peer's
+   * hostkey has been created.
+   */
+  GNUNET_TESTING_NotifyHostkeyCreated hostkey_callback;
+
+  /**
+   * Closure for hostkey creation callback.
+   */
+  void *hostkey_cls;
 
   /**
    * Function to call when the peer is running.
@@ -249,6 +298,11 @@ struct GNUNET_TESTING_Daemon
   struct GNUNET_HELLO_Message *hello;
 
   /**
+   * Handle to a pipe for reading the hostkey.
+   */
+  struct GNUNET_DISK_PipeHandle *pipe_stdout;
+
+  /**
    * Set to GNUNET_YES once the peer is up.
    */
   int running;
@@ -293,17 +347,50 @@ typedef void (*GNUNET_TESTING_NotifyConnection)(void *cls,
  * @param cfg configuration to use
  * @param hostname name of the machine where to run GNUnet
  *        (use NULL for localhost).
+ * @param hostkey_callback function to call once the hostkey has been
+ *        generated for this peer, but it hasn't yet been started
+ *        (NULL to start immediately, otherwise waits on GNUNET_TESTING_daemon_continue_start)
+ * @param hostkey_cls closure for hostkey callback
  * @param cb function to call with the result
  * @param cb_cls closure for cb
  * @return handle to the daemon (actual start will be completed asynchronously)
  */
 struct GNUNET_TESTING_Daemon *
 GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
-			     const struct GNUNET_CONFIGURATION_Handle *cfg,
-			     const char *hostname,
-			     GNUNET_TESTING_NotifyDaemonRunning cb,
-			     void *cb_cls);
+                             const struct GNUNET_CONFIGURATION_Handle *cfg,
+                             const char *hostname,
+                             GNUNET_TESTING_NotifyHostkeyCreated hostkey_callback,
+                             void *hostkey_cls,
+                             GNUNET_TESTING_NotifyDaemonRunning cb,
+                             void *cb_cls);
 
+/**
+ * Continues GNUnet daemon startup when user wanted to be notified
+ * once a hostkey was generated (for creating friends files, blacklists,
+ * etc.).
+ *
+ * @param daemon the daemon to finish starting
+ */
+void
+GNUNET_TESTING_daemon_continue_startup(struct GNUNET_TESTING_Daemon *daemon);
+
+/**
+ * Restart (stop and start) a GNUnet daemon.
+ *
+ * @param d the daemon that should be restarted
+ * @param cb function called once the daemon is (re)started
+ * @param cb_cls closure for cb
+ */
+void
+GNUNET_TESTING_daemon_restart (struct GNUNET_TESTING_Daemon *d,
+                               GNUNET_TESTING_NotifyDaemonRunning cb, void *cb_cls);
+
+/**
+ * Get a certain testing daemon handle.
+ *
+ * @param pg handle to the set of running peers
+ * @param position the number of the peer to return
+ */
 struct GNUNET_TESTING_Daemon *
 GNUNET_TESTING_daemon_get (struct GNUNET_TESTING_PeerGroup *pg, unsigned int position);
 
@@ -314,10 +401,12 @@ GNUNET_TESTING_daemon_get (struct GNUNET_TESTING_PeerGroup *pg, unsigned int pos
  * @param d the daemon that should be stopped
  * @param cb function called once the daemon was stopped
  * @param cb_cls closure for cb
+ * @param delete_files GNUNET_YES to remove files, GNUNET_NO
+ *        to leave them (i.e., for a restart)
  */
 void GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
 				 GNUNET_TESTING_NotifyCompletion cb,
-				 void * cb_cls);
+				 void * cb_cls, int delete_files);
 
 
 /**
@@ -365,23 +454,53 @@ void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
  * @param sched scheduler to use
  * @param cfg configuration template to use
  * @param total number of daemons to start
+ * @param hostkey_callback function to call on each peers hostkey generation
+ *        if NULL, peers will be started by this call, if non-null,
+ *        GNUNET_TESTING_daemons_continue_startup must be called after
+ *        successful hostkey generation
+ * @param hostkey_cls closure for hostkey callback
  * @param cb function to call on each daemon that was started
  * @param cb_cls closure for cb
  * @param connect_callback function to call each time two hosts are connected
  * @param connect_callback_cls closure for connect_callback
- * @param hostnames space-separated list of hostnames to use,
- *        NULL to use localhost only
+ * @param hostnames space-separated list of hostnames to use; can be NULL (to run
+ *        everything on localhost).
  * @return NULL on error, otherwise handle to control peer group
  */
 struct GNUNET_TESTING_PeerGroup *
 GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
-			      const struct GNUNET_CONFIGURATION_Handle *cfg,
-			      unsigned int total,
-			      GNUNET_TESTING_NotifyDaemonRunning cb,
-			      void *cb_cls,
-			      GNUNET_TESTING_NotifyConnection connect_callback,
-                              void *connect_callback_cls,
-			      const char *hostnames);
+                              const struct GNUNET_CONFIGURATION_Handle *cfg,
+                              unsigned int total,
+                              GNUNET_TESTING_NotifyHostkeyCreated hostkey_callback,
+                              void *hostkey_cls,
+                              GNUNET_TESTING_NotifyDaemonRunning cb,
+                              void *cb_cls,
+                              GNUNET_TESTING_NotifyConnection
+                              connect_callback, void *connect_callback_cls,
+                              const char *hostnames);
+
+/**
+ * Function which continues a peer group starting up
+ * after successfully generating hostkeys for each peer.
+ *
+ * @param pg the peer group to continue starting
+ *
+ */
+void
+GNUNET_TESTING_daemons_continue_startup(struct GNUNET_TESTING_PeerGroup *pg);
+
+/**
+ * Restart all peers in the given group.
+ *
+ * @param pg the handle to the peer group
+ * @param timeout how long to wait on failure
+ * @param callback function to call on completion (or failure)
+ * @param callback_cls closure for the callback function
+ */
+void
+GNUNET_TESTING_daemons_restart (struct GNUNET_TESTING_PeerGroup *pg,
+                                GNUNET_TESTING_NotifyCompletion callback,
+                                void *callback_cls);
 
 
 /**
@@ -445,17 +564,73 @@ enum GNUNET_TESTING_Topology
   GNUNET_TESTING_TOPOLOGY_NONE
 };
 
-
 /**
- * Create a topology out for a group of started peers.
+ * Options for connecting a topology.
+ */
+enum GNUNET_TESTING_TopologyOption
+{
+  /**
+   * Try to connect all peers specified in the topology.
+   */
+  GNUNET_TESTING_TOPOLOGY_OPTION_ALL,
+
+  /**
+   * Choose a random subset of connections to create.
+   */
+  GNUNET_TESTING_TOPOLOGY_OPTION_RANDOM,
+
+  /**
+   * Create at least X connections for each peer.
+   */
+  GNUNET_TESTING_TOPOLOGY_OPTION_MINIMUM,
+
+  /**
+   * Using a depth first search, create one connection
+   * per peer.  If any are missed (graph disconnected)
+   * start over at those peers until all have at least one
+   * connection.
+   */
+  GNUNET_TESTING_TOPOLOGY_OPTION_DFS,
+
+  /**
+   * No options specified.
+   */
+  GNUNET_TESTING_TOPOLOGY_OPTION_NONE
+};
+
+/*
+ * Takes a peer group and creates a topology based on the
+ * one specified.  Creates a topology means generates friend
+ * files for the peers so they can only connect to those allowed
+ * by the topology.  This will only have an effect once peers
+ * are started if the FRIENDS_ONLY option is set in the base
+ * config.  Also takes an optional restrict topology which
+ * disallows direct TCP connections UNLESS they are specified in
+ * the restricted topology.
  *
- * @param pg the peergroup that has already been started
- * @param topology the topology to connect the peers into
+ * @param pg the peer group struct representing the running peers
+ * @param topology which topology to connect the peers in
+ * @param restrict_topology allow only direct TCP connections in this topology
+ *
+ * @return the maximum number of connections were all allowed peers
+ *         connected to each other
  */
 int
 GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
-				enum GNUNET_TESTING_Topology topology);
+                                enum GNUNET_TESTING_Topology topology,
+                                enum GNUNET_TESTING_Topology restrict_topology);
 
+/*
+ * @param pg the peer group struct representing the running peers
+ * @param topology which topology to connect the peers in
+ * @param options options for connecting the topology
+ * @param option_modifier modifier for options that take a parameter
+ */
+int
+GNUNET_TESTING_connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
+                                 enum GNUNET_TESTING_Topology topology,
+                                 enum GNUNET_TESTING_TopologyOption options,
+                                 double option_modifier);
 
 /**
  * Start "count" GNUnet daemons with a particular topology.

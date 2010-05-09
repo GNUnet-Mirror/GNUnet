@@ -326,7 +326,7 @@ typedef int (*GNUNET_SERVER_CheckCallback) (void *cls);
  * Destroy this connection (free resources).
  *
  * @param cls closure
- * @param persist when connection is closed, "leak" socket
+ * @pararm persist when connection is closed, "leak" socket
  */
 typedef void (*GNUNET_SERVER_DestroyCallback) (void *cls, int persist);
 
