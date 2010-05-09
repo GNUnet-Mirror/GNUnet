@@ -42,7 +42,7 @@
 
 /**
  * Handle for interacting with ARM.
- */ 
+ */
 struct GNUNET_ARM_Handle
 {
 
@@ -242,8 +242,8 @@ arm_service_report (void *cls,
       return;
     }
   pid = do_start_process (loprefix,
-			  binary, 
-			  "-c", config, 
+			  binary,
+			  "-c", config,
 #if DEBUG_ARM
 			  "-L", "DEBUG",
 #endif
@@ -271,7 +271,7 @@ arm_service_report (void *cls,
  * Process a response from ARM to a request for a change in service
  * status.
  *
- * @param cls the request context 
+ * @param cls the request context
  * @param msg the response
  */
 static void
@@ -284,13 +284,13 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Error receiving response to `%s' request from ARM for service `%s'\n"),
-		  (sc->type == GNUNET_MESSAGE_TYPE_ARM_START) 
+		  (sc->type == GNUNET_MESSAGE_TYPE_ARM_START)
 		  ? "START"
 		  : "STOP",
 		  (const char*) &sc[1]);
       GNUNET_CLIENT_disconnect (sc->h->client, GNUNET_NO);
-      sc->h->client = GNUNET_CLIENT_connect (sc->h->sched, 
-					     "arm", 
+      sc->h->client = GNUNET_CLIENT_connect (sc->h->sched,
+					     "arm",
 					     sc->h->cfg);
       GNUNET_assert (NULL != sc->h->client);
       GNUNET_CLIENT_ignore_shutdown (sc->h->client, GNUNET_YES);
@@ -334,7 +334,7 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
  * @param timeout how long to wait before failing for good
  * @param cb callback to invoke when service is ready
  * @param cb_cls closure for callback
- * @param type type of the request 
+ * @param type type of the request
  */
 static void
 change_service (struct GNUNET_ARM_Handle *h,
@@ -357,8 +357,8 @@ change_service (struct GNUNET_ARM_Handle *h,
     }
 #if DEBUG_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              (type == GNUNET_MESSAGE_TYPE_ARM_START) 
-	      ? _("Requesting start of service `%s'.\n") 
+              (type == GNUNET_MESSAGE_TYPE_ARM_START)
+	      ? _("Requesting start of service `%s'.\n")
 	      : _("Requesting termination of service `%s'.\n"),
 	      service_name);
 #endif
@@ -380,7 +380,7 @@ change_service (struct GNUNET_ARM_Handle *h,
 					       GNUNET_YES,
 					       &handle_response,
 					       sctx))
-    {       
+    {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  (type == GNUNET_MESSAGE_TYPE_ARM_START)
 		  ? _("Error while trying to transmit request to start `%s' to ARM\n")
@@ -437,10 +437,11 @@ GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h,
 
 /**
  * Callback from the arm stop service call, indicates that the arm service
- * is well and truly dead.
+ * is well and truly dead, won't die, or an error occurred.
  *
  * @param cls closure for the callback
- * @param tc scheduler context
+ * @param reason reason for callback, GNUNET_NO if arm is shutdown
+ *        GNUNET_YES if arm remains running, and GNUNET_SYSERR on error
  */
 void arm_shutdown_callback (void *cls,
                             int reason)
@@ -465,7 +466,7 @@ void arm_shutdown_callback (void *cls,
  */
 void
 GNUNET_ARM_stop_service (struct GNUNET_ARM_Handle *h,
-			 const char *service_name,
+                         const char *service_name,
                          struct GNUNET_TIME_Relative timeout,
                          GNUNET_ARM_Callback cb, void *cb_cls)
 {
@@ -542,7 +543,7 @@ next_operation (void *cls,
 {
   struct MultiContext *mc = cls;
   char *pos;
-  
+
   if (NULL == (pos = mc->services[mc->pos]))
     {
       GNUNET_free (mc->services);
@@ -568,7 +569,7 @@ next_operation (void *cls,
  */
 static void
 run_multi_request (const struct GNUNET_CONFIGURATION_Handle *cfg,
-		   struct GNUNET_SCHEDULER_Handle *sched,		    
+		   struct GNUNET_SCHEDULER_Handle *sched,
 		   ServiceOperation op,
 		   va_list va)
 {
@@ -577,13 +578,13 @@ run_multi_request (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct MultiContext *mc;
   struct GNUNET_ARM_Handle *h;
   const char *c;
-  
+
   h = GNUNET_ARM_connect (cfg, sched, NULL);
   if (NULL == h)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Error while trying to transmit to ARM service\n"));
-      return; 
+      return;
     }
   total = 1;
   va_copy (cp, va);
@@ -595,7 +596,7 @@ run_multi_request (const struct GNUNET_CONFIGURATION_Handle *cfg,
   mc->op = op;
   total = 0;
   va_copy (cp, va);
-  while (NULL != (c = va_arg (cp, const char*))) 
+  while (NULL != (c = va_arg (cp, const char*)))
     mc->services[total++] = GNUNET_strdup (c);
   va_end (cp);
   next_operation (mc, GNUNET_YES);
