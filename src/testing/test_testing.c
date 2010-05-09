@@ -33,14 +33,16 @@ end_cb (void *cls, const char *emsg)
 {
   if (emsg != NULL)
     {
-      fprintf (stderr, "Error terminaing daemon: `%s'\n",
-	       emsg);
-      return;
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Ending with error: %s\n", emsg);
+      ok = 1;
     }
+  else
+    {
 #if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Daemon terminated, will now exit.\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Daemon terminated, will now exit.\n");
 #endif
-  ok = 0;
+      ok = 0;
+    }
 }
 
 static void
@@ -54,7 +56,7 @@ my_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Daemon `%s' started, will now stop it.\n", GNUNET_i2s (id));
 #endif
-  GNUNET_TESTING_daemon_stop (d, &end_cb, NULL);
+  GNUNET_TESTING_daemon_stop (d, &end_cb, NULL, GNUNET_YES);
 }
 
 
@@ -70,7 +72,7 @@ run (void *cls,
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemon.\n");
 #endif
-  d = GNUNET_TESTING_daemon_start (sched, cfg, NULL, &my_cb, NULL);
+  d = GNUNET_TESTING_daemon_start (sched, cfg, NULL, NULL, NULL, &my_cb, NULL);
   GNUNET_assert (d != NULL);
 }
 

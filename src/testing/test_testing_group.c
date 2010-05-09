@@ -80,6 +80,7 @@ run (void *cls,
   peers_left = NUM_PEERS;
   pg = GNUNET_TESTING_daemons_start (sched, cfg,
                                      peers_left,
+                                     NULL, NULL,
                                      &my_cb, NULL, NULL, NULL, NULL);
   GNUNET_assert (pg != NULL);
 }

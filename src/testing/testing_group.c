@@ -50,6 +50,57 @@
 
 #define CONNECT_ATTEMPTS 8
 
+/**
+ * Prototype of a function called whenever two peers would be connected
+ * in a certain topology.
+ */
+typedef int (*GNUNET_TESTING_ConnectionProcessor)
+(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first, unsigned int second);
+
+struct RestartContext
+{
+  /**
+   * The group of peers being restarted
+   */
+  struct GNUNET_TESTING_PeerGroup *peer_group;
+
+  /**
+   * How many peers have been restarted thus far
+   */
+  unsigned int peers_restarted;
+
+  /**
+   * How many peers got an error when restarting
+   */
+  unsigned int peers_restart_failed;
+
+  /**
+   * The function to call once all peers have been restarted
+   */
+  GNUNET_TESTING_NotifyCompletion callback;
+
+  /**
+   * Closure for callback function
+   */
+  void *callback_cls;
+
+};
+
+struct CreateTopologyContext
+{
+
+  /**
+   * Function to call with number of connections
+   */
+  GNUNET_TESTING_NotifyConnections cont;
+
+  /**
+   * Closure for connection notification
+   */
+  void *cls;
+};
+
+#if OLD
 struct PeerConnection
 {
   /*
@@ -63,6 +114,7 @@ struct PeerConnection
   struct GNUNET_TESTING_Daemon *daemon;
 
 };
+#endif
 
 /**
  * Data we keep per peer.
@@ -83,9 +135,33 @@ struct PeerData
   struct GNUNET_TESTING_Daemon *daemon;
 
   /**
-   * Linked list of peer connections (simply indexes of PeerGroup)
+   * The peergroup this peer belongs to.
    */
-  struct PeerConnection *connected_peers;
+  struct GNUNET_TESTING_PeerGroup *pg;
+
+  /**
+   * Linked list of peer connections (pointers)
+   */
+  //struct PeerConnection *connected_peers;
+  /**
+   * Hash map of allowed peer connections (F2F created topology)
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *allowed_peers;
+
+  /**
+   * Hash map of blacklisted peers
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *blacklisted_peers;
+
+  /**
+   * Hash map of peer connections
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *connect_peers;
+
+  /**
+   * Temporary hash map of peer connections
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *connect_peers_working_set;
 
   /**
    * Total number of connections this peer has
@@ -165,6 +241,31 @@ struct GNUNET_TESTING_PeerGroup
 
 };
 
+/**
+ * Convert unique ID to hash code.
+ *
+ * @param uid unique ID to convert
+ * @param hash set to uid (extended with zeros)
+ */
+static void
+hash_from_uid (uint32_t uid,
+               GNUNET_HashCode *hash)
+{
+  memset (hash, 0, sizeof(GNUNET_HashCode));
+  *((uint32_t*)hash) = uid;
+}
+
+/**
+ * Convert hash code to unique ID.
+ *
+ * @param uid unique ID to convert
+ * @param hash set to uid (extended with zeros)
+ */
+static void
+uid_from_hash (const GNUNET_HashCode *hash, uint32_t *uid)
+{
+  memcpy (uid, hash, sizeof(uint32_t));
+}
 
 struct UpdateContext
 {
@@ -279,41 +380,107 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg, uint16_t * port, con
   return uc.ret;
 }
 
+
 /*
- * Add entries to the peers connected list
+ * Add entries to the peers connect list
  *
  * @param pg the peer group we are working with
  * @param first index of the first peer
  * @param second index of the second peer
  *
  * @return the number of connections added (can be 0, 1 or 2)
- *
- * FIXME: add both, or only add one?
- *      - if both are added, then we have to keep track
- *        when connecting so we don't double connect
- *      - if only one is added, we need to iterate over
- *        both lists to find out if connection already exists
- *      - having both allows the whitelisting/friend file
- *        creation to be easier
- *
- *      -- For now, add both, we have to iterate over each to
- *         check for duplicates anyways, so we'll take the performance
- *         hit assuming we don't have __too__ many connections
+ *         technically should only be 0 or 2, but the small price
+ *         of iterating over the lists (hashmaps in the future)
+ *         for being sure doesn't bother me!
  *
  */
 static int
-add_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first, unsigned int second)
+add_actual_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first, unsigned int second)
 {
   int added;
-  struct PeerConnection *first_iter;
-  struct PeerConnection *second_iter;
   int add_first;
   int add_second;
+
+  GNUNET_HashCode hash_first;
+  GNUNET_HashCode hash_second;
+
+  hash_from_uid(first, &hash_first);
+  hash_from_uid(second, &hash_second);
+
+  add_first = GNUNET_NO;
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(pg->peers[first].connect_peers, &hash_second))
+    {
+      add_first = GNUNET_YES;
+    }
+
+  add_second = GNUNET_NO;
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(pg->peers[second].connect_peers, &hash_first))
+    {
+      add_second = GNUNET_YES;
+    }
+
+  added = 0;
+  if (add_first)
+    {
+      GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(pg->peers[first].connect_peers, &hash_second, pg->peers[second].daemon, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+      added++;
+    }
+
+  if (add_second)
+    {
+      GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(pg->peers[second].connect_peers, &hash_first, pg->peers[first].daemon, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+      added++;
+    }
+
+  return added;
+}
+
+
+/*
+ * Add entries to the peers allowed connections list
+ *
+ * @param pg the peer group we are working with
+ * @param first index of the first peer
+ * @param second index of the second peer
+ *
+ * @return the number of connections added (can be 0, 1 or 2)
+ *         technically should only be 0 or 2, but the small price
+ *         of iterating over the lists (hashmaps in the future)
+ *         for being sure doesn't bother me!
+ *
+ */
+static int
+add_allowed_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first, unsigned int second)
+{
+  int added;
+#if OLD
+  struct PeerConnection *first_iter;
+  struct PeerConnection *second_iter;
   struct PeerConnection *new_first;
   struct PeerConnection *new_second;
+#endif
+  int add_first;
+  int add_second;
 
+  GNUNET_HashCode hash_first;
+  GNUNET_HashCode hash_second;
+
+  hash_from_uid(first, &hash_first);
+  hash_from_uid(second, &hash_second);
+
+  add_first = GNUNET_NO;
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(pg->peers[first].allowed_peers, &hash_second))
+    {
+      add_first = GNUNET_YES;
+    }
+
+  add_second = GNUNET_NO;
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(pg->peers[second].allowed_peers, &hash_first))
+    {
+      add_second = GNUNET_YES;
+    }
+#if OLD
   first_iter = pg->peers[first].connected_peers;
-  add_first = GNUNET_YES;
   while (first_iter != NULL)
     {
       if (first_iter->daemon == pg->peers[second].daemon)
@@ -329,29 +496,127 @@ add_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first, unsigne
         add_second = GNUNET_NO;
       second_iter = second_iter->next;
     }
+#endif
 
   added = 0;
   if (add_first)
     {
+      GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(pg->peers[first].allowed_peers, &hash_second, pg->peers[second].daemon, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+#if OLD
       new_first = GNUNET_malloc(sizeof(struct PeerConnection));
       new_first->daemon = pg->peers[second].daemon;
       new_first->next = pg->peers[first].connected_peers;
       pg->peers[first].connected_peers = new_first;
       pg->peers[first].num_connections++;
+#endif
       added++;
     }
 
   if (add_second)
     {
+      GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(pg->peers[second].allowed_peers, &hash_first, pg->peers[first].daemon, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+#if OLD
       new_second = GNUNET_malloc(sizeof(struct PeerConnection));
       new_second->daemon = pg->peers[first].daemon;
       new_second->next = pg->peers[second].connected_peers;
       pg->peers[second].connected_peers = new_second;
       pg->peers[first].num_connections++;
+#endif
       added++;
     }
 
   return added;
+}
+
+/*
+ * Add entries to the peers blacklisted list
+ *
+ * @param pg the peer group we are working with
+ * @param first index of the first peer
+ * @param second index of the second peer
+ *
+ * @return the number of connections added (can be 0, 1 or 2)
+ *
+ */
+static int
+blacklist_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first, unsigned int second)
+{
+  int added;
+  int add_first;
+  int add_second;
+  GNUNET_HashCode hash_first;
+  GNUNET_HashCode hash_second;
+
+  hash_from_uid(first, &hash_first);
+  hash_from_uid(second, &hash_second);
+
+  add_first = GNUNET_NO;
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(pg->peers[first].blacklisted_peers, &hash_second))
+    {
+      add_first = GNUNET_YES;
+    }
+
+  add_second = GNUNET_NO;
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(pg->peers[second].blacklisted_peers, &hash_first))
+    {
+      add_second = GNUNET_YES;
+    }
+
+  added = 0;
+  if (add_first)
+    {
+      GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(pg->peers[first].blacklisted_peers, &hash_second, pg->peers[second].daemon, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+      added++;
+    }
+
+  if (add_second)
+    {
+      GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(pg->peers[second].blacklisted_peers, &hash_first, pg->peers[first].daemon, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+      added++;
+    }
+
+  return added;
+}
+
+/*
+ * Remove entries from the peers blacklisted list
+ *
+ * @param pg the peer group we are working with
+ * @param first index of the first peer
+ * @param second index of the second peer
+ *
+ * @return the number of connections removed (can be 0, 1 or 2)
+ *
+ */
+static int
+unblacklist_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first, unsigned int second)
+{
+  int removed;
+  int remove_first;
+  int remove_second;
+  GNUNET_HashCode hash_first;
+  GNUNET_HashCode hash_second;
+
+  hash_from_uid(first, &hash_first);
+  hash_from_uid(second, &hash_second);
+
+  remove_first = GNUNET_CONTAINER_multihashmap_contains(pg->peers[first].blacklisted_peers, &hash_second);
+  remove_second = GNUNET_CONTAINER_multihashmap_contains(pg->peers[second].blacklisted_peers, &hash_first);
+
+  removed = 0;
+  if (remove_first)
+    {
+      GNUNET_assert(GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(pg->peers[first].blacklisted_peers, &hash_second, pg->peers[second].daemon));
+      removed++;
+    }
+
+  if (remove_second)
+    {
+      GNUNET_assert(GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(pg->peers[second].blacklisted_peers, &hash_first, pg->peers[first].daemon));
+      removed++;
+    }
+
+  return removed;
 }
 
 /**
@@ -369,7 +634,7 @@ add_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first, unsigne
  * @return the number of connections created
  */
 static int
-create_scale_free (struct GNUNET_TESTING_PeerGroup *pg)
+create_scale_free (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
 {
 
   unsigned int total_connections;
@@ -382,7 +647,7 @@ create_scale_free (struct GNUNET_TESTING_PeerGroup *pg)
   GNUNET_assert(pg->total > 1);
 
   /* Add a connection between the first two nodes */
-  total_connections = add_connections(pg, 0, 1);
+  total_connections = proc(pg, 0, 1);
 
   for (outer_count = 1; outer_count < pg->total; outer_count++)
     {
@@ -404,7 +669,7 @@ create_scale_free (struct GNUNET_TESTING_PeerGroup *pg)
                           "Connecting peer %d to peer %d\n",
                           outer_count, i);
 #endif
-              total_connections += add_connections(pg, outer_count, i);
+              total_connections += proc(pg, outer_count, i);
             }
         }
     }
@@ -413,7 +678,7 @@ create_scale_free (struct GNUNET_TESTING_PeerGroup *pg)
 }
 
 int
-create_small_world_ring(struct GNUNET_TESTING_PeerGroup *pg)
+create_small_world_ring(struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
 {
   unsigned int i, j;
   int nodeToConnect;
@@ -502,7 +767,7 @@ create_small_world_ring(struct GNUNET_TESTING_PeerGroup *pg)
                                                          pg->total);
                 }
               smallWorldConnections +=
-                add_connections (pg, i, randomPeer);
+                proc (pg, i, randomPeer);
             }
           else
             {
@@ -512,7 +777,7 @@ create_small_world_ring(struct GNUNET_TESTING_PeerGroup *pg)
                   nodeToConnect = nodeToConnect - pg->total;
                 }
               connect_attempts +=
-                add_connections (pg, i, nodeToConnect);
+                proc (pg, i, nodeToConnect);
             }
         }
 
@@ -525,7 +790,7 @@ create_small_world_ring(struct GNUNET_TESTING_PeerGroup *pg)
 
 
 static int
-create_nated_internet (struct GNUNET_TESTING_PeerGroup *pg)
+create_nated_internet (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
 {
   unsigned int outer_count, inner_count;
   unsigned int cutoff;
@@ -566,7 +831,7 @@ create_nated_internet (struct GNUNET_TESTING_PeerGroup *pg)
                           "Connecting peer %d to peer %d\n",
                           outer_count, inner_count);
 #endif
-              connect_attempts += add_connections(pg, outer_count, inner_count);
+              connect_attempts += proc(pg, outer_count, inner_count);
             }
         }
     }
@@ -578,7 +843,7 @@ create_nated_internet (struct GNUNET_TESTING_PeerGroup *pg)
 
 
 static int
-create_small_world (struct GNUNET_TESTING_PeerGroup *pg)
+create_small_world (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
 {
   unsigned int i, j, k;
   unsigned int square;
@@ -662,7 +927,7 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg)
       else
         nodeToConnect = i - cols + 1;
 
-      connect_attempts += add_connections (pg, i, nodeToConnect);
+      connect_attempts += proc (pg, i, nodeToConnect);
 
       if (i < cols)
         nodeToConnect = (rows * cols) - cols + i;
@@ -670,7 +935,7 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg)
         nodeToConnect = i - cols;
 
       if (nodeToConnect < pg->total)
-        connect_attempts += add_connections (pg, i, nodeToConnect);
+        connect_attempts += proc (pg, i, nodeToConnect);
     }
   natLog = log (pg->total);
 #if VERBOSE_TESTING > 2
@@ -703,7 +968,7 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg)
 							      (uint64_t)-1LL)) / ( (double) (uint64_t) -1LL);
                   /* If random < probability, then connect the two nodes */
                   if (random < probability)
-                    smallWorldConnections += add_connections (pg, j, k);
+                    smallWorldConnections += proc (pg, j, k);
 
                 }
             }
@@ -721,7 +986,7 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg)
 
 
 static int
-create_erdos_renyi (struct GNUNET_TESTING_PeerGroup *pg)
+create_erdos_renyi (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
 {
   double temp_rand;
   unsigned int outer_count;
@@ -759,7 +1024,7 @@ create_erdos_renyi (struct GNUNET_TESTING_PeerGroup *pg)
 #endif
           if (temp_rand < probability)
             {
-              connect_attempts += add_connections (pg, outer_count, inner_count);
+              connect_attempts += proc (pg, outer_count, inner_count);
             }
         }
     }
@@ -768,7 +1033,7 @@ create_erdos_renyi (struct GNUNET_TESTING_PeerGroup *pg)
 }
 
 static int
-create_2d_torus (struct GNUNET_TESTING_PeerGroup *pg)
+create_2d_torus (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
 {
   unsigned int i;
   unsigned int square;
@@ -820,7 +1085,7 @@ create_2d_torus (struct GNUNET_TESTING_PeerGroup *pg)
                       "Connecting peer %d to peer %d\n",
                       i, nodeToConnect);
 #endif
-      connect_attempts += add_connections(pg, i, nodeToConnect);
+      connect_attempts += proc(pg, i, nodeToConnect);
 
       /* Second connect to the node immediately above */
       if (i < cols)
@@ -835,7 +1100,7 @@ create_2d_torus (struct GNUNET_TESTING_PeerGroup *pg)
                       "Connecting peer %d to peer %d\n",
                       i, nodeToConnect);
 #endif
-          connect_attempts += add_connections(pg, i, nodeToConnect);
+          connect_attempts += proc(pg, i, nodeToConnect);
         }
 
     }
@@ -846,7 +1111,7 @@ create_2d_torus (struct GNUNET_TESTING_PeerGroup *pg)
 
 
 static int
-create_clique (struct GNUNET_TESTING_PeerGroup *pg)
+create_clique (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
 {
   unsigned int outer_count;
   unsigned int inner_count;
@@ -864,7 +1129,7 @@ create_clique (struct GNUNET_TESTING_PeerGroup *pg)
                       "Connecting peer %d to peer %d\n",
                       outer_count, inner_count);
 #endif
-          connect_attempts += add_connections(pg, outer_count, inner_count);
+          connect_attempts += proc(pg, outer_count, inner_count);
         }
     }
 
@@ -873,7 +1138,7 @@ create_clique (struct GNUNET_TESTING_PeerGroup *pg)
 
 
 static int
-create_ring (struct GNUNET_TESTING_PeerGroup *pg)
+create_ring (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
 {
   unsigned int count;
   int connect_attempts;
@@ -888,15 +1153,76 @@ create_ring (struct GNUNET_TESTING_PeerGroup *pg)
                       "Connecting peer %d to peer %d\n",
                       count, count + 1);
 #endif
-      connect_attempts += add_connections(pg, count, count + 1);
+      connect_attempts += proc(pg, count, count + 1);
     }
 
   /* Connect the last peer to the first peer */
-  connect_attempts += add_connections(pg, pg->total - 1, 0);
+  connect_attempts += proc(pg, pg->total - 1, 0);
 
   return connect_attempts;
 }
 
+
+/**
+ * Iterator for writing friends of a peer to a file.
+ *
+ * @param cls closure, an open writable file handle
+ * @param key the key the daemon was stored under
+ * @param value the GNUNET_TESTING_Daemon that needs to be written.
+ *
+ * @return GNUNET_YES to continue iteration
+ *
+ * TODO: Could replace friend_file_iterator and blacklist_file_iterator
+ *       with a single file_iterator that takes a closure which contains
+ *       the prefix to write before the peer.  Then this could be used
+ *       for blacklisting multiple transports and writing the friend
+ *       file.  I'm sure *someone* will complain loudly about other
+ *       things that negate these functions even existing so no point in
+ *       "fixing" now.
+ */
+static int
+friend_file_iterator (void *cls,
+                  const GNUNET_HashCode * key,
+                  void *value)
+{
+  FILE *temp_friend_handle = cls;
+  struct GNUNET_TESTING_Daemon *peer = value;
+  struct GNUNET_PeerIdentity *temppeer;
+  struct GNUNET_CRYPTO_HashAsciiEncoded peer_enc;
+
+  temppeer = &peer->id;
+  GNUNET_CRYPTO_hash_to_enc(&temppeer->hashPubKey, &peer_enc);
+  fprintf(temp_friend_handle, "%s\n", (char *)&peer_enc);
+
+  return GNUNET_YES;
+}
+
+
+/**
+ * Iterator for writing blacklist data to appropriate files.
+ *
+ * @param cls closure, an open writable file handle
+ * @param key the key the daemon was stored under
+ * @param value the GNUNET_TESTING_Daemon that needs to be written.
+ *
+ * @return GNUNET_YES to continue iteration
+ */
+static int
+blacklist_file_iterator (void *cls,
+                         const GNUNET_HashCode * key,
+                         void *value)
+{
+  FILE *temp_blacklist_handle = cls;
+  struct GNUNET_TESTING_Daemon *peer = value;
+  struct GNUNET_PeerIdentity *temppeer;
+  struct GNUNET_CRYPTO_HashAsciiEncoded peer_enc;
+
+  temppeer = &peer->id;
+  GNUNET_CRYPTO_hash_to_enc(&temppeer->hashPubKey, &peer_enc);
+  fprintf(temp_blacklist_handle, "tcp:%s\n", (char *)&peer_enc);
+
+  return GNUNET_YES;
+}
 
 /*
  * Create the friend files based on the PeerConnection's
@@ -910,12 +1236,9 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
 {
   FILE *temp_friend_handle;
   unsigned int pg_iter;
-  struct PeerConnection *connection_iter;
-  struct GNUNET_CRYPTO_HashAsciiEncoded peer_enc;
   char *temp_service_path;
   pid_t *pidarr;
   char *arg;
-  struct GNUNET_PeerIdentity *temppeer;
   char * mytemp;
   enum GNUNET_OS_ProcessStatusType type;
   unsigned long return_code;
@@ -927,16 +1250,10 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
     {
       mytemp = GNUNET_DISK_mktemp("friends");
+      GNUNET_assert(mytemp != NULL);
       temp_friend_handle = fopen (mytemp, "wt");
-      connection_iter = pg->peers[pg_iter].connected_peers;
-      while (connection_iter != NULL)
-        {
-          temppeer = &connection_iter->daemon->id;
-          GNUNET_CRYPTO_hash_to_enc(&temppeer->hashPubKey, &peer_enc);
-          fprintf(temp_friend_handle, "%s\n", (char *)&peer_enc);
-          connection_iter = connection_iter->next;
-        }
-
+      GNUNET_assert(temp_friend_handle != NULL);
+      GNUNET_CONTAINER_multihashmap_iterate(pg->peers[pg_iter].allowed_peers, &friend_file_iterator, temp_friend_handle);
       fclose(temp_friend_handle);
 
       if (GNUNET_OK !=
@@ -1029,6 +1346,130 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
   return ret;
 }
 
+
+/*
+ * Create the blacklist files based on the PeerConnection's
+ * of each peer in the peer group, and copy the files
+ * to the appropriate place.
+ *
+ * @param pg the peer group we are dealing with
+ */
+static int
+create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg)
+{
+  FILE *temp_friend_handle;
+  unsigned int pg_iter;
+  char *temp_service_path;
+  pid_t *pidarr;
+  char *arg;
+  char *mytemp;
+  enum GNUNET_OS_ProcessStatusType type;
+  unsigned long return_code;
+  int count;
+  int ret;
+  int max_wait = 10;
+
+  pidarr = GNUNET_malloc(sizeof(pid_t) * pg->total);
+  for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
+    {
+      mytemp = GNUNET_DISK_mktemp("blacklist");
+      GNUNET_assert(mytemp != NULL);
+      temp_friend_handle = fopen (mytemp, "wt");
+      GNUNET_assert(temp_friend_handle != NULL);
+      GNUNET_CONTAINER_multihashmap_iterate(pg->peers[pg_iter].blacklisted_peers, &blacklist_file_iterator, temp_friend_handle);
+      fclose(temp_friend_handle);
+
+      if (GNUNET_OK !=
+          GNUNET_CONFIGURATION_get_value_string(pg->peers[pg_iter].daemon->cfg, "PATHS", "SERVICEHOME", &temp_service_path))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                      _("No `%s' specified in peer configuration in section `%s', cannot copy friends file!\n"),
+                      "SERVICEHOME",
+                      "PATHS");
+          if (UNLINK (mytemp) != 0)
+            GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", mytemp);
+          GNUNET_free (mytemp);
+          break;
+        }
+
+      if (pg->peers[pg_iter].daemon->hostname == NULL) /* Local, just copy the file */
+        {
+          GNUNET_asprintf (&arg, "%s/blacklist", temp_service_path);
+          pidarr[pg_iter] = GNUNET_OS_start_process (NULL, NULL, "mv",
+                                         "mv", mytemp, arg, NULL);
+#if VERBOSE_TESTING
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      _("Copying file with command cp %s %s\n"), mytemp, arg);
+#endif
+
+          GNUNET_free(arg);
+        }
+      else /* Remote, scp the file to the correct place */
+        {
+          if (NULL != pg->peers[pg_iter].daemon->username)
+            GNUNET_asprintf (&arg, "%s@%s:%s/blacklist", pg->peers[pg_iter].daemon->username, pg->peers[pg_iter].daemon->hostname, temp_service_path);
+          else
+            GNUNET_asprintf (&arg, "%s:%s/blacklist", pg->peers[pg_iter].daemon->hostname, temp_service_path);
+          pidarr[pg_iter] = GNUNET_OS_start_process (NULL, NULL, "scp",
+                                         "scp", mytemp, arg, NULL);
+
+#if VERBOSE_TESTING
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      _("Copying file with command scp %s %s\n"), mytemp, arg);
+#endif
+          GNUNET_free(arg);
+        }
+      GNUNET_free (temp_service_path);
+      GNUNET_free (mytemp);
+    }
+
+  count = 0;
+  ret = GNUNET_SYSERR;
+  while ((count < max_wait) && (ret != GNUNET_OK))
+    {
+      ret = GNUNET_OK;
+      for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
+        {
+#if VERBOSE_TESTING
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      _("Checking copy status of file %d\n"), pg_iter);
+#endif
+          if (pidarr[pg_iter] != 0) /* Check for already completed! */
+            {
+              if (GNUNET_OS_process_status(pidarr[pg_iter], &type, &return_code) != GNUNET_OK)
+                {
+                  ret = GNUNET_SYSERR;
+                }
+              else if ((type != GNUNET_OS_PROCESS_EXITED) || (return_code != 0))
+                {
+                  ret = GNUNET_SYSERR;
+                }
+              else
+                {
+                  pidarr[pg_iter] = 0;
+#if VERBOSE_TESTING
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      _("File %d copied\n"), pg_iter);
+#endif
+                }
+            }
+        }
+      count++;
+      if (ret == GNUNET_SYSERR)
+        {
+          sleep(1);
+        }
+    }
+
+#if VERBOSE_TESTING
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                _("Finished copying all blacklist files!\n"));
+#endif
+  GNUNET_free(pidarr);
+  return ret;
+}
+
+
 /**
  * Internal notification of a connection, kept so that we can ensure some connections
  * happen instead of flooding all testing daemons with requests to connect.
@@ -1081,54 +1522,154 @@ static void schedule_connect(void *cls, const struct GNUNET_SCHEDULER_TaskContex
     }
 }
 
+/**
+ * Iterator for actually scheduling connections to be created
+ * between two peers.
+ *
+ * @param cls closure, a GNUNET_TESTING_Daemon
+ * @param key the key the second Daemon was stored under
+ * @param value the GNUNET_TESTING_Daemon that the first is to connect to
+ *
+ * @return GNUNET_YES to continue iteration
+ */
+static int
+connect_iterator (void *cls,
+                  const GNUNET_HashCode * key,
+                  void *value)
+{
+  struct PeerData *first = cls;
+  struct GNUNET_TESTING_Daemon *second = value;
+  struct ConnectContext *connect_context;
+
+  connect_context = GNUNET_malloc(sizeof(struct ConnectContext));
+  connect_context->pg = first->pg;
+  connect_context->first = first->daemon;
+  connect_context->second = second;
+  GNUNET_SCHEDULER_add_now(first->pg->sched, &schedule_connect, connect_context);
+
+  return GNUNET_YES;
+}
+
+/**
+ * Iterator for copying all entries in the allowed hashmap to the
+ * connect hashmap.
+ *
+ * @param cls closure, a GNUNET_TESTING_Daemon
+ * @param key the key the second Daemon was stored under
+ * @param value the GNUNET_TESTING_Daemon that the first is to connect to
+ *
+ * @return GNUNET_YES to continue iteration
+ */
+static int
+copy_topology_iterator (void *cls,
+                  const GNUNET_HashCode * key,
+                  void *value)
+{
+  struct PeerData *first = cls;
+
+  GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(first->connect_peers, key, value, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+
+  return GNUNET_YES;
+}
+
+/**
+ * Make the peers to connect the same as those that are allowed to be
+ * connected.
+ *
+ * @param pg the peer group
+ */
+static int
+copy_allowed_topology (struct GNUNET_TESTING_PeerGroup *pg)
+{
+  unsigned int pg_iter;
+  int ret;
+  int total;
+
+  total = 0;
+  for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
+    {
+      ret = GNUNET_CONTAINER_multihashmap_iterate(pg->peers[pg_iter].allowed_peers, &copy_topology_iterator, &pg->peers[pg_iter]);
+      if (GNUNET_SYSERR == ret)
+        return GNUNET_SYSERR;
+
+      total = total + ret;
+    }
+
+  return total;
+}
+
+
 /*
  * Connect the topology as specified by the PeerConnection's
  * of each peer in the peer group
  *
  * @param pg the peer group we are dealing with
+ *
+ * @return the number of connections that will be attempted
  */
-static void
+static int
 connect_topology (struct GNUNET_TESTING_PeerGroup *pg)
 {
   unsigned int pg_iter;
+  int ret;
+  int total;
+#if OLD
   struct PeerConnection *connection_iter;
   struct ConnectContext *connect_context;
+#endif
 
+  total = 0;
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
     {
-      connection_iter = pg->peers[pg_iter].connected_peers;
+      ret = GNUNET_CONTAINER_multihashmap_iterate(pg->peers[pg_iter].connect_peers, &connect_iterator, &pg->peers[pg_iter]);
+      if (GNUNET_SYSERR == ret)
+        return GNUNET_SYSERR;
+
+      total = total + ret;
+
+#if OLD
+      connection_iter = ;
       while (connection_iter != NULL)
         {
           connect_context = GNUNET_malloc(sizeof(struct ConnectContext));
           connect_context->pg = pg;
-          connect_context->first = pg->peers[pg_iter].daemon;
+          connect_context->first = ;
           connect_context->second = connection_iter->daemon;
           GNUNET_SCHEDULER_add_now(pg->sched, &schedule_connect, connect_context);
           connection_iter = connection_iter->next;
         }
+#endif
     }
+  return total;
 }
 
 
 /*
- * Takes a peer group and attempts to create a topology based on the
- * one specified in the configuration file.  Returns the number of connections
- * that will attempt to be created, but this will happen asynchronously(?) so
- * the caller will have to keep track (via the callback) of whether or not
- * the connection actually happened.
+ * Takes a peer group and creates a topology based on the
+ * one specified.  Creates a topology means generates friend
+ * files for the peers so they can only connect to those allowed
+ * by the topology.  This will only have an effect once peers
+ * are started if the FRIENDS_ONLY option is set in the base
+ * config.  Also takes an optional restrict topology which
+ * disallows direct TCP connections UNLESS they are specified in
+ * the restricted topology.
  *
  * @param pg the peer group struct representing the running peers
  * @param topology which topology to connect the peers in
+ * @param restrict_topology allow only direct TCP connections in this topology
+ *                          use GNUNET_TESTING_TOPOLOGY_NONE for no restrictions
  *
- * @return the number of connections should be created by the topology, so the
- * caller knows how many to wait for (if it so chooses)
- *
+ * @return the maximum number of connections were all allowed peers
+ *         connected to each other
  */
 int
-GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg, enum GNUNET_TESTING_Topology topology)
+GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
+                                enum GNUNET_TESTING_Topology topology,
+                                enum GNUNET_TESTING_Topology restrict_topology)
 {
   int ret;
   int num_connections;
+  int unblacklisted_connections;
 
   GNUNET_assert (pg->notify_connection != NULL);
   ret = GNUNET_OK;
@@ -1140,56 +1681,56 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg, enum GNUNET
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Creating clique topology\n"));
 #endif
-      num_connections = create_clique (pg);
+      num_connections = create_clique (pg, &add_allowed_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD_RING:
 #if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Creating small world (ring) topology\n"));
 #endif
-      num_connections = create_small_world_ring (pg);
+      num_connections = create_small_world_ring (pg, &add_allowed_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD:
 #if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Creating small world (2d-torus) topology\n"));
 #endif
-      num_connections = create_small_world (pg);
+      num_connections = create_small_world (pg, &add_allowed_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_RING:
 #if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Creating ring topology\n"));
 #endif
-      num_connections = create_ring (pg);
+      num_connections = create_ring (pg, &add_allowed_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_2D_TORUS:
 #if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Creating 2d torus topology\n"));
 #endif
-      num_connections = create_2d_torus (pg);
+      num_connections = create_2d_torus (pg, &add_allowed_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_ERDOS_RENYI:
 #if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Creating Erdos-Renyi topology\n"));
 #endif
-      num_connections = create_erdos_renyi (pg);
+      num_connections = create_erdos_renyi (pg, &add_allowed_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_INTERNAT:
 #if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Creating InterNAT topology\n"));
 #endif
-      num_connections = create_nated_internet (pg);
+      num_connections = create_nated_internet (pg, &add_allowed_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_SCALE_FREE:
 #if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Creating Scale Free topology\n"));
 #endif
-      num_connections = create_scale_free (pg);
+      num_connections = create_scale_free (pg, &add_allowed_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_NONE:
       num_connections = 0;
@@ -1202,10 +1743,11 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg, enum GNUNET
     return GNUNET_SYSERR;
 
   if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (pg->cfg, "TESTING", "F2F"))
-    ret = create_and_copy_friend_files(pg);
-  if (ret == GNUNET_OK)
-    connect_topology(pg);
-  else
+    {
+      ret = create_and_copy_friend_files(pg);
+    }
+
+  if (ret != GNUNET_OK)
     {
 #if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1213,8 +1755,417 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg, enum GNUNET
 #endif
       return GNUNET_SYSERR;
     }
+  else
+    {
+#if VERBOSE_TESTING
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      _("Friend files created/copied successfully!\n"));
+#endif
+    }
+
+  /**
+   * Use the create clique method to initially set all connections
+   * as blacklisted.
+   */
+  create_clique (pg, &blacklist_connections);
+  unblacklisted_connections = 0;
+  /**
+   * Un-blacklist connections as per the topology specified
+   */
+  switch (restrict_topology)
+    {
+    case GNUNET_TESTING_TOPOLOGY_CLIQUE:
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Blacklisting all but clique topology\n"));
+#endif
+      unblacklisted_connections = create_clique (pg, &unblacklist_connections);
+      break;
+    case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD_RING:
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Blacklisting all but small world (ring) topology\n"));
+#endif
+      unblacklisted_connections = create_small_world_ring (pg, &unblacklist_connections);
+      break;
+    case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD:
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Blacklisting all but small world (2d-torus) topology\n"));
+#endif
+      unblacklisted_connections = create_small_world (pg, &unblacklist_connections);
+      break;
+    case GNUNET_TESTING_TOPOLOGY_RING:
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Blacklisting all but ring topology\n"));
+#endif
+      unblacklisted_connections = create_ring (pg, &unblacklist_connections);
+      break;
+    case GNUNET_TESTING_TOPOLOGY_2D_TORUS:
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Blacklisting all but 2d torus topology\n"));
+#endif
+      unblacklisted_connections = create_2d_torus (pg, &unblacklist_connections);
+      break;
+    case GNUNET_TESTING_TOPOLOGY_ERDOS_RENYI:
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Blacklisting all but Erdos-Renyi topology\n"));
+#endif
+      unblacklisted_connections = create_erdos_renyi (pg, &unblacklist_connections);
+      break;
+    case GNUNET_TESTING_TOPOLOGY_INTERNAT:
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Blacklisting all but InterNAT topology\n"));
+#endif
+      unblacklisted_connections = create_nated_internet (pg, &unblacklist_connections);
+      break;
+    case GNUNET_TESTING_TOPOLOGY_SCALE_FREE:
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Blacklisting all but Scale Free topology\n"));
+#endif
+      unblacklisted_connections = create_scale_free (pg, &unblacklist_connections);
+      break;
+    case GNUNET_TESTING_TOPOLOGY_NONE:
+      /* Fall through */
+    default:
+      break;
+    }
+
+  if (unblacklisted_connections > 0)
+  {
+    ret = create_and_copy_blacklist_files(pg);
+    if (ret != GNUNET_OK)
+      {
+#if VERBOSE_TESTING
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    _("Failed during blacklist file copying!\n"));
+#endif
+        return GNUNET_SYSERR;
+      }
+    else
+      {
+#if VERBOSE_TESTING
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    _("Blacklist files created/copied successfully!\n"));
+#endif
+      }
+  }
+
 
   return num_connections;
+}
+
+struct RandomContext
+{
+  /**
+   * The peergroup
+   */
+  struct GNUNET_TESTING_PeerGroup *pg;
+
+  /**
+   * uid of the first peer
+   */
+  uint32_t first_uid;
+
+  /**
+   * Peer data for first peer.
+   */
+  struct PeerData *first;
+
+  /**
+   * Random percentage to use
+   */
+  double percentage;
+};
+
+struct MinimumContext
+{
+  /**
+   * The peergroup
+   */
+  struct GNUNET_TESTING_PeerGroup *pg;
+
+  /**
+   * uid of the first peer
+   */
+  uint32_t first_uid;
+
+  /**
+   * Peer data for first peer.
+   */
+  struct PeerData *first;
+
+  /**
+   * Number of conns per peer
+   */
+  unsigned int num_to_add;
+};
+
+/**
+ * Iterator for choosing random peers to connect.
+ *
+ * @param cls closure, a RandomContext
+ * @param key the key the second Daemon was stored under
+ * @param value the GNUNET_TESTING_Daemon that the first is to connect to
+ *
+ * @return GNUNET_YES to continue iteration
+ */
+static int
+random_connect_iterator (void *cls,
+                  const GNUNET_HashCode * key,
+                  void *value)
+{
+  struct RandomContext *random_ctx = cls;
+  double random_number;
+  uint32_t second_pos;
+  GNUNET_HashCode first_hash;
+  random_number = ((double) GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_WEAK,
+                   (uint64_t)-1LL)) / ( (double) (uint64_t) -1LL);
+  if (random_number < random_ctx->percentage)
+  {
+    GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(random_ctx->first->connect_peers_working_set, key, value, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  }
+  /* Now we have considered this particular connection, remove it from the second peer so it's not double counted */
+  uid_from_hash(key, &second_pos);
+  hash_from_uid(random_ctx->first_uid, &first_hash);
+  GNUNET_assert(random_ctx->pg->total > second_pos);
+  GNUNET_assert(GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(random_ctx->pg->peers[second_pos].connect_peers, &first_hash, random_ctx->first->daemon));
+
+  return GNUNET_YES;
+}
+
+/**
+ * Iterator for adding at least X peers to a peers connection set.
+ *
+ * @param cls closure, MinimumContext
+ * @param key the key the second Daemon was stored under
+ * @param value the GNUNET_TESTING_Daemon that the first is to connect to
+ *
+ * @return GNUNET_YES to continue iteration
+ */
+static int
+minimum_connect_iterator (void *cls,
+                  const GNUNET_HashCode * key,
+                  void *value)
+{
+  struct MinimumContext *min_ctx = cls;
+  uint32_t second_pos;
+  GNUNET_HashCode first_hash;
+
+  if (GNUNET_CONTAINER_multihashmap_size(min_ctx->first->connect_peers_working_set) < min_ctx->num_to_add)
+  {
+    GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(min_ctx->first->connect_peers_working_set, key, value, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(min_ctx->first->connect_peers_working_set, key, value, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    /* Now we have added this particular connection, remove it from the second peer's map so it's not double counted */
+    uid_from_hash(key, &second_pos);
+    hash_from_uid(min_ctx->first_uid, &first_hash);
+    GNUNET_assert(min_ctx->pg->total > second_pos);
+    GNUNET_assert(GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(min_ctx->pg->peers[second_pos].connect_peers, &first_hash, min_ctx->first->daemon));
+    return GNUNET_YES;
+  }
+  else
+    return GNUNET_NO; /* We can stop iterating, we have enough peers! */
+
+
+}
+
+/**
+ * From the set of connections possible, choose percentage percent of connections
+ * to actually connect.
+ *
+ * @param pg the peergroup we are dealing with
+ * @param percentage what percent of total connections to make
+ */
+void
+choose_random_connections(struct GNUNET_TESTING_PeerGroup *pg, double percentage)
+{
+  struct RandomContext random_ctx;
+  uint32_t pg_iter;
+
+  for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
+    {
+      random_ctx.first_uid = pg_iter;
+      random_ctx.first = &pg->peers[pg_iter];
+      random_ctx.percentage = percentage;
+      pg->peers[pg_iter].connect_peers_working_set = GNUNET_CONTAINER_multihashmap_create(pg->total);
+      GNUNET_CONTAINER_multihashmap_iterate(pg->peers[pg_iter].connect_peers, &random_connect_iterator, &random_ctx);
+      /* Now remove the old connections */
+      GNUNET_CONTAINER_multihashmap_destroy(pg->peers[pg_iter].connect_peers);
+      /* And replace with the random set */
+      pg->peers[pg_iter].connect_peers = pg->peers[pg_iter].connect_peers_working_set;
+    }
+}
+
+/**
+ * From the set of connections possible, choose at least num connections per
+ * peer.
+ *
+ * @param pg the peergroup we are dealing with
+ * @param num how many connections at least should each peer have (if possible)?
+ */
+void
+choose_minimum(struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
+{
+  struct MinimumContext minimum_ctx;
+  uint32_t pg_iter;
+
+  for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
+    {
+      pg->peers[pg_iter].connect_peers_working_set = GNUNET_CONTAINER_multihashmap_create(num);
+    }
+
+  for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
+    {
+      minimum_ctx.first_uid = pg_iter;
+      minimum_ctx.first = &pg->peers[pg_iter];
+      minimum_ctx.num_to_add = num;
+      pg->peers[pg_iter].connect_peers_working_set = GNUNET_CONTAINER_multihashmap_create(pg->total);
+      GNUNET_CONTAINER_multihashmap_iterate(pg->peers[pg_iter].connect_peers, &minimum_connect_iterator, &minimum_ctx);
+    }
+
+  for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
+    {
+      /* Remove the "old" connections */
+      GNUNET_CONTAINER_multihashmap_destroy(pg->peers[pg_iter].connect_peers);
+      /* And replace with the working set */
+      pg->peers[pg_iter].connect_peers = pg->peers[pg_iter].connect_peers_working_set;
+    }
+
+}
+
+
+/*
+ * @param pg the peer group struct representing the running peers
+ * @param topology which topology to connect the peers in
+ * @param options options for connecting the topology
+ * @param option_modifier modifier for options that take a parameter
+ *
+ * There are many ways to connect peers that are supported by this function.
+ * To connect peers in the same topology that was created via the
+ * GNUNET_TESTING_create_topology, the topology variable must be set to
+ * GNUNET_TESTING_TOPOLOGY_NONE.  If the topology variable is specified,
+ * a new instance of that topology will be generated and attempted to be
+ * connected.  This could result in some connections being impossible,
+ * because some topologies are non-deterministic.
+ *
+ */
+int
+GNUNET_TESTING_connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
+                                 enum GNUNET_TESTING_Topology topology,
+                                 enum GNUNET_TESTING_TopologyOption options,
+                                 double option_modifier)
+{
+  int num_connections;
+
+  switch (topology)
+      {
+      case GNUNET_TESTING_TOPOLOGY_CLIQUE:
+  #if VERBOSE_TESTING
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    _("Creating clique topology\n"));
+  #endif
+        num_connections = create_clique (pg, &add_actual_connections);
+        break;
+      case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD_RING:
+  #if VERBOSE_TESTING
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    _("Creating small world (ring) topology\n"));
+  #endif
+        num_connections = create_small_world_ring (pg, &add_actual_connections);
+        break;
+      case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD:
+  #if VERBOSE_TESTING
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    _("Creating small world (2d-torus) topology\n"));
+  #endif
+        num_connections = create_small_world (pg, &add_actual_connections);
+        break;
+      case GNUNET_TESTING_TOPOLOGY_RING:
+  #if VERBOSE_TESTING
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    _("Creating ring topology\n"));
+  #endif
+        num_connections = create_ring (pg, &add_actual_connections);
+        break;
+      case GNUNET_TESTING_TOPOLOGY_2D_TORUS:
+  #if VERBOSE_TESTING
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    _("Creating 2d torus topology\n"));
+  #endif
+        num_connections = create_2d_torus (pg, &add_actual_connections);
+        break;
+      case GNUNET_TESTING_TOPOLOGY_ERDOS_RENYI:
+  #if VERBOSE_TESTING
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    _("Creating Erdos-Renyi topology\n"));
+  #endif
+        num_connections = create_erdos_renyi (pg, &add_actual_connections);
+        break;
+      case GNUNET_TESTING_TOPOLOGY_INTERNAT:
+  #if VERBOSE_TESTING
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    _("Creating InterNAT topology\n"));
+  #endif
+        num_connections = create_nated_internet (pg, &add_actual_connections);
+        break;
+      case GNUNET_TESTING_TOPOLOGY_SCALE_FREE:
+  #if VERBOSE_TESTING
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    _("Creating Scale Free topology\n"));
+  #endif
+        num_connections = create_scale_free (pg, &add_actual_connections);
+        break;
+      case GNUNET_TESTING_TOPOLOGY_NONE:
+        num_connections = copy_allowed_topology(pg);
+        break;
+      default:
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Unknown topology specification, can't connect peers!\n");
+        return GNUNET_SYSERR;
+      }
+
+  switch (options)
+    {
+    case GNUNET_TESTING_TOPOLOGY_OPTION_RANDOM: /* Create a random subset of total connections based on parameter */
+      choose_random_connections(pg, option_modifier);
+      break;
+    case GNUNET_TESTING_TOPOLOGY_OPTION_MINIMUM: /* Create at least X connections per peer (if possible!) */
+      choose_minimum(pg, (unsigned int)option_modifier);
+      break;
+    case GNUNET_TESTING_TOPOLOGY_OPTION_DFS: /* Choose a random starting point, randomly walk graph, try to get each peer X connections */
+      //choose_dfs(pg, (int)option_modifier);
+      break;
+    case GNUNET_TESTING_TOPOLOGY_OPTION_NONE:
+      /* Fall through */
+    case GNUNET_TESTING_TOPOLOGY_OPTION_ALL:
+      /* Fall through */
+    default:
+      break;
+    }
+
+  return connect_topology(pg);
+}
+
+/**
+ * Function which continues a peer group starting up
+ * after successfully generating hostkeys for each peer.
+ *
+ * @param pg the peer group to continue starting
+ *
+ */
+void
+GNUNET_TESTING_daemons_continue_startup(struct GNUNET_TESTING_PeerGroup *pg)
+{
+  unsigned int i;
+
+  for (i = 0; i < pg->total; i++)
+    {
+      GNUNET_TESTING_daemon_continue_startup(pg->peers[i].daemon);
+    }
 }
 
 /**
@@ -1226,6 +2177,11 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg, enum GNUNET
  * @param sched scheduler to use
  * @param cfg configuration template to use
  * @param total number of daemons to start
+ * @param hostkey_callback function to call on each peers hostkey generation
+ *        if NULL, peers will be started by this call, if non-null,
+ *        GNUNET_TESTING_daemons_continue_startup must be called after
+ *        successful hostkey generation
+ * @param hostkey_cls closure for hostkey callback
  * @param cb function to call on each daemon that was started
  * @param cb_cls closure for cb
  * @param connect_callback function to call each time two hosts are connected
@@ -1238,6 +2194,8 @@ struct GNUNET_TESTING_PeerGroup *
 GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
                               const struct GNUNET_CONFIGURATION_Handle *cfg,
                               unsigned int total,
+                              GNUNET_TESTING_NotifyHostkeyCreated hostkey_callback,
+                              void *hostkey_cls,
                               GNUNET_TESTING_NotifyDaemonRunning cb,
                               void *cb_cls,
                               GNUNET_TESTING_NotifyConnection
@@ -1366,13 +2324,20 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
                                              "SERVICEHOME", newservicehome);
       GNUNET_free (newservicehome);
       pg->peers[off].cfg = pcfg;
+      pg->peers[off].allowed_peers = GNUNET_CONTAINER_multihashmap_create(total);
+      pg->peers[off].connect_peers = GNUNET_CONTAINER_multihashmap_create(total);
+      pg->peers[off].blacklisted_peers = GNUNET_CONTAINER_multihashmap_create(total);
+      pg->peers[off].pg = pg;
       pg->peers[off].daemon = GNUNET_TESTING_daemon_start (sched,
                                                            pcfg,
                                                            hostname,
+                                                           hostkey_callback,
+                                                           hostkey_cls,
                                                            cb, cb_cls);
       if (NULL == pg->peers[off].daemon)
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                     _("Could not start peer number %u!\n"), off);
+
     }
   return pg;
 }
@@ -1391,6 +2356,72 @@ GNUNET_TESTING_daemon_get (struct GNUNET_TESTING_PeerGroup *pg, unsigned int pos
 }
 
 /**
+ * Prototype of a function that will be called when a
+ * particular operation was completed the testing library.
+ *
+ * @param cls closure
+ * @param emsg NULL on success
+ */
+void restart_callback (void *cls,
+                       const struct GNUNET_PeerIdentity *id,
+                       const struct GNUNET_CONFIGURATION_Handle *cfg,
+                       struct GNUNET_TESTING_Daemon *d,
+                       const char *emsg)
+{
+  struct RestartContext *restart_context = cls;
+
+  if (emsg == NULL)
+    {
+      restart_context->peers_restarted++;
+    }
+  else
+    {
+      restart_context->peers_restart_failed++;
+    }
+
+  if (restart_context->peers_restarted == restart_context->peer_group->total)
+    {
+      restart_context->callback(restart_context->callback_cls, NULL);
+      GNUNET_free(restart_context);
+    }
+  else if (restart_context->peers_restart_failed + restart_context->peers_restarted == restart_context->peer_group->total)
+    {
+      restart_context->callback(restart_context->callback_cls, "Failed to restart peers!");
+      GNUNET_free(restart_context);
+    }
+
+}
+
+/**
+ * Restart all peers in the given group.
+ *
+ * @param pg the handle to the peer group
+ * @param timeout how long to wait on failure
+ * @param callback function to call on completion (or failure)
+ * @param callback_cls closure for the callback function
+ */
+void
+GNUNET_TESTING_daemons_restart (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_NotifyCompletion callback, void *callback_cls)
+{
+  struct RestartContext *restart_context;
+  unsigned int off;
+
+  if (pg->total > 0)
+    {
+      restart_context = GNUNET_malloc(sizeof(struct RestartContext));
+      restart_context->peer_group = pg;
+      restart_context->peers_restarted = 0;
+      restart_context->callback = callback;
+      restart_context->callback_cls = callback_cls;
+
+      for (off = 0; off < pg->total; off++)
+        {
+          GNUNET_TESTING_daemon_restart (pg->peers[off].daemon, &restart_callback, restart_context);
+        }
+    }
+}
+
+/**
  * Shutdown all peers started in the given group.
  *
  * @param pg handle to the peer group
@@ -1399,8 +2430,6 @@ void
 GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg)
 {
   unsigned int off;
-  struct PeerConnection *pos;
-  struct PeerConnection *next;
 
   for (off = 0; off < pg->total; off++)
     {
@@ -1410,17 +2439,13 @@ GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg)
          as well... */
 
       if (NULL != pg->peers[off].daemon)
-        GNUNET_TESTING_daemon_stop (pg->peers[off].daemon, NULL, NULL);
+        GNUNET_TESTING_daemon_stop (pg->peers[off].daemon, NULL, NULL, GNUNET_YES);
       if (NULL != pg->peers[off].cfg)
         GNUNET_CONFIGURATION_destroy (pg->peers[off].cfg);
 
-      pos = pg->peers[off].connected_peers;
-      while (pos != NULL)
-        {
-          next = pos->next;
-          GNUNET_free(pos);
-          pos = next;
-        }
+      GNUNET_CONTAINER_multihashmap_destroy(pg->peers[off].allowed_peers);
+      GNUNET_CONTAINER_multihashmap_destroy(pg->peers[off].connect_peers);
+      GNUNET_CONTAINER_multihashmap_destroy(pg->peers[off].blacklisted_peers);
 
     }
   GNUNET_free (pg->peers);

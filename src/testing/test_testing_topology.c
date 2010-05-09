@@ -25,7 +25,7 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_core_service.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 /**
  * How long until we fail the whole testcase?
@@ -82,6 +82,14 @@ static int transmit_ready_failed;
 static int transmit_ready_called;
 
 static enum GNUNET_TESTING_Topology topology;
+
+static enum GNUNET_TESTING_Topology blacklist_topology = GNUNET_TESTING_TOPOLOGY_NONE; /* Don't do any blacklisting */
+
+static enum GNUNET_TESTING_Topology connection_topology = GNUNET_TESTING_TOPOLOGY_NONE; /* NONE actually means connect all allowed peers */
+
+static enum GNUNET_TESTING_TopologyOption connect_topology_option = GNUNET_TESTING_TOPOLOGY_OPTION_ALL;
+
+static double connect_topology_option_modifier = 0.0;
 
 static char *test_directory;
 
@@ -509,20 +517,13 @@ topology_callback (void *cls,
     }
 }
 
-
 static void
-create_topology ()
+connect_topology ()
 {
   expected_connections = -1;
   if ((pg != NULL) && (peers_left == 0))
     {
-      /* create_topology will read the topology information from
-         the config already contained in the peer group, so should
-         we have create_topology called from start peers?  I think
-         maybe this way is best so that the client can know both
-         when peers are started, and when they are connected.
-       */
-      expected_connections = GNUNET_TESTING_create_topology (pg, topology);
+      expected_connections = GNUNET_TESTING_connect_topology (pg, connection_topology, connect_topology_option, connect_topology_option_modifier);
 #if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Have %d expected connections\n", expected_connections);
@@ -533,20 +534,51 @@ create_topology ()
   if (expected_connections == GNUNET_SYSERR)
     {
       die_task = GNUNET_SCHEDULER_add_now (sched,
-                                           &end_badly, "from create topology (bad return)");
+                                           &end_badly, "from connect topology (bad return)");
     }
+
   die_task = GNUNET_SCHEDULER_add_delayed (sched,
                                            TEST_TIMEOUT,
-                                           &end_badly, "from create topology (timeout)");
+                                           &end_badly, "from connect topology (timeout)");
+}
+
+static void
+create_topology ()
+{
+  peers_left = num_peers; /* Reset counter */
+  if (GNUNET_TESTING_create_topology (pg, topology, blacklist_topology) != GNUNET_SYSERR)
+    {
+#if VERBOSE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Topology set up, now starting peers!\n");
+#endif
+      GNUNET_TESTING_daemons_continue_startup(pg);
+    }
+  else
+    {
+      GNUNET_SCHEDULER_cancel (sched, die_task);
+      die_task = GNUNET_SCHEDULER_add_now (sched,
+                                           &end_badly, "from create topology (bad return)");
+    }
+  GNUNET_SCHEDULER_cancel (sched, die_task);
+  die_task = GNUNET_SCHEDULER_add_delayed (sched,
+                                           TEST_TIMEOUT,
+                                           &end_badly, "from continue startup (timeout)");
 }
 
 
 static void
-my_cb (void *cls,
+peers_started_callback (void *cls,
        const struct GNUNET_PeerIdentity *id,
        const struct GNUNET_CONFIGURATION_Handle *cfg,
        struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
+  if (emsg != NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to start daemon with error: `%s'\n",
+                  emsg);
+      return;
+    }
   GNUNET_assert (id != NULL);
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Started daemon %llu out of %llu\n",
@@ -566,12 +598,54 @@ my_cb (void *cls,
       die_task = GNUNET_SCHEDULER_add_delayed (sched,
                                                GNUNET_TIME_relative_multiply
                                                (GNUNET_TIME_UNIT_MINUTES, 5),
-                                               &end_badly, "from my_cb");
-      create_topology ();
+                                               &end_badly, "from peers_started_callback");
+      connect_topology ();
       ok = 0;
     }
 }
 
+/**
+ * Callback indicating that the hostkey was created for a peer.
+ *
+ * @param cls NULL
+ * @param id the peer identity
+ * @param d the daemon handle (pretty useless at this point, remove?)
+ * @param emsg non-null on failure
+ */
+void hostkey_callback (void *cls,
+                       const struct GNUNET_PeerIdentity *id,
+                       struct GNUNET_TESTING_Daemon *d,
+                       const char *emsg)
+{
+  if (emsg != NULL)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Hostkey callback received error: %s\n", emsg);
+    }
+
+#if VERBOSE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Hostkey created for peer `%s'\n",
+                GNUNET_i2s(id));
+#endif
+    peers_left--;
+    if (peers_left == 0)
+      {
+#if VERBOSE
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "All %d hostkeys created, now creating topology!\n",
+                    num_peers);
+#endif
+        GNUNET_SCHEDULER_cancel (sched, die_task);
+        /* Set up task in case topology creation doesn't finish
+         * within a reasonable amount of time */
+        die_task = GNUNET_SCHEDULER_add_delayed (sched,
+                                                 GNUNET_TIME_relative_multiply
+                                                 (GNUNET_TIME_UNIT_MINUTES, 5),
+                                                 &end_badly, "from hostkey_callback");
+        GNUNET_SCHEDULER_add_now(sched, &create_topology, NULL);
+        ok = 0;
+      }
+}
 
 static void
 run (void *cls,
@@ -580,6 +654,10 @@ run (void *cls,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   unsigned long long topology_num;
+  unsigned long long connect_topology_num;
+  unsigned long long blacklist_topology_num;
+  unsigned long long connect_topology_option_num;
+  char *connect_topology_option_modifier_string;
   sched = s;
   ok = 1;
 
@@ -605,6 +683,36 @@ run (void *cls,
                                              &topology_num))
     topology = topology_num;
 
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "connect_topology",
+                                             &connect_topology_num))
+    connection_topology = connect_topology_num;
+
+  if (GNUNET_YES ==
+        GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "connect_topology_option",
+                                               &connect_topology_option_num))
+    connect_topology_option = connect_topology_option_num;
+
+  if (GNUNET_YES ==
+        GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "connect_topology_option_modifier",
+                                               &connect_topology_option_modifier_string))
+    {
+      if (sscanf(connect_topology_option_modifier_string, "%lf", &connect_topology_option_modifier) != 1)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+        _("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
+        connect_topology_option_modifier_string,
+        "connect_topology_option_modifier",
+        "TESTING");
+        GNUNET_free (connect_topology_option_modifier_string);
+      }
+    }
+
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "blacklist_topology",
+                                             &blacklist_topology_num))
+    blacklist_topology = blacklist_topology_num;
+
   if (GNUNET_SYSERR ==
       GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "num_peers",
                                              &num_peers))
@@ -621,7 +729,7 @@ run (void *cls,
                                            &end_badly, "didn't start all daemons in reasonable amount of time!!!");
 
   pg = GNUNET_TESTING_daemons_start (sched, cfg,
-                                     peers_left, &my_cb, NULL,
+                                     peers_left, &hostkey_callback, NULL, &peers_started_callback, NULL,
                                      &topology_callback, NULL, NULL);
 
 }
