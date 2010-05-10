@@ -55,7 +55,7 @@ static void
 clean_up_task (void *cls,
 		 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_TESTING_daemons_stop (pg);
+  GNUNET_TESTING_daemons_stop (pg, TIMEOUT);
   ok = 0;     
 }
 
@@ -75,7 +75,7 @@ notify_connect_complete(void *cls,
       fprintf (stderr,
 	       "Failed to connect two peers: %s\n",
 	       emsg);
-      GNUNET_TESTING_daemons_stop (pg);
+      GNUNET_TESTING_daemons_stop (pg, TIMEOUT);
       GNUNET_assert (0);
       return;
     }
@@ -137,6 +137,7 @@ run (void *cls,
   peers_left = NUM_PEERS;
   pg = GNUNET_TESTING_daemons_start (sched, cfg, 
 				     peers_left,
+				     TIMEOUT,
 				     NULL, NULL,
 				     &my_cb, NULL, NULL, NULL, NULL);
   GNUNET_assert (pg != NULL);
