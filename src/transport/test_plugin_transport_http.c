@@ -154,17 +154,19 @@ notify_address (void *cls,
 static void
 shutdown_clean ()
 {
-  if (stat_get_handle != NULL)
+/*  if (stat_get_handle != NULL)
   {
     GNUNET_STATISTICS_get_cancel(stat_get_handle);
-  }
+  }*/
 
-  GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
+  // if ( NULL!=stats )GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
   if (ti_check_stat != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel(sched,ti_check_stat);
   ti_check_stat = GNUNET_SCHEDULER_NO_TASK;
 
-  GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_template", api));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Unloading http plugin\n");
+  GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_http", api));
+  
   GNUNET_SCHEDULER_shutdown(sched);
   /* FIXME: */ fail = GNUNET_NO;
   return;
@@ -235,13 +237,13 @@ task_check_stat (void *cls,
   }
   timeout_count++;
 
-  stat_get_handle = GNUNET_STATISTICS_get (stats,
+/*  stat_get_handle = GNUNET_STATISTICS_get (stats,
                                            "http-transport",
                                            gettext_noop("shutdown"),
                                            GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2),
                                            &cont_func,
                                            &process_stat,
-                                           NULL);
+                                           NULL);*/
 
   ti_check_stat = GNUNET_SCHEDULER_add_delayed (sched, STAT_INTERVALL, &task_check_stat, NULL);
   return;
@@ -265,7 +267,7 @@ run (void *cls,
   cfg = c;
 
   /* settings up statistics */
-  stats = GNUNET_STATISTICS_create (sched, "http-transport", cfg);
+/*  stats = GNUNET_STATISTICS_create (sched, "http-transport", cfg);
   if (NULL == stats)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -273,18 +275,18 @@ run (void *cls,
     fail = GNUNET_YES;
     shutdown_clean();
     return ;
-  }
+  }*/
 
   /* load plugins... */
   setup_plugin_environment ();
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading HTTP transport plugin `%s'\n"),"libgnunet_plugin_transport_template");
-  GNUNET_asprintf (&libname, "libgnunet_plugin_transport_template");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading HTTP transport plugin `%s'\n"),"libgnunet_plugin_transport_http");
+  GNUNET_asprintf (&libname, "libgnunet_plugin_transport_http");
   api = GNUNET_PLUGIN_load (libname, &env);
   GNUNET_free (libname);
   if (api == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to load transport plugin for udp\n"));
+                _("Failed to load transport plugin for http\n"));
     fail = GNUNET_YES;
     return;
   }
@@ -303,7 +305,7 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  return GNUNET_NO;
+
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
