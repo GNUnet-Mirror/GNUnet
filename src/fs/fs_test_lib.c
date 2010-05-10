@@ -289,7 +289,7 @@ start_timeout (void *cls,
   struct StartContext *sctx = cls;
   unsigned int i;
 
-  GNUNET_TESTING_daemons_stop (sctx->group);
+  GNUNET_TESTING_daemons_stop (sctx->group, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30));
   for (i=0;i<sctx->total;i++)
     {
       if (i < sctx->have)
@@ -354,6 +354,7 @@ GNUNET_FS_TEST_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
   sctx->group = GNUNET_TESTING_daemons_start (sched,
 					      sctx->cfg,
 					      total,
+					      timeout,
 					      NULL,
 					      NULL,
 					      &notify_running,
@@ -450,7 +451,7 @@ GNUNET_FS_TEST_daemons_stop (struct GNUNET_SCHEDULER_Handle *sched,
   unsigned int i;
 
   GNUNET_assert (total > 0);
-  GNUNET_TESTING_daemons_stop (daemons[0]->group);
+  GNUNET_TESTING_daemons_stop (daemons[0]->group, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30));
   for (i=0;i<total;i++)
     {
       GNUNET_FS_stop (daemons[i]->fs);
