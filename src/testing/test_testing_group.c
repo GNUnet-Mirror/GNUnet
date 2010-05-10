@@ -19,7 +19,7 @@
 */
 /**
  * @file testing/test_testing_group.c
- * @brief testcase for functions to connect two peers in testing.c
+ * @brief testcase for functions to connect peers in testing.c
  */
 #include "platform.h"
 #include "gnunet_testing_lib.h"
@@ -38,6 +38,8 @@ static int ok;
 
 static int peers_left;
 
+static int failed_peers;
+
 static struct GNUNET_TESTING_PeerGroup *pg;
 
 static struct GNUNET_SCHEDULER_Handle *sched;
@@ -52,9 +54,11 @@ my_cb (void *cls,
   if (id == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Start callback called with error (too long starting peers), aborting test!\n");
-      GNUNET_TESTING_daemons_stop (pg);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Error from testing: `%s'\n");
+      failed_peers++;
       ok = 7;
     }
+
   peers_left--;
   if (peers_left == 0)
     {
@@ -62,6 +66,10 @@ my_cb (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers started successfully, ending test!\n");
       GNUNET_TESTING_daemons_stop (pg);
       ok = 0;
+    }
+  else if (failed_peers == peers_left)
+    {
+      GNUNET_TESTING_daemons_stop (pg);
     }
 }
 
