@@ -261,7 +261,6 @@ run (void *cls,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char * libname;
-
   sched = s;
   cfg = c;
 
@@ -304,6 +303,7 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
+  return GNUNET_NO;
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
