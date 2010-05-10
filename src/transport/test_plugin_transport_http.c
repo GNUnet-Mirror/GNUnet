@@ -217,6 +217,7 @@ cont_func (void *cls, int success)
 {
   stat_get_handle = NULL;
 }
+#endif
 
 /**
  * Task that checks if we should try to download a hostlist.
@@ -251,7 +252,6 @@ task_check_stat (void *cls,
   ti_check_stat = GNUNET_SCHEDULER_add_delayed (sched, STAT_INTERVALL, &task_check_stat, NULL);
   return;
 }
-#endif
 
 /**
  * Runs the test.

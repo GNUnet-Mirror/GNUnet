@@ -262,7 +262,19 @@ template_plugin_address_to_string (void *cls,
   return NULL;
 }
 
+/**
+ * Exit point from the plugin.
+ */
+void *
+libgnunet_plugin_transport_http_done (void *cls)
+{
+  struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
+  struct Plugin *plugin = api->cls;
 
+  GNUNET_free (plugin);
+  GNUNET_free (api);
+  return NULL;
+}
 
 
 /**
@@ -274,6 +286,7 @@ libgnunet_plugin_transport_http_init (void *cls)
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct Plugin *plugin;
+  long long unsigned int port;
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
@@ -304,21 +317,6 @@ libgnunet_plugin_transport_http_init (void *cls)
     }
 
   return api;
-}
-
-
-/**
- * Exit point from the plugin.
- */
-void *
-libgnunet_plugin_transport_http_done (void *cls)
-{
-  struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
-  struct Plugin *plugin = api->cls;
-
-  GNUNET_free (plugin);
-  GNUNET_free (api);
-  return NULL;
 }
 
 /* end of plugin_transport_template.c */
