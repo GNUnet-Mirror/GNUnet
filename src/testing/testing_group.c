@@ -164,7 +164,8 @@ struct PeerData
   struct GNUNET_CONTAINER_MultiHashMap *connect_peers_working_set;
 
   /**
-   * Total number of connections this peer has
+   * Temporary variable for topology creation, should be reset before
+   * creating any topology so the count is valid once finished.
    */
   int num_connections;
 };
@@ -423,12 +424,14 @@ add_actual_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first, 
   if (add_first)
     {
       GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(pg->peers[first].connect_peers, &hash_second, pg->peers[second].daemon, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+      pg->peers[first].num_connections++;
       added++;
     }
 
   if (add_second)
     {
       GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(pg->peers[second].connect_peers, &hash_first, pg->peers[first].daemon, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+      pg->peers[second].num_connections++;
       added++;
     }
 
@@ -507,8 +510,8 @@ add_allowed_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first,
       new_first->daemon = pg->peers[second].daemon;
       new_first->next = pg->peers[first].connected_peers;
       pg->peers[first].connected_peers = new_first;
-      pg->peers[first].num_connections++;
 #endif
+      pg->peers[first].num_connections++;
       added++;
     }
 
@@ -522,6 +525,7 @@ add_allowed_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first,
       pg->peers[second].connected_peers = new_second;
       pg->peers[first].num_connections++;
 #endif
+      pg->peers[second].num_connections++;
       added++;
     }
 
@@ -566,12 +570,14 @@ blacklist_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first, u
   if (add_first)
     {
       GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(pg->peers[first].blacklisted_peers, &hash_second, pg->peers[second].daemon, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+      pg->peers[first].num_connections++;
       added++;
     }
 
   if (add_second)
     {
       GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(pg->peers[second].blacklisted_peers, &hash_first, pg->peers[first].daemon, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+      pg->peers[second].num_connections++;
       added++;
     }
 
@@ -1917,6 +1923,39 @@ struct MinimumContext
   unsigned int current;
 };
 
+struct DFSContext
+{
+  /**
+   * The peergroup
+   */
+  struct GNUNET_TESTING_PeerGroup *pg;
+
+  /**
+   * uid of the first peer
+   */
+  uint32_t first_uid;
+
+  /**
+   * uid of the second peer
+   */
+  uint32_t second_uid;
+
+  /**
+   * Peer data for first peer.
+   */
+  struct PeerData *first;
+
+  /**
+   * Which peer has been chosen as the one to add?
+   */
+  unsigned int chosen;
+
+  /**
+   * What number is the current element we are iterating over?
+   */
+  unsigned int current;
+};
+
 /**
  * Iterator for choosing random peers to connect.
  *
@@ -1975,7 +2014,6 @@ minimum_connect_iterator (void *cls,
     {
       if (min_ctx->pg_array[i] == min_ctx->current)
       {
-        fprintf(stderr, "Adding another peer, hashmap size %u, minimum %u\n", GNUNET_CONTAINER_multihashmap_size(min_ctx->first->connect_peers_working_set), min_ctx->num_to_add);
         GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(min_ctx->first->connect_peers_working_set, key, value, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
         uid_from_hash(key, &second_pos);
         hash_from_uid(min_ctx->first_uid, &first_hash);
@@ -1992,6 +2030,40 @@ minimum_connect_iterator (void *cls,
     return GNUNET_NO; /* We can stop iterating, we have enough peers! */
 
 }
+
+
+/**
+ * Iterator for adding peers to a connection set based on a depth first search.
+ *
+ * @param cls closure, MinimumContext
+ * @param key the key the second daemon was stored under
+ * @param value the GNUNET_TESTING_Daemon that the first is to connect to
+ *
+ * @return GNUNET_YES to continue iteration
+ */
+static int
+dfs_connect_iterator (void *cls,
+                  const GNUNET_HashCode * key,
+                  void *value)
+{
+  struct DFSContext *dfs_ctx = cls;
+  GNUNET_HashCode first_hash;
+
+  if (dfs_ctx->current == dfs_ctx->chosen)
+    {
+      GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(dfs_ctx->first->connect_peers_working_set, key, value, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+      uid_from_hash(key, &dfs_ctx->second_uid);
+      hash_from_uid(dfs_ctx->first_uid, &first_hash);
+      GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(dfs_ctx->pg->peers[dfs_ctx->second_uid].connect_peers_working_set, &first_hash, dfs_ctx->first->daemon, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+      GNUNET_assert(GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(dfs_ctx->pg->peers[dfs_ctx->second_uid].connect_peers, &first_hash, dfs_ctx->first->daemon));
+      /* Can't remove second from first yet because we are currently iterating, hence the return value in the DFSContext! */
+      return GNUNET_NO; /* We have found our peer, don't iterate more */
+    }
+
+  dfs_ctx->current++;
+  return GNUNET_YES;
+}
+
 
 /**
  * From the set of connections possible, choose percentage percent of connections
@@ -2011,6 +2083,7 @@ choose_random_connections(struct GNUNET_TESTING_PeerGroup *pg, double percentage
       random_ctx.first_uid = pg_iter;
       random_ctx.first = &pg->peers[pg_iter];
       random_ctx.percentage = percentage;
+      random_ctx.pg = pg;
       pg->peers[pg_iter].connect_peers_working_set = GNUNET_CONTAINER_multihashmap_create(pg->total);
       GNUNET_CONTAINER_multihashmap_iterate(pg->peers[pg_iter].connect_peers, &random_connect_iterator, &random_ctx);
       /* Now remove the old connections */
@@ -2061,6 +2134,113 @@ choose_minimum(struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
 
 }
 
+
+static unsigned int count_workingset_connections(struct GNUNET_TESTING_PeerGroup *pg)
+{
+  unsigned int count;
+  unsigned int pg_iter;
+
+  count = 0;
+
+  for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
+    {
+      count += GNUNET_CONTAINER_multihashmap_size(pg->peers[pg_iter].connect_peers_working_set);
+    }
+
+  return count;
+}
+
+
+static unsigned int count_allowed_connections(struct GNUNET_TESTING_PeerGroup *pg)
+{
+  unsigned int count;
+  unsigned int pg_iter;
+
+  count = 0;
+
+  for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
+    {
+      count += GNUNET_CONTAINER_multihashmap_size(pg->peers[pg_iter].connect_peers);
+    }
+
+  return count;
+}
+
+/**
+ * From the set of connections possible, choose at least num connections per
+ * peer based on depth first traversal of peer connections.  If DFS leaves
+ * peers unconnected, ensure those peers get connections.
+ *
+ * @param pg the peergroup we are dealing with
+ * @param num how many connections at least should each peer have (if possible)?
+ */
+void
+perform_dfs (struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
+{
+  struct DFSContext dfs_ctx;
+  uint32_t pg_iter;
+  uint32_t dfs_count;
+  uint32_t starting_peer;
+  uint32_t least_connections;
+  GNUNET_HashCode second_hash;
+
+  for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
+    {
+      pg->peers[pg_iter].connect_peers_working_set = GNUNET_CONTAINER_multihashmap_create(num);
+    }
+
+  starting_peer = 0;
+  dfs_count = 0;
+  while ((count_workingset_connections(pg) < num * pg->total) && (count_allowed_connections(pg) > 0))
+    {
+      if (dfs_count % pg->total == 0) /* Restart the DFS at some weakly connected peer */
+        {
+          least_connections = -1; /* Set to very high number */
+          for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
+            {
+              if (GNUNET_CONTAINER_multihashmap_size(pg->peers[pg_iter].connect_peers_working_set) < least_connections)
+                {
+                  starting_peer = pg_iter;
+                  least_connections = GNUNET_CONTAINER_multihashmap_size(pg->peers[pg_iter].connect_peers_working_set);
+                }
+            }
+        }
+
+      if (GNUNET_CONTAINER_multihashmap_size(pg->peers[starting_peer].connect_peers) == 0)  /* Ensure there is at least one peer left to connect! */
+        {
+          dfs_count = 0;
+          continue;
+        }
+
+      /* Choose a random peer from the chosen peers set of connections to add */
+      dfs_ctx.chosen = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, GNUNET_CONTAINER_multihashmap_size(pg->peers[starting_peer].connect_peers));
+      dfs_ctx.first_uid = starting_peer;
+      dfs_ctx.first = &pg->peers[starting_peer];
+      dfs_ctx.pg = pg;
+      dfs_ctx.current = 0;
+
+      GNUNET_CONTAINER_multihashmap_iterate(pg->peers[starting_peer].connect_peers, &dfs_connect_iterator, &dfs_ctx);
+      /* Remove the second from the first, since we will be continuing the search and may encounter the first peer again! */
+      hash_from_uid(dfs_ctx.second_uid, &second_hash);
+      GNUNET_assert(GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(pg->peers[starting_peer].connect_peers, &second_hash, pg->peers[dfs_ctx.second_uid].daemon));
+      starting_peer = dfs_ctx.second_uid;
+    }
+
+  for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
+    {
+
+    }
+
+  for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
+    {
+      /* Remove the "old" connections */
+      GNUNET_CONTAINER_multihashmap_destroy(pg->peers[pg_iter].connect_peers);
+      /* And replace with the working set */
+      pg->peers[pg_iter].connect_peers = pg->peers[pg_iter].connect_peers_working_set;
+      fprintf(stderr, "Finished! Hashmap size %u\n", GNUNET_CONTAINER_multihashmap_size(pg->peers[pg_iter].connect_peers));
+    }
+
+}
 
 /*
  * @param pg the peer group struct representing the running peers
@@ -2160,7 +2340,7 @@ GNUNET_TESTING_connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
       choose_minimum(pg, (unsigned int)option_modifier);
       break;
     case GNUNET_TESTING_TOPOLOGY_OPTION_DFS: /* Choose a random starting point, randomly walk graph, try to get each peer X connections */
-      //choose_dfs(pg, (int)option_modifier);
+      perform_dfs(pg, (int)option_modifier);
       break;
     case GNUNET_TESTING_TOPOLOGY_OPTION_NONE:
       /* Fall through */
@@ -2466,9 +2646,12 @@ GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg)
       if (NULL != pg->peers[off].cfg)
         GNUNET_CONFIGURATION_destroy (pg->peers[off].cfg);
 
-      GNUNET_CONTAINER_multihashmap_destroy(pg->peers[off].allowed_peers);
-      GNUNET_CONTAINER_multihashmap_destroy(pg->peers[off].connect_peers);
-      GNUNET_CONTAINER_multihashmap_destroy(pg->peers[off].blacklisted_peers);
+      if (pg->peers[off].allowed_peers != NULL)
+        GNUNET_CONTAINER_multihashmap_destroy(pg->peers[off].allowed_peers);
+      if (pg->peers[off].connect_peers != NULL)
+        GNUNET_CONTAINER_multihashmap_destroy(pg->peers[off].connect_peers);
+      if (pg->peers[off].blacklisted_peers != NULL)
+        GNUNET_CONTAINER_multihashmap_destroy(pg->peers[off].blacklisted_peers);
 
     }
   GNUNET_free (pg->peers);
