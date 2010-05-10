@@ -159,7 +159,7 @@ shutdown_clean ()
     GNUNET_STATISTICS_get_cancel(stat_get_handle);
   }*/
 
-  // if ( NULL!=stats )GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
+  /* if ( NULL!=stats )GNUNET_STATISTICS_destroy (stats, GNUNET_YES); */
   if (ti_check_stat != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel(sched,ti_check_stat);
   ti_check_stat = GNUNET_SCHEDULER_NO_TASK;
@@ -329,7 +329,7 @@ main (int argc, char *const *argv)
                     "WARNING",
 #endif
                     NULL);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting statistics service\n");
+/*  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting statistics service\n");
   pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
                                  "gnunet-service-statistics",
                                  "-L", "DEBUG",
@@ -341,7 +341,7 @@ main (int argc, char *const *argv)
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Failed to start statistics service\n");
     fail = GNUNET_YES;
     return fail;
-  }
+  }*/
 
   ret = (GNUNET_OK ==
          GNUNET_PROGRAM_run (5,
@@ -350,14 +350,14 @@ main (int argc, char *const *argv)
                              "testcase", options, &run, NULL)) ? GNUNET_NO : GNUNET_YES;
   GNUNET_DISK_directory_remove ("/tmp/test_plugin_transport_http");
 
-  if (0 != PLIBC_KILL (pid, SIGTERM))
+/*  if (0 != PLIBC_KILL (pid, SIGTERM))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_DEBUG, "Failed to kill statistics service");
     fail = GNUNET_YES;
   }
   if (GNUNET_OS_process_wait(pid) != GNUNET_OK)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Killed statistics service\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Killed statistics service\n");*/
   return fail;
 }
 
