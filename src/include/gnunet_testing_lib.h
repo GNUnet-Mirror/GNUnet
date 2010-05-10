@@ -187,6 +187,11 @@ struct GNUNET_TESTING_Daemon
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
+   * At what time to give up starting the peer
+   */
+  struct GNUNET_TIME_Absolute max_timeout;
+
+  /**
    * Host to run GNUnet on.
    */
   char *hostname;
@@ -266,12 +271,6 @@ struct GNUNET_TESTING_Daemon
   pid_t pid;
 
   /**
-   * How many iterations have we been waiting for
-   * the started process to complete?
-   */
-  unsigned int wait_runs;
-
-  /**
    * In which phase are we during the start of
    * this process?
    */
@@ -345,6 +344,7 @@ typedef void (*GNUNET_TESTING_NotifyConnection)(void *cls,
  *
  * @param sched scheduler to use
  * @param cfg configuration to use
+ * @param timeout how long to wait starting up peers
  * @param hostname name of the machine where to run GNUnet
  *        (use NULL for localhost).
  * @param hostkey_callback function to call once the hostkey has been
@@ -358,6 +358,7 @@ typedef void (*GNUNET_TESTING_NotifyConnection)(void *cls,
 struct GNUNET_TESTING_Daemon *
 GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
                              const struct GNUNET_CONFIGURATION_Handle *cfg,
+                             struct GNUNET_TIME_Relative timeout,
                              const char *hostname,
                              GNUNET_TESTING_NotifyHostkeyCreated hostkey_callback,
                              void *hostkey_cls,
@@ -399,14 +400,18 @@ GNUNET_TESTING_daemon_get (struct GNUNET_TESTING_PeerGroup *pg, unsigned int pos
  * Stops a GNUnet daemon.
  *
  * @param d the daemon that should be stopped
+ * @param timeout how long to wait for process for shutdown to complete
  * @param cb function called once the daemon was stopped
  * @param cb_cls closure for cb
  * @param delete_files GNUNET_YES to remove files, GNUNET_NO
- *        to leave them (i.e., for a restart)
+ *        to leave them (i.e. for restarting at a later time,
+ *        or logfile inspection once finished)
  */
-void GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
-				 GNUNET_TESTING_NotifyCompletion cb,
-				 void * cb_cls, int delete_files);
+void
+GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
+                            struct GNUNET_TIME_Relative timeout,
+                            GNUNET_TESTING_NotifyCompletion cb, void *cb_cls,
+                            int delete_files);
 
 
 /**
@@ -454,6 +459,7 @@ void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
  * @param sched scheduler to use
  * @param cfg configuration template to use
  * @param total number of daemons to start
+ * @param timeout total time allowed for peers to start
  * @param hostkey_callback function to call on each peers hostkey generation
  *        if NULL, peers will be started by this call, if non-null,
  *        GNUNET_TESTING_daemons_continue_startup must be called after
@@ -471,6 +477,7 @@ struct GNUNET_TESTING_PeerGroup *
 GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
                               const struct GNUNET_CONFIGURATION_Handle *cfg,
                               unsigned int total,
+                              struct GNUNET_TIME_Relative timeout,
                               GNUNET_TESTING_NotifyHostkeyCreated hostkey_callback,
                               void *hostkey_cls,
                               GNUNET_TESTING_NotifyDaemonRunning cb,
@@ -484,7 +491,6 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
  * after successfully generating hostkeys for each peer.
  *
  * @param pg the peer group to continue starting
- *
  */
 void
 GNUNET_TESTING_daemons_continue_startup(struct GNUNET_TESTING_PeerGroup *pg);
@@ -493,7 +499,6 @@ GNUNET_TESTING_daemons_continue_startup(struct GNUNET_TESTING_PeerGroup *pg);
  * Restart all peers in the given group.
  *
  * @param pg the handle to the peer group
- * @param timeout how long to wait on failure
  * @param callback function to call on completion (or failure)
  * @param callback_cls closure for the callback function
  */
@@ -507,9 +512,11 @@ GNUNET_TESTING_daemons_restart (struct GNUNET_TESTING_PeerGroup *pg,
  * Shutdown all peers started in the given group.
  *
  * @param pg handle to the peer group
+ * @param timeout how long to wait for shutdown
+ *
  */
 void
-GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg);
+GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg, struct GNUNET_TIME_Relative timeout);
 
 
 /**
