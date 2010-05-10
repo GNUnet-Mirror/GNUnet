@@ -162,8 +162,11 @@ static int
 acceptPolicyCallback (void *cls,
                       const struct sockaddr *addr, socklen_t addr_len)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Incoming connection \n");
-  /* Currently all incoming connections are accepted, so nothing to do here */
+  if (addr->sa_family == AF_INET)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Incoming IPv4 connection \n");
+  if (addr->sa_family == AF_INET6)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Incoming IPv6 connection \n");
+  /* Currently all incoming connections are accepted, so nothing more to do here */
   return MHD_YES;
 }
 
@@ -516,16 +519,16 @@ libgnunet_plugin_transport_http_init (void *cls)
 
   if ((http_daemon_v4 == NULL) && (http_daemon_v6 == NULL) && (port != 0))
     {
-      http_daemon_v6 = MHD_start_daemon (MHD_USE_IPv6,
-                                         port,
-                                         &acceptPolicyCallback,
-                                         NULL, &accessHandlerCallback, NULL,
-                                         MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
-                                         MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
-                                         MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
-                                         MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
-                                         MHD_OPTION_END);
-      http_daemon_v4 = MHD_start_daemon (MHD_NO_FLAG,
+    http_daemon_v6 = MHD_start_daemon (MHD_USE_IPv6,
+                                       port,
+                                       &acceptPolicyCallback,
+                                       NULL, &accessHandlerCallback, NULL,
+                                       MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
+                                       MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
+                                       MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
+                                       MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
+                                       MHD_OPTION_END);
+    http_daemon_v4 = MHD_start_daemon (MHD_NO_FLAG,
                                          port,
                                          &acceptPolicyCallback,
                                          NULL, &accessHandlerCallback, NULL,
@@ -541,8 +544,10 @@ libgnunet_plugin_transport_http_init (void *cls)
   if (http_daemon_v6 != NULL)
     http_task_v6 = prepare_daemon (http_daemon_v6);
 
-  if ((http_daemon_v4 == NULL) || (http_daemon_v6 != NULL))
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD on port %u\n",port);
+  if (http_task_v4 != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD with IPv4 on port %u\n",port);
+  if (http_task_v6 != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD with IPv4 and IPv6 on port %u\n",port);
 
   return api;
 }

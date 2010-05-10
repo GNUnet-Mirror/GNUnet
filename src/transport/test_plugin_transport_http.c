@@ -296,6 +296,8 @@ run (void *cls,
   }
 
   ti_check_stat = GNUNET_SCHEDULER_add_now (sched, &task_check_stat, NULL);
+  return;
+
 }
 
 
