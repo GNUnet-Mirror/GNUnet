@@ -34,7 +34,8 @@ gnunet_arm_LDADD = \
   $(GN_LIBINTL)
 
 gnunet_service_arm_SOURCES = \
- gnunet-service-arm.c         
+ gnunet-service-arm.c  gnunet_service_arm_.h \
+ gnunet-service-manager.c       
 gnunet_service_arm_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
@@ -48,7 +49,8 @@ mockup_service_SOURCES = \
 
 check_PROGRAMS = \
  test_arm_api \
- test_exponential_backoff
+ test_exponential_backoff \
+ test_gnunet_service_manager
 
 check_SCRIPTS = \
  test_gnunet_arm.sh
@@ -66,6 +68,12 @@ test_exponential_backoff_SOURCES = \
 test_exponential_backoff_LDADD = \
   $(top_builddir)/src/arm/libgnunetarm.la \
   $(top_builddir)/src/util/libgnunetutil.la
+
+test_gnunet_service_manager_SOURCES = \
+ test_gnunet_service_manager.c
+ test_gnunet_service_manager_LDADD = \
+  $(top_builddir)/src/arm/libgnunetarm.la \
+  $(top_builddir)/src/util/libgnunetutil.la  
 
 EXTRA_DIST = \
   test_arm_api_data.conf \

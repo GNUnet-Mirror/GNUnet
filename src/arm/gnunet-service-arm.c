@@ -41,6 +41,7 @@
 #include "gnunet_protocols.h"
 #include "gnunet_service_lib.h"
 #include "gnunet_signal_lib.h"
+#include "gnunet_service_arm_.h"
 #include "arm.h"
 
 
@@ -60,6 +61,7 @@
  * List of our services.
  */
 struct ServiceList;
+
 
 /**
  * List of our services.
@@ -451,7 +453,7 @@ start_process (struct ServiceList *sl)
  * @param client who is asking for this
  * @param servicename name of the service to start
  */
-static void
+void
 start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
 {
   struct ServiceList *sl;
@@ -1061,6 +1063,9 @@ run (void *cls,
 #endif
     }
 
+  /* create listening sockets for future services*/
+  prepareServices (cfg, sched);
+  
   /* process client requests */
   GNUNET_SERVER_add_handlers (server, handlers);
 
