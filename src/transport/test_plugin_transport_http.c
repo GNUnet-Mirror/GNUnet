@@ -185,6 +185,7 @@ setup_plugin_environment ()
   env.max_connections = max_connect_per_transport;
 }
 
+#if 0
 static int
 process_stat (void *cls,
               const char *subsystem,
@@ -208,7 +209,9 @@ process_stat (void *cls,
     }
   return GNUNET_YES;
 }
+#endif
 
+#if 0
 static void
 cont_func (void *cls, int success)
 {
@@ -248,6 +251,7 @@ task_check_stat (void *cls,
   ti_check_stat = GNUNET_SCHEDULER_add_delayed (sched, STAT_INTERVALL, &task_check_stat, NULL);
   return;
 }
+#endif
 
 /**
  * Runs the test.

@@ -284,6 +284,25 @@ libgnunet_plugin_transport_http_init (void *cls)
   api->address_pretty_printer = &template_plugin_address_pretty_printer;
   api->check_address = &template_plugin_address_suggested;
   api->address_to_string = &template_plugin_address_to_string;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting http plugin...\n");
+  /* Reading port number from config file */
+  if ((GNUNET_OK !=
+       GNUNET_CONFIGURATION_get_value_number (env->cfg,
+                                              "transport-http",
+                                              "PORT",
+                                              &port)) ||
+      (port > 65535) )
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                       "http",
+                       _
+                       ("Require valid port number for service `%s' in configuration!\n"),
+                       "transport-http");
+      libgnunet_plugin_transport_http_done (api);
+      return NULL;
+    }
+
   return api;
 }
 
