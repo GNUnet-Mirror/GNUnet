@@ -240,6 +240,10 @@ struct GNUNET_TESTING_PeerGroup
    */
   unsigned int total;
 
+  /**
+   * At what time should we fail the peer startup process?
+   */
+  struct GNUNET_TIME_Absolute max_timeout;
 };
 
 /**
@@ -2380,6 +2384,7 @@ GNUNET_TESTING_daemons_continue_startup(struct GNUNET_TESTING_PeerGroup *pg)
  * @param sched scheduler to use
  * @param cfg configuration template to use
  * @param total number of daemons to start
+ * @param timeout total time allowed for peers to start
  * @param hostkey_callback function to call on each peers hostkey generation
  *        if NULL, peers will be started by this call, if non-null,
  *        GNUNET_TESTING_daemons_continue_startup must be called after
@@ -2397,6 +2402,7 @@ struct GNUNET_TESTING_PeerGroup *
 GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
                               const struct GNUNET_CONFIGURATION_Handle *cfg,
                               unsigned int total,
+                              struct GNUNET_TIME_Relative timeout,
                               GNUNET_TESTING_NotifyHostkeyCreated hostkey_callback,
                               void *hostkey_cls,
                               GNUNET_TESTING_NotifyDaemonRunning cb,
@@ -2432,6 +2438,7 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
   pg->notify_connection = connect_callback;
   pg->notify_connection_cls = connect_callback_cls;
   pg->total = total;
+  pg->max_timeout = GNUNET_TIME_relative_to_absolute(timeout);
   pg->peers = GNUNET_malloc (total * sizeof (struct PeerData));
   if (NULL != hostnames)
     {
@@ -2533,6 +2540,7 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
       pg->peers[off].pg = pg;
       pg->peers[off].daemon = GNUNET_TESTING_daemon_start (sched,
                                                            pcfg,
+                                                           timeout,
                                                            hostname,
                                                            hostkey_callback,
                                                            hostkey_cls,
@@ -2628,9 +2636,11 @@ GNUNET_TESTING_daemons_restart (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TEST
  * Shutdown all peers started in the given group.
  *
  * @param pg handle to the peer group
+ * @param timeout how long to wait for shutdown
+ *
  */
 void
-GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg)
+GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg, struct GNUNET_TIME_Relative timeout)
 {
   unsigned int off;
 
@@ -2642,7 +2652,7 @@ GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg)
          as well... */
 
       if (NULL != pg->peers[off].daemon)
-        GNUNET_TESTING_daemon_stop (pg->peers[off].daemon, NULL, NULL, GNUNET_YES);
+        GNUNET_TESTING_daemon_stop (pg->peers[off].daemon, timeout, NULL, NULL, GNUNET_YES);
       if (NULL != pg->peers[off].cfg)
         GNUNET_CONFIGURATION_destroy (pg->peers[off].cfg);
 

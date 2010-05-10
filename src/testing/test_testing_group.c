@@ -33,7 +33,6 @@
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
 
-
 static int ok;
 
 static int peers_left;
@@ -64,12 +63,13 @@ my_cb (void *cls,
     {
       sleep(2); /* Give other services a chance to initialize before killing */
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers started successfully, ending test!\n");
-      GNUNET_TESTING_daemons_stop (pg);
+      GNUNET_TESTING_daemons_stop (pg, TIMEOUT);
       ok = 0;
     }
   else if (failed_peers == peers_left)
     {
-      GNUNET_TESTING_daemons_stop (pg);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Too many peers failed, ending test!\n");
+      GNUNET_TESTING_daemons_stop (pg, TIMEOUT);
     }
 }
 
@@ -88,6 +88,7 @@ run (void *cls,
   peers_left = NUM_PEERS;
   pg = GNUNET_TESTING_daemons_start (sched, cfg,
                                      peers_left,
+                                     TIMEOUT,
                                      NULL, NULL,
                                      &my_cb, NULL, NULL, NULL, NULL);
   GNUNET_assert (pg != NULL);

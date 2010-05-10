@@ -26,6 +26,8 @@
 
 #define VERBOSE GNUNET_NO
 
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+
 static int ok;
 
 static void
@@ -56,7 +58,7 @@ my_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Daemon `%s' started, will now stop it.\n", GNUNET_i2s (id));
 #endif
-  GNUNET_TESTING_daemon_stop (d, &end_cb, NULL, GNUNET_YES);
+  GNUNET_TESTING_daemon_stop (d, TIMEOUT, &end_cb, NULL, GNUNET_YES);
 }
 
 
@@ -72,7 +74,7 @@ run (void *cls,
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemon.\n");
 #endif
-  d = GNUNET_TESTING_daemon_start (sched, cfg, NULL, NULL, NULL, &my_cb, NULL);
+  d = GNUNET_TESTING_daemon_start (sched, cfg, TIMEOUT, NULL, NULL, NULL, &my_cb, NULL);
   GNUNET_assert (d != NULL);
 }
 

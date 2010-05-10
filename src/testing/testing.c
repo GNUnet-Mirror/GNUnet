@@ -126,7 +126,7 @@ testing_init (void *cls,
     {
       d->server = NULL;
       if (GNUNET_YES == d->dead)
-        GNUNET_TESTING_daemon_stop (d, d->dead_cb, d->dead_cb_cls, GNUNET_YES);
+        GNUNET_TESTING_daemon_stop (d, GNUNET_TIME_absolute_get_remaining(d->max_timeout), d->dead_cb, d->dead_cb_cls, GNUNET_YES);
       else if (NULL != cb)
         cb (d->cb_cls, NULL, d->cfg, d,
             _("Failed to connect to core service\n"));
@@ -141,7 +141,7 @@ testing_init (void *cls,
   d->server = server;
   d->running = GNUNET_YES;
   if (GNUNET_YES == d->dead)
-    GNUNET_TESTING_daemon_stop (d, d->dead_cb, d->dead_cb_cls, GNUNET_YES);
+    GNUNET_TESTING_daemon_stop (d, GNUNET_TIME_absolute_get_remaining(d->max_timeout), d->dead_cb, d->dead_cb_cls, GNUNET_YES);
   else if (NULL != cb)
     cb (d->cb_cls, my_identity, d->cfg, d, NULL);
 #if DEBUG_TESTING
@@ -155,7 +155,7 @@ testing_init (void *cls,
   if (d->th == NULL)
     {
       if (GNUNET_YES == d->dead)
-        GNUNET_TESTING_daemon_stop (d, d->dead_cb, d->dead_cb_cls, GNUNET_YES);
+        GNUNET_TESTING_daemon_stop (d, GNUNET_TIME_absolute_get_remaining(d->max_timeout), d->dead_cb, d->dead_cb_cls, GNUNET_YES);
       else if (NULL != d->cb)
         d->cb (d->cb_cls, &d->id, d->cfg, d,
             _("Failed to connect to transport service!\n"));
@@ -196,15 +196,14 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       /* confirm copying complete */
       if (GNUNET_OK != GNUNET_OS_process_status (d->pid, &type, &code))
         {
-          d->wait_runs++;
-          if (d->wait_runs > MAX_EXEC_WAIT_RUNS)
+          if (GNUNET_TIME_absolute_get_remaining(d->max_timeout).value == 0)
             {
               cb = d->cb;
               d->cb = NULL;
               if (NULL != cb)
                 cb (d->cb_cls,
                     NULL,
-                    d->cfg, d, _("`scp' does not seem to terminate.\n"));
+                    d->cfg, d, _("`scp' does not seem to terminate (timeout copying config).\n"));
               return;
             }
           /* wait some more */
@@ -305,7 +304,6 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   "gnunet-peerinfo");
 #endif
       d->phase = SP_HOSTKEY_CREATE;
-      d->wait_runs = 0;
       d->task
         = GNUNET_SCHEDULER_add_delayed (d->sched,
                                         GNUNET_CONSTANTS_EXEC_WAIT,
@@ -336,8 +334,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
       if (GNUNET_OK != GNUNET_OS_process_status (d->pid, &type, &code))
         {
-          d->wait_runs++;
-          if (d->wait_runs > MAX_EXEC_WAIT_RUNS)
+          if (GNUNET_TIME_absolute_get_remaining(d->max_timeout).value == 0)
             {
               cb = d->cb;
               d->cb = NULL;
@@ -391,8 +388,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       /* Fall through */
     case SP_HOSTKEY_CREATED:
       /* wait for topology finished */
-      d->wait_runs++;
-      if ((GNUNET_YES == d->dead) || (d->wait_runs > MAX_EXEC_WAIT_RUNS))
+      if ((GNUNET_YES == d->dead) || (GNUNET_TIME_absolute_get_remaining(d->max_timeout).value == 0))
         {
           cb = d->cb;
           d->cb = NULL;
@@ -475,7 +471,6 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   "gnunet-arm", "gnunet-service-core");
 #endif
       d->phase = SP_START_ARMING;
-      d->wait_runs = 0;
       d->task
         = GNUNET_SCHEDULER_add_delayed (d->sched,
                                         GNUNET_CONSTANTS_EXEC_WAIT,
@@ -484,8 +479,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     case SP_START_ARMING:
       if (GNUNET_OK != GNUNET_OS_process_status (d->pid, &type, &code))
         {
-          d->wait_runs++;
-          if (d->wait_runs > MAX_EXEC_WAIT_RUNS)
+          if (GNUNET_TIME_absolute_get_remaining(d->max_timeout).value == 0)
             {
               cb = d->cb;
               d->cb = NULL;
@@ -530,8 +524,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       /* confirm copying complete */
       if (GNUNET_OK != GNUNET_OS_process_status (d->pid, &type, &code))
         {
-          d->wait_runs++;
-          if (d->wait_runs > MAX_EXEC_WAIT_RUNS)
+          if (GNUNET_TIME_absolute_get_remaining(d->max_timeout).value == 0)
             {
               d->dead_cb (d->dead_cb_cls,
                           _("either `gnunet-arm' or `ssh' does not seem to terminate.\n"));
@@ -601,8 +594,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       /* confirm copying complete */
       if (GNUNET_OK != GNUNET_OS_process_status (d->pid, &type, &code))
         {
-          d->wait_runs++;
-          if (d->wait_runs > MAX_EXEC_WAIT_RUNS)
+          if (GNUNET_TIME_absolute_get_remaining(d->max_timeout).value == 0) /* FIXME: config update should take timeout parameter! */
             {
               cb = d->cb;
               d->cb = NULL;
@@ -659,6 +651,7 @@ GNUNET_TESTING_daemon_continue_startup(struct GNUNET_TESTING_Daemon *daemon)
  *
  * @param sched scheduler to use
  * @param cfg configuration to use
+ * @param timeout how long to wait starting up peers
  * @param hostname name of the machine where to run GNUnet
  *        (use NULL for localhost).
  * @param hostkey_callback function to call once the hostkey has been
@@ -672,6 +665,7 @@ GNUNET_TESTING_daemon_continue_startup(struct GNUNET_TESTING_Daemon *daemon)
 struct GNUNET_TESTING_Daemon *
 GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
                              const struct GNUNET_CONFIGURATION_Handle *cfg,
+                             struct GNUNET_TIME_Relative timeout,
                              const char *hostname,
                              GNUNET_TESTING_NotifyHostkeyCreated hostkey_callback,
                              void *hostkey_cls,
@@ -701,6 +695,7 @@ GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
   ret->hostkey_cls = hostkey_cls;
   ret->cb = cb;
   ret->cb_cls = cb_cls;
+  ret->max_timeout = GNUNET_TIME_relative_to_absolute(timeout);
   ret->cfg = GNUNET_CONFIGURATION_dup (cfg);
   GNUNET_CONFIGURATION_set_value_string (ret->cfg,
                                          "PATHS",
@@ -868,7 +863,6 @@ GNUNET_TESTING_daemon_restart (struct GNUNET_TESTING_Daemon *d,
     }
 
     GNUNET_free_non_null(del_arg);
-    d->wait_runs = 0;
     d->task
       = GNUNET_SCHEDULER_add_delayed (d->sched,
                                       GNUNET_CONSTANTS_EXEC_WAIT,
@@ -881,6 +875,7 @@ GNUNET_TESTING_daemon_restart (struct GNUNET_TESTING_Daemon *d,
  * Stops a GNUnet daemon.
  *
  * @param d the daemon that should be stopped
+ * @param timeout how long to wait for process for shutdown to complete
  * @param cb function called once the daemon was stopped
  * @param cb_cls closure for cb
  * @param delete_files GNUNET_YES to remove files, GNUNET_NO
@@ -889,6 +884,7 @@ GNUNET_TESTING_daemon_restart (struct GNUNET_TESTING_Daemon *d,
  */
 void
 GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
+                            struct GNUNET_TIME_Relative timeout,
                             GNUNET_TESTING_NotifyCompletion cb, void *cb_cls,
                             int delete_files)
 {
@@ -929,8 +925,7 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
               _("Terminating peer `%4s'\n"), GNUNET_i2s (&d->id));
 #endif
 
-   d->phase = SP_SHUTDOWN_START;
-
+  d->phase = SP_SHUTDOWN_START;
   /* Check if this is a local or remote process */
   if (NULL != d->hostname)
     {
@@ -969,7 +964,7 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
     }
 
   GNUNET_free_non_null(del_arg);
-  d->wait_runs = 0;
+  d->max_timeout = GNUNET_TIME_relative_to_absolute(timeout);
   d->task
     = GNUNET_SCHEDULER_add_delayed (d->sched,
                                     GNUNET_CONSTANTS_EXEC_WAIT,

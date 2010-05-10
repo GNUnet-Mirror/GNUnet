@@ -59,7 +59,7 @@ my_cb (void *cls,
   peers_left--;
   if (peers_left == 0)
     {
-      GNUNET_TESTING_daemons_stop (pg);
+      GNUNET_TESTING_daemons_stop (pg, TIMEOUT);
       ok = 0;
     }
 }
@@ -88,6 +88,7 @@ run (void *cls,
   peers_left = num_peers;
   pg = GNUNET_TESTING_daemons_start (sched, cfg,
                                      peers_left,
+                                     TIMEOUT,
                                      &my_cb, NULL, NULL, NULL, hostnames);
   GNUNET_assert (pg != NULL);
 }

@@ -33,7 +33,7 @@
 #define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 600)
 
 /**
- * How long until we give up on connecting the peers?
+ * How long until we give up on starting the peers?
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 
@@ -177,7 +177,7 @@ finish_testing ()
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Calling daemons_stop\n");
 #endif
-  GNUNET_TESTING_daemons_stop (pg);
+  GNUNET_TESTING_daemons_stop (pg, TIMEOUT);
 #if VERBOSE
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "daemons_stop finished\n");
@@ -280,7 +280,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 
   if (pg != NULL)
     {
-      GNUNET_TESTING_daemons_stop (pg);
+      GNUNET_TESTING_daemons_stop (pg, TIMEOUT);
       ok = 7331;                /* Opposite of leet */
     }
   else
@@ -729,7 +729,7 @@ run (void *cls,
                                            &end_badly, "didn't start all daemons in reasonable amount of time!!!");
 
   pg = GNUNET_TESTING_daemons_start (sched, cfg,
-                                     peers_left, &hostkey_callback, NULL, &peers_started_callback, NULL,
+                                     peers_left, TIMEOUT, &hostkey_callback, NULL, &peers_started_callback, NULL,
                                      &topology_callback, NULL, NULL);
 
 }
