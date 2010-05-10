@@ -27,7 +27,7 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_testing_lib.h"
 
-#define VERBOSE_TESTING GNUNET_YES
+#define VERBOSE_TESTING GNUNET_NO
 
 /**
  * Lowest port used for GNUnet testing.  Should be high enough to not
