@@ -24,7 +24,7 @@
 #include "platform.h"
 #include "gnunet_testing_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define NUM_PEERS 4
 
@@ -55,10 +55,17 @@ my_cb (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Start callback called with error (too long starting peers), aborting test!\n");
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Error from testing: `%s'\n");
       failed_peers++;
-      ok = 7;
+      if (failed_peers == peers_left)
+    	{
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Too many peers failed, ending test!\n");
+	  ok = 1;
+      	  GNUNET_TESTING_daemons_stop (pg, TIMEOUT);
+    	}
+      return;
     }
 
   peers_left--;
+  fprintf(stderr, "peers_left is %d, failed_peers is %d\n", peers_left, failed_peers);
   if (peers_left == 0)
     {
       sleep(2); /* Give other services a chance to initialize before killing */
@@ -69,6 +76,7 @@ my_cb (void *cls,
   else if (failed_peers == peers_left)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Too many peers failed, ending test!\n");
+      ok = 1;
       GNUNET_TESTING_daemons_stop (pg, TIMEOUT);
     }
 }
