@@ -107,8 +107,6 @@ static struct GNUNET_TRANSPORT_PluginFunctions *api;
  */
 static GNUNET_SCHEDULER_TaskIdentifier ti_check_stat;
 
-static struct GNUNET_STATISTICS_GetHandle * stat_get_handle;
-
 static unsigned int timeout_count;
 
 /**
@@ -232,7 +230,7 @@ task_check_stat (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  if ( timeout_count > 2 )
+  if ( timeout_count > 5 )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testcase timeout\n",  timeout_count);
     fail = GNUNET_YES;
@@ -252,6 +250,21 @@ task_check_stat (void *cls,
   ti_check_stat = GNUNET_SCHEDULER_add_delayed (sched, STAT_INTERVALL, &task_check_stat, NULL);
   return;
 }
+
+static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *stream)
+{
+  size_t retcode;
+
+  /* in real-world cases, this would probably get this data differently
+     as this fread() stuff is exactly what the library already would do
+     by default internally */
+  retcode = fread(ptr, size, nmemb, stream);
+
+  fprintf(stderr, "*** We read %d bytes from file\n", (int) retcode);
+
+  return retcode;
+}
+
 
 /**
  * Runs the test.
