@@ -640,6 +640,7 @@ unblacklist_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first,
  * existing connections of the target peer.
  *
  * @param pg the peer group we are dealing with
+ * @param proc the connection processor to use
  *
  * @return the number of connections created
  */
@@ -2570,7 +2571,9 @@ GNUNET_TESTING_daemon_get (struct GNUNET_TESTING_PeerGroup *pg, unsigned int pos
  * Prototype of a function that will be called when a
  * particular operation was completed the testing library.
  *
- * @param cls closure
+ * @param id id of the peer that was restarted
+ * @param cfg handle to the configuration of the peer
+ * @param d handle to the daemon that was restarted
  * @param emsg NULL on success
  */
 void restart_callback (void *cls,
