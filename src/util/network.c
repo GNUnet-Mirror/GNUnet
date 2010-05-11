@@ -406,14 +406,12 @@ GNUNET_NETWORK_socket_recvfrom (const struct GNUNET_NETWORK_Handle * desc,
 #ifdef MSG_DONTWAIT
   flags |= MSG_DONTWAIT;
 
-#endif /*  */
+#endif
   ret = recvfrom (desc->fd, buffer, length, flags, src_addr, addrlen);
-
 #ifdef MINGW
   if (SOCKET_ERROR == ret)
     SetErrnoFromWinsockError (WSAGetLastError ());
-
-#endif /*  */
+#endif 
   return ret;
 }
 
@@ -434,15 +432,12 @@ GNUNET_NETWORK_socket_recv (const struct GNUNET_NETWORK_Handle * desc,
 
 #ifdef MSG_DONTWAIT
   flags |= MSG_DONTWAIT;
-
-#endif /*  */
+#endif
   ret = recv (desc->fd, buffer, length, flags);
-
 #ifdef MINGW
   if (SOCKET_ERROR == ret)
     SetErrnoFromWinsockError (WSAGetLastError ());
-
-#endif /*  */
+#endif
   return ret;
 }
 

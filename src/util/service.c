@@ -1014,7 +1014,6 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
 #endif
           ((struct sockaddr_in *) saddrs[1])->sin_family = AF_INET;
           ((struct sockaddr_in *) saddrs[1])->sin_port = htons (port);
-
         }
     }
   *addrs = saddrs;
