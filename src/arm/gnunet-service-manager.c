@@ -192,8 +192,10 @@ closeClientAndServiceSockets (struct ForwardedConnection *fc, int reason)
   if ( (fc->clientReceivingTask != GNUNET_SCHEDULER_NO_TASK) ||
        (fc->serviceReceivingTask != GNUNET_SCHEDULER_NO_TASK) )
     return;
+#if DEBUG_SERVICE_MANAGER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Closing forwarding connection (done with both directions)\n");
+#endif
   if ( (NULL != fc->armClientSocket) &&
        (GNUNET_SYSERR ==
 	GNUNET_NETWORK_socket_close (fc->armClientSocket)) )
@@ -244,9 +246,11 @@ forwardToClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_NETWORK_socket_send (fc->armClientSocket,
 				fc->serviceBufferPos,
 				fc->serviceBufferDataLength);
+#if DEBUG_SERVICE_MANAGER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Forwarded %d bytes to client\n",
 	      numberOfBytesSent);
+#endif
   if ((numberOfBytesSent == GNUNET_SYSERR) || (numberOfBytesSent == 0))
     {
       /* Error occured or connection closed by client */
@@ -307,17 +311,21 @@ receiveFromService (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_NETWORK_socket_recv (fc->armServiceSocket,
 				fc->serviceBuffer, BUFFER_SIZE);
 
+#if DEBUG_SERVICE_MANAGER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received %d bytes for client\n",
 	      fc->serviceBufferDataLength);
+#endif
   if (fc->serviceBufferDataLength <= 0)
     {
       /* The service has closed the connection or an error occured */
       if (fc->serviceBufferDataLength == 0)
 	{
+#if DEBUG_SERVICE_MANAGER
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      _("Service `%s' closed connection! \n"),
 		      fc->listen_info->serviceName);
+#endif
 	}
       else
 	{	  
@@ -366,9 +374,11 @@ forwardToService (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_NETWORK_socket_send (fc->armServiceSocket,
 				fc->clientBufferPos,
 				fc->clientBufferDataLength);
+#if DEBUG_SERVICE_MANAGER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Forwarded %d bytes to service\n",
 	      numberOfBytesSent);
+#endif
   if ((numberOfBytesSent == GNUNET_SYSERR) || (numberOfBytesSent == 0))
     {
       /* Error occured or connection closed by service */
@@ -431,20 +441,28 @@ receiveFromClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   fc->clientBufferDataLength =
     GNUNET_NETWORK_socket_recv (fc->armClientSocket,
 				fc->clientBuffer, BUFFER_SIZE);
+#if DEBUG_SERVICE_MANAGER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received %d bytes for service\n",
 	      fc->clientBufferDataLength);
+#endif
   if (fc->clientBufferDataLength <= 0)
     {
       /* The client has closed the connection or and error occured */
       if (fc->clientBufferDataLength == 0)
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		    _("Client closed connection with service:`%s'\n"),
-		    fc->listen_info->serviceName);
+	{
+#if DEBUG_SERVICE_MANAGER
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      _("Client closed connection with service:`%s'\n"),
+		      fc->listen_info->serviceName);
+#endif
+	}
       else
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    _("Error receiving from client: %s \n"),
-		    STRERROR (errno));
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      _("Error receiving from client: %s \n"),
+		      STRERROR (errno));
+	}
       closeClientAndServiceSockets (fc, REASON_CLIENT);
       return;
     }
@@ -473,8 +491,10 @@ start_forwarding (void *cls,
 				    (REASON_CLIENT & REASON_SERVICE));
       return;
     }
+#if DEBUG_SERVICE_MANAGER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      _("Connection to service to start forwarding\n"));
+#endif
   fc->armServiceSocket =
     GNUNET_NETWORK_socket_create (fc->listen_info->service_addr->sa_family,
 				  SOCK_STREAM, 0);
@@ -526,20 +546,20 @@ connectToService (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ForwardedConnection *fc = cls;
 
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     {
-      /* Service is not up. Unable to proceed */
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Unable to start service `%s': timeout\n"),
+		  _("Unable to start service `%s': shutdown\n"),
 		  fc->listen_info->serviceName);
       closeClientAndServiceSockets (fc,
 				    (REASON_CLIENT & REASON_SERVICE));
       return;
     }
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
     {
+      /* Service is not up. Unable to proceed */
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Unable to start service `%s': shutdown\n"),
+		  _("Unable to start service `%s': timeout\n"),
 		  fc->listen_info->serviceName);
       closeClientAndServiceSockets (fc,
 				    (REASON_CLIENT & REASON_SERVICE));
