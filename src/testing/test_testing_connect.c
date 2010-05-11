@@ -68,7 +68,16 @@ end2_cb (void *cls, const char *emsg)
 static void
 end1_cb (void *cls, const char *emsg)
 {
-  GNUNET_assert (emsg == NULL);
+  if (emsg != NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Stopping daemon 1 gave: %s\n", emsg);
+      ok = 1;
+    }
+  else
+    {
+      ok = 0;
+    }
+
   GNUNET_TESTING_daemon_stop (d2, TIMEOUT, &end2_cb, NULL, GNUNET_YES, GNUNET_NO);
   d2 = NULL;
 }
