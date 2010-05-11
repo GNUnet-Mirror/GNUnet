@@ -34,6 +34,7 @@
 * UTIL:
   - only connect() sockets that are ready (select()) [Nils]
     [On W32, we need to select after calling socket before doing connect etc.]
+  - add support for UNIX domain sockets [CG]
 * GNUNET-GTK:
   - use g_main_context_set_poll_func to integrate GTK with GNUnet Scheduler!? (YUCK!)
   - OR: add scheduler API to enable integration with GTK main loop instead of doing our own select
@@ -56,14 +57,11 @@
 * TRANSPORT:
   - HTTP backend [MW]
 * ARM: [Safey]
-  - need to get rid of synchronous API for service starts (cause all kinds of problems)
-    [=> eliminate for need to tell ARM about service starts most of the time!] [Safey]
-  - better tracking of which config changes actually need to cause process restarts by ARM.
-  - listen for requests to discover dependencies between services (and avoid
-    having to explicitly program start requests)
   - better crash management (attach debugging support, capture and analyze
     debug output, detect random vs. deterministic crashes)
-  - shutdown sequence?
+  - discover dependencies between services
+    => need UNIX domain sockets first!
+  - handle gnunet-arm -k in combination with auto-start magic (what is the right thing here?)
 * FS: [CG]
   - datastore reservation (publishing)
   - location URIs (publish, search, download)
@@ -109,6 +107,8 @@
   - reconstruct IBLOCKS from DBLOCKS if possible (during download; see FIXME in fs_download)
   - add support for pushing "already seen" search results to FS service for bloomfilter (can wait)
   - use different 'priority' for probe downloads vs. normal downloads
+* ARM:
+  - better tracking of which config changes actually need to cause process restarts by ARM.
 
 0.9.0:
 * new webpage:
