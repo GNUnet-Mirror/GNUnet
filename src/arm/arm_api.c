@@ -81,16 +81,10 @@ GNUNET_ARM_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 		    const char *service)
 {
   struct GNUNET_ARM_Handle *ret;
-  struct GNUNET_CLIENT_Connection *client;
 
-  client = GNUNET_CLIENT_connect (sched, "arm", cfg);
-  if (client == NULL)
-    return NULL;
-  GNUNET_CLIENT_ignore_shutdown (client, GNUNET_YES);
   ret = GNUNET_malloc (sizeof (struct GNUNET_ARM_Handle));
   ret->cfg = GNUNET_CONFIGURATION_dup (cfg);
   ret->sched = sched;
-  ret->client = client;
   return ret;
 }
 
@@ -412,6 +406,7 @@ GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h,
                           GNUNET_ARM_Callback cb, void *cb_cls)
 {
   struct RequestContext *sctx;
+  struct GNUNET_CLIENT_Connection *client;
   size_t slen;
 #if DEBUG_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -431,6 +426,17 @@ GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h,
                                   "arm",
                                   h->cfg, timeout, &arm_service_report, sctx);
       return;
+    }
+  if (h->client == NULL)
+    {
+      client = GNUNET_CLIENT_connect (h->sched, "arm", h->cfg);
+      if (client == NULL)
+	{
+	  cb (cb_cls, GNUNET_SYSERR);
+	  return;
+	}
+      GNUNET_CLIENT_ignore_shutdown (client, GNUNET_YES);
+      h->client = client;
     }
   change_service (h, service_name, timeout, cb, cb_cls, GNUNET_MESSAGE_TYPE_ARM_START);
 }
@@ -471,12 +477,24 @@ GNUNET_ARM_stop_service (struct GNUNET_ARM_Handle *h,
                          GNUNET_ARM_Callback cb, void *cb_cls)
 {
   struct ARM_ShutdownContext *arm_shutdown_ctx;
+  struct GNUNET_CLIENT_Connection *client;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Stopping service `%s' within %llu ms\n"), service_name,
 	      (unsigned long long) timeout.value);
   if (0 == strcasecmp ("arm", service_name))
     {
+      if (h->client == NULL)
+	{
+	  client = GNUNET_CLIENT_connect (h->sched, "arm", h->cfg);
+	  if (client == NULL)
+	    {
+	      cb (cb_cls, GNUNET_SYSERR);
+	      return;
+	    }
+	  GNUNET_CLIENT_ignore_shutdown (client, GNUNET_YES);
+	  h->client = client;
+	}
       arm_shutdown_ctx = GNUNET_malloc(sizeof(struct ARM_ShutdownContext));
       arm_shutdown_ctx->cb = cb;
       arm_shutdown_ctx->cb_cls = cb_cls;

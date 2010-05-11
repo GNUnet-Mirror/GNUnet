@@ -38,19 +38,28 @@
 
 #define START_ARM GNUNET_YES
 
+#define VERBOSE GNUNET_YES
+
 static int ret = 1;
 
 static struct GNUNET_SCHEDULER_Handle *sched;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+#if START_ARM
 static struct GNUNET_ARM_Handle *arm;
+#endif
 
 static void
 arm_stopped (void *cls, int success)
 {
-  if (success != GNUNET_OK)        
-    ret = 4;
+  if (success != GNUNET_NO)       
+    {
+      GNUNET_break (0);
+      ret = 4;
+    }
+  GNUNET_ARM_disconnect (arm);
+  arm = NULL;
 }
 
 static void 
@@ -62,8 +71,8 @@ hostNameResolveCB(void *cls,
     return;
   if (NULL == addr)
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, 
-		 "Name not resolved!\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		  "Name not resolved!\n");
 #if START_ARM
       GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
 #endif
@@ -75,7 +84,6 @@ hostNameResolveCB(void *cls,
   GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
 #endif
 }
-
 
 
 static void
@@ -113,8 +121,8 @@ run(void *cls,
 {
   cfg = c;
   sched = s;	
-  arm = GNUNET_ARM_connect (cfg, sched, NULL);
 #if START_ARM
+  arm = GNUNET_ARM_connect (cfg, sched, NULL);
   GNUNET_ARM_start_service (arm, "arm", START_TIMEOUT, &arm_notify, NULL);
 #else
   arm_notify (NULL, GNUNET_YES);
