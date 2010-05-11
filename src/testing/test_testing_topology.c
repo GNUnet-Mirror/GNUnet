@@ -75,6 +75,8 @@ static FILE *dotOutFile;
 
 static char *topology_string;
 
+static char *blacklist_transports;
+
 static int transmit_ready_scheduled;
 
 static int transmit_ready_failed;
@@ -546,7 +548,7 @@ static void
 create_topology ()
 {
   peers_left = num_peers; /* Reset counter */
-  if (GNUNET_TESTING_create_topology (pg, topology, blacklist_topology) != GNUNET_SYSERR)
+  if (GNUNET_TESTING_create_topology (pg, topology, blacklist_topology, blacklist_transports) != GNUNET_SYSERR)
     {
 #if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -707,6 +709,9 @@ run (void *cls,
         GNUNET_free (connect_topology_option_modifier_string);
       }
     }
+
+  GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "blacklist_transports",
+                                         &blacklist_transports);
 
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "blacklist_topology",
