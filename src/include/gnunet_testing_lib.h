@@ -671,6 +671,8 @@ enum GNUNET_TESTING_TopologyOption
  * @param pg the peer group struct representing the running peers
  * @param topology which topology to connect the peers in
  * @param restrict_topology allow only direct TCP connections in this topology
+ * @param restrict_transports space delimited list of transports to blacklist
+ *                            to create restricted topology
  *
  * @return the maximum number of connections were all allowed peers
  *         connected to each other
@@ -678,7 +680,8 @@ enum GNUNET_TESTING_TopologyOption
 int
 GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
                                 enum GNUNET_TESTING_Topology topology,
-                                enum GNUNET_TESTING_Topology restrict_topology);
+                                enum GNUNET_TESTING_Topology restrict_topology,
+                                char *restrict_transports);
 
 /*
  * @param pg the peer group struct representing the running peers
