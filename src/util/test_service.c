@@ -43,20 +43,6 @@ static struct GNUNET_SERVICE_Context *sctx;
 
 static int ok = 1;
 
-static void
-end_it (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct GNUNET_CLIENT_Connection *client = cls;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down service\n");
-  GNUNET_CLIENT_disconnect (client, GNUNET_NO);
-  if (sctx != NULL)
-    {
-      GNUNET_SERVICE_stop (sctx);
-      sctx = NULL;
-    }
-}
-
 
 static size_t
 build_msg (void *cls, size_t size, void *buf)
@@ -68,10 +54,7 @@ build_msg (void *cls, size_t size, void *buf)
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   msg->type = htons (MY_TYPE);
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
-  GNUNET_SCHEDULER_add_continuation (sched,
-                                     &end_it,
-                                     client,
-                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_CLIENT_disconnect (client, GNUNET_NO);
   return sizeof (struct GNUNET_MessageHeader);
 }
 
@@ -102,6 +85,8 @@ recv_cb (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receiving client message...\n");
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SCHEDULER_shutdown (sched);
+  ok = 0;
 }
 
 static struct GNUNET_SERVER_MessageHandler myhandlers[] = {
