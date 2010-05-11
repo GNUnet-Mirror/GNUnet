@@ -79,13 +79,24 @@ ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 static void
+do_stop (void *cls,
+	 const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_SERVICE_stop (sctx);
+}
+
+
+static void
 recv_cb (void *cls,
          struct GNUNET_SERVER_Client *client,
          const struct GNUNET_MessageHeader *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receiving client message...\n");
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  GNUNET_SCHEDULER_shutdown (sched);
+  if (sctx != NULL)
+    GNUNET_SCHEDULER_add_now (sched, &do_stop, NULL);
+  else
+    GNUNET_SCHEDULER_shutdown (sched);
   ok = 0;
 }
 
