@@ -41,13 +41,12 @@ run (void *cls,
 
 int main(int argc, char *const *argv)
 {
-	int ret;
-
-	ret = (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc,
+  int ret;
+  
+  ret = (GNUNET_OK ==
+	 GNUNET_SERVICE_run (argc,
                              argv,
                              "do-nothing", GNUNET_SERVICE_OPTION_NONE,
-                             &run, NULL)) ? 0 : 1;
-	
-	return ret;
+                             &run, NULL)) ? 0 : 1;  
+  return ret;
 }

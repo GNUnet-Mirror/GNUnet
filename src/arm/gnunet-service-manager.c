@@ -571,8 +571,6 @@ void stop_listening (const char *serviceName)
 	   (strcmp (pos->serviceName, serviceName) != 0) )
 	continue;
       GNUNET_SCHEDULER_cancel (scheduler, pos->acceptTask);
-      fprintf (stderr, "Closing listening socket %p\n", 
-	       pos->listeningSocket);
       GNUNET_NETWORK_socket_close (pos->listeningSocket);
       GNUNET_CONTAINER_DLL_remove (serviceListeningInfoList_head,
 				   serviceListeningInfoList_tail, 
@@ -623,8 +621,6 @@ acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 				       serviceListeningInfo);
       return;
     }
-  fprintf (stderr, "Closing listening socket %p\n", 
-	   serviceListeningInfo->listeningSocket);
   GNUNET_NETWORK_socket_close (serviceListeningInfo->listeningSocket);
   GNUNET_CONTAINER_DLL_remove (serviceListeningInfoList_head,
 			       serviceListeningInfoList_tail, 
@@ -660,13 +656,9 @@ createListeningSocket (struct sockaddr *sa,
     {
     case AF_INET:
       sock = GNUNET_NETWORK_socket_create (PF_INET, SOCK_STREAM, 0);
-      fprintf (stderr, "IPv4 listening at %p\n", 
-	       sock);
       break;
     case AF_INET6:
       sock = GNUNET_NETWORK_socket_create (PF_INET6, SOCK_STREAM, 0);
-      fprintf (stderr, "IPv6 listening at %p\n", 
-	       sock);
       break;
     default:
       sock = NULL;

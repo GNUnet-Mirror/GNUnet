@@ -628,7 +628,6 @@ handle_shutdown (void *cls,
 {
   struct GNUNET_SERVICE_Context *service = cls;
 
-  /* FIXME: why is this call necessary???? */
   GNUNET_SERVER_client_keep(client);
   if (!service->allow_shutdown)
     {

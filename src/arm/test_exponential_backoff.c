@@ -147,17 +147,20 @@ kill_task (void *cbData,
 {
   static struct GNUNET_CLIENT_Connection * doNothingConnection = NULL;
 
-  if (NULL != cbData) {
-    waitedFor = GNUNET_TIME_absolute_get_duration (startedWaitingAt);
-
+  if (NULL != cbData) 
+    {
+      waitedFor = GNUNET_TIME_absolute_get_duration (startedWaitingAt);
+      
 #if LOG_BACKOFF
-    fprintf(killLogFilePtr, 
-	    "Waited for: %llu ms\n", 
-	    (unsigned long long) waitedFor.value);
+      fprintf(killLogFilePtr, 
+	      "Waited for: %llu ms\n", 
+	      (unsigned long long) waitedFor.value);
 #endif
-  }
+    }
   else
-    waitedFor.value = 0;
+    {
+      waitedFor.value = 0;
+    }
   /* Connect to the doNothing task */
   doNothingConnection = GNUNET_CLIENT_connect (sched, "do-nothing", cfg);
 #if LOG_BACKOFF
@@ -175,8 +178,10 @@ kill_task (void *cbData,
   }
   
   /* Use the created connection to kill the doNothingTask */
-  GNUNET_CLIENT_service_shutdown(sched, doNothingConnection, TIMEOUT, &shutdown_cont, NULL);
-
+  GNUNET_CLIENT_service_shutdown(sched,
+				 doNothingConnection, 
+				 TIMEOUT, 
+				 &shutdown_cont, NULL);
 }
 
        

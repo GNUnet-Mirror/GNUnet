@@ -482,19 +482,19 @@ GNUNET_ARM_stop_service (struct GNUNET_ARM_Handle *h,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Stopping service `%s' within %llu ms\n"), service_name,
 	      (unsigned long long) timeout.value);
+  if (h->client == NULL)
+    {
+      client = GNUNET_CLIENT_connect (h->sched, "arm", h->cfg);
+      if (client == NULL)
+	{
+	  cb (cb_cls, GNUNET_SYSERR);
+	  return;
+	}
+      GNUNET_CLIENT_ignore_shutdown (client, GNUNET_YES);
+      h->client = client;
+    }
   if (0 == strcasecmp ("arm", service_name))
     {
-      if (h->client == NULL)
-	{
-	  client = GNUNET_CLIENT_connect (h->sched, "arm", h->cfg);
-	  if (client == NULL)
-	    {
-	      cb (cb_cls, GNUNET_SYSERR);
-	      return;
-	    }
-	  GNUNET_CLIENT_ignore_shutdown (client, GNUNET_YES);
-	  h->client = client;
-	}
       arm_shutdown_ctx = GNUNET_malloc(sizeof(struct ARM_ShutdownContext));
       arm_shutdown_ctx->cb = cb;
       arm_shutdown_ctx->cb_cls = cb_cls;

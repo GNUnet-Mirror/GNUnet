@@ -38,7 +38,7 @@
 
 #define START_ARM GNUNET_YES
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 static int ret = 1;
 
