@@ -480,7 +480,7 @@ GNUNET_SERVER_create (struct GNUNET_SCHEDULER_Handle *sched,
       if (j == 0)
         {
           if (errno != 0)
-            GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
+	    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");	    
           GNUNET_free (lsocks);
           lsocks = NULL;
         }

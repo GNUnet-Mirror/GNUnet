@@ -469,6 +469,7 @@ start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
       signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
       return;
     }
+  stop_listening (servicename);
   sl = find_name (servicename);
   if (sl != NULL)
     {
@@ -1047,11 +1048,14 @@ run (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Starting default services `%s'\n", defaultservices);
 #endif
-      pos = strtok (defaultservices, " ");
-      while (pos != NULL)
+      if (0 < strlen (defaultservices))
 	{
-	  start_service (NULL, pos);
-	  pos = strtok (NULL, " ");
+	  pos = strtok (defaultservices, " ");
+	  while (pos != NULL)
+	    {
+	      start_service (NULL, pos);
+	      pos = strtok (NULL, " ");
+	    }
 	}
       GNUNET_free (defaultservices);
     }
