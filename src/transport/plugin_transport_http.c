@@ -76,11 +76,6 @@ struct Session
   struct Plugin *plugin;
 
   /**
-   * The client (used to identify this connection)
-   */
-  /* void *client; */
-
-  /**
    * Continuation function to call once the transmission buffer
    * has again space available.  NULL if there is no
    * continuation to call.
@@ -97,6 +92,21 @@ struct Session
    * if we are still waiting for the welcome message)
    */
   struct GNUNET_PeerIdentity sender;
+
+  /**
+   * Sender's url
+   */
+  char * url;
+
+  /**
+   * Sender's ip address to distinguish between incoming connections
+   */
+  char * ip;
+
+  /**
+   * Did we initiate the connection (GNUNET_YES) or the other peer (GNUNET_NO)?
+   */
+  unsigned int is_client;
 
   /**
    * At what time did we reset last_received last?
@@ -225,6 +235,45 @@ accessHandlerCallback (void *cls,
 
 
   return MHD_YES;
+}
+/**
+ * Finds a http session in our linked list using peer identity as a key
+ * @param peer peeridentity
+ * @return http session corresponding to peer identity
+ */
+static struct Session * find_session_by_pi( const struct GNUNET_PeerIdentity *peer )
+{
+  struct Session * cur;
+  GNUNET_HashCode hc_peer;
+  GNUNET_HashCode hc_current;
+
+  cur = plugin->sessions;
+  hc_peer = peer->hashPubKey;
+  while (cur != NULL)
+  {
+    hc_current = cur->sender.hashPubKey;
+    if ( 0 == GNUNET_CRYPTO_hash_cmp( &hc_peer, &hc_current))
+      return cur;
+    cur = plugin->sessions->next;
+  }
+  return NULL;
+}
+
+/**
+ * Creates a http session in our linked list by peer identity
+ * @param peer peeridentity
+ * @return created http session
+ */
+static struct Session * create_session_by_pi( const struct GNUNET_PeerIdentity *peer )
+{
+  struct Session * cur;
+
+  /* Create a new session object */
+  cur = GNUNET_malloc (sizeof (struct Session));
+
+  /* Insert into linked list */
+
+  return cur;
 }
 
 /**
@@ -366,10 +415,16 @@ template_plugin_send (void *cls,
                       GNUNET_TRANSPORT_TransmitContinuation
                       cont, void *cont_cls)
 {
+  struct Session* ses;
   int bytes_sent = 0;
   /*  struct Plugin *plugin = cls; */
   CURL *curl_handle;
   /* CURLcode res; */
+
+  /* find session for peer */
+  ses = find_session_by_pi (target);
+  if ( ses == NULL) create_session_by_pi (target);
+
   char *url = "http://localhost:12389";
 
   curl_handle = curl_easy_init();
@@ -539,6 +594,7 @@ libgnunet_plugin_transport_http_init (void *cls)
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
+  plugin->sessions = NULL;
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
   api->send = &template_plugin_send;
