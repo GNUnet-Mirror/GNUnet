@@ -27,80 +27,133 @@
 #include "gnunet_resolver_service.h"
 #include "gnunet_program_lib.h"
 
+/**
+ * Timeout for starting services, very short because of the strange way start works
+ * (by checking if running before starting, so really this time is always waited on
+ * startup (annoying)).
+ */
+#define START_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 50)
+
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
-/* Global Variables */
-static int isOK = GNUNET_OK;
+#define START_ARM GNUNET_YES
+
+static int ret = 1;
+
+static struct GNUNET_SCHEDULER_Handle *sched;
+
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+static struct GNUNET_ARM_Handle *arm;
+
+static void
+arm_stopped (void *cls, int success)
+{
+  if (success != GNUNET_OK)        
+    ret = 4;
+}
 
 static void 
 hostNameResolveCB(void *cls, 
-				  const struct sockaddr *addr, 
-				  socklen_t addrlen)
+		  const struct sockaddr *addr, 
+		  socklen_t addrlen)
 {
-	if (NULL == addr)
-		GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Name not resolved!\n");
+  if ( (ret == 0) || (ret == 4) )
+    return;
+  if (NULL == addr)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, 
+		 "Name not resolved!\n");
+#if START_ARM
+      GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
+#endif
+      ret = 3;
+      return;
+    }  
+  ret = 0;
+#if START_ARM
+  GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
+#endif
+}
+
+
+
+static void
+arm_notify (void *cls, int success)
+{
+  if (success != GNUNET_YES)
+    {
+      GNUNET_break (0);
+      ret = 1;
+      return;
+    }
+  /* connect to the resolver service */
+  if (NULL == GNUNET_RESOLVER_hostname_resolve (sched,
+						cfg, AF_UNSPEC,
+						TIMEOUT,
+						&hostNameResolveCB,
+						NULL))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		  "Unable to resolve our own hostname!\n");
+      ret = 2;
+#if START_ARM
+      GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
+#endif
+    }
 }
 
 
 static void
 run(void *cls, 
-	struct GNUNET_SCHEDULER_Handle *sched, 
-	char * const *args,
+    struct GNUNET_SCHEDULER_Handle *s, 
+    char * const *args,
     const char *cfgfile, 
-    const struct GNUNET_CONFIGURATION_Handle *cfg)
+    const struct GNUNET_CONFIGURATION_Handle *c)
 {
-	struct GNUNET_RESOLVER_RequestHandle *resolveRet;
-	
-	/* connect to the resolver service */
-	resolveRet =
-	GNUNET_RESOLVER_hostname_resolve (sched,
-	                                  cfg, AF_UNSPEC,
-	                                  TIMEOUT,
-	                                  &hostNameResolveCB,
-	                                  NULL);
-	if (NULL == resolveRet) {
-		GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Unable to resolve our own hostname!\n");
-		isOK = GNUNET_NO;
-	}
+  cfg = c;
+  sched = s;	
+  arm = GNUNET_ARM_connect (cfg, sched, NULL);
+#if START_ARM
+  GNUNET_ARM_start_service (arm, "arm", START_TIMEOUT, &arm_notify, NULL);
+#else
+  arm_notify (NULL, GNUNET_YES);
+#endif
 }
 
 
-static int
+static void
 check()
 {
-	char *const argv[] = {
-	    "test-gnunet-service-manager",
-	    "-c", "test_arm_api_data.conf",
-	#if VERBOSE
-	    "-L", "DEBUG",
-	#endif
-	    NULL
-	  };
-	  struct GNUNET_GETOPT_CommandLineOption options[] = {
-	    GNUNET_GETOPT_OPTION_END
-	  };
-	  
-	  /* Running ARM  and running the do_nothing task */
-	  GNUNET_assert (GNUNET_OK ==
-	                 GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-	                                     argv,
-	                                     "test-gnunet-service-manager",
-	                                     "nohelp", options, &run, NULL));
-	  return isOK;
+  char *const argv[] = {
+    "test-gnunet-service-manager",
+    "-c", "test_arm_api_data.conf",
+#if VERBOSE
+    "-L", "DEBUG",
+#endif
+    NULL
+  };
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_END
+  };
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
+				     argv,
+				     "test-gnunet-service-manager",
+				     "nohelp", options, &run, NULL));
 }
 
 
 int
 main (int argc, char *argv[])
 {
-  int ret;
   GNUNET_log_setup("test-gnunet-service-manager",
-  #if VERBOSE
-        "DEBUG",
-  #else
-        "WARNING",
-  #endif
-        NULL);
-  ret = check();
+#if VERBOSE
+		   "DEBUG",
+#else
+		   "WARNING",
+#endif
+		   NULL);
+  check();
   return ret;
 }
