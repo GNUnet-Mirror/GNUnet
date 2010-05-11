@@ -245,6 +245,11 @@ struct GNUNET_CONNECTION_Handle
   GNUNET_SCHEDULER_TaskIdentifier write_task;
 
   /**
+   * Destroy task (if already scheduled).
+   */
+  GNUNET_SCHEDULER_TaskIdentifier destroy_task;
+
+  /**
    * Handle to a pending DNS lookup request.
    */
   struct GNUNET_RESOLVER_RequestHandle *dns_active;
@@ -472,7 +477,8 @@ destroy_continuation (void *cls,
   struct GNUNET_CONNECTION_Handle *sock = cls;
   GNUNET_CONNECTION_TransmitReadyNotify notify;
   struct AddressProbe *pos;
-
+  
+  sock->destroy_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (sock->dns_active == NULL);
   if (0 != (sock->ccs & COCO_TRANSMIT_READY))
     {
@@ -489,9 +495,11 @@ destroy_continuation (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Destroy waits for write_task to be done (%p)\n", sock);
 #endif
-      GNUNET_SCHEDULER_add_after (sock->sched,
-                                  sock->write_task,
-                                  &destroy_continuation, sock);
+      GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == sock->destroy_task);
+      sock->destroy_task 
+	= GNUNET_SCHEDULER_add_after (sock->sched,
+				      sock->write_task,
+				      &destroy_continuation, sock);
       return;
     }
   if (0 != (sock->ccs & COCO_RECEIVE_AGAIN))
@@ -510,9 +518,11 @@ destroy_continuation (void *cls,
     }
   if (sock->read_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_add_after (sock->sched,
-                                  sock->read_task,
-                                  &destroy_continuation, sock);
+      GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == sock->destroy_task);
+      sock->destroy_task 
+	= GNUNET_SCHEDULER_add_after (sock->sched,
+				      sock->read_task,
+				      &destroy_continuation, sock);
       return;
     }
 #if DEBUG_CONNECTION
@@ -549,6 +559,7 @@ destroy_continuation (void *cls,
     }
   GNUNET_free_non_null (sock->addr);
   GNUNET_free_non_null (sock->hostname);
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == sock->destroy_task);
 #if DEBUG_CONNECTION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Freeing memory of connection %p.\n", sock);
@@ -625,9 +636,11 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
                   h);
 #endif
       h->ccs -= COCO_DESTROY_CONTINUATION;
-      GNUNET_SCHEDULER_add_continuation (h->sched,
-                                         &destroy_continuation,
-                                         h, GNUNET_SCHEDULER_REASON_TIMEOUT);
+      GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == h->destroy_task);
+      h->destroy_task
+	= GNUNET_SCHEDULER_add_now (h->sched,
+				    &destroy_continuation,
+				    h);
     }
 }
 
@@ -683,10 +696,11 @@ connect_success_continuation (struct GNUNET_CONNECTION_Handle *h)
                   h);
 #endif
       h->ccs -= COCO_DESTROY_CONTINUATION;
-      GNUNET_SCHEDULER_add_continuation (h->sched,
-                                         &destroy_continuation,
-                                         h,
-                                         GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == h->destroy_task);
+      h->destroy_task
+	= GNUNET_SCHEDULER_add_now (h->sched,
+				    &destroy_continuation,
+				    h);
     }
 }
 
@@ -974,8 +988,10 @@ GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *sock,
       sock->dns_active = NULL;
     }
   GNUNET_assert (sock->sched != NULL);
-  GNUNET_SCHEDULER_add_now (sock->sched,
-			    &destroy_continuation, sock);
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == sock->destroy_task);
+  sock->destroy_task 
+    = GNUNET_SCHEDULER_add_now (sock->sched,
+				&destroy_continuation, sock);
 }
 
 
