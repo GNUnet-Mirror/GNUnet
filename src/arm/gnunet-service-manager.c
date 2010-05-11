@@ -667,7 +667,8 @@ createListeningSocket (struct sockaddr *sa,
   if (NULL == sock)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Unable to create socket for service %s", serviceName);
+		  _("Unable to create socket for service `%s'"),
+		  serviceName);
       GNUNET_free (sa);
       return;
     }
@@ -687,23 +688,25 @@ createListeningSocket (struct sockaddr *sa,
       (sock, (const struct sockaddr *) sa, addr_len) != GNUNET_OK)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Unable to bind listening socket for service `%s'\n"),
-		  serviceName);
+		  _("Unable to bind listening socket for service `%s' to address `%s': %s\n"),
+		  serviceName,
+		  GNUNET_a2s (sa, addr_len),
+		  STRERROR (errno));
       GNUNET_free (sa);
       return;
     }
   if (GNUNET_NETWORK_socket_listen (sock, 5) != GNUNET_OK)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Error listening socket for service `%s'\n"),
-		  serviceName);
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+			   "listen");
       GNUNET_NETWORK_socket_close (sock);
       GNUNET_free (sa);
       return;
     }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      _("ARM now monitors connections to service `%s'\n"),
-	      serviceName);
+	      _("ARM now monitors connections to service `%s' at `%s'\n"),
+	      serviceName,
+	      GNUNET_a2s (sa, addr_len));
   serviceListeningInfo = GNUNET_malloc (sizeof (struct ServiceListeningInfo));
   serviceListeningInfo->serviceName = GNUNET_strdup (serviceName);
   serviceListeningInfo->service_addr = sa;
