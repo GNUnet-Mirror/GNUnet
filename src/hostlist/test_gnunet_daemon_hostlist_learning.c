@@ -60,7 +60,6 @@ struct PeerContext
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_TRANSPORT_Handle *th;
   struct GNUNET_MessageHeader *hello;
-  struct GNUNET_ARM_Handle *arm;
   struct GNUNET_CORE_Handle *core;
   struct GNUNET_STATISTICS_Handle *stats;
 #if START_ARM
@@ -89,25 +88,6 @@ waitpid_task (void *cls,
               "ARM process %u stopped\n", p->arm_pid);
 #endif
   GNUNET_CONFIGURATION_destroy (p->cfg);
-}
-
-
-static void
-stop_cb (void *cls,
-         int success)
-{
-  struct PeerContext *p = cls;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              success
-              ? "ARM stopped core service\n"
-              : "ARM failed to stop core service\n");
-  GNUNET_ARM_disconnect (p->arm);
-  p->arm = NULL;
-  /* make sure this runs after all other tasks are done */
-  GNUNET_SCHEDULER_add_delayed (sched,
-                                GNUNET_TIME_UNIT_SECONDS,
-                                &waitpid_task, p);
 }
 
 
@@ -149,13 +129,10 @@ static void shutdown_testcase()
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking ARM to stop core services\n");
-  learn_peer.arm = GNUNET_ARM_connect (learn_peer.cfg, sched, NULL);
-  GNUNET_ARM_stop_service (learn_peer.arm, "core", GNUNET_TIME_UNIT_SECONDS,
-                           &stop_cb, &learn_peer);
-  adv_peer.arm = GNUNET_ARM_connect (adv_peer.cfg, sched, NULL);
-  GNUNET_ARM_stop_service (adv_peer.arm, "core", GNUNET_TIME_UNIT_SECONDS,
-                           &stop_cb, &adv_peer);
-
+  GNUNET_SCHEDULER_add_now (sched,			    
+			    &waitpid_task, &learn_peer);
+  GNUNET_SCHEDULER_add_now (sched,
+			    &waitpid_task, &adv_peer);
   GNUNET_SCHEDULER_shutdown (sched);
 }
 
@@ -367,8 +344,6 @@ setup_learn_peer (struct PeerContext *p, const char *cfgname)
   }
   if ( NULL != filename)  GNUNET_free ( filename );
 
-  GNUNET_ARM_start_services (p->cfg, sched, "core", NULL);
-
   p->core = GNUNET_CORE_connect (sched, p->cfg,
                               GNUNET_TIME_UNIT_FOREVER_REL,
                               NULL,
@@ -396,7 +371,6 @@ setup_adv_peer (struct PeerContext *p, const char *cfgname)
                                         "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
-  GNUNET_ARM_start_services (p->cfg, sched, "core", NULL);
   p->stats = GNUNET_STATISTICS_create (sched, "hostlist", p->cfg);
   GNUNET_assert ( NULL != p->stats );
 }
