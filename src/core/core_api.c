@@ -547,12 +547,16 @@ init_reply_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       (ntohs (msg->size) != sizeof (struct InitReplyMessage)) ||
       (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_CORE_INIT_REPLY))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _
-                  ("Error connecting to core service (failed to receive `%s' message, got message of type %u and size %u).\n"),
-                  "INIT_REPLY",
-		  (msg == NULL) ? -1 : ntohs (msg->type),
-		  (msg == NULL) ? -1 : ntohs (msg->size));
+      if (msg != NULL)
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    _
+		    ("Error connecting to core service (failed to receive `%s' message, got message of type %u and size %u).\n"),
+		    "INIT_REPLY",
+		    ntohs (msg->type),
+		    ntohs (msg->size));
+      else
+	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		    _("Failed to connect to core service.\n"));
       GNUNET_break (msg == NULL);
       transmit_start (h, 0, NULL);
       return;
