@@ -966,12 +966,64 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+static size_t
+transmit_shutdown_ack (void *cls, size_t size, void *buf)
+{
+  struct GNUNET_SERVER_Client *client = cls;
+  struct GNUNET_MessageHeader *msg;
+
+  if (size < sizeof (struct GNUNET_MessageHeader))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  _("Failed to transmit shutdown ACK.\n"));
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return 0;                 /* client disconnected */
+    }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Transmitting shutdown ACK.\n"));
+
+  msg = (struct GNUNET_MessageHeader *) buf;
+  msg->type = htons (GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN_ACK);
+  msg->size = htons (sizeof (struct GNUNET_MessageHeader));
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVER_client_drop(client);
+  return sizeof (struct GNUNET_MessageHeader);
+}
+
+/**
+ * Handler for SHUTDOWN message.
+ *
+ * @param cls closure (refers to service)
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_shutdown (void *cls,
+                 struct GNUNET_SERVER_Client *client,
+                 const struct GNUNET_MessageHeader *message)
+{
+  GNUNET_SERVER_client_keep(client);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Initiating shutdown as requested by client.\n"));
+
+  GNUNET_SERVER_notify_transmit_ready (client,
+                                       sizeof(struct GNUNET_MessageHeader),
+                                       GNUNET_TIME_UNIT_FOREVER_REL,
+                                       &transmit_shutdown_ack, client);
+  GNUNET_SERVER_client_persist_ (client);
+  GNUNET_SCHEDULER_shutdown (sched);
+}
+
+
 /**
  * List of handlers for the messages understood by this service.
  */
 static struct GNUNET_SERVER_MessageHandler handlers[] = {
   {&handle_start, NULL, GNUNET_MESSAGE_TYPE_ARM_START, 0},
   {&handle_stop, NULL, GNUNET_MESSAGE_TYPE_ARM_STOP, 0},
+  {&handle_shutdown, NULL, GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN,
+   sizeof (struct GNUNET_MessageHeader)},
   {NULL, NULL, 0, 0}
 };
 

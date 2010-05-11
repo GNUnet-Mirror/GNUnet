@@ -624,30 +624,28 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   else
     {
       GNUNET_assert(ntohs(msg->size) == sizeof(struct GNUNET_MessageHeader));
-
       switch (ntohs(msg->type))
-      {
-      case GNUNET_MESSAGE_TYPE_SHUTDOWN_ACK:
-        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-		   "Received confirmation for service shutdown.\n");
-        shutdown_ctx->confirmed = GNUNET_YES;
-        GNUNET_CLIENT_receive (shutdown_ctx->sock, 
-			       &service_shutdown_handler, 
-			       shutdown_ctx, 
-			       GNUNET_TIME_UNIT_FOREVER_REL);
-        break;
-      case GNUNET_MESSAGE_TYPE_SHUTDOWN_REFUSE:
-      default: /* Fall through */
-        GNUNET_log(GNUNET_ERROR_TYPE_WARNING, 
-		   "Service shutdown refused!\n");
-        if (shutdown_ctx->cont != NULL)
-          shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_YES);
-
-        GNUNET_SCHEDULER_cancel(shutdown_ctx->sched, shutdown_ctx->cancel_task);
-        GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
-        GNUNET_free(shutdown_ctx);
-        break;
-      }
+	{
+	case GNUNET_MESSAGE_TYPE_SHUTDOWN_ACK:
+	  GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+		     "Received confirmation for service shutdown.\n");
+	  shutdown_ctx->confirmed = GNUNET_YES;
+	  GNUNET_CLIENT_receive (shutdown_ctx->sock, 
+				 &service_shutdown_handler, 
+				 shutdown_ctx, 
+				 GNUNET_TIME_UNIT_FOREVER_REL);
+	  break;
+	default: /* Fall through */
+	  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, 
+		     "Service shutdown refused!\n");
+	  if (shutdown_ctx->cont != NULL)
+	    shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_YES);
+	  
+	  GNUNET_SCHEDULER_cancel(shutdown_ctx->sched, shutdown_ctx->cancel_task);
+	  GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
+	  GNUNET_free(shutdown_ctx);
+	  break;
+	}
     }
 }
 
@@ -701,7 +699,7 @@ write_shutdown (void *cls, size_t size, void *buf)
 							    &service_shutdown_cancel, 
 							    shutdown_ctx);
   msg = (struct GNUNET_MessageHeader *) buf;
-  msg->type = htons (GNUNET_MESSAGE_TYPE_SHUTDOWN);
+  msg->type = htons (GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN);
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
   return sizeof (struct GNUNET_MessageHeader);
 }

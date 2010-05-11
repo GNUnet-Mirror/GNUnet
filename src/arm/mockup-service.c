@@ -49,7 +49,7 @@ transmit_shutdown_ack (void *cls, size_t size, void *buf)
               _("Transmitting shutdown ACK.\n"));
 
   msg = (struct GNUNET_MessageHeader *) buf;
-  msg->type = htons (GNUNET_MESSAGE_TYPE_SHUTDOWN_ACK);
+  msg->type = htons (GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN_ACK);
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   GNUNET_SERVER_client_drop(client);
@@ -87,7 +87,7 @@ handle_shutdown (void *cls,
  * struct.
  */
 static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-  {&handle_shutdown, NULL, GNUNET_MESSAGE_TYPE_SHUTDOWN,
+  {&handle_shutdown, NULL, GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN,
    sizeof (struct GNUNET_MessageHeader)},
   {NULL, NULL, 0, 0}
 };
