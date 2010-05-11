@@ -546,9 +546,9 @@ connectToService (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       return;
     }
   GNUNET_break (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE));
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Service `%s' started\n"),
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+	      _("Service `%s' started\n"),
 	      fc->listen_info->serviceName);
-
   GNUNET_CLIENT_service_test (scheduler,
 			      fc->listen_info->serviceName,
 			      cfg,
