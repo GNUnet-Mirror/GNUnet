@@ -599,12 +599,13 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct ShutdownContext *shutdown_ctx = cls;
 
-  if ((msg == NULL) && (shutdown_ctx->confirmed != GNUNET_YES)) /* Means the other side closed the connection and never confirmed a shutdown */
+  if ((msg == NULL) && (shutdown_ctx->confirmed != GNUNET_YES))   
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Service handle shutdown before ACK!\n");
+      /* Means the other side closed the connection and never confirmed a shutdown */
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, 
+		 "Service handle shutdown before ACK!\n");
       if (shutdown_ctx->cont != NULL)
-        shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_SYSERR);
-
+        shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_SYSERR);      
       GNUNET_SCHEDULER_cancel(shutdown_ctx->sched, shutdown_ctx->cancel_task);
       GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
       GNUNET_free(shutdown_ctx);
@@ -626,13 +627,18 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       switch (ntohs(msg->type))
       {
       case GNUNET_MESSAGE_TYPE_SHUTDOWN_ACK:
-        GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Received confirmation for service shutdown.\n");
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+		   "Received confirmation for service shutdown.\n");
         shutdown_ctx->confirmed = GNUNET_YES;
-        GNUNET_CLIENT_receive (shutdown_ctx->sock, &service_shutdown_handler, shutdown_ctx, GNUNET_TIME_UNIT_FOREVER_REL);
+        GNUNET_CLIENT_receive (shutdown_ctx->sock, 
+			       &service_shutdown_handler, 
+			       shutdown_ctx, 
+			       GNUNET_TIME_UNIT_FOREVER_REL);
         break;
       case GNUNET_MESSAGE_TYPE_SHUTDOWN_REFUSE:
       default: /* Fall through */
-        GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Service shutdown refused!\n");
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING, 
+		   "Service shutdown refused!\n");
         if (shutdown_ctx->cont != NULL)
           shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_YES);
 
@@ -659,6 +665,8 @@ void service_shutdown_cancel (void *cls,
   GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
   GNUNET_free(shutdown_ctx);
 }
+
+
 /**
  * If possible, write a shutdown message to the target
  * buffer and destroy the client connection.
@@ -676,17 +684,21 @@ write_shutdown (void *cls, size_t size, void *buf)
 
   if (size < sizeof (struct GNUNET_MessageHeader))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("Failed to transmit shutdown request to client.\n"));
-
       shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_SYSERR);
       GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
       GNUNET_free(shutdown_ctx);
       return 0;                 /* client disconnected */
     }
 
-  GNUNET_CLIENT_receive (shutdown_ctx->sock, &service_shutdown_handler, shutdown_ctx, GNUNET_TIME_UNIT_FOREVER_REL);
-  shutdown_ctx->cancel_task = GNUNET_SCHEDULER_add_delayed (shutdown_ctx->sched, GNUNET_TIME_absolute_get_remaining(shutdown_ctx->timeout), &service_shutdown_cancel, shutdown_ctx);
+  GNUNET_CLIENT_receive (shutdown_ctx->sock,
+			 &service_shutdown_handler, shutdown_ctx, 
+			 GNUNET_TIME_UNIT_FOREVER_REL);
+  shutdown_ctx->cancel_task = GNUNET_SCHEDULER_add_delayed (shutdown_ctx->sched, 
+							    GNUNET_TIME_absolute_get_remaining(shutdown_ctx->timeout), 
+							    &service_shutdown_cancel, 
+							    shutdown_ctx);
   msg = (struct GNUNET_MessageHeader *) buf;
   msg->type = htons (GNUNET_MESSAGE_TYPE_SHUTDOWN);
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
@@ -722,7 +734,6 @@ GNUNET_CLIENT_service_shutdown (struct GNUNET_SCHEDULER_Handle *sched,
   shutdown_ctx->cont_cls = cont_cls;
   shutdown_ctx->sock = sock;
   shutdown_ctx->timeout = GNUNET_TIME_relative_to_absolute(timeout);
-
   GNUNET_CONNECTION_notify_transmit_ready (sock->sock,
                                            sizeof (struct
                                                    GNUNET_MessageHeader),
@@ -790,6 +801,7 @@ write_test (void *cls, size_t size, void *buf)
                   _("Failure to transmit TEST request.\n"));
 #endif
       service_test_error (conn->sched, conn->test_cb, conn->test_cb_cls);
+      GNUNET_CLIENT_disconnect (conn, GNUNET_NO);
       return 0;                 /* client disconnected */
     }
 #if DEBUG_CLIENT
