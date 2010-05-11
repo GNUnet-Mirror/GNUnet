@@ -1,4 +1,6 @@
 0.9.0pre1:
+* DATASTORE [CG]  
+  - move request queuing functionality into the API library
 * MIGRATION [CG]
   - on-demand encoding => move logic to block-library!?
   - peer selection => how to consider latency/bw/etc?
