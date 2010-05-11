@@ -730,7 +730,8 @@ checkPortNumberCB (void *cls,
   unsigned int i;
   
   if ( (strcasecmp (section, "arm") == 0) ||
-       (strcasecmp (option, "PORT") != 0) ||
+       (strcasecmp (option, "AUTOSTART") != 0) ||
+       (strcasecmp (value, "YES") != 0) ||
        (isInDefaultList (section) == GNUNET_YES) )
     return;
   if (0 >= (ret = GNUNET_SERVICE_get_server_addresses (section, cfg, &addrs,

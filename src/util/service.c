@@ -511,11 +511,6 @@ struct GNUNET_SERVICE_Context
   int require_found;
 
   /**
-   * Can clients ask us to initiate a shutdown?
-   */
-  int allow_shutdown;
-
-  /**
    * Our options.
    */
   enum GNUNET_SERVICE_Options options;
@@ -944,7 +939,6 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
  * - TIMEOUT (after how many ms does an inactive service timeout);
  * - MAXBUF (maximum incoming message size supported)
  * - DISABLEV6 (disable support for IPv6, otherwise we use dual-stack)
- * - ALLOW_SHUTDOWN (allow clients to shutdown this service)
  * - BINDTO (hostname or IP address to bind to, otherwise we take everything)
  * - ACCEPT_FROM  (only allow connections from specified IPv4 subnets)
  * - ACCEPT_FROM6 (only allow connections from specified IPv6 subnets)
@@ -995,24 +989,6 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
     }
   else
     maxbuf = GNUNET_SERVER_MAX_MESSAGE_SIZE;
-  if (GNUNET_CONFIGURATION_have_value (sctx->cfg,
-                                       sctx->serviceName, "ALLOW_SHUTDOWN"))
-    {
-      if (GNUNET_SYSERR ==
-          (sctx->allow_shutdown =
-           GNUNET_CONFIGURATION_get_value_yesno (sctx->cfg, sctx->serviceName,
-                                                 "ALLOW_SHUTDOWN")))
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		      _("Specified value for `%s' of service `%s' is invalid\n"),
-		      "ALLOW_SHUTDOWN",
-		      sctx->serviceName);
-	  return GNUNET_SYSERR;
-	}
-    }
-  else
-    sctx->allow_shutdown = GNUNET_NO;
-
 
   if (GNUNET_CONFIGURATION_have_value (sctx->cfg,
                                        sctx->serviceName, "TOLERANT"))

@@ -48,7 +48,6 @@ struct PeerContext
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_TRANSPORT_Handle *th;
   struct GNUNET_MessageHeader *hello;
-  struct GNUNET_ARM_Handle *arm;
 #if START_ARM
   pid_t arm_pid;
 #endif
@@ -145,7 +144,6 @@ setup_peer (struct PeerContext *p, const char *cfgname)
                                         "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
-  GNUNET_ARM_start_services (p->cfg, sched, "core", NULL);
   p->th = GNUNET_TRANSPORT_connect (sched, p->cfg, p, NULL, 
 				    &notify_connect, NULL);
   GNUNET_assert (p->th != NULL);
@@ -174,32 +172,13 @@ waitpid_task (void *cls,
 
 
 static void
-stop_cb (void *cls, 
-	 int success)
-{
-  struct PeerContext *p = cls;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      success 
-	      ? "ARM stopped core service\n" 
-	      : "ARM failed to stop core service\n");
-  GNUNET_ARM_disconnect (p->arm);
-  p->arm = NULL;
-  /* make sure this runs after all other tasks are done */
-  GNUNET_SCHEDULER_add_delayed (sched,
-				GNUNET_TIME_UNIT_SECONDS,
-				&waitpid_task, p);
-}
-
-
-static void
 stop_arm (struct PeerContext *p)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Asking ARM to stop core service\n");
-  p->arm = GNUNET_ARM_connect (p->cfg, sched, NULL);
-  GNUNET_ARM_stop_service (p->arm, "core", GNUNET_TIME_UNIT_SECONDS,
-			   &stop_cb, p);
+  GNUNET_SCHEDULER_add_delayed (sched,
+				GNUNET_TIME_UNIT_SECONDS,
+				&waitpid_task, p);
 }
 
 

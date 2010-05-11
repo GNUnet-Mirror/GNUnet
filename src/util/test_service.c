@@ -206,38 +206,6 @@ check6 ()
 }
 
 
-/**
- * Main method, starts scheduler with task1,
- * checks that "ok" is correct at the end.
- */
-static int
-check6d ()
-{
-  ok = 1;
-  char *const argv[] = {
-    "test_service6",
-    "-c",
-    "test_service_data.conf",
-    "-L",
-#if VERBOSE
-    "DEBUG",
-#else
-    "WARNING",
-#endif
-    "-d",
-    NULL
-  };
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting V6 as daemon\n");
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_SERVICE_run (6,
-                                     argv,
-                                     "test_service6",
-                                     GNUNET_SERVICE_OPTION_NONE,
-                                     &runner6, &ok));
-  GNUNET_break (0 == ok);
-  return ok;
-}
-
 
 static void
 start_stop_main (void *cls,
@@ -322,7 +290,6 @@ main (int argc, char *argv[])
     {
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (s));
       ret += check6 ();
-      ret += check6d ();        /* with daemonization */
     }
   ret += check_start_stop ();
 
