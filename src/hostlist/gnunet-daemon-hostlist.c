@@ -313,7 +313,8 @@ run (void *cls,
       GNUNET_HOSTLIST_client_start (cfg, sched, stats,
 				    &client_ch, &client_dh, &client_adv_handler, learning);
     }
-#if HAVE_MHD
+
+  #if HAVE_MHD
   if (provide_hostlist)
     {      
       GNUNET_HOSTLIST_server_start (cfg, sched, stats, core, &server_ch, &server_dh, advertising );

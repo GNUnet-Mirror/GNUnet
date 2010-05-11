@@ -998,7 +998,7 @@ download_hostlist ()
   if (multi == NULL)
     {
       GNUNET_break (0);
-      clean_up ();
+      /* clean_up (); */
       return;
     }
   mret = curl_multi_add_handle (multi, curl);
