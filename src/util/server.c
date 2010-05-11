@@ -386,11 +386,20 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
       errno = 0;
       return NULL;
     }
-  if ((port != 0) &&
-      (GNUNET_NETWORK_socket_setsockopt
-       (sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                         "setsockopt");
+  if (port != 0) 
+    {
+      if (GNUNET_NETWORK_socket_setsockopt
+	  (sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
+	GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+			     "setsockopt");
+#ifdef IPV6_V6ONLY
+      if ( (serverAddr->sa_family == AF_INET6) &&
+	   (GNUNET_NETWORK_socket_setsockopt
+	    (sock, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof (on)) != GNUNET_OK) )
+	GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+			     "setsockopt");
+#endif
+    }
   /* bind the socket */
   if (GNUNET_NETWORK_socket_bind (sock, serverAddr, socklen) != GNUNET_OK)
     {

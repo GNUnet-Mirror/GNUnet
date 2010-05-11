@@ -675,6 +675,14 @@ createListeningSocket (struct sockaddr *sa,
       (sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                          "setsockopt");
+#ifdef IPV6_V6ONLY
+  if ( (sa->sa_family == AF_INET6) &&
+       (GNUNET_NETWORK_socket_setsockopt
+	(sock, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof (on)) != GNUNET_OK))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+			 "setsockopt");
+#endif
+
   if (GNUNET_NETWORK_socket_bind
       (sock, (const struct sockaddr *) sa, addr_len) != GNUNET_OK)
     {
@@ -693,6 +701,9 @@ createListeningSocket (struct sockaddr *sa,
       GNUNET_free (sa);
       return;
     }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      _("ARM now monitors connections to service `%s'\n"),
+	      serviceName);
   serviceListeningInfo = GNUNET_malloc (sizeof (struct ServiceListeningInfo));
   serviceListeningInfo->serviceName = GNUNET_strdup (serviceName);
   serviceListeningInfo->service_addr = sa;
