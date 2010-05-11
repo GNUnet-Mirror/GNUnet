@@ -168,74 +168,7 @@ struct Plugin *plugin;
 
 static CURLM *multi_handle;
 
-/**
- * Check if we are allowed to connect to the given IP.
- */
-static int
-acceptPolicyCallback (void *cls,
-                      const struct sockaddr *addr, socklen_t addr_len)
-{
-  if (addr->sa_family == AF_INET)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Incoming IPv4 connection \n");
-  if (addr->sa_family == AF_INET6)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Incoming IPv6 connection \n");
-  /* Currently all incoming connections are accepted, so nothing more to do here */
-  return MHD_YES;
-}
 
-/**
- * Process GET or PUT request received via MHD.  For
- * GET, queue response that will send back our pending
- * messages.  For PUT, process incoming data and send
- * to GNUnet core.  In either case, check if a session
- * already exists and create a new one if not.
- */
-static int
-accessHandlerCallback (void *cls,
-                       struct MHD_Connection *session,
-                       const char *url,
-                       const char *method,
-                       const char *version,
-                       const char *upload_data,
-                       size_t * upload_data_size, void **httpSessionCache)
-{
-  struct MHD_Response *response;
-  unsigned int have;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has an incoming `%s' request from \n",method);
-  if (*httpSessionCache==NULL)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"New request \n",method);
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Already known request \n",method);
-  /* Find out if session exists, otherwise create one */
-
-  /* Is it a PUT or a GET request */
-  if ( 0 == strcmp (MHD_HTTP_METHOD_PUT, method) )
-  {
-    /* PUT method here */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got PUT Request with size %lu \n",(*upload_data_size));
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"URL: `%s'\n",url);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"PUT Request: `%s'\n",upload_data);
-    /* FIXME: GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# PUT requests"), 1, GNUNET_NO); */
-    have = *upload_data_size;
-    /* No data left */
-    *upload_data_size = 0;
-    response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),HTTP_PUT_RESPONSE, MHD_NO, MHD_NO);
-    MHD_queue_response (session, MHD_HTTP_OK, response);
-    MHD_destroy_response (response);
-  }
-  if ( 0 == strcmp (MHD_HTTP_METHOD_GET, method) )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got GET Request\n");
-    //GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# GET requests"), 1, GNUNET_NO);
-  }
-
-
-
-
-
-  return MHD_YES;
-}
 /**
  * Finds a http session in our linked list using peer identity as a key
  * @param peer peeridentity
@@ -259,22 +192,141 @@ static struct Session * find_session_by_pi( const struct GNUNET_PeerIdentity *pe
   return NULL;
 }
 
+#if 0
+/**
+ * Finds a http session in our linked list using peer identity as a key
+ * @param peer peeridentity
+ * @return http session corresponding to peer identity
+ */
+static struct Session * find_session_by_ip( struct sockaddr_in * addr )
+{
+  /*
+  struct Session * cur;
+
+  cur = plugin->sessions;
+  while (cur != NULL)
+  {
+    hc_current = cur->sender.hashPubKey;
+    if ( 0 == GNUNET_CRYPTO_hash_cmp( &hc_peer, &hc_current))
+      return cur;
+    cur = plugin->sessions->next;
+  }
+  */
+  return NULL;
+}
+#endif
+
 /**
  * Creates a http session in our linked list by peer identity
+ * Only peer is set here, all other  fields have to be set by calling method
  * @param peer peeridentity
  * @return created http session
  */
 static struct Session * create_session_by_pi( const struct GNUNET_PeerIdentity *peer )
 {
   struct Session * cur;
-
+  struct Session * last_in_list;
   /* Create a new session object */
   cur = GNUNET_malloc (sizeof (struct Session));
+  memcpy( &(cur->sender), peer, sizeof( struct GNUNET_PeerIdentity ) );
+
+  cur->next = NULL;
 
   /* Insert into linked list */
+  last_in_list = plugin->sessions;
+  while (last_in_list->next != NULL)
+  {
+    last_in_list = last_in_list->next;
+  }
+  last_in_list->next = cur;
 
   return cur;
 }
+
+/**
+ * Callback called by MHD when a connection is terminated
+ */
+static void requestCompletedCallback (void *cls, struct MHD_Connection * connection, void **httpSessionCache)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection was terminated\n");
+  return;
+}
+
+/**
+ * Check if we are allowed to connect to the given IP.
+ */
+static int
+acceptPolicyCallback (void *cls,
+                      const struct sockaddr *addr, socklen_t addr_len)
+{
+  if (addr->sa_family == AF_INET)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Incoming IPv4 connection \n");
+  if (addr->sa_family == AF_INET6)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Incoming IPv6 connection \n");
+
+
+
+
+  return MHD_YES;
+}
+
+
+/**
+ * Process GET or PUT request received via MHD.  For
+ * GET, queue response that will send back our pending
+ * messages.  For PUT, process incoming data and send
+ * to GNUnet core.  In either case, check if a session
+ * already exists and create a new one if not.
+ */
+static int
+accessHandlerCallback (void *cls,
+                       struct MHD_Connection *session,
+                       const char *url,
+                       const char *method,
+                       const char *version,
+                       const char *upload_data,
+                       size_t * upload_data_size, void **httpSessionCache)
+{
+  //struct Session * http_session;
+
+  struct MHD_Response *response;
+  unsigned int have;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has an incoming `%s' request from \n",method);
+  if (*httpSessionCache==NULL)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"New request \n",method);
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Already known request \n",method);
+
+  /*  Find out if session exists, otherwise create one */
+  //struct sockaddr_in * test = session->addr;
+  //http_session = find_session_by_ip ( test );
+
+
+  /* Is it a PUT or a GET request */
+  if ( 0 == strcmp (MHD_HTTP_METHOD_PUT, method) )
+  {
+    /* PUT method here */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got PUT Request with size %lu \n",(*upload_data_size));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"URL: `%s'\n",url);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"PUT Request: `%s'\n",upload_data);
+    /* FIXME: GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# PUT requests"), 1, GNUNET_NO); */
+    have = *upload_data_size;
+    /* No data left */
+    *upload_data_size = 0;
+    response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),HTTP_PUT_RESPONSE, MHD_NO, MHD_NO);
+    MHD_queue_response (session, MHD_HTTP_OK, response);
+    MHD_destroy_response (response);
+  }
+  if ( 0 == strcmp (MHD_HTTP_METHOD_GET, method) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got GET Request\n");
+    //GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# GET requests"), 1, GNUNET_NO);
+  }
+
+  return MHD_YES;
+}
+
 
 /**
  * Call MHD to process pending requests and then go back
@@ -631,6 +683,7 @@ libgnunet_plugin_transport_http_init (void *cls)
                                        MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
                                        MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
+                                       MHD_OPTION_NOTIFY_COMPLETED, &requestCompletedCallback, NULL,
                                        MHD_OPTION_END);
     http_daemon_v4 = MHD_start_daemon (MHD_NO_FLAG,
                                        port,
@@ -640,6 +693,7 @@ libgnunet_plugin_transport_http_init (void *cls)
                                        MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
                                        MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
+                                       MHD_OPTION_NOTIFY_COMPLETED, &requestCompletedCallback, NULL,
                                        MHD_OPTION_END);
     }
 
