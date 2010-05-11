@@ -127,7 +127,6 @@ process_hello (void *cls,
   GNUNET_TRANSPORT_get_hello_cancel (p->th, &process_hello, p);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received HELLO, starting hostlist service.\n");
-  GNUNET_ARM_start_services (p->cfg, sched, "hostlist", NULL);
 }
 
 

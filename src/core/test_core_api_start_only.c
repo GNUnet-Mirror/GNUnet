@@ -31,7 +31,7 @@
 #include "gnunet_program_lib.h"
 #include "gnunet_scheduler_lib.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define START_ARM GNUNET_YES
 
@@ -142,9 +142,6 @@ init_notify (void *cls,
       GNUNET_assert (cls == &p2);
       GNUNET_CORE_disconnect (p1.ch);
       GNUNET_CORE_disconnect (p2.ch);
-      GNUNET_ARM_stop_services (p1.cfg, sched, "core", NULL);
-      GNUNET_ARM_stop_services (p2.cfg, sched, "core", NULL);
-
       ok = 0;
     }
 }
@@ -163,7 +160,6 @@ setup_peer (struct PeerContext *p, const char *cfgname)
                                         "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
-  GNUNET_ARM_start_services (p->cfg, sched, "core", NULL);
 }
 
 
@@ -209,7 +205,7 @@ stop_arm (struct PeerContext *p)
 static int
 check ()
 {
-  char *const argv[] = { "test-core-api",
+  char *const argv[] = { "test-core-api-start-only",
     "-c",
     "test_core_api_data.conf",
 #if VERBOSE
@@ -223,7 +219,7 @@ check ()
 
   ok = 1;
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-core-api", "nohelp", options, &run, &ok);
+                      argv, "test-core-api-start-only", "nohelp", options, &run, &ok);
   stop_arm (&p1);
   stop_arm (&p2);
   return ok;
@@ -234,7 +230,7 @@ main (int argc, char *argv[])
 {
   int ret;
 
-  GNUNET_log_setup ("test-core-api",
+  GNUNET_log_setup ("test-core-api-start-only",
 #if VERBOSE
                     "DEBUG",
 #else

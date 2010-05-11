@@ -1278,7 +1278,6 @@ GNUNET_TRANSPORT_connect (struct GNUNET_SCHEDULER_Handle *sched,
 {
   struct GNUNET_TRANSPORT_Handle *ret;
 
-  GNUNET_ARM_start_services (cfg, sched, "peerinfo", "transport", NULL);
   ret = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_Handle));
   ret->sched = sched;
   ret->cfg = cfg;

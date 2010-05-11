@@ -97,7 +97,6 @@ struct GNUNET_DATASTORE_Handle *GNUNET_DATASTORE_connect (const struct
   c = GNUNET_CLIENT_connect (sched, "datastore", cfg);
   if (c == NULL)
     return NULL; /* oops */
-  GNUNET_ARM_start_services (cfg, sched, "datastore", NULL);
   h = GNUNET_malloc (sizeof(struct GNUNET_DATASTORE_Handle) + 
 		     GNUNET_SERVER_MAX_MESSAGE_SIZE);
   h->client = c;

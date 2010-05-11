@@ -132,37 +132,6 @@ GNUNET_ARM_stop_service (struct GNUNET_ARM_Handle *h,
                          GNUNET_ARM_Callback cb, void *cb_cls);
 
 
-/**
- * Start multiple services in the specified order.  Convenience
- * function.  Works asynchronously, failures are not reported.
- *
- * @param cfg configuration to use (needed to contact ARM;
- *        the ARM service may internally use a different
- *        configuration to determine how to start the service).
- * @param sched scheduler to use
- * @param ... NULL-terminated list of service names (const char*)
- */
-void
-GNUNET_ARM_start_services (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			   struct GNUNET_SCHEDULER_Handle *sched,
-			   ...);
-
-
-/**
- * Stop multiple services in the specified order.  Convenience
- * function.  Works asynchronously, failures are not reported.
- *
- * @param cfg configuration to use (needed to contact ARM;
- *        the ARM service may internally use a different
- *        configuration to determine how to start the service).
- * @param sched scheduler to use
- * @param ... NULL-terminated list of service names (const char*)
- */
-void
-GNUNET_ARM_stop_services (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			  struct GNUNET_SCHEDULER_Handle *sched,
-			  ...);
-
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
