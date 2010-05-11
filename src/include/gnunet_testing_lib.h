@@ -305,6 +305,12 @@ struct GNUNET_TESTING_Daemon
    * Set to GNUNET_YES once the peer is up.
    */
   int running;
+
+  /**
+   * Used to tell shutdown not to remove configuration for the peer
+   * (if it's going to be restarted later)
+   */
+  int churn;
 };
 
 
@@ -387,6 +393,21 @@ GNUNET_TESTING_daemon_restart (struct GNUNET_TESTING_Daemon *d,
                                GNUNET_TESTING_NotifyDaemonRunning cb, void *cb_cls);
 
 /**
+ * Start a peer that has previously been stopped using the daemon_stop
+ * call (and files weren't deleted and the allow restart flag)
+ *
+ * @param daemon the daemon to start (has been previously stopped)
+ * @param timeout how long to wait for restart
+ * @param cb the callback for notification when the peer is running
+ * @param cb_cls closure for the callback
+ */
+void
+GNUNET_TESTING_daemon_start_stopped (struct GNUNET_TESTING_Daemon *daemon,
+                                     struct GNUNET_TIME_Relative timeout,
+                                     GNUNET_TESTING_NotifyDaemonRunning cb,
+                                     void *cb_cls);
+
+/**
  * Get a certain testing daemon handle.
  *
  * @param pg handle to the set of running peers
@@ -406,12 +427,14 @@ GNUNET_TESTING_daemon_get (struct GNUNET_TESTING_PeerGroup *pg, unsigned int pos
  * @param delete_files GNUNET_YES to remove files, GNUNET_NO
  *        to leave them (i.e. for restarting at a later time,
  *        or logfile inspection once finished)
+ * @param allow_restart GNUNET_YES to restart peer later (using this API)
+ *        GNUNET_NO to kill off and clean up for good
  */
 void
 GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
                             struct GNUNET_TIME_Relative timeout,
                             GNUNET_TESTING_NotifyCompletion cb, void *cb_cls,
-                            int delete_files);
+                            int delete_files, int allow_restart);
 
 
 /**
@@ -517,6 +540,36 @@ GNUNET_TESTING_daemons_restart (struct GNUNET_TESTING_PeerGroup *pg,
  */
 void
 GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg, struct GNUNET_TIME_Relative timeout);
+
+/**
+ * Simulate churn by stopping some peers (and possibly
+ * re-starting others if churn is called multiple times).  This
+ * function can only be used to create leave-join churn (peers "never"
+ * leave for good).  First "voff" random peers that are currently
+ * online will be taken offline; then "von" random peers that are then
+ * offline will be put back online.  No notifications will be
+ * generated for any of these operations except for the callback upon
+ * completion.  Note that the implementation is at liberty to keep
+ * the ARM service itself (but none of the other services or daemons)
+ * running even though the "peer" is being varied offline.
+ *
+ * @param pg handle for the peer group
+ * @param voff number of peers that should go offline
+ * @param von number of peers that should come back online;
+ *            must be zero on first call (since "testbed_start"
+ *            always starts all of the peers)
+ * @param timeout how long to wait for operations to finish before
+ *        giving up
+ * @param cb function to call at the end
+ * @param cb_cls closure for cb
+ */
+void
+GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
+                              unsigned int voff,
+                              unsigned int von,
+                              struct GNUNET_TIME_Relative timeout,
+                              GNUNET_TESTING_NotifyCompletion cb,
+                              void *cb_cls);
 
 
 /**
