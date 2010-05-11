@@ -769,10 +769,11 @@ peer_connect_handler (void *cls,
 
   cp = GNUNET_malloc (sizeof (struct ConnectedPeer));
   cp->pid = GNUNET_PEER_intern (peer);
-  GNUNET_CONTAINER_multihashmap_put (connected_peers,
-				     &peer->hashPubKey,
-				     cp,
-				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  GNUNET_break (GNUNET_OK ==
+		GNUNET_CONTAINER_multihashmap_put (connected_peers,
+						   &peer->hashPubKey,
+						   cp,
+						   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 }
 
 
@@ -792,9 +793,10 @@ destroy_request (void *cls,
   const struct GNUNET_PeerIdentity * peer = cls;
   struct PendingRequest *pr = value;
   
-  GNUNET_CONTAINER_multihashmap_remove (peer_request_map,
-					&peer->hashPubKey,
-					pr);
+  GNUNET_break (GNUNET_YES ==
+		GNUNET_CONTAINER_multihashmap_remove (peer_request_map,
+						      &peer->hashPubKey,
+						      pr));
   destroy_pending_request (pr);
   return GNUNET_YES;
 }
@@ -831,9 +833,10 @@ peer_disconnect_handler (void *cls,
 	  cp->last_client_replies[i] = NULL;
 	}
     }
-  GNUNET_CONTAINER_multihashmap_remove (connected_peers,
-					&peer->hashPubKey,
-					cp);
+  GNUNET_break (GNUNET_YES ==
+		GNUNET_CONTAINER_multihashmap_remove (connected_peers,
+						      &peer->hashPubKey,
+						      cp));
   GNUNET_PEER_change_rc (cp->pid, -1);
   GNUNET_PEER_decrement_rcs (cp->last_p2p_replies, P2P_SUCCESS_LIST_SIZE);
   if (NULL != cp->cth)
@@ -2588,14 +2591,16 @@ handle_p2p_get (void *cls,
     }
 
   pr->cp = cp;
-  GNUNET_CONTAINER_multihashmap_put (query_request_map,
-				     &gm->query,
-				     pr,
-				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  GNUNET_CONTAINER_multihashmap_put (peer_request_map,
-				     &other->hashPubKey,
-				     pr,
-				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  GNUNET_break (GNUNET_OK ==
+		GNUNET_CONTAINER_multihashmap_put (query_request_map,
+						   &gm->query,
+						   pr,
+						   GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+  GNUNET_break (GNUNET_OK ==
+		GNUNET_CONTAINER_multihashmap_put (peer_request_map,
+						   &other->hashPubKey,
+						   pr,
+						   GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   
   pr->hnode = GNUNET_CONTAINER_heap_insert (requests_by_expiration_heap,
 					    pr,
@@ -2810,10 +2815,11 @@ handle_start_search (void *cls,
     default:
       break;
     }
-  GNUNET_CONTAINER_multihashmap_put (query_request_map,
-				     &sm->query,
-				     pr,
-				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  GNUNET_break (GNUNET_OK ==
+		GNUNET_CONTAINER_multihashmap_put (query_request_map,
+						   &sm->query,
+						   pr,
+						   GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   if (type == GNUNET_BLOCK_TYPE_DBLOCK)
     type = GNUNET_BLOCK_TYPE_ANY; /* get on-demand blocks too! */
   pr->drq = GNUNET_FS_drq_get (&sm->query,

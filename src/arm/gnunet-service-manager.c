@@ -591,7 +591,8 @@ void stop_listening (const char *serviceName)
 	   (strcmp (pos->serviceName, serviceName) != 0) )
 	continue;
       GNUNET_SCHEDULER_cancel (scheduler, pos->acceptTask);
-      GNUNET_NETWORK_socket_close (pos->listeningSocket);
+      GNUNET_break (GNUNET_OK ==
+		    GNUNET_NETWORK_socket_close (pos->listeningSocket));
       GNUNET_CONTAINER_DLL_remove (serviceListeningInfoList_head,
 				   serviceListeningInfoList_tail, 
 				   pos);
@@ -641,7 +642,8 @@ acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 				       serviceListeningInfo);
       return;
     }
-  GNUNET_NETWORK_socket_close (serviceListeningInfo->listeningSocket);
+  GNUNET_break (GNUNET_OK ==
+		GNUNET_NETWORK_socket_close (serviceListeningInfo->listeningSocket));
   GNUNET_CONTAINER_DLL_remove (serviceListeningInfoList_head,
 			       serviceListeningInfoList_tail, 
 			       serviceListeningInfo);
@@ -712,6 +714,7 @@ createListeningSocket (struct sockaddr *sa,
 		  serviceName,
 		  GNUNET_a2s (sa, addr_len),
 		  STRERROR (errno));
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
       GNUNET_free (sa);
       return;
     }
@@ -719,7 +722,7 @@ createListeningSocket (struct sockaddr *sa,
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
 			   "listen");
-      GNUNET_NETWORK_socket_close (sock);
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
       GNUNET_free (sa);
       return;
     }
@@ -794,14 +797,18 @@ prepareServices (const struct GNUNET_CONFIGURATION_Handle
   scheduler = sched;
   cfg = configurationHandle;
   /* Split the default services into a list */
-  GNUNET_CONFIGURATION_get_value_string (cfg, "arm", "DEFAULTSERVICES",
-					 &defaultServicesString);
-  addDefaultServicesToList (defaultServicesString);
-  GNUNET_free (defaultServicesString);
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "arm", "DEFAULTSERVICES",
+					     &defaultServicesString))
+    {
+      addDefaultServicesToList (defaultServicesString);
+      GNUNET_free (defaultServicesString);    
 #if DEBUG_SERVICE_MANAGER
-  printDefaultServicesList ();
+      printDefaultServicesList ();
 #endif
-  /* Spot the services from the configuration and create a listening socket for each */
+    }
+  /* Spot the services from the configuration and create a listening
+     socket for each */
   GNUNET_CONFIGURATION_iterate (cfg, &checkPortNumberCB, NULL);
 }
 

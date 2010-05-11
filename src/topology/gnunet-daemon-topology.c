@@ -492,10 +492,11 @@ make_peer (const struct
       memcpy (ret->hello, hello,
 	      GNUNET_HELLO_size (hello));
     }
-  GNUNET_CONTAINER_multihashmap_put (peers,
-				     &peer->hashPubKey,
-				     ret,
-				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  GNUNET_break (GNUNET_OK ==
+		GNUNET_CONTAINER_multihashmap_put (peers,
+						   &peer->hashPubKey,
+						   ret,
+						   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   return ret;
 }
 
