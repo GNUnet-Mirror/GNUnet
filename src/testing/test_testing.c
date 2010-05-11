@@ -26,7 +26,7 @@
 
 #define VERBOSE GNUNET_NO
 
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
 
 static int ok;
 

@@ -35,7 +35,7 @@
 /**
  * How long until we give up on starting the peers?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 500)
 
 #define DEFAULT_NUM_PEERS 4
 
