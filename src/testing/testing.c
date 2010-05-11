@@ -126,7 +126,7 @@ testing_init (void *cls,
     {
       d->server = NULL;
       if (GNUNET_YES == d->dead)
-        GNUNET_TESTING_daemon_stop (d, GNUNET_TIME_absolute_get_remaining(d->max_timeout), d->dead_cb, d->dead_cb_cls, GNUNET_YES);
+        GNUNET_TESTING_daemon_stop (d, GNUNET_TIME_absolute_get_remaining(d->max_timeout), d->dead_cb, d->dead_cb_cls, GNUNET_YES, GNUNET_NO);
       else if (NULL != cb)
         cb (d->cb_cls, NULL, d->cfg, d,
             _("Failed to connect to core service\n"));
@@ -141,7 +141,7 @@ testing_init (void *cls,
   d->server = server;
   d->running = GNUNET_YES;
   if (GNUNET_YES == d->dead)
-    GNUNET_TESTING_daemon_stop (d, GNUNET_TIME_absolute_get_remaining(d->max_timeout), d->dead_cb, d->dead_cb_cls, GNUNET_YES);
+    GNUNET_TESTING_daemon_stop (d, GNUNET_TIME_absolute_get_remaining(d->max_timeout), d->dead_cb, d->dead_cb_cls, GNUNET_YES, GNUNET_NO);
   else if (NULL != cb)
     cb (d->cb_cls, my_identity, d->cfg, d, NULL);
 #if DEBUG_TESTING
@@ -155,7 +155,7 @@ testing_init (void *cls,
   if (d->th == NULL)
     {
       if (GNUNET_YES == d->dead)
-        GNUNET_TESTING_daemon_stop (d, GNUNET_TIME_absolute_get_remaining(d->max_timeout), d->dead_cb, d->dead_cb_cls, GNUNET_YES);
+        GNUNET_TESTING_daemon_stop (d, GNUNET_TIME_absolute_get_remaining(d->max_timeout), d->dead_cb, d->dead_cb_cls, GNUNET_YES, GNUNET_NO);
       else if (NULL != d->cb)
         d->cb (d->cb_cls, &d->id, d->cfg, d,
             _("Failed to connect to transport service!\n"));
@@ -580,14 +580,19 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           d->th = NULL;
         }
       /* state clean up and notifications */
-      GNUNET_CONFIGURATION_destroy (d->cfg);
-      GNUNET_free (d->cfgfile);
+      if (d->churn == GNUNET_NO)
+        {
+          GNUNET_CONFIGURATION_destroy (d->cfg);
+          GNUNET_free (d->cfgfile);
+          GNUNET_free_non_null (d->hostname);
+          GNUNET_free_non_null (d->username);
+        }
+
       GNUNET_free_non_null(d->hello);
-      GNUNET_free_non_null (d->hostname);
-      GNUNET_free_non_null (d->username);
       GNUNET_free_non_null (d->shortname);
       if (NULL != d->dead_cb)
         d->dead_cb (d->dead_cb_cls, NULL);
+
       GNUNET_free (d);
       break;
     case SP_CONFIG_UPDATE:
@@ -641,6 +646,39 @@ GNUNET_TESTING_daemon_continue_startup(struct GNUNET_TESTING_Daemon *daemon)
 {
   GNUNET_assert(daemon->phase == SP_HOSTKEY_CREATED);
   daemon->phase = SP_TOPOLOGY_SETUP;
+}
+
+
+/**
+ * Start a peer that has previously been stopped using the daemon_stop
+ * call (and files weren't deleted and the allow restart flag)
+ *
+ * @param daemon the daemon to start (has been previously stopped)
+ * @param timeout how long to wait for restart
+ * @param cb the callback for notification when the peer is running
+ * @param cb_cls closure for the callback
+ */
+void
+GNUNET_TESTING_daemon_start_stopped (struct GNUNET_TESTING_Daemon *daemon,
+                                     struct GNUNET_TIME_Relative timeout,
+                                     GNUNET_TESTING_NotifyDaemonRunning cb,
+                                     void *cb_cls)
+{
+  if (daemon->running == GNUNET_YES)
+  {
+    cb(cb_cls, &daemon->id, daemon->cfg, daemon, "Daemon already running, can't restart!");
+    return;
+  }
+
+  daemon->cb = cb;
+  daemon->cb_cls = cb_cls;
+  daemon->phase = SP_TOPOLOGY_SETUP;
+  daemon->max_timeout = GNUNET_TIME_relative_to_absolute(timeout);
+
+  GNUNET_SCHEDULER_add_continuation (daemon->sched,
+                                     &start_fsm,
+                                     daemon,
+                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 /**
@@ -879,14 +917,15 @@ GNUNET_TESTING_daemon_restart (struct GNUNET_TESTING_Daemon *d,
  * @param cb function called once the daemon was stopped
  * @param cb_cls closure for cb
  * @param delete_files GNUNET_YES to remove files, GNUNET_NO
- *        to leave them (i.e. for restarting at a later time,
- *        or logfile inspection once finished)
+ *        to leave them
+ * @param allow_restart GNUNET_YES to restart peer later (using this API)
+ *        GNUNET_NO to kill off and clean up for good
  */
 void
 GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
                             struct GNUNET_TIME_Relative timeout,
                             GNUNET_TESTING_NotifyCompletion cb, void *cb_cls,
-                            int delete_files)
+                            int delete_files, int allow_restart)
 {
   char *arg;
   char *del_arg;
@@ -926,6 +965,16 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
 #endif
 
   d->phase = SP_SHUTDOWN_START;
+  d->running = GNUNET_NO;
+
+  if (allow_restart == GNUNET_YES)
+    d->churn = GNUNET_YES;
+  if (d->th != NULL)
+    {
+      GNUNET_TRANSPORT_get_hello_cancel(d->th, &process_hello, d);
+      GNUNET_TRANSPORT_disconnect(d->th);
+      d->th = NULL;
+    }
   /* Check if this is a local or remote process */
   if (NULL != d->hostname)
     {

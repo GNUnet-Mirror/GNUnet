@@ -2606,6 +2606,134 @@ void restart_callback (void *cls,
 
 }
 
+void
+churn_stop_callback (void *cls, const char *emsg)
+{
+
+}
+
+void
+churn_start_callback (void *cls,
+                      const struct GNUNET_PeerIdentity *id,
+                      const struct GNUNET_CONFIGURATION_Handle *cfg,
+                      struct GNUNET_TESTING_Daemon *d,
+                      const char *emsg)
+{
+
+}
+
+/**
+ * Context for handling churning a peer group
+ */
+struct ChurnContext
+{
+
+};
+
+/**
+ * Simulate churn by stopping some peers (and possibly
+ * re-starting others if churn is called multiple times).  This
+ * function can only be used to create leave-join churn (peers "never"
+ * leave for good).  First "voff" random peers that are currently
+ * online will be taken offline; then "von" random peers that are then
+ * offline will be put back online.  No notifications will be
+ * generated for any of these operations except for the callback upon
+ * completion.  Note that the implementation is at liberty to keep
+ * the ARM service itself (but none of the other services or daemons)
+ * running even though the "peer" is being varied offline.
+ *
+ * @param pg handle for the peer group
+ * @param voff number of peers that should go offline
+ * @param von number of peers that should come back online;
+ *            must be zero on first call (since "testbed_start"
+ *            always starts all of the peers)
+ * @param timeout how long to wait for operations to finish before
+ *        giving up
+ * @param cb function to call at the end
+ * @param cb_cls closure for cb
+ */
+void
+GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
+                              unsigned int voff,
+                              unsigned int von,
+                              struct GNUNET_TIME_Relative timeout,
+                              GNUNET_TESTING_NotifyCompletion cb,
+                              void *cb_cls)
+{
+  struct ChurnContext *churn_ctx;
+  unsigned int running;
+  unsigned int stopped;
+  unsigned int i;
+  unsigned int *running_arr;
+  unsigned int *stopped_arr;
+  unsigned int *running_permute;
+  unsigned int *stopped_permute;
+
+  running = 0;
+  stopped = 0;
+
+  for (i = 0; i < pg->total; i++)
+  {
+    if (pg->peers[i].daemon->running == GNUNET_YES)
+    {
+      running++;
+    }
+    else
+    {
+      stopped++;
+    }
+  }
+
+  if (voff > running)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Trying to stop more peers than are currently running!\n");
+    cb(cb_cls, "Trying to stop more peers than are currently running!");
+    return;
+  }
+
+  if (von > stopped)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Trying to start more peers than are currently stopped!\n");
+    cb(cb_cls, "Trying to start more peers than are currently stopped!");
+    return;
+  }
+
+  churn_ctx = GNUNET_malloc(sizeof(struct ChurnContext));
+  running_arr = GNUNET_malloc(running * sizeof(unsigned int));
+  stopped_arr = GNUNET_malloc(stopped * sizeof(unsigned int));
+  running_permute = GNUNET_CRYPTO_random_permute(GNUNET_CRYPTO_QUALITY_WEAK, running);
+  stopped_permute = GNUNET_CRYPTO_random_permute(GNUNET_CRYPTO_QUALITY_WEAK, stopped);
+
+  running = 0;
+  stopped = 0;
+
+  for (i = 0; i < pg->total; i++)
+  {
+    if (pg->peers[i].daemon->running == GNUNET_YES)
+    {
+      running_arr[running] = i;
+      running++;
+    }
+    else
+    {
+      stopped_arr[stopped] = i;
+      stopped++;
+    }
+  }
+
+  for (i = 0; i < voff; i++)
+  {
+    GNUNET_TESTING_daemon_stop(pg->peers[running_arr[running_permute[i]]].daemon, timeout, &churn_stop_callback, churn_ctx, GNUNET_NO, GNUNET_YES);
+  }
+
+  for (i = 0; i < von; i++)
+  {
+    GNUNET_TESTING_daemon_start_stopped(pg->peers[stopped_arr[stopped_permute[i]]].daemon, timeout, &churn_start_callback, churn_ctx);
+  }
+
+}
+
+
 /**
  * Restart all peers in the given group.
  *
@@ -2655,7 +2783,7 @@ GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg, struct GNUNET_
          as well... */
 
       if (NULL != pg->peers[off].daemon)
-        GNUNET_TESTING_daemon_stop (pg->peers[off].daemon, timeout, NULL, NULL, GNUNET_YES);
+        GNUNET_TESTING_daemon_stop (pg->peers[off].daemon, timeout, NULL, NULL, GNUNET_YES, GNUNET_NO);
       if (NULL != pg->peers[off].cfg)
         GNUNET_CONFIGURATION_destroy (pg->peers[off].cfg);
 
