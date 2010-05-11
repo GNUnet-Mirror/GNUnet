@@ -259,13 +259,15 @@ static int
 acceptPolicyCallback (void *cls,
                       const struct sockaddr *addr, socklen_t addr_len)
 {
-  if (addr->sa_family == AF_INET)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Incoming IPv4 connection \n");
-  if (addr->sa_family == AF_INET6)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Incoming IPv6 connection \n");
-
-
-
+  struct sockaddr_in * addrin =(struct sockaddr_in *) addr;
+  /* 40 == max IPv6 Address length as string: (4 * 8) + (7 * :) + \0 */
+  char * address = GNUNET_malloc(40);
+  inet_ntop(addrin->sin_family, &addrin->sin_addr.s_addr,address,40);
+  if (addrin->sin_family == AF_INET)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Incoming IPv4 connection from `%s'\n", address);
+  if (addrin->sin_family == AF_INET6)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Incoming IPv6 connection from `%s'\n",address);
+  GNUNET_free (address);
 
   return MHD_YES;
 }
