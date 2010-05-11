@@ -244,6 +244,7 @@ static struct Session * create_session_by_pi( const struct GNUNET_PeerIdentity *
   return cur;
 }
 
+#if 0
 /**
  * Creates a http session in our linked list by ip address
  * Only ip is set here, all other fields have to be set by calling method
@@ -270,6 +271,7 @@ static struct Session * create_session_by_ip ( struct sockaddr_in * addr )
 
   return cur;
 }
+#endif
 
 /**
  * Callback called by MHD when a connection is terminated
