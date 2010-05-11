@@ -57,6 +57,42 @@
 typedef int (*GNUNET_TESTING_ConnectionProcessor)
 (struct GNUNET_TESTING_PeerGroup *pg, unsigned int first, unsigned int second);
 
+/**
+ * Context for handling churning a peer group
+ */
+struct ChurnContext
+{
+  /**
+   * Callback used to notify of churning finished
+   */
+  GNUNET_TESTING_NotifyCompletion cb;
+
+  /**
+   * Closure for callback
+   */
+  void *cb_cls;
+
+  /**
+   * Number of peers that still need to be started
+   */
+  unsigned int num_to_start;
+
+  /**
+   * Number of peers that still need to be stopped
+   */
+  unsigned int num_to_stop;
+ 
+  /**
+   * Number of peers that failed to start
+   */
+  unsigned int num_failed_start;
+
+  /**
+   * Number of peers that failed to stop
+   */
+  unsigned int num_failed_stop;
+};
+
 struct RestartContext
 {
   /**
@@ -1208,6 +1244,18 @@ friend_file_iterator (void *cls,
   return GNUNET_YES;
 }
 
+struct BlacklistContext
+{
+  /*
+   * The (open) file handle to write to
+   */
+  FILE *temp_file_handle;
+
+  /*
+   * The transport that this peer will be blacklisted on.
+   */
+  char *transport;
+};
 
 /**
  * Iterator for writing blacklist data to appropriate files.
@@ -1223,14 +1271,15 @@ blacklist_file_iterator (void *cls,
                          const GNUNET_HashCode * key,
                          void *value)
 {
-  FILE *temp_blacklist_handle = cls;
+  struct BlacklistContext *blacklist_ctx = cls;
+  //FILE *temp_blacklist_handle = cls;
   struct GNUNET_TESTING_Daemon *peer = value;
   struct GNUNET_PeerIdentity *temppeer;
   struct GNUNET_CRYPTO_HashAsciiEncoded peer_enc;
 
   temppeer = &peer->id;
   GNUNET_CRYPTO_hash_to_enc(&temppeer->hashPubKey, &peer_enc);
-  fprintf(temp_blacklist_handle, "tcp:%s\n", (char *)&peer_enc);
+  fprintf(blacklist_ctx->temp_file_handle, "%s:%s\n", blacklist_ctx->transport, (char *)&peer_enc);
 
   return GNUNET_YES;
 }
@@ -1364,11 +1413,13 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
  * to the appropriate place.
  *
  * @param pg the peer group we are dealing with
+ * @param transports space delimited list of transports to blacklist
  */
 static int
-create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg)
+create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg, char *transports)
 {
-  FILE *temp_friend_handle;
+  FILE *temp_file_handle;
+  static struct BlacklistContext blacklist_ctx;
   unsigned int pg_iter;
   char *temp_service_path;
   pid_t *pidarr;
@@ -1379,16 +1430,42 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg)
   int count;
   int ret;
   int max_wait = 10;
+  int transport_len;
+  unsigned int i;
+  char *pos;
+  char *temp_transports;
 
   pidarr = GNUNET_malloc(sizeof(pid_t) * pg->total);
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
     {
       mytemp = GNUNET_DISK_mktemp("blacklist");
       GNUNET_assert(mytemp != NULL);
-      temp_friend_handle = fopen (mytemp, "wt");
-      GNUNET_assert(temp_friend_handle != NULL);
-      GNUNET_CONTAINER_multihashmap_iterate(pg->peers[pg_iter].blacklisted_peers, &blacklist_file_iterator, temp_friend_handle);
-      fclose(temp_friend_handle);
+      temp_file_handle = fopen (mytemp, "wt");
+      GNUNET_assert(temp_file_handle != NULL);
+      temp_transports = GNUNET_strdup(transports);
+      blacklist_ctx.temp_file_handle = temp_file_handle;
+      transport_len = strlen(temp_transports) + 1;
+      pos = NULL;
+
+      for (i = 0; i < transport_len; i++)
+      {
+        if ((temp_transports[i] == ' ') && (pos == NULL))
+          continue; /* At start of string (whitespace) */
+        else if ((temp_transports[i] == ' ') || (temp_transports[i] == '\0')) /* At end of string */
+        {
+          temp_transports[i] = '\0';
+          blacklist_ctx.transport = pos;
+          GNUNET_CONTAINER_multihashmap_iterate(pg->peers[pg_iter].blacklisted_peers, &blacklist_file_iterator, &blacklist_ctx);
+          pos = NULL;
+        } /* At beginning of actual string */
+        else if (pos == NULL)
+        {
+          pos = &temp_transports[i];
+        }
+      }
+
+      GNUNET_free_non_null(temp_transports);
+      fclose(temp_file_handle);
 
       if (GNUNET_OK !=
           GNUNET_CONFIGURATION_get_value_string(pg->peers[pg_iter].daemon->cfg, "PATHS", "SERVICEHOME", &temp_service_path))
@@ -1669,6 +1746,8 @@ connect_topology (struct GNUNET_TESTING_PeerGroup *pg)
  * @param topology which topology to connect the peers in
  * @param restrict_topology allow only direct TCP connections in this topology
  *                          use GNUNET_TESTING_TOPOLOGY_NONE for no restrictions
+ * @param restrict_transports space delimited list of transports to blacklist
+ *                            to create restricted topology
  *
  * @return the maximum number of connections were all allowed peers
  *         connected to each other
@@ -1676,7 +1755,8 @@ connect_topology (struct GNUNET_TESTING_PeerGroup *pg)
 int
 GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
                                 enum GNUNET_TESTING_Topology topology,
-                                enum GNUNET_TESTING_Topology restrict_topology)
+                                enum GNUNET_TESTING_Topology restrict_topology,
+                                char *restrict_transports)
 {
   int ret;
   int num_connections;
@@ -1847,9 +1927,9 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
       break;
     }
 
-  if (unblacklisted_connections > 0)
+  if ((unblacklisted_connections > 0) && (restrict_transports != NULL))
   {
-    ret = create_and_copy_blacklist_files(pg);
+    ret = create_and_copy_blacklist_files(pg, restrict_transports);
     if (ret != GNUNET_OK)
       {
 #if VERBOSE_TESTING
@@ -2606,12 +2686,55 @@ void restart_callback (void *cls,
 
 }
 
+/**
+ * Callback for informing us about a successful
+ * or unsuccessful churn stop call.
+ *
+ * @param cls a ChurnContext
+ * @param emsg NULL on success, non-NULL on failure
+ *
+ */
 void
 churn_stop_callback (void *cls, const char *emsg)
 {
+  struct ChurnContext *churn_ctx = cls;
+  unsigned int total_left;
+  char *error_message;
 
+  error_message = NULL;
+  if (emsg != NULL)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Churn stop callback failed with error `%s'\n", emsg);
+    churn_ctx->num_failed_stop++;
+  }
+  else
+  {
+    churn_ctx->num_to_stop--;
+  }
+
+  total_left = (churn_ctx->num_to_stop - churn_ctx->num_failed_stop) + (churn_ctx->num_to_start - churn_ctx->num_failed_start);
+
+  if (total_left == 0)
+  {
+    if ((churn_ctx->num_failed_stop > 0) || (churn_ctx->num_failed_start > 0))
+      GNUNET_asprintf(&error_message, "Churn didn't complete successfully, %u peers failed to start %u peers failed to be stopped!", churn_ctx->num_failed_start, churn_ctx->num_failed_stop);
+    churn_ctx->cb(churn_ctx->cb_cls, error_message);
+    GNUNET_free_non_null(error_message);
+    GNUNET_free(churn_ctx);
+  }
 }
 
+/**
+ * Callback for informing us about a successful
+ * or unsuccessful churn start call.
+ *
+ * @param cls a ChurnContext
+ * @param id the peer identity of the started peer
+ * @param cfg the handle to the configuration of the peer
+ * @param d handle to the daemon for the peer
+ * @param emsg NULL on success, non-NULL on failure
+ *
+ */
 void
 churn_start_callback (void *cls,
                       const struct GNUNET_PeerIdentity *id,
@@ -2619,16 +2742,33 @@ churn_start_callback (void *cls,
                       struct GNUNET_TESTING_Daemon *d,
                       const char *emsg)
 {
+  struct ChurnContext *churn_ctx = cls;
+  unsigned int total_left;
+  char *error_message;
+
+  error_message = NULL;
+  if (emsg != NULL)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Churn stop callback failed with error `%s'\n", emsg);
+    churn_ctx->num_failed_start++;
+  }
+  else
+  {
+    churn_ctx->num_to_start--;
+  }
+
+  total_left = (churn_ctx->num_to_stop - churn_ctx->num_failed_stop) + (churn_ctx->num_to_start - churn_ctx->num_failed_start);
+
+  if (total_left == 0)
+  {
+    if ((churn_ctx->num_failed_stop > 0) || (churn_ctx->num_failed_start > 0))
+      GNUNET_asprintf(&error_message, "Churn didn't complete successfully, %u peers failed to start %u peers failed to be stopped!", churn_ctx->num_failed_start, churn_ctx->num_failed_stop);
+    churn_ctx->cb(churn_ctx->cb_cls, error_message);
+    GNUNET_free_non_null(error_message);
+    GNUNET_free(churn_ctx);
+  }
 
 }
-
-/**
- * Context for handling churning a peer group
- */
-struct ChurnContext
-{
-
-};
 
 /**
  * Simulate churn by stopping some peers (and possibly
@@ -2638,9 +2778,7 @@ struct ChurnContext
  * online will be taken offline; then "von" random peers that are then
  * offline will be put back online.  No notifications will be
  * generated for any of these operations except for the callback upon
- * completion.  Note that the implementation is at liberty to keep
- * the ARM service itself (but none of the other services or daemons)
- * running even though the "peer" is being varied offline.
+ * completion.
  *
  * @param pg handle for the peer group
  * @param voff number of peers that should go offline
@@ -2707,6 +2845,11 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
   running = 0;
   stopped = 0;
 
+  churn_ctx->num_to_start = von;
+  churn_ctx->num_to_stop = voff;
+  churn_ctx->cb = cb;
+  churn_ctx->cb_cls = cb_cls;  
+
   for (i = 0; i < pg->total; i++)
   {
     if (pg->peers[i].daemon->running == GNUNET_YES)
@@ -2730,7 +2873,6 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
   {
     GNUNET_TESTING_daemon_start_stopped(pg->peers[stopped_arr[stopped_permute[i]]].daemon, timeout, &churn_start_callback, churn_ctx);
   }
-
 }
 
 
