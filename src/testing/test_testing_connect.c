@@ -69,14 +69,14 @@ static void
 end1_cb (void *cls, const char *emsg)
 {
   GNUNET_assert (emsg == NULL);
-  GNUNET_TESTING_daemon_stop (d2, TIMEOUT, &end2_cb, NULL, GNUNET_YES);
+  GNUNET_TESTING_daemon_stop (d2, TIMEOUT, &end2_cb, NULL, GNUNET_YES, GNUNET_NO);
   d2 = NULL;
 }
 
 static void
 finish_testing(void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
-  GNUNET_TESTING_daemon_stop (d1, TIMEOUT, &end1_cb, NULL, GNUNET_YES);
+  GNUNET_TESTING_daemon_stop (d1, TIMEOUT, &end1_cb, NULL, GNUNET_YES, GNUNET_NO);
   d1 = NULL;
 }
 
