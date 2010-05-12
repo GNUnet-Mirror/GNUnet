@@ -162,19 +162,6 @@ static int no_of_small_prime_numbers = DIM (small_prime_numbers) - 1;
   return mpz_sizeinbase (a, 2);
 }
 
-/**
- * Count the number of zerobits at the low end of A
- */
-static unsigned int
-get_trailing_zeros (mpz_t a)
-{
-  unsigned int count = 0;
-  unsigned int nbits = get_nbits (a);
-
-  while ((mpz_tstbit (a, count)) && (count < nbits))
-    count++;
-  return count;
-}
 
 /**
  * Set bit N of A. and clear all bits above
@@ -240,7 +227,7 @@ is_prime (mpz_t n, int steps, GNUNET_HashCode * hc)
 
   /* Find q and k, so that n = 1 + 2^k * q . */
   mpz_init_set (q, nminus1);
-  k = get_trailing_zeros (q);
+  k = mpz_scan0 (q, 0);
   mpz_tdiv_q_2exp (q, q, k);
 
   for (i = 0; i < steps; i++)
