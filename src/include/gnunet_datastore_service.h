@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2004, 2005, 2006, 2007, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2004, 2005, 2006, 2007, 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -80,7 +80,9 @@ void GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
  * operation.
  *
  * @param cls closure
- * @param success GNUNET_SYSERR on failure
+ * @param success GNUNET_SYSERR on failure, 
+ *                GNUNET_NO on timeout/queue drop
+ *                GNUNET_YES on success
  * @param msg NULL on success, otherwise an error message
  */
 typedef void (*GNUNET_DATASTORE_ContinuationWithStatus)(void *cls,
@@ -96,18 +98,23 @@ typedef void (*GNUNET_DATASTORE_ContinuationWithStatus)(void *cls,
  * @param h handle to the datastore
  * @param amount how much space (in bytes) should be reserved (for content only)
  * @param entries how many entries will be created (to calculate per-entry overhead)
+ * @param queue_priority ranking of this request in the priority queue
+ * @param max_queue_size at what queue size should this request be dropped
+ *        (if other requests of higher priority are in the queue)
+ * @param timeout how long to wait at most for a response (or before dying in queue)
  * @param cont continuation to call when done; "success" will be set to
  *             a positive reservation value if space could be reserved.
  * @param cont_cls closure for cont
- * @param timeout how long to wait at most for a response
  */
 void
 GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h,
 			  uint64_t amount,
 			  uint32_t entries,
+			  unsigned int queue_priority,
+			  unsigned int max_queue_size,
+			  struct GNUNET_TIME_Relative timeout,
 			  GNUNET_DATASTORE_ContinuationWithStatus cont,
-			  void *cont_cls,
-			  struct GNUNET_TIME_Relative timeout);
+			  void *cont_cls);
 
 
 /**
@@ -125,6 +132,9 @@ GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h,
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
  * @param expiration expiration time for the content
+ * @param queue_priority ranking of this request in the priority queue
+ * @param max_queue_size at what queue size should this request be dropped
+ *        (if other requests of higher priority are in the queue)
  * @param timeout timeout for the operation
  * @param cont continuation to call when done
  * @param cont_cls closure for cont
@@ -139,6 +149,8 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
                       uint32_t priority,
                       uint32_t anonymity,
                       struct GNUNET_TIME_Absolute expiration,
+		      unsigned int queue_priority,
+		      unsigned int max_queue_size,
                       struct GNUNET_TIME_Relative timeout,
 		      GNUNET_DATASTORE_ContinuationWithStatus cont,
 		      void *cont_cls);
@@ -152,16 +164,24 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
  * @param h handle to the datastore
  * @param rid reservation ID (value of "success" in original continuation
  *        from the "reserve" function).
+ * @param queue_priority ranking of this request in the priority queue
+ * @param max_queue_size at what queue size should this request be dropped
+ *        (if other requests of higher priority are in the queue)
+ * @param queue_priority ranking of this request in the priority queue
+ * @param max_queue_size at what queue size should this request be dropped
+ *        (if other requests of higher priority are in the queue)
+ * @param timeout how long to wait at most for a response
  * @param cont continuation to call when done
  * @param cont_cls closure for cont
- * @param timeout how long to wait at most for a response
  */
 void
 GNUNET_DATASTORE_release_reserve (struct GNUNET_DATASTORE_Handle *h,
 				  int rid,
+				  unsigned int queue_priority,
+				  unsigned int max_queue_size,
+				  struct GNUNET_TIME_Relative timeout,
 				  GNUNET_DATASTORE_ContinuationWithStatus cont,
-				  void *cont_cls,
-				  struct GNUNET_TIME_Relative timeout);
+				  void *cont_cls);
 
 
 /**
@@ -171,18 +191,23 @@ GNUNET_DATASTORE_release_reserve (struct GNUNET_DATASTORE_Handle *h,
  * @param uid identifier for the value
  * @param priority how much to increase the priority of the value
  * @param expiration new expiration value should be MAX of existing and this argument
+ * @param queue_priority ranking of this request in the priority queue
+ * @param max_queue_size at what queue size should this request be dropped
+ *        (if other requests of higher priority are in the queue)
+ * @param timeout how long to wait at most for a response
  * @param cont continuation to call when done
  * @param cont_cls closure for cont
- * @param timeout how long to wait at most for a response
  */
 void
 GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h,
 			 unsigned long long uid,
 			 uint32_t priority,
 			 struct GNUNET_TIME_Absolute expiration,
+			 unsigned int queue_priority,
+			 unsigned int max_queue_size,
+			 struct GNUNET_TIME_Relative timeout,
 			 GNUNET_DATASTORE_ContinuationWithStatus cont,
-			 void *cont_cls,
-			 struct GNUNET_TIME_Relative timeout);
+			 void *cont_cls);
 
 
 /**
@@ -220,18 +245,23 @@ typedef void (*GNUNET_DATASTORE_Iterator) (void *cls,
  * @param h handle to the datastore
  * @param key maybe NULL (to match all entries)
  * @param type desired type, 0 for any
+ * @param queue_priority ranking of this request in the priority queue
+ * @param max_queue_size at what queue size should this request be dropped
+ *        (if other requests of higher priority are in the queue)
+ * @param timeout how long to wait at most for a response
  * @param iter function to call on each matching value;
  *        will be called once with a NULL value at the end
  * @param iter_cls closure for iter
- * @param timeout how long to wait at most for a response
  */
 void
 GNUNET_DATASTORE_get (struct GNUNET_DATASTORE_Handle *h,
                       const GNUNET_HashCode * key,
 		      enum GNUNET_BLOCK_Type type,
+		      unsigned int queue_priority,
+		      unsigned int max_queue_size,
+		      struct GNUNET_TIME_Relative timeout,
                       GNUNET_DATASTORE_Iterator iter, 
-		      void *iter_cls,
-		      struct GNUNET_TIME_Relative timeout);
+		      void *iter_cls);
 
 
 /**
@@ -251,16 +281,22 @@ GNUNET_DATASTORE_get_next (struct GNUNET_DATASTORE_Handle *h,
  * Get a random value from the datastore.
  *
  * @param h handle to the datastore
+ * @param queue_priority ranking of this request in the priority queue
+ * @param max_queue_size at what queue size should this request be dropped
+ *        (if other requests of higher priority are in the queue)
+ * @param timeout how long to wait at most for a response
  * @param iter function to call on a random value; it
  *        will be called once with a value (if available)
  *        and always once with a value of NULL.
  * @param iter_cls closure for iter
- * @param timeout how long to wait at most for a response
  */
 void
 GNUNET_DATASTORE_get_random (struct GNUNET_DATASTORE_Handle *h,
-                             GNUNET_DATASTORE_Iterator iter, void *iter_cls,
-			     struct GNUNET_TIME_Relative timeout);
+			     unsigned int queue_priority,
+			     unsigned int max_queue_size,
+			     struct GNUNET_TIME_Relative timeout,
+                             GNUNET_DATASTORE_Iterator iter, 
+			     void *iter_cls);
 
 
 /**
@@ -274,17 +310,23 @@ GNUNET_DATASTORE_get_random (struct GNUNET_DATASTORE_Handle *h,
  * @param key key for the value
  * @param size number of bytes in data
  * @param data content stored
+ * @param queue_priority ranking of this request in the priority queue
+ * @param max_queue_size at what queue size should this request be dropped
+ *        (if other requests of higher priority are in the queue)
+ * @param timeout how long to wait at most for a response
  * @param cont continuation to call when done
  * @param cont_cls closure for cont
- * @param timeout how long to wait at most for a response
  */
 void
 GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
                          const GNUNET_HashCode *key,
-                         uint32_t size, const void *data,
+                         uint32_t size, 
+			 const void *data,
+			 unsigned int queue_priority,
+			 unsigned int max_queue_size,
+			 struct GNUNET_TIME_Relative timeout,
 			 GNUNET_DATASTORE_ContinuationWithStatus cont,
-			 void *cont_cls,
-			 struct GNUNET_TIME_Relative timeout);
+			 void *cont_cls);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

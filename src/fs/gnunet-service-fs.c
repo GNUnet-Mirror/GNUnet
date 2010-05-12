@@ -606,6 +606,10 @@ static struct ClientList *client_list;
  */
 static struct GNUNET_CORE_Handle *core;
 
+/**
+ * Are we allowed to migrate content to this peer.
+ */
+static int active_migration;
 
 /* ******************* clean up functions ************************ */
 
@@ -1998,6 +2002,24 @@ process_reply (void *cls,
 }
 
 
+
+/**
+ * Continuation called to notify client about result of the
+ * operation.
+ *
+ * @param cls closure
+ * @param success GNUNET_SYSERR on failure
+ * @param msg NULL on success, otherwise an error message
+ */
+static void 
+put_migration_continuation (void *cls,
+			    int success,
+			    const char *msg)
+{
+  /* FIXME */
+}
+
+
 /**
  * Handle P2P "PUT" message.
  *
@@ -2076,9 +2098,17 @@ handle_p2p_put (void *cls,
 					      &query,
 					      &process_reply,
 					      &prq);
-  // FIXME: if migration is on and load is low,
-  // queue to store data in datastore;
-  // use "prq.priority" for that!
+  if (GNUNET_YES == active_migration)
+    {
+      GNUNET_DATASTORE_put (NULL /* FIXME */,
+			    0, &query, dsize, &put[1],
+			    type, prq.priority, 1 /* anonymity */, 
+			    expiration, 
+			    0, 64 /* FIXME: use define */,
+			    GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+			    &put_migration_continuation, 
+			    NULL);
+    }
   return GNUNET_OK;
 }
 
@@ -2936,6 +2966,9 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  active_migration = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+							   "FS",
+							   "ACTIVEMIGRATION");
   if ( (GNUNET_OK != GNUNET_FS_drq_init (sched, cfg)) ||
        (GNUNET_OK != GNUNET_FS_indexing_init (sched, cfg)) ||
        (GNUNET_OK != main_init (sched, server, cfg)) )

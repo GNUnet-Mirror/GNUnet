@@ -218,9 +218,10 @@ unindex_process (void *cls,
 			   query,
 			   size,
 			   data,
+			   -2, 1,
+			   GNUNET_CONSTANTS_SERVICE_TIMEOUT,
 			   &process_cont,
-			   uc,
-			   GNUNET_CONSTANTS_SERVICE_TIMEOUT);
+			   uc);
 }
 
 

@@ -222,9 +222,10 @@ run_next_request (void *cls,
   GNUNET_DATASTORE_get (dsh, 
 			&gc->key,
 			gc->type, 
+			42 /* FIXME */, 64 /* FIXME */,
+			GNUNET_TIME_absolute_get_remaining(gc->timeout),
 			&get_iterator,
-			gc,
-			GNUNET_TIME_absolute_get_remaining(gc->timeout));
+			gc);
 }
 
 
@@ -508,8 +509,10 @@ GNUNET_FS_drq_remove (const GNUNET_HashCode *key,
   rc->cont_cls = cont_cls;
   rc->rmdsh = rmdsh;
   GNUNET_DATASTORE_remove (rmdsh, key, size, data,
+			   -3, 128,
+			   timeout,
 			   &drq_remove_cont, 
-			   rc, timeout);
+			   rc);
 }
 
 

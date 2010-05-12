@@ -80,9 +80,6 @@ enum GNUNET_BLOCK_Type
   };
 
 
-
-
-
 /**
  * @brief keyword block (advertising data under a keyword)
  */
@@ -109,6 +106,7 @@ struct KBlock
   /* variable-size Meta-Data follows here */
 
 };
+
 
 /**
  * @brief namespace content block (advertising data under an identifier in a namespace)
@@ -191,8 +189,6 @@ struct NBlock
   /* variable-size Meta-Data follows here */
 
 };
-
-
 
 
 /**

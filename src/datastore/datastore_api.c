@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2004, 2005, 2006, 2007, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2004, 2005, 2006, 2007, 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -29,6 +29,75 @@
 #include "datastore.h"
 
 /**
+ * Entry in our priority queue.
+ */
+struct QueueEntry
+{
+
+  /**
+   * This is a linked list.
+   */
+  struct QueueEntry *next;
+
+  /**
+   * This is a linked list.
+   */
+  struct QueueEntry *prev;
+
+  /**
+   * Handle to the master context.
+   */
+  struct GNUNET_DATASTORE_Handle *h;
+
+  /**
+   * Task for timeout signalling.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier task;
+
+  /**
+   * Timeout for the current operation.
+   */
+  struct GNUNET_TIME_Absolute timeout;
+
+  /**
+   * Priority in the queue.
+   */
+  unsigned int priority;
+
+  /**
+   * Maximum allowed length of queue (otherwise
+   * this request should be discarded).
+   */
+  unsigned int max_queue;
+
+  /**
+   * Number of bytes in the request message following
+   * this struct.
+   */
+  uint16_t message_size;
+
+  /**
+   * Has this message been transmitted to the service?
+   * Only ever GNUNET_YES for the head of the queue.
+   */
+  int16_t was_transmitted;
+
+  /**
+   * Response processor (NULL if we are not waiting for a response).
+   * This struct should be used for the closure, function-specific
+   * arguments can be passed via 'client_ctx'.
+   */
+  GNUNET_CLIENT_MessageHandler response_proc;
+  
+  /**
+   * Specific context (variable argument that
+   * can be used by the response processor).
+   */
+  void *client_ctx;
+
+};
+
+/**
  * Handle to the datastore service.  Followed
  * by 65536 bytes used for storing messages.
  */
@@ -51,27 +120,19 @@ struct GNUNET_DATASTORE_Handle
   struct GNUNET_CLIENT_Connection *client;
 
   /**
-   * Current response processor (NULL if we are not waiting for a
-   * response).  The specific type depends on the kind of message we
-   * just transmitted.
+   * Current head of priority queue.
    */
-  void *response_proc;
-  
-  /**
-   * Closure for response_proc.
-   */
-  void *response_proc_cls;
+  struct QueueEntry *queue_head;
 
   /**
-   * Timeout for the current operation.
+   * Current tail of priority queue.
    */
-  struct GNUNET_TIME_Absolute timeout;
+  struct QueueEntry *queue_tail;
 
   /**
-   * Number of bytes in the message following
-   * this struct, 0 if we have no request pending.
+   * Number of entries in the queue.
    */
-  size_t message_size;
+  unsigned int queue_size;
 
 };
 
@@ -84,12 +145,13 @@ struct GNUNET_DATASTORE_Handle
  * @param sched scheduler to use
  * @return handle to use to access the service
  */
-struct GNUNET_DATASTORE_Handle *GNUNET_DATASTORE_connect (const struct
-                                                          GNUNET_CONFIGURATION_Handle
-                                                          *cfg,
-                                                          struct
-                                                          GNUNET_SCHEDULER_Handle
-                                                          *sched)
+struct GNUNET_DATASTORE_Handle *
+GNUNET_DATASTORE_connect (const struct
+			  GNUNET_CONFIGURATION_Handle
+			  *cfg,
+			  struct
+			  GNUNET_SCHEDULER_Handle
+			  *sched)
 {
   struct GNUNET_CLIENT_Connection *c;
   struct GNUNET_DATASTORE_Handle *h;
@@ -108,10 +170,16 @@ struct GNUNET_DATASTORE_Handle *GNUNET_DATASTORE_connect (const struct
 
 /**
  * Transmit DROP message to datastore service.
+ *
+ * @param cls the 'struct GNUNET_DATASTORE_Handle'
+ * @param size number of bytes that can be copied to buf
+ * @param buf where to copy the drop message
+ * @return number of bytes written to buf
  */
 static size_t
 transmit_drop (void *cls,
-	       size_t size, void *buf)
+	       size_t size, 
+	       void *buf)
 {
   struct GNUNET_DATASTORE_Handle *h = cls;
   struct GNUNET_MessageHeader *hdr;
@@ -142,9 +210,20 @@ transmit_drop (void *cls,
 void GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
 				  int drop)
 {
+  struct QueueEntry *qe;
+
   if (h->client != NULL)
     GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
   h->client = NULL;
+  while (NULL != (qe = h->queue_head))
+    {
+      GNUNET_CONTAINER_DLL_remove (h->queue_head,
+				   h->queue_tail,
+				   qe);
+      if (NULL != qe->response_proc)
+	qe->response_proc (qe, NULL);
+      GNUNET_free (qe);
+    }
   if (GNUNET_YES == drop) 
     {
       h->client = GNUNET_CLIENT_connect (h->sched, "datastore", h->cfg);
@@ -166,6 +245,7 @@ void GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
 }
 
 
+#if 0
 /**
  * Type of a function to call when we receive a message
  * from the service.  This specific function is used
@@ -764,6 +844,6 @@ GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
   memcpy (&dm[1], data, size);
   transmit_for_status (h, cont, cont_cls, timeout);
 }
-
+#endif
 
 /* end of datastore_api.c */

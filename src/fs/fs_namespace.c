@@ -203,6 +203,7 @@ advertisement_cont (void *cls,
 			ac->priority,
 			ac->anonymity,
 			ac->expiration,
+			-2, 1,
 			GNUNET_CONSTANTS_SERVICE_TIMEOUT, 
 			&advertisement_cont,
 			ac);

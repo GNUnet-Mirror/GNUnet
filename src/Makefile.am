@@ -15,7 +15,6 @@ SUBDIRS = \
   hello \
   peerinfo \
   datacache \
-  datastore \
   template \
   transport \
   peerinfo-tool \
@@ -24,6 +23,5 @@ SUBDIRS = \
   testing \
   hostlist \
   topology \
-  $(NAT_DIR) \
-  fs \
-  migration
+  $(NAT_DIR) 
+
