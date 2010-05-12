@@ -186,9 +186,9 @@ do_delete (void *cls,
 			   &crc->key,
 			   crc->esize,
 			   crc->data,
+			   1, 1, TIMEOUT,
 			   &remove_next,
-			   crc,
-			   TIMEOUT);
+			   crc);
 }
 
 
@@ -275,16 +275,16 @@ run_continuation (void *cls,
 			    GNUNET_TIME_relative_to_absolute 
 			    (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
 							    GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 1000))),
-			    TIMEOUT,
+			    1, 1, TIMEOUT,
 			    &check_success, 
 			    crc);
       break;
     case RP_CUT:
       /* trim down below MAX_SIZE again */
       GNUNET_DATASTORE_get_random (datastore, 
+				   1, 1, TIMEOUT,
 				   &delete_value,
-				   crc,
-				   TIMEOUT);
+				   crc);
       break;
     case RP_REPORT:
       printf (

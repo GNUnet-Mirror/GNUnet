@@ -235,7 +235,7 @@ run_continuation (void *cls,
 			    get_priority (crc->i),
 			    get_anonymity (crc->i),
 			    get_expiration (crc->i),
-			    TIMEOUT,
+			    1, 1, TIMEOUT,
 			    &check_success,
 			    crc);
       crc->i++;
@@ -259,9 +259,9 @@ run_continuation (void *cls,
       GNUNET_DATASTORE_get (datastore, 
 			    &crc->key,
 			    get_type (crc->i),
+			    1, 1, TIMEOUT,
 			    &check_value,
-			    crc,
-			    TIMEOUT);
+			    crc);
       break;
     case RP_GET_FAIL:
 #if VERBOSE
@@ -274,9 +274,9 @@ run_continuation (void *cls,
       GNUNET_DATASTORE_get (datastore, 
 			    &crc->key,
 			    get_type (crc->i),
+			    1, 1, TIMEOUT,
 			    &check_nothing,
-			    crc,
-			    TIMEOUT);
+			    crc);
       break;
     case RP_DONE:
       GNUNET_assert (0 == crc->i);

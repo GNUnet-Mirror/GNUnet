@@ -355,7 +355,7 @@ run_continuation (void *cls,
 			    get_priority (crc->i),
 			    get_anonymity (crc->i),
 			    get_expiration (crc->i),
-			    TIMEOUT,
+			    1, 1, TIMEOUT,
 			    &check_success,
 			    crc);
       crc->i++;
@@ -374,9 +374,9 @@ run_continuation (void *cls,
       GNUNET_DATASTORE_get (datastore, 
 			    &crc->key,
 			    get_type (crc->i),
+			    1, 1, TIMEOUT,
 			    &check_value,
-			    crc,
-			    TIMEOUT);
+			    crc);
       break;
     case RP_DEL:
       crc->i--;
@@ -390,9 +390,9 @@ run_continuation (void *cls,
       GNUNET_DATASTORE_get (datastore, 
 			    &crc->key,
 			    get_type (crc->i),
+			    1, 1, TIMEOUT,
 			    &delete_value,
-			    crc,
-			    TIMEOUT);
+			    crc);
       break;
     case RP_DO_DEL:
 #if VERBOSE
@@ -414,9 +414,9 @@ run_continuation (void *cls,
 			       &crc->key,
 			       crc->size,
 			       crc->data,
+			       1, 1, TIMEOUT,
 			       &check_success,
-			       crc,
-			       TIMEOUT);
+			       crc);
       break;   
     case RP_DELVALIDATE:
       crc->i--;
@@ -430,18 +430,18 @@ run_continuation (void *cls,
       GNUNET_DATASTORE_get (datastore, 
 			    &crc->key,
 			    get_type (crc->i),
+			    1, 1, TIMEOUT,
 			    &check_nothing,
-			    crc,
-			    TIMEOUT);
+			    crc);
       break;
     case RP_RESERVE:
       crc->phase = RP_PUT_MULTIPLE;
       GNUNET_DATASTORE_reserve (datastore,
 				128*1024,
 				2,
+				1, 1, TIMEOUT,
 				&get_reserved,
-				crc,
-				TIMEOUT);
+				crc);
       break;
     case RP_PUT_MULTIPLE:
       crc->phase = RP_PUT_MULTIPLE_NEXT;
@@ -454,7 +454,7 @@ run_continuation (void *cls,
 			    get_priority (42),
 			    get_anonymity (42),
 			    get_expiration (42),
-			    TIMEOUT,
+			    1, 1, TIMEOUT,
 			    &check_success,
 			    crc);
       break;
@@ -469,7 +469,7 @@ run_continuation (void *cls,
 			    get_priority (43),
 			    get_anonymity (43),
 			    get_expiration (43),
-			    TIMEOUT,
+			    1, 1, TIMEOUT,
 			    &check_success,
 			    crc);
       break;
@@ -477,9 +477,9 @@ run_continuation (void *cls,
       GNUNET_DATASTORE_get (datastore,
 			    &crc->key, 
 			    get_type (42),
+			    1, 1, TIMEOUT,
 			    &check_multiple,
-			    crc,
-			    TIMEOUT);
+			    crc);
       break;
     case RP_GET_MULTIPLE_NEXT:
     case RP_GET_MULTIPLE_DONE:
@@ -492,17 +492,17 @@ run_continuation (void *cls,
 			       crc->uid,
 			       100,
 			       get_expiration (42),
+			       1, 1, TIMEOUT,
 			       &check_success,
-			       crc,
-			       TIMEOUT);
+			       crc);
       break;
     case RP_UPDATE_VALIDATE:
       GNUNET_DATASTORE_get (datastore,
 			    &crc->key, 
 			    get_type (42),
+			    1, 1, TIMEOUT,
 			    &check_update,
-			    crc,
-			    TIMEOUT);   
+			    crc);   
       break;
     case RP_UPDATE_DONE:
       GNUNET_assert (0);
