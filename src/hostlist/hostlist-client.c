@@ -1598,6 +1598,8 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
 void
 GNUNET_HOSTLIST_client_stop ()
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Hostlist client shutdown\n");
 #if DEBUG_HOSTLIST_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Hostlist client shutdown\n");
