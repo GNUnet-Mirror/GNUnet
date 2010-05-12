@@ -227,7 +227,7 @@ is_prime (mpz_t n, int steps, GNUNET_HashCode * hc)
 
   /* Find q and k, so that n = 1 + 2^k * q . */
   mpz_init_set (q, nminus1);
-  k = mpz_scan0 (q, 0);
+  k = mpz_scan1 (q, 0);
   mpz_tdiv_q_2exp (q, q, k);
 
   for (i = 0; i < steps; i++)
