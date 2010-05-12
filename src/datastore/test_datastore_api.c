@@ -109,7 +109,8 @@ enum RunPhase
     RP_GET_MULTIPLE_DONE,
     RP_UPDATE,
     RP_UPDATE_VALIDATE,
-    RP_UPDATE_DONE
+    RP_UPDATE_DONE,
+    RP_ERROR
   };
 
 
@@ -139,9 +140,13 @@ check_success (void *cls,
 {
   struct CpsRunContext *crc = cls;
   if (GNUNET_OK != success)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"%s\n", msg);
-  GNUNET_assert (GNUNET_OK == success);
+    {
+      ok = 42;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "%s\n", msg);
+      GNUNET_SCHEDULER_shutdown (crc->sched);
+      return;
+    }
   GNUNET_free_non_null (crc->data);
   crc->data = NULL;
   GNUNET_SCHEDULER_add_continuation (crc->sched,
@@ -221,7 +226,16 @@ delete_value (void *cls,
   struct CpsRunContext *crc = cls;
   if (key == NULL)
     {
-      crc->phase = RP_DO_DEL;
+      if (crc->data == NULL)
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      "Content not found!\n");
+	  crc->phase = RP_ERROR;
+	}
+      else
+	{
+	  crc->phase = RP_DO_DEL;
+	}
       GNUNET_SCHEDULER_add_continuation (crc->sched,
 					 &run_continuation,
 					 crc,
@@ -386,6 +400,7 @@ run_continuation (void *cls,
 		  "DEL",
 		  crc->i);
 #endif
+      crc->data = NULL;
       GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
       GNUNET_DATASTORE_get (datastore, 
 			    &crc->key,
@@ -515,6 +530,12 @@ run_continuation (void *cls,
       GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
       GNUNET_free (crc);
       ok = 0;
+      break;
+    case RP_ERROR:
+      GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
+      GNUNET_free (crc);
+      ok = 43;
+      break;
     }
 }
 

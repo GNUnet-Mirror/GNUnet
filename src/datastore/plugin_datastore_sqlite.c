@@ -258,11 +258,21 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
 		       "datastore-sqlite");
       return GNUNET_SYSERR;
     }
-  if (GNUNET_OK != GNUNET_DISK_directory_create_for_file (afsdir))
+  if (GNUNET_OK != GNUNET_DISK_file_test (afsdir))
     {
-      GNUNET_break (0);
-      GNUNET_free (afsdir);
-      return GNUNET_SYSERR;
+      if (GNUNET_OK != GNUNET_DISK_directory_create_for_file (afsdir))
+	{
+	  GNUNET_break (0);
+	  GNUNET_free (afsdir);
+	  return GNUNET_SYSERR;
+	}
+      /* database is new or got deleted, reset payload to zero! */
+      if (plugin->stat_get != NULL)
+	{
+	  GNUNET_STATISTICS_get_cancel (plugin->stat_get);
+	  plugin->stat_get = NULL;
+	}
+      plugin->payload = 0;
     }
   plugin->fn = GNUNET_STRINGS_to_utf8 (afsdir, strlen (afsdir),
 #ifdef ENABLE_NLS
@@ -779,6 +789,9 @@ sqlite_plugin_put (void *cls,
       LOG_SQLITE (plugin, msg,
                   GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "sqlite3_step");
       sqlite3_reset (stmt);
+      database_shutdown (plugin);
+      database_setup (plugin->env->cfg,
+		      plugin);
       return GNUNET_SYSERR;
     }
   if (SQLITE_OK != sqlite3_reset (stmt))
