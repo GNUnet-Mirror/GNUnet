@@ -168,7 +168,7 @@ struct Plugin *plugin;
 
 static CURLM *multi_handle;
 
-static struct sockaddr_in * current_ip;
+static struct sockaddr  * current_ip;
 
 /**
  * Finds a http session in our linked list using peer identity as a key
@@ -289,17 +289,29 @@ static int
 acceptPolicyCallback (void *cls,
                       const struct sockaddr *addr, socklen_t addr_len)
 {
-  struct sockaddr_in * addrin =(struct sockaddr_in *) addr;
-  /* 40 == max IPv6 Address length as string: (4 * 8) + (7 * :) + \0 */
-  char * address = GNUNET_malloc(40);
-  inet_ntop(addrin->sin_family, &addrin->sin_addr.s_addr,address,40);
-  memcpy( cls, addrin, sizeof (struct sockaddr_in) );
-  if (addrin->sin_family == AF_INET)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Incoming IPv4 connection from `%s'\n", address);
-  if (addrin->sin_family == AF_INET6)
+  struct sockaddr_in  *addrin;
+  struct sockaddr_in6 *addrin6;
+  char * address;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Address %p\n",current_ip);
+  if (addr->sa_family == AF_INET6)
+  {
+    address = GNUNET_malloc(INET6_ADDRSTRLEN);
+    addrin6 = (struct sockaddr_in6 *) addr;
+    inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr),address,INET6_ADDRSTRLEN);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Incoming IPv6 connection from `%s'\n",address);
-  GNUNET_free (address);
-
+    memcpy(current_ip,addr, sizeof (struct sockaddr));
+    //current_ip = addr;
+    GNUNET_free (address);
+  }
+  if (addr->sa_family == AF_INET)
+  {
+    address = GNUNET_malloc(INET_ADDRSTRLEN);
+    addrin = (struct sockaddr_in *) addr;
+    inet_ntop(addrin->sin_family, &(addrin->sin_addr),address,INET_ADDRSTRLEN);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Incoming IPv4 connection from `%s'\n",address);
+    memcpy(current_ip,addr, sizeof (struct sockaddr));
+    GNUNET_free (address);
+  }
   /* Every connection is accepted, nothing more to do here */
   return MHD_YES;
 }
@@ -323,12 +335,26 @@ accessHandlerCallback (void *cls,
 {
   struct Session * http_session;
   struct MHD_Response *response;
-  struct sockaddr_in * addrin = (struct sockaddr_in *) cls;
   http_session = *httpSessionCache;
-  char * address = GNUNET_malloc(40);
 
+  struct sockaddr *addr;
+  struct sockaddr_in  *addrin;
+  struct sockaddr_in6 *addrin6;
+  char * address;
 
-  inet_ntop(addrin->sin_family, &addrin->sin_addr.s_addr,address,40);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Address %p %u\n",current_ip,current_ip->sa_family);
+  if ( current_ip->sa_family == AF_INET)
+  {
+    address = GNUNET_malloc(INET_ADDRSTRLEN);
+    addrin = (struct sockaddr_in *) current_ip;
+    inet_ntop(addrin->sin_family, &(addrin->sin_addr),address,INET_ADDRSTRLEN);
+  }
+  if (current_ip->sa_family == AF_INET6)
+  {
+    address = GNUNET_malloc(INET6_ADDRSTRLEN);
+    addrin6 = (struct sockaddr_in6 *) current_ip;
+    inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr),address,INET6_ADDRSTRLEN);
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has an incoming `%s' request from `%s'\n",method, address);
 
@@ -713,7 +739,7 @@ libgnunet_plugin_transport_http_init (void *cls)
     }
 
   current_ip = GNUNET_malloc ( sizeof(struct sockaddr_in) );
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Address %p\n",current_ip);
   if ((http_daemon_v4 == NULL) && (http_daemon_v6 == NULL) && (port != 0))
     {
     http_daemon_v6 = MHD_start_daemon (MHD_USE_IPv6,
@@ -729,7 +755,7 @@ libgnunet_plugin_transport_http_init (void *cls)
     http_daemon_v4 = MHD_start_daemon (MHD_NO_FLAG,
                                        port,
                                        &acceptPolicyCallback,
-                                       NULL, &accessHandlerCallback, NULL,
+                                       current_ip, &accessHandlerCallback, current_ip,
                                        MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
                                        MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
                                        MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
