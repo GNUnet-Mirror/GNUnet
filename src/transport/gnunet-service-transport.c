@@ -39,9 +39,11 @@
 #include "plugin_transport.h"
 #include "transport.h"
 
-#define DEBUG_BLACKLIST GNUNET_YES
+#define DEBUG_BLACKLIST GNUNET_NO
 
-#define DEBUG_PING_PONG GNUNET_YES
+#define DEBUG_PING_PONG GNUNET_NO
+
+#define SIGN_USELESS GNUNET_NO
 
 /**
  * Should we do some additional checks (to validate behavior
@@ -93,7 +95,7 @@
  * Besides, if a single request to an address takes a long time,
  * then the peer is unlikely worthwhile anyway.
  */
-#define HELLO_VERIFICATION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+#define HELLO_VERIFICATION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
 /**
  * Priority to use for PONG messages.
@@ -937,7 +939,7 @@ is_blacklisted (const struct GNUNET_PeerIdentity *peer, struct TransportPlugin *
       if (GNUNET_CONTAINER_multihashmap_contains(plugin->blacklist, &peer->hashPubKey) == GNUNET_YES)
         {
 #if DEBUG_BLACKLIST
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Peer `%s:%s' is blacklisted!\n"),
                       plugin->short_name, GNUNET_i2s (peer));
 #endif
@@ -3242,6 +3244,8 @@ check_pending_validation (void *cls,
 
   if (ve->challenge != challenge)
     return GNUNET_YES;
+
+#if SIGN_USELESS
   if (GNUNET_OK !=
       GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PING,
 				&pong->purpose, 
@@ -3251,6 +3255,7 @@ check_pending_validation (void *cls,
       GNUNET_break_op (0);
       return GNUNET_YES;
     }
+#endif
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -3983,9 +3988,11 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
 	 sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
   if (sender_address != NULL)
     memcpy (&pong[1], sender_address, sender_address_len);
+#if SIGN_USELESS
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_rsa_sign (my_private_key,
                                          &pong->purpose, &pong->signature));
+#endif
   n = find_neighbour(peer);
   GNUNET_assert (n != NULL);
   /* first try reliable response transmission */
