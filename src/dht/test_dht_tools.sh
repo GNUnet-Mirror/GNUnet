@@ -1,6 +1,6 @@
 #!/bin/sh
 
-out=`mktemp /tmp/test-gnunet-arm-logXXXXXXXX`
+out=`mktemp /tmp/test-gnunet-dht-logXXXXXXXX`
 tempcfg=`mktemp /tmp/test_dht_api_peer1.XXXXXXXX`
 checkout="check.out"
 armexe="gnunet-arm -c $tempcfg "
@@ -13,8 +13,10 @@ stop_arm()
     echo "FAIL: error running $armexe"
     echo "Command output was:"
     cat $out
+    rm -f $out $tempcfg
     exit 1
   fi
+  rm -f $out $tempcfg
 }
 
 cp test_dht_api_peer1.conf $tempcfg
@@ -67,5 +69,4 @@ if ! diff -q $out $checkout ; then
   exit 1
 fi
 echo "PASS"
-
 stop_arm
