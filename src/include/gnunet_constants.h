@@ -63,6 +63,13 @@ extern "C"
 #define GNUNET_CONSTANTS_EXEC_WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 200)
 
 /**
+ * After how long do we retry a service connection that was 
+ * unavailable?  Used in cases where an exponential back-off
+ * seems inappropriate.
+ */
+#define GNUNET_CONSTANTS_SERVICE_RETRY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
+
+/**
  * After how long do we consider a service irresponsive
  * even if we assume that the service commonly does not
  * respond instantly (DNS, Database, etc.).

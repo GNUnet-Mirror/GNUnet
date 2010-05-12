@@ -753,7 +753,7 @@ createListeningSocket (struct sockaddr *sa,
  * @param cls callback data, not used
  * @param section configuration section
  * @param option configuration option
- * @param the option's value
+ * @param value the option's value
  */
 static void
 checkPortNumberCB (void *cls,
