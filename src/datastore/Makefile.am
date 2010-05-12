@@ -64,7 +64,7 @@ check_PROGRAMS = \
  perf_datastore_api \
  perf_plugin_datastore
 
-TESTS = $(check_PROGRAMS)
+#TESTS = $(check_PROGRAMS)
 
 test_datastore_api_SOURCES = \
  test_datastore_api.c
