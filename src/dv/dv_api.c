@@ -345,6 +345,10 @@ void handle_message_receipt (void *cls,
   GNUNET_HashCode uidhash;
   struct SendCallbackContext *send_ctx;
 
+#if DEBUG_DV
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "dv api receives message!\n");
+#endif
+
   if (msg == NULL)
   {
     return; /* Connection closed? */
@@ -474,8 +478,7 @@ int GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
   send_ctx = GNUNET_malloc(sizeof(struct SendCallbackContext));
 
   send_ctx->cont = cont;
-  if (cont == NULL)
-    fprintf(stderr, "DV_SEND called with null continuation!\n");
+
   send_ctx->cont_cls = cont_cls;
   memcpy(&send_ctx->target, target, sizeof(struct GNUNET_PeerIdentity));
 

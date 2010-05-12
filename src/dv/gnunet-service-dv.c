@@ -724,7 +724,7 @@ void send_to_plugin(const struct GNUNET_PeerIdentity * sender,
         }
       else
         {
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Failed to queue message for plugin, must be one in progress already!!\n");
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to queue message for plugin, must be one in progress already!!\n");
         }
     }
 }
@@ -754,7 +754,7 @@ size_t core_transmit_notify (void *cls,
     {
       /* client disconnected */
 #if DEBUG_DV
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "`%s': buffer was NULL\n", "DHT");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s': buffer was NULL\n", "DHT");
 #endif
       return 0;
     }
@@ -778,7 +778,6 @@ size_t core_transmit_notify (void *cls,
           GNUNET_free(reply->send_result);
 
           GNUNET_CONTAINER_DLL_insert_after(plugin_pending_head, plugin_pending_tail, plugin_pending_tail, client_reply);
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Queued client send receipt success message!\n");
           if (client_handle != NULL)
             {
               if (plugin_transmit_handle == NULL)
@@ -1031,7 +1030,7 @@ static int handle_dv_data_message (void *cls,
     {
 #if DEBUG_DV
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%s: unknown sender (%d), size of extended_peers is %d!\n", "dv", ntohl(incoming->sender), GNUNET_CONTAINER_multihashmap_size (ctx.extended_neighbors));
+                  "%s peer %s: unknown sender (%d)!\n", "DV SERVICE", GNUNET_i2s(&my_identity), ntohl(incoming->sender), GNUNET_CONTAINER_multihashmap_size (ctx.extended_neighbors));
 #endif
       /* unknown sender */
       return GNUNET_OK;
@@ -1125,7 +1124,7 @@ static int handle_dv_data_message (void *cls,
  */
 static void
 neighbor_send_task (void *cls,
-                      const struct GNUNET_SCHEDULER_TaskContext *tc)
+                    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct NeighborSendContext *send_context = cls;
 #if DEBUG_DV_GOSSIP_SEND
@@ -1187,7 +1186,7 @@ neighbor_send_task (void *cls,
 #if DEBUG_DV_GOSSIP_SEND
       encPeerAbout = GNUNET_strdup(GNUNET_i2s(&about->identity));
       encPeerTo = GNUNET_strdup(GNUNET_i2s(&to->identity));
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "%s: Sending info about peer %s to directly connected peer %s\n",
                   GNUNET_i2s(&my_identity),
                   encPeerAbout, encPeerTo);
@@ -1218,12 +1217,12 @@ neighbor_send_task (void *cls,
 
   if (send_context->fast_gossip_list_head != NULL) /* If there are other peers in the fast list, schedule right away */
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "DV SERVICE: still in fast send mode\n");
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV SERVICE: still in fast send mode\n");
       send_context->task = GNUNET_SCHEDULER_add_now(sched, &neighbor_send_task, send_context);
     }
   else
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "DV SERVICE: entering slow send mode\n");
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV SERVICE: entering slow send mode\n");
       send_context->task = GNUNET_SCHEDULER_add_delayed(sched, GNUNET_DV_DEFAULT_SEND_INTERVAL, &neighbor_send_task, send_context);
     }
 
@@ -1329,10 +1328,6 @@ void handle_dv_send_message (void *cls,
   GNUNET_assert(address_len == sizeof(struct GNUNET_PeerIdentity) * 2);
   message_size = ntohl(send_msg->msgbuf_size);
 
-#if 1
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "%s: Receives %s message size %u!\n\n\n", "dv", "SEND", message_size);
-#endif
   GNUNET_assert(ntohs(message->size) == sizeof(struct GNUNET_DV_SendMessage) + address_len + message_size);
   destination = GNUNET_malloc(sizeof(struct GNUNET_PeerIdentity));
   direct = GNUNET_malloc(sizeof(struct GNUNET_PeerIdentity));
@@ -1356,10 +1351,10 @@ void handle_dv_send_message (void *cls,
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s: asked to send message to `%s', but address is for `%s'!", "DV SERVICE", GNUNET_i2s(&send_msg->target), (const char *)&dest_hash.encoding);
     }
 
-#if 1
+#if DEBUG_DV
   GNUNET_CRYPTO_hash_to_enc (&destination->hashPubKey, &dest_hash); /* GNUNET_i2s won't properly work, need to hash one ourselves */
   dest_hash.encoding[4] = '\0';
-  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "DV SEND called with message of size %d type %d, destination `%s' via `%s'\n", message_size, ntohs(message_buf->type), (const char *)&dest_hash.encoding, GNUNET_i2s(direct));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV SEND called with message of size %d type %d, destination `%s' via `%s'\n", message_size, ntohs(message_buf->type), (const char *)&dest_hash.encoding, GNUNET_i2s(direct));
 #endif
   send_context = GNUNET_malloc(sizeof(struct DV_SendContext));
 
@@ -1823,10 +1818,9 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer, struct GNUNET_CRYPTO
                   "%s: Already know peer %s distance %d, referrer id %d!\n", "dv", GNUNET_i2s(peer), cost, referrer_peer_id);
 #endif
     }
-#if DEBUG_DV_GOSSIP
+#if DEBUG_DV
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%s: Size of extended_neighbors is %d\n", "dv", GNUNET_CONTAINER_multihashmap_size(ctx.extended_neighbors));
-    GNUNET_CONTAINER_multihashmap_iterate(ctx.extended_neighbors, &print_neighbors, NULL);
 #endif
   GNUNET_free(neighbor_update);
 
@@ -1999,7 +1993,6 @@ static int add_all_extended_peers (void *cls,
   if (memcmp(&send_context->toNeighbor->identity, &distant->identity, sizeof(struct GNUNET_PeerIdentity)) == 0)
     return GNUNET_YES; /* Don't gossip to a peer about itself! */
 
-  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "DV SERVICE: adding extended neighbor to fast send list\n");
 #if SUPPORT_HIDING
   if (distant->hidden == GNUNET_YES)
     return GNUNET_YES; /* This peer should not be gossipped about (hidden) */
@@ -2012,6 +2005,55 @@ static int add_all_extended_peers (void *cls,
                                     send_context->fast_gossip_list_tail,
                                     gossip_entry);
 
+  return GNUNET_YES;
+}
+
+
+/**
+ * Iterate over all current direct peers, add DISTANT newly connected
+ * peer to the fast gossip list for that peer so we get DV routing
+ * information out as fast as possible!
+ *
+ * @param cls the newly connected neighbor we will gossip about
+ * @param key the hashcode of the peer
+ * @param value the direct neighbor we should gossip to
+ *
+ * @return GNUNET_YES to continue iteration, GNUNET_NO otherwise
+ */
+static int add_distant_all_direct_neighbors (void *cls,
+                                     const GNUNET_HashCode * key,
+                                     void *value)
+{
+  struct DirectNeighbor *direct = (struct DirectNeighbor *)value;
+  struct DistantNeighbor *distant = (struct DistantNeighbor *)cls;
+  struct NeighborSendContext *send_context = direct->send_context;
+  struct FastGossipNeighborList *gossip_entry;
+
+  if (distant == NULL)
+    {
+      return GNUNET_YES;
+    }
+
+  if (memcmp(&direct->identity, &distant->identity, sizeof(struct GNUNET_PeerIdentity)) == 0)
+    {
+      return GNUNET_YES; /* Don't gossip to a peer about itself! */
+    }
+
+#if SUPPORT_HIDING
+  if (distant->hidden == GNUNET_YES)
+    return GNUNET_YES; /* This peer should not be gossipped about (hidden) */
+#endif
+  gossip_entry = GNUNET_malloc(sizeof(struct FastGossipNeighborList));
+  gossip_entry->about = distant;
+
+  GNUNET_CONTAINER_DLL_insert_after(send_context->fast_gossip_list_head,
+                                    send_context->fast_gossip_list_tail,
+                                    send_context->fast_gossip_list_tail,
+                                    gossip_entry);
+  if (send_context->task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(sched, send_context->task);
+
+  send_context->task = GNUNET_SCHEDULER_add_now(sched, &neighbor_send_task, send_context);
   return GNUNET_YES;
 }
 
@@ -2039,12 +2081,15 @@ static int add_all_direct_neighbors (void *cls,
 
   distant = GNUNET_CONTAINER_multihashmap_get(ctx.extended_neighbors, &to->identity.hashPubKey);
   if (distant == NULL)
-    return GNUNET_YES;
+    {
+      return GNUNET_YES;
+    }
 
   if (memcmp(&direct->identity, &to->identity, sizeof(struct GNUNET_PeerIdentity)) == 0)
-    return GNUNET_YES; /* Don't gossip to a peer about itself! */
+    {
+      return GNUNET_YES; /* Don't gossip to a peer about itself! */
+    }
 
-  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "DV SERVICE: adding new DISTANT neighbor to fast send list\n");
 #if SUPPORT_HIDING
   if (distant->hidden == GNUNET_YES)
     return GNUNET_YES; /* This peer should not be gossipped about (hidden) */
@@ -2147,7 +2192,7 @@ void handle_core_connect (void *cls,
   {
     about = GNUNET_CONTAINER_multihashmap_get(ctx.extended_neighbors, &peer->hashPubKey);
     if ((GNUNET_CONTAINER_multihashmap_get(ctx.direct_neighbors, &peer->hashPubKey) == NULL) && (about != NULL))
-      GNUNET_CONTAINER_multihashmap_iterate(ctx.direct_neighbors, &add_all_direct_neighbors, about);
+      GNUNET_CONTAINER_multihashmap_iterate(ctx.direct_neighbors, &add_distant_all_direct_neighbors, about);
 
 #if DEBUG_DV
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

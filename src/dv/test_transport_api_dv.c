@@ -55,13 +55,17 @@
 
 #define MTYPE 12345
 
+static int num_wanted = 2;
+
+static int num_received = 0;
+
 struct PeerContext
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_TRANSPORT_Handle *th;
   struct GNUNET_PeerIdentity id;
   const char *cfg_file;
-  const struct GNUNET_HELLO_Message *hello;
+  struct GNUNET_HELLO_Message *hello;
 #if START_ARM
   pid_t arm_pid;
 #endif
@@ -72,6 +76,8 @@ static struct PeerContext p1;
 static struct PeerContext p2;
 
 static struct PeerContext p3;
+
+static struct PeerContext p4;
 
 static struct GNUNET_SCHEDULER_Handle *sched;
 
@@ -91,15 +97,38 @@ end ()
 {
   /* do work here */
   GNUNET_SCHEDULER_cancel (sched, die_task);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transport 1!\n");
-  GNUNET_TRANSPORT_disconnect (p1.th);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transport 2!\n");
-  GNUNET_TRANSPORT_disconnect (p2.th);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transport 3!\n");
-  GNUNET_TRANSPORT_disconnect (p3.th);
+
+  if (p1.th != NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transport 1!\n");
+      GNUNET_TRANSPORT_disconnect (p1.th);
+      p1.th = NULL;
+    }
+
+  if (p2.th != NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transport 2!\n");
+      GNUNET_TRANSPORT_disconnect (p2.th);
+      p2.th = NULL;
+    }
+
+  if (p3.th != NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transport 3!\n");
+      GNUNET_TRANSPORT_disconnect (p3.th);
+      p3.th = NULL;
+    }
+
+  if (p4.th != NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transport 4!\n");
+      GNUNET_TRANSPORT_disconnect (p4.th);
+      p4.th = NULL;
+    }
 
   die_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transports disconnected, returning success!\n");
+  sleep(2);
   ok = 0;
 }
 
@@ -155,10 +184,30 @@ end_badly ()
   fprintf(stderr, "Ending on an unhappy note.\n");
 #endif
 
-  GNUNET_TRANSPORT_disconnect (p1.th);
-  GNUNET_TRANSPORT_disconnect (p2.th);
-  GNUNET_TRANSPORT_disconnect (p3.th);
+  if (p1.th != NULL)
+    {
+      GNUNET_TRANSPORT_disconnect (p1.th);
+      p1.th = NULL;
+    }
 
+  if (p2.th != NULL)
+    {
+      GNUNET_TRANSPORT_disconnect (p2.th);
+      p2.th = NULL;
+    }
+
+  if (p3.th != NULL)
+    {
+      GNUNET_TRANSPORT_disconnect (p3.th);
+      p3.th = NULL;
+    }
+
+  if (p4.th != NULL)
+    {
+      GNUNET_TRANSPORT_disconnect (p4.th);
+      p4.th = NULL;
+    }
+  sleep(2);
   ok = 1;
   return;
 }
@@ -170,17 +219,22 @@ notify_receive (void *cls,
                 struct GNUNET_TIME_Relative latency,
 		uint32_t distance)
 {
-
   if (ntohs(message->type) != MTYPE)
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received message of type %d from peer (%p) distance %d!\n",
-                ntohs(message->type), cls, distance);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received message of type %d from peer (%p) distance %d latency %u!\n",
+                ntohs(message->type), cls, distance, latency.value);
 
   GNUNET_assert (MTYPE == ntohs (message->type));
   GNUNET_assert (sizeof (struct GNUNET_MessageHeader) ==
                  ntohs (message->size));
-  end ();
+  num_received++;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %d of %d messages.\n", num_received, num_wanted);
+
+  if (num_wanted == num_received)
+    {
+      end ();
+    }
 }
 
 
@@ -221,6 +275,8 @@ notify_connect (void *cls,
     peer_num = 2;
   else if (cls == &p3)
     peer_num = 3;
+  else if (cls == &p4)
+    peer_num = 4;
 
   if (memcmp(peer, &p1.id, sizeof(struct GNUNET_PeerIdentity)) == 0)
     connect_num = 1;
@@ -228,18 +284,31 @@ notify_connect (void *cls,
     connect_num = 2;
   else if (memcmp(peer, &p3.id, sizeof(struct GNUNET_PeerIdentity)) == 0)
     connect_num = 3;
+  else if (memcmp(peer, &p4.id, sizeof(struct GNUNET_PeerIdentity)) == 0)
+    connect_num = 4;
+  else
+    connect_num = -1;
 
   if ((cls == &p1) && (memcmp(peer, &p3.id, sizeof(struct GNUNET_PeerIdentity)) == 0))
     {
-
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                 "Peer 1 notified about connection to peer 3, distance %u!\n", distance);
-
       GNUNET_TRANSPORT_notify_transmit_ready (p1.th,
 					      &p3.id,
 					      256, 0, TIMEOUT, &notify_ready,
 					      &p1);
     }
+
+  if ((cls == &p4) && (memcmp(peer, &p1.id, sizeof(struct GNUNET_PeerIdentity)) == 0))
+    {
+
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                 "Peer 4 notified about connection to peer 1, distance %u!\n", distance);
+
+      GNUNET_TRANSPORT_notify_transmit_ready (p4.th,
+                                              &p1.id,
+                                              256, 0, TIMEOUT, &notify_ready,
+                                              &p4);
+    }
+
   GNUNET_asprintf(&from_peer_str, "%s", GNUNET_i2s(&from_peer->id));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer `%d' %4s connected to peer `%d' %4s distance %d!\n", peer_num, from_peer_str, connect_num, GNUNET_i2s(peer), distance);
@@ -272,191 +341,230 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 }
 
 
-static void
-exchange_hello_last (void *cls,
-                const struct GNUNET_MessageHeader *message)
+static void blacklist_peer(struct GNUNET_DISK_FileHandle *file, struct PeerContext *peer)
 {
-  struct PeerContext *me = cls;
-
-  GNUNET_TRANSPORT_get_hello_cancel (p3.th, &exchange_hello_last, me);
-
-  GNUNET_assert (message != NULL);
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
-                                      message, &me->id));
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received HELLO size %d\n", GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message));
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Finished exchanging HELLOs, now waiting for transmission!\n");
-
-}
-
-
-static void
-exchange_hello_next (void *cls,
-                const struct GNUNET_MessageHeader *message)
-{
-  struct PeerContext *me = cls;
-
-  GNUNET_TRANSPORT_get_hello_cancel (p2.th, &exchange_hello_next, me);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Exchanging HELLO with peer (%p)!\n", cls);
-
-  GNUNET_assert (message != NULL);
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
-                                      message, &me->id));
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received HELLO size %d\n", GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message));
-
-  GNUNET_TRANSPORT_offer_hello (p3.th, message);
-
-  GNUNET_TRANSPORT_get_hello (p3.th, &exchange_hello_last, &p3);
-
-
-}
-
-
-static void
-exchange_hello (void *cls,
-                const struct GNUNET_MessageHeader *message)
-{
-  struct PeerContext *me = cls;
-
-  GNUNET_TRANSPORT_get_hello_cancel (p1.th, &exchange_hello, me);
-  p2.th = GNUNET_TRANSPORT_connect (sched, p2.cfg,
-                                    &p2,
-                                    &notify_receive,
-                                    &notify_connect, &notify_disconnect);
-
-  GNUNET_assert(p2.th != NULL);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Exchanging HELLO with peer (%p)!\n", cls);
-
-  GNUNET_assert (message != NULL);
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
-                                      message, &me->id));
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received HELLO size %d\n", GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message));
-
-  GNUNET_TRANSPORT_offer_hello (p2.th, message);
-  GNUNET_TRANSPORT_get_hello (p2.th, &exchange_hello_next, &p2);
-}
-
-static void
-blacklist_setup_third (void *cls,
-                const struct GNUNET_MessageHeader *message)
-{
-  struct PeerContext *me = cls;
-  char *blacklist_filename;
-  struct GNUNET_DISK_FileHandle *file;
   struct GNUNET_CRYPTO_HashAsciiEncoded peer_enc;
   char *buf;
   size_t size;
 
-  GNUNET_TRANSPORT_get_hello_cancel (p3.th, &blacklist_setup_third, &p3);
+  GNUNET_CRYPTO_hash_to_enc(&peer->id.hashPubKey, &peer_enc);
+  size = GNUNET_asprintf(&buf, "%s:%s\n", "tcp", (char *)&peer_enc);
+  GNUNET_DISK_file_write(file, buf, size);
+  GNUNET_free_non_null(buf);
+}
 
-  GNUNET_assert (message != NULL);
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
-                                      message, &me->id));
+static void
+setup_blacklists (void *cls,
+                  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  char *blacklist_filename;
+  struct GNUNET_DISK_FileHandle *file;
+  int i;
 
-  GNUNET_asprintf(&blacklist_filename, "/tmp/test-gnunetd-transport-peer-1/blacklist");
-  if (blacklist_filename != NULL)
+  for (i = 1; i <= 4; i++)
     {
-      file = GNUNET_DISK_file_open(blacklist_filename, GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_TRUNCATE | GNUNET_DISK_OPEN_CREATE,
-                                   GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
-      GNUNET_free(blacklist_filename);
-
-      if (file == NULL)
+      GNUNET_asprintf(&blacklist_filename, "/tmp/test-gnunetd-transport-peer-%d/blacklist", i);
+      if (blacklist_filename != NULL)
         {
-          GNUNET_SCHEDULER_cancel(sched, die_task);
-          GNUNET_SCHEDULER_add_now(sched, &end_badly, NULL);
-          return;
+          file = GNUNET_DISK_file_open(blacklist_filename, GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_TRUNCATE | GNUNET_DISK_OPEN_CREATE,
+                                       GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
+          GNUNET_free(blacklist_filename);
+
+          if (file == NULL)
+            {
+              GNUNET_SCHEDULER_cancel(sched, die_task);
+              GNUNET_SCHEDULER_add_now(sched, &end_badly, NULL);
+              return;
+            }
+          switch (i)
+          {
+            case 1:
+              blacklist_peer(file, &p3);
+              blacklist_peer(file, &p4);
+              break;
+            case 2:
+              blacklist_peer(file, &p4);
+              break;
+            case 3:
+              blacklist_peer(file, &p1);
+              break;
+            case 4:
+              blacklist_peer(file, &p1);
+              blacklist_peer(file, &p2);
+              break;
+          }
         }
-      GNUNET_CRYPTO_hash_to_enc(&me->id.hashPubKey, &peer_enc);
-      size = GNUNET_asprintf(&buf, "%s:%s\n", "tcp", (char *)&peer_enc);
-      GNUNET_DISK_file_write(file, buf, size);
-      GNUNET_free_non_null(buf);
     }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Restarting transport service (%p) with gnunet-arm -c %s -L DEBUG -k transport!\n", cls, p1.cfg_file);
+              "Disconnecting transports...\n");
 
+  if (p1.th != NULL)
+    {
+      GNUNET_TRANSPORT_disconnect (p1.th);
+      p1.th = NULL;
+    }
+
+  if (p2.th != NULL)
+    {
+      GNUNET_TRANSPORT_disconnect (p2.th);
+      p2.th = NULL;
+    }
+
+  if (p3.th != NULL)
+    {
+      GNUNET_TRANSPORT_disconnect (p3.th);
+      p3.th = NULL;
+    }
+
+  if (p4.th != NULL)
+    {
+      GNUNET_TRANSPORT_disconnect (p4.th);
+      p4.th = NULL;
+    }
+
+  sleep(1);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Restarting transport service (%p) with gnunet-arm -c %s -L DEBUG -k transport!\n", p1.arm_pid, p1.cfg_file);
   restart_transport(&p1);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Restarting transport service (%p) with gnunet-arm -c %s -L DEBUG -k transport!\n", p2.arm_pid, p2.cfg_file);
+  restart_transport(&p2);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Restarting transport service (%p) with gnunet-arm -c %s -L DEBUG -k transport!\n", p3.arm_pid, p3.cfg_file);
+  restart_transport(&p3);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Restarting transport service (%p) with gnunet-arm -c %s -L DEBUG -k transport!\n", p4.arm_pid, p4.cfg_file);
+  restart_transport(&p4);
 
   p1.th = GNUNET_TRANSPORT_connect (sched, p1.cfg,
                                     &p1,
                                     &notify_receive,
                                     &notify_connect, &notify_disconnect);
 
-  GNUNET_TRANSPORT_get_hello (p1.th, &exchange_hello, &p1);
+  p2.th = GNUNET_TRANSPORT_connect (sched, p2.cfg,
+                                    &p2,
+                                    &notify_receive,
+                                    &notify_connect, &notify_disconnect);
+
+  p3.th = GNUNET_TRANSPORT_connect (sched, p3.cfg,
+                                    &p3,
+                                    &notify_receive,
+                                    &notify_connect, &notify_disconnect);
+
+  p4.th = GNUNET_TRANSPORT_connect (sched, p4.cfg,
+                                    &p4,
+                                    &notify_receive,
+                                    &notify_connect, &notify_disconnect);
+  GNUNET_assert(p1.th != NULL);
+  GNUNET_assert(p2.th != NULL);
+  GNUNET_assert(p3.th != NULL);
+  GNUNET_assert(p4.th != NULL);
+
+  GNUNET_TRANSPORT_offer_hello (p1.th, GNUNET_HELLO_get_header(p2.hello));
+  GNUNET_TRANSPORT_offer_hello (p2.th, GNUNET_HELLO_get_header(p3.hello));
+  GNUNET_TRANSPORT_offer_hello (p3.th, GNUNET_HELLO_get_header(p4.hello));
+
 }
 
+
 static void
-blacklist_setup_first (void *cls,
+get_hello_fourth (void *cls,
                 const struct GNUNET_MessageHeader *message)
 {
   struct PeerContext *me = cls;
-  char *blacklist_filename;
-  struct GNUNET_DISK_FileHandle *file;
-  struct GNUNET_CRYPTO_HashAsciiEncoded peer_enc;
-  char *buf;
-  size_t size;
 
-  GNUNET_TRANSPORT_get_hello_cancel (p1.th, &blacklist_setup_first, me);
-  sleep(2);
+  GNUNET_TRANSPORT_get_hello_cancel (me->th, &get_hello_fourth, me);
 
   GNUNET_assert (message != NULL);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
                                       message, &me->id));
 
-  GNUNET_asprintf(&blacklist_filename, "/tmp/test-gnunetd-transport-peer-3/blacklist");
-  if (blacklist_filename != NULL)
-    {
-      file = GNUNET_DISK_file_open(blacklist_filename, GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_TRUNCATE | GNUNET_DISK_OPEN_CREATE,
-                                   GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
-      GNUNET_free(blacklist_filename);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received HELLO size %d\n", GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message));
 
-      if (file == NULL)
-        {
-          GNUNET_SCHEDULER_cancel(sched, die_task);
-          GNUNET_SCHEDULER_add_now(sched, &end_badly, NULL);
-          return;
-        }
-      GNUNET_CRYPTO_hash_to_enc(&me->id.hashPubKey, &peer_enc);
-      size = GNUNET_asprintf(&buf, "%s:%s\n", "tcp", (char *)&peer_enc);
-      GNUNET_DISK_file_write(file, buf, size);
-      GNUNET_free_non_null(buf);
-    }
-
-  GNUNET_TRANSPORT_disconnect(p1.th);
+  me->hello = GNUNET_malloc(GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message));
+  memcpy(me->hello, message, GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Restarting transport service (%p) with gnunet-arm -c %s -L DEBUG -k transport!\n", cls, p3.cfg_file);
-  restart_transport(&p3);
+              "All HELLO's received, setting up blacklists!\n");
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "reconnecting to transport (%p)!\n", cls);
-  p3.th = GNUNET_TRANSPORT_connect (sched, p3.cfg,
-                                    &p3,
-                                    &notify_receive,
-                                    &notify_connect, &notify_disconnect);
-  if (p3.th != NULL)
-    GNUNET_TRANSPORT_get_hello (p3.th, &blacklist_setup_third, &p3);
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "reconnecting to transport (%p) failed.!\n", cls);
-  //GNUNET_TRANSPORT_get_hello (p1.th, &exchange_hello, &p1);
+  GNUNET_SCHEDULER_add_now(sched, &setup_blacklists, NULL);
 }
 
+
+static void
+get_hello_third (void *cls,
+                const struct GNUNET_MessageHeader *message)
+{
+  struct PeerContext *me = cls;
+
+  GNUNET_TRANSPORT_get_hello_cancel (me->th, &get_hello_third, me);
+
+  GNUNET_assert (message != NULL);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
+                                      message, &me->id));
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received HELLO size %d\n", GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message));
+
+  me->hello = GNUNET_malloc(GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message));
+  memcpy(me->hello, message, GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message));
+
+  GNUNET_TRANSPORT_get_hello (p4.th, &get_hello_fourth, &p4);
+}
+
+
+static void
+get_hello_second (void *cls,
+                const struct GNUNET_MessageHeader *message)
+{
+  struct PeerContext *me = cls;
+
+  GNUNET_TRANSPORT_get_hello_cancel (me->th, &get_hello_second, me);
+
+  GNUNET_assert (message != NULL);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
+                                      message, &me->id));
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received HELLO size %d\n", GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message));
+
+  me->hello = GNUNET_malloc(GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message));
+  memcpy(me->hello, message, GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message));
+
+  GNUNET_TRANSPORT_get_hello (p3.th, &get_hello_third, &p3);
+}
+
+
+static void
+get_hello_first (void *cls,
+                const struct GNUNET_MessageHeader *message)
+{
+  struct PeerContext *me = cls;
+
+  GNUNET_TRANSPORT_get_hello_cancel (me->th, &get_hello_first, me);
+
+  GNUNET_assert (message != NULL);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
+                                      message, &me->id));
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received HELLO size %d\n", GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message));
+
+  me->hello = GNUNET_malloc(GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message));
+  memcpy(me->hello, message, GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message));
+
+  GNUNET_TRANSPORT_get_hello (p2.th, &get_hello_second, &p2);
+}
 
 static void
 run (void *cls,
@@ -474,16 +582,33 @@ run (void *cls,
   setup_peer (&p1, "test_transport_api_dv_peer1.conf");
   setup_peer (&p2, "test_transport_api_dv_peer2.conf");
   setup_peer (&p3, "test_transport_api_dv_peer3.conf");
+  setup_peer (&p4, "test_transport_api_dv_peer4.conf");
 
   p1.th = GNUNET_TRANSPORT_connect (sched, p1.cfg,
                                     &p1,
                                     &notify_receive,
                                     &notify_connect, &notify_disconnect);
-  GNUNET_assert(p1.th != NULL);
-  /*GNUNET_assert(p2.th != NULL);
-  GNUNET_assert(p3.th != NULL);*/
 
-  GNUNET_TRANSPORT_get_hello (p1.th, &blacklist_setup_first, &p1);
+  p2.th = GNUNET_TRANSPORT_connect (sched, p2.cfg,
+                                    &p2,
+                                    &notify_receive,
+                                    &notify_connect, &notify_disconnect);
+
+  p3.th = GNUNET_TRANSPORT_connect (sched, p3.cfg,
+                                    &p3,
+                                    &notify_receive,
+                                    &notify_connect, &notify_disconnect);
+
+  p4.th = GNUNET_TRANSPORT_connect (sched, p4.cfg,
+                                    &p4,
+                                    &notify_receive,
+                                    &notify_connect, &notify_disconnect);
+  GNUNET_assert(p1.th != NULL);
+  GNUNET_assert(p2.th != NULL);
+  GNUNET_assert(p3.th != NULL);
+  GNUNET_assert(p4.th != NULL);
+
+  GNUNET_TRANSPORT_get_hello (p1.th, &get_hello_first, &p1);
 }
 
 static int
@@ -510,6 +635,7 @@ check ()
   stop_arm (&p1);
   stop_arm (&p2);
   stop_arm (&p3);
+  stop_arm (&p4);
   return ok;
 }
 
@@ -533,7 +659,9 @@ main (int argc, char *argv[])
   GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-1");
   GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-2");
   GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-3");
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-4");
   return ret;
 }
 
 /* end of test_transport_api_dv.c */
+

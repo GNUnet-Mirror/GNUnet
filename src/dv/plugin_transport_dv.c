@@ -139,11 +139,6 @@ struct Plugin
   struct Session *sessions;
 
   /**
-   * Handle for the statistics service.
-   */
-  struct GNUNET_STATISTICS_Handle *statistics;
-
-  /**
    * Our server.
    */
   //struct GNUNET_SERVER_Handle *server;
@@ -243,10 +238,6 @@ dv_plugin_send (void *cls,
   int ret = 0;
   struct Plugin *plugin = cls;
 
-  /* FIXME: do we want the dv plugin to remember sent messages to call continuation once message actually goes out?
-   * Or do we just call the continuation once we've notified the plugin?
-   */
-  // FIXME: does it make sense for us to use sessions?
 #if DEBUG_DV
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV API: Received send request from transport, calling GNUNET_DV_send\n");
 #endif
@@ -390,7 +381,6 @@ libgnunet_plugin_transport_dv_init (void *cls)
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
-  plugin->statistics = NULL;
   //plugin->service = service;
   //plugin->server = GNUNET_SERVICE_get_server (service);
 
