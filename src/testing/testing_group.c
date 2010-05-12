@@ -2880,7 +2880,6 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
  * Restart all peers in the given group.
  *
  * @param pg the handle to the peer group
- * @param timeout how long to wait on failure
  * @param callback function to call on completion (or failure)
  * @param callback_cls closure for the callback function
  */
