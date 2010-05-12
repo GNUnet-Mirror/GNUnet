@@ -702,6 +702,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (coreAPI != NULL)
     GNUNET_CORE_disconnect (coreAPI);
+  if (datacache != NULL)
+    GNUNET_DATACACHE_destroy (datacache);
 }
 
 
