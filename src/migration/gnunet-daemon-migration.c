@@ -228,9 +228,10 @@ get_content (void *cls,
 {
   get_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_DATASTORE_get_random (datastore,
+			       0, 1,
+			       GNUNET_CONSTANTS_SERVICE_TIMEOUT,
 			       &content_processor,
-			       NULL,
-			       GNUNET_CONSTANTS_SERVICE_TIMEOUT);
+			       NULL);
 }
 
 
