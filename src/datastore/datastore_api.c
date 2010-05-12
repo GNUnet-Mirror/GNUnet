@@ -289,16 +289,10 @@ timeout_queue_entry (void *cls,
 		     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct QueueEntry *qe = cls;
-  struct GNUNET_DATASTORE_Handle *h = qe->h;
 
   qe->task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (qe->was_transmitted == GNUNET_NO);
-  GNUNET_CONTAINER_DLL_remove (h->queue_head,
-			       h->queue_tail,
-			       qe);
-  if (qe->response_proc != NULL)
-    qe->response_proc (qe, NULL);
-  GNUNET_free (qe);
+  qe->response_proc (qe, NULL);
 }
 
 
