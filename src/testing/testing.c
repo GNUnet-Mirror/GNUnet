@@ -38,7 +38,7 @@
 #include "gnunet_hello_lib.h"
 
 #define DEBUG_TESTING GNUNET_NO
-#define DEBUG_TESTING_RECONNECT GNUNET_YES
+#define DEBUG_TESTING_RECONNECT GNUNET_NO
 
 /**
  * How long do we wait after starting gnunet-service-arm
@@ -544,6 +544,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               return;
             }
           /* wait some more */
+          fprintf(stderr, "scheduling in shutdown_start\n");
           d->task
             = GNUNET_SCHEDULER_add_delayed (d->sched,
                                             GNUNET_CONSTANTS_EXEC_WAIT,
@@ -589,11 +590,15 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         }
 
       GNUNET_free_non_null(d->hello);
+      d->hello = NULL;
       GNUNET_free_non_null (d->shortname);
+      d->shortname = NULL;
       if (NULL != d->dead_cb)
         d->dead_cb (d->dead_cb_cls, NULL);
 
-      GNUNET_free (d);
+      if (d->churn == GNUNET_NO)
+        GNUNET_free (d);
+
       break;
     case SP_CONFIG_UPDATE:
       /* confirm copying complete */
@@ -969,6 +974,7 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
 
   if (allow_restart == GNUNET_YES)
     d->churn = GNUNET_YES;
+
   if (d->th != NULL)
     {
       GNUNET_TRANSPORT_get_hello_cancel(d->th, &process_hello, d);
@@ -1014,10 +1020,10 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
 
   GNUNET_free_non_null(del_arg);
   d->max_timeout = GNUNET_TIME_relative_to_absolute(timeout);
+  fprintf(stderr, "scheduling shutdown fsm phase\n");
   d->task
-    = GNUNET_SCHEDULER_add_delayed (d->sched,
-                                    GNUNET_CONSTANTS_EXEC_WAIT,
-                                    &start_fsm, d);
+    = GNUNET_SCHEDULER_add_now (d->sched,
+                                &start_fsm, d);
 }
 
 
@@ -1407,7 +1413,7 @@ reattempt_daemons_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
       return;
     }
 #if DEBUG_TESTING_RECONNECT
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "re-attempting connect of peer %s to peer %s\n",
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "re-attempting connect of peer %s to peer %s\n",
               ctx->d1->shortname, ctx->d2->shortname);
 #endif
 

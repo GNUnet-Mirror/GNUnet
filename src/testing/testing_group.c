@@ -29,6 +29,8 @@
 
 #define VERBOSE_TESTING GNUNET_NO
 
+#define DEBUG_CHURN GNUNET_NO
+
 /**
  * Lowest port used for GNUnet testing.  Should be high enough to not
  * conflict with other applications running on the hosts but be low
@@ -2712,12 +2714,17 @@ churn_stop_callback (void *cls, const char *emsg)
     churn_ctx->num_to_stop--;
   }
 
+#if DEBUG_CHURN
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Stopped peer, %d left.\n", churn_ctx->num_to_stop);
+#endif
   total_left = (churn_ctx->num_to_stop - churn_ctx->num_failed_stop) + (churn_ctx->num_to_start - churn_ctx->num_failed_start);
 
   if (total_left == 0)
   {
     if ((churn_ctx->num_failed_stop > 0) || (churn_ctx->num_failed_start > 0))
-      GNUNET_asprintf(&error_message, "Churn didn't complete successfully, %u peers failed to start %u peers failed to be stopped!", churn_ctx->num_failed_start, churn_ctx->num_failed_stop);
+      {
+        GNUNET_asprintf(&error_message, "Churn didn't complete successfully, %u peers failed to start %u peers failed to be stopped!", churn_ctx->num_failed_start, churn_ctx->num_failed_stop);
+      }
     churn_ctx->cb(churn_ctx->cb_cls, error_message);
     GNUNET_free_non_null(error_message);
     GNUNET_free(churn_ctx);
@@ -2756,6 +2763,10 @@ churn_start_callback (void *cls,
   {
     churn_ctx->num_to_start--;
   }
+
+#if DEBUG_CHURN
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Started peer, %d left.\n", churn_ctx->num_to_start);
+#endif
 
   total_left = (churn_ctx->num_to_stop - churn_ctx->num_failed_stop) + (churn_ctx->num_to_start - churn_ctx->num_failed_start);
 
@@ -2810,6 +2821,12 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
   running = 0;
   stopped = 0;
 
+  if ((von == 0) && (voff == 0)) /* No peers at all? */
+    {
+      cb(cb_cls, NULL);
+      return;
+    }
+
   for (i = 0; i < pg->total; i++)
   {
     if (pg->peers[i].daemon->running == GNUNET_YES)
@@ -2839,8 +2856,14 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
   churn_ctx = GNUNET_malloc(sizeof(struct ChurnContext));
   running_arr = GNUNET_malloc(running * sizeof(unsigned int));
   stopped_arr = GNUNET_malloc(stopped * sizeof(unsigned int));
-  running_permute = GNUNET_CRYPTO_random_permute(GNUNET_CRYPTO_QUALITY_WEAK, running);
-  stopped_permute = GNUNET_CRYPTO_random_permute(GNUNET_CRYPTO_QUALITY_WEAK, stopped);
+
+  running_permute = NULL;
+  stopped_permute = NULL;
+
+  if (running > 0)
+    running_permute = GNUNET_CRYPTO_random_permute(GNUNET_CRYPTO_QUALITY_WEAK, running);
+  if (stopped > 0)
+    stopped_permute = GNUNET_CRYPTO_random_permute(GNUNET_CRYPTO_QUALITY_WEAK, stopped);
 
   running = 0;
   stopped = 0;
@@ -2866,13 +2889,24 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
 
   for (i = 0; i < voff; i++)
   {
+#if DEBUG_CHURN
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Stopping peer %d!\n", running_permute[i]);
+#endif
     GNUNET_TESTING_daemon_stop(pg->peers[running_arr[running_permute[i]]].daemon, timeout, &churn_stop_callback, churn_ctx, GNUNET_NO, GNUNET_YES);
   }
 
   for (i = 0; i < von; i++)
   {
+#if DEBUG_CHURN
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Starting up peer %d!\n", stopped_permute[i]);
+#endif
     GNUNET_TESTING_daemon_start_stopped(pg->peers[stopped_arr[stopped_permute[i]]].daemon, timeout, &churn_start_callback, churn_ctx);
   }
+
+  GNUNET_free(running_arr);
+  GNUNET_free(stopped_arr);
+  GNUNET_free_non_null(running_permute);
+  GNUNET_free_non_null(stopped_permute);
 }
 
 
