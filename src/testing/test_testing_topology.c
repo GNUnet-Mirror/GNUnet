@@ -174,7 +174,7 @@ finish_testing ()
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "transmit_ready's scheduled %d, failed %d, transmit_ready's called %d\n", transmit_ready_scheduled, transmit_ready_failed, transmit_ready_called);
 #endif
-  sleep(1);
+
 #if VERBOSE
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Calling daemons_stop\n");
@@ -492,7 +492,8 @@ topology_callback (void *cls,
 
       GNUNET_SCHEDULER_cancel (sched, die_task);
       die_task = GNUNET_SCHEDULER_NO_TASK;
-      GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1), &send_test_messages, test_messages);
+      GNUNET_SCHEDULER_add_now (sched, &send_test_messages, test_messages);
+      //GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1), &send_test_messages, test_messages);
     }
   else if (total_connections + failed_connections == expected_connections)
     {
@@ -500,7 +501,8 @@ topology_callback (void *cls,
         {
           GNUNET_SCHEDULER_cancel (sched, die_task);
           die_task = GNUNET_SCHEDULER_NO_TASK;
-          GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1), &send_test_messages, test_messages);
+          GNUNET_SCHEDULER_add_now (sched, &send_test_messages, test_messages);
+          //GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1), &send_test_messages, test_messages);
         }
       else
         {
@@ -601,6 +603,7 @@ peers_started_callback (void *cls,
                                                GNUNET_TIME_relative_multiply
                                                (GNUNET_TIME_UNIT_MINUTES, 5),
                                                &end_badly, "from peers_started_callback");
+
       connect_topology ();
       ok = 0;
     }
@@ -710,8 +713,9 @@ run (void *cls,
       }
     }
 
-  GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "blacklist_transports",
-                                         &blacklist_transports);
+  if (GNUNET_YES != GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "blacklist_transports",
+                                         &blacklist_transports))
+    blacklist_transports = NULL;
 
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "blacklist_topology",
