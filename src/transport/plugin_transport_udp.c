@@ -266,7 +266,6 @@ udp_plugin_send (void *cls,
   struct UDPMessage *message;
   int ssize;
   ssize_t sent;
-  int af;
   const void *sb;
   size_t sbs;
   struct sockaddr_in a4;
@@ -290,7 +289,6 @@ udp_plugin_send (void *cls,
   if (addrlen == sizeof (struct IPv6UdpAddress))
     {
       t6 = addr;
-      af = AF_INET6;
       memset (&a6, 0, sizeof (a6));
 #if HAVE_SOCKADDR_IN_SIN_LEN
       a6.sin6_len = sizeof (a6);
@@ -306,7 +304,6 @@ udp_plugin_send (void *cls,
   else if (addrlen == sizeof (struct IPv4UdpAddress))
     {
       t4 = addr;
-      af = AF_INET;
       memset (&a4, 0, sizeof (a4));
 #if HAVE_SOCKADDR_IN_SIN_LEN
       a4.sin_len = sizeof (a4);
@@ -775,14 +772,12 @@ udp_plugin_address_pretty_printer (void *cls,
   struct sockaddr_in6 a6;
   const struct IPv4UdpAddress *t4;
   const struct IPv6UdpAddress *t6;
-  int af;
   size_t sbs;
   uint16_t port;
 
   if (addrlen == sizeof (struct IPv6UdpAddress))
     {
       t6 = addr;
-      af = AF_INET6;
       memset (&a6, 0, sizeof (a6));
       a6.sin6_family = AF_INET6;
       a6.sin6_port = t6->u6_port;
@@ -796,7 +791,6 @@ udp_plugin_address_pretty_printer (void *cls,
   else if (addrlen == sizeof (struct IPv4UdpAddress))
     {
       t4 = addr;
-      af = AF_INET;
       memset (&a4, 0, sizeof (a4));
       a4.sin_family = AF_INET;
       a4.sin_port = t4->u_port;

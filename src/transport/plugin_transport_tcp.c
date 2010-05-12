@@ -1075,13 +1075,11 @@ tcp_plugin_address_pretty_printer (void *cls,
   struct sockaddr_in6 a6;
   const struct IPv4TcpAddress *t4;
   const struct IPv6TcpAddress *t6;
-  int af;
   uint16_t port;
 
   if (addrlen == sizeof (struct IPv6TcpAddress))
     {
       t6 = addr;
-      af = AF_INET6;
       memset (&a6, 0, sizeof (a6));
       a6.sin6_family = AF_INET6;
       a6.sin6_port = t6->t6_port;
@@ -1095,7 +1093,6 @@ tcp_plugin_address_pretty_printer (void *cls,
   else if (addrlen == sizeof (struct IPv4TcpAddress))
     {
       t4 = addr;
-      af = AF_INET;
       memset (&a4, 0, sizeof (a4));
       a4.sin_family = AF_INET;
       a4.sin_port = t4->t_port;
