@@ -15,6 +15,7 @@ SUBDIRS = \
   hello \
   peerinfo \
   datacache \
+  datastore \
   template \
   transport \
   peerinfo-tool \
