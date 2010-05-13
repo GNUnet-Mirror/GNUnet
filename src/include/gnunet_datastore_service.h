@@ -105,8 +105,11 @@ typedef void (*GNUNET_DATASTORE_ContinuationWithStatus)(void *cls,
  * @param cont continuation to call when done; "success" will be set to
  *             a positive reservation value if space could be reserved.
  * @param cont_cls closure for cont
+ * @return NULL if the entry was not queued, otherwise a handle that can be used to
+ *         cancel; note that even if NULL is returned, the callback will be invoked
+ *         (or rather, will already have been invoked)
  */
-void
+struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h,
 			  uint64_t amount,
 			  uint32_t entries,
@@ -138,8 +141,11 @@ GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h,
  * @param timeout timeout for the operation
  * @param cont continuation to call when done
  * @param cont_cls closure for cont
+ * @return NULL if the entry was not queued, otherwise a handle that can be used to
+ *         cancel; note that even if NULL is returned, the callback will be invoked
+ *         (or rather, will already have been invoked)
  */
-void
+struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
 		      int rid,
                       const GNUNET_HashCode * key,
@@ -173,8 +179,11 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
  * @param timeout how long to wait at most for a response
  * @param cont continuation to call when done
  * @param cont_cls closure for cont
+ * @return NULL if the entry was not queued, otherwise a handle that can be used to
+ *         cancel; note that even if NULL is returned, the callback will be invoked
+ *         (or rather, will already have been invoked)
  */
-void
+struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_release_reserve (struct GNUNET_DATASTORE_Handle *h,
 				  int rid,
 				  unsigned int queue_priority,
@@ -197,8 +206,11 @@ GNUNET_DATASTORE_release_reserve (struct GNUNET_DATASTORE_Handle *h,
  * @param timeout how long to wait at most for a response
  * @param cont continuation to call when done
  * @param cont_cls closure for cont
+ * @return NULL if the entry was not queued, otherwise a handle that can be used to
+ *         cancel; note that even if NULL is returned, the callback will be invoked
+ *         (or rather, will already have been invoked)
  */
-void
+struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h,
 			 unsigned long long uid,
 			 uint32_t priority,
@@ -227,8 +239,11 @@ GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h,
  * @param timeout how long to wait at most for a response
  * @param cont continuation to call when done
  * @param cont_cls closure for cont
+ * @return NULL if the entry was not queued, otherwise a handle that can be used to
+ *         cancel; note that even if NULL is returned, the callback will be invoked
+ *         (or rather, will already have been invoked)
  */
-void
+struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
                          const GNUNET_HashCode *key,
                          uint32_t size, 
@@ -282,8 +297,11 @@ typedef void (*GNUNET_DATASTORE_Iterator) (void *cls,
  * @param iter function to call on each matching value;
  *        will be called once with a NULL value at the end
  * @param iter_cls closure for iter
+ * @return NULL if the entry was not queued, otherwise a handle that can be used to
+ *         cancel; note that even if NULL is returned, the callback will be invoked
+ *         (or rather, will already have been invoked)
  */
-void
+struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_get (struct GNUNET_DATASTORE_Handle *h,
                       const GNUNET_HashCode * key,
 		      enum GNUNET_BLOCK_Type type,
@@ -319,8 +337,11 @@ GNUNET_DATASTORE_get_next (struct GNUNET_DATASTORE_Handle *h,
  *        will be called once with a value (if available)
  *        and always once with a value of NULL.
  * @param iter_cls closure for iter
+ * @return NULL if the entry was not queued, otherwise a handle that can be used to
+ *         cancel; note that even if NULL is returned, the callback will be invoked
+ *         (or rather, will already have been invoked)
  */
-void
+struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_get_random (struct GNUNET_DATASTORE_Handle *h,
 			     unsigned int queue_priority,
 			     unsigned int max_queue_size,
@@ -328,6 +349,14 @@ GNUNET_DATASTORE_get_random (struct GNUNET_DATASTORE_Handle *h,
                              GNUNET_DATASTORE_Iterator iter, 
 			     void *iter_cls);
 
+/**
+ * Cancel a datastore operation.  The final callback from the
+ * operation must not have been done yet.
+ * 
+ * @param qe operation to cancel
+ */
+void
+GNUNET_DATASTORE_cancel (struct GNUNET_DATASTORE_QueueEntry *qe);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
