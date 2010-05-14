@@ -1,6 +1,4 @@
 0.9.0pre1:
-* FS [CG]
-  - use new datastore API
 * MIGRATION [CG]
   - on-demand encoding => move logic to block-library!?
   - peer selection => how to consider latency/bw/etc?
