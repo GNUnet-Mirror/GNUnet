@@ -243,19 +243,32 @@ void GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
   struct GNUNET_DATASTORE_QueueEntry *qe;
 
   if (h->client != NULL)
-    GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+    {
+      GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+      h->client = NULL;
+    }
   if (h->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (h->sched,
-			     h->reconnect_task);
-  h->client = NULL;
+    {
+      GNUNET_SCHEDULER_cancel (h->sched,
+			       h->reconnect_task);
+      h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    }
   while (NULL != (qe = h->queue_head))
     {
-      GNUNET_CONTAINER_DLL_remove (h->queue_head,
-				   h->queue_tail,
-				   qe);
       if (NULL != qe->response_proc)
-	qe->response_proc (qe, NULL);
-      GNUNET_free (qe);
+	{
+	  qe->response_proc (qe, NULL);
+	}
+      else
+	{
+	  GNUNET_CONTAINER_DLL_remove (h->queue_head,
+				       h->queue_tail,
+				       qe);
+	  if (qe->task != GNUNET_SCHEDULER_NO_TASK)
+	    GNUNET_SCHEDULER_cancel (h->sched,
+				     qe->task);
+	  GNUNET_free (qe);
+	}
     }
   if (GNUNET_YES == drop) 
     {
@@ -435,6 +448,8 @@ try_reconnect (void *cls,
 static void
 do_disconnect (struct GNUNET_DATASTORE_Handle *h)
 {
+  if (h->client == NULL)
+    return;
   GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
   h->client = NULL;
   h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->sched,
@@ -573,9 +588,17 @@ process_status_message (void *cls,
   GNUNET_CONTAINER_DLL_remove (h->queue_head,
 			       h->queue_tail,
 			       qe);
+  if (qe->task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (h->sched,
+			       qe->task);
+      qe->task = GNUNET_SCHEDULER_NO_TASK;
+    }
   GNUNET_free (qe);
   if (msg == NULL)
-    {
+    {      
+      if (NULL == h->client)
+	return; /* forced disconnect */
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Failed to receive response from database.\n"));
       do_disconnect (h);
