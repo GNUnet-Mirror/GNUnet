@@ -29,7 +29,7 @@
 /**
  * General core debugging.
  */
-#define DEBUG_CORE GNUNET_YES
+#define DEBUG_CORE GNUNET_NO
 
 /**
  * Debugging interaction core-clients.
