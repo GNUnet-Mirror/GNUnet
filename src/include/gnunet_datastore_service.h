@@ -42,6 +42,10 @@ extern "C"
 #endif
 #endif
 
+/**
+ * Entry in the queue.
+ */
+struct GNUNET_DATASTORE_QueueEntry;
 
 /**
  * Handle to the datastore service.
