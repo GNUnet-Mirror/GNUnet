@@ -484,9 +484,10 @@ start_forwarding (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
     {
       /* Service is not up. Unable to proceed */
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Unable to start service `%s': timeout\n"),
-		  fc->listen_info->serviceName);
+      if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    _("Unable to start service `%s': timeout\n"),
+		    fc->listen_info->serviceName);
       closeClientAndServiceSockets (fc,
 				    (REASON_CLIENT & REASON_SERVICE));
       return;
