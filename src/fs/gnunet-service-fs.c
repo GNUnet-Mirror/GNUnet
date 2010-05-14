@@ -1063,7 +1063,7 @@ transmit_to_peer (void *cls,
 						   &transmit_to_peer,
 						   cp);
     }
-#if DEBUG_FS > 2
+#if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Transmitting %u bytes to peer %u.\n",
 	      msize,
@@ -2107,7 +2107,7 @@ handle_p2p_put (void *cls,
 					      &prq);
   if (GNUNET_YES == active_migration)
     {
-      GNUNET_DATASTORE_put (NULL /* FIXME */,
+      GNUNET_DATASTORE_put (dsh,
 			    0, &query, dsize, &put[1],
 			    type, prq.priority, 1 /* anonymity */, 
 			    expiration, 
