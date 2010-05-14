@@ -989,6 +989,7 @@ process_result_message (void *cls,
   struct ResultContext *rc = qe->client_ctx;
   const struct DataMessage *dm;
 
+  GNUNET_assert (h->queue_head == qe);
   if (msg == NULL)
     {
 #if DEBUG_DATASTORE
