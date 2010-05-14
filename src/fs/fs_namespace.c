@@ -79,6 +79,11 @@ struct AdvertisementContext
   struct GNUNET_DATASTORE_Handle *dsh;
 
   /**
+   * Our scheduler.
+   */
+  struct GNUNET_SCHEDULER_Handle *sched;
+
+  /**
    * Our KSK URI.
    */ 
   struct GNUNET_FS_Uri *ksk_uri;
@@ -126,6 +131,23 @@ struct AdvertisementContext
 
 
 /**
+ * Disconnect from the datastore.
+ * 
+ * @param cls datastore handle
+ * @param tc scheduler context
+ */
+static void
+do_disconnect (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_DATASTORE_Handle *dsh = cls;
+
+  GNUNET_DATASTORE_disconnect (dsh, 
+			       GNUNET_NO);
+}
+
+
+/**
  * Continuation called to notify client about result of the
  * operation.
  *
@@ -149,7 +171,10 @@ advertisement_cont (void *cls,
   if (GNUNET_OK != success)
     {
       /* error! */
-      GNUNET_DATASTORE_disconnect (ac->dsh, GNUNET_NO);
+      GNUNET_SCHEDULER_add_continuation (ac->sched,
+					 &do_disconnect,
+					 ac->dsh,
+					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       ac->cont (ac->cont_cls, NULL, msg);
       GNUNET_FS_uri_destroy (ac->ksk_uri);
       GNUNET_free (ac->pt);
@@ -161,7 +186,10 @@ advertisement_cont (void *cls,
   if (ac->pos == ac->ksk_uri->data.ksk.keywordCount)
     {
       /* done! */
-      GNUNET_DATASTORE_disconnect (ac->dsh, GNUNET_NO);
+      GNUNET_SCHEDULER_add_continuation (ac->sched,
+					 &do_disconnect,
+					 ac->dsh,
+					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       ac->cont (ac->cont_cls, ac->ksk_uri, NULL);
       GNUNET_FS_uri_destroy (ac->ksk_uri);
       GNUNET_free (ac->pt);
@@ -296,6 +324,7 @@ GNUNET_FS_namespace_advertise (struct GNUNET_FS_Handle *h,
   ctx->cont = cont;
   ctx->cont_cls = cont_cls;
   ctx->dsh = dsh;
+  ctx->sched = h->sched;
   ctx->ksk_uri = GNUNET_FS_uri_dup (ksk_uri);
   ctx->nb = nb;
   ctx->pt = pt;

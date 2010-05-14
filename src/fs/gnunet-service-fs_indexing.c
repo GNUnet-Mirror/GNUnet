@@ -101,6 +101,12 @@ static struct GNUNET_SCHEDULER_Handle *sched;
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+/**
+ * Datastore handle.  Created and destroyed by code in
+ * gnunet-service-fs (this is an alias).
+ */
+static struct GNUNET_DATASTORE_Handle *dsh;
+
 
 /**
  * Write the current index information list to disk.
@@ -575,12 +581,14 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
   if (size != sizeof (struct OnDemandBlock))
     {
       GNUNET_break (0);
-      GNUNET_FS_drq_remove (key,
-			    size,
-			    data,
-			    &remove_cont,
-			    NULL,
-			    GNUNET_TIME_UNIT_FOREVER_REL);
+      GNUNET_DATASTORE_remove (dsh,
+			       key,
+			       size,
+			       data,
+			       -1, -1,
+			       GNUNET_TIME_UNIT_FOREVER_REL,
+			       &remove_cont,
+			       NULL);
       return GNUNET_SYSERR;
     }
   odb = (const struct OnDemandBlock*) data;
@@ -608,12 +616,14 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
 		  STRERROR (errno));
       if (fh != NULL)
 	GNUNET_DISK_file_close (fh);
-      GNUNET_FS_drq_remove (key,
-			    size,
-			    data,
-			    &remove_cont,
-			    NULL,
-			    GNUNET_TIME_UNIT_FOREVER_REL);
+      GNUNET_DATASTORE_remove (dsh,
+			       key,
+			       size,
+			       data,
+			       -1, -1,
+			       GNUNET_TIME_UNIT_FOREVER_REL,
+			       &remove_cont,
+			       NULL);
       return GNUNET_SYSERR;
     }
   GNUNET_DISK_file_close (fh);
@@ -637,12 +647,14 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
 		  _("Indexed file `%s' changed at offset %llu\n"),
 		  fn,
 		  (unsigned long long) off);
-      GNUNET_FS_drq_remove (key,
-			    size,
-			    data,
-			    &remove_cont,
-			    NULL,
-			    GNUNET_TIME_UNIT_FOREVER_REL);
+      GNUNET_DATASTORE_remove (dsh,
+			       key,
+			       size,
+			       data,
+			       -1, -1,
+			       GNUNET_TIME_UNIT_FOREVER_REL,
+			       &remove_cont,
+			       NULL);
       return GNUNET_SYSERR;
     }
 #if DEBUG_FS
@@ -692,13 +704,16 @@ shutdown_task (void *cls,
  *
  * @param s scheduler to use
  * @param c configuration to use
+ * @param d datastore to use
  */
 int
 GNUNET_FS_indexing_init (struct GNUNET_SCHEDULER_Handle *s,
-			 const struct GNUNET_CONFIGURATION_Handle *c)
+			 const struct GNUNET_CONFIGURATION_Handle *c,
+			 struct GNUNET_DATASTORE_Handle *d)
 {
   sched = s;
   cfg = c;
+  dsh = d;
   ifm = GNUNET_CONTAINER_multihashmap_create (128);
   GNUNET_SCHEDULER_add_delayed (sched,
 				GNUNET_TIME_UNIT_FOREVER_REL,

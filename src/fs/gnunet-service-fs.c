@@ -43,7 +43,6 @@
 #include "gnunet_signatures.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_util_lib.h"
-#include "gnunet-service-fs_drq.h"
 #include "gnunet-service-fs_indexing.h"
 #include "fs.h"
 
@@ -88,6 +87,11 @@ static uint64_t max_pending_requests = (32 * 1024);
  * actual message follows at the end of this struct.
  */
 struct PendingMessage;
+
+/**
+ * Our connection to the datastore.
+ */
+static struct GNUNET_DATASTORE_Handle *dsh;
 
 
 /**
@@ -472,10 +476,10 @@ struct PendingRequest
   GNUNET_PEER_Id *used_pids;
   
   /**
-   * Our entry in the DRQ (non-NULL while we wait for our
+   * Our entry in the queue (non-NULL while we wait for our
    * turn to interact with the local database).
    */
-  struct DatastoreRequestQueue *drq;
+  struct GNUNET_DATASTORE_QueueEntry *qe;
 
   /**
    * Size of the 'bf' (in bytes).
@@ -696,10 +700,10 @@ destroy_pending_request (struct PendingRequest *pr)
   (void) GNUNET_CONTAINER_multihashmap_remove (query_request_map,
 					       &pr->query,
 					       pr);
-  if (pr->drq != NULL)
-    {
-      GNUNET_FS_drq_get_cancel (pr->drq);
-      pr->drq = NULL;
+  if (pr->qe != NULL)
+     {
+      GNUNET_DATASTORE_cancel (pr->qe);
+      pr->qe = NULL;
     }
   if (pr->client_request_list != NULL)
     {
@@ -995,6 +999,9 @@ shutdown_task (void *cls,
       GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
       stats = NULL;
     }
+  GNUNET_DATASTORE_disconnect (dsh,
+			       GNUNET_NO);
+  dsh = NULL;
   sched = NULL;
   cfg = NULL;  
 }
@@ -1852,13 +1859,13 @@ process_reply (void *cls,
       /* only possible reply, stop requesting! */
       while (NULL != pr->pending_head)
 	destroy_pending_message_list_entry (pr->pending_head);
-      if (pr->drq != NULL)
+      if (pr->qe != NULL)
 	{
 	  if (pr->client_request_list != NULL)
 	    GNUNET_SERVER_receive_done (pr->client_request_list->client_list->client, 
 					GNUNET_YES);
- 	  GNUNET_FS_drq_get_cancel (pr->drq);
-	  pr->drq = NULL;
+ 	  GNUNET_DATASTORE_cancel (pr->qe);
+	  pr->qe = NULL;
 	}
       pr->do_remove = GNUNET_YES;
       if (pr->task != GNUNET_SCHEDULER_NO_TASK)
@@ -2209,7 +2216,7 @@ process_local_reply (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Done processing local replies, forwarding request to other peers.\n");
 #endif
-      pr->drq = NULL;
+      pr->qe = NULL;
       if (pr->client_request_list != NULL)
 	{
 	  GNUNET_SERVER_receive_done (pr->client_request_list->client_list->client, 
@@ -2263,7 +2270,7 @@ process_local_reply (void *cls,
 					    anonymity, expiration, uid, 
 					    &process_local_reply,
 					    pr))
-	GNUNET_FS_drq_get_next (GNUNET_YES);
+	GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
       return;
     }
   /* check for duplicates */
@@ -2284,7 +2291,7 @@ process_local_reply (void *cls,
 				gettext_noop ("# results filtered by query bloomfilter"),
 				1,
 				GNUNET_NO);
-      GNUNET_FS_drq_get_next (GNUNET_YES);
+      GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
       return;
     }
 #if DEBUG_FS
@@ -2315,7 +2322,7 @@ process_local_reply (void *cls,
     {
       GNUNET_break (0);
       /* FIXME: consider removing the block? */
-      GNUNET_FS_drq_get_next (GNUNET_YES);
+      GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
       return;
     }
   prq.type = type;
@@ -2325,7 +2332,7 @@ process_local_reply (void *cls,
   if ( (type == GNUNET_BLOCK_TYPE_DBLOCK) ||
        (type == GNUNET_BLOCK_TYPE_IBLOCK) ) 
     {
-      GNUNET_FS_drq_get_next (GNUNET_NO);
+      GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
       return;
     }
   if ( (pr->client_request_list == NULL) &&
@@ -2340,10 +2347,10 @@ process_local_reply (void *cls,
 				gettext_noop ("# processing result set cut short due to load"),
 				1,
 				GNUNET_NO);
-      GNUNET_FS_drq_get_next (GNUNET_NO);
+      GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
       return;
     }
-  GNUNET_FS_drq_get_next (GNUNET_YES);
+  GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
 }
 
 
@@ -2656,12 +2663,14 @@ handle_p2p_get (void *cls,
     type = GNUNET_BLOCK_TYPE_ANY; /* to get on-demand as well */
   timeout = GNUNET_TIME_relative_multiply (BASIC_DATASTORE_REQUEST_DELAY,
 					   (pr->priority + 1)); 
-  pr->drq = GNUNET_FS_drq_get (&gm->query,
-			       type,			       
-			       &process_local_reply,
-			       pr,
-			       timeout,
-			       GNUNET_NO);
+  pr->qe = GNUNET_DATASTORE_get (dsh,
+				 &gm->query,
+				 type,			       
+				 (unsigned int) preference, 64 /* FIXME */,
+				 
+				 timeout,
+				 &process_local_reply,
+				 pr);
 
   /* Are multiple results possible?  If so, start processing remotely now! */
   switch (pr->type)
@@ -2852,12 +2861,13 @@ handle_start_search (void *cls,
 						   GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   if (type == GNUNET_BLOCK_TYPE_DBLOCK)
     type = GNUNET_BLOCK_TYPE_ANY; /* get on-demand blocks too! */
-  pr->drq = GNUNET_FS_drq_get (&sm->query,
-			       type,			       
-			       &process_local_reply,
-			       pr,
-			       GNUNET_CONSTANTS_SERVICE_TIMEOUT,
-			       GNUNET_YES);
+  pr->qe = GNUNET_DATASTORE_get (dsh,
+				 &sm->query,
+				 type,
+				 -3, -1,
+				 GNUNET_CONSTANTS_SERVICE_TIMEOUT,			       
+				 &process_local_reply,
+				 pr);
 }
 
 
@@ -2937,9 +2947,13 @@ main_init (struct GNUNET_SCHEDULER_Handle *s,
       requests_by_expiration_heap = NULL;
       GNUNET_CONTAINER_multihashmap_destroy (peer_request_map);
       peer_request_map = NULL;
-
+      if (dsh != NULL)
+	{
+	  GNUNET_DATASTORE_disconnect (dsh, GNUNET_NO);
+	  dsh = NULL;
+	}
       return GNUNET_SYSERR;
-    }  
+    }
   GNUNET_SERVER_disconnect_notify (server, 
 				   &handle_client_disconnect,
 				   NULL);
@@ -2969,11 +2983,19 @@ run (void *cls,
   active_migration = GNUNET_CONFIGURATION_get_value_yesno (cfg,
 							   "FS",
 							   "ACTIVEMIGRATION");
-  if ( (GNUNET_OK != GNUNET_FS_drq_init (sched, cfg)) ||
-       (GNUNET_OK != GNUNET_FS_indexing_init (sched, cfg)) ||
+  dsh = GNUNET_DATASTORE_connect (cfg,
+				  sched);
+  if (dsh == NULL)
+    {
+      GNUNET_SCHEDULER_shutdown (sched);
+      return;
+    }
+  if ( (GNUNET_OK != GNUNET_FS_indexing_init (sched, cfg, dsh)) ||
        (GNUNET_OK != main_init (sched, server, cfg)) )
     {    
       GNUNET_SCHEDULER_shutdown (sched);
+      GNUNET_DATASTORE_disconnect (dsh, GNUNET_NO);
+      dsh = NULL;
       return;   
     }
 }

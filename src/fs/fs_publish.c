@@ -109,11 +109,14 @@ GNUNET_FS_publish_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
 /**
  * Cleanup the publish context, we're done with it.
  *
- * @param pc struct to clean up after
+ * @param cls struct to clean up after
+ * @param tc scheduler context
  */
 static void
-publish_cleanup (struct GNUNET_FS_PublishContext *pc)
+publish_cleanup (void *cls,
+		 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct GNUNET_FS_PublishContext *pc = cls;
   GNUNET_FS_file_information_destroy (pc->fi, NULL, NULL);
   if (pc->namespace != NULL)
     GNUNET_FS_namespace_delete (pc->namespace, GNUNET_NO);
@@ -146,9 +149,11 @@ ds_put_cont (void *cls,
 
   if (GNUNET_SYSERR == pcc->sc->in_network_wait)
     {
-      /* we were aborted in the meantime,
-	 finish shutdown! */
-      publish_cleanup (pcc->sc);
+      /* we were aborted in the meantime, finish shutdown! */
+      GNUNET_SCHEDULER_add_continuation (pcc->sc->h->sched,					 
+					 &publish_cleanup,
+					 pcc->sc,
+					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       GNUNET_free (pcc);
       return;
     }
@@ -1016,7 +1021,10 @@ GNUNET_FS_publish_signal_suspend_ (void *cls)
 				      &fip_signal_suspend,
 				      pc);
   GNUNET_FS_end_top (pc->h, pc->top);
-  publish_cleanup (pc);
+  GNUNET_SCHEDULER_add_continuation (pc->h->sched,					 
+				     &publish_cleanup,
+				     pc,
+				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 /**
@@ -1163,7 +1171,10 @@ GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *pc)
       pc->in_network_wait = GNUNET_SYSERR;
       return;
     }
-  publish_cleanup (pc);
+  GNUNET_SCHEDULER_add_continuation (pc->h->sched,					 
+				     &publish_cleanup,
+				     pc,
+				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 

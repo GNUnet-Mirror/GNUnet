@@ -113,10 +113,6 @@ static struct DatastoreRequestQueue *drq_head;
  */
 static struct DatastoreRequestQueue *drq_tail;
 
-/**
- * Our connection to the datastore.
- */
-static struct GNUNET_DATASTORE_Handle *dsh;
 
 /**
  * Pointer to the currently actively running request,
@@ -295,9 +291,6 @@ shutdown_task (void *cls,
 	      "DRQ shutdown initiated\n");
 #endif
   GNUNET_assert (NULL != dsh);
-  GNUNET_DATASTORE_disconnect (dsh,
-			       GNUNET_NO);
-  dsh = NULL;
   while (NULL != (drq = drq_head))
     {
       drq_head = drq->next;
@@ -465,7 +458,6 @@ drq_remove_cont (void *cls,
   rc->cont (rc->cont_cls,
 	    success,
 	    msg);
-  GNUNET_DATASTORE_disconnect (rc->rmdsh, GNUNET_NO);
   GNUNET_free (rc);
 }
 
@@ -494,8 +486,6 @@ GNUNET_FS_drq_remove (const GNUNET_HashCode *key,
   struct GNUNET_DATASTORE_Handle *rmdsh; 
   struct RemoveContext *rc;
 
-  rmdsh = GNUNET_DATASTORE_connect (cfg,
-				    sched);
   if (rmdsh == NULL)
     {
       GNUNET_break (0);
