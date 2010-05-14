@@ -103,6 +103,13 @@ abort_publish_task (void *cls,
     }
 }
 
+static void
+stop_fs_task (void *cls,
+	      const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_FS_stop (fs);
+  fs = NULL;
+}
 
 static void
 abort_download_task (void *cls,
@@ -207,8 +214,9 @@ progress_cb (void *cls,
       GNUNET_assert (publish == event->value.publish.sc);
       GNUNET_assert (FILESIZE == event->value.publish.size);
       GNUNET_assert (1 == event->value.publish.anonymity);
-      GNUNET_FS_stop (fs);
-      fs = NULL;
+      GNUNET_SCHEDULER_add_now (sched,
+				&stop_fs_task,
+				NULL);
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_START:
       GNUNET_assert (download == NULL);

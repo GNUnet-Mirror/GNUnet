@@ -26,7 +26,7 @@
 #include "platform.h"
 #include "fs_test_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 /**
  * File-size we use for testing.

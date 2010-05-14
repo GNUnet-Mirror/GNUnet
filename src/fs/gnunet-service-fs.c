@@ -2270,6 +2270,7 @@ process_local_reply (void *cls,
 					    anonymity, expiration, uid, 
 					    &process_local_reply,
 					    pr))
+      if (pr->qe != NULL)
 	GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
       return;
     }
@@ -2291,7 +2292,8 @@ process_local_reply (void *cls,
 				gettext_noop ("# results filtered by query bloomfilter"),
 				1,
 				GNUNET_NO);
-      GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
+      if (pr->qe != NULL)
+	GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
       return;
     }
 #if DEBUG_FS
@@ -2332,7 +2334,8 @@ process_local_reply (void *cls,
   if ( (type == GNUNET_BLOCK_TYPE_DBLOCK) ||
        (type == GNUNET_BLOCK_TYPE_IBLOCK) ) 
     {
-      GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
+      if (pr->qe != NULL)
+	GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
       return;
     }
   if ( (pr->client_request_list == NULL) &&
@@ -2347,10 +2350,12 @@ process_local_reply (void *cls,
 				gettext_noop ("# processing result set cut short due to load"),
 				1,
 				GNUNET_NO);
-      GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
+      if (pr->qe != NULL)
+	GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
       return;
     }
-  GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
+  if (pr->qe != NULL)
+    GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
 }
 
 

@@ -117,6 +117,7 @@ publish_cleanup (void *cls,
 		 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
+
   GNUNET_FS_file_information_destroy (pc->fi, NULL, NULL);
   if (pc->namespace != NULL)
     GNUNET_FS_namespace_delete (pc->namespace, GNUNET_NO);
@@ -124,7 +125,10 @@ publish_cleanup (void *cls,
   GNUNET_free_non_null (pc->nuid);
   GNUNET_free_non_null (pc->serialization);
   if (pc->dsh != NULL)
-    GNUNET_DATASTORE_disconnect (pc->dsh, GNUNET_NO);
+    {
+      GNUNET_DATASTORE_disconnect (pc->dsh, GNUNET_NO);
+      pc->dsh = NULL;
+    }
   if (pc->client != NULL)
     GNUNET_CLIENT_disconnect (pc->client, GNUNET_NO);
   GNUNET_free (pc);
@@ -997,6 +1001,11 @@ fip_signal_suspend(void *cls,
   pi.status = GNUNET_FS_STATUS_PUBLISH_SUSPEND;
   GNUNET_break (NULL == GNUNET_FS_publish_make_status_ (&pi, sc, fi, off));
   *client_info = NULL;
+  if (NULL != sc->dsh)
+    {
+      GNUNET_DATASTORE_disconnect (sc->dsh, GNUNET_NO);
+      sc->dsh = NULL;
+    }
   return GNUNET_OK;
 }
 
@@ -1021,11 +1030,9 @@ GNUNET_FS_publish_signal_suspend_ (void *cls)
 				      &fip_signal_suspend,
 				      pc);
   GNUNET_FS_end_top (pc->h, pc->top);
-  GNUNET_SCHEDULER_add_continuation (pc->h->sched,					 
-				     &publish_cleanup,
-				     pc,
-				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  publish_cleanup (pc, NULL);
 }
+
 
 /**
  * Publish a file or directory.
@@ -1152,6 +1159,11 @@ void
 GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *pc)
 {
   GNUNET_FS_end_top (pc->h, pc->top);
+  if (NULL != pc->dsh)
+    {
+      GNUNET_DATASTORE_disconnect (pc->dsh, GNUNET_NO);
+      pc->dsh = NULL;
+    }
   if (GNUNET_SCHEDULER_NO_TASK != pc->upload_task)
     {
       GNUNET_SCHEDULER_cancel (pc->h->sched, pc->upload_task);
@@ -1171,10 +1183,7 @@ GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *pc)
       pc->in_network_wait = GNUNET_SYSERR;
       return;
     }
-  GNUNET_SCHEDULER_add_continuation (pc->h->sched,					 
-				     &publish_cleanup,
-				     pc,
-				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  publish_cleanup (pc, NULL);
 }
 
 
@@ -1285,7 +1294,11 @@ kb_put_cont (void *cls,
 
   if (GNUNET_OK != success)
     {
-      GNUNET_DATASTORE_disconnect (pkc->dsh, GNUNET_NO);
+      if (NULL != pkc->dsh)
+	{
+	  GNUNET_DATASTORE_disconnect (pkc->dsh, GNUNET_NO);
+	  pkc->dsh = NULL;
+	}
       GNUNET_free (pkc->cpy);
       GNUNET_free (pkc->kb);
       pkc->cont (pkc->cont_cls,
@@ -1326,7 +1339,10 @@ publish_ksk_cont (void *cls,
        (NULL == pkc->dsh) )
     {
       if (NULL != pkc->dsh)
-	GNUNET_DATASTORE_disconnect (pkc->dsh, GNUNET_NO);
+	{
+	  GNUNET_DATASTORE_disconnect (pkc->dsh, GNUNET_NO);
+	  pkc->dsh = NULL;
+	}
       GNUNET_free (pkc->cpy);
       GNUNET_free (pkc->kb);
       pkc->cont (pkc->cont_cls,
@@ -1452,7 +1468,10 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
       GNUNET_break (0);
       GNUNET_free (pkc->kb);
       if (pkc->dsh != NULL)
-	GNUNET_DATASTORE_disconnect (pkc->dsh, GNUNET_NO);
+	{
+	  GNUNET_DATASTORE_disconnect (pkc->dsh, GNUNET_NO);
+	  pkc->dsh = NULL;
+	}
       cont (cont_cls, NULL, _("Internal error."));
       GNUNET_free (pkc);
       return;
@@ -1518,7 +1537,10 @@ sb_put_cont (void *cls,
   struct PublishSksContext *psc = cls;
 
   if (NULL != psc->dsh)
-    GNUNET_DATASTORE_disconnect (psc->dsh, GNUNET_NO);
+    {
+      GNUNET_DATASTORE_disconnect (psc->dsh, GNUNET_NO);
+      psc->dsh = NULL;
+    }
   if (GNUNET_OK != success)
     psc->cont (psc->cont_cls,
 	       NULL,
@@ -1685,7 +1707,6 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
 			GNUNET_CONSTANTS_SERVICE_TIMEOUT,
 			&sb_put_cont,
 			psc);
-
   GNUNET_free (sb);
   GNUNET_free (sb_enc);
 }
