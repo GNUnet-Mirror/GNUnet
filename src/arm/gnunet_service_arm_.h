@@ -30,7 +30,14 @@
 void start_service (struct GNUNET_SERVER_Client *client,
 		    const char *servicename);
 
-void stop_listening (const char *serviceName);
+/**
+ * Stop listening for connections to a service.
+ * 
+ * @param serviceName name of service to stop listening for
+ * @return GNUNET_OK if we stopped to listen, GNUNET_NO if we were
+ *         not listening
+ */
+int stop_listening (const char *serviceName);
 
 void prepareServices (const struct GNUNET_CONFIGURATION_Handle
 		      *configurationHandle,

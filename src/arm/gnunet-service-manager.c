@@ -23,42 +23,80 @@
  * start services for which incoming an incoming connection occur,
  * and relay communication between the client and the service for 
  * that first incoming connection.
+ *
  * @author Safey Abdel Halim
+ * @author Christian Grothoff
  */
 
 #include "platform.h"
 #include "gnunet_service_lib.h"
 #include "gnunet_configuration_lib.h"
+#include "gnunet_constants.h"
 #include "gnunet_client_lib.h"
 #include "gnunet_container_lib.h"
 #include "gnunet_service_arm_.h"
 
 
-#define DEBUG_SERVICE_MANAGER GNUNET_NO
+#define DEBUG_SERVICE_MANAGER GNUNET_YES
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
-#define BUFFER_SIZE (63 * 1024)
+#define BUFFER_SIZE (64 * 1024)
 
-#define REASON_CLIENT 1
+/**
+ * Problem forwarding from client to service.
+ */
+#define REASON_CLIENT_TO_SERVICE 1
 
-#define REASON_SERVICE 2
+/**
+ * Problem forwarding from service to client.
+ */
+#define REASON_SERVICE_TO_CLIENT 2
+
+/**
+ * Problem in both directions.
+ */
+#define REASON_ERROR 3
 
 
+/**
+ *
+ */
 struct ServiceListeningInfo
 {
+  /**
+   * This is a linked list.
+   */
   struct ServiceListeningInfo *next;
 
+  /**
+   * This is a linked list.
+   */
   struct ServiceListeningInfo *prev;
 
+  /**
+   * Name of the service being forwarded.
+   */
   char *serviceName;
 
+  /**
+   *
+   */
   struct sockaddr *service_addr;
 
+  /**
+   *
+   */
   socklen_t service_addr_len;
 
+  /**
+   * Our listening socket.
+   */
   struct GNUNET_NETWORK_Handle *listeningSocket;
 
+  /**
+   * Task doing the accepting.
+   */
   GNUNET_SCHEDULER_TaskIdentifier acceptTask;
 };
 
@@ -67,58 +105,113 @@ struct ServiceListeningInfo
  */
 struct ForwardedConnection
 {
+  /**
+   *
+   */
   struct GNUNET_NETWORK_Handle *armClientSocket;
 
+  /**
+   *
+   */
   struct GNUNET_NETWORK_Handle *armServiceSocket;
 
+  /**
+   *
+   */
   struct ServiceListeningInfo *listen_info;
 
-  char serviceBuffer[BUFFER_SIZE];
+  /**
+   *
+   */
+  char service_to_client_buffer[BUFFER_SIZE];
 
-  char clientBuffer[BUFFER_SIZE];
+  /**
+   *
+   */
+  char client_to_service_buffer[BUFFER_SIZE];
 
+  /**
+   *
+   */
   char client_addr[32];
 
-  char *clientBufferPos;
+  /**
+   *
+   */
+  const char *client_to_service_bufferPos;
 
-  char *serviceBufferPos;
+  /**
+   *
+   */
+  const char *service_to_client_bufferPos;
 
-  GNUNET_SCHEDULER_TaskIdentifier clientReceivingTask;
+  /**
+   * Timeout for forwarding.
+   */
+  struct GNUNET_TIME_Absolute timeout;
+  
+  /**
+   * Current back-off value.
+   */
+  struct GNUNET_TIME_Relative back_off;
 
-  GNUNET_SCHEDULER_TaskIdentifier serviceReceivingTask;
+  /**
+   *
+   */
+  GNUNET_SCHEDULER_TaskIdentifier client_to_service_task;
 
-  ssize_t clientBufferDataLength;
+  /**
+   *
+   */
+  GNUNET_SCHEDULER_TaskIdentifier service_to_client_task;
 
-  ssize_t serviceBufferDataLength;
+  /**
+   *
+   */
+  ssize_t client_to_service_bufferDataLength;
 
+  /**
+   *
+   */
+  ssize_t service_to_client_bufferDataLength;
+
+  /**
+   *
+   */
   socklen_t client_addr_len;
 
 };
 
 
+/**
+ * Array with the names of the services started by default.
+ */
 static char **defaultServicesList;
 
+/**
+ * Size of the defaultServicesList array.
+ */
 static unsigned int numDefaultServices;
 
+/**
+ *
+ */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+/**
+ *
+ */
 static struct GNUNET_SCHEDULER_Handle *scheduler;
 
+/**
+ *
+ */
 static struct ServiceListeningInfo *serviceListeningInfoList_head;
 
+/**
+ *
+ */
 static struct ServiceListeningInfo *serviceListeningInfoList_tail;
-
-
-#if DEBUG_SERVICE_MANAGER
-static void
-printDefaultServicesList ()
-{
-  unsigned int i;
-  for (i = 0; i < numDefaultServices; i++)
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Service: %s\n",
-		defaultServicesList[i]);
-}
-#endif
 
 
 /**
@@ -129,8 +222,8 @@ printDefaultServicesList ()
 static void
 addDefaultServicesToList (const char *services)
 {
-  unsigned int i = 0;
-  char *token;
+  unsigned int i;
+  const char *token;
   char *s;
 
   if (strlen (services) == 0)
@@ -161,6 +254,7 @@ addDefaultServicesToList (const char *services)
  * Checks whether the serviceName is in the list of default services
  * 
  * @param serviceName string to check its existance in the list
+ * @return GNUNET_YES if the service is started by default
  */
 static int
 isInDefaultList (const char *serviceName)
@@ -173,24 +267,57 @@ isInDefaultList (const char *serviceName)
 }
 
 
+/**
+ * Close forwarded connection (partial or full).
+ *
+ * @param fc connection to close 
+ * @param reason which direction to close
+ */
 static void
-closeClientAndServiceSockets (struct ForwardedConnection *fc, int reason)
+closeClientAndServiceSockets (struct ForwardedConnection *fc, 
+			      int reason)
 {
-  if ( (0 != (REASON_SERVICE & reason)) &&
-       (fc->clientReceivingTask != GNUNET_SCHEDULER_NO_TASK) )
-    {
-      GNUNET_SCHEDULER_cancel (scheduler, fc->clientReceivingTask);    
-      fc->clientReceivingTask = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (REASON_SERVICE_TO_CLIENT & reason)) 
+    {      
+#if DEBUG_SERVICE_MANAGER
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Stopping forwarding from service to client\n",
+		  fc->listen_info->serviceName);
+#endif
+      if (fc->service_to_client_task != GNUNET_SCHEDULER_NO_TASK)
+	{
+	  GNUNET_SCHEDULER_cancel (scheduler, fc->service_to_client_task);    
+	  fc->service_to_client_task = GNUNET_SCHEDULER_NO_TASK;
+	}
+      if (fc->armClientSocket != NULL)
+	GNUNET_NETWORK_socket_shutdown (fc->armClientSocket,
+					SHUT_WR);
+      if (fc->armServiceSocket != NULL)
+	GNUNET_NETWORK_socket_shutdown (fc->armServiceSocket,
+					SHUT_RD);
     }
-  if ( (0 != (REASON_CLIENT & reason)) &&
-       (fc->serviceReceivingTask != GNUNET_SCHEDULER_NO_TASK) )
+  if (0 != (REASON_CLIENT_TO_SERVICE & reason)) 
     {
-      GNUNET_SCHEDULER_cancel (scheduler,
-			       fc->serviceReceivingTask);
-      fc->serviceReceivingTask = GNUNET_SCHEDULER_NO_TASK;
+#if DEBUG_SERVICE_MANAGER
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Stopping forwarding from client to service\n",
+		  fc->listen_info->serviceName);
+#endif
+      if (fc->client_to_service_task != GNUNET_SCHEDULER_NO_TASK) 
+	{
+	  GNUNET_SCHEDULER_cancel (scheduler,
+				   fc->client_to_service_task);
+	  fc->client_to_service_task = GNUNET_SCHEDULER_NO_TASK;
+	}
+      if (fc->armClientSocket != NULL)
+	GNUNET_NETWORK_socket_shutdown (fc->armClientSocket,
+					SHUT_RD);
+      if (fc->armServiceSocket != NULL)
+	GNUNET_NETWORK_socket_shutdown (fc->armServiceSocket,
+					SHUT_WR);
     }
-  if ( (fc->clientReceivingTask != GNUNET_SCHEDULER_NO_TASK) ||
-       (fc->serviceReceivingTask != GNUNET_SCHEDULER_NO_TASK) )
+  if ( (fc->client_to_service_task != GNUNET_SCHEDULER_NO_TASK) ||
+       (fc->service_to_client_task != GNUNET_SCHEDULER_NO_TASK) )
     return;
 #if DEBUG_SERVICE_MANAGER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -211,9 +338,16 @@ closeClientAndServiceSockets (struct ForwardedConnection *fc, int reason)
 }
 
 
+/**
+ *
+ */
 static void
 receiveFromClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
+
+/**
+ *
+ */
 static void
 receiveFromService (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
@@ -230,57 +364,54 @@ forwardToClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct ForwardedConnection *fc = cls;
   ssize_t numberOfBytesSent;
 
-  fc->serviceReceivingTask = GNUNET_SCHEDULER_NO_TASK;
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+  fc->service_to_client_task = GNUNET_SCHEDULER_NO_TASK;
+  if (GNUNET_YES != GNUNET_NETWORK_fdset_isset (tc->write_ready,
+						fc->armClientSocket))
     {
-      /* Ignore shutdown signal, reschedule yourself */
-      fc->serviceReceivingTask = 
-	GNUNET_SCHEDULER_add_write_net (scheduler, GNUNET_TIME_UNIT_FOREVER_REL,
+      fc->service_to_client_task = 
+	GNUNET_SCHEDULER_add_write_net (scheduler,
+					GNUNET_TIME_UNIT_FOREVER_REL,
 					fc->armClientSocket,
 					&forwardToClient, fc);
       return;
     }
-
   /* Forwarding service response to client */
   numberOfBytesSent =
     GNUNET_NETWORK_socket_send (fc->armClientSocket,
-				fc->serviceBufferPos,
-				fc->serviceBufferDataLength);
+				fc->service_to_client_bufferPos,
+				fc->service_to_client_bufferDataLength);
+  if (numberOfBytesSent <= 0)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  "Failed to forward data to client: %s\n",
+		  STRERROR (errno));
+      closeClientAndServiceSockets (fc,
+				    REASON_SERVICE_TO_CLIENT);
+      return;
+    }
 #if DEBUG_SERVICE_MANAGER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Forwarded %d bytes to client\n",
 	      numberOfBytesSent);
 #endif
-  if ((numberOfBytesSent == GNUNET_SYSERR) || (numberOfBytesSent == 0))
+  if (numberOfBytesSent < fc->service_to_client_bufferDataLength)
     {
-      /* Error occured or connection closed by client */
-      closeClientAndServiceSockets (fc,
-				    (REASON_CLIENT & REASON_SERVICE));
+      fc->service_to_client_bufferPos += numberOfBytesSent;
+      fc->service_to_client_bufferDataLength -= numberOfBytesSent;
+      fc->service_to_client_task = 
+	GNUNET_SCHEDULER_add_write_net (scheduler, 
+					GNUNET_TIME_UNIT_FOREVER_REL,
+					fc->armClientSocket,
+					&forwardToClient, 
+					fc);
       return;
     }
-  else if (numberOfBytesSent < fc->serviceBufferDataLength)
-    {
-      /* Not all service data were sent to client */
-      fc->serviceBufferPos += numberOfBytesSent;
-      fc->serviceBufferDataLength -= numberOfBytesSent;
-
-      /* Scheduling writing again for completing the remaining data to be sent */
-      fc->serviceReceivingTask = 
-	GNUNET_SCHEDULER_add_write_net (scheduler, GNUNET_TIME_UNIT_FOREVER_REL,
-					fc->armClientSocket,
-					&forwardToClient, fc);
-    }
-  else
-    {
-      /* Data completely sent */
-      fc->serviceBufferPos = fc->serviceBuffer;
-    }
-
-  /* Now we are ready to receive more data, rescheduling receiving from Service */
-  fc->serviceReceivingTask =
-    GNUNET_SCHEDULER_add_read_net (scheduler, GNUNET_TIME_UNIT_FOREVER_REL,
+  fc->service_to_client_task =
+    GNUNET_SCHEDULER_add_read_net (scheduler, 
+				   GNUNET_TIME_UNIT_FOREVER_REL,
 				   fc->armServiceSocket,
-				   &receiveFromService, fc);
+				   &receiveFromService, 
+				   fc);
 }
 
 
@@ -288,58 +419,59 @@ forwardToClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Receive service messages sent by the service and forward it to client
  * 
  * @param cls callback data, struct ForwardedConnection for the communication between client and service
- * @param tc context
+ * @param tc scheduler context
  */
 static void
-receiveFromService (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+receiveFromService (void *cls, 
+		    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ForwardedConnection *fc = cls;
 
-  fc->serviceReceivingTask = GNUNET_SCHEDULER_NO_TASK;
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+  fc->service_to_client_task = GNUNET_SCHEDULER_NO_TASK;
+  if (GNUNET_YES != GNUNET_NETWORK_fdset_isset (tc->read_ready,
+						fc->armServiceSocket))
     {
-      /* Neglect shutdown signal, reschedule yourself */
-      fc->serviceReceivingTask =
+      fc->service_to_client_task =
 	GNUNET_SCHEDULER_add_read_net (scheduler,
 				       GNUNET_TIME_UNIT_FOREVER_REL,
 				       fc->armServiceSocket,
 				       &receiveFromService, fc);
       return;
     }
-
-  fc->serviceBufferDataLength =
+  fc->service_to_client_bufferPos = fc->service_to_client_buffer;
+  fc->service_to_client_bufferDataLength =
     GNUNET_NETWORK_socket_recv (fc->armServiceSocket,
-				fc->serviceBuffer, BUFFER_SIZE);
-
-#if DEBUG_SERVICE_MANAGER
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received %d bytes for client\n",
-	      fc->serviceBufferDataLength);
-#endif
-  if (fc->serviceBufferDataLength <= 0)
+				fc->service_to_client_buffer, 
+				BUFFER_SIZE);
+  if (fc->service_to_client_bufferDataLength <= 0)
     {
-      /* The service has closed the connection or an error occured */
-      if (fc->serviceBufferDataLength == 0)
+      if (fc->service_to_client_bufferDataLength == 0)
 	{
 #if DEBUG_SERVICE_MANAGER
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      _("Service `%s' closed connection! \n"),
+		      "Service `%s' stopped sending data.\n",
 		      fc->listen_info->serviceName);
 #endif
 	}
       else
 	{	  
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		      _("Error receiving from service: %s\n"), 
+#if DEBUG_SERVICE_MANAGER
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Error receiving from service: %s\n", 
 		      STRERROR (errno));
+#endif
 	}
-      closeClientAndServiceSockets (fc, REASON_SERVICE);
+      closeClientAndServiceSockets (fc, REASON_SERVICE_TO_CLIENT);
       return;
     }
-
-  /* Forwarding Service data to Client */
-  fc->serviceReceivingTask = 
-    GNUNET_SCHEDULER_add_write_net (scheduler, GNUNET_TIME_UNIT_FOREVER_REL,
+#if DEBUG_SERVICE_MANAGER
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received %d bytes for client\n",
+	      fc->service_to_client_bufferDataLength);
+#endif
+  fc->service_to_client_task = 
+    GNUNET_SCHEDULER_add_write_net (scheduler, 
+				    GNUNET_TIME_UNIT_FOREVER_REL,
 				    fc->armClientSocket,
 				    &forwardToClient, fc);
 }
@@ -349,73 +481,65 @@ receiveFromService (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Forward client message to service
  * 
  * @param cls callback data, struct ForwardedConnection for the communication between client and service
- * @param tc context
+ * @param tc scheduler context
  */
 static void
-forwardToService (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+forwardToService (void *cls, 
+		  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ForwardedConnection *fc = cls;
   ssize_t numberOfBytesSent;
 
-  fc->clientReceivingTask = GNUNET_SCHEDULER_NO_TASK;
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+  fc->client_to_service_task = GNUNET_SCHEDULER_NO_TASK;
+  if (GNUNET_YES != GNUNET_NETWORK_fdset_isset (tc->write_ready,
+						fc->armServiceSocket))
     {
-      /* Neglect shutdown signal, reschedule ourself */
-      fc->clientReceivingTask = 
-	GNUNET_SCHEDULER_add_write_net (scheduler, GNUNET_TIME_UNIT_FOREVER_REL,
+      fc->client_to_service_task = 
+	GNUNET_SCHEDULER_add_write_net (scheduler,
+					GNUNET_TIME_UNIT_FOREVER_REL,
 					fc->armServiceSocket,
 					&forwardToService, fc);
       return;
     }
-
-
-  /* Forwarding client's message to service */
   numberOfBytesSent =
     GNUNET_NETWORK_socket_send (fc->armServiceSocket,
-				fc->clientBufferPos,
-				fc->clientBufferDataLength);
+				fc->client_to_service_bufferPos,
+				fc->client_to_service_bufferDataLength);
+  if (numberOfBytesSent <= 0)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  "Failed to forward data to service: %s\n",
+		  STRERROR (errno));
+      closeClientAndServiceSockets (fc,
+				    REASON_CLIENT_TO_SERVICE);
+      return;
+    }
 #if DEBUG_SERVICE_MANAGER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Forwarded %d bytes to service\n",
 	      numberOfBytesSent);
 #endif
-  if ((numberOfBytesSent == GNUNET_SYSERR) || (numberOfBytesSent == 0))
+  if (numberOfBytesSent < fc->client_to_service_bufferDataLength)
     {
-      /* Error occured or connection closed by service */
-      closeClientAndServiceSockets (fc,
-				    (REASON_CLIENT & REASON_SERVICE));
-      return;
-    }
-  if (numberOfBytesSent < fc->clientBufferDataLength)
-    {
-      /* Not all client data were sent to the service */
-      fc->clientBufferPos += numberOfBytesSent;
-      fc->clientBufferDataLength -= numberOfBytesSent;
-
-      /* Scheduling writing again for completing the remaining data to be sent */
-      fc->clientReceivingTask = 
-	GNUNET_SCHEDULER_add_write_net (scheduler, GNUNET_TIME_UNIT_FOREVER_REL,
+      fc->client_to_service_bufferPos += numberOfBytesSent;
+      fc->client_to_service_bufferDataLength -= numberOfBytesSent;
+      fc->client_to_service_task = 
+	GNUNET_SCHEDULER_add_write_net (scheduler, 
+					GNUNET_TIME_UNIT_FOREVER_REL,
 					fc->armServiceSocket,
 					&forwardToService, fc);
+      return;
     }
-  else
-    {
-      /* Data completely sent */
-      fc->clientBufferPos = fc->clientBuffer;
-    }
-
-  /* Now, we are ready to receive more data. Rescheduling the receiving from client */
-  fc->clientReceivingTask =
-    GNUNET_SCHEDULER_add_read_net (scheduler, GNUNET_TIME_UNIT_FOREVER_REL,
+  fc->client_to_service_task =
+    GNUNET_SCHEDULER_add_read_net (scheduler, 
+				   GNUNET_TIME_UNIT_FOREVER_REL,
 				   fc->armClientSocket,
 				   &receiveFromClient, fc);
 }
 
 
-
 /**
- * Message sent from client to service (faked by ARM, since it's the first connection),
- * ARM will receive the message and forward it to the running service
+ * Read data from the client and then forward it to the service.
  * 
  * @param cls callback data,   struct ForwardedConnection for the communication between client and service
  * @param tc context 
@@ -425,77 +549,76 @@ receiveFromClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ForwardedConnection *fc = cls;
 
-  fc->clientReceivingTask = GNUNET_SCHEDULER_NO_TASK;
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+  fc->client_to_service_task = GNUNET_SCHEDULER_NO_TASK;
+  if (GNUNET_YES != GNUNET_NETWORK_fdset_isset (tc->read_ready,
+						fc->armClientSocket))
     {
-      /* Neglect the shutdown signal, schedule ourselves */
-      fc->clientReceivingTask =
+      fc->client_to_service_task =
 	GNUNET_SCHEDULER_add_read_net (scheduler,
 				       GNUNET_TIME_UNIT_FOREVER_REL,
 				       fc->armClientSocket,
 				       &receiveFromClient, fc);
       return;
     }
-
-  /* Receive client's message */
-  fc->clientBufferDataLength =
+  fc->client_to_service_bufferPos = fc->client_to_service_buffer;
+  fc->client_to_service_bufferDataLength =
     GNUNET_NETWORK_socket_recv (fc->armClientSocket,
-				fc->clientBuffer, BUFFER_SIZE);
-#if DEBUG_SERVICE_MANAGER
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received %d bytes for service\n",
-	      fc->clientBufferDataLength);
-#endif
-  if (fc->clientBufferDataLength <= 0)
+				fc->client_to_service_buffer, 
+				BUFFER_SIZE);
+  if (fc->client_to_service_bufferDataLength <= 0)
     {
-      /* The client has closed the connection or and error occured */
-      if (fc->clientBufferDataLength == 0)
+      if (fc->client_to_service_bufferDataLength == 0)
 	{
 #if DEBUG_SERVICE_MANAGER
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      _("Client closed connection with service:`%s'\n"),
+		      "Client closed connection with service `%s'\n",
 		      fc->listen_info->serviceName);
 #endif
 	}
       else
 	{
+#if DEBUG_SERVICE_MANAGER
 	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		      _("Error receiving from client: %s \n"),
+		      "Error receiving from client: %s\n",
 		      STRERROR (errno));
+#endif
 	}
-      closeClientAndServiceSockets (fc, REASON_CLIENT);
+      closeClientAndServiceSockets (fc, REASON_CLIENT_TO_SERVICE);
       return;
     }
-
-  /* Forwarding request to service */
-  fc->clientReceivingTask = 
-    GNUNET_SCHEDULER_add_write_net (scheduler, GNUNET_TIME_UNIT_FOREVER_REL,
+#if DEBUG_SERVICE_MANAGER
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received %d bytes for service\n",
+	      fc->client_to_service_bufferDataLength);
+#endif
+  fc->client_to_service_task = 
+    GNUNET_SCHEDULER_add_write_net (scheduler,
+				    GNUNET_TIME_UNIT_FOREVER_REL,
 				    fc->armServiceSocket,
 				    &forwardToService, fc);
 }
 
 
+/**
+ *
+ */
 static void
 start_forwarding (void *cls,
 		  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ForwardedConnection *fc = cls;
+  struct GNUNET_TIME_Relative rem;
 
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
+  if ( (NULL != tc) &&
+       (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)) )
     {
-      /* Service is not up. Unable to proceed */
-      if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    _("Unable to start service `%s': timeout\n"),
-		    fc->listen_info->serviceName);
-      closeClientAndServiceSockets (fc,
-				    (REASON_CLIENT & REASON_SERVICE));
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Unable to forward to service `%s': shutdown\n"),
+		  fc->listen_info->serviceName);
+      closeClientAndServiceSockets (fc, REASON_ERROR);
       return;
     }
-#if DEBUG_SERVICE_MANAGER
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      _("Connection to service to start forwarding\n"));
-#endif
+  rem = GNUNET_TIME_absolute_get_remaining (fc->timeout);
   fc->armServiceSocket =
     GNUNET_NETWORK_socket_create (fc->listen_info->service_addr->sa_family,
 				  SOCK_STREAM, 0);
@@ -505,29 +628,40 @@ start_forwarding (void *cls,
 		  _ ("Unable to start service `%s': %s\n"),
 		  fc->listen_info->serviceName,
 		  STRERROR (errno));
-      closeClientAndServiceSockets (fc,
-				    (REASON_CLIENT & REASON_SERVICE));
+      closeClientAndServiceSockets (fc, REASON_ERROR);
       return;
     }
   if ((GNUNET_SYSERR ==
        GNUNET_NETWORK_socket_connect (fc->armServiceSocket,
 				      fc->listen_info->service_addr,
-				      fc->listen_info->service_addr_len))
-      && (EINPROGRESS != errno))
+				      fc->listen_info->service_addr_len)) &&
+      (EINPROGRESS != errno) )
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Unable to start service `%s': failed to connect\n"),
-		  fc->listen_info->serviceName);
-      closeClientAndServiceSockets (fc,
-				    (REASON_CLIENT & REASON_SERVICE));
-      return;
+      if (rem.value == 0)
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      _("Unable to forward to service `%s': timeout before connect\n"),
+		      fc->listen_info->serviceName);
+	  closeClientAndServiceSockets (fc, REASON_ERROR);
+	  return;
+	}
+      fc->back_off = GNUNET_TIME_relative_multiply (fc->back_off, 2);
+      GNUNET_SCHEDULER_add_delayed (scheduler,
+				    GNUNET_TIME_relative_min (fc->back_off,
+							      rem),
+				    &start_forwarding,
+				    fc);
     }
-  fc->clientReceivingTask =
+#if DEBUG_SERVICE_MANAGER
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Connected to service, now starting forwarding\n");
+#endif
+  fc->client_to_service_task =
     GNUNET_SCHEDULER_add_read_net (scheduler,
 				   GNUNET_TIME_UNIT_FOREVER_REL,
 				   fc->armClientSocket,
 				   &receiveFromClient, fc);
-  fc->serviceReceivingTask =
+  fc->service_to_client_task =
     GNUNET_SCHEDULER_add_read_net (scheduler,
 				   GNUNET_TIME_UNIT_FOREVER_REL,
 				   fc->armServiceSocket,
@@ -553,7 +687,7 @@ connectToService (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 		  _("Unable to start service `%s': shutdown\n"),
 		  fc->listen_info->serviceName);
       closeClientAndServiceSockets (fc,
-				    (REASON_CLIENT & REASON_SERVICE));
+				    (REASON_CLIENT_TO_SERVICE & REASON_SERVICE_TO_CLIENT));
       return;
     }
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
@@ -563,27 +697,30 @@ connectToService (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 		  _("Unable to start service `%s': timeout\n"),
 		  fc->listen_info->serviceName);
       closeClientAndServiceSockets (fc,
-				    (REASON_CLIENT & REASON_SERVICE));
+				    (REASON_CLIENT_TO_SERVICE & REASON_SERVICE_TO_CLIENT));
       return;
     }
   GNUNET_break (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE));
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
 	      _("Service `%s' started\n"),
 	      fc->listen_info->serviceName);
-  GNUNET_CLIENT_service_test (scheduler,
-			      fc->listen_info->serviceName,
-			      cfg,
-			      TIMEOUT,
-			      &start_forwarding,
-			      fc);
+  fc->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_SERVICE_TIMEOUT);
+  fc->back_off = GNUNET_TIME_UNIT_MILLISECONDS;
+  start_forwarding (fc, NULL);
 }
 
 
-void stop_listening (const char *serviceName)
+/**
+ *
+ */
+int
+stop_listening (const char *serviceName)
 {
   struct ServiceListeningInfo *pos;
   struct ServiceListeningInfo *next;
-
+  int ret;
+  
+  ret = GNUNET_NO;
   next = serviceListeningInfoList_head;
   while (NULL != (pos = next))
     {
@@ -599,8 +736,10 @@ void stop_listening (const char *serviceName)
 				   pos);
       GNUNET_free (pos->serviceName);		   
       GNUNET_free (pos->service_addr);
-      GNUNET_free (pos);	
+      GNUNET_free (pos); 
+      ret = GNUNET_OK;
     }
+  return ret;
 }
 
 
@@ -622,8 +761,8 @@ acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   fc = GNUNET_malloc (sizeof (struct ForwardedConnection));
   fc->listen_info = serviceListeningInfo;
-  fc->serviceBufferPos = fc->serviceBuffer;
-  fc->clientBufferPos = fc->clientBuffer;
+  fc->service_to_client_bufferPos = fc->service_to_client_buffer;
+  fc->client_to_service_bufferPos = fc->client_to_service_buffer;
   fc->client_addr_len = sizeof (fc->client_addr);
   fc->armClientSocket = GNUNET_NETWORK_socket_accept (serviceListeningInfo->listeningSocket,
 						      (struct sockaddr*) fc->client_addr,
@@ -804,9 +943,6 @@ prepareServices (const struct GNUNET_CONFIGURATION_Handle
     {
       addDefaultServicesToList (defaultServicesString);
       GNUNET_free (defaultServicesString);    
-#if DEBUG_SERVICE_MANAGER
-      printDefaultServicesList ();
-#endif
     }
   /* Spot the services from the configuration and create a listening
      socket for each */

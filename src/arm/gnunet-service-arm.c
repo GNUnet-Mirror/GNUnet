@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -24,10 +24,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - multiple start-stop requests with RC>1 can result
- *   in UP/DOWN signals based on "pending" that are inaccurate...
- *   => have list of clients waiting for a resolution instead of
- *      giving instant (but incorrect) replies
  * - need to test auto-restart code on configuration changes;
  * - should refine restart code to check if *relevant* parts of the
  *   configuration were changed (anything in the section for the service)
@@ -114,15 +110,6 @@ struct ServiceList
    * Absolute time at which the process is scheduled to restart in case of death 
    */
   struct GNUNET_TIME_Absolute restartAt;
-
-#if RC
-  /**
-   * Reference counter (counts how many times we've been
-   * asked to start the service).  We only actually stop
-   * it once rc hits zero.
-   */
-  unsigned int rc;
-#endif
 
 };
 
@@ -469,16 +456,11 @@ start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
       signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
       return;
     }
-  stop_listening (servicename);
   sl = find_name (servicename);
   if (sl != NULL)
     {
-      /* already running, just increment RC */
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  _("Service `%s' already running.\n"), servicename);
-#if RC
-      sl->rc++;
-#endif
       sl->next = running;
       running = sl;
       signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_UP);
@@ -509,12 +491,10 @@ start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
       GNUNET_free_non_null (config);
       return;
     }
+  (void) stop_listening (servicename);
   sl = GNUNET_malloc (sizeof (struct ServiceList));
   sl->name = GNUNET_strdup (servicename);
   sl->next = running;
-#if RC
-  sl->rc = 1;
-#endif
   sl->binary = binary;
   sl->config = config;
   sl->mtime = sbuf.st_mtime;
@@ -535,7 +515,8 @@ start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
  * @param servicename name of the service to stop
  */
 static void
-stop_service (struct GNUNET_SERVER_Client *client, const char *servicename)
+stop_service (struct GNUNET_SERVER_Client *client,
+	      const char *servicename)
 {
   struct ServiceList *pos;
 
@@ -544,29 +525,13 @@ stop_service (struct GNUNET_SERVER_Client *client, const char *servicename)
   pos = find_name (servicename);
   if (pos == NULL)
     {
-      signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_UNKNOWN);
+      if (GNUNET_OK == stop_listening (servicename))
+	signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
+      else
+	signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_UNKNOWN);
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return;
     }
-#if RC
-  if (pos->rc > 1)
-    {
-      /* RC>1, just decrement RC */
-      pos->rc--;
-      pos->next = running;
-      running = pos;
-#if DEBUG_ARM
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Service `%s' still used by %u clients, will keep it running!\n",
-		  servicename, pos->rc);
-#endif
-      signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_UP);
-      GNUNET_SERVER_receive_done (client, GNUNET_OK);
-      return;
-    }
-  if (pos->rc == 1)
-    pos->rc--;			/* decrement RC to zero */
-#endif
   if (pos->killing_client != NULL)
     {
       /* killing already in progress */

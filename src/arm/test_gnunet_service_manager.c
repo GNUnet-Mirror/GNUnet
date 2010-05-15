@@ -58,8 +58,15 @@ arm_stopped (void *cls, int success)
       GNUNET_break (0);
       ret = 4;
     }
+  else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		  "ARM stopped\n");
+    }
+#if START_ARM
   GNUNET_ARM_disconnect (arm);
   arm = NULL;
+#endif
 }
 
 static void 
@@ -79,6 +86,8 @@ hostNameResolveCB(void *cls,
       ret = 3;
       return;
     }  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Resolved hostname, now stopping ARM\n");
   ret = 0;
 #if START_ARM
   GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
@@ -95,6 +104,8 @@ arm_notify (void *cls, int success)
       ret = 1;
       return;
     }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Trying to resolve our own hostname!\n");
   /* connect to the resolver service */
   if (NULL == GNUNET_RESOLVER_hostname_resolve (sched,
 						cfg, AF_UNSPEC,
@@ -102,8 +113,8 @@ arm_notify (void *cls, int success)
 						&hostNameResolveCB,
 						NULL))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		  "Unable to resolve our own hostname!\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		  "Unable initiate connection to resolver service\n");
       ret = 2;
 #if START_ARM
       GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
