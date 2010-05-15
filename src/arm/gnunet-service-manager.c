@@ -578,7 +578,7 @@ receiveFromClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       else
 	{
 #if DEBUG_SERVICE_MANAGER
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Error receiving from client: %s\n",
 		      STRERROR (errno));
 #endif
