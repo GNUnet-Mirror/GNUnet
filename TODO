@@ -1,13 +1,11 @@
 0.9.0pre1:
-* MIGRATION [CG]
-  - on-demand encoding => move logic to block-library!?
-  - peer selection => how to consider latency/bw/etc?
-  - content transmission => how often the same block?
-  - how to select delay before next migration? 
-  - testing
 * FS: [CG]
+  - migration:
+    + on-demand encoding
+    + peer selection => how to consider latency/bw/etc?
+    + content transmission => how often the same block?
+    + testing
   - gnunet-service-fs (hot-path routing, load-based routing, nitpicks)  
-  - GAP improvements:
     + active reply route caching design & implementation of service; gap extension!
 * TBENCH: [MW]
   - good to have for transport/DV evaluation! 

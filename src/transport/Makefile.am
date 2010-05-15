@@ -133,7 +133,7 @@ endif
 check_PROGRAMS = \
  test_transport_api_tcp \
  test_transport_api_udp \
- $(HTTP_PLGUIN_CHECK) \ 
+ $(HTTP_PLGUIN_CHECK) \
  test_transport_api_udp_nat
 # test_transport_api_http \
 # TODO: add tests for http, nat, etc.
@@ -169,7 +169,7 @@ test_plugin_transport_http_SOURCES = \
 test_plugin_transport_http_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
- @LIBCURL@ \ 
+ @LIBCURL@ \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 
