@@ -442,8 +442,7 @@ try_reconnect (void *cls,
  * Disconnect from the service and then try reconnecting to the datastore service
  * after some delay.
  *
- * @param cls the 'struct GNUNET_DATASTORE_Handle'
- * @param tc scheduler context
+ * @param h handle to datastore to disconnect and reconnect
  */
 static void
 do_disconnect (struct GNUNET_DATASTORE_Handle *h)
