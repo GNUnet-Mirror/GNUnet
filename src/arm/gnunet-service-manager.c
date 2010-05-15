@@ -37,7 +37,7 @@
 #include "gnunet_service_arm_.h"
 
 
-#define DEBUG_SERVICE_MANAGER GNUNET_YES
+#define DEBUG_SERVICE_MANAGER GNUNET_NO
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
