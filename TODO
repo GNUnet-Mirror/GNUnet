@@ -1,4 +1,6 @@
 0.9.0pre1:
+* FS-LIB:
+  - _start functions should return void
 * MIGRATION [CG]
   - on-demand encoding => move logic to block-library!?
   - peer selection => how to consider latency/bw/etc?
