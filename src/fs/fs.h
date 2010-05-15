@@ -32,6 +32,11 @@
 #include "gnunet_block_lib.h"
 
 /**
+ * Maximum size of the datastore queue for P2P operations.
+ */
+#define MAX_DATASTORE_QUEUE 16
+
+/**
  * Size of the individual blocks used for file-sharing.
  */
 #define DBLOCK_SIZE (32*1024)

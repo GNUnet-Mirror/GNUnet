@@ -2111,7 +2111,7 @@ handle_p2p_put (void *cls,
 			    0, &query, dsize, &put[1],
 			    type, prq.priority, 1 /* anonymity */, 
 			    expiration, 
-			    0, 64 /* FIXME: use define */,
+			    1 + prq.priority, MAX_DATASTORE_QUEUE,
 			    GNUNET_CONSTANTS_SERVICE_TIMEOUT,
 			    &put_migration_continuation, 
 			    NULL);
@@ -2323,7 +2323,12 @@ process_local_reply (void *cls,
 					     &query))
     {
       GNUNET_break (0);
-      /* FIXME: consider removing the block? */
+      GNUNET_DATASTORE_remove (dsh,
+			       key,
+			       size, data,
+			       -1, -1, 
+			       GNUNET_TIME_UNIT_FOREVER_REL,
+			       NULL, NULL);
       GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
       return;
     }
@@ -2671,8 +2676,8 @@ handle_p2p_get (void *cls,
   pr->qe = GNUNET_DATASTORE_get (dsh,
 				 &gm->query,
 				 type,			       
-				 (unsigned int) preference, 64 /* FIXME */,
-				 
+				 pr->priority + 1,
+				 MAX_DATASTORE_QUEUE,				 
 				 timeout,
 				 &process_local_reply,
 				 pr);
