@@ -264,6 +264,7 @@ void GNUNET_NETWORK_fdset_set (struct GNUNET_NETWORK_FDSet *fds,
  * Check whether a socket is part of the fd set
  * @param fds fd set
  * @param desc socket
+ * @return GNUNET_YES if the socket is in the set
  */
 int GNUNET_NETWORK_fdset_isset (const struct GNUNET_NETWORK_FDSet *fds,
                                 const struct GNUNET_NETWORK_Handle *desc);
