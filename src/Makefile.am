@@ -23,5 +23,5 @@ SUBDIRS = \
   testing \
   hostlist \
   topology \
-  $(NAT_DIR) 
-
+  $(NAT_DIR) \
+  fs

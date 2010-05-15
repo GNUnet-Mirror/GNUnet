@@ -663,7 +663,6 @@ src/hello/Makefile
 src/include/Makefile
 src/include/gnunet_directories.h
 src/hostlist/Makefile
-src/migration/Makefile
 src/nat/Makefile
 src/nat/libnatpmp/Makefile
 src/nat/miniupnp/Makefile

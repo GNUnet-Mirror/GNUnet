@@ -613,7 +613,8 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
           if (errno == EINTR)
             continue;
           GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "select");
-          break;
+          abort ();
+	  break;
         }
       if (GNUNET_NETWORK_fdset_handle_isset (rs, pr))
         {

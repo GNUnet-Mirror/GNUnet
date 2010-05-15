@@ -27,10 +27,9 @@
  * - TTL/priority calculations are absent!
  * TODO:
  * - have non-zero preference / priority for requests we initiate!
- * - track stats for hot-path routing
  * - implement hot-path routing decision procedure
  * - implement: bound_priority, test_load_too_high, validate_nblock
- * - add content migration support (store locally) [or create new service]
+ * - add content migration support (forward from migration list)
  * - statistics
  */
 #include "platform.h"
@@ -482,6 +481,7 @@ struct PendingRequest
   struct GNUNET_DATASTORE_QueueEntry *qe;
 
   /**
+
    * Size of the 'bf' (in bytes).
    */
   size_t bf_size;
@@ -2005,7 +2005,10 @@ struct ProcessReplyClosure
    */
   const void *data;
 
-  // FIXME: add 'struct ConnectedPeer' to track 'last_xxx_replies' here!
+  /**
+   * Who gave us this reply? NULL for local host.
+   */
+  struct ConnectedPeer *sender;
 
   /**
    * When the reply expires.
@@ -2055,6 +2058,7 @@ process_reply (void *cls,
   struct ClientList *cl;
   struct PutMessage *pm;
   struct ConnectedPeer *cp;
+  struct GNUNET_TIME_Relative cur_delay;
   GNUNET_HashCode chash;
   GNUNET_HashCode mhash;
   size_t msize;
@@ -2069,6 +2073,33 @@ process_reply (void *cls,
 			    gettext_noop ("# replies received and matched"),
 			    1,
 			    GNUNET_NO);
+  if (prq->sender != NULL)
+    {
+      /* FIXME: should we be more precise here and not use
+	 "start_time" but a peer-specific time stamp? */
+      cur_delay = GNUNET_TIME_absolute_get_duration (pr->start_time);
+      prq->sender->avg_delay.value
+	= (prq->sender->avg_delay.value * 
+	   (RUNAVG_DELAY_N - 1) + cur_delay.value) / RUNAVG_DELAY_N; 
+      prq->sender->avg_priority
+	= (prq->sender->avg_priority * 
+	   (RUNAVG_DELAY_N - 1) + pr->priority) / (double) RUNAVG_DELAY_N;
+      if (pr->cp != NULL)
+	{
+	  GNUNET_PEER_change_rc (prq->sender->last_p2p_replies
+				 [prq->sender->last_p2p_replies_woff % P2P_SUCCESS_LIST_SIZE], -1);
+	  GNUNET_PEER_change_rc (pr->cp->pid, 1);
+	  prq->sender->last_p2p_replies
+	    [(prq->sender->last_p2p_replies_woff++) % P2P_SUCCESS_LIST_SIZE]
+	    = pr->cp->pid;
+	}
+      else
+	{
+	  prq->sender->last_client_replies
+	    [(prq->sender->last_client_replies_woff++) % CS2P_SUCCESS_LIST_SIZE]
+	    = pr->client_request_list->client_list->client;
+	}
+    }
   GNUNET_CRYPTO_hash (prq->data,
 		      prq->size,
 		      &chash);
@@ -2317,6 +2348,9 @@ handle_p2p_put (void *cls,
 			    GNUNET_NO);
   /* now, lookup 'query' */
   prq.data = (const void*) &put[1];
+  if (other != NULL)
+    prq.sender = GNUNET_CONTAINER_multihashmap_get (connected_peers,
+						    &other->hashPubKey);
   prq.size = dsize;
   prq.type = type;
   prq.expiration = expiration;

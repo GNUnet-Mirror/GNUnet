@@ -42,6 +42,13 @@
 #define MAX_MIGRATION_QUEUE 32
 
 /**
+ * Ratio for moving average delay calculation.  The previous
+ * average goes in with a factor of (n-1) into the calculation.
+ * Must be > 0.
+ */
+#define RUNAVG_DELAY_N 16
+
+/**
  * Size of the individual blocks used for file-sharing.
  */
 #define DBLOCK_SIZE (32*1024)

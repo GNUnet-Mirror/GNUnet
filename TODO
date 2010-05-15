@@ -1,25 +1,12 @@
 0.9.0pre1:
-* FS-LIB:
-  - _start functions should return void
 * MIGRATION [CG]
   - on-demand encoding => move logic to block-library!?
   - peer selection => how to consider latency/bw/etc?
   - content transmission => how often the same block?
   - how to select delay before next migration? 
-  - migration to us
   - testing
-  - integrate with FS or not? (peer list, index/on-demand encoding, block code,
-    inbound priority assignment; all would be easier with tight integration!)
 * FS: [CG]
   - gnunet-service-fs (hot-path routing, load-based routing, nitpicks)  
-  - [gnunet-service-fs.c:208]: member 'LocalGetContext::results_bf_size' is never used
-  - [gnunet-service-fs.c:501]: member 'PendingRequest::used_pids_size' is never used
-  - [gnunet-service-fs.c:654]: member 'ConnectedPeer::last_client_replies' is never used
-  - [gnunet-service-fs.c:669]: member 'ConnectedPeer::avg_delay' is never used
-  - [gnunet-service-fs.c:675]: member 'ConnectedPeer::avg_priority' is never used
-  - [gnunet-service-fs.c:688]: member 'ConnectedPeer::pending_requests' is never used
-  - [gnunet-service-fs.c:694]: member 'ConnectedPeer::last_p2p_replies_woff' is never used
-  - [gnunet-service-fs.c:700]: member 'ConnectedPeer::last_client_replies_woff' is never used
   - GAP improvements:
     + active reply route caching design & implementation of service; gap extension!
 * TBENCH: [MW]
