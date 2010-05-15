@@ -759,7 +759,7 @@ process_incoming (void *cls,
       (client->shutdown_now == GNUNET_YES) ||
       (GNUNET_YES != client->check (client->client_closure)))
     {
-      /* other side closed connection, error connecting, etc. */      
+      /* other side closed connection, error connecting, etc. */
       GNUNET_SERVER_client_disconnect (client);
       return;
     }
@@ -1219,9 +1219,21 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
         }
     }
   if (rc > 0)
-    return;
+    {
+#if DEBUG_SERVER
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "RC still positive, not destroying everything.\n");
+#endif
+      return;
+    }
   if (client->in_process_client_buffer == GNUNET_YES)
-    return;
+    {
+#if DEBUG_SERVER
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Still processing inputs, not destroying everything.\n");
+#endif
+      return;
+    }
   client->destroy (client->client_closure, client->persist);
   GNUNET_free (client);  
 }
