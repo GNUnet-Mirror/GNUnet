@@ -37,6 +37,11 @@
 #define MAX_DATASTORE_QUEUE 16
 
 /**
+ * Maximum number of blocks we keep in memory for migration.
+ */
+#define MAX_MIGRATION_QUEUE 32
+
+/**
  * Size of the individual blocks used for file-sharing.
  */
 #define DBLOCK_SIZE (32*1024)
