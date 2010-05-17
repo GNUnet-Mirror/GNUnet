@@ -113,7 +113,7 @@ FAILURE:
 static int
 check ()
 {
-  char *const argv[] = { "test-datacache-api-quota",
+  char *const argv[] = { "test-datacache-quota",
     "-c",
     "test_datacache_data.conf",
 #if VERBOSE
@@ -125,7 +125,7 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-datacache-api-quota", "nohelp",
+                      argv, "test-datacache-quota", "nohelp",
                       options, &run, NULL);
   if (ok != 0)
     fprintf (stderr, "Missed some testcases: %d\n", ok);
@@ -138,7 +138,7 @@ main (int argc, char *argv[])
 {
   int ret;
   
-  GNUNET_log_setup ("test-datacache-api-quota",
+  GNUNET_log_setup ("test-datacache-quota",
 #if VERBOSE
                     "DEBUG",
 #else

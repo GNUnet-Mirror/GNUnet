@@ -337,7 +337,6 @@ accessHandlerCallback (void *cls,
   struct MHD_Response *response;
   http_session = *httpSessionCache;
 
-  struct sockaddr *addr;
   struct sockaddr_in  *addrin;
   struct sockaddr_in6 *addrin6;
   char * address;

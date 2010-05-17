@@ -75,11 +75,6 @@ static int bootstrapping;
 static int learning;
 
 /**
- * Our configuration.
- */
-static const struct GNUNET_CONFIGURATION_Handle *cfg;
-
-/**
  * Statistics handle.
  */
 static struct GNUNET_STATISTICS_Handle *stats;
@@ -255,11 +250,6 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_STATISTICS_destroy (stats,
 				 GNUNET_NO);
       stats = NULL;
-    }
-  if (cfg != NULL)
-    {
-      GNUNET_CONFIGURATION_destroy(cfg);
-      cfg = NULL;
     }
 }
 
