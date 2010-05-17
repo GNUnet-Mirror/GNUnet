@@ -160,9 +160,6 @@ static void shutdown_testcase()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Hostlist server ARM process %u stopped\n", adv_peer.arm_pid);
 #endif
-  /*
-  if (NULL != adv_peer.cfg)
-    GNUNET_CONFIGURATION_destroy (adv_peer.cfg);*/
   
 
 #if START_ARM
@@ -175,13 +172,16 @@ static void shutdown_testcase()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Hostlist client ARM process %u stopped\n", learn_peer.arm_pid);
 #endif
-  /*
-  if (NULL != learn_peer.cfg)
-    GNUNET_CONFIGURATION_destroy (learn_peer.cfg);*/
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown complete....\n");
+  if (NULL != learn_peer.cfg)
+    GNUNET_CONFIGURATION_destroy (learn_peer.cfg);
+      if (NULL != adv_peer.cfg)
+    GNUNET_CONFIGURATION_destroy (adv_peer.cfg);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down scheduler\n");
   GNUNET_SCHEDULER_shutdown (sched);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown complete....\n");
+
 }
 
 /**

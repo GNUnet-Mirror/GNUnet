@@ -736,6 +736,8 @@ GNUNET_HOSTLIST_server_stop ()
       GNUNET_PEERINFO_disconnect (peerinfo);
       peerinfo = NULL;
     }
+  cfg = NULL;
+  sched = NULL;
 }
 
 /* end of hostlist-server.c */

@@ -75,6 +75,11 @@ static int bootstrapping;
 static int learning;
 
 /**
+ * Our configuration.
+ */
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
  * Statistics handle.
  */
 static struct GNUNET_STATISTICS_Handle *stats;
@@ -251,6 +256,15 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 				 GNUNET_NO);
       stats = NULL;
     }
+  if (cfg != NULL)
+    {
+      GNUNET_CONFIGURATION_destroy(cfg);
+    }
+  if (tc->sched!=NULL)
+    {
+      GNUNET_SCHEDULER_shutdown (tc->sched);
+
+    }
 }
 
 /**
@@ -297,6 +311,9 @@ run (void *cls,
 		  _("None of the functions for the hostlist daemon were enabled.  I have no reason to run!\n"));
       return;
     }
+
+
+
   stats = GNUNET_STATISTICS_create (sched, "hostlist", cfg);
 
   core = GNUNET_CORE_connect (sched, cfg,
