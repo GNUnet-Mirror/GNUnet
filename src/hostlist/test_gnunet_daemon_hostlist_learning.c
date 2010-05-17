@@ -107,14 +107,7 @@ static void shutdown_testcase()
     timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping Statistics Task.\n");
-  if ((NULL != learn_peer.stats) && (NULL != download_stats))
-    GNUNET_STATISTICS_get_cancel (download_stats);
-  if ((NULL != learn_peer.stats) && (NULL != urisrecv_stat))
-    GNUNET_STATISTICS_get_cancel (urisrecv_stat);
-  if ((NULL != adv_peer.stats) && (NULL != advsent_stat))
-    GNUNET_STATISTICS_get_cancel (advsent_stat);
-  if ( NULL != current_adv_uri ) GNUNET_free (current_adv_uri);
+
 
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping Statistics Check Task.\n");
@@ -124,6 +117,15 @@ static void shutdown_testcase()
     check_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping Statistics Task.\n");
+/*
+  if ((NULL != learn_peer.stats) && (NULL != download_stats))
+    GNUNET_STATISTICS_get_cancel (download_stats);
+  if ((NULL != learn_peer.stats) && (NULL != urisrecv_stat))
+    GNUNET_STATISTICS_get_cancel (urisrecv_stat);
+  if ((NULL != adv_peer.stats) && (NULL != advsent_stat))
+    GNUNET_STATISTICS_get_cancel (advsent_stat);*/
+  // if ( NULL != current_adv_uri ) GNUNET_free (current_adv_uri);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from Transport.\n");
   if (adv_peer.th != NULL)
   {
@@ -150,10 +152,36 @@ static void shutdown_testcase()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking ARM to stop core services\n");
 
-  GNUNET_SCHEDULER_add_now (sched,			    
+
+#if START_ARM
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Adv Killing ARM process.\n");
+  if (0 != PLIBC_KILL (adv_peer.arm_pid, SIGTERM))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+  if (GNUNET_OS_process_wait(adv_peer.arm_pid) != GNUNET_OK)
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Adv ARM process %u stopped\n", adv_peer.arm_pid);
+#endif
+  GNUNET_CONFIGURATION_destroy (adv_peer.cfg);
+  
+
+#if START_ARM
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Learn Killing ARM process.\n");
+  if (0 != PLIBC_KILL (learn_peer.arm_pid, SIGTERM))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+  if (GNUNET_OS_process_wait(learn_peer.arm_pid) != GNUNET_OK)
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Learn ARM process %u stopped\n", learn_peer.arm_pid);
+#endif
+  GNUNET_CONFIGURATION_destroy (adv_peer.cfg);  
+
+/*  GNUNET_SCHEDULER_add_now (sched,			    
 			    &waitpid_task, &learn_peer);
   GNUNET_SCHEDULER_add_now (sched,
-			    &waitpid_task, &adv_peer);
+			    &waitpid_task, &adv_peer);*/
   GNUNET_SCHEDULER_shutdown (sched);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown complete....\n");
 }
