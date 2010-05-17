@@ -180,7 +180,7 @@ mpz_randomize (mpz_t n, unsigned int nbits, GNUNET_HashCode * rnd)
     {
       GNUNET_CRYPTO_hash (&tmp[i], sizeof (GNUNET_HashCode), &tmp[i + 1]);
     }
-  GNUNET_CRYPTO_hash (rnd, sizeof (GNUNET_HashCode), &tmp[i + 1]);
+  GNUNET_CRYPTO_hash (&tmp[i], sizeof (GNUNET_HashCode), rnd);
   mpz_import (n, cnt * sizeof (GNUNET_HashCode) / sizeof (unsigned int),
               1, sizeof (unsigned int), 1, 0, tmp);
   GNUNET_free (tmp);
