@@ -333,8 +333,15 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h,
       c++;
       pos = pos->next;
     }
-  if (c >= max_queue_size)
-    return NULL;
+  ret = GNUNET_malloc (sizeof (struct GNUNET_DATASTORE_QueueEntry) + msize);
+  ret->h = h;
+  ret->response_proc = response_proc;
+  ret->client_ctx = client_ctx;
+  ret->timeout = GNUNET_TIME_relative_to_absolute (timeout);
+  ret->priority = queue_priority;
+  ret->max_queue = max_queue_size;
+  ret->message_size = msize;
+  ret->was_transmitted = GNUNET_NO;
   if (pos == NULL)
     {
       /* append at the tail */
@@ -349,25 +356,22 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h,
 	   (h->queue_head->was_transmitted) )
 	pos = h->queue_head;
     }
-  ret = GNUNET_malloc (sizeof (struct GNUNET_DATASTORE_QueueEntry) + msize);
+  c++;
   GNUNET_CONTAINER_DLL_insert_after (h->queue_head,
 				     h->queue_tail,
 				     pos,
 				     ret);
-  ret->h = h;
-  ret->response_proc = response_proc;
-  ret->client_ctx = client_ctx;
+  h->queue_size++;
+  if (c > max_queue_size)
+    {
+      response_proc (ret, NULL);
+      GNUNET_free (ret);
+      return NULL;
+    }
   ret->task = GNUNET_SCHEDULER_add_delayed (h->sched,
 					    timeout,
 					    &timeout_queue_entry,
 					    ret);
-  ret->timeout = GNUNET_TIME_relative_to_absolute (timeout);
-  ret->priority = queue_priority;
-  ret->max_queue = max_queue_size;
-  ret->message_size = msize;
-  ret->was_transmitted = GNUNET_NO;
-  h->queue_size++;
-  c++;
   pos = ret->next;
   while (pos != NULL) 
     {
@@ -1106,7 +1110,7 @@ GNUNET_DATASTORE_get_random (struct GNUNET_DATASTORE_Handle *h,
 			 queue_priority, max_queue_size, timeout,
 			 &process_result_message, rcont);
   if (qe == NULL)
-    return NULL;
+    return NULL;    
   m = (struct GNUNET_MessageHeader*) &qe[1];
   m->type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_GET_RANDOM);
   m->size = htons(sizeof (struct GNUNET_MessageHeader));
