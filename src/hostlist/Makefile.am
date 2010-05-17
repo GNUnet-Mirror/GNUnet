@@ -33,11 +33,14 @@ gnunet_daemon_hostlist_CPPFLAGS = \
 
 check_PROGRAMS = \
  test_gnunet_daemon_hostlist \
+ test_gnunet_hostlist \
  test_gnunet_daemon_hostlist_learning
 
 if HAVE_MHD
-TESTS = test_gnunet_daemon_hostlist \
- test_gnunet_daemon_hostlist_learning
+TESTS = \
+ test_gnunet_daemon_hostlist \
+ test_gnunet_daemon_hostlist_learning \
+ test_gnunet_hostlist
 endif
 
 test_gnunet_daemon_hostlist_SOURCES = \
@@ -45,6 +48,15 @@ test_gnunet_daemon_hostlist_SOURCES = \
 test_gnunet_daemon_hostlist_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/arm/libgnunetarm.la \
+  $(top_builddir)/src/util/libgnunetutil.la  
+
+test_gnunet_hostlist_SOURCES = \
+ test_gnunet_hostlist.c
+test_gnunet_hostlist_LDADD = \
+  $(top_builddir)/src/transport/libgnunettransport.la \
+  $(top_builddir)/src/arm/libgnunetarm.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la  
 
 test_gnunet_daemon_hostlist_learning_SOURCES = \

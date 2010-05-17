@@ -38,7 +38,7 @@
 /**
  * How long until wait until testcases fails
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 240)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 #define CHECK_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 static int timeout;
@@ -98,6 +98,8 @@ waitpid_task (void *cls,
 
 static void shutdown_testcase()
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown testcase....\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping Timeout Task.\n");
   if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (sched,
@@ -146,6 +148,7 @@ static void shutdown_testcase()
   GNUNET_SCHEDULER_add_now (sched,
 			    &waitpid_task, &adv_peer);
   GNUNET_SCHEDULER_shutdown (sched);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown complete....\n");
 }
 
 /**
