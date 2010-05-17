@@ -156,35 +156,23 @@ static uint16_t small_prime_numbers[] = {
 static int no_of_small_prime_numbers = DIM (small_prime_numbers) - 1;
 
 
-     static unsigned int
-     get_nbits (mpz_t a)
+static unsigned int
+get_nbits (mpz_t a)
 {
   return mpz_sizeinbase (a, 2);
 }
 
 
-/**
- * Set bit N of A. and clear all bits above
- */
-static void
-set_highbit (mpz_t a, unsigned int n)
-{
-  unsigned int nbits;
-
-  nbits = get_nbits (a);
-  while (nbits > n)
-    mpz_clrbit (a, nbits--);
-  mpz_setbit (a, n);
-}
-
 static void
 mpz_randomize (mpz_t n, unsigned int nbits, GNUNET_HashCode * rnd)
 {
   GNUNET_HashCode *tmp;
+  int bits_per_hc = sizeof (GNUNET_HashCode) * 8;
   int cnt;
   int i;
 
-  cnt = (nbits / sizeof (GNUNET_HashCode) / 8) + 1;
+  GNUNET_assert (nbits > 0);
+  cnt = (nbits + bits_per_hc - 1) / bits_per_hc;
   tmp = GNUNET_malloc (sizeof (GNUNET_HashCode) * cnt);
 
   tmp[0] = *rnd;
@@ -192,7 +180,7 @@ mpz_randomize (mpz_t n, unsigned int nbits, GNUNET_HashCode * rnd)
     {
       GNUNET_CRYPTO_hash (&tmp[i], sizeof (GNUNET_HashCode), &tmp[i + 1]);
     }
-  *rnd = tmp[cnt - 1];
+  GNUNET_CRYPTO_hash (rnd, sizeof (GNUNET_HashCode), &tmp[i + 1]);
   mpz_import (n, cnt * sizeof (GNUNET_HashCode) / sizeof (unsigned int),
               1, sizeof (unsigned int), 1, 0, tmp);
   GNUNET_free (tmp);
@@ -238,19 +226,7 @@ is_prime (mpz_t n, int steps, GNUNET_HashCode * hc)
         }
       else
         {
-          mpz_randomize (x, nbits, hc);
-
-          /* Make sure that the number is smaller than the prime and
-             keep the randomness of the high bit. */
-          if (mpz_tstbit (x, nbits - 2))
-            {
-              set_highbit (x, nbits - 2);       /* Clear all higher bits. */
-            }
-          else
-            {
-              set_highbit (x, nbits - 2);
-              mpz_clrbit (x, nbits - 2);
-            }
+          mpz_randomize (x, nbits - 1, hc);
           GNUNET_assert (mpz_cmp (x, nminus1) < 0 && mpz_cmp_ui (x, 1) > 0);
         }
       mpz_powm (y, x, q, n);
@@ -306,7 +282,7 @@ gen_prime (mpz_t ptest, unsigned int nbits, GNUNET_HashCode * hc)
          generating a secret prime we are most probably doing that
          for RSA, to make sure that the modulus does have the
          requested key size we set the 2 high order bits. */
-      set_highbit (prime, nbits - 1);
+      mpz_setbit (prime, nbits - 1);
       mpz_setbit (prime, nbits - 2);
       mpz_setbit (prime, 0);
 
