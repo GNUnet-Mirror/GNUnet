@@ -106,12 +106,8 @@ static void shutdown_testcase()
                              timeout_task);
     timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  if (check_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (sched, check_task);
-    check_task = GNUNET_SCHEDULER_NO_TASK;
-  }
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping Statistics Task.\n");
   if ((NULL != learn_peer.stats) && (NULL != download_stats))
     GNUNET_STATISTICS_get_cancel (download_stats);
   if ((NULL != learn_peer.stats) && (NULL != urisrecv_stat))
@@ -120,6 +116,15 @@ static void shutdown_testcase()
     GNUNET_STATISTICS_get_cancel (advsent_stat);
   if ( NULL != current_adv_uri ) GNUNET_free (current_adv_uri);
 
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping Statistics Check Task.\n");
+  if (check_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (sched, check_task);
+    check_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from Transport.\n");
   if (adv_peer.th != NULL)
   {
     GNUNET_TRANSPORT_disconnect (adv_peer.th);
@@ -130,6 +135,8 @@ static void shutdown_testcase()
     GNUNET_TRANSPORT_disconnect (learn_peer.th);
     learn_peer.th = NULL;
   }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from Core.\n");
   if (adv_peer.core != NULL)
   {
     GNUNET_CORE_disconnect (adv_peer.core);
