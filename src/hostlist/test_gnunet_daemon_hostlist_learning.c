@@ -102,13 +102,9 @@ static void shutdown_testcase()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping Timeout Task.\n");
   if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
   {
-    GNUNET_SCHEDULER_cancel (sched,
-                             timeout_task);
+    GNUNET_SCHEDULER_cancel (sched, timeout_task);
     timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
-
-
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping Statistics Check Task.\n");
   if (check_task != GNUNET_SCHEDULER_NO_TASK)
@@ -118,14 +114,15 @@ static void shutdown_testcase()
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping Statistics Task.\n");
-/*
+
   if ((NULL != learn_peer.stats) && (NULL != download_stats))
     GNUNET_STATISTICS_get_cancel (download_stats);
   if ((NULL != learn_peer.stats) && (NULL != urisrecv_stat))
     GNUNET_STATISTICS_get_cancel (urisrecv_stat);
   if ((NULL != adv_peer.stats) && (NULL != advsent_stat))
-    GNUNET_STATISTICS_get_cancel (advsent_stat);*/
-  // if ( NULL != current_adv_uri ) GNUNET_free (current_adv_uri);
+    GNUNET_STATISTICS_get_cancel (advsent_stat);
+
+  if ( NULL != current_adv_uri ) GNUNET_free (current_adv_uri);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from Transport.\n");
   if (adv_peer.th != NULL)
   {
@@ -155,33 +152,34 @@ static void shutdown_testcase()
 
 #if START_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Adv Killing ARM process.\n");
+              "Killing hostlist server ARM process.\n");
   if (0 != PLIBC_KILL (adv_peer.arm_pid, SIGTERM))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   if (GNUNET_OS_process_wait(adv_peer.arm_pid) != GNUNET_OK)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Adv ARM process %u stopped\n", adv_peer.arm_pid);
+              "Hostlist server ARM process %u stopped\n", adv_peer.arm_pid);
 #endif
-  GNUNET_CONFIGURATION_destroy (adv_peer.cfg);
+  /*
+  if (NULL != adv_peer.cfg)
+    GNUNET_CONFIGURATION_destroy (adv_peer.cfg);*/
   
 
 #if START_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Learn Killing ARM process.\n");
+              "Killing hostlist client ARM process.\n");
   if (0 != PLIBC_KILL (learn_peer.arm_pid, SIGTERM))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   if (GNUNET_OS_process_wait(learn_peer.arm_pid) != GNUNET_OK)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Learn ARM process %u stopped\n", learn_peer.arm_pid);
+              "Hostlist client ARM process %u stopped\n", learn_peer.arm_pid);
 #endif
-  GNUNET_CONFIGURATION_destroy (adv_peer.cfg);  
+  /*
+  if (NULL != learn_peer.cfg)
+    GNUNET_CONFIGURATION_destroy (learn_peer.cfg);*/
 
-/*  GNUNET_SCHEDULER_add_now (sched,			    
-			    &waitpid_task, &learn_peer);
-  GNUNET_SCHEDULER_add_now (sched,
-			    &waitpid_task, &adv_peer);*/
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown complete....\n");
   GNUNET_SCHEDULER_shutdown (sched);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown complete....\n");
 }
@@ -193,6 +191,8 @@ static void
 timeout_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Timeout while executing testcase, test failed.\n");
   timeout = GNUNET_YES;
@@ -260,6 +260,11 @@ static void
 check_statistics (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   char *stat;
+
+  check_task = GNUNET_SCHEDULER_NO_TASK;
+    if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+      return;
+
   GNUNET_asprintf (&stat,
                    gettext_noop("# advertised URI `%s' downloaded"),
                    current_adv_uri);
@@ -292,11 +297,11 @@ check_statistics (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                            NULL,
                            &process_adv_sent,
                            NULL);
-    check_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                  CHECK_INTERVALL,
-                                  &check_statistics,
-                                  NULL);
   }
+  check_task = GNUNET_SCHEDULER_add_delayed (sched,
+                                CHECK_INTERVALL,
+                                &check_statistics,
+                                NULL);
 }
 
 /**
