@@ -738,6 +738,8 @@ GNUNET_HOSTLIST_server_stop ()
     }
   cfg = NULL;
   sched = NULL;
+  stats = NULL;
+  core = NULL;
 }
 
 /* end of hostlist-server.c */

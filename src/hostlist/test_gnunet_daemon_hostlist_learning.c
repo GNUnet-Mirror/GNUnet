@@ -50,6 +50,7 @@ static int learned_hostlist_downloaded;
 
 static char * current_adv_uri;
 
+static struct GNUNET_CONFIGURATION_Handle *cfg;
 static struct GNUNET_SCHEDULER_Handle *sched;
 
 static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
@@ -445,7 +446,7 @@ run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile, 
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   timeout = GNUNET_NO;
   adv_sent =GNUNET_NO;
@@ -454,6 +455,7 @@ run (void *cls,
   learned_hostlist_saved = GNUNET_NO;
   learned_hostlist_downloaded = GNUNET_NO;
 
+  cfg = c;
   sched = s;
 
   check_task = GNUNET_SCHEDULER_add_delayed (sched,
