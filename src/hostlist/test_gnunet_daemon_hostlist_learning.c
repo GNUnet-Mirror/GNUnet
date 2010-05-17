@@ -225,33 +225,40 @@ check_statistics (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_asprintf (&stat,
                    gettext_noop("# advertised URI `%s' downloaded"),
                    current_adv_uri);
-  download_stats = GNUNET_STATISTICS_get (learn_peer.stats,
-                         "hostlist",
-                         stat,
-                         GNUNET_TIME_UNIT_MINUTES,
-                         NULL,
-                         &process_downloads,
-                         &learn_peer);
-  GNUNET_free (stat);
 
-  urisrecv_stat = GNUNET_STATISTICS_get (learn_peer.stats,
-                         "hostlist",
-                         gettext_noop("# advertised hostlist URIs"),
-                         GNUNET_TIME_UNIT_MINUTES,
-                         NULL,
-                         &process_uris_recv,
-                         &learn_peer);
-  advsent_stat = GNUNET_STATISTICS_get (adv_peer.stats,
-                         "hostlist",
-                         gettext_noop("# hostlist advertisements send"),
-                         GNUNET_TIME_UNIT_MINUTES,
-                         NULL,
-                         &process_adv_sent,
-                         NULL);
-  check_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                CHECK_INTERVALL,
-                                &check_statistics,
-                                NULL);
+
+  if ( NULL != learn_peer.stats)
+  {
+    download_stats = GNUNET_STATISTICS_get (learn_peer.stats,
+                           "hostlist",
+                           stat,
+                           GNUNET_TIME_UNIT_MINUTES,
+                           NULL,
+                           &process_downloads,
+                           &learn_peer);
+    GNUNET_free (stat);
+    urisrecv_stat = GNUNET_STATISTICS_get (learn_peer.stats,
+                           "hostlist",
+                           gettext_noop("# advertised hostlist URIs"),
+                           GNUNET_TIME_UNIT_MINUTES,
+                           NULL,
+                           &process_uris_recv,
+                           &learn_peer);
+  }
+  if ( NULL != adv_peer.stats)
+  {
+    advsent_stat = GNUNET_STATISTICS_get (adv_peer.stats,
+                           "hostlist",
+                           gettext_noop("# hostlist advertisements send"),
+                           GNUNET_TIME_UNIT_MINUTES,
+                           NULL,
+                           &process_adv_sent,
+                           NULL);
+    check_task = GNUNET_SCHEDULER_add_delayed (sched,
+                                  CHECK_INTERVALL,
+                                  &check_statistics,
+                                  NULL);
+  }
 }
 
 /**
@@ -406,6 +413,8 @@ run (void *cls,
 
   sched = s;
 
+
+
   check_task = GNUNET_SCHEDULER_add_delayed (sched,
                                 CHECK_INTERVALL,
                                 &check_statistics,
@@ -419,7 +428,6 @@ run (void *cls,
                                                NULL);
 
 }
-
 
 static int
 check ()
