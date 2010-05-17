@@ -1,3 +1,4 @@
+
 /*
      This file is part of GNUnet.
      (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009 Christian Grothoff (and other contributing authors)
@@ -40,6 +41,20 @@
  * Maximum number of blocks we keep in memory for migration.
  */
 #define MAX_MIGRATION_QUEUE 32
+
+/**
+ * How many peers do we select as possible
+ * targets per block obtained for migration?
+ */
+#define MIGRATION_LIST_SIZE 4
+
+/**
+ * To how many peers do we forward each migration block ultimately?
+ * This number must be smaller or equal to MIGRATION_LIST_SIZE.  Using
+ * a smaller value allows for variation in available bandwidth (for
+ * migration) between the peers.
+ */
+#define MIGRATION_TARGET_COUNT 2
 
 /**
  * Ratio for moving average delay calculation.  The previous

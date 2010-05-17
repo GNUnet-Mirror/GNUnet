@@ -255,20 +255,8 @@ void GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
     }
   while (NULL != (qe = h->queue_head))
     {
-      if (NULL != qe->response_proc)
-	{
-	  qe->response_proc (qe, NULL);
-	}
-      else
-	{
-	  GNUNET_CONTAINER_DLL_remove (h->queue_head,
-				       h->queue_tail,
-				       qe);
-	  if (qe->task != GNUNET_SCHEDULER_NO_TASK)
-	    GNUNET_SCHEDULER_cancel (h->sched,
-				     qe->task);
-	  GNUNET_free (qe);
-	}
+      GNUNET_assert (NULL != qe->response_proc);
+      qe->response_proc (qe, NULL);
     }
   if (GNUNET_YES == drop) 
     {
@@ -385,15 +373,8 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h,
     {
       if (pos->max_queue < h->queue_size)
 	{
-	  GNUNET_CONTAINER_DLL_remove (h->queue_head,
-				       h->queue_tail,
-				       pos);
-	  GNUNET_SCHEDULER_cancel (h->sched,
-				   pos->task);
-	  if (pos->response_proc != NULL)
-	    pos->response_proc (pos, NULL);
-	  GNUNET_free (pos);
-	  h->queue_size--;
+	  GNUNET_assert (pos->response_proc != NULL);
+	  pos->response_proc (pos, NULL);
 	  break;
 	}
       pos = pos->next;
@@ -565,6 +546,24 @@ drop_status_cont (void *cls, int result, const char *emsg)
 }
 
 
+static void
+free_queue_entry (struct GNUNET_DATASTORE_QueueEntry *qe)
+{
+  struct GNUNET_DATASTORE_Handle *h = qe->h;
+
+  GNUNET_CONTAINER_DLL_remove (h->queue_head,
+			       h->queue_tail,
+			       qe);
+  if (qe->task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (h->sched,
+			       qe->task);
+      qe->task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  h->queue_size--;
+  GNUNET_free (qe);
+}
+
 /**
  * Type of a function to call when we receive a message
  * from the service.
@@ -584,16 +583,7 @@ process_status_message (void *cls,
   const char *emsg;
   int32_t status;
 
-  GNUNET_CONTAINER_DLL_remove (h->queue_head,
-			       h->queue_tail,
-			       qe);
-  if (qe->task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (h->sched,
-			       qe->task);
-      qe->task = GNUNET_SCHEDULER_NO_TASK;
-    }
-  GNUNET_free (qe);
+  free_queue_entry (qe);
   if (msg == NULL)
     {      
       if (NULL == h->client)
@@ -1018,10 +1008,7 @@ process_result_message (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Failed to receive response from datastore\n"));
 #endif
-      GNUNET_CONTAINER_DLL_remove (h->queue_head,
-				   h->queue_tail,
-				   qe);
-      GNUNET_free (qe);
+      free_queue_entry (qe);
       do_disconnect (h);
       rc->iter (rc->iter_cls,
 		NULL, 0, NULL, 0, 0, 0, 
@@ -1036,10 +1023,7 @@ process_result_message (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Received end of result set\n");
 #endif
-      GNUNET_CONTAINER_DLL_remove (h->queue_head,
-				   h->queue_tail,
-				   qe);
-      GNUNET_free (qe);
+      free_queue_entry (qe);
       rc->iter (rc->iter_cls,
 		NULL, 0, NULL, 0, 0, 0, 
 		GNUNET_TIME_UNIT_ZERO_ABS, 0);	
@@ -1052,10 +1036,7 @@ process_result_message (void *cls,
        (ntohs(msg->size) != sizeof(struct DataMessage) + ntohl (((const struct DataMessage*)msg)->size)) )
     {
       GNUNET_break (0);
-      GNUNET_CONTAINER_DLL_remove (h->queue_head,
-				   h->queue_tail,
-				   qe);
-      GNUNET_free (qe);
+      free_queue_entry (qe);
       h->retry_time = GNUNET_TIME_UNIT_ZERO;
       do_disconnect (h);
       rc->iter (rc->iter_cls,
@@ -1226,10 +1207,7 @@ GNUNET_DATASTORE_get_next (struct GNUNET_DATASTORE_Handle *h,
 			     GNUNET_TIME_absolute_get_remaining (qe->timeout));
       return;
     }
-  GNUNET_CONTAINER_DLL_remove (h->queue_head,
-			       h->queue_tail,
-			       qe);
-  GNUNET_free (qe);
+  free_queue_entry (qe);
   h->retry_time = GNUNET_TIME_UNIT_ZERO;
   do_disconnect (h);
   rc->iter (rc->iter_cls,
@@ -1253,13 +1231,8 @@ GNUNET_DATASTORE_cancel (struct GNUNET_DATASTORE_QueueEntry *qe)
 
   h = qe->h;
   reconnect = qe->was_transmitted;
-  GNUNET_CONTAINER_DLL_remove (h->queue_head,
-			       h->queue_tail,
-			       qe);
-  if (qe->task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (h->sched,
-			     qe->task);
-  GNUNET_free (qe);
+  free_queue_entry (qe);
+  h->queue_size--;
   if (reconnect)
     {
       h->retry_time = GNUNET_TIME_UNIT_ZERO;

@@ -28,8 +28,7 @@
  * TODO:
  * - have non-zero preference / priority for requests we initiate!
  * - implement hot-path routing decision procedure
- * - implement: bound_priority, test_load_too_high, validate_nblock
- * - add content migration support (forward from migration list)
+ * - implement: bound_priority, test_load_too_high
  * - statistics
  */
 #include "platform.h"
@@ -586,9 +585,20 @@ struct MigrationReadyBlock
   struct GNUNET_TIME_Absolute expiration;
 
   /**
+   * Peers we would consider forwarding this
+   * block to.  Zero for empty entries.
+   */
+  GNUNET_PEER_Id target_list[MIGRATION_LIST_SIZE];
+
+  /**
    * Size of the block.
    */
   size_t size;
+
+  /**
+   *  Number of targets already used.
+   */
+  unsigned int used_targets;
 
   /**
    * Type of the block.
@@ -684,6 +694,25 @@ static unsigned int mig_size;
  */
 static int active_migration;
 
+
+/**
+ * Transmit messages by copying it to the target buffer
+ * "buf".  "buf" will be NULL and "size" zero if the socket was closed
+ * for writing in the meantime.  In that case, do nothing
+ * (the disconnect or shutdown handler will take care of the rest).
+ * If we were able to transmit messages and there are still more
+ * pending, ask core again for further calls to this function.
+ *
+ * @param cls closure, pointer to the 'struct ConnectedPeer*'
+ * @param size number of bytes available in buf
+ * @param buf where the callee should write the message
+ * @return number of bytes written to buf
+ */
+static size_t
+transmit_to_peer (void *cls,
+		  size_t size, void *buf);
+
+
 /* ******************* clean up functions ************************ */
 
 
@@ -698,16 +727,38 @@ delete_migration_block (struct MigrationReadyBlock *mb)
   GNUNET_CONTAINER_DLL_remove (mig_head,
 			       mig_tail,
 			       mb);
+  GNUNET_PEER_decrement_rcs (mb->target_list,
+			     MIGRATION_LIST_SIZE);
   mig_size--;
   GNUNET_free (mb);
 }
 
 
 /**
+ * Compare the distance of two peers to a key.
+ *
+ * @param key key
+ * @param p1 first peer
+ * @param p2 second peer
+ * @return GNUNET_YES if P1 is closer to key than P2
+ */
+static int
+is_closer (const GNUNET_HashCode *key,
+	   const struct GNUNET_PeerIdentity *p1,
+	   const struct GNUNET_PeerIdentity *p2)
+{
+  return GNUNET_CRYPTO_hash_xorcmp (&p1->hashPubKey,
+				    &p2->hashPubKey,
+				    key);
+}
+
+
+/**
  * Consider migrating content to a given peer.
  *
- * @param cls not used
- * @param key ID of the peer (not used)
+ * @param cls 'struct MigrationReadyBlock*' to select
+ *            targets for (or NULL for none)
+ * @param key ID of the peer 
  * @param value 'struct ConnectedPeer' of the peer
  * @return GNUNET_YES (always continue iteration)2
  */
@@ -716,15 +767,90 @@ consider_migration (void *cls,
 		    const GNUNET_HashCode *key,
 		    void *value)
 {
+  struct MigrationReadyBlock *mb = cls;
   struct ConnectedPeer *cp = value;
+  struct MigrationReadyBlock *pos;
+  struct GNUNET_PeerIdentity cppid;
+  struct GNUNET_PeerIdentity otherpid;
+  struct GNUNET_PeerIdentity worstpid;
+  size_t msize;
+  unsigned int i;
+  unsigned int repl;
   
+  /* consider 'cp' as a migration target for mb */
+  if (mb != NULL)
+    {
+      GNUNET_PEER_resolve (cp->pid,
+			   &cppid);
+      repl = MIGRATION_LIST_SIZE;
+      for (i=0;i<MIGRATION_LIST_SIZE;i++)
+	{
+	  if (mb->target_list[i] == 0)
+	    {
+	      mb->target_list[i] = cp->pid;
+	      GNUNET_PEER_change_rc (mb->target_list[i], 1);
+	      repl = MIGRATION_LIST_SIZE;
+	      break;
+	    }
+	  GNUNET_PEER_resolve (mb->target_list[i],
+			       &otherpid);
+	  if ( (repl == MIGRATION_LIST_SIZE) &&
+	       is_closer (&mb->query,
+			  &cppid,
+			  &otherpid)) 
+	    {
+	      repl = i;
+	      worstpid = otherpid;
+	    }
+	  else if ( (repl != MIGRATION_LIST_SIZE) &&
+		    (is_closer (&mb->query,
+				&worstpid,
+				&otherpid) ) )
+	    {
+	      repl = i;
+	      worstpid = otherpid;
+	    }	    
+	}
+      if (repl != MIGRATION_LIST_SIZE) 
+	{
+	  GNUNET_PEER_change_rc (mb->target_list[repl], -1);
+	  mb->target_list[repl] = cp->pid;
+	  GNUNET_PEER_change_rc (mb->target_list[repl], 1);
+	}
+    }
+
+  /* consider scheduling transmission to cp for content migration */
   if (cp->cth != NULL)
-    return GNUNET_YES; /* or what? */
-  /* FIXME: not implemented! */
+    return GNUNET_YES; 
+  msize = 0;
+  pos = mig_head;
+  while (pos != NULL)
+    {
+      for (i=0;i<MIGRATION_LIST_SIZE;i++)
+	{
+	  if (cp->pid == pos->target_list[i])
+	    {
+	      if (msize == 0)
+		msize = pos->size;
+	      else
+		msize = GNUNET_MIN (msize,
+				    pos->size);
+	      break;
+	    }
+	}
+      pos = pos->next;
+    }
+  if (msize == 0)
+    return GNUNET_YES; /* no content available */
+  cp->cth 
+    = GNUNET_CORE_notify_transmit_ready (core,
+					 0, GNUNET_TIME_UNIT_FOREVER_REL,
+					 (const struct GNUNET_PeerIdentity*) key,
+					 msize + sizeof (struct PutMessage),
+					 &transmit_to_peer,
+					 cp);
   return GNUNET_YES;
 }
-
-
 
 
 /**
@@ -737,6 +863,32 @@ consider_migration (void *cls,
 static void
 gather_migration_blocks (void *cls,
 			 const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
+ * If the migration task is not currently running, consider
+ * (re)scheduling it with the appropriate delay.
+ */
+static void
+consider_migration_gathering ()
+{
+  struct GNUNET_TIME_Relative delay;
+
+  if (mig_qe != NULL)
+    return;
+  if (mig_task != GNUNET_SCHEDULER_NO_TASK)
+    return;
+  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+					 mig_size);
+  delay = GNUNET_TIME_relative_divide (GNUNET_TIME_UNIT_SECONDS,
+				       MAX_MIGRATION_QUEUE);
+  delay = GNUNET_TIME_relative_max (delay,
+				    min_migration_delay);
+  mig_task = GNUNET_SCHEDULER_add_delayed (sched,
+					   delay,
+					   &gather_migration_blocks,
+					   NULL);
+}
 
 
 /**
@@ -765,24 +917,23 @@ process_migration_content (void *cls,
 			   expiration, uint64_t uid)
 {
   struct MigrationReadyBlock *mb;
-  struct GNUNET_TIME_Relative delay;
   
   if (key == NULL)
     {
       mig_qe = NULL;
       if (mig_size < MAX_MIGRATION_QUEUE)  
-	{
-	  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-						 mig_size);
-	  delay = GNUNET_TIME_relative_divide (GNUNET_TIME_UNIT_SECONDS,
-					       MAX_MIGRATION_QUEUE);
-	  delay = GNUNET_TIME_relative_max (delay,
-					    min_migration_delay);
-	  mig_task = GNUNET_SCHEDULER_add_delayed (sched,
-						   delay,
-						   &gather_migration_blocks,
-						   NULL);
-	}
+	consider_migration_gathering ();
+      return;
+    }
+  if (type == GNUNET_BLOCK_TYPE_ONDEMAND)
+    {
+      if (GNUNET_OK !=
+	  GNUNET_FS_handle_on_demand_block (key, size, data,
+					    type, priority, anonymity,
+					    expiration, uid, 
+					    &process_migration_content,
+					    NULL))
+	GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
       return;
     }
   mb = GNUNET_malloc (sizeof (struct MigrationReadyBlock) + size);
@@ -796,10 +947,9 @@ process_migration_content (void *cls,
 				     mig_tail,
 				     mb);
   mig_size++;
-  if (mig_size == 1)
-    GNUNET_CONTAINER_multihashmap_iterate (connected_peers,
-					   &consider_migration,
-					   NULL);
+  GNUNET_CONTAINER_multihashmap_iterate (connected_peers,
+					 &consider_migration,
+					 mb);
   GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
 }
 
@@ -978,7 +1128,8 @@ peer_connect_handler (void *cls,
 		      uint32_t distance)
 {
   struct ConnectedPeer *cp;
-
+  struct MigrationReadyBlock *pos;
+  
   cp = GNUNET_malloc (sizeof (struct ConnectedPeer));
   cp->pid = GNUNET_PEER_intern (peer);
   GNUNET_break (GNUNET_OK ==
@@ -986,8 +1137,13 @@ peer_connect_handler (void *cls,
 						   &peer->hashPubKey,
 						   cp,
 						   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  if (mig_size > 0)
-    (void) consider_migration (NULL, &peer->hashPubKey, cp);
+
+  pos = mig_head;
+  while (NULL != pos)
+    {
+      (void) consider_migration (pos, &peer->hashPubKey, cp);
+      pos = pos->next;
+    }
 }
 
 
@@ -1031,6 +1187,8 @@ peer_disconnect_handler (void *cls,
   struct ConnectedPeer *cp;
   struct PendingMessage *pm;
   unsigned int i;
+  struct MigrationReadyBlock *pos;
+  struct MigrationReadyBlock *next;
 
   GNUNET_CONTAINER_multihashmap_get_multiple (peer_request_map,
 					      &peer->hashPubKey,
@@ -1052,6 +1210,31 @@ peer_disconnect_handler (void *cls,
 		GNUNET_CONTAINER_multihashmap_remove (connected_peers,
 						      &peer->hashPubKey,
 						      cp));
+  /* remove this peer from migration considerations; schedule
+     alternatives */
+  next = mig_head;
+  while (NULL != (pos = next))
+    {
+      next = pos->next;
+      for (i=0;i<MIGRATION_LIST_SIZE;i++)
+	{
+	  if (pos->target_list[i] == cp->pid)
+	    {
+	      GNUNET_PEER_change_rc (pos->target_list[i], -1);
+	      pos->target_list[i] = 0;
+	      if (pos->used_targets >= GNUNET_CONTAINER_multihashmap_size (connected_peers))
+		{
+		  delete_migration_block (pos);
+		  consider_migration_gathering ();
+		}
+	      GNUNET_CONTAINER_multihashmap_iterate (connected_peers,
+						     &consider_migration,
+						     pos);
+	      break;
+	    }
+	}
+    }
+
   GNUNET_PEER_change_rc (cp->pid, -1);
   GNUNET_PEER_decrement_rcs (cp->last_p2p_replies, P2P_SUCCESS_LIST_SIZE);
   if (NULL != cp->cth)
@@ -1231,7 +1414,7 @@ shutdown_task (void *cls,
 
 
 /**
- * Transmit the given message by copying it to the target buffer
+ * Transmit messages by copying it to the target buffer
  * "buf".  "buf" will be NULL and "size" zero if the socket was closed
  * for writing in the meantime.  In that case, do nothing
  * (the disconnect or shutdown handler will take care of the rest).
@@ -1251,7 +1434,11 @@ transmit_to_peer (void *cls,
   char *cbuf = buf;
   struct GNUNET_PeerIdentity pid;
   struct PendingMessage *pm;
+  struct MigrationReadyBlock *mb;
+  struct MigrationReadyBlock *next;
+  struct PutMessage migm;
   size_t msize;
+  unsigned int i;
  
   cp->cth = NULL;
   if (NULL == buf)
@@ -1282,6 +1469,44 @@ transmit_to_peer (void *cls,
 						   pm->msize,
 						   &transmit_to_peer,
 						   cp);
+    }
+  else
+    {      
+      next = mig_head;
+      while (NULL != (mb = next))
+	{
+	  next = mb->next;
+	  for (i=0;i<MIGRATION_LIST_SIZE;i++)
+	    {
+	      if ( (cp->pid == mb->target_list[i]) &&
+		   (mb->size + sizeof (migm) <= size) )
+		{
+		  GNUNET_PEER_change_rc (mb->target_list[i], -1);
+		  mb->target_list[i] = 0;
+		  mb->used_targets++;
+		  migm.header.size = htons (sizeof (migm) + mb->size);
+		  migm.header.type = htons (GNUNET_MESSAGE_TYPE_FS_PUT);
+		  migm.type = htonl (mb->type);
+		  migm.expiration = GNUNET_TIME_absolute_hton (mb->expiration);
+		  memcpy (&cbuf[msize], &migm, sizeof (migm));
+		  msize += sizeof (migm);
+		  size -= sizeof (migm);
+		  memcpy (&cbuf[msize], &mb[1], mb->size);
+		  msize += mb->size;
+		  size -= mb->size;		  
+		  break;
+		}
+	    }
+	  if ( (mb->used_targets >= MIGRATION_TARGET_COUNT) ||
+	       (mb->used_targets >= GNUNET_CONTAINER_multihashmap_size (connected_peers)) )
+	    {
+	      delete_migration_block (mb);
+	      consider_migration_gathering ();
+	    }
+	}
+      consider_migration (NULL, 
+			  &pid.hashPubKey,
+			  cp);
     }
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1330,18 +1555,17 @@ add_to_pending_messages_for_peer (struct ConnectedPeer *cp,
   cp->pending_requests++;
   if (cp->pending_requests > MAX_QUEUE_PER_PEER)
     destroy_pending_message (cp->pending_messages_tail, 0);  
-  if (cp->cth == NULL)
-    {
-      /* need to schedule transmission */
-      GNUNET_PEER_resolve (cp->pid, &pid);
-      cp->cth = GNUNET_CORE_notify_transmit_ready (core,
-						   cp->pending_messages_head->priority,
-						   MAX_TRANSMIT_DELAY,
-						   &pid,
-						   cp->pending_messages_head->msize,
-						   &transmit_to_peer,
-						   cp);
-    }
+  GNUNET_PEER_resolve (cp->pid, &pid);
+  if (NULL != cp->cth)
+    GNUNET_CORE_notify_transmit_ready_cancel (cp->cth);
+  /* need to schedule transmission */
+  cp->cth = GNUNET_CORE_notify_transmit_ready (core,
+					       cp->pending_messages_head->priority,
+					       MAX_TRANSMIT_DELAY,
+					       &pid,
+					       cp->pending_messages_head->msize,
+					       &transmit_to_peer,
+					       cp);
   if (cp->cth == NULL)
     {
 #if DEBUG_FS
@@ -2095,9 +2319,14 @@ process_reply (void *cls,
 	}
       else
 	{
+	  if (NULL != prq->sender->last_client_replies
+	      [(prq->sender->last_client_replies_woff) % CS2P_SUCCESS_LIST_SIZE])
+	    GNUNET_SERVER_client_drop (prq->sender->last_client_replies
+				       [(prq->sender->last_client_replies_woff) % CS2P_SUCCESS_LIST_SIZE]);
 	  prq->sender->last_client_replies
 	    [(prq->sender->last_client_replies_woff++) % CS2P_SUCCESS_LIST_SIZE]
 	    = pr->client_request_list->client_list->client;
+	  GNUNET_SERVER_client_keep (pr->client_request_list->client_list->client);
 	}
     }
   GNUNET_CRYPTO_hash (prq->data,
@@ -2255,10 +2484,8 @@ process_reply (void *cls,
       memcpy (&pm[1], prq->data, prq->size);
       add_to_pending_messages_for_peer (cp, reply, pr);
     }
-  // FIXME: implement hot-path routing statistics keeping!
   return GNUNET_YES;
 }
-
 
 
 /**
@@ -2586,18 +2813,13 @@ process_local_reply (void *cls,
       GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
       return;
     }
-  prq.type = type;
-  prq.priority = priority;  
-  process_reply (&prq, key, pr);
-
   if ( (type == GNUNET_BLOCK_TYPE_DBLOCK) ||
        (type == GNUNET_BLOCK_TYPE_IBLOCK) ) 
     {
       if (pr->qe != NULL)
 	GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
-      return;
     }
-  if ( (pr->client_request_list == NULL) &&
+  else if ( (pr->client_request_list == NULL) &&
        ( (GNUNET_YES == test_load_too_high()) ||
 	 (pr->results_found > 5 + 2 * pr->priority) ) )
     {
@@ -2611,10 +2833,12 @@ process_local_reply (void *cls,
 				GNUNET_NO);
       if (pr->qe != NULL)
 	GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
-      return;
     }
-  if (pr->qe != NULL)
+  else if (pr->qe != NULL)
     GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
+  prq.type = type;
+  prq.priority = priority;  
+  process_reply (&prq, key, pr);
 }
 
 
@@ -3221,11 +3445,7 @@ main_init (struct GNUNET_SCHEDULER_Handle *s,
     }
   /* FIXME: distinguish between sending and storing in options? */
   if (active_migration) 
-    {
-      mig_task = GNUNET_SCHEDULER_add_now (sched,
-					   &gather_migration_blocks,
-					   NULL);
-    }
+    consider_migration_gathering ();
   GNUNET_SERVER_disconnect_notify (server, 
 				   &handle_client_disconnect,
 				   NULL);

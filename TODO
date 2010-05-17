@@ -1,12 +1,55 @@
 0.9.0pre1:
 * FS: [CG]
-  - migration:
-    + on-demand encoding
-    + peer selection => how to consider latency/bw/etc?
-    + content transmission => how often the same block?
-    + testing
-  - gnunet-service-fs (hot-path routing, load-based routing, nitpicks)  
-    + active reply route caching design & implementation of service; gap extension!
+  - test migration
+  - TTL/priority calculations
+  - hot-path routing, load considerations
+  - statistics
+  - active reply route caching design & implementation of service; gap extension!
+  - Indexing:
+May 16 12:49:50 fs-13737 WARNING `open' failed on file `/home/grothoff/svn/gnunet/src/fs/H/' at disk.c:1253 with error: No such file or directory
+May 16 12:49:50 fs-13737 WARNING Could not access indexed file `ENUTBMBR' at offset 2064384: No such file or directory
+    NOTE: corrupted filename in open message
+    NOTE: odd directory name in open message
+
+==14995== 8 bytes in 1 blocks are definitely lost in loss record 1 of 12
+==14995==    at 0x4024C4C: malloc (vg_replace_malloc.c:195)
+==14995==    by 0x4068F05: GNUNET_xmalloc_unchecked_ (common_allocation.c:92)
+==14995==    by 0x4068E33: GNUNET_xmalloc_ (common_allocation.c:61)
+==14995==    by 0x40519F5: GNUNET_DATASTORE_get_random (datastore_api.c:1102)
+==14995==    by 0x804ADCF: gather_migration_blocks (gnunet-service-fs.c:969)
+==14995==    by 0x40864C8: run_ready (scheduler.c:514)
+==14995==    by 0x4086970: GNUNET_SCHEDULER_run (scheduler.c:642)
+==14995==    by 0x408CF1B: GNUNET_SERVICE_run (service.c:1404)
+==14995==    by 0x804F725: main (gnunet-service-fs.c:3506)
+==14995== 
+==14995== 8 bytes in 1 blocks are definitely lost in loss record 2 of 12
+==14995==    at 0x4024C4C: malloc (vg_replace_malloc.c:195)
+==14995==    by 0x4068F05: GNUNET_xmalloc_unchecked_ (common_allocation.c:92)
+==14995==    by 0x4068E33: GNUNET_xmalloc_ (common_allocation.c:61)
+==14995==    by 0x4051ACB: GNUNET_DATASTORE_get (datastore_api.c:1160)
+==14995==    by 0x804F39A: handle_start_search (gnunet-service-fs.c:3352)
+==14995==    by 0x4087F9A: GNUNET_SERVER_inject (server.c:653)
+==14995==    by 0x40880A8: process_client_buffer (server.c:714)
+==14995==    by 0x4088529: restart_processing (server.c:848)
+==14995==    by 0x40864C8: run_ready (scheduler.c:514)
+==14995==    by 0x4086970: GNUNET_SCHEDULER_run (scheduler.c:642)
+==14995==    by 0x408CF1B: GNUNET_SERVICE_run (service.c:1404)
+==14995==    by 0x804F725: main (gnunet-service-fs.c:3506)
+==14995== 
+==14995== 120 bytes in 15 blocks are definitely lost in loss record 5 of 12
+==14995==    at 0x4024C4C: malloc (vg_replace_malloc.c:195)
+==14995==    by 0x4068F05: GNUNET_xmalloc_unchecked_ (common_allocation.c:92)
+==14995==    by 0x4068E33: GNUNET_xmalloc_ (common_allocation.c:61)
+==14995==    by 0x4050DA1: GNUNET_DATASTORE_put (datastore_api.c:695)
+==14995==    by 0x804DD79: handle_p2p_put (gnunet-service-fs.c:2591)
+==14995==    by 0x40588B8: main_notify_handler (core_api.c:468)
+==14995==    by 0x4067DAE: receive_task (client.c:499)
+==14995==    by 0x40864C8: run_ready (scheduler.c:514)
+==14995==    by 0x4086970: GNUNET_SCHEDULER_run (scheduler.c:642)
+==14995==    by 0x408CF1B: GNUNET_SERVICE_run (service.c:1404)
+==14995==    by 0x804F725: main (gnunet-service-fs.c:3506)
+==14995== 
+
 * TBENCH: [MW]
   - good to have for transport/DV evaluation! 
 * DV: [Nate]
