@@ -107,22 +107,23 @@ static void shutdown_testcase()
     timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping Statistics Check Task.\n");
-  if (check_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (sched, check_task);
-    check_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping Statistics Task.\n");
-
+/*
   if ((NULL != learn_peer.stats) && (NULL != download_stats))
     GNUNET_STATISTICS_get_cancel (download_stats);
   if ((NULL != learn_peer.stats) && (NULL != urisrecv_stat))
     GNUNET_STATISTICS_get_cancel (urisrecv_stat);
   if ((NULL != adv_peer.stats) && (NULL != advsent_stat))
     GNUNET_STATISTICS_get_cancel (advsent_stat);
+*/
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping Statistics Check Task.\n");
+  if ((check_task != GNUNET_SCHEDULER_NO_TASK) && (sched !=NULL))
+  {
+    GNUNET_SCHEDULER_cancel (sched, check_task);
+    check_task = GNUNET_SCHEDULER_NO_TASK;
+  }
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Freeing uri\n");
   if ( NULL != current_adv_uri ) GNUNET_free (current_adv_uri);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from Transport.\n");
   if (adv_peer.th != NULL)
@@ -173,12 +174,12 @@ static void shutdown_testcase()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Hostlist client ARM process %u stopped\n", learn_peer.arm_pid);
 #endif
-
+/*
   if (NULL != learn_peer.cfg)
     GNUNET_CONFIGURATION_destroy (learn_peer.cfg);
       if (NULL != adv_peer.cfg)
     GNUNET_CONFIGURATION_destroy (adv_peer.cfg);
-
+*/
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down scheduler\n");
   GNUNET_SCHEDULER_shutdown (sched);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown complete....\n");
