@@ -186,7 +186,7 @@ mpz_randomize (mpz_t n, unsigned int nbits, GNUNET_HashCode * rnd)
   GNUNET_free (tmp);
   i = get_nbits (n);
   while (i > nbits)
-    mpz_clrbit (n, i--);
+    mpz_clrbit (n, --i);
 }
 
 /**
