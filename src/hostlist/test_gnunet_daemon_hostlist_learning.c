@@ -109,11 +109,12 @@ static void shutdown_testcase()
     GNUNET_SCHEDULER_cancel (sched, check_task);
     check_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  if (NULL != download_stats)
+
+  if ((NULL != learn_peer.stats) && (NULL != download_stats))
     GNUNET_STATISTICS_get_cancel (download_stats);
-  if (NULL != urisrecv_stat)
+  if ((NULL != learn_peer.stats) && (NULL != urisrecv_stat))
     GNUNET_STATISTICS_get_cancel (urisrecv_stat);
-  if (NULL != advsent_stat)
+  if ((NULL != adv_peer.stats) && (NULL != advsent_stat))
     GNUNET_STATISTICS_get_cancel (advsent_stat);
   if ( NULL != current_adv_uri ) GNUNET_free (current_adv_uri);
 
@@ -167,7 +168,6 @@ process_downloads (void *cls,
               uint64_t value,
               int is_persistent)
 {
-
   download_stats = NULL;
   if ( ((struct PeerContext *) cls == &learn_peer) && (value == 2) && (learned_hostlist_downloaded == GNUNET_NO) )
   {
@@ -413,8 +413,6 @@ run (void *cls,
 
   sched = s;
 
-
-
   check_task = GNUNET_SCHEDULER_add_delayed (sched,
                                 CHECK_INTERVALL,
                                 &check_statistics,
@@ -426,7 +424,6 @@ run (void *cls,
                                                TIMEOUT,
                                                &timeout_error,
                                                NULL);
-
 }
 
 static int
