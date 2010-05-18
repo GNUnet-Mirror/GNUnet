@@ -164,11 +164,23 @@ static GNUNET_SCHEDULER_TaskIdentifier http_task_v4;
  */
 static GNUNET_SCHEDULER_TaskIdentifier http_task_v6;
 
-struct Plugin *plugin;
 
+/**
+ * Pl
+ */
+static struct Plugin *plugin;
+
+/**
+ * cURL Multihandle
+ */
 static CURLM *multi_handle;
 
+/**
+ * IP of current incoming connection
+ */
 static struct sockaddr  * current_ip;
+
+static unsigned int locked;
 
 /**
  * Finds a http session in our linked list using peer identity as a key
@@ -279,6 +291,7 @@ static struct Session * create_session_by_ip ( struct sockaddr_in * addr )
 static void requestCompletedCallback (void *cls, struct MHD_Connection * connection, void **httpSessionCache)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection was terminated\n");
+  /* clean up session here*/
   return;
 }
 
@@ -291,8 +304,16 @@ acceptPolicyCallback (void *cls,
 {
   struct sockaddr_in  *addrin;
   struct sockaddr_in6 *addrin6;
-  char * address;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Address %p\n",current_ip);
+  char * address = NULL;
+
+  if ( GNUNET_YES == locked )
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Incoming connections not accepted, rejecting connection\n");
+      return MHD_NO;
+  }
+
+  locked = GNUNET_YES;
+
   if (addr->sa_family == AF_INET6)
   {
     address = GNUNET_malloc(INET6_ADDRSTRLEN);
@@ -300,7 +321,6 @@ acceptPolicyCallback (void *cls,
     inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr),address,INET6_ADDRSTRLEN);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Incoming IPv6 connection from `%s'\n",address);
     memcpy(current_ip,addr, sizeof (struct sockaddr));
-    //current_ip = addr;
     GNUNET_free (address);
   }
   if (addr->sa_family == AF_INET)
@@ -312,6 +332,7 @@ acceptPolicyCallback (void *cls,
     memcpy(current_ip,addr, sizeof (struct sockaddr));
     GNUNET_free (address);
   }
+
   /* Every connection is accepted, nothing more to do here */
   return MHD_YES;
 }
@@ -339,23 +360,24 @@ accessHandlerCallback (void *cls,
 
   struct sockaddr_in  *addrin;
   struct sockaddr_in6 *addrin6;
-  char * address;
+  char * address = NULL;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Address %p %u\n",current_ip,current_ip->sa_family);
   if ( current_ip->sa_family == AF_INET)
   {
     address = GNUNET_malloc(INET_ADDRSTRLEN);
     addrin = (struct sockaddr_in *) current_ip;
     inet_ntop(addrin->sin_family, &(addrin->sin_addr),address,INET_ADDRSTRLEN);
   }
-  if (current_ip->sa_family == AF_INET6)
+  else if (current_ip->sa_family == AF_INET6)
   {
     address = GNUNET_malloc(INET6_ADDRSTRLEN);
     addrin6 = (struct sockaddr_in6 *) current_ip;
     inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr),address,INET6_ADDRSTRLEN);
   }
+  else
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has an incoming `%s' request from `%s'\n",method, address);
+  if ( NULL != address )
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has an incoming `%s' request from `%s'\n",method, address);
 
   /* Check if new or already known session */
   if ( NULL == http_session )
@@ -366,6 +388,10 @@ accessHandlerCallback (void *cls,
 
     /* Set closure */
   }
+
+  /* Since connection is established, we can unlock */
+  locked = GNUNET_NO;
+
   /* Is it a PUT or a GET request */
   if ( 0 == strcmp (MHD_HTTP_METHOD_PUT, method) )
   {
@@ -469,6 +495,8 @@ http_daemon_run (void *cls,
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
+
+
 
   GNUNET_assert (MHD_YES == MHD_run (daemon_handle));
   if (daemon_handle == http_daemon_v4)
@@ -738,7 +766,6 @@ libgnunet_plugin_transport_http_init (void *cls)
     }
 
   current_ip = GNUNET_malloc ( sizeof(struct sockaddr_in) );
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Address %p\n",current_ip);
   if ((http_daemon_v4 == NULL) && (http_daemon_v6 == NULL) && (port != 0))
     {
     http_daemon_v6 = MHD_start_daemon (MHD_USE_IPv6,
@@ -763,6 +790,7 @@ libgnunet_plugin_transport_http_init (void *cls)
                                        MHD_OPTION_END);
     }
 
+  locked = GNUNET_NO;
   if (http_daemon_v4 != NULL)
     http_task_v4 = http_daemon_prepare (http_daemon_v4);
   if (http_daemon_v6 != NULL)
