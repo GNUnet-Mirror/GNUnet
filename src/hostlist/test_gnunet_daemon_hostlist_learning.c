@@ -244,8 +244,6 @@ check_statistics (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_asprintf (&stat,
                    gettext_noop("# advertised URI `%s' downloaded"),
                    current_adv_uri);
-
-
   if ( NULL != learn_peer.stats)
   {
     download_stats = GNUNET_STATISTICS_get (learn_peer.stats,
@@ -255,7 +253,7 @@ check_statistics (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                            NULL,
                            &process_downloads,
                            &learn_peer);
-    GNUNET_free (stat);
+
     urisrecv_stat = GNUNET_STATISTICS_get (learn_peer.stats,
                            "hostlist",
                            gettext_noop("# advertised hostlist URIs"),
@@ -264,6 +262,7 @@ check_statistics (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                            &process_uris_recv,
                            &learn_peer);
   }
+  GNUNET_free (stat);
   if ( NULL != adv_peer.stats)
   {
     advsent_stat = GNUNET_STATISTICS_get (adv_peer.stats,
@@ -434,17 +433,17 @@ run (void *cls,
   cfg = c;
   sched = s;
 
-  check_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                CHECK_INTERVALL,
-                                &check_statistics,
-                                NULL);
-
   setup_adv_peer (&adv_peer, "test_learning_adv_peer.conf");
   setup_learn_peer (&learn_peer, "test_learning_learn_peer.conf");
   timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
                                                TIMEOUT,
                                                &timeout_error,
                                                NULL);
+
+  check_task = GNUNET_SCHEDULER_add_delayed (sched,
+                                CHECK_INTERVALL,
+                                &check_statistics,
+                                NULL);
 }
 
 static int
