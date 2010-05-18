@@ -180,9 +180,9 @@ sq_prepare (sqlite3 * dbh, const char *zSql,
             sqlite3_stmt ** ppStmt)
 {
   char *dummy;
-  return sqlite3_prepare (dbh,
-                          zSql,
-                          strlen (zSql), ppStmt, (const char **) &dummy);
+  return sqlite3_prepare_v2 (dbh,
+			     zSql,
+			     strlen (zSql), ppStmt, (const char **) &dummy);
 }
 
 
@@ -776,7 +776,7 @@ sqlite_plugin_put (void *cls,
       return GNUNET_SYSERR;
     }
   n = sqlite3_step (stmt);
-  if (n != SQLITE_DONE)
+  if (n != SQLITE_DONE) 
     {
       if (n == SQLITE_BUSY)
         {
@@ -1065,7 +1065,7 @@ basic_iter (struct Plugin *plugin,
     {
       LOG_SQLITE (plugin, NULL,
                   GNUNET_ERROR_TYPE_ERROR |
-                  GNUNET_ERROR_TYPE_BULK, "sqlite3_prepare");
+                  GNUNET_ERROR_TYPE_BULK, "sqlite3_prepare_v2");
       iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
@@ -1073,7 +1073,7 @@ basic_iter (struct Plugin *plugin,
     {
       LOG_SQLITE (plugin, NULL,
                   GNUNET_ERROR_TYPE_ERROR |
-                  GNUNET_ERROR_TYPE_BULK, "sqlite3_prepare");
+                  GNUNET_ERROR_TYPE_BULK, "sqlite3_prepare_v2");
       sqlite3_finalize (stmt_1);
       iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
@@ -1315,7 +1315,7 @@ sqlite_plugin_iter_all_now (void *cls,
     {
       LOG_SQLITE (plugin, NULL,
                   GNUNET_ERROR_TYPE_ERROR |
-                  GNUNET_ERROR_TYPE_BULK, "sqlite3_prepare");
+                  GNUNET_ERROR_TYPE_BULK, "sqlite3_prepare_v2");
       iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
@@ -1619,11 +1619,11 @@ process_stat_done (void *cls,
   if (plugin->stats_worked == GNUNET_NO)
     {
       CHECK (SQLITE_OK ==
-	     sq_prepare (plugin->dbh,
-			 "VACUUM;",
-			 &stmt));
-      sqlite3_step (stmt);
-      sqlite3_finalize (stmt);
+	     sqlite3_exec (plugin->dbh,
+			   "VACUUM", NULL, NULL, ENULL));
+      CHECK (SQLITE_OK ==
+	     sqlite3_exec (plugin->dbh,
+			   "PRAGMA auto_vacuum=INCREMENTAL", NULL, NULL, ENULL));
       CHECK (SQLITE_OK ==
 	     sq_prepare (plugin->dbh,
 			 "PRAGMA page_count",
