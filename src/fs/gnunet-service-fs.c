@@ -1223,18 +1223,17 @@ peer_disconnect_handler (void *cls,
 	    {
 	      GNUNET_PEER_change_rc (pos->target_list[i], -1);
 	      pos->target_list[i] = 0;
-	      if (pos->used_targets >= GNUNET_CONTAINER_multihashmap_size (connected_peers))
-		{
-		  delete_migration_block (pos);
-		  consider_migration_gathering ();
-	          continue;
-		}
-	      GNUNET_CONTAINER_multihashmap_iterate (connected_peers,
-						     &consider_migration,
-						     pos);
-	      break;
-	    }
+            }
+         }
+      if (pos->used_targets >= GNUNET_CONTAINER_multihashmap_size (connected_peers))
+	{
+	  delete_migration_block (pos);
+	  consider_migration_gathering ();
+          continue;
 	}
+      GNUNET_CONTAINER_multihashmap_iterate (connected_peers,
+					     &consider_migration,
+					     pos);
     }
 
   GNUNET_PEER_change_rc (cp->pid, -1);
