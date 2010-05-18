@@ -709,8 +709,8 @@ run (void *cls,
         connect_topology_option_modifier_string,
         "connect_topology_option_modifier",
         "TESTING");
-        GNUNET_free (connect_topology_option_modifier_string);
       }
+      GNUNET_free (connect_topology_option_modifier_string);
     }
 
   if (GNUNET_YES != GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "blacklist_transports",
