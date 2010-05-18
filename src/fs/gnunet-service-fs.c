@@ -1227,6 +1227,7 @@ peer_disconnect_handler (void *cls,
 		{
 		  delete_migration_block (pos);
 		  consider_migration_gathering ();
+	          continue;
 		}
 	      GNUNET_CONTAINER_multihashmap_iterate (connected_peers,
 						     &consider_migration,
