@@ -969,6 +969,7 @@ gather_migration_blocks (void *cls,
   mig_qe = GNUNET_DATASTORE_get_random (dsh, 0, -1,
 					GNUNET_TIME_UNIT_FOREVER_REL,
 					&process_migration_content, NULL);
+  GNUNET_assert (mig_qe != NULL);
 }
 
 
