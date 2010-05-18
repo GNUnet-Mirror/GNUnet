@@ -65,10 +65,8 @@ my_cb (void *cls,
     }
 
   peers_left--;
-  fprintf(stderr, "peers_left is %d, failed_peers is %d\n", peers_left, failed_peers);
   if (peers_left == 0)
     {
-      sleep(2); /* Give other services a chance to initialize before killing */
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers started successfully, ending test!\n");
       GNUNET_TESTING_daemons_stop (pg, TIMEOUT);
       ok = 0;

@@ -1396,6 +1396,7 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
       count++;
       if (ret == GNUNET_SYSERR)
         {
+	  /* FIXME: why sleep here? -CG */
           sleep(1);
         }
     }
@@ -1547,6 +1548,7 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg, char *tran
       count++;
       if (ret == GNUNET_SYSERR)
         {
+	  /* FIXME: why sleep here? -CG */
           sleep(1);
         }
     }

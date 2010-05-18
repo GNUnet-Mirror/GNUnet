@@ -544,7 +544,6 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               return;
             }
           /* wait some more */
-          fprintf(stderr, "scheduling in shutdown_start\n");
           d->task
             = GNUNET_SCHEDULER_add_delayed (d->sched,
                                             GNUNET_CONSTANTS_EXEC_WAIT,
@@ -1020,7 +1019,6 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
 
   GNUNET_free_non_null(del_arg);
   d->max_timeout = GNUNET_TIME_relative_to_absolute(timeout);
-  fprintf(stderr, "scheduling shutdown fsm phase\n");
   d->task
     = GNUNET_SCHEDULER_add_now (d->sched,
                                 &start_fsm, d);
