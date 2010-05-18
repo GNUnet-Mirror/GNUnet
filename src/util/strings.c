@@ -26,7 +26,7 @@
  */
 
 #include "platform.h"
-#if HAVE_ICONV_H
+#if HAVE_ICONV
 #include <iconv.h>
 #endif
 #include "gnunet_common.h"
