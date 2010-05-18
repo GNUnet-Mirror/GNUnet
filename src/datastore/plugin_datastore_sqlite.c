@@ -1616,8 +1616,9 @@ process_stat_done (void *cls,
   uint64_t page_size;
 
   plugin->stat_get = NULL;
-  if (plugin->stats_worked == GNUNET_NO)
-    {
+  if ( (plugin->stats_worked == GNUNET_NO) &&
+       (SQLITE_VERSION_NUMBER >= 3006000) )
+   {
       CHECK (SQLITE_OK ==
 	     sqlite3_exec (plugin->dbh,
 			   "VACUUM", NULL, NULL, ENULL));
