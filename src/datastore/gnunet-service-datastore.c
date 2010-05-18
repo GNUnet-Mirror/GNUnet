@@ -241,7 +241,7 @@ static struct TransmitCallbackContext *tcc_head;
 static struct TransmitCallbackContext *tcc_tail;
 
 /**
- * Have we already clean ed up the TCCs and are hence no longer
+ * Have we already cleaned up the TCCs and are hence no longer
  * willing (or able) to transmit anything to anyone?
  */
 static int cleaning_done;
@@ -523,7 +523,11 @@ transmit (struct GNUNET_SERVER_Client *client,
 
   if (GNUNET_YES == cleaning_done)
     {
-      if (NULL != tc)
+#if DEBUG_DATASTORE
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  "Shutdown in progress, aborting transmission.\n");
+#endif
+     if (NULL != tc)
 	tc (tc_cls, GNUNET_SYSERR);
       return;
     }
