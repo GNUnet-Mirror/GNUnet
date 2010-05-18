@@ -1197,18 +1197,12 @@ notify_connect_result (void *cls,
   struct ConnectContext *ctx = cls;
   struct GNUNET_TIME_Relative remaining;
 
+  ctx->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   if (ctx->hello_send_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel(ctx->d1->sched, ctx->hello_send_task);
       ctx->hello_send_task = GNUNET_SCHEDULER_NO_TASK;
     }
-
-  if ((ctx->timeout_task != GNUNET_SCHEDULER_NO_TASK) && (tc->reason != GNUNET_SCHEDULER_REASON_TIMEOUT))
-    {
-      GNUNET_SCHEDULER_cancel(ctx->d1->sched, ctx->timeout_task);
-      ctx->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-    }
-
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     {
       if (ctx->d2th != NULL)
@@ -1285,10 +1279,9 @@ connect_notify (void *cls, const struct GNUNET_PeerIdentity * peer, struct GNUNE
     {
       ctx->connected = GNUNET_YES;
       GNUNET_SCHEDULER_cancel(ctx->d1->sched, ctx->timeout_task);
-      ctx->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-      GNUNET_SCHEDULER_add_now (ctx->d1->sched,
-                                &notify_connect_result,
-                                ctx);
+      ctx->timeout_task = GNUNET_SCHEDULER_add_now (ctx->d1->sched,
+						    &notify_connect_result,
+						    ctx);
     }
 
 }
@@ -1298,9 +1291,9 @@ send_hello(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ConnectContext *ctx = cls;
 
+  ctx->hello_send_task = GNUNET_SCHEDULER_NO_TASK;
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     return;
-
   if (ctx->d1->hello != NULL)
     {
       GNUNET_TRANSPORT_offer_hello (ctx->d2th, GNUNET_HELLO_get_header(ctx->d1->hello));
@@ -1397,7 +1390,8 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
     }
 
   ctx->timeout_task = GNUNET_SCHEDULER_add_delayed (d1->sched,
-                                                    GNUNET_TIME_relative_divide(ctx->relative_timeout, max_connect_attempts), /* Allow up to 8 reconnect attempts */
+                                                    GNUNET_TIME_relative_divide(ctx->relative_timeout, 
+										max_connect_attempts), 
                                                     &notify_connect_result, ctx);
 
   ctx->hello_send_task = GNUNET_SCHEDULER_add_now(ctx->d1->sched, &send_hello, ctx);

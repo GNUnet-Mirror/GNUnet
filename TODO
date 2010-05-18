@@ -50,26 +50,6 @@ May 16 12:49:50 fs-13737 WARNING Could not access indexed file `ENUTBMBR' at off
 ==14995==    by 0x804F725: main (gnunet-service-fs.c:3506)
 ==14995== 
 
-* TESTING:
-1206      if ((ctx->timeout_task != GNUNET_SCHEDULER_NO_TASK) && (tc->reason != GNUNET_SCHEDULER_R│
-   │1207        {                                                                                     │
-  >│1208          GNUNET_SCHEDULER_cancel(ctx->d1->sched, ctx->timeout_task);                         │
-   │1209          ctx->timeout_task = GNUNET_SCHEDULER_NO_TASK;                                       │
-   │1210        }                                                                                     │
-
-(gdb) print tc->reason
-$5 = GNUNET_SCHEDULER_REASON_SHUTDOWN
-
-  #0  0x00d4c422 in __kernel_vsyscall ()
-#1  0x00148651 in raise () from /lib/tls/i686/cmov/libc.so.6
-#2  0x0014ba82 in abort () from /lib/tls/i686/cmov/libc.so.6
-#3  0x005fe4a5 in GNUNET_SCHEDULER_cancel (sched=0xbfb216ac, task=70) at scheduler.c:734
-#4  0x00114fdd in notify_connect_result (cls=0x8b582c8, tc=0xbfb21648) at testing.c:1208
-#5  0x005fde79 in run_ready (sched=0xbfb216ac) at scheduler.c:514
-#6  0x005fe315 in GNUNET_SCHEDULER_run (task=0x5fa53c <program_main>, task_cls=0xbfb217e4)
-    at scheduler.c:642
-
-
 * TBENCH: [MW]
   - good to have for transport/DV evaluation! 
 * DV: [Nate]
