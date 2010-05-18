@@ -229,7 +229,8 @@ delete_value (void *cls,
       if (crc->data == NULL)
 	{
 	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		      "Content not found!\n");
+		      "Content %u not found!\n",
+		      crc->i);
 	  crc->phase = RP_ERROR;
 	}
       else
