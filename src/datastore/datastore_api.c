@@ -30,6 +30,57 @@
 #include "gnunet_datastore_service.h"
 #include "datastore.h"
 
+
+/**
+ * Context for processing status messages.
+ */
+struct StatusContext
+{
+  /**
+   * Continuation to call with the status.
+   */
+  GNUNET_DATASTORE_ContinuationWithStatus cont;
+
+  /**
+   * Closure for cont.
+   */
+  void *cont_cls;
+
+};
+
+
+/**
+ * Context for processing result messages.
+ */
+struct ResultContext
+{
+  /**
+   * Iterator to call with the result.
+   */
+  GNUNET_DATASTORE_Iterator iter;
+
+  /**
+   * Closure for iter.
+   */
+  void *iter_cls;
+
+};
+
+
+/**
+ *  Context for a queue operation.
+ */
+union QueueContext
+{
+
+  struct StatusContext sc;
+  
+  struct ResultContext rc;
+
+};
+
+
+
 /**
  * Entry in our priority queue.
  */
@@ -54,15 +105,9 @@ struct GNUNET_DATASTORE_QueueEntry
   /**
    * Response processor (NULL if we are not waiting for a response).
    * This struct should be used for the closure, function-specific
-   * arguments can be passed via 'client_ctx'.
+   * arguments can be passed via 'qc'.
    */
   GNUNET_CLIENT_MessageHandler response_proc;
-  
-  /**
-   * Specific context (variable argument that
-   * can be used by the response processor).
-   */
-  void *client_ctx;
 
   /**
    * Function to call after transmission of the request.
@@ -73,6 +118,11 @@ struct GNUNET_DATASTORE_QueueEntry
    * Closure for 'cont'.
    */
   void *cont_cls;
+
+  /**
+   * Context for the operation.
+   */
+  union QueueContext qc;
 
   /**
    * Task for timeout signalling.
@@ -308,7 +358,7 @@ timeout_queue_entry (void *cls,
  *        (if other requests of higher priority are in the queue)
  * @param timeout timeout for the operation
  * @param response_proc function to call with replies (can be NULL)
- * @param client_ctx client context (NOT a closure for response_proc)
+ * @param qc client context (NOT a closure for response_proc)
  * @return NULL if the queue is full (and this entry was dropped)
  */
 static struct GNUNET_DATASTORE_QueueEntry *
@@ -318,7 +368,7 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h,
 		  unsigned int max_queue_size,
 		  struct GNUNET_TIME_Relative timeout,
 		  GNUNET_CLIENT_MessageHandler response_proc,		 
-		  void *client_ctx)
+		  const union QueueContext *qc)
 {
   struct GNUNET_DATASTORE_QueueEntry *ret;
   struct GNUNET_DATASTORE_QueueEntry *pos;
@@ -336,7 +386,7 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h,
   ret = GNUNET_malloc (sizeof (struct GNUNET_DATASTORE_QueueEntry) + msize);
   ret->h = h;
   ret->response_proc = response_proc;
-  ret->client_ctx = client_ctx;
+  ret->qc = *qc;
   ret->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   ret->priority = queue_priority;
   ret->max_queue = max_queue_size;
@@ -516,26 +566,6 @@ process_queue (struct GNUNET_DATASTORE_Handle *h)
 }
 
 
-
-
-/**
- * Context for processing status messages.
- */
-struct StatusContext
-{
-  /**
-   * Continuation to call with the status.
-   */
-  GNUNET_DATASTORE_ContinuationWithStatus cont;
-
-  /**
-   * Closure for cont.
-   */
-  void *cont_cls;
-
-};
-
-
 /**
  * Dummy continuation used to do nothing (but be non-zero).
  *
@@ -582,7 +612,7 @@ process_status_message (void *cls,
 {
   struct GNUNET_DATASTORE_QueueEntry *qe = cls;
   struct GNUNET_DATASTORE_Handle *h = qe->h;
-  struct StatusContext *rc = qe->client_ctx;
+  struct StatusContext rc = qe->qc.sc;
   const struct StatusMessage *sm;
   const char *emsg;
   int32_t status;
@@ -604,10 +634,9 @@ process_status_message (void *cls,
       GNUNET_break (0);
       h->retry_time = GNUNET_TIME_UNIT_ZERO;
       do_disconnect (h);
-      rc->cont (rc->cont_cls, 
-		GNUNET_SYSERR,
-		_("Error reading response from datastore service"));
-      GNUNET_free (rc);
+      rc.cont (rc.cont_cls, 
+	       GNUNET_SYSERR,
+	       _("Error reading response from datastore service"));
       return;
     }
   sm = (const struct StatusMessage*) msg;
@@ -634,10 +663,9 @@ process_status_message (void *cls,
 	      (int) status,
 	      emsg);
 #endif
-  rc->cont (rc->cont_cls, 
-	    status,
-	    emsg);
-  GNUNET_free (rc);  
+  rc.cont (rc.cont_cls, 
+	   status,
+	   emsg);
   process_queue (h);
 }
 
@@ -683,10 +711,10 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
 		      GNUNET_DATASTORE_ContinuationWithStatus cont,
 		      void *cont_cls)
 {
-  struct StatusContext *scont;
   struct GNUNET_DATASTORE_QueueEntry *qe;
   struct DataMessage *dm;
   size_t msize;
+  union QueueContext qc;
 
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -696,12 +724,11 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
 #endif
   msize = sizeof(struct DataMessage) + size;
   GNUNET_assert (msize <= GNUNET_SERVER_MAX_MESSAGE_SIZE);
-  scont = GNUNET_malloc (sizeof (struct StatusContext));
-  scont->cont = cont;
-  scont->cont_cls = cont_cls;
+  qc.sc.cont = cont;
+  qc.sc.cont_cls = cont_cls;
   qe = make_queue_entry (h, msize,
 			 queue_priority, max_queue_size, timeout,
-			 &process_status_message, scont);
+			 &process_status_message, &qc);
   if (qe == NULL)
     return NULL;
   dm = (struct DataMessage* ) &qe[1];
@@ -752,7 +779,7 @@ GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h,
 {
   struct GNUNET_DATASTORE_QueueEntry *qe;
   struct ReserveMessage *rm;
-  struct StatusContext *scont;
+  union QueueContext qc;
 
   if (cont == NULL)
     cont = &drop_status_cont;
@@ -762,12 +789,11 @@ GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h,
 	      (unsigned long long) amount,
 	      (unsigned int) entries);
 #endif
-  scont = GNUNET_malloc (sizeof (struct StatusContext));
-  scont->cont = cont;
-  scont->cont_cls = cont_cls;
+  qc.sc.cont = cont;
+  qc.sc.cont_cls = cont_cls;
   qe = make_queue_entry (h, sizeof(struct ReserveMessage),
 			 queue_priority, max_queue_size, timeout,
-			 &process_status_message, scont);
+			 &process_status_message, &qc);
   if (qe == NULL)
     return NULL;
   rm = (struct ReserveMessage*) &qe[1];
@@ -812,7 +838,7 @@ GNUNET_DATASTORE_release_reserve (struct GNUNET_DATASTORE_Handle *h,
 {
   struct GNUNET_DATASTORE_QueueEntry *qe;
   struct ReleaseReserveMessage *rrm;
-  struct StatusContext *scont;
+  union QueueContext qc;
 
   if (cont == NULL)
     cont = &drop_status_cont;
@@ -821,12 +847,11 @@ GNUNET_DATASTORE_release_reserve (struct GNUNET_DATASTORE_Handle *h,
 	      "Asked to release reserve %d\n",
 	      rid);
 #endif
-  scont = GNUNET_malloc (sizeof (struct StatusContext));
-  scont->cont = cont;
-  scont->cont_cls = cont_cls;
+  qc.sc.cont = cont;
+  qc.sc.cont_cls = cont_cls;
   qe = make_queue_entry (h, sizeof(struct ReleaseReserveMessage),
 			 queue_priority, max_queue_size, timeout,
-			 &process_status_message, scont);
+			 &process_status_message, &qc);
   if (qe == NULL)
     return NULL;
   rrm = (struct ReleaseReserveMessage*) &qe[1];
@@ -868,7 +893,7 @@ GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h,
 {
   struct GNUNET_DATASTORE_QueueEntry *qe;
   struct UpdateMessage *um;
-  struct StatusContext *scont;
+  union QueueContext qc;
 
   if (cont == NULL)
     cont = &drop_status_cont;
@@ -879,12 +904,11 @@ GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h,
 	      (unsigned int) priority,
 	      (unsigned long long) expiration.value);
 #endif
-  scont = GNUNET_malloc (sizeof (struct StatusContext));
-  scont->cont = cont;
-  scont->cont_cls = cont_cls;
+  qc.sc.cont = cont;
+  qc.sc.cont_cls = cont_cls;
   qe = make_queue_entry (h, sizeof(struct UpdateMessage),
 			 queue_priority, max_queue_size, timeout,
-			 &process_status_message, scont);
+			 &process_status_message, &qc);
   if (qe == NULL)
     return NULL;
   um = (struct UpdateMessage*) &qe[1];
@@ -933,7 +957,7 @@ GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
   struct GNUNET_DATASTORE_QueueEntry *qe;
   struct DataMessage *dm;
   size_t msize;
-  struct StatusContext *scont;
+  union QueueContext qc;
 
   if (cont == NULL)
     cont = &drop_status_cont;
@@ -943,14 +967,13 @@ GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
 	      size,
 	      GNUNET_h2s (key));
 #endif
-  scont = GNUNET_malloc (sizeof (struct StatusContext));
-  scont->cont = cont;
-  scont->cont_cls = cont_cls;
+  qc.sc.cont = cont;
+  qc.sc.cont_cls = cont_cls;
   msize = sizeof(struct DataMessage) + size;
   GNUNET_assert (msize <= GNUNET_SERVER_MAX_MESSAGE_SIZE);
   qe = make_queue_entry (h, msize,
 			 queue_priority, max_queue_size, timeout,
-			 &process_status_message, scont);
+			 &process_status_message, &qc);
   if (qe == NULL)
     return NULL;
   dm = (struct DataMessage*) &qe[1];
@@ -970,25 +993,6 @@ GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
 }
 
 
-
-/**
- * Context for processing result messages.
- */
-struct ResultContext
-{
-  /**
-   * Iterator to call with the result.
-   */
-  GNUNET_DATASTORE_Iterator iter;
-
-  /**
-   * Closure for iter.
-   */
-  void *iter_cls;
-
-};
-
-
 /**
  * Type of a function to call when we receive a message
  * from the service.
@@ -1002,7 +1006,7 @@ process_result_message (void *cls,
 {
   struct GNUNET_DATASTORE_QueueEntry *qe = cls;
   struct GNUNET_DATASTORE_Handle *h = qe->h;
-  struct ResultContext *rc = qe->client_ctx;
+  struct ResultContext rc = qe->qc.rc;
   const struct DataMessage *dm;
 
   GNUNET_assert (h->queue_head == qe);
@@ -1014,10 +1018,9 @@ process_result_message (void *cls,
 #endif
       free_queue_entry (qe);
       do_disconnect (h);
-      rc->iter (rc->iter_cls,
-		NULL, 0, NULL, 0, 0, 0, 
-		GNUNET_TIME_UNIT_ZERO_ABS, 0);	
-      GNUNET_free (rc);
+      rc.iter (rc.iter_cls,
+	       NULL, 0, NULL, 0, 0, 0, 
+	       GNUNET_TIME_UNIT_ZERO_ABS, 0);	
       return;
     }
   if (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END) 
@@ -1028,10 +1031,9 @@ process_result_message (void *cls,
 		  "Received end of result set\n");
 #endif
       free_queue_entry (qe);
-      rc->iter (rc->iter_cls,
-		NULL, 0, NULL, 0, 0, 0, 
-		GNUNET_TIME_UNIT_ZERO_ABS, 0);	
-      GNUNET_free (rc);
+      rc.iter (rc.iter_cls,
+	       NULL, 0, NULL, 0, 0, 0, 
+	       GNUNET_TIME_UNIT_ZERO_ABS, 0);	
       process_queue (h);
       return;
     }
@@ -1043,10 +1045,9 @@ process_result_message (void *cls,
       free_queue_entry (qe);
       h->retry_time = GNUNET_TIME_UNIT_ZERO;
       do_disconnect (h);
-      rc->iter (rc->iter_cls,
-		NULL, 0, NULL, 0, 0, 0, 
-		GNUNET_TIME_UNIT_ZERO_ABS, 0);	
-      GNUNET_free (rc);
+      rc.iter (rc.iter_cls,
+	       NULL, 0, NULL, 0, 0, 0, 
+	       GNUNET_TIME_UNIT_ZERO_ABS, 0);	
       return;
     }
   dm = (const struct DataMessage*) msg;
@@ -1058,15 +1059,15 @@ process_result_message (void *cls,
 	      ntohl(dm->size),
 	      GNUNET_h2s(&dm->key));
 #endif
-  rc->iter (rc->iter_cls,
-	    &dm->key,
-	    ntohl(dm->size),
-	    &dm[1],
-	    ntohl(dm->type),
-	    ntohl(dm->priority),
-	    ntohl(dm->anonymity),
-	    GNUNET_TIME_absolute_ntoh(dm->expiration),	
-	    GNUNET_ntohll(dm->uid));
+  rc.iter (rc.iter_cls,
+	   &dm->key,
+	   ntohl(dm->size),
+	   &dm[1],
+	   ntohl(dm->type),
+	   ntohl(dm->priority),
+	   ntohl(dm->anonymity),
+	   GNUNET_TIME_absolute_ntoh(dm->expiration),	
+	   GNUNET_ntohll(dm->uid));
 }
 
 
@@ -1096,19 +1097,18 @@ GNUNET_DATASTORE_get_random (struct GNUNET_DATASTORE_Handle *h,
 {
   struct GNUNET_DATASTORE_QueueEntry *qe;
   struct GNUNET_MessageHeader *m;
-  struct ResultContext *rcont;
+  union QueueContext qc;
 
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Asked to get random entry in %llu ms\n",
 	      (unsigned long long) timeout.value);
 #endif
-  rcont = GNUNET_malloc (sizeof (struct ResultContext));
-  rcont->iter = iter;
-  rcont->iter_cls = iter_cls;
+  qc.rc.iter = iter;
+  qc.rc.iter_cls = iter_cls;
   qe = make_queue_entry (h, sizeof(struct GNUNET_MessageHeader),
 			 queue_priority, max_queue_size, timeout,
-			 &process_result_message, rcont);
+			 &process_result_message, &qc);
   if (qe == NULL)
     return NULL;    
   m = (struct GNUNET_MessageHeader*) &qe[1];
@@ -1153,7 +1153,7 @@ GNUNET_DATASTORE_get (struct GNUNET_DATASTORE_Handle *h,
 {
   struct GNUNET_DATASTORE_QueueEntry *qe;
   struct GetMessage *gm;
-  struct ResultContext *rcont;
+  union QueueContext qc;
 
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1161,12 +1161,11 @@ GNUNET_DATASTORE_get (struct GNUNET_DATASTORE_Handle *h,
 	      (unsigned int) type,
 	      GNUNET_h2s (key));
 #endif
-  rcont = GNUNET_malloc (sizeof (struct ResultContext));
-  rcont->iter = iter;
-  rcont->iter_cls = iter_cls;
+  qc.rc.iter = iter;
+  qc.rc.iter_cls = iter_cls;
   qe = make_queue_entry (h, sizeof(struct GetMessage),
 			 queue_priority, max_queue_size, timeout,
-			 &process_result_message, rcont);
+			 &process_result_message, &qc);
   if (qe == NULL)
     return NULL;
   gm = (struct GetMessage*) &qe[1];
@@ -1199,7 +1198,7 @@ GNUNET_DATASTORE_get_next (struct GNUNET_DATASTORE_Handle *h,
 			   int more)
 {
   struct GNUNET_DATASTORE_QueueEntry *qe = h->queue_head;
-  struct ResultContext *rc = qe->client_ctx;
+  struct ResultContext rc = qe->qc.rc;
 
   GNUNET_assert (NULL != qe);
   GNUNET_assert (&process_result_message == qe->response_proc);
@@ -1214,10 +1213,9 @@ GNUNET_DATASTORE_get_next (struct GNUNET_DATASTORE_Handle *h,
   free_queue_entry (qe);
   h->retry_time = GNUNET_TIME_UNIT_ZERO;
   do_disconnect (h);
-  rc->iter (rc->iter_cls,
-	    NULL, 0, NULL, 0, 0, 0, 
-	    GNUNET_TIME_UNIT_ZERO_ABS, 0);	
-  GNUNET_free (rc);
+  rc.iter (rc.iter_cls,
+	   NULL, 0, NULL, 0, 0, 0, 
+	   GNUNET_TIME_UNIT_ZERO_ABS, 0);	
 }
 
 
