@@ -26,6 +26,7 @@
 #include "platform.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_client_lib.h"
+#include "gnunet_constants.h"
 #include "gnunet_getopt_lib.h"
 #include "gnunet_program_lib.h"
 #include "gnunet_time_lib.h"
@@ -41,6 +42,13 @@
  * startup (annoying)).
  */
 #define START_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 50)
+
+/**
+ * Timeout for starting services, very short because of the strange way start works
+ * (by checking if running before starting, so really this time is always waited on
+ * startup (annoying)).
+ */
+#define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2)
 
 /**
  * Set if we are to shutdown all services (including ARM).
@@ -314,7 +322,7 @@ cps_loop (void *cls,
 	case 4:
 	  if (test != NULL)
 	    {
-	      GNUNET_CLIENT_service_test (sched, test, cfg, START_TIMEOUT, &confirm_task, test);
+	      GNUNET_CLIENT_service_test (sched, test, cfg, TEST_TIMEOUT, &confirm_task, test);
 	      return;
 	    }
 	  break;

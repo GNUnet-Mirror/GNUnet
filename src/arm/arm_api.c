@@ -127,8 +127,10 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     }
   else if ((msg == NULL) && (shutdown_ctx->confirmed == GNUNET_YES))
     {
+#if DEBUG_ARM
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
 		 "Service shutdown complete.\n");
+#endif
       if (shutdown_ctx->cont != NULL)
         shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_NO);
 
@@ -142,8 +144,10 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       switch (ntohs(msg->type))
 	{
 	case GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN_ACK:
+#if DEBUG_ARM
 	  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
 		     "Received confirmation for service shutdown.\n");
+#endif
 	  shutdown_ctx->confirmed = GNUNET_YES;
 	  GNUNET_CLIENT_receive (shutdown_ctx->sock,
 				 &service_shutdown_handler,
@@ -151,8 +155,10 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 				 GNUNET_TIME_UNIT_FOREVER_REL);
 	  break;
 	default: /* Fall through */
+#if DEBUG_ARM
 	  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
 		     "Service shutdown refused!\n");
+#endif
 	  if (shutdown_ctx->cont != NULL)
 	    shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_YES);
 
