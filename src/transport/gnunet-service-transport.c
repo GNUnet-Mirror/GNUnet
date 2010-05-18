@@ -2382,9 +2382,10 @@ timeout_hello_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *
 		      sizeof (struct
 			      GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
 		      &pid.hashPubKey);
-  GNUNET_CONTAINER_multihashmap_remove (validation_map,
-					&pid.hashPubKey,
-					va);
+  GNUNET_break (GNUNET_OK ==
+                GNUNET_CONTAINER_multihashmap_remove (validation_map,
+	                      			&pid.hashPubKey,
+					va));
   GNUNET_free (va->transport_name);
   GNUNET_free (va);
 }
