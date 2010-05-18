@@ -50,7 +50,7 @@ static int learned_hostlist_downloaded;
 
 static char * current_adv_uri;
 
-static struct GNUNET_CONFIGURATION_Handle *cfg;
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
 static struct GNUNET_SCHEDULER_Handle *sched;
 
 static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
@@ -75,27 +75,6 @@ static struct PeerContext learn_peer;
 static struct GNUNET_STATISTICS_GetHandle * download_stats;
 static struct GNUNET_STATISTICS_GetHandle * urisrecv_stat;
 static struct GNUNET_STATISTICS_GetHandle * advsent_stat;
-
-
-static void
-waitpid_task (void *cls,
-              const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct PeerContext *p = cls;
-
-#if START_ARM
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Killing ARM process.\n");
-  if (0 != PLIBC_KILL (p->arm_pid, SIGTERM))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  if (GNUNET_OS_process_wait(p->arm_pid) != GNUNET_OK)
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "ARM process %u stopped\n", p->arm_pid);
-#endif
-  GNUNET_CONFIGURATION_destroy (p->cfg);
-}
-
 
 static void shutdown_testcase()
 {
@@ -174,12 +153,7 @@ static void shutdown_testcase()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Hostlist client ARM process %u stopped\n", learn_peer.arm_pid);
 #endif
-/*
-  if (NULL != learn_peer.cfg)
-    GNUNET_CONFIGURATION_destroy (learn_peer.cfg);
-      if (NULL != adv_peer.cfg)
-    GNUNET_CONFIGURATION_destroy (adv_peer.cfg);
-*/
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down scheduler\n");
   GNUNET_SCHEDULER_shutdown (sched);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown complete....\n");
@@ -362,6 +336,7 @@ static int ad_arrive_handler (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Recieved hostlist advertisement with URI `%s' as expected\n", current_adv_uri);
     adv_arrived = GNUNET_YES;
+    adv_sent = GNUNET_YES;
   }
   else
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
