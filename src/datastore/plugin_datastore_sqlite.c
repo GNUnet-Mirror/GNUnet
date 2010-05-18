@@ -1613,11 +1613,17 @@ process_stat_done (void *cls,
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt;
   uint64_t pages;
-  uint64_t free_pages;
+  uint64_t page_size;
 
   plugin->stat_get = NULL;
   if (plugin->stats_worked == GNUNET_NO)
     {
+      CHECK (SQLITE_OK ==
+	     sq_prepare (plugin->dbh,
+			 "VACUUM;",
+			 &stmt));
+      sqlite3_step (stmt);
+      sqlite3_finalize (stmt);
       CHECK (SQLITE_OK ==
 	     sq_prepare (plugin->dbh,
 			 "PRAGMA page_count",
@@ -1630,17 +1636,17 @@ process_stat_done (void *cls,
       sqlite3_finalize (stmt);
       CHECK (SQLITE_OK ==
 	     sq_prepare (plugin->dbh,
-			 "PRAGMA freelist_count",
+			 "PRAGMA page_size",
 			 &stmt));
       CHECK (SQLITE_ROW ==
 	     sqlite3_step (stmt));
-      free_pages = sqlite3_column_int64 (stmt, 0);
+      page_size = sqlite3_column_int64 (stmt, 0);
       sqlite3_finalize (stmt);
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  _("Using sqlite page utilization to estimate payload (%llu pages total, %llu free)\n"),
+		  _("Using sqlite page utilization to estimate payload (%llu pages of size %llu bytes)\n"),
 		  (unsigned long long) pages,
-		  (unsigned long long) free_pages);
-      plugin->payload = (pages - free_pages) * 4092LL;
+		  (unsigned long long) page_size);
+      plugin->payload = pages * page_size;
     }
 }
 			 		 
