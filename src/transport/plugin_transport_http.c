@@ -31,6 +31,7 @@
 #include "gnunet_service_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_resolver_service.h"
 #include "plugin_transport.h"
 #include "microhttpd.h"
 #include <curl/curl.h>
@@ -104,9 +105,19 @@ struct Session
   char * ip;
 
   /**
+   * Sender's ip address to distinguish between incoming connections
+   */
+  struct sockaddr_in * addr;
+
+  /**
    * Did we initiate the connection (GNUNET_YES) or the other peer (GNUNET_NO)?
    */
   unsigned int is_client;
+
+  /**
+   * Is the connection active (GNUNET_YES) or terminated (GNUNET_NO)?
+   */
+  unsigned int is_active;
 
   /**
    * At what time did we reset last_received last?
@@ -182,11 +193,9 @@ static struct Plugin *plugin;
 static CURLM *multi_handle;
 
 /**
- * session of current incoming connection
+ * Our hostname
  */
-static struct Session  * current_session;
-
-static unsigned int locked;
+static char * hostname;
 
 
 /**
@@ -297,8 +306,13 @@ static struct Session * create_session_by_ip ( struct sockaddr_in * addr )
  */
 static void requestCompletedCallback (void *cls, struct MHD_Connection * connection, void **httpSessionCache)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection was terminated\n");
-  /* clean up session here*/
+  struct Session * cs;
+
+  cs = *httpSessionCache;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection `%s' was terminated\n",cs->ip);
+  /* session set to inactive */
+  cs->is_active = GNUNET_NO;
+
   return;
 }
 
@@ -309,77 +323,6 @@ static int
 acceptPolicyCallback (void *cls,
                       const struct sockaddr *addr, socklen_t addr_len)
 {
-  struct sockaddr_in  *addrin;
-  struct sockaddr_in6 *addrin6;
-  char * address = NULL;
-  struct Session * cs;
-
-  if ( GNUNET_YES == locked )
-  {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Incoming connections not accepted, rejecting connection\n");
-      return MHD_NO;
-  }
-
-  /* something went wrong since last attempt to connect, lost session to free */
-  if ( NULL != current_session )
-  {
-    GNUNET_free ( current_session->ip );
-    GNUNET_free ( current_session );
-  }
-
-  locked = GNUNET_YES;
-
-  if (addr->sa_family == AF_INET6)
-  {
-    address = GNUNET_malloc (INET6_ADDRSTRLEN);
-    addrin6 = (struct sockaddr_in6 *) addr;
-    inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr),address,INET6_ADDRSTRLEN);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Incoming IPv6 connection from `%s'\n",address);
-  }
-  else if (addr->sa_family == AF_INET)
-  {
-    address = GNUNET_malloc(INET_ADDRSTRLEN);
-    addrin = (struct sockaddr_in *) addr;
-    inet_ntop(addrin->sin_family, &(addrin->sin_addr),address,INET_ADDRSTRLEN);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Incoming IPv4 connection from `%s'\n",address);
-  }
-  /* are there any socket types besides ipv4 and ipv6 we want to support? */
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Unsupported connection type for incoming connection \n");
-    current_session = NULL;
-    locked = GNUNET_NO;
-    return MHD_NO;
-  }
-
-  /* get existing session for this address */
-  cs = NULL;
-  if (plugin->session_count > 0)
-  {
-    cs = plugin->sessions;
-    while ( NULL != cs)
-    {
-      if ( 0 == strcmp(address,cs->ip))
-      {
-        /* existing session for this address found */
-        break;
-      }
-      cs = cs->next;
-    }
-  }
-
-  if (cs != NULL )
-  {
-    /* session to this addresse already existing */
-    current_session = cs;
-  }
-  else
-  {
-    /* create new session object */
-    current_session = GNUNET_malloc ( sizeof( struct Session) );
-    current_session->ip = address;
-    current_session->next = NULL;
-  }
   /* Every connection is accepted, nothing more to do here */
   return MHD_YES;
 }
@@ -403,47 +346,84 @@ accessHandlerCallback (void *cls,
 {
   struct MHD_Response *response;
   struct Session * cs;
+  struct Session * cs_temp;
+  const union MHD_ConnectionInfo * conn_info;
+  struct sockaddr_in  *addrin;
+  struct sockaddr_in6 *addrin6;
+  char * address = NULL;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has an incoming `%s' request from `%s'\n",method, current_session->ip);
 
-  /* Check if new or already known session */
-  if ( NULL != current_session )
+  conn_info = MHD_get_connection_info(session, MHD_CONNECTION_INFO_CLIENT_ADDRESS );
+
+  /* Incoming IPv4 connection */
+  if ( AF_INET == conn_info->client_addr->sin_family)
   {
+    address = GNUNET_malloc (INET_ADDRSTRLEN);
+    addrin = conn_info->client_addr;
+    inet_ntop(addrin->sin_family, &(addrin->sin_addr),address,INET_ADDRSTRLEN);
+  }
+  /* Incoming IPv6 connection */
+  if ( AF_INET6 == conn_info->client_addr->sin_family)
+  {
+    address = GNUNET_malloc (INET6_ADDRSTRLEN);
+    addrin6 = (struct sockaddr_in6 *) conn_info->client_addr;
+    inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr),address,INET6_ADDRSTRLEN);
+  }
+
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has an incoming `%s' request from `%s'\n",method, address);
+
+  /* find session for address */
+  cs = NULL;
+  if (plugin->session_count > 0)
+  {
+    cs = plugin->sessions;
+    while ( NULL != cs)
+    {
+      if ( 0 == memcmp(conn_info->client_addr,cs->addr, sizeof (struct sockaddr_in)))
+      {
+        /* existing session for this address found */
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session `%s' found\n",address);
+        break;
+      }
+      cs = cs->next;
+    }
+  }
+
+  if (cs == NULL )
+  {
+    /* create new session object */
+    cs = GNUNET_malloc ( sizeof( struct Session) );
+    cs->ip = address;
+    cs->addr = conn_info->client_addr;
+    cs->next = NULL;
+    cs->is_active = GNUNET_YES;
+
     /* Insert session into linked list */
     if ( plugin->sessions == NULL)
     {
-      plugin->sessions = current_session;
+      plugin->sessions = cs;
       plugin->session_count = 1;
     }
-
-    cs = plugin->sessions;
-    while ( cs->next != NULL )
+    cs_temp = plugin->sessions;
+    while ( cs_temp->next != NULL )
     {
-       cs = cs->next;
+      cs_temp = cs_temp->next;
     }
-
-    if (cs != current_session)
+    if (cs_temp != cs )
     {
-      cs->next = current_session;
+      cs_temp->next = cs;
       plugin->session_count++;
     }
-
-    /* iter over list */
-    cs = plugin->sessions;
-    while (cs!=NULL)
-      {
-        cs = cs->next;
-      }
-    /* Set closure */
-    if (*httpSessionCache == NULL)
-      {
-        *httpSessionCache = current_session;
-      }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"New Session `%s' inserted, count %u \n", address, plugin->session_count);
   }
 
-  /* Since connection is established, we can unlock */
-  locked = GNUNET_NO;
-  current_session = NULL;
+  /* Set closure */
+  if (*httpSessionCache == NULL)
+  {
+    *httpSessionCache = cs;
+  }
+
 
   /* Is it a PUT or a GET request */
   if ( 0 == strcmp (MHD_HTTP_METHOD_PUT, method) )
@@ -452,7 +432,6 @@ accessHandlerCallback (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got PUT Request with size %lu \n",(*upload_data_size));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"URL: `%s'\n",url);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"PUT Request: `%s'\n",upload_data);
-    /* FIXME: GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# PUT requests"), 1, GNUNET_NO); */
     /* No data left */
     *upload_data_size = 0;
     response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),HTTP_PUT_RESPONSE, MHD_NO, MHD_NO);
@@ -462,7 +441,6 @@ accessHandlerCallback (void *cls,
   if ( 0 == strcmp (MHD_HTTP_METHOD_GET, method) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got GET Request\n");
-    //GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# GET requests"), 1, GNUNET_NO);
   }
 
   return MHD_YES;
@@ -776,8 +754,10 @@ libgnunet_plugin_transport_http_done (void *cls)
   cs = plugin->sessions;
   while ( NULL != cs)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Freeing session to `%s'\n",cs->ip);
       cs_next = cs->next;
       GNUNET_free (cs->ip);
+      GNUNET_free (cs->addr);
       GNUNET_free (cs);
       plugin->session_count--;
       cs = cs_next;
@@ -810,6 +790,8 @@ libgnunet_plugin_transport_http_init (void *cls)
   api->address_pretty_printer = &template_plugin_address_pretty_printer;
   api->check_address = &template_plugin_address_suggested;
   api->address_to_string = &template_plugin_address_to_string;
+
+  hostname = GNUNET_RESOLVER_local_fqdn_get ();
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting http plugin...\n");
   /* Reading port number from config file */
@@ -852,8 +834,6 @@ libgnunet_plugin_transport_http_init (void *cls)
                                        MHD_OPTION_NOTIFY_COMPLETED, &requestCompletedCallback, NULL,
                                        MHD_OPTION_END);
     }
-
-  locked = GNUNET_NO;
   if (http_daemon_v4 != NULL)
     http_task_v4 = http_daemon_prepare (http_daemon_v4);
   if (http_daemon_v6 != NULL)
