@@ -441,6 +441,13 @@ receiveFromService (void *cls,
   struct GNUNET_TIME_Relative rem;
 
   fc->service_to_client_task = GNUNET_SCHEDULER_NO_TASK;
+  if ( (NULL != tc) &&
+       (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)) &&
+       (fc->first_write_done != GNUNET_YES) )
+    {
+      closeClientAndServiceSockets (fc, REASON_ERROR);
+      return;
+    }
   if (GNUNET_YES != GNUNET_NETWORK_fdset_isset (tc->read_ready,
 						fc->armServiceSocket))
     {
@@ -537,6 +544,13 @@ forwardToService (void *cls,
   struct GNUNET_TIME_Relative rem;
 
   fc->client_to_service_task = GNUNET_SCHEDULER_NO_TASK;
+  if ( (NULL != tc) &&
+       (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)) &&
+       (fc->first_write_done != GNUNET_YES) )
+    {
+      closeClientAndServiceSockets (fc, REASON_ERROR);
+      return;
+    }
   if (GNUNET_YES != GNUNET_NETWORK_fdset_isset (tc->write_ready,
 						fc->armServiceSocket))
     {
