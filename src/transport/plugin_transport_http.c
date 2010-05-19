@@ -352,78 +352,77 @@ accessHandlerCallback (void *cls,
   struct sockaddr_in6 *addrin6;
   char * address = NULL;
 
-
-  conn_info = MHD_get_connection_info(session, MHD_CONNECTION_INFO_CLIENT_ADDRESS );
-
-  /* Incoming IPv4 connection */
-  if ( AF_INET == conn_info->client_addr->sin_family)
+  if ( NULL == *httpSessionCache)
   {
-    address = GNUNET_malloc (INET_ADDRSTRLEN);
-    addrin = conn_info->client_addr;
-    inet_ntop(addrin->sin_family, &(addrin->sin_addr),address,INET_ADDRSTRLEN);
-  }
-  /* Incoming IPv6 connection */
-  if ( AF_INET6 == conn_info->client_addr->sin_family)
-  {
-    address = GNUNET_malloc (INET6_ADDRSTRLEN);
-    addrin6 = (struct sockaddr_in6 *) conn_info->client_addr;
-    inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr),address,INET6_ADDRSTRLEN);
-  }
-
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has an incoming `%s' request from `%s'\n",method, address);
-
-  /* find session for address */
-  cs = NULL;
-  if (plugin->session_count > 0)
-  {
-    cs = plugin->sessions;
-    while ( NULL != cs)
+    conn_info = MHD_get_connection_info(session, MHD_CONNECTION_INFO_CLIENT_ADDRESS );
+    /* Incoming IPv4 connection */
+    if ( AF_INET == conn_info->client_addr->sin_family)
     {
-      if ( 0 == memcmp(conn_info->client_addr,cs->addr, sizeof (struct sockaddr_in)))
+      address = GNUNET_malloc (INET_ADDRSTRLEN);
+      addrin = conn_info->client_addr;
+      inet_ntop(addrin->sin_family, &(addrin->sin_addr),address,INET_ADDRSTRLEN);
+    }
+    /* Incoming IPv6 connection */
+    if ( AF_INET6 == conn_info->client_addr->sin_family)
+    {
+      address = GNUNET_malloc (INET6_ADDRSTRLEN);
+      addrin6 = (struct sockaddr_in6 *) conn_info->client_addr;
+      inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr),address,INET6_ADDRSTRLEN);
+    }
+
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has an incoming `%s' request from `[%s]:%u'\n",method, address,conn_info->client_addr->sin_port);
+
+    /* find session for address */
+    cs = NULL;
+    if (plugin->session_count > 0)
+    {
+      cs = plugin->sessions;
+      while ( NULL != cs)
       {
-        /* existing session for this address found */
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session `%s' found\n",address);
-        break;
+        if ( 0 == memcmp(conn_info->client_addr,cs->addr, sizeof (struct sockaddr_in)))
+        {
+          /* existing session for this address found */
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session `%s' found\n",address);
+          break;
+        }
+        cs = cs->next;
       }
-      cs = cs->next;
     }
-  }
 
-  if (cs == NULL )
-  {
-    /* create new session object */
-    cs = GNUNET_malloc ( sizeof( struct Session) );
-    cs->ip = address;
-    cs->addr = conn_info->client_addr;
-    cs->next = NULL;
-    cs->is_active = GNUNET_YES;
-
-    /* Insert session into linked list */
-    if ( plugin->sessions == NULL)
+    if (cs == NULL )
     {
-      plugin->sessions = cs;
-      plugin->session_count = 1;
-    }
-    cs_temp = plugin->sessions;
-    while ( cs_temp->next != NULL )
-    {
-      cs_temp = cs_temp->next;
-    }
-    if (cs_temp != cs )
-    {
-      cs_temp->next = cs;
-      plugin->session_count++;
-    }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"New Session `%s' inserted, count %u \n", address, plugin->session_count);
-  }
+      /* create new session object */
+      cs = GNUNET_malloc ( sizeof( struct Session) );
+      cs->ip = address;
+      cs->addr = conn_info->client_addr;
+      cs->next = NULL;
+      cs->is_active = GNUNET_YES;
 
-  /* Set closure */
-  if (*httpSessionCache == NULL)
-  {
-    *httpSessionCache = cs;
+      /* Insert session into linked list */
+      if ( plugin->sessions == NULL)
+      {
+        plugin->sessions = cs;
+        plugin->session_count = 1;
+      }
+      cs_temp = plugin->sessions;
+      while ( cs_temp->next != NULL )
+      {
+        cs_temp = cs_temp->next;
+      }
+      if (cs_temp != cs )
+      {
+        cs_temp->next = cs;
+        plugin->session_count++;
+      }
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"New Session `%s' inserted, count %u \n", address, plugin->session_count);
+    }
+    /* Set closure */
+    if (*httpSessionCache == NULL)
+      *httpSessionCache = cs;
   }
-
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session already known");
 
   /* Is it a PUT or a GET request */
   if ( 0 == strcmp (MHD_HTTP_METHOD_PUT, method) )
