@@ -405,12 +405,9 @@ accessHandlerCallback (void *cls,
 
     /* iter over list */
     cs = plugin->sessions;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sessions in list %u \n",plugin->session_count);
     while (cs!=NULL)
       {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session: %s \n",cs->ip);
         cs = cs->next;
-
       }
     /* Set closure */
     if (*httpSessionCache == NULL)
@@ -720,6 +717,8 @@ libgnunet_plugin_transport_http_done (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
+  struct Session * cs;
+  struct Session * cs_next;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Unloading http plugin...\n");
 
@@ -747,6 +746,17 @@ libgnunet_plugin_transport_http_done (void *cls)
   }
 
   curl_multi_cleanup(multi_handle);
+
+  /* free all sessions */
+  cs = plugin->sessions;
+  while ( NULL != cs)
+    {
+      cs_next = cs->next;
+      GNUNET_free (cs->ip);
+      GNUNET_free (cs);
+      plugin->session_count--;
+      cs = cs_next;
+    }
 
   GNUNET_free (plugin);
   GNUNET_free (api);
