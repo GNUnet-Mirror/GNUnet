@@ -621,18 +621,25 @@ process_status_message (void *cls,
   const struct StatusMessage *sm;
   const char *emsg;
   int32_t status;
+  int was_transmitted;
 
-  free_queue_entry (qe);
+  was_transmitted = qe->was_transmitted;
   if (msg == NULL)
     {      
+      free_queue_entry (qe);
       if (NULL == h->client)
 	return; /* forced disconnect */
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Failed to receive response from database.\n"));
-      do_disconnect (h);
+      if (was_transmitted == GNUNET_YES)
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		      _("Failed to receive response from database.\n"));
+	  do_disconnect (h);
+	}
       return;
     }
-
+  GNUNET_assert (GNUNET_YES == qe->was_transmitted);
+  GNUNET_assert (h->queue_head == qe);
+  free_queue_entry (qe);
   if ( (ntohs(msg->size) < sizeof(struct StatusMessage)) ||
        (ntohs(msg->type) != GNUNET_MESSAGE_TYPE_DATASTORE_STATUS) ) 
     {
@@ -1017,14 +1024,14 @@ process_result_message (void *cls,
 
   if (msg == NULL)
     {
-#if DEBUG_DATASTORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Failed to receive response from datastore or queue full\n");
-#endif
       was_transmitted = qe->was_transmitted;
       free_queue_entry (qe);
-      if (GNUNET_YES == was_transmitted)	
-	do_disconnect (h);
+      if (was_transmitted == GNUNET_YES)
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		      _("Failed to receive response from database.\n"));
+	  do_disconnect (h);
+	}
       if (rc.iter != NULL)
 	rc.iter (rc.iter_cls,
 		 NULL, 0, NULL, 0, 0, 0, 
@@ -1254,11 +1261,12 @@ GNUNET_DATASTORE_cancel (struct GNUNET_DATASTORE_QueueEntry *qe)
   if (GNUNET_YES == qe->was_transmitted) 
     {
       if (qe->response_proc == &process_result_message)	
-	qe->qc.rc.iter = NULL;    
-      else
-	reconnect = GNUNET_YES;
+	{
+	  qe->qc.rc.iter = NULL;    
+	  return;
+	}
+      reconnect = GNUNET_YES;
     }
-
   free_queue_entry (qe);
   h->queue_size--;
   if (reconnect)
