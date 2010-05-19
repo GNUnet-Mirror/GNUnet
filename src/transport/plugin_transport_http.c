@@ -142,6 +142,12 @@ struct Plugin
    */
   struct Session *sessions;
 
+  /**
+   * Number of active sessions
+   */
+
+  unsigned int session_count;
+
 };
 
 /**
@@ -347,6 +353,7 @@ acceptPolicyCallback (void *cls,
   /* create current session object */
   current_session = GNUNET_malloc ( sizeof( struct Session) );
   current_session->ip = address;
+  current_session->next = NULL;
 
   /* Every connection is accepted, nothing more to do here */
   return MHD_YES;
@@ -369,20 +376,47 @@ accessHandlerCallback (void *cls,
                        const char *upload_data,
                        size_t * upload_data_size, void **httpSessionCache)
 {
-  struct Session * http_session;
   struct MHD_Response *response;
-  http_session = *httpSessionCache;
+  struct Session * cs;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has an incoming `%s' request from `%s'\n",method, current_session->ip);
 
   /* Check if new or already known session */
-  if ( NULL == http_session )
+  if ( NULL != current_session )
   {
-    /* Create a new session */
+    /* Insert session into linked list */
+    if ( plugin->sessions == NULL)
+    {
+      plugin->sessions = current_session;
+      plugin->session_count = 1;
+    }
 
-    /* Insert session into linked list*/
+    cs = plugin->sessions;
+    while ( cs->next != NULL )
+    {
+       cs = cs->next;
+    }
 
+    if (cs != current_session)
+    {
+      cs->next = current_session;
+      plugin->session_count++;
+    }
+
+    /* iter over list */
+    cs = plugin->sessions;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sessions in list %u \n",plugin->session_count);
+    while (cs!=NULL)
+      {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session: %s \n",cs->ip);
+        cs = cs->next;
+
+      }
     /* Set closure */
+    if (*httpSessionCache == NULL)
+      {
+        *httpSessionCache = current_session;
+      }
   }
 
   /* Since connection is established, we can unlock */
