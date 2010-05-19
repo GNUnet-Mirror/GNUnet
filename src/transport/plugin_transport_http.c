@@ -176,9 +176,9 @@ static struct Plugin *plugin;
 static CURLM *multi_handle;
 
 /**
- * IP of current incoming connection
+ * session of current incoming connection
  */
-static struct sockaddr  * current_ip;
+static struct Session  * current_session;
 
 static unsigned int locked;
 
@@ -312,26 +312,41 @@ acceptPolicyCallback (void *cls,
       return MHD_NO;
   }
 
+  /* something went wrong since last attempt to connect, lost session to free */
+  if ( NULL != current_session )
+  {
+    GNUNET_free ( current_session->ip );
+    GNUNET_free ( current_session );
+  }
+
   locked = GNUNET_YES;
 
   if (addr->sa_family == AF_INET6)
   {
-    address = GNUNET_malloc(INET6_ADDRSTRLEN);
+    address = GNUNET_malloc (INET6_ADDRSTRLEN);
     addrin6 = (struct sockaddr_in6 *) addr;
     inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr),address,INET6_ADDRSTRLEN);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Incoming IPv6 connection from `%s'\n",address);
-    memcpy(current_ip,addr, sizeof (struct sockaddr));
-    GNUNET_free (address);
   }
-  if (addr->sa_family == AF_INET)
+  else if (addr->sa_family == AF_INET)
   {
     address = GNUNET_malloc(INET_ADDRSTRLEN);
     addrin = (struct sockaddr_in *) addr;
     inet_ntop(addrin->sin_family, &(addrin->sin_addr),address,INET_ADDRSTRLEN);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Incoming IPv4 connection from `%s'\n",address);
-    memcpy(current_ip,addr, sizeof (struct sockaddr));
-    GNUNET_free (address);
   }
+  /* are there any socket types besides ipv4 and ipv6 we want to support? */
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Unsupported connection type for incoming connection \n");
+    current_session = NULL;
+    locked = GNUNET_NO;
+    return MHD_NO;
+  }
+
+  /* create current session object */
+  current_session = GNUNET_malloc ( sizeof( struct Session) );
+  current_session->ip = address;
 
   /* Every connection is accepted, nothing more to do here */
   return MHD_YES;
@@ -358,26 +373,7 @@ accessHandlerCallback (void *cls,
   struct MHD_Response *response;
   http_session = *httpSessionCache;
 
-  struct sockaddr_in  *addrin;
-  struct sockaddr_in6 *addrin6;
-  char * address = NULL;
-
-  if ( current_ip->sa_family == AF_INET)
-  {
-    address = GNUNET_malloc(INET_ADDRSTRLEN);
-    addrin = (struct sockaddr_in *) current_ip;
-    inet_ntop(addrin->sin_family, &(addrin->sin_addr),address,INET_ADDRSTRLEN);
-  }
-  else if (current_ip->sa_family == AF_INET6)
-  {
-    address = GNUNET_malloc(INET6_ADDRSTRLEN);
-    addrin6 = (struct sockaddr_in6 *) current_ip;
-    inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr),address,INET6_ADDRSTRLEN);
-  }
-  else
-
-  if ( NULL != address )
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has an incoming `%s' request from `%s'\n",method, address);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has an incoming `%s' request from `%s'\n",method, current_session->ip);
 
   /* Check if new or already known session */
   if ( NULL == http_session )
@@ -391,6 +387,7 @@ accessHandlerCallback (void *cls,
 
   /* Since connection is established, we can unlock */
   locked = GNUNET_NO;
+  current_session = NULL;
 
   /* Is it a PUT or a GET request */
   if ( 0 == strcmp (MHD_HTTP_METHOD_PUT, method) )
@@ -412,7 +409,6 @@ accessHandlerCallback (void *cls,
     //GNUNET_STATISTICS_update( plugin->env->stats , gettext_noop("# GET requests"), 1, GNUNET_NO);
   }
 
-  GNUNET_free (address);
   return MHD_YES;
 }
 
@@ -718,7 +714,6 @@ libgnunet_plugin_transport_http_done (void *cls)
 
   curl_multi_cleanup(multi_handle);
 
-  GNUNET_free (current_ip);
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;
@@ -765,13 +760,12 @@ libgnunet_plugin_transport_http_init (void *cls)
       return NULL;
     }
 
-  current_ip = GNUNET_malloc ( sizeof(struct sockaddr_in) );
   if ((http_daemon_v4 == NULL) && (http_daemon_v6 == NULL) && (port != 0))
     {
     http_daemon_v6 = MHD_start_daemon (MHD_USE_IPv6,
                                        port,
                                        &acceptPolicyCallback,
-                                       current_ip, &accessHandlerCallback, current_ip,
+                                       NULL , &accessHandlerCallback, NULL,
                                        MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
                                        MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
                                        MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
@@ -781,7 +775,7 @@ libgnunet_plugin_transport_http_init (void *cls)
     http_daemon_v4 = MHD_start_daemon (MHD_NO_FLAG,
                                        port,
                                        &acceptPolicyCallback,
-                                       current_ip, &accessHandlerCallback, current_ip,
+                                       NULL , &accessHandlerCallback, NULL,
                                        MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
                                        MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
                                        MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,

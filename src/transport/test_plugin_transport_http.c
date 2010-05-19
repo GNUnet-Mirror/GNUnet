@@ -103,9 +103,9 @@ static struct GNUNET_TRANSPORT_PluginEnvironment env;
 static struct GNUNET_TRANSPORT_PluginFunctions *api;
 
 /**
- * ID of the task controlling the locking between two hostlist tests
+ * ID of the task controlling the testcase timeout
  */
-static GNUNET_SCHEDULER_TaskIdentifier ti_check_stat;
+static GNUNET_SCHEDULER_TaskIdentifier ti_timeout;
 
 static unsigned int timeout_count;
 
@@ -158,9 +158,9 @@ shutdown_clean ()
   }*/
 
   /* if ( NULL!=stats )GNUNET_STATISTICS_destroy (stats, GNUNET_YES); */
-  if (ti_check_stat != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel(sched,ti_check_stat);
-  ti_check_stat = GNUNET_SCHEDULER_NO_TASK;
+  if (ti_timeout != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(sched,ti_timeout);
+  ti_timeout = GNUNET_SCHEDULER_NO_TASK;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Unloading http plugin\n");
   GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_http", api));
@@ -223,10 +223,10 @@ cont_func (void *cls, int success)
  * this task again for a later time.
  */
 static void
-task_check_stat (void *cls,
+task_timeout (void *cls,
             const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  ti_check_stat = GNUNET_SCHEDULER_NO_TASK;
+  ti_timeout = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
@@ -247,7 +247,7 @@ task_check_stat (void *cls,
                                            &process_stat,
                                            NULL);*/
 
-  ti_check_stat = GNUNET_SCHEDULER_add_delayed (sched, STAT_INTERVALL, &task_check_stat, NULL);
+  ti_timeout = GNUNET_SCHEDULER_add_delayed (sched, STAT_INTERVALL, &task_timeout, NULL);
   return;
 }
 
@@ -309,7 +309,7 @@ run (void *cls,
     return;
   }
 
-  ti_check_stat = GNUNET_SCHEDULER_add_now (sched, &task_check_stat, NULL);
+  ti_timeout = GNUNET_SCHEDULER_add_now (sched, &task_timeout, NULL);
   return;
 
 }
