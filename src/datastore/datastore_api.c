@@ -415,7 +415,6 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h,
   if (c > max_queue_size)
     {
       response_proc (ret, NULL);
-      GNUNET_free (ret);
       return NULL;
     }
   ret->task = GNUNET_SCHEDULER_add_delayed (h->sched,
@@ -1008,21 +1007,25 @@ process_result_message (void *cls,
   struct GNUNET_DATASTORE_Handle *h = qe->h;
   struct ResultContext rc = qe->qc.rc;
   const struct DataMessage *dm;
+  int was_transmitted;
 
-  GNUNET_assert (h->queue_head == qe);
   if (msg == NULL)
     {
 #if DEBUG_DATASTORE
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Failed to receive response from datastore\n"));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Failed to receive response from datastore or queue full\n");
 #endif
+      was_transmitted = qe->was_transmitted;
       free_queue_entry (qe);
-      do_disconnect (h);
+      if (GNUNET_YES == was_transmitted)	
+	do_disconnect (h);
       rc.iter (rc.iter_cls,
 	       NULL, 0, NULL, 0, 0, 0, 
 	       GNUNET_TIME_UNIT_ZERO_ABS, 0);	
       return;
     }
+  GNUNET_assert (GNUNET_YES == qe->was_transmitted);
+  GNUNET_assert (h->queue_head == qe);
   if (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END) 
     {
       GNUNET_break (ntohs(msg->size) == sizeof(struct GNUNET_MessageHeader));
