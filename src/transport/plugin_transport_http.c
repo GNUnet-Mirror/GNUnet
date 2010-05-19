@@ -188,6 +188,7 @@ static struct Session  * current_session;
 
 static unsigned int locked;
 
+
 /**
  * Finds a http session in our linked list using peer identity as a key
  * @param peer peeridentity
@@ -217,7 +218,7 @@ static struct Session * find_session_by_pi( const struct GNUNET_PeerIdentity *pe
  * @param peer peeridentity
  * @return http session corresponding to peer identity
  */
-static struct Session * find_session_by_ip( struct sockaddr_in * addr )
+static struct Session * find_session_by_ip( char * ip )
 {
   /*
   struct Session * cur;
@@ -311,6 +312,7 @@ acceptPolicyCallback (void *cls,
   struct sockaddr_in  *addrin;
   struct sockaddr_in6 *addrin6;
   char * address = NULL;
+  struct Session * cs;
 
   if ( GNUNET_YES == locked )
   {
@@ -350,11 +352,34 @@ acceptPolicyCallback (void *cls,
     return MHD_NO;
   }
 
-  /* create current session object */
-  current_session = GNUNET_malloc ( sizeof( struct Session) );
-  current_session->ip = address;
-  current_session->next = NULL;
+  /* get existing session for this address */
+  cs = NULL;
+  if (plugin->session_count > 0)
+  {
+    cs = plugin->sessions;
+    while ( NULL != cs)
+    {
+      if ( 0 == strcmp(address,cs->ip))
+      {
+        /* existing session for this address found */
+        break;
+      }
+      cs = cs->next;
+    }
+  }
 
+  if (cs != NULL )
+  {
+    /* session to this addresse already existing */
+    current_session = cs;
+  }
+  else
+  {
+    /* create new session object */
+    current_session = GNUNET_malloc ( sizeof( struct Session) );
+    current_session->ip = address;
+    current_session->next = NULL;
+  }
   /* Every connection is accepted, nothing more to do here */
   return MHD_YES;
 }
