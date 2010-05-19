@@ -483,6 +483,12 @@ do_disconnect (struct GNUNET_DATASTORE_Handle *h)
 {
   if (h->client == NULL)
     return;
+#if 0
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# reconnected to datastore"),
+			    1,
+			    GNUNET_NO);
+#endif
   GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
   h->client = NULL;
   h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->sched,
@@ -1019,9 +1025,10 @@ process_result_message (void *cls,
       free_queue_entry (qe);
       if (GNUNET_YES == was_transmitted)	
 	do_disconnect (h);
-      rc.iter (rc.iter_cls,
-	       NULL, 0, NULL, 0, 0, 0, 
-	       GNUNET_TIME_UNIT_ZERO_ABS, 0);	
+      if (rc.iter != NULL)
+	rc.iter (rc.iter_cls,
+		 NULL, 0, NULL, 0, 0, 0, 
+		 GNUNET_TIME_UNIT_ZERO_ABS, 0);	
       return;
     }
   GNUNET_assert (GNUNET_YES == qe->was_transmitted);
@@ -1034,9 +1041,10 @@ process_result_message (void *cls,
 		  "Received end of result set\n");
 #endif
       free_queue_entry (qe);
-      rc.iter (rc.iter_cls,
-	       NULL, 0, NULL, 0, 0, 0, 
-	       GNUNET_TIME_UNIT_ZERO_ABS, 0);	
+      if (rc.iter != NULL)
+	rc.iter (rc.iter_cls,
+		 NULL, 0, NULL, 0, 0, 0, 
+		 GNUNET_TIME_UNIT_ZERO_ABS, 0);	
       process_queue (h);
       return;
     }
@@ -1048,9 +1056,16 @@ process_result_message (void *cls,
       free_queue_entry (qe);
       h->retry_time = GNUNET_TIME_UNIT_ZERO;
       do_disconnect (h);
-      rc.iter (rc.iter_cls,
-	       NULL, 0, NULL, 0, 0, 0, 
-	       GNUNET_TIME_UNIT_ZERO_ABS, 0);	
+      if (rc.iter != NULL)
+	rc.iter (rc.iter_cls,
+		 NULL, 0, NULL, 0, 0, 0, 
+		 GNUNET_TIME_UNIT_ZERO_ABS, 0);	
+      return;
+    }
+  if (rc.iter == NULL)
+    {
+      /* abort iteration */
+      do_disconnect (h);
       return;
     }
   dm = (const struct DataMessage*) msg;
@@ -1235,7 +1250,15 @@ GNUNET_DATASTORE_cancel (struct GNUNET_DATASTORE_QueueEntry *qe)
   int reconnect;
 
   h = qe->h;
-  reconnect = qe->was_transmitted;
+  reconnect = GNUNET_NO;
+  if (GNUNET_YES == qe->was_transmitted) 
+    {
+      if (qe->response_proc == &process_result_message)	
+	qe->qc.rc.iter = NULL;    
+      else
+	reconnect = GNUNET_YES;
+    }
+
   free_queue_entry (qe);
   h->queue_size--;
   if (reconnect)
