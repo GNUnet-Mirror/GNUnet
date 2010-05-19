@@ -40,7 +40,7 @@
 #include "gnunet-service-fs_indexing.h"
 #include "fs.h"
 
-#define DEBUG_FS GNUNET_NO
+#define DEBUG_FS GNUNET_YES
 
 /**
  * In-memory information about indexed files (also available
@@ -367,6 +367,13 @@ GNUNET_FS_handle_index_start (void *cls,
   ii->filename = (const char*) &ii[1];
   memcpy (&ii[1], fn, slen);
   ii->file_id = ism->file_id;  
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received `%s' message for file `%s'\n",
+	      "START_INDEX",
+	      ii->filename);
+#endif
+
   ii->tc = GNUNET_SERVER_transmit_context_create (client);
   mydev = 0;
   myino = 0;
@@ -610,8 +617,9 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
 					sizeof (ndata)))) )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Could not access indexed file `%s' at offset %llu: %s\n"),
+		  _("Could not access indexed file `%s' (%s) at offset %llu: %s\n"),
 		  GNUNET_h2s (&odb->file_id),
+		  fn,
 		  (unsigned long long) off,
 		  STRERROR (errno));
       if (fh != NULL)

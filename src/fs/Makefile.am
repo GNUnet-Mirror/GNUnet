@@ -143,7 +143,7 @@ check_SCRIPTS = \
  test_gnunet_fs_idx.py
 endif
 
-TESTS = $(check_SCRIPTS) \
+TESTS = \
  test_fs_directory \
  test_fs_download \
  test_fs_download_persistence \
@@ -159,7 +159,8 @@ TESTS = $(check_SCRIPTS) \
  test_fs_unindex_persistence \
  test_fs_uri \
  test_fs_test_lib \
- test_gnunet_service_fs_p2p
+ test_gnunet_service_fs_p2p \
+ $(check_SCRIPTS) 
 # $(check_PROGRAMS)
 
 

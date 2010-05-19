@@ -44,7 +44,7 @@
 #include "gnunet-service-fs_indexing.h"
 #include "fs.h"
 
-#define DEBUG_FS GNUNET_NO
+#define DEBUG_FS GNUNET_YES
 
 /**
  * Maximum number of outgoing messages we queue per peer.
@@ -936,6 +936,10 @@ process_migration_content (void *cls,
 	GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
       return;
     }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Retrieved block `%s' of type %u for migration\n",
+	      GNUNET_h2s (key),
+	      type);
   mb = GNUNET_malloc (sizeof (struct MigrationReadyBlock) + size);
   mb->query = *key;
   mb->expiration = expiration;
@@ -1509,7 +1513,7 @@ transmit_to_peer (void *cls,
 			  &pid.hashPubKey,
 			  cp);
     }
-#if DEBUG_FS
+#if DEBUG_FS > 3
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Transmitting %u bytes to peer %u\n",
 	      msize,
@@ -2260,6 +2264,11 @@ struct ProcessReplyClosure
    * How much was this reply worth to us?
    */
   uint32_t priority;
+
+  /**
+   * Did we finish processing the associated request?
+   */ 
+  int finished;
 };
 
 
@@ -2420,7 +2429,7 @@ process_reply (void *cls,
     }
   prq->priority += pr->remaining_priority;
   pr->remaining_priority = 0;
-  if (pr->client_request_list != NULL)
+  if (NULL != pr->client_request_list)
     {
       GNUNET_STATISTICS_update (stats,
 				gettext_noop ("# replies received for local clients"),
@@ -2456,7 +2465,10 @@ process_reply (void *cls,
 	}
       GNUNET_break (cl->th != NULL);
       if (pr->do_remove)		
-	destroy_pending_request (pr);	 	
+	{
+	  prq->finished = GNUNET_YES;
+	  destroy_pending_request (pr);	 	
+	}
     }
   else
     {
@@ -2583,12 +2595,19 @@ handle_p2p_put (void *cls,
   prq.type = type;
   prq.expiration = expiration;
   prq.priority = 0;
+  prq.finished = GNUNET_NO;
   GNUNET_CONTAINER_multihashmap_get_multiple (query_request_map,
 					      &query,
 					      &process_reply,
 					      &prq);
   if (GNUNET_YES == active_migration)
     {
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Replicating result for query `%s' with priority %u\n",
+		  GNUNET_h2s (&query),
+		  prq.priority);
+#endif
       GNUNET_DATASTORE_put (dsh,
 			    0, &query, dsize, &put[1],
 			    type, prq.priority, 1 /* anonymity */, 
@@ -2814,13 +2833,21 @@ process_local_reply (void *cls,
       GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
       return;
     }
+  prq.type = type;
+  prq.priority = priority;  
+  prq.finished = GNUNET_NO;
+  process_reply (&prq, key, pr);
+  if (prq.finished == GNUNET_YES)
+    return;
+  if (pr->qe == NULL)
+    return; /* done here */
   if ( (type == GNUNET_BLOCK_TYPE_DBLOCK) ||
        (type == GNUNET_BLOCK_TYPE_IBLOCK) ) 
     {
-      if (pr->qe != NULL)
-	GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
+      GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
+      return;
     }
-  else if ( (pr->client_request_list == NULL) &&
+  if ( (pr->client_request_list == NULL) &&
        ( (GNUNET_YES == test_load_too_high()) ||
 	 (pr->results_found > 5 + 2 * pr->priority) ) )
     {
@@ -2832,14 +2859,10 @@ process_local_reply (void *cls,
 				gettext_noop ("# processing result set cut short due to load"),
 				1,
 				GNUNET_NO);
-      if (pr->qe != NULL)
-	GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
+      GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
+      return;
     }
-  else if (pr->qe != NULL)
-    GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
-  prq.type = type;
-  prq.priority = priority;  
-  process_reply (&prq, key, pr);
+  GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
 }
 
 
@@ -3062,7 +3085,7 @@ handle_p2p_get (void *cls,
 				gettext_noop ("# requests dropped due TTL underflow"),
 				1,
 				GNUNET_NO);
-      /* integer underflow => drop (should be very rare)! */
+      /* integer underflow => drop (should be very rare)! */      
       GNUNET_free (pr);
       return GNUNET_OK;
     } 
