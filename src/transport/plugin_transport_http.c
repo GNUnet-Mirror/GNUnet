@@ -255,33 +255,6 @@ static struct Session * find_session_by_ip( char * ip )
 }
 #endif
 
-/**
- * Creates a http session in our linked list by peer identity
- * Only peer is set here, all other  fields have to be set by calling method
- * @param peer peeridentity
- * @return created http session
- */
-static struct Session * create_session_by_pi( const struct GNUNET_PeerIdentity *peer )
-{
-  struct Session * cur;
-  struct Session * last_in_list;
-  /* Create a new session object */
-  cur = GNUNET_malloc (sizeof (struct Session));
-  memcpy( &(cur->sender), peer, sizeof( struct GNUNET_PeerIdentity ) );
-
-  cur->next = NULL;
-
-  /* Insert into linked list */
-  last_in_list = plugin->sessions;
-  while (last_in_list->next != NULL)
-  {
-    last_in_list = last_in_list->next;
-  }
-  last_in_list->next = cur;
-
-  return cur;
-}
-
 #if 0
 /**
  * Creates a http session in our linked list by ip address
@@ -325,8 +298,6 @@ static void requestCompletedCallback (void *cls, struct MHD_Connection * connect
     /* session set to inactive */
     cs->is_active = GNUNET_NO;
   }
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Not accepted connection was terminated\n");
   return;
 }
 
@@ -632,16 +603,48 @@ template_plugin_send (void *cls,
                       cont, void *cont_cls)
 {
   struct Session* ses;
+  struct Session* ses_temp;
   int bytes_sent = 0;
   /*  struct Plugin *plugin = cls; */
   CURL *curl_handle;
   /* CURLcode res; */
 
   /* find session for peer */
-  ses = find_session_by_pi (target);
-  if ( ses == NULL) create_session_by_pi (target);
 
-  char *url = "http://localhost:12389";
+
+  ses = find_session_by_pi (target);
+
+  if ( ses == NULL)
+  {
+    /* create new session object */
+    ses = GNUNET_malloc ( sizeof( struct Session) );
+    ses->addr = GNUNET_malloc ( sizeof (struct sockaddr_in) );
+
+    //ses->ip = address;
+    // memcpy(ses->addr, conn_info->client_addr, sizeof (struct sockaddr_in));
+    memcpy(&ses->sender, &target, sizeof (struct GNUNET_PeerIdentity));
+    ses->next = NULL;
+    ses->is_active = GNUNET_YES;
+
+    /* Insert session into linked list */
+    if ( plugin->sessions == NULL)
+    {
+      plugin->sessions = ses;
+      plugin->session_count = 1;
+    }
+    ses_temp = plugin->sessions;
+    while ( ses_temp->next != NULL )
+    {
+      ses_temp = ses_temp->next;
+    }
+    if (ses_temp != ses )
+    {
+      ses_temp->next = ses;
+      plugin->session_count++;
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"New Session `%s' inserted, count %u \n", GNUNET_i2s(target), plugin->session_count);  }
+
+  char *url = "";
 
   curl_handle = curl_easy_init();
   if( NULL == curl_handle)
