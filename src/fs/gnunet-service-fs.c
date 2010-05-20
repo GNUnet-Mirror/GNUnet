@@ -44,7 +44,7 @@
 #include "gnunet-service-fs_indexing.h"
 #include "fs.h"
 
-#define DEBUG_FS GNUNET_YES
+#define DEBUG_FS GNUNET_NO
 
 /**
  * Maximum number of outgoing messages we queue per peer.
@@ -936,10 +936,12 @@ process_migration_content (void *cls,
 	GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
       return;
     }
+#if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Retrieved block `%s' of type %u for migration\n",
 	      GNUNET_h2s (key),
 	      type);
+#endif
   mb = GNUNET_malloc (sizeof (struct MigrationReadyBlock) + size);
   mb->query = *key;
   mb->expiration = expiration;
@@ -3469,7 +3471,11 @@ main_init (struct GNUNET_SCHEDULER_Handle *s,
     }
   /* FIXME: distinguish between sending and storing in options? */
   if (active_migration) 
-    consider_migration_gathering ();
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Content migration is enabled, will start to gather data\n"));
+      consider_migration_gathering ();
+    }
   GNUNET_SERVER_disconnect_notify (server, 
 				   &handle_client_disconnect,
 				   NULL);
