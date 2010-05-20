@@ -45,13 +45,17 @@
  */
 #define HTTP_PUT_RESPONSE "Thank you!"
 
-
 /**
  * After how long do we expire an address that we
  * learned from another peer if it is not reconfirmed
  * by anyone?
  */
 #define LEARNED_ADDRESS_EXPIRATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 6)
+
+/**
+ * Page returned if request invalid
+ */
+#define HTTP_ERROR_RESPONSE "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\"><HTML><HEAD><TITLE>404 Not Found</TITLE></HEAD><BODY><H1>Not Found</H1>The requested URL was not found on this server.<P><HR><ADDRESS></ADDRESS></BODY></HTML>"
 
 
 /**
@@ -183,7 +187,7 @@ static GNUNET_SCHEDULER_TaskIdentifier http_task_v6;
 
 
 /**
- * Pl
+ * Information about this plugin
  */
 static struct Plugin *plugin;
 
@@ -196,6 +200,12 @@ static CURLM *multi_handle;
  * Our hostname
  */
 static char * hostname;
+
+/**
+ * Our ASCII encoded, hashed peer identity
+ * This string is used to distinguish between connections and is added to the urls
+ */
+static struct GNUNET_CRYPTO_HashAsciiEncoded my_ascii_hash_ident;
 
 
 /**
@@ -309,10 +319,14 @@ static void requestCompletedCallback (void *cls, struct MHD_Connection * connect
   struct Session * cs;
 
   cs = *httpSessionCache;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection `%s' was terminated\n",cs->ip);
-  /* session set to inactive */
-  cs->is_active = GNUNET_NO;
-
+  if (cs != NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection from peer `%s' was terminated\n",GNUNET_i2s(&cs->sender));
+    /* session set to inactive */
+    cs->is_active = GNUNET_NO;
+  }
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Not accepted connection was terminated\n");
   return;
 }
 
@@ -351,10 +365,22 @@ accessHandlerCallback (void *cls,
   struct sockaddr_in  *addrin;
   struct sockaddr_in6 *addrin6;
   char * address = NULL;
+  struct GNUNET_PeerIdentity pi_in;
   int res = GNUNET_NO;
 
   if ( NULL == *httpSessionCache)
   {
+    /* check url for peer identity */
+    res = GNUNET_CRYPTO_hash_from_string ( &url[1], &(pi_in.hashPubKey));
+    if ( GNUNET_SYSERR == res )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Peer has no valid ident\n");
+      response = MHD_create_response_from_data (strlen (HTTP_ERROR_RESPONSE),HTTP_ERROR_RESPONSE, MHD_NO, MHD_NO);
+      res = MHD_queue_response (session, MHD_HTTP_NOT_FOUND, response);
+      MHD_destroy_response (response);
+      return MHD_YES;
+    }
+
     conn_info = MHD_get_connection_info(session, MHD_CONNECTION_INFO_CLIENT_ADDRESS );
     /* Incoming IPv4 connection */
     if ( AF_INET == conn_info->client_addr->sin_family)
@@ -371,8 +397,7 @@ accessHandlerCallback (void *cls,
       inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr),address,INET6_ADDRSTRLEN);
     }
 
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has an incoming `%s' request from `[%s]:%u'\n",method, address,conn_info->client_addr->sin_port);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has an incoming `%s' request from peer `%s' from `[%s]:%u'\n",method, GNUNET_h2s(&pi_in.hashPubKey),address,conn_info->client_addr->sin_port);
 
     /* find session for address */
     cs = NULL;
@@ -382,16 +407,15 @@ accessHandlerCallback (void *cls,
       while ( NULL != cs)
       {
 
-        /* FIXME: When are two connections equal? ip1 == ip2  or ip1:port1 == ip2:port2 ?
-         * Think about NAT, reuse connections...
-         */
-
         /* Comparison based on ip address */
-        res = (0 == memcmp(&(conn_info->client_addr->sin_addr),&(cs->addr->sin_addr), sizeof (struct in_addr))) ? GNUNET_YES : GNUNET_NO;
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"res is %u \n",res);
+        // res = (0 == memcmp(&(conn_info->client_addr->sin_addr),&(cs->addr->sin_addr), sizeof (struct in_addr))) ? GNUNET_YES : GNUNET_NO;
+
         /* Comparison based on ip address, port number and address family */
-        /* res = (0 == memcmp((conn_info->client_addr),(cs->addr), sizeof (struct sockaddr_in))) ? GNUNET_YES : GNUNET_NO;
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"port1 is %u port2 is %u, res is %u \n",conn_info->client_addr->sin_port,cs->addr->sin_port,res); */
+        // res = (0 == memcmp((conn_info->client_addr),(cs->addr), sizeof (struct sockaddr_in))) ? GNUNET_YES : GNUNET_NO;
+
+        /* Comparison based on PeerIdentity */
+        res = (0 == memcmp(&pi_in,&(cs->sender), sizeof (struct GNUNET_PeerIdentity))) ? GNUNET_YES : GNUNET_NO;
+
         if ( GNUNET_YES  == res)
         {
           /* existing session for this address found */
@@ -408,9 +432,9 @@ accessHandlerCallback (void *cls,
       cs = GNUNET_malloc ( sizeof( struct Session) );
       cs->addr = GNUNET_malloc ( sizeof (struct sockaddr_in) );
 
-
       cs->ip = address;
       memcpy(cs->addr, conn_info->client_addr, sizeof (struct sockaddr_in));
+      memcpy(&cs->sender, &pi_in, sizeof (struct GNUNET_PeerIdentity));
       cs->next = NULL;
       cs->is_active = GNUNET_YES;
 
@@ -455,6 +479,11 @@ accessHandlerCallback (void *cls,
   if ( 0 == strcmp (MHD_HTTP_METHOD_GET, method) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got GET Request\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"URL: `%s'\n",url);
+
+    response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),HTTP_PUT_RESPONSE, MHD_NO, MHD_NO);
+    MHD_queue_response (session, MHD_HTTP_OK, response);
+    MHD_destroy_response (response);
   }
 
   return MHD_YES;
@@ -806,6 +835,9 @@ libgnunet_plugin_transport_http_init (void *cls)
   api->address_to_string = &template_plugin_address_to_string;
 
   hostname = GNUNET_RESOLVER_local_fqdn_get ();
+
+  /* Hashing our identity to use it in URLs */
+  GNUNET_CRYPTO_hash_to_enc ( &(plugin->env->my_identity->hashPubKey), &my_ascii_hash_ident);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting http plugin...\n");
   /* Reading port number from config file */

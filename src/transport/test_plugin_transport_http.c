@@ -60,16 +60,20 @@
 /* static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded my_public_key; */
 
 /**
+ * Our public key.
+ */
+static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded my_public_key;
+
+/**
  * Our identity.
  */
 static struct GNUNET_PeerIdentity my_identity;
 
-#if 0
 /**
  * Our private key.
  */
 static struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
-#endif
+
 
 /**
  * Our scheduler.
@@ -283,6 +287,8 @@ run (void *cls,
   char * libname;
   sched = s;
   cfg = c;
+  char *keyfile;
+  unsigned long long tneigh;
 
   /* settings up statistics */
 /*  stats = GNUNET_STATISTICS_create (sched, "http-transport", cfg);
@@ -294,6 +300,38 @@ run (void *cls,
     shutdown_clean();
     return ;
   }*/
+
+  /* parse configuration */
+  if ((GNUNET_OK !=
+       GNUNET_CONFIGURATION_get_value_number (c,
+                                              "TRANSPORT",
+                                              "NEIGHBOUR_LIMIT",
+                                              &tneigh)) ||
+      (GNUNET_OK !=
+       GNUNET_CONFIGURATION_get_value_filename (c,
+                                                "GNUNETD",
+                                                "HOSTKEY", &keyfile)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _
+                  ("Transport service is lacking key configuration settings.  Exiting.\n"));
+      GNUNET_SCHEDULER_shutdown (s);
+      return;
+    }
+  max_connect_per_transport = (uint32_t) tneigh;
+  my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+  GNUNET_free (keyfile);
+  if (my_private_key == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _
+                  ("Transport service could not access hostkey.  Exiting.\n"));
+      GNUNET_SCHEDULER_shutdown (s);
+      return;
+    }
+  GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
+  GNUNET_CRYPTO_hash (&my_public_key,
+                      sizeof (my_public_key), &my_identity.hashPubKey);
 
   /* load plugins... */
   setup_plugin_environment ();
@@ -368,7 +406,9 @@ main (int argc, char *const *argv)
                              argv_prog,
                              "test_plugin_transport_http",
                              "testcase", options, &run, NULL)) ? GNUNET_NO : GNUNET_YES;
-  GNUNET_DISK_directory_remove ("/tmp/test_plugin_transport_http");
+  /* FIXME: Please do not generate a key every time
+   * GNUNET_DISK_directory_remove ("/tmp/test_plugin_transport_http");
+   */
 
 /*  if (0 != PLIBC_KILL (pid, SIGTERM))
   {
