@@ -180,7 +180,6 @@ progress_cb (void *cls,
 {
   struct GNUNET_FS_TestDaemon *daemon = cls;
 
-  fprintf (stderr, "PCB %d\n", info->status);
   switch (info->status)
     {
     case GNUNET_FS_STATUS_PUBLISH_COMPLETED:      
