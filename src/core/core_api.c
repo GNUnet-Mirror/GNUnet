@@ -310,17 +310,14 @@ request_start (void *cls, size_t size, void *buf)
       return 0;
     }
   /* create new timeout task (in case core takes too long to respond!) */
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == th->timeout_task);
   th->timeout_task = GNUNET_SCHEDULER_add_delayed (h->sched,
                                                    GNUNET_TIME_absolute_get_remaining
                                                    (th->timeout),
                                                    &timeout_request, th);
-  /* remove th from doubly-linked pending list, move to submitted */
-  GNUNET_assert (th->prev == NULL);
-  h->pending_head = th->next;
-  if (th->next == NULL)
-    h->pending_tail = NULL;
-  else
-    th->next->prev = NULL;
+  GNUNET_CONTAINER_DLL_remove (h->pending_head,
+			       h->pending_tail,
+			       th);
   GNUNET_assert (h->submitted == NULL);
   h->submitted = th;
   GNUNET_assert (size >= th->msize);
@@ -882,12 +879,10 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
                  GNUNET_SERVER_MAX_MESSAGE_SIZE);
   th = GNUNET_malloc (sizeof (struct GNUNET_CORE_TransmitHandle));
   th->ch = handle;
-  /* append to list */
-  th->prev = handle->pending_tail;
-  if (handle->pending_tail == NULL)
-    handle->pending_head = th;
-  else
-    handle->pending_tail->next = th;
+  GNUNET_CONTAINER_DLL_insert_after (handle->pending_head,
+				     handle->pending_tail,
+				     handle->pending_tail,
+				     th);
   th->get_message = &produce_send;
   th->get_message_cls = th;
   th->notify = notify;
@@ -924,14 +919,9 @@ GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle
     }
   else
     {
-      if (h->prev == NULL)
-        handle->pending_head = h->next;
-      else
-        h->prev->next = h->next;
-      if (h->next == NULL)
-        handle->pending_tail = h->prev;
-      else
-        h->next->prev = h->prev;
+      GNUNET_CONTAINER_DLL_remove (handle->pending_head,
+				   handle->pending_tail,
+				   h);
     }
   if (h->timeout_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (handle->sched, h->timeout_task);
