@@ -432,20 +432,28 @@ accessHandlerCallback (void *cls,
       *httpSessionCache = cs;
   }
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session already known");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session already known \n");
 
   /* Is it a PUT or a GET request */
   if ( 0 == strcmp (MHD_HTTP_METHOD_PUT, method) )
   {
     /* PUT method here */
+    if (*upload_data_size == 0)
+      return MHD_YES;
+
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got PUT Request with size %lu \n",(*upload_data_size));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"URL: `%s'\n",url);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"PUT Request: `%s'\n",upload_data);
     /* No data left */
     *upload_data_size = 0;
+
+    /* do something with the data */
+
     response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),HTTP_PUT_RESPONSE, MHD_NO, MHD_NO);
-    MHD_queue_response (session, MHD_HTTP_OK, response);
+    res = MHD_queue_response (session, MHD_HTTP_CONTINUE, response);
     MHD_destroy_response (response);
+    return res;
   }
   if ( 0 == strcmp (MHD_HTTP_METHOD_GET, method) )
   {
@@ -453,11 +461,12 @@ accessHandlerCallback (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"URL: `%s'\n",url);
 
     response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),HTTP_PUT_RESPONSE, MHD_NO, MHD_NO);
-    MHD_queue_response (session, MHD_HTTP_OK, response);
+    res = MHD_queue_response (session, MHD_HTTP_OK, response);
     MHD_destroy_response (response);
+    return res;
   }
 
-  return MHD_YES;
+  return MHD_NO;
 }
 
 
@@ -588,7 +597,7 @@ static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *stream)
  *         and does NOT mean that the message was not transmitted (DV)
  */
 static ssize_t
-template_plugin_send (void *cls,
+http_plugin_send (void *cls,
                       const struct GNUNET_PeerIdentity *
                       target,
                       const char *msgbuf,
@@ -610,8 +619,6 @@ template_plugin_send (void *cls,
   /* CURLcode res; */
 
   /* find session for peer */
-
-
   ses = find_session_by_pi (target);
 
   if ( ses == NULL)
@@ -646,6 +653,7 @@ template_plugin_send (void *cls,
 
   char *url = "";
 
+
   curl_handle = curl_easy_init();
   if( NULL == curl_handle)
   {
@@ -677,7 +685,7 @@ template_plugin_send (void *cls,
  * @param target peer from which to disconnect
  */
 static void
-template_plugin_disconnect (void *cls,
+http_plugin_disconnect (void *cls,
                             const struct GNUNET_PeerIdentity *target)
 {
   // struct Plugin *plugin = cls;
@@ -700,7 +708,7 @@ template_plugin_disconnect (void *cls,
  * @param asc_cls closure for asc
  */
 static void
-template_plugin_address_pretty_printer (void *cls,
+http_plugin_address_pretty_printer (void *cls,
                                         const char *type,
                                         const void *addr,
                                         size_t addrlen,
@@ -727,7 +735,7 @@ template_plugin_address_pretty_printer (void *cls,
  *         and transport
  */
 static int
-template_plugin_address_suggested (void *cls,
+http_plugin_address_suggested (void *cls,
                                   void *addr, size_t addrlen)
 {
   /* struct Plugin *plugin = cls; */
@@ -750,7 +758,7 @@ template_plugin_address_suggested (void *cls,
  * @return string representing the same address
  */
 static const char*
-template_plugin_address_to_string (void *cls,
+http_plugin_address_to_string (void *cls,
                                    const void *addr,
                                    size_t addrlen)
 {
@@ -831,11 +839,11 @@ libgnunet_plugin_transport_http_init (void *cls)
   plugin->sessions = NULL;
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
-  api->send = &template_plugin_send;
-  api->disconnect = &template_plugin_disconnect;
-  api->address_pretty_printer = &template_plugin_address_pretty_printer;
-  api->check_address = &template_plugin_address_suggested;
-  api->address_to_string = &template_plugin_address_to_string;
+  api->send = &http_plugin_send;
+  api->disconnect = &http_plugin_disconnect;
+  api->address_pretty_printer = &http_plugin_address_pretty_printer;
+  api->check_address = &http_plugin_address_suggested;
+  api->address_to_string = &http_plugin_address_to_string;
 
   hostname = GNUNET_RESOLVER_local_fqdn_get ();
 
