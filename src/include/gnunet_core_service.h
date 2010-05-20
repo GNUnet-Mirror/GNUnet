@@ -385,11 +385,11 @@ GNUNET_CORE_notify_transmit_ready (struct
 /**
  * Cancel the specified transmission-ready notification.
  *
- * @param h handle that was returned by "notify_transmit_ready".
+ * @param th handle that was returned by "notify_transmit_ready".
  */
 void
 GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle
-                                          *h);
+                                          *th);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
