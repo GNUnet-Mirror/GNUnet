@@ -527,7 +527,8 @@ transmit (struct GNUNET_SERVER_Client *client,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  "Shutdown in progress, aborting transmission.\n");
 #endif
-     if (NULL != tc)
+      GNUNET_free (msg);
+      if (NULL != tc)
 	tc (tc_cls, GNUNET_SYSERR);
       return;
     }
@@ -1335,7 +1336,7 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	  GNUNET_CONNECTION_notify_transmit_ready_cancel (tcc->th);
 	  GNUNET_SERVER_client_drop (tcc->client);
 	}
-   if (NULL != tcc->tc)
+      if (NULL != tcc->tc)
 	tcc->tc (tcc->tc_cls, GNUNET_SYSERR);
       GNUNET_free (tcc->msg);
       GNUNET_free (tcc);
