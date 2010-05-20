@@ -562,6 +562,11 @@ process_queue (struct GNUNET_DATASTORE_Handle *h)
     return; /* request pending */
   if (h->client == NULL)
     return; /* waiting for reconnect */
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmitting %u bytes request to datastore\n",
+	      qe->message_size);
+#endif
   h->th = GNUNET_CLIENT_notify_transmit_ready (h->client,
 					       qe->message_size,
 					       GNUNET_TIME_absolute_get_remaining (qe->timeout),
@@ -1263,6 +1268,7 @@ GNUNET_DATASTORE_cancel (struct GNUNET_DATASTORE_QueueEntry *qe)
       if (qe->response_proc == &process_result_message)	
 	{
 	  qe->qc.rc.iter = NULL;    
+	  GNUNET_DATASTORE_get_next (h, GNUNET_YES);
 	  return;
 	}
       reconnect = GNUNET_YES;
