@@ -225,7 +225,6 @@ handle_address_response (void *cls, const struct GNUNET_MessageHeader *msg)
   const struct sockaddr *sa;
   socklen_t salen;
 
-
   if (msg == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
