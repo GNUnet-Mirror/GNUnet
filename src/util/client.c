@@ -531,6 +531,7 @@ GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
     }
   else
     {
+      GNUNET_assert (sock->in_receive == GNUNET_NO);
       sock->in_receive = GNUNET_YES;
       GNUNET_CONNECTION_receive (sock->sock,
                                  GNUNET_SERVER_MAX_MESSAGE_SIZE,
