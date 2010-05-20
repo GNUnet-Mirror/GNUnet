@@ -351,6 +351,7 @@ accessHandlerCallback (void *cls,
   struct sockaddr_in  *addrin;
   struct sockaddr_in6 *addrin6;
   char * address = NULL;
+  int res = GNUNET_NO;
 
   if ( NULL == *httpSessionCache)
   {
@@ -380,7 +381,18 @@ accessHandlerCallback (void *cls,
       cs = plugin->sessions;
       while ( NULL != cs)
       {
-        if ( 0 == memcmp(conn_info->client_addr,cs->addr, sizeof (struct sockaddr_in)))
+
+        /* FIXME: When are two connections equal? ip1 == ip2  or ip1:port1 == ip2:port2 ?
+         * Think about NAT, reuse connections...
+         */
+
+        /* Comparison based on ip address */
+        res = (0 == memcmp(&(conn_info->client_addr->sin_addr),&(cs->addr->sin_addr), sizeof (struct in_addr))) ? GNUNET_YES : GNUNET_NO;
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"res is %u \n",res);
+        /* Comparison based on ip address, port number and address family */
+        /* res = (0 == memcmp((conn_info->client_addr),(cs->addr), sizeof (struct sockaddr_in))) ? GNUNET_YES : GNUNET_NO;
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"port1 is %u port2 is %u, res is %u \n",conn_info->client_addr->sin_port,cs->addr->sin_port,res); */
+        if ( GNUNET_YES  == res)
         {
           /* existing session for this address found */
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session `%s' found\n",address);
@@ -394,8 +406,11 @@ accessHandlerCallback (void *cls,
     {
       /* create new session object */
       cs = GNUNET_malloc ( sizeof( struct Session) );
+      cs->addr = GNUNET_malloc ( sizeof (struct sockaddr_in) );
+
+
       cs->ip = address;
-      cs->addr = conn_info->client_addr;
+      memcpy(cs->addr, conn_info->client_addr, sizeof (struct sockaddr_in));
       cs->next = NULL;
       cs->is_active = GNUNET_YES;
 
