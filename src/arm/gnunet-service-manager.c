@@ -152,6 +152,11 @@ struct ForwardedConnection
    * Current back-off value.
    */
   struct GNUNET_TIME_Relative back_off;
+  
+  /**
+   * Task that tries to initiate forwarding.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier start_task;
 
   /**
    *
@@ -325,6 +330,9 @@ closeClientAndServiceSockets (struct ForwardedConnection *fc,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Closing forwarding connection (done with both directions)\n");
 #endif
+  if (fc->start_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (scheduler,
+			     fc->start_task);
   if ( (NULL != fc->armClientSocket) &&
        (GNUNET_SYSERR ==
 	GNUNET_NETWORK_socket_close (fc->armClientSocket)) )
@@ -497,11 +505,13 @@ receiveFromService (void *cls,
 								     rem).value);
 #endif
 	  rem = GNUNET_TIME_absolute_get_remaining (fc->timeout);
-	  GNUNET_SCHEDULER_add_delayed (scheduler,
-					GNUNET_TIME_relative_min (fc->back_off,
-								  rem),
-					&start_forwarding,
-					fc);
+	  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == fc->start_task);
+	  fc->start_task
+	    = GNUNET_SCHEDULER_add_delayed (scheduler,
+					    GNUNET_TIME_relative_min (fc->back_off,
+								      rem),
+					    &start_forwarding,
+					    fc);
 	}
       else
 	{
@@ -590,11 +600,13 @@ forwardToService (void *cls,
 								     rem).value);
 #endif
 	  rem = GNUNET_TIME_absolute_get_remaining (fc->timeout);
-	  GNUNET_SCHEDULER_add_delayed (scheduler,
-					GNUNET_TIME_relative_min (fc->back_off,
-								  rem),
-					&start_forwarding,
-					fc);
+	  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == fc->start_task);
+	  fc->start_task 
+	    = GNUNET_SCHEDULER_add_delayed (scheduler,
+					    GNUNET_TIME_relative_min (fc->back_off,
+								      rem),
+					    &start_forwarding,
+					    fc);
 	}
       else
 	{
@@ -703,6 +715,7 @@ start_forwarding (void *cls,
   struct ForwardedConnection *fc = cls;
   struct GNUNET_TIME_Relative rem;
 
+  fc->start_task = GNUNET_SCHEDULER_NO_TASK;
   if ( (NULL != tc) &&
        (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)) )
     {
@@ -751,11 +764,13 @@ start_forwarding (void *cls,
 		  (unsigned long long) GNUNET_TIME_relative_min (fc->back_off,
 								 rem).value);
 #endif
-      GNUNET_SCHEDULER_add_delayed (scheduler,
-				    GNUNET_TIME_relative_min (fc->back_off,
-							      rem),
-				    &start_forwarding,
-				    fc);
+      GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == fc->start_task);
+      fc->start_task
+	= GNUNET_SCHEDULER_add_delayed (scheduler,
+					GNUNET_TIME_relative_min (fc->back_off,
+								  rem),
+					&start_forwarding,
+					fc);
       return;
     }
 #if DEBUG_SERVICE_MANAGER
@@ -885,7 +900,11 @@ acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 				   GNUNET_TIME_UNIT_FOREVER_REL,
 				   fc->armClientSocket,
 				   &receiveFromClient, fc);
-  start_forwarding (fc, NULL);
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == fc->start_task);
+  fc->start_task 
+    = GNUNET_SCHEDULER_add_now (scheduler,
+				&start_forwarding,
+				fc);
 }
 
 
