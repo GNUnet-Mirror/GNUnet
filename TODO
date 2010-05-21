@@ -12,20 +12,6 @@ May 16 12:49:50 fs-13737 WARNING Could not access indexed file `ENUTBMBR' at off
     NOTE: corrupted filename in open message
     NOTE: odd directory name in open message
 
-This calls 'receive' while receive is pending!
-
-#0  0x00002b53fc14ef45 in *__GI_raise (sig=<value optimized out>) at ../nptl/sysdeps/unix/sysv/linux/raise.c:64
-#1  0x00002b53fc151d80 in *__GI_abort () at abort.c:88
-#2  0x00002b53fbcda6e4 in GNUNET_CONNECTION_receive (sock=0x2021740, max=65536, timeout=..., receiver=0x2b53fbcd43de <receive_helper>, receiver_cls=0x2031880) at connection.c:1180
-#3  0x00002b53fbcd48a5 in GNUNET_CLIENT_receive (sock=0x2031880, handler=0x2b53fb6bc695 <process_result_message>, handler_cls=0x208b740, timeout=...) at client.c:535
-#4  0x00002b53fb6bcd8b in GNUNET_DATASTORE_get_next (h=0x2034370, more=1) at datastore_api.c:1237
-#5  0x00002b53fb6bce5b in GNUNET_DATASTORE_cancel (qe=0x208b740) at datastore_api.c:1271
-#6  0x00000000004044c1 in shutdown_task (cls=0x0, tc=0x7fff251a8b00) at gnunet-service-fs.c:1376
-#7  0x00002b53fbcf1f50 in run_ready (sched=0x7fff251a8b70) at scheduler.c:514
-#8  0x00002b53fbcf2360 in GNUNET_SCHEDULER_run (task=0x2b53fbcf77e7 <service_task>, task_cls=0x7fff251a8e20) at scheduler.c:642
-#9  0x00002b53fbcf86da in GNUNET_SERVICE_run (argc=3, argv=0x7fff251a9048, serviceName=0x409845 "fs", opt=GNUNET_SERVICE_OPTION_NONE, task=0x40801f <run>, task_cls=0x0) at service.c:1404
-#10 0x0000000000408127 in main (argc=3, argv=0x7fff251a9048) at gnunet-service-fs.c:3536
-
 
 May 18 10:53:51 transport-8149 WARNING External protocol violation detected at plugin_transport_tcp.c:1275.
 

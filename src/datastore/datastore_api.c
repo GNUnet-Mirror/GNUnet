@@ -214,6 +214,11 @@ struct GNUNET_DATASTORE_Handle
    */
   unsigned int queue_size;
 
+  /**
+   * Are we currently trying to receive from the service?
+   */
+  int in_receive;
+
 };
 
 
@@ -535,6 +540,7 @@ transmit_request (void *cls,
   GNUNET_SCHEDULER_cancel (h->sched,
 			   qe->task);
   qe->task = GNUNET_SCHEDULER_NO_TASK;
+  h->in_receive = GNUNET_YES;
   GNUNET_CLIENT_receive (h->client,
 			 qe->response_proc,
 			 qe,
@@ -628,6 +634,7 @@ process_status_message (void *cls,
   int32_t status;
   int was_transmitted;
 
+  h->in_receive = GNUNET_NO;
   was_transmitted = qe->was_transmitted;
   if (msg == NULL)
     {      
@@ -1027,6 +1034,7 @@ process_result_message (void *cls,
   const struct DataMessage *dm;
   int was_transmitted;
 
+  h->in_receive = GNUNET_NO;
   if (msg == NULL)
     {
       was_transmitted = qe->was_transmitted;
@@ -1234,6 +1242,7 @@ GNUNET_DATASTORE_get_next (struct GNUNET_DATASTORE_Handle *h,
   GNUNET_assert (&process_result_message == qe->response_proc);
   if (GNUNET_YES == more)
     {     
+      h->in_receive = GNUNET_YES;
       GNUNET_CLIENT_receive (h->client,
 			     qe->response_proc,
 			     qe,
@@ -1268,7 +1277,8 @@ GNUNET_DATASTORE_cancel (struct GNUNET_DATASTORE_QueueEntry *qe)
       if (qe->response_proc == &process_result_message)	
 	{
 	  qe->qc.rc.iter = NULL;    
-	  GNUNET_DATASTORE_get_next (h, GNUNET_YES);
+	  if (GNUNET_YES != h->in_receive)
+	    GNUNET_DATASTORE_get_next (h, GNUNET_YES);
 	  return;
 	}
       reconnect = GNUNET_YES;
