@@ -388,10 +388,12 @@ create_session (struct Plugin *plugin,
   struct WelcomeMessage welcome;
 
   GNUNET_assert (client != NULL);
+#if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "tcp",
 		   "Creating new session for peer `%4s'\n",
 		   GNUNET_i2s (target));
+#endif
   ret = GNUNET_malloc (sizeof (struct Session));
   ret->last_activity = GNUNET_TIME_absolute_get ();
   ret->plugin = plugin;
