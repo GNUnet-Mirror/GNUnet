@@ -42,9 +42,9 @@
 #include "core.h"
 
 
-#define DEBUG_HANDSHAKE GNUNET_YES
+#define DEBUG_HANDSHAKE GNUNET_NO
 
-#define DEBUG_CORE_QUOTA GNUNET_YES
+#define DEBUG_CORE_QUOTA GNUNET_NO
 
 /**
  * Receive and send buffer windows grow over time.  For
