@@ -2794,7 +2794,7 @@ handle_pong (struct Neighbour *n,
 
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core service receives `%s' request from `%4s'.\n",
+              "Core service receives `%s' response from `%4s'.\n",
               "PONG", GNUNET_i2s (&n->peer));
 #endif
   /* mark as garbage, just to be sure */
