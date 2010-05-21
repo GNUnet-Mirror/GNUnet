@@ -311,7 +311,7 @@ tcp_address_to_string (void *cls,
 		       const void *addr,
 		       size_t addrlen)
 {
-  static char rbuf[INET6_ADDRSTRLEN + 10];
+  static char rbuf[INET6_ADDRSTRLEN + 12];
   char buf[INET6_ADDRSTRLEN];
   const void *sb;
   struct in_addr a4;
@@ -345,7 +345,7 @@ tcp_address_to_string (void *cls,
   inet_ntop (af, sb, buf, INET6_ADDRSTRLEN);
   GNUNET_snprintf (rbuf,
 		   sizeof (rbuf),
-		   "%s:%u",
+		   (af == AF_INET6) ? "[%s]:%u" : "%s:%u",
 		   buf,
 		   port);
   return rbuf;
