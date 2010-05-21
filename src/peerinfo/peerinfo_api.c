@@ -232,14 +232,18 @@ do_transmit (void *cls, size_t size, void *buf)
                   ("Failed to transmit message of type %u to `%s' service.\n"),
                   ntohs (msg->type), "peerinfo");
 #endif
-      GNUNET_CONTAINER_DLL_remove (h->tq_head,
-				   h->tq_tail,
-				   tqe);
+      if (tqe != NULL)
+	GNUNET_CONTAINER_DLL_remove (h->tq_head,
+				     h->tq_tail,
+				     tqe);
       reconnect (h);
       trigger_transmit (h);
-      if (tqe->cont != NULL)
-	tqe->cont (tqe->cont_cls, GNUNET_SYSERR);
-      GNUNET_free (tqe);
+      if (tqe != NULL)
+	{
+	  if (tqe->cont != NULL)
+	    tqe->cont (tqe->cont_cls, GNUNET_SYSERR);
+	  GNUNET_free (tqe);
+	}
       return 0;
     }
   ret = tqe->size;
