@@ -2980,7 +2980,7 @@ handle_blacklist_reply (void *cls,
 
 
 /**
- * Send periodic PING messages to a give foreign address.
+ * Send periodic PING messages to a given foreign address.
  *
  * @param cls our 'struct PeriodicValidationContext*'
  * @param tc task context
