@@ -381,6 +381,11 @@ struct MessageEntry
    */
   int8_t got_slack;
 
+  /**
+   * Is this a SETKEY message?
+   */
+  int is_setkey;
+
 };
 
 
@@ -2440,6 +2445,7 @@ process_hello_retry_send_key (void *cls,
 static void
 send_key (struct Neighbour *n)
 {
+  struct MessageEntry *pos;
   struct SetKeyMessage *sm;
   struct MessageEntry *me;
   struct PingMessage pp;
@@ -2503,12 +2509,29 @@ send_key (struct Neighbour *n)
 					 &process_hello_retry_send_key, n);
       return;
     }
+  pos = n->encrypted_head;
+  while (pos != NULL)
+    {
+      if (GNUNET_YES == pos->is_setkey)
+	{
+#if DEBUG_CORE
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "%s message for `%s' already in the queue, not adding another one\n",
+		      "SETKEY",
+		      GNUNET_i2s (&n->peer));
+#endif
+	  return;
+	}
+      pos = pos->next;
+    }
+
   /* first, set key message */
   me = GNUNET_malloc (sizeof (struct MessageEntry) +
                       sizeof (struct SetKeyMessage));
   me->deadline = GNUNET_TIME_relative_to_absolute (MAX_SET_KEY_DELAY);
   me->priority = SET_KEY_PRIORITY;
   me->size = sizeof (struct SetKeyMessage);
+  me->is_setkey = GNUNET_YES;
   GNUNET_CONTAINER_DLL_insert_after (n->encrypted_head,
 				     n->encrypted_tail,
 				     n->encrypted_tail,
@@ -2535,7 +2558,7 @@ send_key (struct Neighbour *n)
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_rsa_sign (my_private_key, &sm->purpose,
                                          &sm->signature));
-
+  
   /* second, encrypted PING message */
   me = GNUNET_malloc (sizeof (struct MessageEntry) +
                       sizeof (struct PingMessage));
