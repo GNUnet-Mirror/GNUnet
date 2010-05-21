@@ -12,6 +12,10 @@ May 16 12:49:50 fs-13737 WARNING Could not access indexed file `ENUTBMBR' at off
     NOTE: corrupted filename in open message
     NOTE: odd directory name in open message
 
+May 21 09:38:37 transport-26713 DEBUG Sending message of size 484 for `HLEV' to `fe80::230:48ff:febb:4bb3:10017' via plugin `tcp'
+May 21 09:38:37 transport-26713 INFO `connect' failed at connection.c:924 with error: Invalid argument
+May 21 09:38:37 tcp DEBUG Failed to create connection to `HLEV' at `[fe80::230:48ff:febb:4bb3]:10017'
+
 
 May 18 10:53:51 transport-8149 WARNING External protocol violation detected at plugin_transport_tcp.c:1275.
 
@@ -80,6 +84,8 @@ May 18 10:53:51 transport-8149 WARNING External protocol violation detected at p
 
 0.9.0pre3:
 * Determine RC bugs and fix those!
+* DATASTORE:
+  - GNUNET_DATASTORE_cancel method not tested
 * TESTING: [Nate]
   - modify configuration to allow controlling connections for non-local starts
   - testbed creation with topology (needs working F2F topology) 

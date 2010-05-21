@@ -355,7 +355,7 @@ accessHandlerCallback (void *cls,
       response = MHD_create_response_from_data (strlen (HTTP_ERROR_RESPONSE),HTTP_ERROR_RESPONSE, MHD_NO, MHD_NO);
       res = MHD_queue_response (session, MHD_HTTP_NOT_FOUND, response);
       MHD_destroy_response (response);
-      return MHD_YES;
+      return res;
     }
     conn_info = MHD_get_connection_info(session, MHD_CONNECTION_INFO_CLIENT_ADDRESS );
     /* Incoming IPv4 connection */

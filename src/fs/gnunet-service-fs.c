@@ -880,7 +880,7 @@ consider_migration_gathering ()
     return;
   delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
 					 mig_size);
-  delay = GNUNET_TIME_relative_divide (GNUNET_TIME_UNIT_SECONDS,
+  delay = GNUNET_TIME_relative_divide (delay,
 				       MAX_MIGRATION_QUEUE);
   delay = GNUNET_TIME_relative_max (delay,
 				    min_migration_delay);

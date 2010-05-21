@@ -658,7 +658,7 @@ enum GNUNET_TESTING_TopologyOption
   GNUNET_TESTING_TOPOLOGY_OPTION_NONE
 };
 
-/*
+/**
  * Takes a peer group and creates a topology based on the
  * one specified.  Creates a topology means generates friend
  * files for the peers so they can only connect to those allowed
@@ -683,11 +683,20 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
                                 enum GNUNET_TESTING_Topology restrict_topology,
                                 char *restrict_transports);
 
-/*
+/**
+ * There are many ways to connect peers that are supported by this function.
+ * To connect peers in the same topology that was created via the
+ * GNUNET_TESTING_create_topology, the topology variable must be set to
+ * GNUNET_TESTING_TOPOLOGY_NONE.  If the topology variable is specified,
+ * a new instance of that topology will be generated and attempted to be
+ * connected.  This could result in some connections being impossible,
+ * because some topologies are non-deterministic.
+ *
  * @param pg the peer group struct representing the running peers
  * @param topology which topology to connect the peers in
  * @param options options for connecting the topology
  * @param option_modifier modifier for options that take a parameter
+ * @return the number of connections that will be attempted, GNUNET_SYSERR on error
  */
 int
 GNUNET_TESTING_connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
