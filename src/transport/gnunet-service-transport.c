@@ -4786,7 +4786,11 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
       stats = NULL;
     }
-
+  if (peerinfo != NULL)
+    {
+      GNUNET_PEERINFO_disconnect (peerinfo);
+      peerinfo = NULL;
+    }
   /* Can we assume those are gone by now, or do we need to clean up
      explicitly!? */
   GNUNET_break (bl_head == NULL);
