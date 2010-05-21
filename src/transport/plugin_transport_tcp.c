@@ -856,9 +856,9 @@ tcp_plugin_send (void *cls,
 #endif
 	  a6.sin6_family = AF_INET6;
 	  a6.sin6_port = t6->t6_port;
-	  memcpy (a6.sin6_addr.s6_addr,
+	  memcpy (&a6.sin6_addr,
 		  &t6->ipv6_addr,
-		  16);      
+		  sizeof (struct in6_addr));      
 	  sb = &a6;
 	  sbs = sizeof (a6);
 	}
@@ -1085,9 +1085,9 @@ tcp_plugin_address_pretty_printer (void *cls,
       memset (&a6, 0, sizeof (a6));
       a6.sin6_family = AF_INET6;
       a6.sin6_port = t6->t6_port;
-      memcpy (a6.sin6_addr.s6_addr,
+      memcpy (&a6.sin6_addr,
 	      &t6->ipv6_addr,
-	      16);      
+	      sizeof (struct in6_addr));      
       port = ntohs (t6->t6_port);
       sb = &a6;
       sbs = sizeof (a6);
@@ -1254,8 +1254,8 @@ handle_tcp_welcome (void *cls,
 	      t6 = GNUNET_malloc (sizeof (struct IPv6TcpAddress));
 	      t6->t6_port = s6->sin6_port;
 	      memcpy (&t6->ipv6_addr,
-		      s6->sin6_addr.s6_addr,
-		      16);
+		      &s6->sin6_addr,
+		      sizeof (struct in6_addr));
 	      session->connect_addr = t6;
 	      session->connect_alen = sizeof (struct IPv6TcpAddress);
 	    }
@@ -1451,14 +1451,14 @@ process_interfaces (void *cls,
     }
   else if (af == AF_INET6)
     {
-      if (IN6_IS_ADDR_LINKLOCAL (((struct sockaddr_in6 *) addr)->sin6_addr.s6_addr))
+      if (IN6_IS_ADDR_LINKLOCAL (&((struct sockaddr_in6 *) addr)->sin6_addr))
 	{
 	  /* skip link local addresses */
 	  return GNUNET_OK;
 	}
       memcpy (&t6.ipv6_addr,
-	      ((struct sockaddr_in6 *) addr)->sin6_addr.s6_addr,
-	      16);
+	      &((struct sockaddr_in6 *) addr)->sin6_addr,
+	      sizeof (struct in6_addr));
       t6.t6_port = htons (plugin->adv_port);
       arg = &t6;
       args = sizeof (t6);
