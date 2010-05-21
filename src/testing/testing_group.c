@@ -2403,7 +2403,7 @@ GNUNET_TESTING_connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
         create_scale_free (pg, &add_actual_connections);
         break;
       case GNUNET_TESTING_TOPOLOGY_NONE:
-        num_connections = copy_allowed_topology(pg);
+        copy_allowed_topology(pg);
         break;
       default:
         GNUNET_log(GNUNET_ERROR_TYPE_WARNING, 
