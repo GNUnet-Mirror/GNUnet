@@ -89,7 +89,7 @@ struct IPv6TcpAddress
   /**
    * IPv6 address.
    */
-  unsigned char ipv6_addr[16];
+  struct in6_addr ipv6_addr;
 
   /**
    * Port number, in network byte order.
@@ -326,7 +326,7 @@ tcp_address_to_string (void *cls,
       t6 = addr;
       af = AF_INET6;
       port = ntohs (t6->t6_port);
-      memcpy (&a6, t6->ipv6_addr, sizeof (a6));
+      memcpy (&a6, &t6->ipv6_addr, sizeof (a6));
       sb = &a6;
     }
   else if (addrlen == sizeof (struct IPv4TcpAddress))
@@ -857,7 +857,7 @@ tcp_plugin_send (void *cls,
 	  a6.sin6_family = AF_INET6;
 	  a6.sin6_port = t6->t6_port;
 	  memcpy (a6.sin6_addr.s6_addr,
-		  t6->ipv6_addr,
+		  &t6->ipv6_addr,
 		  16);      
 	  sb = &a6;
 	  sbs = sizeof (a6);
@@ -1086,7 +1086,7 @@ tcp_plugin_address_pretty_printer (void *cls,
       a6.sin6_family = AF_INET6;
       a6.sin6_port = t6->t6_port;
       memcpy (a6.sin6_addr.s6_addr,
-	      t6->ipv6_addr,
+	      &t6->ipv6_addr,
 	      16);      
       port = ntohs (t6->t6_port);
       sb = &a6;
@@ -1176,7 +1176,7 @@ tcp_plugin_check_address (void *cls, void *addr, size_t addrlen)
   else
     {
       v6 = (struct IPv6TcpAddress *) addr;
-      if (IN6_IS_ADDR_LINKLOCAL (v6->ipv6_addr))
+      if (IN6_IS_ADDR_LINKLOCAL (&v6->ipv6_addr))
 	{
 	  GNUNET_break_op (0);
 	  return GNUNET_SYSERR;
@@ -1253,7 +1253,7 @@ handle_tcp_welcome (void *cls,
 	      s6 = vaddr;
 	      t6 = GNUNET_malloc (sizeof (struct IPv6TcpAddress));
 	      t6->t6_port = s6->sin6_port;
-	      memcpy (t6->ipv6_addr,
+	      memcpy (&t6->ipv6_addr,
 		      s6->sin6_addr.s6_addr,
 		      16);
 	      session->connect_addr = t6;
@@ -1456,7 +1456,7 @@ process_interfaces (void *cls,
 	  /* skip link local addresses */
 	  return GNUNET_OK;
 	}
-      memcpy (t6.ipv6_addr,
+      memcpy (&t6.ipv6_addr,
 	      ((struct sockaddr_in6 *) addr)->sin6_addr.s6_addr,
 	      16);
       t6.t6_port = htons (plugin->adv_port);

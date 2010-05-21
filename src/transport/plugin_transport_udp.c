@@ -97,7 +97,7 @@ struct IPv6UdpAddress
   /**
    * IPv6 address.
    */
-  unsigned char ipv6_addr[16];
+  struct in6_addr ipv6_addr;
 
   /**
    * Port number, in network byte order.
@@ -296,7 +296,7 @@ udp_plugin_send (void *cls,
       a6.sin6_family = AF_INET6;
       a6.sin6_port = t6->u6_port;
       memcpy (a6.sin6_addr.s6_addr,
-	      t6->ipv6_addr,
+	      &t6->ipv6_addr,
 	      16);      
       sb = &a6;
       sbs = sizeof (a6);
@@ -380,7 +380,7 @@ process_interfaces (void *cls,
     }
   else if (af == AF_INET6)
     {
-      memcpy (t6.ipv6_addr,
+      memcpy (&t6.ipv6_addr,
 	      ((struct sockaddr_in6 *) addr)->sin6_addr.s6_addr,
 	      16);
       t6.u6_port = htons (plugin->adv_port);
@@ -540,7 +540,7 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       {
 	s6 = (const struct sockaddr_in6*) &addr;
 	t6.u6_port = s6->sin6_port;
-	memcpy (t6.ipv6_addr,
+	memcpy (&t6.ipv6_addr,
 		s6->sin6_addr.s6_addr,
 		16);
 	ca = &t6;
@@ -783,7 +783,7 @@ udp_plugin_address_pretty_printer (void *cls,
       a6.sin6_port = t6->u6_port;
       port = ntohs (t6->u6_port);
       memcpy (a6.sin6_addr.s6_addr,
-	      t6->ipv6_addr,
+	      &t6->ipv6_addr,
 	      16);      
       sb = &a6;
       sbs = sizeof (a6);
@@ -850,7 +850,7 @@ udp_address_to_string (void *cls,
       t6 = addr;
       af = AF_INET6;
       port = ntohs (t6->u6_port);
-      memcpy (&a6, t6->ipv6_addr, sizeof (a6));
+      memcpy (&a6, &t6->ipv6_addr, sizeof (a6));
       sb = &a6;
     }
   else if (addrlen == sizeof (struct IPv4UdpAddress))
