@@ -173,7 +173,8 @@ testing_init (void *cls,
  * @param tc unused
  */
 static void
-start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+start_fsm (void *cls, 
+	   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TESTING_Daemon *d = cls;
   GNUNET_TESTING_NotifyDaemonRunning cb;
@@ -181,8 +182,6 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned long code;
   char *dst;
   int bytes_read;
-  static char hostkeybuf[105];
-  static const char temphostkey[104];
 
 #if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -305,76 +304,71 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
       d->phase = SP_HOSTKEY_CREATE;
       d->task
-        = GNUNET_SCHEDULER_add_delayed (d->sched,
-                                        GNUNET_CONSTANTS_EXEC_WAIT,
-                                        &start_fsm, d);
+	= GNUNET_SCHEDULER_add_read_file (d->sched,
+					  GNUNET_TIME_absolute_get_remaining(d->max_timeout),
+					  GNUNET_DISK_pipe_handle(d->pipe_stdout, 
+								  GNUNET_DISK_PIPE_END_READ),
+					  &start_fsm, 
+					  d);
       break;
     case SP_HOSTKEY_CREATE:
+      bytes_read = GNUNET_DISK_file_read(GNUNET_DISK_pipe_handle(d->pipe_stdout, 
+								 GNUNET_DISK_PIPE_END_READ),
+					 &d->hostkeybuf[d->hostkeybufpos], 
+					 sizeof(d->hostkeybuf) - d->hostkeybufpos);
+      if (bytes_read > 0)
+	d->hostkeybufpos += bytes_read;      
 
-      bytes_read = GNUNET_DISK_file_read(GNUNET_DISK_pipe_handle(d->pipe_stdout, GNUNET_DISK_PIPE_END_READ), &hostkeybuf, sizeof(hostkeybuf));
-      if (bytes_read == 104) /* Success, we have read in the hostkey */
-        {
-          if (hostkeybuf[103] == '\n')
-            hostkeybuf[103] = '\0';
-          else
-            GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Malformed output from gnunet-peerinfo!\n");
-          memcpy(&temphostkey, &hostkeybuf, bytes_read);
-
-          if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (&temphostkey[0],
-                                                           &d->id.hashPubKey))
-            {
-              GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Failed to convert string to peer identity!\n");
-            }
-          else
-            {
-              GNUNET_DISK_pipe_close(d->pipe_stdout);
-              d->pipe_stdout = NULL;
-            }
-        }
-
-      if (GNUNET_OK != GNUNET_OS_process_status (d->pid, &type, &code))
-        {
-          if (GNUNET_TIME_absolute_get_remaining(d->max_timeout).value == 0)
-            {
-              cb = d->cb;
-              d->cb = NULL;
-              if (NULL != cb)
-                cb (d->cb_cls,
-                    NULL,
-                    d->cfg,
-                    d,
-                    (NULL == d->hostname)
-                    ? _("`gnunet-peerinfo' does not seem to terminate.\n")
-                    : _("`ssh' does not seem to terminate.\n"));
-
-              GNUNET_DISK_pipe_close(d->pipe_stdout);
-              return;
-            }
-          /* wait some more */
+      if ( (d->hostkeybufpos < 104) &&
+	   (bytes_read > 0) )
+	{
+	  /* keep reading */
           d->task
-            = GNUNET_SCHEDULER_add_delayed (d->sched,
-                                            GNUNET_CONSTANTS_EXEC_WAIT,
-                                            &start_fsm, d);
+            = GNUNET_SCHEDULER_add_read_file (d->sched,
+					      GNUNET_TIME_absolute_get_remaining(d->max_timeout),
+					      GNUNET_DISK_pipe_handle(d->pipe_stdout, 
+								      GNUNET_DISK_PIPE_END_READ),
+					      &start_fsm, 
+					      d);
           return;
-        }
-#if DEBUG_TESTING
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Successfully got hostkey!\n");
-#endif
-      if (d->pipe_stdout != NULL)
-        {
+	}
+      d->hostkeybuf[103] = '\0';
+      if ( (bytes_read < 0) ||
+	   (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (d->hostkeybuf,
+							 &d->id.hashPubKey)) )
+	{
+	  /* error */
+	  if (bytes_read < 0)
+	    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, 
+		       _("Error reading from gnunet-peerinfo: %s\n"),
+		       STRERROR (errno));
+	  else
+	    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, 
+		       _("Malformed output from gnunet-peerinfo!\n"));
           cb = d->cb;
           d->cb = NULL;
+          GNUNET_DISK_pipe_close(d->pipe_stdout);
+	  d->pipe_stdout = NULL;
+	  (void) PLIBC_KILL (d->pid, SIGKILL);
+	  GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (d->pid));
+	  d->pid = 0;
           if (NULL != cb)
             cb (d->cb_cls,
                 NULL,
                 d->cfg,
                 d,
                 _("`Failed to get hostkey!\n"));
-          GNUNET_DISK_pipe_close(d->pipe_stdout);
-          return;
-        }
-
+	  return;
+	} 
+      GNUNET_DISK_pipe_close(d->pipe_stdout);
+      d->pipe_stdout = NULL;
+      (void) PLIBC_KILL (d->pid, SIGKILL);
+      GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (d->pid));
+      d->pid = 0;
+#if DEBUG_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Successfully got hostkey!\n");
+#endif
       if (d->hostkey_callback != NULL)
         {
           d->hostkey_callback(d->hostkey_cls, &d->id, d, NULL);
@@ -384,7 +378,6 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         {
           d->phase = SP_TOPOLOGY_SETUP;
         }
-
       /* Fall through */
     case SP_HOSTKEY_CREATED:
       /* wait for topology finished */
