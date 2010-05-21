@@ -472,7 +472,15 @@ try_reconnect (void *cls,
   h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   h->client = GNUNET_CLIENT_connect (h->sched, "datastore", h->cfg);
   if (h->client == NULL)
-    return;
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "DATASTORE reconnect failed (fatally)\n");
+      return;
+    }
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Reconnected to DATASTORE\n");
+#endif
   process_queue (h);
 }
 
@@ -487,10 +495,16 @@ static void
 do_disconnect (struct GNUNET_DATASTORE_Handle *h)
 {
   if (h->client == NULL)
-    return;
+    {
+#if DEBUG_DATASTORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "client NULL in disconnect, will not try to reconnect\n");
+#endif
+      return;
+    }
 #if 0
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# reconnected to datastore"),
+			    gettext_noop ("# reconnected to DATASTORE"),
 			    1,
 			    GNUNET_NO);
 #endif
@@ -526,7 +540,7 @@ transmit_request (void *cls,
   if (buf == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Failed to transmit request to database.\n"));
+		  _("Failed to transmit request to DATASTORE.\n"));
       do_disconnect (h);
       return 0;
     }
@@ -535,6 +549,11 @@ transmit_request (void *cls,
       process_queue (h);
       return 0;
     }
+ #if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmitting %u byte request to DATASTORE\n",
+	      msize);
+#endif
   memcpy (buf, &qe[1], msize);
   qe->was_transmitted = GNUNET_YES;
   GNUNET_SCHEDULER_cancel (h->sched,
@@ -561,16 +580,40 @@ process_queue (struct GNUNET_DATASTORE_Handle *h)
   struct GNUNET_DATASTORE_QueueEntry *qe;
 
   if (NULL == (qe = h->queue_head))
-    return; /* no entry in queue */
+    {
+#if DEBUG_DATASTORE > 1
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Queue empty\n");
+#endif
+      return; /* no entry in queue */
+    }
   if (qe->was_transmitted == GNUNET_YES)
-    return; /* waiting for replies */
+    {
+#if DEBUG_DATASTORE > 1
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Head request already transmitted\n");
+#endif
+      return; /* waiting for replies */
+    }
   if (h->th != NULL)
-    return; /* request pending */
+    {
+#if DEBUG_DATASTORE > 1
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Pending transmission request\n");
+#endif
+      return; /* request pending */
+    }
   if (h->client == NULL)
-    return; /* waiting for reconnect */
+    {
+#if DEBUG_DATASTORE > 1
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Not connected\n");
+#endif
+      return; /* waiting for reconnect */
+    }
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Transmitting %u bytes request to datastore\n",
+	      "Queueing %u byte request to DATASTORE\n",
 	      qe->message_size);
 #endif
   h->th = GNUNET_CLIENT_notify_transmit_ready (h->client,
@@ -1085,6 +1128,12 @@ process_result_message (void *cls,
   if (rc.iter == NULL)
     {
       /* abort iteration */
+#if DEBUG_DATASTORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Aborting iteration via disconnect (client has cancelled)\n");
+#endif
+      free_queue_entry (qe);
+      h->retry_time = GNUNET_TIME_UNIT_ZERO;
       do_disconnect (h);
       return;
     }
@@ -1271,6 +1320,13 @@ GNUNET_DATASTORE_cancel (struct GNUNET_DATASTORE_QueueEntry *qe)
   int reconnect;
 
   h = qe->h;
+#if DEBUG_DATASTORE
+  GNUNET_log  (GNUNET_ERROR_TYPE_DEBUG,
+	       "Pending DATASTORE request %p cancelled (%d, %d)\n",
+	       qe,
+	       qe->was_transmitted,
+	       h->queue_head == qe);
+#endif
   reconnect = GNUNET_NO;
   if (GNUNET_YES == qe->was_transmitted) 
     {
@@ -1284,11 +1340,14 @@ GNUNET_DATASTORE_cancel (struct GNUNET_DATASTORE_QueueEntry *qe)
       reconnect = GNUNET_YES;
     }
   free_queue_entry (qe);
-  h->queue_size--;
   if (reconnect)
     {
       h->retry_time = GNUNET_TIME_UNIT_ZERO;
       do_disconnect (h);
+    }
+  else
+    {
+      process_queue (h);
     }
 }
 
