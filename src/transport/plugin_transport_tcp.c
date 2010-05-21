@@ -1174,6 +1174,11 @@ tcp_plugin_check_address (void *cls, void *addr, size_t addrlen)
   else
     {
       v6 = (struct IPv6TcpAddress *) addr;
+      if (IN6_IS_ADDR_LINKLOCAL (v6->ipv6_addr))
+	{
+	  GNUNET_break_op (0);
+	  return GNUNET_SYSERR;
+	}
       v6->t6_port = htons (check_port (plugin, ntohs (v6->t6_port)));
     }
   return GNUNET_OK;
@@ -1444,6 +1449,11 @@ process_interfaces (void *cls,
     }
   else if (af == AF_INET6)
     {
+      if (IN6_IS_ADDR_LINKLOCAL (((struct sockaddr_in6 *) addr)->sin6_addr.s6_addr))
+	{
+	  /* skip link local addresses */
+	  return GNUNET_OK;
+	}
       memcpy (t6.ipv6_addr,
 	      ((struct sockaddr_in6 *) addr)->sin6_addr.s6_addr,
 	      16);
