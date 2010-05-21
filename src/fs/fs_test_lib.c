@@ -192,6 +192,13 @@ progress_cb (void *cls,
 					 daemon,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
+    case GNUNET_FS_STATUS_PUBLISH_PROGRESS:
+      if (daemon->verbose)
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		    "Publishing at %llu/%llu bytes\n",
+		    (unsigned long long) info->value.publish.completed,
+		    (unsigned long long) info->value.publish.size);
+      break;
     case GNUNET_FS_STATUS_DOWNLOAD_PROGRESS:
       if (daemon->verbose)
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
