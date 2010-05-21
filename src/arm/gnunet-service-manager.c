@@ -401,7 +401,8 @@ forwardToClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 				fc->service_to_client_bufferDataLength);
   if (numberOfBytesSent <= 0)
     {
-      if (errno != EPIPE)
+      if ( (errno != EPIPE) &&
+	   (errno != ECONNRESET) )
 	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		    "Failed to forward %u bytes of data to client: %s\n",
 		    fc->service_to_client_bufferDataLength,
@@ -611,7 +612,8 @@ forwardToService (void *cls,
 	}
       else
 	{
-	  if (errno != EPIPE)
+	  if ( (errno != EPIPE) &&
+	       (errno != ECONNRESET) )
 	    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 			"Failed to forward data to service: %s\n",
 			STRERROR (errno));
