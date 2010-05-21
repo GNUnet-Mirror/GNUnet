@@ -994,10 +994,12 @@ read_blacklist_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
                                                "BLACKLIST_FILE",
                                                &fn))
     {
+#if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Option `%s' in section `%s' not specified!\n"),
                   "BLACKLIST_FILE",
                   "TRANSPORT");
+#endif
       return;
     }
   if (GNUNET_OK != GNUNET_DISK_file_test (fn))
