@@ -302,6 +302,16 @@ struct GNUNET_TESTING_Daemon
   struct GNUNET_DISK_PipeHandle *pipe_stdout;
 
   /**
+   * Output from gnunet-peerinfo is read into this buffer.
+   */
+  char hostkeybuf[105];
+
+  /**
+   * Current position in 'hostkeybuf' (for reading from gnunet-peerinfo)
+   */
+  unsigned int hostkeybufpos;
+
+  /**
    * Set to GNUNET_YES once the peer is up.
    */
   int running;
