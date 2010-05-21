@@ -140,6 +140,11 @@ struct Session
    */
   uint32_t quota;
 
+  /**
+   * Is there a HTTP/PUT in progress?
+   */
+  unsigned int is_put_in_progress;
+
 };
 
 /**
@@ -297,6 +302,7 @@ static void requestCompletedCallback (void *cls, struct MHD_Connection * connect
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection from peer `%s' was terminated\n",GNUNET_i2s(&cs->sender));
     /* session set to inactive */
     cs->is_active = GNUNET_NO;
+    cs->is_put_in_progress = GNUNET_NO;
   }
   return;
 }
@@ -351,7 +357,6 @@ accessHandlerCallback (void *cls,
       MHD_destroy_response (response);
       return MHD_YES;
     }
-
     conn_info = MHD_get_connection_info(session, MHD_CONNECTION_INFO_CLIENT_ADDRESS );
     /* Incoming IPv4 connection */
     if ( AF_INET == conn_info->client_addr->sin_family)
@@ -367,10 +372,7 @@ accessHandlerCallback (void *cls,
       addrin6 = (struct sockaddr_in6 *) conn_info->client_addr;
       inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr),address,INET6_ADDRSTRLEN);
     }
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has an incoming `%s' request from peer `%s' from `[%s]:%u'\n",method, GNUNET_h2s(&pi_in.hashPubKey),address,conn_info->client_addr->sin_port);
-
-    /* find session for address */
+    /* find existing session for address */
     cs = NULL;
     if (plugin->session_count > 0)
     {
@@ -396,7 +398,7 @@ accessHandlerCallback (void *cls,
         cs = cs->next;
       }
     }
-
+    /* no existing session, create a new one*/
     if (cs == NULL )
     {
       /* create new session object */
@@ -429,43 +431,54 @@ accessHandlerCallback (void *cls,
     }
     /* Set closure */
     if (*httpSessionCache == NULL)
+    {
       *httpSessionCache = cs;
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s' (`[%s]:%u')\n",method, GNUNET_i2s(&cs->sender),cs->ip,cs->addr->sin_port);
   }
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session already known \n");
+  {
+    cs = *httpSessionCache;
+  }
 
   /* Is it a PUT or a GET request */
   if ( 0 == strcmp (MHD_HTTP_METHOD_PUT, method) )
   {
-    /* PUT method here */
-    if (*upload_data_size == 0)
+    /* New  */
+    if ((*upload_data_size == 0) && (cs->is_put_in_progress == GNUNET_NO))
+    {
+      /* not yet ready */
+      cs->is_put_in_progress = GNUNET_YES;
       return MHD_YES;
-
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got PUT Request with size %lu \n",(*upload_data_size));
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"URL: `%s'\n",url);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"PUT Request: `%s'\n",upload_data);
-    /* No data left */
-    *upload_data_size = 0;
-
-    /* do something with the data */
-
-    response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),HTTP_PUT_RESPONSE, MHD_NO, MHD_NO);
-    res = MHD_queue_response (session, MHD_HTTP_CONTINUE, response);
-    MHD_destroy_response (response);
-    return res;
+    }
+    if ( *upload_data_size > 0 )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"PUT URL: `%s'\n",url);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"PUT Request: %lu bytes: `%s' \n", (*upload_data_size), upload_data);
+      /* No data left */
+      *upload_data_size = 0;
+      /* do something with the data */
+      return MHD_YES;
+    }
+    if ((*upload_data_size == 0) && (cs->is_put_in_progress == GNUNET_YES))
+    {
+      cs->is_put_in_progress = GNUNET_NO;
+      response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),HTTP_PUT_RESPONSE, MHD_NO, MHD_NO);
+      res = MHD_queue_response (session, MHD_HTTP_OK, response);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sent HTTP/1.1: 200 OK as PUT Response\n",HTTP_PUT_RESPONSE, strlen (HTTP_PUT_RESPONSE), res );
+      MHD_destroy_response (response);
+      return res;
+    }
   }
   if ( 0 == strcmp (MHD_HTTP_METHOD_GET, method) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got GET Request\n");
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"URL: `%s'\n",url);
-
     response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),HTTP_PUT_RESPONSE, MHD_NO, MHD_NO);
     res = MHD_queue_response (session, MHD_HTTP_OK, response);
     MHD_destroy_response (response);
     return res;
   }
-
   return MHD_NO;
 }
 
