@@ -1071,9 +1071,11 @@ free_neighbour (struct Neighbour *n)
 {
   struct MessageEntry *m;
 
+#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Destroying neighbour entry for peer `%4s'\n",
 	      GNUNET_i2s (&n->peer));
+#endif
   if (n->pitr != NULL)
     {
       GNUNET_PEERINFO_iterate_cancel (n->pitr);
@@ -2089,9 +2091,11 @@ create_neighbour (const struct GNUNET_PeerIdentity *pid)
   struct Neighbour *n;
   struct GNUNET_TIME_Absolute now;
 
+#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Creating neighbour entry for peer `%4s'\n",
 	      GNUNET_i2s (pid));
+#endif
   n = GNUNET_malloc (sizeof (struct Neighbour));
   n->next = neighbours;
   neighbours = n;
