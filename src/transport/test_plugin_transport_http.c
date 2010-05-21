@@ -151,7 +151,8 @@ notify_address (void *cls,
  * the check_address function of the plugin.
  */
 /* FIXME: won't work on IPv6 enabled systems where IPv4 mapping
- * isn't enabled (eg. FreeBSD > 4)
+ * isn't enabled (eg. FreeBSD > 4)[TESTING]
+WEAKRANDOM = YES
  */
 static void
 shutdown_clean ()
@@ -406,9 +407,9 @@ main (int argc, char *const *argv)
                              argv_prog,
                              "test_plugin_transport_http",
                              "testcase", options, &run, NULL)) ? GNUNET_NO : GNUNET_YES;
-  /* FIXME: Please do not generate a key every time
-   * GNUNET_DISK_directory_remove ("/tmp/test_plugin_transport_http");
-   */
+
+    GNUNET_DISK_directory_remove ("/tmp/test_plugin_transport_http");
+
 
 /*  if (0 != PLIBC_KILL (pid, SIGTERM))
   {
