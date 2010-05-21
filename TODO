@@ -6,21 +6,8 @@
   - hot-path routing, load considerations
   - statistics
   - active reply route caching design & implementation of service; gap extension!
-  - Indexing:
-May 16 12:49:50 fs-13737 WARNING `open' failed on file `/home/grothoff/svn/gnunet/src/fs/H/' at disk.c:1253 with error: No such file or directory
-May 16 12:49:50 fs-13737 WARNING Could not access indexed file `ENUTBMBR' at offset 2064384: No such file or directory
-    NOTE: corrupted filename in open message
-    NOTE: odd directory name in open message
-
-May 21 09:38:37 transport-26713 DEBUG Sending message of size 484 for `HLEV' to `fe80::230:48ff:febb:4bb3:10017' via plugin `tcp'
-May 21 09:38:37 transport-26713 INFO `connect' failed at connection.c:924 with error: Invalid argument
-May 21 09:38:37 tcp DEBUG Failed to create connection to `HLEV' at `[fe80::230:48ff:febb:4bb3]:10017'
-
-
-May 18 10:53:51 transport-8149 WARNING External protocol violation detected at plugin_transport_tcp.c:1275.
-
-* TBENCH: [MW]
-  - good to have for transport/DV evaluation! 
+* TRANSPORT:
+  - HTTP backend [MW]
 * DV: [Nate]
   - write DV API (need to move declarations from dv_api.c to gnunet_dv_service.h!)
   - implement DV service 
@@ -35,26 +22,70 @@ May 18 10:53:51 transport-8149 WARNING External protocol violation detected at p
     [On W32, we need to select after calling socket before doing connect etc.]
   - add support for UNIX domain sockets [CG]
 * GNUNET-GTK:
-  - use g_main_context_set_poll_func to integrate GTK with GNUnet Scheduler!? (YUCK!)
-  - OR: add scheduler API to enable integration with GTK main loop instead of doing our own select
-  - use g_main_context_pending, g_main_context_query / g_main_context_check / g_main_context_dispatch
-    and NEVER g_main_loop_run (can this be done? might be the clean way to do this! But how
-    to integrate this with "gtk_main"?  Docu says:
-    "It's OK to use the GLib main loop directly instead of gtk_main(), though it involves 
-     slightly more typing. See GMainLoop in the GLib documentation."
-    => so maybe it "just works"?
-* SETUP:
-  - design & implement new setup tool
+  - write main loop: 
+    + use g_main_context_set_poll_func to integrate GTK with GNUnet Scheduler!? (YUCK!)
+    + OR: add scheduler API to enable integration with GTK main loop instead of doing our own select
+    + use g_main_context_pending, g_main_context_query / g_main_context_check / g_main_context_dispatch
+       and NEVER g_main_loop_run (can this be done? might be the clean way to do this! But how
+       to integrate this with "gtk_main"?  Docu says:
+       "It's OK to use the GLib main loop directly instead of gtk_main(), though it involves 
+        slightly more typing. See GMainLoop in the GLib documentation."
+       => so maybe it "just works"?
+  - implement glade loader
+  - implement main quit handler (file-quit and main window close) 
+  - implement about menu handler
+  - add license to about dialog  
+  - add authors to about dialog
+  - add translators to about dialog 
+  - add documenters to about dialog
+  - add artists to about dialog
+  - test logo in about dialog
+  - test logo in main dialog (window icon)
+  - implement search dialog opening and actual search
+  - NS list in search dialog should use colors to offset our own namespaces from the others
+  - double-clicking on NS list in search dialog should move 'root' to keyword line
+  - double-clicking on search result in master list should open save-as dialog for CHK/LOC URIs
+  - right-clicking on search result should open menu that allows:
+    + viewing full meta data 
+    + starting download
+    + starting recursive download 
+    + aborting active download
+  - right-clicking on NS list in search dialog should open menu that allows 
+    + viewing full meta data 
+    + deletion of namespace info
+  - master should add tab to main notebook with label with 'new' icon that allows starting of a search (same as via menu)
+  - tabs in notebook should contain:
+    + "X" to allow closing of tabs
+    + "play" to allow resuming of search OR "pause" to allow pausing of search
+  - implement open directory dialog
+  - implement new-pseudonym dialog
+  - implement publish dialog
+    + add (single file)
+    + edit (meta data add, meta data del, meta data type population, keyword add (button, activate entry line), 
+            keyword remove, anonymity level, priority, index/insert, normalize keywords, 
+            previews, preview widget for file chooser!?)
+    + mark 'insert file' button inconsistent for directories
+    + up
+    + down
+    + left
+    + right
+    + delete
+    + open (import directory structure)
+    + cancel
+    + execute (publish)
+  - pick appropriate sort-by columns for various tree view columns
+  - anonymity spin buttons should turn red on zero:
+    + search
+    + publish
+    + download
 
 0.9.0pre2:
-* TRACEKIT: [MW]
-  - good to have for DV/DHT evaluation!
+* TBENCH: [MW]
+  - good to have for transport/DV evaluation! 
 * DHT: [Nate]
   - implement DHT service 
   - implement testcases
   - implement performance tests
-* TRANSPORT:
-  - HTTP backend [MW]
 * ARM: [Safey]
   - better crash management (attach debugging support, capture and analyze
     debug output, detect random vs. deterministic crashes)
@@ -79,10 +110,25 @@ May 18 10:53:51 transport-8149 WARNING External protocol violation detected at p
     + download
     + search
     + unindex
-* MIGRATION:
-  - improved content selection (not just 'get_random')
+* GNUNET-GTK:
+  - handle view-metadata toggle
+  - handle view-preview toggle
+  - implement API to get notifications about bandwidth assignments to individual peers
+  - implement API to get notifications about updates to liveness of individual peers (before disconnect)
+  - handle view-neighbours toggle
+  - extend peer dialog with green-yellow-red connectivity status lights
+  - implement statistics tabs
+  - handle view-statistics toggle
+  - do meaningful update to status line (starting up, peer running, #connections, shutdown, ...)
+  - implement unindex operation (use dialog with all indexed files for selection)
+  - implement download by URI dialog; figure out where to display those downloads!
+  - figure out where in the GUI we should show active uploads/unindex operations and allow aborts
+* SETUP:
+  - design & implement new setup tool
 
 0.9.0pre3:
+* TRACEKIT: [MW]
+  - good to have for DV/DHT evaluation!
 * Determine RC bugs and fix those!
 * DATASTORE:
   - GNUNET_DATASTORE_cancel method not tested
