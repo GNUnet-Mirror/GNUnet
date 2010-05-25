@@ -2617,9 +2617,11 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer,
   struct TransportPlugin *tp;
   struct ReadyList *rl;
 
+#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Setting up state for neighbour `%4s'\n",
 	      GNUNET_i2s (peer));
+#endif
   GNUNET_assert (our_hello != NULL);
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# active neighbours"),
@@ -3836,10 +3838,12 @@ process_hello (struct TransportPlugin *plugin,
 			       chvc->hello,
 			       GNUNET_TIME_absolute_get ()).value > 0)
 	{
+#if DEBUG_TRANSPORT
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Received duplicate `%s' message for `%4s'; ignored\n",
 		      "HELLO", 
 		      GNUNET_i2s (&target));
+#endif
 	  return GNUNET_OK; /* validation already pending */
 	}
       if (GNUNET_HELLO_size(hello) == GNUNET_HELLO_size (chvc->hello))
