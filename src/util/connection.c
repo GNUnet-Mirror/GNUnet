@@ -1352,6 +1352,14 @@ transmit_error (struct GNUNET_CONNECTION_Handle *sock)
 		    GNUNET_NETWORK_socket_close (sock->sock));
       sock->sock = NULL;
     }
+  if (sock->read_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (sock->sched,
+			       sock->read_task);
+      sock->read_task = GNUNET_SCHEDULER_NO_TASK;
+      signal_timeout (sock);
+      return;
+    }
   if (sock->nth.notify_ready == NULL)
     return;                     /* nobody to tell about it */
   notify = sock->nth.notify_ready;
