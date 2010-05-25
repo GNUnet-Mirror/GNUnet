@@ -648,7 +648,7 @@ schedule_transmission (struct GNUNET_TRANSPORT_Handle *h)
   if (h->client == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "Could not yet schedule transmission: we are not yet connected to the transport service!\n");
+                  _("Could not yet schedule transmission: we are not yet connected to the transport service!\n"));
       return;                   /* not yet connected */
     }
   if (NULL != h->control_head) 
@@ -662,6 +662,10 @@ schedule_transmission (struct GNUNET_TRANSPORT_Handle *h)
       if (th == NULL)
 	{
 	  /* no transmission ready right now */
+#if DEBUG_TRANSPORT
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Could not yet schedule transmission: none ready\n");
+#endif
 	  return;
 	}
       size = th->notify_size;
@@ -1704,7 +1708,12 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
   if (n == NULL)
     n = neighbour_add (handle, target);
   if (n == NULL) 
-    return NULL;
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  "Could not create neighbour entry for peer `%s'\n",
+		  GNUNET_i2s (target));
+      return NULL;
+    }
   switch (n->transmit_stage)
     {
     case TS_NEW:
