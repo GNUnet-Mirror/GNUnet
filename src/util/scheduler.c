@@ -31,11 +31,30 @@
 #include "gnunet_time_lib.h"
 #ifdef LINUX
 #include "execinfo.h"
+/**
+ * Obtain trace information for all scheduler calls that schedule tasks.
+ */
 #define EXECINFO GNUNET_NO
+
+/**
+ * Depth of the traces collected via EXECINFO.
+ */
 #define MAX_TRACE_DEPTH 50
 #endif
 
 #define DEBUG_TASKS GNUNET_NO
+
+/**
+ * Should we figure out which tasks are delayed for a while
+ * before they are run? (Consider using in combination with EXECINFO).
+ */
+#define PROFILE_DELAYS GNUNET_NO
+
+/**
+ * Task that were in the queue for longer than this are reported if
+ * PROFILE_DELAYS is active.
+ */
+#define DELAY_THRESHOLD GNUNET_TIME_UNIT_SECONDS
 
 /**
  * Linked list of pending tasks.
@@ -87,6 +106,13 @@ struct Task
    * GNUNET_TIME_UNIT_FOREVER_ABS for "no timeout".
    */
   struct GNUNET_TIME_Absolute timeout;
+
+#if PROFILE_DELAYS
+  /**
+   * When was the task scheduled?
+   */
+  struct GNUNET_TIME_Absolute start_time;
+#endif
 
   /**
    * Why is the task ready?  Set after task is added to ready queue.
@@ -507,6 +533,25 @@ run_ready (struct GNUNET_SCHEDULER_Handle *sched)
 	  (void) GNUNET_OS_set_process_priority (0, pos->priority);
 	}
       sched->active_task = pos;
+#if PROFILE_DELAYS
+      if (GNUNET_TIME_absolute_get_duration (pos->start_time).value >
+	  DELAY_THRESHOLD.value)
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      "Task %u took %llums to be scheduled\n",
+		      pos->id,
+		      (unsigned long long) GNUNET_TIME_absolute_get_duration (pos->start_time).value);
+#if EXECINFO
+	  int i;
+	  for (i=0;i<pos->num_backtrace_strings;i++)
+	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+			"Task %u trace %d: %s\n",
+			pos->id,
+			i,
+			pos->backtrace_strings[i]);
+#endif
+	}
+#endif
       tc.sched = sched;
       tc.reason = pos->reason;
       tc.read_ready = pos->read_set;
@@ -792,6 +837,9 @@ GNUNET_SCHEDULER_add_continuation (struct GNUNET_SCHEDULER_Handle *sched,
   t->callback = task;
   t->callback_cls = task_cls;
   t->id = ++sched->last_id;
+#if PROFILE_DELAYS
+  t->start_time = GNUNET_TIME_absolute_get ();
+#endif
   t->reason = reason;
   t->priority = sched->current_priority;
 #if DEBUG_TASKS
@@ -1129,6 +1177,9 @@ GNUNET_SCHEDULER_add_select (struct GNUNET_SCHEDULER_Handle * sched,
       GNUNET_NETWORK_fdset_copy (t->write_set, ws);
     }
   t->id = ++sched->last_id;
+#if PROFILE_DELAYS
+  t->start_time = GNUNET_TIME_absolute_get ();
+#endif
   t->prereq_id = prerequisite_task;
   t->timeout = GNUNET_TIME_relative_to_absolute (delay);
   t->priority =
