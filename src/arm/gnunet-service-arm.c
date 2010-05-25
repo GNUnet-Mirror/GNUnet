@@ -37,7 +37,7 @@
 #include "gnunet_protocols.h"
 #include "gnunet_service_lib.h"
 #include "gnunet_signal_lib.h"
-#include "gnunet_service_arm_.h"
+#include "gnunet-service-arm.h"
 #include "arm.h"
 
 

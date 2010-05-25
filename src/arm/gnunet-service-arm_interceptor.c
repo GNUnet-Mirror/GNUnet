@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file arm/gnunet-service-manager.c
+ * @file arm/gnunet-service-arm_interceptor.c
  * @brief listen to incoming connections from clients to services,
  * start services for which incoming an incoming connection occur,
  * and relay communication between the client and the service for 
@@ -34,7 +34,7 @@
 #include "gnunet_constants.h"
 #include "gnunet_client_lib.h"
 #include "gnunet_container_lib.h"
-#include "gnunet_service_arm_.h"
+#include "gnunet-service-arm.h"
 
 
 #define DEBUG_SERVICE_MANAGER GNUNET_NO
@@ -1063,4 +1063,4 @@ prepareServices (const struct GNUNET_CONFIGURATION_Handle
   GNUNET_CONFIGURATION_iterate (cfg, &checkPortNumberCB, NULL);
 }
 
-/* end of gnunet-service-manager.c */
+/* end of gnunet-service-arm_interceptor.c */

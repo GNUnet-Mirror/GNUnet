@@ -34,8 +34,8 @@ gnunet_arm_LDADD = \
   $(GN_LIBINTL)
 
 gnunet_service_arm_SOURCES = \
- gnunet-service-arm.c  gnunet_service_arm_.h \
- gnunet-service-manager.c       
+ gnunet-service-arm.c  gnunet-service-arm.h \
+ gnunet-service-arm_interceptor.c       
 gnunet_service_arm_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
