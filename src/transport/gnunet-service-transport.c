@@ -692,10 +692,22 @@ struct TransportClient
 
 
 /**
+ * Context of currently active requests to peerinfo
+ * for validation of HELLOs.
+ */
+struct CheckHelloValidatedContext;
+
+
+/**
  * Entry in map of all HELLOs awaiting validation.
  */
 struct ValidationEntry
 {
+
+  /**
+   * NULL if this entry is not part of a larger HELLO validation.
+   */
+  struct CheckHelloValidatedContext *chvc;
 
   /**
    * The address, actually a pointer to the end
@@ -775,6 +787,11 @@ struct CheckHelloValidatedContext
    */
   int hello_known;
 
+  /**
+   * Number of validation entries currently referring to this
+   * CHVC.
+   */
+  unsigned int ve_count;
 };
 
 
@@ -2364,6 +2381,41 @@ check_address_exists (void *cls,
 }
 
 
+
+/**
+ * Iterator to free entries in the validation_map.
+ *
+ * @param cls closure (unused)
+ * @param key current key code
+ * @param value value in the hash map (validation to abort)
+ * @return GNUNET_YES (always)
+ */
+static int 
+abort_validation (void *cls,
+		  const GNUNET_HashCode * key,
+		  void *value)
+{
+  struct ValidationEntry *va = value;
+
+  if (GNUNET_SCHEDULER_NO_TASK != va->timeout_task)
+    GNUNET_SCHEDULER_cancel (sched, va->timeout_task);
+  GNUNET_free (va->transport_name);
+  if (va->chvc != NULL)
+    {
+      va->chvc->ve_count--;
+      if (va->chvc->ve_count == 0)
+	{
+	  GNUNET_CONTAINER_DLL_remove (chvc_head,
+				       chvc_tail,
+				       va->chvc);
+	  GNUNET_free (va->chvc);
+	}
+    }
+  GNUNET_free (va);
+  return GNUNET_YES;
+}
+
+
 /**
  * HELLO validation cleanup task (validation failed).
  *
@@ -2376,6 +2428,7 @@ timeout_hello_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *
   struct ValidationEntry *va = cls;
   struct GNUNET_PeerIdentity pid;
 
+  va->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# address validation timeouts"),
 			    1,
@@ -2386,10 +2439,9 @@ timeout_hello_validation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *
 		      &pid.hashPubKey);
   GNUNET_break (GNUNET_OK ==
                 GNUNET_CONTAINER_multihashmap_remove (validation_map,
-	                      			&pid.hashPubKey,
-					va));
-  GNUNET_free (va->transport_name);
-  GNUNET_free (va);
+						      &pid.hashPubKey,
+						      va));
+  abort_validation (NULL, NULL, va);
 }
 
 
@@ -2445,7 +2497,7 @@ add_to_foreign_address_list (void *cls,
   int try;
 
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# valid peer addresses returned by peerinfo"),
+			    gettext_noop ("# valid peer addresses returned by PEERINFO"),
 			    1,
 			    GNUNET_NO);      
   try = GNUNET_NO;
@@ -2454,7 +2506,7 @@ add_to_foreign_address_list (void *cls,
     {
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Adding address `%s' (%s) for peer `%4s' due to peerinfo data for %llums.\n",
+		  "Adding address `%s' (%s) for peer `%4s' due to PEERINFO data for %llums.\n",
 		  a2s (tname, addr, addrlen),
 		  tname,
 		  GNUNET_i2s (&n->id),
@@ -2565,6 +2617,9 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer,
   struct TransportPlugin *tp;
   struct ReadyList *rl;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Setting up state for neighbour `%4s'\n",
+	      GNUNET_i2s (peer));
   GNUNET_assert (our_hello != NULL);
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# active neighbours"),
@@ -3341,10 +3396,7 @@ check_pending_validation (void *cls,
 		 GNUNET_CONTAINER_multihashmap_remove (validation_map,
 						       key,
 						       ve));
-  GNUNET_SCHEDULER_cancel (sched,
-			   ve->timeout_task);
-  GNUNET_free (ve->transport_name);
-  GNUNET_free (ve);
+  abort_validation (NULL, NULL, ve);
   return GNUNET_NO;
 }
 
@@ -3554,7 +3606,9 @@ run_validation (void *cls,
     {
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  _("Attempted to validate blacklisted peer `%s' using `%s'!\n"), GNUNET_i2s(&id), tname);
+                  "Attempted to validate blacklisted peer `%s' using `%s'!\n", 
+		  GNUNET_i2s(&id), 
+		  tname);
 #endif
       return GNUNET_OK;
     }
@@ -3587,6 +3641,8 @@ run_validation (void *cls,
       return GNUNET_OK;
     }
   va = GNUNET_malloc (sizeof (struct ValidationEntry) + addrlen);
+  va->chvc = chvc;
+  chvc->ve_count++;
   va->transport_name = GNUNET_strdup (tname);
   va->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                             (unsigned int) -1);
@@ -3635,9 +3691,6 @@ check_hello_validated (void *cls,
   if (peer == NULL)
     {
       chvc->piter = NULL;
-      GNUNET_CONTAINER_DLL_remove (chvc_head,
-				   chvc_tail,
-				   chvc);
       if (GNUNET_NO == chvc->hello_known)
 	{
 	  /* notify PEERINFO about the peer now, so that we at least
@@ -3651,9 +3704,9 @@ check_hello_validated (void *cls,
 					     NULL);
 	  GNUNET_PEERINFO_add_peer (peerinfo, plain_hello);
 	  GNUNET_free (plain_hello);
-#if DEBUG_TRANSPORT
+#if DEBUG_TRANSPORT || 1
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Peerinfo had no `%s' message for peer `%4s', full validation needed.\n",
+		      "PEERINFO had no `%s' message for peer `%4s', full validation needed.\n",
 		      "HELLO",
 		      GNUNET_i2s (&target));
 #endif
@@ -3673,14 +3726,20 @@ check_hello_validated (void *cls,
 				    1,
 				    GNUNET_NO);      
 	}
-      GNUNET_free (chvc);
+      if (chvc->ve_count == 0)
+	{
+	  GNUNET_CONTAINER_DLL_remove (chvc_head,
+				       chvc_tail,
+				       chvc);
+	  GNUNET_free (chvc);
+	}
       return;
     } 
   if (h == NULL)
     return;
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Peerinfo had `%s' message for peer `%4s', validating only new addresses.\n",
+	      "PEERINFO had `%s' message for peer `%4s', validating only new addresses.\n",
 	      "HELLO",
 	      GNUNET_i2s (peer));
 #endif
@@ -3770,9 +3829,27 @@ process_hello (struct TransportPlugin *plugin,
 				GNUNET_NO);      
       return GNUNET_OK;      
     }
-#if DEBUG_TRANSPORT > 1
+  chvc = chvc_head;
+  while (NULL != chvc)
+    {
+      if (GNUNET_HELLO_equals (hello,
+			       chvc->hello,
+			       GNUNET_TIME_absolute_get ()).value > 0)
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Received duplicate `%s' message for `%4s'; ignored\n",
+		      "HELLO", 
+		      GNUNET_i2s (&target));
+	  return GNUNET_OK; /* validation already pending */
+	}
+      if (GNUNET_HELLO_size(hello) == GNUNET_HELLO_size (chvc->hello))
+	GNUNET_break (0 != memcmp (hello, chvc->hello,
+				   GNUNET_HELLO_size(hello)));
+      chvc = chvc->next;
+    }
+#if DEBUG_TRANSPORT 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Processing `%s' message for `%4s' of size %u\n",
+              "Starting validation of `%s' message for `%4s' of size %u\n",
               "HELLO", 
 	      GNUNET_i2s (&target), 
 	      GNUNET_HELLO_size(hello));
@@ -4370,7 +4447,7 @@ handle_send (void *cls,
 			    GNUNET_NO);      
   obm = (const struct OutboundMessage *) message;
   obmm = (const struct GNUNET_MessageHeader *) &obm[1];
-  msize = ntohs (obmm->size);
+  msize = size - sizeof (struct OutboundMessage);
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' request from client with target `%4s' and message of type %u and size %u\n",
@@ -4378,12 +4455,6 @@ handle_send (void *cls,
               ntohs (obmm->type),
               msize);
 #endif
-  if (size != msize + sizeof (struct OutboundMessage))
-    {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
   tcmc = GNUNET_malloc (sizeof (struct TransmitClientMessageContext) + msize);
   tcmc->client = client;
   tcmc->priority = ntohl (obm->priority);
@@ -4703,28 +4774,6 @@ client_disconnect_notification (void *cls,
 
 
 /**
- * Iterator to free entries in the validation_map.
- *
- * @param cls closure (unused)
- * @param key current key code
- * @param value value in the hash map (validation to abort)
- * @return GNUNET_YES (always)
- */
-static int 
-abort_validation (void *cls,
-		  const GNUNET_HashCode * key,
-		  void *value)
-{
-  struct ValidationEntry *va = value;
-
-  GNUNET_SCHEDULER_cancel (sched, va->timeout_task);
-  GNUNET_free (va->transport_name);
-  GNUNET_free (va);
-  return GNUNET_YES;
-}
-
-
-/**
  * Function called when the service shuts down.  Unloads our plugins
  * and cancels pending validations.
  *
@@ -4767,20 +4816,23 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CRYPTO_rsa_key_free (my_private_key);
   GNUNET_free_non_null (our_hello);
 
-  /* free 'chvc' data structure */
-  while (NULL != (chvc = chvc_head))
-    {
-      chvc_head = chvc->next;
-      GNUNET_PEERINFO_iterate_cancel (chvc->piter);
-      GNUNET_free (chvc);
-    }
-  chvc_tail = NULL;
-
   GNUNET_CONTAINER_multihashmap_iterate (validation_map,
 					 &abort_validation,
 					 NULL);
   GNUNET_CONTAINER_multihashmap_destroy (validation_map);
   validation_map = NULL;
+
+  /* free 'chvc' data structure */
+  while (NULL != (chvc = chvc_head))
+    {
+      chvc_head = chvc->next;
+      if (chvc->piter != NULL)
+	GNUNET_PEERINFO_iterate_cancel (chvc->piter);      
+      GNUNET_assert (chvc->ve_count == 0);
+      GNUNET_free (chvc);
+    }
+  chvc_tail = NULL;
+
   if (stats != NULL)
     {
       GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
