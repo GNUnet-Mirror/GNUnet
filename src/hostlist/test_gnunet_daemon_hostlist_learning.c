@@ -467,7 +467,7 @@ check ()
   failed = GNUNET_NO;
 
   if (learned_hostlist_downloaded == GNUNET_YES)
-    return GNUNET_YES;
+    return GNUNET_NO;
 
   if (timeout == GNUNET_YES)
   {

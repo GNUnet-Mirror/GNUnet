@@ -46,6 +46,11 @@
 #define MIN_CONNECTIONS 4
 
 /**
+ * Interval between two advertised hostlist tests
+ */
+#define TESTING_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+
+/**
  * A single hostlist obtained by hostlist advertisements
  */
 struct Hostlist
@@ -1264,13 +1269,13 @@ handler_advertisement (void *cls,
   stat_testing_hostlist = GNUNET_YES;
   stat_testing_allowed = GNUNET_NO;
   ti_testing_intervall_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                                         TESTING_INTERVALL,
+                                                         TESTING_INTERVAL,
                                                          &task_testing_intervall_reset,
                                                          NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
             "Testing new hostlist advertisements is locked for the next %u ms\n",
-            TESTING_INTERVALL);
+            TESTING_INTERVAL);
 
   ti_download_dispatcher_task = GNUNET_SCHEDULER_add_now (sched,
                                                      &task_download_dispatcher,
