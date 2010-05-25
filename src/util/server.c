@@ -956,8 +956,7 @@ sock_destroy (void *cls, int persist)
 {
   struct GNUNET_CONNECTION_Handle *sock = cls;
   if (persist == GNUNET_YES)
-    GNUNET_CONNECTION_persist_ (sock);
-
+    GNUNET_CONNECTION_persist_ (sock);  
   GNUNET_CONNECTION_destroy (sock, GNUNET_NO);
 }
 
