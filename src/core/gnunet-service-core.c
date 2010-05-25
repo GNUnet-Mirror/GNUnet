@@ -362,6 +362,17 @@ struct MessageEntry
   unsigned int priority;
 
   /**
+   * If this is a SET_KEY message, what was our connection status when this
+   * message was queued?
+   */
+  enum PeerStateMachine sender_status;
+
+  /**
+   * Is this a SET_KEY message?
+   */
+  int is_setkey;
+
+  /**
    * How long is the message? (number of bytes following
    * the "struct MessageEntry", but not including the
    * size of "struct MessageEntry" itself!)
@@ -380,11 +391,6 @@ struct MessageEntry
    * GNUNET_NO.
    */
   int8_t got_slack;
-
-  /**
-   * Is this a SETKEY message?
-   */
-  int is_setkey;
 
 };
 
@@ -2276,7 +2282,15 @@ notify_transport_connect_done (void *cls, size_t size, void *buf)
 		  GNUNET_i2s (&n->peer));
       return 0;
     }
-  send_key (n);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      _("TRANSPORT connection to peer `%4s' is up, trying to establish CORE connection\n"),
+	      GNUNET_i2s (&n->peer));
+  if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (sched,
+			     n->retry_set_key_task);
+  n->retry_set_key_task = GNUNET_SCHEDULER_add_now (sched, 
+						    &set_key_retry_task,
+						    n);
   return 0;
 }
 
@@ -2383,13 +2397,16 @@ process_hello_retry_send_key (void *cls,
 	      n->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
 	    }      
 	  GNUNET_STATISTICS_update (stats,
-				    gettext_noop ("# SETKEY messages deferred (need public key)"), 
+				    gettext_noop ("# SET_KEY messages deferred (need public key)"), 
 				    -1, 
 				    GNUNET_NO);
 	  send_key (n);
 	}
       else
 	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		      _("Failed to obtain public key for peer `%4s', delaying processing of SET_KEY\n"),
+		      GNUNET_i2s (&n->peer));
 	  GNUNET_STATISTICS_update (stats,
 				    gettext_noop ("# Delayed connecting due to lack of public key"),
 				    1,
@@ -2479,7 +2496,7 @@ send_key (struct Neighbour *n)
       if (NULL == n->th)
 	{
 	  GNUNET_STATISTICS_update (stats, 
-				    gettext_noop ("# Asking transport to connect (for SETKEY)"), 
+				    gettext_noop ("# Asking transport to connect (for SET_KEY)"), 
 				    1, 
 				    GNUNET_NO);
 	  n->th = GNUNET_TRANSPORT_notify_transmit_ready (transport,
@@ -2518,24 +2535,59 @@ send_key (struct Neighbour *n)
     {
       if (GNUNET_YES == pos->is_setkey)
 	{
+	  if (pos->sender_status == n->status)
+	    {
+#if DEBUG_CORE
+	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+			  "`%s' message for `%4s' queued already\n",
+			  "SET_KEY",
+			  GNUNET_i2s (&n->peer));
+#endif
+	      goto trigger_processing;
+	    }
+	  GNUNET_CONTAINER_DLL_remove (n->encrypted_head,
+				       n->encrypted_tail,
+				       pos);
+	  GNUNET_free (pos);
 #if DEBUG_CORE
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "%s message for `%s' already in the queue, not adding another one\n",
-		      "SETKEY",
+		      "Removing queued `%s' message for `%4s', will create a new one\n",
+		      "SET_KEY",
 		      GNUNET_i2s (&n->peer));
 #endif
-	  return;
+	  break;
 	}
       pos = pos->next;
     }
 
+  /* update status */
+  switch (n->status)
+    {
+    case PEER_STATE_DOWN:
+      n->status = PEER_STATE_KEY_SENT;
+      break;
+    case PEER_STATE_KEY_SENT:
+      break;
+    case PEER_STATE_KEY_RECEIVED:
+      break;
+    case PEER_STATE_KEY_CONFIRMED:
+      break;
+    default:
+      GNUNET_break (0);
+      break;
+    }
+  
+
   /* first, set key message */
   me = GNUNET_malloc (sizeof (struct MessageEntry) +
-                      sizeof (struct SetKeyMessage));
+                      sizeof (struct SetKeyMessage) +
+		      sizeof (struct PingMessage));
   me->deadline = GNUNET_TIME_relative_to_absolute (MAX_SET_KEY_DELAY);
   me->priority = SET_KEY_PRIORITY;
-  me->size = sizeof (struct SetKeyMessage);
+  me->size = sizeof (struct SetKeyMessage) + sizeof (struct PingMessage);
   me->is_setkey = GNUNET_YES;
+  me->got_slack = GNUNET_YES; /* do not defer this one! */
+  me->sender_status = n->status;
   GNUNET_CONTAINER_DLL_insert_after (n->encrypted_head,
 				     n->encrypted_tail,
 				     n->encrypted_tail,
@@ -2561,19 +2613,8 @@ send_key (struct Neighbour *n)
                                             &sm->encrypted_key));
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_rsa_sign (my_private_key, &sm->purpose,
-                                         &sm->signature));
-  
-  /* second, encrypted PING message */
-  me = GNUNET_malloc (sizeof (struct MessageEntry) +
-                      sizeof (struct PingMessage));
-  me->deadline = GNUNET_TIME_relative_to_absolute (MAX_PING_DELAY);
-  me->priority = PING_PRIORITY;
-  me->size = sizeof (struct PingMessage);
-  GNUNET_CONTAINER_DLL_insert_after (n->encrypted_head,
-				     n->encrypted_tail,
-				     n->encrypted_tail,
-				     me);
-  pm = (struct PingMessage *) &me[1];
+                                         &sm->signature));  
+  pm = (struct PingMessage *) &sm[1];
   pm->header.size = htons (sizeof (struct PingMessage));
   pm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_PING);
   pp.challenge = htonl (n->ping_challenge);
@@ -2592,24 +2633,8 @@ send_key (struct Neighbour *n)
               &pm->challenge,
               sizeof (struct PingMessage) -
               sizeof (struct GNUNET_MessageHeader));
-  /* update status */
-  switch (n->status)
-    {
-    case PEER_STATE_DOWN:
-      n->status = PEER_STATE_KEY_SENT;
-      break;
-    case PEER_STATE_KEY_SENT:
-      break;
-    case PEER_STATE_KEY_RECEIVED:
-      break;
-    case PEER_STATE_KEY_CONFIRMED:
-      break;
-    default:
-      GNUNET_break (0);
-      break;
-    }
   GNUNET_STATISTICS_update (stats, 
-			    gettext_noop ("# SETKEY and PING messages created"), 
+			    gettext_noop ("# SET_KEY and PING messages created"), 
 			    1, 
 			    GNUNET_NO);
 #if DEBUG_CORE
@@ -2618,6 +2643,7 @@ send_key (struct Neighbour *n)
 	      (unsigned long long) GNUNET_TIME_absolute_get_remaining (me->deadline).value,
 	      "SET_KEY");
 #endif
+ trigger_processing:
   /* trigger queue processing */
   process_encrypted_neighbour_queue (n);
   if ( (n->status != PEER_STATE_KEY_CONFIRMED) &&
@@ -2677,11 +2703,10 @@ process_hello_retry_handle_set_key (void *cls,
 	}
       else
 	{
-#if DEBUG_CORE
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Ignoring `%s' message due to lack of public key for peer (failed to obtain one).\n",
-		      "SET_KEY");
-#endif
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		      _("Ignoring `%s' message due to lack of public key for peer `%4s' (failed to obtain one).\n"),
+		      "SET_KEY",
+		      GNUNET_i2s (&n->peer));
 	}
       GNUNET_free (sm);
       return;
@@ -2962,7 +2987,7 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
 					 GNUNET_TIME_UNIT_MINUTES,
 					 &process_hello_retry_handle_set_key, n);
       GNUNET_STATISTICS_update (stats, 
-				gettext_noop ("# SETKEY messages deferred (need public key)"), 
+				gettext_noop ("# SET_KEY messages deferred (need public key)"), 
 				1, 
 				GNUNET_NO);
       return;
@@ -3017,7 +3042,7 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
       return;
     }
   GNUNET_STATISTICS_update (stats, 
-			    gettext_noop ("# SETKEY messages decrypted"), 
+			    gettext_noop ("# SET_KEY messages decrypted"), 
 			    1, 
 			    GNUNET_NO);
   n->decrypt_key = k;
@@ -3574,7 +3599,12 @@ neighbour_quota_update (void *cls,
   unsigned long long distributable;
   uint64_t need_per_peer;
   uint64_t need_per_second;
-  
+
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Neighbour quota update calculation running for peer `%4s'\n"
+	      GNUNET_i2s (&n->peer));  
+#endif
   n->quota_update_task = GNUNET_SCHEDULER_NO_TASK;
   /* calculate relative preference among all neighbours;
      divides by a bit more to avoid division by zero AND to
