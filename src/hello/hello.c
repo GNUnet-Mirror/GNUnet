@@ -570,11 +570,9 @@ find_other_matching (void *cls,
 		     addrlen)) )
     {
       ec->found = GNUNET_YES;
-      if (expiration.value < ec->expiration.value)
-	{
-	  ec->result = GNUNET_TIME_absolute_min (expiration,
-						 ec->result);
-	}
+      if (expiration.value < ec->expiration.value)	
+	ec->result = GNUNET_TIME_absolute_min (expiration,
+					       ec->result);		
       return GNUNET_SYSERR;
     }
   return GNUNET_YES;
@@ -618,10 +616,10 @@ find_matching (void *cls,
  * @param h2 the second HELLO message
  * @param now time to use for deciding which addresses have
  *            expired and should not be considered at all
- * @return absolute time zero if the two HELLOs are 
+ * @return absolute time forever if the two HELLOs are 
  *         totally identical; smallest timestamp >= now if
  *         they only differ in timestamps; 
- *         forever if the some addresses with expirations >= now
+ *         zero if the some addresses with expirations >= now
  *         do not match at all
  */
 struct GNUNET_TIME_Absolute 
@@ -633,6 +631,10 @@ GNUNET_HELLO_equals (const struct
 {
   struct EqualsContext ec;
 
+  if (0 != memcmp (&h1->publicKey,
+		   &h2->publicKey,
+		   sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)))
+    return GNUNET_TIME_UNIT_ZERO_ABS;
   ec.expiration_limit = now;
   ec.result = GNUNET_TIME_UNIT_FOREVER_ABS;
   ec.h2 = h2;
