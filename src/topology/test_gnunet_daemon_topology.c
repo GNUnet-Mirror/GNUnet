@@ -84,11 +84,9 @@ notify_connect_complete(void *cls,
     {
       /* FIXME: check that topology adds a few more links
 	 in addition to those that were seeded */
-      /* For now, sleep so we can have the daemon do some work */
-      GNUNET_SCHEDULER_add_delayed (sched,
-				    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
-				    &clean_up_task,
-				    NULL);
+      GNUNET_SCHEDULER_add_now (sched,
+				&clean_up_task,
+				NULL);
     }
 }
 
