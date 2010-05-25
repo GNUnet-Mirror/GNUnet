@@ -164,6 +164,11 @@ struct Plugin
   struct GNUNET_TRANSPORT_PluginEnvironment *env;
 
   /**
+   * Handle to the network service.
+   */
+  struct GNUNET_SERVICE_Context *service;
+
+  /**
    * List of open sessions.
    */
   struct Session *sessions;
@@ -217,6 +222,30 @@ static char * hostname;
  * This string is used to distinguish between connections and is added to the urls
  */
 static struct GNUNET_CRYPTO_HashAsciiEncoded my_ascii_hash_ident;
+
+/**
+ * Message-Packet header.
+ */
+struct HTTPMessage
+{
+  /**
+   * size of the message, in bytes, including this header.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * What is the identity of the sender (GNUNET_hash of public key)
+   */
+  struct GNUNET_PeerIdentity sender;
+
+};
+
+struct CBC
+{
+  char *buf;
+  size_t pos;
+  size_t size;
+};
 
 
 /**
@@ -350,6 +379,11 @@ accessHandlerCallback (void *cls,
   char * address = NULL;
   struct GNUNET_PeerIdentity pi_in;
   int res = GNUNET_NO;
+  size_t bytes_recv;
+  struct HTTPMessage msg;
+  struct GNUNET_MessageHeader * gn_msg;
+
+  gn_msg = NULL;
 
   if ( NULL == *httpSessionCache)
   {
@@ -446,7 +480,6 @@ accessHandlerCallback (void *cls,
   {
     cs = *httpSessionCache;
   }
-
   /* Is it a PUT or a GET request */
   if ( 0 == strcmp (MHD_HTTP_METHOD_PUT, method) )
   {
@@ -454,6 +487,7 @@ accessHandlerCallback (void *cls,
     if ((*upload_data_size == 0) && (cs->is_put_in_progress == GNUNET_NO))
     {
       /* not yet ready */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Not ready");
       cs->is_put_in_progress = GNUNET_YES;
       return MHD_YES;
     }
@@ -462,8 +496,38 @@ accessHandlerCallback (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"PUT URL: `%s'\n",url);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"PUT Request: %lu bytes: `%s' \n", (*upload_data_size), upload_data);
       /* No data left */
+      bytes_recv = *upload_data_size ;
       *upload_data_size = 0;
-      /* do something with the data */
+
+      /* checking size */
+      if (bytes_recv < sizeof (struct GNUNET_MessageHeader))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Message too small, is %u bytes, has to be at least %u '\n",bytes_recv, sizeof(struct GNUNET_MessageHeader));
+        return MHD_NO;
+      }
+
+      if ( bytes_recv > GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Message too big, is %u bytes, maximum %u '\n",bytes_recv, GNUNET_SERVER_MAX_MESSAGE_SIZE);
+        return MHD_NO;
+      }
+
+      struct GNUNET_MessageHeader * gn_msg = GNUNET_malloc (bytes_recv);
+      memcpy (gn_msg,&upload_data,bytes_recv);
+
+      if ( ntohs(gn_msg->size) != bytes_recv )
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Message has incorrect size, is %u bytes vs %u recieved'\n",ntohs(gn_msg->size) , bytes_recv);
+        GNUNET_free (gn_msg);
+        return MHD_NO;
+      }
+
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Message size: `%s'\n",ntohs (msg.header.size));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Message type: `%s'\n",ntohs (msg.header.type));
+
+
+      /* forwarding message to transport */
+      plugin->env->receive(plugin->env, &pi_in, gn_msg, 1, cs , cs->ip, strlen(cs->ip) );
       return MHD_YES;
     }
     if ((*upload_data_size == 0) && (cs->is_put_in_progress == GNUNET_YES))
@@ -580,13 +644,17 @@ http_daemon_run (void *cls,
 
 static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *stream)
 {
-  size_t retcode;
-  /*
-  fprintf(stdout, "*** Read callback: size %u, size nmemb: %u \n", size, nmemb);
-  retcode = fread(ptr, size, nmemb, stream);
-   */
-  retcode = 0;
-  return retcode;
+  unsigned int len;
+
+  struct CBC  * cbc = ptr;
+
+  len = strlen(cbc->buf);
+
+  if (( cbc->pos == len) && (len < (size * nmemb)))
+    return 0;
+  memcpy(stream, cbc->buf, len+1);
+  cbc->pos = len;
+  return len;
 }
 
 /**
@@ -634,9 +702,11 @@ http_plugin_send (void *cls,
   struct Session* ses_temp;
   int bytes_sent = 0;
   unsigned int i_timeout;
-  /*  struct Plugin *plugin = cls; */
+  int still_running;
+  int msgs_left;
   CURL *curl_handle;
-  /* CURLcode res; */
+  CURLMcode mret;
+  CURLMsg *msg;
 
   /* find session for peer */
   ses = find_session_by_pi (target);
@@ -694,6 +764,87 @@ http_plugin_send (void *cls,
   curl_easy_setopt(curl_handle, CURLOPT_INFILESIZE_LARGE,
                   (curl_off_t)msgbuf_size);
 
+  mret = curl_multi_add_handle(multi_handle, curl_handle);
+  if (mret != CURLM_OK)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("%s failed at %s:%d: `%s'\n"),
+                  "curl_multi_add_handle", __FILE__, __LINE__,
+                  curl_multi_strerror (mret));
+      return -1;
+    }
+
+  while(CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi_handle, &still_running));
+
+  while(still_running)
+  {
+      struct timeval timeout;
+      int rc; /* select() return code */
+
+      fd_set fdread;
+      fd_set fdwrite;
+      fd_set fdexcep;
+      int maxfd = -1;
+
+      FD_ZERO(&fdread);
+      FD_ZERO(&fdwrite);
+      FD_ZERO(&fdexcep);
+
+      /* set a suitable timeout to play around with */
+      timeout.tv_sec = 1;
+      timeout.tv_usec = 0;
+
+      /* get file descriptors from the transfers */
+      mret = curl_multi_fdset(multi_handle, &fdread, &fdwrite, &fdexcep, &maxfd);
+      if (mret != CURLM_OK)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _("%s failed at %s:%d: `%s'\n"),
+                    "curl_multi_fdset", __FILE__, __LINE__,
+                    curl_multi_strerror (mret));
+        return -1;
+      }
+
+      rc = select(maxfd+1, &fdread, &fdwrite, &fdexcep, &timeout);
+
+      switch(rc)
+      {
+      case -1:
+        /* select error */
+        break;
+      case 0:
+        /* timeout, do something else */
+        break;
+      default:
+        /* one or more of curl's file descriptors say there's data to read
+           or write */
+        while(CURLM_CALL_MULTI_PERFORM ==
+              curl_multi_perform(multi_handle, &still_running));
+        break;
+      }
+  }
+
+  /* See how the transfers went */
+  while ((msg = curl_multi_info_read(multi_handle, &msgs_left))) {
+    if (msg->msg == CURLMSG_DONE) {
+      int idx, found = 0;
+
+      /* Find out which handle this message is about */
+      for (idx=0; idx<1; idx++) {
+        found = (msg->easy_handle == curl_handle);
+        if(found)
+          break;
+      }
+
+      switch (idx) {
+      case 0:
+        printf("HTTP transfer completed with status %d\n", msg->data.result);
+        break;
+      }
+    }
+  }
+
+
   return bytes_sent;
 }
 
@@ -711,6 +862,7 @@ static void
 http_plugin_disconnect (void *cls,
                             const struct GNUNET_PeerIdentity *target)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: http_plugin_disconnect\n");
   // struct Plugin *plugin = cls;
   // FIXME
 }
@@ -740,6 +892,7 @@ http_plugin_address_pretty_printer (void *cls,
                                         GNUNET_TRANSPORT_AddressStringCallback
                                         asc, void *asc_cls)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: http_plugin_address_pretty_printer\n");
   asc (asc_cls, NULL);
 }
 
@@ -765,6 +918,7 @@ http_plugin_address_suggested (void *cls,
 
   /* check if the address is plausible; if so,
      add it to our list! */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: http_plugin_address_suggested\n");
   return GNUNET_OK;
 }
 
@@ -785,6 +939,7 @@ http_plugin_address_to_string (void *cls,
                                    const void *addr,
                                    size_t addrlen)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: http_plugin_address_to_string\n");
   GNUNET_break (0);
   return NULL;
 }
@@ -840,6 +995,8 @@ libgnunet_plugin_transport_http_done (void *cls)
       cs = cs_next;
     }
 
+  /* GNUNET_SERVICE_stop (plugin->service); */
+
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;
@@ -854,13 +1011,29 @@ libgnunet_plugin_transport_http_init (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
+  struct GNUNET_SERVICE_Context *service;
   unsigned int timeout;
   struct GNUNET_TIME_Relative gn_timeout;
   long long unsigned int port;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting http plugin...\n");
+
+  service = NULL;
+  /*
+  service = GNUNET_SERVICE_start ("transport-http", env->sched, env->cfg);
+  if (service == NULL)
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "", _
+                       ("Failed to start service for `%s' transport plugin.\n"),
+                       "http");
+      return NULL;
+    }
+    */
+
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
   plugin->sessions = NULL;
+  plugin->service = service;
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
   api->send = &http_plugin_send;
@@ -874,7 +1047,6 @@ libgnunet_plugin_transport_http_init (void *cls)
   /* Hashing our identity to use it in URLs */
   GNUNET_CRYPTO_hash_to_enc ( &(plugin->env->my_identity->hashPubKey), &my_ascii_hash_ident);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting http plugin...\n");
   /* Reading port number from config file */
   if ((GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_number (env->cfg,
@@ -931,7 +1103,15 @@ libgnunet_plugin_transport_http_init (void *cls)
 
   /* Initializing cURL */
   multi_handle = curl_multi_init();
-
+  if ( NULL == multi_handle )
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                     "http",
+                     _("Could not initialize curl multi handle, failed to start http plugin!\n"),
+                     "transport-http");
+    libgnunet_plugin_transport_http_done (api);
+    return NULL;
+  }
   return api;
 }
 

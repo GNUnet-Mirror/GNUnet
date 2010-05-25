@@ -111,12 +111,18 @@ static struct GNUNET_TRANSPORT_PluginFunctions *api;
  */
 static GNUNET_SCHEDULER_TaskIdentifier ti_timeout;
 
+#if 0
+static GNUNET_SCHEDULER_TaskIdentifier ti_download;
+#endif
+
 static unsigned int timeout_count;
 
 /**
  * Did the test pass or fail?
  */
 static int fail;
+
+//static int done;
 
 pid_t pid;
 
@@ -272,6 +278,187 @@ static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *stream)
 }
 #endif
 
+struct CBC
+{
+  char *buf;
+  size_t pos;
+  size_t size;
+};
+
+#if 0
+static size_t
+putBuffer (void *stream, size_t size, size_t nmemb, void *ptr)
+{
+  size_t len;
+
+  struct CBC  * cbc = ptr;
+
+  len = strlen(cbc->buf);
+
+  if (( cbc->pos == len) && (len < (size * nmemb)))
+    return 0;
+  memcpy(stream, cbc->buf, len+1);
+  cbc->pos = len;
+  return len;
+}
+#endif
+
+#if 0
+static int execute (char * url)
+{
+  done = 0;
+  CURLM *multi_handle;
+  CURL *curl_handle;
+  CURLMsg *msg;
+  int msgs_left;
+  FILE * hd_src ;
+  int hd ;
+  struct stat file_info;
+  int still_running;
+  char buf[2048];
+  struct CBC cbc;
+
+  char *file = "curl.c";
+
+  cbc.buf = buf;
+  cbc.size = 2048;
+  cbc.pos = 0;
+
+  const char * txt = "Hello World!";
+  memcpy(cbc.buf,txt,strlen(txt)+1);
+  //fprintf(stderr,"%s %u\n",src,strlen(src));
+
+  /* get the file size of the local file */
+  hd = open(file, O_RDONLY) ;
+  fstat(hd, &file_info);
+  close(hd) ;
+
+  /* get a FILE * of the same file, could also be made with
+     fdopen() from the previous descriptor, but hey this is just
+     an example! */
+  hd_src = fopen(file, "rb");
+  //printf("size: %u \n", (curl_off_t) file_info.st_size);
+
+  /* get a curl handle */
+  curl_handle = curl_easy_init();
+  if( NULL == curl_handle)
+  {
+    printf("easy_init failed \n");
+    return 0;
+  }
+  curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 1L);
+  //curl_easy_setopt (curl_handle, CURLOPT_WRITEFUNCTION, &copyBuffer);
+  //curl_easy_setopt (curl_handle, CURLOPT_WRITEDATA, &cbc);
+  curl_easy_setopt (curl_handle, CURLOPT_READFUNCTION, &putBuffer);
+  curl_easy_setopt (curl_handle, CURLOPT_READDATA, &cbc);
+  curl_easy_setopt(curl_handle, CURLOPT_UPLOAD, 1L);
+  curl_easy_setopt(curl_handle, CURLOPT_PUT, 1L);
+  curl_easy_setopt(curl_handle, CURLOPT_URL, url);
+  curl_easy_setopt(curl_handle, CURLOPT_INFILESIZE_LARGE, (curl_off_t) strlen(txt));
+
+  //curl_easy_setopt(curl_handle, CURLOPT_INFILESIZE_LARGE, (curl_off_t)file_info.st_size);
+
+  multi_handle = curl_multi_init();
+  curl_multi_add_handle(multi_handle, curl_handle);
+
+  while(CURLM_CALL_MULTI_PERFORM ==
+        curl_multi_perform(multi_handle, &still_running));
+
+  while(still_running)
+  {
+      struct timeval timeout;
+      int rc; /* select() return code */
+
+      fd_set fdread;
+      fd_set fdwrite;
+      fd_set fdexcep;
+      int maxfd = -1;
+
+      FD_ZERO(&fdread);
+      FD_ZERO(&fdwrite);
+      FD_ZERO(&fdexcep);
+
+      /* set a suitable timeout to play around with */
+      timeout.tv_sec = 1;
+      timeout.tv_usec = 0;
+
+      /* get file descriptors from the transfers */
+      curl_multi_fdset(multi_handle, &fdread, &fdwrite, &fdexcep, &maxfd);
+
+      /* In a real-world program you OF COURSE check the return code of the
+         function calls.  On success, the value of maxfd is guaranteed to be
+         greater or equal than -1.  We call select(maxfd + 1, ...), specially in
+         case of (maxfd == -1), we call select(0, ...), which is basically equal
+         to sleep. */
+
+      rc = select(maxfd+1, &fdread, &fdwrite, &fdexcep, &timeout);
+
+      switch(rc)
+      {
+      case -1:
+        /* select error */
+        break;
+      case 0:
+        /* timeout, do something else */
+        break;
+      default:
+        /* one or more of curl's file descriptors say there's data to read
+           or write */
+        while(CURLM_CALL_MULTI_PERFORM ==
+              curl_multi_perform(multi_handle, &still_running));
+        break;
+      }
+  }
+
+  /* See how the transfers went */
+  while ((msg = curl_multi_info_read(multi_handle, &msgs_left))) {
+    if (msg->msg == CURLMSG_DONE) {
+      int idx, found = 0;
+
+      /* Find out which handle this message is about */
+      for (idx=0; idx<1; idx++) {
+        found = (msg->easy_handle == curl_handle);
+        if(found)
+          break;
+      }
+
+      switch (idx) {
+      case 0:
+        printf("HTTP transfer completed with status %d\n", msg->data.result);
+        break;
+      }
+    }
+  }
+
+  curl_multi_cleanup(multi_handle);
+
+  curl_easy_cleanup(curl_handle);
+
+  fclose(hd_src); /* close the local file */
+  return 0;
+}
+#endif
+
+#if 0
+/**
+ * Task that checks if we should try to download a hostlist.
+ * If so, we initiate the download, otherwise we schedule
+ * this task again for a later time.
+ */
+static void
+task_download (void *cls,
+            const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  ti_download = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+
+  execute ("http://localhost:12389/Q7BO0ELEHAT8JNENQ90112G0TACH2H2HIR4IJ2JQ28U6FV14CK44EVP26FVAEALO7HIRJFLFE6709RP6IITM64B0FU7J4RA8KPNDKN8");
+
+  return;
+}
+#endif
+
 /**
  * Runs the test.
  *
@@ -349,6 +536,8 @@ run (void *cls,
   }
 
   ti_timeout = GNUNET_SCHEDULER_add_now (sched, &task_timeout, NULL);
+  //ti_download = GNUNET_SCHEDULER_add_now (sched, &task_download, NULL);
+
   return;
 
 }
