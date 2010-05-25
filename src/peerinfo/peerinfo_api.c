@@ -226,12 +226,9 @@ do_transmit (void *cls, size_t size, void *buf)
   h->th = NULL;
   if (buf == NULL)
     {
-#if DEBUG_PEERINFO
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  _
-                  ("Failed to transmit message of type %u to `%s' service.\n"),
-                  ntohs (msg->type), "peerinfo");
-#endif
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Failed to transmit message to `%s' service.\n"),
+		  "PEERINFO");
       if (tqe != NULL)
 	GNUNET_CONTAINER_DLL_remove (h->tq_head,
 				     h->tq_tail,
@@ -249,7 +246,13 @@ do_transmit (void *cls, size_t size, void *buf)
   ret = tqe->size;
   GNUNET_assert (size >= ret);
   memcpy (buf, &tqe[1], ret);
-  GNUNET_CONTAINER_DLL_remove (h->tq_head,
+#if DEBUG_PEERINFO
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmitting request of size %u to `%s' service.\n",
+	      ret, 
+	      "PEERINFO");
+#endif
+   GNUNET_CONTAINER_DLL_remove (h->tq_head,
 			       h->tq_tail,
 			       tqe);
   if (tqe->cont != NULL)
@@ -387,7 +390,7 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("Failed to receive response from `%s' service.\n"),
-                  "peerinfo");
+                  "PEERINFO");
       reconnect (ic->h);
       trigger_transmit (ic->h);
       if (ic->timeout_task != GNUNET_SCHEDULER_NO_TASK)
@@ -402,7 +405,8 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     {
 #if DEBUG_PEERINFO
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Received end of list of peers from peerinfo database\n");
+		  "Received end of list of peers from `%s' service\n",
+		  "PEERINFO");
 #endif
       trigger_transmit (ic->h);
       if (ic->timeout_task != GNUNET_SCHEDULER_NO_TASK)
@@ -449,10 +453,11 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     }
 #if DEBUG_PEERINFO
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received %u bytes of `%s' information about peer `%s' from PEERINFO database\n",
+	      "Received %u bytes of `%s' information about peer `%s' from `%s' service\n",
 	      (hello == NULL) ? 0 : (unsigned int) GNUNET_HELLO_size (hello),
 	      "HELLO",
-	      GNUNET_i2s (&im->peer));
+	      GNUNET_i2s (&im->peer),
+	      "PEERINFO");
 #endif
   ic->h->in_receive = GNUNET_YES;
   if (ic->callback != NULL)
@@ -479,6 +484,10 @@ iterator_start_receive (void *cls,
 
   if (GNUNET_OK != transmit_success)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Failed to transmit iteration request to `%s' service (%d).\n"),
+		  "PEERINFO",
+		  transmit_success);
       if (ic->timeout_task != GNUNET_SCHEDULER_NO_TASK)
 	{
 	  GNUNET_SCHEDULER_cancel (ic->h->sched,
@@ -487,10 +496,16 @@ iterator_start_receive (void *cls,
 	}
       reconnect (ic->h);
       trigger_transmit (ic->h);
-      ic->callback (ic->callback_cls, NULL, NULL, 1);
+      if (ic->callback != NULL)
+	ic->callback (ic->callback_cls, NULL, NULL, 1);
       GNUNET_free (ic);
       return;
     }  
+#if DEBUG_PEERINFO
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Waiting for response from `%s' service.\n",
+	      "PEERINFO");
+#endif
   ic->h->in_receive = GNUNET_YES;
   ic->in_receive = GNUNET_YES;
   ic->tqe = NULL;
@@ -513,6 +528,9 @@ signal_timeout (void *cls,
 {
   struct GNUNET_PEERINFO_IteratorContext *ic = cls;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+	      _("Timeout transmitting iteration request to `%s' service.\n"),
+	      "PEERINFO");
   ic->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   if (! ic->in_receive)
     GNUNET_CONTAINER_DLL_remove (ic->h->tq_head,
@@ -562,12 +580,12 @@ GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
   struct GNUNET_PEERINFO_IteratorContext *ic;
   struct TransmissionQueueEntry *tqe;
 
-#if DEBUG_PEERINFO
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Requesting list of peers from peerinfo database\n");
-#endif
   if (peer == NULL)
     {
+#if DEBUG_PEERINFO
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Requesting list of peers from PEERINFO service\n");
+#endif
       tqe = GNUNET_malloc (sizeof (struct TransmissionQueueEntry) +
 			   sizeof (struct ListAllPeersMessage));
       tqe->size = sizeof (struct ListAllPeersMessage);
@@ -578,6 +596,11 @@ GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
     }
   else
     {
+#if DEBUG_PEERINFO
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Requesting information on peer `%4s' from PEERINFO service\n",
+		  GNUNET_i2s (peer));
+#endif
       tqe = GNUNET_malloc (sizeof (struct TransmissionQueueEntry) +
 			   sizeof (struct ListPeerMessage));
       tqe->size = sizeof (struct ListPeerMessage);
