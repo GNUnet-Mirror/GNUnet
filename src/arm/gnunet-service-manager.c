@@ -754,7 +754,8 @@ start_forwarding (void *cls,
 				       fc->listen_info->service_addr_len)) &&
        (errno != EINPROGRESS) )
     {
-      GNUNET_NETWORK_socket_close (fc->armServiceSocket);
+      GNUNET_break (GNUNET_OK ==
+		    GNUNET_NETWORK_socket_close (fc->armServiceSocket));
       fc->armServiceSocket = NULL;
       fc->back_off = GNUNET_TIME_relative_multiply (fc->back_off, 2);
   #if DEBUG_SERVICE_MANAGER
