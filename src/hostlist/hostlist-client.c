@@ -1275,7 +1275,7 @@ handler_advertisement (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
             "Testing new hostlist advertisements is locked for the next %u ms\n",
-            TESTING_INTERVAL);
+            TESTING_INTERVAL.value);
 
   ti_download_dispatcher_task = GNUNET_SCHEDULER_add_now (sched,
                                                      &task_download_dispatcher,
