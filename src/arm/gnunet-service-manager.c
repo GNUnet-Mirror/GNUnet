@@ -516,8 +516,8 @@ receiveFromService (void *cls,
 	}
       else
 	{
-	  if (fc->service_to_client_bufferDataLength != 0)
 #if DEBUG_SERVICE_MANAGER
+	  if (fc->service_to_client_bufferDataLength != 0)
 	    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 			"Error receiving from service: %s\n", 
 			STRERROR (errno));
