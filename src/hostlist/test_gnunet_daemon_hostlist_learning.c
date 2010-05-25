@@ -183,14 +183,13 @@ process_downloads (void *cls,
               int is_persistent)
 {
   download_stats = NULL;
-  if ( ((struct PeerContext *) cls == &learn_peer) && (value == 2) && (learned_hostlist_downloaded == GNUNET_NO) )
+  if ( (value == 2) && (learned_hostlist_downloaded == GNUNET_NO) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _("Peer has successfully downloaded advertised URI \n"));
     learned_hostlist_downloaded = GNUNET_YES;
-  }
-  if (GNUNET_NO != learned_hostlist_downloaded)
     shutdown_testcase();
+  }
   return GNUNET_OK;
 }
 
@@ -466,6 +465,9 @@ check ()
                       "nohelp", options, &run, NULL);
 
   failed = GNUNET_NO;
+
+  if (learned_hostlist_downloaded == GNUNET_YES)
+    return GNUNET_YES;
 
   if (timeout == GNUNET_YES)
   {
