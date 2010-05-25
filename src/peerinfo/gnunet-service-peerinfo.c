@@ -496,9 +496,11 @@ send_to_each_host (const struct GNUNET_PeerIdentity *only,
   uint16_t hs;
   char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE];
   struct GNUNET_SERVER_TransmitContext *tc;
+  int match;
 
   tc = GNUNET_SERVER_transmit_context_create (client);
-  pos = hosts;
+  match = GNUNET_NO;
+  pos = hosts;  
   while (pos != NULL)
     {
       if ((only == NULL) ||
@@ -516,6 +518,7 @@ send_to_each_host (const struct GNUNET_PeerIdentity *only,
                              GNUNET_SERVER_MAX_MESSAGE_SIZE -
                              sizeof (struct InfoMessage));
               memcpy (&im[1], pos->hello, hs);
+	      match = GNUNET_YES;
             }
 	  im->header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_INFO);
 	  im->header.size = htons (sizeof (struct InfoMessage) + hs);
@@ -526,6 +529,12 @@ send_to_each_host (const struct GNUNET_PeerIdentity *only,
         }
       pos = pos->next;
     }
+  if ( (only != NULL) &&
+       (match == GNUNET_NO) )
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		"No `%s' message was found for peer `%4s'\n",
+		"HELLO",
+		GNUNET_i2s (only));
   GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
 					      GNUNET_MESSAGE_TYPE_PEERINFO_INFO_END);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
@@ -669,6 +678,12 @@ handle_hello (void *cls,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
+#if DEBUG_PEERINFO
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "`%s' message received for peer `%4s'\n",
+	      "HELLO",
+	      GNUNET_i2s (&pid));
+#endif
   bind_address (&pid, hello);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -689,6 +704,12 @@ handle_get (void *cls,
   const struct ListPeerMessage *lpm;
 
   lpm = (const struct ListPeerMessage *) message;
+#if DEBUG_PEERINFO
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "`%s' message received for peer `%4s'\n",
+	      "GET",
+	      GNUNET_i2s (&lpm->peer));
+#endif
   send_to_each_host (&lpm->peer, ntohl (lpm->trust_change), client);
 }
 
@@ -708,6 +729,11 @@ handle_get_all (void *cls,
   const struct ListAllPeersMessage *lpm;
 
   lpm = (const struct ListAllPeersMessage *) message;
+#if DEBUG_PEERINFO
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "`%s' message received\n",
+	      "GET_ALL");
+#endif
   send_to_each_host (NULL, ntohl (lpm->trust_change), client);
 }
 
@@ -727,6 +753,11 @@ handle_notify (void *cls,
   struct InfoMessage *msg;
   struct HostEntry *pos;
 
+#if DEBUG_PEERINFO
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "`%s' message received\n",
+	      "NOTIFY");
+#endif
   GNUNET_SERVER_notification_context_add (notify_list,
 					  client);
   pos = hosts;
