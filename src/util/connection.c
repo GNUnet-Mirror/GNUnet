@@ -290,7 +290,7 @@ struct GNUNET_CONNECTION_Handle
    * termination as a signal (because only then will the leaked
    * socket be freed!)
    */
-  int persist;
+  int16_t persist;
 
 };
 
@@ -1345,6 +1345,13 @@ transmit_error (struct GNUNET_CONNECTION_Handle *sock)
 {
   GNUNET_CONNECTION_TransmitReadyNotify notify;
 
+  if (NULL != sock->sock)
+    {
+      GNUNET_NETWORK_socket_shutdown (sock->sock, SHUT_RDWR);
+      GNUNET_break (GNUNET_OK ==
+		    GNUNET_NETWORK_socket_close (sock->sock));
+      sock->sock = NULL;
+    }
   if (sock->nth.notify_ready == NULL)
     return;                     /* nobody to tell about it */
   notify = sock->nth.notify_ready;
@@ -1418,13 +1425,6 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   ("Could not satisfy pending transmission request, socket closed or connect failed (%p).\n"),
                   sock);
 #endif
-      if (NULL != sock->sock)
-        {
-          GNUNET_NETWORK_socket_shutdown (sock->sock, SHUT_RDWR);
-          GNUNET_break (GNUNET_OK ==
-                        GNUNET_NETWORK_socket_close (sock->sock));
-          sock->sock = NULL;
-        }
       transmit_error (sock);
       return;                   /* connect failed for good, we're finished */
     }
@@ -1448,10 +1448,17 @@ RETRY:
     {
       if (errno == EINTR)
         goto RETRY;
+#if 0
+      int en = errno;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Failed to send to `%s': %s\n"),
+		  GNUNET_a2s (sock->addr,
+			      sock->addrlen),
+		  STRERROR (en));
+#endif
 #if DEBUG_CONNECTION
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_DEBUG, "send");
 #endif
-      GNUNET_NETWORK_socket_shutdown (sock->sock, SHUT_WR);
       transmit_error (sock);
       return;
     }
