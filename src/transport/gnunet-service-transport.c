@@ -3779,11 +3779,13 @@ check_hello_validated (void *cls,
 			    gettext_noop ("# HELLO validations (update case)"),
 			    1,
 			    GNUNET_NO);      
+  chvc->ve_count++;
   GNUNET_HELLO_iterate_new_addresses (chvc->hello,
 				      h,
 				      GNUNET_TIME_relative_to_absolute (HELLO_REVALIDATION_START_TIME),
 				      &run_validation, 
 				      chvc);
+  chvc->ve_count--;
 }
 
 
@@ -4845,6 +4847,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       chvc_head = chvc->next;
       if (chvc->piter != NULL)
 	GNUNET_PEERINFO_iterate_cancel (chvc->piter);      
+      else
+	GNUNET_break (0);
       GNUNET_assert (chvc->ve_count == 0);
       GNUNET_free (chvc);
     }
