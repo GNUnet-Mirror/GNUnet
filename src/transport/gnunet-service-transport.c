@@ -2410,6 +2410,7 @@ abort_validation (void *cls,
 				       va->chvc);
 	  GNUNET_free (va->chvc);
 	}
+      va->chvc = NULL;
     }
   GNUNET_free (va);
   return GNUNET_YES;
@@ -3476,12 +3477,19 @@ transmit_hello_and_ping (void *cls,
   uint16_t hello_size;
   size_t tsize;
   char * message_buf;
+  struct GNUNET_PeerIdentity id;
 
+  GNUNET_CRYPTO_hash (&va->publicKey,
+		      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+		      &id.hashPubKey);
   if (neighbour == NULL)
     {
       /* FIXME: stats... */
-      GNUNET_free (va->transport_name);
-      GNUNET_free (va);
+      GNUNET_break (GNUNET_OK ==
+		    GNUNET_CONTAINER_multihashmap_remove (validation_map,
+							  &id.hashPubKey,
+							  va));
+      abort_validation (NULL, NULL, va);
       return;
     }
   neighbour->publicKey = va->publicKey;
@@ -3496,8 +3504,11 @@ transmit_hello_and_ping (void *cls,
                   "Failed to add peer `%4s' for plugin `%s'\n",
                   GNUNET_i2s (&neighbour->id), 
 		  va->transport_name);
-      GNUNET_free (va->transport_name);
-      GNUNET_free (va);
+      GNUNET_break (GNUNET_OK ==
+		    GNUNET_CONTAINER_multihashmap_remove (validation_map,
+							  &id.hashPubKey,
+							  va));
+      abort_validation (NULL, NULL, va);
       return;
     }
   hello_size = GNUNET_HELLO_size(our_hello);
@@ -3693,6 +3704,7 @@ check_hello_validated (void *cls,
   if (peer == NULL)
     {
       chvc->piter = NULL;
+      chvc->ve_count++;
       if (GNUNET_NO == chvc->hello_known)
 	{
 	  /* notify PEERINFO about the peer now, so that we at least
@@ -3728,6 +3740,7 @@ check_hello_validated (void *cls,
 				    1,
 				    GNUNET_NO);      
 	}
+      chvc->ve_count--;
       if (chvc->ve_count == 0)
 	{
 	  GNUNET_CONTAINER_DLL_remove (chvc_head,
