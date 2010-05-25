@@ -235,7 +235,7 @@ task_timeout (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  if ( timeout_count > 5 )
+  if ( timeout_count > 15 )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testcase timeout\n",  timeout_count);
     fail = GNUNET_YES;

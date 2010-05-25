@@ -25,6 +25,7 @@
  */
 
 #include "platform.h"
+#include "gnunet_constants.h"
 #include "gnunet_protocols.h"
 #include "gnunet_connection_lib.h"
 #include "gnunet_server_lib.h"
@@ -56,6 +57,11 @@
  * Page returned if request invalid
  */
 #define HTTP_ERROR_RESPONSE "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\"><HTML><HEAD><TITLE>404 Not Found</TITLE></HEAD><BODY><H1>Not Found</H1>The requested URL was not found on this server.<P><HR><ADDRESS></ADDRESS></BODY></HTML>"
+
+/**
+ * Timeout for a http connect
+ */
+#define HTTP_CONNECT_TIMEOUT 30
 
 
 /**
@@ -627,6 +633,7 @@ http_plugin_send (void *cls,
   struct Session* ses;
   struct Session* ses_temp;
   int bytes_sent = 0;
+  unsigned int i_timeout;
   /*  struct Plugin *plugin = cls; */
   CURL *curl_handle;
   /* CURLcode res; */
@@ -673,16 +680,19 @@ http_plugin_send (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Getting cURL handle failed\n");
     return -1;
   }
+
+  i_timeout = ( timeout.value / 1000);
+
   curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 1L);
   curl_easy_setopt(curl_handle, CURLOPT_READFUNCTION, read_callback);
   curl_easy_setopt(curl_handle, CURLOPT_UPLOAD, 1L);
   curl_easy_setopt(curl_handle, CURLOPT_PUT, 1L);
   curl_easy_setopt(curl_handle, CURLOPT_URL, url);
+  curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, timeout);
+  curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
   curl_easy_setopt(curl_handle, CURLOPT_READDATA, msgbuf);
   curl_easy_setopt(curl_handle, CURLOPT_INFILESIZE_LARGE,
                   (curl_off_t)msgbuf_size);
-
-
 
   return bytes_sent;
 }
@@ -844,7 +854,8 @@ libgnunet_plugin_transport_http_init (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
-
+  unsigned int timeout;
+  struct GNUNET_TIME_Relative gn_timeout;
   long long unsigned int port;
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
@@ -881,6 +892,8 @@ libgnunet_plugin_transport_http_init (void *cls)
       return NULL;
     }
 
+  gn_timeout = GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT;
+  timeout = ( gn_timeout.value / 1000);
   if ((http_daemon_v4 == NULL) && (http_daemon_v6 == NULL) && (port != 0))
     {
     http_daemon_v6 = MHD_start_daemon (MHD_USE_IPv6,
@@ -889,7 +902,7 @@ libgnunet_plugin_transport_http_init (void *cls)
                                        NULL , &accessHandlerCallback, NULL,
                                        MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
                                        MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
-                                       MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
+                                       MHD_OPTION_CONNECTION_TIMEOUT, timeout,
                                        /* FIXME: set correct limit */
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
                                        MHD_OPTION_NOTIFY_COMPLETED, &requestCompletedCallback, NULL,
@@ -900,7 +913,7 @@ libgnunet_plugin_transport_http_init (void *cls)
                                        NULL , &accessHandlerCallback, NULL,
                                        MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
                                        MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
-                                       MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
+                                       MHD_OPTION_CONNECTION_TIMEOUT, timeout,
                                        /* FIXME: set correct limit */
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
                                        MHD_OPTION_NOTIFY_COMPLETED, &requestCompletedCallback, NULL,
