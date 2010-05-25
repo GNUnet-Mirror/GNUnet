@@ -129,7 +129,7 @@ libgnunet_plugin_transport_http_la_LDFLAGS = \
  $(GN_LIBMHD) \
  $(GN_PLUGIN_LDFLAGS)
 endif
- 
+
 check_PROGRAMS = \
  test_transport_api_tcp \
  test_transport_api_udp \
