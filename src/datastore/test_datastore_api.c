@@ -89,7 +89,7 @@ get_expiration (int i)
 {
   struct GNUNET_TIME_Absolute av;
 
-  av.value = now.value + 200000 - i * 1000;
+  av.value = now.value + 20000000 - i * 1000;
   return av;
 }
 
