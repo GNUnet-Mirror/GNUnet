@@ -133,6 +133,7 @@ check_PROGRAMS = \
  test_fs_unindex \
  test_fs_unindex_persistence \
  test_fs_uri \
+ test_gnunet_service_fs_migration \
  test_gnunet_service_fs_p2p
 
 
@@ -161,6 +162,7 @@ TESTS = \
  test_fs_unindex_persistence \
  test_fs_uri \
  test_fs_test_lib \
+ test_gnunet_service_fs_migration \
  test_gnunet_service_fs_p2p \
  $(check_SCRIPTS) 
 # $(check_PROGRAMS)
@@ -277,6 +279,14 @@ test_fs_test_lib_LDADD = \
 test_gnunet_service_fs_p2p_SOURCES = \
  test_gnunet_service_fs_p2p.c
 test_gnunet_service_fs_p2p_LDADD = \
+  $(top_builddir)/src/fs/libgnunetfstest.a \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/fs/libgnunetfs.la  \
+  $(top_builddir)/src/util/libgnunetutil.la  
+
+test_gnunet_service_fs_migration_SOURCES = \
+ test_gnunet_service_fs_migration.c
+test_gnunet_service_fs_migration_LDADD = \
   $(top_builddir)/src/fs/libgnunetfstest.a \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/fs/libgnunetfs.la  \
