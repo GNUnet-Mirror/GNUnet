@@ -34,7 +34,6 @@ libgnunettransport_la_SOURCES = \
   transport_api_blacklist.c \
   transport_api_address_lookup.c 
 libgnunettransport_la_LIBADD = \
-  $(top_builddir)/src/arm/libgnunetarm.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL) 

@@ -18,7 +18,6 @@ libgnunetcore_la_SOURCES = \
   core_api_peer_get_info.c \
   core_api_peer_request.c
 libgnunetcore_la_LIBADD = \
-  $(top_builddir)/src/arm/libgnunetarm.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL) $(XLIB)
 libgnunetcore_la_LDFLAGS = \
@@ -49,7 +48,6 @@ TESTS = $(check_PROGRAMS)
 test_core_api_SOURCES = \
  test_core_api.c
 test_core_api_LDADD = \
- $(top_builddir)/src/arm/libgnunetarm.la \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la  
@@ -58,7 +56,6 @@ test_core_api_LDADD = \
 test_core_api_start_only_SOURCES = \
  test_core_api_start_only.c
 test_core_api_start_only_LDADD = \
- $(top_builddir)/src/arm/libgnunetarm.la \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
