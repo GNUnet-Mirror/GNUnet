@@ -138,7 +138,8 @@ receive (void *cls,
          const char *sender_address,
          uint16_t sender_address_len)
 {
-  /* do nothing */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testcase recieved new message from peer `%s' with type %u and length %u\n",  GNUNET_i2s(peer),ntohs(message->type),ntohs(message->size));
+
   return GNUNET_TIME_UNIT_ZERO;
 }
 
@@ -241,7 +242,7 @@ task_timeout (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  if ( timeout_count > 15 )
+  if ( timeout_count > 1 )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testcase timeout\n",  timeout_count);
     fail = GNUNET_YES;
@@ -535,7 +536,7 @@ run (void *cls,
     return;
   }
 
-  ti_timeout = GNUNET_SCHEDULER_add_now (sched, &task_timeout, NULL);
+  ti_timeout = GNUNET_SCHEDULER_add_delayed (sched, STAT_INTERVALL, &task_timeout, NULL);
   //ti_download = GNUNET_SCHEDULER_add_now (sched, &task_download, NULL);
 
   return;
