@@ -315,7 +315,9 @@ expired_processor (void *cls,
   plugin->api->next_request (next_cls, GNUNET_NO);
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Deleting content that expired %llu ms ago\n",
+	      "Deleting content `%s' of type %u that expired %llu ms ago\n",
+	      GNUNET_h2s (key),
+	      type,
 	      (unsigned long long) (now.value - expiration.value));
 #endif
   GNUNET_STATISTICS_update (stats,
@@ -396,8 +398,10 @@ manage (void *cls,
 			     (0 == *need) ? GNUNET_YES : GNUNET_NO);
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Deleting %llu bytes of low-priority content (still trying to free another %llu bytes)\n",
+	      "Deleting %llu bytes of low-priority content `%s' of type %u (still trying to free another %llu bytes)\n",
 	      size + GNUNET_DATASTORE_ENTRY_OVERHEAD,
+	      GNUNET_h2s (key),
+	      type,
 	      *need);
 #endif
   GNUNET_STATISTICS_update (stats,
@@ -687,8 +691,10 @@ transmit_item (void *cls,
   memcpy (&dm[1], data, size);
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Transmitting `%s' message\n",
-	      "DATA");
+	      "Transmitting `%s' message for `%s' of type %u\n",
+	      "DATA",
+	      GNUNET_h2s (key),
+	      type);
 #endif
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# results found"),
@@ -883,9 +889,10 @@ handle_put (void *cls,
     }
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Processing `%s' request for `%s'\n",
+	      "Processing `%s' request for `%s' of type %u\n",
 	      "PUT",
-	      GNUNET_h2s (&dm->key));
+	      GNUNET_h2s (&dm->key),
+	      ntohl (dm->type));
 #endif
   rid = ntohl(dm->rid);
   size = ntohl(dm->size);
@@ -925,8 +932,9 @@ handle_put (void *cls,
 					&dm->key);
 #if DEBUG_DATASTORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Successfully stored %u bytes under key `%s'\n",
+		  "Successfully stored %u bytes of type %u under key `%s'\n",
 		  size,
+		  ntohl(dm->type),
 		  GNUNET_h2s (&dm->key));
 #endif
     }
@@ -982,7 +990,7 @@ handle_get (void *cls,
       /* don't bother database... */
 #if DEBUG_DATASTORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Empty result set for `%s' request for `%s'.\n",
+		  "Empty result set for `%s' request for `%s' (bloomfilter).\n",
 		  "GET",
 		  GNUNET_h2s (&msg->key));
 #endif	
@@ -1124,10 +1132,11 @@ remove_callback (void *cls,
   rc->found = GNUNET_YES;
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Item %llu matches `%s' request for key `%s'.\n",
+	      "Item %llu matches `%s' request for key `%s' and type %u.\n",
 	      (unsigned long long) uid,
 	      "REMOVE",
-	      GNUNET_h2s (key));
+	      GNUNET_h2s (key),
+	      type);
 #endif	
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# bytes removed (explicit request)"),
@@ -1164,9 +1173,10 @@ handle_remove (void *cls,
     }
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Processing `%s' request for `%s'\n",
+	      "Processing `%s' request for `%s' of type %u\n",
 	      "REMOVE",
-	      GNUNET_h2s (&dm->key));
+	      GNUNET_h2s (&dm->key),
+	      ntohl (dm->type));
 #endif
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# REMOVE requests received"),
