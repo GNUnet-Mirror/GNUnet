@@ -380,8 +380,7 @@ accessHandlerCallback (void *cls,
   struct GNUNET_PeerIdentity pi_in;
   int res = GNUNET_NO;
   size_t bytes_recv;
-  struct HTTPMessage msg;
-  struct GNUNET_MessageHeader * gn_msg;
+  struct GNUNET_MessageHeader *gn_msg;
 
   gn_msg = NULL;
 
@@ -487,7 +486,6 @@ accessHandlerCallback (void *cls,
     if ((*upload_data_size == 0) && (cs->is_put_in_progress == GNUNET_NO))
     {
       /* not yet ready */
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Not ready");
       cs->is_put_in_progress = GNUNET_YES;
       return MHD_YES;
     }
@@ -513,7 +511,7 @@ accessHandlerCallback (void *cls,
       }
 
       struct GNUNET_MessageHeader * gn_msg = GNUNET_malloc (bytes_recv);
-      memcpy (gn_msg,&upload_data,bytes_recv);
+      memcpy (gn_msg,upload_data,bytes_recv);
 
       if ( ntohs(gn_msg->size) != bytes_recv )
       {
@@ -522,12 +520,12 @@ accessHandlerCallback (void *cls,
         return MHD_NO;
       }
 
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Message size: `%s'\n",ntohs (msg.header.size));
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Message type: `%s'\n",ntohs (msg.header.type));
-
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Message size: `%u'\n",ntohs (gn_msg->size));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Message type: `%u'\n",ntohs (gn_msg->type));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Data load : `%u'\n",ntohs (gn_msg->size)-sizeof(struct GNUNET_MessageHeader));
 
       /* forwarding message to transport */
-      plugin->env->receive(plugin->env, &pi_in, gn_msg, 1, cs , cs->ip, strlen(cs->ip) );
+      plugin->env->receive(plugin->env, &(cs->sender), gn_msg, 1, cs , cs->ip, strlen(cs->ip) );
       return MHD_YES;
     }
     if ((*upload_data_size == 0) && (cs->is_put_in_progress == GNUNET_YES))
