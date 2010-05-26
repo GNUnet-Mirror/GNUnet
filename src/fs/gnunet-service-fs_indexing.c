@@ -206,7 +206,6 @@ read_index_list ()
       GNUNET_free (fn);
       return;
     }
-
   while ( (GNUNET_OK ==
 	   GNUNET_BIO_read (rh,
 			    "Hash of indexed file",
@@ -478,7 +477,7 @@ GNUNET_FS_handle_unindex (void *cls,
   struct IndexInfo *next;
   struct GNUNET_SERVER_TransmitContext *tc;
   int found;
-  
+
   um = (const struct UnindexMessage*) message;
   found = GNUNET_NO;
   prev = NULL;
@@ -494,6 +493,10 @@ GNUNET_FS_handle_unindex (void *cls,
 	    indexed_files = next;
 	  else
 	    prev->next = next;
+	  GNUNET_break (GNUNET_OK ==
+			GNUNET_CONTAINER_multihashmap_remove (ifm,
+							      &pos->file_id,
+							      (void*) pos->filename));
 	  GNUNET_free (pos);
 	  found = GNUNET_YES;
 	}
@@ -621,7 +624,7 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
 		  GNUNET_h2s (&odb->file_id),
 		  fn,
 		  (unsigned long long) off,
-		  STRERROR (errno));
+		  (fn == NULL) ? _("not indexed") : STRERROR (errno));
       if (fh != NULL)
 	GNUNET_DISK_file_close (fh);
       GNUNET_DATASTORE_remove (dsh,

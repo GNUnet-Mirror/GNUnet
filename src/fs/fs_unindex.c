@@ -226,49 +226,6 @@ unindex_process (void *cls,
 
 
 /**
- * Function called when the tree encoder has
- * processed all blocks.  Clean up.
- *
- * @param cls our unindexing context
- * @param tc not used
- */
-static void
-unindex_finish (void *cls,
-		const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct GNUNET_FS_UnindexContext *uc = cls;
-  char *emsg;
-  struct GNUNET_FS_Uri *uri;
-  struct GNUNET_FS_ProgressInfo pi;
-
-  GNUNET_FS_tree_encoder_finish (uc->tc,
-				 &uri,
-				 &emsg);
-  uc->tc = NULL;
-  if (uri != NULL)
-    GNUNET_FS_uri_destroy (uri);
-  GNUNET_DISK_file_close (uc->fh);
-  uc->fh = NULL;
-  GNUNET_DATASTORE_disconnect (uc->dsh, GNUNET_NO);
-  uc->dsh = NULL;
-  if (emsg != NULL)
-    {
-      uc->state = UNINDEX_STATE_ERROR;
-      uc->emsg = emsg;
-      signal_unindex_error (uc);
-    }
-  else 
-    {   
-      uc->state = UNINDEX_STATE_COMPLETE;
-      pi.status = GNUNET_FS_STATUS_UNINDEX_COMPLETED;
-      pi.value.unindex.eta = GNUNET_TIME_UNIT_ZERO;
-      GNUNET_FS_unindex_make_status_ (&pi, uc, uc->file_size);
-    }
-  GNUNET_FS_unindex_sync_ (uc);
-}
-
-
-/**
  * Function called with the response from the
  * FS service to our unindexing request.
  *
@@ -280,6 +237,7 @@ process_fs_response (void *cls,
 		     const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_FS_UnindexContext *uc = cls;
+  struct GNUNET_FS_ProgressInfo pi;
 
   if (uc->client != NULL)
     {
@@ -291,7 +249,7 @@ process_fs_response (void *cls,
       uc->state = UNINDEX_STATE_ERROR;
       uc->emsg = GNUNET_strdup (_("Unexpected time for a response from `fs' service."));
       GNUNET_FS_unindex_sync_ (uc);
-      signal_unindex_error (uc);			    
+      signal_unindex_error (uc);
       return;
     }
   if (NULL == msg)
@@ -310,9 +268,56 @@ process_fs_response (void *cls,
       signal_unindex_error (uc);			    
       return;      
     }
-  uc->state = UNINDEX_STATE_DS_REMOVE;
+  uc->state = UNINDEX_STATE_COMPLETE;
+  pi.status = GNUNET_FS_STATUS_UNINDEX_COMPLETED;
+  pi.value.unindex.eta = GNUNET_TIME_UNIT_ZERO;
   GNUNET_FS_unindex_sync_ (uc);
-  GNUNET_FS_unindex_do_remove_ (uc);
+  GNUNET_FS_unindex_make_status_ (&pi, uc, uc->file_size);
+}
+
+
+/**
+ * Function called when the tree encoder has
+ * processed all blocks.  Clean up.
+ *
+ * @param cls our unindexing context
+ * @param tc not used
+ */
+static void
+unindex_finish (void *cls,
+		const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_FS_UnindexContext *uc = cls;
+  char *emsg;
+  struct GNUNET_FS_Uri *uri;
+  struct UnindexMessage req;
+
+  GNUNET_FS_tree_encoder_finish (uc->tc,
+				 &uri,
+				 &emsg);
+  uc->tc = NULL;
+  if (uri != NULL)
+    GNUNET_FS_uri_destroy (uri);
+  GNUNET_DISK_file_close (uc->fh);
+  uc->fh = NULL;
+  GNUNET_DATASTORE_disconnect (uc->dsh, GNUNET_NO);
+  uc->dsh = NULL;
+  uc->state = UNINDEX_STATE_FS_NOTIFY;
+  GNUNET_FS_unindex_sync_ (uc);
+  uc->client = GNUNET_CLIENT_connect (uc->h->sched,
+				      "fs",
+				      uc->h->cfg);
+  req.header.size = htons (sizeof (struct UnindexMessage));
+  req.header.type = htons (GNUNET_MESSAGE_TYPE_FS_UNINDEX);
+  req.reserved = 0;
+  req.file_id = uc->file_id;
+  GNUNET_break (GNUNET_OK == 
+		GNUNET_CLIENT_transmit_and_get_response (uc->client,
+							 &req.header,
+							 GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+							 GNUNET_YES,
+							 &process_fs_response,
+							 uc));
 }
 
 
@@ -370,7 +375,6 @@ GNUNET_FS_unindex_process_hash_ (void *cls,
 				 const GNUNET_HashCode *file_id)
 {
   struct GNUNET_FS_UnindexContext *uc = cls;
-  struct UnindexMessage req;
 
   uc->fhc = NULL;
   if (uc->state != UNINDEX_STATE_HASHING) 
@@ -387,22 +391,9 @@ GNUNET_FS_unindex_process_hash_ (void *cls,
       return;
     }
   uc->file_id = *file_id;
-  uc->state = UNINDEX_STATE_FS_NOTIFY;
+  uc->state = UNINDEX_STATE_DS_REMOVE;
   GNUNET_FS_unindex_sync_ (uc);
-  uc->client = GNUNET_CLIENT_connect (uc->h->sched,
-				      "fs",
-				      uc->h->cfg);
-  req.header.size = htons (sizeof (struct UnindexMessage));
-  req.header.type = htons (GNUNET_MESSAGE_TYPE_FS_UNINDEX);
-  req.reserved = 0;
-  req.file_id = *file_id;
-  GNUNET_break (GNUNET_OK == 
-		GNUNET_CLIENT_transmit_and_get_response (uc->client,
-							 &req.header,
-							 GNUNET_CONSTANTS_SERVICE_TIMEOUT,
-							 GNUNET_YES,
-							 &process_fs_response,
-							 uc));
+  GNUNET_FS_unindex_do_remove_ (uc);
 }
 
 

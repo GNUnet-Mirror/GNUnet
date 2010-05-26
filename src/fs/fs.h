@@ -1352,16 +1352,16 @@ enum UnindexState
     UNINDEX_STATE_HASHING = 0,
 
     /**
-     * We're notifying the FS service about
-     * the unindexing.
-     */
-    UNINDEX_STATE_FS_NOTIFY = 1,
-
-    /**
      * We're telling the datastore to delete
      * the respective entries.
      */
-    UNINDEX_STATE_DS_REMOVE = 2,
+    UNINDEX_STATE_DS_REMOVE = 1,
+
+    /**
+     * We're notifying the FS service about
+     * the unindexing.
+     */
+    UNINDEX_STATE_FS_NOTIFY = 2,
 
     /**
      * We're done.
