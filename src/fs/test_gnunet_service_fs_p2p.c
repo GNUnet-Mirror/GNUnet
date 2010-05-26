@@ -161,6 +161,7 @@ run (void *cls,
 {
   sched = s;
   GNUNET_FS_TEST_daemons_start (sched,
+				"fs_test_lib_data.conf",
 				TIMEOUT,
 				NUM_DAEMONS,
 				daemons,

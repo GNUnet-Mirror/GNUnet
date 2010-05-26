@@ -316,6 +316,7 @@ start_timeout (void *cls,
  * Start daemons for testing.
  *
  * @param sched scheduler to use
+ * @param template_cfg_file configuration template to use
  * @param timeout if this operation cannot be completed within the
  *                given period, call the continuation with an error code
  * @param total number of daemons to start
@@ -326,6 +327,7 @@ start_timeout (void *cls,
  */
 void
 GNUNET_FS_TEST_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
+			      const char *template_cfg_file,
 			      struct GNUNET_TIME_Relative timeout,
 			      unsigned int total,
 			      struct GNUNET_FS_TestDaemon **daemons,
@@ -345,7 +347,7 @@ GNUNET_FS_TEST_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
   sctx->cfg = GNUNET_CONFIGURATION_create ();
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_load (sctx->cfg,
-				 "fs_test_lib_data.conf"))
+				 template_cfg_file))
     {
       GNUNET_break (0);
       GNUNET_CONFIGURATION_destroy (sctx->cfg);

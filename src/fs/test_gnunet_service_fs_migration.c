@@ -22,12 +22,6 @@
  * @file fs/test_gnunet_service_fs_migration.c
  * @brief test content migration between two peers
  * @author Christian Grothoff
- *
- * TODO:
- * - change configuration to enable migration
- * - shutdown source peer during download
- * - wait long enough to allow for migration between
- *   publish and download
  */
 #include "platform.h"
 #include "fs_test_lib.h"
@@ -37,18 +31,21 @@
 /**
  * File-size we use for testing.
  */
-#define FILESIZE (1024 * 1024 * 2)
+#define FILESIZE (2 * 32 * 1024)
 
 /**
  * How long until we give up on transmitting the message?
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 600)
 
-#define NUM_DAEMONS 2
+/**
+ * How long do we give the peers for content migration?
+ */
+#define MIGRATION_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 
 #define SEED 42
 
-static struct GNUNET_FS_TestDaemon *daemons[NUM_DAEMONS];
+static struct GNUNET_FS_TestDaemon *daemons[2];
 
 static struct GNUNET_SCHEDULER_Handle *sched;
 
@@ -64,7 +61,7 @@ do_stop (void *cls,
   char *fancy;
 
   GNUNET_FS_TEST_daemons_stop (sched,
-			       NUM_DAEMONS,
+			       1,
 			       daemons);
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
     {
@@ -91,18 +88,11 @@ do_stop (void *cls,
 
 static void
 do_download (void *cls,
-	     const struct GNUNET_FS_Uri *uri)
+	     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (NULL == uri)
-    {
-      GNUNET_FS_TEST_daemons_stop (sched,
-				   NUM_DAEMONS,
-				   daemons);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Timeout during upload attempt, shutting down with error\n");
-      ok = 1;
-      return;
-    }
+  struct GNUNET_FS_Uri *uri = cls;
+
+  GNUNET_FS_TEST_daemons_stop (sched, 1, &daemons[1]);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Downloading %llu bytes\n",
 	      (unsigned long long) FILESIZE);
@@ -117,13 +107,38 @@ do_download (void *cls,
 
 
 static void
+do_wait (void *cls,
+	 const struct GNUNET_FS_Uri *uri)
+{
+  struct GNUNET_FS_Uri *d;
+
+  if (NULL == uri)
+    {
+      GNUNET_FS_TEST_daemons_stop (sched,
+				   2,
+				   daemons);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Timeout during upload attempt, shutting down with error\n");
+      ok = 1;
+      return;
+    }
+  d = GNUNET_FS_uri_dup (uri);
+  GNUNET_SCHEDULER_add_delayed (sched,
+				MIGRATION_DELAY,
+				&do_download,
+				d);
+}
+
+
+
+static void
 do_publish (void *cls,
 	    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
     {
       GNUNET_FS_TEST_daemons_stop (sched,
-				   NUM_DAEMONS,
+				   2,
 				   daemons);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Timeout during connect attempt, shutting down with error\n");
@@ -138,7 +153,7 @@ do_publish (void *cls,
 			  TIMEOUT,
 			  1, GNUNET_NO, FILESIZE, SEED, 
 			  VERBOSE, 
-			  &do_download, NULL);
+			  &do_wait, NULL);
 }
 
 
@@ -167,8 +182,9 @@ run (void *cls,
 {
   sched = s;
   GNUNET_FS_TEST_daemons_start (sched,
+				"test_gnunet_service_fs_migration_data.conf",
 				TIMEOUT,
-				NUM_DAEMONS,
+				2,
 				daemons,
 				&do_connect,
 				NULL);

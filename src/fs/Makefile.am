@@ -324,6 +324,7 @@ EXTRA_DIST = \
   test_fs_search_data.conf \
   test_fs_unindex_data.conf \
   test_fs_uri_data.conf \
+  test_gnunet_service_fs_migration_data.conf \
   test_gnunet_fs_idx_data.conf \
   test_gnunet_fs_ns_data.conf \
   test_gnunet_fs_psd_data.conf \
