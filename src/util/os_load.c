@@ -58,7 +58,16 @@ static processor_cpu_load_info_t prev_cpu_load;
 #define DEBUG_STATUSCALLS GNUNET_NO
 
 #ifdef LINUX
+/**
+ * File descriptor for reading /proc/stat (or NULL)
+ */
 static FILE *proc_stat;
+
+/**
+ * Is this the first time we're trying to open /proc/stat?  If
+ * not, we don't try again if we failed...
+ */
+static int first_time;
 #endif
 
 /**
@@ -112,6 +121,7 @@ initMachCpuStats ()
 }
 #endif
 
+
 /**
  * Update the currentCPU and currentIO load values.
  *
@@ -127,6 +137,13 @@ updateUsage ()
   /* under linux, first try %idle/usage using /proc/stat;
      if that does not work, disable /proc/stat for the future
      by closing the file and use the next-best method. */
+  if (0 == first_time)
+    {
+      first_time = 1;
+      proc_stat = fopen ("/proc/stat", "r");
+      if (NULL == proc_stat)
+	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", "/proc/stat");
+    }
   if (proc_stat != NULL)
     {
       static unsigned long long last_cpu_results[5] = { 0, 0, 0, 0, 0 };
@@ -620,15 +637,24 @@ GNUNET_OS_load_disk_get (const struct GNUNET_CONFIGURATION_Handle *cfg)
 void __attribute__ ((constructor)) GNUNET_cpustats_ltdl_init ()
 {
 #ifdef LINUX
-  proc_stat = fopen ("/proc/stat", "r");
-  if (NULL == proc_stat)
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", "/proc/stat");
+  updateUsage ();               /* initialize */
+  /* Most GNUnet processes don't really need this, so close the FD, but allow 
+     re-opening it (unless we failed) */
+  if (proc_stat != NULL)
+    {
+      GNUNET_break (0 == fclose (proc_stat));
+      proc_stat = NULL;
+      first_time = 0;
+    }
 #elif defined(DARWIN)
   initMachCpuStats ();
+  updateUsage ();               /* initialize */
 #elif MINGW
   InitWinEnv (NULL);
-#endif
   updateUsage ();               /* initialize */
+#else
+  updateUsage ();               /* initialize */
+#endif
 }
 
 /**
