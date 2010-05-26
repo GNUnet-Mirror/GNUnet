@@ -291,8 +291,15 @@ check_multiple (void *cls,
 
   if (key == NULL)
     {
-      GNUNET_assert (crc->phase == RP_GET_MULTIPLE_DONE);
-      crc->phase = RP_UPDATE;
+      if (crc->phase != RP_GET_MULTIPLE_DONE)
+	{
+	  GNUNET_break (0);
+	  crc->phase = RP_ERROR;
+	}
+      else
+	{
+	  crc->phase = RP_UPDATE;
+	}
       GNUNET_SCHEDULER_add_continuation (crc->sched,
 					 &run_continuation,
 					 crc,
