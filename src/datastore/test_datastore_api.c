@@ -306,7 +306,25 @@ check_multiple (void *cls,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       return;
     }
-  crc->phase++;
+  switch (crc->phase)
+    {
+    case RP_GET_MULTIPLE:
+      crc->phase = RP_GET_MULTIPLE_NEXT;
+      break;
+    case RP_GET_MULTIPLE_NEXT:
+      crc->phase = RP_GET_MULTIPLE_DONE;
+      break;
+    case RP_GET_MULTIPLE_DONE:
+      /* do not advance further */
+      break;
+    default:
+      GNUNET_break (0);
+      break;
+    }
+#if VERBOSE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Test in phase %u\n", crc->phase);
+#endif
   if (priority == get_priority (42))
     crc->uid = uid;
   GNUNET_DATASTORE_get_next (datastore, GNUNET_YES);
