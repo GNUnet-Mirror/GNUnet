@@ -151,6 +151,10 @@ struct Session
    */
   unsigned int is_put_in_progress;
 
+  /**
+   * Encoded hash
+   */
+  struct GNUNET_CRYPTO_HashAsciiEncoded hash;
 };
 
 /**
@@ -203,6 +207,12 @@ static GNUNET_SCHEDULER_TaskIdentifier http_task_v6;
 
 
 /**
+ * Our primary task for http daemon handling IPv6 connections
+ */
+static GNUNET_SCHEDULER_TaskIdentifier http_task_send;
+
+
+/**
  * Information about this plugin
  */
 static struct Plugin *plugin;
@@ -245,6 +255,7 @@ struct CBC
   char *buf;
   size_t pos;
   size_t size;
+  size_t len;
 };
 
 
@@ -396,6 +407,7 @@ accessHandlerCallback (void *cls,
       MHD_destroy_response (response);
       return res;
     }
+
     conn_info = MHD_get_connection_info(session, MHD_CONNECTION_INFO_CLIENT_ADDRESS );
     /* Incoming IPv4 connection */
     if ( AF_INET == conn_info->client_addr->sin_family)
@@ -447,6 +459,7 @@ accessHandlerCallback (void *cls,
       cs->ip = address;
       memcpy(cs->addr, conn_info->client_addr, sizeof (struct sockaddr_in));
       memcpy(&cs->sender, &pi_in, sizeof (struct GNUNET_PeerIdentity));
+      memcpy(&cs->hash,&url[1],104);
       cs->next = NULL;
       cs->is_active = GNUNET_YES;
 
@@ -519,11 +532,7 @@ accessHandlerCallback (void *cls,
         GNUNET_free (gn_msg);
         return MHD_NO;
       }
-
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Message size: `%u'\n",ntohs (gn_msg->size));
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Message type: `%u'\n",ntohs (gn_msg->type));
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Data load : `%u'\n",ntohs (gn_msg->size)-sizeof(struct GNUNET_MessageHeader));
-
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Recieved GNUnet message type %u size %u and payload %u \n",ntohs (gn_msg->type), ntohs (gn_msg->size), ntohs (gn_msg->size)-sizeof(struct GNUNET_MessageHeader));
       /* forwarding message to transport */
       plugin->env->receive(plugin->env, &(cs->sender), gn_msg, 1, cs , cs->ip, strlen(cs->ip) );
       return MHD_YES;
@@ -640,20 +649,143 @@ http_daemon_run (void *cls,
   return;
 }
 
-static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *stream)
+static size_t send_read_callback(void *ptr, size_t size, size_t nmemb, void *stream)
 {
-  unsigned int len;
-
   struct CBC  * cbc = ptr;
+  if (cbc->len > (size * nmemb))
+    return CURL_READFUNC_ABORT;
 
-  len = strlen(cbc->buf);
-
-  if (( cbc->pos == len) && (len < (size * nmemb)))
+  if (( cbc->pos == cbc->len) && (cbc->len < (size * nmemb)))
     return 0;
-  memcpy(stream, cbc->buf, len+1);
-  cbc->pos = len;
-  return len;
+  memcpy(stream, cbc->buf, cbc->len);
+  cbc->pos = cbc->len;
+  return cbc->len;
 }
+
+static size_t send_prepare(struct Session* session );
+
+static void send_execute (void *cls,
+             const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"send task");
+  int running;
+  struct CURLMsg *msg;
+  CURLMcode mret;
+  char * current_url= "test";
+
+  http_task_send = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+
+  do
+    {
+      running = 0;
+      mret = curl_multi_perform (multi_handle, &running);
+      if (running == 0)
+        {
+          do
+            {
+
+
+              msg = curl_multi_info_read (multi_handle, &running);
+              GNUNET_break (msg != NULL);
+              if (msg == NULL)
+                break;
+              switch (msg->msg)
+                {
+                case CURLMSG_DONE:
+                  if ( (msg->data.result != CURLE_OK) &&
+                       (msg->data.result != CURLE_GOT_NOTHING) )
+                    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                               _("%s failed for `%s' at %s:%d: `%s'\n"),
+                               "curl_multi_perform",
+                               current_url,
+                               __FILE__,
+                               __LINE__,
+                               curl_easy_strerror (msg->data.result));
+                  else
+                    {
+                    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                                _("Download of hostlist `%s' completed.\n"),
+                                current_url);
+                    }
+                  return;
+                default:
+                  break;
+                }
+
+            }
+          while ( (running > 0) );
+        }
+    }
+  while (mret == CURLM_CALL_MULTI_PERFORM);
+
+  if (mret != CURLM_OK)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  _("%s failed at %s:%d: `%s'\n"),
+                  "curl_multi_perform", __FILE__, __LINE__,
+                  curl_multi_strerror (mret));
+    }
+  send_prepare(cls);
+}
+
+
+static size_t send_prepare(struct Session* session )
+{
+  fd_set rs;
+  fd_set ws;
+  fd_set es;
+  int max;
+  struct GNUNET_NETWORK_FDSet *grs;
+  struct GNUNET_NETWORK_FDSet *gws;
+  long to;
+  CURLMcode mret;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"send_prepare\n");
+  max = -1;
+  FD_ZERO (&rs);
+  FD_ZERO (&ws);
+  FD_ZERO (&es);
+  mret = curl_multi_fdset (multi_handle, &rs, &ws, &es, &max);
+  if (mret != CURLM_OK)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("%s failed at %s:%d: `%s'\n"),
+                  "curl_multi_fdset", __FILE__, __LINE__,
+                  curl_multi_strerror (mret));
+      return -1;
+    }
+  mret = curl_multi_timeout (multi_handle, &to);
+  if (mret != CURLM_OK)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("%s failed at %s:%d: `%s'\n"),
+                  "curl_multi_timeout", __FILE__, __LINE__,
+                  curl_multi_strerror (mret));
+      return -1;
+    }
+
+  grs = GNUNET_NETWORK_fdset_create ();
+  gws = GNUNET_NETWORK_fdset_create ();
+  GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
+  GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"send_prepare\n");
+  http_task_send = GNUNET_SCHEDULER_add_select (plugin->env->sched,
+                                   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                   GNUNET_SCHEDULER_NO_TASK,
+                                   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 0),
+                                   grs,
+                                   gws,
+                                   &send_execute,
+                                   session);
+  GNUNET_NETWORK_fdset_destroy (gws);
+  GNUNET_NETWORK_fdset_destroy (grs);
+
+  /* FIXME: return bytes REALLY sent */
+  return 0;
+}
+
 
 /**
  * Function that can be used by the transport service to transmit
@@ -699,16 +831,15 @@ http_plugin_send (void *cls,
   struct Session* ses;
   struct Session* ses_temp;
   int bytes_sent = 0;
-  unsigned int i_timeout;
-  int still_running;
-  int msgs_left;
   CURL *curl_handle;
   CURLMcode mret;
-  CURLMsg *msg;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"http_plugin_send\n");
 
   /* find session for peer */
   ses = find_session_by_pi (target);
-
+  if (NULL != ses )
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session not found\n");
   if ( ses == NULL)
   {
     /* create new session object */
@@ -737,10 +868,8 @@ http_plugin_send (void *cls,
       ses_temp->next = ses;
       plugin->session_count++;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"New Session `%s' inserted, count %u \n", GNUNET_i2s(target), plugin->session_count);  }
-
-  char *url = "";
-
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"New Session `%s' inserted, count %u \n", GNUNET_i2s(target), plugin->session_count);
+  }
 
   curl_handle = curl_easy_init();
   if( NULL == curl_handle)
@@ -749,14 +878,16 @@ http_plugin_send (void *cls,
     return -1;
   }
 
-  i_timeout = ( timeout.value / 1000);
+  char * url;
+  GNUNET_asprintf(&url,"http://%s:%u/%s",ses->ip,ses->addr->sin_port,ses->hash);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"url: %s\n",url);
 
   curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 1L);
-  curl_easy_setopt(curl_handle, CURLOPT_READFUNCTION, read_callback);
+  curl_easy_setopt(curl_handle, CURLOPT_READFUNCTION, send_read_callback);
   curl_easy_setopt(curl_handle, CURLOPT_UPLOAD, 1L);
   curl_easy_setopt(curl_handle, CURLOPT_PUT, 1L);
   curl_easy_setopt(curl_handle, CURLOPT_URL, url);
-  curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, timeout);
+  curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, (timeout.value / 1000 ));
   curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
   curl_easy_setopt(curl_handle, CURLOPT_READDATA, msgbuf);
   curl_easy_setopt(curl_handle, CURLOPT_INFILESIZE_LARGE,
@@ -764,85 +895,15 @@ http_plugin_send (void *cls,
 
   mret = curl_multi_add_handle(multi_handle, curl_handle);
   if (mret != CURLM_OK)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("%s failed at %s:%d: `%s'\n"),
-                  "curl_multi_add_handle", __FILE__, __LINE__,
-                  curl_multi_strerror (mret));
-      return -1;
-    }
-
-  while(CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi_handle, &still_running));
-
-  while(still_running)
   {
-      struct timeval timeout;
-      int rc; /* select() return code */
-
-      fd_set fdread;
-      fd_set fdwrite;
-      fd_set fdexcep;
-      int maxfd = -1;
-
-      FD_ZERO(&fdread);
-      FD_ZERO(&fdwrite);
-      FD_ZERO(&fdexcep);
-
-      /* set a suitable timeout to play around with */
-      timeout.tv_sec = 1;
-      timeout.tv_usec = 0;
-
-      /* get file descriptors from the transfers */
-      mret = curl_multi_fdset(multi_handle, &fdread, &fdwrite, &fdexcep, &maxfd);
-      if (mret != CURLM_OK)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    _("%s failed at %s:%d: `%s'\n"),
-                    "curl_multi_fdset", __FILE__, __LINE__,
-                    curl_multi_strerror (mret));
-        return -1;
-      }
-
-      rc = select(maxfd+1, &fdread, &fdwrite, &fdexcep, &timeout);
-
-      switch(rc)
-      {
-      case -1:
-        /* select error */
-        break;
-      case 0:
-        /* timeout, do something else */
-        break;
-      default:
-        /* one or more of curl's file descriptors say there's data to read
-           or write */
-        while(CURLM_CALL_MULTI_PERFORM ==
-              curl_multi_perform(multi_handle, &still_running));
-        break;
-      }
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("%s failed at %s:%d: `%s'\n"),
+                "curl_multi_add_handle", __FILE__, __LINE__,
+                curl_multi_strerror (mret));
+    return -1;
   }
 
-  /* See how the transfers went */
-  while ((msg = curl_multi_info_read(multi_handle, &msgs_left))) {
-    if (msg->msg == CURLMSG_DONE) {
-      int idx, found = 0;
-
-      /* Find out which handle this message is about */
-      for (idx=0; idx<1; idx++) {
-        found = (msg->easy_handle == curl_handle);
-        if(found)
-          break;
-      }
-
-      switch (idx) {
-      case 0:
-        printf("HTTP transfer completed with status %d\n", msg->data.result);
-        break;
-      }
-    }
-  }
-
-
+  bytes_sent = send_prepare (ses );
   return bytes_sent;
 }
 
@@ -952,6 +1013,7 @@ libgnunet_plugin_transport_http_done (void *cls)
   struct Plugin *plugin = api->cls;
   struct Session * cs;
   struct Session * cs_next;
+  CURLMcode mret;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Unloading http plugin...\n");
 
@@ -967,6 +1029,12 @@ libgnunet_plugin_transport_http_done (void *cls)
     http_task_v6 = GNUNET_SCHEDULER_NO_TASK;
   }
 
+  if ( http_task_send != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel(plugin->env->sched, http_task_send);
+    http_task_send = GNUNET_SCHEDULER_NO_TASK;
+  }
+
   if (http_daemon_v4 != NULL)
   {
     MHD_stop_daemon (http_daemon_v4);
@@ -978,7 +1046,9 @@ libgnunet_plugin_transport_http_done (void *cls)
     http_daemon_v6 = NULL;
   }
 
-  curl_multi_cleanup(multi_handle);
+  mret = curl_multi_cleanup(multi_handle);
+  if ( CURLM_OK != mret)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"curl multihandle clean up failed");
 
   /* free all sessions */
   cs = plugin->sessions;
