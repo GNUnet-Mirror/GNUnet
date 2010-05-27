@@ -546,10 +546,11 @@ GNUNET_TESTING_daemons_restart (struct GNUNET_TESTING_PeerGroup *pg,
  *
  * @param pg handle to the peer group
  * @param timeout how long to wait for shutdown
- *
  */
 void
-GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg, struct GNUNET_TIME_Relative timeout);
+GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg, 
+			     struct GNUNET_TIME_Relative timeout);
+
 
 /**
  * Simulate churn by stopping some peers (and possibly
@@ -713,6 +714,25 @@ GNUNET_TESTING_connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
                                  enum GNUNET_TESTING_Topology topology,
                                  enum GNUNET_TESTING_TopologyOption options,
                                  double option_modifier);
+
+/**
+ * Start or stop an individual peer from the given group.
+ *
+ * @param pg handle to the peer group
+ * @param offset which peer to start or stop
+ * @param desired_status GNUNET_YES to have it running, GNUNET_NO to stop it
+ * @param timeout how long to wait for shutdown
+ * @param cb function to call at the end
+ * @param cb_cls closure for cb
+ */
+void
+GNUNET_TESTING_daemons_vary (struct GNUNET_TESTING_PeerGroup *pg, 
+			     unsigned int offset,
+			     int desired_status,
+			     struct GNUNET_TIME_Relative timeout,
+			     GNUNET_TESTING_NotifyCompletion cb,
+			     void *cb_cls);
+
 
 /**
  * Start "count" GNUnet daemons with a particular topology.

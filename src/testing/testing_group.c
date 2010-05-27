@@ -2698,17 +2698,20 @@ churn_stop_callback (void *cls, const char *emsg)
 
   error_message = NULL;
   if (emsg != NULL)
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Churn stop callback failed with error `%s'\n", emsg);
-    churn_ctx->num_failed_stop++;
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, 
+		 "Churn stop callback failed with error `%s'\n", emsg);
+      churn_ctx->num_failed_stop++;
+    }
   else
-  {
-    churn_ctx->num_to_stop--;
-  }
+    {
+      churn_ctx->num_to_stop--;
+    }
 
 #if DEBUG_CHURN
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Stopped peer, %d left.\n", churn_ctx->num_to_stop);
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, 
+	     "Stopped peer, %d left.\n", 
+	     churn_ctx->num_to_stop);
 #endif
   total_left = (churn_ctx->num_to_stop - churn_ctx->num_failed_stop) + (churn_ctx->num_to_start - churn_ctx->num_failed_start);
 
@@ -2716,7 +2719,10 @@ churn_stop_callback (void *cls, const char *emsg)
   {
     if ((churn_ctx->num_failed_stop > 0) || (churn_ctx->num_failed_start > 0))
       {
-        GNUNET_asprintf(&error_message, "Churn didn't complete successfully, %u peers failed to start %u peers failed to be stopped!", churn_ctx->num_failed_start, churn_ctx->num_failed_stop);
+        GNUNET_asprintf(&error_message, 
+			"Churn didn't complete successfully, %u peers failed to start %u peers failed to be stopped!", 
+			churn_ctx->num_failed_start, 
+			churn_ctx->num_failed_stop);
       }
     churn_ctx->cb(churn_ctx->cb_cls, error_message);
     GNUNET_free_non_null(error_message);
@@ -2748,17 +2754,21 @@ churn_start_callback (void *cls,
 
   error_message = NULL;
   if (emsg != NULL)
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Churn stop callback failed with error `%s'\n", emsg);
-    churn_ctx->num_failed_start++;
-  }
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
+		  "Churn stop callback failed with error `%s'\n",
+		  emsg);
+      churn_ctx->num_failed_start++;
+    }
   else
-  {
-    churn_ctx->num_to_start--;
-  }
-
+    {
+      churn_ctx->num_to_start--;
+    }
+  
 #if DEBUG_CHURN
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Started peer, %d left.\n", churn_ctx->num_to_start);
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+	     "Started peer, %d left.\n", 
+	     churn_ctx->num_to_start);
 #endif
 
   total_left = (churn_ctx->num_to_stop - churn_ctx->num_failed_stop) + (churn_ctx->num_to_start - churn_ctx->num_failed_start);
@@ -2766,13 +2776,16 @@ churn_start_callback (void *cls,
   if (total_left == 0)
   {
     if ((churn_ctx->num_failed_stop > 0) || (churn_ctx->num_failed_start > 0))
-      GNUNET_asprintf(&error_message, "Churn didn't complete successfully, %u peers failed to start %u peers failed to be stopped!", churn_ctx->num_failed_start, churn_ctx->num_failed_stop);
+      GNUNET_asprintf(&error_message, 
+		      "Churn didn't complete successfully, %u peers failed to start %u peers failed to be stopped!", 
+		      churn_ctx->num_failed_start,
+		      churn_ctx->num_failed_stop);
     churn_ctx->cb(churn_ctx->cb_cls, error_message);
     GNUNET_free_non_null(error_message);
     GNUNET_free(churn_ctx);
   }
-
 }
+
 
 /**
  * Simulate churn by stopping some peers (and possibly
@@ -2885,15 +2898,19 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
 #if DEBUG_CHURN
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Stopping peer %d!\n", running_permute[i]);
 #endif
-    GNUNET_TESTING_daemon_stop(pg->peers[running_arr[running_permute[i]]].daemon, timeout, &churn_stop_callback, churn_ctx, GNUNET_NO, GNUNET_YES);
+    GNUNET_TESTING_daemon_stop (pg->peers[running_arr[running_permute[i]]].daemon,
+				timeout, 
+				&churn_stop_callback, churn_ctx, 
+				GNUNET_NO, GNUNET_YES);
   }
 
   for (i = 0; i < von; i++)
-  {
+    {
 #if DEBUG_CHURN
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Starting up peer %d!\n", stopped_permute[i]);
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Starting up peer %d!\n", stopped_permute[i]);
 #endif
-    GNUNET_TESTING_daemon_start_stopped(pg->peers[stopped_arr[stopped_permute[i]]].daemon, timeout, &churn_start_callback, churn_ctx);
+      GNUNET_TESTING_daemon_start_stopped(pg->peers[stopped_arr[stopped_permute[i]]].daemon, 
+					  timeout, &churn_start_callback, churn_ctx);
   }
 
   GNUNET_free(running_arr);
@@ -2932,36 +2949,85 @@ GNUNET_TESTING_daemons_restart (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TEST
 }
 
 /**
+ * Start or stop an individual peer from the given group.
+ *
+ * @param pg handle to the peer group
+ * @param offset which peer to start or stop
+ * @param desired_status GNUNET_YES to have it running, GNUNET_NO to stop it
+ * @param timeout how long to wait for shutdown
+ * @param cb function to call at the end
+ * @param cb_cls closure for cb
+ */
+void
+GNUNET_TESTING_daemons_vary (struct GNUNET_TESTING_PeerGroup *pg, 
+			     unsigned int offset,
+			     int desired_status,
+			     struct GNUNET_TIME_Relative timeout,
+			     GNUNET_TESTING_NotifyCompletion cb,
+			     void *cb_cls)
+{
+  struct ChurnContext *churn_ctx;
+
+  if (GNUNET_NO == desired_status)
+    {
+      if (NULL != pg->peers[offset].daemon)
+	{
+	  churn_ctx = GNUNET_malloc(sizeof(struct ChurnContext));
+	  churn_ctx->num_to_start = 0;
+	  churn_ctx->num_to_stop = 1;
+	  churn_ctx->cb = cb;
+	  churn_ctx->cb_cls = cb_cls;  
+	  GNUNET_TESTING_daemon_stop(pg->peers[offset].daemon, 
+				     timeout, &churn_stop_callback, churn_ctx, 
+				     GNUNET_NO, GNUNET_YES);	 
+	}
+    }
+  else if (GNUNET_YES == desired_status)
+    {
+      if (NULL == pg->peers[offset].daemon)
+	{
+	  churn_ctx = GNUNET_malloc(sizeof(struct ChurnContext));
+	  churn_ctx->num_to_start = 1;
+	  churn_ctx->num_to_stop = 0;
+	  churn_ctx->cb = cb;
+	  churn_ctx->cb_cls = cb_cls;  
+	  GNUNET_TESTING_daemon_start_stopped(pg->peers[offset].daemon, 
+					      timeout, &churn_start_callback, churn_ctx);
+	}
+    }
+  else
+    GNUNET_break (0);
+}
+
+
+/**
  * Shutdown all peers started in the given group.
  *
  * @param pg handle to the peer group
  * @param timeout how long to wait for shutdown
- *
  */
 void
-GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg, struct GNUNET_TIME_Relative timeout)
+GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg, 
+			     struct GNUNET_TIME_Relative timeout)
 {
   unsigned int off;
 
   for (off = 0; off < pg->total; off++)
     {
-      /* FIXME: should we wait for our
-         continuations to be called here? This
-         would require us to take a continuation
-         as well... */
+      /* FIXME: should we wait for our continuations to be called
+         here? This would require us to take a continuation as
+         well... */
 
       if (NULL != pg->peers[off].daemon)
         GNUNET_TESTING_daemon_stop (pg->peers[off].daemon, timeout, NULL, NULL, GNUNET_YES, GNUNET_NO);
       if (NULL != pg->peers[off].cfg)
         GNUNET_CONFIGURATION_destroy (pg->peers[off].cfg);
-
       if (pg->peers[off].allowed_peers != NULL)
         GNUNET_CONTAINER_multihashmap_destroy(pg->peers[off].allowed_peers);
       if (pg->peers[off].connect_peers != NULL)
         GNUNET_CONTAINER_multihashmap_destroy(pg->peers[off].connect_peers);
       if (pg->peers[off].blacklisted_peers != NULL)
         GNUNET_CONTAINER_multihashmap_destroy(pg->peers[off].blacklisted_peers);
-
     }
   GNUNET_free (pg->peers);
   if (NULL != pg->hosts)

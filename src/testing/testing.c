@@ -922,7 +922,8 @@ void
 GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
                             struct GNUNET_TIME_Relative timeout,
                             GNUNET_TESTING_NotifyCompletion cb, void *cb_cls,
-                            int delete_files, int allow_restart)
+                            int delete_files,
+			    int allow_restart)
 {
   char *arg;
   char *del_arg;
@@ -960,13 +961,10 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               _("Terminating peer `%4s'\n"), GNUNET_i2s (&d->id));
 #endif
-
   d->phase = SP_SHUTDOWN_START;
   d->running = GNUNET_NO;
-
   if (allow_restart == GNUNET_YES)
     d->churn = GNUNET_YES;
-
   if (d->th != NULL)
     {
       GNUNET_TRANSPORT_get_hello_cancel(d->th, &process_hello, d);
@@ -993,7 +991,6 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
 #endif
                                         "-c", d->cfgfile, "-e", "-q", del_arg, NULL);
       /* Use -e to end arm, and -d to remove temp files */
-
       GNUNET_free (arg);
     }
   else
