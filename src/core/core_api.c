@@ -430,8 +430,10 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       em = (const struct GNUNET_MessageHeader *) &ntm[1];
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Received message of type %u from peer `%4s'\n",
-                  ntohs (em->type), GNUNET_i2s (&ntm->peer));
+                  "Received message of type %u and size %u from peer `%4s'\n",
+                  ntohs (em->type), 
+		  ntohs (em->size),
+		  GNUNET_i2s (&ntm->peer));
 #endif
       if ((GNUNET_NO == h->inbound_hdr_only) &&
           (msize != ntohs (em->size) + sizeof (struct NotifyTrafficMessage)))

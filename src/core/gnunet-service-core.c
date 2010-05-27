@@ -3167,8 +3167,9 @@ deliver_message (struct Neighbour *sender,
   type = ntohs (m->type);
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received encapsulated message of type %u from `%4s'\n",
+	      "Received encapsulated message of type %u and size %u from `%4s'\n",
 	      (unsigned int) type,
+	      ntohs (m->size),
 	      GNUNET_i2s (&sender->peer));
 #endif
   GNUNET_snprintf (buf,
@@ -3602,7 +3603,7 @@ neighbour_quota_update (void *cls,
 
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Neighbour quota update calculation running for peer `%4s'\n"
+	      "Neighbour quota update calculation running for peer `%4s'\n",
 	      GNUNET_i2s (&n->peer));  
 #endif
   n->quota_update_task = GNUNET_SCHEDULER_NO_TASK;
