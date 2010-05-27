@@ -245,7 +245,6 @@ static char * hostname;
 static struct GNUNET_CRYPTO_HashAsciiEncoded my_ascii_hash_ident;
 
 static char buf[2048];
-static char test[2048] = "HEEEELLLO";
 
 /**
  * Message-Packet header.
@@ -516,7 +515,6 @@ accessHandlerCallback (void *cls,
       if ( ntohs(gn_msg->size) != bytes_recv )
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Message has incorrect size, is %u bytes vs %u recieved'\n",ntohs(gn_msg->size) , bytes_recv);
-        GNUNET_free (gn_msg);
         send_error_to_client = GNUNET_YES;
       }
 
@@ -526,9 +524,9 @@ accessHandlerCallback (void *cls,
         res = MHD_queue_response (session, MHD_HTTP_BAD_REQUEST, response);
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sent HTTP/1.1: 400 BAD REQUEST as PUT Response\n",HTTP_PUT_RESPONSE, strlen (HTTP_PUT_RESPONSE), res );
         MHD_destroy_response (response);
+        GNUNET_free (gn_msg);
         return MHD_NO;
       }
-
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Recieved GNUnet message type %u size %u and payload %u \n",ntohs (gn_msg->type), ntohs (gn_msg->size), ntohs (gn_msg->size)-sizeof(struct GNUNET_MessageHeader));
 
       /* forwarding message to transport */
@@ -671,7 +669,7 @@ static void send_execute (void *cls,
   int running;
   struct CURLMsg *msg;
   CURLMcode mret;
-  char * current_url= "test";
+  struct Session * cs = cls;
 
  // GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"send_execute\n");
 
@@ -701,15 +699,20 @@ static void send_execute (void *cls,
                     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                                _("%s failed for `%s' at %s:%d: `%s'\n"),
                                "curl_multi_perform",
-                               current_url,
+                               cs->ip,
                                __FILE__,
                                __LINE__,
                                curl_easy_strerror (msg->data.result));
                   else
                     {
-                    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                                _("Download of hostlist `%s' completed.\n"),
-                                current_url);
+                    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                                "Send to %s completed.\n", cs->ip);
+                    /* Calling transmit continuation */
+                    if ( NULL != cs->transmit_cont)
+                      cs->transmit_cont (NULL,&cs->sender,GNUNET_OK);
+
+                    curl_easy_cleanup(cs->curl_handle);
+                    cs->curl_handle=NULL;
                     }
                   return;
                 default:
@@ -823,9 +826,6 @@ http_plugin_send (void *cls,
   struct Session* ses;
   struct Session* ses_temp;
   int bytes_sent = 0;
-
-  //FILE * hd_src ;
-
   CURLMcode mret;
   char * url;
 
@@ -842,6 +842,7 @@ http_plugin_send (void *cls,
     /*FIXME: what is const void * really? Assuming struct sockaddr_in * ! */
     ses = create_session((struct sockaddr_in *) addr, target);
     ses->is_active = GNUNET_YES;
+    ses->transmit_cont = cont;
 
     /* Insert session into linked list */
     if ( plugin->sessions == NULL)
@@ -870,23 +871,24 @@ http_plugin_send (void *cls,
   }
 
   url = GNUNET_malloc( 7 + strlen(ses->ip) + 7 + strlen ((char *) &(ses->hash)) + 1);
+  /* FIXME: use correct port number */
   GNUNET_asprintf(&url,"http://%s:%u/%s",ses->ip,12389, (char *) &(ses->hash));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"url: %s %u\n",url, 7 + strlen(ses->ip) + 7 + strlen ((char *) &(ses->hash)) + 1 );
+
+  if ( NULL != cont)
+    ses->transmit_cont = cont;
 
   (ses->cbc).len = msgbuf_size;
   (ses->cbc).buf = buf;
   memcpy(ses->cbc.buf,msgbuf,msgbuf_size);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"msgbuf %s cbc: len %u cbc.buf `%s' test `%s'\n",msgbuf,ses->cbc.len,ses->cbc.buf,test);
-
-  curl_easy_setopt(ses->curl_handle, CURLOPT_VERBOSE, 1L);
+  /* curl_easy_setopt(ses->curl_handle, CURLOPT_VERBOSE, 1L); */
   curl_easy_setopt(ses->curl_handle, CURLOPT_URL, url);
   curl_easy_setopt(ses->curl_handle, CURLOPT_PUT, 1L);
   curl_easy_setopt(ses->curl_handle, CURLOPT_READFUNCTION, send_read_callback);
   curl_easy_setopt(ses->curl_handle, CURLOPT_READDATA, ses);
   curl_easy_setopt(ses->curl_handle, CURLOPT_INFILESIZE_LARGE, (curl_off_t) (ses->cbc).len);
-  curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, (timeout.value / 1000 ));
-  curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
+  curl_easy_setopt(ses->curl_handle, CURLOPT_TIMEOUT, (timeout.value / 1000 ));
+  curl_easy_setopt(ses->curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
 
   mret = curl_multi_add_handle(multi_handle, ses->curl_handle);
   if (mret != CURLM_OK)
@@ -1047,19 +1049,22 @@ libgnunet_plugin_transport_http_done (void *cls)
 
   /* free all sessions */
   cs = plugin->sessions;
+
   while ( NULL != cs)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Freeing session to `%s'\n",cs->ip);
+
       cs_next = cs->next;
       GNUNET_free (cs->ip);
       GNUNET_free (cs->addr);
       GNUNET_free (cs);
       plugin->session_count--;
       cs = cs_next;
+
     }
 
   /* GNUNET_SERVICE_stop (plugin->service); */
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Freeing plugin\n",cs->ip);
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;
