@@ -69,6 +69,14 @@
  */
 struct Plugin;
 
+struct CBC
+{
+  char *buf;
+  size_t pos;
+  size_t size;
+  size_t len;
+};
+
 
 /**
  * Session handle for connections.
@@ -155,6 +163,10 @@ struct Session
    * Encoded hash
    */
   struct GNUNET_CRYPTO_HashAsciiEncoded hash;
+
+  struct CBC cbc;
+
+  CURL *curl_handle;
 };
 
 /**
@@ -182,7 +194,6 @@ struct Plugin
    */
 
   unsigned int session_count;
-
 };
 
 /**
@@ -233,6 +244,9 @@ static char * hostname;
  */
 static struct GNUNET_CRYPTO_HashAsciiEncoded my_ascii_hash_ident;
 
+static char buf[2048];
+static char test[2048] = "HEEEELLLO";
+
 /**
  * Message-Packet header.
  */
@@ -249,15 +263,6 @@ struct HTTPMessage
   struct GNUNET_PeerIdentity sender;
 
 };
-
-struct CBC
-{
-  char *buf;
-  size_t pos;
-  size_t size;
-  size_t len;
-};
-
 
 /**
  * Finds a http session in our linked list using peer identity as a key
@@ -347,6 +352,7 @@ acceptPolicyCallback (void *cls,
                       const struct sockaddr *addr, socklen_t addr_len)
 {
   /* Every connection is accepted, nothing more to do here */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connect!\n");
   return MHD_YES;
 }
 
@@ -379,9 +385,10 @@ accessHandlerCallback (void *cls,
   int res = GNUNET_NO;
   size_t bytes_recv;
   struct GNUNET_MessageHeader *gn_msg;
+  int send_error_to_client;
 
   gn_msg = NULL;
-
+  send_error_to_client = GNUNET_NO;
   if ( NULL == *httpSessionCache)
   {
     /* check url for peer identity */
@@ -494,13 +501,13 @@ accessHandlerCallback (void *cls,
       if (bytes_recv < sizeof (struct GNUNET_MessageHeader))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Message too small, is %u bytes, has to be at least %u '\n",bytes_recv, sizeof(struct GNUNET_MessageHeader));
-        return MHD_NO;
+        send_error_to_client = GNUNET_YES;
       }
 
       if ( bytes_recv > GNUNET_SERVER_MAX_MESSAGE_SIZE)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Message too big, is %u bytes, maximum %u '\n",bytes_recv, GNUNET_SERVER_MAX_MESSAGE_SIZE);
-        return MHD_NO;
+        send_error_to_client = GNUNET_YES;
       }
 
       struct GNUNET_MessageHeader * gn_msg = GNUNET_malloc (bytes_recv);
@@ -510,8 +517,18 @@ accessHandlerCallback (void *cls,
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Message has incorrect size, is %u bytes vs %u recieved'\n",ntohs(gn_msg->size) , bytes_recv);
         GNUNET_free (gn_msg);
+        send_error_to_client = GNUNET_YES;
+      }
+
+      if ( GNUNET_YES == send_error_to_client)
+      {
+        response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),HTTP_PUT_RESPONSE, MHD_NO, MHD_NO);
+        res = MHD_queue_response (session, MHD_HTTP_BAD_REQUEST, response);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sent HTTP/1.1: 400 BAD REQUEST as PUT Response\n",HTTP_PUT_RESPONSE, strlen (HTTP_PUT_RESPONSE), res );
+        MHD_destroy_response (response);
         return MHD_NO;
       }
+
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Recieved GNUnet message type %u size %u and payload %u \n",ntohs (gn_msg->type), ntohs (gn_msg->size), ntohs (gn_msg->size)-sizeof(struct GNUNET_MessageHeader));
 
       /* forwarding message to transport */
@@ -630,9 +647,11 @@ http_daemon_run (void *cls,
   return;
 }
 
-static size_t send_read_callback(void *ptr, size_t size, size_t nmemb, void *stream)
+static size_t send_read_callback(void *stream, size_t size, size_t nmemb, void *ptr)
 {
-  struct CBC  * cbc = ptr;
+  struct Session  * ses = ptr;
+  struct CBC * cbc = &(ses->cbc);
+
   if (cbc->len > (size * nmemb))
     return CURL_READFUNC_ABORT;
 
@@ -642,6 +661,7 @@ static size_t send_read_callback(void *ptr, size_t size, size_t nmemb, void *str
   cbc->pos = cbc->len;
   return cbc->len;
 }
+
 
 static size_t send_prepare(struct Session* session );
 
@@ -653,6 +673,8 @@ static void send_execute (void *cls,
   CURLMcode mret;
   char * current_url= "test";
 
+ // GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"send_execute\n");
+
   http_task_send = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
@@ -661,11 +683,11 @@ static void send_execute (void *cls,
     {
       running = 0;
       mret = curl_multi_perform (multi_handle, &running);
+      //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"send_execute %u\n", running);
       if (running == 0)
         {
           do
             {
-
 
               msg = curl_multi_info_read (multi_handle, &running);
               GNUNET_break (msg != NULL);
@@ -699,14 +721,6 @@ static void send_execute (void *cls,
         }
     }
   while (mret == CURLM_CALL_MULTI_PERFORM);
-
-  if (mret != CURLM_OK)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("%s failed at %s:%d: `%s'\n"),
-                  "curl_multi_perform", __FILE__, __LINE__,
-                  curl_multi_strerror (mret));
-    }
   send_prepare(cls);
 }
 
@@ -722,7 +736,7 @@ static size_t send_prepare(struct Session* session )
   long to;
   CURLMcode mret;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"send_prepare\n");
+//  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"send_prepare\n");
   max = -1;
   FD_ZERO (&rs);
   FD_ZERO (&ws);
@@ -750,7 +764,6 @@ static size_t send_prepare(struct Session* session )
   gws = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
   GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"send_prepare\n");
   http_task_send = GNUNET_SCHEDULER_add_select (plugin->env->sched,
                                    GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                    GNUNET_SCHEDULER_NO_TASK,
@@ -810,7 +823,9 @@ http_plugin_send (void *cls,
   struct Session* ses;
   struct Session* ses_temp;
   int bytes_sent = 0;
-  CURL *curl_handle;
+
+  //FILE * hd_src ;
+
   CURLMcode mret;
   char * url;
 
@@ -847,31 +862,33 @@ http_plugin_send (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"New Session `%s' inserted, count %u \n", GNUNET_i2s(target), plugin->session_count);
   }
 
-  curl_handle = curl_easy_init();
-  if( NULL == curl_handle)
+  ses->curl_handle = curl_easy_init();
+  if( NULL == ses->curl_handle)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Getting cURL handle failed\n");
     return -1;
   }
 
   url = GNUNET_malloc( 7 + strlen(ses->ip) + 7 + strlen ((char *) &(ses->hash)) + 1);
-  GNUNET_asprintf(&url,"http://%s:%u/%s",ses->ip,ses->addr->sin_port, (char *) &(ses->hash));
+  GNUNET_asprintf(&url,"http://%s:%u/%s",ses->ip,12389, (char *) &(ses->hash));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"url: %s %u\n",url, 7 + strlen(ses->ip) + 7 + strlen ((char *) &(ses->hash)) + 1 );
 
-  curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 1L);
-  curl_easy_setopt(curl_handle, CURLOPT_READFUNCTION, send_read_callback);
-  curl_easy_setopt(curl_handle, CURLOPT_UPLOAD, 1L);
-  curl_easy_setopt(curl_handle, CURLOPT_PUT, 1L);
-  curl_easy_setopt(curl_handle, CURLOPT_URL, addr);
+  (ses->cbc).len = msgbuf_size;
+  (ses->cbc).buf = buf;
+  memcpy(ses->cbc.buf,msgbuf,msgbuf_size);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"msgbuf %s cbc: len %u cbc.buf `%s' test `%s'\n",msgbuf,ses->cbc.len,ses->cbc.buf,test);
+
+  curl_easy_setopt(ses->curl_handle, CURLOPT_VERBOSE, 1L);
+  curl_easy_setopt(ses->curl_handle, CURLOPT_URL, url);
+  curl_easy_setopt(ses->curl_handle, CURLOPT_PUT, 1L);
+  curl_easy_setopt(ses->curl_handle, CURLOPT_READFUNCTION, send_read_callback);
+  curl_easy_setopt(ses->curl_handle, CURLOPT_READDATA, ses);
+  curl_easy_setopt(ses->curl_handle, CURLOPT_INFILESIZE_LARGE, (curl_off_t) (ses->cbc).len);
   curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, (timeout.value / 1000 ));
   curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
-  curl_easy_setopt(curl_handle, CURLOPT_READDATA, msgbuf);
-  curl_easy_setopt(curl_handle, CURLOPT_INFILESIZE_LARGE,
-                  (curl_off_t)msgbuf_size);
 
-  GNUNET_free ( url );
-
-  mret = curl_multi_add_handle(multi_handle, curl_handle);
+  mret = curl_multi_add_handle(multi_handle, ses->curl_handle);
   if (mret != CURLM_OK)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -880,8 +897,8 @@ http_plugin_send (void *cls,
                 curl_multi_strerror (mret));
     return -1;
   }
-
   bytes_sent = send_prepare (ses );
+  GNUNET_free ( url );
   return bytes_sent;
 }
 
