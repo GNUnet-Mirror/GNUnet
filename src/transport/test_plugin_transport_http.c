@@ -52,7 +52,7 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define STAT_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
+#define STAT_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 /**
  * Our public key.
@@ -111,11 +111,12 @@ static struct GNUNET_TRANSPORT_PluginFunctions *api;
  */
 static GNUNET_SCHEDULER_TaskIdentifier ti_timeout;
 
-#if 0
-static GNUNET_SCHEDULER_TaskIdentifier ti_download;
-#endif
+
+static GNUNET_SCHEDULER_TaskIdentifier ti_send;
 
 static unsigned int timeout_count;
+static unsigned int recieved;
+const struct GNUNET_PeerIdentity * p;
 
 /**
  * Did the test pass or fail?
@@ -125,6 +126,22 @@ static int fail;
 //static int done;
 
 pid_t pid;
+
+static void
+task_send (void *cls,
+            const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  ti_timeout = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+
+  struct GNUNET_MessageHeader * msg = cls;
+  unsigned int len = ntohs(msg->size);
+  const char * msgc = (const char *) msg;
+
+  api->send(api->cls,p,msgc, len, 0, TIMEOUT, NULL,NULL, 0, GNUNET_NO, NULL, NULL);
+
+}
 
 /**
  * Initialize Environment for this plugin
@@ -140,6 +157,13 @@ receive (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testcase recieved new message from peer `%s' with type %u and length %u\n",  GNUNET_i2s(peer),ntohs(message->type),ntohs(message->size));
 
+
+
+  recieved = GNUNET_YES;
+  p = peer;
+  void * c = (void *) message;
+
+  ti_send =GNUNET_SCHEDULER_add_delayed (sched, STAT_INTERVALL, &task_send, c);
   return GNUNET_TIME_UNIT_ZERO;
 }
 
@@ -228,6 +252,8 @@ cont_func (void *cls, int success)
   stat_get_handle = NULL;
 }
 #endif
+
+
 
 /**
  * Task that checks if we should try to download a hostlist.
