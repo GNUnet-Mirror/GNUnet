@@ -282,58 +282,44 @@ static struct Session * find_session_by_pi( const struct GNUNET_PeerIdentity *pe
   return NULL;
 }
 
-#if 0
 /**
- * Finds a http session in our linked list using peer identity as a key
- * @param peer peeridentity
- * @return http session corresponding to peer identity
+ * Create a new session
+ *
+ * @param address address the peer is using
+ * @peer  peer identity
+ * @return created session object
  */
-static struct Session * find_session_by_ip( char * ip )
+
+static struct Session * create_session (struct sockaddr_in *address, const struct GNUNET_PeerIdentity *peer)
 {
-  /*
-  struct Session * cur;
+  struct sockaddr_in  *addrin;
+  struct sockaddr_in6 *addrin6;
 
-  cur = plugin->sessions;
-  while (cur != NULL)
+  struct Session * ses = GNUNET_malloc ( sizeof( struct Session) );
+  ses->addr = GNUNET_malloc ( sizeof (struct sockaddr_in) );
+
+  ses->next = NULL;
+  ses->plugin = plugin;
+
+  memcpy(ses->addr, address, sizeof (struct sockaddr_in));
+  if ( AF_INET == address->sin_family)
   {
-    hc_current = cur->sender.hashPubKey;
-    if ( 0 == GNUNET_CRYPTO_hash_cmp( &hc_peer, &hc_current))
-      return cur;
-    cur = plugin->sessions->next;
+    ses->ip = GNUNET_malloc (INET_ADDRSTRLEN);
+    addrin = address;
+    inet_ntop(addrin->sin_family,&(addrin->sin_addr),ses->ip,INET_ADDRSTRLEN);
   }
-  */
-  return NULL;
-}
-#endif
-
-#if 0
-/**
- * Creates a http session in our linked list by ip address
- * Only ip is set here, all other fields have to be set by calling method
- * @param peer peeridentity
- * @return created http session
- */
-static struct Session * create_session_by_ip ( struct sockaddr_in * addr )
-{
-  struct Session * cur;
-  struct Session * last_in_list;
-  /* Create a new session object */
-  cur = GNUNET_malloc (sizeof (struct Session));
-  // FIXME: memcpy( &(cur->ip), , sizeof( struct GNUNET_PeerIdentity ) );
-
-  cur->next = NULL;
-
-  /* Insert into linked list */
-  last_in_list = plugin->sessions;
-  while (last_in_list->next != NULL)
+  if ( AF_INET6 == address->sin_family)
   {
-    last_in_list = last_in_list->next;
+    ses->ip = GNUNET_malloc (INET6_ADDRSTRLEN);
+    addrin6 = (struct sockaddr_in6 *) address;
+    inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr) ,ses->ip,INET6_ADDRSTRLEN);
   }
-  last_in_list->next = cur;
+  memcpy(&ses->sender, peer, sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_CRYPTO_hash_to_enc(&ses->sender.hashPubKey,&(ses->hash));
+  ses->is_active = GNUNET_NO;
 
-  return cur;
+  return ses;
 }
-#endif
 
 /**
  * Callback called by MHD when a connection is terminated
@@ -363,6 +349,7 @@ acceptPolicyCallback (void *cls,
   /* Every connection is accepted, nothing more to do here */
   return MHD_YES;
 }
+
 
 
 /**
@@ -453,15 +440,7 @@ accessHandlerCallback (void *cls,
     if (cs == NULL )
     {
       /* create new session object */
-      cs = GNUNET_malloc ( sizeof( struct Session) );
-      cs->addr = GNUNET_malloc ( sizeof (struct sockaddr_in) );
-
-      cs->ip = address;
-      memcpy(cs->addr, conn_info->client_addr, sizeof (struct sockaddr_in));
-      memcpy(&cs->sender, &pi_in, sizeof (struct GNUNET_PeerIdentity));
-      memcpy(&cs->hash,&url[1],104);
-      cs->next = NULL;
-      cs->is_active = GNUNET_YES;
+      cs = create_session(conn_info->client_addr, &pi_in);
 
       /* Insert session into linked list */
       if ( plugin->sessions == NULL)
@@ -500,6 +479,7 @@ accessHandlerCallback (void *cls,
     {
       /* not yet ready */
       cs->is_put_in_progress = GNUNET_YES;
+      cs->is_active = GNUNET_YES;
       return MHD_YES;
     }
     if ( *upload_data_size > 0 )
@@ -533,6 +513,7 @@ accessHandlerCallback (void *cls,
         return MHD_NO;
       }
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Recieved GNUnet message type %u size %u and payload %u \n",ntohs (gn_msg->type), ntohs (gn_msg->size), ntohs (gn_msg->size)-sizeof(struct GNUNET_MessageHeader));
+
       /* forwarding message to transport */
       plugin->env->receive(plugin->env, &(cs->sender), gn_msg, 1, cs , cs->ip, strlen(cs->ip) );
       return MHD_YES;
@@ -667,7 +648,6 @@ static size_t send_prepare(struct Session* session );
 static void send_execute (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"send task");
   int running;
   struct CURLMsg *msg;
   CURLMcode mret;
@@ -815,8 +795,7 @@ static size_t send_prepare(struct Session* session )
  */
 static ssize_t
 http_plugin_send (void *cls,
-                      const struct GNUNET_PeerIdentity *
-                      target,
+                      const struct GNUNET_PeerIdentity *target,
                       const char *msgbuf,
                       size_t msgbuf_size,
                       unsigned int priority,
@@ -825,31 +804,28 @@ http_plugin_send (void *cls,
                       const void *addr,
                       size_t addrlen,
                       int force_address,
-                      GNUNET_TRANSPORT_TransmitContinuation
-                      cont, void *cont_cls)
+                      GNUNET_TRANSPORT_TransmitContinuation cont,
+                      void *cont_cls)
 {
   struct Session* ses;
   struct Session* ses_temp;
   int bytes_sent = 0;
   CURL *curl_handle;
   CURLMcode mret;
+  char * url;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"http_plugin_send\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Transport told plugin to send to peer `%s'\n",GNUNET_i2s(target));
 
   /* find session for peer */
   ses = find_session_by_pi (target);
   if (NULL != ses )
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session not found\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Existing session for peer `%s' found\n", GNUNET_i2s(target));
   if ( ses == NULL)
   {
     /* create new session object */
-    ses = GNUNET_malloc ( sizeof( struct Session) );
-    ses->addr = GNUNET_malloc ( sizeof (struct sockaddr_in) );
 
-    //ses->ip = address;
-    // memcpy(ses->addr, conn_info->client_addr, sizeof (struct sockaddr_in));
-    memcpy(&ses->sender, &target, sizeof (struct GNUNET_PeerIdentity));
-    ses->next = NULL;
+    /*FIXME: what is const void * really? Assuming struct sockaddr_in * ! */
+    ses = create_session((struct sockaddr_in *) addr, target);
     ses->is_active = GNUNET_YES;
 
     /* Insert session into linked list */
@@ -878,20 +854,22 @@ http_plugin_send (void *cls,
     return -1;
   }
 
-  char * url;
-  GNUNET_asprintf(&url,"http://%s:%u/%s",ses->ip,ses->addr->sin_port,ses->hash);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"url: %s\n",url);
+  url = GNUNET_malloc( 7 + strlen(ses->ip) + 7 + strlen ((char *) &(ses->hash)) + 1);
+  GNUNET_asprintf(&url,"http://%s:%u/%s",ses->ip,ses->addr->sin_port, (char *) &(ses->hash));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"url: %s %u\n",url, 7 + strlen(ses->ip) + 7 + strlen ((char *) &(ses->hash)) + 1 );
 
   curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 1L);
   curl_easy_setopt(curl_handle, CURLOPT_READFUNCTION, send_read_callback);
   curl_easy_setopt(curl_handle, CURLOPT_UPLOAD, 1L);
   curl_easy_setopt(curl_handle, CURLOPT_PUT, 1L);
-  curl_easy_setopt(curl_handle, CURLOPT_URL, url);
+  curl_easy_setopt(curl_handle, CURLOPT_URL, addr);
   curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, (timeout.value / 1000 ));
   curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
   curl_easy_setopt(curl_handle, CURLOPT_READDATA, msgbuf);
   curl_easy_setopt(curl_handle, CURLOPT_INFILESIZE_LARGE,
                   (curl_off_t)msgbuf_size);
+
+  GNUNET_free ( url );
 
   mret = curl_multi_add_handle(multi_handle, curl_handle);
   if (mret != CURLM_OK)
