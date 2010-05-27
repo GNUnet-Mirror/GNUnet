@@ -82,6 +82,17 @@ GNUNET_FS_TEST_daemons_connect (struct GNUNET_SCHEDULER_Handle *sched,
 
 
 /**
+ * Obtain peer group used for testing.
+ *
+ * @param daemons array with the daemons (must contain at least one)
+ * @return peer group
+ */
+struct GNUNET_TESTING_PeerGroup *
+GNUNET_FS_TEST_get_group (struct GNUNET_FS_TestDaemon **daemons);
+
+
+
+/**
  * Stop daemons used for testing.
  *
  * @param sched scheduler to use

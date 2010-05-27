@@ -25,8 +25,9 @@
  */
 #include "platform.h"
 #include "fs_test_lib.h"
+#include "gnunet_testing_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 /**
  * File-size we use for testing.
@@ -61,7 +62,7 @@ do_stop (void *cls,
   char *fancy;
 
   GNUNET_FS_TEST_daemons_stop (sched,
-			       1,
+			       2,
 			       daemons);
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
     {
@@ -88,11 +89,21 @@ do_stop (void *cls,
 
 static void
 do_download (void *cls,
-	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+	     const char *emsg)
 {
   struct GNUNET_FS_Uri *uri = cls;
 
-  GNUNET_FS_TEST_daemons_stop (sched, 1, &daemons[1]);
+  if (emsg != NULL)
+    {
+      GNUNET_FS_TEST_daemons_stop (sched,
+				   2,
+				   daemons);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Failed to stop source daemon: %s\n",
+		  emsg);
+      ok = 1;
+      return;
+    }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Downloading %llu bytes\n",
 	      (unsigned long long) FILESIZE);
@@ -103,6 +114,22 @@ do_download (void *cls,
 			   1, SEED, uri, 
 			   VERBOSE, 
 			   &do_stop, NULL);
+}
+
+
+static void
+stop_source_peer (void *cls,
+		  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_FS_Uri *uri = cls;
+  struct GNUNET_TESTING_PeerGroup *pg;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Stopping source peer\n");
+  pg = GNUNET_FS_TEST_get_group (daemons);
+  GNUNET_TESTING_daemons_vary (pg, 1, GNUNET_NO, TIMEOUT,
+			       &do_download,
+			       uri);
 }
 
 
@@ -122,10 +149,12 @@ do_wait (void *cls,
       ok = 1;
       return;
     }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Waiting to allow content to migrate\n"); 
   d = GNUNET_FS_uri_dup (uri);
   GNUNET_SCHEDULER_add_delayed (sched,
 				MIGRATION_DELAY,
-				&do_download,
+				&stop_source_peer,
 				d);
 }
 

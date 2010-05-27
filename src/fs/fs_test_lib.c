@@ -446,6 +446,19 @@ GNUNET_FS_TEST_daemons_connect (struct GNUNET_SCHEDULER_Handle *sched,
 
 
 /**
+ * Obtain peer group used for testing.
+ *
+ * @param daemons array with the daemons (must contain at least one)
+ * @return peer group
+ */
+struct GNUNET_TESTING_PeerGroup *
+GNUNET_FS_TEST_get_group (struct GNUNET_FS_TestDaemon **daemons)
+{
+  return daemons[0]->group;  
+}
+
+
+/**
  * Stop daemons used for testing.
  *
  * @param sched scheduler to use
@@ -458,9 +471,10 @@ GNUNET_FS_TEST_daemons_stop (struct GNUNET_SCHEDULER_Handle *sched,
 			     struct GNUNET_FS_TestDaemon **daemons)
 {
   unsigned int i;
+  struct GNUNET_TESTING_PeerGroup *pg;
 
   GNUNET_assert (total > 0);
-  GNUNET_TESTING_daemons_stop (daemons[0]->group, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30));
+  pg = daemons[0]->group;
   for (i=0;i<total;i++)
     {
       GNUNET_FS_stop (daemons[i]->fs);
@@ -468,6 +482,7 @@ GNUNET_FS_TEST_daemons_stop (struct GNUNET_SCHEDULER_Handle *sched,
       GNUNET_free (daemons[i]);
       daemons[i] = NULL;
     }  
+  GNUNET_TESTING_daemons_stop (pg, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30));
 }
 
 
