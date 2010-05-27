@@ -44,7 +44,7 @@
 #include "gnunet-service-fs_indexing.h"
 #include "fs.h"
 
-#define DEBUG_FS GNUNET_NO
+#define DEBUG_FS GNUNET_YES
 
 /**
  * Maximum number of outgoing messages we queue per peer.
@@ -842,6 +842,11 @@ consider_migration (void *cls,
     }
   if (msize == 0)
     return GNUNET_YES; /* no content available */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Trying to migrate `%s' (%u bytes) to `%s'\n",
+	      GNUNET_h2s (&mb->query),
+	      msize,
+	      GNUNET_i2s (&cppid));
   cp->cth 
     = GNUNET_CORE_notify_transmit_ready (core,
 					 0, GNUNET_TIME_UNIT_FOREVER_REL,
@@ -1500,8 +1505,25 @@ transmit_to_peer (void *cls,
 		  size -= sizeof (migm);
 		  memcpy (&cbuf[msize], &mb[1], mb->size);
 		  msize += mb->size;
-		  size -= mb->size;		  
+		  size -= mb->size;
+#if DEBUG_FS
+		  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+			      "Pushing migration block `%s' (%u bytes) to `%s'\n",
+			      GNUNET_h2s (&mb->query),
+			      mb->size,
+			      GNUNET_i2s (&pid));
+#endif	  
 		  break;
+		}
+	      else
+		{
+#if DEBUG_FS
+		  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+			      "Migration block `%s' (%u bytes) is not on migration list for peer `%s'\n",
+			      GNUNET_h2s (&mb->query),
+			      mb->size,
+			      GNUNET_i2s (&pid));
+#endif	  
 		}
 	    }
 	  if ( (mb->used_targets >= MIGRATION_TARGET_COUNT) ||
@@ -1515,7 +1537,7 @@ transmit_to_peer (void *cls,
 			  &pid.hashPubKey,
 			  cp);
     }
-#if DEBUG_FS > 3
+#if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Transmitting %u bytes to peer %u\n",
 	      msize,

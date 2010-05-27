@@ -37,12 +37,12 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 600)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
  * How long do we give the peers for content migration?
  */
-#define MIGRATION_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+#define MIGRATION_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 #define SEED 42
 
@@ -236,7 +236,7 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
-  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-service-fs-migration/");
   GNUNET_log_setup ("test_gnunet_service_fs_migration", 
 #if VERBOSE
 		    "DEBUG",
@@ -247,7 +247,7 @@ main (int argc, char *argv[])
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1,
                       argvx, "test-gnunet-service-fs-migration",
 		      "nohelp", options, &run, NULL);
-  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-service-fs-migration/");
   return ok;
 }
 
