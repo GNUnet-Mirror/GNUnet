@@ -713,7 +713,8 @@ static size_t send_write_callback( void *ptr, size_t size, size_t nmemb, void *s
 
   memcpy( data, ptr, size*nmemb);
   data[size*nmemb] = '\0';
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Recieved size %u, size nmemb: %u `%s' \n", size, nmemb, data);
+  /* Just a dummy print for the response recieved for the PUT message */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Recieved %u bytes: `%s' \n", size * nmemb, data);
   free (data);
   return (size * nmemb);
 
