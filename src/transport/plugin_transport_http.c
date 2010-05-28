@@ -707,6 +707,18 @@ static size_t send_read_callback(void *stream, size_t size, size_t nmemb, void *
 }
 
 
+static size_t send_write_callback( void *ptr, size_t size, size_t nmemb, void *stream)
+{
+  char * data = malloc(size*nmemb +1);
+
+  memcpy( data, ptr, size*nmemb);
+  data[size*nmemb] = '\0';
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Recieved size %u, size nmemb: %u `%s' \n", size, nmemb, data);
+  free (data);
+  return (size * nmemb);
+
+}
+
 static size_t send_prepare(struct Session* session );
 
 static void send_execute (void *cls,
@@ -953,6 +965,8 @@ http_plugin_send (void *cls,
   curl_easy_setopt(ses->curl_handle, CURLOPT_PUT, 1L);
   curl_easy_setopt(ses->curl_handle, CURLOPT_READFUNCTION, send_read_callback);
   curl_easy_setopt(ses->curl_handle, CURLOPT_READDATA, ses);
+  curl_easy_setopt(ses->curl_handle, CURLOPT_WRITEFUNCTION, send_write_callback);
+  curl_easy_setopt(ses->curl_handle, CURLOPT_READDATA, ses);
   curl_easy_setopt(ses->curl_handle, CURLOPT_INFILESIZE_LARGE, (curl_off_t) msg->len);
   curl_easy_setopt(ses->curl_handle, CURLOPT_TIMEOUT, (timeout.value / 1000 ));
   curl_easy_setopt(ses->curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
@@ -1145,6 +1159,7 @@ libgnunet_plugin_transport_http_done (void *cls)
     }
 
   /* GNUNET_SERVICE_stop (plugin->service); */
+  GNUNET_free (hostname);
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;
