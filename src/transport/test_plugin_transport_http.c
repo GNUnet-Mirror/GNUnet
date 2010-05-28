@@ -167,6 +167,7 @@ static void task_send_cont (void *cls,
                             const struct GNUNET_PeerIdentity * target,
                             int result)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message was sent!\n");
   fail = GNUNET_NO;
   shutdown_clean();
 }
@@ -191,7 +192,7 @@ task_send (void *cls,
   unsigned int len = ntohs(msg->size);
   const char * msgc = (const char *) msg;
 
-  api->send(api->cls,p,msgc, len, 0, TIMEOUT, NULL,NULL, 0, GNUNET_NO, &task_send_cont, NULL);
+  api->send(api->cls, p, msgc, len, 0, TIMEOUT, NULL,NULL, 0, GNUNET_NO, &task_send_cont, NULL);
   sent = GNUNET_YES;
 
 }
