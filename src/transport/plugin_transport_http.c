@@ -666,6 +666,7 @@ static int remove_http_message(struct Session * ses, struct HTTP_Message * msg)
     ses->pending_outbound_msg = cur->next;
     GNUNET_free (cur->buf);
     GNUNET_free (cur);
+    cur = NULL;
     return GNUNET_OK;
   }
 
@@ -680,6 +681,7 @@ static int remove_http_message(struct Session * ses, struct HTTP_Message * msg)
   cur->next = cur->next->next;
   GNUNET_free (cur->next->buf);
   GNUNET_free (cur->next);
+  cur->next = NULL;
   return GNUNET_OK;
 
 
@@ -1143,7 +1145,8 @@ libgnunet_plugin_transport_http_done (void *cls)
       while (cur != NULL)
       {
          tmp = cur->next;
-         GNUNET_free (cur->buf);
+         if (NULL != cur->buf)
+           GNUNET_free (cur->buf);
          GNUNET_free (cur);
          cur = tmp;
       }
