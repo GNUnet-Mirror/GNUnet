@@ -716,8 +716,6 @@ static void send_execute (void *cls,
   CURLMcode mret;
   struct Session * cs = cls;
 
- // GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"send_execute\n");
-
   http_task_send = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
@@ -753,7 +751,7 @@ static void send_execute (void *cls,
                     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                                 "Send to %s completed.\n", cs->ip);
                     if (GNUNET_OK != remove_http_message(cs, cs->pending_outbound_msg))
-                        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message removed from session `%s'", GNUNET_i2s(&cs->sender));
+                        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message could not be removed from session `%s'", GNUNET_i2s(&cs->sender));
 
                     curl_easy_cleanup(cs->curl_handle);
                     cs->curl_handle=NULL;
@@ -1137,6 +1135,20 @@ libgnunet_plugin_transport_http_done (void *cls)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Freeing session to `%s'\n",cs->ip);
 
       cs_next = cs->next;
+      /* freeing messages */
+      struct HTTP_Message *cur;
+      struct HTTP_Message *tmp;
+      cur = cs->pending_outbound_msg;
+
+      while (cur != NULL)
+      {
+         tmp = cur->next;
+         GNUNET_free (cur->buf);
+         GNUNET_free (cur);
+         cur = tmp;
+      }
+
+
       GNUNET_free (cs->ip);
       GNUNET_free (cs->addr);
       GNUNET_free (cs);
