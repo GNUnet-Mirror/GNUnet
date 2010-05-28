@@ -52,7 +52,7 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20)
 
 /**
  * How long between recieve and send?
@@ -153,7 +153,8 @@ shutdown_clean ()
   GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_http", api));
 
   GNUNET_SCHEDULER_shutdown(sched);
-  /* FIXME: */ fail = GNUNET_NO;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Exiting testcase\n");
+  exit(fail);
   return;
 }
 
@@ -263,6 +264,7 @@ task_timeout (void *cls,
   return;
 }
 
+
 /**
  * Runs the test.
  *
@@ -329,6 +331,10 @@ run (void *cls,
   }
 
   ti_timeout = GNUNET_SCHEDULER_add_delayed (sched, TEST_TIMEOUT, &task_timeout, NULL);
+
+
+
+
   return;
 }
 

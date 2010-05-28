@@ -69,11 +69,31 @@
  */
 struct Plugin;
 
-struct CBC
+/**
+ *  Message to send using http
+ */
+struct HTTP_Message
 {
+  /**
+   * Next field for linked list
+   */
+  struct HTTP_Message * next;
+
+  /**
+   * buffer containing data to send
+   */
   char *buf;
+
+  /**
+   * amount of data already sent
+   */
   size_t pos;
+
+  /**
+   * amount of data to sent
+   */
   size_t size;
+
   size_t len;
 };
 
@@ -164,7 +184,7 @@ struct Session
    */
   struct GNUNET_CRYPTO_HashAsciiEncoded hash;
 
-  struct CBC cbc;
+  struct HTTP_Message * pending_outbound_msg;;
 
   CURL *curl_handle;
 };
@@ -243,25 +263,6 @@ static char * hostname;
  * This string is used to distinguish between connections and is added to the urls
  */
 static struct GNUNET_CRYPTO_HashAsciiEncoded my_ascii_hash_ident;
-
-static char buf[2048];
-
-/**
- * Message-Packet header.
- */
-struct HTTPMessage
-{
-  /**
-   * size of the message, in bytes, including this header.
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * What is the identity of the sender (GNUNET_hash of public key)
-   */
-  struct GNUNET_PeerIdentity sender;
-
-};
 
 /**
  * Finds a http session in our linked list using peer identity as a key
@@ -645,19 +646,63 @@ http_daemon_run (void *cls,
   return;
 }
 
+/**
+ * Removes a message from the linked list of messages
+ */
+
+static int remove_http_message(struct Session * ses, struct HTTP_Message * msg)
+{
+  struct HTTP_Message * cur;
+  struct HTTP_Message * next;
+
+  cur = ses->pending_outbound_msg;
+  next = NULL;
+
+  if (cur == NULL)
+    return GNUNET_SYSERR;
+
+  if (cur == msg)
+  {
+    ses->pending_outbound_msg = cur->next;
+    GNUNET_free (cur->buf);
+    GNUNET_free (cur);
+    return GNUNET_OK;
+  }
+
+  while (cur->next!=msg)
+  {
+    if (cur->next != NULL)
+      cur = cur->next;
+    else
+      return GNUNET_SYSERR;
+  }
+
+  cur->next = cur->next->next;
+  GNUNET_free (cur->next->buf);
+  GNUNET_free (cur->next);
+  return GNUNET_OK;
+
+
+}
+
 static size_t send_read_callback(void *stream, size_t size, size_t nmemb, void *ptr)
 {
-  struct Session  * ses = ptr;
-  struct CBC * cbc = &(ses->cbc);
+  struct Session * ses = ptr;
+  struct HTTP_Message * msg = ses->pending_outbound_msg;
+  unsigned int bytes_sent;
 
-  if (cbc->len > (size * nmemb))
+  bytes_sent = 0;
+  if (msg->len > (size * nmemb))
     return CURL_READFUNC_ABORT;
 
-  if (( cbc->pos == cbc->len) && (cbc->len < (size * nmemb)))
-    return 0;
-  memcpy(stream, cbc->buf, cbc->len);
-  cbc->pos = cbc->len;
-  return cbc->len;
+  if (( msg->pos < msg->len) && (msg->len < (size * nmemb)))
+  {
+    memcpy(stream, msg->buf, msg->len);
+    msg->pos = msg->len;
+    bytes_sent = msg->len;
+  }
+
+  return bytes_sent;
 }
 
 
@@ -707,12 +752,15 @@ static void send_execute (void *cls,
                     {
                     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                                 "Send to %s completed.\n", cs->ip);
-                    /* Calling transmit continuation */
-                    if ( NULL != cs->transmit_cont)
-                      cs->transmit_cont (NULL,&cs->sender,GNUNET_OK);
+                    if (GNUNET_OK != remove_http_message(cs, cs->pending_outbound_msg))
+                        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message removed from session `%s'", GNUNET_i2s(&cs->sender));
 
                     curl_easy_cleanup(cs->curl_handle);
                     cs->curl_handle=NULL;
+
+                    /* Calling transmit continuation  */
+                    if ( NULL != cs->transmit_cont)
+                      cs->transmit_cont (NULL,&cs->sender,GNUNET_OK);
                     }
                   return;
                 default:
@@ -825,6 +873,8 @@ http_plugin_send (void *cls,
 {
   struct Session* ses;
   struct Session* ses_temp;
+  struct HTTP_Message * msg;
+  struct HTTP_Message * tmp;
   int bytes_sent = 0;
   CURLMcode mret;
   char * url;
@@ -877,16 +927,48 @@ http_plugin_send (void *cls,
   if ( NULL != cont)
     ses->transmit_cont = cont;
 
-  (ses->cbc).len = msgbuf_size;
-  (ses->cbc).buf = buf;
-  memcpy(ses->cbc.buf,msgbuf,msgbuf_size);
+  /* setting up message */
+  msg = GNUNET_malloc (sizeof (struct HTTP_Message));
+  msg->next = NULL;
+  msg->len = msgbuf_size;
+  msg->pos = 0;
+  msg->buf = GNUNET_malloc (msgbuf_size);
+  memcpy (msg->buf,msgbuf, msgbuf_size);
+
+  /* insert created message in list of pending messages */
+
+  if (ses->pending_outbound_msg == NULL)
+  {
+    ses->pending_outbound_msg = msg;
+  }
+  tmp = ses->pending_outbound_msg;
+  while ( NULL != tmp->next)
+  {
+    tmp = tmp->next;
+  }
+  if ( tmp != msg)
+    tmp->next = msg;
+
+  struct HTTP_Message * msg2 = GNUNET_malloc (sizeof (struct HTTP_Message));
+
+  if (ses->pending_outbound_msg == NULL)
+  {
+    ses->pending_outbound_msg = msg2;
+  }
+  tmp = ses->pending_outbound_msg;
+  while ( NULL != tmp->next)
+  {
+    tmp = tmp->next;
+  }
+  if ( tmp != msg2)
+    tmp->next = msg2;
 
   /* curl_easy_setopt(ses->curl_handle, CURLOPT_VERBOSE, 1L); */
   curl_easy_setopt(ses->curl_handle, CURLOPT_URL, url);
   curl_easy_setopt(ses->curl_handle, CURLOPT_PUT, 1L);
   curl_easy_setopt(ses->curl_handle, CURLOPT_READFUNCTION, send_read_callback);
   curl_easy_setopt(ses->curl_handle, CURLOPT_READDATA, ses);
-  curl_easy_setopt(ses->curl_handle, CURLOPT_INFILESIZE_LARGE, (curl_off_t) (ses->cbc).len);
+  curl_easy_setopt(ses->curl_handle, CURLOPT_INFILESIZE_LARGE, (curl_off_t) msg->len);
   curl_easy_setopt(ses->curl_handle, CURLOPT_TIMEOUT, (timeout.value / 1000 ));
   curl_easy_setopt(ses->curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
 
