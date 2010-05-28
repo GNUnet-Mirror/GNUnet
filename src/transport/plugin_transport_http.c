@@ -683,9 +683,8 @@ static int remove_http_message(struct Session * ses, struct HTTP_Message * msg)
   GNUNET_free (cur->next);
   cur->next = NULL;
   return GNUNET_OK;
-
-
 }
+
 
 static size_t send_read_callback(void *stream, size_t size, size_t nmemb, void *ptr)
 {
@@ -753,9 +752,9 @@ static void send_execute (void *cls,
                     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                                 "Send to %s completed.\n", cs->ip);
                     if (GNUNET_OK != remove_http_message(cs, cs->pending_outbound_msg))
-                        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message could not be removed from session `%s'", GNUNET_i2s(&cs->sender));
+                      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message could not be removed from session `%s'", GNUNET_i2s(&cs->sender));
 
-                    curl_easy_cleanup(cs->curl_handle);
+                      curl_easy_cleanup(cs->curl_handle);
                     cs->curl_handle=NULL;
 
                     /* Calling transmit continuation  */
@@ -949,20 +948,6 @@ http_plugin_send (void *cls,
   if ( tmp != msg)
     tmp->next = msg;
 
-  struct HTTP_Message * msg2 = GNUNET_malloc (sizeof (struct HTTP_Message));
-
-  if (ses->pending_outbound_msg == NULL)
-  {
-    ses->pending_outbound_msg = msg2;
-  }
-  tmp = ses->pending_outbound_msg;
-  while ( NULL != tmp->next)
-  {
-    tmp = tmp->next;
-  }
-  if ( tmp != msg2)
-    tmp->next = msg2;
-
   /* curl_easy_setopt(ses->curl_handle, CURLOPT_VERBOSE, 1L); */
   curl_easy_setopt(ses->curl_handle, CURLOPT_URL, url);
   curl_easy_setopt(ses->curl_handle, CURLOPT_PUT, 1L);
@@ -1150,7 +1135,6 @@ libgnunet_plugin_transport_http_done (void *cls)
          GNUNET_free (cur);
          cur = tmp;
       }
-
 
       GNUNET_free (cs->ip);
       GNUNET_free (cs->addr);
