@@ -264,6 +264,8 @@ static char * hostname;
  */
 static struct GNUNET_CRYPTO_HashAsciiEncoded my_ascii_hash_ident;
 
+struct GNUNET_TIME_Relative timeout;
+
 /**
  * Finds a http session in our linked list using peer identity as a key
  * @param peer peeridentity
@@ -722,6 +724,45 @@ static size_t send_write_callback( void *ptr, size_t size, size_t nmemb, void *s
 
 static size_t send_prepare(struct Session* session );
 
+static ssize_t send_select_init (struct Session* ses  )
+{
+  char * url;
+  int bytes_sent = 0;
+  CURLMcode mret;
+  struct HTTP_Message * msg;
+
+  /* FIFO selection, send oldest msg first, perhaps priority here?  */
+  msg = ses->pending_outbound_msg;
+
+  url = GNUNET_malloc( 7 + strlen(ses->ip) + 7 + strlen ((char *) &(ses->hash)) + 1);
+  /* FIXME: use correct port number */
+  GNUNET_asprintf(&url,"http://%s:%u/%s",ses->ip,12389, (char *) &(ses->hash));
+
+  /* curl_easy_setopt(ses->curl_handle, CURLOPT_VERBOSE, 1L); */
+  curl_easy_setopt(ses->curl_handle, CURLOPT_URL, url);
+  curl_easy_setopt(ses->curl_handle, CURLOPT_PUT, 1L);
+  curl_easy_setopt(ses->curl_handle, CURLOPT_READFUNCTION, send_read_callback);
+  curl_easy_setopt(ses->curl_handle, CURLOPT_READDATA, ses);
+  curl_easy_setopt(ses->curl_handle, CURLOPT_WRITEFUNCTION, send_write_callback);
+  curl_easy_setopt(ses->curl_handle, CURLOPT_READDATA, ses);
+  curl_easy_setopt(ses->curl_handle, CURLOPT_INFILESIZE_LARGE, (curl_off_t) msg->len);
+  curl_easy_setopt(ses->curl_handle, CURLOPT_TIMEOUT, (timeout.value / 1000 ));
+  curl_easy_setopt(ses->curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
+
+  mret = curl_multi_add_handle(multi_handle, ses->curl_handle);
+  if (mret != CURLM_OK)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("%s failed at %s:%d: `%s'\n"),
+                "curl_multi_add_handle", __FILE__, __LINE__,
+                curl_multi_strerror (mret));
+    return -1;
+  }
+  bytes_sent = send_prepare (ses );
+  GNUNET_free ( url );
+  return bytes_sent;
+}
+
 static void send_execute (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -767,8 +808,11 @@ static void send_execute (void *cls,
                     if (GNUNET_OK != remove_http_message(cs, cs->pending_outbound_msg))
                       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message could not be removed from session `%s'", GNUNET_i2s(&cs->sender));
 
-                      curl_easy_cleanup(cs->curl_handle);
+                    curl_easy_cleanup(cs->curl_handle);
                     cs->curl_handle=NULL;
+
+                    if (cs->pending_outbound_msg != NULL)
+                      send_select_init (cs);
 
                     /* Calling transmit continuation  */
                     if ( NULL != cs->transmit_cont)
@@ -842,7 +886,6 @@ static size_t send_prepare(struct Session* session )
   return 0;
 }
 
-
 /**
  * Function that can be used by the transport service to transmit
  * a message using the plugin.
@@ -875,7 +918,7 @@ http_plugin_send (void *cls,
                       const char *msgbuf,
                       size_t msgbuf_size,
                       unsigned int priority,
-                      struct GNUNET_TIME_Relative timeout,
+                      struct GNUNET_TIME_Relative to,
                       struct Session *session,
                       const void *addr,
                       size_t addrlen,
@@ -888,8 +931,6 @@ http_plugin_send (void *cls,
   struct HTTP_Message * msg;
   struct HTTP_Message * tmp;
   int bytes_sent = 0;
-  CURLMcode mret;
-  char * url;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Transport told plugin to send to peer `%s'\n",GNUNET_i2s(target));
 
@@ -932,13 +973,9 @@ http_plugin_send (void *cls,
     return -1;
   }
 
-  url = GNUNET_malloc( 7 + strlen(ses->ip) + 7 + strlen ((char *) &(ses->hash)) + 1);
-  /* FIXME: use correct port number */
-  GNUNET_asprintf(&url,"http://%s:%u/%s",ses->ip,12389, (char *) &(ses->hash));
-
   if ( NULL != cont)
     ses->transmit_cont = cont;
-
+  timeout = to;
   /* setting up message */
   msg = GNUNET_malloc (sizeof (struct HTTP_Message));
   msg->next = NULL;
@@ -961,29 +998,9 @@ http_plugin_send (void *cls,
   if ( tmp != msg)
     tmp->next = msg;
 
-  /* curl_easy_setopt(ses->curl_handle, CURLOPT_VERBOSE, 1L); */
-  curl_easy_setopt(ses->curl_handle, CURLOPT_URL, url);
-  curl_easy_setopt(ses->curl_handle, CURLOPT_PUT, 1L);
-  curl_easy_setopt(ses->curl_handle, CURLOPT_READFUNCTION, send_read_callback);
-  curl_easy_setopt(ses->curl_handle, CURLOPT_READDATA, ses);
-  curl_easy_setopt(ses->curl_handle, CURLOPT_WRITEFUNCTION, send_write_callback);
-  curl_easy_setopt(ses->curl_handle, CURLOPT_READDATA, ses);
-  curl_easy_setopt(ses->curl_handle, CURLOPT_INFILESIZE_LARGE, (curl_off_t) msg->len);
-  curl_easy_setopt(ses->curl_handle, CURLOPT_TIMEOUT, (timeout.value / 1000 ));
-  curl_easy_setopt(ses->curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
-
-  mret = curl_multi_add_handle(multi_handle, ses->curl_handle);
-  if (mret != CURLM_OK)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("%s failed at %s:%d: `%s'\n"),
-                "curl_multi_add_handle", __FILE__, __LINE__,
-                curl_multi_strerror (mret));
-    return -1;
-  }
-  bytes_sent = send_prepare (ses );
-  GNUNET_free ( url );
+  bytes_sent = send_select_init (ses);
   return bytes_sent;
+
 }
 
 
