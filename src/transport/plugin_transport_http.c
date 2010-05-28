@@ -1064,7 +1064,6 @@ libgnunet_plugin_transport_http_done (void *cls)
     }
 
   /* GNUNET_SERVICE_stop (plugin->service); */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Freeing plugin\n",cs->ip);
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;
