@@ -157,6 +157,7 @@ struct GNUNET_CLIENT_Connection
 
   /**
    * Our configuration.
+   * FIXME: why do we DUP the configuration? Avoid this!
    */
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
