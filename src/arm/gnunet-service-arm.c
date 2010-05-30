@@ -409,7 +409,6 @@ start_process (struct ServiceList *sl)
     }
   use_debug = GNUNET_CONFIGURATION_get_value_yesno (cfg, sl->name, "DEBUG");
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Starting service `%s'\n"), sl->name);
 #if DEBUG_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Starting service `%s' using binary `%s' and configuration `%s'\n",
@@ -428,6 +427,10 @@ start_process (struct ServiceList *sl)
 				"-c", sl->config,
 				options,
 				NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+	      _("Starting service `%s' (PID: %d)\n"), 
+	      sl->name,
+	      (int) sl->pid);
   GNUNET_free (loprefix);
   GNUNET_free (options);
   /* FIXME: should check sl->pid */
@@ -722,10 +725,10 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       if (pos->pid != 0)
 	{
-#if DEBUG_ARM
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Sending SIGTERM to `%s'\n", pos->name);
-#endif
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		      "Stopping service `%s' (PID: %d)\n",
+		      pos->name,
+		      pos->pid);
 	  if (0 != PLIBC_KILL (pos->pid, SIGTERM))
 	    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
 	}
