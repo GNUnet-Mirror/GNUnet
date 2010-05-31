@@ -35,7 +35,7 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_transport_service.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define START_ARM GNUNET_YES
 
@@ -180,8 +180,10 @@ inbound_notify (void *cls,
 		struct GNUNET_TIME_Relative latency,
 		uint32_t distance)
 {
+#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core provides inbound data from `%4s'.\n", GNUNET_i2s (other));
+#endif
   return GNUNET_OK;
 }
 
@@ -193,9 +195,11 @@ outbound_notify (void *cls,
 		 struct GNUNET_TIME_Relative latency,
 		 uint32_t distance)
 {
+#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core notifies about outbound data for `%4s'.\n",
               GNUNET_i2s (other));
+#endif
   return GNUNET_OK;
 }
 
