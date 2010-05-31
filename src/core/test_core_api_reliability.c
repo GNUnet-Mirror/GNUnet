@@ -26,6 +26,7 @@
  */
 #include "platform.h"
 #include "gnunet_common.h"
+#include "gnunet_constants.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_core_service.h"
 #include "gnunet_getopt_lib.h"
@@ -42,6 +43,13 @@
  * How long until we give up on transmitting the message?
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+
+/**
+ * What delay do we request from the core service for transmission?
+ * Any value smaller than the CORK delay will disable CORKing, which
+ * is what we want here.
+ */
+#define FAST_TIMEOUT GNUNET_TIME_relative_divide (GNUNET_CONSTANTS_MAX_CORK_DELAY, 2)
 
 #define MTYPE 12345
 
@@ -108,9 +116,13 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned long long delta;
 
   GNUNET_CORE_disconnect (p1.ch);
+  p1.ch = NULL;
   GNUNET_CORE_disconnect (p2.ch);
+  p2.ch = NULL;
   GNUNET_TRANSPORT_disconnect (p1.th);
+  p1.th = NULL;
   GNUNET_TRANSPORT_disconnect (p2.th);
+  p2.th = NULL;
   delta = GNUNET_TIME_absolute_get_duration (start_time).value;
   fprintf (stderr,
 	   "\nThroughput was %llu kb/s\n",
@@ -124,9 +136,13 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_break (0);
   GNUNET_CORE_disconnect (p1.ch);
+  p1.ch = NULL;
   GNUNET_CORE_disconnect (p2.ch);
+  p2.ch = NULL;
   GNUNET_TRANSPORT_disconnect (p1.th);
+  p1.th = NULL;
   GNUNET_TRANSPORT_disconnect (p2.th);
+  p2.th = NULL;
   ok = 42;
 }
 
@@ -187,6 +203,12 @@ outbound_notify (void *cls,
 static GNUNET_SCHEDULER_TaskIdentifier err_task;
 
 
+static size_t
+transmit_ready (void *cls, size_t size, void *buf);
+
+static int tr_n;
+
+
 static int
 process_mtype (void *cls,
                const struct GNUNET_PeerIdentity *peer,
@@ -238,6 +260,17 @@ process_mtype (void *cls,
       GNUNET_SCHEDULER_cancel (sched, err_task);
       GNUNET_SCHEDULER_add_now (sched, &terminate_task, NULL);
     }
+  else
+    {
+      if (n == tr_n)
+	GNUNET_break (NULL != 
+		      GNUNET_CORE_notify_transmit_ready (p1.ch,
+							 0,
+							 FAST_TIMEOUT,
+							 &p2.id,
+							 sizeof (struct GNUNET_MessageHeader),
+							 &transmit_ready, &p1));
+    }
   return GNUNET_OK;
 }
 
@@ -251,52 +284,58 @@ static struct GNUNET_CORE_MessageHandler handlers[] = {
 static size_t
 transmit_ready (void *cls, size_t size, void *buf)
 {
-  static int n;
   char *cbuf = buf;
   struct TestMessage hdr;
   unsigned int s;
   unsigned int ret;
 
+  GNUNET_assert (size <= GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE); 
   if (buf == NULL)
     {
-      GNUNET_break (0);
-      ok = 42;
+      if (p1.ch != NULL)
+	GNUNET_break (NULL != 
+		      GNUNET_CORE_notify_transmit_ready (p1.ch,
+							 0,
+							 FAST_TIMEOUT,
+							 &p2.id,
+							 sizeof (struct GNUNET_MessageHeader),
+							 &transmit_ready, &p1));
       return 0;
     }
+  GNUNET_assert (tr_n < TOTAL_MSGS);
   ret = 0;
-  s = get_size (n);
+  s = get_size (tr_n);
   GNUNET_assert (size >= s);
   GNUNET_assert (buf != NULL);
   cbuf = buf;
   do
     {
-      hdr.header.size = htons (s);
-      hdr.header.type = htons (MTYPE);
-      hdr.num = htonl (n);
-      memcpy (&cbuf[ret], &hdr, sizeof (struct TestMessage));
-      ret += sizeof (struct TestMessage);
-      memset (&cbuf[ret], n, s - sizeof (struct TestMessage));
-      ret += s - sizeof (struct TestMessage);
 #if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Sending message %u of size %u\n",
-		  n,
-		  s);
+		  "Sending message %u of size %u at offset %u\n",
+		  tr_n,
+		  s,
+		  ret);
 #endif
-      n++;
-      s = get_size (n);
+      hdr.header.size = htons (s);
+      hdr.header.type = htons (MTYPE);
+      hdr.num = htonl (tr_n);
+      memcpy (&cbuf[ret], &hdr, sizeof (struct TestMessage));
+      ret += sizeof (struct TestMessage);
+      memset (&cbuf[ret], tr_n, s - sizeof (struct TestMessage));
+      ret += s - sizeof (struct TestMessage);
+      tr_n++;
+      s = get_size (tr_n);
       if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16))
 	break; /* sometimes pack buffer full, sometimes not */
     }
   while (size - ret >= s);
-  if (n < TOTAL_MSGS)
-    GNUNET_break (NULL != 
-		  GNUNET_CORE_notify_transmit_ready (p1.ch,
-						     0,
-						     GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 45),
-						     &p2.id,
-						     sizeof (struct GNUNET_MessageHeader),
-						     &transmit_ready, &p1));
+  GNUNET_SCHEDULER_cancel (sched, err_task);
+  err_task = 
+    GNUNET_SCHEDULER_add_delayed (sched,
+				  TIMEOUT,
+				  &terminate_task_error, 
+				  NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Returning total message block of size %u\n",
 	      ret);
@@ -315,7 +354,7 @@ init_notify (void *cls,
   struct PeerContext *p = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core connection to `%4s' established\n",
+              "Connection to CORE service of `%4s' established\n",
               GNUNET_i2s (my_identity));
   GNUNET_assert (server != NULL);
   p->id = *my_identity;
@@ -346,14 +385,14 @@ init_notify (void *cls,
                   GNUNET_i2s (&p2.id));
       err_task = 
 	GNUNET_SCHEDULER_add_delayed (sched,
-				      GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 120), 
+				      TIMEOUT,
 				      &terminate_task_error, 
 				      NULL);
       start_time = GNUNET_TIME_absolute_get ();
       GNUNET_break (NULL != 
 		    GNUNET_CORE_notify_transmit_ready (p1.ch,
 						       0,
-						       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 45),
+						       TIMEOUT,
 						       &p2.id,
 						       sizeof (struct GNUNET_MessageHeader),
 						       &transmit_ready, &p1));
