@@ -189,7 +189,7 @@ test_container_bloomfilter_LDADD = \
 test_container_meta_data_SOURCES = \
  test_container_meta_data.c
 test_container_meta_data_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la  
+ $(top_builddir)/src/util/libgnunetutil.la -lextractor
 
 test_container_multihashmap_SOURCES = \
  test_container_multihashmap.c
