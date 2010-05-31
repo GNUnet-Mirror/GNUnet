@@ -851,6 +851,8 @@ static void send_execute (void *cls,
                                __LINE__,
                                curl_easy_strerror (msg->data.result));
                     /* sending msg failed*/
+                    if ( NULL != cs->transmit_cont)
+                      cs->transmit_cont (NULL,&cs->sender,GNUNET_SYSERR);
                     }
                   else
                     {
@@ -862,6 +864,7 @@ static void send_execute (void *cls,
                     curl_easy_cleanup(cs->curl_handle);
                     cs->curl_handle=NULL;
 
+                    /* send pending messages */
                     if (cs->pending_outbound_msg != NULL)
                       send_select_init (cs);
 

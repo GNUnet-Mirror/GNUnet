@@ -299,6 +299,7 @@ run (void *cls,
                   _
                   ("Transport service is lacking key configuration settings.  Exiting.\n"));
       GNUNET_SCHEDULER_shutdown (s);
+      fail = 1;
       return;
     }
   max_connect_per_transport = (uint32_t) tneigh;
@@ -310,6 +311,7 @@ run (void *cls,
                   _
                   ("Transport service could not access hostkey.  Exiting.\n"));
       GNUNET_SCHEDULER_shutdown (s);
+      fail = 1;
       return;
     }
   GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
@@ -326,15 +328,19 @@ run (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Failed to load transport plugin for http\n"));
-    fail = GNUNET_YES;
+    fail = 1;
     return;
   }
 
   ti_timeout = GNUNET_SCHEDULER_add_delayed (sched, TEST_TIMEOUT, &task_timeout, NULL);
 
+  /* testing plugin functionality */
 
 
+  /* testing finished, shutting down */
+  shutdown_clean();
 
+  fail = 0;
   return;
 }
 
