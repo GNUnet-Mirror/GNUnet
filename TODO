@@ -1,9 +1,10 @@
 0.9.0pre1:
 * FS: [CG]
   - Migration test error scenarios:
-    1) peers fail to connect (very, very rare)
+    1) peers fail to connect (very, very rare) => maybe explained with bandwidth bug discovered with transport test
     2) 1 out of 3 bits of content fails to migrate (destination peer never sees it);
        suspicion: core packs two migration messages into one, and someone throws away the 2nd half!
+       => likely reproduced with new core api reliability test (which still fails)
     3) client fails to connect to FS service for download (requests never make it to FS)
        FS was running initially, but is shut down around the time the source peer (!)
        is supposed to die; the OTHER FS service (the one that was supposed to die) is still up!
