@@ -394,7 +394,7 @@ static void pretty_printer_cb (void *cls,
 {
   if (NULL==address)
     return;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Plugin returned: `%s'\n",address);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Plugin returnedp pretty address: `%s'\n",address);
   fail_pretty_printer_count++;
 }
 
@@ -421,6 +421,7 @@ run (void *cls,
   struct Plugin_Address * tmp;
   const char * addr_str;
   unsigned int count_str_addr;
+  unsigned int suggest_res;
 
   fail_pretty_printer = GNUNET_YES;
   fail_notify_address = GNUNET_YES;
@@ -485,8 +486,11 @@ run (void *cls,
   {
     cur = addr_head;
 
-    api->address_pretty_printer(NULL,"http",cur->addr,cur->addrlen,GNUNET_NO,TEST_TIMEOUT,&pretty_printer_cb,NULL);
-    addr_str = api->address_to_string(NULL,cur->addr,cur->addrlen);
+    api->address_pretty_printer (NULL,"http",cur->addr,cur->addrlen,GNUNET_NO,TEST_TIMEOUT,&pretty_printer_cb,NULL);
+    addr_str = api->address_to_string (NULL,cur->addr,cur->addrlen);
+    suggest_res = api->check_address (NULL,cur->addr,cur->addrlen);
+
+    GNUNET_assert (GNUNET_OK == suggest_res);
     GNUNET_assert (NULL != addr_str);
     count_str_addr++;
 
@@ -500,6 +504,25 @@ run (void *cls,
   GNUNET_assert (fail_pretty_printer_count==count_str_addr);
   fail_pretty_printer=GNUNET_NO;
   fail_addr_to_str=GNUNET_NO;
+
+  /* Suggesting addresses with wrong port*/
+  struct IPv4HttpAddress failing_addr;
+  failing_addr.ipv4_addr = INADDR_LOOPBACK;
+  failing_addr.u_port = 0;
+  suggest_res = api->check_address (NULL,&failing_addr,sizeof (struct IPv4HttpAddress));
+  GNUNET_assert (GNUNET_SYSERR == suggest_res);
+
+  /* Suggesting addresses with wrong size*/
+  failing_addr.ipv4_addr = INADDR_LOOPBACK;
+  failing_addr.u_port = 0;
+  suggest_res = api->check_address (NULL,&failing_addr,sizeof (struct IPv6HttpAddress));
+  GNUNET_assert (GNUNET_SYSERR == suggest_res);
+
+  /* Suggesting addresses with wrong address*/
+  failing_addr.ipv4_addr = 0;
+  failing_addr.u_port = 12389;
+  suggest_res = api->check_address (NULL,&failing_addr,sizeof (struct IPv4HttpAddress));
+  GNUNET_assert (GNUNET_SYSERR == suggest_res);
 
   /* testing finished, shutting down */
   if ((fail_notify_address == GNUNET_NO) && (fail_pretty_printer == GNUNET_NO) && (fail_addr_to_str == GNUNET_NO) )

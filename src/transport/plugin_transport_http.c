@@ -1199,11 +1199,42 @@ static int
 http_plugin_address_suggested (void *cls,
                                   void *addr, size_t addrlen)
 {
-  /* struct Plugin *plugin = cls; */
+  struct IPv4HttpAddress *v4;
+  struct IPv6HttpAddress *v6;
 
-  /* check if the address is plausible; if so,
-     add it to our list! */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: http_plugin_address_suggested\n");
+  if ((addrlen != sizeof (struct IPv4HttpAddress)) &&
+      (addrlen != sizeof (struct IPv6HttpAddress)))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+  if (addrlen == sizeof (struct IPv4HttpAddress))
+    {
+      v4 = (struct IPv4HttpAddress *) addr;
+
+      v4->u_port = ntohs (v4->u_port);
+      if (v4->u_port != plugin->port_inbound)
+      {
+        GNUNET_break_op (0);
+        return GNUNET_SYSERR;
+      }
+    }
+  else
+    {
+      v6 = (struct IPv6HttpAddress *) addr;
+      if (IN6_IS_ADDR_LINKLOCAL (&v6->ipv6_addr))
+        {
+          GNUNET_break_op (0);
+          return GNUNET_SYSERR;
+        }
+      v6->u6_port = ntohs (v6->u6_port);
+      if (v6->u6_port != plugin->port_inbound)
+      {
+        GNUNET_break_op (0);
+        return GNUNET_SYSERR;
+      }
+
+    }
   return GNUNET_OK;
 }
 
