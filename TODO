@@ -4,7 +4,8 @@
     1) peers fail to connect (very, very rare) => maybe explained with bandwidth bug discovered with transport test
     2) 1 out of 3 bits of content fails to migrate (destination peer never sees it);
        suspicion: core packs two migration messages into one, and someone throws away the 2nd half!
-       => likely reproduced with new core api reliability test (which still fails)
+       => likely reproduced with new core api reliability test (which now passes but showed bugs)
+       => might be fixed now with util's server-nc and core's 'short-fuse' bugs begin fixed
     3) client fails to connect to FS service for download (requests never make it to FS)
        FS was running initially, but is shut down around the time the source peer (!)
        is supposed to die; the OTHER FS service (the one that was supposed to die) is still up!
