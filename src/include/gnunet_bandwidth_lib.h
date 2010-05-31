@@ -62,7 +62,7 @@ struct GNUNET_BANDWIDTH_Tracker
   /**
    * Number of bytes consumed since we last updated the tracker.
    */
-  uint64_t consumption_since_last_update__;
+  int64_t consumption_since_last_update__;
 
   /**
    * Time when we last updated the tracker.
