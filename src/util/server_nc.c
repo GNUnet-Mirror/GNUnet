@@ -33,6 +33,8 @@
 #include "gnunet_time_lib.h"
 
 
+#define DEBUG_SERVER_NC GNUNET_NO
+
 /**
  * Entry in list of messages pending to be transmitted.
  */
@@ -289,12 +291,18 @@ transmit_message (void *cls,
   while (cl->pending_head != NULL)
     {
       pml = cl->pending_head;
-      cl->pending_head = pml->next;
-      if (pml->next == NULL)
-	cl->pending_tail = NULL;
       msize = ntohs (pml->msg->size);
       if (size < msize)
 	break;
+      cl->pending_head = pml->next;
+      if (pml->next == NULL)
+	cl->pending_tail = NULL;
+#if DEBUG_SERVER_NC
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Copying message of type %u and size %u from pending queue to transmission buffer\n",
+		  ntohs (pml->msg->type),
+		  msize);
+#endif
       memcpy (&cbuf[ret], pml->msg, msize);
       ret += msize;
       size -= msize;
@@ -330,7 +338,14 @@ do_unicast (struct GNUNET_SERVER_NotificationContext *nc,
 
   if ( (client->num_pending > nc->queue_length) &&
        (GNUNET_YES == can_drop) )
-    return; /* drop! */
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  "Dropping message of type %u and size %u due to full queue (%u entries)\n",
+		  ntohs (msg->type),
+		  ntohs (msg->size),
+		  (unsigned int) nc->queue_length);
+      return; /* drop! */
+    }
   if (client->num_pending > nc->queue_length)
     {
       /* FIXME: consider checking for other messages in the
@@ -340,7 +355,14 @@ do_unicast (struct GNUNET_SERVER_NotificationContext *nc,
   size = ntohs (msg->size);
   pml = GNUNET_malloc (sizeof (struct PendingMessageList) + size);
   pml->msg = (const struct GNUNET_MessageHeader*) &pml[1];
-  pml->can_drop = can_drop;
+  pml->can_drop = can_drop; 
+#if DEBUG_SERVER_NC
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Adding message of type %u and size %u to pending queue (which has %u entries)\n",
+	      ntohs (msg->type),
+	      ntohs (msg->size),
+	      (unsigned int) nc->queue_length);
+#endif
   memcpy (&pml[1], msg, size);
   /* append */
   if (client->pending_tail != NULL)
