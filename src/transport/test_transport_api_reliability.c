@@ -35,12 +35,17 @@
 #include "gnunet_transport_service.h"
 #include "transport.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define VERBOSE_ARM GNUNET_NO
 
 #define START_ARM GNUNET_YES
 
+/**
+ * Note that this value must not significantly exceed
+ * 'MAX_PENDING' in 'gnunet-service-transport.c', otherwise
+ * messages may be dropped even for a reliable transport.
+ */
 #define TOTAL_MSGS (60000 * 2)
 
 /**
@@ -72,6 +77,10 @@ static int is_tcp;
 
 static int is_http;
 
+static unsigned long long total_bytes;
+
+static struct GNUNET_TIME_Absolute start_time;
+
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 #if VERBOSE
@@ -84,15 +93,23 @@ static GNUNET_SCHEDULER_TaskIdentifier die_task;
 static void
 end ()
 {
-  GNUNET_assert (ok == 6);
+  unsigned long long delta;
+
   GNUNET_SCHEDULER_cancel (sched, die_task);
+  die_task = GNUNET_SCHEDULER_NO_TASK;
+#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transports!\n");
+#endif
   GNUNET_TRANSPORT_disconnect (p1.th);
   GNUNET_TRANSPORT_disconnect (p2.th);
-
-  die_task = GNUNET_SCHEDULER_NO_TASK;
+#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Transports disconnected, returning success!\n");
+#endif
+  delta = GNUNET_TIME_absolute_get_duration (start_time).value;
+  fprintf (stderr,
+	   "\nThroughput was %llu kb/s\n",
+	   total_bytes * 1000 / 1024 / delta);
   ok = 0;
 }
 
@@ -175,11 +192,15 @@ notify_receive (void *cls,
       die_task = GNUNET_SCHEDULER_add_now (sched, &end_badly, NULL);
       return;
     }
+#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Got message %u of size %u\n",
 	      ntohl (hdr->num),
 	      ntohs (message->size));	      
+#endif
   n++;
+  if (0 == (n % (TOTAL_MSGS/100)))
+    fprintf (stderr, ".");
   if (n == TOTAL_MSGS)
     end ();
 }
@@ -214,10 +235,12 @@ notify_ready (void *cls, size_t size, void *buf)
       ret += sizeof (struct TestMessage);
       memset (&cbuf[ret], n, s - sizeof (struct TestMessage));
       ret += s - sizeof (struct TestMessage);
+#if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Sending message %u of size %u\n",
 		  n,
 		  s);
+#endif
       n++;
       s = get_size (n);
       if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16))
@@ -233,6 +256,7 @@ notify_ready (void *cls, size_t size, void *buf)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Returning total message block of size %u\n",
 	      ret);
+  total_bytes += ret;
   return ret;
 }
 
@@ -251,6 +275,7 @@ notify_connect (void *cls,
 				  GNUNET_BANDWIDTH_value_init (1024 * 1024 * 1024),
 				  GNUNET_TIME_UNIT_FOREVER_REL,
 				  NULL, NULL);
+      start_time = GNUNET_TIME_absolute_get ();
       GNUNET_TRANSPORT_notify_transmit_ready (p1.th,
 					      &p2.id,
 					      get_size (0), 0, TIMEOUT, 
@@ -266,17 +291,21 @@ notify_connect (void *cls,
 				  GNUNET_TIME_UNIT_FOREVER_REL,
 				  NULL, NULL);
     }
+#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer `%4s' connected to us (%p)!\n", GNUNET_i2s (peer), cls);
+#endif
 }
 
 
 static void
 notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
+#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer `%4s' disconnected (%p)!\n",
 	      GNUNET_i2s (peer), cls);
+#endif
 }
 
 
@@ -310,8 +339,10 @@ exchange_hello_last (void *cls,
   struct PeerContext *me = cls;
 
   GNUNET_TRANSPORT_get_hello_cancel (p2.th, &exchange_hello_last, me);
+#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Exchanging HELLO with peer (%p)!\n", cls);
+#endif
   GNUNET_assert (ok >= 3);
   OKPP;
   GNUNET_assert (message != NULL);
@@ -331,8 +362,10 @@ exchange_hello (void *cls,
   struct PeerContext *me = cls;
 
   GNUNET_TRANSPORT_get_hello_cancel (p1.th, &exchange_hello, me);
+#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Exchanging HELLO with peer (%p)!\n", cls);
+#endif
   GNUNET_assert (ok >= 2);
   OKPP;
   GNUNET_assert (message != NULL);
@@ -340,9 +373,11 @@ exchange_hello (void *cls,
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
                                       message, &me->id));
 
+#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received HELLO size %d\n", GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message));
-
+              "Received HELLO size %d\n", 
+	      GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message));
+#endif
   GNUNET_TRANSPORT_offer_hello (p2.th, message);
   GNUNET_TRANSPORT_get_hello (p2.th, &exchange_hello_last, &p2);
 }
@@ -399,7 +434,7 @@ check ()
 #endif
   ok = 1;
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-transport-api", "nohelp",
+                      argv, "test-transport-api-reliability", "nohelp",
                       options, &run, &ok);
   stop_arm (&p1);
   stop_arm (&p2);

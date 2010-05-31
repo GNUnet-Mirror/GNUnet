@@ -58,9 +58,12 @@
  * messages, so the number should be chosen rather generously.
  *
  * The expectation here is that most of the time the queue is large
- * enough so that a drop is virtually never required.
+ * enough so that a drop is virtually never required.  Note that
+ * this value must be about as large as 'TOTAL_MSGS' in the
+ * 'test_transport_api_reliability.c', otherwise that testcase may
+ * fail.
  */
-#define MAX_PENDING 128
+#define MAX_PENDING (128 * 1024)
 
 /**
  * Size of the per-transport blacklist hash maps.
@@ -1225,6 +1228,32 @@ transmit_to_client_callback (void *cls, size_t size, void *buf)
 
 
 /**
+ * Convert an address to a string.
+ *
+ * @param plugin name of the plugin responsible for the address
+ * @param addr binary address
+ * @param addr_len number of bytes in addr
+ * @return NULL on error, otherwise address string
+ */
+static const char*
+a2s (const char *plugin,
+     const void *addr,
+     uint16_t addr_len)
+{
+  struct TransportPlugin *p;
+
+  if (plugin == NULL)
+    return NULL;
+  p = find_transport (plugin);
+  if (p == NULL)
+    return NULL;
+  return p->api->address_to_string (p->api->cls,
+				    addr,
+				    addr_len);
+}   
+
+
+/**
  * Mark the given FAL entry as 'connected' (and hence preferred for
  * sending); also mark all others for the same peer as 'not connected'
  * (since only one can be preferred).
@@ -1246,9 +1275,20 @@ mark_address_connected (struct ForeignAddressList *fal)
     {
       if (GNUNET_YES == pos->connected)
 	{
+#if DEBUG_TRANSPORT
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Marking address `%s' as no longer connected (due to connect on other address)\n",
+		      a2s (pos->ready_list->plugin->short_name,
+			   pos->addr,
+			   pos->addrlen));
+#endif
 	  GNUNET_break (cnt == GNUNET_YES);
 	  cnt = GNUNET_NO;
 	  pos->connected = GNUNET_NO;
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# connected addresses"),
+				    -1,
+				    GNUNET_NO);
 	}
       pos = pos->next;
     }
@@ -1284,9 +1324,15 @@ transmit_to_client (struct TransportClient *client,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   _
-                  ("Dropping message, have %u messages pending (%u is the soft limit)\n"),
-                  client->message_count, MAX_PENDING);
-      /* TODO: call to statistics... */
+                  ("Dropping message of type %u and size %u, have %u messages pending (%u is the soft limit)\n"),
+		  ntohs (msg->type),
+		  ntohs (msg->size),
+                  client->message_count, 
+		  MAX_PENDING);
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# messages dropped due to slow client"),
+				1,
+				GNUNET_NO);
       return;
     }
   msize = ntohs (msg->size);
@@ -1390,6 +1436,13 @@ transmit_send_continuation (void *cls,
 	{
 	  if (mq->specific_address->connected != GNUNET_NO)
 	    {
+#if DEBUG_TRANSPORT
+	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+			  "Marking address `%s' as no longer connected (due to transmission problem)\n",
+			  a2s (mq->specific_address->ready_list->plugin->short_name,
+			       mq->specific_address->addr,
+			       mq->specific_address->addrlen));
+#endif
 	      GNUNET_STATISTICS_update (stats,
 					gettext_noop ("# connected addresses"),
 					-1,
@@ -1405,32 +1458,6 @@ transmit_send_continuation (void *cls,
   GNUNET_free (mq);
   try_transmission_to_peer (n);
 }
-
-
-/**
- * Convert an address to a string.
- *
- * @param plugin name of the plugin responsible for the address
- * @param addr binary address
- * @param addr_len number of bytes in addr
- * @return NULL on error, otherwise address string
- */
-static const char*
-a2s (const char *plugin,
-     const void *addr,
-     uint16_t addr_len)
-{
-  struct TransportPlugin *p;
-
-  if (plugin == NULL)
-    return NULL;
-  p = find_transport (plugin);
-  if (p == NULL)
-    return NULL;
-  return p->api->address_to_string (p->api->cls,
-				    addr,
-				    addr_len);
-}   
 
 
 /**
@@ -1508,7 +1535,10 @@ find_ready_address(struct NeighbourList *neighbour)
     {
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Best address found has latency of %llu ms.\n",
+                  "Best address found (`%s') has latency of %llu ms.\n",
+		  a2s (best_address->ready_list->plugin->short_name,
+		       best_address->addr,
+		       best_address->addrlen),
                   best_address->latency.value);
 #endif
     }
@@ -3228,8 +3258,9 @@ handle_payload_message (const struct GNUNET_MessageHeader *message,
     }
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received message of type %u from `%4s', sending to all clients.\n",
+	      "Received message of type %u and size %u from `%4s', sending to all clients.\n",
 	      ntohs (message->type), 
+	      ntohs (message->size), 
 	      GNUNET_i2s (&n->id));
 #endif
   if (GNUNET_YES == GNUNET_BANDWIDTH_tracker_consume (&n->in_tracker,
@@ -3718,7 +3749,7 @@ check_hello_validated (void *cls,
 					     NULL);
 	  GNUNET_PEERINFO_add_peer (peerinfo, plain_hello);
 	  GNUNET_free (plain_hello);
-#if DEBUG_TRANSPORT || 1
+#if DEBUG_TRANSPORT
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "PEERINFO had no `%s' message for peer `%4s', full validation needed.\n",
 		      "HELLO",
@@ -4248,8 +4279,10 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 	}
 #if DEBUG_PING_PONG
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Received message of type %u from `%4s', sending to all clients.\n",
-                      ntohs (message->type), GNUNET_i2s (peer));
+                      "Received message of type %u and size %u from `%4s', sending to all clients.\n",
+                      ntohs (message->type), 
+                      ntohs (message->size), 
+		      GNUNET_i2s (peer));
 #endif
       switch (ntohs (message->type))
 	{

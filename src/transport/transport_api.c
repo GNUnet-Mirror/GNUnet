@@ -548,10 +548,12 @@ transport_notify_ready (void *cls, size_t size, void *buf)
 				   h->control_tail,
 				   cm);      
       nret = cm->notify (cm->notify_cls, size, &cbuf[ret]);
+#if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Added %u bytes of control message at %u\n",
 		  nret,
 		  ret);
+#endif
       GNUNET_free (cm);
       ret += nret;
       size -= nret;
