@@ -34,6 +34,7 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_resolver_service.h"
 #include "plugin_transport.h"
+#include "gnunet_os_lib.h"
 #include "microhttpd.h"
 #include <curl/curl.h>
 
@@ -70,6 +71,43 @@
 struct Plugin;
 
 /**
+ * Network format for IPv4 addresses.
+ */
+struct IPv4HttpAddress
+{
+  /**
+   * IPv4 address, in network byte order.
+   */
+  uint32_t ipv4_addr;
+
+  /**
+   * Port number, in network byte order.
+   */
+  uint16_t u_port;
+
+};
+
+
+/**
+ * Network format for IPv6 addresses.
+ */
+struct IPv6HttpAddress
+{
+  /**
+   * IPv6 address.
+   */
+  struct in6_addr ipv6_addr;
+
+  /**
+   * Port number, in network byte order.
+   */
+  uint16_t u6_port;
+
+};
+
+
+
+/**
  *  Message to send using http
  */
 struct HTTP_Message
@@ -92,8 +130,6 @@ struct HTTP_Message
   /**
    * amount of data to sent
    */
-  size_t size;
-
   size_t len;
 };
 
@@ -203,6 +239,8 @@ struct Plugin
    * Handle to the network service.
    */
   struct GNUNET_SERVICE_Context *service;
+
+  unsigned int port_inbound;
 
   /**
    * List of open sessions.
@@ -1106,6 +1144,8 @@ http_plugin_address_pretty_printer (void *cls,
                                         asc, void *asc_cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: http_plugin_address_pretty_printer\n");
+
+
   asc (asc_cls, NULL);
 }
 
@@ -1155,6 +1195,61 @@ http_plugin_address_to_string (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: http_plugin_address_to_string\n");
   GNUNET_break (0);
   return NULL;
+}
+
+/**
+ * Add the IP of our network interface to the list of
+ * our external IP addresses.
+ *
+ * @param cls the 'struct Plugin*'
+ * @param name name of the interface
+ * @param isDefault do we think this may be our default interface
+ * @param addr address of the interface
+ * @param addrlen number of bytes in addr
+ * @return GNUNET_OK to continue iterating
+ */
+static int
+process_interfaces (void *cls,
+                    const char *name,
+                    int isDefault,
+                    const struct sockaddr *addr, socklen_t addrlen)
+{
+  struct IPv4HttpAddress t4;
+  struct IPv6HttpAddress t6;
+  int af;
+  void *arg;
+  uint16_t args;
+
+  af = addr->sa_family;
+  if (af == AF_INET)
+    {
+      t4.ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
+      t4.u_port = htons (plugin->port_inbound);
+      arg = &t4;
+      args = sizeof (t4);
+    }
+  else if (af == AF_INET6)
+    {
+      if (IN6_IS_ADDR_LINKLOCAL (&((struct sockaddr_in6 *) addr)->sin6_addr))
+        {
+          /* skip link local addresses */
+          return GNUNET_OK;
+        }
+      memcpy (&t6.ipv6_addr,
+              &((struct sockaddr_in6 *) addr)->sin6_addr,
+              sizeof (struct in6_addr));
+      t6.u6_port = htons (plugin->port_inbound);
+      arg = &t6;
+      args = sizeof (t6);
+    }
+  else
+    {
+      GNUNET_break (0);
+      return GNUNET_OK;
+    }
+  plugin->env->notify_address(plugin->env->cls,"http",arg, args, GNUNET_TIME_UNIT_FOREVER_REL);
+
+  return GNUNET_OK;
 }
 
 /**
@@ -1302,7 +1397,7 @@ libgnunet_plugin_transport_http_init (void *cls)
       libgnunet_plugin_transport_http_done (api);
       return NULL;
     }
-
+  plugin->port_inbound = port;
   gn_timeout = GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT;
   timeout = ( gn_timeout.value / 1000);
   if ((http_daemon_v4 == NULL) && (http_daemon_v6 == NULL) && (port != 0))
@@ -1340,6 +1435,7 @@ libgnunet_plugin_transport_http_init (void *cls)
   if (http_task_v6 != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD with IPv4 and IPv6 on port %u\n",port);
 
+
   /* Initializing cURL */
   multi_handle = curl_multi_init();
   if ( NULL == multi_handle )
@@ -1351,6 +1447,9 @@ libgnunet_plugin_transport_http_init (void *cls)
     libgnunet_plugin_transport_http_done (api);
     return NULL;
   }
+
+  GNUNET_OS_network_interfaces_list (&process_interfaces, plugin);
+
   return api;
 }
 

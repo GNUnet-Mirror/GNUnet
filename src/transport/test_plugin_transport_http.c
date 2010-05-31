@@ -121,6 +121,16 @@ static GNUNET_SCHEDULER_TaskIdentifier ti_send;
 
 const struct GNUNET_PeerIdentity * p;
 
+
+/**
+ * Did the test pass or fail?
+ */
+static int fail_notify_address;
+/**
+ * Did the test pass or fail?
+ */
+static int fail_notify_address_count;
+
 /**
  * Did the test pass or fail?
  */
@@ -220,6 +230,45 @@ receive (void *cls,
   return GNUNET_TIME_UNIT_ZERO;
 }
 
+
+/**
+ * Network format for IPv4 addresses.
+ */
+struct IPv4HttpAddress
+{
+  /**
+   * IPv4 address, in network byte order.
+   */
+  uint32_t ipv4_addr;
+
+  /**
+   * Port number, in network byte order.
+   */
+  uint16_t u_port;
+
+};
+
+
+/**
+ * Network format for IPv6 addresses.
+ */
+struct IPv6HttpAddress
+{
+  /**
+   * IPv6 address.
+   */
+  struct in6_addr ipv6_addr;
+
+  /**
+   * Port number, in network byte order.
+   */
+  uint16_t u6_port;
+
+};
+
+/**
+ * Plugin notifies transport (aka testcase) about its addresses
+ */
 void
 notify_address (void *cls,
                 const char *name,
@@ -227,7 +276,27 @@ notify_address (void *cls,
                 uint16_t addrlen,
                 struct GNUNET_TIME_Relative expires)
 {
+  char * address = NULL;
+  unsigned int port;
 
+
+  if (addrlen == (sizeof (struct IPv4HttpAddress)))
+  {
+    address = GNUNET_malloc (INET_ADDRSTRLEN);
+    inet_ntop(AF_INET, (struct in_addr *) addr,address,INET_ADDRSTRLEN);
+    port = ntohs(((struct IPv4HttpAddress *) addr)->u_port);
+  }
+
+  if (addrlen == (sizeof (struct IPv6HttpAddress)))
+  {
+    address = GNUNET_malloc (INET6_ADDRSTRLEN);
+    inet_ntop(AF_INET6, (struct in6_addr *) addr,address,INET6_ADDRSTRLEN);
+    port = ntohs(((struct IPv6HttpAddress *) addr)->u6_port);
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Transport plugin notification for address: `%s':%u\n"),address,port);
+  fail_notify_address_count++;
+
+  fail_notify_address = GNUNET_NO;
 }
 
 /**
@@ -308,8 +377,7 @@ run (void *cls,
   if (my_private_key == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _
-                  ("Transport service could not access hostkey.  Exiting.\n"));
+                  _("Transport service could not access hostkey.  Exiting.\n"));
       GNUNET_SCHEDULER_shutdown (s);
       fail = 1;
       return;
@@ -335,12 +403,18 @@ run (void *cls,
   ti_timeout = GNUNET_SCHEDULER_add_delayed (sched, TEST_TIMEOUT, &task_timeout, NULL);
 
   /* testing plugin functionality */
-
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Transport plugin returned %u addresses to connect to\n"),  fail_notify_address_count);
 
   /* testing finished, shutting down */
+
+  if (fail_notify_address == GNUNET_NO)
+    fail = 0;
+
+
+
   shutdown_clean();
 
-  fail = 0;
+
   return;
 }
 

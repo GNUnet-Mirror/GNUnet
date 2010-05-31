@@ -9,7 +9,7 @@ endif
 if HAVE_MHD 
  GN_LIBMHD = -lmicrohttpd
  HTTP_PLUGIN_LA = libgnunet_plugin_transport_http.la
- HTTP_PLGUIN_CHECK = test_plugin_transport_http
+ HTTP_PLUGIN_CHECK = test_plugin_transport_http
 endif
 
 if USE_COVERAGE
@@ -133,7 +133,7 @@ check_PROGRAMS = \
  test_transport_api_tcp \
  test_transport_api_tcp \
  test_transport_api_udp \
- $(HTTP_PLGUIN_CHECK) \
+ $(HTTP_PLUGIN_CHECK) \
  test_transport_api_udp_nat \
  test_transport_api_reliability_tcp 
 # test_transport_api_http \
