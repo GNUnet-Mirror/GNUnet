@@ -365,21 +365,6 @@ GNUNET_CONTAINER_meta_data_get_thumbnail (const struct
 					  GNUNET_CONTAINER_MetaData
 					  *md, unsigned char **thumb);
 
-/**
- * Extract meta-data from a file.
- *
- * @param md metadata to set
- * @param filename name of file to inspect
- * @param extractors plugins to use
- * @return GNUNET_SYSERR on error, otherwise the number
- *   of meta-data items obtained
- */
-int 
-GNUNET_CONTAINER_meta_data_extract_from_file (struct
-					      GNUNET_CONTAINER_MetaData
-					      *md, const char *filename,
-					      struct EXTRACTOR_PluginList *
-					      extractors);
 
 
 /**

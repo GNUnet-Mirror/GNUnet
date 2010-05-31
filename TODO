@@ -135,11 +135,6 @@
   - figure out where in the GUI we should show active uploads/unindex operations and allow aborts
 * SETUP:
   - design & implement new setup tool
-* UTIL:
-  - remove dependency on GNU LE from util (linker-wise) so that
-    not all binaries are linked against LE! (header is OK!)
-    (seems that only GNUNET_CONTAINER_meta_data_extract_from_file
-    needs to be moved to another location, i.e. FS/file-info for this!)
 
 0.9.0pre3:
 * TRACEKIT: [MW]

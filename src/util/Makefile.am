@@ -71,7 +71,7 @@ libgnunetutil_la_SOURCES = \
 libgnunetutil_la_LIBADD = \
   $(GCLIBADD) $(WINLIB) \
   $(LIBGCRYPT_LIBS) \
-  -lgmp -lltdl -lz -lextractor $(XLIB)
+  -lgmp -lltdl -lz $(XLIB)
 
 libgnunetutil_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
@@ -373,7 +373,6 @@ EXTRA_DIST = \
   program_lib_strnlen.c \
   program_lib_mempcpy.c \
   test_configuration_data.conf \
-  test_container_meta_data_image.jpg \
   test_program_data.conf \
   test_pseudonym_data.conf \
   test_resolver_api_data.conf \
