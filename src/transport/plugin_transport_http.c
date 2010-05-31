@@ -290,13 +290,32 @@ static struct Session * find_session_by_pi( const struct GNUNET_PeerIdentity *pe
 }
 
 /**
+ * Finds a http session in our linked list using libcurl handle as a key
+ * Needed when sending data with libcurl to differentiate between sessions
+ * @param peer peeridentity
+ * @return http session corresponding to peer identity
+ */
+static struct Session * find_session_by_curlhandle( CURL* handle )
+{
+  struct Session * cur;
+
+  cur = plugin->sessions;
+  while (cur != NULL)
+  {
+    if ( handle == cur->curl_handle )
+      return cur;
+    cur = plugin->sessions->next;
+  }
+  return NULL;
+}
+
+/**
  * Create a new session
  *
  * @param address address the peer is using
  * @peer  peer identity
  * @return created session object
  */
-
 static struct Session * create_session (struct sockaddr_in *address, const struct GNUNET_PeerIdentity *peer)
 {
   struct sockaddr_in  *addrin;
@@ -354,10 +373,8 @@ acceptPolicyCallback (void *cls,
                       const struct sockaddr *addr, socklen_t addr_len)
 {
   /* Every connection is accepted, nothing more to do here */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connect!\n");
   return MHD_YES;
 }
-
 
 
 /**
@@ -623,9 +640,8 @@ http_daemon_prepare (struct MHD_Daemon *daemon_handle)
  * Call MHD to process pending requests and then go back
  * and schedule the next run.
  */
-static void
-http_daemon_run (void *cls,
-            const struct GNUNET_SCHEDULER_TaskContext *tc)
+static void http_daemon_run (void *cls,
+                             const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MHD_Daemon *daemon_handle = cls;
 
@@ -638,8 +654,6 @@ http_daemon_run (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-
-
   GNUNET_assert (MHD_YES == MHD_run (daemon_handle));
   if (daemon_handle == http_daemon_v4)
     http_task_v4 = http_daemon_prepare (daemon_handle);
@@ -650,6 +664,9 @@ http_daemon_run (void *cls,
 
 /**
  * Removes a message from the linked list of messages
+ * @param ses session to remove message from
+ * @param msg message to remove
+ * @return GNUNET_SYSERR if msg not found, GNUNET_OK on success
  */
 
 static int remove_http_message(struct Session * ses, struct HTTP_Message * msg)
@@ -688,6 +705,15 @@ static int remove_http_message(struct Session * ses, struct HTTP_Message * msg)
 }
 
 
+/**
+ * Callback method used with libcurl
+ * Method is called when libcurl needs to read data during sending
+ * @param stream pointer where to write data
+ * @param size_t size of an individual element
+ * @param nmemb count of elements that can be written to the buffer
+ * @param ptr source pointer, passed to the libcurl handle
+ * @return bytes written to stream
+ */
 static size_t send_read_callback(void *stream, size_t size, size_t nmemb, void *ptr)
 {
   struct Session * ses = ptr;
@@ -708,12 +734,20 @@ static size_t send_read_callback(void *stream, size_t size, size_t nmemb, void *
   return bytes_sent;
 }
 
-
-static size_t send_write_callback( void *ptr, size_t size, size_t nmemb, void *stream)
+/**
+* Callback method used with libcurl
+* Method is called when libcurl needs to write data during sending
+* @param stream pointer where to write data
+* @param size_t size of an individual element
+* @param nmemb count of elements that can be written to the buffer
+* @param ptr destination pointer, passed to the libcurl handle
+* @return bytes read from stream
+*/
+static size_t send_write_callback( void *stream, size_t size, size_t nmemb, void *ptr)
 {
   char * data = malloc(size*nmemb +1);
 
-  memcpy( data, ptr, size*nmemb);
+  memcpy( data, stream, size*nmemb);
   data[size*nmemb] = '\0';
   /* Just a dummy print for the response recieved for the PUT message */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Recieved %u bytes: `%s' \n", size * nmemb, data);
@@ -722,8 +756,18 @@ static size_t send_write_callback( void *ptr, size_t size, size_t nmemb, void *s
 
 }
 
+/**
+ * Function setting up file descriptors and scheduling task to run
+ * @param ses session to send data to
+ * @return bytes sent to peer
+ */
 static size_t send_prepare(struct Session* session );
 
+/**
+ * Function setting up curl handle and selecting message to send
+ * @param ses session to send data to
+ * @return bytes sent to peer
+ */
 static ssize_t send_select_init (struct Session* ses  )
 {
   char * url;
@@ -769,7 +813,7 @@ static void send_execute (void *cls,
   int running;
   struct CURLMsg *msg;
   CURLMcode mret;
-  struct Session * cs = cls;
+  struct Session * cs = NULL;
 
   http_task_send = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
@@ -779,7 +823,6 @@ static void send_execute (void *cls,
     {
       running = 0;
       mret = curl_multi_perform (multi_handle, &running);
-      //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"send_execute %u\n", running);
       if (running == 0)
         {
           do
@@ -789,11 +832,17 @@ static void send_execute (void *cls,
               GNUNET_break (msg != NULL);
               if (msg == NULL)
                 break;
+              /* get session for affected curl handle */
+              cs = find_session_by_curlhandle (msg->easy_handle);
+              GNUNET_assert ( cs != NULL );
               switch (msg->msg)
                 {
+
                 case CURLMSG_DONE:
                   if ( (msg->data.result != CURLE_OK) &&
                        (msg->data.result != CURLE_GOT_NOTHING) )
+                    {
+
                     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                                _("%s failed for `%s' at %s:%d: `%s'\n"),
                                "curl_multi_perform",
@@ -801,6 +850,8 @@ static void send_execute (void *cls,
                                __FILE__,
                                __LINE__,
                                curl_easy_strerror (msg->data.result));
+                    /* sending msg failed*/
+                    }
                   else
                     {
                     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -832,6 +883,11 @@ static void send_execute (void *cls,
 }
 
 
+/**
+ * Function setting up file descriptors and scheduling task to run
+ * @param ses session to send data to
+ * @return bytes sent to peer
+ */
 static size_t send_prepare(struct Session* session )
 {
   fd_set rs;
@@ -843,7 +899,6 @@ static size_t send_prepare(struct Session* session )
   long to;
   CURLMcode mret;
 
-//  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"send_prepare\n");
   max = -1;
   FD_ZERO (&rs);
   FD_ZERO (&ws);
