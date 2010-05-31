@@ -1220,9 +1220,16 @@ process_interfaces (void *cls,
   void *arg;
   uint16_t args;
 
+
+
   af = addr->sa_family;
   if (af == AF_INET)
     {
+      if (INADDR_LOOPBACK == ntohl(((struct sockaddr_in *) addr)->sin_addr.s_addr))
+      {
+        /* skip loopback addresses */
+        return GNUNET_OK;
+      }
       t4.ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
       t4.u_port = htons (plugin->port_inbound);
       arg = &t4;
@@ -1233,6 +1240,11 @@ process_interfaces (void *cls,
       if (IN6_IS_ADDR_LINKLOCAL (&((struct sockaddr_in6 *) addr)->sin6_addr))
         {
           /* skip link local addresses */
+          return GNUNET_OK;
+        }
+      if (IN6_IS_ADDR_LOOPBACK (&((struct sockaddr_in6 *) addr)->sin6_addr))
+        {
+          /* skip loopback addresses */
           return GNUNET_OK;
         }
       memcpy (&t6.ipv6_addr,
