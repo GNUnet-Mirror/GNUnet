@@ -486,6 +486,11 @@ receive_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char mbuf[msize];
   struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader *) mbuf;
 
+#if DEBUG_CLIENT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received message of size %u\n",
+	      msize);
+#endif
   sock->receive_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (GNUNET_YES == sock->msg_complete);
   GNUNET_assert (sock->received_pos >= msize);
