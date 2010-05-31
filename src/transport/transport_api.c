@@ -588,10 +588,6 @@ transport_notify_ready (void *cls, size_t size, void *buf)
       mret = th->notify (th->notify_cls, 
 			 size - sizeof (struct OutboundMessage),
 			 &cbuf[ret + sizeof (struct OutboundMessage)]);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Added %u bytes of data message at %u\n",
-		  mret,
-		  ret);
       GNUNET_assert (mret <= size - sizeof (struct OutboundMessage));
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
