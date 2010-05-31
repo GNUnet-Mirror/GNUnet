@@ -596,7 +596,6 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
 	      : GNUNET_ERROR_TYPE_WARNING,
               _("Failed to establish TCP connection to `%s:%u', no further addresses to try.\n"),
               h->hostname, h->port);
-  system ("netstat -ntpl");
   /* connect failed / timed out */
   GNUNET_break (h->ap_head == NULL);
   GNUNET_break (h->ap_tail == NULL);
