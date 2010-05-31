@@ -330,7 +330,7 @@ static struct Session * find_session_by_pi( const struct GNUNET_PeerIdentity *pe
 /**
  * Finds a http session in our linked list using libcurl handle as a key
  * Needed when sending data with libcurl to differentiate between sessions
- * @param peer peeridentity
+ * @param handle peeridentity
  * @return http session corresponding to peer identity
  */
 static struct Session * find_session_by_curlhandle( CURL* handle )
@@ -351,7 +351,7 @@ static struct Session * find_session_by_curlhandle( CURL* handle )
  * Create a new session
  *
  * @param address address the peer is using
- * @peer  peer identity
+ * @param peer identity
  * @return created session object
  */
 static struct Session * create_session (struct sockaddr_in *address, const struct GNUNET_PeerIdentity *peer)
@@ -747,7 +747,7 @@ static int remove_http_message(struct Session * ses, struct HTTP_Message * msg)
  * Callback method used with libcurl
  * Method is called when libcurl needs to read data during sending
  * @param stream pointer where to write data
- * @param size_t size of an individual element
+ * @param size size of an individual element
  * @param nmemb count of elements that can be written to the buffer
  * @param ptr source pointer, passed to the libcurl handle
  * @return bytes written to stream
@@ -776,7 +776,7 @@ static size_t send_read_callback(void *stream, size_t size, size_t nmemb, void *
 * Callback method used with libcurl
 * Method is called when libcurl needs to write data during sending
 * @param stream pointer where to write data
-* @param size_t size of an individual element
+* @param size size of an individual element
 * @param nmemb count of elements that can be written to the buffer
 * @param ptr destination pointer, passed to the libcurl handle
 * @return bytes read from stream
@@ -796,7 +796,7 @@ static size_t send_write_callback( void *stream, size_t size, size_t nmemb, void
 
 /**
  * Function setting up file descriptors and scheduling task to run
- * @param ses session to send data to
+ * @param session session to send data to
  * @return bytes sent to peer
  */
 static size_t send_prepare(struct Session* session );
@@ -991,7 +991,7 @@ static size_t send_prepare(struct Session* session )
  * @param priority how important is the message
  * @param msgbuf the message to transmit
  * @param msgbuf_size number of bytes in 'msgbuf'
- * @param timeout when should we time out
+ * @param to when should we time out
  * @param session which session must be used (or NULL for "any")
  * @param addr the address to use (can be NULL if the plugin
  *                is "on its own" (i.e. re-use existing TCP connection))
@@ -1143,10 +1143,42 @@ http_plugin_address_pretty_printer (void *cls,
                                         GNUNET_TRANSPORT_AddressStringCallback
                                         asc, void *asc_cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: http_plugin_address_pretty_printer\n");
+  const struct IPv4HttpAddress *t4;
+  const struct IPv6HttpAddress *t6;
+  struct sockaddr_in a4;
+  struct sockaddr_in6 a6;
+  char * address;
+  char * ret;
+  unsigned int port;
 
+  if (addrlen == sizeof (struct IPv6HttpAddress))
+    {
+      address = GNUNET_malloc (INET6_ADDRSTRLEN);
+      t6 = addr;
+      a6.sin6_addr = t6->ipv6_addr;
+      inet_ntop(AF_INET6, &(a6.sin6_addr),address,INET6_ADDRSTRLEN);
+      port = ntohs(t6->u6_port);
+    }
+  else if (addrlen == sizeof (struct IPv4HttpAddress))
+    {
+      address = GNUNET_malloc (INET_ADDRSTRLEN);
+      t4 = addr;
+      a4.sin_addr.s_addr =  t4->ipv4_addr;
+      inet_ntop(AF_INET, &(a4.sin_addr),address,INET_ADDRSTRLEN);
+      port = ntohs(t4->u_port);
+    }
+  else
+    {
+      /* invalid address */
+      GNUNET_break_op (0);
+      asc (asc_cls, NULL);
+      return;
+    }
 
-  asc (asc_cls, NULL);
+  ret = GNUNET_malloc(strlen(address) +14);
+  GNUNET_asprintf(&ret,"http://%s:%u/",address,port);
+  GNUNET_free (address);
+  asc (asc_cls, ret);
 }
 
 
@@ -1192,9 +1224,40 @@ http_plugin_address_to_string (void *cls,
                                    const void *addr,
                                    size_t addrlen)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: http_plugin_address_to_string\n");
-  GNUNET_break (0);
-  return NULL;
+  const struct IPv4HttpAddress *t4;
+  const struct IPv6HttpAddress *t6;
+  struct sockaddr_in a4;
+  struct sockaddr_in6 a6;
+  char * address;
+  char * ret;
+  unsigned int port;
+
+  if (addrlen == sizeof (struct IPv6HttpAddress))
+    {
+      address = GNUNET_malloc (INET6_ADDRSTRLEN);
+      t6 = addr;
+      a6.sin6_addr = t6->ipv6_addr;
+      inet_ntop(AF_INET6, &(a6.sin6_addr),address,INET6_ADDRSTRLEN);
+      port = ntohs(t6->u6_port);
+    }
+  else if (addrlen == sizeof (struct IPv4HttpAddress))
+    {
+      address = GNUNET_malloc (INET_ADDRSTRLEN);
+      t4 = addr;
+      a4.sin_addr.s_addr =  t4->ipv4_addr;
+      inet_ntop(AF_INET, &(a4.sin_addr),address,INET_ADDRSTRLEN);
+      port = ntohs(t4->u_port);
+    }
+  else
+    {
+      /* invalid address */
+      return NULL;
+    }
+
+  ret = GNUNET_malloc(strlen(address) +6);
+  GNUNET_asprintf(&ret,"%s:%u",address,port);
+  GNUNET_free (address);
+  return ret;
 }
 
 /**

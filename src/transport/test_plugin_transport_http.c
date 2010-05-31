@@ -116,11 +116,32 @@ static struct GNUNET_TRANSPORT_PluginFunctions *api;
  */
 static GNUNET_SCHEDULER_TaskIdentifier ti_timeout;
 
-
 static GNUNET_SCHEDULER_TaskIdentifier ti_send;
 
 const struct GNUNET_PeerIdentity * p;
 
+/**
+ *  Struct for plugin addresses
+ */
+struct Plugin_Address
+{
+  /**
+   * Next field for linked list
+   */
+  struct Plugin_Address * next;
+
+  /**
+   * buffer containing data to send
+   */
+  void * addr;
+
+  /**
+   * amount of data to sent
+   */
+  size_t addrlen;
+};
+
+struct Plugin_Address * addr_head;
 
 /**
  * Did the test pass or fail?
@@ -130,6 +151,21 @@ static int fail_notify_address;
  * Did the test pass or fail?
  */
 static int fail_notify_address_count;
+
+/**
+ * Did the test pass or fail?
+ */
+static int fail_pretty_printer;
+
+/**
+ * Did the test pass or fail?
+ */
+static int fail_pretty_printer_count;
+
+/**
+ * Did the test pass or fail?
+ */
+static int fail_addr_to_str;
 
 /**
  * Did the test pass or fail?
@@ -158,7 +194,6 @@ shutdown_clean ()
     GNUNET_SCHEDULER_cancel(sched,ti_timeout);
     ti_timeout = GNUNET_SCHEDULER_NO_TASK;
   }
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Unloading http plugin\n");
   GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_http", api));
 
@@ -278,7 +313,8 @@ notify_address (void *cls,
 {
   char * address = NULL;
   unsigned int port;
-
+  struct Plugin_Address * pl_addr;
+  struct Plugin_Address * cur;
 
   if (addrlen == (sizeof (struct IPv4HttpAddress)))
   {
@@ -294,8 +330,28 @@ notify_address (void *cls,
     port = ntohs(((struct IPv6HttpAddress *) addr)->u6_port);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Transport plugin notification for address: `%s':%u\n"),address,port);
-  fail_notify_address_count++;
 
+  pl_addr = GNUNET_malloc (sizeof (struct Plugin_Address) );
+  pl_addr->addrlen = addrlen;
+  pl_addr->addr = GNUNET_malloc(addrlen);
+  memcpy(pl_addr->addr,addr,addrlen);
+  pl_addr->next = NULL;
+
+  if ( NULL == addr_head)
+  {
+    addr_head = pl_addr;
+  }
+  else
+  {
+    cur = addr_head;
+    while (NULL != cur->next)
+      {
+        cur = cur->next;
+      }
+    cur->next = pl_addr;
+  }
+
+  fail_notify_address_count++;
   fail_notify_address = GNUNET_NO;
 }
 
@@ -333,6 +389,15 @@ task_timeout (void *cls,
   return;
 }
 
+static void pretty_printer_cb (void *cls,
+                               const char *address)
+{
+  if (NULL==address)
+    return;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Plugin returned: `%s'\n",address);
+  fail_pretty_printer_count++;
+}
+
 
 /**
  * Runs the test.
@@ -352,7 +417,16 @@ run (void *cls,
   cfg = c;
   char *keyfile;
   unsigned long long tneigh;
+  struct Plugin_Address * cur;
+  struct Plugin_Address * tmp;
+  const char * addr_str;
+  unsigned int count_str_addr;
 
+  fail_pretty_printer = GNUNET_YES;
+  fail_notify_address = GNUNET_YES;
+  fail_addr_to_str = GNUNET_YES;
+  addr_head = NULL;
+  count_str_addr = 0;
   /* parse configuration */
   if ((GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_number (c,
@@ -403,18 +477,36 @@ run (void *cls,
   ti_timeout = GNUNET_SCHEDULER_add_delayed (sched, TEST_TIMEOUT, &task_timeout, NULL);
 
   /* testing plugin functionality */
+  GNUNET_assert (0!=fail_notify_address_count);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Transport plugin returned %u addresses to connect to\n"),  fail_notify_address_count);
 
+  /* testing pretty printer with all addresses obtained from the plugin*/
+  while (addr_head != NULL)
+  {
+    cur = addr_head;
+
+    api->address_pretty_printer(NULL,"http",cur->addr,cur->addrlen,GNUNET_NO,TEST_TIMEOUT,&pretty_printer_cb,NULL);
+    addr_str = api->address_to_string(NULL,cur->addr,cur->addrlen);
+    GNUNET_assert (NULL != addr_str);
+    count_str_addr++;
+
+    tmp = addr_head->next;
+    GNUNET_free (addr_head->addr);
+    GNUNET_free (addr_head);
+    GNUNET_free ((char *) addr_str);
+    addr_head=tmp;
+  }
+  GNUNET_assert (fail_pretty_printer_count==fail_notify_address_count);
+  GNUNET_assert (fail_pretty_printer_count==count_str_addr);
+  fail_pretty_printer=GNUNET_NO;
+  fail_addr_to_str=GNUNET_NO;
+
   /* testing finished, shutting down */
-
-  if (fail_notify_address == GNUNET_NO)
+  if ((fail_notify_address == GNUNET_NO) && (fail_pretty_printer == GNUNET_NO) && (fail_addr_to_str == GNUNET_NO) )
     fail = 0;
-
-
-
+  else
+    fail = 1;
   shutdown_clean();
-
-
   return;
 }
 
