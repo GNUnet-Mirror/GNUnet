@@ -25,6 +25,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#include "gnunet_constants.h"
 #include "gnunet_core_service.h"
 #include "core.h"
 
@@ -250,6 +251,10 @@ static size_t transmit_start (void *cls, size_t size, void *buf);
 static void
 reconnect (struct GNUNET_CORE_Handle *h)
 {
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Reconnecting to CORE service\n");
+#endif
   if (h->client_notifications != NULL)
     GNUNET_CLIENT_disconnect (h->client_notifications, GNUNET_NO);
   h->currently_down = GNUNET_YES;
@@ -277,11 +282,16 @@ reconnect (struct GNUNET_CORE_Handle *h)
  * @param tc context, can be NULL (!)
  */
 static void
-timeout_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+timeout_request (void *cls, 
+		 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CORE_TransmitHandle *th = cls;
 
   th->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Signalling timeout of request for transmission to CORE service\n");
+#endif
   GNUNET_assert (0 == th->get_message (th->get_message_cls, 0, NULL));
 }
 
@@ -317,6 +327,11 @@ request_start (void *cls, size_t size, void *buf)
   GNUNET_assert (size >= th->msize);
   ret = th->get_message (th->get_message_cls, size, buf);
   GNUNET_assert (ret <= size);
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmitting %u bytes to core\n",
+	      ret);
+#endif
   return ret;
 }
 
@@ -798,11 +813,6 @@ produce_send (void *cls, size_t size, void *buf)
       trigger_next_request (h);
       return 0;
     }
-#if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Preparing for P2P transmission to `%4s'.\n",
-	      GNUNET_i2s(&th->peer));
-#endif
   sm = (struct SendMessage *) buf;
   sm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_SEND);
   sm->priority = htonl (th->priority);
@@ -812,6 +822,8 @@ produce_send (void *cls, size_t size, void *buf)
   notify_cls = th->notify_cls;
   GNUNET_CORE_notify_transmit_ready_cancel (th);
   trigger_next_request (h);
+  size = GNUNET_MIN (size,
+		     GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE);
   GNUNET_assert (size >= sizeof (struct SendMessage));
   dt = notify (notify_cls, size - sizeof (struct SendMessage), &sm[1]);
   if (0 == dt)
@@ -824,12 +836,23 @@ produce_send (void *cls, size_t size, void *buf)
       /* client decided to send nothing! */
       return 0;
     }
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Produced SEND message to core with %u bytes payload\n",
+	      dt);
+#endif
   GNUNET_assert (dt >= sizeof (struct GNUNET_MessageHeader));
   if (dt + sizeof (struct SendMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
     {
       GNUNET_break (0);
       return 0;
     }
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Preparing for P2P transmission of %u bytes to `%4s'.\n",
+	      dt,
+	      GNUNET_i2s(&th->peer));
+#endif
   sm->header.size = htons (dt + sizeof (struct SendMessage));
   GNUNET_assert (dt + sizeof (struct SendMessage) <= size);
   return dt + sizeof (struct SendMessage);
