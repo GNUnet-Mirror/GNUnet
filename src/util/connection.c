@@ -589,11 +589,14 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 static void
 connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
 {
-#if DEBUG_CONNECTION
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Failed to establish TCP connection to `%s:%u', no further addresses to try (%p).\n",
-              h->hostname, h->port, h);
-#endif
+  GNUNET_log ((0 != strncmp (h->hostname, 
+			     "localhost:",
+			     10)) 
+	      ? GNUNET_ERROR_TYPE_INFO 
+	      : GNUNET_ERROR_TYPE_WARNING,
+              _("Failed to establish TCP connection to `%s:%u', no further addresses to try.\n"),
+              h->hostname, h->port);
+  system ("netstat -ntpl");
   /* connect failed / timed out */
   GNUNET_break (h->ap_head == NULL);
   GNUNET_break (h->ap_tail == NULL);
@@ -605,7 +608,7 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
     {
 #if DEBUG_CONNECTION
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "connect_timeout_continuation triggers receive_again (%p)\n",
+                  "connect_fail_continuation triggers receive_again (%p)\n",
                   h);
 #endif
       h->ccs -= COCO_RECEIVE_AGAIN;
@@ -617,7 +620,7 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
     {
 #if DEBUG_CONNECTION
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "connect_timeout_continuation cancels timeout_task, triggers transmit_ready (%p)\n",
+                  "connect_fail_continuation cancels timeout_task, triggers transmit_ready (%p)\n",
                   h);
 #endif
       GNUNET_assert (h->nth.timeout_task != GNUNET_SCHEDULER_NO_TASK);
@@ -632,7 +635,7 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
     {
 #if DEBUG_CONNECTION
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "connect_timeout_continuation runs destroy_continuation (%p)\n",
+                  "connect_fail_continuation runs destroy_continuation (%p)\n",
                   h);
 #endif
       h->ccs -= COCO_DESTROY_CONTINUATION;
@@ -816,11 +819,9 @@ try_connect_using_address (void *cls,
       GNUNET_free (ap);
       return;                   /* not supported by OS */
     }
-#if DEBUG_CONNECTION
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Trying to connect to `%s' (%p)\n"),
               GNUNET_a2s (ap->addr, ap->addrlen), h);
-#endif
   if ((GNUNET_OK != GNUNET_NETWORK_socket_connect (ap->sock,
                                                    ap->addr,
                                                    ap->addrlen)) &&
