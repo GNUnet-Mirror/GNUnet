@@ -339,6 +339,10 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
 			   &chk->query,
 			   sizeof (GNUNET_HashCode)))
 	    {
+#if DEBUG_DOWNLOAD
+	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+			  "Matching block already present, no need for download!\n");
+#endif
 	      /* already got it! */
 	      prc.dc = dc;
 	      prc.data = enc;
@@ -373,12 +377,18 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
 
   if ( (dc->th == NULL) &&
        (dc->client != NULL) )
-    dc->th = GNUNET_CLIENT_notify_transmit_ready (dc->client,
-						  sizeof (struct SearchMessage),
-						  GNUNET_CONSTANTS_SERVICE_TIMEOUT,
-						  GNUNET_NO,
-						  &transmit_download_request,
-						  dc);
+    {
+#if DEBUG_DOWNLOAD
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Asking for transmission to FS service\n");
+#endif
+      dc->th = GNUNET_CLIENT_notify_transmit_ready (dc->client,
+						    sizeof (struct SearchMessage),
+						    GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+						    GNUNET_NO,
+						    &transmit_download_request,
+						    dc);
+    }
 }
 
 
@@ -1202,6 +1212,10 @@ transmit_download_request (void *cls,
   dc->th = NULL;
   if (NULL == buf)
     {
+#if DEBUG_DOWNLOAD
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Transmitting download request failed, trying to reconnect\n");
+#endif
       try_reconnect (dc);
       return 0;
     }
@@ -1325,6 +1339,10 @@ try_reconnect (struct GNUNET_FS_DownloadContext *dc)
   
   if (NULL != dc->client)
     {
+#if DEBUG_DOWNLOAD
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Moving all requests back to pending list\n");
+#endif
       if (NULL != dc->th)
 	{
 	  GNUNET_CLIENT_notify_transmit_ready_cancel (dc->th);
@@ -1336,6 +1354,10 @@ try_reconnect (struct GNUNET_FS_DownloadContext *dc)
       GNUNET_CLIENT_disconnect (dc->client, GNUNET_NO);
       dc->client = NULL;
     }
+#if DEBUG_DOWNLOAD
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Will try to reconnect in 1s\n");
+#endif
   dc->task
     = GNUNET_SCHEDULER_add_delayed (dc->h->sched,
 				    GNUNET_TIME_UNIT_SECONDS,
