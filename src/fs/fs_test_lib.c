@@ -253,6 +253,7 @@ notify_running (void *cls,
 {
   struct StartContext *sctx = cls;
   unsigned int i;
+  unsigned long long fsport;
 
   if (emsg != NULL)
     {
@@ -277,13 +278,25 @@ notify_running (void *cls,
       GNUNET_SCHEDULER_cancel (sctx->sched,
 			       sctx->timeout_task);
       for (i=0;i<sctx->total;i++)
-	sctx->daemons[i]->fs = GNUNET_FS_start (sctx->sched,
-						sctx->daemons[i]->cfg,
-						"<tester>",
-						&progress_cb,
-						sctx->daemons[i],
-						GNUNET_FS_FLAGS_NONE,
-						GNUNET_FS_OPTIONS_END);
+	{
+	  fsport = 0;
+	  GNUNET_break (GNUNET_OK ==
+			GNUNET_CONFIGURATION_get_value_number (sctx->daemons[i]->cfg,
+							       "fs",
+							       "PORT",
+							       &fsport));
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		      _("Testing connects to port %llu for peer %u\n"),
+		      fsport,
+		      i);			
+	  sctx->daemons[i]->fs = GNUNET_FS_start (sctx->sched,
+						  sctx->daemons[i]->cfg,
+						  "<tester>",
+						  &progress_cb,
+						  sctx->daemons[i],
+						  GNUNET_FS_FLAGS_NONE,
+						  GNUNET_FS_OPTIONS_END);
+	}
       GNUNET_free (sctx);
     }
 }
