@@ -58,7 +58,7 @@
  * notifications to a client?  (this can cause notifications
  * about outgoing messages to be dropped).
  */
-#define MAX_NOTIFY_QUEUE 16
+#define MAX_NOTIFY_QUEUE 1024
 
 /**
  * Minimum bandwidth (out) to assign to any connected peer.
@@ -141,14 +141,6 @@
  * from connecting to us.
  */
 #define MAX_MESSAGE_AGE GNUNET_TIME_UNIT_DAYS
-
-/**
- * What is the maximum size for encrypted messages?  Note that this
- * number imposes a clear limit on the maximum size of any message.
- * Set to a value close to 64k but not so close that transports will
- * have trouble with their headers.
- */
-#define MAX_ENCRYPTED_MESSAGE_SIZE (63 * 1024)
 
 
 /**
@@ -794,7 +786,8 @@ send_to_client (struct Client *client,
 {
 #if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Preparing to send message of type %u to client.\n",
+              "Preparing to send %u bytes of message of type %u to client.\n",
+	      (unsigned int) ntohs (msg->size),
               (unsigned int) ntohs (msg->type));
 #endif  
   GNUNET_SERVER_notification_context_unicast (notifier,
@@ -1561,7 +1554,7 @@ select_messages (struct Neighbour *n,
       off = 0;
       /* maximum time we can wait before transmitting anything
          and still make all of our deadlines */
-      slack = GNUNET_CONSTANTS_MAX_CORK_DELAY;
+      slack = GNUNET_TIME_UNIT_FOREVER_REL;
       pos = n->messages;
       /* note that we use "*2" here because we want to look
          a bit further into the future; much more makes no
@@ -1641,7 +1634,7 @@ select_messages (struct Neighbour *n,
     }
   /* guard against sending "tiny" messages with large headers without
      urgent deadlines */
-  if ( (slack.value > 0) && 
+  if ( (slack.value > GNUNET_CONSTANTS_MAX_CORK_DELAY.value) && 
        (size > 4 * off) &&
        (queue_size <= MAX_PEER_QUEUE_SIZE - 2) )
     {
@@ -1659,7 +1652,7 @@ select_messages (struct Neighbour *n,
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Deferring transmission for %llums due to underfull message buffer size (%u/%u)\n",
-		  (unsigned long long) slack.value,
+		  (unsigned long long) retry_time->value,
 		  (unsigned int) off,
 		  (unsigned int) size);
 #endif
@@ -1675,9 +1668,22 @@ select_messages (struct Neighbour *n,
           pos->do_transmit = GNUNET_YES;        /* mark for transmission */
           off += pos->size;
           size -= pos->size;
+#if DEBUG_CORE
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Selecting message of size %u for transmission\n",
+		      (unsigned int) pos->size);
+#endif
         }
       else
-        pos->do_transmit = GNUNET_NO;   /* mark for not transmitting! */
+	{
+#if DEBUG_CORE
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Not selecting message of size %u for transmission at this time (maximum is %u)\n",
+		      (unsigned int) pos->size,
+		      size);
+#endif
+	  pos->do_transmit = GNUNET_NO;   /* mark for not transmitting! */
+	}
       pos = pos->next;
     }
 #if DEBUG_CORE
@@ -1735,7 +1741,6 @@ batch_message (struct Neighbour *n,
   ntm->distance = htonl (n->last_distance);
   ntm->latency = GNUNET_TIME_relative_hton (n->last_latency);
   ntm->peer = n->peer;
-  
   pos = n->messages;
   prev = NULL;
   while ((pos != NULL) && (size >= sizeof (struct GNUNET_MessageHeader)))
@@ -1772,8 +1777,10 @@ batch_message (struct Neighbour *n,
 			       GNUNET_CORE_OPTION_SEND_FULL_OUTBOUND); 	 
 #if DEBUG_HANDSHAKE
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Encrypting message of type %u\n",
-		      (unsigned int) ntohs(((struct GNUNET_MessageHeader*)&pos[1])->type));
+		      "Encrypting %u bytes with message of type %u and size %u\n",
+		      pos->size,
+		      (unsigned int) ntohs(((const struct GNUNET_MessageHeader*)&pos[1])->type),
+		      (unsigned int) ntohs(((const struct GNUNET_MessageHeader*)&pos[1])->size));
 #endif
 	  /* copy for encrypted transmission */
           memcpy (&buf[ret], &pos[1], pos->size);
@@ -1905,7 +1912,7 @@ set_key_retry_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 process_plaintext_neighbour_queue (struct Neighbour *n)
 {
-  char pbuf[MAX_ENCRYPTED_MESSAGE_SIZE];        /* plaintext */
+  char pbuf[GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE + sizeof (struct EncryptedMessage)];        /* plaintext */
   size_t used;
   size_t esize;
   struct EncryptedMessage *em;  /* encrypted message */
@@ -1985,7 +1992,7 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
   used = sizeof (struct EncryptedMessage);
   used += batch_message (n,
                          &pbuf[used],
-                         MAX_ENCRYPTED_MESSAGE_SIZE - used,
+                         GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE,
                          &deadline, &retry_time, &priority);
   if (used == sizeof (struct EncryptedMessage))
     {
@@ -3258,7 +3265,7 @@ deliver_messages (struct Neighbour *sender,
   int need_align;
 
   while (offset + sizeof (struct GNUNET_MessageHeader) <= buffer_size)
-    {
+    {     
       if (0 != offset % sizeof (uint16_t))
         {
           /* outch, need to copy to access header */
@@ -3283,6 +3290,14 @@ deliver_messages (struct Neighbour *sender,
 #else
       need_align = (0 != offset % 8) ? GNUNET_YES : GNUNET_NO;
 #endif
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Delivering %u bytes of message at offset %u/%u to clients.\n",
+		  (unsigned int) msize,
+		  (unsigned int) offset,
+		  (unsigned int) buffer_size);
+#endif
+
       if (GNUNET_YES == need_align)
         align_and_deliver (sender, &buffer[offset], msize);
       else
