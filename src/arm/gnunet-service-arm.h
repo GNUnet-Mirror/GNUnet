@@ -19,7 +19,7 @@
 */
 
 /**
- * @file arm/gnunet_service_arm_.h
+ * @file arm/gnunet_service_arm.h
  * @brief function prototypes for gnunet_service_arm.c, and gnunet_service_manager.c
  * @author Safey Abdel Halim
  */
