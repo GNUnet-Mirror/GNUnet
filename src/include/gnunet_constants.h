@@ -91,6 +91,37 @@ extern "C"
  */
 #define GNUNET_CONSTANTS_IDLE_LOAD_THRESHOLD 70
 
+/**
+ * Size of the 'struct EncryptedMessage' of the core (which
+ * is the per-message overhead of the core).  
+ */
+#define GNUNET_CONSTANTS_CORE_SIZE_ENCRYPTED_MESSAGE (24 + sizeof (GNUNET_HashCode))
+
+/**
+ * Size of the 'struct OutboundMessage' of the transport 
+ * (which, in combination with the 
+ * GNUNET_CONSTANTS_CORE_SIZE_ENCRYPTED_MESSAGE) defines
+ * the headers that must be pre-pendable to all GNUnet
+ * messages.  Taking GNUNET_SERVER_MAX_MESSAGE_SIZE
+ * and subtracting these two constants defines the largest
+ * message core can handle.
+ */
+#define GNUNET_CONSTANTS_TRANSPORT_SIZE_OUTBOUND_MESSAGE (16 + sizeof (struct GNUNET_PeerIdentity))
+
+
+/**
+ * What is the maximum size for encrypted messages?  Note that this
+ * number imposes a clear limit on the maximum size of any message.
+ * Set to a value close to 64k but not so close that transports will
+ * have trouble with their headers.
+ *
+ * Could theoretically be 64k minus (GNUNET_CONSTANTS_CORE_SIZE_ENCRYPTED_MESSAGE +
+ * GNUNET_CONSTANTS_TRANSPORT_SIZE_OUTBOUND_MESSAGE), but we're going
+ * to be more conservative for now. 
+ */
+#define GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE (63 * 1024)
+
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
