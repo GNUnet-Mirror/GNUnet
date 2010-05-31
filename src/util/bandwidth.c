@@ -262,10 +262,7 @@ GNUNET_BANDWIDTH_tracker_get_delay (struct GNUNET_BANDWIDTH_Tracker *av,
 				    size_t size)
 {
   struct GNUNET_TIME_Relative ret;
-  struct GNUNET_TIME_Absolute now;
-  uint64_t delta_avail;
-  uint64_t delta_time;
-  uint64_t bytes_needed;
+  int64_t bytes_needed;
 
   if (av->available_bytes_per_s__ == 0)
     {
@@ -277,10 +274,8 @@ GNUNET_BANDWIDTH_tracker_get_delay (struct GNUNET_BANDWIDTH_Tracker *av,
       return GNUNET_TIME_UNIT_FOREVER_REL;
     }
   update_tracker (av);
-  now = GNUNET_TIME_absolute_get ();
-  delta_time = now.value - av->last_update__.value;
-  delta_avail = (delta_time * ((unsigned long long) av->available_bytes_per_s__) + 500LL) / 1000LL;
-  if (delta_avail >= size)
+  bytes_needed = size + av->consumption_since_last_update__;
+  if (bytes_needed <= 0)
     {
 #if DEBUG_BANDWIDTH
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -290,7 +285,6 @@ GNUNET_BANDWIDTH_tracker_get_delay (struct GNUNET_BANDWIDTH_Tracker *av,
 #endif
       return GNUNET_TIME_UNIT_ZERO;
     }
-  bytes_needed = size - delta_avail;
   ret.value = 1000LL * bytes_needed / (unsigned long long) av->available_bytes_per_s__;
 #if DEBUG_BANDWIDTH
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
