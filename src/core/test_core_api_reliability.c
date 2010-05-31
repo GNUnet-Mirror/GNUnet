@@ -63,7 +63,7 @@ static struct GNUNET_TIME_Absolute start_time;
  * 'MAX_PENDING' in 'gnunet-service-transport.c', otherwise
  * messages may be dropped even for a reliable transport.
  */
-#define TOTAL_MSGS (60000 * 2)
+#define TOTAL_MSGS (600 * 2)
 
 struct PeerContext
 {
