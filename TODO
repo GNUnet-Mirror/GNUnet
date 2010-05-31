@@ -91,6 +91,8 @@
     disconnect in a timely fashion (waits for connection timeout);
     need to figure a way to make it near-instant in those cases 
     (i.e. rapid reduction in timeout on transport-level disconnect)
+  - encrypted P2P transmission (loopback) tops at 2 MB/s on my quad-core;
+    why is it so slow? Fix! (see core_api_reliability test)
 * TBENCH: [MW]
   - good to have for transport/DV evaluation! 
 * DHT: [Nate]
