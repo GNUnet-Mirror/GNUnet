@@ -546,8 +546,12 @@ transport_notify_ready (void *cls, size_t size, void *buf)
         }
       GNUNET_CONTAINER_DLL_remove (h->control_head,
 				   h->control_tail,
-				   cm);
+				   cm);      
       nret = cm->notify (cm->notify_cls, size, &cbuf[ret]);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Added %u bytes of control message at %u\n",
+		  nret,
+		  ret);
       GNUNET_free (cm);
       ret += nret;
       size -= nret;
@@ -582,6 +586,10 @@ transport_notify_ready (void *cls, size_t size, void *buf)
       mret = th->notify (th->notify_cls, 
 			 size - sizeof (struct OutboundMessage),
 			 &cbuf[ret + sizeof (struct OutboundMessage)]);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Added %u bytes of data message at %u\n",
+		  mret,
+		  ret);
       GNUNET_assert (mret <= size - sizeof (struct OutboundMessage));
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

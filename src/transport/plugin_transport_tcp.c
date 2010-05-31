@@ -37,7 +37,7 @@
 #include "plugin_transport.h"
 #include "transport.h"
 
-#define DEBUG_TCP GNUNET_NO
+#define DEBUG_TCP GNUNET_YES
 
 /**
  * How long until we give up on transmitting the welcome message?
@@ -339,7 +339,11 @@ tcp_address_to_string (void *cls,
     }
   else
     {
-      GNUNET_break_op (0);
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+		       "tcp",
+		       _("Unexected address length: %u\n"),
+		       addrlen);
+      GNUNET_break (0);
       return NULL;
     }
   inet_ntop (af, sb, buf, INET6_ADDRSTRLEN);
@@ -878,7 +882,11 @@ tcp_plugin_send (void *cls,
 	}
       else
 	{
-	  GNUNET_break_op (0);
+	  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+			   "tcp",
+			   _("Address of unexpected length: %u\n"),
+			   addrlen);
+	  GNUNET_break (0);
 	  return -1;
 	}
       sa = GNUNET_CONNECTION_create_from_sockaddr (plugin->env->sched,

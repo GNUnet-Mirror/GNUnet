@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -18,13 +18,12 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file transport/test_transport_api.c
+ * @file transport/test_transport_api_reliability.c
  * @brief base test case for transport implementations
  *
- * This test case serves as a base for tcp, udp, and udp-nat
- * transport test cases.  Based on the executable being run
- * the correct test case will be performed.  Conservation of
- * C code apparently.
+ * This test case serves as a base for tcp and http
+ * transport test cases to check that the transports
+ * achieve reliable message delivery.
  */
 #include "platform.h"
 #include "gnunet_common.h"
@@ -36,16 +35,18 @@
 #include "gnunet_transport_service.h"
 #include "transport.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define VERBOSE_ARM GNUNET_NO
 
 #define START_ARM GNUNET_YES
 
+#define TOTAL_MSGS (60000 * 2)
+
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 50)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
 
 #define MTYPE 12345
 
@@ -69,13 +70,9 @@ static int ok;
 
 static int is_tcp;
 
-static int is_udp;
-
-static int is_udp_nat;
-
 static int is_http;
 
-static  GNUNET_SCHEDULER_TaskIdentifier die_task;
+static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 #if VERBOSE
 #define OKPP do { ok++; fprintf (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
@@ -87,7 +84,6 @@ static  GNUNET_SCHEDULER_TaskIdentifier die_task;
 static void
 end ()
 {
-  /* do work here */
   GNUNET_assert (ok == 6);
   GNUNET_SCHEDULER_cancel (sched, die_task);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transports!\n");
@@ -95,9 +91,11 @@ end ()
   GNUNET_TRANSPORT_disconnect (p2.th);
 
   die_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transports disconnected, returning success!\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Transports disconnected, returning success!\n");
   ok = 0;
 }
+
 
 static void
 stop_arm (struct PeerContext *p)
@@ -112,13 +110,33 @@ stop_arm (struct PeerContext *p)
 
 
 static void
-end_badly ()
+end_badly (void *cls,
+	   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_break (0);
   GNUNET_TRANSPORT_disconnect (p1.th);
   GNUNET_TRANSPORT_disconnect (p2.th);
   ok = 1;
 }
+
+
+struct TestMessage 
+{
+  struct GNUNET_MessageHeader header;
+  uint32_t num;
+};
+
+
+static unsigned int
+get_size (unsigned int iter)
+{
+  unsigned int ret;
+  if (iter < 60000)
+    return iter + sizeof (struct TestMessage);
+  ret = (iter * iter * iter);
+  return sizeof (struct TestMessage) + (ret % 60000);
+}
+
 
 static void
 notify_receive (void *cls,
@@ -127,42 +145,95 @@ notify_receive (void *cls,
                 struct GNUNET_TIME_Relative latency,
 		uint32_t distance)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ok is (%d)!\n",
-              ok);
+  static int n;
+  unsigned int s;
+  const struct TestMessage *hdr;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received message of type %d from peer (%p)!\n",
-                ntohs(message->type), cls);
-
-  GNUNET_assert (ok == 5);
-  OKPP;
-
-  GNUNET_assert (MTYPE == ntohs (message->type));
-  GNUNET_assert (sizeof (struct GNUNET_MessageHeader) ==
-                 ntohs (message->size));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received message from peer (%p)!\n",
-              cls);
-  end ();
+  hdr = (const struct TestMessage*) message;
+  s = get_size (n);
+  if (MTYPE != ntohs (message->type))
+    return;
+  if (ntohs (message->size) != s)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Expected message %u of size %u, got %u bytes of message %u\n",
+		  n, s,
+		  ntohs (message->size),
+		  ntohl (hdr->num));
+      GNUNET_SCHEDULER_cancel (sched, die_task);
+      die_task = GNUNET_SCHEDULER_add_now (sched, &end_badly, NULL);
+      return;
+    }
+  if (ntohl (hdr->num) != n)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Expected message %u of size %u, got %u bytes of message %u\n",
+		  n, s,
+		  ntohs (message->size),
+		  ntohl (hdr->num));
+      GNUNET_SCHEDULER_cancel (sched, die_task);
+      die_task = GNUNET_SCHEDULER_add_now (sched, &end_badly, NULL);
+      return;
+    }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Got message %u of size %u\n",
+	      ntohl (hdr->num),
+	      ntohs (message->size));	      
+  n++;
+  if (n == TOTAL_MSGS)
+    end ();
 }
 
 
 static size_t
 notify_ready (void *cls, size_t size, void *buf)
 {
-  struct GNUNET_MessageHeader *hdr;
+  static int n;
+  char *cbuf = buf;
+  struct TestMessage hdr;
+  unsigned int s;
+  unsigned int ret;
 
+  if (buf == NULL)
+    {
+      GNUNET_break (0);
+      ok = 42;
+      return 0;
+    }
+  ret = 0;
+  s = get_size (n);
+  GNUNET_assert (size >= s);
+  GNUNET_assert (buf != NULL);
+  cbuf = buf;
+  do
+    {
+      hdr.header.size = htons (s);
+      hdr.header.type = htons (MTYPE);
+      hdr.num = htonl (n);
+      memcpy (&cbuf[ret], &hdr, sizeof (struct TestMessage));
+      ret += sizeof (struct TestMessage);
+      memset (&cbuf[ret], n, s - sizeof (struct TestMessage));
+      ret += s - sizeof (struct TestMessage);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Sending message %u of size %u\n",
+		  n,
+		  s);
+      n++;
+      s = get_size (n);
+      if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16))
+	break; /* sometimes pack buffer full, sometimes not */
+    }
+  while (size - ret >= s);
+  if (n < TOTAL_MSGS)
+    GNUNET_TRANSPORT_notify_transmit_ready (p1.th,
+					    &p2.id,
+					    s, 0, TIMEOUT, 
+					    &notify_ready,
+					    NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmitting message to peer (%p) - %u!\n", cls, size);
-  GNUNET_assert (size >= 256);
-  GNUNET_assert (ok == 4);
-  OKPP;
-  if (buf != NULL)
-  {
-    hdr = buf;
-    hdr->size = htons (sizeof (struct GNUNET_MessageHeader));
-    hdr->type = htons (MTYPE);
-  }
-
-  return sizeof (struct GNUNET_MessageHeader);
+	      "Returning total message block of size %u\n",
+	      ret);
+  return ret;
 }
 
 
@@ -174,10 +245,26 @@ notify_connect (void *cls,
 {
   if (cls == &p1)
     {
+      GNUNET_TRANSPORT_set_quota (p1.th,
+				  &p2.id,
+				  GNUNET_BANDWIDTH_value_init (1024 * 1024 * 1024),
+				  GNUNET_BANDWIDTH_value_init (1024 * 1024 * 1024),
+				  GNUNET_TIME_UNIT_FOREVER_REL,
+				  NULL, NULL);
       GNUNET_TRANSPORT_notify_transmit_ready (p1.th,
 					      &p2.id,
-					      256, 0, TIMEOUT, &notify_ready,
-					      &p1);
+					      get_size (0), 0, TIMEOUT, 
+					      &notify_ready,
+					      NULL);
+    }
+  else
+    {
+      GNUNET_TRANSPORT_set_quota (p2.th,
+				  &p1.id,
+				  GNUNET_BANDWIDTH_value_init (1024 * 1024 * 1024),
+				  GNUNET_BANDWIDTH_value_init (1024 * 1024 * 1024),
+				  GNUNET_TIME_UNIT_FOREVER_REL,
+				  NULL, NULL);
     }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer `%4s' connected to us (%p)!\n", GNUNET_i2s (peer), cls);
@@ -198,7 +285,8 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 {
   p->cfg = GNUNET_CONFIGURATION_create ();
 #if START_ARM
-  p->arm_pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+  p->arm_pid = GNUNET_OS_start_process (NULL, NULL, 
+					"gnunet-service-arm",
                                         "gnunet-service-arm",
 #if VERBOSE_ARM
                                         "-L", "DEBUG",
@@ -206,11 +294,11 @@ setup_peer (struct PeerContext *p, const char *cfgname)
                                         "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
-
   p->th = GNUNET_TRANSPORT_connect (sched, p->cfg,
                                     p,
                                     &notify_receive,
-                                    &notify_connect, &notify_disconnect);
+                                    &notify_connect, 
+				    &notify_disconnect);
   GNUNET_assert (p->th != NULL);
 }
 
@@ -230,16 +318,11 @@ exchange_hello_last (void *cls,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
                                       message, &me->id));
-
-  /* Can't we get away with only offering one hello? */
-  /* GNUNET_TRANSPORT_offer_hello (p1.th, message); */
-
-  /*sleep(1);*/ /* Make sure we are not falling prey to the "favorable timing" bug... */
-
   /* both HELLOs exchanged, get ready to test transmission! */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Finished exchanging HELLOs, now waiting for transmission!\n");
 }
+
 
 static void
 exchange_hello (void *cls,
@@ -264,6 +347,7 @@ exchange_hello (void *cls,
   GNUNET_TRANSPORT_get_hello (p2.th, &exchange_hello_last, &p2);
 }
 
+
 static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
@@ -273,42 +357,32 @@ run (void *cls,
   GNUNET_assert (ok == 1);
   OKPP;
   sched = s;
-
   die_task = GNUNET_SCHEDULER_add_delayed (sched,
-      GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 1), &end_badly, NULL);
-
-  if (is_udp)
-    {
-      setup_peer (&p1, "test_transport_api_udp_peer1.conf");
-      setup_peer (&p2, "test_transport_api_udp_peer2.conf");
-    }
-  else if (is_tcp)
+					   TIMEOUT,
+					   &end_badly,
+					   NULL);
+  if (is_tcp)
     {
       setup_peer (&p1, "test_transport_api_tcp_peer1.conf");
       setup_peer (&p2, "test_transport_api_tcp_peer2.conf");
     }
-  if (is_udp_nat)
-    {
-      setup_peer (&p1, "test_transport_api_udp_nat_peer1.conf");
-      setup_peer (&p2, "test_transport_api_udp_nat_peer2.conf");
-    }
-  if (is_http)
+  else if (is_http)
     {
       setup_peer (&p1, "test_transport_api_http_peer1.conf");
       setup_peer (&p2, "test_transport_api_http_peer2.conf");
     }
-
+  else
+    GNUNET_assert (0);
   GNUNET_assert(p1.th != NULL);
   GNUNET_assert(p2.th != NULL);
-
   GNUNET_TRANSPORT_get_hello (p1.th, &exchange_hello, &p1);
 }
+
 
 static int
 check ()
 {
-
-  char *const argv[] = { "test-transport-api",
+  char *const argv[] = { "test-transport-api-reliability",
     "-c",
     "test_transport_api_data.conf",
 #if VERBOSE
@@ -316,15 +390,13 @@ check ()
 #endif
     NULL
   };
-
-#if WRITECONFIG
-  setTransportOptions("test_transport_api_data.conf");
-#endif
-
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
 
+#if WRITECONFIG
+  setTransportOptions("test_transport_api_data.conf");
+#endif
   ok = 1;
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "test-transport-api", "nohelp",
@@ -334,66 +406,6 @@ check ()
   return ok;
 }
 
-
-static char *
-get_path_from_PATH ()
-{
-  char *path;
-  char *pos;
-  char *end;
-  char *buf;
-  const char *p;
-
-  p = getenv ("PATH");
-  if (p == NULL)
-    return NULL;
-  path = GNUNET_strdup (p);     /* because we write on it */
-  buf = GNUNET_malloc (strlen (path) + 20);
-  pos = path;
-
-  while (NULL != (end = strchr (pos, ':')))
-    {
-      *end = '\0';
-      sprintf (buf, "%s/%s", pos, "gnunet-nat-server");
-      if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
-        {
-          GNUNET_free (path);
-          return buf;
-        }
-      pos = end + 1;
-    }
-  sprintf (buf, "%s/%s", pos, "gnunet-nat-server");
-  if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
-    {
-      GNUNET_free (path);
-      return buf;
-    }
-  GNUNET_free (buf);
-  GNUNET_free (path);
-  return NULL;
-}
-
-
-static int 
-check_gnunet_nat_server()
-{
-  struct stat statbuf;
-  char *p;
-
-  p = get_path_from_PATH ();
-  if (p == NULL)
-    return GNUNET_NO;
-  if (0 != STAT (p, &statbuf))
-    {
-      GNUNET_free (p);
-      return GNUNET_SYSERR;
-    }
-  GNUNET_free (p);
-  if ( (0 != (statbuf.st_mode & S_ISUID)) && 
-       (statbuf.st_uid == 0) )    
-    return GNUNET_YES;
-  return GNUNET_NO;
-}
 
 int
 main (int argc, char *argv[])
@@ -406,28 +418,11 @@ main (int argc, char *argv[])
     {
       is_tcp = GNUNET_YES;
     }
-  else if (strstr(argv[0], "udp_nat") != NULL)
-    {
-      is_udp_nat = GNUNET_YES;
-      if (check_gnunet_nat_server() != GNUNET_OK)
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                      "`%s' not properly installed, cannot run NAT test!\n",
-		      "gnunet-nat-server");
-          return 0;
-        }
-    }
-  else if (strstr(argv[0], "udp") != NULL)
-    {
-      is_udp = GNUNET_YES;
-    }
   else if (strstr(argv[0], "http") != NULL)
     {
       is_http = GNUNET_YES;
     }
-
-
-  GNUNET_log_setup ("test-transport-api",
+  GNUNET_log_setup ("test-transport-api-reliability",
 #if VERBOSE
                     "DEBUG",
 #else
@@ -440,4 +435,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of test_transport_api.c */
+/* end of test_transport_api_reliability.c */

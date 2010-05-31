@@ -131,9 +131,11 @@ endif
 
 check_PROGRAMS = \
  test_transport_api_tcp \
+ test_transport_api_tcp \
  test_transport_api_udp \
  $(HTTP_PLGUIN_CHECK) \
- test_transport_api_udp_nat
+ test_transport_api_udp_nat \
+ test_transport_api_reliability_tcp 
 # test_transport_api_http \
 # TODO: add tests for http, nat, etc.
 
@@ -142,6 +144,12 @@ TESTS = $(check_PROGRAMS)
 test_transport_api_tcp_SOURCES = \
  test_transport_api.c
 test_transport_api_tcp_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+test_transport_api_reliability_tcp_SOURCES = \
+ test_transport_api_reliability.c
+test_transport_api_reliability_tcp_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
@@ -156,7 +164,7 @@ test_transport_api_udp_nat_SOURCES = \
 test_transport_api_udp_nat_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la  
- 
+
 #test_transport_api_http_SOURCES = \
 # test_transport_api.c
 #test_transport_api_http_LDADD = \
