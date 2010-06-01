@@ -619,10 +619,15 @@ notify_address (void *cls,
       inet_ntop(AF_INET, (struct in_addr *) addr,address,INET_ADDRSTRLEN);
       port = ntohs(((struct IPv4HttpAddress *) addr)->u_port);
     }
-  if (addrlen == (sizeof (struct IPv6HttpAddress)))
+  else if (addrlen == (sizeof (struct IPv6HttpAddress)))
     {
       inet_ntop(AF_INET6, (struct in6_addr *) addr,address,INET6_ADDRSTRLEN);
       port = ntohs(((struct IPv6HttpAddress *) addr)->u6_port);
+    }
+  else
+    {
+      GNUNET_break (0);
+      return;
     }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      _("Transport plugin notification for address: `%s':%u\n"),
