@@ -276,7 +276,7 @@ static GNUNET_SCHEDULER_TaskIdentifier http_task_v6;
 
 
 /**
- * Our primary task for http daemon handling IPv6 connections
+ * The task sending data
  */
 static GNUNET_SCHEDULER_TaskIdentifier http_task_send;
 

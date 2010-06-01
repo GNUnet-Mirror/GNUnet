@@ -52,12 +52,23 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20)
+#define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 /**
  * How long between recieve and send?
  */
 #define WAIT_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+
+/**
+ *  Message to send using http
+ */
+struct HTTP_Message
+{
+  char *buf;
+  size_t pos;
+  size_t size;
+  size_t len;
+};
 
 /**
  * Our public key.
@@ -184,6 +195,15 @@ CURL *curl_handle;
  */
 static CURLM *multi_handle;
 
+/**
+ * Test message to send
+ */
+struct HTTP_Message * msg;
+
+/**
+ * The task sending data
+ */
+static GNUNET_SCHEDULER_TaskIdentifier http_task_send;
 
 /**
  * Shutdown testcase
@@ -191,10 +211,18 @@ static CURLM *multi_handle;
 static void
 shutdown_clean ()
 {
+  curl_multi_cleanup(multi_handle);
+
   if (ti_send != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel(sched,ti_send);
     ti_send = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  if (http_task_send != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel(sched,http_task_send);
+    http_task_send = GNUNET_SCHEDULER_NO_TASK;
   }
 
   if (ti_timeout != GNUNET_SCHEDULER_NO_TASK)
@@ -206,6 +234,12 @@ shutdown_clean ()
   GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_http", api));
 
   GNUNET_SCHEDULER_shutdown(sched);
+
+
+
+  //GNUNET_free(msg);
+  //GNUNET_free(msg->buf);
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Exiting testcase\n");
   exit(fail);
   return;
@@ -273,17 +307,6 @@ receive (void *cls,
   return GNUNET_TIME_UNIT_ZERO;
 }
 
-/**
- *  Message to send using http
- */
-struct HTTP_Message
-{
-  char *buf;
-  size_t pos;
-  size_t size;
-  size_t len;
-};
-
  int done;
 static size_t
 putBuffer (void *stream, size_t size, size_t nmemb, void *ptr)
@@ -311,25 +334,162 @@ static size_t copyBuffer (void *ptr, size_t size, size_t nmemb, void *ctx)
   return size * nmemb;
 }
 
+static size_t send_prepare( void );
+
+static void send_execute (void *cls,
+             const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  int running;
+  struct CURLMsg *msg;
+  CURLMcode mret;
+
+  http_task_send = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+
+  do
+    {
+      running = 0;
+      mret = curl_multi_perform (multi_handle, &running);
+      if (running == 0)
+        {
+          do
+            {
+
+              msg = curl_multi_info_read (multi_handle, &running);
+              GNUNET_break (msg != NULL);
+              if (msg == NULL)
+                break;
+              /* get session for affected curl handle */
+              //cs = find_session_by_curlhandle (msg->easy_handle);
+              //GNUNET_assert ( cs != NULL );
+              switch (msg->msg)
+                {
+
+                case CURLMSG_DONE:
+                  if ( (msg->data.result != CURLE_OK) &&
+                       (msg->data.result != CURLE_GOT_NOTHING) )
+                    {
+
+                    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                               _("curl failed for `%s' at %s:%d: `%s'\n"),
+                               "curl_multi_perform",
+                               __FILE__,
+                               __LINE__,
+                               curl_easy_strerror (msg->data.result));
+                    /* sending msg failed*/
+                    //if ( NULL != cs->transmit_cont)
+                    //  cs->transmit_cont (NULL,&cs->sender,GNUNET_SYSERR);
+                    }
+                  else
+                    {
+                    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                                "Send completed.\n");
+                    //if (GNUNET_OK != remove_http_message(cs, cs->pending_outbound_msg))
+                      //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message could not be removed from session `%s'", GNUNET_i2s(&cs->sender));
+
+                    curl_easy_cleanup(curl_handle);
+                    curl_handle=NULL;
+                    shutdown_clean();
+
+                    }
+                  return;
+                default:
+                  break;
+                }
+
+            }
+          while ( (running > 0) );
+        }
+    }
+  while (mret == CURLM_CALL_MULTI_PERFORM);
+  send_prepare();
+}
+
+/**
+ * Function setting up file descriptors and scheduling task to run
+ * @param ses session to send data to
+ * @return bytes sent to peer
+ */
+static size_t send_prepare( void )
+{
+  fd_set rs;
+  fd_set ws;
+  fd_set es;
+  int max;
+  struct GNUNET_NETWORK_FDSet *grs;
+  struct GNUNET_NETWORK_FDSet *gws;
+  long to;
+  CURLMcode mret;
+
+  max = -1;
+  FD_ZERO (&rs);
+  FD_ZERO (&ws);
+  FD_ZERO (&es);
+  mret = curl_multi_fdset (multi_handle, &rs, &ws, &es, &max);
+  if (mret != CURLM_OK)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("%s failed at %s:%d: `%s'\n"),
+                  "curl_multi_fdset", __FILE__, __LINE__,
+                  curl_multi_strerror (mret));
+      return -1;
+    }
+  mret = curl_multi_timeout (multi_handle, &to);
+  if (mret != CURLM_OK)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("%s failed at %s:%d: `%s'\n"),
+                  "curl_multi_timeout", __FILE__, __LINE__,
+                  curl_multi_strerror (mret));
+      return -1;
+    }
+
+  grs = GNUNET_NETWORK_fdset_create ();
+  gws = GNUNET_NETWORK_fdset_create ();
+  GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
+  GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
+  http_task_send = GNUNET_SCHEDULER_add_select (sched,
+                                   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                   GNUNET_SCHEDULER_NO_TASK,
+                                   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 0),
+                                   grs,
+                                   gws,
+                                   &send_execute,
+                                   NULL);
+  GNUNET_NETWORK_fdset_destroy (gws);
+  GNUNET_NETWORK_fdset_destroy (grs);
+
+  /* FIXME: return bytes REALLY sent */
+  return 0;
+}
+
 /**
  * function to send data to server
  */
 static int send_data(struct HTTP_Message *msg, char * url)
 {
-  struct HTTP_Message cbc;
-
-
+  //return GNUNET_OK;
+  curl_handle = curl_easy_init();
+  if( NULL == curl_handle)
+  {
+    printf("easy_init failed \n");
+    return GNUNET_SYSERR;
+  }
+  curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 1L);
   curl_easy_setopt(curl_handle, CURLOPT_URL, url);
   curl_easy_setopt(curl_handle, CURLOPT_PUT, 1L);
   curl_easy_setopt (curl_handle, CURLOPT_WRITEFUNCTION, &copyBuffer);
-  curl_easy_setopt (curl_handle, CURLOPT_WRITEDATA, &cbc);
+  curl_easy_setopt (curl_handle, CURLOPT_WRITEDATA, msg);
   curl_easy_setopt (curl_handle, CURLOPT_READFUNCTION, &putBuffer);
-  curl_easy_setopt (curl_handle, CURLOPT_READDATA, &cbc);
+  curl_easy_setopt (curl_handle, CURLOPT_READDATA, msg);
   curl_easy_setopt(curl_handle, CURLOPT_INFILESIZE_LARGE, (curl_off_t) msg->len);
-  //curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, (timeout.value / 1000 ));
-  //curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
+  curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, 30);
+  curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, 20);
 
   curl_multi_add_handle(multi_handle, curl_handle);
+
+  send_prepare();
 
   return GNUNET_OK;
 }
@@ -462,7 +622,7 @@ static void pretty_printer_cb (void *cls,
 {
   if (NULL==address)
     return;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Plugin returnedp pretty address: `%s'\n",address);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Plugin returned pretty address: `%s'\n",address);
   fail_pretty_printer_count++;
 }
 
@@ -596,20 +756,20 @@ run (void *cls,
   /* test sending to client */
   multi_handle = curl_multi_init();
 
-
   /*building messages */
-  struct HTTP_Message msg;
+  msg = GNUNET_malloc (sizeof (struct HTTP_Message));
+  msg->size = 2048;
+  msg->pos = 0;
+  msg->buf = GNUNET_malloc (2048);
 
-
-  res = send_data (&msg, "http://localhost:12389/");
-
+  res = send_data (msg, "http://localhost:12389/");
 
   /* testing finished, shutting down */
   if ((fail_notify_address == GNUNET_NO) && (fail_pretty_printer == GNUNET_NO) && (fail_addr_to_str == GNUNET_NO) )
     fail = 0;
   else
     fail = 1;
-  shutdown_clean();
+  //shutdown_clean();
   return;
 }
 
