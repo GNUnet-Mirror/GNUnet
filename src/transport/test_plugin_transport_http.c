@@ -177,6 +177,14 @@ static int fail;
  */
 static int sent;
 
+CURL *curl_handle;
+
+/**
+ * cURL Multihandle
+ */
+static CURLM *multi_handle;
+
+
 /**
  * Shutdown testcase
  */
@@ -265,6 +273,66 @@ receive (void *cls,
   return GNUNET_TIME_UNIT_ZERO;
 }
 
+/**
+ *  Message to send using http
+ */
+struct HTTP_Message
+{
+  char *buf;
+  size_t pos;
+  size_t size;
+  size_t len;
+};
+
+ int done;
+static size_t
+putBuffer (void *stream, size_t size, size_t nmemb, void *ptr)
+{
+  unsigned int len;
+  struct HTTP_Message  * cbc = ptr;
+
+  len = cbc->len;
+
+  if (( cbc->pos == len) && (len < (size * nmemb)))
+    return 0;
+  memcpy(stream, cbc->buf, len);
+  cbc->pos = len;
+  return len;
+}
+
+static size_t copyBuffer (void *ptr, size_t size, size_t nmemb, void *ctx)
+{
+  struct HTTP_Message *cbc = ctx;
+
+  if (cbc->pos + size * nmemb > cbc->size)
+    return 0;                   /* overflow */
+  memcpy (&cbc->buf[cbc->pos], ptr, size * nmemb);
+  cbc->pos += size * nmemb;
+  return size * nmemb;
+}
+
+/**
+ * function to send data to server
+ */
+static int send_data(struct HTTP_Message *msg, char * url)
+{
+  struct HTTP_Message cbc;
+
+
+  curl_easy_setopt(curl_handle, CURLOPT_URL, url);
+  curl_easy_setopt(curl_handle, CURLOPT_PUT, 1L);
+  curl_easy_setopt (curl_handle, CURLOPT_WRITEFUNCTION, &copyBuffer);
+  curl_easy_setopt (curl_handle, CURLOPT_WRITEDATA, &cbc);
+  curl_easy_setopt (curl_handle, CURLOPT_READFUNCTION, &putBuffer);
+  curl_easy_setopt (curl_handle, CURLOPT_READDATA, &cbc);
+  curl_easy_setopt(curl_handle, CURLOPT_INFILESIZE_LARGE, (curl_off_t) msg->len);
+  //curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, (timeout.value / 1000 ));
+  //curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
+
+  curl_multi_add_handle(multi_handle, curl_handle);
+
+  return GNUNET_OK;
+}
 
 /**
  * Network format for IPv4 addresses.
@@ -422,6 +490,7 @@ run (void *cls,
   const char * addr_str;
   unsigned int count_str_addr;
   unsigned int suggest_res;
+  unsigned int res;
 
   fail_pretty_printer = GNUNET_YES;
   fail_notify_address = GNUNET_YES;
@@ -523,6 +592,17 @@ run (void *cls,
   failing_addr.u_port = 12389;
   suggest_res = api->check_address (NULL,&failing_addr,sizeof (struct IPv4HttpAddress));
   GNUNET_assert (GNUNET_SYSERR == suggest_res);
+
+  /* test sending to client */
+  multi_handle = curl_multi_init();
+
+
+  /*building messages */
+  struct HTTP_Message msg;
+
+
+  res = send_data (&msg, "http://localhost:12389/");
+
 
   /* testing finished, shutting down */
   if ((fail_notify_address == GNUNET_NO) && (fail_pretty_printer == GNUNET_NO) && (fail_addr_to_str == GNUNET_NO) )
