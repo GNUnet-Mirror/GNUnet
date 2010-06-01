@@ -168,6 +168,15 @@ struct HTTP_Transfer
    */
   size_t data_size;
 
+  unsigned char buf[2048];
+
+  /**
+   * amount of bytes we recieved
+   */
+  size_t pos;
+
+  size_t size;
+
 };
 
 struct Plugin_Address * addr_head;
@@ -353,25 +362,34 @@ putBuffer (void *stream, size_t size, size_t nmemb, void *ptr)
 
 static size_t copyBuffer (void *ptr, size_t size, size_t nmemb, void *ctx)
 {
-  struct HTTP_Message *cbc = ctx;
+  struct HTTP_Transfer * res = (struct HTTP_Transfer *) ctx;
 
-  if (cbc->pos + size * nmemb > cbc->size)
+  res->data_size = size * nmemb;
+
+  if (res->pos + size * nmemb > res->size)
     return 0;                   /* overflow */
-  memcpy (&cbc->buf[cbc->pos], ptr, size * nmemb);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Send completed. %s\n",cbc->buf);
-  cbc->pos += size * nmemb;
+  memcpy (&res->buf[res->pos], ptr, size * nmemb);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Send completed. %s\n",res->buf);
+  res->pos += size * nmemb;
   return size * nmemb;
 }
 
 static size_t header_function( void *ptr, size_t size, size_t nmemb, void *stream)
 {
+  struct HTTP_Transfer * res = (struct HTTP_Transfer *) stream;
   char * tmp;
   unsigned int len = size * nmemb;
+
   tmp = GNUNET_malloc (  len+1 );
   memcpy(tmp,ptr,len);
-  //if (tmp[len-1]!='\0')
-  //  tmp[len]= '\0';
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Header: %u :`%s'\n",len,tmp);
+  if (tmp[len-2] == 13)
+    tmp[len-2]= '\0';
+  if (0==strcmp (tmp,"HTTP/1.1 404 Not Found"))
+    {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "404\n");
+    res->http_result_code=404;
+    }
+
   GNUNET_free (tmp);
   return size * nmemb;
 }
@@ -526,7 +544,7 @@ static int send_data(struct HTTP_Message *msg, struct HTTP_Transfer * result, ch
   curl_easy_setopt (curl_handle, CURLOPT_HEADERFUNCTION, &header_function);
   curl_easy_setopt (curl_handle, CURLOPT_WRITEHEADER, result);
   curl_easy_setopt (curl_handle, CURLOPT_WRITEFUNCTION, &copyBuffer);
-  curl_easy_setopt (curl_handle, CURLOPT_WRITEDATA, msg);
+  curl_easy_setopt (curl_handle, CURLOPT_WRITEDATA, result);
   curl_easy_setopt (curl_handle, CURLOPT_READFUNCTION, &putBuffer);
   curl_easy_setopt (curl_handle, CURLOPT_READDATA, msg);
   curl_easy_setopt(curl_handle, CURLOPT_INFILESIZE_LARGE, (curl_off_t) msg->len);
@@ -808,7 +826,7 @@ run (void *cls,
   msg->size = 2048;
   msg->pos = 0;
   msg->buf = GNUNET_malloc (2048);
-
+  no_ident.size=2048;
 
   res = send_data (msg, &no_ident, "http://localhost:12389/");
 
