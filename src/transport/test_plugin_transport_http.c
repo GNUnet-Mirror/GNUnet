@@ -39,8 +39,8 @@
 #include "transport.h"
 #include <curl/curl.h>
 
-#define VERBOSE GNUNET_YES
-#define DEBUG GNUNET_YES
+#define VERBOSE GNUNET_NO
+#define DEBUG GNUNET_NO
 #define DEBUG_CURL GNUNET_NO
 
 #define PLUGIN libgnunet_plugin_transport_template
@@ -177,6 +177,8 @@ struct HTTP_Transfer
 
   size_t size;
 
+  unsigned int test_failed;
+
 };
 
 struct Plugin_Address * addr_head;
@@ -208,8 +210,7 @@ static int fail_addr_to_str;
 /**
  * Did the test pass or fail?
  */
-static int fail_send_data;
-static struct HTTP_Transfer no_ident;
+static struct HTTP_Transfer testtransfer_no_ident;
 
 
 
@@ -246,6 +247,11 @@ static GNUNET_SCHEDULER_TaskIdentifier http_task_send;
 static void
 shutdown_clean ()
 {
+  if ((fail_notify_address == GNUNET_NO) && (fail_pretty_printer == GNUNET_NO) && (fail_addr_to_str == GNUNET_NO) && (testtransfer_no_ident.test_failed == GNUNET_NO))
+    fail = 0;
+  else
+    fail = 1;
+
   curl_multi_cleanup(multi_handle);
 
   if (NULL != curl_handle)
@@ -394,17 +400,18 @@ static size_t header_function( void *ptr, size_t size, size_t nmemb, void *strea
   return size * nmemb;
 }
 
-static size_t send_prepare( void );
+static size_t send_prepare( struct HTTP_Transfer * result);
 
 static void send_execute (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-
+  struct HTTP_Transfer *res;
 
   int running;
   struct CURLMsg *msg;
   CURLMcode mret;
 
+  res = (struct HTTP_Transfer *) cls;
   http_task_send = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
@@ -440,15 +447,14 @@ static void send_execute (void *cls,
                                __LINE__,
                                curl_easy_strerror (msg->data.result));
                     /* sending msg failed*/
-                    fail_send_data = GNUNET_YES;
                     }
                   else
                     {
-                    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send completed\n");
+                    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send completed with code %u\n", res->data_size);
                     /* sending completed */
-                    fail_send_data = GNUNET_NO;
                     }
-
+                  if ( (cls == &testtransfer_no_ident) && (res->http_result_code==404) && (res->data_size==208))
+                      res->test_failed = GNUNET_NO;
 
                   curl_easy_cleanup(curl_handle);
                   curl_handle=NULL;
@@ -463,7 +469,7 @@ static void send_execute (void *cls,
         }
     }
   while (mret == CURLM_CALL_MULTI_PERFORM);
-  send_prepare();
+  send_prepare(cls);
 }
 
 /**
@@ -471,7 +477,7 @@ static void send_execute (void *cls,
  * @param ses session to send data to
  * @return bytes sent to peer
  */
-static size_t send_prepare( void )
+static size_t send_prepare( struct HTTP_Transfer * result)
 {
   fd_set rs;
   fd_set ws;
@@ -516,7 +522,7 @@ static size_t send_prepare( void )
                                    grs,
                                    gws,
                                    &send_execute,
-                                   NULL);
+                                   result);
   GNUNET_NETWORK_fdset_destroy (gws);
   GNUNET_NETWORK_fdset_destroy (grs);
 
@@ -553,7 +559,7 @@ static int send_data(struct HTTP_Message *msg, struct HTTP_Transfer * result, ch
 
   curl_multi_add_handle(multi_handle, curl_handle);
 
-  send_prepare();
+  send_prepare(result);
 
   return GNUNET_OK;
 }
@@ -719,7 +725,7 @@ run (void *cls,
   fail_pretty_printer = GNUNET_YES;
   fail_notify_address = GNUNET_YES;
   fail_addr_to_str = GNUNET_YES;
-  fail_send_data = GNUNET_YES;
+
   addr_head = NULL;
   count_str_addr = 0;
   /* parse configuration */
@@ -826,16 +832,15 @@ run (void *cls,
   msg->size = 2048;
   msg->pos = 0;
   msg->buf = GNUNET_malloc (2048);
-  no_ident.size=2048;
+  testtransfer_no_ident.size=2048;
+  testtransfer_no_ident.test_failed = GNUNET_YES;
 
-  res = send_data (msg, &no_ident, "http://localhost:12389/");
+  /* Connecting to peer without identification */
+  res = send_data (msg, &testtransfer_no_ident, "http://localhost:12389/");
 
-  /* testing finished, shutting down */
-  if ((fail_notify_address == GNUNET_NO) && (fail_pretty_printer == GNUNET_NO) && (fail_addr_to_str == GNUNET_NO) && (fail_send_data == GNUNET_NO))
-    fail = 0;
-  else
-    fail = 1;
-  //shutdown_clean();
+  /* Add more tests */
+
+  /* testing finished */
   return;
 }
 
