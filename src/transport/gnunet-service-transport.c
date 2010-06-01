@@ -3735,7 +3735,6 @@ check_hello_validated (void *cls,
   if (peer == NULL)
     {
       chvc->piter = NULL;
-      chvc->ve_count++;
       if (GNUNET_NO == chvc->hello_known)
 	{
 	  /* notify PEERINFO about the peer now, so that we at least
@@ -3777,7 +3776,7 @@ check_hello_validated (void *cls,
 	  GNUNET_CONTAINER_DLL_remove (chvc_head,
 				       chvc_tail,
 				       chvc);
-	  GNUNET_free (chvc);
+	  GNUNET_free (chvc);	  
 	}
       return;
     } 
@@ -3810,13 +3809,11 @@ check_hello_validated (void *cls,
 			    gettext_noop ("# HELLO validations (update case)"),
 			    1,
 			    GNUNET_NO);      
-  chvc->ve_count++;
   GNUNET_HELLO_iterate_new_addresses (chvc->hello,
 				      h,
 				      GNUNET_TIME_relative_to_absolute (HELLO_REVALIDATION_START_TIME),
 				      &run_validation, 
 				      chvc);
-  chvc->ve_count--;
 }
 
 
@@ -3905,6 +3902,7 @@ process_hello (struct TransportPlugin *plugin,
 	      GNUNET_HELLO_size(hello));
 #endif
   chvc = GNUNET_malloc (sizeof (struct CheckHelloValidatedContext) + hsize);
+  chvc->ve_count = 1;
   chvc->hello = (const struct GNUNET_HELLO_Message *) &chvc[1];
   memcpy (&chvc[1], hello, hsize);
   GNUNET_CONTAINER_DLL_insert (chvc_head,
