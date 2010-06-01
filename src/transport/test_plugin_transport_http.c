@@ -41,6 +41,7 @@
 
 #define VERBOSE GNUNET_YES
 #define DEBUG GNUNET_YES
+#define DEBUG_CURL GNUNET_NO
 
 #define PLUGIN libgnunet_plugin_transport_template
 
@@ -213,6 +214,10 @@ shutdown_clean ()
 {
   curl_multi_cleanup(multi_handle);
 
+  if (NULL != curl_handle)
+    curl_easy_cleanup (curl_handle);
+
+
   if (ti_send != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel(sched,ti_send);
@@ -235,10 +240,8 @@ shutdown_clean ()
 
   GNUNET_SCHEDULER_shutdown(sched);
 
-
-
-  //GNUNET_free(msg);
-  //GNUNET_free(msg->buf);
+  GNUNET_free(msg->buf);
+  GNUNET_free(msg);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Exiting testcase\n");
   exit(fail);
@@ -339,6 +342,8 @@ static size_t send_prepare( void );
 static void send_execute (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+
+
   int running;
   struct CURLMsg *msg;
   CURLMcode mret;
@@ -378,21 +383,16 @@ static void send_execute (void *cls,
                                __LINE__,
                                curl_easy_strerror (msg->data.result));
                     /* sending msg failed*/
-                    //if ( NULL != cs->transmit_cont)
-                    //  cs->transmit_cont (NULL,&cs->sender,GNUNET_SYSERR);
                     }
                   else
                     {
                     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                                 "Send completed.\n");
-                    //if (GNUNET_OK != remove_http_message(cs, cs->pending_outbound_msg))
-                      //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message could not be removed from session `%s'", GNUNET_i2s(&cs->sender));
-
-                    curl_easy_cleanup(curl_handle);
-                    curl_handle=NULL;
-                    shutdown_clean();
-
+                    /* sending completed */
                     }
+                  curl_easy_cleanup(curl_handle);
+                  curl_handle=NULL;
+                  shutdown_clean();
                   return;
                 default:
                   break;
@@ -469,14 +469,16 @@ static size_t send_prepare( void )
  */
 static int send_data(struct HTTP_Message *msg, char * url)
 {
-  //return GNUNET_OK;
+
   curl_handle = curl_easy_init();
   if( NULL == curl_handle)
   {
     printf("easy_init failed \n");
     return GNUNET_SYSERR;
   }
+#if DEBUG_CURL
   curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 1L);
+#endif
   curl_easy_setopt(curl_handle, CURLOPT_URL, url);
   curl_easy_setopt(curl_handle, CURLOPT_PUT, 1L);
   curl_easy_setopt (curl_handle, CURLOPT_WRITEFUNCTION, &copyBuffer);
