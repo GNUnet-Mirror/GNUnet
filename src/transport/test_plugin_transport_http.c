@@ -609,26 +609,25 @@ notify_address (void *cls,
                 uint16_t addrlen,
                 struct GNUNET_TIME_Relative expires)
 {
-  char * address = NULL;
+  char address[INET6_ADDRSTRLEN];
   unsigned int port;
   struct Plugin_Address * pl_addr;
   struct Plugin_Address * cur;
 
   if (addrlen == (sizeof (struct IPv4HttpAddress)))
-  {
-    address = GNUNET_malloc (INET_ADDRSTRLEN);
-    inet_ntop(AF_INET, (struct in_addr *) addr,address,INET_ADDRSTRLEN);
-    port = ntohs(((struct IPv4HttpAddress *) addr)->u_port);
-  }
-
+    {
+      inet_ntop(AF_INET, (struct in_addr *) addr,address,INET_ADDRSTRLEN);
+      port = ntohs(((struct IPv4HttpAddress *) addr)->u_port);
+    }
   if (addrlen == (sizeof (struct IPv6HttpAddress)))
-  {
-    address = GNUNET_malloc (INET6_ADDRSTRLEN);
-    inet_ntop(AF_INET6, (struct in6_addr *) addr,address,INET6_ADDRSTRLEN);
-    port = ntohs(((struct IPv6HttpAddress *) addr)->u6_port);
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Transport plugin notification for address: `%s':%u\n"),address,port);
-
+    {
+      inet_ntop(AF_INET6, (struct in6_addr *) addr,address,INET6_ADDRSTRLEN);
+      port = ntohs(((struct IPv6HttpAddress *) addr)->u6_port);
+    }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      _("Transport plugin notification for address: `%s':%u\n"),
+	      address,
+	      port);
   pl_addr = GNUNET_malloc (sizeof (struct Plugin_Address) );
   pl_addr->addrlen = addrlen;
   pl_addr->addr = GNUNET_malloc(addrlen);
@@ -636,19 +635,18 @@ notify_address (void *cls,
   pl_addr->next = NULL;
 
   if ( NULL == addr_head)
-  {
-    addr_head = pl_addr;
-  }
+    {
+      addr_head = pl_addr;
+    }
   else
-  {
-    cur = addr_head;
-    while (NULL != cur->next)
-      {
-        cur = cur->next;
-      }
-    cur->next = pl_addr;
-  }
-
+    {
+      cur = addr_head;
+      while (NULL != cur->next)
+	{
+	  cur = cur->next;
+	}
+      cur->next = pl_addr;
+    }
   fail_notify_address_count++;
   fail_notify_address = GNUNET_NO;
 }
