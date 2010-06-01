@@ -153,6 +153,23 @@ struct Plugin_Address
   size_t addrlen;
 };
 
+/**
+ *  Struct for plugin addresses
+ */
+struct HTTP_Transfer
+{
+  /**
+   * HTTP Header result for transfer
+   */
+  unsigned int http_result_code;
+
+  /**
+   * amount of bytes we recieved
+   */
+  size_t data_size;
+
+};
+
 struct Plugin_Address * addr_head;
 
 /**
@@ -178,6 +195,14 @@ static int fail_pretty_printer_count;
  * Did the test pass or fail?
  */
 static int fail_addr_to_str;
+
+/**
+ * Did the test pass or fail?
+ */
+static int fail_send_data;
+static struct HTTP_Transfer no_ident;
+
+
 
 /**
  * Did the test pass or fail?
@@ -333,7 +358,21 @@ static size_t copyBuffer (void *ptr, size_t size, size_t nmemb, void *ctx)
   if (cbc->pos + size * nmemb > cbc->size)
     return 0;                   /* overflow */
   memcpy (&cbc->buf[cbc->pos], ptr, size * nmemb);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Send completed. %s\n",cbc->buf);
   cbc->pos += size * nmemb;
+  return size * nmemb;
+}
+
+static size_t header_function( void *ptr, size_t size, size_t nmemb, void *stream)
+{
+  char * tmp;
+  unsigned int len = size * nmemb;
+  tmp = GNUNET_malloc (  len+1 );
+  memcpy(tmp,ptr,len);
+  //if (tmp[len-1]!='\0')
+  //  tmp[len]= '\0';
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Header: %u :`%s'\n",len,tmp);
+  GNUNET_free (tmp);
   return size * nmemb;
 }
 
@@ -383,13 +422,16 @@ static void send_execute (void *cls,
                                __LINE__,
                                curl_easy_strerror (msg->data.result));
                     /* sending msg failed*/
+                    fail_send_data = GNUNET_YES;
                     }
                   else
                     {
-                    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                                "Send completed.\n");
+                    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send completed\n");
                     /* sending completed */
+                    fail_send_data = GNUNET_NO;
                     }
+
+
                   curl_easy_cleanup(curl_handle);
                   curl_handle=NULL;
                   shutdown_clean();
@@ -467,7 +509,7 @@ static size_t send_prepare( void )
 /**
  * function to send data to server
  */
-static int send_data(struct HTTP_Message *msg, char * url)
+static int send_data(struct HTTP_Message *msg, struct HTTP_Transfer * result, char * url)
 {
 
   curl_handle = curl_easy_init();
@@ -481,6 +523,8 @@ static int send_data(struct HTTP_Message *msg, char * url)
 #endif
   curl_easy_setopt(curl_handle, CURLOPT_URL, url);
   curl_easy_setopt(curl_handle, CURLOPT_PUT, 1L);
+  curl_easy_setopt (curl_handle, CURLOPT_HEADERFUNCTION, &header_function);
+  curl_easy_setopt (curl_handle, CURLOPT_WRITEHEADER, result);
   curl_easy_setopt (curl_handle, CURLOPT_WRITEFUNCTION, &copyBuffer);
   curl_easy_setopt (curl_handle, CURLOPT_WRITEDATA, msg);
   curl_easy_setopt (curl_handle, CURLOPT_READFUNCTION, &putBuffer);
@@ -657,6 +701,7 @@ run (void *cls,
   fail_pretty_printer = GNUNET_YES;
   fail_notify_address = GNUNET_YES;
   fail_addr_to_str = GNUNET_YES;
+  fail_send_data = GNUNET_YES;
   addr_head = NULL;
   count_str_addr = 0;
   /* parse configuration */
@@ -764,10 +809,11 @@ run (void *cls,
   msg->pos = 0;
   msg->buf = GNUNET_malloc (2048);
 
-  res = send_data (msg, "http://localhost:12389/");
+
+  res = send_data (msg, &no_ident, "http://localhost:12389/");
 
   /* testing finished, shutting down */
-  if ((fail_notify_address == GNUNET_NO) && (fail_pretty_printer == GNUNET_NO) && (fail_addr_to_str == GNUNET_NO) )
+  if ((fail_notify_address == GNUNET_NO) && (fail_pretty_printer == GNUNET_NO) && (fail_addr_to_str == GNUNET_NO) && (fail_send_data == GNUNET_NO))
     fail = 0;
   else
     fail = 1;
