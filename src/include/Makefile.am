@@ -6,7 +6,7 @@ EXTRA_DIST = \
   plibc.h \
   winproc.h 
 
-gnunetincludedir = $(includedir)/GNUnet
+gnunetincludedir = $(includedir)/gnunet
 
 nodist_gnunetinclude_HEADERS = \
   gnunet_directories.h
