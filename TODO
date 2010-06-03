@@ -1,14 +1,9 @@
 0.9.0pre1:
 * FS: [CG]
   - Migration test error scenarios:
-    1) peers fail to connect (very, very rare) => maybe explained with bandwidth bug discovered with transport test
-    2) 1 out of 3 bits of content fails to migrate (destination peer never sees it);
-       suspicion: core packs two migration messages into one, and someone throws away the 2nd half!
-       => likely reproduced with new core api reliability test (which now passes but showed bugs)
-       => might be fixed now with util's server-nc and core's 'short-fuse' bugs begin fixed
-    3) client fails to connect to FS service for download (requests never make it to FS)
-       FS was running initially, but is shut down around the time the source peer (!)
-       is supposed to die; the OTHER FS service (the one that was supposed to die) is still up!
+    * client fails to connect to FS service for download (requests never make it to FS)
+      FS was running initially, but is shut down around the time the source peer (!)
+      is supposed to die; the OTHER FS service (the one that was supposed to die) is still up!
   - TTL/priority calculations
   - hot-path routing, load considerations
   - statistics
@@ -29,25 +24,12 @@
     [On W32, we need to select after calling socket before doing connect etc.]
   - add support for UNIX domain sockets [CG]
 * GNUNET-GTK:
-  - write main loop: 
-    + use g_main_context_set_poll_func to integrate GTK with GNUnet Scheduler!? (YUCK!)
-    + OR: add scheduler API to enable integration with GTK main loop instead of doing our own select
-    + use g_main_context_pending, g_main_context_query / g_main_context_check / g_main_context_dispatch
-       and NEVER g_main_loop_run (can this be done? might be the clean way to do this! But how
-       to integrate this with "gtk_main"?  Docu says:
-       "It's OK to use the GLib main loop directly instead of gtk_main(), though it involves 
-        slightly more typing. See GMainLoop in the GLib documentation."
-       => so maybe it "just works"?
-  - implement glade loader
-  - implement main quit handler (file-quit and main window close) 
-  - implement about menu handler
   - add license to about dialog  
   - add authors to about dialog
   - add translators to about dialog 
   - add documenters to about dialog
   - add artists to about dialog
   - test logo in about dialog
-  - test logo in main dialog (window icon)
   - implement search dialog opening and actual search
   - NS list in search dialog should use colors to offset our own namespaces from the others
   - double-clicking on NS list in search dialog should move 'root' to keyword line
@@ -125,14 +107,10 @@
     + search
     + unindex
 * GNUNET-GTK:
-  - handle view-metadata toggle
-  - handle view-preview toggle
   - implement API to get notifications about bandwidth assignments to individual peers
   - implement API to get notifications about updates to liveness of individual peers (before disconnect)
-  - handle view-neighbours toggle
   - extend peer dialog with green-yellow-red connectivity status lights
   - implement statistics tabs
-  - handle view-statistics toggle
   - do meaningful update to status line (starting up, peer running, #connections, shutdown, ...)
   - implement unindex operation (use dialog with all indexed files for selection)
   - implement download by URI dialog; figure out where to display those downloads!
