@@ -723,6 +723,21 @@ GNUNET_NETWORK_fdset_copy_native (struct GNUNET_NETWORK_FDSet *to,
   to->nsds = nfds;
 }
 
+
+/**
+ * Set a native fd in a set
+ *
+ * @param to destination
+ * @param nfd native FD to set
+ */
+void GNUNET_NETWORK_fdset_set_native (struct GNUNET_NETWORK_FDSet *to,
+				      int nfd)
+{
+  FD_SET (nfd, &to->sds);
+  to->nsds = GNUNET_MAX (nfd + 1, to->nsds);
+}
+
+
 /**
  * Add a file handle to the fd set
  * @param fds fd set

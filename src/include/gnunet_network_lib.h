@@ -285,10 +285,14 @@ void GNUNET_NETWORK_fdset_add (struct GNUNET_NETWORK_FDSet *dst,
 void GNUNET_NETWORK_fdset_copy (struct GNUNET_NETWORK_FDSet *to,
                                 const struct GNUNET_NETWORK_FDSet *from);
 
-/*
+/**
  * Return file descriptor for this network handle
+ *
+ * @param desc wrapper to process
+ * @return POSIX file descriptor
  */
 int GNUNET_NETWORK_get_fd (struct GNUNET_NETWORK_Handle *desc);
+
 /**
  * Copy a native fd set
  * @param to destination
@@ -297,6 +301,16 @@ int GNUNET_NETWORK_get_fd (struct GNUNET_NETWORK_Handle *desc);
  */
 void GNUNET_NETWORK_fdset_copy_native (struct GNUNET_NETWORK_FDSet *to,
                                        const fd_set * from, int nfds);
+
+
+/**
+ * Set a native fd in a set
+ *
+ * @param to destination
+ * @param nfd native FD to set
+ */
+void GNUNET_NETWORK_fdset_set_native (struct GNUNET_NETWORK_FDSet *to,
+				      int nfd);
 
 /**
  * Add a file handle to the fd set
