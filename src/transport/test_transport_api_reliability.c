@@ -51,7 +51,7 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 150)
 
 #define MTYPE 12345
 
@@ -200,7 +200,14 @@ notify_receive (void *cls,
 #endif
   n++;
   if (0 == (n % (TOTAL_MSGS/100)))
-    fprintf (stderr, ".");
+    {
+      fprintf (stderr, ".");
+      GNUNET_SCHEDULER_cancel (sched, die_task);
+      die_task = GNUNET_SCHEDULER_add_delayed (sched,
+					       TIMEOUT,
+					       &end_badly,
+					       NULL);    
+    }
   if (n == TOTAL_MSGS)
     end ();
 }
