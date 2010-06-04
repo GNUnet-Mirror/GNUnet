@@ -1601,7 +1601,10 @@ add_to_pending_messages_for_peer (struct ConnectedPeer *cp,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Failed to schedule transmission with core!\n");
 #endif
-      /* FIXME: call stats (rare, bad case) */
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# CORE transmission failures"),
+				1,
+				GNUNET_NO);
     }
 }
 

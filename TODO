@@ -6,7 +6,6 @@
       is supposed to die; the OTHER FS service (the one that was supposed to die) is still up!
   - TTL/priority calculations
   - hot-path routing, load considerations
-  - statistics
   - active reply route caching design & implementation of service; gap extension!
 * TRANSPORT:
   - HTTP backend [MW]
