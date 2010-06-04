@@ -23,30 +23,19 @@
     [On W32, we need to select after calling socket before doing connect etc.]
   - add support for UNIX domain sockets [CG]
 * GNUNET-GTK:
-  - add license to about dialog  
-  - add authors to about dialog
-  - add translators to about dialog 
-  - add documenters to about dialog
-  - add artists to about dialog
-  - test logo in about dialog
-  - implement search dialog opening and actual search
-  - NS list in search dialog should use colors to offset our own namespaces from the others
-  - double-clicking on NS list in search dialog should move 'root' to keyword line
+  - search events:
+    + results
+      / thumbnail update
+      / metadata view update
+    + result updates
+    + suspend / resume
+    + errors
   - double-clicking on search result in master list should open save-as dialog for CHK/LOC URIs
   - right-clicking on search result should open menu that allows:
     + viewing full meta data 
     + starting download
     + starting recursive download 
     + aborting active download
-  - right-clicking on NS list in search dialog should open menu that allows 
-    + viewing full meta data 
-    + deletion of namespace info
-  - master should add tab to main notebook with label with 'new' icon that allows starting of a search (same as via menu)
-  - tabs in notebook should contain:
-    + "X" to allow closing of tabs
-    + "play" to allow resuming of search OR "pause" to allow pausing of search
-  - implement open directory dialog
-  - implement new-pseudonym dialog
   - implement publish dialog
     + add (single file)
     + edit (meta data add, meta data del, meta data type population, keyword add (button, activate entry line), 
@@ -62,10 +51,6 @@
     + cancel
     + execute (publish)
   - pick appropriate sort-by columns for various tree view columns
-  - anonymity spin buttons should turn red on zero:
-    + search
-    + publish
-    + download
 
 0.9.0pre2:
 * CORE:
@@ -98,6 +83,7 @@
     + DHT integration for search
     + CS-DHT-functions (DHT-put of LOC)
     + P2P-functions (DHT-get)
+  - listing of learned namespaces
   - collection API & tests
     + gnunet-pseudonym (collection support)
   - implement FS performance tests
@@ -106,6 +92,14 @@
     + search
     + unindex
 * GNUNET-GTK:
+  - implement open directory dialog
+  - implement new-pseudonym dialog
+  - namespace search
+  - NS list in search dialog should use colors to offset our own namespaces from the others
+  - double-clicking on NS list in search dialog should move 'root' to keyword line
+  - right-clicking on NS list in search dialog should open menu that allows 
+    + viewing full meta data 
+    + deletion of namespace info
   - implement API to get notifications about bandwidth assignments to individual peers
   - implement API to get notifications about updates to liveness of individual peers (before disconnect)
   - extend peer dialog with green-yellow-red connectivity status lights
