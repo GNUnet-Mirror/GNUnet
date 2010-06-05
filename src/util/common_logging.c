@@ -510,7 +510,9 @@ GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
   static char buf[INET6_ADDRSTRLEN + 8];
   static char b2[6];
   const struct sockaddr_in *v4;
+  const struct sockaddr_un *un;
   const struct sockaddr_in6 *v6;
+  unsigned int off;
 
   if (addr == NULL)
     return _("unknown address");
@@ -534,6 +536,17 @@ GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
       strcat (buf, "]:");
       sprintf (b2, "%u", ntohs (v6->sin6_port));
       strcat (buf, b2);
+      return buf;
+    case AF_UNIX:
+      un = (const struct sockaddr_un*) addr;
+      off = 0;
+      if (un->sun_path[0] == '\0') off++;
+      snprintf (buf, 
+		sizeof (buf),
+		"%s%.*s", 
+		(off == 1) ? "@" : "",
+		addrlen - sizeof (sa_family_t) - 1 - off,
+		&un->sun_path[off]);
       return buf;
     default:
       return _("invalid address");

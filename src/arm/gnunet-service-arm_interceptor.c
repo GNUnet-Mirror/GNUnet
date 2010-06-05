@@ -936,15 +936,21 @@ createListeningSocket (struct sockaddr *sa,
     case AF_INET6:
       sock = GNUNET_NETWORK_socket_create (PF_INET6, SOCK_STREAM, 0);
       break;
+    case AF_UNIX:
+      sock = GNUNET_NETWORK_socket_create (PF_UNIX, SOCK_STREAM, 0);
+      break;
     default:
+      GNUNET_break (0);
       sock = NULL;
+      errno = EAFNOSUPPORT;
       break;
     }
   if (NULL == sock)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Unable to create socket for service `%s'"),
-		  serviceName);
+		  _("Unable to create socket for service `%s': %s\n"),
+		  serviceName,
+		  STRERROR (errno));
       GNUNET_free (sa);
       return;
     }

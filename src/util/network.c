@@ -226,7 +226,10 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
 #ifdef DARWIN
   socket_set_nosigpipe (ret);
 #endif
-  socket_set_nodelay (ret);
+#ifdef AF_UNIX
+  if (address->sa_family != AF_UNIX)
+#endif
+    socket_set_nodelay (ret);
   return ret;
 }
 
@@ -590,7 +593,11 @@ GNUNET_NETWORK_socket_create (int domain, int type, int protocol)
 #ifdef DARWIN
   socket_set_nosigpipe (ret);
 #endif
-  if (type == SOCK_STREAM)
+  if ( (type == SOCK_STREAM) 
+#ifdef AF_UNIX
+       && (domain != AF_UNIX) 
+#endif
+       )
     socket_set_nodelay (ret);
   return ret;
 }

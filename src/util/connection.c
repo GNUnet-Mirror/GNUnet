@@ -889,6 +889,72 @@ GNUNET_CONNECTION_create_from_connect (struct GNUNET_SCHEDULER_Handle *sched,
 
 
 /**
+ * Create a socket handle by connecting to a UNIX domain service.
+ * This function returns immediately, even if the connection has not
+ * yet been established.  This function only creates UNIX connections.
+ *
+ * @param sched scheduler to use
+ * @param cfg configuration to use
+ * @param unixpath path to connect to
+ * @param maxbuf maximum write buffer size for the socket (use
+ *        0 for sockets that need no write buffers, such as listen sockets)
+ * @return the socket handle, NULL on systems without UNIX support
+ */
+struct GNUNET_CONNECTION_Handle *
+GNUNET_CONNECTION_create_from_connect_to_unixpath (struct GNUNET_SCHEDULER_Handle *sched,
+						   const struct
+						   GNUNET_CONFIGURATION_Handle *cfg,
+						   const char *unixpath,
+						   size_t maxbuf)
+{
+#ifdef AF_UNIX
+  struct GNUNET_CONNECTION_Handle *ret;
+  struct sockaddr_un *un;
+  size_t slen;
+
+  GNUNET_assert (0 < strlen (unixpath));        /* sanity check */
+  un = GNUNET_malloc (sizeof (struct sockaddr_un));
+  un->sun_family = AF_UNIX;
+  slen = strlen (unixpath) + 1;
+  if (slen >= sizeof (un->sun_path))
+    slen = sizeof (un->sun_path) - 1;
+  memcpy (un->sun_path,
+	  unixpath,
+	  slen);
+  un->sun_path[slen] = '\0';
+  slen += sizeof (sa_family_t);
+#if LINUX
+  un->sun_path[0] = '\0';
+  slen = sizeof (struct sockaddr_un);
+#endif
+  ret = GNUNET_malloc (sizeof (struct GNUNET_CONNECTION_Handle) + maxbuf);
+  ret->cfg = cfg;
+  ret->sched = sched;
+  ret->write_buffer = (char *) &ret[1];
+  ret->write_buffer_size = maxbuf;
+  ret->port = 0;
+  ret->hostname = NULL;
+  ret->addr = (struct sockaddr*) un;
+  ret->addrlen = slen;
+  ret->sock = GNUNET_NETWORK_socket_create (AF_UNIX, SOCK_STREAM, 0);
+  if (GNUNET_OK != GNUNET_NETWORK_socket_connect (ret->sock,
+						  ret->addr,
+						  ret->addrlen)) 
+    {
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (ret->sock));
+      GNUNET_free (ret->addr);
+      GNUNET_free (ret);
+      return NULL;
+    }
+  connect_success_continuation (ret);
+  return ret;
+#else
+  return NULL;
+#endif
+}
+
+
+/**
  * Create a socket handle by (asynchronously) connecting to a host.
  * This function returns immediately, even if the connection has not
  * yet been established.  This function only creates TCP connections.

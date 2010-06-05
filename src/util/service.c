@@ -612,6 +612,10 @@ check_access (void *cls, const struct sockaddr *addr, socklen_t addrlen)
         && ((sctx->v6_denied == NULL) ||
             (!check_ipv6_listed (sctx->v6_denied, &i6->sin6_addr)));
       break;
+    case AF_UNIX:
+      /* FIXME: support checking UID/GID in the future... */
+      ret = GNUNET_OK; /* always OK for now */
+      break;
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("Unknown address family %d\n"), addr->sa_family);
@@ -702,6 +706,46 @@ process_acl6 (struct IPv6NetworkSet **ret,
   return GNUNET_OK;
 }
 
+/**
+ * Add the given UNIX domain path as an address to the
+ * list (as the first entry).
+ *
+ * @param saddrs array to update
+ * @param saddrlens where to store the address length
+ * @param unixpath path to add
+ */
+static void
+add_unixpath (struct sockaddr **saddrs,
+	      socklen_t *saddrlens,
+	      const char *unixpath)
+{
+#ifdef AF_UNIX  
+  struct sockaddr_un *un;
+  size_t slen;
+
+  un = GNUNET_malloc (sizeof (struct sockaddr_un));
+  un->sun_family = AF_UNIX;
+  slen = strlen (unixpath) + 1;
+  if (slen >= sizeof (un->sun_path))
+    slen = sizeof (un->sun_path) - 1;
+  memcpy (un->sun_path,
+	  unixpath,
+	  slen);
+  un->sun_path[slen] = '\0';
+  slen += sizeof (sa_family_t);
+#if LINUX
+  un->sun_path[0] = '\0';
+  slen = sizeof (struct sockaddr_un);
+#endif
+  *saddrs = (struct sockaddr*) un;
+  *saddrlens = slen;
+#else
+  /* this function should never be called 
+     unless AF_UNIX is defined! */
+  GNUNET_assert (0);
+#endif
+}
+
 
 /**
  * Get the list of addresses that a server for the given service
@@ -732,6 +776,7 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
   int disablev6;
   struct GNUNET_NETWORK_Handle *desc;
   unsigned long long port;
+  char *unixpath;
   struct addrinfo hints;
   struct addrinfo *res;
   struct addrinfo *pos;
@@ -781,19 +826,25 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
         }
     }
 
-
-  if ((GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_number (cfg,
-                                              serviceName,
-                                              "PORT",
-                                              &port)) || (port > 65535))
+  port = 0;
+  if (GNUNET_CONFIGURATION_have_value (cfg,
+                                       serviceName, "PORT"))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _
-                  ("Require valid port number for service `%s' in configuration!\n"),
-                  serviceName);
-      return GNUNET_SYSERR;
+      GNUNET_break (GNUNET_OK ==
+		    GNUNET_CONFIGURATION_get_value_number (cfg,
+							   serviceName,
+							   "PORT",
+							   &port));
+      if (port > 65535)
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      _
+		      ("Require valid port number for service `%s' in configuration!\n"),
+		      serviceName);
+	  return GNUNET_SYSERR;
+	}
     }
+
   if (GNUNET_CONFIGURATION_have_value (cfg,
                                        serviceName, "BINDTO"))
     {
@@ -806,6 +857,49 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
   else
     hostname = NULL;
 
+#ifdef AF_UNIX
+  if (GNUNET_CONFIGURATION_have_value (cfg,
+                                       serviceName, "UNIXPATH"))
+    {
+      GNUNET_break (GNUNET_OK ==
+                    GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                           serviceName,
+                                                           "UNIXPATH",
+                                                           &unixpath));
+
+      /* probe UNIX support */
+      desc = GNUNET_NETWORK_socket_create (AF_UNIX, SOCK_STREAM, 0);
+      if (NULL == desc)
+        {
+          if ((errno == ENOBUFS) ||
+              (errno == ENOMEM) || (errno == ENFILE) || (errno == EACCES))
+            {
+              GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
+              return GNUNET_SYSERR;
+            }
+          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                      _
+                      ("Disabling UNIX domainn socket support for service `%s', failed to create UNIX domain socket: %s\n"),
+                      serviceName, STRERROR (errno));
+	  GNUNET_free (unixpath);
+          unixpath = NULL;
+        }
+    }
+  else
+    unixpath = NULL;
+#else
+  unixpath = NULL;
+#endif
+
+  if ( (port == 0) &&
+       (unixpath == NULL) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Have neither PORT nor UNIXPATH for service `%s', but one is required\n"),
+		  serviceName);
+      return GNUNET_SYSERR;
+    }
+       
   if (hostname != NULL)
     {
 #if DEBUG_SERVICE
@@ -845,9 +939,16 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
           return GNUNET_SYSERR;
         }
       resi = i;
-      saddrs = GNUNET_malloc ((i+1) * sizeof(struct sockaddr*));
-      saddrlens = GNUNET_malloc ((i+1) * sizeof (socklen_t));
+      if (NULL != unixpath)
+	resi++;
+      saddrs = GNUNET_malloc ((resi+1) * sizeof(struct sockaddr*));
+      saddrlens = GNUNET_malloc ((resi+1) * sizeof (socklen_t));
       i = 0;
+      if (NULL != unixpath)
+	{
+	  add_unixpath (saddrs, saddrlens, unixpath);
+	  i++;
+	}
       next = res;
       while (NULL != (pos = next)) 
 	{
@@ -890,40 +991,56 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
         {
           /* V4-only */
 	  resi = 1;
-	  saddrs = GNUNET_malloc (2 * sizeof(struct sockaddr*));
-	  saddrlens = GNUNET_malloc (2 * sizeof (socklen_t));
-          saddrlens[0] = sizeof (struct sockaddr_in);
-          saddrs[0] = GNUNET_malloc (saddrlens[0]);
+	  if (NULL != unixpath)
+	    resi++;
+	  i = 0;
+	  saddrs = GNUNET_malloc ((resi+1) * sizeof(struct sockaddr*));
+	  saddrlens = GNUNET_malloc ((resi+1) * sizeof (socklen_t));
+	  if (NULL != unixpath)
+	    {
+	      add_unixpath (saddrs, saddrlens, unixpath);
+	      i++;
+	    }
+          saddrlens[i] = sizeof (struct sockaddr_in);
+          saddrs[i] = GNUNET_malloc (saddrlens[i]);
 #if HAVE_SOCKADDR_IN_SIN_LEN
-          ((struct sockaddr_in *) saddrs[0])->sin_len = saddrlens[0];
+          ((struct sockaddr_in *) saddrs[i])->sin_len = saddrlens[i];
 #endif
-          ((struct sockaddr_in *) saddrs[0])->sin_family = AF_INET;
-          ((struct sockaddr_in *) saddrs[0])->sin_port = htons (port);
+          ((struct sockaddr_in *) saddrs[i])->sin_family = AF_INET;
+          ((struct sockaddr_in *) saddrs[i])->sin_port = htons (port);
         }
       else
         {
           /* dual stack */
 	  resi = 2;
-	  saddrs = GNUNET_malloc (3 * sizeof(struct sockaddr*));
-	  saddrlens = GNUNET_malloc (3 * sizeof (socklen_t));
-
-          saddrlens[0] = sizeof (struct sockaddr_in6);
-          saddrs[0] = GNUNET_malloc (saddrlens[0]);
+	  if (NULL != unixpath)
+	    resi++;
+	  saddrs = GNUNET_malloc ((resi+1) * sizeof(struct sockaddr*));
+	  saddrlens = GNUNET_malloc ((resi+1) * sizeof (socklen_t));
+	  i = 0;
+	  if (NULL != unixpath)
+	    {
+	      add_unixpath (saddrs, saddrlens, unixpath);
+	      i++;
+	    }
+          saddrlens[i] = sizeof (struct sockaddr_in6);
+          saddrs[i] = GNUNET_malloc (saddrlens[i]);
 #if HAVE_SOCKADDR_IN_SIN_LEN
-          ((struct sockaddr_in6 *) saddrs[0])->sin6_len = saddrlens[0];
+          ((struct sockaddr_in6 *) saddrs[i])->sin6_len = saddrlens[0];
 #endif
-          ((struct sockaddr_in6 *) saddrs[0])->sin6_family = AF_INET6;
-          ((struct sockaddr_in6 *) saddrs[0])->sin6_port = htons (port);
-
-          saddrlens[1] = sizeof (struct sockaddr_in);
-          saddrs[1] = GNUNET_malloc (saddrlens[1]);
+          ((struct sockaddr_in6 *) saddrs[i])->sin6_family = AF_INET6;
+          ((struct sockaddr_in6 *) saddrs[i])->sin6_port = htons (port);
+	  i++;
+          saddrlens[i] = sizeof (struct sockaddr_in);
+          saddrs[i] = GNUNET_malloc (saddrlens[i]);
 #if HAVE_SOCKADDR_IN_SIN_LEN
-          ((struct sockaddr_in *) saddrs[1])->sin_len = saddrlens[1];
+          ((struct sockaddr_in *) saddrs[i])->sin_len = saddrlens[1];
 #endif
-          ((struct sockaddr_in *) saddrs[1])->sin_family = AF_INET;
-          ((struct sockaddr_in *) saddrs[1])->sin_port = htons (port);
+          ((struct sockaddr_in *) saddrs[i])->sin_family = AF_INET;
+          ((struct sockaddr_in *) saddrs[i])->sin_port = htons (port);
         }
     }
+  GNUNET_free_non_null (unixpath);
   *addrs = saddrs;
   *addr_lens = saddrlens;
   return resi;
@@ -934,8 +1051,9 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
  * Setup addr, addrlen, maxbuf, idle_timeout
  * based on configuration!
  *
- * Configuration must specify a "PORT".  It may
- * specify:
+ * Configuration may specify:
+ * - PORT (where to bind to for TCP)
+ * - UNIXPATH (where to bind to for UNIX domain sockets)
  * - TIMEOUT (after how many ms does an inactive service timeout);
  * - MAXBUF (maximum incoming message size supported)
  * - DISABLEV6 (disable support for IPv6, otherwise we use dual-stack)

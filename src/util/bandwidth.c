@@ -211,7 +211,7 @@ int
 GNUNET_BANDWIDTH_tracker_consume (struct GNUNET_BANDWIDTH_Tracker *av,
 				  ssize_t size)
 {
-  uint64_t nc;
+  int64_t nc;
 
 #if DEBUG_BANDWIDTH
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

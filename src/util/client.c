@@ -250,18 +250,54 @@ struct GNUNET_CLIENT_Connection
    * Are we ignoring shutdown signals?
    */
   int ignore_shutdown;
+  
+  /**
+   * How often have we tried to connect?
+   */
+  unsigned int attempts;
 
 };
 
 
+/**
+ * Try to connect to the service.
+ *
+ * @param sched scheduler to use
+ * @param service_name name of service to connect to
+ * @param cfg configuration to use
+ * @param attempt counter used to alternate between IP and UNIX domain sockets
+ * @return NULL on error
+ */
 static struct GNUNET_CONNECTION_Handle *
 do_connect (struct GNUNET_SCHEDULER_Handle *sched,
             const char *service_name,
-            const struct GNUNET_CONFIGURATION_Handle *cfg)
+            const struct GNUNET_CONFIGURATION_Handle *cfg,
+	    unsigned int attempt)
 {
   struct GNUNET_CONNECTION_Handle *sock;
   char *hostname;
+  char *unixpath;
   unsigned long long port;
+
+#if AF_UNIX
+  if (0 == attempt % 2)
+    {
+      /* on even rounds, try UNIX */
+      if (GNUNET_OK ==
+	  GNUNET_CONFIGURATION_get_value_string (cfg,
+						 service_name,
+						 "UNIXPATH", &unixpath))
+	{
+	  sock = GNUNET_CONNECTION_create_from_connect_to_unixpath (sched,
+								    cfg,
+								    unixpath,
+								    GNUNET_SERVER_MAX_MESSAGE_SIZE);
+	  GNUNET_free (unixpath);
+	  if (sock != NULL)
+	    return sock;
+	}
+    }
+#endif
 
   if ((GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_number (cfg,
@@ -314,10 +350,13 @@ GNUNET_CLIENT_connect (struct GNUNET_SCHEDULER_Handle *sched,
   struct GNUNET_CLIENT_Connection *ret;
   struct GNUNET_CONNECTION_Handle *sock;
 
-  sock = do_connect (sched, service_name, cfg);
+  sock = do_connect (sched, 
+		     service_name, 
+		     cfg, 0);
   if (sock == NULL)
     return NULL;
   ret = GNUNET_malloc (sizeof (struct GNUNET_CLIENT_Connection));
+  ret->attempts = 1;
   ret->sock = sock;
   ret->sched = sched;
   ret->service_name = GNUNET_strdup (service_name);
@@ -770,7 +809,9 @@ client_notify (void *cls, size_t size, void *buf)
       /* auto-retry */
       GNUNET_CONNECTION_destroy (th->sock->sock, GNUNET_NO);
       th->sock->sock = do_connect (th->sock->sched,
-                                   th->sock->service_name, th->sock->cfg);
+                                   th->sock->service_name, 
+				   th->sock->cfg,
+				   th->sock->attempts++);
       GNUNET_assert (NULL != th->sock->sock);
       GNUNET_CONNECTION_ignore_shutdown (th->sock->sock,
 					 th->sock->ignore_shutdown);

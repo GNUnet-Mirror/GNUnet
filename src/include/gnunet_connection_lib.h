@@ -158,6 +158,27 @@ struct GNUNET_CONNECTION_Handle
 					  size_t maxbuf);
 
 
+/**
+ * Create a socket handle by connecting to a UNIX domain service.
+ * This function returns immediately, even if the connection has not
+ * yet been established.  This function only creates UNIX connections.
+ *
+ * @param sched scheduler to use
+ * @param cfg configuration to use
+ * @param unixpath path to connect to
+ * @param maxbuf maximum write buffer size for the socket (use
+ *        0 for sockets that need no write buffers, such as listen sockets)
+ * @return the socket handle, NULL on systems without UNIX support
+ */
+struct GNUNET_CONNECTION_Handle *
+GNUNET_CONNECTION_create_from_connect_to_unixpath (struct GNUNET_SCHEDULER_Handle *sched,
+						   const struct
+						   GNUNET_CONFIGURATION_Handle *cfg,
+						   const char *unixpath,
+						   size_t maxbuf);
+
+
+
 
 /**
  * Create a socket handle by (asynchronously) connecting to a host.

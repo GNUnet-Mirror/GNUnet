@@ -313,8 +313,9 @@ uid_from_hash (const GNUNET_HashCode *hash, uint32_t *uid)
 struct UpdateContext
 {
   struct GNUNET_CONFIGURATION_Handle *ret;
-  unsigned int nport;
   const char *hostname;
+  unsigned int nport;
+  unsigned int upnum;
 };
 
 
@@ -351,11 +352,25 @@ update_config (void *cls,
   struct UpdateContext *ctx = cls;
   unsigned int ival;
   char cval[12];
+  char uval[128];
 
   if ((0 == strcmp (option, "PORT")) && (1 == sscanf (value, "%u", &ival)))
     {
-      GNUNET_snprintf (cval, sizeof (cval), "%u", ctx->nport++);
-      value = cval;
+      if (ival != 0)
+	{
+	  GNUNET_snprintf (cval, sizeof (cval), "%u", ctx->nport++);
+	  value = cval;
+	}
+    }
+
+  if (0 == strcmp (option, "UNIXPATH"))
+    {
+      GNUNET_snprintf (uval, 
+		       sizeof (uval),
+		       "/tmp/test-service-%s-%u", 
+		       section,
+		       ctx->upnum++);
+      value = uval;
     }
 
   if ((0 == strcmp (option, "HOSTNAME")) && (ctx->hostname != NULL))
@@ -376,12 +391,16 @@ update_config (void *cls,
  * @param cfg template configuration
  * @param port port numbers to use, update to reflect
  *             port numbers that were used
+ * @param upnum number to make unix domain socket names unique
  * @param hostname hostname of the controlling host, to allow control connections from
  *
  * @return new configuration, NULL on error
  */
 static struct GNUNET_CONFIGURATION_Handle *
-make_config (const struct GNUNET_CONFIGURATION_Handle *cfg, uint16_t * port, const char *hostname)
+make_config (const struct GNUNET_CONFIGURATION_Handle *cfg, 
+	     uint16_t * port,
+	     uint32_t * upnum,
+	     const char *hostname)
 {
   struct UpdateContext uc;
   uint16_t orig;
@@ -390,6 +409,7 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg, uint16_t * port, con
 
   orig = *port;
   uc.nport = *port;
+  uc.upnum = *upnum;
   uc.ret = GNUNET_CONFIGURATION_create ();
   uc.hostname = hostname;
 
@@ -420,6 +440,7 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg, uint16_t * port, con
     }
 
   *port = (uint16_t) uc.nport;
+  *upnum = uc.upnum;
   return uc.ret;
 }
 
@@ -2499,13 +2520,14 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
   unsigned int off;
   unsigned int hostcnt;
   uint16_t minport;
+  uint32_t upnum;
 
   if (0 == total)
     {
       GNUNET_break (0);
       return NULL;
     }
-
+  upnum = 0;
   pg = GNUNET_malloc (sizeof (struct GNUNET_TESTING_PeerGroup));
   pg->sched = sched;
   pg->cfg = cfg;
@@ -2571,12 +2593,18 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
       if (hostcnt > 0)
         {
           hostname = pg->hosts[off % hostcnt].hostname;
-          pcfg = make_config (cfg, &pg->hosts[off % hostcnt].minport, hostname);
+          pcfg = make_config (cfg, 
+			      &pg->hosts[off % hostcnt].minport,
+			      &upnum,
+			      hostname);
         }
       else
         {
           hostname = NULL;
-          pcfg = make_config (cfg, &minport, hostname);
+          pcfg = make_config (cfg,
+			      &minport,
+			      &upnum,
+			      hostname);
         }
 
       if (NULL == pcfg)
