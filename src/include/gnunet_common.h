@@ -30,6 +30,13 @@
 #ifndef GNUNET_COMMON_H
 #define GNUNET_COMMON_H
 
+#if HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+#if HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
+
 /**
  * Version of the API (for entire gnunetutil.so library).
  */
