@@ -10,3 +10,5 @@ EXTRA_DIST = \
 
 ACLOCAL_AMFLAGS = -I m4
 
+gnunetincludedir = $(includedir)/gnunet
+gnunetinclude_HEADERS = gnunet_config.h

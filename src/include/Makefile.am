@@ -1,17 +1,19 @@
 SUBDIRS = .
 
-EXTRA_DIST = \
-  gettext.h \
-  platform.h \
-  plibc.h \
-  winproc.h 
-
 gnunetincludedir = $(includedir)/gnunet
 
 nodist_gnunetinclude_HEADERS = \
   gnunet_directories.h
 
+if MINGW
+  WINPROC = winproc.h
+endif
+
 gnunetinclude_HEADERS = \
+  gettext.h \
+  platform.h \
+  plibc.h \
+  $(WINPROC) \
   gnunet_arm_service.h \
   gnunet_bandwidth_lib.h \
   gnunet_bio_lib.h \
