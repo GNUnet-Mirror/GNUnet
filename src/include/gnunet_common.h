@@ -35,10 +35,6 @@
  */
 #define GNUNET_UTIL_VERSION 0x00000000
 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/ip.h> /* superset of previous */
-
 /**
  * Name used for "services" that are actually command-line
  * programs invoked by the end user.
