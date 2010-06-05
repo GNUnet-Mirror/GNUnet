@@ -36,6 +36,9 @@
 #if HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
+#ifdef MINGW
+#include "winproc.h"
+#endif
 
 /**
  * Version of the API (for entire gnunetutil.so library).
