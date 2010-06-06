@@ -1120,6 +1120,12 @@ struct GNUNET_FS_ProgressInfo
 	   */
 	  struct GNUNET_FS_SearchResult *result;
 
+	  /**
+	   * Applicability rank (the larger, the better the result
+	   * fits the search criteria).
+	   */
+ 	  uint32_t applicability_rank;	  
+
 	} result;
 	
 	/**

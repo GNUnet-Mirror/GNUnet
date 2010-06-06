@@ -107,6 +107,7 @@ notify_client_chk_result (struct GNUNET_FS_SearchContext *sc,
   pi.value.search.specifics.result.meta = sr->meta;
   pi.value.search.specifics.result.uri = sr->uri;
   pi.value.search.specifics.result.result = sr;
+  pi.value.search.specifics.result.applicability_rank = sr->optional_support;
   sr->client_info = GNUNET_FS_search_make_status_ (&pi, sc);
 }
 
