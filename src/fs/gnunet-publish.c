@@ -545,6 +545,9 @@ run (void *cls,
     }
   else
     {
+      GNUNET_FS_meta_data_extract_from_file (meta,
+					     args[0],
+					     l);
       fi = GNUNET_FS_file_information_create_from_file (ctx,
 							NULL,
 							args[0],
