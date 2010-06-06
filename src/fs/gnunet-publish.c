@@ -208,7 +208,7 @@ meta_printer (void *cls,
   if (type == EXTRACTOR_METATYPE_FILENAME) 
     return 0;
   fprintf (stdout, 
-	   "%s - %s",
+	   "\t%s - %s\n",
 	   EXTRACTOR_metatype_to_string (type),
 	   data);
   return 0;
