@@ -545,6 +545,8 @@ run (void *cls,
     }
   else
     {
+      if (meta == NULL)
+	meta = GNUNET_CONTAINER_meta_data_create ();
       GNUNET_FS_meta_data_extract_from_file (meta,
 					     args[0],
 					     l);
