@@ -22,19 +22,21 @@
   - only connect() sockets that are ready (select()) [Nils]
     [On W32, we need to select after calling socket before doing connect etc.]
 * GNUNET-GTK:
-  - search events:
-    + results
-      / thumbnail update
-      / metadata view update
-    + result updates
-    + suspend / resume
-    + errors
-  - double-clicking on search result in master list should open save-as dialog for CHK/LOC URIs
+  - handle download events:
+    + download start
+    + download stop
+    + download completed
+    + download progress
+    + download error
+    + download resume
+    + download suspend
+    + download active
+    + download inactive
+    + download lost-parent (!)
   - right-clicking on search result should open menu that allows:
-    + viewing full meta data 
-    + starting download
     + starting recursive download 
     + aborting active download
+    + copy URI to clipboard
   - implement publish dialog
     + add (single file)
     + edit (meta data add, meta data del, meta data type population, keyword add (button, activate entry line), 
@@ -49,6 +51,9 @@
     + open (import directory structure)
     + cancel
     + execute (publish)
+  - events:
+    + search resume
+    + search error
   - pick appropriate sort-by columns for various tree view columns
 
 0.9.0pre2:
@@ -102,6 +107,7 @@
   - implement API to get notifications about bandwidth assignments to individual peers
   - implement API to get notifications about updates to liveness of individual peers (before disconnect)
   - extend peer dialog with green-yellow-red connectivity status lights
+  - extend peer dialog with country flags and names
   - implement statistics tabs
   - do meaningful update to status line (starting up, peer running, #connections, shutdown, ...)
   - implement unindex operation (use dialog with all indexed files for selection)
