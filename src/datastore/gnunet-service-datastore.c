@@ -399,7 +399,7 @@ manage (void *cls,
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Deleting %llu bytes of low-priority content `%s' of type %u (still trying to free another %llu bytes)\n",
-	      size + GNUNET_DATASTORE_ENTRY_OVERHEAD,
+	      (unsigned long long) (size + GNUNET_DATASTORE_ENTRY_OVERHEAD),
 	      GNUNET_h2s (key),
 	      type,
 	      *need);
@@ -765,6 +765,10 @@ handle_reserve (void *cls,
       return;      
     }
   reserved += req;
+  GNUNET_STATISTICS_set (stats,
+			 gettext_noop ("# reserved"),
+			 reserved,
+			 GNUNET_NO);
   e = GNUNET_malloc (sizeof(struct ReservationList));
   e->next = reservations;
   reservations = e;
@@ -816,6 +820,10 @@ handle_release_reserve (void *cls,
 	  rem = pos->amount + ((unsigned long long) GNUNET_DATASTORE_ENTRY_OVERHEAD) * pos->entries;
 	  GNUNET_assert (reserved >= rem);
 	  reserved -= rem;
+	  GNUNET_STATISTICS_set (stats,
+			 gettext_noop ("# reserved"),
+				 reserved,
+				 GNUNET_NO);
 #if DEBUG_DATASTORE
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Returning %llu remaining reserved bytes to storage pool\n",
@@ -910,6 +918,10 @@ handle_put (void *cls,
 	  pos->entries--;
 	  pos->amount -= size;
 	  reserved -= (size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
+	  GNUNET_STATISTICS_set (stats,
+				 gettext_noop ("# reserved"),
+				 reserved,
+				 GNUNET_NO);
 	}
     }
   msg = NULL;
@@ -943,7 +955,14 @@ handle_put (void *cls,
 		   msg);
   GNUNET_free_non_null (msg);
   if (quota - reserved - cache_size < plugin->api->get_size (plugin->api->cls))
-    manage_space (size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Need %llu bytes more space (%llu allowed, using %llu)\n"),
+		  (unsigned long long) size + GNUNET_DATASTORE_ENTRY_OVERHEAD,
+		  (unsigned long long) (quota - reserved - cache_size),
+		  (unsigned long long) plugin->api->get_size (plugin->api->cls));
+      manage_space (size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
+    }
 }
 
 
@@ -1403,6 +1422,10 @@ cleanup_reservations (void *cls,
 	}
       pos = next;
     }
+  GNUNET_STATISTICS_set (stats,
+			 gettext_noop ("# reserved"),
+			 reserved,
+			 GNUNET_NO);
 }
 
 
@@ -1436,7 +1459,15 @@ run (void *cls,
       return;
     }
   stats = GNUNET_STATISTICS_create (sched, "datastore", cfg);
+  GNUNET_STATISTICS_set (stats,
+			 gettext_noop ("# quota"),
+			 quota,
+			 GNUNET_NO);
   cache_size = quota / 8; /* Or should we make this an option? */
+  GNUNET_STATISTICS_set (stats,
+			 gettext_noop ("# cache size"),
+			 cache_size,
+			 GNUNET_NO);
   bf_size = quota / 32; /* 8 bit per entry, 1 bit per 32 kb in DB */
   fn = NULL;
   if ( (GNUNET_OK !=
