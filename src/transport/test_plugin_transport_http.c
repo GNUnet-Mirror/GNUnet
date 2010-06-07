@@ -25,6 +25,7 @@
 
 #include "platform.h"
 #include "gnunet_constants.h"
+#include "gnunet_common.h"
 #include "gnunet_getopt_lib.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_os_lib.h"
@@ -34,6 +35,8 @@
 #include "gnunet_program_lib.h"
 #include "gnunet_signatures.h"
 #include "gnunet_service_lib.h"
+#include "gnunet_crypto_lib.h"
+
 #include "plugin_transport.h"
 #include "gnunet_statistics_service.h"
 #include "transport.h"
@@ -42,6 +45,7 @@
 #define VERBOSE GNUNET_YES
 #define DEBUG GNUNET_NO
 #define DEBUG_CURL GNUNET_NO
+#define HTTP_BUFFER_SIZE 2048
 
 #define PLUGIN libgnunet_plugin_transport_template
 
@@ -60,16 +64,133 @@
  */
 #define WAIT_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
+
+
+/**
+ *  Struct for plugin addresses
+ */
+struct Plugin_Address
+{
+  /**
+   * Next field for linked list
+   */
+  struct Plugin_Address * next;
+
+  /**
+   * buffer containing data to send
+   */
+  void * addr;
+
+  /**
+   * amount of data to sent
+   */
+  size_t addrlen;
+};
+
 /**
  *  Message to send using http
  */
 struct HTTP_Message
 {
+  /**
+   * buffer
+   */
   char *buf;
+
+  /**
+   * current position in buffer
+   */
   size_t pos;
+
+  /**
+   * buffer size
+   */
   size_t size;
+
+  /**
+   * data size
+   */
   size_t len;
 };
+
+
+/**
+ *  Struct for plugin addresses
+ */
+struct HTTP_Transfer
+{
+  /**
+   * amount of bytes we recieved
+   */
+  size_t data_size;
+
+  /**
+   * buffer for http transfers
+   */
+  unsigned char buf[2048];
+
+  /**
+   * buffer size this transfer
+   */
+  size_t size;
+
+  /**
+   * amount of bytes we recieved
+   */
+  size_t pos;
+
+  /**
+   * HTTP Header result for transfer
+   */
+  unsigned int http_result_code;
+
+  /**
+   * did the test fail?
+   */
+  unsigned int test_failed;
+
+  /**
+   * was this test already executed?
+   */
+  unsigned int test_executed;
+};
+
+
+/**
+ * Network format for IPv4 addresses.
+ */
+struct IPv4HttpAddress
+{
+  /**
+   * IPv4 address, in network byte order.
+   */
+  uint32_t ipv4_addr;
+
+  /**
+   * Port number, in network byte order.
+   */
+  uint16_t u_port;
+
+};
+
+
+/**
+ * Network format for IPv6 addresses.
+ */
+struct IPv6HttpAddress
+{
+  /**
+   * IPv6 address.
+   */
+  struct in6_addr ipv6_addr;
+
+  /**
+   * Port number, in network byte order.
+   */
+  uint16_t u6_port;
+
+};
+
 
 /**
  * Our public key.
@@ -91,6 +212,10 @@ static struct GNUNET_PeerIdentity my_identity;
  */
 static struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
 
+/**
+ * Peer's port
+ */
+static long long unsigned int port;
 
 /**
  * Our scheduler.
@@ -133,53 +258,15 @@ static GNUNET_SCHEDULER_TaskIdentifier ti_send;
 const struct GNUNET_PeerIdentity * p;
 
 /**
- *  Struct for plugin addresses
+ * buffer for data to send
  */
-struct Plugin_Address
-{
-  /**
-   * Next field for linked list
-   */
-  struct Plugin_Address * next;
-
-  /**
-   * buffer containing data to send
-   */
-  void * addr;
-
-  /**
-   * amount of data to sent
-   */
-  size_t addrlen;
-};
+static struct HTTP_Message buffer_out;
 
 /**
- *  Struct for plugin addresses
+ * buffer for data to recieve
  */
-struct HTTP_Transfer
-{
-  /**
-   * HTTP Header result for transfer
-   */
-  unsigned int http_result_code;
+static struct HTTP_Message buffer_in;
 
-  /**
-   * amount of bytes we recieved
-   */
-  size_t data_size;
-
-  unsigned char buf[2048];
-
-  /**
-   * amount of bytes we recieved
-   */
-  size_t pos;
-
-  size_t size;
-
-  unsigned int test_failed;
-
-};
 
 struct Plugin_Address * addr_head;
 
@@ -208,11 +295,25 @@ static int fail_pretty_printer_count;
 static int fail_addr_to_str;
 
 /**
- * Did the test pass or fail?
+ * Test: connect to peer without peer identification
  */
-static struct HTTP_Transfer testtransfer_no_ident;
+static struct HTTP_Transfer test_no_ident;
+
+/**
+ * Test: connect to peer without peer identification
+ */
+static struct HTTP_Transfer test_too_short_ident;
+
+/**
+ * Test: connect to peer without peer identification
+ */
+static struct HTTP_Transfer test_too_long_ident;
 
 
+/**
+ * Test: connect to peer with valid peer identification
+ */
+static struct HTTP_Transfer test_valid_ident;
 
 /**
  * Did the test pass or fail?
@@ -232,11 +333,6 @@ CURL *curl_handle;
 static CURLM *multi_handle;
 
 /**
- * Test message to send
- */
-struct HTTP_Message * msg;
-
-/**
  * The task sending data
  */
 static GNUNET_SCHEDULER_TaskIdentifier http_task_send;
@@ -247,10 +343,20 @@ static GNUNET_SCHEDULER_TaskIdentifier http_task_send;
 static void
 shutdown_clean ()
 {
-  if ((fail_notify_address == GNUNET_NO) && (fail_pretty_printer == GNUNET_NO) && (fail_addr_to_str == GNUNET_NO) && (testtransfer_no_ident.test_failed == GNUNET_NO))
+
+  /* Evaluate results  */
+  if ((fail_notify_address == GNUNET_NO) && (fail_pretty_printer == GNUNET_NO) && (fail_addr_to_str == GNUNET_NO) &&
+      (test_no_ident.test_failed == GNUNET_NO) && (test_too_short_ident.test_failed == GNUNET_NO) && (test_too_long_ident.test_failed == GNUNET_NO) &&
+      (test_valid_ident.test_failed == GNUNET_NO))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Tests successful\n");
     fail = 0;
+  }
   else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Tests failed\n");
     fail = 1;
+  }
 
   curl_multi_cleanup(multi_handle);
 
@@ -280,8 +386,8 @@ shutdown_clean ()
 
   GNUNET_SCHEDULER_shutdown(sched);
 
-  GNUNET_free(msg->buf);
-  GNUNET_free(msg);
+  GNUNET_free (buffer_in.buf);
+  GNUNET_free (buffer_out.buf);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Exiting testcase\n");
   exit(fail);
@@ -350,7 +456,6 @@ receive (void *cls,
   return GNUNET_TIME_UNIT_ZERO;
 }
 
- int done;
 static size_t
 putBuffer (void *stream, size_t size, size_t nmemb, void *ptr)
 {
@@ -368,16 +473,15 @@ putBuffer (void *stream, size_t size, size_t nmemb, void *ptr)
 
 static size_t copyBuffer (void *ptr, size_t size, size_t nmemb, void *ctx)
 {
-  struct HTTP_Transfer * res = (struct HTTP_Transfer *) ctx;
 
-  res->data_size = size * nmemb;
-
-  if (res->pos + size * nmemb > res->size)
+  if (buffer_in.pos + size * nmemb > buffer_in.size)
     return 0;                   /* overflow */
-  memcpy (&res->buf[res->pos], ptr, size * nmemb);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Send completed. %s\n",res->buf);
-  res->pos += size * nmemb;
-  return size * nmemb;
+
+  buffer_in.len = size * nmemb;
+  memcpy (&buffer_in.buf[buffer_in.pos], ptr, size * nmemb);
+  buffer_in.pos += size * nmemb;
+  buffer_in.len = buffer_in.pos;
+  return buffer_in.pos;
 }
 
 static size_t header_function( void *ptr, size_t size, size_t nmemb, void *stream)
@@ -390,17 +494,26 @@ static size_t header_function( void *ptr, size_t size, size_t nmemb, void *strea
   memcpy(tmp,ptr,len);
   if (tmp[len-2] == 13)
     tmp[len-2]= '\0';
+  if (0==strcmp (tmp,"HTTP/1.1 100 Continue"))
+  {
+    res->http_result_code=100;
+  }
+  if (0==strcmp (tmp,"HTTP/1.1 200 OK"))
+  {
+    res->http_result_code=200;
+  }
   if (0==strcmp (tmp,"HTTP/1.1 404 Not Found"))
-    {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "404\n");
+  {
     res->http_result_code=404;
-    }
+  }
 
   GNUNET_free (tmp);
   return size * nmemb;
 }
 
 static size_t send_prepare( struct HTTP_Transfer * result);
+
+static void run_connection_tests( void );
 
 static void send_execute (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -448,22 +561,30 @@ static void send_execute (void *cls,
                                curl_easy_strerror (msg->data.result));
                     /* sending msg failed*/
                     }
-                  else
-                    {
-                    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send completed %u\n", res->data_size);
-                    /* sending completed */
-                    }
-                  if (cls == &testtransfer_no_ident)
+                  if (res == &test_no_ident)
                   {
-                    if  ((res->http_result_code==404) && (res->data_size==208))
+                    if  ((res->http_result_code==404) && (buffer_in.len==208))
                       res->test_failed = GNUNET_NO;
-                    else
-                      res->test_failed = GNUNET_YES;
                   }
-
+                  if (res == &test_too_short_ident)
+                  {
+                    if  ((res->http_result_code==404) && (buffer_in.len==208))
+                      res->test_failed = GNUNET_NO;
+                  }
+                  if (res == &test_too_long_ident)
+                  {
+                    if  ((res->http_result_code==404) && (buffer_in.len==208))
+                      res->test_failed = GNUNET_NO;
+                  }
+                  if (res == &test_valid_ident)
+                  {
+                    if  ((res->http_result_code==200))
+                      res->test_failed = GNUNET_NO;
+                  }
                   curl_easy_cleanup(curl_handle);
                   curl_handle=NULL;
-                  shutdown_clean();
+
+                  run_connection_tests();
                   return;
                 default:
                   break;
@@ -538,7 +659,7 @@ static size_t send_prepare( struct HTTP_Transfer * result)
 /**
  * function to send data to server
  */
-static int send_data(struct HTTP_Message *msg, struct HTTP_Transfer * result, char * url)
+static int send_data( struct HTTP_Transfer * result, char * url)
 {
 
   curl_handle = curl_easy_init();
@@ -557,8 +678,8 @@ static int send_data(struct HTTP_Message *msg, struct HTTP_Transfer * result, ch
   curl_easy_setopt (curl_handle, CURLOPT_WRITEFUNCTION, &copyBuffer);
   curl_easy_setopt (curl_handle, CURLOPT_WRITEDATA, result);
   curl_easy_setopt (curl_handle, CURLOPT_READFUNCTION, &putBuffer);
-  curl_easy_setopt (curl_handle, CURLOPT_READDATA, msg);
-  curl_easy_setopt(curl_handle, CURLOPT_INFILESIZE_LARGE, (curl_off_t) msg->len);
+  curl_easy_setopt (curl_handle, CURLOPT_READDATA, &buffer_out);
+  curl_easy_setopt(curl_handle, CURLOPT_INFILESIZE_LARGE, (curl_off_t) buffer_out.len);
   curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, 30);
   curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, 20);
 
@@ -569,40 +690,6 @@ static int send_data(struct HTTP_Message *msg, struct HTTP_Transfer * result, ch
   return GNUNET_OK;
 }
 
-/**
- * Network format for IPv4 addresses.
- */
-struct IPv4HttpAddress
-{
-  /**
-   * IPv4 address, in network byte order.
-   */
-  uint32_t ipv4_addr;
-
-  /**
-   * Port number, in network byte order.
-   */
-  uint16_t u_port;
-
-};
-
-
-/**
- * Network format for IPv6 addresses.
- */
-struct IPv6HttpAddress
-{
-  /**
-   * IPv6 address.
-   */
-  struct in6_addr ipv6_addr;
-
-  /**
-   * Port number, in network byte order.
-   */
-  uint16_t u6_port;
-
-};
 
 /**
  * Plugin notifies transport (aka testcase) about its addresses
@@ -704,6 +791,85 @@ static void pretty_printer_cb (void *cls,
   fail_pretty_printer_count++;
 }
 
+/**
+ * Runs every single test to test the plugin
+ */
+static void run_connection_tests( void )
+{
+  char * host_str;
+
+  /* resetting buffers */
+  buffer_in.size = HTTP_BUFFER_SIZE;
+  buffer_in.pos = 0;
+  buffer_in.len = 0;
+
+  buffer_out.size = HTTP_BUFFER_SIZE;
+  buffer_out.pos = 0;
+  buffer_out.len = 0;
+
+
+  if (test_no_ident.test_executed == GNUNET_NO)
+  {
+    /* Connecting to peer without identification */
+    host_str = GNUNET_malloc (strlen ("http://localhost:12389/")+1);
+    GNUNET_asprintf (&host_str, "http://localhost:%u/",port);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer without any peer identification.\n"), host_str);
+    test_no_ident.test_executed = GNUNET_YES;
+    send_data ( &test_no_ident, host_str);
+    GNUNET_free (host_str);
+
+    return;
+  }
+
+  if (test_too_short_ident.test_executed == GNUNET_NO)
+  {
+    char * ident = "AAAAAAAAAA";
+    /* Connecting to peer with too short identification */
+    host_str = GNUNET_malloc (strlen ("http://localhost:12389/") + strlen (ident));
+    GNUNET_asprintf (&host_str, "http://localhost:%u/%s",port,ident);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with too short peer identification.\n"), host_str);
+    test_too_short_ident.test_executed = GNUNET_YES;
+    send_data ( &test_too_short_ident, host_str);
+    GNUNET_free (host_str);
+
+    return;
+  }
+
+  if (test_too_long_ident.test_executed == GNUNET_NO)
+  {
+    char * ident = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+
+    /* Connecting to peer with too long identification */
+    host_str = GNUNET_malloc (strlen ("http://localhost:12389/") + strlen (ident));
+    GNUNET_asprintf (&host_str, "http://localhost:%u/%s",port,ident);
+
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with too long peer identification.\n"), host_str);
+    test_too_long_ident.test_executed = GNUNET_YES;
+    send_data ( &test_too_long_ident, host_str);
+    GNUNET_free (host_str);
+
+    return;
+  }
+  if (test_valid_ident.test_executed == GNUNET_NO)
+  {
+    struct GNUNET_CRYPTO_HashAsciiEncoded result;
+
+    GNUNET_CRYPTO_hash_to_enc(&my_identity.hashPubKey,&result);
+    host_str = GNUNET_malloc (strlen ("http://localhost:12389/") + strlen ((const char *) &result));
+    GNUNET_asprintf (&host_str, "http://localhost:%u/%s",port,(char *) &result);
+
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer %s with valid peer identification.\n"), host_str);
+    test_valid_ident.test_executed = GNUNET_YES;
+    send_data ( &test_valid_ident, host_str);
+    GNUNET_free (host_str);
+
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No more tests to run\n");
+  shutdown_clean();
+}
+
 
 /**
  * Runs the test.
@@ -726,11 +892,9 @@ run (void *cls,
   struct Plugin_Address * cur;
   struct Plugin_Address * tmp;
   const char * addr_str;
-  char * host_str;
+
   unsigned int count_str_addr;
   unsigned int suggest_res;
-  unsigned int res;
-  long long unsigned int port;
 
   fail_pretty_printer = GNUNET_YES;
   fail_notify_address = GNUNET_YES;
@@ -756,6 +920,20 @@ run (void *cls,
       fail = 1;
       return;
     }
+
+  if ((GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg,
+                                             "transport-http",
+                                             "PORT",
+                                             &port)) ||
+     (port > 65535) )
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                     "http",
+                     _
+                     ("Require valid port number for transport plugin `%s' in configuration!\n"),
+                     "transport-http");
+  }
   max_connect_per_transport = (uint32_t) tneigh;
   my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
@@ -839,42 +1017,38 @@ run (void *cls,
   /* test sending to client */
   multi_handle = curl_multi_init();
 
-  /*building messages */
-  msg = GNUNET_malloc (sizeof (struct HTTP_Message));
-  msg->size = 2048;
-  msg->pos = 0;
-  msg->buf = GNUNET_malloc (2048);
-  testtransfer_no_ident.size=2048;
-  testtransfer_no_ident.test_failed = GNUNET_YES;
+  /* Setting up buffers */
+  buffer_in.size = HTTP_BUFFER_SIZE;
+  buffer_in.buf = GNUNET_malloc (HTTP_BUFFER_SIZE);
+  buffer_in.pos = 0;
+  buffer_in.len = 0;
 
+  buffer_out.size = HTTP_BUFFER_SIZE;
+  buffer_out.buf = GNUNET_malloc (HTTP_BUFFER_SIZE);
+  buffer_out.pos = 0;
+  buffer_out.len = 0;
 
-  if ((GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (cfg,
-                                             "transport-http",
-                                             "PORT",
-                                             &port)) ||
-     (port > 65535) )
-  {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-                     "http",
-                     _
-                     ("Require valid port number for transport plugin `%s' in configuration!\n"),
-                     "transport-http");
-  }
+  /* Setting up connection tests */
 
-  /* Connecting to peer without identification */
-  host_str = GNUNET_malloc (strlen ("http://localhost:12389/"));
-  GNUNET_asprintf (&host_str, "http://localhost:%u/",port);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer %s without any peer identification.\n"), host_str);
-  res = send_data (msg, &testtransfer_no_ident, host_str);
-  GNUNET_free (host_str);
+  /* Test: connecting without a peer identification */
+  test_no_ident.test_executed = GNUNET_NO;
+  test_no_ident.test_failed = GNUNET_YES;
 
+  /* Test: connecting with too short peer identification */
+  test_too_short_ident.test_executed = GNUNET_NO;
+  test_too_short_ident.test_failed = GNUNET_YES;
 
-  /* Add more tests */
+  /* Test: connecting with too long peer identification */
+  test_too_long_ident.test_executed = GNUNET_NO;
+  test_too_long_ident.test_failed = GNUNET_YES;
+
+  /* Test: connecting with valid identification */
+  test_valid_ident.test_executed = GNUNET_NO;
+  test_valid_ident.test_failed = GNUNET_YES;
+
+  run_connection_tests();
 
   /* testing finished */
-
-
 
   return;
 }
