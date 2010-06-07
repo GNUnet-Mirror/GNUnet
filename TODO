@@ -22,21 +22,6 @@
   - only connect() sockets that are ready (select()) [Nils]
     [On W32, we need to select after calling socket before doing connect etc.]
 * GNUNET-GTK:
-  - handle download events:
-    + download start
-    + download stop
-    + download completed
-    + download progress
-    + download error
-    + download resume
-    + download suspend
-    + download active
-    + download inactive
-    + download lost-parent (!)
-  - right-clicking on search result should open menu that allows:
-    + starting recursive download 
-    + aborting active download
-    + copy URI to clipboard
   - implement publish dialog
     + add (single file)
     + edit (meta data add, meta data del, meta data type population, keyword add (button, activate entry line), 
@@ -51,10 +36,21 @@
     + open (import directory structure)
     + cancel
     + execute (publish)
+  - right-clicking on search result should open menu that allows:
+    + starting recursive download 
+    + aborting active download 
+    + copy URI to clipboard 
+    + save-as gnunet-directory
+  - directory support:
+    + download start: recursive/directory (!) & from-URI only
+    + download lost-parent (move to 'from-URI only' tab
+    + display content of directory
+    + open directory
   - events:
     + search resume
     + search error
-  - pick appropriate sort-by columns for various tree view columns
+    + download error
+    + download resume
 
 0.9.0pre2:
 * CORE:
