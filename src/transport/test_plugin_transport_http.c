@@ -39,7 +39,7 @@
 #include "transport.h"
 #include <curl/curl.h>
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 #define DEBUG GNUNET_NO
 #define DEBUG_CURL GNUNET_NO
 
@@ -450,11 +450,16 @@ static void send_execute (void *cls,
                     }
                   else
                     {
-                    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send completed with code %u\n", res->data_size);
+                    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send completed %u\n", res->data_size);
                     /* sending completed */
                     }
-                  if ( (cls == &testtransfer_no_ident) && (res->http_result_code==404) && (res->data_size==208))
+                  if (cls == &testtransfer_no_ident)
+                  {
+                    if  ((res->http_result_code==404) && (res->data_size==208))
                       res->test_failed = GNUNET_NO;
+                    else
+                      res->test_failed = GNUNET_YES;
+                  }
 
                   curl_easy_cleanup(curl_handle);
                   curl_handle=NULL;
@@ -721,9 +726,11 @@ run (void *cls,
   struct Plugin_Address * cur;
   struct Plugin_Address * tmp;
   const char * addr_str;
+  char * host_str;
   unsigned int count_str_addr;
   unsigned int suggest_res;
   unsigned int res;
+  long long unsigned int port;
 
   fail_pretty_printer = GNUNET_YES;
   fail_notify_address = GNUNET_YES;
@@ -803,6 +810,8 @@ run (void *cls,
     GNUNET_free ((char *) addr_str);
     addr_head=tmp;
   }
+
+
   GNUNET_assert (fail_pretty_printer_count==fail_notify_address_count);
   GNUNET_assert (fail_pretty_printer_count==count_str_addr);
   fail_pretty_printer=GNUNET_NO;
@@ -838,12 +847,35 @@ run (void *cls,
   testtransfer_no_ident.size=2048;
   testtransfer_no_ident.test_failed = GNUNET_YES;
 
+
+  if ((GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg,
+                                             "transport-http",
+                                             "PORT",
+                                             &port)) ||
+     (port > 65535) )
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                     "http",
+                     _
+                     ("Require valid port number for transport plugin `%s' in configuration!\n"),
+                     "transport-http");
+  }
+
   /* Connecting to peer without identification */
-  res = send_data (msg, &testtransfer_no_ident, "http://localhost:12389/");
+  host_str = GNUNET_malloc (strlen ("http://localhost:12389/"));
+  GNUNET_asprintf (&host_str, "http://localhost:%u/",port);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer %s without any peer identification.\n"), host_str);
+  res = send_data (msg, &testtransfer_no_ident, host_str);
+  GNUNET_free (host_str);
+
 
   /* Add more tests */
 
   /* testing finished */
+
+
+
   return;
 }
 

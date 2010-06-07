@@ -828,7 +828,7 @@ static ssize_t send_select_init (struct Session* ses  )
   curl_easy_setopt(ses->curl_handle, CURLOPT_WRITEFUNCTION, send_write_callback);
   curl_easy_setopt(ses->curl_handle, CURLOPT_READDATA, ses);
   curl_easy_setopt(ses->curl_handle, CURLOPT_INFILESIZE_LARGE, (curl_off_t) msg->len);
-  curl_easy_setopt(ses->curl_handle, CURLOPT_TIMEOUT, (timeout.value / 1000 ));
+  curl_easy_setopt(ses->curl_handle, CURLOPT_TIMEOUT, (long) (timeout.value / 1000 ));
   curl_easy_setopt(ses->curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
 
   mret = curl_multi_add_handle(multi_handle, ses->curl_handle);
