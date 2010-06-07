@@ -545,7 +545,7 @@ GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
 		sizeof (buf),
 		"%s%.*s", 
 		(off == 1) ? "@" : "",
-		addrlen - sizeof (sa_family_t) - 1 - off,
+		(int) (addrlen - sizeof (sa_family_t) - 1 - off),
 		&un->sun_path[off]);
       return buf;
     default:
