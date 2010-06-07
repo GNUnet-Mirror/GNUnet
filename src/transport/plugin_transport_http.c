@@ -216,6 +216,11 @@ struct Session
   unsigned int is_put_in_progress;
 
   /**
+   * Is there a HTTP/PUT in progress?
+   */
+  unsigned int is_bad_request;
+
+  /**
    * Encoded hash
    */
   struct GNUNET_CRYPTO_HashAsciiEncoded hash;
@@ -415,6 +420,8 @@ acceptPolicyCallback (void *cls,
 }
 
 
+int serror;
+
 /**
  * Process GET or PUT request received via MHD.  For
  * GET, queue response that will send back our pending
@@ -446,6 +453,7 @@ accessHandlerCallback (void *cls,
 
   gn_msg = NULL;
   send_error_to_client = GNUNET_NO;
+
   if ( NULL == *httpSessionCache)
   {
     /* check url for peer identity */
@@ -546,11 +554,30 @@ accessHandlerCallback (void *cls,
       cs->is_active = GNUNET_YES;
       return MHD_YES;
     }
+
+    if (cs->is_bad_request == GNUNET_YES)
+    {
+      *upload_data_size = 0;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Info: size: %u method: %s \n",*upload_data_size,method);
+      response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),HTTP_PUT_RESPONSE, MHD_NO, MHD_NO);
+      if (response == NULL)
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"response NULL\n");
+      res = MHD_queue_response (session, MHD_HTTP_BAD_REQUEST, response);
+      if (res == MHD_YES)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sent HTTP/1.1: 400 BAD REQUEST as PUT Response\n");
+        cs->is_bad_request = GNUNET_NO;
+        cs->is_put_in_progress =GNUNET_NO;
+      }
+      else
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sent HTTP/1.1: 400 BAD REQUEST as PUT Response not sent\n");
+      MHD_destroy_response (response);
+      return MHD_YES;
+    }
+
     if ( *upload_data_size > 0 )
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"PUT URL: `%s'\n",url);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"PUT Request: %lu bytes: `%s' \n", (*upload_data_size), upload_data);
-      /* No data left */
+
       bytes_recv = *upload_data_size ;
       *upload_data_size = 0;
 
@@ -572,25 +599,26 @@ accessHandlerCallback (void *cls,
 
       if ( ntohs(gn_msg->size) != bytes_recv )
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Message has incorrect size, is %u bytes vs %u recieved'\n",ntohs(gn_msg->size) , bytes_recv);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Malformed GNUnet: message has incorrect size, is %u bytes in header vs %u recieved\n",ntohs(gn_msg->size) , bytes_recv);
         send_error_to_client = GNUNET_YES;
       }
 
-      if ( GNUNET_YES == send_error_to_client)
+      if (send_error_to_client == GNUNET_YES)
       {
-        response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),HTTP_PUT_RESPONSE, MHD_NO, MHD_NO);
-        res = MHD_queue_response (session, MHD_HTTP_BAD_REQUEST, response);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sent HTTP/1.1: 400 BAD REQUEST as PUT Response\n",HTTP_PUT_RESPONSE, strlen (HTTP_PUT_RESPONSE), res );
-        MHD_destroy_response (response);
-        GNUNET_free (gn_msg);
-        return MHD_NO;
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Malformed GNUnet, should send error\n");
+        cs->is_bad_request = GNUNET_YES;
+        return MHD_YES;
       }
+
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Recieved GNUnet message type %u size %u and payload %u \n",ntohs (gn_msg->type), ntohs (gn_msg->size), ntohs (gn_msg->size)-sizeof(struct GNUNET_MessageHeader));
 
       /* forwarding message to transport */
       plugin->env->receive(plugin->env, &(cs->sender), gn_msg, 1, cs , cs->ip, strlen(cs->ip) );
+      GNUNET_free (gn_msg);
       return MHD_YES;
     }
+
+
     if ((*upload_data_size == 0) && (cs->is_put_in_progress == GNUNET_YES))
     {
       cs->is_put_in_progress = GNUNET_NO;
