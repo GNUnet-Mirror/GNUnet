@@ -42,7 +42,7 @@
 #include "transport.h"
 #include <curl/curl.h>
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 #define DEBUG GNUNET_NO
 #define DEBUG_CURL GNUNET_NO
 #define HTTP_BUFFER_SIZE 2048
@@ -456,8 +456,7 @@ receive (void *cls,
   return GNUNET_TIME_UNIT_ZERO;
 }
 
-static size_t
-putBuffer (void *stream, size_t size, size_t nmemb, void *ptr)
+static size_t send_function (void *stream, size_t size, size_t nmemb, void *ptr)
 {
   unsigned int len;
   struct HTTP_Message  * cbc = ptr;
@@ -471,7 +470,7 @@ putBuffer (void *stream, size_t size, size_t nmemb, void *ptr)
   return len;
 }
 
-static size_t copyBuffer (void *ptr, size_t size, size_t nmemb, void *ctx)
+static size_t recv_function (void *ptr, size_t size, size_t nmemb, void *ctx)
 {
 
   if (buffer_in.pos + size * nmemb > buffer_in.size)
@@ -481,6 +480,7 @@ static size_t copyBuffer (void *ptr, size_t size, size_t nmemb, void *ctx)
   memcpy (&buffer_in.buf[buffer_in.pos], ptr, size * nmemb);
   buffer_in.pos += size * nmemb;
   buffer_in.len = buffer_in.pos;
+  buffer_in.buf[buffer_in.pos] = '\0';
   return buffer_in.pos;
 }
 
@@ -564,22 +564,42 @@ static void send_execute (void *cls,
                   if (res == &test_no_ident)
                   {
                     if  ((res->http_result_code==404) && (buffer_in.len==208))
+                    {
+                      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer without any peer identification: test passed\n"));
                       res->test_failed = GNUNET_NO;
+                    }
+                    else
+                      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer without any peer identification: test failed\n"));
                   }
                   if (res == &test_too_short_ident)
                   {
                     if  ((res->http_result_code==404) && (buffer_in.len==208))
+                    {
+                      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with too short peer identification: test passed\n"));
                       res->test_failed = GNUNET_NO;
+                    }
+                    else
+                      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with too short peer identification: test failed\n"));
                   }
                   if (res == &test_too_long_ident)
                   {
                     if  ((res->http_result_code==404) && (buffer_in.len==208))
+                      {
+                        GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with too long peer identification: test passed\n"));
                       res->test_failed = GNUNET_NO;
+                      }
+                    else
+                      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with too long peer identification: test failed\n"));
                   }
                   if (res == &test_valid_ident)
                   {
                     if  ((res->http_result_code==200))
+                    {
+                      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with valid peer identification: test passed\n"));
                       res->test_failed = GNUNET_NO;
+                    }
+                    else
+                      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with valid peer identification: test failed\n"));
                   }
                   curl_easy_cleanup(curl_handle);
                   curl_handle=NULL;
@@ -675,9 +695,9 @@ static int send_data( struct HTTP_Transfer * result, char * url)
   curl_easy_setopt(curl_handle, CURLOPT_PUT, 1L);
   curl_easy_setopt (curl_handle, CURLOPT_HEADERFUNCTION, &header_function);
   curl_easy_setopt (curl_handle, CURLOPT_WRITEHEADER, result);
-  curl_easy_setopt (curl_handle, CURLOPT_WRITEFUNCTION, &copyBuffer);
+  curl_easy_setopt (curl_handle, CURLOPT_WRITEFUNCTION, &recv_function);
   curl_easy_setopt (curl_handle, CURLOPT_WRITEDATA, result);
-  curl_easy_setopt (curl_handle, CURLOPT_READFUNCTION, &putBuffer);
+  curl_easy_setopt (curl_handle, CURLOPT_READFUNCTION, &send_function);
   curl_easy_setopt (curl_handle, CURLOPT_READDATA, &buffer_out);
   curl_easy_setopt(curl_handle, CURLOPT_INFILESIZE_LARGE, (curl_off_t) buffer_out.len);
   curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, 30);
@@ -858,7 +878,7 @@ static void run_connection_tests( void )
     host_str = GNUNET_malloc (strlen ("http://localhost:12389/") + strlen ((const char *) &result));
     GNUNET_asprintf (&host_str, "http://localhost:%u/%s",port,(char *) &result);
 
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer %s with valid peer identification.\n"), host_str);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with valid peer identification.\n"), host_str);
     test_valid_ident.test_executed = GNUNET_YES;
     send_data ( &test_valid_ident, host_str);
     GNUNET_free (host_str);
