@@ -99,9 +99,9 @@ GNUNET_CRYPTO_random_permute (enum GNUNET_CRYPTO_Quality mode, unsigned int n)
   ret = GNUNET_malloc (n * sizeof (unsigned int));
   for (i = 0; i < n; i++)
     ret[i] = i;
-  for (i = 0; i < n; i++)
+  for (i = n - 1; i > 0; i--)
     {
-      x = GNUNET_CRYPTO_random_u32 (mode, n);
+      x = GNUNET_CRYPTO_random_u32 (mode, i+1);
       tmp = ret[x];
       ret[x] = ret[i];
       ret[i] = tmp;
