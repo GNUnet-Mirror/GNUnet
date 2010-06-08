@@ -1063,6 +1063,9 @@ static void
 task_check (void *cls,
 	    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  static int once;
+  struct GNUNET_TIME_Relative delay;
+
   ti_check_download = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
@@ -1074,14 +1077,11 @@ task_check (void *cls,
                                                           NULL);
   }
 
-  static int once;
-  struct GNUNET_TIME_Relative delay;
-
   if (stats == NULL)
-    {
-      curl_global_cleanup ();
-      return; /* in shutdown */
-    }
+  {
+    curl_global_cleanup ();
+    return; /* in shutdown */
+  }
   delay = hostlist_delay;
   if (hostlist_delay.value == 0)
     hostlist_delay = GNUNET_TIME_UNIT_SECONDS;
@@ -1168,11 +1168,17 @@ handler_connect (void *cls,
 		 struct GNUNET_TIME_Relative latency,
 		 uint32_t distance)
 {
+  unsigned int max = 0 ;
+  max --;
+
+  if (stat_connection_count < max)
+  {
   stat_connection_count++;
   GNUNET_STATISTICS_update (stats, 
 			    gettext_noop ("# active connections"), 
 			    1, 
-			    GNUNET_NO);  
+			    GNUNET_NO);
+  }
 }
 
 
@@ -1187,17 +1193,12 @@ handler_disconnect (void *cls,
 		    const struct
 		    GNUNET_PeerIdentity * peer)
 {
-  if (stat_connection_count > 0)
-  {
-    stat_connection_count--;
-    GNUNET_STATISTICS_update (stats,
-                              gettext_noop ("# active connections"),
-                              -1,
-                              GNUNET_NO);
-    return;
-  }
-  GNUNET_break(0);
-
+  GNUNET_assert (stat_connection_count > 0);
+  stat_connection_count--;
+  GNUNET_STATISTICS_update (stats,
+                            gettext_noop ("# active connections"),
+                            -1,
+                            GNUNET_NO);
 }
 
 /**
