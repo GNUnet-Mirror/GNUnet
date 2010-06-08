@@ -58,7 +58,6 @@
  * Must match IP given in the server.
  */
 #define DUMMY_IP "1.2.3.4"
-#define HAVE_PORT 1
 
 #define NAT_TRAV_PORT 22225
 
@@ -109,9 +108,7 @@ static struct in_addr dummy;
  
 static struct in_addr target;
 
-#if HAVE_PORT
-  static uint32_t port;
-#endif
+static uint32_t port;
 
 static uint16_t 
 calc_checksum(const uint16_t *data, 
@@ -129,9 +126,6 @@ calc_checksum(const uint16_t *data,
 }
 
 
-
-#if HAVE_PORT
-
 static void
 make_echo (const struct in_addr *src_ip,
 	   struct icmp_echo_packet *echo, uint32_t num)
@@ -145,20 +139,7 @@ make_echo (const struct in_addr *src_ip,
   echo->checksum = htons(calc_checksum((uint16_t*)echo, 
 				       sizeof (struct icmp_echo_packet)));
 }
-#else
-static void
-make_echo (const struct in_addr *src_ip,
-           struct icmp_packet *echo)
-{
-  memset(echo, 0, sizeof(struct icmp_packet));
-  echo->type = ICMP_ECHO;
-  echo->code = 0;
-  echo->reserved = 0;
-  echo->checksum = 0;
-  echo->checksum = htons(calc_checksum((uint16_t*)echo,
-                                       sizeof (struct icmp_packet)));
-}
-#endif
+
 
 /**
  * Send an ICMP message to the target.
@@ -230,9 +211,7 @@ send_icmp_udp (const struct in_addr *my_ip,
   udp_pkt.dst_port = htons(NAT_TRAV_PORT);
 
   memset(&udp_pkt.length, 0, sizeof(uint32_t));
-#if HAVE_PORT
   udp_pkt.length = htonl(port);
-#endif
   memcpy(&packet[off], &udp_pkt, sizeof(udp_pkt));
   off += sizeof(udp_pkt);
 
@@ -276,17 +255,10 @@ send_icmp (const struct in_addr *my_ip,
 {
   struct ip_packet ip_pkt;
   struct icmp_packet *icmp_pkt;
-#if HAVE_PORT
   struct icmp_echo_packet icmp_echo;
-#else
-  struct icmp_packet icmp_echo;
-#endif
   struct sockaddr_in dst;
-#if HAVE_PORT
   char packet[sizeof (struct ip_packet)*2 + sizeof (struct icmp_packet) + sizeof(struct icmp_echo_packet)];
-#else
-  char packet[sizeof (struct ip_packet)*2 + sizeof (struct icmp_packet)*2];
-#endif
+
   size_t off;
   int err;
 
@@ -319,11 +291,7 @@ send_icmp (const struct in_addr *my_ip,
   /* ip header of the presumably 'lost' udp packet */
   ip_pkt.vers_ihl = 0x45;
   ip_pkt.tos = 0;
-#if HAVE_PORT
   ip_pkt.pkt_len = (sizeof (struct ip_packet) + sizeof (struct icmp_echo_packet));
-#else
-  ip_pkt.pkt_len = (sizeof (struct ip_packet) + sizeof (struct icmp_packet));
-#endif
 
   ip_pkt.id = 1; 
   ip_pkt.flags_frag_offset = 0;
@@ -336,27 +304,12 @@ send_icmp (const struct in_addr *my_ip,
   memcpy (&packet[off], &ip_pkt, sizeof (struct ip_packet));
   off += sizeof (struct ip_packet);
 
-#if HAVE_PORT
   make_echo (other, &icmp_echo, port);
   memcpy (&packet[off], &icmp_echo, sizeof(struct icmp_echo_packet));
   off += sizeof (struct icmp_echo_packet);
-#else
-  make_echo (other, &icmp_echo);
-  memcpy (&packet[off], &icmp_echo, sizeof(struct icmp_packet));
-  off += sizeof (struct icmp_packet);
-#endif
 
-#if HAVE_PORT
   icmp_pkt->checksum = htons(calc_checksum((uint16_t*)icmp_pkt,
                                              sizeof (struct icmp_packet) + sizeof(struct ip_packet) + sizeof(struct icmp_echo_packet)));
-
-#else
-  icmp_pkt->checksum = htons(calc_checksum((uint16_t*)icmp_pkt, 
-                                             sizeof (struct icmp_packet)*2 + sizeof(struct ip_packet)));
-
-#endif
-
-
 
   memset (&dst, 0, sizeof (dst));
   dst.sin_family = AF_INET;
@@ -420,7 +373,7 @@ main (int argc, char *const *argv)
     fprintf (stderr,
 	     "Failed to setresuid: %s\n",
 	     strerror (errno));
-#if HAVE_PORT
+
   if (argc != 4)
     {
       fprintf (stderr,
@@ -428,14 +381,7 @@ main (int argc, char *const *argv)
       return 1;
     }
   port = atoi(argv[3]);
-#else
-  if (argc != 3)
-    {
-      fprintf (stderr,
-               "This program must be started with our IP and the targets external IP as arguments.\n");
-      return 1;
-    }
-#endif
+
   if ( (1 != inet_pton (AF_INET, argv[1], &external)) ||
        (1 != inet_pton (AF_INET, argv[2], &target)) )
     {
