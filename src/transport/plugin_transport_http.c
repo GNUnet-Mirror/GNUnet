@@ -38,6 +38,8 @@
 #include "microhttpd.h"
 #include <curl/curl.h>
 
+
+#define DEBUG_CURL GNUNET_CURL
 #define DEBUG_HTTP GNUNET_NO
 
 /**
@@ -614,7 +616,7 @@ accessHandlerCallback (void *cls,
       struct GNUNET_MessageHeader * gn_msg = NULL;
       /*check message and forward here */
       /* checking size */
-      if (cs->pending_inbound_msg->pos > sizeof (struct GNUNET_MessageHeader))
+      if (cs->pending_inbound_msg->pos >= sizeof (struct GNUNET_MessageHeader))
       {
         gn_msg = GNUNET_malloc (cs->pending_inbound_msg->pos);
         memcpy (gn_msg,cs->pending_inbound_msg->buf,cs->pending_inbound_msg->pos);
@@ -869,8 +871,9 @@ static ssize_t send_select_init (struct Session* ses  )
   url = GNUNET_malloc( 7 + strlen(ses->ip) + 7 + strlen ((char *) &(ses->hash)) + 1);
   /* FIXME: use correct port number */
   GNUNET_asprintf(&url,"http://%s:%u/%s",ses->ip,12389, (char *) &(ses->hash));
-
-  /* curl_easy_setopt(ses->curl_handle, CURLOPT_VERBOSE, 1L); */
+#if DEBUG_CURL
+  curl_easy_setopt(ses->curl_handle, CURLOPT_VERBOSE, 1L);
+#endif
   curl_easy_setopt(ses->curl_handle, CURLOPT_URL, url);
   curl_easy_setopt(ses->curl_handle, CURLOPT_PUT, 1L);
   curl_easy_setopt(ses->curl_handle, CURLOPT_READFUNCTION, send_read_callback);

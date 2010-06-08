@@ -255,7 +255,7 @@ static GNUNET_SCHEDULER_TaskIdentifier ti_timeout;
 
 static GNUNET_SCHEDULER_TaskIdentifier ti_send;
 
-const struct GNUNET_PeerIdentity * p;
+//const struct GNUNET_PeerIdentity * p;
 
 /**
  * buffer for data to send
@@ -310,21 +310,6 @@ static struct HTTP_Transfer test_too_short_ident;
 static struct HTTP_Transfer test_too_long_ident;
 
 /**
- * Test: connect to peer and send message bigger then content length
- */
-static struct HTTP_Transfer test_msg_too_big;
-
-/**
- * Test: connect to peer and send message bigger GNUNET_SERVER_MAX_MESSAGE_SIZE
- */
-//static struct HTTP_Transfer test_msg_bigger_max;
-
-/**
- * Test: connect to peer and send message smaller then content length
- */
-//static struct HTTP_Transfer test_msg_too_small;
-
-/**
  * Test: connect to peer with valid peer identification
  */
 static struct HTTP_Transfer test_valid_ident;
@@ -333,11 +318,6 @@ static struct HTTP_Transfer test_valid_ident;
  * Did the test pass or fail?
  */
 static int fail;
-
-/**
- * Recieved message already returned to sender?
- */
-static int sent;
 
 CURL *curl_handle;
 
@@ -406,7 +386,6 @@ shutdown_clean ()
 }
 
 
-#if 0
 /**
  * Continuation called after plugin send message
  * @cls closure
@@ -421,8 +400,8 @@ static void task_send_cont (void *cls,
   fail = GNUNET_NO;
   shutdown_clean();
 }
-#endif
 
+#if 0
 /**
  * Task sending recieved message back to peer
  * @cls closure
@@ -448,7 +427,7 @@ task_send (void *cls,
   */
   sent = GNUNET_YES;
 }
-
+#endif
 
 /**
  * Recieves messages from plugin, in real world transport
@@ -463,33 +442,14 @@ receive (void *cls,
          uint16_t sender_address_len)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testcase recieved new message from peer `%s' with type %u and length %u\n",  GNUNET_i2s(peer),ntohs(message->type),ntohs(message->size));
-
-  /* take recieved message and send it back to peer */
-
-
-  p = peer;
-  void * c = (void *) message;
-  ti_send =GNUNET_SCHEDULER_add_delayed (sched, WAIT_INTERVALL, &task_send, c);
-
   return GNUNET_TIME_UNIT_ZERO;
 }
 
 static size_t send_function (void *stream, size_t size, size_t nmemb, void *ptr)
 {
   unsigned int len;
-  struct HTTP_Transfer * test = (struct HTTP_Transfer *) ptr;
 
   len = buffer_out.len;
-
-  if (test == &test_msg_too_big)
-  {
-    if (buffer_out.pos > len)
-      return 0;
-    if ( (2*len) < (size * nmemb))
-      memcpy(stream, buffer_out.buf,  2* len);
-    buffer_out.pos = 2* len;
-    return 2* len;
-  }
 
   if (( buffer_out.pos == len) || (len > (size * nmemb)))
     return 0;
@@ -924,31 +884,24 @@ static void run_connection_tests( void )
 
     return;
   }
-/*
-  if (test_msg_too_big.test_executed == GNUNET_NO)
-  {
-    struct GNUNET_CRYPTO_HashAsciiEncoded result;
-    unsigned int c;
 
-    GNUNET_CRYPTO_hash_to_enc(&my_identity.hashPubKey,&result);
-    host_str = GNUNET_malloc (strlen ("http://localhost:12389/") + strlen ((const char *) &result));
-    GNUNET_asprintf (&host_str, "http://localhost:%u/%s",port,(char *) &result);
 
-    buffer_out.len = 50;
-    c = 0;
-    for (c=0; c<100; c++)
-      buffer_out.buf[c] = 'A';
+  struct GNUNET_MessageHeader msg;
+  char * tmp = GNUNET_malloc(sizeof(struct GNUNET_MessageHeader));
+  msg.size=htons(sizeof(struct GNUNET_MessageHeader));
+  msg.type=htons(13);
+  memcpy(tmp,&msg,sizeof(struct GNUNET_MessageHeader));
 
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with message bigger content length.\n"));
-    test_msg_too_big.test_executed = GNUNET_YES;
-    send_data ( &test_msg_too_big, host_str);
-    GNUNET_free (host_str);
+  api->send(api->cls, &my_identity, tmp, sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL,NULL, 0, GNUNET_NO, &task_send_cont, NULL);
 
-    return;
-  }
-*/
+  /*
+  msg.size=htons(2);
+  msg.type=htons(13);
+  memcpy(tmp,&msg,sizeof(struct GNUNET_MessageHeader));
+
+  api->send(api->cls, &my_identity, tmp, sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL,NULL, 0, GNUNET_NO, &task_send_cont, NULL);
+   */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No more tests to run\n");
-  shutdown_clean();
 }
 
 
@@ -1124,10 +1077,6 @@ run (void *cls,
   /* Test: connecting with valid identification */
   test_valid_ident.test_executed = GNUNET_NO;
   test_valid_ident.test_failed = GNUNET_YES;
-
-  /* Test: connecting with valid identification */
-  test_msg_too_big.test_executed = GNUNET_NO;
-  test_msg_too_big.test_failed = GNUNET_YES;
 
   run_connection_tests();
 
