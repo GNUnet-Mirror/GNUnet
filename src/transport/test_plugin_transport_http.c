@@ -43,8 +43,8 @@
 #include <curl/curl.h>
 
 #define VERBOSE GNUNET_YES
-#define DEBUG GNUNET_YES
-#define DEBUG_CURL GNUNET_YES
+#define DEBUG GNUNET_NO
+#define DEBUG_CURL GNUNET_NO
 #define HTTP_BUFFER_SIZE 2048
 
 #define PLUGIN libgnunet_plugin_transport_template
@@ -405,6 +405,8 @@ shutdown_clean ()
   return;
 }
 
+
+#if 0
 /**
  * Continuation called after plugin send message
  * @cls closure
@@ -419,12 +421,14 @@ static void task_send_cont (void *cls,
   fail = GNUNET_NO;
   shutdown_clean();
 }
+#endif
 
 /**
  * Task sending recieved message back to peer
  * @cls closure
  * @tc task context
  */
+
 static void
 task_send (void *cls,
             const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -435,15 +439,16 @@ task_send (void *cls,
 
   if (GNUNET_YES==sent)
     return;
-
+/*
   struct GNUNET_MessageHeader * msg = cls;
   unsigned int len = ntohs(msg->size);
   const char * msgc = (const char *) msg;
 
   api->send(api->cls, p, msgc, len, 0, TIMEOUT, NULL,NULL, 0, GNUNET_NO, &task_send_cont, NULL);
+  */
   sent = GNUNET_YES;
-
 }
+
 
 /**
  * Recieves messages from plugin, in real world transport
@@ -460,6 +465,8 @@ receive (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testcase recieved new message from peer `%s' with type %u and length %u\n",  GNUNET_i2s(peer),ntohs(message->type),ntohs(message->size));
 
   /* take recieved message and send it back to peer */
+
+
   p = peer;
   void * c = (void *) message;
   ti_send =GNUNET_SCHEDULER_add_delayed (sched, WAIT_INTERVALL, &task_send, c);
@@ -515,7 +522,9 @@ static size_t header_function( void *ptr, size_t size, size_t nmemb, void *strea
   memcpy(tmp,ptr,len);
   if (tmp[len-2] == 13)
     tmp[len-2]= '\0';
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Header: `%s'\n"),tmp);
+#if DEBUG_CURL
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Header: `%s'\n",tmp);
+#endif
   if (0==strcmp (tmp,"HTTP/1.1 100 Continue"))
   {
     res->http_result_code=100;
@@ -524,9 +533,17 @@ static size_t header_function( void *ptr, size_t size, size_t nmemb, void *strea
   {
     res->http_result_code=200;
   }
+  if (0==strcmp (tmp,"HTTP/1.1 400 Bad Request"))
+  {
+    res->http_result_code=400;
+  }
   if (0==strcmp (tmp,"HTTP/1.1 404 Not Found"))
   {
     res->http_result_code=404;
+  }
+  if (0==strcmp (tmp,"HTTP/1.1 413 Request entity too large"))
+  {
+    res->http_result_code=413;
   }
 
   GNUNET_free (tmp);
@@ -615,7 +632,7 @@ static void send_execute (void *cls,
                   }
                   if (res == &test_valid_ident)
                   {
-                    if  ((res->http_result_code==200))
+                    if  ((res->http_result_code==400))
                     {
                       GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with valid peer identification: test passed\n"));
                       res->test_failed = GNUNET_NO;
