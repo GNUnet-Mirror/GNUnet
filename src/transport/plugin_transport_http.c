@@ -393,6 +393,11 @@ static struct Session * create_session (struct sockaddr_in *address, const struc
   memcpy(&ses->sender, peer, sizeof (struct GNUNET_PeerIdentity));
   GNUNET_CRYPTO_hash_to_enc(&ses->sender.hashPubKey,&(ses->hash));
   ses->is_active = GNUNET_NO;
+  ses->pending_inbound_msg = GNUNET_malloc( sizeof (struct HTTP_Message));
+  ses->pending_inbound_msg->buf = GNUNET_malloc(GNUNET_SERVER_MAX_MESSAGE_SIZE);
+  ses->pending_inbound_msg->len = GNUNET_SERVER_MAX_MESSAGE_SIZE;
+  ses->pending_inbound_msg->pos = 0;
+
 
   return ses;
 }
@@ -454,7 +459,6 @@ accessHandlerCallback (void *cls,
   char * address = NULL;
   struct GNUNET_PeerIdentity pi_in;
   int res = GNUNET_NO;
-  size_t bytes_recv;
   struct GNUNET_MessageHeader *gn_msg;
   int send_error_to_client;
 
@@ -556,112 +560,94 @@ accessHandlerCallback (void *cls,
     /* New  */
     if ((*upload_data_size == 0) && (cs->is_put_in_progress == GNUNET_NO))
     {
-      if (cs->pending_inbound_msg != NULL)
+      if (cs->pending_inbound_msg->pos !=0 )
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    _("Incoming message from peer `%s, while existing message with %u bytes was not forwarded to transport'\n"),
+                    _("Incoming message from peer `%s', while existing message with %u bytes was not forwarded to transport'\n"),
                     GNUNET_i2s(&cs->sender), cs->pending_inbound_msg->pos);
-
-        /* reusing memory for new message */
-        cs->pending_inbound_msg->next = NULL;
         cs->pending_inbound_msg->pos = 0;
       }
-      else
-      {
-        cs->pending_inbound_msg = GNUNET_malloc( sizeof (struct HTTP_Message));
-
-        /* FIXME: Don't alloc GNUNET_SERVER_MAX_MESSAGE_SIZE initially. Instead use less and realloc if more mem is needed */
-        cs->pending_inbound_msg->buf = GNUNET_malloc(GNUNET_SERVER_MAX_MESSAGE_SIZE);
-        cs->pending_inbound_msg->len = GNUNET_SERVER_MAX_MESSAGE_SIZE;
-        cs->pending_inbound_msg->pos = 0;
-      }
-
-
       /* not yet ready */
       cs->is_put_in_progress = GNUNET_YES;
+      cs->is_bad_request = GNUNET_NO;
       cs->is_active = GNUNET_YES;
       return MHD_YES;
     }
 
-    if ((*upload_data_size > 0) && (*upload_data_size + cs->pending_inbound_msg->pos < cs->pending_inbound_msg->len) && (*upload_data_size + cs->pending_inbound_msg->pos <= GNUNET_SERVER_MAX_MESSAGE_SIZE))
+    if ((*upload_data_size > 0) && (cs->is_bad_request != GNUNET_YES))
     {
-
-      bytes_recv = *upload_data_size ;
-
-      /* copy uploaded data to buffer */
-      memcpy(&cs->pending_inbound_msg->buf[cs->pending_inbound_msg->pos],upload_data,bytes_recv);
-      cs->pending_inbound_msg->pos += bytes_recv;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Added %u bytes to message of %u bytes \n",bytes_recv, cs->pending_inbound_msg->pos);
-
-      *upload_data_size = 0;
-      return MHD_YES;
-
-      /* checking size */
-      #if 0
-      if (bytes_recv < sizeof (struct GNUNET_MessageHeader))
+      if ((*upload_data_size + cs->pending_inbound_msg->pos < cs->pending_inbound_msg->len) && (*upload_data_size + cs->pending_inbound_msg->pos <= GNUNET_SERVER_MAX_MESSAGE_SIZE))
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Message too small, is %u bytes, has to be at least %u '\n",bytes_recv, sizeof(struct GNUNET_MessageHeader));
-        send_error_to_client = GNUNET_YES;
-      }
-
-      if ( bytes_recv > GNUNET_SERVER_MAX_MESSAGE_SIZE)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Message too big, is %u bytes, maximum %u '\n",bytes_recv, GNUNET_SERVER_MAX_MESSAGE_SIZE);
-        send_error_to_client = GNUNET_YES;
-      }
-
-      struct GNUNET_MessageHeader * gn_msg = GNUNET_malloc (bytes_recv);
-      memcpy (gn_msg,upload_data,bytes_recv);
-
-      if ( ntohs(gn_msg->size) != bytes_recv )
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Malformed GNUnet: message has incorrect size, is %u bytes in header vs %u recieved\n",ntohs(gn_msg->size) , bytes_recv);
-        send_error_to_client = GNUNET_YES;
-      }
-
-      if (send_error_to_client == GNUNET_YES)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Malformed GNUnet, should send error\n");
-        cs->is_bad_request = GNUNET_YES;
+        /* copy uploaded data to buffer */
+        memcpy(&cs->pending_inbound_msg->buf[cs->pending_inbound_msg->pos],upload_data,*upload_data_size);
+        cs->pending_inbound_msg->pos += *upload_data_size;
+        *upload_data_size = 0;
         return MHD_YES;
       }
-
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Recieved GNUnet message type %u size %u and payload %u \n",ntohs (gn_msg->type), ntohs (gn_msg->size), ntohs (gn_msg->size)-sizeof(struct GNUNET_MessageHeader));
-
-      /* forwarding message to transport */
-      plugin->env->receive(plugin->env, &(cs->sender), gn_msg, 1, cs , cs->ip, strlen(cs->ip) );
-      GNUNET_free (gn_msg);
-      #endif
+      else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"%u bytes not added to message of %u bytes, message to big\n",*upload_data_size, cs->pending_inbound_msg->pos);
+        cs->is_bad_request = GNUNET_YES;
+        /* (*upload_data_size) bytes not processed */
+        return MHD_YES;
+      }
     }
 
-    if ((cs->is_bad_request == GNUNET_YES) && (cs->is_put_in_progress == GNUNET_YES))
+    if ((cs->is_put_in_progress == GNUNET_YES) && (cs->is_bad_request == GNUNET_YES))
     {
-
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Info: size: %u method: %s \n",*upload_data_size,method);
+      *upload_data_size = 0;
       response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),HTTP_PUT_RESPONSE, MHD_NO, MHD_NO);
-      if (response == NULL)
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"response NULL\n");
-      res = MHD_queue_response (session, MHD_HTTP_BAD_REQUEST, response);
+      res = MHD_queue_response (session, MHD_HTTP_REQUEST_ENTITY_TOO_LARGE, response);
       if (res == MHD_YES)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sent HTTP/1.1: 400 BAD REQUEST as PUT Response\n");
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sent HTTP/1.1: 413 ENTITY TOO LARGE as PUT Response\n");
         cs->is_bad_request = GNUNET_NO;
         cs->is_put_in_progress =GNUNET_NO;
       }
-      else
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sent HTTP/1.1: 400 BAD REQUEST as PUT Response not sent\n");
       MHD_destroy_response (response);
-      *upload_data_size = 0;
       return MHD_YES;
     }
 
     if ((*upload_data_size == 0) && (cs->is_put_in_progress == GNUNET_YES) && (cs->is_bad_request == GNUNET_NO))
     {
+      send_error_to_client = GNUNET_YES;
+      struct GNUNET_MessageHeader * gn_msg = NULL;
+      /*check message and forward here */
+      /* checking size */
+      if (cs->pending_inbound_msg->pos > sizeof (struct GNUNET_MessageHeader))
+      {
+        gn_msg = GNUNET_malloc (cs->pending_inbound_msg->pos);
+        memcpy (gn_msg,cs->pending_inbound_msg->buf,cs->pending_inbound_msg->pos);
+
+        if ((ntohs(gn_msg->size) == cs->pending_inbound_msg->pos))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Recieved GNUnet message type %u size %u and payload %u \n",ntohs (gn_msg->type), ntohs (gn_msg->size), ntohs (gn_msg->size)-sizeof(struct GNUNET_MessageHeader));
+          /* forwarding message to transport */
+          plugin->env->receive(plugin->env, &(cs->sender), gn_msg, 1, cs , cs->ip, strlen(cs->ip) );
+          send_error_to_client = GNUNET_NO;
+        }
+      }
+
+      if (send_error_to_client == GNUNET_NO)
+      {
+        response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),HTTP_PUT_RESPONSE, MHD_NO, MHD_NO);
+        res = MHD_queue_response (session, MHD_HTTP_OK, response);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sent HTTP/1.1: 200 OK as PUT Response\n",HTTP_PUT_RESPONSE, strlen (HTTP_PUT_RESPONSE), res );
+        MHD_destroy_response (response);
+      }
+      else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Recieved malformed message with %u bytes\n", cs->pending_inbound_msg->pos);
+        response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),HTTP_PUT_RESPONSE, MHD_NO, MHD_NO);
+        res = MHD_queue_response (session, MHD_HTTP_BAD_REQUEST, response);
+        MHD_destroy_response (response);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sent HTTP/1.1: 400 BAD REQUEST as PUT Response\n");
+      }
+
+      GNUNET_free_non_null (gn_msg);
       cs->is_put_in_progress = GNUNET_NO;
-      response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),HTTP_PUT_RESPONSE, MHD_NO, MHD_NO);
-      res = MHD_queue_response (session, MHD_HTTP_OK, response);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sent HTTP/1.1: 200 OK as PUT Response\n",HTTP_PUT_RESPONSE, strlen (HTTP_PUT_RESPONSE), res );
-      MHD_destroy_response (response);
+      cs->is_bad_request = GNUNET_NO;
+      cs->pending_inbound_msg->pos = 0;
       return res;
     }
   }
@@ -1490,7 +1476,8 @@ libgnunet_plugin_transport_http_done (void *cls)
          GNUNET_free (cur);
          cur = tmp;
       }
-
+      GNUNET_free (cs->pending_inbound_msg->buf);
+      GNUNET_free (cs->pending_inbound_msg);
       GNUNET_free (cs->ip);
       GNUNET_free (cs->addr);
       GNUNET_free (cs);
