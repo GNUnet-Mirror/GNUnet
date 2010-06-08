@@ -20,9 +20,27 @@
 
 /**
  * @file src/transport/gnunet-nat-client-udp.c
- * @brief Test for NAT traversal using ICMP method.
+ * @brief Tool to help bypass NATs using ICMP method; must run as root (SUID will do)
+ *        This code will work under GNU/Linux only.  
  * @author Christian Grothoff
+ *
+ * This program will send ONE ICMP message using RAW sockets
+ * to the IP address specified as the second argument.  The ICMP
+ * message will have as it's payload a UDP packet.  Since
+ * it uses RAW sockets, it must be installed SUID or run as 'root'.
+ * In order to keep the security risk of the resulting SUID binary
+ * minimal, the program ONLY opens the RAW socket with root
+ * privileges, then drops them and only then starts to process
+ * command line arguments.  The code also does not link against
+ * any shared libraries (except libc) and is strictly minimal
+ * (except for checking for errors).  The following list of people
+ * have reviewed this code and considered it safe since the last
+ * modification (if you reviewed it, please have your name added
+ * to the list):
+ *
+ * - Christian Grothoff
  */
+#define _GNU_SOURCE
 #include <sys/types.h> 
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -33,143 +51,312 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <netinet/ip.h>
+#include <netinet/ip_icmp.h>
 #include <netinet/in.h> 
-#include <time.h>
 
 /**
- * How often do we send our UDP messages to keep ports open (and to
- * try to connect, of course).  Use small value since we are the
- * initiator and should hence be rather aggressive.
+ * Must match IP given in the server.
  */
-#define UDP_SEND_FREQUENCY_MS 5
+#define DUMMY_IP "1.2.3.4"
+#define HAVE_PORT 1
 
 /**
  * Port we always try to use.
  */
-#define NAT_TRAV_PORT 22223
+#define NAT_TRAV_PORT 22225
 
-/**
- * Number of UDP ports to keep open at the same time (typically >= 256).
- * Should be less than FD_SETSIZE.
- */
-#define NUM_UDP_PORTS 1000
+struct ip_packet 
+{
+  uint8_t vers_ihl;
+  uint8_t tos;
+  uint16_t pkt_len;
+  uint16_t id;
+  uint16_t flags_frag_offset;
+  uint8_t ttl;
+  uint8_t proto;
+  uint16_t checksum;
+  uint32_t src_ip;
+  uint32_t dst_ip;
+};
 
-/**
- * How often do we retry to open and bind a UDP socket before giving up?
- */
-#define MAX_BIND_TRIES 10
+struct icmp_packet 
+{
+  uint8_t type;
+  uint8_t code;
+  uint16_t checksum;
+  uint32_t reserved;
 
-/**
- * How often do we try at most?  We expect to need (for the worst kind
- * of NAT) on average 64512 / 512 = 126 attempts to have the right
- * destination port and we then need to also (in the worst case) have
- * the right source port (so 126 * 64512 = 8128512 packets on
- * average!).  That's obviously a bit much, so we give up earlier.  The
- * given value corresponds to about 1 minute of runtime (for a send
- * frequency of one packet per ms).
- *
- * NOW: if the *server* would listen for Linux-generated ICMP 
- * "Destination unreachables" we *might* increase our chances since
- * maybe the firewall has some older/other UDP rules (this was
- * the case during testing for me), but obviously that would mean
- * more SUID'ed code. Yuck.
- */
-#define MAX_TRIES 62500
+};
 
-#define LOW_PORT 32768
+struct icmp_echo_packet
+{
+  uint8_t type;
+  uint8_t code;
+  uint16_t checksum;
+  uint32_t reserved;
+  uint32_t data;
+};
 
-/**
- * create a random port number that is not totally
- * unlikely to be chosen by the nat box.
- */
+struct udp_packet
+{
+  uint16_t src_port;
+
+  uint16_t dst_port;
+
+  uint32_t length;
+};
+
+ 
+static int rawsock;
+
+static struct in_addr dummy;
+ 
+static struct in_addr target;
+
+#if HAVE_PORT
+  static uint32_t port;
+#endif
+
 static uint16_t 
-make_port ()
+calc_checksum(const uint16_t *data, 
+	      unsigned int bytes)
 {
-  return LOW_PORT + ( (unsigned int)rand ()) % (64 * 1024 - LOW_PORT);
-}
+  uint32_t sum;
+  unsigned int i;
 
+  sum = 0;
+  for (i=0;i<bytes/2;i++) 
+    sum += data[i];        
+  sum = (sum & 0xffff) + (sum >> 16);
+  sum = htons(0xffff - sum);
+  return sum;
+}
 
 /**
- * create a fresh udp socket bound to a random local port,
- * or, if the argument is zero, to the NAT_TRAV_PORT.
+ * Send an ICMP message to the target.
  *
- * @param i counter
- * @return -1 on error
+ * @param my_ip source address
+ * @param other target address
  */
-static int
-make_udp_socket (int i)
+static void
+send_icmp (const struct in_addr *my_ip,
+	   const struct in_addr *other)
 {
-  int ret;
-  int tries;
-  struct sockaddr_in src;
+  struct ip_packet ip_pkt;
+  struct icmp_packet icmp_pkt;
+  struct udp_packet udp_pkt;
 
-  for (tries=0;tries<MAX_BIND_TRIES;tries++)
+  struct sockaddr_in dst;
+  char packet[sizeof(ip_pkt) * 2 + sizeof(icmp_pkt) * 2 + sizeof(char)];
+
+#if ORIGINAL
+#if HAVE_PORT
+  char packet[sizeof (struct ip_packet)*2 + sizeof (struct icmp_packet) + sizeof(struct icmp_echo_packet)];
+#else
+  char packet[sizeof (struct ip_packet)*2 + sizeof (struct icmp_packet)*2];
+#endif
+#endif
+  size_t off;
+  int err;
+
+  /* ip header: send to (known) ip address */
+#if ORIGINAL
+  off = 0;
+  memset(&ip_pkt, 0, sizeof(ip_pkt));
+  ip_pkt.vers_ihl = 0x45;
+  ip_pkt.tos = 0;
+  ip_pkt.pkt_len = sizeof (packet); /* huh? */
+  ip_pkt.id = 1; 
+  ip_pkt.flags_frag_offset = 0;
+  ip_pkt.ttl = IPDEFTTL;
+  ip_pkt.proto = IPPROTO_ICMP;
+  ip_pkt.checksum = 0; 
+  ip_pkt.src_ip = my_ip->s_addr;
+  ip_pkt.dst_ip = other->s_addr;
+  ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt, sizeof (struct ip_packet)));
+  memcpy (packet, &ip_pkt, sizeof (struct ip_packet));
+  off += sizeof (ip_pkt);
+  /* icmp reply: time exceeded */
+  icmp_pkt = (struct icmp_packet*) &packet[off];
+  memset(icmp_pkt, 0, sizeof(struct icmp_packet));
+  icmp_pkt->type = ICMP_TIME_EXCEEDED;
+  icmp_pkt->code = 0; 
+  icmp_pkt->reserved = 0;
+  icmp_pkt->checksum = 0;
+
+  off += sizeof (struct icmp_packet);
+#endif
+
+  off = 0;
+  memset(&ip_pkt, 0, sizeof(ip_pkt));
+  ip_pkt.vers_ihl = 0x45;
+  ip_pkt.tos = 0;
+  ip_pkt.pkt_len = htons(sizeof (packet));
+  ip_pkt.id = htons(256);
+  ip_pkt.flags_frag_offset = 0;
+  ip_pkt.ttl = 128;
+  ip_pkt.proto = IPPROTO_ICMP;
+  ip_pkt.checksum = 0;
+  ip_pkt.src_ip = my_ip->s_addr;
+  ip_pkt.dst_ip = other->s_addr;
+  ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt, sizeof (ip_pkt)));
+  memcpy(&packet[off], &ip_pkt, sizeof(ip_pkt));
+  off += sizeof(ip_pkt);
+
+  /* ip header of the presumably 'lost' udp packet */
+  ip_pkt.vers_ihl = 0x45;
+  ip_pkt.tos = 0;
+#if HAVE_PORT
+  ip_pkt.pkt_len = (sizeof (struct ip_packet) + sizeof (struct icmp_echo_packet));
+#else
+  ip_pkt.pkt_len = (sizeof (struct ip_packet) + sizeof (struct icmp_packet));
+#endif
+
+  icmp_pkt.type = 11; // TTL exceeded
+  icmp_pkt.code = 0;
+  icmp_pkt.checksum = 0;
+  icmp_pkt.reserved = 0;
+  memcpy(&packet[off], &icmp_pkt, sizeof(icmp_pkt));
+  off += sizeof(icmp_pkt);
+
+
+  // build inner IP header
+  memset(&ip_pkt, 0, sizeof(ip_pkt));
+  ip_pkt.vers_ihl = 0x45;
+  ip_pkt.tos = 0;
+  ip_pkt.pkt_len = htons(sizeof (ip_pkt) + sizeof(udp_pkt));
+  ip_pkt.id = htons(0);
+  ip_pkt.flags_frag_offset = 0;
+  ip_pkt.ttl = 128;
+  ip_pkt.proto = IPPROTO_UDP;
+  ip_pkt.checksum = 0;
+  ip_pkt.src_ip = other->s_addr;
+  ip_pkt.dst_ip = dummy.s_addr;
+  ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt, sizeof (ip_pkt)));
+  memcpy(&packet[off], &ip_pkt, sizeof(ip_pkt));
+  off += sizeof(ip_pkt);
+
+  // build UDP header
+  udp_pkt.src_port = htons(NAT_TRAV_PORT); /* FIXME: does this port matter? */
+  udp_pkt.dst_port = htons(NAT_TRAV_PORT);
+  uint32_t newval = inet_addr("1.2.3.4");
+  memcpy(&udp_pkt.length, &newval, sizeof(uint32_t));
+  memcpy(&packet[off], &udp_pkt, sizeof(udp_pkt));
+  off += sizeof(udp_pkt);
+
+
+
+  // set ICMP checksum
+  icmp_pkt.checksum = htons(calc_checksum((uint16_t*)&packet[sizeof(ip_pkt)],
+                            sizeof (icmp_pkt) + sizeof(ip_pkt) + sizeof(udp_pkt)));
+  memcpy (&packet[sizeof(ip_pkt)], &icmp_pkt, sizeof (icmp_pkt));
+
+  /* End of new code */
+#if ORIGINAL
+  ip_pkt.id = 1; 
+  ip_pkt.flags_frag_offset = 0;
+  ip_pkt.ttl = 1; /* real TTL would be 1 on a time exceeded packet */
+  ip_pkt.proto = IPPROTO_ICMP;
+  ip_pkt.src_ip = other->s_addr;
+  ip_pkt.dst_ip = dummy.s_addr;
+  ip_pkt.checksum = 0;
+  ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt, sizeof (struct ip_packet)));  
+  memcpy (&packet[off], &ip_pkt, sizeof (struct ip_packet));
+  off += sizeof (struct ip_packet);
+
+
+#if HAVE_PORT
+  icmp_pkt->checksum = htons(calc_checksum((uint16_t*)icmp_pkt,
+                                             sizeof (struct icmp_packet) + sizeof(struct ip_packet) + sizeof(struct icmp_echo_packet)));
+
+#else
+  icmp_pkt->checksum = htons(calc_checksum((uint16_t*)icmp_pkt, 
+                                             sizeof (struct icmp_packet)*2 + sizeof(struct ip_packet)));
+
+#endif
+
+
+#endif
+
+  memset (&dst, 0, sizeof (dst));
+  dst.sin_family = AF_INET;
+  dst.sin_addr = *other;
+  err = sendto(rawsock, 
+	       packet, 
+	       off, 0, 
+	       (struct sockaddr*)&dst, 
+	       sizeof(dst)); /* or sizeof 'struct sockaddr'? */
+  if (err < 0) 
     {
-      ret = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-      if (-1 == ret)
-        {
-          fprintf (stderr,
-                   "Error opening udp socket: %s\n",
-                   strerror (errno));
-          return -1;
-        }
-      if (ret >= FD_SETSIZE)
-        {
-          fprintf (stderr,
-                   "Socket number too large (%d > %u)\n",
-                   ret,
-                   (unsigned int) FD_SETSIZE);
-          close (ret);
-          return -1;
-        }
-      memset (&src, 0, sizeof (src));
-      src.sin_family = AF_INET;
-      if (i == 0)
-	src.sin_port = htons (NAT_TRAV_PORT);
-      else
-	src.sin_port = htons (make_port ());
-      if (0 != bind (ret, (struct sockaddr*) &src, sizeof (src)))
-        {
-          close (ret);
-          continue;
-        }
-      return ret;
+      fprintf(stderr,
+	      "sendto failed: %s\n", strerror(errno));
     }
-  fprintf (stderr,
-           "Error binding udp socket: %s\n",
-           strerror (errno));
-  return -1;
+  else if (err != off) 
+    {
+      fprintf(stderr,
+	      "Error: partial send of ICMP message\n");
+    }
 }
 
 
+static int
+make_raw_socket ()
+{
+  const int one = 1;
+  int ret;
+
+  ret = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
+  if (-1 == ret)
+    {
+      fprintf (stderr,
+	       "Error opening RAW socket: %s\n",
+	       strerror (errno));
+      return -1;
+    }  
+  if (setsockopt(ret, SOL_SOCKET, SO_BROADCAST,
+		 (char *)&one, sizeof(one)) == -1)
+    fprintf(stderr,
+	    "setsockopt failed: %s\n",
+	    strerror (errno));
+  if (setsockopt(ret, IPPROTO_IP, IP_HDRINCL,
+		 (char *)&one, sizeof(one)) == -1)
+    fprintf(stderr,
+	    "setsockopt failed: %s\n",
+	    strerror (errno));
+  return ret;
+}
 
 
 int
 main (int argc, char *const *argv)
 {
-  int udpsocks[NUM_UDP_PORTS];
-  char command[512];
   struct in_addr external;
-  struct in_addr target;
-  int ret;
-  unsigned int pos;
-  int i;
-  int max;
-  struct sockaddr_in dst;
-  struct sockaddr_in src;
-  int first_round = 1;
-  char dummybuf[65536];
-  unsigned int tries;
-  struct timeval tv;
-  socklen_t slen;
-  fd_set rs;
- 
+  uid_t uid;
+
+  if (-1 == (rawsock = make_raw_socket()))
+    return 1;     
+  uid = getuid ();
+  if (0 != setresuid (uid, uid, uid))
+    fprintf (stderr,
+	     "Failed to setresuid: %s\n",
+	     strerror (errno));
+#if HAVE_PORT
+  if (argc != 4)
+    {
+      fprintf (stderr,
+	       "This program must be started with our IP, the targets external IP, and our port as arguments.\n");
+      return 1;
+    }
+  port = atoi(argv[3]);
+#else
   if (argc != 3)
     {
       fprintf (stderr,
-	       "This program must be started with our IP and the targets external IP as arguments.\n");
+               "This program must be started with our IP and the targets external IP as arguments.\n");
       return 1;
     }
+#endif
   if ( (1 != inet_pton (AF_INET, argv[1], &external)) ||
        (1 != inet_pton (AF_INET, argv[2], &target)) )
     {
@@ -178,121 +365,11 @@ main (int argc, char *const *argv)
 	       strerror (errno));
       return 1;
     }
-  snprintf (command, 
-	    sizeof (command),
-	    "gnunet-nat-client %s %s",
-	    argv[1],
-	    argv[2]);
-  if (0 != (ret = system (command)))
-    {
-      if (ret == -1)
-	fprintf (stderr,
-		 "Error running `%s': %s\n",
-		 command,
-		 strerror (errno));
-      return 1;
-    }
-  fprintf (stderr,
-	   "Trying to connect to `%s'\n",
-	   argv[2]);
-  srand (time(NULL));
-  for (i=0;i<NUM_UDP_PORTS;i++)
-    udpsocks[i] = make_udp_socket (i); 
-  memset (&dst, 0, sizeof (dst));
-  dst.sin_family = AF_INET;
-  dst.sin_addr = target;
-  pos = 0;
-  tries = 0;
-  while (MAX_TRIES > tries++)
-    {
-      FD_ZERO (&rs);
-      for (i=0;i<NUM_UDP_PORTS;i++)
-	{
-	  if (udpsocks[i] != -1)
-	    FD_SET (udpsocks[i], &rs);
-	  if (udpsocks[i] > max)
-	    max = udpsocks[i];
-	}
-      tv.tv_sec = 0;
-      tv.tv_usec = UDP_SEND_FREQUENCY_MS * 1000;
-      select (max + 1, &rs, NULL, NULL, &tv);
-      for (i=0;i<NUM_UDP_PORTS;i++)
-	{
-	  if (udpsocks[i] == -1)
-	    continue;
-	  if (! FD_ISSET (udpsocks[i], &rs))
-	    continue;
-	  slen = sizeof (src);
-	  recvfrom (udpsocks[i], 
-		    dummybuf, sizeof (dummybuf), 0,
-		    (struct sockaddr*) &src,
-		    &slen);
-	  if (slen != sizeof (src))
-	    {
-	      fprintf (stderr,
-		       "Unexpected size of address.\n");
-	      continue;
-	    }
-	  if (0 != memcmp (&src.sin_addr,
-			   &target,
-			   sizeof (external)))
-	    {
-	      fprintf (stderr,
-		       "Unexpected sender IP\n");
-	      continue;
-	    }
-	  /* discovered port! */
-	  fprintf (stdout,
-		   "%s:%u\n",
-		   argv[2],
-		   ntohs (src.sin_port));
-	  dst.sin_port = src.sin_port;
-	  if (-1 == sendto (udpsocks[i],
-			    NULL, 0, 0,
-			    (struct sockaddr*) &dst, sizeof (dst)))
-	    {
-	      fprintf (stderr,
-		       "sendto failed: %s\n",
-		       strerror (errno));	      
-	      return 2; /* oops */
-	    }	  
-	  /* success! */
-	  fprintf (stderr,
-		   "Succeeded after %u packets.\n",
-		   tries);
-	  return 0;
-        }
-      if (udpsocks[pos] == -1)
-	{
-          udpsocks[pos] = make_udp_socket (pos);
-	  continue;
-	}
-      if ( (0 == ((unsigned int)rand() % NUM_UDP_PORTS)) ||
-	   (1 == first_round) )
-	dst.sin_port = htons (NAT_TRAV_PORT);
-      else
-	dst.sin_port = htons (make_port ());
-      fprintf (stderr,
-	       "Sending UDP packet to `%s:%u'\n",
-	       argv[2],
-	       ntohs (dst.sin_port));
-      first_round = 0;
-      if (-1 == sendto (udpsocks[pos],
-                        NULL, 0, 0,
-                        (struct sockaddr*) &dst, sizeof (dst)))
-        {
-          fprintf (stderr,
-                   "sendto failed: %s\n",
-                   strerror (errno));
-          close (udpsocks[pos]);
-          udpsocks[pos] = make_udp_socket (pos);
-        }
-      pos = (pos+1) % NUM_UDP_PORTS;
-    }
-  fprintf (stderr,
-	   "Giving up after %u tries.\n",
-	   tries);
-  return 3;
+  if (1 != inet_pton (AF_INET, DUMMY_IP, &dummy)) abort ();
+  send_icmp (&external,
+	     &target);
+  close (rawsock);
+  return 0;
 }
 
-/* end of client-test.c */
+/* end of gnunet-nat-client-udp.c */

@@ -60,6 +60,8 @@
 #define DUMMY_IP "1.2.3.4"
 #define HAVE_PORT 1
 
+#define NAT_TRAV_PORT 22225
+
 struct ip_packet 
 {
   uint8_t vers_ihl;
@@ -92,7 +94,15 @@ struct icmp_echo_packet
   uint32_t data;
 };
 
- 
+struct udp_packet
+{
+  uint16_t src_port;
+
+  uint16_t dst_port;
+
+  uint32_t length;
+};
+
 static int rawsock;
 
 static struct in_addr dummy;
@@ -149,6 +159,109 @@ make_echo (const struct in_addr *src_ip,
                                        sizeof (struct icmp_packet)));
 }
 #endif
+
+/**
+ * Send an ICMP message to the target.
+ *
+ * @param my_ip source address
+ * @param other target address
+ */
+static void
+send_icmp_udp (const struct in_addr *my_ip,
+               const struct in_addr *other)
+{
+  struct ip_packet ip_pkt;
+  struct icmp_packet icmp_pkt;
+  struct udp_packet udp_pkt;
+
+  struct sockaddr_in dst;
+  char packet[sizeof(ip_pkt) * 2 + sizeof(icmp_pkt) * 2 + sizeof(uint32_t)];
+
+  size_t off;
+  int err;
+
+  /* ip header: send to (known) ip address */
+  off = 0;
+  memset(&ip_pkt, 0, sizeof(ip_pkt));
+  ip_pkt.vers_ihl = 0x45;
+  ip_pkt.tos = 0;
+  ip_pkt.pkt_len = htons(sizeof (packet));
+  ip_pkt.id = htons(256);
+  ip_pkt.flags_frag_offset = 0;
+  ip_pkt.ttl = 128;
+  ip_pkt.proto = IPPROTO_ICMP;
+  ip_pkt.checksum = 0;
+  ip_pkt.src_ip = my_ip->s_addr;
+  ip_pkt.dst_ip = other->s_addr;
+  ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt, sizeof (ip_pkt)));
+  memcpy(&packet[off], &ip_pkt, sizeof(ip_pkt));
+  off += sizeof(ip_pkt);
+
+  /* ip header of the presumably 'lost' udp packet */
+  ip_pkt.vers_ihl = 0x45;
+  ip_pkt.tos = 0;
+  ip_pkt.pkt_len = (sizeof (struct ip_packet) + sizeof (struct icmp_echo_packet));
+
+  icmp_pkt.type = 11; /* TTL exceeded */
+  icmp_pkt.code = 0;
+  icmp_pkt.checksum = 0;
+  icmp_pkt.reserved = 0;
+  memcpy(&packet[off], &icmp_pkt, sizeof(icmp_pkt));
+  off += sizeof(icmp_pkt);
+
+  /* build inner IP header */
+  memset(&ip_pkt, 0, sizeof(ip_pkt));
+  ip_pkt.vers_ihl = 0x45;
+  ip_pkt.tos = 0;
+  ip_pkt.pkt_len = htons(sizeof (ip_pkt) + sizeof(udp_pkt));
+  ip_pkt.id = htons(0);
+  ip_pkt.flags_frag_offset = 0;
+  ip_pkt.ttl = 128;
+  ip_pkt.proto = IPPROTO_UDP;
+  ip_pkt.checksum = 0;
+  ip_pkt.src_ip = other->s_addr;
+  ip_pkt.dst_ip = dummy.s_addr;
+  ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt, sizeof (ip_pkt)));
+  memcpy(&packet[off], &ip_pkt, sizeof(ip_pkt));
+  off += sizeof(ip_pkt);
+
+  /* build UDP header */
+  udp_pkt.src_port = htons(NAT_TRAV_PORT); /* FIXME: does this port matter? */
+  udp_pkt.dst_port = htons(NAT_TRAV_PORT);
+
+  memset(&udp_pkt.length, 0, sizeof(uint32_t));
+#if HAVE_PORT
+  udp_pkt.length = htonl(port);
+#endif
+  memcpy(&packet[off], &udp_pkt, sizeof(udp_pkt));
+  off += sizeof(udp_pkt);
+
+  /* set ICMP checksum */
+  icmp_pkt.checksum = htons(calc_checksum((uint16_t*)&packet[sizeof(ip_pkt)],
+                            sizeof (icmp_pkt) + sizeof(ip_pkt) + sizeof(udp_pkt)));
+  memcpy (&packet[sizeof(ip_pkt)], &icmp_pkt, sizeof (icmp_pkt));
+
+
+  memset (&dst, 0, sizeof (dst));
+  dst.sin_family = AF_INET;
+  dst.sin_addr = *other;
+  err = sendto(rawsock,
+               packet,
+               off, 0,
+               (struct sockaddr*)&dst,
+               sizeof(dst));
+
+  if (err < 0)
+    {
+      fprintf(stderr,
+              "sendto failed: %s\n", strerror(errno));
+    }
+  else if (err != off)
+    {
+      fprintf(stderr,
+              "Error: partial send of ICMP message\n");
+    }
+}
 
 
 /**
@@ -334,6 +447,8 @@ main (int argc, char *const *argv)
   if (1 != inet_pton (AF_INET, DUMMY_IP, &dummy)) abort ();
   send_icmp (&external,
 	     &target);
+  send_icmp_udp (&external,
+             &target);
   close (rawsock);
   return 0;
 }

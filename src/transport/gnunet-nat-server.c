@@ -91,6 +91,14 @@ struct icmp_packet
   uint32_t reserved;
 };
 
+struct udp_packet
+{
+  uint16_t src_port;
+
+  uint16_t dst_port;
+
+  uint32_t length;
+};
 
 static int icmpsock;
 
@@ -192,8 +200,10 @@ process_icmp_response ()
   struct in_addr sip;
   struct ip_packet ip_pkt;
   struct icmp_packet icmp_pkt;
+  struct udp_packet udp_pkt;
   size_t off;
   int have_port;
+  int have_udp;
   uint32_t port;
   
   have = read (icmpsock, buf, sizeof (buf));
@@ -205,6 +215,7 @@ process_icmp_response ()
       return; 
     }
   have_port = 0;
+
   if (have == sizeof (struct ip_packet) *2 + sizeof (struct icmp_packet) * 2 + sizeof(uint32_t))
     {
       have_port = 1;
@@ -233,6 +244,15 @@ process_icmp_response ()
   memcpy(&sip, 
 	 &ip_pkt.src_ip, 
 	 sizeof (sip));
+
+  memcpy (&ip_pkt, &buf[off], sizeof (ip_pkt));
+  off += sizeof (ip_pkt);
+
+  if (ip_pkt.proto == IPPROTO_UDP)
+    {
+      have_udp = 1;
+    }
+
   if (have_port)
     {
       memcpy(&port, &buf[sizeof (struct ip_packet) *2 + sizeof (struct icmp_packet) * 2], sizeof(uint32_t));
@@ -243,6 +263,16 @@ process_icmp_response ()
                          &sip,
                          buf,
                          sizeof (buf)), port);
+    }
+  else if (have_udp)
+    {
+      memcpy(&udp_pkt, &buf[off], sizeof(udp_pkt));
+      fprintf (stdout,
+               "%s:%d\n",
+               inet_ntop (AF_INET,
+                          &sip,
+                          buf,
+                          sizeof (buf)), ntohl(udp_pkt.length));
     }
   else
     {

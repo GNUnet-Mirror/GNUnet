@@ -53,7 +53,6 @@ gnunet_nat_server_SOURCES = \
 gnunet_nat_client_SOURCES = \
  gnunet-nat-client.c         
 
-
 gnunet_transport_SOURCES = \
  gnunet-transport.c         
 gnunet_transport_LDADD = \
