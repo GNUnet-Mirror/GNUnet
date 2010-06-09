@@ -2674,6 +2674,7 @@ GNUNET_TESTING_daemon_get (struct GNUNET_TESTING_PeerGroup *pg, unsigned int pos
  * Prototype of a function that will be called when a
  * particular operation was completed the testing library.
  *
+ * @param cls closure (a struct RestartContext)
  * @param id id of the peer that was restarted
  * @param cfg handle to the configuration of the peer
  * @param d handle to the daemon that was restarted
