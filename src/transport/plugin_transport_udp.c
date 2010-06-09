@@ -949,7 +949,8 @@ udp_plugin_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
                   _("nat-server-read read: %s port %d\n"), &mybuf, port);
 #endif
 
-  /** We have received an ICMP response, ostensibly from a non-NAT'd peer
+  /**
+   * We have received an ICMP response, ostensibly from a non-NAT'd peer
    *  that wants to connect to us! Send a message to establish a connection.
    */
   if (inet_pton(AF_INET, &mybuf[0], &in_addr.sin_addr) != 1)
