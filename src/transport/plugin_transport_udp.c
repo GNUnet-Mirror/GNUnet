@@ -1052,7 +1052,6 @@ udp_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender, con
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp",
                       _("Received PROBE REPLY from port %d on incoming port %d\n"), ntohs(((struct sockaddr_in *)sender_addr)->sin_port), sockinfo->port);
 #endif
-      /* FIXME: use nonce, then IPv6 replies could work I think... */
       if (sender_addr->ss_family == AF_INET)
         {
           memset(&addr_buf, 0, sizeof(addr_buf));
@@ -1116,8 +1115,7 @@ udp_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender, con
       else if (peer_session->expecting_welcome == GNUNET_YES)
         {
           peer_session->expecting_welcome = GNUNET_NO;
-          /* FIXME: There is no way to find this based on receiving port at the moment! */
-          peer_session->sock = sockinfo->desc; /* This may matter, not sure right now... */
+          peer_session->sock = sockinfo->desc;
           ((struct sockaddr_in *)peer_session->connect_addr)->sin_port = ((struct sockaddr_in *) sender_addr)->sin_port;
 #if DEBUG_UDP_NAT
               GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp",
