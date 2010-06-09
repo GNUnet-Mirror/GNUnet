@@ -1296,15 +1296,14 @@ udp_transport_server_start (void *cls)
   socklen_t addrlen;
   int sockets_created;
 
-  /* Pipe to read from started processes stdout (on read end) */
-  plugin->server_stdout = GNUNET_DISK_pipe(GNUNET_YES);
-
   sockets_created = 0;
-  if (plugin->server_stdout == NULL)
-    return sockets_created;
 
   if (plugin->behind_nat == GNUNET_YES)
     {
+      /* Pipe to read from started processes stdout (on read end) */
+      plugin->server_stdout = GNUNET_DISK_pipe(GNUNET_YES);
+      if (plugin->server_stdout == NULL)
+        return sockets_created;
 #if DEBUG_UDP_NAT
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "udp",
@@ -1410,32 +1409,6 @@ udp_transport_server_start (void *cls)
 
 
 /**
- * Check if the given port is plausible (must be either
- * our listen port or our advertised port).  If it is
- * neither, we return one of these two ports at random.
- *
- * @return either in_port or a more plausible port
- */
-static uint16_t
-check_port (struct Plugin *plugin, uint16_t in_port)
-{
-
-  /* FIXME: remember what ports we are using to better respond to this */
-  return in_port;
-  /*
-  for (i = plugin->starting_port; i < plugin->num_ports + plugin->starting_port; i++)
-    {
-      if (in_port == i)
-        return in_port;
-    }
-
-  return GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                    plugin->num_ports) + plugin->starting_port;
-  */
-}
-
-
-/**
  * Another peer has suggested an address for this peer and transport
  * plugin.  Check that this could be a valid address.  This function
  * is not expected to 'validate' the address in the sense of trying to
@@ -1468,12 +1441,12 @@ udp_check_address (void *cls, void *addr, size_t addrlen)
   if (addrlen == sizeof (struct sockaddr_in))
     {
       v4 = (struct sockaddr_in *) buf;
-      v4->sin_port = htons (check_port (plugin, ntohs (v4->sin_port)));
+      v4->sin_port = htons (plugin->port);
     }
   else
     {
       v6 = (struct sockaddr_in6 *) buf;
-      v6->sin6_port = htons (check_port (plugin, ntohs (v6->sin6_port)));
+      v6->sin6_port = htons (plugin->port);
     }
 
 #if DEBUG_UDP_NAT
