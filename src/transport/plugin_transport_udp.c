@@ -356,6 +356,11 @@ struct Plugin
   int behind_nat;
 
   /**
+   * Is this transport configured to allow connections to NAT'd peers?
+   */
+  int allow_nat;
+
+  /**
    * The process id of the server process (if behind NAT)
    */
   pid_t server_pid;
@@ -429,12 +434,10 @@ udp_transport_server_stop (void *cls)
       plugin->select_task = GNUNET_SCHEDULER_NO_TASK;
     }
 
-
   ok = GNUNET_NETWORK_socket_close (udp_sock.desc);
   if (ok == GNUNET_OK)
     udp_sock.desc = NULL;
   ret += ok;
-
 
   if (plugin->behind_nat == GNUNET_YES)
     {
@@ -585,6 +588,7 @@ run_gnunet_nat_client (struct Plugin *plugin, const char *addr, size_t addrlen)
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp",
                   _("Running gnunet-nat-client with arguments: %s %s %d\n"), plugin->external_address, address_as_string, plugin->port);
 #endif
+
   /* Start the server process */
   pid = GNUNET_OS_start_process(NULL, NULL, "gnunet-nat-client", "gnunet-nat-client", plugin->external_address, address_as_string, port_as_string, NULL);
   GNUNET_free(address_as_string);
@@ -645,7 +649,7 @@ udp_plugin_send (void *cls,
 
   sent = 0;
 
-  if (other_peer_natd == GNUNET_YES)
+  if ((other_peer_natd == GNUNET_YES) && (plugin->allow_nat == GNUNET_YES))
     {
       peer_session = find_session(plugin, target);
       if (peer_session == NULL) /* We have a new peer to add */
@@ -701,11 +705,16 @@ udp_plugin_send (void *cls,
             }
         }
     }
-  else /* Other peer not behind a NAT, so we can just send the message as is */
+  else if (other_peer_natd == GNUNET_NO) /* Other peer not behind a NAT, so we can just send the message as is */
     {
       sent = udp_real_send(cls, udp_sock.desc, target, msgbuf, msgbuf_size, priority, timeout, addr, addrlen, cont, cont_cls);
     }
+  else /* Other peer is NAT'd, but we don't want to play with them (or can't!) */
+    return GNUNET_SYSERR;
 
+  /* When GNUNET_SYSERR is returned from udp_real_send, we will still call
+   * the callback so must not return GNUNET_SYSERR!
+   * If we do, then transport context get freed twice. */
   if (sent == GNUNET_SYSERR)
     return 0;
 
@@ -894,6 +903,10 @@ udp_plugin_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   struct UDP_NAT_Probes *temp_probe;
   int port;
   char *port_start;
+
+  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+    return;
+
   bytes = GNUNET_DISK_file_read(plugin->server_stdout_handle, &mybuf, sizeof(mybuf));
 
   if (bytes < 1)
@@ -921,6 +934,14 @@ udp_plugin_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
 
   if (port_start != NULL)
     port = atoi(port_start);
+  else
+    {
+      plugin->server_read_task =
+           GNUNET_SCHEDULER_add_read_file (plugin->env->sched,
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           plugin->server_stdout_handle, &udp_plugin_server_read, plugin);
+      return;
+    }
 
 #if DEBUG_UDP_NAT
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp",
@@ -1159,9 +1180,13 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   int offset;
   int count;
   int tsize;
-
   char *msgbuf;
   const struct GNUNET_MessageHeader *currhdr;
+
+  plugin->select_task = GNUNET_SCHEDULER_NO_TASK;
+
+  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+    return;
 
   buf = NULL;
   sender = NULL;
@@ -1270,7 +1295,7 @@ udp_transport_server_start (void *cls)
 #if DEBUG_UDP_NAT
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "udp",
-                   "Starting gnunet-nat-server process\n");
+                   "Starting gnunet-nat-server process cmd: %s %s\n", "gnunet-nat-server", plugin->internal_address);
 #endif
       /* Start the server process */
       plugin->server_pid = GNUNET_OS_start_process(NULL, plugin->server_stdout, "gnunet-nat-server", "gnunet-nat-server", plugin->internal_address, NULL);
@@ -1527,6 +1552,77 @@ udp_plugin_address_pretty_printer (void *cls,
                                 !numeric, timeout, &append_port, ppc);
 }
 
+/**
+ * Return the actual path to a file found in the current
+ * PATH environment variable.
+ *
+ * @param binary the name of the file to find
+ */
+static char *
+get_path_from_PATH (char *binary)
+{
+  char *path;
+  char *pos;
+  char *end;
+  char *buf;
+  const char *p;
+
+  p = getenv ("PATH");
+  if (p == NULL)
+    return NULL;
+  path = GNUNET_strdup (p);     /* because we write on it */
+  buf = GNUNET_malloc (strlen (path) + 20);
+  pos = path;
+
+  while (NULL != (end = strchr (pos, ':')))
+    {
+      *end = '\0';
+      sprintf (buf, "%s/%s", pos, binary);
+      if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
+        {
+          GNUNET_free (path);
+          return buf;
+        }
+      pos = end + 1;
+    }
+  sprintf (buf, "%s/%s", pos, binary);
+  if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
+    {
+      GNUNET_free (path);
+      return buf;
+    }
+  GNUNET_free (buf);
+  GNUNET_free (path);
+  return NULL;
+}
+
+/**
+ * Check whether the suid bit is set on a file.
+ * Attempts to find the file using the current
+ * PATH environment variable as a search path.
+ *
+ * @param binary the name of the file to check
+ */
+static int
+check_gnunet_nat_binary(char *binary)
+{
+  struct stat statbuf;
+  char *p;
+
+  p = get_path_from_PATH (binary);
+  if (p == NULL)
+    return GNUNET_NO;
+  if (0 != STAT (p, &statbuf))
+    {
+      GNUNET_free (p);
+      return GNUNET_SYSERR;
+    }
+  GNUNET_free (p);
+  if ( (0 != (statbuf.st_mode & S_ISUID)) &&
+       (statbuf.st_uid == 0) )
+    return GNUNET_YES;
+  return GNUNET_NO;
+}
 
 /**
  * The exported method. Makes the core api available via a global and
@@ -1543,6 +1639,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   struct GNUNET_SERVICE_Context *service;
   int sockets_created;
   int behind_nat;
+  int allow_nat;
   char *internal_address;
   char *external_address;
 
@@ -1558,12 +1655,37 @@ libgnunet_plugin_transport_udp_init (void *cls)
   if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
                                                          "transport-udp",
                                                          "BEHIND_NAT"))
-    behind_nat = GNUNET_YES; /* We are behind nat (according to the user) */
+    {
+      /* We are behind nat (according to the user) */
+      if (check_gnunet_nat_binary("gnunet-nat-server") == GNUNET_YES)
+        behind_nat = GNUNET_YES;
+      else
+        {
+          behind_nat = GNUNET_NO;
+          GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "udp", "Configuration specified you are behind a NAT, but gnunet-nat-server is not installed properly (suid bit not set)!\n");
+        }
+    }
   else
     behind_nat = GNUNET_NO; /* We are not behind nat! */
 
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+                                                         "transport-udp",
+                                                         "ALLOW_NAT"))
+    {
+      if (check_gnunet_nat_binary("gnunet-nat-client") == GNUNET_YES)
+        allow_nat = GNUNET_YES; /* We will try to connect to NAT'd peers */
+      else
+      {
+        allow_nat = GNUNET_NO;
+        GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "udp", "Configuration specified you want to connect to NAT'd peers, but gnunet-nat-client is not installed properly (suid bit not set)!\n");
+      }
+
+    }
+  else
+    allow_nat = GNUNET_NO; /* We don't want to try to help NAT'd peers */
+
   external_address = NULL;
-  if ((GNUNET_YES == behind_nat) && (GNUNET_OK !=
+  if (((GNUNET_YES == behind_nat) || (GNUNET_YES == allow_nat)) && (GNUNET_OK !=
          GNUNET_CONFIGURATION_get_value_string (env->cfg,
                                                 "transport-udp",
                                                 "EXTERNAL_ADDRESS",
@@ -1572,7 +1694,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
                        "udp",
                        _
-                       ("Require EXTERNAL_ADDRESS for service `%s' in configuration!\n"),
+                       ("Require EXTERNAL_ADDRESS for service `%s' in configuration (either BEHIND_NAT or ALLOW_NAT set to YES)!\n"),
                        "transport-udp");
       GNUNET_SERVICE_stop (service);
       return NULL;
@@ -1627,6 +1749,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   plugin->internal_address = internal_address;
   plugin->port = port;
   plugin->behind_nat = behind_nat;
+  plugin->allow_nat = allow_nat;
   plugin->env = env;
 
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
@@ -1667,6 +1790,7 @@ libgnunet_plugin_transport_udp_done (void *cls)
       GNUNET_RESOLVER_request_cancel (hostname_dns);
       hostname_dns = NULL;
     }
+
   GNUNET_SERVICE_stop (plugin->service);
 
   GNUNET_NETWORK_fdset_destroy (plugin->rs);
