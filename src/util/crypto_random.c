@@ -55,6 +55,7 @@ GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, uint32_t i)
   static unsigned int invokeCount;
 #endif
   uint32_t ret;
+  uint32_t ul;
 
   GNUNET_assert (i > 0);
 
@@ -65,8 +66,13 @@ GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, uint32_t i)
       if ((invokeCount++ % 256) == 0)
         gcry_fast_random_poll ();
 #endif
-      gcry_randomize ((unsigned char *) &ret,
-                      sizeof (uint32_t), GCRY_STRONG_RANDOM);
+      ul = ((uint32_t)-1) - (((uint32_t)-1) % i);
+      do
+	{
+	  gcry_randomize ((unsigned char *) &ret,
+			  sizeof (uint32_t), GCRY_STRONG_RANDOM);
+	}
+      while (ret >= ul);
       return ret % i;
     }
   else
@@ -121,12 +127,18 @@ uint64_t
 GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode, uint64_t max)
 {
   uint64_t ret;
+  uint64_t ul;
 
   GNUNET_assert (max > 0);
   if (mode == GNUNET_CRYPTO_QUALITY_STRONG)
     {
-      gcry_randomize ((unsigned char *) &ret,
-                      sizeof (uint64_t), GCRY_STRONG_RANDOM);
+      ul = ((uint64_t)-1LL) - (((uint64_t)-1LL) % max);
+      do
+	{
+	  gcry_randomize ((unsigned char *) &ret,
+			  sizeof (uint64_t), GCRY_STRONG_RANDOM);
+	}
+      while (ret >= ul);
       return ret % max;
     }
   else
