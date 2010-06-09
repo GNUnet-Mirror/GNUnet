@@ -72,7 +72,6 @@ gnunet_service_transport_LDADD = \
 plugin_LTLIBRARIES = \
   libgnunet_plugin_transport_tcp.la \
   libgnunet_plugin_transport_udp.la \
-  libgnunet_plugin_transport_udp_nat.la \
   $(HTTP_PLUGIN_LA) \
   libgnunet_plugin_transport_template.la
 # TODO: add http, nat, etc.
@@ -104,15 +103,15 @@ libgnunet_plugin_transport_udp_la_LIBADD = \
 libgnunet_plugin_transport_udp_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
-libgnunet_plugin_transport_udp_nat_la_SOURCES = \
-  plugin_transport_udp_nat.c
-libgnunet_plugin_transport_udp_nat_la_LIBADD = \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
-  $(top_builddir)/src/util/libgnunetutil.la 
-libgnunet_plugin_transport_udp_nat_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
+#libgnunet_plugin_transport_udp_nat_la_SOURCES = \
+#  plugin_transport_udp_nat.c
+#libgnunet_plugin_transport_udp_nat_la_LIBADD = \
+#  $(top_builddir)/src/hello/libgnunethello.la \
+#  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+#  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+#  $(top_builddir)/src/util/libgnunetutil.la 
+#libgnunet_plugin_transport_udp_nat_la_LDFLAGS = \
+# $(GN_PLUGIN_LDFLAGS)
 
 if HAVE_MHD 
 libgnunet_plugin_transport_http_la_SOURCES = \

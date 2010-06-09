@@ -248,6 +248,7 @@ process_icmp_response ()
   memcpy (&ip_pkt, &buf[off], sizeof (ip_pkt));
   off += sizeof (ip_pkt);
 
+  have_udp = 0;
   if (ip_pkt.proto == IPPROTO_UDP)
     {
       have_udp = 1;
