@@ -937,6 +937,12 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (struct GNUNET_SCHEDULER_Handl
   ret->addr = (struct sockaddr*) un;
   ret->addrlen = slen;
   ret->sock = GNUNET_NETWORK_socket_create (AF_UNIX, SOCK_STREAM, 0);
+  if (NULL == ret->sock)
+    {
+      GNUNET_free (un);
+      GNUNET_free (ret);
+      return NULL;
+    }
   if (GNUNET_OK != GNUNET_NETWORK_socket_connect (ret->sock,
 						  ret->addr,
 						  ret->addrlen)) 
