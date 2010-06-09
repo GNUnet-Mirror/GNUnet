@@ -903,6 +903,7 @@ udp_plugin_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   struct UDP_NAT_Probes *temp_probe;
   int port;
   char *port_start;
+  struct sockaddr_in in_addr;
 
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     return;
@@ -951,6 +952,19 @@ udp_plugin_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   /** We have received an ICMP response, ostensibly from a non-NAT'd peer
    *  that wants to connect to us! Send a message to establish a connection.
    */
+  if (inet_pton(AF_INET, &mybuf[0], &in_addr.sin_addr) != 1)
+    {
+
+      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "udp",
+                  _("nat-server-read malformed address\n"), &mybuf, port);
+
+      plugin->server_read_task =
+          GNUNET_SCHEDULER_add_read_file (plugin->env->sched,
+                                          GNUNET_TIME_UNIT_FOREVER_REL,
+                                          plugin->server_stdout_handle, &udp_plugin_server_read, plugin);
+      return;
+    }
+
   temp_probe = find_probe(plugin, &mybuf[0]);
 
   if (temp_probe == NULL)
