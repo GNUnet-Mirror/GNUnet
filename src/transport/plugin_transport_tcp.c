@@ -380,6 +380,13 @@ struct Plugin
    */
   int allow_nat;
 
+  /**
+   * Should this transport advertise only NAT addresses (port set to 0)?
+   * If not, all addresses will be duplicated for NAT punching and regular
+   * ports.
+   */
+  int only_nat_addresses;
+
 };
 
 
@@ -1080,7 +1087,7 @@ tcp_plugin_send (void *cls,
                                              session->pending_messages_tail,
                                              pm);
 
-          GNUNET_CONTAINER_multihashmap_put(plugin->nat_wait_conns, &target->hashPubKey, session, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+          GNUNET_assert(GNUNET_CONTAINER_multihashmap_put(plugin->nat_wait_conns, &target->hashPubKey, session, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY) == GNUNET_OK);
 #if DEBUG_TCP_NAT
           GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                            "tcp",
@@ -1451,6 +1458,7 @@ handle_tcp_nat_probe (void *cls,
 #endif
       session = GNUNET_CONTAINER_multihashmap_get(plugin->nat_wait_conns, &tcp_nat_probe->clientIdentity.hashPubKey);
       GNUNET_assert(session != NULL);
+      GNUNET_assert(GNUNET_CONTAINER_multihashmap_remove(plugin->nat_wait_conns, &tcp_nat_probe->clientIdentity.hashPubKey, session) == GNUNET_YES);
       GNUNET_SERVER_client_keep (client);
       session->client = client;
       session->last_activity = GNUNET_TIME_absolute_get ();
@@ -1493,21 +1501,13 @@ handle_tcp_nat_probe (void *cls,
           session->connect_alen = alen;
           GNUNET_free (vaddr);
         }
-      else
-        {
-          /* FIXME: free partial session? */
-        }
 
       session->next = plugin->sessions;
       plugin->sessions = session;
-
       GNUNET_STATISTICS_update (plugin->env->stats,
                                 gettext_noop ("# TCP sessions active"),
                                 1,
                                 GNUNET_NO);
-      /*GNUNET_SERVER_connect_socket (plugin->server,
-                                    client->);*/
-
       process_pending_messages (session);
     }
   else
@@ -1770,15 +1770,25 @@ process_interfaces (void *cls,
   int af;
   struct IPv4TcpAddress t4;
   struct IPv6TcpAddress t6;
+  struct IPv4TcpAddress t4_nat;
+  struct IPv6TcpAddress t6_nat;
   void *arg;
   uint16_t args;
+  void *arg_nat;
 
   af = addr->sa_family;
+  arg_nat = NULL;
   if (af == AF_INET)
     {
       t4.ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
-      if (plugin->behind_nat)
+      if ((plugin->behind_nat == GNUNET_YES) && (plugin->only_nat_addresses == GNUNET_YES))
         t4.t_port = htons(0);
+      else if (plugin->behind_nat == GNUNET_YES) /* We are behind NAT, but will advertise NAT and normal addresses */
+        {
+          t4_nat.ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
+          t4_nat.t_port = htons(plugin->adv_port);
+          arg_nat = &t4_nat;
+        }
       else
         t4.t_port = htons (plugin->adv_port);
       arg = &t4;
@@ -1794,8 +1804,16 @@ process_interfaces (void *cls,
       memcpy (&t6.ipv6_addr,
 	      &((struct sockaddr_in6 *) addr)->sin6_addr,
 	      sizeof (struct in6_addr));
-      if (plugin->behind_nat)
+      if ((plugin->behind_nat == GNUNET_YES) && (plugin->only_nat_addresses == GNUNET_YES))
         t6.t6_port = htons(0);
+      else if (plugin->behind_nat == GNUNET_YES) /* We are behind NAT, but will advertise NAT and normal addresses */
+        {
+          memcpy (&t6_nat.ipv6_addr,
+                  &((struct sockaddr_in6 *) addr)->sin6_addr,
+                  sizeof (struct in6_addr));
+          t6_nat.t6_port = htons(plugin->adv_port);
+          arg_nat = &t6;
+        }
       else
         t6.t6_port = htons (plugin->adv_port);
       arg = &t6;
@@ -1811,9 +1829,23 @@ process_interfaces (void *cls,
                    "tcp", 
 		   _("Found address `%s' (%s)\n"),
                    GNUNET_a2s (addr, addrlen), name);
+
   plugin->env->notify_address (plugin->env->cls,
                                "tcp",
                                arg, args, GNUNET_TIME_UNIT_FOREVER_REL);
+
+  if (arg_nat != NULL)
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO |
+                       GNUNET_ERROR_TYPE_BULK,
+                      "tcp",
+                      _("Found address `%s' (%s)\n"),
+                      GNUNET_a2s (addr, addrlen), name);
+      plugin->env->notify_address (plugin->env->cls,
+                                   "tcp",
+                                   arg_nat, args, GNUNET_TIME_UNIT_FOREVER_REL);
+    }
+
   return GNUNET_OK;
 }
 
@@ -2119,6 +2151,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   unsigned int i;
   int behind_nat;
   int allow_nat;
+  int only_nat_addresses;
   char *internal_address;
   char *external_address;
 
@@ -2162,10 +2195,17 @@ libgnunet_plugin_transport_tcp_init (void *cls)
         allow_nat = GNUNET_NO;
         GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "tcp", "Configuration specified you want to connect to NAT'd peers, but gnunet-nat-client is not installed properly (suid bit not set)!\n");
       }
-
     }
   else
     allow_nat = GNUNET_NO; /* We don't want to try to help NAT'd peers */
+
+
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+                                                           "transport-tcp",
+                                                           "ONLY_NAT_ADDRESSES"))
+    only_nat_addresses = GNUNET_YES; /* We will only report our addresses as NAT'd */
+  else
+    only_nat_addresses = GNUNET_NO; /* We will report our addresses as NAT'd and non-NAT'd */
 
   external_address = NULL;
   if (((GNUNET_YES == behind_nat) || (GNUNET_YES == allow_nat)) && (GNUNET_OK !=
@@ -2234,6 +2274,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   plugin->internal_address = internal_address;
   plugin->behind_nat = behind_nat;
   plugin->allow_nat = allow_nat;
+  plugin->only_nat_addresses = only_nat_addresses;
   plugin->env = env;
   plugin->lsock = NULL;
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));

@@ -361,6 +361,13 @@ struct Plugin
   int allow_nat;
 
   /**
+   * Should this transport advertise only NAT addresses (port set to 0)?
+   * If not, all addresses will be duplicated for NAT punching and regular
+   * ports.
+   */
+  int only_nat_addresses;
+
+  /**
    * The process id of the server process (if behind NAT)
    */
   pid_t server_pid;
@@ -736,33 +743,67 @@ process_interfaces (void *cls,
   int af;
   struct sockaddr_in *v4;
   struct sockaddr_in6 *v6;
+  struct sockaddr *addr_nat;
 
+  addr_nat = NULL;
   af = addr->sa_family;
   if (af == AF_INET)
     {
       v4 = (struct sockaddr_in *) addr;
-      if (plugin->behind_nat == GNUNET_YES)
+      if ((plugin->behind_nat == GNUNET_YES) && (plugin->only_nat_addresses == GNUNET_YES))
         {
-          GNUNET_assert(inet_pton(AF_INET, plugin->external_address, &v4->sin_addr) == GNUNET_OK);
           v4->sin_port = htons (0); /* Indicates to receiver we are behind NAT */
         }
+      else if (plugin->behind_nat == GNUNET_YES) /* We are behind NAT, but will advertise NAT and normal addresses */
+        {
+          addr_nat = GNUNET_malloc(addrlen);
+          memcpy(addr_nat, addr, addrlen);
+          v4 = (struct sockaddr_in *) addr_nat;
+          v4->sin_port = htons(plugin->port);
+        }
       else
-        v4->sin_port = htons (plugin->port);
+        {
+          v4->sin_port = htons (plugin->port);
+        }
     }
   else
     {
       GNUNET_assert (af == AF_INET6);
       v6 = (struct sockaddr_in6 *) addr;
-      if (plugin->behind_nat == GNUNET_YES)
-        v6->sin6_port = htons (0);
+      if ((plugin->behind_nat == GNUNET_YES) && (plugin->only_nat_addresses == GNUNET_YES))
+        {
+          v6->sin6_port = htons (0);
+        }
+      else if (plugin->behind_nat == GNUNET_YES) /* We are behind NAT, but will advertise NAT and normal addresses */
+        {
+          addr_nat = GNUNET_malloc(addrlen);
+          memcpy(addr_nat, addr, addrlen);
+          v6 = (struct sockaddr_in6 *) addr_nat;
+          v6->sin6_port = htons(plugin->port);
+        }
       else
-        v6->sin6_port = htons (plugin->port);
+        {
+          v6->sin6_port = htons (plugin->port);
+        }
     }
 
     GNUNET_log_from (GNUNET_ERROR_TYPE_INFO |
-                      GNUNET_ERROR_TYPE_BULK,
+                     GNUNET_ERROR_TYPE_BULK,
                       "udp", _("Found address `%s' (%s)\n"),
                       GNUNET_a2s (addr, addrlen), name);
+
+    if (addr_nat != NULL)
+      {
+        plugin->env->notify_address (plugin->env->cls,
+                                    "udp",
+                                    addr_nat, addrlen, GNUNET_TIME_UNIT_FOREVER_REL);
+        GNUNET_log_from (GNUNET_ERROR_TYPE_INFO |
+                         GNUNET_ERROR_TYPE_BULK,
+                         "udp", _("Found NAT address `%s' (%s)\n"),
+                         GNUNET_a2s (addr_nat, addrlen), name);
+        GNUNET_free(addr_nat);
+      }
+
     plugin->env->notify_address (plugin->env->cls,
                                 "udp",
                                 addr, addrlen, GNUNET_TIME_UNIT_FOREVER_REL);
@@ -1626,6 +1667,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   int sockets_created;
   int behind_nat;
   int allow_nat;
+  int only_nat_addresses;
   char *internal_address;
   char *external_address;
 
@@ -1669,6 +1711,13 @@ libgnunet_plugin_transport_udp_init (void *cls)
     }
   else
     allow_nat = GNUNET_NO; /* We don't want to try to help NAT'd peers */
+
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+                                                           "transport-udp",
+                                                           "ONLY_NAT_ADDRESSES"))
+    only_nat_addresses = GNUNET_YES; /* We will only report our addresses as NAT'd */
+  else
+    only_nat_addresses = GNUNET_NO; /* We will report our addresses as NAT'd and non-NAT'd */
 
   external_address = NULL;
   if (((GNUNET_YES == behind_nat) || (GNUNET_YES == allow_nat)) && (GNUNET_OK !=
@@ -1736,6 +1785,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   plugin->port = port;
   plugin->behind_nat = behind_nat;
   plugin->allow_nat = allow_nat;
+  plugin->only_nat_addresses = only_nat_addresses;
   plugin->env = env;
 
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
