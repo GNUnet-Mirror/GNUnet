@@ -75,7 +75,11 @@ static int ok;
 
 static int is_tcp;
 
+static int is_tcp_nat;
+
 static int is_http;
+
+static int connected;
 
 static unsigned long long total_bytes;
 
@@ -193,10 +197,13 @@ notify_receive (void *cls,
       return;
     }
 #if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Got message %u of size %u\n",
-	      ntohl (hdr->num),
-	      ntohs (message->size));	      
+  if (ntohl(hdr->num) % 5000 == 0)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Got message %u of size %u\n",
+                  ntohl (hdr->num),
+                  ntohs (message->size));
+    }
 #endif
   n++;
   if (0 == (n % (TOTAL_MSGS/100)))
@@ -243,10 +250,13 @@ notify_ready (void *cls, size_t size, void *buf)
       memset (&cbuf[ret], n, s - sizeof (struct TestMessage));
       ret += s - sizeof (struct TestMessage);
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Sending message %u of size %u\n",
-		  n,
-		  s);
+      if (n % 5000 == 0)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Sending message %u of size %u\n",
+                      n,
+                      s);
+        }
 #endif
       n++;
       s = get_size (n);
@@ -260,9 +270,12 @@ notify_ready (void *cls, size_t size, void *buf)
 					    s, 0, TIMEOUT, 
 					    &notify_ready,
 					    NULL);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Returning total message block of size %u\n",
-	      ret);
+  if (n % 5000 == 0)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Returning total message block of size %u\n",
+                  ret);
+    }
   total_bytes += ret;
   return ret;
 }
@@ -283,11 +296,7 @@ notify_connect (void *cls,
 				  GNUNET_TIME_UNIT_FOREVER_REL,
 				  NULL, NULL);
       start_time = GNUNET_TIME_absolute_get ();
-      GNUNET_TRANSPORT_notify_transmit_ready (p1.th,
-					      &p2.id,
-					      get_size (0), 0, TIMEOUT, 
-					      &notify_ready,
-					      NULL);
+      connected++;
     }
   else
     {
@@ -297,6 +306,16 @@ notify_connect (void *cls,
 				  GNUNET_BANDWIDTH_value_init (1024 * 1024 * 1024),
 				  GNUNET_TIME_UNIT_FOREVER_REL,
 				  NULL, NULL);
+      connected++;
+    }
+
+  if (connected == 2)
+    {
+      GNUNET_TRANSPORT_notify_transmit_ready (p1.th,
+                                              &p2.id,
+                                              get_size (0), 0, TIMEOUT,
+                                              &notify_ready,
+                                              NULL);
     }
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -413,6 +432,11 @@ run (void *cls,
       setup_peer (&p1, "test_transport_api_http_peer1.conf");
       setup_peer (&p2, "test_transport_api_http_peer2.conf");
     }
+  else if (is_tcp_nat)
+    {
+      setup_peer (&p1, "test_transport_api_tcp_nat_peer1.conf");
+      setup_peer (&p2, "test_transport_api_tcp_nat_peer2.conf");
+    }
   else
     GNUNET_assert (0);
   GNUNET_assert(p1.th != NULL);
@@ -456,7 +480,11 @@ main (int argc, char *argv[])
 #ifdef MINGW
   return GNUNET_SYSERR;
 #endif
-  if (strstr(argv[0], "tcp") != NULL)
+  if (strstr(argv[0], "tcp_nat") != NULL)
+    {
+      is_tcp_nat = GNUNET_YES;
+    }
+  else if (strstr(argv[0], "tcp") != NULL)
     {
       is_tcp = GNUNET_YES;
     }

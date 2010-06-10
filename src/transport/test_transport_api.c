@@ -69,6 +69,8 @@ static int ok;
 
 static int is_tcp;
 
+static int is_tcp_nat;
+
 static int is_udp;
 
 static int is_udp_nat;
@@ -230,13 +232,6 @@ exchange_hello_last (void *cls,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
                                       message, &me->id));
-
-  /* Can't we get away with only offering one hello? */
-  /* GNUNET_TRANSPORT_offer_hello (p1.th, message); */
-
-  /*sleep(1);*/ /* Make sure we are not falling prey to the "favorable timing" bug... */
-
-  /* both HELLOs exchanged, get ready to test transmission! */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Finished exchanging HELLOs, now waiting for transmission!\n");
 }
@@ -287,12 +282,17 @@ run (void *cls,
       setup_peer (&p1, "test_transport_api_tcp_peer1.conf");
       setup_peer (&p2, "test_transport_api_tcp_peer2.conf");
     }
-  if (is_udp_nat)
+  else if (is_tcp_nat)
+    {
+      setup_peer (&p1, "test_transport_api_tcp_nat_peer1.conf");
+      setup_peer (&p2, "test_transport_api_tcp_nat_peer2.conf");
+    }
+  else if (is_udp_nat)
     {
       setup_peer (&p1, "test_transport_api_udp_nat_peer1.conf");
       setup_peer (&p2, "test_transport_api_udp_nat_peer2.conf");
     }
-  if (is_http)
+  else if (is_http)
     {
       setup_peer (&p1, "test_transport_api_http_peer1.conf");
       setup_peer (&p2, "test_transport_api_http_peer2.conf");
@@ -402,7 +402,18 @@ main (int argc, char *argv[])
 #ifdef MINGW
   return GNUNET_SYSERR;
 #endif
-  if (strstr(argv[0], "tcp") != NULL)
+  if (strstr(argv[0], "tcp_nat") != NULL)
+    {
+      is_tcp_nat = GNUNET_YES;
+      if (check_gnunet_nat_server() != GNUNET_OK)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                      "`%s' not properly installed, cannot run NAT test!\n",
+                      "gnunet-nat-server");
+          return 0;
+        }
+    }
+  else if (strstr(argv[0], "tcp") != NULL)
     {
       is_tcp = GNUNET_YES;
     }
@@ -425,7 +436,6 @@ main (int argc, char *argv[])
     {
       is_http = GNUNET_YES;
     }
-
 
   GNUNET_log_setup ("test-transport-api",
 #if VERBOSE
