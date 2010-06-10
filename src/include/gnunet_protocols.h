@@ -271,6 +271,12 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_DV_DISCONNECT 50
 
 /**
+ * TCP NAT probe message, send from NAT'd peer to
+ * other peer to establish bi-directional communication
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_NAT_PROBE 53
+
+/**
  * UDP NAT probe message, send from NAT'd peer to
  * other peer to negotiate punched address/port
  */
