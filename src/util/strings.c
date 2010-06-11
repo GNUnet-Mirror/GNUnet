@@ -204,7 +204,7 @@ GNUNET_STRINGS_to_utf8 (const char *input, size_t len, const char *charset)
 #else
              (char **) &input,
 #endif
-             &len, &itmp, &finSize) == (size_t) - 1)
+             &len, &itmp, &finSize) == SIZE_MAX)
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "iconv");
       iconv_close (cd);

@@ -1488,7 +1488,7 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg, char *tran
         }
       }
 
-      GNUNET_free_non_null(temp_transports);
+      GNUNET_free (temp_transports);
       fclose(temp_file_handle);
 
       if (GNUNET_OK !=

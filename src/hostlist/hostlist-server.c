@@ -597,11 +597,19 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 		  _("Could not access PEERINFO service.  Exiting.\n"));	    
       return GNUNET_SYSERR;
     }
-  if (-1 == GNUNET_CONFIGURATION_get_value_number (cfg,
-						   "HOSTLIST",
-						   "HTTPPORT", 
-						   &port))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (cfg,
+							  "HOSTLIST",
+							  "HTTPPORT", 
+							  &port))
     return GNUNET_SYSERR;
+  if ( (port == 0) ||
+       (port > UINT16_MAX) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Invalid port number %llu.  Exiting.\n"),
+		  port);	    
+      return GNUNET_SYSERR;
+    }
 
   if ( GNUNET_SYSERR  == GNUNET_CONFIGURATION_get_value_string (cfg,
                                                    "HOSTLIST",

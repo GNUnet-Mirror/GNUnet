@@ -214,6 +214,10 @@ long long atoll (const char *nptr);
 #include "langinfo.h"
 #endif
 
+#ifndef SIZE_MAX
+#define SIZE_MAX ((size_t)(-1))
+#endif
+
 #ifndef O_LARGEFILE
 #define O_LARGEFILE 0
 #endif

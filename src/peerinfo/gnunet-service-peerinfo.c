@@ -329,8 +329,8 @@ change_host_trust (const struct GNUNET_PeerIdentity *hostId, int value)
     {
       if (host->trust + value < host->trust)
         {
-          value = ((uint32_t) - 1) - host->trust;
-          host->trust = (uint32_t) - 1; /* maximized */
+          value = UINT32_MAX - host->trust;
+          host->trust = UINT32_MAX;
         }
       else
         host->trust += value;
