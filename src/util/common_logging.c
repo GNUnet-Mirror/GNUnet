@@ -392,7 +392,7 @@ mylog (enum GNUNET_ErrorType kind,
   last_bulk_repeat = 0;
   last_bulk_kind = kind;
   last_bulk_time = GNUNET_TIME_absolute_get ();
-  strncpy (last_bulk_comp, comp, sizeof (last_bulk_comp));
+  strncpy (last_bulk_comp, comp, COMP_TRACK_SIZE);
   output_message (kind, comp, date, buf);
   free (buf);
 }
