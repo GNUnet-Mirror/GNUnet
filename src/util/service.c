@@ -923,6 +923,8 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
                       _("Failed to resolve `%s': %s\n"),
                       hostname, gai_strerror (ret));
           GNUNET_free (hostname);
+	  if (desc != NULL)
+	    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (desc));
           return GNUNET_SYSERR;
         }
       next = res;
