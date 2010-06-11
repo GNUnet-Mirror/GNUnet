@@ -233,19 +233,20 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
 
   if (pipe_stdout != NULL)
     {
-      dup2(fd_stdout_write, 1);
-      close (fd_stdout_write);
-      close (fd_stdout_read);
+      GNUNET_break (0 == close (fd_stdout_read));
+      if (-1 == dup2(fd_stdout_write, 1))
+	GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "dup2");	
+      GNUNET_break (0 == close (fd_stdout_write));
     }
 
   if (pipe_stdin != NULL)
     {
 
-      dup2(fd_stdin_read, 0);
-      close (fd_stdin_read);
-      close (fd_stdin_write);
+      GNUNET_break (0 == close (fd_stdin_write));
+      if (-1 == dup2(fd_stdin_read, 0))
+	GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "dup2");	
+      GNUNET_break (0 == close (fd_stdin_read));
     }
-
   execvp (filename, argv);
   GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "execvp", filename);
   _exit (1);
