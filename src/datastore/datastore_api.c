@@ -1287,7 +1287,6 @@ GNUNET_DATASTORE_get_next (struct GNUNET_DATASTORE_Handle *h,
   struct GNUNET_DATASTORE_QueueEntry *qe = h->queue_head;
   struct ResultContext rc = qe->qc.rc;
 
-  GNUNET_assert (NULL != qe);
   GNUNET_assert (&process_result_message == qe->response_proc);
   if (GNUNET_YES == more)
     {     
