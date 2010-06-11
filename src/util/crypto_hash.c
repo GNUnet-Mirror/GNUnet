@@ -688,7 +688,7 @@ GNUNET_CRYPTO_hash_create_random (enum GNUNET_CRYPTO_Quality mode,
 {
   int i;
   for (i = (sizeof (GNUNET_HashCode) / sizeof (uint32_t)) - 1; i >= 0; i--)
-    result->bits[i] = GNUNET_CRYPTO_random_u32 (mode, (uint32_t) - 1);
+    result->bits[i] = GNUNET_CRYPTO_random_u32 (mode, UINT32_MAX);
 }
 
 void

@@ -65,7 +65,7 @@ check ()
   GNUNET_assert (last.value == GNUNET_TIME_UNIT_FOREVER_ABS.value);
 
   /* check overflow for r2a */
-  rel.value = ((uint64_t) - 1LL) - 1024;
+  rel.value = (UINT64_MAX) - 1024;
   GNUNET_log_skip (1, GNUNET_NO);
   last = GNUNET_TIME_relative_to_absolute (rel);
   GNUNET_log_skip (0, GNUNET_NO);
@@ -124,7 +124,7 @@ check ()
   future = GNUNET_TIME_absolute_add (forever, GNUNET_TIME_UNIT_ZERO);
   GNUNET_assert (future.value == forever.value);
 
-  rel.value = ((uint64_t) - 1LL) - 1024;
+  rel.value = (UINT64_MAX) - 1024;
   now.value = rel.value;
   future = GNUNET_TIME_absolute_add (now, rel);
   GNUNET_assert (future.value == forever.value);
