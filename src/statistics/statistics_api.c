@@ -817,7 +817,7 @@ GNUNET_STATISTICS_update (struct GNUNET_STATISTICS_Handle *handle,
     return;
   GNUNET_assert (GNUNET_NO == handle->do_destroy);
   add_setter_action (handle, name, make_persistent,
-                     (unsigned long long) delta, ACTION_UPDATE);
+                     (uint64_t) delta, ACTION_UPDATE);
 }
 
 
