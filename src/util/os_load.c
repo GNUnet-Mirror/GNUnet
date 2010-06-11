@@ -628,6 +628,8 @@ GNUNET_OS_load_disk_get (const struct GNUNET_CONFIGURATION_Handle *cfg)
       GNUNET_CONFIGURATION_get_value_number (cfg, "LOAD", "MAXIOLOAD",
                                              &maxIOLoad))
     return GNUNET_SYSERR;
+  if (maxIOLoad == 0)
+    return 100;
   return (100 * ret) / maxIOLoad;
 }
 
