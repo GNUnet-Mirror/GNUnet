@@ -1830,6 +1830,14 @@ libgnunet_plugin_transport_udp_init (void *cls)
                                   "udp",
                                   &in_addr, sizeof(in_addr), GNUNET_TIME_UNIT_FOREVER_REL);
     }
+  else if ((plugin->external_address != NULL) && (inet_pton(AF_INET, plugin->external_address, &in_addr.sin_addr) == 1))
+    {
+      in_addr.sin_port = htons(plugin->port);
+      in_addr.sin_family = AF_INET;
+      plugin->env->notify_address (plugin->env->cls,
+                                  "udp",
+                                  &in_addr, sizeof(in_addr), GNUNET_TIME_UNIT_FOREVER_REL);
+    }
 
   sockets_created = udp_transport_server_start (plugin);
 

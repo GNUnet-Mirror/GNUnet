@@ -2358,6 +2358,13 @@ libgnunet_plugin_transport_tcp_init (void *cls)
                                   "tcp",
                                   &t4, sizeof(t4), GNUNET_TIME_UNIT_FOREVER_REL);
     }
+  else if ((plugin->external_address != NULL) && (inet_pton(AF_INET, plugin->external_address, &t4.ipv4_addr) == 1))
+    {
+      t4.t_port = htons(plugin->adv_port);
+      plugin->env->notify_address (plugin->env->cls,
+                                   "tcp",
+                                   &t4, sizeof(t4), GNUNET_TIME_UNIT_FOREVER_REL);
+    }
 
   return api;
 }
