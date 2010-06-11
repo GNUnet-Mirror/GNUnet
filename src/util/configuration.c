@@ -804,26 +804,20 @@ GNUNET_CONFIGURATION_get_value_filename (const struct
                                          const char *section,
                                          const char *option, char **value)
 {
-  int ret;
   char *tmp;
 
-  tmp = NULL;
-  ret = GNUNET_CONFIGURATION_get_value_string (cfg, section, option, &tmp);
-  if (ret == GNUNET_SYSERR)
-    return ret;
-  if (tmp != NULL)
-    {
-      tmp = GNUNET_CONFIGURATION_expand_dollar (cfg, tmp);
-      *value = GNUNET_STRINGS_filename_expand (tmp);
-      GNUNET_free (tmp);
-      if (*value == NULL)
-        ret = GNUNET_SYSERR;
-    }
-  else
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg, section, option, &tmp))
     {
       *value = NULL;
+      return GNUNET_SYSERR;
     }
-  return ret;
+  tmp = GNUNET_CONFIGURATION_expand_dollar (cfg, tmp);
+  *value = GNUNET_STRINGS_filename_expand (tmp);
+  GNUNET_free (tmp);
+  if (*value == NULL)
+    return GNUNET_SYSERR;
+  return GNUNET_OK;
 }
 
 
