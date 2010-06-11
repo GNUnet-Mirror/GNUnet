@@ -1810,6 +1810,7 @@ GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc)
       goto cleanup;
     }
   GNUNET_free_non_null (uris);
+  uris = NULL;
   if (GNUNET_OK !=
       GNUNET_BIO_write_close (wh))
     {
