@@ -1271,12 +1271,14 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation * fi)
   if (GNUNET_OK !=
       GNUNET_BIO_write_close (wh))
     {
+      wh = NULL;
       GNUNET_break (0);
       goto cleanup;
     }
   return; /* done! */
  cleanup:
-  (void) GNUNET_BIO_write_close (wh);
+  if (wh != NULL)
+    (void) GNUNET_BIO_write_close (wh);
   GNUNET_free_non_null (chks);
   GNUNET_free_non_null (ksks);
   fn = get_serialization_file_name (fi->h, GNUNET_FS_SYNC_PATH_FILE_INFO, fi->serialization);
