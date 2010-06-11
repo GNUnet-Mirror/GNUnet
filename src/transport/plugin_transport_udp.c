@@ -1671,6 +1671,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   int only_nat_addresses;
   char *internal_address;
   char *external_address;
+  struct sockaddr_in in_addr;
 
   service = GNUNET_SERVICE_start ("transport-udp", env->sched, env->cfg);
   if (service == NULL)
@@ -1736,6 +1737,11 @@ libgnunet_plugin_transport_udp_init (void *cls)
       return NULL;
     }
 
+  if ((external_address != NULL) && (inet_pton(AF_INET, external_address, &in_addr.sin_addr) != 1))
+    {
+      GNUNET_log_from(GNUNET_ERROR_TYPE_WARNING, "udp", "Malformed EXTERNAL_ADDRESS %s given in configuration!\n", external_address);
+    }
+
   internal_address = NULL;
   if ((GNUNET_YES == behind_nat) && (GNUNET_OK !=
          GNUNET_CONFIGURATION_get_value_string (env->cfg,
@@ -1751,6 +1757,11 @@ libgnunet_plugin_transport_udp_init (void *cls)
       GNUNET_SERVICE_stop (service);
       GNUNET_free_non_null(external_address);
       return NULL;
+    }
+
+  if ((internal_address != NULL) && (inet_pton(AF_INET, internal_address, &in_addr.sin_addr) != 1))
+    {
+      GNUNET_log_from(GNUNET_ERROR_TYPE_WARNING, "udp", "Malformed INTERNAL_ADDRESS %s given in configuration!\n", internal_address);
     }
 
   if (GNUNET_OK !=
@@ -1799,7 +1810,11 @@ libgnunet_plugin_transport_udp_init (void *cls)
 
   plugin->service = service;
 
-  GNUNET_OS_network_interfaces_list (&process_interfaces, plugin);
+  if (plugin->behind_nat == GNUNET_NO)
+    {
+      GNUNET_OS_network_interfaces_list (&process_interfaces, plugin);
+    }
+
   plugin->hostname_dns = GNUNET_RESOLVER_hostname_resolve (env->sched,
                                                            env->cfg,
                                                            AF_UNSPEC,
@@ -1807,13 +1822,21 @@ libgnunet_plugin_transport_udp_init (void *cls)
                                                            &process_hostname_ips,
                                                            plugin);
 
+  if ((plugin->behind_nat == GNUNET_YES) && (inet_pton(AF_INET, plugin->external_address, &in_addr.sin_addr) == 1))
+    {
+      in_addr.sin_port = htons(0);
+      in_addr.sin_family = AF_INET;
+      plugin->env->notify_address (plugin->env->cls,
+                                  "udp",
+                                  &in_addr, sizeof(in_addr), GNUNET_TIME_UNIT_FOREVER_REL);
+    }
+
   sockets_created = udp_transport_server_start (plugin);
 
   GNUNET_assert (sockets_created == 1);
 
   return api;
 }
-
 
 void *
 libgnunet_plugin_transport_udp_done (void *cls)
