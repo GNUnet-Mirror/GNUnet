@@ -1640,7 +1640,7 @@ GNUNET_SERVICE_stop (struct GNUNET_SERVICE_Context *sctx)
   i = 0;
   while (sctx->addrs[i] != NULL)    
     GNUNET_free (sctx->addrs[i++]);    
-  GNUNET_free_non_null (sctx->addrs);
+  GNUNET_free (sctx->addrs);
   GNUNET_free_non_null (sctx->addrlens);
   GNUNET_free_non_null (sctx->v4_denied);
   GNUNET_free_non_null (sctx->v6_denied);
