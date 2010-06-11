@@ -726,7 +726,7 @@ create_scale_free (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_Connectio
         {
           probability = pg->peers[i].num_connections / (double)previous_total_connections;
           random = ((double) GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_WEAK,
-                                                      (uint64_t)-1LL)) / ( (double) (uint64_t) -1LL);
+                                                      UINT64_MAX)) / ( (double) UINT64_MAX);
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Considering connecting peer %d to peer %d\n",
@@ -820,7 +820,7 @@ create_small_world_ring(struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_Conn
       for (j = 0; j < connsPerPeer / 2; j++)
         {
           random = ((double) GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_WEAK,
-						      (uint64_t)-1LL)) / ( (double) (uint64_t) -1LL);
+						      UINT64_MAX) / ( (double) UINT64_MAX));
           if (random < percentage)
             {
               /* Connect to uniformly selected random peer */
@@ -1035,7 +1035,7 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_Connecti
                   probability = 1.0 / (distance * distance);
                   /* Choose a random value between 0 and 1 */
 		  random = ((double) GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_WEAK,
-							      (uint64_t)-1LL)) / ( (double) (uint64_t) -1LL);
+							      UINT64_MAX)) / ( (double) UINT64_MAX);
                   /* If random < probability, then connect the two nodes */
                   if (random < probability)
                     smallWorldConnections += proc (pg, j, k);
@@ -1086,7 +1086,7 @@ create_erdos_renyi (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_Connecti
            inner_count++)
         {
           temp_rand = ((double) GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_WEAK,
-							 (uint64_t)-1LL)) / ( (double) (uint64_t) -1LL);
+							 UINT64_MAX)) / ( (double) UINT64_MAX);
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("rand is %f probability is %f\n"), temp_rand,
@@ -2077,7 +2077,7 @@ random_connect_iterator (void *cls,
   uint32_t second_pos;
   GNUNET_HashCode first_hash;
   random_number = ((double) GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_WEAK,
-                   (uint64_t)-1LL)) / ( (double) (uint64_t) -1LL);
+						     UINT64_MAX)) / ( (double) UINT64_MAX);
   if (random_number < random_ctx->percentage)
   {
     GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(random_ctx->first->connect_peers_working_set, key, value, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));

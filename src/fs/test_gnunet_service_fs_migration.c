@@ -244,6 +244,7 @@ main (int argc, char *argv[])
 		    "WARNING",
 #endif
 		    NULL);
+  system ("netstat -ntpl");
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1,
                       argvx, "test-gnunet-service-fs-migration",
 		      "nohelp", options, &run, NULL);

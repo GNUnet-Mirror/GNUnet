@@ -1647,7 +1647,8 @@ GNUNET_FS_download_start_from_search (struct GNUNET_FS_Handle *h,
   struct GNUNET_FS_ProgressInfo pi;
   struct GNUNET_FS_DownloadContext *dc;
 
-  if (sr->download != NULL)
+  if ( (sr != NULL) &&
+       (sr->download != NULL) )
     {
       GNUNET_break (0);
       return NULL;

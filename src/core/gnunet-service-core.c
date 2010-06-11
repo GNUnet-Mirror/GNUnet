@@ -1029,7 +1029,7 @@ handle_client_request_info (void *cls,
       if (old_preference > n->current_preference) 
 	{
 	  /* overflow; cap at maximum value */
-	  n->current_preference = (unsigned long long) -1;
+	  n->current_preference = ULLONG_MAX;
 	}
       update_preference_sum (n->current_preference - old_preference);
 #if DEBUG_CORE_QUOTA
@@ -1545,7 +1545,7 @@ select_messages (struct Neighbour *n,
   while (GNUNET_YES == discard_low_prio)
     {
       min = NULL;
-      min_prio = -1;
+      min_prio = UINT_MAX;
       discard_low_prio = GNUNET_NO;
       /* calculate number of bytes available for transmission at time "t" */
       avail = GNUNET_BANDWIDTH_tracker_get_available (&n->available_send_window);
@@ -2014,7 +2014,7 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
 	      (unsigned int) ntohl (n->bw_in.value__),
 	      GNUNET_i2s (&n->peer));
 #endif
-  ph->iv_seed = htonl (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, -1));
+  ph->iv_seed = htonl (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX));
   ph->sequence_number = htonl (++n->last_sequence_number_sent);
   ph->inbound_bw_limit = n->bw_in;
   ph->timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
@@ -2122,10 +2122,10 @@ create_neighbour (const struct GNUNET_PeerIdentity *pid)
   n->set_key_retry_frequency = INITIAL_SET_KEY_RETRY_FREQUENCY;
   n->bw_in = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT;
   n->bw_out = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT;
-  n->bw_out_internal_limit = GNUNET_BANDWIDTH_value_init ((uint32_t) - 1);
+  n->bw_out_internal_limit = GNUNET_BANDWIDTH_value_init (UINT32_MAX);
   n->bw_out_external_limit = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT;
   n->ping_challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                                (uint32_t) - 1);
+                                                UINT32_MAX);
   neighbour_quota_update (n, NULL);
   consider_free_neighbour (n);
   return n;
@@ -2186,7 +2186,7 @@ handle_client_send (void *cls,
 #endif
   /* bound queue size */
   discard_expired_messages (n);
-  min_prio = (unsigned int) -1;
+  min_prio = UINT32_MAX;
   min_prio_entry = NULL;
   min_prio_prev = NULL;
   queue_size = 0;
@@ -3641,8 +3641,8 @@ neighbour_quota_update (void *cls,
   if (bandwidth_target_out_bps > need_per_second)
     distributable = bandwidth_target_out_bps - need_per_second;
   share = distributable * pref_rel;
-  if (share + need_per_peer > ( (uint32_t)-1))
-    q_in = GNUNET_BANDWIDTH_value_init ((uint32_t) -1);
+  if (share + need_per_peer > UINT32_MAX)
+    q_in = GNUNET_BANDWIDTH_value_init (UINT32_MAX);
   else
     q_in = GNUNET_BANDWIDTH_value_init (need_per_peer + (uint32_t) share);
   /* check if we want to disconnect for good due to inactivity */

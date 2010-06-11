@@ -2150,7 +2150,7 @@ forward_request_task (void *cls,
   pr->irc = GNUNET_CORE_peer_change_preference (sched, cfg,
 						&psc.target,
 						GNUNET_CONSTANTS_SERVICE_TIMEOUT, 
-						GNUNET_BANDWIDTH_value_init ((uint32_t) -1 /* no limit */), 
+						GNUNET_BANDWIDTH_value_init (UINT32_MAX),
 						DBLOCK_SIZE * 2, 
 						(uint64_t) cp->inc_preference,
 						&target_reservation_cb,
@@ -2348,7 +2348,8 @@ process_reply (void *cls,
       if (pr->cp != NULL)
 	{
 	  GNUNET_PEER_change_rc (prq->sender->last_p2p_replies
-				 [prq->sender->last_p2p_replies_woff % P2P_SUCCESS_LIST_SIZE], -1);
+				 [prq->sender->last_p2p_replies_woff % P2P_SUCCESS_LIST_SIZE], 
+				 -1);
 	  GNUNET_PEER_change_rc (pr->cp->pid, 1);
 	  prq->sender->last_p2p_replies
 	    [(prq->sender->last_p2p_replies_woff++) % P2P_SUCCESS_LIST_SIZE]
@@ -2515,7 +2516,7 @@ process_reply (void *cls,
       reply->cont = &transmit_reply_continuation;
       reply->cont_cls = pr;
       reply->msize = msize;
-      reply->priority = (uint32_t) -1; /* send replies first! */
+      reply->priority = UINT32_MAX; /* send replies first! */
       pm = (struct PutMessage*) &reply[1];
       pm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_PUT);
       pm->header.size = htons (msize);
