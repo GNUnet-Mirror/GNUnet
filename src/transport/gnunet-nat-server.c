@@ -234,7 +234,7 @@ process_icmp_response ()
   off += sizeof (ip_pkt);
   memcpy (&icmp_pkt, &buf[off], sizeof (icmp_pkt));
   off += sizeof (icmp_pkt);
-  if ( (ip_pkt.proto != IPPROTO_ICMP) ||
+  if ( ((ip_pkt.proto != IPPROTO_ICMP) && (ip_pkt.proto != IPPROTO_UDP)) ||
        (icmp_pkt.type != ICMP_TIME_EXCEEDED) || 
        (icmp_pkt.code != 0) )
     {
