@@ -2264,6 +2264,15 @@ deserialize_search_result (void *cls,
 				     &sr->key,
 				     sr,
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  if (GNUNET_OK !=
+      GNUNET_BIO_read_close (rh, &emsg))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Failure while resuming search operation `%s': %s\n"),
+		  filename,
+		  emsg);
+      GNUNET_free (emsg);
+    }
   return GNUNET_OK;
  cleanup:
   GNUNET_free_non_null (download);
@@ -2275,6 +2284,15 @@ deserialize_search_result (void *cls,
     GNUNET_CONTAINER_meta_data_destroy (sr->meta);
   GNUNET_free (sr->serialization);
   GNUNET_free (sr);  
+  if (GNUNET_OK !=
+      GNUNET_BIO_read_close (rh, &emsg))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Failure while resuming search operation `%s': %s\n"),
+		  filename,
+		  emsg);
+      GNUNET_free (emsg);
+    }
   return GNUNET_OK;
 }
 
