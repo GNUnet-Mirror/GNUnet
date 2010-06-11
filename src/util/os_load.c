@@ -603,6 +603,8 @@ GNUNET_OS_load_cpu_get (const struct GNUNET_CONFIGURATION_Handle *cfg)
       GNUNET_CONFIGURATION_get_value_number (cfg, "LOAD", "MAXCPULOAD",
                                              &maxCPULoad))
     return GNUNET_SYSERR;
+  if (maxCPULoad == 0)
+    return 100;
   return (100 * ret) / maxCPULoad;
 }
 
