@@ -867,7 +867,11 @@ consider_for_advertising (const struct GNUNET_HELLO_Message *hello)
   struct Peer *peer;
   uint16_t size;
 
-  GNUNET_break (GNUNET_OK == GNUNET_HELLO_get_id (hello, &pid));
+  if (GNUNET_OK != GNUNET_HELLO_get_id (hello, &pid))
+    {
+	GNUNET_break (0);
+	return;
+    }
   if (0 == memcmp (&pid,
 		   &my_identity,
 		   sizeof (struct GNUNET_PeerIdentity)))
