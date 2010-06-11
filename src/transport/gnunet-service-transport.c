@@ -1042,6 +1042,7 @@ read_blacklist_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
     }
   /* FIXME: use mmap */
   data = GNUNET_malloc_large (frstat.st_size);
+  GNUNET_assert(data != NULL);
   if (frstat.st_size !=
       GNUNET_DISK_fn_read (fn, data, frstat.st_size))
     {

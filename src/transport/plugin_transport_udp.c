@@ -522,7 +522,8 @@ udp_real_send (void *cls,
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
                    ("udp_plugin_send called without address, returning!\n"));
 #endif
-      cont (cont_cls, target, GNUNET_SYSERR);
+      if (cont != NULL)
+        cont (cont_cls, target, GNUNET_SYSERR);
       return 0; /* Can never send if we don't have an address!! */
     }
 
