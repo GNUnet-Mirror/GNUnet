@@ -2542,12 +2542,12 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
     {
       off = 2;
       /* skip leading spaces */
-      while ((0 != *hostnames) && (isspace (*hostnames)))
+      while ((0 != *hostnames) && (isspace ( (unsigned char) *hostnames)))
         hostnames++;
       rpos = hostnames;
       while ('\0' != *rpos)
         {
-          if (isspace (*rpos))
+          if (isspace ( (unsigned char) *rpos))
             off++;
           rpos++;
         }
@@ -2557,7 +2557,7 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
       pos = start;
       while ('\0' != *pos)
         {
-          if (isspace (*pos))
+          if (isspace ( (unsigned char) *pos))
             {
               *pos = '\0';
               if (strlen (start) > 0)

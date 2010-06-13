@@ -927,7 +927,7 @@ canonicalize_keyword (const char *in)
   rpos = in;
   while ('\0' != *rpos)
     {
-      switch (tolower(*rpos))
+      switch (tolower( (unsigned char) *rpos))
 	{
 	case 'a':
 	case 'e':
@@ -962,7 +962,7 @@ canonicalize_keyword (const char *in)
 	case 'y':
 	case 'z':
 	  /* convert characters listed above to lower case */
-	  *wpos = tolower(*rpos);
+	  *wpos = tolower( (unsigned char)*rpos);
 	  wpos++;
 	case '!':
 	case '.':
@@ -1149,7 +1149,7 @@ GNUNET_FS_uri_ksk_create (const char *keywords,
   pos = searchString;
   while ('\0' != *pos)
     {
-      if ((saw_quote == 0) && (isspace (*pos)))
+      if ((saw_quote == 0) && (isspace ((unsigned char) *pos)))
         {
           inWord = 0;
         }
@@ -1180,7 +1180,7 @@ GNUNET_FS_uri_ksk_create (const char *keywords,
   pos = searchString;
   while ('\0' != *pos)
     {
-      if ((saw_quote == 0) && (isspace (*pos)))
+      if ((saw_quote == 0) && (isspace ( (unsigned char) *pos)))
         {
           inWord = 0;
           *pos = '\0';
@@ -1573,7 +1573,7 @@ GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_CONTAINER_MetaData 
 static int
 needs_percent (char c)
 {
-  return (!((isalnum (c)) ||
+  return (!((isalnum ( (unsigned char) c)) ||
             (c == '-') || (c == '_') || (c == '.') || (c == '~')));
 }
 

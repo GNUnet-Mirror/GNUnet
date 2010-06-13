@@ -204,7 +204,7 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
       if (emptyline == 1)
         continue;
       /* remove tailing whitespace */
-      for (i = strlen (line) - 1; (i >= 0) && (isspace (line[i])); i--)
+      for (i = strlen (line) - 1; (i >= 0) && (isspace ( (unsigned char) line[i])); i--)
         line[i] = '\0';
       if (1 == sscanf (line, "@INLINE@ %191[^\n]", value))
         {
@@ -223,7 +223,7 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
           /* tag = value */
           /* Strip LF */
           i = strlen (value) - 1;
-          while ((i >= 0) && (isspace (value[i])))
+          while ((i >= 0) && (isspace ( (unsigned char) value[i])))
             value[i--] = '\0';
           /* remove quotes */
           i = 0;

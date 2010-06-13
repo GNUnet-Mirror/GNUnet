@@ -102,9 +102,9 @@ cmd_sorter (__const void *a1, __const void *a2)
 {
   __const struct GNUNET_GETOPT_CommandLineOption *c1 = a1;
   __const struct GNUNET_GETOPT_CommandLineOption *c2 = a2;
-  if (toupper (c1->shortName) > toupper (c2->shortName))
+  if (toupper ( (unsigned char) c1->shortName) > toupper ( (unsigned char) c2->shortName))
     return 1;
-  if (toupper (c1->shortName) < toupper (c2->shortName))
+  if (toupper ( (unsigned char) c1->shortName) < toupper ( (unsigned char) c2->shortName))
     return -1;
   if (c1->shortName > c2->shortName)
     return 1;

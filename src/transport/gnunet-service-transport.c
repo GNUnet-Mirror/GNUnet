@@ -1054,13 +1054,13 @@ read_blacklist_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
     }
   entries_found = 0;
   pos = 0;
-  while ((pos < frstat.st_size) && isspace (data[pos]))
+  while ((pos < frstat.st_size) && isspace ( (unsigned char) data[pos]))
     pos++;
   while ((frstat.st_size >= sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)) &&
          (pos <= frstat.st_size - sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)))
     {
       colon_pos = pos;
-      while ((colon_pos < frstat.st_size) && (data[colon_pos] != ':') && !isspace (data[colon_pos]))
+      while ((colon_pos < frstat.st_size) && (data[colon_pos] != ':') && !isspace ( (unsigned char) data[colon_pos]))
         colon_pos++;
 
       if (colon_pos >= frstat.st_size)
@@ -1073,13 +1073,13 @@ read_blacklist_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
           return;
         }
 
-      if (isspace(data[colon_pos]))
+      if (isspace( (unsigned char) data[colon_pos]))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                     _("Syntax error in blacklist file at offset %llu, skipping bytes.\n"),
                     (unsigned long long) colon_pos);
         pos = colon_pos;
-        while ((pos < frstat.st_size) && isspace (data[pos]))
+        while ((pos < frstat.st_size) && isspace ( (unsigned char) data[pos]))
           pos++;
         continue;
       }
@@ -1104,13 +1104,13 @@ read_blacklist_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
                   transport_name);
 
       memcpy (&enc, &data[pos], sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded));
-      if (!isspace (enc.encoding[sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1]))
+      if (!isspace ( (unsigned char) enc.encoding[sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1]))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                       _("Syntax error in blacklist file at offset %llu, skipping bytes.\n"),
                       (unsigned long long) pos);
           pos++;
-          while ((pos < frstat.st_size) && (!isspace (data[pos])))
+          while ((pos < frstat.st_size) && (!isspace ( (unsigned char) data[pos])))
             pos++;
           GNUNET_free_non_null(transport_name);
           continue;
@@ -1145,7 +1145,7 @@ read_blacklist_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
         }
       pos = pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded);
       GNUNET_free_non_null(transport_name);
-      while ((pos < frstat.st_size) && isspace (data[pos]))
+      while ((pos < frstat.st_size) && isspace ( (unsigned char) data[pos]))
         pos++;
     }
   GNUNET_free (data);

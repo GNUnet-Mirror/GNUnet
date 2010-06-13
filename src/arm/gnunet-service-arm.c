@@ -382,7 +382,7 @@ start_process (struct ServiceList *sl)
 	  while (NULL != (optpos = strstr (options, "$")))
 	    {
 	      optend = optpos + 1;
-	      while (isupper (*optend)) optend++;	      
+	      while (isupper ( (unsigned char) *optend)) optend++;	      
 	      b = *optend;
 	      if ('\0' == b)
 		next = "";
