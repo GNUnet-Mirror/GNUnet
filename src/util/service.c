@@ -925,6 +925,7 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
                       _("Failed to resolve `%s': %s\n"),
                       hostname, gai_strerror (ret));
           GNUNET_free (hostname);
+	  GNUNET_free (unixpath);
 	  if (desc != NULL)
 	    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (desc));
           return GNUNET_SYSERR;
@@ -945,6 +946,7 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
                       disablev6 ? "IPv4 " : "", hostname);
           freeaddrinfo (res);
           GNUNET_free (hostname);
+	  GNUNET_free (unixpath);
           return GNUNET_SYSERR;
         }
       resi = i;
