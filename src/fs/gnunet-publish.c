@@ -493,6 +493,8 @@ run (void *cls,
 		   _("Failed to parse URI: %s\n"),
 		   emsg);
 	  GNUNET_free (emsg);
+	  if (namespace != NULL)
+	    GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
 	  GNUNET_FS_stop (ctx);
 	  ret = 1;
 	  return;	  
@@ -507,6 +509,8 @@ run (void *cls,
 			     GNUNET_FS_PUBLISH_OPTION_NONE,
 			     &uri_ksk_continuation,
 			     NULL);
+      if (namespace != NULL)
+	GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
       return;
     }
   l = NULL;

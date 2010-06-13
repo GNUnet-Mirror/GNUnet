@@ -204,6 +204,7 @@ print_peer_info (void *cls,
       return;
     }
   GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &print_address, pc);
+  GNUNET_free (pc);
 }
 
 
