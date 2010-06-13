@@ -2202,7 +2202,7 @@ choose_random_connections(struct GNUNET_TESTING_PeerGroup *pg, double percentage
  * @param pg the peergroup we are dealing with
  * @param num how many connections at least should each peer have (if possible)?
  */
-void
+static void
 choose_minimum(struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
 {
   struct MinimumContext minimum_ctx;
@@ -2216,13 +2216,16 @@ choose_minimum(struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
     {
       minimum_ctx.first_uid = pg_iter;
-      minimum_ctx.pg_array = GNUNET_CRYPTO_random_permute(GNUNET_CRYPTO_QUALITY_WEAK, GNUNET_CONTAINER_multihashmap_size(pg->peers[pg_iter].connect_peers));
+      minimum_ctx.pg_array = GNUNET_CRYPTO_random_permute(GNUNET_CRYPTO_QUALITY_WEAK, 
+							  GNUNET_CONTAINER_multihashmap_size(pg->peers[pg_iter].connect_peers));
       minimum_ctx.first = &pg->peers[pg_iter];
       minimum_ctx.pg = pg;
       minimum_ctx.num_to_add = num;
       minimum_ctx.current = 0;
       pg->peers[pg_iter].connect_peers_working_set = GNUNET_CONTAINER_multihashmap_create(pg->total);
-      GNUNET_CONTAINER_multihashmap_iterate(pg->peers[pg_iter].connect_peers, &minimum_connect_iterator, &minimum_ctx);
+      GNUNET_CONTAINER_multihashmap_iterate(pg->peers[pg_iter].connect_peers,
+					    &minimum_connect_iterator, 
+					    &minimum_ctx);
     }
 
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
@@ -2231,13 +2234,16 @@ choose_minimum(struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
       GNUNET_CONTAINER_multihashmap_destroy(pg->peers[pg_iter].connect_peers);
       /* And replace with the working set */
       pg->peers[pg_iter].connect_peers = pg->peers[pg_iter].connect_peers_working_set;
-      fprintf(stderr, "Finished! Hashmap size %u\n", GNUNET_CONTAINER_multihashmap_size(pg->peers[pg_iter].connect_peers));
+      fprintf(stderr, 
+	      "Finished! Hashmap size %u\n", 
+	      GNUNET_CONTAINER_multihashmap_size(pg->peers[pg_iter].connect_peers));
     }
 
 }
 
 
-static unsigned int count_workingset_connections(struct GNUNET_TESTING_PeerGroup *pg)
+static unsigned int
+count_workingset_connections(struct GNUNET_TESTING_PeerGroup *pg)
 {
   unsigned int count;
   unsigned int pg_iter;
