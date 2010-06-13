@@ -878,6 +878,7 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
             {
               GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
 	      GNUNET_free_non_null (hostname);
+	      GNUNET_free (unixpath);
               return GNUNET_SYSERR;
             }
           GNUNET_log (GNUNET_ERROR_TYPE_INFO,
