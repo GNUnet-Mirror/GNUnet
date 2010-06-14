@@ -395,14 +395,12 @@ static struct Session * create_session (struct sockaddr_in *addr_in, struct sock
     {
       ses->ip = GNUNET_malloc (INET_ADDRSTRLEN);
       addrin = addr_in;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Port %u \n", addrin->sin_port);
       inet_ntop(addrin->sin_family,&(addrin->sin_addr),ses->ip,INET_ADDRSTRLEN);
     }
     if ( AF_INET6 == addr_in->sin_family)
     {
       ses->ip = GNUNET_malloc (INET6_ADDRSTRLEN);
       addrin6 = (struct sockaddr_in6 *) addr_in;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Port %u \n", addrin6->sin6_port);
       inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr) ,ses->ip,INET6_ADDRSTRLEN);
     }
   }
@@ -1194,13 +1192,12 @@ http_plugin_send (void *cls,
   unsigned int port;
   if (addrlen == (sizeof (struct IPv4HttpAddress)))
     {
-      inet_ntop(AF_INET, (struct in_addr *) addr,address,INET_ADDRSTRLEN);
-      port = ((struct IPv4HttpAddress *) addr)->u_port;
-      //port = ntohs(((struct in_addr *) addr)->);
+      inet_ntop(AF_INET,&((struct IPv4HttpAddress *) addr)->ipv4_addr,address,INET_ADDRSTRLEN);
+      port = ntohs(((struct IPv4HttpAddress *) addr)->u_port);
     }
   else if (addrlen == (sizeof (struct IPv6HttpAddress)))
     {
-      inet_ntop(AF_INET6, (struct in6_addr *) addr,address,INET6_ADDRSTRLEN);
+      inet_ntop(AF_INET6, &((struct IPv6HttpAddress *) addr)->ipv6_addr,address,INET6_ADDRSTRLEN);
       port = ntohs(((struct IPv6HttpAddress *) addr)->u6_port);
     }
   else
@@ -1208,7 +1205,6 @@ http_plugin_send (void *cls,
       GNUNET_break (0);
       return -1;
     }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"ADDR `%s':%u \n",address,port);
 
   ses->transmit_cont = cont;
   ses->transmit_cont_cls = cont_cls;
@@ -1346,6 +1342,7 @@ http_plugin_address_suggested (void *cls,
 {
   struct IPv4HttpAddress *v4;
   struct IPv6HttpAddress *v6;
+  unsigned int port;
 
   if ((addrlen != sizeof (struct IPv4HttpAddress)) &&
       (addrlen != sizeof (struct IPv6HttpAddress)))
@@ -1357,8 +1354,8 @@ http_plugin_address_suggested (void *cls,
     {
       v4 = (struct IPv4HttpAddress *) addr;
 
-      v4->u_port = ntohs (v4->u_port);
-      if (v4->u_port != plugin->port_inbound)
+      port = ntohs (v4->u_port);
+      if (port != plugin->port_inbound)
       {
         GNUNET_break_op (0);
         return GNUNET_SYSERR;
@@ -1372,8 +1369,8 @@ http_plugin_address_suggested (void *cls,
           GNUNET_break_op (0);
           return GNUNET_SYSERR;
         }
-      v6->u6_port = ntohs (v6->u6_port);
-      if (v6->u6_port != plugin->port_inbound)
+      port = ntohs (v6->u6_port);
+      if (port != plugin->port_inbound)
       {
         GNUNET_break_op (0);
         return GNUNET_SYSERR;

@@ -902,6 +902,9 @@ static void run_connection_tests( void )
   struct Plugin_Address * tmp_addr;
   struct GNUNET_MessageHeader msg;
   char * tmp = GNUNET_malloc(sizeof(struct GNUNET_MessageHeader));
+  char address[INET6_ADDRSTRLEN];
+  unsigned int port;
+
   msg.size=htons(sizeof(struct GNUNET_MessageHeader));
   msg.type=htons(13);
   memcpy(tmp,&msg,sizeof(struct GNUNET_MessageHeader));
@@ -912,7 +915,25 @@ static void run_connection_tests( void )
 
   while (tmp_addr != NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sending message to addres no. %u\n", count);
+
+
+    if (tmp_addr->addrlen == (sizeof (struct IPv4HttpAddress)))
+      {
+        inet_ntop(AF_INET, (struct in_addr *) tmp_addr->addr,address,INET_ADDRSTRLEN);
+        port = ntohs(((struct IPv4HttpAddress *) tmp_addr->addr)->u_port);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sending message to addres no. %u: `%s':%u\n", count,address, port);
+      }
+    else if (tmp_addr->addrlen == (sizeof (struct IPv6HttpAddress)))
+      {
+        inet_ntop(AF_INET6, (struct in6_addr *) tmp_addr->addr,address,INET6_ADDRSTRLEN);
+        port = ntohs(((struct IPv6HttpAddress *) tmp_addr->addr)->u6_port);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sending message to addres no. %u: `%s':%u\n", count,address,port);
+      }
+    else
+      {
+        GNUNET_break (0);
+        return;
+      }
     api->send(api->cls, &my_identity, tmp, sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL,tmp_addr->addr, tmp_addr->addrlen, GNUNET_YES, &task_send_cont, NULL);
     tmp_addr = tmp_addr->next;
     count ++;
