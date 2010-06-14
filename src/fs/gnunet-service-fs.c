@@ -44,7 +44,7 @@
 #include "gnunet-service-fs_indexing.h"
 #include "fs.h"
 
-#define DEBUG_FS GNUNET_YES
+#define DEBUG_FS GNUNET_NO
 
 /**
  * Maximum number of outgoing messages we queue per peer.

@@ -27,7 +27,7 @@
 #include "fs_test_lib.h"
 #include "gnunet_testing_lib.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 /**
  * File-size we use for testing.
@@ -243,7 +243,6 @@ main (int argc, char *argv[])
 		    "WARNING",
 #endif
 		    NULL);
-  system ("netstat -ntpl");
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1,
                       argvx, "test-gnunet-service-fs-migration",
 		      "nohelp", options, &run, NULL);

@@ -33,7 +33,7 @@
 #include "fs.h"
 #include "fs_tree.h"
 
-#define DEBUG_DOWNLOAD GNUNET_YES
+#define DEBUG_DOWNLOAD GNUNET_NO
 
 /**
  * Determine if the given download (options and meta data) should cause
