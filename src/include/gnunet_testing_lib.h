@@ -424,7 +424,8 @@ GNUNET_TESTING_daemon_start_stopped (struct GNUNET_TESTING_Daemon *daemon,
  * @param position the number of the peer to return
  */
 struct GNUNET_TESTING_Daemon *
-GNUNET_TESTING_daemon_get (struct GNUNET_TESTING_PeerGroup *pg, unsigned int position);
+GNUNET_TESTING_daemon_get (struct GNUNET_TESTING_PeerGroup *pg, 
+			   unsigned int position);
 
 
 /**
