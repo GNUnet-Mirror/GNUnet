@@ -324,6 +324,11 @@ static struct HTTP_Transfer test_valid_ident;
  */
 static int fail;
 
+/**
+ * Number of local addresses
+ */
+static unsigned int count_str_addr;
+
 CURL *curl_handle;
 
 /**
@@ -348,7 +353,7 @@ shutdown_clean ()
   /* Evaluate results  */
   if ((fail_notify_address == GNUNET_NO) && (fail_pretty_printer == GNUNET_NO) && (fail_addr_to_str == GNUNET_NO) &&
       (test_no_ident.test_failed == GNUNET_NO) && (test_too_short_ident.test_failed == GNUNET_NO) && (test_too_long_ident.test_failed == GNUNET_NO) &&
-      (test_valid_ident.test_failed == GNUNET_NO) && (fail_transmit_to_local_addrs == GNUNET_NO))
+      (test_valid_ident.test_failed == GNUNET_NO) && (fail_transmit_to_local_addrs == count_str_addr))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Tests successful\n");
     fail = 0;
@@ -420,9 +425,14 @@ static void task_send_cont (void *cls,
     tmp_addr = tmp_addr->next;
   }
 
-  if (cls == tmp_addr)
+  if (cls != NULL)
   {
-    fail_transmit_to_local_addrs = GNUNET_NO;
+    fail_transmit_to_local_addrs++;
+  }
+  if (fail_transmit_to_local_addrs == count_str_addr)
+
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message sent to %u addresses!\n",fail_transmit_to_local_addrs);
     shutdown_clean();
   }
 
@@ -980,7 +990,7 @@ run (void *cls,
   struct Plugin_Address * cur;
   const char * addr_str;
 
-  unsigned int count_str_addr;
+
   unsigned int suggest_res;
 
   fail_pretty_printer = GNUNET_YES;

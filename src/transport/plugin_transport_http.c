@@ -538,7 +538,7 @@ accessHandlerCallback (void *cls,
         if ( GNUNET_YES  == res)
         {
           /* existing session for this address found */
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session `%s' found\n",address);
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session for peer `%s' found\n",GNUNET_i2s(&cs->sender));
           break;
         }
         cs = cs->next;
@@ -1017,7 +1017,7 @@ static void send_execute (void *cls,
                   else
                   {
                     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                                "Send to %s completed.\n", cs->ip);
+                                "Send to peer `%s' completed.\n", GNUNET_i2s(&cs->sender));
                     if (GNUNET_OK != remove_http_message(cs, cs->pending_outbound_msg))
                       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message could not be removed from session `%s'", GNUNET_i2s(&cs->sender));
 
@@ -1164,7 +1164,6 @@ http_plugin_send (void *cls,
   {
     /* create new session object */
 
-    /*FIXME: what is const void * really? Assuming struct sockaddr_in * ! */
     ses = create_session(NULL, (struct sockaddr_in *) addr, target);
     ses->is_active = GNUNET_YES;
 
