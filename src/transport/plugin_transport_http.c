@@ -968,6 +968,7 @@ static ssize_t send_select_init (struct Session* ses )
 static void send_execute (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+
   int running;
   struct CURLMsg *msg;
   CURLMcode mret;
@@ -1018,8 +1019,6 @@ static void send_execute (void *cls,
                   {
                     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                                 "Send to peer `%s' completed.\n", GNUNET_i2s(&cs->sender));
-                    if (GNUNET_OK != remove_http_message(cs, cs->pending_outbound_msg))
-                      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message could not be removed from session `%s'", GNUNET_i2s(&cs->sender));
 
                     curl_easy_cleanup(cs->curl_handle);
                     cs->curl_handle=NULL;
@@ -1028,6 +1027,8 @@ static void send_execute (void *cls,
                     if (( NULL != cs->pending_outbound_msg) && (NULL != cs->pending_outbound_msg->transmit_cont))
                       cs->pending_outbound_msg->transmit_cont (cs->pending_outbound_msg->transmit_cont_cls,&cs->sender,GNUNET_OK);
 
+                    if (GNUNET_OK != remove_http_message(cs, cs->pending_outbound_msg))
+                      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message could not be removed from session `%s'", GNUNET_i2s(&cs->sender));
 
                     /* send pending messages */
                     if (cs->pending_outbound_msg != NULL)
