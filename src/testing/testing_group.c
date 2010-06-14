@@ -1754,9 +1754,15 @@ static void internal_connect_notify (void *cls,
   struct GNUNET_TESTING_PeerGroup *pg = cls;
   outstanding_connects--;
 
-  pg->notify_connection(pg->notify_connection_cls, first, second, first_cfg, second_cfg, first_daemon, second_daemon, emsg);
+  pg->notify_connection(pg->notify_connection_cls, 
+			first,
+			second, 
+			first_cfg, second_cfg, 
+			first_daemon, second_daemon, 
+			emsg);
 
 }
+
 
 static void schedule_connect(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -1790,6 +1796,7 @@ static void schedule_connect(void *cls, const struct GNUNET_SCHEDULER_TaskContex
     }
 }
 
+
 /**
  * Iterator for actually scheduling connections to be created
  * between two peers.
@@ -1817,6 +1824,7 @@ connect_iterator (void *cls,
 
   return GNUNET_YES;
 }
+
 
 /**
  * Iterator for copying all entries in the allowed hashmap to the
