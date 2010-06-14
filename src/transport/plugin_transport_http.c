@@ -994,6 +994,7 @@ static void send_execute (void *cls,
               GNUNET_assert ( msg->easy_handle != NULL );
               cs = find_session_by_curlhandle (msg->easy_handle);
               GNUNET_assert ( cs != NULL );
+              GNUNET_assert ( cs->pending_outbound_msg != NULL );
               switch (msg->msg)
                 {
 
@@ -1010,7 +1011,7 @@ static void send_execute (void *cls,
                                __LINE__,
                                curl_easy_strerror (msg->data.result));
                     /* sending msg failed*/
-                    if ( NULL != cs->pending_outbound_msg->transmit_cont)
+                    if (( NULL != cs->pending_outbound_msg) && ( NULL != cs->pending_outbound_msg->transmit_cont))
                       cs->pending_outbound_msg->transmit_cont (cs->pending_outbound_msg->transmit_cont_cls,&cs->sender,GNUNET_SYSERR);
                     }
                   else
@@ -1024,7 +1025,7 @@ static void send_execute (void *cls,
                     cs->curl_handle=NULL;
 
                     /* Calling transmit continuation  */
-                    if ( NULL != cs->pending_outbound_msg->transmit_cont)
+                    if (( NULL != cs->pending_outbound_msg) && (NULL != cs->pending_outbound_msg->transmit_cont))
                       cs->pending_outbound_msg->transmit_cont (cs->pending_outbound_msg->transmit_cont_cls,&cs->sender,GNUNET_OK);
 
 
@@ -1153,6 +1154,8 @@ http_plugin_send (void *cls,
   struct HTTP_Message * tmp;
   int bytes_sent = 0;
 
+
+  address = NULL;
   /* find session for peer */
   ses = find_session_by_pi (target);
   if (NULL != ses )
@@ -1210,6 +1213,8 @@ http_plugin_send (void *cls,
         return -1;
     }
   }
+
+  GNUNET_assert (address != NULL);
 
   timeout = to;
   /* setting up message */
