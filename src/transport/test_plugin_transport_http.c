@@ -295,9 +295,9 @@ static int fail_pretty_printer_count;
 static int fail_addr_to_str;
 
 /**
- * Did the test pass or fail?
+ * No. of msgs transmitted successfully to local addresses
  */
-static int fail_transmit_to_local_addrs;
+static int fail_msgs_transmited_to_local_addrs;
 
 /**
  * Test: connect to peer without peer identification
@@ -353,7 +353,7 @@ shutdown_clean ()
   /* Evaluate results  */
   if ((fail_notify_address == GNUNET_NO) && (fail_pretty_printer == GNUNET_NO) && (fail_addr_to_str == GNUNET_NO) &&
       (test_no_ident.test_failed == GNUNET_NO) && (test_too_short_ident.test_failed == GNUNET_NO) && (test_too_long_ident.test_failed == GNUNET_NO) &&
-      (test_valid_ident.test_failed == GNUNET_NO) && (fail_transmit_to_local_addrs == count_str_addr))
+      (test_valid_ident.test_failed == GNUNET_NO) && (fail_msgs_transmited_to_local_addrs == count_str_addr))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Tests successful\n");
     fail = 0;
@@ -420,19 +420,18 @@ static void task_send_cont (void *cls,
 {
   struct Plugin_Address * tmp_addr;
   tmp_addr = addr_head;
-  while (tmp_addr->next != NULL)
+
+  while (tmp_addr != NULL)
   {
+    if (cls == tmp_addr)
+     if (result == GNUNET_OK) fail_msgs_transmited_to_local_addrs++;
     tmp_addr = tmp_addr->next;
   }
 
-  if (cls != NULL)
-  {
-    fail_transmit_to_local_addrs++;
-  }
-  if (fail_transmit_to_local_addrs == count_str_addr)
+  if (fail_msgs_transmited_to_local_addrs == count_str_addr)
 
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message sent to %u addresses!\n",fail_transmit_to_local_addrs);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message sent to %u addresses!\n",fail_msgs_transmited_to_local_addrs);
     shutdown_clean();
   }
 
@@ -996,7 +995,7 @@ run (void *cls,
   fail_pretty_printer = GNUNET_YES;
   fail_notify_address = GNUNET_YES;
   fail_addr_to_str = GNUNET_YES;
-  fail_transmit_to_local_addrs = GNUNET_YES;
+  fail_msgs_transmited_to_local_addrs = 0;
 
   addr_head = NULL;
   count_str_addr = 0;
