@@ -140,6 +140,18 @@ struct HTTP_Message
   size_t len;
 
   char * dest_url;
+
+  /**
+   * Continuation function to call once the transmission buffer
+   * has again space available.  NULL if there is no
+   * continuation to call.
+   */
+  GNUNET_TRANSPORT_TransmitContinuation transmit_cont;
+
+  /**
+   * Closure for transmit_cont.
+   */
+  void *transmit_cont_cls;
 };
 
 
@@ -158,18 +170,6 @@ struct Session
    * Pointer to the global plugin struct.
    */
   struct Plugin *plugin;
-
-  /**
-   * Continuation function to call once the transmission buffer
-   * has again space available.  NULL if there is no
-   * continuation to call.
-   */
-  GNUNET_TRANSPORT_TransmitContinuation transmit_cont;
-
-  /**
-   * Closure for transmit_cont.
-   */
-  void *transmit_cont_cls;
 
   /**
    * To whom are we talking to (set to our identity
@@ -797,6 +797,7 @@ static int remove_http_message(struct Session * ses, struct HTTP_Message * msg)
   {
     ses->pending_outbound_msg = cur->next;
     GNUNET_free (cur->buf);
+    GNUNET_free (cur->dest_url);
     GNUNET_free (cur);
     cur = NULL;
     return GNUNET_OK;
@@ -812,6 +813,7 @@ static int remove_http_message(struct Session * ses, struct HTTP_Message * msg)
 
   cur->next = cur->next->next;
   GNUNET_free (cur->next->buf);
+  GNUNET_free (cur->next->dest_url);
   GNUNET_free (cur->next);
   cur->next = NULL;
   return GNUNET_OK;
@@ -921,7 +923,6 @@ static size_t send_prepare(struct Session* session );
  */
 static ssize_t send_select_init (struct Session* ses )
 {
-  char * url;
   int bytes_sent = 0;
   CURLMcode mret;
   struct HTTP_Message * msg;
@@ -935,15 +936,12 @@ static ssize_t send_select_init (struct Session* ses )
   }
   msg = ses->pending_outbound_msg;
 
-  url = GNUNET_malloc( 7 + strlen(ses->ip) + 7 + strlen ((char *) &(ses->hash)) + 1);
-  /* FIXME: use correct port number */
-  GNUNET_asprintf(&url,"http://%s:%u/%s",ses->ip,12389, (char *) &(ses->hash));
 
 
 #if DEBUG_CURL
   curl_easy_setopt(ses->curl_handle, CURLOPT_VERBOSE, 1L);
 #endif
-  curl_easy_setopt(ses->curl_handle, CURLOPT_URL, url);
+  curl_easy_setopt(ses->curl_handle, CURLOPT_URL, msg->dest_url);
   curl_easy_setopt(ses->curl_handle, CURLOPT_PUT, 1L);
   curl_easy_setopt(ses->curl_handle, CURLOPT_HEADERFUNCTION, &header_function);
   curl_easy_setopt(ses->curl_handle, CURLOPT_READFUNCTION, send_read_callback);
@@ -964,7 +962,6 @@ static ssize_t send_select_init (struct Session* ses )
     return -1;
   }
   bytes_sent = send_prepare (ses );
-  GNUNET_free ( url );
   return bytes_sent;
 }
 
@@ -1013,8 +1010,8 @@ static void send_execute (void *cls,
                                __LINE__,
                                curl_easy_strerror (msg->data.result));
                     /* sending msg failed*/
-                    if ( NULL != cs->transmit_cont)
-                      cs->transmit_cont (cs->transmit_cont_cls,&cs->sender,GNUNET_SYSERR);
+                    if ( NULL != cs->pending_outbound_msg->transmit_cont)
+                      cs->pending_outbound_msg->transmit_cont (cs->pending_outbound_msg->transmit_cont_cls,&cs->sender,GNUNET_SYSERR);
                     }
                   else
                   {
@@ -1027,8 +1024,8 @@ static void send_execute (void *cls,
                     cs->curl_handle=NULL;
 
                     /* Calling transmit continuation  */
-                    if ( NULL != cs->transmit_cont)
-                      cs->transmit_cont (NULL,&cs->sender,GNUNET_OK);
+                    if ( NULL != cs->pending_outbound_msg->transmit_cont)
+                      cs->pending_outbound_msg->transmit_cont (cs->pending_outbound_msg->transmit_cont_cls,&cs->sender,GNUNET_OK);
 
 
                     /* send pending messages */
@@ -1149,7 +1146,7 @@ http_plugin_send (void *cls,
                       GNUNET_TRANSPORT_TransmitContinuation cont,
                       void *cont_cls)
 {
-  char address[INET6_ADDRSTRLEN];
+  char * address;
   struct Session* ses;
   struct Session* ses_temp;
   struct HTTP_Message * msg;
@@ -1167,7 +1164,6 @@ http_plugin_send (void *cls,
     /*FIXME: what is const void * really? Assuming struct sockaddr_in * ! */
     ses = create_session(NULL, (struct sockaddr_in *) addr, target);
     ses->is_active = GNUNET_YES;
-    ses->transmit_cont = cont;
 
     /* Insert session into linked list */
     if ( plugin->sessions == NULL)
@@ -1190,24 +1186,31 @@ http_plugin_send (void *cls,
 
   GNUNET_assert (addr!=NULL);
   unsigned int port;
-  if (addrlen == (sizeof (struct IPv4HttpAddress)))
+
+  /* setting url to send to */
+  if (force_address == GNUNET_YES)
+  {
+    if (addrlen == (sizeof (struct IPv4HttpAddress)))
     {
+      address = GNUNET_malloc(INET_ADDRSTRLEN + 14 + strlen ((const char *) (&ses->hash)));
       inet_ntop(AF_INET,&((struct IPv4HttpAddress *) addr)->ipv4_addr,address,INET_ADDRSTRLEN);
       port = ntohs(((struct IPv4HttpAddress *) addr)->u_port);
+      GNUNET_asprintf(&address,"http://%s:%u/%s",address,port, (char *) (&ses->hash));
     }
-  else if (addrlen == (sizeof (struct IPv6HttpAddress)))
+    else if (addrlen == (sizeof (struct IPv6HttpAddress)))
     {
+      address = GNUNET_malloc(INET6_ADDRSTRLEN + 14 + strlen ((const char *) (&ses->hash)));
       inet_ntop(AF_INET6, &((struct IPv6HttpAddress *) addr)->ipv6_addr,address,INET6_ADDRSTRLEN);
       port = ntohs(((struct IPv6HttpAddress *) addr)->u6_port);
+      GNUNET_asprintf(&address,"http://%s:%u/%s",address,port,(char *) (&ses->hash));
     }
-  else
-    {
-      GNUNET_break (0);
-      return -1;
+    else
+      {
+        GNUNET_break (0);
+        return -1;
     }
+  }
 
-  ses->transmit_cont = cont;
-  ses->transmit_cont_cls = cont_cls;
   timeout = to;
   /* setting up message */
   msg = GNUNET_malloc (sizeof (struct HTTP_Message));
@@ -1215,6 +1218,9 @@ http_plugin_send (void *cls,
   msg->len = msgbuf_size;
   msg->pos = 0;
   msg->buf = GNUNET_malloc (msgbuf_size);
+  msg->dest_url = address;
+  msg->transmit_cont = cont;
+  msg->transmit_cont_cls = cont_cls;
   memcpy (msg->buf,msgbuf, msgbuf_size);
 
   /* insert created message in list of pending messages */

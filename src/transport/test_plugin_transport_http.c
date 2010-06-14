@@ -295,6 +295,11 @@ static int fail_pretty_printer_count;
 static int fail_addr_to_str;
 
 /**
+ * Did the test pass or fail?
+ */
+static int fail_transmit_to_local_addrs;
+
+/**
  * Test: connect to peer without peer identification
  */
 static struct HTTP_Transfer test_no_ident;
@@ -343,7 +348,7 @@ shutdown_clean ()
   /* Evaluate results  */
   if ((fail_notify_address == GNUNET_NO) && (fail_pretty_printer == GNUNET_NO) && (fail_addr_to_str == GNUNET_NO) &&
       (test_no_ident.test_failed == GNUNET_NO) && (test_too_short_ident.test_failed == GNUNET_NO) && (test_too_long_ident.test_failed == GNUNET_NO) &&
-      (test_valid_ident.test_failed == GNUNET_NO))
+      (test_valid_ident.test_failed == GNUNET_NO) && (fail_transmit_to_local_addrs == GNUNET_NO))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Tests successful\n");
     fail = 0;
@@ -408,6 +413,19 @@ static void task_send_cont (void *cls,
                             const struct GNUNET_PeerIdentity * target,
                             int result)
 {
+  struct Plugin_Address * tmp_addr;
+  tmp_addr = addr_head;
+  while (tmp_addr->next != NULL)
+  {
+    tmp_addr = tmp_addr->next;
+  }
+
+  if (cls == tmp_addr)
+  {
+    fail_transmit_to_local_addrs = GNUNET_NO;
+    shutdown_clean();
+  }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message was sent!\n");
   fail = GNUNET_NO;
   //shutdown_clean();
@@ -915,8 +933,6 @@ static void run_connection_tests( void )
 
   while (tmp_addr != NULL)
   {
-
-
     if (tmp_addr->addrlen == (sizeof (struct IPv4HttpAddress)))
       {
         inet_ntop(AF_INET, (struct in_addr *) tmp_addr->addr,address,INET_ADDRSTRLEN);
@@ -934,7 +950,7 @@ static void run_connection_tests( void )
         GNUNET_break (0);
         return;
       }
-    api->send(api->cls, &my_identity, tmp, sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL,tmp_addr->addr, tmp_addr->addrlen, GNUNET_YES, &task_send_cont, NULL);
+    api->send(api->cls, &my_identity, tmp, sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL,tmp_addr->addr, tmp_addr->addrlen, GNUNET_YES, &task_send_cont, tmp_addr);
     tmp_addr = tmp_addr->next;
     count ++;
   }
@@ -970,6 +986,7 @@ run (void *cls,
   fail_pretty_printer = GNUNET_YES;
   fail_notify_address = GNUNET_YES;
   fail_addr_to_str = GNUNET_YES;
+  fail_transmit_to_local_addrs = GNUNET_YES;
 
   addr_head = NULL;
   count_str_addr = 0;
