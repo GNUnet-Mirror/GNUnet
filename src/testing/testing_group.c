@@ -2209,9 +2209,9 @@ choose_minimum(struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
   uint32_t pg_iter;
 
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
-    {
-      pg->peers[pg_iter].connect_peers_working_set = GNUNET_CONTAINER_multihashmap_create(num);
-    }
+   {
+     pg->peers[pg_iter].connect_peers_working_set = GNUNET_CONTAINER_multihashmap_create(num);
+   }
 
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
     {
@@ -2222,7 +2222,6 @@ choose_minimum(struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
       minimum_ctx.pg = pg;
       minimum_ctx.num_to_add = num;
       minimum_ctx.current = 0;
-      pg->peers[pg_iter].connect_peers_working_set = GNUNET_CONTAINER_multihashmap_create(pg->total);
       GNUNET_CONTAINER_multihashmap_iterate(pg->peers[pg_iter].connect_peers,
 					    &minimum_connect_iterator, 
 					    &minimum_ctx);
@@ -2234,9 +2233,6 @@ choose_minimum(struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
       GNUNET_CONTAINER_multihashmap_destroy(pg->peers[pg_iter].connect_peers);
       /* And replace with the working set */
       pg->peers[pg_iter].connect_peers = pg->peers[pg_iter].connect_peers_working_set;
-      fprintf(stderr, 
-	      "Finished! Hashmap size %u\n", 
-	      GNUNET_CONTAINER_multihashmap_size(pg->peers[pg_iter].connect_peers));
     }
 
 }
@@ -2336,18 +2332,11 @@ perform_dfs (struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
 
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
     {
-
-    }
-
-  for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
-    {
       /* Remove the "old" connections */
       GNUNET_CONTAINER_multihashmap_destroy(pg->peers[pg_iter].connect_peers);
       /* And replace with the working set */
       pg->peers[pg_iter].connect_peers = pg->peers[pg_iter].connect_peers_working_set;
-      fprintf(stderr, "Finished! Hashmap size %u\n", GNUNET_CONTAINER_multihashmap_size(pg->peers[pg_iter].connect_peers));
     }
-
 }
 
 /**
@@ -2872,10 +2861,12 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
   {
     if (pg->peers[i].daemon->running == GNUNET_YES)
     {
+      GNUNET_assert(running != -1);
       running++;
     }
     else
     {
+      GNUNET_assert(stopped != -1);
       stopped++;
     }
   }

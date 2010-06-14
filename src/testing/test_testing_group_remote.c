@@ -40,6 +40,8 @@ static int ok;
 
 static int peers_left;
 
+static int peers_failed;
+
 static struct GNUNET_TESTING_PeerGroup *pg;
 
 static struct GNUNET_SCHEDULER_Handle *sched;
@@ -55,12 +57,21 @@ my_cb (void *cls,
        const struct GNUNET_CONFIGURATION_Handle *cfg,
        struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
-  GNUNET_assert (id != NULL);
+  if (emsg != NULL)
+    {
+      peers_failed++;
+    }
+
   peers_left--;
   if (peers_left == 0)
     {
       GNUNET_TESTING_daemons_stop (pg, TIMEOUT);
       ok = 0;
+    }
+  else if (failed_peers == peers_left)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Too many peers failed, ending test!\n");
+      GNUNET_TESTING_daemons_stop (pg, TIMEOUT);
     }
 }
 
