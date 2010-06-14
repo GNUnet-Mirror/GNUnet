@@ -669,6 +669,32 @@ enum GNUNET_TESTING_TopologyOption
   GNUNET_TESTING_TOPOLOGY_OPTION_NONE
 };
 
+
+/**
+ * Get a topology from a string input.
+ *
+ * @param topology where to write the retrieved topology
+ * @param topology_string The string to attempt to
+ *        get a configuration value from
+ * @return GNUNET_YES if topology string matched a
+ *         known topology, GNUNET_NO if not
+ */
+int
+GNUNET_TESTING_topology_get(enum GNUNET_TESTING_Topology *topology, char * topology_string);
+
+/**
+ * Get connect topology option from string input.
+ *
+ * @param topology where to write the retrieved topology
+ * @param topology_string The string to attempt to
+ *        get a configuration value from
+ * @return GNUNET_YES if topology string matched a
+ *         known topology, GNUNET_NO if not
+ */
+int
+GNUNET_TESTING_topology_option_get(enum GNUNET_TESTING_TopologyOption *topology, char * topology_string);
+
+
 /**
  * Takes a peer group and creates a topology based on the
  * one specified.  Creates a topology means generates friend
