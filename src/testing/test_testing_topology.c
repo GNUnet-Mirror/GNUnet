@@ -658,11 +658,11 @@ run (void *cls,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  unsigned long long topology_num;
-  unsigned long long connect_topology_num;
-  unsigned long long blacklist_topology_num;
-  unsigned long long connect_topology_option_num;
-  char *connect_topology_option_modifier_string;
+  char * topology_str;
+  char * connect_topology_str;
+  char * blacklist_topology_str;
+  char * connect_topology_option_str;
+  char * connect_topology_option_modifier_string;
   sched = s;
   ok = 1;
 
@@ -683,20 +683,31 @@ run (void *cls,
       return;
     }
 
-  if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "topology",
-                                             &topology_num))
-    topology = topology_num;
+  if ((GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_string(cfg, "testing", "topology",
+                                            &topology_str)) && (GNUNET_NO == GNUNET_TESTING_topology_get(&topology, topology_str)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Invalid topology `%s' given for section %s option %s\n", topology_str, "TESTING", "TOPOLOGY");
+      topology = GNUNET_TESTING_TOPOLOGY_CLIQUE; /* Defaults to NONE, so set better default here */
+    }
 
-  if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "connect_topology",
-                                             &connect_topology_num))
-    connection_topology = connect_topology_num;
+  if ((GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_string(cfg, "testing", "connect_topology",
+                                            &connect_topology_str)) && (GNUNET_NO == GNUNET_TESTING_topology_get(&connection_topology, connect_topology_str)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Invalid connect topology `%s' given for section %s option %s\n", connect_topology_str, "TESTING", "CONNECT_TOPOLOGY");
+    }
 
-  if (GNUNET_YES ==
-        GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "connect_topology_option",
-                                               &connect_topology_option_num))
-    connect_topology_option = connect_topology_option_num;
+  if ((GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_string(cfg, "testing", "connect_topology_option",
+                                            &connect_topology_option_str)) && (GNUNET_NO == GNUNET_TESTING_topology_option_get(&connect_topology_option, connect_topology_option_str)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Invalid connect topology option `%s' given for section %s option %s\n", connect_topology_option_str, "TESTING", "CONNECT_TOPOLOGY_OPTION");
+      connect_topology_option = GNUNET_TESTING_TOPOLOGY_OPTION_ALL; /* Defaults to NONE, set to ALL */
+    }
 
   if (GNUNET_YES ==
         GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "connect_topology_option_modifier",
@@ -717,10 +728,13 @@ run (void *cls,
                                          &blacklist_transports))
     blacklist_transports = NULL;
 
-  if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "blacklist_topology",
-                                             &blacklist_topology_num))
-    blacklist_topology = blacklist_topology_num;
+  if ((GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_string(cfg, "testing", "blacklist_topology",
+                                            & blacklist_topology_str)) && (GNUNET_NO == GNUNET_TESTING_topology_get(&blacklist_topology, blacklist_topology_str)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Invalid topology `%s' given for section %s option %s\n", topology_str, "TESTING", "BLACKLIST_TOPOLOGY");
+    }
 
   if (GNUNET_SYSERR ==
       GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "num_peers",

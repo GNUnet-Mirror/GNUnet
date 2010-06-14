@@ -29,6 +29,8 @@
 
 #define VERBOSE_TESTING GNUNET_NO
 
+#define VERBOSE_TOPOLOGY GNUNET_NO
+
 #define DEBUG_CHURN GNUNET_NO
 
 /**
@@ -58,6 +60,92 @@
  */
 typedef int (*GNUNET_TESTING_ConnectionProcessor)
 (struct GNUNET_TESTING_PeerGroup *pg, unsigned int first, unsigned int second);
+
+/**
+ * Strings representing topologies in enum
+ */
+static char * GNUNET_TESTING_TopologyStrings[] =
+{
+  /**
+   * A clique (everyone connected to everyone else).
+   */
+  "CLIQUE",
+
+  /**
+   * Small-world network (2d torus plus random links).
+   */
+  "SMALL_WORLD",
+
+  /**
+   * Small-world network (ring plus random links).
+   */
+  "SMALL_WORLD_RING",
+
+  /**
+   * Ring topology.
+   */
+  "RING",
+
+  /**
+   * 2-d torus.
+   */
+  "2D_TORUS",
+
+  /**
+   * Random graph.
+   */
+  "ERDOS_RENYI",
+
+  /**
+   * Certain percentage of peers are unable to communicate directly
+   * replicating NAT conditions
+   */
+  "INTERNAT",
+
+  /**
+   * Scale free topology.
+   */
+  "SCALE_FREE",
+
+  /**
+   * All peers are disconnected.
+   */
+  "NONE"
+};
+
+/**
+ * Options for connecting a topology as strings.
+ */
+static char * GNUNET_TESTING_TopologyOptionStrings[] =
+{
+  /**
+   * Try to connect all peers specified in the topology.
+   */
+  "CONNECT_ALL",
+
+  /**
+   * Choose a random subset of connections to create.
+   */
+  "CONNECT_RANDOM_SUBSET",
+
+  /**
+   * Create at least X connections for each peer.
+   */
+  "CONNECT_MINIMUM",
+
+  /**
+   * Using a depth first search, create one connection
+   * per peer.  If any are missed (graph disconnected)
+   * start over at those peers until all have at least one
+   * connection.
+   */
+  "CONNECT_DFS",
+
+  /**
+   * No options specified.
+   */
+  "CONNECT_NONE"
+};
 
 /**
  * Context for handling churning a peer group
@@ -334,6 +422,73 @@ struct ConnectContext
  */
 static int outstanding_connects;
 
+/**
+ * Get a topology from a string input.
+ *
+ * @param topology where to write the retrieved topology
+ * @param topology_string The string to attempt to
+ *        get a configuration value from
+ * @return GNUNET_YES if topology string matched a
+ *         known topology, GNUNET_NO if not
+ */
+int
+GNUNET_TESTING_topology_get(enum GNUNET_TESTING_Topology *topology, char * topology_string)
+{
+  int found = 0;
+  int curr = 0;
+
+  if (topology_string == NULL)
+    return GNUNET_NO;
+
+  do
+  {
+    if (strcmp(GNUNET_TESTING_TopologyStrings[curr], topology_string) == 0)
+    {
+      found = GNUNET_YES;
+      break;
+    }
+    curr++;
+  } while (strcmp(GNUNET_TESTING_TopologyStrings[curr], "NONE") != 0);
+  *topology = curr;
+  if (found)
+    return GNUNET_YES;
+  else
+    return GNUNET_NO;
+}
+
+/**
+ * Get connect topology option from string input.
+ *
+ * @param topology where to write the retrieved topology
+ * @param topology_string The string to attempt to
+ *        get a configuration value from
+ * @return GNUNET_YES if string matched a known
+ *         topology option, GNUNET_NO if not
+ */
+int
+GNUNET_TESTING_topology_option_get(enum GNUNET_TESTING_TopologyOption *topology, char * topology_string)
+{
+  int found = 0;
+  int curr = 0;
+
+  if (topology_string == NULL)
+    return GNUNET_NO;
+
+  do
+  {
+    if (strcmp(GNUNET_TESTING_TopologyOptionStrings[curr], topology_string) == 0)
+    {
+      found = GNUNET_YES;
+      break;
+    }
+    curr++;
+  } while (strcmp(GNUNET_TESTING_TopologyOptionStrings[curr], "CONNECT_NONE") != 0);
+  *topology = curr;
+  if (found)
+    return GNUNET_YES;
+  else
+    return GNUNET_NO;
+}
 
 /**
  * Function to iterate over options.  Copies
@@ -1792,49 +1947,49 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
   switch (topology)
     {
     case GNUNET_TESTING_TOPOLOGY_CLIQUE:
-#if VERBOSE_TESTING
+#if VERBOSE_TOPOLOGY
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Creating clique topology\n"));
 #endif
       num_connections = create_clique (pg, &add_allowed_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD_RING:
-#if VERBOSE_TESTING
+#if VERBOSE_TOPOLOGY
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Creating small world (ring) topology\n"));
 #endif
       num_connections = create_small_world_ring (pg, &add_allowed_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD:
-#if VERBOSE_TESTING
+#if VERBOSE_TOPOLOGY
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Creating small world (2d-torus) topology\n"));
 #endif
       num_connections = create_small_world (pg, &add_allowed_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_RING:
-#if VERBOSE_TESTING
+#if VERBOSE_TOPOLOGY
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Creating ring topology\n"));
 #endif
       num_connections = create_ring (pg, &add_allowed_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_2D_TORUS:
-#if VERBOSE_TESTING
+#if VERBOSE_TOPOLOGY
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Creating 2d torus topology\n"));
 #endif
       num_connections = create_2d_torus (pg, &add_allowed_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_ERDOS_RENYI:
-#if VERBOSE_TESTING
+#if VERBOSE_TOPOLOGY
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Creating Erdos-Renyi topology\n"));
 #endif
       num_connections = create_erdos_renyi (pg, &add_allowed_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_INTERNAT:
-#if VERBOSE_TESTING
+#if VERBOSE_TOPOLOGY
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Creating InterNAT topology\n"));
 #endif
@@ -2363,62 +2518,66 @@ GNUNET_TESTING_connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
   switch (topology)
       {
       case GNUNET_TESTING_TOPOLOGY_CLIQUE:
-  #if VERBOSE_TESTING
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    _("Creating clique topology\n"));
-  #endif
+#if VERBOSE_TOPOLOGY
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Creating clique CONNECT topology\n"));
+#endif
         create_clique (pg, &add_actual_connections);
         break;
       case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD_RING:
-  #if VERBOSE_TESTING
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    _("Creating small world (ring) topology\n"));
-  #endif
+#if VERBOSE_TOPOLOGY
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Creating small world (ring) CONNECT topology\n"));
+#endif
         create_small_world_ring (pg, &add_actual_connections);
         break;
       case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD:
-  #if VERBOSE_TESTING
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    _("Creating small world (2d-torus) topology\n"));
-  #endif
+#if VERBOSE_TOPOLOGY
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Creating small world (2d-torus) CONNECT topology\n"));
+#endif
         create_small_world (pg, &add_actual_connections);
         break;
       case GNUNET_TESTING_TOPOLOGY_RING:
-  #if VERBOSE_TESTING
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    _("Creating ring topology\n"));
-  #endif
+#if VERBOSE_TOPOLOGY
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Creating ring CONNECT topology\n"));
+#endif
         create_ring (pg, &add_actual_connections);
         break;
       case GNUNET_TESTING_TOPOLOGY_2D_TORUS:
-  #if VERBOSE_TESTING
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    _("Creating 2d torus topology\n"));
-  #endif
+#if VERBOSE_TOPOLOGY
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Creating 2d torus CONNECT topology\n"));
+#endif
         create_2d_torus (pg, &add_actual_connections);
         break;
       case GNUNET_TESTING_TOPOLOGY_ERDOS_RENYI:
-  #if VERBOSE_TESTING
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    _("Creating Erdos-Renyi topology\n"));
-  #endif
+#if VERBOSE_TOPOLOGY
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Creating Erdos-Renyi CONNECT topology\n"));
+#endif
         create_erdos_renyi (pg, &add_actual_connections);
         break;
       case GNUNET_TESTING_TOPOLOGY_INTERNAT:
-  #if VERBOSE_TESTING
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    _("Creating InterNAT topology\n"));
-  #endif
+#if VERBOSE_TOPOLOGY
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Creating InterNAT CONNECT topology\n"));
+#endif
         create_nated_internet (pg, &add_actual_connections);
         break;
       case GNUNET_TESTING_TOPOLOGY_SCALE_FREE:
-  #if VERBOSE_TESTING
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    _("Creating Scale Free topology\n"));
-  #endif
+#if VERBOSE_TOPOLOGY
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Creating Scale Free CONNECT topology\n"));
+#endif
         create_scale_free (pg, &add_actual_connections);
         break;
       case GNUNET_TESTING_TOPOLOGY_NONE:
+#if VERBOSE_TOPOLOGY
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Creating no CONNECT topology\n"));
+#endif
         copy_allowed_topology(pg);
         break;
       default:
@@ -2429,13 +2588,25 @@ GNUNET_TESTING_connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
 
   switch (options)
     {
-    case GNUNET_TESTING_TOPOLOGY_OPTION_RANDOM: 
+    case GNUNET_TESTING_TOPOLOGY_OPTION_RANDOM:
+#if VERBOSE_TOPOLOGY
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Connecting random subset (%'.2f percent) of possible peers\n"), 100 * option_modifier);
+#endif
       choose_random_connections(pg, option_modifier);
       break;
-    case GNUNET_TESTING_TOPOLOGY_OPTION_MINIMUM: 
+    case GNUNET_TESTING_TOPOLOGY_OPTION_MINIMUM:
+#if VERBOSE_TOPOLOGY
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Connecting a minimum of %u peers each (if possible)\n"), (unsigned int)option_modifier);
+#endif
       choose_minimum(pg, (unsigned int)option_modifier);
       break;
-    case GNUNET_TESTING_TOPOLOGY_OPTION_DFS: 
+    case GNUNET_TESTING_TOPOLOGY_OPTION_DFS:
+#if VERBOSE_TOPOLOGY
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Using DFS to connect a minimum of %u peers each (if possible)\n"), (unsigned int)option_modifier);
+#endif
       perform_dfs(pg, (int)option_modifier);
       break;
     case GNUNET_TESTING_TOPOLOGY_OPTION_NONE:
