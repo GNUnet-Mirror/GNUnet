@@ -228,7 +228,6 @@ progress_cb (void *cls,
 }
 
 
-
 struct StartContext
 {
   struct GNUNET_SCHEDULER_Handle *sched;
@@ -253,7 +252,6 @@ notify_running (void *cls,
 {
   struct StartContext *sctx = cls;
   unsigned int i;
-  unsigned long long fsport;
 
   if (emsg != NULL)
     {
@@ -262,11 +260,21 @@ notify_running (void *cls,
 		  emsg);
       return;
     }
+  i = 0;
+  while (i < sctx->total)
+    {
+      if (GNUNET_TESTING_daemon_get (sctx->group,
+				     i) == d)
+	break;
+      i++;
+    }
+  GNUNET_assert (i < sctx->total);
   GNUNET_assert (sctx->have < sctx->total);
-  sctx->daemons[sctx->have]->cfg = GNUNET_CONFIGURATION_dup (cfg);
-  sctx->daemons[sctx->have]->group = sctx->group;
-  sctx->daemons[sctx->have]->daemon = d;
-  sctx->daemons[sctx->have]->id = *id;
+  GNUNET_assert (sctx->daemons[i]->cfg == NULL);
+  sctx->daemons[i]->cfg = GNUNET_CONFIGURATION_dup (cfg);
+  sctx->daemons[i]->group = sctx->group;
+  sctx->daemons[i]->daemon = d;
+  sctx->daemons[i]->id = *id;
   sctx->have++;
   if (sctx->have == sctx->total)
     {
@@ -279,16 +287,6 @@ notify_running (void *cls,
 			       sctx->timeout_task);
       for (i=0;i<sctx->total;i++)
 	{
-	  fsport = 0;
-	  GNUNET_break (GNUNET_OK ==
-			GNUNET_CONFIGURATION_get_value_number (sctx->daemons[i]->cfg,
-							       "fs",
-							       "PORT",
-							       &fsport));
-	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		      _("Testing connects to port %llu for peer %u\n"),
-		      fsport,
-		      i);			
 	  sctx->daemons[i]->fs = GNUNET_FS_start (sctx->sched,
 						  sctx->daemons[i]->cfg,
 						  "<tester>",

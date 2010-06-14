@@ -159,7 +159,6 @@ do_wait (void *cls,
 }
 
 
-
 static void
 do_publish (void *cls,
 	    const struct GNUNET_SCHEDULER_TaskContext *tc)
