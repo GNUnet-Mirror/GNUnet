@@ -31,7 +31,7 @@
 #define DEBUG_DV_GOSSIP GNUNET_NO
 #define DEBUG_DV_GOSSIP_SEND GNUNET_YES
 #define DEBUG_DV_GOSSIP_RECEIPT GNUNET_YES
-#define DEBUG_DV GNUNET_YES
+#define DEBUG_DV GNUNET_NO
 #define DEBUG_DV_API GNUNET_YES
 
 typedef void (*GNUNET_DV_MessageReceivedHandler) (void *cls,

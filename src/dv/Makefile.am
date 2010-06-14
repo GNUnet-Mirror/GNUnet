@@ -50,8 +50,8 @@ libgnunet_plugin_transport_dv_la_LDFLAGS = \
  
  
 check_PROGRAMS = \
- test_transport_api_dv \
- test_dv_topology
+ test_transport_api_dv
+# test_dv_topology
  
 TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
 
@@ -59,17 +59,19 @@ test_transport_api_dv_SOURCES = \
  test_transport_api_dv.c
 test_transport_api_dv_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/util/libgnunetutil.la 
-
-test_dv_topology_SOURCES = \
- test_dv_topology.c
-test_dv_topology_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/util/libgnunetutil.la  \
+ $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la
+
+#test_dv_topology_SOURCES = \
+# test_dv_topology.c
+#test_dv_topology_LDADD = \
+# $(top_builddir)/src/transport/libgnunettransport.la \
+# $(top_builddir)/src/util/libgnunetutil.la  \
+# $(top_builddir)/src/testing/libgnunettesting.la
 
 
 EXTRA_DIST = \
+  test_transport_dv_data.conf \
   test_transport_api_dv_peer1.conf \
   test_transport_api_dv_peer2.conf \
   test_transport_api_dv_peer3.conf

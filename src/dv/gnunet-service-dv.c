@@ -45,6 +45,8 @@
 #include "gnunet_crypto_lib.h"
 #include "dv.h"
 
+#define DEBUG_DV_PEER_NUMBERS GNUNET_YES
+
 /**
  * DV Service Context stuff goes here...
  */
@@ -722,10 +724,12 @@ void send_to_plugin(const struct GNUNET_PeerIdentity * sender,
                                                                         size, GNUNET_TIME_UNIT_FOREVER_REL,
                                                                         &transmit_to_plugin, NULL);
         }
+#if DEBUG_DV
       else
         {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to queue message for plugin, must be one in progress already!!\n");
         }
+#endif
     }
 }
 
@@ -1026,9 +1030,10 @@ static int handle_dv_data_message (void *cls,
   pos = dn->referee_head;
   while ((NULL != pos) && (pos->referrer_id != sid))
     pos = pos->next;
+
   if (pos == NULL)
     {
-#if DEBUG_DV
+#if DEBUG_DV_PEER_NUMBERS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "%s peer %s: unknown sender (%d)!\n", "DV SERVICE", GNUNET_i2s(&my_identity), ntohl(incoming->sender), GNUNET_CONTAINER_multihashmap_size (ctx.extended_neighbors));
 #endif
@@ -1040,7 +1045,6 @@ static int handle_dv_data_message (void *cls,
   if (tid == 0)
     {
       /* 0 == us */
-
       cbuf = (char *)&incoming[1];
       offset = 0;
       while(offset < packed_message_size)
@@ -1187,9 +1191,9 @@ neighbor_send_task (void *cls,
       encPeerAbout = GNUNET_strdup(GNUNET_i2s(&about->identity));
       encPeerTo = GNUNET_strdup(GNUNET_i2s(&to->identity));
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%s: Sending info about peer %s to directly connected peer %s\n",
+                  "%s: Sending info about peer %s id %u to directly connected peer %s\n",
                   GNUNET_i2s(&my_identity),
-                  encPeerAbout, encPeerTo);
+                  encPeerAbout, about->our_id, encPeerTo);
       GNUNET_free(encPeerAbout);
       GNUNET_free(encPeerTo);
 #endif
@@ -1217,12 +1221,16 @@ neighbor_send_task (void *cls,
 
   if (send_context->fast_gossip_list_head != NULL) /* If there are other peers in the fast list, schedule right away */
     {
+#if DEBUG_DV
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV SERVICE: still in fast send mode\n");
+#endif
       send_context->task = GNUNET_SCHEDULER_add_now(sched, &neighbor_send_task, send_context);
     }
   else
     {
+#if DEBUG_DV
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV SERVICE: entering slow send mode\n");
+#endif
       send_context->task = GNUNET_SCHEDULER_add_delayed(sched, GNUNET_DV_DEFAULT_SEND_INTERVAL, &neighbor_send_task, send_context);
     }
 
@@ -1738,9 +1746,12 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer, struct GNUNET_CRYPTO
   struct NeighborUpdateInfo *neighbor_update;
   unsigned int our_id;
 
-  now = GNUNET_TIME_absolute_get ();
-  our_id = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, RAND_MAX - 1) + 1;
+#if DEBUG_DV_PEER_NUMBERS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%s Received sender id (%u)!\n", "DV SERVICE", referrer_peer_id);
+#endif
 
+  now = GNUNET_TIME_absolute_get ();
   neighbor = GNUNET_CONTAINER_multihashmap_get (ctx.extended_neighbors,
                                                 &peer->hashPubKey);
   neighbor_update = GNUNET_malloc(sizeof(struct NeighborUpdateInfo));
@@ -1748,6 +1759,13 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer, struct GNUNET_CRYPTO
   neighbor_update->cost = cost;
   neighbor_update->now = now;
   neighbor_update->referrer = referrer;
+
+
+  our_id = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, RAND_MAX - 1) + 1;
+#if DEBUG_DV_PEER_NUMBERS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%s Chose NEW id (%u)!\n", "DV SERVICE", our_id);
+#endif
 
   /* Either we do not know this peer, or we already do but via a different immediate peer */
   if ((neighbor == NULL) ||
@@ -1807,6 +1825,7 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer, struct GNUNET_CRYPTO
       neighbor->hidden =
         (cost == DIRECT_NEIGHBOR_COST) ? (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 4) ==
                        0) : GNUNET_NO;
+
       GNUNET_CONTAINER_multihashmap_put (ctx.extended_neighbors, &peer->hashPubKey,
                                  neighbor,
                                  GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
@@ -1944,7 +1963,7 @@ static int handle_dv_gossip_message (void *cls,
   encPeerAbout = GNUNET_strdup(GNUNET_i2s(&enc_message->neighbor));
   encPeerFrom = GNUNET_strdup(GNUNET_i2s(peer));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%s: Receives %s message from peer %s about peer %s distance %d!\n", "dv", "DV GOSSIP", encPeerFrom, encPeerAbout, ntohl (enc_message->cost) + 1);
+              "%s: Receives %s message from peer %s about peer %s id %u distance %d!\n", "dv", "DV GOSSIP", encPeerFrom, encPeerAbout, ntohl(enc_message->neighbor_id), ntohl (enc_message->cost) + 1);
   GNUNET_free(encPeerAbout);
   GNUNET_free(encPeerFrom);
 #endif

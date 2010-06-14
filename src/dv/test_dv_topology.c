@@ -275,7 +275,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 
   if (pg != NULL)
     {
-      GNUNET_TESTING_daemons_stop (pg);
+      GNUNET_TESTING_daemons_stop (pg, TIMEOUT);
       ok = 7331;                /* Opposite of leet */
     }
   else
@@ -584,7 +584,7 @@ create_topology ()
          maybe this way is best so that the client can know both
          when peers are started, and when they are connected.
        */
-      expected_connections = GNUNET_TESTING_create_topology (pg, topology);
+      expected_connections = GNUNET_TESTING_create_topology (pg, topology, GNUNET_TESTING_TOPOLOGY_NONE, "");
 #if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Have %d expected connections\n", expected_connections);
@@ -686,6 +686,7 @@ run (void *cls,
   pg = GNUNET_TESTING_daemons_start (sched, cfg,
                                      peers_left,
                                      TIMEOUT,
+                                     NULL, NULL,
                                      &my_cb, NULL,
                                      &topology_callback, NULL, NULL);
 
