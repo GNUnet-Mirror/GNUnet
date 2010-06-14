@@ -138,6 +138,8 @@ struct HTTP_Message
    * amount of data to sent
    */
   size_t len;
+
+  char * dest_url;
 };
 
 
@@ -188,7 +190,12 @@ struct Session
   /**
    * Sender's ip address to distinguish between incoming connections
    */
-  struct sockaddr_in * addr;
+  struct sockaddr_in * addr_inbound;
+
+  /**
+   * Sender's ip address recieved by transport
+   */
+  struct sockaddr_in * addr_outbound;
 
   /**
    * Did we initiate the connection (GNUNET_YES) or the other peer (GNUNET_NO)?
@@ -364,34 +371,52 @@ static struct Session * find_session_by_curlhandle( CURL* handle )
 /**
  * Create a new session
  *
- * @param address address the peer is using
+ * @param address address the peer is using inbound
+ * @param address address the peer is using outbound
  * @param peer identity
  * @return created session object
  */
-static struct Session * create_session (struct sockaddr_in *address, const struct GNUNET_PeerIdentity *peer)
+static struct Session * create_session (struct sockaddr_in *addr_in, struct sockaddr_in *addr_out, const struct GNUNET_PeerIdentity *peer)
 {
   struct sockaddr_in  *addrin;
   struct sockaddr_in6 *addrin6;
-
   struct Session * ses = GNUNET_malloc ( sizeof( struct Session) );
-  ses->addr = GNUNET_malloc ( sizeof (struct sockaddr_in) );
+
+  ses->addr_outbound = GNUNET_malloc ( sizeof (struct sockaddr_in) );
+
 
   ses->next = NULL;
   ses->plugin = plugin;
+  if (NULL != addr_in)
+  {
+    ses->addr_inbound  = GNUNET_malloc ( sizeof (struct sockaddr_in) );
+    memcpy(ses->addr_inbound, addr_in, sizeof (struct sockaddr_in));
+    if ( AF_INET == addr_in->sin_family)
+    {
+      ses->ip = GNUNET_malloc (INET_ADDRSTRLEN);
+      addrin = addr_in;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Port %u \n", addrin->sin_port);
+      inet_ntop(addrin->sin_family,&(addrin->sin_addr),ses->ip,INET_ADDRSTRLEN);
+    }
+    if ( AF_INET6 == addr_in->sin_family)
+    {
+      ses->ip = GNUNET_malloc (INET6_ADDRSTRLEN);
+      addrin6 = (struct sockaddr_in6 *) addr_in;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Port %u \n", addrin6->sin6_port);
+      inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr) ,ses->ip,INET6_ADDRSTRLEN);
+    }
+  }
+  else
+    ses->addr_inbound = NULL;
 
-  memcpy(ses->addr, address, sizeof (struct sockaddr_in));
-  if ( AF_INET == address->sin_family)
+  if (NULL != addr_out)
   {
-    ses->ip = GNUNET_malloc (INET_ADDRSTRLEN);
-    addrin = address;
-    inet_ntop(addrin->sin_family,&(addrin->sin_addr),ses->ip,INET_ADDRSTRLEN);
+    ses->addr_outbound  = GNUNET_malloc ( sizeof (struct sockaddr_in) );
+    memcpy(ses->addr_outbound, addr_out, sizeof (struct sockaddr_in));
   }
-  if ( AF_INET6 == address->sin_family)
-  {
-    ses->ip = GNUNET_malloc (INET6_ADDRSTRLEN);
-    addrin6 = (struct sockaddr_in6 *) address;
-    inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr) ,ses->ip,INET6_ADDRSTRLEN);
-  }
+  else
+    ses->addr_outbound = NULL;
+
   memcpy(&ses->sender, peer, sizeof (struct GNUNET_PeerIdentity));
   GNUNET_CRYPTO_hash_to_enc(&ses->sender.hashPubKey,&(ses->hash));
   ses->is_active = GNUNET_NO;
@@ -525,7 +550,7 @@ accessHandlerCallback (void *cls,
     if (cs == NULL )
     {
       /* create new session object */
-      cs = create_session(conn_info->client_addr, &pi_in);
+      cs = create_session(conn_info->client_addr, NULL, &pi_in);
 
       /* Insert session into linked list */
       if ( plugin->sessions == NULL)
@@ -550,7 +575,7 @@ accessHandlerCallback (void *cls,
     {
       *httpSessionCache = cs;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s' (`[%s]:%u')\n",method, GNUNET_i2s(&cs->sender),cs->ip,cs->addr->sin_port);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s' (`[%s]:%u')\n",method, GNUNET_i2s(&cs->sender),cs->ip,cs->addr_inbound->sin_port);
   }
   else
   {
@@ -795,6 +820,44 @@ static int remove_http_message(struct Session * ses, struct HTTP_Message * msg)
 }
 
 
+static size_t header_function( void *ptr, size_t size, size_t nmemb, void *stream)
+{
+  char * tmp;
+  unsigned int len = size * nmemb;
+
+  tmp = GNUNET_malloc (  len+1 );
+  memcpy(tmp,ptr,len);
+  if (tmp[len-2] == 13)
+    tmp[len-2]= '\0';
+#if DEBUG_CURL
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Header: `%s'\n",tmp);
+#endif
+  /*
+  if (0==strcmp (tmp,"HTTP/1.1 100 Continue"))
+  {
+    res->http_result_code=100;
+  }
+  if (0==strcmp (tmp,"HTTP/1.1 200 OK"))
+  {
+    res->http_result_code=200;
+  }
+  if (0==strcmp (tmp,"HTTP/1.1 400 Bad Request"))
+  {
+    res->http_result_code=400;
+  }
+  if (0==strcmp (tmp,"HTTP/1.1 404 Not Found"))
+  {
+    res->http_result_code=404;
+  }
+  if (0==strcmp (tmp,"HTTP/1.1 413 Request entity too large"))
+  {
+    res->http_result_code=413;
+  }
+   */
+  GNUNET_free (tmp);
+  return size * nmemb;
+}
+
 /**
  * Callback method used with libcurl
  * Method is called when libcurl needs to read data during sending
@@ -858,24 +921,33 @@ static size_t send_prepare(struct Session* session );
  * @param ses session to send data to
  * @return bytes sent to peer
  */
-static ssize_t send_select_init (struct Session* ses  )
+static ssize_t send_select_init (struct Session* ses )
 {
   char * url;
   int bytes_sent = 0;
   CURLMcode mret;
   struct HTTP_Message * msg;
 
-  /* FIFO selection, send oldest msg first, perhaps priority here?  */
+  if ( NULL == ses->curl_handle)
+    ses->curl_handle = curl_easy_init();
+  if( NULL == ses->curl_handle)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Getting cURL handle failed\n");
+    return -1;
+  }
   msg = ses->pending_outbound_msg;
 
   url = GNUNET_malloc( 7 + strlen(ses->ip) + 7 + strlen ((char *) &(ses->hash)) + 1);
   /* FIXME: use correct port number */
   GNUNET_asprintf(&url,"http://%s:%u/%s",ses->ip,12389, (char *) &(ses->hash));
+
+
 #if DEBUG_CURL
   curl_easy_setopt(ses->curl_handle, CURLOPT_VERBOSE, 1L);
 #endif
   curl_easy_setopt(ses->curl_handle, CURLOPT_URL, url);
   curl_easy_setopt(ses->curl_handle, CURLOPT_PUT, 1L);
+  curl_easy_setopt(ses->curl_handle, CURLOPT_HEADERFUNCTION, &header_function);
   curl_easy_setopt(ses->curl_handle, CURLOPT_READFUNCTION, send_read_callback);
   curl_easy_setopt(ses->curl_handle, CURLOPT_READDATA, ses);
   curl_easy_setopt(ses->curl_handle, CURLOPT_WRITEFUNCTION, send_write_callback);
@@ -924,6 +996,7 @@ static void send_execute (void *cls,
               if (msg == NULL)
                 break;
               /* get session for affected curl handle */
+              GNUNET_assert ( msg->easy_handle != NULL );
               cs = find_session_by_curlhandle (msg->easy_handle);
               GNUNET_assert ( cs != NULL );
               switch (msg->msg)
@@ -943,10 +1016,10 @@ static void send_execute (void *cls,
                                curl_easy_strerror (msg->data.result));
                     /* sending msg failed*/
                     if ( NULL != cs->transmit_cont)
-                      cs->transmit_cont (NULL,&cs->sender,GNUNET_SYSERR);
+                      cs->transmit_cont (cs->transmit_cont_cls,&cs->sender,GNUNET_SYSERR);
                     }
                   else
-                    {
+                  {
                     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                                 "Send to %s completed.\n", cs->ip);
                     if (GNUNET_OK != remove_http_message(cs, cs->pending_outbound_msg))
@@ -955,14 +1028,17 @@ static void send_execute (void *cls,
                     curl_easy_cleanup(cs->curl_handle);
                     cs->curl_handle=NULL;
 
-                    /* send pending messages */
-                    if (cs->pending_outbound_msg != NULL)
-                      send_select_init (cs);
-
                     /* Calling transmit continuation  */
                     if ( NULL != cs->transmit_cont)
                       cs->transmit_cont (NULL,&cs->sender,GNUNET_OK);
+
+
+                    /* send pending messages */
+                    if (cs->pending_outbound_msg != NULL)
+                    {
+                      send_select_init (cs);
                     }
+                  }
                   return;
                 default:
                   break;
@@ -1075,13 +1151,12 @@ http_plugin_send (void *cls,
                       GNUNET_TRANSPORT_TransmitContinuation cont,
                       void *cont_cls)
 {
+  char address[INET6_ADDRSTRLEN];
   struct Session* ses;
   struct Session* ses_temp;
   struct HTTP_Message * msg;
   struct HTTP_Message * tmp;
   int bytes_sent = 0;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Transport told plugin to send to peer `%s'\n",GNUNET_i2s(target));
 
   /* find session for peer */
   ses = find_session_by_pi (target);
@@ -1092,7 +1167,7 @@ http_plugin_send (void *cls,
     /* create new session object */
 
     /*FIXME: what is const void * really? Assuming struct sockaddr_in * ! */
-    ses = create_session((struct sockaddr_in *) addr, target);
+    ses = create_session(NULL, (struct sockaddr_in *) addr, target);
     ses->is_active = GNUNET_YES;
     ses->transmit_cont = cont;
 
@@ -1115,15 +1190,28 @@ http_plugin_send (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"New Session `%s' inserted, count %u \n", GNUNET_i2s(target), plugin->session_count);
   }
 
-  ses->curl_handle = curl_easy_init();
-  if( NULL == ses->curl_handle)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Getting cURL handle failed\n");
-    return -1;
-  }
+  GNUNET_assert (addr!=NULL);
+  unsigned int port;
+  if (addrlen == (sizeof (struct IPv4HttpAddress)))
+    {
+      inet_ntop(AF_INET, (struct in_addr *) addr,address,INET_ADDRSTRLEN);
+      port = ((struct IPv4HttpAddress *) addr)->u_port;
+      //port = ntohs(((struct in_addr *) addr)->);
+    }
+  else if (addrlen == (sizeof (struct IPv6HttpAddress)))
+    {
+      inet_ntop(AF_INET6, (struct in6_addr *) addr,address,INET6_ADDRSTRLEN);
+      port = ntohs(((struct IPv6HttpAddress *) addr)->u6_port);
+    }
+  else
+    {
+      GNUNET_break (0);
+      return -1;
+    }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"ADDR `%s':%u \n",address,port);
 
-  if ( NULL != cont)
-    ses->transmit_cont = cont;
+  ses->transmit_cont = cont;
+  ses->transmit_cont_cls = cont_cls;
   timeout = to;
   /* setting up message */
   msg = GNUNET_malloc (sizeof (struct HTTP_Message));
@@ -1134,7 +1222,6 @@ http_plugin_send (void *cls,
   memcpy (msg->buf,msgbuf, msgbuf_size);
 
   /* insert created message in list of pending messages */
-
   if (ses->pending_outbound_msg == NULL)
   {
     ses->pending_outbound_msg = msg;
@@ -1145,11 +1232,16 @@ http_plugin_send (void *cls,
     tmp = tmp->next;
   }
   if ( tmp != msg)
+  {
     tmp->next = msg;
+  }
 
-  bytes_sent = send_select_init (ses);
-  return bytes_sent;
-
+  if (msg == ses->pending_outbound_msg)
+  {
+    bytes_sent = send_select_init (ses);
+    return bytes_sent;
+  }
+  return msgbuf_size;
 }
 
 
@@ -1482,7 +1574,8 @@ libgnunet_plugin_transport_http_done (void *cls)
       GNUNET_free (cs->pending_inbound_msg->buf);
       GNUNET_free (cs->pending_inbound_msg);
       GNUNET_free (cs->ip);
-      GNUNET_free (cs->addr);
+      GNUNET_free (cs->addr_inbound);
+      GNUNET_free_non_null (cs->addr_outbound);
       GNUNET_free (cs);
       plugin->session_count--;
       cs = cs_next;

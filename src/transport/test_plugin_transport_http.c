@@ -337,6 +337,8 @@ static GNUNET_SCHEDULER_TaskIdentifier http_task_send;
 static void
 shutdown_clean ()
 {
+  struct Plugin_Address * cur;
+  struct Plugin_Address * tmp;
 
   /* Evaluate results  */
   if ((fail_notify_address == GNUNET_NO) && (fail_pretty_printer == GNUNET_NO) && (fail_addr_to_str == GNUNET_NO) &&
@@ -357,6 +359,15 @@ shutdown_clean ()
   if (NULL != curl_handle)
     curl_easy_cleanup (curl_handle);
 
+  /* cleaning addresses */
+  while (addr_head != NULL)
+  {
+    cur = addr_head;
+    tmp = addr_head->next;
+    GNUNET_free (addr_head->addr);
+    GNUNET_free (addr_head);
+    addr_head=tmp;
+  }
 
   if (ti_send != GNUNET_SCHEDULER_NO_TASK)
   {
@@ -392,13 +403,14 @@ shutdown_clean ()
  * @target target
  * @result GNUNET_OK or GNUNET_SYSERR
  */
+
 static void task_send_cont (void *cls,
                             const struct GNUNET_PeerIdentity * target,
                             int result)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message was sent!\n");
   fail = GNUNET_NO;
-  shutdown_clean();
+  //shutdown_clean();
 }
 
 #if 0
@@ -884,23 +896,28 @@ static void run_connection_tests( void )
 
     return;
   }
+  /* Using one of the addresses the plugin proposed */
+  GNUNET_assert (addr_head->addr != NULL);
 
-
+  struct Plugin_Address * tmp_addr;
   struct GNUNET_MessageHeader msg;
   char * tmp = GNUNET_malloc(sizeof(struct GNUNET_MessageHeader));
   msg.size=htons(sizeof(struct GNUNET_MessageHeader));
   msg.type=htons(13);
   memcpy(tmp,&msg,sizeof(struct GNUNET_MessageHeader));
 
-  api->send(api->cls, &my_identity, tmp, sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL,NULL, 0, GNUNET_NO, &task_send_cont, NULL);
+  tmp_addr = addr_head;
+  /* send a message to all addresses advertised by plugin */
+  int count = 0;
 
-  /*
-  msg.size=htons(2);
-  msg.type=htons(13);
-  memcpy(tmp,&msg,sizeof(struct GNUNET_MessageHeader));
+  while (tmp_addr != NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sending message to addres no. %u\n", count);
+    api->send(api->cls, &my_identity, tmp, sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL,tmp_addr->addr, tmp_addr->addrlen, GNUNET_YES, &task_send_cont, NULL);
+    tmp_addr = tmp_addr->next;
+    count ++;
+  }
 
-  api->send(api->cls, &my_identity, tmp, sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL,NULL, 0, GNUNET_NO, &task_send_cont, NULL);
-   */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No more tests to run\n");
 }
 
@@ -924,7 +941,6 @@ run (void *cls,
   char *keyfile;
   unsigned long long tneigh;
   struct Plugin_Address * cur;
-  struct Plugin_Address * tmp;
   const char * addr_str;
 
   unsigned int count_str_addr;
@@ -1004,9 +1020,9 @@ run (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Transport plugin returned %u addresses to connect to\n"),  fail_notify_address_count);
 
   /* testing pretty printer with all addresses obtained from the plugin*/
-  while (addr_head != NULL)
+  cur = addr_head;
+  while (cur != NULL)
   {
-    cur = addr_head;
 
     api->address_pretty_printer (NULL,"http",cur->addr,cur->addrlen,GNUNET_NO,TEST_TIMEOUT,&pretty_printer_cb,NULL);
     addr_str = api->address_to_string (NULL,cur->addr,cur->addrlen);
@@ -1016,11 +1032,7 @@ run (void *cls,
     GNUNET_assert (NULL != addr_str);
     count_str_addr++;
 
-    tmp = addr_head->next;
-    GNUNET_free (addr_head->addr);
-    GNUNET_free (addr_head);
-    GNUNET_free ((char *) addr_str);
-    addr_head=tmp;
+    cur = cur->next;
   }
 
 
