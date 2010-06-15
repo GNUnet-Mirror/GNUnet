@@ -178,16 +178,6 @@ struct Session
   struct GNUNET_PeerIdentity sender;
 
   /**
-   * Sender's url
-   */
-  char * url;
-
-  /**
-   * Sender's ip address to distinguish between incoming connections
-   */
-  char * ip;
-
-  /**
    * Sender's ip address to distinguish between incoming connections
    */
   struct sockaddr_in * addr_inbound;
@@ -378,33 +368,17 @@ static struct Session * find_session_by_curlhandle( CURL* handle )
  */
 static struct Session * create_session (struct sockaddr_in *addr_in, struct sockaddr_in *addr_out, const struct GNUNET_PeerIdentity *peer)
 {
-  struct sockaddr_in  *addrin;
-  struct sockaddr_in6 *addrin6;
   struct Session * ses = GNUNET_malloc ( sizeof( struct Session) );
 
   ses->addr_inbound  = GNUNET_malloc ( sizeof (struct sockaddr_in) );
   ses->addr_outbound  = GNUNET_malloc ( sizeof (struct sockaddr_in) );
-
   ses->next = NULL;
   ses->plugin = plugin;
-  if (NULL != addr_in)
+  if ((NULL != addr_in) && (( AF_INET == addr_in->sin_family) || ( AF_INET6 == addr_in->sin_family)))
   {
-
     memcpy(ses->addr_inbound, addr_in, sizeof (struct sockaddr_in));
-    if ( AF_INET == addr_in->sin_family)
-    {
-      ses->ip = GNUNET_malloc (INET_ADDRSTRLEN);
-      addrin = addr_in;
-      inet_ntop(addrin->sin_family,&(addrin->sin_addr),ses->ip,INET_ADDRSTRLEN);
-    }
-    if ( AF_INET6 == addr_in->sin_family)
-    {
-      ses->ip = GNUNET_malloc (INET6_ADDRSTRLEN);
-      addrin6 = (struct sockaddr_in6 *) addr_in;
-      inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr) ,ses->ip,INET6_ADDRSTRLEN);
-    }
   }
-  if (NULL != addr_out)
+  if ((NULL != addr_out) && (( AF_INET == addr_out->sin_family) || ( AF_INET6 == addr_out->sin_family)))
   {
     memcpy(ses->addr_outbound, addr_out, sizeof (struct sockaddr_in));
   }
@@ -562,15 +536,15 @@ accessHandlerCallback (void *cls,
       }
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"New Session `%s' inserted, count %u \n", address, plugin->session_count);
     }
-    /* Updating session */
-    memcpy(cs->addr_inbound,addrin, sizeof(struct sockaddr_in));
 
     /* Set closure */
     if (*httpSessionCache == NULL)
     {
       *httpSessionCache = cs;
+      /* Updating session */
+      memcpy(cs->addr_inbound,conn_info->client_addr, sizeof(struct sockaddr_in));
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s' (`[%s]:%u')\n",method, GNUNET_i2s(&cs->sender),cs->ip,cs->addr_inbound->sin_port);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s' (`[%s]:%u')\n",method, GNUNET_i2s(&cs->sender),address,cs->addr_inbound->sin_port);
   }
   else
   {
@@ -645,7 +619,8 @@ accessHandlerCallback (void *cls,
         {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Recieved GNUnet message type %u size %u and payload %u \n",ntohs (gn_msg->type), ntohs (gn_msg->size), ntohs (gn_msg->size)-sizeof(struct GNUNET_MessageHeader));
           /* forwarding message to transport */
-          plugin->env->receive(plugin->env, &(cs->sender), gn_msg, 1, cs , cs->ip, strlen(cs->ip) );
+
+          //plugin->env->receive(plugin->env, &(cs->sender), gn_msg, 1, cs , cs->ip, strlen(cs->ip) );
           send_error_to_client = GNUNET_NO;
         }
       }
@@ -1004,7 +979,7 @@ static void send_execute (void *cls,
                     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                                _("%s failed for `%s' at %s:%d: `%s'\n"),
                                "curl_multi_perform",
-                               cs->ip,
+                               GNUNET_i2s(&cs->sender),
                                __FILE__,
                                __LINE__,
                                curl_easy_strerror (msg->data.result));
@@ -1579,7 +1554,6 @@ libgnunet_plugin_transport_http_done (void *cls)
       }
       GNUNET_free (cs->pending_inbound_msg->buf);
       GNUNET_free (cs->pending_inbound_msg);
-      GNUNET_free (cs->ip);
       GNUNET_free_non_null (cs->addr_inbound);
       GNUNET_free_non_null (cs->addr_outbound);
       GNUNET_free (cs);
