@@ -400,6 +400,7 @@ shutdown_clean ()
   GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_http", api));
 
   GNUNET_SCHEDULER_shutdown(sched);
+  GNUNET_DISK_directory_remove ("/tmp/test_plugin_transport_http");
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Exiting testcase\n");
   exit(fail);
