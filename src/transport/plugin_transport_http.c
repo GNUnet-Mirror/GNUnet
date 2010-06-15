@@ -568,6 +568,9 @@ accessHandlerCallback (void *cls,
       }
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"New Session `%s' inserted, count %u \n", address, plugin->session_count);
     }
+    /* Updating session */
+    cs->addr_inbound=addrin;
+
     /* Set closure */
     if (*httpSessionCache == NULL)
     {
@@ -1563,7 +1566,7 @@ libgnunet_plugin_transport_http_done (void *cls)
 
   while ( NULL != cs)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Freeing session to `%s'\n",cs->ip);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Freeing session for peer `%s'\n",GNUNET_i2s(cs->sender));
 
       cs_next = cs->next;
       /* freeing messages */
