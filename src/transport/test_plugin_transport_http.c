@@ -578,7 +578,6 @@ static void send_execute (void *cls,
             {
 
               msg = curl_multi_info_read (multi_handle, &running);
-              GNUNET_break (msg != NULL);
               if (msg == NULL)
                 break;
               /* get session for affected curl handle */
@@ -599,6 +598,11 @@ static void send_execute (void *cls,
                                __LINE__,
                                curl_easy_strerror (msg->data.result));
                     /* sending msg failed*/
+                    curl_easy_cleanup(curl_handle);
+                    curl_handle=NULL;
+
+                    run_connection_tests();
+                    return;
                     }
                   if (res == &test_no_ident)
                   {
@@ -855,7 +859,7 @@ static void pretty_printer_cb (void *cls,
  */
 static void run_connection_tests( void )
 {
-  char * host_str;
+  static char * host_str;
 
   /* resetting buffers */
   buffer_in.size = HTTP_BUFFER_SIZE;
