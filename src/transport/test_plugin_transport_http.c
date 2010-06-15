@@ -481,7 +481,7 @@ receive (void *cls,
          const char *sender_address,
          uint16_t sender_address_len)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testcase recieved new message from peer `%s' with type %u and length %u\n",  GNUNET_i2s(peer),ntohs(message->type),ntohs(message->size));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testcase recieved new message from peer `%s' (`%s') with type %u and length %u\n",  GNUNET_i2s(peer), sender_address, ntohs(message->type), ntohs(message->size));
   return GNUNET_TIME_UNIT_ZERO;
 }
 

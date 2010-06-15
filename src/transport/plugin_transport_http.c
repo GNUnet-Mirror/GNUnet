@@ -39,7 +39,7 @@
 #include <curl/curl.h>
 
 
-#define DEBUG_CURL GNUNET_CURL
+#define DEBUG_CURL GNUNET_NO
 #define DEBUG_HTTP GNUNET_NO
 
 /**
@@ -382,7 +382,6 @@ static struct Session * create_session (struct sockaddr_in *addr_in, struct sock
   {
     memcpy(ses->addr_outbound, addr_out, sizeof (struct sockaddr_in));
   }
-
   memcpy(&ses->sender, peer, sizeof (struct GNUNET_PeerIdentity));
   GNUNET_CRYPTO_hash_to_enc(&ses->sender.hashPubKey,&(ses->hash));
   ses->is_active = GNUNET_NO;
@@ -449,7 +448,7 @@ accessHandlerCallback (void *cls,
   const union MHD_ConnectionInfo * conn_info;
   struct sockaddr_in  *addrin;
   struct sockaddr_in6 *addrin6;
-  char * address = NULL;
+  char address[INET6_ADDRSTRLEN+14];
   struct GNUNET_PeerIdentity pi_in;
   int res = GNUNET_NO;
   struct GNUNET_MessageHeader *gn_msg;
@@ -475,14 +474,12 @@ accessHandlerCallback (void *cls,
     /* Incoming IPv4 connection */
     if ( AF_INET == conn_info->client_addr->sin_family)
     {
-      address = GNUNET_malloc (INET_ADDRSTRLEN);
       addrin = conn_info->client_addr;
       inet_ntop(addrin->sin_family, &(addrin->sin_addr),address,INET_ADDRSTRLEN);
     }
     /* Incoming IPv6 connection */
     if ( AF_INET6 == conn_info->client_addr->sin_family)
     {
-      address = GNUNET_malloc (INET6_ADDRSTRLEN);
       addrin6 = (struct sockaddr_in6 *) conn_info->client_addr;
       inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr),address,INET6_ADDRSTRLEN);
     }
@@ -534,7 +531,7 @@ accessHandlerCallback (void *cls,
         cs_temp->next = cs;
         plugin->session_count++;
       }
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"New Session `%s' inserted, count %u \n", address, plugin->session_count);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"New Session `%s' inserted, count %u \n", GNUNET_i2s(&cs->sender), plugin->session_count);
     }
 
     /* Set closure */
@@ -544,7 +541,7 @@ accessHandlerCallback (void *cls,
       /* Updating session */
       memcpy(cs->addr_inbound,conn_info->client_addr, sizeof(struct sockaddr_in));
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s' (`[%s]:%u')\n",method, GNUNET_i2s(&cs->sender),address,cs->addr_inbound->sin_port);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s' (`[%s]:%u')\n",method, GNUNET_i2s(&cs->sender),address,ntohs(cs->addr_inbound->sin_port));
   }
   else
   {
@@ -620,7 +617,22 @@ accessHandlerCallback (void *cls,
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Recieved GNUnet message type %u size %u and payload %u \n",ntohs (gn_msg->type), ntohs (gn_msg->size), ntohs (gn_msg->size)-sizeof(struct GNUNET_MessageHeader));
           /* forwarding message to transport */
 
-          //plugin->env->receive(plugin->env, &(cs->sender), gn_msg, 1, cs , cs->ip, strlen(cs->ip) );
+          char * tmp = NULL;
+          if ( AF_INET == cs->addr_inbound->sin_family)
+          {
+            tmp = GNUNET_malloc (INET_ADDRSTRLEN + 14);
+            inet_ntop(AF_INET, &(cs->addr_inbound)->sin_addr,address,INET_ADDRSTRLEN);
+            GNUNET_asprintf(&tmp,"%s:%u",address,ntohs(cs->addr_inbound->sin_port));
+          }
+          /* Incoming IPv6 connection */
+          if ( AF_INET6 == cs->addr_inbound->sin_family)
+          {
+            tmp = GNUNET_malloc (INET6_ADDRSTRLEN + 14);
+            inet_ntop(AF_INET6, &((struct sockaddr_in6 *) cs->addr_inbound)->sin6_addr,address,INET6_ADDRSTRLEN);
+            GNUNET_asprintf(&tmp,"[%s]:%u",address,ntohs(cs->addr_inbound->sin_port));
+          }
+          plugin->env->receive(plugin->env, &(cs->sender), gn_msg, 1, cs , tmp, strlen(tmp));
+          GNUNET_free(tmp);
           send_error_to_client = GNUNET_NO;
         }
       }
