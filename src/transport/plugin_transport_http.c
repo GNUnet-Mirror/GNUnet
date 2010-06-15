@@ -382,14 +382,14 @@ static struct Session * create_session (struct sockaddr_in *addr_in, struct sock
   struct sockaddr_in6 *addrin6;
   struct Session * ses = GNUNET_malloc ( sizeof( struct Session) );
 
-  ses->addr_outbound = GNUNET_malloc ( sizeof (struct sockaddr_in) );
-
+  ses->addr_inbound  = GNUNET_malloc ( sizeof (struct sockaddr_in) );
+  ses->addr_outbound  = GNUNET_malloc ( sizeof (struct sockaddr_in) );
 
   ses->next = NULL;
   ses->plugin = plugin;
   if (NULL != addr_in)
   {
-    ses->addr_inbound  = GNUNET_malloc ( sizeof (struct sockaddr_in) );
+
     memcpy(ses->addr_inbound, addr_in, sizeof (struct sockaddr_in));
     if ( AF_INET == addr_in->sin_family)
     {
@@ -404,16 +404,10 @@ static struct Session * create_session (struct sockaddr_in *addr_in, struct sock
       inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr) ,ses->ip,INET6_ADDRSTRLEN);
     }
   }
-  else
-    ses->addr_inbound = NULL;
-
   if (NULL != addr_out)
   {
-    ses->addr_outbound  = GNUNET_malloc ( sizeof (struct sockaddr_in) );
     memcpy(ses->addr_outbound, addr_out, sizeof (struct sockaddr_in));
   }
-  else
-    ses->addr_outbound = NULL;
 
   memcpy(&ses->sender, peer, sizeof (struct GNUNET_PeerIdentity));
   GNUNET_CRYPTO_hash_to_enc(&ses->sender.hashPubKey,&(ses->hash));
@@ -569,7 +563,7 @@ accessHandlerCallback (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"New Session `%s' inserted, count %u \n", address, plugin->session_count);
     }
     /* Updating session */
-    cs->addr_inbound=addrin;
+    memcpy(cs->addr_inbound,addrin, sizeof(struct sockaddr_in));
 
     /* Set closure */
     if (*httpSessionCache == NULL)
@@ -1566,9 +1560,10 @@ libgnunet_plugin_transport_http_done (void *cls)
 
   while ( NULL != cs)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Freeing session for peer `%s'\n",GNUNET_i2s(cs->sender));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Freeing session for peer `%s'\n",GNUNET_i2s(&cs->sender));
 
       cs_next = cs->next;
+
       /* freeing messages */
       struct HTTP_Message *cur;
       struct HTTP_Message *tmp;
@@ -1585,13 +1580,15 @@ libgnunet_plugin_transport_http_done (void *cls)
       GNUNET_free (cs->pending_inbound_msg->buf);
       GNUNET_free (cs->pending_inbound_msg);
       GNUNET_free (cs->ip);
-      GNUNET_free (cs->addr_inbound);
+      GNUNET_free_non_null (cs->addr_inbound);
       GNUNET_free_non_null (cs->addr_outbound);
       GNUNET_free (cs);
+
       plugin->session_count--;
       cs = cs_next;
-
     }
+
+
 
   /* GNUNET_SERVICE_stop (plugin->service); */
   GNUNET_free (hostname);
