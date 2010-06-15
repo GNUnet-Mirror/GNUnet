@@ -1090,20 +1090,20 @@ run (void *cls,
 
   /* Suggesting addresses with wrong port*/
   struct IPv4HttpAddress failing_addr;
-  failing_addr.ipv4_addr = INADDR_LOOPBACK;
-  failing_addr.u_port = 0;
+  failing_addr.ipv4_addr = htonl(INADDR_LOOPBACK);
+  failing_addr.u_port = htons(0);
   suggest_res = api->check_address (NULL,&failing_addr,sizeof (struct IPv4HttpAddress));
   GNUNET_assert (GNUNET_SYSERR == suggest_res);
 
   /* Suggesting addresses with wrong size*/
-  failing_addr.ipv4_addr = INADDR_LOOPBACK;
-  failing_addr.u_port = 0;
+  failing_addr.ipv4_addr = htonl(INADDR_LOOPBACK);
+  failing_addr.u_port = htons(0);
   suggest_res = api->check_address (NULL,&failing_addr,sizeof (struct IPv6HttpAddress));
   GNUNET_assert (GNUNET_SYSERR == suggest_res);
 
   /* Suggesting addresses with wrong address*/
-  failing_addr.ipv4_addr = 0;
-  failing_addr.u_port = 12389;
+  failing_addr.ipv4_addr = htonl(INADDR_LOOPBACK);
+  failing_addr.u_port = htons(12389);
   suggest_res = api->check_address (NULL,&failing_addr,sizeof (struct IPv4HttpAddress));
   GNUNET_assert (GNUNET_SYSERR == suggest_res);
 

@@ -1358,17 +1358,18 @@ http_plugin_address_suggested (void *cls,
   if ((addrlen != sizeof (struct IPv4HttpAddress)) &&
       (addrlen != sizeof (struct IPv6HttpAddress)))
     {
-      GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
   if (addrlen == sizeof (struct IPv4HttpAddress))
     {
       v4 = (struct IPv4HttpAddress *) addr;
-
+      if (INADDR_LOOPBACK == ntohl(v4->ipv4_addr))
+      {
+        return GNUNET_SYSERR;
+      }
       port = ntohs (v4->u_port);
       if (port != plugin->port_inbound)
       {
-        GNUNET_break_op (0);
         return GNUNET_SYSERR;
       }
     }
@@ -1377,17 +1378,16 @@ http_plugin_address_suggested (void *cls,
       v6 = (struct IPv6HttpAddress *) addr;
       if (IN6_IS_ADDR_LINKLOCAL (&v6->ipv6_addr))
         {
-          GNUNET_break_op (0);
           return GNUNET_SYSERR;
         }
       port = ntohs (v6->u6_port);
       if (port != plugin->port_inbound)
       {
-        GNUNET_break_op (0);
         return GNUNET_SYSERR;
       }
-
     }
+
+
   return GNUNET_OK;
 }
 
