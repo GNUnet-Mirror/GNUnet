@@ -39,7 +39,7 @@
 #include <curl/curl.h>
 
 
-#define DEBUG_CURL GNUNET_NO
+#define DEBUG_CURL GNUNET_YES
 #define DEBUG_HTTP GNUNET_NO
 
 /**
@@ -463,10 +463,13 @@ accessHandlerCallback (void *cls,
     res = GNUNET_CRYPTO_hash_from_string ( &url[1], &(pi_in.hashPubKey));
     if ( GNUNET_SYSERR == res )
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Peer has no valid ident\n");
       response = MHD_create_response_from_data (strlen (HTTP_ERROR_RESPONSE),HTTP_ERROR_RESPONSE, MHD_NO, MHD_NO);
       res = MHD_queue_response (session, MHD_HTTP_NOT_FOUND, response);
       MHD_destroy_response (response);
+      if (res == MHD_YES)
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Peer has no valid ident, sent HTTP 1.1/404\n");
+      else
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Peer has no valid ident, could not send error\n");
       return res;
     }
 

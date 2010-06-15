@@ -44,7 +44,7 @@
 
 #define VERBOSE GNUNET_YES
 #define DEBUG GNUNET_NO
-#define DEBUG_CURL GNUNET_NO
+#define DEBUG_CURL GNUNET_YES
 #define HTTP_BUFFER_SIZE 2048
 
 #define PLUGIN libgnunet_plugin_transport_template
@@ -602,7 +602,6 @@ static void send_execute (void *cls,
                     curl_handle=NULL;
 
                     run_connection_tests();
-                    return;
                     }
                   if (res == &test_no_ident)
                   {
