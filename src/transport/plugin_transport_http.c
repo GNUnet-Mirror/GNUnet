@@ -353,8 +353,8 @@ static struct Session * find_session_by_curlhandle( CURL* handle )
 /**
  * Create a new session
  *
- * @param address address the peer is using inbound
- * @param address address the peer is using outbound
+ * @param addr_in address the peer is using inbound
+ * @param addr_out address the peer is using outbound
  * @param peer identity
  * @return created session object
  */
@@ -908,7 +908,7 @@ static size_t send_write_callback( void *stream, size_t size, size_t nmemb, void
  * @param session session to send data to
  * @return bytes sent to peer
  */
-static size_t send_prepare(struct Session* session );
+static size_t send_prepare(struct Session* ses );
 
 /**
  * Function setting up curl handle and selecting message to send
@@ -1061,7 +1061,7 @@ static void send_execute (void *cls,
  * @param ses session to send data to
  * @return bytes sent to peer
  */
-static size_t send_prepare(struct Session* session )
+static size_t send_prepare(struct Session* ses )
 {
   fd_set rs;
   fd_set ws;
@@ -1106,7 +1106,7 @@ static size_t send_prepare(struct Session* session )
                                    grs,
                                    gws,
                                    &send_execute,
-                                   session);
+                                   ses);
   GNUNET_NETWORK_fdset_destroy (gws);
   GNUNET_NETWORK_fdset_destroy (grs);
 
