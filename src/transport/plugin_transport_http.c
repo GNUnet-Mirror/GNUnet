@@ -39,7 +39,7 @@
 #include <curl/curl.h>
 
 
-#define DEBUG_CURL GNUNET_YES
+#define DEBUG_CURL GNUNET_NO
 #define DEBUG_HTTP GNUNET_NO
 
 /**
