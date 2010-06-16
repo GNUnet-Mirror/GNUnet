@@ -218,6 +218,11 @@ static struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
 static long long unsigned int port;
 
 /**
+ * Peer's port
+ */
+static char * test_addr;
+
+/**
  * Our scheduler.
  */
 struct GNUNET_SCHEDULER_Handle *sched;
@@ -404,6 +409,8 @@ shutdown_clean ()
     GNUNET_SCHEDULER_cancel(sched,ti_timeout);
     ti_timeout = GNUNET_SCHEDULER_NO_TASK;
   }
+
+  GNUNET_free(test_addr);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Unloading http plugin\n");
   GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_http", api));
 
@@ -560,7 +567,7 @@ static size_t header_function( void *ptr, size_t size, size_t nmemb, void *strea
 
 static size_t send_prepare( struct HTTP_Transfer * result);
 
-static void run_connection_tests( void );
+static void run_connection_tests( );
 
 static void send_execute (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -864,10 +871,10 @@ static void pretty_printer_cb (void *cls,
 /**
  * Runs every single test to test the plugin
  */
-static void run_connection_tests( void )
+static void run_connection_tests( )
 {
-  static char * host_str;
-
+  char * host_str = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,"Addr: %s\n",test_addr);
   /* resetting buffers */
   buffer_in.size = HTTP_BUFFER_SIZE;
   buffer_in.pos = 0;
@@ -881,9 +888,9 @@ static void run_connection_tests( void )
   if (test_no_ident.test_executed == GNUNET_NO)
   {
     /* Connecting to peer without identification */
-
-    host_str = GNUNET_malloc (strlen ("http://localhost:12389/")+1);
-    GNUNET_asprintf (&host_str, "http://localhost:%u/",port);
+    char * ident = "";
+    host_str = GNUNET_malloc (strlen ("http:///")+ 1 + strlen (test_addr)+ strlen (ident));
+    GNUNET_asprintf (&host_str, "http://%s/%s",test_addr,ident);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer without any peer identification.\n"));
     test_no_ident.test_executed = GNUNET_YES;
     send_data ( &test_no_ident, host_str);
@@ -894,8 +901,8 @@ static void run_connection_tests( void )
   {
     char * ident = "AAAAAAAAAA";
     /* Connecting to peer with too short identification */
-    host_str = GNUNET_malloc (strlen ("http://localhost:12389/") + strlen (ident));
-    GNUNET_asprintf (&host_str, "http://localhost:%u/%s",port,ident);
+    host_str = GNUNET_malloc (strlen ("http:///")+ 1 + strlen (test_addr)+ strlen (ident));
+    GNUNET_asprintf (&host_str, "http://%s/%s",test_addr,ident);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with too short peer identification.\n"));
     test_too_short_ident.test_executed = GNUNET_YES;
     send_data ( &test_too_short_ident, host_str);
@@ -908,8 +915,8 @@ static void run_connection_tests( void )
     char * ident = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
     /* Connecting to peer with too long identification */
-    host_str = GNUNET_malloc (strlen ("http://localhost:12389/") + strlen (ident));
-    GNUNET_asprintf (&host_str, "http://localhost:%u/%s",port,ident);
+    host_str = GNUNET_malloc (strlen ("http:///")+ 1 + strlen (test_addr)+ strlen (ident));
+    GNUNET_asprintf (&host_str, "http://%s/%s",test_addr,ident);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with too long peer identification.\n"));
     test_too_long_ident.test_executed = GNUNET_YES;
     send_data ( &test_too_long_ident, host_str);
@@ -918,10 +925,10 @@ static void run_connection_tests( void )
   }
   if (test_valid_ident.test_executed == GNUNET_NO)
   {
-    struct GNUNET_CRYPTO_HashAsciiEncoded result;
-    GNUNET_CRYPTO_hash_to_enc(&my_identity.hashPubKey,&result);
-    host_str = GNUNET_malloc (strlen ("http://localhost:12389/") + strlen ((const char *) &result));
-    GNUNET_asprintf (&host_str, "http://localhost:%u/%s",port,(char *) &result);
+    struct GNUNET_CRYPTO_HashAsciiEncoded ident;
+    GNUNET_CRYPTO_hash_to_enc(&my_identity.hashPubKey,&ident);
+    host_str = GNUNET_malloc (strlen ("http:///")+ 1 + strlen (test_addr)+ strlen ((char *) &ident));
+    GNUNET_asprintf (&host_str, "http://%s/%s",test_addr,(char *) &ident);
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with valid peer identification.\n"));
     test_valid_ident.test_executed = GNUNET_YES;
@@ -1090,11 +1097,10 @@ run (void *cls,
     GNUNET_assert (GNUNET_OK == suggest_res);
     GNUNET_assert (NULL != addr_str);
     count_str_addr++;
-
+    GNUNET_free ( (char *) addr_str);
     cur = cur->next;
   }
-
-
+  GNUNET_assert (fail_pretty_printer_count > 0);
   GNUNET_assert (fail_pretty_printer_count==fail_notify_address_count);
   GNUNET_assert (fail_pretty_printer_count==count_str_addr);
   fail_pretty_printer=GNUNET_NO;
@@ -1149,6 +1155,7 @@ run (void *cls,
   test_valid_ident.test_executed = GNUNET_NO;
   test_valid_ident.test_failed = GNUNET_YES;
 
+  test_addr = (char *) api->address_to_string (NULL,addr_head->addr,addr_head->addrlen);
   run_connection_tests();
 
   /* testing finished */
