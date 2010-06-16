@@ -295,6 +295,15 @@ GNUNET_CONTAINER_meta_data_delete (struct GNUNET_CONTAINER_MetaData *md,
 
 
 /**
+ * Remove all items in the container.
+ *
+ * @param md metadata to manipulate
+ */
+void 
+GNUNET_CONTAINER_meta_data_clear (struct GNUNET_CONTAINER_MetaData *md);
+
+
+/**
  * Add the current time as the publication date
  * to the meta-data.
  *

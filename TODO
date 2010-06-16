@@ -1,12 +1,7 @@
 0.9.0pre1:
 * FS: [CG]
-  - Migration test error scenarios:
-    * client fails to connect to FS service for download (requests never make it to FS)
-      FS was running initially, but is shut down around the time the source peer (!)
-      is supposed to die; the OTHER FS service (the one that was supposed to die) is still up!
   - TTL/priority calculations
-  - hot-path routing, load considerations
-  - active reply route caching design & implementation of service; gap extension!
+  - hot-path routing
 * TRANSPORT:
   - HTTP backend [MW]
 * DV: [Nate]
@@ -23,33 +18,17 @@
     [On W32, we need to select after calling socket before doing connect etc.]
 * GNUNET-GTK:
   - implement publish dialog
-    + edit (meta data add, meta data del, meta data type population, keyword add (button, activate entry line), 
-            keyword remove, anonymity level, priority, index/insert, normalize keywords, 
-            previews, preview widget for file chooser!?)
-    + mark 'insert file' button inconsistent for directories
+    + edit: extract metadata / ksk uri (!)
     + up
     + down
     + left
     + right
-    + delete
-    + open (import directory structure)
-    + cancel
     + execute (publish)
-  - right-clicking on search result should open menu that allows:
-    + starting recursive download 
-    + aborting active download 
-    + copy URI to clipboard 
-    + save-as gnunet-directory
   - directory support:
     + download start: recursive/directory (!) & from-URI only
-    + download lost-parent (move to 'from-URI only' tab
+    + handle download lost-parent (move to 'from-URI only' tab)
     + display content of directory
     + open directory
-  - events:
-    + search resume
-    + search error
-    + download error
-    + download resume
 
 0.9.0pre2:
 * CORE:
@@ -59,6 +38,8 @@
     (i.e. rapid reduction in timeout on transport-level disconnect)
   - encrypted P2P transmission (loopback) tops at 2 MB/s on my quad-core;
     why is it so slow? Fix! (see core_api_reliability test)
+  - implement API to get notifications about bandwidth assignments to individual peers
+  - implement API to get notifications about updates to liveness of individual peers (before disconnect)
 * TBENCH: [MW]
   - good to have for transport/DV evaluation! 
 * DHT: [Nate]
@@ -72,6 +53,8 @@
   - handle gnunet-arm -k in combination with auto-start magic (what is the right thing here?)
   - add listen socket forwarding to child processes on supported platforms
 * FS: [CG]
+  - load considerations (migration, routing)
+  - active reply route caching design & implementation of service; gap extension!
   - datastore reservation (publishing)
   - location URIs (publish, search, download)
   - unindex on index failure
@@ -90,7 +73,24 @@
     + download
     + search
     + unindex
+* STATISTICS:
+  - implement notification-based statistics API
 * GNUNET-GTK:
+  - implement publish dialog details:
+    + open (import directory structure)
+    + normalize keywords (edit subdialog)
+    + set/view previews (edit subdialog)
+    + mark 'insert file' button inconsistent for directories (edit subdialog)
+  - right-clicking on search result should open menu that allows:
+    + starting recursive download 
+    + aborting active download 
+    + copy URI to clipboard 
+    + save-as gnunet-directory
+  - events:
+    + search resume
+    + search error
+    + download error
+    + download resume
   - implement open directory dialog
   - implement new-pseudonym dialog
   - namespace search
@@ -99,8 +99,6 @@
   - right-clicking on NS list in search dialog should open menu that allows 
     + viewing full meta data 
     + deletion of namespace info
-  - implement API to get notifications about bandwidth assignments to individual peers
-  - implement API to get notifications about updates to liveness of individual peers (before disconnect)
   - extend peer dialog with green-yellow-red connectivity status lights
   - extend peer dialog with country flags and names
   - implement statistics tabs
@@ -108,8 +106,6 @@
   - implement unindex operation (use dialog with all indexed files for selection)
   - implement download by URI dialog; figure out where to display those downloads!
   - figure out where in the GUI we should show active uploads/unindex operations and allow aborts
-* SETUP:
-  - design & implement new setup tool
 
 0.9.0pre3:
 * TRACEKIT: [MW]
@@ -141,6 +137,8 @@
   - use different 'priority' for probe downloads vs. normal downloads
 * ARM:
   - better tracking of which config changes actually need to cause process restarts by ARM.
+* SETUP:
+  - design & implement new setup tool
 
 0.9.0:
 * new webpage:

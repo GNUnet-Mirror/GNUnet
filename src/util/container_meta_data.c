@@ -170,6 +170,29 @@ GNUNET_CONTAINER_meta_data_destroy (struct GNUNET_CONTAINER_MetaData *md)
 
 
 /**
+ * Remove all items in the container.
+ *
+ * @param md metadata to manipulate
+ */
+void 
+GNUNET_CONTAINER_meta_data_clear (struct GNUNET_CONTAINER_MetaData *md)
+{
+  struct MetaItem *item;
+
+  if (md == NULL)
+    return;
+  while (NULL != (item = md->items))
+    {
+      md->items = item->next;
+      meta_item_free (item);
+    }
+  GNUNET_free_non_null (md->sbuf);
+  memset (md, 0, sizeof (struct GNUNET_CONTAINER_MetaData));
+}
+
+
+
+/**
  * Test if two MDs are equal.  We consider them equal if
  * the meta types, formats and content match (we do not
  * include the mime types and plugins names in this
