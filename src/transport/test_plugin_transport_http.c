@@ -351,17 +351,25 @@ shutdown_clean ()
   struct Plugin_Address * tmp;
 
   /* Evaluate results  */
-  if ((fail_notify_address == GNUNET_NO) && (fail_pretty_printer == GNUNET_NO) && (fail_addr_to_str == GNUNET_NO) &&
-      (test_no_ident.test_failed == GNUNET_NO) && (test_too_short_ident.test_failed == GNUNET_NO) && (test_too_long_ident.test_failed == GNUNET_NO) &&
-      (test_valid_ident.test_failed == GNUNET_NO) && (fail_msgs_transmited_to_local_addrs == count_str_addr))
+  fail = 0;
+  if ((fail_notify_address == GNUNET_YES) || (fail_pretty_printer == GNUNET_YES) || (fail_addr_to_str == GNUNET_YES))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Tests successful\n");
-    fail = 0;
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Tests failed\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test plugin functions failed\n");
     fail = 1;
+  }
+  if ((test_no_ident.test_failed == GNUNET_YES) || (test_too_short_ident.test_failed == GNUNET_YES) || (test_too_long_ident.test_failed == GNUNET_YES))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test connect with wrong data failed\n");
+    fail = 1;
+  }
+  if ((test_valid_ident.test_failed == GNUNET_YES) || (fail_msgs_transmited_to_local_addrs != count_str_addr))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test sending with plugin failed\n");
+    fail = 1;
+  }
+  if (fail != 1)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All tests successful\n");
   }
 
   curl_multi_cleanup(multi_handle);
@@ -873,16 +881,15 @@ static void run_connection_tests( void )
   if (test_no_ident.test_executed == GNUNET_NO)
   {
     /* Connecting to peer without identification */
+
     host_str = GNUNET_malloc (strlen ("http://localhost:12389/")+1);
     GNUNET_asprintf (&host_str, "http://localhost:%u/",port);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer without any peer identification.\n"));
     test_no_ident.test_executed = GNUNET_YES;
     send_data ( &test_no_ident, host_str);
     GNUNET_free (host_str);
-
     return;
   }
-
   if (test_too_short_ident.test_executed == GNUNET_NO)
   {
     char * ident = "AAAAAAAAAA";
@@ -893,7 +900,6 @@ static void run_connection_tests( void )
     test_too_short_ident.test_executed = GNUNET_YES;
     send_data ( &test_too_short_ident, host_str);
     GNUNET_free (host_str);
-
     return;
   }
 
@@ -904,18 +910,15 @@ static void run_connection_tests( void )
     /* Connecting to peer with too long identification */
     host_str = GNUNET_malloc (strlen ("http://localhost:12389/") + strlen (ident));
     GNUNET_asprintf (&host_str, "http://localhost:%u/%s",port,ident);
-
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with too long peer identification.\n"));
     test_too_long_ident.test_executed = GNUNET_YES;
     send_data ( &test_too_long_ident, host_str);
     GNUNET_free (host_str);
-
     return;
   }
   if (test_valid_ident.test_executed == GNUNET_NO)
   {
     struct GNUNET_CRYPTO_HashAsciiEncoded result;
-
     GNUNET_CRYPTO_hash_to_enc(&my_identity.hashPubKey,&result);
     host_str = GNUNET_malloc (strlen ("http://localhost:12389/") + strlen ((const char *) &result));
     GNUNET_asprintf (&host_str, "http://localhost:%u/%s",port,(char *) &result);
@@ -924,7 +927,6 @@ static void run_connection_tests( void )
     test_valid_ident.test_executed = GNUNET_YES;
     send_data ( &test_valid_ident, host_str);
     GNUNET_free (host_str);
-
     return;
   }
   /* Using one of the addresses the plugin proposed */
@@ -1027,7 +1029,7 @@ run (void *cls,
                                              "transport-http",
                                              "PORT",
                                              &port)) ||
-     (port > 65535) )
+     (port > 65535) || (port == 0))
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
                      "http",
@@ -1035,6 +1037,7 @@ run (void *cls,
                      ("Require valid port number for transport plugin `%s' in configuration!\n"),
                      "transport-http");
   }
+
   max_connect_per_transport = (uint32_t) tneigh;
   my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
@@ -1046,9 +1049,14 @@ run (void *cls,
       fail = 1;
       return;
     }
+
   GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
-  GNUNET_CRYPTO_hash (&my_public_key,
-                      sizeof (my_public_key), &my_identity.hashPubKey);
+  GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key), &my_identity.hashPubKey);
+
+  /* assertions before start */
+  GNUNET_assert ((port > 0) && (port <= 65535));
+  GNUNET_assert(&my_public_key != NULL);
+  GNUNET_assert(&my_identity.hashPubKey != NULL);
 
   /* load plugins... */
   setup_plugin_environment ();

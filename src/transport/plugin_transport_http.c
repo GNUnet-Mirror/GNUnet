@@ -246,11 +246,6 @@ struct Plugin
    */
   struct GNUNET_TRANSPORT_PluginEnvironment *env;
 
-  /**
-   * Handle to the network service.
-   */
-  struct GNUNET_SERVICE_Context *service;
-
   unsigned int port_inbound;
 
   /**
@@ -301,11 +296,6 @@ static struct Plugin *plugin;
  * cURL Multihandle
  */
 static CURLM *multi_handle;
-
-/**
- * Our hostname
- */
-static char * hostname;
 
 /**
  * Our ASCII encoded, hashed peer identity
@@ -1454,8 +1444,6 @@ process_interfaces (void *cls,
   void *arg;
   uint16_t args;
 
-
-
   af = addr->sa_family;
   if (af == AF_INET)
     {
@@ -1494,7 +1482,6 @@ process_interfaces (void *cls,
       return GNUNET_OK;
     }
   plugin->env->notify_address(plugin->env->cls,"http",arg, args, GNUNET_TIME_UNIT_FOREVER_REL);
-
   return GNUNET_OK;
 }
 
@@ -1577,10 +1564,6 @@ libgnunet_plugin_transport_http_done (void *cls)
       cs = cs_next;
     }
 
-
-
-  /* GNUNET_SERVICE_stop (plugin->service); */
-  GNUNET_free (hostname);
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;
@@ -1595,29 +1578,15 @@ libgnunet_plugin_transport_http_init (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
-  struct GNUNET_SERVICE_Context *service;
   unsigned int timeout;
   struct GNUNET_TIME_Relative gn_timeout;
   long long unsigned int port;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting http plugin...\n");
 
-  service = NULL;
-  /*
-  service = GNUNET_SERVICE_start ("transport-http", env->sched, env->cfg);
-  if (service == NULL)
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "", _
-                       ("Failed to start service for `%s' transport plugin.\n"),
-                       "http");
-      return NULL;
-    }
-    */
-
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
   plugin->sessions = NULL;
-  plugin->service = service;
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
   api->send = &http_plugin_send;
@@ -1625,8 +1594,6 @@ libgnunet_plugin_transport_http_init (void *cls)
   api->address_pretty_printer = &http_plugin_address_pretty_printer;
   api->check_address = &http_plugin_address_suggested;
   api->address_to_string = &http_plugin_address_to_string;
-
-  hostname = GNUNET_RESOLVER_local_fqdn_get ();
 
   /* Hashing our identity to use it in URLs */
   GNUNET_CRYPTO_hash_to_enc ( &(plugin->env->my_identity->hashPubKey), &my_ascii_hash_ident);
@@ -1647,6 +1614,10 @@ libgnunet_plugin_transport_http_init (void *cls)
       libgnunet_plugin_transport_http_done (api);
       return NULL;
     }
+
+  GNUNET_assert ((port > 0) && (port <= 65535));
+  GNUNET_assert (&my_ascii_hash_ident != NULL);
+
   plugin->port_inbound = port;
   gn_timeout = GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT;
   timeout = ( gn_timeout.value / 1000);
@@ -1682,9 +1653,14 @@ libgnunet_plugin_transport_http_init (void *cls)
 
   if (http_task_v4 != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD with IPv4 on port %u\n",port);
-  if (http_task_v6 != GNUNET_SCHEDULER_NO_TASK)
+  else if (http_task_v6 != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD with IPv4 and IPv6 on port %u\n",port);
-
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No MHD was started, transport plugin not functional!\n");
+    libgnunet_plugin_transport_http_done (api);
+    return NULL;
+  }
 
   /* Initializing cURL */
   multi_handle = curl_multi_init();
