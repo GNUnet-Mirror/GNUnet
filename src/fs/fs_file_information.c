@@ -628,6 +628,19 @@ GNUNET_FS_file_information_create_from_directory (struct GNUNET_FS_Handle *h,
 
 
 /**
+ * Test if a given entry represents a directory.
+ *
+ * @param ent check if this FI represents a directory
+ * @return GNUNET_YES if so, GNUNET_NO if not
+ */
+int
+GNUNET_FS_file_information_is_directory (struct GNUNET_FS_FileInformation *ent)
+{
+  return ent->is_directory;
+}
+
+
+/**
  * Create an entry for an empty directory in a publish-structure.
  * This function should be used by applications for which the
  * use of "GNUNET_FS_file_information_create_from_directory"
