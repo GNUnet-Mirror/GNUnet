@@ -18,11 +18,6 @@
     [On W32, we need to select after calling socket before doing connect etc.]
 * GNUNET-GTK:
   - implement publish dialog
-    + edit: extract metadata / ksk uri (!)
-    + up
-    + down
-    + left
-    + right
     + execute (publish)
   - directory support:
     + download start: recursive/directory (!) & from-URI only
