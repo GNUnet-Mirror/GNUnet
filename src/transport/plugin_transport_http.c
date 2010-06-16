@@ -152,6 +152,8 @@ struct HTTP_Message
    * Closure for transmit_cont.
    */
   void *transmit_cont_cls;
+
+  unsigned int http_result_code;
 };
 
 
@@ -586,9 +588,10 @@ accessHandlerCallback (void *cls,
       res = MHD_queue_response (session, MHD_HTTP_REQUEST_ENTITY_TOO_LARGE, response);
       if (res == MHD_YES)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sent HTTP/1.1: 413 ENTITY TOO LARGE as PUT Response\n");
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sent HTTP/1.1: 413 Request Entity Too Large as PUT Response\n");
         cs->is_bad_request = GNUNET_NO;
         cs->is_put_in_progress =GNUNET_NO;
+        cs->pending_inbound_msg->pos = 0;
       }
       MHD_destroy_response (response);
       return MHD_YES;
@@ -801,6 +804,7 @@ static size_t header_function( void *ptr, size_t size, size_t nmemb, void *strea
 {
   char * tmp;
   unsigned int len = size * nmemb;
+  struct Session * ses = stream;
 
   tmp = GNUNET_malloc (  len+1 );
   memcpy(tmp,ptr,len);
@@ -809,28 +813,26 @@ static size_t header_function( void *ptr, size_t size, size_t nmemb, void *strea
 #if DEBUG_CURL
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Header: `%s'\n",tmp);
 #endif
-  /*
   if (0==strcmp (tmp,"HTTP/1.1 100 Continue"))
   {
-    res->http_result_code=100;
+    ses->pending_outbound_msg->http_result_code=100;
   }
   if (0==strcmp (tmp,"HTTP/1.1 200 OK"))
   {
-    res->http_result_code=200;
+    ses->pending_outbound_msg->http_result_code=200;
   }
   if (0==strcmp (tmp,"HTTP/1.1 400 Bad Request"))
   {
-    res->http_result_code=400;
+    ses->pending_outbound_msg->http_result_code=400;
   }
   if (0==strcmp (tmp,"HTTP/1.1 404 Not Found"))
   {
-    res->http_result_code=404;
+    ses->pending_outbound_msg->http_result_code=404;
   }
-  if (0==strcmp (tmp,"HTTP/1.1 413 Request entity too large"))
+  if (0==strcmp (tmp,"HTTP/1.1 413 Request Entity Too Large"))
   {
-    res->http_result_code=413;
+    ses->pending_outbound_msg->http_result_code=413;
   }
-   */
   GNUNET_free (tmp);
   return size * nmemb;
 }
@@ -849,18 +851,33 @@ static size_t send_read_callback(void *stream, size_t size, size_t nmemb, void *
   struct Session * ses = ptr;
   struct HTTP_Message * msg = ses->pending_outbound_msg;
   unsigned int bytes_sent;
-
+  unsigned int len;
   bytes_sent = 0;
-  if (msg->len > (size * nmemb))
-    return CURL_READFUNC_ABORT;
 
-  if (( msg->pos < msg->len) && (msg->len < (size * nmemb)))
+  /* data to send */
+  if (( msg->pos < msg->len))
   {
-    memcpy(stream, msg->buf, msg->len);
-    msg->pos = msg->len;
-    bytes_sent = msg->len;
+    /* data fit in buffer */
+    if ((msg->len - msg->pos) <= (size * nmemb))
+    {
+      len = (msg->len - msg->pos);
+      memcpy(stream, &msg->buf[msg->pos], len);
+      msg->pos += len;
+      bytes_sent = len;
+    }
+    else
+    {
+      len = size*nmemb;
+      memcpy(stream, &msg->buf[msg->pos], len);
+      msg->pos += len;
+      bytes_sent = len;
+    }
   }
-
+  /* no data to send */
+  else
+  {
+    bytes_sent = 0;
+  }
   return bytes_sent;
 }
 
@@ -880,7 +897,7 @@ static size_t send_write_callback( void *stream, size_t size, size_t nmemb, void
   memcpy( data, stream, size*nmemb);
   data[size*nmemb] = '\0';
   /* Just a dummy print for the response recieved for the PUT message */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Recieved %u bytes: `%s' \n", size * nmemb, data);
+  /* GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Recieved %u bytes: `%s' \n", size * nmemb, data); */
   free (data);
   return (size * nmemb);
 
@@ -921,6 +938,7 @@ static ssize_t send_select_init (struct Session* ses )
   curl_easy_setopt(ses->curl_handle, CURLOPT_URL, msg->dest_url);
   curl_easy_setopt(ses->curl_handle, CURLOPT_PUT, 1L);
   curl_easy_setopt(ses->curl_handle, CURLOPT_HEADERFUNCTION, &header_function);
+  curl_easy_setopt(ses->curl_handle, CURLOPT_WRITEHEADER, ses);
   curl_easy_setopt(ses->curl_handle, CURLOPT_READFUNCTION, send_read_callback);
   curl_easy_setopt(ses->curl_handle, CURLOPT_READDATA, ses);
   curl_easy_setopt(ses->curl_handle, CURLOPT_WRITEFUNCTION, send_write_callback);
@@ -928,6 +946,7 @@ static ssize_t send_select_init (struct Session* ses )
   curl_easy_setopt(ses->curl_handle, CURLOPT_INFILESIZE_LARGE, (curl_off_t) msg->len);
   curl_easy_setopt(ses->curl_handle, CURLOPT_TIMEOUT, (long) (timeout.value / 1000 ));
   curl_easy_setopt(ses->curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
+  curl_easy_setopt(ses->curl_handle, CURLOPT_BUFFERSIZE, GNUNET_SERVER_MAX_MESSAGE_SIZE);
 
   mret = curl_multi_add_handle(multi_handle, ses->curl_handle);
   if (mret != CURLM_OK)
@@ -994,16 +1013,26 @@ static void send_execute (void *cls,
                     }
                   else
                   {
+
                     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                                "Send to peer `%s' completed.\n", GNUNET_i2s(&cs->sender));
+                                "Send to peer `%s' completed with code %u\n", GNUNET_i2s(&cs->sender),cs->pending_outbound_msg->http_result_code);
 
                     curl_easy_cleanup(cs->curl_handle);
                     cs->curl_handle=NULL;
 
                     /* Calling transmit continuation  */
                     if (( NULL != cs->pending_outbound_msg) && (NULL != cs->pending_outbound_msg->transmit_cont))
-                      cs->pending_outbound_msg->transmit_cont (cs->pending_outbound_msg->transmit_cont_cls,&cs->sender,GNUNET_OK);
-
+                    {
+                      /* HTTP 1xx : Last message before here was informational */
+                      if ((cs->pending_outbound_msg->http_result_code >=100) && (cs->pending_outbound_msg->http_result_code < 200))
+                        cs->pending_outbound_msg->transmit_cont (cs->pending_outbound_msg->transmit_cont_cls,&cs->sender,GNUNET_OK);
+                      /* HTTP 2xx: successful operations */
+                      if ((cs->pending_outbound_msg->http_result_code >=200) && (cs->pending_outbound_msg->http_result_code < 300))
+                        cs->pending_outbound_msg->transmit_cont (cs->pending_outbound_msg->transmit_cont_cls,&cs->sender,GNUNET_OK);
+                      /* HTTP 3xx..5xx: error */
+                      if ((cs->pending_outbound_msg->http_result_code >=300) && (cs->pending_outbound_msg->http_result_code < 600))
+                        cs->pending_outbound_msg->transmit_cont (cs->pending_outbound_msg->transmit_cont_cls,&cs->sender,GNUNET_SYSERR);
+                    }
                     if (GNUNET_OK != remove_http_message(cs, cs->pending_outbound_msg))
                       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message could not be removed from session `%s'", GNUNET_i2s(&cs->sender));
 
