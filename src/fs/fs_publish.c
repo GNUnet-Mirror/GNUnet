@@ -940,6 +940,7 @@ GNUNET_FS_publish_main_ (void *cls,
  * @param uri pointer to the keywords that will be used for this entry (can be modified)
  * @param anonymity pointer to selected anonymity level (can be modified)
  * @param priority pointer to selected priority (can be modified)
+ * @param do_index should we index?
  * @param expirationTime pointer to selected expiration time (can be modified)
  * @param client_info pointer to client context set upon creation (can be modified)
  * @return GNUNET_OK to continue (always)
@@ -952,6 +953,7 @@ fip_signal_start(void *cls,
 		 struct GNUNET_FS_Uri **uri,
 		 uint32_t *anonymity,
 		 uint32_t *priority,
+		 int *do_index,
 		 struct GNUNET_TIME_Absolute *expirationTime,
 		 void **client_info)
 {
@@ -976,6 +978,7 @@ fip_signal_start(void *cls,
  * @param uri pointer to the keywords that will be used for this entry (can be modified)
  * @param anonymity pointer to selected anonymity level (can be modified)
  * @param priority pointer to selected priority (can be modified)
+ * @param do_index should we index?
  * @param expirationTime pointer to selected expiration time (can be modified)
  * @param client_info pointer to client context set upon creation (can be modified)
  * @return GNUNET_OK to continue (always)
@@ -988,6 +991,7 @@ fip_signal_suspend(void *cls,
 		   struct GNUNET_FS_Uri **uri,
 		   uint32_t *anonymity,
 		   uint32_t *priority,
+		   int *do_index,
 		   struct GNUNET_TIME_Absolute *expirationTime,
 		   void **client_info)
 {
@@ -1112,6 +1116,7 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
  * @param uri pointer to the keywords that will be used for this entry (can be modified)
  * @param anonymity pointer to selected anonymity level (can be modified)
  * @param priority pointer to selected priority (can be modified)
+ * @param do_index should we index?
  * @param expirationTime pointer to selected expiration time (can be modified)
  * @param client_info pointer to client context set upon creation (can be modified)
  * @return GNUNET_OK to continue (always)
@@ -1124,6 +1129,7 @@ fip_signal_stop(void *cls,
 		struct GNUNET_FS_Uri **uri,
 		uint32_t *anonymity,
 		uint32_t *priority,
+		int *do_index,
 		struct GNUNET_TIME_Absolute *expirationTime,
 		void **client_info)
 {

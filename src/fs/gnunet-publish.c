@@ -227,6 +227,7 @@ meta_printer (void *cls,
  * @param uri pointer to the keywords that will be used for this entry (can be modified)
  * @param anonymity pointer to selected anonymity level (can be modified)
  * @param priority pointer to selected priority (can be modified)
+ * @param do_index should we index?
  * @param expirationTime pointer to selected expiration time (can be modified)
  * @param client_info pointer to client context set upon creation (can be modified)
  * @return GNUNET_OK to continue, GNUNET_NO to remove
@@ -241,6 +242,7 @@ publish_inspector (void *cls,
 		   struct GNUNET_FS_Uri **uri,
 		   unsigned int *anonymity,
 		   unsigned int *priority,
+		   int *do_index,
 		   struct GNUNET_TIME_Absolute *expirationTime,
 		   void **client_info)
 {

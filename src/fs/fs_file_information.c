@@ -732,7 +732,9 @@ GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
 				    void *proc_cls)
 {
   struct GNUNET_FS_FileInformation *pos;
+  int no;
 
+  no = GNUNET_NO;
   if (GNUNET_OK !=
       proc (proc_cls, 
 	    dir,
@@ -741,6 +743,7 @@ GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
 	    &dir->keywords,
 	    &dir->anonymity,
 	    &dir->priority,
+	    (dir->is_directory) ? &no : &dir->data.file.do_index,
 	    &dir->expirationTime,
 	    &dir->client_info))
     return;
@@ -749,6 +752,7 @@ GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
   pos = dir->data.dir.entries;
   while (pos != NULL)
     {
+      no = GNUNET_NO;
       if (GNUNET_OK != 
 	  proc (proc_cls, 
 		pos,
@@ -757,6 +761,7 @@ GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
 		&pos->keywords,
 		&pos->anonymity,
 		&pos->priority,
+		(dir->is_directory) ? &no : &dir->data.file.do_index,
 		&pos->expirationTime,
 		&pos->client_info))
 	break;
@@ -781,7 +786,9 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
 				    void *cleaner_cls)
 {
   struct GNUNET_FS_FileInformation *pos;
+  int no;
 
+  no = GNUNET_NO;
   if (fi->is_directory)
     {
       /* clean up directory */
@@ -799,6 +806,7 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
 		 &fi->keywords,
 		 &fi->anonymity,
 		 &fi->priority,
+		 &no,
 		 &fi->expirationTime,
 		 &fi->client_info);
       GNUNET_free_non_null (fi->data.dir.dir_data);
@@ -818,6 +826,7 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
 		 &fi->keywords,
 		 &fi->anonymity,
 		 &fi->priority,
+		 &fi->data.file.do_index,
 		 &fi->expirationTime,
 		 &fi->client_info);
     }

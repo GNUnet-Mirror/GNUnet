@@ -57,6 +57,7 @@ mycleaner(void *cls,
 	  struct GNUNET_FS_Uri **uri,
 	  uint32_t *anonymity,
 	  uint32_t *priority,
+	  int *do_index,
 	  struct GNUNET_TIME_Absolute *expirationTime,
 	  void **client_info)
 {

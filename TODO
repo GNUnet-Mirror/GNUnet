@@ -23,7 +23,6 @@
     [On W32, we need to select after calling socket before doing connect etc.]
 * GNUNET-GTK:
   - implement publish dialog
-    + add (single file)
     + edit (meta data add, meta data del, meta data type population, keyword add (button, activate entry line), 
             keyword remove, anonymity level, priority, index/insert, normalize keywords, 
             previews, preview widget for file chooser!?)
