@@ -904,7 +904,7 @@ static size_t send_write_callback( void *stream, size_t size, size_t nmemb, void
 
 /**
  * Function setting up file descriptors and scheduling task to run
- * @param session session to send data to
+ * @param ses session to send data to
  * @return bytes sent to peer
  */
 static size_t send_prepare(struct Session* ses );
