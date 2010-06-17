@@ -62,18 +62,5 @@ test_transport_api_dv_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la
 
-#test_dv_topology_SOURCES = \
-# test_dv_topology.c
-#test_dv_topology_LDADD = \
-# $(top_builddir)/src/transport/libgnunettransport.la \
-# $(top_builddir)/src/util/libgnunetutil.la  \
-# $(top_builddir)/src/testing/libgnunettesting.la
-
-
 EXTRA_DIST = \
-  test_transport_dv_data.conf \
-  test_transport_api_dv_peer1.conf \
-  test_transport_api_dv_peer2.conf \
-  test_transport_api_dv_peer3.conf
-
-
+  test_transport_dv_data.conf
