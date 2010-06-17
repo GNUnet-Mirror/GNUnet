@@ -337,6 +337,7 @@ struct GNUNET_TESTING_PeerGroup;
  * @param cls closure
  * @param first peer id for first daemon
  * @param second peer id for the second daemon
+ * @param distance distance between the connected peers
  * @param first_cfg config for the first daemon
  * @param second_cfg config for the second daemon
  * @param first_daemon handle for the first daemon
@@ -344,13 +345,14 @@ struct GNUNET_TESTING_PeerGroup;
  * @param emsg error message (NULL on success)
  */
 typedef void (*GNUNET_TESTING_NotifyConnection)(void *cls,
-                                                   const struct GNUNET_PeerIdentity *first,
-                                                   const struct GNUNET_PeerIdentity *second,
-                                                   const struct GNUNET_CONFIGURATION_Handle *first_cfg,
-                                                   const struct GNUNET_CONFIGURATION_Handle *second_cfg,
-                                                   struct GNUNET_TESTING_Daemon *first_daemon,
-                                                   struct GNUNET_TESTING_Daemon *second_daemon,
-                                                   const char *emsg);
+                                                const struct GNUNET_PeerIdentity *first,
+                                                const struct GNUNET_PeerIdentity *second,
+                                                uint32_t distance,
+                                                const struct GNUNET_CONFIGURATION_Handle *first_cfg,
+                                                const struct GNUNET_CONFIGURATION_Handle *second_cfg,
+                                                struct GNUNET_TESTING_Daemon *first_daemon,
+                                                struct GNUNET_TESTING_Daemon *second_daemon,
+                                                const char *emsg);
 
 /**
  * Starts a GNUnet daemon.  GNUnet must be installed on the target
@@ -629,6 +631,11 @@ enum GNUNET_TESTING_Topology
    * Scale free topology.
    */
   GNUNET_TESTING_TOPOLOGY_SCALE_FREE,
+
+  /**
+   * Straight line topology.
+   */
+  GNUNET_TESTING_TOPOLOGY_LINE,
 
   /**
    * All peers are disconnected.
