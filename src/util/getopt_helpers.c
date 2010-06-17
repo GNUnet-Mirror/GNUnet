@@ -98,7 +98,7 @@ GNUNET_GETOPT_format_help_ (struct GNUNET_GETOPT_CommandLineProcessorContext
         {
           for (j = p + 78 - slen; j > p; j--)
             {
-              if (isspace (trans[j]))
+              if (isspace ( (unsigned char) trans[j]))
                 {
                   scp = GNUNET_malloc (j - p + 1);
                   memcpy (scp, &trans[p], j - p);

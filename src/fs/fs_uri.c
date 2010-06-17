@@ -1032,6 +1032,12 @@ GNUNET_FS_uri_ksk_merge (const struct GNUNET_FS_Uri *u1,
   const char *kp;
   char **kl;
 
+  if ( (u1 == NULL) && (u2 == NULL) )
+    return NULL;
+  if (u1 == NULL)
+    return GNUNET_FS_uri_dup (u2);
+  if (u2 == NULL)
+    return GNUNET_FS_uri_dup (u1);
   if ( (u1->type != ksk) ||
        (u2->type != ksk) )
     {
