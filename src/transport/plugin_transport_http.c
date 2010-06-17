@@ -626,9 +626,13 @@ accessHandlerCallback (void *cls,
             tmp = GNUNET_malloc (INET6_ADDRSTRLEN + 14);
             inet_ntop(AF_INET6, &((struct sockaddr_in6 *) cs->addr_inbound)->sin6_addr,address,INET6_ADDRSTRLEN);
             GNUNET_asprintf(&tmp,"[%s]:%u",address,ntohs(cs->addr_inbound->sin_port));
+
           }
-          plugin->env->receive(plugin->env, &(cs->sender), gn_msg, 1, cs , tmp, strlen(tmp));
-          GNUNET_free(tmp);
+          if (NULL != tmp)
+          {
+            plugin->env->receive(plugin->env, &(cs->sender), gn_msg, 1, cs , tmp, strlen(tmp));
+            GNUNET_free_non_null(tmp);
+          }
           send_error_to_client = GNUNET_NO;
         }
       }
