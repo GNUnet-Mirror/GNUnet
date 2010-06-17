@@ -99,7 +99,6 @@ get_path_from_proc_exe ()
   if ((size == 0) || (size >= sizeof(lnk)-1))
     {
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "readlink", fn);
-      GNUNET_free (lnk);
       return NULL;
     }
   lnk[size] = '\0';
@@ -108,7 +107,6 @@ get_path_from_proc_exe ()
   if ((size < 4) || (lnk[size - 4] != '/'))
     {
       /* not installed in "/bin/" -- binary path probably useless */
-      GNUNET_free (lnk);
       return NULL;
     }
   lnk[size] = '\0';
