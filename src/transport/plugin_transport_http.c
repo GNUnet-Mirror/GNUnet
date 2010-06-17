@@ -381,8 +381,6 @@ static struct Session * create_session (struct sockaddr_in *addr_in, struct sock
   ses->pending_inbound_msg->buf = GNUNET_malloc(GNUNET_SERVER_MAX_MESSAGE_SIZE);
   ses->pending_inbound_msg->len = GNUNET_SERVER_MAX_MESSAGE_SIZE;
   ses->pending_inbound_msg->pos = 0;
-
-
   return ses;
 }
 
@@ -414,9 +412,6 @@ acceptPolicyCallback (void *cls,
   /* Every connection is accepted, nothing more to do here */
   return MHD_YES;
 }
-
-
-int serror;
 
 /**
  * Process GET or PUT request received via MHD.  For
@@ -968,7 +963,7 @@ static ssize_t send_select_init (struct Session* ses )
 static void send_execute (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-
+  static unsigned int handles_last_run;
   int running;
   struct CURLMsg *msg;
   CURLMcode mret;
@@ -982,7 +977,7 @@ static void send_execute (void *cls,
     {
       running = 0;
       mret = curl_multi_perform (multi_handle, &running);
-      if (running == 0)
+      if (running < handles_last_run)
         {
           do
             {
@@ -1054,6 +1049,7 @@ static void send_execute (void *cls,
             }
           while ( (running > 0) );
         }
+      handles_last_run = running;
     }
   while (mret == CURLM_CALL_MULTI_PERFORM);
   send_prepare(cls);
@@ -1561,10 +1557,6 @@ libgnunet_plugin_transport_http_done (void *cls)
     http_daemon_v6 = NULL;
   }
 
-  mret = curl_multi_cleanup(multi_handle);
-  if ( CURLM_OK != mret)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"curl multihandle clean up failed");
-
   /* free all sessions */
   cs = plugin->sessions;
 
@@ -1596,6 +1588,10 @@ libgnunet_plugin_transport_http_done (void *cls)
       plugin->session_count--;
       cs = cs_next;
     }
+
+  mret = curl_multi_cleanup(multi_handle);
+  if ( CURLM_OK != mret)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"curl multihandle clean up failed");
 
   GNUNET_free (plugin);
   GNUNET_free (api);
