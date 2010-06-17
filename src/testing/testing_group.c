@@ -1872,17 +1872,7 @@ static void internal_connect_notify (void *cls,
   struct GNUNET_TESTING_PeerGroup *pg = cls;
   outstanding_connects--;
 
-<<<<<<< .mine
   pg->notify_connection(pg->notify_connection_cls, first, second, distance, first_cfg, second_cfg, first_daemon, second_daemon, emsg);
-=======
-  pg->notify_connection(pg->notify_connection_cls, 
-			first,
-			second, 
-			first_cfg, second_cfg, 
-			first_daemon, second_daemon, 
-			emsg);
->>>>>>> .r11782
-
 }
 
 
