@@ -1208,8 +1208,11 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
       else
         prev->next = pos->next;
       if (client->restart_task != GNUNET_SCHEDULER_NO_TASK)
-	GNUNET_SCHEDULER_cancel (server->sched,
-				 client->restart_task);
+	{
+	  GNUNET_SCHEDULER_cancel (server->sched,
+				   client->restart_task);
+	  client->restart_task = GNUNET_SCHEDULER_NO_TASK;
+	}
       n = server->disconnect_notify_list;
       while (n != NULL)
         {
