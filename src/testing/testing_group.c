@@ -22,6 +22,15 @@
  * @file testing/testing_group.c
  * @brief convenience API for writing testcases for GNUnet
  * @author Christian Grothoff
+ *
+ * FIXME: have connection processor functions take a cls argument
+ *        which specifies where to write the connection information
+ *        instead of assuming it's certain peergroup places. (maybe?)
+ * FIXME: create static struct which contains the TOPOLOGY enum, the
+ *        associated string, and the function used to create it.
+ *        Then replace the create_X calls with topology_struct[i][2]
+ *        or something. (Store function pointers instead of using
+ *        switch statements)
  */
 #include "platform.h"
 #include "gnunet_arm_service.h"
@@ -106,6 +115,11 @@ static char * GNUNET_TESTING_TopologyStrings[] =
    * Scale free topology.
    */
   "SCALE_FREE",
+
+  /**
+   * Straight line topology.
+   */
+  "LINE",
 
   /**
    * All peers are disconnected.
@@ -902,6 +916,17 @@ create_scale_free (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_Connectio
   return total_connections;
 }
 
+/**
+ * Create a topology given a peer group (set of running peers)
+ * and a connection processor.
+ *
+ * @param pg the peergroup to create the topology on
+ * @param proc the connection processor to call to actually set
+ *        up connections between two peers
+ *
+ * @return the number of connections that were set up
+ *
+ */
 int
 create_small_world_ring(struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
 {
@@ -1013,7 +1038,17 @@ create_small_world_ring(struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_Conn
   return connect_attempts;
 }
 
-
+/**
+ * Create a topology given a peer group (set of running peers)
+ * and a connection processor.
+ *
+ * @param pg the peergroup to create the topology on
+ * @param proc the connection processor to call to actually set
+ *        up connections between two peers
+ *
+ * @return the number of connections that were set up
+ *
+ */
 static int
 create_nated_internet (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
 {
@@ -1065,8 +1100,17 @@ create_nated_internet (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_Conne
 
 }
 
-
-
+/**
+ * Create a topology given a peer group (set of running peers)
+ * and a connection processor.
+ *
+ * @param pg the peergroup to create the topology on
+ * @param proc the connection processor to call to actually set
+ *        up connections between two peers
+ *
+ * @return the number of connections that were set up
+ *
+ */
 static int
 create_small_world (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
 {
@@ -1208,8 +1252,17 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_Connecti
   return connect_attempts;
 }
 
-
-
+/**
+ * Create a topology given a peer group (set of running peers)
+ * and a connection processor.
+ *
+ * @param pg the peergroup to create the topology on
+ * @param proc the connection processor to call to actually set
+ *        up connections between two peers
+ *
+ * @return the number of connections that were set up
+ *
+ */
 static int
 create_erdos_renyi (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
 {
@@ -1257,6 +1310,17 @@ create_erdos_renyi (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_Connecti
   return connect_attempts;
 }
 
+/**
+ * Create a topology given a peer group (set of running peers)
+ * and a connection processor.
+ *
+ * @param pg the peergroup to create the topology on
+ * @param proc the connection processor to call to actually set
+ *        up connections between two peers
+ *
+ * @return the number of connections that were set up
+ *
+ */
 static int
 create_2d_torus (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
 {
@@ -1334,7 +1398,17 @@ create_2d_torus (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionP
 }
 
 
-
+/**
+ * Create a topology given a peer group (set of running peers)
+ * and a connection processor.
+ *
+ * @param pg the peergroup to create the topology on
+ * @param proc the connection processor to call to actually set
+ *        up connections between two peers
+ *
+ * @return the number of connections that were set up
+ *
+ */
 static int
 create_clique (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
 {
@@ -1361,7 +1435,50 @@ create_clique (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionPro
   return connect_attempts;
 }
 
+/**
+ * Create a topology given a peer group (set of running peers)
+ * and a connection processor.
+ *
+ * @param pg the peergroup to create the topology on
+ * @param proc the connection processor to call to actually set
+ *        up connections between two peers
+ *
+ * @return the number of connections that were set up
+ *
+ */
+static int
+create_line (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
+{
+  unsigned int count;
+  int connect_attempts;
 
+  connect_attempts = 0;
+
+  /* Connect each peer to the next highest numbered peer */
+  for (count = 0; count < pg->total - 1; count++)
+    {
+#if VERBOSE_TESTING
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Connecting peer %d to peer %d\n",
+                      count, count + 1);
+#endif
+      connect_attempts += proc(pg, count, count + 1);
+    }
+
+  return connect_attempts;
+}
+
+/**
+ * Create a topology given a peer group (set of running peers)
+ * and a connection processor.
+ *
+ * @param pg the peergroup to create the topology on
+ * @param proc the connection processor to call to actually set
+ *        up connections between two peers
+ *
+ * @return the number of connections that were set up
+ *
+ */
 static int
 create_ring (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
 {
@@ -1745,6 +1862,7 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg, char *tran
 static void internal_connect_notify (void *cls,
                                      const struct GNUNET_PeerIdentity *first,
                                      const struct GNUNET_PeerIdentity *second,
+                                     uint32_t distance,
                                      const struct GNUNET_CONFIGURATION_Handle *first_cfg,
                                      const struct GNUNET_CONFIGURATION_Handle *second_cfg,
                                      struct GNUNET_TESTING_Daemon *first_daemon,
@@ -1754,12 +1872,16 @@ static void internal_connect_notify (void *cls,
   struct GNUNET_TESTING_PeerGroup *pg = cls;
   outstanding_connects--;
 
+<<<<<<< .mine
+  pg->notify_connection(pg->notify_connection_cls, first, second, distance, first_cfg, second_cfg, first_daemon, second_daemon, emsg);
+=======
   pg->notify_connection(pg->notify_connection_cls, 
 			first,
 			second, 
 			first_cfg, second_cfg, 
 			first_daemon, second_daemon, 
 			emsg);
+>>>>>>> .r11782
 
 }
 
@@ -2010,6 +2132,13 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
 #endif
       num_connections = create_scale_free (pg, &add_allowed_connections);
       break;
+    case GNUNET_TESTING_TOPOLOGY_LINE:
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Creating straight line topology\n"));
+#endif
+      num_connections = create_line (pg, &add_allowed_connections);
+      break;
     case GNUNET_TESTING_TOPOLOGY_NONE:
       num_connections = 0;
       break;
@@ -2102,6 +2231,13 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
                   _("Blacklisting all but Scale Free topology\n"));
 #endif
       unblacklisted_connections = create_scale_free (pg, &unblacklist_connections);
+      break;
+    case GNUNET_TESTING_TOPOLOGY_LINE:
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Blacklisting all but straight line topology\n"));
+#endif
+      unblacklisted_connections = create_line (pg, &unblacklist_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_NONE:
       /* Fall through */
@@ -2580,6 +2716,13 @@ GNUNET_TESTING_connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
                   _("Creating Scale Free CONNECT topology\n"));
 #endif
         create_scale_free (pg, &add_actual_connections);
+        break;
+      case GNUNET_TESTING_TOPOLOGY_LINE:
+#if VERBOSE_TOPOLOGY
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Creating straight line CONNECT topology\n"));
+#endif
+        create_line (pg, &add_actual_connections);
         break;
       case GNUNET_TESTING_TOPOLOGY_NONE:
 #if VERBOSE_TOPOLOGY

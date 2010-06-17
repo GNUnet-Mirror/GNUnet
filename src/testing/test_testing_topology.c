@@ -25,7 +25,7 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_core_service.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 /**
  * How long until we fail the whole testcase?
@@ -445,6 +445,7 @@ void
 topology_callback (void *cls,
                    const struct GNUNET_PeerIdentity *first,
                    const struct GNUNET_PeerIdentity *second,
+                   uint32_t distance,
                    const struct GNUNET_CONFIGURATION_Handle *first_cfg,
                    const struct GNUNET_CONFIGURATION_Handle *second_cfg,
                    struct GNUNET_TESTING_Daemon *first_daemon,
@@ -699,7 +700,7 @@ run (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Invalid connect topology `%s' given for section %s option %s\n", connect_topology_str, "TESTING", "CONNECT_TOPOLOGY");
     }
-
+  GNUNET_free_non_null(connect_topology_str);
   if ((GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_string(cfg, "testing", "connect_topology_option",
                                             &connect_topology_option_str)) && (GNUNET_NO == GNUNET_TESTING_topology_option_get(&connect_topology_option, connect_topology_option_str)))
@@ -708,7 +709,7 @@ run (void *cls,
                   "Invalid connect topology option `%s' given for section %s option %s\n", connect_topology_option_str, "TESTING", "CONNECT_TOPOLOGY_OPTION");
       connect_topology_option = GNUNET_TESTING_TOPOLOGY_OPTION_ALL; /* Defaults to NONE, set to ALL */
     }
-
+  GNUNET_free_non_null(connect_topology_option_str);
   if (GNUNET_YES ==
         GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "connect_topology_option_modifier",
                                                &connect_topology_option_modifier_string))
@@ -730,11 +731,13 @@ run (void *cls,
 
   if ((GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_string(cfg, "testing", "blacklist_topology",
-                                            & blacklist_topology_str)) && (GNUNET_NO == GNUNET_TESTING_topology_get(&blacklist_topology, blacklist_topology_str)))
+                                            &blacklist_topology_str)) && (GNUNET_NO == GNUNET_TESTING_topology_get(&blacklist_topology, blacklist_topology_str)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Invalid topology `%s' given for section %s option %s\n", topology_str, "TESTING", "BLACKLIST_TOPOLOGY");
     }
+  GNUNET_free_non_null(topology_str);
+  GNUNET_free_non_null(blacklist_topology_str);
 
   if (GNUNET_SYSERR ==
       GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "num_peers",

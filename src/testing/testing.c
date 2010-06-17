@@ -1158,11 +1158,15 @@ struct ConnectContext
    */
   struct GNUNET_TIME_Relative timeout_hello;
 
-
   /**
    * Was the connection attempt successful?
    */
   int connected;
+
+  /**
+   * The distance between the two connected peers
+   */
+  uint32_t distance;
 };
 
 
@@ -1210,7 +1214,7 @@ notify_connect_result (void *cls,
     {
       if (ctx->cb != NULL)
         {
-          ctx->cb (ctx->cb_cls, &ctx->d1->id, &ctx->d2->id, ctx->d1->cfg,
+          ctx->cb (ctx->cb_cls, &ctx->d1->id, &ctx->d2->id, ctx->distance, ctx->d1->cfg,
                    ctx->d2->cfg, ctx->d1, ctx->d2, NULL);
         }
     }
@@ -1234,7 +1238,7 @@ notify_connect_result (void *cls,
     {
       if (ctx->cb != NULL)
         {
-          ctx->cb (ctx->cb_cls, &ctx->d1->id, &ctx->d2->id, ctx->d1->cfg,
+          ctx->cb (ctx->cb_cls, &ctx->d1->id, &ctx->d2->id, 0, ctx->d1->cfg,
                    ctx->d2->cfg, ctx->d1, ctx->d2,
                    _("Peers failed to connect"));
         }
@@ -1266,6 +1270,7 @@ connect_notify (void *cls, const struct GNUNET_PeerIdentity * peer, struct GNUNE
   if (memcmp(&ctx->d2->id, peer, sizeof(struct GNUNET_PeerIdentity)) == 0)
     {
       ctx->connected = GNUNET_YES;
+      ctx->distance = distance;
       GNUNET_SCHEDULER_cancel(ctx->d1->sched, ctx->timeout_task);
       ctx->timeout_task = GNUNET_SCHEDULER_add_now (ctx->d1->sched,
 						    &notify_connect_result,
@@ -1319,7 +1324,7 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
   if ((d1->running == GNUNET_NO) || (d2->running == GNUNET_NO))
     {
       if (NULL != cb)
-        cb (cb_cls, &d1->id, &d2->id, d1->cfg, d2->cfg, d1, d2,
+        cb (cb_cls, &d1->id, &d2->id, 0, d1->cfg, d2->cfg, d1, d2,
             _("Peers are not fully running yet, can not connect!\n"));
       return;
     }
@@ -1351,7 +1356,7 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
     {
       GNUNET_free (ctx);
       if (NULL != cb)
-        cb (cb_cls, &d1->id, &d2->id, d1->cfg, d2->cfg, d1, d2,
+        cb (cb_cls, &d1->id, &d2->id, 0, d1->cfg, d2->cfg, d1, d2,
             _("Failed to connect to core service of first peer!\n"));
       return;
     }
@@ -1372,7 +1377,7 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
       GNUNET_CORE_disconnect(ctx->d1core);
       GNUNET_free (ctx);
       if (NULL != cb)
-        cb (cb_cls, &d1->id, &d2->id, d1->cfg, d2->cfg, d1, d2,
+        cb (cb_cls, &d1->id, &d2->id, 0, d1->cfg, d2->cfg, d1, d2,
             _("Failed to connect to transport service!\n"));
       return;
     }
@@ -1412,7 +1417,7 @@ reattempt_daemons_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
   if (ctx->d1core == NULL)
     {
       if (NULL != ctx->cb)
-        ctx->cb (ctx->cb_cls, &ctx->d1->id, &ctx->d2->id, ctx->d1->cfg, ctx->d2->cfg, ctx->d1, ctx->d2,
+        ctx->cb (ctx->cb_cls, &ctx->d1->id, &ctx->d2->id, 0, ctx->d1->cfg, ctx->d2->cfg, ctx->d1, ctx->d2,
                  _("Failed to connect to core service of first peer!\n"));
       GNUNET_free (ctx);
       return;
@@ -1425,7 +1430,7 @@ reattempt_daemons_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
       GNUNET_CORE_disconnect(ctx->d1core);
       GNUNET_free (ctx);
       if (NULL != ctx->cb)
-        ctx->cb (ctx->cb_cls, &ctx->d1->id, &ctx->d2->id, ctx->d1->cfg, ctx->d2->cfg, ctx->d1, ctx->d2,
+        ctx->cb (ctx->cb_cls, &ctx->d1->id, &ctx->d2->id, 0, ctx->d1->cfg, ctx->d2->cfg, ctx->d1, ctx->d2,
             _("Failed to connect to transport service!\n"));
       return;
     }
