@@ -395,11 +395,25 @@ struct ConnectContext
   void *cont_cls;
 };
 
-
+/**
+ * Prototype of a function that will be called whenever
+ * two daemons are connected by the testing library.
+ *
+ * @param cls closure
+ * @param first peer id for first daemon
+ * @param second peer id for the second daemon
+ * @param distance distance between the connected peers
+ * @param first_cfg config for the first daemon
+ * @param second_cfg config for the second daemon
+ * @param first_daemon handle for the first daemon
+ * @param second_daemon handle for the second daemon
+ * @param emsg error message (NULL on success)
+ */
 static void
 notify_connection (void *cls,
 		   const struct GNUNET_PeerIdentity *first,
 		   const struct GNUNET_PeerIdentity *second,
+		   uint32_t distance,
 		   const struct GNUNET_CONFIGURATION_Handle *first_cfg,
 		   const struct GNUNET_CONFIGURATION_Handle *second_cfg,
 		   struct GNUNET_TESTING_Daemon *first_daemon,
