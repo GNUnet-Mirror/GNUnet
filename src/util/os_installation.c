@@ -55,32 +55,31 @@ static char *
 get_path_from_proc_maps ()
 {
   char fn[64];
-  char *line;
-  char *dir;
+  char line[1024];
+  char dir[1024];
   FILE *f;
+  char *lgu;
 
-  GNUNET_snprintf (fn, 64, "/proc/%u/maps", getpid ());
-  line = GNUNET_malloc (1024);
-  dir = GNUNET_malloc (1024);
+  GNUNET_snprintf (fn,
+		   sizeof(fn), 
+		   "/proc/%u/maps", 
+		   getpid ());
   f = fopen (fn, "r");
-  if (f != NULL)
+  if (f == NULL)
+    return NULL;
+  while (NULL != fgets (line, sizeof(line), f))
     {
-      while (NULL != fgets (line, 1024, f))
-        {
-          if ((1 == sscanf (line,
-                            "%*x-%*x %*c%*c%*c%*c %*x %*2u:%*2u %*u%*[ ]%s",
-                            dir)) && (NULL != strstr (dir, "libgnunetutil")))
-            {
-              strstr (dir, "libgnunetutil")[0] = '\0';
-              fclose (f);
-              GNUNET_free (line);
-              return dir;
-            }
-        }
-      fclose (f);
+      if ((1 == sscanf (line,
+			"%*x-%*x %*c%*c%*c%*c %*x %*2u:%*2u %*u%*[ ]%s",
+			dir)) &&
+	  (NULL != (lgu = strstr (dir, "libgnunetutil"))))
+	{
+	  lgu[0] = '\0';
+	  fclose (f);
+	  return GNUNET_strdup (dir);
+	}
     }
-  GNUNET_free (dir);
-  GNUNET_free (line);
+  fclose (f);
   return NULL;
 }
 
@@ -91,13 +90,13 @@ static char *
 get_path_from_proc_exe ()
 {
   char fn[64];
-  char *lnk;
-  size_t size;
+  char lnk[1024];
+  ssize_t size;
 
-  GNUNET_snprintf (fn, 64, "/proc/%u/exe", getpid ());
-  lnk = GNUNET_malloc (1024);
-  size = readlink (fn, lnk, 1023);
-  if ((size == 0) || (size >= 1024))
+  GNUNET_snprintf (fn, 
+		   sizeof(fn), "/proc/%u/exe", getpid ());
+  size = readlink (fn, lnk, sizeof (lnk)-1);
+  if ((size == 0) || (size >= sizeof(lnk)-1))
     {
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "readlink", fn);
       GNUNET_free (lnk);
@@ -113,7 +112,7 @@ get_path_from_proc_exe ()
       return NULL;
     }
   lnk[size] = '\0';
-  return lnk;
+  return GNUNET_strdup (lnk);
 }
 #endif
 
@@ -124,16 +123,15 @@ get_path_from_proc_exe ()
 static char *
 get_path_from_module_filename ()
 {
-  char *path;
+  char path[4097];
   char *idx;
 
-  path = GNUNET_malloc (4097);
-  GetModuleFileName (NULL, path, 4096);
+  GetModuleFileName (NULL, path, sizeof(path)-1);
   idx = path + strlen (path);
   while ((idx > path) && (*idx != '\\') && (*idx != '/'))
     idx--;
   *idx = '\0';
-  return path;
+  return GNUNET_strdup (path);
 }
 #endif
 

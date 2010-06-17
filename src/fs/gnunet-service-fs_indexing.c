@@ -358,6 +358,12 @@ GNUNET_FS_handle_index_start (void *cls,
     }
   ism = (const struct IndexStartMessage*) message;
   fn = GNUNET_STRINGS_filename_expand ((const char*) &ism[1]);
+  if (fn == NULL)
+    {
+      GNUNET_SERVER_receive_done (client,
+				  GNUNET_SYSERR);
+      return;
+    }
   dev = ntohl (ism->device);
   ino = GNUNET_ntohll (ism->inode);
   ism = (const struct IndexStartMessage*) message;

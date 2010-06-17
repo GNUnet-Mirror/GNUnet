@@ -779,6 +779,8 @@ GNUNET_CRYPTO_rsa_encrypt (const void *block,
 
   GNUNET_assert (size <= sizeof (GNUNET_HashCode));
   pubkey = public2PrivateKey (publicKey);
+  if (pubkey == NULL)
+    return GNUNET_SYSERR;
   isize = size;
   GNUNET_assert (0 ==
                  gcry_mpi_scan (&val, GCRYMPI_FMT_USG, block, isize, &isize));

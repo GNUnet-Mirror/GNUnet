@@ -433,6 +433,14 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename,
     }
   /* Alloc block */
   bf->bitArray = GNUNET_malloc_large (size);
+  if (bf->bitArray == NULL)
+    {
+      if (bf->fh != NULL)
+	GNUNET_DISK_file_close (bf->fh);
+      GNUNET_free_non_null (bf->filename);
+      GNUNET_free (bf);
+      return NULL;
+    }
   bf->bitArraySize = size;
   bf->addressesPerElement = k;
   memset (bf->bitArray, 0, bf->bitArraySize);
@@ -505,6 +513,11 @@ GNUNET_CONTAINER_bloomfilter_init (const char *data,
   bf->filename = NULL;
   bf->fh = NULL;
   bf->bitArray = GNUNET_malloc_large (size);
+  if (bf->bitArray == NULL)
+    {
+      GNUNET_free (bf);
+      return NULL;
+    }
   bf->bitArraySize = size;
   bf->addressesPerElement = k;
   if (data != NULL)

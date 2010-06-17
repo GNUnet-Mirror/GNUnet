@@ -263,7 +263,6 @@ run (void *cls,
 	       _("Could not initialize `%s' subsystem.\n"),
 	       "FS");
       GNUNET_FS_uri_destroy (uri);
-      GNUNET_FS_stop (ctx);
       ret = 1;
       return;
     }

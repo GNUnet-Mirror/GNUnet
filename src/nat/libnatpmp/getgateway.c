@@ -105,9 +105,9 @@ getdefaultgateway (int *af, uint8_t addr[16])
       if (line > 0)
         {
           p = buf;
-          while (*p && !isspace (*p))
+          while (*p && !isspace ( (unsigned char) *p))
             p++;
-          while (*p && isspace (*p))
+          while (*p && isspace ( (unsigned char) *p))
             p++;
           for (i = 0; i < 16; i++)
             {

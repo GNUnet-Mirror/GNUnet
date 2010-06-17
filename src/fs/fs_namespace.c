@@ -213,6 +213,7 @@ advertisement_cont (void *cls,
 					&ac->nb->ns_purpose,
 					&ac->nb->ns_signature));
   pk = GNUNET_CRYPTO_rsa_key_create_from_hash (&key);
+  GNUNET_assert (pk != NULL);
   GNUNET_CRYPTO_rsa_key_get_public (pk, &ac->nb->keyspace);
   GNUNET_CRYPTO_hash (&ac->nb->keyspace,
 		      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),

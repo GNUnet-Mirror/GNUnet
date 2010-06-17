@@ -307,6 +307,14 @@ unindex_finish (void *cls,
   uc->client = GNUNET_CLIENT_connect (uc->h->sched,
 				      "fs",
 				      uc->h->cfg);
+  if (uc->client == NULL)
+    {
+      uc->state = UNINDEX_STATE_ERROR;
+      uc->emsg = GNUNET_strdup (_("Failed to connect to FS service for unindexing."));
+      GNUNET_FS_unindex_sync_ (uc);
+      signal_unindex_error (uc);
+      return;
+    }
   req.header.size = htons (sizeof (struct UnindexMessage));
   req.header.type = htons (GNUNET_MESSAGE_TYPE_FS_UNINDEX);
   req.reserved = 0;

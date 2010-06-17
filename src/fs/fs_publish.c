@@ -725,6 +725,7 @@ hash_for_index_cb (void *cls,
       return;
     }
   fn = GNUNET_STRINGS_filename_expand (p->filename);
+  GNUNET_assert (fn != NULL);
   slen = strlen (fn) + 1;
   if (slen > GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof(struct IndexStartMessage))
     {
@@ -1369,6 +1370,7 @@ publish_ksk_cont (void *cls,
 			     &iv,
 			     &pkc->cpy[1]);
   pk = GNUNET_CRYPTO_rsa_key_create_from_hash (&key);
+  GNUNET_assert (NULL != pk);
   GNUNET_CRYPTO_rsa_key_get_public (pk, &pkc->cpy->keyspace);
   GNUNET_CRYPTO_hash (&pkc->cpy->keyspace,
 		      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),

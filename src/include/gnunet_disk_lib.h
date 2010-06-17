@@ -458,7 +458,8 @@ struct GNUNET_DISK_DirectoryIterator;
  *
  * @param cls closure
  * @param di argument to pass to "GNUNET_DISK_directory_iterator_next" to
- *           get called on the next entry (or finish cleanly)
+ *           get called on the next entry (or finish cleanly);
+ *           NULL on error (will be the last call in that case)
  * @param filename complete filename (absolute path)
  * @param dirname directory name (absolute path)
  */

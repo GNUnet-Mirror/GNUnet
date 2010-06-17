@@ -1149,6 +1149,7 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
 	  keyword = &sc->uri->data.ksk.keywords[i][1];
 	  GNUNET_CRYPTO_hash (keyword, strlen (keyword), &hc);
 	  pk = GNUNET_CRYPTO_rsa_key_create_from_hash (&hc);
+	  GNUNET_assert (pk != NULL);
 	  GNUNET_CRYPTO_rsa_key_get_public (pk, &pub);
 	  GNUNET_CRYPTO_rsa_key_free (pk);
 	  GNUNET_CRYPTO_hash (&pub,
@@ -1335,6 +1336,8 @@ GNUNET_FS_search_start (struct GNUNET_FS_Handle *h,
 {
   struct GNUNET_FS_SearchContext *ret;
   ret = search_start (h, uri, anonymity, options, cctx, NULL);
+  if (ret == NULL)
+    return NULL;
   ret->top = GNUNET_FS_make_top (h, &GNUNET_FS_search_signal_suspend_, ret);
   return ret;
 }

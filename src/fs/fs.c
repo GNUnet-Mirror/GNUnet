@@ -583,11 +583,14 @@ GNUNET_FS_remove_sync_file_ (struct GNUNET_FS_Handle *h,
       return;
     }
   filename = get_serialization_file_name (h, ext, ent);
-  if (0 != UNLINK (filename))
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-			      "unlink", 
-			      filename);
-  GNUNET_free (filename);
+  if (filename != NULL)
+    {
+      if (0 != UNLINK (filename))
+	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+				  "unlink", 
+				  filename);
+      GNUNET_free (filename);
+    }
 }
 
 
@@ -614,11 +617,14 @@ remove_sync_file_in_dir (struct GNUNET_FS_Handle *h,
       return;
     }
   filename = get_serialization_file_name_in_dir (h, ext, uni, ent);
-  if (0 != UNLINK (filename))
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-			      "unlink", 
-			      filename);
-  GNUNET_free (filename);
+  if (filename != NULL)
+    {
+      if (0 != UNLINK (filename))
+	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+				  "unlink", 
+				  filename);
+      GNUNET_free (filename);
+    }
 }
 
 
@@ -1030,6 +1036,8 @@ make_serialization_file_name (struct GNUNET_FS_Handle *h,
   if (0 == (h->flags & GNUNET_FS_FLAGS_PERSISTENCE))
     return NULL; /* persistence not requested */
   dn = get_serialization_file_name (h, ext, "");
+  if (dn == NULL)
+    return NULL;
   if (GNUNET_OK !=
       GNUNET_DISK_directory_create_for_file (dn))
     {
@@ -1067,6 +1075,8 @@ make_serialization_file_name_in_dir (struct GNUNET_FS_Handle *h,
   if (0 == (h->flags & GNUNET_FS_FLAGS_PERSISTENCE))
     return NULL; /* persistence not requested */
   dn = get_serialization_file_name_in_dir (h, ext, uni, "");
+  if (dn == NULL)
+    return NULL;
   if (GNUNET_OK !=
       GNUNET_DISK_directory_create_for_file (dn))
     {
@@ -1282,9 +1292,12 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation * fi)
   GNUNET_free_non_null (chks);
   GNUNET_free_non_null (ksks);
   fn = get_serialization_file_name (fi->h, GNUNET_FS_SYNC_PATH_FILE_INFO, fi->serialization);
-  if (0 != UNLINK (fn))
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
-  GNUNET_free (fn);
+  if (NULL != fn)
+    {
+      if (0 != UNLINK (fn))
+	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
+      GNUNET_free (fn);
+    }
   GNUNET_free (fi->serialization);
   fi->serialization = NULL;  
 }
@@ -1748,11 +1761,20 @@ GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc)
 	}
       fn = GNUNET_DISK_mktemp (dir);
       GNUNET_free (dir);
+      if (fn == NULL)
+	return;
       dc->serialization = get_serialization_short_name (fn);
     }
   else
     {
       fn = get_download_sync_filename (dc, dc->serialization, "");
+      if (fn == NULL)
+	{
+	  GNUNET_free (dc->serialization);
+	  dc->serialization = NULL;
+	  GNUNET_free (fn);
+	  return;
+	}
     }
   wh = GNUNET_BIO_write_open (fn);
   if (wh == NULL)
@@ -2226,19 +2248,22 @@ deserialize_search_result (void *cls,
       drh = get_read_handle (sc->h, 
 			     GNUNET_FS_SYNC_PATH_CHILD_DOWNLOAD,
 			     download);
-      deserialize_download (sc->h,
-			    drh,
-			    NULL,
-			    sr,
-			    download);
-      if (GNUNET_OK !=
-	  GNUNET_BIO_read_close (drh, &emsg))
+      if (drh != NULL)
 	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		      _("Failed to resume sub-download `%s': %s\n"),
-		      download,
-		      emsg);
-	  GNUNET_free (emsg);
+	  deserialize_download (sc->h,
+				drh,
+				NULL,
+				sr,
+				download);
+	  if (GNUNET_OK !=
+	      GNUNET_BIO_read_close (drh, &emsg))
+	    {
+	      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+			  _("Failed to resume sub-download `%s': %s\n"),
+			  download,
+			  emsg);
+	      GNUNET_free (emsg);
+	    }
 	}
       GNUNET_free (download);
     }
@@ -2247,18 +2272,21 @@ deserialize_search_result (void *cls,
       drh = get_read_handle (sc->h, 
 			     GNUNET_FS_SYNC_PATH_CHILD_SEARCH,
 			     update_srch);
-      deserialize_search (sc->h,
-			  drh,
-			  sr,
-			  update_srch);
-      if (GNUNET_OK !=
-	  GNUNET_BIO_read_close (drh, &emsg))
+      if (drh != NULL)
 	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		      _("Failed to resume sub-search `%s': %s\n"),
-		      update_srch,
-		      emsg);
-	  GNUNET_free (emsg);
+	  deserialize_search (sc->h,
+			      drh,
+			      sr,
+			      update_srch);
+	  if (GNUNET_OK !=
+	      GNUNET_BIO_read_close (drh, &emsg))
+	    {
+	      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+			  _("Failed to resume sub-search `%s': %s\n"),
+			  update_srch,
+			  emsg);
+	      GNUNET_free (emsg);
+	    }
 	}
       GNUNET_free (update_srch);      
     }
@@ -2821,7 +2849,8 @@ deserialize_search_file (void *cls,
       return GNUNET_OK;
     }
   sc = deserialize_search (h, rh, NULL, ser);
-  sc->top = GNUNET_FS_make_top (h, &GNUNET_FS_search_signal_suspend_, sc);
+  if (sc != NULL)
+    sc->top = GNUNET_FS_make_top (h, &GNUNET_FS_search_signal_suspend_, sc);
   GNUNET_free (ser);
   if (GNUNET_OK !=
       GNUNET_BIO_read_close (rh, &emsg))

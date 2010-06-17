@@ -178,6 +178,7 @@ reconnect (struct GNUNET_TRANSPORT_Blacklist *br)
   br->client = GNUNET_CLIENT_connect (br->sched,
 				      "transport",
 				      br->cfg);
+  GNUNET_assert (br->client != NULL);
   br->th = GNUNET_CLIENT_notify_transmit_ready (br->client,
 						sizeof (struct GNUNET_MessageHeader),
 						GNUNET_TIME_UNIT_FOREVER_REL,

@@ -180,6 +180,8 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
   if (logfile == NULL)
     return GNUNET_OK;
   fn = GNUNET_STRINGS_filename_expand (logfile);
+  if (NULL == fn)    
+    return GNUNET_SYSERR;    
   dirwarn = (GNUNET_OK !=  GNUNET_DISK_directory_create_for_file (fn));
   altlog = FOPEN (fn, "a");
   if (altlog == NULL)
@@ -374,7 +376,10 @@ mylog (enum GNUNET_ErrorType kind,
   time (&timetmp);
   memset (date, 0, DATE_STR_SIZE);
   tmptr = localtime (&timetmp);
-  strftime (date, DATE_STR_SIZE, "%b %d %H:%M:%S", tmptr);
+  if (NULL != tmptr)
+    strftime (date, DATE_STR_SIZE, "%b %d %H:%M:%S", tmptr);
+  else
+    strcpy (date, "localtime error");
   if ((0 != (kind & GNUNET_ERROR_TYPE_BULK)) &&
       (last_bulk_time.value != 0) &&
       (0 == strncmp (buf, last_bulk, sizeof (last_bulk))))

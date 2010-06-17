@@ -346,6 +346,8 @@ GNUNET_DISK_get_blocks_available (const char *part)
   char *path;
 
   path = GNUNET_STRINGS_filename_expand (part);
+  if (path == NULL)
+    return -1;
   memcpy (szDrive, path, 3);
   GNUNET_free (path);
   szDrive[3] = 0;
@@ -904,6 +906,12 @@ GNUNET_DISK_directory_iterator_start (struct GNUNET_SCHEDULER_Handle *sched,
   di->callback = callback;
   di->callback_cls = callback_cls;
   di->directory = OPENDIR (dirName);
+  if (di->directory == NULL)
+    {
+      GNUNET_free (di);
+      callback (callback_cls, NULL, NULL, NULL);
+      return;
+    }
   di->dirname = GNUNET_strdup (dirName);
   di->priority = prio;
   GNUNET_DISK_directory_iterator_next (di, GNUNET_NO);

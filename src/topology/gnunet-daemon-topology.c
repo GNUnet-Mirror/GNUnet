@@ -1089,6 +1089,13 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
       return;
     }
   data = GNUNET_malloc_large (frstat.st_size);
+  if (data == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Failed to read friends list from `%s': out of memory\n"), fn);
+      GNUNET_free (fn);
+      return;
+    }
   if (frstat.st_size !=
       GNUNET_DISK_fn_read (fn, data, frstat.st_size))
     {
