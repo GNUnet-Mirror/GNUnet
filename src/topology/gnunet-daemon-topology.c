@@ -1068,17 +1068,16 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
       return;
     }
   if (GNUNET_OK != GNUNET_DISK_file_test (fn))
-    GNUNET_DISK_fn_write (fn, NULL, 0, GNUNET_DISK_PERM_USER_READ
-        | GNUNET_DISK_PERM_USER_WRITE);
+    GNUNET_DISK_fn_write (fn, NULL, 0, 
+			  GNUNET_DISK_PERM_USER_READ
+			  | GNUNET_DISK_PERM_USER_WRITE);
   if (0 != STAT (fn, &frstat))
     {
       if ((friends_only) || (minimum_friend_count > 0))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		      _("Could not read friends list `%s'\n"), fn);
-	  GNUNET_free (fn);
-          return;
-        }
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    _("Could not read friends list `%s'\n"), fn);
+      GNUNET_free (fn);
+      return;
     }
   if (frstat.st_size == 0)
     {

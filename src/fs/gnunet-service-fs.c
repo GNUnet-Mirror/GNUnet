@@ -760,7 +760,7 @@ is_closer (const GNUNET_HashCode *key,
  *            targets for (or NULL for none)
  * @param key ID of the peer 
  * @param value 'struct ConnectedPeer' of the peer
- * @return GNUNET_YES (always continue iteration)2
+ * @return GNUNET_YES (always continue iteration)
  */
 static int
 consider_migration (void *cls,
@@ -842,11 +842,12 @@ consider_migration (void *cls,
     }
   if (msize == 0)
     return GNUNET_YES; /* no content available */
+#if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Trying to migrate `%s' (%u bytes) to `%s'\n",
-	      GNUNET_h2s (&mb->query),
+	      "Trying to migrate at least %u bytes to peer `%s'\n",
 	      msize,
-	      GNUNET_i2s (&cppid));
+	      GNUNET_h2s (key));
+#endif
   cp->cth 
     = GNUNET_CORE_notify_transmit_ready (core,
 					 0, GNUNET_TIME_UNIT_FOREVER_REL,

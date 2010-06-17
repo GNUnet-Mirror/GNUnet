@@ -196,7 +196,7 @@ static int
 try_connect (struct GNUNET_STATISTICS_Handle *ret)
 {
   if (ret->client != NULL)
-    return GNUNET_OK;
+    return GNUNET_YES;
   ret->client = GNUNET_CLIENT_connect (ret->sched, "statistics", ret->cfg);
   if (ret->client != NULL)
     return GNUNET_YES;
@@ -235,9 +235,12 @@ finish (struct GNUNET_STATISTICS_Handle *h, int code)
   struct GNUNET_STATISTICS_GetHandle *pos = h->current;
   h->current = NULL;
   schedule_action (h);
-  if (pos->cont != NULL)
-    pos->cont (pos->cls, code);
-  free_action_item (pos);
+  if (pos != NULL)
+    {
+      if (pos->cont != NULL)
+	pos->cont (pos->cls, code);
+      free_action_item (pos);
+    }
 }
 
 

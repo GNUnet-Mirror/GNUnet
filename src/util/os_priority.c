@@ -430,6 +430,11 @@ GNUNET_OS_process_status (pid_t proc, enum GNUNET_OS_ProcessStatusType *type,
 
   GNUNET_assert (0 != proc);
   ret = waitpid (proc, &status, WNOHANG);
+  if (ret < 0)
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
+      return GNUNET_SYSERR;
+    }
   if (0 == ret)
     {
       *type = GNUNET_OS_PROCESS_RUNNING;

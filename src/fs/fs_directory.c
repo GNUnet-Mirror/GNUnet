@@ -401,16 +401,24 @@ GNUNET_FS_directory_builder_add (struct GNUNET_FS_DirectoryBuilder *bld,
 
   GNUNET_assert (! GNUNET_FS_uri_test_ksk (uri));
   if (NULL != data)
-    if (GNUNET_FS_uri_test_chk (uri))
-      fsize = GNUNET_FS_uri_chk_get_file_size (uri);
-    else
-      {
-	curi = GNUNET_FS_uri_loc_get_uri (uri);
-	fsize = GNUNET_FS_uri_chk_get_file_size (curi);
-	GNUNET_FS_uri_destroy (curi);
-      }
+    {
+      GNUNET_assert (! GNUNET_FS_uri_test_sks (uri));
+      if (GNUNET_FS_uri_test_chk (uri))
+	{
+	  fsize = GNUNET_FS_uri_chk_get_file_size (uri);
+	}
+      else
+	{
+	  curi = GNUNET_FS_uri_loc_get_uri (uri);
+	  GNUNET_assert (NULL != curi);
+	  fsize = GNUNET_FS_uri_chk_get_file_size (curi);
+	  GNUNET_FS_uri_destroy (curi);
+	}
+    }
   else
-    fsize = 0; /* not given */
+    {
+      fsize = 0; /* not given */
+    }
   if (fsize > MAX_INLINE_SIZE)
     fsize = 0; /* too large */
   uris = GNUNET_FS_uri_to_string (uri);

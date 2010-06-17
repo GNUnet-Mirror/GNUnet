@@ -606,10 +606,11 @@ discard_hosts_helper (void *cls, const char *fn)
   int size;
 
   size = GNUNET_DISK_fn_read (fn, buffer, sizeof (buffer));
-  if ((size < sizeof (struct GNUNET_MessageHeader)) && (0 != UNLINK (fn)))
+  if (size < sizeof (struct GNUNET_MessageHeader))
     {
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING |
-                                GNUNET_ERROR_TYPE_BULK, "unlink", fn);
+      if (0 != UNLINK (fn))
+	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING |
+				  GNUNET_ERROR_TYPE_BULK, "unlink", fn);
       return GNUNET_OK;
     }
   hello = (const struct GNUNET_HELLO_Message *) buffer;

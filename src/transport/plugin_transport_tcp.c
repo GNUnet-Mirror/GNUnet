@@ -443,7 +443,11 @@ tcp_address_to_string (void *cls,
       GNUNET_break (0);
       return NULL;
     }
-  inet_ntop (af, sb, buf, INET6_ADDRSTRLEN);
+  if (NULL == inet_ntop (af, sb, buf, INET6_ADDRSTRLEN))
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "inet_ntop");
+      return NULL;
+    }
   GNUNET_snprintf (rbuf,
 		   sizeof (rbuf),
 		   (af == AF_INET6) ? "[%s]:%u" : "%s:%u",
@@ -859,9 +863,13 @@ run_gnunet_nat_client (struct Plugin *plugin, const char *addr, size_t addrlen)
     case AF_INET:
       if (addrlen != sizeof (struct sockaddr_in))
         return;
-      inet_ntop (AF_INET,
-                 &((struct sockaddr_in *) sa)->sin_addr,
-                 inet4, INET_ADDRSTRLEN);
+      if (NULL == inet_ntop (AF_INET,
+			     &((struct sockaddr_in *) sa)->sin_addr,
+			     inet4, INET_ADDRSTRLEN))
+	{
+	  GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "inet_ntop");
+	  return;
+	}
       address_as_string = GNUNET_strdup (inet4);
       break;
     case AF_INET6:

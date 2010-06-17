@@ -330,10 +330,14 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
 	  GNUNET_HashCode query;
 
 	  GNUNET_CRYPTO_hash_to_aes_key (&key, &sk, &iv);
-	  GNUNET_CRYPTO_aes_encrypt (block, len,
-				     &sk,
-				     &iv,
-				     enc);
+	  if (-1 == GNUNET_CRYPTO_aes_encrypt (block, len,
+					       &sk,
+					       &iv,
+					       enc))
+	    {
+	      GNUNET_break (0);
+	      goto do_download;
+	    }
 	  GNUNET_CRYPTO_hash (enc, len, &query);
 	  if (0 == memcmp (&query,
 			   &chk->query,
@@ -364,6 +368,7 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
 	  return;
 	}
     }
+ do_download:
   if (fh != NULL)
     GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fh));
   if (depth < dc->treedepth)
@@ -915,11 +920,16 @@ process_result_with_request (void *cls,
       ppos = ppos->next;
     }
   GNUNET_CRYPTO_hash_to_aes_key (&sm->chk.key, &skey, &iv);
-  GNUNET_CRYPTO_aes_decrypt (prc->data,
-			     prc->size,
-			     &skey,
-			     &iv,
-			     pt);
+  if (-1 == GNUNET_CRYPTO_aes_decrypt (prc->data,
+				       prc->size,
+				       &skey,
+				       &iv,
+				       pt))
+    {
+      GNUNET_break (0);
+      dc->emsg = GNUNET_strdup ("internal error decrypting content");
+      goto signal_error;
+    }
   off = compute_disk_offset (GNUNET_ntohll (dc->uri->data.chk.file_length),
 			     sm->offset,
 			     sm->depth,

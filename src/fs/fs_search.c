@@ -574,11 +574,15 @@ process_kblock (struct GNUNET_FS_SearchContext *sc,
     }
   /* decrypt */
   GNUNET_CRYPTO_hash_to_aes_key (&sc->requests[i].key, &skey, &iv);
-  GNUNET_CRYPTO_aes_decrypt (&kb[1],
-			     size - sizeof (struct KBlock),
-			     &skey,
-			     &iv,
-			     pt);
+  if (-1 == GNUNET_CRYPTO_aes_decrypt (&kb[1],
+				       size - sizeof (struct KBlock),
+				       &skey,
+				       &iv,
+				       pt))
+    {
+      GNUNET_break (0);
+      return;
+    }
   /* parse */
   eos = memchr (pt, 0, sizeof (pt));
   if (NULL == eos)
@@ -654,11 +658,15 @@ process_nblock (struct GNUNET_FS_SearchContext *sc,
     }
   /* decrypt */
   GNUNET_CRYPTO_hash_to_aes_key (&sc->requests[i].key, &skey, &iv);
-  GNUNET_CRYPTO_aes_decrypt (&nb[1],
-			     size - sizeof (struct NBlock),
-			     &skey,
-			     &iv,
-			     pt);
+  if (-1 == GNUNET_CRYPTO_aes_decrypt (&nb[1],
+				       size - sizeof (struct NBlock),
+				       &skey,
+				       &iv,
+				       pt))
+    {
+      GNUNET_break (0);
+      return;
+    }
   /* parse */
   eos = memchr (pt, 0, sizeof (pt));
   if (NULL == eos)
@@ -736,11 +744,15 @@ process_sblock (struct GNUNET_FS_SearchContext *sc,
 		      strlen (identifier), 
 		      &key);
   GNUNET_CRYPTO_hash_to_aes_key (&key, &skey, &iv);
-  GNUNET_CRYPTO_aes_decrypt (&sb[1],
-			     len,
-			     &skey,
-			     &iv,
-			     pt);
+  if (-1 == GNUNET_CRYPTO_aes_decrypt (&sb[1],
+				       len,
+				       &skey,
+				       &iv,
+				       pt))
+    {
+      GNUNET_break (0);
+      return;
+    }
   /* parse */
   off = GNUNET_STRINGS_buffer_tokenize (pt,
 					len, 
