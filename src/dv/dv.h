@@ -28,7 +28,7 @@
 
 #include "gnunet_common.h"
 
-#define DEBUG_DV_GOSSIP GNUNET_NO
+#define DEBUG_DV_GOSSIP GNUNET_YES
 #define DEBUG_DV_GOSSIP_SEND GNUNET_NO
 #define DEBUG_DV_GOSSIP_RECEIPT GNUNET_NO
 #define DEBUG_DV_MESSAGES GNUNET_NO
@@ -46,7 +46,7 @@ typedef void (*GNUNET_DV_MessageReceivedHandler) (void *cls,
 
 /**
  * DV Message, contains a message that was received
- * via DV for this peer!
+ * via DV for this peer! Internal.
  *
  * Sender address is copied to the end of this struct,
  * followed by the actual message received.
@@ -83,6 +83,7 @@ struct GNUNET_DV_MessageReceived
 
 /**
  * DV Message, indicates that we have learned of a new DV level peer.
+ * Internal.
  *
  * Sender address is copied to the end of this struct.
  */
@@ -116,7 +117,8 @@ struct GNUNET_DV_ConnectMessage
 };
 
 /**
- * Message to return result from a send attempt
+ * Message to return result from a send attempt.
+ * Internal.
  */
 struct GNUNET_DV_SendResultMessage
 {
@@ -138,7 +140,8 @@ struct GNUNET_DV_SendResultMessage
 };
 
 /**
- * Message to send a message over DV via a specific peer
+ * Message to send a message over DV via a specific peer.
+ * Internal.
  */
 struct GNUNET_DV_SendMessage
 {
@@ -200,7 +203,7 @@ typedef struct
   /**
    * Cost from received from node to neighbor node, takes distance into account
    */
-  unsigned int cost GNUNET_PACKED;
+  uint32_t cost GNUNET_PACKED;
 
   /**
    * Identity of neighbor we learned information about
@@ -226,26 +229,31 @@ typedef struct
 {
   struct GNUNET_MessageHeader header;
 
+#if TRACK_MESSAGES
+  /**
+   * Unique ID for this message.
+   */
+  uint32_t uid GNUNET_PACKED;
+#else
+  /*
+   * Alignment.
+   */
+  uint32_t reserved GNUNET_PACKED;
+#endif
+
   /**
    * Identity of peer that ultimately sent the message.
    * Should be looked up in the set of 'neighbor_id's of
    * the referring peer.
    */
-  unsigned int sender GNUNET_PACKED;
+  uint32_t sender GNUNET_PACKED;
 
   /**
    * Identity of neighbor this message is going to.  Should
    * be looked up in the set of our own identifiers for
    * neighbors!
    */
-  unsigned int recipient GNUNET_PACKED;
-
-#if TRACK_MESSAGES
-  /**
-   * Unique ID for this message.
-   */
-  unsigned int uid GNUNET_PACKED;
-#endif
+  uint32_t recipient GNUNET_PACKED;
 
 } p2p_dv_MESSAGE_Data;
 
