@@ -720,7 +720,7 @@ http_daemon_prepare (struct MHD_Daemon *daemon_handle)
   GNUNET_NETWORK_fdset_copy_native (wws, &ws, max);
   GNUNET_NETWORK_fdset_copy_native (wes, &es, max);
   ret = GNUNET_SCHEDULER_add_select (plugin->env->sched,
-                                     GNUNET_SCHEDULER_PRIORITY_HIGH,
+                                     GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                      GNUNET_SCHEDULER_NO_TASK,
                                      tv,
                                      wrs,
