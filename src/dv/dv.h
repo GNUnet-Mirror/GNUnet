@@ -29,10 +29,12 @@
 #include "gnunet_common.h"
 
 #define DEBUG_DV_GOSSIP GNUNET_NO
-#define DEBUG_DV_GOSSIP_SEND GNUNET_YES
-#define DEBUG_DV_GOSSIP_RECEIPT GNUNET_YES
+#define DEBUG_DV_GOSSIP_SEND GNUNET_NO
+#define DEBUG_DV_GOSSIP_RECEIPT GNUNET_NO
+#define DEBUG_DV_MESSAGES GNUNET_NO
 #define DEBUG_DV GNUNET_NO
-#define DEBUG_DV_API GNUNET_YES
+#define DEBUG_DV_PEER_NUMBERS GNUNET_NO
+#define DEBUG_MESSAGE_DROP GNUNET_YES
 
 typedef void (*GNUNET_DV_MessageReceivedHandler) (void *cls,
                                                   struct GNUNET_PeerIdentity *sender,
@@ -237,6 +239,13 @@ typedef struct
    * neighbors!
    */
   unsigned int recipient GNUNET_PACKED;
+
+#if TRACK_MESSAGES
+  /**
+   * Unique ID for this message.
+   */
+  unsigned int uid GNUNET_PACKED;
+#endif
 
 } p2p_dv_MESSAGE_Data;
 

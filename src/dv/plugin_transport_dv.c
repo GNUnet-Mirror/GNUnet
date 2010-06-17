@@ -173,17 +173,20 @@ void handle_dv_message_received (void *cls,
                                  size_t sender_address_len)
 {
   struct Plugin *plugin = cls;
-
+#if DEBUG_DV_MESSAGES
+  char *my_id;
+  my_id = GNUNET_strdup(GNUNET_i2s(plugin->env->my_identity));
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "plugin_transport_dv",
-                   _("PLUGIN Received message from %s of type %d, distance %u!\n"),
-                   "DV SERVICE", ntohs(((struct GNUNET_MessageHeader *)msg)->type), distance);
-
+                   _("%s Received message from %s) of type %d, distance %u!\n"),
+                   my_id, GNUNET_i2s(sender), ntohs(((struct GNUNET_MessageHeader *)msg)->type), distance);
+  GNUNET_free_non_null(my_id);
+#endif
   plugin->env->receive(plugin->env->cls,
                        sender,
                        (struct GNUNET_MessageHeader *)msg,
                        distance,
-		       NULL, /* FIXME: pass session! */
+		       NULL,
                        sender_address,
                        sender_address_len);
 
@@ -237,9 +240,23 @@ dv_plugin_send (void *cls,
 {
   int ret = 0;
   struct Plugin *plugin = cls;
-
+  const char *tempbuf;
+  int temp_size;
 #if DEBUG_DV
+  char *my_identity;
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV API: Received send request from transport, calling GNUNET_DV_send\n");
+  my_identity = GNUNET_strdup(GNUNET_i2s(plugin->env->my_identity));
+#endif
+  temp_size = htons(((struct GNUNET_MessageHeader *)msgbuf)->size);
+  if (msgbuf_size > temp_size)
+    {
+      tempbuf = &msgbuf[temp_size];
+#if DEBUG_DV
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s DV PLUGIN SEND SPECIAL type %d to %s\n", my_identity, ntohs(((struct GNUNET_MessageHeader *)tempbuf)->type), GNUNET_i2s(target));
+#endif
+    }
+#if DEBUG_DV
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s DV PLUGIN SEND type %d to %s\n", my_identity, ntohs(((struct GNUNET_MessageHeader *)msgbuf)->type), GNUNET_i2s(target));
 #endif
   ret = GNUNET_DV_send(plugin->dv_handle,
                        target,
@@ -251,6 +268,9 @@ dv_plugin_send (void *cls,
                        addrlen,
                        cont,
                        cont_cls);
+#if DEBUG_DV
+  GNUNET_free_non_null(my_identity);
+#endif
 
   return ret;
 }

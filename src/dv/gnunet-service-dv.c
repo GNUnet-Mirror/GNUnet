@@ -45,7 +45,13 @@
 #include "gnunet_crypto_lib.h"
 #include "dv.h"
 
-#define DEBUG_DV_PEER_NUMBERS GNUNET_YES
+/**
+ * For testing mostly, remember only the
+ * shortest path to a distant neighbor.
+ */
+#define AT_MOST_ONE GNUNET_YES
+
+#define USE_PEER_ID GNUNET_YES
 
 /**
  * DV Service Context stuff goes here...
@@ -75,12 +81,12 @@ static struct GNUNET_SCHEDULER_Handle *sched;
  * How often do we check about sending out more peer information (if
  * we are connected to no peers previously).
  */
-#define GNUNET_DV_DEFAULT_SEND_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 50000)
+#define GNUNET_DV_DEFAULT_SEND_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 500000)
 
 /**
  * How long do we wait at most between sending out information?
  */
-#define GNUNET_DV_MAX_SEND_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 50000)
+#define GNUNET_DV_MAX_SEND_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 500000)
 
 /**
  * How long can we have not heard from a peer and
@@ -154,6 +160,8 @@ struct DistantNeighbor *referees;
 
 static size_t default_dv_priority = 0;
 
+char *my_short_id;
+
 
 /**
  * Linked list of messages to send to clients.
@@ -170,7 +178,31 @@ struct PendingMessage
    */
   struct PendingMessage *prev;
 
+  /**
+   * The PeerIdentity to send to
+   */
+  struct GNUNET_PeerIdentity recipient;
+
+  /**
+   * The result of message sending.
+   */
   struct GNUNET_DV_SendResultMessage *send_result;
+
+  /**
+   * Message importance level.
+   */
+  unsigned int importance;
+
+  /**
+   * Size of message.
+   */
+  unsigned int msg_size;
+
+  /**
+   * How long to wait before sending message.
+   */
+  struct GNUNET_TIME_Relative timeout;
+
   /**
    * Actual message to be sent; // avoid allocation
    */
@@ -289,6 +321,12 @@ struct NeighborUpdateInfo
    * The time we heard about this peer
    */
   struct GNUNET_TIME_Absolute now;
+
+  /**
+   * Peer id this peer uses to refer to neighbor.
+   */
+  unsigned int referrer_peer_id;
+
 };
 
 /**
@@ -414,6 +452,11 @@ struct PeerIteratorContext
    */
   struct DirectNeighbor *neighbor;
 
+  /**
+   * The distant neighbor entry for this direct neighbor.
+   */
+  struct DistantNeighbor *distant;
+
 };
 
 /**
@@ -530,6 +573,13 @@ struct FindDestinationContext
   struct DistantNeighbor *dest;
 };
 
+struct FindIDContext
+{
+  unsigned int tid;
+  struct GNUNET_PeerIdentity *dest;
+  const struct GNUNET_PeerIdentity *via;
+};
+
 struct DisconnectContext
 {
   /**
@@ -560,6 +610,28 @@ find_destination (void *cls,
     return GNUNET_YES;
   fdc->dest = dn;
   return GNUNET_NO;
+}
+
+
+/**
+ * We've been given a target ID based on the random numbers that
+ * we assigned to our DV-neighborhood.  Find the entry for the
+ * respective neighbor.
+ */
+static int
+find_specific_id (void *cls,
+                  const GNUNET_HashCode *key,
+                  void *value)
+{
+  struct FindIDContext *fdc = cls;
+  struct DistantNeighbor *dn = value;
+
+  if (memcmp(&dn->referrer->identity, fdc->via, sizeof(struct GNUNET_PeerIdentity)) == 0)
+    {
+      fdc->tid = dn->referrer_id;
+      return GNUNET_NO;
+    }
+  return GNUNET_YES;
 }
 
 /**
@@ -765,11 +837,12 @@ size_t core_transmit_notify (void *cls,
 
   core_transmit_handle = NULL;
   off = 0;
-  while ( (NULL != (reply = core_pending_head)) &&
-          (size >= off + (msize = ntohs (reply->msg->size))))
+  reply = core_pending_head;
+  if ( (reply != NULL) &&
+          (size >= (msize = ntohs (reply->msg->size))))
     {
 #if DEBUG_DV
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "`%s' : transmit_notify (core) called with size %d\n", "dv service", msize);
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "`%s' : transmit_notify (core) called with size %d\n", "dv service", msize);
 #endif
       GNUNET_CONTAINER_DLL_remove (core_pending_head,
                                    core_pending_tail,
@@ -801,6 +874,10 @@ size_t core_transmit_notify (void *cls,
       GNUNET_free (reply);
       off += msize;
     }
+  reply = core_pending_head;
+  if (reply != NULL)
+    core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, reply->importance, reply->timeout, &reply->recipient, reply->msg_size, &core_transmit_notify, NULL);
+
   return off;
 }
 
@@ -809,57 +886,72 @@ size_t core_transmit_notify (void *cls,
  * Send a DV data message via DV.
  *
  * @param sender the original sender of the message
- * @param specific_neighbor the specific DistantNeighbor to use, complete with referrer!
+ * @param recipient the next hop recipient, may be our direct peer, maybe not
  * @param send_context the send context
  */
 static int
-send_message_via (const struct GNUNET_PeerIdentity * sender,
-              const struct DistantNeighbor * specific_neighbor,
-              struct DV_SendContext *send_context)
+send_message_via (const struct GNUNET_PeerIdentity *sender,
+                  const struct GNUNET_PeerIdentity *recipient,
+                  struct DV_SendContext *send_context)
 {
   p2p_dv_MESSAGE_Data *toSend;
   unsigned int msg_size;
-  unsigned int cost;
   unsigned int recipient_id;
   unsigned int sender_id;
   struct DistantNeighbor *source;
   struct PendingMessage *pending_message;
+  struct FindIDContext find_context;
 #if DEBUG_DV
   char shortname[5];
 #endif
 
   msg_size = send_context->message_size + sizeof (p2p_dv_MESSAGE_Data);
 
-  if (specific_neighbor == NULL)
+  find_context.dest = send_context->distant_peer;
+  find_context.via = recipient;
+  find_context.tid = 0;
+  //specific_neighbor = GNUNET_CONTAINER_multihashmap_get(ctx.extended_neighbors, &send_context->distant_peer->hashPubKey);
+
+  //GNUNET_CONTAINER_multihashmap_iterate(ctx.extended_neighbors, &find_specific_id, &find_context);
+  GNUNET_CONTAINER_multihashmap_get_multiple (ctx.extended_neighbors, &send_context->distant_peer->hashPubKey,
+                                              &find_specific_id, &find_context);
+
+  if (find_context.tid == 0)
     {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s: find_specific_id failed to find peer!\n", my_short_id);
       /* target unknown to us, drop! */
       return GNUNET_SYSERR;
     }
-  recipient_id = specific_neighbor->referrer_id;
+  recipient_id = find_context.tid;
 
-  source = GNUNET_CONTAINER_multihashmap_get (ctx.extended_neighbors,
-                                      &sender->hashPubKey);
-  if (source == NULL)
-    {
-      if (0 != (memcmp (&my_identity,
+  if (0 == (memcmp (&my_identity,
                         sender, sizeof (struct GNUNET_PeerIdentity))))
-        {
-          /* sender unknown to us, drop! */
-          return GNUNET_SYSERR;
-        }
-      sender_id = 0;            /* 0 == us */
-    }
+  {
+    sender_id = 0;
+    source = GNUNET_CONTAINER_multihashmap_get (ctx.extended_neighbors,
+                                                    &sender->hashPubKey);
+    if (source != NULL)
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s: send_message_via found %s, myself in extended peer list???\n", my_short_id, GNUNET_i2s(&source->identity));
+  }
   else
-    {
-      /* find out the number that we use when we gossip about
-         the sender */
-      sender_id = source->our_id;
-    }
+  {
+    source = GNUNET_CONTAINER_multihashmap_get (ctx.extended_neighbors,
+                                                &sender->hashPubKey);
+    if (source == NULL)
+      {
+              /* sender unknown to us, drop! */
+        return GNUNET_SYSERR;
+      }
+    sender_id = source->our_id;
+  }
 
-  cost = specific_neighbor->cost;
   pending_message = GNUNET_malloc(sizeof(struct PendingMessage) + msg_size);
   pending_message->msg = (struct GNUNET_MessageHeader *)&pending_message[1];
   pending_message->send_result = send_context->send_result;
+  memcpy(&pending_message->recipient, recipient, sizeof(struct GNUNET_PeerIdentity));
+  pending_message->msg_size = msg_size;
+  pending_message->importance = send_context->importance;
+  pending_message->timeout = send_context->timeout;
   toSend = (p2p_dv_MESSAGE_Data *)pending_message->msg;
   toSend->header.size = htons (msg_size);
   toSend->header.type = htons (GNUNET_MESSAGE_TYPE_DV_DATA);
@@ -877,14 +969,53 @@ send_message_via (const struct GNUNET_PeerIdentity * sender,
                                      core_pending_tail,
                                      core_pending_tail,
                                      pending_message);
+
   if (core_transmit_handle == NULL)
-    core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, send_context->importance, send_context->timeout, &specific_neighbor->referrer->identity, msg_size, &core_transmit_notify, NULL);
+    core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, send_context->importance, send_context->timeout, recipient, msg_size, &core_transmit_notify, NULL);
   else
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "`%s': Failed to schedule pending transmission (must be one in progress!)\n", "dv service");
 
-  return (int) cost;
+  return GNUNET_YES;
 }
 
+
+/**
+ * Context for finding the least cost peer to send to.
+ * Transport selection can only go so far.
+ */
+struct FindLeastCostContext
+{
+  struct DistantNeighbor *target;
+  unsigned int least_cost;
+};
+
+
+/**
+ * Given a FindLeastCostContext, and a set
+ * of peers that match the target, return the cheapest.
+ *
+ * @param cls closure, a struct FindLeastCostContext
+ * @param key the key identifying the target peer
+ * @param value the target peer
+ *
+ * @return GNUNET_YES to continue iteration, GNUNET_NO to stop
+ */
+static int
+find_least_cost_peer (void *cls,
+                  const GNUNET_HashCode *key,
+                  void *value)
+{
+  struct FindLeastCostContext *find_context = cls;
+  struct DistantNeighbor *dn = value;
+
+  if (dn->cost < find_context->least_cost)
+    {
+      find_context->target = dn;
+    }
+  if (dn->cost == DIRECT_NEIGHBOR_COST)
+    return GNUNET_NO;
+  return GNUNET_YES;
+}
 
 /**
  * Send a DV data message via DV.
@@ -913,11 +1044,26 @@ send_message (const struct GNUNET_PeerIdentity * recipient,
   struct DistantNeighbor *target;
   struct DistantNeighbor *source;
   struct PendingMessage *pending_message;
-
+  struct FindLeastCostContext find_least_ctx;
+#if DEBUG_DV_PEER_NUMBERS
+  struct GNUNET_CRYPTO_HashAsciiEncoded encPeerFrom;
+  struct GNUNET_CRYPTO_HashAsciiEncoded encPeerTo;
+  struct GNUNET_CRYPTO_HashAsciiEncoded encPeerVia;
+#endif
   msg_size = message_size + sizeof (p2p_dv_MESSAGE_Data);
 
-  target = GNUNET_CONTAINER_multihashmap_get (ctx.extended_neighbors,
-                                              &recipient->hashPubKey);
+  find_least_ctx.least_cost = -1;
+  find_least_ctx.target = NULL;
+  /*
+   * Need to find the least cost peer, lest the transport selection keep
+   * picking the same DV route for the same destination which results
+   * in messages looping forever.  Relatively cheap, we don't iterate
+   * over all known peers, just those that apply.
+   */
+  GNUNET_CONTAINER_multihashmap_get_multiple (ctx.extended_neighbors,
+                                                       &recipient->hashPubKey,  &find_least_cost_peer, &find_least_ctx);
+  target = find_least_ctx.target;
+
   if (target == NULL)
     {
       /* target unknown to us, drop! */
@@ -944,17 +1090,36 @@ send_message (const struct GNUNET_PeerIdentity * recipient,
       sender_id = source->our_id;
     }
 
+#if DEBUG_DV_PEER_NUMBERS
+  GNUNET_CRYPTO_hash_to_enc (&source->identity.hashPubKey, &encPeerFrom);
+  GNUNET_CRYPTO_hash_to_enc (&target->referrer->identity.hashPubKey, &encPeerVia);
+  encPeerFrom.encoding[4] = '\0';
+  encPeerVia.encoding[4] = '\0';
+#endif
+  if (0 == memcmp(&source->identity, &target->referrer->identity, sizeof(struct GNUNET_PeerIdentity)))
+    {
+      return 0;
+    }
+
   cost = target->cost;
   pending_message = GNUNET_malloc(sizeof(struct PendingMessage) + msg_size);
   pending_message->msg = (struct GNUNET_MessageHeader *)&pending_message[1];
   pending_message->send_result = NULL;
+  pending_message->importance = importance;
+  pending_message->timeout = timeout;
+  memcpy(&pending_message->recipient, &target->referrer->identity, sizeof(struct GNUNET_PeerIdentity));
+  pending_message->msg_size = msg_size;
   toSend = (p2p_dv_MESSAGE_Data *)pending_message->msg;
   toSend->header.size = htons (msg_size);
   toSend->header.type = htons (GNUNET_MESSAGE_TYPE_DV_DATA);
   toSend->sender = htonl (sender_id);
   toSend->recipient = htonl (recipient_id);
+#if DEBUG_DV_PEER_NUMBERS
+  GNUNET_CRYPTO_hash_to_enc (&target->identity.hashPubKey, &encPeerTo);
+  encPeerTo.encoding[4] = '\0';
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: Sending DATA message. Sender id %u, source %s, destination %s, via %s\n", GNUNET_i2s(&my_identity), sender_id, &encPeerFrom, &encPeerTo, &encPeerVia);
+#endif
   memcpy (&toSend[1], message, message_size);
-
   GNUNET_CONTAINER_DLL_insert_after (core_pending_head,
                                      core_pending_tail,
                                      core_pending_tail,
@@ -964,10 +1129,51 @@ send_message (const struct GNUNET_PeerIdentity * recipient,
 #endif
   if (core_transmit_handle == NULL)
     core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, importance, timeout, &target->referrer->identity, msg_size, &core_transmit_notify, NULL);
-
+  else
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: CORE ALREADY SENDING\n", "DV SEND MESSAGE", msg_size);
   return (int) cost;
 }
 
+#if USE_PEER_ID
+struct CheckPeerContext
+{
+  /**
+   * Peer we found
+   */
+  struct DistantNeighbor *peer;
+
+  /**
+   * Sender id to search for
+   */
+  unsigned int sender_id;
+};
+
+/**
+ * Iterator over hash map entries.
+ *
+ * @param cls closure
+ * @param key current key code
+ * @param value value in the hash map
+ * @return GNUNET_YES if we should continue to
+ *         iterate,
+ *         GNUNET_NO if not.
+ */
+int checkPeerID (void *cls,
+                 const GNUNET_HashCode * key,
+                 void *value)
+{
+  struct CheckPeerContext *ctx = cls;
+  struct DistantNeighbor *distant = value;
+
+  if (memcmp(key, &ctx->sender_id, sizeof(unsigned int)) == 0)
+  {
+    ctx->peer = distant;
+    return GNUNET_NO;
+  }
+  return GNUNET_YES;
+
+}
+#endif
 
 /**
  * Core handler for dv data messages.  Whatever this message
@@ -996,6 +1202,13 @@ static int handle_dv_data_message (void *cls,
   struct GNUNET_PeerIdentity original_sender;
   struct GNUNET_PeerIdentity destination;
   struct FindDestinationContext fdc;
+#if USE_PEER_ID
+  struct CheckPeerContext checkPeerCtx;
+#endif
+  char *sender_id;
+
+  char *direct_id;
+
   int ret;
   size_t packed_message_size;
   char *cbuf;
@@ -1003,15 +1216,18 @@ static int handle_dv_data_message (void *cls,
 
   packed_message_size = ntohs(incoming->header.size) - sizeof(p2p_dv_MESSAGE_Data);
 
+
 #if DEBUG_DV
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%s: Receives %s message size %d, packed message size %d!\n", "dv", "DV DATA", ntohs(incoming->header.size), packed_message_size);
+              "%s: Receives DATA message from %s size %d, packed size %d!\n", my_short_id, GNUNET_i2s(peer) , ntohs(incoming->header.size), packed_message_size);
 #endif
+
   if (ntohs (incoming->header.size) <  sizeof (p2p_dv_MESSAGE_Data) + sizeof (struct GNUNET_MessageHeader))
     {
+
 #if DEBUG_DV
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s': Message sizes don't add up, total size %u, expected at least %u!\n", "dv service", ntohs(incoming->header.size), sizeof (p2p_dv_MESSAGE_Data) + sizeof (struct GNUNET_MessageHeader));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "`%s': Message sizes don't add up, total size %u, expected at least %u!\n", "dv service", ntohs(incoming->header.size), sizeof (p2p_dv_MESSAGE_Data) + sizeof (struct GNUNET_MessageHeader));
 #endif
       return GNUNET_SYSERR;
     }
@@ -1027,15 +1243,47 @@ static int handle_dv_data_message (void *cls,
       return GNUNET_OK;
     }
   sid = ntohl (incoming->sender);
+#if USE_PEER_ID
+  if (sid != 0)
+  {
+    checkPeerCtx.sender_id = sid;
+    checkPeerCtx.peer = NULL;
+    GNUNET_CONTAINER_multihashmap_iterate(ctx.extended_neighbors, &checkPeerID, &checkPeerCtx);
+    pos = checkPeerCtx.peer;
+  }
+  else
+  {
+    pos = GNUNET_CONTAINER_multihashmap_get (ctx.extended_neighbors,
+                                             &peer->hashPubKey);
+  }
+#else
   pos = dn->referee_head;
   while ((NULL != pos) && (pos->referrer_id != sid))
     pos = pos->next;
+#endif
 
   if (pos == NULL)
     {
-#if DEBUG_DV_PEER_NUMBERS
+      direct_id = GNUNET_strdup(GNUNET_i2s(&dn->identity));
+#if DEBUG_DV
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%s peer %s: unknown sender (%d)!\n", "DV SERVICE", GNUNET_i2s(&my_identity), ntohl(incoming->sender), GNUNET_CONTAINER_multihashmap_size (ctx.extended_neighbors));
+                  "%s: unknown sender (%u), Message from %s!\n", GNUNET_i2s(&my_identity), ntohl(incoming->sender), direct_id);
+#endif
+      GNUNET_free(direct_id);
+      pos = dn->referee_head;
+      while ((NULL != pos) && (pos->referrer_id != sid))
+      {
+        sender_id = strdup(GNUNET_i2s(&pos->identity));
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "I know sender %u %s\n", pos->referrer_id, sender_id);
+        GNUNET_free(sender_id);
+        pos = pos->next;
+      }
+
+#if DEBUG_MESSAGE_DROP
+      direct_id = GNUNET_strdup(GNUNET_i2s(&dn->identity));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%s: DROPPING MESSAGE type %d, unknown sender! Message immediately from %s!\n", GNUNET_i2s(&my_identity), ntohs(((struct GNUNET_MessageHeader *)&incoming[1])->type), direct_id);
+      GNUNET_free(direct_id);
 #endif
       /* unknown sender */
       return GNUNET_OK;
@@ -1050,6 +1298,7 @@ static int handle_dv_data_message (void *cls,
       while(offset < packed_message_size)
         {
           packed_message = (struct GNUNET_MessageHeader *)&cbuf[offset];
+
 #if DEBUG_DV
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "%s: Receives %s message for me, size %d type %d, cost %u!\n", "dv", "DV DATA", ntohs(packed_message->size), ntohs(packed_message->type), pos->cost);
@@ -1059,6 +1308,7 @@ static int handle_dv_data_message (void *cls,
           if ( (ntohs (packed_message->type) != GNUNET_MESSAGE_TYPE_DV_GOSSIP) &&
               (ntohs (packed_message->type) != GNUNET_MESSAGE_TYPE_DV_DATA) )
           {
+            GNUNET_assert(memcmp(peer, &pos->identity, sizeof(struct GNUNET_PeerIdentity)) != 0);
             send_to_plugin(peer, packed_message, ntohs(packed_message->size), &pos->identity, pos->cost);
           }
           offset += ntohs(packed_message->size);
@@ -1087,15 +1337,25 @@ static int handle_dv_data_message (void *cls,
 
   if (fdc.dest == NULL)
     {
-      return GNUNET_OK;
+#if DEBUG_DV
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%s: Receives %s message for someone else that we don't know (id %u)!\n", "dv", "DV DATA", tid);
+#endif
+    return GNUNET_OK;
     }
   destination = fdc.dest->identity;
 
   if (0 == memcmp (&destination, peer, sizeof (struct GNUNET_PeerIdentity)))
     {
       /* FIXME: create stat: routing loop-discard! */
-#if DEBUG_DV
+#if DEBUG_DV_PEER_NUMBERS
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "\n\n\nLoopy loo message\n\n\n");
+#endif
+
+#if DEBUG_MESSAGE_DROP
+      direct_id = GNUNET_strdup(GNUNET_i2s(&dn->identity));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%s: DROPPING MESSAGE type %d, routing loop! Message immediately from %s!\n", GNUNET_i2s(&my_identity), ntohs(((struct GNUNET_MessageHeader *)&incoming[1])->type), direct_id);
 #endif
       return GNUNET_OK;
     }
@@ -1109,6 +1369,7 @@ static int handle_dv_data_message (void *cls,
   /*ret = send_message (&destination,
                       &original_sender,
                       packed_message, DV_PRIORITY, DV_DELAY);*/
+
 #if DEBUG_DV
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s: Sends message size %d on!\n", "dv", packed_message_size);
@@ -1118,9 +1379,43 @@ static int handle_dv_data_message (void *cls,
   if (ret != GNUNET_SYSERR)
     return GNUNET_OK;
   else
-    return GNUNET_SYSERR;
+    {
+#if DEBUG_MESSAGE_DROP
+      direct_id = GNUNET_strdup(GNUNET_i2s(&dn->identity));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%s: DROPPING MESSAGE type %d, forwarding failed! Message immediately from %s!\n", GNUNET_i2s(&my_identity), ntohs(((struct GNUNET_MessageHeader *)&incoming[1])->type), direct_id);
+#endif
+      return GNUNET_SYSERR;
+    }
 }
 
+#if DEBUG_DV
+/**
+ * Iterator over hash map entries.
+ *
+ * @param cls closure (NULL)
+ * @param key current key code
+ * @param value value in the hash map (DistantNeighbor)
+ * @return GNUNET_YES if we should continue to
+ *         iterate,
+ *         GNUNET_NO if not.
+ */
+int print_neighbors (void *cls,
+                     const GNUNET_HashCode * key,
+                     void *value)
+{
+  struct DistantNeighbor *distant_neighbor = value;
+  char my_shortname[5];
+  char referrer_shortname[5];
+  memcpy(&my_shortname, GNUNET_i2s(&my_identity), 4);
+  my_shortname[4] = '\0';
+  memcpy(&referrer_shortname, GNUNET_i2s(&distant_neighbor->referrer->identity), 4);
+  referrer_shortname[4] = '\0';
+
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "`%s' %s: Peer `%s', distance %d, referrer `%s' pkey: %s\n", &my_shortname, "DV", GNUNET_i2s(&distant_neighbor->identity), distant_neighbor->cost, &referrer_shortname, distant_neighbor->pkey == NULL ? "no" : "yes");
+  return GNUNET_YES;
+}
+#endif
 
 /**
  *  Scheduled task which gossips about known direct peers to other connected
@@ -1149,14 +1444,13 @@ neighbor_send_task (void *cls,
               "%s: Called with reason shutdown, shutting down!\n",
               GNUNET_i2s(&my_identity));
 #endif
-    send_context->task = GNUNET_SCHEDULER_NO_TASK;
     return;
   }
 
   if (send_context->fast_gossip_list_head != NULL)
     {
       about_list = send_context->fast_gossip_list_head;
-      about = send_context->fast_gossip_list_head->about;
+      about = about_list->about;
       GNUNET_CONTAINER_DLL_remove(send_context->fast_gossip_list_head,
                                   send_context->fast_gossip_list_tail,
                                   about_list);
@@ -1173,6 +1467,8 @@ neighbor_send_task (void *cls,
        * once to get a list of peers to gossip about and gossip them over time... But then if one goes away
        * in the mean time that becomes nasty.  For now we'll just assume that the walking is done
        * asynchronously enough to avoid major problems (-;
+       *
+       * NOTE: probably fixed once we decided send rate based on allowed bandwidth.
        */
       about = GNUNET_CONTAINER_heap_walk_get_next (ctx.neighbor_min_heap);
     }
@@ -1199,6 +1495,10 @@ neighbor_send_task (void *cls,
 #endif
       pending_message = GNUNET_malloc(sizeof(struct PendingMessage) + sizeof(p2p_dv_MESSAGE_NeighborInfo));
       pending_message->msg = (struct GNUNET_MessageHeader *)&pending_message[1];
+      pending_message->importance = default_dv_priority;
+      pending_message->timeout = GNUNET_TIME_relative_get_forever();
+      memcpy(&pending_message->recipient, &to->identity, sizeof(struct GNUNET_PeerIdentity));
+      pending_message->msg_size = sizeof(p2p_dv_MESSAGE_NeighborInfo);
       message = (p2p_dv_MESSAGE_NeighborInfo *)pending_message->msg;
       message->header.size = htons (sizeof (p2p_dv_MESSAGE_NeighborInfo));
       message->header.type = htons (GNUNET_MESSAGE_TYPE_DV_GOSSIP);
@@ -1221,15 +1521,15 @@ neighbor_send_task (void *cls,
 
   if (send_context->fast_gossip_list_head != NULL) /* If there are other peers in the fast list, schedule right away */
     {
-#if DEBUG_DV
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV SERVICE: still in fast send mode\n");
+#if DEBUG_DV_PEER_NUMBERS
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "DV SERVICE: still in fast send mode\n");
 #endif
       send_context->task = GNUNET_SCHEDULER_add_now(sched, &neighbor_send_task, send_context);
     }
   else
     {
-#if DEBUG_DV
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV SERVICE: entering slow send mode\n");
+#if DEBUG_DV_PEER_NUMBERS
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "DV SERVICE: entering slow send mode\n");
 #endif
       send_context->task = GNUNET_SCHEDULER_add_delayed(sched, GNUNET_DV_DEFAULT_SEND_INTERVAL, &neighbor_send_task, send_context);
     }
@@ -1263,7 +1563,7 @@ handle_start (void *cls,
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
-
+#if UNSIMPLER
 /**
  * Iterate over hash map entries for a distant neighbor,
  * if direct neighbor matches context call send message
@@ -1289,6 +1589,7 @@ int send_iterator (void *cls,
     }
   return GNUNET_YES;
 }
+#endif
 
 /**
  * Service server's handler for message send requests (which come
@@ -1311,6 +1612,7 @@ void handle_dv_send_message (void *cls,
   struct GNUNET_PeerIdentity *direct;
   struct GNUNET_MessageHeader *message_buf;
   char *temp_pos;
+
   int offset;
   static struct GNUNET_CRYPTO_HashAsciiEncoded dest_hash;
   struct DV_SendContext *send_context;
@@ -1325,8 +1627,10 @@ void handle_dv_send_message (void *cls,
   {
     client_handle = client;
     /* What should we do in this case, assert fail or just log the warning? */
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+#if DEBUG_DV
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%s: Setting client handle (was a different client!)!\n", "dv");
+#endif
   }
 
   GNUNET_assert(ntohs(message->size) > sizeof(struct GNUNET_DV_SendMessage));
@@ -1359,10 +1663,11 @@ void handle_dv_send_message (void *cls,
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s: asked to send message to `%s', but address is for `%s'!", "DV SERVICE", GNUNET_i2s(&send_msg->target), (const char *)&dest_hash.encoding);
     }
 
-#if DEBUG_DV
+
   GNUNET_CRYPTO_hash_to_enc (&destination->hashPubKey, &dest_hash); /* GNUNET_i2s won't properly work, need to hash one ourselves */
   dest_hash.encoding[4] = '\0';
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV SEND called with message of size %d type %d, destination `%s' via `%s'\n", message_size, ntohs(message_buf->type), (const char *)&dest_hash.encoding, GNUNET_i2s(direct));
+#if DEBUG_DV_MESSAGES
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s DV SEND called with message of size %d type %d, destination `%s' via `%s'\n", my_short_id, message_size, ntohs(message_buf->type), (const char *)&dest_hash.encoding, GNUNET_i2s(direct));
 #endif
   send_context = GNUNET_malloc(sizeof(struct DV_SendContext));
 
@@ -1379,7 +1684,37 @@ void handle_dv_send_message (void *cls,
   send_context->message_size = message_size;
   send_context->send_result = send_result_msg;
 
+  if (send_message_via(&my_identity, direct, send_context) != GNUNET_YES)
+    {
+      send_result_msg->result = htons(1);
+      pending_message = GNUNET_malloc(sizeof(struct PendingMessage) + sizeof(struct GNUNET_DV_SendResultMessage));
+      pending_message->msg = (struct GNUNET_MessageHeader *)&pending_message[1];
+      memcpy(&pending_message[1], send_result_msg, sizeof(struct GNUNET_DV_SendResultMessage));
+      GNUNET_free(send_result_msg);
+
+      GNUNET_CONTAINER_DLL_insert_after(plugin_pending_head, plugin_pending_tail, plugin_pending_tail, pending_message);
+
+      if (client_handle != NULL)
+        {
+          if (plugin_transmit_handle == NULL)
+            {
+              plugin_transmit_handle = GNUNET_SERVER_notify_transmit_ready (client_handle,
+                                                                            sizeof(struct GNUNET_DV_SendResultMessage),
+                                                                            GNUNET_TIME_UNIT_FOREVER_REL,
+                                                                            &transmit_to_plugin, NULL);
+            }
+          else
+            {
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to queue message for plugin, must be one in progress already!!\n");
+            }
+        }
+      GNUNET_CRYPTO_hash_to_enc (&destination->hashPubKey, &dest_hash); /* GNUNET_i2s won't properly work, need to hash one ourselves */
+      dest_hash.encoding[4] = '\0';
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s DV SEND failed to send message to destination `%s' via `%s'\n", my_short_id, (const char *)&dest_hash.encoding, GNUNET_i2s(direct));
+    }
+
   /* In bizarro world GNUNET_SYSERR indicates that we succeeded */
+#if UNSIMPLER
   if (GNUNET_SYSERR != GNUNET_CONTAINER_multihashmap_get_multiple(ctx.extended_neighbors, &destination->hashPubKey, &send_iterator, send_context))
     {
       send_result_msg->result = htons(1);
@@ -1404,13 +1739,11 @@ void handle_dv_send_message (void *cls,
               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to queue message for plugin, must be one in progress already!!\n");
             }
         }
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "DV SEND failed to send message to destination `%s' via `%s'\n", (const char *)&dest_hash.encoding, GNUNET_i2s(direct));
+      GNUNET_CRYPTO_hash_to_enc (&destination->hashPubKey, &dest_hash); /* GNUNET_i2s won't properly work, need to hash one ourselves */
+      dest_hash.encoding[4] = '\0';
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s DV SEND failed to send message to destination `%s' via `%s'\n", my_short_id, (const char *)&dest_hash.encoding, GNUNET_i2s(direct));
     }
-  else
-    {
-
-    }
-
+#endif
   GNUNET_free(message_buf);
   GNUNET_free(send_context);
   GNUNET_free(direct);
@@ -1476,7 +1809,7 @@ distant_neighbor_free (struct DistantNeighbor *referee)
   GNUNET_CONTAINER_heap_remove_node (ctx.neighbor_min_heap, referee->min_loc);
   GNUNET_CONTAINER_multihashmap_remove_all (ctx.extended_neighbors,
                                     &referee->identity.hashPubKey);
-  GNUNET_free (referee->pkey);
+  GNUNET_free_non_null (referee->pkey);
   GNUNET_free (referee);
 }
 
@@ -1533,6 +1866,10 @@ static int schedule_disconnect_messages (void *cls,
 
   pending_message = GNUNET_malloc(sizeof(struct PendingMessage) + sizeof(p2p_dv_MESSAGE_Disconnect));
   pending_message->msg = (struct GNUNET_MessageHeader *)&pending_message[1];
+  pending_message->importance = default_dv_priority;
+  pending_message->timeout = GNUNET_TIME_relative_get_forever();
+  memcpy(&pending_message->recipient, &notify->identity, sizeof(struct GNUNET_PeerIdentity));
+  pending_message->msg_size = sizeof(p2p_dv_MESSAGE_Disconnect);
   disconnect_message = (p2p_dv_MESSAGE_Disconnect *)pending_message->msg;
   disconnect_message->header.size = htons (sizeof (p2p_dv_MESSAGE_Disconnect));
   disconnect_message->header.type = htons (GNUNET_MESSAGE_TYPE_DV_DISCONNECT);
@@ -1597,6 +1934,7 @@ shutdown_task (void *cls,
 {
 #if DEBUG_DV
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "calling CORE_DISCONNECT\n");
+  GNUNET_CONTAINER_multihashmap_iterate(ctx.extended_neighbors, &print_neighbors, NULL);
 #endif
   GNUNET_CONTAINER_multihashmap_iterate(ctx.extended_neighbors, &free_extended_neighbors, NULL);
   GNUNET_CONTAINER_multihashmap_destroy(ctx.extended_neighbors);
@@ -1608,6 +1946,8 @@ shutdown_task (void *cls,
 
   GNUNET_CORE_disconnect (coreAPI);
   GNUNET_PEERINFO_disconnect(peerinfo_handle);
+
+  GNUNET_free_non_null(my_short_id);
 #if DEBUG_DV
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "CORE_DISCONNECT completed\n");
 #endif
@@ -1633,9 +1973,12 @@ void core_init (void *cls,
               "%s: Core connection initialized, I am peer: %s\n", "dv", GNUNET_i2s(identity));
 #endif
   memcpy(&my_identity, identity, sizeof(struct GNUNET_PeerIdentity));
+  my_short_id = GNUNET_strdup(GNUNET_i2s(&my_identity));
   coreAPI = server;
 }
 
+
+#if PKEY_NO_NEIGHBOR_ON_ADD
 /**
  * Iterator over hash map entries.
  *
@@ -1661,6 +2004,7 @@ static int add_pkey_to_extended (void *cls,
 
   return GNUNET_YES;
 }
+#endif
 
 /**
  * Iterator over hash map entries.
@@ -1688,6 +2032,7 @@ static int update_matching_neighbors (void *cls,
                                        update_info->neighbor->min_loc, update_info->cost);
     update_info->neighbor->last_activity = update_info->now;
     update_info->neighbor->cost = update_info->cost;
+    update_info->neighbor->referrer_id = update_info->referrer_peer_id;
     return GNUNET_NO;
   }
 
@@ -1695,34 +2040,67 @@ static int update_matching_neighbors (void *cls,
 }
 
 
-#if DEBUG_DV_GOSSIP
 /**
- * Iterator over hash map entries.
+ * Iterate over all current direct peers, add DISTANT newly connected
+ * peer to the fast gossip list for that peer so we get DV routing
+ * information out as fast as possible!
  *
- * @param cls closure (NULL)
- * @param key current key code
- * @param value value in the hash map (DistantNeighbor)
- * @return GNUNET_YES if we should continue to
- *         iterate,
- *         GNUNET_NO if not.
+ * @param cls the newly connected neighbor we will gossip about
+ * @param key the hashcode of the peer
+ * @param value the direct neighbor we should gossip to
+ *
+ * @return GNUNET_YES to continue iteration, GNUNET_NO otherwise
  */
-int print_neighbors (void *cls,
-                     const GNUNET_HashCode * key,
-                     void *value)
+static int add_distant_all_direct_neighbors (void *cls,
+                                     const GNUNET_HashCode * key,
+                                     void *value)
 {
-  struct DistantNeighbor *distant_neighbor = value;
-  char my_shortname[5];
-  char referrer_shortname[5];
-  memcpy(&my_shortname, GNUNET_i2s(&my_identity), 4);
-  my_shortname[4] = '\0';
-  memcpy(&referrer_shortname, GNUNET_i2s(&distant_neighbor->referrer->identity), 4);
-  referrer_shortname[4] = '\0';
+  struct DirectNeighbor *direct = (struct DirectNeighbor *)value;
+  struct DistantNeighbor *distant = (struct DistantNeighbor *)cls;
+  struct NeighborSendContext *send_context = direct->send_context;
+  struct FastGossipNeighborList *gossip_entry;
+#if DEBUG_DV
+  char *encPeerAbout;
+  char *encPeerTo;
+#endif
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "`%s' %s: Peer `%s', distance %d, referrer `%s'\n", &my_shortname, "DV", GNUNET_i2s(&distant_neighbor->identity), distant_neighbor->cost, &referrer_shortname);
+  if (distant == NULL)
+    {
+      return GNUNET_YES;
+    }
+
+  if (memcmp(&direct->identity, &distant->identity, sizeof(struct GNUNET_PeerIdentity)) == 0)
+    {
+      return GNUNET_YES; /* Don't gossip to a peer about itself! */
+    }
+
+#if SUPPORT_HIDING
+  if (distant->hidden == GNUNET_YES)
+    return GNUNET_YES; /* This peer should not be gossipped about (hidden) */
+#endif
+  gossip_entry = GNUNET_malloc(sizeof(struct FastGossipNeighborList));
+  gossip_entry->about = distant;
+
+  GNUNET_CONTAINER_DLL_insert_after(send_context->fast_gossip_list_head,
+                                    send_context->fast_gossip_list_tail,
+                                    send_context->fast_gossip_list_tail,
+                                    gossip_entry);
+#if DEBUG_DV
+  encPeerAbout = GNUNET_strdup(GNUNET_i2s(&distant->identity));
+  encPeerTo = GNUNET_strdup(GNUNET_i2s(&direct->identity));
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: Fast send info about peer %s id %u for directly connected peer %s\n",
+             GNUNET_i2s(&my_identity),
+             encPeerAbout, distant->our_id, encPeerTo);
+  GNUNET_free(encPeerAbout);
+  GNUNET_free(encPeerTo);
+#endif
+  /*if (send_context->task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(sched, send_context->task);*/
+
+  send_context->task = GNUNET_SCHEDULER_add_now(sched, &neighbor_send_task, send_context);
   return GNUNET_YES;
 }
-
-#endif
 
 /**
  * Handles when a peer is either added due to being newly connected
@@ -1734,8 +2112,11 @@ int print_neighbors (void *cls,
  * @param referrer_peer_id id to use when sending to 'peer'
  * @param referrer if this is a gossiped peer, who did we hear it from?
  * @param cost the cost of communicating with this peer via 'referrer'
+ *
+ * @return the added neighbor, the updated neighbor or NULL (neighbor
+ *         not added)
  */
-static void
+static struct DistantNeighbor *
 addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer, struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pkey,
                    unsigned int referrer_peer_id,
                    struct DirectNeighbor *referrer, unsigned int cost)
@@ -1747,6 +2128,7 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer, struct GNUNET_CRYPTO
   unsigned int our_id;
 
 #if DEBUG_DV_PEER_NUMBERS
+  char *encAbout;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s Received sender id (%u)!\n", "DV SERVICE", referrer_peer_id);
 #endif
@@ -1759,13 +2141,24 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer, struct GNUNET_CRYPTO
   neighbor_update->cost = cost;
   neighbor_update->now = now;
   neighbor_update->referrer = referrer;
+  neighbor_update->referrer_peer_id = referrer_peer_id;
 
-
-  our_id = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, RAND_MAX - 1) + 1;
-#if DEBUG_DV_PEER_NUMBERS
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%s Chose NEW id (%u)!\n", "DV SERVICE", our_id);
+  if (neighbor != NULL)
+    {
+#if USE_PEER_ID
+      memcpy(&our_id, &neighbor->identity, sizeof(unsigned int));
+#else
+      our_id = neighbor->our_id;
 #endif
+    }
+  else
+    {
+#if USE_PEER_ID
+      memcpy(&our_id, peer, sizeof(unsigned int));
+#else
+      our_id = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, RAND_MAX - 1) + 1;
+#endif
+    }
 
   /* Either we do not know this peer, or we already do but via a different immediate peer */
   if ((neighbor == NULL) ||
@@ -1774,13 +2167,32 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer, struct GNUNET_CRYPTO
                                                   &update_matching_neighbors,
                                                   neighbor_update) != GNUNET_SYSERR))
     {
+
+#if AT_MOST_ONE
+    if ((neighbor != NULL) && (cost < neighbor->cost)) /* New cost is less than old, remove old */
+      {
+        distant_neighbor_free(neighbor);
+      }
+    else if ((neighbor != NULL) && (cost >= neighbor->cost)) /* Only allow one DV connection to each peer */
+      {
+        return NULL;
+      }
+#endif
       /* new neighbor! */
       if (cost > ctx.fisheye_depth)
         {
           /* too costly */
           GNUNET_free(neighbor_update);
-          return;
+          return NULL;
         }
+
+#if DEBUG_DV_PEER_NUMBERS
+      encAbout = GNUNET_strdup(GNUNET_i2s(peer));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%s: %s Chose NEW id (%u) for peer %s!\n", GNUNET_i2s(&my_identity), "DV SERVICE", our_id, encAbout);
+      GNUNET_free(encAbout);
+#endif
+
       if (ctx.max_table_size <=
           GNUNET_CONTAINER_multihashmap_size (ctx.extended_neighbors))
         {
@@ -1790,7 +2202,7 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer, struct GNUNET_CRYPTO
             {
               /* new entry most expensive, don't create */
               GNUNET_free(neighbor_update);
-              return;
+              return NULL;
             }
           if (max->cost > 1)
             {
@@ -1829,6 +2241,7 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer, struct GNUNET_CRYPTO
       GNUNET_CONTAINER_multihashmap_put (ctx.extended_neighbors, &peer->hashPubKey,
                                  neighbor,
                                  GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+
     }
   else
     {
@@ -1841,8 +2254,9 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer, struct GNUNET_CRYPTO
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%s: Size of extended_neighbors is %d\n", "dv", GNUNET_CONTAINER_multihashmap_size(ctx.extended_neighbors));
 #endif
-  GNUNET_free(neighbor_update);
 
+  GNUNET_free(neighbor_update);
+  return neighbor;
 }
 
 
@@ -1921,6 +2335,7 @@ static int handle_dv_disconnect_message (void *cls,
         {
           distant_neighbor_free(distant);
         }
+      distant = referrer->referee_head;
     }
 
   return GNUNET_OK;
@@ -1963,7 +2378,7 @@ static int handle_dv_gossip_message (void *cls,
   encPeerAbout = GNUNET_strdup(GNUNET_i2s(&enc_message->neighbor));
   encPeerFrom = GNUNET_strdup(GNUNET_i2s(peer));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%s: Receives %s message from peer %s about peer %s id %u distance %d!\n", "dv", "DV GOSSIP", encPeerFrom, encPeerAbout, ntohl(enc_message->neighbor_id), ntohl (enc_message->cost) + 1);
+              "%s: Received %s message from peer %s about peer %s id %u distance %d!\n", GNUNET_i2s(&my_identity), "DV GOSSIP", encPeerFrom, encPeerAbout, ntohl(enc_message->neighbor_id), ntohl (enc_message->cost) + 1);
   GNUNET_free(encPeerAbout);
   GNUNET_free(encPeerFrom);
 #endif
@@ -1982,7 +2397,7 @@ static int handle_dv_gossip_message (void *cls,
   memcpy(&hello_context->distant_peer, &enc_message->neighbor, sizeof(struct GNUNET_PeerIdentity));
   hello_context->addresses_to_add = 1;
   hello_msg = GNUNET_HELLO_create(&enc_message->pkey, &generate_hello_address, hello_context);
-
+  GNUNET_assert(memcmp(hello_context->direct_peer, &hello_context->distant_peer, sizeof(struct GNUNET_PeerIdentity)) != 0);
   send_to_plugin(hello_context->direct_peer, GNUNET_HELLO_get_header(hello_msg), GNUNET_HELLO_size(hello_msg), &hello_context->distant_peer, ntohl(enc_message->cost) + 1);
   GNUNET_free(hello_context);
   GNUNET_free(hello_msg);
@@ -2027,56 +2442,6 @@ static int add_all_extended_peers (void *cls,
   return GNUNET_YES;
 }
 
-
-/**
- * Iterate over all current direct peers, add DISTANT newly connected
- * peer to the fast gossip list for that peer so we get DV routing
- * information out as fast as possible!
- *
- * @param cls the newly connected neighbor we will gossip about
- * @param key the hashcode of the peer
- * @param value the direct neighbor we should gossip to
- *
- * @return GNUNET_YES to continue iteration, GNUNET_NO otherwise
- */
-static int add_distant_all_direct_neighbors (void *cls,
-                                     const GNUNET_HashCode * key,
-                                     void *value)
-{
-  struct DirectNeighbor *direct = (struct DirectNeighbor *)value;
-  struct DistantNeighbor *distant = (struct DistantNeighbor *)cls;
-  struct NeighborSendContext *send_context = direct->send_context;
-  struct FastGossipNeighborList *gossip_entry;
-
-  if (distant == NULL)
-    {
-      return GNUNET_YES;
-    }
-
-  if (memcmp(&direct->identity, &distant->identity, sizeof(struct GNUNET_PeerIdentity)) == 0)
-    {
-      return GNUNET_YES; /* Don't gossip to a peer about itself! */
-    }
-
-#if SUPPORT_HIDING
-  if (distant->hidden == GNUNET_YES)
-    return GNUNET_YES; /* This peer should not be gossipped about (hidden) */
-#endif
-  gossip_entry = GNUNET_malloc(sizeof(struct FastGossipNeighborList));
-  gossip_entry->about = distant;
-
-  GNUNET_CONTAINER_DLL_insert_after(send_context->fast_gossip_list_head,
-                                    send_context->fast_gossip_list_tail,
-                                    send_context->fast_gossip_list_tail,
-                                    gossip_entry);
-  if (send_context->task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel(sched, send_context->task);
-
-  send_context->task = GNUNET_SCHEDULER_add_now(sched, &neighbor_send_task, send_context);
-  return GNUNET_YES;
-}
-
-
 /**
  * Iterate over all current direct peers, add newly connected peer
  * to the fast gossip list for that peer so we get DV routing
@@ -2097,6 +2462,8 @@ static int add_all_direct_neighbors (void *cls,
   struct DistantNeighbor *distant;
   struct NeighborSendContext *send_context = direct->send_context;
   struct FastGossipNeighborList *gossip_entry;
+  char *direct_id;
+
 
   distant = GNUNET_CONTAINER_multihashmap_get(ctx.extended_neighbors, &to->identity.hashPubKey);
   if (distant == NULL)
@@ -2113,6 +2480,11 @@ static int add_all_direct_neighbors (void *cls,
   if (distant->hidden == GNUNET_YES)
     return GNUNET_YES; /* This peer should not be gossipped about (hidden) */
 #endif
+  direct_id = GNUNET_strdup(GNUNET_i2s(&direct->identity));
+#if DEBUG_DV_GOSSIP
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s: adding peer %s to fast send list for %s\n", my_short_id, GNUNET_i2s(&distant->identity), direct_id);
+#endif
+  GNUNET_free(direct_id);
   gossip_entry = GNUNET_malloc(sizeof(struct FastGossipNeighborList));
   gossip_entry->about = distant;
 
@@ -2124,10 +2496,20 @@ static int add_all_direct_neighbors (void *cls,
     GNUNET_SCHEDULER_cancel(sched, send_context->task);
 
   send_context->task = GNUNET_SCHEDULER_add_now(sched, &neighbor_send_task, send_context);
+  //tc.reason = GNUNET_SCHEDULER_REASON_TIMEOUT;
+  //neighbor_send_task(send_context, &tc);
   return GNUNET_YES;
 }
 
-
+/**
+ * Type of an iterator over the hosts.  Note that each
+ * host will be called with each available protocol.
+ *
+ * @param cls closure
+ * @param peer id of the peer, NULL for last call
+ * @param hello hello message for the peer (can be NULL)
+ * @param trust amount of trust we have in the peer
+ */
 static void
 process_peerinfo (void *cls,
                   const struct GNUNET_PeerIdentity *peer,
@@ -2135,11 +2517,30 @@ process_peerinfo (void *cls,
 {
   struct PeerIteratorContext *peerinfo_iterator = cls;
   struct DirectNeighbor *neighbor = peerinfo_iterator->neighbor;
+  struct DistantNeighbor *distant = peerinfo_iterator->distant;
+#if DEBUG_DV_PEER_NUMBERS
+  char *neighbor_pid;
+#endif
+  int sent;
 
-  if ((peer == NULL))/* && (neighbor->pkey == NULL))*/
+  if (peer == NULL) /* && (neighbor->pkey == NULL))*/
     {
-      /* FIXME: Remove peer! */
-      GNUNET_free(peerinfo_iterator);
+      if (distant->pkey == NULL) /* FIXME: Reschedule? */
+        {
+#if DEBUG_DV
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Failed to get peerinfo information for this peer, retrying!\n");
+#endif
+          peerinfo_iterator->ic = GNUNET_PEERINFO_iterate(peerinfo_handle,
+                                                          &peerinfo_iterator->neighbor->identity,
+                                                          0,
+                                                          GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3),
+                                                          &process_peerinfo,
+                                                          peerinfo_iterator);
+        }
+      else
+        {
+          GNUNET_free(peerinfo_iterator);
+        }
       return;
     }
 
@@ -2148,14 +2549,29 @@ process_peerinfo (void *cls,
 
   if ((hello != NULL) && (GNUNET_HELLO_get_key (hello, &neighbor->pkey) == GNUNET_OK))
     {
-      GNUNET_CONTAINER_multihashmap_get_multiple(ctx.extended_neighbors,
+      if (distant->pkey == NULL)
+        {
+          distant->pkey = GNUNET_malloc(sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+          memcpy(distant->pkey, &neighbor->pkey, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+        }
+
+      /* Why do it this way, now we have the distant neighbor! */
+      /*GNUNET_CONTAINER_multihashmap_get_multiple(ctx.extended_neighbors,
                                                  &peer->hashPubKey,
                                                  &add_pkey_to_extended,
-                                                 &neighbor->pkey);
+                                                 &neighbor->pkey);*/
 
-      GNUNET_CONTAINER_multihashmap_iterate (ctx.extended_neighbors, &add_all_extended_peers, neighbor->send_context);
+      sent = GNUNET_CONTAINER_multihashmap_iterate (ctx.extended_neighbors, &add_all_extended_peers, neighbor->send_context);
 
-      GNUNET_CONTAINER_multihashmap_iterate (ctx.direct_neighbors, &add_all_direct_neighbors, neighbor);
+#if DEBUG_DV_PEER_NUMBERS
+      neighbor_pid = GNUNET_strdup(GNUNET_i2s(&neighbor->identity));
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: Gossipped %d extended peers to %s\n", GNUNET_i2s(&my_identity), sent, neighbor_pid);
+#endif
+      sent = GNUNET_CONTAINER_multihashmap_iterate (ctx.direct_neighbors, &add_all_direct_neighbors, neighbor);
+#if DEBUG_DV_PEER_NUMBERS
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: Gossipped about %s to %d direct peers\n", GNUNET_i2s(&my_identity), neighbor_pid, sent);
+      GNUNET_free(neighbor_pid);
+#endif
       neighbor->send_context->task = GNUNET_SCHEDULER_add_now(sched, &neighbor_send_task, neighbor->send_context);
     }
 }
@@ -2177,6 +2593,7 @@ void handle_core_connect (void *cls,
   struct DirectNeighbor *neighbor;
   struct DistantNeighbor *about;
   struct PeerIteratorContext *peerinfo_iterator;
+  int sent;
 #if DEBUG_DV
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s: Receives core connect message for peer %s distance %d!\n", "dv", GNUNET_i2s(peer), distance);
@@ -2190,29 +2607,35 @@ void handle_core_connect (void *cls,
     neighbor->send_context->toNeighbor = neighbor;
     memcpy (&neighbor->identity, peer, sizeof (struct GNUNET_PeerIdentity));
 
-    GNUNET_CONTAINER_multihashmap_put (ctx.direct_neighbors,
+    GNUNET_assert(GNUNET_SYSERR != GNUNET_CONTAINER_multihashmap_put (ctx.direct_neighbors,
                                &peer->hashPubKey,
-                               neighbor, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-    addUpdateNeighbor (peer, NULL, 0, neighbor, DIRECT_NEIGHBOR_COST);
+                               neighbor, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    about = addUpdateNeighbor (peer, NULL, 0, neighbor, DIRECT_NEIGHBOR_COST);
+    peerinfo_iterator->distant = about;
     peerinfo_iterator->neighbor = neighbor;
     peerinfo_iterator->ic = GNUNET_PEERINFO_iterate (peerinfo_handle,
                                                      peer,
                                                      0,
-                                                     GNUNET_TIME_UNIT_FOREVER_REL,
+                                                     GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3),
                                                      &process_peerinfo,
                                                      peerinfo_iterator);
 
-    /* Only add once we get the publicKey of this guy
-     *
-     * neighbor->send_context->task = GNUNET_SCHEDULER_add_now(sched, &neighbor_send_task, neighbor->send_context);
-     */
+    if ((about != NULL) && (about->pkey == NULL))
+      {
+#if DEBUG_DV
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Newly added peer %s has NULL pkey!\n", GNUNET_i2s(peer));
+#endif
+      }
+    else if (about != NULL)
+      {
+        GNUNET_free(peerinfo_iterator);
+      }
   }
   else
   {
     about = GNUNET_CONTAINER_multihashmap_get(ctx.extended_neighbors, &peer->hashPubKey);
     if ((GNUNET_CONTAINER_multihashmap_get(ctx.direct_neighbors, &peer->hashPubKey) == NULL) && (about != NULL))
-      GNUNET_CONTAINER_multihashmap_iterate(ctx.direct_neighbors, &add_distant_all_direct_neighbors, about);
-
+      sent = GNUNET_CONTAINER_multihashmap_iterate(ctx.direct_neighbors, &add_distant_all_direct_neighbors, about);
 #if DEBUG_DV
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%s: Distance (%d) greater than %d or already know about peer (%s), not re-adding!\n", "dv", distance, DIRECT_NEIGHBOR_COST, GNUNET_i2s(peer));
@@ -2234,6 +2657,7 @@ void handle_core_disconnect (void *cls,
   struct DistantNeighbor *referee;
   struct FindDestinationContext fdc;
   struct DisconnectContext disconnect_context;
+
 #if DEBUG_DV
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s: Receives core peer disconnect message!\n", "dv");
@@ -2261,8 +2685,11 @@ void handle_core_disconnect (void *cls,
     }
 
   GNUNET_assert (neighbor->referee_tail == NULL);
-  GNUNET_CONTAINER_multihashmap_remove (ctx.direct_neighbors,
-                                        &peer->hashPubKey, neighbor);
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_remove (ctx.direct_neighbors,
+                                        &peer->hashPubKey, neighbor))
+    {
+      GNUNET_break(0);
+    }
   if ((neighbor->send_context != NULL) && (neighbor->send_context->task != GNUNET_SCHEDULER_NO_TASK))
     GNUNET_SCHEDULER_cancel(sched, neighbor->send_context->task);
   GNUNET_free (neighbor);
@@ -2293,19 +2720,14 @@ run (void *cls,
   ctx.fisheye_depth = DEFAULT_FISHEYE_DEPTH;
 
   if (GNUNET_CONFIGURATION_have_value(cfg, "dv", "max_direct_connections"))
-    {
-      GNUNET_CONFIGURATION_get_value_number(cfg, "dv", "max_direct_connections", &max_hosts);
-    }
+    GNUNET_assert(GNUNET_OK == GNUNET_CONFIGURATION_get_value_number(cfg, "dv", "max_direct_connections", &max_hosts));
 
   if (GNUNET_CONFIGURATION_have_value(cfg, "dv", "max_total_connections"))
-    {
-      GNUNET_CONFIGURATION_get_value_number(cfg, "dv", "max_total_connections", &ctx.max_table_size);
-    }
+    GNUNET_assert(GNUNET_OK == GNUNET_CONFIGURATION_get_value_number(cfg, "dv", "max_total_connections", &ctx.max_table_size));
+
 
   if (GNUNET_CONFIGURATION_have_value(cfg, "dv", "fisheye_depth"))
-    {
-      GNUNET_CONFIGURATION_get_value_number(cfg, "dv", "fisheye_depth", &ctx.fisheye_depth);
-    }
+    GNUNET_assert(GNUNET_OK == GNUNET_CONFIGURATION_get_value_number(cfg, "dv", "fisheye_depth", &ctx.fisheye_depth));
 
   ctx.neighbor_min_heap =
     GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);

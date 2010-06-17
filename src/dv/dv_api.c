@@ -456,10 +456,13 @@ int GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
   struct SendCallbackContext *send_ctx;
   char *end_of_message;
   GNUNET_HashCode uidhash;
-#if DEBUG_DV
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV SEND called with message of size %d, address size %d, total size to send is %d\n", msgbuf_size, addrlen, sizeof(struct GNUNET_DV_SendMessage) + msgbuf_size + addrlen);
-#endif
+#if DEBUG_DV_MESSAGES
+  dv_handle->uid_gen = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, UINT32_MAX);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "GNUNET_DV_send called with message of size %d, address size %d, total size %d, uid %u\n", msgbuf_size, addrlen, sizeof(struct GNUNET_DV_SendMessage) + msgbuf_size + addrlen, dv_handle->uid_gen);
+#else
   dv_handle->uid_gen++;
+#endif
+
   msg = GNUNET_malloc(sizeof(struct GNUNET_DV_SendMessage) + addrlen + msgbuf_size);
   msg->header.size = htons(sizeof(struct GNUNET_DV_SendMessage) + addrlen + msgbuf_size);
   msg->header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND);
@@ -474,17 +477,11 @@ int GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
   end_of_message = &end_of_message[addrlen];
   memcpy(end_of_message, msgbuf, msgbuf_size);
   add_pending(dv_handle, msg);
-
   send_ctx = GNUNET_malloc(sizeof(struct SendCallbackContext));
-
   send_ctx->cont = cont;
-
   send_ctx->cont_cls = cont_cls;
   memcpy(&send_ctx->target, target, sizeof(struct GNUNET_PeerIdentity));
-
   hash_from_uid(dv_handle->uid_gen, &uidhash);
-
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "set uid of %u or %u, hash of %s !!!!\n", dv_handle->uid_gen, htonl(dv_handle->uid_gen), GNUNET_h2s(&uidhash));
   GNUNET_CONTAINER_multihashmap_put(dv_handle->send_callbacks, &uidhash, send_ctx, GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
 
   return GNUNET_OK;
