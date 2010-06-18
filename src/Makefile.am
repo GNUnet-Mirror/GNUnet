@@ -21,6 +21,7 @@ SUBDIRS = \
   peerinfo-tool \
   core \
   testing \
+  dv \
   hostlist \
   topology \
   $(NAT_DIR) \
