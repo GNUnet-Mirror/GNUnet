@@ -61,7 +61,7 @@ int
 GNUNET_OS_set_process_priority (pid_t proc,
                                 enum GNUNET_SCHEDULER_Priority prio)
 {
-  int rprio = 0;
+  int rprio;
 
   GNUNET_assert (prio < GNUNET_SCHEDULER_PRIORITY_COUNT);
   if (prio == GNUNET_SCHEDULER_PRIORITY_KEEP)

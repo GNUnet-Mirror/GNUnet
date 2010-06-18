@@ -395,6 +395,12 @@ run (void *cls,
   
   sched = s;
   /* check arguments */
+  if ((uri_string != NULL) && (extract_only))
+    {
+      printf (_("Cannot extract metadata from a URI!\n"));
+      ret = -1;
+      return;
+    }
   if ( ( (uri_string == NULL) || (extract_only) ) 
        && ( (args[0] == NULL) || (args[1] != NULL) ) )
     {
@@ -406,12 +412,6 @@ run (void *cls,
   if ((uri_string != NULL) && (args[0] != NULL))
     {
       printf (_("You must NOT specify an URI and a filename.\n"));
-      ret = -1;
-      return;
-    }
-  if ((uri_string != NULL) && (extract_only))
-    {
-      printf (_("Cannot extract metadata from a URI!\n"));
       ret = -1;
       return;
     }
@@ -444,14 +444,6 @@ run (void *cls,
           ret = -1;
 	  return;
         }
-    }
-  if ( (args[0] == NULL) &&
-       (uri_string == NULL) )
-    {
-      fprintf (stderr,
-	       _("Need the name of a file to publish!\n"));
-      ret = 1;
-      return;
     }
   cfg = c;
   ctx = GNUNET_FS_start (sched,

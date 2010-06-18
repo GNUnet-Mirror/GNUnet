@@ -529,11 +529,6 @@ destroy_continuation (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Destroy actually runs (%p)!\n", sock);
 #endif
-  if (sock->dns_active != NULL)
-    {
-      GNUNET_RESOLVER_request_cancel (sock->dns_active);
-      sock->dns_active = NULL;
-    }
   while (NULL != (pos = sock->ap_head))
     {
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (pos->sock));

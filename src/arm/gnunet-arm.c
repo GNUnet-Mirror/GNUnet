@@ -235,10 +235,13 @@ run (void *cls,
   cfg = c;
   config_file = cfgfile;
   if (GNUNET_CONFIGURATION_get_value_string(cfg, "PATHS", "SERVICEHOME", &dir) != GNUNET_OK)
-  {
-    dir = NULL;
-  }
-
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Fatal configuration error: `%s' option in section `%s' missing.\n"),
+		  "SERVICEHOME",
+		  "PATHS");
+      return;
+    }
   h = GNUNET_ARM_connect (cfg, sched, NULL);
   if (h == NULL)
     {
