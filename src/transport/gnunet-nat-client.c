@@ -106,8 +106,6 @@ static int rawsock;
 
 static struct in_addr dummy;
  
-static struct in_addr target;
-
 static uint32_t port;
 
 static uint16_t 
@@ -364,6 +362,7 @@ int
 main (int argc, char *const *argv)
 {
   struct in_addr external;
+  struct in_addr target;
   uid_t uid;
 
   if (-1 == (rawsock = make_raw_socket()))

@@ -53,12 +53,12 @@ static int provide_hostlist;
 /**
  * Handle to hostlist server's connect handler
  */
-static GNUNET_CORE_ConnectEventHandler server_ch = NULL;
+static GNUNET_CORE_ConnectEventHandler server_ch;
 
 /**
  * Handle to hostlist server's disconnect handler
  */
-static GNUNET_CORE_DisconnectEventHandler server_dh = NULL;
+static GNUNET_CORE_DisconnectEventHandler server_dh;
 
 #endif
 

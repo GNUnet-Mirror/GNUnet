@@ -93,11 +93,6 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 static struct StatsEntry *start;
 
 /**
- * Counter used to generate unique values.
- */
-static uint32_t uidgen;
-
-/**
  * Load persistent values from disk.  Disk format is
  * exactly the same format that we also use for
  * setting the values over the network.
@@ -316,6 +311,11 @@ handle_set (void *cls,
             struct GNUNET_SERVER_Client *client,
             const struct GNUNET_MessageHeader *message)
 {
+  /**
+   * Counter used to generate unique values.
+   */
+  static uint32_t uidgen;
+
   char *service;
   char *name;
   uint16_t msize;

@@ -805,12 +805,6 @@ struct CheckHelloValidatedContext
 static struct GNUNET_HELLO_Message *our_hello;
 
 /**
- * "version" of "our_hello".  Used to see if a given neighbour has
- * already been sent the latest version of our HELLO message.
- */
-static unsigned int our_hello_version;
-
-/**
  * Our public key.
  */
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded my_public_key;
@@ -844,11 +838,6 @@ static struct TransportClient *clients;
  * All loaded plugins.
  */
 static struct TransportPlugin *plugins;
-
-/**
- * Our server.
- */
-static struct GNUNET_SERVER_Handle *server;
 
 /**
  * Handle to peerinfo service.
@@ -1853,7 +1842,6 @@ refresh_hello ()
 
   GNUNET_free_non_null (our_hello);
   our_hello = hello;
-  our_hello_version++;
   GNUNET_PEERINFO_add_peer (peerinfo, our_hello);
   npos = neighbours;
   while (npos != NULL)
@@ -4885,13 +4873,13 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @param cls closure
  * @param s scheduler to use
- * @param serv the initialized server
+ * @param server the initialized server
  * @param c configuration to use
  */
 static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
-     struct GNUNET_SERVER_Handle *serv,
+     struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
@@ -4984,7 +4972,6 @@ run (void *cls,
   GNUNET_CRYPTO_hash (&my_public_key,
                       sizeof (my_public_key), &my_identity.hashPubKey);
   /* setup notification */
-  server = serv;
   GNUNET_SERVER_disconnect_notify (server,
                                    &client_disconnect_notification, NULL);
   /* load plugins... */

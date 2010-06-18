@@ -125,11 +125,6 @@ static struct ReservationList *reservations;
 static struct GNUNET_CONTAINER_BloomFilter *filter;
 
 /**
- * Static counter to produce reservation identifiers.
- */
-static int reservation_gen;
-
-/**
  * How much space are we allowed to use?
  */
 static unsigned long long quota;
@@ -717,6 +712,11 @@ handle_reserve (void *cls,
 		struct GNUNET_SERVER_Client *client,
 		const struct GNUNET_MessageHeader *message)
 {
+  /**
+   * Static counter to produce reservation identifiers.
+   */
+  static int reservation_gen;
+
   const struct ReserveMessage *msg = (const struct ReserveMessage*) message;
   struct ReservationList *e;
   unsigned long long used;

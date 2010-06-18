@@ -669,11 +669,6 @@ static struct GNUNET_PEERINFO_Handle *peerinfo;
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
- * Our server.
- */
-static struct GNUNET_SERVER_Handle *server;
-
-/**
  * Transport service.
  */
 static struct GNUNET_TRANSPORT_Handle *transport;
@@ -3808,13 +3803,13 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @param cls closure
  * @param s scheduler to use
- * @param serv the initialized server
+ * @param server the initialized server
  * @param c configuration to use
  */
 static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
-     struct GNUNET_SERVER_Handle *serv,
+     struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
@@ -3880,7 +3875,6 @@ run (void *cls,
   GNUNET_CRYPTO_hash (&my_public_key,
                       sizeof (my_public_key), &my_identity.hashPubKey);
   /* setup notification */
-  server = serv;
   notifier = GNUNET_SERVER_notification_context_create (server, 
 							MAX_NOTIFY_QUEUE);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);

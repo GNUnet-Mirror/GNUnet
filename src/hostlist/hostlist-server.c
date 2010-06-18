@@ -110,11 +110,6 @@ struct HostSet
 static int advertising;
 
 /**
- * How many times was the hostlist advertised?
- */
-static uint64_t hostlist_adv_count;
-
-/**
  * Buffer for the hostlist address
  */
 static char * hostlist_uri;
@@ -345,6 +340,8 @@ access_handler_callback (void *cls,
 static size_t
 adv_transmit_ready ( void *cls, size_t size, void *buf)
 {
+  static uint64_t hostlist_adv_count;
+
   size_t transmission_size;
   size_t uri_size; /* Including \0 termination! */
   struct GNUNET_MessageHeader header;
@@ -372,10 +369,10 @@ adv_transmit_ready ( void *cls, size_t size, void *buf)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               " # Sent advertisement message: %u\n",
               hostlist_adv_count);
-  GNUNET_STATISTICS_set (stats,
-                         gettext_noop("# hostlist advertisements send"),
-                         hostlist_adv_count,
-                         GNUNET_NO);
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop("# hostlist advertisements send"),
+			    1,
+			    GNUNET_NO);
   return transmission_size;
 }
 
