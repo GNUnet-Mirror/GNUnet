@@ -388,7 +388,7 @@ run (void *cls,
 {
   struct GNUNET_FS_FileInformation *fi;
   struct GNUNET_FS_Namespace *namespace;
-  struct EXTRACTOR_PluginList *l;
+  struct EXTRACTOR_PluginList *plugins;
   struct stat sbuf;
   char *ex;
   char *emsg;
@@ -515,10 +515,10 @@ run (void *cls,
 	GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
       return;
     }
-  l = NULL;
+  plugins = NULL;
   if (! disable_extractor)
     {
-      l = EXTRACTOR_plugin_add_defaults (EXTRACTOR_OPTION_DEFAULT_POLICY);
+      plugins = EXTRACTOR_plugin_add_defaults (EXTRACTOR_OPTION_DEFAULT_POLICY);
       if (GNUNET_OK ==
 	  GNUNET_CONFIGURATION_get_value_string (cfg, "FS", "EXTRACTORS",
 						 &ex))
@@ -542,7 +542,7 @@ run (void *cls,
 							     NULL,
 							     args[0],
 							     &GNUNET_FS_directory_scanner_default,
-							     l,
+							     plugins,
 							     !do_insert,
 							     anonymity,
 							     priority,
@@ -567,7 +567,7 @@ run (void *cls,
 							GNUNET_TIME_relative_to_absolute (DEFAULT_EXPIRATION));
       GNUNET_break (fi != NULL);
     }
-  EXTRACTOR_plugin_remove_all (l);  
+  EXTRACTOR_plugin_remove_all (plugins);  
   if (fi == NULL)
     {
       fprintf (stderr,
