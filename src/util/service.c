@@ -732,10 +732,11 @@ add_unixpath (struct sockaddr **saddrs,
 	  unixpath,
 	  slen);
   un->sun_path[slen] = '\0';
-  slen += sizeof (sa_family_t);
 #if LINUX
   un->sun_path[0] = '\0';
   slen = sizeof (struct sockaddr_un);
+#else
+  slen += sizeof (sa_family_t);
 #endif
   *saddrs = (struct sockaddr*) un;
   *saddrlens = slen;

@@ -1756,7 +1756,7 @@ bin2enc (const void *data, size_t size)
         }
     }
   if (hbits > 0)
-    ret[len++] = tbl[bits & 63];
+    ret[len] = tbl[bits & 63];
   return ret;
 }
 

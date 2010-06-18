@@ -62,12 +62,12 @@ static struct GNUNET_STATISTICS_Handle *stats;
 /**
  * Handle to the core service (NULL until we've connected to it).
  */
-struct GNUNET_CORE_Handle *core;
+static struct GNUNET_CORE_Handle *core;
 
 /**
  * Handle to the peerinfo notify service (NULL until we've connected to it).
  */
-struct GNUNET_PEERINFO_NotifyContext *notify;
+static struct GNUNET_PEERINFO_NotifyContext *notify;
 
 /**
  * Our primary task for IPv4.

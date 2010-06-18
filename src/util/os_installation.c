@@ -96,11 +96,12 @@ get_path_from_proc_exe ()
   GNUNET_snprintf (fn, 
 		   sizeof(fn), "/proc/%u/exe", getpid ());
   size = readlink (fn, lnk, sizeof (lnk)-1);
-  if ((size == 0) || (size >= sizeof(lnk)-1))
+  if (size <= 0)
     {
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "readlink", fn);
       return NULL;
     }
+  GNUNET_assert (size < sizeof (lnk));
   lnk[size] = '\0';
   while ((lnk[size] != '/') && (size > 0))
     size--;

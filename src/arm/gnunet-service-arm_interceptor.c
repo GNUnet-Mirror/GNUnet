@@ -474,14 +474,14 @@ receiveFromService (void *cls,
 				BUFFER_SIZE);
   if (fc->service_to_client_bufferDataLength <= 0)
     {
+#if DEBUG_SERVICE_MANAGER
       if (fc->service_to_client_bufferDataLength == 0)
 	{
-#if DEBUG_SERVICE_MANAGER
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Service `%s' stopped sending data.\n",
 		      fc->listen_info->serviceName);
-#endif
 	}
+#endif
       if (fc->first_write_done != GNUNET_YES)
 	{
 	  fc->service_to_client_bufferDataLength = 0;

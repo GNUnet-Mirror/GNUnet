@@ -704,6 +704,8 @@ GNUNET_DISK_directory_scan (const char *dirName,
 
   GNUNET_assert (dirName != NULL);
   dname = GNUNET_STRINGS_filename_expand (dirName);
+  if (dname == NULL)
+    return GNUNET_SYSERR;
   while ((strlen (dname) > 0) && (dname[strlen (dname) - 1] == DIR_SEPARATOR))
     dname[strlen (dname) - 1] = '\0';
   if (0 != STAT (dname, &istat))

@@ -3205,7 +3205,9 @@ deliver_message (struct Neighbour *sender,
 		  (unsigned int) type,
 		  GNUNET_i2s (&sender->peer));
 #endif
-      /* FIXME: stats... */
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# messages not delivered to any client"), 
+				1, GNUNET_NO);
     }
 }
 
