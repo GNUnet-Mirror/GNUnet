@@ -354,6 +354,21 @@ void GNUNET_CRYPTO_hash (const void *block,
 
 
 /**
+ * Calculate HMAC of a message (RFC 2104)
+ *
+ * @param key secret key
+ * @param plaintext input plaintext
+ * @param plaintext_len length of plaintext
+ * @param hmac where to store the hmac
+ */
+void 
+GNUNET_CRYPTO_hmac (const struct GNUNET_CRYPTO_AesSessionKey *key,
+		    const void *plaintext,
+		    size_t plaintext_len,
+		    GNUNET_HashCode *hmac);
+
+
+/**
  * Function called once the hash computation over the
  * specified file has completed.
  *

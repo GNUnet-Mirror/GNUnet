@@ -189,7 +189,7 @@ struct EncryptedMessage
    * verify message integrity.  Everything after this hash (including
    * this hash itself) will be encrypted.  
    */
-  GNUNET_HashCode plaintext_hash;
+  GNUNET_HashCode hmac;
 
   /**
    * Sequence number, in network byte order.  This field
@@ -2024,15 +2024,16 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
   em->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE);
   em->iv_seed = ph->iv_seed;
   esize = used - ENCRYPTED_HEADER_SIZE;
-  GNUNET_CRYPTO_hash (&ph->sequence_number,
+  GNUNET_CRYPTO_hmac (&n->encrypt_key,
+		      &ph->sequence_number,
 		      esize - sizeof (GNUNET_HashCode), 
-		      &ph->plaintext_hash);
+		      &ph->hmac);
   GNUNET_CRYPTO_hash (&ph->iv_seed, sizeof (uint32_t), &iv);
 #if DEBUG_HANDSHAKE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Hashed %u bytes of plaintext (`%s') using IV `%d'\n",
 	      (unsigned int) (esize - sizeof (GNUNET_HashCode)),
-	      GNUNET_h2s (&ph->plaintext_hash),
+	      GNUNET_h2s (&ph->hmac),
 	      (int) ph->iv_seed);
 #endif
   /* encrypt */
@@ -2046,8 +2047,8 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
   GNUNET_assert (GNUNET_OK ==
                  do_encrypt (n,
                              &iv,
-                             &ph->plaintext_hash,
-                             &em->plaintext_hash, esize));
+                             &ph->hmac,
+                             &em->hmac, esize));
   /* append to transmission list */
   GNUNET_CONTAINER_DLL_insert_after (n->encrypted_head,
 				     n->encrypted_tail,
@@ -3313,13 +3314,14 @@ handle_encrypted_message (struct Neighbour *n,
   if (GNUNET_OK !=
       do_decrypt (n,
                   &iv,
-                  &m->plaintext_hash,
+                  &m->hmac,
                   &buf[ENCRYPTED_HEADER_SIZE], 
 		  size - ENCRYPTED_HEADER_SIZE))
     return;
   pt = (struct EncryptedMessage *) buf;
   /* validate hash */
-  GNUNET_CRYPTO_hash (&pt->sequence_number,
+  GNUNET_CRYPTO_hmac (&n->decrypt_key,
+		      &pt->sequence_number,
                       size - ENCRYPTED_HEADER_SIZE - sizeof (GNUNET_HashCode), &ph);
 #if DEBUG_HANDSHAKE 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -3329,7 +3331,7 @@ handle_encrypted_message (struct Neighbour *n,
 	      (int) m->iv_seed);
 #endif
   if (0 != memcmp (&ph, 
-		   &pt->plaintext_hash, 
+		   &pt->hmac, 
 		   sizeof (GNUNET_HashCode)))
     {
       /* checksum failed */

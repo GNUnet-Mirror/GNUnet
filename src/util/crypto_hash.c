@@ -806,4 +806,43 @@ GNUNET_CRYPTO_hash_xorcmp (const GNUNET_HashCode * h1,
   return 0;
 }
 
+
+/**
+ * Calculate HMAC of a message (RFC 2104)
+ *
+ * @param key secret key
+ * @param plaintext input plaintext
+ * @param plaintext_len length of plaintext
+ * @param hmac where to store the hmac
+ */
+void 
+GNUNET_CRYPTO_hmac (const struct GNUNET_CRYPTO_AesSessionKey *key,
+		    const void *plaintext,
+		    size_t plaintext_len,
+		    GNUNET_HashCode *hmac)
+{
+  GNUNET_HashCode kh;
+  GNUNET_HashCode ipad;
+  GNUNET_HashCode opad;
+  GNUNET_HashCode him;
+  struct sha512_ctx sctx;
+
+  memset (&kh, 0, sizeof (kh));
+  GNUNET_assert (sizeof (GNUNET_HashCode) > sizeof (struct GNUNET_CRYPTO_AesSessionKey));
+  memcpy (&kh, key, sizeof (struct GNUNET_CRYPTO_AesSessionKey));				
+  memset (&ipad, 0x5c, sizeof (ipad));
+  memset (&opad, 0x36, sizeof (opad));
+  GNUNET_CRYPTO_hash_xor (&ipad, &kh, &ipad);
+  GNUNET_CRYPTO_hash_xor (&opad, &kh, &opad);
+  sha512_init (&sctx);
+  sha512_update (&sctx, (const unsigned char*) &ipad, sizeof (ipad));
+  sha512_update (&sctx, plaintext, plaintext_len);
+  sha512_final (&sctx, (unsigned char*) &him);
+  sha512_init (&sctx);
+  sha512_update (&sctx, (const unsigned char*) &opad, sizeof (opad));
+  sha512_update (&sctx, (const unsigned char*) &him, sizeof (him));
+  sha512_final (&sctx, (unsigned char*) hmac);
+}
+
+
 /* end of crypto_hash.c */
