@@ -189,17 +189,27 @@ no_resolve (const struct sockaddr *sa, socklen_t salen)
     case AF_INET:
       if (salen != sizeof (struct sockaddr_in))
         return NULL;
-      inet_ntop (AF_INET,
-                 &((struct sockaddr_in *) sa)->sin_addr,
-                 inet4, INET_ADDRSTRLEN);
+      if (NULL == 
+	  inet_ntop (AF_INET,
+		     &((struct sockaddr_in *) sa)->sin_addr,
+		     inet4, INET_ADDRSTRLEN))
+	{
+	  GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "inet_ntop");
+	  return NULL;
+	}
       ret = GNUNET_strdup (inet4);
       break;
     case AF_INET6:
       if (salen != sizeof (struct sockaddr_in6))
         return NULL;
-      inet_ntop (AF_INET6,
-                 &((struct sockaddr_in6 *) sa)->sin6_addr,
-                 inet6, INET6_ADDRSTRLEN);
+      if (NULL == 
+	  inet_ntop (AF_INET6,
+		     &((struct sockaddr_in6 *) sa)->sin6_addr,
+		     inet6, INET6_ADDRSTRLEN))
+	{
+	  GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "inet_ntop");
+	  return NULL;
+	}
       ret = GNUNET_strdup (inet6);
       break;
     default:
