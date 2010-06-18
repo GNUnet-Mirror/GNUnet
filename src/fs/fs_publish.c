@@ -308,7 +308,7 @@ publish_kblocks_cont (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Error uploading KSK blocks: %s\n",
 		  emsg);
-#end
+#endif
       signal_publish_error (p, pc, emsg);
       GNUNET_FS_file_information_sync_ (p);
       GNUNET_FS_publish_sync_ (pc);
@@ -421,7 +421,7 @@ encode_cont (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Error during tree walk: %s\n",
 		  emsg);
-#end
+#endif
       GNUNET_asprintf (&p->emsg, 
 		       _("Upload failed: %s"),
 		       emsg);
