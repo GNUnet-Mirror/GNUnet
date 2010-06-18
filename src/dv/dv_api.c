@@ -345,10 +345,6 @@ void handle_message_receipt (void *cls,
   GNUNET_HashCode uidhash;
   struct SendCallbackContext *send_ctx;
 
-#if DEBUG_DV
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "dv api receives message!\n");
-#endif
-
   if (msg == NULL)
   {
     return; /* Connection closed? */
@@ -367,9 +363,6 @@ void handle_message_receipt (void *cls,
     sender_address_len = ntohl(received_msg->sender_address_len);
 
     GNUNET_assert(ntohs(msg->size) == (sizeof(struct GNUNET_DV_MessageReceived) + packed_msg_len + sender_address_len));
-#if DEBUG_DV
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "dv api receives message, size checks out!\n");
-#endif
     sender_address = GNUNET_malloc(sender_address_len);
     memcpy(sender_address, &received_msg[1], sender_address_len);
     packed_msg_start = (char *)&received_msg[1];
@@ -399,13 +392,9 @@ void handle_message_receipt (void *cls,
     send_result_msg = (struct GNUNET_DV_SendResultMessage *)msg;
     hash_from_uid(ntohl(send_result_msg->uid), &uidhash);
     send_ctx = GNUNET_CONTAINER_multihashmap_get(handle->send_callbacks, &uidhash);
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "got uid of %u or %u, hash of %s !!!!\n", ntohl(send_result_msg->uid), send_result_msg->uid, GNUNET_h2s(&uidhash));
 
     if ((send_ctx != NULL) && (send_ctx->cont != NULL))
       {
-#if DEBUG_DV
-        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "dv api notifies transport of send result (%u)!\n", ntohl(send_result_msg->result));
-#endif
         if (ntohl(send_result_msg->result) == 0)
           {
             send_ctx->cont(send_ctx->cont_cls, &send_ctx->target, GNUNET_OK);
@@ -458,7 +447,6 @@ int GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
   GNUNET_HashCode uidhash;
 #if DEBUG_DV_MESSAGES
   dv_handle->uid_gen = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, UINT32_MAX);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "GNUNET_DV_send called with message of size %d, address size %d, total size %d, uid %u\n", msgbuf_size, addrlen, sizeof(struct GNUNET_DV_SendMessage) + msgbuf_size + addrlen, dv_handle->uid_gen);
 #else
   dv_handle->uid_gen++;
 #endif

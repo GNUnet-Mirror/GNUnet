@@ -296,12 +296,13 @@ process_mtype (void *cls,
   if (pos->uid != ntohl(msg->uid))
     return GNUNET_OK;
 
+  GNUNET_assert(0 == memcmp(peer, &pos->peer1->id, sizeof(struct GNUNET_PeerIdentity)));
   if (total_other_expected_messages == 0)
     {
       total_messages_received++;
 #if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Received message from `%4s', type %d, distance %u.\n", GNUNET_i2s (peer), ntohs(message->type), distance);
+                  "Received message from `%4s', type %d, uid %u, distance %u.\n", GNUNET_i2s (peer), ntohs(message->type), ntohl(msg->uid), distance);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Total messages received %d, expected %d.\n", total_messages_received, expected_messages);
 #endif
@@ -311,7 +312,7 @@ process_mtype (void *cls,
       total_other_messages++;
 #if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Received message from `%4s', type %d, distance %u.\n", GNUNET_i2s (peer), ntohs(message->type), distance);
+                  "Received message from `%4s', type %d, uid %u, distance %u.\n", GNUNET_i2s (peer), ntohs(message->type), ntohl(msg->uid), distance);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Total messages received %d, expected %d.\n", total_other_messages, total_other_expected_messages);
 #endif
@@ -320,7 +321,7 @@ process_mtype (void *cls,
   if ((total_messages_received == expected_messages) && (total_other_messages == 0))
     {
       GNUNET_SCHEDULER_cancel (sched, die_task);
-      GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 40), &send_other_messages, NULL);
+      GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 45), &send_other_messages, NULL);
     }
   else if ((total_other_expected_messages > 0) && (total_other_messages == total_other_expected_messages))
     {
@@ -801,7 +802,7 @@ static void all_connect_handler (void *cls,
       temp_context->peer1 = d;
       temp_context->peer2 = second_daemon;
       temp_context->next = other_test_messages;
-      temp_context->uid = total_connections;
+      temp_context->uid = total_connections + temp_total_other_messages;
       temp_context->disconnect_task = GNUNET_SCHEDULER_NO_TASK;
       other_test_messages = temp_context;
     }
@@ -818,6 +819,8 @@ static void all_connect_handler (void *cls,
         fprintf(dotOutFile, "\tn%s -- n%s [color=red];\n", d->shortname, second_shortname);
       else if (distance == 4)
         fprintf(dotOutFile, "\tn%s -- n%s [color=green];\n", d->shortname, second_shortname);
+      else
+        fprintf(dotOutFile, "\tn%s -- n%s [color=brown];\n", d->shortname, second_shortname);
     }
   GNUNET_free(second_shortname);
 }

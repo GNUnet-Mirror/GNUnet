@@ -240,24 +240,7 @@ dv_plugin_send (void *cls,
 {
   int ret = 0;
   struct Plugin *plugin = cls;
-  const char *tempbuf;
-  int temp_size;
-#if DEBUG_DV
-  char *my_identity;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV API: Received send request from transport, calling GNUNET_DV_send\n");
-  my_identity = GNUNET_strdup(GNUNET_i2s(plugin->env->my_identity));
-#endif
-  temp_size = htons(((struct GNUNET_MessageHeader *)msgbuf)->size);
-  if (msgbuf_size > temp_size)
-    {
-      tempbuf = &msgbuf[temp_size];
-#if DEBUG_DV
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s DV PLUGIN SEND SPECIAL type %d to %s\n", my_identity, ntohs(((struct GNUNET_MessageHeader *)tempbuf)->type), GNUNET_i2s(target));
-#endif
-    }
-#if DEBUG_DV
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s DV PLUGIN SEND type %d to %s\n", my_identity, ntohs(((struct GNUNET_MessageHeader *)msgbuf)->type), GNUNET_i2s(target));
-#endif
+
   ret = GNUNET_DV_send(plugin->dv_handle,
                        target,
                        msgbuf,
@@ -287,7 +270,7 @@ dv_plugin_send (void *cls,
  */
 static void
 dv_plugin_disconnect (void *cls,
-                            const struct GNUNET_PeerIdentity *target)
+                      const struct GNUNET_PeerIdentity *target)
 {
   // struct Plugin *plugin = cls;
   // TODO: Add message type to send to dv service to "disconnect" a peer
@@ -318,7 +301,25 @@ dv_plugin_address_pretty_printer (void *cls,
                                   GNUNET_TRANSPORT_AddressStringCallback
                                   asc, void *asc_cls)
 {
-  asc (asc_cls, NULL);
+  char *dest_peer;
+  char *via_peer;
+  char *print_string;
+  char *addr_buf = (char *)addr;
+
+  if (addrlen != sizeof(struct GNUNET_PeerIdentity) * 2)
+    {
+      asc (asc_cls, NULL);
+    }
+  else
+    {
+      dest_peer = GNUNET_strdup(GNUNET_i2s((struct GNUNET_PeerIdentity *)addr));
+      via_peer = GNUNET_strdup(GNUNET_i2s((struct GNUNET_PeerIdentity *)&addr_buf[sizeof(struct GNUNET_PeerIdentity)]));
+      GNUNET_asprintf(&print_string, "DV Peer `%s' via peer`%s'", dest_peer, via_peer);
+      asc (asc_cls, print_string);
+      asc (asc_cls, NULL);
+      GNUNET_free(dest_peer);
+      GNUNET_free(print_string);
+    }
 }
 
 /**
