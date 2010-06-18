@@ -742,7 +742,7 @@ hash_for_index_cb (void *cls,
 #if DEBUG_PUBLISH
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Hash of indexed file `%s' is `%s'\n",
-	      p->data.file.filename,
+	      p->filename,
 	      GNUNET_h2s (res));
 #endif
   client = GNUNET_CLIENT_connect (sc->h->sched,
