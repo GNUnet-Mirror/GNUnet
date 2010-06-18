@@ -304,6 +304,11 @@ publish_kblocks_cont (void *cls,
 
   if (NULL != emsg)
     {
+#if DEBUG_PUBLISH
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Error uploading KSK blocks: %s\n",
+		  emsg);
+#end
       signal_publish_error (p, pc, emsg);
       GNUNET_FS_file_information_sync_ (p);
       GNUNET_FS_publish_sync_ (pc);
@@ -314,6 +319,10 @@ publish_kblocks_cont (void *cls,
 					      pc);
       return;
     }
+#if DEBUG_PUBLISH
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "KSK blocks published, moving on to next file\n");
+#endif
   if (NULL != p->dir)
     signal_publish_completion (p, pc);    
   /* move on to next file */
@@ -400,7 +409,7 @@ encode_cont (void *cls,
   struct GNUNET_FS_FileInformation *p;
   struct GNUNET_FS_ProgressInfo pi;
   char *emsg;
-  
+
   p = sc->fi_pos;
   GNUNET_FS_tree_encoder_finish (p->te,
 				 &p->chk_uri,
@@ -408,6 +417,11 @@ encode_cont (void *cls,
   p->te = NULL;
   if (NULL != emsg)
     {
+#if DEBUG_PUBLISH
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Error during tree walk: %s\n",
+		  emsg);
+#end
       GNUNET_asprintf (&p->emsg, 
 		       _("Upload failed: %s"),
 		       emsg);
@@ -417,6 +431,10 @@ encode_cont (void *cls,
       pi.value.publish.specifics.error.message = p->emsg;
       p->client_info =  GNUNET_FS_publish_make_status_ (&pi, sc, p, 0);
     }
+#if DEBUG_PUBLISH
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Finished with tree encoder\n");
+#endif  
   /* continue with main */
   sc->upload_task 
     = GNUNET_SCHEDULER_add_with_priority (sc->h->sched,
@@ -455,6 +473,10 @@ block_proc (void *cls,
   p = sc->fi_pos;
   if (NULL == sc->dsh)
     {
+#if DEBUG_PUBLISH
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Waiting for datastore connection\n");
+#endif
       sc->upload_task
 	= GNUNET_SCHEDULER_add_with_priority (sc->h->sched,
 					      GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
@@ -575,6 +597,10 @@ publish_content (struct GNUNET_FS_PublishContext *sc)
     {
       if (p->is_directory)
 	{
+#if DEBUG_PUBLISH
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Creating directory\n");
+#endif
 	  db = GNUNET_FS_directory_builder_create (p->meta);
 	  dirpos = p->data.dir.entries;
 	  while (NULL != dirpos)
@@ -620,6 +646,10 @@ publish_content (struct GNUNET_FS_PublishContext *sc)
       size = (p->is_directory) 
 	? p->data.dir.dir_size 
 	: p->data.file.file_size;
+#if DEBUG_PUBLISH
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Creating tree encoder\n");
+#endif
       p->te = GNUNET_FS_tree_encoder_create (sc->h,
 					     size,
 					     sc,
@@ -629,6 +659,10 @@ publish_content (struct GNUNET_FS_PublishContext *sc)
 					     &encode_cont);
 
     }
+#if DEBUG_PUBLISH
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Processing next block from tree\n");
+#endif
   GNUNET_FS_tree_encoder_next (p->te);
 }
 
@@ -820,6 +854,10 @@ GNUNET_FS_publish_main_ (void *cls,
   p = pc->fi_pos;
   if (NULL == p)
     {
+#if DEBUG_PUBLISH
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Upload complete, now publishing SKS and KSK blocks.\n");
+#endif
       /* upload of entire hierarchy complete,
 	 publish namespace entries */
       GNUNET_FS_publish_sync_ (pc);
@@ -839,6 +877,11 @@ GNUNET_FS_publish_main_ (void *cls,
   /* abort on error */
   if (NULL != p->emsg)
     {
+#if DEBUG_PUBLISH
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Error uploading: %s\n",
+		  p->emsg);
+#endif
       /* error with current file, abort all
 	 related files as well! */
       while (NULL != p->dir)
@@ -872,6 +915,10 @@ GNUNET_FS_publish_main_ (void *cls,
   /* handle completion */
   if (NULL != p->chk_uri)
     {
+#if DEBUG_PUBLISH
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "File upload complete, now publishing KSK blocks.\n");
+#endif
       GNUNET_FS_publish_sync_ (pc);
       /* upload of "p" complete, publish KBlocks! */
       if (p->keywords != NULL)
