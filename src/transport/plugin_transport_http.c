@@ -305,7 +305,8 @@ static CURLM *multi_handle;
  */
 static struct GNUNET_CRYPTO_HashAsciiEncoded my_ascii_hash_ident;
 
-struct GNUNET_TIME_Relative timeout;
+// MW: please document (which timeout is this!?)
+static struct GNUNET_TIME_Relative timeout;
 
 /**
  * Finds a http session in our linked list using peer identity as a key
@@ -1166,7 +1167,8 @@ http_plugin_send (void *cls,
   /* find session for peer */
   ses = find_session_by_pi (target);
   if (NULL != ses )
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Existing session for peer `%s' found\n", GNUNET_i2s(target));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Existing session for peer `%s' found\n", GNUNET_i2s(target));
   if ( ses == NULL)
   {
     /* create new session object */
@@ -1190,7 +1192,8 @@ http_plugin_send (void *cls,
       ses_temp->next = ses;
       plugin->session_count++;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"New Session `%s' inserted, count %u \n", GNUNET_i2s(target), plugin->session_count);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"New Session `%s' inserted, count %u\n", GNUNET_i2s(target), plugin->session_count);
   }
 
   GNUNET_assert (addr!=NULL);
@@ -1202,9 +1205,13 @@ http_plugin_send (void *cls,
     if (addrlen == (sizeof (struct IPv4HttpAddress)))
     {
       address = GNUNET_malloc(INET_ADDRSTRLEN + 14 + strlen ((const char *) (&ses->hash)));
-      inet_ntop(AF_INET,&((struct IPv4HttpAddress *) addr)->ipv4_addr,address,INET_ADDRSTRLEN);
+      inet_ntop(AF_INET, &((struct IPv4HttpAddress *) addr)->ipv4_addr,address,INET_ADDRSTRLEN);
       port = ntohs(((struct IPv4HttpAddress *) addr)->u_port);
-      GNUNET_asprintf(&address,"http://%s:%u/%s",address,port, (char *) (&ses->hash));
+      GNUNET_asprintf (&address,
+		       "http://%s:%u/%s",
+		       address,
+		       port, 
+		       (char *) (&ses->hash));
     }
     else if (addrlen == (sizeof (struct IPv6HttpAddress)))
     {
@@ -1643,10 +1650,7 @@ libgnunet_plugin_transport_http_init (void *cls)
       libgnunet_plugin_transport_http_done (api);
       return NULL;
     }
-
   GNUNET_assert ((port > 0) && (port <= 65535));
-  GNUNET_assert (&my_ascii_hash_ident != NULL);
-
   plugin->port_inbound = port;
   gn_timeout = GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT;
   timeout = ( gn_timeout.value / 1000);

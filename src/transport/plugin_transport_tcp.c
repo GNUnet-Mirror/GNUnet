@@ -1712,18 +1712,6 @@ handle_tcp_data (void *cls,
 
 
 /**
- * Handlers for the various TCP messages.
- */
-static struct GNUNET_SERVER_MessageHandler my_handlers[] = {
-  {&handle_tcp_welcome, NULL, GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME,
-   sizeof (struct WelcomeMessage)},
-  {&handle_tcp_nat_probe, NULL, GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_NAT_PROBE, sizeof (struct TCP_NAT_ProbeMessage)},
-  {&handle_tcp_data, NULL, GNUNET_MESSAGE_TYPE_ALL, 0},
-  {NULL, NULL, 0, 0}
-};
-
-
-/**
  * Functions with this signature are called whenever a peer
  * is disconnected on the network level.
  *
@@ -2150,6 +2138,13 @@ check_gnunet_nat_binary(char *binary)
 void *
 libgnunet_plugin_transport_tcp_init (void *cls)
 {
+  static const struct GNUNET_SERVER_MessageHandler my_handlers[] = {
+    {&handle_tcp_welcome, NULL, GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME,
+     sizeof (struct WelcomeMessage)},
+    {&handle_tcp_nat_probe, NULL, GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_NAT_PROBE, sizeof (struct TCP_NAT_ProbeMessage)},
+    {&handle_tcp_data, NULL, GNUNET_MESSAGE_TYPE_ALL, 0},
+    {NULL, NULL, 0, 0}
+  };
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct Plugin *plugin;

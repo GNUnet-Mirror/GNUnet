@@ -129,11 +129,6 @@ static struct GNUNET_TRANSPORT_Handle *transport;
 static char *proxy;
 
 /**
- * Buffer for data downloaded via HTTP.
- */
-static char download_buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE];
-
-/**
  * Number of bytes valid in 'download_buffer'.
  */
 static size_t download_pos;
@@ -277,6 +272,7 @@ callback_download (void *ptr,
 			     size_t nmemb, 
 			     void *ctx)
 {
+  static char download_buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE];
   const char * cbuf = ptr;
   const struct GNUNET_MessageHeader *msg;
   size_t total;

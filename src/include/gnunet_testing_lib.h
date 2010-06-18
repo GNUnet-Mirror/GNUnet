@@ -693,14 +693,15 @@ GNUNET_TESTING_topology_get(enum GNUNET_TESTING_Topology *topology, char * topol
 /**
  * Get connect topology option from string input.
  *
- * @param topology where to write the retrieved topology
+ * @param topology_option where to write the retrieved topology
  * @param topology_string The string to attempt to
  *        get a configuration value from
  * @return GNUNET_YES if topology string matched a
  *         known topology, GNUNET_NO if not
  */
 int
-GNUNET_TESTING_topology_option_get(enum GNUNET_TESTING_TopologyOption *topology, char * topology_string);
+GNUNET_TESTING_topology_option_get(enum GNUNET_TESTING_TopologyOption *topology_option,
+				   char * topology_string);
 
 
 /**

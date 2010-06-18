@@ -62,11 +62,6 @@
 #define UDP_DIRECT_DISTANCE 1
 
 /**
- * Handle for request of hostname resolution, non-NULL if pending.
- */
-static struct GNUNET_RESOLVER_RequestHandle *hostname_dns;
-
-/**
  * How long until we give up on transmitting the welcome message?
  */
 #define HOSTNAME_RESOLVE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
@@ -1863,10 +1858,10 @@ libgnunet_plugin_transport_udp_done (void *cls)
   struct Plugin *plugin = api->cls;
 
   udp_transport_server_stop (plugin);
-  if (NULL != hostname_dns)
+  if (NULL != plugin->hostname_dns)
     {
-      GNUNET_RESOLVER_request_cancel (hostname_dns);
-      hostname_dns = NULL;
+      GNUNET_RESOLVER_request_cancel (plugin->hostname_dns);
+      plugin->hostname_dns = NULL;
     }
 
   GNUNET_SERVICE_stop (plugin->service);

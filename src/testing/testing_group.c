@@ -67,99 +67,10 @@
  * Prototype of a function called whenever two peers would be connected
  * in a certain topology.
  */
-typedef int (*GNUNET_TESTING_ConnectionProcessor)
-(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first, unsigned int second);
+typedef int (*GNUNET_TESTING_ConnectionProcessor)(struct GNUNET_TESTING_PeerGroup *pg, 
+						  unsigned int first,
+						  unsigned int second);
 
-/**
- * Strings representing topologies in enum
- */
-static char * GNUNET_TESTING_TopologyStrings[] =
-{
-  /**
-   * A clique (everyone connected to everyone else).
-   */
-  "CLIQUE",
-
-  /**
-   * Small-world network (2d torus plus random links).
-   */
-  "SMALL_WORLD",
-
-  /**
-   * Small-world network (ring plus random links).
-   */
-  "SMALL_WORLD_RING",
-
-  /**
-   * Ring topology.
-   */
-  "RING",
-
-  /**
-   * 2-d torus.
-   */
-  "2D_TORUS",
-
-  /**
-   * Random graph.
-   */
-  "ERDOS_RENYI",
-
-  /**
-   * Certain percentage of peers are unable to communicate directly
-   * replicating NAT conditions
-   */
-  "INTERNAT",
-
-  /**
-   * Scale free topology.
-   */
-  "SCALE_FREE",
-
-  /**
-   * Straight line topology.
-   */
-  "LINE",
-
-  /**
-   * All peers are disconnected.
-   */
-  "NONE"
-};
-
-/**
- * Options for connecting a topology as strings.
- */
-static char * GNUNET_TESTING_TopologyOptionStrings[] =
-{
-  /**
-   * Try to connect all peers specified in the topology.
-   */
-  "CONNECT_ALL",
-
-  /**
-   * Choose a random subset of connections to create.
-   */
-  "CONNECT_RANDOM_SUBSET",
-
-  /**
-   * Create at least X connections for each peer.
-   */
-  "CONNECT_MINIMUM",
-
-  /**
-   * Using a depth first search, create one connection
-   * per peer.  If any are missed (graph disconnected)
-   * start over at those peers until all have at least one
-   * connection.
-   */
-  "CONNECT_DFS",
-
-  /**
-   * No options specified.
-   */
-  "CONNECT_NONE"
-};
 
 /**
  * Context for handling churning a peer group
@@ -448,60 +359,145 @@ static int outstanding_connects;
 int
 GNUNET_TESTING_topology_get(enum GNUNET_TESTING_Topology *topology, char * topology_string)
 {
-  int found = 0;
-  int curr = 0;
+  /**
+   * Strings representing topologies in enum
+   */
+  static const char * topology_strings[] =
+    {
+      /**
+       * A clique (everyone connected to everyone else).
+       */
+      "CLIQUE",
+      
+      /**
+       * Small-world network (2d torus plus random links).
+       */
+      "SMALL_WORLD",
+      
+      /**
+       * Small-world network (ring plus random links).
+       */
+      "SMALL_WORLD_RING",
+      
+      /**
+       * Ring topology.
+       */
+      "RING",
+      
+      /**
+       * 2-d torus.
+       */
+      "2D_TORUS",
+      
+      /**
+       * Random graph.
+       */
+      "ERDOS_RENYI",
+      
+      /**
+       * Certain percentage of peers are unable to communicate directly
+       * replicating NAT conditions
+       */
+      "INTERNAT",
+      
+      /**
+       * Scale free topology.
+       */
+      "SCALE_FREE",
+      
+      /**
+       * Straight line topology.
+       */
+      "LINE",
+      
+      /**
+       * All peers are disconnected.
+       */
+      "NONE",
 
+      NULL
+    };
+
+  int curr = 0;
   if (topology_string == NULL)
     return GNUNET_NO;
-
-  do
-  {
-    if (strcmp(GNUNET_TESTING_TopologyStrings[curr], topology_string) == 0)
+  while (topology_strings[curr] != NULL)
     {
-      found = GNUNET_YES;
-      break;
+      if (strcmp(topology_strings[curr], topology_string) == 0)
+	{
+	  *topology = curr;
+	  return GNUNET_YES;
+	}
+      curr++;
     }
-    curr++;
-  } while (strcmp(GNUNET_TESTING_TopologyStrings[curr], "NONE") != 0);
-  *topology = curr;
-  if (found)
-    return GNUNET_YES;
-  else
-    return GNUNET_NO;
+  *topology = GNUNET_TESTING_TOPOLOGY_NONE;
+  return GNUNET_NO;
 }
+
 
 /**
  * Get connect topology option from string input.
  *
- * @param topology where to write the retrieved topology
+ * @param topology_option where to write the retrieved topology
  * @param topology_string The string to attempt to
  *        get a configuration value from
  * @return GNUNET_YES if string matched a known
  *         topology option, GNUNET_NO if not
  */
 int
-GNUNET_TESTING_topology_option_get(enum GNUNET_TESTING_TopologyOption *topology, char * topology_string)
+GNUNET_TESTING_topology_option_get(enum GNUNET_TESTING_TopologyOption *topology_option, 
+				   char * topology_string)
 {
-  int found = 0;
+  /**
+   * Options for connecting a topology as strings.
+   */
+  static const char * topology_option_strings[] =
+    {
+      /**
+       * Try to connect all peers specified in the topology.
+       */
+      "CONNECT_ALL",
+      
+      /**
+       * Choose a random subset of connections to create.
+       */
+      "CONNECT_RANDOM_SUBSET",
+      
+      /**
+       * Create at least X connections for each peer.
+       */
+      "CONNECT_MINIMUM",
+      
+      /**
+       * Using a depth first search, create one connection
+       * per peer.  If any are missed (graph disconnected)
+       * start over at those peers until all have at least one
+       * connection.
+       */
+      "CONNECT_DFS",
+      
+      /**
+       * No options specified.
+       */
+      "CONNECT_NONE",
+
+      NULL
+    };
   int curr = 0;
 
   if (topology_string == NULL)
     return GNUNET_NO;
-
-  do
-  {
-    if (strcmp(GNUNET_TESTING_TopologyOptionStrings[curr], topology_string) == 0)
+  while (NULL != topology_option_strings[curr])
     {
-      found = GNUNET_YES;
-      break;
-    }
-    curr++;
-  } while (strcmp(GNUNET_TESTING_TopologyOptionStrings[curr], "CONNECT_NONE") != 0);
-  *topology = curr;
-  if (found)
-    return GNUNET_YES;
-  else
-    return GNUNET_NO;
+      if (strcmp(GNUNET_TESTING_TopologyOptionStrings[curr], topology_string) == 0)
+	{
+	  *topology_option = curr;
+	  return GNUNET_YES;
+	}
+      curr++;
+    } 
+  *topology_option = GNUNET_TESTING_TOPOLOGY_OPTION_NONE;
+  return GNUNET_NO;
 }
 
 /**
