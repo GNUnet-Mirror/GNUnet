@@ -365,7 +365,6 @@ static struct Session * create_session (struct sockaddr_in *addr_in, struct sock
 
   ses->addr_inbound  = GNUNET_malloc ( sizeof (struct sockaddr_in) );
   ses->addr_outbound  = GNUNET_malloc ( sizeof (struct sockaddr_in) );
-  ses->next = NULL;
   ses->plugin = plugin;
   if ((NULL != addr_in) && (( AF_INET == addr_in->sin_family) || ( AF_INET6 == addr_in->sin_family)))
   {
@@ -852,7 +851,6 @@ static size_t send_read_callback(void *stream, size_t size, size_t nmemb, void *
   struct HTTP_Message * msg = ses->pending_outbound_msg;
   unsigned int bytes_sent;
   unsigned int len;
-  bytes_sent = 0;
 
   /* data to send */
   if (( msg->pos < msg->len))

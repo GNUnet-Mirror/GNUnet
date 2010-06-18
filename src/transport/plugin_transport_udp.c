@@ -682,7 +682,6 @@ udp_plugin_send (void *cls,
           peer_session->messages->msgbuf = GNUNET_malloc(msgbuf_size);
           memcpy(peer_session->messages->msgbuf, msgbuf, msgbuf_size);
           peer_session->messages->msgbuf_size = msgbuf_size;
-          peer_session->messages->next = NULL;
           peer_session->messages->timeout = GNUNET_TIME_relative_to_absolute(timeout);
           peer_session->messages->cont = cont;
           peer_session->messages->cont_cls = cont_cls;
