@@ -489,7 +489,7 @@ GNUNET_TESTING_topology_option_get(enum GNUNET_TESTING_TopologyOption *topology_
     return GNUNET_NO;
   while (NULL != topology_option_strings[curr])
     {
-      if (strcmp(GNUNET_TESTING_TopologyOptionStrings[curr], topology_string) == 0)
+      if (strcmp(topology_option_strings[curr], topology_string) == 0)
 	{
 	  *topology_option = curr;
 	  return GNUNET_YES;
