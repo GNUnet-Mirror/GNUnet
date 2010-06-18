@@ -524,6 +524,8 @@ GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
   switch (addr->sa_family)
     {
     case AF_INET:
+      if (addrlen != sizeof (struct sockaddr_in))
+	return "<invalid v4 address>";
       v4 = (const struct sockaddr_in *) addr;
       inet_ntop (AF_INET, &v4->sin_addr, buf, INET_ADDRSTRLEN);
       if (0 == ntohs (v4->sin_port))
@@ -533,6 +535,8 @@ GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
       strcat (buf, b2);
       return buf;
     case AF_INET6:
+      if (addrlen != sizeof (struct sockaddr_in6))
+	return "<invalid v4 address>";
       v6 = (const struct sockaddr_in6 *) addr;
       buf[0] = '[';
       inet_ntop (AF_INET6, &v6->sin6_addr, &buf[1], INET6_ADDRSTRLEN);
@@ -543,6 +547,8 @@ GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
       strcat (buf, b2);
       return buf;
     case AF_UNIX:
+      if (addrlen <= sizeof (sa_family_t))
+	return "<invalid UNIX address>";
       un = (const struct sockaddr_un*) addr;
       off = 0;
       if (un->sun_path[0] == '\0') off++;
