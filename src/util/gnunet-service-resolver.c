@@ -473,16 +473,6 @@ handle_get (void *cls,
 
 
 /**
- * List of handlers for the messages understood by this
- * service.
- */
-static struct GNUNET_SERVER_MessageHandler handlers[] = {
-  {&handle_get, NULL, GNUNET_MESSAGE_TYPE_RESOLVER_REQUEST, 0},
-  {NULL, NULL, 0, 0}
-};
-
-
-/**
  * Process resolver requests.
  *
  * @param cls closure
@@ -496,6 +486,10 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
+    {&handle_get, NULL, GNUNET_MESSAGE_TYPE_RESOLVER_REQUEST, 0},
+    {NULL, NULL, 0, 0}
+  };
   GNUNET_SERVER_add_handlers (server, handlers);
 }
 

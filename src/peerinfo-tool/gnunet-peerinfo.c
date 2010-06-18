@@ -305,22 +305,6 @@ run (void *cls,
 
 
 /**
- * gnunet-peerinfo command line options
- */
-static struct GNUNET_GETOPT_CommandLineOption options[] = {
-  {'n', "numeric", NULL,
-   gettext_noop ("don't resolve host names"),
-   0, &GNUNET_GETOPT_set_one, &no_resolve},
-  {'q', "quiet", NULL,
-   gettext_noop ("output only the identity strings"),
-   0, &GNUNET_GETOPT_set_one, &be_quiet},
-  {'s', "self", NULL,
-   gettext_noop ("output our own identity only"),
-   0, &GNUNET_GETOPT_set_one, &get_self},
-  GNUNET_GETOPT_OPTION_END
-};
-
-/**
  * The main function to obtain peer information.
  *
  * @param argc number of arguments from the command line
@@ -330,6 +314,18 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
 int
 main (int argc, char *const *argv)
 {
+  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    {'n', "numeric", NULL,
+     gettext_noop ("don't resolve host names"),
+     0, &GNUNET_GETOPT_set_one, &no_resolve},
+    {'q', "quiet", NULL,
+     gettext_noop ("output only the identity strings"),
+     0, &GNUNET_GETOPT_set_one, &be_quiet},
+    {'s', "self", NULL,
+     gettext_noop ("output our own identity only"),
+     0, &GNUNET_GETOPT_set_one, &get_self},
+    GNUNET_GETOPT_OPTION_END
+  };
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc,
                               argv,

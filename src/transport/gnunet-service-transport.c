@@ -4656,29 +4656,6 @@ handle_address_lookup (void *cls,
                                          &transmit_address_to_client, tc);
 }
 
-/**
- * List of handlers for the messages understood by this
- * service.
- */
-static struct GNUNET_SERVER_MessageHandler handlers[] = {
-  {&handle_start, NULL,
-   GNUNET_MESSAGE_TYPE_TRANSPORT_START, 0},
-  {&handle_hello, NULL,
-   GNUNET_MESSAGE_TYPE_HELLO, 0},
-  {&handle_send, NULL,
-   GNUNET_MESSAGE_TYPE_TRANSPORT_SEND, 0},
-  {&handle_set_quota, NULL,
-   GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA, sizeof (struct QuotaSetMessage)},
-  {&handle_address_lookup, NULL,
-   GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP,
-   0},
-  {&handle_blacklist_init, NULL,
-   GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_INIT, sizeof (struct GNUNET_MessageHeader)},
-  {&handle_blacklist_reply, NULL,
-   GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_REPLY, sizeof (struct BlacklistMessage)},
-  {NULL, NULL, 0, 0}
-};
-
 
 /**
  * Setup the environment for this plugin.
@@ -4917,6 +4894,24 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *serv,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
+    {&handle_start, NULL,
+     GNUNET_MESSAGE_TYPE_TRANSPORT_START, 0},
+    {&handle_hello, NULL,
+     GNUNET_MESSAGE_TYPE_HELLO, 0},
+    {&handle_send, NULL,
+     GNUNET_MESSAGE_TYPE_TRANSPORT_SEND, 0},
+    {&handle_set_quota, NULL,
+     GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA, sizeof (struct QuotaSetMessage)},
+    {&handle_address_lookup, NULL,
+     GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP,
+     0},
+    {&handle_blacklist_init, NULL,
+     GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_INIT, sizeof (struct GNUNET_MessageHeader)},
+    {&handle_blacklist_reply, NULL,
+     GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_REPLY, sizeof (struct BlacklistMessage)},
+    {NULL, NULL, 0, 0}
+  };
   char *plugs;
   char *pos;
   int no_transports;

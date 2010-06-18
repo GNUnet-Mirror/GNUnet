@@ -87,40 +87,17 @@ static struct GNUNET_CORE_Handle *core;
 /**
  * Handle to the hostlist client's advertisement handler
  */
-static GNUNET_CORE_MessageCallback client_adv_handler = NULL;
+static GNUNET_CORE_MessageCallback client_adv_handler;
 
 /**
  * Handle to hostlist client's connect handler
  */
-static GNUNET_CORE_ConnectEventHandler client_ch = NULL;
+static GNUNET_CORE_ConnectEventHandler client_ch;
 
 /**
  * Handle to hostlist client's disconnect handler
  */
-static GNUNET_CORE_DisconnectEventHandler client_dh = NULL;
-
-/**
- * gnunet-daemon-hostlist command line options.
- */
-static struct GNUNET_GETOPT_CommandLineOption options[] = {
-#if HAVE_MHD
-  { 'a', "advertise", NULL, 
-    gettext_noop ("advertise our hostlist to other peers"),
-    GNUNET_NO, &GNUNET_GETOPT_set_one, &advertising },
-#endif
-  { 'b', "bootstrap", NULL, 
-    gettext_noop ("bootstrap using hostlists (it is highly recommended that you always use this option)"),
-    GNUNET_NO, &GNUNET_GETOPT_set_one, &bootstrapping },
-  { 'e', "enable-learning", NULL,
-    gettext_noop ("enable learning about hostlist servers from other peers"),
-    GNUNET_NO, &GNUNET_GETOPT_set_one, &learning},
-#if HAVE_MHD
-  { 'p', "provide-hostlist", NULL, 
-    gettext_noop ("provide a hostlist server"),
-    GNUNET_NO, &GNUNET_GETOPT_set_one, &provide_hostlist},
-#endif
-  GNUNET_GETOPT_OPTION_END
-};
+static GNUNET_CORE_DisconnectEventHandler client_dh;
 
 /**
  * A HOSTLIST_ADV message is used to exchange information about
@@ -253,22 +230,6 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
 }
 
-/**
- * List of handlers if we are learning.
- */
-static struct GNUNET_CORE_MessageHandler learn_handlers[] = {
-  { &advertisement_handler, GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT, 0},
-  { NULL, 0, 0 }
-};
-
-
-/**
- * List of handlers if we are not learning.
- */
-static struct GNUNET_CORE_MessageHandler no_learn_handlers[] = {
-    { NULL, 0, 0 }
-};
-
 
 /**
  * Main function that will be run.
@@ -286,6 +247,13 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle * cfg)
 {
+  static const struct GNUNET_CORE_MessageHandler learn_handlers[] = {
+    { &advertisement_handler, GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT, 0},
+    { NULL, 0, 0 }
+  };
+  static const struct GNUNET_CORE_MessageHandler no_learn_handlers[] = {
+    { NULL, 0, 0 }
+  };
   if ( (! bootstrapping) &&
        (! learning) 
 #if HAVE_MHD
@@ -348,9 +316,28 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  int ret;
-  GNUNET_log_setup ("hostlist","DEBUG",NULL);
+  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+#if HAVE_MHD
+    { 'a', "advertise", NULL, 
+      gettext_noop ("advertise our hostlist to other peers"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &advertising },
+#endif
+    { 'b', "bootstrap", NULL, 
+      gettext_noop ("bootstrap using hostlists (it is highly recommended that you always use this option)"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &bootstrapping },
+    { 'e', "enable-learning", NULL,
+      gettext_noop ("enable learning about hostlist servers from other peers"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &learning},
+#if HAVE_MHD
+    { 'p', "provide-hostlist", NULL, 
+      gettext_noop ("provide a hostlist server"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &provide_hostlist},
+#endif
+    GNUNET_GETOPT_OPTION_END
+  };
 
+  int ret;
+  GNUNET_log_setup ("hostlist", "WARNING", NULL);
   ret = (GNUNET_OK ==
          GNUNET_PROGRAM_run (argc,
                              argv,

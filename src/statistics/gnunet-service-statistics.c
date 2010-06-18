@@ -420,17 +420,6 @@ handle_set (void *cls,
 
 
 /**
- * List of handlers for the messages understood by this
- * service.
- */
-static struct GNUNET_SERVER_MessageHandler handlers[] = {
-  {&handle_set, NULL, GNUNET_MESSAGE_TYPE_STATISTICS_SET, 0},
-  {&handle_get, NULL, GNUNET_MESSAGE_TYPE_STATISTICS_GET, 0},
-  {NULL, NULL, 0, 0}
-};
-
-
-/**
  * Task run during shutdown.
  *
  * @param cls unused
@@ -458,6 +447,11 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
+    {&handle_set, NULL, GNUNET_MESSAGE_TYPE_STATISTICS_SET, 0},
+    {&handle_get, NULL, GNUNET_MESSAGE_TYPE_STATISTICS_GET, 0},
+    {NULL, NULL, 0, 0}
+  };
   cfg = c;
   GNUNET_SERVER_add_handlers (server, handlers);
   load (server);

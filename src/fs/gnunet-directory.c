@@ -167,14 +167,6 @@ run (void *cls,
 }
 
 /**
- * gnunet-directory command line options
- */
-static struct GNUNET_GETOPT_CommandLineOption options[] = {
-  GNUNET_GETOPT_OPTION_END
-};
-
-
-/**
  * The main function to inspect GNUnet directories.
  *
  * @param argc number of arguments from the command line
@@ -184,6 +176,9 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
 int
 main (int argc, char *const *argv)
 {
+  static struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_END
+  };
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc,
                               argv,

@@ -52,14 +52,6 @@ run (void *cls,
   /* main code here */
 }
 
-/**
- * gnunet-template command line options
- */
-static struct GNUNET_GETOPT_CommandLineOption options[] = {
-  /* FIMXE: add options here */
-  GNUNET_GETOPT_OPTION_END
-};
-
 
 /**
  * The main function to obtain template from gnunetd.
@@ -71,6 +63,10 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
 int
 main (int argc, char *const *argv)
 {
+  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    /* FIMXE: add options here */
+    GNUNET_GETOPT_OPTION_END
+  };
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc,
                               argv,

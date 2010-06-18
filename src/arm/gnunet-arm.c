@@ -357,31 +357,6 @@ cps_loop (void *cls,
 
 
 /**
- * gnunet-arm command line options
- */
-static struct GNUNET_GETOPT_CommandLineOption options[] = {
-  {'e', "end", NULL, gettext_noop ("stop all GNUnet services"),
-   GNUNET_NO, &GNUNET_GETOPT_set_one, &end},
-  {'i', "init", "SERVICE", gettext_noop ("start a particular service"),
-   GNUNET_YES, &GNUNET_GETOPT_set_string, &init},
-  {'k', "kill", "SERVICE", gettext_noop ("stop a particular service"),
-   GNUNET_YES, &GNUNET_GETOPT_set_string, &term},
-  {'s', "start", NULL, gettext_noop ("start all GNUnet default services"),
-   GNUNET_NO, &GNUNET_GETOPT_set_one, &start},
-  {'r', "restart", NULL, gettext_noop ("stop and start all GNUnet default services"),
-    GNUNET_NO, &GNUNET_GETOPT_set_one, &restart},
-  {'t', "test", "SERVICE",
-   gettext_noop ("test if a particular service is running"),
-   GNUNET_YES, &GNUNET_GETOPT_set_string, &test},
-  {'d', "delete", NULL, gettext_noop ("delete config file and directory on exit"),
-   GNUNET_NO, &GNUNET_GETOPT_set_one, &delete},
-  {'q', "quiet", NULL, gettext_noop ("don't print status messages"),
-   GNUNET_NO, &GNUNET_GETOPT_set_one, &quiet},
-  GNUNET_GETOPT_OPTION_END
-};
-
-
-/**
  * The main function to obtain arm from gnunetd.
  *
  * @param argc number of arguments from the command line
@@ -391,6 +366,26 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
 int
 main (int argc, char *const *argv)
 {
+  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    {'e', "end", NULL, gettext_noop ("stop all GNUnet services"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &end},
+    {'i', "init", "SERVICE", gettext_noop ("start a particular service"),
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &init},
+    {'k', "kill", "SERVICE", gettext_noop ("stop a particular service"),
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &term},
+    {'s', "start", NULL, gettext_noop ("start all GNUnet default services"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &start},
+    {'r', "restart", NULL, gettext_noop ("stop and start all GNUnet default services"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &restart},
+    {'t', "test", "SERVICE",
+     gettext_noop ("test if a particular service is running"),
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &test},
+    {'d', "delete", NULL, gettext_noop ("delete config file and directory on exit"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &delete},
+    {'q', "quiet", NULL, gettext_noop ("don't print status messages"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &quiet},
+    GNUNET_GETOPT_OPTION_END
+  };
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc,
                               argv,

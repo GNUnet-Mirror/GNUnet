@@ -150,23 +150,6 @@ run (void *cls,
 }
 
 /**
- * gnunet-statistics command line options
- */
-static struct GNUNET_GETOPT_CommandLineOption options[] = {
-  {'n', "name", "NAME",
-   gettext_noop ("limit output to statistcs for the given NAME"), 1,
-   &GNUNET_GETOPT_set_string, &name},
-  {'p', "persistent", NULL,
-   gettext_noop ("make the value being set persistent"), 0,
-   &GNUNET_GETOPT_set_one, &persistent},
-  {'s', "subsystem", "SUBSYSTEM",
-   gettext_noop ("limit output to the given SUBSYSTEM"), 1,
-   &GNUNET_GETOPT_set_string, &subsystem},
-  GNUNET_GETOPT_OPTION_END
-};
-
-
-/**
  * The main function to obtain statistics in GNUnet.
  *
  * @param argc number of arguments from the command line
@@ -176,6 +159,18 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
 int
 main (int argc, char *const *argv)
 {
+  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    {'n', "name", "NAME",
+     gettext_noop ("limit output to statistcs for the given NAME"), 1,
+     &GNUNET_GETOPT_set_string, &name},
+    {'p', "persistent", NULL,
+     gettext_noop ("make the value being set persistent"), 0,
+     &GNUNET_GETOPT_set_one, &persistent},
+    {'s', "subsystem", "SUBSYSTEM",
+     gettext_noop ("limit output to the given SUBSYSTEM"), 1,
+     &GNUNET_GETOPT_set_string, &subsystem},
+    GNUNET_GETOPT_OPTION_END
+  };
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc,
                               argv,

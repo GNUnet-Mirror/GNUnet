@@ -135,12 +135,6 @@ static char *GNoptarg = NULL;
 /* 1003.2 says this must be 1 before any call.  */
 static int GNoptind = 1;
 
-/* Formerly, initialization of getopt depended on GNoptind==0, which
-   causes problems with re-calling getopt as programs generally don't
-   know that. */
-
-static int __getopt_initialized = 0;
-
 /* The next char to be scanned in the option-element
    in which the last option character we returned was found.
    This allows us to pick up the scan where we left off.
@@ -150,16 +144,6 @@ static int __getopt_initialized = 0;
 
 static char *nextchar;
 
-/* Callers store zero here to inhibit the error message
-   for unrecognized options.  */
-
-static int GNopterr = 1;
-
-/* Set to an option character which was unrecognized.
-   This must be initialized on some systems to avoid linking in the
-   system's own getopt implementation.  */
-
-static int GNoptopt = '?';
 
 /* Describe how to deal with options that follow non-option ARGV-elements.
 
@@ -513,14 +497,17 @@ _getopt_initialize (argc, argv, optstring)
    long-named options.  */
 
 static int
-GN_getopt_internal (argc, argv, optstring, longopts, longind, long_only)
-     int argc;
-     char *const *argv;
-     const char *optstring;
-     const struct GNoption *longopts;
-     int *longind;
-     int long_only;
+GN_getopt_internal (int argc,
+		    char *const *argv,
+		    const char *optstring,
+		    const struct GNoption *longopts,
+		    int *longind,
+		    int long_only)
 {
+  static int __getopt_initialized = 0;
+  static int GNopterr = 1;
+  static int GNoptopt = '?';
+
   GNoptarg = NULL;
 
   if (GNoptind == 0 || !__getopt_initialized)

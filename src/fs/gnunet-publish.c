@@ -524,7 +524,7 @@ run (void *cls,
 						 &ex))
 	{
 	  if (strlen (ex) > 0)
-	    l = EXTRACTOR_plugin_add_config (l, ex, EXTRACTOR_OPTION_DEFAULT_POLICY);
+	    plugins = EXTRACTOR_plugin_add_config (plugins, ex, EXTRACTOR_OPTION_DEFAULT_POLICY);
 	  GNUNET_free (ex);
 	}
     }
@@ -555,7 +555,7 @@ run (void *cls,
 	meta = GNUNET_CONTAINER_meta_data_create ();
       GNUNET_FS_meta_data_extract_from_file (meta,
 					     args[0],
-					     l);
+					     plugins);
       fi = GNUNET_FS_file_information_create_from_file (ctx,
 							NULL,
 							args[0],
@@ -615,66 +615,6 @@ run (void *cls,
 }
 
 
-/**
- * gnunet-publish command line options
- */
-static struct GNUNET_GETOPT_CommandLineOption options[] = {
-  {'a', "anonymity", "LEVEL",
-   gettext_noop ("set the desired LEVEL of sender-anonymity"),
-   1, &GNUNET_GETOPT_set_uint, &anonymity},
-  {'d', "disable-creation-time", NULL,
-   gettext_noop
-   ("disable adding the creation time to the metadata of the uploaded file"),
-   0, &GNUNET_GETOPT_set_one, &do_disable_creation_time},
-  {'D', "disable-extractor", NULL,
-   gettext_noop
-   ("do not use libextractor to add keywords or metadata"),
-   0, &GNUNET_GETOPT_set_one, &disable_extractor},
-  {'e', "extract", NULL,
-   gettext_noop
-   ("print list of extracted keywords that would be used, but do not perform upload"),
-   0, &GNUNET_GETOPT_set_one, &extract_only},
-  {'k', "key", "KEYWORD",
-   gettext_noop
-   ("add an additional keyword for the top-level file or directory"
-    " (this option can be specified multiple times)"),
-   1, &GNUNET_FS_getopt_set_keywords, &topKeywords},
-  {'m', "meta", "TYPE:VALUE",
-   gettext_noop ("set the meta-data for the given TYPE to the given VALUE"),
-   1, &GNUNET_FS_getopt_set_metadata, &meta},
-  {'n', "noindex", NULL,
-   gettext_noop ("do not index, perform full insertion (stores entire "
-                 "file in encrypted form in GNUnet database)"),
-   0, &GNUNET_GETOPT_set_one, &do_insert},
-  {'N', "next", "ID",
-   gettext_noop
-   ("specify ID of an updated version to be published in the future"
-    " (for namespace insertions only)"),
-   1, &GNUNET_GETOPT_set_string, &next_id},
-  {'p', "priority", "PRIORITY",
-   gettext_noop ("specify the priority of the content"),
-   1, &GNUNET_GETOPT_set_uint, &priority},
-  {'P', "pseudonym", "NAME",
-   gettext_noop
-   ("publish the files under the pseudonym NAME (place file into namespace)"),
-   1, &GNUNET_GETOPT_set_string, &pseudonym},
-  {'s', "simulate-only", NULL,
-   gettext_noop ("only simulate the process but do not do any "
-                 "actual publishing (useful to compute URIs)"),
-   0, &GNUNET_GETOPT_set_one, &do_simulate},
-  {'t', "this", "ID",
-   gettext_noop ("set the ID of this version of the publication"
-                 " (for namespace insertions only)"),
-   1, &GNUNET_GETOPT_set_string, &this_id},
-  {'u', "uri", "URI",
-   gettext_noop ("URI to be published (can be used instead of passing a "
-                 "file to add keywords to the file with the respective URI)"),
-   1, &GNUNET_GETOPT_set_string, &uri_string}, 
-  {'V', "verbose", NULL,
-   gettext_noop ("be verbose (print progress information)"),
-   0, &GNUNET_GETOPT_set_one, &verbose},
-  GNUNET_GETOPT_OPTION_END
-};
 
 
 /**
@@ -687,6 +627,63 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
 int
 main (int argc, char *const *argv)
 {
+  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    {'a', "anonymity", "LEVEL",
+     gettext_noop ("set the desired LEVEL of sender-anonymity"),
+     1, &GNUNET_GETOPT_set_uint, &anonymity},
+    {'d', "disable-creation-time", NULL,
+     gettext_noop
+     ("disable adding the creation time to the metadata of the uploaded file"),
+     0, &GNUNET_GETOPT_set_one, &do_disable_creation_time},
+    {'D', "disable-extractor", NULL,
+     gettext_noop
+     ("do not use libextractor to add keywords or metadata"),
+     0, &GNUNET_GETOPT_set_one, &disable_extractor},
+    {'e', "extract", NULL,
+     gettext_noop
+     ("print list of extracted keywords that would be used, but do not perform upload"),
+     0, &GNUNET_GETOPT_set_one, &extract_only},
+    {'k', "key", "KEYWORD",
+     gettext_noop
+     ("add an additional keyword for the top-level file or directory"
+      " (this option can be specified multiple times)"),
+     1, &GNUNET_FS_getopt_set_keywords, &topKeywords},
+    {'m', "meta", "TYPE:VALUE",
+     gettext_noop ("set the meta-data for the given TYPE to the given VALUE"),
+     1, &GNUNET_FS_getopt_set_metadata, &meta},
+    {'n', "noindex", NULL,
+     gettext_noop ("do not index, perform full insertion (stores entire "
+		   "file in encrypted form in GNUnet database)"),
+     0, &GNUNET_GETOPT_set_one, &do_insert},
+    {'N', "next", "ID",
+     gettext_noop
+     ("specify ID of an updated version to be published in the future"
+      " (for namespace insertions only)"),
+     1, &GNUNET_GETOPT_set_string, &next_id},
+    {'p', "priority", "PRIORITY",
+     gettext_noop ("specify the priority of the content"),
+     1, &GNUNET_GETOPT_set_uint, &priority},
+    {'P', "pseudonym", "NAME",
+     gettext_noop
+     ("publish the files under the pseudonym NAME (place file into namespace)"),
+     1, &GNUNET_GETOPT_set_string, &pseudonym},
+    {'s', "simulate-only", NULL,
+     gettext_noop ("only simulate the process but do not do any "
+		   "actual publishing (useful to compute URIs)"),
+     0, &GNUNET_GETOPT_set_one, &do_simulate},
+    {'t', "this", "ID",
+     gettext_noop ("set the ID of this version of the publication"
+		   " (for namespace insertions only)"),
+     1, &GNUNET_GETOPT_set_string, &this_id},
+    {'u', "uri", "URI",
+     gettext_noop ("URI to be published (can be used instead of passing a "
+		   "file to add keywords to the file with the respective URI)"),
+     1, &GNUNET_GETOPT_set_string, &uri_string}, 
+    {'V', "verbose", NULL,
+     gettext_noop ("be verbose (print progress information)"),
+     0, &GNUNET_GETOPT_set_one, &verbose},
+    GNUNET_GETOPT_OPTION_END
+  };
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc,
                               argv,

@@ -1431,14 +1431,6 @@ run (void *cls,
 
 
 /**
- * gnunet-daemon-topology command line options.
- */
-static struct GNUNET_GETOPT_CommandLineOption options[] = {
-  GNUNET_GETOPT_OPTION_END
-};
-
-
-/**
  * The main function for the topology daemon.
  *
  * @param argc number of arguments from the command line
@@ -1448,6 +1440,9 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
 int
 main (int argc, char *const *argv)
 {
+  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_END
+  };
   int ret;
 
   ret = (GNUNET_OK ==

@@ -29,16 +29,6 @@
 
 
 /**
- * List of handlers for the messages understood by this
- * service.
- */
-static struct GNUNET_SERVER_MessageHandler handlers[] = {
-  /* FIXME: add handlers here! */
-  {NULL, NULL, 0, 0}
-};
-
-
-/**
  * Task run during shutdown.
  *
  * @param cls unused
@@ -66,6 +56,10 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
+    /* FIXME: add handlers here! */
+    {NULL, NULL, 0, 0}
+  };
   /* FIXME: do setup here */
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SCHEDULER_add_delayed (sched,

@@ -986,17 +986,6 @@ handle_shutdown (void *cls,
 
 
 /**
- * List of handlers for the messages understood by this service.
- */
-static struct GNUNET_SERVER_MessageHandler handlers[] = {
-  {&handle_start, NULL, GNUNET_MESSAGE_TYPE_ARM_START, 0},
-  {&handle_stop, NULL, GNUNET_MESSAGE_TYPE_ARM_STOP, 0},
-  {&handle_shutdown, NULL, GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN,
-   sizeof (struct GNUNET_MessageHeader)},
-  {NULL, NULL, 0, 0}
-};
-
-/**
  * Signal handler called for SIGCHLD.  Triggers the
  * respective handler by writing to the trigger pipe.
  */
@@ -1025,6 +1014,13 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *serv,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
+    {&handle_start, NULL, GNUNET_MESSAGE_TYPE_ARM_START, 0},
+    {&handle_stop, NULL, GNUNET_MESSAGE_TYPE_ARM_STOP, 0},
+    {&handle_shutdown, NULL, GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN,
+     sizeof (struct GNUNET_MessageHeader)},
+    {NULL, NULL, 0, 0}
+  };
   char *defaultservices;
   char *pos;
 

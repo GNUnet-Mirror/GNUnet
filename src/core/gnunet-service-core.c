@@ -2351,25 +2351,6 @@ handle_client_request_connect (void *cls,
 
 
 /**
- * List of handlers for the messages understood by this
- * service.
- */
-static struct GNUNET_SERVER_MessageHandler handlers[] = {
-  {&handle_client_init, NULL,
-   GNUNET_MESSAGE_TYPE_CORE_INIT, 0},
-  {&handle_client_request_info, NULL,
-   GNUNET_MESSAGE_TYPE_CORE_REQUEST_INFO,
-   sizeof (struct RequestInfoMessage)},
-  {&handle_client_send, NULL,
-   GNUNET_MESSAGE_TYPE_CORE_SEND, 0},
-  {&handle_client_request_connect, NULL,
-   GNUNET_MESSAGE_TYPE_CORE_REQUEST_CONNECT,
-   sizeof (struct ConnectMessage)},
-  {NULL, NULL, 0, 0}
-};
-
-
-/**
  * PEERINFO is giving us a HELLO for a peer.  Add the public key to
  * the neighbour's struct and retry send_key.  Or, if we did not get a
  * HELLO, just do nothing.
@@ -3834,6 +3815,19 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *serv,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
+    {&handle_client_init, NULL,
+     GNUNET_MESSAGE_TYPE_CORE_INIT, 0},
+    {&handle_client_request_info, NULL,
+     GNUNET_MESSAGE_TYPE_CORE_REQUEST_INFO,
+     sizeof (struct RequestInfoMessage)},
+    {&handle_client_send, NULL,
+     GNUNET_MESSAGE_TYPE_CORE_SEND, 0},
+    {&handle_client_request_connect, NULL,
+     GNUNET_MESSAGE_TYPE_CORE_REQUEST_CONNECT,
+     sizeof (struct ConnectMessage)},
+    {NULL, NULL, 0, 0}
+  };
   char *keyfile;
 
   sched = s;

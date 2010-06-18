@@ -776,22 +776,6 @@ handle_notify (void *cls,
 
 
 /**
- * List of handlers for the messages understood by this
- * service.
- */
-static struct GNUNET_SERVER_MessageHandler handlers[] = {
-  {&handle_hello, NULL, GNUNET_MESSAGE_TYPE_HELLO, 0},
-  {&handle_get, NULL, GNUNET_MESSAGE_TYPE_PEERINFO_GET,
-   sizeof (struct ListPeerMessage)},
-  {&handle_get_all, NULL, GNUNET_MESSAGE_TYPE_PEERINFO_GET_ALL,
-   sizeof (struct ListAllPeersMessage)},
-  {&handle_notify, NULL, GNUNET_MESSAGE_TYPE_PEERINFO_NOTIFY,
-   sizeof (struct GNUNET_MessageHeader)},
-  {NULL, NULL, 0, 0}
-};
-
-
-/**
  * Clean up our state.  Called during shutdown.
  *
  * @param cls unused
@@ -825,6 +809,16 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
+    {&handle_hello, NULL, GNUNET_MESSAGE_TYPE_HELLO, 0},
+    {&handle_get, NULL, GNUNET_MESSAGE_TYPE_PEERINFO_GET,
+     sizeof (struct ListPeerMessage)},
+    {&handle_get_all, NULL, GNUNET_MESSAGE_TYPE_PEERINFO_GET_ALL,
+     sizeof (struct ListAllPeersMessage)},
+    {&handle_notify, NULL, GNUNET_MESSAGE_TYPE_PEERINFO_NOTIFY,
+     sizeof (struct GNUNET_MessageHeader)},
+    {NULL, NULL, 0, 0}
+  };
   stats = GNUNET_STATISTICS_create (sched, "peerinfo", cfg);
   notify_list = GNUNET_SERVER_notification_context_create (server, 0);
   GNUNET_assert (GNUNET_OK ==

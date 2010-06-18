@@ -326,55 +326,6 @@ run (void *cls,
   post_advertising (NULL, NULL, NULL);
 }
 
-/**
- * gnunet-pseudonym command line options
- */
-static struct GNUNET_GETOPT_CommandLineOption options[] = {
-  {'a', "anonymity", "LEVEL",
-   gettext_noop ("set the desired LEVEL of sender-anonymity"),
-   1, &GNUNET_GETOPT_set_uint, &anonymity},
-  {'A', "automate", NULL,
-   gettext_noop ("start a collection"),
-   0, &GNUNET_GETOPT_set_one, &start_automate},
-  {'C', "create", "NAME",
-   gettext_noop
-   ("create or advertise namespace NAME"),
-   1, &GNUNET_GETOPT_set_string, &create_ns},
-  {'D', "delete", "NAME",
-   gettext_noop
-   ("delete namespace NAME "),
-   1, &GNUNET_GETOPT_set_string, &delete_ns},
-  {'e', "end", NULL,
-   gettext_noop ("end current collection"),
-   0, &GNUNET_GETOPT_set_one, &stop_automate},
-  {'k', "keyword", "VALUE",
-  gettext_noop
-   ("add an additional keyword for the advertisment"
-    " (this option can be specified multiple times)"),
-   1, &GNUNET_FS_getopt_set_keywords, &ksk_uri},
-  {'m', "meta", "TYPE:VALUE",
-   gettext_noop ("set the meta-data for the given TYPE to the given VALUE"),
-   1, &GNUNET_FS_getopt_set_metadata, &adv_metadata},
-  {'o', "only-local", NULL,
-   gettext_noop ("print names of local namespaces"),
-   0, &GNUNET_GETOPT_set_one, &print_local_only},
-  {'p', "priority", "PRIORITY",
-   gettext_noop ("use the given PRIORITY for the advertisments"),
-   1, &GNUNET_GETOPT_set_uint, &priority},
-  {'q', "quiet", NULL,
-   gettext_noop ("do not print names of remote namespaces"),
-   0, &GNUNET_GETOPT_set_one, &no_remote_printing},
-  {'r', "root", "ID",
-   gettext_noop
-   ("specify ID of the root of the namespace"),
-   1, &GNUNET_GETOPT_set_string, &root_identifier},
-  {'s', "set-rating", "ID:VALUE",
-   gettext_noop
-   ("change rating of namespace ID by VALUE"),
-   1, &GNUNET_GETOPT_set_string, &rating_change},
-  GNUNET_GETOPT_OPTION_END
-};
-
 
 /**
  * The main function to inspect GNUnet directories.
@@ -386,6 +337,51 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
 int
 main (int argc, char *const *argv)
 {
+  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    {'a', "anonymity", "LEVEL",
+     gettext_noop ("set the desired LEVEL of sender-anonymity"),
+     1, &GNUNET_GETOPT_set_uint, &anonymity},
+    {'A', "automate", NULL,
+     gettext_noop ("start a collection"),
+     0, &GNUNET_GETOPT_set_one, &start_automate},
+    {'C', "create", "NAME",
+     gettext_noop
+     ("create or advertise namespace NAME"),
+     1, &GNUNET_GETOPT_set_string, &create_ns},
+    {'D', "delete", "NAME",
+     gettext_noop
+     ("delete namespace NAME "),
+     1, &GNUNET_GETOPT_set_string, &delete_ns},
+    {'e', "end", NULL,
+     gettext_noop ("end current collection"),
+     0, &GNUNET_GETOPT_set_one, &stop_automate},
+    {'k', "keyword", "VALUE",
+     gettext_noop
+     ("add an additional keyword for the advertisment"
+      " (this option can be specified multiple times)"),
+     1, &GNUNET_FS_getopt_set_keywords, &ksk_uri},
+    {'m', "meta", "TYPE:VALUE",
+     gettext_noop ("set the meta-data for the given TYPE to the given VALUE"),
+     1, &GNUNET_FS_getopt_set_metadata, &adv_metadata},
+    {'o', "only-local", NULL,
+     gettext_noop ("print names of local namespaces"),
+     0, &GNUNET_GETOPT_set_one, &print_local_only},
+    {'p', "priority", "PRIORITY",
+     gettext_noop ("use the given PRIORITY for the advertisments"),
+     1, &GNUNET_GETOPT_set_uint, &priority},
+    {'q', "quiet", NULL,
+     gettext_noop ("do not print names of remote namespaces"),
+     0, &GNUNET_GETOPT_set_one, &no_remote_printing},
+    {'r', "root", "ID",
+     gettext_noop
+     ("specify ID of the root of the namespace"),
+     1, &GNUNET_GETOPT_set_string, &root_identifier},
+    {'s', "set-rating", "ID:VALUE",
+     gettext_noop
+     ("change rating of namespace ID by VALUE"),
+     1, &GNUNET_GETOPT_set_string, &rating_change},
+    GNUNET_GETOPT_OPTION_END
+  };
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc,
                               argv,

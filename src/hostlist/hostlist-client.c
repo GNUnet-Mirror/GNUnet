@@ -116,12 +116,12 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 /**
  * Statistics handle.
  */
-struct GNUNET_STATISTICS_Handle *stats; 
+static struct GNUNET_STATISTICS_Handle *stats; 
 
 /**
  * Transport handle.
  */
-struct GNUNET_TRANSPORT_Handle *transport;
+static struct GNUNET_TRANSPORT_Handle *transport;
                        
 /**
  * Proxy that we are using (can be NULL).

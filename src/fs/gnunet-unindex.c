@@ -185,17 +185,6 @@ run (void *cls,
 
 
 /**
- * gnunet-unindex command line options
- */
-static struct GNUNET_GETOPT_CommandLineOption options[] = {
-  {'V', "verbose", NULL,
-   gettext_noop ("be verbose (print progress information)"),
-   0, &GNUNET_GETOPT_set_one, &verbose},
-  GNUNET_GETOPT_OPTION_END
-};
-
-
-/**
  * The main function to unindex content.
  *
  * @param argc number of arguments from the command line
@@ -205,6 +194,12 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
 int
 main (int argc, char *const *argv)
 {
+  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    {'V', "verbose", NULL,
+     gettext_noop ("be verbose (print progress information)"),
+     0, &GNUNET_GETOPT_set_one, &verbose},
+    GNUNET_GETOPT_OPTION_END
+  };
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc,
                               argv,

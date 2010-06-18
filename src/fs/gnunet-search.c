@@ -293,27 +293,6 @@ run (void *cls,
 
 
 /**
- * gnunet-search command line options
- */
-static struct GNUNET_GETOPT_CommandLineOption options[] = {
-  {'a', "anonymity", "LEVEL",
-   gettext_noop ("set the desired LEVEL of receiver-anonymity"),
-   1, &GNUNET_GETOPT_set_uint, &anonymity},
-  {'n', "no-network", NULL,
-   gettext_noop ("only search the local peer (no P2P network search)"),
-   1, &GNUNET_GETOPT_set_uint, &local_only},
-  {'o', "output", "PREFIX",
-   gettext_noop
-   ("write search results to file starting with PREFIX"),
-   1, &GNUNET_GETOPT_set_string, &output_filename}, 
-  {'V', "verbose", NULL,
-   gettext_noop ("be verbose (print progress information)"),
-   0, &GNUNET_GETOPT_set_one, &verbose},
-  GNUNET_GETOPT_OPTION_END
-};
-
-
-/**
  * The main function to search GNUnet.
  *
  * @param argc number of arguments from the command line
@@ -323,6 +302,22 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
 int
 main (int argc, char *const *argv)
 {
+  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    {'a', "anonymity", "LEVEL",
+     gettext_noop ("set the desired LEVEL of receiver-anonymity"),
+     1, &GNUNET_GETOPT_set_uint, &anonymity},
+    {'n', "no-network", NULL,
+     gettext_noop ("only search the local peer (no P2P network search)"),
+     1, &GNUNET_GETOPT_set_uint, &local_only},
+    {'o', "output", "PREFIX",
+     gettext_noop
+     ("write search results to file starting with PREFIX"),
+     1, &GNUNET_GETOPT_set_string, &output_filename}, 
+    {'V', "verbose", NULL,
+     gettext_noop ("be verbose (print progress information)"),
+     0, &GNUNET_GETOPT_set_one, &verbose},
+    GNUNET_GETOPT_OPTION_END
+  };
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc,
                               argv,

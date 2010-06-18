@@ -81,25 +81,17 @@ handle_shutdown (void *cls,
 }
 
 
-/**
- * Default handlers for all services.  Will be copied and the
- * "callback_cls" fields will be replaced with the specific service
- * struct.
- */
-static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-  {&handle_shutdown, NULL, GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN,
-   sizeof (struct GNUNET_MessageHeader)},
-  {NULL, NULL, 0, 0}
-};
-
-
-
 static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
+    {&handle_shutdown, NULL, GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN,
+     sizeof (struct GNUNET_MessageHeader)},
+    {NULL, NULL, 0, 0}
+  };
   sched = s;
   /* process client requests */
   GNUNET_SERVER_ignore_shutdown (server, GNUNET_YES);

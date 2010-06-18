@@ -1239,29 +1239,6 @@ handle_drop (void *cls,
 
 
 /**
- * List of handlers for the messages understood by this
- * service.
- */
-static struct GNUNET_SERVER_MessageHandler handlers[] = {
-  {&handle_reserve, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_RESERVE, 
-   sizeof(struct ReserveMessage) }, 
-  {&handle_release_reserve, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_RELEASE_RESERVE, 
-   sizeof(struct ReleaseReserveMessage) }, 
-  {&handle_put, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_PUT, 0 }, 
-  {&handle_update, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_UPDATE, 
-   sizeof (struct UpdateMessage) }, 
-  {&handle_get, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_GET, 0 }, 
-  {&handle_get_random, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_GET_RANDOM, 
-   sizeof(struct GNUNET_MessageHeader) }, 
-  {&handle_remove, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_REMOVE, 0 }, 
-  {&handle_drop, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_DROP, 
-   sizeof(struct GNUNET_MessageHeader) }, 
-  {NULL, NULL, 0, 0}
-};
-
-
-
-/**
  * Load the datastore plugin.
  */
 static struct DatastorePlugin *
@@ -1443,6 +1420,22 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
+    {&handle_reserve, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_RESERVE, 
+     sizeof(struct ReserveMessage) }, 
+    {&handle_release_reserve, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_RELEASE_RESERVE, 
+     sizeof(struct ReleaseReserveMessage) }, 
+    {&handle_put, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_PUT, 0 }, 
+    {&handle_update, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_UPDATE, 
+     sizeof (struct UpdateMessage) }, 
+    {&handle_get, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_GET, 0 }, 
+    {&handle_get_random, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_GET_RANDOM, 
+     sizeof(struct GNUNET_MessageHeader) }, 
+    {&handle_remove, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_REMOVE, 0 }, 
+    {&handle_drop, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_DROP, 
+     sizeof(struct GNUNET_MessageHeader) }, 
+    {NULL, NULL, 0, 0}
+  };
   char *fn;
   unsigned int bf_size;
 
