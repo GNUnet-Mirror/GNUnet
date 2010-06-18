@@ -1023,7 +1023,7 @@ GNUNET_GETOPT_run (const char *binaryOptions,
   long_options[count].has_arg = 0;
   long_options[count].flag = NULL;
   long_options[count].val = '\0';
-  shorts[spos++] = '\0';
+  shorts[spos] = '\0';
   cont = GNUNET_OK;
   /* main getopt loop */
   while (cont == GNUNET_OK)
