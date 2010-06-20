@@ -559,6 +559,7 @@ block_align (size_t start,
               badness = cbad;
             }
         }
+      GNUNET_assert (best >= 0);
       tmp = perm[i];
       perm[i] = perm[best];
       perm[best] = tmp;
@@ -597,7 +598,7 @@ GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
   ssize_t ret;
   uint32_t big;
 
-  size = 8 + sizeof (uint32_t);
+  size = strlen (GNUNET_DIRECTORY_MAGIC) + sizeof (uint32_t);
   size += GNUNET_CONTAINER_meta_data_get_serialized_size (bld->meta);
   sizes = NULL;
   perm = NULL;
@@ -641,8 +642,8 @@ GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
       return GNUNET_SYSERR;
     }
   *rdata = data;
-  memcpy (data, GNUNET_DIRECTORY_MAGIC, 8);
-  off = 8;
+  memcpy (data, GNUNET_DIRECTORY_MAGIC, strlen (GNUNET_DIRECTORY_MAGIC));
+  off = strlen (GNUNET_DIRECTORY_MAGIC);
 
   sptr = &data[off + sizeof (uint32_t)];
   ret = GNUNET_CONTAINER_meta_data_serialize (bld->meta,
@@ -651,7 +652,7 @@ GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
 					      GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL);
   GNUNET_assert (ret != -1);
   big = htonl (ret);  
-  memcpy (&data[8], &big, sizeof (uint32_t));
+  memcpy (&data[off], &big, sizeof (uint32_t));
   off += sizeof (uint32_t) + ret;
   for (j = 0; j < bld->count; j++)
     {

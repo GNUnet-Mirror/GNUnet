@@ -11,8 +11,6 @@
   - implement DV transport plugin
   - implement testcases 
   - implement performance tests (needs tbench)
-* TOPOLOGY:
-  - needs more testing (especially F2F topology) & transport blacklisting
 * UTIL:
   - only connect() sockets that are ready (select()) [Nils]
     [On W32, we need to select after calling socket before doing connect etc.]
@@ -33,6 +31,8 @@
     why is it so slow? Fix! (see core_api_reliability test)
   - implement API to get notifications about bandwidth assignments to individual peers
   - implement API to get notifications about updates to liveness of individual peers (before disconnect)
+* TOPOLOGY:
+  - needs more testing (especially F2F topology) & transport blacklisting
 * TBENCH: [MW]
   - good to have for transport/DV evaluation! 
 * DHT: [Nate]
