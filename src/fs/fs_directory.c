@@ -559,7 +559,7 @@ block_align (size_t start,
               badness = cbad;
             }
         }
-      GNUNET_assert (best >= 0);
+      GNUNET_assert (best != -1);
       tmp = perm[i];
       perm[i] = perm[best];
       perm[best] = tmp;
