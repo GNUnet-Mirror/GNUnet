@@ -17,8 +17,12 @@
   - only connect() sockets that are ready (select()) [Nils]
     [On W32, we need to select after calling socket before doing connect etc.]
 * GNUNET-GTK:
-  - implement publish dialog
-    + execute (publish)
+  - handle publish events
+    + start 
+    + progress
+    + completed
+    + stopped
+    + suspend
   - directory support:
     + download start: recursive/directory (!) & from-URI only
     + handle download lost-parent (move to 'from-URI only' tab)
@@ -86,6 +90,8 @@
     + search error
     + download error
     + download resume
+    + publish resume
+    + publish error
   - implement open directory dialog
   - implement new-pseudonym dialog
   - namespace search
@@ -137,7 +143,6 @@
 
 0.9.0:
 * new webpage:
-  - expand bibliography
   - convert documentation pages to books
   - update books (especially for developers)
   - create good Drupal theme for GNUnet
