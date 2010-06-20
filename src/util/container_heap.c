@@ -378,8 +378,7 @@ GNUNET_CONTAINER_heap_remove_root (struct GNUNET_CONTAINER_Heap *heap)
   else if (root->right_child == NULL)
     {
       heap->root = root->left_child;
-      if (root->left_child != NULL)
-	root->left_child->parent = NULL;
+      root->left_child->parent = NULL;
     }
   else
     {
