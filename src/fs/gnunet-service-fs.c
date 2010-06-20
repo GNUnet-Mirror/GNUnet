@@ -3086,7 +3086,7 @@ handle_p2p_get (void *cls,
   if (have_ns)
     {
       pr->namespace = (GNUNET_HashCode*) &pr[1];
-      memcpy (pr->namespace, &opt[bits++], sizeof (GNUNET_HashCode));
+      memcpy (&pr[1], &opt[bits++], sizeof (GNUNET_HashCode));
     }
   pr->type = type;
   pr->mingle = ntohl (gm->filter_mutator);
