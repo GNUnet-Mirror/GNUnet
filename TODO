@@ -18,9 +18,6 @@
     [On W32, we need to select after calling socket before doing connect etc.]
 * GNUNET-GTK:
   - handle publish events
-    + start 
-    + progress
-    + completed
     + stopped
     + suspend
   - directory support:
