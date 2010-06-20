@@ -126,7 +126,7 @@ progress_cb (void *cls,
       break;
     case GNUNET_FS_STATUS_PUBLISH_PROGRESS:
       ret = event->value.publish.cctx;
-      GNUNET_assert (publish == event->value.publish.sc);
+      GNUNET_assert (publish == event->value.publish.pc);
 #if VERBOSE
       printf ("Publish is progressing (%llu/%llu at level %u off %llu)...\n",
               (unsigned long long) event->value.publish.completed,
@@ -181,7 +181,7 @@ progress_cb (void *cls,
       if (0 == strcmp ("list_indexed-context-dir", 
 		       event->value.publish.cctx))	
 	{
-	  GNUNET_assert (publish == event->value.publish.sc);
+	  GNUNET_assert (publish == event->value.publish.pc);
 	  publish = NULL;
 	}
       break;

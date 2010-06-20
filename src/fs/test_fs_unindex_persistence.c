@@ -180,13 +180,13 @@ progress_cb (void *cls,
 #endif
       break;
     case GNUNET_FS_STATUS_PUBLISH_SUSPEND:
-      if  (event->value.publish.sc == publish)
+      if  (event->value.publish.pc == publish)
 	publish = NULL;
       break;
     case GNUNET_FS_STATUS_PUBLISH_RESUME:
       if (NULL == publish)
 	{
-	  publish = event->value.publish.sc;
+	  publish = event->value.publish.pc;
 	  return "publish-context";
 	}
       break;
@@ -225,7 +225,7 @@ progress_cb (void *cls,
       GNUNET_assert (1 == event->value.publish.anonymity);
       break;
     case GNUNET_FS_STATUS_PUBLISH_STOPPED:
-      GNUNET_assert (publish == event->value.publish.sc);
+      GNUNET_assert (publish == event->value.publish.pc);
       GNUNET_assert (FILESIZE == event->value.publish.size);
       GNUNET_assert (1 == event->value.publish.anonymity);
       GNUNET_FS_stop (fs);

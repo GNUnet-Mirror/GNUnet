@@ -213,7 +213,7 @@ progress_cb (void *cls,
       GNUNET_assert (1 == event->value.publish.anonymity);
       break;
     case GNUNET_FS_STATUS_PUBLISH_STOPPED:
-      GNUNET_assert (publish == event->value.publish.sc);
+      GNUNET_assert (publish == event->value.publish.pc);
       GNUNET_assert (FILESIZE == event->value.publish.size);
       GNUNET_assert (1 == event->value.publish.anonymity);
       GNUNET_SCHEDULER_add_now (sched,

@@ -85,7 +85,7 @@ GNUNET_FS_publish_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
 				const struct GNUNET_FS_FileInformation *p,
 				uint64_t offset)
 {
-  pi->value.publish.sc = sc;
+  pi->value.publish.pc = sc;
   pi->value.publish.fi = p;
   pi->value.publish.cctx
     = p->client_info;

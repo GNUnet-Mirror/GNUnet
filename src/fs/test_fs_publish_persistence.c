@@ -159,7 +159,7 @@ progress_cb (void *cls,
     case GNUNET_FS_STATUS_PUBLISH_PROGRESS:
       consider_restart (event->status);
       ret = event->value.publish.cctx;
-      GNUNET_assert (publish == event->value.publish.sc);
+      GNUNET_assert (publish == event->value.publish.pc);
 #if VERBOSE
       printf ("Publish is progressing (%llu/%llu at level %u off %llu)...\n",
               (unsigned long long) event->value.publish.completed,
@@ -169,13 +169,13 @@ progress_cb (void *cls,
 #endif
       break;
     case GNUNET_FS_STATUS_PUBLISH_SUSPEND:
-      if  (event->value.publish.sc == publish)
+      if  (event->value.publish.pc == publish)
 	publish = NULL;
       break;
     case GNUNET_FS_STATUS_PUBLISH_RESUME:
       if (NULL == publish)
 	{
-	  publish = event->value.publish.sc;
+	  publish = event->value.publish.pc;
 	  return "publish-context-dir";
 	}
       break;
@@ -194,7 +194,7 @@ progress_cb (void *cls,
       break;
     case GNUNET_FS_STATUS_PUBLISH_START:
       consider_restart (event->status);
-      publish = event->value.publish.sc;
+      publish = event->value.publish.pc;
       ret = event->value.publish.cctx;
       if (0 == strcmp ("publish-context1", 
 		       event->value.publish.cctx))
@@ -227,7 +227,7 @@ progress_cb (void *cls,
       consider_restart (event->status);
       if (0 == strcmp ("publish-context-dir", 
 		       event->value.publish.cctx))	
-	GNUNET_assert (publish == event->value.publish.sc);
+	GNUNET_assert (publish == event->value.publish.pc);
       break;
     default:
       printf ("Unexpected event: %d\n", 
