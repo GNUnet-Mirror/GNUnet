@@ -189,6 +189,7 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
                               socklen_t * address_len)
 {
   struct GNUNET_NETWORK_Handle *ret;
+
   ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle));
   ret->fd = accept (desc->fd, address, address_len);
   if (ret->fd == INVALID_SOCKET)

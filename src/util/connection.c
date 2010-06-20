@@ -354,7 +354,7 @@ GNUNET_CONNECTION_create_from_accept (struct GNUNET_SCHEDULER_Handle
                                       size_t maxbuf)
 {
   struct GNUNET_CONNECTION_Handle *ret;
-  char addr[32];
+  char addr[128];
   socklen_t addrlen;
   struct GNUNET_NETWORK_Handle *sock;
   int aret;
@@ -371,7 +371,8 @@ GNUNET_CONNECTION_create_from_accept (struct GNUNET_SCHEDULER_Handle
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "accept");
       return NULL;
     }
-  if (addrlen > sizeof (addr))
+  if ( (addrlen > sizeof (addr)) ||
+       (addrlen < sizeof (sa_family_t)) )
     {
       GNUNET_break (0);
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
