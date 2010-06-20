@@ -531,7 +531,7 @@ GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
       if (0 == ntohs (v4->sin_port))
         return buf;
       strcat (buf, ":");
-      sprintf (b2, "%u", ntohs (v4->sin_port));
+      GNUNET_snprintf (b2, sizeof(b2), "%u", ntohs (v4->sin_port));
       strcat (buf, b2);
       return buf;
     case AF_INET6:
@@ -543,7 +543,7 @@ GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
       if (0 == ntohs (v6->sin6_port))
         return &buf[1];
       strcat (buf, "]:");
-      sprintf (b2, "%u", ntohs (v6->sin6_port));
+      GNUNET_snprintf (b2, sizeof(b2), "%u", ntohs (v6->sin6_port));
       strcat (buf, b2);
       return buf;
     case AF_UNIX:
