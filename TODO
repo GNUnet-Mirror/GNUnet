@@ -17,7 +17,6 @@
   - only connect() sockets that are ready (select()) [Nils]
     [On W32, we need to select after calling socket before doing connect etc.]
 * GNUNET-GTK:
-  - test publishing
   - directory support:
     + download start: recursive/directory (!) & from-URI only
     + handle download lost-parent (move to 'from-URI only' tab)
