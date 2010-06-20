@@ -1031,6 +1031,7 @@ find_least_cost_peer (void *cls,
   return GNUNET_YES;
 }
 
+#if DEBUG_DV_MESSAGES
 /**
  * Send a DV data message via DV.
  *
@@ -1040,11 +1041,22 @@ find_least_cost_peer (void *cls,
  * @param message the packed message
  * @param message_size size of the message
  * @param importance what priority to send this message with
-#if DEBUG_DV_MESSAGES
  * @param uid unique id for this message
-#endif
  * @param timeout how long to possibly delay sending this message
  */
+#else
+/**
+ * Send a DV data message via DV.
+ *
+ * @param recipient the ultimate recipient of this message
+ * @param sender the original sender of the message
+ * @param specific_neighbor the specific neighbor to send this message via
+ * @param message the packed message
+ * @param message_size size of the message
+ * @param importance what priority to send this message with
+ * @param timeout how long to possibly delay sending this message
+ */
+#endif
 static int
 send_message (const struct GNUNET_PeerIdentity * recipient,
               const struct GNUNET_PeerIdentity * sender,
