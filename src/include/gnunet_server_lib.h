@@ -637,19 +637,30 @@ typedef void (*GNUNET_SERVER_MessageTokenizerCallback) (void *cls,
  *    GNUNET_SERVER_MAX_MESSAGE_SIZE)
  * @param client_identity ID of client for which this is a buffer,
  *        can be NULL (will be passed back to 'cb')
+ * @param cb function to call on completed messages
+ * @param cb_cls closure for cb
  * @return handle to tokenizer
  */
 struct GNUNET_SERVER_MessageStreamTokenizer *
 GNUNET_SERVER_mst_create (size_t maxbuf,
 			  void *client_identity,
 			  GNUNET_SERVER_MessageTokenizerCallback cb,
-			  void *cls);
+			  void *cb_cls);
 
 
 /**
+ * Add incoming data to the receive buffer and call the
+ * callback for all complete messages.
  *
+ * @param mst tokenizer to use
+ * @param buf input data to add
+ * @param size number of bytes in buf
+ * @param purge should any excess bytes in the buffer be discarded 
+ *       (i.e. for packet-based services like UDP)
+ * @return GNUNET_NO if the data stream is corrupt 
+ *         GNUNET_SYSERR if the data stream is corrupt beyond repair
  */
-void
+int
 GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
 			   const char *buf,
 			   size_t size,
