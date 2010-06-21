@@ -370,22 +370,62 @@ GNUNET_OS_start_process_v (const char *filename, char *const argv[])
   GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "execvp", filename);
   _exit (1);
 #else
-  char **arg;
+  char **arg, **non_const_argv;
   unsigned int cmdlen;
   char *cmd, *idx;
   STARTUPINFO start;
   PROCESS_INFORMATION proc;
+  int argcount = 0;
+  char *non_const_filename = NULL;
+  int filenamelen = 0;
 
-  cmdlen = 0;
+  /* Count the number of arguments */
   arg = argv;
+  while (*arg)
+    {
+      arg++;
+      argcount++;
+    }
+
+  /* Allocate a copy argv */
+  non_const_argv = GNUNET_malloc (sizeof (char *) * (argcount + 1));
+
+  /* Copy all argv strings */
+  argcount = 0;
+  arg = argv;
+  while (*arg)
+    {
+      non_const_argv[argcount] = GNUNET_strdup (*arg);
+      arg++;
+      argcount++;
+    }
+  non_const_argv[argcount] = NULL;
+
+  /* Fix .exe extension */
+  filenamelen = strlen (filename);
+  if (filenamelen <= 4 || stricmp (&filename[filenamelen - 4], ".exe") != 0)
+  {
+    non_const_filename = GNUNET_malloc (sizeof (char) * (filenamelen + 4 + 1));
+    non_const_filename = strcpy (non_const_filename, non_const_argv[0]);
+    strcat (non_const_filename, ".exe");
+    GNUNET_free (non_const_argv[0]);
+    non_const_argv[0] = non_const_filename;
+  }
+  else
+    non_const_filename = non_const_argv[0];
+
+  /* Count cmd len */
+  cmdlen = 1;
+  arg = non_const_argv;
   while (*arg)
     {
       cmdlen = cmdlen + strlen (*arg) + 3;
       arg++;
     }
 
+  /* Allocate and create cmd */
   cmd = idx = GNUNET_malloc (sizeof (char) * cmdlen);
-  arg = argv;
+  arg = non_const_argv;
   while (*arg)
     {
       idx += sprintf (idx, "\"%s\" ", *arg);
@@ -396,7 +436,7 @@ GNUNET_OS_start_process_v (const char *filename, char *const argv[])
   start.cb = sizeof (start);
 
   if (!CreateProcess
-      (filename, cmd, NULL, NULL, FALSE, DETACHED_PROCESS, NULL, NULL, &start,
+      (non_const_filename, cmd, NULL, NULL, FALSE, DETACHED_PROCESS, NULL, NULL, &start,
        &proc))
     {
       SetErrnoFromWinError (GetLastError ());
@@ -408,6 +448,10 @@ GNUNET_OS_start_process_v (const char *filename, char *const argv[])
 
   CloseHandle (proc.hThread);
   GNUNET_free (cmd);
+
+  while (argcount > 0)
+    GNUNET_free (non_const_argv[--argcount]);
+  GNUNET_free (non_const_argv);
 
   return proc.dwProcessId;
 #endif
