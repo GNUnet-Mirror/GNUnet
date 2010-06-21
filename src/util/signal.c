@@ -67,7 +67,16 @@ GNUNET_SIGNAL_handler_install (int signum, GNUNET_SIGNAL_Handler handler)
   if (signum == GNUNET_SIGCHLD)
     w32_sigchld_handler = handler;
   else
-    signal (signum, handler);
+    {
+      __p_sig_fn_t sigret = signal (signum, handler);
+      if (sigret == SIG_ERR)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              _
+              ("signal (%d, %p) returned %d.\n"),
+              signum, handler, sigret);
+        }
+    }
 #endif
   return ret;
 }
