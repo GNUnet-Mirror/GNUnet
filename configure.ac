@@ -497,6 +497,8 @@ then
   else
     AC_MSG_RESULT([not found])
   fi
+else
+  AM_CONDITIONAL(HAVE_PYTHON_PEXPECT, 0)
 fi
 
 # libesmtp
