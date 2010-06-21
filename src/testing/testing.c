@@ -65,6 +65,7 @@ static void
 process_hello (void *cls, const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_TESTING_Daemon *daemon = cls;
+  int msize;
   if (daemon == NULL)
     return;
 
@@ -75,6 +76,11 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
     }
 
   GNUNET_assert (message != NULL);
+  msize = ntohs(message->size);
+  if (msize < 1)
+    {
+      return;
+    }
   if (daemon->th != NULL)
     {
       GNUNET_TRANSPORT_get_hello_cancel(daemon->th, &process_hello, daemon);
@@ -85,14 +91,18 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
               "HELLO", GNUNET_i2s (&daemon->id));
 #endif
 
-  GNUNET_free_non_null(daemon->hello);
-  daemon->hello = GNUNET_malloc(ntohs(message->size));
-  memcpy(daemon->hello, message, ntohs(message->size));
 
-  if (daemon->th != NULL)
+
     {
-      GNUNET_TRANSPORT_disconnect(daemon->th);
-      daemon->th = NULL;
+      GNUNET_free_non_null(daemon->hello);
+      daemon->hello = GNUNET_malloc(msize);
+      memcpy(daemon->hello, message, msize);
+
+      if (daemon->th != NULL)
+        {
+          GNUNET_TRANSPORT_disconnect(daemon->th);
+          daemon->th = NULL;
+        }
     }
 
 }

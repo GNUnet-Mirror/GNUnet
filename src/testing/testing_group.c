@@ -3150,6 +3150,8 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
   struct ChurnContext *churn_ctx;
   unsigned int running;
   unsigned int stopped;
+  unsigned int total_running;
+  unsigned int total_stopped;
   unsigned int i;
   unsigned int *running_arr;
   unsigned int *stopped_arr;
@@ -3194,8 +3196,14 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
   }
 
   churn_ctx = GNUNET_malloc(sizeof(struct ChurnContext));
-  running_arr = GNUNET_malloc(running * sizeof(unsigned int));
-  stopped_arr = GNUNET_malloc(stopped * sizeof(unsigned int));
+
+  running_arr = NULL;
+  if (running > 0)
+    running_arr = GNUNET_malloc(running * sizeof(unsigned int));
+
+  stopped_arr = NULL;
+  if (stopped > 0)
+    stopped_arr = GNUNET_malloc(stopped * sizeof(unsigned int));
 
   running_permute = NULL;
   stopped_permute = NULL;
@@ -3205,6 +3213,8 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
   if (stopped > 0)
     stopped_permute = GNUNET_CRYPTO_random_permute(GNUNET_CRYPTO_QUALITY_WEAK, stopped);
 
+  total_running = running;
+  total_stopped = stopped;
   running = 0;
   stopped = 0;
 
@@ -3217,11 +3227,13 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
   {
     if (pg->peers[i].daemon->running == GNUNET_YES)
     {
+      GNUNET_assert((running_arr != NULL) && (total_running > running));
       running_arr[running] = i;
       running++;
     }
     else
     {
+      GNUNET_assert((stopped_arr != NULL) && (total_stopped > stopped));
       stopped_arr[stopped] = i;
       stopped++;
     }
@@ -3247,8 +3259,8 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
 					  timeout, &churn_start_callback, churn_ctx);
   }
 
-  GNUNET_free(running_arr);
-  GNUNET_free(stopped_arr);
+  GNUNET_free_non_null(running_arr);
+  GNUNET_free_non_null(stopped_arr);
   GNUNET_free_non_null(running_permute);
   GNUNET_free_non_null(stopped_permute);
 }
