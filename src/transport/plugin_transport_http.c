@@ -39,7 +39,7 @@
 #include <curl/curl.h>
 
 
-#define DEBUG_CURL GNUNET_NO
+#define DEBUG_CURL GNUNET_YES
 #define DEBUG_HTTP GNUNET_NO
 
 /**
@@ -564,6 +564,7 @@ accessHandlerCallback (void *cls,
         /* copy uploaded data to buffer */
         memcpy(&cs->pending_inbound_msg->buf[cs->pending_inbound_msg->pos],upload_data,*upload_data_size);
         cs->pending_inbound_msg->pos += *upload_data_size;
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"%u bytes added to message of %u bytes\n",*upload_data_size, cs->pending_inbound_msg->pos);
         *upload_data_size = 0;
         return MHD_YES;
       }
@@ -598,12 +599,17 @@ accessHandlerCallback (void *cls,
       struct GNUNET_MessageHeader * gn_msg = NULL;
       /*check message and forward here */
       /* checking size */
+
       if (cs->pending_inbound_msg->pos >= sizeof (struct GNUNET_MessageHeader))
       {
+
         gn_msg = GNUNET_malloc (cs->pending_inbound_msg->pos);
         memcpy (gn_msg,cs->pending_inbound_msg->buf,cs->pending_inbound_msg->pos);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"msg->size: %u \n",ntohs (gn_msg->size));
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"msg->type: %u \n",ntohs (gn_msg->type));
 
-        if ((ntohs(gn_msg->size) == cs->pending_inbound_msg->pos))
+        //MY VERSION: if ((ntohs(gn_msg->size) == cs->pending_inbound_msg->pos))
+        if ((ntohs(gn_msg->size) <= cs->pending_inbound_msg->pos))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Recieved GNUnet message type %u size %u and payload %u \n",ntohs (gn_msg->type), ntohs (gn_msg->size), ntohs (gn_msg->size)-sizeof(struct GNUNET_MessageHeader));
           /* forwarding message to transport */
@@ -802,37 +808,48 @@ static int remove_http_message(struct Session * ses, struct HTTP_Message * msg)
 static size_t header_function( void *ptr, size_t size, size_t nmemb, void *stream)
 {
   char * tmp;
-  unsigned int len = size * nmemb;
+  size_t len = size * nmemb;
   struct Session * ses = stream;
 
-  tmp = GNUNET_malloc (  len+1 );
-  memcpy(tmp,ptr,len);
-  if (tmp[len-2] == 13)
-    tmp[len-2]= '\0';
+  tmp = NULL;
+  if ((size * nmemb) < SIZE_MAX)
+    tmp = GNUNET_malloc (len+1);
+
+  if ((tmp != NULL) && (len > 0))
+  {
+    memcpy(tmp,ptr,len);
+    if (len>=2)
+    {
+      if (tmp[len-2] == 13)
+        tmp[len-2]= '\0';
+    }
 #if DEBUG_CURL
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Header: `%s'\n",tmp);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Header: `%s'\n",tmp);
 #endif
-  if (0==strcmp (tmp,"HTTP/1.1 100 Continue"))
-  {
-    ses->pending_outbound_msg->http_result_code=100;
+    if (0==strcmp (tmp,"HTTP/1.1 100 Continue"))
+    {
+      ses->pending_outbound_msg->http_result_code=100;
+    }
+    if (0==strcmp (tmp,"HTTP/1.1 200 OK"))
+    {
+      ses->pending_outbound_msg->http_result_code=200;
+    }
+    if (0==strcmp (tmp,"HTTP/1.1 400 Bad Request"))
+    {
+      ses->pending_outbound_msg->http_result_code=400;
+    }
+    if (0==strcmp (tmp,"HTTP/1.1 404 Not Found"))
+    {
+      ses->pending_outbound_msg->http_result_code=404;
+    }
+    if (0==strcmp (tmp,"HTTP/1.1 413 Request Entity Too Large"))
+    {
+      ses->pending_outbound_msg->http_result_code=413;
+    }
   }
-  if (0==strcmp (tmp,"HTTP/1.1 200 OK"))
-  {
-    ses->pending_outbound_msg->http_result_code=200;
-  }
-  if (0==strcmp (tmp,"HTTP/1.1 400 Bad Request"))
-  {
-    ses->pending_outbound_msg->http_result_code=400;
-  }
-  if (0==strcmp (tmp,"HTTP/1.1 404 Not Found"))
-  {
-    ses->pending_outbound_msg->http_result_code=404;
-  }
-  if (0==strcmp (tmp,"HTTP/1.1 413 Request Entity Too Large"))
-  {
-    ses->pending_outbound_msg->http_result_code=413;
-  }
-  GNUNET_free (tmp);
+  if (NULL != tmp)
+    GNUNET_free (tmp);
+
   return size * nmemb;
 }
 
@@ -849,8 +866,8 @@ static size_t send_read_callback(void *stream, size_t size, size_t nmemb, void *
 {
   struct Session * ses = ptr;
   struct HTTP_Message * msg = ses->pending_outbound_msg;
-  unsigned int bytes_sent;
-  unsigned int len;
+  size_t bytes_sent;
+  size_t len;
 
   /* data to send */
   if (( msg->pos < msg->len))
@@ -890,13 +907,16 @@ static size_t send_read_callback(void *stream, size_t size, size_t nmemb, void *
 */
 static size_t send_write_callback( void *stream, size_t size, size_t nmemb, void *ptr)
 {
-  char * data = malloc(size*nmemb +1);
+  char * data = NULL;
 
-  memcpy( data, stream, size*nmemb);
-  data[size*nmemb] = '\0';
-  /* Just a dummy print for the response recieved for the PUT message */
-  /* GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Recieved %u bytes: `%s' \n", size * nmemb, data); */
-  free (data);
+  if ((size * nmemb) < SIZE_MAX)
+    data = GNUNET_malloc(size*nmemb +1);
+  if (data != NULL)
+  {
+    memcpy( data, stream, size*nmemb);
+    data[size*nmemb] = '\0';
+    free (data);
+  }
   return (size * nmemb);
 
 }
@@ -1154,13 +1174,14 @@ http_plugin_send (void *cls,
                       void *cont_cls)
 {
   char * address;
+  char * url;
   struct Session* ses;
   struct Session* ses_temp;
   struct HTTP_Message * msg;
   struct HTTP_Message * tmp;
   int bytes_sent = 0;
 
-
+  url = NULL;
   address = NULL;
   /* find session for peer */
   ses = find_session_by_pi (target);
@@ -1202,31 +1223,27 @@ http_plugin_send (void *cls,
   {
     if (addrlen == (sizeof (struct IPv4HttpAddress)))
     {
-      address = GNUNET_malloc(INET_ADDRSTRLEN + 14 + strlen ((const char *) (&ses->hash)));
+      address = GNUNET_malloc(INET_ADDRSTRLEN + 1);
       inet_ntop(AF_INET, &((struct IPv4HttpAddress *) addr)->ipv4_addr,address,INET_ADDRSTRLEN);
       port = ntohs(((struct IPv4HttpAddress *) addr)->u_port);
-      GNUNET_asprintf (&address,
+      GNUNET_asprintf (&url,
 		       "http://%s:%u/%s",
 		       address,
 		       port, 
-		       (char *) (&ses->hash));
+		       (char *) (&my_ascii_hash_ident));
+      GNUNET_free(address);
     }
     else if (addrlen == (sizeof (struct IPv6HttpAddress)))
     {
-      address = GNUNET_malloc(INET6_ADDRSTRLEN + 14 + strlen ((const char *) (&ses->hash)));
+      address = GNUNET_malloc(INET6_ADDRSTRLEN + 1);
       inet_ntop(AF_INET6, &((struct IPv6HttpAddress *) addr)->ipv6_addr,address,INET6_ADDRSTRLEN);
       port = ntohs(((struct IPv6HttpAddress *) addr)->u6_port);
-      GNUNET_asprintf(&address,"http://%s:%u/%s",address,port,(char *) (&ses->hash));
-    }
-    else
-      {
-        GNUNET_break (0);
-        return -1;
+      GNUNET_asprintf(&url,
+                      "http://%s:%u/%s",
+                      address,port,(char *) (&my_ascii_hash_ident));
+      GNUNET_free(address);
     }
   }
-
-  GNUNET_assert (address != NULL);
-
   timeout = to;
   /* setting up message */
   msg = GNUNET_malloc (sizeof (struct HTTP_Message));
@@ -1234,7 +1251,7 @@ http_plugin_send (void *cls,
   msg->len = msgbuf_size;
   msg->pos = 0;
   msg->buf = GNUNET_malloc (msgbuf_size);
-  msg->dest_url = address;
+  msg->dest_url = url;
   msg->transmit_cont = cont;
   msg->transmit_cont_cls = cont_cls;
   memcpy (msg->buf,msgbuf, msgbuf_size);
@@ -1313,34 +1330,35 @@ http_plugin_address_pretty_printer (void *cls,
   char * address;
   char * ret;
   unsigned int port;
+  unsigned int res;
 
   if (addrlen == sizeof (struct IPv6HttpAddress))
-    {
-      address = GNUNET_malloc (INET6_ADDRSTRLEN);
-      t6 = addr;
-      a6.sin6_addr = t6->ipv6_addr;
-      inet_ntop(AF_INET6, &(a6.sin6_addr),address,INET6_ADDRSTRLEN);
-      port = ntohs(t6->u6_port);
-    }
+  {
+    address = GNUNET_malloc (INET6_ADDRSTRLEN);
+    t6 = addr;
+    a6.sin6_addr = t6->ipv6_addr;
+    inet_ntop(AF_INET6, &(a6.sin6_addr),address,INET6_ADDRSTRLEN);
+    port = ntohs(t6->u6_port);
+  }
   else if (addrlen == sizeof (struct IPv4HttpAddress))
-    {
-      address = GNUNET_malloc (INET_ADDRSTRLEN);
-      t4 = addr;
-      a4.sin_addr.s_addr =  t4->ipv4_addr;
-      inet_ntop(AF_INET, &(a4.sin_addr),address,INET_ADDRSTRLEN);
-      port = ntohs(t4->u_port);
-    }
+  {
+    address = GNUNET_malloc (INET_ADDRSTRLEN);
+    t4 = addr;
+    a4.sin_addr.s_addr =  t4->ipv4_addr;
+    inet_ntop(AF_INET, &(a4.sin_addr),address,INET_ADDRSTRLEN);
+    port = ntohs(t4->u_port);
+  }
   else
-    {
-      /* invalid address */
-      GNUNET_break_op (0);
-      asc (asc_cls, NULL);
-      return;
-    }
-
-  ret = GNUNET_malloc(strlen(address) +14);
-  GNUNET_asprintf(&ret,"http://%s:%u/",address,port);
+  {
+    /* invalid address */
+    GNUNET_break_op (0);
+    asc (asc_cls, NULL);
+    return;
+  }
+  res = GNUNET_asprintf(&ret,"http://%s:%u/",address,port);
   GNUNET_free (address);
+  GNUNET_assert(res != 0);
+
   asc (asc_cls, ret);
 }
 
@@ -1426,6 +1444,7 @@ http_plugin_address_to_string (void *cls,
   char * address;
   char * ret;
   unsigned int port;
+  unsigned int res;
 
   if (addrlen == sizeof (struct IPv6HttpAddress))
     {
@@ -1448,10 +1467,9 @@ http_plugin_address_to_string (void *cls,
       /* invalid address */
       return NULL;
     }
-
-  ret = GNUNET_malloc(strlen(address) +6);
-  GNUNET_asprintf(&ret,"%s:%u",address,port);
+  res = GNUNET_asprintf(&ret,"%s:%u",address,port);
   GNUNET_free (address);
+  GNUNET_assert(res != 0);
   return ret;
 }
 
@@ -1617,6 +1635,8 @@ libgnunet_plugin_transport_http_init (void *cls)
   long long unsigned int port;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting http plugin...\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"size_t %u\n",sizeof(size_t));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"uint64_t %u\n",sizeof(uint64_t));
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
