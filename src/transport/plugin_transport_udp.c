@@ -751,7 +751,7 @@ process_interfaces (void *cls,
       v4 = (struct sockaddr_in *) addr;
       if ((plugin->behind_nat == GNUNET_YES) && (plugin->only_nat_addresses == GNUNET_YES))
         {
-          v4->sin_port = htons (0); /* Indicates to receiver we are behind NAT */
+          v4->sin_port = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_MESSAGE); /* Indicates to receiver we are behind NAT */
         }
       else if (plugin->behind_nat == GNUNET_YES) /* We are behind NAT, but will advertise NAT and normal addresses */
         {
