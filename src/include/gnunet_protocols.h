@@ -274,7 +274,17 @@ extern "C"
  * TCP NAT probe message, send from NAT'd peer to
  * other peer to establish bi-directional communication
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_NAT_PROBE 53
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_NAT_PROBE 51
+
+/**
+ * Normal UDP message type.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_MESSAGE 52
+
+/**
+ * Fragmented part of a UDP message.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_MESSAGE_PART 53
 
 /**
  * UDP NAT probe message, send from NAT'd peer to
