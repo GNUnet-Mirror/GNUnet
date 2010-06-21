@@ -610,6 +610,60 @@ GNUNET_SERVER_notification_context_broadcast (struct GNUNET_SERVER_NotificationC
 
 
 
+/**
+ * Handle to a message stream tokenizer.
+ */
+struct GNUNET_SERVER_MessageStreamTokenizer;
+
+/**
+ * Functions with this signature are called whenever a
+ * complete message is received by the tokenizer.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+typedef void (*GNUNET_SERVER_MessageTokenizerCallback) (void *cls,
+							void *client,
+							const struct
+							GNUNET_MessageHeader *
+							message);
+
+
+/**
+ * Create a message stream tokenizer.
+ *
+ * @param maxbuf maximum message size to support (typically
+ *    GNUNET_SERVER_MAX_MESSAGE_SIZE)
+ * @param client_identity ID of client for which this is a buffer,
+ *        can be NULL (will be passed back to 'cb')
+ * @return handle to tokenizer
+ */
+struct GNUNET_SERVER_MessageStreamTokenizer *
+GNUNET_SERVER_mst_create (size_t maxbuf,
+			  void *client_identity,
+			  GNUNET_SERVER_MessageTokenizerCallback cb,
+			  void *cls);
+
+
+/**
+ *
+ */
+void
+GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
+			   const char *buf,
+			   size_t size,
+			   int purge);
+
+/**
+ * Destroys a tokenizer.
+ *
+ * @param mst tokenizer to destroy
+ */
+void
+GNUNET_SERVER_mst_destroy (struct GNUNET_SERVER_MessageStreamTokenizer *mst);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
