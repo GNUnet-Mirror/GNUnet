@@ -315,6 +315,11 @@ static int fail_msg_transmited_bigger_max_size;
 static int fail_msg_transmited_max_size;
 
 /**
+ * Test: transmit 2 msgs. in in send operation
+ */
+static int fail_multiple_msgs_in_transmission;
+
+/**
  * Test: connect to peer without peer identification
  */
 static struct HTTP_Transfer test_no_ident;
@@ -377,7 +382,7 @@ shutdown_clean ()
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test connect with wrong data failed\n");
     fail = 1;
   }
-  if ((fail_msgs_transmited_to_local_addrs != count_str_addr) || (fail_msg_transmited_max_size == GNUNET_YES) || (fail_msg_transmited_bigger_max_size == GNUNET_YES))
+  if ((fail_msgs_transmited_to_local_addrs != count_str_addr) || (fail_msg_transmited_max_size == GNUNET_YES) || (fail_msg_transmited_bigger_max_size == GNUNET_YES) || (fail_multiple_msgs_in_transmission != GNUNET_NO))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test sending with plugin failed\n");
     fail = 1;
@@ -513,6 +518,10 @@ receive (void *cls,
          uint16_t sender_address_len)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testcase recieved new message from peer `%s' (`%s') with type %u and length %u\n",  GNUNET_i2s(peer), sender_address, ntohs(message->type), ntohs(message->size));
+  if ((ntohs(message->type) == 40) &&   (fail_multiple_msgs_in_transmission == 1))
+    fail_multiple_msgs_in_transmission++;
+  if ((ntohs(message->type) == 41) &&   (fail_multiple_msgs_in_transmission == 2))
+    fail_multiple_msgs_in_transmission = GNUNET_NO;
   return GNUNET_TIME_UNIT_ZERO;
 }
 
@@ -993,6 +1002,29 @@ static void run_connection_tests( )
     type ++;
   }
 
+  /* send a multiple GNUNET_messages at a time*/
+  GNUNET_free(tmp);
+  tmp = GNUNET_malloc(4 * sizeof(struct GNUNET_MessageHeader));
+  struct GNUNET_MessageHeader * msg1 = (struct GNUNET_MessageHeader *) tmp;
+  msg1->size = htons(2 * sizeof(struct GNUNET_MessageHeader));
+  msg1->type = htons(40);
+  struct GNUNET_MessageHeader * msg2 = &msg1[2];
+  msg2->size = htons(2 * sizeof(struct GNUNET_MessageHeader));
+  msg2->type = htons(41);
+  api->send(api->cls, &my_identity, tmp, 4 * sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL,addr_head->addr, addr_head->addrlen, GNUNET_YES, &task_send_cont, &fail_multiple_msgs_in_transmission);
+
+
+  /* send a multiple GNUNET_messages at a time, second message has incorrect size*/
+  GNUNET_free(tmp);
+  tmp = GNUNET_malloc(4 * sizeof(struct GNUNET_MessageHeader));
+  msg1 = (struct GNUNET_MessageHeader *) tmp;
+  msg1->size = htons(2 * sizeof(struct GNUNET_MessageHeader));
+  msg1->type = htons(40);
+  msg2 = &msg1[2];
+  msg2->size = htons(3 * sizeof(struct GNUNET_MessageHeader));
+  msg2->type = htons(41);
+  api->send(api->cls, &my_identity, tmp, 4 * sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL,addr_head->addr, addr_head->addrlen, GNUNET_YES, &task_send_cont, NULL);
+
   /* send a message with size GNUNET_SERVER_MAX_MESSAGE_SIZE )*/
   GNUNET_free(tmp);
   tmp = GNUNET_malloc(GNUNET_SERVER_MAX_MESSAGE_SIZE);
@@ -1000,7 +1032,6 @@ static void run_connection_tests( )
   msg.size = htons(t2);
   memcpy(tmp,&msg,sizeof(struct GNUNET_MessageHeader));
   api->send(api->cls, &my_identity, tmp, GNUNET_SERVER_MAX_MESSAGE_SIZE, 0, TIMEOUT, NULL,addr_head->addr, addr_head->addrlen, GNUNET_YES, &task_send_cont, &fail_msg_transmited_bigger_max_size);
-
 
   /* send a message with size GNUNET_SERVER_MAX_MESSAGE_SIZE-1  */
   GNUNET_free(tmp);
@@ -1043,6 +1074,7 @@ run (void *cls,
   fail_addr_to_str = GNUNET_YES;
   fail_msgs_transmited_to_local_addrs = 0;
   fail_msg_transmited_max_size = GNUNET_YES;
+  fail_multiple_msgs_in_transmission = GNUNET_YES;
 
   addr_head = NULL;
   count_str_addr = 0;
