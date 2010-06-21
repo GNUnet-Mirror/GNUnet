@@ -317,6 +317,7 @@ dv_plugin_address_pretty_printer (void *cls,
       GNUNET_asprintf(&print_string, "DV Peer `%s' via peer`%s'", dest_peer, via_peer);
       asc (asc_cls, print_string);
       asc (asc_cls, NULL);
+      GNUNET_free(via_peer);
       GNUNET_free(dest_peer);
       GNUNET_free(print_string);
     }

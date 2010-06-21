@@ -200,6 +200,7 @@ finish (struct GNUNET_DV_Handle *handle, int code)
   handle->current = NULL;
   process_pending_message (handle);
 
+  GNUNET_free(pos->msg);
   GNUNET_free (pos);
 }
 
@@ -312,12 +313,10 @@ static void add_pending(struct GNUNET_DV_Handle *handle, struct GNUNET_DV_SendMe
           last = pos;
           pos = pos->next;
         }
-      new_message->next = last->next; /* Should always be null */
       last->next = new_message;
     }
   else
     {
-      new_message->next = handle->pending_list; /* Will always be null */
       handle->pending_list = new_message;
     }
 
@@ -445,14 +444,16 @@ int GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
   struct SendCallbackContext *send_ctx;
   char *end_of_message;
   GNUNET_HashCode uidhash;
+  int msize;
 #if DEBUG_DV_MESSAGES
   dv_handle->uid_gen = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, UINT32_MAX);
 #else
   dv_handle->uid_gen++;
 #endif
 
-  msg = GNUNET_malloc(sizeof(struct GNUNET_DV_SendMessage) + addrlen + msgbuf_size);
-  msg->header.size = htons(sizeof(struct GNUNET_DV_SendMessage) + addrlen + msgbuf_size);
+  msize = sizeof(struct GNUNET_DV_SendMessage) + addrlen + msgbuf_size;
+  msg = GNUNET_malloc(msize);
+  msg->header.size = htons(msize);
   msg->header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND);
   memcpy(&msg->target, target, sizeof(struct GNUNET_PeerIdentity));
   msg->msgbuf_size = htonl(msgbuf_size);
@@ -497,6 +498,8 @@ transmit_start (void *cls, size_t size, void *buf)
   if (size >= tsize)
   {
     memcpy(buf, start_context->message, tsize);
+    GNUNET_free(start_context->message);
+    GNUNET_free(start_context);
     return tsize;
   }
 
