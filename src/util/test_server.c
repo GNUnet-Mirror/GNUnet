@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -23,6 +23,7 @@
  */
 #include "platform.h"
 #include "gnunet_common.h"
+#include "gnunet_client_lib.h"
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_server_lib.h"
 #include "gnunet_time_lib.h"
@@ -31,181 +32,94 @@
 
 #define PORT 12435
 
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250)
+
 #define MY_TYPE 128
 #define MY_TYPE2 129
 
 static struct GNUNET_SERVER_Handle *server;
 
+static struct GNUNET_CLIENT_Connection *cc;
+
+static struct GNUNET_SERVER_Client *argclient;
+
+static struct GNUNET_CONFIGURATION_Handle *cfg;
+
 static struct GNUNET_SCHEDULER_Handle *sched;
+
+static int ok;
+
+
+static void
+finish_up (void *cls,
+	   const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_assert (ok == 6);
+  ok = 0;
+  GNUNET_SERVER_destroy (server);
+  GNUNET_CLIENT_disconnect (cc, GNUNET_NO);
+  GNUNET_CONFIGURATION_destroy (cfg);
+}
+
 
 static void
 recv_fin_cb (void *cls,
              struct GNUNET_SERVER_Client *client,
              const struct GNUNET_MessageHeader *message)
 {
-  int *ok = cls;
-  GNUNET_assert (2 == *ok);
+  GNUNET_assert (ok == 5);
+  ok = 6;
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  *ok = 3;
-}
-
-struct SignalTimeoutContext
-{
-  GNUNET_CONNECTION_Receiver cb;
-  void *cb_cls;
-};
-
-
-static void
-signal_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct SignalTimeoutContext *stctx = cls;
-
-  stctx->cb (stctx->cb_cls, NULL, 0, NULL, 0, 0);
-  GNUNET_free (stctx);
-}
-
-
-static GNUNET_SCHEDULER_TaskIdentifier ti;
-
-
-static void
-my_receive (void *cls,
-            size_t max,
-            struct GNUNET_TIME_Relative timeout,
-            GNUNET_CONNECTION_Receiver receiver, void *receiver_cls)
-{
-  int *ok = cls;
-  struct GNUNET_MessageHeader msg;
-  struct SignalTimeoutContext *stctx;
-  GNUNET_SCHEDULER_TaskIdentifier ret;
-
-  ret = GNUNET_SCHEDULER_NO_TASK;
-  switch (*ok)
-    {
-    case 1:
-      *ok = 2;                  /* report success */
-      msg.type = htons (MY_TYPE2);
-      msg.size = htons (sizeof (struct GNUNET_MessageHeader));
-      receiver (receiver_cls, &msg, sizeof (struct GNUNET_MessageHeader),
-                NULL, 0, 0);
-      break;
-    case 3:
-      /* called after first receive instantly
-         produced a reply;
-         schedule receiver call with timeout
-         after timeout expires! */
-      *ok = 4;
-      stctx = GNUNET_malloc (sizeof (struct SignalTimeoutContext));
-      stctx->cb = receiver;
-      stctx->cb_cls = receiver_cls;
-      ret = GNUNET_SCHEDULER_add_delayed (sched,
-                                          timeout, &signal_timeout, stctx);
-      break;
-    default:
-      GNUNET_assert (0);
-    }
-  ti = ret;
+  GNUNET_SCHEDULER_add_now (sched,
+			    &finish_up,
+			    NULL);
 }
 
 
 static void
-my_cancel (void *cls)
+first_reply_handler (void *cls,
+		     const struct GNUNET_MessageHeader *msg)
 {
-  GNUNET_SCHEDULER_cancel (sched, ti);
+  GNUNET_assert (ok == 4);
+  ok = 5;
+  GNUNET_SERVER_receive_done (argclient, GNUNET_OK);
+  GNUNET_SERVER_client_drop (argclient);
+  argclient = NULL;
 }
 
-static void *
-my_transmit_ready_cb (void *cls,
-                      size_t size,
-                      struct GNUNET_TIME_Relative timeout,
-                      GNUNET_CONNECTION_TransmitReadyNotify notify,
-                      void *notify_cls)
-{
-  static int non_null_addr;
-  int *ok = cls;
-  char buf[size];
-  struct GNUNET_MessageHeader msg;
-
-  GNUNET_assert (4 == *ok);
-  GNUNET_assert (size == sizeof (struct GNUNET_MessageHeader));
-  notify (notify_cls, size, buf);
-  msg.type = htons (MY_TYPE);
-  msg.size = htons (sizeof (struct GNUNET_MessageHeader));
-  GNUNET_assert (0 == memcmp (&msg, buf, size));
-  *ok = 5;                      /* report success */
-  return &non_null_addr;
-}
-
-
-static void
-my_transmit_ready_cancel_cb (void *cls, void *ctx)
-{
-  GNUNET_assert (0);
-}
-
-
-static int
-my_check (void *cls)
-{
-  return GNUNET_YES;
-}
-
-
-static void my_destroy (void *cls, int persist);
-
-
-struct CopyContext
-{
-  struct GNUNET_SERVER_Client *client;
-  struct GNUNET_MessageHeader *cpy;
-};
 
 static size_t
-copy_msg (void *cls, size_t size, void *buf)
+reply_msg (void *cls, size_t size, void *buf)
 {
-  struct CopyContext *ctx = cls;
-  struct GNUNET_MessageHeader *cpy = ctx->cpy;
-  GNUNET_assert (sizeof (struct GNUNET_MessageHeader) == ntohs (cpy->size));
-  GNUNET_assert (size >= ntohs (cpy->size));
-  memcpy (buf, cpy, ntohs (cpy->size));
-  GNUNET_free (cpy);
-  GNUNET_free (ctx);
+  struct GNUNET_MessageHeader msg;
+
+  GNUNET_assert (ok == 3);
+  ok = 4;
+  GNUNET_assert (size > sizeof (struct GNUNET_MessageHeader));
+  msg.type = htons (MY_TYPE);
+  msg.size = htons (sizeof (struct GNUNET_MessageHeader));
+  memcpy (buf, &msg, sizeof (struct GNUNET_MessageHeader));
   return sizeof (struct GNUNET_MessageHeader);
 }
 
 
 static void
 recv_cb (void *cls,
-         struct GNUNET_SERVER_Client *argclient,
+         struct GNUNET_SERVER_Client *client,
          const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_SERVER_Client *client;
-  struct CopyContext *cc;
-  struct GNUNET_MessageHeader *cpy;
-
-  GNUNET_assert (argclient == NULL);
+  GNUNET_assert (ok == 2);
+  ok = 3;
+  argclient = client;
+  GNUNET_SERVER_client_keep (argclient);
   GNUNET_assert (sizeof (struct GNUNET_MessageHeader) ==
                  ntohs (message->size));
   GNUNET_assert (MY_TYPE == ntohs (message->type));
-  client = GNUNET_SERVER_connect_callback (server,
-                                           cls,
-                                           &my_receive,
-                                           &my_cancel,
-                                           &my_transmit_ready_cb,
-                                           &my_transmit_ready_cancel_cb,
-                                           &my_check, &my_destroy);
-  cc = GNUNET_malloc (sizeof (struct CopyContext));
-  cc->client = client;
-  cpy = GNUNET_malloc (ntohs (message->size));
-  memcpy (cpy, message, ntohs (message->size));
-  cc->cpy = cpy;
   GNUNET_assert (NULL !=
                  GNUNET_SERVER_notify_transmit_ready (client,
                                                       ntohs (message->size),
-                                                      GNUNET_TIME_UNIT_SECONDS,
-                                                      &copy_msg, cc));
-  GNUNET_SERVER_client_drop (client);
+                                                      TIMEOUT,
+                                                      &reply_msg, NULL));
 }
 
 
@@ -216,14 +130,43 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
 };
 
 
-static void
-my_destroy (void *cls, int persist)
+static size_t
+transmit_second_message (void *cls,
+			 size_t size,
+			 void *buf)
 {
-  int *ok = cls;
-  GNUNET_assert (5 == *ok);
-  *ok = 0;                      /* report success */
-  /* this will cause us to terminate */
-  GNUNET_SERVER_destroy (server);
+  struct GNUNET_MessageHeader msg;
+
+  GNUNET_assert (size > sizeof (struct GNUNET_MessageHeader));
+  msg.type = htons (MY_TYPE2);
+  msg.size = htons (sizeof (struct GNUNET_MessageHeader));
+  memcpy (buf, &msg, sizeof (struct GNUNET_MessageHeader));
+  return sizeof (struct GNUNET_MessageHeader);
+}
+
+
+static size_t
+transmit_initial_message (void *cls,
+			  size_t size,
+			  void *buf)
+{  
+  struct GNUNET_MessageHeader msg;
+
+  GNUNET_assert (ok == 1);
+  ok = 2;
+  GNUNET_assert (size > sizeof (struct GNUNET_MessageHeader));
+  msg.type = htons (MY_TYPE);
+  msg.size = htons (sizeof (struct GNUNET_MessageHeader));
+  memcpy (buf, &msg, sizeof (struct GNUNET_MessageHeader));
+  GNUNET_assert (NULL !=
+		 GNUNET_CLIENT_notify_transmit_ready (cc,
+						      sizeof (struct GNUNET_MessageHeader),
+						      TIMEOUT,
+						      GNUNET_YES,
+						      &transmit_second_message,
+						      NULL));
+  GNUNET_CLIENT_receive (cc, &first_reply_handler, NULL, TIMEOUT);
+  return sizeof (struct GNUNET_MessageHeader);
 }
 
 
@@ -231,7 +174,6 @@ static void
 task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct sockaddr_in sa;
-  struct GNUNET_MessageHeader msg;
   struct sockaddr * sap[2];
   socklen_t slens[2];
 
@@ -252,17 +194,25 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                  sap,
 				 slens,
                                  1024,
-                                 GNUNET_TIME_relative_multiply
-                                 (GNUNET_TIME_UNIT_MILLISECONDS, 250),
+                                 TIMEOUT,
                                  GNUNET_NO);
   GNUNET_assert (server != NULL);
-  handlers[0].callback_cls = cls;
-  handlers[1].callback_cls = cls;
   GNUNET_SERVER_add_handlers (server, handlers);
-  msg.type = htons (MY_TYPE);
-  msg.size = htons (sizeof (struct GNUNET_MessageHeader));
-  GNUNET_SERVER_inject (server, NULL, &msg);
-  memset (&msg, 0, sizeof (struct GNUNET_MessageHeader));
+  cfg = GNUNET_CONFIGURATION_create ();
+  GNUNET_CONFIGURATION_set_value_number (cfg, "test-server", "PORT", PORT);
+  GNUNET_CONFIGURATION_set_value_string (cfg, "test-server", "HOSTNAME", "localhost");
+  GNUNET_CONFIGURATION_set_value_string (cfg, "resolver", "HOSTNAME", "localhost");
+  cc = GNUNET_CLIENT_connect (tc->sched,
+			      "test-server",
+			      cfg);
+  GNUNET_assert (cc != NULL);
+  GNUNET_assert (NULL !=
+		 GNUNET_CLIENT_notify_transmit_ready (cc,
+						      sizeof (struct GNUNET_MessageHeader),
+						      TIMEOUT,
+						      GNUNET_YES,
+						      &transmit_initial_message,
+						      NULL));
 }
 
 
@@ -273,8 +223,6 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static int
 check ()
 {
-  int ok;
-
   ok = 1;
   GNUNET_SCHEDULER_run (&task, &ok);
   return ok;

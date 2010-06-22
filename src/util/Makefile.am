@@ -143,6 +143,7 @@ check_PROGRAMS = \
  perf_crypto_hash \
  test_os_start_process 
 
+
 TESTS = $(check_PROGRAMS)
 
 
@@ -156,7 +157,7 @@ test_os_start_process_SOURCES = \
  test_os_start_process.c
 test_os_start_process_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
- 
+
 test_client_SOURCES = \
  test_client.c
 test_client_LDADD = \

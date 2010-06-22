@@ -31,6 +31,8 @@
 #include "gnunet_server_lib.h"
 #include "gnunet_time_lib.h"
 
+#define DEBUG_SERVER_MST GNUNET_NO
+
 #if HAVE_UNALIGNED_64_ACCESS
 #define ALIGN_FACTOR 4
 #else
@@ -140,9 +142,15 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
   unsigned long offset;
   int ret;
 
+#if DEBUG_SERVER_MST
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Server-mst receives %u bytes with %u bytes already in private buffer\n",
+	      (unsigned int) size,
+	      (unsigned int) (mst->pos - mst->off));
+#endif
   ret = GNUNET_OK;
   ibuf = (char*) &mst->hdr;
-  if (mst->pos > 0)
+  while (mst->pos > 0)
     {
     do_align:
       if ( (mst->maxbuf - mst->off < sizeof (struct GNUNET_MessageHeader)) ||
@@ -231,6 +239,11 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
     }
   while (size > 0)
     {
+#if DEBUG_SERVER_MST
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Server-mst has %u bytes left in inbound buffer\n",
+		  (unsigned int) size);
+#endif
       if (size < sizeof (struct GNUNET_MessageHeader))
 	break;
       offset = (unsigned long) buf;
@@ -271,6 +284,11 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
     }
   if (purge)
     mst->off = 0;    
+#if DEBUG_SERVER_MST
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Server-mst leaves %u bytes in private buffer\n",
+	      (unsigned int) (mst->pos - mst->off));
+#endif
   return ret;
 }
 
