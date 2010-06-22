@@ -186,6 +186,12 @@ struct Session
   struct sockaddr_in * addr_inbound;
 
   /**
+   * Sender's ip address to distinguish between incoming connections
+   */
+  char * addr_inbound_str;
+
+
+  /**
    * Sender's ip address recieved by transport
    */
   struct sockaddr_in * addr_outbound;
@@ -380,6 +386,7 @@ static struct Session * create_session (struct sockaddr_in *addr_in, struct sock
   memcpy(&ses->sender, peer, sizeof (struct GNUNET_PeerIdentity));
   GNUNET_CRYPTO_hash_to_enc(&ses->sender.hashPubKey,&(ses->hash));
   ses->is_active = GNUNET_NO;
+  ses->addr_inbound_str = NULL;
   ses->pending_inbound_msg = GNUNET_malloc( sizeof (struct HTTP_Message));
   ses->pending_inbound_msg->buf = GNUNET_malloc(GNUNET_SERVER_MAX_MESSAGE_SIZE);
   ses->pending_inbound_msg->len = GNUNET_SERVER_MAX_MESSAGE_SIZE;
@@ -413,7 +420,11 @@ static void messageTokenizerCallback (void *cls,
                                       GNUNET_MessageHeader *
                                       message)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"messageTokenizerCallback\n");
+  struct Session * cs;
+  GNUNET_assert(cls != NULL);
+  cs = (struct Session *) cls;
+
+  plugin->env->receive(plugin->env->cls, &(cs->sender), message, 1, NULL , cs->addr_inbound_str, strlen(cs->addr_inbound_str));
 }
 
 /**
@@ -545,10 +556,22 @@ accessHandlerCallback (void *cls,
       *httpSessionCache = cs;
       /* Updating session */
       memcpy(cs->addr_inbound,conn_info->client_addr, sizeof(struct sockaddr_in));
+      if (cs->addr_inbound_str != NULL)
+        GNUNET_free (cs->addr_inbound_str);
+      if ( AF_INET == cs->addr_inbound->sin_family)
+      {
+        GNUNET_asprintf(&cs->addr_inbound_str,"%s:%u",address,ntohs(cs->addr_inbound->sin_port));
+      }
+
+      if ( AF_INET6 == cs->addr_inbound->sin_family)
+      {
+        GNUNET_asprintf(&cs->addr_inbound_str,"[%s]:%u",address,ntohs(cs->addr_inbound->sin_port));
+
+      }
       if (cs->msgtok==NULL)
-        cs->msgtok = GNUNET_SERVER_mst_create (GNUNET_SERVER_MAX_MESSAGE_SIZE, cs, &messageTokenizerCallback, NULL);
+        cs->msgtok = GNUNET_SERVER_mst_create (GNUNET_SERVER_MAX_MESSAGE_SIZE, cs, &messageTokenizerCallback, cs);
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s' (`[%s]:%u')\n",method, GNUNET_i2s(&cs->sender),address,ntohs(cs->addr_inbound->sin_port));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s' (`%s')\n",method, GNUNET_i2s(&cs->sender),cs->addr_inbound_str);
   }
   else
   {
@@ -627,7 +650,6 @@ accessHandlerCallback (void *cls,
 #if 0
         if (len == cs->pending_inbound_msg->pos)
         {
-          char * tmp = NULL;
           if ( AF_INET == cs->addr_inbound->sin_family)
           {
             inet_ntop(AF_INET, &(cs->addr_inbound)->sin_addr,address,INET_ADDRSTRLEN);
@@ -1665,6 +1687,7 @@ libgnunet_plugin_transport_http_done (void *cls)
       GNUNET_free (cs->pending_inbound_msg->buf);
       GNUNET_free (cs->pending_inbound_msg);
       GNUNET_free_non_null (cs->addr_inbound);
+      GNUNET_free_non_null (cs->addr_inbound_str);
       GNUNET_free_non_null (cs->addr_outbound);
       GNUNET_free (cs);
 
