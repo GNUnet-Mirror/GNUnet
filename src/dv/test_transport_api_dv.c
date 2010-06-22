@@ -321,7 +321,7 @@ process_mtype (void *cls,
   if ((total_messages_received == expected_messages) && (total_other_messages == 0))
     {
       GNUNET_SCHEDULER_cancel (sched, die_task);
-      GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 45), &send_other_messages, NULL);
+      GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 420), &send_other_messages, NULL);
     }
   else if ((total_other_expected_messages > 0) && (total_other_messages == total_other_expected_messages))
     {
@@ -622,6 +622,10 @@ send_other_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   test_messages = NULL;
 
   total_other_expected_messages = temp_total_other_messages;
+  if (total_other_expected_messages == 0)
+    {
+      GNUNET_SCHEDULER_add_now (sched, &end_badly, "send_other_messages had 0 messages to send, no DV connections made!");
+    }
 #if VERBOSE
   GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Preparing to send %d other test messages\n", total_other_expected_messages);
 #endif
