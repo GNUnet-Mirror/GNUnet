@@ -423,7 +423,6 @@ static void messageTokenizerCallback (void *cls,
   struct Session * cs;
   GNUNET_assert(cls != NULL);
   cs = (struct Session *) cls;
-
   plugin->env->receive(plugin->env->cls, &(cs->sender), message, 1, NULL , cs->addr_inbound_str, strlen(cs->addr_inbound_str));
 }
 
@@ -506,22 +505,9 @@ accessHandlerCallback (void *cls,
       cs = plugin->sessions;
       while ( NULL != cs)
       {
-
-        /* Comparison based on ip address */
-        // res = (0 == memcmp(&(conn_info->client_addr->sin_addr),&(cs->addr->sin_addr), sizeof (struct in_addr))) ? GNUNET_YES : GNUNET_NO;
-
-        /* Comparison based on ip address, port number and address family */
-        // res = (0 == memcmp((conn_info->client_addr),(cs->addr), sizeof (struct sockaddr_in))) ? GNUNET_YES : GNUNET_NO;
-
-        /* Comparison based on PeerIdentity */
         res = (0 == memcmp(&pi_in,&(cs->sender), sizeof (struct GNUNET_PeerIdentity))) ? GNUNET_YES : GNUNET_NO;
-
         if ( GNUNET_YES  == res)
-        {
-          /* existing session for this address found */
-          /*GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session for peer `%s' found\n",GNUNET_i2s(&cs->sender));*/
           break;
-        }
         cs = cs->next;
       }
     }
@@ -636,91 +622,13 @@ accessHandlerCallback (void *cls,
     {
       send_error_to_client = GNUNET_YES;
       cur_msg = NULL;
-      /* split and check messages and forward here */
-      /* checking size */
-
       if (cs->pending_inbound_msg->pos >= sizeof (struct GNUNET_MessageHeader))
       {
         cur_msg = (struct GNUNET_MessageHeader *) cs->pending_inbound_msg->buf;
-        //unsigned int len = ntohs (cur_msg->size);
-
         res = GNUNET_SERVER_mst_receive(cs->msgtok,cs->pending_inbound_msg->buf,cs->pending_inbound_msg->pos, GNUNET_NO, GNUNET_NO);
         if ((res != GNUNET_SYSERR) && (res != GNUNET_NO))
           send_error_to_client = GNUNET_NO;
-#if 0
-        if (len == cs->pending_inbound_msg->pos)
-        {
-          if ( AF_INET == cs->addr_inbound->sin_family)
-          {
-            inet_ntop(AF_INET, &(cs->addr_inbound)->sin_addr,address,INET_ADDRSTRLEN);
-            GNUNET_asprintf(&tmp,"%s:%u",address,ntohs(cs->addr_inbound->sin_port));
-          }
-
-          if ( AF_INET6 == cs->addr_inbound->sin_family)
-          {
-            inet_ntop(AF_INET6, &((struct sockaddr_in6 *) cs->addr_inbound)->sin6_addr,address,INET6_ADDRSTRLEN);
-            GNUNET_asprintf(&tmp,"[%s]:%u",address,ntohs(cs->addr_inbound->sin_port));
-
-          }
-          plugin->env->receive(plugin->env->cls, &(cs->sender), cur_msg, 1, NULL , tmp, strlen(tmp));
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Forwarded 1 message with %u bytes of data to transport service\n", cs->pending_inbound_msg->pos);
-          GNUNET_free(tmp);
-          send_error_to_client = GNUNET_NO;
-        }
-        if (len < cs->pending_inbound_msg->pos)
-        {
-          /* more than one message in recieved data, have to split up*/
-          char * tmp = NULL;
-          unsigned int bytes_proc = 0;
-          unsigned int c_msgs = 0;
-          unsigned int len;
-          /* one message in recieved data, can pass directly*/
-          if ( AF_INET == cs->addr_inbound->sin_family)
-          {
-            inet_ntop(AF_INET, &(cs->addr_inbound)->sin_addr,address,INET_ADDRSTRLEN);
-            GNUNET_asprintf(&tmp,"%s:%u",address,ntohs(cs->addr_inbound->sin_port));
-          }
-
-          if ( AF_INET6 == cs->addr_inbound->sin_family)
-          {
-            inet_ntop(AF_INET6, &((struct sockaddr_in6 *) cs->addr_inbound)->sin6_addr,address,INET6_ADDRSTRLEN);
-            GNUNET_asprintf(&tmp,"[%s]:%u",address,ntohs(cs->addr_inbound->sin_port));
-
-          }
-          send_error_to_client = GNUNET_NO;
-          while (bytes_proc < cs->pending_inbound_msg->pos)
-          {
-            cur_msg = (struct GNUNET_MessageHeader *) &cs->pending_inbound_msg->buf[bytes_proc];
-            len = ntohs (cur_msg->size);
-            if ((bytes_proc+len) <=cs->pending_inbound_msg->pos)
-            {
-              plugin->env->receive(plugin->env->cls, &(cs->sender), cur_msg, 1, NULL , tmp, strlen(tmp));
-              bytes_proc += ntohs(cur_msg->size);
-              c_msgs++;
-            }
-            else
-            {
-              send_error_to_client = GNUNET_YES;
-              break;
-            }
-          }
-
-          if (send_error_to_client == GNUNET_NO)
-            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Forwarded %u messages with %u bytes of data to transport service\n",
-                        c_msgs, bytes_proc);
-          else
-            GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"Forwarded %u messages with %u bytes, last msg was inconsistent, %u bytes left\n",
-                        c_msgs, bytes_proc,cs->pending_inbound_msg->pos-bytes_proc);
-          GNUNET_free(tmp);
-        }
-        if (len > cs->pending_inbound_msg->pos)
-        {
-           /* message size bigger than data recieved -> malformed */
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Recieved malformed message: size in header %u bytes, recieved: %u \n", len, cs->pending_inbound_msg->pos);
-        }
-#endif
       }
-
       if (send_error_to_client == GNUNET_NO)
       {
         response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),HTTP_PUT_RESPONSE, MHD_NO, MHD_NO);
@@ -735,8 +643,6 @@ accessHandlerCallback (void *cls,
         MHD_destroy_response (response);
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sent HTTP/1.1: 400 BAD REQUEST as PUT Response\n");
       }
-
-      //GNUNET_free_non_null (cur_msg);
       cs->is_put_in_progress = GNUNET_NO;
       cs->is_bad_request = GNUNET_NO;
       cs->pending_inbound_msg->pos = 0;
