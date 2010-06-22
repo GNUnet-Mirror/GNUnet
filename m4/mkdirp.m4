@@ -62,4 +62,3 @@ else
 fi
 mkdir_p=$MKDIR_P
 AC_SUBST([mkdir_p])])
-AC_SUBST([MKDIR_P])])
