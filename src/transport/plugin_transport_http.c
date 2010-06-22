@@ -74,11 +74,6 @@
 
 
 /**
- * Encapsulation of all of the state of the plugin.
- */
-struct Plugin;
-
-/**
  * Network format for IPv4 addresses.
  */
 struct IPv4HttpAddress
@@ -136,10 +131,10 @@ struct HTTP_Message
   size_t pos;
 
   /**
-   * amount of data to sent
+   * buffer length
    */
   size_t len;
-
+  
   char * dest_url;
 
   /**
@@ -192,19 +187,19 @@ struct Session
 
 
   /**
-   * Sender's ip address recieved by transport
+   * Sender's ip address specified by transport
    */
   struct sockaddr_in * addr_outbound;
 
   /**
    * Did we initiate the connection (GNUNET_YES) or the other peer (GNUNET_NO)?
    */
-  unsigned int is_client;
+  int is_client;
 
   /**
    * Is the connection active (GNUNET_YES) or terminated (GNUNET_NO)?
    */
-  unsigned int is_active;
+  int is_active;
 
   /**
    * At what time did we reset last_received last?
@@ -226,19 +221,19 @@ struct Session
   /**
    * Is there a HTTP/PUT in progress?
    */
-  unsigned int is_put_in_progress;
+  int is_put_in_progress;
 
   /**
-   * Is there a HTTP/PUT in progress?
+   * Is the http request invalid?
    */
-  unsigned int is_bad_request;
+  int is_bad_request;
 
   /**
    * Encoded hash
    */
   struct GNUNET_CRYPTO_HashAsciiEncoded hash;
 
-  struct HTTP_Message * pending_outbound_msg;;
+  struct HTTP_Message * pending_outbound_msg;
 
   struct HTTP_Message * pending_inbound_msg;
 
@@ -403,14 +398,12 @@ static void requestCompletedCallback (void *cls, struct MHD_Connection * connect
   struct Session * cs;
 
   cs = *httpSessionCache;
-  if (cs != NULL)
-  {
+  if (cs == NULL)
+    return;
     /*GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection from peer `%s' was terminated\n",GNUNET_i2s(&cs->partner));*/
     /* session set to inactive */
     cs->is_active = GNUNET_NO;
     cs->is_put_in_progress = GNUNET_NO;
-  }
-  return;
 }
 
 
@@ -420,15 +413,23 @@ static void messageTokenizerCallback (void *cls,
                                       GNUNET_MessageHeader *
                                       message)
 {
-  struct Session * cs;
-  GNUNET_assert(cls != NULL);
-  cs = (struct Session *) cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Recieved message with type %u and size %u from `%s'\n",message->size,message->type, GNUNET_i2s(&(cs->partner)));
-  plugin->env->receive(plugin->env->cls, &(cs->partner), message, 1, NULL , cs->addr_inbound_str, strlen(cs->addr_inbound_str));
+  struct Session * cs = cls;
+  GNUNET_assert(cs != NULL);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received message with type %u and size %u from `%s'\n",
+	      message->size,
+	      message->type,
+	      GNUNET_i2s(&(cs->partner)));
+  plugin->env->receive(plugin->env->cls, 
+		       &cs->partner, 
+		       message, 1, NULL, 
+		       cs->addr_inbound_str, 
+		       strlen(cs->addr_inbound_str));
 }
 
 /**
- * Check if we are allowed to connect to the given IP.
+ * Check if ip is allowed to connect.
  */
 static int
 acceptPolicyCallback (void *cls,
