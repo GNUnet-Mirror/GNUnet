@@ -40,9 +40,19 @@ struct GNUNET_NETWORK_Handle
 {
 #ifndef MINGW
   int fd;
+
+#ifndef LINUX
+  /**
+   * For UNIX domain listen sockets, underlying filename to be removed
+   * on close.
+   */
+  char *filename;
+#endif
+
 #else
   SOCKET fd;
 #endif
+
 };
 
 
@@ -253,6 +263,14 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
 #ifdef MINGW
   if (SOCKET_ERROR == ret)
     SetErrnoFromWinsockError (WSAGetLastError ());
+#else
+#ifndef LINUX
+  if ( (ret == 0) && (address->sa_family == AF_UNIX))
+    {
+      const struct sockaddr_un *un = (const struct sockaddr_un*) address;
+      desc->filename = GNUNET_strdup (un->sun_path);
+    }
+#endif
 #endif
   return ret == 0 ? GNUNET_OK : GNUNET_SYSERR;
 }
@@ -273,6 +291,16 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
   SetErrnoFromWinsockError (WSAGetLastError ());
 #else
   ret = close (desc->fd);
+#ifndef LINUX
+  if (NULL != desc->filename)
+    {
+      if (0 != unlink (desc->filename))
+	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+				  "unlink",
+				  desc->filename);
+      GNUNET_free (desc->filename);
+    }
+#endif
 #endif
   GNUNET_free (desc);
   return (ret == 0) ? GNUNET_OK : GNUNET_SYSERR;
