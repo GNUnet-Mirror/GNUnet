@@ -33,6 +33,7 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
 #include "gnunet_resolver_service.h"
+#include "gnunet_server_lib.h"
 #include "plugin_transport.h"
 #include "gnunet_os_lib.h"
 #include "microhttpd.h"
@@ -236,6 +237,8 @@ struct Session
   struct HTTP_Message * pending_inbound_msg;
 
   CURL *curl_handle;
+
+  struct GNUNET_SERVER_MessageStreamTokenizer * msgtok;
 };
 
 /**
@@ -381,6 +384,7 @@ static struct Session * create_session (struct sockaddr_in *addr_in, struct sock
   ses->pending_inbound_msg->buf = GNUNET_malloc(GNUNET_SERVER_MAX_MESSAGE_SIZE);
   ses->pending_inbound_msg->len = GNUNET_SERVER_MAX_MESSAGE_SIZE;
   ses->pending_inbound_msg->pos = 0;
+  ses->msgtok = NULL;
   return ses;
 }
 
@@ -400,6 +404,16 @@ static void requestCompletedCallback (void *cls, struct MHD_Connection * connect
     cs->is_put_in_progress = GNUNET_NO;
   }
   return;
+}
+
+
+static void messageTokenizerCallback (void *cls,
+                                      void *client,
+                                      const struct
+                                      GNUNET_MessageHeader *
+                                      message)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"messageTokenizerCallback\n");
 }
 
 /**
@@ -525,12 +539,14 @@ accessHandlerCallback (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"New Session `%s' inserted, count %u \n", GNUNET_i2s(&cs->sender), plugin->session_count);
     }
 
-    /* Set closure */
+    /* Set closure and update current session*/
     if (*httpSessionCache == NULL)
     {
       *httpSessionCache = cs;
       /* Updating session */
       memcpy(cs->addr_inbound,conn_info->client_addr, sizeof(struct sockaddr_in));
+      if (cs->msgtok==NULL)
+        cs->msgtok = GNUNET_SERVER_mst_create (GNUNET_SERVER_MAX_MESSAGE_SIZE, cs, &messageTokenizerCallback, NULL);
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s' (`[%s]:%u')\n",method, GNUNET_i2s(&cs->sender),address,ntohs(cs->addr_inbound->sin_port));
   }
@@ -603,12 +619,15 @@ accessHandlerCallback (void *cls,
       if (cs->pending_inbound_msg->pos >= sizeof (struct GNUNET_MessageHeader))
       {
         cur_msg = (struct GNUNET_MessageHeader *) cs->pending_inbound_msg->buf;
-        unsigned int len = ntohs (cur_msg->size);
+        //unsigned int len = ntohs (cur_msg->size);
 
+        res = GNUNET_SERVER_mst_receive(cs->msgtok,cs->pending_inbound_msg->buf,cs->pending_inbound_msg->pos, GNUNET_NO, GNUNET_NO);
+        if ((res != GNUNET_SYSERR) && (res != GNUNET_NO))
+          send_error_to_client = GNUNET_NO;
+#if 0
         if (len == cs->pending_inbound_msg->pos)
         {
           char * tmp = NULL;
-          /* one message in recieved data, can pass directly*/
           if ( AF_INET == cs->addr_inbound->sin_family)
           {
             inet_ntop(AF_INET, &(cs->addr_inbound)->sin_addr,address,INET_ADDRSTRLEN);
@@ -663,6 +682,7 @@ accessHandlerCallback (void *cls,
               break;
             }
           }
+
           if (send_error_to_client == GNUNET_NO)
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Forwarded %u messages with %u bytes of data to transport service\n",
                         c_msgs, bytes_proc);
@@ -676,6 +696,7 @@ accessHandlerCallback (void *cls,
            /* message size bigger than data recieved -> malformed */
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Recieved malformed message: size in header %u bytes, recieved: %u \n", len, cs->pending_inbound_msg->pos);
         }
+#endif
       }
 
       if (send_error_to_client == GNUNET_NO)
@@ -1640,6 +1661,7 @@ libgnunet_plugin_transport_http_done (void *cls)
          GNUNET_free (cur);
          cur = tmp;
       }
+      GNUNET_SERVER_mst_destroy (cs->msgtok);
       GNUNET_free (cs->pending_inbound_msg->buf);
       GNUNET_free (cs->pending_inbound_msg);
       GNUNET_free_non_null (cs->addr_inbound);
