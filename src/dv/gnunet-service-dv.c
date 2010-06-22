@@ -511,12 +511,10 @@ struct DV_SendContext
    */
   struct GNUNET_TIME_Relative timeout;
 
-#if DEBUG_DV_MESSAGES
   /**
    * Unique ID for DV message
    */
   unsigned int uid;
-#endif
 };
 
 
@@ -944,6 +942,8 @@ send_message_via (const struct GNUNET_PeerIdentity *sender,
   toSend->recipient = htonl (recipient_id);
 #if DEBUG_DV_MESSAGES
   toSend->uid = send_context->uid; /* Still sent around in network byte order */
+#else
+  toSend->uid = htonl(0);
 #endif
 
   memcpy (&toSend[1], send_context->message, send_context->message_size);
@@ -1009,20 +1009,6 @@ find_least_cost_peer (void *cls,
   return GNUNET_YES;
 }
 
-#if DEBUG_DV_MESSAGES
-/**
- * Send a DV data message via DV.
- *
- * @param recipient the ultimate recipient of this message
- * @param sender the original sender of the message
- * @param specific_neighbor the specific neighbor to send this message via
- * @param message the packed message
- * @param message_size size of the message
- * @param importance what priority to send this message with
- * @param uid unique id for this message
- * @param timeout how long to possibly delay sending this message
- */
-#else
 /**
  * Send a DV data message via DV.
  *
@@ -1034,7 +1020,6 @@ find_least_cost_peer (void *cls,
  * @param importance what priority to send this message with
  * @param timeout how long to possibly delay sending this message
  */
-#endif
 static int
 send_message (const struct GNUNET_PeerIdentity * recipient,
               const struct GNUNET_PeerIdentity * sender,
@@ -1042,9 +1027,7 @@ send_message (const struct GNUNET_PeerIdentity * recipient,
               const struct GNUNET_MessageHeader * message,
               size_t message_size,
               unsigned int importance,
-#if DEBUG_DV_MESSAGES
               unsigned int uid,
-#endif
               struct GNUNET_TIME_Relative timeout)
 {
   p2p_dv_MESSAGE_Data *toSend;
@@ -1127,7 +1110,10 @@ send_message (const struct GNUNET_PeerIdentity * recipient,
   toSend->recipient = htonl (recipient_id);
 #if DEBUG_DV_MESSAGES
   toSend->uid = htonl(uid);
+#else
+  toSend->uid = htonl(0);
 #endif
+
 #if DEBUG_DV_PEER_NUMBERS
   GNUNET_CRYPTO_hash_to_enc (&target->identity.hashPubKey, &encPeerTo);
   encPeerTo.encoding[4] = '\0';
@@ -1393,9 +1379,7 @@ static int handle_dv_data_message (void *cls,
                      packed_message,
                      packed_message_size,
                      default_dv_priority,
-#if DEBUG_DV_MESSAGES
                      ntohl(incoming->uid),
-#endif
                      GNUNET_TIME_relative_get_forever());
 
   if (ret != GNUNET_SYSERR)

@@ -229,17 +229,11 @@ typedef struct
 {
   struct GNUNET_MessageHeader header;
 
-#if DEBUG_DV_MESSAGES
   /**
-   * Unique ID for this message.
+   * Unique ID for this message.  Will be zero unless
+   * message tracking is desired.
    */
   uint32_t uid GNUNET_PACKED;
-#else
-  /*
-   * Alignment.
-   */
-  uint32_t reserved GNUNET_PACKED;
-#endif
 
   /**
    * Identity of peer that ultimately sent the message.
