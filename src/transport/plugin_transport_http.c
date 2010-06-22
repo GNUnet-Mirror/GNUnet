@@ -40,7 +40,7 @@
 #include <curl/curl.h>
 
 
-#define DEBUG_CURL GNUNET_NO
+#define DEBUG_CURL GNUNET_YES
 #define DEBUG_HTTP GNUNET_NO
 
 /**
@@ -178,7 +178,7 @@ struct Session
    * To whom are we talking to (set to our identity
    * if we are still waiting for the welcome message)
    */
-  struct GNUNET_PeerIdentity sender;
+  struct GNUNET_PeerIdentity partner;
 
   /**
    * Sender's ip address to distinguish between incoming connections
@@ -332,7 +332,7 @@ static struct Session * find_session_by_pi( const struct GNUNET_PeerIdentity *pe
   hc_peer = peer->hashPubKey;
   while (cur != NULL)
   {
-    hc_current = cur->sender.hashPubKey;
+    hc_current = cur->partner.hashPubKey;
     if ( 0 == GNUNET_CRYPTO_hash_cmp( &hc_peer, &hc_current))
       return cur;
     cur = plugin->sessions->next;
@@ -383,8 +383,8 @@ static struct Session * create_session (struct sockaddr_in *addr_in, struct sock
   {
     memcpy(ses->addr_outbound, addr_out, sizeof (struct sockaddr_in));
   }
-  memcpy(&ses->sender, peer, sizeof (struct GNUNET_PeerIdentity));
-  GNUNET_CRYPTO_hash_to_enc(&ses->sender.hashPubKey,&(ses->hash));
+  memcpy(&ses->partner, peer, sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_CRYPTO_hash_to_enc(&ses->partner.hashPubKey,&(ses->hash));
   ses->is_active = GNUNET_NO;
   ses->addr_inbound_str = NULL;
   ses->pending_inbound_msg = GNUNET_malloc( sizeof (struct HTTP_Message));
@@ -405,7 +405,7 @@ static void requestCompletedCallback (void *cls, struct MHD_Connection * connect
   cs = *httpSessionCache;
   if (cs != NULL)
   {
-    /*GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection from peer `%s' was terminated\n",GNUNET_i2s(&cs->sender));*/
+    /*GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection from peer `%s' was terminated\n",GNUNET_i2s(&cs->partner));*/
     /* session set to inactive */
     cs->is_active = GNUNET_NO;
     cs->is_put_in_progress = GNUNET_NO;
@@ -423,7 +423,8 @@ static void messageTokenizerCallback (void *cls,
   struct Session * cs;
   GNUNET_assert(cls != NULL);
   cs = (struct Session *) cls;
-  plugin->env->receive(plugin->env->cls, &(cs->sender), message, 1, NULL , cs->addr_inbound_str, strlen(cs->addr_inbound_str));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Recieved message with type %u and size %u from `%s'\n",message->size,message->type, GNUNET_i2s(&(cs->partner)));
+  plugin->env->receive(plugin->env->cls, &(cs->partner), message, 1, NULL , cs->addr_inbound_str, strlen(cs->addr_inbound_str));
 }
 
 /**
@@ -505,7 +506,7 @@ accessHandlerCallback (void *cls,
       cs = plugin->sessions;
       while ( NULL != cs)
       {
-        res = (0 == memcmp(&pi_in,&(cs->sender), sizeof (struct GNUNET_PeerIdentity))) ? GNUNET_YES : GNUNET_NO;
+        res = (0 == memcmp(&pi_in,&(cs->partner), sizeof (struct GNUNET_PeerIdentity))) ? GNUNET_YES : GNUNET_NO;
         if ( GNUNET_YES  == res)
           break;
         cs = cs->next;
@@ -533,7 +534,7 @@ accessHandlerCallback (void *cls,
         cs_temp->next = cs;
         plugin->session_count++;
       }
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"New Session `%s' inserted, count %u \n", GNUNET_i2s(&cs->sender), plugin->session_count);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"New Session for peer `%s' inserted, count %u \n", GNUNET_i2s(&cs->partner), plugin->session_count);
     }
 
     /* Set closure and update current session*/
@@ -557,7 +558,7 @@ accessHandlerCallback (void *cls,
       if (cs->msgtok==NULL)
         cs->msgtok = GNUNET_SERVER_mst_create (GNUNET_SERVER_MAX_MESSAGE_SIZE, cs, &messageTokenizerCallback, cs);
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s' (`%s')\n",method, GNUNET_i2s(&cs->sender),cs->addr_inbound_str);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s' (`%s')\n",method, GNUNET_i2s(&cs->partner),cs->addr_inbound_str);
   }
   else
   {
@@ -573,7 +574,7 @@ accessHandlerCallback (void *cls,
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                     _("Incoming message from peer `%s', while existing message with %u bytes was not forwarded to transport'\n"),
-                    GNUNET_i2s(&cs->sender), cs->pending_inbound_msg->pos);
+                    GNUNET_i2s(&cs->partner), cs->pending_inbound_msg->pos);
         cs->pending_inbound_msg->pos = 0;
       }
       /* not yet ready */
@@ -1004,24 +1005,23 @@ static void send_execute (void *cls,
                 case CURLMSG_DONE:
                   if ( (msg->data.result != CURLE_OK) &&
                        (msg->data.result != CURLE_GOT_NOTHING) )
-                    {
-
+                  {
                     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                                _("%s failed for `%s' at %s:%d: `%s'\n"),
                                "curl_multi_perform",
-                               GNUNET_i2s(&cs->sender),
+                               GNUNET_i2s(&cs->partner),
                                __FILE__,
                                __LINE__,
                                curl_easy_strerror (msg->data.result));
                     /* sending msg failed*/
                     if (( NULL != cs->pending_outbound_msg) && ( NULL != cs->pending_outbound_msg->transmit_cont))
-                      cs->pending_outbound_msg->transmit_cont (cs->pending_outbound_msg->transmit_cont_cls,&cs->sender,GNUNET_SYSERR);
-                    }
+                      cs->pending_outbound_msg->transmit_cont (cs->pending_outbound_msg->transmit_cont_cls,&cs->partner,GNUNET_SYSERR);
+                  }
                   else
                   {
 
                     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                                "Send to peer `%s' completed with code %u\n", GNUNET_i2s(&cs->sender),cs->pending_outbound_msg->http_result_code);
+                                "Send to peer `%s' completed with code %u\n", GNUNET_i2s(&cs->partner),cs->pending_outbound_msg->http_result_code);
 
                     curl_easy_cleanup(cs->curl_handle);
                     cs->curl_handle=NULL;
@@ -1031,22 +1031,21 @@ static void send_execute (void *cls,
                     {
                       /* HTTP 1xx : Last message before here was informational */
                       if ((cs->pending_outbound_msg->http_result_code >=100) && (cs->pending_outbound_msg->http_result_code < 200))
-                        cs->pending_outbound_msg->transmit_cont (cs->pending_outbound_msg->transmit_cont_cls,&cs->sender,GNUNET_OK);
+                        cs->pending_outbound_msg->transmit_cont (cs->pending_outbound_msg->transmit_cont_cls,&cs->partner,GNUNET_OK);
                       /* HTTP 2xx: successful operations */
                       if ((cs->pending_outbound_msg->http_result_code >=200) && (cs->pending_outbound_msg->http_result_code < 300))
-                        cs->pending_outbound_msg->transmit_cont (cs->pending_outbound_msg->transmit_cont_cls,&cs->sender,GNUNET_OK);
+                        cs->pending_outbound_msg->transmit_cont (cs->pending_outbound_msg->transmit_cont_cls,&cs->partner,GNUNET_OK);
                       /* HTTP 3xx..5xx: error */
                       if ((cs->pending_outbound_msg->http_result_code >=300) && (cs->pending_outbound_msg->http_result_code < 600))
-                        cs->pending_outbound_msg->transmit_cont (cs->pending_outbound_msg->transmit_cont_cls,&cs->sender,GNUNET_SYSERR);
+                        cs->pending_outbound_msg->transmit_cont (cs->pending_outbound_msg->transmit_cont_cls,&cs->partner,GNUNET_SYSERR);
                     }
-                    if (GNUNET_OK != remove_http_message(cs, cs->pending_outbound_msg))
-                      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message could not be removed from session `%s'", GNUNET_i2s(&cs->sender));
-
-                    /* send pending messages */
-                    if (cs->pending_outbound_msg != NULL)
-                    {
-                      send_select_init (cs);
-                    }
+                  }
+                  if (GNUNET_OK != remove_http_message(cs, cs->pending_outbound_msg))
+                    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message could not be removed from session `%s'", GNUNET_i2s(&cs->partner));
+                  /* send pending messages */
+                  if (cs->pending_outbound_msg != NULL)
+                  {
+                    send_select_init (cs);
                   }
                   return;
                 default:
@@ -1241,7 +1240,6 @@ http_plugin_send (void *cls,
   msg->transmit_cont = cont;
   msg->transmit_cont_cls = cont_cls;
   memcpy (msg->buf,msgbuf, msgbuf_size);
-
   /* insert created message in list of pending messages */
   if (ses->pending_outbound_msg == NULL)
   {
@@ -1256,8 +1254,8 @@ http_plugin_send (void *cls,
   {
     tmp->next = msg;
   }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: sending %u bytes of data from peer `%s' to peer `%s'\n",msgbuf_size,GNUNET_i2s(plugin->env->my_identity),GNUNET_i2s(&ses->sender));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: sending %u bytes of data from peer `%4.4s' to peer `%s'\n",msgbuf_size,(char *) &my_ascii_hash_ident,GNUNET_i2s(target));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: url `%s'\n",url);
   if (msg == ses->pending_outbound_msg)
   {
     bytes_sent = send_select_init (ses);
@@ -1572,7 +1570,7 @@ libgnunet_plugin_transport_http_done (void *cls)
 
   while ( NULL != cs)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Freeing session for peer `%s'\n",GNUNET_i2s(&cs->sender));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Freeing session for peer `%s'\n",GNUNET_i2s(&cs->partner));
 
       cs_next = cs->next;
 
@@ -1584,8 +1582,8 @@ libgnunet_plugin_transport_http_done (void *cls)
       while (cur != NULL)
       {
          tmp = cur->next;
-         if (NULL != cur->buf)
-           GNUNET_free (cur->buf);
+         GNUNET_free_non_null(cur->dest_url);
+         GNUNET_free_non_null (cur->buf);
          GNUNET_free (cur);
          cur = tmp;
       }
