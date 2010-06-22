@@ -92,14 +92,17 @@ GNUNET_SERVER_mst_create (size_t maxbuf,
  * @param size number of bytes in buf
  * @param purge should any excess bytes in the buffer be discarded 
  *       (i.e. for packet-based services like UDP)
- * @return GNUNET_NO if the data stream is corrupt 
- *         GNUNET_SYSERR if the data stream is corrupt beyond repair
+ * @param one_shot only call callback once, keep rest of message in buffer
+ * @return GNUNET_OK if we are done processing (need more data)
+ *         GNUNET_NO if one_shot was set and we have another message ready
+ *         GNUNET_SYSERR if the data stream is corrupt
  */
 int
 GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
 			   const char *buf,
 			   size_t size,
-			   int purge)
+			   int purge,
+			   int one_shot)
 {
   const struct GNUNET_MessageHeader *hdr;
   size_t delta;
@@ -107,7 +110,9 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
   char *ibuf;
   int need_align;
   unsigned long offset;
+  int ret;
 
+  ret = GNUNET_OK;
   ibuf = (char*) &mst->hdr;
   if (mst->off > 0)
     {
@@ -133,8 +138,6 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
       if (want < sizeof (struct GNUNET_MessageHeader))
 	{
 	  GNUNET_break_op (0);
-	  if (purge)
-	    return GNUNET_NO;
 	  return GNUNET_SYSERR;
 	}
       if (want < mst->off)
@@ -154,6 +157,13 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
 	    mst->off = 0;    
 	  return GNUNET_OK;
 	}
+      if (one_shot == GNUNET_SYSERR)
+	{
+	  ret = GNUNET_NO;
+	  goto copy;
+	}
+      if (one_shot == GNUNET_YES)
+	one_shot = GNUNET_SYSERR;
       mst->cb (mst->cb_cls, mst->client_identity, &mst->hdr);
       mst->off = 0;
     }
@@ -174,6 +184,13 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
 	  want = ntohs (hdr->size);
 	  if (size < want)
 	    break; /* or not, buffer incomplete... */
+	  if (one_shot == GNUNET_SYSERR)
+	    {
+	      ret = GNUNET_NO;
+	      goto copy;
+	    }
+	  if (one_shot == GNUNET_YES)
+	    one_shot = GNUNET_SYSERR;
 	  mst->cb (mst->cb_cls, mst->client_identity, hdr);
 	  buf += want;
 	  size -= want;
@@ -184,15 +201,16 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
 	  goto do_align;
 	}
     }
+ copy:
   if ( (size > 0) && (! purge) )
     {
-      memcpy (&mst->hdr, buf, size);
-      mst->off = size;
+      memcpy (&ibuf[mst->off], buf, size);
+      mst->off += size;
       size = 0;
     }
   if (purge)
     mst->off = 0;    
-  return GNUNET_OK;
+  return ret;
 }
 
 

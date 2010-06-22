@@ -657,14 +657,36 @@ GNUNET_SERVER_mst_create (size_t maxbuf,
  * @param size number of bytes in buf
  * @param purge should any excess bytes in the buffer be discarded 
  *       (i.e. for packet-based services like UDP)
- * @return GNUNET_NO if the data stream is corrupt 
- *         GNUNET_SYSERR if the data stream is corrupt beyond repair
+ * @param one_shot only call callback once, keep rest of message in buffer
+ * @return GNUNET_OK if we are done processing (need more data)
+ *         GNUNET_NO if one_shot was set and we have another message ready
+ *         GNUNET_SYSERR if the data stream is corrupt
  */
 int
 GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
 			   const char *buf,
 			   size_t size,
-			   int purge);
+			   int purge,
+			   int one_shot);
+
+
+/**
+ * Read incoming data into the receive buffer and call the
+ * callback for all complete messages.
+ *
+ * @param mst tokenizer to use
+ * @param sock socket to read from (must be ready according to select)
+ * @param purge should any excess bytes in the buffer be discarded 
+ *       (i.e. for packet-based services like UDP)
+ * @return GNUNET_NO if the data stream is corrupt 
+ *         GNUNET_SYSERR if the data stream is corrupt beyond repair
+ */
+int
+GNUNET_SERVER_mst_read (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
+			const char *buf,
+			size_t size,
+			int purge);
+
 
 /**
  * Destroys a tokenizer.
