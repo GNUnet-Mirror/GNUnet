@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -250,120 +250,6 @@ struct GNUNET_SERVER_Client *GNUNET_SERVER_connect_socket (struct
                                                            struct
                                                            GNUNET_CONNECTION_Handle
                                                            *connection);
-
-
-/**
- * Receive data from the given connection.  This function should call
- * "receiver" asynchronously using the scheduler.  It must return
- * "immediately".
- *
- * @param cls closure
- * @param sched scheduler to use
- * @param max maximum number of bytes to read
- * @param timeout maximum amount of time to wait (use -1 for "forever")
- * @param receiver function to call with received data
- * @param receiver_cls closure for receiver
- */
-typedef void
-  (*GNUNET_SERVER_ReceiveCallback) (void *cls,
-                                    size_t max,
-                                    struct GNUNET_TIME_Relative timeout,
-                                    GNUNET_CONNECTION_Receiver
-                                    receiver, void *receiver_cls);
-
-
-/**
- * Cancel receive request.
- *
- * @param cls closure
- */
-typedef void (*GNUNET_SERVER_ReceiveCancelCallback) (void *cls);
-
-
-/**
- * Notify us when the connection is ready to transmit size bytes.
- *
- * @param cls closure
- * @param size number of bytes to be ready for sending
- * @param timeout after how long should we give up (and call
- *        notify with buf NULL and size 0)?
- * @param notify function to call
- * @param notify_cls closure for notify
- * @return a handle that can be used to cancel
- *         the transmission request or NULL if
- *         queueing a transmission request failed
- */
-typedef void *(*GNUNET_SERVER_TransmitReadyCallback) (void *cls,
-                                                      size_t size,
-                                                      struct
-                                                      GNUNET_TIME_Relative
-                                                      timeout,
-                                                      GNUNET_CONNECTION_TransmitReadyNotify
-                                                      notify,
-                                                      void *notify_cls);
-
-
-/**
- * Cancel an earlier transmit notification request.
- *
- * @param cls closure
- * @param ctx handle that was returned by the TransmitReadyCallback
- */
-typedef void (*GNUNET_SERVER_TransmitReadyCancelCallback) (void *cls,
-                                                           void *ctx);
-
-
-/**
- * Check if connection is still valid (no fatal errors have happened so far).
- *
- * @param cls closure
- * @return GNUNET_YES if valid, GNUNET_NO otherwise
- */
-typedef int (*GNUNET_SERVER_CheckCallback) (void *cls);
-
-
-/**
- * Destroy this connection (free resources).
- *
- * @param cls closure
- * @param persist when connection is closed, "leak" socket
- */
-typedef void (*GNUNET_SERVER_DestroyCallback) (void *cls, int persist);
-
-
-/**
- * Add an arbitrary connection to the set of handles managed by this
- * server.  This can be used if a sending and receiving does not
- * really go over the network (internal transmission) or for servers
- * using UDP.
- *
- * @param server the server to use
- * @param chandle opaque handle for the connection
- * @param creceive receive function for the connection
- * @param ccancel cancel receive function for the connection
- * @param cnotify transmit notification function for the connection
- * @param cnotify_cancel transmit notification cancellation function for the connection
- * @param ccheck function to test if the connection is still up
- * @param cdestroy function to close and free the connection
- * @return the client handle (client should call
- *         "client_drop" on the return value eventually)
- */
-struct GNUNET_SERVER_Client *GNUNET_SERVER_connect_callback (struct
-                                                             GNUNET_SERVER_Handle
-                                                             *server,
-                                                             void *chandle,
-                                                             GNUNET_SERVER_ReceiveCallback
-                                                             creceive,
-                                                             GNUNET_SERVER_ReceiveCancelCallback
-                                                             ccancel,
-                                                             GNUNET_SERVER_TransmitReadyCallback
-                                                             cnotify,
-                                                             GNUNET_SERVER_TransmitReadyCancelCallback
-                                                             cnotify_cancel,
-                                                             GNUNET_SERVER_CheckCallback
-                                                             ccheck,
-                                                             GNUNET_SERVER_DestroyCallback
-                                                             cdestroy);
 
 
 /**
@@ -668,24 +554,6 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
 			   size_t size,
 			   int purge,
 			   int one_shot);
-
-
-/**
- * Read incoming data into the receive buffer and call the
- * callback for all complete messages.
- *
- * @param mst tokenizer to use
- * @param sock socket to read from (must be ready according to select)
- * @param purge should any excess bytes in the buffer be discarded 
- *       (i.e. for packet-based services like UDP)
- * @return GNUNET_NO if the data stream is corrupt 
- *         GNUNET_SYSERR if the data stream is corrupt beyond repair
- */
-int
-GNUNET_SERVER_mst_read (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
-			const char *buf,
-			size_t size,
-			int purge);
 
 
 /**
