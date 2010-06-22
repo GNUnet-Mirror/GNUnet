@@ -31,6 +31,8 @@
 
 #define VERBOSE GNUNET_NO
 
+#define START_SERVICE GNUNET_YES
+
 static int
 check_1 (void *cls,
          const char *subsystem,
@@ -95,7 +97,6 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-
   h = GNUNET_STATISTICS_create (sched, "test-statistics-api", cfg);
   GNUNET_STATISTICS_set (h, "test-1", 1, GNUNET_NO);
   GNUNET_STATISTICS_set (h, "test-2", 2, GNUNET_NO);
@@ -123,7 +124,6 @@ static int
 check ()
 {
   int ok = 1;
-  pid_t pid;
   char *const argv[] = { "test-statistics-api",
     "-c",
     "test_statistics_api_data.conf",
@@ -132,23 +132,29 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
+#if START_SERVICE
+  pid_t pid;
   pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
                                  "gnunet-service-statistics",
 #if DEBUG_STATISTICS
                                  "-L", "DEBUG",
 #endif
                                  "-c", "test_statistics_api_data.conf", NULL);
+#endif
   GNUNET_PROGRAM_run (3, argv, "test-statistics-api", "nohelp",
                       options, &run, &ok);
+#if START_SERVICE
   if (0 != PLIBC_KILL (pid, SIGTERM))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
       ok = 1;
     }
   GNUNET_OS_process_wait(pid);
+#endif
   if (ok != 0)
     return ok;
   ok = 1;
+#if START_SERVICE
   /* restart to check persistence! */
   pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
                                  "gnunet-service-statistics",
@@ -156,14 +162,17 @@ check ()
                                  "-L", "DEBUG",
 #endif
                                  "-c", "test_statistics_api_data.conf", NULL);
+#endif
   GNUNET_PROGRAM_run (3, argv, "test-statistics-api", "nohelp",
                       options, &run_more, &ok);
+#if START_SERVICE
   if (0 != PLIBC_KILL (pid, SIGTERM))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
       ok = 1;
     }
   GNUNET_OS_process_wait(pid);
+#endif
   return ok;
 }
 
