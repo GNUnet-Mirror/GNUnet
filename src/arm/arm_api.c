@@ -258,7 +258,7 @@ arm_service_shutdown (struct GNUNET_SCHEDULER_Handle *sched,
 				       sizeof (struct
 					       GNUNET_MessageHeader),
 				       timeout,
-				       GNUNET_NO,
+				       GNUNET_YES,
 				       &write_shutdown, shutdown_ctx);
 }
 
