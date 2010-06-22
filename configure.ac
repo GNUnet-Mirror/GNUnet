@@ -535,8 +535,8 @@ AC_DEFINE_UNQUOTED([HAVE_ESMTP], $esmtp, [We have libesmtp])
 LIBS=$SAVE_LIBS
 
 # check for gettext
-AM_GNU_GETTEXT_VERSION([0.16.1])
 AM_GNU_GETTEXT([external])
+AM_GNU_GETTEXT_VERSION([0.16.1])
 
 # check for iconv
 AM_ICONV
