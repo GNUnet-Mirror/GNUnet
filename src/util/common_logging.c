@@ -548,7 +548,7 @@ GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
       return buf;
     case AF_UNIX:
       if (addrlen <= sizeof (sa_family_t))
-	return "<invalid UNIX address>";
+	return "<unbound UNIX client>";
       un = (const struct sockaddr_un*) addr;
       off = 0;
       if (un->sun_path[0] == '\0') off++;
