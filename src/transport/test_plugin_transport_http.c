@@ -1025,6 +1025,20 @@ static void run_connection_tests( )
   msg2->type = htons(41);
   api->send(api->cls, &my_identity, tmp, 4 * sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL,addr_head->addr, addr_head->addrlen, GNUNET_YES, &task_send_cont, NULL);
 
+
+  /* send a multiple GNUNET_messages at a time, second message has incorrect size*/
+/*  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Ping Hello Message\n");
+  GNUNET_free(tmp);
+  tmp = GNUNET_malloc(425);
+  msg1 = (struct GNUNET_MessageHeader *) tmp;
+  msg1->size = htons(353);
+  msg1->type = htons(16);
+  msg2 = &tmp[353];
+  msg2->size = htons(72);
+  msg2->type = htons(32);
+  api->send(api->cls, &my_identity, tmp, 425, 0, TIMEOUT, NULL,addr_head->addr, addr_head->addrlen, GNUNET_YES, &task_send_cont, NULL);*/
+
+
   /* send a message with size GNUNET_SERVER_MAX_MESSAGE_SIZE )*/
   GNUNET_free(tmp);
   tmp = GNUNET_malloc(GNUNET_SERVER_MAX_MESSAGE_SIZE);

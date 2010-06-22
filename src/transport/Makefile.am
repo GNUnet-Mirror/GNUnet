@@ -74,7 +74,7 @@ plugin_LTLIBRARIES = \
   libgnunet_plugin_transport_udp.la \
   $(HTTP_PLUGIN_LA) \
   libgnunet_plugin_transport_template.la
-# TODO: add http, nat, etc.
+# TODO: add nat, etc.
 
 libgnunet_plugin_transport_tcp_la_SOURCES = \
   plugin_transport_tcp.c
@@ -134,9 +134,9 @@ check_PROGRAMS = \
  $(HTTP_PLUGIN_CHECK) \
  test_transport_api_udp_nat \
  test_transport_api_reliability_tcp \
- test_transport_api_reliability_tcp_nat 
-# test_transport_api_http \
-# TODO: add tests for http, nat, etc.
+ test_transport_api_reliability_tcp_nat \
+ test_transport_api_http
+# TODO: add tests for nat, etc.
 
 TESTS = $(check_PROGRAMS)
 
@@ -176,11 +176,11 @@ test_transport_api_udp_nat_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
-#test_transport_api_http_SOURCES = \
-# test_transport_api.c
-#test_transport_api_http_LDADD = \
-# $(top_builddir)/src/transport/libgnunettransport.la \
-# $(top_builddir)/src/util/libgnunetutil.la  
+test_transport_api_http_SOURCES = \
+ test_transport_api.c
+test_transport_api_http_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
 
 test_plugin_transport_http_SOURCES = \
  test_plugin_transport_http.c
