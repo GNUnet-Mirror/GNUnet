@@ -149,7 +149,8 @@ end_badly ()
 #if VERBOSE
   fprintf (stderr, "Ending on an unhappy note.\n");
 #endif
-  if (retry_context.peer_ctx->find_peer_handle != NULL)
+
+  if ((retry_context.peer_ctx != NULL) && (retry_context.peer_ctx->find_peer_handle != NULL))
     GNUNET_DHT_find_peer_stop(retry_context.peer_ctx->find_peer_handle, NULL, NULL);
   if (retry_context.retry_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel(sched, retry_context.retry_task);

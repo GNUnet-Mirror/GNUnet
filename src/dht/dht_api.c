@@ -315,6 +315,7 @@ static int retransmit_iterator (void *cls,
   pending_message_list->message->unique_id = route_handle->uid;
   /* Add the new pending message to the front of the retransmission list */
   pending_message_list->next = route_handle->dht_handle->retransmissions;
+  route_handle->dht_handle->retransmissions = pending_message_list;
 
   return GNUNET_OK;
 }
@@ -569,10 +570,12 @@ service_message_handler (void *cls,
 					      "dht", 
 					      handle->cfg);
 
-      handle->retransmit_stage = DHT_RETRANSMITTING;
-      GNUNET_CONTAINER_multihashmap_iterate(handle->outstanding_requests, &retransmit_iterator, handle);
-      handle->current = handle->retransmissions->message;
-      process_pending_retransmissions(handle);
+      if (GNUNET_CONTAINER_multihashmap_iterate(handle->outstanding_requests, &retransmit_iterator, handle) > 0)
+        {
+          handle->retransmit_stage = DHT_RETRANSMITTING;
+          handle->current = handle->retransmissions->message;
+          process_pending_retransmissions(handle);
+        }
       return;
     }
 
