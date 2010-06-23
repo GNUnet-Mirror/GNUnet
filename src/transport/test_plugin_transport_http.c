@@ -1170,9 +1170,9 @@ run (void *cls,
   while (cur != NULL)
   {
 
-    api->address_pretty_printer (NULL,"http",cur->addr,cur->addrlen,GNUNET_NO,TEST_TIMEOUT,&pretty_printer_cb,NULL);
-    addr_str = api->address_to_string (NULL,cur->addr,cur->addrlen);
-    suggest_res = api->check_address (NULL,cur->addr,cur->addrlen);
+    api->address_pretty_printer (api->cls, "http",cur->addr,cur->addrlen, GNUNET_NO,TEST_TIMEOUT, &pretty_printer_cb,NULL);
+    addr_str = api->address_to_string (api->cls, cur->addr, cur->addrlen);
+    suggest_res = api->check_address (api->cls, cur->addr, cur->addrlen);
 
     GNUNET_assert (GNUNET_OK == suggest_res);
     GNUNET_assert (NULL != addr_str);
@@ -1190,19 +1190,19 @@ run (void *cls,
   struct IPv4HttpAddress failing_addr;
   failing_addr.ipv4_addr = htonl(INADDR_LOOPBACK);
   failing_addr.u_port = htons(0);
-  suggest_res = api->check_address (NULL,&failing_addr,sizeof (struct IPv4HttpAddress));
+  suggest_res = api->check_address (api->cls,&failing_addr,sizeof (struct IPv4HttpAddress));
   GNUNET_assert (GNUNET_SYSERR == suggest_res);
 
   /* Suggesting addresses with wrong size*/
   failing_addr.ipv4_addr = htonl(INADDR_LOOPBACK);
   failing_addr.u_port = htons(0);
-  suggest_res = api->check_address (NULL,&failing_addr,sizeof (struct IPv6HttpAddress));
+  suggest_res = api->check_address (api->cls,&failing_addr,sizeof (struct IPv6HttpAddress));
   GNUNET_assert (GNUNET_SYSERR == suggest_res);
 
   /* Suggesting addresses with wrong address*/
   failing_addr.ipv4_addr = htonl(INADDR_LOOPBACK);
   failing_addr.u_port = htons(12389);
-  suggest_res = api->check_address (NULL,&failing_addr,sizeof (struct IPv4HttpAddress));
+  suggest_res = api->check_address (api->cls,&failing_addr,sizeof (struct IPv4HttpAddress));
   GNUNET_assert (GNUNET_SYSERR == suggest_res);
 
   /* test sending to client */
@@ -1235,7 +1235,7 @@ run (void *cls,
   test_valid_ident.test_executed = GNUNET_NO;
   test_valid_ident.test_failed = GNUNET_YES;
 
-  test_addr = (char *) api->address_to_string (NULL,addr_head->addr,addr_head->addrlen);
+  test_addr = (char *) api->address_to_string (api->cls,addr_head->addr,addr_head->addrlen);
   run_connection_tests();
 
   /* testing finished */
