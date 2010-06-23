@@ -1663,27 +1663,28 @@ GNUNET_DISK_pipe (int blocking)
     }
   p->fd[0]->fd = fd[0];
   p->fd[1]->fd = fd[1];
+  ret = 0;
+  flags = fcntl (fd[0], F_GETFL);
+  flags |= FD_CLOEXEC;
   if (!blocking)
+    flags |= O_NONBLOCK;
+  if (0 > fcntl (fd[0], F_SETFL, flags))
+    ret = -1;
+  flags = fcntl (fd[1], F_GETFL);
+  flags |= FD_CLOEXEC;
+  if (!blocking)
+    flags |= O_NONBLOCK;
+  if (0 > fcntl (fd[1], F_SETFL, flags))
+    ret = -1;
+  if (ret == -1)
     {
-      flags = fcntl (fd[0], F_GETFL);
-      flags |= O_NONBLOCK;
-      ret = fcntl (fd[0], F_SETFL, flags);
-      if (ret != -1)
-        {
-          flags = fcntl (fd[1], F_GETFL);
-          flags |= O_NONBLOCK;
-          ret = fcntl (fd[1], F_SETFL, flags);
-        }
-      if (ret == -1)
-        {
-          eno = errno;
-          GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "fcntl");
-          GNUNET_break (0 == close (p->fd[0]->fd));
-          GNUNET_break (0 == close (p->fd[1]->fd));
-          GNUNET_free (p);
-          errno = eno;
-          return NULL;
-        }
+      eno = errno;
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "fcntl");
+      GNUNET_break (0 == close (p->fd[0]->fd));
+      GNUNET_break (0 == close (p->fd[1]->fd));
+      GNUNET_free (p);
+      errno = eno;
+      return NULL;    
     }
 #else
   BOOL ret;
