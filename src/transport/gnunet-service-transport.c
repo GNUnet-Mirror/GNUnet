@@ -1073,7 +1073,7 @@ read_blacklist_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
         continue;
       }
       tsize = colon_pos - pos;
-      if ((pos >= frstat.st_size) || (pos + tsize >= frstat.st_size))
+      if ((pos >= frstat.st_size) || (pos + tsize >= frstat.st_size) || (tsize == 0))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                       _("Syntax error in blacklist file at offset %llu, giving up!\n"),
@@ -3552,6 +3552,7 @@ transmit_hello_and_ping (void *cls,
 	      "HELLO", hello_size,
 	      "PING", sizeof (struct TransportPingMessage));
 #endif
+
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# PING messages sent for initial validation"),
 			    1,
@@ -3593,6 +3594,7 @@ run_validation (void *cls,
   struct OwnAddressList *oal;
 
   GNUNET_assert (addr != NULL);
+
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# peer addresses scheduled for validation"),
 			    1,
@@ -4554,7 +4556,7 @@ handle_set_quota (void *cls,
 
 
 /**
- * Take the given address and append it to the set of results send back to
+ * Take the given address and append it to the set of results sent back to
  * the client.
  * 
  * @param cls the transmission context used ('struct GNUNET_SERVER_TransmitContext*')
@@ -4570,6 +4572,7 @@ transmit_address_to_client (void *cls, const char *address)
     slen = 0;
   else
     slen = strlen (address) + 1;
+
   GNUNET_SERVER_transmit_context_append_data (tc, address, slen,
 					      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
   if (NULL == address)

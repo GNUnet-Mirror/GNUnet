@@ -438,7 +438,7 @@ tcp_address_to_string (void *cls,
     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
 		       "tcp",
-		       _("Unexected address length: %u\n"),
+		       _("Unexpected address length: %u\n"),
 		       addrlen);
       GNUNET_break (0);
       return NULL;
