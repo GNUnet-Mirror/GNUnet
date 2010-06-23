@@ -664,6 +664,11 @@ struct GNUNET_SCHEDULER_Handle *sched;
 static struct GNUNET_PEERINFO_Handle *peerinfo;
 
 /**
+ * Our message stream tokenizer (for encrypted payload).
+ */
+static struct GNUNET_SERVER_MessageStreamTokenizer *mst;
+
+/**
  * Our configuration.
  */
 const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -3133,14 +3138,17 @@ send_p2p_message_to_client (struct Neighbour *sender,
 /**
  * Deliver P2P message to interested clients.
  *
- * @param sender who sent us the message?
+ * @param cls always NULL
+ * @param client who sent us the message (struct Neighbour)
  * @param m the message
- * @param msize size of the message (including header)
  */
 static void
-deliver_message (struct Neighbour *sender,
-                 const struct GNUNET_MessageHeader *m, size_t msize)
+deliver_message (void *cls,
+		 void *client,
+                 const struct GNUNET_MessageHeader *m)
 {
+  struct Neighbour *sender = client;
+  size_t msize = ntohs (m->size);
   char buf[256];
   struct Client *cpos;
   uint16_t type;
@@ -3204,86 +3212,6 @@ deliver_message (struct Neighbour *sender,
       GNUNET_STATISTICS_update (stats,
 				gettext_noop ("# messages not delivered to any client"), 
 				1, GNUNET_NO);
-    }
-}
-
-
-/**
- * Align P2P message and then deliver to interested clients.
- *
- * @param sender who sent us the message?
- * @param buffer unaligned (!) buffer containing message
- * @param msize size of the message (including header)
- */
-static void
-align_and_deliver (struct Neighbour *sender, const char *buffer, size_t msize)
-{
-  char abuf[msize];
-
-  /* TODO: call to statistics? */
-  memcpy (abuf, buffer, msize);
-  deliver_message (sender, (const struct GNUNET_MessageHeader *) abuf, msize);
-}
-
-
-/**
- * Deliver P2P messages to interested clients.
- *
- * @param sender who sent us the message?
- * @param buffer buffer containing messages, can be modified
- * @param buffer_size size of the buffer (overall)
- * @param offset offset where messages in the buffer start
- */
-static void
-deliver_messages (struct Neighbour *sender,
-                  const char *buffer, size_t buffer_size, size_t offset)
-{
-  struct GNUNET_MessageHeader *mhp;
-  struct GNUNET_MessageHeader mh;
-  uint16_t msize;
-  int need_align;
-
-  while (offset + sizeof (struct GNUNET_MessageHeader) <= buffer_size)
-    {     
-      if (0 != offset % sizeof (uint16_t))
-        {
-          /* outch, need to copy to access header */
-          memcpy (&mh, &buffer[offset], sizeof (struct GNUNET_MessageHeader));
-          mhp = &mh;
-        }
-      else
-        {
-          /* can access header directly */
-          mhp = (struct GNUNET_MessageHeader *) &buffer[offset];
-        }
-      msize = ntohs (mhp->size);
-      if (msize + offset > buffer_size)
-        {
-          /* malformed message, header says it is larger than what
-             would fit into the overall buffer */
-          GNUNET_break_op (0);
-          break;
-        }
-#if HAVE_UNALIGNED_64_ACCESS
-      need_align = (0 != offset % 4) ? GNUNET_YES : GNUNET_NO;
-#else
-      need_align = (0 != offset % 8) ? GNUNET_YES : GNUNET_NO;
-#endif
-#if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Delivering %u bytes of message at offset %u/%u to clients.\n",
-		  (unsigned int) msize,
-		  (unsigned int) offset,
-		  (unsigned int) buffer_size);
-#endif
-
-      if (GNUNET_YES == need_align)
-        align_and_deliver (sender, &buffer[offset], msize);
-      else
-        deliver_message (sender,
-                         (const struct GNUNET_MessageHeader *)
-                         &buffer[offset], msize);
-      offset += msize;
     }
 }
 
@@ -3435,7 +3363,12 @@ handle_encrypted_message (struct Neighbour *n,
 			 gettext_noop ("# bytes of payload decrypted"),
 			 size - sizeof (struct EncryptedMessage),
 			 GNUNET_NO);      
-  deliver_messages (n, buf, size, sizeof (struct EncryptedMessage));
+  if (GNUNET_OK != GNUNET_SERVER_mst_receive (mst, 
+					      n,
+					      &buf[sizeof (struct EncryptedMessage)], 
+					      size - sizeof (struct EncryptedMessage),
+					      GNUNET_YES, GNUNET_NO))
+    GNUNET_break_op (0);
 }
 
 
@@ -3797,6 +3730,8 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
   if (peerinfo != NULL)
     GNUNET_PEERINFO_disconnect (peerinfo);
+  if (mst != NULL)
+    GNUNET_SERVER_mst_destroy (mst);
 }
 
 
@@ -3889,6 +3824,9 @@ run (void *cls,
                                         &handle_transport_notify_disconnect);
   GNUNET_assert (NULL != transport);
   stats = GNUNET_STATISTICS_create (sched, "core", cfg);
+  mst = GNUNET_SERVER_mst_create (GNUNET_SERVER_MAX_MESSAGE_SIZE,
+				  &deliver_message,
+				  NULL);
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &cleaning_task, NULL);
