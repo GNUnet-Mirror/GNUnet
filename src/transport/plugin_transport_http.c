@@ -34,6 +34,7 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_resolver_service.h"
 #include "gnunet_server_lib.h"
+#include "gnunet_container_lib.h"
 #include "plugin_transport.h"
 #include "gnunet_os_lib.h"
 #include "microhttpd.h"
@@ -266,15 +267,9 @@ struct Plugin
   unsigned int port_inbound;
 
   /**
-   * List of open sessions.
+   * Hashmap for all existing sessions.
    */
-  struct Session *sessions;
-
-  /**
-   * Number of active sessions
-   */
-
-  unsigned int session_count;
+  struct GNUNET_CONTAINER_MultiHashMap *sessions;
 };
 
 /**
@@ -323,48 +318,6 @@ static struct GNUNET_CRYPTO_HashAsciiEncoded my_ascii_hash_ident;
 // MW: please document (which timeout is this!?)
 static struct GNUNET_TIME_Relative timeout;
 
-/**
- * Finds a http session in our linked list using peer identity as a key
- * @param peer peeridentity
- * @return http session corresponding to peer identity
- */
-static struct Session * find_session_by_pi( const struct GNUNET_PeerIdentity *peer )
-{
-  struct Session * cur;
-  GNUNET_HashCode hc_peer;
-  GNUNET_HashCode hc_current;
-
-  cur = plugin->sessions;
-  hc_peer = peer->hashPubKey;
-  while (cur != NULL)
-  {
-    hc_current = cur->partner.hashPubKey;
-    if ( 0 == GNUNET_CRYPTO_hash_cmp( &hc_peer, &hc_current))
-      return cur;
-    cur = plugin->sessions->next;
-  }
-  return NULL;
-}
-
-/**
- * Finds a http session in our linked list using libcurl handle as a key
- * Needed when sending data with libcurl to differentiate between sessions
- * @param handle peeridentity
- * @return http session corresponding to peer identity
- */
-static struct Session * find_session_by_curlhandle( CURL* handle )
-{
-  struct Session * cur;
-
-  cur = plugin->sessions;
-  while (cur != NULL)
-  {
-    if ( handle == cur->curl_handle )
-      return cur;
-    cur = plugin->sessions->next;
-  }
-  return NULL;
-}
 
 /**
  * Create a new session
@@ -472,7 +425,6 @@ accessHandlerCallback (void *cls,
 {
   struct MHD_Response *response;
   struct Session * cs;
-  struct Session * cs_temp;
   const union MHD_ConnectionInfo * conn_info;
   struct sockaddr_in  *addrin;
   struct sockaddr_in6 *addrin6;
@@ -521,18 +473,7 @@ accessHandlerCallback (void *cls,
       ipv6addr.u6_port = addrin6->sin6_port;
     }
     /* find existing session for address */
-    cs = NULL;
-    if (plugin->session_count > 0)
-    {
-      cs = plugin->sessions;
-      while ( NULL != cs)
-      {
-        res = (0 == memcmp(&pi_in,&(cs->partner), sizeof (struct GNUNET_PeerIdentity))) ? GNUNET_YES : GNUNET_NO;
-        if ( GNUNET_YES  == res)
-          break;
-        cs = cs->next;
-      }
-    }
+    cs = GNUNET_CONTAINER_multihashmap_get (plugin->sessions, &pi_in.hashPubKey);
     /* no existing session, create a new one*/
     if (cs == NULL )
     {
@@ -542,23 +483,13 @@ accessHandlerCallback (void *cls,
       if ( AF_INET == conn_info->client_addr->sin_family)
         cs = create_session((char *) &ipv4addr, sizeof(struct IPv4HttpAddress),NULL, 0, &pi_in);
 
-      /* Insert session into linked list */
-      if ( plugin->sessions == NULL)
-      {
-        plugin->sessions = cs;
-        plugin->session_count = 1;
-      }
-      cs_temp = plugin->sessions;
-      while ( cs_temp->next != NULL )
-      {
-        cs_temp = cs_temp->next;
-      }
-      if (cs_temp != cs )
-      {
-        cs_temp->next = cs;
-        plugin->session_count++;
-      }
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"New Session for peer `%s' inserted, count %u \n", GNUNET_i2s(&cs->partner), plugin->session_count);
+      /* Insert session into hashmap */
+      GNUNET_CONTAINER_multihashmap_put ( plugin->sessions,
+                                          &cs->partner.hashPubKey,
+                                          cs,
+                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"New Session for peer `%s' inserted\n", GNUNET_i2s(&cs->partner));
     }
 
     /* Set closure and update current session*/
@@ -976,6 +907,7 @@ static ssize_t send_select_init (struct Session* ses )
   curl_easy_setopt(ses->curl_handle, CURLOPT_READDATA, ses);
   curl_easy_setopt(ses->curl_handle, CURLOPT_INFILESIZE_LARGE, (curl_off_t) msg->len);
   curl_easy_setopt(ses->curl_handle, CURLOPT_TIMEOUT, (long) (timeout.value / 1000 ));
+  GNUNET_assert (CURLE_OK == curl_easy_setopt(ses->curl_handle, CURLOPT_PRIVATE, ses));
   curl_easy_setopt(ses->curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
   curl_easy_setopt(ses->curl_handle, CURLOPT_BUFFERSIZE, GNUNET_SERVER_MAX_MESSAGE_SIZE);
 
@@ -999,7 +931,9 @@ static void send_execute (void *cls,
   int running;
   struct CURLMsg *msg;
   CURLMcode mret;
+  CURLcode info_res;
   struct Session * cs = NULL;
+  long http_result;
 
   http_task_send = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
@@ -1020,7 +954,9 @@ static void send_execute (void *cls,
                 break;
               /* get session for affected curl handle */
               GNUNET_assert ( msg->easy_handle != NULL );
-              cs = find_session_by_curlhandle (msg->easy_handle);
+              curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &cs);
+
+              //cs = find_session_by_curlhandle (msg->easy_handle);
               GNUNET_assert ( cs != NULL );
               GNUNET_assert ( cs->pending_outbound_msg != NULL );
               switch (msg->msg)
@@ -1043,9 +979,9 @@ static void send_execute (void *cls,
                   }
                   else
                   {
-
+                    info_res = curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &http_result);
                     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                                "Send to peer `%s' completed with code %u\n", GNUNET_i2s(&cs->partner),cs->pending_outbound_msg->http_result_code);
+                                "Send to peer `%s' completed with code %u %u\n", GNUNET_i2s(&cs->partner), http_result, cs->pending_outbound_msg->http_result_code);
 
                     curl_easy_cleanup(cs->curl_handle);
                     cs->curl_handle=NULL;
@@ -1186,51 +1122,42 @@ http_plugin_send (void *cls,
 {
   char * address;
   char * url;
-  struct Session* ses;
-  struct Session* ses_temp;
+  struct Session* cs;
   struct HTTP_Message * msg;
   struct HTTP_Message * tmp;
   int bytes_sent = 0;
+  unsigned int res;
 
   url = NULL;
   address = NULL;
   /* find session for peer */
-  ses = find_session_by_pi (target);
+  cs = GNUNET_CONTAINER_multihashmap_get (plugin->sessions, &target->hashPubKey);
   /* if (NULL != ses ) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Existing session for peer `%s' found\n", GNUNET_i2s(target));*/
-  if ( ses == NULL)
+  if ( cs == NULL)
   {
     /* create new session object */
 
-    ses = create_session((char *) addr, addrlen, NULL, 0, target);
-    ses->is_active = GNUNET_YES;
+    cs = create_session((char *) addr, addrlen, NULL, 0, target);
+    cs->is_active = GNUNET_YES;
 
     /* Insert session into linked list */
-    if ( plugin->sessions == NULL)
-    {
-      plugin->sessions = ses;
-      plugin->session_count = 1;
-    }
-    ses_temp = plugin->sessions;
-    while ( ses_temp->next != NULL )
-    {
-      ses_temp = ses_temp->next;
-    }
-    if (ses_temp != ses )
-    {
-      ses_temp->next = ses;
-      plugin->session_count++;
-    }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"New Session `%s' inserted, count %u\n", GNUNET_i2s(target), plugin->session_count);
+    res = GNUNET_CONTAINER_multihashmap_put ( plugin->sessions,
+                                        &cs->partner.hashPubKey,
+                                        cs,
+                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+
+    if (res == GNUNET_OK)
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "New Session `%s' inserted\n", GNUNET_i2s(target));
   }
-  if (ses != NULL)
+  if (cs != NULL)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Session `%s' found, count %u\n", GNUNET_i2s(target), plugin->session_count);
+                "Session `%s' found\n", GNUNET_i2s(target));
 
   GNUNET_assert (addr!=NULL);
   unsigned int port;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: len `%u'\n",addrlen);
-  if (ses->addr_out != NULL) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"have addr out!!!!'\n");
+  if (cs->addr_out != NULL) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"have addr out!!!!'\n");
   if (addrlen == (sizeof (struct IPv4HttpAddress)))
   {
     address = GNUNET_malloc(INET_ADDRSTRLEN + 1);
@@ -1267,11 +1194,11 @@ http_plugin_send (void *cls,
   msg->transmit_cont_cls = cont_cls;
   memcpy (msg->buf,msgbuf, msgbuf_size);
   /* insert created message in list of pending messages */
-  if (ses->pending_outbound_msg == NULL)
+  if (cs->pending_outbound_msg == NULL)
   {
-    ses->pending_outbound_msg = msg;
+    cs->pending_outbound_msg = msg;
   }
-  tmp = ses->pending_outbound_msg;
+  tmp = cs->pending_outbound_msg;
   while ( NULL != tmp->next)
   {
     tmp = tmp->next;
@@ -1282,9 +1209,9 @@ http_plugin_send (void *cls,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: sending %u bytes of data from peer `%4.4s' to peer `%s'\n",msgbuf_size,(char *) &my_ascii_hash_ident,GNUNET_i2s(target));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: url `%s'\n",url);
-  if (msg == ses->pending_outbound_msg)
+  if (msg == cs->pending_outbound_msg)
   {
-    bytes_sent = send_select_init (ses);
+    bytes_sent = send_select_init (cs);
     return bytes_sent;
   }
   return msgbuf_size;
@@ -1548,6 +1475,35 @@ process_interfaces (void *cls,
   return GNUNET_OK;
 }
 
+int hashMapFreeIterator (void *cls, const GNUNET_HashCode *key, void *value)
+{
+  struct Session * cs = value;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Freeing session for peer `%s'\n",GNUNET_i2s(&cs->partner));
+
+  /* freeing messages */
+  struct HTTP_Message *cur;
+  struct HTTP_Message *tmp;
+  cur = cs->pending_outbound_msg;
+
+  while (cur != NULL)
+  {
+    tmp = cur->next;
+    GNUNET_free_non_null(cur->dest_url);
+    GNUNET_free_non_null (cur->buf);
+    GNUNET_free (cur);
+    cur = tmp;
+  }
+  GNUNET_SERVER_mst_destroy (cs->msgtok);
+  GNUNET_free (cs->pending_inbound_msg->buf);
+  GNUNET_free (cs->pending_inbound_msg);
+  GNUNET_free_non_null (cs->addr_in);
+  GNUNET_free_non_null (cs->addr_out);
+  GNUNET_free (cs);
+
+  return GNUNET_YES;
+}
+
 /**
  * Exit point from the plugin.
  */
@@ -1556,8 +1512,6 @@ libgnunet_plugin_transport_http_done (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
-  struct Session * cs;
-  struct Session * cs_next;
   CURLMcode mret;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Unloading http plugin...\n");
@@ -1592,37 +1546,11 @@ libgnunet_plugin_transport_http_done (void *cls)
   }
 
   /* free all sessions */
-  cs = plugin->sessions;
+  GNUNET_CONTAINER_multihashmap_iterate (plugin->sessions,
+                                         &hashMapFreeIterator,
+                                         NULL);
 
-  while ( NULL != cs)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Freeing session for peer `%s'\n",GNUNET_i2s(&cs->partner));
-
-      cs_next = cs->next;
-
-      /* freeing messages */
-      struct HTTP_Message *cur;
-      struct HTTP_Message *tmp;
-      cur = cs->pending_outbound_msg;
-
-      while (cur != NULL)
-      {
-         tmp = cur->next;
-         GNUNET_free_non_null(cur->dest_url);
-         GNUNET_free_non_null (cur->buf);
-         GNUNET_free (cur);
-         cur = tmp;
-      }
-      GNUNET_SERVER_mst_destroy (cs->msgtok);
-      GNUNET_free (cs->pending_inbound_msg->buf);
-      GNUNET_free (cs->pending_inbound_msg);
-      GNUNET_free_non_null (cs->addr_in);
-      GNUNET_free_non_null (cs->addr_out);
-      GNUNET_free (cs);
-
-      plugin->session_count--;
-      cs = cs_next;
-    }
+  GNUNET_CONTAINER_multihashmap_destroy (plugin->sessions);
 
   mret = curl_multi_cleanup(multi_handle);
   if ( CURLM_OK != mret)
@@ -1735,6 +1663,7 @@ libgnunet_plugin_transport_http_init (void *cls)
     return NULL;
   }
 
+  plugin->sessions = GNUNET_CONTAINER_multihashmap_create (10);
   GNUNET_OS_network_interfaces_list (&process_interfaces, plugin);
 
   return api;
