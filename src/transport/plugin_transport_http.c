@@ -279,53 +279,48 @@ struct Plugin
    * Hashmap for all existing sessions.
    */
   struct GNUNET_CONTAINER_MultiHashMap *sessions;
+
+  /**
+   * Daemon for listening for new IPv4 connections.
+   */
+  struct MHD_Daemon *http_daemon_v4;
+
+  /**
+   * Daemon for listening for new IPv6connections.
+   */
+  struct MHD_Daemon *http_daemon_v6;
+
+  /**
+   * Our primary task for http daemon handling IPv4 connections
+   */
+  GNUNET_SCHEDULER_TaskIdentifier http_task_v4;
+
+  /**
+   * Our primary task for http daemon handling IPv6 connections
+   */
+  GNUNET_SCHEDULER_TaskIdentifier http_task_v6;
+
+  /**
+   * The task sending data
+   */
+  GNUNET_SCHEDULER_TaskIdentifier http_task_send;
+
+  /**
+   * cURL Multihandle
+   */
+  CURLM * multi_handle;
+
+  /**
+   * Our ASCII encoded, hashed peer identity
+   * This string is used to distinguish between connections and is added to the urls
+   */
+  struct GNUNET_CRYPTO_HashAsciiEncoded my_ascii_hash_ident;
 };
-
-/**
- * Daemon for listening for new IPv4 connections.
- */
-static struct MHD_Daemon *http_daemon_v4;
-
-/**
- * Daemon for listening for new IPv6connections.
- */
-static struct MHD_Daemon *http_daemon_v6;
-
-/**
- * Our primary task for http daemon handling IPv4 connections
- */
-static GNUNET_SCHEDULER_TaskIdentifier http_task_v4;
-
-/**
- * Our primary task for http daemon handling IPv6 connections
- */
-static GNUNET_SCHEDULER_TaskIdentifier http_task_v6;
-
-/**
- * The task sending data
- */
-static GNUNET_SCHEDULER_TaskIdentifier http_task_send;
-
 
 /**
  * Information about this plugin
  */
 static struct Plugin *plugin;
-
-/**
- * cURL Multihandle
- */
-static CURLM *multi_handle;
-
-/**
- * Our ASCII encoded, hashed peer identity
- * This string is used to distinguish between connections and is added to the urls
- */
-static struct GNUNET_CRYPTO_HashAsciiEncoded my_ascii_hash_ident;
-
-// MW: please document (which timeout is this!?)
-static struct GNUNET_TIME_Relative timeout;
-
 
 /**
  * Create a new session
@@ -552,9 +547,9 @@ accessHandlerCallback (void *cls,
       if ((*upload_data_size + cs->pending_inbound_msg->pos < cs->pending_inbound_msg->len) && (*upload_data_size + cs->pending_inbound_msg->pos <= GNUNET_SERVER_MAX_MESSAGE_SIZE))
       {
         /* copy uploaded data to buffer */
-        memcpy(&cs->pending_inbound_msg->buf[cs->pending_inbound_msg->pos],upload_data,*upload_data_size);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"%u bytes forwarded to MST \n",*upload_data_size);
+
         res = GNUNET_SERVER_mst_receive(cs->msgtok, cs, upload_data,*upload_data_size, GNUNET_YES, GNUNET_NO);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"%u bytes forwarded to MST: result: %u\n",*upload_data_size, res);
         cs->pending_inbound_msg->pos += *upload_data_size;
         *upload_data_size = 0;
         return MHD_YES;
@@ -584,6 +579,7 @@ accessHandlerCallback (void *cls,
       return MHD_YES;
     }
 
+    /* Transmission of all data complete */
     if ((*upload_data_size == 0) && (cs->is_put_in_progress == GNUNET_YES) && (cs->is_bad_request == GNUNET_NO))
     {
       send_error_to_client = GNUNET_YES;
@@ -698,20 +694,20 @@ static void http_daemon_run (void *cls,
 {
   struct MHD_Daemon *daemon_handle = cls;
 
-  if (daemon_handle == http_daemon_v4)
-    http_task_v4 = GNUNET_SCHEDULER_NO_TASK;
+  if (daemon_handle == plugin->http_daemon_v4)
+    plugin->http_task_v4 = GNUNET_SCHEDULER_NO_TASK;
 
-  if (daemon_handle == http_daemon_v6)
-    http_task_v6 = GNUNET_SCHEDULER_NO_TASK;
+  if (daemon_handle == plugin->http_daemon_v6)
+    plugin->http_task_v6 = GNUNET_SCHEDULER_NO_TASK;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
   GNUNET_assert (MHD_YES == MHD_run (daemon_handle));
-  if (daemon_handle == http_daemon_v4)
-    http_task_v4 = http_daemon_prepare (daemon_handle);
-  if (daemon_handle == http_daemon_v6)
-    http_task_v6 = http_daemon_prepare (daemon_handle);
+  if (daemon_handle == plugin->http_daemon_v4)
+    plugin->http_task_v4 = http_daemon_prepare (daemon_handle);
+  if (daemon_handle == plugin->http_daemon_v6)
+    plugin->http_task_v6 = http_daemon_prepare (daemon_handle);
   return;
 }
 
@@ -867,12 +863,12 @@ static ssize_t send_select_init (struct Session* ses )
   curl_easy_setopt(ses->curl_handle, CURLOPT_WRITEFUNCTION, send_write_callback);
   curl_easy_setopt(ses->curl_handle, CURLOPT_READDATA, ses);
   curl_easy_setopt(ses->curl_handle, CURLOPT_INFILESIZE_LARGE, (curl_off_t) msg->len);
-  curl_easy_setopt(ses->curl_handle, CURLOPT_TIMEOUT, (long) (timeout.value / 1000 ));
+  curl_easy_setopt(ses->curl_handle, CURLOPT_TIMEOUT, GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
   GNUNET_assert (CURLE_OK == curl_easy_setopt(ses->curl_handle, CURLOPT_PRIVATE, ses));
   curl_easy_setopt(ses->curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
   curl_easy_setopt(ses->curl_handle, CURLOPT_BUFFERSIZE, GNUNET_SERVER_MAX_MESSAGE_SIZE);
 
-  mret = curl_multi_add_handle(multi_handle, ses->curl_handle);
+  mret = curl_multi_add_handle(plugin->multi_handle, ses->curl_handle);
   if (mret != CURLM_OK)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -895,20 +891,20 @@ static void send_execute (void *cls,
   struct Session * cs = NULL;
   long http_result;
 
-  http_task_send = GNUNET_SCHEDULER_NO_TASK;
+  plugin->http_task_send = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
   do
     {
       running = 0;
-      mret = curl_multi_perform (multi_handle, &running);
+      mret = curl_multi_perform (plugin->multi_handle, &running);
       if (running < handles_last_run)
         {
           do
             {
 
-              msg = curl_multi_info_read (multi_handle, &running);
+              msg = curl_multi_info_read (plugin->multi_handle, &running);
               GNUNET_break (msg != NULL);
               if (msg == NULL)
                 break;
@@ -1001,7 +997,7 @@ static size_t send_prepare(struct Session* ses )
   FD_ZERO (&rs);
   FD_ZERO (&ws);
   FD_ZERO (&es);
-  mret = curl_multi_fdset (multi_handle, &rs, &ws, &es, &max);
+  mret = curl_multi_fdset (plugin->multi_handle, &rs, &ws, &es, &max);
   if (mret != CURLM_OK)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1010,7 +1006,7 @@ static size_t send_prepare(struct Session* ses )
                   curl_multi_strerror (mret));
       return -1;
     }
-  mret = curl_multi_timeout (multi_handle, &to);
+  mret = curl_multi_timeout (plugin->multi_handle, &to);
   if (mret != CURLM_OK)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1024,7 +1020,7 @@ static size_t send_prepare(struct Session* ses )
   gws = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
   GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
-  http_task_send = GNUNET_SCHEDULER_add_select (plugin->env->sched,
+  plugin->http_task_send = GNUNET_SCHEDULER_add_select (plugin->env->sched,
                                    GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                    GNUNET_SCHEDULER_NO_TASK,
                                    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 0),
@@ -1114,7 +1110,7 @@ http_plugin_send (void *cls,
                      "http://%s:%u/%s",
                      address,
                      ntohs(((struct IPv4HttpAddress *) addr)->u_port),
-                     (char *) (&my_ascii_hash_ident));
+                     (char *) (&plugin->my_ascii_hash_ident));
     GNUNET_free(address);
   }
   else if (addrlen == (sizeof (struct IPv6HttpAddress)))
@@ -1125,10 +1121,10 @@ http_plugin_send (void *cls,
                     "http://%s:%u/%s",
                     address,
                     ntohs(((struct IPv6HttpAddress *) addr)->u6_port),
-                    (char *) (&my_ascii_hash_ident));
+                    (char *) (&plugin->my_ascii_hash_ident));
     GNUNET_free(address);
   }
-  timeout = to;
+
   /* setting up message */
   msg = GNUNET_malloc (sizeof (struct HTTP_Message));
   msg->next = NULL;
@@ -1142,7 +1138,7 @@ http_plugin_send (void *cls,
   /* insert created message in double linked list of pending messages */
   GNUNET_CONTAINER_DLL_insert (cs->pending_outbound_msg_head, cs->pending_outbound_msg_tail, msg);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: sending %u bytes of data from peer `%4.4s' to peer `%s'\n",msgbuf_size,(char *) &my_ascii_hash_ident,GNUNET_i2s(target));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: sending %u bytes of data from peer `%4.4s' to peer `%s'\n",msgbuf_size,(char *) &plugin->my_ascii_hash_ident,GNUNET_i2s(target));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: url `%s'\n",url);
   if (msg == cs->pending_outbound_msg_tail)
   {
@@ -1450,33 +1446,33 @@ libgnunet_plugin_transport_http_done (void *cls)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Unloading http plugin...\n");
 
-  if ( http_task_v4 != GNUNET_SCHEDULER_NO_TASK)
+  if ( plugin->http_task_v4 != GNUNET_SCHEDULER_NO_TASK)
   {
-    GNUNET_SCHEDULER_cancel(plugin->env->sched, http_task_v4);
-    http_task_v4 = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_task_v4);
+    plugin->http_task_v4 = GNUNET_SCHEDULER_NO_TASK;
   }
 
-  if ( http_task_v6 != GNUNET_SCHEDULER_NO_TASK)
+  if ( plugin->http_task_v6 != GNUNET_SCHEDULER_NO_TASK)
   {
-    GNUNET_SCHEDULER_cancel(plugin->env->sched, http_task_v6);
-    http_task_v6 = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_task_v6);
+    plugin->http_task_v6 = GNUNET_SCHEDULER_NO_TASK;
   }
 
-  if ( http_task_send != GNUNET_SCHEDULER_NO_TASK)
+  if ( plugin->http_task_send != GNUNET_SCHEDULER_NO_TASK)
   {
-    GNUNET_SCHEDULER_cancel(plugin->env->sched, http_task_send);
-    http_task_send = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_task_send);
+    plugin->http_task_send = GNUNET_SCHEDULER_NO_TASK;
   }
 
-  if (http_daemon_v4 != NULL)
+  if (plugin->http_daemon_v4 != NULL)
   {
-    MHD_stop_daemon (http_daemon_v4);
-    http_daemon_v4 = NULL;
+    MHD_stop_daemon (plugin->http_daemon_v4);
+    plugin->http_daemon_v4 = NULL;
   }
-  if (http_daemon_v6 != NULL)
+  if (plugin->http_daemon_v6 != NULL)
   {
-    MHD_stop_daemon (http_daemon_v6);
-    http_daemon_v6 = NULL;
+    MHD_stop_daemon (plugin->http_daemon_v6);
+    plugin->http_daemon_v6 = NULL;
   }
 
   /* free all sessions */
@@ -1486,7 +1482,7 @@ libgnunet_plugin_transport_http_done (void *cls)
 
   GNUNET_CONTAINER_multihashmap_destroy (plugin->sessions);
 
-  mret = curl_multi_cleanup(multi_handle);
+  mret = curl_multi_cleanup(plugin->multi_handle);
   if ( CURLM_OK != mret)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"curl multihandle clean up failed");
 
@@ -1504,7 +1500,6 @@ libgnunet_plugin_transport_http_init (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
-  unsigned int timeout;
   struct GNUNET_TIME_Relative gn_timeout;
   long long unsigned int port;
 
@@ -1522,7 +1517,7 @@ libgnunet_plugin_transport_http_init (void *cls)
   api->address_to_string = &http_plugin_address_to_string;
 
   /* Hashing our identity to use it in URLs */
-  GNUNET_CRYPTO_hash_to_enc ( &(plugin->env->my_identity->hashPubKey), &my_ascii_hash_ident);
+  GNUNET_CRYPTO_hash_to_enc ( &(plugin->env->my_identity->hashPubKey), &plugin->my_ascii_hash_ident);
 
   /* Reading port number from config file */
   if ((GNUNET_OK !=
@@ -1543,40 +1538,37 @@ libgnunet_plugin_transport_http_init (void *cls)
   GNUNET_assert ((port > 0) && (port <= 65535));
   plugin->port_inbound = port;
   gn_timeout = GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT;
-  timeout = ( gn_timeout.value / 1000);
-  if ((http_daemon_v4 == NULL) && (http_daemon_v6 == NULL) && (port != 0))
+  if ((plugin->http_daemon_v4 == NULL) && (plugin->http_daemon_v6 == NULL) && (port != 0))
     {
-    http_daemon_v6 = MHD_start_daemon (MHD_USE_IPv6,
+    plugin->http_daemon_v6 = MHD_start_daemon (MHD_USE_IPv6,
                                        port,
                                        &acceptPolicyCallback,
                                        NULL , &accessHandlerCallback, NULL,
                                        MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
                                        MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
-                                       MHD_OPTION_CONNECTION_TIMEOUT, timeout,
-                                       /* FIXME: set correct limit */
+                                       MHD_OPTION_CONNECTION_TIMEOUT, (gn_timeout.value / 1000),
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
                                        MHD_OPTION_NOTIFY_COMPLETED, &requestCompletedCallback, NULL,
                                        MHD_OPTION_END);
-    http_daemon_v4 = MHD_start_daemon (MHD_NO_FLAG,
+    plugin->http_daemon_v4 = MHD_start_daemon (MHD_NO_FLAG,
                                        port,
                                        &acceptPolicyCallback,
                                        NULL , &accessHandlerCallback, NULL,
                                        MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
                                        MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
-                                       MHD_OPTION_CONNECTION_TIMEOUT, timeout,
-                                       /* FIXME: set correct limit */
+                                       MHD_OPTION_CONNECTION_TIMEOUT, (gn_timeout.value / 1000),
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
                                        MHD_OPTION_NOTIFY_COMPLETED, &requestCompletedCallback, NULL,
                                        MHD_OPTION_END);
     }
-  if (http_daemon_v4 != NULL)
-    http_task_v4 = http_daemon_prepare (http_daemon_v4);
-  if (http_daemon_v6 != NULL)
-    http_task_v6 = http_daemon_prepare (http_daemon_v6);
+  if (plugin->http_daemon_v4 != NULL)
+    plugin->http_task_v4 = http_daemon_prepare (plugin->http_daemon_v4);
+  if (plugin->http_daemon_v6 != NULL)
+    plugin->http_task_v6 = http_daemon_prepare (plugin->http_daemon_v6);
 
-  if (http_task_v4 != GNUNET_SCHEDULER_NO_TASK)
+  if (plugin->http_task_v4 != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD with IPv4 on port %u\n",port);
-  else if (http_task_v6 != GNUNET_SCHEDULER_NO_TASK)
+  else if (plugin->http_task_v6 != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD with IPv4 and IPv6 on port %u\n",port);
   else
   {
@@ -1586,8 +1578,8 @@ libgnunet_plugin_transport_http_init (void *cls)
   }
 
   /* Initializing cURL */
-  multi_handle = curl_multi_init();
-  if ( NULL == multi_handle )
+  plugin->multi_handle = curl_multi_init();
+  if ( NULL == plugin->multi_handle )
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
                      "http",
