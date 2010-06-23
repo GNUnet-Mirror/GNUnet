@@ -54,30 +54,6 @@
 #define USE_PEER_ID GNUNET_YES
 
 /**
- * DV Service Context stuff goes here...
- */
-
-/**
- * Handle to the core service api.
- */
-static struct GNUNET_CORE_Handle *coreAPI;
-
-/**
- * The identity of our peer.
- */
-static struct GNUNET_PeerIdentity my_identity;
-
-/**
- * The configuration for this service.
- */
-static const struct GNUNET_CONFIGURATION_Handle *cfg;
-
-/**
- * The scheduler for this service.
- */
-static struct GNUNET_SCHEDULER_Handle *sched;
-
-/**
  * How often do we check about sending out more peer information (if
  * we are connected to no peers previously).
  */
@@ -137,22 +113,6 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 #define DEFAULT_FISHEYE_DEPTH 4
 
 /**
- * The client, the DV plugin connected to us.  Hopefully
- * this client will never change, although if the plugin dies
- * and returns for some reason it may happen.
- */
-static struct GNUNET_SERVER_Client * client_handle;
-
-/**
- * Task to run when we shut down, cleaning up all our trash
- */
-static GNUNET_SCHEDULER_TaskIdentifier cleanup_task;
-
-static size_t default_dv_priority = 0;
-
-static char *my_short_id;
-
-/**
  * Linked list of messages to send to clients.
  */
 struct PendingMessage
@@ -198,42 +158,6 @@ struct PendingMessage
   const struct GNUNET_MessageHeader *msg; // msg = (cast) &pm[1]; // memcpy (&pm[1], data, len);
 
 };
-
-/**
- * Transmit handle to the plugin.
- */
-static struct GNUNET_CONNECTION_TransmitHandle * plugin_transmit_handle;
-
-/**
- * Head of DLL for client messages
- */
-static struct PendingMessage *plugin_pending_head;
-
-/**
- * Tail of DLL for client messages
- */
-static struct PendingMessage *plugin_pending_tail;
-
-/**
- * Handle to the peerinfo service
- */
-static struct GNUNET_PEERINFO_Handle *peerinfo_handle;
-
-/**
- * Transmit handle to core service.
- */
-static struct GNUNET_CORE_TransmitHandle * core_transmit_handle;
-
-/**
- * Head of DLL for core messages
- */
-static struct PendingMessage *core_pending_head;
-
-/**
- * Tail of DLL for core messages
- */
-static struct PendingMessage *core_pending_tail;
-
 
 struct FastGossipNeighborList
 {
@@ -517,6 +441,135 @@ struct DV_SendContext
   unsigned int uid;
 };
 
+struct FindDestinationContext
+{
+  unsigned int tid;
+  struct DistantNeighbor *dest;
+};
+
+struct FindIDContext
+{
+  unsigned int tid;
+  struct GNUNET_PeerIdentity *dest;
+  const struct GNUNET_PeerIdentity *via;
+};
+
+struct DisconnectContext
+{
+  /**
+   * Distant neighbor to get pid from.
+   */
+  struct DistantNeighbor *distant;
+
+  /**
+   * Direct neighbor that disconnected.
+   */
+  struct DirectNeighbor *direct;
+};
+
+struct TokenizedMessageContext
+{
+  /**
+   * Immediate sender of this message
+   */
+  const struct GNUNET_PeerIdentity *peer;
+
+  /**
+   * Distant sender of the message
+   */
+  struct DistantNeighbor *distant;
+
+  /**
+   * Uid for this set of messages
+   */
+  uint32_t uid;
+};
+
+/**
+ * Context for finding the least cost peer to send to.
+ * Transport selection can only go so far.
+ */
+struct FindLeastCostContext
+{
+  struct DistantNeighbor *target;
+  unsigned int least_cost;
+};
+
+/**
+ * Handle to the core service api.
+ */
+static struct GNUNET_CORE_Handle *coreAPI;
+
+/**
+ * Stream tokenizer to handle messages coming in from core.
+ */
+struct GNUNET_SERVER_MessageStreamTokenizer *coreMST;
+
+/**
+ * The identity of our peer.
+ */
+static struct GNUNET_PeerIdentity my_identity;
+
+/**
+ * The configuration for this service.
+ */
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
+ * The scheduler for this service.
+ */
+static struct GNUNET_SCHEDULER_Handle *sched;
+
+/**
+ * The client, the DV plugin connected to us.  Hopefully
+ * this client will never change, although if the plugin dies
+ * and returns for some reason it may happen.
+ */
+static struct GNUNET_SERVER_Client * client_handle;
+
+/**
+ * Task to run when we shut down, cleaning up all our trash
+ */
+static GNUNET_SCHEDULER_TaskIdentifier cleanup_task;
+
+static size_t default_dv_priority = 0;
+
+static char *my_short_id;
+
+/**
+ * Transmit handle to the plugin.
+ */
+static struct GNUNET_CONNECTION_TransmitHandle * plugin_transmit_handle;
+
+/**
+ * Head of DLL for client messages
+ */
+static struct PendingMessage *plugin_pending_head;
+
+/**
+ * Tail of DLL for client messages
+ */
+static struct PendingMessage *plugin_pending_tail;
+
+/**
+ * Handle to the peerinfo service
+ */
+static struct GNUNET_PEERINFO_Handle *peerinfo_handle;
+
+/**
+ * Transmit handle to core service.
+ */
+static struct GNUNET_CORE_TransmitHandle * core_transmit_handle;
+
+/**
+ * Head of DLL for core messages
+ */
+static struct PendingMessage *core_pending_head;
+
+/**
+ * Tail of DLL for core messages
+ */
+static struct PendingMessage *core_pending_tail;
 
 /**
  * Map of PeerIdentifiers to 'struct GNUNET_dv_neighbor*'s for all
@@ -545,36 +598,15 @@ static struct GNUNET_CONTAINER_Heap *neighbor_min_heap;
  */
 static struct GNUNET_CONTAINER_Heap *neighbor_max_heap;
 
+/**
+ * How far out to keep peers we learn about.
+ */
 static unsigned long long fisheye_depth;
 
+/**
+ * How many peers to store at most.
+ */
 static unsigned long long max_table_size;
-
-
-struct FindDestinationContext
-{
-  unsigned int tid;
-  struct DistantNeighbor *dest;
-};
-
-struct FindIDContext
-{
-  unsigned int tid;
-  struct GNUNET_PeerIdentity *dest;
-  const struct GNUNET_PeerIdentity *via;
-};
-
-struct DisconnectContext
-{
-  /**
-   * Distant neighbor to get pid from.
-   */
-  struct DistantNeighbor *distant;
-
-  /**
-   * Direct neighbor that disconnected.
-   */
-  struct DirectNeighbor *direct;
-};
 
 /**
  * We've been given a target ID based on the random numbers that
@@ -893,9 +925,6 @@ send_message_via (const struct GNUNET_PeerIdentity *sender,
   find_context.dest = send_context->distant_peer;
   find_context.via = recipient;
   find_context.tid = 0;
-  //specific_neighbor = GNUNET_CONTAINER_multihashmap_get(extended_neighbors, &send_context->distant_peer->hashPubKey);
-
-  //GNUNET_CONTAINER_multihashmap_iterate(extended_neighbors, &find_specific_id, &find_context);
   GNUNET_CONTAINER_multihashmap_get_multiple (extended_neighbors, &send_context->distant_peer->hashPubKey,
                                               &find_specific_id, &find_context);
 
@@ -969,18 +998,6 @@ send_message_via (const struct GNUNET_PeerIdentity *sender,
     }
   return GNUNET_YES;
 }
-
-
-/**
- * Context for finding the least cost peer to send to.
- * Transport selection can only go so far.
- */
-struct FindLeastCostContext
-{
-  struct DistantNeighbor *target;
-  unsigned int least_cost;
-};
-
 
 /**
  * Given a FindLeastCostContext, and a set
@@ -1175,6 +1192,34 @@ int checkPeerID (void *cls,
 }
 #endif
 
+
+/**
+ * Handler for messages parsed out by the tokenizer from
+ * DV DATA received for this peer.
+ *
+ * @param cls NULL
+ * @param client the TokenizedMessageContext which contains message information
+ * @param message the actual message
+ */
+void tokenized_message_handler (void *cls,
+                                void *client,
+                                const struct GNUNET_MessageHeader *message)
+{
+  struct TokenizedMessageContext *ctx = client;
+  GNUNET_break_op (ntohs (message->type) != GNUNET_MESSAGE_TYPE_DV_GOSSIP);
+  GNUNET_break_op (ntohs (message->type) != GNUNET_MESSAGE_TYPE_DV_DATA);
+  if ( (ntohs (message->type) != GNUNET_MESSAGE_TYPE_DV_GOSSIP) &&
+      (ntohs (message->type) != GNUNET_MESSAGE_TYPE_DV_DATA) )
+  {
+#if DEBUG_DV_MESSAGES
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%s: Receives %s message for me, uid %u, total size %d cost %u from %s!\n", my_short_id, "DV DATA", ctx->uid, ntohs(message->size), ctx->distant->cost, GNUNET_i2s(&ctx->distant->identity));
+#endif
+    GNUNET_assert(memcmp(ctx->peer, &ctx->distant->identity, sizeof(struct GNUNET_PeerIdentity)) != 0);
+    send_to_plugin(ctx->peer, message, ntohs(message->size), &ctx->distant->identity, ctx->distant->cost);
+  }
+}
+
 /**
  * Core handler for dv data messages.  Whatever this message
  * contains all we really have to do is rip it out of its
@@ -1202,6 +1247,7 @@ static int handle_dv_data_message (void *cls,
   struct GNUNET_PeerIdentity original_sender;
   struct GNUNET_PeerIdentity destination;
   struct FindDestinationContext fdc;
+  struct TokenizedMessageContext tkm_ctx;
 #if USE_PEER_ID
   struct CheckPeerContext checkPeerCtx;
 #endif
@@ -1210,8 +1256,9 @@ static int handle_dv_data_message (void *cls,
   int ret;
   size_t packed_message_size;
   char *cbuf;
+#if NO_MST
   size_t offset;
-
+#endif
   packed_message_size = ntohs(incoming->header.size) - sizeof(p2p_dv_MESSAGE_Data);
 
 
@@ -1292,26 +1339,41 @@ static int handle_dv_data_message (void *cls,
     {
       /* 0 == us */
       cbuf = (char *)&incoming[1];
+
+      tkm_ctx.peer = peer;
+      tkm_ctx.distant = pos;
+      tkm_ctx.uid = ntohl(incoming->uid);
+      if (GNUNET_OK != GNUNET_SERVER_mst_receive (coreMST,
+                                                  &tkm_ctx,
+                                                  cbuf,
+                                                  packed_message_size,
+                                                  GNUNET_NO,
+                                                  GNUNET_NO))
+        {
+          GNUNET_break_op(0);
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s: %s Received corrupt data, discarding!", my_short_id, "DV SERVICE");
+        }
+#if NO_MST
       offset = 0;
       while(offset < packed_message_size)
         {
           packed_message = (struct GNUNET_MessageHeader *)&cbuf[offset];
 
-#if DEBUG_DV_MESSAGES
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "%s: Receives %s message for me, uid %u, size %d type %d, cost %u from %s!\n", my_short_id, "DV DATA", ntohl(incoming->uid), ntohs(packed_message->size), ntohs(packed_message->type), pos->cost, GNUNET_i2s(&pos->identity));
-#endif
           GNUNET_break_op (ntohs (packed_message->type) != GNUNET_MESSAGE_TYPE_DV_GOSSIP);
           GNUNET_break_op (ntohs (packed_message->type) != GNUNET_MESSAGE_TYPE_DV_DATA);
           if ( (ntohs (packed_message->type) != GNUNET_MESSAGE_TYPE_DV_GOSSIP) &&
               (ntohs (packed_message->type) != GNUNET_MESSAGE_TYPE_DV_DATA) )
           {
+#if DEBUG_DV_MESSAGES
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                        "%s: Receives %s message(s) for me, uid %u, total size %d cost %u from %s!\n", my_short_id, "DV DATA", ntohl(incoming->uid), ntohs(packed_message->size), pos->cost, GNUNET_i2s(&pos->identity));
+#endif
             GNUNET_assert(memcmp(peer, &pos->identity, sizeof(struct GNUNET_PeerIdentity)) != 0);
             send_to_plugin(peer, packed_message, ntohs(packed_message->size), &pos->identity, pos->cost);
           }
           offset += ntohs(packed_message->size);
         }
-
+#endif
       return GNUNET_OK;
     }
   else
@@ -1966,7 +2028,7 @@ shutdown_task (void *cls,
 
   GNUNET_CORE_disconnect (coreAPI);
   GNUNET_PEERINFO_disconnect(peerinfo_handle);
-
+  GNUNET_SERVER_mst_destroy(coreMST);
   GNUNET_free_non_null(my_short_id);
 #if DEBUG_DV
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "CORE_DISCONNECT completed\n");
@@ -2828,6 +2890,10 @@ run (void *cls,
 
   if (coreAPI == NULL)
     return;
+
+  coreMST = GNUNET_SERVER_mst_create (GNUNET_SERVER_MAX_MESSAGE_SIZE,
+                                      &tokenized_message_handler,
+                                      NULL);
 
    peerinfo_handle = GNUNET_PEERINFO_connect(sched, cfg);
 
