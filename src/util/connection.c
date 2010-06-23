@@ -622,6 +622,7 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
       GNUNET_SCHEDULER_cancel (h->sched, h->nth.timeout_task);
       h->nth.timeout_task = GNUNET_SCHEDULER_NO_TASK;
       h->ccs -= COCO_TRANSMIT_READY;
+      GNUNET_assert (h->write_task == GNUNET_SCHEDULER_NO_TASK);
       h->write_task = GNUNET_SCHEDULER_add_after (h->sched,
                                                   GNUNET_SCHEDULER_NO_TASK,
                                                   &transmit_ready, h);
@@ -680,6 +681,7 @@ connect_success_continuation (struct GNUNET_CONNECTION_Handle *h)
       GNUNET_SCHEDULER_cancel (h->sched, h->nth.timeout_task);
       h->nth.timeout_task = GNUNET_SCHEDULER_NO_TASK;
       h->ccs -= COCO_TRANSMIT_READY;
+      GNUNET_assert (h->write_task == GNUNET_SCHEDULER_NO_TASK);
       h->write_task =
         GNUNET_SCHEDULER_add_write_net (h->sched,
                                         GNUNET_TIME_absolute_get_remaining
@@ -1605,6 +1607,9 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle
   if ((sock->sock == NULL) &&
       (sock->ap_head == NULL) && (sock->dns_active == NULL))
     {
+      if (sock->write_task != GNUNET_SCHEDULER_NO_TASK)
+	GNUNET_SCHEDULER_cancel (sock->sched,
+				 sock->write_task);
       sock->write_task = GNUNET_SCHEDULER_add_now (sock->sched,
 						   &connect_error, sock);
       return &sock->nth;
