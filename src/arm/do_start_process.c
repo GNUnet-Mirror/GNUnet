@@ -7,12 +7,14 @@
  * limitation that it does NOT allow passing command line arguments
  * with spaces to the new process.
  *
+ * @param lsocks array of listen sockets to dup starting at fd3 (systemd-style), or NULL
  * @param first_arg first argument for argv (may be an empty string)
  * @param ... more arguments, NULL terminated
  * @return PID of the started process, -1 on error
  */
 static pid_t
-do_start_process (const char *first_arg, ...)
+do_start_process (const int *lsocks,
+		  const char *first_arg, ...)
 {
   va_list ap;
   char **argv;
@@ -86,7 +88,7 @@ do_start_process (const char *first_arg, ...)
   while (NULL != (arg = (va_arg (ap, const char*))));
   va_end (ap);
   argv[argv_size] = NULL;
-  pid = GNUNET_OS_start_process_v (argv[0], argv);
+  pid = GNUNET_OS_start_process_v (lsocks, argv[0], argv);
   while (argv_size > 0)
     GNUNET_free (argv[--argv_size]);
   GNUNET_free (argv);

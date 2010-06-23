@@ -27,8 +27,17 @@
 #ifndef GNUNET_SERVICE_ARM__H
 #define GNUNET_SERVICE_ARM__H
 
-void start_service (struct GNUNET_SERVER_Client *client,
-		    const char *servicename);
+/**
+ * Start the specified service.
+ *
+ * @param client who is asking for this
+ * @param servicename name of the service to start 
+ * @param lsocks -1 terminated list of listen sockets to pass (systemd style), or NULL
+ * @return GNUNET_OK on success
+ */
+int start_service (struct GNUNET_SERVER_Client *client,
+		   const char *servicename,
+		   const int *lsocks);
 
 /**
  * Stop listening for connections to a service.

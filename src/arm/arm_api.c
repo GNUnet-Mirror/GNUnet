@@ -434,7 +434,8 @@ arm_service_report (void *cls,
       GNUNET_free (lopostfix);
       return;
     }
-  pid = do_start_process (loprefix,
+  pid = do_start_process (NULL,
+			  loprefix,
 			  binary,
 			  "-c", config,
 #if DEBUG_ARM

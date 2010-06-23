@@ -329,16 +329,43 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
 /**
  * Start a process.
  *
+ * @param lsocks array of listen sockets to dup systemd-style (or NULL);
+ *         must be NULL on platforms where dup is not supported
  * @param filename name of the binary
  * @param argv NULL-terminated list of arguments to the process
  * @return process ID of the new process, -1 on error
  */
 pid_t
-GNUNET_OS_start_process_v (const char *filename, char *const argv[])
+GNUNET_OS_start_process_v (const int *lsocks,
+			   const char *filename, char *const argv[])
 {
 #ifndef MINGW
   pid_t ret;
+  char lpid[16];
+  char fds[16];
+  int i;
+  int j;
+  int k;
+  int tgt;
+  int flags;
+  int *lscp;
+  unsigned int ls;    
 
+  lscp = NULL;
+  ls = 0;
+  if (lsocks != NULL)
+    {
+      i = 0;
+      while (-1 != (k = lsocks[i++]))
+	{
+	  flags = fcntl (k, F_GETFD);
+	  GNUNET_assert (flags >= 0);
+	  flags &= ~FD_CLOEXEC;
+	  (void) fcntl (k, F_SETFD, flags);
+	  GNUNET_array_append (lscp, ls, k);
+	}
+      GNUNET_array_append (lscp, ls, -1);
+    }
 #if HAVE_WORKING_VFORK
   ret = vfork ();
 #else
@@ -366,6 +393,48 @@ GNUNET_OS_start_process_v (const char *filename, char *const argv[])
         }
       return ret;
     }
+  if (lscp != NULL)
+    {
+      /* read systemd documentation... */
+      GNUNET_snprintf (lpid, sizeof (lpid), "%u", getpid());
+      setenv ("LISTEN_PID", lpid, 1);      
+      i = 0;
+      tgt = 3;
+      while (-1 != lscp[i])
+	{
+	  j = i + 1;
+	  while (-1 != lscp[j])
+	    {
+	      if (lscp[j] == tgt)
+		{
+		  /* dup away */
+		  k = dup (lscp[j]);
+		  GNUNET_assert (-1 != k);
+		  GNUNET_assert (0 == close (lscp[j]));
+		  lscp[j] = k;
+		  break;
+		}
+	      j++;
+	    }
+	  if (lscp[i] != tgt)
+	    {
+	      /* Bury any existing FD, no matter what; they should all be closed
+		 on exec anyway and the important onces have been dup'ed away */
+	      (void) close (tgt);	      
+	      GNUNET_assert (-1 != dup2 (lscp[i], tgt));
+	    }
+	  /* set close-on-exec flag */
+	  flags = fcntl (tgt, F_GETFD);
+	  GNUNET_assert (flags >= 0);
+	  flags &= ~FD_CLOEXEC;
+	  (void) fcntl (tgt, F_SETFD, flags);
+	  tgt++;
+	  i++;
+	}
+      GNUNET_snprintf (fds, sizeof (fds), "%u", i);
+      setenv ("LISTEN_FDS", fds, 1); 
+    }
+  GNUNET_array_grow (lscp, ls, 0);
   execvp (filename, argv);
   GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "execvp", filename);
   _exit (1);
@@ -379,6 +448,7 @@ GNUNET_OS_start_process_v (const char *filename, char *const argv[])
   char *non_const_filename = NULL;
   int filenamelen = 0;
 
+  GNUNET_assert (lsocks == NULL);
   /* Count the number of arguments */
   arg = argv;
   while (*arg)

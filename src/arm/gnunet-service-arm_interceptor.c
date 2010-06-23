@@ -847,7 +847,6 @@ stop_listening (const char *serviceName)
   return ret;
 }
 
-
 /**
  * First connection has come to the listening socket associated with the service,
  * create the service in order to relay the incoming connection to it
@@ -856,14 +855,15 @@ stop_listening (const char *serviceName)
  * @param tc context 
  */
 static void
-acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+#if MINGW 
+static void
+accept_and_forward (struct ServiceListeningInfo *serviceListeningInfo)
 {
-  struct ServiceListeningInfo *serviceListeningInfo = cls;
   struct ForwardedConnection *fc;
 
-  serviceListeningInfo->acceptTask = GNUNET_SCHEDULER_NO_TASK;
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
-    return;
   fc = GNUNET_malloc (sizeof (struct ForwardedConnection));
   fc->listen_info = serviceListeningInfo;
   fc->service_to_client_bufferPos = fc->service_to_client_buffer;
@@ -879,6 +879,9 @@ acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 		  serviceListeningInfo->serviceName,
 		  STRERROR (errno));
       GNUNET_free (fc);
+      GNUNET_CONTAINER_DLL_insert (serviceListeningInfoList_head,
+				   serviceListeningInfoList_tail, 
+				   serviceListeningInfo); 
       serviceListeningInfo->acceptTask =
 	GNUNET_SCHEDULER_add_read_net (scheduler,
 				       GNUNET_TIME_UNIT_FOREVER_REL, 
@@ -889,10 +892,7 @@ acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
   GNUNET_break (GNUNET_OK ==
 		GNUNET_NETWORK_socket_close (serviceListeningInfo->listeningSocket));
-  GNUNET_CONTAINER_DLL_remove (serviceListeningInfoList_head,
-			       serviceListeningInfoList_tail, 
-			       serviceListeningInfo);
-  start_service (NULL, serviceListeningInfo->serviceName);
+  start_service (NULL, serviceListeningInfo->serviceName, NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
 	      _("Service `%s' started\n"),
 	      fc->listen_info->serviceName);
@@ -908,6 +908,72 @@ acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     = GNUNET_SCHEDULER_add_now (scheduler,
 				&start_forwarding,
 				fc);
+}
+#endif
+
+
+/**
+ * First connection has come to the listening socket associated with the service,
+ * create the service in order to relay the incoming connection to it
+ * 
+ * @param cls callback data, struct ServiceListeningInfo describing a listen socket
+ * @param tc context 
+ */
+static void
+acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct ServiceListeningInfo *sli = cls;
+  struct ServiceListeningInfo *pos;
+  struct ServiceListeningInfo *next;
+  int *lsocks;
+  unsigned int ls;
+
+  sli->acceptTask = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+    return;
+  GNUNET_CONTAINER_DLL_remove (serviceListeningInfoList_head,
+			       serviceListeningInfoList_tail, 
+			       sli);  
+#ifndef MINGW
+  lsocks = NULL;
+  ls = 0;
+  next = serviceListeningInfoList_head;
+  while (NULL != (pos = next))
+    {
+      next = pos->next;
+      if (0 == strcmp (pos->serviceName,
+		       sli->serviceName))
+	{
+	  GNUNET_array_append (lsocks, ls, 
+			       GNUNET_NETWORK_get_fd (pos->listeningSocket));	  
+	  GNUNET_free (pos->listeningSocket); /* deliberately no closing! */
+	  GNUNET_free (pos->service_addr);
+	  GNUNET_free (pos->serviceName);
+	  GNUNET_SCHEDULER_cancel (scheduler,
+				   pos->acceptTask);
+	  GNUNET_CONTAINER_DLL_remove (serviceListeningInfoList_head,
+				       serviceListeningInfoList_tail, 
+				       pos);
+	  GNUNET_free (pos);
+	}
+    }
+  GNUNET_array_append (lsocks, ls, 
+		       GNUNET_NETWORK_get_fd (sli->listeningSocket));
+  GNUNET_free (sli->listeningSocket); /* deliberately no closing! */
+  GNUNET_free (sli->service_addr);
+  GNUNET_array_append (lsocks, ls, -1);
+  start_service (NULL, 
+		 sli->serviceName,
+		 lsocks);
+  ls = 0;
+  while (lsocks[ls] != -1)
+    GNUNET_break (0 == close (lsocks[ls++]));      
+  GNUNET_array_grow (lsocks, ls, 0);
+  GNUNET_free (sli->serviceName);
+  GNUNET_free (sli); 
+#else
+  accept_and_forward (sli);  
+#endif
 }
 
 

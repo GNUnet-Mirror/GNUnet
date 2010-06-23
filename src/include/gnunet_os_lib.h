@@ -216,12 +216,15 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
 /**
  * Start a process.
  *
+ * @param lsocks array of listen sockets to dup systemd-style (or NULL);
+ *         must be NULL on platforms where dup is not supported
  * @param filename name of the binary
  * @param argv NULL-terminated list of arguments to the process,
  *             including the process name as the first argument
  * @return process ID of the new process, -1 on error
  */
-pid_t GNUNET_OS_start_process_v (const char *filename, char *const argv[]);
+pid_t GNUNET_OS_start_process_v (const int *lsocks,
+				 const char *filename, char *const argv[]);
 
 
 /**

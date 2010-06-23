@@ -344,7 +344,8 @@ free_entry (struct ServiceList *pos)
  * @param sl identifies service to start
  */
 static void
-start_process (struct ServiceList *sl)
+start_process (struct ServiceList *sl,
+	       const int *lsocks)
 {
   char *loprefix;
   char *options;
@@ -415,14 +416,16 @@ start_process (struct ServiceList *sl)
 	      sl->name, sl->binary, sl->config);
 #endif
   if (GNUNET_YES == use_debug)
-    sl->pid = do_start_process (loprefix,
+    sl->pid = do_start_process (lsocks,
+				loprefix,				
 				sl->binary,
 				"-c", sl->config,
 				"-L", "DEBUG",
 				options,
 				NULL);
   else
-    sl->pid = do_start_process (loprefix,
+    sl->pid = do_start_process (lsocks,
+				loprefix,
 				sl->binary,
 				"-c", sl->config,
 				options,
@@ -442,9 +445,13 @@ start_process (struct ServiceList *sl)
  *
  * @param client who is asking for this
  * @param servicename name of the service to start
+ * @param lsocks -1 terminated list of listen sockets to pass (systemd style), or NULL
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-void
-start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
+int
+start_service (struct GNUNET_SERVER_Client *client, 
+	       const char *servicename,
+	       const int *lsocks)
 {
   struct ServiceList *sl;
   char *binary;
@@ -457,7 +464,7 @@ start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
 		  _("ARM is shutting down, service `%s' not started.\n"),
 		  servicename);
       signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
-      return;
+      return GNUNET_SYSERR;
     }
   sl = find_name (servicename);
   if (sl != NULL)
@@ -467,7 +474,7 @@ start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
       sl->next = running;
       running = sl;
       signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_UP);
-      return;
+      return GNUNET_SYSERR;
     }
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
@@ -477,7 +484,7 @@ start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
 		  _("Binary implementing service `%s' not known!\n"),
 		  servicename);
       signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
-      return;
+      return GNUNET_SYSERR;
     }
   if ((GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_filename (cfg,
@@ -492,7 +499,7 @@ start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
       signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_DOWN);
       GNUNET_free (binary);
       GNUNET_free_non_null (config);
-      return;
+      return GNUNET_SYSERR;
     }
   (void) stop_listening (servicename);
   sl = GNUNET_malloc (sizeof (struct ServiceList));
@@ -505,9 +512,10 @@ start_service (struct GNUNET_SERVER_Client *client, const char *servicename)
   sl->restartAt = GNUNET_TIME_UNIT_FOREVER_ABS;
 
   running = sl;
-  start_process (sl);
+  start_process (sl, lsocks);
   if (NULL != client)
     signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_UP);
+  return GNUNET_OK;
 }
 
 
@@ -610,7 +618,7 @@ handle_start (void *cls,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
-  start_service (client, servicename);
+  start_service (client, servicename, NULL);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -776,7 +784,7 @@ delayed_restart_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	    {
 	      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 			  _("Restarting service `%s'.\n"), pos->name);
-	      start_process (pos);
+	      start_process (pos, NULL);
 	    }
 	  else
 	    {
@@ -1071,7 +1079,7 @@ run (void *cls,
 	  pos = strtok (defaultservices, " ");
 	  while (pos != NULL)
 	    {
-	      start_service (NULL, pos);
+	      start_service (NULL, pos, NULL);
 	      pos = strtok (NULL, " ");
 	    }
 	}

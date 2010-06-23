@@ -1,3 +1,8 @@
+Wed Jun 23 16:34:38 CEST 2010
+	Added support for systemd-compatible passing of listen-sockets
+	by ARM to services as well as systemd compatibility for gnunet-service-arm
+	itself.  At least for non-MINGW systems this should work.
+
 Sat Jun  5 18:08:39 CEST 2010
 	Added support for UNIX domain sockets, code also defaults to
 	them when available.

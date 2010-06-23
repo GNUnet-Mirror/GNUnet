@@ -199,6 +199,7 @@ int GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 ssize_t GNUNET_NETWORK_socket_send (const struct GNUNET_NETWORK_Handle *desc,
                                     const void *buffer, size_t length);
 
+
 /**
  * Send data to a particular destination (always non-blocking).
  * This function only works for UDP sockets.
