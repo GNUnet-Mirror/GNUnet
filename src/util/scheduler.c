@@ -31,6 +31,13 @@
 #include "gnunet_time_lib.h"
 #ifdef LINUX
 #include "execinfo.h"
+
+/**
+ * Use lsof to generate file descriptor reports on select error?
+ * (turn of for stable releases).
+ */
+#define USE_LSOF GNUNET_YES
+
 /**
  * Obtain trace information for all scheduler calls that schedule tasks.
  */
@@ -658,6 +665,15 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
           if (errno == EINTR)
             continue;
           GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "select");
+#ifndef MINGW
+#if USE_LSOF
+	  char lsof[512];
+	  snprintf (lsof, sizeof (lsof), "lsof -p %d", getpid());
+	  close (1);
+	  dup2 (2, 1);
+	  system (lsof);		  
+#endif
+#endif
           abort ();
 	  break;
         }
