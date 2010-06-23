@@ -395,6 +395,60 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
  * @param sched scheduler to use
  * @param access function for access control
  * @param access_cls closure for access
+ * @param lsocks NULL-terminated array of listen sockets
+ * @param maxbuf maximum write buffer size for accepted sockets
+ * @param idle_timeout after how long should we timeout idle connections?
+ * @param require_found if YES, connections sending messages of unknown type
+ *        will be closed
+ * @return handle for the new server, NULL on error
+ *         (typically, "port" already in use)
+ */
+struct GNUNET_SERVER_Handle *
+GNUNET_SERVER_create_with_sockets (struct GNUNET_SCHEDULER_Handle *sched,
+				   GNUNET_CONNECTION_AccessCheck access, void *access_cls,
+				   struct GNUNET_NETWORK_Handle **lsocks,
+				   size_t maxbuf,
+				   struct GNUNET_TIME_Relative
+				   idle_timeout,
+				   int require_found)
+{
+  struct GNUNET_SERVER_Handle *ret;
+  struct GNUNET_NETWORK_FDSet *r;
+  int i;
+
+  ret = GNUNET_malloc (sizeof (struct GNUNET_SERVER_Handle));
+  ret->sched = sched;
+  ret->maxbuf = maxbuf;
+  ret->idle_timeout = idle_timeout;
+  ret->listen_sockets = lsocks;
+  ret->access = access;
+  ret->access_cls = access_cls;
+  ret->require_found = require_found;
+  if (lsocks != NULL)
+    {
+      r = GNUNET_NETWORK_fdset_create ();
+      i = 0;
+      while (NULL != ret->listen_sockets[i])
+        GNUNET_NETWORK_fdset_set (r, ret->listen_sockets[i++]);
+      ret->listen_task = GNUNET_SCHEDULER_add_select (sched,
+                                                      GNUNET_SCHEDULER_PRIORITY_HIGH,
+                                                      GNUNET_SCHEDULER_NO_TASK,
+                                                      GNUNET_TIME_UNIT_FOREVER_REL,
+                                                      r, NULL,
+                                                      &process_listen_socket,
+                                                      ret);
+      GNUNET_NETWORK_fdset_destroy (r);
+    }
+  return ret;
+}
+
+
+/**
+ * Create a new server.
+ *
+ * @param sched scheduler to use
+ * @param access function for access control
+ * @param access_cls closure for access
  * @param serverAddr address to listen on (including port), NULL terminated array
  * @param socklen length of serverAddr
  * @param maxbuf maximum write buffer size for accepted sockets
@@ -414,9 +468,7 @@ GNUNET_SERVER_create (struct GNUNET_SCHEDULER_Handle *sched,
                       struct GNUNET_TIME_Relative
                       idle_timeout, int require_found)
 {
-  struct GNUNET_SERVER_Handle *ret;
   struct GNUNET_NETWORK_Handle **lsocks;
-  struct GNUNET_NETWORK_FDSet *r;
   unsigned int i;
   unsigned int j;
 
@@ -448,30 +500,12 @@ GNUNET_SERVER_create (struct GNUNET_SCHEDULER_Handle *sched,
     {
       lsocks = NULL;
     }
-  ret = GNUNET_malloc (sizeof (struct GNUNET_SERVER_Handle));
-  ret->sched = sched;
-  ret->maxbuf = maxbuf;
-  ret->idle_timeout = idle_timeout;
-  ret->listen_sockets = lsocks;
-  ret->access = access;
-  ret->access_cls = access_cls;
-  ret->require_found = require_found;
-  if (lsocks != NULL)
-    {
-      r = GNUNET_NETWORK_fdset_create ();
-      i = 0;
-      while (NULL != ret->listen_sockets[i])
-        GNUNET_NETWORK_fdset_set (r, ret->listen_sockets[i++]);
-      ret->listen_task = GNUNET_SCHEDULER_add_select (sched,
-                                                      GNUNET_SCHEDULER_PRIORITY_HIGH,
-                                                      GNUNET_SCHEDULER_NO_TASK,
-                                                      GNUNET_TIME_UNIT_FOREVER_REL,
-                                                      r, NULL,
-                                                      &process_listen_socket,
-                                                      ret);
-      GNUNET_NETWORK_fdset_destroy (r);
-    }
-  return ret;
+  return GNUNET_SERVER_create_with_sockets (sched,
+					    access, access_cls,
+					    lsocks,
+					    maxbuf, 
+					    idle_timeout,
+					    require_found);
 }
 
 

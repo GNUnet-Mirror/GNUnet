@@ -308,6 +308,29 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
 
 
 /**
+ * Box a native socket (and check that it is a socket).
+ *
+ * @param fd socket to box
+ * @return NULL on error (including not supported on target platform)
+ */
+struct GNUNET_NETWORK_Handle *
+GNUNET_NETWORK_socket_box_native (int fd)
+{
+#if MINGW
+  return NULL;
+#else
+  struct GNUNET_NETWORK_Handle *ret;
+
+  if (fcntl (fd, F_GETFD) < 0)
+    return NULL; /* invalid FD */
+  ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle)); 
+  ret->fd = fd;
+  return ret;
+#endif
+}
+
+
+/**
  * Connect a socket
  * @param desc socket
  * @param address peer address

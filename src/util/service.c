@@ -435,7 +435,8 @@ struct GNUNET_SERVICE_Context
   struct GNUNET_SCHEDULER_Handle *sched;
 
   /**
-   * NULL-terminated array of addresses to bind to.
+   * NULL-terminated array of addresses to bind to, NULL if we got pre-bound
+   * listen sockets.
    */
   struct sockaddr **addrs;
 
@@ -483,6 +484,16 @@ struct GNUNET_SERVICE_Context
   struct GNUNET_SERVER_MessageHandler *my_handlers;
 
   /**
+   * Array of the lengths of the entries in addrs.
+   */
+  socklen_t * addrlens;
+
+  /**
+   * NULL-terminated array of listen sockets we should take over.
+   */
+  struct GNUNET_NETWORK_Handle **lsocks;
+
+  /**
    * Idle timeout for server.
    */
   struct GNUNET_TIME_Relative timeout;
@@ -514,11 +525,6 @@ struct GNUNET_SERVICE_Context
    * Our options.
    */
   enum GNUNET_SERVICE_Options options;
-
-  /**
-   * Array of the lengths of the entries in addrs.
-   */
-  socklen_t * addrlens;
 
 };
 
@@ -1085,6 +1091,11 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
   unsigned long long maxbuf;
   struct GNUNET_TIME_Relative idleout;
   int tolerant;
+  const char *lpid;
+  unsigned int pid;
+  const char *nfds;
+  unsigned int cnt;
+  int flags;
 
   if (GNUNET_CONFIGURATION_have_value (sctx->cfg,
                                        sctx->serviceName, "TIMEOUT"))
@@ -1140,11 +1151,45 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
   else
     tolerant = GNUNET_NO;
 
-  if (GNUNET_SYSERR ==
-      GNUNET_SERVICE_get_server_addresses (sctx->serviceName,
-					   sctx->cfg,
-					   &sctx->addrs,
-					   &sctx->addrlens))
+#ifndef MINGW
+  errno = 0;
+  if ( (NULL != (lpid = getenv ("LISTEN_PID"))) &&
+       (1 == sscanf ("%u", lpid, &pid)) &&
+       (getpid () == (pid_t) pid) &&
+       (NULL != (nfds = getenv ("LISTEN_FDS"))) &&
+       (1 == sscanf ("%u", nfds, &cnt)) &&
+       (cnt > 0) )
+    {
+      sctx->lsocks = GNUNET_malloc (sizeof(struct GNUNET_NETWORK_Handle*) * (cnt+1));
+      while (0 < cnt--)
+	{
+	  flags = fcntl (3 + cnt, F_GETFD);	 
+	  if ( (flags < 0) ||
+	       (0 != (flags & FD_CLOEXEC)) ||
+	       (NULL == (sctx->lsocks[cnt] = GNUNET_NETWORK_socket_box_native (3 + cnt))) )
+	    {
+	      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+			  _("Could not access pre-bound socket %u, will try to bind myself\n"),
+			  (unsigned int) 3 +cnt);
+	      cnt++;
+	      while (sctx->lsocks[cnt] != NULL)
+		GNUNET_NETWORK_socket_close (sctx->lsocks[cnt++]);
+	      GNUNET_free (sctx->lsocks);
+	      sctx->lsocks = NULL;
+	      break;
+	    }
+	}
+      unsetenv ("LISTEN_PID");
+      unsetenv ("LISTEN_FDS");
+    }
+#endif
+
+  if ( (sctx->lsocks == NULL) &&
+       (GNUNET_SYSERR ==
+	GNUNET_SERVICE_get_server_addresses (sctx->serviceName,
+					     sctx->cfg,
+					     &sctx->addrs,
+					     &sctx->addrlens)) )
     return GNUNET_SYSERR;
   sctx->require_found = tolerant ? GNUNET_NO : GNUNET_YES;
   sctx->maxbuf = (size_t) maxbuf;
@@ -1265,23 +1310,34 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned int i;
 
   sctx->sched = tc->sched;
-  sctx->server = GNUNET_SERVER_create (tc->sched,
-                                       &check_access,
-                                       sctx,
-                                       sctx->addrs,
-                                       sctx->addrlens,
-                                       sctx->maxbuf,
-                                       sctx->timeout, sctx->require_found);
+  if (sctx->lsocks != NULL)
+    sctx->server = GNUNET_SERVER_create_with_sockets (tc->sched,
+						      &check_access,
+						      sctx,
+						      sctx->lsocks,
+						      sctx->maxbuf,
+						      sctx->timeout, sctx->require_found);
+  else
+    sctx->server = GNUNET_SERVER_create (tc->sched,
+					 &check_access,
+					 sctx,
+					 sctx->addrs,
+					 sctx->addrlens,
+					 sctx->maxbuf,
+					 sctx->timeout, sctx->require_found);
   if (sctx->server == NULL)
     {
-      i = 0;
-      while (sctx->addrs[i] != NULL)
+      if (sctx->addrs != NULL)
 	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		      _("Failed to start `%s' at `%s'\n"),
-		      sctx->serviceName, 
-		      GNUNET_a2s (sctx->addrs[i], sctx->addrlens[i]));
-	  i++;
+	  i = 0;
+	  while (sctx->addrs[i] != NULL)
+	    {
+	      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+			  _("Failed to start `%s' at `%s'\n"),
+			  sctx->serviceName, 
+			  GNUNET_a2s (sctx->addrs[i], sctx->addrlens[i]));
+	      i++;
+	    }
 	}
       sctx->ret = GNUNET_SYSERR;
       return;
@@ -1307,14 +1363,17 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       sctx->ready_confirm_fd = -1;
       write_pid_file (sctx, getpid ());
     }
-  i = 0;
-  while (sctx->addrs[i] != NULL)
+  if (sctx->addrs != NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  _("Service `%s' runs at %s\n"),
-		  sctx->serviceName, 
-		  GNUNET_a2s (sctx->addrs[i], sctx->addrlens[i]));
-      i++;
+      i = 0;
+      while (sctx->addrs[i] != NULL)
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		      _("Service `%s' runs at %s\n"),
+		      sctx->serviceName, 
+		      GNUNET_a2s (sctx->addrs[i], sctx->addrlens[i]));
+	  i++;
+	}
     }
   sctx->task (sctx->task_cls, tc->sched, sctx->server, sctx->cfg);
 }
@@ -1594,15 +1653,29 @@ GNUNET_SERVICE_start (const char *serviceName,
   sctx->sched = sched;
 
   /* setup subsystems */
-  if ((GNUNET_OK != setup_service (sctx)) ||
-      (NULL == (sctx->server = GNUNET_SERVER_create (sched,
-                                                     &check_access,
-                                                     sctx,
-                                                     sctx->addrs,
-                                                     sctx->addrlens,
-                                                     sctx->maxbuf,
-                                                     sctx->timeout,
-                                                     sctx->require_found))))
+  if (GNUNET_OK != setup_service (sctx))
+    {
+      GNUNET_SERVICE_stop (sctx);
+      return NULL;
+    }
+  if (sctx->lsocks != NULL)
+    sctx->server = GNUNET_SERVER_create_with_sockets (sched,
+						      &check_access,
+						      sctx,
+						      sctx->lsocks,
+						      sctx->maxbuf,
+						      sctx->timeout, sctx->require_found);
+  else
+    sctx->server = GNUNET_SERVER_create (sched,
+					 &check_access,
+					 sctx,
+					 sctx->addrs,
+					 sctx->addrlens,
+					 sctx->maxbuf,
+					 sctx->timeout,
+					 sctx->require_found);
+					 
+  if (NULL == sctx->server)
     {
       GNUNET_SERVICE_stop (sctx);
       return NULL;
@@ -1642,10 +1715,13 @@ GNUNET_SERVICE_stop (struct GNUNET_SERVICE_Context *sctx)
   if (NULL != sctx->server)
     GNUNET_SERVER_destroy (sctx->server);
   GNUNET_free_non_null (sctx->my_handlers);
-  i = 0;
-  while (sctx->addrs[i] != NULL)    
-    GNUNET_free (sctx->addrs[i++]);    
-  GNUNET_free (sctx->addrs);
+  if (sctx->addrs != NULL)
+    {
+      i = 0;
+      while (sctx->addrs[i] != NULL)    
+	GNUNET_free (sctx->addrs[i++]);    
+      GNUNET_free (sctx->addrs);
+    }
   GNUNET_free_non_null (sctx->addrlens);
   GNUNET_free_non_null (sctx->v4_denied);
   GNUNET_free_non_null (sctx->v6_denied);

@@ -72,6 +72,16 @@ struct GNUNET_NETWORK_Handle *GNUNET_NETWORK_socket_accept (const struct
 
 
 /**
+ * Box a native socket (and check that it is a socket).
+ *
+ * @param fd socket to box
+ * @return NULL on error (including not supported on target platform)
+ */
+struct GNUNET_NETWORK_Handle *
+GNUNET_NETWORK_socket_box_native (int fd);
+
+
+/**
  * Bind to a connected socket
  *
  * @param desc socket to bind

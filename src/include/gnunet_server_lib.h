@@ -114,6 +114,29 @@ struct GNUNET_SERVER_MessageHandler
  * @param sched scheduler to use
  * @param access function for access control
  * @param access_cls closure for access
+ * @param lsocks NULL-terminated array of listen sockets
+ * @param maxbuf maximum write buffer size for accepted sockets
+ * @param idle_timeout after how long should we timeout idle connections?
+ * @param require_found if YES, connections sending messages of unknown type
+ *        will be closed
+ * @return handle for the new server, NULL on error
+ *         (typically, "port" already in use)
+ */
+struct GNUNET_SERVER_Handle *
+GNUNET_SERVER_create_with_sockets (struct GNUNET_SCHEDULER_Handle *sched,
+				   GNUNET_CONNECTION_AccessCheck access, void *access_cls,
+				   struct GNUNET_NETWORK_Handle **lsocks,
+				   size_t maxbuf,
+				   struct GNUNET_TIME_Relative
+				   idle_timeout,
+				   int require_found);
+
+/**
+ * Create a new server.
+ *
+ * @param sched scheduler to use
+ * @param access function for access control
+ * @param access_cls closure for access
  * @param serverAddr address toes listen on (including port), NULL terminated array
  * @param socklen lengths of respective serverAddr 
  * @param maxbuf maximum write buffer size for accepted sockets
