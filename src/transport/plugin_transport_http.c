@@ -149,8 +149,6 @@ struct HTTP_Message
    * Closure for transmit_cont.
    */
   void *transmit_cont_cls;
-
-  unsigned int http_result_code;
 };
 
 
@@ -753,7 +751,6 @@ static size_t header_function( void *ptr, size_t size, size_t nmemb, void *strea
 {
   char * tmp;
   size_t len = size * nmemb;
-  struct Session * ses = stream;
 
   tmp = NULL;
   if ((size * nmemb) < SIZE_MAX)
@@ -770,26 +767,6 @@ static size_t header_function( void *ptr, size_t size, size_t nmemb, void *strea
 #if DEBUG_CURL
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Header: `%s'\n",tmp);
 #endif
-    if (0==strcmp (tmp,"HTTP/1.1 100 Continue"))
-    {
-      ses->pending_outbound_msg->http_result_code=100;
-    }
-    if (0==strcmp (tmp,"HTTP/1.1 200 OK"))
-    {
-      ses->pending_outbound_msg->http_result_code=200;
-    }
-    if (0==strcmp (tmp,"HTTP/1.1 400 Bad Request"))
-    {
-      ses->pending_outbound_msg->http_result_code=400;
-    }
-    if (0==strcmp (tmp,"HTTP/1.1 404 Not Found"))
-    {
-      ses->pending_outbound_msg->http_result_code=404;
-    }
-    if (0==strcmp (tmp,"HTTP/1.1 413 Request Entity Too Large"))
-    {
-      ses->pending_outbound_msg->http_result_code=413;
-    }
   }
   if (NULL != tmp)
     GNUNET_free (tmp);
@@ -931,7 +908,6 @@ static void send_execute (void *cls,
   int running;
   struct CURLMsg *msg;
   CURLMcode mret;
-  CURLcode info_res;
   struct Session * cs = NULL;
   long http_result;
 
@@ -955,8 +931,6 @@ static void send_execute (void *cls,
               /* get session for affected curl handle */
               GNUNET_assert ( msg->easy_handle != NULL );
               curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &cs);
-
-              //cs = find_session_by_curlhandle (msg->easy_handle);
               GNUNET_assert ( cs != NULL );
               GNUNET_assert ( cs->pending_outbound_msg != NULL );
               switch (msg->msg)
@@ -979,9 +953,9 @@ static void send_execute (void *cls,
                   }
                   else
                   {
-                    info_res = curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &http_result);
+                    GNUNET_assert (CURLE_OK == curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &http_result));
                     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                                "Send to peer `%s' completed with code %u %u\n", GNUNET_i2s(&cs->partner), http_result, cs->pending_outbound_msg->http_result_code);
+                                "Send to peer `%s' completed with code %u\n", GNUNET_i2s(&cs->partner), http_result );
 
                     curl_easy_cleanup(cs->curl_handle);
                     cs->curl_handle=NULL;
@@ -990,13 +964,13 @@ static void send_execute (void *cls,
                     if (( NULL != cs->pending_outbound_msg) && (NULL != cs->pending_outbound_msg->transmit_cont))
                     {
                       /* HTTP 1xx : Last message before here was informational */
-                      if ((cs->pending_outbound_msg->http_result_code >=100) && (cs->pending_outbound_msg->http_result_code < 200))
+                      if ((http_result >=100) && (http_result < 200))
                         cs->pending_outbound_msg->transmit_cont (cs->pending_outbound_msg->transmit_cont_cls,&cs->partner,GNUNET_OK);
                       /* HTTP 2xx: successful operations */
-                      if ((cs->pending_outbound_msg->http_result_code >=200) && (cs->pending_outbound_msg->http_result_code < 300))
+                      if ((http_result >=200) && (http_result < 300))
                         cs->pending_outbound_msg->transmit_cont (cs->pending_outbound_msg->transmit_cont_cls,&cs->partner,GNUNET_OK);
                       /* HTTP 3xx..5xx: error */
-                      if ((cs->pending_outbound_msg->http_result_code >=300) && (cs->pending_outbound_msg->http_result_code < 600))
+                      if ((http_result >=300) && (http_result < 600))
                         cs->pending_outbound_msg->transmit_cont (cs->pending_outbound_msg->transmit_cont_cls,&cs->partner,GNUNET_SYSERR);
                     }
                   }
