@@ -983,16 +983,11 @@ static void run_connection_tests( )
         port = ntohs(((struct IPv4HttpAddress *) tmp_addr->addr)->u_port);
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sending message to addres no. %u: `%s':%u\n", count,address, port);
       }
-    else if (tmp_addr->addrlen == (sizeof (struct IPv6HttpAddress)))
+    if (tmp_addr->addrlen == (sizeof (struct IPv6HttpAddress)))
       {
         inet_ntop(AF_INET6, (struct in6_addr *) tmp_addr->addr,address,INET6_ADDRSTRLEN);
         port = ntohs(((struct IPv6HttpAddress *) tmp_addr->addr)->u6_port);
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sending message to addres no. %u: `%s':%u\n", count,address,port);
-      }
-    else
-      {
-        GNUNET_break (0);
-        return;
       }
     msg.type=htons(type);
     memcpy(tmp,&msg,sizeof(struct GNUNET_MessageHeader));
@@ -1021,7 +1016,7 @@ static void run_connection_tests( )
   msg1->size = htons(2 * sizeof(struct GNUNET_MessageHeader));
   msg1->type = htons(40);
   msg2 = &msg1[2];
-  msg2->size = htons(3 * sizeof(struct GNUNET_MessageHeader));
+  msg2->size = htons(2 * sizeof(struct GNUNET_MessageHeader));
   msg2->type = htons(41);
   api->send(api->cls, &my_identity, tmp, 4 * sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL,addr_head->addr, addr_head->addrlen, GNUNET_YES, &task_send_cont, NULL);
 
@@ -1040,13 +1035,14 @@ static void run_connection_tests( )
 
 
   /* send a message with size GNUNET_SERVER_MAX_MESSAGE_SIZE )*/
+  /*
   GNUNET_free(tmp);
   tmp = GNUNET_malloc(GNUNET_SERVER_MAX_MESSAGE_SIZE);
   uint16_t t2 = (uint16_t)GNUNET_SERVER_MAX_MESSAGE_SIZE;
   msg.size = htons(t2);
   memcpy(tmp,&msg,sizeof(struct GNUNET_MessageHeader));
   api->send(api->cls, &my_identity, tmp, GNUNET_SERVER_MAX_MESSAGE_SIZE, 0, TIMEOUT, NULL,addr_head->addr, addr_head->addrlen, GNUNET_YES, &task_send_cont, &fail_msg_transmited_bigger_max_size);
-
+*/
   /* send a message with size GNUNET_SERVER_MAX_MESSAGE_SIZE-1  */
   GNUNET_free(tmp);
   tmp = GNUNET_malloc(GNUNET_SERVER_MAX_MESSAGE_SIZE-1);

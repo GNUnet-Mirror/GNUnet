@@ -201,11 +201,6 @@ struct Session
   int is_client;
 
   /**
-   * Is the connection active (GNUNET_YES) or terminated (GNUNET_NO)?
-   */
-  int is_active;
-
-  /**
    * At what time did we reset last_received last?
    */
   struct GNUNET_TIME_Absolute last_quota_update;
@@ -347,7 +342,6 @@ static struct Session * create_session (void * cls, char * addr_in, size_t addrl
   ses->plugin = plugin;
   memcpy(&ses->partner, peer, sizeof (struct GNUNET_PeerIdentity));
   GNUNET_CRYPTO_hash_to_enc(&ses->partner.hashPubKey,&(ses->hash));
-  ses->is_active = GNUNET_NO;
   ses->pending_inbound_msg.bytes_recv = 0;
   ses->msgtok = NULL;
   return ses;
@@ -363,10 +357,10 @@ static void requestCompletedCallback (void *cls, struct MHD_Connection * connect
   cs = *httpSessionCache;
   if (cs == NULL)
     return;
-    /*GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection from peer `%s' was terminated\n",GNUNET_i2s(&cs->partner));*/
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection from peer `%s' was terminated\n",GNUNET_i2s(&cs->partner));
     /* session set to inactive */
-    cs->is_active = GNUNET_NO;
     cs->is_put_in_progress = GNUNET_NO;
+    cs->is_bad_request = GNUNET_NO;
 }
 
 
@@ -515,7 +509,7 @@ accessHandlerCallback (void *cls,
     cs = *httpSessionCache;
   }
   /* Is it a PUT or a GET request */
-  if ( 0 == strcmp (MHD_HTTP_METHOD_PUT, method) )
+  if (0 == strcmp (MHD_HTTP_METHOD_PUT, method))
   {
     /* New  */
     if ((*upload_data_size == 0) && (cs->is_put_in_progress == GNUNET_NO))
@@ -530,7 +524,6 @@ accessHandlerCallback (void *cls,
       /* not yet ready */
       cs->is_put_in_progress = GNUNET_YES;
       cs->is_bad_request = GNUNET_NO;
-      cs->is_active = GNUNET_YES;
       return MHD_YES;
     }
 
@@ -576,12 +569,8 @@ accessHandlerCallback (void *cls,
     {
       send_error_to_client = GNUNET_YES;
       if (cs->pending_inbound_msg.bytes_recv >= sizeof (struct GNUNET_MessageHeader))
-      {
-        //res = GNUNET_SERVER_mst_receive(cs->msgtok, cs, cs->pending_inbound_msg->buf,cs->pending_inbound_msg.bytes_recv, GNUNET_YES, GNUNET_NO);
-        res = GNUNET_OK;
-        if ((res != GNUNET_SYSERR) && (res != GNUNET_NO))
           send_error_to_client = GNUNET_NO;
-      }
+
       if (send_error_to_client == GNUNET_NO)
       {
         response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),HTTP_PUT_RESPONSE, MHD_NO, MHD_NO);
@@ -647,6 +636,7 @@ http_server_daemon_prepare (void * cls, struct MHD_Daemon *daemon_handle)
   struct GNUNET_TIME_Relative tv;
 
   GNUNET_assert(cls !=NULL);
+  ret = GNUNET_SCHEDULER_NO_TASK;
   FD_ZERO(&rs);
   FD_ZERO(&ws);
   FD_ZERO(&es);
@@ -1120,10 +1110,13 @@ http_plugin_send (void *cls,
   address = NULL;
 
   cs = GNUNET_CONTAINER_multihashmap_get (plugin->sessions, &target->hashPubKey);
+  if (cs != NULL)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Session `%s' found\n", GNUNET_i2s(target));
+
   if ( cs == NULL)
   {
     cs = create_session(plugin, (char *) addr, addrlen, NULL, 0, target);
-    cs->is_active = GNUNET_YES;
     res = GNUNET_CONTAINER_multihashmap_put ( plugin->sessions,
                                         &cs->partner.hashPubKey,
                                         cs,
@@ -1132,9 +1125,6 @@ http_plugin_send (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "New Session `%s' inserted\n", GNUNET_i2s(target));
   }
-  if (cs != NULL)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Session `%s' found\n", GNUNET_i2s(target));
 
   GNUNET_assert ((addr!=NULL) && (addrlen != 0));
   if (addrlen == (sizeof (struct IPv4HttpAddress)))
