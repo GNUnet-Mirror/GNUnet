@@ -529,7 +529,6 @@ typedef void (*GNUNET_SERVER_MessageTokenizerCallback) (void *cls,
  */
 struct GNUNET_SERVER_MessageStreamTokenizer *
 GNUNET_SERVER_mst_create (size_t maxbuf,
-			  void *client_identity,
 			  GNUNET_SERVER_MessageTokenizerCallback cb,
 			  void *cb_cls);
 
@@ -550,6 +549,7 @@ GNUNET_SERVER_mst_create (size_t maxbuf,
  */
 int
 GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
+			   void *client_identity,
 			   const char *buf,
 			   size_t size,
 			   int purge,

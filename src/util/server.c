@@ -675,7 +675,7 @@ process_mst (struct GNUNET_SERVER_Client *client,
 #if DEBUG_SERVER
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Server processes additional messages instantly.\n");
 #endif
-      ret = GNUNET_SERVER_mst_receive (client->mst, NULL, 0, GNUNET_NO, GNUNET_YES);
+      ret = GNUNET_SERVER_mst_receive (client->mst, client, NULL, 0, GNUNET_NO, GNUNET_YES);
     }
 #if DEBUG_SERVER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -743,7 +743,7 @@ process_incoming (void *cls,
 #endif
   GNUNET_SERVER_client_keep (client);
   client->last_activity = GNUNET_TIME_absolute_get ();
-  ret = GNUNET_SERVER_mst_receive (client->mst, buf, available, GNUNET_NO, GNUNET_YES);
+  ret = GNUNET_SERVER_mst_receive (client->mst, client, buf, available, GNUNET_NO, GNUNET_YES);
   process_mst (client, ret);
 }
 
@@ -844,7 +844,6 @@ GNUNET_SERVER_connect_socket (struct
   client = GNUNET_malloc (sizeof (struct GNUNET_SERVER_Client));
   client->connection = connection;
   client->mst = GNUNET_SERVER_mst_create (GNUNET_SERVER_MAX_MESSAGE_SIZE,
-					  client,
 					  &client_message_tokenizer_callback,
 					  server);
   client->reference_count = 1;

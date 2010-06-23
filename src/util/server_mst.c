@@ -57,11 +57,6 @@ struct GNUNET_SERVER_MessageStreamTokenizer
   void *cb_cls;
 
   /**
-   * Client to pass to cb.
-   */
-  void *client_identity;
-
-  /**
    * Size of the buffer (starting at 'hdr').
    */
   size_t maxbuf;
@@ -90,15 +85,12 @@ struct GNUNET_SERVER_MessageStreamTokenizer
  *
  * @param maxbuf maximum message size to support (typically
  *    GNUNET_SERVER_MAX_MESSAGE_SIZE)
- * @param client_identity ID of client for which this is a buffer,
- *        can be NULL (will be passed back to 'cb')
  * @param cb function to call on completed messages
  * @param cb_cls closure for cb
  * @return handle to tokenizer
  */
 struct GNUNET_SERVER_MessageStreamTokenizer *
 GNUNET_SERVER_mst_create (size_t maxbuf,
-			  void *client_identity,
 			  GNUNET_SERVER_MessageTokenizerCallback cb,
 			  void *cb_cls)
 {
@@ -106,7 +98,6 @@ GNUNET_SERVER_mst_create (size_t maxbuf,
 
   ret = GNUNET_malloc (maxbuf + sizeof (struct GNUNET_SERVER_MessageStreamTokenizer));
   ret->maxbuf = maxbuf;
-  ret->client_identity = client_identity;
   ret->cb = cb;
   ret->cb_cls = cb_cls;
   return ret;
@@ -118,6 +109,7 @@ GNUNET_SERVER_mst_create (size_t maxbuf,
  * callback for all complete messages.
  *
  * @param mst tokenizer to use
+ * @param client_identity ID of client for which this is a buffer
  * @param buf input data to add
  * @param size number of bytes in buf
  * @param purge should any excess bytes in the buffer be discarded 
@@ -129,6 +121,7 @@ GNUNET_SERVER_mst_create (size_t maxbuf,
  */
 int
 GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
+			   void *client,
 			   const char *buf,
 			   size_t size,
 			   int purge,
@@ -228,7 +221,7 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
 	}
       if (one_shot == GNUNET_YES)
 	one_shot = GNUNET_SYSERR;
-      mst->cb (mst->cb_cls, mst->client_identity, hdr);
+      mst->cb (mst->cb_cls, client, hdr);
       mst->off += want;
       if (mst->off == mst->pos)
 	{
@@ -264,7 +257,7 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
 	    }
 	  if (one_shot == GNUNET_YES)
 	    one_shot = GNUNET_SYSERR;
-	  mst->cb (mst->cb_cls, mst->client_identity, hdr);
+	  mst->cb (mst->cb_cls, client, hdr);
 	  buf += want;
 	  size -= want;
 	}

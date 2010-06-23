@@ -509,7 +509,7 @@ accessHandlerCallback (void *cls,
       }
       */
       if (cs->msgtok==NULL)
-        cs->msgtok = GNUNET_SERVER_mst_create (GNUNET_SERVER_MAX_MESSAGE_SIZE, cs, &messageTokenizerCallback, cs);
+        cs->msgtok = GNUNET_SERVER_mst_create (GNUNET_SERVER_MAX_MESSAGE_SIZE, &messageTokenizerCallback, cs);
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s'\n",method, GNUNET_i2s(&cs->partner));
   }
@@ -579,7 +579,7 @@ accessHandlerCallback (void *cls,
       if (cs->pending_inbound_msg->pos >= sizeof (struct GNUNET_MessageHeader))
       {
         cur_msg = (struct GNUNET_MessageHeader *) cs->pending_inbound_msg->buf;
-        res = GNUNET_SERVER_mst_receive(cs->msgtok,cs->pending_inbound_msg->buf,cs->pending_inbound_msg->pos, GNUNET_YES, GNUNET_NO);
+        res = GNUNET_SERVER_mst_receive(cs->msgtok, cs, cs->pending_inbound_msg->buf,cs->pending_inbound_msg->pos, GNUNET_YES, GNUNET_NO);
         if ((res != GNUNET_SYSERR) && (res != GNUNET_NO))
           send_error_to_client = GNUNET_NO;
       }
