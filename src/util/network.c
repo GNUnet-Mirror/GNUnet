@@ -142,11 +142,16 @@ static int
 socket_set_inheritable (const struct GNUNET_NETWORK_Handle *h)
 {
   int i;
-  i = fcntl (h->fd, F_GETFD);
+
+  i = fcntl (h->fd, F_GETFD);  
+  if (i < 0)
+    return GNUNET_SYSERR;
   if (i == (i | FD_CLOEXEC))
     return GNUNET_OK;
-  return (fcntl (h->fd, F_SETFD, i | FD_CLOEXEC) == 0)
-    ? GNUNET_OK : GNUNET_SYSERR;
+  i |= FD_CLOEXEC;
+  if (fcntl (h->fd, F_SETFD, i) < 0)
+    return GNUNET_SYSERR;
+  return GNUNET_OK;
 }
 #endif
 
