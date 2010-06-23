@@ -68,7 +68,7 @@ my_cb (void *cls,
       GNUNET_TESTING_daemons_stop (pg, TIMEOUT);
       ok = 0;
     }
-  else if (failed_peers == peers_left)
+  else if (peers_failed == peers_left)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Too many peers failed, ending test!\n");
       GNUNET_TESTING_daemons_stop (pg, TIMEOUT);
@@ -97,10 +97,17 @@ run (void *cls,
                                          &hostnames);
 
   peers_left = num_peers;
-  pg = GNUNET_TESTING_daemons_start (sched, cfg,
+  pg = GNUNET_TESTING_daemons_start (sched,
+                                     cfg,
                                      peers_left,
                                      TIMEOUT,
-                                     &my_cb, NULL, NULL, NULL, hostnames);
+                                     NULL,
+                                     NULL,
+                                     &my_cb,
+                                     NULL,
+                                     NULL,
+                                     NULL,
+                                     hostnames);
   GNUNET_assert (pg != NULL);
 }
 

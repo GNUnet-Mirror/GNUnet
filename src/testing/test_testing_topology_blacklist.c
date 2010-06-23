@@ -152,6 +152,7 @@ void
 topology_callback (void *cls,
                    const struct GNUNET_PeerIdentity *first,
                    const struct GNUNET_PeerIdentity *second,
+                   uint32_t distance,
                    const struct GNUNET_CONFIGURATION_Handle *first_cfg,
                    const struct GNUNET_CONFIGURATION_Handle *second_cfg,
                    struct GNUNET_TESTING_Daemon *first_daemon,
