@@ -913,6 +913,16 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
       GNUNET_free_non_null(hostname);
       return GNUNET_SYSERR;
     }
+  if (port == 0)
+    {
+      saddrs = GNUNET_malloc (2 * sizeof(struct sockaddr*));
+      saddrlens = GNUNET_malloc (2 * sizeof (socklen_t));
+      add_unixpath (saddrs, saddrlens, unixpath);
+      GNUNET_free_non_null (unixpath);
+      *addrs = saddrs;
+      *addr_lens = saddrlens;
+      return 1;
+    }
        
   if (hostname != NULL)
     {
