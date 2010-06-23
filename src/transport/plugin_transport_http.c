@@ -196,17 +196,6 @@ struct Session
   size_t addr_out_len;
 
   /**
-   * Sender's ip address to distinguish between incoming connections
-   */
-  //char * addr_inbound_str;
-
-
-  /**
-   * Sender's ip address specified by transport
-   */
-  //struct sockaddr_in * addr_outbound;
-
-  /**
    * Did we initiate the connection (GNUNET_YES) or the other peer (GNUNET_NO)?
    */
   int is_client;
@@ -248,14 +237,29 @@ struct Session
    */
   struct GNUNET_CRYPTO_HashAsciiEncoded hash;
 
-  //struct HTTP_Message * pending_outbound_msg;
+  /**
+   * Head of dll used to store outbound messages
+   */
   struct HTTP_Message * pending_outbound_msg_head;
+
+  /**
+   * Tail of dll used to store outbound messages
+   */
   struct HTTP_Message * pending_outbound_msg_tail;
 
+  /**
+   * Incoming message
+   */
   struct HTTP_Message * pending_inbound_msg;
 
+  /**
+   * curl handle for outbound transmissions
+   */
   CURL *curl_handle;
 
+  /**
+   * Message tokenizer for incoming data
+   */
   struct GNUNET_SERVER_MessageStreamTokenizer * msgtok;
 };
 
@@ -296,7 +300,6 @@ static GNUNET_SCHEDULER_TaskIdentifier http_task_v4;
  * Our primary task for http daemon handling IPv6 connections
  */
 static GNUNET_SCHEDULER_TaskIdentifier http_task_v6;
-
 
 /**
  * The task sending data
