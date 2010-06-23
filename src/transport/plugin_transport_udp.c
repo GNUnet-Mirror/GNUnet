@@ -61,6 +61,8 @@
  */
 #define UDP_DIRECT_DISTANCE 1
 
+#define DEFAULT_NAT_PORT 0
+
 /**
  * How long until we give up on transmitting the welcome message?
  */
@@ -751,7 +753,7 @@ process_interfaces (void *cls,
       v4 = (struct sockaddr_in *) addr;
       if ((plugin->behind_nat == GNUNET_YES) && (plugin->only_nat_addresses == GNUNET_YES))
         {
-          v4->sin_port = htons (0); /* Indicates to receiver we are behind NAT */
+          v4->sin_port = htons (DEFAULT_NAT_PORT); /* Indicates to receiver we are behind NAT */
         }
       else if (plugin->behind_nat == GNUNET_YES) /* We are behind NAT, but will advertise NAT and normal addresses */
         {
