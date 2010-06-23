@@ -1082,13 +1082,12 @@ read_blacklist_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
           GNUNET_free (data);
           return;
         }
-
-      transport_name = GNUNET_malloc(tsize);
+      tsize = tsize;
+      transport_name = GNUNET_malloc(tsize + 1);
       memcpy(transport_name, &data[pos], tsize);
       pos = colon_pos + 1;
 
-
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("Read transport name %s in blacklist file.\n"),
                   transport_name);
 
@@ -1120,10 +1119,7 @@ read_blacklist_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
             {
               entries_found++;
               add_peer_to_blacklist (&pid,
-                              transport_name);
-              GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                          _("Found blacklisted peer `%s:%s' in configuration\n"),
-                          transport_name, GNUNET_i2s (&pid));
+                                     transport_name);
             }
           else
             {
