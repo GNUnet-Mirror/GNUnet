@@ -544,8 +544,6 @@ typedef void (*GNUNET_SERVER_MessageTokenizerCallback) (void *cls,
  *
  * @param maxbuf maximum message size to support (typically
  *    GNUNET_SERVER_MAX_MESSAGE_SIZE)
- * @param client_identity ID of client for which this is a buffer,
- *        can be NULL (will be passed back to 'cb')
  * @param cb function to call on completed messages
  * @param cb_cls closure for cb
  * @return handle to tokenizer
@@ -561,6 +559,8 @@ GNUNET_SERVER_mst_create (size_t maxbuf,
  * callback for all complete messages.
  *
  * @param mst tokenizer to use
+ * @param client_identity ID of client for which this is a buffer,
+ *        can be NULL (will be passed back to 'cb')
  * @param buf input data to add
  * @param size number of bytes in buf
  * @param purge should any excess bytes in the buffer be discarded 
