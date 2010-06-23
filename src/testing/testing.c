@@ -529,8 +529,9 @@ start_fsm (void *cls,
         {
           if (GNUNET_TIME_absolute_get_remaining(d->max_timeout).value == 0)
             {
-              d->dead_cb (d->dead_cb_cls,
-                          _("either `gnunet-arm' or `ssh' does not seem to terminate.\n"));
+              if (NULL != d->dead_cb)
+                d->dead_cb (d->dead_cb_cls,
+                            _("either `gnunet-arm' or `ssh' does not seem to terminate.\n"));
               if (d->th != NULL)
                 {
                   GNUNET_TRANSPORT_get_hello_cancel(d->th, &process_hello, d);
