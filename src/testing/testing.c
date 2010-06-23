@@ -951,6 +951,23 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
       return;
     }
 
+  if ((d->running == GNUNET_NO) && (d->churn == GNUNET_YES)) /* Peer has already been stopped in churn context! */
+    {
+      /* Free what was left from churning! */
+      GNUNET_assert(d->cfg != NULL);
+      GNUNET_CONFIGURATION_destroy (d->cfg);
+      if (delete_files == GNUNET_YES)
+        {
+          UNLINK(d->cfgfile);
+        }
+      GNUNET_free (d->cfgfile);
+      GNUNET_free_non_null (d->hostname);
+      GNUNET_free_non_null (d->username);
+      if (NULL != d->dead_cb)
+        d->dead_cb (d->dead_cb_cls, NULL);
+      return;
+    }
+
   del_arg = NULL;
   if (delete_files == GNUNET_YES)
     {
