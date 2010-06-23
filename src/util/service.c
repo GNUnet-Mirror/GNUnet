@@ -1173,7 +1173,7 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
 			  (unsigned int) 3 +cnt);
 	      cnt++;
 	      while (sctx->lsocks[cnt] != NULL)
-		GNUNET_NETWORK_socket_close (sctx->lsocks[cnt++]);
+		GNUNET_break (0 == GNUNET_NETWORK_socket_close (sctx->lsocks[cnt++]));
 	      GNUNET_free (sctx->lsocks);
 	      sctx->lsocks = NULL;
 	      break;
