@@ -1154,10 +1154,10 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
 #ifndef MINGW
   errno = 0;
   if ( (NULL != (lpid = getenv ("LISTEN_PID"))) &&
-       (1 == sscanf ("%u", lpid, &pid)) &&
+       (1 == sscanf (lpid, "%u", &pid)) &&
        (getpid () == (pid_t) pid) &&
        (NULL != (nfds = getenv ("LISTEN_FDS"))) &&
-       (1 == sscanf ("%u", nfds, &cnt)) &&
+       (1 == sscanf (nfds, "%u", &cnt)) &&
        (cnt > 0) )
     {
       sctx->lsocks = GNUNET_malloc (sizeof(struct GNUNET_NETWORK_Handle*) * (cnt+1));
