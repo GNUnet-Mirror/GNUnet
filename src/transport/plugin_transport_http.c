@@ -19,9 +19,9 @@
 */
 
 /**
- * @file transport/plugin_transport_template.c
- * @brief template for a new transport service
- * @author Christian Grothoff
+ * @file transport/plugin_transport_http.c
+ * @brief http transport service plugin
+ * @author Matthias Wachs
  */
 
 #include "platform.h"
@@ -41,7 +41,7 @@
 #include <curl/curl.h>
 
 
-#define DEBUG_CURL GNUNET_YES
+#define DEBUG_CURL GNUNET_NO
 #define DEBUG_HTTP GNUNET_NO
 
 /**
@@ -117,9 +117,14 @@ struct IPv6HttpAddress
 struct HTTP_Message
 {
   /**
-   * Next field for linked list
+   * next pointer for double linked list
    */
   struct HTTP_Message * next;
+
+  /**
+   * previous pointer for double linked list
+   */
+  struct HTTP_Message * prev;
 
   /**
    * buffer containing data to send
@@ -243,7 +248,9 @@ struct Session
    */
   struct GNUNET_CRYPTO_HashAsciiEncoded hash;
 
-  struct HTTP_Message * pending_outbound_msg;
+  //struct HTTP_Message * pending_outbound_msg;
+  struct HTTP_Message * pending_outbound_msg_head;
+  struct HTTP_Message * pending_outbound_msg_tail;
 
   struct HTTP_Message * pending_inbound_msg;
 
@@ -543,6 +550,8 @@ accessHandlerCallback (void *cls,
       {
         /* copy uploaded data to buffer */
         memcpy(&cs->pending_inbound_msg->buf[cs->pending_inbound_msg->pos],upload_data,*upload_data_size);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"%u bytes forwarded to MST \n",*upload_data_size);
+        res = GNUNET_SERVER_mst_receive(cs->msgtok, cs, upload_data,*upload_data_size, GNUNET_YES, GNUNET_NO);
         cs->pending_inbound_msg->pos += *upload_data_size;
         *upload_data_size = 0;
         return MHD_YES;
@@ -579,7 +588,8 @@ accessHandlerCallback (void *cls,
       if (cs->pending_inbound_msg->pos >= sizeof (struct GNUNET_MessageHeader))
       {
         cur_msg = (struct GNUNET_MessageHeader *) cs->pending_inbound_msg->buf;
-        res = GNUNET_SERVER_mst_receive(cs->msgtok, cs, cs->pending_inbound_msg->buf,cs->pending_inbound_msg->pos, GNUNET_YES, GNUNET_NO);
+        //res = GNUNET_SERVER_mst_receive(cs->msgtok, cs, cs->pending_inbound_msg->buf,cs->pending_inbound_msg->pos, GNUNET_YES, GNUNET_NO);
+        res = GNUNET_OK;
         if ((res != GNUNET_SYSERR) && (res != GNUNET_NO))
           send_error_to_client = GNUNET_NO;
       }
@@ -711,38 +721,10 @@ static void http_daemon_run (void *cls,
 
 static int remove_http_message(struct Session * ses, struct HTTP_Message * msg)
 {
-  struct HTTP_Message * cur;
-  struct HTTP_Message * next;
+  GNUNET_free (msg->buf);
+  GNUNET_free (msg->dest_url);
 
-  cur = ses->pending_outbound_msg;
-  next = NULL;
-
-  if (cur == NULL)
-    return GNUNET_SYSERR;
-
-  if (cur == msg)
-  {
-    ses->pending_outbound_msg = cur->next;
-    GNUNET_free (cur->buf);
-    GNUNET_free (cur->dest_url);
-    GNUNET_free (cur);
-    cur = NULL;
-    return GNUNET_OK;
-  }
-
-  while (cur->next!=msg)
-  {
-    if (cur->next != NULL)
-      cur = cur->next;
-    else
-      return GNUNET_SYSERR;
-  }
-
-  cur->next = cur->next->next;
-  GNUNET_free (cur->next->buf);
-  GNUNET_free (cur->next->dest_url);
-  GNUNET_free (cur->next);
-  cur->next = NULL;
+  GNUNET_CONTAINER_DLL_remove(ses->pending_outbound_msg_head,ses->pending_outbound_msg_tail,msg);
   return GNUNET_OK;
 }
 
@@ -786,7 +768,7 @@ static size_t header_function( void *ptr, size_t size, size_t nmemb, void *strea
 static size_t send_read_callback(void *stream, size_t size, size_t nmemb, void *ptr)
 {
   struct Session * ses = ptr;
-  struct HTTP_Message * msg = ses->pending_outbound_msg;
+  struct HTTP_Message * msg = ses->pending_outbound_msg_tail;
   size_t bytes_sent;
   size_t len;
 
@@ -867,9 +849,8 @@ static ssize_t send_select_init (struct Session* ses )
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Getting cURL handle failed\n");
     return -1;
   }
-  msg = ses->pending_outbound_msg;
-
-
+  GNUNET_assert (NULL != ses->pending_outbound_msg_tail);
+  msg = ses->pending_outbound_msg_tail;
 
 #if DEBUG_CURL
   curl_easy_setopt(ses->curl_handle, CURLOPT_VERBOSE, 1L);
@@ -932,7 +913,7 @@ static void send_execute (void *cls,
               GNUNET_assert ( msg->easy_handle != NULL );
               curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &cs);
               GNUNET_assert ( cs != NULL );
-              GNUNET_assert ( cs->pending_outbound_msg != NULL );
+              GNUNET_assert ( cs->pending_outbound_msg_tail != NULL );
               switch (msg->msg)
                 {
 
@@ -948,8 +929,8 @@ static void send_execute (void *cls,
                                __LINE__,
                                curl_easy_strerror (msg->data.result));
                     /* sending msg failed*/
-                    if (( NULL != cs->pending_outbound_msg) && ( NULL != cs->pending_outbound_msg->transmit_cont))
-                      cs->pending_outbound_msg->transmit_cont (cs->pending_outbound_msg->transmit_cont_cls,&cs->partner,GNUNET_SYSERR);
+                    if (( NULL != cs->pending_outbound_msg_tail) && ( NULL != cs->pending_outbound_msg_tail->transmit_cont))
+                      cs->pending_outbound_msg_tail->transmit_cont (cs->pending_outbound_msg_tail->transmit_cont_cls,&cs->partner,GNUNET_SYSERR);
                   }
                   else
                   {
@@ -961,23 +942,24 @@ static void send_execute (void *cls,
                     cs->curl_handle=NULL;
 
                     /* Calling transmit continuation  */
-                    if (( NULL != cs->pending_outbound_msg) && (NULL != cs->pending_outbound_msg->transmit_cont))
+                    if (( NULL != cs->pending_outbound_msg_tail) && (NULL != cs->pending_outbound_msg_tail->transmit_cont))
                     {
                       /* HTTP 1xx : Last message before here was informational */
                       if ((http_result >=100) && (http_result < 200))
-                        cs->pending_outbound_msg->transmit_cont (cs->pending_outbound_msg->transmit_cont_cls,&cs->partner,GNUNET_OK);
+                        cs->pending_outbound_msg_tail->transmit_cont (cs->pending_outbound_msg_tail->transmit_cont_cls,&cs->partner,GNUNET_OK);
                       /* HTTP 2xx: successful operations */
                       if ((http_result >=200) && (http_result < 300))
-                        cs->pending_outbound_msg->transmit_cont (cs->pending_outbound_msg->transmit_cont_cls,&cs->partner,GNUNET_OK);
+                        cs->pending_outbound_msg_tail->transmit_cont (cs->pending_outbound_msg_tail->transmit_cont_cls,&cs->partner,GNUNET_OK);
                       /* HTTP 3xx..5xx: error */
                       if ((http_result >=300) && (http_result < 600))
-                        cs->pending_outbound_msg->transmit_cont (cs->pending_outbound_msg->transmit_cont_cls,&cs->partner,GNUNET_SYSERR);
+                        cs->pending_outbound_msg_tail->transmit_cont (cs->pending_outbound_msg_tail->transmit_cont_cls,&cs->partner,GNUNET_SYSERR);
                     }
                   }
-                  if (GNUNET_OK != remove_http_message(cs, cs->pending_outbound_msg))
+
+                  if (GNUNET_OK != remove_http_message(cs, cs->pending_outbound_msg_tail))
                     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message could not be removed from session `%s'", GNUNET_i2s(&cs->partner));
                   /* send pending messages */
-                  if (cs->pending_outbound_msg != NULL)
+                  if (cs->pending_outbound_msg_tail!= NULL)
                   {
                     send_select_init (cs);
                   }
@@ -1098,28 +1080,20 @@ http_plugin_send (void *cls,
   char * url;
   struct Session* cs;
   struct HTTP_Message * msg;
-  struct HTTP_Message * tmp;
-  int bytes_sent = 0;
   unsigned int res;
 
   url = NULL;
   address = NULL;
-  /* find session for peer */
+
   cs = GNUNET_CONTAINER_multihashmap_get (plugin->sessions, &target->hashPubKey);
-  /* if (NULL != ses ) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Existing session for peer `%s' found\n", GNUNET_i2s(target));*/
   if ( cs == NULL)
   {
-    /* create new session object */
-
     cs = create_session((char *) addr, addrlen, NULL, 0, target);
     cs->is_active = GNUNET_YES;
-
-    /* Insert session into linked list */
     res = GNUNET_CONTAINER_multihashmap_put ( plugin->sessions,
                                         &cs->partner.hashPubKey,
                                         cs,
                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-
     if (res == GNUNET_OK)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "New Session `%s' inserted\n", GNUNET_i2s(target));
@@ -1128,32 +1102,27 @@ http_plugin_send (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Session `%s' found\n", GNUNET_i2s(target));
 
-  GNUNET_assert (addr!=NULL);
-  unsigned int port;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: len `%u'\n",addrlen);
-  if (cs->addr_out != NULL) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"have addr out!!!!'\n");
+  GNUNET_assert ((addr!=NULL) && (addrlen != 0));
   if (addrlen == (sizeof (struct IPv4HttpAddress)))
   {
     address = GNUNET_malloc(INET_ADDRSTRLEN + 1);
     inet_ntop(AF_INET, &((struct IPv4HttpAddress *) addr)->ipv4_addr,address,INET_ADDRSTRLEN);
-    port = ntohs(((struct IPv4HttpAddress *) addr)->u_port);
     GNUNET_asprintf (&url,
                      "http://%s:%u/%s",
                      address,
-                     port,
+                     ntohs(((struct IPv4HttpAddress *) addr)->u_port),
                      (char *) (&my_ascii_hash_ident));
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: address `%s'\n",address);
     GNUNET_free(address);
   }
   else if (addrlen == (sizeof (struct IPv6HttpAddress)))
   {
     address = GNUNET_malloc(INET6_ADDRSTRLEN + 1);
     inet_ntop(AF_INET6, &((struct IPv6HttpAddress *) addr)->ipv6_addr,address,INET6_ADDRSTRLEN);
-    port = ntohs(((struct IPv6HttpAddress *) addr)->u6_port);
     GNUNET_asprintf(&url,
                     "http://%s:%u/%s",
-                    address,port,(char *) (&my_ascii_hash_ident));
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: address `%s'\n",address);
+                    address,
+                    ntohs(((struct IPv6HttpAddress *) addr)->u6_port),
+                    (char *) (&my_ascii_hash_ident));
     GNUNET_free(address);
   }
   timeout = to;
@@ -1167,26 +1136,14 @@ http_plugin_send (void *cls,
   msg->transmit_cont = cont;
   msg->transmit_cont_cls = cont_cls;
   memcpy (msg->buf,msgbuf, msgbuf_size);
-  /* insert created message in list of pending messages */
-  if (cs->pending_outbound_msg == NULL)
-  {
-    cs->pending_outbound_msg = msg;
-  }
-  tmp = cs->pending_outbound_msg;
-  while ( NULL != tmp->next)
-  {
-    tmp = tmp->next;
-  }
-  if ( tmp != msg)
-  {
-    tmp->next = msg;
-  }
+  /* insert created message in double linked list of pending messages */
+  GNUNET_CONTAINER_DLL_insert (cs->pending_outbound_msg_head, cs->pending_outbound_msg_tail, msg);
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: sending %u bytes of data from peer `%4.4s' to peer `%s'\n",msgbuf_size,(char *) &my_ascii_hash_ident,GNUNET_i2s(target));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: url `%s'\n",url);
-  if (msg == cs->pending_outbound_msg)
+  if (msg == cs->pending_outbound_msg_tail)
   {
-    bytes_sent = send_select_init (cs);
-    return bytes_sent;
+    return send_select_init (cs);
   }
   return msgbuf_size;
 }
@@ -1458,7 +1415,7 @@ int hashMapFreeIterator (void *cls, const GNUNET_HashCode *key, void *value)
   /* freeing messages */
   struct HTTP_Message *cur;
   struct HTTP_Message *tmp;
-  cur = cs->pending_outbound_msg;
+  cur = cs->pending_outbound_msg_head;
 
   while (cur != NULL)
   {
@@ -1643,4 +1600,4 @@ libgnunet_plugin_transport_http_init (void *cls)
   return api;
 }
 
-/* end of plugin_transport_template.c */
+/* end of plugin_transport_http.c */
