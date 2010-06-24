@@ -178,7 +178,7 @@ try_connect (struct GNUNET_DV_Handle *ret)
   ret->client = GNUNET_CLIENT_connect (ret->sched, "dv", ret->cfg);
   if (ret->client != NULL)
     return GNUNET_YES;
-#if DEBUG_STATISTICS
+#if DEBUG_DV_MESSAGES
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               _("Failed to connect to the dv service!\n"));
 #endif
@@ -351,6 +351,9 @@ void handle_message_receipt (void *cls,
 
   if (msg == NULL)
   {
+#if DEBUG_DV_MESSAGES
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: connection closed\n");
+#endif
     return; /* Connection closed? */
   }
 
@@ -373,7 +376,7 @@ void handle_message_receipt (void *cls,
     packed_msg = GNUNET_malloc(packed_msg_len);
     memcpy(packed_msg, &packed_msg_start[sender_address_len], packed_msg_len);
 
-#if DEBUG_DV
+#if DEBUG_DV_MESSAGES
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: packed message type: %d or %d\n", ntohs(((struct GNUNET_MessageHeader *)packed_msg)->type), ((struct GNUNET_MessageHeader *)packed_msg)->type);
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: message sender reported as %s\n", GNUNET_i2s(&received_msg->sender));
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: distance is %u\n", ntohl(received_msg->distance));
@@ -496,7 +499,9 @@ transmit_start (void *cls, size_t size, void *buf)
   struct StartContext *start_context = cls;
   struct GNUNET_DV_Handle *handle = start_context->handle;
   size_t tsize;
-
+#if DEBUG_DV
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV API: sending start request to service\n");
+#endif
   if (buf == NULL)
     {
       GNUNET_free(start_context->message);
@@ -511,6 +516,11 @@ transmit_start (void *cls, size_t size, void *buf)
     memcpy(buf, start_context->message, tsize);
     GNUNET_free(start_context->message);
     GNUNET_free(start_context);
+    GNUNET_CLIENT_receive (handle->client,
+                           &handle_message_receipt,
+                           handle, GNUNET_TIME_UNIT_FOREVER_REL);
+
+
     return tsize;
   }
 
@@ -567,10 +577,6 @@ GNUNET_DV_connect (struct GNUNET_SCHEDULER_Handle *sched,
                                        &transmit_start, start_context);
 
   handle->send_callbacks = GNUNET_CONTAINER_multihashmap_create(100);
-
-  GNUNET_CLIENT_receive (handle->client,
-                         &handle_message_receipt,
-                         handle, GNUNET_TIME_UNIT_FOREVER_REL);
 
   return handle;
 }
