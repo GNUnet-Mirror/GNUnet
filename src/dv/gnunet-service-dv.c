@@ -1062,7 +1062,7 @@ send_message (const struct GNUNET_PeerIdentity * recipient,
   recipient_id = target->referrer_id;
 
   source = GNUNET_CONTAINER_multihashmap_get (extended_neighbors,
-                                      &sender->hashPubKey);
+                                              &sender->hashPubKey);
   if (source == NULL)
     {
       if (0 != (memcmp (&my_identity,
@@ -1116,6 +1116,10 @@ send_message (const struct GNUNET_PeerIdentity * recipient,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: Sending DATA message. Sender id %u, source %s, destination %s, via %s\n", GNUNET_i2s(&my_identity), sender_id, &encPeerFrom, &encPeerTo, &encPeerVia);
 #endif
   memcpy (&toSend[1], message, message_size);
+  if (source->pkey == NULL) /* Test our hypothesis about message failures! */
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s: Sending message, but anticipate recipient will not know sender!!!\n\n\n");
+    }
   GNUNET_CONTAINER_DLL_insert_after (core_pending_head,
                                      core_pending_tail,
                                      core_pending_tail,
@@ -2650,9 +2654,9 @@ process_peerinfo (void *cls,
 #endif
   int sent;
 
-  if (peer == NULL) /* && (neighbor->pkey == NULL))*/
+  if (peer == NULL)
     {
-      if (distant->pkey == NULL) /* FIXME: Reschedule? */
+      if (distant->pkey == NULL)
         {
 #if DEBUG_DV
           GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Failed to get peerinfo information for this peer, retrying!\n");
@@ -2681,12 +2685,6 @@ process_peerinfo (void *cls,
           distant->pkey = GNUNET_malloc(sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
           memcpy(distant->pkey, &neighbor->pkey, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
         }
-
-      /* Why do it this way, now we have the distant neighbor! */
-      /*GNUNET_CONTAINER_multihashmap_get_multiple(extended_neighbors,
-                                                 &peer->hashPubKey,
-                                                 &add_pkey_to_extended,
-                                                 &neighbor->pkey);*/
 
       sent = GNUNET_CONTAINER_multihashmap_iterate (extended_neighbors, &add_all_extended_peers, neighbor->send_context);
 
