@@ -958,7 +958,10 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
       GNUNET_CONFIGURATION_destroy (d->cfg);
       if (delete_files == GNUNET_YES)
         {
-          UNLINK(d->cfgfile);
+          if (0 != UNLINK(d->cfgfile))
+            {
+              GNUNET_log_strerror(GNUNET_ERROR_TYPE_WARNING, "unlink");
+            }
         }
       GNUNET_free (d->cfgfile);
       GNUNET_free_non_null (d->hostname);
