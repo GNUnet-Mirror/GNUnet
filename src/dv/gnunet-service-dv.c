@@ -330,6 +330,11 @@ struct DistantNeighbor
   struct GNUNET_TIME_Absolute last_activity;
 
   /**
+   * Last time we sent routing information about this peer
+   */
+  struct GNUNET_TIME_Absolute last_gossip;
+
+  /**
    * Cost to neighbor, used for actual distance vector computations
    */
   unsigned int cost;
@@ -989,14 +994,8 @@ send_message_via (const struct GNUNET_PeerIdentity *sender,
                                      core_pending_tail,
                                      pending_message);
 
-  if (core_transmit_handle == NULL)
-    core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, send_context->importance, send_context->timeout, recipient, msg_size, &core_transmit_notify, NULL);
-  else
-    {
-#if DEBUG_DV
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "`%s': Failed to schedule pending transmission (must be one in progress!)\n", "dv service");
-#endif
-    }
+  GNUNET_SCHEDULER_add_now(sched, try_core_send, NULL);
+
   return GNUNET_YES;
 }
 
@@ -1149,10 +1148,12 @@ send_message (const struct GNUNET_PeerIdentity * recipient,
 #if DEBUG_DV
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: Notifying core of send size %d to destination `%s'\n", "DV SEND MESSAGE", msg_size, GNUNET_i2s(recipient));
 #endif
-  if (core_transmit_handle == NULL)
+
+  GNUNET_SCHEDULER_add_now(sched, try_core_send, NULL);
+  /*if (core_transmit_handle == NULL)
     core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, importance, timeout, &target->referrer->identity, msg_size, &core_transmit_notify, NULL);
   else
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: CORE ALREADY SENDING\n", "DV SEND MESSAGE", msg_size);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: CORE ALREADY SENDING\n", "DV SEND MESSAGE", msg_size);*/
   return (int) cost;
 }
 
@@ -1225,6 +1226,34 @@ void tokenized_message_handler (void *cls,
   }
 }
 
+struct DelayedMessageContext
+{
+  struct GNUNET_PeerIdentity dest;
+  struct GNUNET_PeerIdentity sender;
+  struct GNUNET_MessageHeader *message;
+  size_t message_size;
+  uint32_t uid;
+};
+
+void send_message_delayed (void *cls,
+                           const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct DelayedMessageContext *msg_ctx = cls;
+  if (msg_ctx != NULL)
+    {
+      send_message(&msg_ctx->dest,
+                   &msg_ctx->sender,
+                   NULL,
+                   msg_ctx->message,
+                   msg_ctx->message_size,
+                   default_dv_priority,
+                   msg_ctx->uid,
+                   GNUNET_TIME_relative_get_forever());
+    }
+  GNUNET_free(msg_ctx->message);
+  GNUNET_free(msg_ctx);
+}
+
 /**
  * Core handler for dv data messages.  Whatever this message
  * contains all we really have to do is rip it out of its
@@ -1249,10 +1278,11 @@ static int handle_dv_data_message (void *cls,
   struct DistantNeighbor *pos;
   unsigned int sid;             /* Sender id */
   unsigned int tid;             /* Target id */
-  struct GNUNET_PeerIdentity original_sender;
-  struct GNUNET_PeerIdentity destination;
+  struct GNUNET_PeerIdentity *original_sender;
+  struct GNUNET_PeerIdentity *destination;
   struct FindDestinationContext fdc;
   struct TokenizedMessageContext tkm_ctx;
+  struct DelayedMessageContext *delayed_context;
 #if USE_PEER_ID
   struct CheckPeerContext checkPeerCtx;
 #endif
@@ -1338,7 +1368,7 @@ static int handle_dv_data_message (void *cls,
       /* unknown sender */
       return GNUNET_OK;
     }
-  original_sender = pos->identity;
+  original_sender = &pos->identity;
   tid = ntohl (incoming->recipient);
   if (tid == 0)
     {
@@ -1408,9 +1438,9 @@ static int handle_dv_data_message (void *cls,
 #endif
     return GNUNET_OK;
     }
-  destination = fdc.dest->identity;
+  destination = &fdc.dest->identity;
 
-  if (0 == memcmp (&destination, peer, sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == memcmp (destination, peer, sizeof (struct GNUNET_PeerIdentity)))
     {
       /* FIXME: create stat: routing loop-discard! */
 #if DEBUG_DV_PEER_NUMBERS
@@ -1437,18 +1467,33 @@ static int handle_dv_data_message (void *cls,
 
 #if DEBUG_DV_MESSAGES
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%s: FORWARD %s message for %s, uid %u, size %d type %d, cost %u!\n", my_short_id, "DV DATA", GNUNET_i2s(&destination), ntohl(incoming->uid), ntohs(packed_message->size), ntohs(packed_message->type), pos->cost);
+              "%s: FORWARD %s message for %s, uid %u, size %d type %d, cost %u!\n", my_short_id, "DV DATA", GNUNET_i2s(destination), ntohl(incoming->uid), ntohs(packed_message->size), ntohs(packed_message->type), pos->cost);
 #endif
 
-  ret = send_message(&destination,
-                     &original_sender,
-                     NULL,
-                     packed_message,
-                     packed_message_size,
-                     default_dv_priority,
-                     ntohl(incoming->uid),
-                     GNUNET_TIME_relative_get_forever());
-
+  if (GNUNET_TIME_absolute_get_duration(pos->last_gossip).value < GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 2).value)
+    {
+      delayed_context = GNUNET_malloc(sizeof(struct DelayedMessageContext));
+      memcpy(&delayed_context->dest, destination, sizeof(struct GNUNET_PeerIdentity));
+      memcpy(&delayed_context->sender, original_sender, sizeof(struct GNUNET_PeerIdentity));
+      delayed_context->message = GNUNET_malloc(packed_message_size);
+      memcpy(delayed_context->message, packed_message, packed_message_size);
+      delayed_context->message_size = packed_message_size;
+      delayed_context->uid = ntohl(incoming->uid);
+      GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 2500), &send_message_delayed, delayed_context);
+      //GNUNET_SCHEDULER_add_now(sched, &send_message_delayed, delayed_context);
+      return GNUNET_OK;
+    }
+  else
+    {
+      ret = send_message(destination,
+                         original_sender,
+                         NULL,
+                         packed_message,
+                         packed_message_size,
+                         default_dv_priority,
+                         ntohl(incoming->uid),
+                         GNUNET_TIME_relative_get_forever());
+    }
   if (ret != GNUNET_SYSERR)
     return GNUNET_OK;
   else
@@ -1566,6 +1611,7 @@ neighbor_send_task (void *cls,
       GNUNET_free(encPeerAbout);
       GNUNET_free(encPeerTo);
 #endif
+      about->last_gossip = GNUNET_TIME_absolute_get();
       pending_message = GNUNET_malloc(sizeof(struct PendingMessage) + sizeof(p2p_dv_MESSAGE_NeighborInfo));
       pending_message->msg = (struct GNUNET_MessageHeader *)&pending_message[1];
       pending_message->importance = default_dv_priority;
@@ -1587,8 +1633,9 @@ neighbor_send_task (void *cls,
                                          core_pending_tail,
                                          pending_message);
 
-      if (core_transmit_handle == NULL)
-        core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, default_dv_priority, GNUNET_TIME_relative_get_forever(), &to->identity, sizeof(p2p_dv_MESSAGE_NeighborInfo), &core_transmit_notify, NULL);
+      GNUNET_SCHEDULER_add_now(sched, try_core_send, NULL);
+      /*if (core_transmit_handle == NULL)
+        core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, default_dv_priority, GNUNET_TIME_relative_get_forever(), &to->identity, sizeof(p2p_dv_MESSAGE_NeighborInfo), &core_transmit_notify, NULL);*/
 
     }
 
@@ -1964,8 +2011,9 @@ static int schedule_disconnect_messages (void *cls,
                                      core_pending_tail,
                                      pending_message);
 
-  if (core_transmit_handle == NULL)
-    core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, default_dv_priority, GNUNET_TIME_relative_get_forever(), &notify->identity, sizeof(p2p_dv_MESSAGE_Disconnect), &core_transmit_notify, NULL);
+  GNUNET_SCHEDULER_add_now(sched, try_core_send, NULL);
+  /*if (core_transmit_handle == NULL)
+    core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, default_dv_priority, GNUNET_TIME_relative_get_forever(), &notify->identity, sizeof(p2p_dv_MESSAGE_Disconnect), &core_transmit_notify, NULL);*/
 
   return GNUNET_YES;
 }
