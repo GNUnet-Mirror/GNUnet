@@ -2200,8 +2200,6 @@ generate_hello_address (void *cls, size_t max, void *buf)
   size_t offset;
   size_t size;
   size_t ret;
-  char *addr1;
-  char *addr2;
 
   if (hello_context->addresses_to_add == 0)
     return 0;
@@ -2217,11 +2215,6 @@ generate_hello_address (void *cls, size_t max, void *buf)
   offset += sizeof(struct GNUNET_PeerIdentity);
   /* Copy the direct peer identity to buffer */
   memcpy(&addr_buffer[offset], hello_context->direct_peer, sizeof(struct GNUNET_PeerIdentity));
-  addr1 = GNUNET_strdup(GNUNET_i2s(hello_context->direct_peer));
-  addr2 = GNUNET_strdup(GNUNET_i2s(&hello_context->distant_peer));
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: GIVING HELLO for %s via %s to TRANSPORT\n", my_short_id, addr2, addr1);
-  GNUNET_free(addr1);
-  GNUNET_free(addr2);
   ret = GNUNET_HELLO_add_address ("dv",
                                   GNUNET_TIME_relative_to_absolute
                                   (GNUNET_TIME_UNIT_HOURS), addr_buffer, size,
@@ -2260,6 +2253,8 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer, struct GNUNET_CRYPTO
   struct HelloContext *hello_context;
   struct GNUNET_HELLO_Message *hello_msg;
   unsigned int our_id;
+  char *addr1;
+  char *addr2;
 
 #if DEBUG_DV_PEER_NUMBERS
   char *encAbout;
@@ -2386,6 +2381,11 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer, struct GNUNET_CRYPTO
           hello_context->addresses_to_add = 1;
           hello_msg = GNUNET_HELLO_create(pkey, &generate_hello_address, hello_context);
           GNUNET_assert(memcmp(hello_context->direct_peer, &hello_context->distant_peer, sizeof(struct GNUNET_PeerIdentity)) != 0);
+          addr1 = GNUNET_strdup(GNUNET_i2s(hello_context->direct_peer));
+          addr2 = GNUNET_strdup(GNUNET_i2s(&hello_context->distant_peer));
+          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: GIVING HELLO size %d for %s via %s to TRANSPORT\n", my_short_id, GNUNET_HELLO_size(hello_msg), addr2, addr1);
+          GNUNET_free(addr1);
+          GNUNET_free(addr2);
           send_to_plugin(hello_context->direct_peer, GNUNET_HELLO_get_header(hello_msg), GNUNET_HELLO_size(hello_msg), &hello_context->distant_peer, cost);
           GNUNET_free(hello_context);
           GNUNET_free(hello_msg);
