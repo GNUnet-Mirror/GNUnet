@@ -335,7 +335,7 @@ int GNUNET_CRYPTO_hash_from_string (const char *enc,
  *
  * @param a some hash code
  * @param b some hash code
- * @return number between 0 and 65536
+ * @return number between 0 and UINT32_MAX
  */
 uint32_t GNUNET_CRYPTO_hash_distance_u32 (const GNUNET_HashCode * a,
 					  const GNUNET_HashCode * b);

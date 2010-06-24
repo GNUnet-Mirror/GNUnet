@@ -157,7 +157,7 @@
 /**
  * Bandwidth value of an (effectively) 0-priority query.
  */
-#define QUERY_BANDWIDTH_VALUE 0.001
+#define QUERY_BANDWIDTH_VALUE 1
 
 /**
  * Bandwidth value of a 0-priority content (must be
@@ -166,7 +166,7 @@
  * since it can take many queries to get one piece of
  * content).
  */
-#define CONTENT_BANDWIDTH_VALUE 0.8
+#define CONTENT_BANDWIDTH_VALUE 800
 
 /**
  * By which amount do we decrement the TTL for simple forwarding /

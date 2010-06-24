@@ -1,15 +1,19 @@
 0.9.0pre1:
-* FS: [CG]
-  - TTL/priority calculations
-  - hot-path routing
 * TRANSPORT:
+  - PING Signing [CG]
   - HTTP backend [MW]
-* DV: [Nate]
-  - implement performance tests (needs tbench)
+* ARM:
+  - make listen socket forwarding to child processes on supported platforms
+    optional for debugging [CG/Nate]
+* CORE:
+  - derived key generation [Nils]
 * UTIL:
   - only connect() sockets that are ready (select()) [Nils]
     [On W32, we need to select after calling socket before doing connect etc.]
-* GNUNET-GTK:
+* DATASTORE [CG]:
+  - check for duplicates on insertion (currently, same content is frequently
+    stored again [seen with KBLOCKS and SBLOCKS]!)
+* GNUNET-GTK: [CG]
   - directory support:
     + download start: recursive/directory (!) & from-URI only
     + handle download lost-parent (move to 'from-URI only' tab)
@@ -26,22 +30,31 @@
     why is it so slow? Fix! (see core_api_reliability test)
   - implement API to get notifications about bandwidth assignments to individual peers
   - implement API to get notifications about updates to liveness of individual peers (before disconnect)
+* STATISTICS:
+  - implement notification-based statistics API
+* PEERINFO [CG]
+  - better API for trust management
 * TOPOLOGY:
   - needs more testing (especially F2F topology) & transport blacklisting
 * TBENCH: [MW]
   - good to have for transport/DV evaluation! 
+* DV: [Nate]
+  - implement performance tests (needs tbench)
 * DHT: [Nate]
   - implement DHT service 
   - implement testcases
   - implement performance tests
-* ARM: [Safey]
+* MONKEY: [Safey]
   - better crash management (attach debugging support, capture and analyze
     debug output, detect random vs. deterministic crashes)
-  - discover dependencies between services
+* ARM: [CG]
   - handle gnunet-arm -k in combination with auto-start magic (what is the right thing here?)
-  - add listen socket forwarding to child processes on supported platforms
+  - discover dependencies between services
 * FS: [CG]
+  - trust & peerinfo integration
   - load considerations (migration, routing)
+  - bound our priorities based on priorities used by other peers
+  - artificial delays
   - active reply route caching design & implementation of service; gap extension!
   - datastore reservation (publishing)
   - location URIs (publish, search, download)
@@ -61,9 +74,7 @@
     + download
     + search
     + unindex
-* STATISTICS:
-  - implement notification-based statistics API
-* GNUNET-GTK:
+* GNUNET-GTK: [CG]
   - implement publish dialog details:
     + open (import directory structure)
     + normalize keywords (edit subdialog)
@@ -121,11 +132,11 @@
 * MYSQL database backends: [CG]
   - datacache
   - datastore
-* FS:
+* FS: [CG]
   - reconstruct IBLOCKS from DBLOCKS if possible (during download; see FIXME in fs_download)
   - add support for pushing "already seen" search results to FS service for bloomfilter (can wait)
   - use different 'priority' for probe downloads vs. normal downloads
-* ARM:
+* ARM: [CG/Safey]
   - better tracking of which config changes actually need to cause process restarts by ARM.
 * SETUP:
   - design & implement new setup tool
@@ -186,9 +197,6 @@ Optimizations:
 * TRANSPORT:
   - need to periodically probe latency/transport cost changes & possibly switch transport
   - should use hash map to look up Neighbours (service AND plugins!)
-* DATASTORE (?):
-  - check for duplicates on insertion (currently, same content is frequently
-    stored again [seen with KBLOCKS and SBLOCKS]!)
 * PEERINFO:
   - merge multiple HELLOs of the same peer in the transmission queue
     (theoretically reduces overhead; bounds message queue size)

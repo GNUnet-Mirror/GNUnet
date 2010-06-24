@@ -668,8 +668,10 @@ GNUNET_CRYPTO_hash_from_string (const char *enc, GNUNET_HashCode * result)
  * fast, not involve bits[0] or bits[4] (they're used elsewhere), and be
  * somewhat consistent. And of course, the result should be a positive
  * number.
- *
- * @returns a positive number which is a measure for
+ * 
+ * @param a some hash code
+ * @param b some hash code
+ * @return a positive number which is a measure for
  *  hashcode proximity.
  */
 unsigned int

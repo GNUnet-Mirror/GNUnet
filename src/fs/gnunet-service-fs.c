@@ -23,13 +23,16 @@
  * @brief gnunet anonymity protocol implementation
  * @author Christian Grothoff
  *
- * FIXME:
- * - TTL/priority calculations are absent!
  * TODO:
- * - have non-zero preference / priority for requests we initiate!
- * - implement hot-path routing decision procedure
- * - implement: bound_priority, test_load_too_high
- * - statistics
+ * - trust not properly received and pushed back to peerinfo!
+ * - bound_priority by priorities used by other peers
+ * - have a way to drop queries based on load
+ * - introduce random latency in processing
+ * - consider more precise latency estimation (per-peer & request)
+ * - better algorithm for priority selection for requests we initiate?
+ * - tell other peers to stop migration if our PUTs fail (or if
+ *   we don't support migration per configuration?)
+ * - more statistics
  */
 #include "platform.h"
 #include <float.h>
@@ -48,7 +51,6 @@
 
 /**
  * Maximum number of outgoing messages we queue per peer.
- * FIXME: make configurable?
  */
 #define MAX_QUEUE_PER_PEER 16
 
@@ -204,9 +206,14 @@ struct ConnectedPeer
 
   /**
    * Increase in traffic preference still to be submitted
-   * to the core service for this peer. FIXME: double or 'uint64_t'?
+   * to the core service for this peer.
    */
-  double inc_preference;
+  uint64_t inc_preference;
+
+  /**
+   * Trust delta to still commit to the system.
+   */
+  uint32_t trust_delta;
 
   /**
    * The peer's identity.
@@ -480,7 +487,6 @@ struct PendingRequest
   struct GNUNET_DATASTORE_QueueEntry *qe;
 
   /**
-
    * Size of the 'bf' (in bytes).
    */
   size_t bf_size;
@@ -1247,7 +1253,11 @@ peer_disconnect_handler (void *cls,
 					     &consider_migration,
 					     pos);
     }
-
+  if (cp->trust_delta > 0)
+    {
+      /* FIXME: push trust back to peerinfo! 
+	 (need better peerinfo API!) */
+    }
   GNUNET_PEER_change_rc (cp->pid, -1);
   GNUNET_PEER_decrement_rcs (cp->last_p2p_replies, P2P_SUCCESS_LIST_SIZE);
   if (NULL != cp->cth)
@@ -1856,11 +1866,6 @@ target_reservation_cb (void *cls,
       return;
     }
   no_route = GNUNET_NO;
-  /* FIXME: check against DBLOCK_SIZE and possibly return
-     amount to reserve; however, this also needs to work
-     with testcases which currently start out with a far
-     too low per-peer bw limit, so they would never send
-     anything.  Big issue. */
   if (amount == 0)
     {
       if (pr->cp == NULL)
@@ -1997,7 +2002,13 @@ target_peer_select_cb (void *cls,
 
   /* 1) check that this peer is not the initiator */
   if (cp == pr->cp)
-    return GNUNET_YES; /* skip */	   
+    {
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Skipping initiator in forwarding selection\n");
+#endif
+      return GNUNET_YES; /* skip */	   
+    }
 
   /* 2) check if we have already (recently) forwarded to this peer */
   pc = 0;
@@ -2022,13 +2033,47 @@ target_peer_select_cb (void *cls,
 		"Re-trying query that was previously transmitted %u times to this peer\n",
 		(unsigned int) pc);
 #endif
-  // 3) calculate how much we'd like to forward to this peer
-  score = 42; // FIXME!
-  // FIXME: also need API to gather data on responsiveness
-  // of this peer (we have fields for that in 'cp', but
-  // they are never set!)
-  
+  /* 3) calculate how much we'd like to forward to this peer,
+     starting with a random value that is strong enough
+     to at least give any peer a chance sometimes 
+     (compared to the other factors that come later) */
+  /* 3a) count successful (recent) routes from cp for same source */
+  if (pr->cp != NULL)
+    {
+      score = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+					P2P_SUCCESS_LIST_SIZE);
+      for (i=0;i<P2P_SUCCESS_LIST_SIZE;i++)
+	if (cp->last_p2p_replies[i] == pr->cp->pid)
+	  score += 1; /* likely successful based on hot path */
+    }
+  else
+    {
+      score = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+					CS2P_SUCCESS_LIST_SIZE);
+      for (i=0;i<CS2P_SUCCESS_LIST_SIZE;i++)
+	if (cp->last_client_replies[i] == pr->client_request_list->client_list->client)
+	  score += 1; /* likely successful based on hot path */
+    }
+  /* 3b) include latency */
+  if (cp->avg_delay.value < 4 * TTL_DECREMENT)
+    score += 1; /* likely fast based on latency */
+  /* 3c) include priorities */
+  if (cp->avg_priority <= pr->remaining_priority / 2.0)
+    score += 1; /* likely successful based on priorities */
+  /* 3d) penalize for queue size */  
+  score -= (2.0 * cp->pending_requests / (double) MAX_QUEUE_PER_PEER); 
+  /* 3e) include peer proximity */
+  score -= (2.0 * (GNUNET_CRYPTO_hash_distance_u32 (key,
+						    &pr->query)) / (double) UINT32_MAX);
   /* store best-fit in closure */
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Peer `%s' gets score %f for forwarding query, max is %f\n",
+	      GNUNET_h2s (key),
+	      score,
+	      psc->target_score);
+#endif  
+  score++; /* avoid zero */
   if (score > psc->target_score)
     {
       psc->target_score = score;
@@ -2066,7 +2111,7 @@ bound_ttl (int32_t ttl_in, uint32_t prio)
 
 
 /**
- * We're processing a GET request from another peer and have decided
+ * We're processing a GET request and have decided
  * to forward it to other peers.  This function is called periodically
  * and should forward the request to other peers until we have all
  * possible replies.  If we have transmitted the *only* reply to
@@ -2100,11 +2145,11 @@ forward_request_task (void *cls,
     return; /* configured to not do P2P search */
   /* (1) select target */
   psc.pr = pr;
-  psc.target_score = DBL_MIN;
+  psc.target_score = -DBL_MAX;
   GNUNET_CONTAINER_multihashmap_iterate (connected_peers,
 					 &target_peer_select_cb,
 					 &psc);  
-  if (psc.target_score == DBL_MIN)
+  if (psc.target_score == -DBL_MAX)
     {
       delay = get_processing_delay ();
 #if DEBUG_FS 
@@ -2120,7 +2165,6 @@ forward_request_task (void *cls,
       return; /* nobody selected */
     }
   /* (3) update TTL/priority */
-  
   if (pr->client_request_list != NULL)
     {
       /* FIXME: use better algorithm!? */
@@ -2139,10 +2183,6 @@ forward_request_task (void *cls,
 		  pr->ttl);
 #endif
     }
-  else
-    {
-      /* FIXME: should we do something here as well!? */
-    }
 
   /* (3) reserve reply bandwidth */
   cp = GNUNET_CONTAINER_multihashmap_get (connected_peers,
@@ -2153,10 +2193,10 @@ forward_request_task (void *cls,
 						GNUNET_CONSTANTS_SERVICE_TIMEOUT, 
 						GNUNET_BANDWIDTH_value_init (UINT32_MAX),
 						DBLOCK_SIZE * 2, 
-						(uint64_t) cp->inc_preference,
+						cp->inc_preference,
 						&target_reservation_cb,
 						pr);
-  cp->inc_preference = 0.0;
+  cp->inc_preference = 0;
 }
 
 
@@ -2574,6 +2614,7 @@ handle_p2p_put (void *cls,
   GNUNET_HashCode query;
   struct ProcessReplyClosure prq;
   const struct SBlock *sb;
+  struct ConnectedPeer *cps;
 
   msize = ntohs (message->size);
   if (msize < sizeof (struct PutMessage))
@@ -2629,6 +2670,10 @@ handle_p2p_put (void *cls,
 					      &query,
 					      &process_reply,
 					      &prq);
+  cps = GNUNET_CONTAINER_multihashmap_get (connected_peers,
+					   &other->hashPubKey);
+  cps->inc_preference += CONTENT_BANDWIDTH_VALUE + 1000 * prq.priority;
+  cps->trust_delta += prq.priority;
   if (GNUNET_YES == active_migration)
     {
 #if DEBUG_FS
@@ -2907,7 +2952,13 @@ static uint32_t
 bound_priority (uint32_t prio_in,
 		struct ConnectedPeer *cp)
 {
-  return 0; // FIXME!
+  if (cp->trust_delta > prio_in)
+    {
+      cp->trust_delta -= prio_in;
+      return prio_in;
+    }
+  // FIXME: get out trust in the target peer from peerinfo!
+  return 0; 
 }
 
 
@@ -2973,7 +3024,6 @@ handle_p2p_get (void *cls,
   size_t bfsize;
   uint32_t ttl_decrement;
   enum GNUNET_BLOCK_Type type;
-  double preference;
   int have_ns;
 
   msize = ntohs(message->size);
@@ -3195,11 +3245,7 @@ handle_p2p_get (void *cls,
 			    GNUNET_NO);
 
   /* calculate change in traffic preference */
-  preference = (double) pr->priority;
-  if (preference < QUERY_BANDWIDTH_VALUE)
-    preference = QUERY_BANDWIDTH_VALUE;
-  cps->inc_preference += preference;
-
+  cps->inc_preference += pr->priority * 1000 + QUERY_BANDWIDTH_VALUE;
   /* process locally */
   if (type == GNUNET_BLOCK_TYPE_DBLOCK)
     type = GNUNET_BLOCK_TYPE_ANY; /* to get on-demand as well */
