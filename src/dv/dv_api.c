@@ -38,7 +38,9 @@
 #include "dv.h"
 #include "../transport/plugin_transport.h"
 
-
+/**
+ * Store ready to send messages
+ */
 struct PendingMessages
 {
   /**
@@ -57,8 +59,6 @@ struct PendingMessages
   struct GNUNET_TIME_Absolute timeout;
 
 };
-
-
 
 /**
  * Handle for the service.
@@ -94,11 +94,6 @@ struct GNUNET_DV_Handle
    * Message we are currently sending.
    */
   struct PendingMessages *current;
-
-  /**
-   * Kill off the connection and any pending messages.
-   */
-  int do_destroy;
 
   /**
    * Handler for messages we receive from the DV service
@@ -171,6 +166,8 @@ hash_from_uid (uint32_t uid,
 /**
  * Try to (re)connect to the dv service.
  *
+ * @param ret handle to the (disconnected) dv service
+ *
  * @return GNUNET_YES on success, GNUNET_NO on failure.
  */
 static int
@@ -192,6 +189,9 @@ static void process_pending_message(struct GNUNET_DV_Handle *handle);
 
 /**
  * Send complete, schedule next
+ *
+ * @param handle handle to the dv service
+ * @param code return code for send (unused)
  */
 static void
 finish (struct GNUNET_DV_Handle *handle, int code)
@@ -204,7 +204,15 @@ finish (struct GNUNET_DV_Handle *handle, int code)
   GNUNET_free (pos);
 }
 
-
+/**
+ * Notification that we can send data
+ *
+ * @param cls handle to the dv service (struct GNUNET_DV_Handle)
+ * @param size how many bytes can we send
+ * @buf where to copy the message to send
+ *
+ * @return how many bytes we copied to buf
+ */
 static size_t
 transmit_pending (void *cls, size_t size, void *buf)
 {
@@ -249,6 +257,8 @@ transmit_pending (void *cls, size_t size, void *buf)
 
 /**
  * Try to send messages from list of messages to send
+ *
+ * @param handle handle to the distance vector service
  */
 static void process_pending_message(struct GNUNET_DV_Handle *handle)
 {
@@ -265,11 +275,6 @@ static void process_pending_message(struct GNUNET_DV_Handle *handle)
   handle->current = handle->pending_list;
   if (NULL == handle->current)
     {
-      if (handle->do_destroy)
-        {
-          handle->do_destroy = GNUNET_NO;
-          //GNUNET_DV_disconnect (handle); /* FIXME: replace with proper disconnect stuffs */
-        }
       return;
     }
   handle->pending_list = handle->pending_list->next;
@@ -277,10 +282,10 @@ static void process_pending_message(struct GNUNET_DV_Handle *handle)
 
   if (NULL ==
       (handle->th = GNUNET_CLIENT_notify_transmit_ready (handle->client,
-                                                    ntohl(handle->current->msg->msgbuf_size),
-                                                    handle->current->msg->timeout,
-                                                    GNUNET_YES,
-                                                    &transmit_pending, handle)))
+                                                         ntohs(handle->current->msg->header.size),
+                                                         handle->current->msg->timeout,
+                                                         GNUNET_YES,
+                                                         &transmit_pending, handle)))
     {
 #if DEBUG_DV
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -456,7 +461,6 @@ int GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
   msg->header.size = htons(msize);
   msg->header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND);
   memcpy(&msg->target, target, sizeof(struct GNUNET_PeerIdentity));
-  msg->msgbuf_size = htonl(msgbuf_size);
   msg->priority = htonl(priority);
   msg->timeout = timeout;
   msg->addrlen = htonl(addrlen);
@@ -476,9 +480,16 @@ int GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
   return GNUNET_OK;
 }
 
-/* Forward declaration */
-void GNUNET_DV_disconnect(struct GNUNET_DV_Handle *handle);
-
+/**
+ * Callback to transmit a start message to
+ * the DV service, once we can send
+ *
+ * @param cls struct StartContext
+ * @param size how much can we send
+ * @param buf where to copy the message
+ *
+ * @return number of bytes copied to buf
+ */
 static size_t
 transmit_start (void *cls, size_t size, void *buf)
 {
@@ -531,7 +542,6 @@ GNUNET_DV_connect (struct GNUNET_SCHEDULER_Handle *sched,
   handle->sched = sched;
   handle->pending_list = NULL;
   handle->current = NULL;
-  handle->do_destroy = GNUNET_NO;
   handle->th = NULL;
   handle->client = GNUNET_CLIENT_connect(sched, "dv", cfg);
   handle->receive_handler = receive_handler;

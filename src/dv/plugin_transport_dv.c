@@ -22,30 +22,10 @@
  * @file dv/plugin_transport_dv.c
  * @brief DV transport service, takes incoming DV requests and deals with
  * the DV service
+ * @author Nathan Evans
  * @author Christian Grothoff
  */
 
-/**
- * TODO:
- *
- * As a start, the dv plugin needs to listen for information from the dv
- * service.  The plugin (?) will be notified by core (?) when a tcp/udp/whatever
- * message comes in that should be for dv.  The plugin will then hand off the message
- * to the dv service which will decrypt/validate the message (?) and then send the
- * result back to us (the transport) which will then send the message to the transport
- * service (yikes).
- *
- * Or, core will notify the dv service directly which will validate,
- * etc. and then just send a message to us.
- *
- * For starters, this plugin needs to have a client which will listen for messages from
- * the dv service that need to be sent up to the gnunet-transport-service.
- *
- * Messages sent from the dv transport get passed to the dv service which deals
- * with the actual sending (how much state does this transport need? should it know
- * which peers it is currently connected to and their distances, or just assume that
- * anything should be passed along to the dv service?).
- */
 #include "platform.h"
 #include "gnunet_protocols.h"
 #include "gnunet_connection_lib.h"
@@ -433,6 +413,9 @@ libgnunet_plugin_transport_dv_done (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
+
+  if (plugin->dv_handle != NULL)
+    GNUNET_DV_disconnect(plugin->dv_handle);
 
   GNUNET_free (plugin);
   GNUNET_free (api);

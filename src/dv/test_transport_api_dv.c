@@ -321,7 +321,15 @@ process_mtype (void *cls,
   if ((total_messages_received == expected_messages) && (total_other_messages == 0))
     {
       GNUNET_SCHEDULER_cancel (sched, die_task);
-      GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 420), &send_other_messages, NULL);
+      /*
+      if ((num_peers == 3) && (total_other_expected_messages == 2))
+        {
+          GNUNET_SCHEDULER_add_now (sched, &send_other_messages, NULL);
+        }
+      else
+        {
+          GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20), &send_other_messages, NULL);
+        }*/
     }
   else if ((total_other_expected_messages > 0) && (total_other_messages == total_other_expected_messages))
     {
@@ -827,6 +835,12 @@ static void all_connect_handler (void *cls,
         fprintf(dotOutFile, "\tn%s -- n%s [color=brown];\n", d->shortname, second_shortname);
     }
   GNUNET_free(second_shortname);
+
+  if ((num_peers == 3) && (temp_total_other_messages == 2))
+    {
+      /*GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30), &send_other_messages, NULL);*/
+      GNUNET_SCHEDULER_add_now (sched, &send_other_messages, NULL);
+    }
 }
 
 static void
@@ -1064,7 +1078,6 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
-
   /**
    * Need to remove base directory, subdirectories taken care
    * of by the testing framework.

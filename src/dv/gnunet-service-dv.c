@@ -503,7 +503,7 @@ static struct GNUNET_CORE_Handle *coreAPI;
 /**
  * Stream tokenizer to handle messages coming in from core.
  */
-struct GNUNET_SERVER_MessageStreamTokenizer *coreMST;
+static struct GNUNET_SERVER_MessageStreamTokenizer *coreMST;
 
 /**
  * The identity of our peer.
@@ -1709,9 +1709,7 @@ void handle_dv_send_message (void *cls,
 
   address_len = ntohl(send_msg->addrlen);
   GNUNET_assert(address_len == sizeof(struct GNUNET_PeerIdentity) * 2);
-  message_size = ntohl(send_msg->msgbuf_size);
-
-  GNUNET_assert(ntohs(message->size) == sizeof(struct GNUNET_DV_SendMessage) + address_len + message_size);
+  message_size = ntohs(message->size) - sizeof(struct GNUNET_DV_SendMessage) - address_len;
   destination = GNUNET_malloc(sizeof(struct GNUNET_PeerIdentity));
   direct = GNUNET_malloc(sizeof(struct GNUNET_PeerIdentity));
   message_buf = GNUNET_malloc(message_size);

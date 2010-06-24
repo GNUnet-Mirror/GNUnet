@@ -31,7 +31,7 @@
 #define DEBUG_DV_GOSSIP GNUNET_NO
 #define DEBUG_DV_GOSSIP_SEND GNUNET_NO
 #define DEBUG_DV_GOSSIP_RECEIPT GNUNET_NO
-#define DEBUG_DV_MESSAGES GNUNET_YES
+#define DEBUG_DV_MESSAGES GNUNET_NO
 #define DEBUG_DV GNUNET_NO
 #define DEBUG_DV_PEER_NUMBERS GNUNET_NO
 #define DEBUG_MESSAGE_DROP GNUNET_NO
@@ -156,11 +156,6 @@ struct GNUNET_DV_SendMessage
   struct GNUNET_PeerIdentity target;
 
   /**
-   * The size of the msgbuf
-   */
-  uint32_t msgbuf_size;
-
-  /**
    * Message priority
    */
   uint32_t priority;
@@ -272,5 +267,12 @@ GNUNET_DV_connect (struct GNUNET_SCHEDULER_Handle *sched,
                   const struct GNUNET_CONFIGURATION_Handle *cfg,
                   GNUNET_DV_MessageReceivedHandler receive_handler,
                   void *receive_handler_cls);
+
+/**
+ * Disconnect from the DV service
+ *
+ * @param handle the current handle to the service to disconnect
+ */
+void GNUNET_DV_disconnect(struct GNUNET_DV_Handle *handle);
 
 #endif
