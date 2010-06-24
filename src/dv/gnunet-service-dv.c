@@ -816,6 +816,10 @@ void send_to_plugin(const struct GNUNET_PeerIdentity * sender,
         }
 #endif
     }
+  else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to queue message for plugin, client_handle not yet set (how?)!\n");
+    }
 }
 
 
