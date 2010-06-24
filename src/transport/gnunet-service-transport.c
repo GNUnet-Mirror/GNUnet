@@ -45,6 +45,8 @@
 
 #define SIGN_USELESS GNUNET_NO
 
+#define DEBUG_TRANSPORT_HELLO GNUNET_YES
+
 /**
  * Should we do some additional checks (to validate behavior
  * of clients)?
@@ -3820,7 +3822,9 @@ process_hello (struct TransportPlugin *plugin,
   const struct GNUNET_HELLO_Message *hello;
   struct CheckHelloValidatedContext *chvc;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded publicKey;
-
+#if DEBUG_TRANSPORT_HELLO
+  char *my_id;
+#endif
   hsize = ntohs (message->size);
   if ((ntohs (message->type) != GNUNET_MESSAGE_TYPE_HELLO) ||
       (hsize < sizeof (struct GNUNET_MessageHeader)))
@@ -3881,12 +3885,19 @@ process_hello (struct TransportPlugin *plugin,
 				   GNUNET_HELLO_size(hello)));
       chvc = chvc->next;
     }
-#if DEBUG_TRANSPORT 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Starting validation of `%s' message for `%4s' of size %u\n",
-              "HELLO", 
-	      GNUNET_i2s (&target), 
-	      GNUNET_HELLO_size(hello));
+#if DEBUG_TRANSPORT_HELLO
+  if (plugin != NULL)
+    {
+      my_id = GNUNET_strdup(GNUNET_i2s(plugin->env.my_identity));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%s: Starting validation of `%s' message for `%4s' via '%s' of size %u\n",
+                  my_id,
+                  "HELLO",
+                  GNUNET_i2s (&target),
+                  (plugin == NULL) ? "???" : plugin->short_name,
+                  GNUNET_HELLO_size(hello));
+      GNUNET_free(my_id);
+    }
 #endif
   chvc = GNUNET_malloc (sizeof (struct CheckHelloValidatedContext) + hsize);
   chvc->ve_count = 1;
