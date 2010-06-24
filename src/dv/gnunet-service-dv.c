@@ -741,7 +741,7 @@ void send_to_plugin(const struct GNUNET_PeerIdentity * sender,
 {
   struct GNUNET_DV_MessageReceived *received_msg;
   struct PendingMessage *pending_message;
-#if DEBUG_DV
+#if DEBUG_DV_MESSAGES
   struct GNUNET_MessageHeader * packed_message_header;
   struct GNUNET_HELLO_Message *hello_msg;
   struct GNUNET_PeerIdentity hello_identity;
@@ -786,12 +786,13 @@ void send_to_plugin(const struct GNUNET_PeerIdentity * sender,
   packed_msg_start = &packed_msg_start[sender_address_len];
   memcpy(packed_msg_start, message, message_size);
 #if DEBUG_DV_MESSAGES
-if (ntohs(packed_message_header->type) == GNUNET_MESSAGE_TYPE_HELLO)
-  {
-    hello_msg = (struct GNUNET_HELLO_Message *)packed_message_header;
-    GNUNET_assert(GNUNET_OK == GNUNET_HELLO_get_id(hello_msg, &hello_identity));
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s: send_to_plugin: Packed HELLO message is about peer %s\n", my_short_id, GNUNET_i2s(&hello_identity));
-  }
+  packed_message_header = (struct GNUNET_MessageHeader *)packed_msg_start;
+  if (ntohs(packed_message_header->type) == GNUNET_MESSAGE_TYPE_HELLO)
+    {
+      hello_msg = (struct GNUNET_HELLO_Message *)packed_msg_start;
+      GNUNET_assert(GNUNET_OK == GNUNET_HELLO_get_id(hello_msg, &hello_identity));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s: send_to_plugin: Packed HELLO message is about peer %s\n", my_short_id, GNUNET_i2s(&hello_identity));
+    }
 #endif
   pending_message = GNUNET_malloc(sizeof(struct PendingMessage) + size);
   pending_message->msg = (struct GNUNET_MessageHeader *)&pending_message[1];
