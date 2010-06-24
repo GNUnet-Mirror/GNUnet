@@ -1213,7 +1213,7 @@ void tokenized_message_handler (void *cls,
   {
 #if DEBUG_DV_MESSAGES
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "%s: Receives %s message for me, uid %u, total size %d cost %u from %s!\n", my_short_id, "DV DATA", ctx->uid, ntohs(message->size), ctx->distant->cost, GNUNET_i2s(&ctx->distant->identity));
+                "%s: Receives %s message for me, uid %u, size %d, type %d cost %u from %s!\n", my_short_id, "DV DATA", ctx->uid, ntohs(message->size), ntohs(message->type), ctx->distant->cost, GNUNET_i2s(&ctx->distant->identity));
 #endif
     GNUNET_assert(memcmp(ctx->peer, &ctx->distant->identity, sizeof(struct GNUNET_PeerIdentity)) != 0);
     send_to_plugin(ctx->peer, message, ntohs(message->size), &ctx->distant->identity, ctx->distant->cost);
@@ -1310,9 +1310,9 @@ static int handle_dv_data_message (void *cls,
   if (pos == NULL)
     {
       direct_id = GNUNET_strdup(GNUNET_i2s(&dn->identity));
-#if DEBUG_DV
+#if DEBUG_DV_MESSAGES
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%s: unknown sender (%u), Message from %s!\n", GNUNET_i2s(&my_identity), ntohl(incoming->sender), direct_id);
+                  "%s: unknown sender (%u), Message uid %llu from %s!\n", GNUNET_i2s(&my_identity), ntohl(incoming->sender), ntohl(incoming->uid), direct_id);
 #endif
       GNUNET_free(direct_id);
       pos = dn->referee_head;

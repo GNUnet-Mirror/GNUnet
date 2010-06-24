@@ -158,7 +158,7 @@ void handle_dv_message_received (void *cls,
   my_id = GNUNET_strdup(GNUNET_i2s(plugin->env->my_identity));
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "plugin_transport_dv",
-                   _("%s Received message from %s) of type %d, distance %u!\n"),
+                   _("%s Received message from %s of type %d, distance %u!\n"),
                    my_id, GNUNET_i2s(sender), ntohs(((struct GNUNET_MessageHeader *)msg)->type), distance);
   GNUNET_free_non_null(my_id);
 #endif
