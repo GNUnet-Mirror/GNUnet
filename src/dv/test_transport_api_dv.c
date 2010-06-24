@@ -282,69 +282,6 @@ disconnect_cores (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 }
 
 static void
-send_other_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc);
-
-static int
-process_mtype (void *cls,
-               const struct GNUNET_PeerIdentity *peer,
-               const struct GNUNET_MessageHeader *message,
-               struct GNUNET_TIME_Relative latency,
-               uint32_t distance)
-{
-  struct TestMessageContext *pos = cls;
-  struct GNUNET_TestMessage *msg = (struct GNUNET_TestMessage *)message;
-  if (pos->uid != ntohl(msg->uid))
-    return GNUNET_OK;
-
-  GNUNET_assert(0 == memcmp(peer, &pos->peer1->id, sizeof(struct GNUNET_PeerIdentity)));
-  if (total_other_expected_messages == 0)
-    {
-      total_messages_received++;
-#if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Received message from `%4s', type %d, uid %u, distance %u.\n", GNUNET_i2s (peer), ntohs(message->type), ntohl(msg->uid), distance);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Total messages received %d, expected %d.\n", total_messages_received, expected_messages);
-#endif
-    }
-  else
-    {
-      total_other_messages++;
-#if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Received message from `%4s', type %d, uid %u, distance %u.\n", GNUNET_i2s (peer), ntohs(message->type), ntohl(msg->uid), distance);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Total messages received %d, expected %d.\n", total_other_messages, total_other_expected_messages);
-#endif
-    }
-
-  if ((total_messages_received == expected_messages) && (total_other_messages == 0))
-    {
-      GNUNET_SCHEDULER_cancel (sched, die_task);
-      /*
-      if ((num_peers == 3) && (total_other_expected_messages == 2))
-        {
-          GNUNET_SCHEDULER_add_now (sched, &send_other_messages, NULL);
-        }
-      else
-        {
-          GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20), &send_other_messages, NULL);
-        }*/
-    }
-  else if ((total_other_expected_messages > 0) && (total_other_messages == total_other_expected_messages))
-    {
-      GNUNET_SCHEDULER_cancel (sched, die_task);
-      GNUNET_SCHEDULER_add_now (sched, &finish_testing, NULL);
-    }
-  else
-    {
-      pos->disconnect_task = GNUNET_SCHEDULER_add_now(sched, &disconnect_cores, pos);
-    }
-
-  return GNUNET_OK;
-}
-
-static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   char *msg = cls;
@@ -419,6 +356,72 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
       fprintf(dotOutFile, "}");
       fclose(dotOutFile);
     }
+}
+
+static void
+send_other_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc);
+
+static int
+process_mtype (void *cls,
+               const struct GNUNET_PeerIdentity *peer,
+               const struct GNUNET_MessageHeader *message,
+               struct GNUNET_TIME_Relative latency,
+               uint32_t distance)
+{
+  struct TestMessageContext *pos = cls;
+  struct GNUNET_TestMessage *msg = (struct GNUNET_TestMessage *)message;
+  if (pos->uid != ntohl(msg->uid))
+    return GNUNET_OK;
+
+  GNUNET_assert(0 == memcmp(peer, &pos->peer1->id, sizeof(struct GNUNET_PeerIdentity)));
+  if (total_other_expected_messages == 0)
+    {
+      total_messages_received++;
+#if VERBOSE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Received message from `%4s', type %d, uid %u, distance %u.\n", GNUNET_i2s (peer), ntohs(message->type), ntohl(msg->uid), distance);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Total messages received %d, expected %d.\n", total_messages_received, expected_messages);
+#endif
+    }
+  else
+    {
+      total_other_messages++;
+#if VERBOSE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Received message from `%4s', type %d, uid %u, distance %u.\n", GNUNET_i2s (peer), ntohs(message->type), ntohl(msg->uid), distance);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Total messages received %d, expected %d.\n", total_other_messages, total_other_expected_messages);
+#endif
+    }
+
+  if ((total_messages_received == expected_messages) && (total_other_messages == 0))
+    {
+      GNUNET_SCHEDULER_cancel (sched, die_task);
+      die_task = GNUNET_SCHEDULER_add_delayed (sched,
+                                               TEST_TIMEOUT,
+                                               &end_badly, "waiting for DV peers to connect!");
+      /*
+      if ((num_peers == 3) && (total_other_expected_messages == 2))
+        {
+          GNUNET_SCHEDULER_add_now (sched, &send_other_messages, NULL);
+        }
+      else
+        {
+          GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20), &send_other_messages, NULL);
+        }*/
+    }
+  else if ((total_other_expected_messages > 0) && (total_other_messages == total_other_expected_messages))
+    {
+      GNUNET_SCHEDULER_cancel (sched, die_task);
+      GNUNET_SCHEDULER_add_now (sched, &finish_testing, NULL);
+    }
+  else
+    {
+      pos->disconnect_task = GNUNET_SCHEDULER_add_now(sched, &disconnect_cores, pos);
+    }
+
+  return GNUNET_OK;
 }
 
 static size_t
@@ -639,6 +642,7 @@ send_other_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 #endif
 
   GNUNET_SCHEDULER_add_now (sched, &send_test_messages, other_test_messages);
+  GNUNET_SCHEDULER_cancel(sched, die_task);
   die_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 250), &end_badly, "from send_other_messages");
 }
 
