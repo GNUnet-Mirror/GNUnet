@@ -2219,7 +2219,7 @@ generate_hello_address (void *cls, size_t max, void *buf)
   memcpy(&addr_buffer[offset], hello_context->direct_peer, sizeof(struct GNUNET_PeerIdentity));
   addr1 = GNUNET_strdup(GNUNET_i2s(hello_context->direct_peer));
   addr2 = GNUNET_strdup(GNUNET_i2s(&hello_context->distant_peer));
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: GIVING HELLO %s%s%s to TRANSPORT\n", my_short_id,my_short_id, addr1, addr2);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: GIVING HELLO for %s via %s to TRANSPORT\n", my_short_id, addr2, addr1);
   GNUNET_free(addr1);
   GNUNET_free(addr2);
   ret = GNUNET_HELLO_add_address ("dv",
