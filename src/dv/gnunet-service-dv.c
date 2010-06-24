@@ -693,8 +693,8 @@ size_t transmit_to_plugin (void *cls,
   if (buf == NULL)
     {
       /* client disconnected */
-#if DEBUG_DV
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s': buffer was NULL\n", "DHT");
+#if DEBUG_DV_MESSAGES
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s: %s buffer was NULL (client disconnect?)\n", my_short_id, "transmit_to_plugin");
 #endif
       return 0;
     }
@@ -703,8 +703,8 @@ size_t transmit_to_plugin (void *cls,
   while ( (NULL != (reply = plugin_pending_head)) &&
           (size >= off + (msize = ntohs (reply->msg->size))))
     {
-#if DEBUG_DV
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "`%s' : transmit_notify (plugin) called with size %d\n", "dv service", msize);
+#if DEBUG_DV_MESSAGES
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: transmit_notify (plugin) called with size %d (message sent)\n", my_short_id, msize);
 #endif
       GNUNET_CONTAINER_DLL_remove (plugin_pending_head,
                                    plugin_pending_tail,
