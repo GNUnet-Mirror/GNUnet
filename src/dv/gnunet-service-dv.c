@@ -785,7 +785,7 @@ void send_to_plugin(const struct GNUNET_PeerIdentity * sender,
   packed_msg_start = (char *)&received_msg[1];
   packed_msg_start = &packed_msg_start[sender_address_len];
   memcpy(packed_msg_start, message, message_size);
-#if DEBUG_DV
+#if DEBUG_DV_MESSAGES
   packed_message_header = (struct GNUNET_MessageHeader *)packed_msg_start;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "dv service created received message. sender_address_len %lu, packed message len %d, total len %d\n", sender_address_len, ntohl(received_msg->msg_len), ntohs(received_msg->header.size));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "dv packed message len %d, type %d\n", ntohs(packed_message_header->size), ntohs(packed_message_header->type));
@@ -811,7 +811,7 @@ void send_to_plugin(const struct GNUNET_PeerIdentity * sender,
                                                                         size, GNUNET_TIME_UNIT_FOREVER_REL,
                                                                         &transmit_to_plugin, NULL);
         }
-#if DEBUG_DV
+#if DEBUG_DV_MESSAGES
       else
         {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to queue message for plugin, must be one in progress already!!\n");
