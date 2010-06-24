@@ -3844,11 +3844,23 @@ process_hello (struct TransportPlugin *plugin,
 				gettext_noop ("# HELLOs ignored due to high load"),
 				1,
 				GNUNET_NO);      
+#if DEBUG_TRANSPORT_HELLO
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Ignoring `%s' for `%4s', load too high.\n",
+                  "HELLO",
+                  GNUNET_i2s (&target));
+#endif
       return GNUNET_OK;
     }
   hello = (const struct GNUNET_HELLO_Message *) message;
   if (GNUNET_OK != GNUNET_HELLO_get_key (hello, &publicKey))
     {
+#if DEBUG_TRANSPORT_HELLO
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Unable to get public key from `%s' for `%4s'!\n",
+                  "HELLO",
+                  GNUNET_i2s (&target));
+#endif
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
@@ -3872,7 +3884,7 @@ process_hello (struct TransportPlugin *plugin,
 			       chvc->hello,
 			       GNUNET_TIME_absolute_get ()).value > 0)
 	{
-#if DEBUG_TRANSPORT
+#if DEBUG_TRANSPORT_HELLO
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Received duplicate `%s' message for `%4s'; ignored\n",
 		      "HELLO", 
