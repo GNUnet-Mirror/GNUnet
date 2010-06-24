@@ -799,6 +799,26 @@ void send_to_plugin(const struct GNUNET_PeerIdentity * sender,
     }
 }
 
+/* Declare here so retry_core_send is aware of it */
+size_t core_transmit_notify (void *cls,
+                             size_t size, void *buf);
+
+/**
+ *  Try to send another message from our core sending list
+ */
+static void
+try_core_send (void *cls,
+                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct PendingMessage *pending;
+  pending = core_pending_head;
+
+  if (core_transmit_handle != NULL)
+    return; /* Message send already in progress */
+
+  if (pending != NULL)
+    core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, pending->importance, pending->timeout, &pending->recipient, pending->msg_size, &core_transmit_notify, NULL);
+}
 
 /**
  * Function called to notify a client about the socket
@@ -806,7 +826,7 @@ void send_to_plugin(const struct GNUNET_PeerIdentity * sender,
  * NULL and "size" zero if the socket was closed for
  * writing in the meantime.
  *
- * @param cls closure
+ * @param cls closure (NULL)
  * @param size number of bytes available in buf
  * @param buf where the callee should write the message
  * @return number of bytes written to buf
@@ -815,7 +835,7 @@ size_t core_transmit_notify (void *cls,
                              size_t size, void *buf)
 {
   char *cbuf = buf;
-  struct PendingMessage *reply;
+  struct PendingMessage *pending;
   struct PendingMessage *client_reply;
   size_t off;
   size_t msize;
@@ -831,22 +851,22 @@ size_t core_transmit_notify (void *cls,
 
   core_transmit_handle = NULL;
   off = 0;
-  reply = core_pending_head;
-  if ( (reply != NULL) &&
-          (size >= (msize = ntohs (reply->msg->size))))
+  pending = core_pending_head;
+  if ( (pending != NULL) &&
+          (size >= (msize = ntohs (pending->msg->size))))
     {
 #if DEBUG_DV
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "`%s' : transmit_notify (core) called with size %d\n", "dv service", msize);
 #endif
       GNUNET_CONTAINER_DLL_remove (core_pending_head,
                                    core_pending_tail,
-                                   reply);
-      if (reply->send_result != NULL) /* Will only be non-null if a real client asked for this send */
+                                   pending);
+      if (pending->send_result != NULL) /* Will only be non-null if a real client asked for this send */
         {
           client_reply = GNUNET_malloc(sizeof(struct PendingMessage) + sizeof(struct GNUNET_DV_SendResultMessage));
           client_reply->msg = (struct GNUNET_MessageHeader *)&client_reply[1];
-          memcpy(&client_reply[1], reply->send_result, sizeof(struct GNUNET_DV_SendResultMessage));
-          GNUNET_free(reply->send_result);
+          memcpy(&client_reply[1], pending->send_result, sizeof(struct GNUNET_DV_SendResultMessage));
+          GNUNET_free(pending->send_result);
 
           GNUNET_CONTAINER_DLL_insert_after(plugin_pending_head, plugin_pending_tail, plugin_pending_tail, client_reply);
           if (client_handle != NULL)
@@ -864,13 +884,15 @@ size_t core_transmit_notify (void *cls,
                 }
             }
         }
-      memcpy (&cbuf[off], reply->msg, msize);
-      GNUNET_free (reply);
+      memcpy (&cbuf[off], pending->msg, msize);
+      GNUNET_free (pending);
       off += msize;
     }
-  reply = core_pending_head;
-  if (reply != NULL)
-    core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, reply->importance, reply->timeout, &reply->recipient, reply->msg_size, &core_transmit_notify, NULL);
+  /*reply = core_pending_head;*/
+
+  GNUNET_SCHEDULER_add_now(sched, &try_core_send, NULL);
+  /*if (reply != NULL)
+    core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, reply->importance, reply->timeout, &reply->recipient, reply->msg_size, &core_transmit_notify, NULL);*/
 
   return off;
 }
