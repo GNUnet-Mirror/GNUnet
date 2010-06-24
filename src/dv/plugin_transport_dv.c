@@ -231,10 +231,6 @@ dv_plugin_send (void *cls,
                        addrlen,
                        cont,
                        cont_cls);
-#if DEBUG_DV
-  GNUNET_free_non_null(my_identity);
-#endif
-
   return ret;
 }
 
