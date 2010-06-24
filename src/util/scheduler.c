@@ -34,7 +34,7 @@
 
 /**
  * Use lsof to generate file descriptor reports on select error?
- * (turn of for stable releases).
+ * (turn off for stable releases).
  */
 #define USE_LSOF GNUNET_YES
 
@@ -548,25 +548,25 @@ run_ready (struct GNUNET_SCHEDULER_Handle *sched)
 		      "Task %u took %llums to be scheduled\n",
 		      pos->id,
 		      (unsigned long long) GNUNET_TIME_absolute_get_duration (pos->start_time).value);
-#if EXECINFO
-	  int i;
-	  for (i=0;i<pos->num_backtrace_strings;i++)
-	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-			"Task %u trace %d: %s\n",
-			pos->id,
-			i,
-			pos->backtrace_strings[i]);
-#endif
 	}
 #endif
       tc.sched = sched;
       tc.reason = pos->reason;
       tc.read_ready = pos->read_set;
       tc.write_ready = pos->write_set;
-      pos->callback (pos->callback_cls, &tc);
 #if DEBUG_TASKS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Running task: %llu / %p\n", pos->id, pos->callback_cls);
+#endif
+      pos->callback (pos->callback_cls, &tc);
+#if EXECINFO
+      int i;
+      for (i=0;i<pos->num_backtrace_strings;i++)
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Task %u trace %d: %s\n",
+                    pos->id,
+                    i,
+                    pos->backtrace_strings[i]);
 #endif
       sched->active_task = NULL;
       destroy_task (pos);
@@ -664,6 +664,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
         {
           if (errno == EINTR)
             continue;
+
           GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "select");
 #ifndef MINGW
 #if USE_LSOF
@@ -778,7 +779,9 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Handle *sched,
   struct Task *prev;
   enum GNUNET_SCHEDULER_Priority p;
   void *ret;
-
+#if EXECINFO
+  int i;
+#endif
   prev = NULL;
   t = sched->pending;
   while (t != NULL)
@@ -1207,6 +1210,16 @@ GNUNET_SCHEDULER_add_select (struct GNUNET_SCHEDULER_Handle * sched,
 #if DEBUG_TASKS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Adding task: %llu / %p\n", t->id, t->callback_cls);
+#endif
+#if EXECINFO
+  int i;
+
+  for (i=0;i<t->num_backtrace_strings;i++)
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Task %u trace %d: %s\n",
+                  t->id,
+                  i,
+                  t->backtrace_strings[i]);
 #endif
   return t->id;
 }
