@@ -32,6 +32,7 @@
 #include "gnunet_os_lib.h"
 #include "gnunet_program_lib.h"
 #include "gnunet_scheduler_lib.h"
+#include "gnunet_server_lib.h"
 #include "gnunet_transport_service.h"
 #include "transport.h"
 
@@ -46,7 +47,7 @@
  * 'MAX_PENDING' in 'gnunet-service-transport.c', otherwise
  * messages may be dropped even for a reliable transport.
  */
-#define TOTAL_MSGS (60000 * 20)
+#define TOTAL_MSGS (60000 * 2)
 
 /**
  * How long until we give up on transmitting the message?
