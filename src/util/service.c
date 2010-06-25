@@ -895,6 +895,11 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
 	  GNUNET_free (unixpath);
           unixpath = NULL;
         }
+      else
+	{
+          GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (desc));
+          desc = NULL;
+	}
     }
   else
     unixpath = NULL;
@@ -908,8 +913,6 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Have neither PORT nor UNIXPATH for service `%s', but one is required\n"),
 		  serviceName);
-      if (desc != NULL)
-        GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (desc));
       GNUNET_free_non_null(hostname);
       return GNUNET_SYSERR;
     }
@@ -943,8 +946,6 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
                       hostname, gai_strerror (ret));
           GNUNET_free (hostname);
 	  GNUNET_free (unixpath);
-	  if (desc != NULL)
-	    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (desc));
           return GNUNET_SYSERR;
         }
       next = res;
@@ -1071,8 +1072,6 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
   GNUNET_free_non_null (unixpath);
   *addrs = saddrs;
   *addr_lens = saddrlens;
-  if (desc != NULL)
-    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (desc));
   return resi;
 }
 
