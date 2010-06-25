@@ -3401,10 +3401,9 @@ check_pending_validation (void *cls,
 			 ve->addr,
 			 ve->addrlen)) )
 	return GNUNET_YES; /* different entry, keep trying! */
-      if ( (0 != memcmp (&pong->pid,
-			 key,
-			 sizeof (struct GNUNET_PeerIdentity))) ||
-	   (ve->addrlen == 0) )
+      if (0 != memcmp (&pong->pid,
+		       key,
+		       sizeof (struct GNUNET_PeerIdentity))) 
 	{
 	  GNUNET_break_op (0);
 	  return GNUNET_NO;
