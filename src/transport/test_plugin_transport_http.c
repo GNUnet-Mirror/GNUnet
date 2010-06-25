@@ -997,6 +997,8 @@ static void run_connection_tests( )
     type ++;
   }
 
+  return;
+
   /* send a multiple GNUNET_messages at a time*/
   GNUNET_free(tmp);
   tmp = GNUNET_malloc(4 * sizeof(struct GNUNET_MessageHeader));

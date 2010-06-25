@@ -41,7 +41,7 @@
 #include <curl/curl.h>
 
 
-#define DEBUG_CURL GNUNET_NO
+#define DEBUG_CURL GNUNET_YES
 #define DEBUG_HTTP GNUNET_NO
 
 /**
@@ -157,6 +157,27 @@ struct HTTP_Message
 };
 
 
+struct HTTP_Connection
+{
+  struct HTTP_Connection * next;
+
+  struct HTTP_Connection * prev;
+
+  void * addr;
+  size_t addrlen;
+
+  struct HTTP_Message * pending_msgs_head;
+  struct HTTP_Message * pending_msgs_tail;
+
+  char * url;
+  unsigned int connected;
+
+  /**
+   * curl handle for this ransmission
+   */
+  CURL *curl_handle;
+};
+
 /**
  * Session handle for connections.
  */
@@ -256,6 +277,9 @@ struct Session
    * Message tokenizer for incoming data
    */
   struct GNUNET_SERVER_MessageStreamTokenizer * msgtok;
+
+  struct HTTP_Connection *outbound_addresses_head;
+  struct HTTP_Connection *outbound_addresses_tail;
 };
 
 /**
@@ -323,28 +347,30 @@ struct Plugin
 static struct Session * create_session (void * cls, char * addr_in, size_t addrlen_in, char * addr_out, size_t addrlen_out, const struct GNUNET_PeerIdentity *peer)
 {
   struct Plugin *plugin = cls;
-  struct Session * ses = GNUNET_malloc ( sizeof( struct Session) );
+  struct Session * cs = GNUNET_malloc ( sizeof( struct Session) );
 
   GNUNET_assert(cls !=NULL);
   if (addrlen_in != 0)
   {
-    ses->addr_in = GNUNET_malloc (addrlen_in);
-    ses->addr_in_len = addrlen_in;
-    memcpy(ses->addr_in,addr_in,addrlen_in);
+    cs->addr_in = GNUNET_malloc (addrlen_in);
+    cs->addr_in_len = addrlen_in;
+    memcpy(cs->addr_in,addr_in,addrlen_in);
   }
 
   if (addrlen_out != 0)
   {
-    ses->addr_out = GNUNET_malloc (addrlen_out);
-    ses->addr_out_len = addrlen_out;
-    memcpy(ses->addr_out,addr_out,addrlen_out);
+    cs->addr_out = GNUNET_malloc (addrlen_out);
+    cs->addr_out_len = addrlen_out;
+    memcpy(cs->addr_out,addr_out,addrlen_out);
   }
-  ses->plugin = plugin;
-  memcpy(&ses->partner, peer, sizeof (struct GNUNET_PeerIdentity));
-  GNUNET_CRYPTO_hash_to_enc(&ses->partner.hashPubKey,&(ses->hash));
-  ses->pending_inbound_msg.bytes_recv = 0;
-  ses->msgtok = NULL;
-  return ses;
+  cs->plugin = plugin;
+  memcpy(&cs->partner, peer, sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_CRYPTO_hash_to_enc(&cs->partner.hashPubKey,&(cs->hash));
+  cs->pending_inbound_msg.bytes_recv = 0;
+  cs->msgtok = NULL;
+  cs->outbound_addresses_head = NULL;
+  cs->outbound_addresses_tail = NULL;
+  return cs;
 }
 
 /**
@@ -852,42 +878,45 @@ static size_t send_prepare(void *cls, struct Session* ses );
  * @param ses session to send data to
  * @return bytes sent to peer
  */
-static ssize_t send_select_init (void *cls, struct Session* ses )
+static ssize_t send_select_init (void *cls, struct Session* ses , struct HTTP_Connection *con)
 {
   struct Plugin *plugin = cls;
   int bytes_sent = 0;
   CURLMcode mret;
   struct HTTP_Message * msg;
 
+  /* already connected, no need to initiate connection */
+  if (con->connected == GNUNET_YES)
+    return bytes_sent;
+
+
+  /* not connected, initiate connection */
   GNUNET_assert(cls !=NULL);
-  if ( NULL == ses->curl_handle)
-    ses->curl_handle = curl_easy_init();
-  if( NULL == ses->curl_handle)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Getting cURL handle failed\n");
-    return -1;
-  }
-  GNUNET_assert (NULL != ses->pending_outbound_msg_tail);
-  msg = ses->pending_outbound_msg_tail;
+  if ( NULL == con->curl_handle)
+    con->curl_handle = curl_easy_init();
+  GNUNET_assert (con->curl_handle != NULL);
+
+  GNUNET_assert (NULL != con->pending_msgs_tail);
+  msg = con->pending_msgs_tail;
 
 #if DEBUG_CURL
-  curl_easy_setopt(ses->curl_handle, CURLOPT_VERBOSE, 1L);
+  curl_easy_setopt(con->curl_handle, CURLOPT_VERBOSE, 1L);
 #endif
-  curl_easy_setopt(ses->curl_handle, CURLOPT_URL, msg->dest_url);
-  curl_easy_setopt(ses->curl_handle, CURLOPT_PUT, 1L);
-  curl_easy_setopt(ses->curl_handle, CURLOPT_HEADERFUNCTION, &header_function);
-  curl_easy_setopt(ses->curl_handle, CURLOPT_WRITEHEADER, ses);
-  curl_easy_setopt(ses->curl_handle, CURLOPT_READFUNCTION, send_read_callback);
-  curl_easy_setopt(ses->curl_handle, CURLOPT_READDATA, ses);
-  curl_easy_setopt(ses->curl_handle, CURLOPT_WRITEFUNCTION, send_write_callback);
-  curl_easy_setopt(ses->curl_handle, CURLOPT_READDATA, ses);
-  curl_easy_setopt(ses->curl_handle, CURLOPT_INFILESIZE_LARGE, (curl_off_t) msg->size);
-  curl_easy_setopt(ses->curl_handle, CURLOPT_TIMEOUT, GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-  GNUNET_assert (CURLE_OK == curl_easy_setopt(ses->curl_handle, CURLOPT_PRIVATE, ses));
-  curl_easy_setopt(ses->curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
-  curl_easy_setopt(ses->curl_handle, CURLOPT_BUFFERSIZE, GNUNET_SERVER_MAX_MESSAGE_SIZE);
+  curl_easy_setopt(con->curl_handle, CURLOPT_URL, con->url);
+  curl_easy_setopt(con->curl_handle, CURLOPT_PUT, 1L);
+  curl_easy_setopt(con->curl_handle, CURLOPT_HEADERFUNCTION, &header_function);
+  curl_easy_setopt(con->curl_handle, CURLOPT_WRITEHEADER, con);
+  curl_easy_setopt(con->curl_handle, CURLOPT_READFUNCTION, send_read_callback);
+  curl_easy_setopt(con->curl_handle, CURLOPT_READDATA, con);
+  curl_easy_setopt(con->curl_handle, CURLOPT_WRITEFUNCTION, send_write_callback);
+  curl_easy_setopt(con->curl_handle, CURLOPT_READDATA, con);
+  curl_easy_setopt(con->curl_handle, CURLOPT_INFILESIZE_LARGE, (curl_off_t) msg->size);
+  curl_easy_setopt(con->curl_handle, CURLOPT_TIMEOUT, GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+  GNUNET_assert (CURLE_OK == curl_easy_setopt(con->curl_handle, CURLOPT_PRIVATE, ses));
+  curl_easy_setopt(con->curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
+  curl_easy_setopt(con->curl_handle, CURLOPT_BUFFERSIZE, GNUNET_SERVER_MAX_MESSAGE_SIZE);
 
-  mret = curl_multi_add_handle(plugin->multi_handle, ses->curl_handle);
+  mret = curl_multi_add_handle(plugin->multi_handle, con->curl_handle);
   if (mret != CURLM_OK)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -896,7 +925,7 @@ static ssize_t send_select_init (void *cls, struct Session* ses )
                 curl_multi_strerror (mret));
     return -1;
   }
-  bytes_sent = send_prepare (plugin, ses );
+  bytes_sent = send_prepare (plugin, ses);
   return bytes_sent;
 }
 
@@ -981,7 +1010,7 @@ static void send_execute (void *cls,
                   /* send pending messages */
                   if (cs->pending_outbound_msg_tail!= NULL)
                   {
-                    send_select_init (plugin, cs);
+                    send_select_init (plugin, cs, NULL);
                   }
                   return;
                 default:
@@ -1059,6 +1088,112 @@ static size_t send_prepare(void *cls, struct Session* ses )
 }
 
 /**
+ * Check if session for this peer is already existing, otherwise create it
+ * @param cls the plugin used
+ * @param p peer to get session for
+ * @return session found or created
+ */
+static struct Session * session_get (void * cls, const struct GNUNET_PeerIdentity *p)
+{
+  struct Plugin *plugin = cls;
+  struct Session *cs;
+  unsigned int res;
+
+  cs = GNUNET_CONTAINER_multihashmap_get (plugin->sessions, &p->hashPubKey);
+  if (cs != NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Session `%s' found\n", GNUNET_i2s(p));
+  }
+  if (cs == NULL)
+  {
+    cs = create_session(plugin, NULL, 0, NULL, 0, p);
+    res = GNUNET_CONTAINER_multihashmap_put ( plugin->sessions,
+                                        &cs->partner.hashPubKey,
+                                        cs,
+                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    if (res == GNUNET_OK)
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "New Session `%s' inserted\n", GNUNET_i2s(p));
+  }
+  return cs;
+}
+
+static char * create_url(void * cls, const void * addr, size_t addrlen)
+{
+  struct Plugin *plugin = cls;
+  char *address;
+  char *url;
+
+  GNUNET_assert ((addr!=NULL) && (addrlen != 0));
+  if (addrlen == (sizeof (struct IPv4HttpAddress)))
+  {
+    address = GNUNET_malloc(INET_ADDRSTRLEN + 1);
+    inet_ntop(AF_INET, &((struct IPv4HttpAddress *) addr)->ipv4_addr,address,INET_ADDRSTRLEN);
+    GNUNET_asprintf (&url,
+                     "http://%s:%u/%s",
+                     address,
+                     ntohs(((struct IPv4HttpAddress *) addr)->u_port),
+                     (char *) (&plugin->my_ascii_hash_ident));
+    GNUNET_free(address);
+  }
+  else if (addrlen == (sizeof (struct IPv6HttpAddress)))
+  {
+    address = GNUNET_malloc(INET6_ADDRSTRLEN + 1);
+    inet_ntop(AF_INET6, &((struct IPv6HttpAddress *) addr)->ipv6_addr,address,INET6_ADDRSTRLEN);
+    GNUNET_asprintf(&url,
+                    "http://%s:%u/%s",
+                    address,
+                    ntohs(((struct IPv6HttpAddress *) addr)->u6_port),
+                    (char *) (&plugin->my_ascii_hash_ident));
+    GNUNET_free(address);
+  }
+  return url;
+}
+
+/**
+ * Check if session already knows this address for a outbound connection to this peer
+ * If address not in session, add it to the session
+ * @param cls the plugin used
+ * @param p the session
+ * @param addr address
+ * @param addr_len address length
+ * @return GNUNET_NO if address not known, GNUNET_YES if known
+ */
+static struct HTTP_Connection * session_check_address (void * cls, struct Session *cs, const void * addr, size_t addr_len)
+{
+  struct Plugin *plugin = cls;
+  struct HTTP_Connection * cc = cs->outbound_addresses_head;
+  struct HTTP_Connection * con = NULL;
+
+  GNUNET_assert((addr_len == sizeof (struct IPv4HttpAddress)) || (addr_len == sizeof (struct IPv6HttpAddress)));
+
+  while (cc!=NULL)
+  {
+    if (addr_len == cc->addrlen)
+    {
+      if (0 == memcmp(cc->addr, addr, addr_len))
+      {
+        con = cc;
+        break;
+      }
+    }
+    cc=cc->next;
+  }
+  if (con==NULL)
+  {
+    con = GNUNET_malloc(sizeof(struct HTTP_Connection) + addr_len);
+    con->addrlen = addr_len;
+    con->addr=&con[1];
+    con->url=create_url(plugin, addr, addr_len);
+    con->connected = GNUNET_NO;
+    memcpy(con->addr, addr, addr_len);
+    GNUNET_CONTAINER_DLL_insert(cs->outbound_addresses_head,cs->outbound_addresses_tail,con);
+  }
+  return con;
+}
+
+/**
  * Function that can be used by the transport service to transmit
  * a message using the plugin.
  *
@@ -1103,54 +1238,18 @@ http_plugin_send (void *cls,
   char *url;
   struct Session *cs;
   struct HTTP_Message *msg;
-  unsigned int res;
+  struct HTTP_Connection *con;
+  //unsigned int ret;
 
   GNUNET_assert(cls !=NULL);
   url = NULL;
   address = NULL;
 
-  cs = GNUNET_CONTAINER_multihashmap_get (plugin->sessions, &target->hashPubKey);
-  if (cs != NULL)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Session `%s' found\n", GNUNET_i2s(target));
+  /* get session from hashmap */
+  cs = session_get(plugin, target);
+  con = session_check_address(plugin, cs, addr, addrlen);
 
-  if ( cs == NULL)
-  {
-    cs = create_session(plugin, (char *) addr, addrlen, NULL, 0, target);
-    res = GNUNET_CONTAINER_multihashmap_put ( plugin->sessions,
-                                        &cs->partner.hashPubKey,
-                                        cs,
-                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-    if (res == GNUNET_OK)
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "New Session `%s' inserted\n", GNUNET_i2s(target));
-  }
-
-  GNUNET_assert ((addr!=NULL) && (addrlen != 0));
-  if (addrlen == (sizeof (struct IPv4HttpAddress)))
-  {
-    address = GNUNET_malloc(INET_ADDRSTRLEN + 1);
-    inet_ntop(AF_INET, &((struct IPv4HttpAddress *) addr)->ipv4_addr,address,INET_ADDRSTRLEN);
-    GNUNET_asprintf (&url,
-                     "http://%s:%u/%s",
-                     address,
-                     ntohs(((struct IPv4HttpAddress *) addr)->u_port),
-                     (char *) (&plugin->my_ascii_hash_ident));
-    GNUNET_free(address);
-  }
-  else if (addrlen == (sizeof (struct IPv6HttpAddress)))
-  {
-    address = GNUNET_malloc(INET6_ADDRSTRLEN + 1);
-    inet_ntop(AF_INET6, &((struct IPv6HttpAddress *) addr)->ipv6_addr,address,INET6_ADDRSTRLEN);
-    GNUNET_asprintf(&url,
-                    "http://%s:%u/%s",
-                    address,
-                    ntohs(((struct IPv6HttpAddress *) addr)->u6_port),
-                    (char *) (&plugin->my_ascii_hash_ident));
-    GNUNET_free(address);
-  }
-
-  /* setting up message */
+  /* create msg */
   msg = GNUNET_malloc (sizeof (struct HTTP_Message) + msgbuf_size);
   msg->next = NULL;
   msg->size = msgbuf_size;
@@ -1160,7 +1259,25 @@ http_plugin_send (void *cls,
   msg->transmit_cont = cont;
   msg->transmit_cont_cls = cont_cls;
   memcpy (msg->buf,msgbuf, msgbuf_size);
+
+  /* must use this address */
+  if (force_address == GNUNET_YES)
+  {
+    /* enqueue in connection message queue */
+    GNUNET_CONTAINER_DLL_insert(con->pending_msgs_head,con->pending_msgs_tail,msg);
+  }
+  /* can use existing connection to send */
+  else
+  {
+    /* enqueue in connection message queue */
+    GNUNET_CONTAINER_DLL_insert(con->pending_msgs_head,con->pending_msgs_tail,msg);
+  }
+
+  return send_select_init (plugin, cs, con);
+
+
   /* insert created message in double linked list of pending messages */
+  /*
   GNUNET_CONTAINER_DLL_insert (cs->pending_outbound_msg_head, cs->pending_outbound_msg_tail, msg);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: sending %u bytes of data from peer `%4.4s' to peer `%s'\n",msgbuf_size,(char *) &plugin->my_ascii_hash_ident,GNUNET_i2s(target));
@@ -1170,6 +1287,7 @@ http_plugin_send (void *cls,
     return send_select_init (plugin, cs);
   }
   return msgbuf_size;
+  */
 }
 
 
