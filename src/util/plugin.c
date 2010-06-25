@@ -97,10 +97,10 @@ plugin_init ()
     {
       if (opath != NULL)
         {
-          cpath = GNUNET_malloc (strlen (path) + strlen (opath) + 4);
-          strcpy (cpath, opath);
-          strcat (cpath, ":");
-          strcat (cpath, path);
+	  GNUNET_asprintf (&cpath,
+			   "%s:%s",
+			   opath,
+			   path);
           lt_dlsetsearchpath (cpath);
           GNUNET_free (path);
           GNUNET_free (cpath);
