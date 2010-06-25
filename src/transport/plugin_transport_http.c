@@ -605,6 +605,7 @@ accessHandlerCallback (void *cls,
         //res = MHD_queue_response (session, MHD_HTTP_OK, response);
         //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sent HTTP/1.1: 200 OK as PUT Response\n",HTTP_PUT_RESPONSE, strlen (HTTP_PUT_RESPONSE), res );
         //MHD_destroy_response (response);
+        return MHD_YES;
       }
       else
       {
@@ -764,9 +765,9 @@ static void http_server_daemon_v6_run (void *cls,
  * @return GNUNET_SYSERR if msg not found, GNUNET_OK on success
  */
 
-static int remove_http_message(struct Session * ses, struct HTTP_Message * msg)
+static int remove_http_message(struct HTTP_Connection * con, struct HTTP_Message * msg)
 {
-  GNUNET_CONTAINER_DLL_remove(ses->pending_outbound_msg_head,ses->pending_outbound_msg_tail,msg);
+  GNUNET_CONTAINER_DLL_remove(con->pending_msgs_head,con->pending_msgs_tail,msg);
   GNUNET_free(msg);
   return GNUNET_OK;
 }
@@ -789,7 +790,7 @@ static size_t header_function( void *ptr, size_t size, size_t nmemb, void *strea
       if (tmp[len-2] == 13)
         tmp[len-2]= '\0';
     }
-#if DEBUG_CURL
+#if DEBUG_HTTP
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Header: `%s'\n",tmp);
 #endif
   }
@@ -815,10 +816,27 @@ static size_t send_read_callback(void *stream, size_t size, size_t nmemb, void *
   size_t bytes_sent;
   size_t len;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"readcallback: %u ", con->pending_msgs_tail->size);
+  msg = con->pending_msgs_head;
+  unsigned int c = 0;
+  while (msg != NULL)
+  {
+    c++;
+    msg = msg->next;
+  }
+  if (con->pending_msgs_tail != NULL)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"readcallback: msg of %u bytes, %u msgs in queue\n", con->pending_msgs_tail->size,c);
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"readcallback: %u msgs in queue\n", c);
 
+  if (con->pending_msgs_tail == NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"no msgs in queue, pausing \n");
+    return CURL_READFUNC_PAUSE;
+  }
+
+  msg = con->pending_msgs_tail;
   /* data to send */
-  if (( msg->pos < msg->size))
+  if (msg->pos < msg->size)
   {
     /* data fit in buffer */
     if ((msg->size - msg->pos) <= (size * nmemb))
@@ -841,6 +859,15 @@ static size_t send_read_callback(void *stream, size_t size, size_t nmemb, void *
   {
     bytes_sent = 0;
   }
+
+  if ( msg->pos == msg->size)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"msg sent, removing msg \n", bytes_sent);
+    remove_http_message(con, msg);
+
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"readcallback: sent %u bytes \n", bytes_sent);
+
   return bytes_sent;
 }
 
@@ -889,9 +916,8 @@ static ssize_t send_select_init (void *cls, struct Session* ses , struct HTTP_Co
   struct HTTP_Message * msg;
 
   /* already connected, no need to initiate connection */
-  if (con->connected == GNUNET_YES)
+  if ((con->connected == GNUNET_YES) && (con->curl_handle != NULL))
     return bytes_sent;
-
 
   /* not connected, initiate connection */
   GNUNET_assert(cls !=NULL);
@@ -928,6 +954,9 @@ static ssize_t send_select_init (void *cls, struct Session* ses , struct HTTP_Co
                 curl_multi_strerror (mret));
     return -1;
   }
+
+  con->connected = GNUNET_YES;
+
   bytes_sent = send_prepare (plugin, ses);
   return bytes_sent;
 }
@@ -984,8 +1013,10 @@ static void send_execute (void *cls,
                                __LINE__,
                                curl_easy_strerror (msg->data.result));
                     /* sending msg failed*/
+                    con->connected = GNUNET_NO;
                     if (( NULL != con->pending_msgs_tail) && ( NULL != con->pending_msgs_tail->transmit_cont))
                       con->pending_msgs_tail->transmit_cont (con->pending_msgs_tail->transmit_cont_cls,&con->session->identity,GNUNET_SYSERR);
+
                   }
                   else
                   {
@@ -994,6 +1025,7 @@ static void send_execute (void *cls,
                                 "Send to peer `%s' completed with code %u\n", GNUNET_i2s(&cs->identity), http_result );
 
                     curl_easy_cleanup(con->curl_handle);
+                    con->connected = GNUNET_NO;
                     con->curl_handle=NULL;
 
                     /* Calling transmit continuation  */
@@ -1011,7 +1043,7 @@ static void send_execute (void *cls,
                     }
                   }
 
-                  if (GNUNET_OK != remove_http_message(cs, con->pending_msgs_tail))
+                  if (GNUNET_OK != remove_http_message(con, con->pending_msgs_tail))
                     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message could not be removed from session `%s'", GNUNET_i2s(&cs->identity));
                   /* send pending messages */
                   if (con->pending_msgs_tail!= NULL)
