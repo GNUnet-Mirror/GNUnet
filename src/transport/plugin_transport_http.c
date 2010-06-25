@@ -43,6 +43,7 @@
 
 #define DEBUG_CURL GNUNET_YES
 #define DEBUG_HTTP GNUNET_NO
+#define HTTP_CONNECT_TIMEOUT_DBG 10
 
 /**
  * Text of the response sent back after the last bytes of a PUT
@@ -176,6 +177,7 @@ struct HTTP_Connection
    * curl handle for this ransmission
    */
   CURL *curl_handle;
+  struct Session * session;
 };
 
 /**
@@ -198,7 +200,7 @@ struct Session
    * To whom are we talking to (set to our identity
    * if we are still waiting for the welcome message)
    */
-  struct GNUNET_PeerIdentity partner;
+  struct GNUNET_PeerIdentity identity;
 
   /**
    * Sender's ip address to distinguish between incoming connections
@@ -364,8 +366,8 @@ static struct Session * create_session (void * cls, char * addr_in, size_t addrl
     memcpy(cs->addr_out,addr_out,addrlen_out);
   }
   cs->plugin = plugin;
-  memcpy(&cs->partner, peer, sizeof (struct GNUNET_PeerIdentity));
-  GNUNET_CRYPTO_hash_to_enc(&cs->partner.hashPubKey,&(cs->hash));
+  memcpy(&cs->identity, peer, sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_CRYPTO_hash_to_enc(&cs->identity.hashPubKey,&(cs->hash));
   cs->pending_inbound_msg.bytes_recv = 0;
   cs->msgtok = NULL;
   cs->outbound_addresses_head = NULL;
@@ -383,7 +385,7 @@ static void requestCompletedCallback (void *cls, struct MHD_Connection * connect
   cs = *httpSessionCache;
   if (cs == NULL)
     return;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection from peer `%s' was terminated\n",GNUNET_i2s(&cs->partner));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection from peer `%s' was terminated\n",GNUNET_i2s(&cs->identity));
     /* session set to inactive */
     cs->is_put_in_progress = GNUNET_NO;
     cs->is_bad_request = GNUNET_NO;
@@ -401,9 +403,9 @@ static void messageTokenizerCallback (void *cls,
 	      "Received message with type %u and size %u from `%s'\n",
 	      ntohs(message->type),
               ntohs(message->size),
-	      GNUNET_i2s(&(cs->partner)));
+	      GNUNET_i2s(&(cs->identity)));
   cs->plugin->env->receive(cs->plugin->env->cls,
-                           &cs->partner,
+                           &cs->identity,
                            message, 1, NULL,
                            NULL, 0);
 }
@@ -500,11 +502,11 @@ accessHandlerCallback (void *cls,
 
       /* Insert session into hashmap */
       GNUNET_CONTAINER_multihashmap_put ( plugin->sessions,
-                                          &cs->partner.hashPubKey,
+                                          &cs->identity.hashPubKey,
                                           cs,
                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
 
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"New Session for peer `%s' inserted\n", GNUNET_i2s(&cs->partner));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"New Session for peer `%s' inserted\n", GNUNET_i2s(&cs->identity));
     }
 
     /* Set closure and update current session*/
@@ -528,7 +530,7 @@ accessHandlerCallback (void *cls,
       if (cs->msgtok==NULL)
         cs->msgtok = GNUNET_SERVER_mst_create (GNUNET_SERVER_MAX_MESSAGE_SIZE, &messageTokenizerCallback, cs);
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s'\n",method, GNUNET_i2s(&cs->partner));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s'\n",method, GNUNET_i2s(&cs->identity));
   }
   else
   {
@@ -544,7 +546,7 @@ accessHandlerCallback (void *cls,
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                     _("Incoming message from peer `%s', while existing message with %u bytes was not forwarded to transport'\n"),
-                    GNUNET_i2s(&cs->partner), cs->pending_inbound_msg.bytes_recv);
+                    GNUNET_i2s(&cs->identity), cs->pending_inbound_msg.bytes_recv);
         cs->pending_inbound_msg.bytes_recv = 0;
       }
       /* not yet ready */
@@ -599,10 +601,10 @@ accessHandlerCallback (void *cls,
 
       if (send_error_to_client == GNUNET_NO)
       {
-        response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),HTTP_PUT_RESPONSE, MHD_NO, MHD_NO);
-        res = MHD_queue_response (session, MHD_HTTP_OK, response);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sent HTTP/1.1: 200 OK as PUT Response\n",HTTP_PUT_RESPONSE, strlen (HTTP_PUT_RESPONSE), res );
-        MHD_destroy_response (response);
+        //response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),HTTP_PUT_RESPONSE, MHD_NO, MHD_NO);
+        //res = MHD_queue_response (session, MHD_HTTP_OK, response);
+        //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sent HTTP/1.1: 200 OK as PUT Response\n",HTTP_PUT_RESPONSE, strlen (HTTP_PUT_RESPONSE), res );
+        //MHD_destroy_response (response);
       }
       else
       {
@@ -765,7 +767,6 @@ static void http_server_daemon_v6_run (void *cls,
 static int remove_http_message(struct Session * ses, struct HTTP_Message * msg)
 {
   GNUNET_CONTAINER_DLL_remove(ses->pending_outbound_msg_head,ses->pending_outbound_msg_tail,msg);
-  GNUNET_free (msg->dest_url);
   GNUNET_free(msg);
   return GNUNET_OK;
 }
@@ -809,10 +810,12 @@ static size_t header_function( void *ptr, size_t size, size_t nmemb, void *strea
  */
 static size_t send_read_callback(void *stream, size_t size, size_t nmemb, void *ptr)
 {
-  struct Session * ses = ptr;
-  struct HTTP_Message * msg = ses->pending_outbound_msg_tail;
+  struct HTTP_Connection * con = ptr;
+  struct HTTP_Message * msg = con->pending_msgs_tail;
   size_t bytes_sent;
   size_t len;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"readcallback: %u ", con->pending_msgs_tail->size);
 
   /* data to send */
   if (( msg->pos < msg->size))
@@ -912,8 +915,8 @@ static ssize_t send_select_init (void *cls, struct Session* ses , struct HTTP_Co
   curl_easy_setopt(con->curl_handle, CURLOPT_READDATA, con);
   curl_easy_setopt(con->curl_handle, CURLOPT_INFILESIZE_LARGE, (curl_off_t) msg->size);
   curl_easy_setopt(con->curl_handle, CURLOPT_TIMEOUT, GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-  GNUNET_assert (CURLE_OK == curl_easy_setopt(con->curl_handle, CURLOPT_PRIVATE, ses));
-  curl_easy_setopt(con->curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
+  curl_easy_setopt(con->curl_handle, CURLOPT_PRIVATE, con);
+  curl_easy_setopt(con->curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT_DBG);
   curl_easy_setopt(con->curl_handle, CURLOPT_BUFFERSIZE, GNUNET_SERVER_MAX_MESSAGE_SIZE);
 
   mret = curl_multi_add_handle(plugin->multi_handle, con->curl_handle);
@@ -937,6 +940,7 @@ static void send_execute (void *cls,
   int running;
   struct CURLMsg *msg;
   CURLMcode mret;
+  struct HTTP_Connection * con = NULL;
   struct Session * cs = NULL;
   long http_result;
 
@@ -960,9 +964,11 @@ static void send_execute (void *cls,
                 break;
               /* get session for affected curl handle */
               GNUNET_assert ( msg->easy_handle != NULL );
-              curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &cs);
+              curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &con);
+              GNUNET_assert ( con != NULL );
+              cs = con->session;
               GNUNET_assert ( cs != NULL );
-              GNUNET_assert ( cs->pending_outbound_msg_tail != NULL );
+              //GNUNET_assert ( cs->pending_outbound_msg_tail != NULL );
               switch (msg->msg)
                 {
 
@@ -973,44 +979,44 @@ static void send_execute (void *cls,
                     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                                _("%s failed for `%s' at %s:%d: `%s'\n"),
                                "curl_multi_perform",
-                               GNUNET_i2s(&cs->partner),
+                               GNUNET_i2s(&cs->identity),
                                __FILE__,
                                __LINE__,
                                curl_easy_strerror (msg->data.result));
                     /* sending msg failed*/
-                    if (( NULL != cs->pending_outbound_msg_tail) && ( NULL != cs->pending_outbound_msg_tail->transmit_cont))
-                      cs->pending_outbound_msg_tail->transmit_cont (cs->pending_outbound_msg_tail->transmit_cont_cls,&cs->partner,GNUNET_SYSERR);
+                    if (( NULL != con->pending_msgs_tail) && ( NULL != con->pending_msgs_tail->transmit_cont))
+                      con->pending_msgs_tail->transmit_cont (con->pending_msgs_tail->transmit_cont_cls,&con->session->identity,GNUNET_SYSERR);
                   }
                   else
                   {
                     GNUNET_assert (CURLE_OK == curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &http_result));
                     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                                "Send to peer `%s' completed with code %u\n", GNUNET_i2s(&cs->partner), http_result );
+                                "Send to peer `%s' completed with code %u\n", GNUNET_i2s(&cs->identity), http_result );
 
-                    curl_easy_cleanup(cs->curl_handle);
-                    cs->curl_handle=NULL;
+                    curl_easy_cleanup(con->curl_handle);
+                    con->curl_handle=NULL;
 
                     /* Calling transmit continuation  */
-                    if (( NULL != cs->pending_outbound_msg_tail) && (NULL != cs->pending_outbound_msg_tail->transmit_cont))
+                    if (( NULL != con->pending_msgs_tail) && (NULL != con->pending_msgs_tail->transmit_cont))
                     {
                       /* HTTP 1xx : Last message before here was informational */
                       if ((http_result >=100) && (http_result < 200))
-                        cs->pending_outbound_msg_tail->transmit_cont (cs->pending_outbound_msg_tail->transmit_cont_cls,&cs->partner,GNUNET_OK);
+                        con->pending_msgs_tail->transmit_cont (con->pending_msgs_tail->transmit_cont_cls,&cs->identity,GNUNET_OK);
                       /* HTTP 2xx: successful operations */
                       if ((http_result >=200) && (http_result < 300))
-                        cs->pending_outbound_msg_tail->transmit_cont (cs->pending_outbound_msg_tail->transmit_cont_cls,&cs->partner,GNUNET_OK);
+                        con->pending_msgs_tail->transmit_cont (con->pending_msgs_tail->transmit_cont_cls,&cs->identity,GNUNET_OK);
                       /* HTTP 3xx..5xx: error */
                       if ((http_result >=300) && (http_result < 600))
-                        cs->pending_outbound_msg_tail->transmit_cont (cs->pending_outbound_msg_tail->transmit_cont_cls,&cs->partner,GNUNET_SYSERR);
+                        con->pending_msgs_tail->transmit_cont (con->pending_msgs_tail->transmit_cont_cls,&cs->identity,GNUNET_SYSERR);
                     }
                   }
 
-                  if (GNUNET_OK != remove_http_message(cs, cs->pending_outbound_msg_tail))
-                    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message could not be removed from session `%s'", GNUNET_i2s(&cs->partner));
+                  if (GNUNET_OK != remove_http_message(cs, con->pending_msgs_tail))
+                    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message could not be removed from session `%s'", GNUNET_i2s(&cs->identity));
                   /* send pending messages */
-                  if (cs->pending_outbound_msg_tail!= NULL)
+                  if (con->pending_msgs_tail!= NULL)
                   {
-                    send_select_init (plugin, cs, NULL);
+                    send_select_init (plugin, cs, con);
                   }
                   return;
                 default:
@@ -1109,7 +1115,7 @@ static struct Session * session_get (void * cls, const struct GNUNET_PeerIdentit
   {
     cs = create_session(plugin, NULL, 0, NULL, 0, p);
     res = GNUNET_CONTAINER_multihashmap_put ( plugin->sessions,
-                                        &cs->partner.hashPubKey,
+                                        &cs->identity.hashPubKey,
                                         cs,
                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
     if (res == GNUNET_OK)
@@ -1187,6 +1193,7 @@ static struct HTTP_Connection * session_check_address (void * cls, struct Sessio
     con->addr=&con[1];
     con->url=create_url(plugin, addr, addr_len);
     con->connected = GNUNET_NO;
+    con->session = cs;
     memcpy(con->addr, addr, addr_len);
     GNUNET_CONTAINER_DLL_insert(cs->outbound_addresses_head,cs->outbound_addresses_tail,con);
   }
@@ -1558,7 +1565,7 @@ int hashMapFreeIterator (void *cls, const GNUNET_HashCode *key, void *value)
 {
   struct Session * cs = value;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Freeing session for peer `%s'\n",GNUNET_i2s(&cs->partner));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Freeing session for peer `%s'\n",GNUNET_i2s(&cs->identity));
 
   /* freeing messages */
   struct HTTP_Message *cur;
@@ -1590,7 +1597,7 @@ libgnunet_plugin_transport_http_done (void *cls)
   CURLMcode mret;
 
   GNUNET_assert(cls !=NULL);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Unloading http plugin...\n");
+
 
   if ( plugin->http_server_task_v4 != GNUNET_SCHEDULER_NO_TASK)
   {
@@ -1634,6 +1641,7 @@ libgnunet_plugin_transport_http_done (void *cls)
 
   GNUNET_free (plugin);
   GNUNET_free (api);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Unload http plugin complete...\n");
   return NULL;
 }
 
@@ -1656,6 +1664,7 @@ libgnunet_plugin_transport_http_init (void *cls)
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
   plugin->sessions = NULL;
+
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
   api->send = &http_plugin_send;
@@ -1726,7 +1735,9 @@ libgnunet_plugin_transport_http_init (void *cls)
   }
 
   /* Initializing cURL */
+  curl_global_init(CURL_GLOBAL_ALL);
   plugin->multi_handle = curl_multi_init();
+
   if ( NULL == plugin->multi_handle )
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
