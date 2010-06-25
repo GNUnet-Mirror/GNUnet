@@ -1091,8 +1091,13 @@ GNUNET_FS_uri_dup (const struct GNUNET_FS_Uri *uri)
   switch (ret->type)
     {
     case ksk:
+      if (ret->data.ksk.keywordCount >= GNUNET_MAX_MALLOC_CHECKED / sizeof (char*))
+	{
+	  GNUNET_break (0);
+	  return NULL;
+	}
       if (ret->data.ksk.keywordCount > 0)
-        {
+        {	  
           ret->data.ksk.keywords
             = GNUNET_malloc (ret->data.ksk.keywordCount * sizeof (char *));
           for (i = 0; i < ret->data.ksk.keywordCount; i++)
