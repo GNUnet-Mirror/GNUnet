@@ -2672,8 +2672,15 @@ handle_p2p_put (void *cls,
 					      &prq);
   cps = GNUNET_CONTAINER_multihashmap_get (connected_peers,
 					   &other->hashPubKey);
-  cps->inc_preference += CONTENT_BANDWIDTH_VALUE + 1000 * prq.priority;
-  cps->trust_delta += prq.priority;
+  if (cps != NULL)
+    {
+      cps->inc_preference += CONTENT_BANDWIDTH_VALUE + 1000 * prq.priority;
+      cps->trust_delta += prq.priority;
+    }
+  else
+    {
+      GNUNET_break (0);
+    }
   if (GNUNET_YES == active_migration)
     {
 #if DEBUG_FS

@@ -603,6 +603,7 @@ udp_real_send (void *cls,
   else
     {
       GNUNET_break_op (0);
+      GNUNET_free (message);
       return -1;
     }
 

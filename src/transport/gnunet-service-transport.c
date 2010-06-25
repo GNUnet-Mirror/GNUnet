@@ -57,7 +57,7 @@
  * How many messages can we have pending for a given client process
  * before we start to drop incoming messages?  We typically should
  * have only one client and so this would be the primary buffer for
- * messages, so the number should be chosen rather generously.
+  * messages, so the number should be chosen rather generously.
  *
  * The expectation here is that most of the time the queue is large
  * enough so that a drop is virtually never required.  Note that
@@ -3991,6 +3991,9 @@ process_hello (struct TransportPlugin *plugin,
 			    gettext_noop ("# HELLOs received for validation"),
 			    1,
 			    GNUNET_NO);      
+  GNUNET_CRYPTO_hash (&publicKey,
+                      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                      &target.hashPubKey);
   /* first, check if load is too high */
   if (GNUNET_SCHEDULER_get_load (sched,
 				 GNUNET_SCHEDULER_PRIORITY_BACKGROUND) > MAX_HELLO_LOAD)
@@ -4019,9 +4022,6 @@ process_hello (struct TransportPlugin *plugin,
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
-  GNUNET_CRYPTO_hash (&publicKey,
-                      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                      &target.hashPubKey);
   if (0 == memcmp (&my_identity,
 		   &target,
 		   sizeof (struct GNUNET_PeerIdentity)))
