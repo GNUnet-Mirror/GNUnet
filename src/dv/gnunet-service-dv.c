@@ -54,6 +54,11 @@
 #define USE_PEER_ID GNUNET_YES
 
 /**
+ * How many outstanding messages (unknown sender) will we allow per peer?
+ */
+#define MAX_OUTSTANDING_MESSAGES 5
+
+/**
  * How often do we check about sending out more peer information (if
  * we are connected to no peers previously).
  */
@@ -313,11 +318,11 @@ struct DirectNeighbor
   int hidden;
 
   /**
-   * Save a single message from a direct neighbor from a peer
-   * we don't know on the chance that it will be gossiped about
-   * and we can deliver the message.
+   * Save messages immediately from this direct neighbor from a
+   * distan peer we don't know on the chance that it will be
+   * gossiped about and we can deliver the message.
    */
-  struct UnknownSenderMessage pending_message;
+  struct UnknownSenderMessage pending_messages[MAX_OUTSTANDING_MESSAGES];
 };
 
 
@@ -1324,23 +1329,22 @@ static int handle_dv_data_message (void *cls,
   struct GNUNET_PeerIdentity *destination;
   struct FindDestinationContext fdc;
   struct TokenizedMessageContext tkm_ctx;
+  int i;
+  int found_pos;
 #if DELAY_FORWARDS
   struct DelayedMessageContext *delayed_context;
 #endif
 #if USE_PEER_ID
   struct CheckPeerContext checkPeerCtx;
 #endif
+#if DEBUG_DV_MESSAGES
   char *sender_id;
-  char *direct_id;
+#endif
   int ret;
   size_t packed_message_size;
   char *cbuf;
-#if NO_MST
-  size_t offset;
-#endif
+
   packed_message_size = ntohs(incoming->header.size) - sizeof(p2p_dv_MESSAGE_Data);
-
-
 #if DEBUG_DV
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s: Receives DATA message from %s size %d, packed size %d!\n", my_short_id, GNUNET_i2s(peer) , ntohs(incoming->header.size), packed_message_size);
@@ -1384,10 +1388,8 @@ static int handle_dv_data_message (void *cls,
   if (pos == NULL)
     {
 #if DEBUG_DV_MESSAGES
-      direct_id = GNUNET_strdup(GNUNET_i2s(&dn->identity));
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%s: unknown sender (%u), Message uid %llu from %s!\n", GNUNET_i2s(&my_identity), ntohl(incoming->sender), ntohl(incoming->uid), direct_id);
-      GNUNET_free(direct_id);
+                  "%s: unknown sender (%u), Message uid %llu from %s!\n", my_short_id, ntohl(incoming->sender), ntohl(incoming->uid), GNUNET_i2s(&dn->identity));
       pos = dn->referee_head;
       while ((NULL != pos) && (pos->referrer_id != sid))
       {
@@ -1397,24 +1399,33 @@ static int handle_dv_data_message (void *cls,
         pos = pos->next;
       }
 #endif
-      if (dn->pending_message.sender_id != 0)
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "%s: unknown sender (%u), Message uid %llu from %s!\n", my_short_id, ntohl(incoming->sender), ntohl(incoming->uid), GNUNET_i2s(&dn->identity));
+
+      found_pos = -1;
+      for (i = 0; i< MAX_OUTSTANDING_MESSAGES; i++)
         {
-          GNUNET_free(dn->pending_message.message);
+          if (dn->pending_messages[i].sender_id == 0)
+            {
+              found_pos = i;
+              break;
+            }
         }
 
-      dn->pending_message.message = GNUNET_malloc(ntohs (message->size));
-      memcpy(dn->pending_message.message, message, ntohs(message->size));
-      dn->pending_message.distance = distance;
-      dn->pending_message.latency = latency;
-      memcpy(&dn->pending_message.sender, peer, sizeof(struct GNUNET_PeerIdentity));
-      dn->pending_message.sender_id = sid;
-
-#if DEBUG_MESSAGE_DROP
-      direct_id = GNUNET_strdup(GNUNET_i2s(&dn->identity));
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%s: DROPPING MESSAGE type %d, unknown sender! Message immediately from %s!\n", GNUNET_i2s(&my_identity), ntohs(((struct GNUNET_MessageHeader *)&incoming[1])->type), direct_id);
-      GNUNET_free(direct_id);
-#endif
+      if (found_pos == -1)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                      "%s: Too many unknown senders (%u), ignoring message! Message uid %llu from %s!\n", my_short_id, ntohl(incoming->sender), ntohl(incoming->uid), GNUNET_i2s(&dn->identity));
+        }
+      else
+        {
+            dn->pending_messages[found_pos].message = GNUNET_malloc(ntohs (message->size));
+            memcpy(dn->pending_messages[found_pos].message, message, ntohs(message->size));
+            dn->pending_messages[found_pos].distance = distance;
+            dn->pending_messages[found_pos].latency = latency;
+            memcpy(&dn->pending_messages[found_pos].sender, peer, sizeof(struct GNUNET_PeerIdentity));
+            dn->pending_messages[found_pos].sender_id = sid;
+        }
       /* unknown sender */
       return GNUNET_OK;
     }
@@ -2331,6 +2342,7 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer, struct GNUNET_CRYPTO
   unsigned int our_id;
   char *addr1;
   char *addr2;
+  int i;
 
 #if DEBUG_DV_PEER_NUMBERS
   char *encAbout;
@@ -2447,17 +2459,21 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer, struct GNUNET_CRYPTO
       GNUNET_CONTAINER_multihashmap_put (extended_neighbors, &peer->hashPubKey,
                                  neighbor,
                                  GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-
-      if ((referrer_peer_id != 0) && (referrer->pending_message.sender_id == referrer_peer_id)) /* We have a queued message from just learned about peer! */
+      if (referrer_peer_id != 0)
         {
+          for (i = 0; i< MAX_OUTSTANDING_MESSAGES; i++)
+            {
+              if (referrer->pending_messages[i].sender_id == referrer_peer_id) /* We have a queued message from just learned about peer! */
+                {
 #if DEBUG_DV_MESSAGES
-          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: learned about peer %llu from which we have a previous unknown message, processing!\n", my_short_id, referrer_peer_id);
+                  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: learned about peer %llu from which we have a previous unknown message, processing!\n", my_short_id, referrer_peer_id);
 #endif
-          handle_dv_data_message(NULL, &referrer->pending_message.sender, referrer->pending_message.message, referrer->pending_message.latency, referrer->pending_message.distance);
-          GNUNET_free(referrer->pending_message.message);
-          referrer->pending_message.sender_id = 0;
+                  handle_dv_data_message(NULL, &referrer->pending_messages[i].sender, referrer->pending_messages[i].message, referrer->pending_messages[i].latency, referrer->pending_messages[i].distance);
+                  GNUNET_free(referrer->pending_messages[i].message);
+                  referrer->pending_messages[i].sender_id = 0;
+                }
+            }
         }
-
       if (cost != DIRECT_NEIGHBOR_COST)
         {
           /* Added neighbor, now send HELLO to transport */
@@ -2469,7 +2485,9 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer, struct GNUNET_CRYPTO
           GNUNET_assert(memcmp(hello_context->direct_peer, &hello_context->distant_peer, sizeof(struct GNUNET_PeerIdentity)) != 0);
           addr1 = GNUNET_strdup(GNUNET_i2s(hello_context->direct_peer));
           addr2 = GNUNET_strdup(GNUNET_i2s(&hello_context->distant_peer));
+#if DEBUG_DV
           GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: GIVING HELLO size %d for %s via %s to TRANSPORT\n", my_short_id, GNUNET_HELLO_size(hello_msg), addr2, addr1);
+#endif
           GNUNET_free(addr1);
           GNUNET_free(addr2);
           send_to_plugin(hello_context->direct_peer, GNUNET_HELLO_get_header(hello_msg), GNUNET_HELLO_size(hello_msg), &hello_context->distant_peer, cost);
