@@ -1025,9 +1025,11 @@ read_blacklist_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
     }
   if (frstat.st_size == 0)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Blacklist file `%s' is empty.\n"),
                   fn);
+#endif
       GNUNET_free (fn);
       return;
     }
@@ -1088,11 +1090,11 @@ read_blacklist_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
       transport_name = GNUNET_malloc(tsize + 1);
       memcpy(transport_name, &data[pos], tsize);
       pos = colon_pos + 1;
-
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Read transport name %s in blacklist file.\n"),
                   transport_name);
-
+#endif
       memcpy (&enc, &data[pos], sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded));
       if (!isspace ( (unsigned char) enc.encoding[sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1]))
         {
@@ -3906,7 +3908,7 @@ process_hello (struct TransportPlugin *plugin,
                   my_id,
                   "HELLO",
                   GNUNET_i2s (&target),
-                  (plugin == NULL) ? "???" : plugin->short_name,
+                  plugin->short_name,
                   GNUNET_HELLO_size(hello));
       GNUNET_free(my_id);
     }
