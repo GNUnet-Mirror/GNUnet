@@ -187,6 +187,11 @@ struct Session
 {
 
   /**
+   * API requirement.
+   */
+  struct SessionHeader header;
+
+  /**
    * Stored in a linked list.
    */
   struct Session *next;
@@ -346,7 +351,13 @@ struct Plugin
  * @param peer identity
  * @return created session object
  */
-static struct Session * create_session (void * cls, char * addr_in, size_t addrlen_in, char * addr_out, size_t addrlen_out, const struct GNUNET_PeerIdentity *peer)
+static struct Session * 
+create_session (void * cls, 
+		char * addr_in, 
+		size_t addrlen_in,
+		char * addr_out, 
+		size_t addrlen_out, 
+		const struct GNUNET_PeerIdentity *peer)
 {
   struct Plugin *plugin = cls;
   struct Session * cs = GNUNET_malloc ( sizeof( struct Session) );
@@ -404,10 +415,11 @@ static void messageTokenizerCallback (void *cls,
 	      ntohs(message->type),
               ntohs(message->size),
 	      GNUNET_i2s(&(cs->identity)));
-  cs->plugin->env->receive(cs->plugin->env->cls,
-                           &cs->identity,
-                           message, 1, NULL,
-                           NULL, 0);
+  cs->plugin->env->receive (cs->plugin->env->cls,
+			    &cs->identity,
+			    message, 1, cs,
+			    cs->addr_out,
+			    cs->addr_out_len);
 }
 
 /**

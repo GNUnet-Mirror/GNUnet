@@ -47,6 +47,24 @@
  */
 struct Session;
 
+/**
+ * Every 'struct Session' must begin with this header.
+ */
+struct SessionHeader
+{
+
+  /**
+   * Cached signature for PONG generation for the session.  Do not use
+   * in the plugin!
+   */
+  struct GNUNET_CRYPTO_RsaSignature pong_signature;
+
+  /**
+   * Expiration time for signature.  Do not use in the plugin!
+   */
+  struct GNUNET_TIME_Absolute pong_sig_expires;
+  
+};
 
 /**
  * Function that will be called whenever the plugin internally
@@ -74,8 +92,14 @@ typedef void (*GNUNET_TRANSPORT_SessionEnd) (void *cls,
  * @param message the message, NULL if we only care about
  *                learning about the delay until we should receive again -- FIXME!
  * @param distance in overlay hops; use 1 unless DV (or 0 if message == NULL)
- * @param session identifier used for this session (can be NULL)
- * @param sender_address binary address of the sender (if observed)
+ * @param session identifier used for this session (NULL for plugins
+ *                that do not offer bi-directional communication to the sender
+ *                using the same "connection")
+ * @param sender_address binary address of the sender (if we established the
+ *                connection or are otherwise sure of it; should be NULL
+ *                for inbound TCP/UDP connections since it it not clear
+ *                that we could establish ourselves a connection to that
+ *                IP address and get the same system)
  * @param sender_address_len number of bytes in sender_address
  * @return how long the plugin should wait until receiving more data
  *         (plugins that do not support this, can ignore the return value)

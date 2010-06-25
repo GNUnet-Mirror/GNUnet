@@ -103,6 +103,15 @@
 #define HELLO_VERIFICATION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
 /**
+ * How long is a PONG signature valid?  We'll recycle a signature until
+ * 1/4 of this time is remaining.  PONGs should expire so that if our
+ * external addresses change an adversary cannot replay them indefinitely.
+ * OTOH, we don't want to spend too much time generating PONG signatures,
+ * so they must have some lifetime to reduce our CPU usage.
+ */
+#define PONG_SIGNATURE_LIFETIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 1)
+
+/**
  * Priority to use for PONG messages.
  */
 #define TRANSPORT_PONG_PRIORITY 4
@@ -241,7 +250,8 @@ struct ForeignAddressList
 
 
 /**
- * Entry in linked list of network addresses for ourselves.
+ * Entry in linked list of network addresses for ourselves.  Also
+ * includes a cached signature for 'struct TransportPongMessage's.
  */
 struct OwnAddressList
 {
@@ -251,21 +261,26 @@ struct OwnAddressList
   struct OwnAddressList *next;
 
   /**
-   * The address, actually a pointer to the end
-   * of this struct.  Do not free!
-   */
-  const void *addr;
-  
-  /**
-   * How long until we auto-expire this address (unless it is
+   * How long until we actually auto-expire this address (unless it is
    * re-confirmed by the transport)?
    */
   struct GNUNET_TIME_Absolute expires;
 
   /**
+   * How long until the current signature expires? (ZERO if the
+   * signature was never created).
+   */
+  struct GNUNET_TIME_Absolute pong_sig_expires;
+
+  /**
+   * Signature for a 'struct TransportPongMessage' for this address.
+   */
+  struct GNUNET_CRYPTO_RsaSignature pong_signature;
+
+  /**
    * Length of addr.
    */
-  uint16_t addrlen;
+  uint32_t addrlen;
 
 };
 
@@ -553,7 +568,9 @@ struct NeighbourList
 
 /**
  * Message used to ask a peer to validate receipt (to check an address
- * from a HELLO).  
+ * from a HELLO).  Followed by the address we are trying to validate,
+ * or an empty address if we are just sending a PING to confirm that a
+ * connection which the receiver (of the PING) initiated is still valid.
  */
 struct TransportPingMessage
 {
@@ -564,7 +581,7 @@ struct TransportPingMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Random challenge number (in network byte order).
+   * Challenge code (to ensure fresh reply).
    */
   uint32_t challenge GNUNET_PACKED;
 
@@ -579,14 +596,12 @@ struct TransportPingMessage
 /**
  * Message used to validate a HELLO.  The challenge is included in the
  * confirmation to make matching of replies to requests possible.  The
- * signature signs the original challenge number, our public key, the
- * sender's address (so that the sender can check that the address we
- * saw is plausible for him and possibly detect a MiM attack) and a
- * timestamp (to limit replay).<p>
+ * signature signs our public key, an expiration time and our address.<p>
  *
- * This message is followed by the address of the
- * client that we are observing (which is part of what
- * is being signed).
+ * This message is followed by our transport address that the PING tried
+ * to confirm (if we liked it).  The address can be empty (zero bytes)
+ * if the PING had not address either (and we received the request via
+ * a connection that we initiated).
  */
 struct TransportPongMessage
 {
@@ -597,9 +612,10 @@ struct TransportPongMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * For padding, always zero.
+   * Challenge code from PING (showing freshness).  Not part of what
+   * is signed so that we can re-use signatures.
    */
-  uint32_t reserved GNUNET_PACKED;
+  uint32_t challenge GNUNET_PACKED;
 
   /**
    * Signature.
@@ -607,24 +623,31 @@ struct TransportPongMessage
   struct GNUNET_CRYPTO_RsaSignature signature;
 
   /**
-   * What are we signing and why?
+   * What are we signing and why?  Two possible reason codes can be here:
+   * GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN to confirm that this is a
+   * plausible address for this peer (pid is set to identity of signer); or
+   * GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_USING to confirm that this is
+   * an address we used to connect to the peer with the given pid.
    */
   struct GNUNET_CRYPTO_RsaSignaturePurpose purpose;
 
   /**
-   * Random challenge number (in network byte order).
+   * When does this signature expire?
    */
-  uint32_t challenge GNUNET_PACKED;
+  struct GNUNET_TIME_AbsoluteNBO expiration;
 
   /**
-   * Who signed this message?
+   * Either the identity of the peer Who signed this message, or the
+   * identity of the peer that we're connected to using the given
+   * address (depending on purpose.type).
    */
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded signer;
+  struct GNUNET_PeerIdentity pid;
 
   /**
-   * Size of address appended to this message
+   * Size of address appended to this message (part of what is
+   * being signed, hence not redundant). 
    */
-  uint16_t addrlen;
+  uint32_t addrlen;
 
 };
 
@@ -876,7 +899,6 @@ static struct GNUNET_CONTAINER_MultiHashMap *validation_map;
  * Handle for reporting statistics.
  */
 static struct GNUNET_STATISTICS_Handle *stats;
-
 
 /**
  * The peer specified by the given neighbour has timed-out or a plugin
@@ -1526,9 +1548,11 @@ find_ready_address(struct NeighbourList *neighbour)
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Best address found (`%s') has latency of %llu ms.\n",
-		  a2s (best_address->ready_list->plugin->short_name,
+		  (best_address->addrlen > 0) 
+		  ? a2s (best_address->ready_list->plugin->short_name,
 		       best_address->addr,
-		       best_address->addrlen),
+		       best_address->addrlen)
+		  : "<inbound>",
                   best_address->latency.value);
 #endif
     }
@@ -1800,7 +1824,7 @@ address_generator (void *cls, size_t max, void *buf)
     }
   ret = GNUNET_HELLO_add_address (gc->plug_pos->short_name,
                                   gc->expiration,
-                                  gc->addr_pos->addr,
+                                  &gc->addr_pos[1],
                                   gc->addr_pos->addrlen, buf, max);
   gc->addr_pos = gc->addr_pos->next;
   return ret;
@@ -2097,7 +2121,6 @@ plugin_env_notify_address (void *cls,
     }
 
   al = GNUNET_malloc (sizeof (struct OwnAddressList) + addrlen);
-  al->addr = &al[1];
   al->next = p->addresses;
   p->addresses = al;
   al->expires = abex;
@@ -3076,6 +3099,7 @@ send_periodic_ping (void *cls,
   struct CheckAddressExistsClosure caec;
   char * message_buf;
   uint16_t hello_size;
+  size_t slen;
   size_t tsize;
 
   peer_address->revalidate_task = GNUNET_SCHEDULER_NO_TASK;
@@ -3143,18 +3167,39 @@ send_periodic_ping (void *cls,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   hello_size = GNUNET_HELLO_size(our_hello);
   tsize = sizeof(struct TransportPingMessage) + hello_size;
+  if (peer_address->addr != NULL)
+    {
+      slen = strlen (tp->short_name) + 1;
+      tsize += slen + peer_address->addrlen;
+    }
   message_buf = GNUNET_malloc(tsize);
-  ping.challenge = htonl(va->challenge);
-  ping.header.size = htons(sizeof(struct TransportPingMessage));
   ping.header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_PING);
+  ping.challenge = htonl(va->challenge);
   memcpy(&ping.target, &neighbour->id, sizeof(struct GNUNET_PeerIdentity));
   memcpy(message_buf, our_hello, hello_size);
+  if (peer_address->addr != NULL)
+    {
+      ping.header.size = htons(sizeof(struct TransportPingMessage) + 
+			       peer_address->addrlen + 
+			       slen);
+      memcpy(&message_buf[hello_size + sizeof (struct TransportPingMessage)],
+	     tp->short_name, 
+	     slen);
+      memcpy(&message_buf[hello_size + sizeof (struct TransportPingMessage) + slen],
+	     peer_address->addr, 
+	     peer_address->addrlen);
+    }
+  else
+    {
+      ping.header.size = htons(sizeof(struct TransportPingMessage));
+    }
   memcpy(&message_buf[hello_size],
          &ping,
          sizeof(struct TransportPingMessage));
+
 #if DEBUG_TRANSPORT_REVALIDATION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Performing re-validation of address `%s' via `%s' for peer `%4s' sending `%s' (%u bytes) and `%s' (%u bytes)\n",
+              "Performing re-validation of address `%s' via `%s' for peer `%4s' sending `%s' (%u bytes) and `%s'\n",
               (peer_address->addr != NULL) 
 	      ? a2s (peer_address->plugin->short_name,
 		     peer_address->addr,
@@ -3163,7 +3208,7 @@ send_periodic_ping (void *cls,
               tp->short_name,
               GNUNET_i2s (&neighbour->id),
               "HELLO", hello_size,
-              "PING", sizeof (struct TransportPingMessage));
+              "PING");
 #endif
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# PING messages sent for re-validation"),
@@ -3321,34 +3366,133 @@ check_pending_validation (void *cls,
   struct GNUNET_PeerIdentity target;
   struct NeighbourList *n;
   struct ForeignAddressList *fal;
+  struct OwnAddressList *oal;
+  struct TransportPlugin *tp;
   struct GNUNET_MessageHeader *prem;
+  uint16_t ps;
+  const char *addr;
+  size_t slen;
+  size_t alen;
 
-  if (ve->challenge != challenge)
-    return GNUNET_YES;
-
-#if SIGN_USELESS
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PING,
-				&pong->purpose, 
-				&pong->signature,
-				&ve->publicKey))
+  ps = ntohs (pong->header.size);
+  if (ps < sizeof (struct TransportPongMessage))
     {
       GNUNET_break_op (0);
-      return GNUNET_YES;
+      return GNUNET_NO;
     }
-#endif
-
+  addr = (const char*) &pong[1];
+  slen = strlen (ve->transport_name) + 1;
+  if ( (ps - sizeof (struct TransportPongMessage) != ve->addrlen + slen) ||
+       (ve->challenge != challenge) ||       
+       (addr[slen-1] != '\0') ||
+       (0 != strcmp (addr, ve->transport_name)) || 
+       (ntohl (pong->purpose.size) 
+	!= sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) +
+	sizeof (uint32_t) +
+	sizeof (struct GNUNET_TIME_AbsoluteNBO) +
+	sizeof (struct GNUNET_PeerIdentity) + ve->addrlen + slen) )
+    return GNUNET_YES;
+  alen = ps - sizeof (struct TransportPongMessage) - slen;
+  switch (ntohl (pong->purpose.purpose))
+    {
+    case GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN:
+      if ( (ve->addrlen + slen != ntohl (pong->addrlen)) ||
+	   (0 != memcmp (&addr[slen],
+			 ve->addr,
+			 ve->addrlen)) )
+	return GNUNET_YES; /* different entry, keep trying! */
+      if ( (0 != memcmp (&pong->pid,
+			 key,
+			 sizeof (struct GNUNET_PeerIdentity))) ||
+	   (ve->addrlen == 0) )
+	{
+	  GNUNET_break_op (0);
+	  return GNUNET_NO;
+	}
+      if (GNUNET_OK !=
+	  GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
+				    &pong->purpose, 
+				    &pong->signature,
+				    &ve->publicKey)) 
+	{
+	  GNUNET_break_op (0);
+	  return GNUNET_NO;
+	}
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Confirmed validity of address, peer `%4s' has address `%s' (%s).\n",
-	      GNUNET_h2s (key),
-	      (ve->addr != NULL) 
-	      ? a2s (ve->transport_name,
-		     (const struct sockaddr *) ve->addr,
-		     ve->addrlen)
-	      : "<inbound>",
-	      ve->transport_name);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Confirmed validity of address, peer `%4s' has address `%s' (%s).\n",
+		  GNUNET_h2s (key),
+		  a2s (ve->transport_name,
+		       (const struct sockaddr *) ve->addr,
+		       ve->addrlen),
+		  ve->transport_name);
 #endif
+      break;
+    case GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_USING:
+      if (ve->addrlen != 0) 
+	return GNUNET_YES; /* different entry, keep trying */
+      if ( (0 != memcmp (&pong->pid,
+			 &my_identity,
+			 sizeof (struct GNUNET_PeerIdentity))) ||
+	   (ve->addrlen != 0) )
+	{
+	  GNUNET_break_op (0);
+	  return GNUNET_NO;
+	}
+      tp = find_transport (ve->transport_name);
+      if (tp == NULL)
+	{
+	  GNUNET_break (0);
+	  return GNUNET_YES;
+	}
+      oal = tp->addresses;
+      while (NULL != oal)
+	{
+	  if ( (oal->addrlen == alen) &&
+	       (0 == memcmp (&oal[1],
+			     &addr[slen],
+			     alen)) )
+	    break;
+	  oal = oal->next;
+	}
+      if (oal == NULL)
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		      _("Not accepting PONG with address `%s' since I cannot confirm having this address.\n"),
+		      a2s (ve->transport_name,
+			   &addr[slen],
+			   alen));
+	  return GNUNET_NO;	  
+	}
+      if (GNUNET_OK !=
+	  GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_USING,
+				    &pong->purpose, 
+				    &pong->signature,
+				    &ve->publicKey)) 
+	{
+	  GNUNET_break_op (0);
+	  return GNUNET_NO;
+	}
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Confirmed that peer `%4s' is talking to us using address `%s' (%s) for us.\n",
+		  GNUNET_h2s (key),
+		  a2s (ve->transport_name,
+		       &addr[slen],
+		       alen),
+		  ve->transport_name);
+#endif
+      break;
+    default:
+      GNUNET_break_op (0);
+      return GNUNET_NO;
+    }
+  if (GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh (pong->expiration)).value == 0)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Received expired signature.  Check system time.\n"));
+      return GNUNET_NO;
+    }
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# address validation successes"),
 			    1,
@@ -3498,6 +3642,7 @@ transmit_hello_and_ping (void *cls,
   size_t tsize;
   char * message_buf;
   struct GNUNET_PeerIdentity id;
+  size_t slen;
 
   GNUNET_CRYPTO_hash (&va->publicKey,
 		      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
@@ -3532,25 +3677,34 @@ transmit_hello_and_ping (void *cls,
       return;
     }
   hello_size = GNUNET_HELLO_size(our_hello);
-  tsize = sizeof(struct TransportPingMessage) + hello_size;
+  slen = strlen(va->transport_name) + 1;
+  tsize = sizeof(struct TransportPingMessage) + hello_size + va->addrlen + slen;
   message_buf = GNUNET_malloc(tsize);
   ping.challenge = htonl(va->challenge);
-  ping.header.size = htons(sizeof(struct TransportPingMessage));
+  ping.header.size = htons(sizeof(struct TransportPingMessage) + slen + va->addrlen);
   ping.header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_PING);
   memcpy(&ping.target, &neighbour->id, sizeof(struct GNUNET_PeerIdentity));
   memcpy(message_buf, our_hello, hello_size);
   memcpy(&message_buf[hello_size],
 	 &ping,
 	 sizeof(struct TransportPingMessage));
+  memcpy(&message_buf[hello_size + sizeof (struct TransportPingMessage)],
+	 va->transport_name,
+	 slen);
+  memcpy(&message_buf[hello_size + sizeof (struct TransportPingMessage) + slen],
+	 &va[1],
+	 va->addrlen);
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Performing validation of address `%s' via `%s' for peer `%4s' sending `%s' (%u bytes) and `%s' (%u bytes)\n",
-              a2s (va->transport_name,
-		   (const void*) &va[1], va->addrlen),
+	      (va->addrlen == 0) 
+	      ? "<inbound>"
+	      : a2s (va->transport_name,
+		     (const void*) &va[1], va->addrlen),
 	      va->transport_name,
 	      GNUNET_i2s (&neighbour->id),
 	      "HELLO", hello_size,
-	      "PING", sizeof (struct TransportPingMessage));
+	      "PING", sizeof (struct TransportPingMessage) + va->addrlen + slen);
 #endif
 
   GNUNET_STATISTICS_update (stats,
@@ -3618,7 +3772,7 @@ run_validation (void *cls,
   while (NULL != oal)
     {
       if ( (oal->addrlen == addrlen) &&
-	   (0 == memcmp (oal->addr,
+	   (0 == memcmp (&oal[1],
 			 addr,
 			 addrlen)) )
 	{
@@ -4073,17 +4227,23 @@ disconnect_neighbour (struct NeighbourList *n, int check)
 static int 
 handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
 	    const struct GNUNET_PeerIdentity *peer,
+	    struct Session *session,
 	    const char *sender_address,
 	    uint16_t sender_address_len)
 {
   struct TransportPlugin *plugin = cls;
+  struct SessionHeader *session_header = (struct SessionHeader*) session;
   struct TransportPingMessage *ping;
   struct TransportPongMessage *pong;
   struct NeighbourList *n;
   struct ReadyList *rl;
   struct ForeignAddressList *fal;
+  struct OwnAddressList *oal;
+  const char *addr;
+  size_t alen;
+  size_t slen;
 
-  if (ntohs (message->size) != sizeof (struct TransportPingMessage))
+  if (ntohs (message->size) < sizeof (struct TransportPingMessage))
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
@@ -4113,26 +4273,126 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
 			    gettext_noop ("# PING messages received"),
 			    1,
 			    GNUNET_NO);
-  pong = GNUNET_malloc (sizeof (struct TransportPongMessage) + sender_address_len);
-  pong->header.size = htons (sizeof (struct TransportPongMessage) + sender_address_len);
-  pong->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_PONG);
-  pong->purpose.size =
-    htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) +
-           sizeof (uint32_t) +
-           sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) + sender_address_len);
-  pong->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PING);
-  pong->challenge = ping->challenge;
-  pong->addrlen = htons(sender_address_len);
-  memcpy(&pong->signer, 
-	 &my_public_key, 
-	 sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
-  if (sender_address != NULL)
-    memcpy (&pong[1], sender_address, sender_address_len);
-#if SIGN_USELESS
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_rsa_sign (my_private_key,
-                                         &pong->purpose, &pong->signature));
+  addr = (const char*) &ping[1];
+  alen = ntohs (message->size) - sizeof (struct TransportPingMessage);
+  slen = strlen (plugin->short_name) + 1;
+  if (alen == 0)
+    {      
+      /* peer wants to confirm that we have an outbound connection to him */
+      if (session == NULL)
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		      _("Refusing to create PONG since I do not have a session with `%s'.\n"),
+		      GNUNET_i2s (peer));
+	  return GNUNET_SYSERR;
+	}
+      pong = GNUNET_malloc (sizeof (struct TransportPongMessage) + sender_address_len + slen);
+      pong->header.size = htons (sizeof (struct TransportPongMessage) + sender_address_len + slen);
+      pong->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_PONG);
+      pong->purpose.size =
+	htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) +
+	       sizeof (uint32_t) +
+	       sizeof (struct GNUNET_TIME_AbsoluteNBO) +
+	       sizeof (struct GNUNET_PeerIdentity) + sender_address_len + slen);
+      pong->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_USING);
+      pong->challenge = ping->challenge;
+      pong->addrlen = htonl(sender_address_len + slen);
+      memcpy(&pong->pid, 
+	     peer,
+	     sizeof(struct GNUNET_PeerIdentity));
+      memcpy (&pong[1], 
+	      plugin->short_name, 
+	      slen);
+      memcpy (&((char*)&pong[1])[slen], 
+	      sender_address, 
+	      sender_address_len);
+      if (GNUNET_TIME_absolute_get_remaining (session_header->pong_sig_expires).value < PONG_SIGNATURE_LIFETIME.value / 4)
+	{
+	  /* create / update cached sig */
+#if DEBUG_TRANSPORT
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Creating PONG signature to indicate active connection.\n");
 #endif
+	  session_header->pong_sig_expires = GNUNET_TIME_relative_to_absolute (PONG_SIGNATURE_LIFETIME);
+	  pong->expiration = GNUNET_TIME_absolute_hton (session_header->pong_sig_expires);
+	  GNUNET_assert (GNUNET_OK ==
+			 GNUNET_CRYPTO_rsa_sign (my_private_key,
+						 &pong->purpose,
+						 &session_header->pong_signature));
+	}
+      else
+	{
+	  pong->expiration = GNUNET_TIME_absolute_hton (session_header->pong_sig_expires);
+	}
+      memcpy (&pong->signature,
+	      &session_header->pong_signature,
+	      sizeof (struct GNUNET_CRYPTO_RsaSignature));    
+
+
+    }
+  else
+    {
+      /* peer wants to confirm that this is one of our addresses */
+      addr += slen;
+      alen -= slen;
+      oal = plugin->addresses;
+      while (NULL != oal)
+	{
+	  if ( (oal->addrlen == alen) &&
+	       (0 == memcmp (addr,
+			     &oal[1],
+			     alen)) )
+	    break;
+	  oal = oal->next;
+	}
+      if (oal == NULL)
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		      _("Not confirming PING with address `%s' since I cannot confirm having this address.\n"),
+		      a2s (plugin->short_name,
+			   addr,
+			   alen));
+	  return GNUNET_NO;
+	}
+      pong = GNUNET_malloc (sizeof (struct TransportPongMessage) + alen + slen);
+      pong->header.size = htons (sizeof (struct TransportPongMessage) + alen + slen);
+      pong->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_PONG);
+      pong->purpose.size =
+	htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) +
+	       sizeof (uint32_t) +
+	       sizeof (struct GNUNET_TIME_AbsoluteNBO) +
+	       sizeof (struct GNUNET_PeerIdentity) + alen + slen);
+      pong->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN);
+      pong->challenge = ping->challenge;
+      pong->addrlen = htonl(alen + slen);
+      memcpy(&pong->pid, 
+	     &my_identity, 
+	     sizeof(struct GNUNET_PeerIdentity));
+      memcpy (&pong[1], plugin->short_name, slen);
+      memcpy (&((char*)&pong[1])[slen], &oal[1], alen);
+      if (GNUNET_TIME_absolute_get_remaining (oal->pong_sig_expires).value < PONG_SIGNATURE_LIFETIME.value / 4)
+	{
+	  /* create / update cached sig */
+#if DEBUG_TRANSPORT
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Creating PONG signature to indicate ownership.\n");
+#endif
+	  oal->pong_sig_expires = GNUNET_TIME_absolute_min (oal->expires,
+							    GNUNET_TIME_relative_to_absolute (PONG_SIGNATURE_LIFETIME));
+	  pong->expiration = GNUNET_TIME_absolute_hton (oal->pong_sig_expires);
+	  GNUNET_assert (GNUNET_OK ==
+			 GNUNET_CRYPTO_rsa_sign (my_private_key,
+						 &pong->purpose,
+						 &oal->pong_signature));
+	}
+      else
+	{
+	  pong->expiration = GNUNET_TIME_absolute_hton (oal->pong_sig_expires);
+	}
+      memcpy (&pong->signature,
+	      &oal->pong_signature,
+	      sizeof (struct GNUNET_CRYPTO_RsaSignature));    
+    }
   n = find_neighbour(peer);
   GNUNET_assert (n != NULL);
   /* first try reliable response transmission */
@@ -4304,7 +4564,7 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 	  process_hello (plugin, message);
 	  break;
 	case GNUNET_MESSAGE_TYPE_TRANSPORT_PING:
-	  handle_ping (plugin, message, peer, sender_address, sender_address_len);
+	  handle_ping (plugin, message, peer, session, sender_address, sender_address_len);
 	  break;
 	case GNUNET_MESSAGE_TYPE_TRANSPORT_PONG:
 	  handle_pong (plugin, message, peer, sender_address, sender_address_len);

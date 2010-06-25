@@ -43,53 +43,59 @@ extern "C"
 #define GNUNET_SIGNATURE_PURPOSE_TEST 0
 
 /**
- * Signature for confirming HELLOs for transport.
+ * Signature for confirming that this peer uses a particular address.
  */
-#define GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PING 1
+#define GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN 1
+
+/**
+ * Signature for confirming that this peer connected to another peer
+ * using a particular address.
+ */
+#define GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_USING 2
 
 
 /**
  * Purpose is to set a session key.
  */
-#define GNUNET_SIGNATURE_PURPOSE_SET_KEY 2
+#define GNUNET_SIGNATURE_PURPOSE_SET_KEY 3
 
 /**
  * Signature for a namespace/pseudonym advertisement (by
  * the namespace owner).
  */
-#define GNUNET_SIGNATURE_PURPOSE_NAMESPACE_ADVERTISEMENT 3
+#define GNUNET_SIGNATURE_PURPOSE_NAMESPACE_ADVERTISEMENT 4
 
 /**
  * Signature by which a peer affirms that it is
  * providing a certain bit of content (used
  * in LOCation URIs).
  */
-#define GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT 4
+#define GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT 5
 
 /**
  * Signature in a KBlock of the FS module.
  */
-#define GNUNET_SIGNATURE_PURPOSE_FS_KBLOCK 5
+#define GNUNET_SIGNATURE_PURPOSE_FS_KBLOCK 6
 
 /**
  * Signature of content URI placed into a namespace.
  */
-#define GNUNET_SIGNATURE_PURPOSE_FS_SBLOCK 6
+#define GNUNET_SIGNATURE_PURPOSE_FS_SBLOCK 7
 
 /**
  * Signature of advertisment for a namespace.
  */
-#define GNUNET_SIGNATURE_PURPOSE_FS_NBLOCK 7
+#define GNUNET_SIGNATURE_PURPOSE_FS_NBLOCK 8
 
 /**
  * Keyword-based signature of advertisment for a namespace.
  */
-#define GNUNET_SIGNATURE_PURPOSE_FS_NBLOCK_KSIG 8
+#define GNUNET_SIGNATURE_PURPOSE_FS_NBLOCK_KSIG 9
 
 /**
  *
  */
-#define GNUNET_SIGNATURE_PURPOSE_RESOLVER_RESPONSE 9
+#define GNUNET_SIGNATURE_PURPOSE_RESOLVER_RESPONSE 10
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

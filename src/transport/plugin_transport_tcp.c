@@ -205,6 +205,11 @@ struct Session
 {
 
   /**
+   * API requirement.
+   */
+  struct SessionHeader header;
+
+  /**
    * Stored in a linked list.
    */
   struct Session *next;
