@@ -35,15 +35,6 @@
 #include "gnunet_scheduler_lib.h"
 #include <gcrypt.h>
 
-#if HAVE_ARGZ_H
-#include <argz.h>
-#else
-#include "program_lib_strnlen.c"
-#include "program_lib_strndup.c"
-#include "program_lib_mempcpy.c"
-#include "program_lib_argz.c"
-#endif
-
 /**
  * Context for the command.
  */
@@ -156,19 +147,27 @@ GNUNET_PROGRAM_run (int argc,
   gargs = getenv ("GNUNET_ARGS");
   if (gargs != NULL)
     {
-      char *gargz;
-      size_t gargl;
       char **gargv;
+      unsigned int gargc;
       int i;
-
-      argz_create_sep (gargs, ' ', &gargz, &gargl);
+      char *tok;
+      char *cargs;
+      
+      gargv = NULL;
+      gargc = 0;
       for (i=0;i<argc;i++)
-	argz_insert (&gargz, &gargl, gargz, argv[i]);
-      gargv = GNUNET_malloc (sizeof (char*) * (gargl+1));
-      argz_extract (gargz, gargl, gargv);
-      argc = argz_count (gargz, gargl);
-      free (gargz);
+	GNUNET_array_append (gargv, gargc, GNUNET_strdup (argv[i]));
+      cargs = GNUNET_strdup (gargs);
+      tok = strtok (cargs, " ");
+      while (NULL != tok)
+	{
+	  GNUNET_array_append (gargv, gargc, GNUNET_strdup (tok));
+	  tok = strtok (NULL, " ");
+	}      
+      GNUNET_free (cargs);
+      GNUNET_array_append (gargv, gargc, NULL);
       argv = (char *const *) gargv;
+      argc = gargc - 1;
     }
   memset (&cc, 0, sizeof (cc));
   loglev = NULL;

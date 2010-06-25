@@ -571,6 +571,20 @@ GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
 void __attribute__ ((constructor)) GNUNET_util_cl_init ()
 {
   GNUNET_stderr = stderr;
+#ifdef MINGW
+  InitWinEnv (NULL);
+#endif
+}
+
+
+/**
+ * Destructor
+ */
+void __attribute__ ((destructor)) GNUNET_util_cl_fini ()
+{
+#ifdef MINGW
+  ShutdownWinEnv ();
+#endif
 }
 
 /* end of common_logging.c */

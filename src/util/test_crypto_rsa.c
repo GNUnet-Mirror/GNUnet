@@ -228,7 +228,7 @@ testSignVerify ()
         }
       if (GNUNET_SYSERR !=
           GNUNET_CRYPTO_rsa_verify
-          (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PING, &purp, &sig, &pkey))
+          (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN, &purp, &sig, &pkey))
         {
           printf ("GNUNET_CRYPTO_rsa_verify failed to fail!\n");
           ok = GNUNET_SYSERR;

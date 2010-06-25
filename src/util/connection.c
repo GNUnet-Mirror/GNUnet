@@ -726,11 +726,11 @@ connect_probe_continuation (void *cls,
   len = sizeof (error);
   errno = 0;
   error = 0;
-  if ((0 == (tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY)) ||
-      (GNUNET_OK !=
-       GNUNET_NETWORK_socket_getsockopt (ap->sock, SOL_SOCKET, SO_ERROR,
-                                         &error, &len)) || (error != 0)
-      || (errno != 0))
+  if ( (0 == (tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY)) ||
+       (GNUNET_OK !=
+	GNUNET_NETWORK_socket_getsockopt (ap->sock, SOL_SOCKET, SO_ERROR,
+					  &error, &len)) ||
+       (error != 0) )
     {
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (ap->sock));
       GNUNET_free (ap);

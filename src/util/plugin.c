@@ -53,6 +53,12 @@ struct PluginList
 
 
 /**
+ * Have we been initialized?
+ */
+static int initialized;
+
+
+/**
  * Libtool search path before we started.
  */
 static char *old_dlsearchpath;
@@ -67,16 +73,13 @@ static struct PluginList *plugins;
 /**
  * Setup libtool paths.
  */
-void __attribute__ ((constructor)) GNUNET_PLUGIN_init ()
+static void 
+plugin_init ()
 {
   int err;
   const char *opath;
   char *path;
   char *cpath;
-
-#ifdef MINGW
-  InitWinEnv (NULL);
-#endif
 
   err = lt_dlinit ();
   if (err > 0)
@@ -114,7 +117,8 @@ void __attribute__ ((constructor)) GNUNET_PLUGIN_init ()
 /**
  * Shutdown libtool.
  */
-void __attribute__ ((destructor)) GNUNET_PLUGIN_fini ()
+static void
+plugin_fini ()
 {
   lt_dlsetsearchpath (old_dlsearchpath);
   if (old_dlsearchpath != NULL)
@@ -122,11 +126,6 @@ void __attribute__ ((destructor)) GNUNET_PLUGIN_fini ()
       GNUNET_free (old_dlsearchpath);
       old_dlsearchpath = NULL;
     }
-
-#ifdef MINGW
-  ShutdownWinEnv ();
-#endif
-
   lt_dlexit ();
 }
 
@@ -173,6 +172,11 @@ GNUNET_PLUGIN_load (const char *library_name, void *arg)
   GNUNET_PLUGIN_Callback init;
   void *ret;
 
+  if (! initialized)
+    {
+      initialized = GNUNET_YES;
+      plugin_init ();
+    }
   libhandle = lt_dlopenext (library_name);
   if (libhandle == NULL)
     {
@@ -235,6 +239,11 @@ GNUNET_PLUGIN_unload (const char *library_name, void *arg)
   lt_dlclose (pos->handle);
   GNUNET_free (pos->name);
   GNUNET_free (pos);
+  if (plugins == NULL)
+    {
+      plugin_fini();
+      initialized = GNUNET_NO;
+    }
   return ret;
 }
 

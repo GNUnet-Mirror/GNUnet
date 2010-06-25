@@ -156,9 +156,10 @@ updateUsage ()
       unsigned long long usage_time = 0, total_time = 1;
 
       /* Get the first line with the data */
+      memset (line, 0, sizeof (line));
       rewind (proc_stat);
       fflush (proc_stat);
-      if (NULL == fgets (line, 256, proc_stat))
+      if (NULL == fgets (line, sizeof (line), proc_stat))
         {
           GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR |
                                     GNUNET_ERROR_TYPE_BULK,

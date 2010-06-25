@@ -29,7 +29,6 @@ libgnunetutil_la_SOURCES = \
   client.c \
   common_allocation.c \
   common_endian.c \
-  common_gettext.c \
   common_logging.c \
   configuration.c \
   connection.c \
@@ -370,10 +369,6 @@ perf_crypto_hash_LDADD = \
 
 
 EXTRA_DIST = \
-  program_lib_argz.c \
-  program_lib_strndup.c \
-  program_lib_strnlen.c \
-  program_lib_mempcpy.c \
   test_configuration_data.conf \
   test_program_data.conf \
   test_pseudonym_data.conf \

@@ -27,6 +27,7 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_crypto_lib.h"
+#include "gnunet_os_lib.h"
 #include <gcrypt.h>
 
 /**
@@ -161,12 +162,99 @@ GNUNET_CRYPTO_random_disable_entropy_gathering ()
   gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
 }
 
+
 /**
- * Initializer
+ * Process ID of the "find" process that we use for
+ * entropy gathering.
  */
-void __attribute__ ((constructor)) GNUNET_util_random_init ()
+static pid_t genproc;
+
+/**
+ * Function called by libgcrypt whenever we are
+ * blocked gathering entropy.
+ */
+static void
+entropy_generator (void *cls,
+                   const char *what, int printchar, int current, int total)
+{
+  unsigned long code;
+  enum GNUNET_OS_ProcessStatusType type;
+  int ret;
+
+  if (0 != strcmp (what, "need_entropy"))
+    return;
+  if (current == total)
+    {
+      if (genproc != 0)
+        {
+          if (0 != PLIBC_KILL (genproc, SIGTERM))
+            GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "kill");
+          GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (genproc));
+          genproc = 0;
+        }
+      return;
+    }
+  if (genproc != 0)
+    {
+      ret = GNUNET_OS_process_status (genproc, &type, &code);
+      if (ret == GNUNET_NO)
+        return;                 /* still running */
+      if (ret == GNUNET_SYSERR)
+        {
+          GNUNET_break (0);
+          return;
+        }
+      if (0 != PLIBC_KILL (genproc, SIGTERM))
+        GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "kill");
+      GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (genproc));
+      genproc = 0;
+    }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Starting `%s' process to generate entropy\n"), "find");
+  genproc = GNUNET_OS_start_process (NULL, NULL, "sh",
+                                     "sh",
+                                     "-c",
+                                     "exec find / -mount -type f -exec cp {} /dev/null \\; 2>/dev/null",
+                                     NULL);
+}
+
+
+static void
+killfind ()
+{
+  if (genproc != 0)
+    {
+      PLIBC_KILL (genproc, SIGKILL);
+      genproc = 0;
+    }
+}
+
+
+void __attribute__ ((constructor)) GNUNET_CRYPTO_random_init ()
 {
   SRANDOM (time (NULL));
+  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
+  if (!gcry_check_version (GCRYPT_VERSION))
+    {
+      fprintf (stderr,
+               _
+               ("libgcrypt has not the expected version (version %s is required).\n"),
+               GCRYPT_VERSION);
+      abort ();
+    }
+#ifdef gcry_fast_random_poll
+  gcry_fast_random_poll ();
+#endif
+  gcry_set_progress_handler (&entropy_generator, NULL);
+  atexit (&killfind);
 }
+
+
+void __attribute__ ((destructor)) GNUNET_CRYPTO_random_fini ()
+{
+  gcry_set_progress_handler (NULL, NULL);
+}
+
+
 
 /* end of crypto_random.c */
