@@ -870,60 +870,37 @@ check_data (const struct GNUNET_MessageHeader *message)
 
 
 /**
- * Handle PUT-message.
- *
- * @param cls closure
- * @param client identification of the client
- * @param message the actual message
+ * Context for a put request used to see if the content is
+ * already present.
+ */
+struct PutContext
+{
+  /**
+   * Client to notify on completion.
+   */
+  struct GNUNET_SERVER_Client *client;
+
+  /**
+   * Did we find the data already in the database?
+   */
+  int is_present;
+  
+  /* followed by the 'struct DataMessage' */
+};
+
+
+/**
+ * Actually put the data message.
  */
 static void
-handle_put (void *cls,
-	    struct GNUNET_SERVER_Client *client,
-	    const struct GNUNET_MessageHeader *message)
+execute_put (struct GNUNET_SERVER_Client *client,
+	     const struct DataMessage *dm)
 {
-  const struct DataMessage *dm = check_data (message);
+  uint32_t size;
   char *msg;
   int ret;
-  int rid;
-  struct ReservationList *pos;
-  uint32_t size;
 
-  if ( (dm == NULL) ||
-       (ntohl(dm->type) == 0) ) 
-    {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
-#if DEBUG_DATASTORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Processing `%s' request for `%s' of type %u\n",
-	      "PUT",
-	      GNUNET_h2s (&dm->key),
-	      ntohl (dm->type));
-#endif
-  rid = ntohl(dm->rid);
   size = ntohl(dm->size);
-  if (rid > 0)
-    {
-      pos = reservations;
-      while ( (NULL != pos) &&
-	      (rid != pos->rid) )
-	pos = pos->next;
-      GNUNET_break (pos != NULL);
-      if (NULL != pos)
-	{
-	  GNUNET_break (pos->entries > 0);
-	  GNUNET_break (pos->amount > size);
-	  pos->entries--;
-	  pos->amount -= size;
-	  reserved -= (size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
-	  GNUNET_STATISTICS_set (stats,
-				 gettext_noop ("# reserved"),
-				 reserved,
-				 GNUNET_NO);
-	}
-    }
   msg = NULL;
   ret = plugin->api->put (plugin->api->cls,
 			  &dm->key,
@@ -963,6 +940,141 @@ handle_put (void *cls,
 		  (unsigned long long) plugin->api->get_size (plugin->api->cls));
       manage_space (size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
     }
+}
+
+
+
+/**
+ * Function that will check if the given datastore entry
+ * matches the put and if none match executes the put.
+ *
+ * @param cls closure, pointer to the client (of type 'struct PutContext').
+ * @param next_cls closure to use to ask for the next item
+ * @param key key for the content
+ * @param size number of bytes in data
+ * @param data content stored
+ * @param type type of the content
+ * @param priority priority of the content
+ * @param anonymity anonymity-level for the content
+ * @param expiration expiration time for the content
+ * @param uid unique identifier for the datum;
+ *        maybe 0 if no unique identifier is available
+ *
+ * @return GNUNET_SYSERR to abort the iteration, GNUNET_OK to continue,
+ *         GNUNET_NO to delete the item and continue (if supported)
+ */
+static int
+check_present (void *cls,
+	       void *next_cls,
+	       const GNUNET_HashCode * key,
+	       uint32_t size,
+	       const void *data,
+	       enum GNUNET_BLOCK_Type type,
+	       uint32_t priority,
+	       uint32_t anonymity,
+	       struct GNUNET_TIME_Absolute
+	       expiration, uint64_t uid)
+{
+  struct PutContext *pc = cls;
+  const struct DataMessage *dm;
+
+  dm = (const struct DataMessage*) &pc[1];
+  if (key == NULL)
+    {
+      if (pc->is_present == GNUNET_YES)	
+	transmit_status (pc->client, GNUNET_OK, NULL);
+      else
+	execute_put (pc->client, dm);
+      GNUNET_SERVER_client_drop (pc->client);
+      GNUNET_free (pc);
+      return GNUNET_SYSERR;
+    }
+  if ( (size == ntohl(dm->size)) &&
+       (0 == memcmp (&dm[1],
+		     data,
+		     size)) )
+    {
+      pc->is_present = GNUNET_YES;
+      plugin->api->next_request (next_cls, GNUNET_YES);
+    }
+  else
+    {
+      plugin->api->next_request (next_cls, GNUNET_NO);
+    }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Handle PUT-message.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_put (void *cls,
+	    struct GNUNET_SERVER_Client *client,
+	    const struct GNUNET_MessageHeader *message)
+{
+  const struct DataMessage *dm = check_data (message);
+  int rid;
+  struct ReservationList *pos;
+  struct PutContext *pc;
+  uint32_t size;
+
+  if ( (dm == NULL) ||
+       (ntohl(dm->type) == 0) ) 
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Processing `%s' request for `%s' of type %u\n",
+	      "PUT",
+	      GNUNET_h2s (&dm->key),
+	      ntohl (dm->type));
+#endif
+  rid = ntohl(dm->rid);
+  size = ntohl(dm->size);
+  if (rid > 0)
+    {
+      pos = reservations;
+      while ( (NULL != pos) &&
+	      (rid != pos->rid) )
+	pos = pos->next;
+      GNUNET_break (pos != NULL);
+      if (NULL != pos)
+	{
+	  GNUNET_break (pos->entries > 0);
+	  GNUNET_break (pos->amount > size);
+	  pos->entries--;
+	  pos->amount -= size;
+	  reserved -= (size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
+	  GNUNET_STATISTICS_set (stats,
+				 gettext_noop ("# reserved"),
+				 reserved,
+				 GNUNET_NO);
+	}
+    }
+  if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (filter,
+						       &dm->key))
+    {
+      pc = GNUNET_malloc (sizeof (struct PutContext) + size + sizeof (struct DataMessage));
+      pc->client = client;
+      GNUNET_SERVER_client_keep (client);
+      memcpy (&pc[1], dm, size + sizeof (struct DataMessage));
+      plugin->api->get (plugin->api->cls,
+			&dm->key,
+			NULL,
+			ntohl (dm->type),
+			&check_present,
+			pc);      
+      return;
+    }
+  execute_put (client, dm);
 }
 
 
