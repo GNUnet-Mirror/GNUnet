@@ -1094,6 +1094,7 @@ GNUNET_FS_uri_dup (const struct GNUNET_FS_Uri *uri)
       if (ret->data.ksk.keywordCount >= GNUNET_MAX_MALLOC_CHECKED / sizeof (char*))
 	{
 	  GNUNET_break (0);
+	  GNUNET_free (ret);
 	  return NULL;
 	}
       if (ret->data.ksk.keywordCount > 0)

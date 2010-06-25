@@ -2614,7 +2614,6 @@ handle_p2p_put (void *cls,
   GNUNET_HashCode query;
   struct ProcessReplyClosure prq;
   const struct SBlock *sb;
-  struct ConnectedPeer *cps;
 
   msize = ntohs (message->size);
   if (msize < sizeof (struct PutMessage))
@@ -2661,6 +2660,8 @@ handle_p2p_put (void *cls,
   if (other != NULL)
     prq.sender = GNUNET_CONTAINER_multihashmap_get (connected_peers,
 						    &other->hashPubKey);
+  else
+    prq.sender = NULL;
   prq.size = dsize;
   prq.type = type;
   prq.expiration = expiration;
@@ -2670,16 +2671,10 @@ handle_p2p_put (void *cls,
 					      &query,
 					      &process_reply,
 					      &prq);
-  cps = GNUNET_CONTAINER_multihashmap_get (connected_peers,
-					   &other->hashPubKey);
-  if (cps != NULL)
+  if (prq.sender != NULL)
     {
-      cps->inc_preference += CONTENT_BANDWIDTH_VALUE + 1000 * prq.priority;
-      cps->trust_delta += prq.priority;
-    }
-  else
-    {
-      GNUNET_break (0);
+      prq.sender->inc_preference += CONTENT_BANDWIDTH_VALUE + 1000 * prq.priority;
+      prq.sender->trust_delta += prq.priority;
     }
   if (GNUNET_YES == active_migration)
     {
