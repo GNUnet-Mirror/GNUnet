@@ -46,7 +46,7 @@
  * 'MAX_PENDING' in 'gnunet-service-transport.c', otherwise
  * messages may be dropped even for a reliable transport.
  */
-#define TOTAL_MSGS (60000 * 2)
+#define TOTAL_MSGS (60000 * 20)
 
 /**
  * How long until we give up on transmitting the message?
@@ -152,6 +152,7 @@ static unsigned int
 get_size (unsigned int iter)
 {
   unsigned int ret;
+
   if (iter < 60000)
     return iter + sizeof (struct TestMessage);
   ret = (iter * iter * iter);
@@ -168,6 +169,7 @@ notify_receive (void *cls,
 {
   static int n;
   unsigned int s;
+  char cbuf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
   const struct TestMessage *hdr;
 
   hdr = (const struct TestMessage*) message;
@@ -192,6 +194,18 @@ notify_receive (void *cls,
 		  n, s,
 		  ntohs (message->size),
 		  ntohl (hdr->num));
+      GNUNET_SCHEDULER_cancel (sched, die_task);
+      die_task = GNUNET_SCHEDULER_add_now (sched, &end_badly, NULL);
+      return;
+    }
+  memset (cbuf, n, s - sizeof (struct TestMessage));
+  if (0 != memcmp (cbuf,
+		   &hdr[1],
+		   s - sizeof (struct TestMessage)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Expected message %u with bits %u, but body did not match\n",
+		  n, (unsigned char) n);
       GNUNET_SCHEDULER_cancel (sched, die_task);
       die_task = GNUNET_SCHEDULER_add_now (sched, &end_badly, NULL);
       return;

@@ -1140,7 +1140,7 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
 	}
     }
   else
-    maxbuf = GNUNET_SERVER_MAX_MESSAGE_SIZE;
+    maxbuf = GNUNET_SERVER_MAX_MESSAGE_SIZE - 1;
 
   if (GNUNET_CONFIGURATION_have_value (sctx->cfg,
                                        sctx->serviceName, "TOLERANT"))
@@ -1577,7 +1577,7 @@ GNUNET_SERVICE_run (int argc,
   sctx.ready_confirm_fd = -1;
   sctx.ret = GNUNET_OK;
   sctx.timeout = GNUNET_TIME_UNIT_FOREVER_REL;
-  sctx.maxbuf = GNUNET_SERVER_MAX_MESSAGE_SIZE;
+  sctx.maxbuf = GNUNET_SERVER_MAX_MESSAGE_SIZE - 1;
   sctx.task = task;
   sctx.serviceName = serviceName;
   sctx.cfg = cfg = GNUNET_CONFIGURATION_create ();
@@ -1656,7 +1656,7 @@ GNUNET_SERVICE_start (const char *serviceName,
   sctx->ready_confirm_fd = -1;  /* no daemonizing */
   sctx->ret = GNUNET_OK;
   sctx->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
-  sctx->maxbuf = GNUNET_SERVER_MAX_MESSAGE_SIZE;
+  sctx->maxbuf = GNUNET_SERVER_MAX_MESSAGE_SIZE - 1;
   sctx->serviceName = serviceName;
   sctx->cfg = cfg;
   sctx->sched = sched;

@@ -1036,15 +1036,6 @@ static void run_connection_tests( )
   api->send(api->cls, &my_identity, tmp, 425, 0, TIMEOUT, NULL,addr_head->addr, addr_head->addrlen, GNUNET_YES, &task_send_cont, NULL);*/
 
 
-  /* send a message with size GNUNET_SERVER_MAX_MESSAGE_SIZE )*/
-  /*
-  GNUNET_free(tmp);
-  tmp = GNUNET_malloc(GNUNET_SERVER_MAX_MESSAGE_SIZE);
-  uint16_t t2 = (uint16_t)GNUNET_SERVER_MAX_MESSAGE_SIZE;
-  msg.size = htons(t2);
-  memcpy(tmp,&msg,sizeof(struct GNUNET_MessageHeader));
-  api->send(api->cls, &my_identity, tmp, GNUNET_SERVER_MAX_MESSAGE_SIZE, 0, TIMEOUT, NULL,addr_head->addr, addr_head->addrlen, GNUNET_YES, &task_send_cont, &fail_msg_transmited_bigger_max_size);
-*/
   /* send a message with size GNUNET_SERVER_MAX_MESSAGE_SIZE-1  */
   GNUNET_free(tmp);
   tmp = GNUNET_malloc(GNUNET_SERVER_MAX_MESSAGE_SIZE-1);

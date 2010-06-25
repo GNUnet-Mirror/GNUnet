@@ -1120,7 +1120,7 @@ tcp_plugin_send (void *cls,
         }
       sa = GNUNET_CONNECTION_create_from_sockaddr (plugin->env->sched,
 						   af, sb, sbs,
-						   GNUNET_SERVER_MAX_MESSAGE_SIZE);
+						   GNUNET_SERVER_MAX_MESSAGE_SIZE - 1);
       if (sa == NULL)
 	{
 #if DEBUG_TCP
@@ -1991,7 +1991,7 @@ tcp_plugin_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
    *  that wants to connect to us! Send a message to establish a connection.
    */
   sock = GNUNET_CONNECTION_create_from_sockaddr (plugin->env->sched, AF_INET, (struct sockaddr *)&in_addr,
-                                                 sizeof(in_addr), GNUNET_SERVER_MAX_MESSAGE_SIZE);
+                                                 sizeof(in_addr), GNUNET_SERVER_MAX_MESSAGE_SIZE - 1);
   if (sock == NULL)
     {
       plugin->server_read_task =

@@ -541,8 +541,7 @@ change_service (struct GNUNET_ARM_Handle *h,
   struct GNUNET_MessageHeader *msg;
 
   slen = strlen (service_name) + 1;
-  if (slen + sizeof (struct GNUNET_MessageHeader) >
-      GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (slen + sizeof (struct GNUNET_MessageHeader) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
     {
       GNUNET_break (0);
       if (cb != NULL)

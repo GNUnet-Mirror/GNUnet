@@ -598,6 +598,7 @@ transport_notify_ready (void *cls, size_t size, void *buf)
 #endif
       if (mret != 0)	
 	{
+	  GNUNET_assert (mret + sizeof (struct OutboundMessage) < GNUNET_SERVER_MAX_MESSAGE_SIZE);
 	  obm.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SEND);
 	  obm.header.size = htons (mret + sizeof (struct OutboundMessage));
 	  obm.priority = htonl (th->priority);
@@ -1699,7 +1700,7 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Message size is %d, max allowed is %d.\n",
-                  size + sizeof (struct OutboundMessage), GNUNET_SERVER_MAX_MESSAGE_SIZE);
+                  size + sizeof (struct OutboundMessage), GNUNET_SERVER_MAX_MESSAGE_SIZE - 1);
 #endif
       GNUNET_break (0);
       return NULL;

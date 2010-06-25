@@ -701,7 +701,7 @@ process_mst (struct GNUNET_SERVER_Client *client,
 		      "Server re-enters receive loop.\n");
 #endif
 	  GNUNET_CONNECTION_receive (client->connection,
-				     GNUNET_SERVER_MAX_MESSAGE_SIZE,
+				     GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
 				     client->server->idle_timeout, 
 				     &process_incoming, client);
 	  break;
@@ -811,7 +811,7 @@ restart_processing (void *cls,
 #endif
       client->receive_pending = GNUNET_YES;
       GNUNET_CONNECTION_receive (client->connection,
-				 GNUNET_SERVER_MAX_MESSAGE_SIZE,
+				 GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
 				 client->server->idle_timeout, &process_incoming, client);
       return;
     }
@@ -877,7 +877,7 @@ GNUNET_SERVER_connect_socket (struct
 
   client = GNUNET_malloc (sizeof (struct GNUNET_SERVER_Client));
   client->connection = connection;
-  client->mst = GNUNET_SERVER_mst_create (GNUNET_SERVER_MAX_MESSAGE_SIZE,
+  client->mst = GNUNET_SERVER_mst_create (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
 					  &client_message_tokenizer_callback,
 					  server);
   client->reference_count = 1;
@@ -887,7 +887,7 @@ GNUNET_SERVER_connect_socket (struct
   server->clients = client;
   client->receive_pending = GNUNET_YES;
   GNUNET_CONNECTION_receive (client->connection,
-			     GNUNET_SERVER_MAX_MESSAGE_SIZE,
+			     GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
 			     server->idle_timeout, &process_incoming, client);
   return client;
 }

@@ -291,7 +291,7 @@ do_connect (struct GNUNET_SCHEDULER_Handle *sched,
 	  sock = GNUNET_CONNECTION_create_from_connect_to_unixpath (sched,
 								    cfg,
 								    unixpath,
-								    GNUNET_SERVER_MAX_MESSAGE_SIZE);
+								    GNUNET_SERVER_MAX_MESSAGE_SIZE - 1);
 	  GNUNET_free (unixpath);
 	  if (sock != NULL)
 	    return sock;
@@ -328,7 +328,7 @@ do_connect (struct GNUNET_SCHEDULER_Handle *sched,
                                                 cfg,
                                                 hostname,
                                                 port,
-                                                GNUNET_SERVER_MAX_MESSAGE_SIZE);
+                                                GNUNET_SERVER_MAX_MESSAGE_SIZE - 1);
   GNUNET_free (hostname);
   return sock;
 }
@@ -579,7 +579,7 @@ GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
       GNUNET_assert (sock->in_receive == GNUNET_NO);
       sock->in_receive = GNUNET_YES;
       GNUNET_CONNECTION_receive (sock->sock,
-                                 GNUNET_SERVER_MAX_MESSAGE_SIZE,
+                                 GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
                                  timeout, &receive_helper, sock);
     }
 }

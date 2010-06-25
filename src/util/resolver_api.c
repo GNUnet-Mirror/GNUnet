@@ -426,12 +426,11 @@ GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
   unsigned int i;
   struct in_addr v4;
   struct in6_addr v6;
-  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE];
+  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
 
   check_config (cfg);
   slen = strlen (hostname) + 1;
-  if (slen + sizeof (struct GNUNET_RESOLVER_GetMessage) >
-      GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (slen + sizeof (struct GNUNET_RESOLVER_GetMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
     {
       GNUNET_break (0);
       return NULL;
@@ -619,7 +618,7 @@ GNUNET_RESOLVER_hostname_get (struct GNUNET_SCHEDULER_Handle *sched,
   struct GNUNET_CLIENT_Connection *client;
   struct GNUNET_RESOLVER_GetMessage *msg;
   struct GNUNET_RESOLVER_RequestHandle *rh;
-  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE];
+  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
 
   check_config (cfg);
   rh = GNUNET_malloc (sizeof (struct GNUNET_RESOLVER_RequestHandle) + salen);
@@ -636,8 +635,7 @@ GNUNET_RESOLVER_hostname_get (struct GNUNET_SCHEDULER_Handle *sched,
 					   &numeric_reverse, rh);
       return rh;
     }
-  if (salen + sizeof (struct GNUNET_RESOLVER_GetMessage) >
-      GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (salen + sizeof (struct GNUNET_RESOLVER_GetMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
     {
       GNUNET_break (0);
       GNUNET_free (rh);

@@ -430,7 +430,7 @@ GNUNET_FS_handle_index_list_get (void *cls,
 {
   struct GNUNET_SERVER_TransmitContext *tc;
   struct IndexInfoMessage *iim;
-  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE];
+  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
   size_t slen;
   const char *fn;
   struct IndexInfo *pos;
@@ -442,8 +442,7 @@ GNUNET_FS_handle_index_list_get (void *cls,
     {
       fn = pos->filename;
       slen = strlen (fn) + 1;
-      if (slen + sizeof (struct IndexInfoMessage) > 
-	  GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      if (slen + sizeof (struct IndexInfoMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
 	{
 	  GNUNET_break (0);
 	  break;

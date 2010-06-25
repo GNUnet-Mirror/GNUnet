@@ -167,7 +167,7 @@ GNUNET_HELLO_create (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
                      GNUNET_HELLO_GenerateAddressListCallback addrgen,
                      void *addrgen_cls)
 {
-  char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 256 -
+  char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - 256 -
               sizeof (struct GNUNET_HELLO_Message)];
   size_t max;
   size_t used;

@@ -84,7 +84,7 @@ struct GNUNET_SERVER_MessageStreamTokenizer
  * Create a message stream tokenizer.
  *
  * @param maxbuf maximum message size to support (typically
- *    GNUNET_SERVER_MAX_MESSAGE_SIZE)
+ *    GNUNET_SERVER_MAX_MESSAGE_SIZE - 1)
  * @param cb function to call on completed messages
  * @param cb_cls closure for cb
  * @return handle to tokenizer

@@ -37,6 +37,7 @@
 #include "gnunet_container_lib.h"
 #include "gnunet_resolver_service.h"
 #include "gnunet_scheduler_lib.h"
+#include "gnunet_server_lib.h"
 
 #define DEBUG_CONNECTION GNUNET_NO
 
@@ -326,6 +327,7 @@ GNUNET_CONNECTION_create_from_existing (struct GNUNET_SCHEDULER_Handle
   struct GNUNET_CONNECTION_Handle *ret;
   ret = GNUNET_malloc (sizeof (struct GNUNET_CONNECTION_Handle) + maxbuf);
   ret->write_buffer = (char *) &ret[1];
+  GNUNET_assert (maxbuf < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   ret->write_buffer_size = maxbuf;
   ret->sock = osSocket;
   ret->sched = sched;
@@ -416,6 +418,7 @@ GNUNET_CONNECTION_create_from_accept (struct GNUNET_SCHEDULER_Handle
     }
   ret = GNUNET_malloc (sizeof (struct GNUNET_CONNECTION_Handle) + maxbuf);
   ret->write_buffer = (char *) &ret[1];
+  GNUNET_assert (maxbuf < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   ret->write_buffer_size = maxbuf;
   ret->addr = uaddr;
   ret->addrlen = addrlen;
@@ -873,6 +876,7 @@ GNUNET_CONNECTION_create_from_connect (struct GNUNET_SCHEDULER_Handle *sched,
   ret->cfg = cfg;
   ret->sched = sched;
   ret->write_buffer = (char *) &ret[1];
+  GNUNET_assert (maxbuf < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   ret->write_buffer_size = maxbuf;
   ret->port = port;
   ret->hostname = GNUNET_strdup (hostname);
@@ -929,6 +933,7 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (struct GNUNET_SCHEDULER_Handl
   ret->cfg = cfg;
   ret->sched = sched;
   ret->write_buffer = (char *) &ret[1];
+  GNUNET_assert (maxbuf < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   ret->write_buffer_size = maxbuf;
   ret->port = 0;
   ret->hostname = NULL;

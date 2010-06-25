@@ -249,7 +249,7 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
   struct HostEntry *entry;
   char *fn;
   uint32_t trust;
-  char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE];
+  char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
   const struct GNUNET_HELLO_Message *hello;
   struct GNUNET_HELLO_Message *hello_clean;
   int size;
@@ -494,7 +494,7 @@ send_to_each_host (const struct GNUNET_PeerIdentity *only,
   struct HostEntry *pos;
   struct InfoMessage *im;
   uint16_t hs;
-  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE];
+  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
   struct GNUNET_SERVER_TransmitContext *tc;
   int match;
 
@@ -600,7 +600,7 @@ static int
 discard_hosts_helper (void *cls, const char *fn)
 {
   struct GNUNET_TIME_Absolute *now = cls;
-  char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE];
+  char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
   const struct GNUNET_HELLO_Message *hello;
   struct GNUNET_HELLO_Message *new_hello;
   int size;

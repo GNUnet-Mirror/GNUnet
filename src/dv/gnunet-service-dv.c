@@ -3002,7 +3002,7 @@ run (void *cls,
   if (coreAPI == NULL)
     return;
 
-  coreMST = GNUNET_SERVER_mst_create (GNUNET_SERVER_MAX_MESSAGE_SIZE,
+  coreMST = GNUNET_SERVER_mst_create (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
                                       &tokenized_message_handler,
                                       NULL);
 

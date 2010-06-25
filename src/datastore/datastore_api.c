@@ -245,7 +245,7 @@ GNUNET_DATASTORE_connect (const struct
   if (c == NULL)
     return NULL; /* oops */
   h = GNUNET_malloc (sizeof(struct GNUNET_DATASTORE_Handle) + 
-		     GNUNET_SERVER_MAX_MESSAGE_SIZE);
+		     GNUNET_SERVER_MAX_MESSAGE_SIZE - 1);
   h->client = c;
   h->cfg = cfg;
   h->sched = sched;
@@ -790,7 +790,7 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
 	      GNUNET_h2s (key));
 #endif
   msize = sizeof(struct DataMessage) + size;
-  GNUNET_assert (msize <= GNUNET_SERVER_MAX_MESSAGE_SIZE);
+  GNUNET_assert (msize < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   qc.sc.cont = cont;
   qc.sc.cont_cls = cont_cls;
   qe = make_queue_entry (h, msize,
@@ -1037,7 +1037,7 @@ GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
   qc.sc.cont = cont;
   qc.sc.cont_cls = cont_cls;
   msize = sizeof(struct DataMessage) + size;
-  GNUNET_assert (msize <= GNUNET_SERVER_MAX_MESSAGE_SIZE);
+  GNUNET_assert (msize < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   qe = make_queue_entry (h, msize,
 			 queue_priority, max_queue_size, timeout,
 			 &process_status_message, &qc);

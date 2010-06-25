@@ -541,7 +541,7 @@ accessHandlerCallback (void *cls,
       }
       */
       if (cs->msgtok==NULL)
-        cs->msgtok = GNUNET_SERVER_mst_create (GNUNET_SERVER_MAX_MESSAGE_SIZE, &messageTokenizerCallback, cs);
+        cs->msgtok = GNUNET_SERVER_mst_create (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1, &messageTokenizerCallback, cs);
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s'\n",method, GNUNET_i2s(&cs->identity));
   }
@@ -570,7 +570,7 @@ accessHandlerCallback (void *cls,
 
     if ((*upload_data_size > 0) && (cs->is_bad_request != GNUNET_YES))
     {
-      if (*upload_data_size + cs->pending_inbound_msg.bytes_recv <= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      if (*upload_data_size + cs->pending_inbound_msg.bytes_recv < GNUNET_SERVER_MAX_MESSAGE_SIZE)
       {
         /* copy uploaded data to buffer */
 

@@ -761,7 +761,7 @@ hash_for_index_cb (void *cls,
   fn = GNUNET_STRINGS_filename_expand (p->filename);
   GNUNET_assert (fn != NULL);
   slen = strlen (fn) + 1;
-  if (slen > GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof(struct IndexStartMessage))
+  if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof(struct IndexStartMessage))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Can not index file `%s': %s.  Will try to insert instead.\n"),
