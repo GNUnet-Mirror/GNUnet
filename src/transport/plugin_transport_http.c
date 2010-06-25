@@ -172,6 +172,7 @@ struct HTTP_Connection
 
   char * url;
   unsigned int connected;
+  unsigned int send_paused;
 
   /**
    * curl handle for this ransmission
@@ -467,7 +468,7 @@ accessHandlerCallback (void *cls,
 
   GNUNET_assert(cls !=NULL);
   send_error_to_client = GNUNET_NO;
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"accessHandlerCallback, upload_data_size: %u\n", *upload_data_size);
   if ( NULL == *httpSessionCache)
   {
     /* check url for peer identity */
@@ -843,6 +844,7 @@ static size_t send_read_callback(void *stream, size_t size, size_t nmemb, void *
   if (con->pending_msgs_tail == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"no msgs in queue, pausing \n");
+    con->send_paused = GNUNET_YES;
     return CURL_READFUNC_PAUSE;
   }
 
@@ -874,9 +876,11 @@ static size_t send_read_callback(void *stream, size_t size, size_t nmemb, void *
 
   if ( msg->pos == msg->size)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"msg sent, removing msg \n", bytes_sent);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Messge %u bytes sent, removing message from queue \n", msg->pos);
+    /* Calling transmit continuation  */
+    if (( NULL != con->pending_msgs_tail) && (NULL != con->pending_msgs_tail->transmit_cont))
+      msg->transmit_cont (con->pending_msgs_tail->transmit_cont_cls,&(con->session)->identity,GNUNET_OK);
     remove_http_message(con, msg);
-
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"readcallback: sent %u bytes \n", bytes_sent);
 
@@ -913,14 +917,14 @@ static size_t send_write_callback( void *stream, size_t size, size_t nmemb, void
  * @param ses session to send data to
  * @return bytes sent to peer
  */
-static size_t send_prepare(void *cls, struct Session* ses );
+static size_t send_schedule(void *cls, struct Session* ses );
 
 /**
  * Function setting up curl handle and selecting message to send
  * @param ses session to send data to
  * @return bytes sent to peer
  */
-static ssize_t send_select_init (void *cls, struct Session* ses , struct HTTP_Connection *con)
+static ssize_t send_initiate (void *cls, struct Session* ses , struct HTTP_Connection *con)
 {
   struct Plugin *plugin = cls;
   int bytes_sent = 0;
@@ -928,14 +932,24 @@ static ssize_t send_select_init (void *cls, struct Session* ses , struct HTTP_Co
   struct HTTP_Message * msg;
 
   /* already connected, no need to initiate connection */
-  if ((con->connected == GNUNET_YES) && (con->curl_handle != NULL))
+  if ((con->connected == GNUNET_YES) && (con->curl_handle != NULL) && (con->send_paused == GNUNET_NO))
     return bytes_sent;
+
+  if ((con->connected == GNUNET_YES) && (con->curl_handle != NULL) && (con->send_paused == GNUNET_YES))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"UNPAUSING\n");
+    curl_easy_pause(con->curl_handle,CURLPAUSE_CONT);
+    return bytes_sent;
+  }
 
   /* not connected, initiate connection */
   GNUNET_assert(cls !=NULL);
+
   if ( NULL == con->curl_handle)
     con->curl_handle = curl_easy_init();
   GNUNET_assert (con->curl_handle != NULL);
+
+
 
   GNUNET_assert (NULL != con->pending_msgs_tail);
   msg = con->pending_msgs_tail;
@@ -951,7 +965,6 @@ static ssize_t send_select_init (void *cls, struct Session* ses , struct HTTP_Co
   curl_easy_setopt(con->curl_handle, CURLOPT_READDATA, con);
   curl_easy_setopt(con->curl_handle, CURLOPT_WRITEFUNCTION, send_write_callback);
   curl_easy_setopt(con->curl_handle, CURLOPT_READDATA, con);
-  curl_easy_setopt(con->curl_handle, CURLOPT_INFILESIZE_LARGE, (curl_off_t) msg->size);
   curl_easy_setopt(con->curl_handle, CURLOPT_TIMEOUT, GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
   curl_easy_setopt(con->curl_handle, CURLOPT_PRIVATE, con);
   curl_easy_setopt(con->curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT_DBG);
@@ -969,7 +982,7 @@ static ssize_t send_select_init (void *cls, struct Session* ses , struct HTTP_Co
 
   con->connected = GNUNET_YES;
 
-  bytes_sent = send_prepare (plugin, ses);
+  bytes_sent = send_schedule (plugin, ses);
   return bytes_sent;
 }
 
@@ -1009,7 +1022,6 @@ static void send_execute (void *cls,
               GNUNET_assert ( con != NULL );
               cs = con->session;
               GNUNET_assert ( cs != NULL );
-              //GNUNET_assert ( cs->pending_outbound_msg_tail != NULL );
               switch (msg->msg)
                 {
 
@@ -1057,11 +1069,6 @@ static void send_execute (void *cls,
 
                   if (GNUNET_OK != remove_http_message(con, con->pending_msgs_tail))
                     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message could not be removed from session `%s'", GNUNET_i2s(&cs->identity));
-                  /* send pending messages */
-                  if (con->pending_msgs_tail!= NULL)
-                  {
-                    send_select_init (plugin, cs, con);
-                  }
                   return;
                 default:
                   break;
@@ -1073,7 +1080,7 @@ static void send_execute (void *cls,
       handles_last_run = running;
     }
   while (mret == CURLM_CALL_MULTI_PERFORM);
-  send_prepare(plugin, cls);
+  send_schedule(plugin, cls);
 }
 
 
@@ -1082,7 +1089,7 @@ static void send_execute (void *cls,
  * @param ses session to send data to
  * @return bytes sent to peer
  */
-static size_t send_prepare(void *cls, struct Session* ses )
+static size_t send_schedule(void *cls, struct Session* ses )
 {
   struct Plugin *plugin = cls;
   fd_set rs;
@@ -1323,22 +1330,7 @@ http_plugin_send (void *cls,
     /* enqueue in connection message queue */
     GNUNET_CONTAINER_DLL_insert(con->pending_msgs_head,con->pending_msgs_tail,msg);
   }
-
-  return send_select_init (plugin, cs, con);
-
-
-  /* insert created message in double linked list of pending messages */
-  /*
-  GNUNET_CONTAINER_DLL_insert (cs->pending_outbound_msg_head, cs->pending_outbound_msg_tail, msg);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: sending %u bytes of data from peer `%4.4s' to peer `%s'\n",msgbuf_size,(char *) &plugin->my_ascii_hash_ident,GNUNET_i2s(target));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: url `%s'\n",url);
-  if (msg == cs->pending_outbound_msg_tail)
-  {
-    return send_select_init (plugin, cs);
-  }
-  return msgbuf_size;
-  */
+  return send_initiate (plugin, cs, con);
 }
 
 
