@@ -858,7 +858,6 @@ static void
 acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
-#if MINGW 
 static void
 accept_and_forward (struct ServiceListeningInfo *serviceListeningInfo)
 {
@@ -909,7 +908,6 @@ accept_and_forward (struct ServiceListeningInfo *serviceListeningInfo)
 				&start_forwarding,
 				fc);
 }
-#endif
 
 
 /**
@@ -927,6 +925,7 @@ acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct ServiceListeningInfo *next;
   int *lsocks;
   unsigned int ls;
+  int use_lsocks;
 
   sli->acceptTask = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
@@ -935,6 +934,21 @@ acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 			       serviceListeningInfoList_tail, 
 			       sli);  
 #ifndef MINGW
+  use_lsocks = GNUNET_YES;
+  if (GNUNET_YES == GNUNET_CONFIGURATION_have_value (cfg,
+						     sli->serviceName,
+						     "DISABLE_SOCKET_FORWARDING"))
+    use_lsocks = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+						       sli->serviceName,
+						       "DISABLE_SOCKET_FORWARDING");
+#else
+  use_lsocks = GNUNET_NO;
+#endif
+  if (GNUNET_YES != use_lsocks)
+    {
+      accept_and_forward (sli);
+      return;
+    }
   lsocks = NULL;
   ls = 0;
   next = serviceListeningInfoList_head;
@@ -971,9 +985,6 @@ acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_array_grow (lsocks, ls, 0);
   GNUNET_free (sli->serviceName);
   GNUNET_free (sli); 
-#else
-  accept_and_forward (sli);  
-#endif
 }
 
 
