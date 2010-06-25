@@ -1337,7 +1337,7 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_PeerIdentity *sender;
   unsigned int buflen;
   socklen_t fromlen;
-  struct sockaddr addr;
+  char addr[32];
   ssize_t ret;
   int offset;
   int count;
@@ -1350,6 +1350,7 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   const struct sockaddr_in6 *s6;
   const void *ca;
   size_t calen;
+
 
   plugin->select_task = GNUNET_SCHEDULER_NO_TASK;
 
@@ -1369,7 +1370,7 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   memset (&addr, 0, sizeof(addr));
   ret =
     GNUNET_NETWORK_socket_recvfrom (udp_sock.desc, buf, buflen,
-                                    &addr, &fromlen);
+                                    (struct sockaddr *)&addr, &fromlen);
 
   if (fromlen == sizeof (struct sockaddr_in))
     {
