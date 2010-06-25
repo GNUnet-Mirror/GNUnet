@@ -90,6 +90,38 @@ struct UDPMessage
 
 };
 
+/**
+ * Network format for IPv4 addresses.
+ */
+struct IPv4UdpAddress
+{
+  /**
+   * IPv4 address, in network byte order.
+   */
+  uint32_t ipv4_addr;
+
+  /**
+   * Port number, in network byte order.
+   */
+  uint16_t u_port;
+};
+
+
+/**
+ * Network format for IPv6 addresses.
+ */
+struct IPv6UdpAddress
+{
+  /**
+   * IPv6 address.
+   */
+  unsigned char ipv6_addr[16];
+
+  /**
+   * Port number, in network byte order.
+   */
+  uint16_t u6_port;
+};
 
 /* Forward definition */
 struct Plugin;
@@ -512,12 +544,18 @@ udp_real_send (void *cls,
   struct UDPMessage *message;
   int ssize;
   ssize_t sent;
+  struct sockaddr_in a4;
+  struct sockaddr_in6 a6;
+  const struct IPv4UdpAddress *t4;
+  const struct IPv6UdpAddress *t6;
+  const void *sb;
+  size_t sbs;
 
   if ((addr == NULL) || (addrlen == 0))
     {
 #if DEBUG_UDP_NAT
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
-                   ("udp_plugin_send called without address, returning!\n"));
+                   ("udp_real_send called without address, returning!\n"));
 #endif
       if (cont != NULL)
         cont (cont_cls, target, GNUNET_SYSERR);
@@ -534,11 +572,45 @@ udp_real_send (void *cls,
           sizeof (struct GNUNET_PeerIdentity));
   memcpy (&message[1], msgbuf, msgbuf_size);
 
+  if (addrlen == sizeof (struct IPv6UdpAddress))
+    {
+      t6 = addr;
+      memset (&a6, 0, sizeof (a6));
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      a6.sin6_len = sizeof (a6);
+#endif
+      a6.sin6_family = AF_INET6;
+      a6.sin6_port = t6->u6_port;
+      memcpy (&a6.sin6_addr,
+              &t6->ipv6_addr,
+              sizeof (struct in6_addr));
+      sb = &a6;
+      sbs = sizeof (a6);
+    }
+  else if (addrlen == sizeof (struct IPv4UdpAddress))
+    {
+      t4 = addr;
+      memset (&a4, 0, sizeof (a4));
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      a4.sin_len = sizeof (a4);
+#endif
+      a4.sin_family = AF_INET;
+      a4.sin_port = t4->u_port;
+      a4.sin_addr.s_addr = t4->ipv4_addr;
+      sb = &a4;
+      sbs = sizeof (a4);
+    }
+  else
+    {
+      GNUNET_break_op (0);
+      return -1;
+    }
+
   /* Actually send the message */
   sent =
     GNUNET_NETWORK_socket_sendto (send_handle, message, ssize,
-                                  addr,
-                                  addrlen);
+                                  sb,
+                                  sbs);
 
   if (cont != NULL)
     {
@@ -646,14 +718,25 @@ udp_plugin_send (void *cls,
   ssize_t sent;
   struct MessageQueue *temp_message;
   struct PeerSession *peer_session;
-  struct sockaddr_in *sockaddr = (struct sockaddr_in *)addr;
   int other_peer_natd;
+  const struct IPv4UdpAddress *t4;
 
   GNUNET_assert (NULL == session);
   other_peer_natd = GNUNET_NO;
-  if ((sockaddr->sin_family == AF_INET) && (ntohs(sockaddr->sin_port) == 0))
+
+  if (addrlen == sizeof(struct IPv4UdpAddress))
     {
-      other_peer_natd = GNUNET_YES;
+      t4 = addr;
+      if (ntohs(t4->u_port) == 0)
+        other_peer_natd = GNUNET_YES;
+    }
+  else if (addrlen == sizeof(struct IPv6UdpAddress))
+    {
+
+    }
+  else
+    {
+      GNUNET_break_op(0);
     }
 
   sent = 0;
@@ -742,72 +825,87 @@ process_interfaces (void *cls,
 {
   struct Plugin *plugin = cls;
   int af;
-  struct sockaddr_in *v4;
-  struct sockaddr_in6 *v6;
-  struct sockaddr *addr_nat;
+  struct IPv4UdpAddress t4;
+  struct IPv6UdpAddress t6;
+  void *arg;
+  uint16_t args;
+
+  void *addr_nat;
 
   addr_nat = NULL;
   af = addr->sa_family;
   if (af == AF_INET)
     {
-      v4 = (struct sockaddr_in *) addr;
+      t4.ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
       if ((plugin->behind_nat == GNUNET_YES) && (plugin->only_nat_addresses == GNUNET_YES))
         {
-          v4->sin_port = htons (DEFAULT_NAT_PORT); /* Indicates to receiver we are behind NAT */
+          t4.u_port = htons (DEFAULT_NAT_PORT);
         }
       else if (plugin->behind_nat == GNUNET_YES) /* We are behind NAT, but will advertise NAT and normal addresses */
         {
-          addr_nat = GNUNET_malloc(addrlen);
-          memcpy(addr_nat, addr, addrlen);
-          v4 = (struct sockaddr_in *) addr_nat;
-          v4->sin_port = htons(plugin->port);
+          addr_nat = GNUNET_malloc(sizeof(t4));
+          memcpy(addr_nat, &t4, sizeof(t4));
+          t4.u_port = plugin->port;
+          ((struct IPv4UdpAddress *)addr_nat)->u_port = htons(DEFAULT_NAT_PORT);
         }
       else
         {
-          v4->sin_port = htons (plugin->port);
+          t4.u_port = htons(plugin->port);
         }
+      arg = &t4;
+      args = sizeof (t4);
     }
-  else
+  else if (af == AF_INET6)
     {
-      GNUNET_assert (af == AF_INET6);
-      v6 = (struct sockaddr_in6 *) addr;
+
+      if (IN6_IS_ADDR_LINKLOCAL (&((struct sockaddr_in6 *) addr)->sin6_addr))
+        {
+          /* skip link local addresses */
+          return GNUNET_OK;
+        }
+      memcpy (&t6.ipv6_addr,
+              &((struct sockaddr_in6 *) addr)->sin6_addr,
+              sizeof (struct in6_addr));
       if ((plugin->behind_nat == GNUNET_YES) && (plugin->only_nat_addresses == GNUNET_YES))
         {
-          v6->sin6_port = htons (0);
+          t6.u6_port = htons (0);
         }
-      else if (plugin->behind_nat == GNUNET_YES) /* We are behind NAT, but will advertise NAT and normal addresses */
+      else if (plugin->behind_nat == GNUNET_YES)
         {
-          addr_nat = GNUNET_malloc(addrlen);
-          memcpy(addr_nat, addr, addrlen);
-          v6 = (struct sockaddr_in6 *) addr_nat;
-          v6->sin6_port = htons(plugin->port);
+          addr_nat = GNUNET_malloc(sizeof(t6));
+          memcpy(addr_nat, &t6, sizeof(t6));
+          t6.u6_port = plugin->port;
+          ((struct IPv6UdpAddress *)addr_nat)->u6_port = htons(DEFAULT_NAT_PORT);
         }
       else
         {
-          v6->sin6_port = htons (plugin->port);
+          t6.u6_port = htons (plugin->port);
         }
+
+      arg = &t6;
+      args = sizeof (t6);
     }
 
-    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO |
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO |
                      GNUNET_ERROR_TYPE_BULK,
-                      "udp", _("Found address `%s' (%s)\n"),
+                       _("Found address `%s' (%s)\n"),
                       GNUNET_a2s (addr, addrlen), name);
 
     if (addr_nat != NULL)
       {
         plugin->env->notify_address (plugin->env->cls,
                                     "udp",
-                                    addr_nat, addrlen, GNUNET_TIME_UNIT_FOREVER_REL);
-        GNUNET_log_from (GNUNET_ERROR_TYPE_INFO |
+                                    addr_nat, args, GNUNET_TIME_UNIT_FOREVER_REL);
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO |
                          GNUNET_ERROR_TYPE_BULK,
-                         "udp", _("Found NAT address `%s' (%s)\n"),
-                         GNUNET_a2s (addr_nat, addrlen), name);
+                          _("Found NAT address `%s' (%s)\n"),
+                         GNUNET_a2s (addr_nat, args), name);
         GNUNET_free(addr_nat);
       }
 
     plugin->env->notify_address (plugin->env->cls,
                                 "udp",
-                                addr, addrlen, GNUNET_TIME_UNIT_FOREVER_REL);
+                                arg, args, GNUNET_TIME_UNIT_FOREVER_REL);
 
   return GNUNET_OK;
 }
@@ -1042,7 +1140,10 @@ udp_plugin_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
  * @param sockinfo which socket did we receive the message on
  */
 static void
-udp_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender, const struct GNUNET_MessageHeader *currhdr, struct sockaddr_storage *sender_addr, socklen_t fromlen, struct UDP_Sock_Info *sockinfo)
+udp_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
+                  const struct GNUNET_MessageHeader *currhdr,
+                  const void *sender_addr,
+                  size_t fromlen, struct UDP_Sock_Info *sockinfo)
 {
   struct UDP_NAT_ProbeMessageReply *outgoing_probe_reply;
   struct UDP_NAT_ProbeMessageConfirmation *outgoing_probe_confirmation;
@@ -1079,7 +1180,7 @@ udp_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender, con
 			(char *)outgoing_probe_reply,
 			ntohs(outgoing_probe_reply->header.size), 0, 
 			GNUNET_TIME_relative_get_unit(), 
-			sender_addr, fromlen, 
+			sender_addr, fromlen,
 			NULL, NULL);
 
 #if DEBUG_UDP_NAT
@@ -1094,7 +1195,7 @@ udp_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender, con
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp",
                       _("Received PROBE REPLY from port %d on incoming port %d\n"), ntohs(((struct sockaddr_in *)sender_addr)->sin_port), sockinfo->port);
 #endif
-      if (sender_addr->ss_family == AF_INET)
+      if (sizeof(sender_addr) == sizeof(struct IPv4UdpAddress))
         {
           memset(&addr_buf, 0, sizeof(addr_buf));
           if (NULL == inet_ntop (AF_INET, 
@@ -1212,7 +1313,7 @@ udp_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender, con
       break;
     default:
       plugin->env->receive (plugin->env->cls, sender, currhdr, UDP_DIRECT_DISTANCE, 
-			    NULL, (char *)sender_addr, fromlen);
+			    NULL, sender_addr, fromlen);
   }
 
 }
@@ -1236,13 +1337,19 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_PeerIdentity *sender;
   unsigned int buflen;
   socklen_t fromlen;
-  struct sockaddr_storage addr;
+  struct sockaddr addr;
   ssize_t ret;
   int offset;
   int count;
   int tsize;
   char *msgbuf;
   const struct GNUNET_MessageHeader *currhdr;
+  struct IPv4UdpAddress t4;
+  struct IPv6UdpAddress t6;
+  const struct sockaddr_in *s4;
+  const struct sockaddr_in6 *s6;
+  const void *ca;
+  size_t calen;
 
   plugin->select_task = GNUNET_SCHEDULER_NO_TASK;
 
@@ -1259,10 +1366,35 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   buf = GNUNET_malloc (buflen);
   fromlen = sizeof (addr);
-  memset (&addr, 0, fromlen);
+  memset (&addr, 0, sizeof(addr));
   ret =
     GNUNET_NETWORK_socket_recvfrom (udp_sock.desc, buf, buflen,
-                                    (struct sockaddr *) &addr, &fromlen);
+                                    &addr, &fromlen);
+
+  if (fromlen == sizeof (struct sockaddr_in))
+    {
+      s4 = (const struct sockaddr_in*) &addr;
+      t4.u_port = s4->sin_port;
+      t4.ipv4_addr = s4->sin_addr.s_addr;
+      ca = &t4;
+      calen = sizeof (t4);
+    }
+  else if (fromlen == sizeof (struct sockaddr_in6))
+    {
+      s6 = (const struct sockaddr_in6*) &addr;
+      t6.u6_port = s6->sin6_port;
+      memcpy (&t6.ipv6_addr,
+              &s6->sin6_addr,
+              sizeof (struct in6_addr));
+      ca = &t6;
+      calen = sizeof (t6);
+    }
+  else
+    {
+      GNUNET_break (0);
+      ca = NULL;
+      calen = 0;
+    }
 
 #if DEBUG_UDP_NAT
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
@@ -1304,7 +1436,7 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                        ("processing msg %d: type %d, size %d at offset %d\n"),
                        count, ntohs(currhdr->type), ntohs(currhdr->size), offset);
 #endif
-      udp_demultiplexer(plugin, sender, currhdr, &addr, fromlen, &udp_sock);
+      udp_demultiplexer(plugin, sender, currhdr, ca, calen, &udp_sock);
 #if DEBUG_UDP_NAT
       GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
                        ("processing done msg %d: type %d, size %d at offset %d\n"),
@@ -1659,6 +1791,59 @@ check_gnunet_nat_binary(char *binary)
 }
 
 /**
+ * Function called for a quick conversion of the binary address to
+ * a numeric address.  Note that the caller must not free the
+ * address and that the next call to this function is allowed
+ * to override the address again.
+ *
+ * @param cls closure
+ * @param addr binary address
+ * @param addrlen length of the address
+ * @return string representing the same address
+ */
+static const char*
+udp_address_to_string (void *cls,
+                       const void *addr,
+                       size_t addrlen)
+{
+  static char rbuf[INET6_ADDRSTRLEN + 10];
+  char buf[INET6_ADDRSTRLEN];
+  const void *sb;
+  struct in_addr a4;
+  struct in6_addr a6;
+  const struct IPv4UdpAddress *t4;
+  const struct IPv6UdpAddress *t6;
+  int af;
+  uint16_t port;
+
+  if (addrlen == sizeof (struct IPv6UdpAddress))
+    {
+      t6 = addr;
+      af = AF_INET6;
+      port = ntohs (t6->u6_port);
+      memcpy (&a6, &t6->ipv6_addr, sizeof (a6));
+      sb = &a6;
+    }
+  else if (addrlen == sizeof (struct IPv4UdpAddress))
+    {
+      t4 = addr;
+      af = AF_INET;
+      port = ntohs (t4->u_port);
+      memcpy (&a4, &t4->ipv4_addr, sizeof (a4));
+      sb = &a4;
+    }
+  else
+    return NULL;
+  inet_ntop (af, sb, buf, INET6_ADDRSTRLEN);
+  GNUNET_snprintf (rbuf,
+                   sizeof (rbuf),
+                   "%s:%u",
+                   buf,
+                   port);
+  return rbuf;
+}
+
+/**
  * The exported method. Makes the core api available via a global and
  * returns the udp transport API.
  */
@@ -1677,7 +1862,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   int only_nat_addresses;
   char *internal_address;
   char *external_address;
-  struct sockaddr_in in_addr;
+  struct IPv4UdpAddress v4_address;
 
   service = GNUNET_SERVICE_start ("transport-udp", env->sched, env->cfg);
   if (service == NULL)
@@ -1743,7 +1928,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
       return NULL;
     }
 
-  if ((external_address != NULL) && (inet_pton(AF_INET, external_address, &in_addr.sin_addr) != 1))
+  if ((external_address != NULL) && (inet_pton(AF_INET, external_address, &v4_address.ipv4_addr) != 1))
     {
       GNUNET_log_from(GNUNET_ERROR_TYPE_WARNING, "udp", "Malformed EXTERNAL_ADDRESS %s given in configuration!\n", external_address);
     }
@@ -1765,7 +1950,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
       return NULL;
     }
 
-  if ((internal_address != NULL) && (inet_pton(AF_INET, internal_address, &in_addr.sin_addr) != 1))
+  if ((internal_address != NULL) && (inet_pton(AF_INET, internal_address, &v4_address.ipv4_addr) != 1))
     {
       GNUNET_log_from(GNUNET_ERROR_TYPE_WARNING, "udp", "Malformed INTERNAL_ADDRESS %s given in configuration!\n", internal_address);
     }
@@ -1812,6 +1997,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   api->send = &udp_plugin_send;
   api->disconnect = &udp_disconnect;
   api->address_pretty_printer = &udp_plugin_address_pretty_printer;
+  api->address_to_string = &udp_address_to_string;
   api->check_address = &udp_check_address;
 
   plugin->service = service;
@@ -1828,21 +2014,19 @@ libgnunet_plugin_transport_udp_init (void *cls)
                                                            &process_hostname_ips,
                                                            plugin);
 
-  if ((plugin->behind_nat == GNUNET_YES) && (inet_pton(AF_INET, plugin->external_address, &in_addr.sin_addr) == 1))
+  if ((plugin->behind_nat == GNUNET_YES) && (inet_pton(AF_INET, plugin->external_address, &v4_address.ipv4_addr) == 1))
     {
-      in_addr.sin_port = htons(0);
-      in_addr.sin_family = AF_INET;
+      v4_address.u_port = htons(0);
       plugin->env->notify_address (plugin->env->cls,
                                   "udp",
-                                  &in_addr, sizeof(in_addr), GNUNET_TIME_UNIT_FOREVER_REL);
+                                  &v4_address, sizeof(v4_address), GNUNET_TIME_UNIT_FOREVER_REL);
     }
-  else if ((plugin->external_address != NULL) && (inet_pton(AF_INET, plugin->external_address, &in_addr.sin_addr) == 1))
+  else if ((plugin->external_address != NULL) && (inet_pton(AF_INET, plugin->external_address, &v4_address.ipv4_addr) == 1))
     {
-      in_addr.sin_port = htons(plugin->port);
-      in_addr.sin_family = AF_INET;
+      v4_address.u_port = htons(plugin->port);
       plugin->env->notify_address (plugin->env->cls,
                                   "udp",
-                                  &in_addr, sizeof(in_addr), GNUNET_TIME_UNIT_FOREVER_REL);
+                                  &v4_address, sizeof(v4_address), GNUNET_TIME_UNIT_FOREVER_REL);
     }
 
   sockets_created = udp_transport_server_start (plugin);
