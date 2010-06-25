@@ -1772,6 +1772,7 @@ transmit_to_peer (struct TransportClient *client,
   mq = GNUNET_malloc (sizeof (struct MessageQueue) + message_buf_size);
   mq->specific_address = peer_address;
   mq->client = client;
+  /* FIXME: this memcpy can be up to 7% of our total runtime! */
   memcpy (&mq[1], message_buf, message_buf_size);
   mq->message_buf = (const char*) &mq[1];
   mq->message_buf_size = message_buf_size;
@@ -4781,6 +4782,7 @@ handle_send (void *cls,
   tcmc->priority = ntohl (obm->priority);
   tcmc->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_ntoh (obm->timeout));
   tcmc->msize = msize;
+  /* FIXME: this memcpy can be up to 7% of our total runtime */
   memcpy (&tcmc[1], obmm, msize);
   GNUNET_SERVER_client_keep (client);
   setup_peer_check_blacklist (&obm->peer, GNUNET_YES,

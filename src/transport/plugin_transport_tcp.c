@@ -647,6 +647,7 @@ do_transmit (void *cls, size_t size, void *buf)
 				   session->pending_messages_tail,
 				   pos);
       GNUNET_assert (size >= pos->message_size);
+      /* FIXME: this memcpy can be up to 7% of our total runtime */
       memcpy (cbuf, pos->msg, pos->message_size);
       cbuf += pos->message_size;
       ret += pos->message_size;
@@ -1089,8 +1090,11 @@ tcp_plugin_send (void *cls,
 
           /* create new message entry */
           pm = GNUNET_malloc (sizeof (struct PendingMessage) + msgbuf_size);
+	  /* FIXME: the memset of this malloc can be up to 2% of our total runtime */
           pm->msg = (const char*) &pm[1];
-          memcpy (&pm[1], msg, msgbuf_size);
+          memcpy (&pm[1], msg, msgbuf_size); 
+	  /* FIXME: this memcpy can be up to 7% of our total run-time 
+	     (for transport service) */
           pm->message_size = msgbuf_size;
           pm->timeout = GNUNET_TIME_relative_to_absolute (timeout);
           pm->transmit_cont = cont;

@@ -306,6 +306,10 @@ update_sets (struct GNUNET_SCHEDULER_Handle *sched,
           if (timeout->value > to.value)
             *timeout = to;
         }
+      /* FIXME: this is a very expensive (9% of runtime for some
+	 benchmarks!) way to merge the bit sets; specializing
+	 the common case where we only have one bit in the pos's
+	 set should improve performance dramatically! */
       if (pos->read_set != NULL)
         GNUNET_NETWORK_fdset_add (rs, pos->read_set);
       if (pos->write_set != NULL)
@@ -332,6 +336,10 @@ set_overlaps (const struct GNUNET_NETWORK_FDSet *ready,
 {
   if (NULL == want)
     return GNUNET_NO;
+  /* FIXME: this is a very expensive (10% of runtime for some
+     benchmarks!) way to merge the bit sets; specializing
+     the common case where we only have one bit in the pos's
+     set should improve performance dramatically! */
   if (GNUNET_NETWORK_fdset_overlap (ready, want))
     {
       /* copy all over (yes, there maybe unrelated bits,
