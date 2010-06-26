@@ -323,6 +323,19 @@ void GNUNET_NETWORK_fdset_copy_native (struct GNUNET_NETWORK_FDSet *to,
 void GNUNET_NETWORK_fdset_set_native (struct GNUNET_NETWORK_FDSet *to,
 				      int nfd);
 
+
+/**
+ * Test native fd in a set
+ *
+ * @param to set to test, NULL for empty set
+ * @param nfd native FD to test, -1 for none
+ * @return GNUNET_YES if to contains nfd
+ */
+int 
+GNUNET_NETWORK_fdset_test_native (const struct GNUNET_NETWORK_FDSet *to,
+				  int nfd);
+
+
 /**
  * Add a file handle to the fd set
  * @param fds fd set
