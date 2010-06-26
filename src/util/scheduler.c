@@ -136,12 +136,6 @@ struct Task
   enum GNUNET_SCHEDULER_Priority priority;
 
   /**
-   * Priority of the highest task added in the current select
-   * iteration.
-   */
-  enum GNUNET_SCHEDULER_Priority max_priority_added;
-
-  /**
    * Set if we only wait for reading from a single FD, otherwise -1.
    */
   int read_fd;
@@ -219,6 +213,12 @@ struct GNUNET_SCHEDULER_Handle
    * valid while a task is running.
    */
   enum GNUNET_SCHEDULER_Priority current_priority;
+
+  /**
+   * Priority of the highest task added in the current select
+   * iteration.
+   */
+  enum GNUNET_SCHEDULER_Priority max_priority_added;
 
   /**
    * How 'nice' are we right now?
