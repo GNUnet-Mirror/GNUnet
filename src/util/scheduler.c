@@ -29,8 +29,10 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_signal_lib.h"
 #include "gnunet_time_lib.h"
+#include "disk.h"
 #ifdef LINUX
 #include "execinfo.h"
+
 
 /**
  * Use lsof to generate file descriptor reports on select error?
@@ -133,6 +135,22 @@ struct Task
    */
   enum GNUNET_SCHEDULER_Priority priority;
 
+  /**
+   * Priority of the highest task added in the current select
+   * iteration.
+   */
+  enum GNUNET_SCHEDULER_Priority max_priority_added;
+
+  /**
+   * Set if we only wait for reading from a single FD, otherwise -1.
+   */
+  int read_fd;
+
+  /**
+   * Set if we only wait for writing to a single FD, otherwise -1.
+   */
+  int write_fd;
+
 #if EXECINFO
   /**
    * Array of strings which make up a backtrace from the point when this
@@ -145,6 +163,7 @@ struct Task
    */
   int num_backtrace_strings;
 #endif
+
 
 };
 
@@ -306,10 +325,10 @@ update_sets (struct GNUNET_SCHEDULER_Handle *sched,
           if (timeout->value > to.value)
             *timeout = to;
         }
-      /* FIXME: this is a very expensive (9% of runtime for some
-	 benchmarks!) way to merge the bit sets; specializing
-	 the common case where we only have one bit in the pos's
-	 set should improve performance dramatically! */
+      if (pos->read_fd != -1)
+	GNUNET_NETWORK_fdset_set_native (rs, pos->read_fd);
+      if (pos->write_fd != -1)
+	GNUNET_NETWORK_fdset_set_native (ws, pos->write_fd);
       if (pos->read_set != NULL)
         GNUNET_NETWORK_fdset_add (rs, pos->read_set);
       if (pos->write_set != NULL)
@@ -334,12 +353,8 @@ static int
 set_overlaps (const struct GNUNET_NETWORK_FDSet *ready,
               struct GNUNET_NETWORK_FDSet *want)
 {
-  if (NULL == want)
+  if ( (NULL == want) || (NULL == ready) )
     return GNUNET_NO;
-  /* FIXME: this is a very expensive (10% of runtime for some
-     benchmarks!) way to merge the bit sets; specializing
-     the common case where we only have one bit in the pos's
-     set should improve performance dramatically! */
   if (GNUNET_NETWORK_fdset_overlap (ready, want))
     {
       /* copy all over (yes, there maybe unrelated bits,
@@ -371,14 +386,16 @@ is_ready (struct GNUNET_SCHEDULER_Handle *sched,
 {
   if (now.value >= task->timeout.value)
     task->reason |= GNUNET_SCHEDULER_REASON_TIMEOUT;
-  if ((0 == (task->reason & GNUNET_SCHEDULER_REASON_READ_READY)) &&
-      (rs != NULL) && (set_overlaps (rs, task->read_set)))
+  if ( (0 == (task->reason & GNUNET_SCHEDULER_REASON_READ_READY)) &&
+       ( (GNUNET_YES == GNUNET_NETWORK_fdset_test_native (rs, task->read_fd)) ||
+	 (set_overlaps (rs, task->read_set) ) ) )
     task->reason |= GNUNET_SCHEDULER_REASON_READ_READY;
   if ((0 == (task->reason & GNUNET_SCHEDULER_REASON_WRITE_READY)) &&
-      (ws != NULL) && (set_overlaps (ws, task->write_set)))
+      ( (GNUNET_YES == GNUNET_NETWORK_fdset_test_native (ws, task->write_fd)) ||
+	(set_overlaps (ws, task->write_set) ) ) )
     task->reason |= GNUNET_SCHEDULER_REASON_WRITE_READY;
   if (task->reason == 0)
-    return GNUNET_NO;           /* not ready */
+    return GNUNET_NO;           /* not ready */    
   if (task->prereq_id != GNUNET_SCHEDULER_NO_TASK)
     {
       if (GNUNET_YES == is_pending (sched, task->prereq_id))
@@ -518,14 +535,19 @@ destroy_task (struct Task *t)
  * there are no more ready tasks, we also return.  
  *
  * @param sched the scheduler
+ * @param rs FDs ready for reading
+ * @param ws FDs ready for writing
  */
 static void
-run_ready (struct GNUNET_SCHEDULER_Handle *sched)
+run_ready (struct GNUNET_SCHEDULER_Handle *sched,
+	   struct GNUNET_NETWORK_FDSet *rs,
+	   struct GNUNET_NETWORK_FDSet *ws)
 {
   enum GNUNET_SCHEDULER_Priority p;
   struct Task *pos;
   struct GNUNET_SCHEDULER_TaskContext tc;
 
+  sched->max_priority_added = GNUNET_SCHEDULER_PRIORITY_KEEP;
   do
     {
       if (sched->ready_count == 0)
@@ -560,8 +582,21 @@ run_ready (struct GNUNET_SCHEDULER_Handle *sched)
 #endif
       tc.sched = sched;
       tc.reason = pos->reason;
-      tc.read_ready = pos->read_set;
-      tc.write_ready = pos->write_set;
+      tc.read_ready = (pos->read_set == NULL) ? rs : pos->read_set; 
+      if ( (pos->read_fd != -1) &&
+	   (0 != (pos->reason & GNUNET_SCHEDULER_REASON_READ_READY)) )
+	GNUNET_NETWORK_fdset_set_native (rs,
+					 pos->read_fd);
+      tc.write_ready = (pos->write_set == NULL) ? ws : pos->write_set;
+      if ( (pos->write_fd != -1) &&
+	   (0 != (pos->reason & GNUNET_SCHEDULER_REASON_WRITE_READY)) )
+	GNUNET_NETWORK_fdset_set_native (ws,
+					 pos->write_fd);
+      if ( ( (tc.reason & GNUNET_SCHEDULER_REASON_WRITE_READY) != 0) &&
+	   (pos->write_fd != -1) &&
+	   (! GNUNET_NETWORK_fdset_test_native (ws,
+						pos->write_fd))) 
+	abort (); // added to ready in previous select loop!
 #if DEBUG_TASKS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Running task: %llu / %p\n", pos->id, pos->callback_cls);
@@ -580,7 +615,7 @@ run_ready (struct GNUNET_SCHEDULER_Handle *sched)
       destroy_task (pos);
       sched->tasks_run++;
     }
-  while ((sched->pending == NULL) || (p == GNUNET_SCHEDULER_PRIORITY_URGENT));
+  while ((sched->pending == NULL) || (p >= sched->max_priority_added));
 }
 
 /**
@@ -709,7 +744,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
           sleep (1);            /* mitigate */
         }
       check_ready (&sched, rs, ws);
-      run_ready (&sched);
+      run_ready (&sched, rs, ws);
     }
   GNUNET_SIGNAL_handler_uninstall (shc_int);
   GNUNET_SIGNAL_handler_uninstall (shc_term);
@@ -861,6 +896,8 @@ GNUNET_SCHEDULER_add_continuation (struct GNUNET_SCHEDULER_Handle *sched,
   t->num_backtrace_strings = backtrace(backtrace_array, 50);
   t->backtrace_strings = backtrace_symbols(backtrace_array, t->num_backtrace_strings);
 #endif
+  t->read_fd = -1;
+  t->write_fd = -1;
   t->callback = task;
   t->callback_cls = task_cls;
   t->id = ++sched->last_id;
@@ -984,6 +1021,86 @@ GNUNET_SCHEDULER_add_now (struct GNUNET_SCHEDULER_Handle *sched,
 
 
 
+
+/**
+ * Schedule a new task to be run with a specified delay or when any of
+ * the specified file descriptor sets is ready.  The delay can be used
+ * as a timeout on the socket(s) being ready.  The task will be
+ * scheduled for execution once either the delay has expired or any of
+ * the socket operations is ready.  This is the most general
+ * function of the "add" family.  Note that the "prerequisite_task"
+ * must be satisfied in addition to any of the other conditions.  In
+ * other words, the task will be started when
+ * <code>
+ * (prerequisite-run)
+ * && (delay-ready
+ *     || any-rs-ready
+ *     || any-ws-ready
+ *     || (shutdown-active && run-on-shutdown) )
+ * </code>
+ *
+ * @param sched scheduler to use
+ * @param delay how long should we wait? Use GNUNET_TIME_UNIT_FOREVER_REL for "forever",
+ *        which means that the task will only be run after we receive SIGTERM
+ * @param rfd file descriptor we want to read (can be -1)
+ * @param wfd file descriptors we want to write (can be -1)
+ * @param task main function of the task
+ * @param task_cls closure of task
+ * @return unique task identifier for the job
+ *         only valid until "task" is started!
+ */
+GNUNET_SCHEDULER_TaskIdentifier
+add_without_sets (struct GNUNET_SCHEDULER_Handle * sched,
+		  struct GNUNET_TIME_Relative delay,
+		  int rfd,
+		  int wfd,
+		  GNUNET_SCHEDULER_Task task, void *task_cls)
+{
+  struct Task *t;
+#if EXECINFO
+  void *backtrace_array[MAX_TRACE_DEPTH];
+#endif
+
+  GNUNET_assert (NULL != task);
+  t = GNUNET_malloc (sizeof (struct Task));
+  t->callback = task;
+  t->callback_cls = task_cls;
+#if EXECINFO
+  t->num_backtrace_strings = backtrace(backtrace_array, MAX_TRACE_DEPTH);
+  t->backtrace_strings = backtrace_symbols(backtrace_array, t->num_backtrace_strings);
+#endif
+  t->read_fd = rfd;
+  t->write_fd = wfd;
+  t->id = ++sched->last_id;
+#if PROFILE_DELAYS
+  t->start_time = GNUNET_TIME_absolute_get ();
+#endif
+  t->prereq_id = GNUNET_SCHEDULER_NO_TASK;
+  t->timeout = GNUNET_TIME_relative_to_absolute (delay);
+  t->priority = check_priority (sched->current_priority);
+  t->next = sched->pending;
+  sched->pending = t;
+  sched->max_priority_added = GNUNET_MAX (sched->max_priority_added,
+					  t->priority);
+#if DEBUG_TASKS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Adding task: %llu / %p\n", t->id, t->callback_cls);
+#endif
+#if EXECINFO
+  int i;
+
+  for (i=0;i<t->num_backtrace_strings;i++)
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Task %u trace %d: %s\n",
+                  t->id,
+                  i,
+                  t->backtrace_strings[i]);
+#endif
+  return t->id;
+}
+
+
+
 /**
  * Schedule a new task to be run with a specified delay or when the
  * specified file descriptor is ready for reading.  The delay can be
@@ -1007,18 +1124,12 @@ GNUNET_SCHEDULER_add_read_net (struct GNUNET_SCHEDULER_Handle * sched,
                                struct GNUNET_NETWORK_Handle * rfd,
                                GNUNET_SCHEDULER_Task task, void *task_cls)
 {
-  struct GNUNET_NETWORK_FDSet *rs;
-  GNUNET_SCHEDULER_TaskIdentifier ret;
-
-  GNUNET_assert (rfd != NULL);
-  rs = GNUNET_NETWORK_fdset_create ();
-  GNUNET_NETWORK_fdset_set (rs, rfd);
-  ret = GNUNET_SCHEDULER_add_select (sched,
-                                     GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                     GNUNET_SCHEDULER_NO_TASK,
-                                     delay, rs, NULL, task, task_cls);
-  GNUNET_NETWORK_fdset_destroy (rs);
-  return ret;
+  return add_without_sets (sched,
+			   delay,
+			   GNUNET_NETWORK_get_fd (rfd),
+			   -1,
+			   task,
+			   task_cls);
 }
 
 
@@ -1045,18 +1156,12 @@ GNUNET_SCHEDULER_add_write_net (struct GNUNET_SCHEDULER_Handle * sched,
                                 struct GNUNET_NETWORK_Handle * wfd,
                                 GNUNET_SCHEDULER_Task task, void *task_cls)
 {
-  struct GNUNET_NETWORK_FDSet *ws;
-  GNUNET_SCHEDULER_TaskIdentifier ret;
-
-  GNUNET_assert (wfd != NULL);
-  ws = GNUNET_NETWORK_fdset_create ();
-  GNUNET_NETWORK_fdset_set (ws, wfd);
-  ret = GNUNET_SCHEDULER_add_select (sched,
-                                     GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                     GNUNET_SCHEDULER_NO_TASK, delay,
-                                     NULL, ws, task, task_cls);
-  GNUNET_NETWORK_fdset_destroy (ws);
-  return ret;
+  return add_without_sets (sched,
+			   delay,
+			   -1,
+			   GNUNET_NETWORK_get_fd (wfd),
+			   task,
+			   task_cls);
 }
 
 
@@ -1083,6 +1188,7 @@ GNUNET_SCHEDULER_add_read_file (struct GNUNET_SCHEDULER_Handle * sched,
                                 const struct GNUNET_DISK_FileHandle * rfd,
                                 GNUNET_SCHEDULER_Task task, void *task_cls)
 {
+#if MINGW
   struct GNUNET_NETWORK_FDSet *rs;
   GNUNET_SCHEDULER_TaskIdentifier ret;
 
@@ -1095,6 +1201,18 @@ GNUNET_SCHEDULER_add_read_file (struct GNUNET_SCHEDULER_Handle * sched,
                                      rs, NULL, task, task_cls);
   GNUNET_NETWORK_fdset_destroy (rs);
   return ret;
+#else
+  int fd;
+
+  GNUNET_DISK_internal_file_handle_ (rfd, &fd, sizeof (int));
+  return add_without_sets (sched,
+			   delay,
+			   fd,
+			   -1,
+			   task,
+			   task_cls);
+
+#endif
 }
 
 
@@ -1121,6 +1239,7 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_SCHEDULER_Handle * sched,
                                  const struct GNUNET_DISK_FileHandle * wfd,
                                  GNUNET_SCHEDULER_Task task, void *task_cls)
 {
+#if MINGW
   struct GNUNET_NETWORK_FDSet *ws;
   GNUNET_SCHEDULER_TaskIdentifier ret;
 
@@ -1133,6 +1252,18 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_SCHEDULER_Handle * sched,
                                      delay, NULL, ws, task, task_cls);
   GNUNET_NETWORK_fdset_destroy (ws);
   return ret;
+#else
+  int fd;
+
+  GNUNET_DISK_internal_file_handle_ (wfd, &fd, sizeof (int));
+  return add_without_sets (sched,
+			   delay,
+			   -1,
+			   fd,
+			   task,
+			   task_cls);
+
+#endif
 }
 
 
@@ -1193,6 +1324,8 @@ GNUNET_SCHEDULER_add_select (struct GNUNET_SCHEDULER_Handle * sched,
   t->num_backtrace_strings = backtrace(backtrace_array, MAX_TRACE_DEPTH);
   t->backtrace_strings = backtrace_symbols(backtrace_array, t->num_backtrace_strings);
 #endif
+  t->read_fd = -1;
+  t->write_fd = -1;
   if (rs != NULL)
     {
       t->read_set = GNUNET_NETWORK_fdset_create ();
@@ -1213,8 +1346,10 @@ GNUNET_SCHEDULER_add_select (struct GNUNET_SCHEDULER_Handle * sched,
     check_priority ((prio ==
                      GNUNET_SCHEDULER_PRIORITY_KEEP) ? sched->current_priority
                     : prio);
-  t->next = sched->pending;
+  t->next = sched->pending; 
   sched->pending = t;
+  sched->max_priority_added = GNUNET_MAX (sched->max_priority_added,
+					  t->priority);
 #if DEBUG_TASKS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Adding task: %llu / %p\n", t->id, t->callback_cls);

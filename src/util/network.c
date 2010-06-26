@@ -800,6 +800,23 @@ void GNUNET_NETWORK_fdset_set_native (struct GNUNET_NETWORK_FDSet *to,
 
 
 /**
+ * Test native fd in a set
+ *
+ * @param to set to test, NULL for empty set
+ * @param nfd native FD to test, or -1 for none
+ * @return GNUNET_YES if FD is set in the set
+ */
+int 
+GNUNET_NETWORK_fdset_test_native (const struct GNUNET_NETWORK_FDSet *to,
+				  int nfd)
+{
+  if ( (nfd == -1) || (to == NULL) )
+    return GNUNET_NO;
+  return FD_ISSET (nfd, &to->sds) ? GNUNET_YES : GNUNET_NO;
+}
+
+
+/**
  * Add a file handle to the fd set
  * @param fds fd set
  * @param h the file handle to add
@@ -1174,19 +1191,15 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   while (retcode == 0 && (ms_total == INFINITE || GetTickCount () < limit));
 
   if (retcode != -1)
-
     {
       if (rfds)
-
         {
           GNUNET_NETWORK_fdset_zero (rfds);
           GNUNET_NETWORK_fdset_copy_native (rfds, &aread, retcode);
           GNUNET_CONTAINER_slist_clear (rfds->handles);
           GNUNET_CONTAINER_slist_append (rfds->handles, handles_read);
-
         }
       if (wfds)
-
         {
           GNUNET_NETWORK_fdset_zero (wfds);
           GNUNET_NETWORK_fdset_copy_native (wfds, &awrite, retcode);
@@ -1194,7 +1207,6 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
           GNUNET_CONTAINER_slist_append (wfds->handles, handles_write);
         }
       if (efds)
-
         {
           GNUNET_NETWORK_fdset_zero (efds);
           GNUNET_NETWORK_fdset_copy_native (efds, &aexcept, retcode);
