@@ -8,7 +8,7 @@
     [On W32, we need to select after calling socket before doing connect etc.]
 * BUGS:
   Jun 27 11:51:54 core-7670 ERROR Assertion failed at gnunet-service-core.c:3616.
-
+  (transport notified us that we connected to ourselves!!!)
 
 0.9.0pre2:
 * CORE:
