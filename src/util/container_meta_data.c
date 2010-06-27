@@ -585,8 +585,9 @@ GNUNET_CONTAINER_meta_data_get_thumbnail (const struct
   match = NULL;
   pos = md->items;
   while (NULL != pos)
-    {
-      if ( (0 == strncasecmp ("image/", pos->mime_type,
+    {      
+      if ( (NULL != pos->mime_type) && 
+	   (0 == strncasecmp ("image/", pos->mime_type,
 			      strlen("image/"))) &&
 	   (pos->format == EXTRACTOR_METAFORMAT_BINARY) )
 	{
