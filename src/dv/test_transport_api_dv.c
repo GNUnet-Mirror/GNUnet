@@ -41,11 +41,15 @@
 
 #define DEFAULT_NUM_PEERS 4
 
+#define DEFAULT_ADDITIONAL_MESSAGES 2
+
 #define MAX_OUTSTANDING_CONNECTIONS 100
 
 static float fail_percentage = 0.00;
 
 static int ok;
+
+static unsigned long long num_additional_messages;
 
 static unsigned long long num_peers;
 
@@ -699,7 +703,6 @@ topology_callback (void *cls,
       GNUNET_SCHEDULER_cancel (sched, die_task);
       die_task = GNUNET_SCHEDULER_NO_TASK;
       GNUNET_SCHEDULER_add_now (sched, &send_test_messages, test_messages);
-      //GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1), &send_test_messages, test_messages);
     }
   else if (total_connections + failed_connections == expected_connections)
     {
@@ -708,7 +711,6 @@ topology_callback (void *cls,
           GNUNET_SCHEDULER_cancel (sched, die_task);
           die_task = GNUNET_SCHEDULER_NO_TASK;
           GNUNET_SCHEDULER_add_now (sched, &send_test_messages, test_messages);
-          //GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1), &send_test_messages, test_messages);
         }
       else
         {
@@ -840,9 +842,8 @@ static void all_connect_handler (void *cls,
     }
   GNUNET_free(second_shortname);
 
-  if ((num_peers == 3) && (temp_total_other_messages == 2))
+  if (temp_total_other_messages == num_additional_messages)
     {
-      /*GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30), &send_other_messages, NULL);*/
       GNUNET_SCHEDULER_add_now (sched, &send_other_messages, NULL);
     }
 }
@@ -1026,6 +1027,11 @@ run (void *cls,
       GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "num_peers",
                                              &num_peers))
     num_peers = DEFAULT_NUM_PEERS;
+
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "additional_messages",
+                                             &num_additional_messages))
+    num_additional_messages = DEFAULT_ADDITIONAL_MESSAGES;
 
   main_cfg = cfg;
 
