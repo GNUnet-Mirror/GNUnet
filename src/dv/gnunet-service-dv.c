@@ -1181,7 +1181,7 @@ send_message (const struct GNUNET_PeerIdentity * recipient,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: Sending DATA message. Sender id %u, source %s, destination %s, via %s\n", GNUNET_i2s(&my_identity), sender_id, &encPeerFrom, &encPeerTo, &encPeerVia);
 #endif
   memcpy (&toSend[1], message, message_size);
-  if (source->pkey == NULL) /* Test our hypothesis about message failures! */
+  if ((source != NULL) && (source->pkey == NULL)) /* Test our hypothesis about message failures! */
     {
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s: Sending message, but anticipate recipient will not know sender!!!\n\n\n");
     }
@@ -1194,10 +1194,6 @@ send_message (const struct GNUNET_PeerIdentity * recipient,
 #endif
 
   GNUNET_SCHEDULER_add_now(sched, try_core_send, NULL);
-  /*if (core_transmit_handle == NULL)
-    core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, importance, timeout, &target->referrer->identity, msg_size, &core_transmit_notify, NULL);
-  else
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: CORE ALREADY SENDING\n", "DV SEND MESSAGE", msg_size);*/
   return (int) cost;
 }
 
@@ -1488,9 +1484,8 @@ static int handle_dv_data_message (void *cls,
 #endif
 
 #if DEBUG_DV_MESSAGES
-      direct_id = GNUNET_strdup(GNUNET_i2s(&dn->identity));
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%s: DROPPING MESSAGE uid %u type %d, routing loop! Message immediately from %s!\n", my_short_id, ntohl(incoming->uid), ntohs(packed_message->type), direct_id);
+                  "%s: DROPPING MESSAGE uid %u type %d, routing loop! Message immediately from %s!\n", my_short_id, ntohl(incoming->uid), ntohs(packed_message->type), GNUNET_i2s(&dn->identity));
 #endif
       return GNUNET_OK;
     }
