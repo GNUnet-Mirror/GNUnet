@@ -1424,6 +1424,9 @@ search_result_free (void *cls,
   if (NULL != sr->download)
     {
       sr->download->search = NULL;
+      sr->download->top = GNUNET_FS_make_top (sr->download->h,
+					      &GNUNET_FS_download_signal_suspend_,
+					      sr->download);
       if (NULL != sr->download->serialization)
 	{
 	  GNUNET_FS_remove_sync_file_ (sc->h,
