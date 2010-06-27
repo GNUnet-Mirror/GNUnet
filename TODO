@@ -6,17 +6,6 @@
 * UTIL:
   - only connect() sockets that are ready (select()) [Nils]
     [On W32, we need to select after calling socket before doing connect etc.]
-* GNUNET-GTK: [CG]
-  - from-URI only tab:
-    + display from open directory
-  - recursive downloads:
-    + download start: recursive/directory (!)
-      * display directory content as part of 'open directory'
-      * display directory content from download as part of search       
-      * honor recursion option (may already be done, check!)
-  - TEST download-start from-URI only in event handler
-  - TEST download lost-parent 
-
 * BUGS:
   Jun 27 11:51:54 core-7670 ERROR Assertion failed at gnunet-service-core.c:3616.
 
@@ -70,6 +59,9 @@
   - listing of learned namespaces
   - collection API & tests
     + gnunet-pseudonym (collection support)
+  - publishing a directory sets the embedded filename to "empty" 
+    (likely an issue with cutting off everything before '/' in the filename,
+     which in the case of a directory would leave nothing)
   - implement FS performance tests
     + insert
     + download
@@ -109,6 +101,8 @@
   - implement unindex operation (use dialog with all indexed files for selection)
   - implement download by URI dialog; figure out where to display those downloads!
   - figure out where in the GUI we should show active uploads/unindex operations and allow aborts
+  - handle 'lost parent' case for recursive downloads (need to move children!)
+
 
 0.9.0pre3:
 * TRACEKIT: [MW]
