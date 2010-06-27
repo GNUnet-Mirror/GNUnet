@@ -961,6 +961,11 @@ struct GNUNET_FS_ProgressInfo
       uint32_t anonymity;
 
       /**
+       * Is the download currently active.
+       */
+      int is_active;
+
+      /**
        * Additional values for specific events.
        */
       union {

@@ -7,11 +7,18 @@
   - only connect() sockets that are ready (select()) [Nils]
     [On W32, we need to select after calling socket before doing connect etc.]
 * GNUNET-GTK: [CG]
-  - directory support:
-    + download start: recursive/directory (!) & from-URI only
-    + handle download lost-parent (move to 'from-URI only' tab)
-    + display content of directory
-    + open directory
+  - from-URI only tab:
+    + display from open directory (needs 'from-URI only' tab!)
+    + handle download lost-parent (move to 'from-URI only' tab!)
+  - recursive downloads:
+    + download start: recursive/directory (!)
+      * display directory content from download as part of search
+      * honor recursion option (may already be done, check!)
+  - TEST download-start from-URI only in event handler
+
+* BUGS:
+  Jun 27 11:51:54 core-7670 ERROR Assertion failed at gnunet-service-core.c:3616.
+
 
 0.9.0pre2:
 * CORE:
@@ -79,6 +86,7 @@
     + copy URI to clipboard 
     + save-as gnunet-directory
   - events:
+    + implement clear button in search tabs (to stop downloads)
     + search resume
     + search error
     + download error
