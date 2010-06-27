@@ -474,6 +474,8 @@ GNUNET_CONTAINER_meta_data_iterate (const struct
 {
   struct MetaItem *pos;
 
+  if (md == NULL)
+    return 0;
   if (iter == NULL)
     return md->item_count;
   pos = md->items;
@@ -509,6 +511,8 @@ GNUNET_CONTAINER_meta_data_get_by_type (const struct GNUNET_CONTAINER_MetaData
 {
   struct MetaItem *pos;
 
+  if (md == NULL)
+    return NULL;
   pos = md->items;
   while (NULL != pos)
     {
@@ -542,6 +546,8 @@ GNUNET_CONTAINER_meta_data_get_first_by_types (const struct
   va_list args;
   enum EXTRACTOR_MetaType type;
 
+  if (md == NULL)
+    return NULL;
   ret = NULL;
   va_start (args, md);
   while (1)
@@ -574,6 +580,8 @@ GNUNET_CONTAINER_meta_data_get_thumbnail (const struct
   struct MetaItem *pos;
   struct MetaItem *match;
 
+  if (md == NULL)
+    return 0;
   match = NULL;
   pos = md->items;
   while (NULL != pos)
