@@ -179,8 +179,11 @@ find_full_data (void *cls,
  * @param offset offset of data in the directory
  * @param dep function to call on each entry
  * @param dep_cls closure for dep
+ * @return GNUNET_OK if this could be a block in a directory,
+ *         GNUNET_NO if this could be part of a directory (but not 100% OK)
+ *         GNUNET_SYSERR if 'data' does not represent a directory
  */
-void 
+int 
 GNUNET_FS_directory_list_contents (size_t size,
 				   const void *data,
 				   uint64_t offset,
@@ -209,16 +212,16 @@ GNUNET_FS_directory_list_contents (size_t size,
 	{
 	  /* invalid size */
 	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		      _("Not a GNUnet directory.\n"));
-	  return;
+		      _("MAGIC mismatch.  This is not a GNUnet directory.\n"));
+	  return GNUNET_SYSERR;
 	}
       md = GNUNET_CONTAINER_meta_data_deserialize (&cdata[8 +
 							 sizeof (uint32_t)],
 						   mdSize);
       if (md == NULL)
         {
-          GNUNET_break (0);
-          return; /* malformed ! */
+	  GNUNET_break (0);
+          return GNUNET_SYSERR; /* malformed ! */
         }
       dep (dep_cls,
 	   NULL,
@@ -254,7 +257,7 @@ GNUNET_FS_directory_list_contents (size_t size,
       while ((epos < size) && (cdata[epos] != '\0'))
         epos++;
       if (epos >= size)
-        return;   /* malformed - or partial download */
+        return GNUNET_NO;   /* malformed - or partial download */
       
       uri = GNUNET_FS_uri_parse (&cdata[pos], &emsg);
       pos = epos + 1;
@@ -268,7 +271,7 @@ GNUNET_FS_directory_list_contents (size_t size,
         {
           GNUNET_FS_uri_destroy (uri);
           GNUNET_break (0);
-          return; /* illegal in directory! */
+          return GNUNET_NO; /* illegal in directory! */
         }
 
       memcpy (&mdSize, &cdata[pos], sizeof (uint32_t));
@@ -277,7 +280,7 @@ GNUNET_FS_directory_list_contents (size_t size,
       if (pos + mdSize > size)
         {
           GNUNET_FS_uri_destroy (uri);
-          return; /* malformed - or partial download */
+          return GNUNET_NO; /* malformed - or partial download */
         }
 
       md = GNUNET_CONTAINER_meta_data_deserialize (&cdata[pos], mdSize);
@@ -285,7 +288,7 @@ GNUNET_FS_directory_list_contents (size_t size,
         {
           GNUNET_FS_uri_destroy (uri);
           GNUNET_break (0);
-          return; /* malformed ! */
+          return GNUNET_NO; /* malformed ! */
         }
       pos += mdSize;
       filename = GNUNET_CONTAINER_meta_data_get_by_type (md,
@@ -309,6 +312,7 @@ GNUNET_FS_directory_list_contents (size_t size,
       GNUNET_CONTAINER_meta_data_destroy (md);
       GNUNET_FS_uri_destroy (uri);
     }
+  return GNUNET_OK;
 }
 
 /**

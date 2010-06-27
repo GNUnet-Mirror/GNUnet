@@ -8,13 +8,14 @@
     [On W32, we need to select after calling socket before doing connect etc.]
 * GNUNET-GTK: [CG]
   - from-URI only tab:
-    + display from open directory (needs 'from-URI only' tab!)
-    + handle download lost-parent (move to 'from-URI only' tab!)
+    + display from open directory
   - recursive downloads:
     + download start: recursive/directory (!)
-      * display directory content from download as part of search
+      * display directory content as part of 'open directory'
+      * display directory content from download as part of search       
       * honor recursion option (may already be done, check!)
   - TEST download-start from-URI only in event handler
+  - TEST download lost-parent 
 
 * BUGS:
   Jun 27 11:51:54 core-7670 ERROR Assertion failed at gnunet-service-core.c:3616.

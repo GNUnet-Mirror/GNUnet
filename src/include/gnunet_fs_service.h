@@ -2602,8 +2602,11 @@ typedef void (*GNUNET_FS_DirectoryEntryProcessor)(void *cls,
  * @param offset offset of data in the directory
  * @param dep function to call on each entry
  * @param dep_cls closure for dep
+ * @return GNUNET_OK if this could be a block in a directory,
+ *         GNUNET_NO if this could be part of a directory (but not 100% OK)
+ *         GNUNET_SYSERR if 'data' does not represent a directory
  */
-void 
+int 
 GNUNET_FS_directory_list_contents (size_t size,
 				   const void *data,
 				   uint64_t offset,
