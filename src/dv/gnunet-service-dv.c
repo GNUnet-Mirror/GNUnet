@@ -1079,6 +1079,7 @@ find_least_cost_peer (void *cls,
  * @param message the packed message
  * @param message_size size of the message
  * @param importance what priority to send this message with
+ * @param uid the unique identifier of this message (or 0 for none)
  * @param timeout how long to possibly delay sending this message
  */
 static int
