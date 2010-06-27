@@ -377,6 +377,10 @@ run (void *cls,
   if (GNUNET_YES != GNUNET_CONFIGURATION_get_value_string(cfg, "paths", "servicehome", &test_directory))
     {
       ok = 404;
+      if (dotOutFile != NULL)
+        {
+          fclose(dotOutFile);
+        }
       return;
     }
 
@@ -407,11 +411,27 @@ run (void *cls,
         "connect_topology_option_modifier",
         "TESTING");
         GNUNET_free (connect_topology_option_modifier_string);
+        ok = 707;
+        if (dotOutFile != NULL)
+          {
+            fclose(dotOutFile);
+          }
+        return;
       }
+      GNUNET_free (connect_topology_option_modifier_string);
     }
 
-  GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "blacklist_transports",
-                                         &blacklist_transports);
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "blacklist_transports",
+                                         &blacklist_transports))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "No transports specified for blacklisting in blacklist testcase (this shouldn't happen!)\n");
+    ok = 808;
+    if (dotOutFile != NULL)
+      {
+        fclose(dotOutFile);
+      }
+    return;
+  }
 
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "blacklist_topology",

@@ -93,8 +93,12 @@ run (void *cls,
                                              &num_peers))
     num_peers = DEFAULT_NUM_PEERS;
 
-  GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "hosts",
-                                         &hostnames);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "hosts",
+                                         &hostnames))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "No hosts specified, running all tests on localhost\n");
+  }
+
 
   peers_left = num_peers;
   pg = GNUNET_TESTING_daemons_start (sched,
