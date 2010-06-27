@@ -353,17 +353,24 @@ static const char *address_to_string (void *cls,
  * @return GNUNET_OK if this is a plausible address for this peer
  *         and transport
  *
- * FIXME: does this mean anything for the DV plugin?
  */
 static int
 dv_plugin_address_suggested (void *cls,
-                                  void *addr, size_t addrlen)
+                             void *addr, size_t addrlen)
 {
-  /* struct Plugin *plugin = cls; */
-
-  /* check if the address is plausible; if so,
-     add it to our list! */
-  return GNUNET_NO;
+  struct Plugin *plugin = cls;
+  /* Verify that the first peer of this address matches our peer id! */
+  if ((addrlen != (2 * sizeof(struct GNUNET_PeerIdentity))) || (0 != memcmp(addr, plugin->env->my_identity, sizeof(struct GNUNET_PeerIdentity))))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: Address not correct size or identity doesn't match ours!\n", GNUNET_i2s(plugin->env->my_identity));
+    if (addrlen == (2 * sizeof(struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Peer in addr is %s\n", GNUNET_i2s(addr));
+    }
+    return GNUNET_NO;
+  }
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: Address verified!\n", GNUNET_i2s(plugin->env->my_identity));
+  return GNUNET_YES;
 }
 
 
