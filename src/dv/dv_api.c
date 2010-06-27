@@ -209,7 +209,7 @@ finish (struct GNUNET_DV_Handle *handle, int code)
  *
  * @param cls handle to the dv service (struct GNUNET_DV_Handle)
  * @param size how many bytes can we send
- * @buf where to copy the message to send
+ * @param buf where to copy the message to send
  *
  * @return how many bytes we copied to buf
  */
