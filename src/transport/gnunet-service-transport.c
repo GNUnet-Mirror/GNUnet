@@ -1108,7 +1108,10 @@ read_blacklist_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
           GNUNET_free (data);
           return;
         }
-      tsize = tsize;
+
+      if (tsize < 1)
+        continue;
+
       transport_name = GNUNET_malloc(tsize + 1);
       memcpy(transport_name, &data[pos], tsize);
       pos = colon_pos + 1;

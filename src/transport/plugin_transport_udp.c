@@ -830,7 +830,6 @@ process_interfaces (void *cls,
   struct IPv6UdpAddress t6;
   void *arg;
   uint16_t args;
-
   void *addr_nat;
 
   addr_nat = NULL;
@@ -885,6 +884,11 @@ process_interfaces (void *cls,
 
       arg = &t6;
       args = sizeof (t6);
+    }
+  else
+    {
+      GNUNET_break (0);
+      return GNUNET_OK;
     }
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO |
@@ -1196,7 +1200,7 @@ udp_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp",
                       _("Received PROBE REPLY from port %d on incoming port %d\n"), ntohs(((struct sockaddr_in *)sender_addr)->sin_port), sockinfo->port);
 #endif
-      if (sizeof(sender_addr) == sizeof(struct IPv4UdpAddress))
+      if ((sender_addr != NULL) && (sizeof(sender_addr) == sizeof(struct IPv4UdpAddress)))
         {
           memset(&addr_buf, 0, sizeof(addr_buf));
           if (NULL == inet_ntop (AF_INET, 
