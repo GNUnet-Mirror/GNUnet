@@ -549,10 +549,14 @@ GNUNET_TESTING_daemons_restart (struct GNUNET_TESTING_PeerGroup *pg,
  *
  * @param pg handle to the peer group
  * @param timeout how long to wait for shutdown
+ * @param cb callback to notify upon success or failure
+ * @param cb_cls closure for cb
  */
 void
 GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg, 
-			     struct GNUNET_TIME_Relative timeout);
+                             struct GNUNET_TIME_Relative timeout,
+                             GNUNET_TESTING_NotifyCompletion cb,
+                             void *cb_cls);
 
 
 /**
