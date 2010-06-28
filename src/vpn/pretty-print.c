@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <arpa/inet.h>
 
 #include "packet.h"
 
@@ -112,13 +113,13 @@ void pkt_printf(struct ip6_pkt* pkt) {{{
 	pp_ip6adr(pkt->hdr.sadr, buf+16);
 	pp_ip6adr(pkt->hdr.dadr, buf+76);
 
-	int flow = (pkt->hdr.flowlbl[0] << 16) + (pkt->hdr.flowlbl[1] << 8) + (pkt->hdr.flowlbl[2]);
+	int flow = (ntohl(pkt->hdr.flowlbl));
 	sprintf(tmp, "%03x", flow);
 	memcpy(buf+138, tmp, 3);
 	sprintf(tmp, "%-8d", flow);
 	memcpy(buf+143, tmp, 8);
 
-	int length = (pkt->hdr.paylgth[0] << 8) + (pkt->hdr.paylgth[1]);
+	int length = ntohs(pkt->hdr.paylgth);
 	sprintf(tmp, "%02x", length);
 	memcpy(buf+198, tmp, 2);
 	sprintf(tmp, "%-3d", length);
@@ -133,7 +134,7 @@ void pkt_printf(struct ip6_pkt* pkt) {{{
 	sprintf(tmp, "%-3d", pkt->hdr.hoplmt);
 	memcpy(buf+323, tmp, 3);
 
-	int size = payload(pkt);
+	int size = payload(&pkt->hdr);
 	for(int i = 0; i < 8; i++) {
 		if (16*i > size) break;
 		pp_hexdump(pkt->data + (16*i), buf + 420 + (i*70), size - 16*i);
@@ -144,14 +145,14 @@ void pkt_printf(struct ip6_pkt* pkt) {{{
 }}}
 
 void pkt_printf_ip6tcp(struct ip6_tcp* pkt) {{{
-	printf("spt: %u\n", pkt->data.spt);
-	printf("dpt: %u\n", pkt->data.dpt);
-	printf("seq: %u\n", pkt->data.seq);
-	printf("ack: %u\n", pkt->data.ack);
-	printf("off: %u\n", pkt->data.off);
-	printf("wsz: %u\n", pkt->data.wsz);
-	printf("crc: %u\n", pkt->data.crc);
-	printf("urg: %u\n", pkt->data.urg);
+	printf("spt: %u\n", ntohs(pkt->data.spt));
+	printf("dpt: %u\n", ntohs(pkt->data.dpt));
+	printf("seq: %u\n", ntohs(pkt->data.seq));
+	printf("ack: %u\n", ntohs(pkt->data.ack));
+	printf("off: %u\n", ntohs(pkt->data.off));
+	printf("wsz: %u\n", ntohs(pkt->data.wsz));
+	printf("crc: %u\n", ntohs(pkt->data.crc));
+	printf("urg: %u\n", ntohs(pkt->data.urg));
 	printf("flags: %c%c%c%c%c%c%c%c\n",
 			pkt->data.flg & 0x80 ? 'C' : '.',
 			pkt->data.flg & 0x40 ? 'E' : '.',

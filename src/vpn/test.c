@@ -10,6 +10,8 @@
 #include "debug.h"
 #include "pretty-print.h"
 #include "tcp.h"
+#include <arpa/inet.h>
+
 
 int main(int c, char** v) {
 	char dev[IFNAMSIZ];
@@ -22,17 +24,15 @@ int main(int c, char** v) {
 
 	for(;;) {
 		printf("read %d bytes from socket, ", recv_pkt(fd, &pkt));
-		switch (pkt->type[0] << 8 | pkt->type[1]) {
+		switch (ntohs(pkt->type)) {
 			case 0x86dd:
 				printf("parsing ipv6:\n");
 				struct ip6_pkt* pkt6 = parse_ip6(pkt);
+				pkt_printf(pkt6);
+				struct ip6_tcp* pkt6_tcp;
 				switch(pkt6->hdr.nxthdr) {
-					case 0x3a:
-						pkt_printf(pkt6);
-						break;
 					case 0x06:
-						pkt_printf(pkt6);
-						struct ip6_tcp* pkt6_tcp = parse_ip6_tcp(pkt6);
+						pkt6_tcp = parse_ip6_tcp(pkt6);
 						pkt_printf_ip6tcp(pkt6_tcp);
 						handle_tcp(pkt6_tcp);
 						break;
