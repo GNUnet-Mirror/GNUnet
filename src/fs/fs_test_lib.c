@@ -137,6 +137,27 @@ struct GNUNET_FS_TestDaemon
 		
 };
 
+/**
+ * Check whether peers successfully shut down.
+ */
+void shutdown_callback (void *cls,
+                        const char *emsg)
+{
+  if (emsg != NULL)
+    {
+#if VERBOSE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Shutdown of peers failed!\n");
+#endif
+    }
+  else
+    {
+#if VERBOSE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "All peers successfully shut down!\n");
+#endif
+    }
+}
 
 static void
 report_uri (void *cls,
@@ -307,7 +328,7 @@ start_timeout (void *cls,
   struct StartContext *sctx = cls;
   unsigned int i;
 
-  GNUNET_TESTING_daemons_stop (sctx->group, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30));
+  GNUNET_TESTING_daemons_stop (sctx->group, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30), &shutdown_callback, NULL);
   for (i=0;i<sctx->total;i++)
     {
       if (i < sctx->have)
@@ -507,7 +528,7 @@ GNUNET_FS_TEST_daemons_stop (struct GNUNET_SCHEDULER_Handle *sched,
       GNUNET_free (daemons[i]);
       daemons[i] = NULL;
     }  
-  GNUNET_TESTING_daemons_stop (pg, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30));
+  GNUNET_TESTING_daemons_stop (pg, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30), &shutdown_callback, NULL);
 }
 
 
