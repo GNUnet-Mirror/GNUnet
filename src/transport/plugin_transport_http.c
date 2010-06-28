@@ -930,6 +930,7 @@ static ssize_t send_initiate (void *cls, struct Session* ses , struct HTTP_Conne
   int bytes_sent = 0;
   CURLMcode mret;
   struct HTTP_Message * msg;
+  struct GNUNET_TIME_Relative timeout = GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT;
 
   /* already connected, no need to initiate connection */
   if ((con->connected == GNUNET_YES) && (con->curl_handle != NULL) && (con->send_paused == GNUNET_NO))
@@ -965,7 +966,7 @@ static ssize_t send_initiate (void *cls, struct Session* ses , struct HTTP_Conne
   curl_easy_setopt(con->curl_handle, CURLOPT_READDATA, con);
   curl_easy_setopt(con->curl_handle, CURLOPT_WRITEFUNCTION, send_write_callback);
   curl_easy_setopt(con->curl_handle, CURLOPT_READDATA, con);
-  curl_easy_setopt(con->curl_handle, CURLOPT_TIMEOUT, GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+  curl_easy_setopt(con->curl_handle, CURLOPT_TIMEOUT, (long) timeout.value);
   curl_easy_setopt(con->curl_handle, CURLOPT_PRIVATE, con);
   curl_easy_setopt(con->curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT_DBG);
   curl_easy_setopt(con->curl_handle, CURLOPT_BUFFERSIZE, GNUNET_SERVER_MAX_MESSAGE_SIZE);
@@ -1018,7 +1019,7 @@ static void send_execute (void *cls,
                 break;
               /* get session for affected curl handle */
               GNUNET_assert ( msg->easy_handle != NULL );
-              curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &con);
+              curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, (char *) &con);
               GNUNET_assert ( con != NULL );
               cs = con->session;
               GNUNET_assert ( cs != NULL );
