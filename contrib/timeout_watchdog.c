@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -47,6 +47,7 @@ void sigchld_handler(int val)
   if (WIFSIGNALED(status) == 1)
   {
     printf("Test process was signaled %u\n", WTERMSIG(status));
+    ret = WTERMSIG(status);
   }   
   exit(ret);  
 }
@@ -54,8 +55,8 @@ void sigchld_handler(int val)
 void sigint_handler(int val)
 { 
   printf("Killing test process\n");
-  kill(0, SIGINT);
-  exit(0);
+  kill(0, val);
+  exit(1);
 }
 
 
@@ -80,36 +81,30 @@ if (timeout == 0)
 char ** arguments = &argv[3];
 
 pid_t gpid = getpgid(0);
+signal(SIGCHLD, sigchld_handler);
+signal(SIGABRT, sigint_handler);
+signal(SIGKILL, sigint_handler);
+signal(SIGILL,  sigint_handler);
+signal(SIGSEGV, sigint_handler);
+signal(SIGINT,  sigint_handler);
+signal(SIGTERM, sigint_handler);
 
 child = fork();
-if (child > 0)
-{ 
-  signal(SIGCHLD, sigchld_handler);  
-  signal(SIGINT, sigint_handler);
-}
-for (;;)
+if (child==0)
 {
-  if (child==0)
-  {
-     printf("Starting test process `%s'\n",argv[2],arguments); 
-     setpgid(0,gpid);
-     execvp(argv[2],&argv[2]); 
-     printf("Test process `%s' could not be started\n",argv[1]); 
-     exit(1);
-  }
-  if (child > 0)
-  {
-    sleep(1);    
-    remain++;
-    if (timeout == remain)
-    {
-      printf("Timeout, killing all test processes\n");        
-      kill(0,SIGABRT);
-      exit(1);
-    }
-  }
+   printf("Starting test process `%s'\n",argv[2],arguments);
+   setpgid(0,gpid);
+   execvp(argv[2],&argv[2]);
+   printf("Test process `%s' could not be started\n",argv[2]);
+   exit(1);
+}
+if (child > 0)
+{
+  sleep(timeout);
+  printf("Timeout, killing all test processes\n");
+  kill(0,SIGABRT);
+  exit(1);
 }  
-
 }
 
 /* end of timeout_watchdog.c */
