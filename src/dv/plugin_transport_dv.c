@@ -342,21 +342,24 @@ static const char *address_to_string (void *cls,
 }
 
 /**
- * Another peer has suggested an address for this
- * peer and transport plugin.  Check that this could be a valid
- * address.  If so, consider adding it to the list
- * of addresses.
+ * Another peer has suggested an address for this peer and transport
+ * plugin.  Check that this could be a valid address.  This function
+ * is not expected to 'validate' the address in the sense of trying to
+ * connect to it but simply to see if the binary format is technically
+ * legal for establishing a connection to this peer (and make sure that
+ * the address really corresponds to our network connection/settings
+ * and not some potential man-in-the-middle).
  *
  * @param cls closure
  * @param addr pointer to the address
  * @param addrlen length of addr
  * @return GNUNET_OK if this is a plausible address for this peer
- *         and transport
+ *         and transport, GNUNET_SYSERR if not
  *
  */
 static int
-dv_plugin_address_suggested (void *cls,
-                             void *addr, size_t addrlen)
+dv_plugin_check_address (void *cls,
+                         const void *addr, size_t addrlen)
 {
   struct Plugin *plugin = cls;
   /* Verify that the first peer of this address matches our peer id! */
@@ -365,12 +368,11 @@ dv_plugin_address_suggested (void *cls,
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: Address not correct size or identity doesn't match ours!\n", GNUNET_i2s(plugin->env->my_identity));
     if (addrlen == (2 * sizeof(struct GNUNET_PeerIdentity)))
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Peer in addr is %s\n", GNUNET_i2s(addr));
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Peer in address is %s\n", GNUNET_i2s(addr));
     }
-    return GNUNET_NO;
+    return GNUNET_SYSERR;
   }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: Address verified!\n", GNUNET_i2s(plugin->env->my_identity));
-  return GNUNET_YES;
+  return GNUNET_OK;
 }
 
 
@@ -400,7 +402,7 @@ libgnunet_plugin_transport_dv_init (void *cls)
   api->send = &dv_plugin_send;
   api->disconnect = &dv_plugin_disconnect;
   api->address_pretty_printer = &dv_plugin_address_pretty_printer;
-  api->check_address = &dv_plugin_address_suggested;
+  api->check_address = &dv_plugin_check_address;
   api->address_to_string = &address_to_string;
   return api;
 }

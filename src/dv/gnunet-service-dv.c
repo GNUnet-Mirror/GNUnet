@@ -3015,12 +3015,6 @@ run (void *cls,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &shutdown_task,
                                 NULL);
-#if INSANE_GOSSIP
-  GNUNET_SCHEDULER_add_delayed (sched,
-                                GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5),
-                                &gossip_all_to_all,
-                                NULL);
-#endif
 }
 
 
