@@ -36,7 +36,7 @@ struct udp_pkt {
 	unsigned dpt:16;
 	unsigned len:16;
 	unsigned crc:16;
-}
+};
 
 struct dns_pkt {
 	unsigned id:16;
@@ -59,7 +59,7 @@ struct dns_pkt {
 	unsigned nscount:16; // number of authority-records
 	unsigned arcount:16; // number of additional records
 	unsigned char data[1];
-}
+};
 
 struct ip6_pkt {
 	struct pkt_tun tun;
