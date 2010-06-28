@@ -669,7 +669,6 @@ accessHandlerCallback (void *cls,
   /* Is it a PUT or a GET request */
   if (0 == strcmp (MHD_HTTP_METHOD_PUT, method))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"PUT, Upload size: %u addrlen %u\n", *upload_data_size, con->addrlen);
     if ((*upload_data_size == 0) && (con->is_put_in_progress==GNUNET_NO))
     {
       con->is_put_in_progress = GNUNET_YES;
@@ -690,10 +689,10 @@ accessHandlerCallback (void *cls,
       return res;
     }
 
-    /* Transmission of all data complete */
+    /* Recieving data */
     if ((*upload_data_size > 0) && (con->is_put_in_progress == GNUNET_YES))
     {
-      res = GNUNET_SERVER_mst_receive(con->msgtok, cs, upload_data,*upload_data_size, GNUNET_YES, GNUNET_NO);
+      res = GNUNET_SERVER_mst_receive(con->msgtok, con, upload_data,*upload_data_size, GNUNET_NO, GNUNET_NO);
       (*upload_data_size) = 0;
       return MHD_YES;
     }
