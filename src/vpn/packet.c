@@ -54,6 +54,7 @@ int recv_pkt(int fd, struct pkt_tun** pkt) {{{
 			debug(1, 0, "reading an ipv6-packet\n");
 			struct ip6_pkt * pkt6 = (struct ip6_pkt*) *pkt;
 			size = payload(&(pkt6->hdr));
+			// TODO: size might be greater than r!
 			debug(1, 0, "read the size: %d\n", size);
 			return size;
 			break;
