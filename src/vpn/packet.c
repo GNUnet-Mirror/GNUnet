@@ -193,41 +193,67 @@ static void pp_ip6adr(unsigned char* adr, char* dest) {{{
 	memcpy(dest+37, tmp, 2);
 }}}
 
-void pp_hexdump(unsigned char* data, char* dest, int max) {
+void pp_hexdump(unsigned char* data, char* dest, int max) {{{
 	char tmp[3];
-	int to = max > 8 ? 8 : max;
+	char tmp2[2];
+	int off = 0;
+	int to = max > 16 ? 16 : max;
 	for (int i = 0; i < to; i++) {
+		if (i == 8) off = 1;
 		sprintf(tmp, "%02x", data[i]);
-		memcpy(dest+(3*i), tmp, 2);
+		memcpy(dest+(3*i)+off, tmp, 2);
+		if (isprint(data[i])) {
+			sprintf(tmp2, "%c", data[i]);
+			memcpy(dest+51+i, tmp2, 1);
+		}
+	}
+}}}
+
+void pp_write_header(char* dest, struct ip6_pkt* pkt) {
+	switch (pkt->nxthdr) {
+		case 0x3a:
+			memcpy(dest, "ICMPv6)", 7);
+			break;
+		default:
+			memcpy(dest, "unknown)", 8);
+			break;
 	}
 }
 
 void pkt_printf(struct ip6_pkt* pkt) {
 	char* buf = (char*)malloc(strlen(pretty)+1);
-	char tmp[4];
+	char tmp[9];
 
 	memcpy(buf, pretty, strlen(pretty)+1);
 
 	pp_ip6adr(pkt->sadr, buf+16);
 	pp_ip6adr(pkt->dadr, buf+76);
 
-	sprintf(tmp, "%03x", (pkt->flowlbl[0] << 16) + (pkt->flowlbl[1] << 8) + (pkt->flowlbl[2]));
+	int flow = (pkt->flowlbl[0] << 16) + (pkt->flowlbl[1] << 8) + (pkt->flowlbl[2]);
+	sprintf(tmp, "%03x", flow);
 	memcpy(buf+138, tmp, 3);
+	sprintf(tmp, "%-8d", flow);
+	memcpy(buf+143, tmp, 8);
 
-	sprintf(tmp, "%02x", (pkt->paylgth[0] << 8) + (pkt->paylgth[1]));
+	int length = (pkt->paylgth[0] << 8) + (pkt->paylgth[1]);
+	sprintf(tmp, "%02x", length);
 	memcpy(buf+198, tmp, 2);
+	sprintf(tmp, "%-3d", length);
+	memcpy(buf+203, tmp, 3);
 
 	sprintf(tmp, "%02x", pkt->nxthdr);
 	memcpy(buf+258, tmp, 2);
+	pp_write_header(buf+263, pkt);
 
 	sprintf(tmp, "%02x", pkt->hoplmt);
 	memcpy(buf+318, tmp, 2);
+	sprintf(tmp, "%-3d", pkt->hoplmt);
+	memcpy(buf+323, tmp, 3);
 
 	int size = payload(pkt);
 	for(int i = 0; i < 8; i++) {
 		if (16*i > size) break;
 		pp_hexdump(pkt->data + (16*i), buf + 420 + (i*70), size - 16*i);
-		pp_hexdump(pkt->data + (16*i) + 8, buf + 445 + (i*70), size - (16*i + 8));
 	}
 
 	printf(buf);

@@ -17,9 +17,9 @@ int main(int c, char** v) {
 
 	struct pkt_tun* pkt;
 
-	printf("read %d bytes from socket, now to parse'em\n", recv_pkt(fd, &pkt));
-
-	struct ip6_pkt* pkt6 = parse_ip6(pkt);
-
-	pkt_printf(pkt6);
+	for(;;) {
+		printf("read %d bytes from socket, now to parse'em\n", recv_pkt(fd, &pkt));
+		struct ip6_pkt* pkt6 = parse_ip6(pkt);
+		pkt_printf(pkt6);
+	}
 }
