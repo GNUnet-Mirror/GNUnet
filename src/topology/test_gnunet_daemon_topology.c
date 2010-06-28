@@ -50,12 +50,35 @@ static struct GNUNET_TESTING_Daemon *last;
 
 static struct GNUNET_SCHEDULER_Handle *sched;
 
+/**
+ * Check whether peers successfully shut down.
+ */
+void shutdown_callback (void *cls,
+                        const char *emsg)
+{
+  if (emsg != NULL)
+    {
+#if VERBOSE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Shutdown of peers failed!\n");
+#endif
+      if (ok == 0)
+        ok = 666;
+    }
+  else
+    {
+#if VERBOSE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "All peers successfully shut down!\n");
+#endif
+    }
+}
 
 static void
 clean_up_task (void *cls,
 		 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_TESTING_daemons_stop (pg, TIMEOUT);
+  GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
   ok = 0;     
 }
 
@@ -76,7 +99,7 @@ notify_connect_complete(void *cls,
       fprintf (stderr,
 	       "Failed to connect two peers: %s\n",
 	       emsg);
-      GNUNET_TESTING_daemons_stop (pg, TIMEOUT);
+      GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
       GNUNET_assert (0);
       return;
     }
