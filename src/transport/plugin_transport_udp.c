@@ -1406,7 +1406,7 @@ udp_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
     default:
 #if DEBUG_UDP
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                       _("Sending message type %d to transport\n!"), ntohs(currhdr->type));
+                       _("Sending message type %d to transport!\n"), ntohs(currhdr->type));
 #endif
       plugin->env->receive (plugin->env->cls, sender, currhdr, UDP_DIRECT_DISTANCE, 
 			    NULL, sender_addr, fromlen);
@@ -1711,6 +1711,12 @@ udp_check_address (void *cls,
 		   size_t addrlen)
 {
   struct Plugin *plugin = cls;
+  char buf[INET6_ADDRSTRLEN];
+  const void *sb;
+  struct in_addr a4;
+  struct in6_addr a6;
+  int af;
+  uint16_t port;
   struct IPv4UdpAddress *v4;
   struct IPv6UdpAddress *v6;
 
@@ -1720,6 +1726,7 @@ udp_check_address (void *cls,
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
+
   if (addrlen == sizeof (struct IPv4UdpAddress))
     {
       v4 = (struct IPv4UdpAddress *) addr;
@@ -1729,6 +1736,11 @@ udp_check_address (void *cls,
       if (GNUNET_OK !=
 	  check_local_addr (plugin, &v4->ipv4_addr, sizeof (uint32_t)))
 	return GNUNET_SYSERR;
+
+      af = AF_INET;
+      port = ntohs (v4->u_port);
+      memcpy (&a4, &v4->ipv4_addr, sizeof (a4));
+      sb = &a4;
     }
   else
     {
@@ -1744,12 +1756,21 @@ udp_check_address (void *cls,
       if (GNUNET_OK !=
 	  check_local_addr (plugin, &v6->ipv6_addr, sizeof (struct in6_addr)))
 	return GNUNET_SYSERR;
+
+      af = AF_INET6;
+      port = ntohs (v6->u6_port);
+      memcpy (&a6, &v6->ipv6_addr, sizeof (a6));
+      sb = &a6;
     }
+
+  inet_ntop (af, sb, buf, INET6_ADDRSTRLEN);
+
 #if DEBUG_UDP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "udp",
-                   "Informing transport service about my address `%s'.\n",
-                   GNUNET_a2s (addr, addrlen));
+                   "Informing transport service about my address `%s:%u'\n",
+                   buf,
+                   port);
 #endif
   return GNUNET_OK;
 }
