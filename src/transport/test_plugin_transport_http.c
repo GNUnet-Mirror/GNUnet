@@ -44,7 +44,7 @@
 
 #define VERBOSE GNUNET_YES
 #define DEBUG GNUNET_NO
-#define DEBUG_CURL GNUNET_NO
+#define DEBUG_CURL GNUNET_YES
 #define HTTP_BUFFER_SIZE 2048
 
 #define PLUGIN libgnunet_plugin_transport_template
@@ -382,7 +382,7 @@ shutdown_clean ()
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test connect with wrong data failed\n");
     fail = 1;
   }
-  if ((fail_msgs_transmited_to_local_addrs != count_str_addr) || (fail_msg_transmited_max_size == GNUNET_YES) || (fail_msg_transmited_bigger_max_size == GNUNET_YES) || (fail_multiple_msgs_in_transmission != GNUNET_NO))
+  if ((fail_msgs_transmited_to_local_addrs != count_str_addr) || (fail_multiple_msgs_in_transmission != 2) || (fail_msg_transmited_max_size == GNUNET_YES))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test sending with plugin failed\n");
     fail = 1;
@@ -452,16 +452,6 @@ static void task_send_cont (void *cls,
   struct Plugin_Address * tmp_addr;
   tmp_addr = addr_head;
 
-  if ((cls == &fail_msgs_transmited_to_local_addrs) && (result == GNUNET_OK))
-  {
-    fail_msgs_transmited_to_local_addrs++;
-    if (fail_msgs_transmited_to_local_addrs == count_str_addr)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message sent to %u addresses!\n",fail_msgs_transmited_to_local_addrs);
-    }
-    return;
-  }
-
   if ((cls == &fail_msg_transmited_bigger_max_size) && (result == GNUNET_SYSERR))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message bigger max msg size was not sent!\n");
@@ -473,37 +463,12 @@ static void task_send_cont (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message with max msg size succesfully sent!\n",fail_msgs_transmited_to_local_addrs);
     fail_msg_transmited_max_size = GNUNET_NO;
-    shutdown_clean();
+    //shutdown_clean();
   }
 }
 
-#if 0
-/**
- * Task sending recieved message back to peer
- * @cls closure
- * @tc task context
- */
 
-static void
-task_send (void *cls,
-            const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  ti_timeout = GNUNET_SCHEDULER_NO_TASK;
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-
-  if (GNUNET_YES==sent)
-    return;
-/*
-  struct GNUNET_MessageHeader * msg = cls;
-  unsigned int len = ntohs(msg->size);
-  const char * msgc = (const char *) msg;
-
-  api->send(api->cls, p, msgc, len, 0, TIMEOUT, NULL,NULL, 0, GNUNET_NO, &task_send_cont, NULL);
-  */
-  sent = GNUNET_YES;
-}
-#endif
+static void run_connection_tests( int );
 
 /**
  * Recieves messages from plugin, in real world transport
@@ -518,10 +483,25 @@ receive (void *cls,
          uint16_t sender_address_len)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testcase recieved new message from peer `%s' with type %u and length %u\n",  GNUNET_i2s(peer), ntohs(message->type), ntohs(message->size));
-  if ((ntohs(message->type) == 40) &&   (fail_multiple_msgs_in_transmission == 1))
-    fail_multiple_msgs_in_transmission++;
-  if ((ntohs(message->type) == 41) &&   (fail_multiple_msgs_in_transmission == 2))
-    fail_multiple_msgs_in_transmission = GNUNET_NO;
+
+  if ((ntohs(message->type)>=10) && (ntohs(message->type)<=20))
+  {
+    fail_msgs_transmited_to_local_addrs++;
+    if (fail_msgs_transmited_to_local_addrs == count_str_addr)
+      run_connection_tests(2);
+  }
+
+  if ((ntohs(message->type)==40) || (ntohs(message->type)==41))
+  {
+    fail_multiple_msgs_in_transmission ++;
+  }
+
+  if (ntohs(message->size) == GNUNET_SERVER_MAX_MESSAGE_SIZE-1)
+  {
+    fail_msg_transmited_max_size = GNUNET_NO;
+    shutdown_clean();
+  }
+
   return GNUNET_TIME_UNIT_ZERO;
 }
 
@@ -641,7 +621,7 @@ static void send_execute (void *cls,
                     curl_easy_cleanup(curl_handle);
                     curl_handle=NULL;
 
-                    run_connection_tests();
+                    run_connection_tests(1);
                     }
                   if (res == &test_no_ident)
                   {
@@ -675,7 +655,7 @@ static void send_execute (void *cls,
                   }
                   if (res == &test_valid_ident)
                   {
-                    if  ((res->http_result_code==400))
+                    if  ((res->http_result_code==200))
                     {
                       GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with valid peer identification: test passed\n"));
                       res->test_failed = GNUNET_NO;
@@ -686,7 +666,7 @@ static void send_execute (void *cls,
                   curl_easy_cleanup(curl_handle);
                   curl_handle=NULL;
 
-                  run_connection_tests();
+                  run_connection_tests(1);
                   return;
                 default:
                   break;
@@ -792,7 +772,6 @@ static int send_data( struct HTTP_Transfer * result, char * url)
   return GNUNET_OK;
 }
 
-
 /**
  * Plugin notifies transport (aka testcase) about its addresses
  */
@@ -896,8 +875,9 @@ static void pretty_printer_cb (void *cls,
 /**
  * Runs every single test to test the plugin
  */
-static void run_connection_tests( )
+static void run_connection_tests( int phase )
 {
+
   char * host_str = NULL;
   /* resetting buffers */
   buffer_in.size = HTTP_BUFFER_SIZE;
@@ -907,7 +887,6 @@ static void run_connection_tests( )
   buffer_out.size = HTTP_BUFFER_SIZE;
   buffer_out.pos = 0;
   buffer_out.len = 0;
-
 
   if (test_no_ident.test_executed == GNUNET_NO)
   {
@@ -960,90 +939,73 @@ static void run_connection_tests( )
     GNUNET_free (host_str);
     return;
   }
-  /* Using one of the addresses the plugin proposed */
-  GNUNET_assert (addr_head->addr != NULL);
 
-  struct Plugin_Address * tmp_addr;
-  struct GNUNET_MessageHeader msg;
-  char * tmp = GNUNET_malloc(sizeof(struct GNUNET_MessageHeader));
-  char address[INET6_ADDRSTRLEN];
-  unsigned int port;
-  unsigned int type = 10;
-
-  msg.size=htons(sizeof(struct GNUNET_MessageHeader));
-  tmp_addr = addr_head;
-  /* send a message to all addresses advertised by plugin */
-
-  int count = 0;
-  while (tmp_addr != NULL)
+  if (phase==1)
   {
-    if (tmp_addr->addrlen == (sizeof (struct IPv4HttpAddress)))
-      {
-        inet_ntop(AF_INET, (struct in_addr *) tmp_addr->addr,address,INET_ADDRSTRLEN);
-        port = ntohs(((struct IPv4HttpAddress *) tmp_addr->addr)->u_port);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sending message to addres no. %u: `%s':%u\n", count,address, port);
-      }
-    if (tmp_addr->addrlen == (sizeof (struct IPv6HttpAddress)))
-      {
-        inet_ntop(AF_INET6, (struct in6_addr *) tmp_addr->addr,address,INET6_ADDRSTRLEN);
-        port = ntohs(((struct IPv6HttpAddress *) tmp_addr->addr)->u6_port);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sending message to addres no. %u: `%s':%u\n", count,address,port);
-      }
-    msg.type=htons(type);
-    memcpy(tmp,&msg,sizeof(struct GNUNET_MessageHeader));
-    api->send(api->cls, &my_identity, tmp, sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL,tmp_addr->addr, tmp_addr->addrlen, GNUNET_YES, &task_send_cont, &fail_msgs_transmited_to_local_addrs);
-    tmp_addr = tmp_addr->next;
-    count ++;
-    type ++;
+    /* Using one of the addresses the plugin proposed */
+    GNUNET_assert (addr_head->addr != NULL);
+
+    struct Plugin_Address * tmp_addr;
+    struct GNUNET_MessageHeader msg;
+    char * tmp = GNUNET_malloc(sizeof(struct GNUNET_MessageHeader));
+    char address[INET6_ADDRSTRLEN];
+    unsigned int port;
+    unsigned int type = 10;
+
+    msg.size=htons(sizeof(struct GNUNET_MessageHeader));
+    tmp_addr = addr_head;
+    /* send a message to all addresses advertised by plugin */
+
+    int count = 0;
+    while (tmp_addr != NULL)
+    {
+      if (tmp_addr->addrlen == (sizeof (struct IPv4HttpAddress)))
+        {
+          inet_ntop(AF_INET, (struct in_addr *) tmp_addr->addr,address,INET_ADDRSTRLEN);
+          port = ntohs(((struct IPv4HttpAddress *) tmp_addr->addr)->u_port);
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sending message to addres no. %u: `%s':%u\n", count,address, port);
+        }
+      if (tmp_addr->addrlen == (sizeof (struct IPv6HttpAddress)))
+        {
+          inet_ntop(AF_INET6, (struct in6_addr *) tmp_addr->addr,address,INET6_ADDRSTRLEN);
+          port = ntohs(((struct IPv6HttpAddress *) tmp_addr->addr)->u6_port);
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sending message to addres no. %u: `%s':%u\n", count,address,port);
+        }
+      msg.type=htons(type);
+      memcpy(tmp,&msg,sizeof(struct GNUNET_MessageHeader));
+      api->send(api->cls, &my_identity, tmp, sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL,tmp_addr->addr, tmp_addr->addrlen, GNUNET_YES, &task_send_cont, &fail_msgs_transmited_to_local_addrs);
+      tmp_addr = tmp_addr->next;
+      count ++;
+      type ++;
+    }
+    return;
   }
 
-  return;
+  if (phase==2)
+  {
 
-  /* send a multiple GNUNET_messages at a time*/
-  GNUNET_free(tmp);
-  tmp = GNUNET_malloc(4 * sizeof(struct GNUNET_MessageHeader));
-  struct GNUNET_MessageHeader * msg1 = (struct GNUNET_MessageHeader *) tmp;
-  msg1->size = htons(2 * sizeof(struct GNUNET_MessageHeader));
-  msg1->type = htons(40);
-  struct GNUNET_MessageHeader * msg2 = &msg1[2];
-  msg2->size = htons(2 * sizeof(struct GNUNET_MessageHeader));
-  msg2->type = htons(41);
-  api->send(api->cls, &my_identity, tmp, 4 * sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL,addr_head->addr, addr_head->addrlen, GNUNET_YES, &task_send_cont, &fail_multiple_msgs_in_transmission);
+    struct GNUNET_MessageHeader msg;
+    char * tmp = GNUNET_malloc(sizeof(struct GNUNET_MessageHeader));
+    /* send a multiple GNUNET_messages at a time*/
+    GNUNET_free(tmp);
+    tmp = GNUNET_malloc(4 * sizeof(struct GNUNET_MessageHeader));
+    struct GNUNET_MessageHeader * msg1 = (struct GNUNET_MessageHeader *) tmp;
+    msg1->size = htons(2 * sizeof(struct GNUNET_MessageHeader));
+    msg1->type = htons(40);
+    struct GNUNET_MessageHeader * msg2 = &msg1[2];
+    msg2->size = htons(2 * sizeof(struct GNUNET_MessageHeader));
+    msg2->type = htons(41);
+    api->send(api->cls, &my_identity, tmp, 4 * sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL,addr_head->addr, addr_head->addrlen, GNUNET_YES, &task_send_cont, &fail_multiple_msgs_in_transmission);
 
-
-  /* send a multiple GNUNET_messages at a time, second message has incorrect size*/
-  GNUNET_free(tmp);
-  tmp = GNUNET_malloc(4 * sizeof(struct GNUNET_MessageHeader));
-  msg1 = (struct GNUNET_MessageHeader *) tmp;
-  msg1->size = htons(2 * sizeof(struct GNUNET_MessageHeader));
-  msg1->type = htons(40);
-  msg2 = &msg1[2];
-  msg2->size = htons(2 * sizeof(struct GNUNET_MessageHeader));
-  msg2->type = htons(41);
-  api->send(api->cls, &my_identity, tmp, 4 * sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL,addr_head->addr, addr_head->addrlen, GNUNET_YES, &task_send_cont, NULL);
-
-
-  /* send a multiple GNUNET_messages at a time, second message has incorrect size*/
-/*  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Ping Hello Message\n");
-  GNUNET_free(tmp);
-  tmp = GNUNET_malloc(425);
-  msg1 = (struct GNUNET_MessageHeader *) tmp;
-  msg1->size = htons(353);
-  msg1->type = htons(16);
-  msg2 = &tmp[353];
-  msg2->size = htons(72);
-  msg2->type = htons(32);
-  api->send(api->cls, &my_identity, tmp, 425, 0, TIMEOUT, NULL,addr_head->addr, addr_head->addrlen, GNUNET_YES, &task_send_cont, NULL);*/
-
-
-  /* send a message with size GNUNET_SERVER_MAX_MESSAGE_SIZE-1  */
-  GNUNET_free(tmp);
-  tmp = GNUNET_malloc(GNUNET_SERVER_MAX_MESSAGE_SIZE-1);
-  uint16_t t = (uint16_t)GNUNET_SERVER_MAX_MESSAGE_SIZE-1;
-  msg.size = htons(t);
-  memcpy(tmp,&msg,sizeof(struct GNUNET_MessageHeader));
-  api->send(api->cls, &my_identity, tmp, GNUNET_SERVER_MAX_MESSAGE_SIZE-1, 0, TIMEOUT, NULL,addr_head->addr, addr_head->addrlen, GNUNET_YES, &task_send_cont, &fail_msg_transmited_max_size);
-  GNUNET_free(tmp);
+    /* send a message with size GNUNET_SERVER_MAX_MESSAGE_SIZE-1  */
+    GNUNET_free(tmp);
+    tmp = GNUNET_malloc(GNUNET_SERVER_MAX_MESSAGE_SIZE-1);
+    uint16_t t = (uint16_t)GNUNET_SERVER_MAX_MESSAGE_SIZE-1;
+    msg.size = htons(t);
+    memcpy(tmp,&msg,sizeof(struct GNUNET_MessageHeader));
+    api->send(api->cls, &my_identity, tmp, GNUNET_SERVER_MAX_MESSAGE_SIZE-1, 0, TIMEOUT, NULL,addr_head->addr, addr_head->addrlen, GNUNET_YES, &task_send_cont, &fail_msg_transmited_max_size);
+    GNUNET_free(tmp);
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No more tests to run\n");
 }
 
@@ -1077,7 +1039,7 @@ run (void *cls,
   fail_addr_to_str = GNUNET_YES;
   fail_msgs_transmited_to_local_addrs = 0;
   fail_msg_transmited_max_size = GNUNET_YES;
-  fail_multiple_msgs_in_transmission = GNUNET_YES;
+  fail_multiple_msgs_in_transmission = 0;
 
   addr_head = NULL;
   count_str_addr = 0;
@@ -1225,7 +1187,7 @@ run (void *cls,
   test_valid_ident.test_failed = GNUNET_YES;
 
   test_addr = (char *) api->address_to_string (api->cls,addr_head->addr,addr_head->addrlen);
-  run_connection_tests();
+  run_connection_tests(0);
 
   /* testing finished */
 
