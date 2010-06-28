@@ -10,8 +10,8 @@
 #include "pretty-print.h"
 
 int main(int c, char** v) {
-	//char* dev = (char*) malloc(IFNAMSIZ);
 	char dev[IFNAMSIZ];
+	memset(dev, 0, IFNAMSIZ);
 	int fd = init_tun(dev);
 
 	debug(1, 0, "Initialized the interface %s.\n", dev);

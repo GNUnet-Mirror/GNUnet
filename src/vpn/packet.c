@@ -9,9 +9,9 @@
 #include "debug.h"
 #include "packet.h"
 
-long payload(struct ip6_pkt* pkt) {
+long payload(struct ip6_pkt* pkt) {{{
 	return (pkt->hdr.paylgth[0] << 8) + pkt->hdr.paylgth[1];
-}
+}}}
 
 void send_pkt(int fd, struct ip6_pkt* pkt) {{{
 	int sz = payload(pkt);
