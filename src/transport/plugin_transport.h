@@ -359,16 +359,18 @@ typedef void
  * plugin.  Check that this could be a valid address.  This function
  * is not expected to 'validate' the address in the sense of trying to
  * connect to it but simply to see if the binary format is technically
- * legal for establishing a connection.
+ * legal for establishing a connection to this peer (and make sure that
+ * the address really corresponds to our network connection/settings
+ * and not some potential man-in-the-middle).
  *
- * @param addr pointer to the address, may be modified (slightly)
+ * @param addr pointer to the address
  * @param addrlen length of addr
  * @return GNUNET_OK if this is a plausible address for this peer
  *         and transport, GNUNET_SYSERR if not
  */
 typedef int
-  (*GNUNET_TRANSPORT_CheckAddress) (void *cls,
-				    void *addr, size_t addrlen);
+(*GNUNET_TRANSPORT_CheckAddress) (void *cls,
+				  const void *addr, size_t addrlen);
 
 
 /**
@@ -426,14 +428,14 @@ struct GNUNET_TRANSPORT_PluginFunctions
 
   /**
    * Function that will be called to check if a binary address
-   * for this plugin is well-formed.  If clearly needed, patch
-   * up information such as port numbers.
-   * FIXME: this API will likely change in the near future since
-   * it currently does not allow the size of the patched address
-   * to be different!
+   * for this plugin is well-formed and corresponds to an
+   * address for THIS peer (as per our configuration).  Naturally,
+   * if absolutely necessary, plugins can be a bit conservative in
+   * their answer, but in general plugins should make sure that the
+   * address does not redirect traffic to a 3rd party that might
+   * try to man-in-the-middle our traffic.
    */
   GNUNET_TRANSPORT_CheckAddress check_address;
-
 
   /**
    * Function that will be called to convert a binary address

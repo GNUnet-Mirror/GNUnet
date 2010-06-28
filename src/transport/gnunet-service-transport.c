@@ -4338,6 +4338,18 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
       /* peer wants to confirm that this is one of our addresses */
       addr += slen;
       alen -= slen;
+      if (GNUNET_OK !=
+	  plugin->api->check_address (plugin->api->cls,
+				      addr,
+				      alen))
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		      _("Not confirming PING with address `%s' since I cannot confirm having this address.\n"),
+		      a2s (plugin->short_name,
+			   addr,
+			   alen));
+	  return GNUNET_NO;
+	}
       oal = plugin->addresses;
       while (NULL != oal)
 	{
@@ -4347,15 +4359,6 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
 			     alen)) )
 	    break;
 	  oal = oal->next;
-	}
-      if (oal == NULL)
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		      _("Not confirming PING with address `%s' since I cannot confirm having this address.\n"),
-		      a2s (plugin->short_name,
-			   addr,
-			   alen));
-	  return GNUNET_NO;
 	}
       pong = GNUNET_malloc (sizeof (struct TransportPongMessage) + alen + slen);
       pong->header.size = htons (sizeof (struct TransportPongMessage) + alen + slen);
@@ -4372,8 +4375,9 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
 	     &my_identity, 
 	     sizeof(struct GNUNET_PeerIdentity));
       memcpy (&pong[1], plugin->short_name, slen);
-      memcpy (&((char*)&pong[1])[slen], &oal[1], alen);
-      if (GNUNET_TIME_absolute_get_remaining (oal->pong_sig_expires).value < PONG_SIGNATURE_LIFETIME.value / 4)
+      memcpy (&((char*)&pong[1])[slen], addr, alen);
+      if ( (oal != NULL) &&
+	   (GNUNET_TIME_absolute_get_remaining (oal->pong_sig_expires).value < PONG_SIGNATURE_LIFETIME.value / 4) )
 	{
 	  /* create / update cached sig */
 #if DEBUG_TRANSPORT
@@ -4386,15 +4390,28 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
 	  GNUNET_assert (GNUNET_OK ==
 			 GNUNET_CRYPTO_rsa_sign (my_private_key,
 						 &pong->purpose,
-						 &oal->pong_signature));
+						 &oal->pong_signature));	    
+	  memcpy (&pong->signature,
+		  &oal->pong_signature,
+		  sizeof (struct GNUNET_CRYPTO_RsaSignature));    
+	}
+      else if (oal == NULL)
+	{
+	  /* not using cache (typically DV-only) */
+	  pong->expiration = GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute (PONG_SIGNATURE_LIFETIME));
+	  GNUNET_assert (GNUNET_OK ==
+			 GNUNET_CRYPTO_rsa_sign (my_private_key,
+						 &pong->purpose,
+						 &pong->signature));	    
 	}
       else
 	{
+	  /* can used cached version */
 	  pong->expiration = GNUNET_TIME_absolute_hton (oal->pong_sig_expires);
+	  memcpy (&pong->signature,
+		  &oal->pong_signature,
+		  sizeof (struct GNUNET_CRYPTO_RsaSignature));    
 	}
-      memcpy (&pong->signature,
-	      &oal->pong_signature,
-	      sizeof (struct GNUNET_CRYPTO_RsaSignature));    
     }
   n = find_neighbour(peer);
   GNUNET_assert (n != NULL);

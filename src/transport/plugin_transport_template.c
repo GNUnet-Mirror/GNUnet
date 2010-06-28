@@ -232,7 +232,8 @@ template_plugin_address_pretty_printer (void *cls,
  */
 static int
 template_plugin_address_suggested (void *cls,
-                                  void *addr, size_t addrlen)
+				   const void *addr,
+				   size_t addrlen)
 {
   /* struct Plugin *plugin = cls; */
 

@@ -1586,47 +1586,77 @@ udp_transport_server_start (void *cls)
 }
 
 
+
 /**
- * Another peer has suggested an address for this peer and transport
- * plugin.  Check that this could be a valid address.  This function
- * is not expected to 'validate' the address in the sense of trying to
- * connect to it but simply to see if the binary format is technically
- * legal for establishing a connection.
+ * Check if the given port is plausible (must be either
+ * our listen port or our advertised port).  If it is
+ * neither, we return GNUNET_SYSERR.
+ *
+ * @param plugin global variables
+ * @param in_port port number to check
+ * @return GNUNET_OK if port is either open_port or adv_port
+ */
+static int
+check_port (struct Plugin *plugin, uint16_t in_port)
+{
+  if (in_port == plugin->port) 
+    return GNUNET_OK;
+  return GNUNET_SYSERR;
+}
+
+
+/**
+ * Function that will be called to check if a binary address for this
+ * plugin is well-formed and corresponds to an address for THIS peer
+ * (as per our configuration).  Naturally, if absolutely necessary,
+ * plugins can be a bit conservative in their answer, but in general
+ * plugins should make sure that the address does not redirect
+ * traffic to a 3rd party that might try to man-in-the-middle our
+ * traffic.
  *
  * @param cls closure, should be our handle to the Plugin
- * @param addr pointer to the address, may be modified (slightly)
+ * @param addr pointer to the address
  * @param addrlen length of addr
  * @return GNUNET_OK if this is a plausible address for this peer
  *         and transport, GNUNET_SYSERR if not
  *
  */
 static int
-udp_check_address (void *cls, void *addr, size_t addrlen)
+udp_check_address (void *cls, 
+		   const void *addr, 
+		   size_t addrlen)
 {
   struct Plugin *plugin = cls;
-  char buf[sizeof (struct sockaddr_in6)];
+  struct IPv4UdpAddress *v4;
+  struct IPv6UdpAddress *v6;
 
-  struct sockaddr_in *v4;
-  struct sockaddr_in6 *v6;
-
-  if ((addrlen != sizeof (struct sockaddr_in)) &&
-      (addrlen != sizeof (struct sockaddr_in6)))
+  if ((addrlen != sizeof (struct IPv4UdpAddress)) &&
+      (addrlen != sizeof (struct IPv6UdpAddress)))
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
-  memcpy (buf, addr, sizeof (struct sockaddr_in6));
-  if (addrlen == sizeof (struct sockaddr_in))
+  if (addrlen == sizeof (struct IPv4UdpAddress))
     {
-      v4 = (struct sockaddr_in *) buf;
-      v4->sin_port = htons (plugin->port);
+      v4 = (struct IPv4UdpAddress *) addr;
+      if (GNUNET_OK !=
+	  check_port (plugin, ntohs (v4->u_port)))
+	return GNUNET_SYSERR;
+      /* FIXME: check IP! */
     }
   else
     {
-      v6 = (struct sockaddr_in6 *) buf;
-      v6->sin6_port = htons (plugin->port);
+      v6 = (struct IPv6UdpAddress *) addr;
+      if (IN6_IS_ADDR_LINKLOCAL (&v6->ipv6_addr))
+	{
+	  GNUNET_break_op (0);
+	  return GNUNET_SYSERR;
+	}
+      if (GNUNET_OK != 
+	  check_port (plugin, ntohs (v6->u6_port)))
+	return GNUNET_SYSERR;
+      /* FIXME: check IP! */
     }
-
 #if DEBUG_UDP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "udp",

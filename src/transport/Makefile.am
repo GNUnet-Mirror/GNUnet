@@ -6,7 +6,7 @@ if MINGW
   WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
 endif
 
-if HAVE_MHD 
+if MINGW
  GN_LIBMHD = -lmicrohttpd
  HTTP_PLUGIN_LA = libgnunet_plugin_transport_http.la
  HTTP_PLUGIN_CHECK = test_plugin_transport_http

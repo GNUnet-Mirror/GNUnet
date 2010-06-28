@@ -1366,29 +1366,29 @@ tcp_plugin_address_pretty_printer (void *cls,
 /**
  * Check if the given port is plausible (must be either
  * our listen port or our advertised port).  If it is
- * neither, we return one of these two ports at random.
+ * neither, we return GNUNET_SYSERR.
  *
  * @param plugin global variables
  * @param in_port port number to check
- * @return either in_port or a more plausible port
+ * @return GNUNET_OK if port is either open_port or adv_port
  */
-static uint16_t
+static int
 check_port (struct Plugin *plugin, uint16_t in_port)
 {
   if ((in_port == plugin->adv_port) || (in_port == plugin->open_port))
-    return in_port;
-  return (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                    2) == 0)
-    ? plugin->open_port : plugin->adv_port;
+    return GNUNET_OK;
+  return GNUNET_SYSERR;
 }
 
 
-/**
- * Another peer has suggested an address for this peer and transport
- * plugin.  Check that this could be a valid address. This function
- * is not expected to 'validate' the address in the sense of trying to
- * connect to it but simply to see if the binary format is technically
- * legal for establishing a connection.
+/** 
+ * Function that will be called to check if a binary address for this
+ * plugin is well-formed and corresponds to an address for THIS peer
+ * (as per our configuration).  Naturally, if absolutely necessary,
+ * plugins can be a bit conservative in their answer, but in general
+ * plugins should make sure that the address does not redirect
+ * traffic to a 3rd party that might try to man-in-the-middle our
+ * traffic.
  *
  * @param cls closure, our 'struct Plugin*'
  * @param addr pointer to the address
@@ -1397,7 +1397,9 @@ check_port (struct Plugin *plugin, uint16_t in_port)
  *         and transport, GNUNET_SYSERR if not
  */
 static int
-tcp_plugin_check_address (void *cls, void *addr, size_t addrlen)
+tcp_plugin_check_address (void *cls, 
+			  const void *addr, 
+			  size_t addrlen)
 {
   struct Plugin *plugin = cls;
   struct IPv4TcpAddress *v4;
@@ -1412,7 +1414,10 @@ tcp_plugin_check_address (void *cls, void *addr, size_t addrlen)
   if (addrlen == sizeof (struct IPv4TcpAddress))
     {
       v4 = (struct IPv4TcpAddress *) addr;
-      v4->t_port = htons (check_port (plugin, ntohs (v4->t_port)));
+      if (GNUNET_OK !=
+	  check_port (plugin, ntohs (v4->t_port)))
+	return GNUNET_SYSERR;
+      /* FIXME: check IP! */
     }
   else
     {
@@ -1422,7 +1427,10 @@ tcp_plugin_check_address (void *cls, void *addr, size_t addrlen)
 	  GNUNET_break_op (0);
 	  return GNUNET_SYSERR;
 	}
-      v6->t6_port = htons (check_port (plugin, ntohs (v6->t6_port)));
+      if (GNUNET_OK != 
+	  check_port (plugin, ntohs (v6->t6_port)))
+	return GNUNET_SYSERR;
+      /* FIXME: check IP! */
     }
   return GNUNET_OK;
 }
