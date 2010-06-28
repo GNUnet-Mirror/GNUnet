@@ -7,7 +7,7 @@ all:default
 
 default: test
 
-test: test.o tun.o packet.o debug.o
+test: test.o tun.o packet.o debug.o pretty-print.o
 
 clean:
 	rm -f *.o

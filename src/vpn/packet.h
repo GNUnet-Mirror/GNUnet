@@ -26,4 +26,6 @@ extern int recv_pkt(int fd, struct pkt_tun** pkt);
 extern struct ip6_pkt* parse_ip6(struct pkt_tun* pkt);
 extern void pkt_printf(struct ip6_pkt* pkt);
 
+extern long payload(struct ip6_pkt* pkt);
+
 #endif
