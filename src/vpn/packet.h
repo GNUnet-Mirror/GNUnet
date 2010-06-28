@@ -85,6 +85,7 @@ extern int recv_pkt(int fd, struct pkt_tun** pkt);
 extern struct ip6_pkt* parse_ip6(struct pkt_tun* pkt);
 
 extern struct ip6_tcp* parse_ip6_tcp(struct ip6_pkt*);
+extern struct ip6_udp* parse_ip6_udp(struct ip6_pkt*);
 
 extern short payload(struct ip6_hdr* pkt);
 

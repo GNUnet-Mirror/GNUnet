@@ -98,6 +98,9 @@ void pp_write_header(char* dest, struct ip6_pkt* pkt) {{{
 		case 0x06:
 			memcpy(dest, "TCP)", 4);
 			break;
+		case 0x11:
+			memcpy(dest, "UDP)", 4);
+			break;
 		default:
 			memcpy(dest, "unknown)", 8);
 			break;
@@ -163,4 +166,11 @@ void pkt_printf_ip6tcp(struct ip6_tcp* pkt) {{{
 			pkt->data.flg & 0x02 ? 'S' : '.',
 			pkt->data.flg & 0x01 ? 'F' : '.'
 			);
+}}}
+
+void pkt_printf_ip6udp(struct ip6_udp* pkt) {{{
+	printf("spt: %u\n", ntohs(pkt->data.spt));
+	printf("dpt: %u\n", ntohs(pkt->data.dpt));
+	printf("len: %u\n", ntohs(pkt->data.len));
+	printf("crc: 0x%x\n", ntohs(pkt->data.crc));
 }}}

@@ -30,11 +30,16 @@ int main(int c, char** v) {
 				struct ip6_pkt* pkt6 = parse_ip6(pkt);
 				pkt_printf(pkt6);
 				struct ip6_tcp* pkt6_tcp;
+				struct ip6_udp* pkt6_udp;
 				switch(pkt6->hdr.nxthdr) {
 					case 0x06:
 						pkt6_tcp = parse_ip6_tcp(pkt6);
 						pkt_printf_ip6tcp(pkt6_tcp);
 						handle_tcp(pkt6_tcp);
+						break;
+					case 0x11:
+						pkt6_udp = parse_ip6_udp(pkt6);
+						pkt_printf_ip6udp(pkt6_udp);
 						break;
 				}
 				break;

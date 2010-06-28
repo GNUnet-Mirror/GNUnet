@@ -80,3 +80,9 @@ struct ip6_tcp* parse_ip6_tcp(struct ip6_pkt* pkt) {{{
 
 	return res;
 }}}
+
+struct ip6_udp* parse_ip6_udp(struct ip6_pkt* pkt) {{{
+	struct ip6_udp* res = (struct ip6_udp*) pkt;
+
+	return res;
+}}}
