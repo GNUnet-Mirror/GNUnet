@@ -151,7 +151,7 @@ void pkt_printf_ip6tcp(struct ip6_tcp* pkt) {{{
 	printf("ack: %u\n", ntohs(pkt->data.ack));
 	printf("off: %u\n", ntohs(pkt->data.off));
 	printf("wsz: %u\n", ntohs(pkt->data.wsz));
-	printf("crc: %u\n", ntohs(pkt->data.crc));
+	printf("crc: 0x%x\n", ntohs(pkt->data.crc));
 	printf("urg: %u\n", ntohs(pkt->data.urg));
 	printf("flags: %c%c%c%c%c%c%c%c\n",
 			pkt->data.flg & 0x80 ? 'C' : '.',

@@ -31,20 +31,19 @@ void send_pkt(int fd, struct ip6_pkt* pkt) {{{
 	free(buf);
 }}}
 
-int recv_ipv6pkt(int fd, struct pkt_tun** pkt) {{{
-}}}
-
 int recv_pkt(int fd, struct pkt_tun** pkt) {{{
-	// TODO: länge lesen?
-	*pkt = (struct pkt_tun*)malloc(1504);
-	struct pkt_tun* _pkt = *pkt;
-
-	unsigned char *data = (unsigned char*)_pkt;
+	int size = 1504;
+	unsigned char data[size];
 
 	debug(1, 0, "beginning to read...\n");
 
-	int r = read(fd, data, 1504);
+	int r = read(fd, data, size);
 	debug(1, 0, "read %d bytes\n", r);
+
+	*pkt = (struct pkt_tun*)malloc(r);
+
+	memcpy(*pkt, data, r);
+	struct pkt_tun *_pkt = *pkt;
 
 	debug(1, 0, "read the flags: %04x\n", ntohs(_pkt->flags));
 	debug(1, 0, "read the type: %04x\n", ntohs(_pkt->type));
@@ -53,7 +52,7 @@ int recv_pkt(int fd, struct pkt_tun** pkt) {{{
 		case 0x86dd:
 			debug(1, 0, "reading an ipv6-packet\n");
 			struct ip6_pkt * pkt6 = (struct ip6_pkt*) *pkt;
-			int size = payload(&(pkt6->hdr));
+			size = payload(&(pkt6->hdr));
 			debug(1, 0, "read the size: %d\n", size);
 			return size;
 			break;
