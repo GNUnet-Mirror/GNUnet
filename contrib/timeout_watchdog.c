@@ -54,7 +54,6 @@ void sigchld_handler(int val)
 
 void sigint_handler(int val)
 { 
-  printf("Killing test process\n");
   kill(0, val);
   exit(1);
 }
@@ -92,16 +91,13 @@ signal(SIGTERM, sigint_handler);
 child = fork();
 if (child==0)
 {
-   printf("Starting test process `%s'\n",argv[2],arguments);
    setpgid(0,gpid);
    execvp(argv[2],&argv[2]);
-   printf("Test process `%s' could not be started\n",argv[2]);
    exit(1);
 }
 if (child > 0)
 {
   sleep(timeout);
-  printf("Timeout, killing all test processes\n");
   kill(0,SIGABRT);
   exit(1);
 }  
