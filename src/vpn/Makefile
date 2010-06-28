@@ -1,16 +1,14 @@
-CFLAGS=-Wall -pedantic
+CFLAGS=-Wall -pedantic --std=c99 -g
 CXXFLAGS = ${CFLAGS}
 
 LDFLAGS =
 
 all:default
 
-default: tun
+default: test
 
-tun.o: tun.c
-
-tun: tun.o
+test: test.o tun.o packet.o debug.o
 
 clean:
 	rm -f *.o
-	rm -f tun
+	rm -f test

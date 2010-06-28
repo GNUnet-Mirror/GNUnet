@@ -11,32 +11,40 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <stdlib.h>
 
-int tun_alloc(char *dev) {
+#include "debug.h"
+
+/**
+ * Creates a tun-interface called dev;
+ * if *dev == 0, uses the name supplied by the kernel
+ * returns the fd to the tun or -1
+ */
+int init_tun(char *dev) { /*{{{*/
 	struct ifreq ifr;
 	int fd, err;
 
 	if( (fd = open("/dev/net/tun", O_RDWR)) < 0 ) {
-		fprintf(stderr, "open: %s\n", strerror(errno));
+		debug(1, 0, "opening /dev/net/tun: %s\n", strerror(errno));
 		return -1;
 	}
 
 	memset(&ifr, 0, sizeof(ifr));
 
 	ifr.ifr_flags = IFF_TUN; 
-	if(*dev)
+	if(dev)
 		strncpy(ifr.ifr_name, dev, IFNAMSIZ);
 
 	if ((err = ioctl(fd, TUNSETIFF, (void *) &ifr)) < 0 ){
 		close(fd);
-		fprintf(stderr, "ioctl: %s\n", strerror(errno));
+		debug(1, 0, "ioctl'ing /dev/net/tun: %s\n", strerror(errno));
 		return err;
 	}
 	strcpy(dev, ifr.ifr_name);
 	return fd;
-}
+} /*}}}*/
 
-void n2o(fd) {
+void n2o(int fd) {
 	char buf[1024];
 	int r, w;
 	for(;;) {
@@ -61,7 +69,7 @@ void n2o(fd) {
 	}
 }
 
-void o2n(fd) {
+void o2n(int fd) {
 	char buf[1024];
 	int r, w;
 	for(;;) {
@@ -84,21 +92,4 @@ void o2n(fd) {
 			r -= w;
 		}
 	}
-}
-
-int main(int argc, char** argv) {
-	char name[IFNAMSIZ];
-	int fd;
-
-	memset(name, 0, IFNAMSIZ);
-
-	strncpy(name, "mynet", IFNAMSIZ);
-	fprintf(stderr, "fd = %d, name = %s\n", fd = tun_alloc(name), name);
-
-	if (fork() == 0)
-		n2o(fd);
-
-	o2n(fd);
-
-	return 0;
 }
