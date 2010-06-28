@@ -31,6 +31,36 @@ struct tcp_pkt {
 	unsigned char data[1];
 };
 
+struct udp_pkt {
+	unsigned spt:16;
+	unsigned dpt:16;
+	unsigned len:16;
+	unsigned crc:16;
+}
+
+struct dns_pkt {
+	unsigned id:16;
+	unsigned qr:1; // query:0, response:1
+	unsigned op:4; // query:0, inverse q.:1, status: 2
+	unsigned aa:1; // authoritative answer
+	unsigned tc:1; // message is truncated
+	unsigned rd:1; // recursion desired (client -> server)
+	unsigned ra:1; // recursion available (server -> client)
+	unsigned z:2;  // reserved
+	unsigned a:1;  // answer is signed by server
+	unsigned rcode:4; // 0 No error
+	                  // 1 Format error
+	                  // 2 Server failure
+	                  // 3 Name Error
+	                  // 4 Not Implemented
+	                  // 5 Refused
+	unsigned qdcount:16; // number of questions
+	unsigned ancount:16; // number of answers
+	unsigned nscount:16; // number of authority-records
+	unsigned arcount:16; // number of additional records
+	unsigned char data[1];
+}
+
 struct ip6_pkt {
 	struct pkt_tun tun;
 	struct ip6_hdr hdr;
@@ -41,6 +71,12 @@ struct ip6_tcp {
 	struct pkt_tun tun;
 	struct ip6_hdr hdr;
 	struct tcp_pkt data;
+};
+
+struct ip6_udp {
+	struct pkt_tun tun;
+	struct ip6_hdr hdr;
+	struct udp_pkt data;
 };
 
 extern void send_pkt(int fd, struct ip6_pkt* pkt);
