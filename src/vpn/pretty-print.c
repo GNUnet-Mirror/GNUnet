@@ -94,6 +94,9 @@ void pp_write_header(char* dest, struct ip6_pkt* pkt) {{{
 		case 0x3a:
 			memcpy(dest, "ICMPv6)", 7);
 			break;
+		case 0x06:
+			memcpy(dest, "TCP)", 4);
+			break;
 		default:
 			memcpy(dest, "unknown)", 8);
 			break;
@@ -138,4 +141,25 @@ void pkt_printf(struct ip6_pkt* pkt) {{{
 
 	printf(buf);
 	free(buf);
+}}}
+
+void pkt_printf_ip6tcp(struct ip6_tcp* pkt) {{{
+	printf("spt: %u\n", pkt->data.spt);
+	printf("dpt: %u\n", pkt->data.dpt);
+	printf("seq: %u\n", pkt->data.seq);
+	printf("ack: %u\n", pkt->data.ack);
+	printf("off: %u\n", pkt->data.off);
+	printf("wsz: %u\n", pkt->data.wsz);
+	printf("crc: %u\n", pkt->data.crc);
+	printf("urg: %u\n", pkt->data.urg);
+	printf("flags: %c%c%c%c%c%c%c%c\n",
+			pkt->data.flg & 0x80 ? 'C' : '.',
+			pkt->data.flg & 0x40 ? 'E' : '.',
+			pkt->data.flg & 0x20 ? 'U' : '.',
+			pkt->data.flg & 0x10 ? 'A' : '.',
+			pkt->data.flg & 0x08 ? 'P' : '.',
+			pkt->data.flg & 0x04 ? 'R' : '.',
+			pkt->data.flg & 0x02 ? 'S' : '.',
+			pkt->data.flg & 0x01 ? 'F' : '.'
+			);
 }}}

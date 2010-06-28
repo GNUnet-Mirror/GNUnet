@@ -7,6 +7,7 @@
 #include "packet.h"
 #include "tun.h"
 #include "debug.h"
+#include "pretty-print.h"
 
 int main(int c, char** v) {
 	//char* dev = (char*) malloc(IFNAMSIZ);
@@ -23,7 +24,16 @@ int main(int c, char** v) {
 			case 0x86dd:
 				printf("parsing ipv6:\n");
 				struct ip6_pkt* pkt6 = parse_ip6(pkt);
-				pkt_printf(pkt6);
+				switch(pkt6->hdr.nxthdr) {
+					case 0x3a:
+						pkt_printf(pkt6);
+						break;
+					case 0x06:
+						pkt_printf(pkt6);
+						struct ip6_tcp* pkt6_tcp = parse_ip6_tcp(pkt6);
+						pkt_printf_ip6tcp(pkt6_tcp);
+						break;
+				}
 				break;
 			default:
 				printf("unknown/unimplemented packet-type\n");

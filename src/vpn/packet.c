@@ -125,3 +125,33 @@ struct ip6_pkt* parse_ip6(struct pkt_tun* pkt) {{{
 
 	return pkt6;
 }}}
+
+struct ip6_tcp* parse_ip6_tcp(struct ip6_pkt* pkt) {{{
+	struct ip6_tcp* res = (struct ip6_tcp*) malloc(sizeof(struct ip6_tcp));
+	memcpy(&(res->hdr), &(pkt->hdr), sizeof(struct ip6_hdr));
+	
+	res->data.spt = (pkt->data[0] << 8) | pkt->data[1];
+	res->data.dpt = (pkt->data[2] << 8) | pkt->data[3];
+
+	res->data.seq = (pkt->data[4] << 24) | (pkt->data[5] << 16) | (pkt->data[6] << 8) | pkt->data[7];
+	res->data.ack = (pkt->data[8] << 24) | (pkt->data[9] << 16) | (pkt->data[10] << 8) | pkt->data[11];
+
+	res->data.off = pkt->data[12] >> 4;
+	res->data.rsv = pkt->data[12] & 0xF;
+
+	res->data.flg = pkt->data[13];
+
+	res->data.wsz = (pkt->data[14] << 8) | pkt->data[15];
+
+	res->data.crc = (pkt->data[16] << 8) | pkt->data[17];
+
+	res->data.urg = (pkt->data[18] << 8) | pkt->data[19];
+
+	res->data.opt = (unsigned char*) malloc((res->data.off - 5)*4);
+	memcpy(res->data.opt, pkt->data+20, (res->data.off - 5)*4);
+
+	res->data.data = (unsigned char*) malloc(payload(pkt) - 4*(res->data.off));
+	memcpy(res->data.data, pkt->data+4*(res->data.off), payload(pkt) - 4*(res->data.off));
+
+	return res;
+}}}

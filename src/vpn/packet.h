@@ -23,14 +23,27 @@ struct ip6_pkt {
 	unsigned char* data;
 };
 
+struct tcp_pkt {
+	unsigned short spt, dpt;
+	unsigned int seq, ack;
+	unsigned char off, rsv, flg;
+	unsigned short wsz;
+	unsigned short crc, urg;
+	unsigned char* opt;
 	unsigned char* data;
+};
+
+struct ip6_tcp {
+	struct ip6_hdr hdr;
+	struct tcp_pkt data;
 };
 
 extern void send_pkt(int fd, struct ip6_pkt* pkt);
 extern int recv_ipv6pkt(int fd, struct pkt_tun** pkt, unsigned char*);
 extern int recv_pkt(int fd, struct pkt_tun** pkt);
 extern struct ip6_pkt* parse_ip6(struct pkt_tun* pkt);
-extern void pkt_printf(struct ip6_pkt* pkt);
+
+struct ip6_tcp* parse_ip6_tcp(struct ip6_pkt*);
 
 extern long payload(struct ip6_pkt* pkt);
 
