@@ -130,6 +130,7 @@ static unsigned int
 idx_of (const struct GNUNET_CONTAINER_MultiHashMap *m,
         const GNUNET_HashCode * key)
 {
+  GNUNET_assert (m!=NULL);
   return (*(unsigned int *) key) % m->map_length;
 }
 
