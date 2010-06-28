@@ -31,8 +31,6 @@
 
 #define VERBOSE_TESTING GNUNET_NO
 
-#define VERBOSE_TOPOLOGY GNUNET_NO
-
 #define DEBUG_CHURN GNUNET_NO
 
 /**
@@ -51,6 +49,8 @@
 #define HIGH_PORT 56000
 
 #define MAX_OUTSTANDING_CONNECTIONS 50
+
+#define MAX_CONCURRENT_HOSTKEYS 16
 
 #define CONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
 
@@ -318,6 +318,11 @@ struct GNUNET_TESTING_PeerGroup
    * At what time should we fail the peer startup process?
    */
   struct GNUNET_TIME_Absolute max_timeout;
+
+  /**
+   * How many peers are being started right now?
+   */
+  unsigned int starting;
 };
 
 /**
@@ -640,10 +645,8 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param first index of the first peer
  * @param second index of the second peer
  *
- * @return the number of connections added (can be 0, 1 or 2)
- *         technically should only be 0 or 2, but the small price
- *         of iterating over the lists (hashmaps in the future)
- *         for being sure doesn't bother me!
+ * @return the number of connections added
+ *         technically should only be 0 or 2
  *
  */
 static int
@@ -2057,8 +2060,8 @@ connect_topology (struct GNUNET_TESTING_PeerGroup *pg)
  * by the topology.  This will only have an effect once peers
  * are started if the FRIENDS_ONLY option is set in the base
  * config.  Also takes an optional restrict topology which
- * disallows direct TCP connections UNLESS they are specified in
- * the restricted topology.
+ * disallows connections based on a particular transport
+ * UNLESS they are specified in the restricted topology.
  *
  * @param pg the peer group struct representing the running peers
  * @param topology which topology to connect the peers in
@@ -2086,49 +2089,49 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
   switch (topology)
     {
     case GNUNET_TESTING_TOPOLOGY_CLIQUE:
-#if VERBOSE_TOPOLOGY
+#if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Creating clique topology\n"));
 #endif
       num_connections = create_clique (pg, &add_allowed_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD_RING:
-#if VERBOSE_TOPOLOGY
+#if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Creating small world (ring) topology\n"));
 #endif
       num_connections = create_small_world_ring (pg, &add_allowed_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD:
-#if VERBOSE_TOPOLOGY
+#if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Creating small world (2d-torus) topology\n"));
 #endif
       num_connections = create_small_world (pg, &add_allowed_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_RING:
-#if VERBOSE_TOPOLOGY
+#if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Creating ring topology\n"));
 #endif
       num_connections = create_ring (pg, &add_allowed_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_2D_TORUS:
-#if VERBOSE_TOPOLOGY
+#if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Creating 2d torus topology\n"));
 #endif
       num_connections = create_2d_torus (pg, &add_allowed_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_ERDOS_RENYI:
-#if VERBOSE_TOPOLOGY
+#if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Creating Erdos-Renyi topology\n"));
 #endif
       num_connections = create_erdos_renyi (pg, &add_allowed_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_INTERNAT:
-#if VERBOSE_TOPOLOGY
+#if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Creating InterNAT topology\n"));
 #endif
@@ -2149,38 +2152,43 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
       num_connections = create_line (pg, &add_allowed_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_NONE:
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Creating no allowed topology (all peers can connect at core level)\n"));
+#endif
       num_connections = 0;
       break;
     default:
       num_connections = 0;
       break;
     }
-  if (num_connections < 1)
+
+  if (num_connections < 0)
     return GNUNET_SYSERR;
 
   if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (pg->cfg, "TESTING", "F2F"))
     {
       ret = create_and_copy_friend_files(pg);
-    }
-
-  if (ret != GNUNET_OK)
-    {
-#if VERBOSE_TESTING
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  _("Failed during friend file copying!\n"));
-#endif
-      return GNUNET_SYSERR;
-    }
-  else
-    {
+      if (ret != GNUNET_OK)
+        {
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      _("Friend files created/copied successfully!\n"));
+                      _("Failed during friend file copying!\n"));
 #endif
+          return GNUNET_SYSERR;
+        }
+      else
+        {
+#if VERBOSE_TESTING
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          _("Friend files created/copied successfully!\n"));
+#endif
+        }
     }
 
   /* Use the create clique method to initially set all connections as blacklisted. */
-  create_clique (pg, &blacklist_connections);
+  if (restrict_topology != GNUNET_TESTING_TOPOLOGY_NONE)
+    create_clique (pg, &blacklist_connections);
   unblacklisted_connections = 0;
   /* Un-blacklist connections as per the topology specified */
   switch (restrict_topology)
@@ -2249,7 +2257,10 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
       unblacklisted_connections = create_line (pg, &unblacklist_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_NONE:
-      /* Fall through */
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Creating no blacklist topology (all peers can connect at transport level)\n"));
+#endif
     default:
       break;
     }
@@ -2798,6 +2809,69 @@ GNUNET_TESTING_daemons_continue_startup(struct GNUNET_TESTING_PeerGroup *pg)
     }
 }
 
+struct InternalStartContext
+{
+  struct PeerData *peer;
+  struct GNUNET_SCHEDULER_Handle *sched;
+  const struct GNUNET_CONFIGURATION_Handle *pcfg;
+  struct GNUNET_TIME_Relative timeout;
+  GNUNET_TESTING_NotifyHostkeyCreated hostkey_callback;
+  void *hostkey_cls;
+  GNUNET_TESTING_NotifyDaemonRunning cb;
+  void *cb_cls;
+  const char *hostname;
+};
+
+
+/**
+ * Prototype of a function that will be called whenever
+ * a daemon was started by the testing library.
+ *
+ * @param cls closure
+ * @param id identifier for the daemon, NULL on error
+ * @param d handle for the daemon
+ * @param emsg error message (NULL on success)
+ */
+static void internal_hostkey_callback (void *cls,
+                                       const struct GNUNET_PeerIdentity *id,
+                                       struct GNUNET_TESTING_Daemon *d,
+                                       const char *emsg)
+{
+  struct InternalStartContext *internal_context = cls;
+  internal_context->peer->pg->starting--;
+  internal_context->hostkey_callback(internal_context->hostkey_cls, id, d, emsg);
+  GNUNET_free(internal_context);
+}
+
+static void
+internal_start (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct InternalStartContext *internal_context = cls;
+
+  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+    {
+      GNUNET_free(internal_context);
+      return;
+    }
+
+  if (internal_context->peer->pg->starting < MAX_CONCURRENT_HOSTKEYS)
+    {
+      internal_context->peer->pg->starting++;
+      internal_context->peer->daemon = GNUNET_TESTING_daemon_start (internal_context->sched,
+                                                                    internal_context->pcfg,
+                                                                    internal_context->timeout,
+                                                                    internal_context->hostname,
+                                                                    &internal_hostkey_callback,
+                                                                    internal_context,
+                                                                    internal_context->cb,
+                                                                    internal_context->cb_cls);
+    }
+  else
+    {
+      GNUNET_SCHEDULER_add_delayed(internal_context->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &internal_start, internal_context);
+    }
+}
+
 /**
  * Start count gnunetd processes with the same set of transports and
  * applications.  The port numbers (any option called "PORT") will be
@@ -2842,6 +2916,7 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
   char *baseservicehome;
   char *newservicehome;
   char *tmpdir;
+  struct InternalStartContext *internal_context;
   struct GNUNET_CONFIGURATION_Handle *pcfg;
   unsigned int off;
   unsigned int hostcnt;
@@ -2968,6 +3043,20 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
       pg->peers[off].connect_peers = GNUNET_CONTAINER_multihashmap_create(total);
       pg->peers[off].blacklisted_peers = GNUNET_CONTAINER_multihashmap_create(total);
       pg->peers[off].pg = pg;
+      internal_context = GNUNET_malloc(sizeof(struct InternalStartContext));
+      internal_context->sched = sched;
+      internal_context->peer = &pg->peers[off];
+      internal_context->pcfg = pcfg;
+      internal_context->timeout = timeout;
+      internal_context->hostname = hostname;
+      internal_context->hostkey_callback = hostkey_callback;
+      internal_context->hostkey_cls = hostkey_cls;
+      internal_context->cb = cb;
+      internal_context->cb_cls = cb_cls;
+
+      GNUNET_SCHEDULER_add_now (sched, &internal_start, internal_context);
+
+      /*
       pg->peers[off].daemon = GNUNET_TESTING_daemon_start (sched,
                                                            pcfg,
                                                            timeout,
@@ -2978,6 +3067,7 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
       if (NULL == pg->peers[off].daemon)
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                     _("Could not start peer number %u!\n"), off);
+      */
 
     }
   return pg;

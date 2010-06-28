@@ -38,6 +38,7 @@ check_PROGRAMS = \
  test_testing_topology_small_world_torus \
  test_testing_topology_erdos_renyi \
  test_testing_topology_internat \
+ test_testing_topology_none \
  test_testing_topology_scale_free
  
 TESTS = \
@@ -166,6 +167,12 @@ test_testing_topology_erdos_renyi_LDADD = \
 test_testing_topology_scale_free_SOURCES = \
   test_testing_topology.c
 test_testing_topology_scale_free_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+
+test_testing_topology_none_SOURCES = \
+ test_testing_topology.c
+test_testing_topology_none_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
  
