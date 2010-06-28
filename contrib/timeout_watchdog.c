@@ -33,7 +33,7 @@
 static int child_died;
 static pid_t child;
 
-void sigchld_handler(int val)
+static void sigchld_handler(int val)
 {
   int status = 0;
   int ret = 0;
@@ -52,7 +52,7 @@ void sigchld_handler(int val)
   exit(ret);  
 }
 
-void sigint_handler(int val)
+static void sigint_handler(int val)
 { 
   kill(0, val);
   exit(1);
