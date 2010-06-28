@@ -1066,9 +1066,11 @@ static void send_execute (void *cls,
                         con->pending_msgs_tail->transmit_cont (con->pending_msgs_tail->transmit_cont_cls,&cs->identity,GNUNET_SYSERR);
                     }
                   }
-
-                  if (GNUNET_OK != remove_http_message(con, con->pending_msgs_tail))
+                  if (con->pending_msgs_tail != NULL)
+                  {
+                    remove_http_message(con, con->pending_msgs_tail);
                     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message could not be removed from session `%s'", GNUNET_i2s(&cs->identity));
+                  }
                   return;
                 default:
                   break;
@@ -1180,7 +1182,7 @@ static char * create_url(void * cls, const void * addr, size_t addrlen)
 {
   struct Plugin *plugin = cls;
   char *address;
-  char *url;
+  char *url = NULL;
 
   GNUNET_assert ((addr!=NULL) && (addrlen != 0));
   if (addrlen == (sizeof (struct IPv4HttpAddress)))
