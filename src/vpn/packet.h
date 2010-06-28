@@ -8,7 +8,7 @@ struct pkt_tun {
 	unsigned char* data;
 };
 
-struct ip6_pkt {
+struct ip6_hdr {
 	unsigned char tclass;
 	unsigned char flowlbl[3];
 	unsigned char paylgth[2];
@@ -16,6 +16,12 @@ struct ip6_pkt {
 	unsigned char hoplmt;
 	unsigned char sadr[16];
 	unsigned char dadr[16];
+};
+
+struct ip6_pkt {
+	struct ip6_hdr hdr;
+	unsigned char* data;
+};
 
 	unsigned char* data;
 };

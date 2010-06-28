@@ -18,18 +18,18 @@ void send_pkt(int fd, struct ip6_pkt* pkt) {{{
 	int w = 0;
 	char* buf = (char*)malloc(sz+40);
 
-	buf[0] = (6 << 4) | (pkt->tclass >> 4);
-	buf[1] = (pkt->tclass << 4) | (pkt->flowlbl[0] >> 4);
-	buf[2] = pkt->flowlbl[1];
-	buf[3] = pkt->flowlbl[2];
-	buf[4] = pkt->paylgth[0];
-	buf[5] = pkt->paylgth[1];
-	buf[6] = pkt->nxthdr;
-	buf[7] = pkt->hoplmt;
+	buf[0] = (6 << 4) | (pkt->hdr.tclass >> 4);
+	buf[1] = (pkt->hdr.tclass << 4) | (pkt->hdr.flowlbl[0] >> 4);
+	buf[2] = pkt->hdr.flowlbl[1];
+	buf[3] = pkt->hdr.flowlbl[2];
+	buf[4] = pkt->hdr.paylgth[0];
+	buf[5] = pkt->hdr.paylgth[1];
+	buf[6] = pkt->hdr.nxthdr;
+	buf[7] = pkt->hdr.hoplmt;
 
 	for (w = 0; w < 16; w++) {
-		buf[8+w] = pkt->sadr[w];
-		buf[24+w] = pkt->dadr[w];
+		buf[8+w] = pkt->hdr.sadr[w];
+		buf[24+w] = pkt->hdr.dadr[w];
 	}
 
 	memcpy(buf+40, pkt->data, sz);
@@ -104,20 +104,20 @@ int recv_pkt(int fd, struct pkt_tun** pkt) {{{
 struct ip6_pkt* parse_ip6(struct pkt_tun* pkt) {{{
 	struct ip6_pkt* pkt6 = (struct ip6_pkt*)malloc(sizeof(struct ip6_pkt));
 
-	pkt6->tclass = pkt->data[0] << 4 | pkt->data[1] >> 4;
-	pkt6->flowlbl[0] = pkt->data[1]>>4;
-	pkt6->flowlbl[1] = pkt->data[2];
-	pkt6->flowlbl[2] = pkt->data[3];
+	pkt6->hdr.tclass = pkt->data[0] << 4 | pkt->data[1] >> 4;
+	pkt6->hdr.flowlbl[0] = pkt->data[1]>>4;
+	pkt6->hdr.flowlbl[1] = pkt->data[2];
+	pkt6->hdr.flowlbl[2] = pkt->data[3];
 
-	pkt6->paylgth[0] = pkt->data[4];
-	pkt6->paylgth[1] = pkt->data[5];
+	pkt6->hdr.paylgth[0] = pkt->data[4];
+	pkt6->hdr.paylgth[1] = pkt->data[5];
 
-	pkt6->nxthdr = pkt->data[6];
-	pkt6->hoplmt = pkt->data[7];
+	pkt6->hdr.nxthdr = pkt->data[6];
+	pkt6->hdr.hoplmt = pkt->data[7];
 
 	for (int w = 0; w < 16; w++) {
-		pkt6->sadr[w] = pkt->data[8+w];
-		pkt6->dadr[w] = pkt->data[24+w];
+		pkt6->hdr.sadr[w] = pkt->data[8+w];
+		pkt6->hdr.dadr[w] = pkt->data[24+w];
 	}
 
 	pkt6->data = (unsigned char*)malloc(payload(pkt6));

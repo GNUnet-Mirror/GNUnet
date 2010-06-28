@@ -18,8 +18,16 @@ int main(int c, char** v) {
 	struct pkt_tun* pkt;
 
 	for(;;) {
-		printf("read %d bytes from socket, now to parse'em\n", recv_pkt(fd, &pkt));
-		struct ip6_pkt* pkt6 = parse_ip6(pkt);
-		pkt_printf(pkt6);
+		printf("read %d bytes from socket, ", recv_pkt(fd, &pkt));
+		switch (pkt->type[0] << 8 | pkt->type[1]) {
+			case 0x86dd:
+				printf("parsing ipv6:\n");
+				struct ip6_pkt* pkt6 = parse_ip6(pkt);
+				pkt_printf(pkt6);
+				break;
+			default:
+				printf("unknown/unimplemented packet-type\n");
+				break;
+		}
 	}
 }
