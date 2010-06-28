@@ -296,14 +296,9 @@ struct UDP_NAT_Probes
   GNUNET_SCHEDULER_TaskIdentifier task;
 
   /**
-   * Network address (always ipv4)
+   * Network address (always ipv4!)
    */
-  struct sockaddr_in sock_addr;
-
-  /**
-   * The port to send this probe to, 0 to choose randomly
-   */
-  int port;
+  struct IPv4UdpAddress addr;
 
 };
 
@@ -553,7 +548,7 @@ udp_real_send (void *cls,
 
   if ((addr == NULL) || (addrlen == 0))
     {
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
                    ("udp_real_send called without address, returning!\n"));
 #endif
@@ -638,35 +633,25 @@ udp_real_send (void *cls,
 void
 run_gnunet_nat_client (struct Plugin *plugin, const char *addr, size_t addrlen)
 {
-  char inet4[INET_ADDRSTRLEN];
+  char addr_buf[INET_ADDRSTRLEN];
   char *address_as_string;
   char *port_as_string;
   pid_t pid;
-  const struct sockaddr *sa = (const struct sockaddr *)addr;
+  const struct IPv4UdpAddress *t4;
 
-  if (addrlen < sizeof (struct sockaddr))
-    return;
-  switch (sa->sa_family)
+  GNUNET_assert(addrlen == sizeof(struct IPv4UdpAddress));
+  t4 = (struct IPv4UdpAddress *)addr;
+
+  if (NULL == inet_ntop (AF_INET,
+                         &t4->u_port,
+                         addr_buf, INET_ADDRSTRLEN))
     {
-    case AF_INET:
-      if (addrlen != sizeof (struct sockaddr_in))
-        return;
-      if (NULL == inet_ntop (AF_INET,
-			     &((struct sockaddr_in *) sa)->sin_addr,
-			     inet4, INET_ADDRSTRLEN))
-	{
-	  GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "inet_ntop");
-	  return;
-	}
-      address_as_string = GNUNET_strdup (inet4);
-      break;
-    case AF_INET6:
-    default:
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "inet_ntop");
       return;
     }
-
+  address_as_string = GNUNET_strdup (addr_buf);
   GNUNET_asprintf(&port_as_string, "%d", plugin->port);
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp",
                   _("Running gnunet-nat-client with arguments: %s %s %d\n"), plugin->external_address, address_as_string, plugin->port);
 #endif
@@ -723,21 +708,18 @@ udp_plugin_send (void *cls,
   const struct IPv4UdpAddress *t4;
 
   GNUNET_assert (NULL == session);
-  other_peer_natd = GNUNET_NO;
 
+  other_peer_natd = GNUNET_NO;
   if (addrlen == sizeof(struct IPv4UdpAddress))
     {
       t4 = addr;
       if (ntohs(t4->u_port) == 0)
         other_peer_natd = GNUNET_YES;
     }
-  else if (addrlen == sizeof(struct IPv6UdpAddress))
-    {
-
-    }
-  else
+  else if (addrlen != sizeof(struct IPv6UdpAddress))
     {
       GNUNET_break_op(0);
+      return -1; /* Must have an address to send to */
     }
 
   sent = 0;
@@ -771,7 +753,7 @@ udp_plugin_send (void *cls,
           peer_session->messages->timeout = GNUNET_TIME_relative_to_absolute(timeout);
           peer_session->messages->cont = cont;
           peer_session->messages->cont_cls = cont_cls;
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
           GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp",
                           _("Other peer is NAT'd, set up peer session for peer %s\n"), GNUNET_i2s(target));
 #endif
@@ -958,14 +940,12 @@ send_udp_probe_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   message->header.size = htons(sizeof(struct UDP_NAT_ProbeMessage));
   message->header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_NAT_PROBE);
   /* If they gave us a port, use that.  If not, try our port. */
-  if (probe->port != 0)
-    probe->sock_addr.sin_port = htons(probe->port);
-  else
-    probe->sock_addr.sin_port = htons(plugin->port);
+  if (ntohs(probe->addr.u_port) == 0)
+    probe->addr.u_port = htons(plugin->port);
 
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp",
-                      _("Sending a probe to port %d\n"), ntohs(probe->sock_addr.sin_port));
+                      _("Sending a probe to port %d\n"), ntohs(probe->addr.u_port));
 #endif
 
   probe->count++;
@@ -973,7 +953,7 @@ send_udp_probe_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   udp_real_send(plugin, udp_sock.desc, NULL,
 		    (char *)message, ntohs(message->header.size), 0, 
 		    GNUNET_TIME_relative_get_unit(), 
-		    &probe->sock_addr, sizeof(probe->sock_addr),
+		    &probe->addr, sizeof(probe->addr),
 		    &udp_probe_continuation, probe);
 
   GNUNET_free(message);
@@ -993,7 +973,7 @@ udp_probe_continuation (void *cls, const struct GNUNET_PeerIdentity *target, int
 
   if ((result == GNUNET_OK) && (probe->count < MAX_PROBES))
     {
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp",
                        _("Scheduling next probe for 10000 milliseconds\n"));
 #endif
@@ -1001,7 +981,7 @@ udp_probe_continuation (void *cls, const struct GNUNET_PeerIdentity *target, int
     }
   else /* Destroy the probe context. */
     {
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp",
                       _("Sending probe didn't go well...\n"));
 #endif
@@ -1048,7 +1028,7 @@ udp_plugin_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   struct UDP_NAT_Probes *temp_probe;
   int port;
   char *port_start;
-  struct sockaddr_in in_addr;
+  struct IPv4UdpAddress a4;
 
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     return;
@@ -1057,7 +1037,7 @@ udp_plugin_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
 
   if (bytes < 1)
     {
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp",
                       _("Finished reading from server stdout with code: %d\n"), bytes);
 #endif
@@ -1089,7 +1069,7 @@ udp_plugin_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
       return;
     }
 
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp",
                   _("nat-server-read read: %s port %d\n"), &mybuf, port);
 #endif
@@ -1098,7 +1078,7 @@ udp_plugin_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
    * We have received an ICMP response, ostensibly from a non-NAT'd peer
    *  that wants to connect to us! Send a message to establish a connection.
    */
-  if (inet_pton(AF_INET, &mybuf[0], &in_addr.sin_addr) != 1)
+  if (inet_pton(AF_INET, &mybuf[0], &a4.ipv4_addr) != 1)
     {
 
       GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "udp",
@@ -1117,9 +1097,8 @@ udp_plugin_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
     {
       temp_probe = GNUNET_malloc(sizeof(struct UDP_NAT_Probes));
       temp_probe->address_string = strdup(&mybuf[0]);
-      temp_probe->sock_addr.sin_family = AF_INET;
-      GNUNET_assert(inet_pton(AF_INET, &mybuf[0], &temp_probe->sock_addr.sin_addr) == 1);
-      temp_probe->port = port;
+      GNUNET_assert (1 == inet_pton(AF_INET, &mybuf[0], &temp_probe->addr.ipv4_addr));
+      temp_probe->addr.u_port = htons(port);
       temp_probe->next = plugin->probes;
       temp_probe->plugin = plugin;
       temp_probe->task = GNUNET_SCHEDULER_add_delayed(plugin->env->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 500), &send_udp_probe_message, temp_probe);
@@ -1158,14 +1137,26 @@ udp_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
   struct PeerSession *peer_session;
   struct MessageQueue *pending_message;
   struct MessageQueue *pending_message_temp;
+  uint16_t incoming_port;
 
   if (memcmp(sender, plugin->env->my_identity, sizeof(struct GNUNET_PeerIdentity)) == 0)
     {
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp",
                       _("Received a message from myself, dropping!!!\n"));
 #endif
       return;
+    }
+
+  incoming_port = 0;
+  GNUNET_assert(sender_addr != NULL); /* Can recvfrom have a NULL address? */
+  if (fromlen == sizeof(struct IPv4UdpAddress))
+    {
+      incoming_port = ntohs(((struct IPv4UdpAddress *)sender_addr)->u_port);
+    }
+  else if (fromlen == sizeof(struct IPv6UdpAddress))
+    {
+      incoming_port = ntohs(((struct IPv6UdpAddress *)sender_addr)->u6_port);
     }
 
   switch (ntohs(currhdr->type))
@@ -1176,35 +1167,35 @@ udp_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
       outgoing_probe_reply->header.size = htons(sizeof(struct UDP_NAT_ProbeMessageReply));
       outgoing_probe_reply->header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_NAT_PROBE_REPLY);
 
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp",
-                      _("Received a probe on listen port %d, sent_from port %d\n"), sockinfo->port, ntohs(((struct sockaddr_in *)sender_addr)->sin_port));
+                      _("Received a probe on listen port %d, sent_from port %d\n"), sockinfo->port, incoming_port);
 #endif
 
       udp_real_send(plugin, sockinfo->desc, NULL,
-			(char *)outgoing_probe_reply,
-			ntohs(outgoing_probe_reply->header.size), 0, 
-			GNUNET_TIME_relative_get_unit(), 
-			sender_addr, fromlen,
-			NULL, NULL);
+                    (char *)outgoing_probe_reply,
+                    ntohs(outgoing_probe_reply->header.size), 0,
+                    GNUNET_TIME_relative_get_unit(),
+                    sender_addr, fromlen,
+                    NULL, NULL);
 
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp",
-                      _("Sent PROBE REPLY to port %d on outgoing port %d\n"), ntohs(((struct sockaddr_in *)sender_addr)->sin_port), sockinfo->port);
+                      _("Sent PROBE REPLY to port %d on outgoing port %d\n"), incoming_port, sockinfo->port);
 #endif
       GNUNET_free(outgoing_probe_reply);
       break;
     case GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_NAT_PROBE_REPLY:
       /* Check for existing probe, check ports returned, send confirmation if all is well */
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp",
-                      _("Received PROBE REPLY from port %d on incoming port %d\n"), ntohs(((struct sockaddr_in *)sender_addr)->sin_port), sockinfo->port);
+                      _("Received PROBE REPLY from port %d on incoming port %d\n"), incoming_port, sockinfo->port);
 #endif
-      if ((sender_addr != NULL) && (sizeof(sender_addr) == sizeof(struct IPv4UdpAddress)))
+      if (sizeof(sender_addr) == sizeof(struct IPv4UdpAddress))
         {
           memset(&addr_buf, 0, sizeof(addr_buf));
           if (NULL == inet_ntop (AF_INET, 
-				 &((struct sockaddr_in *) sender_addr)->sin_addr, addr_buf, 
+				 &((struct IPv4UdpAddress *) sender_addr)->ipv4_addr, addr_buf,
 				 INET_ADDRSTRLEN))
 	    {
 	      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "inet_ntop");
@@ -1213,7 +1204,7 @@ udp_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
           outgoing_probe = find_probe(plugin, &addr_buf[0]);
           if (outgoing_probe != NULL)
             {
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
               GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp",
                               _("Sending confirmation that we were reached!\n"));
 #endif
@@ -1233,7 +1224,7 @@ udp_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
             }
           else
             {
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
               GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp",
                               _("Received a probe reply, but have no record of a sent probe!\n"));
 #endif
@@ -1242,13 +1233,13 @@ udp_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
       break;
     case GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_NAT_PROBE_CONFIRM:
       peer_session = find_session(plugin, sender);
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
           GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp",
                           _("Looking up peer session for peer %s\n"), GNUNET_i2s(sender));
 #endif
       if (peer_session == NULL) /* Shouldn't this NOT happen? */
         {
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
           GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp",
                           _("Peer not in list, adding (THIS MAY BE A MISTAKE) %s\n"), GNUNET_i2s(sender));
 #endif
@@ -1270,14 +1261,22 @@ udp_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
         {
           peer_session->expecting_welcome = GNUNET_NO;
           peer_session->sock = sockinfo->desc;
-          ((struct sockaddr_in *)peer_session->connect_addr)->sin_port = ((struct sockaddr_in *) sender_addr)->sin_port;
-#if DEBUG_UDP_NAT
+          if (peer_session->connect_alen == sizeof(struct IPv4UdpAddress))
+            {
+              ((struct IPv4UdpAddress *)peer_session->connect_addr)->u_port = htons(incoming_port);
+            }
+          else if (peer_session->connect_alen == sizeof(struct IPv4UdpAddress))
+            {
+              ((struct IPv6UdpAddress *)peer_session->connect_addr)->u6_port = htons(incoming_port);
+            }
+
+#if DEBUG_UDP
               GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp",
-                              _("Received a probe confirmation, will send to peer on port %d\n"), ntohs(((struct sockaddr_in *)peer_session->connect_addr)->sin_port));
+                              _("Received a probe confirmation, will send to peer on port %d\n"), incoming_port);
 #endif
           if (peer_session->messages != NULL)
             {
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
               GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp",
                               _("Received a probe confirmation, sending queued messages.\n"));
 #endif
@@ -1285,16 +1284,26 @@ udp_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
               int count = 0;
               while (pending_message != NULL)
                 {
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
                   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp",
                                   _("sending queued message %d\n"), count);
 #endif
-                  udp_real_send(plugin, peer_session->sock, &peer_session->target, pending_message->msgbuf, pending_message->msgbuf_size, 0, GNUNET_TIME_relative_get_unit(), peer_session->connect_addr, peer_session->connect_alen, pending_message->cont, pending_message->cont_cls);
+                  udp_real_send(plugin,
+                                peer_session->sock,
+                                &peer_session->target,
+                                pending_message->msgbuf,
+                                pending_message->msgbuf_size, 0,
+                                GNUNET_TIME_relative_get_unit(),
+                                peer_session->connect_addr,
+                                peer_session->connect_alen,
+                                pending_message->cont,
+                                pending_message->cont_cls);
+
                   pending_message_temp = pending_message;
                   pending_message = pending_message->next;
                   GNUNET_free(pending_message_temp->msgbuf);
                   GNUNET_free(pending_message_temp);
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
                   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp",
                                   _("finished sending queued message %d\n"), count);
 #endif
@@ -1305,7 +1314,7 @@ udp_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
         }
       else
         {
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
           GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp",
                           _("Received probe confirmation for already confirmed peer!\n"));
 #endif
@@ -1317,6 +1326,10 @@ udp_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
       /* If we receive these just ignore! */
       break;
     default:
+#if DEBUG_UDP
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                       _("Sending message type %d to transport\n!"), ntohs(currhdr->type));
+#endif
       plugin->env->receive (plugin->env->cls, sender, currhdr, UDP_DIRECT_DISTANCE, 
 			    NULL, sender_addr, fromlen);
   }
@@ -1377,7 +1390,7 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_NETWORK_socket_recvfrom (udp_sock.desc, buf, buflen,
                                     (struct sockaddr *)&addr, &fromlen);
 
-  if (fromlen == sizeof (struct sockaddr_in))
+  if (AF_INET == ((struct sockaddr *)addr)->sa_family)
     {
       s4 = (const struct sockaddr_in*) &addr;
       t4.u_port = s4->sin_port;
@@ -1385,7 +1398,7 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       ca = &t4;
       calen = sizeof (t4);
     }
-  else if (fromlen == sizeof (struct sockaddr_in6))
+  else if (AF_INET6 == ((struct sockaddr *)addr)->sa_family)
     {
       s6 = (const struct sockaddr_in6*) &addr;
       t6.u6_port = s6->sin6_port;
@@ -1402,12 +1415,6 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       calen = 0;
     }
 
-#if DEBUG_UDP_NAT
-  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
-                   ("socket_recv returned %u, src_addr_len is %u\n"), ret,
-                   fromlen);
-#endif
-
   if (ret <= 0)
     {
       GNUNET_free (buf);
@@ -1415,11 +1422,6 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
   msg = (struct UDPMessage *) buf;
 
-#if DEBUG_UDP_NAT
-  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
-                  ("header reports message size of %d, type %d\n"),
-                  ntohs (msg->header.size), ntohs (msg->header.type));
-#endif
   if (ntohs (msg->header.size) < sizeof (struct UDPMessage))
     {
       GNUNET_free (buf);
@@ -1437,17 +1439,7 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   while (offset < tsize)
     {
       currhdr = (struct GNUNET_MessageHeader *)&msgbuf[offset];
-#if DEBUG_UDP_NAT
-      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
-                       ("processing msg %d: type %d, size %d at offset %d\n"),
-                       count, ntohs(currhdr->type), ntohs(currhdr->size), offset);
-#endif
       udp_demultiplexer(plugin, sender, currhdr, ca, calen, &udp_sock);
-#if DEBUG_UDP_NAT
-      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "udp", _
-                       ("processing done msg %d: type %d, size %d at offset %d\n"),
-                       count, ntohs(currhdr->type), ntohs(currhdr->size), offset);
-#endif
       offset += ntohs(currhdr->size);
       count++;
     }
@@ -1490,7 +1482,7 @@ udp_transport_server_start (void *cls)
       plugin->server_stdout = GNUNET_DISK_pipe(GNUNET_YES);
       if (plugin->server_stdout == NULL)
         return sockets_created;
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "udp",
                    "Starting gnunet-nat-server process cmd: %s %s\n", "gnunet-nat-server", plugin->internal_address);
@@ -1499,7 +1491,7 @@ udp_transport_server_start (void *cls)
       plugin->server_pid = GNUNET_OS_start_process(NULL, plugin->server_stdout, "gnunet-nat-server", "gnunet-nat-server", plugin->internal_address, NULL);
       if (plugin->server_pid == GNUNET_SYSERR)
         {
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
           GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                            "udp",
                            "Failed to start gnunet-nat-server process\n");
@@ -1536,7 +1528,7 @@ udp_transport_server_start (void *cls)
         serverAddrv4.sin_port = htons (plugin->port);
         addrlen = sizeof (serverAddrv4);
         serverAddr = (struct sockaddr *) &serverAddrv4;
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
         GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                          "udp",
                          "Binding to port %d\n", ntohs(serverAddrv4.sin_port));
@@ -1545,7 +1537,7 @@ udp_transport_server_start (void *cls)
                        GNUNET_OK)
           {
             serverAddrv4.sin_port = htons (GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_STRONG, 33537) + 32000); /* Find a good, non-root port */
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
         GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                         "udp",
                         "Binding failed, trying new port %d\n", ntohs(serverAddrv4.sin_port));
@@ -1635,7 +1627,7 @@ udp_check_address (void *cls, void *addr, size_t addrlen)
       v6->sin6_port = htons (plugin->port);
     }
 
-#if DEBUG_UDP_NAT
+#if DEBUG_UDP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "udp",
                    "Informing transport service about my address `%s'.\n",
