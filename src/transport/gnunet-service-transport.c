@@ -3995,9 +3995,7 @@ process_hello (struct TransportPlugin *plugin,
 			    gettext_noop ("# HELLOs received for validation"),
 			    1,
 			    GNUNET_NO);      
-  GNUNET_CRYPTO_hash (&publicKey,
-                      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                      &target.hashPubKey);
+
   /* first, check if load is too high */
   if (GNUNET_SCHEDULER_get_load (sched,
 				 GNUNET_SCHEDULER_PRIORITY_BACKGROUND) > MAX_HELLO_LOAD)
@@ -4026,6 +4024,11 @@ process_hello (struct TransportPlugin *plugin,
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
+
+  GNUNET_CRYPTO_hash (&publicKey,
+                      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                      &target.hashPubKey);
+
   if (0 == memcmp (&my_identity,
 		   &target,
 		   sizeof (struct GNUNET_PeerIdentity)))
