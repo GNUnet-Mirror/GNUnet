@@ -42,7 +42,6 @@ int recv_pkt(int fd, struct pkt_tun** pkt) {{{
 
 	*pkt = (struct pkt_tun*)malloc(r);
 
-	int r = r > size ? size : r;
 	memcpy(*pkt, data, r);
 	struct pkt_tun *_pkt = *pkt;
 
