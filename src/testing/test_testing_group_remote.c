@@ -50,6 +50,30 @@ static unsigned long long num_peers;
 
 static char *hostnames;
 
+/**
+ * Check whether peers successfully shut down.
+ */
+void shutdown_callback (void *cls,
+                        const char *emsg)
+{
+  if (emsg != NULL)
+    {
+#if VERBOSE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Shutdown of peers failed!\n");
+#endif
+      if (ok == 0)
+        ok = 666;
+    }
+  else
+    {
+#if VERBOSE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "All peers successfully shut down!\n");
+#endif
+    }
+}
+
 
 static void
 my_cb (void *cls,
@@ -65,13 +89,13 @@ my_cb (void *cls,
   peers_left--;
   if (peers_left == 0)
     {
-      GNUNET_TESTING_daemons_stop (pg, TIMEOUT);
+      GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
       ok = 0;
     }
   else if (peers_failed == peers_left)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Too many peers failed, ending test!\n");
-      GNUNET_TESTING_daemons_stop (pg, TIMEOUT);
+      GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
     }
 }
 

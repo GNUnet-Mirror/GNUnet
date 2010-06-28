@@ -21,16 +21,9 @@
 /**
  * @file testing/testing_group.c
  * @brief convenience API for writing testcases for GNUnet
+ * @author Nathan Evans
  * @author Christian Grothoff
  *
- * FIXME: have connection processor functions take a cls argument
- *        which specifies where to write the connection information
- *        instead of assuming it's certain peergroup places. (maybe?)
- * FIXME: create static struct which contains the TOPOLOGY enum, the
- *        associated string, and the function used to create it.
- *        Then replace the create_X calls with topology_struct[i][2]
- *        or something. (Store function pointers instead of using
- *        switch statements)
  */
 #include "platform.h"
 #include "gnunet_arm_service.h"
@@ -55,7 +48,7 @@
  * conflict with the port range for "local" ports (client apps; see
  * /proc/sys/net/ipv4/ip_local_port_range on Linux for example).
  */
-#define HIGH_PORT 32000
+#define HIGH_PORT 56000
 
 #define MAX_OUTSTANDING_CONNECTIONS 50
 
@@ -135,6 +128,36 @@ struct RestartContext
    */
   void *callback_cls;
 
+};
+
+
+struct ShutdownContext
+{
+  /**
+   * Total peers to wait for
+   */
+  int total_peers;
+
+  /**
+   * Number of peers successfully shut down
+   */
+  int peers_down;
+
+  /**
+   * Number of peers failed to shut down
+   */
+  int peers_failed;
+
+  /**
+   * Callback to call when all peers either
+   * shutdown or failed to shutdown
+   */
+  GNUNET_TESTING_NotifyCompletion cb;
+
+  /**
+   * Closure for cb
+   */
+  void *cb_cls;
 };
 
 struct CreateTopologyContext
@@ -3347,25 +3370,73 @@ GNUNET_TESTING_daemons_vary (struct GNUNET_TESTING_PeerGroup *pg,
 
 
 /**
+ * Callback for shutting down peers in a peer group.
+ *
+ * @param cls closure (struct ShutdownContext)
+ * @param emsg NULL on success
+ */
+void internal_shutdown_callback (void *cls,
+                        const char *emsg)
+{
+  struct ShutdownContext *shutdown_ctx = cls;
+
+  if (emsg == NULL)
+    {
+      shutdown_ctx->peers_down++;
+    }
+  else
+    {
+      shutdown_ctx->peers_failed++;
+    }
+
+  if ((shutdown_ctx->cb != NULL) && (shutdown_ctx->peers_down + shutdown_ctx->peers_failed == shutdown_ctx->total_peers))
+    {
+      if (shutdown_ctx->peers_failed > 0)
+        shutdown_ctx->cb(shutdown_ctx->cb_cls, "Not all peers successfully shut down!");
+      else
+        shutdown_ctx->cb(shutdown_ctx->cb_cls, NULL);
+      GNUNET_free(shutdown_ctx);
+    }
+}
+
+/**
  * Shutdown all peers started in the given group.
  *
  * @param pg handle to the peer group
  * @param timeout how long to wait for shutdown
+ * @param cb callback to notify upon success or failure
+ * @param cb_cls closure for cb
  */
 void
 GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg, 
-			     struct GNUNET_TIME_Relative timeout)
+			     struct GNUNET_TIME_Relative timeout,
+			     GNUNET_TESTING_NotifyCompletion cb,
+                             void *cb_cls)
 {
   unsigned int off;
+  struct ShutdownContext *shutdown_ctx;
+  GNUNET_TESTING_NotifyCompletion shutdown_cb;
+  void *shutdown_cb_cls;
+
+  GNUNET_assert(pg->total > 0);
+
+  shutdown_cb = NULL;
+  shutdown_ctx = NULL;
+
+  if (cb != NULL)
+    {
+      shutdown_ctx = GNUNET_malloc(sizeof(struct ShutdownContext));
+      shutdown_ctx->cb = cb;
+      shutdown_ctx->cb_cls = cb_cls;
+      shutdown_ctx->total_peers = pg->total;
+      shutdown_cb = &internal_shutdown_callback;
+      shutdown_cb_cls = cb_cls;
+    }
 
   for (off = 0; off < pg->total; off++)
     {
-      /* FIXME: should we wait for our continuations to be called
-         here? This would require us to take a continuation as
-         well... */
-
       if (NULL != pg->peers[off].daemon)
-        GNUNET_TESTING_daemon_stop (pg->peers[off].daemon, timeout, NULL, NULL, GNUNET_YES, GNUNET_NO);
+        GNUNET_TESTING_daemon_stop (pg->peers[off].daemon, timeout, shutdown_cb, shutdown_ctx, GNUNET_YES, GNUNET_NO);
       if (NULL != pg->peers[off].cfg)
         GNUNET_CONFIGURATION_destroy (pg->peers[off].cfg);
       if (pg->peers[off].allowed_peers != NULL)

@@ -26,7 +26,6 @@
 
 #define VERBOSE GNUNET_NO
 
-
 /**
  * How long until we give up on connecting the peers?
  */
