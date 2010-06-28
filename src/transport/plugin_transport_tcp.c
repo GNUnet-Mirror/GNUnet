@@ -150,6 +150,31 @@ struct Plugin;
 
 
 /**
+ * Local network addresses (actual IP address follows this struct).
+ * PORT is NOT included!
+ */
+struct LocalAddrList
+{
+  
+  /**
+   * This is a doubly linked list.
+   */
+  struct LocalAddrList *next;
+
+  /**
+   * This is a doubly linked list.
+   */
+  struct LocalAddrList *prev;
+
+  /**
+   * Number of bytes of the address that follow
+   */
+  size_t size;
+
+};
+
+
+/**
  * Information kept for each message that is yet to
  * be transmitted.
  */
@@ -360,6 +385,16 @@ struct Plugin
   char *internal_address;
 
   /**
+   * List of our IP addresses.
+   */
+  struct LocalAddrList *lal_head;
+  
+  /**
+   * Tail of our IP address list.
+   */ 
+  struct LocalAddrList *lal_tail;
+
+  /**
    * ID of task used to update our addresses when one expires.
    */
   GNUNET_SCHEDULER_TaskIdentifier address_update_task;
@@ -395,6 +430,47 @@ struct Plugin
 };
 
 
+static void
+add_to_address_list (struct Plugin *plugin,
+		     const void *arg,
+		     size_t arg_size)
+{
+  struct LocalAddrList *lal;
+
+  lal = plugin->lal_head;
+  while (NULL != lal)
+    {
+      if ( (lal->size == arg_size) &&
+	   (0 == memcmp (&lal[1], arg, arg_size)) )
+	return;
+      lal = lal->next;
+    }
+  lal = GNUNET_malloc (sizeof (struct LocalAddrList) + arg_size);
+  lal->size = arg_size;
+  memcpy (&lal[1], arg, arg_size);
+  GNUNET_CONTAINER_DLL_insert (plugin->lal_head,
+			       plugin->lal_tail,
+			       lal);
+}
+
+
+static int
+check_local_addr (struct Plugin *plugin,
+		  const void *arg,
+		  size_t arg_size)
+{
+  struct LocalAddrList *lal;
+
+  lal = plugin->lal_head;
+  while (NULL != lal)
+    {
+      if ( (lal->size == arg_size) &&
+	   (0 == memcmp (&lal[1], arg, arg_size)) )
+	return GNUNET_OK;
+      lal = lal->next;
+    }
+  return GNUNET_SYSERR;
+}
 
 
 /**
@@ -1375,6 +1451,14 @@ tcp_plugin_address_pretty_printer (void *cls,
 static int
 check_port (struct Plugin *plugin, uint16_t in_port)
 {
+  if ( (plugin->behind_nat == GNUNET_YES) && (in_port == 0) )
+    return GNUNET_OK;
+  if ( (plugin->only_nat_addresses == GNUNET_YES) &&
+       (plugin->behind_nat == GNUNET_YES) &&
+       (in_port != 0) )
+    {
+      return GNUNET_SYSERR; /* odd case... */
+    }
   if ((in_port == plugin->adv_port) || (in_port == plugin->open_port))
     return GNUNET_OK;
   return GNUNET_SYSERR;
@@ -1417,7 +1501,11 @@ tcp_plugin_check_address (void *cls,
       if (GNUNET_OK !=
 	  check_port (plugin, ntohs (v4->t_port)))
 	return GNUNET_SYSERR;
-      /* FIXME: check IP! */
+      if (GNUNET_OK !=
+	  check_local_addr (plugin, &v4->ipv4_addr, sizeof (uint32_t)))
+	{
+	  return GNUNET_SYSERR;
+	}
     }
   else
     {
@@ -1430,7 +1518,11 @@ tcp_plugin_check_address (void *cls,
       if (GNUNET_OK != 
 	  check_port (plugin, ntohs (v6->t6_port)))
 	return GNUNET_SYSERR;
-      /* FIXME: check IP! */
+      if (GNUNET_OK !=
+	  check_local_addr (plugin, &v6->ipv6_addr, sizeof (struct in6_addr)))
+	{
+	  return GNUNET_SYSERR;
+	}
     }
   return GNUNET_OK;
 }
@@ -1796,6 +1888,7 @@ process_interfaces (void *cls,
   if (af == AF_INET)
     {
       t4.ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
+      add_to_address_list (plugin, &t4.ipv4_addr, sizeof (uint32_t));
       if ((plugin->behind_nat == GNUNET_YES) && (plugin->only_nat_addresses == GNUNET_YES))
         t4.t_port = htons(0);
       else if (plugin->behind_nat == GNUNET_YES) /* We are behind NAT, but will advertise NAT and normal addresses */
@@ -1819,6 +1912,7 @@ process_interfaces (void *cls,
       memcpy (&t6.ipv6_addr,
 	      &((struct sockaddr_in6 *) addr)->sin6_addr,
 	      sizeof (struct in6_addr));
+      add_to_address_list (plugin, &t6.ipv6_addr, sizeof (struct in6_addr));
       if ((plugin->behind_nat == GNUNET_YES) && (plugin->only_nat_addresses == GNUNET_YES))
         t6.t6_port = htons(0);
       else if (plugin->behind_nat == GNUNET_YES) /* We are behind NAT, but will advertise NAT and normal addresses */
@@ -2401,6 +2495,7 @@ libgnunet_plugin_transport_tcp_done (void *cls)
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
   struct Session *session;
+  struct LocalAddrList *lal;
 
   while (NULL != (session = plugin->sessions))
     disconnect_session (session);
@@ -2411,6 +2506,13 @@ libgnunet_plugin_transport_tcp_done (void *cls)
     }
   GNUNET_SERVICE_stop (plugin->service);
   GNUNET_free (plugin->handlers);
+  while (NULL != (lal = plugin->lal_head))
+    {
+      GNUNET_CONTAINER_DLL_remove (plugin->lal_head,
+				   plugin->lal_tail,
+				   lal);
+      GNUNET_free (lal);
+    }
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;

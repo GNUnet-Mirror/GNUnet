@@ -40,6 +40,7 @@
 #include "platform.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_connection_lib.h"
+#include "gnunet_container_lib.h"
 #include "gnunet_os_lib.h"
 #include "gnunet_peerinfo_service.h"
 #include "gnunet_protocols.h"
@@ -115,7 +116,7 @@ struct IPv6UdpAddress
   /**
    * IPv6 address.
    */
-  unsigned char ipv6_addr[16];
+  struct in6_addr ipv6_addr;
 
   /**
    * Port number, in network byte order.
@@ -209,6 +210,30 @@ struct UDP_NAT_ProbeMessageConfirmation
 
 };
 
+
+/**
+ * Local network addresses (actual IP address follows this struct).
+ * PORT is NOT included!
+ */
+struct LocalAddrList
+{
+  
+  /**
+   * This is a doubly linked list.
+   */
+  struct LocalAddrList *next;
+
+  /**
+   * This is a doubly linked list.
+   */
+  struct LocalAddrList *prev;
+
+  /**
+   * Number of bytes of the address that follow
+   */
+  size_t size;
+
+};
 
 
 /**
@@ -354,17 +379,27 @@ struct Plugin
    */
   char *internal_address;
 
-  /*
+  /**
+   * List of our IP addresses.
+   */
+  struct LocalAddrList *lal_head;
+  
+  /**
+   * Tail of our IP address list.
+   */ 
+  struct LocalAddrList *lal_tail;
+
+  /**
    * FD Read set
    */
   struct GNUNET_NETWORK_FDSet *rs;
 
-  /*
+  /**
    * stdout pipe handle for the gnunet-nat-server process
    */
   struct GNUNET_DISK_PipeHandle *server_stdout;
 
-  /*
+  /**
    * stdout file handle (for reading) for the gnunet-nat-server process
    */
   const struct GNUNET_DISK_FileHandle *server_stdout_handle;
@@ -796,6 +831,49 @@ udp_plugin_send (void *cls,
 }
 
 
+static void
+add_to_address_list (struct Plugin *plugin,
+		     const void *arg,
+		     size_t arg_size)
+{
+  struct LocalAddrList *lal;
+
+  lal = plugin->lal_head;
+  while (NULL != lal)
+    {
+      if ( (lal->size == arg_size) &&
+	   (0 == memcmp (&lal[1], arg, arg_size)) )
+	return;
+      lal = lal->next;
+    }
+  lal = GNUNET_malloc (sizeof (struct LocalAddrList) + arg_size);
+  lal->size = arg_size;
+  memcpy (&lal[1], arg, arg_size);
+  GNUNET_CONTAINER_DLL_insert (plugin->lal_head,
+			       plugin->lal_tail,
+			       lal);
+}
+
+
+static int
+check_local_addr (struct Plugin *plugin,
+		  const void *arg,
+		  size_t arg_size)
+{
+  struct LocalAddrList *lal;
+
+  lal = plugin->lal_head;
+  while (NULL != lal)
+    {
+      if ( (lal->size == arg_size) &&
+	   (0 == memcmp (&lal[1], arg, arg_size)) )
+	return GNUNET_OK;
+      lal = lal->next;
+    }
+  return GNUNET_SYSERR;
+}
+
+
 /**
  * Add the IP of our network interface to the list of
  * our external IP addresses.
@@ -819,6 +897,7 @@ process_interfaces (void *cls,
   if (af == AF_INET)
     {
       t4.ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
+      add_to_address_list (plugin, &t4.ipv4_addr, sizeof (uint32_t));
       if ((plugin->behind_nat == GNUNET_YES) && (plugin->only_nat_addresses == GNUNET_YES))
         {
           t4.u_port = htons (DEFAULT_NAT_PORT);
@@ -839,7 +918,6 @@ process_interfaces (void *cls,
     }
   else if (af == AF_INET6)
     {
-
       if (IN6_IS_ADDR_LINKLOCAL (&((struct sockaddr_in6 *) addr)->sin6_addr))
         {
           /* skip link local addresses */
@@ -848,6 +926,7 @@ process_interfaces (void *cls,
       memcpy (&t6.ipv6_addr,
               &((struct sockaddr_in6 *) addr)->sin6_addr,
               sizeof (struct in6_addr));
+      add_to_address_list (plugin, &t6.ipv6_addr, sizeof (struct in6_addr));
       if ((plugin->behind_nat == GNUNET_YES) && (plugin->only_nat_addresses == GNUNET_YES))
         {
           t6.u6_port = htons (0);
@@ -872,28 +951,27 @@ process_interfaces (void *cls,
       GNUNET_break (0);
       return GNUNET_OK;
     }
-
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO |
-                     GNUNET_ERROR_TYPE_BULK,
-                       _("Found address `%s' (%s)\n"),
-                      GNUNET_a2s (addr, addrlen), name);
-
-    if (addr_nat != NULL)
-      {
-        plugin->env->notify_address (plugin->env->cls,
-                                    "udp",
-                                    addr_nat, args, GNUNET_TIME_UNIT_FOREVER_REL);
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO |
-                         GNUNET_ERROR_TYPE_BULK,
-                          _("Found NAT address `%s' (%s)\n"),
-                         GNUNET_a2s (addr_nat, args), name);
-        GNUNET_free(addr_nat);
-      }
-
-    plugin->env->notify_address (plugin->env->cls,
-                                "udp",
-                                arg, args, GNUNET_TIME_UNIT_FOREVER_REL);
-
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO |
+	      GNUNET_ERROR_TYPE_BULK,
+	      _("Found address `%s' (%s)\n"),
+	      GNUNET_a2s (addr, addrlen), name);
+  
+  if (addr_nat != NULL)
+    {
+      plugin->env->notify_address (plugin->env->cls,
+				   "udp",
+				   addr_nat, args, GNUNET_TIME_UNIT_FOREVER_REL);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO |
+		  GNUNET_ERROR_TYPE_BULK,
+		  _("Found NAT address `%s' (%s)\n"),
+		  GNUNET_a2s (addr_nat, args), name);
+      GNUNET_free(addr_nat);
+    }
+  
+  plugin->env->notify_address (plugin->env->cls,
+			       "udp",
+			       arg, args, GNUNET_TIME_UNIT_FOREVER_REL);
   return GNUNET_OK;
 }
 
@@ -1599,6 +1677,12 @@ udp_transport_server_start (void *cls)
 static int
 check_port (struct Plugin *plugin, uint16_t in_port)
 {
+  if ( (plugin->behind_nat == GNUNET_YES) && (in_port == 0) )
+    return GNUNET_OK;
+  if ( (plugin->only_nat_addresses == GNUNET_YES) &&
+       (plugin->behind_nat == GNUNET_YES) &&
+       (in_port != 0) )
+    return GNUNET_SYSERR; /* odd case... */
   if (in_port == plugin->port) 
     return GNUNET_OK;
   return GNUNET_SYSERR;
@@ -1642,7 +1726,9 @@ udp_check_address (void *cls,
       if (GNUNET_OK !=
 	  check_port (plugin, ntohs (v4->u_port)))
 	return GNUNET_SYSERR;
-      /* FIXME: check IP! */
+      if (GNUNET_OK !=
+	  check_local_addr (plugin, &v4->ipv4_addr, sizeof (uint32_t)))
+	return GNUNET_SYSERR;
     }
   else
     {
@@ -1655,7 +1741,9 @@ udp_check_address (void *cls,
       if (GNUNET_OK != 
 	  check_port (plugin, ntohs (v6->u6_port)))
 	return GNUNET_SYSERR;
-      /* FIXME: check IP! */
+      if (GNUNET_OK !=
+	  check_local_addr (plugin, &v6->ipv6_addr, sizeof (struct in6_addr)))
+	return GNUNET_SYSERR;
     }
 #if DEBUG_UDP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
@@ -2069,6 +2157,7 @@ libgnunet_plugin_transport_udp_done (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
+  struct LocalAddrList *lal;
 
   udp_transport_server_stop (plugin);
   if (NULL != plugin->hostname_dns)
@@ -2080,6 +2169,13 @@ libgnunet_plugin_transport_udp_done (void *cls)
   GNUNET_SERVICE_stop (plugin->service);
 
   GNUNET_NETWORK_fdset_destroy (plugin->rs);
+  while (NULL != (lal = plugin->lal_head))
+    {
+      GNUNET_CONTAINER_DLL_remove (plugin->lal_head,
+				   plugin->lal_tail,
+				   lal);
+      GNUNET_free (lal);
+    }
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;
