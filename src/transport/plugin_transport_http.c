@@ -41,7 +41,7 @@
 #include <curl/curl.h>
 
 
-#define DEBUG_CURL GNUNET_YES
+#define DEBUG_CURL GNUNET_NO
 #define DEBUG_HTTP GNUNET_NO
 #define HTTP_CONNECT_TIMEOUT_DBG 10
 
@@ -897,6 +897,7 @@ static size_t send_read_callback(void *stream, size_t size, size_t nmemb, void *
 
   if (con->pending_msgs_tail == NULL)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection: %X: No Message to send, pausing connection\n",con);
     con->send_paused = GNUNET_YES;
     return CURL_READFUNC_PAUSE;
   }
@@ -929,7 +930,7 @@ static size_t send_read_callback(void *stream, size_t size, size_t nmemb, void *
 
   if ( msg->pos == msg->size)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Messge %u bytes sent, removing message from queue \n", msg->pos);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection: %X: Message with %u bytes sent, removing message from queue \n",con, msg->pos);
     /* Calling transmit continuation  */
     if (( NULL != con->pending_msgs_tail) && (NULL != con->pending_msgs_tail->transmit_cont))
       msg->transmit_cont (con->pending_msgs_tail->transmit_cont_cls,&(con->session)->identity,GNUNET_OK);
@@ -985,12 +986,16 @@ static ssize_t send_initiate (void *cls, struct Session* ses , struct HTTP_Conne
 
   /* already connected, no need to initiate connection */
   if ((con->connected == GNUNET_YES) && (con->curl_handle != NULL) && (con->send_paused == GNUNET_NO))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection: %X: active, enqueueing message\n",con);
     return bytes_sent;
+  }
 
   if ((con->connected == GNUNET_YES) && (con->curl_handle != NULL) && (con->send_paused == GNUNET_YES))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"UNPAUSING\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection: %X: paused, unpausing existing connection and enqueueing message\n",con);
     curl_easy_pause(con->curl_handle,CURLPAUSE_CONT);
+    con->send_paused=GNUNET_NO;
     return bytes_sent;
   }
 
@@ -1000,8 +1005,7 @@ static ssize_t send_initiate (void *cls, struct Session* ses , struct HTTP_Conne
   if ( NULL == con->curl_handle)
     con->curl_handle = curl_easy_init();
   GNUNET_assert (con->curl_handle != NULL);
-
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection: %X: not existing, creating new connection\n",con);
 
   GNUNET_assert (NULL != con->pending_msgs_tail);
   msg = con->pending_msgs_tail;
@@ -1295,9 +1299,26 @@ static void
 http_plugin_disconnect (void *cls,
                             const struct GNUNET_PeerIdentity *target)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Plugin: http_plugin_disconnect\n");
-  // struct Plugin *plugin = cls;
-  // FIXME
+  struct Plugin *plugin = cls;
+  struct HTTP_Connection_out *con;
+  struct Session *cs;
+
+  /* get session from hashmap */
+  cs = session_get(plugin, target);
+  con = cs->outbound_connections_head;
+
+  while (con!=NULL)
+  {
+    if (con->curl_handle!=NULL)
+      curl_easy_cleanup(con->curl_handle);
+    con->curl_handle=NULL;
+    con->connected = GNUNET_NO;
+    while (con->pending_msgs_head!=NULL)
+    {
+      remove_http_message(con, con->pending_msgs_head);
+    }
+    con=con->next;
+  }
 }
 
 
