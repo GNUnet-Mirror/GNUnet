@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
+#include <string.h>
 
 #include <linux/if.h>
 
@@ -8,6 +9,7 @@
 #include "tun.h"
 #include "debug.h"
 #include "pretty-print.h"
+#include "tcp.h"
 
 int main(int c, char** v) {
 	char dev[IFNAMSIZ];
@@ -32,6 +34,7 @@ int main(int c, char** v) {
 						pkt_printf(pkt6);
 						struct ip6_tcp* pkt6_tcp = parse_ip6_tcp(pkt6);
 						pkt_printf_ip6tcp(pkt6_tcp);
+						handle_tcp(pkt6_tcp);
 						break;
 				}
 				break;

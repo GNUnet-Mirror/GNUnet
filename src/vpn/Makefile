@@ -3,11 +3,19 @@ CXXFLAGS = ${CFLAGS}
 
 LDFLAGS =
 
-all:default
+.PHONY: .dependencies
 
-default: test
+all: default
 
-test: test.o tun.o packet.o debug.o pretty-print.o
+default: .dependencies test
+
+test: test.o tun.o packet.o debug.o pretty-print.o tcp.o
+
+.dependencies:
+	echo > .dependencies
+	gcc -M *.c >> .dependencies
+
+-include .dependencies
 
 clean:
 	rm -f *.o

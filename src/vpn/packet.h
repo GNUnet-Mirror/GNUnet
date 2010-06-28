@@ -45,6 +45,6 @@ extern struct ip6_pkt* parse_ip6(struct pkt_tun* pkt);
 
 struct ip6_tcp* parse_ip6_tcp(struct ip6_pkt*);
 
-extern long payload(struct ip6_pkt* pkt);
+extern long payload(struct ip6_hdr* pkt);
 
 #endif

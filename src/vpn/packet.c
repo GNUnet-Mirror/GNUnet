@@ -9,12 +9,12 @@
 #include "debug.h"
 #include "packet.h"
 
-long payload(struct ip6_pkt* pkt) {{{
-	return (pkt->hdr.paylgth[0] << 8) + pkt->hdr.paylgth[1];
+long payload(struct ip6_hdr* hdr) {{{
+	return (hdr->paylgth[0] << 8) + hdr->paylgth[1];
 }}}
 
 void send_pkt(int fd, struct ip6_pkt* pkt) {{{
-	int sz = payload(pkt);
+	int sz = payload(&(pkt->hdr));
 	int w = 0;
 	char* buf = (char*)malloc(sz+40);
 
@@ -120,8 +120,8 @@ struct ip6_pkt* parse_ip6(struct pkt_tun* pkt) {{{
 		pkt6->hdr.dadr[w] = pkt->data[24+w];
 	}
 
-	pkt6->data = (unsigned char*)malloc(payload(pkt6));
-	memcpy(pkt6->data, pkt->data+40, payload(pkt6));
+	pkt6->data = (unsigned char*)malloc(payload(&(pkt6->hdr)));
+	memcpy(pkt6->data, pkt->data+40, payload(&(pkt6->hdr)));
 
 	return pkt6;
 }}}
@@ -150,8 +150,8 @@ struct ip6_tcp* parse_ip6_tcp(struct ip6_pkt* pkt) {{{
 	res->data.opt = (unsigned char*) malloc((res->data.off - 5)*4);
 	memcpy(res->data.opt, pkt->data+20, (res->data.off - 5)*4);
 
-	res->data.data = (unsigned char*) malloc(payload(pkt) - 4*(res->data.off));
-	memcpy(res->data.data, pkt->data+4*(res->data.off), payload(pkt) - 4*(res->data.off));
+	res->data.data = (unsigned char*) malloc(payload(&(pkt->hdr)) - 4*(res->data.off));
+	memcpy(res->data.data, pkt->data+4*(res->data.off), payload(&(pkt->hdr)) - 4*(res->data.off));
 
 	return res;
 }}}
