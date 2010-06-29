@@ -22,8 +22,8 @@
 
 /**
  * @file src/util/crypto_hkdf.c
- * @brief Hash-based KDF as defined in draft-krawczyk-hkdf-01
- * @see http://tools.ietf.org/html/draft-krawczyk-hkdf-01
+ * @brief Hash-based KDF as defined in RFC 5869
+ * @see http://www.rfc-editor.org/rfc/rfc5869.txt
  * @author Nils Durner
  */
 
@@ -82,7 +82,7 @@ static void dump(void *p, unsigned int l)
   printf("\n");
   for (i = 0; i < l; i++)
     {
-      printf("%2x", ((char *) p)[i]);
+      printf("%2x", (int) ((unsigned char *) p)[i]);
     }
   printf("\n");
 }
@@ -142,7 +142,8 @@ dump(prk, xtr_len);
     {
       memset (plain + k + ctx_len, 0, 4);
       gcry_md_reset (prf);
-      hc = doHMAC (prf, prk, k, plain, plain_len);
+dump(plain, plain_len);
+      hc = doHMAC (prf, prk, xtr_len, plain, plain_len);
       if (hc == NULL)
         goto hkdf_error;
       memcpy (result, hc, k);
@@ -155,7 +156,8 @@ dump(prk, xtr_len);
       memcpy (plain, result - k, k);
       memcpy (plain + k + ctx_len, &i, 4);
       gcry_md_reset (prf);
-      hc = doHMAC (prf, prk, k, plain, plain_len);
+dump(plain, plain_len);
+      hc = doHMAC (prf, prk, xtr_len, plain, plain_len);
       if (hc == NULL)
         goto hkdf_error;
       memcpy (result, hc, k);
@@ -170,11 +172,13 @@ dump(prk, xtr_len);
         memcpy (plain, result - k, k);
       memcpy (plain + k + ctx_len, &i, 4);
       gcry_md_reset (prf);
-      hc = doHMAC (prf, prk, k, plain, plain_len);
+dump(plain, plain_len);
+      hc = doHMAC (prf, prk, xtr_len, plain, plain_len);
       if (hc == NULL)
         goto hkdf_error;
       memcpy (result, hc, d);
     }
+dump(result - k, out_len);
 
   ret = GNUNET_YES;
   goto hkdf_ok;
