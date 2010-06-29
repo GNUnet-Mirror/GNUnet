@@ -40,6 +40,7 @@ libgnunetutil_la_SOURCES = \
   crypto_aes.c \
   crypto_crc.c \
   crypto_hash.c \
+  crypto_hkdf.c \
   crypto_ksk.c \
   crypto_random.c \
   crypto_rsa.c \
@@ -112,6 +113,7 @@ check_PROGRAMS = \
  test_crypto_aes_weak \
  test_crypto_crc \
  test_crypto_hash \
+# test_crypto_hkdf \
  test_crypto_ksk \
  test_crypto_random \
  test_crypto_rsa \
@@ -225,6 +227,11 @@ test_crypto_crc_LDADD = \
 test_crypto_hash_SOURCES = \
  test_crypto_hash.c
 test_crypto_hash_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+test_crypto_hkdf_SOURCES = \
+ test_crypto_hkdf.c
+test_crypto_hkdf_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_crypto_ksk_SOURCES = \
