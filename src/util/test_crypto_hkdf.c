@@ -47,6 +47,7 @@ tc1 ()
   unsigned char result[44];
   int l = 42;
 
+  memset (result, 0, sizeof(result));
   GNUNET_assert (GNUNET_CRYPTO_hkdf(GCRY_MD_SHA256, GCRY_MD_SHA256, salt, sizeof(salt), ikm, sizeof(ikm), info, sizeof(info),
           l, result) == GNUNET_YES);
   GNUNET_assert (memcmp(result, okm, l) == 0);
@@ -87,6 +88,7 @@ tc2 ()
   char result[84];
   int l = 82;
 
+  memset (result, 0, sizeof(result));
   GNUNET_assert (GNUNET_CRYPTO_hkdf(GCRY_MD_SHA256, GCRY_MD_SHA256, salt, sizeof(salt), ikm, sizeof(ikm), info, sizeof(info),
           l, result) == GNUNET_YES);
   GNUNET_assert (memcmp(result, okm, l) == 0);
@@ -105,6 +107,7 @@ tc3 ()
   unsigned char result[44];
   int l = 42;
 
+  memset (result, 0, sizeof(result));
   GNUNET_assert (GNUNET_CRYPTO_hkdf(GCRY_MD_SHA256, GCRY_MD_SHA256, NULL, 0, ikm, sizeof(ikm), NULL, 0,
           l, result) == GNUNET_YES);
   GNUNET_assert (memcmp(result, okm, l) == 0);
@@ -127,6 +130,7 @@ tc4 ()
   char result[84];
   int l = 42;
 
+  memset (result, 0, sizeof(result));
   GNUNET_assert (GNUNET_CRYPTO_hkdf(GCRY_MD_SHA1, GCRY_MD_SHA1, salt, sizeof(salt), ikm, sizeof(ikm), info, sizeof(info),
           l, result) == GNUNET_YES);
   GNUNET_assert (memcmp(result, okm, l) == 0);
@@ -167,6 +171,7 @@ tc5 ()
   char result[84];
   int l = 82;
 
+  memset (result, 0, sizeof(result));
   GNUNET_assert (GNUNET_CRYPTO_hkdf(GCRY_MD_SHA1, GCRY_MD_SHA1, salt, sizeof(salt), ikm, sizeof(ikm), info, sizeof(info),
           l, result) == GNUNET_YES);
   GNUNET_assert (memcmp(result, okm, l) == 0);
@@ -185,6 +190,7 @@ tc6 ()
   char result[84];
   int l = 82;
 
+  memset (result, 0, sizeof(result));
   GNUNET_assert (GNUNET_CRYPTO_hkdf(GCRY_MD_SHA1, GCRY_MD_SHA1, NULL, 0, ikm, sizeof(ikm), NULL, 0,
           l, result) == GNUNET_YES);
   GNUNET_assert (memcmp(result, okm, l) == 0);
