@@ -1,3 +1,9 @@
+noinst_PROGRAMS = \
+ timeout_watchdog
+
+timeout_watchdog_SOURCES = \
+ timeout_watchdog.c 
+
 dist_pkgdata_DATA = \
  gnunet-logo-color.png \
  defaults.conf

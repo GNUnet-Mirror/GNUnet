@@ -24,13 +24,13 @@
  * @author Matthias Wachs
  */
 
-#include "signal.h"
-#include "stdio.h"
-#include "stdlib.h"
+#include <sys/types.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <wait.h>
 
-static int child_died;
 static pid_t child;
 
 static void sigchld_handler(int val)
@@ -55,15 +55,13 @@ static void sigchld_handler(int val)
 static void sigint_handler(int val)
 { 
   kill(0, val);
-  exit(1);
+  exit(val);
 }
-
 
 int main(int argc, char *argv[])
 {
 int timeout = 0;
-int remain = 0;
-int ret = 0;
+pid_t gpid =0;
 
 if (argc < 3)
 {  
@@ -76,21 +74,22 @@ timeout = atoi(argv[1]);
 if (timeout == 0)
   timeout = 600;   
 
+/* with getpgid() it does not compile, but getpgrp is the BSD version and working */
+gpid = getpgrp();
 
-char ** arguments = &argv[3];
-
-pid_t gpid = getpgid(0);
 signal(SIGCHLD, sigchld_handler);
 signal(SIGABRT, sigint_handler);
-signal(SIGKILL, sigint_handler);
+signal(SIGFPE,  sigint_handler);
 signal(SIGILL,  sigint_handler);
-signal(SIGSEGV, sigint_handler);
 signal(SIGINT,  sigint_handler);
+signal(SIGSEGV, sigint_handler);
 signal(SIGTERM, sigint_handler);
 
 child = fork();
 if (child==0)
 {
+  /*  int setpgrp(pid_t pid, pid_t pgid); is not working on this machine*/
+   //setpgrp (0, pid_t gpid);
    setpgid(0,gpid);
    execvp(argv[2],&argv[2]);
    exit(1);
@@ -101,6 +100,7 @@ if (child > 0)
   kill(0,SIGABRT);
   exit(1);
 }  
+exit(1);
 }
 
 /* end of timeout_watchdog.c */
