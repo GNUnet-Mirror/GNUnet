@@ -116,12 +116,12 @@ struct IPv4TcpAddress
   /**
    * IPv4 address, in network byte order.
    */
-  uint32_t ipv4_addr;
+  uint32_t ipv4_addr GNUNET_PACKED;
 
   /**
    * Port number, in network byte order.
    */
-  uint16_t t_port;
+  uint16_t t_port GNUNET_PACKED;
 
 };
 
@@ -134,12 +134,12 @@ struct IPv6TcpAddress
   /**
    * IPv6 address.
    */
-  struct in6_addr ipv6_addr;
+  struct in6_addr ipv6_addr GNUNET_PACKED;
 
   /**
    * Port number, in network byte order.
    */
-  uint16_t t6_port;
+  uint16_t t6_port GNUNET_PACKED;
 
 };
 
