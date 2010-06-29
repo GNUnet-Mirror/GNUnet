@@ -44,7 +44,7 @@
 
 #define VERBOSE GNUNET_YES
 #define DEBUG GNUNET_NO
-#define DEBUG_CURL GNUNET_YES
+#define DEBUG_CURL GNUNET_NO
 #define HTTP_BUFFER_SIZE 2048
 
 #define PLUGIN libgnunet_plugin_transport_template
@@ -164,12 +164,12 @@ struct IPv4HttpAddress
   /**
    * IPv4 address, in network byte order.
    */
-  uint32_t ipv4_addr;
+  uint32_t ipv4_addr GNUNET_PACKED;
 
   /**
    * Port number, in network byte order.
    */
-  uint16_t u_port;
+  uint16_t u_port GNUNET_PACKED;
 
 };
 
@@ -182,15 +182,14 @@ struct IPv6HttpAddress
   /**
    * IPv6 address.
    */
-  struct in6_addr ipv6_addr;
+  struct in6_addr ipv6_addr GNUNET_PACKED;
 
   /**
    * Port number, in network byte order.
    */
-  uint16_t u6_port;
+  uint16_t u6_port GNUNET_PACKED;
 
 };
-
 
 /**
  * Our public key.
@@ -392,6 +391,8 @@ shutdown_clean ()
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All tests successful\n");
   }
 
+  api->disconnect(api->cls,&my_identity);
+
   curl_multi_cleanup(multi_handle);
 
   if (NULL != curl_handle)
@@ -499,7 +500,7 @@ receive (void *cls,
   if (ntohs(message->size) == GNUNET_SERVER_MAX_MESSAGE_SIZE-1)
   {
     fail_msg_transmited_max_size = GNUNET_NO;
-    shutdown_clean();
+    //shutdown_clean();
   }
 
   return GNUNET_TIME_UNIT_ZERO;

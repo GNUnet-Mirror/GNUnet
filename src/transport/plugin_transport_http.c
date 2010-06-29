@@ -391,11 +391,6 @@ static struct Session * session_get (void * cls, const struct GNUNET_PeerIdentit
   unsigned int res;
 
   cs = GNUNET_CONTAINER_multihashmap_get (plugin->sessions, &p->hashPubKey);
-  if (cs != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Session `%s' found\n", GNUNET_i2s(p));
-  }
   if (cs == NULL)
   {
     cs = create_session(plugin, NULL, 0, NULL, 0, p);
@@ -471,7 +466,7 @@ static struct HTTP_Connection_out * session_check_outbound_address (void * cls, 
     }
     cc=cc->next;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No connection info for this address was found\n",GNUNET_i2s(&cs->identity));
+
   if (con==NULL)
   {
     con = GNUNET_malloc(sizeof(struct HTTP_Connection_out) + addr_len);
@@ -482,6 +477,7 @@ static struct HTTP_Connection_out * session_check_outbound_address (void * cls, 
     con->session = cs;
     memcpy(con->addr, addr, addr_len);
     GNUNET_CONTAINER_DLL_insert(cs->outbound_connections_head,cs->outbound_connections_tail,con);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Created new connection %X to peer `%s'\n",con,GNUNET_i2s(&cs->identity));
   }
   return con;
 }
@@ -563,8 +559,8 @@ static void messageTokenizerCallback (void *cls,
   con->session->plugin->env->receive (con->session->plugin->env->cls,
 			    &con->session->identity,
 			    message, 1, con->session,
-			    NULL,
-			    0);
+			    con->addr,
+			    con->addrlen);
 }
 
 /**
@@ -579,6 +575,13 @@ acceptPolicyCallback (void *cls,
 #endif
   /* Every connection is accepted, nothing more to do here */
   return MHD_YES;
+}
+
+int server_read_callback (void *cls, uint64_t pos, char *buf, int max)
+{
+  int bytes_read = -1;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "server_read_callback\n");
+  return bytes_read;
 }
 
 /**
@@ -613,8 +616,8 @@ accessHandlerCallback (void *cls,
 
   GNUNET_assert(cls !=NULL);
   send_error_to_client = GNUNET_NO;
-
-  if ( NULL == *httpSessionCache)
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"accessHandlerCallback\n");
+  if (NULL == *httpSessionCache)
   {
     /* check url for peer identity , if invalid send HTTP 404*/
     res = GNUNET_CRYPTO_hash_from_string ( &url[1], &(pi_in.hashPubKey));
@@ -629,36 +632,6 @@ accessHandlerCallback (void *cls,
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Peer has no valid ident, could not send error\n");
       return res;
     }
-
-    /* get session for peer identity */
-    cs = session_get (plugin ,&pi_in);
-
-    conn_info = MHD_get_connection_info(mhd_connection, MHD_CONNECTION_INFO_CLIENT_ADDRESS );
-    /* Incoming IPv4 connection */
-    if ( AF_INET == conn_info->client_addr->sin_family)
-    {
-      addrin = conn_info->client_addr;
-      inet_ntop(addrin->sin_family, &(addrin->sin_addr),address,INET_ADDRSTRLEN);
-      memcpy(&ipv4addr.ipv4_addr,&(addrin->sin_addr),sizeof(struct in_addr));
-      ipv4addr.u_port = addrin->sin_port;
-      con = session_check_inbound_address (plugin, cs, (const void *) &ipv4addr, sizeof (struct IPv4HttpAddress));
-    }
-    /* Incoming IPv6 connection */
-    if ( AF_INET6 == conn_info->client_addr->sin_family)
-    {
-      addrin6 = (struct sockaddr_in6 *) conn_info->client_addr;
-      inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr),address,INET6_ADDRSTRLEN);
-      memcpy(&ipv6addr.ipv6_addr,&(addrin6->sin6_addr),sizeof(struct in_addr));
-      ipv6addr.u6_port = addrin6->sin6_port;
-      con = session_check_inbound_address (plugin, cs, &ipv6addr, sizeof (struct IPv6HttpAddress));
-    }
-    /* Set closure and update current session*/
-
-    *httpSessionCache = con;
-    if (con->msgtok==NULL)
-      con->msgtok = GNUNET_SERVER_mst_create (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1, &messageTokenizerCallback, con);
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s'@`%s'\n",method, GNUNET_i2s(&cs->identity),address);
   }
   else
   {
@@ -669,6 +642,39 @@ accessHandlerCallback (void *cls,
   /* Is it a PUT or a GET request */
   if (0 == strcmp (MHD_HTTP_METHOD_PUT, method))
   {
+    if (NULL == *httpSessionCache)
+    {
+      /* get session for peer identity */
+      cs = session_get (plugin ,&pi_in);
+
+      conn_info = MHD_get_connection_info(mhd_connection, MHD_CONNECTION_INFO_CLIENT_ADDRESS );
+      /* Incoming IPv4 connection */
+      if ( AF_INET == conn_info->client_addr->sin_family)
+      {
+        addrin = conn_info->client_addr;
+        inet_ntop(addrin->sin_family, &(addrin->sin_addr),address,INET_ADDRSTRLEN);
+        memcpy(&ipv4addr.ipv4_addr,&(addrin->sin_addr),sizeof(struct in_addr));
+        ipv4addr.u_port = addrin->sin_port;
+        con = session_check_inbound_address (plugin, cs, (const void *) &ipv4addr, sizeof (struct IPv4HttpAddress));
+      }
+      /* Incoming IPv6 connection */
+      if ( AF_INET6 == conn_info->client_addr->sin_family)
+      {
+        addrin6 = (struct sockaddr_in6 *) conn_info->client_addr;
+        inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr),address,INET6_ADDRSTRLEN);
+        memcpy(&ipv6addr.ipv6_addr,&(addrin6->sin6_addr),sizeof(struct in_addr));
+        ipv6addr.u6_port = addrin6->sin6_port;
+        con = session_check_inbound_address (plugin, cs, &ipv6addr, sizeof (struct IPv6HttpAddress));
+      }
+      /* Set closure and update current session*/
+
+      *httpSessionCache = con;
+      if (con->msgtok==NULL)
+        con->msgtok = GNUNET_SERVER_mst_create (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1, &messageTokenizerCallback, con);
+
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s' (`%s')\n",method, GNUNET_i2s(&cs->identity),address);
+    }
+
     if ((*upload_data_size == 0) && (con->is_put_in_progress==GNUNET_NO))
     {
       con->is_put_in_progress = GNUNET_YES;
@@ -703,10 +709,28 @@ accessHandlerCallback (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got GET Request\n");
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"URL: `%s'\n",url);
-    response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),HTTP_PUT_RESPONSE, MHD_NO, MHD_NO);
-    res = MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
+
+    /* check url for peer identity , if invalid send HTTP 404*/
+    res = GNUNET_CRYPTO_hash_from_string ( &url[1], &(pi_in.hashPubKey));
+
+    if ( GNUNET_SYSERR == res )
+    {
+      response = MHD_create_response_from_data (strlen (HTTP_ERROR_RESPONSE),HTTP_ERROR_RESPONSE, MHD_NO, MHD_NO);
+      res = MHD_queue_response (mhd_connection, MHD_HTTP_NOT_FOUND, response);
+      MHD_destroy_response (response);
+      if (res == MHD_YES)
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Peer has no valid ident, sent HTTP 1.1/404\n");
+      else
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Peer has no valid ident, could not send error\n");
+      return res;
+    }
+
+    response = MHD_create_response_from_callback(-1,32 * 1024, &server_read_callback, cs, NULL);
+    res = MHD_queue_response (mhd_connection, MHD_HTTP_NOT_FOUND, response);
     MHD_destroy_response (response);
+
     return res;
+
   }
   return MHD_NO;
 }
@@ -1086,14 +1110,16 @@ static void send_execute (void *cls,
                        (msg->data.result != CURLE_GOT_NOTHING) )
                   {
                     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-                               _("%s failed for `%s' at %s:%d: `%s'\n"),
+                               _("%s failed for `%s' connection %X at %s:%d: `%s'\n"),
                                "curl_multi_perform",
-                               GNUNET_i2s(&cs->identity),
+                               GNUNET_i2s(&cs->identity),con,
                                __FILE__,
                                __LINE__,
                                curl_easy_strerror (msg->data.result));
                     /* sending msg failed*/
                     con->connected = GNUNET_NO;
+                    curl_easy_cleanup(con->curl_handle);
+                    con->curl_handle=NULL;
                     if (( NULL != con->pending_msgs_tail) && ( NULL != con->pending_msgs_tail->transmit_cont))
                       con->pending_msgs_tail->transmit_cont (con->pending_msgs_tail->transmit_cont_cls,&con->session->identity,GNUNET_SYSERR);
 
@@ -1257,8 +1283,10 @@ http_plugin_send (void *cls,
   address = NULL;
 
   /* get session from hashmap */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Transport tells me to send %u bytes to %s, %u\n", msgbuf_size, GNUNET_i2s(target),addrlen);
   cs = session_get(plugin, target);
   con = session_check_outbound_address(plugin, cs, addr, addrlen);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Transport tells me to send %u bytes to peer `%s'\n",msgbuf_size,GNUNET_i2s(&cs->identity));
 
   /* create msg */
   msg = GNUNET_malloc (sizeof (struct HTTP_Message) + msgbuf_size);
@@ -1516,28 +1544,28 @@ process_interfaces (void *cls,
                     const struct sockaddr *addr, socklen_t addrlen)
 {
   struct Plugin *plugin = cls;
-  struct IPv4HttpAddress t4;
-  struct IPv6HttpAddress t6;
+  struct IPv4HttpAddress * t4;
+  struct IPv6HttpAddress * t6;
   int af;
-  void *arg;
-  uint16_t args;
 
   GNUNET_assert(cls !=NULL);
   af = addr->sa_family;
   if (af == AF_INET)
     {
+      t4 = GNUNET_malloc(sizeof(struct IPv4HttpAddress));
       if (INADDR_LOOPBACK == ntohl(((struct sockaddr_in *) addr)->sin_addr.s_addr))
       {
         /* skip loopback addresses */
         return GNUNET_OK;
       }
-      t4.ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
-      t4.u_port = htons (plugin->port_inbound);
-      arg = &t4;
-      args = sizeof (t4);
+      t4->ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
+      t4->u_port = htons (plugin->port_inbound);
+      plugin->env->notify_address(plugin->env->cls,"http",t4, sizeof (struct IPv4HttpAddress), GNUNET_TIME_UNIT_FOREVER_REL);
+
     }
   else if (af == AF_INET6)
     {
+      t6 = GNUNET_malloc(sizeof(struct IPv6HttpAddress));
       if (IN6_IS_ADDR_LINKLOCAL (&((struct sockaddr_in6 *) addr)->sin6_addr))
         {
           /* skip link local addresses */
@@ -1548,22 +1576,14 @@ process_interfaces (void *cls,
           /* skip loopback addresses */
           return GNUNET_OK;
         }
-      memcpy (&t6.ipv6_addr,
+      memcpy (&t6->ipv6_addr,
               &((struct sockaddr_in6 *) addr)->sin6_addr,
               sizeof (struct in6_addr));
-      t6.u6_port = htons (plugin->port_inbound);
-      arg = &t6;
-      args = sizeof (t6);
+      t6->u6_port = htons (plugin->port_inbound);
+      plugin->env->notify_address(plugin->env->cls,"http",t6,sizeof (struct IPv6HttpAddress) , GNUNET_TIME_UNIT_FOREVER_REL);
     }
-  else
-    {
-      GNUNET_break (0);
-      return GNUNET_OK;
-    }
-  plugin->env->notify_address(plugin->env->cls,"http",arg, args, GNUNET_TIME_UNIT_FOREVER_REL);
   return GNUNET_OK;
 }
-
 int hashMapFreeIterator (void *cls, const GNUNET_HashCode *key, void *value)
 {
   struct Session * cs = value;
