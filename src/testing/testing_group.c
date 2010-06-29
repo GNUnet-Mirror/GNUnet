@@ -365,6 +365,11 @@ struct GNUNET_TESTING_PeerGroup
    * How many peers are being started right now?
    */
   unsigned int starting;
+
+  /**
+   * How many peers have already been started?
+   */
+  unsigned int started;
 };
 
 struct UpdateContext
@@ -2850,7 +2855,14 @@ static void internal_hostkey_callback (void *cls,
 {
   struct InternalStartContext *internal_context = cls;
   internal_context->peer->pg->starting--;
-  internal_context->hostkey_callback(internal_context->hostkey_cls, id, d, emsg);
+  internal_context->peer->pg->started++;
+  if (internal_context->hostkey_callback != NULL)
+    internal_context->hostkey_callback(internal_context->hostkey_cls, id, d, emsg);
+  else if (internal_context->peer->pg->started == internal_context->peer->pg->total)
+    {
+      internal_context->peer->pg->started = 0; /* Internal startup may use this counter! */
+      GNUNET_TESTING_daemons_continue_startup(internal_context->peer->pg);
+    }
 }
 
 /**
@@ -2871,7 +2883,8 @@ static void internal_startup_callback (void *cls,
 {
   struct InternalStartContext *internal_context = cls;
   internal_context->peer->pg->starting--;
-  internal_context->start_cb(internal_context->start_cb_cls, id, cfg, d, emsg);
+  if (internal_context->start_cb != NULL)
+    internal_context->start_cb(internal_context->start_cb_cls, id, cfg, d, emsg);
 }
 
 static void
