@@ -6,12 +6,17 @@ if !MINGW
  NAT_DIR = nat
 endif
 
+if HAVE_ESMTP
+ MONKEY_DIR = monkey
+endif
+
 SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
   util \
   block \
   statistics \
   arm \
+  $(MONKEY_DIR) \
   hello \
   peerinfo \
   datacache \

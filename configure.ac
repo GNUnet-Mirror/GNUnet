@@ -673,6 +673,7 @@ src/testing/Makefile
 src/topology/Makefile
 src/transport/Makefile
 src/util/Makefile
+src/monkey/Makefile
 ])
 AC_OUTPUT
 
