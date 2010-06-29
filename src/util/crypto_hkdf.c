@@ -132,29 +132,33 @@ GNUNET_CRYPTO_hkdf (int xtr_algo, int prf_algo, const void *xts,
     goto hkdf_error;
 dump(prk, xtr_len);
 
-  /* K(1) */
-  plain_len = k + ctx_len + 4;
-  plain = GNUNET_malloc (plain_len);
-  memset (plain, 0, k);
-  memcpy (plain + k, ctx, ctx_len);
   t = out_len / k;
+  d = out_len % k;
+
+  /* K(1) */
+  plain_len = k + ctx_len + 1;
+  plain = GNUNET_malloc (plain_len);
   if (t > 0)
     {
-      memset (plain + k + ctx_len, 0, 4);
+      memcpy (plain, ctx, ctx_len);
+      memset (plain + ctx_len, 1, 1);
       gcry_md_reset (prf);
 dump(plain, plain_len);
-      hc = doHMAC (prf, prk, xtr_len, plain, plain_len);
+      hc = doHMAC (prf, prk, xtr_len, plain, ctx_len + 1);
       if (hc == NULL)
         goto hkdf_error;
       memcpy (result, hc, k);
       result += k;
     }
 
+  if (t > 1 || d > 0)
+    memcpy (plain + k, ctx, ctx_len);
+
   /* K(i+1) */
   for (i = 1; i < t; i++)
     {
       memcpy (plain, result - k, k);
-      memcpy (plain + k + ctx_len, &i, 4);
+      memset (plain + k + ctx_len, i + 1, 1);
       gcry_md_reset (prf);
 dump(plain, plain_len);
       hc = doHMAC (prf, prk, xtr_len, plain, plain_len);
@@ -165,12 +169,11 @@ dump(plain, plain_len);
     }
 
   /* K(t):d */
-  d = out_len % k;
   if (d > 0)
     {
       if (t > 0)
         memcpy (plain, result - k, k);
-      memcpy (plain + k + ctx_len, &i, 4);
+      memset (plain + k + ctx_len, i + 1, 1);
       gcry_md_reset (prf);
 dump(plain, plain_len);
       hc = doHMAC (prf, prk, xtr_len, plain, plain_len);
