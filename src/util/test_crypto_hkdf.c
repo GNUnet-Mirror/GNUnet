@@ -26,6 +26,8 @@
  * @author Nils Durner
  */
 
+#include <gcrypt.h>
+
 #include "platform.h"
 #include "gnunet_crypto_lib.h"
 
