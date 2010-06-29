@@ -339,9 +339,11 @@ struct Plugin
 
 /**
  * Create a new session
- *
+ * @param cls plugin as closure
  * @param addr_in address the peer is using inbound
+ * @param addr_len_in address length
  * @param addr_out address the peer is using outbound
+ * @param addr_len_out address length
  * @param peer identity
  * @return created session object
  */
@@ -441,7 +443,7 @@ static char * create_url(void * cls, const void * addr, size_t addrlen)
  * Check if session already knows this address for a outbound connection to this peer
  * If address not in session, add it to the session
  * @param cls the plugin used
- * @param p the session
+ * @param cs the session
  * @param addr address
  * @param addr_len address length
  * @return the found or created address
@@ -487,7 +489,7 @@ static struct HTTP_Connection_out * session_check_outbound_address (void * cls, 
  * Check if session already knows this address for a inbound connection to this peer
  * If address not in session, add it to the session
  * @param cls the plugin used
- * @param p the session
+ * @param cs the session
  * @param addr address
  * @param addr_len address length
  * @return the found or created address
@@ -863,7 +865,7 @@ static void http_server_daemon_v6_run (void *cls,
 
 /**
  * Removes a message from the linked list of messages
- * @param ses session to remove message from
+ * @param con connection to remove message from
  * @param msg message to remove
  * @return GNUNET_SYSERR if msg not found, GNUNET_OK on success
  */
@@ -990,6 +992,7 @@ static size_t send_write_callback( void *stream, size_t size, size_t nmemb, void
 
 /**
  * Function setting up file descriptors and scheduling task to run
+ * @param cls closure
  * @param ses session to send data to
  * @return bytes sent to peer
  */
@@ -997,7 +1000,9 @@ static size_t send_schedule(void *cls, struct Session* ses );
 
 /**
  * Function setting up curl handle and selecting message to send
+ * @param cls plugin
  * @param ses session to send data to
+ * @param con connection
  * @return bytes sent to peer
  */
 static ssize_t send_initiate (void *cls, struct Session* ses , struct HTTP_Connection_out *con)
