@@ -52,6 +52,8 @@
 
 #define MAX_CONCURRENT_HOSTKEYS 16
 
+#define MAX_CONCURRENT_STARTING 50
+
 #define CONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
 
 #define CONNECT_ATTEMPTS 8
@@ -190,6 +192,44 @@ struct PeerConnection
 };
 #endif
 
+struct InternalStartContext
+{
+  /**
+   * Pointer to peerdata
+   */
+  struct PeerData *peer;
+
+  /**
+   * Timeout for peer startup
+   */
+  struct GNUNET_TIME_Relative timeout;
+
+  /**
+   * Client callback for hostkey notification
+   */
+  GNUNET_TESTING_NotifyHostkeyCreated hostkey_callback;
+
+  /**
+   * Closure for hostkey_callback
+   */
+  void *hostkey_cls;
+
+  /**
+   * Client callback for peer start notification
+   */
+  GNUNET_TESTING_NotifyDaemonRunning start_cb;
+
+  /**
+   * Closure for cb
+   */
+  void *start_cb_cls;
+
+  /**
+   * Hostname, where to start the peer
+   */
+  const char *hostname;
+};
+
 /**
  * Data we keep per peer.
  */
@@ -213,10 +253,6 @@ struct PeerData
    */
   struct GNUNET_TESTING_PeerGroup *pg;
 
-  /**
-   * Linked list of peer connections (pointers)
-   */
-  //struct PeerConnection *connected_peers;
   /**
    * Hash map of allowed peer connections (F2F created topology)
    */
@@ -242,6 +278,12 @@ struct PeerData
    * creating any topology so the count is valid once finished.
    */
   int num_connections;
+
+  /**
+   * Context to keep track of peers being started, to
+   * stagger hostkey generation and peer startup.
+   */
+  struct InternalStartContext internal_context;
 };
 
 
@@ -281,12 +323,12 @@ struct GNUNET_TESTING_PeerGroup
   /**
    * Function to call on each started daemon.
    */
-  GNUNET_TESTING_NotifyDaemonRunning cb;
+  //GNUNET_TESTING_NotifyDaemonRunning cb;
 
   /**
    * Closure for cb.
    */
-  void *cb_cls;
+  //void *cb_cls;
 
   /*
    * Function to call on each topology connection created
@@ -325,6 +367,24 @@ struct GNUNET_TESTING_PeerGroup
   unsigned int starting;
 };
 
+struct UpdateContext
+{
+  struct GNUNET_CONFIGURATION_Handle *ret;
+  const char *hostname;
+  unsigned int nport;
+  unsigned int upnum;
+};
+
+
+struct ConnectContext
+{
+  struct GNUNET_TESTING_Daemon *first;
+
+  struct GNUNET_TESTING_Daemon *second;
+
+  struct GNUNET_TESTING_PeerGroup *pg;
+};
+
 /**
  * Convert unique ID to hash code.
  *
@@ -350,24 +410,6 @@ uid_from_hash (const GNUNET_HashCode *hash, uint32_t *uid)
 {
   memcpy (uid, hash, sizeof(uint32_t));
 }
-
-struct UpdateContext
-{
-  struct GNUNET_CONFIGURATION_Handle *ret;
-  const char *hostname;
-  unsigned int nport;
-  unsigned int upnum;
-};
-
-
-struct ConnectContext
-{
-  struct GNUNET_TESTING_Daemon *first;
-
-  struct GNUNET_TESTING_Daemon *second;
-
-  struct GNUNET_TESTING_PeerGroup *pg;
-};
 
 /**
  * Number of connects we are waiting on, allows us to rate limit
@@ -1911,7 +1953,7 @@ static void schedule_connect(void *cls, const struct GNUNET_SCHEDULER_TaskContex
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Delaying connect, we have too many outstanding connections!\n"));
 #endif
-      GNUNET_SCHEDULER_add_delayed(connect_context->pg->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3), &schedule_connect, connect_context);
+      GNUNET_SCHEDULER_add_delayed(connect_context->pg->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &schedule_connect, connect_context);
     }
   else
     {
@@ -2792,40 +2834,9 @@ GNUNET_TESTING_connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
 }
 
 /**
- * Function which continues a peer group starting up
- * after successfully generating hostkeys for each peer.
- *
- * @param pg the peer group to continue starting
- *
- */
-void
-GNUNET_TESTING_daemons_continue_startup(struct GNUNET_TESTING_PeerGroup *pg)
-{
-  unsigned int i;
-
-  for (i = 0; i < pg->total; i++)
-    {
-      GNUNET_TESTING_daemon_continue_startup(pg->peers[i].daemon);
-    }
-}
-
-struct InternalStartContext
-{
-  struct PeerData *peer;
-  struct GNUNET_SCHEDULER_Handle *sched;
-  const struct GNUNET_CONFIGURATION_Handle *pcfg;
-  struct GNUNET_TIME_Relative timeout;
-  GNUNET_TESTING_NotifyHostkeyCreated hostkey_callback;
-  void *hostkey_cls;
-  GNUNET_TESTING_NotifyDaemonRunning cb;
-  void *cb_cls;
-  const char *hostname;
-};
-
-
-/**
- * Prototype of a function that will be called whenever
- * a daemon was started by the testing library.
+ * Callback that is called whenever a hostkey is generated
+ * for a peer.  Call the real callback and decrement the
+ * starting counter for the peergroup.
  *
  * @param cls closure
  * @param id identifier for the daemon, NULL on error
@@ -2840,7 +2851,48 @@ static void internal_hostkey_callback (void *cls,
   struct InternalStartContext *internal_context = cls;
   internal_context->peer->pg->starting--;
   internal_context->hostkey_callback(internal_context->hostkey_cls, id, d, emsg);
-  GNUNET_free(internal_context);
+}
+
+/**
+ * Callback that is called whenever a peer has finished starting.
+ * Call the real callback and decrement the starting counter
+ * for the peergroup.
+ *
+ * @param cls closure
+ * @param id identifier for the daemon, NULL on error
+ * @param d handle for the daemon
+ * @param emsg error message (NULL on success)
+ */
+static void internal_startup_callback (void *cls,
+                                       const struct GNUNET_PeerIdentity *id,
+                                       const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                       struct GNUNET_TESTING_Daemon *d,
+                                       const char *emsg)
+{
+  struct InternalStartContext *internal_context = cls;
+  internal_context->peer->pg->starting--;
+  internal_context->start_cb(internal_context->start_cb_cls, id, cfg, d, emsg);
+}
+
+static void
+internal_continue_startup (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct InternalStartContext *internal_context = cls;
+
+  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+    {
+      return;
+    }
+
+  if (internal_context->peer->pg->starting < MAX_CONCURRENT_STARTING)
+    {
+      internal_context->peer->pg->starting++;
+      GNUNET_TESTING_daemon_continue_startup (internal_context->peer->daemon);
+    }
+  else
+    {
+      GNUNET_SCHEDULER_add_delayed(internal_context->peer->pg->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &internal_continue_startup, internal_context);
+    }
 }
 
 static void
@@ -2850,30 +2902,49 @@ internal_start (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     {
-      GNUNET_free(internal_context);
       return;
     }
 
   if (internal_context->peer->pg->starting < MAX_CONCURRENT_HOSTKEYS)
     {
       internal_context->peer->pg->starting++;
-      internal_context->peer->daemon = GNUNET_TESTING_daemon_start (internal_context->sched,
-                                                                    internal_context->pcfg,
+      internal_context->peer->daemon = GNUNET_TESTING_daemon_start (internal_context->peer->pg->sched,
+                                                                    internal_context->peer->cfg,
                                                                     internal_context->timeout,
                                                                     internal_context->hostname,
                                                                     &internal_hostkey_callback,
                                                                     internal_context,
-                                                                    internal_context->cb,
-                                                                    internal_context->cb_cls);
+                                                                    &internal_startup_callback,
+                                                                    internal_context);
     }
   else
     {
-      GNUNET_SCHEDULER_add_delayed(internal_context->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &internal_start, internal_context);
+      GNUNET_SCHEDULER_add_delayed(internal_context->peer->pg->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &internal_start, internal_context);
     }
 }
 
 /**
- * Start count gnunetd processes with the same set of transports and
+ * Function which continues a peer group starting up
+ * after successfully generating hostkeys for each peer.
+ *
+ * @param pg the peer group to continue starting
+ *
+ */
+void
+GNUNET_TESTING_daemons_continue_startup(struct GNUNET_TESTING_PeerGroup *pg)
+{
+  unsigned int i;
+
+  pg->starting = 0;
+  for (i = 0; i < pg->total; i++)
+    {
+      GNUNET_SCHEDULER_add_now (pg->sched, &internal_continue_startup, &pg->peers[i].internal_context);
+      //GNUNET_TESTING_daemon_continue_startup(pg->peers[i].daemon);
+    }
+}
+
+/**
+ * Start count gnunet instances with the same set of transports and
  * applications.  The port numbers (any option called "PORT") will be
  * adjusted to ensure that no two peers running on the same system
  * have the same port(s) in their respective configurations.
@@ -2916,7 +2987,6 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
   char *baseservicehome;
   char *newservicehome;
   char *tmpdir;
-  struct InternalStartContext *internal_context;
   struct GNUNET_CONFIGURATION_Handle *pcfg;
   unsigned int off;
   unsigned int hostcnt;
@@ -2932,8 +3002,6 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
   pg = GNUNET_malloc (sizeof (struct GNUNET_TESTING_PeerGroup));
   pg->sched = sched;
   pg->cfg = cfg;
-  pg->cb = cb;
-  pg->cb_cls = cb_cls;
   pg->notify_connection = connect_callback;
   pg->notify_connection_cls = connect_callback_cls;
   pg->total = total;
@@ -3043,31 +3111,16 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
       pg->peers[off].connect_peers = GNUNET_CONTAINER_multihashmap_create(total);
       pg->peers[off].blacklisted_peers = GNUNET_CONTAINER_multihashmap_create(total);
       pg->peers[off].pg = pg;
-      internal_context = GNUNET_malloc(sizeof(struct InternalStartContext));
-      internal_context->sched = sched;
-      internal_context->peer = &pg->peers[off];
-      internal_context->pcfg = pcfg;
-      internal_context->timeout = timeout;
-      internal_context->hostname = hostname;
-      internal_context->hostkey_callback = hostkey_callback;
-      internal_context->hostkey_cls = hostkey_cls;
-      internal_context->cb = cb;
-      internal_context->cb_cls = cb_cls;
 
-      GNUNET_SCHEDULER_add_now (sched, &internal_start, internal_context);
+      pg->peers[off].internal_context.peer = &pg->peers[off];
+      pg->peers[off].internal_context.timeout = timeout;
+      pg->peers[off].internal_context.hostname = hostname;
+      pg->peers[off].internal_context.hostkey_callback = hostkey_callback;
+      pg->peers[off].internal_context.hostkey_cls = hostkey_cls;
+      pg->peers[off].internal_context.start_cb = cb;
+      pg->peers[off].internal_context.start_cb_cls = cb_cls;
 
-      /*
-      pg->peers[off].daemon = GNUNET_TESTING_daemon_start (sched,
-                                                           pcfg,
-                                                           timeout,
-                                                           hostname,
-                                                           hostkey_callback,
-                                                           hostkey_cls,
-                                                           cb, cb_cls);
-      if (NULL == pg->peers[off].daemon)
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    _("Could not start peer number %u!\n"), off);
-      */
+      GNUNET_SCHEDULER_add_now (sched, &internal_start, &pg->peers[off].internal_context);
 
     }
   return pg;
@@ -3513,7 +3566,7 @@ GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg,
   shutdown_cb = NULL;
   shutdown_ctx = NULL;
 
-  if (cb != NULL)
+  if ((cb != NULL) && (pg->total > 0))
     {
       shutdown_ctx = GNUNET_malloc(sizeof(struct ShutdownContext));
       shutdown_ctx->cb = cb;
@@ -3525,8 +3578,8 @@ GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg,
 
   for (off = 0; off < pg->total; off++)
     {
-      if (NULL != pg->peers[off].daemon)
-        GNUNET_TESTING_daemon_stop (pg->peers[off].daemon, timeout, shutdown_cb, shutdown_ctx, GNUNET_YES, GNUNET_NO);
+      GNUNET_assert(NULL != pg->peers[off].daemon);
+      GNUNET_TESTING_daemon_stop (pg->peers[off].daemon, timeout, shutdown_cb, shutdown_ctx, GNUNET_YES, GNUNET_NO);
       if (NULL != pg->peers[off].cfg)
         GNUNET_CONFIGURATION_destroy (pg->peers[off].cfg);
       if (pg->peers[off].allowed_peers != NULL)

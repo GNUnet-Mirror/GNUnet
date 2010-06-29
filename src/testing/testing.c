@@ -704,7 +704,7 @@ GNUNET_TESTING_daemon_start_stopped (struct GNUNET_TESTING_Daemon *daemon,
  *        generated for this peer, but it hasn't yet been started
  *        (NULL to start immediately, otherwise waits on GNUNET_TESTING_daemon_continue_start)
  * @param hostkey_cls closure for hostkey callback
- * @param cb function to call with the result
+ * @param cb function to call once peer is up, or failed to start
  * @param cb_cls closure for cb
  * @return handle to the daemon (actual start will be completed asynchronously)
  */
