@@ -75,11 +75,12 @@ static void pp_ip6adr(unsigned char* adr, char* dest) {{{
 }}}
 
 void pp_hexdump(unsigned char* data, char* dest, int max) {{{
+        int i;
 	char tmp[3];
 	char tmp2[2];
 	int off = 0;
 	int to = max > 16 ? 16 : max;
-	for (int i = 0; i < to; i++) {
+	for (i = 0; i < to; i++) {
 		if (i == 8) off = 1;
 		sprintf(tmp, "%02x", data[i]);
 		memcpy(dest+(3*i)+off, tmp, 2);
@@ -138,7 +139,8 @@ void pkt_printf(struct ip6_pkt* pkt) {{{
 	memcpy(buf+323, tmp, 3);
 
 	int size = payload(&pkt->hdr);
-	for(int i = 0; i < 8; i++) {
+        int i;
+	for(i = 0; i < 8; i++) {
 		if (16*i > size) break;
 		pp_hexdump(pkt->data + (16*i), buf + 420 + (i*70), size - 16*i);
 	}

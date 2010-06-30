@@ -111,13 +111,7 @@
 * DATASTORE:
   - GNUNET_DATASTORE_cancel method not tested
 * TESTING: [Nate]
-  - modify configuration to allow controlling connections for non-local starts
-  - testbed creation with topology (needs working F2F topology) 
-  - testbed with churn 
-  - implement testcases for distributed testing
   - test basic peer re-configure 
-  - test topology creation 
-  - test churn generation 
   - consider changing API for peer-group termination to 
     call continuation when done
 * NAT/UPNP: [MW]

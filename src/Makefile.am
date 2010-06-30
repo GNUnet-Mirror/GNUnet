@@ -30,4 +30,5 @@ SUBDIRS = \
   hostlist \
   topology \
   $(NAT_DIR) \
-  fs
+  fs \
+  vpn

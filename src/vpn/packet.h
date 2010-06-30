@@ -79,14 +79,14 @@ struct ip6_udp {
 	struct udp_pkt data;
 };
 
-extern void send_pkt(int fd, struct ip6_pkt* pkt);
-extern int recv_ipv6pkt(int fd, struct pkt_tun** pkt);
-extern int recv_pkt(int fd, struct pkt_tun** pkt);
-extern struct ip6_pkt* parse_ip6(struct pkt_tun* pkt);
+void send_pkt(int fd, struct ip6_pkt* pkt);
+int recv_ipv6pkt(int fd, struct pkt_tun** pkt);
+int recv_pkt(int fd, struct pkt_tun** pkt);
+struct ip6_pkt* parse_ip6(struct pkt_tun* pkt);
 
-extern struct ip6_tcp* parse_ip6_tcp(struct ip6_pkt*);
-extern struct ip6_udp* parse_ip6_udp(struct ip6_pkt*);
+struct ip6_tcp* parse_ip6_tcp(struct ip6_pkt*);
+struct ip6_udp* parse_ip6_udp(struct ip6_pkt*);
 
-extern short payload(struct ip6_hdr* pkt);
+short payload(struct ip6_hdr* pkt);
 
 #endif
