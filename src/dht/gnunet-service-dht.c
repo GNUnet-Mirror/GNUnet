@@ -70,6 +70,11 @@ static struct GNUNET_TRANSPORT_Handle *transport_handle;
 static struct GNUNET_PeerIdentity my_identity;
 
 /**
+ * Short id of the peer, for printing
+ */
+static char *my_short_id;
+
+/**
  * Our HELLO
  */
 static struct GNUNET_MessageHeader *my_hello;
@@ -704,6 +709,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CORE_disconnect (coreAPI);
   if (datacache != NULL)
     GNUNET_DATACACHE_destroy (datacache);
+  if (my_short_id != NULL)
+    GNUNET_free(my_short_id);
 }
 
 
@@ -740,6 +747,7 @@ core_init (void *cls,
 #endif
   /* Copy our identity so we can use it */
   memcpy (&my_identity, identity, sizeof (struct GNUNET_PeerIdentity));
+  my_short_id = GNUNET_strdup(GNUNET_i2s(&my_identity));
   /* Set the server to local variable */
   coreAPI = server;
 }
@@ -758,6 +766,24 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
   {NULL, 0, 0}
 };
 
+/**
+ * Method called whenever a peer connects.
+ *
+ * @param cls closure
+ * @param peer peer identity this notification is about
+ * @param latency reported latency of the connection with peer
+ * @param distance reported distance (DV) to peer
+ */
+void handle_core_connect (void *cls,
+                          const struct GNUNET_PeerIdentity * peer,
+                          struct GNUNET_TIME_Relative latency,
+                          uint32_t distance)
+{
+#if DEBUG_DHT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%s:%s Receives core connect message for peer %s distance %d!\n", my_short_id, "dht", GNUNET_i2s(peer), distance);
+#endif
+}
 
 /**
  * Process dht requests.
@@ -782,7 +808,7 @@ run (void *cls,
                                  GNUNET_TIME_UNIT_FOREVER_REL,
                                  NULL,  /* FIXME: anything we want to pass around? */
                                  &core_init,    /* Call core_init once connected */
-                                 NULL,  /* Don't care about connects */
+                                 &handle_core_connect,  /* Don't care about connects */
                                  NULL,  /* Don't care about disconnects */
                                  NULL,  /* Don't want notified about all incoming messages */
                                  GNUNET_NO,     /* For header only inbound notification */
@@ -801,7 +827,6 @@ run (void *cls,
                                                GNUNET_TIME_UNIT_FOREVER_REL,
                                                &shutdown_task, NULL);
 }
-
 
 /**
  * The main function for the dht service.
