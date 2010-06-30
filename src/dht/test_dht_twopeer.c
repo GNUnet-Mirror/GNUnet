@@ -230,8 +230,8 @@ topology_callback (void *cls,
 
       curr_get_ctx.dht_handle = peer1dht;
       curr_get_ctx.peer = &peer2id;
-      GNUNET_SCHEDULER_add_now (sched, &do_get, &curr_get_ctx);
-      //GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 2), &do_get, &curr_get_ctx);
+      //GNUNET_SCHEDULER_add_now (sched, &do_get, &curr_get_ctx);
+      GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 2), &do_get, &curr_get_ctx);
     }
   else if (total_connections + failed_connections == expected_connections)
     {
