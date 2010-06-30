@@ -1,8 +1,10 @@
-noinst_PROGRAMS = \
+if !MINGW
+bin_PROGRAMS = \
  timeout_watchdog
 
 timeout_watchdog_SOURCES = \
  timeout_watchdog.c 
+endif
 
 dist_pkgdata_DATA = \
  gnunet-logo-color.png \
