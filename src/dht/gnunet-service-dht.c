@@ -779,10 +779,27 @@ void handle_core_connect (void *cls,
                           struct GNUNET_TIME_Relative latency,
                           uint32_t distance)
 {
+  int ret;
+  char *data;
+  size_t data_size = 42;
+  data = GNUNET_malloc (data_size);
+  memset (data, 43, data_size);
+
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s:%s Receives core connect message for peer %s distance %d!\n", my_short_id, "dht", GNUNET_i2s(peer), distance);
 #endif
+  if (datacache != NULL)
+  {
+    ret = GNUNET_DATACACHE_put (datacache, &peer->hashPubKey, data_size,
+                                data, 130,
+                                GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(),
+                                                          GNUNET_TIME_UNIT_MINUTES));
+#if DEBUG_DHT
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%s Inserting data %s, type %d into datacache, return value was %d\n", my_short_id, GNUNET_h2s(&peer->hashPubKey), 130, ret);
+#endif
+  }
 }
 
 /**

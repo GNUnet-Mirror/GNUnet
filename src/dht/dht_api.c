@@ -46,8 +46,6 @@
 
 #define DEBUG_DHT_API GNUNET_NO
 
-#define DEFAULT_DHT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
-
 struct PendingMessage
 {
   /**
@@ -548,7 +546,7 @@ finish_retransmission (struct GNUNET_DHT_Handle *handle, int code)
  */
 void
 service_message_handler (void *cls,
-			 const struct GNUNET_MessageHeader *msg)
+                         const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_DHT_Handle *handle = cls;
   struct GNUNET_DHT_RouteResultMessage *dht_msg;
@@ -567,9 +565,12 @@ service_message_handler (void *cls,
 #endif
       GNUNET_CLIENT_disconnect (handle->client, GNUNET_YES);
       handle->client = GNUNET_CLIENT_connect (handle->sched, 
-					      "dht", 
-					      handle->cfg);
-
+                                              "dht",
+                                              handle->cfg);
+      if (handle->current != NULL)
+        {
+          finish(handle, GNUNET_SYSERR); /* If there was a current message, kill it! */
+        }
       if (GNUNET_CONTAINER_multihashmap_iterate(handle->outstanding_requests, &retransmit_iterator, handle) > 0)
         {
           handle->retransmit_stage = DHT_RETRANSMITTING;
@@ -992,10 +993,9 @@ GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle,
               route_handle->uid);
 #endif
   message->unique_id = GNUNET_htonll (route_handle->uid);
-  GNUNET_assert (route_handle->dht_handle->current == NULL);
   pending = GNUNET_malloc (sizeof (struct PendingMessage));
   pending->msg = (struct GNUNET_MessageHeader *) message;
-  pending->timeout = DEFAULT_DHT_TIMEOUT;
+  pending->timeout = GNUNET_TIME_relative_get_forever();
   pending->cont = cont;
   pending->cont_cls = cont_cls;
   pending->unique_id = 0; /* When finished is called, free pending->msg */
