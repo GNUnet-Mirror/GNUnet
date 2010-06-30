@@ -97,6 +97,7 @@ if (child==0)
 if (child > 0)
 {
   sleep(timeout);
+  printf("Child processes were killed after timeout of %u seconds\n",timeout);
   kill(0,SIGABRT);
   exit(1);
 }  
