@@ -426,32 +426,14 @@ static struct Session * session_get (void * cls, const struct GNUNET_PeerIdentit
 static char * create_url(void * cls, const void * addr, size_t addrlen)
 {
   struct Plugin *plugin = cls;
-  char *address;
   char *url = NULL;
 
   GNUNET_assert ((addr!=NULL) && (addrlen != 0));
-  if (addrlen == (sizeof (struct IPv4HttpAddress)))
-  {
-    address = GNUNET_malloc(INET_ADDRSTRLEN + 1);
-    inet_ntop(AF_INET, &((struct IPv4HttpAddress *) addr)->ipv4_addr,address,INET_ADDRSTRLEN);
-    GNUNET_asprintf (&url,
-                     "http://%s:%u/%s",
-                     address,
-                     ntohs(((struct IPv4HttpAddress *) addr)->u_port),
-                     (char *) (&plugin->my_ascii_hash_ident));
-    GNUNET_free(address);
-  }
-  else if (addrlen == (sizeof (struct IPv6HttpAddress)))
-  {
-    address = GNUNET_malloc(INET6_ADDRSTRLEN + 1);
-    inet_ntop(AF_INET6, &((struct IPv6HttpAddress *) addr)->ipv6_addr,address,INET6_ADDRSTRLEN);
-    GNUNET_asprintf(&url,
-                    "http://%s:%u/%s",
-                    address,
-                    ntohs(((struct IPv6HttpAddress *) addr)->u6_port),
-                    (char *) (&plugin->my_ascii_hash_ident));
-    GNUNET_free(address);
-  }
+  GNUNET_asprintf(&url,
+                  "http://%s/%s",
+                  http_plugin_address_to_string(NULL, addr, addrlen),
+                  (char *) (&plugin->my_ascii_hash_ident));
+
   return url;
 }
 
@@ -504,7 +486,7 @@ static struct HTTP_Connection_out * session_check_outbound_address (void * cls, 
 /**
  * Check if session already knows this address for a inbound connection to this peer
  * If address not in session, add it to the session
- * @param cls the plugin used
+ * @param cls not needed, can be NULL
  * @param cs the session
  * @param addr address
  * @param addr_len address length
@@ -512,7 +494,6 @@ static struct HTTP_Connection_out * session_check_outbound_address (void * cls, 
  */
 static struct HTTP_Connection_in * session_check_inbound_address (void * cls, struct Session *cs, const void * addr, size_t addr_len)
 {
-  struct Plugin *plugin = cls;
   struct HTTP_Connection_in * cc = cs->inbound_connections_head;
   struct HTTP_Connection_in * con = NULL;
 
@@ -543,7 +524,9 @@ static struct HTTP_Connection_in * session_check_inbound_address (void * cls, st
     GNUNET_CONTAINER_DLL_insert(cs->inbound_connections_head,cs->inbound_connections_tail,con);
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection info for inbound address %s (%s:%u) was found\n",GNUNET_i2s(&cs->identity),http_plugin_address_to_string(plugin,con->addr,con->addrlen));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection info for inbound address %s (%s) was found\n",
+              GNUNET_i2s(&cs->identity),
+              http_plugin_address_to_string(NULL,con->addr,con->addrlen));
   return con;
 }
 
@@ -575,7 +558,7 @@ static void messageTokenizerCallback (void *cls,
 	      "Received message with type %u and size %u from `%s' %s\n",
 	      ntohs(message->type),
               ntohs(message->size),
-	      GNUNET_i2s(&(con->session->identity)),http_plugin_address_to_string(con,con->addr,con->addrlen));
+	      GNUNET_i2s(&(con->session->identity)),http_plugin_address_to_string(NULL,con->addr,con->addrlen));
 
 
   con->session->plugin->env->receive (con->session->plugin->env->cls,
@@ -638,7 +621,6 @@ accessHandlerCallback (void *cls,
 
   GNUNET_assert(cls !=NULL);
   send_error_to_client = GNUNET_NO;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"accessHandlerCallback\n");
   if (NULL == *httpSessionCache)
   {
     /* check url for peer identity , if invalid send HTTP 404*/
@@ -694,7 +676,10 @@ accessHandlerCallback (void *cls,
       if (con->msgtok==NULL)
         con->msgtok = GNUNET_SERVER_mst_create (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1, &messageTokenizerCallback, con);
 
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s' (`%s')\n",method, GNUNET_i2s(&cs->identity),address);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s' (`%s')\n",
+                  method,
+                  GNUNET_i2s(&cs->identity),
+                  http_plugin_address_to_string(NULL, con->addr, con->addrlen));
     }
 
     if ((*upload_data_size == 0) && (con->is_put_in_progress==GNUNET_NO))
@@ -1298,48 +1283,21 @@ http_plugin_send (void *cls,
                   void *cont_cls)
 {
   struct Plugin *plugin = cls;
-  char *address;
-  char *url;
   struct Session *cs;
   struct HTTP_Message *msg;
   struct HTTP_Connection_out *con;
   //unsigned int ret;
 
   GNUNET_assert(cls !=NULL);
-  url = NULL;
-  address = NULL;
-  uint16_t port;
-
   GNUNET_assert ((addr!=NULL) && (addrlen != 0));
-  if (addrlen == (sizeof (struct IPv4HttpAddress)))
-  {
-    port = ntohs(((struct IPv4HttpAddress *) addr)->u_port);
-    address = GNUNET_malloc(INET_ADDRSTRLEN + 1);
-    inet_ntop(AF_INET, &((struct IPv4HttpAddress *) addr)->ipv4_addr,address,INET_ADDRSTRLEN);
-    GNUNET_asprintf (&url,
-                     "http://%s:%u/%s",
-                     address,
-                     port ,
-                     (char *) (&plugin->my_ascii_hash_ident));
-  }
-  else if (addrlen == (sizeof (struct IPv6HttpAddress)))
-  {
-    port = ntohs(((struct IPv6HttpAddress *) addr)->u6_port);
-    address = GNUNET_malloc(INET6_ADDRSTRLEN + 1);
-    inet_ntop(AF_INET6, &((struct IPv6HttpAddress *) addr)->ipv6_addr,address,INET6_ADDRSTRLEN);
-    GNUNET_asprintf(&url,
-                    "http://%s:%u/%s",
-                    address,
-                    port,
-                    (char *) (&plugin->my_ascii_hash_ident));
-
-  }
 
   /* get session from hashmap */
   cs = session_get(plugin, target);
   con = session_check_outbound_address(plugin, cs, addr, addrlen);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Transport tells me to send %u bytes to `%s' %s:%u session: %X\n",msgbuf_size,GNUNET_i2s(&cs->identity),address,port,session);
-  GNUNET_free(address);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Transport tells me to send %u bytes to `%s' (%s), session: %X\n",
+                                      msgbuf_size, GNUNET_i2s(&cs->identity),
+                                      http_plugin_address_to_string(NULL, addr, addrlen),
+                                      session);
 
   /* create msg */
   msg = GNUNET_malloc (sizeof (struct HTTP_Message) + msgbuf_size);
@@ -1548,10 +1506,9 @@ http_plugin_address_to_string (void *cls,
   struct sockaddr_in6 a6;
   char * address;
   char * ret;
-  unsigned int port;
+  uint16_t port;
   unsigned int res;
 
-  GNUNET_assert(cls !=NULL);
   if (addrlen == sizeof (struct IPv6HttpAddress))
     {
       address = GNUNET_malloc (INET6_ADDRSTRLEN);
