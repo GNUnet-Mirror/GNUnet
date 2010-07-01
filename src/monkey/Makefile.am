@@ -10,6 +10,8 @@ if USE_COVERAGE
 endif
 
 
+if !MINGW
+
 lib_LTLIBRARIES = libgnunetmonkey.la
 
 libgnunetmonkey_la_SOURCES = \
@@ -97,4 +99,5 @@ EXTRA_DIST = \
   test_monkey_api_data.conf \
   $(check_SCRIPTS) 
 
+endif
 
