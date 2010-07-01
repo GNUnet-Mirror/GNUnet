@@ -25,6 +25,7 @@
 #include "platform.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_resolver_service.h"
+#include "gnunet_os_lib.h"
 #include "gnunet_program_lib.h"
 
 /**
@@ -166,6 +167,22 @@ check()
 int
 main (int argc, char *argv[])
 {
+  char hostname[GNUNET_OS_get_hostname_max_length() + 1];
+
+  if (0 != gethostname (hostname, sizeof (hostname) - 1))
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR |
+                           GNUNET_ERROR_TYPE_BULK, "gethostname");
+      fprintf (stderr, "Failed to determine my own hostname, testcase not run.\n");
+      return 0;
+    }
+  if (NULL == gethostbyname (hostname))
+    {
+      fprintf (stderr, "Failed to resolve my hostname `%s', testcase not run.\n",
+	       hostname);
+      return 0;
+    }
+
   GNUNET_log_setup("test-gnunet-service-manager",
 #if VERBOSE
 		   "DEBUG",
