@@ -42,13 +42,20 @@ gnunet_service_statistics_LDADD = \
 
 
 check_PROGRAMS = \
- test_statistics_api
+ test_statistics_api \
+ test_statistics_api_loop
 
 TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
 
 test_statistics_api_SOURCES = \
  test_statistics_api.c
 test_statistics_api_LDADD = \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la  
+
+test_statistics_api_loop_SOURCES = \
+ test_statistics_api_loop.c
+test_statistics_api_loop_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la  
 
