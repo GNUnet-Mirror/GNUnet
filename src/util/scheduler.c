@@ -721,6 +721,14 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
           abort ();
 	  break;
         }
+      if ((ret == 0) && (timeout.value == 0) && (busy_wait_warning > 16))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                      _("Looks like we're busy waiting...\n"));
+          sleep (1);            /* mitigate */
+        }
+      check_ready (&sched, rs, ws);
+      run_ready (&sched, rs, ws);
       if (GNUNET_NETWORK_fdset_handle_isset (rs, pr))
         {
           /* consume the signal */
@@ -737,14 +745,6 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
           last_tr = sched.tasks_run;
           busy_wait_warning = 0;
         }
-      if ((ret == 0) && (timeout.value == 0) && (busy_wait_warning > 16))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                      _("Looks like we're busy waiting...\n"));
-          sleep (1);            /* mitigate */
-        }
-      check_ready (&sched, rs, ws);
-      run_ready (&sched, rs, ws);
     }
   GNUNET_SIGNAL_handler_uninstall (shc_int);
   GNUNET_SIGNAL_handler_uninstall (shc_term);
@@ -822,9 +822,7 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Handle *sched,
   struct Task *prev;
   enum GNUNET_SCHEDULER_Priority p;
   void *ret;
-#if EXECINFO
-  int i;
-#endif
+
   prev = NULL;
   t = sched->pending;
   while (t != NULL)
