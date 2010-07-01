@@ -82,6 +82,7 @@ transmit_response (void *cls, size_t size, void *buf)
   if (buf == NULL)
     {
       GNUNET_SERVER_receive_done (tc->client, GNUNET_SYSERR);
+      GNUNET_SERVER_client_drop (tc->client);
       GNUNET_free_non_null (tc->buf);
       GNUNET_free (tc);
       return 0;
@@ -95,6 +96,7 @@ transmit_response (void *cls, size_t size, void *buf)
   if (tc->total == tc->off)
     {
       GNUNET_SERVER_receive_done (tc->client, GNUNET_OK);
+      GNUNET_SERVER_client_drop (tc->client);
       GNUNET_free_non_null (tc->buf);
       GNUNET_free (tc);
     }
@@ -111,6 +113,7 @@ transmit_response (void *cls, size_t size, void *buf)
         {
           GNUNET_break (0);
           GNUNET_SERVER_receive_done (tc->client, GNUNET_SYSERR);
+	  GNUNET_SERVER_client_drop (tc->client);
           GNUNET_free_non_null (tc->buf);
           GNUNET_free (tc);
         }
@@ -133,6 +136,7 @@ GNUNET_SERVER_transmit_context_create (struct GNUNET_SERVER_Client *client)
 
   GNUNET_assert (client != NULL);
   tc = GNUNET_malloc (sizeof (struct GNUNET_SERVER_TransmitContext));
+  GNUNET_SERVER_client_keep (client);
   tc->client = client;
   return tc;
 }
@@ -213,6 +217,7 @@ GNUNET_SERVER_transmit_context_run (struct GNUNET_SERVER_TransmitContext *tc,
     {
       GNUNET_break (0);
       GNUNET_SERVER_receive_done (tc->client, GNUNET_SYSERR);
+      GNUNET_SERVER_client_drop (tc->client);
       GNUNET_free_non_null (tc->buf);
       GNUNET_free (tc);
     }

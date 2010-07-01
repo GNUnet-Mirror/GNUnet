@@ -168,6 +168,7 @@ get_ip_as_string (struct GNUNET_SERVER_Client *client,
   if (salen < sizeof (struct sockaddr))
     {
       GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
   now = GNUNET_TIME_absolute_get ();
