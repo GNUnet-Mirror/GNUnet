@@ -150,7 +150,7 @@ void sendMail()
 	smtp_session_t session;
 	smtp_message_t message;
 	smtp_recipient_t recipient;
-	auth_context_t authctx;
+	// auth_context_t authctx;
 	const smtp_status_t *status;
 	struct sigaction sa;
 	char *host = "localhost:25";
@@ -222,7 +222,7 @@ void sendMail()
 	/* Free resources consumed by the program.
 	 */
 	smtp_destroy_session(session);
-	auth_destroy_context(authctx);
+	// auth_destroy_context(authctx);
 	fclose(fp);
 	auth_client_exit();
 	exit(0);
