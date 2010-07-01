@@ -79,7 +79,7 @@ run (void *cls,
   i = 0;
   GNUNET_break (NULL != 
 		GNUNET_STATISTICS_get (h, NULL, "test-0",
-				       GNUNET_TIME_UNIT_SECONDS, &next, &check_1, cls));
+				       GNUNET_TIME_UNIT_MINUTES, &next, &check_1, cls));
 }
 
 

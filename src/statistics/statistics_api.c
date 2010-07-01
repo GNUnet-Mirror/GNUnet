@@ -752,7 +752,8 @@ add_setter_action (struct GNUNET_STATISTICS_Handle *h,
   size_t slen;
   size_t nlen;
   size_t nsize;
-
+  int64_t delta;
+  
   GNUNET_assert (h != NULL);
   GNUNET_assert (name != NULL);
   if (GNUNET_YES != try_connect (h))
@@ -764,6 +765,54 @@ add_setter_action (struct GNUNET_STATISTICS_Handle *h,
     {
       GNUNET_break (0);
       return;
+    }
+  ai = h->action_head;
+  while (ai != NULL)
+    {
+      if ( (0 == strcmp (ai->subsystem, h->subsystem)) &&
+	   (0 == strcmp (ai->name, name)) &&
+	   ( (ai->type == ACTION_UPDATE) ||
+	     (ai->type == ACTION_SET) ) )
+	{
+	  if (ai->type == ACTION_SET)
+	    {
+	      if (type == ACTION_UPDATE)
+		{
+		  delta = (int64_t) value;
+		  if (delta > 0) 
+		    {
+		      ai->value += delta;
+		    }
+		  else
+		    {
+		      if (ai->value < -delta)
+			ai->value = 0;
+		      else
+			ai->value += delta;
+		    }
+		}
+	      else
+		{
+		  ai->value = value;
+		}
+	    }
+	  else
+	    {
+	      if (type == ACTION_UPDATE)
+		{
+		  delta = (int64_t) value;
+		  ai->value += delta;
+		}
+	      else
+		{
+		  ai->value = value;
+		  ai->type = type;
+		}
+	    }
+	  ai->timeout = GNUNET_TIME_relative_to_absolute (SET_TRANSMIT_TIMEOUT);		  
+	  return;
+	}
+      ai = ai->next;
     }
   ai = GNUNET_malloc (sizeof (struct GNUNET_STATISTICS_GetHandle));
   ai->sh = h;
