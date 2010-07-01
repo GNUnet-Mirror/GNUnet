@@ -1123,4 +1123,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of test_testing_topology.c */
+/* end of test_transport_api_dv.c */
