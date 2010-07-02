@@ -84,7 +84,7 @@ bug_null_pointer_exception_LDADD = \
 check_PROGRAMS = \
  test_monkey_api
 
-TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
+#TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
 
 test_monkey_api_SOURCES = \
  test_monkey_api.c
