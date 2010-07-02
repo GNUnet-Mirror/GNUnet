@@ -2393,9 +2393,11 @@ process_hello_retry_send_key (void *cls,
 	}
       else
 	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		      _("Failed to obtain public key for peer `%4s', delaying processing of SET_KEY\n"),
+#if DEBUG_CORE
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Failed to obtain public key for peer `%4s', delaying processing of SET_KEY\n",
 		      GNUNET_i2s (&n->peer));
+#endif
 	  GNUNET_STATISTICS_update (stats,
 				    gettext_noop ("# Delayed connecting due to lack of public key"),
 				    1,
