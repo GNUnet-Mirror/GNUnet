@@ -290,6 +290,7 @@ hash_from_uid (uint64_t uid,
   *((uint64_t*)hash) = uid;
 }
 
+#if RETRANSMIT
 /**
  * Iterator callback to retransmit each outstanding request
  * because the connection to the DHT service went down (and
@@ -317,6 +318,7 @@ static int retransmit_iterator (void *cls,
 
   return GNUNET_OK;
 }
+#endif
 
 /**
  * Try to (re)connect to the dht service.
@@ -571,6 +573,7 @@ service_message_handler (void *cls,
         {
           finish(handle, GNUNET_SYSERR); /* If there was a current message, kill it! */
         }
+#if RETRANSMIT
       if (GNUNET_CONTAINER_multihashmap_iterate(handle->outstanding_requests, &retransmit_iterator, handle) > 0)
         {
           handle->retransmit_stage = DHT_RETRANSMITTING;
@@ -578,6 +581,7 @@ service_message_handler (void *cls,
           process_pending_retransmissions(handle);
         }
       return;
+#endif
     }
 
   switch (ntohs (msg->type))
