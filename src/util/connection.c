@@ -931,7 +931,8 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (struct GNUNET_SCHEDULER_Handl
   ret->sock = GNUNET_NETWORK_socket_create (AF_UNIX, SOCK_STREAM, 0);
   if (NULL == ret->sock)
     {
-      GNUNET_free (un);
+      GNUNET_free (ret->addr);
+      GNUNET_free (ret->write_buffer);
       GNUNET_free (ret);
       return NULL;
     }
@@ -941,6 +942,7 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (struct GNUNET_SCHEDULER_Handl
     {
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (ret->sock));
       GNUNET_free (ret->addr);
+      GNUNET_free (ret->write_buffer);
       GNUNET_free (ret);
       return NULL;
     }
