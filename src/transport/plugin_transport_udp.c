@@ -1616,9 +1616,10 @@ udp_transport_server_start (void *cls)
           {
             serverAddrv4.sin_port = htons (GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_STRONG, 33537) + 32000); /* Find a good, non-root port */
 #if DEBUG_UDP
-        GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                        "udp",
-                        "Binding failed, trying new port %d\n", ntohs(serverAddrv4.sin_port));
+	    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+			     "udp",
+			     "Binding failed, trying new port %d\n", 
+			     ntohs(serverAddrv4.sin_port));
 #endif
           }
         udp_sock.port = ntohs(serverAddrv4.sin_port);
