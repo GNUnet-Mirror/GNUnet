@@ -499,11 +499,6 @@ struct GNUNET_SERVICE_Context
   struct GNUNET_TIME_Relative timeout;
 
   /**
-   * Maximum buffer size for the server.
-   */
-  size_t maxbuf;
-
-  /**
    * Overall success/failure of the service start.
    */
   int ret;
@@ -1077,14 +1072,13 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
 
 
 /**
- * Setup addr, addrlen, maxbuf, idle_timeout
+ * Setup addr, addrlen, idle_timeout
  * based on configuration!
  *
  * Configuration may specify:
  * - PORT (where to bind to for TCP)
  * - UNIXPATH (where to bind to for UNIX domain sockets)
  * - TIMEOUT (after how many ms does an inactive service timeout);
- * - MAXBUF (maximum incoming message size supported)
  * - DISABLEV6 (disable support for IPv6, otherwise we use dual-stack)
  * - BINDTO (hostname or IP address to bind to, otherwise we take everything)
  * - ACCEPT_FROM  (only allow connections from specified IPv4 subnets)
@@ -1097,7 +1091,6 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
 static int
 setup_service (struct GNUNET_SERVICE_Context *sctx)
 {
-  unsigned long long maxbuf;
   struct GNUNET_TIME_Relative idleout;
   int tolerant;
   const char *lpid;
@@ -1124,23 +1117,6 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
     }
   else
     sctx->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
-  if (GNUNET_CONFIGURATION_have_value (sctx->cfg,
-                                       sctx->serviceName, "MAXBUF"))
-    {
-      if (GNUNET_OK !=
-          GNUNET_CONFIGURATION_get_value_number (sctx->cfg,
-                                                 sctx->serviceName,
-                                                 "MAXBUF", &maxbuf))
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		      _("Specified value for `%s' of service `%s' is invalid\n"),
-		      "MAXBUF",
-		      sctx->serviceName);
-	  return GNUNET_SYSERR;
-	}
-    }
-  else
-    maxbuf = GNUNET_SERVER_MAX_MESSAGE_SIZE - 1;
 
   if (GNUNET_CONFIGURATION_have_value (sctx->cfg,
                                        sctx->serviceName, "TOLERANT"))
@@ -1201,15 +1177,6 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
 					     &sctx->addrlens)) )
     return GNUNET_SYSERR;
   sctx->require_found = tolerant ? GNUNET_NO : GNUNET_YES;
-  sctx->maxbuf = (size_t) maxbuf;
-  if (sctx->maxbuf != maxbuf)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _
-                  ("Value in configuration for `%s' and service `%s' too large!\n"),
-                  "MAXBUF", sctx->serviceName);
-      return GNUNET_SYSERR;
-    }
 
   process_acl4 (&sctx->v4_denied, sctx, "REJECT_FROM");
   process_acl4 (&sctx->v4_allowed, sctx, "ACCEPT_FROM");
@@ -1324,7 +1291,6 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 						      &check_access,
 						      sctx,
 						      sctx->lsocks,
-						      sctx->maxbuf,
 						      sctx->timeout, sctx->require_found);
   else
     sctx->server = GNUNET_SERVER_create (tc->sched,
@@ -1332,7 +1298,6 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 					 sctx,
 					 sctx->addrs,
 					 sctx->addrlens,
-					 sctx->maxbuf,
 					 sctx->timeout, sctx->require_found);
   if (sctx->server == NULL)
     {
@@ -1577,7 +1542,6 @@ GNUNET_SERVICE_run (int argc,
   sctx.ready_confirm_fd = -1;
   sctx.ret = GNUNET_OK;
   sctx.timeout = GNUNET_TIME_UNIT_FOREVER_REL;
-  sctx.maxbuf = GNUNET_SERVER_MAX_MESSAGE_SIZE - 1;
   sctx.task = task;
   sctx.serviceName = serviceName;
   sctx.cfg = cfg = GNUNET_CONFIGURATION_create ();
@@ -1656,7 +1620,6 @@ GNUNET_SERVICE_start (const char *serviceName,
   sctx->ready_confirm_fd = -1;  /* no daemonizing */
   sctx->ret = GNUNET_OK;
   sctx->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
-  sctx->maxbuf = GNUNET_SERVER_MAX_MESSAGE_SIZE;
   sctx->serviceName = serviceName;
   sctx->cfg = cfg;
   sctx->sched = sched;
@@ -1672,7 +1635,6 @@ GNUNET_SERVICE_start (const char *serviceName,
 						      &check_access,
 						      sctx,
 						      sctx->lsocks,
-						      sctx->maxbuf,
 						      sctx->timeout, sctx->require_found);
   else
     sctx->server = GNUNET_SERVER_create (sched,
@@ -1680,7 +1642,6 @@ GNUNET_SERVICE_start (const char *serviceName,
 					 sctx,
 					 sctx->addrs,
 					 sctx->addrlens,
-					 sctx->maxbuf,
 					 sctx->timeout,
 					 sctx->require_found);
 					 

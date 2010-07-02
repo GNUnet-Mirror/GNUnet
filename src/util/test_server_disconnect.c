@@ -115,7 +115,7 @@ transmit_initial_message (void *cls,
 
   GNUNET_assert (ok == 1);
   ok = 2;
-  GNUNET_assert (size > sizeof (struct GNUNET_MessageHeader));
+  GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   msg.type = htons (MY_TYPE);
   msg.size = htons (sizeof (struct GNUNET_MessageHeader));
   memcpy (buf, &msg, sizeof (struct GNUNET_MessageHeader));
@@ -146,7 +146,6 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                  NULL,
                                  sap,
 				 slens,
-                                 1024,
                                  TIMEOUT,
                                  GNUNET_NO);
   GNUNET_assert (server != NULL);

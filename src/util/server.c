@@ -122,11 +122,6 @@ struct GNUNET_SERVER_Handle
   struct GNUNET_TIME_Relative idle_timeout;
 
   /**
-   * maximum write buffer size for accepted sockets
-   */
-  size_t maxbuf;
-
-  /**
    * Task scheduled to do the listening.
    */
   GNUNET_SCHEDULER_TaskIdentifier listen_task;
@@ -273,8 +268,7 @@ process_listen_socket (void *cls,
           sock =
             GNUNET_CONNECTION_create_from_accept (tc->sched, server->access,
                                                   server->access_cls,
-                                                  server->listen_sockets[i],
-                                                  server->maxbuf);
+                                                  server->listen_sockets[i]);
           if (sock != NULL)
             {
 #if DEBUG_SERVER
@@ -396,7 +390,6 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
  * @param access function for access control
  * @param access_cls closure for access
  * @param lsocks NULL-terminated array of listen sockets
- * @param maxbuf maximum write buffer size for accepted sockets
  * @param idle_timeout after how long should we timeout idle connections?
  * @param require_found if YES, connections sending messages of unknown type
  *        will be closed
@@ -407,7 +400,6 @@ struct GNUNET_SERVER_Handle *
 GNUNET_SERVER_create_with_sockets (struct GNUNET_SCHEDULER_Handle *sched,
 				   GNUNET_CONNECTION_AccessCheck access, void *access_cls,
 				   struct GNUNET_NETWORK_Handle **lsocks,
-				   size_t maxbuf,
 				   struct GNUNET_TIME_Relative
 				   idle_timeout,
 				   int require_found)
@@ -418,7 +410,6 @@ GNUNET_SERVER_create_with_sockets (struct GNUNET_SCHEDULER_Handle *sched,
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_SERVER_Handle));
   ret->sched = sched;
-  ret->maxbuf = maxbuf;
   ret->idle_timeout = idle_timeout;
   ret->listen_sockets = lsocks;
   ret->access = access;
@@ -451,7 +442,6 @@ GNUNET_SERVER_create_with_sockets (struct GNUNET_SCHEDULER_Handle *sched,
  * @param access_cls closure for access
  * @param serverAddr address to listen on (including port), NULL terminated array
  * @param socklen length of serverAddr
- * @param maxbuf maximum write buffer size for accepted sockets
  * @param idle_timeout after how long should we timeout idle connections?
  * @param require_found if YES, connections sending messages of unknown type
  *        will be closed
@@ -464,7 +454,6 @@ GNUNET_SERVER_create (struct GNUNET_SCHEDULER_Handle *sched,
                       void *access_cls,
                       struct sockaddr *const *serverAddr,
                       const socklen_t * socklen,
-                      size_t maxbuf,
                       struct GNUNET_TIME_Relative
                       idle_timeout, int require_found)
 {
@@ -503,7 +492,6 @@ GNUNET_SERVER_create (struct GNUNET_SCHEDULER_Handle *sched,
   return GNUNET_SERVER_create_with_sockets (sched,
 					    access, access_cls,
 					    lsocks,
-					    maxbuf, 
 					    idle_timeout,
 					    require_found);
 }
@@ -877,8 +865,7 @@ GNUNET_SERVER_connect_socket (struct
 
   client = GNUNET_malloc (sizeof (struct GNUNET_SERVER_Client));
   client->connection = connection;
-  client->mst = GNUNET_SERVER_mst_create (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
-					  &client_message_tokenizer_callback,
+  client->mst = GNUNET_SERVER_mst_create (&client_message_tokenizer_callback,
 					  server);
   client->reference_count = 1;
   client->server = server;

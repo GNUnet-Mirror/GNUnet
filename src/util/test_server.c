@@ -95,7 +95,7 @@ reply_msg (void *cls, size_t size, void *buf)
 
   GNUNET_assert (ok == 3);
   ok = 4;
-  GNUNET_assert (size > sizeof (struct GNUNET_MessageHeader));
+  GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   msg.type = htons (MY_TYPE);
   msg.size = htons (sizeof (struct GNUNET_MessageHeader));
   memcpy (buf, &msg, sizeof (struct GNUNET_MessageHeader));
@@ -137,7 +137,7 @@ transmit_second_message (void *cls,
 {
   struct GNUNET_MessageHeader msg;
 
-  GNUNET_assert (size > sizeof (struct GNUNET_MessageHeader));
+  GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   msg.type = htons (MY_TYPE2);
   msg.size = htons (sizeof (struct GNUNET_MessageHeader));
   memcpy (buf, &msg, sizeof (struct GNUNET_MessageHeader));
@@ -154,7 +154,7 @@ transmit_initial_message (void *cls,
 
   GNUNET_assert (ok == 1);
   ok = 2;
-  GNUNET_assert (size > sizeof (struct GNUNET_MessageHeader));
+  GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   msg.type = htons (MY_TYPE);
   msg.size = htons (sizeof (struct GNUNET_MessageHeader));
   memcpy (buf, &msg, sizeof (struct GNUNET_MessageHeader));
@@ -193,7 +193,6 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                  NULL,
                                  sap,
 				 slens,
-                                 1024,
                                  TIMEOUT,
                                  GNUNET_NO);
   GNUNET_assert (server != NULL);

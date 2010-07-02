@@ -119,7 +119,7 @@ run_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test accepts connection\n");
 #endif
   asock = GNUNET_CONNECTION_create_from_accept (tc->sched,
-                                                NULL, NULL, ls, 1024);
+                                                NULL, NULL, ls);
   GNUNET_assert (asock != NULL);
   GNUNET_assert (GNUNET_YES == GNUNET_CONNECTION_check (asock));
 #if VERBOSE
@@ -157,11 +157,11 @@ static void
 task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   ls = open_listen_socket ();
-  lsock = GNUNET_CONNECTION_create_from_existing (tc->sched, ls, 0);
+  lsock = GNUNET_CONNECTION_create_from_existing (tc->sched, ls);
   GNUNET_assert (lsock != NULL);
   csock = GNUNET_CONNECTION_create_from_connect (tc->sched,
                                                  cfg,
-                                                 "localhost", PORT, 1024);
+                                                 "localhost", PORT);
   GNUNET_assert (csock != NULL);
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test asks for write notification\n");

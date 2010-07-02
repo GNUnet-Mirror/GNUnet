@@ -62,11 +62,6 @@ struct GNUNET_SERVER_MessageStreamTokenizer
   size_t curr_buf;
 
   /**
-   * Maximum size of the buffer.
-   */
-  size_t maxbuf;
-
-  /**
    * How many bytes in buffer have we already processed?
    */
   size_t off;
@@ -88,15 +83,12 @@ struct GNUNET_SERVER_MessageStreamTokenizer
 /**
  * Create a message stream tokenizer.
  *
- * @param maxbuf maximum message size to support (typically
- *    GNUNET_SERVER_MAX_MESSAGE_SIZE - 1)
  * @param cb function to call on completed messages
  * @param cb_cls closure for cb
  * @return handle to tokenizer
  */
 struct GNUNET_SERVER_MessageStreamTokenizer *
-GNUNET_SERVER_mst_create (size_t maxbuf,
-			  GNUNET_SERVER_MessageTokenizerCallback cb,
+GNUNET_SERVER_mst_create (GNUNET_SERVER_MessageTokenizerCallback cb,
 			  void *cb_cls)
 {
   struct GNUNET_SERVER_MessageStreamTokenizer *ret;
@@ -104,7 +96,6 @@ GNUNET_SERVER_mst_create (size_t maxbuf,
   ret = GNUNET_malloc (sizeof (struct GNUNET_SERVER_MessageStreamTokenizer));
   ret->hdr = GNUNET_malloc(GNUNET_SERVER_MIN_BUFFER_SIZE);
   ret->curr_buf = GNUNET_SERVER_MIN_BUFFER_SIZE;
-  ret->maxbuf = maxbuf;
   ret->cb = cb;
   ret->cb_cls = cb_cls;
   return ret;
@@ -149,11 +140,11 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
 	      (unsigned int) size,
 	      (unsigned int) (mst->pos - mst->off));
 #endif
-  if ((size > mst->curr_buf) && (size < mst->maxbuf)) /* Received bigger message than we can currently handle! */
+  if ((size > mst->curr_buf) && (size < GNUNET_SERVER_MAX_MESSAGE_SIZE)) /* Received bigger message than we can currently handle! */
     {
       newsize = mst->curr_buf + size; /* How much space do we need? */
-      if (newsize > mst->maxbuf)
-        newsize = mst->maxbuf; /* Check it's not bigger than maxbuf */
+      if (newsize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+        newsize = GNUNET_SERVER_MAX_MESSAGE_SIZE; /* Check it's not bigger than GNUNET_SERVER_MAX_MESSAGE_SIZE */
 
       mst->hdr = GNUNET_realloc(mst->hdr, newsize);
       mst->curr_buf = newsize;

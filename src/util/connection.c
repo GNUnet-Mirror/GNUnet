@@ -214,11 +214,6 @@ struct GNUNET_CONNECTION_Handle
   char *write_buffer;
 
   /**
-   * Max size of our write buffer.
-   */
-  size_t max_write_buffer_size;
-
-  /**
    * Current size of our write buffer.
    */
   size_t write_buffer_size;
@@ -319,21 +314,17 @@ void GNUNET_CONNECTION_persist_(struct GNUNET_CONNECTION_Handle *sock)
  *
  * @param sched scheduler to use
  * @param osSocket existing socket to box
- * @param maxbuf maximum write buffer size for the socket (use
- *        0 for sockets that need no write buffers, such as listen sockets)
  * @return the boxed socket handle
  */
 struct GNUNET_CONNECTION_Handle *
 GNUNET_CONNECTION_create_from_existing (struct GNUNET_SCHEDULER_Handle
                                         *sched,
                                         struct GNUNET_NETWORK_Handle
-                                        *osSocket, size_t maxbuf)
+                                        *osSocket)
 {
   struct GNUNET_CONNECTION_Handle *ret;
   ret = GNUNET_malloc (sizeof (struct GNUNET_CONNECTION_Handle));
-  GNUNET_assert (maxbuf < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   ret->write_buffer_size = GNUNET_SERVER_MIN_BUFFER_SIZE;
-  ret->max_write_buffer_size = maxbuf;
   ret->write_buffer = GNUNET_malloc(ret->write_buffer_size);
   ret->sock = osSocket;
   ret->sched = sched;
@@ -349,8 +340,6 @@ GNUNET_CONNECTION_create_from_existing (struct GNUNET_SCHEDULER_Handle
  * @param access function to use to check if access is allowed
  * @param access_cls closure for access
  * @param lsock listen socket
- * @param maxbuf maximum write buffer size for the socket (use
- *        0 for sockets that need no write buffers, such as listen sockets)
  * @return the socket handle, NULL on error
  */
 struct GNUNET_CONNECTION_Handle *
@@ -358,8 +347,7 @@ GNUNET_CONNECTION_create_from_accept (struct GNUNET_SCHEDULER_Handle
                                       *sched,
                                       GNUNET_CONNECTION_AccessCheck access,
                                       void *access_cls,
-                                      struct GNUNET_NETWORK_Handle *lsock,
-                                      size_t maxbuf)
+                                      struct GNUNET_NETWORK_Handle *lsock)
 {
   struct GNUNET_CONNECTION_Handle *ret;
   char addr[128];
@@ -423,10 +411,7 @@ GNUNET_CONNECTION_create_from_accept (struct GNUNET_SCHEDULER_Handle
       return NULL;
     }
   ret = GNUNET_malloc (sizeof (struct GNUNET_CONNECTION_Handle));
-
-  GNUNET_assert (maxbuf < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   ret->write_buffer_size = GNUNET_SERVER_MIN_BUFFER_SIZE;
-  ret->max_write_buffer_size = maxbuf;
   ret->write_buffer = GNUNET_malloc(ret->write_buffer_size);
   ret->addr = uaddr;
   ret->addrlen = addrlen;
@@ -870,16 +855,13 @@ try_connect_using_address (void *cls,
  * @param cfg configuration to use
  * @param hostname name of the host to connect to
  * @param port port to connect to
- * @param maxbuf maximum write buffer size for the socket (use
- *        0 for sockets that need no write buffers, such as listen sockets)
  * @return the socket handle
  */
 struct GNUNET_CONNECTION_Handle *
 GNUNET_CONNECTION_create_from_connect (struct GNUNET_SCHEDULER_Handle *sched,
                                        const struct
                                        GNUNET_CONFIGURATION_Handle *cfg,
-                                       const char *hostname, uint16_t port,
-                                       size_t maxbuf)
+                                       const char *hostname, uint16_t port)
 {
   struct GNUNET_CONNECTION_Handle *ret;
 
@@ -887,10 +869,7 @@ GNUNET_CONNECTION_create_from_connect (struct GNUNET_SCHEDULER_Handle *sched,
   ret = GNUNET_malloc (sizeof (struct GNUNET_CONNECTION_Handle));
   ret->cfg = cfg;
   ret->sched = sched;
-
-  GNUNET_assert (maxbuf < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   ret->write_buffer_size = GNUNET_SERVER_MIN_BUFFER_SIZE;
-  ret->max_write_buffer_size = maxbuf;
   ret->write_buffer = GNUNET_malloc(ret->write_buffer_size);
   ret->port = port;
   ret->hostname = GNUNET_strdup (hostname);
@@ -912,16 +891,13 @@ GNUNET_CONNECTION_create_from_connect (struct GNUNET_SCHEDULER_Handle *sched,
  * @param sched scheduler to use
  * @param cfg configuration to use
  * @param unixpath path to connect to
- * @param maxbuf maximum write buffer size for the socket (use
- *        0 for sockets that need no write buffers, such as listen sockets)
  * @return the socket handle, NULL on systems without UNIX support
  */
 struct GNUNET_CONNECTION_Handle *
 GNUNET_CONNECTION_create_from_connect_to_unixpath (struct GNUNET_SCHEDULER_Handle *sched,
 						   const struct
 						   GNUNET_CONFIGURATION_Handle *cfg,
-						   const char *unixpath,
-						   size_t maxbuf)
+						   const char *unixpath)
 {
 #ifdef AF_UNIX
   struct GNUNET_CONNECTION_Handle *ret;
@@ -946,9 +922,7 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (struct GNUNET_SCHEDULER_Handl
   ret = GNUNET_malloc (sizeof (struct GNUNET_CONNECTION_Handle));
   ret->cfg = cfg;
   ret->sched = sched;
-  GNUNET_assert (maxbuf < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   ret->write_buffer_size = GNUNET_SERVER_MIN_BUFFER_SIZE;
-  ret->max_write_buffer_size = maxbuf;
   ret->write_buffer = GNUNET_malloc(ret->write_buffer_size);
   ret->port = 0;
   ret->hostname = NULL;
@@ -987,15 +961,13 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (struct GNUNET_SCHEDULER_Handl
  * @param af_family address family to use
  * @param serv_addr server address
  * @param addrlen length of server address
- * @param maxbuf maximum write buffer size for the socket (use
- *        0 for sockets that need no write buffers, such as listen sockets)
  * @return the socket handle
  */
 struct GNUNET_CONNECTION_Handle *
 GNUNET_CONNECTION_create_from_sockaddr (struct GNUNET_SCHEDULER_Handle
                                         *sched, int af_family,
                                         const struct sockaddr *serv_addr,
-                                        socklen_t addrlen, size_t maxbuf)
+                                        socklen_t addrlen)
 {
   struct GNUNET_NETWORK_Handle *s;
   struct GNUNET_CONNECTION_Handle *ret;
@@ -1015,7 +987,7 @@ GNUNET_CONNECTION_create_from_sockaddr (struct GNUNET_SCHEDULER_Handle
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (s));
       return NULL;
     }
-  ret = GNUNET_CONNECTION_create_from_existing (sched, s, maxbuf);
+  ret = GNUNET_CONNECTION_create_from_existing (sched, s);
   ret->addr = GNUNET_malloc (addrlen);
   memcpy (ret->addr, serv_addr, addrlen);
   ret->addrlen = addrlen;
@@ -1615,11 +1587,11 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle
   if (sock->nth.notify_ready != NULL)
     return NULL;
   GNUNET_assert (notify != NULL);
-  if ((sock->write_buffer_size < size) && (size < sock->max_write_buffer_size))
+  if ((sock->write_buffer_size < size) && (size < GNUNET_SERVER_MAX_MESSAGE_SIZE))
     {
       temp_size = sock->write_buffer_size + size;
-      if (temp_size > sock->max_write_buffer_size)
-        temp_size = sock->max_write_buffer_size;
+      if (temp_size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+        temp_size = GNUNET_SERVER_MAX_MESSAGE_SIZE;
 
       sock->write_buffer = GNUNET_realloc(sock->write_buffer, temp_size);
       sock->write_buffer_size = temp_size;

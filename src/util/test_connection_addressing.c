@@ -116,7 +116,7 @@ run_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct sockaddr_in expect;
 
   asock = GNUNET_CONNECTION_create_from_accept (tc->sched,
-                                                NULL, NULL, ls, 1024);
+                                                NULL, NULL, ls);
   GNUNET_assert (asock != NULL);
   GNUNET_assert (GNUNET_YES == GNUNET_CONNECTION_check (asock));
   GNUNET_assert (GNUNET_OK ==
@@ -153,7 +153,7 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct sockaddr_in v4;
   ls = open_listen_socket ();
-  lsock = GNUNET_CONNECTION_create_from_existing (tc->sched, ls, 0);
+  lsock = GNUNET_CONNECTION_create_from_existing (tc->sched, ls);
   GNUNET_assert (lsock != NULL);
 
 #if HAVE_SOCKADDR_IN_SIN_LEN
@@ -165,7 +165,7 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   csock = GNUNET_CONNECTION_create_from_sockaddr (tc->sched,
                                                   AF_INET,
                                                   (const struct sockaddr
-                                                   *) &v4, sizeof (v4), 1024);
+                                                   *) &v4, sizeof (v4));
   GNUNET_assert (csock != NULL);
   GNUNET_assert (NULL !=
                  GNUNET_CONNECTION_notify_transmit_ready (csock,

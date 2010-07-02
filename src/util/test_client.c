@@ -155,7 +155,6 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                  NULL,
                                  sap,
 				 slens,
-                                 1024,
                                  GNUNET_TIME_relative_multiply
                                  (GNUNET_TIME_UNIT_MILLISECONDS, 10000),
                                  GNUNET_NO);

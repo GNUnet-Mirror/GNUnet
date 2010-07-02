@@ -290,8 +290,7 @@ do_connect (struct GNUNET_SCHEDULER_Handle *sched,
 	{
 	  sock = GNUNET_CONNECTION_create_from_connect_to_unixpath (sched,
 								    cfg,
-								    unixpath,
-								    GNUNET_SERVER_MAX_MESSAGE_SIZE - 1);
+								    unixpath);
 	  GNUNET_free (unixpath);
 	  if (sock != NULL)
 	    return sock;
@@ -327,8 +326,7 @@ do_connect (struct GNUNET_SCHEDULER_Handle *sched,
   sock = GNUNET_CONNECTION_create_from_connect (sched,
                                                 cfg,
                                                 hostname,
-                                                port,
-                                                GNUNET_SERVER_MAX_MESSAGE_SIZE - 1);
+                                                port);
   GNUNET_free (hostname);
   return sock;
 }
