@@ -1,5 +1,5 @@
 if !MINGW
-bin_PROGRAMS = \
+noinst_PROGRAMS = \
  timeout_watchdog
 
 timeout_watchdog_SOURCES = \
