@@ -348,12 +348,11 @@ finish (struct GNUNET_DHT_Handle *handle, int code)
 {
   struct PendingMessage *pos = handle->current;
   GNUNET_HashCode uid_hash;
-  hash_from_uid (pos->unique_id, &uid_hash);
 #if DEBUG_DHT_API
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s': Finish called!\n", "DHT API");
 #endif
   GNUNET_assert (pos != NULL);
-
+  hash_from_uid (pos->unique_id, &uid_hash);
   if (pos->cont != NULL)
     {
       if (code == GNUNET_SYSERR)
@@ -792,7 +791,6 @@ find_peer_reply_iterator (void *cls, const struct GNUNET_MessageHeader *reply)
 {
   struct GNUNET_DHT_FindPeerHandle *find_peer_handle = cls;
   struct GNUNET_MessageHeader *hello;
-  size_t hello_size;
 
   if (ntohs (reply->type) != GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_RESULT)
     {
@@ -804,7 +802,6 @@ find_peer_reply_iterator (void *cls, const struct GNUNET_MessageHeader *reply)
 
   GNUNET_assert (ntohs (reply->size) >=
                  sizeof (struct GNUNET_MessageHeader));
-  hello_size = ntohs(reply->size) - sizeof(struct GNUNET_MessageHeader);
   hello = (struct GNUNET_MessageHeader *)&reply[1];
 
   if (ntohs(hello->type) != GNUNET_MESSAGE_TYPE_HELLO)
@@ -879,10 +876,6 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
                                          &uid_key, route_handle,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     }
-  else
-    {
-      route_handle->uid = 0;
-    }
 
 #if DEBUG_DHT_API
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -909,7 +902,7 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
       handle->current = pending;
       process_pending_message (handle);
     }
-  else if ((handle->current != NULL) && (handle->retransmit_stage == DHT_RETRANSMITTING))
+  else if (handle->retransmit_stage == DHT_RETRANSMITTING)
   {
     handle->retransmit_stage = DHT_RETRANSMITTING_MESSAGE_QUEUED;
     handle->retransmission_buffer = pending;
@@ -1009,7 +1002,7 @@ GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle,
       route_handle->dht_handle->current = pending;
       process_pending_message (route_handle->dht_handle);
     }
-  else if ((route_handle->dht_handle->current != NULL) && (route_handle->dht_handle->retransmit_stage == DHT_RETRANSMITTING))
+  else if (route_handle->dht_handle->retransmit_stage == DHT_RETRANSMITTING)
     {
       route_handle->dht_handle->retransmit_stage = DHT_RETRANSMITTING_MESSAGE_QUEUED;
       route_handle->dht_handle->retransmission_buffer = pending;

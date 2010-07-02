@@ -42,7 +42,7 @@
 /**
  * Handle to the datacache service (for inserting/retrieving data)
  */
-struct GNUNET_DATACACHE_Handle *datacache;
+static struct GNUNET_DATACACHE_Handle *datacache;
 
 /**
  * The main scheduler to use for the DHT service
@@ -443,7 +443,12 @@ handle_dht_find_peer (void *cls,
   /* Simplistic find_peer functionality, always return our hello */
   hello_size = ntohs(my_hello->size);
   tsize = hello_size + sizeof (struct GNUNET_MessageHeader);
-  // check tsize < MAX
+
+  if (tsize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+    {
+      GNUNET_break_op (0);
+      return;
+    }
   find_peer_result = GNUNET_malloc (tsize);
   find_peer_result->type = htons (GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_RESULT);
   find_peer_result->size = htons (tsize);
@@ -604,7 +609,7 @@ handle_dht_start_message (void *cls, struct GNUNET_SERVER_Client *client,
  * @param client the client we received this message from
  * @param message the actual message received
  *
- * TODO: once message are remembered by unique id, add code to
+ * TODO: once messages are remembered by unique id, add code to
  *       forget them here
  */
 static void
@@ -800,6 +805,8 @@ void handle_core_connect (void *cls,
                 "%s Inserting data %s, type %d into datacache, return value was %d\n", my_short_id, GNUNET_h2s(&peer->hashPubKey), 130, ret);
 #endif
   }
+  else
+    GNUNET_free(data);
 }
 
 /**
