@@ -145,7 +145,7 @@ void pkt_printf(struct ip6_pkt* pkt) {{{
 		pp_hexdump(pkt->data + (16*i), buf + 420 + (i*70), size - 16*i);
 	}
 
-	printf(buf);
+	printf("%s", buf);
 	free(buf);
 }}}
 
