@@ -34,7 +34,7 @@
 /**
  * Timeout for stopping services.  Long to give some services a real chance.
  */
-#define STOP_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 360)
+#define STOP_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 
 /**
  * Timeout for starting services, very short because of the strange way start works
