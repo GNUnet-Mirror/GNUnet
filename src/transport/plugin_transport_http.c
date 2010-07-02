@@ -42,7 +42,7 @@
 
 
 #define DEBUG_CURL GNUNET_YES
-#define DEBUG_HTTP GNUNET_YES
+#define DEBUG_HTTP GNUNET_NO
 
 /**
  * Text of the response sent back after the last bytes of a PUT
@@ -448,6 +448,20 @@ static char * create_url(void * cls, const void * addr, size_t addrlen)
 }
 
 /**
+ * Removes a message from the linked list of messages
+ * @param con connection to remove message from
+ * @param msg message to remove
+ * @return GNUNET_SYSERR if msg not found, GNUNET_OK on success
+ */
+
+static int remove_http_message(struct HTTP_Connection * con, struct HTTP_Message * msg)
+{
+  GNUNET_CONTAINER_DLL_remove(con->pending_msgs_head,con->pending_msgs_tail,msg);
+  GNUNET_free(msg);
+  return GNUNET_OK;
+}
+
+/**
  * Check if session already knows this address for a outbound connection to this peer
  * If address not in session, add it to the session
  * @param cls the plugin used
@@ -597,16 +611,32 @@ acceptPolicyCallback (void *cls,
 
 int server_read_callback (void *cls, uint64_t pos, char *buf, int max)
 {
-  static int i = 0;
+  int bytes_read = 0;
 
-  char * test ="Hello World!";
-  int bytes_read = -1;
-  if (i<10)
+  struct HTTP_Connection * con = cls;
+  struct HTTP_Message * msg;
+  int res;
+
+  if (con->pending_msgs_tail!=NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "server_read_callback\n");
-    memcpy(buf,test,strlen(test));
-    bytes_read = strlen(test);
-    i++;
+      msg=con->pending_msgs_tail;
+      /*
+      if ((msg->size-msg->pos) <= max)
+      {
+        memcpy(buf,&msg->buf[pos],(msg->size-msg->pos));
+        pos+=(msg->size-msg->pos);
+      }
+      else
+      {
+        memcpy(buf,&msg->buf[pos],max);
+        pos+=max;
+      }*/
+      if (msg->pos==msg->size)
+      {
+        if (NULL != con->pending_msgs_tail->transmit_cont)
+          msg->transmit_cont (msg->transmit_cont_cls,&con->session->identity,GNUNET_SYSERR);
+        res = remove_http_message(con,msg);
+      }
   }
   return bytes_read;
 }
@@ -736,7 +766,7 @@ accessHandlerCallback (void *cls,
   }
   if ( 0 == strcmp (MHD_HTTP_METHOD_GET, method) )
   {
-    response = MHD_create_response_from_callback(-1,32 * 1024, &server_read_callback, cs, NULL);
+    response = MHD_create_response_from_callback(-1,32 * 1024, &server_read_callback, con, NULL);
     res = MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
     MHD_destroy_response (response);
 
@@ -878,20 +908,6 @@ static void http_server_daemon_v6_run (void *cls,
   return;
 }
 
-/**
- * Removes a message from the linked list of messages
- * @param con connection to remove message from
- * @param msg message to remove
- * @return GNUNET_SYSERR if msg not found, GNUNET_OK on success
- */
-
-static int remove_http_message(struct HTTP_Connection * con, struct HTTP_Message * msg)
-{
-  GNUNET_CONTAINER_DLL_remove(con->pending_msgs_head,con->pending_msgs_tail,msg);
-  GNUNET_free(msg);
-  return GNUNET_OK;
-}
-
 
 static size_t curl_header_function( void *ptr, size_t size, size_t nmemb, void *stream)
 {
@@ -903,20 +919,17 @@ static size_t curl_header_function( void *ptr, size_t size, size_t nmemb, void *
   int res;
 
   /* Getting last http result code */
-  GNUNET_assert(NULL!=con);
-  res = curl_easy_getinfo(con->get_curl_handle, CURLINFO_RESPONSE_CODE, &http_result);
-
-  if ((CURLE_OK == res) && (con->get_connected==GNUNET_NO))
+  if (con->get_connected==GNUNET_NO)
   {
-    if (http_result == 200)
+    GNUNET_assert(NULL!=con);
+    res = curl_easy_getinfo(con->get_curl_handle, CURLINFO_RESPONSE_CODE, &http_result);
+    if (CURLE_OK == res)
     {
-      con->get_connected = GNUNET_YES;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound connected\n",con);
-    }
-    else
-    {
-      con->get_connected = GNUNET_NO;
-      //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound connected\n",con);
+      if (http_result == 200)
+      {
+        con->get_connected = GNUNET_YES;
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound connected\n",con);
+      }
     }
   }
 
