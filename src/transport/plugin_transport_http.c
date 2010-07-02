@@ -28,7 +28,6 @@
 #include "gnunet_constants.h"
 #include "gnunet_protocols.h"
 #include "gnunet_connection_lib.h"
-#include "gnunet_server_lib.h"
 #include "gnunet_service_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
@@ -238,17 +237,6 @@ struct Session
   struct GNUNET_PeerIdentity identity;
 
   /**
-   * Sender's ip address to distinguish between incoming connections
-   */
-  void * addr_in;
-
-  size_t addr_in_len;
-
-  void * addr_out;
-
-  size_t addr_out_len;
-
-  /**
    * Did we initiate the connection (GNUNET_YES) or the other peer (GNUNET_NO)?
    */
   int is_client;
@@ -274,16 +262,6 @@ struct Session
    * Encoded hash
    */
   struct GNUNET_CRYPTO_HashAsciiEncoded hash;
-
-  /**
-   * curl handle for outbound transmissions
-   */
-  CURL *curl_handle;
-
-  /**
-   * Message tokenizer for incoming data
-   */
-  //struct GNUNET_SERVER_MessageStreamTokenizer * msgtok;
 
   struct HTTP_Connection *outbound_connections_head;
   struct HTTP_Connection *outbound_connections_tail;
@@ -385,19 +363,6 @@ create_session (void * cls,
   struct Session * cs = GNUNET_malloc ( sizeof( struct Session) );
 
   GNUNET_assert(cls !=NULL);
-  if (addrlen_in != 0)
-  {
-    cs->addr_in = GNUNET_malloc (addrlen_in);
-    cs->addr_in_len = addrlen_in;
-    memcpy(cs->addr_in,addr_in,addrlen_in);
-  }
-
-  if (addrlen_out != 0)
-  {
-    cs->addr_out = GNUNET_malloc (addrlen_out);
-    cs->addr_out_len = addrlen_out;
-    memcpy(cs->addr_out,addr_out,addrlen_out);
-  }
   cs->plugin = plugin;
   memcpy(&cs->identity, peer, sizeof (struct GNUNET_PeerIdentity));
   GNUNET_CRYPTO_hash_to_enc(&cs->identity.hashPubKey,&(cs->hash));
@@ -615,13 +580,15 @@ int server_read_callback (void *cls, uint64_t pos, char *buf, int max)
 
   struct HTTP_Connection * con = cls;
   struct HTTP_Message * msg;
-  int res;
+  int res;res=5;
 
-  if (con->pending_msgs_tail!=NULL)
+  msg=con->pending_msgs_tail;
+
+
+  if (msg!=NULL)
   {
-      msg=con->pending_msgs_tail;
-      /*
-      if ((msg->size-msg->pos) <= max)
+    /*
+    if ((msg->size-msg->pos) <= max)
       {
         memcpy(buf,&msg->buf[pos],(msg->size-msg->pos));
         pos+=(msg->size-msg->pos);
@@ -630,14 +597,17 @@ int server_read_callback (void *cls, uint64_t pos, char *buf, int max)
       {
         memcpy(buf,&msg->buf[pos],max);
         pos+=max;
-      }*/
+      }
+
       if (msg->pos==msg->size)
       {
         if (NULL != con->pending_msgs_tail->transmit_cont)
           msg->transmit_cont (msg->transmit_cont_cls,&con->session->identity,GNUNET_SYSERR);
         res = remove_http_message(con,msg);
       }
+      */
   }
+
   return bytes_read;
 }
 
@@ -723,7 +693,7 @@ accessHandlerCallback (void *cls,
 
     *httpSessionCache = con;
     if (con->msgtok==NULL)
-      con->msgtok = GNUNET_SERVER_mst_create (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1, &messageTokenizerCallback, con);
+      con->msgtok = GNUNET_SERVER_mst_create (&messageTokenizerCallback, con);
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s' (`%s')\n",
                 method,
