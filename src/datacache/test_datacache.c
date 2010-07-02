@@ -97,6 +97,19 @@ run (void *cls,
 				    &checkIt, &n));
       k = n;
     }
+
+  memset(&k, 42, sizeof(GNUNET_HashCode));
+  GNUNET_CRYPTO_hash (&k, sizeof (GNUNET_HashCode), &n);
+  ASSERT (GNUNET_OK == GNUNET_DATACACHE_put (h,
+                                             &k,
+                                             sizeof (GNUNET_HashCode),
+                                             (const char *) &n,
+                                             792,
+                                             GNUNET_TIME_absolute_get_forever()));
+  ASSERT (1 ==
+          GNUNET_DATACACHE_get (h, &k, 792,
+                                &checkIt, &n));
+
   GNUNET_DATACACHE_destroy (h);
   ASSERT (ok == 0);
   return;
