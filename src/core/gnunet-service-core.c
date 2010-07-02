@@ -3829,8 +3829,7 @@ run (void *cls,
                                         &handle_transport_notify_disconnect);
   GNUNET_assert (NULL != transport);
   stats = GNUNET_STATISTICS_create (sched, "core", cfg);
-  mst = GNUNET_SERVER_mst_create (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
-				  &deliver_message,
+  mst = GNUNET_SERVER_mst_create (&deliver_message,
 				  NULL);
   GNUNET_SCHEDULER_add_delayed (sched,
                                 GNUNET_TIME_UNIT_FOREVER_REL,

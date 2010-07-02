@@ -272,7 +272,7 @@ process_mtype (void *cls,
 							 0,
 							 FAST_TIMEOUT,
 							 &p2.id,
-							 sizeof (struct GNUNET_MessageHeader),
+							 get_size(tr_n),
 							 &transmit_ready, &p1));
     }
   return GNUNET_OK;
@@ -302,7 +302,7 @@ transmit_ready (void *cls, size_t size, void *buf)
 							 0,
 							 FAST_TIMEOUT,
 							 &p2.id,
-							 sizeof (struct GNUNET_MessageHeader),
+							 get_size(tr_n),
 							 &transmit_ready, &p1));
       return 0;
     }
