@@ -367,9 +367,8 @@ void handle_message_receipt (void *cls,
 
     received_msg = (struct GNUNET_DV_MessageReceived *)msg;
     packed_msg_len = ntohl(received_msg->msg_len);
-    sender_address_len = ntohl(received_msg->sender_address_len);
-
-    GNUNET_assert(ntohs(msg->size) == (sizeof(struct GNUNET_DV_MessageReceived) + packed_msg_len + sender_address_len));
+    sender_address_len = ntohs(msg->size) - packed_msg_len - sizeof(struct GNUNET_DV_MessageReceived);
+    GNUNET_assert(sender_address_len > 0);
     sender_address = GNUNET_malloc(sender_address_len);
     memcpy(sender_address, &received_msg[1], sender_address_len);
     packed_msg_start = (char *)&received_msg[1];

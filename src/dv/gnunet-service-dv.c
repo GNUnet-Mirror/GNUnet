@@ -814,7 +814,6 @@ void send_to_plugin(const struct GNUNET_PeerIdentity * sender,
   received_msg = GNUNET_malloc(size);
   received_msg->header.size = htons(size);
   received_msg->header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_DV_RECEIVE);
-  received_msg->sender_address_len = htonl(sender_address_len);
   received_msg->distance = htonl(cost);
   received_msg->msg_len = htonl(message_size);
   /* Set the sender in this message to be the original sender! */

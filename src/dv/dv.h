@@ -64,7 +64,7 @@ struct GNUNET_DV_MessageReceived
   struct GNUNET_PeerIdentity sender;
 
   /**
-   * The message that was sent
+   * The length of the message that was sent (appended to this end of struct)
    */
   uint32_t msg_len;
 
@@ -72,11 +72,6 @@ struct GNUNET_DV_MessageReceived
    * The distance to the peer that we received the message from
    */
   uint32_t distance;
-
-  /**
-   * Length of the sender address, appended to end of this message
-   */
-  uint32_t sender_address_len;
 
 };
 
