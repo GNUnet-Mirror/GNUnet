@@ -105,7 +105,7 @@ run (void *cls,
                                              sizeof (GNUNET_HashCode),
                                              (const char *) &n,
                                              792,
-                                             GNUNET_TIME_absolute_get_forever()));
+                                             GNUNET_TIME_UNIT_FOREVER_ABS));
   ASSERT (1 ==
           GNUNET_DATACACHE_get (h, &k, 792,
                                 &checkIt, &n));
