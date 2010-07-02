@@ -556,6 +556,7 @@ destroy_continuation (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Freeing memory of connection %p.\n", sock);
 #endif
+  GNUNET_free (sock->write_buffer);
   GNUNET_free (sock);
 }
 
@@ -1586,16 +1587,25 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle
                                          notify, void *notify_cls)
 {
   size_t temp_size;
+#if !REALLOC
+  char *temp_buf;
+#endif
   if (sock->nth.notify_ready != NULL)
     return NULL;
   GNUNET_assert (notify != NULL);
   if ((sock->write_buffer_size < size) && (size < GNUNET_SERVER_MAX_MESSAGE_SIZE))
     {
-      temp_size = sock->write_buffer_size + size;
+      temp_size = sock->write_buffer_size + size + 1;
       if (temp_size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
         temp_size = GNUNET_SERVER_MAX_MESSAGE_SIZE;
-
+#if REALLOC
       sock->write_buffer = GNUNET_realloc(sock->write_buffer, temp_size);
+#else
+      temp_buf = GNUNET_malloc(temp_size);
+      memcpy(temp_buf, sock->write_buffer, sock->write_buffer_size);
+      GNUNET_free(sock->write_buffer);
+      sock->write_buffer = temp_buf;
+#endif
       sock->write_buffer_size = temp_size;
     }
   GNUNET_assert (sock->write_buffer_size >= size);

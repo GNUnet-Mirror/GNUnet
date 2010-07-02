@@ -129,6 +129,10 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
   size_t delta;
   uint16_t want;
   char *ibuf;
+
+#if !REALLOC
+  char *temp_buf;
+#endif
   int need_align;
   unsigned long offset;
   int ret;
@@ -142,11 +146,17 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
 #endif
   if ((size > mst->curr_buf) && (size < GNUNET_SERVER_MAX_MESSAGE_SIZE)) /* Received bigger message than we can currently handle! */
     {
-      newsize = mst->curr_buf + size; /* How much space do we need? */
+      newsize = mst->curr_buf + size + 1; /* How much space do we need? */
       if (newsize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
-        newsize = GNUNET_SERVER_MAX_MESSAGE_SIZE; /* Check it's not bigger than GNUNET_SERVER_MAX_MESSAGE_SIZE */
-
+        newsize = GNUNET_SERVER_MAX_MESSAGE_SIZE - 1; /* Check it's not bigger than GNUNET_SERVER_MAX_MESSAGE_SIZE */
+#if REALLOC
       mst->hdr = GNUNET_realloc(mst->hdr, newsize);
+#else
+      temp_buf = GNUNET_malloc(newsize);
+      memcpy(temp_buf, mst->hdr, mst->curr_buf);
+      GNUNET_free(mst->hdr);
+      mst->hdr = temp_buf;
+#endif
       mst->curr_buf = newsize;
     }
 
@@ -303,6 +313,7 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
 void
 GNUNET_SERVER_mst_destroy (struct GNUNET_SERVER_MessageStreamTokenizer *mst)
 {
+  GNUNET_free (mst->hdr);
   GNUNET_free (mst);
 }
 
