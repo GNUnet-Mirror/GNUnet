@@ -104,6 +104,7 @@ sqlite_plugin_put (void *cls,
 {
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt;
+  int64_t dval;
 
 #if DEBUG_DATACACHE_SQLITE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -113,6 +114,9 @@ sqlite_plugin_put (void *cls,
 	      GNUNET_h2s (key),
 	      (unsigned long long) GNUNET_TIME_absolute_get_remaining (discard_time).value);
 #endif
+  dval = (int64_t) discard_time.value;
+  if (dval < 0)    
+    dval = INT64_MAX;    
   if (sq_prepare (plugin->dbh,
                   "INSERT INTO ds090 "
                   "(type, expire, key, value) "
@@ -125,7 +129,7 @@ sqlite_plugin_put (void *cls,
       return 0;
     }
   if ( (SQLITE_OK != sqlite3_bind_int (stmt, 1, type)) ||
-       (SQLITE_OK != sqlite3_bind_int64 (stmt, 2, discard_time.value)) ||
+       (SQLITE_OK != sqlite3_bind_int64 (stmt, 2, dval)) ||
        (SQLITE_OK != sqlite3_bind_blob (stmt, 3, key, sizeof (GNUNET_HashCode),
 					SQLITE_TRANSIENT)) ||
        (SQLITE_OK != sqlite3_bind_blob (stmt, 4, data, size, SQLITE_TRANSIENT)))
@@ -180,6 +184,7 @@ sqlite_plugin_get (void *cls,
   unsigned int off;
   unsigned int total;
   char scratch[256];
+  int64_t ntime;
 
   now = GNUNET_TIME_absolute_get ();
 #if DEBUG_DATACACHE_SQLITE
@@ -201,6 +206,8 @@ sqlite_plugin_get (void *cls,
   sqlite3_bind_blob (stmt, 1, key, sizeof (GNUNET_HashCode),
                      SQLITE_TRANSIENT);
   sqlite3_bind_int (stmt, 2, type);
+  ntime = (int64_t) now.value;
+  GNUNET_assert (ntime >= 0);
   sqlite3_bind_int64 (stmt, 3, now.value);
   if (SQLITE_ROW != sqlite3_step (stmt))
     {
@@ -241,6 +248,9 @@ sqlite_plugin_get (void *cls,
       size = sqlite3_column_bytes (stmt, 0);
       dat = sqlite3_column_blob (stmt, 0);
       exp.value = sqlite3_column_int64 (stmt, 1);
+      ntime = (int64_t) exp.value;
+      if (ntime == INT64_MAX)
+	exp = GNUNET_TIME_UNIT_FOREVER_ABS;
       cnt++;
       if (GNUNET_OK != iter (iter_cls,
 			     exp,

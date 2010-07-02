@@ -106,7 +106,7 @@ run (void *cls,
                                              (const char *) &n,
                                              792,
                                              GNUNET_TIME_UNIT_FOREVER_ABS));
-  ASSERT (1 ==
+  ASSERT (0 !=
           GNUNET_DATACACHE_get (h, &k, 792,
                                 &checkIt, &n));
 
