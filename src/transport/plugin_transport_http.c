@@ -149,11 +149,11 @@ struct HTTP_Message
 };
 
 
-struct HTTP_Connection_out
+struct HTTP_Connection
 {
-  struct HTTP_Connection_out * next;
+  struct HTTP_Connection * next;
 
-  struct HTTP_Connection_out * prev;
+  struct HTTP_Connection * prev;
 
   void * addr;
   size_t addrlen;
@@ -208,7 +208,6 @@ struct HTTP_Connection_in
    */
   int is_bad_request;
 };
-
 
 /**
  * Session handle for connections.
@@ -285,8 +284,8 @@ struct Session
    */
   //struct GNUNET_SERVER_MessageStreamTokenizer * msgtok;
 
-  struct HTTP_Connection_out *outbound_connections_head;
-  struct HTTP_Connection_out *outbound_connections_tail;
+  struct HTTP_Connection *outbound_connections_head;
+  struct HTTP_Connection *outbound_connections_tail;
 
   struct HTTP_Connection_in *inbound_connections_head;
   struct HTTP_Connection_in *inbound_connections_tail;
@@ -456,11 +455,11 @@ static char * create_url(void * cls, const void * addr, size_t addrlen)
  * @param addr_len address length
  * @return the found or created address
  */
-static struct HTTP_Connection_out * session_check_outbound_address (void * cls, struct Session *cs, const void * addr, size_t addr_len)
+static struct HTTP_Connection * session_check_outbound_address (void * cls, struct Session *cs, const void * addr, size_t addr_len)
 {
   struct Plugin *plugin = cls;
-  struct HTTP_Connection_out * cc = cs->outbound_connections_head;
-  struct HTTP_Connection_out * con = NULL;
+  struct HTTP_Connection * cc = cs->outbound_connections_head;
+  struct HTTP_Connection * con = NULL;
 
   GNUNET_assert((addr_len == sizeof (struct IPv4HttpAddress)) || (addr_len == sizeof (struct IPv6HttpAddress)));
 
@@ -479,7 +478,7 @@ static struct HTTP_Connection_out * session_check_outbound_address (void * cls, 
 
   if (con==NULL)
   {
-    con = GNUNET_malloc(sizeof(struct HTTP_Connection_out) + addr_len);
+    con = GNUNET_malloc(sizeof(struct HTTP_Connection) + addr_len);
     con->addrlen = addr_len;
     con->addr=&con[1];
     con->url=create_url(plugin, addr, addr_len);
@@ -597,8 +596,17 @@ acceptPolicyCallback (void *cls,
 
 int server_read_callback (void *cls, uint64_t pos, char *buf, int max)
 {
+  static int i = 0;
+
+  char * test ="Hello World!";
   int bytes_read = -1;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "server_read_callback\n");
+  if (i==0)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "server_read_callback\n");
+    memcpy(buf,test,strlen(test));
+    bytes_read = strlen(test);
+    i++;
+  }
   return bytes_read;
 }
 
@@ -695,8 +703,6 @@ accessHandlerCallback (void *cls,
   /* Is it a PUT or a GET request */
   if (0 == strcmp (MHD_HTTP_METHOD_PUT, method))
   {
-
-
     if ((*upload_data_size == 0) && (con->is_put_in_progress==GNUNET_NO))
     {
       con->is_put_in_progress = GNUNET_YES;
@@ -729,32 +735,15 @@ accessHandlerCallback (void *cls,
   }
   if ( 0 == strcmp (MHD_HTTP_METHOD_GET, method) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Got GET Request\n");
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"URL: `%s'\n",url);
-
-    /* check url for peer identity , if invalid send HTTP 404*/
-    res = GNUNET_CRYPTO_hash_from_string ( &url[1], &(pi_in.hashPubKey));
-
-    if ( GNUNET_SYSERR == res )
-    {
-      response = MHD_create_response_from_data (strlen (HTTP_ERROR_RESPONSE),HTTP_ERROR_RESPONSE, MHD_NO, MHD_NO);
-      res = MHD_queue_response (mhd_connection, MHD_HTTP_NOT_FOUND, response);
-      MHD_destroy_response (response);
-      if (res == MHD_YES)
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Peer has no valid ident, sent HTTP 1.1/404\n");
-      else
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Peer has no valid ident, could not send error\n");
-      return res;
-    }
-
     response = MHD_create_response_from_callback(-1,32 * 1024, &server_read_callback, cs, NULL);
-    res = MHD_queue_response (mhd_connection, MHD_HTTP_NOT_FOUND, response);
+    res = MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
     MHD_destroy_response (response);
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s' (`%s')\n",
                 method,
                 GNUNET_i2s(&cs->identity),
                 http_plugin_address_to_string(NULL, con->addr, con->addrlen));
+
 
     return res;
 
@@ -895,7 +884,7 @@ static void http_server_daemon_v6_run (void *cls,
  * @return GNUNET_SYSERR if msg not found, GNUNET_OK on success
  */
 
-static int remove_http_message(struct HTTP_Connection_out * con, struct HTTP_Message * msg)
+static int remove_http_message(struct HTTP_Connection * con, struct HTTP_Message * msg)
 {
   GNUNET_CONTAINER_DLL_remove(con->pending_msgs_head,con->pending_msgs_tail,msg);
   GNUNET_free(msg);
@@ -905,8 +894,27 @@ static int remove_http_message(struct HTTP_Connection_out * con, struct HTTP_Mes
 
 static size_t header_function( void *ptr, size_t size, size_t nmemb, void *stream)
 {
+  struct HTTP_Connection * con = stream;
+
   char * tmp;
   size_t len = size * nmemb;
+  int http_result;
+
+  /* Getting last http result code */
+  if (CURLE_OK == curl_easy_getinfo(con->get_curl_handle, CURLINFO_RESPONSE_CODE, &http_result))
+  {
+    if (http_result == 200)
+    {
+      con->get_connected = GNUNET_YES;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound connected\n",con);
+    }
+    else
+    {
+      con->get_connected = GNUNET_NO;
+      //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound connected\n",con);
+    }
+  }
+
 
   tmp = NULL;
   if ((size * nmemb) < SIZE_MAX)
@@ -921,7 +929,7 @@ static size_t header_function( void *ptr, size_t size, size_t nmemb, void *strea
         tmp[len-2]= '\0';
     }
 #if DEBUG_HTTP
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Header: `%s'\n",tmp);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Header: `%s' %u \n",tmp, http_result);
 #endif
   }
   if (NULL != tmp)
@@ -941,7 +949,7 @@ static size_t header_function( void *ptr, size_t size, size_t nmemb, void *strea
  */
 static size_t send_read_callback(void *stream, size_t size, size_t nmemb, void *ptr)
 {
-  struct HTTP_Connection_out * con = ptr;
+  struct HTTP_Connection * con = ptr;
   struct HTTP_Message * msg = con->pending_msgs_tail;
   size_t bytes_sent;
   size_t len;
@@ -999,16 +1007,17 @@ static size_t send_read_callback(void *stream, size_t size, size_t nmemb, void *
 * @param ptr destination pointer, passed to the libcurl handle
 * @return bytes read from stream
 */
-static size_t send_write_callback( void *stream, size_t size, size_t nmemb, void *ptr)
+static size_t send_curl_write_callback( void *stream, size_t size, size_t nmemb, void *ptr)
 {
+  struct HTTP_Connection * con = ptr;
   char * data = NULL;
 
-  if ((size * nmemb) < SIZE_MAX)
-    data = GNUNET_malloc(size*nmemb +1);
+  data = GNUNET_malloc(size*nmemb +1);
   if (data != NULL)
   {
     memcpy( data, stream, size*nmemb);
     data[size*nmemb] = '\0';
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: recieved %s\n",con,data);
     free (data);
   }
   return (size * nmemb);
@@ -1032,7 +1041,7 @@ static size_t send_schedule(void *cls, struct Session* ses );
  * @param con connection
  * @return bytes sent to peer
  */
-static ssize_t send_initiate (void *cls, struct Session* ses , struct HTTP_Connection_out *con)
+static ssize_t send_check_connections (void *cls, struct Session* ses , struct HTTP_Connection *con)
 {
   struct Plugin *plugin = cls;
   int bytes_sent = 0;
@@ -1042,41 +1051,39 @@ static ssize_t send_initiate (void *cls, struct Session* ses , struct HTTP_Conne
 
   GNUNET_assert(cls !=NULL);
 
-#if 0
   if (con->get_connected == GNUNET_NO)
   {
-    if (con->get_curl_handle == NULL)
-      con->get_curl_handle = curl_easy_init();
-
+      if (con->get_curl_handle == NULL)
+      {
+        con->get_curl_handle = curl_easy_init();
 #if DEBUG_CURL
-    curl_easy_setopt(con->get_curl_handle, CURLOPT_VERBOSE, 1L);
+      curl_easy_setopt(con->get_curl_handle, CURLOPT_VERBOSE, 1L);
 #endif
-    curl_easy_setopt(con->get_curl_handle, CURLOPT_URL, con->url);
-    //curl_easy_setopt(con->put_curl_handle, CURLOPT_PUT, 1L);
-    curl_easy_setopt(con->get_curl_handle, CURLOPT_HEADERFUNCTION, &header_function);
-    curl_easy_setopt(con->get_curl_handle, CURLOPT_WRITEHEADER, con);
-    curl_easy_setopt(con->get_curl_handle, CURLOPT_READFUNCTION, send_read_callback);
-    curl_easy_setopt(con->get_curl_handle, CURLOPT_READDATA, con);
-    curl_easy_setopt(con->get_curl_handle, CURLOPT_WRITEFUNCTION, send_write_callback);
-    curl_easy_setopt(con->get_curl_handle, CURLOPT_READDATA, con);
-    curl_easy_setopt(con->get_curl_handle, CURLOPT_TIMEOUT, (long) timeout.value);
-    curl_easy_setopt(con->get_curl_handle, CURLOPT_PRIVATE, con);
-    curl_easy_setopt(con->get_curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT_DBG);
-    curl_easy_setopt(con->get_curl_handle, CURLOPT_BUFFERSIZE, GNUNET_SERVER_MAX_MESSAGE_SIZE);
+      curl_easy_setopt(con->get_curl_handle, CURLOPT_URL, con->url);
+      //curl_easy_setopt(con->put_curl_handle, CURLOPT_PUT, 1L);
+      curl_easy_setopt(con->get_curl_handle, CURLOPT_HEADERFUNCTION, &header_function);
+      curl_easy_setopt(con->get_curl_handle, CURLOPT_WRITEHEADER, con->get_curl_handle);
+      curl_easy_setopt(con->get_curl_handle, CURLOPT_READFUNCTION, send_read_callback);
+      curl_easy_setopt(con->get_curl_handle, CURLOPT_READDATA, con);
+      curl_easy_setopt(con->get_curl_handle, CURLOPT_WRITEFUNCTION, send_curl_write_callback);
+      curl_easy_setopt(con->get_curl_handle, CURLOPT_WRITEDATA, con);
+      curl_easy_setopt(con->get_curl_handle, CURLOPT_TIMEOUT, (long) timeout.value);
+      curl_easy_setopt(con->get_curl_handle, CURLOPT_PRIVATE, con);
+      curl_easy_setopt(con->get_curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT_DBG);
+      curl_easy_setopt(con->get_curl_handle, CURLOPT_BUFFERSIZE, GNUNET_SERVER_MAX_MESSAGE_SIZE);
 
-    mret = curl_multi_add_handle(plugin->multi_handle, con->get_curl_handle);
-    if (mret != CURLM_OK)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("%s failed at %s:%d: `%s'\n"),
-                  "curl_multi_add_handle", __FILE__, __LINE__,
-                  curl_multi_strerror (mret));
-      return -1;
+      mret = curl_multi_add_handle(plugin->multi_handle, con->get_curl_handle);
+      if (mret != CURLM_OK)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _("%s failed at %s:%d: `%s'\n"),
+                    "curl_multi_add_handle", __FILE__, __LINE__,
+                    curl_multi_strerror (mret));
+        return -1;
+      }
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound not connected, initiating connection\n",con);
     }
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound not connected, initiating connection\n",con);
   }
-#endif
 
   /* PUT already connected, no need to initiate connection */
   if ((con->put_connected == GNUNET_YES) && (con->put_curl_handle != NULL))
@@ -1095,7 +1102,6 @@ static ssize_t send_initiate (void *cls, struct Session* ses , struct HTTP_Conne
     }
   }
 
-
   /* not connected, initiate connection */
   if ( NULL == con->put_curl_handle)
     con->put_curl_handle = curl_easy_init();
@@ -1110,11 +1116,9 @@ static ssize_t send_initiate (void *cls, struct Session* ses , struct HTTP_Conne
 #endif
   curl_easy_setopt(con->put_curl_handle, CURLOPT_URL, con->url);
   curl_easy_setopt(con->put_curl_handle, CURLOPT_PUT, 1L);
-  curl_easy_setopt(con->put_curl_handle, CURLOPT_HEADERFUNCTION, &header_function);
-  curl_easy_setopt(con->put_curl_handle, CURLOPT_WRITEHEADER, con);
   curl_easy_setopt(con->put_curl_handle, CURLOPT_READFUNCTION, send_read_callback);
   curl_easy_setopt(con->put_curl_handle, CURLOPT_READDATA, con);
-  curl_easy_setopt(con->put_curl_handle, CURLOPT_WRITEFUNCTION, send_write_callback);
+  curl_easy_setopt(con->put_curl_handle, CURLOPT_WRITEFUNCTION, send_curl_write_callback);
   curl_easy_setopt(con->put_curl_handle, CURLOPT_READDATA, con);
   curl_easy_setopt(con->put_curl_handle, CURLOPT_TIMEOUT, (long) timeout.value);
   curl_easy_setopt(con->put_curl_handle, CURLOPT_PRIVATE, con);
@@ -1143,7 +1147,7 @@ static void send_execute (void *cls,
   int running;
   struct CURLMsg *msg;
   CURLMcode mret;
-  struct HTTP_Connection_out * con = NULL;
+  struct HTTP_Connection * con = NULL;
   struct Session * cs = NULL;
   long http_result;
 
@@ -1177,45 +1181,79 @@ static void send_execute (void *cls,
                   if ( (msg->data.result != CURLE_OK) &&
                        (msg->data.result != CURLE_GOT_NOTHING) )
                   {
-
-
-                    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-                               _("Connection %X to peer `%s' (`%s') failed: `%s' `%s'\n"),
-                               con,
-                               GNUNET_i2s(&cs->identity),
-                               http_plugin_address_to_string(NULL, con->addr, con->addrlen),
-                               "curl_multi_perform",
-                               curl_easy_strerror (msg->data.result));
                     /* sending msg failed*/
-                    con->put_connected = GNUNET_NO;
-                    curl_easy_cleanup(con->put_curl_handle);
-                    con->put_curl_handle=NULL;
-                    if (( NULL != con->pending_msgs_tail) && ( NULL != con->pending_msgs_tail->transmit_cont))
-                      con->pending_msgs_tail->transmit_cont (con->pending_msgs_tail->transmit_cont_cls,&con->session->identity,GNUNET_SYSERR);
+                    if (msg->easy_handle == con->put_curl_handle)
+                    {
+                      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                                 _("Connection %X: HTTP PUT to peer `%s' (`%s') failed: `%s' `%s'\n"),
+                                 con,
+                                 GNUNET_i2s(&cs->identity),
+                                 http_plugin_address_to_string(NULL, con->addr, con->addrlen),
+                                 "curl_multi_perform",
+                                 curl_easy_strerror (msg->data.result));
 
+                      con->put_connected = GNUNET_NO;
+                      curl_easy_cleanup(con->put_curl_handle);
+                      con->put_curl_handle=NULL;
+                      if (( NULL != con->pending_msgs_tail) && ( NULL != con->pending_msgs_tail->transmit_cont))
+                        con->pending_msgs_tail->transmit_cont (con->pending_msgs_tail->transmit_cont_cls,&con->session->identity,GNUNET_SYSERR);
+                    }
+                    /* GET connection failed */
+                    if (msg->easy_handle == con->get_curl_handle)
+                    {
+                      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                           _("Connection %X: HTTP GET to peer `%s' (`%s') failed: `%s' `%s'\n"),
+                           con,
+                           GNUNET_i2s(&cs->identity),
+                           http_plugin_address_to_string(NULL, con->addr, con->addrlen),
+                           "curl_multi_perform",
+                           curl_easy_strerror (msg->data.result));
+                      con->get_connected = GNUNET_NO;
+                      curl_easy_cleanup(con->get_curl_handle);
+                      con->get_curl_handle=NULL;
+                    }
                   }
                   else
                   {
-                    GNUNET_assert (CURLE_OK == curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &http_result));
-                    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                                "Send to peer `%s' completed with code %u\n", GNUNET_i2s(&cs->identity), http_result );
-
-                    curl_easy_cleanup(con->put_curl_handle);
-                    con->put_connected = GNUNET_NO;
-                    con->put_curl_handle=NULL;
-
-                    /* Calling transmit continuation  */
-                    if (( NULL != con->pending_msgs_tail) && (NULL != con->pending_msgs_tail->transmit_cont))
+                    if (msg->easy_handle == con->put_curl_handle)
                     {
-                      /* HTTP 1xx : Last message before here was informational */
-                      if ((http_result >=100) && (http_result < 200))
-                        con->pending_msgs_tail->transmit_cont (con->pending_msgs_tail->transmit_cont_cls,&cs->identity,GNUNET_OK);
-                      /* HTTP 2xx: successful operations */
-                      if ((http_result >=200) && (http_result < 300))
-                        con->pending_msgs_tail->transmit_cont (con->pending_msgs_tail->transmit_cont_cls,&cs->identity,GNUNET_OK);
-                      /* HTTP 3xx..5xx: error */
-                      if ((http_result >=300) && (http_result < 600))
-                        con->pending_msgs_tail->transmit_cont (con->pending_msgs_tail->transmit_cont_cls,&cs->identity,GNUNET_SYSERR);
+                      GNUNET_assert (CURLE_OK == curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &http_result));
+                      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                                  "Connection %X: HTTP PUT connection to peer `%s' (`%s') was closed with HTTP code %u\n",
+                                   con,
+                                   GNUNET_i2s(&cs->identity),
+                                   http_plugin_address_to_string(NULL, con->addr, con->addrlen),
+                                   http_result);
+
+                      /* Calling transmit continuation  */
+                      if (( NULL != con->pending_msgs_tail) && (NULL != con->pending_msgs_tail->transmit_cont))
+                      {
+                        /* HTTP 1xx : Last message before here was informational */
+                        if ((http_result >=100) && (http_result < 200))
+                          con->pending_msgs_tail->transmit_cont (con->pending_msgs_tail->transmit_cont_cls,&cs->identity,GNUNET_OK);
+                        /* HTTP 2xx: successful operations */
+                        if ((http_result >=200) && (http_result < 300))
+                          con->pending_msgs_tail->transmit_cont (con->pending_msgs_tail->transmit_cont_cls,&cs->identity,GNUNET_OK);
+                        /* HTTP 3xx..5xx: error */
+                        if ((http_result >=300) && (http_result < 600))
+                          con->pending_msgs_tail->transmit_cont (con->pending_msgs_tail->transmit_cont_cls,&cs->identity,GNUNET_SYSERR);
+                      }
+                      curl_easy_cleanup(con->put_curl_handle);
+                      con->put_connected = GNUNET_NO;
+                      con->put_curl_handle=NULL;
+                    }
+                    if (msg->easy_handle == con->get_curl_handle)
+                    {
+                      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                                  "Connection %X: HTTP GET connection to peer `%s' (`%s') was closed with HTTP code %u\n",
+                                   con,
+                                   GNUNET_i2s(&cs->identity),
+                                   http_plugin_address_to_string(NULL, con->addr, con->addrlen),
+                                   http_result);
+
+                      con->get_connected = GNUNET_NO;
+                      curl_easy_cleanup(con->get_curl_handle);
+                      con->get_curl_handle=NULL;
                     }
                   }
                   if (con->pending_msgs_tail != NULL)
@@ -1353,7 +1391,7 @@ http_plugin_send (void *cls,
   struct Plugin *plugin = cls;
   struct Session *cs;
   struct HTTP_Message *msg;
-  struct HTTP_Connection_out *con;
+  struct HTTP_Connection *con;
   //unsigned int ret;
 
   GNUNET_assert(cls !=NULL);
@@ -1401,7 +1439,7 @@ http_plugin_send (void *cls,
     /* enqueue in connection message queue */
     GNUNET_CONTAINER_DLL_insert(con->pending_msgs_head,con->pending_msgs_tail,msg);
   }
-  return send_initiate (plugin, cs, con);
+  return send_check_connections (plugin, cs, con);
 }
 
 
@@ -1419,7 +1457,7 @@ http_plugin_disconnect (void *cls,
                             const struct GNUNET_PeerIdentity *target)
 {
   struct Plugin *plugin = cls;
-  struct HTTP_Connection_out *con;
+  struct HTTP_Connection *con;
   struct Session *cs;
 
   /* get session from hashmap */
@@ -1677,8 +1715,8 @@ process_interfaces (void *cls,
 int hashMapFreeIterator (void *cls, const GNUNET_HashCode *key, void *value)
 {
   struct Session * cs = value;
-  struct HTTP_Connection_out * con = cs->outbound_connections_head;
-  struct HTTP_Connection_out * tmp_con = cs->outbound_connections_head;
+  struct HTTP_Connection * con = cs->outbound_connections_head;
+  struct HTTP_Connection * tmp_con = cs->outbound_connections_head;
   struct HTTP_Message * msg = NULL;
   struct HTTP_Message * tmp_msg = NULL;
 
