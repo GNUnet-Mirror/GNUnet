@@ -13,7 +13,7 @@ tree (could be a complex one) that we can easily interpret using C code.
 #include <ctype.h>
 #include <string.h>
 #include <assert.h>
-#include "mi_gdb.h"
+#include "gdbmi.h"
 
 mi_results *mi_get_result(const char *str, const char **end);
 int mi_get_value(mi_results *r, const char *str, const char **end);

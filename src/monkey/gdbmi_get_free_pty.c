@@ -28,7 +28,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 
-#include "mi_gdb.h"
+#include "gdbmi.h"
 
 /**[txh]********************************************************************
 

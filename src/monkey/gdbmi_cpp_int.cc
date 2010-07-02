@@ -11,7 +11,7 @@
 
 #include <string.h>
 #include <limits.h>
-#include "mi_gdb.h"
+#include "gdbmi.h"
 
 /**[txh]********************************************************************
 

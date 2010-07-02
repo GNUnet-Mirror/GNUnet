@@ -60,7 +60,7 @@ can say it won't change we must use the CLI command.
 ***************************************************************************/
 
 #include <signal.h>
-#include "mi_gdb.h"
+#include "gdbmi.h"
 
 /* Low level versions. */
 

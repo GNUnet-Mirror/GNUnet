@@ -26,7 +26,7 @@ be implemented when I have more time.@p
 
 ***************************************************************************/
 
-#include "mi_gdb.h"
+#include "gdbmi.h"
 
 /* Low level versions. */
 

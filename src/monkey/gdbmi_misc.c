@@ -24,7 +24,7 @@ report it in "value", but they give the output of "show architecture". In
 ***************************************************************************/
 
 #include <string.h>
-#include "mi_gdb.h"
+#include "gdbmi.h"
 
 /* Low level versions. */
 

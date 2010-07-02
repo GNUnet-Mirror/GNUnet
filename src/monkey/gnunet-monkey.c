@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <unistd.h> //usleep
 #include <libesmtp.h>
-#include "mi_gdb.h"
+#include "gdbmi.h"
 
 void cb_console(const char *str, void *data)
 {

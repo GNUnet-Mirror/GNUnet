@@ -22,7 +22,7 @@ to my needs and changed license from giftware to GPL.@p
 #include <util.h>
 #endif /* __APPLE__ */
 
-#include "mi_gdb.h"
+#include "gdbmi.h"
 
 #if !defined(__linux__)
 

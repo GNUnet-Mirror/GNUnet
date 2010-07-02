@@ -10,7 +10,7 @@ pointers. Alloc functions must set mi_error.@p
   
 ***************************************************************************/
 
-#include "mi_gdb.h"
+#include "gdbmi.h"
 
 void *mi_calloc(size_t count, size_t sz)
 {

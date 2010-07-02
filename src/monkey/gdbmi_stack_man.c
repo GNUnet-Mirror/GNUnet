@@ -20,7 +20,7 @@ gdb command:              Implemented?
 
 ***************************************************************************/
 
-#include "mi_gdb.h"
+#include "gdbmi.h"
 
 /* Low level versions. */
 

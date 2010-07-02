@@ -28,5 +28,5 @@ Only one is implemented and not in gdb 5.x.@p
 
 ***************************************************************************/
 
-#include "mi_gdb.h"
+#include "gdbmi.h"
 

@@ -9,7 +9,7 @@
   
 ***************************************************************************/
 
-#include "mi_gdb.h"
+#include "gdbmi.h"
 
 static
 const char *error_strs[]=
