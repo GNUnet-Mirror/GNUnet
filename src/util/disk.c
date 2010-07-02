@@ -248,7 +248,7 @@ GNUNET_DISK_file_size (const char *filename,
  */
 int
 GNUNET_DISK_file_get_identifiers (const char *filename,
-                                  uint32_t * dev, uint64_t * ino)
+                                  uint64_t * dev, uint64_t * ino)
 {
 #if LINUX
   struct stat sbuf;
@@ -256,10 +256,21 @@ GNUNET_DISK_file_get_identifiers (const char *filename,
 
   if ((0 == stat (filename, &sbuf)) && (0 == statvfs (filename, &fbuf)))
     {
-      *dev = (uint32_t) fbuf.f_fsid;
+      *dev = (uint64_t) fbuf.f_fsid;
       *ino = (uint64_t) sbuf.st_ino;
       return GNUNET_OK;
     }
+#elif SOMEBSD
+  struct stat sbuf;
+  struct statfs fbuf;
+
+  if ( (0 == stat (filename, &sbuf)) &&
+       (0 == statfs (filename, &fbuf) ) )
+    {
+      *dev = ((uint64_t) fbuf.f_fsid[0]) << 32 || ((uint64_t) fbuf.f_fsid[1]);
+      *ino = (uint64_t) sbuf.st_ino;
+      return GNUNET_OK;
+    }  
 #elif WINDOWS
   // FIXME NILS: test this
   struct GNUNET_DISK_FileHandle *fh;

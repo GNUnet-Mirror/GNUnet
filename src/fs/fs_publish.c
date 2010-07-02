@@ -737,7 +737,7 @@ hash_for_index_cb (void *cls,
   struct IndexStartMessage *ism;
   size_t slen;
   struct GNUNET_CLIENT_Connection *client;
-  uint32_t dev;
+  uint64_t dev;
   uint64_t ino;
   char *fn;
 
@@ -809,7 +809,7 @@ hash_for_index_cb (void *cls,
 					&dev,
 					&ino))
     {
-      ism->device = htonl (dev);
+      ism->device = GNUNET_htonll (dev);
       ism->inode = GNUNET_htonll(ino);
     }
   else

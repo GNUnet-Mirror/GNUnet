@@ -342,9 +342,9 @@ GNUNET_FS_handle_index_start (void *cls,
   uint16_t msize;
   struct IndexInfo *ii;
   size_t slen;
-  uint32_t dev;
+  uint64_t dev;
   uint64_t ino;
-  uint32_t mydev;
+  uint64_t mydev;
   uint64_t myino;
 
   msize = ntohs(message->size);
@@ -364,7 +364,7 @@ GNUNET_FS_handle_index_start (void *cls,
 				  GNUNET_SYSERR);
       return;
     }
-  dev = ntohl (ism->device);
+  dev = GNUNET_ntohll (ism->device);
   ino = GNUNET_ntohll (ism->inode);
   ism = (const struct IndexStartMessage*) message;
   slen = strlen (fn) + 1;

@@ -288,7 +288,7 @@ int GNUNET_DISK_file_size (const char *filename,
  * @return GNUNET_OK on success
  */
 int GNUNET_DISK_file_get_identifiers (const char *filename,
-				      uint32_t *dev,
+				      uint64_t *dev,
 				      uint64_t *ino);
  
 

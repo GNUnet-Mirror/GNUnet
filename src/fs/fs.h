@@ -1860,13 +1860,18 @@ struct IndexStartMessage
   struct GNUNET_MessageHeader header;
 
   /**
+   * For alignment.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
    * ID of device containing the file, as seen by the client.  This
    * device ID is obtained using a call like "statvfs" (and converting
    * the "f_fsid" field to a 32-bit big-endian number).  Use 0 if the
    * OS does not support this, in which case the service must do a
    * full hash recomputation.
    */
-  uint32_t device GNUNET_PACKED;
+  uint64_t device GNUNET_PACKED;
   
   /**
    * Inode of the file on the given device, as seen by the client
