@@ -580,8 +580,8 @@ service_message_handler (void *cls,
           handle->current = handle->retransmissions->message;
           process_pending_retransmissions(handle);
         }
-      return;
 #endif
+      return;
     }
 
   switch (ntohs (msg->type))
