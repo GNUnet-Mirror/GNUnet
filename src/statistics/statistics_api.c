@@ -698,8 +698,8 @@ GNUNET_STATISTICS_get (struct GNUNET_STATISTICS_Handle *handle,
     subsystem = "";
   if (name == NULL)
     name = "";
-  slen1 = strlen (subsystem);
-  slen2 = strlen (name);
+  slen1 = strlen (subsystem) + 1;
+  slen2 = strlen (name) + 1;
   GNUNET_assert (slen1 + slen2 + sizeof (struct GNUNET_MessageHeader) <
                  GNUNET_SERVER_MAX_MESSAGE_SIZE);
   ai = GNUNET_malloc (sizeof (struct GNUNET_STATISTICS_GetHandle));
