@@ -1680,8 +1680,7 @@ check_port (struct Plugin *plugin, uint16_t in_port)
   if ( (plugin->behind_nat == GNUNET_YES) && (in_port == 0) )
     return GNUNET_OK;
   if ( (plugin->only_nat_addresses == GNUNET_YES) &&
-       (plugin->behind_nat == GNUNET_YES) &&
-       (in_port != 0) )
+       (plugin->behind_nat == GNUNET_YES) )
     return GNUNET_SYSERR; /* odd case... */
   if (in_port == plugin->port) 
     return GNUNET_OK;
