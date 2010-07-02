@@ -720,7 +720,7 @@ topology_callback (void *cls,
     {
 #if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Created %d total connections, which is our target number!  Calling send messages.\n",
+                  "Created %u total connections, which is our target number!  Calling send messages.\n",
                   total_connections);
 #endif
 

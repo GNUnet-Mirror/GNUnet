@@ -150,7 +150,6 @@ TESTS = \
  test_fs_download \
  test_fs_download_indexed \
  test_fs_download_persistence \
- test_fs_file_information \
  test_fs_list_indexed \
  test_fs_namespace \
  test_fs_publish \
@@ -166,6 +165,7 @@ TESTS = \
  test_gnunet_service_fs_p2p \
  $(check_SCRIPTS) 
 # $(check_PROGRAMS)
+# test_fs_file_information
 
 
 test_fs_collection_SOURCES = \

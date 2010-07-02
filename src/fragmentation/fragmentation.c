@@ -35,10 +35,12 @@
 #include "gnunet_fragmentation_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_util_lib.h"
+
 /**
  * Message fragment.  This header is followed
  * by the actual data of the fragment.
  */
+
 struct Fragment
 {
 
@@ -181,10 +183,16 @@ void
 GNUNET_FRAGMENT_context_destroy (struct GNUNET_FRAGMENT_Context *ctx)
 {
 	struct GNUNET_FRAGEMENT_Ctxbuffer *buffer;
-	for(buffer = ctx->buffer; buffer!=NULL; buffer = buffer->next){
-		GNUNET_free(buffer->num);
-		GNUNET_free(buffer);
-	}
+	struct GNUNET_FRAGEMENT_Ctxbuffer *temp;
+	buffer = ctx->buffer;
+
+	while (buffer != NULL)
+	  {
+            temp = buffer->next;
+            GNUNET_free(buffer->num);
+            GNUNET_free(buffer);
+            buffer = temp;
+          }
 	GNUNET_free(ctx);
 	GNUNET_assert (0);
 }

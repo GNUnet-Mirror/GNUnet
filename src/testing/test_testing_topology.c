@@ -24,8 +24,11 @@
 #include "platform.h"
 #include "gnunet_testing_lib.h"
 #include "gnunet_core_service.h"
+#include "gnunet_os_lib.h"
 
 #define VERBOSE GNUNET_YES
+
+#define DELAY_FOR_LOGGING GNUNET_YES
 
 /**
  * How long until we fail the whole testcase?
@@ -167,6 +170,20 @@ void shutdown_callback (void *cls,
     }
 }
 
+#if DELAY_FOR_LOGGING
+static void gather_log_data ()
+{
+  char *peer_number;
+  char *connect_number;
+  pid_t mem_process;
+  GNUNET_asprintf(&peer_number, "%llu", num_peers);
+  GNUNET_asprintf(&connect_number, "%llu", expected_connections);
+  mem_process = GNUNET_OS_start_process (NULL, NULL, "./memsize.pl",
+                           "memsize.pl", "totals.txt", peer_number, connect_number, NULL);
+  GNUNET_OS_process_wait(mem_process);
+}
+
+#endif
 static void
 finish_testing ()
 {
@@ -177,6 +194,7 @@ finish_testing ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Called finish testing, stopping daemons.\n");
 #endif
+
   int count;
   count = 0;
   pos = test_messages;
@@ -558,12 +576,22 @@ topology_callback (void *cls,
 #endif
       modnum = expected_messages / 4;
       dotnum = (expected_messages / 50) + 1;
+      GNUNET_SCHEDULER_cancel (sched, die_task);
+      die_task = GNUNET_SCHEDULER_NO_TASK;
+#if DELAY_FOR_LOGGING
+      fprintf(stdout, "Sending test messages in 10 seconds.\n");
+      GNUNET_SCHEDULER_add_delayed (sched,
+                                    GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_SECONDS, 10),
+                                    &send_test_messages, test_messages);
+      gather_log_data();
+#else
+      GNUNET_SCHEDULER_add_now (sched, &send_test_messages, test_messages);
+#endif
 #if VERBOSE
       fprintf(stdout, "Test message progress: [");
 #endif
-      GNUNET_SCHEDULER_cancel (sched, die_task);
-      die_task = GNUNET_SCHEDULER_NO_TASK;
-      GNUNET_SCHEDULER_add_now (sched, &send_test_messages, test_messages);
+
     }
   else if (total_connections + failed_connections == expected_connections)
     {
@@ -629,8 +657,8 @@ create_topology ()
 #if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Topology set up, now starting peers!\n");
-#endif
       fprintf(stdout, "Daemon start progress [");
+#endif
       GNUNET_TESTING_daemons_continue_startup(pg);
     }
   else
@@ -696,10 +724,18 @@ peers_started_callback (void *cls,
        * within a reasonable amount of time */
       die_task = GNUNET_SCHEDULER_add_delayed (sched,
                                                GNUNET_TIME_relative_multiply
-                                               (GNUNET_TIME_UNIT_MINUTES, 5),
+                                               (GNUNET_TIME_UNIT_MINUTES, 8),
                                                &end_badly, "from peers_started_callback");
-
+#if DELAY_FOR_LOGGING
+      fprintf(stdout, "Connecting topology in 10 seconds\n");
+      gather_log_data();
+      GNUNET_SCHEDULER_add_delayed (sched,
+                                    GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_SECONDS, 10),
+                                    &connect_topology, NULL);
+#else
       connect_topology ();
+#endif
       ok = 0;
     }
 }
@@ -861,7 +897,9 @@ run (void *cls,
   peers_left = num_peers;
   modnum = num_peers / 4;
   dotnum = (num_peers / 50) + 1;
+#if VERBOSE
   fprintf (stdout, "Hostkey generation progress: \[");
+#endif
   /* Set up a task to end testing if peer start fails */
   die_task = GNUNET_SCHEDULER_add_delayed (sched,
                                            GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, SECONDS_PER_PEER_START * num_peers),

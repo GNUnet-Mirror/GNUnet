@@ -574,7 +574,7 @@ service_message_handler (void *cls,
           finish(handle, GNUNET_SYSERR); /* If there was a current message, kill it! */
         }
 #if RETRANSMIT
-      if (GNUNET_CONTAINER_multihashmap_iterate(handle->outstanding_requests, &retransmit_iterator, handle) > 0)
+      if ((handle->retransmit_stage != DHT_RETRANSMITTING) && (GNUNET_CONTAINER_multihashmap_iterate(handle->outstanding_requests, &retransmit_iterator, handle) > 0))
         {
           handle->retransmit_stage = DHT_RETRANSMITTING;
           handle->current = handle->retransmissions->message;
