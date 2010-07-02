@@ -2470,7 +2470,7 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer, struct GNUNET_CRYPTO
                 }
             }
         }
-      if (cost != DIRECT_NEIGHBOR_COST)
+      if ((cost != DIRECT_NEIGHBOR_COST) && (neighbor->pkey != NULL))
         {
           /* Added neighbor, now send HELLO to transport */
           hello_context = GNUNET_malloc(sizeof(struct HelloContext));
