@@ -1656,7 +1656,7 @@ GNUNET_SERVICE_start (const char *serviceName,
   sctx->ready_confirm_fd = -1;  /* no daemonizing */
   sctx->ret = GNUNET_OK;
   sctx->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
-  sctx->maxbuf = GNUNET_SERVER_MAX_MESSAGE_SIZE - 1;
+  sctx->maxbuf = GNUNET_SERVER_MAX_MESSAGE_SIZE;
   sctx->serviceName = serviceName;
   sctx->cfg = cfg;
   sctx->sched = sched;

@@ -59,6 +59,11 @@ struct GNUNET_SERVER_MessageStreamTokenizer
   /**
    * Size of the buffer (starting at 'hdr').
    */
+  size_t curr_buf;
+
+  /**
+   * Maximum size of the buffer.
+   */
   size_t maxbuf;
 
   /**
@@ -74,7 +79,7 @@ struct GNUNET_SERVER_MessageStreamTokenizer
   /**
    * Beginning of the buffer.  Typed like this to force alignment.
    */
-  struct GNUNET_MessageHeader hdr;
+  struct GNUNET_MessageHeader *hdr;
 
 };
 
@@ -96,7 +101,9 @@ GNUNET_SERVER_mst_create (size_t maxbuf,
 {
   struct GNUNET_SERVER_MessageStreamTokenizer *ret;
 
-  ret = GNUNET_malloc (maxbuf + sizeof (struct GNUNET_SERVER_MessageStreamTokenizer));
+  ret = GNUNET_malloc (sizeof (struct GNUNET_SERVER_MessageStreamTokenizer));
+  ret->hdr = GNUNET_malloc(GNUNET_SERVER_MIN_BUFFER_SIZE);
+  ret->curr_buf = GNUNET_SERVER_MIN_BUFFER_SIZE;
   ret->maxbuf = maxbuf;
   ret->cb = cb;
   ret->cb_cls = cb_cls;
@@ -134,6 +141,7 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
   int need_align;
   unsigned long offset;
   int ret;
+  size_t newsize;
 
 #if DEBUG_SERVER_MST
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -141,12 +149,22 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
 	      (unsigned int) size,
 	      (unsigned int) (mst->pos - mst->off));
 #endif
+  if ((size > mst->curr_buf) && (size < mst->maxbuf)) /* Received bigger message than we can currently handle! */
+    {
+      newsize = mst->curr_buf + size; /* How much space do we need? */
+      if (newsize > mst->maxbuf)
+        newsize = mst->maxbuf; /* Check it's not bigger than maxbuf */
+
+      mst->hdr = GNUNET_realloc(mst->hdr, newsize);
+      mst->curr_buf = newsize;
+    }
+
   ret = GNUNET_OK;
-  ibuf = (char*) &mst->hdr;
+  ibuf = (char*)mst->hdr;
   while (mst->pos > 0)
     {
     do_align:
-      if ( (mst->maxbuf - mst->off < sizeof (struct GNUNET_MessageHeader)) ||
+      if ( (mst->curr_buf - mst->off < sizeof (struct GNUNET_MessageHeader)) ||
 	   (0 != (mst->off % ALIGN_FACTOR)) )
 	{
 	  /* need to align or need more space */
@@ -183,7 +201,7 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
 	  GNUNET_break_op (0);
 	  return GNUNET_SYSERR;
 	}
-      if (mst->maxbuf - mst->off < want)
+      if (mst->curr_buf - mst->off < want)
 	{
 	  /* need more space */
 	  mst->pos -= mst->off;
@@ -271,7 +289,7 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
  copy:
   if ( (size > 0) && (! purge) )
     {
-      GNUNET_assert (mst->pos + size <= mst->maxbuf);
+      GNUNET_assert (mst->pos + size <= mst->curr_buf);
       memcpy (&ibuf[mst->pos], buf, size);
       mst->pos += size;
     }
