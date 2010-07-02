@@ -45,7 +45,7 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 50)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 180)
 
 #define MTYPE 12345
 
@@ -270,7 +270,8 @@ run (void *cls,
   sched = s;
 
   die_task = GNUNET_SCHEDULER_add_delayed (sched,
-      GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 1), &end_badly, NULL);
+					   TIMEOUT, 
+					   &end_badly, NULL);
 
   if (is_udp)
     {
