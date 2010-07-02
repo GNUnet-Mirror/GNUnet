@@ -812,12 +812,14 @@ hash_for_index_cb (void *cls,
       ism->device = GNUNET_htonll (dev);
       ism->inode = GNUNET_htonll(ino);
     }
+#if DEBUG_PUBLISH
   else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  _("Failed to get file identifiers for `%s'\n"),
 		  p->filename);
     }
+#endif
   ism->file_id = *res;
   memcpy (&ism[1],
 	  fn,
