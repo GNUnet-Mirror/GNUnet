@@ -42,8 +42,7 @@
 
 
 #define DEBUG_CURL GNUNET_YES
-#define DEBUG_HTTP GNUNET_NO
-#define HTTP_CONNECT_TIMEOUT_DBG 10
+#define DEBUG_HTTP GNUNET_YES
 
 /**
  * Text of the response sent back after the last bytes of a PUT
@@ -180,6 +179,8 @@ struct HTTP_Connection
   CURL *get_curl_handle;
 
   struct Session * session;
+
+  struct GNUNET_SERVER_MessageStreamTokenizer * msgtok;
 };
 
 struct HTTP_Connection_in
@@ -600,7 +601,7 @@ int server_read_callback (void *cls, uint64_t pos, char *buf, int max)
 
   char * test ="Hello World!";
   int bytes_read = -1;
-  if (i==0)
+  if (i<10)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "server_read_callback\n");
     memcpy(buf,test,strlen(test));
@@ -892,16 +893,20 @@ static int remove_http_message(struct HTTP_Connection * con, struct HTTP_Message
 }
 
 
-static size_t header_function( void *ptr, size_t size, size_t nmemb, void *stream)
+static size_t curl_header_function( void *ptr, size_t size, size_t nmemb, void *stream)
 {
   struct HTTP_Connection * con = stream;
 
   char * tmp;
   size_t len = size * nmemb;
-  int http_result;
+  long http_result = 0;
+  int res;
 
   /* Getting last http result code */
-  if (CURLE_OK == curl_easy_getinfo(con->get_curl_handle, CURLINFO_RESPONSE_CODE, &http_result))
+  GNUNET_assert(NULL!=con);
+  res = curl_easy_getinfo(con->get_curl_handle, CURLINFO_RESPONSE_CODE, &http_result);
+
+  if ((CURLE_OK == res) && (con->get_connected==GNUNET_NO))
   {
     if (http_result == 200)
     {
@@ -914,7 +919,6 @@ static size_t header_function( void *ptr, size_t size, size_t nmemb, void *strea
       //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound connected\n",con);
     }
   }
-
 
   tmp = NULL;
   if ((size * nmemb) < SIZE_MAX)
@@ -947,7 +951,7 @@ static size_t header_function( void *ptr, size_t size, size_t nmemb, void *strea
  * @param ptr source pointer, passed to the libcurl handle
  * @return bytes written to stream
  */
-static size_t send_read_callback(void *stream, size_t size, size_t nmemb, void *ptr)
+static size_t send_curl_read_callback(void *stream, size_t size, size_t nmemb, void *ptr)
 {
   struct HTTP_Connection * con = ptr;
   struct HTTP_Message * msg = con->pending_msgs_tail;
@@ -1061,15 +1065,15 @@ static ssize_t send_check_connections (void *cls, struct Session* ses , struct H
 #endif
       curl_easy_setopt(con->get_curl_handle, CURLOPT_URL, con->url);
       //curl_easy_setopt(con->put_curl_handle, CURLOPT_PUT, 1L);
-      curl_easy_setopt(con->get_curl_handle, CURLOPT_HEADERFUNCTION, &header_function);
-      curl_easy_setopt(con->get_curl_handle, CURLOPT_WRITEHEADER, con->get_curl_handle);
-      curl_easy_setopt(con->get_curl_handle, CURLOPT_READFUNCTION, send_read_callback);
+      curl_easy_setopt(con->get_curl_handle, CURLOPT_HEADERFUNCTION, &curl_header_function);
+      curl_easy_setopt(con->get_curl_handle, CURLOPT_WRITEHEADER, con);
+      curl_easy_setopt(con->get_curl_handle, CURLOPT_READFUNCTION, send_curl_read_callback);
       curl_easy_setopt(con->get_curl_handle, CURLOPT_READDATA, con);
       curl_easy_setopt(con->get_curl_handle, CURLOPT_WRITEFUNCTION, send_curl_write_callback);
       curl_easy_setopt(con->get_curl_handle, CURLOPT_WRITEDATA, con);
       curl_easy_setopt(con->get_curl_handle, CURLOPT_TIMEOUT, (long) timeout.value);
       curl_easy_setopt(con->get_curl_handle, CURLOPT_PRIVATE, con);
-      curl_easy_setopt(con->get_curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT_DBG);
+      curl_easy_setopt(con->get_curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
       curl_easy_setopt(con->get_curl_handle, CURLOPT_BUFFERSIZE, GNUNET_SERVER_MAX_MESSAGE_SIZE);
 
       mret = curl_multi_add_handle(plugin->multi_handle, con->get_curl_handle);
@@ -1116,13 +1120,13 @@ static ssize_t send_check_connections (void *cls, struct Session* ses , struct H
 #endif
   curl_easy_setopt(con->put_curl_handle, CURLOPT_URL, con->url);
   curl_easy_setopt(con->put_curl_handle, CURLOPT_PUT, 1L);
-  curl_easy_setopt(con->put_curl_handle, CURLOPT_READFUNCTION, send_read_callback);
+  curl_easy_setopt(con->put_curl_handle, CURLOPT_READFUNCTION, send_curl_read_callback);
   curl_easy_setopt(con->put_curl_handle, CURLOPT_READDATA, con);
   curl_easy_setopt(con->put_curl_handle, CURLOPT_WRITEFUNCTION, send_curl_write_callback);
   curl_easy_setopt(con->put_curl_handle, CURLOPT_READDATA, con);
   curl_easy_setopt(con->put_curl_handle, CURLOPT_TIMEOUT, (long) timeout.value);
   curl_easy_setopt(con->put_curl_handle, CURLOPT_PRIVATE, con);
-  curl_easy_setopt(con->put_curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT_DBG);
+  curl_easy_setopt(con->put_curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
   curl_easy_setopt(con->put_curl_handle, CURLOPT_BUFFERSIZE, GNUNET_SERVER_MAX_MESSAGE_SIZE);
 
   mret = curl_multi_add_handle(plugin->multi_handle, con->put_curl_handle);
