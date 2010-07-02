@@ -27,7 +27,7 @@
 #ifndef DHT_H_
 #define DHT_H_
 
-#define DEBUG_DHT GNUNET_YES
+#define DEBUG_DHT GNUNET_NO
 
 typedef void (*GNUNET_DHT_MessageReceivedHandler) (void *cls,
                                                    const struct GNUNET_MessageHeader
