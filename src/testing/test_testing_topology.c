@@ -26,9 +26,9 @@
 #include "gnunet_core_service.h"
 #include "gnunet_os_lib.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
-#define DELAY_FOR_LOGGING GNUNET_YES
+#define DELAY_FOR_LOGGING GNUNET_NO
 
 /**
  * How long until we fail the whole testcase?
