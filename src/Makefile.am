@@ -7,7 +7,9 @@ if !MINGW
 endif
 
 if HAVE_ESMTP
+if HAVE_OPENSSL
  MONKEY_DIR = monkey
+endif
 endif
 
 SUBDIRS = \

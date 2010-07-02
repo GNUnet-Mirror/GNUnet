@@ -478,6 +478,44 @@ AC_ARG_WITH(microhttpd,
        [#include "src/include/platform.h"])])
 AM_CONDITIONAL(HAVE_MHD, test x$lmhd = x1)
 AC_DEFINE_UNQUOTED([HAVE_MHD], $lmhd, [We have libmicrohttpd])
+
+
+# openssl
+openssl=0
+AC_MSG_CHECKING([for openssl])
+AC_ARG_WITH(openssl,
+   [  --with-openssl=PFX   base of openssl installation],
+   [AC_MSG_RESULT([$with_openssl])
+    case $with_openssl in
+      no)
+        ;;
+      yes)
+        AC_CHECK_HEADERS([openssl/ssl.h],
+            AC_CHECK_LIB([ssl], [SSL_new],
+	     openssl=1))
+        ;;
+      *)
+        LDFLAGS="-L$with_openssl/lib $LDFLAGS"
+        CPPFLAGS="-I$with_openssl/include $CPPFLAGS"
+        AC_CHECK_HEADERS([openssl/ssl.h],
+            AC_CHECK_LIB([ssl], [SSL_new],
+              EXT_LIB_PATH="-L$with_openssl/lib $EXT_LIB_PATH"
+              openssl=1))
+        ;;
+    esac
+   ],
+   [AC_MSG_RESULT([--with-openssl not specified])
+    AC_CHECK_HEADERS([openssl/ssl.h],
+        AC_CHECK_LIB([ssl], [SSL_new],
+          openssl=1))])
+AM_CONDITIONAL(HAVE_OPENSSL, test x$openssl = x1)
+AC_DEFINE_UNQUOTED([HAVE_OPENSSL], $openssl, [We have openssl])
+
+
+
+
+
+
 # restore LIBS
 LIBS=$SAVE_LIBS
 

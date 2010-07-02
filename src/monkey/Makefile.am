@@ -14,7 +14,8 @@ if !MINGW
 
 bin_PROGRAMS = \
  gnunet-monkey \
- gnunet-service-monkey 
+ gnunet-service-monkey \
+ mail_sender
 
 noinst_PROGRAMS = \
  bug_null_pointer_exception 
@@ -55,6 +56,7 @@ mail_sender_SOURCES = \
 	mail_sender.c
 mail_sender_LDADD = \
 	$(top_builddir)/src/util/libgnunetutil.la \
+        -lesmtp \
 	$(GN_LIBINTL)
 
 bug_null_pointer_exception_SOURCES = \
