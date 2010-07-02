@@ -25,7 +25,6 @@ gnunet_monkey_SOURCES = \
  gdbmi_alloc.c \
  gdbmi_breakpoint.c \
  gdbmi_connect.c \
- gdbmi_cpp_int.cc \
  gdbmi_data_man.c \
  gdbmi_error.c \
  gdbmi_get_free_pty.c \
