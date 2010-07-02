@@ -101,8 +101,6 @@ GNUNET_CONNECTION_persist_(struct GNUNET_CONNECTION_Handle *sock);
  *
  * @param sched scheduler to use
  * @param osSocket existing socket to box
- * @param maxbuf maximum write buffer size for the socket (use
- *        0 for sockets that need no write buffers, such as listen sockets)
  * @return the boxed socket handle
  */
 struct GNUNET_CONNECTION_Handle
@@ -111,7 +109,7 @@ struct GNUNET_CONNECTION_Handle
                                                    *sched,
                                                    struct
                                                    GNUNET_NETWORK_Handle
-                                                   *osSocket, size_t maxbuf);
+                                                   *osSocket);
 
 
 /**
@@ -122,8 +120,6 @@ struct GNUNET_CONNECTION_Handle
  * @param access function to use to check if access is allowed
  * @param access_cls closure for access
  * @param lsock listen socket
- * @param maxbuf maximum write buffer size for the socket (use
- *        0 for sockets that need no write buffers, such as listen sockets)
  * @return the socket handle, NULL on error (for example, access refused)
  */
 struct GNUNET_CONNECTION_Handle
@@ -134,7 +130,7 @@ struct GNUNET_CONNECTION_Handle
                                                  access, void *access_cls,
                                                  struct
                                                  GNUNET_NETWORK_Handle
-                                                 *lsock, size_t maxbuf);
+                                                 *lsock);
 
 
 /**
@@ -146,16 +142,13 @@ struct GNUNET_CONNECTION_Handle
  * @param cfg configuration to use
  * @param hostname name of the host to connect to
  * @param port port to connect to
- * @param maxbuf maximum write buffer size for the socket (use
- *        0 for sockets that need no write buffers, such as listen sockets)
  * @return the socket handle
  */
 struct GNUNET_CONNECTION_Handle
   *GNUNET_CONNECTION_create_from_connect (struct GNUNET_SCHEDULER_Handle *sched,
 					  const struct GNUNET_CONFIGURATION_Handle *cfg,
 					  const char *hostname,
-					  uint16_t port,
-					  size_t maxbuf);
+					  uint16_t port);
 
 
 /**
@@ -165,17 +158,14 @@ struct GNUNET_CONNECTION_Handle
  *
  * @param sched scheduler to use
  * @param cfg configuration to use
- * @param unixpath path to connect to
- * @param maxbuf maximum write buffer size for the socket (use
- *        0 for sockets that need no write buffers, such as listen sockets)
+ * @param unixpath path to connect to)
  * @return the socket handle, NULL on systems without UNIX support
  */
 struct GNUNET_CONNECTION_Handle *
 GNUNET_CONNECTION_create_from_connect_to_unixpath (struct GNUNET_SCHEDULER_Handle *sched,
 						   const struct
 						   GNUNET_CONFIGURATION_Handle *cfg,
-						   const char *unixpath,
-						   size_t maxbuf);
+						   const char *unixpath);
 
 
 
@@ -189,8 +179,6 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (struct GNUNET_SCHEDULER_Handl
  * @param af_family address family to use
  * @param serv_addr server address
  * @param addrlen length of server address
- * @param maxbuf maximum write buffer size for the socket (use
- *        0 for sockets that need no write buffers, such as listen sockets)
  * @return the socket handle
  */
 struct GNUNET_CONNECTION_Handle
@@ -199,8 +187,7 @@ struct GNUNET_CONNECTION_Handle
                                                    *sched, int af_family,
                                                    const struct sockaddr
                                                    *serv_addr,
-                                                   socklen_t addrlen,
-                                                   size_t maxbuf);
+                                                   socklen_t addrlen);
 
 /**
  * Check if socket is valid (no fatal errors have happened so far).
@@ -306,7 +293,7 @@ struct GNUNET_CONNECTION_TransmitHandle;
  * are free in the transmission buffer.  May call the notify
  * method immediately if enough space is available.  Note that
  * this function will abort if "size" is greater than
- * "maxbuf" (as specified when the socket handle was created).
+ * GNUNET_SERVER_MAX_MESSAGE_SIZE.
  *
  * Note that "notify" will be called either when enough
  * buffer space is available OR when the socket is destroyed.
@@ -332,13 +319,13 @@ struct GNUNET_CONNECTION_TransmitHandle;
  */
 struct GNUNET_CONNECTION_TransmitHandle
   *GNUNET_CONNECTION_notify_transmit_ready (struct
-                                                    GNUNET_CONNECTION_Handle
-                                                    *sock, size_t size,
-                                                    struct
-                                                    GNUNET_TIME_Relative
-                                                    timeout,
-                                                    GNUNET_CONNECTION_TransmitReadyNotify
-                                                    notify, void *notify_cls);
+                                            GNUNET_CONNECTION_Handle
+                                            *sock, size_t size,
+                                            struct
+                                            GNUNET_TIME_Relative
+                                            timeout,
+                                            GNUNET_CONNECTION_TransmitReadyNotify
+                                            notify, void *notify_cls);
 
 
 /**

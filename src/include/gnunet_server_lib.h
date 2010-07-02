@@ -119,7 +119,6 @@ struct GNUNET_SERVER_MessageHandler
  * @param access function for access control
  * @param access_cls closure for access
  * @param lsocks NULL-terminated array of listen sockets
- * @param maxbuf maximum write buffer size for accepted sockets
  * @param idle_timeout after how long should we timeout idle connections?
  * @param require_found if YES, connections sending messages of unknown type
  *        will be closed
@@ -130,7 +129,6 @@ struct GNUNET_SERVER_Handle *
 GNUNET_SERVER_create_with_sockets (struct GNUNET_SCHEDULER_Handle *sched,
 				   GNUNET_CONNECTION_AccessCheck access, void *access_cls,
 				   struct GNUNET_NETWORK_Handle **lsocks,
-				   size_t maxbuf,
 				   struct GNUNET_TIME_Relative
 				   idle_timeout,
 				   int require_found);
@@ -143,7 +141,6 @@ GNUNET_SERVER_create_with_sockets (struct GNUNET_SCHEDULER_Handle *sched,
  * @param access_cls closure for access
  * @param serverAddr address toes listen on (including port), NULL terminated array
  * @param socklen lengths of respective serverAddr 
- * @param maxbuf maximum write buffer size for accepted sockets
  * @param idle_timeout after how long should we timeout idle connections?
  * @param require_found if YES, connections sending messages of unknown type
  *        will be closed
@@ -157,7 +154,6 @@ struct GNUNET_SERVER_Handle *GNUNET_SERVER_create (struct
                                                    access, void *access_cls,
 						   struct sockaddr *const*serverAddr,
                                                    const socklen_t *socklen,
-                                                   size_t maxbuf,
                                                    struct GNUNET_TIME_Relative
                                                    idle_timeout,
                                                    int require_found);
@@ -546,15 +542,12 @@ typedef void (*GNUNET_SERVER_MessageTokenizerCallback) (void *cls,
 /**
  * Create a message stream tokenizer.
  *
- * @param maxbuf maximum message size to support (typically
- *    GNUNET_SERVER_MAX_MESSAGE_SIZE)
  * @param cb function to call on completed messages
  * @param cb_cls closure for cb
  * @return handle to tokenizer
  */
 struct GNUNET_SERVER_MessageStreamTokenizer *
-GNUNET_SERVER_mst_create (size_t maxbuf,
-			  GNUNET_SERVER_MessageTokenizerCallback cb,
+GNUNET_SERVER_mst_create (GNUNET_SERVER_MessageTokenizerCallback cb,
 			  void *cb_cls);
 
 
