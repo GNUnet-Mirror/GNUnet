@@ -150,6 +150,7 @@ TESTS = \
  test_fs_download \
  test_fs_download_indexed \
  test_fs_download_persistence \
+ test_fs_file_information \
  test_fs_list_indexed \
  test_fs_namespace \
  test_fs_publish \
@@ -157,7 +158,6 @@ TESTS = \
  test_fs_search \
  test_fs_search_persistence \
  test_fs_start_stop \
- test_fs_file_information
  test_fs_unindex \
  test_fs_unindex_persistence \
  test_fs_uri \
