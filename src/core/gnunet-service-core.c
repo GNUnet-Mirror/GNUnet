@@ -3683,10 +3683,13 @@ handle_transport_notify_disconnect (void *cls,
       return;
     }
   GNUNET_break (n->is_connected);
-  cnm.header.size = htons (sizeof (struct DisconnectNotifyMessage));
-  cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT);
-  cnm.peer = *peer;
-  send_to_all_clients (&cnm.header, GNUNET_YES, GNUNET_CORE_OPTION_SEND_DISCONNECT);
+  if (n->status == PEER_STATE_KEY_CONFIRMED)
+    {
+      cnm.header.size = htons (sizeof (struct DisconnectNotifyMessage));
+      cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT);
+      cnm.peer = *peer;
+      send_to_all_clients (&cnm.header, GNUNET_YES, GNUNET_CORE_OPTION_SEND_DISCONNECT);
+    }
   n->is_connected = GNUNET_NO;
   GNUNET_STATISTICS_update (stats, 
 			    gettext_noop ("# peers connected (transport)"), 
