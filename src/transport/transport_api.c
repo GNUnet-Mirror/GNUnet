@@ -1359,8 +1359,10 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
   /* Added because somehow a notify_delay_task is remaining scheduled and is ever so annoying */
   while ( (NULL != (cm = handle->control_head)))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("Disconnect before control message sent!\n"));
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Disconnect before control message sent!\n");
+#endif
       if (cm->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
         {
           GNUNET_SCHEDULER_cancel (handle->sched, cm->notify_delay_task);
