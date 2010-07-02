@@ -129,14 +129,9 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
   size_t delta;
   uint16_t want;
   char *ibuf;
-
-#if !REALLOC
-  char *temp_buf;
-#endif
   int need_align;
   unsigned long offset;
   int ret;
-  size_t newsize;
 
 #if DEBUG_SERVER_MST
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -144,22 +139,6 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
 	      (unsigned int) size,
 	      (unsigned int) (mst->pos - mst->off));
 #endif
-  if ((size > mst->curr_buf) && (size < GNUNET_SERVER_MAX_MESSAGE_SIZE)) /* Received bigger message than we can currently handle! */
-    {
-      newsize = mst->curr_buf + size + 1; /* How much space do we need? */
-      if (newsize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
-        newsize = GNUNET_SERVER_MAX_MESSAGE_SIZE - 1; /* Check it's not bigger than GNUNET_SERVER_MAX_MESSAGE_SIZE */
-#if REALLOC
-      mst->hdr = GNUNET_realloc(mst->hdr, newsize);
-#else
-      temp_buf = GNUNET_malloc(newsize);
-      memcpy(temp_buf, mst->hdr, mst->curr_buf);
-      GNUNET_free(mst->hdr);
-      mst->hdr = temp_buf;
-#endif
-      mst->curr_buf = newsize;
-    }
-
   ret = GNUNET_OK;
   ibuf = (char*)mst->hdr;
   while (mst->pos > 0)
@@ -211,6 +190,13 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
 		   mst->pos);
 	  mst->off = 0;
 	}
+      if (want > mst->curr_buf)
+	{
+	  mst->hdr = GNUNET_realloc(mst->hdr, want);
+	  ibuf = (char*)mst->hdr;	  
+	  mst->curr_buf = want;
+	}
+      hdr = (const struct GNUNET_MessageHeader*) &ibuf[mst->off];
       if (mst->pos - mst->off < want)
 	{
 	  delta = GNUNET_MIN (want - (mst->pos - mst->off),
@@ -290,6 +276,12 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
  copy:
   if ( (size > 0) && (! purge) )
     {
+      if (size + mst->pos > mst->curr_buf)
+	{
+	  mst->hdr = GNUNET_realloc(mst->hdr, size + mst->pos);
+	  ibuf = (char*)mst->hdr;	  
+	  mst->curr_buf = size + mst->pos;
+	}
       GNUNET_assert (mst->pos + size <= mst->curr_buf);
       memcpy (&ibuf[mst->pos], buf, size);
       mst->pos += size;

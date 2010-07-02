@@ -103,6 +103,7 @@ GNUNET_xmalloc_unchecked_ (size_t size, const char *filename, int linenumber)
   return result;
 }
 
+
 /**
  * Reallocate memory. Checks the return value, aborts if no more
  * memory is available.
@@ -138,6 +139,7 @@ GNUNET_xrealloc_ (void *ptr,
 #endif
   return ptr;
 }
+
 
 /**
  * Free memory. Merely a wrapper for the case that we
