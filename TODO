@@ -23,7 +23,7 @@
 * STATISTICS:
   - implement notification-based statistics API
 * PEERINFO [CG]
-  - better API for trust management
+  - better API for trust management (or move into FS!?)
 * TOPOLOGY:
   - needs more testing (especially F2F topology) & transport blacklisting
 * TBENCH: [MW]
@@ -86,7 +86,6 @@
     + download resume
     + publish resume
     + publish error
-  - implement open directory dialog
   - implement new-pseudonym dialog
   - namespace search
   - NS list in search dialog should use colors to offset our own namespaces from the others
