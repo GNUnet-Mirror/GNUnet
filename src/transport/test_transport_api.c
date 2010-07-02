@@ -45,7 +45,12 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 180)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
+
+/**
+ * How long until we give up on transmitting the message?
+ */
+#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 #define MTYPE 12345
 
@@ -176,6 +181,11 @@ notify_connect (void *cls,
 {
   if (cls == &p1)
     {
+      GNUNET_SCHEDULER_cancel (sched, die_task);
+      die_task = GNUNET_SCHEDULER_add_delayed (sched,
+					       TIMEOUT_TRANSMIT, 
+					       &end_badly, NULL);
+
       GNUNET_TRANSPORT_notify_transmit_ready (p1.th,
 					      &p2.id,
 					      256, 0, TIMEOUT, &notify_ready,
