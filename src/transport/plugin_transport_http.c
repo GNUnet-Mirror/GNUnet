@@ -41,7 +41,7 @@
 #include <curl/curl.h>
 
 
-#define DEBUG_CURL GNUNET_NO
+#define DEBUG_CURL GNUNET_YES
 #define DEBUG_HTTP GNUNET_NO
 #define HTTP_CONNECT_TIMEOUT_DBG 10
 
@@ -656,44 +656,46 @@ accessHandlerCallback (void *cls,
     cs = con->session;
   }
 
+  if (NULL == *httpSessionCache)
+  {
+    /* get session for peer identity */
+    cs = session_get (plugin ,&pi_in);
+
+    conn_info = MHD_get_connection_info(mhd_connection, MHD_CONNECTION_INFO_CLIENT_ADDRESS );
+    /* Incoming IPv4 connection */
+    if ( AF_INET == conn_info->client_addr->sin_family)
+    {
+      addrin = conn_info->client_addr;
+      inet_ntop(addrin->sin_family, &(addrin->sin_addr),address,INET_ADDRSTRLEN);
+      memcpy(&ipv4addr.ipv4_addr,&(addrin->sin_addr),sizeof(struct in_addr));
+      ipv4addr.u_port = addrin->sin_port;
+      con = session_check_inbound_address (plugin, cs, (const void *) &ipv4addr, sizeof (struct IPv4HttpAddress));
+    }
+    /* Incoming IPv6 connection */
+    if ( AF_INET6 == conn_info->client_addr->sin_family)
+    {
+      addrin6 = (struct sockaddr_in6 *) conn_info->client_addr;
+      inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr),address,INET6_ADDRSTRLEN);
+      memcpy(&ipv6addr.ipv6_addr,&(addrin6->sin6_addr),sizeof(struct in6_addr));
+      ipv6addr.u6_port = addrin6->sin6_port;
+      con = session_check_inbound_address (plugin, cs, &ipv6addr, sizeof (struct IPv6HttpAddress));
+    }
+    /* Set closure and update current session*/
+
+    *httpSessionCache = con;
+    if (con->msgtok==NULL)
+      con->msgtok = GNUNET_SERVER_mst_create (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1, &messageTokenizerCallback, con);
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s' (`%s')\n",
+                method,
+                GNUNET_i2s(&cs->identity),
+                http_plugin_address_to_string(NULL, con->addr, con->addrlen));
+  }
+
   /* Is it a PUT or a GET request */
   if (0 == strcmp (MHD_HTTP_METHOD_PUT, method))
   {
-    if (NULL == *httpSessionCache)
-    {
-      /* get session for peer identity */
-      cs = session_get (plugin ,&pi_in);
 
-      conn_info = MHD_get_connection_info(mhd_connection, MHD_CONNECTION_INFO_CLIENT_ADDRESS );
-      /* Incoming IPv4 connection */
-      if ( AF_INET == conn_info->client_addr->sin_family)
-      {
-        addrin = conn_info->client_addr;
-        inet_ntop(addrin->sin_family, &(addrin->sin_addr),address,INET_ADDRSTRLEN);
-        memcpy(&ipv4addr.ipv4_addr,&(addrin->sin_addr),sizeof(struct in_addr));
-        ipv4addr.u_port = addrin->sin_port;
-        con = session_check_inbound_address (plugin, cs, (const void *) &ipv4addr, sizeof (struct IPv4HttpAddress));
-      }
-      /* Incoming IPv6 connection */
-      if ( AF_INET6 == conn_info->client_addr->sin_family)
-      {
-        addrin6 = (struct sockaddr_in6 *) conn_info->client_addr;
-        inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr),address,INET6_ADDRSTRLEN);
-        memcpy(&ipv6addr.ipv6_addr,&(addrin6->sin6_addr),sizeof(struct in6_addr));
-        ipv6addr.u6_port = addrin6->sin6_port;
-        con = session_check_inbound_address (plugin, cs, &ipv6addr, sizeof (struct IPv6HttpAddress));
-      }
-      /* Set closure and update current session*/
-
-      *httpSessionCache = con;
-      if (con->msgtok==NULL)
-        con->msgtok = GNUNET_SERVER_mst_create (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1, &messageTokenizerCallback, con);
-
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s' (`%s')\n",
-                  method,
-                  GNUNET_i2s(&cs->identity),
-                  http_plugin_address_to_string(NULL, con->addr, con->addrlen));
-    }
 
     if ((*upload_data_size == 0) && (con->is_put_in_progress==GNUNET_NO))
     {
@@ -748,6 +750,11 @@ accessHandlerCallback (void *cls,
     response = MHD_create_response_from_callback(-1,32 * 1024, &server_read_callback, cs, NULL);
     res = MHD_queue_response (mhd_connection, MHD_HTTP_NOT_FOUND, response);
     MHD_destroy_response (response);
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s' (`%s')\n",
+                method,
+                GNUNET_i2s(&cs->identity),
+                http_plugin_address_to_string(NULL, con->addr, con->addrlen));
 
     return res;
 
@@ -1035,6 +1042,7 @@ static ssize_t send_initiate (void *cls, struct Session* ses , struct HTTP_Conne
 
   GNUNET_assert(cls !=NULL);
 
+#if 0
   if (con->get_connected == GNUNET_NO)
   {
     if (con->get_curl_handle == NULL)
@@ -1066,20 +1074,21 @@ static ssize_t send_initiate (void *cls, struct Session* ses , struct HTTP_Conne
       return -1;
     }
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound connection not active\n",con);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound not connected, initiating connection\n",con);
   }
+#endif
 
   /* PUT already connected, no need to initiate connection */
   if ((con->put_connected == GNUNET_YES) && (con->put_curl_handle != NULL))
   {
     if (con->put_send_paused == GNUNET_NO)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: active, enqueueing message\n",con);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound active, enqueueing message\n",con);
       return bytes_sent;
     }
     if (con->put_send_paused == GNUNET_YES)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: paused, unpausing existing connection and enqueueing message\n",con);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound paused, unpausing existing connection and enqueueing message\n",con);
       curl_easy_pause(con->put_curl_handle,CURLPAUSE_CONT);
       con->put_send_paused=GNUNET_NO;
       return bytes_sent;
@@ -1091,7 +1100,7 @@ static ssize_t send_initiate (void *cls, struct Session* ses , struct HTTP_Conne
   if ( NULL == con->put_curl_handle)
     con->put_curl_handle = curl_easy_init();
   GNUNET_assert (con->put_curl_handle != NULL);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: not connected, initiating connection\n",con);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound not connected, initiating connection\n",con);
 
   GNUNET_assert (NULL != con->pending_msgs_tail);
   msg = con->pending_msgs_tail;
