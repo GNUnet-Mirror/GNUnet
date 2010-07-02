@@ -398,7 +398,7 @@ init_notify (void *cls,
 						       0,
 						       TIMEOUT,
 						       &p2.id,
-						       sizeof (struct GNUNET_MessageHeader),
+						       get_size (0),
 						       &transmit_ready, &p1));
     }
 }
