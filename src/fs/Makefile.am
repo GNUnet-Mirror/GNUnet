@@ -164,8 +164,7 @@ TESTS = \
  test_fs_test_lib \
  test_gnunet_service_fs_migration \
  test_gnunet_service_fs_p2p \
- $(check_SCRIPTS)  \
- $(check_PROGRAMS)
+ $(check_SCRIPTS)  
 
 
 test_fs_collection_SOURCES = \
