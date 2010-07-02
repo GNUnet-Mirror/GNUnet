@@ -267,7 +267,7 @@ GNUNET_DISK_file_get_identifiers (const char *filename,
   if ( (0 == stat (filename, &sbuf)) &&
        (0 == statfs (filename, &fbuf) ) )
     {
-      *dev = ((uint64_t) fbuf.f_fsid[0]) << 32 || ((uint64_t) fbuf.f_fsid[1]);
+      *dev = (uint64_t) fbuf.f_fsid;
       *ino = (uint64_t) sbuf.st_ino;
       return GNUNET_OK;
     }  
