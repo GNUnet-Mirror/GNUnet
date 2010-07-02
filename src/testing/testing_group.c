@@ -3579,7 +3579,7 @@ GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg,
   shutdown_cb = NULL;
   shutdown_ctx = NULL;
 
-  if ((cb != NULL) && (pg->total > 0))
+  if (cb != NULL)
     {
       shutdown_ctx = GNUNET_malloc(sizeof(struct ShutdownContext));
       shutdown_ctx->cb = cb;
