@@ -157,6 +157,7 @@ TESTS = \
  test_fs_search \
  test_fs_search_persistence \
  test_fs_start_stop \
+ test_fs_file_information
  test_fs_unindex \
  test_fs_unindex_persistence \
  test_fs_uri \
@@ -164,8 +165,7 @@ TESTS = \
  test_gnunet_service_fs_migration \
  test_gnunet_service_fs_p2p \
  $(check_SCRIPTS) 
-# $(check_PROGRAMS)
-# test_fs_file_information
+ $(check_PROGRAMS)
 
 
 test_fs_collection_SOURCES = \
