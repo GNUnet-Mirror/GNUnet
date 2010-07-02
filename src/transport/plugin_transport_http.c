@@ -162,13 +162,23 @@ struct HTTP_Connection_out
   struct HTTP_Message * pending_msgs_tail;
 
   char * url;
-  unsigned int connected;
-  unsigned int send_paused;
+  unsigned int put_connected;
+  unsigned int put_send_paused;
+
+  unsigned int get_connected;
 
   /**
-   * curl handle for this ransmission
+   * curl handle for sending data using HTTP/PUT
+   * outbound data
    */
-  CURL *curl_handle;
+  CURL *put_curl_handle;
+
+  /**
+   * curl handle for recieving data using HTTP/GET transmission
+   * inbound data
+   */
+  CURL *get_curl_handle;
+
   struct Session * session;
 };
 
@@ -473,7 +483,10 @@ static struct HTTP_Connection_out * session_check_outbound_address (void * cls, 
     con->addrlen = addr_len;
     con->addr=&con[1];
     con->url=create_url(plugin, addr, addr_len);
-    con->connected = GNUNET_NO;
+    con->put_curl_handle = NULL;
+    con->put_connected = GNUNET_NO;
+    con->get_curl_handle = NULL;
+    con->get_connected = GNUNET_NO;
     con->session = cs;
     memcpy(con->addr, addr, addr_len);
     GNUNET_CONTAINER_DLL_insert(cs->outbound_connections_head,cs->outbound_connections_tail,con);
@@ -564,8 +577,8 @@ static void messageTokenizerCallback (void *cls,
   con->session->plugin->env->receive (con->session->plugin->env->cls,
 			    &con->session->identity,
 			    message, 1, con->session,
-			    con->addr,
-			    con->addrlen);
+			    NULL,
+			    0);
 }
 
 /**
@@ -929,7 +942,7 @@ static size_t send_read_callback(void *stream, size_t size, size_t nmemb, void *
   if (con->pending_msgs_tail == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: No Message to send, pausing connection\n",con);
-    con->send_paused = GNUNET_YES;
+    con->put_send_paused = GNUNET_YES;
     return CURL_READFUNC_PAUSE;
   }
 
@@ -1020,49 +1033,86 @@ static ssize_t send_initiate (void *cls, struct Session* ses , struct HTTP_Conne
   struct HTTP_Message * msg;
   struct GNUNET_TIME_Relative timeout = GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT;
 
-  /* already connected, no need to initiate connection */
-  if ((con->connected == GNUNET_YES) && (con->curl_handle != NULL) && (con->send_paused == GNUNET_NO))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: active, enqueueing message\n",con);
-    return bytes_sent;
-  }
-
-  if ((con->connected == GNUNET_YES) && (con->curl_handle != NULL) && (con->send_paused == GNUNET_YES))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: paused, unpausing existing connection and enqueueing message\n",con);
-    curl_easy_pause(con->curl_handle,CURLPAUSE_CONT);
-    con->send_paused=GNUNET_NO;
-    return bytes_sent;
-  }
-
-  /* not connected, initiate connection */
   GNUNET_assert(cls !=NULL);
 
-  if ( NULL == con->curl_handle)
-    con->curl_handle = curl_easy_init();
-  GNUNET_assert (con->curl_handle != NULL);
+  if (con->get_connected == GNUNET_NO)
+  {
+    if (con->get_curl_handle == NULL)
+      con->get_curl_handle = curl_easy_init();
+
+#if DEBUG_CURL
+    curl_easy_setopt(con->get_curl_handle, CURLOPT_VERBOSE, 1L);
+#endif
+    curl_easy_setopt(con->get_curl_handle, CURLOPT_URL, con->url);
+    //curl_easy_setopt(con->put_curl_handle, CURLOPT_PUT, 1L);
+    curl_easy_setopt(con->get_curl_handle, CURLOPT_HEADERFUNCTION, &header_function);
+    curl_easy_setopt(con->get_curl_handle, CURLOPT_WRITEHEADER, con);
+    curl_easy_setopt(con->get_curl_handle, CURLOPT_READFUNCTION, send_read_callback);
+    curl_easy_setopt(con->get_curl_handle, CURLOPT_READDATA, con);
+    curl_easy_setopt(con->get_curl_handle, CURLOPT_WRITEFUNCTION, send_write_callback);
+    curl_easy_setopt(con->get_curl_handle, CURLOPT_READDATA, con);
+    curl_easy_setopt(con->get_curl_handle, CURLOPT_TIMEOUT, (long) timeout.value);
+    curl_easy_setopt(con->get_curl_handle, CURLOPT_PRIVATE, con);
+    curl_easy_setopt(con->get_curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT_DBG);
+    curl_easy_setopt(con->get_curl_handle, CURLOPT_BUFFERSIZE, GNUNET_SERVER_MAX_MESSAGE_SIZE);
+
+    mret = curl_multi_add_handle(plugin->multi_handle, con->get_curl_handle);
+    if (mret != CURLM_OK)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("%s failed at %s:%d: `%s'\n"),
+                  "curl_multi_add_handle", __FILE__, __LINE__,
+                  curl_multi_strerror (mret));
+      return -1;
+    }
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound connection not active\n",con);
+  }
+
+  /* PUT already connected, no need to initiate connection */
+  if ((con->put_connected == GNUNET_YES) && (con->put_curl_handle != NULL))
+  {
+    if (con->put_send_paused == GNUNET_NO)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: active, enqueueing message\n",con);
+      return bytes_sent;
+    }
+    if (con->put_send_paused == GNUNET_YES)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: paused, unpausing existing connection and enqueueing message\n",con);
+      curl_easy_pause(con->put_curl_handle,CURLPAUSE_CONT);
+      con->put_send_paused=GNUNET_NO;
+      return bytes_sent;
+    }
+  }
+
+
+  /* not connected, initiate connection */
+  if ( NULL == con->put_curl_handle)
+    con->put_curl_handle = curl_easy_init();
+  GNUNET_assert (con->put_curl_handle != NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: not connected, initiating connection\n",con);
 
   GNUNET_assert (NULL != con->pending_msgs_tail);
   msg = con->pending_msgs_tail;
 
 #if DEBUG_CURL
-  curl_easy_setopt(con->curl_handle, CURLOPT_VERBOSE, 1L);
+  curl_easy_setopt(con->put_curl_handle, CURLOPT_VERBOSE, 1L);
 #endif
-  curl_easy_setopt(con->curl_handle, CURLOPT_URL, con->url);
-  curl_easy_setopt(con->curl_handle, CURLOPT_PUT, 1L);
-  curl_easy_setopt(con->curl_handle, CURLOPT_HEADERFUNCTION, &header_function);
-  curl_easy_setopt(con->curl_handle, CURLOPT_WRITEHEADER, con);
-  curl_easy_setopt(con->curl_handle, CURLOPT_READFUNCTION, send_read_callback);
-  curl_easy_setopt(con->curl_handle, CURLOPT_READDATA, con);
-  curl_easy_setopt(con->curl_handle, CURLOPT_WRITEFUNCTION, send_write_callback);
-  curl_easy_setopt(con->curl_handle, CURLOPT_READDATA, con);
-  curl_easy_setopt(con->curl_handle, CURLOPT_TIMEOUT, (long) timeout.value);
-  curl_easy_setopt(con->curl_handle, CURLOPT_PRIVATE, con);
-  curl_easy_setopt(con->curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT_DBG);
-  curl_easy_setopt(con->curl_handle, CURLOPT_BUFFERSIZE, GNUNET_SERVER_MAX_MESSAGE_SIZE);
+  curl_easy_setopt(con->put_curl_handle, CURLOPT_URL, con->url);
+  curl_easy_setopt(con->put_curl_handle, CURLOPT_PUT, 1L);
+  curl_easy_setopt(con->put_curl_handle, CURLOPT_HEADERFUNCTION, &header_function);
+  curl_easy_setopt(con->put_curl_handle, CURLOPT_WRITEHEADER, con);
+  curl_easy_setopt(con->put_curl_handle, CURLOPT_READFUNCTION, send_read_callback);
+  curl_easy_setopt(con->put_curl_handle, CURLOPT_READDATA, con);
+  curl_easy_setopt(con->put_curl_handle, CURLOPT_WRITEFUNCTION, send_write_callback);
+  curl_easy_setopt(con->put_curl_handle, CURLOPT_READDATA, con);
+  curl_easy_setopt(con->put_curl_handle, CURLOPT_TIMEOUT, (long) timeout.value);
+  curl_easy_setopt(con->put_curl_handle, CURLOPT_PRIVATE, con);
+  curl_easy_setopt(con->put_curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT_DBG);
+  curl_easy_setopt(con->put_curl_handle, CURLOPT_BUFFERSIZE, GNUNET_SERVER_MAX_MESSAGE_SIZE);
 
-  mret = curl_multi_add_handle(plugin->multi_handle, con->curl_handle);
+  mret = curl_multi_add_handle(plugin->multi_handle, con->put_curl_handle);
   if (mret != CURLM_OK)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1071,9 +1121,7 @@ static ssize_t send_initiate (void *cls, struct Session* ses , struct HTTP_Conne
                 curl_multi_strerror (mret));
     return -1;
   }
-
-  con->connected = GNUNET_YES;
-
+  con->put_connected = GNUNET_YES;
   bytes_sent = send_schedule (plugin, ses);
   return bytes_sent;
 }
@@ -1130,9 +1178,9 @@ static void send_execute (void *cls,
                                "curl_multi_perform",
                                curl_easy_strerror (msg->data.result));
                     /* sending msg failed*/
-                    con->connected = GNUNET_NO;
-                    curl_easy_cleanup(con->curl_handle);
-                    con->curl_handle=NULL;
+                    con->put_connected = GNUNET_NO;
+                    curl_easy_cleanup(con->put_curl_handle);
+                    con->put_curl_handle=NULL;
                     if (( NULL != con->pending_msgs_tail) && ( NULL != con->pending_msgs_tail->transmit_cont))
                       con->pending_msgs_tail->transmit_cont (con->pending_msgs_tail->transmit_cont_cls,&con->session->identity,GNUNET_SYSERR);
 
@@ -1143,9 +1191,9 @@ static void send_execute (void *cls,
                     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                                 "Send to peer `%s' completed with code %u\n", GNUNET_i2s(&cs->identity), http_result );
 
-                    curl_easy_cleanup(con->curl_handle);
-                    con->connected = GNUNET_NO;
-                    con->curl_handle=NULL;
+                    curl_easy_cleanup(con->put_curl_handle);
+                    con->put_connected = GNUNET_NO;
+                    con->put_curl_handle=NULL;
 
                     /* Calling transmit continuation  */
                     if (( NULL != con->pending_msgs_tail) && (NULL != con->pending_msgs_tail->transmit_cont))
@@ -1245,25 +1293,35 @@ static size_t send_schedule(void *cls, struct Session* ses )
 
 /**
  * Function that can be used by the transport service to transmit
- * a message using the plugin.
+ * a message using the plugin.   Note that in the case of a
+ * peer disconnecting, the continuation MUST be called
+ * prior to the disconnect notification itself.  This function
+ * will be called with this peer's HELLO message to initiate
+ * a fresh connection to another peer.
  *
  * @param cls closure
  * @param target who should receive this message
- * @param priority how important is the message
  * @param msgbuf the message to transmit
  * @param msgbuf_size number of bytes in 'msgbuf'
- * @param to when should we time out
+ * @param priority how important is the message (most plugins will
+ *                 ignore message priority and just FIFO)
+ * @param timeout how long to wait at most for the transmission (does not
+ *                require plugins to discard the message after the timeout,
+ *                just advisory for the desired delay; most plugins will ignore
+ *                this as well)
  * @param session which session must be used (or NULL for "any")
  * @param addr the address to use (can be NULL if the plugin
  *                is "on its own" (i.e. re-use existing TCP connection))
  * @param addrlen length of the address in bytes
  * @param force_address GNUNET_YES if the plugin MUST use the given address,
- *                otherwise the plugin may use other addresses or
- *                existing connections (if available)
+ *                GNUNET_NO means the plugin may use any other address and
+ *                GNUNET_SYSERR means that only reliable existing
+ *                bi-directional connections should be used (regardless
+ *                of address)
  * @param cont continuation to call once the message has
  *        been transmitted (or if the transport is ready
  *        for the next transmission call; or if the
- *        peer disconnected...)
+ *        peer disconnected...); can be NULL
  * @param cont_cls closure for cont
  * @return number of bytes used (on the physical network, with overheads);
  *         -1 on hard errors (i.e. address invalid); 0 is a legal value
@@ -1295,11 +1353,23 @@ http_plugin_send (void *cls,
   /* get session from hashmap */
   cs = session_get(plugin, target);
   con = session_check_outbound_address(plugin, cs, addr, addrlen);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Transport tells me to send %u bytes to `%s' (%s), session: %X\n",
-                                      msgbuf_size, GNUNET_i2s(&cs->identity),
+
+  char * force = GNUNET_malloc(30);
+
+  if (force_address == GNUNET_YES)
+    strcpy(force,"forced addr.");
+  if (force_address == GNUNET_NO)
+    strcpy(force,"any addr.");
+  if (force_address == GNUNET_SYSERR)
+    strcpy(force,"reliable bi-direc. address addr.");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Transport tells me to send %u bytes to `%s' %s (%s), session: %X\n",
+                                      msgbuf_size,
+                                      GNUNET_i2s(&cs->identity),
+                                      force,
                                       http_plugin_address_to_string(NULL, addr, addrlen),
                                       session);
 
+  //GNUNET_free(force);
   /* create msg */
   msg = GNUNET_malloc (sizeof (struct HTTP_Message) + msgbuf_size);
   msg->next = NULL;
@@ -1349,10 +1419,10 @@ http_plugin_disconnect (void *cls,
 
   while (con!=NULL)
   {
-    if (con->curl_handle!=NULL)
-      curl_easy_cleanup(con->curl_handle);
-    con->curl_handle=NULL;
-    con->connected = GNUNET_NO;
+    if (con->put_curl_handle!=NULL)
+      curl_easy_cleanup(con->put_curl_handle);
+    con->put_curl_handle=NULL;
+    con->put_connected = GNUNET_NO;
     while (con->pending_msgs_head!=NULL)
     {
       remove_http_message(con, con->pending_msgs_head);
@@ -1609,9 +1679,9 @@ int hashMapFreeIterator (void *cls, const GNUNET_HashCode *key, void *value)
   while (con!=NULL)
   {
     GNUNET_free(con->url);
-    if (con->curl_handle!=NULL)
-      curl_easy_cleanup(con->curl_handle);
-    con->curl_handle = NULL;
+    if (con->put_curl_handle!=NULL)
+      curl_easy_cleanup(con->put_curl_handle);
+    con->put_curl_handle = NULL;
     msg = con->pending_msgs_head;
     while (msg!=NULL)
     {
