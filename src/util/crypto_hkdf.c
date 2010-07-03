@@ -75,18 +75,6 @@ getPRK (gcry_md_hd_t mac, const void *xts, const unsigned long long xts_len,
   return GNUNET_YES;
 }
 
-static void dump(void *p, unsigned int l)
-{
-  unsigned int i;
-
-  printf("\n");
-  for (i = 0; i < l; i++)
-    {
-      printf("%2x", (int) ((unsigned char *) p)[i]);
-    }
-  printf("\n");
-}
-
 /**
  * @brief Derive key
  * @param xtr_algo hash algorithm for the extraction phase, GCRY_MD_...
@@ -130,7 +118,6 @@ GNUNET_CRYPTO_hkdf (int xtr_algo, int prf_algo, const void *xts,
   if (getPRK (xtr, xts, xts_len, skm, skm_len, prk)
       != GNUNET_YES)
     goto hkdf_error;
-dump(prk, xtr_len);
 
   t = out_len / k;
   d = out_len % k;
@@ -143,7 +130,6 @@ dump(prk, xtr_len);
       memcpy (plain, ctx, ctx_len);
       memset (plain + ctx_len, 1, 1);
       gcry_md_reset (prf);
-dump(plain, plain_len);
       hc = doHMAC (prf, prk, xtr_len, plain, ctx_len + 1);
       if (hc == NULL)
         goto hkdf_error;
@@ -160,7 +146,6 @@ dump(plain, plain_len);
       memcpy (plain, result - k, k);
       memset (plain + k + ctx_len, i + 1, 1);
       gcry_md_reset (prf);
-dump(plain, plain_len);
       hc = doHMAC (prf, prk, xtr_len, plain, plain_len);
       if (hc == NULL)
         goto hkdf_error;
@@ -175,13 +160,11 @@ dump(plain, plain_len);
         memcpy (plain, result - k, k);
       memset (plain + k + ctx_len, i + 1, 1);
       gcry_md_reset (prf);
-dump(plain, plain_len);
       hc = doHMAC (prf, prk, xtr_len, plain, plain_len);
       if (hc == NULL)
         goto hkdf_error;
       memcpy (result, hc, d);
     }
-dump(result - k, out_len);
 
   ret = GNUNET_YES;
   goto hkdf_ok;
