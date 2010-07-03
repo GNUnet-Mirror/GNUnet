@@ -113,6 +113,7 @@ check_PROGRAMS = \
  test_crypto_aes_weak \
  test_crypto_crc \
  test_crypto_hash \
+ test_crypto_hkdf \
  test_crypto_ksk \
  test_crypto_random \
  test_crypto_rsa \
