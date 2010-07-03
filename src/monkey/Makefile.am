@@ -11,6 +11,8 @@ endif
 
 
 if !MINGW
+if HAVE_ESMTP
+if HAVE_OPENSSL
 
 bin_PROGRAMS = \
  gnunet-monkey \
@@ -74,5 +76,7 @@ EXTRA_DIST = \
   test_gnunet_monkey_data.conf \
   $(check_SCRIPTS) 
 
+endif
+endif
 endif
 

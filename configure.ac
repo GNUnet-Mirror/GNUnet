@@ -735,7 +735,17 @@ then
  AC_MSG_NOTICE([NOTICE: libmicrohttpd not found, http transport will not be installed.])
 fi
 
-AC_MSG_NOTICE([NOTICE: Database support is set to MySQL: $mysql, SQLite: $sqlite])
+if test "x$esmtp" != "x1"
+then
+ AC_MSG_NOTICE([NOTICE: libesmtp not found, monkey will not be installed.])
+fi
+
+if test "x$ssl" != "x1"
+then
+ AC_MSG_NOTICE([NOTICE: OpenSSL not found, monkey will not be installed.])
+fi
+
+AC_MSG_NOTICE([NOTICE: Database support is set to MySQL: $mysql, SQLite: $sqlite, Postgres: $postgres])
 
 if test "$enable_framework_build" = "yes"
 then

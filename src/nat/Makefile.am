@@ -10,6 +10,8 @@ if USE_COVERAGE
   AM_CFLAGS = -fprofile-arcs -ftest-coverage
 endif
 
+if !MINGW
+
 lib_LTLIBRARIES = libgnunetnat.la
 
 libgnunetnat_la_SOURCES = \
@@ -42,3 +44,4 @@ test_nat_LDADD = \
  $(top_builddir)/src/nat/libgnunetnat.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
+endif
