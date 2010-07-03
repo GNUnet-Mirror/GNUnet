@@ -525,7 +525,8 @@ receive_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 #if DEBUG_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received message of size %u\n",
+	      "Received message of type %u and size %u\n",
+	      ntohs (cmsg->type),
 	      msize);
 #endif
   sock->receive_task = GNUNET_SCHEDULER_NO_TASK;
