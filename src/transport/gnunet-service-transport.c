@@ -3176,6 +3176,10 @@ send_periodic_ping (void *cls,
       slen = strlen (tp->short_name) + 1;
       tsize += slen + peer_address->addrlen;
     }
+  else
+    {
+      slen = 0; /* make gcc happy */
+    }
   message_buf = GNUNET_malloc(tsize);
   ping.header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_PING);
   ping.challenge = htonl(va->challenge);
