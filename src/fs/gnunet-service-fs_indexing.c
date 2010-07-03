@@ -36,7 +36,6 @@
 #include "gnunet_protocols.h"
 #include "gnunet_signatures.h"
 #include "gnunet_util_lib.h"
-#include "gnunet-service-fs_drq.h"
 #include "gnunet-service-fs_indexing.h"
 #include "fs.h"
 

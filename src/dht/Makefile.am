@@ -80,7 +80,10 @@ test_dht_twopeer_LDADD = \
  $(top_builddir)/src/dht/libgnunetdht.la    
      
 EXTRA_DIST = \
-  test_dht_api_data.conf 
+  $(check_SCRIPTS) \
+  test_dht_api_data.conf \
+  test_dht_api_peer1.conf \
+  test_dht_twopeer_data.conf
 
 check_SCRIPTS = \
   test_dht_tools.sh

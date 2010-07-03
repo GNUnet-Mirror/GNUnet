@@ -34,4 +34,5 @@ SUBDIRS = \
   topology \
   $(NAT_DIR) \
   fs \
+  fragmentation \
   vpn

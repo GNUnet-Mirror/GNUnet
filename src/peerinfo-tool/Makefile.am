@@ -32,7 +32,8 @@ test_gnunet_peerinfo.py: test_gnunet_peerinfo.py.in Makefile
 	$(do_subst) < $(srcdir)/test_gnunet_peerinfo.py.in > test_gnunet_peerinfo.py
 	chmod +x test_gnunet_peerinfo.py
 
-EXTRADIST = \
-  test_gnunet_peerinfo.py.in
+EXTRA_DIST = \
+  test_gnunet_peerinfo.py.in \
+  test_gnunet_peerinfo_data.conf
 
 CLEANFILES = $(check_SCRIPTS)

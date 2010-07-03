@@ -316,7 +316,7 @@ EXTRA_DIST = \
   test_fs_collection_data.conf \
   test_fs_download_data.conf \
   test_fs_file_information_data.conf \
-  test_fs_file_information_data_image.jpg \
+  test_fs_file_information_meta_data_image.jpg \
   fs_test_lib_data.conf \
   test_fs_list_indexed_data.conf \
   test_fs_namespace_data.conf \

@@ -59,6 +59,7 @@ EXTRA_DIST = \
   test_gnunet_daemon_hostlist_data.conf \
   test_gnunet_daemon_hostlist_peer1.conf \
   test_gnunet_daemon_hostlist_peer2.conf \
-  learning_data.conf \
-  learning_peer1.conf \
-  learning_peer2.conf
+  test_learning_adv_peer.conf \
+  test_learning_learn_peer.conf \
+  test_learning_learn_peer2.conf \
+  learning_data.conf
