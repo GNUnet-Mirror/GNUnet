@@ -395,6 +395,17 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
 						    &transmit_download_request,
 						    dc);
     }
+  else
+    {
+#if DEBUG_DOWNLOAD
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Transmission request not issued (%p %p)\n",
+		  dc->th, 
+		  dc->client);
+#endif
+
+    }
+
 }
 
 
@@ -1234,7 +1245,7 @@ transmit_download_request (void *cls,
   msize = 0;
   sm = buf;
   while ( (dc->pending != NULL) &&
-	  (size > msize + sizeof (struct SearchMessage)) )
+	  (size >= msize + sizeof (struct SearchMessage)) )
     {
 #if DEBUG_DOWNLOAD
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1391,6 +1402,10 @@ activate_fs_download (void *cls,
   struct GNUNET_FS_DownloadContext *dc = cls;
   struct GNUNET_FS_ProgressInfo pi;
 
+#if DEBUG_DOWNLOAD
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Download activated\n");
+#endif
   GNUNET_assert (NULL != client);
   GNUNET_assert (dc->client == NULL);
   GNUNET_assert (dc->th == NULL);
@@ -1404,12 +1419,17 @@ activate_fs_download (void *cls,
   GNUNET_CONTAINER_multihashmap_iterate (dc->active,
 					 &retry_entry,
 					 dc);
+#if DEBUG_DOWNLOAD
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Asking for transmission to FS service\n");
+#endif
   dc->th = GNUNET_CLIENT_notify_transmit_ready (dc->client,
 						sizeof (struct SearchMessage),
 						GNUNET_CONSTANTS_SERVICE_TIMEOUT,
 						GNUNET_NO,
 						&transmit_download_request,
 						dc);    
+  GNUNET_assert (dc->th != NULL);
 }
 
 
@@ -1423,7 +1443,11 @@ deactivate_fs_download (void *cls)
 {
   struct GNUNET_FS_DownloadContext *dc = cls;
   struct GNUNET_FS_ProgressInfo pi;
-  
+
+#if DEBUG_DOWNLOAD
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Download deactivated\n");
+#endif  
   if (NULL != dc->th)
     {
       GNUNET_CLIENT_notify_transmit_ready_cancel (dc->th);
