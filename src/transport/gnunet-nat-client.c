@@ -57,7 +57,7 @@
 /**
  * Must match IP given in the server.
  */
-#define DUMMY_IP "1.2.3.4"
+#define DUMMY_IP "192.0.2.86"
 
 #define NAT_TRAV_PORT 22225
 
