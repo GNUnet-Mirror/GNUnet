@@ -902,7 +902,7 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
       handle->current = pending;
       process_pending_message (handle);
     }
-  else if (handle->retransmit_stage == DHT_RETRANSMITTING)
+  else
   {
     handle->retransmit_stage = DHT_RETRANSMITTING_MESSAGE_QUEUED;
     handle->retransmission_buffer = pending;

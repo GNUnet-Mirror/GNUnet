@@ -61,7 +61,8 @@ gnunet_dht_put_LDADD = \
 
 check_PROGRAMS = \
  test_dht_api \
- test_dht_twopeer
+ test_dht_twopeer \
+ test_dht_twopeer_put_get
 
 TESTS = test_dht_api $(check_SCRIPTS)
 
@@ -78,6 +79,13 @@ test_dht_twopeer_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/dht/libgnunetdht.la    
+ 
+test_dht_twopeer_put_get_SOURCES = \
+ test_dht_twopeer_put_get.c
+test_dht_twopeer_put_get_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/dht/libgnunetdht.la   
      
 EXTRA_DIST = \
   $(check_SCRIPTS) \
