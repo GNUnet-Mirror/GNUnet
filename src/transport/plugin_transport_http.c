@@ -427,12 +427,12 @@ static void mhd_write_mst_cb (void *cls,
 	      ntohs(message->type),
               ntohs(message->size),
 	      GNUNET_i2s(&(ps->peercontext)->identity),http_plugin_address_to_string(NULL,ps->addr,ps->addrlen));
-
+/*
   pc->plugin->env->receive (ps->peercontext->plugin->env->cls,
 			    &pc->identity,
 			    message, 1, ps,
 			    ps->addr,
-			    ps->addrlen);
+			    ps->addrlen);*/
 }
 
 static void curl_write_mst_cb  (void *cls,
@@ -449,12 +449,12 @@ static void curl_write_mst_cb  (void *cls,
               ntohs(message->type),
               ntohs(message->size),
               GNUNET_i2s(&(pc->identity)),http_plugin_address_to_string(NULL,ps->addr,ps->addrlen));
-
+/*
   pc->plugin->env->receive (pc->plugin->env->cls,
                             &pc->identity,
                             message, 1, ps,
                             ps->addr,
-                            ps->addrlen);
+                            ps->addrlen);*/
 }
 
 
@@ -1070,6 +1070,7 @@ static ssize_t send_check_connections (void *cls, struct Session* ses , struct H
         bytes_sent = msg->size;
     return bytes_sent;
   }
+  return 0;
 }
 
 static void send_execute (void *cls,
@@ -1471,6 +1472,14 @@ http_plugin_disconnect (void *cls,
     {
 
     }
+    while (ps->pending_msgs_head!=NULL)
+    {
+      remove_http_message(ps, ps->pending_msgs_head);
+    }
+    ps->recv_connected = GNUNET_NO;
+    ps->recv_active = GNUNET_NO;
+    ps->send_connected = GNUNET_NO;
+    ps->send_active = GNUNET_NO;
     ps=ps->next;
   }
 
