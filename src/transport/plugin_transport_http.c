@@ -150,7 +150,6 @@ struct HTTP_Message
 struct HTTP_Connection
 {
   struct HTTP_Connection * next;
-
   struct HTTP_Connection * prev;
 
   void * addr;
@@ -179,7 +178,7 @@ struct HTTP_Connection
 
   struct Session * session;
 
-  struct GNUNET_SERVER_MessageStreamTokenizer * msgtok;
+  struct GNUNET_SERVER_MessageStreamTokenizer * get_msgtok;
 };
 
 struct HTTP_Connection_in
@@ -540,9 +539,9 @@ static void requestCompletedCallback (void *cls, struct MHD_Connection * connect
   con->is_bad_request = GNUNET_NO;
 }
 
-static void messageTokenizerCallback (void *cls,
-                                      void *client,
-                                      const struct GNUNET_MessageHeader *message)
+static void mhd_write_mst_cb (void *cls,
+                              void *client,
+                              const struct GNUNET_MessageHeader *message)
 {
   struct HTTP_Connection_in * con = cls;
   GNUNET_assert(con != NULL);
@@ -559,6 +558,27 @@ static void messageTokenizerCallback (void *cls,
 			    NULL,
 			    0);
 }
+
+static void curl_write_mst_cb  (void *cls,
+                                void *client,
+                                const struct GNUNET_MessageHeader *message)
+{
+  struct HTTP_Connection  * con = cls;
+  GNUNET_assert(con != NULL);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Forwarding message to transport service, type %u and size %u from `%s' (`%s')\n",
+              ntohs(message->type),
+              ntohs(message->size),
+              GNUNET_i2s(&(con->session->identity)),http_plugin_address_to_string(NULL,con->addr,con->addrlen));
+
+  con->session->plugin->env->receive (con->session->plugin->env->cls,
+                            &con->session->identity,
+                            message, 1, con->session,
+                            con->addr,
+                            con->addrlen);
+}
+
 
 /**
  * Check if ip is allowed to connect.
@@ -583,7 +603,6 @@ int server_read_callback (void *cls, uint64_t pos, char *buf, int max)
   int res;res=5;
 
   msg=con->pending_msgs_tail;
-
 
   if (msg!=NULL)
   {
@@ -693,7 +712,7 @@ accessHandlerCallback (void *cls,
 
     *httpSessionCache = con;
     if (con->msgtok==NULL)
-      con->msgtok = GNUNET_SERVER_mst_create (&messageTokenizerCallback, con);
+      con->msgtok = GNUNET_SERVER_mst_create (&mhd_write_mst_cb, con);
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s' (`%s')\n",
                 method,
@@ -997,16 +1016,10 @@ static size_t send_curl_read_callback(void *stream, size_t size, size_t nmemb, v
 static size_t send_curl_write_callback( void *stream, size_t size, size_t nmemb, void *ptr)
 {
   struct HTTP_Connection * con = ptr;
-  char * data = NULL;
 
-  data = GNUNET_malloc(size*nmemb +1);
-  if (data != NULL)
-  {
-    memcpy( data, stream, size*nmemb);
-    data[size*nmemb] = '\0';
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: recieved %s\n",con,data);
-    free (data);
-  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: %u bytes recieved\n",con, size*nmemb);
+  GNUNET_SERVER_mst_receive(con->get_msgtok, con, stream,size*nmemb, GNUNET_NO, GNUNET_NO);
+
   return (size * nmemb);
 
 }
@@ -1068,6 +1081,10 @@ static ssize_t send_check_connections (void *cls, struct Session* ses , struct H
                     curl_multi_strerror (mret));
         return -1;
       }
+
+      if (con->get_msgtok != NULL)
+        con->get_msgtok = GNUNET_SERVER_mst_create (&curl_write_mst_cb, con);
+
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound not connected, initiating connection\n",con);
     }
   }
