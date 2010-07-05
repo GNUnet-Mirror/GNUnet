@@ -135,7 +135,7 @@ struct HTTP_Message
    * buffer length
    */
   size_t size;
-  
+
   /**
    * Continuation function to call once the transmission buffer
    * has again space available.  NULL if there is no
@@ -445,12 +445,12 @@ http_plugin_address_to_string (void *cls,
  * @param peer identity
  * @return created session object
  */
-static struct Session * 
-create_session (void * cls, 
-		char * addr_in, 
+static struct Session *
+create_session (void * cls,
+		char * addr_in,
 		size_t addrlen_in,
-		char * addr_out, 
-		size_t addrlen_out, 
+		char * addr_out,
+		size_t addrlen_out,
 		const struct GNUNET_PeerIdentity *peer)
 {
   struct Plugin *plugin = cls;
@@ -784,6 +784,7 @@ accessHandlerCallback (void *cls,
 
   GNUNET_assert(cls !=NULL);
   send_error_to_client = GNUNET_NO;
+
   if (NULL == *httpSessionCache)
   {
     /* check url for peer identity , if invalid send HTTP 404*/
@@ -927,7 +928,6 @@ accessHandlerCallback (void *cls,
 
 
     return res;
-
   }
   return MHD_NO;
 }
@@ -1324,6 +1324,7 @@ static void send_execute (void *cls,
   CURLMcode mret;
   struct HTTP_Session *ps = NULL;
   struct HTTP_PeerContext *pc = NULL;
+  struct HTTP_Message * cur_msg = NULL;
   long http_result;
 
   GNUNET_assert(cls !=NULL);
@@ -1370,8 +1371,9 @@ static void send_execute (void *cls,
                       ps->send_connected = GNUNET_NO;
                       curl_easy_cleanup(ps->send_endpoint);
                       ps->send_endpoint=NULL;
-                      if (( NULL != ps->pending_msgs_tail) && ( NULL != ps->pending_msgs_tail->transmit_cont))
-                        ps->pending_msgs_tail->transmit_cont (ps->pending_msgs_tail->transmit_cont_cls,&pc->identity,GNUNET_SYSERR);
+                      cur_msg = ps->pending_msgs_tail;
+                      if (( NULL != cur_msg) && ( NULL != cur_msg->transmit_cont))
+                        cur_msg->transmit_cont (cur_msg->transmit_cont_cls,&pc->identity,GNUNET_SYSERR);
                     }
                     /* GET connection failed */
                     if (msg->easy_handle == ps->recv_endpoint)
@@ -1401,17 +1403,18 @@ static void send_execute (void *cls,
                                    http_result);
 
                       /* Calling transmit continuation  */
-                      if (( NULL != ps->pending_msgs_tail) && (NULL != ps->pending_msgs_tail->transmit_cont))
+                      cur_msg = ps->pending_msgs_tail;
+                      if (( NULL != cur_msg) && (NULL != cur_msg->transmit_cont))
                       {
                         /* HTTP 1xx : Last message before here was informational */
                         if ((http_result >=100) && (http_result < 200))
-                          ps->pending_msgs_tail->transmit_cont (ps->pending_msgs_tail->transmit_cont_cls,&pc->identity,GNUNET_OK);
+                          cur_msg->transmit_cont (cur_msg->transmit_cont_cls,&pc->identity,GNUNET_OK);
                         /* HTTP 2xx: successful operations */
                         if ((http_result >=200) && (http_result < 300))
-                          ps->pending_msgs_tail->transmit_cont (ps->pending_msgs_tail->transmit_cont_cls,&pc->identity,GNUNET_OK);
+                          cur_msg->transmit_cont (cur_msg->transmit_cont_cls,&pc->identity,GNUNET_OK);
                         /* HTTP 3xx..5xx: error */
                         if ((http_result >=300) && (http_result < 600))
-                          ps->pending_msgs_tail->transmit_cont (ps->pending_msgs_tail->transmit_cont_cls,&pc->identity,GNUNET_SYSERR);
+                          cur_msg->transmit_cont (cur_msg->transmit_cont_cls,&pc->identity,GNUNET_SYSERR);
                       }
                       ps->send_connected = GNUNET_NO;
                       curl_easy_cleanup(ps->send_endpoint);
@@ -1563,21 +1566,13 @@ http_plugin_send (void *cls,
                   void *cont_cls)
 {
   struct Plugin *plugin = cls;
-  //struct Session *cs;
   struct HTTP_Message *msg;
-  //struct HTTP_Connection *con;
-
 
   struct HTTP_PeerContext * pc;
   struct HTTP_Session * ps;
 
   GNUNET_assert(cls !=NULL);
   GNUNET_assert ((addr!=NULL) && (addrlen != 0));
-
-  /* get session from hashmap */
-  //cs = session_get(plugin, target);
-  //con = session_check_outbound_address(plugin, cs, addr, addrlen);
-
 
   pc = GNUNET_CONTAINER_multihashmap_get (plugin->peers, &target->hashPubKey);
   /* Peer unknown */
@@ -1702,7 +1697,7 @@ http_plugin_disconnect (void *cls,
     con->put_connected = GNUNET_NO;
     while (con->pending_msgs_head!=NULL)
     {
-      remove_http_message(con, con->pending_msgs_head);
+      //remove_http_message(con, con->pending_msgs_head);
     }
     con=con->next;
   }
@@ -1942,6 +1937,7 @@ process_interfaces (void *cls,
     }
   return GNUNET_OK;
 }
+
 int hashMapFreeIterator (void *cls, const GNUNET_HashCode *key, void *value)
 {
   struct Session * cs = value;
@@ -1975,6 +1971,48 @@ int hashMapFreeIterator (void *cls, const GNUNET_HashCode *key, void *value)
   GNUNET_free (cs);
   return GNUNET_YES;
 }
+
+int peer_context_Iterator (void *cls, const GNUNET_HashCode *key, void *value)
+{
+  struct HTTP_PeerContext * pc = value;
+  struct HTTP_Session * ps = pc->head;
+  struct HTTP_Session * tmp = NULL;
+  struct HTTP_Message * msg = NULL;
+  struct HTTP_Message * msg_tmp = NULL;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Freeing context for peer `%s'\n",GNUNET_i2s(&pc->identity));
+
+  while (ps!=NULL)
+  {
+    tmp = ps->next;
+
+    GNUNET_free(ps->addr);
+    GNUNET_free(ps->url);
+    if (ps->msgtok != NULL)
+      GNUNET_SERVER_mst_destroy (ps->msgtok);
+
+    msg = ps->pending_msgs_head;
+    while (msg!=NULL)
+    {
+      msg_tmp = msg->next;
+      GNUNET_free(msg);
+      msg = msg_tmp;
+    }
+    if (ps->direction==OUTBOUND)
+    {
+      if (ps->send_endpoint!=NULL)
+        curl_easy_cleanup(ps->send_endpoint);
+      if (ps->recv_endpoint!=NULL)
+        curl_easy_cleanup(ps->recv_endpoint);
+    }
+
+    GNUNET_free(ps);
+    ps=tmp;
+  }
+  GNUNET_free(pc);
+  return GNUNET_YES;
+}
+
 
 /**
  * Exit point from the plugin.
@@ -2021,6 +2059,10 @@ libgnunet_plugin_transport_http_done (void *cls)
   /* free all sessions */
   GNUNET_CONTAINER_multihashmap_iterate (plugin->sessions,
                                          &hashMapFreeIterator,
+                                         NULL);
+  /* free all peer information */
+  GNUNET_CONTAINER_multihashmap_iterate (plugin->peers,
+                                         &peer_context_Iterator,
                                          NULL);
 
   GNUNET_CONTAINER_multihashmap_destroy (plugin->sessions);
