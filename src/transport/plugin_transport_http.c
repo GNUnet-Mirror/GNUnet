@@ -42,6 +42,7 @@
 
 #define DEBUG_CURL GNUNET_NO
 #define DEBUG_HTTP GNUNET_NO
+#define DEBUG_CONNECTIONS GNUNET_NO
 
 #define INBOUND GNUNET_NO
 #define OUTBOUND GNUNET_YES
@@ -386,7 +387,9 @@ static void requestCompletedCallback (void *cls, struct MHD_Connection * connect
   struct Session * ps = *httpSessionCache;
   if (ps == NULL)
     return;
+#if DEBUG_CONNECTIONS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection from peer `%s' was terminated\n",GNUNET_i2s(&ps->peercontext->identity));
+#endif
   /* session set to inactive */
   //ps-> = GNUNET_NO;
   //con->is_bad_request = GNUNET_NO;
@@ -629,7 +632,9 @@ accessHandlerCallback (void *cls,
     {
       response = MHD_create_response_from_data (strlen (HTTP_PUT_RESPONSE),HTTP_PUT_RESPONSE, MHD_NO, MHD_NO);
       res = MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Sent HTTP/1.1: 200 OK as PUT Response\n",HTTP_PUT_RESPONSE, strlen (HTTP_PUT_RESPONSE), res );
+#if DEBUG_CONNECTIONS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: Sent HTTP/1.1: 200 OK as PUT Response\n",ps);
+#endif
       MHD_destroy_response (response);
       ps->recv_active=GNUNET_NO;
       return MHD_YES;
@@ -810,7 +815,9 @@ static size_t curl_get_header_function( void *ptr, size_t size, size_t nmemb, vo
       {
         ps->recv_connected = GNUNET_YES;
         ps->recv_active = GNUNET_YES;
+#if DEBUG_CONNECTIONS
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: connected to recieve data\n",ps);
+#endif
         // Calling send_check_connections again since receive is established
         send_check_connections (ps->peercontext->plugin, NULL, ps);
       }
@@ -857,13 +864,17 @@ static size_t curl_put_header_function( void *ptr, size_t size, size_t nmemb, vo
     {
       ps->send_connected = GNUNET_YES;
       ps->send_active = GNUNET_YES;
+#if DEBUG_CONNECTIONS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: connected to send data\n",ps);
+#endif
     }
     if ((http_result == 200) && (ps->send_connected==GNUNET_YES))
     {
       ps->send_connected = GNUNET_NO;
       ps->send_active = GNUNET_NO;
+#if DEBUG_CONNECTIONS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: sending disconnected\n",ps);
+#endif
     }
   }
 
@@ -907,7 +918,9 @@ static size_t send_curl_send_callback(void *stream, size_t size, size_t nmemb, v
 
   if (ps->pending_msgs_tail == NULL)
   {
+#if DEBUG_CONNECTIONS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: No Message to send, pausing connection\n",ps);
+#endif
     ps->send_active = GNUNET_NO;
     return CURL_READFUNC_PAUSE;
   }
@@ -940,7 +953,9 @@ static size_t send_curl_send_callback(void *stream, size_t size, size_t nmemb, v
 
   if ( msg->pos == msg->size)
   {
+#if DEBUG_CONNECTIONS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: Message with %u bytes sent, removing message from queue \n",ps, msg->pos);
+#endif
     /* Calling transmit continuation  */
     if (( NULL != ps->pending_msgs_tail) && (NULL != ps->pending_msgs_tail->transmit_cont))
       msg->transmit_cont (ps->pending_msgs_tail->transmit_cont_cls,&(ps->peercontext)->identity,GNUNET_OK);
@@ -961,8 +976,9 @@ static size_t send_curl_send_callback(void *stream, size_t size, size_t nmemb, v
 static size_t send_curl_receive_callback( void *stream, size_t size, size_t nmemb, void *ptr)
 {
   struct Session * ps = ptr;
-
+#if DEBUG_CONNECTIONS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: %u bytes recieved\n",ps, size*nmemb);
+#endif
   GNUNET_SERVER_mst_receive(ps->msgtok, ps, stream, size*nmemb, GNUNET_NO, GNUNET_NO);
 
   return (size * nmemb);
@@ -1032,7 +1048,9 @@ static ssize_t send_check_connections (void *cls, struct Session* ses , struct S
         bytes_sent = send_schedule (plugin, NULL);
         if (ps->msgtok != NULL)
           ps->msgtok = GNUNET_SERVER_mst_create (&curl_write_mst_cb, ps);
+#if DEBUG_CONNECTIONS
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound not connected, initiating connection\n",ps);
+#endif
       }
     }
 
@@ -1046,12 +1064,16 @@ static ssize_t send_check_connections (void *cls, struct Session* ses , struct S
     {
       if (ps->send_active == GNUNET_YES)
       {
+#if DEBUG_CONNECTIONS
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound active, enqueueing message\n",ps);
+#endif
         return bytes_sent;
       }
       if (ps->send_active == GNUNET_NO)
       {
+#if DEBUG_CONNECTIONS
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound paused, unpausing existing connection and enqueueing message\n",ps);
+#endif
         curl_easy_pause(ps->send_endpoint,CURLPAUSE_CONT);
         ps->send_active=GNUNET_YES;
         return bytes_sent;
@@ -1062,7 +1084,9 @@ static ssize_t send_check_connections (void *cls, struct Session* ses , struct S
       ps->send_endpoint = curl_easy_init();
     GNUNET_assert (ps->send_endpoint != NULL);
     GNUNET_assert (NULL != ps->pending_msgs_tail);
+#if DEBUG_CONNECTIONS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound not connected, initiating connection\n",ps);
+#endif
     ps->send_active = GNUNET_NO;
     msg = ps->pending_msgs_tail;
 
@@ -1097,8 +1121,9 @@ static ssize_t send_check_connections (void *cls, struct Session* ses , struct S
   if (ps->direction == INBOUND)
   {
     GNUNET_assert (NULL != ps->pending_msgs_tail);
+    bytes_sent = 0;
     msg = ps->pending_msgs_tail;
-    if ((ps->recv_connected==GNUNET_YES) && (ps->recv_connected==GNUNET_YES))
+    if ((ps->recv_connected==GNUNET_YES) && (ps->send_connected==GNUNET_YES))
         bytes_sent = msg->size;
     return bytes_sent;
   }
@@ -1151,6 +1176,7 @@ static void send_execute (void *cls,
                     /* sending msg failed*/
                     if (msg->easy_handle == ps->send_endpoint)
                     {
+#if DEBUG_CONNECTIONS
                       GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                                  _("Connection %X: HTTP PUT to peer `%s' (`%s') failed: `%s' `%s'\n"),
                                  ps,
@@ -1158,7 +1184,7 @@ static void send_execute (void *cls,
                                  http_plugin_address_to_string(NULL, ps->addr, ps->addrlen),
                                  "curl_multi_perform",
                                  curl_easy_strerror (msg->data.result));
-
+#endif
                       ps->send_connected = GNUNET_NO;
                       ps->send_active = GNUNET_NO;
                       curl_multi_remove_handle(plugin->multi_handle,msg->easy_handle);
@@ -1171,6 +1197,7 @@ static void send_execute (void *cls,
                     /* GET connection failed */
                     if (msg->easy_handle == ps->recv_endpoint)
                     {
+#if DEBUG_CONNECTIONS
                       GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                            _("Connection %X: HTTP GET to peer `%s' (`%s') failed: `%s' `%s'\n"),
                            ps,
@@ -1178,6 +1205,7 @@ static void send_execute (void *cls,
                            http_plugin_address_to_string(NULL, ps->addr, ps->addrlen),
                            "curl_multi_perform",
                            curl_easy_strerror (msg->data.result));
+#endif
                       ps->recv_connected = GNUNET_NO;
                       ps->recv_active = GNUNET_NO;
                       curl_multi_remove_handle(plugin->multi_handle,msg->easy_handle);
@@ -1190,13 +1218,14 @@ static void send_execute (void *cls,
                     if (msg->easy_handle == ps->send_endpoint)
                     {
                       GNUNET_assert (CURLE_OK == curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &http_result));
+#if DEBUG_CONNECTIONS
                       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                                   "Connection %X: HTTP PUT connection to peer `%s' (`%s') was closed with HTTP code %u\n",
                                    ps,
                                    GNUNET_i2s(&pc->identity),
                                    http_plugin_address_to_string(NULL, ps->addr, ps->addrlen),
                                    http_result);
-
+#endif
                       /* Calling transmit continuation  */
                       cur_msg = ps->pending_msgs_tail;
                       if (( NULL != cur_msg) && (NULL != cur_msg->transmit_cont))
@@ -1219,13 +1248,14 @@ static void send_execute (void *cls,
                     }
                     if (msg->easy_handle == ps->recv_endpoint)
                     {
+#if DEBUG_CONNECTIONS
                       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                                   "Connection %X: HTTP GET connection to peer `%s' (`%s') was closed with HTTP code %u\n",
                                    ps,
                                    GNUNET_i2s(&pc->identity),
                                    http_plugin_address_to_string(NULL, ps->addr, ps->addrlen),
                                    http_result);
-
+#endif
                       ps->recv_connected = GNUNET_NO;
                       ps->recv_active = GNUNET_NO;
                       curl_multi_remove_handle(plugin->multi_handle,msg->easy_handle);
@@ -1383,8 +1413,9 @@ http_plugin_send (void *cls,
     GNUNET_CONTAINER_multihashmap_put(plugin->peers, &pc->identity.hashPubKey, pc, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   }
   ps = get_Session(plugin, pc, addr, addrlen);
+
   /* session not existing, but address forced -> creating new session */
-  if ((ps==NULL) && (force_address == GNUNET_YES))
+  if ((force_address == GNUNET_YES) && (ps==NULL))
   {
     ps = GNUNET_malloc(sizeof (struct Session));
     ps->addr = GNUNET_malloc(addrlen);
@@ -1402,7 +1433,9 @@ http_plugin_send (void *cls,
   /* session not existing, address not forced -> looking for other session */
   if ((ps==NULL) && (force_address == GNUNET_NO))
   {
-    /* FIXME: CREATING SESSION, SHOULD CHOOSE EXISTING */
+    //struct PeerContext * tmp = pc->head;
+
+
     ps = GNUNET_malloc(sizeof (struct Session));
     ps->addr = GNUNET_malloc(addrlen);
     memcpy(ps->addr,addr,addrlen);

@@ -464,7 +464,6 @@ static void task_send_cont (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message with max msg size succesfully sent!\n",fail_msgs_transmited_to_local_addrs);
     fail_msg_transmited_max_size = GNUNET_NO;
-    //shutdown_clean();
   }
 }
 
@@ -500,7 +499,7 @@ receive (void *cls,
   if (ntohs(message->size) == GNUNET_SERVER_MAX_MESSAGE_SIZE-1)
   {
     fail_msg_transmited_max_size = GNUNET_NO;
-    //shutdown_clean();
+    shutdown_clean();
   }
 
   return GNUNET_TIME_UNIT_ZERO;
@@ -752,7 +751,7 @@ static int send_data( struct HTTP_Transfer * result, char * url)
     return GNUNET_SYSERR;
   }
 #if DEBUG_CURL
-  curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 1L);
+  curl_easy_setopt(put_curl_handle, CURLOPT_VERBOSE, 1L);
 #endif
   curl_easy_setopt(curl_handle, CURLOPT_URL, url);
   curl_easy_setopt(curl_handle, CURLOPT_PUT, 1L);
@@ -976,6 +975,7 @@ static void run_connection_tests( int phase )
       memcpy(tmp,&msg,sizeof(struct GNUNET_MessageHeader));
       api->send(api->cls, &my_identity, tmp, sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL,tmp_addr->addr, tmp_addr->addrlen, GNUNET_YES, &task_send_cont, &fail_msgs_transmited_to_local_addrs);
       tmp_addr = tmp_addr->next;
+
       count ++;
       type ++;
     }
@@ -984,6 +984,9 @@ static void run_connection_tests( int phase )
 
   if (phase==2)
   {
+    /* disconnect from peer, so new connections are created */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Disconnect from peer: `%s'\n", GNUNET_i2s(&my_identity));
+    api->disconnect(api->cls, &my_identity);
 
     struct GNUNET_MessageHeader msg;
     char * tmp = GNUNET_malloc(sizeof(struct GNUNET_MessageHeader));
