@@ -237,6 +237,11 @@ struct Session
   unsigned int send_active;
 
   /**
+   * connection disconnect forced (e.g. from transport)
+   */
+  unsigned int send_force_disconnect;
+
+  /**
    * is session connected to receive data?
    */
   unsigned int recv_connected;
@@ -245,6 +250,11 @@ struct Session
    * is receive connection active?
    */
   unsigned int recv_active;
+
+  /**
+   * connection disconnect forced (e.g. from transport)
+   */
+  unsigned int recv_force_disconnect;
 
   /**
    * entity managing sending data
@@ -387,12 +397,12 @@ static void requestCompletedCallback (void *cls, struct MHD_Connection * connect
   struct Session * ps = *httpSessionCache;
   if (ps == NULL)
     return;
+
 #if DEBUG_CONNECTIONS
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection from peer `%s' was terminated\n",GNUNET_i2s(&ps->peercontext->identity));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: connection from peer `%s' was terminated\n", ps, GNUNET_i2s(&ps->peercontext->identity));
 #endif
   /* session set to inactive */
   //ps-> = GNUNET_NO;
-  //con->is_bad_request = GNUNET_NO;
 }
 
 static void mhd_write_mst_cb (void *cls,
@@ -467,6 +477,14 @@ int server_read_callback (void *cls, uint64_t pos, char *buf, int max)
   GNUNET_assert (ps!=NULL);
   pc = ps->peercontext;
   msg = ps->pending_msgs_tail;
+
+  if (ps->send_force_disconnect)
+  {
+#if DEBUG_CONNECTIONS
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound forced to disconnect\n",ps);
+#endif
+    return -1;
+  }
 
   if (msg!=NULL)
   {
@@ -621,6 +639,15 @@ accessHandlerCallback (void *cls,
   /* Is it a PUT or a GET request */
   if (0 == strcmp (MHD_HTTP_METHOD_PUT, method))
   {
+    if (ps->recv_force_disconnect)
+    {
+#if DEBUG_CONNECTIONS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound forced to disconnect\n",ps);
+#endif
+      ps->recv_connected = GNUNET_NO;
+      ps->recv_active = GNUNET_NO;
+      return MHD_NO;
+    }
     if ((*upload_data_size == 0) && (ps->recv_active==GNUNET_NO))
     {
       ps->recv_active = GNUNET_YES;
@@ -652,6 +679,15 @@ accessHandlerCallback (void *cls,
   }
   if ( 0 == strcmp (MHD_HTTP_METHOD_GET, method) )
   {
+    if (ps->send_force_disconnect)
+    {
+#if DEBUG_CONNECTIONS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound forced to disconnect\n",ps);
+#endif
+      ps->send_connected = GNUNET_NO;
+      ps->send_active = GNUNET_NO;
+      return MHD_NO;
+    }
     response = MHD_create_response_from_callback(-1,32 * 1024, &server_read_callback, ps, NULL);
     res = MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
     MHD_destroy_response (response);
@@ -1539,7 +1575,8 @@ http_plugin_disconnect (void *cls,
     }
     if (ps->direction==INBOUND)
     {
-
+      ps->recv_force_disconnect = GNUNET_YES;
+      ps->send_force_disconnect = GNUNET_YES;
     }
     while (ps->pending_msgs_head!=NULL)
     {
