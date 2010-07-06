@@ -427,12 +427,12 @@ static void mhd_write_mst_cb (void *cls,
 	      ntohs(message->type),
               ntohs(message->size),
 	      GNUNET_i2s(&(ps->peercontext)->identity),http_plugin_address_to_string(NULL,ps->addr,ps->addrlen));
-/*
+
   pc->plugin->env->receive (ps->peercontext->plugin->env->cls,
 			    &pc->identity,
 			    message, 1, ps,
 			    ps->addr,
-			    ps->addrlen);*/
+			    ps->addrlen);
 }
 
 static void curl_write_mst_cb  (void *cls,
@@ -449,12 +449,12 @@ static void curl_write_mst_cb  (void *cls,
               ntohs(message->type),
               ntohs(message->size),
               GNUNET_i2s(&(pc->identity)),http_plugin_address_to_string(NULL,ps->addr,ps->addrlen));
-/*
+
   pc->plugin->env->receive (pc->plugin->env->cls,
                             &pc->identity,
                             message, 1, ps,
                             ps->addr,
-                            ps->addrlen);*/
+                            ps->addrlen);
 }
 
 
@@ -577,15 +577,10 @@ accessHandlerCallback (void *cls,
     /* Peer unknown */
     if (pc==NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"RECV: CREATING NEW PEER CONTEXT\n");
       pc = GNUNET_malloc(sizeof (struct HTTP_PeerContext));
       pc->plugin = plugin;
       memcpy(&pc->identity, &pi_in, sizeof(struct GNUNET_PeerIdentity));
       GNUNET_CONTAINER_multihashmap_put(plugin->peers, &pc->identity.hashPubKey, pc, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-    }
-    else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"RECV: PEER CONTEXT FOUND\n");
     }
 
     conn_info = MHD_get_connection_info(mhd_connection, MHD_CONNECTION_INFO_CLIENT_ADDRESS );
@@ -816,8 +811,17 @@ static void http_server_daemon_v6_run (void *cls,
   return;
 }
 
+/**
+ * Function setting up curl handle and selecting message to send
+ * @param cls plugin
+ * @param ses session to send data to
+ * @param con connection
+ * @return bytes sent to peer
+ */
+static ssize_t send_check_connections (void *cls, struct Session* ses , struct HTTP_Session *ps);
 
-static size_t curl_header_function( void *ptr, size_t size, size_t nmemb, void *stream)
+
+static size_t curl_get_header_function( void *ptr, size_t size, size_t nmemb, void *stream)
 {
   struct HTTP_Session * ps = stream;
 
@@ -825,7 +829,7 @@ static size_t curl_header_function( void *ptr, size_t size, size_t nmemb, void *
   size_t len = size * nmemb;
   long http_result = 0;
   int res;
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: GET HEADER FUNC\n",ps);
   /* Getting last http result code */
   if (ps->recv_connected==GNUNET_NO)
   {
@@ -836,8 +840,61 @@ static size_t curl_header_function( void *ptr, size_t size, size_t nmemb, void *
       if (http_result == 200)
       {
         ps->recv_connected = GNUNET_YES;
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound connected\n",ps);
+        ps->recv_active = GNUNET_YES;
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: connected to recieve data\n",ps);
+        // Calling send_check_connections again since receive is established
+        send_check_connections (ps->peercontext->plugin, NULL, ps);
       }
+    }
+  }
+
+  tmp = NULL;
+  if ((size * nmemb) < SIZE_MAX)
+    tmp = GNUNET_malloc (len+1);
+
+  if ((tmp != NULL) && (len > 0))
+  {
+    memcpy(tmp,ptr,len);
+    if (len>=2)
+    {
+      if (tmp[len-2] == 13)
+        tmp[len-2]= '\0';
+    }
+#if DEBUG_HTTP
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Header: `%s' %u \n",tmp, http_result);
+#endif
+  }
+  if (NULL != tmp)
+    GNUNET_free (tmp);
+
+  return size * nmemb;
+}
+
+static size_t curl_put_header_function( void *ptr, size_t size, size_t nmemb, void *stream)
+{
+  struct HTTP_Session * ps = stream;
+
+  char * tmp;
+  size_t len = size * nmemb;
+  long http_result = 0;
+  int res;
+
+  /* Getting last http result code */
+  GNUNET_assert(NULL!=ps);
+  res = curl_easy_getinfo(ps->send_endpoint, CURLINFO_RESPONSE_CODE, &http_result);
+  if (CURLE_OK == res)
+  {
+    if ((http_result == 100) && (ps->send_connected==GNUNET_NO))
+    {
+      ps->send_connected = GNUNET_YES;
+      ps->send_active = GNUNET_YES;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: connected to send data\n",ps);
+    }
+    if ((http_result == 200) && (ps->send_connected==GNUNET_YES))
+    {
+      ps->send_connected = GNUNET_NO;
+      ps->send_active = GNUNET_NO;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: sending disconnected\n",ps);
     }
   }
 
@@ -872,7 +929,7 @@ static size_t curl_header_function( void *ptr, size_t size, size_t nmemb, void *
  * @param ptr source pointer, passed to the libcurl handle
  * @return bytes written to stream
  */
-static size_t send_curl_read_callback(void *stream, size_t size, size_t nmemb, void *ptr)
+static size_t send_curl_send_callback(void *stream, size_t size, size_t nmemb, void *ptr)
 {
   struct HTTP_Session * ps = ptr;
   struct HTTP_Message * msg = ps->pending_msgs_tail;
@@ -932,7 +989,7 @@ static size_t send_curl_read_callback(void *stream, size_t size, size_t nmemb, v
 * @param ptr destination pointer, passed to the libcurl handle
 * @return bytes read from stream
 */
-static size_t send_curl_write_callback( void *stream, size_t size, size_t nmemb, void *ptr)
+static size_t send_curl_receive_callback( void *stream, size_t size, size_t nmemb, void *ptr)
 {
   struct HTTP_Session * ps = ptr;
 
@@ -972,6 +1029,7 @@ static ssize_t send_check_connections (void *cls, struct Session* ses , struct H
 
   if (ps->direction == OUTBOUND)
   {
+    /* RECV DIRECTION */
     /* Check if session is connected to receive data, otherwise connect to peer */
     if (ps->recv_connected == GNUNET_NO)
     {
@@ -982,11 +1040,11 @@ static ssize_t send_check_connections (void *cls, struct Session* ses , struct H
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_VERBOSE, 1L);
 #endif
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_URL, ps->url);
-        curl_easy_setopt(ps->recv_endpoint, CURLOPT_HEADERFUNCTION, &curl_header_function);
+        curl_easy_setopt(ps->recv_endpoint, CURLOPT_HEADERFUNCTION, &curl_get_header_function);
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_WRITEHEADER, ps);
-        curl_easy_setopt(ps->recv_endpoint, CURLOPT_READFUNCTION, send_curl_read_callback);
+        curl_easy_setopt(ps->recv_endpoint, CURLOPT_READFUNCTION, send_curl_send_callback);
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_READDATA, ps);
-        curl_easy_setopt(ps->recv_endpoint, CURLOPT_WRITEFUNCTION, send_curl_write_callback);
+        curl_easy_setopt(ps->recv_endpoint, CURLOPT_WRITEFUNCTION, send_curl_receive_callback);
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_WRITEDATA, ps);
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_TIMEOUT, (long) timeout.value);
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_PRIVATE, ps);
@@ -1002,17 +1060,22 @@ static ssize_t send_check_connections (void *cls, struct Session* ses , struct H
                       curl_multi_strerror (mret));
           return -1;
         }
-
+        bytes_sent = send_schedule (plugin, NULL);
         if (ps->msgtok != NULL)
           ps->msgtok = GNUNET_SERVER_mst_create (&curl_write_mst_cb, ps);
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound not connected, initiating connection\n",ps);
       }
     }
 
+    /* waiting for receive direction */
+    if (ps->recv_connected==GNUNET_NO)
+      return 0;
+
+    /* SEND DIRECTION */
     /* Check if session is connected to send data, otherwise connect to peer */
     if ((ps->send_connected == GNUNET_YES) && (ps->send_endpoint!= NULL))
     {
-      if (ps->send_connected == GNUNET_NO)
+      if (ps->send_active == GNUNET_YES)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound active, enqueueing message\n",ps);
         return bytes_sent;
@@ -1025,14 +1088,13 @@ static ssize_t send_check_connections (void *cls, struct Session* ses , struct H
         return bytes_sent;
       }
     }
-
     /* not connected, initiate connection */
-    if ( NULL == ps->send_endpoint)
+    if ((ps->send_connected==GNUNET_NO) && (NULL == ps->send_endpoint))
       ps->send_endpoint = curl_easy_init();
     GNUNET_assert (ps->send_endpoint != NULL);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound not connected, initiating connection\n",ps);
-
     GNUNET_assert (NULL != ps->pending_msgs_tail);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound not connected, initiating connection\n",ps);
+    ps->send_active = GNUNET_NO;
     msg = ps->pending_msgs_tail;
 
   #if DEBUG_CURL
@@ -1040,9 +1102,11 @@ static ssize_t send_check_connections (void *cls, struct Session* ses , struct H
   #endif
     curl_easy_setopt(ps->send_endpoint, CURLOPT_URL, ps->url);
     curl_easy_setopt(ps->send_endpoint, CURLOPT_PUT, 1L);
-    curl_easy_setopt(ps->send_endpoint, CURLOPT_READFUNCTION, send_curl_read_callback);
+    curl_easy_setopt(ps->send_endpoint, CURLOPT_HEADERFUNCTION, &curl_put_header_function);
+    curl_easy_setopt(ps->send_endpoint, CURLOPT_WRITEHEADER, ps);
+    curl_easy_setopt(ps->send_endpoint, CURLOPT_READFUNCTION, send_curl_send_callback);
     curl_easy_setopt(ps->send_endpoint, CURLOPT_READDATA, ps);
-    curl_easy_setopt(ps->send_endpoint, CURLOPT_WRITEFUNCTION, send_curl_write_callback);
+    curl_easy_setopt(ps->send_endpoint, CURLOPT_WRITEFUNCTION, send_curl_receive_callback);
     curl_easy_setopt(ps->send_endpoint, CURLOPT_READDATA, ps);
     curl_easy_setopt(ps->send_endpoint, CURLOPT_TIMEOUT, (long) timeout.value);
     curl_easy_setopt(ps->send_endpoint, CURLOPT_PRIVATE, ps);
@@ -1058,7 +1122,6 @@ static ssize_t send_check_connections (void *cls, struct Session* ses , struct H
                   curl_multi_strerror (mret));
       return -1;
     }
-    ps->send_connected = GNUNET_YES;
     bytes_sent = send_schedule (plugin, NULL);
     return bytes_sent;
   }
@@ -1128,6 +1191,7 @@ static void send_execute (void *cls,
                                  curl_easy_strerror (msg->data.result));
 
                       ps->send_connected = GNUNET_NO;
+                      ps->send_active = GNUNET_NO;
                       curl_multi_remove_handle(plugin->multi_handle,msg->easy_handle);
                       curl_easy_cleanup(ps->send_endpoint);
                       ps->send_endpoint=NULL;
@@ -1146,6 +1210,7 @@ static void send_execute (void *cls,
                            "curl_multi_perform",
                            curl_easy_strerror (msg->data.result));
                       ps->recv_connected = GNUNET_NO;
+                      ps->recv_active = GNUNET_NO;
                       curl_multi_remove_handle(plugin->multi_handle,msg->easy_handle);
                       curl_easy_cleanup(ps->recv_endpoint);
                       ps->recv_endpoint=NULL;
@@ -1178,6 +1243,7 @@ static void send_execute (void *cls,
                           cur_msg->transmit_cont (cur_msg->transmit_cont_cls,&pc->identity,GNUNET_SYSERR);
                       }
                       ps->send_connected = GNUNET_NO;
+                      ps->send_active = GNUNET_NO;
                       curl_multi_remove_handle(plugin->multi_handle,msg->easy_handle);
                       curl_easy_cleanup(ps->send_endpoint);
                       ps->send_endpoint =NULL;
@@ -1192,6 +1258,7 @@ static void send_execute (void *cls,
                                    http_result);
 
                       ps->recv_connected = GNUNET_NO;
+                      ps->recv_active = GNUNET_NO;
                       curl_multi_remove_handle(plugin->multi_handle,msg->easy_handle);
                       curl_easy_cleanup(ps->recv_endpoint);
                       ps->recv_endpoint=NULL;
