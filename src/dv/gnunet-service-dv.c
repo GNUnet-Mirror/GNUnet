@@ -1396,7 +1396,7 @@ static int handle_dv_data_message (void *cls,
       }
 #endif
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "%s: unknown sender (%u), Message uid %llu from %s!\n", my_short_id, ntohl(incoming->sender), ntohl(incoming->uid), GNUNET_i2s(&dn->identity));
+                  "%s: unknown sender (%u), Message uid %u from %s!\n", my_short_id, ntohl(incoming->sender), ntohl(incoming->uid), GNUNET_i2s(&dn->identity));
 
       found_pos = -1;
       for (i = 0; i< MAX_OUTSTANDING_MESSAGES; i++)
