@@ -40,7 +40,7 @@
 #include <curl/curl.h>
 
 
-#define DEBUG_CURL GNUNET_YES
+#define DEBUG_CURL GNUNET_NO
 #define DEBUG_HTTP GNUNET_NO
 
 #define INBOUND GNUNET_NO
@@ -410,8 +410,7 @@ static void mhd_write_mst_cb (void *cls,
 
   pc->plugin->env->receive (ps->peercontext->plugin->env->cls,
 			    &pc->identity,
-			    message, 1, NULL,
-			    //message, 1, ps,
+			    message, 1, ps,
 			    ps->addr,
 			    ps->addrlen);
 }
@@ -433,8 +432,7 @@ static void curl_write_mst_cb  (void *cls,
 
   pc->plugin->env->receive (pc->plugin->env->cls,
                             &pc->identity,
-                            message, 1, NULL,
-                            //message, 1, ps,
+                            message, 1, ps,
                             ps->addr,
                             ps->addrlen);
 }
@@ -591,7 +589,6 @@ accessHandlerCallback (void *cls,
     ps = get_Session(plugin, pc, addr, addr_len);
     if (ps==NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"RECV: CREATING NEW SESSION %s\n",http_plugin_address_to_string(NULL, addr, addr_len));
       ps = GNUNET_malloc(sizeof (struct Session));
       ps->addr = GNUNET_malloc(addr_len);
       memcpy(ps->addr,addr,addr_len);
@@ -606,10 +603,6 @@ accessHandlerCallback (void *cls,
       ps->peercontext=pc;
       ps->url = create_url (plugin, ps->addr, ps->addrlen);
       GNUNET_CONTAINER_DLL_insert(pc->head,pc->tail,ps);
-    }
-    else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"RECV: SESSION CONTEXT FOUND\n");
     }
 
     *httpSessionCache = ps;
@@ -657,11 +650,6 @@ accessHandlerCallback (void *cls,
     response = MHD_create_response_from_callback(-1,32 * 1024, &server_read_callback, ps, NULL);
     res = MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
     MHD_destroy_response (response);
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP Daemon has new an incoming `%s' request from peer `%s' (`%s')\n",
-                method,
-                GNUNET_i2s(&pc->identity),
-                http_plugin_address_to_string(NULL, ps->addr, ps->addrlen));
     return res;
   }
   return MHD_NO;
@@ -811,7 +799,6 @@ static size_t curl_get_header_function( void *ptr, size_t size, size_t nmemb, vo
   size_t len = size * nmemb;
   long http_result = 0;
   int res;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: GET HEADER FUNC\n",ps);
   /* Getting last http result code */
   if (ps->recv_connected==GNUNET_NO)
   {
@@ -1531,6 +1518,7 @@ http_plugin_disconnect (void *cls,
     ps->send_active = GNUNET_NO;
     ps=ps->next;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"All connections to peer `%s' terminated\n", GNUNET_i2s(target));
 }
 
 
