@@ -740,7 +740,7 @@ then
  AC_MSG_NOTICE([NOTICE: libesmtp not found, monkey will not be installed.])
 fi
 
-if test "x$ssl" != "x1"
+if test "x$openssl" != "x1"
 then
  AC_MSG_NOTICE([NOTICE: OpenSSL not found, monkey will not be installed.])
 fi
