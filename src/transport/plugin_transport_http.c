@@ -275,18 +275,21 @@ struct Session
 
   /**
    * id for next session
+   * NOTE: 0 is not an ID, zero is not defined. A correct ID is always > 0
    */
   size_t session_id;
 
   /**
    * entity managing sending data
-   * outbound session: pointer to curl easy handle
+   * outbound session: CURL *
+   * inbound session: mhd_connection *
    */
   void * send_endpoint;
 
   /**
    * entity managing recieving data
-   * outbound session: pointer to curl easy handle
+   * outbound session: CURL *
+   * inbound session: mhd_connection *
    */
   void * recv_endpoint;
 };
@@ -379,11 +382,43 @@ static char * create_url(void * cls, const void * addr, size_t addrlen, size_t i
  * @param msg message to remove
  * @return GNUNET_SYSERR if msg not found, GNUNET_OK on success
  */
-
-static int remove_http_message(struct Session * ps, struct HTTP_Message * msg)
+static int remove_http_message (struct Session * ps, struct HTTP_Message * msg)
 {
   GNUNET_CONTAINER_DLL_remove(ps->pending_msgs_head,ps->pending_msgs_tail,msg);
   GNUNET_free(msg);
+  return GNUNET_OK;
+}
+
+/**
+ * Removes a session from the linked list of sessions
+ * @param pc peer context
+ * @param ps session
+ * @param call_msg_cont GNUNET_YES to call pending message continuations, otherwise no
+ * @param call_msg_cont_result, result to call message continuations with
+ * @return GNUNET_SYSERR if msg not found, GNUNET_OK on success
+ */
+static int remove_session (struct HTTP_PeerContext * pc, struct Session * ps,  int call_msg_cont, int call_msg_cont_result)
+{
+  struct HTTP_Message * msg;
+
+  GNUNET_free(ps->addr);
+  GNUNET_SERVER_mst_destroy (ps->msgtok);
+  GNUNET_free(ps->url);
+
+  msg = ps->pending_msgs_head;
+  while (msg!=NULL)
+  {
+    if ((call_msg_cont == GNUNET_YES) && (msg->transmit_cont!=NULL))
+    {
+      msg->transmit_cont (msg->transmit_cont_cls,&pc->identity,call_msg_cont_result);
+    }
+    GNUNET_free(msg);
+    GNUNET_CONTAINER_DLL_remove(ps->pending_msgs_head,ps->pending_msgs_head,msg);
+  }
+
+  GNUNET_CONTAINER_DLL_remove(pc->head,pc->tail,ps);
+  GNUNET_free(ps);
+  ps = NULL;
   return GNUNET_OK;
 }
 
@@ -421,12 +456,34 @@ static void requestCompletedCallback (void *cls, struct MHD_Connection * connect
   struct Session * ps = *httpSessionCache;
   if (ps == NULL)
     return;
+  struct HTTP_PeerContext * pc = ps->peercontext;
 
+  if (connection==ps->recv_endpoint)
+  {
 #if DEBUG_CONNECTIONS
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: connection from peer `%s' was terminated\n", ps, GNUNET_i2s(&ps->peercontext->identity));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound connection from peer `%s' was terminated\n", ps, GNUNET_i2s(&pc->identity));
 #endif
-  /* session set to inactive */
-  //ps-> = GNUNET_NO;
+    ps->recv_active = GNUNET_NO;
+    ps->recv_connected = GNUNET_NO;
+    ps->recv_endpoint = NULL;
+  }
+  if (connection==ps->send_endpoint)
+  {
+
+    ps->send_active = GNUNET_NO;
+    ps->send_connected = GNUNET_NO;
+    ps->send_endpoint = NULL;
+#if DEBUG_CONNECTIONS
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound connection from peer `%s' was terminated\n", ps, GNUNET_i2s(&pc->identity));
+#endif
+  }
+
+  /* if both connections disconnected, remove session */
+  if ((ps->send_connected == GNUNET_NO) && (ps->recv_connected == GNUNET_NO))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: removing session\n", ps);
+    remove_session(pc,ps,GNUNET_YES,GNUNET_SYSERR);
+  }
 }
 
 static void mhd_write_mst_cb (void *cls,
@@ -588,7 +645,6 @@ accessHandlerCallback (void *cls,
         memcpy(peer,&url[1],103);
         peer[103] = '\0';
         id_num = strtoul ( id, NULL , 10);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"id is string %s num %u, peer is %s\n",id,id_num,peer);
         GNUNET_free(id);
     }
     res = GNUNET_CRYPTO_hash_from_string (peer, &(pi_in.hashPubKey));
@@ -649,22 +705,25 @@ accessHandlerCallback (void *cls,
 
 
     ps = get_Session(plugin, pc, addr, addr_len);
+    if (NULL==ps)
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"NO EXIST HTTP SESSION\n");
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"SEARCHING HTTP SESSION\n");
     ps_tmp = pc->head;
-    /*
+
     while (ps_tmp!=NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"SEARCHING HTTP SESSION II\n");
-      if ((ps_tmp->session_id == id_num) && (id_num!=0))
+      if ((ps_tmp->direction==INBOUND) && (ps_tmp->session_id == id_num) && (id_num!=0))
       {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"SEARCHING HTTP SESSION II\n");
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP SESSION: peer: %s addr %s id %u\n",GNUNET_i2s(&ps_tmp->peercontext->identity),ps_tmp->url,ps_tmp->session_id);
+
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP SESSION FOUND\n");
         ps=ps_tmp;
         break;
       }
       ps_tmp=ps_tmp->next;
     }
-     */
 
     if (ps==NULL)
     {
@@ -684,6 +743,7 @@ accessHandlerCallback (void *cls,
       ps->session_id =id_num;
       ps->url = create_url (plugin, ps->addr, ps->addrlen, ps->session_id);
       GNUNET_CONTAINER_DLL_insert(pc->head,pc->tail,ps);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTP SESSION CREATED, ID %u mhd connection %X\n",ps->session_id, mhd_connection);
     }
 
     *httpSessionCache = ps;
@@ -702,14 +762,15 @@ accessHandlerCallback (void *cls,
     if (ps->recv_force_disconnect)
     {
 #if DEBUG_CONNECTIONS
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound forced to disconnect\n",ps);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound connection was forced to disconnect\n",ps);
 #endif
-      ps->recv_connected = GNUNET_NO;
       ps->recv_active = GNUNET_NO;
       return MHD_NO;
     }
     if ((*upload_data_size == 0) && (ps->recv_active==GNUNET_NO))
     {
+      ps->recv_endpoint = mhd_connection;
+      ps->recv_connected = GNUNET_YES;
       ps->recv_active = GNUNET_YES;
       return MHD_YES;
     }
@@ -742,12 +803,14 @@ accessHandlerCallback (void *cls,
     if (ps->send_force_disconnect)
     {
 #if DEBUG_CONNECTIONS
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound forced to disconnect\n",ps);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound connection was  forced to disconnect\n",ps);
 #endif
-      ps->send_connected = GNUNET_NO;
       ps->send_active = GNUNET_NO;
       return MHD_NO;
     }
+    ps->send_connected = GNUNET_YES;
+    ps->send_active = GNUNET_YES;
+    ps->send_endpoint = mhd_connection;
     response = MHD_create_response_from_callback(-1,32 * 1024, &server_read_callback, ps, NULL);
     res = MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
     MHD_destroy_response (response);
@@ -1649,9 +1712,7 @@ http_plugin_disconnect (void *cls,
     {
       remove_http_message(ps, ps->pending_msgs_head);
     }
-    ps->recv_connected = GNUNET_NO;
     ps->recv_active = GNUNET_NO;
-    ps->send_connected = GNUNET_NO;
     ps->send_active = GNUNET_NO;
     ps=ps->next;
   }
