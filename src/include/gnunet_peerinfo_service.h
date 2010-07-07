@@ -20,8 +20,7 @@
 /**
  * @file include/gnunet_peerinfo_service.h
  * @brief Code to maintain the list of currently known hosts
- *   (in memory structure of data/hosts) and their trust ratings
- *   (in memory structure of data/trust)
+ *   (in memory structure of data/hosts).
  * @author Christian Grothoff
  */
 
@@ -98,13 +97,11 @@ GNUNET_PEERINFO_add_peer (struct GNUNET_PEERINFO_Handle *h,
  * @param cls closure
  * @param peer id of the peer, NULL for last call
  * @param hello hello message for the peer (can be NULL)
- * @param trust amount of trust we have in the peer
  */
 typedef void
   (*GNUNET_PEERINFO_Processor) (void *cls,
                                 const struct GNUNET_PeerIdentity * peer,
-                                const struct GNUNET_HELLO_Message * hello,
-                                uint32_t trust);
+                                const struct GNUNET_HELLO_Message * hello);
 
 
 /**
@@ -123,12 +120,11 @@ struct GNUNET_PEERINFO_IteratorContext;
  * being done; however, the trust argument will be set to zero if we
  * are done, 1 if we timed out and 2 for fatal error.
  *
- * Instead of calling this function with 'peer == NULL' and 'trust ==
- * 0', it is often better to use 'GNUNET_PEERINFO_notify'.
+ * Instead of calling this function with 'peer == NULL' 
+ * it is often better to use 'GNUNET_PEERINFO_notify'.
  * 
  * @param h handle to the peerinfo service
  * @param peer restrict iteration to this peer only (can be NULL)
- * @param trust_delta how much to change the trust in all matching peers
  * @param timeout how long to wait until timing out
  * @param callback the method to call for each peer
  * @param callback_cls closure for callback
@@ -138,7 +134,6 @@ struct GNUNET_PEERINFO_IteratorContext;
 struct GNUNET_PEERINFO_IteratorContext *
 GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
 			 const struct GNUNET_PeerIdentity *peer,
-			 int trust_delta,
 			 struct GNUNET_TIME_Relative timeout,
 			 GNUNET_PEERINFO_Processor callback,
 			 void *callback_cls);

@@ -834,6 +834,7 @@ run (void *cls,
                                  &core_init,    /* Call core_init once connected */
                                  &handle_core_connect,  /* Don't care about connects */
                                  NULL,  /* Don't care about disconnects */
+				 NULL,  /* Don't care about peer status changes */
                                  NULL,  /* Don't want notified about all incoming messages */
                                  GNUNET_NO,     /* For header only inbound notification */
                                  NULL,  /* Don't want notified about all outbound messages */

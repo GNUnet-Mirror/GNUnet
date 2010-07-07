@@ -55,6 +55,12 @@
 #define MAX_QUEUE_PER_PEER 16
 
 /**
+ * How often do we flush trust values to disk?
+ */
+#define TRUST_FLUSH_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
+
+
+/**
  * Inverse of the probability that we will submit the same query
  * to the same peer again.  If the same peer already got the query
  * repeatedly recently, the probability is multiplied by the inverse
@@ -211,9 +217,14 @@ struct ConnectedPeer
   uint64_t inc_preference;
 
   /**
-   * Trust delta to still commit to the system.
+   * Trust rating for this peer
    */
-  uint32_t trust_delta;
+  uint32_t trust;
+
+  /**
+   * Trust rating for this peer on disk.
+   */
+  uint32_t disk_trust;
 
   /**
    * The peer's identity.
@@ -680,6 +691,11 @@ static struct MigrationReadyBlock *mig_tail;
 static struct GNUNET_DATASTORE_QueueEntry *mig_qe;
 
 /**
+ * Where do we store trust information?
+ */
+static char *trustDirectory;
+
+/**
  * ID of task that collects blocks for migration.
  */
 static GNUNET_SCHEDULER_TaskIdentifier mig_task;
@@ -699,6 +715,24 @@ static unsigned int mig_size;
  * Are we allowed to migrate content to this peer.
  */
 static int active_migration;
+
+
+/**
+ * Get the filename under which we would store the GNUNET_HELLO_Message
+ * for the given host and protocol.
+ * @return filename of the form DIRECTORY/HOSTID
+ */
+static char *
+get_trust_filename (const struct GNUNET_PeerIdentity *id)
+{
+  struct GNUNET_CRYPTO_HashAsciiEncoded fil;
+  char *fn;
+
+  GNUNET_CRYPTO_hash_to_enc (&id->hashPubKey, &fil);
+  GNUNET_asprintf (&fn, "%s%s%s", trustDirectory, DIR_SEPARATOR_STR, &fil);
+  return fn;
+}
+
 
 
 /**
@@ -1148,9 +1182,18 @@ peer_connect_handler (void *cls,
 {
   struct ConnectedPeer *cp;
   struct MigrationReadyBlock *pos;
+  char *fn;
+  uint32_t trust;
   
   cp = GNUNET_malloc (sizeof (struct ConnectedPeer));
   cp->pid = GNUNET_PEER_intern (peer);
+
+  fn = get_trust_filename (peer);
+  if ((GNUNET_DISK_file_test (fn) == GNUNET_YES) &&
+      (sizeof (trust) == GNUNET_DISK_fn_read (fn, &trust, sizeof (trust))))
+    cp->disk_trust = cp->trust = ntohl (trust);
+  GNUNET_free (fn);
+
   GNUNET_break (GNUNET_OK ==
 		GNUNET_CONTAINER_multihashmap_put (connected_peers,
 						   &peer->hashPubKey,
@@ -1165,6 +1208,105 @@ peer_connect_handler (void *cls,
     }
 }
 
+
+/**
+ * Increase the host credit by a value.
+ *
+ * @param host which peer to change the trust value on
+ * @param value is the int value by which the
+ *  host credit is to be increased or decreased
+ * @returns the actual change in trust (positive or negative)
+ */
+static int
+change_host_trust (struct ConnectedPeer *host, int value)
+{
+  unsigned int old_trust;
+
+  if (value == 0)
+    return 0;
+  GNUNET_assert (host != NULL);
+  old_trust = host->trust;
+  if (value > 0)
+    {
+      if (host->trust + value < host->trust)
+        {
+          value = UINT32_MAX - host->trust;
+          host->trust = UINT32_MAX;
+        }
+      else
+        host->trust += value;
+    }
+  else
+    {
+      if (host->trust < -value)
+        {
+          value = -host->trust;
+          host->trust = 0;
+        }
+      else
+        host->trust += value;
+    }
+  return value;
+}
+
+
+/**
+ * Write host-trust information to a file - flush the buffer entry!
+ */
+static int
+flush_trust (void *cls,
+	     const GNUNET_HashCode *key,
+	     void *value)
+{
+  struct ConnectedPeer *host = value;
+  char *fn;
+  uint32_t trust;
+  struct GNUNET_PeerIdentity pid;
+
+  if (host->trust == host->disk_trust)
+    return GNUNET_OK;                     /* unchanged */
+  GNUNET_PEER_resolve (host->pid,
+		       &pid);
+  fn = get_trust_filename (&pid);
+  if (host->trust == 0)
+    {
+      if ((0 != UNLINK (fn)) && (errno != ENOENT))
+        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING |
+                                  GNUNET_ERROR_TYPE_BULK, "unlink", fn);
+    }
+  else
+    {
+      trust = htonl (host->trust);
+      if (sizeof(uint32_t) == GNUNET_DISK_fn_write (fn, &trust, 
+						    sizeof(uint32_t),
+						    GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE
+						    | GNUNET_DISK_PERM_GROUP_READ | GNUNET_DISK_PERM_OTHER_READ))
+        host->disk_trust = host->trust;
+    }
+  GNUNET_free (fn);
+  return GNUNET_OK;
+}
+
+/**
+ * Call this method periodically to scan data/hosts for new hosts.
+ */
+static void
+cron_flush_trust (void *cls,
+		  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+
+  if (NULL == connected_peers)
+    return;
+  GNUNET_CONTAINER_multihashmap_iterate (connected_peers,
+					 &flush_trust,
+					 NULL);
+  if (NULL == tc)
+    return;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+  GNUNET_SCHEDULER_add_delayed (tc->sched,
+				TRUST_FLUSH_FREQ, &cron_flush_trust, NULL);
+}
 
 
 /**
@@ -1253,7 +1395,7 @@ peer_disconnect_handler (void *cls,
 					     &consider_migration,
 					     pos);
     }
-  if (cp->trust_delta > 0)
+  if (cp->trust > 0)
     {
       /* FIXME: push trust back to peerinfo! 
 	 (need better peerinfo API!) */
@@ -1400,6 +1542,7 @@ shutdown_task (void *cls,
   while (client_list != NULL)
     handle_client_disconnect (NULL,
 			      client_list->client);
+  cron_flush_trust (NULL, NULL);
   GNUNET_CONTAINER_multihashmap_iterate (connected_peers,
 					 &clean_peer,
 					 NULL);
@@ -1430,6 +1573,8 @@ shutdown_task (void *cls,
   dsh = NULL;
   sched = NULL;
   cfg = NULL;  
+  GNUNET_free_non_null (trustDirectory);
+  trustDirectory = NULL;
 }
 
 
@@ -2674,7 +2819,7 @@ handle_p2p_put (void *cls,
   if (prq.sender != NULL)
     {
       prq.sender->inc_preference += CONTENT_BANDWIDTH_VALUE + 1000 * prq.priority;
-      prq.sender->trust_delta += prq.priority;
+      prq.sender->trust += prq.priority;
     }
   if (GNUNET_YES == active_migration)
     {
@@ -2954,13 +3099,9 @@ static uint32_t
 bound_priority (uint32_t prio_in,
 		struct ConnectedPeer *cp)
 {
-  if (cp->trust_delta > prio_in)
-    {
-      cp->trust_delta -= prio_in;
-      return prio_in;
-    }
-  // FIXME: get out trust in the target peer from peerinfo!
-  return 0; 
+  /* FIXME: check if load is low and we
+     hence should not charge... */
+  return change_host_trust (cp, prio_in);
 }
 
 
@@ -3510,6 +3651,7 @@ main_init (struct GNUNET_SCHEDULER_Handle *s,
 			      NULL,
 			      &peer_connect_handler,
 			      &peer_disconnect_handler,
+			      NULL,
 			      NULL, GNUNET_NO,
 			      NULL, GNUNET_NO,
 			      p2p_handlers);
@@ -3543,6 +3685,17 @@ main_init (struct GNUNET_SCHEDULER_Handle *s,
   GNUNET_SERVER_disconnect_notify (server, 
 				   &handle_client_disconnect,
 				   NULL);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                          "fs",
+                                                          "TRUST",
+                                                          &trustDirectory));
+  GNUNET_DISK_directory_create (trustDirectory);
+  GNUNET_SCHEDULER_add_with_priority (sched,
+				      GNUNET_SCHEDULER_PRIORITY_HIGH,
+				      &cron_flush_trust, NULL);
+
+
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SCHEDULER_add_delayed (sched,
 				GNUNET_TIME_UNIT_FOREVER_REL,

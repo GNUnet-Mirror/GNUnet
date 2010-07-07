@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -66,6 +66,11 @@ struct GNUNET_CORE_Handle
    */
   GNUNET_CORE_DisconnectEventHandler disconnects;
 
+  /**
+   * Function to call whenever we're notified about a peer changing status.
+   */  
+  GNUNET_CORE_PeerStatusEventHandler status_events;
+  
   /**
    * Function to call whenever we receive an inbound message.
    */
@@ -381,6 +386,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   const struct DisconnectNotifyMessage *dnm;
   const struct NotifyTrafficMessage *ntm;
   const struct GNUNET_MessageHeader *em;
+  const struct PeerStatusNotifyMessage *psnm;
   uint16_t msize;
   uint16_t et;
   const struct GNUNET_CORE_MessageHandler *mh;
@@ -432,6 +438,26 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       dnm = (const struct DisconnectNotifyMessage *) msg;
       h->disconnects (h->cls,
 		      &dnm->peer);
+      break;
+    case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_STATUS_CHANGE:
+      if (NULL == h->status_events)
+        {
+          GNUNET_break (0);
+          break;
+        }
+      if (msize != sizeof (struct PeerStatusNotifyMessage))
+        {
+          GNUNET_break (0);
+          break;
+        }
+      psnm = (const struct PeerStatusNotifyMessage *) msg;
+      h->status_events (h->cls,
+			&psnm->peer,
+			GNUNET_TIME_relative_ntoh (psnm->latency),
+			ntohl (psnm->distance),
+			psnm->bandwidth_in,
+			psnm->bandwidth_out,
+			GNUNET_TIME_absolute_ntoh (psnm->timeout));
       break;
     case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_INBOUND:
       if (msize <
@@ -658,6 +684,8 @@ transmit_start (void *cls, size_t size, void *buf)
     opt |= GNUNET_CORE_OPTION_SEND_CONNECT;
   if (h->disconnects != NULL)
     opt |= GNUNET_CORE_OPTION_SEND_DISCONNECT;
+  if (h->status_events != NULL)
+    opt |= GNUNET_CORE_OPTION_SEND_STATUS_CHANGE;
   if (h->inbound_notify != NULL)
     {
       if (h->inbound_hdr_only)
@@ -717,6 +745,7 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
                      GNUNET_CORE_StartupCallback init,
                      GNUNET_CORE_ConnectEventHandler connects,
                      GNUNET_CORE_DisconnectEventHandler disconnects,
+		     GNUNET_CORE_PeerStatusEventHandler status_events,
                      GNUNET_CORE_MessageCallback inbound_notify,
                      int inbound_hdr_only,
                      GNUNET_CORE_MessageCallback outbound_notify,
@@ -732,6 +761,7 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
   h->init = init;
   h->connects = connects;
   h->disconnects = disconnects;
+  h->status_events = status_events;
   h->inbound_notify = inbound_notify;
   h->outbound_notify = outbound_notify;
   h->inbound_hdr_only = inbound_hdr_only;

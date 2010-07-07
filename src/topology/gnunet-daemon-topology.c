@@ -934,13 +934,11 @@ consider_for_advertising (const struct GNUNET_HELLO_Message *hello)
  * @param cls closure (not used)
  * @param peer potential peer to connect to
  * @param hello HELLO for this peer (or NULL)
- * @param trust how much we trust the peer (not used)
  */
 static void
 process_peer (void *cls,
 	      const struct GNUNET_PeerIdentity *peer,
-	      const struct GNUNET_HELLO_Message *hello,
-	      uint32_t trust)
+	      const struct GNUNET_HELLO_Message *hello)
 {
   struct Peer *pos;
 
@@ -1404,7 +1402,8 @@ run (void *cls,
 				NULL,
 				&core_init,
 				&connect_notify,
-				&disconnect_notify,
+				&disconnect_notify, 
+				NULL,
 				NULL, GNUNET_NO,
 				NULL, GNUNET_NO,
 				handlers);

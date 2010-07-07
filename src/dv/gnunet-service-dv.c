@@ -2755,12 +2755,11 @@ static int add_all_direct_neighbors (void *cls,
  * @param cls closure
  * @param peer id of the peer, NULL for last call
  * @param hello hello message for the peer (can be NULL)
- * @param trust amount of trust we have in the peer
  */
 static void
 process_peerinfo (void *cls,
                   const struct GNUNET_PeerIdentity *peer,
-                  const struct GNUNET_HELLO_Message *hello, uint32_t trust)
+                  const struct GNUNET_HELLO_Message *hello)
 {
   struct PeerIteratorContext *peerinfo_iterator = cls;
   struct DirectNeighbor *neighbor = peerinfo_iterator->neighbor;
@@ -2779,7 +2778,6 @@ process_peerinfo (void *cls,
 #endif
           peerinfo_iterator->ic = GNUNET_PEERINFO_iterate(peerinfo_handle,
                                                           &peerinfo_iterator->neighbor->identity,
-                                                          0,
                                                           GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3),
                                                           &process_peerinfo,
                                                           peerinfo_iterator);
@@ -2856,7 +2854,6 @@ void handle_core_connect (void *cls,
     peerinfo_iterator->neighbor = neighbor;
     peerinfo_iterator->ic = GNUNET_PEERINFO_iterate (peerinfo_handle,
                                                      peer,
-                                                     0,
                                                      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3),
                                                      &process_peerinfo,
                                                      peerinfo_iterator);
@@ -2988,6 +2985,7 @@ run (void *cls,
                        &core_init,
                        &handle_core_connect,
                        &handle_core_disconnect,
+		       NULL,
                        NULL,
                        GNUNET_NO,
                        NULL,

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -23,6 +23,7 @@
  * @brief common internal definitions for core service
  * @author Christian Grothoff
  */
+#include "gnunet_bandwidth_lib.h"
 #include "gnunet_crypto_lib.h"
 #include "gnunet_time_lib.h"
 
@@ -45,10 +46,11 @@
 #define GNUNET_CORE_OPTION_NOTHING             0
 #define GNUNET_CORE_OPTION_SEND_CONNECT        1
 #define GNUNET_CORE_OPTION_SEND_DISCONNECT     2
-#define GNUNET_CORE_OPTION_SEND_FULL_INBOUND   4
-#define GNUNET_CORE_OPTION_SEND_HDR_INBOUND    8
-#define GNUNET_CORE_OPTION_SEND_FULL_OUTBOUND 16
-#define GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND  32
+#define GNUNET_CORE_OPTION_SEND_STATUS_CHANGE  4
+#define GNUNET_CORE_OPTION_SEND_FULL_INBOUND   8
+#define GNUNET_CORE_OPTION_SEND_HDR_INBOUND   16
+#define GNUNET_CORE_OPTION_SEND_FULL_OUTBOUND 32
+#define GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND  64
 
 
 /**
@@ -100,13 +102,12 @@ struct InitReplyMessage
 
 /**
  * Message sent by the service to clients to notify them
- * about a peer connecting or disconnecting.
+ * about a peer connecting.
  */
 struct ConnectNotifyMessage
 {
   /**
    * Header with type GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT
-   * or GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT.
    */
   struct GNUNET_MessageHeader header;
 
@@ -127,6 +128,49 @@ struct ConnectNotifyMessage
 
 };
 
+
+/**
+ * Message sent by the service to clients to notify them
+ * about a peer changing status.
+ */
+struct PeerStatusNotifyMessage
+{
+  /**
+   * Header with type GNUNET_MESSAGE_TYPE_CORE_NOTIFY_PEER_STATUS
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Distance to the peer.
+   */
+  uint32_t distance GNUNET_PACKED;
+
+  /**
+   * Currently observed latency.
+   */
+  struct GNUNET_TIME_RelativeNBO latency;
+
+  /**
+   * When the peer would time out (unless we see activity)
+   */
+  struct GNUNET_TIME_AbsoluteNBO timeout;
+
+  /**
+   * Available bandwidth from the peer.
+   */
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
+
+  /**
+   * Available bandwidth to the peer.
+   */
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
+
+  /**
+   * Identity of the peer.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+};
 
 
 /**

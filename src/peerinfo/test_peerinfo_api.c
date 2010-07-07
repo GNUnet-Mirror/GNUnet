@@ -102,7 +102,7 @@ add_peer ()
 static void
 process (void *cls,
          const struct GNUNET_PeerIdentity *peer,
-         const struct GNUNET_HELLO_Message *hello, uint32_t trust)
+         const struct GNUNET_HELLO_Message *hello)
 {
   int *ok = cls;
   unsigned int agc;
@@ -118,7 +118,6 @@ process (void *cls,
 	  add_peer ();
 	  ic = GNUNET_PEERINFO_iterate (h,
 					NULL,
-					0,
 					GNUNET_TIME_relative_multiply
 					(GNUNET_TIME_UNIT_SECONDS, 15), 
 					&process, cls);
@@ -126,7 +125,6 @@ process (void *cls,
 	}
       GNUNET_assert (peer == NULL);
       GNUNET_assert (2 == *ok);
-      GNUNET_assert (trust == 0);
       GNUNET_PEERINFO_disconnect (h);
       h = NULL;
       *ok = 0;
@@ -156,7 +154,6 @@ run (void *cls,
   add_peer ();
   ic = GNUNET_PEERINFO_iterate (h,
 				NULL,
-				0,
 				GNUNET_TIME_relative_multiply
 				(GNUNET_TIME_UNIT_SECONDS, 15),
 				&process, cls);

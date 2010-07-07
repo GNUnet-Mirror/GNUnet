@@ -443,14 +443,14 @@ init_notify_peer1 (void *cls,
    * Connect to the receiving peer
    */
   pos->peer2handle = GNUNET_CORE_connect (sched,
-                       pos->peer2->cfg,
-                       TIMEOUT,
-                       pos,
-                       &init_notify_peer2,
-                       NULL,
-                       NULL,
-                       NULL,
-                       GNUNET_YES, NULL, GNUNET_YES, handlers);
+					  pos->peer2->cfg,
+					  TIMEOUT,
+					  pos,
+					  &init_notify_peer2,
+					  NULL,
+					  NULL, 
+					  NULL, NULL,
+					  GNUNET_YES, NULL, GNUNET_YES, handlers);
 
 }
 
@@ -485,7 +485,7 @@ send_test_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
                                           TIMEOUT,
                                           pos,
                                           &init_notify_peer1,
-                                          NULL,
+                                          NULL, NULL,
                                           NULL,
                                           NULL,
                                           GNUNET_NO, NULL, GNUNET_NO, no_handlers);

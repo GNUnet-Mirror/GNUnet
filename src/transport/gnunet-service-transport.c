@@ -2612,13 +2612,11 @@ add_to_foreign_address_list (void *cls,
  * @param cls closure ('struct NeighbourList*')
  * @param peer id of the peer, NULL for last call
  * @param h hello message for the peer (can be NULL)
- * @param trust amount of trust we have in the peer (not used)
  */
 static void
 add_hello_for_peer (void *cls,
 		    const struct GNUNET_PeerIdentity *peer,
-		    const struct GNUNET_HELLO_Message *h, 
-		    uint32_t trust)
+		    const struct GNUNET_HELLO_Message *h)
 {
   struct NeighbourList *n = cls;
 
@@ -2706,7 +2704,7 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer,
   if (do_hello)
     {
       n->piter = GNUNET_PEERINFO_iterate (peerinfo, peer,
-					  0, GNUNET_TIME_UNIT_FOREVER_REL,
+					  GNUNET_TIME_UNIT_FOREVER_REL,
 					  &add_hello_for_peer, n);
       transmit_to_peer (NULL, NULL, 0,
 			HELLO_ADDRESS_EXPIRATION,
@@ -3870,13 +3868,11 @@ run_validation (void *cls,
  * @param cls closure
  * @param peer id of the peer, NULL for last call
  * @param h hello message for the peer (can be NULL)
- * @param trust amount of trust we have in the peer (not used)
  */
 static void
 check_hello_validated (void *cls,
                        const struct GNUNET_PeerIdentity *peer,
-                       const struct GNUNET_HELLO_Message *h, 
-		       uint32_t trust)
+                       const struct GNUNET_HELLO_Message *h)
 {
   struct CheckHelloValidatedContext *chvc = cls;
   struct GNUNET_HELLO_Message *plain_hello;
@@ -4088,7 +4084,6 @@ process_hello (struct TransportPlugin *plugin,
      (continuation will then schedule actual validation) */
   chvc->piter = GNUNET_PEERINFO_iterate (peerinfo,
                                          &target,
-                                         0,
                                          HELLO_VERIFICATION_TIMEOUT,
                                          &check_hello_validated, chvc);
   return GNUNET_OK;

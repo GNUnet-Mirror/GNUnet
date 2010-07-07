@@ -164,6 +164,11 @@ handle_client_disconnect (void *cls,
     }
   if (pos == NULL)
     return;
+#if DEBUG_SERVER_NC
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Client disconnected, cleaning up %u messages in NC queue\n",
+	      pos->num_pending);
+#endif
   if (prev == NULL)
     nc->clients = pos->next;
   else
@@ -285,6 +290,10 @@ transmit_message (void *cls,
   if (buf == NULL)
     {
       /* 'cl' should be freed via disconnect notification shortly */
+#if DEBUG_SERVER_NC
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Failed to transmit message from NC queue to client\n");
+#endif
       return 0;
     }
   ret = 0;
@@ -310,11 +319,18 @@ transmit_message (void *cls,
       cl->num_pending--;
     }
   if (cl->pending_head != NULL)    
-    cl->th = GNUNET_SERVER_notify_transmit_ready (cl->client,
-						  ntohs (cl->pending_head->msg->size),
-						  GNUNET_TIME_UNIT_FOREVER_REL,
-						  &transmit_message,
-						  cl);
+    {
+#if DEBUG_SERVER_NC
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Have %u messages left in NC queue, will try transmission again\n",
+		  cl->num_pending);
+#endif
+      cl->th = GNUNET_SERVER_notify_transmit_ready (cl->client,
+						    ntohs (cl->pending_head->msg->size),
+						    GNUNET_TIME_UNIT_FOREVER_REL,
+						    &transmit_message,
+						    cl);
+    }
   return ret;
 }
 

@@ -91,4 +91,43 @@ struct GNUNET_STATISTICS_SetMessage
 
 };
 
+
+/**
+ * Message transmitted if a watched value changes.
+ */
+struct GNUNET_STATISTICS_WatchValueMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_STATISTICS_WATCH_VALUE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * 0 for absolute value, 1 for relative value; 2 to make persistent
+   * (see GNUNET_STATISTICS_SETFLAG_*).
+   */
+  uint32_t flags GNUNET_PACKED;
+
+  /**
+   * Unique watch identification number (watch
+   * requests are enumerated in the order they 
+   * are received, the first request having 
+   * a wid of zero). 
+   */
+  uint32_t wid GNUNET_PACKED;
+
+  /**
+   * Reserved (always 0).
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * Value. Note that if this is a relative value, it will
+   * be signed even though the type given here is unsigned.
+   */
+  uint64_t value GNUNET_PACKED;
+  
+};
+
+
 #endif

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -31,8 +31,7 @@
 
 /**
  * Message requesting a listing of all known peers,
- * possibly modified by the specified trust value
- * and restricted to the specified peer identity.
+ * possibly restricted to the specified peer identity.
  */
 struct ListPeerMessage
 {
@@ -43,38 +42,15 @@ struct ListPeerMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * How much to change the trust in each returned peer,
-   * in network byte order.
+   * Always zero.
    */
-  int32_t trust_change GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * Restrict to peers with this identity (optional
    * field, check header.size!).
    */
   struct GNUNET_PeerIdentity peer;
-
-};
-
-
-/**
- * Message requesting a listing of all known peers,
- * possibly modified by the specified trust value
- * and restricted to the specified peer identity.
- */
-struct ListAllPeersMessage
-{
-
-  /**
-   * Type will be GNUNET_MESSAGE_TYPE_PEERINFO_GET
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * How much to change the trust in each returned peer,
-   * in network byte order.
-   */
-  int32_t trust_change GNUNET_PACKED;
 
 };
 
@@ -95,10 +71,9 @@ struct InfoMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Amount of trust we now have in the peer,
-   * in network byte order.
+   * Always zero.
    */
-  uint32_t trust GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * About which peer are we talking here?

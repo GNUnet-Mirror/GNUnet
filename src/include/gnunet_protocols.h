@@ -52,26 +52,6 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE 3
 
 
-/**
- * Set a statistical value.
- */
-#define GNUNET_MESSAGE_TYPE_STATISTICS_SET 4
-
-/**
- * Get a statistical value(s).
- */
-#define GNUNET_MESSAGE_TYPE_STATISTICS_GET 5
-
-/**
- * Response to a STATISTICS_GET message (with value).
- */
-#define GNUNET_MESSAGE_TYPE_STATISTICS_VALUE 6
-
-/**
- * Response to a STATISTICS_GET message (end of value stream).
- */
-#define GNUNET_MESSAGE_TYPE_STATISTICS_END 7
-
 
 /**
  * Request to ARM to start a service.
@@ -345,35 +325,40 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT 68
 
 /**
+ * Notify clients about peer status change.
+ */
+#define GNUNET_MESSAGE_TYPE_CORE_NOTIFY_STATUS_CHANGE 69
+
+/**
  * Notify clients about incoming P2P messages.
  */
-#define GNUNET_MESSAGE_TYPE_CORE_NOTIFY_INBOUND 69
+#define GNUNET_MESSAGE_TYPE_CORE_NOTIFY_INBOUND 70
 
 /**
  * Notify clients about outgoing P2P transmissions.
  */
-#define GNUNET_MESSAGE_TYPE_CORE_NOTIFY_OUTBOUND 70
+#define GNUNET_MESSAGE_TYPE_CORE_NOTIFY_OUTBOUND 71
 
 /**
  * Request from client to "configure" P2P connection.
  */
-#define GNUNET_MESSAGE_TYPE_CORE_REQUEST_INFO 71
+#define GNUNET_MESSAGE_TYPE_CORE_REQUEST_INFO 72
 
 /**
  * Response from server about (possibly updated) P2P
  * connection configuration.
  */
-#define GNUNET_MESSAGE_TYPE_CORE_CONFIGURATION_INFO 72
+#define GNUNET_MESSAGE_TYPE_CORE_CONFIGURATION_INFO 73
 
 /**
  * Request from client with message to transmit.
  */
-#define GNUNET_MESSAGE_TYPE_CORE_SEND 73
+#define GNUNET_MESSAGE_TYPE_CORE_SEND 74
 
 /**
  * Request from client asking to connect to a peer.
  */
-#define GNUNET_MESSAGE_TYPE_CORE_REQUEST_CONNECT 74
+#define GNUNET_MESSAGE_TYPE_CORE_REQUEST_CONNECT 75
 
 
 /**
@@ -583,6 +568,39 @@ extern "C"
  * Hostlist advertisement message
  */
 #define GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT 160
+
+
+/**
+ * Set a statistical value.
+ */
+#define GNUNET_MESSAGE_TYPE_STATISTICS_SET 168
+
+/**
+ * Get a statistical value(s).
+ */
+#define GNUNET_MESSAGE_TYPE_STATISTICS_GET 169
+
+/**
+ * Response to a STATISTICS_GET message (with value).
+ */
+#define GNUNET_MESSAGE_TYPE_STATISTICS_VALUE 170
+
+/**
+ * Response to a STATISTICS_GET message (end of value stream).
+ */
+#define GNUNET_MESSAGE_TYPE_STATISTICS_END 171
+
+/**
+ * Watch changes to a statistical value.  Message format is the same
+ * as for GET, except that the subsystem and entry name must be given.
+ */
+#define GNUNET_MESSAGE_TYPE_STATISTICS_WATCH 172
+
+/**
+ * Changes to a watched value.
+ */
+#define GNUNET_MESSAGE_TYPE_STATISTICS_WATCH_VALUE 173
+
 
 /**
  * Type used to match 'all' message types.

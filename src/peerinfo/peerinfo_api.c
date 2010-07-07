@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2004, 2005, 2007, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2001, 2002, 2004, 2005, 2007, 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -397,7 +397,7 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 	GNUNET_SCHEDULER_cancel (ic->h->sched, 
 				 ic->timeout_task);
       if (ic->callback != NULL)
-	ic->callback (ic->callback_cls, NULL, NULL, 1);
+	ic->callback (ic->callback_cls, NULL, NULL);
       GNUNET_free (ic);
       return;
     }
@@ -413,7 +413,7 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 	GNUNET_SCHEDULER_cancel (ic->h->sched, 
 				 ic->timeout_task);
       if (ic->callback != NULL)
-	ic->callback (ic->callback_cls, NULL, NULL, 0);
+	ic->callback (ic->callback_cls, NULL, NULL);
       GNUNET_free (ic);
       return;
     }
@@ -428,7 +428,7 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 	GNUNET_SCHEDULER_cancel (ic->h->sched, 
 				 ic->timeout_task);
       if (ic->callback != NULL)
-	ic->callback (ic->callback_cls, NULL, NULL, 2);
+	ic->callback (ic->callback_cls, NULL, NULL);
       GNUNET_free (ic);
       return;
     }
@@ -446,7 +446,7 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 	    GNUNET_SCHEDULER_cancel (ic->h->sched, 
 				     ic->timeout_task);
 	  if (ic->callback != NULL)
-	    ic->callback (ic->callback_cls, NULL, NULL, 2);
+	    ic->callback (ic->callback_cls, NULL, NULL);
 	  GNUNET_free (ic);
           return;
         }
@@ -461,7 +461,7 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 #endif
   ic->h->in_receive = GNUNET_YES;
   if (ic->callback != NULL)
-    ic->callback (ic->callback_cls, &im->peer, hello, ntohl (im->trust));
+    ic->callback (ic->callback_cls, &im->peer, hello);
   GNUNET_CLIENT_receive (ic->h->client,
                          &peerinfo_handler,
                          ic,
@@ -497,7 +497,7 @@ iterator_start_receive (void *cls,
       reconnect (ic->h);
       trigger_transmit (ic->h);
       if (ic->callback != NULL)
-	ic->callback (ic->callback_cls, NULL, NULL, 1);
+	ic->callback (ic->callback_cls, NULL, NULL);
       GNUNET_free (ic);
       return;
     }  
@@ -536,7 +536,7 @@ signal_timeout (void *cls,
     GNUNET_CONTAINER_DLL_remove (ic->h->tq_head,
 				 ic->h->tq_tail,
 				 ic->tqe);
-  ic->callback (ic->callback_cls, NULL, NULL, 1);
+  ic->callback (ic->callback_cls, NULL, NULL);
   ic->callback = NULL;
   if (ic->in_receive)
     return;
@@ -551,16 +551,11 @@ signal_timeout (void *cls,
  * host and then finally once with a NULL pointer.  After that final
  * invocation, the iterator context must no longer be used.
  *
- * Note that the last call can be triggered by timeout or by simply
- * being done; however, the trust argument will be set to zero if we
- * are done, 1 if we timed out and 2 for fatal error.
- *
- * Instead of calling this function with 'peer == NULL' and 'trust ==
- * 0', it is often better to use 'GNUNET_PEERINFO_notify'.
+ * Instead of calling this function with 'peer == NULL' it is often
+ * better to use 'GNUNET_PEERINFO_notify'.
  * 
  * @param h handle to the peerinfo service
  * @param peer restrict iteration to this peer only (can be NULL)
- * @param trust_delta how much to change the trust in all matching peers
  * @param timeout how long to wait until timing out
  * @param callback the method to call for each peer
  * @param callback_cls closure for callback
@@ -570,12 +565,11 @@ signal_timeout (void *cls,
 struct GNUNET_PEERINFO_IteratorContext *
 GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
 			 const struct GNUNET_PeerIdentity *peer,
-			 int trust_delta,
 			 struct GNUNET_TIME_Relative timeout,
 			 GNUNET_PEERINFO_Processor callback,
 			 void *callback_cls)
 {
-  struct ListAllPeersMessage *lapm;
+  struct GNUNET_MessageHeader *lapm;
   struct ListPeerMessage *lpm;
   struct GNUNET_PEERINFO_IteratorContext *ic;
   struct TransmissionQueueEntry *tqe;
@@ -587,12 +581,11 @@ GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
 		  "Requesting list of peers from PEERINFO service\n");
 #endif
       tqe = GNUNET_malloc (sizeof (struct TransmissionQueueEntry) +
-			   sizeof (struct ListAllPeersMessage));
-      tqe->size = sizeof (struct ListAllPeersMessage);
-      lapm = (struct ListAllPeersMessage *) &tqe[1];
-      lapm->header.size = htons (sizeof (struct ListAllPeersMessage));
-      lapm->header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_GET_ALL);
-      lapm->trust_change = htonl (trust_delta);
+			   sizeof (struct GNUNET_MessageHeader));
+      tqe->size = sizeof (struct GNUNET_MessageHeader);
+      lapm = (struct GNUNET_MessageHeader *) &tqe[1];
+      lapm->size = htons (sizeof (struct GNUNET_MessageHeader));
+      lapm->type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_GET_ALL);
     }
   else
     {
@@ -607,7 +600,6 @@ GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
       lpm = (struct ListPeerMessage *) &tqe[1];
       lpm->header.size = htons (sizeof (struct ListPeerMessage));
       lpm->header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_GET);
-      lpm->trust_change = htonl (trust_delta);
       memcpy (&lpm->peer, peer, sizeof (struct GNUNET_PeerIdentity));
     }
   ic = GNUNET_malloc (sizeof (struct GNUNET_PEERINFO_IteratorContext));

@@ -133,6 +133,7 @@ init_notify (void *cls,
                            &init_notify,			 
                            &connect_notify,
                            &disconnect_notify,
+			   NULL,
                            &inbound_notify,
                            GNUNET_YES,
                            &outbound_notify, GNUNET_YES, handlers);
@@ -182,6 +183,7 @@ run (void *cls,
                        &init_notify,
 		       &connect_notify,
                        &disconnect_notify,
+		       NULL,
                        &inbound_notify,
                        GNUNET_YES, &outbound_notify, GNUNET_YES, handlers);
 }

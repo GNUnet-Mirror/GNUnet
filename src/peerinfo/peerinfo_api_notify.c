@@ -142,7 +142,7 @@ process_notification (void *cls,
 	      "Received information about peer `%s' from peerinfo database\n",
 	      GNUNET_i2s (&im->peer));
 #endif
-  nc->callback (nc->callback_cls, &im->peer, hello, ntohl (im->trust));
+  nc->callback (nc->callback_cls, &im->peer, hello);
   receive_notifications (nc);
 }
 

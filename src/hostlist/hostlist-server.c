@@ -183,8 +183,7 @@ check_has_addr (void *cls,
 static void
 host_processor (void *cls,
 		const struct GNUNET_PeerIdentity * peer,
-                const struct GNUNET_HELLO_Message *hello,
-		uint32_t trust)
+                const struct GNUNET_HELLO_Message *hello)
 {
   struct HostSet *results = cls;
   size_t old;
@@ -447,13 +446,11 @@ disconnect_handler (void *cls,
  * @param cls closure (not used)
  * @param peer potential peer to connect to
  * @param hello HELLO for this peer (or NULL)
- * @param trust how much we trust the peer (not used)
  */
 static void
 process_notify (void *cls,
                 const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_HELLO_Message *hello,
-                uint32_t trust)
+                const struct GNUNET_HELLO_Message *hello)
 {
   struct HostSet *results;
 #if DEBUG_HOSTLIST_SERVER
@@ -464,7 +461,6 @@ process_notify (void *cls,
   GNUNET_assert (peerinfo != NULL);
   pitr = GNUNET_PEERINFO_iterate (peerinfo,
                                   NULL,
-                                  0,
                                   GNUNET_TIME_UNIT_MINUTES,
                                   &host_processor,
                                   results);

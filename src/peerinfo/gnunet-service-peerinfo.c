@@ -23,7 +23,7 @@
  * @brief maintains list of known peers
  *
  * Code to maintain the list of currently known hosts (in memory
- * structure of data/hosts/ and data/credit/).
+ * structure of data/hosts/).
  *
  * @author Christian Grothoff
  *
@@ -44,11 +44,6 @@
  * How often do we scan the HOST_DIR for new entries?
  */
 #define DATA_HOST_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
-
-/**
- * How often do we flush trust values to disk?
- */
-#define TRUST_FLUSH_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 /**
  * How often do we discard old entries in data/hosts/?
@@ -76,16 +71,6 @@ struct HostEntry
    */
   struct GNUNET_HELLO_Message *hello;
 
-  /**
-   * Trust rating for this peer
-   */
-  uint32_t trust;
-
-  /**
-   * Trust rating for this peer on disk.
-   */
-  uint32_t disk_trust;
-
 };
 
 
@@ -103,11 +88,6 @@ static struct GNUNET_SERVER_NotificationContext *notify_list;
  * Directory where the hellos are stored in (data/hosts)
  */
 static char *networkIdDirectory;
-
-/**
- * Where do we store trust information?
- */
-static char *trustDirectory;
 
 /**
  * Handle for reporting statistics.
@@ -129,7 +109,6 @@ make_info_message (const struct HostEntry *he)
   im = GNUNET_malloc (sizeof (struct InfoMessage) + hs);
   im->header.size = htons (hs + sizeof (struct InfoMessage));
   im->header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_INFO);
-  im->trust = htonl (he->trust);
   im->peer = he->identity;
   if (he->hello != NULL)
     memcpy (&im[1], he->hello, hs);
@@ -184,25 +163,7 @@ get_host_filename (const struct GNUNET_PeerIdentity *id)
 
 
 /**
- * Get the filename under which we would store the GNUNET_HELLO_Message
- * for the given host and protocol.
- * @return filename of the form DIRECTORY/HOSTID
- */
-static char *
-get_trust_filename (const struct GNUNET_PeerIdentity *id)
-{
-  struct GNUNET_CRYPTO_HashAsciiEncoded fil;
-  char *fn;
-
-  GNUNET_CRYPTO_hash_to_enc (&id->hashPubKey, &fil);
-  GNUNET_asprintf (&fn, "%s%s%s", trustDirectory, DIR_SEPARATOR_STR, &fil);
-  return fn;
-}
-
-
-/**
- * Find the host entry for the given peer.  Call
- * only when synchronized!
+ * Find the host entry for the given peer.  FIXME: replace by hash map!
  * @return NULL if not found
  */
 static struct HostEntry *
@@ -247,13 +208,12 @@ static void
 add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
 {
   struct HostEntry *entry;
-  char *fn;
-  uint32_t trust;
   char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
   const struct GNUNET_HELLO_Message *hello;
   struct GNUNET_HELLO_Message *hello_clean;
   int size;
   struct GNUNET_TIME_Absolute now;
+  char *fn;
 
   entry = lookup_host_entry (identity);
   if (entry != NULL)
@@ -264,11 +224,6 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
 			    GNUNET_NO);
   entry = GNUNET_malloc (sizeof (struct HostEntry));
   entry->identity = *identity;
-  fn = get_trust_filename (identity);
-  if ((GNUNET_DISK_file_test (fn) == GNUNET_YES) &&
-      (sizeof (trust) == GNUNET_DISK_fn_read (fn, &trust, sizeof (trust))))
-    entry->disk_trust = entry->trust = ntohl (trust);
-  GNUNET_free (fn);
 
   fn = get_host_filename (identity);
   if (GNUNET_DISK_file_test (fn) == GNUNET_YES)
@@ -298,56 +253,6 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
   entry->next = hosts;
   hosts = entry;
   notify_all (entry);
-}
-
-
-/**
- * Increase the host credit by a value.
- *
- * @param hostId is the identity of the host
- * @param value is the int value by which the
- *  host credit is to be increased or decreased
- * @returns the actual change in trust (positive or negative)
- */
-static int
-change_host_trust (const struct GNUNET_PeerIdentity *hostId, int value)
-{
-  struct HostEntry *host;
-  unsigned int old_trust;
-
-  if (value == 0)
-    return 0;
-  host = lookup_host_entry (hostId);
-  if (host == NULL)
-    {
-      add_host_to_known_hosts (hostId);
-      host = lookup_host_entry (hostId);
-    }
-  GNUNET_assert (host != NULL);
-  old_trust = host->trust;
-  if (value > 0)
-    {
-      if (host->trust + value < host->trust)
-        {
-          value = UINT32_MAX - host->trust;
-          host->trust = UINT32_MAX;
-        }
-      else
-        host->trust += value;
-    }
-  else
-    {
-      if (host->trust < -value)
-        {
-          value = -host->trust;
-          host->trust = 0;
-        }
-      else
-        host->trust += value;
-    }
-  if (host->trust != old_trust)
-    notify_all (host);    
-  return value;
 }
 
 
@@ -480,16 +385,14 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
 
 /**
  * Do transmit info either for only the host matching the given
- * argument or for all known hosts and change their trust values by
- * the given delta.
+ * argument or for all known hosts.
  *
  * @param only NULL to hit all hosts, otherwise specifies a particular target
- * @param trust_change how much should the trust be changed
  * @param client who is making the request (and will thus receive our confirmation)
  */
 static void
 send_to_each_host (const struct GNUNET_PeerIdentity *only,
-                   int trust_change, struct GNUNET_SERVER_Client *client)
+                   struct GNUNET_SERVER_Client *client)
 {
   struct HostEntry *pos;
   struct InfoMessage *im;
@@ -508,7 +411,6 @@ send_to_each_host (const struct GNUNET_PeerIdentity *only,
            memcmp (only, &pos->identity,
                    sizeof (struct GNUNET_PeerIdentity))))
         {
-          change_host_trust (&pos->identity, trust_change);
           hs = 0;
           im = (struct InfoMessage *) buf;
           if (pos->hello != NULL)
@@ -522,7 +424,7 @@ send_to_each_host (const struct GNUNET_PeerIdentity *only,
             }
 	  im->header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_INFO);
 	  im->header.size = htons (sizeof (struct InfoMessage) + hs);
-          im->trust = htonl (pos->trust);
+          im->reserved = htonl (0);
           im->peer = pos->identity;
           GNUNET_SERVER_transmit_context_append_message (tc,
 							 &im->header);
@@ -538,58 +440,6 @@ send_to_each_host (const struct GNUNET_PeerIdentity *only,
   GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
 					      GNUNET_MESSAGE_TYPE_PEERINFO_INFO_END);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
-}
-
-
-/**
- * Write host-trust information to a file - flush the buffer entry!
- * Assumes synchronized access.
- */
-static void
-flush_trust (struct HostEntry *host)
-{
-  char *fn;
-  uint32_t trust;
-
-  if (host->trust == host->disk_trust)
-    return;                     /* unchanged */
-  fn = get_trust_filename (&host->identity);
-  if (host->trust == 0)
-    {
-      if ((0 != UNLINK (fn)) && (errno != ENOENT))
-        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING |
-                                  GNUNET_ERROR_TYPE_BULK, "unlink", fn);
-    }
-  else
-    {
-      trust = htonl (host->trust);
-      if (sizeof(uint32_t) == GNUNET_DISK_fn_write (fn, &trust, 
-						    sizeof(uint32_t),
-						    GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE
-						    | GNUNET_DISK_PERM_GROUP_READ | GNUNET_DISK_PERM_OTHER_READ))
-        host->disk_trust = host->trust;
-    }
-  GNUNET_free (fn);
-}
-
-/**
- * Call this method periodically to scan data/hosts for new hosts.
- */
-static void
-cron_flush_trust (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct HostEntry *pos;
-
-  pos = hosts;
-  while (pos != NULL)
-    {
-      flush_trust (pos);
-      pos = pos->next;
-    }
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-  GNUNET_SCHEDULER_add_delayed (tc->sched,
-				TRUST_FLUSH_FREQ, &cron_flush_trust, NULL);
 }
 
 
@@ -711,7 +561,7 @@ handle_get (void *cls,
 	      "GET",
 	      GNUNET_i2s (&lpm->peer));
 #endif
-  send_to_each_host (&lpm->peer, ntohl (lpm->trust_change), client);
+  send_to_each_host (&lpm->peer, client);
 }
 
 
@@ -727,15 +577,12 @@ handle_get_all (void *cls,
                 struct GNUNET_SERVER_Client *client,
                 const struct GNUNET_MessageHeader *message)
 {
-  const struct ListAllPeersMessage *lpm;
-
-  lpm = (const struct ListAllPeersMessage *) message;
 #if DEBUG_PEERINFO
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "`%s' message received\n",
 	      "GET_ALL");
 #endif
-  send_to_each_host (NULL, ntohl (lpm->trust_change), client);
+  send_to_each_host (NULL, client);
 }
 
 
@@ -814,7 +661,7 @@ run (void *cls,
     {&handle_get, NULL, GNUNET_MESSAGE_TYPE_PEERINFO_GET,
      sizeof (struct ListPeerMessage)},
     {&handle_get_all, NULL, GNUNET_MESSAGE_TYPE_PEERINFO_GET_ALL,
-     sizeof (struct ListAllPeersMessage)},
+     sizeof (struct GNUNET_MessageHeader)},
     {&handle_notify, NULL, GNUNET_MESSAGE_TYPE_PEERINFO_NOTIFY,
      sizeof (struct GNUNET_MessageHeader)},
     {NULL, NULL, 0, 0}
@@ -826,19 +673,10 @@ run (void *cls,
                                                           "peerinfo",
                                                           "HOSTS",
                                                           &networkIdDirectory));
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                                          "peerinfo",
-                                                          "TRUST",
-                                                          &trustDirectory));
   GNUNET_DISK_directory_create (networkIdDirectory);
-  GNUNET_DISK_directory_create (trustDirectory);
   GNUNET_SCHEDULER_add_with_priority (sched,
 				      GNUNET_SCHEDULER_PRIORITY_IDLE,
 				      &cron_scan_directory_data_hosts, NULL);
-  GNUNET_SCHEDULER_add_with_priority (sched,
-				      GNUNET_SCHEDULER_PRIORITY_HIGH,
-				      &cron_flush_trust, NULL);
   GNUNET_SCHEDULER_add_with_priority (sched,
 				      GNUNET_SCHEDULER_PRIORITY_IDLE,
 				      &cron_clean_data_hosts, NULL);
@@ -868,7 +706,6 @@ main (int argc, char *const *argv)
 			     GNUNET_SERVICE_OPTION_NONE,
 			     &run, NULL)) ? 0 : 1;
   GNUNET_free_non_null (networkIdDirectory);
-  GNUNET_free_non_null (trustDirectory);
   return ret;
 }
 

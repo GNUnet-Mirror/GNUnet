@@ -49,7 +49,6 @@ struct PrintContext
   char **address_list;
   unsigned int num_addresses;
   uint32_t off;
-  uint32_t trust;
 };
 
 
@@ -60,9 +59,8 @@ dump_pc (struct PrintContext *pc)
   unsigned int i;
 
   GNUNET_CRYPTO_hash_to_enc (&pc->peer.hashPubKey, &enc);
-  printf (_("Peer `%s' with trust %8u\n"), 
-	  (const char *) &enc,
-	  pc->trust);
+  printf (_("Peer `%s'\n"), 
+	  (const char *) &enc);
   for (i=0;i<pc->num_addresses;i++)
     {
       printf ("\t%s\n",
@@ -156,13 +154,13 @@ print_address (void *cls,
 
 /**
  * Print information about the peer.
- * Currently prints the GNUNET_PeerIdentity, trust and the IP.
+ * Currently prints the GNUNET_PeerIdentity and the IP.
  * Could of course do more (e.g. resolve via DNS).
  */
 static void
 print_peer_info (void *cls,
                  const struct GNUNET_PeerIdentity *peer,
-                 const struct GNUNET_HELLO_Message *hello, uint32_t trust)
+                 const struct GNUNET_HELLO_Message *hello)
 {
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
   struct PrintContext *pc;
@@ -170,22 +168,8 @@ print_peer_info (void *cls,
   if (peer == NULL)    
     {
       GNUNET_PEERINFO_disconnect (peerinfo);
-      switch (trust)
-	{
-	case 0:
-	  break;
-	case 1:
-	  fprintf (stderr,
-		   _("Timeout trying to interact with PEERINFO service\n"));
-	  break;
-	case 2:
-	  fprintf (stderr,
-		   _("Error in communication with PEERINFO service\n"));
-	  break;
-	default:
-	  GNUNET_break (0);
-	  break;
-	}
+      fprintf (stderr,
+	       _("Error in communication with PEERINFO service\n"));
       return;    
     }
   if (be_quiet)
@@ -196,7 +180,6 @@ print_peer_info (void *cls,
     }
   pc = GNUNET_malloc (sizeof (struct PrintContext));
   pc->peer = *peer;  
-  pc->trust = trust;
   GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &count_address, pc);
   if (0 == pc->off)
     {
@@ -228,27 +211,10 @@ run (void *cls,
   struct GNUNET_PeerIdentity pid;
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
   char *fn;
-  int delta;
 
   sched = s;
   cfg = c;
-  delta = 0;
-  if ( (args[0] != NULL) &&
-       (args[1] != NULL) &&
-       (1 == sscanf(args[0], "%d", &delta)) &&
-       (GNUNET_OK == 
-	GNUNET_CRYPTO_hash_from_string (args[1],
-					&pid.hashPubKey)) )
-    {
-      peerinfo = GNUNET_PEERINFO_connect (sched, cfg);
-      GNUNET_PEERINFO_iterate (peerinfo,
-			       &pid,
-			       delta,
-			       GNUNET_TIME_UNIT_SECONDS,
-			       &print_peer_info, NULL);				   
-      return;
-    }
-  else if (args[0] != NULL)
+  if (args[0] != NULL)
     {
       fprintf (stderr,
 	       _("Invalid command line argument `%s'\n"),
@@ -266,7 +232,6 @@ run (void *cls,
 	}
       (void) GNUNET_PEERINFO_iterate (peerinfo,
 				      NULL,
-				      0,
 				      GNUNET_TIME_relative_multiply
 				      (GNUNET_TIME_UNIT_SECONDS, 2),
 				      &print_peer_info, NULL);

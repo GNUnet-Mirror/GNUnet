@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -830,6 +830,43 @@ send_to_all_clients (const struct GNUNET_MessageHeader *msg,
 
 
 /**
+ * Function called by transport telling us that a peer
+ * changed status.
+ *
+ * @param peer the peer that changed status
+ */
+static void
+handle_peer_status_change (struct Neighbour *n)
+{
+  struct PeerStatusNotifyMessage psnm;
+
+  if (! n->is_connected)
+    return;
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Peer `%4s' changed status\n",
+	      GNUNET_i2s (peer));
+#endif
+  psnm.header.size = htons (sizeof (struct PeerStatusNotifyMessage));
+  psnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_STATUS_CHANGE);
+  psnm.distance = htonl (n->last_distance);
+  psnm.latency = GNUNET_TIME_relative_hton (n->last_latency);
+  psnm.timeout = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_add (n->last_activity,
+								      GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT));
+  psnm.bandwidth_in = n->bw_in;
+  psnm.bandwidth_out = n->bw_out;
+  psnm.peer = n->peer;
+  send_to_all_clients (&psnm.header, 
+		       GNUNET_YES, 
+		       GNUNET_CORE_OPTION_SEND_STATUS_CHANGE);
+  GNUNET_STATISTICS_update (stats, 
+			    gettext_noop ("# peer status changes"), 
+			    1, 
+			    GNUNET_NO);
+}
+
+
+/**
  * Handle CORE_INIT request.
  */
 static void
@@ -997,16 +1034,21 @@ handle_client_request_info (void *cls,
       if (n->bw_out_internal_limit.value__ != rcm->limit_outbound.value__)
 	{
 	  n->bw_out_internal_limit = rcm->limit_outbound;
-	  n->bw_out = GNUNET_BANDWIDTH_value_min (n->bw_out_internal_limit,
-						  n->bw_out_external_limit);
-	  GNUNET_BANDWIDTH_tracker_update_quota (&n->available_recv_window,
-						 n->bw_out);
-	  GNUNET_TRANSPORT_set_quota (transport,
-				      &n->peer,
-				      n->bw_in,
-				      n->bw_out,
-				      GNUNET_TIME_UNIT_FOREVER_REL,
-				      NULL, NULL); 
+	  if (n->bw_out.value__ != GNUNET_BANDWIDTH_value_min (n->bw_out_internal_limit,
+							       n->bw_out_external_limit).value__)
+	    {
+	      n->bw_out = GNUNET_BANDWIDTH_value_min (n->bw_out_internal_limit,
+						      n->bw_out_external_limit);
+	      GNUNET_BANDWIDTH_tracker_update_quota (&n->available_recv_window,
+						     n->bw_out);
+	      GNUNET_TRANSPORT_set_quota (transport,
+					  &n->peer,
+					  n->bw_in,
+					  n->bw_out,
+					  GNUNET_TIME_UNIT_FOREVER_REL,
+					  NULL, NULL); 
+	      handle_peer_status_change (n);
+	    }
 	}
       if (want_reserv < 0)
         {
@@ -2359,13 +2401,11 @@ handle_client_request_connect (void *cls,
  * @param cls the 'struct Neighbour' to retry sending the key for
  * @param peer the peer for which this is the HELLO
  * @param hello HELLO message of that peer
- * @param trust amount of trust we currently have in that peer
  */
 static void
 process_hello_retry_send_key (void *cls,
                               const struct GNUNET_PeerIdentity *peer,
-                              const struct GNUNET_HELLO_Message *hello,
-                              uint32_t trust)
+                              const struct GNUNET_HELLO_Message *hello)
 {
   struct Neighbour *n = cls;
 
@@ -2516,7 +2556,6 @@ send_key (struct Neighbour *n)
       GNUNET_assert (n->pitr == NULL);
       n->pitr = GNUNET_PEERINFO_iterate (peerinfo,
 					 &n->peer,
-					 0,
 					 GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 20),
 					 &process_hello_retry_send_key, n);
       return;
@@ -2666,13 +2705,11 @@ handle_set_key (struct Neighbour *n,
  * @param cls pointer to the set key message
  * @param peer the peer for which this is the HELLO
  * @param hello HELLO message of that peer
- * @param trust amount of trust we currently have in that peer
  */
 static void
 process_hello_retry_handle_set_key (void *cls,
                                     const struct GNUNET_PeerIdentity *peer,
-                                    const struct GNUNET_HELLO_Message *hello,
-                                    uint32_t trust)
+                                    const struct GNUNET_HELLO_Message *hello)
 {
   struct Neighbour *n = cls;
   struct SetKeyMessage *sm = n->skm;
@@ -2922,6 +2959,7 @@ handle_pong (struct Neighbour *n,
 					GNUNET_TIME_relative_divide (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT, 2),
 					&send_keep_alive,
 					n);
+      handle_peer_status_change (n);
       break;
     default:
       GNUNET_break (0);
@@ -2974,7 +3012,6 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
       n->skm = m_cpy;
       n->pitr = GNUNET_PEERINFO_iterate (peerinfo,
 					 &n->peer,
-					 0,
 					 GNUNET_TIME_UNIT_MINUTES,
 					 &process_hello_retry_handle_set_key, n);
       GNUNET_STATISTICS_update (stats, 
@@ -3364,7 +3401,8 @@ handle_encrypted_message (struct Neighbour *n,
   GNUNET_STATISTICS_set (stats,
 			 gettext_noop ("# bytes of payload decrypted"),
 			 size - sizeof (struct EncryptedMessage),
-			 GNUNET_NO);      
+			 GNUNET_NO);
+  handle_peer_status_change (n);
   if (GNUNET_OK != GNUNET_SERVER_mst_receive (mst, 
 					      n,
 					      &buf[sizeof (struct EncryptedMessage)], 
@@ -3396,6 +3434,7 @@ handle_transport_receive (void *cls,
   int up;
   uint16_t type;
   uint16_t size;
+  int changed;
 
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -3411,6 +3450,7 @@ handle_transport_receive (void *cls,
   n = find_neighbour (peer);
   if (n == NULL)
     n = create_neighbour (peer);
+  changed = (latency.value != n->last_latency.value) || (distance != n->last_distance);
   n->last_latency = latency;
   n->last_distance = distance;
   up = (n->status == PEER_STATE_KEY_CONFIRMED);
@@ -3496,6 +3536,7 @@ handle_transport_receive (void *cls,
     {
       now = GNUNET_TIME_absolute_get ();
       n->last_activity = now;
+      changed = GNUNET_YES;
       if (!up)
 	{
 	  GNUNET_STATISTICS_update (stats, gettext_noop ("# established sessions"), 1, GNUNET_NO);
@@ -3509,6 +3550,8 @@ handle_transport_receive (void *cls,
 					&send_keep_alive,
 					n);
     }
+  if (changed)
+    handle_peer_status_change (n);
 }
 
 
@@ -3591,6 +3634,7 @@ neighbour_quota_update (void *cls,
 				    n->bw_out,
 				    GNUNET_TIME_UNIT_FOREVER_REL,
 				    NULL, NULL);
+      handle_peer_status_change (n);
     }
   schedule_quota_update (n);
 }

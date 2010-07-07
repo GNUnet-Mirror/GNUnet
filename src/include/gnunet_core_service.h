@@ -64,6 +64,26 @@ typedef void (*GNUNET_CORE_ConnectEventHandler) (void *cls,
 						 struct GNUNET_TIME_Relative latency,
 						 uint32_t distance);
 
+/**
+ * Method called whenever a given peer has a status change.
+ *
+ * @param cls closure
+ * @param peer peer identity this notification is about
+ * @param latency reported latency of the connection with 'other'
+ * @param distance reported distance (DV) to 'other' 
+ * @param bandwidth_in available amount of inbound bandwidth
+ * @param bandwidth_out available amount of outbound bandwidth
+ * @param timeout absolute time when this peer will time out
+ *        unless we see some further activity from it
+ */
+typedef void (*GNUNET_CORE_PeerStatusEventHandler) (void *cls,
+						    const struct
+						    GNUNET_PeerIdentity * peer,
+						    struct GNUNET_TIME_Relative latency,
+						    uint32_t distance,
+						    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+						    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+						    struct GNUNET_TIME_Absolute timeout);
 
 
 /**
@@ -166,6 +186,7 @@ typedef void
  *        connected to the core service; note that timeout is only meaningful if init is not NULL
  * @param connects function to call on peer connect, can be NULL
  * @param disconnects function to call on peer disconnect / timeout, can be NULL
+ * @param status_events function to call on peer status changes, can be NULL
  * @param inbound_notify function to call for all inbound messages, can be NULL
  *                note that the core is allowed to drop notifications about inbound
  *                messages if the client does not process them fast enough (for this
@@ -201,6 +222,7 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
                      GNUNET_CORE_StartupCallback init,
                      GNUNET_CORE_ConnectEventHandler connects,
                      GNUNET_CORE_DisconnectEventHandler disconnects,
+		     GNUNET_CORE_PeerStatusEventHandler status_events,
                      GNUNET_CORE_MessageCallback inbound_notify,
                      int inbound_hdr_only,
                      GNUNET_CORE_MessageCallback outbound_notify,
