@@ -400,7 +400,7 @@ static int remove_http_message (struct Session * ps, struct HTTP_Message * msg)
 static int remove_session (struct HTTP_PeerContext * pc, struct Session * ps,  int call_msg_cont, int call_msg_cont_result)
 {
   struct HTTP_Message * msg;
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: removing %s session with id %u\n", ps, (ps->direction == INBOUND) ? "inbound" : "outbound",ps->session_id);
   GNUNET_free(ps->addr);
   GNUNET_SERVER_mst_destroy (ps->msgtok);
   GNUNET_free(ps->url);
@@ -481,7 +481,6 @@ static void requestCompletedCallback (void *cls, struct MHD_Connection * connect
   /* if both connections disconnected, remove session */
   if ((ps->send_connected == GNUNET_NO) && (ps->recv_connected == GNUNET_NO))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: removing session\n", ps);
     remove_session(pc,ps,GNUNET_YES,GNUNET_SYSERR);
   }
 }
@@ -1420,11 +1419,8 @@ static void send_execute (void *cls,
                       ps->recv_endpoint=NULL;
                     }
                   }
-                  if (ps->pending_msgs_tail != NULL)
-                  {
-                    if (ps->pending_msgs_tail->pos>0)
-                      remove_http_message(ps, ps->pending_msgs_tail);
-                  }
+                  if ((ps->recv_connected == GNUNET_NO) && (ps->send_connected == GNUNET_NO))
+                    remove_session (pc, ps, GNUNET_YES, GNUNET_SYSERR);
                   return;
                 default:
                   break;

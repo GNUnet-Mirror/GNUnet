@@ -339,6 +339,17 @@ static struct HTTP_Transfer test_too_long_ident;
 static struct HTTP_Transfer test_valid_ident;
 
 /**
+ * Test: session selection, use any existing
+ */
+static int fail_session_selection_any;
+
+
+/**
+* Test: session selection, use reliable existing
+ */
+static int fail_session_selection_reliable;
+
+/**
  * Did the test pass or fail?
  */
 static int fail;
@@ -491,6 +502,18 @@ receive (void *cls,
       run_connection_tests(2);
   }
 
+
+  if ((ntohs(message->type)==60))
+  {
+    fail_session_selection_reliable = GNUNET_NO;
+  }
+
+  if ((ntohs(message->type)==61))
+  {
+    fail_session_selection_any = GNUNET_NO;
+    run_connection_tests(3);
+  }
+
   if ((ntohs(message->type)==40) || (ntohs(message->type)==41))
   {
     fail_multiple_msgs_in_transmission ++;
@@ -621,7 +644,7 @@ static void send_execute (void *cls,
                     curl_easy_cleanup(curl_handle);
                     curl_handle=NULL;
 
-                    run_connection_tests(1);
+                    run_connection_tests(0);
                     }
                   if (res == &test_no_ident)
                   {
@@ -647,7 +670,7 @@ static void send_execute (void *cls,
                   {
                     if  ((res->http_result_code==404) && (buffer_in.len==208))
                       {
-                        GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with too long peer identification: test passed\n"));
+                      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with too long peer identification: test passed\n"));
                       res->test_failed = GNUNET_NO;
                       }
                     else
@@ -665,8 +688,9 @@ static void send_execute (void *cls,
                   }
                   curl_easy_cleanup(curl_handle);
                   curl_handle=NULL;
-
-                  run_connection_tests(1);
+                  if ((res == &test_valid_ident) && (res->test_failed == GNUNET_NO))
+                    run_connection_tests(1);
+                  run_connection_tests(0);
                   return;
                 default:
                   break;
@@ -751,7 +775,7 @@ static int send_data( struct HTTP_Transfer * result, char * url)
     return GNUNET_SYSERR;
   }
 #if DEBUG_CURL
-  curl_easy_setopt(put_curl_handle, CURLOPT_VERBOSE, 1L);
+  curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 1L);
 #endif
   curl_easy_setopt(curl_handle, CURLOPT_URL, url);
   curl_easy_setopt(curl_handle, CURLOPT_PUT, 1L);
@@ -877,71 +901,68 @@ static void pretty_printer_cb (void *cls,
  */
 static void run_connection_tests( int phase )
 {
-
-  char * host_str = NULL;
-  /* resetting buffers */
-  buffer_in.size = HTTP_BUFFER_SIZE;
-  buffer_in.pos = 0;
-  buffer_in.len = 0;
-
-  buffer_out.size = HTTP_BUFFER_SIZE;
-  buffer_out.pos = 0;
-  buffer_out.len = 0;
-
-  if (test_no_ident.test_executed == GNUNET_NO)
+  if (phase==0)
   {
-    /* Connecting to peer without identification */
-    char * ident = "";
-    host_str = GNUNET_malloc (strlen ("http:///")+ 1 + strlen (test_addr)+ strlen (ident));
-    GNUNET_asprintf (&host_str, "http://%s/%s",test_addr,ident);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer without any peer identification.\n"));
-    test_no_ident.test_executed = GNUNET_YES;
-    send_data ( &test_no_ident, host_str);
-    GNUNET_free (host_str);
-    return;
-  }
-  if (test_too_short_ident.test_executed == GNUNET_NO)
-  {
-    char * ident = "AAAAAAAAAA";
-    /* Connecting to peer with too short identification */
-    host_str = GNUNET_malloc (strlen ("http:///")+ 1 + strlen (test_addr)+ strlen (ident));
-    GNUNET_asprintf (&host_str, "http://%s/%s",test_addr,ident);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with too short peer identification.\n"));
-    test_too_short_ident.test_executed = GNUNET_YES;
-    send_data ( &test_too_short_ident, host_str);
-    GNUNET_free (host_str);
-    return;
-  }
+    char * host_str = NULL;
+    /* resetting buffers */
+    buffer_in.size = HTTP_BUFFER_SIZE;
+    buffer_in.pos = 0;
+    buffer_in.len = 0;
 
-  if (test_too_long_ident.test_executed == GNUNET_NO)
-  {
-    char * ident = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+    buffer_out.size = HTTP_BUFFER_SIZE;
+    buffer_out.pos = 0;
+    buffer_out.len = 0;
 
-    /* Connecting to peer with too long identification */
-    host_str = GNUNET_malloc (strlen ("http:///")+ 1 + strlen (test_addr)+ strlen (ident));
-    GNUNET_asprintf (&host_str, "http://%s/%s",test_addr,ident);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with too long peer identification.\n"));
-    test_too_long_ident.test_executed = GNUNET_YES;
-    send_data ( &test_too_long_ident, host_str);
-    GNUNET_free (host_str);
-    return;
+    if (test_no_ident.test_executed == GNUNET_NO)
+    {
+      /* Connecting to peer without identification */
+      char * ident = "";
+      GNUNET_asprintf (&host_str, "http://%s/%s",test_addr,ident);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer without any peer identification.\n"));
+      test_no_ident.test_executed = GNUNET_YES;
+      send_data ( &test_no_ident, host_str);
+      GNUNET_free (host_str);
+      return;
+    }
+    if (test_too_short_ident.test_executed == GNUNET_NO)
+    {
+      char * ident = "AAAAAAAAAA";
+      /* Connecting to peer with too short identification */
+      GNUNET_asprintf (&host_str, "http://%s/%s",test_addr,ident);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with too short peer identification.\n"));
+      test_too_short_ident.test_executed = GNUNET_YES;
+      send_data ( &test_too_short_ident, host_str);
+      GNUNET_free (host_str);
+      return;
+    }
+
+    if (test_too_long_ident.test_executed == GNUNET_NO)
+    {
+      char * ident = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+
+      /* Connecting to peer with too long identification */
+      GNUNET_asprintf (&host_str, "http://%s/%s",test_addr,ident);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with too long peer identification.\n"));
+      test_too_long_ident.test_executed = GNUNET_YES;
+      send_data ( &test_too_long_ident, host_str);
+      GNUNET_free (host_str);
+      return;
+    }
+    if (test_valid_ident.test_executed == GNUNET_NO)
+    {
+      struct GNUNET_CRYPTO_HashAsciiEncoded ident;
+      GNUNET_CRYPTO_hash_to_enc(&my_identity.hashPubKey,&ident);
+      GNUNET_asprintf (&host_str, "http://%s/%s%s",test_addr,(char *) &ident,";0");
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with valid peer identification.\n"));
+      test_valid_ident.test_executed = GNUNET_YES;
+      send_data ( &test_valid_ident, host_str);
+      GNUNET_free (host_str);
+      return;
+    }
   }
-  if (test_valid_ident.test_executed == GNUNET_NO)
-  {
-    struct GNUNET_CRYPTO_HashAsciiEncoded ident;
-    GNUNET_CRYPTO_hash_to_enc(&my_identity.hashPubKey,&ident);
-    host_str = GNUNET_malloc (strlen ("http:///")+ 1 + strlen (test_addr)+ strlen ((char *) &ident));
-    GNUNET_asprintf (&host_str, "http://%s/%s",test_addr,(char *) &ident);
-
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with valid peer identification.\n"));
-    test_valid_ident.test_executed = GNUNET_YES;
-    send_data ( &test_valid_ident, host_str);
-    GNUNET_free (host_str);
-    return;
-  }
-
   if (phase==1)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("\nPhase 1: transmit data to all suggested addresses\n\n"));
     /* Using one of the addresses the plugin proposed */
     GNUNET_assert (addr_head->addr != NULL);
 
@@ -979,11 +1000,33 @@ static void run_connection_tests( int phase )
       count ++;
       type ++;
     }
+
+    msg.type = htons(60);
+    memcpy(tmp,&msg,sizeof(struct GNUNET_MessageHeader));
+    api->send(api->cls, &my_identity, tmp, sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL, NULL, 0, GNUNET_NO, &task_send_cont, &fail_msgs_transmited_to_local_addrs);
+
+    msg.type = htons(61);
+    memcpy(tmp,&msg,sizeof(struct GNUNET_MessageHeader));
+    api->send(api->cls, &my_identity, tmp, sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL, NULL, 0, GNUNET_SYSERR, &task_send_cont, &fail_msgs_transmited_to_local_addrs);
     return;
   }
 
   if (phase==2)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("\nPhase 2: session selection\n\n"));
+
+    struct GNUNET_MessageHeader msg;
+    msg.size=htons(sizeof(struct GNUNET_MessageHeader));
+    msg.type = htons(60);
+    api->send(api->cls, &my_identity, (const char *) &msg, sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL, NULL, 0, GNUNET_NO, &task_send_cont, NULL);
+
+    msg.type = htons(61);
+    api->send(api->cls, &my_identity, (const char *) &msg, sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL, NULL, 0, GNUNET_SYSERR, &task_send_cont, NULL);
+  }
+
+  if (phase==3)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("\nPhase 3: send multiple or big messages after disconnect\n\n"));
     /* disconnect from peer, so new connections are created */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Disconnect from peer: `%s'\n", GNUNET_i2s(&my_identity));
     api->disconnect(api->cls, &my_identity);
@@ -999,7 +1042,7 @@ static void run_connection_tests( int phase )
     struct GNUNET_MessageHeader * msg2 = &msg1[2];
     msg2->size = htons(2 * sizeof(struct GNUNET_MessageHeader));
     msg2->type = htons(41);
-    api->send(api->cls, &my_identity, tmp, 4 * sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL,addr_head->addr, addr_head->addrlen, GNUNET_YES, &task_send_cont, &fail_multiple_msgs_in_transmission);
+    api->send(api->cls, &my_identity, tmp, 4 * sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL,addr_head->addr, addr_head->addrlen, GNUNET_NO, &task_send_cont, &fail_multiple_msgs_in_transmission);
 
     /* send a message with size GNUNET_SERVER_MAX_MESSAGE_SIZE-1  */
     GNUNET_free(tmp);
@@ -1007,7 +1050,15 @@ static void run_connection_tests( int phase )
     uint16_t t = (uint16_t)GNUNET_SERVER_MAX_MESSAGE_SIZE-1;
     msg.size = htons(t);
     memcpy(tmp,&msg,sizeof(struct GNUNET_MessageHeader));
-    api->send(api->cls, &my_identity, tmp, GNUNET_SERVER_MAX_MESSAGE_SIZE-1, 0, TIMEOUT, NULL,addr_head->addr, addr_head->addrlen, GNUNET_YES, &task_send_cont, &fail_msg_transmited_max_size);
+    api->send(api->cls, &my_identity, tmp, GNUNET_SERVER_MAX_MESSAGE_SIZE-1, 0, TIMEOUT, NULL,addr_head->addr, addr_head->addrlen, GNUNET_NO, &task_send_cont, &fail_msg_transmited_max_size);
+    GNUNET_free(tmp);
+    /* send a message without address, use existing session  */
+    tmp = GNUNET_malloc(GNUNET_SERVER_MAX_MESSAGE_SIZE-1);
+    t = (uint16_t)GNUNET_SERVER_MAX_MESSAGE_SIZE-1;
+    msg.size = htons(t);
+    msg.type = htons(50);
+    memcpy(tmp,&msg,sizeof(struct GNUNET_MessageHeader));
+    api->send(api->cls, &my_identity, tmp, GNUNET_SERVER_MAX_MESSAGE_SIZE-1, 0, TIMEOUT, NULL, NULL, 0, GNUNET_NO, &task_send_cont, &fail_msg_transmited_max_size);
     GNUNET_free(tmp);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No more tests to run\n");
@@ -1044,6 +1095,8 @@ run (void *cls,
   fail_msgs_transmited_to_local_addrs = 0;
   fail_msg_transmited_max_size = GNUNET_YES;
   fail_multiple_msgs_in_transmission = 0;
+  fail_session_selection_reliable = GNUNET_YES;
+  fail_session_selection_reliable = GNUNET_YES;
 
   addr_head = NULL;
   count_str_addr = 0;
@@ -1191,6 +1244,8 @@ run (void *cls,
   test_valid_ident.test_failed = GNUNET_YES;
 
   test_addr = (char *) api->address_to_string (api->cls,addr_head->addr,addr_head->addrlen);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("\nPhase 0\n\n"));
   run_connection_tests(0);
 
   /* testing finished */
