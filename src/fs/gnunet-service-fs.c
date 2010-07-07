@@ -24,11 +24,9 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - bound_priority should not charge if we are not loaded (excess-based economy)
- * - have a way to drop queries based on load (or just forward...)
- * - introduce random latency in processing
+ * - implement test_load_too_high, make decision priority-based, implement forwarding, etc.
  * - consider more precise latency estimation (per-peer & request)
- * - better algorithm for priority selection for requests we initiate?
+ * - introduce random latency in processing
  * - tell other peers to stop migration if our PUTs fail (or if
  *   we don't support migration per configuration?)
  * - more statistics
@@ -1792,12 +1790,12 @@ mingle_hash (const GNUNET_HashCode * in,
  * to even consider processing the query at
  * all.
  * 
- * @return GNUNET_YES if the load is too high, GNUNET_NO otherwise
+ * @return GNUNET_YES if the load is too high to do anything, GNUNET_NO to forward (load high, but not too high), GNUNET_SYSERR to indirect (load low)
  */
 static int
 test_load_too_high ()
 {
-  return GNUNET_NO; // FIXME
+  return GNUNET_SYSERR; // FIXME
 }
 
 
@@ -3111,8 +3109,11 @@ bound_priority (uint32_t prio_in,
 #define N ((double)128.0)
   uint32_t ret;
   double rret;
-  /* FIXME: check if load is low and we
-     hence should not charge... */
+  int ld;
+
+  ld = test_load_too_high ();
+  if (ld == GNUNET_SYSERR)
+    return 0; /* excess resources */
   ret = change_host_trust (cp, prio_in);
   if (ret > 0)
     {
@@ -3191,6 +3192,7 @@ handle_p2p_get (void *cls,
   uint32_t ttl_decrement;
   enum GNUNET_BLOCK_Type type;
   int have_ns;
+  int ld;
 
   msize = ntohs(message->size);
   if (msize < sizeof (struct GetMessage))
@@ -3274,7 +3276,11 @@ handle_p2p_get (void *cls,
   /* note that we can really only check load here since otherwise
      peers could find out that we are overloaded by not being
      disconnected after sending us a malformed query... */
-  if (GNUNET_YES == test_load_too_high ())
+
+  /* FIXME: query priority should play
+     a major role here! */
+  ld = test_load_too_high ();
+  if (GNUNET_YES == ld)
     {
 #if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -3287,6 +3293,8 @@ handle_p2p_get (void *cls,
 				GNUNET_NO);
       return GNUNET_OK;
     }
+  /* FIXME: if ld == GNUNET_NO, forward
+     instead of indirecting! */
 
 #if DEBUG_FS 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
