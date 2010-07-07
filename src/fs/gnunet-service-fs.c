@@ -24,9 +24,8 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - trust not properly received and pushed back to peerinfo!
- * - bound_priority by priorities used by other peers
- * - have a way to drop queries based on load
+ * - bound_priority should not charge if we are not loaded (excess-based economy)
+ * - have a way to drop queries based on load (or just forward...)
  * - introduce random latency in processing
  * - consider more precise latency estimation (per-peer & request)
  * - better algorithm for priority selection for requests we initiate?
@@ -93,12 +92,6 @@ static uint64_t max_pending_requests = (32 * 1024);
  * actual message follows at the end of this struct.
  */
 struct PendingMessage;
-
-/**
- * Our connection to the datastore.
- */
-static struct GNUNET_DATASTORE_Handle *dsh;
-
 
 /**
  * Function called upon completion of a transmission.
@@ -625,6 +618,12 @@ struct MigrationReadyBlock
 
 
 /**
+ * Our connection to the datastore.
+ */
+static struct GNUNET_DATASTORE_Handle *dsh;
+
+
+/**
  * Our scheduler.
  */
 static struct GNUNET_SCHEDULER_Handle *sched;
@@ -716,6 +715,17 @@ static unsigned int mig_size;
  */
 static int active_migration;
 
+/**
+ * Typical priorities we're seeing from other peers right now.  Since
+ * most priorities will be zero, this value is the weighted average of
+ * non-zero priorities seen "recently".  In order to ensure that new
+ * values do not dramatically change the ratio, values are first
+ * "capped" to a reasonable range (+N of the current value) and then
+ * averaged into the existing value by a ratio of 1:N.  Hence
+ * receiving the largest possible priority can still only raise our
+ * "current_priorities" by at most 1.
+ */
+static double current_priorities;
 
 /**
  * Get the filename under which we would store the GNUNET_HELLO_Message
@@ -1394,11 +1404,6 @@ peer_disconnect_handler (void *cls,
       GNUNET_CONTAINER_multihashmap_iterate (connected_peers,
 					     &consider_migration,
 					     pos);
-    }
-  if (cp->trust > 0)
-    {
-      /* FIXME: push trust back to peerinfo! 
-	 (need better peerinfo API!) */
     }
   GNUNET_PEER_change_rc (cp->pid, -1);
   GNUNET_PEER_decrement_rcs (cp->last_p2p_replies, P2P_SUCCESS_LIST_SIZE);
@@ -2316,8 +2321,12 @@ forward_request_task (void *cls,
       if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
 					 4))
 	pr->priority++;
-      /* FIXME: bound priority by "customary" priority used by other peers
-	 at this time! */
+      /* bound priority we use by priorities we see from other peers
+	 rounded up (must round up so that we can see non-zero
+	 priorities, but round up as little as possible to make it
+	 plausible that we forwarded another peers request) */
+      if (pr->priority > current_priorities + 1.0)
+	pr->priority = (uint32_t) current_priorities + 1.0;
       pr->ttl = bound_ttl (pr->ttl + TTL_DECREMENT * 2,
 			   pr->priority);
 #if DEBUG_FS
@@ -3099,9 +3108,23 @@ static uint32_t
 bound_priority (uint32_t prio_in,
 		struct ConnectedPeer *cp)
 {
+#define N ((double)128.0)
+  uint32_t ret;
+  double rret;
   /* FIXME: check if load is low and we
      hence should not charge... */
-  return change_host_trust (cp, prio_in);
+  ret = change_host_trust (cp, prio_in);
+  if (ret > 0)
+    {
+      if (ret > current_priorities + N)
+	rret = current_priorities + N;
+      else
+	rret = ret;
+      current_priorities 
+	= (current_priorities * (N-1) + rret)/N;
+    }
+#undef N
+  return ret;
 }
 
 
