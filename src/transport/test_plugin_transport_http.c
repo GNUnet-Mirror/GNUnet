@@ -57,7 +57,7 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 /**
  * How long between recieve and send?
@@ -343,6 +343,16 @@ static struct HTTP_Transfer test_valid_ident;
  */
 static int fail_session_selection_any;
 
+/**
+ * Test: session selection, use existing inbound session
+ */
+static int fail_session_selection_session;
+
+/**
+ * Test: session selection, use existing inbound session
+ * max message, not fitting in send & recv buffers at one time
+ */
+static int fail_session_selection_session_big;
 
 /**
 * Test: session selection, use reliable existing
@@ -384,17 +394,22 @@ shutdown_clean ()
   fail = 0;
   if ((fail_notify_address == GNUNET_YES) || (fail_pretty_printer == GNUNET_YES) || (fail_addr_to_str == GNUNET_YES))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test plugin functions failed\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Phase 0: Test plugin functions failed\n");
     fail = 1;
   }
   if ((test_no_ident.test_failed == GNUNET_YES) || (test_too_short_ident.test_failed == GNUNET_YES) || (test_too_long_ident.test_failed == GNUNET_YES) || (test_valid_ident.test_failed == GNUNET_YES))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test connect with wrong data failed\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Phase 1: Test connect with wrong data failed\n");
+    fail = 1;
+  }
+  if ((fail_session_selection_any != GNUNET_NO) || (fail_session_selection_reliable != GNUNET_NO) || (fail_session_selection_session != GNUNET_NO) || (fail_session_selection_session_big != GNUNET_NO))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Phase 2: Test session selection failed\n");
     fail = 1;
   }
   if ((fail_msgs_transmited_to_local_addrs != count_str_addr) || (fail_multiple_msgs_in_transmission != 2) || (fail_msg_transmited_max_size == GNUNET_YES))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test sending with plugin failed\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Phase 3: Test sending with plugin failed\n");
     fail = 1;
   }
   if (fail != 1)
@@ -479,7 +494,7 @@ static void task_send_cont (void *cls,
 }
 
 
-static void run_connection_tests( int );
+static void run_connection_tests( int phase , void * cls);
 
 /**
  * Recieves messages from plugin, in real world transport
@@ -493,33 +508,42 @@ receive (void *cls,
          const char *sender_address,
          uint16_t sender_address_len)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testcase recieved new message from peer `%s' with type %u and length %u\n",  GNUNET_i2s(peer), ntohs(message->type), ntohs(message->size));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testcase recieved new message from peer `%s' with type %u and length %u, session %X\n",  GNUNET_i2s(peer), ntohs(message->type), ntohs(message->size),session);
 
-  if ((ntohs(message->type)>=10) && (ntohs(message->type)<=20))
+  if ((ntohs(message->type)>=10) && (ntohs(message->type)<20))
   {
     fail_msgs_transmited_to_local_addrs++;
     if (fail_msgs_transmited_to_local_addrs == count_str_addr)
-      run_connection_tests(2);
+      run_connection_tests(2, session);
   }
 
 
-  if ((ntohs(message->type)==60))
+  if ((ntohs(message->type)==20))
   {
     fail_session_selection_reliable = GNUNET_NO;
   }
 
-  if ((ntohs(message->type)==61))
+  if ((ntohs(message->type)==21))
   {
     fail_session_selection_any = GNUNET_NO;
-    run_connection_tests(3);
+  }
+  if ((ntohs(message->type)==22))
+  {
+    fail_session_selection_session = GNUNET_NO;
   }
 
-  if ((ntohs(message->type)==40) || (ntohs(message->type)==41))
+  if ((ntohs(message->type)==23))
+  {
+    fail_session_selection_session_big = GNUNET_NO;
+    run_connection_tests(3, NULL);
+  }
+
+  if ((ntohs(message->type)==30) || (ntohs(message->type)==31))
   {
     fail_multiple_msgs_in_transmission ++;
   }
 
-  if (ntohs(message->size) == GNUNET_SERVER_MAX_MESSAGE_SIZE-1)
+  if ((ntohs(message->type)==32) && (ntohs(message->size) == GNUNET_SERVER_MAX_MESSAGE_SIZE-1))
   {
     fail_msg_transmited_max_size = GNUNET_NO;
     shutdown_clean();
@@ -595,7 +619,7 @@ static size_t header_function( void *ptr, size_t size, size_t nmemb, void *strea
 
 static size_t send_prepare( struct HTTP_Transfer * result);
 
-static void run_connection_tests( );
+
 
 static void send_execute (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -644,7 +668,7 @@ static void send_execute (void *cls,
                     curl_easy_cleanup(curl_handle);
                     curl_handle=NULL;
 
-                    run_connection_tests(0);
+                    run_connection_tests(0, NULL);
                     }
                   if (res == &test_no_ident)
                   {
@@ -689,8 +713,8 @@ static void send_execute (void *cls,
                   curl_easy_cleanup(curl_handle);
                   curl_handle=NULL;
                   if ((res == &test_valid_ident) && (res->test_failed == GNUNET_NO))
-                    run_connection_tests(1);
-                  run_connection_tests(0);
+                    run_connection_tests(1, NULL);
+                  run_connection_tests(0, NULL);
                   return;
                 default:
                   break;
@@ -899,8 +923,11 @@ static void pretty_printer_cb (void *cls,
 /**
  * Runs every single test to test the plugin
  */
-static void run_connection_tests( int phase )
+static void run_connection_tests( int phase , void * cls)
 {
+  struct GNUNET_MessageHeader * msg;
+  unsigned int size;
+
   if (phase==0)
   {
     char * host_str = NULL;
@@ -1000,66 +1027,68 @@ static void run_connection_tests( int phase )
       count ++;
       type ++;
     }
-
-    msg.type = htons(60);
-    memcpy(tmp,&msg,sizeof(struct GNUNET_MessageHeader));
-    api->send(api->cls, &my_identity, tmp, sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL, NULL, 0, GNUNET_NO, &task_send_cont, &fail_msgs_transmited_to_local_addrs);
-
-    msg.type = htons(61);
-    memcpy(tmp,&msg,sizeof(struct GNUNET_MessageHeader));
-    api->send(api->cls, &my_identity, tmp, sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL, NULL, 0, GNUNET_SYSERR, &task_send_cont, &fail_msgs_transmited_to_local_addrs);
     return;
   }
 
   if (phase==2)
   {
+    struct Session * session = cls;
+    msg = GNUNET_malloc (sizeof(struct GNUNET_MessageHeader));
+
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("\nPhase 2: session selection\n\n"));
+    size = sizeof(struct GNUNET_MessageHeader);
+    msg->size=htons(size);
+    msg->type = htons(20);
+    api->send(api->cls, &my_identity, (const char *) msg, size, 0, TIMEOUT, NULL, NULL, 0, GNUNET_NO, &task_send_cont, NULL);
 
-    struct GNUNET_MessageHeader msg;
-    msg.size=htons(sizeof(struct GNUNET_MessageHeader));
-    msg.type = htons(60);
-    api->send(api->cls, &my_identity, (const char *) &msg, sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL, NULL, 0, GNUNET_NO, &task_send_cont, NULL);
+    msg->type = htons(21);
+    api->send(api->cls, &my_identity, (const char *) msg, size, 0, TIMEOUT, NULL, NULL, 0, GNUNET_SYSERR, &task_send_cont, NULL);
 
-    msg.type = htons(61);
-    api->send(api->cls, &my_identity, (const char *) &msg, sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL, NULL, 0, GNUNET_SYSERR, &task_send_cont, NULL);
+    /* answer on session*/
+    size = sizeof( struct GNUNET_MessageHeader);
+    msg->size = htons(size);
+    msg->type = htons(22);
+    api->send(api->cls, &my_identity, (const char *) msg, size, 0, TIMEOUT, session, NULL, 0, GNUNET_SYSERR, &task_send_cont, NULL);
+
+    GNUNET_free(msg);
+
+    /* answer on session with big message not fitting in mhd send buffer*/
+    size = GNUNET_SERVER_MAX_MESSAGE_SIZE-1;
+    msg = GNUNET_malloc (size);
+    msg->size=htons(size);
+    msg->type = htons(23);
+    api->send(api->cls, &my_identity, (const char *) msg, size, 0, TIMEOUT, session, NULL, 0, GNUNET_NO, &task_send_cont, NULL);
+    GNUNET_free(msg);
+    return;
   }
 
   if (phase==3)
   {
+
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("\nPhase 3: send multiple or big messages after disconnect\n\n"));
     /* disconnect from peer, so new connections are created */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Disconnect from peer: `%s'\n", GNUNET_i2s(&my_identity));
     api->disconnect(api->cls, &my_identity);
 
-    struct GNUNET_MessageHeader msg;
-    char * tmp = GNUNET_malloc(sizeof(struct GNUNET_MessageHeader));
     /* send a multiple GNUNET_messages at a time*/
-    GNUNET_free(tmp);
-    tmp = GNUNET_malloc(4 * sizeof(struct GNUNET_MessageHeader));
-    struct GNUNET_MessageHeader * msg1 = (struct GNUNET_MessageHeader *) tmp;
-    msg1->size = htons(2 * sizeof(struct GNUNET_MessageHeader));
-    msg1->type = htons(40);
-    struct GNUNET_MessageHeader * msg2 = &msg1[2];
-    msg2->size = htons(2 * sizeof(struct GNUNET_MessageHeader));
-    msg2->type = htons(41);
-    api->send(api->cls, &my_identity, tmp, 4 * sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL,addr_head->addr, addr_head->addrlen, GNUNET_NO, &task_send_cont, &fail_multiple_msgs_in_transmission);
 
+    size = 2 * sizeof(struct GNUNET_MessageHeader);
+    msg = GNUNET_malloc( 2* size);
+    msg->size = htons(size);
+    msg->type = htons(30);
+    struct GNUNET_MessageHeader * msg2 = &msg[2];
+    msg2->size = htons(2 * sizeof(struct GNUNET_MessageHeader));
+    msg2->type = htons(31);
+    api->send(api->cls, &my_identity, (const char *) msg, 4 * sizeof(struct GNUNET_MessageHeader), 0, TIMEOUT, NULL,addr_head->addr, addr_head->addrlen, GNUNET_NO, &task_send_cont, &fail_multiple_msgs_in_transmission);
+    GNUNET_free(msg);
     /* send a message with size GNUNET_SERVER_MAX_MESSAGE_SIZE-1  */
-    GNUNET_free(tmp);
-    tmp = GNUNET_malloc(GNUNET_SERVER_MAX_MESSAGE_SIZE-1);
-    uint16_t t = (uint16_t)GNUNET_SERVER_MAX_MESSAGE_SIZE-1;
-    msg.size = htons(t);
-    memcpy(tmp,&msg,sizeof(struct GNUNET_MessageHeader));
-    api->send(api->cls, &my_identity, tmp, GNUNET_SERVER_MAX_MESSAGE_SIZE-1, 0, TIMEOUT, NULL,addr_head->addr, addr_head->addrlen, GNUNET_NO, &task_send_cont, &fail_msg_transmited_max_size);
-    GNUNET_free(tmp);
-    /* send a message without address, use existing session  */
-    tmp = GNUNET_malloc(GNUNET_SERVER_MAX_MESSAGE_SIZE-1);
-    t = (uint16_t)GNUNET_SERVER_MAX_MESSAGE_SIZE-1;
-    msg.size = htons(t);
-    msg.type = htons(50);
-    memcpy(tmp,&msg,sizeof(struct GNUNET_MessageHeader));
-    api->send(api->cls, &my_identity, tmp, GNUNET_SERVER_MAX_MESSAGE_SIZE-1, 0, TIMEOUT, NULL, NULL, 0, GNUNET_NO, &task_send_cont, &fail_msg_transmited_max_size);
-    GNUNET_free(tmp);
+
+    size = GNUNET_SERVER_MAX_MESSAGE_SIZE-1;
+    msg = GNUNET_malloc(size);
+    msg->size = htons(size);
+    msg->type = htons(32);
+    api->send(api->cls, &my_identity, (const char *) msg, size, 0, TIMEOUT, NULL,addr_head->addr, addr_head->addrlen, GNUNET_NO, &task_send_cont, &fail_msg_transmited_max_size);
+    GNUNET_free(msg);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No more tests to run\n");
 }
@@ -1097,6 +1126,8 @@ run (void *cls,
   fail_multiple_msgs_in_transmission = 0;
   fail_session_selection_reliable = GNUNET_YES;
   fail_session_selection_reliable = GNUNET_YES;
+  fail_session_selection_session = GNUNET_YES;
+  fail_session_selection_session_big = GNUNET_YES;
 
   addr_head = NULL;
   count_str_addr = 0;
@@ -1246,7 +1277,7 @@ run (void *cls,
   test_addr = (char *) api->address_to_string (api->cls,addr_head->addr,addr_head->addrlen);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("\nPhase 0\n\n"));
-  run_connection_tests(0);
+  run_connection_tests(0, NULL);
 
   /* testing finished */
 

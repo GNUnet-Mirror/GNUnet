@@ -568,26 +568,21 @@ int mhd_send_callback (void *cls, uint64_t pos, char *buf, int max)
 
   if (msg!=NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"mhd_send_callback %X: queue msg size: %u, max %u pos %u msg->pos %u\n",ps,msg->size,max,pos,msg->pos);
     if ((msg->size-msg->pos) <= max)
     {
       memcpy(buf,&msg->buf[msg->pos],(msg->size-msg->pos));
       bytes_read = msg->size-msg->pos;
       msg->pos+=(msg->size-msg->pos);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"mhd_send_callback %X: complete: size %u pos %u bytes read %u \n",ps,msg->size,msg->pos,bytes_read);
     }
     else
     {
       memcpy(buf,&msg->buf[msg->pos],max);
       msg->pos+=max;
       bytes_read = max;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"mhd_send_callback %X: partial: size %u pos %u bytes read %u \n",ps,msg->size,msg->pos,bytes_read);
     }
 
     if (msg->pos==msg->size)
     {
-      struct GNUNET_MessageHeader * tmp = (struct GNUNET_MessageHeader *) msg->buf;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"MHD SENT MESSAGE %u bytes msg->type %u msg->size %u\n", bytes_read, ntohs(tmp->type), ntohs(tmp->size));
       if (NULL!=msg->transmit_cont)
         msg->transmit_cont (msg->transmit_cont_cls,&pc->identity,GNUNET_OK);
       res = remove_http_message(ps,msg);
@@ -1143,11 +1138,7 @@ static size_t curl_receive_cb( void *stream, size_t size, size_t nmemb, void *pt
 #if DEBUG_CONNECTIONS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: %u bytes received\n",ps, size*nmemb);
 #endif
-
-  struct GNUNET_MessageHeader * msg = stream;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: %u bytes msg->type %u msg->size %u\n",ps, size*nmemb, ntohs(msg->type), ntohs(msg->size));
-
-  // GNUNET_SERVER_mst_receive(ps->msgtok, ps, stream, size*nmemb, GNUNET_NO, GNUNET_NO);
+  GNUNET_SERVER_mst_receive(ps->msgtok, ps, stream, size*nmemb, GNUNET_NO, GNUNET_NO);
   return (size * nmemb);
 
 }
@@ -1712,37 +1703,41 @@ http_plugin_disconnect (void *cls,
   struct Plugin *plugin = cls;
   struct HTTP_PeerContext *pc = NULL;
   struct Session *ps = NULL;
+  //struct Session *tmp = NULL;
 
   pc = GNUNET_CONTAINER_multihashmap_get (plugin->peers, &target->hashPubKey);
   if (pc==NULL)
     return;
-
   ps = pc->head;
 
   while (ps!=NULL)
   {
+
     if (ps->direction==OUTBOUND)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"connections %X\n", ps, GNUNET_i2s(target));
       if (ps->send_endpoint!=NULL)
       {
-        curl_multi_remove_handle(plugin->multi_handle,ps->send_endpoint);
-        curl_easy_cleanup(ps->send_endpoint);
-        ps->send_endpoint=NULL;
+        //curl_multi_remove_handle(plugin->multi_handle,ps->send_endpoint);
+        //curl_easy_cleanup(ps->send_endpoint);
+        //ps->send_endpoint=NULL;
         ps->send_force_disconnect = GNUNET_YES;
       }
       if (ps->recv_endpoint!=NULL)
       {
-       curl_multi_remove_handle(plugin->multi_handle,ps->recv_endpoint);
-       curl_easy_cleanup(ps->recv_endpoint);
-       ps->recv_endpoint=NULL;
+       //curl_multi_remove_handle(plugin->multi_handle,ps->recv_endpoint);
+       //curl_easy_cleanup(ps->recv_endpoint);
+       //ps->recv_endpoint=NULL;
        ps->recv_force_disconnect = GNUNET_YES;
       }
     }
+
     if (ps->direction==INBOUND)
     {
       ps->recv_force_disconnect = GNUNET_YES;
       ps->send_force_disconnect = GNUNET_YES;
     }
+
     while (ps->pending_msgs_head!=NULL)
     {
       remove_http_message(ps, ps->pending_msgs_head);
@@ -1751,7 +1746,6 @@ http_plugin_disconnect (void *cls,
     ps->send_active = GNUNET_NO;
     ps=ps->next;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"All connections to peer `%s' terminated\n", GNUNET_i2s(target));
 }
 
 
