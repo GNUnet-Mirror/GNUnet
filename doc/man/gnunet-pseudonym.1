@@ -23,22 +23,12 @@ For more details about GNUnet namespaces and content encoding please read the 'E
 set desired level of sender anonymity.  Default is 1.
 
 .TP
-\fB\-A\fR, \fB\-\-automate\fR
-Start a (new) collection.  Works only in conjunction with the \-C option.  A collection is an automatically managed directory in a namespace.  In essence, after starting the collection every file that you insert into GNUnet will automatically be placed into the collection.  Other users can browse your collection and be certain (thanks to cryptography) that all of these files were inserted into GNUnet by the same user (they do not necessarily know who it is, but if you specify your realname (\-r) they will be able to see that handle).  Collections are useful for establishing a reputation for your GNUnet content, such that readers can form an opinion about quality and availability.  Namespaces can be used to achieve the same thing, but collections are automatic and thus less work for you.
-
-Using collections has some security implications since it is possible for an adversary to see that all of these files originate from the same user.  This may help a correlation attack to break anonymity.  Nevertheless we encourage using collections, they are likely to be the right choice for most users.
-
-.TP
 \fB\-C NAME\fR, \fB\-\-create=NAME\fR
 Creates a new pseudonym with the given NAME or creates a new advertisement for the pseudonym with the given NAME (if the pseudonym already exists).
 
 .TP
 \fB\-D NAME\fR, \fB\-\-delete=NAME\fR
 Delete the pseudonym with the given NAME.
-
-.TP
-\fB\-e\fR, \fB\-\-end\fR
-End a collection.  This option is the opposite of the \-A option in that it stops the collection.  Note that currently, once you stop a collection you can never restart it.  However, you can start a new collection.  There can only be one collection at any given point in time for a particular user.
 
 .TP
 \fB\-h\fR, \fB\-\-help\fR
@@ -76,10 +66,6 @@ Change the rating for the namespace identified by ID by VALUE.  For example, "\-
 .TP
 ~/.gnunet/data/pseudonyms/
 Directory where the pseudonyms are stored
-
-.TP
-~/.gnunet/data/collection
-File where information about the currently active collection is kept (if any)
 
 .SH "REPORTING BUGS"
 Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>

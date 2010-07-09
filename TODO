@@ -25,8 +25,6 @@
   - datastore reservation (publishing)
   - unindex on index failure
   - listing of learned namespaces
-  - collection API & tests
-    + gnunet-pseudonym (collection support)
   - artificial delays
   - active reply route caching design & implementation of service; gap extension!
   - utilize in-line files in meta data always (including in search results or

@@ -2465,66 +2465,6 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
 			 int do_delete);
 
 
-/**
- * Initialize collection.
- *
- * @param h handle to the file sharing subsystem
- * @param namespace namespace to use for the collection
- * @return GNUNET_OK on success, GNUNET_SYSERR if another
- *         namespace is already set for our collection
- */
-int 
-GNUNET_FS_collection_start (struct GNUNET_FS_Handle *h,
-			    struct GNUNET_FS_Namespace *namespace);
-
-
-/**
- * Stop collection.
- *
- * @param h handle to the file sharing subsystem
- * @return GNUNET_OK on success, GNUNET_SYSERR if no collection is active
- */
-int 
-GNUNET_FS_collection_stop (struct GNUNET_FS_Handle *h);
-
-
-/**
- * Are we using a collection?
- *
- * @param h handle to the file sharing subsystem
- * @return NULL if there is no collection,
- */
-struct GNUNET_FS_Namespace *
-GNUNET_FS_collection_get(struct GNUNET_FS_Handle *h);
-
-
-/**
- * Publish an update of the current collection information to the
- * network now.  The function has no effect if the collection has not
- * changed since the last publication.  If we are currently not
- * collecting, this function does nothing.
- *
- * @param h handle to the file sharing subsystem
- */
-void GNUNET_FS_collection_publish (struct GNUNET_FS_Handle *h);
-
-
-/**
- * If we are currently building a collection, publish the given file
- * information in that collection.  If we are currently not
- * collecting, this function does nothing.
- *
- * @param h handle to the file sharing subsystem
- * @param uri uri to add to the collection
- * @param meta metadata for the uri
- */
-void GNUNET_FS_collection_add (const struct GNUNET_FS_Handle *h,
-			       const struct GNUNET_FS_Uri *uri,
-			       const struct GNUNET_CONTAINER_MetaData *meta);
-
-
-
-
 
 /* ******************** Directory API *********************** */
 

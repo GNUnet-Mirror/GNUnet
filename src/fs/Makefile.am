@@ -17,7 +17,6 @@ noinst_LIBRARIES = libgnunetfstest.a
 
 libgnunetfs_la_SOURCES = \
   fs.c fs.h \
-  fs_collection.c \
   fs_directory.c \
   fs_download.c \
   fs_file_information.c \

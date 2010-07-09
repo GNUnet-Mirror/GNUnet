@@ -31,16 +31,6 @@
 static unsigned int anonymity;
 
 /**
- * -A option.
- */
-static int start_automate;
-
-/**
- * -e option
- */
-static int stop_automate;
-
-/**
  * -C option
  */
 static char *create_ns;
@@ -175,14 +165,6 @@ post_advertising (void *cls,
 	  GNUNET_FS_namespace_delete (ns,
 				      GNUNET_NO))
 	ret = 1;
-    }
-  if (0 != stop_automate)
-    {
-      GNUNET_break (0); // FIXME: not implemented
-    }
-  if (0 != start_automate)
-    {
-      GNUNET_break (0); // FIXME: not implemented
     }
   if (NULL != rating_change)
     {
@@ -341,9 +323,6 @@ main (int argc, char *const *argv)
     {'a', "anonymity", "LEVEL",
      gettext_noop ("set the desired LEVEL of sender-anonymity"),
      1, &GNUNET_GETOPT_set_uint, &anonymity},
-    {'A', "automate", NULL,
-     gettext_noop ("start a collection"),
-     0, &GNUNET_GETOPT_set_one, &start_automate},
     {'C', "create", "NAME",
      gettext_noop
      ("create or advertise namespace NAME"),
@@ -352,9 +331,6 @@ main (int argc, char *const *argv)
      gettext_noop
      ("delete namespace NAME "),
      1, &GNUNET_GETOPT_set_string, &delete_ns},
-    {'e', "end", NULL,
-     gettext_noop ("end current collection"),
-     0, &GNUNET_GETOPT_set_one, &stop_automate},
     {'k', "keyword", "VALUE",
      gettext_noop
      ("add an additional keyword for the advertisment"
