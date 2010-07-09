@@ -1049,7 +1049,7 @@ handle_put (void *cls,
       if (NULL != pos)
 	{
 	  GNUNET_break (pos->entries > 0);
-	  GNUNET_break (pos->amount > size);
+	  GNUNET_break (pos->amount >= size);
 	  pos->entries--;
 	  pos->amount -= size;
 	  reserved -= (size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
