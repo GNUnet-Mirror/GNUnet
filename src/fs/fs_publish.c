@@ -279,7 +279,7 @@ publish_sblocks_cont (void *cls,
       pc->qre = GNUNET_DATASTORE_release_reserve (pc->dsh,
 						  pc->rid,
 						  UINT_MAX,
-						  UNIT_MAX,
+						  UINT_MAX,
 						  GNUNET_TIME_UNIT_FOREVER_REL,
 						  &finish_release_reserve,
 						  pc);
@@ -1165,7 +1165,6 @@ finish_reserve (void *cls,
 		const char *msg)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
-  struct GNUNET_FS_ProgressInfo pi;
 
   pc->qre = NULL;
   if ( (msg != NULL) ||
@@ -1180,11 +1179,11 @@ finish_reserve (void *cls,
       return;
     }
   pc->rid = success;
-  ret->upload_task 
-    = GNUNET_SCHEDULER_add_with_priority (h->sched,
+  pc->upload_task 
+    = GNUNET_SCHEDULER_add_with_priority (pc->h->sched,
 					  GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
 					  &GNUNET_FS_publish_main_,
-					  ret);
+					  pc);
 }
 
 

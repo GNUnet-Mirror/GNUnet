@@ -40,9 +40,16 @@
 #define START_ARM GNUNET_YES
 
 /**
+ * Note that this value must not significantly exceed
+ * 'MAX_PENDING' in 'gnunet-service-transport.c', otherwise
+ * messages may be dropped even for a reliable transport.
+ */
+#define TOTAL_MSGS (600 * 200)
+
+/**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 6000)
 
 /**
  * What delay do we request from the core service for transmission?
@@ -57,13 +64,6 @@
 static unsigned long long total_bytes;
 
 static struct GNUNET_TIME_Absolute start_time;
-
-/**
- * Note that this value must not significantly exceed
- * 'MAX_PENDING' in 'gnunet-service-transport.c', otherwise
- * messages may be dropped even for a reliable transport.
- */
-#define TOTAL_MSGS (600 * 2)
 
 struct PeerContext
 {
