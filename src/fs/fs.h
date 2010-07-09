@@ -1307,10 +1307,26 @@ struct GNUNET_FS_PublishContext
   struct GNUNET_DATASTORE_Handle *dsh;
 
   /**
+   * Queue entry for reservation/unreservation.
+   */
+  struct GNUNET_DATASTORE_QueueEntry *qre;
+
+  /**
    * ID of the task performing the upload. NO_TASK if the upload has
    * completed.
    */
   GNUNET_SCHEDULER_TaskIdentifier upload_task;
+
+  /**
+   * Storage space to reserve for the operation.
+   */
+  uint64_t reserve_space;
+
+  /**
+   * Overall number of entries to reserve for the
+   * publish operation.
+   */
+  uint32_t reserve_entries;
 
   /**
    * Typically GNUNET_NO.  Set to GNUNET_YES if "upload_task" is

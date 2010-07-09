@@ -18,7 +18,6 @@
   - implement performance tests
 * FS: [CG]
   - trust: do not charge when "idle" / load considerations (migration, routing)
-  - datastore reservation (publishing)
   - unindex on index failure
   - listing of learned namespaces
   - artificial delays

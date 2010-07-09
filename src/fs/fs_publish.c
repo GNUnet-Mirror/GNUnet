@@ -166,7 +166,7 @@ ds_put_cont (void *cls,
   if (GNUNET_OK != success)
     {
       GNUNET_asprintf (&pcc->p->emsg, 
-		       _("Upload failed: %s"),
+		       _("Publishing failed: %s"),
 		       msg);
       pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
       pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
@@ -230,6 +230,27 @@ signal_publish_error (struct GNUNET_FS_FileInformation *p,
 
 
 /**
+ * Datastore returns from reservation cancel request.
+ * 
+ * @param cls the 'struct GNUNET_FS_PublishContext'
+ * @param success success code (not used)
+ * @param msg error message (typically NULL, not used)
+ */
+static void
+finish_release_reserve (void *cls,
+			int success,
+			const char *msg)
+{
+  struct GNUNET_FS_PublishContext *pc = cls;
+
+  pc->qre = NULL;
+  signal_publish_completion (pc->fi, pc);
+  pc->all_done = GNUNET_YES;
+  GNUNET_FS_publish_sync_ (pc);
+}
+
+
+/**
  * We've finished publishing the SBlock as part of a larger upload.
  * Check the result and complete the larger upload.
  *
@@ -251,10 +272,22 @@ publish_sblocks_cont (void *cls,
       GNUNET_FS_publish_sync_ (pc);
       return;
     }  
-  // FIXME: release the datastore reserve here!
-  signal_publish_completion (pc->fi, pc);
-  pc->all_done = GNUNET_YES;
-  GNUNET_FS_publish_sync_ (pc);
+  GNUNET_assert (pc->qre == NULL);
+  if ( (pc->dsh != NULL) &&
+       (pc->rid != 0) )
+    {
+      pc->qre = GNUNET_DATASTORE_release_reserve (pc->dsh,
+						  pc->rid,
+						  UINT_MAX,
+						  UNIT_MAX,
+						  GNUNET_TIME_UNIT_FOREVER_REL,
+						  &finish_release_reserve,
+						  pc);
+    }
+  else
+    {
+      finish_release_reserve (pc, GNUNET_OK, NULL);
+    }
 }
 
 
@@ -423,7 +456,7 @@ encode_cont (void *cls,
 		  emsg);
 #endif
       GNUNET_asprintf (&p->emsg, 
-		       _("Upload failed: %s"),
+		       _("Publishing failed: %s"),
 		       emsg);
       GNUNET_free (emsg);
       pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
@@ -858,7 +891,7 @@ GNUNET_FS_publish_main_ (void *cls,
     {
 #if DEBUG_PUBLISH
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Upload complete, now publishing SKS and KSK blocks.\n");
+		  "Publishing complete, now publishing SKS and KSK blocks.\n");
 #endif
       /* upload of entire hierarchy complete,
 	 publish namespace entries */
@@ -1009,7 +1042,37 @@ fip_signal_start(void *cls,
 {
   struct GNUNET_FS_PublishContext *sc = cls;
   struct GNUNET_FS_ProgressInfo pi;
+  unsigned int kc;
+  uint64_t left;
 
+  if (*do_index)
+    {
+      /* space for on-demand blocks */
+      sc->reserve_space += ((length + DBLOCK_SIZE - 1) / DBLOCK_SIZE) * sizeof (struct OnDemandBlock);
+    }
+  else
+    {
+      /* space for DBlocks */
+      sc->reserve_space += length;
+    }
+  /* entries for IBlocks and DBlocks, space for IBlocks */
+  left = length;
+  while (1)
+    {
+      left = (left + DBLOCK_SIZE - 1) / DBLOCK_SIZE;
+      sc->reserve_entries += left;
+      if (left == 1)
+	break;
+      left = left * sizeof (struct ContentHashKey);
+      sc->reserve_space += left;
+    }
+  /* entries and space for keywords */
+  if (NULL != *uri)
+    {
+      kc = GNUNET_FS_uri_ksk_get_keyword_count (*uri);
+      sc->reserve_entries += kc;
+      sc->reserve_space += GNUNET_SERVER_MAX_MESSAGE_SIZE * kc;
+    }  
   pi.status = GNUNET_FS_STATUS_PUBLISH_START;
   *client_info = GNUNET_FS_publish_make_status_ (&pi, sc, fi, 0);
   GNUNET_FS_file_information_sync_ (fi);
@@ -1089,6 +1152,43 @@ GNUNET_FS_publish_signal_suspend_ (void *cls)
 
 
 /**
+ * We have gotten a reply for our space reservation request.
+ * Either fail (insufficient space) or start publishing for good.
+ * 
+ * @param cls the 'struct GNUNET_FS_PublishContext*'
+ * @param success positive reservation ID on success
+ * @param msg error message on error, otherwise NULL
+ */
+static void
+finish_reserve (void *cls,
+		int success,
+		const char *msg)
+{
+  struct GNUNET_FS_PublishContext *pc = cls;
+  struct GNUNET_FS_ProgressInfo pi;
+
+  pc->qre = NULL;
+  if ( (msg != NULL) ||
+       (success <= 0) )
+    {
+      GNUNET_asprintf (&pc->fi->emsg, 
+		       _("Insufficient space for publishing: %s"),
+		       msg);
+      signal_publish_error (pc->fi,
+			    pc,
+			    pc->fi->emsg);
+      return;
+    }
+  pc->rid = success;
+  ret->upload_task 
+    = GNUNET_SCHEDULER_add_with_priority (h->sched,
+					  GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+					  &GNUNET_FS_publish_main_,
+					  ret);
+}
+
+
+/**
  * Publish a file or directory.
  *
  * @param h handle to the file sharing subsystem
@@ -1143,14 +1243,29 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
   ret->fi_pos = ret->fi;
   ret->top = GNUNET_FS_make_top (h, &GNUNET_FS_publish_signal_suspend_, ret);
   GNUNET_FS_publish_sync_ (ret);
-  // FIXME: calculate space needed for "fi"
-  // and reserve as first task (then trigger
-  // "publish_main" from that continuation)!
-  ret->upload_task 
-    = GNUNET_SCHEDULER_add_with_priority (h->sched,
-					  GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
-					  &GNUNET_FS_publish_main_,
-					  ret);
+  if (NULL != ret->dsh)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Reserving space for %u entries and %llu bytes for publication\n"),
+		  (unsigned int) ret->reserve_entries,
+		  (unsigned long long) ret->reserve_space);
+      ret->qre = GNUNET_DATASTORE_reserve (ret->dsh,
+					   ret->reserve_space,
+					   ret->reserve_entries,
+					   UINT_MAX,
+					   UINT_MAX,
+					   GNUNET_TIME_UNIT_FOREVER_REL,
+					   &finish_reserve,
+					   ret);
+    }
+  else
+    {
+      ret->upload_task 
+	= GNUNET_SCHEDULER_add_with_priority (h->sched,
+					      GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+					      &GNUNET_FS_publish_main_,
+					      ret);
+    }
   return ret;
 }
 
@@ -1215,6 +1330,11 @@ void
 GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *pc)
 {
   GNUNET_FS_end_top (pc->h, pc->top);
+  if (NULL != pc->qre)
+    {
+      GNUNET_DATASTORE_cancel (pc->qre);
+      pc->qre = NULL;
+    }
   if (NULL != pc->dsh)
     {
       GNUNET_DATASTORE_disconnect (pc->dsh, GNUNET_NO);
