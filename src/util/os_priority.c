@@ -47,6 +47,7 @@ ChildWaitThread (HANDLE h)
     w32_sigchld_handler ();
 
   CloseHandle (h);
+  return 0;
 }
 #endif
 
@@ -260,8 +261,7 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
   HANDLE stdin_handle;
   HANDLE stdout_handle;
 #endif
-  char *fn;
-  int len;
+  char *fn = NULL;
   char path[MAX_PATH + 1];
 
   cmdlen = 0;
@@ -630,7 +630,6 @@ GNUNET_OS_process_wait (pid_t proc)
   return GNUNET_OK;
 #else
   HANDLE h;
-  DWORD c;
   int ret;
 
   h = OpenProcess (PROCESS_QUERY_INFORMATION, FALSE, proc);
