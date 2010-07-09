@@ -295,7 +295,7 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
       start.hStdOutput = stdout_handle;
     }
 #endif
-  if (FindExecutable(filename, NULL, path) <= 32)
+  if ((int) FindExecutable(filename, NULL, path) <= 32) 
     {
       SetErrnoFromWinError (GetLastError ());
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "FindExecutable", fn);
