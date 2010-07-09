@@ -1061,7 +1061,7 @@ fip_signal_start(void *cls,
     {
       left = (left + DBLOCK_SIZE - 1) / DBLOCK_SIZE;
       sc->reserve_entries += left;
-      if (left == 1)
+      if (left <= 1)
 	break;
       left = left * sizeof (struct ContentHashKey);
       sc->reserve_space += left;
