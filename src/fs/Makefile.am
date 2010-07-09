@@ -114,7 +114,6 @@ gnunet_unindex_LDADD = \
 
 
 check_PROGRAMS = \
- test_fs_collection \
  test_fs_directory \
  test_fs_download \
  test_fs_download_indexed \
@@ -165,12 +164,6 @@ TESTS = \
  test_gnunet_service_fs_p2p \
  $(check_SCRIPTS)  
 
-
-test_fs_collection_SOURCES = \
- test_fs_collection.c
-test_fs_collection_LDADD = \
-  $(top_builddir)/src/fs/libgnunetfs.la  \
-  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_fs_directory_SOURCES = \
  test_fs_directory.c
@@ -312,7 +305,6 @@ test_gnunet_fs_idx.py: test_gnunet_fs_idx.py.in Makefile
 EXTRA_DIST = \
   fs_test_lib_data.conf \
   test_fs_data.conf \
-  test_fs_collection_data.conf \
   test_fs_download_data.conf \
   test_fs_file_information_data.conf \
   test_fs_file_information_meta_data_image.jpg \
