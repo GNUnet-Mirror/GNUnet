@@ -612,8 +612,9 @@ GNUNET_FS_file_information_create_from_directory (struct GNUNET_FS_Handle *h,
       dc.entries = dc.entries->next;
     }
   fn = filename;
-  while (NULL != (ss = strstr (fn,
-			       DIR_SEPARATOR_STR)))
+  while ( (NULL != (ss = strstr (fn,
+				 DIR_SEPARATOR_STR))) &&
+	  (strlen (ss) > 1) )
     fn = ss + 1;
   GNUNET_CONTAINER_meta_data_insert (ret->meta,
 				     "<gnunet>",

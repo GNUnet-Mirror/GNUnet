@@ -702,6 +702,7 @@ trigger_recursive_download (void *cls,
   char *us;
   char *ext;
   char *dn;
+  char *pos;
   char *full_name;
 
   if (NULL == uri)
@@ -722,7 +723,7 @@ trigger_recursive_download (void *cls,
   fn = NULL;
   if (NULL == filename)
     {
-      fn = GNUNET_FS_meta_data_suggest_filename (meta);      
+      fn = GNUNET_FS_meta_data_suggest_filename (meta);
       if (fn == NULL)
 	{
 	  us = GNUNET_FS_uri_to_string (uri);
@@ -740,6 +741,20 @@ trigger_recursive_download (void *cls,
 				       GNUNET_FS_URI_CHK_INFIX)], ext);
 	  GNUNET_free (ext);
 	  GNUNET_free (us);
+	}
+      /* change '\' to '/' (this should have happened
+       during insertion, but malicious peers may
+       not have done this) */
+      while (NULL != (pos = strstr (fn, "\\")))
+	*pos = '/';
+      /* remove '../' everywhere (again, well-behaved
+	 peers don't do this, but don't trust that
+	 we did not get something nasty) */
+      while (NULL != (pos = strstr (fn, "../")))
+	{
+	  pos[0] = '_';
+	  pos[1] = '_';
+	  pos[2] = '_';
 	}
       filename = fn;
     }

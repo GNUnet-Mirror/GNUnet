@@ -17,9 +17,6 @@
   - implement testcases
   - implement performance tests
 * FS: [CG]
-  - publishing a directory sets the embedded filename to "empty" 
-    (likely an issue with cutting off everything before '/' in the filename,
-     which in the case of a directory would leave nothing)
   - trust: do not charge when "idle" / load considerations (migration, routing)
   - bound our priorities based on priorities used by other peers
   - datastore reservation (publishing)
