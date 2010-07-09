@@ -175,10 +175,15 @@ socket_set_nosigpipe (const struct GNUNET_NETWORK_Handle *h)
 static void
 socket_set_nodelay (const struct GNUNET_NETWORK_Handle *h)
 {
+#ifndef WINDOWS  
   int value = 1;
-  if (0 !=
-      setsockopt (h->fd, IPPROTO_TCP, TCP_NODELAY, &value, sizeof (value)))
+  if (0 != setsockopt (h->fd, IPPROTO_TCP, TCP_NODELAY, &value, sizeof (value)))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
+#else
+  const char * value = "1";
+  if (0 != setsockopt (h->fd, IPPROTO_TCP, TCP_NODELAY, value, sizeof (value)))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
+#endif	
 }
 
 
@@ -411,13 +416,14 @@ GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle
                                        *desc)
 {
   int error;
-  int pending;
 
   /* How much is there to be read? */
 #ifndef WINDOWS
+  int pending;
   error = ioctl (desc->fd, FIONREAD, &pending);
   if (error == 0)
 #else
+  u_long pending;
   error = ioctlsocket (desc->fd, FIONREAD, &pending);
   if (error != SOCKET_ERROR)
 #endif
@@ -876,7 +882,7 @@ GNUNET_NETWORK_fdset_overlap (const struct GNUNET_NETWORK_FDSet *fds1,
       {
         HANDLE *h;
 
-        h = GNUNET_CONTAINER_slist_get (it, NULL);
+        h = (HANDLE *) GNUNET_CONTAINER_slist_get ((const struct GNUNET_CONTAINER_SList_Iterator *)it, NULL);
         if (GNUNET_CONTAINER_slist_contains
             (fds2->handles, h, sizeof (HANDLE)))
           {
