@@ -23,7 +23,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - location URI suppport (can wait, easy)
  * - different priority for scheduling probe downloads?
  * - check if iblocks can be computed from existing blocks (can wait, hard)
  */

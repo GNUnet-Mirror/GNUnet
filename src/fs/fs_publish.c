@@ -24,11 +24,6 @@
  * @see http://gnunet.org/encoding
  * @author Krista Bennett
  * @author Christian Grothoff
- *
- * TODO:
- * - indexing cleanup: unindex on failure (can wait)
- * - datastore reservation support (optimization)
- * - location URIs (publish with anonymity-level zero)
  */
 
 #include "platform.h"
@@ -172,6 +167,15 @@ ds_put_cont (void *cls,
       pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
       pi.value.publish.specifics.error.message = pcc->p->emsg;
       pcc->p->client_info = GNUNET_FS_publish_make_status_ (&pi, pcc->sc, pcc->p, 0);
+      if ( (pcc->p->is_directory == GNUNET_NO) &&
+	   (pcc->p->filename != NULL) &&
+	   (pcc->p->data.do_index == GNUNET_YES) )
+	{
+	  /* run unindex to clean up */
+	  GNUNET_FS_unindex_start (pcc->sc->h,
+				   pcc->p->filename,
+				   NULL);
+	}	   
     }
   if (NULL != pcc->cont)
     pcc->sc->upload_task 
@@ -226,6 +230,16 @@ signal_publish_error (struct GNUNET_FS_FileInformation *p,
   pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
   pi.value.publish.specifics.error.message =emsg;
   p->client_info = GNUNET_FS_publish_make_status_ (&pi, sc, p, 0);
+  if ( (p->is_directory == GNUNET_NO) &&
+       (p->filename != NULL) &&
+       (p->data.do_index == GNUNET_YES) )
+    {
+      /* run unindex to clean up */
+      GNUNET_FS_unindex_start (pc->h,
+			       p->filename,
+			       NULL);
+    }	   
+  
 }
 
 
@@ -883,6 +897,7 @@ GNUNET_FS_publish_main_ (void *cls,
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_ProgressInfo pi;
   struct GNUNET_FS_FileInformation *p;
+  struct GNUNET_FS_Uri *loc;
   char *fn;
 
   pc->upload_task = GNUNET_SCHEDULER_NO_TASK;  
@@ -954,6 +969,15 @@ GNUNET_FS_publish_main_ (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "File upload complete, now publishing KSK blocks.\n");
 #endif
+      if (0 == p->anonymity)
+	{
+	  /* zero anonymity, box CHK URI in LOC URI */
+	  loc = GNUNET_FS_uri_loc_create (p->chk_uri,
+					  pc->h->cfg,
+					  p->expirationTime);
+	  GNUNET_FS_uri_destroy (p->chk_uri);
+	  p->chk_uri = loc;
+	}
       GNUNET_FS_publish_sync_ (pc);
       /* upload of "p" complete, publish KBlocks! */
       if (p->keywords != NULL)

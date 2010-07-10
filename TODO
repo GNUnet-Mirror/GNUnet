@@ -18,14 +18,12 @@
   - implement performance tests
 * FS: [CG]
   - trust: do not charge when "idle" / load considerations (migration, routing)
-  - unindex on index failure
   - listing of learned namespaces
   - artificial delays
   - active reply route caching design & implementation of service; gap extension!
   - utilize in-line files in meta data always (including in search results or
     when download is triggered manually and for probes); currently the data is
     only used when users do a general 'recursive' download
-  - location URIs (publish, search, download)
   - non-anonymous FS service (needs DHT)
     + DHT integration for search
     + CS-DHT-functions (DHT-put of LOC)

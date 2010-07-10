@@ -2213,6 +2213,9 @@ target_peer_select_cb (void *cls,
   /* 3e) include peer proximity */
   score -= (2.0 * (GNUNET_CRYPTO_hash_distance_u32 (key,
 						    &pr->query)) / (double) UINT32_MAX);
+  /* 4) super-bonus for being the known target */
+  if (pr->target_pid == cp->pid)
+    score += 100.0;
   /* store best-fit in closure */
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
