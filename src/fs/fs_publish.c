@@ -169,7 +169,7 @@ ds_put_cont (void *cls,
       pcc->p->client_info = GNUNET_FS_publish_make_status_ (&pi, pcc->sc, pcc->p, 0);
       if ( (pcc->p->is_directory == GNUNET_NO) &&
 	   (pcc->p->filename != NULL) &&
-	   (pcc->p->data.do_index == GNUNET_YES) )
+	   (pcc->p->data.file.do_index == GNUNET_YES) )
 	{
 	  /* run unindex to clean up */
 	  GNUNET_FS_unindex_start (pcc->sc->h,
@@ -232,10 +232,10 @@ signal_publish_error (struct GNUNET_FS_FileInformation *p,
   p->client_info = GNUNET_FS_publish_make_status_ (&pi, sc, p, 0);
   if ( (p->is_directory == GNUNET_NO) &&
        (p->filename != NULL) &&
-       (p->data.do_index == GNUNET_YES) )
+       (p->data.file.do_index == GNUNET_YES) )
     {
       /* run unindex to clean up */
-      GNUNET_FS_unindex_start (pc->h,
+      GNUNET_FS_unindex_start (sc->h,
 			       p->filename,
 			       NULL);
     }	   

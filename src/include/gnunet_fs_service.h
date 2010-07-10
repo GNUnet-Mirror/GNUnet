@@ -201,7 +201,7 @@ GNUNET_FS_uri_loc_get_expiration (const struct GNUNET_FS_Uri *uri);
  */
 struct GNUNET_FS_Uri *
 GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *baseUri,
-			  struct GNUNET_CONFIGURATION_Handle *cfg,
+			  const struct GNUNET_CONFIGURATION_Handle *cfg,
 			  struct GNUNET_TIME_Absolute expiration_time);
 
 
