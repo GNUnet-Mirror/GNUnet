@@ -113,6 +113,11 @@ publish_cleanup (void *cls,
 {
   struct GNUNET_FS_PublishContext *pc = cls;
 
+  if (pc->fhc != NULL)
+    {
+      GNUNET_CRYPTO_hash_file_cancel (pc->fhc);
+      pc->fhc = NULL;
+    }
   GNUNET_FS_file_information_destroy (pc->fi, NULL, NULL);
   if (pc->namespace != NULL)
     GNUNET_FS_namespace_delete (pc->namespace, GNUNET_NO);
@@ -788,6 +793,7 @@ hash_for_index_cb (void *cls,
   uint64_t ino;
   char *fn;
 
+  sc->fhc = NULL;
   p = sc->fi_pos;
   if (NULL == res) 
     {
@@ -1023,12 +1029,12 @@ GNUNET_FS_publish_main_ (void *cls,
       else
 	{
 	  p->start_time = GNUNET_TIME_absolute_get ();
-	  GNUNET_CRYPTO_hash_file (pc->h->sched,
-				   GNUNET_SCHEDULER_PRIORITY_IDLE,
-				   p->filename,
-				   HASHING_BLOCKSIZE,
-				   &hash_for_index_cb,
-				   pc);
+	  pc->fhc = GNUNET_CRYPTO_hash_file (pc->h->sched,
+					     GNUNET_SCHEDULER_PRIORITY_IDLE,
+					     p->filename,
+					     HASHING_BLOCKSIZE,
+					     &hash_for_index_cb,
+					     pc);
 	}
       return;
     }
@@ -1235,6 +1241,7 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
   struct GNUNET_FS_PublishContext *ret;
   struct GNUNET_DATASTORE_Handle *dsh;
 
+  GNUNET_assert (NULL != h);
   if (0 == (options & GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY))
     {
       dsh = GNUNET_DATASTORE_connect (h->cfg,

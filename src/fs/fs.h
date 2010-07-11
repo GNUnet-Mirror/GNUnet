@@ -1302,6 +1302,11 @@ struct GNUNET_FS_PublishContext
   struct GNUNET_FS_FileInformation *fi_pos;
 
   /**
+   * Non-null if we are currently hashing a file.
+   */
+  struct GNUNET_CRYPTO_FileHashContext *fhc;
+
+  /**
    * Connection to the datastore service.
    */
   struct GNUNET_DATASTORE_Handle *dsh;
