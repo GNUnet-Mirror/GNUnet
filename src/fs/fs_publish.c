@@ -487,6 +487,15 @@ encode_cont (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Finished with tree encoder\n");
 #endif  
+  /* final progress event */
+  pi.status = GNUNET_FS_STATUS_PUBLISH_PROGRESS;
+  pi.value.publish.specifics.progress.data = NULL;
+  pi.value.publish.specifics.progress.offset = GNUNET_FS_uri_chk_get_file_size (p->chk_uri);
+  pi.value.publish.specifics.progress.data_len = 0;
+  pi.value.publish.specifics.progress.depth = 0;
+  p->client_info = GNUNET_FS_publish_make_status_ (&pi, sc, p, 
+						   GNUNET_FS_uri_chk_get_file_size (p->chk_uri));
+
   /* continue with main */
   sc->upload_task 
     = GNUNET_SCHEDULER_add_with_priority (sc->h->sched,

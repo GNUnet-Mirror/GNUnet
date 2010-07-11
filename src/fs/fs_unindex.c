@@ -292,6 +292,11 @@ unindex_finish (void *cls,
   struct GNUNET_FS_Uri *uri;
   struct UnindexMessage req;
 
+  /* generate final progress message */
+  unindex_progress (uc, 
+		    uc->file_size,
+		    NULL,
+		    0, 0);
   GNUNET_FS_tree_encoder_finish (uc->tc,
 				 &uri,
 				 &emsg);
