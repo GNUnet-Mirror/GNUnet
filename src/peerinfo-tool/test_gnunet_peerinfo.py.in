@@ -24,7 +24,7 @@ import signal
 import re
 
 pinfo = pexpect.spawn ('gnunet-peerinfo -c test_gnunet_peerinfo_data.conf')
-pinfo.expect  ('Timeout trying to interact with PEERINFO service\r')
+pinfo.expect  ('Error in communication with PEERINFO service\r')
 pinfo.expect (pexpect.EOF);
 os.system ('rm -rf /tmp/gnunet-test-peerinfo/')
 os.system ('gnunet-arm -sq -c test_gnunet_peerinfo_data.conf')
