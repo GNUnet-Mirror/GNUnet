@@ -171,7 +171,7 @@ progress_cb (void *cls,
 	GNUNET_CONTAINER_meta_data_iterate (info->value.search.specifics.result.meta, 
 					    &item_printer,
 					    NULL);
-      printf ("\n");
+      printf ("\n"); 
       fflush(stdout);
       GNUNET_free_non_null (filename);
       GNUNET_free (uri);

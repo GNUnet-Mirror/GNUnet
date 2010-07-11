@@ -56,7 +56,6 @@
  */
 #define TRUST_FLUSH_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
-
 /**
  * Inverse of the probability that we will submit the same query
  * to the same peer again.  If the same peer already got the query
@@ -75,12 +74,9 @@
  */
 #define MAX_TRANSMIT_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 45)
 
-
-
 /**
  * Maximum number of requests (from other peers) that we're
  * willing to have pending at any given point in time.
- * FIXME: set from configuration.
  */
 static uint64_t max_pending_requests = (32 * 1024);
 
@@ -3669,14 +3665,34 @@ main_init (struct GNUNET_SCHEDULER_Handle *s,
      0 },
     {NULL, NULL, 0, 0}
   };
+  unsigned long long enc = 128;
 
   sched = s;
   cfg = c;
   stats = GNUNET_STATISTICS_create (sched, "fs", cfg);
-  min_migration_delay = GNUNET_TIME_UNIT_SECONDS; // FIXME: get from config
-  connected_peers = GNUNET_CONTAINER_multihashmap_create (128); // FIXME: get size from config
-  query_request_map = GNUNET_CONTAINER_multihashmap_create (128); // FIXME: get size from config
-  peer_request_map = GNUNET_CONTAINER_multihashmap_create (128); // FIXME: get size from config
+  min_migration_delay = GNUNET_TIME_UNIT_SECONDS;
+  if ( (GNUNET_OK !=
+	GNUNET_CONFIGURATION_get_value_number (cfg,
+					       "fs",
+					       "MAX_PENDING_REQUESTS",
+					       &max_pending_requests)) ||
+       (GNUNET_OK !=
+	GNUNET_CONFIGURATION_get_value_number (cfg,
+					       "fs",
+					       "EXPECTED_NEIGHBOUR_COUNT",
+					       &enc)) ||
+       (GNUNET_OK != 
+	GNUNET_CONFIGURATION_get_value_time (cfg,
+					     "fs",
+					     "MIN_MIGRATION_DELAY",
+					     &min_migration_delay)) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Configuration fails to specify certain parameters, assuming default values."));
+    }
+  connected_peers = GNUNET_CONTAINER_multihashmap_create (enc); 
+  query_request_map = GNUNET_CONTAINER_multihashmap_create (max_pending_requests);
+  peer_request_map = GNUNET_CONTAINER_multihashmap_create (enc);
   requests_by_expiration_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN); 
   core = GNUNET_CORE_connect (sched,
 			      cfg,
