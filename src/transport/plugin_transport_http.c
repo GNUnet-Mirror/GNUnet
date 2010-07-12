@@ -414,6 +414,7 @@ static int remove_session (struct HTTP_PeerContext * pc, struct Session * ps,  i
     }
     GNUNET_free(msg);
     GNUNET_CONTAINER_DLL_remove(ps->pending_msgs_head,ps->pending_msgs_head,msg);
+    msg = ps->pending_msgs_head;
   }
 
   GNUNET_CONTAINER_DLL_remove(pc->head,pc->tail,ps);
