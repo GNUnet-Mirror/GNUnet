@@ -1075,7 +1075,7 @@ static size_t curl_send_cb(void *stream, size_t size, size_t nmemb, void *ptr)
   size_t bytes_sent;
   size_t len;
 
-  if (ps->pending_msgs_tail == NULL)
+  if ((ps->pending_msgs_tail == NULL) && (ps->send_active == GNUNET_YES))
   {
 #if DEBUG_CONNECTIONS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: No Message to send, pausing connection\n",ps);
@@ -1318,8 +1318,6 @@ static void curl_perform (void *cls,
             {
 
               msg = curl_multi_info_read (plugin->multi_handle, &running);
-              if (msg == NULL)
-                break;
               /* get session for affected curl handle */
               GNUNET_assert ( msg->easy_handle != NULL );
               curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, (char *) &ps);
@@ -1347,7 +1345,7 @@ static void curl_perform (void *cls,
 #endif
                       ps->send_connected = GNUNET_NO;
                       ps->send_active = GNUNET_NO;
-                      curl_multi_remove_handle(plugin->multi_handle,msg->easy_handle);
+                      curl_multi_remove_handle(plugin->multi_handle,ps->send_endpoint);
                       curl_easy_cleanup(ps->send_endpoint);
                       ps->send_endpoint=NULL;
                       cur_msg = ps->pending_msgs_tail;
@@ -1368,7 +1366,7 @@ static void curl_perform (void *cls,
 #endif
                       ps->recv_connected = GNUNET_NO;
                       ps->recv_active = GNUNET_NO;
-                      curl_multi_remove_handle(plugin->multi_handle,msg->easy_handle);
+                      curl_multi_remove_handle(plugin->multi_handle,ps->recv_endpoint);
                       curl_easy_cleanup(ps->recv_endpoint);
                       ps->recv_endpoint=NULL;
                     }
@@ -1402,7 +1400,7 @@ static void curl_perform (void *cls,
                       }
                       ps->send_connected = GNUNET_NO;
                       ps->send_active = GNUNET_NO;
-                      curl_multi_remove_handle(plugin->multi_handle,msg->easy_handle);
+                      curl_multi_remove_handle(plugin->multi_handle,ps->send_endpoint);
                       curl_easy_cleanup(ps->send_endpoint);
                       ps->send_endpoint =NULL;
                     }
@@ -1418,7 +1416,7 @@ static void curl_perform (void *cls,
 #endif
                       ps->recv_connected = GNUNET_NO;
                       ps->recv_active = GNUNET_NO;
-                      curl_multi_remove_handle(plugin->multi_handle,msg->easy_handle);
+                      curl_multi_remove_handle(plugin->multi_handle,ps->recv_endpoint);
                       curl_easy_cleanup(ps->recv_endpoint);
                       ps->recv_endpoint=NULL;
                     }
@@ -1669,7 +1667,7 @@ http_plugin_send (void *cls,
     else
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing session & and no address given: no way to send this message to peer `%s'!\n", GNUNET_i2s(target));
-      return -1;
+      return GNUNET_SYSERR;
     }
   }
 
@@ -2082,6 +2080,7 @@ libgnunet_plugin_transport_http_done (void *cls)
   mret = curl_multi_cleanup(plugin->multi_handle);
   if ( CURLM_OK != mret)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"curl multihandle clean up failed");
+  plugin->multi_handle = NULL;
 
   GNUNET_free (plugin);
   GNUNET_free (api);
