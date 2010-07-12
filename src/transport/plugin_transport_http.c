@@ -1076,6 +1076,10 @@ static size_t curl_send_cb(void *stream, size_t size, size_t nmemb, void *ptr)
   size_t bytes_sent;
   size_t len;
 
+  if (ps->send_active == GNUNET_NO)
+	return CURL_READFUNC_PAUSE;
+
+
   if ((ps->pending_msgs_tail == NULL) && (ps->send_active == GNUNET_YES))
   {
 #if DEBUG_CONNECTIONS

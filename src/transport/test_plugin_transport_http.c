@@ -217,7 +217,7 @@ static struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
 static long long unsigned int port;
 
 /**
- * Peer's port
+ * Peer's addr
  */
 static char * test_addr;
 
