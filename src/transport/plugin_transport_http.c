@@ -2145,6 +2145,7 @@ libgnunet_plugin_transport_http_init (void *cls)
   GNUNET_assert ((port > 0) && (port <= 65535));
   plugin->port_inbound = port;
   gn_timeout = GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT;
+  unsigned int timeout = (gn_timeout.value) / 1000;
   if ((plugin->http_server_daemon_v4 == NULL) && (plugin->http_server_daemon_v6 == NULL) && (port != 0))
     {
     plugin->http_server_daemon_v6 = MHD_start_daemon (MHD_USE_IPv6 | MHD_USE_DEBUG,
@@ -2153,7 +2154,7 @@ libgnunet_plugin_transport_http_init (void *cls)
                                        plugin , &mdh_access_cb, plugin,
                                        MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
                                        MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
-                                       MHD_OPTION_CONNECTION_TIMEOUT, (gn_timeout.value / 1000),
+                                       MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) timeout,
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
                                        MHD_OPTION_NOTIFY_COMPLETED, &mhd_termination_cb, NULL,
                                        MHD_OPTION_END);
@@ -2163,7 +2164,7 @@ libgnunet_plugin_transport_http_init (void *cls)
                                        plugin , &mdh_access_cb, plugin,
                                        MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 16,
                                        MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
-                                       MHD_OPTION_CONNECTION_TIMEOUT, (gn_timeout.value / 1000),
+                                       MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) timeout,
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
                                        MHD_OPTION_NOTIFY_COMPLETED, &mhd_termination_cb, NULL,
                                        MHD_OPTION_END);
