@@ -17,12 +17,14 @@
   - implement testcases
   - implement performance tests
 * FS: [CG]
-  - trust: do not charge when "idle" / load considerations (migration, routing)
-  - artificial delays
-  - active reply route caching design & implementation of service; gap extension!
-  - utilize in-line files in meta data always (including in search results or
-    when download is triggered manually and for probes); currently the data is
-    only used when users do a general 'recursive' download
+  - library:
+    + utilize in-line files in meta data always (including in search results or
+      when download is triggered manually and for probes); currently the data is
+      only used when users do a general 'recursive' download
+  - service:
+    + trust: do not charge when "idle" / load considerations (migration, routing)
+    + artificial delays
+    + active reply route caching design & implementation of service; gap extension!
   - non-anonymous FS service (needs DHT)
     + DHT integration for search
     + CS-DHT-functions (DHT-put of LOC)
