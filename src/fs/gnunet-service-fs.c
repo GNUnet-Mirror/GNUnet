@@ -78,7 +78,7 @@
  * Maximum number of requests (from other peers) that we're
  * willing to have pending at any given point in time.
  */
-static uint64_t max_pending_requests = (32 * 1024);
+static unsigned long long max_pending_requests = (32 * 1024);
 
 
 /**
