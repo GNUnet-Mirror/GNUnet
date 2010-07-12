@@ -2075,10 +2075,13 @@ libgnunet_plugin_transport_http_done (void *cls)
   }
 
   /* free all peer information */
-  GNUNET_CONTAINER_multihashmap_iterate (plugin->peers,
-                                         &remove_peer_context_Iterator,
-                                         NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (plugin->peers);
+  if (map!=NULL)
+  {
+	  GNUNET_CONTAINER_multihashmap_iterate (plugin->peers,
+											 &remove_peer_context_Iterator,
+											 NULL);
+	  GNUNET_CONTAINER_multihashmap_destroy (plugin->peers);
+  }
 
   mret = curl_multi_cleanup(plugin->multi_handle);
   if ( CURLM_OK != mret)
@@ -2143,7 +2146,7 @@ libgnunet_plugin_transport_http_init (void *cls)
   gn_timeout = GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT;
   if ((plugin->http_server_daemon_v4 == NULL) && (plugin->http_server_daemon_v6 == NULL) && (port != 0))
     {
-    plugin->http_server_daemon_v6 = MHD_start_daemon (MHD_USE_IPv6,
+    plugin->http_server_daemon_v6 = MHD_start_daemon (MHD_USE_IPv6 | MHD_USE_DEBUG,
                                        port,
                                        &mhd_accept_cb,
                                        plugin , &mdh_access_cb, plugin,
@@ -2153,7 +2156,7 @@ libgnunet_plugin_transport_http_init (void *cls)
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
                                        MHD_OPTION_NOTIFY_COMPLETED, &mhd_termination_cb, NULL,
                                        MHD_OPTION_END);
-    plugin->http_server_daemon_v4 = MHD_start_daemon (MHD_NO_FLAG,
+    plugin->http_server_daemon_v4 = MHD_start_daemon (MHD_NO_FLAG | MHD_USE_DEBUG,
                                        port,
                                        &mhd_accept_cb,
                                        plugin , &mdh_access_cb, plugin,
