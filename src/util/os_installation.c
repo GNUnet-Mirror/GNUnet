@@ -221,7 +221,7 @@ get_path_from_PATH ()
   while (NULL != (end = strchr (pos, ':')))
     {
       *end = '\0';
-      sprintf (buf, "%s/%s", pos, "gnunetd");
+      sprintf (buf, "%s/%s", pos, "gnunet-arm");
       if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
         {
           pos = GNUNET_strdup (pos);
@@ -231,7 +231,7 @@ get_path_from_PATH ()
         }
       pos = end + 1;
     }
-  sprintf (buf, "%s/%s", pos, "gnunetd");
+  sprintf (buf, "%s/%s", pos, "gnunet-arm");
   if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
     {
       pos = GNUNET_strdup (pos);
@@ -296,7 +296,8 @@ os_get_gnunet_path ()
   /* other attempts here */
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               _
-              ("Could not determine installation path for GNUnet.  Set `%s' environment variable.\n"),
+              ("Could not determine installation path for %s.  Set `%s' environment variable.\n"),
+	      "GNUnet",
               "GNUNET_PREFIX");
   return NULL;
 }
