@@ -2075,7 +2075,7 @@ libgnunet_plugin_transport_http_done (void *cls)
   }
 
   /* free all peer information */
-  if (map!=NULL)
+  if (plugin->peers!=NULL)
   {
 	  GNUNET_CONTAINER_multihashmap_iterate (plugin->peers,
 											 &remove_peer_context_Iterator,
