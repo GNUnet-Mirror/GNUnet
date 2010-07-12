@@ -1313,12 +1313,14 @@ static void curl_perform (void *cls,
     {
       running = 0;
       mret = curl_multi_perform (plugin->multi_handle, &running);
-      if (running < handles_last_run)
+      if ((running < handles_last_run) && (running>0))
         {
           do
             {
 
               msg = curl_multi_info_read (plugin->multi_handle, &running);
+              if (running == 0)
+            	  break;
               /* get session for affected curl handle */
               GNUNET_assert ( msg->easy_handle != NULL );
               curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, (char *) &ps);
