@@ -6,11 +6,9 @@ if MINGW
   WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
 endif
 
-if MINGW
  GN_LIBMHD = -lmicrohttpd
  HTTP_PLUGIN_LA = libgnunet_plugin_transport_http.la
  HTTP_PLUGIN_CHECK = test_plugin_transport_http
-endif
 
 if USE_COVERAGE
   AM_CFLAGS = --coverage -O0
@@ -144,6 +142,7 @@ TESTS = \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
  test_transport_api_udp_nat \
+ test_plugin_transport_http \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat 
 
