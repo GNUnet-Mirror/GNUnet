@@ -331,7 +331,7 @@ struct Plugin
   /**
    * The task sending data
    */
-  GNUNET_SCHEDULER_TaskIdentifier http_server_task_send;
+  GNUNET_SCHEDULER_TaskIdentifier http_curl_task;
 
   /**
    * cURL Multihandle
@@ -1147,9 +1147,9 @@ static size_t curl_receive_cb( void *stream, size_t size, size_t nmemb, void *pt
  * Function setting up file descriptors and scheduling task to run
  * @param cls closure
  * @param ses session to send data to
- * @return bytes sent to peer
+ * @param
  */
-static size_t send_schedule(void *cls, struct Session* ses );
+static int curl_schedule(void *cls, struct Session* ses );
 
 
 
@@ -1158,12 +1158,11 @@ static size_t send_schedule(void *cls, struct Session* ses );
  * @param cls plugin
  * @param ses session to send data to
  * @param con connection
- * @return bytes sent to peer
+ * @return GNUNET_SYSERR on failure, GNUNET_NO if connecting, GNUNET_YES if ok
  */
 static ssize_t send_check_connections (void *cls, struct Session *ps)
 {
   struct Plugin *plugin = cls;
-  int bytes_sent = 0;
   CURLMcode mret;
   struct HTTP_Message * msg;
   struct GNUNET_TIME_Relative timeout = GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT;
@@ -1201,9 +1200,10 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
                       _("%s failed at %s:%d: `%s'\n"),
                       "curl_multi_add_handle", __FILE__, __LINE__,
                       curl_multi_strerror (mret));
-          return -1;
+          return GNUNET_SYSERR;
         }
-        bytes_sent = send_schedule (plugin, NULL);
+        if (curl_schedule (plugin, NULL) == GNUNET_SYSERR)
+        	return GNUNET_SYSERR;
 #if DEBUG_CONNECTIONS
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound not connected, initiating connection\n",ps);
 #endif
@@ -1212,7 +1212,7 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
 
     /* waiting for receive direction */
     if (ps->recv_connected==GNUNET_NO)
-      return 0;
+      return GNUNET_NO;
 
     /* SEND DIRECTION */
     /* Check if session is connected to send data, otherwise connect to peer */
@@ -1223,16 +1223,20 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
 #if DEBUG_CONNECTIONS
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound active, enqueueing message\n",ps);
 #endif
-        return bytes_sent;
+        return GNUNET_YES;
       }
       if (ps->send_active == GNUNET_NO)
       {
 #if DEBUG_CONNECTIONS
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound paused, unpausing existing connection and enqueueing message\n",ps);
 #endif
-        curl_easy_pause(ps->send_endpoint,CURLPAUSE_CONT);
-        ps->send_active=GNUNET_YES;
-        return bytes_sent;
+        if (CURLE_OK == curl_easy_pause(ps->send_endpoint,CURLPAUSE_CONT))
+        {
+			ps->send_active=GNUNET_YES;
+			return GNUNET_YES;
+        }
+        else
+        	return GNUNET_SYSERR;
       }
     }
     /* not connected, initiate connection */
@@ -1269,24 +1273,23 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
                   _("%s failed at %s:%d: `%s'\n"),
                   "curl_multi_add_handle", __FILE__, __LINE__,
                   curl_multi_strerror (mret));
-      return -1;
+      return GNUNET_SYSERR;
     }
-    bytes_sent = send_schedule (plugin, NULL);
-    return bytes_sent;
+    if (curl_schedule (plugin, NULL) == GNUNET_SYSERR)
+    	return GNUNET_SYSERR;
+    return GNUNET_YES;
   }
   if (ps->direction == INBOUND)
   {
     GNUNET_assert (NULL != ps->pending_msgs_tail);
-    bytes_sent = 0;
     msg = ps->pending_msgs_tail;
     if ((ps->recv_connected==GNUNET_YES) && (ps->send_connected==GNUNET_YES))
-        bytes_sent = msg->size;
-    return bytes_sent;
+    	return GNUNET_YES;
   }
-  return 0;
+  return GNUNET_SYSERR;
 }
 
-static void send_execute (void *cls,
+static void curl_perform (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Plugin *plugin = cls;
@@ -1300,7 +1303,8 @@ static void send_execute (void *cls,
   long http_result;
 
   GNUNET_assert(cls !=NULL);
-  plugin->http_server_task_send = GNUNET_SCHEDULER_NO_TASK;
+
+  plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
@@ -1432,16 +1436,16 @@ static void send_execute (void *cls,
       handles_last_run = running;
     }
   while (mret == CURLM_CALL_MULTI_PERFORM);
-  send_schedule(plugin, cls);
+  curl_schedule(plugin, cls);
 }
 
 
 /**
  * Function setting up file descriptors and scheduling task to run
  * @param ses session to send data to
- * @return bytes sent to peer
+ * @return GNUNET_SYSERR for hard failure, GNUNET_OK for ok
  */
-static size_t send_schedule(void *cls, struct Session* ses )
+static int curl_schedule(void *cls, struct Session* ses )
 {
   struct Plugin *plugin = cls;
   fd_set rs;
@@ -1465,7 +1469,7 @@ static size_t send_schedule(void *cls, struct Session* ses )
                   _("%s failed at %s:%d: `%s'\n"),
                   "curl_multi_fdset", __FILE__, __LINE__,
                   curl_multi_strerror (mret));
-      return -1;
+      return GNUNET_SYSERR;
     }
   mret = curl_multi_timeout (plugin->multi_handle, &to);
   if (mret != CURLM_OK)
@@ -1474,26 +1478,24 @@ static size_t send_schedule(void *cls, struct Session* ses )
                   _("%s failed at %s:%d: `%s'\n"),
                   "curl_multi_timeout", __FILE__, __LINE__,
                   curl_multi_strerror (mret));
-      return -1;
+      return GNUNET_SYSERR;
     }
 
   grs = GNUNET_NETWORK_fdset_create ();
   gws = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
   GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
-  plugin->http_server_task_send = GNUNET_SCHEDULER_add_select (plugin->env->sched,
+  plugin->http_curl_task = GNUNET_SCHEDULER_add_select (plugin->env->sched,
                                    GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                    GNUNET_SCHEDULER_NO_TASK,
                                    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 0),
                                    grs,
                                    gws,
-                                   &send_execute,
+                                   &curl_perform,
                                    plugin);
   GNUNET_NETWORK_fdset_destroy (gws);
   GNUNET_NETWORK_fdset_destroy (grs);
-
-  /* FIXME: return bytes REALLY sent */
-  return 0;
+  return GNUNET_OK;
 }
 
 
@@ -1682,7 +1684,10 @@ http_plugin_send (void *cls,
   memcpy (msg->buf,msgbuf, msgbuf_size);
   GNUNET_CONTAINER_DLL_insert(ps->pending_msgs_head,ps->pending_msgs_tail,msg);
 
-  return send_check_connections (plugin, ps);
+  if (send_check_connections (plugin, ps) != GNUNET_SYSERR)
+	  return msg->size;
+  else
+	  return GNUNET_SYSERR;
 }
 
 
@@ -2062,10 +2067,10 @@ libgnunet_plugin_transport_http_done (void *cls)
     plugin->http_server_task_v6 = GNUNET_SCHEDULER_NO_TASK;
   }
 
-  if ( plugin->http_server_task_send != GNUNET_SCHEDULER_NO_TASK)
+  if ( plugin->http_curl_task != GNUNET_SCHEDULER_NO_TASK)
   {
-    GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_server_task_send);
-    plugin->http_server_task_send = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_curl_task);
+    plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
   /* free all peer information */
