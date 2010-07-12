@@ -2082,12 +2082,13 @@ libgnunet_plugin_transport_http_done (void *cls)
 											 NULL);
 	  GNUNET_CONTAINER_multihashmap_destroy (plugin->peers);
   }
-
-  mret = curl_multi_cleanup(plugin->multi_handle);
-  if ( CURLM_OK != mret)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"curl multihandle clean up failed");
-  plugin->multi_handle = NULL;
-
+  if (plugin->multi_handle!=NULL)
+  {
+	  mret = curl_multi_cleanup(plugin->multi_handle);
+	  if ( CURLM_OK != mret)
+		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"curl multihandle clean up failed\n");
+	  plugin->multi_handle = NULL;
+  }
   GNUNET_free (plugin);
   GNUNET_free (api);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Unload http plugin complete...\n");
