@@ -848,7 +848,7 @@ notify_address (void *cls,
   else
     {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Unknown address size: ipv6 has %u ipv4 has %u but this has %u"),
+                _("Unknown address size: ipv6 has %u ipv4 has %u but this has %u\n"),
                 sizeof (struct IPv6HttpAddress),
                 sizeof (struct IPv4HttpAddress),
                 addrlen);

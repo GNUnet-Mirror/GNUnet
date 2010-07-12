@@ -1715,7 +1715,6 @@ http_plugin_disconnect (void *cls,
 
     if (ps->direction==OUTBOUND)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"connections %X\n", ps, GNUNET_i2s(target));
       if (ps->send_endpoint!=NULL)
       {
         //curl_multi_remove_handle(plugin->multi_handle,ps->send_endpoint);
@@ -1855,7 +1854,7 @@ http_plugin_address_suggested (void *cls,
         return GNUNET_SYSERR;
       }
     }
-  else
+  if (addrlen == sizeof (struct IPv6HttpAddress))
     {
       v6 = (struct IPv6HttpAddress *) addr;
       if (IN6_IS_ADDR_LINKLOCAL (&v6->ipv6_addr))
@@ -1868,6 +1867,7 @@ http_plugin_address_suggested (void *cls,
         return GNUNET_SYSERR;
       }
     }
+
   return GNUNET_OK;
 }
 
@@ -2037,6 +2037,19 @@ libgnunet_plugin_transport_http_done (void *cls)
 
   GNUNET_assert(cls !=NULL);
 
+  if (plugin->http_server_daemon_v4 != NULL)
+  {
+    MHD_stop_daemon (plugin->http_server_daemon_v4);
+    plugin->http_server_daemon_v4 = NULL;
+  }
+  if (plugin->http_server_daemon_v6 != NULL)
+  {
+    MHD_stop_daemon (plugin->http_server_daemon_v6);
+    plugin->http_server_daemon_v6 = NULL;
+  }
+
+
+
   if ( plugin->http_server_task_v4 != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_server_task_v4);
@@ -2053,17 +2066,6 @@ libgnunet_plugin_transport_http_done (void *cls)
   {
     GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_server_task_send);
     plugin->http_server_task_send = GNUNET_SCHEDULER_NO_TASK;
-  }
-
-  if (plugin->http_server_daemon_v4 != NULL)
-  {
-    MHD_stop_daemon (plugin->http_server_daemon_v4);
-    plugin->http_server_daemon_v4 = NULL;
-  }
-  if (plugin->http_server_daemon_v6 != NULL)
-  {
-    MHD_stop_daemon (plugin->http_server_daemon_v6);
-    plugin->http_server_daemon_v6 = NULL;
   }
 
   /* free all peer information */
