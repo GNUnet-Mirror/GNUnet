@@ -1102,8 +1102,8 @@ static void run_connection_tests( int phase , void * cls)
     msg->type = htons(32);
     api->send(api->cls, &my_identity, (const char *) msg, size, 0, TIMEOUT, NULL,addr_head->addr, addr_head->addrlen, GNUNET_NO, &task_send_cont, &fail_msg_transmited_max_size);
     GNUNET_free(msg);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No more tests to run\n");
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No more tests to run\n");
 }
 
 
