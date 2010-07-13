@@ -1722,7 +1722,8 @@ http_plugin_disconnect (void *cls,
 
   while (ps!=NULL)
   {
-
+	/* Telling transport that session is getting disconnected */
+	plugin->env->session_end(plugin, target, ps);
     if (ps->direction==OUTBOUND)
     {
       if (ps->send_endpoint!=NULL)
@@ -2152,7 +2153,11 @@ libgnunet_plugin_transport_http_init (void *cls)
   unsigned int timeout = (gn_timeout.value) / 1000;
   if ((plugin->http_server_daemon_v4 == NULL) && (plugin->http_server_daemon_v6 == NULL) && (port != 0))
     {
-    plugin->http_server_daemon_v6 = MHD_start_daemon (MHD_USE_IPv6 | MHD_USE_DEBUG,
+    plugin->http_server_daemon_v6 = MHD_start_daemon (
+#if DEBUG_HTTP
+    								   MHD_USE_DEBUG |
+#endif
+    								   MHD_USE_IPv6,
                                        port,
                                        &mhd_accept_cb,
                                        plugin , &mdh_access_cb, plugin,
@@ -2162,7 +2167,11 @@ libgnunet_plugin_transport_http_init (void *cls)
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
                                        MHD_OPTION_NOTIFY_COMPLETED, &mhd_termination_cb, NULL,
                                        MHD_OPTION_END);
-    plugin->http_server_daemon_v4 = MHD_start_daemon (MHD_NO_FLAG | MHD_USE_DEBUG,
+    plugin->http_server_daemon_v4 = MHD_start_daemon (
+#if DEBUG_HTTP
+    								   MHD_USE_DEBUG |
+#endif
+    								   MHD_NO_FLAG,
                                        port,
                                        &mhd_accept_cb,
                                        plugin , &mdh_access_cb, plugin,

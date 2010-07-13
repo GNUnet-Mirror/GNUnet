@@ -881,6 +881,15 @@ notify_address (void *cls,
   fail_notify_address = GNUNET_NO;
 }
 
+static void
+plugin_env_session_end  (void *cls,
+			 const struct GNUNET_PeerIdentity *peer,
+			 struct Session *session)
+{
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session ended: `%s' %X\n", GNUNET_i2s(peer), session);
+}
+
+
 /**
  * Setup plugin environment
  */
@@ -895,6 +904,7 @@ setup_plugin_environment ()
   env.receive = &receive;
   env.notify_address = &notify_address;
   env.max_connections = max_connect_per_transport;
+  env.session_end = &plugin_env_session_end;
 }
 
 
@@ -1071,8 +1081,8 @@ static void run_connection_tests( int phase , void * cls)
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("\nPhase 3: send multiple or big messages after disconnect\n\n"));
     /* disconnect from peer, so new connections are created */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Disconnect from peer: `%s'\n", GNUNET_i2s(&my_identity));
-    api->disconnect(api->cls, &my_identity);
+    //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Disconnect from peer: `%s'\n", GNUNET_i2s(&my_identity));
+    //api->disconnect(api->cls, &my_identity);
 
     /* send a multiple GNUNET_messages at a time*/
 
