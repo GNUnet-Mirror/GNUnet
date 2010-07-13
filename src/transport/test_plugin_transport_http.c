@@ -57,7 +57,7 @@
 /**
  * Testcase timeout
  */
-#define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 180)
+#define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20)
 
 /**
  * How long between recieve and send?
@@ -1081,11 +1081,10 @@ static void run_connection_tests( int phase , void * cls)
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("\nPhase 3: send multiple or big messages after disconnect\n\n"));
     /* disconnect from peer, so new connections are created */
-    //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Disconnect from peer: `%s'\n", GNUNET_i2s(&my_identity));
-    //api->disconnect(api->cls, &my_identity);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Disconnect from peer: `%s'\n", GNUNET_i2s(&my_identity));
+    api->disconnect(api->cls, &my_identity);
 
     /* send a multiple GNUNET_messages at a time*/
-
     size = 2 * sizeof(struct GNUNET_MessageHeader);
     msg = GNUNET_malloc( 2* size);
     msg->size = htons(size);
