@@ -71,10 +71,6 @@
  */
 #define HTTP_CONNECT_TIMEOUT 30
 
-#ifdef GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT
-#undef GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT
-#endif
-#define GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
  * Network format for IPv4 addresses.
@@ -765,7 +761,7 @@ mdh_access_cb (void *cls,
   /* Is it a PUT or a GET request */
   if (0 == strcmp (MHD_HTTP_METHOD_PUT, method))
   {
-    if (ps->recv_force_disconnect)
+    if (ps->recv_force_disconnect == GNUNET_YES)
     {
 #if DEBUG_CONNECTIONS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound connection was forced to disconnect\n",ps);
@@ -778,6 +774,7 @@ mdh_access_cb (void *cls,
       ps->recv_endpoint = mhd_connection;
       ps->recv_connected = GNUNET_YES;
       ps->recv_active = GNUNET_YES;
+      ps->recv_force_disconnect = GNUNET_NO;
 #if DEBUG_CONNECTIONS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound PUT connection connected\n",ps);
 #endif
@@ -817,11 +814,10 @@ mdh_access_cb (void *cls,
       ps->send_active = GNUNET_NO;
       return MHD_NO;
     }
-    else
-    {
 	  ps->send_connected = GNUNET_YES;
 	  ps->send_active = GNUNET_YES;
 	  ps->send_endpoint = mhd_connection;
+	  ps->send_force_disconnect = GNUNET_NO;
 #if DEBUG_CONNECTIONS
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound GET connection connected\n",ps);
 #endif
@@ -829,7 +825,6 @@ mdh_access_cb (void *cls,
 	  res = MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
 	  MHD_destroy_response (response);
 	  return MHD_YES;
-    }
   }
   return MHD_NO;
 }
