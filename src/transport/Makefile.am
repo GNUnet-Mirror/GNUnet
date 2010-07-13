@@ -143,6 +143,7 @@ TESTS = \
  test_transport_api_udp \
  test_transport_api_udp_nat \
  test_plugin_transport_http \
+ test_transport_api_http \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat 
 

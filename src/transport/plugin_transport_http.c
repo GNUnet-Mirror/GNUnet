@@ -40,8 +40,8 @@
 #include <curl/curl.h>
 
 
-#define DEBUG_CURL GNUNET_YES
-#define DEBUG_HTTP GNUNET_YES
+#define DEBUG_CURL GNUNET_NO
+#define DEBUG_HTTP GNUNET_NO
 #define DEBUG_CONNECTIONS GNUNET_YES
 
 #define INBOUND GNUNET_NO
@@ -1730,6 +1730,8 @@ http_plugin_disconnect (void *cls,
   struct Session *ps = NULL;
   //struct Session *tmp = NULL;
 
+  return;
+
   pc = GNUNET_CONTAINER_multihashmap_get (plugin->peers, &target->hashPubKey);
   if (pc==NULL)
     return;
@@ -2010,11 +2012,13 @@ process_interfaces (void *cls,
       t6->u6_port = htons (plugin->port_inbound);
       plugin->env->notify_address(plugin->env->cls,"http",t6,sizeof (struct IPv6HttpAddress) , GNUNET_TIME_UNIT_FOREVER_REL);
     }
-  return GNUNET_OK;
+  return GNUNET_NO;
+  /* FIXME: return GNUNET_OK; */
 }
 
 int remove_peer_context_Iterator (void *cls, const GNUNET_HashCode *key, void *value)
 {
+  struct Plugin *plugin = cls;
   struct HTTP_PeerContext * pc = value;
   struct Session * ps = pc->head;
   struct Session * tmp = NULL;
@@ -2025,7 +2029,8 @@ int remove_peer_context_Iterator (void *cls, const GNUNET_HashCode *key, void *v
 
   while (ps!=NULL)
   {
-    tmp = ps->next;
+	plugin->env->session_end(plugin, &pc->identity, ps);
+	tmp = ps->next;
 
     GNUNET_free_non_null (ps->addr);
     GNUNET_free(ps->url);
@@ -2064,21 +2069,7 @@ libgnunet_plugin_transport_http_done (void *cls)
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
   CURLMcode mret;
-
   GNUNET_assert(cls !=NULL);
-
-  if (plugin->http_server_daemon_v4 != NULL)
-  {
-    MHD_stop_daemon (plugin->http_server_daemon_v4);
-    plugin->http_server_daemon_v4 = NULL;
-  }
-  if (plugin->http_server_daemon_v6 != NULL)
-  {
-    MHD_stop_daemon (plugin->http_server_daemon_v6);
-    plugin->http_server_daemon_v6 = NULL;
-  }
-
-
 
   if ( plugin->http_server_task_v4 != GNUNET_SCHEDULER_NO_TASK)
   {
@@ -2092,6 +2083,18 @@ libgnunet_plugin_transport_http_done (void *cls)
     plugin->http_server_task_v6 = GNUNET_SCHEDULER_NO_TASK;
   }
 
+
+  if (plugin->http_server_daemon_v4 != NULL)
+  {
+    MHD_stop_daemon (plugin->http_server_daemon_v4);
+    plugin->http_server_daemon_v4 = NULL;
+  }
+  if (plugin->http_server_daemon_v6 != NULL)
+  {
+    MHD_stop_daemon (plugin->http_server_daemon_v6);
+    plugin->http_server_daemon_v6 = NULL;
+  }
+
   if ( plugin->http_curl_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_curl_task);
@@ -2103,7 +2106,7 @@ libgnunet_plugin_transport_http_done (void *cls)
   {
 	  GNUNET_CONTAINER_multihashmap_iterate (plugin->peers,
 											 &remove_peer_context_Iterator,
-											 NULL);
+											 plugin);
 	  GNUNET_CONTAINER_multihashmap_destroy (plugin->peers);
   }
   if (plugin->multi_handle!=NULL)
@@ -2223,6 +2226,7 @@ libgnunet_plugin_transport_http_init (void *cls)
   /* Initializing cURL */
   curl_global_init(CURL_GLOBAL_ALL);
   plugin->multi_handle = curl_multi_init();
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"curl version is: `%s'\n",  curl_version());
 
   if ( NULL == plugin->multi_handle )
   {
