@@ -623,8 +623,8 @@ mdh_access_cb (void *cls,
   struct IPv6HttpAddress ipv6addr;
 
   struct HTTP_PeerContext *pc;
-  struct Session *ps;
-  struct Session *ps_tmp;
+  struct Session *ps = NULL;
+  struct Session *ps_tmp = NULL;
 
   int res = GNUNET_NO;
   int send_error_to_client;
