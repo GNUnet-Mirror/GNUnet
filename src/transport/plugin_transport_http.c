@@ -40,7 +40,7 @@
 #include <curl/curl.h>
 
 
-#define DEBUG_CURL GNUNET_NO
+#define DEBUG_CURL GNUNET_YES
 #define DEBUG_HTTP GNUNET_NO
 #define DEBUG_CONNECTIONS GNUNET_YES
 
@@ -407,6 +407,8 @@ static int remove_session (struct HTTP_PeerContext * pc, struct Session * ps,  i
 {
   struct HTTP_Message * msg;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: removing %s session %X with id %u\n", ps, (ps->direction == INBOUND) ? "inbound" : "outbound", ps, ps->session_id);
+  
+  
   GNUNET_free_non_null (ps->addr);
   GNUNET_SERVER_mst_destroy (ps->msgtok);
   GNUNET_free(ps->url);
@@ -1734,8 +1736,8 @@ http_plugin_disconnect (void *cls,
 
   while (ps!=NULL)
   {
-	/* Telling transport that session is getting disconnected */
-	plugin->env->session_end(plugin, target, ps);
+    /* Telling transport that session is getting disconnected */
+    plugin->env->session_end(plugin, target, ps);
     if (ps->direction==OUTBOUND)
     {
       if (ps->send_endpoint!=NULL)
