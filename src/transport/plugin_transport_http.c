@@ -1735,8 +1735,6 @@ http_plugin_disconnect (void *cls,
   struct Session *ps = NULL;
   //struct Session *tmp = NULL;
 
-  return;
-
   pc = GNUNET_CONTAINER_multihashmap_get (plugin->peers, &target->hashPubKey);
   if (pc==NULL)
     return;
