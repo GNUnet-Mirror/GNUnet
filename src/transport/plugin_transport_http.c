@@ -516,8 +516,8 @@ static void mhd_write_mst_cb (void *cls,
   pc->plugin->env->receive (ps->peercontext->plugin->env->cls,
 			    &pc->identity,
 			    message, 1, ps,
-			    ps->addr,
-			    ps->addrlen);
+			    NULL,
+			    0);
 }
 
 static void curl_receive_mst_cb  (void *cls,
@@ -530,7 +530,8 @@ static void curl_receive_mst_cb  (void *cls,
   GNUNET_assert(pc != NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Forwarding message to transport service, type %u and size %u from `%s' (`%s')\n",
+              "Connection %X: Forwarding message to transport service, type %u and size %u from `%s' (`%s')\n",
+              ps,
               ntohs(message->type),
               ntohs(message->size),
               GNUNET_i2s(&(pc->identity)),http_plugin_address_to_string(NULL,ps->addr,ps->addrlen));
@@ -564,7 +565,6 @@ int mhd_send_callback (void *cls, uint64_t pos, char *buf, int max)
   struct Session * ps = cls;
   struct HTTP_PeerContext * pc;
   struct HTTP_Message * msg;
-  int res;res=5;
 
   GNUNET_assert (ps!=NULL);
   pc = ps->peercontext;
@@ -596,7 +596,7 @@ int mhd_send_callback (void *cls, uint64_t pos, char *buf, int max)
     {
       if (NULL!=msg->transmit_cont)
         msg->transmit_cont (msg->transmit_cont_cls,&pc->identity,GNUNET_OK);
-      res = remove_http_message(ps,msg);
+      remove_http_message(ps,msg);
     }
   }
   return bytes_read;
@@ -890,6 +890,12 @@ http_server_daemon_prepare (void * cls, struct MHD_Daemon *daemon_handle)
   GNUNET_NETWORK_fdset_copy_native (wes, &es, max);
   if (daemon_handle == plugin->http_server_daemon_v4)
   {
+	if (plugin->http_server_task_v4 != GNUNET_SCHEDULER_NO_TASK)
+	{
+		GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_server_task_v4);
+		plugin->http_server_daemon_v4 = GNUNET_SCHEDULER_NO_TASK;
+	}
+
     ret = GNUNET_SCHEDULER_add_select (plugin->env->sched,
                                        GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                        GNUNET_SCHEDULER_NO_TASK,
@@ -901,6 +907,12 @@ http_server_daemon_prepare (void * cls, struct MHD_Daemon *daemon_handle)
   }
   if (daemon_handle == plugin->http_server_daemon_v6)
   {
+	if (plugin->http_server_task_v6 != GNUNET_SCHEDULER_NO_TASK)
+	{
+		GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_server_task_v6);
+		plugin->http_server_task_v6 = GNUNET_SCHEDULER_NO_TASK;
+	}
+
     ret = GNUNET_SCHEDULER_add_select (plugin->env->sched,
                                        GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                        GNUNET_SCHEDULER_NO_TASK,
@@ -2011,6 +2023,7 @@ process_interfaces (void *cls,
       t6->u6_port = htons (plugin->port_inbound);
       plugin->env->notify_address(plugin->env->cls,"http",t6,sizeof (struct IPv6HttpAddress) , GNUNET_TIME_UNIT_FOREVER_REL);
     }
+  return GNUNET_NO;
   return GNUNET_OK;
 }
 
