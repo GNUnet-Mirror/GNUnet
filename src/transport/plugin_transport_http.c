@@ -25,6 +25,7 @@
  */
 
 #include "platform.h"
+#include "gnunet_common.h"
 #include "gnunet_constants.h"
 #include "gnunet_protocols.h"
 #include "gnunet_connection_lib.h"
@@ -39,9 +40,11 @@
 #include "microhttpd.h"
 #include <curl/curl.h>
 
+
 #define DEBUG_CURL GNUNET_NO
 #define DEBUG_HTTP GNUNET_NO
 #define DEBUG_CONNECTIONS GNUNET_NO
+#define DEBUG_SESSION_SELECTION GNUNET_YES
 
 #define INBOUND GNUNET_NO
 #define OUTBOUND GNUNET_YES
@@ -179,6 +182,11 @@ struct HTTP_PeerContext
    * id for next session
    */
   size_t session_id_counter;
+
+  /**
+   * Last session used to send data
+   */
+  struct Session * last_session;
 };
 
 
@@ -348,6 +356,8 @@ struct Plugin
    * This string is used to distinguish between connections and is added to the urls
    */
   struct GNUNET_CRYPTO_HashAsciiEncoded my_ascii_hash_ident;
+
+  struct in_addr * bind_address;
 };
 
 
@@ -366,6 +376,37 @@ static const char*
 http_plugin_address_to_string (void *cls,
                                    const void *addr,
                                    size_t addrlen);
+
+
+/**
+ * Call MHD to process pending ipv4 requests and then go back
+ * and schedule the next run.
+ */
+static void http_server_daemon_v4_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+/**
+ * Call MHD to process pending ipv6 requests and then go back
+ * and schedule the next run.
+ */
+static void http_server_daemon_v6_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+/**
+ * Function setting up curl handle and selecting message to send
+ * @param cls plugin
+ * @param ses session to send data to
+ * @param con connection
+ * @return bytes sent to peer
+ */
+static ssize_t send_check_connections (void *cls, struct Session *ps);
+
+/**
+ * Function setting up file descriptors and scheduling task to run
+ * @param cls closure
+ * @param ses session to send data to
+ * @param
+ */
+static int curl_schedule(void *cls );
+
+
 
 static char * create_url(void * cls, const void * addr, size_t addrlen, size_t id)
 {
@@ -432,29 +473,120 @@ static int remove_session (struct HTTP_PeerContext * pc, struct Session * ps,  i
   return GNUNET_OK;
 }
 
-static struct Session * get_Session (void * cls, struct HTTP_PeerContext *pc, const void * addr, size_t addr_len)
+int remove_peer_context_Iterator (void *cls, const GNUNET_HashCode *key, void *value)
 {
-  struct Session * cc = pc->head;
-  struct Session * con = NULL;
-  unsigned int count = 0;
+  struct Plugin *plugin = cls;
+  struct HTTP_PeerContext * pc = value;
+  struct Session * ps = pc->head;
+  struct Session * tmp = NULL;
+  struct HTTP_Message * msg = NULL;
+  struct HTTP_Message * msg_tmp = NULL;
 
-  GNUNET_assert((addr_len == sizeof (struct IPv4HttpAddress)) || (addr_len == sizeof (struct IPv6HttpAddress)));
-  while (cc!=NULL)
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Freeing context for peer `%s'\n",GNUNET_i2s(&pc->identity));
+
+  while (ps!=NULL)
   {
-    if (addr_len == cc->addrlen)
+	plugin->env->session_end(plugin, &pc->identity, ps);
+	tmp = ps->next;
+
+    GNUNET_free_non_null (ps->addr);
+    GNUNET_free(ps->url);
+    if (ps->msgtok != NULL)
+      GNUNET_SERVER_mst_destroy (ps->msgtok);
+
+    msg = ps->pending_msgs_head;
+    while (msg!=NULL)
     {
-      if (0 == memcmp(cc->addr, addr, addr_len))
-      {
-        /* connection can not be used, since it is disconnected */
-        if ((cc->recv_force_disconnect==GNUNET_NO) && (cc->send_force_disconnect==GNUNET_NO))
-          con = cc;
-        break;
-      }
+      msg_tmp = msg->next;
+      GNUNET_free(msg);
+      msg = msg_tmp;
     }
-    count++;
-    cc=cc->next;
+    if (ps->direction==OUTBOUND)
+    {
+      if (ps->send_endpoint!=NULL)
+        curl_easy_cleanup(ps->send_endpoint);
+      if (ps->recv_endpoint!=NULL)
+        curl_easy_cleanup(ps->recv_endpoint);
+    }
+
+    GNUNET_free(ps);
+    ps=tmp;
   }
-  return con;
+  GNUNET_free(pc);
+  return GNUNET_YES;
+}
+
+/**
+ * Add the IP of our network interface to the list of
+ * our external IP addresses.
+ *
+ * @param cls the 'struct Plugin*'
+ * @param name name of the interface
+ * @param isDefault do we think this may be our default interface
+ * @param addr address of the interface
+ * @param addrlen number of bytes in addr
+ * @return GNUNET_OK to continue iterating
+ */
+static int
+process_interfaces (void *cls,
+                    const char *name,
+                    int isDefault,
+                    const struct sockaddr *addr, socklen_t addrlen)
+{
+  struct Plugin *plugin = cls;
+  struct IPv4HttpAddress * t4;
+  struct IPv6HttpAddress * t6;
+  int af;
+  struct in_addr bnd_cmp = ((struct sockaddr_in *) addr)->sin_addr;
+
+  GNUNET_assert(cls !=NULL);
+  af = addr->sa_family;
+  if (af == AF_INET)
+    {
+      t4 = GNUNET_malloc(sizeof(struct IPv4HttpAddress));
+      /* Not skipping loopback addresses
+      if (INADDR_LOOPBACK == ntohl(((struct sockaddr_in *) addr)->sin_addr.s_addr))
+      {
+
+        return GNUNET_OK;
+      }
+      */
+      t4->ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
+      t4->u_port = htons (plugin->port_inbound);
+      if (plugin->bind_address != NULL)
+      {
+    	  if (0 == memcmp(plugin->bind_address, &bnd_cmp, sizeof (struct in_addr)))
+          	  plugin->env->notify_address(plugin->env->cls,"http",t4, sizeof (struct IPv4HttpAddress), GNUNET_TIME_UNIT_FOREVER_REL);
+      }
+      else
+      {
+    	  plugin->env->notify_address(plugin->env->cls,"http",t4, sizeof (struct IPv4HttpAddress), GNUNET_TIME_UNIT_FOREVER_REL);
+      }
+
+    }
+  else if ((af == AF_INET6) && (plugin->bind_address == NULL))
+    {
+      t6 = GNUNET_malloc(sizeof(struct IPv6HttpAddress));
+      if (IN6_IS_ADDR_LINKLOCAL (&((struct sockaddr_in6 *) addr)->sin6_addr))
+        {
+          /* skip link local addresses */
+          return GNUNET_OK;
+        }
+      /* Not skipping loopback addresses
+      if (IN6_IS_ADDR_LOOPBACK (&((struct sockaddr_in6 *) addr)->sin6_addr))
+        {
+
+          return GNUNET_OK;
+        }
+      */
+      memcpy (&t6->ipv6_addr,
+              &((struct sockaddr_in6 *) addr)->sin6_addr,
+              sizeof (struct in6_addr));
+      t6->u6_port = htons (plugin->port_inbound);
+      plugin->env->notify_address(plugin->env->cls,"http",t6,sizeof (struct IPv6HttpAddress) , GNUNET_TIME_UNIT_FOREVER_REL);
+    }
+  //return GNUNET_NO;
+  return GNUNET_OK;
 }
 
 
@@ -518,30 +650,6 @@ static void mhd_write_mst_cb (void *cls,
 			    NULL,
 			    0);
 }
-
-static void curl_receive_mst_cb  (void *cls,
-                                void *client,
-                                const struct GNUNET_MessageHeader *message)
-{
-  struct Session *ps  = cls;
-  struct HTTP_PeerContext *pc = ps->peercontext;
-  GNUNET_assert(ps != NULL);
-  GNUNET_assert(pc != NULL);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connection %X: Forwarding message to transport service, type %u and size %u from `%s' (`%s')\n",
-              ps,
-              ntohs(message->type),
-              ntohs(message->size),
-              GNUNET_i2s(&(pc->identity)),http_plugin_address_to_string(NULL,ps->addr,ps->addrlen));
-
-  pc->plugin->env->receive (pc->plugin->env->cls,
-                            &pc->identity,
-                            message, 1, ps,
-                            ps->addr,
-                            ps->addrlen);
-}
-
 
 /**
  * Check if ip is allowed to connect.
@@ -688,6 +796,7 @@ mdh_access_cb (void *cls,
       pc = GNUNET_malloc(sizeof (struct HTTP_PeerContext));
       pc->plugin = plugin;
       pc->session_id_counter=1;
+      pc->last_session = NULL;
       memcpy(&pc->identity, &pi_in, sizeof(struct GNUNET_PeerIdentity));
       GNUNET_CONTAINER_multihashmap_put(plugin->peers, &pc->identity.hashPubKey, pc, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
     }
@@ -714,8 +823,6 @@ mdh_access_cb (void *cls,
       addr_len = sizeof(struct IPv6HttpAddress);
     }
 
-
-    //ps = get_Session(plugin, pc, addr, addr_len);
     ps = NULL;
     /* only inbound sessions here */
 
@@ -831,18 +938,6 @@ mdh_access_cb (void *cls,
   }
   return MHD_NO;
 }
-
-
-/**
- * Call MHD to process pending ipv4 requests and then go back
- * and schedule the next run.
- */
-static void http_server_daemon_v4_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
-/**
- * Call MHD to process pending ipv6 requests and then go back
- * and schedule the next run.
- */
-static void http_server_daemon_v6_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Function that queries MHD's select sets and
@@ -968,16 +1063,7 @@ static void http_server_daemon_v6_run (void *cls,
   return;
 }
 
-/**
- * Function setting up curl handle and selecting message to send
- * @param cls plugin
- * @param ses session to send data to
- * @param con connection
- * @return bytes sent to peer
- */
-static ssize_t send_check_connections (void *cls, struct Session *ps);
-
-static size_t curl_get_header_function( void *ptr, size_t size, size_t nmemb, void *stream)
+static size_t curl_get_header_cb( void *ptr, size_t size, size_t nmemb, void *stream)
 {
   struct Session * ps = stream;
 
@@ -1027,7 +1113,7 @@ static size_t curl_get_header_function( void *ptr, size_t size, size_t nmemb, vo
   return size * nmemb;
 }
 
-static size_t curl_put_header_function( void *ptr, size_t size, size_t nmemb, void *stream)
+static size_t curl_put_header_cb( void *ptr, size_t size, size_t nmemb, void *stream)
 {
   struct Session * ps = stream;
 
@@ -1149,6 +1235,30 @@ static size_t curl_send_cb(void *stream, size_t size, size_t nmemb, void *ptr)
   return bytes_sent;
 }
 
+static void curl_receive_mst_cb  (void *cls,
+                                void *client,
+                                const struct GNUNET_MessageHeader *message)
+{
+  struct Session *ps  = cls;
+  struct HTTP_PeerContext *pc = ps->peercontext;
+  GNUNET_assert(ps != NULL);
+  GNUNET_assert(pc != NULL);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Connection %X: Forwarding message to transport service, type %u and size %u from `%s' (`%s')\n",
+              ps,
+              ntohs(message->type),
+              ntohs(message->size),
+              GNUNET_i2s(&(pc->identity)),http_plugin_address_to_string(NULL,ps->addr,ps->addrlen));
+
+  pc->plugin->env->receive (pc->plugin->env->cls,
+                            &pc->identity,
+                            message, 1, ps,
+                            ps->addr,
+                            ps->addrlen);
+}
+
+
 /**
 * Callback method used with libcurl
 * Method is called when libcurl needs to write data during sending
@@ -1167,157 +1277,6 @@ static size_t curl_receive_cb( void *stream, size_t size, size_t nmemb, void *pt
   GNUNET_SERVER_mst_receive(ps->msgtok, ps, stream, size*nmemb, GNUNET_NO, GNUNET_NO);
   return (size * nmemb);
 
-}
-
-/**
- * Function setting up file descriptors and scheduling task to run
- * @param cls closure
- * @param ses session to send data to
- * @param
- */
-static int curl_schedule(void *cls );
-
-
-
-/**
- * Function setting up curl handle and selecting message to send
- * @param cls plugin
- * @param ses session to send data to
- * @param con connection
- * @return GNUNET_SYSERR on failure, GNUNET_NO if connecting, GNUNET_YES if ok
- */
-static ssize_t send_check_connections (void *cls, struct Session *ps)
-{
-  struct Plugin *plugin = cls;
-  CURLMcode mret;
-  struct HTTP_Message * msg;
-
-  struct GNUNET_TIME_Relative timeout = GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT;
-
-  GNUNET_assert(cls !=NULL);
-
-  if (ps->direction == OUTBOUND)
-  {
-    /* RECV DIRECTION */
-    /* Check if session is connected to receive data, otherwise connect to peer */
-    if (ps->recv_connected == GNUNET_NO)
-    {
-        if (ps->recv_endpoint == NULL)
-        {
-          ps->recv_endpoint = curl_easy_init();
-#if DEBUG_CURL
-        curl_easy_setopt(ps->recv_endpoint, CURLOPT_VERBOSE, 1L);
-#endif
-        curl_easy_setopt(ps->recv_endpoint, CURLOPT_URL, ps->url);
-        curl_easy_setopt(ps->recv_endpoint, CURLOPT_HEADERFUNCTION, &curl_get_header_function);
-        curl_easy_setopt(ps->recv_endpoint, CURLOPT_WRITEHEADER, ps);
-        curl_easy_setopt(ps->recv_endpoint, CURLOPT_READFUNCTION, curl_send_cb);
-        curl_easy_setopt(ps->recv_endpoint, CURLOPT_READDATA, ps);
-        curl_easy_setopt(ps->recv_endpoint, CURLOPT_WRITEFUNCTION, curl_receive_cb);
-        curl_easy_setopt(ps->recv_endpoint, CURLOPT_WRITEDATA, ps);
-        curl_easy_setopt(ps->recv_endpoint, CURLOPT_TIMEOUT, (long) timeout.value);
-        curl_easy_setopt(ps->recv_endpoint, CURLOPT_PRIVATE, ps);
-        curl_easy_setopt(ps->recv_endpoint, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
-        curl_easy_setopt(ps->recv_endpoint, CURLOPT_BUFFERSIZE, GNUNET_SERVER_MAX_MESSAGE_SIZE);
-
-        mret = curl_multi_add_handle(plugin->multi_handle, ps->recv_endpoint);
-        if (mret != CURLM_OK)
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-				  	  _("Connection: %X: %s failed at %s:%d: `%s'\n"),
-				  	  ps,
-                      "curl_multi_add_handle", __FILE__, __LINE__,
-                      curl_multi_strerror (mret));
-          return GNUNET_SYSERR;
-        }
-        if (curl_schedule (plugin) == GNUNET_SYSERR)
-        	return GNUNET_SYSERR;
-#if DEBUG_CONNECTIONS
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound not connected, initiating connection\n",ps);
-#endif
-      }
-    }
-
-    /* waiting for receive direction */
-    if (ps->recv_connected==GNUNET_NO)
-      return GNUNET_NO;
-
-    /* SEND DIRECTION */
-    /* Check if session is connected to send data, otherwise connect to peer */
-    if ((ps->send_connected == GNUNET_YES) && (ps->send_endpoint!= NULL))
-    {
-      if (ps->send_active == GNUNET_YES)
-      {
-#if DEBUG_CONNECTIONS
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound active, enqueueing message\n",ps);
-#endif
-        return GNUNET_YES;
-      }
-      if (ps->send_active == GNUNET_NO)
-      {
-#if DEBUG_CONNECTIONS
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound paused, unpausing existing connection and enqueueing message\n",ps);
-#endif
-        if (CURLE_OK == curl_easy_pause(ps->send_endpoint,CURLPAUSE_CONT))
-        {
-			ps->send_active=GNUNET_YES;
-			return GNUNET_YES;
-        }
-        else
-        	return GNUNET_SYSERR;
-      }
-    }
-    /* not connected, initiate connection */
-    if ((ps->send_connected==GNUNET_NO) && (NULL == ps->send_endpoint))
-    {
-    	ps->send_endpoint = curl_easy_init();
-		GNUNET_assert (ps->send_endpoint != NULL);
-		GNUNET_assert (NULL != ps->pending_msgs_tail);
-#if DEBUG_CONNECTIONS
-		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound not connected, initiating connection\n",ps);
-#endif
-		ps->send_active = GNUNET_NO;
-		msg = ps->pending_msgs_tail;
-
-#if DEBUG_CURL
-		curl_easy_setopt(ps->send_endpoint, CURLOPT_VERBOSE, 1L);
-#endif
-		curl_easy_setopt(ps->send_endpoint, CURLOPT_URL, ps->url);
-		curl_easy_setopt(ps->send_endpoint, CURLOPT_PUT, 1L);
-		curl_easy_setopt(ps->send_endpoint, CURLOPT_HEADERFUNCTION, &curl_put_header_function);
-		curl_easy_setopt(ps->send_endpoint, CURLOPT_WRITEHEADER, ps);
-		curl_easy_setopt(ps->send_endpoint, CURLOPT_READFUNCTION, curl_send_cb);
-		curl_easy_setopt(ps->send_endpoint, CURLOPT_READDATA, ps);
-		curl_easy_setopt(ps->send_endpoint, CURLOPT_WRITEFUNCTION, curl_receive_cb);
-		curl_easy_setopt(ps->send_endpoint, CURLOPT_READDATA, ps);
-		curl_easy_setopt(ps->send_endpoint, CURLOPT_TIMEOUT, (long) timeout.value);
-		curl_easy_setopt(ps->send_endpoint, CURLOPT_PRIVATE, ps);
-		curl_easy_setopt(ps->send_endpoint, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
-		curl_easy_setopt(ps->send_endpoint, CURLOPT_BUFFERSIZE, GNUNET_SERVER_MAX_MESSAGE_SIZE);
-
-		mret = curl_multi_add_handle(plugin->multi_handle, ps->send_endpoint);
-		if (mret != CURLM_OK)
-		{
-		  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-					  _("Connection: %X: %s failed at %s:%d: `%s'\n"),
-					  ps,
-					  "curl_multi_add_handle", __FILE__, __LINE__,
-					  curl_multi_strerror (mret));
-		  return GNUNET_SYSERR;
-		}
-    }
-    if (curl_schedule (plugin) == GNUNET_SYSERR)
-    	return GNUNET_SYSERR;
-    return GNUNET_YES;
-  }
-  if (ps->direction == INBOUND)
-  {
-    GNUNET_assert (NULL != ps->pending_msgs_tail);
-    if ((ps->recv_connected==GNUNET_YES) && (ps->send_connected==GNUNET_YES) &&
-    	(ps->recv_force_disconnect==GNUNET_NO) && (ps->recv_force_disconnect==GNUNET_NO))
-    	return GNUNET_YES;
-  }
-  return GNUNET_SYSERR;
 }
 
 static void curl_perform (void *cls,
@@ -1537,6 +1496,254 @@ static int curl_schedule(void *cls )
   return GNUNET_OK;
 }
 
+/**
+ * Function setting up curl handle and selecting message to send
+ * @param cls plugin
+ * @param ses session to send data to
+ * @param con connection
+ * @return GNUNET_SYSERR on failure, GNUNET_NO if connecting, GNUNET_YES if ok
+ */
+static ssize_t send_check_connections (void *cls, struct Session *ps)
+{
+  struct Plugin *plugin = cls;
+  CURLMcode mret;
+  struct HTTP_Message * msg;
+
+  struct GNUNET_TIME_Relative timeout = GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT;
+
+  GNUNET_assert(cls !=NULL);
+
+  if (ps->direction == OUTBOUND)
+  {
+    /* RECV DIRECTION */
+    /* Check if session is connected to receive data, otherwise connect to peer */
+    if (ps->recv_connected == GNUNET_NO)
+    {
+        if (ps->recv_endpoint == NULL)
+        {
+          ps->recv_endpoint = curl_easy_init();
+#if DEBUG_CURL
+        curl_easy_setopt(ps->recv_endpoint, CURLOPT_VERBOSE, 1L);
+#endif
+        curl_easy_setopt(ps->recv_endpoint, CURLOPT_URL, ps->url);
+        curl_easy_setopt(ps->recv_endpoint, CURLOPT_HEADERFUNCTION, &curl_get_header_cb);
+        curl_easy_setopt(ps->recv_endpoint, CURLOPT_WRITEHEADER, ps);
+        curl_easy_setopt(ps->recv_endpoint, CURLOPT_READFUNCTION, curl_send_cb);
+        curl_easy_setopt(ps->recv_endpoint, CURLOPT_READDATA, ps);
+        curl_easy_setopt(ps->recv_endpoint, CURLOPT_WRITEFUNCTION, curl_receive_cb);
+        curl_easy_setopt(ps->recv_endpoint, CURLOPT_WRITEDATA, ps);
+        curl_easy_setopt(ps->recv_endpoint, CURLOPT_TIMEOUT, (long) timeout.value);
+        curl_easy_setopt(ps->recv_endpoint, CURLOPT_PRIVATE, ps);
+        curl_easy_setopt(ps->recv_endpoint, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
+        curl_easy_setopt(ps->recv_endpoint, CURLOPT_BUFFERSIZE, GNUNET_SERVER_MAX_MESSAGE_SIZE);
+
+        mret = curl_multi_add_handle(plugin->multi_handle, ps->recv_endpoint);
+        if (mret != CURLM_OK)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+				  	  _("Connection: %X: %s failed at %s:%d: `%s'\n"),
+				  	  ps,
+                      "curl_multi_add_handle", __FILE__, __LINE__,
+                      curl_multi_strerror (mret));
+          return GNUNET_SYSERR;
+        }
+        if (curl_schedule (plugin) == GNUNET_SYSERR)
+        	return GNUNET_SYSERR;
+#if DEBUG_CONNECTIONS
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound not connected, initiating connection\n",ps);
+#endif
+      }
+    }
+
+    /* waiting for receive direction */
+    if (ps->recv_connected==GNUNET_NO)
+      return GNUNET_NO;
+
+    /* SEND DIRECTION */
+    /* Check if session is connected to send data, otherwise connect to peer */
+    if ((ps->send_connected == GNUNET_YES) && (ps->send_endpoint!= NULL))
+    {
+      if (ps->send_active == GNUNET_YES)
+      {
+#if DEBUG_CONNECTIONS
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound active, enqueueing message\n",ps);
+#endif
+        return GNUNET_YES;
+      }
+      if (ps->send_active == GNUNET_NO)
+      {
+#if DEBUG_CONNECTIONS
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound paused, unpausing existing connection and enqueueing message\n",ps);
+#endif
+        if (CURLE_OK == curl_easy_pause(ps->send_endpoint,CURLPAUSE_CONT))
+        {
+			ps->send_active=GNUNET_YES;
+			return GNUNET_YES;
+        }
+        else
+        	return GNUNET_SYSERR;
+      }
+    }
+    /* not connected, initiate connection */
+    if ((ps->send_connected==GNUNET_NO) && (NULL == ps->send_endpoint))
+    {
+    	ps->send_endpoint = curl_easy_init();
+		GNUNET_assert (ps->send_endpoint != NULL);
+		GNUNET_assert (NULL != ps->pending_msgs_tail);
+#if DEBUG_CONNECTIONS
+		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound not connected, initiating connection\n",ps);
+#endif
+		ps->send_active = GNUNET_NO;
+		msg = ps->pending_msgs_tail;
+
+#if DEBUG_CURL
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_VERBOSE, 1L);
+#endif
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_URL, ps->url);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_PUT, 1L);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_HEADERFUNCTION, &curl_put_header_cb);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_WRITEHEADER, ps);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_READFUNCTION, curl_send_cb);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_READDATA, ps);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_WRITEFUNCTION, curl_receive_cb);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_READDATA, ps);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_TIMEOUT, (long) timeout.value);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_PRIVATE, ps);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_BUFFERSIZE, GNUNET_SERVER_MAX_MESSAGE_SIZE);
+
+		mret = curl_multi_add_handle(plugin->multi_handle, ps->send_endpoint);
+		if (mret != CURLM_OK)
+		{
+		  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+					  _("Connection: %X: %s failed at %s:%d: `%s'\n"),
+					  ps,
+					  "curl_multi_add_handle", __FILE__, __LINE__,
+					  curl_multi_strerror (mret));
+		  return GNUNET_SYSERR;
+		}
+    }
+    if (curl_schedule (plugin) == GNUNET_SYSERR)
+    	return GNUNET_SYSERR;
+    return GNUNET_YES;
+  }
+  if (ps->direction == INBOUND)
+  {
+    GNUNET_assert (NULL != ps->pending_msgs_tail);
+    if ((ps->recv_connected==GNUNET_YES) && (ps->send_connected==GNUNET_YES) &&
+    	(ps->recv_force_disconnect==GNUNET_NO) && (ps->recv_force_disconnect==GNUNET_NO))
+    	return GNUNET_YES;
+  }
+  return GNUNET_SYSERR;
+}
+
+static struct Session * send_get_session (void * cls, struct HTTP_PeerContext *pc, const void * addr, size_t addrlen, int force_address, struct Session * session)
+{
+	struct Session * tmp = NULL;
+	int addr_given = GNUNET_NO;
+
+	if ((addr!=NULL) && (addrlen>0))
+		addr_given = GNUNET_YES;
+
+	if (force_address == GNUNET_YES)
+	{
+		/* check session given as argument */
+		if ((session != NULL) && (addr_given == GNUNET_YES))
+		{
+		      if (0 == memcmp(session->addr, addr, addrlen))
+		      {
+		        /* connection can not be used, since it is disconnected */
+		        if ((session->recv_force_disconnect==GNUNET_NO) && (session->send_force_disconnect==GNUNET_NO))
+		        {
+#ifdef DEBUG_SESSION_SELECTION
+		        	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session %X selected: Using session passed by transport to send to forced address \n", session);
+#endif
+		        	return session;
+		        }
+		      }
+		}
+		/* check last session used */
+		if ((pc->last_session != NULL)&& (addr_given == GNUNET_YES))
+		{
+		      if (0 == memcmp(pc->last_session->addr, addr, addrlen))
+		      {
+		        /* connection can not be used, since it is disconnected */
+		        if ((pc->last_session->recv_force_disconnect==GNUNET_NO) && (pc->last_session->send_force_disconnect==GNUNET_NO))
+		        {
+#ifdef DEBUG_SESSION_SELECTION
+		        	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session %X selected: Using last session used to send to forced address \n", pc->last_session);
+#endif
+		        	return pc->last_session;
+		        }
+		      }
+		}
+		/* find session in existing sessions */
+		tmp = pc->head;
+		while ((tmp!=NULL) && (addr_given == GNUNET_YES))
+		{
+
+			  if (0 == memcmp(tmp->addr, addr, addrlen))
+		      {
+		        /* connection can not be used, since it is disconnected */
+		        if ((tmp->recv_force_disconnect==GNUNET_NO) && (tmp->send_force_disconnect==GNUNET_NO))
+		        {
+#ifdef DEBUG_SESSION_SELECTION
+		        	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session %X selected: Using existing session to send to forced address \n", session);
+#endif
+		        	  return session;
+		        }
+
+		      }
+			  tmp=tmp->next;
+		}
+		/* no session to use */
+		return NULL;
+	}
+	if ((force_address == GNUNET_NO) || (force_address == GNUNET_SYSERR))
+	{
+		/* check session given as argument */
+		if (session != NULL)
+		{
+			/* connection can not be used, since it is disconnected */
+			if ((session->recv_force_disconnect==GNUNET_NO) && (session->send_force_disconnect==GNUNET_NO))
+			{
+#ifdef DEBUG_SESSION_SELECTION
+		        	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session %X selected: Using session passed by transport to send not-forced address \n", session);
+#endif
+		        	  return session;
+			}
+
+		}
+		/* check last session used */
+		if (pc->last_session != NULL)
+		{
+			/* connection can not be used, since it is disconnected */
+			if ((pc->last_session->recv_force_disconnect==GNUNET_NO) && (pc->last_session->send_force_disconnect==GNUNET_NO))
+			{
+#ifdef DEBUG_SESSION_SELECTION
+		        	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session %X selected: Using last session to send to not-forced address \n", pc->last_session);
+#endif
+				return pc->last_session;
+			}
+		}
+		/* find session in existing sessions */
+		tmp = pc->head;
+		while (tmp!=NULL)
+		{
+			/* connection can not be used, since it is disconnected */
+			if ((tmp->recv_force_disconnect==GNUNET_NO) && (tmp->send_force_disconnect==GNUNET_NO))
+			{
+#ifdef DEBUG_SESSION_SELECTION
+		        	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session %X selected: Using existing session to send to not-forced address \n", tmp);
+#endif
+				return tmp;
+			}
+			tmp=tmp->next;
+		}
+		return NULL;
+	}
+	return NULL;
+}
 
 /**
  * Function that can be used by the transport service to transmit
@@ -1593,7 +1800,7 @@ http_plugin_send (void *cls,
 
   struct HTTP_PeerContext * pc;
   struct Session * ps = NULL;
-  struct Session * ps_tmp = NULL;
+  //struct Session * ps_tmp = NULL;
 
   GNUNET_assert(cls !=NULL);
 
@@ -1619,66 +1826,24 @@ http_plugin_send (void *cls,
     pc = GNUNET_malloc(sizeof (struct HTTP_PeerContext));
     pc->plugin = plugin;
     pc->session_id_counter=1;
+    pc->last_session = NULL;
     memcpy(&pc->identity, target, sizeof(struct GNUNET_PeerIdentity));
     GNUNET_CONTAINER_multihashmap_put(plugin->peers, &pc->identity.hashPubKey, pc, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   }
 
-  /* Search for existing session using the passed address */
-  if  ((addr!=NULL) && (addrlen != 0))
-  {
-    ps = get_Session(plugin, pc, addr, addrlen);
-  }
-  if (ps != NULL)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Found existing connection to peer %s with given address, using %X\n", GNUNET_i2s(target), ps);
-
-  /* Search for existing session using the passed session */
-  if ((ps==NULL) && (force_address != GNUNET_YES))
-  {
-    ps_tmp = pc->head;
-    while (ps_tmp!=NULL)
-    {
-      if ((ps_tmp==session) && (ps_tmp->recv_force_disconnect==GNUNET_NO) && (ps_tmp->send_force_disconnect==GNUNET_NO) &&
-          (ps_tmp->recv_connected==GNUNET_YES) && (ps_tmp->send_connected==GNUNET_YES))
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Found existing connection to peer %s with given session, using inbound session %X\n", GNUNET_i2s(target), ps_tmp);
-        ps = ps_tmp;
-        break;
-      }
-      ps_tmp=ps_tmp->next;
-    }
-  }
-
-  /* session not existing, address not forced -> looking for other session */
-  if ((ps==NULL) && (force_address != GNUNET_YES))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing connection, but free to choose existing, searching for existing connection to peer %s\n", GNUNET_i2s(target));
-    /* Choosing different session to peer when possible */
-    struct Session * tmp = pc->head;
-    while (tmp!=NULL)
-    {
-      if ((tmp->recv_connected) && (tmp->send_connected) && (tmp->recv_force_disconnect==GNUNET_NO) && (tmp->send_force_disconnect==GNUNET_NO))
-      {
-        ps = tmp;
-      }
-      tmp = tmp->next;
-    }
-    if (ps != NULL)
-     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing connection to peer %s, selected connection %X\n", GNUNET_i2s(target),ps);
-    else
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing connection to peer %s, no connection found\n", GNUNET_i2s(target));
-  }
+  ps = send_get_session (plugin, pc, addr, addrlen, force_address, session);
 
   /* session not existing, but address forced -> creating new session */
-  if ((ps==NULL) || ((ps==NULL) && (force_address == GNUNET_YES)))
+  if (ps==NULL)
   {
     if ((addr!=NULL) && (addrlen!=0))
     {
-      if (force_address == GNUNET_YES)
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing connection & forced address: creating new connection to peer %s\n", GNUNET_i2s(target));
-      if (force_address != GNUNET_YES)
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing connection: creating new connection to peer %s\n", GNUNET_i2s(target));
-
       ps = GNUNET_malloc(sizeof (struct Session));
+      if (force_address == GNUNET_YES)
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing connection & forced address: creating new session %X to peer %s\n", ps, GNUNET_i2s(target));
+      if (force_address != GNUNET_YES)
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing connection: creating new session %X to peer %s\n", ps, GNUNET_i2s(target));
+
       if ((addrlen!=0) && (addr!=NULL))
       {
       ps->addr = GNUNET_malloc(addrlen);
@@ -1707,7 +1872,7 @@ http_plugin_send (void *cls,
     }
     else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing session & and no address given: no way to send this message to peer `%s'!\n", GNUNET_i2s(target));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing session found & and no address given: no way to send this message to peer `%s'!\n", GNUNET_i2s(target));
       return GNUNET_SYSERR;
     }
   }
@@ -1724,7 +1889,14 @@ http_plugin_send (void *cls,
   GNUNET_CONTAINER_DLL_insert(ps->pending_msgs_head,ps->pending_msgs_tail,msg);
 
   if (send_check_connections (plugin, ps) != GNUNET_SYSERR)
+  {
+	  if (force_address != GNUNET_YES)
+		  pc->last_session = ps;
+
+	  if (pc->last_session==NULL)
+		  pc->last_session = ps;
 	  return msg->size;
+  }
   else
 	  return GNUNET_SYSERR;
 }
@@ -1971,113 +2143,6 @@ http_plugin_address_to_string (void *cls,
   return ret;
 }
 
-/**
- * Add the IP of our network interface to the list of
- * our external IP addresses.
- *
- * @param cls the 'struct Plugin*'
- * @param name name of the interface
- * @param isDefault do we think this may be our default interface
- * @param addr address of the interface
- * @param addrlen number of bytes in addr
- * @return GNUNET_OK to continue iterating
- */
-static int
-process_interfaces (void *cls,
-                    const char *name,
-                    int isDefault,
-                    const struct sockaddr *addr, socklen_t addrlen)
-{
-  struct Plugin *plugin = cls;
-  struct IPv4HttpAddress * t4;
-  struct IPv6HttpAddress * t6;
-  int af;
-
-  GNUNET_assert(cls !=NULL);
-  af = addr->sa_family;
-  if (af == AF_INET)
-    {
-      t4 = GNUNET_malloc(sizeof(struct IPv4HttpAddress));
-      /* Not skipping loopback addresses
-      if (INADDR_LOOPBACK == ntohl(((struct sockaddr_in *) addr)->sin_addr.s_addr))
-      {
-
-        return GNUNET_OK;
-      }
-      */
-      t4->ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
-      t4->u_port = htons (plugin->port_inbound);
-      plugin->env->notify_address(plugin->env->cls,"http",t4, sizeof (struct IPv4HttpAddress), GNUNET_TIME_UNIT_FOREVER_REL);
-
-    }
-  else if (af == AF_INET6)
-    {
-      t6 = GNUNET_malloc(sizeof(struct IPv6HttpAddress));
-      if (IN6_IS_ADDR_LINKLOCAL (&((struct sockaddr_in6 *) addr)->sin6_addr))
-        {
-          /* skip link local addresses */
-          return GNUNET_OK;
-        }
-      /* Not skipping loopback addresses
-      if (IN6_IS_ADDR_LOOPBACK (&((struct sockaddr_in6 *) addr)->sin6_addr))
-        {
-
-          return GNUNET_OK;
-        }
-      */
-      memcpy (&t6->ipv6_addr,
-              &((struct sockaddr_in6 *) addr)->sin6_addr,
-              sizeof (struct in6_addr));
-      t6->u6_port = htons (plugin->port_inbound);
-      plugin->env->notify_address(plugin->env->cls,"http",t6,sizeof (struct IPv6HttpAddress) , GNUNET_TIME_UNIT_FOREVER_REL);
-    }
-  return GNUNET_NO;
-  return GNUNET_OK;
-}
-
-int remove_peer_context_Iterator (void *cls, const GNUNET_HashCode *key, void *value)
-{
-  struct Plugin *plugin = cls;
-  struct HTTP_PeerContext * pc = value;
-  struct Session * ps = pc->head;
-  struct Session * tmp = NULL;
-  struct HTTP_Message * msg = NULL;
-  struct HTTP_Message * msg_tmp = NULL;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Freeing context for peer `%s'\n",GNUNET_i2s(&pc->identity));
-
-  while (ps!=NULL)
-  {
-	plugin->env->session_end(plugin, &pc->identity, ps);
-	tmp = ps->next;
-
-    GNUNET_free_non_null (ps->addr);
-    GNUNET_free(ps->url);
-    if (ps->msgtok != NULL)
-      GNUNET_SERVER_mst_destroy (ps->msgtok);
-
-    msg = ps->pending_msgs_head;
-    while (msg!=NULL)
-    {
-      msg_tmp = msg->next;
-      GNUNET_free(msg);
-      msg = msg_tmp;
-    }
-    if (ps->direction==OUTBOUND)
-    {
-      if (ps->send_endpoint!=NULL)
-        curl_easy_cleanup(ps->send_endpoint);
-      if (ps->recv_endpoint!=NULL)
-        curl_easy_cleanup(ps->recv_endpoint);
-    }
-
-    GNUNET_free(ps);
-    ps=tmp;
-  }
-  GNUNET_free(pc);
-  return GNUNET_YES;
-}
-
 
 /**
  * Exit point from the plugin.
@@ -2137,6 +2202,7 @@ libgnunet_plugin_transport_http_done (void *cls)
     plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
+  GNUNET_free_non_null (plugin->bind_address);
   GNUNET_free (plugin);
   GNUNET_free (api);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Unload http plugin complete...\n");
@@ -2155,6 +2221,7 @@ libgnunet_plugin_transport_http_init (void *cls)
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct GNUNET_TIME_Relative gn_timeout;
   long long unsigned int port;
+  char * hostname;
 
   GNUNET_assert(cls !=NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting http plugin...\n");
@@ -2163,6 +2230,7 @@ libgnunet_plugin_transport_http_init (void *cls)
   plugin->stats = env->stats;
   plugin->env = env;
   plugin->peers = NULL;
+  plugin->bind_address = GNUNET_malloc(sizeof(struct in_addr*));
 
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
@@ -2191,6 +2259,23 @@ libgnunet_plugin_transport_http_init (void *cls)
       libgnunet_plugin_transport_http_done (api);
       return NULL;
     }
+
+  /* Reading port number from config file */
+  if (GNUNET_CONFIGURATION_have_value (env->cfg,
+          	  	  	  	  	  	  	   "transport-http", "BINDTO"))
+    {
+      GNUNET_break (GNUNET_OK ==
+                    GNUNET_CONFIGURATION_get_value_string (env->cfg,
+                    									   "transport-http",
+                                                           "BINDTO",
+                                                           &hostname));
+      if (inet_aton(hostname, plugin->bind_address)==0)
+      {
+    	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"Misconfigured address to bind to in configuration\n");
+    	  GNUNET_free(plugin->bind_address);
+    	  plugin->bind_address = NULL;
+      }
+    }
   GNUNET_assert ((port > 0) && (port <= 65535));
   plugin->port_inbound = port;
   gn_timeout = GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT;
@@ -2211,6 +2296,7 @@ libgnunet_plugin_transport_http_init (void *cls)
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
                                        MHD_OPTION_NOTIFY_COMPLETED, &mhd_termination_cb, NULL,
                                        MHD_OPTION_END);
+
     plugin->http_server_daemon_v4 = MHD_start_daemon (
 #if DEBUG_HTTP
     								   MHD_USE_DEBUG |
@@ -2219,6 +2305,7 @@ libgnunet_plugin_transport_http_init (void *cls)
                                        port,
                                        &mhd_accept_cb,
                                        plugin , &mdh_access_cb, plugin,
+                                       //MHD_OPTION_SOCK_ADDR, (struct sockaddr *) &in4,
                                        MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 32,
                                        MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 6,
                                        MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) timeout,
