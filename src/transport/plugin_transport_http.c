@@ -1225,7 +1225,8 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
         if (mret != CURLM_OK)
         {
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                      _("%s failed at %s:%d: `%s'\n"),
+				  	  _("Connection: %X: %s failed at %s:%d: `%s'\n"),
+				  	  ps,
                       "curl_multi_add_handle", __FILE__, __LINE__,
                       curl_multi_strerror (mret));
           return GNUNET_SYSERR;
@@ -1269,39 +1270,42 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
     }
     /* not connected, initiate connection */
     if ((ps->send_connected==GNUNET_NO) && (NULL == ps->send_endpoint))
-      ps->send_endpoint = curl_easy_init();
-    GNUNET_assert (ps->send_endpoint != NULL);
-    GNUNET_assert (NULL != ps->pending_msgs_tail);
-#if DEBUG_CONNECTIONS
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound not connected, initiating connection\n",ps);
-#endif
-    ps->send_active = GNUNET_NO;
-    msg = ps->pending_msgs_tail;
-
-  #if DEBUG_CURL
-    curl_easy_setopt(ps->send_endpoint, CURLOPT_VERBOSE, 1L);
-  #endif
-    curl_easy_setopt(ps->send_endpoint, CURLOPT_URL, ps->url);
-    curl_easy_setopt(ps->send_endpoint, CURLOPT_PUT, 1L);
-    curl_easy_setopt(ps->send_endpoint, CURLOPT_HEADERFUNCTION, &curl_put_header_function);
-    curl_easy_setopt(ps->send_endpoint, CURLOPT_WRITEHEADER, ps);
-    curl_easy_setopt(ps->send_endpoint, CURLOPT_READFUNCTION, curl_send_cb);
-    curl_easy_setopt(ps->send_endpoint, CURLOPT_READDATA, ps);
-    curl_easy_setopt(ps->send_endpoint, CURLOPT_WRITEFUNCTION, curl_receive_cb);
-    curl_easy_setopt(ps->send_endpoint, CURLOPT_READDATA, ps);
-    curl_easy_setopt(ps->send_endpoint, CURLOPT_TIMEOUT, (long) timeout.value);
-    curl_easy_setopt(ps->send_endpoint, CURLOPT_PRIVATE, ps);
-    curl_easy_setopt(ps->send_endpoint, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
-    curl_easy_setopt(ps->send_endpoint, CURLOPT_BUFFERSIZE, GNUNET_SERVER_MAX_MESSAGE_SIZE);
-
-    mret = curl_multi_add_handle(plugin->multi_handle, ps->send_endpoint);
-    if (mret != CURLM_OK)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("%s failed at %s:%d: `%s'\n"),
-                  "curl_multi_add_handle", __FILE__, __LINE__,
-                  curl_multi_strerror (mret));
-      return GNUNET_SYSERR;
+    	ps->send_endpoint = curl_easy_init();
+		GNUNET_assert (ps->send_endpoint != NULL);
+		GNUNET_assert (NULL != ps->pending_msgs_tail);
+#if DEBUG_CONNECTIONS
+		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound not connected, initiating connection\n",ps);
+#endif
+		ps->send_active = GNUNET_NO;
+		msg = ps->pending_msgs_tail;
+
+#if DEBUG_CURL
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_VERBOSE, 1L);
+#endif
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_URL, ps->url);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_PUT, 1L);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_HEADERFUNCTION, &curl_put_header_function);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_WRITEHEADER, ps);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_READFUNCTION, curl_send_cb);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_READDATA, ps);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_WRITEFUNCTION, curl_receive_cb);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_READDATA, ps);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_TIMEOUT, (long) timeout.value);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_PRIVATE, ps);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_BUFFERSIZE, GNUNET_SERVER_MAX_MESSAGE_SIZE);
+
+		mret = curl_multi_add_handle(plugin->multi_handle, ps->send_endpoint);
+		if (mret != CURLM_OK)
+		{
+		  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+					  _("Connection: %X: %s failed at %s:%d: `%s'\n"),
+					  ps,
+					  "curl_multi_add_handle", __FILE__, __LINE__,
+					  curl_multi_strerror (mret));
+		  return GNUNET_SYSERR;
+		}
     }
     if (curl_schedule (plugin) == GNUNET_SYSERR)
     	return GNUNET_SYSERR;
@@ -1310,8 +1314,8 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
   if (ps->direction == INBOUND)
   {
     GNUNET_assert (NULL != ps->pending_msgs_tail);
-    msg = ps->pending_msgs_tail;
-    if ((ps->recv_connected==GNUNET_YES) && (ps->send_connected==GNUNET_YES))
+    if ((ps->recv_connected==GNUNET_YES) && (ps->send_connected==GNUNET_YES) &&
+    	(ps->recv_force_disconnect==GNUNET_NO) && (ps->recv_force_disconnect==GNUNET_NO))
     	return GNUNET_YES;
   }
   return GNUNET_SYSERR;
@@ -2023,7 +2027,6 @@ process_interfaces (void *cls,
       t6->u6_port = htons (plugin->port_inbound);
       plugin->env->notify_address(plugin->env->cls,"http",t6,sizeof (struct IPv6HttpAddress) , GNUNET_TIME_UNIT_FOREVER_REL);
     }
-  return GNUNET_NO;
   return GNUNET_OK;
 }
 
