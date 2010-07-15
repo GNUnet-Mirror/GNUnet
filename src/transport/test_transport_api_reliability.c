@@ -80,6 +80,8 @@ static int is_tcp_nat;
 
 static int is_http;
 
+static int is_udp;
+
 static int connected;
 
 static unsigned long long total_bytes;
@@ -447,6 +449,11 @@ run (void *cls,
       setup_peer (&p1, "test_transport_api_http_peer1.conf");
       setup_peer (&p2, "test_transport_api_http_peer2.conf");
     }
+  else if (is_udp)
+    {
+      setup_peer (&p1, "test_transport_api_udp_peer1.conf");
+      setup_peer (&p2, "test_transport_api_udp_peer2.conf");
+    }
   else if (is_tcp_nat)
     {
       setup_peer (&p1, "test_transport_api_tcp_nat_peer1.conf");
@@ -506,6 +513,10 @@ main (int argc, char *argv[])
   else if (strstr(argv[0], "http") != NULL)
     {
       is_http = GNUNET_YES;
+    }
+  else if (strstr(argv[0], "udp") != NULL)
+    {
+      is_udp = GNUNET_YES;
     }
   GNUNET_log_setup ("test-transport-api-reliability",
 #if VERBOSE

@@ -39,7 +39,6 @@
 #include "microhttpd.h"
 #include <curl/curl.h>
 
-
 #define DEBUG_CURL GNUNET_NO
 #define DEBUG_HTTP GNUNET_NO
 #define DEBUG_CONNECTIONS GNUNET_NO
@@ -1891,10 +1890,11 @@ http_plugin_address_suggested (void *cls,
   if (addrlen == sizeof (struct IPv4HttpAddress))
     {
       v4 = (struct IPv4HttpAddress *) addr;
+      /* Not skipping loopback
       if (INADDR_LOOPBACK == ntohl(v4->ipv4_addr))
       {
         return GNUNET_SYSERR;
-      }
+      } */
       port = ntohs (v4->u_port);
       if (port != plugin->port_inbound)
       {
@@ -1998,11 +1998,13 @@ process_interfaces (void *cls,
   if (af == AF_INET)
     {
       t4 = GNUNET_malloc(sizeof(struct IPv4HttpAddress));
+      /* Not skipping loopback addresses
       if (INADDR_LOOPBACK == ntohl(((struct sockaddr_in *) addr)->sin_addr.s_addr))
       {
-        /* skip loopback addresses */
+
         return GNUNET_OK;
       }
+      */
       t4->ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
       t4->u_port = htons (plugin->port_inbound);
       plugin->env->notify_address(plugin->env->cls,"http",t4, sizeof (struct IPv4HttpAddress), GNUNET_TIME_UNIT_FOREVER_REL);
@@ -2016,17 +2018,20 @@ process_interfaces (void *cls,
           /* skip link local addresses */
           return GNUNET_OK;
         }
+      /* Not skipping loopback addresses
       if (IN6_IS_ADDR_LOOPBACK (&((struct sockaddr_in6 *) addr)->sin6_addr))
         {
-          /* skip loopback addresses */
+
           return GNUNET_OK;
         }
+      */
       memcpy (&t6->ipv6_addr,
               &((struct sockaddr_in6 *) addr)->sin6_addr,
               sizeof (struct in6_addr));
       t6->u6_port = htons (plugin->port_inbound);
       plugin->env->notify_address(plugin->env->cls,"http",t6,sizeof (struct IPv6HttpAddress) , GNUNET_TIME_UNIT_FOREVER_REL);
     }
+  return GNUNET_NO;
   return GNUNET_OK;
 }
 

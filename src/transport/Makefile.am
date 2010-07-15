@@ -134,6 +134,8 @@ check_PROGRAMS = \
  test_transport_api_udp_nat \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
+ test_transport_api_reliability_http \
+ test_transport_api_reliability_udp \ 
  test_transport_api_http
 # TODO: add tests for nat, etc.
 
@@ -171,6 +173,18 @@ test_transport_api_reliability_tcp_nat_SOURCES = \
 test_transport_api_reliability_tcp_nat_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la 
+
+test_transport_api_reliability_udp_SOURCES = \
+ test_transport_api_reliability.c
+test_transport_api_reliability_udp_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la   
+ 
+test_transport_api_reliability_http_SOURCES = \
+ test_transport_api_reliability.c
+test_transport_api_reliability_http_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la   
 
 test_transport_api_udp_SOURCES = \
  test_transport_api.c

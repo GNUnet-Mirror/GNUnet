@@ -41,6 +41,8 @@
 #include "gnunet_statistics_service.h"
 #include "transport.h"
 #include <curl/curl.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #define VERBOSE GNUNET_YES
 #define DEBUG GNUNET_NO
@@ -1252,9 +1254,9 @@ run (void *cls,
   GNUNET_assert (GNUNET_SYSERR == suggest_res);
 
   /* Suggesting addresses with wrong address*/
-  failing_addr.ipv4_addr = htonl(INADDR_LOOPBACK);
+  failing_addr.ipv4_addr = htonl(0xffc00000);
   failing_addr.u_port = htons(12389);
-  suggest_res = api->check_address (api->cls,&failing_addr,sizeof (struct IPv4HttpAddress));
+  suggest_res = api->check_address (api->cls,&failing_addr,100);
   GNUNET_assert (GNUNET_SYSERR == suggest_res);
 
   /* test sending to client */
