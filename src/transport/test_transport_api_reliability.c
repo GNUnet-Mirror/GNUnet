@@ -446,8 +446,8 @@ run (void *cls,
     }
   else if (is_http)
     {
-      setup_peer (&p1, "test_transport_api_http_peer1.conf");
-      setup_peer (&p2, "test_transport_api_http_peer2.conf");
+      setup_peer (&p1, "test_transport_api_rel_http_peer1.conf");
+      setup_peer (&p2, "test_transport_api_rel_http_peer2.conf");
     }
   else if (is_udp)
     {

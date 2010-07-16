@@ -146,6 +146,7 @@ TESTS = \
  test_transport_api_udp_nat \
  test_plugin_transport_http \
  test_transport_api_http \
+ test_transport_api_reliability_http \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat 
 
@@ -224,4 +225,8 @@ EXTRA_DIST = \
   test_transport_api_tcp_nat_peer1.conf \
   test_transport_api_tcp_nat_peer2.conf \
   test_plugin_transport_data.conf \
+  test_transport_api_http_peer1.conf \
+  test_transport_api_http_peer2.conf \
+  test_transport_api_rel_http_peer1.conf \
+  test_transport_api_rel_http_peer2.conf \
   test_plugin_transport_data_http.conf

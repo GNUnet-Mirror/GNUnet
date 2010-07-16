@@ -40,7 +40,7 @@
 #include "microhttpd.h"
 #include <curl/curl.h>
 
-#define DEBUG_HTTP GNUNET_YES
+#define DEBUG_HTTP GNUNET_NO
 #define DEBUG_CURL GNUNET_NO
 #define DEBUG_CONNECTIONS GNUNET_NO
 #define DEBUG_SESSION_SELECTION GNUNET_NO
@@ -360,6 +360,7 @@ struct Plugin
   struct sockaddr_in6 * bind6_address;
   char * bind_hostname;
   int use_ipv6;
+  int use_ipv4;
 };
 
 
@@ -545,10 +546,9 @@ process_interfaces (void *cls,
 
   GNUNET_assert(cls !=NULL);
   af = addr->sa_family;
-  if ((af == AF_INET) && (plugin->bind6_address == NULL))
+  if ((af == AF_INET) && (plugin->use_ipv4 == GNUNET_YES) && (plugin->bind6_address == NULL))
     {
 	  struct in_addr bnd_cmp = ((struct sockaddr_in *) addr)->sin_addr;
-
       t4 = GNUNET_malloc(sizeof(struct IPv4HttpAddress));
       /* Not skipping loopback addresses
       if (INADDR_LOOPBACK == ntohl(((struct sockaddr_in *) addr)->sin_addr.s_addr))
@@ -572,7 +572,7 @@ process_interfaces (void *cls,
       }
       GNUNET_free (t4);
     }
-  else if ((af == AF_INET6) && (plugin->use_ipv6==GNUNET_YES) && (plugin->bind4_address == NULL))
+  else if ((af == AF_INET6) && (plugin->use_ipv6 == GNUNET_YES)  && (plugin->bind4_address == NULL))
     {
 	  struct in6_addr bnd_cmp6 = ((struct sockaddr_in6 *) addr)->sin6_addr;
       t6 = GNUNET_malloc(sizeof(struct IPv6HttpAddress));
@@ -602,7 +602,6 @@ process_interfaces (void *cls,
       }
       GNUNET_free (t6);
     }
-  //return GNUNET_NO;
   return GNUNET_OK;
 }
 
@@ -2258,6 +2257,7 @@ libgnunet_plugin_transport_http_init (void *cls)
   plugin->peers = NULL;
   plugin->bind4_address = NULL;
   plugin->use_ipv6  = GNUNET_YES;
+  plugin->use_ipv4  = GNUNET_YES;
 
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
@@ -2277,9 +2277,14 @@ libgnunet_plugin_transport_http_init (void *cls)
 	  plugin->use_ipv6 = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
 													   "transport-http",
 													   "USE_IPv6");
-
-
-
+    }
+  /* Reading port number from config file */
+  if (GNUNET_CONFIGURATION_have_value (env->cfg,
+          	  	  	  	  	  	  	   "transport-http", "USE_IPv4"))
+    {
+	  plugin->use_ipv4 = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+													   "transport-http",
+													   "USE_IPv4");
     }
   /* Reading port number from config file */
   if ((GNUNET_OK !=
@@ -2298,8 +2303,8 @@ libgnunet_plugin_transport_http_init (void *cls)
     }
 
   /* Reading ipv4 addresse to bind to from config file */
-  if (GNUNET_CONFIGURATION_have_value (env->cfg,
-          	  	  	  	  	  	  	   "transport-http", "BINDTO4"))
+  if ((plugin->use_ipv4==GNUNET_YES) && (GNUNET_CONFIGURATION_have_value (env->cfg,
+          	  	  	  	  	  	  	   "transport-http", "BINDTO4")))
   {
 	  GNUNET_break (GNUNET_OK ==
 					GNUNET_CONFIGURATION_get_value_string (env->cfg,
@@ -2309,8 +2314,6 @@ libgnunet_plugin_transport_http_init (void *cls)
 	  plugin->bind4_address = GNUNET_malloc(sizeof(struct sockaddr_in));
 	  plugin->bind4_address->sin_family = AF_INET;
 	  plugin->bind4_address->sin_port = htons (port);
-
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"v4 Hostname `%s'!\n",plugin->bind_hostname);
 
 	  if (inet_pton(AF_INET,plugin->bind_hostname, &plugin->bind4_address->sin_addr)<=0)
 	  {
@@ -2326,8 +2329,8 @@ libgnunet_plugin_transport_http_init (void *cls)
   }
 
   /* Reading ipv4 addresse to bind to from config file */
-  if (GNUNET_CONFIGURATION_have_value (env->cfg,
-          	  	  	  	  	  	  	   "transport-http", "BINDTO6"))
+  if ((plugin->use_ipv6==GNUNET_YES) && (GNUNET_CONFIGURATION_have_value (env->cfg,
+          	  	  	  	  	  	  	   "transport-http", "BINDTO6")))
   {
 	  GNUNET_break (GNUNET_OK ==
 					GNUNET_CONFIGURATION_get_value_string (env->cfg,
@@ -2339,8 +2342,6 @@ libgnunet_plugin_transport_http_init (void *cls)
 	  plugin->bind6_address->sin6_family = AF_INET6;
 	  plugin->bind6_address->sin6_port = htons (port);
 
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"v6 Hostname `%s'!\n",plugin->bind_hostname);
-
       if (inet_pton(AF_INET6,plugin->bind_hostname, &plugin->bind6_address->sin6_addr)<=0)
 	  {
 		  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
@@ -2351,13 +2352,7 @@ libgnunet_plugin_transport_http_init (void *cls)
 		  GNUNET_free(plugin->bind_hostname);
 		  plugin->bind_hostname = NULL;
 		  plugin->bind6_address = NULL;
-
 	  }
-
-      char * tmp = GNUNET_malloc(50);
-      inet_ntop(AF_INET6,&plugin->bind6_address->sin6_addr,tmp,50);
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"v6 Hostname reverse `%s'!\n",tmp);
-	  GNUNET_free(tmp);
   }
 
   GNUNET_assert ((port > 0) && (port <= 65535));
@@ -2383,7 +2378,7 @@ libgnunet_plugin_transport_http_init (void *cls)
                                        MHD_OPTION_NOTIFY_COMPLETED, &mhd_termination_cb, NULL,
                                        MHD_OPTION_END);
   }
-  if ((plugin->http_server_daemon_v4 == NULL) && (port != 0))
+  if ((plugin->http_server_daemon_v4 == NULL) && (plugin->use_ipv4 == GNUNET_YES) && (port != 0))
   {
   plugin->http_server_daemon_v4 = MHD_start_daemon (
 #if DEBUG_CONNECTIONS
