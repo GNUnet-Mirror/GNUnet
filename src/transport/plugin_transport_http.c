@@ -42,7 +42,7 @@
 
 #define DEBUG_HTTP GNUNET_YES
 #define DEBUG_CURL GNUNET_NO
-#define DEBUG_CONNECTIONS GNUNET_YES
+#define DEBUG_CONNECTIONS GNUNET_NO
 #define DEBUG_SESSION_SELECTION GNUNET_NO
 
 #define INBOUND GNUNET_NO
@@ -2383,7 +2383,7 @@ libgnunet_plugin_transport_http_init (void *cls)
                                        MHD_OPTION_NOTIFY_COMPLETED, &mhd_termination_cb, NULL,
                                        MHD_OPTION_END);
   }
-  if ((plugin->http_server_daemon_v4 == NULL) && (plugin->http_server_daemon_v6 == NULL) && (port != 0))
+  if ((plugin->http_server_daemon_v4 == NULL) && (port != 0))
   {
   plugin->http_server_daemon_v4 = MHD_start_daemon (
 #if DEBUG_CONNECTIONS
@@ -2413,7 +2413,13 @@ libgnunet_plugin_transport_http_init (void *cls)
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD with IPv4 bound to %s with port %u\n",(plugin->bind_hostname!=NULL) ? plugin->bind_hostname : "every address",port);
 #endif
   }
-  else if (plugin->http_server_task_v6 != GNUNET_SCHEDULER_NO_TASK)
+  else if ((plugin->http_server_task_v6 != GNUNET_SCHEDULER_NO_TASK) && (plugin->http_server_task_v4 != GNUNET_SCHEDULER_NO_TASK))
+  {
+#if DEBUG_HTTP
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD with IPv6 bound to %s with port %u\n",(plugin->bind_hostname!=NULL) ? plugin->bind_hostname : "every address", port);
+#endif
+  }
+  else if ((plugin->http_server_task_v6 != GNUNET_SCHEDULER_NO_TASK) && (plugin->http_server_task_v4 == GNUNET_SCHEDULER_NO_TASK))
   {
 #if DEBUG_HTTP
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD with IPv4 and IPv6 bound to %s with port %u\n",(plugin->bind_hostname!=NULL) ? plugin->bind_hostname : "every address", port);
