@@ -888,7 +888,7 @@ plugin_env_session_end  (void *cls,
 			 const struct GNUNET_PeerIdentity *peer,
 			 struct Session *session)
 {
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session ended: `%s' %X\n", GNUNET_i2s(peer), session);
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Pluging tells me: session %X to peer `%s' ended\n", session, GNUNET_i2s(peer));
 }
 
 

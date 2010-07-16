@@ -40,11 +40,11 @@
 #include "microhttpd.h"
 #include <curl/curl.h>
 
-
+#define VERBOSE GNUNET_NO
 #define DEBUG_CURL GNUNET_NO
 #define DEBUG_HTTP GNUNET_NO
 #define DEBUG_CONNECTIONS GNUNET_NO
-#define DEBUG_SESSION_SELECTION GNUNET_YES
+#define DEBUG_SESSION_SELECTION GNUNET_NO
 
 #define INBOUND GNUNET_NO
 #define OUTBOUND GNUNET_YES
@@ -448,7 +448,9 @@ static int remove_session (struct HTTP_PeerContext * pc, struct Session * ps,  i
   struct HTTP_Message * msg;
   struct Plugin * plugin = ps->peercontext->plugin;
 
+#if DEBUG_CONNECTIONS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: removing %s session %X with id %u\n", ps, (ps->direction == INBOUND) ? "inbound" : "outbound", ps, ps->session_id);
+#endif
   plugin->env->session_end(plugin, &pc->identity, ps);
 
   GNUNET_free_non_null (ps->addr);
@@ -1637,7 +1639,7 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
   return GNUNET_SYSERR;
 }
 
-static struct Session * send_get_session (void * cls, struct HTTP_PeerContext *pc, const void * addr, size_t addrlen, int force_address, struct Session * session)
+static struct Session * send_select_session (void * cls, struct HTTP_PeerContext *pc, const void * addr, size_t addrlen, int force_address, struct Session * session)
 {
 	struct Session * tmp = NULL;
 	int addr_given = GNUNET_NO;
@@ -1655,7 +1657,7 @@ static struct Session * send_get_session (void * cls, struct HTTP_PeerContext *p
 		        /* connection can not be used, since it is disconnected */
 		        if ((session->recv_force_disconnect==GNUNET_NO) && (session->send_force_disconnect==GNUNET_NO))
 		        {
-#ifdef DEBUG_SESSION_SELECTION
+#if DEBUG_SESSION_SELECTION
 		        	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session %X selected: Using session passed by transport to send to forced address \n", session);
 #endif
 		        	return session;
@@ -1670,7 +1672,7 @@ static struct Session * send_get_session (void * cls, struct HTTP_PeerContext *p
 		        /* connection can not be used, since it is disconnected */
 		        if ((pc->last_session->recv_force_disconnect==GNUNET_NO) && (pc->last_session->send_force_disconnect==GNUNET_NO))
 		        {
-#ifdef DEBUG_SESSION_SELECTION
+#if DEBUG_SESSION_SELECTION
 		        	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session %X selected: Using last session used to send to forced address \n", pc->last_session);
 #endif
 		        	return pc->last_session;
@@ -1687,7 +1689,7 @@ static struct Session * send_get_session (void * cls, struct HTTP_PeerContext *p
 		        /* connection can not be used, since it is disconnected */
 		        if ((tmp->recv_force_disconnect==GNUNET_NO) && (tmp->send_force_disconnect==GNUNET_NO))
 		        {
-#ifdef DEBUG_SESSION_SELECTION
+#if DEBUG_SESSION_SELECTION
 		        	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session %X selected: Using existing session to send to forced address \n", session);
 #endif
 		        	  return session;
@@ -1707,7 +1709,7 @@ static struct Session * send_get_session (void * cls, struct HTTP_PeerContext *p
 			/* connection can not be used, since it is disconnected */
 			if ((session->recv_force_disconnect==GNUNET_NO) && (session->send_force_disconnect==GNUNET_NO))
 			{
-#ifdef DEBUG_SESSION_SELECTION
+#if DEBUG_SESSION_SELECTION
 		        	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session %X selected: Using session passed by transport to send not-forced address \n", session);
 #endif
 		        	  return session;
@@ -1720,7 +1722,7 @@ static struct Session * send_get_session (void * cls, struct HTTP_PeerContext *p
 			/* connection can not be used, since it is disconnected */
 			if ((pc->last_session->recv_force_disconnect==GNUNET_NO) && (pc->last_session->send_force_disconnect==GNUNET_NO))
 			{
-#ifdef DEBUG_SESSION_SELECTION
+#if DEBUG_SESSION_SELECTION
 		        	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session %X selected: Using last session to send to not-forced address \n", pc->last_session);
 #endif
 				return pc->last_session;
@@ -1733,7 +1735,7 @@ static struct Session * send_get_session (void * cls, struct HTTP_PeerContext *p
 			/* connection can not be used, since it is disconnected */
 			if ((tmp->recv_force_disconnect==GNUNET_NO) && (tmp->send_force_disconnect==GNUNET_NO))
 			{
-#ifdef DEBUG_SESSION_SELECTION
+#if DEBUG_SESSION_SELECTION
 		        	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Session %X selected: Using existing session to send to not-forced address \n", tmp);
 #endif
 				return tmp;
@@ -1831,7 +1833,7 @@ http_plugin_send (void *cls,
     GNUNET_CONTAINER_multihashmap_put(plugin->peers, &pc->identity.hashPubKey, pc, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   }
 
-  ps = send_get_session (plugin, pc, addr, addrlen, force_address, session);
+  ps = send_select_session (plugin, pc, addr, addrlen, force_address, session);
 
   /* session not existing, but address forced -> creating new session */
   if (ps==NULL)
