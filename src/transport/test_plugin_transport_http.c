@@ -1043,6 +1043,7 @@ static void run_connection_tests( int phase , void * cls)
       count ++;
       type ++;
     }
+    GNUNET_free(tmp);
     return;
   }
 

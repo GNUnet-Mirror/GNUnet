@@ -357,6 +357,7 @@ struct Plugin
   struct GNUNET_CRYPTO_HashAsciiEncoded my_ascii_hash_ident;
 
   struct in_addr * bind_address;
+  int use_ipv6;
 };
 
 
@@ -557,15 +558,17 @@ process_interfaces (void *cls,
       if (plugin->bind_address != NULL)
       {
     	  if (0 == memcmp(plugin->bind_address, &bnd_cmp, sizeof (struct in_addr)))
+    	  {
           	  plugin->env->notify_address(plugin->env->cls,"http",t4, sizeof (struct IPv4HttpAddress), GNUNET_TIME_UNIT_FOREVER_REL);
+    	  }
       }
       else
       {
     	  plugin->env->notify_address(plugin->env->cls,"http",t4, sizeof (struct IPv4HttpAddress), GNUNET_TIME_UNIT_FOREVER_REL);
       }
-
+      GNUNET_free (t4);
     }
-  else if ((af == AF_INET6) && (plugin->bind_address == NULL))
+  else if ((af == AF_INET6) && (plugin->use_ipv6==GNUNET_YES) && (plugin->bind_address == NULL))
     {
       t6 = GNUNET_malloc(sizeof(struct IPv6HttpAddress));
       if (IN6_IS_ADDR_LINKLOCAL (&((struct sockaddr_in6 *) addr)->sin6_addr))
@@ -585,6 +588,7 @@ process_interfaces (void *cls,
               sizeof (struct in6_addr));
       t6->u6_port = htons (plugin->port_inbound);
       plugin->env->notify_address(plugin->env->cls,"http",t6,sizeof (struct IPv6HttpAddress) , GNUNET_TIME_UNIT_FOREVER_REL);
+      GNUNET_free (t6);
     }
   //return GNUNET_NO;
   return GNUNET_OK;
@@ -1795,10 +1799,8 @@ http_plugin_send (void *cls,
 {
   struct Plugin *plugin = cls;
   struct HTTP_Message *msg;
-
   struct HTTP_PeerContext * pc;
   struct Session * ps = NULL;
-  //struct Session * ps_tmp = NULL;
 
   GNUNET_assert(cls !=NULL);
 
@@ -2031,8 +2033,8 @@ http_plugin_address_pretty_printer (void *cls,
   res = GNUNET_asprintf(&ret,"http://%s:%u/",address,port);
   GNUNET_free (address);
   GNUNET_assert(res != 0);
-
   asc (asc_cls, ret);
+  GNUNET_free_non_null (ret);
 }
 
 
@@ -2230,7 +2232,11 @@ libgnunet_plugin_transport_http_init (void *cls)
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct GNUNET_TIME_Relative gn_timeout;
   long long unsigned int port;
-  char * hostname;
+
+  char * hostname = NULL;
+  //struct sockaddr_in b4_addr;
+  //struct sockaddr_in6 b6_addr;
+
 
   GNUNET_assert(cls !=NULL);
 #if DEBUG_HTTP
@@ -2241,7 +2247,8 @@ libgnunet_plugin_transport_http_init (void *cls)
   plugin->stats = env->stats;
   plugin->env = env;
   plugin->peers = NULL;
-  plugin->bind_address = GNUNET_malloc(sizeof(struct in_addr*));
+  plugin->bind_address = NULL;
+  plugin->use_ipv6  = GNUNET_YES;
 
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
@@ -2254,6 +2261,19 @@ libgnunet_plugin_transport_http_init (void *cls)
   /* Hashing our identity to use it in URLs */
   GNUNET_CRYPTO_hash_to_enc ( &(plugin->env->my_identity->hashPubKey), &plugin->my_ascii_hash_ident);
 
+  /* Reading port number from config file */
+  if (GNUNET_CONFIGURATION_have_value (env->cfg,
+          	  	  	  	  	  	  	   "transport-http", "USE_IPv6"))
+    {
+	  plugin->use_ipv6 = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+													   "transport-http",
+													   "USE_IPv6");
+
+
+
+    }
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+				   "IPV6 is %u\n",plugin->use_ipv6 );
   /* Reading port number from config file */
   if ((GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_number (env->cfg,
@@ -2279,6 +2299,7 @@ libgnunet_plugin_transport_http_init (void *cls)
                     									   "transport-http",
                                                            "BINDTO",
                                                            &hostname));
+	  plugin->bind_address = GNUNET_malloc(sizeof(struct in_addr*));
       if (inet_aton(hostname, plugin->bind_address)==0)
       {
           GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
@@ -2288,13 +2309,15 @@ libgnunet_plugin_transport_http_init (void *cls)
     	  GNUNET_free(plugin->bind_address);
     	  plugin->bind_address = NULL;
       }
+      GNUNET_free_non_null (hostname);
     }
   GNUNET_assert ((port > 0) && (port <= 65535));
   plugin->port_inbound = port;
   gn_timeout = GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT;
   unsigned int timeout = (gn_timeout.value) / 1000;
-  if ((plugin->http_server_daemon_v4 == NULL) && (plugin->http_server_daemon_v6 == NULL) && (port != 0))
-    {
+  if ((plugin->http_server_daemon_v6 == NULL) && (plugin->use_ipv6 == GNUNET_YES) && (port != 0))
+  {
+
     plugin->http_server_daemon_v6 = MHD_start_daemon (
 #if DEBUG_CONNECTIONS
     								   MHD_USE_DEBUG |
@@ -2303,14 +2326,17 @@ libgnunet_plugin_transport_http_init (void *cls)
                                        port,
                                        &mhd_accept_cb,
                                        plugin , &mdh_access_cb, plugin,
+                                       //MHD_OPTION_SOCK_ADDR, (struct sockaddr *) &b6_addr,
                                        MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 32,
                                        MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 6,
                                        MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) timeout,
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
                                        MHD_OPTION_NOTIFY_COMPLETED, &mhd_termination_cb, NULL,
                                        MHD_OPTION_END);
-
-    plugin->http_server_daemon_v4 = MHD_start_daemon (
+  }
+  if ((plugin->http_server_daemon_v4 == NULL) && (plugin->http_server_daemon_v6 == NULL) && (port != 0))
+  {
+  plugin->http_server_daemon_v4 = MHD_start_daemon (
 #if DEBUG_CONNECTIONS
     								   MHD_USE_DEBUG |
 #endif
@@ -2318,14 +2344,14 @@ libgnunet_plugin_transport_http_init (void *cls)
                                        port,
                                        &mhd_accept_cb,
                                        plugin , &mdh_access_cb, plugin,
-                                       //MHD_OPTION_SOCK_ADDR, (struct sockaddr *) &in4,
+                                       //MHD_OPTION_SOCK_ADDR, (struct sockaddr *) &b4_addr,
                                        MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 32,
                                        MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 6,
                                        MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) timeout,
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
                                        MHD_OPTION_NOTIFY_COMPLETED, &mhd_termination_cb, NULL,
                                        MHD_OPTION_END);
-    }
+  }
   if (plugin->http_server_daemon_v4 != NULL)
     plugin->http_server_task_v4 = http_server_daemon_prepare (plugin, plugin->http_server_daemon_v4);
   if (plugin->http_server_daemon_v6 != NULL)
