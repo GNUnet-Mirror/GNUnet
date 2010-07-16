@@ -40,9 +40,8 @@
 #include "microhttpd.h"
 #include <curl/curl.h>
 
-#define VERBOSE GNUNET_NO
+#define DEBUG_HTTP GNUNET_YES
 #define DEBUG_CURL GNUNET_NO
-#define DEBUG_HTTP GNUNET_NO
 #define DEBUG_CONNECTIONS GNUNET_NO
 #define DEBUG_SESSION_SELECTION GNUNET_NO
 
@@ -483,9 +482,9 @@ int remove_peer_context_Iterator (void *cls, const GNUNET_HashCode *key, void *v
   struct Session * tmp = NULL;
   struct HTTP_Message * msg = NULL;
   struct HTTP_Message * msg_tmp = NULL;
-
+#if DEBUG_HTTP
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Freeing context for peer `%s'\n",GNUNET_i2s(&pc->identity));
-
+#endif
   while (ps!=NULL)
   {
 	plugin->env->session_end(plugin, &pc->identity, ps);
@@ -638,14 +637,14 @@ static void mhd_write_mst_cb (void *cls,
   struct HTTP_PeerContext *pc = ps->peercontext;
   GNUNET_assert(ps != NULL);
   GNUNET_assert(pc != NULL);
-
+#if DEBUG_HTTP
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Connection %X: Forwarding message to transport service, type %u and size %u from `%s' (`%s')\n",
 	      ps,
 	      ntohs(message->type),
               ntohs(message->size),
 	      GNUNET_i2s(&(ps->peercontext)->identity),http_plugin_address_to_string(NULL,ps->addr,ps->addrlen));
-
+#endif
   pc->plugin->env->receive (ps->peercontext->plugin->env->cls,
 			    &pc->identity,
 			    message, 1, ps,
@@ -775,10 +774,12 @@ mdh_access_cb (void *cls,
       response = MHD_create_response_from_data (strlen (HTTP_ERROR_RESPONSE),HTTP_ERROR_RESPONSE, MHD_NO, MHD_NO);
       res = MHD_queue_response (mhd_connection, MHD_HTTP_NOT_FOUND, response);
       MHD_destroy_response (response);
+#if DEBUG_CONNECTIONS
       if (res == MHD_YES)
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Peer has no valid ident, sent HTTP 1.1/404\n");
       else
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Peer has no valid ident, could not send error\n");
+#endif
       return res;
     }
   }
@@ -862,12 +863,13 @@ mdh_access_cb (void *cls,
     *httpSessionCache = ps;
     if (ps->msgtok==NULL)
       ps->msgtok = GNUNET_SERVER_mst_create (&mhd_write_mst_cb, ps);
-
+#if DEBUG_HTTP
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: HTTP Daemon has new an incoming `%s' request from peer `%s' (`%s')\n",
                 ps,
                 method,
                 GNUNET_i2s(&pc->identity),
                 http_plugin_address_to_string(NULL, ps->addr, ps->addrlen));
+#endif
   }
 
   /* Is it a PUT or a GET request */
@@ -1105,9 +1107,6 @@ static size_t curl_get_header_cb( void *ptr, size_t size, size_t nmemb, void *st
       if (tmp[len-2] == 13)
         tmp[len-2]= '\0';
     }
-#if DEBUG_HTTP
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Header: `%s' %u \n",tmp, http_result);
-#endif
   }
   if (NULL != tmp)
     GNUNET_free (tmp);
@@ -1159,9 +1158,6 @@ static size_t curl_put_header_cb( void *ptr, size_t size, size_t nmemb, void *st
       if (tmp[len-2] == 13)
         tmp[len-2]= '\0';
     }
-#if DEBUG_HTTP
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Header: `%s' %u \n",tmp, http_result);
-#endif
   }
   if (NULL != tmp)
     GNUNET_free (tmp);
@@ -1245,14 +1241,14 @@ static void curl_receive_mst_cb  (void *cls,
   struct HTTP_PeerContext *pc = ps->peercontext;
   GNUNET_assert(ps != NULL);
   GNUNET_assert(pc != NULL);
-
+#if DEBUG_HTTP
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Connection %X: Forwarding message to transport service, type %u and size %u from `%s' (`%s')\n",
               ps,
               ntohs(message->type),
               ntohs(message->size),
               GNUNET_i2s(&(pc->identity)),http_plugin_address_to_string(NULL,ps->addr,ps->addrlen));
-
+#endif
   pc->plugin->env->receive (pc->plugin->env->cls,
                             &pc->identity,
                             message, 1, ps,
@@ -1806,6 +1802,7 @@ http_plugin_send (void *cls,
 
   GNUNET_assert(cls !=NULL);
 
+#if DEBUG_HTTP
   char * force = GNUNET_malloc(40);
   if (force_address == GNUNET_YES)
     strcpy(force,"forced addr.");
@@ -1813,13 +1810,16 @@ http_plugin_send (void *cls,
     strcpy(force,"any addr.");
   if (force_address == GNUNET_SYSERR)
     strcpy(force,"reliable bi-direc. address addr.");
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Transport tells me to send %u bytes to `%s' using %s (%s) and session: %X\n",
                                       msgbuf_size,
                                       GNUNET_i2s(target),
                                       force,
                                       http_plugin_address_to_string(NULL, addr, addrlen),
                                       session);
+
   GNUNET_free(force);
+#endif
 
   pc = GNUNET_CONTAINER_multihashmap_get (plugin->peers, &target->hashPubKey);
   /* Peer unknown */
@@ -1841,11 +1841,12 @@ http_plugin_send (void *cls,
     if ((addr!=NULL) && (addrlen!=0))
     {
       ps = GNUNET_malloc(sizeof (struct Session));
+#if DEBUG_SESSION_SELECTION
       if (force_address == GNUNET_YES)
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing connection & forced address: creating new session %X to peer %s\n", ps, GNUNET_i2s(target));
       if (force_address != GNUNET_YES)
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing connection: creating new session %X to peer %s\n", ps, GNUNET_i2s(target));
-
+#endif
       if ((addrlen!=0) && (addr!=NULL))
       {
       ps->addr = GNUNET_malloc(addrlen);
@@ -1874,7 +1875,9 @@ http_plugin_send (void *cls,
     }
     else
     {
+#if DEBUG_HTTP
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing session found & and no address given: no way to send this message to peer `%s'!\n", GNUNET_i2s(target));
+#endif
       return GNUNET_SYSERR;
     }
   }
@@ -2192,8 +2195,10 @@ libgnunet_plugin_transport_http_done (void *cls)
   if (plugin->multi_handle!=NULL)
   {
 	  mret = curl_multi_cleanup(plugin->multi_handle);
+#if DEBUG_HTTP
 	  if ( CURLM_OK != mret)
 		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"curl multihandle clean up failed\n");
+#endif
 	  plugin->multi_handle = NULL;
   }
   curl_global_cleanup();
@@ -2207,7 +2212,9 @@ libgnunet_plugin_transport_http_done (void *cls)
   GNUNET_free_non_null (plugin->bind_address);
   GNUNET_free (plugin);
   GNUNET_free (api);
+#if DEBUG_HTTP
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Unload http plugin complete...\n");
+#endif
   return NULL;
 }
 
@@ -2226,7 +2233,9 @@ libgnunet_plugin_transport_http_init (void *cls)
   char * hostname;
 
   GNUNET_assert(cls !=NULL);
+#if DEBUG_HTTP
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting http plugin...\n");
+#endif
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->stats = env->stats;
@@ -2255,8 +2264,7 @@ libgnunet_plugin_transport_http_init (void *cls)
     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
                        "http",
-                       _
-                       ("Require valid port number for transport plugin `%s' in configuration!\n"),
+                       _("Require valid port number for transport plugin `%s' in configuration!\n"),
                        "transport-http");
       libgnunet_plugin_transport_http_done (api);
       return NULL;
@@ -2273,7 +2281,10 @@ libgnunet_plugin_transport_http_init (void *cls)
                                                            &hostname));
       if (inet_aton(hostname, plugin->bind_address)==0)
       {
-    	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"Misconfigured address to bind to in configuration\n");
+          GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                           "http",
+                           _("Misconfigured address to bind to in configuration!\n"),
+                           "transport-http");
     	  GNUNET_free(plugin->bind_address);
     	  plugin->bind_address = NULL;
       }
@@ -2285,7 +2296,7 @@ libgnunet_plugin_transport_http_init (void *cls)
   if ((plugin->http_server_daemon_v4 == NULL) && (plugin->http_server_daemon_v6 == NULL) && (port != 0))
     {
     plugin->http_server_daemon_v6 = MHD_start_daemon (
-#if DEBUG_HTTP
+#if DEBUG_CONNECTIONS
     								   MHD_USE_DEBUG |
 #endif
     								   MHD_USE_IPv6,
@@ -2300,7 +2311,7 @@ libgnunet_plugin_transport_http_init (void *cls)
                                        MHD_OPTION_END);
 
     plugin->http_server_daemon_v4 = MHD_start_daemon (
-#if DEBUG_HTTP
+#if DEBUG_CONNECTIONS
     								   MHD_USE_DEBUG |
 #endif
     								   MHD_NO_FLAG,
@@ -2320,13 +2331,24 @@ libgnunet_plugin_transport_http_init (void *cls)
   if (plugin->http_server_daemon_v6 != NULL)
     plugin->http_server_task_v6 = http_server_daemon_prepare (plugin, plugin->http_server_daemon_v6);
 
+
   if (plugin->http_server_task_v4 != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD with IPv4 on port %u\n",port);
+  {
+#if DEBUG_HTTP
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD with IPv4 on port %u\n",port);
+#endif
+  }
   else if (plugin->http_server_task_v6 != GNUNET_SCHEDULER_NO_TASK)
+  {
+#if DEBUG_HTTP
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD with IPv4 and IPv6 on port %u\n",port);
+#endif
+  }
   else
   {
+#if DEBUG_HTTP
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No MHD was started, transport plugin not functional!\n");
+#endif
     libgnunet_plugin_transport_http_done (api);
     return NULL;
   }
@@ -2338,9 +2360,9 @@ libgnunet_plugin_transport_http_init (void *cls)
   if ( NULL == plugin->multi_handle )
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-                     "http",
-                     _("Could not initialize curl multi handle, failed to start http plugin!\n"),
-                     "transport-http");
+				   "http",
+				   _("Could not initialize curl multi handle, failed to start http plugin!\n"),
+				   "transport-http");
     libgnunet_plugin_transport_http_done (api);
     return NULL;
   }
