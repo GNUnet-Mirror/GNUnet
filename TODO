@@ -17,10 +17,6 @@
   - implement testcases
   - implement performance tests
 * FS: [CG]
-  - library:
-    + utilize in-line files in meta data always (including in search results or
-      when download is triggered manually and for probes); currently the data is
-      only used when users do a general 'recursive' download
   - service:
     + trust: do not charge when "idle" / load considerations (migration, routing)
     + artificial delays

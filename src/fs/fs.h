@@ -1832,6 +1832,11 @@ struct GNUNET_FS_DownloadContext
    */
   int has_finished;
 
+  /**
+   * Have we tried (and failed) to find matching full
+   * data from the meta data yet?
+   */
+  int tried_full_data;
 };
 
 struct GNUNET_FS_Namespace

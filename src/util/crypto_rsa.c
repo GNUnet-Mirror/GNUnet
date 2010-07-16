@@ -546,10 +546,8 @@ rsa_decode_key (const struct RsaPrivateKeyBinaryEncoded *encoding)
  * files does not exist, create a new key and write it to the
  * file.  Caller must free return value.  Note that this function
  * can not guarantee that another process might not be trying
- * the same operation on the same file at the same time.  The
- * caller must somehow know that the file either already exists
- * with a valid key OR be sure that no other process is calling
- * this function at the same time.  If the contents of the file
+ * the same operation on the same file at the same time. 
+ * If the contents of the file
  * are invalid the old file is deleted and a fresh key is
  * created.
  *

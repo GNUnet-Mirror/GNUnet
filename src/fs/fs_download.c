@@ -249,6 +249,171 @@ process_result_with_request (void *cls,
 			     void *value);
 
 
+/**
+ * We've found a matching block without downloading it.
+ * Encrypt it and pass it to our "receive" function as
+ * if we had received it from the network.
+ * 
+ * @param dc download in question
+ * @param chk request this relates to
+ * @param sm request details
+ * @param block plaintext data matching request
+ * @param len number of bytes in block
+ * @param depth depth of the block
+ * @param do_store should we still store the block on disk?
+ * @return GNUNET_OK on success
+ */
+static int
+encrypt_existing_match (struct GNUNET_FS_DownloadContext *dc,
+			const struct ContentHashKey *chk,
+			struct DownloadRequest *sm,
+			const char * block,		       
+			size_t len,
+			int depth,
+			int do_store)
+{
+  struct ProcessResultClosure prc;
+  char enc[len];
+  struct GNUNET_CRYPTO_AesSessionKey sk;
+  struct GNUNET_CRYPTO_AesInitializationVector iv;
+  GNUNET_HashCode query;
+  
+  GNUNET_CRYPTO_hash_to_aes_key (&chk->key, &sk, &iv);
+  if (-1 == GNUNET_CRYPTO_aes_encrypt (block, len,
+				       &sk,
+				       &iv,
+				       enc))
+    {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+    }
+  GNUNET_CRYPTO_hash (enc, len, &query);
+  if (0 != memcmp (&query,
+		   &chk->query,
+		   sizeof (GNUNET_HashCode)))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+#if DEBUG_DOWNLOAD
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Matching block already present, no need for download!\n");
+#endif
+  /* already got it! */
+  prc.dc = dc;
+  prc.data = enc;
+  prc.size = len;
+  prc.type = (dc->treedepth == depth) 
+    ? GNUNET_BLOCK_TYPE_DBLOCK 
+    : GNUNET_BLOCK_TYPE_IBLOCK;
+  prc.query = chk->query;
+  prc.do_store = do_store;
+  process_result_with_request (&prc,
+			       &chk->key,
+			       sm);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Closure for match_full_data.
+ */
+struct MatchDataContext 
+{
+  /**
+   * CHK we are looking for.
+   */
+  const struct ContentHashKey *chk;
+
+  /**
+   * Download we're processing.
+   */
+  struct GNUNET_FS_DownloadContext *dc;
+
+  /**
+   * Request details.
+   */
+  struct DownloadRequest *sm;
+
+  /**
+   * Overall offset in the file.
+   */
+  uint64_t offset;
+
+  /**
+   * Desired length of the block.
+   */
+  size_t len;
+
+  /**
+   * Flag set to GNUNET_YES on success.
+   */
+  int done;
+};
+
+/**
+ * Type of a function that libextractor calls for each
+ * meta data item found.
+ *
+ * @param cls closure (user-defined)
+ * @param plugin_name name of the plugin that produced this value;
+ *        special values can be used (i.e. '&lt;zlib&gt;' for zlib being
+ *        used in the main libextractor library and yielding
+ *        meta data).
+ * @param type libextractor-type describing the meta data
+ * @param format basic format information about data 
+ * @param data_mime_type mime-type of data (not of the original file);
+ *        can be NULL (if mime-type is not known)
+ * @param data actual meta-data found
+ * @param data_len number of bytes in data
+ * @return 0 to continue extracting, 1 to abort
+ */ 
+static int
+match_full_data (void *cls,
+		 const char *plugin_name,
+		 enum EXTRACTOR_MetaType type,
+		 enum EXTRACTOR_MetaFormat format,
+		 const char *data_mime_type,
+		 const char *data,
+		 size_t data_len)
+{
+  struct MatchDataContext *mdc = cls;
+  GNUNET_HashCode key;
+
+  if (type == EXTRACTOR_METATYPE_GNUNET_FULL_DATA) 
+    {
+      if ( (mdc->offset > data_len) ||
+	   (mdc->offset + mdc->len > data_len) )
+	return 1;
+      GNUNET_CRYPTO_hash (&data[mdc->offset],
+			  mdc->len,
+			  &key);
+      if (0 != memcmp (&key,
+		       &mdc->chk->key,
+		       sizeof (GNUNET_HashCode)))
+	{
+	  GNUNET_break_op (0);
+	  return 1;
+	}
+      /* match found! */
+      if (GNUNET_OK !=
+	  encrypt_existing_match (mdc->dc,
+				  mdc->chk,
+				  mdc->sm,
+				  &data[mdc->offset],
+				  mdc->len,
+				  0,
+				  GNUNET_YES))
+	{
+	  GNUNET_break_op (0);
+	  return 1;
+	}
+      mdc->done = GNUNET_YES;
+      return 1;
+    }
+  return 0;
+}
+
 
 /**
  * Schedule the download of the specified block in the tree.
@@ -273,25 +438,18 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
   size_t len;
   char block[DBLOCK_SIZE];
   GNUNET_HashCode key;
-  struct ProcessResultClosure prc;
+  struct MatchDataContext mdc;
   struct GNUNET_DISK_FileHandle *fh;
 
-#if DEBUG_DOWNLOAD
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Scheduling download at offset %llu and depth %u for `%s'\n",
-	      (unsigned long long) offset,
-	      depth,
-	      GNUNET_h2s (&chk->query));
-#endif
   total = GNUNET_ntohll (dc->uri->data.chk.file_length);
-  off = compute_disk_offset (total,
-			     offset,
-			     depth,
-			     dc->treedepth);
   len = GNUNET_FS_tree_calculate_block_size (total,
 					     dc->treedepth,
 					     offset,
 					     depth);
+  off = compute_disk_offset (total,
+			     offset,
+			     depth,
+			     dc->treedepth);
   sm = GNUNET_malloc (sizeof (struct DownloadRequest));
   sm->chk = *chk;
   sm->offset = offset;
@@ -303,6 +461,29 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
 				     &chk->query,
 				     sm,
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  if ( (dc->tried_full_data == GNUNET_NO) &&
+       (depth == 0) )
+    {      
+      mdc.dc = dc;
+      mdc.sm = sm;
+      mdc.chk = chk;
+      mdc.offset = offset;
+      mdc.len = len;
+      mdc.done = GNUNET_NO;
+      GNUNET_CONTAINER_meta_data_iterate (dc->meta,
+					  &match_full_data,
+					  &mdc);
+      if (mdc.done == GNUNET_YES)
+	return;
+      dc->tried_full_data = GNUNET_YES; 
+    }
+#if DEBUG_DOWNLOAD
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Scheduling download at offset %llu and depth %u for `%s'\n",
+	      (unsigned long long) offset,
+	      depth,
+	      GNUNET_h2s (&chk->query));
+#endif
   fh = NULL;
   if ( (dc->old_file_size > off) &&
        (dc->filename != NULL) )    
@@ -320,55 +501,22 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
 			       len)) )
     {
       GNUNET_CRYPTO_hash (block, len, &key);
-      if (0 == memcmp (&key,
-		       &chk->key,
-		       sizeof (GNUNET_HashCode)))
+      if ( (0 == memcmp (&key,
+			 &chk->key,
+			 sizeof (GNUNET_HashCode))) &&
+	   (GNUNET_OK ==
+	    encrypt_existing_match (dc,
+				    chk,
+				    sm,
+				    block,
+				    len,
+				    depth,
+				    GNUNET_NO)) )
 	{
-	  char enc[len];
-	  struct GNUNET_CRYPTO_AesSessionKey sk;
-	  struct GNUNET_CRYPTO_AesInitializationVector iv;
-	  GNUNET_HashCode query;
-
-	  GNUNET_CRYPTO_hash_to_aes_key (&key, &sk, &iv);
-	  if (-1 == GNUNET_CRYPTO_aes_encrypt (block, len,
-					       &sk,
-					       &iv,
-					       enc))
-	    {
-	      GNUNET_break (0);
-	      goto do_download;
-	    }
-	  GNUNET_CRYPTO_hash (enc, len, &query);
-	  if (0 == memcmp (&query,
-			   &chk->query,
-			   sizeof (GNUNET_HashCode)))
-	    {
-#if DEBUG_DOWNLOAD
-	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-			  "Matching block already present, no need for download!\n");
-#endif
-	      /* already got it! */
-	      prc.dc = dc;
-	      prc.data = enc;
-	      prc.size = len;
-	      prc.type = (dc->treedepth == depth) 
-		? GNUNET_BLOCK_TYPE_DBLOCK 
-		: GNUNET_BLOCK_TYPE_IBLOCK;
-	      prc.query = chk->query;
-	      prc.do_store = GNUNET_NO; /* useless */
-	      process_result_with_request (&prc,
-					   &key,
-					   sm);
-	    }
-	  else
-	    {
-	      GNUNET_break_op (0);
-	    }
 	  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fh));
 	  return;
 	}
     }
- do_download:
   if (fh != NULL)
     GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fh));
   if (depth < dc->treedepth)
