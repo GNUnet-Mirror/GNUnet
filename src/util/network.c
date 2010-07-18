@@ -45,6 +45,10 @@ struct GNUNET_NETWORK_Handle
   SOCKET fd;
 #endif
 
+  /**
+   * Address family / domain.
+   */
+  int af;
 };
 
 
@@ -203,6 +207,9 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
   struct GNUNET_NETWORK_Handle *ret;
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle));
+  ret->af = address->sa_family;
+  /* NOTE: if sa_family does not exist on some platform,
+     using AF_UNSPEC should be safe */
   ret->fd = accept (desc->fd, address, address_len);
   if (ret->fd == INVALID_SOCKET)
     {
@@ -260,7 +267,18 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
                             socklen_t address_len)
 {
   int ret;
-
+  
+#ifdef IPV6_V6ONLY 
+#ifdef IPPROTO_IPV6
+  const int on = 1;
+  if (desc->af == AF_INET6)
+    setsockopt (desc->fd, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof (on));
+#if 0
+  /* is this needed or desired? or done elsewhere? */
+  setsockopt (desc->fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on));
+#endif
+#endif
+#endif
   ret = bind (desc->fd, address, address_len);
 #ifdef MINGW
   if (SOCKET_ERROR == ret)
@@ -320,6 +338,7 @@ GNUNET_NETWORK_socket_box_native (int fd)
     return NULL; /* invalid FD */
   ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle)); 
   ret->fd = fd;
+  ret->af = AF_UNSPEC;
   return ret;
 #endif
 }
@@ -602,6 +621,7 @@ GNUNET_NETWORK_socket_create (int domain, int type, int protocol)
 {
   struct GNUNET_NETWORK_Handle *ret;
   ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle));
+  ret->af = domain;
   ret->fd = socket (domain, type, protocol);
   if (INVALID_SOCKET == ret->fd)
     {
