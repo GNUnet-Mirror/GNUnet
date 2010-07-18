@@ -7,8 +7,6 @@ else
   WHICH=type
 fi
 
-echo "On some systems, you may need to change /bin/sh to point to bash"
-echo
 echo "Please submit the following information with your bug report: "
 echo "--------------------------------------------------------------"
 OS=`uname -s 2>/dev/null`
@@ -86,9 +84,17 @@ fi
 TEST=`$WHICH gnunetd 2>/dev/null`
 if test -n "$TEST"; then
   gnunetd -v | sed -e "s/v//" 2>/dev/null |\
-    awk '{print "GNUnet         : "$2}'
+    awk '{print "GNUnet 0.8     : "$2 (may conflict!)}'
 else
-  echo "GNUnet         : Not Found"
+  echo "GNUnet 0.8     : Not Found (good)"
+fi
+
+TEST=`$WHICH gnunet-arm 2>/dev/null`
+if test -n "$TEST"; then
+  gnunet-arm -v | sed -e "s/v//" 2>/dev/null |\
+    awk '{print "GNUnet 0.9     : "$2}'
+else
+  echo "GNUnet 0.9     : Not Found"
 fi
 
 TEST=`$WHICH libgcrypt-config 2> /dev/null`
@@ -168,13 +174,6 @@ else
   echo "libcurl        : Not found"
 fi
 
-
-TEST=`grep "Id:" /usr/include/adns.h 2> /dev/null`
-if test -n "$TEST"; then
-  echo "$TEST" | awk '{print "GNU adns       : "$4}'
-else
-  echo "GNU adns       : Not found"
-fi
 
 TEST=`which qmake 2> /dev/null`
 if test -x "$TEST"; then

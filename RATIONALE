@@ -1,12 +1,13 @@
-This document is a summary of why we're moving to GNUnet NG and what
-this major redesign tries to address.
+This document is a summary of the changes made to GNUnet for version
+0.9.x (from 0.8.x) and what this major redesign tries to address.
 
 First of all, the redesign does not (intentionally) change anything
 fundamental about the application-level protocols or how files are
 encoded and shared.  However, it is not protocol-compatible due to
 other changes that do not relate to the essence of the application
-protocols.
-
+protocols.  This choice was made since productive development and
+readable code were considered more important than compatibility at
+this point.
 
 The redesign tries to address the following major problem groups
 describing isssues that apply more or less to all GNUnet versions
@@ -26,10 +27,10 @@ PROBLEM GROUP 1 (scalability):
   mutexes and almost 1000 lines of lock/unlock operations.
   It is challenging for even good programmers to program or 
   maintain good multi-threaded code with this complexity.
-  The excessive locking essentially prevents GNUnet from
+  The excessive locking essentially prevents GNUnet 0.8 from
   actually doing much in parallel on multicores.
 * Despite efforts like Freeway, it was virtually 
-  impossible to contribute code to GNUnet that was not
+  impossible to contribute code to GNUnet 0.8 that was not
   writen in C/C++.
 * Changes to the configuration almost always required restarts
   of gnunetd; the existence of change-notifications does not
@@ -44,11 +45,11 @@ PROBLEM GROUP 1 (scalability):
   days, result in really nasty and hard-to-find crashes.
 * structs of function pointers in service APIs were
   needlessly adding complexity, especially since in 
-  most cases there was no polymorphism
+  most cases there was no actual polymorphism
 
 SOLUTION:
 * Use multiple, lously-coupled processes and one big select
-  loop in each (supported by a powerful library to eliminate
+  loop in each (supported by a powerful util library to eliminate
   code duplication for each process).  
 * Eliminate all threads, manage the processes with a 
   master-process (gnunet-arm, for automatic restart manager) 
@@ -65,13 +66,15 @@ SOLUTION:
   => Process priorities can be used to schedule the CPU better
   Note that we can not just use one process with a big
   select loop because we have blocking operations (and the
-  blocking is outside of our control, thanks MySQL,
+  blocking is outside of our control, thanks to MySQL,
   sqlite, gethostbyaddr, etc.).  So in order to perform
   reasonably well, we need some construct for parallel
-  execution.
+  execution.  
 
   RULE: If your service contains blocking functions, it
-        MUST be a process by itself.
+        MUST be a process by itself.  If your service
+        is sufficiently complex, you MAY choose to make
+        it a separate process.
 * Eliminate structs with function pointers for service APIs;
   instead, provide a library (still ending in _service.h) API
   that transmits the requests nicely to the respective
@@ -121,6 +124,8 @@ SOLUTION:
   thing given the potential for bugs.
 * There is no more TIME API function to do anything
   with 32-bit seconds
+* There is now a bandwidth API to handle 
+  non-trivial bandwidth utilization calculations
 
 
 PROBLEM GROUP 3 (statistics):
@@ -237,17 +242,14 @@ PROBLEM GROUP 6 (FS-APIs):
 * FILENAME metadata is killed by ECRS/FSUI to avoid
   exposing HOME, but what if the user set it manually?
 
-SOLUTION (draft, not done yet, details missing...):
+SOLUTION:
 * Eliminate threads from FS-APIs
-  => Open question: how to best write the APIs to
-     allow integration with diverse event loops
-     of GUI libraries?
-* Store FS-state always also on disk
-  => Open question: how to do this without 
-     compromising state/scalability?
+* Incrementally store FS-state always also on disk using many
+  small files instead of one big file
 * Have API to manipulate sharing tree before
   upload; have auto-construction modify FILENAME
   but allow user-modifications afterwards
+
 
 PROBLEM GROUP 7 (User experience):
 * Searches often do not return a sufficient / significant number of
@@ -281,11 +283,12 @@ SUMMARY:
   - network traffic monitors (goal: eliminate)
   - IPC semaphores (goal: d-bus? / eliminate?)
   - second timers
-  - DNS lookup (goal: have async service; issue: still need synchronous 
-                resolution in places, current code may not be portable)
-  => code shrunk from 61 files to 34, 22k LOC to 15k LOC, 470k to 330k (with symbols)
 * New features in util:
   - scheduler
   - service and program boot-strap code
+  - bandwidth and time APIs
+  - buffered IO API
+  - HKDF implementation (crypto)
 * Major changes in util:
   - more expressive server (replaces selector)
+  - DNS lookup replaced by async service

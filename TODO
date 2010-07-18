@@ -4,6 +4,8 @@
     [On W32, we need to select after calling socket before doing connect etc.]
 * TRANSPORT:
   - HTTP backend [MW]
+  - UDP fails non-deterministically on niko; suspect that it uses hostname-derived,
+    invalid 10.0.0.x address for test-message (which creates transmission failure) [CG]
   - Jun 27 11:51:54 core-7670 ERROR Assertion failed at gnunet-service-core.c:3616.
     (transport notified us that we connected to ourselves!!!)
 * CORE:
@@ -11,25 +13,22 @@
     disconnect in a timely fashion (waits for connection timeout);
     need to figure a way to make it near-instant in those cases 
     (i.e. rapid reduction in timeout on transport-level disconnect) [CG]
+    => may have been fixed with instant-notification of disconnect
+       to core on session-oriented connection hick-up; not perfect but
+       likely good enough until we get ATS going; still should be tested...
   - derived key generation [Nils]
 * DHT: [Nate]
   - implement DHT service 
-  - implement testcases
   - implement performance tests
 * FS: [CG]
   - service:
     + trust: do not charge when "idle" / load considerations (migration, routing)
     + artificial delays
-    + active reply route caching design & implementation of service; gap extension!
+    + active reply route caching design & implementation; gap extension!
   - non-anonymous FS service (needs DHT)
     + DHT integration for search
     + CS-DHT-functions (DHT-put of LOC)
     + P2P-functions (DHT-get)
-  - implement FS performance tests
-    + insert
-    + download
-    + search
-    + unindex
 * GNUNET-GTK: [CG]
   - implement publish dialog details:
     + open (import directory structure)
@@ -56,9 +55,6 @@
   - right-clicking on NS list in search dialog should open menu that allows 
     + viewing full meta data 
     + deletion of namespace info
-  - extend peer dialog with green-yellow-red connectivity status lights
-  - extend peer dialog with country flags and names
-  - implement statistics tabs
   - do meaningful update to status line (starting up, peer running, #connections, shutdown, ...)
   - implement unindex operation (use dialog with all indexed files for selection)
   - implement download by URI dialog; figure out where to display those downloads!
@@ -74,10 +70,10 @@
 
 
 0.9.0pre3:
+* Determine RC bugs and fix those!
 * TRACEKIT: [MW]
   - good to have for DV/DHT evaluation!
-* Determine RC bugs and fix those!
-* DATASTORE:
+* DATASTORE: [NN]
   - GNUNET_DATASTORE_cancel method not tested
 * TESTING: [Nate]
   - test basic peer re-configure 
@@ -97,14 +93,29 @@
   - reconstruct IBLOCKS from DBLOCKS if possible (during download; see FIXME in fs_download)
   - add support for pushing "already seen" search results to FS service for bloomfilter (can wait)
   - use different 'priority' for probe downloads vs. normal downloads
+  - implement FS performance tests
+    + insert
+    + download
+    + search
+    + unindex
 * ARM: [CG/Safey]
   - better tracking of which config changes actually need to cause process restarts by ARM.
   - handle gnunet-arm -k in combination with auto-start magic (what is the right thing here?)
   - discover dependencies between services
-* STATISTICS:
+* STATISTICS: [NN]
   - test notification-based statistics API
+  - implement statistics GUI
+* PEERINFO: [NN]
+  - move peerinfo to new GUI?
+  - extend peer dialog with green-yellow-red connectivity status lights
+  - extend peer dialog with country flags and names
 * SETUP:
   - design & implement new setup tool
+* GNUNET-GTK:
+  - add tool bar
+* MONKEY: [Safey]
+  - '-m EMAIL' option for alternative e-mail TO
+  - '-f FILENAME' option to write  report to file instead of e-mail (for testing!)
 
 0.9.0:
 * new webpage:
@@ -145,13 +156,13 @@
     (Note: build library always, build service when libxml2/etc. are available)
 * FS: [CG]
   - Remove KBlocks in gnunet-unindex (see discussion with Kenneth Almquist on gnunet-devs in 9/2009)
-* PEERINFO: [CG]
+* PEERINFO: [NN]
   - expire 'ancient' HELLOs (those without valid addresses AND that 
     we have not 'used' (for their public keys) in a while; need a way
     to track actual 'use')
   - make sue we also trigger notifications whenever HELLOs expire
 * VPN
-* UTIL:
+* UTIL: [CG]
   - allow limiting UNIX socket access by UID/GID
 
 

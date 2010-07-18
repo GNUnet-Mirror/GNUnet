@@ -7,13 +7,13 @@ What is GNUnet?
 GNUnet is peer-to-peer framework focusing on security.  The first and
 primary application for GNUnet is anonymous file-sharing.  GNUnet is
 currently developed by a worldwide group of independent free software
-developers.  GNUnet is a part of the GNU project (http://www.gnu.org/).
+developers.  GNUnet is a GNU package (http://www.gnu.org/).
 
 This is an ALPHA release.  There are known and significant bugs as 
 well as many missing features in this release.  
 
-For a longer description of the GNUnet System see our webpages
-http://www.gnu.org/software/gnunet/ and https://ng.gnunet.org/.
+Additional documentation about GNUnet can be found at
+https://gnunet.org/.
 
 
 Dependencies:
@@ -45,39 +45,40 @@ How to install?
 
 The fastest way is to use a binary package if it is available for your
 system.  For a more detailed description, read the installation
-instructions on the webpage at https://ng.gnunet.org/installation.
+instructions on the webpage at https://gnunet.org/installation.
+
+GNUnet requires the GNU MP library (http://www.gnu.org/software/gmp/)
+and libgcrypt (http://www.gnupg.org/).  You can specify the path to
+libgcrypt by passing "--with-gcrypt=PATH" to configure.  You will also
+need either sqlite (http://www.sqlite.org/) or MySQL
+(http://www.mysql.org/).
 
 If you install from source, you need to install GNU libextractor first
 (download from http://www.gnu.org/software/libextractor/).  We also
-recommend installing GNU libmicrohttpd.  Then you can start the actual
-GNUnet compilation process with:
+recommend installing GNU libmicrohttpd (download from
+http://www.gnu.org/software/libmicrohttpd/).  Then you can start the
+actual GNUnet compilation process with:
 
 $ ./configure --prefix=$HOME --with-extractor=$HOME
 $ make
 # make install
-# sudo -u gnunet gnunet-setup # (note: does not yet exist!)
+# sudo -u gnunet mkdir ~/.gnunet/ 
+# sudo -u gnunet touch ~/.gnunet/gnunet.conf
 # sudo -u gnunet gnunet-arm -s
 
-This will compile and install GNUnet to ~/bin/, ~/lib/ and ~/man/.
-gnunet-setup will create the configuration; this step is interactive.
-You can run gnunet-setup as root for a system-wide installation or as
-a particular user to create a personal installation.  It is
-recommended that you add a user "gnunet" to run "gnunet-arm".  You can
-then still run the end-user applications as another user.  If you
+This will compile and install GNUnet to $HOME/bin/, $HOME/lib/ and
+$HOME/share/ and start the system with the default configuration.  It
+is recommended that you add a user "gnunet" to run "gnunet-arm".  You
+can then still run the end-user applications as another user.  If you
 create a user "gnunet", it is recommended that you edit the
 configuration file slightly so that data can be stored in
 "/var/lib/gnunet"; you may also want to use "/etc/gnunet.conf" for the
-configuration in this case.  
+location of the configuration file in this case.
 
 Note that additional, per-user configuration files
 (~/.gnunet/gnunet.conf) need to be created by each user (for example,
 by running gnunet-setup). For more general information about the GNU
 build process read the INSTALL file.
-
-GNUnet requires the GNU MP library (http://www.gnu.org/software/gmp/)
-and libgcrypt.  You can specify the path to libgcrypt by passing
-"--with-gcrypt=PATH" to configure.  You will also need either sqlite
-(version 3 or higher) or MySQL (version 5.0 or higher).
 
 If you are compiling the code from subversion, you have to run
 ". bootstrap" before ./configure.  If you receive an error during the
@@ -91,24 +92,20 @@ $ aclocal -I /usr/local/share/aclocal
 Configuration
 =============
 
-// FIXME: update this section once we have gnunet-setup!  GNUnet uses
-two types of configuration files, one for the daemon (called
-gnunetd.conf) and one for each user (gnunet.conf).  You can create and
-edit these configuration files with the gnunet-setup tool.  The
-defaults that are created the first time you run gnunet-setup are
-usually ok, you may want to adjust the limitations (space consumption,
-bandwidth, etc.) though.  The configuration files are human-readable;
-GNUnet's configuration is typically located at
-"~/.gnunet/gnunet.conf".
+GNUnet uses two types of configuration files, one that specifies the
+system-wide defaults (typically located in /usr/share/gnunet/defaults
+.conf) and a second one that overrides default values with
+user-specific preferences.  The user-specific configuration file
+should be located in "~/.gnunet/gnunet.conf" or its location can be
+specified by giving the "-c" option to the respective GNUnet
+application.
 
-You MUST create "~/.gnunet/gnunet.conf" explicitly before starting
-GNUnet, and the recommended way to do this is to run gnunet-setup.
-You can also create an empty configuration file, in which case 
-default values will be used for everything.
-
-If you want to use a different configuration file, pass the name of
-the configuration file as an argument with the option "-c" to any
-GNUnet application.
+The defaults that are shipped with the installation are usually ok,
+you may want to adjust the limitations (space consumption, bandwidth,
+etc.) though.  The configuration files are human-readable.  Note that
+you MUST create "~/.gnunet/gnunet.conf" explicitly before starting
+GNUnet.  You can either copy "defaults.conf" or simply create an empty
+file.
 
 
 Usage
@@ -126,19 +123,19 @@ $ cat $SERVICEHOME/data/hosts/* > the_file
 
 and offering 'the_file' via your web server.  Alternatively, you can
 run the build-in web server by adding '-p' to the OPTIONS value
-in the "hostlist" section of gnunet.conf.
+in the "hostlist" section of gnunet.conf and opening the respective
+HTTPPORT to the public.
 
-If the solution with the URL is not feasible for your situation, you
-can also add hosts manually.  Simply copy the hostkeys to
-"$SERVICEHOME/data/hosts/" (where $SERVICEHOME is the directory
-specified in the /etc/gnunet.conf configuration file).
+If the solution with the hostlist URL is not feasible for your
+situation, you can also add hosts manually.  Simply copy the hostkeys
+to "$SERVICEHOME/data/hosts/" (where $SERVICEHOME is the directory
+specified in the gnunet.conf configuration file).
 
 Now start the local node using "gnunet-arm -s".  GNUnet should run 24/7 if
 you want to maximize your anonymity.  
 
-// FIXME: gnunet-gtk is not yet supported in 0.9.x
-The GTK user interface is shipped separately from GNUnet.  After
-downloading and installing gnunet-gtk, you can invoke the GUI with:
+The GTK user interface is shipped separately.  After downloading and
+installing gnunet-gtk, you can invoke the GUI with:
 
 $ gnunet-gtk
 
@@ -202,13 +199,13 @@ Running http on port 80
 =======================
 
 In order to hide GNUnet's HTTP traffic perfectly, you might consider
-running GNUnet's HTTP transport on port 80.  However, you should not
-run GNUnet as root.  Instead, forward port 80 to say 8080 with this
-command (as root, in your startup scripts):
+running GNUnet's HTTP transport on port 80.  However, we do not
+recommend running GNUnet as root.  Instead, forward port 80 to say
+8080 with this command (as root, in your startup scripts):
 
 # iptables -t nat -A PREROUTING -p tcp -m tcp --dport 80 -j REDIRECT --to-ports 8080
 
-Then set in the HTTP section of gnunetd.conf the "ADVERTISED-PORT"
+Then set in the HTTP section of gnunet.conf the "ADVERTISED-PORT"
 to "80" and "PORT" to 8080.   You can do the same trick for the
 TCP and UDP transports if you want to map them to a priviledged
 port (from the point of view of the network).
@@ -227,12 +224,11 @@ P2P over SMTP, read the instructions at http://gnunet.org/smtp.php3
 Stay tuned
 ==========
 
-* http://www.gnu.org/software/gnunet/
-* http://gnunet.org/
+* https://gnunet.org/
 * https://gnunet.org/bugs/
-* https://ng.gnunet.org/
+* https://gnunet.org/svn/
+* http://www.gnu.org/software/gnunet/
 * http://mail.gnu.org/mailman/listinfo/gnunet-developers
 * http://mail.gnu.org/mailman/listinfo/help-gnunet
 * http://mail.gnu.org/mailman/listinfo/info-gnunet
 * http://mail.gnu.org/mailman/listinfo/gnunet-svn
-
