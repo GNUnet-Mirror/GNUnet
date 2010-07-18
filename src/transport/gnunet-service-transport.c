@@ -43,8 +43,6 @@
 
 #define DEBUG_PING_PONG GNUNET_NO
 
-#define SIGN_USELESS GNUNET_NO
-
 #define DEBUG_TRANSPORT_HELLO GNUNET_YES
 
 /**
@@ -2011,6 +2009,48 @@ remove_session_validations (void *cls,
 
 
 /**
+ * We've been disconnected from the other peer (for some
+ * connection-oriented transport).  Either quickly 
+ * re-establish the connection or signal the disconnect
+ * to the CORE.
+ *
+ * @param p overall plugin context
+ * @param nl neighbour that was disconnected
+ */
+static void
+try_fast_reconnect (struct TransportPlugin *p,
+		    struct NeighbourList *nl)
+{
+  /* FIXME-MW: fast reconnect / transport switching not implemented... */
+  /* Note: the idea here is to hide problems with transports (or
+     switching between plugins) from the core to eliminate the need to
+     re-negotiate session keys and the like; OTOH, we should tell core
+     quickly (much faster than timeout) `if a connection was lost and
+     could not be re-established (i.e. other peer went down or is
+     unable / refuses to communicate);
+
+     So we should consider:
+     1) ideally: our own willingness / need to connect
+     2) prior failures to connect to this peer (by plugin)
+     3) ideally: reaons why other peer terminated (as far as knowable)
+     
+     Most importantly, it must be POSSIBLE for another peer to terminate
+     a connection for a while (without us instantly re-establishing it).
+     Similarly, if another peer is gone we should quickly notify CORE.
+     OTOH, if there was a minor glitch (i.e. crash of gnunet-service-transport
+     on the other end), we should reconnect in such a way that BOTH CORE
+     services never even notice.
+     Furthermore, the same mechanism (or small variation) could be used
+     to switch to a better-performing plugin (ATS).     
+
+     Finally, this needs to be tested throughly... */     							
+
+  /* No reconnect, signal disconnect instead! */
+  disconnect_neighbour (nl, GNUNET_NO);  
+}
+
+
+/**
  * Function that will be called whenever the plugin internally
  * cleans up a session pointer and hence the service needs to
  * discard all of those sessions as well.  Plugins that do not
@@ -2037,7 +2077,7 @@ plugin_env_session_end  (void *cls,
 					 session);
   nl = find_neighbour (peer);
   if (nl == NULL)
-    return;
+    return; /* was never marked as connected */
   rl = nl->plugins;
   while (rl != NULL)
     {
@@ -2046,7 +2086,7 @@ plugin_env_session_end  (void *cls,
       rl = rl->next;
     }
   if (rl == NULL)
-    return;
+    return; /* was never marked as connected */
   prev = NULL;
   pos = rl->addresses;
   while ( (pos != NULL) &&
@@ -2056,10 +2096,15 @@ plugin_env_session_end  (void *cls,
       pos = pos->next;
     }
   if (pos == NULL)
-    return;
+    return; /* was never marked as connected */
   pos->session = NULL;
   if (pos->addrlen != 0)
-    return;
+    {
+      if (nl->received_pong != GNUNET_NO)
+	try_fast_reconnect (p, nl);
+      return;
+    }
+  /* was inbound connection, free 'pos' */
   if (prev == NULL)
     rl->addresses = pos->next;
   else
@@ -2072,13 +2117,16 @@ plugin_env_session_end  (void *cls,
     }
   GNUNET_free (pos);
   if (nl->received_pong == GNUNET_NO)
-    return; /* nothing to do */
+    return; /* nothing to do, never connected... */
   /* check if we have any validated addresses left */
   pos = rl->addresses;
   while (pos != NULL)
     {
       if (pos->validated)
-	return;
+	{
+	  try_fast_reconnect (p, nl);
+	  return;
+	}
       pos = pos->next;
     }
   /* no valid addresses left, signal disconnect! */

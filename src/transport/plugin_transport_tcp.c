@@ -827,8 +827,8 @@ disconnect_session (struct Session *session)
   else
     prev->next = session->next;
   session->plugin->env->session_end (session->plugin->env->cls,
-			    &session->target,
-			    session);
+				     &session->target,
+				     session);
   /* clean up state */
   if (session->transmit_handle != NULL)
     {

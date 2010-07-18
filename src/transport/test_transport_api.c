@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -269,6 +269,7 @@ exchange_hello (void *cls,
   GNUNET_TRANSPORT_get_hello (p2.th, &exchange_hello_last, &p2);
 }
 
+
 static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *s,
@@ -278,7 +279,6 @@ run (void *cls,
   GNUNET_assert (ok == 1);
   OKPP;
   sched = s;
-
   die_task = GNUNET_SCHEDULER_add_delayed (sched,
 					   TIMEOUT, 
 					   &end_badly, NULL);
@@ -318,8 +318,7 @@ run (void *cls,
 static int
 check ()
 {
-
-  char *const argv[] = { "test-transport-api",
+  static char *const argv[] = { "test-transport-api",
     "-c",
     "test_transport_api_data.conf",
 #if VERBOSE
@@ -327,15 +326,13 @@ check ()
 #endif
     NULL
   };
+  static struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_END
+  };
 
 #if WRITECONFIG
   setTransportOptions("test_transport_api_data.conf");
 #endif
-
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
-
   ok = 1;
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "test-transport-api", "nohelp",
@@ -374,13 +371,10 @@ get_path_from_PATH ()
       pos = end + 1;
     }
   sprintf (buf, "%s/%s", pos, "gnunet-nat-server");
-  if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
-    {
-      GNUNET_free (path);
-      return buf;
-    }
-  GNUNET_free (buf);
   GNUNET_free (path);
+  if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
+    return buf;
+  GNUNET_free (buf);
   return NULL;
 }
 
