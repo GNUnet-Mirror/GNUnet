@@ -567,7 +567,7 @@ block_proc (void *cls,
       odb.offset = GNUNET_htonll (offset);
       odb.file_id = p->data.file.file_id;
       GNUNET_DATASTORE_put (sc->dsh,
-			    sc->rid,
+			    (p->is_directory) ? 0 : sc->rid,
 			    query,
 			    sizeof(struct OnDemandBlock),
 			    &odb,
@@ -589,7 +589,7 @@ block_proc (void *cls,
 	      (unsigned int) block_size);
 #endif
   GNUNET_DATASTORE_put (sc->dsh,
-			sc->rid,
+			(p->is_directory) ? 0 : sc->rid,
 			query,
 			block_size,
 			block,
@@ -1105,6 +1105,7 @@ fip_signal_start(void *cls,
       left = left * sizeof (struct ContentHashKey);
       sc->reserve_space += left;
     }
+  sc->reserve_entries++;
   /* entries and space for keywords */
   if (NULL != *uri)
     {
