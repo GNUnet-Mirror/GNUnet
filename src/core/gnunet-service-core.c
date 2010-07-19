@@ -1318,10 +1318,9 @@ consider_free_neighbour (struct Neighbour *n)
 
   if ( (n->th != NULL) ||
        (n->pitr != NULL) ||
-       (n->status == PEER_STATE_KEY_CONFIRMED) ||
        (GNUNET_YES == n->is_connected) )
     return; /* no chance */
-  
+    
   left = GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_add (n->last_activity,
 								       GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT));
   if (left.value > 0)
