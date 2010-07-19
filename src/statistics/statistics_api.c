@@ -491,7 +491,6 @@ receive_stats (void *cls, const struct GNUNET_MessageHeader *msg)
                   "Received end of statistics marker\n");
 #endif
       h->backoff = GNUNET_TIME_UNIT_MILLISECONDS;
-      finish (h, GNUNET_OK);
       if (h->watches_size > 0)
 	{
 	  GNUNET_CLIENT_receive (h->client,
@@ -503,6 +502,7 @@ receive_stats (void *cls, const struct GNUNET_MessageHeader *msg)
 	{
 	  h->receiving = GNUNET_NO;
 	}
+      finish (h, GNUNET_OK);
       return;
     case GNUNET_MESSAGE_TYPE_STATISTICS_VALUE:
       if (GNUNET_OK == process_message (h, msg))
