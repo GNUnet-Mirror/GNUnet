@@ -3717,6 +3717,7 @@ handle_transport_notify_disconnect (void *cls,
 {
   struct DisconnectNotifyMessage cnm;
   struct Neighbour *n;
+  struct GNUNET_TIME_Relative left;
 
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -3741,6 +3742,15 @@ handle_transport_notify_disconnect (void *cls,
 			    gettext_noop ("# peers connected (transport)"), 
 			    -1, 
 			    GNUNET_NO);
+  if (n->dead_clean_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (sched,
+			     n->dead_clean_task);
+  left = GNUNET_CONSTANTS_DISCONNECT_SESSION_TIMEOUT;
+  n->last_activity = GNUNET_TIME_absolute_subtract (GNUNET_TIME_absolute_get (), left);
+  n->dead_clean_task = GNUNET_SCHEDULER_add_delayed (sched,
+						     left,
+						     &consider_free_task,
+						     n);
 }
 
 

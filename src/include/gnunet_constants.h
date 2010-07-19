@@ -52,6 +52,12 @@ extern "C"
 #define GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 /**
+ * After how long do we consider a connection to a peer dead
+ * if we got an explicit disconnect and were unable to reconnect?
+ */
+#define GNUNET_CONSTANTS_DISCONNECT_SESSION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+
+/**
  * How long do we delay reading more from a peer after a quota violation?
  */
 #define GNUNET_CONSTANTS_QUOTA_VIOLATION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2)
