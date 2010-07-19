@@ -16,6 +16,8 @@
     => may have been fixed with instant-notification of disconnect
        to core on session-oriented connection hick-up; not perfect but
        likely good enough until we get ATS going; still should be tested...
+    => "peers connected (transport)" now instantly goes to ZERO (core statistic),
+       but "established sessions" stays up...
   - derived key generation [Nils]
 * DHT: [Nate]
   - implement DHT service 

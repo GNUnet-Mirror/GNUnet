@@ -3745,10 +3745,12 @@ handle_transport_notify_disconnect (void *cls,
   if (n->dead_clean_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (sched,
 			     n->dead_clean_task);
-  left = GNUNET_CONSTANTS_DISCONNECT_SESSION_TIMEOUT;
-  n->last_activity = GNUNET_TIME_absolute_subtract (GNUNET_TIME_absolute_get (), left);
+  left = GNUNET_TIME_relative_subtract (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+					GNUNET_CONSTANTS_DISCONNECT_SESSION_TIMEOUT);
+  n->last_activity = GNUNET_TIME_absolute_subtract (GNUNET_TIME_absolute_get (), 
+						    left);
   n->dead_clean_task = GNUNET_SCHEDULER_add_delayed (sched,
-						     left,
+						     GNUNET_CONSTANTS_DISCONNECT_SESSION_TIMEOUT,
 						     &consider_free_task,
 						     n);
 }
