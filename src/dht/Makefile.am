@@ -4,7 +4,7 @@ if MINGW
 endif
 
 plugindir = $(libdir)/gnunet
-
+HAVE_MYSQL = 0
 if HAVE_MYSQL
  MYSQL_PLUGIN = libgnunet_plugin_dhtlog_mysql.la
 endif
@@ -32,6 +32,14 @@ libgnunet_plugin_dhtlog_dummy_la_LIBADD = \
 libgnunet_plugin_dhtlog_dummy_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
+libgnunetdhtlog_la_SOURCES = \
+  dhtlog.c dhtlog.h
+libgnunetdhtlog_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la
+libgnunetdhtlog_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  -version-info 0:0:0
+  
 if HAVE_MYSQL
 libgnunet_plugin_dhtlog_mysql_la_SOURCES = \
   plugin_dhtlog_mysql.c
@@ -41,14 +49,6 @@ libgnunet_plugin_dhtlog_mysql_la_LIBADD = \
 libgnunet_plugin_dhtlog_mysql_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS) -lmysqlclient $(ZLIB_LNK)
 endif 
- 
-libgnunetdhtlog_la_SOURCES = \
-  dhtlog.c dhtlog.h
-libgnunetdhtlog_la_LIBADD = \
-  $(top_builddir)/src/util/libgnunetutil.la
-libgnunetdhtlog_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
-  -version-info 0:0:0
 
 libgnunetdht_la_SOURCES = \
   dht_api.c dht.h
@@ -115,8 +115,8 @@ check_PROGRAMS = \
  test_dht_api \
  test_dht_twopeer \
  test_dht_twopeer_put_get \
- test_dht_multipeer
-# test_dhtlog
+ test_dht_multipeer \
+ test_dhtlog
 
 TESTS = test_dht_api $(check_SCRIPTS)
 
@@ -148,13 +148,13 @@ test_dht_twopeer_put_get_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/dht/libgnunetdht.la   
 
-#test_dhtlog_SOURCES = \
-# test_dhtlog.c
-#test_dhtlog_LDADD = \
-# $(top_builddir)/src/util/libgnunetutil.la \
-# $(top_builddir)/src/testing/libgnunettesting.la \
-# $(top_builddir)/src/dht/libgnunetdht.la \
-# $(top_builddir)/src/dht/libgnunetdhtlog.la
+test_dhtlog_SOURCES = \
+ test_dhtlog.c
+test_dhtlog_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/dht/libgnunetdht.la \
+ $(top_builddir)/src/dht/libgnunetdhtlog.la
 
 EXTRA_DIST = \
   $(check_SCRIPTS) \
