@@ -102,10 +102,7 @@ static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* ts
 
 	struct suid_packet *pkt = (struct suid_packet*) GNUNET_malloc(ntohl(hdr.size));
 
-	if (memcpy(pkt, &hdr, sizeof(struct suid_packet_header)) < 0) {
-		fprintf(stderr, "Memcpy: %m\n");
-		return;
-	}
+	memcpy(pkt, &hdr, sizeof(struct suid_packet_header));
 
 	while (r < ntohl(pkt->hdr.size)) {
 		int t = GNUNET_DISK_file_read(mycls->fh_from_helper, (unsigned char*)pkt + r, ntohl(pkt->hdr.size) - r);
