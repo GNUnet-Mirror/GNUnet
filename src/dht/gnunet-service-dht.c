@@ -352,7 +352,7 @@ datacache_get_iterator (void *cls,
   get_result->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_GET_RESULT);
   get_result->header.size =
     htons (sizeof (struct GNUNET_DHT_GetResultMessage) + size);
-  get_result->expiration = exp;
+  get_result->expiration = GNUNET_TIME_absolute_hton (exp);
   get_result->type = htons (type);
   memcpy (&get_result[1], data, size);
   send_reply_to_client (datacache_get_ctx->client, &get_result->header,

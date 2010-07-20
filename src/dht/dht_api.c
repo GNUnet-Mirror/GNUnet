@@ -777,7 +777,7 @@ get_reply_iterator (void *cls, const struct GNUNET_MessageHeader *reply)
   result_data = (char *) &result[1];    /* Set data pointer to end of message */
 
   get_handle->get_context.iter (get_handle->get_context.iter_cls,
-                                result->expiration, &get_handle->route_handle->key,
+                                GNUNET_TIME_absolute_ntoh (result->expiration), &get_handle->route_handle->key,
                                 ntohs (result->type), data_size, result_data);
 }
 

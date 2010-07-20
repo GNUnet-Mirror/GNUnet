@@ -334,7 +334,7 @@ struct GNUNET_DHT_GetResultMessage
   /**
    * When does this entry expire?
    */
-  struct GNUNET_TIME_Absolute expiration;
+  struct GNUNET_TIME_AbsoluteNBO expiration;
 
 };
 
