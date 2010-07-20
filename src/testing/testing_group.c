@@ -498,7 +498,7 @@ GNUNET_TESTING_topology_get(enum GNUNET_TESTING_Topology *topology, char * topol
     return GNUNET_NO;
   while (topology_strings[curr] != NULL)
     {
-      if (strcmp(topology_strings[curr], topology_string) == 0)
+      if (strcasecmp(topology_strings[curr], topology_string) == 0)
 	{
 	  *topology = curr;
 	  return GNUNET_YES;
@@ -520,8 +520,8 @@ GNUNET_TESTING_topology_get(enum GNUNET_TESTING_Topology *topology, char * topol
  *         topology option, GNUNET_NO if not
  */
 int
-GNUNET_TESTING_topology_option_get(enum GNUNET_TESTING_TopologyOption *topology_option, 
-				   char * topology_string)
+GNUNET_TESTING_topology_option_get (enum GNUNET_TESTING_TopologyOption *topology_option,
+				    char * topology_string)
 {
   /**
    * Options for connecting a topology as strings.
@@ -564,7 +564,7 @@ GNUNET_TESTING_topology_option_get(enum GNUNET_TESTING_TopologyOption *topology_
     return GNUNET_NO;
   while (NULL != topology_option_strings[curr])
     {
-      if (strcmp(topology_option_strings[curr], topology_string) == 0)
+      if (strcasecmp(topology_option_strings[curr], topology_string) == 0)
 	{
 	  *topology_option = curr;
 	  return GNUNET_YES;
