@@ -2,6 +2,8 @@
 #include <arpa/inet.h>
 #include <linux/if.h>
 
+#include <fcntl.h>
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
@@ -58,6 +60,34 @@ static void set_address(char* dev, char* address, unsigned long prefix_len) { /*
 	/* FIXME */ ioctl(fd, SIOCSIFFLAGS, &ifr);
 } /* }}} */
 
+void setnonblocking(int fd) {
+	int opts;
+
+	opts = fcntl(fd,F_GETFL);
+	if (opts < 0) {
+			perror("fcntl(F_GETFL)");
+	}
+	opts = (opts | O_NONBLOCK);
+	if (fcntl(fd,F_SETFL,opts) < 0) {
+			perror("fcntl(F_SETFL)");
+	}
+	return;
+}
+
+static int copy (int in, int out) {
+	unsigned char buf[65600]; // 64k + 64;
+	int r = read(in, buf, 65600);
+	int w = 0;
+	if (r < 0) return r;
+	while (w < r) {
+		int t = write(out, buf + w, r - w);
+		if (t > 0) w += t;
+		if (t < 0) return t;
+	}
+	return 0;
+}
+
+
 int main(int argc, char** argv) {
 	char dev[IFNAMSIZ];
 	memset(dev, 0, IFNAMSIZ);
@@ -75,8 +105,32 @@ int main(int argc, char** argv) {
 	if (setresuid (uid, uid, uid) != 0 )
 		fprintf (stderr, "Failed to setresuid: %m\n");
 
-	// Wait
-	read(0, dev, 10);
+	setnonblocking(0);
+	setnonblocking(1);
+	setnonblocking(fd_tun);
+
+	fd_set fds_w;
+	fd_set fds_r;
+	for(;;) {
+		FD_ZERO(&fds_w);
+		FD_ZERO(&fds_r);
+
+		FD_SET(0, &fds_r);
+		FD_SET(fd_tun, &fds_r);
+
+		FD_SET(1, &fds_w);
+		FD_SET(fd_tun, &fds_w);
+
+		int r = select(fd_tun+1, &fds_r, &fds_w, (fd_set*)0, 0);
+
+		if(r > 0) {
+			if (FD_ISSET(0, &fds_r) && FD_ISSET(fd_tun, &fds_w)) {
+				copy(0, fd_tun);
+			} else if (FD_ISSET(1, &fds_w) && FD_ISSET(fd_tun, &fds_r)) {
+				copy(fd_tun, 1);
+			}
+		}
+	}
 
 	return 0;
 }
