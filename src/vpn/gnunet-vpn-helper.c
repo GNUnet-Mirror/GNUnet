@@ -70,7 +70,7 @@ static void set_address(char* dev, char* address, unsigned long prefix_len) { /*
 	/* FIXME */ ioctl(fd, SIOCSIFFLAGS, &ifr);
 } /* }}} */
 
-void setnonblocking(int fd) {
+void setnonblocking(int fd) {/*{{{*/
 	int opts;
 
 	opts = fcntl(fd,F_GETFL);
@@ -82,22 +82,11 @@ void setnonblocking(int fd) {
 			perror("fcntl(F_SETFL)");
 	}
 	return;
-}
-
-static int copy (int in, int out) {
-	unsigned char buf[65600]; // 64k + 64;
-	int r = read(in, buf, 65600);
-	int w = 0;
-	if (r < 0) return r;
-	while (w < r) {
-		int t = write(out, buf + w, r - w);
-		if (t > 0) w += t;
-		if (t < 0) return t;
-	}
-	return 0;
-}
+}/*}}}*/
 
 int main(int argc, char** argv) {
+	unsigned char buf[65600]; // 64k + 64;
+
 	char dev[IFNAMSIZ];
 	memset(dev, 0, IFNAMSIZ);
 
@@ -123,18 +112,19 @@ int main(int argc, char** argv) {
 	fd_set fds_w;
 	fd_set fds_r;
 
-	int r = 1;
-	int w = 1;
-	while(r != 0 && w != 0 && running == 1) {
+	int rea = 1;
+	int wri = 1;
+outer:
+	while(rea != 0 && wri != 0 && running == 1) {
 		FD_ZERO(&fds_w);
 		FD_ZERO(&fds_r);
 
-		if (r) {
+		if (rea) {
 			FD_SET(fd_tun, &fds_r);
 			FD_SET(1, &fds_w);
 		}
 
-		if (w) {
+		if (wri) {
 			FD_SET(0, &fds_r);
 			FD_SET(fd_tun, &fds_w);
 		}
@@ -143,16 +133,71 @@ int main(int argc, char** argv) {
 
 		if(r > 0) {
 			if (FD_ISSET(0, &fds_r) && FD_ISSET(fd_tun, &fds_w)) {
-				if (copy(0, fd_tun) < 0) {
-					fprintf(stderr, "Closing Write\n");
+				struct suid_packet *pkt = (struct suid_packet*) buf;
+				r = read(0, buf, sizeof(struct suid_packet_header));
+				if (r < 0) {
+					fprintf(stderr, "read-error: %m\n");
 					shutdown(fd_tun, SHUT_WR);
-					w = 0;
+					shutdown(0, SHUT_RD);
+					wri=0;
+					goto outer;
+				}
+				r = 0;
+				while (r < ntohl(pkt->hdr.size)) {
+					int t = read(0, buf + r, ntohl(pkt->hdr.size) - r);
+					if (r < 0) {
+						fprintf(stderr, "read-error: %m\n");
+						shutdown(fd_tun, SHUT_WR);
+						shutdown(0, SHUT_RD);
+						wri=0;
+						goto outer;
+					}
+					r += t;
+				}
+				r = 0;
+				while (r < ntohl(pkt->hdr.size) - sizeof(struct suid_packet_header)) {
+					int t = write(fd_tun, pkt->data, ntohl(pkt->hdr.size) - sizeof(struct suid_packet_header) - r);
+					if (t < 0) {
+						fprintf(stderr, "write-error 3: %m\n");
+						shutdown(fd_tun, SHUT_WR);
+						shutdown(0, SHUT_RD);
+						wri = 0;
+						goto outer;
+					}
+					r += t;
 				}
 			} else if (FD_ISSET(1, &fds_w) && FD_ISSET(fd_tun, &fds_r)) {
-				if (copy(fd_tun, 1) < 0) {
-					fprintf(stderr, "Closing Read\n");
+				r = read(fd_tun, buf, 65600);
+				if (r < 0) {
+					fprintf(stderr, "read-error: %m\n");
 					shutdown(fd_tun, SHUT_RD);
-					r = 0;
+					shutdown(1, SHUT_WR);
+					rea = 0;
+					goto outer;
+				}
+				struct suid_packet_header hdr = { .size = htonl(r + sizeof(struct suid_packet_header))};
+				r = 0;
+				while(r < sizeof(struct suid_packet_header)) {
+					int t = write(1, &hdr, sizeof(struct suid_packet_header) - r);
+					if (t < 0) {
+						fprintf(stderr, "write-error 2: %m\n");
+						shutdown(fd_tun, SHUT_RD);
+						shutdown(1, SHUT_WR);
+						rea = 0;
+						goto outer;
+					}
+					r += t;
+				}
+				while(r < ntohl(hdr.size)) {
+					int t = write(1, buf, ntohl(hdr.size) - r);
+					if (t < 0) {
+						fprintf(stderr, "write-error 1: %m, written %d/%d\n", r, ntohl(hdr.size));
+						shutdown(fd_tun, SHUT_RD);
+						shutdown(1, SHUT_WR);
+						rea = 0;
+						goto outer;
+					}
+					r += t;
 				}
 			}
 		}
