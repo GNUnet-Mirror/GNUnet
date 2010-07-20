@@ -617,6 +617,11 @@ GNUNET_SERVER_inject (struct GNUNET_SERVER_Handle *server,
             {
               if ((mh->expected_size != 0) && (mh->expected_size != size))
                 {
+		  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+			      _("Expected %u bytes for message of type %u, got %u\n"),
+			      mh->expected_size,
+			      mh->type,
+			      size);
                   GNUNET_break_op (0);
                   return GNUNET_SYSERR;
                 }
