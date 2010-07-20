@@ -40,8 +40,8 @@
 static int ret;
 
 struct vpn_cls {
-	struct GNUNET_DISK_PipeHandle* helper_in;
-	struct GNUNET_DISK_PipeHandle* helper_out;
+	struct GNUNET_DISK_PipeHandle* helper_in; // From the helper
+	struct GNUNET_DISK_PipeHandle* helper_out; // To the helper
 	const struct GNUNET_DISK_FileHandle* fh_from_helper;
 
 	struct GNUNET_SCHEDULER_Handle *sched;
