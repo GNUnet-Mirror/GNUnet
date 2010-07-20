@@ -28,6 +28,8 @@
 #include "gnunet_program_lib.h"
 #include "gnunet_os_lib.h"
 #include "gnunet-vpn-helper-p.h"
+#include "gnunet-vpn-packet.h"
+#include "gnunet-vpn-pretty-print.h"
 /* #include "gnunet_template_service.h" */
 
 /**
@@ -71,8 +73,6 @@ static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* ts
 		r += t;
 	}
 
-	fprintf(stderr, "Read %d bytes for the header. The 'size' is %x, that is %d\n", r, hdr.size, ntohl(hdr.size));
-
 	struct suid_packet *pkt = (struct suid_packet*) GNUNET_malloc(ntohl(hdr.size));
 
 	if (memcpy(pkt, &hdr, sizeof(struct suid_packet_header)) < 0) {
@@ -89,11 +89,24 @@ static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* ts
 		r += t;
 	}
 
-	printf("read %d bytes. The first 87 are:\n\t", r);
+	struct ip6_pkt *pkt6 = (struct ip6_pkt*) pkt;
+	struct ip6_tcp *pkt6_tcp;
+	struct ip6_udp *pkt6_udp;
 
-	for (r = 0; r < 87; r++)
-		printf("%02x ", pkt->data[r]);
-	printf("\n");
+	pkt_printf(pkt6);
+	switch(pkt6->ip6_hdr.nxthdr) {
+		case 0x06:
+			pkt6_tcp = (struct ip6_tcp*)pkt6;
+			pkt_printf_ip6tcp(pkt6_tcp);
+			break;
+		case 0x11:
+			pkt6_udp = (struct ip6_udp*)pkt6;
+			pkt_printf_ip6udp(pkt6_udp);
+			if (ntohs(pkt6_udp->udp_hdr.dpt) == 53) {
+				pkt_printf_ip6dns((struct ip6_udp_dns*)pkt6_udp);
+			}
+			break;
+	}
 
 	GNUNET_free(pkt);
 

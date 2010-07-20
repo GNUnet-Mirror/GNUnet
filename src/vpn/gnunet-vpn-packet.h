@@ -1,6 +1,9 @@
 #ifndef _GNTUN_PACKET_H_
 #define _GNTUN_PACKET_H_
 
+#include "gnunet-vpn-helper-p.h"
+
+// Headers
 struct pkt_tun {
 	unsigned flags:16;
 	unsigned type:16;
@@ -28,7 +31,6 @@ struct tcp_pkt {
 	unsigned wsz:16;
 	unsigned crc:16;
 	unsigned urg:16;
-	unsigned char data[1];
 };
 
 struct udp_pkt {
@@ -38,6 +40,7 @@ struct udp_pkt {
 	unsigned crc:16;
 };
 
+// DNS-Stuff
 struct dns_pkt {
 	unsigned short id;
 
@@ -78,37 +81,36 @@ struct dns_record {
 	unsigned char* data;
 };
 
+// Complete Packets
 struct ip6_pkt {
+	struct suid_packet_header shdr;
 	struct pkt_tun tun;
-	struct ip6_hdr hdr;
+	struct ip6_hdr ip6_hdr;
 	unsigned char data[1];
 };
 
 struct ip6_tcp {
+	struct suid_packet_header shdr;
 	struct pkt_tun tun;
-	struct ip6_hdr hdr;
-	struct tcp_pkt data;
+	struct ip6_hdr ip6_hdr;
+	struct tcp_pkt tcp_hdr;
+	unsigned char data[1];
 };
 
 struct ip6_udp {
+	struct suid_packet_header shdr;
 	struct pkt_tun tun;
-	struct ip6_hdr hdr;
-	struct udp_pkt data;
+	struct ip6_hdr ip6_hdr;
+	struct udp_pkt udp_hdr;
+	unsigned char data[1];
 };
-
-void send_pkt(int fd, struct ip6_pkt* pkt);
-int recv_ipv6pkt(int fd, struct pkt_tun** pkt);
-int recv_pkt(int fd, struct pkt_tun** pkt);
-struct ip6_pkt* parse_ip6(struct pkt_tun* pkt);
 
 struct ip6_udp_dns {
-	struct ip6_udp hdr;
+	struct suid_packet_header shdr;
+	struct pkt_tun tun;
+	struct ip6_hdr ip6_hdr;
+	struct udp_pkt udp_hdr;
 	struct dns_pkt data;
 };
-
-struct ip6_tcp* parse_ip6_tcp(struct ip6_pkt*);
-struct ip6_udp* parse_ip6_udp(struct ip6_pkt*);
-
-short payload(struct ip6_hdr* pkt);
 
 #endif

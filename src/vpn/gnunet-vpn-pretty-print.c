@@ -4,7 +4,7 @@
 #include <ctype.h>
 #include <arpa/inet.h>
 
-#include "packet.h"
+#include "gnunet-vpn-packet.h"
 
 static char* pretty = /*{{{*/
 /*     0       1         2         3         4        5          6
@@ -92,7 +92,7 @@ void pp_hexdump(unsigned char* data, char* dest, int max) {{{
 }}}
 
 void pp_write_header(char* dest, struct ip6_pkt* pkt) {{{
-	switch (pkt->hdr.nxthdr) {
+	switch (pkt->ip6_hdr.nxthdr) {
 		case 0x3a:
 			memcpy(dest, "ICMPv6)", 7);
 			break;
@@ -114,32 +114,32 @@ void pkt_printf(struct ip6_pkt* pkt) {{{
 
 	memcpy(buf, pretty, strlen(pretty)+1);
 
-	pp_ip6adr(pkt->hdr.sadr, buf+16);
-	pp_ip6adr(pkt->hdr.dadr, buf+76);
+	pp_ip6adr(pkt->ip6_hdr.sadr, buf+16);
+	pp_ip6adr(pkt->ip6_hdr.dadr, buf+76);
 
-	int flow = (ntohl(pkt->hdr.flowlbl));
+	int flow = (ntohl(pkt->ip6_hdr.flowlbl));
 	sprintf(tmp, "%03x", flow);
 	memcpy(buf+138, tmp, 3);
 	sprintf(tmp, "%-8d", flow);
 	memcpy(buf+143, tmp, 8);
 
-	int length = ntohs(pkt->hdr.paylgth);
+	int length = ntohs(pkt->ip6_hdr.paylgth);
 	sprintf(tmp, "%02x", length);
 	memcpy(buf+198, tmp, 2);
 	sprintf(tmp, "%-3d", length);
 	memcpy(buf+203, tmp, 3);
 
-	sprintf(tmp, "%02x", pkt->hdr.nxthdr);
+	sprintf(tmp, "%02x", pkt->ip6_hdr.nxthdr);
 	memcpy(buf+258, tmp, 2);
 	pp_write_header(buf+263, pkt);
 
-	sprintf(tmp, "%02x", pkt->hdr.hoplmt);
+	sprintf(tmp, "%02x", pkt->ip6_hdr.hoplmt);
 	memcpy(buf+318, tmp, 2);
-	sprintf(tmp, "%-3d", pkt->hdr.hoplmt);
+	sprintf(tmp, "%-3d", pkt->ip6_hdr.hoplmt);
 	memcpy(buf+323, tmp, 3);
 
-	int size = payload(&pkt->hdr);
-        int i;
+	int size = ntohs(pkt->ip6_hdr.paylgth);
+	int i;
 	for(i = 0; i < 8; i++) {
 		if (16*i > size) break;
 		pp_hexdump(pkt->data + (16*i), buf + 420 + (i*70), size - 16*i);
@@ -150,31 +150,31 @@ void pkt_printf(struct ip6_pkt* pkt) {{{
 }}}
 
 void pkt_printf_ip6tcp(struct ip6_tcp* pkt) {{{
-	printf("spt: %u\n", ntohs(pkt->data.spt));
-	printf("dpt: %u\n", ntohs(pkt->data.dpt));
-	printf("seq: %u\n", ntohs(pkt->data.seq));
-	printf("ack: %u\n", ntohs(pkt->data.ack));
-	printf("off: %u\n", ntohs(pkt->data.off));
-	printf("wsz: %u\n", ntohs(pkt->data.wsz));
-	printf("crc: 0x%x\n", ntohs(pkt->data.crc));
-	printf("urg: %u\n", ntohs(pkt->data.urg));
+	printf("spt: %u\n", ntohs(pkt->tcp_hdr.spt));
+	printf("dpt: %u\n", ntohs(pkt->tcp_hdr.dpt));
+	printf("seq: %u\n", ntohs(pkt->tcp_hdr.seq));
+	printf("ack: %u\n", ntohs(pkt->tcp_hdr.ack));
+	printf("off: %u\n", ntohs(pkt->tcp_hdr.off));
+	printf("wsz: %u\n", ntohs(pkt->tcp_hdr.wsz));
+	printf("crc: 0x%x\n", ntohs(pkt->tcp_hdr.crc));
+	printf("urg: %u\n", ntohs(pkt->tcp_hdr.urg));
 	printf("flags: %c%c%c%c%c%c%c%c\n",
-			pkt->data.flg & 0x80 ? 'C' : '.',
-			pkt->data.flg & 0x40 ? 'E' : '.',
-			pkt->data.flg & 0x20 ? 'U' : '.',
-			pkt->data.flg & 0x10 ? 'A' : '.',
-			pkt->data.flg & 0x08 ? 'P' : '.',
-			pkt->data.flg & 0x04 ? 'R' : '.',
-			pkt->data.flg & 0x02 ? 'S' : '.',
-			pkt->data.flg & 0x01 ? 'F' : '.'
+			pkt->tcp_hdr.flg & 0x80 ? 'C' : '.',
+			pkt->tcp_hdr.flg & 0x40 ? 'E' : '.',
+			pkt->tcp_hdr.flg & 0x20 ? 'U' : '.',
+			pkt->tcp_hdr.flg & 0x10 ? 'A' : '.',
+			pkt->tcp_hdr.flg & 0x08 ? 'P' : '.',
+			pkt->tcp_hdr.flg & 0x04 ? 'R' : '.',
+			pkt->tcp_hdr.flg & 0x02 ? 'S' : '.',
+			pkt->tcp_hdr.flg & 0x01 ? 'F' : '.'
 			);
 }}}
 
 void pkt_printf_ip6udp(struct ip6_udp* pkt) {{{
-	printf("spt: %u\n", ntohs(pkt->data.spt));
-	printf("dpt: %u\n", ntohs(pkt->data.dpt));
-	printf("len: %u\n", ntohs(pkt->data.len));
-	printf("crc: 0x%x\n", ntohs(pkt->data.crc));
+	printf("spt: %u\n", ntohs(pkt->udp_hdr.spt));
+	printf("dpt: %u\n", ntohs(pkt->udp_hdr.dpt));
+	printf("len: %u\n", ntohs(pkt->udp_hdr.len));
+	printf("crc: 0x%x\n", ntohs(pkt->udp_hdr.crc));
 }}}
 
 static char* dns_types(unsigned short type) {{{
