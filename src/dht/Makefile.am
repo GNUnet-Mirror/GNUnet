@@ -25,7 +25,7 @@ lib_LTLIBRARIES = libgnunetdht.la
 #  -lmysqlclient $(ZLIB_LNK) \
 #  -version-info 0:0:0
 
-  
+
 libgnunetdht_la_SOURCES = \
   dht_api.c dht.h
 libgnunetdht_la_LIBADD = \
@@ -39,8 +39,12 @@ bin_PROGRAMS = \
  gnunet-service-dht \
  gnunet-dht-get \
  gnunet-dht-get-peer \
- gnunet-dht-put \
+ gnunet-dht-put 
+
+if HAVE_MYSQL
+noinst_PROGRAMS = \
  gnunet-dht-driver
+endif
 
 gnunet_service_dht_SOURCES = \
  gnunet-service-dht.c         
@@ -69,7 +73,7 @@ gnunet_dht_get_LDADD = \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/util/libgnunetutil.la 
-  
+
 gnunet_dht_get_peer_SOURCES = \
  gnunet-dht-get-peer.c         
 gnunet_dht_get_peer_LDADD = \
@@ -84,7 +88,7 @@ gnunet_dht_put_LDADD = \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/util/libgnunetutil.la 
-  
+
 gnunet_dht_driver_SOURCES = \
  gnunet-dht-driver.c         
 gnunet_dht_driver_LDADD = \
@@ -110,28 +114,28 @@ test_dht_api_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/dht/libgnunetdht.la
- 
+
 test_dht_multipeer_SOURCES = \
  test_dht_multipeer.c
 test_dht_multipeer_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/dht/libgnunetdht.la  
- 
+
 test_dht_twopeer_SOURCES = \
  test_dht_twopeer.c
 test_dht_twopeer_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/dht/libgnunetdht.la    
- 
+
 test_dht_twopeer_put_get_SOURCES = \
  test_dht_twopeer_put_get.c
 test_dht_twopeer_put_get_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/dht/libgnunetdht.la   
-     
+
 #test_dhtlog_SOURCES = \
 # test_dhtlog.c
 #test_dhtlog_LDADD = \
@@ -139,7 +143,7 @@ test_dht_twopeer_put_get_LDADD = \
 # $(top_builddir)/src/testing/libgnunettesting.la \
 # $(top_builddir)/src/dht/libgnunetdht.la \
 # $(top_builddir)/src/dht/libgnunetdhtlog.la
-   
+
 EXTRA_DIST = \
   $(check_SCRIPTS) \
   test_dht_api_data.conf \
