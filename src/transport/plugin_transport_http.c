@@ -40,10 +40,10 @@
 #include "microhttpd.h"
 #include <curl/curl.h>
 
-#define DEBUG_HTTP GNUNET_NO
-#define DEBUG_CURL GNUNET_NO
-#define DEBUG_CONNECTIONS GNUNET_NO
-#define DEBUG_SESSION_SELECTION GNUNET_NO
+#define DEBUG_HTTP GNUNET_YES
+#define DEBUG_CURL GNUNET_YES
+#define DEBUG_CONNECTIONS GNUNET_YES
+#define DEBUG_SESSION_SELECTION GNUNET_YES
 
 #define INBOUND GNUNET_NO
 #define OUTBOUND GNUNET_YES
@@ -1086,6 +1086,8 @@ static size_t curl_get_header_cb( void *ptr, size_t size, size_t nmemb, void *st
 {
   struct Session * ps = stream;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: curl_get_header_cb\n",ps);
+
   char * tmp;
   size_t len = size * nmemb;
   long http_result = 0;
@@ -1122,6 +1124,7 @@ static size_t curl_get_header_cb( void *ptr, size_t size, size_t nmemb, void *st
       if (tmp[len-2] == 13)
         tmp[len-2]= '\0';
     }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: Header: %s\n",ps,tmp);
   }
   if (NULL != tmp)
     GNUNET_free (tmp);
@@ -1439,7 +1442,9 @@ static void curl_perform (void *cls,
       handles_last_run = running;
     }
   while (mret == CURLM_CALL_MULTI_PERFORM);
-  if (running>0) curl_schedule(plugin);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Rescheduling with %u curl handles active\n",running);
+  curl_schedule(plugin);
 }
 
 
@@ -1448,7 +1453,7 @@ static void curl_perform (void *cls,
  * @param ses session to send data to
  * @return GNUNET_SYSERR for hard failure, GNUNET_OK for ok
  */
-static int curl_schedule(void *cls )
+static int curl_schedule(void *cls)
 {
   struct Plugin *plugin = cls;
   fd_set rs;
@@ -1462,14 +1467,12 @@ static int curl_schedule(void *cls )
 
   GNUNET_assert(cls !=NULL);
 
-
   /* Cancel previous scheduled task */
   if (plugin->http_curl_task !=  GNUNET_SCHEDULER_NO_TASK)
   {
 	  GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_curl_task);
 	  plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
   max = -1;
   FD_ZERO (&rs);
   FD_ZERO (&ws);
@@ -1562,7 +1565,12 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
           return GNUNET_SYSERR;
         }
         if (curl_schedule (plugin) == GNUNET_SYSERR)
+        {
+#if DEBUG_CONNECTIONS
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: could not schedule curl task\n",ps);
+#endif
         	return GNUNET_SYSERR;
+        }
 #if DEBUG_CONNECTIONS
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound not connected, initiating connection\n",ps);
 #endif
