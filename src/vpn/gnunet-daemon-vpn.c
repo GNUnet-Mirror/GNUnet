@@ -32,6 +32,7 @@
 #include "gnunet-vpn-pretty-print.h"
 #include "gnunet_common.h"
 #include "gnunet_protocols.h"
+#include "gnunet_server_lib.h"
 /* #include "gnunet_template_service.h" */
 
 /**
@@ -43,6 +44,8 @@ struct vpn_cls {
 	struct GNUNET_DISK_PipeHandle* helper_in; // From the helper
 	struct GNUNET_DISK_PipeHandle* helper_out; // To the helper
 	const struct GNUNET_DISK_FileHandle* fh_from_helper;
+
+	struct GNUNET_SERVER_MessageStreamTokenizer* mst;
 
 	struct GNUNET_SCHEDULER_Handle *sched;
 
@@ -88,38 +91,27 @@ static void restart_helper(void* cls, const struct GNUNET_SCHEDULER_TaskContext*
 
 static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
 	struct vpn_cls* mycls = (struct vpn_cls*) cls;
-	struct GNUNET_MessageHeader hdr = { .size = 0, .type = 0 };
-
-	int r = 0;
+	char buf[65535];
 
 	if (tsdkctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)
 		return;
 
-	while (r < sizeof(struct GNUNET_MessageHeader)) {
-		int t = GNUNET_DISK_file_read(mycls->fh_from_helper, &hdr, sizeof(struct GNUNET_MessageHeader));
-		if (t<=0) {
-			fprintf(stderr, "Read error for header: %m\n");
-			GNUNET_SCHEDULER_add_now(mycls->sched, restart_helper, cls);
-			return;
-		}
-		r += t;
+	int t = GNUNET_DISK_file_read(mycls->fh_from_helper, &buf, 65535);
+	if (t<=0) {
+		fprintf(stderr, "Read error for header: %m\n");
+		GNUNET_SCHEDULER_add_now(mycls->sched, restart_helper, cls);
+		return;
 	}
 
-	struct suid_packet *pkt = (struct suid_packet*) GNUNET_malloc(ntohs(hdr.size));
+	/* FIXME */ GNUNET_SERVER_mst_receive(mycls->mst, NULL, buf, t, 0, 0);
 
-	memcpy(pkt, &hdr, sizeof(struct GNUNET_MessageHeader));
+	GNUNET_SCHEDULER_add_read_file (mycls->sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls->fh_from_helper, &helper_read, mycls);
+}
 
-	while (r < ntohs(pkt->hdr.size)) {
-		int t = GNUNET_DISK_file_read(mycls->fh_from_helper, (unsigned char*)pkt + r, ntohs(pkt->hdr.size) - r);
-		if (t<=0) {
-			fprintf(stderr, "Read error for data: %m\n");
-			GNUNET_SCHEDULER_add_now(mycls->sched, restart_helper, cls);
-			return;
-		}
-		r += t;
-	}
+static void message_token(void *cls, void *client, const struct GNUNET_MessageHeader *message) {
+	if (ntohs(message->type) != GNUNET_MESSAGE_TYPE_VPN_HELPER) return;
 
-	struct ip6_pkt *pkt6 = (struct ip6_pkt*) pkt;
+	struct ip6_pkt *pkt6 = (struct ip6_pkt*) message;
 	struct ip6_tcp *pkt6_tcp;
 	struct ip6_udp *pkt6_udp;
 
@@ -138,9 +130,6 @@ static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* ts
 			break;
 	}
 
-	GNUNET_free(pkt);
-
-	GNUNET_SCHEDULER_add_read_file (mycls->sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls->fh_from_helper, &helper_read, mycls);
 }
 
 /**
@@ -162,6 +151,8 @@ run (void *cls,
 	struct vpn_cls* mycls = (struct vpn_cls*) cls;
 
 	mycls->sched = sched;
+
+	mycls->mst = GNUNET_SERVER_mst_create(&message_token, mycls);
 
 	GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);
 
