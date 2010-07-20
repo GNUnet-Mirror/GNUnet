@@ -64,7 +64,10 @@ static void start_helper_and_schedule(struct vpn_cls* mycls) {
 	mycls->helper_pid = GNUNET_OS_start_process(mycls->helper_in, mycls->helper_out, "gnunet-vpn-helper", "gnunet-vpn-helper", NULL);
 
 	mycls->fh_from_helper = GNUNET_DISK_pipe_handle (mycls->helper_out, GNUNET_DISK_PIPE_END_READ);
-	
+
+	GNUNET_DISK_pipe_close_end(mycls->helper_out, GNUNET_DISK_PIPE_END_WRITE);
+	GNUNET_DISK_pipe_close_end(mycls->helper_in, GNUNET_DISK_PIPE_END_READ);
+
 	GNUNET_SCHEDULER_add_read_file (mycls->sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls->fh_from_helper, &helper_read, mycls);
 }
 
