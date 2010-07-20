@@ -40,14 +40,14 @@ struct vpn_cls {
 	struct GNUNET_DISK_PipeHandle* helper_out;
 	const struct GNUNET_DISK_FileHandle* fh_from_helper;
 
-	struct GNUNET_SCHEDULER_Handle *sched; // TODO CG: is that right? Do I have to carry it around myself?
+	struct GNUNET_SCHEDULER_Handle *sched;
 
 	pid_t helper_pid;
 };
 
 static void cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
 	struct vpn_cls* mycls = (struct vpn_cls*) cls;
-	if (tskctx->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN) {
+	if (tskctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) {
 		PLIBC_KILL(mycls->helper_pid, SIGTERM);
 		GNUNET_OS_process_wait(mycls->helper_pid);
 	}
@@ -58,6 +58,9 @@ static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* ts
 	struct suid_packet_header hdr = { .size = 0 };
 
 	int r = 0;
+
+	if (tsdkctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)
+		return;
 
 	while (r < sizeof(struct suid_packet_header)) {
 		int t = GNUNET_DISK_file_read(mycls->fh_from_helper, &hdr, sizeof(struct suid_packet_header));
