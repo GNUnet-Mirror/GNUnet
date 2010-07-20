@@ -92,8 +92,9 @@ static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* ts
 
 	while (r < sizeof(struct suid_packet_header)) {
 		int t = GNUNET_DISK_file_read(mycls->fh_from_helper, &hdr, sizeof(struct suid_packet_header));
-		if (t< 0) {
+		if (t<=0) {
 			fprintf(stderr, "Read error for header: %m\n");
+			GNUNET_SCHEDULER_add_now(mycls->sched, restart_helper, cls);
 			return;
 		}
 		r += t;
@@ -108,8 +109,9 @@ static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* ts
 
 	while (r < ntohl(pkt->hdr.size)) {
 		int t = GNUNET_DISK_file_read(mycls->fh_from_helper, (unsigned char*)pkt + r, ntohl(pkt->hdr.size) - r);
-		if (t< 0) {
+		if (t<=0) {
 			fprintf(stderr, "Read error for data: %m\n");
+			GNUNET_SCHEDULER_add_now(mycls->sched, restart_helper, cls);
 			return;
 		}
 		r += t;
