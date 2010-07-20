@@ -30,6 +30,8 @@
 #include "gnunet-vpn-helper-p.h"
 #include "gnunet-vpn-packet.h"
 #include "gnunet-vpn-pretty-print.h"
+#include "gnunet_common.h"
+#include "gnunet_protocols.h"
 /* #include "gnunet_template_service.h" */
 
 /**
@@ -86,15 +88,15 @@ static void restart_helper(void* cls, const struct GNUNET_SCHEDULER_TaskContext*
 
 static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
 	struct vpn_cls* mycls = (struct vpn_cls*) cls;
-	struct suid_packet_header hdr = { .size = 0 };
+	struct GNUNET_MessageHeader hdr = { .size = 0, .type = 0 };
 
 	int r = 0;
 
 	if (tsdkctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)
 		return;
 
-	while (r < sizeof(struct suid_packet_header)) {
-		int t = GNUNET_DISK_file_read(mycls->fh_from_helper, &hdr, sizeof(struct suid_packet_header));
+	while (r < sizeof(struct GNUNET_MessageHeader)) {
+		int t = GNUNET_DISK_file_read(mycls->fh_from_helper, &hdr, sizeof(struct GNUNET_MessageHeader));
 		if (t<=0) {
 			fprintf(stderr, "Read error for header: %m\n");
 			GNUNET_SCHEDULER_add_now(mycls->sched, restart_helper, cls);
@@ -103,12 +105,12 @@ static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* ts
 		r += t;
 	}
 
-	struct suid_packet *pkt = (struct suid_packet*) GNUNET_malloc(ntohl(hdr.size));
+	struct suid_packet *pkt = (struct suid_packet*) GNUNET_malloc(ntohs(hdr.size));
 
-	memcpy(pkt, &hdr, sizeof(struct suid_packet_header));
+	memcpy(pkt, &hdr, sizeof(struct GNUNET_MessageHeader));
 
-	while (r < ntohl(pkt->hdr.size)) {
-		int t = GNUNET_DISK_file_read(mycls->fh_from_helper, (unsigned char*)pkt + r, ntohl(pkt->hdr.size) - r);
+	while (r < ntohs(pkt->hdr.size)) {
+		int t = GNUNET_DISK_file_read(mycls->fh_from_helper, (unsigned char*)pkt + r, ntohs(pkt->hdr.size) - r);
 		if (t<=0) {
 			fprintf(stderr, "Read error for data: %m\n");
 			GNUNET_SCHEDULER_add_now(mycls->sched, restart_helper, cls);

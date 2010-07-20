@@ -2,6 +2,7 @@
 #define _GNTUN_PACKET_H_
 
 #include "gnunet-vpn-helper-p.h"
+#include "gnunet_common.h"
 
 // Headers
 struct pkt_tun {
@@ -83,14 +84,14 @@ struct dns_record {
 
 // Complete Packets
 struct ip6_pkt {
-	struct suid_packet_header shdr;
+	struct GNUNET_MessageHeader shdr;
 	struct pkt_tun tun;
 	struct ip6_hdr ip6_hdr;
 	unsigned char data[1];
 };
 
 struct ip6_tcp {
-	struct suid_packet_header shdr;
+	struct GNUNET_MessageHeader shdr;
 	struct pkt_tun tun;
 	struct ip6_hdr ip6_hdr;
 	struct tcp_pkt tcp_hdr;
@@ -98,7 +99,7 @@ struct ip6_tcp {
 };
 
 struct ip6_udp {
-	struct suid_packet_header shdr;
+	struct GNUNET_MessageHeader shdr;
 	struct pkt_tun tun;
 	struct ip6_hdr ip6_hdr;
 	struct udp_pkt udp_hdr;
@@ -106,7 +107,7 @@ struct ip6_udp {
 };
 
 struct ip6_udp_dns {
-	struct suid_packet_header shdr;
+	struct GNUNET_MessageHeader shdr;
 	struct pkt_tun tun;
 	struct ip6_hdr ip6_hdr;
 	struct udp_pkt udp_hdr;

@@ -611,6 +611,11 @@ extern "C"
 
 
 /**
+ * Type of messages between the gnunet-vpn-helper and the daemon
+ */
+#define GNUNET_MESSAGE_TYPE_VPN_HELPER 185
+
+/**
  * Type used to match 'all' message types.
  */
 #define GNUNET_MESSAGE_TYPE_ALL 65535

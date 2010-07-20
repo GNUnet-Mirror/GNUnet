@@ -40,8 +40,10 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "gnunet-vpn-helper-p.h"
 #include "gnunet-vpn-tun.h"
+#include "gnunet_common.h"
+#include "gnunet_protocols.h"
+#include "gnunet-vpn-helper-p.h"
 
 #ifndef _LINUX_IN6_H
 // This is in linux/include/net/ipv6.h.
@@ -168,7 +170,7 @@ outer:
 			if (FD_ISSET(0, &fds_r) && write_fd_possible) {
 				write_fd_possible = 0;
 				struct suid_packet *pkt = (struct suid_packet*) buf;
-				r = read(0, buf, sizeof(struct suid_packet_header));
+				r = read(0, buf, sizeof(struct GNUNET_MessageHeader));
 				if (r <= 0) {
 					fprintf(stderr, "read-error: %m\n");
 					shutdown(fd_tun, SHUT_WR);
@@ -176,8 +178,8 @@ outer:
 					wri=0;
 					goto outer;
 				}
-				while (r < ntohl(pkt->hdr.size)) {
-					int t = read(0, buf + r, ntohl(pkt->hdr.size) - r);
+				while (r < ntohs(pkt->hdr.size)) {
+					int t = read(0, buf + r, ntohs(pkt->hdr.size) - r);
 					if (r < 0) {
 						fprintf(stderr, "read-error: %m\n");
 						shutdown(fd_tun, SHUT_WR);
@@ -188,8 +190,8 @@ outer:
 					r += t;
 				}
 				r = 0;
-				while (r < ntohl(pkt->hdr.size) - sizeof(struct suid_packet_header)) {
-					int t = write(fd_tun, pkt->data, ntohl(pkt->hdr.size) - sizeof(struct suid_packet_header) - r);
+				while (r < ntohs(pkt->hdr.size) - sizeof(struct GNUNET_MessageHeader)) {
+					int t = write(fd_tun, pkt->data, ntohs(pkt->hdr.size) - sizeof(struct GNUNET_MessageHeader) - r);
 					if (t < 0) {
 						fprintf(stderr, "write-error 3: %m\n");
 						shutdown(fd_tun, SHUT_WR);
@@ -209,10 +211,10 @@ outer:
 					rea = 0;
 					goto outer;
 				}
-				struct suid_packet_header hdr = { .size = htonl(r + sizeof(struct suid_packet_header))};
+				struct GNUNET_MessageHeader hdr = { .size = htons(r + sizeof(struct GNUNET_MessageHeader)), .type = htons(GNUNET_MESSAGE_TYPE_VPN_HELPER) };
 				r = 0;
-				while(r < sizeof(struct suid_packet_header)) {
-					int t = write(1, &hdr, sizeof(struct suid_packet_header) - r);
+				while(r < sizeof(struct GNUNET_MessageHeader)) {
+					int t = write(1, &hdr, sizeof(struct GNUNET_MessageHeader) - r);
 					if (t < 0) {
 						fprintf(stderr, "write-error 2: %m\n");
 						shutdown(fd_tun, SHUT_RD);
@@ -222,10 +224,10 @@ outer:
 					}
 					r += t;
 				}
-				while(r < ntohl(hdr.size)) {
-					int t = write(1, buf, ntohl(hdr.size) - r);
+				while(r < ntohs(hdr.size)) {
+					int t = write(1, buf, ntohs(hdr.size) - r);
 					if (t < 0) {
-						fprintf(stderr, "write-error 1: %m, written %d/%d\n", r, ntohl(hdr.size));
+						fprintf(stderr, "write-error 1: %m, written %d/%d\n", r, ntohs(hdr.size));
 						shutdown(fd_tun, SHUT_RD);
 						shutdown(1, SHUT_WR);
 						rea = 0;
