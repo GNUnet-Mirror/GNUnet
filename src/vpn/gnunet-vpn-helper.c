@@ -139,6 +139,9 @@ int main(int argc, char** argv) {
 
 	int rea = 1;
 	int wri = 1;
+
+	int write_fd_possible = 0;
+	int write_stdout_possible = 0;
 outer:
 	while(rea != 0 && wri != 0 && running == 1) {
 		FD_ZERO(&fds_w);
@@ -146,18 +149,24 @@ outer:
 
 		if (rea) {
 			FD_SET(fd_tun, &fds_r);
-			FD_SET(1, &fds_w);
+			if (!write_stdout_possible)
+				FD_SET(1, &fds_w);
 		}
 
 		if (wri) {
 			FD_SET(0, &fds_r);
-			FD_SET(fd_tun, &fds_w);
+			if (!write_fd_possible)
+				FD_SET(fd_tun, &fds_w);
 		}
 
 		int r = select(fd_tun+1, &fds_r, &fds_w, (fd_set*)0, 0);
 
 		if(r > 0) {
-			if (FD_ISSET(0, &fds_r) && FD_ISSET(fd_tun, &fds_w)) {
+			if (FD_ISSET(fd_tun, &fds_w)) write_fd_possible = 1;
+			if (FD_ISSET(1, &fds_w)) write_stdout_possible = 1;
+
+			if (FD_ISSET(0, &fds_r) && write_fd_possible) {
+				write_fd_possible = 0;
 				struct suid_packet *pkt = (struct suid_packet*) buf;
 				r = read(0, buf, sizeof(struct suid_packet_header));
 				if (r < 0) {
@@ -190,7 +199,8 @@ outer:
 					}
 					r += t;
 				}
-			} else if (FD_ISSET(1, &fds_w) && FD_ISSET(fd_tun, &fds_r)) {
+			} else if (write_stdout_possible && FD_ISSET(fd_tun, &fds_r)) {
+				write_stdout_possible = 0;
 				r = read(fd_tun, buf, 65600);
 				if (r < 0) {
 					fprintf(stderr, "read-error: %m\n");
