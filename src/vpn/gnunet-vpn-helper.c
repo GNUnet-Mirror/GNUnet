@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
 	int write_fd_possible = 0;
 	int write_stdout_possible = 0;
 outer:
-	while(rea != 0 && wri != 0 && running == 1) {
+	while((rea == 1 || wri == 1) && running == 1) {
 		FD_ZERO(&fds_w);
 		FD_ZERO(&fds_r);
 
@@ -169,7 +169,7 @@ outer:
 				write_fd_possible = 0;
 				struct suid_packet *pkt = (struct suid_packet*) buf;
 				r = read(0, buf, sizeof(struct suid_packet_header));
-				if (r < 0) {
+				if (r <= 0) {
 					fprintf(stderr, "read-error: %m\n");
 					shutdown(fd_tun, SHUT_WR);
 					shutdown(0, SHUT_RD);
@@ -202,7 +202,7 @@ outer:
 			} else if (write_stdout_possible && FD_ISSET(fd_tun, &fds_r)) {
 				write_stdout_possible = 0;
 				r = read(fd_tun, buf, 65600);
-				if (r < 0) {
+				if (r <= 0) {
 					fprintf(stderr, "read-error: %m\n");
 					shutdown(fd_tun, SHUT_RD);
 					shutdown(1, SHUT_WR);
