@@ -29,9 +29,21 @@
 
 #define DEBUG_DHT GNUNET_NO
 
+#define DEBUG_DHT_ROUTING GNUNET_YES
+
+#define DHT_BLOOM_SIZE 16
+
+#define DHT_BLOOM_K 8
+
+#define MAX_OUTSTANDING_FORWARDS 100
+
+#define DHT_FORWARD_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5)
+
+#define DHT_SEND_PRIORITY 4
+
 typedef void (*GNUNET_DHT_MessageReceivedHandler) (void *cls,
                                                    const struct GNUNET_MessageHeader
-                                                   * msg);
+                                                   *msg);
 
 /**
  * Message which indicates the DHT should cancel outstanding
@@ -54,17 +66,23 @@ struct GNUNET_DHT_StopMessage
    */
   uint64_t unique_id GNUNET_PACKED;
 
+  /**
+   * Key of this request
+   */
+  GNUNET_HashCode key;
+
 };
 
 
 /**
  * Generic DHT message, indicates that a route request
- * should be issued.
+ * should be issued, if coming from a client.  Shared
+ * usage for api->server and P2P message passing.
  */
 struct GNUNET_DHT_RouteMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_ROUTE
+   * Type: GNUNET_MESSAGE_TYPE_LOCAL_DHT_ROUTE
    */
   struct GNUNET_MessageHeader header;
 
@@ -94,10 +112,13 @@ struct GNUNET_DHT_RouteMessage
 
 };
 
+/**
+ * Generic local route result message
+ */
 struct GNUNET_DHT_RouteResultMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_ROUTE_RESULT
+   * Type: GNUNET_MESSAGE_TYPE_LOCAL_DHT_ROUTE_RESULT
    */
   struct GNUNET_MessageHeader header;
 
@@ -107,25 +128,146 @@ struct GNUNET_DHT_RouteResultMessage
   uint32_t options GNUNET_PACKED;
 
   /**
+   * Unique ID identifying this request (necessary for
+   * client to compare to sent requests)
+   */
+  uint64_t unique_id GNUNET_PACKED;
+
+  /**
    * The key that was searched for
    */
   GNUNET_HashCode key;
+
+  /* GNUNET_MessageHeader *enc actual DHT message, copied to end of this dealy do */
+};
+
+/**
+ * Generic P2P DHT route message
+ */
+struct GNUNET_DHT_P2PRouteMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_P2P_DHT_ROUTE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Message options
+   */
+  uint32_t options GNUNET_PACKED;
+
+  /**
+   * Hop count
+   */
+  uint32_t hop_count GNUNET_PACKED;
+
+  /**
+   * Network size estimate
+   */
+  uint32_t network_size GNUNET_PACKED;
+
+  /**
+   * Replication level for this message
+   */
+  uint32_t desired_replication_level GNUNET_PACKED;
 
   /**
    * Unique ID identifying this request
    */
   uint64_t unique_id GNUNET_PACKED;
 
+  /*
+   * Bloomfilter to stop circular routes
+   */
+  char bloomfilter[DHT_BLOOM_SIZE];
+
+  /**
+   * FIXME: add DHT logging for analysis!
+   */
+#if LOG_SQL
+  /*
+   * Unique query id for sql database interaction.
+   */
+  uint64_t queryuid;
+
+  /*
+   * Unique trial id for sql database interaction
+   */
+  uint64_t trialuid;
+
+#endif
+
+  /**
+   * The key to search for
+   */
+  GNUNET_HashCode key;
+
   /* GNUNET_MessageHeader *enc actual DHT message, copied to end of this dealy do */
+
 };
 
 /**
- * Message to insert data into the DHT
+ * Generic P2P route result
+ *
+ * FIXME: One question is how much to include for a route result message.
+ *        Assuming a peer receives such a message, but has no record of a
+ *        route message, what should it do?  It can either drop the message
+ *        or try to forward it towards the original peer...  However, for
+ *        that to work we would need to include the original peer identity
+ *        in the GET request, which adds even more data to the message.
+ */
+struct GNUNET_DHT_P2PRouteResultMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_P2P_DHT_ROUTE_RESULT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Message options
+   */
+  uint32_t options GNUNET_PACKED;
+
+  /**
+   * Hop count
+   */
+  uint32_t hop_count GNUNET_PACKED;
+
+  /**
+   * Unique ID identifying this request (may not be set)
+   */
+  uint64_t unique_id GNUNET_PACKED;
+
+  /*
+   * Bloomfilter to stop circular routes
+   */
+  char bloomfilter[DHT_BLOOM_SIZE];
+
+  /**
+   * The key that was searched for
+   */
+  GNUNET_HashCode key;
+
+#if FORWARD_UNKNOWN
+  /**
+   * Network size estimate
+   */
+  uint32_t network_size GNUNET_PACKED;
+#endif
+
+  /* GNUNET_MessageHeader *enc actual DHT message, copied to end of this dealy do */
+};
+
+
+/**
+ * Message to insert data into the DHT, shared
+ * between api->server communication and P2P communication.
+ * The type must be different for the two purposes.
  */
 struct GNUNET_DHT_PutMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_PUT
+   * Type: GNUNET_MESSAGE_TYPE_DHT_PUT / GNUNET_MESSAGE_TYPE_P2P_DHT_PUT
    */
   struct GNUNET_MessageHeader header;
 
@@ -148,12 +290,15 @@ struct GNUNET_DHT_PutMessage
 
 
 /**
- * Message to request data from the DHT
+ * Message to request data from the DHT, shared
+ * between P2P requests and local get requests.
+ * Main difference is that if the request comes in
+ * locally we need to remember it (for client response).
  */
 struct GNUNET_DHT_GetMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_GET
+   * Type: GNUNET_MESSAGE_TYPE_DHT_GET / GNUNET_MESSAGE_TYPE_P2P_DHT_GET
    */
   struct GNUNET_MessageHeader header;
 
@@ -165,12 +310,14 @@ struct GNUNET_DHT_GetMessage
 };
 
 /**
- * Message to return data from the DHT
+ * Message to return data either to the client API
+ * or to respond to a request received from another
+ * peer.  Shared format, different types.
  */
 struct GNUNET_DHT_GetResultMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_GET_RESULT
+   * Type: GNUNET_MESSAGE_TYPE_DHT_GET_RESULT / GNUNET_MESSAGE_TYPE_DHT_P2P_GET_RESULT
    */
   struct GNUNET_MessageHeader header;
 
@@ -180,9 +327,9 @@ struct GNUNET_DHT_GetResultMessage
   uint32_t type;
 
   /**
-   * The key to search for
+   * The key that was searched for
    */
-  GNUNET_HashCode key;
+  //GNUNET_HashCode key;
 
   /**
    * When does this entry expire?

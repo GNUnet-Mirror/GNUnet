@@ -585,7 +585,7 @@ service_message_handler (void *cls,
 
   switch (ntohs (msg->type))
     {
-    case GNUNET_MESSAGE_TYPE_DHT_ROUTE_RESULT:
+    case GNUNET_MESSAGE_TYPE_LOCAL_DHT_ROUTE_RESULT:
       {
         dht_msg = (struct GNUNET_DHT_RouteResultMessage *) msg;
         uid = GNUNET_ntohll (dht_msg->unique_id);
@@ -777,7 +777,7 @@ get_reply_iterator (void *cls, const struct GNUNET_MessageHeader *reply)
   result_data = (char *) &result[1];    /* Set data pointer to end of message */
 
   get_handle->get_context.iter (get_handle->get_context.iter_cls,
-                                result->expiration, &result->key,
+                                result->expiration, &get_handle->route_handle->key,
                                 ntohs (result->type), data_size, result_data);
 }
 
@@ -868,9 +868,9 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
   route_handle->iter = iter;
   route_handle->iter_cls = iter_cls;
   route_handle->dht_handle = handle;
+  route_handle->uid = handle->uid_gen++;
   if (iter != NULL)
     {
-      route_handle->uid = handle->uid_gen++;
       hash_from_uid (route_handle->uid, &uid_key);
       GNUNET_CONTAINER_multihashmap_put (handle->outstanding_requests,
                                          &uid_key, route_handle,
@@ -885,7 +885,7 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
   msize = sizeof (struct GNUNET_DHT_RouteMessage) + ntohs (enc->size);
   message = GNUNET_malloc (msize);
   message->header.size = htons (msize);
-  message->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_ROUTE);
+  message->header.type = htons (GNUNET_MESSAGE_TYPE_LOCAL_DHT_ROUTE);
   memcpy (&message->key, key, sizeof (GNUNET_HashCode));
   message->options = htonl (options);
   message->desired_replication_level = htonl (options);
@@ -983,13 +983,14 @@ GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle,
   msize = sizeof (struct GNUNET_DHT_StopMessage);
   message = GNUNET_malloc (msize);
   message->header.size = htons (msize);
-  message->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_STOP);
+  message->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_ROUTE_STOP);
 #if DEBUG_DHT_API
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "`%s': Remove outstanding request for uid %llu\n", "DHT API",
               route_handle->uid);
 #endif
   message->unique_id = GNUNET_htonll (route_handle->uid);
+  memcpy(&message->key, &route_handle->key, sizeof(GNUNET_HashCode));
   pending = GNUNET_malloc (sizeof (struct PendingMessage));
   pending->msg = (struct GNUNET_MessageHeader *) message;
   pending->timeout = GNUNET_TIME_relative_get_forever();
@@ -1009,6 +1010,7 @@ GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle,
     }
   else
     {
+      GNUNET_free(pending);
       GNUNET_break(0);
     }
 

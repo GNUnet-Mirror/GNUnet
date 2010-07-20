@@ -313,7 +313,7 @@ send_reply_to_client (struct ClientList *client,
   pending_message = GNUNET_malloc (sizeof (struct PendingMessage) + tsize);
   pending_message->msg = (struct GNUNET_MessageHeader *)&pending_message[1];
   reply = (struct GNUNET_DHT_RouteResultMessage *)&pending_message[1];
-  reply->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_ROUTE_RESULT);
+  reply->header.type = htons (GNUNET_MESSAGE_TYPE_LOCAL_DHT_ROUTE_RESULT);
   reply->header.size = htons (tsize);
   reply->unique_id = GNUNET_htonll (uid);
   memcpy (&reply[1], message, msize);
@@ -353,7 +353,6 @@ datacache_get_iterator (void *cls,
   get_result->header.size =
     htons (sizeof (struct GNUNET_DHT_GetResultMessage) + size);
   get_result->expiration = exp;
-  memcpy (&get_result->key, key, sizeof (GNUNET_HashCode));
   get_result->type = htons (type);
   memcpy (&get_result[1], data, size);
   send_reply_to_client (datacache_get_ctx->client, &get_result->header,
@@ -573,7 +572,7 @@ handle_dht_start_message (void *cls, struct GNUNET_SERVER_Client *client,
    *    be processed everywhere _AND_ we want it processed everywhere, then
    *    handle it locally.
    */
-  handle_locally = GNUNET_YES;
+  handle_locally = GNUNET_NO;
   if (handle_locally == GNUNET_YES)
     {
       switch (enc_type)
@@ -596,6 +595,9 @@ handle_dht_start_message (void *cls, struct GNUNET_SERVER_Client *client,
                       "`%s': Message type (%d) not handled\n", "DHT", enc_type);
         }
     }
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "`%s': Message type (%d) not handled\n", "DHT", enc_type);
   GNUNET_free (message_context);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 
@@ -759,15 +761,15 @@ core_init (void *cls,
 
 
 static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
-  {&handle_dht_start_message, NULL, GNUNET_MESSAGE_TYPE_DHT_ROUTE, 0},
-  {&handle_dht_stop_message, NULL, GNUNET_MESSAGE_TYPE_DHT_STOP, 0},
+  {&handle_dht_start_message, NULL, GNUNET_MESSAGE_TYPE_LOCAL_DHT_ROUTE, 0},
+  {&handle_dht_stop_message, NULL, GNUNET_MESSAGE_TYPE_DHT_ROUTE_STOP, 0},
   {NULL, NULL, 0, 0}
 };
 
 
 static struct GNUNET_CORE_MessageHandler core_handlers[] = {
-  {&handle_dht_p2p_route_request, GNUNET_MESSAGE_TYPE_DHT_ROUTE, 0},
-  {&handle_dht_p2p_route_result, GNUNET_MESSAGE_TYPE_DHT_ROUTE_RESULT, 0},
+  {&handle_dht_p2p_route_request, GNUNET_MESSAGE_TYPE_P2P_DHT_ROUTE, 0},
+  {&handle_dht_p2p_route_result, GNUNET_MESSAGE_TYPE_P2P_DHT_ROUTE_RESULT, 0},
   {NULL, 0, 0}
 };
 
