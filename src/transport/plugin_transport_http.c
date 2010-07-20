@@ -1439,7 +1439,7 @@ static void curl_perform (void *cls,
       handles_last_run = running;
     }
   while (mret == CURLM_CALL_MULTI_PERFORM);
-  curl_schedule(plugin);
+  if (running>0) curl_schedule(plugin);
 }
 
 
@@ -1461,6 +1461,7 @@ static int curl_schedule(void *cls )
   CURLMcode mret;
 
   GNUNET_assert(cls !=NULL);
+
 
   /* Cancel previous scheduled task */
   if (plugin->http_curl_task !=  GNUNET_SCHEDULER_NO_TASK)
@@ -2372,7 +2373,7 @@ libgnunet_plugin_transport_http_init (void *cls)
                                        plugin , &mdh_access_cb, plugin,
                                        MHD_OPTION_SOCK_ADDR, tmp,
                                        MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 32,
-                                       MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 6,
+                                       //MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 6,
                                        MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) timeout,
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
                                        MHD_OPTION_NOTIFY_COMPLETED, &mhd_termination_cb, NULL,
@@ -2390,7 +2391,7 @@ libgnunet_plugin_transport_http_init (void *cls)
                                        plugin , &mdh_access_cb, plugin,
                                        MHD_OPTION_SOCK_ADDR, (struct sockaddr_in *)plugin->bind4_address,
                                        MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 32,
-                                       MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 6,
+                                       //MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 6,
                                        MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) timeout,
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
                                        MHD_OPTION_NOTIFY_COMPLETED, &mhd_termination_cb, NULL,
