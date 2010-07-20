@@ -118,7 +118,10 @@ check_PROGRAMS = \
  test_dht_multipeer \
  test_dhtlog
 
-TESTS = test_dht_api $(check_SCRIPTS)
+TESTS = test_dht_api $(check_SCRIPTS) \
+ test_dhtlog \
+ test_dht_twopeer \
+ test_dht_twopeer_put_get
 
 test_dht_api_SOURCES = \
  test_dht_api.c

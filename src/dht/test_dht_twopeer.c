@@ -154,7 +154,7 @@ void get_result_iterator (void *cls,
   struct PeerGetContext *get_context = cls;
   if (0 != memcmp(&get_context->peer->hashPubKey, key, sizeof (GNUNET_HashCode)))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Key returned is not the same key as was searched for!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Key returned is not the same key as was searched for!\n");
     GNUNET_SCHEDULER_cancel(sched, die_task);
     GNUNET_SCHEDULER_add_now(sched, &end_badly, "key mismatch in get response!\n");
     return;
@@ -182,7 +182,7 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   struct PeerGetContext *get_context = cls;
 
-  get_context->get_handle = GNUNET_DHT_get_start(get_context->dht_handle, GNUNET_TIME_relative_get_forever(), 130, &get_context->peer->hashPubKey, &get_result_iterator, get_context, NULL, NULL);
+  get_context->get_handle = GNUNET_DHT_get_start(get_context->dht_handle, GNUNET_TIME_relative_get_forever(), 0, &get_context->peer->hashPubKey, &get_result_iterator, get_context, NULL, NULL);
 }
 
 

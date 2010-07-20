@@ -1377,6 +1377,7 @@ handle_dht_find_peer (void *cls,
                       struct DHT_MessageContext *message_context)
 {
   struct GNUNET_MessageHeader *find_peer_result;
+  struct DHT_MessageContext *new_msg_ctx;
   size_t hello_size;
   size_t tsize;
 
@@ -1414,12 +1415,13 @@ handle_dht_find_peer (void *cls,
                 "`%s': Sending hello size %d to client.\n",
                 "DHT", hello_size);
 #endif
-  if (message_context->bloom != NULL)
-    GNUNET_CONTAINER_bloomfilter_clear(message_context->bloom);
 
-  message_context->hop_count = 0;
-  message_context->peer = &my_identity;
-  route_result_message(cls, find_peer_result, message_context);
+  new_msg_ctx = GNUNET_malloc(sizeof(struct DHT_MessageContext));
+  memcpy(new_msg_ctx, message_context, sizeof(struct DHT_MessageContext));
+  new_msg_ctx->peer = &my_identity;
+  new_msg_ctx->bloom = GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
+  new_msg_ctx->hop_count = 0;
+  route_result_message(cls, find_peer_result, new_msg_ctx);
   //send_reply_to_client(message_context->client, find_peer_result, message_context->unique_id);
   GNUNET_free(find_peer_result);
 }
@@ -2397,7 +2399,8 @@ void handle_core_connect (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s:%s Receives core connect message for peer %s distance %d!\n", my_short_id, "dht", GNUNET_i2s(peer), distance);
 #endif
-
+  if (datacache != NULL)
+    GNUNET_DATACACHE_put(datacache, &peer->hashPubKey, sizeof(struct GNUNET_PeerIdentity), (const char *)peer, 0, GNUNET_TIME_absolute_get_forever());
   ret = try_add_peer(peer,
                      find_current_bucket(&peer->hashPubKey),
                      latency,
