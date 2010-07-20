@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2010 Christian Grothoff (and other contributing authors)
+     (C) 2010 Philipp Tölke
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -21,7 +21,7 @@
 /**
  * @file vpn/gnunet-daemon-vpn.c
  * @brief 
- * @author Christian Grothoff
+ * @author Philipp Tölke
  */
 #include "platform.h"
 #include "gnunet_getopt_lib.h"
