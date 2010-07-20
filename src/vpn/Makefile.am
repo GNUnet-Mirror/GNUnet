@@ -25,7 +25,7 @@ bin_PROGRAMS = \
 gnunet_vpn_helper_SOURCES = \
  gnunet-vpn-helper.c \
  gnunet-vpn-helper-p.h \
- tun.h tun.c
+ gnunet-vpn-tun.h gnunet-vpn-tun.c
 
 # debug.c  debug.h \
 # packet.h packet.c \

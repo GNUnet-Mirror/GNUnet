@@ -41,7 +41,7 @@
 #include <unistd.h>
 
 #include "gnunet-vpn-helper-p.h"
-#include "tun.h"
+#include "gnunet-vpn-tun.h"
 
 #ifndef _LINUX_IN6_H
 // This is in linux/include/net/ipv6.h.
