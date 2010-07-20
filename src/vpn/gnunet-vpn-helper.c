@@ -122,7 +122,7 @@ int main(int argc, char** argv) {
 
 	// TODO: get this out of argv
 	char address[] = "1234::1";
-	unsigned long prefix_len = 8;
+	unsigned long prefix_len = 16;
 
 	set_address(dev, address, prefix_len);
 
@@ -167,7 +167,6 @@ outer:
 					wri=0;
 					goto outer;
 				}
-				r = 0;
 				while (r < ntohl(pkt->hdr.size)) {
 					int t = read(0, buf + r, ntohl(pkt->hdr.size) - r);
 					if (r < 0) {
