@@ -55,6 +55,32 @@ static void cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx
 	}
 }
 
+static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx);
+
+static void start_helper_and_schedule(struct vpn_cls* mycls) {
+	mycls->helper_in = GNUNET_DISK_pipe(1);
+	mycls->helper_out = GNUNET_DISK_pipe(1);
+
+	mycls->helper_pid = GNUNET_OS_start_process(mycls->helper_in, mycls->helper_out, "gnunet-vpn-helper", "gnunet-vpn-helper", NULL);
+
+	mycls->fh_from_helper = GNUNET_DISK_pipe_handle (mycls->helper_out, GNUNET_DISK_PIPE_END_READ);
+	
+	GNUNET_SCHEDULER_add_read_file (mycls->sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls->fh_from_helper, &helper_read, mycls);
+}
+
+
+static void restart_helper(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
+	struct vpn_cls* mycls = (struct vpn_cls*) cls;
+
+	// Kill the helper
+	PLIBC_KILL(mycls->helper_pid, SIGTERM);
+	GNUNET_OS_process_wait(mycls->helper_pid);
+
+	// Restart the helper
+	start_helper_and_schedule(mycls);
+
+}
+
 static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
 	struct vpn_cls* mycls = (struct vpn_cls*) cls;
 	struct suid_packet_header hdr = { .size = 0 };
@@ -135,14 +161,7 @@ run (void *cls,
 
 	GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);
 
-	mycls->helper_in = GNUNET_DISK_pipe(1);
-	mycls->helper_out = GNUNET_DISK_pipe(1);
-
-	mycls->helper_pid = GNUNET_OS_start_process(mycls->helper_in, mycls->helper_out, "gnunet-vpn-helper", "gnunet-vpn-helper", NULL);
-
-	mycls->fh_from_helper = GNUNET_DISK_pipe_handle (mycls->helper_out, GNUNET_DISK_PIPE_END_READ);
-	
-	GNUNET_SCHEDULER_add_read_file (sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls->fh_from_helper, &helper_read, mycls);
+	start_helper_and_schedule(mycls);
 }
 
 
