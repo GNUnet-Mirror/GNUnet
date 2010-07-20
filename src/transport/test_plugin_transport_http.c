@@ -45,7 +45,7 @@
 #include <arpa/inet.h>
 
 #define VERBOSE GNUNET_YES
-#define DEBUG GNUNET_NO
+#define DEBUG GNUNET_YES
 #define DEBUG_CURL GNUNET_NO
 #define HTTP_BUFFER_SIZE 2048
 
@@ -1087,6 +1087,7 @@ static void run_connection_tests( int phase , void * cls)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Disconnect from peer: `%s'\n", GNUNET_i2s(&my_identity));
     api->disconnect(api->cls, &my_identity);
 
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Phase 3: sending messages\n"));
     /* send a multiple GNUNET_messages at a time*/
     size = 2 * sizeof(struct GNUNET_MessageHeader);
     msg = GNUNET_malloc( 2* size);

@@ -1442,8 +1442,6 @@ static void curl_perform (void *cls,
       handles_last_run = running;
     }
   while (mret == CURLM_CALL_MULTI_PERFORM);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Rescheduling with %u curl handles active\n",running);
   curl_schedule(plugin);
 }
 
