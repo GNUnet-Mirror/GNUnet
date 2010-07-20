@@ -10,6 +10,8 @@
 
 #include <string.h>
 
+#include <signal.h>
+
 #include <stdio.h>
 #include <unistd.h>
 
@@ -26,6 +28,14 @@ struct in6_ifreq {
 };
 
 #endif
+
+int running = 1;
+
+void term(int sig) {
+	fprintf(stderr, "Got SIGTERM...\n");
+	if (sig == SIGTERM)
+		running = 0;
+}
 
 static void set_address(char* dev, char* address, unsigned long prefix_len) { /* {{{ */
 	int fd = socket(AF_INET6, SOCK_DGRAM, 0);
@@ -87,10 +97,11 @@ static int copy (int in, int out) {
 	return 0;
 }
 
-
 int main(int argc, char** argv) {
 	char dev[IFNAMSIZ];
 	memset(dev, 0, IFNAMSIZ);
+
+	signal(SIGTERM, &term);
 
 	int fd_tun = init_tun(dev);
 	fprintf(stderr, "Initialized the interface %s as %d.\n", dev, fd_tun);
@@ -111,26 +122,42 @@ int main(int argc, char** argv) {
 
 	fd_set fds_w;
 	fd_set fds_r;
-	for(;;) {
+
+	int r = 1;
+	int w = 1;
+	while(r != 0 && w != 0 && running == 1) {
 		FD_ZERO(&fds_w);
 		FD_ZERO(&fds_r);
 
-		FD_SET(0, &fds_r);
-		FD_SET(fd_tun, &fds_r);
+		if (r) {
+			FD_SET(fd_tun, &fds_r);
+			FD_SET(1, &fds_w);
+		}
 
-		FD_SET(1, &fds_w);
-		FD_SET(fd_tun, &fds_w);
+		if (w) {
+			FD_SET(0, &fds_r);
+			FD_SET(fd_tun, &fds_w);
+		}
 
 		int r = select(fd_tun+1, &fds_r, &fds_w, (fd_set*)0, 0);
 
 		if(r > 0) {
 			if (FD_ISSET(0, &fds_r) && FD_ISSET(fd_tun, &fds_w)) {
-				copy(0, fd_tun);
+				if (copy(0, fd_tun) < 0) {
+					fprintf(stderr, "Closing Write\n");
+					shutdown(fd_tun, SHUT_WR);
+					w = 0;
+				}
 			} else if (FD_ISSET(1, &fds_w) && FD_ISSET(fd_tun, &fds_r)) {
-				copy(fd_tun, 1);
+				if (copy(fd_tun, 1) < 0) {
+					fprintf(stderr, "Closing Read\n");
+					shutdown(fd_tun, SHUT_RD);
+					r = 0;
+				}
 			}
 		}
 	}
+	fprintf(stderr, "Quitting!\n");
 
 	return 0;
 }
