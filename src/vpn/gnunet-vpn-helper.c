@@ -48,6 +48,8 @@
 #ifndef _LINUX_IN6_H
 // This is in linux/include/net/ipv6.h.
 
+#define MAX_SIZE (65535 - sizeof(struct GNUNET_MessageHeader))
+
 struct in6_ifreq {
     struct in6_addr ifr6_addr;
     __u32 ifr6_prefixlen;
@@ -112,7 +114,7 @@ void setnonblocking(int fd) {/*{{{*/
 }/*}}}*/
 
 int main(int argc, char** argv) {
-	unsigned char buf[65600]; // 64k + 64;
+	unsigned char buf[MAX_SIZE];
 
 	char dev[IFNAMSIZ];
 	memset(dev, 0, IFNAMSIZ);
@@ -203,7 +205,7 @@ outer:
 				}
 			} else if (write_stdout_possible && FD_ISSET(fd_tun, &fds_r)) {
 				write_stdout_possible = 0;
-				r = read(fd_tun, buf, 65600);
+				r = read(fd_tun, buf, MAX_SIZE);
 				if (r <= 0) {
 					fprintf(stderr, "read-error: %m\n");
 					shutdown(fd_tun, SHUT_RD);
