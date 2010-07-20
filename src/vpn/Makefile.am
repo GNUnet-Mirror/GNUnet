@@ -23,12 +23,17 @@ bin_PROGRAMS = \
 
 
 gnunet_vpn_helper_SOURCES = \
- debug.c  debug.h \
- packet.h packet.c \
- pretty-print.c  pretty-print.h \
- tcp.c  tcp.h \
- test.c \
- tun.c  tun.h
+ gnunet-vpn-helper.c \
+ gnunet-vpn-helper-p.h \
+ tun.h tun.c
+
+# debug.c  debug.h \
+# packet.h packet.c \
+# pretty-print.c  pretty-print.h \
+# tcp.c  tcp.h \
+# test.c \
+# tun.c  tun.h \
+# udp.c udp.h
 
 gnunet_daemon_vpn_SOURCES = \
  gnunet-daemon-vpn.c
