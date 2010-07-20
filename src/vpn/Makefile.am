@@ -36,7 +36,7 @@ gnunet_vpn_helper_SOURCES = \
 # udp.c udp.h
 
 gnunet_daemon_vpn_SOURCES = \
- gnunet-daemon-vpn.c
+ gnunet-daemon-vpn.c gnunet-vpn-pretty-print.c
 gnunet_daemon_vpn_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
