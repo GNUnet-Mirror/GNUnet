@@ -27,6 +27,7 @@
 #include "gnunet_getopt_lib.h"
 #include "gnunet_program_lib.h"
 #include "gnunet_os_lib.h"
+#include "gnunet-vpn-helper-p.h"
 /* #include "gnunet_template_service.h" */
 
 /**
@@ -37,6 +38,9 @@ static int ret;
 struct vpn_cls {
 	struct GNUNET_DISK_PipeHandle* helper_in;
 	struct GNUNET_DISK_PipeHandle* helper_out;
+	const struct GNUNET_DISK_FileHandle* fh_from_helper;
+
+	struct GNUNET_SCHEDULER_Handle *sched; // TODO CG: is that right? Do I have to carry it around myself?
 
 	pid_t helper_pid;
 };
@@ -50,6 +54,47 @@ static void cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx
 }
 
 static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
+	struct vpn_cls* mycls = (struct vpn_cls*) cls;
+	struct suid_packet_header hdr = { .size = 0 };
+
+	int r = 0;
+
+	while (r < sizeof(struct suid_packet_header)) {
+		int t = GNUNET_DISK_file_read(mycls->fh_from_helper, &hdr, sizeof(struct suid_packet_header));
+		if (t< 0) {
+			fprintf(stderr, "Read error for header: %m\n");
+			return;
+		}
+		r += t;
+	}
+
+	fprintf(stderr, "Read %d bytes for the header. The 'size' is %x, that is %d\n", r, hdr.size, ntohl(hdr.size));
+
+	struct suid_packet *pkt = (struct suid_packet*) GNUNET_malloc(ntohl(hdr.size));
+
+	if (memcpy(pkt, &hdr, sizeof(struct suid_packet_header)) < 0) {
+		fprintf(stderr, "Memcpy: %m\n");
+		return;
+	}
+
+	while (r < ntohl(pkt->hdr.size)) {
+		int t = GNUNET_DISK_file_read(mycls->fh_from_helper, (unsigned char*)pkt + r, ntohl(pkt->hdr.size) - r);
+		if (t< 0) {
+			fprintf(stderr, "Read error for data: %m\n");
+			return;
+		}
+		r += t;
+	}
+
+	printf("read %d bytes. The first 87 are:\n\t", r);
+
+	for (r = 0; r < 87; r++)
+		printf("%02x ", pkt->data[r]);
+	printf("\n");
+
+	GNUNET_free(pkt);
+
+	GNUNET_SCHEDULER_add_read_file (mycls->sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls->fh_from_helper, &helper_read, mycls);
 }
 
 /**
@@ -63,12 +108,14 @@ static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* ts
  */
 static void
 run (void *cls,
-	 struct GNUNET_SCHEDULER_Handle *sched,
-	 char *const *args,
-	 const char *cfgfile,
-	 const struct GNUNET_CONFIGURATION_Handle *cfg) {
+		struct GNUNET_SCHEDULER_Handle *sched,
+		char *const *args,
+		const char *cfgfile,
+		const struct GNUNET_CONFIGURATION_Handle *cfg) {
 
 	struct vpn_cls* mycls = (struct vpn_cls*) cls;
+
+	mycls->sched = sched;
 
 	GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);
 
@@ -77,9 +124,9 @@ run (void *cls,
 
 	mycls->helper_pid = GNUNET_OS_start_process(mycls->helper_in, mycls->helper_out, "gnunet-vpn-helper", "gnunet-vpn-helper", NULL);
 
-	const struct GNUNET_DISK_FileHandle* fh = GNUNET_DISK_pipe_handle (mycls->helper_out, GNUNET_DISK_PIPE_END_READ);
+	mycls->fh_from_helper = GNUNET_DISK_pipe_handle (mycls->helper_out, GNUNET_DISK_PIPE_END_READ);
 	
-	GNUNET_SCHEDULER_add_read_file (sched, GNUNET_TIME_UNIT_FOREVER_REL, fh, &helper_read, mycls);
+	GNUNET_SCHEDULER_add_read_file (sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls->fh_from_helper, &helper_read, mycls);
 }
 
 
