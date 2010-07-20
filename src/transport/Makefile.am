@@ -134,9 +134,9 @@ check_PROGRAMS = \
  test_transport_api_udp_nat \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
- test_transport_api_reliability_http \
  test_transport_api_reliability_udp \
  test_transport_api_http
+#test_transport_api_reliability_http 
 # TODO: add tests for nat, etc.
 
 TESTS = \
