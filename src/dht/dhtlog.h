@@ -30,7 +30,6 @@
 #define GNUNET_DHTLOG_SERVICE_H
 
 #include "gnunet_util_lib.h"
-#include <mysql/mysql.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -157,6 +156,13 @@ struct GNUNET_DHTLOG_Handle
 
 };
 
+struct GNUNET_DHTLOG_Plugin
+{
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  struct GNUNET_DHTLOG_Handle *dhtlog_api;
+};
+
 /**
  * Connect to mysql server using the DHT log plugin.
  *
@@ -171,18 +177,6 @@ GNUNET_DHTLOG_connect (const struct GNUNET_CONFIGURATION_Handle *c);
 void
 GNUNET_DHTLOG_disconnect (struct GNUNET_DHTLOG_Handle *api);
 
-/**
- * Type of a callback that will be called for each
- * data set returned from MySQL.
- *
- * @param cls user-defined argument
- * @param num_values number of elements in values
- * @param values values returned by MySQL
- * @return GNUNET_OK to continue iterating, GNUNET_SYSERR to abort
- */
-typedef int (*GNUNET_MysqlDataProcessor) (void *cls,
-                                          unsigned int num_values,
-                                          MYSQL_BIND * values);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

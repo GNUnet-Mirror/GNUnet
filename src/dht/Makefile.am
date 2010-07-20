@@ -3,6 +3,12 @@ if MINGW
  WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols -lole32 -lshell32 -liconv -lstdc++ -lcomdlg32 -lgdi32
 endif
 
+plugindir = $(libdir)/gnunet
+
+if HAVE_MYSQL
+ MYSQL_PLUGIN = libgnunet_plugin_dhtlog_mysql.la
+endif
+
 if HAVE_ZLIB
  ZLIB_LNK = -lz
 endif
@@ -12,19 +18,37 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
-lib_LTLIBRARIES = libgnunetdht.la
-#  libgnunetdhtlog.la
+lib_LTLIBRARIES = libgnunetdht.la \
+ libgnunetdhtlog.la
+ 
+plugin_LTLIBRARIES = \
+ libgnunet_plugin_dhtlog_dummy.la $(MYSQL_PLUGIN)
 
-#libgnunetdhtlog_la_SOURCES = \
-#  dhtlog_mysql.c dhtlog.h
-#libgnunetdhtlog_la_LIBADD = \
-#  $(top_builddir)/src/util/libgnunetutil.la \
-#  $(XLIB)
-#libgnunetdhtlog_la_LDFLAGS = \
-#  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
-#  -lmysqlclient $(ZLIB_LNK) \
-#  -version-info 0:0:0
+libgnunet_plugin_dhtlog_dummy_la_SOURCES = \
+  plugin_dhtlog_dummy.c
+libgnunet_plugin_dhtlog_dummy_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(XLIB)
+libgnunet_plugin_dhtlog_dummy_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
 
+if HAVE_MYSQL
+libgnunet_plugin_dhtlog_mysql_la_SOURCES = \
+  plugin_dhtlog_mysql.c
+libgnunet_plugin_dhtlog_mysql_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(XLIB)
+libgnunet_plugin_dhtlog_mysql_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS) -lmysqlclient $(ZLIB_LNK)
+endif 
+ 
+libgnunetdhtlog_la_SOURCES = \
+  dhtlog.c dhtlog.h
+libgnunetdhtlog_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la
+libgnunetdhtlog_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  -version-info 0:0:0
 
 libgnunetdht_la_SOURCES = \
   dht_api.c dht.h
@@ -41,10 +65,8 @@ bin_PROGRAMS = \
  gnunet-dht-get-peer \
  gnunet-dht-put 
 
-if HAVE_MYSQL
 noinst_PROGRAMS = \
  gnunet-dht-driver
-endif
 
 gnunet_service_dht_SOURCES = \
  gnunet-service-dht.c         
@@ -54,18 +76,8 @@ gnunet_service_dht_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/datacache/libgnunetdatacache.la \
-  $(top_builddir)/src/util/libgnunetutil.la 
-
-#gnunet_service_dht_new_SOURCES = \
-# gnunet-service-dht-new.c         
-#gnunet_service_dht_new_LDADD = \
-#  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-#  $(top_builddir)/src/core/libgnunetcore.la \
-#  $(top_builddir)/src/transport/libgnunettransport.la \
-#  $(top_builddir)/src/hello/libgnunethello.la \
-#  $(top_builddir)/src/datacache/libgnunetdatacache.la \
-#  $(top_builddir)/src/util/libgnunetutil.la \
-#  $(top_builddir)/src/dht/libgnunetdhtlog.la
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/dht/libgnunetdhtlog.la
 
 gnunet_dht_get_SOURCES = \
  gnunet-dht-get.c         
