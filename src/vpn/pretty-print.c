@@ -176,3 +176,120 @@ void pkt_printf_ip6udp(struct ip6_udp* pkt) {{{
 	printf("len: %u\n", ntohs(pkt->data.len));
 	printf("crc: 0x%x\n", ntohs(pkt->data.crc));
 }}}
+
+static char* dns_types(unsigned short type) {{{
+	static char* types[] = { /*{{{*/
+		"",
+		"A",              // 1 a host address
+		"NS",             // 2 an authoritative name server
+		"MD",             // 3 a mail destination (Obsolete - use MX)
+		"MF",             // 4 a mail forwarder (Obsolete - use MX)
+		"CNAME",          // 5 the canonical name for an alias
+		"SOA",            // 6 marks the start of a zone of authority
+		"MB",             // 7 a mailbox domain name (EXPERIMENTAL)
+		"MG",             // 8 a mail group member (EXPERIMENTAL)
+		"MR",             // 9 a mail rename domain name (EXPERIMENTAL)
+		"NULL",           // 10 a null RR (EXPERIMENTAL)
+		"WKS",            // 11 a well known service description
+		"PTR",            // 12 a domain name pointer
+		"HINFO",          // 13 host information
+		"MINFO",          // 14 mailbox or mail list information
+		"MX",             // 15 mail exchange
+		"TXT",            // 16 text strings
+		"RP",
+		"AFSDB"
+	}; /*}}}*/
+
+	static char* qtypes[] = { /* + 252! {{{ */
+		"AXFR",           // 252 A request for a transfer of an entire zone
+		"MAILB",          // 253 A request for mailbox-related records (MB, MG or MR)
+		"MAILA",          // 254 A request for mail agent RRs (Obsolete - see MX)
+		"*",              // 255 A request for all records
+	}; /*}}}*/
+
+	if (type <= 18) return types[type];
+	if (type >= 252 && type <= 255) return qtypes[type-252];
+	
+	switch(type) {
+		case 24: return "SIG";
+		case 25: return "KEY";
+		case 28: return "AAAA";
+		case 29: return "LOC";
+		case 33: return "SRV";
+		case 35: return "NAPTR";
+		case 36: return "KX";
+		case 37: return "CERT";
+		case 39: return "DNAME";
+		case 42: return "APL";
+		case 43: return "DS";
+		case 44: return "SSHFP";
+		case 45: return "IPSECKEY";
+		case 46: return "RRSIG";
+		case 47: return "NSEC";
+		case 48: return "DNSKEY";
+		case 49: return "DHCID";
+		case 50: return "NSEC3";
+		case 51: return "NSEC3PARAM";
+		case 55: return "HIP";
+		case 99: return "SPF";
+		case 249: return "TKEY";
+		case 250: return "TSIG";
+		case 32768: return "TA";
+		case 32769: return "DLV";
+	}
+
+	return 0;
+
+}}}
+
+static char* dns_classes(short class) {{{
+	static char* classes[] = { /*{{{*/
+		"",
+		"IN", // 1 the Internet
+		"CS", // 2 the CSNET class (Obsolete - used only for examples in some obsolete RFCs)
+		"CH", // 3 the CHAOS class
+		"HS", // 4 Hesiod [Dyer 87]
+	}; /*}}}*/
+
+	if (class <= 4) return classes[class];
+	return 0;
+}}}
+
+void pkt_printf_ip6dns(struct ip6_udp_dns* pkt) {{{
+	printf("DNS-Packet:\n");
+	printf("\tid: %d\n", ntohs(pkt->data.id));
+	printf("\t%d: %s\n", pkt->data.qr, pkt->data.qr == 0 ? "query" : "response");
+	printf("\top: %s\n", (char*[]){"query", "inverse q.", "status", "inval"}[pkt->data.op]);
+	printf("\trecursion is%s desired\n", pkt->data.rd == 0 ? " not" : "");
+	unsigned short qdcount = ntohs(pkt->data.qdcount);
+	printf("\t#qd: %d\n", qdcount);
+	printf("\t#an: %d\n", ntohs(pkt->data.ancount));
+	printf("\t#ns: %d\n", ntohs(pkt->data.nscount));
+	printf("\t#ar: %d\n", ntohs(pkt->data.arcount));
+	
+	struct dns_query** queries = (struct dns_query**)malloc(qdcount*sizeof(struct dns_query*));
+	unsigned int idx = 0;
+
+	int i;
+	for (i = 0; i < qdcount; i++) {
+		queries[i] = (struct dns_query*)malloc(sizeof(struct dns_query));
+		queries[i]->name = (unsigned char*)malloc(255); // see RFC1035
+		unsigned char* name = queries[i]->name;
+		int len = pkt->data.data[idx++];
+		while (len != 0) {
+			memcpy(name, pkt->data.data+idx, len);
+			idx += len;
+			name += len;
+			*name = '.';
+			name++;
+			len = pkt->data.data[idx++];
+		};
+		printf("%d\n", idx);
+		*name = 0;
+		queries[i]->qtype = *((unsigned short*)(pkt->data.data+idx));
+		idx += 2;
+		queries[i]->qclass = *((unsigned short*)(pkt->data.data+idx));
+		idx += 2;
+		printf("query for %s type=%d (%s) class=%d (%s)\n", queries[i]->name, ntohs(queries[i]->qtype), dns_types(ntohs(queries[i]->qtype)), ntohs(queries[i]->qclass), dns_classes(ntohs(queries[i]->qclass)));
+	}
+}}}

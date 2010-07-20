@@ -10,6 +10,7 @@
 #include "debug.h"
 #include "pretty-print.h"
 #include "tcp.h"
+#include "udp.h"
 #include <arpa/inet.h>
 
 
@@ -40,6 +41,7 @@ int main(int c, char** v) {
 					case 0x11:
 						pkt6_udp = parse_ip6_udp(pkt6);
 						pkt_printf_ip6udp(pkt6_udp);
+						handle_udp(pkt6_udp);
 						break;
 				}
 				break;

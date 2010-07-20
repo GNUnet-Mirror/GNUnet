@@ -6,6 +6,6 @@
  * if *dev == 0, uses the name supplied by the kernel
  * returns the fd to the tun or -1
  */
-extern int init_tun(char *dev);
+int init_tun(char *dev);
 
 #endif
