@@ -2445,7 +2445,8 @@ run (void *cls,
 
   if (coreAPI == NULL)
     return;
-  transport_handle = GNUNET_TRANSPORT_connect(sched, cfg, NULL, NULL, NULL, NULL);
+  transport_handle = GNUNET_TRANSPORT_connect(sched, cfg, 
+					      NULL, NULL, NULL, NULL, NULL);
   if (transport_handle != NULL)
     GNUNET_TRANSPORT_get_hello (transport_handle, &process_hello, NULL);
   else

@@ -22,15 +22,6 @@
 * DHT: [Nate]
   - implement DHT service 
   - implement performance tests
-* FS: [CG]
-  - service:
-    + trust: do not charge when "idle" / load considerations (migration, routing)
-    + artificial delays
-    + active reply route caching design & implementation; gap extension!
-  - non-anonymous FS service (needs DHT)
-    + DHT integration for search
-    + CS-DHT-functions (DHT-put of LOC)
-    + P2P-functions (DHT-get)
 * GNUNET-GTK: [CG]
   - implement publish dialog details:
     + open (import directory structure)
@@ -92,9 +83,18 @@
   - datacache
   - datastore
 * FS: [CG]
-  - reconstruct IBLOCKS from DBLOCKS if possible (during download; see FIXME in fs_download)
-  - add support for pushing "already seen" search results to FS service for bloomfilter (can wait)
-  - use different 'priority' for probe downloads vs. normal downloads
+  - library:
+    + reconstruct IBLOCKS from DBLOCKS if possible (during download; see FIXME in fs_download)
+    + add support for pushing "already seen" search results to FS service for bloomfilter (can wait)
+    + use different 'priority' for probe downloads vs. normal downloads
+  - service:
+    + trust: do not charge when "idle" / load considerations (migration, routing)
+    + artificial delays
+    + active reply route caching design & implementation; gap extension!
+  - non-anonymous FS service (needs DHT)
+    + DHT integration for search
+    + CS-DHT-functions (DHT-put of LOC)
+    + P2P-functions (DHT-get)
   - implement FS performance tests
     + insert
     + download

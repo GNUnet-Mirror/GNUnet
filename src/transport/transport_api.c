@@ -278,7 +278,7 @@ struct GNUNET_TRANSPORT_Handle
   /**
    * Closure for the callbacks.
    */
-  void *cls;
+  void *cls;  
 
   /**
    * Function to call for received data.
@@ -342,6 +342,11 @@ struct GNUNET_TRANSPORT_Handle
   struct NeighbourList *neighbours;
 
   /**
+   * Peer identity as assumed by this process, or all zeros.
+   */
+  struct GNUNET_PeerIdentity self;
+
+  /**
    * ID of the task trying to reconnect to the service.
    */
   GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
@@ -363,6 +368,11 @@ struct GNUNET_TRANSPORT_Handle
    */
   int in_disconnect;
 
+  /**
+   * Should we check that 'self' matches what the service thinks?
+   * (if GNUNET_NO, then 'self' is all zeros!).
+   */
+  int check_self;
 };
 
 
@@ -1038,7 +1048,8 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
 static size_t
 send_start (void *cls, size_t size, void *buf)
 {
-  struct GNUNET_MessageHeader *s = buf;
+  struct GNUNET_TRANSPORT_Handle *h = cls;
+  struct StartMessage s;
 
   if (buf == NULL)
     {
@@ -1054,10 +1065,13 @@ send_start (void *cls, size_t size, void *buf)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transmitting `%s' request.\n", "START");
 #endif
-  GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
-  s->size = htons (sizeof (struct GNUNET_MessageHeader));
-  s->type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_START);
-  return sizeof (struct GNUNET_MessageHeader);
+  GNUNET_assert (size >= sizeof (struct StartMessage));
+  s.header.size = htons (sizeof (struct StartMessage));
+  s.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_START);
+  s.do_check = htonl (h->check_self);
+  s.self = h->self;
+  memcpy (buf, &s, sizeof (struct StartMessage));
+  return sizeof (struct StartMessage);
 }
 
 
@@ -1192,9 +1206,9 @@ reconnect (void *cls,
       pos = pos->next;
     }
   schedule_control_transmit (h,
-                             sizeof (struct GNUNET_MessageHeader),
+                             sizeof (struct StartMessage),
                              GNUNET_YES,
-                             GNUNET_TIME_UNIT_FOREVER_REL, &send_start, NULL);
+                             GNUNET_TIME_UNIT_FOREVER_REL, &send_start, h);
   GNUNET_CLIENT_receive (h->client,
                          &demultiplexer, h, GNUNET_TIME_UNIT_FOREVER_REL);
 }
@@ -1274,6 +1288,8 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
  *
  * @param sched scheduler to use
  * @param cfg configuration to use
+ * @param self our own identity (API should check that it matches
+ *             the identity found by transport), or NULL (no check)
  * @param cls closure for the callbacks
  * @param rec receive function to call
  * @param nc function to call on connect events
@@ -1282,6 +1298,7 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
 struct GNUNET_TRANSPORT_Handle *
 GNUNET_TRANSPORT_connect (struct GNUNET_SCHEDULER_Handle *sched,
                           const struct GNUNET_CONFIGURATION_Handle *cfg,
+			  const struct GNUNET_PeerIdentity *self,
                           void *cls,
                           GNUNET_TRANSPORT_ReceiveCallback rec,
                           GNUNET_TRANSPORT_NotifyConnect nc,
@@ -1290,6 +1307,11 @@ GNUNET_TRANSPORT_connect (struct GNUNET_SCHEDULER_Handle *sched,
   struct GNUNET_TRANSPORT_Handle *ret;
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_Handle));
+  if (self != NULL)
+    {
+      ret->self = *self;
+      ret->check_self = GNUNET_YES;
+    }
   ret->sched = sched;
   ret->cfg = cfg;
   ret->cls = cls;

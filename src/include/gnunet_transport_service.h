@@ -120,6 +120,8 @@ typedef void
  *
  * @param sched scheduler to use
  * @param cfg configuration to use
+ * @param self our own identity (API should check that it matches
+ *             the identity found by transport), or NULL (no check)
  * @param cls closure for the callbacks
  * @param rec receive function to call
  * @param nc function to call on connect events
@@ -131,7 +133,9 @@ struct GNUNET_TRANSPORT_Handle *GNUNET_TRANSPORT_connect (struct
                                                           *sched,
                                                           const struct
                                                           GNUNET_CONFIGURATION_Handle
-                                                          *cfg, void *cls,
+                                                          *cfg, 
+							  const struct GNUNET_PeerIdentity *self,
+							  void *cls,
                                                           GNUNET_TRANSPORT_ReceiveCallback
                                                           rec,
                                                           GNUNET_TRANSPORT_NotifyConnect

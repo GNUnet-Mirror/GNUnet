@@ -161,7 +161,9 @@ testing_init (void *cls,
 
 
   d->th = GNUNET_TRANSPORT_connect (d->sched,
-                                    d->cfg, d, NULL, NULL, NULL);
+                                    d->cfg, 
+				    &d->id,
+				    d, NULL, NULL, NULL);
   if (d->th == NULL)
     {
       if (GNUNET_YES == d->dead)
@@ -1402,7 +1404,9 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 #endif
 
   ctx->d2th = GNUNET_TRANSPORT_connect (d2->sched,
-                                        d2->cfg, d2, NULL, NULL, NULL);
+                                        d2->cfg, 
+					&d2->id,
+					d2, NULL, NULL, NULL);
   if (ctx->d2th == NULL)
     {
       GNUNET_CORE_disconnect(ctx->d1core);
@@ -1455,7 +1459,9 @@ reattempt_daemons_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
     }
 
   ctx->d2th = GNUNET_TRANSPORT_connect (ctx->d2->sched,
-                                        ctx->d2->cfg, ctx->d2, NULL, NULL, NULL);
+                                        ctx->d2->cfg, 
+					&ctx->d2->id,
+					ctx->d2, NULL, NULL, NULL);
   if (ctx->d2th == NULL)
     {
       GNUNET_CORE_disconnect(ctx->d1core);

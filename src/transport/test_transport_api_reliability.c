@@ -366,7 +366,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
                                         "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
-  p->th = GNUNET_TRANSPORT_connect (sched, p->cfg,
+  p->th = GNUNET_TRANSPORT_connect (sched, p->cfg, NULL,
                                     p,
                                     &notify_receive,
                                     &notify_connect, 

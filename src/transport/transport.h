@@ -48,6 +48,33 @@
 
 /**
  * Message from the transport service to the library
+ * asking to check if both processes agree about this
+ * peers identity.
+ */
+struct StartMessage
+{
+
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_START
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Should the 'self' field be checked?
+   */
+  uint32_t do_check;
+
+  /**
+   * Identity we think we have.  If it does not match, the
+   * receiver should print out an error message and disconnect.
+   */
+  struct GNUNET_PeerIdentity self;
+
+};
+
+
+/**
+ * Message from the transport service to the library
  * informing about neighbors.
  */
 struct ConnectInfoMessage

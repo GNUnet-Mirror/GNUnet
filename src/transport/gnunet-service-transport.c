@@ -4673,10 +4673,12 @@ handle_start (void *cls,
               struct GNUNET_SERVER_Client *client,
               const struct GNUNET_MessageHeader *message)
 {
+  const struct StartMessage *start;
   struct TransportClient *c;
   struct ConnectInfoMessage cim;
   struct NeighbourList *n;
 
+  start = (const struct StartMessage*) message;
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' request from client\n", "START");
@@ -4692,6 +4694,17 @@ handle_start (void *cls,
           return;
         }
       c = c->next;
+    }
+  if ( (GNUNET_NO != ntohl (start->do_check)) &&
+       (0 != memcmp (&start->self,
+		     &my_identity,
+		     sizeof (struct GNUNET_PeerIdentity))) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Rejecting control connection from peer `%s', which is not me!\n"),
+		  GNUNET_i2s (&start->self));
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;      
     }
   c = GNUNET_malloc (sizeof (struct TransportClient));
   c->next = clients;
@@ -5239,7 +5252,7 @@ run (void *cls,
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     {&handle_start, NULL,
-     GNUNET_MESSAGE_TYPE_TRANSPORT_START, 0},
+     GNUNET_MESSAGE_TYPE_TRANSPORT_START, sizeof (struct StartMessage)},
     {&handle_hello, NULL,
      GNUNET_MESSAGE_TYPE_HELLO, 0},
     {&handle_send, NULL,

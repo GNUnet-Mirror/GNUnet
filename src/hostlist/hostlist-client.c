@@ -1528,7 +1528,7 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
       GNUNET_break (0);
       return GNUNET_SYSERR;
     }
-  transport = GNUNET_TRANSPORT_connect (s, c, NULL, NULL, NULL, NULL);
+  transport = GNUNET_TRANSPORT_connect (s, c, NULL, NULL, NULL, NULL, NULL);
   if (NULL == transport)
     {
       curl_global_cleanup ();

@@ -1395,6 +1395,7 @@ run (void *cls,
 					NULL,
 					NULL,
 					NULL,
+					NULL,
 					NULL);
   handle = GNUNET_CORE_connect (sched,
 				cfg,

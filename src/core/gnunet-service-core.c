@@ -3878,6 +3878,7 @@ run (void *cls,
   /* setup transport connection */
   transport = GNUNET_TRANSPORT_connect (sched,
                                         cfg,
+					&my_identity,
                                         NULL,
                                         &handle_transport_receive,
                                         &handle_transport_notify_connect,
