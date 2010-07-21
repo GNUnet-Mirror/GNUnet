@@ -547,35 +547,24 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_DHT_GET 148
 
 /**
- * Local DHT Get stop message, from API to service
- * (encapsulated in DHT_ROUTE_STOP message)
- */
-#define GNUNET_MESSAGE_TYPE_DHT_LOCAL_GET_STOP 149
-
-/**
  * Local and P2P DHT Get result message
  */
-#define GNUNET_MESSAGE_TYPE_DHT_GET_RESULT 150
+#define GNUNET_MESSAGE_TYPE_DHT_GET_RESULT 149
 
 /**
  * Local and P2P DHT find peer message
  */
-#define GNUNET_MESSAGE_TYPE_DHT_FIND_PEER 151
-
-/**
- * Local DHT find peer stop message, from API to service
- */
-#define GNUNET_MESSAGE_TYPE_DHT_LOCAL_FIND_PEER_STOP 152
+#define GNUNET_MESSAGE_TYPE_DHT_FIND_PEER 150
 
 /**
  * Local and P2P DHT find peer result message
  */
-#define GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_RESULT 153
+#define GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_RESULT 151
 
 /**
  * Hostlist advertisement message
  */
-#define GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT 170
+#define GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT 160
 
 
 /**
