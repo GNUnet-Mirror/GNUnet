@@ -39,7 +39,7 @@ libgnunetdhtlog_la_LIBADD = \
 libgnunetdhtlog_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:0:0
-  
+
 if HAVE_MYSQL
 libgnunet_plugin_dhtlog_mysql_la_SOURCES = \
   plugin_dhtlog_mysql.c
@@ -47,7 +47,9 @@ libgnunet_plugin_dhtlog_mysql_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(XLIB)
 libgnunet_plugin_dhtlog_mysql_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS) -lmysqlclient $(ZLIB_LNK)
+ $(GN_PLUGIN_LDFLAGS) $(MYSQL_LDFLAGS) -lmysqlclient $(ZLIB_LNK)
+libgnunet_plugin_dhtlog_mysql_la_CPPFLAGS = \
+ $(MYSQL_CPPFLAGS) 
 endif 
 
 libgnunetdht_la_SOURCES = \
