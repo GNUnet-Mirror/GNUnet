@@ -626,6 +626,37 @@ extern "C"
 */
 
 
+
+
+/* BELOW: experimental student-DHT protocol codes */
+
+/**
+ * Request to join a CAN DHT
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_CAN_JOIN_REQUEST 1174
+
+/**
+ * Response to join request of a CAN DHT
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_CAN_JOIN_REPLY 1175
+
+/**
+ * Messages for swapping locations
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_GET_NEIGHBOURLIST_REQUEST 1180
+
+#define GNUNET_MESSAGE_TYPE_DHT_GET_NEIGHBOURLIST_RESULT 1181
+
+#define GNUNET_MESSAGE_TYPE_DHT_SWAP_LOCATION_REQUEST 1182
+
+#define GNUNET_MESSAGE_TYPE_DHT_SWAP_LOCATION_ACK 1183
+
+/**
+ * Freenet hello message
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_FREENET_HELLO 1184
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
