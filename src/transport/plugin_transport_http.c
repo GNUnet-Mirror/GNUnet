@@ -1307,6 +1307,7 @@ static void curl_perform (void *cls,
   struct HTTP_PeerContext *pc = NULL;
   struct HTTP_Message * cur_msg = NULL;
   long http_result;
+  char * tmp;
 
   GNUNET_assert(cls !=NULL);
 
@@ -1328,7 +1329,8 @@ static void curl_perform (void *cls,
             	  break;
               /* get session for affected curl handle */
               GNUNET_assert ( msg->easy_handle != NULL );
-              curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, (char *) &ps);
+              curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &tmp);
+              ps = (struct Session *) tmp;
               GNUNET_assert ( ps != NULL );
               pc = ps->peercontext;
               GNUNET_assert ( pc != NULL );
