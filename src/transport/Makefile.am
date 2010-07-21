@@ -147,8 +147,8 @@ TESTS = \
  test_plugin_transport_http \
  test_transport_api_http \
  test_transport_api_reliability_tcp \
- test_transport_api_reliability_tcp_nat 
-# test_transport_api_reliability_http
+ test_transport_api_reliability_tcp_nat \ 
+ test_transport_api_reliability_http
 
 test_transport_api_tcp_SOURCES = \
  test_transport_api.c
