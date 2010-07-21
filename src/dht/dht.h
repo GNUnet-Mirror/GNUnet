@@ -82,7 +82,7 @@ struct GNUNET_DHT_StopMessage
 struct GNUNET_DHT_RouteMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_LOCAL_DHT_ROUTE
+   * Type: GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE
    */
   struct GNUNET_MessageHeader header;
 
@@ -118,7 +118,7 @@ struct GNUNET_DHT_RouteMessage
 struct GNUNET_DHT_RouteResultMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_LOCAL_DHT_ROUTE_RESULT
+   * Type: GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE_RESULT
    */
   struct GNUNET_MessageHeader header;
 
@@ -147,7 +147,7 @@ struct GNUNET_DHT_RouteResultMessage
 struct GNUNET_DHT_P2PRouteMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_P2P_DHT_ROUTE
+   * Type: GNUNET_MESSAGE_TYPE_DHT_P2P_ROUTE
    */
   struct GNUNET_MessageHeader header;
 
@@ -219,7 +219,7 @@ struct GNUNET_DHT_P2PRouteMessage
 struct GNUNET_DHT_P2PRouteResultMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_P2P_DHT_ROUTE_RESULT
+   * Type: GNUNET_MESSAGE_TYPE_DHT_P2P_ROUTE_RESULT
    */
   struct GNUNET_MessageHeader header;
 
@@ -267,7 +267,7 @@ struct GNUNET_DHT_P2PRouteResultMessage
 struct GNUNET_DHT_PutMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_PUT / GNUNET_MESSAGE_TYPE_P2P_DHT_PUT
+   * Type: GNUNET_MESSAGE_TYPE_DHT_PUT / GNUNET_MESSAGE_TYPE_DHT_P2P_PUT
    */
   struct GNUNET_MessageHeader header;
 
@@ -298,7 +298,7 @@ struct GNUNET_DHT_PutMessage
 struct GNUNET_DHT_GetMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_GET / GNUNET_MESSAGE_TYPE_P2P_DHT_GET
+   * Type: GNUNET_MESSAGE_TYPE_DHT_GET / GNUNET_MESSAGE_TYPE_DHT_P2P_GET
    */
   struct GNUNET_MessageHeader header;
 

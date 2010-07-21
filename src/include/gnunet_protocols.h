@@ -512,22 +512,22 @@ extern "C"
 /**
  * Local DHT route request type
  */
-#define GNUNET_MESSAGE_TYPE_LOCAL_DHT_ROUTE 142
+#define GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE 142
 
 /**
  * Local generic DHT route result type
  */
-#define GNUNET_MESSAGE_TYPE_LOCAL_DHT_ROUTE_RESULT 143
+#define GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE_RESULT 143
 
 /**
  * P2P DHT route request type
  */
-#define GNUNET_MESSAGE_TYPE_P2P_DHT_ROUTE 144
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_ROUTE 144
 
 /**
  * P2P DHT route result type
  */
-#define GNUNET_MESSAGE_TYPE_P2P_DHT_ROUTE_RESULT 145
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_ROUTE_RESULT 145
 
 /**
  * Local generic DHT message stop type
@@ -550,7 +550,7 @@ extern "C"
  * Local DHT Get stop message, from API to service
  * (encapsulated in DHT_ROUTE_STOP message)
  */
-#define GNUNET_MESSAGE_TYPE_DHT_GET_STOP 149
+#define GNUNET_MESSAGE_TYPE_DHT_LOCAL_GET_STOP 149
 
 /**
  * Local and P2P DHT Get result message
@@ -565,7 +565,7 @@ extern "C"
 /**
  * Local DHT find peer stop message, from API to service
  */
-#define GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_STOP 152
+#define GNUNET_MESSAGE_TYPE_DHT_LOCAL_FIND_PEER_STOP 152
 
 /**
  * Local and P2P DHT find peer result message

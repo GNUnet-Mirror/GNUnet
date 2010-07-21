@@ -585,7 +585,7 @@ service_message_handler (void *cls,
 
   switch (ntohs (msg->type))
     {
-    case GNUNET_MESSAGE_TYPE_LOCAL_DHT_ROUTE_RESULT:
+    case GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE_RESULT:
       {
         dht_msg = (struct GNUNET_DHT_RouteResultMessage *) msg;
         uid = GNUNET_ntohll (dht_msg->unique_id);
@@ -885,7 +885,7 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
   msize = sizeof (struct GNUNET_DHT_RouteMessage) + ntohs (enc->size);
   message = GNUNET_malloc (msize);
   message->header.size = htons (msize);
-  message->header.type = htons (GNUNET_MESSAGE_TYPE_LOCAL_DHT_ROUTE);
+  message->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE);
   memcpy (&message->key, key, sizeof (GNUNET_HashCode));
   message->options = htonl (options);
   message->desired_replication_level = htonl (options);

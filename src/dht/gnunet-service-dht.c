@@ -565,7 +565,7 @@ static void forward_result_message (void *cls,
   pending->timeout = GNUNET_TIME_relative_get_forever();
   result_message = (struct GNUNET_DHT_P2PRouteResultMessage *)pending->msg;
   result_message->header.size = htons(msize);
-  result_message->header.type = htons(GNUNET_MESSAGE_TYPE_P2P_DHT_ROUTE_RESULT);
+  result_message->header.type = htons(GNUNET_MESSAGE_TYPE_DHT_P2P_ROUTE_RESULT);
   result_message->options = htonl(msg_ctx->msg_options);
   result_message->hop_count = htonl(msg_ctx->hop_count + 1);
   GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_bloomfilter_get_raw_data(msg_ctx->bloom, result_message->bloomfilter, DHT_BLOOM_SIZE));
@@ -1096,7 +1096,7 @@ send_reply_to_client (struct ClientList *client,
   pending_message = GNUNET_malloc (sizeof (struct PendingMessage) + tsize);
   pending_message->msg = (struct GNUNET_MessageHeader *)&pending_message[1];
   reply = (struct GNUNET_DHT_RouteResultMessage *)&pending_message[1];
-  reply->header.type = htons (GNUNET_MESSAGE_TYPE_LOCAL_DHT_ROUTE_RESULT);
+  reply->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE_RESULT);
   reply->header.size = htons (tsize);
   reply->unique_id = GNUNET_htonll (uid);
   memcpy (&reply[1], message, msize);
@@ -1795,7 +1795,7 @@ static void forward_message (void *cls,
   pending->timeout = GNUNET_TIME_relative_get_forever();
   route_message = (struct GNUNET_DHT_P2PRouteMessage *)pending->msg;
   route_message->header.size = htons(msize);
-  route_message->header.type = htons(GNUNET_MESSAGE_TYPE_P2P_DHT_ROUTE);
+  route_message->header.type = htons(GNUNET_MESSAGE_TYPE_DHT_P2P_ROUTE);
   route_message->options = htonl(msg_ctx->msg_options);
   route_message->hop_count = htonl(msg_ctx->hop_count + 1);
   route_message->network_size = htonl(msg_ctx->network_size);
@@ -2368,15 +2368,15 @@ core_init (void *cls,
 
 
 static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
-  {&handle_dht_local_route_request, NULL, GNUNET_MESSAGE_TYPE_LOCAL_DHT_ROUTE, 0},
+  {&handle_dht_local_route_request, NULL, GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE, 0},
   {&handle_dht_local_route_stop, NULL, GNUNET_MESSAGE_TYPE_DHT_ROUTE_STOP, 0},
   {NULL, NULL, 0, 0}
 };
 
 
 static struct GNUNET_CORE_MessageHandler core_handlers[] = {
-  {&handle_dht_p2p_route_request, GNUNET_MESSAGE_TYPE_P2P_DHT_ROUTE, 0},
-  {&handle_dht_p2p_route_result, GNUNET_MESSAGE_TYPE_P2P_DHT_ROUTE_RESULT, 0},
+  {&handle_dht_p2p_route_request, GNUNET_MESSAGE_TYPE_DHT_P2P_ROUTE, 0},
+  {&handle_dht_p2p_route_result, GNUNET_MESSAGE_TYPE_DHT_P2P_ROUTE_RESULT, 0},
   {NULL, 0, 0}
 };
 
