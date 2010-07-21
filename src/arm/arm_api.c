@@ -434,10 +434,10 @@ arm_service_report (void *cls,
       GNUNET_free (lopostfix);
       return;
     }
-  if ((GNUNET_YES == GNUNET_CONFIGURATION_have_value (cfg,
+  if ((GNUNET_YES == GNUNET_CONFIGURATION_have_value (pos->h->cfg,
                                                       "TESTING",
                                                       "WEAKRANDOM")) &&
-      (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (cfg,
+      (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (pos->h->cfg,
                                                            "TESTING",
                                                            "WEAKRANDOM")))
     {
