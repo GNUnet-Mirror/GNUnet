@@ -434,16 +434,38 @@ arm_service_report (void *cls,
       GNUNET_free (lopostfix);
       return;
     }
-  pid = do_start_process (NULL,
-			  loprefix,
-			  binary,
-			  "-c", config,
+  if ((GNUNET_YES == GNUNET_CONFIGURATION_have_value (cfg,
+                                                      "TESTING",
+                                                      "WEAKRANDOM")) &&
+      (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                                           "TESTING",
+                                                           "WEAKRANDOM")))
+    {
+      /* we're clearly running a test, don't daemonize */
+      pid = do_start_process (NULL,
+			      loprefix,
+			      binary,
+			      "-c", config,
 #if DEBUG_ARM
-			  "-L", "DEBUG",
+			      "-L", "DEBUG",
 #endif
-			  "-d",
-			  lopostfix,
-			  NULL);
+			      /* no daemonization! */
+			      lopostfix,
+			      NULL);
+    }
+  else
+    {
+      pid = do_start_process (NULL,
+			      loprefix,
+			      binary,
+			      "-c", config,
+#if DEBUG_ARM
+			      "-L", "DEBUG",
+#endif
+			      "-d",
+			      lopostfix,
+			      NULL);
+    }
   GNUNET_free (binary);
   GNUNET_free (config);
   GNUNET_free (loprefix);
