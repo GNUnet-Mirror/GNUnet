@@ -6,9 +6,13 @@ if MINGW
   WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
 endif
 
+if HAVE_MHD
  GN_LIBMHD = -lmicrohttpd
  HTTP_PLUGIN_LA = libgnunet_plugin_transport_http.la
- HTTP_PLUGIN_CHECK = test_plugin_transport_http
+ HTTP_PLUGIN_CHECK = test_plugin_transport_http \
+                     test_transport_api_http \
+                     test_plugin_transport_reliability_http
+endif
 
 if USE_COVERAGE
   AM_CFLAGS = --coverage -O0
@@ -134,9 +138,7 @@ check_PROGRAMS = \
  test_transport_api_udp_nat \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
- test_transport_api_reliability_udp \
- test_transport_api_http \
- test_transport_api_reliability_http 
+ test_transport_api_reliability_udp
 # TODO: add tests for nat, etc.
 
 TESTS = \
@@ -144,11 +146,9 @@ TESTS = \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
  test_transport_api_udp_nat \
- test_plugin_transport_http \
- test_transport_api_http \
+ $(HTTP_PLUGIN_CHECK) \
  test_transport_api_reliability_tcp \
- test_transport_api_reliability_tcp_nat \ 
- test_transport_api_reliability_http
+ test_transport_api_reliability_tcp_nat
 
 test_transport_api_tcp_SOURCES = \
  test_transport_api.c
@@ -179,12 +179,6 @@ test_transport_api_reliability_udp_SOURCES = \
 test_transport_api_reliability_udp_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la   
- 
-test_transport_api_reliability_http_SOURCES = \
- test_transport_api_reliability.c
-test_transport_api_reliability_http_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/util/libgnunetutil.la   
 
 test_transport_api_udp_SOURCES = \
  test_transport_api.c
@@ -198,6 +192,7 @@ test_transport_api_udp_nat_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
+if HAVE_MHD
 test_transport_api_http_SOURCES = \
  test_transport_api.c
 test_transport_api_http_LDADD = \
@@ -212,6 +207,12 @@ test_plugin_transport_http_LDADD = \
  @LIBCURL@ \
  $(top_builddir)/src/util/libgnunetutil.la  
 
+test_transport_api_reliability_http_SOURCES = \
+ test_transport_api_reliability.c
+test_transport_api_reliability_http_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la   
+endif
 
 EXTRA_DIST = \
   test_transport_api_data.conf \
