@@ -251,6 +251,12 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
 	  /* can try to do zero-copy and process directly from original buffer */
 	  hdr = (const struct GNUNET_MessageHeader *) buf;
 	  want = ntohs (hdr->size);
+	  if (want < sizeof (struct GNUNET_MessageHeader))
+	    {
+	      GNUNET_break_op (0);
+	      mst->off = 0;
+	      return GNUNET_SYSERR;
+	    }
 	  if (size < want)
 	    break; /* or not, buffer incomplete, so copy to private buffer... */
 	  if (one_shot == GNUNET_SYSERR)
