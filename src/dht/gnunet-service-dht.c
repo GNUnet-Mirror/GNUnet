@@ -2369,7 +2369,7 @@ core_init (void *cls,
 
 static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
   {&handle_dht_local_route_request, NULL, GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE, 0},
-  {&handle_dht_local_route_stop, NULL, GNUNET_MESSAGE_TYPE_DHT_ROUTE_STOP, 0},
+  {&handle_dht_local_route_stop, NULL, GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE_STOP, 0},
   {NULL, NULL, 0, 0}
 };
 

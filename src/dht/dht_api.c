@@ -983,7 +983,7 @@ GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle,
   msize = sizeof (struct GNUNET_DHT_StopMessage);
   message = GNUNET_malloc (msize);
   message->header.size = htons (msize);
-  message->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_ROUTE_STOP);
+  message->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE_STOP);
 #if DEBUG_DHT_API
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "`%s': Remove outstanding request for uid %llu\n", "DHT API",

@@ -532,7 +532,7 @@ extern "C"
 /**
  * Local generic DHT message stop type
  */
-#define GNUNET_MESSAGE_TYPE_DHT_ROUTE_STOP 146
+#define GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE_STOP 146
 
 /**
  * Local and P2P DHT PUT message
