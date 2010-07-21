@@ -210,7 +210,7 @@ libgnunet_plugin_dhtlog_dummy_init (void * cls)
 }
 
 /**
- * Shutdown the module.
+ * Shutdown the plugin.
  */
 void *
 libgnunet_plugin_dhtlog_dummy_done (void * cls)

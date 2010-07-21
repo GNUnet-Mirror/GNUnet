@@ -606,8 +606,26 @@ prepared_statement_run (struct StatementHandle *s,
 /*
  * Inserts the specified trial into the dhttests.trials table
  *
- * FIXME: Update sql tables, then this functions
- *        parameters accordingly.
+ * @param trialuid return the trialuid of the newly inserted trial
+ * @param num_nodes how many nodes are in the trial
+ * @param topology integer representing topology for this trial
+ * @param blacklist_topology integer representing blacklist topology for this trial
+ * @param connect_topology integer representing connect topology for this trial
+ * @param connect_topology_option integer representing connect topology option
+ * @param connect_topology_option_modifier float to modify connect option
+ * @param topology_percentage percentage modifier for certain topologies
+ * @param topology_probability probability modifier for certain topologies
+ * @param puts number of puts to perform
+ * @param gets number of gets to perform
+ * @param concurrent number of concurrent requests
+ * @param settle_time time to wait between creating topology and starting testing
+ * @param num_rounds number of times to repeat the trial
+ * @param malicious_getters number of malicious GET peers in the trial
+ * @param malicious_putters number of malicious PUT peers in the trial
+ * @param malicious_droppers number of malicious DROP peers in the trial
+ * @param message string to put into DB for this trial
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
 add_trial (unsigned long long *trialuid, int num_nodes, int topology,
@@ -728,6 +746,11 @@ get_dhtkey_uid (unsigned long long *dhtkeyuid, const GNUNET_HashCode * key)
 /*
  * Inserts the specified dhtkey into the dhttests.dhtkeys table,
  * stores return value of dhttests.dhtkeys.dhtkeyuid into dhtkeyuid
+ *
+ * @param dhtkeyuid return value
+ * @param dhtkey hashcode of key to insert
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
 add_dhtkey (unsigned long long *dhtkeyuid, const GNUNET_HashCode * dhtkey)
@@ -815,6 +838,11 @@ get_node_uid (unsigned long long *nodeuid, const GNUNET_HashCode * peerHash)
 
 /*
  * Inserts the specified node into the dhttests.nodes table
+ *
+ * @param nodeuid the inserted node uid
+ * @param node the node to insert
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
 add_node (unsigned long long *nodeuid, struct GNUNET_PeerIdentity * node)
@@ -855,6 +883,13 @@ add_node (unsigned long long *nodeuid, struct GNUNET_PeerIdentity * node)
 
 /*
  * Update dhttests.trials table with current server time as end time
+ *
+ * @param trialuid trial to update
+ * @param totalMessagesDropped stats value for messages dropped
+ * @param totalBytesDropped stats value for total bytes dropped
+ * @param unknownPeers stats value for unknown peers
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
  */
 int
 update_trials (unsigned long long trialuid,
@@ -899,6 +934,11 @@ update_trials (unsigned long long trialuid,
 
 /*
  * Update dhttests.trials table with total connections information
+ *
+ * @param trialuid the trialuid to update
+ * @param totalConnections the number of connections
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
  */
 int
 add_connections (unsigned long long trialuid, unsigned int totalConnections)
@@ -933,6 +973,16 @@ add_connections (unsigned long long trialuid, unsigned int totalConnections)
 
 /*
  * Inserts the specified query into the dhttests.queries table
+ *
+ * @param sqlqueruid inserted query uid
+ * @param queryid dht query id
+ * @param type type of the query
+ * @param hops number of hops query traveled
+ * @param succeeded whether or not query was successful
+ * @param node the node the query hit
+ * @param key the key of the query
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
  */
 int
 add_query (unsigned long long *sqlqueryuid, unsigned long long queryid,
@@ -1004,6 +1054,18 @@ add_query (unsigned long long *sqlqueryuid, unsigned long long queryid,
 
 /*
  * Inserts the specified route information into the dhttests.routes table
+ *
+ * @param sqlqueruid inserted query uid
+ * @param queryid dht query id
+ * @param type type of the query
+ * @param hops number of hops query traveled
+ * @param succeeded whether or not query was successful
+ * @param node the node the query hit
+ * @param key the key of the query
+ * @param from_node the node that sent the message to node
+ * @param to_node next node to forward message to
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
  */
 int
 add_route (unsigned long long *sqlqueryuid, unsigned long long queryid,
@@ -1159,7 +1221,7 @@ libgnunet_plugin_dhtlog_mysql_init (void * cls)
 }
 
 /**
- * Shutdown the module.
+ * Shutdown the plugin.
  */
 void *
 libgnunet_plugin_dhtlog_mysql_done (void * cls)
