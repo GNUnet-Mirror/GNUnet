@@ -155,6 +155,17 @@ static struct GNUNET_SERVER_NotificationContext *nc;
 static uint32_t uidgen;
 
 
+static void
+inject_message (void *cls,
+		void *client,
+		const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_SERVER_Handle *server = cls;
+
+  GNUNET_break (GNUNET_OK == GNUNET_SERVER_inject (server, NULL, msg));
+}
+
+
 /**
  * Load persistent values from disk.  Disk format is
  * exactly the same format that we also use for
@@ -170,8 +181,7 @@ load (struct GNUNET_SERVER_Handle *server)
   struct GNUNET_DISK_MapHandle *mh;
   struct stat sb;
   char *buf;
-  size_t off;
-  const struct GNUNET_MessageHeader *msg;
+  struct GNUNET_SERVER_MessageStreamTokenizer *mst;
 
   fn = GNUNET_DISK_get_home_filename (cfg,
                                       "statistics", "statistics.data", NULL);
@@ -200,18 +210,16 @@ load (struct GNUNET_SERVER_Handle *server)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Loading %llu bytes of statistics from `%s'\n"),
               (unsigned long long) sb.st_size, fn);
-  off = 0;
-  while (off + sizeof (struct GNUNET_MessageHeader) < sb.st_size)
-    {
-      msg = (const struct GNUNET_MessageHeader *) &buf[off];
-      if ((ntohs (msg->size) + off > sb.st_size) ||
-          (GNUNET_OK != GNUNET_SERVER_inject (server, NULL, msg)))
-        {
-          GNUNET_break (0);
-          break;
-        }
-      off += ntohs (msg->size);
-    }
+  mst = GNUNET_SERVER_mst_create (&inject_message,
+				  server);
+  GNUNET_break (GNUNET_OK ==
+		GNUNET_SERVER_mst_receive (mst,
+					   NULL,
+					   buf,
+					   sb.st_size,
+					   GNUNET_YES,
+					   GNUNET_NO));
+  GNUNET_SERVER_mst_destroy (mst);
   GNUNET_break (GNUNET_OK == GNUNET_DISK_file_unmap (mh));
   GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fh));
   GNUNET_free (fn);
@@ -564,6 +572,7 @@ handle_watch (void *cls,
   struct StatsEntry *pos;
   struct ClientEntry *ce;
   struct WatchEntry *we;
+  size_t slen;
 
   ce = make_client_entry (client);
   msize = ntohs (message->size);
@@ -604,10 +613,10 @@ handle_watch (void *cls,
       pos->msg->header.size = htons (sizeof (struct GNUNET_STATISTICS_SetMessage) + 
 				     size);
       pos->msg->header.type = htons (GNUNET_MESSAGE_TYPE_STATISTICS_SET);
-      memcpy (pos->msg, message, ntohs (message->size));
       pos->service = (const char *) &pos->msg[1];
-      memcpy (&pos->msg[1], service, strlen (service)+1);
-      pos->name = &pos->service[strlen (pos->service) + 1];
+      slen = strlen (service) + 1;
+      memcpy ((void*) pos->service, service, slen);
+      pos->name = &pos->service[slen];
       memcpy ((void*) pos->name, name, strlen (name)+1);
       start = pos;
     }
