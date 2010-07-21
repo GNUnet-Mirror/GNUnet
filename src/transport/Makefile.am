@@ -11,7 +11,7 @@ if HAVE_MHD
  HTTP_PLUGIN_LA = libgnunet_plugin_transport_http.la
  HTTP_PLUGIN_CHECK = test_plugin_transport_http \
                      test_transport_api_http \
-                     test_plugin_transport_reliability_http
+                     test_transport_api_reliability_http
 endif
 
 if USE_COVERAGE
