@@ -44,7 +44,7 @@
  * 'MAX_PENDING' in 'gnunet-service-transport.c', otherwise
  * messages may be dropped even for a reliable transport.
  */
-#define TOTAL_MSGS (600 * 200)
+#define TOTAL_MSGS (600 * 10)
 
 /**
  * How long until we give up on transmitting the message?
