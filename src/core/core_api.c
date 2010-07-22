@@ -317,8 +317,10 @@ request_start (void *cls, size_t size, void *buf)
   struct GNUNET_CORE_TransmitHandle *th;
   size_t ret;
 
-  h->cth = NULL;
+  h->cth = NULL;  
   th = h->pending_head;
+  if (th == NULL)
+    return 0;
   if (buf == NULL)
     {
       timeout_request (th, NULL);
@@ -811,6 +813,7 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
     GNUNET_SCHEDULER_cancel (handle->sched, handle->reconnect_task);
   if (handle->client_notifications != NULL)
     GNUNET_CLIENT_disconnect (handle->client_notifications, GNUNET_NO);
+  GNUNET_break (handle->pending_head == NULL);
   GNUNET_free_non_null (handle->solicit_buffer);
   GNUNET_free (handle);
 }
