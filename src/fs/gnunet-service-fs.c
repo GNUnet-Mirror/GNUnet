@@ -924,6 +924,8 @@ consider_migration_gathering ()
 {
   struct GNUNET_TIME_Relative delay;
 
+  if (dsh == NULL)
+    return;
   if (mig_qe != NULL)
     return;
   if (mig_task != GNUNET_SCHEDULER_NO_TASK)
@@ -1022,10 +1024,13 @@ gather_migration_blocks (void *cls,
 			 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   mig_task = GNUNET_SCHEDULER_NO_TASK;
-  mig_qe = GNUNET_DATASTORE_get_random (dsh, 0, -1,
-					GNUNET_TIME_UNIT_FOREVER_REL,
-					&process_migration_content, NULL);
-  GNUNET_assert (mig_qe != NULL);
+  if (dsh != NULL)
+    {
+      mig_qe = GNUNET_DATASTORE_get_random (dsh, 0, -1,
+					    GNUNET_TIME_UNIT_FOREVER_REL,
+					    &process_migration_content, NULL);
+      GNUNET_assert (mig_qe != NULL);
+    }
 }
 
 
