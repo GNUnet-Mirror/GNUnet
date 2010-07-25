@@ -16,7 +16,7 @@ if HAVE_MHD
  HTTPS_PLUGIN_LA = libgnunet_plugin_transport_https.la
  HTTPS_PLUGIN_CHECK = test_plugin_transport_https \
                       test_transport_api_https \
-                     test_transport_api_reliability_https                     
+                      test_transport_api_reliability_https                     
 endif
 
 if USE_COVERAGE
@@ -267,6 +267,8 @@ EXTRA_DIST = \
   test_plugin_transport_data.conf \
   test_transport_api_http_peer1.conf \
   test_transport_api_http_peer2.conf \
+  test_transport_api_https_peer1.conf \
+  test_transport_api_https_peer2.conf \  
   test_transport_api_rel_http_peer1.conf \
   test_transport_api_rel_http_peer2.conf \
   test_plugin_transport_data_http.conf
