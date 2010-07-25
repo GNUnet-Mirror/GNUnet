@@ -19,8 +19,8 @@
 */
 
 /**
- * @file transport/plugin_transport_http.c
- * @brief http transport service plugin
+ * @file transport/plugin_transport_https.c
+ * @brief https transport service plugin
  * @author Matthias Wachs
  */
 
@@ -40,9 +40,9 @@
 #include "microhttpd.h"
 #include <curl/curl.h>
 
-#define DEBUG_HTTP GNUNET_YES
+#define DEBUG_HTTPS GNUNET_YES
 #define DEBUG_CURL GNUNET_YES
-#define DEBUG_CONNECTIONS GNUNET_NO
+#define DEBUG_CONNECTIONS GNUNET_YES
 #define DEBUG_SESSION_SELECTION GNUNET_NO
 
 #define INBOUND GNUNET_NO
@@ -72,6 +72,53 @@
  */
 #define HTTP_CONNECT_TIMEOUT 30
 
+/* Test Certificate */
+const char cert_pem[] =
+  "-----BEGIN CERTIFICATE-----\n"
+  "MIICpjCCAZCgAwIBAgIESEPtjjALBgkqhkiG9w0BAQUwADAeFw0wODA2MDIxMjU0\n"
+  "MzhaFw0wOTA2MDIxMjU0NDZaMAAwggEfMAsGCSqGSIb3DQEBAQOCAQ4AMIIBCQKC\n"
+  "AQC03TyUvK5HmUAirRp067taIEO4bibh5nqolUoUdo/LeblMQV+qnrv/RNAMTx5X\n"
+  "fNLZ45/kbM9geF8qY0vsPyQvP4jumzK0LOJYuIwmHaUm9vbXnYieILiwCuTgjaud\n"
+  "3VkZDoQ9fteIo+6we9UTpVqZpxpbLulBMh/VsvX0cPJ1VFC7rT59o9hAUlFf9jX/\n"
+  "GmKdYI79MtgVx0OPBjmmSD6kicBBfmfgkO7bIGwlRtsIyMznxbHu6VuoX/eVxrTv\n"
+  "rmCwgEXLWRZ6ru8MQl5YfqeGXXRVwMeXU961KefbuvmEPccgCxm8FZ1C1cnDHFXh\n"
+  "siSgAzMBjC/b6KVhNQ4KnUdZAgMBAAGjLzAtMAwGA1UdEwEB/wQCMAAwHQYDVR0O\n"
+  "BBYEFJcUvpjvE5fF/yzUshkWDpdYiQh/MAsGCSqGSIb3DQEBBQOCAQEARP7eKSB2\n"
+  "RNd6XjEjK0SrxtoTnxS3nw9sfcS7/qD1+XHdObtDFqGNSjGYFB3Gpx8fpQhCXdoN\n"
+  "8QUs3/5ZVa5yjZMQewWBgz8kNbnbH40F2y81MHITxxCe1Y+qqHWwVaYLsiOTqj2/\n"
+  "0S3QjEJ9tvklmg7JX09HC4m5QRYfWBeQLD1u8ZjA1Sf1xJriomFVyRLI2VPO2bNe\n"
+  "JDMXWuP+8kMC7gEvUnJ7A92Y2yrhu3QI3bjPk8uSpHea19Q77tul1UVBJ5g+zpH3\n"
+  "OsF5p0MyaVf09GTzcLds5nE/osTdXGUyHJapWReVmPm3Zn6gqYlnzD99z+DPIgIV\n"
+  "RhZvQx74NQnS6g==\n" "-----END CERTIFICATE-----\n";
+
+const char key_pem[] =
+  "-----BEGIN RSA PRIVATE KEY-----\n"
+  "MIIEowIBAAKCAQEAtN08lLyuR5lAIq0adOu7WiBDuG4m4eZ6qJVKFHaPy3m5TEFf\n"
+  "qp67/0TQDE8eV3zS2eOf5GzPYHhfKmNL7D8kLz+I7psytCziWLiMJh2lJvb2152I\n"
+  "niC4sArk4I2rnd1ZGQ6EPX7XiKPusHvVE6VamacaWy7pQTIf1bL19HDydVRQu60+\n"
+  "faPYQFJRX/Y1/xpinWCO/TLYFcdDjwY5pkg+pInAQX5n4JDu2yBsJUbbCMjM58Wx\n"
+  "7ulbqF/3lca0765gsIBFy1kWeq7vDEJeWH6nhl10VcDHl1PetSnn27r5hD3HIAsZ\n"
+  "vBWdQtXJwxxV4bIkoAMzAYwv2+ilYTUOCp1HWQIDAQABAoIBAArOQv3R7gmqDspj\n"
+  "lDaTFOz0C4e70QfjGMX0sWnakYnDGn6DU19iv3GnX1S072ejtgc9kcJ4e8VUO79R\n"
+  "EmqpdRR7k8dJr3RTUCyjzf/C+qiCzcmhCFYGN3KRHA6MeEnkvRuBogX4i5EG1k5l\n"
+  "/5t+YBTZBnqXKWlzQLKoUAiMLPg0eRWh+6q7H4N7kdWWBmTpako7TEqpIwuEnPGx\n"
+  "u3EPuTR+LN6lF55WBePbCHccUHUQaXuav18NuDkcJmCiMArK9SKb+h0RqLD6oMI/\n"
+  "dKD6n8cZXeMBkK+C8U/K0sN2hFHACsu30b9XfdnljgP9v+BP8GhnB0nCB6tNBCPo\n"
+  "32srOwECgYEAxWh3iBT4lWqL6bZavVbnhmvtif4nHv2t2/hOs/CAq8iLAw0oWGZc\n"
+  "+JEZTUDMvFRlulr0kcaWra+4fN3OmJnjeuFXZq52lfMgXBIKBmoSaZpIh2aDY1Rd\n"
+  "RbEse7nQl9hTEPmYspiXLGtnAXW7HuWqVfFFP3ya8rUS3t4d07Hig8ECgYEA6ou6\n"
+  "OHiBRTbtDqLIv8NghARc/AqwNWgEc9PelCPe5bdCOLBEyFjqKiT2MttnSSUc2Zob\n"
+  "XhYkHC6zN1Mlq30N0e3Q61YK9LxMdU1vsluXxNq2rfK1Scb1oOlOOtlbV3zA3VRF\n"
+  "hV3t1nOA9tFmUrwZi0CUMWJE/zbPAyhwWotKyZkCgYEAh0kFicPdbABdrCglXVae\n"
+  "SnfSjVwYkVuGd5Ze0WADvjYsVkYBHTvhgRNnRJMg+/vWz3Sf4Ps4rgUbqK8Vc20b\n"
+  "AU5G6H6tlCvPRGm0ZxrwTWDHTcuKRVs+pJE8C/qWoklE/AAhjluWVoGwUMbPGuiH\n"
+  "6Gf1bgHF6oj/Sq7rv/VLZ8ECgYBeq7ml05YyLuJutuwa4yzQ/MXfghzv4aVyb0F3\n"
+  "QCdXR6o2IYgR6jnSewrZKlA9aPqFJrwHNR6sNXlnSmt5Fcf/RWO/qgJQGLUv3+rG\n"
+  "7kuLTNDR05azSdiZc7J89ID3Bkb+z2YkV+6JUiPq/Ei1+nDBEXb/m+/HqALU/nyj\n"
+  "P3gXeQKBgBusb8Rbd+KgxSA0hwY6aoRTPRt8LNvXdsB9vRcKKHUFQvxUWiUSS+L9\n"
+  "/Qu1sJbrUquKOHqksV5wCnWnAKyJNJlhHuBToqQTgKXjuNmVdYSe631saiI7PHyC\n"
+  "eRJ6DxULPxABytJrYCRrNqmXi5TCiqR2mtfalEMOPxz8rUU8dYyx\n"
+  "-----END RSA PRIVATE KEY-----\n";
 
 /**
  * Network format for IPv4 addresses.
@@ -418,7 +465,7 @@ static char * create_url(void * cls, const void * addr, size_t addrlen, size_t i
 
   GNUNET_assert ((addr!=NULL) && (addrlen != 0));
   GNUNET_asprintf(&url,
-                  "http://%s/%s;%u",
+                  "https://%s/%s;%u",
                   http_plugin_address_to_string(NULL, addr, addrlen),
                   (char *) (&plugin->my_ascii_hash_ident),id);
 
@@ -594,12 +641,12 @@ process_interfaces (void *cls,
       {
     	  if (0 == memcmp(&plugin->bind4_address->sin_addr, &bnd_cmp, sizeof (struct in_addr)))
     	  {
-          	  plugin->env->notify_address(plugin->env->cls,"http",t4, sizeof (struct IPv4HttpAddress), GNUNET_TIME_UNIT_FOREVER_REL);
+          	  plugin->env->notify_address(plugin->env->cls,"https",t4, sizeof (struct IPv4HttpAddress), GNUNET_TIME_UNIT_FOREVER_REL);
     	  }
       }
       else
       {
-    	  plugin->env->notify_address(plugin->env->cls,"http",t4, sizeof (struct IPv4HttpAddress), GNUNET_TIME_UNIT_FOREVER_REL);
+    	  plugin->env->notify_address(plugin->env->cls,"https",t4, sizeof (struct IPv4HttpAddress), GNUNET_TIME_UNIT_FOREVER_REL);
       }
       GNUNET_free (t4);
     }
@@ -620,7 +667,7 @@ process_interfaces (void *cls,
     	              &((struct sockaddr_in6 *) addr)->sin6_addr,
     	              sizeof (struct in6_addr));
     	      t6->u6_port = htons (plugin->port_inbound);
-    	      plugin->env->notify_address(plugin->env->cls,"http",t6,sizeof (struct IPv6HttpAddress) , GNUNET_TIME_UNIT_FOREVER_REL);
+    	      plugin->env->notify_address(plugin->env->cls,"https",t6,sizeof (struct IPv6HttpAddress) , GNUNET_TIME_UNIT_FOREVER_REL);
     	  }
       }
       else
@@ -629,7 +676,7 @@ process_interfaces (void *cls,
                   &((struct sockaddr_in6 *) addr)->sin6_addr,
                   sizeof (struct in6_addr));
           t6->u6_port = htons (plugin->port_inbound);
-          plugin->env->notify_address(plugin->env->cls,"http",t6,sizeof (struct IPv6HttpAddress) , GNUNET_TIME_UNIT_FOREVER_REL);
+          plugin->env->notify_address(plugin->env->cls,"https",t6,sizeof (struct IPv6HttpAddress) , GNUNET_TIME_UNIT_FOREVER_REL);
       }
       GNUNET_free (t6);
     }
@@ -671,7 +718,7 @@ static void mhd_termination_cb (void *cls, struct MHD_Connection * connection, v
   if ((ps->send_connected == GNUNET_NO) && (ps->recv_connected == GNUNET_NO))
   {
       GNUNET_STATISTICS_update (pc->plugin->env->stats,
-    			    gettext_noop ("# HTTP inbound sessions for peers active"),
+    			    gettext_noop ("# HTTPS inbound sessions for peers active"),
     			    -1,
     			    GNUNET_NO);
     remove_session(pc,ps,GNUNET_YES,GNUNET_SYSERR);
@@ -913,7 +960,7 @@ mdh_access_cb (void *cls,
       ps->url = create_url (plugin, ps->addr, ps->addrlen, ps->session_id);
       GNUNET_CONTAINER_DLL_insert(pc->head,pc->tail,ps);
       GNUNET_STATISTICS_update (plugin->env->stats,
-    			    gettext_noop ("# HTTP inbound sessions for peers active"),
+    			    gettext_noop ("# HTTPS inbound sessions for peers active"),
     			    1,
     			    GNUNET_NO);
     }
@@ -922,7 +969,7 @@ mdh_access_cb (void *cls,
     if (ps->msgtok==NULL)
       ps->msgtok = GNUNET_SERVER_mst_create (&mhd_write_mst_cb, ps);
 #if DEBUG_HTTP
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: HTTP Daemon has new an incoming `%s' request from peer `%s' (`%s')\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: HTTPS Daemon has new an incoming `%s' request from peer `%s' (`%s')\n",
                 ps,
                 method,
                 GNUNET_i2s(&pc->identity),
@@ -1386,7 +1433,7 @@ static void curl_perform (void *cls,
                     {
 #if DEBUG_CONNECTIONS
                       GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-                                 _("Connection %X: HTTP PUT to peer `%s' (`%s') failed: `%s' `%s'\n"),
+                                 _("Connection %X: HTTPS PUT to peer `%s' (`%s') failed: `%s' `%s'\n"),
                                  ps,
                                  GNUNET_i2s(&pc->identity),
                                  http_plugin_address_to_string(NULL, ps->addr, ps->addrlen),
@@ -1407,7 +1454,7 @@ static void curl_perform (void *cls,
                     {
 #if DEBUG_CONNECTIONS
                       GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-                           _("Connection %X: HTTP GET to peer `%s' (`%s') failed: `%s' `%s'\n"),
+                           _("Connection %X: HTTPS GET to peer `%s' (`%s') failed: `%s' `%s'\n"),
                            ps,
                            GNUNET_i2s(&pc->identity),
                            http_plugin_address_to_string(NULL, ps->addr, ps->addrlen),
@@ -1428,7 +1475,7 @@ static void curl_perform (void *cls,
                       GNUNET_assert (CURLE_OK == curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &http_result));
 #if DEBUG_CONNECTIONS
                       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                                  "Connection %X: HTTP PUT connection to peer `%s' (`%s') was closed with HTTP code %u\n",
+                                  "Connection %X: HTTPS PUT connection to peer `%s' (`%s') was closed with HTTP code %u\n",
                                    ps,
                                    GNUNET_i2s(&pc->identity),
                                    http_plugin_address_to_string(NULL, ps->addr, ps->addrlen),
@@ -1588,6 +1635,10 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_VERBOSE, 1L);
 #endif
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_URL, ps->url);
+        curl_easy_setopt (ps->recv_endpoint, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
+        //curl_easy_setopt (ps->recv_endpoint, CURLOPT_SSL_CIPHER_LIST, cipher_suite);
+		curl_easy_setopt(ps->recv_endpoint, CURLOPT_SSL_VERIFYPEER, 0);
+		curl_easy_setopt(ps->recv_endpoint, CURLOPT_SSL_VERIFYHOST, 0);
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_HEADERFUNCTION, &curl_get_header_cb);
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_WRITEHEADER, ps);
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_READFUNCTION, curl_send_cb);
@@ -1676,6 +1727,10 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
 		curl_easy_setopt(ps->send_endpoint, CURLOPT_URL, ps->url);
 		curl_easy_setopt(ps->send_endpoint, CURLOPT_PUT, 1L);
 		curl_easy_setopt(ps->send_endpoint, CURLOPT_HEADERFUNCTION, &curl_put_header_cb);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_SSL_VERIFYPEER, 0);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_SSL_VERIFYHOST, 0);
+
 		curl_easy_setopt(ps->send_endpoint, CURLOPT_WRITEHEADER, ps);
 		curl_easy_setopt(ps->send_endpoint, CURLOPT_READFUNCTION, curl_send_cb);
 		curl_easy_setopt(ps->send_endpoint, CURLOPT_READDATA, ps);
@@ -2240,7 +2295,7 @@ http_plugin_address_to_string (void *cls,
  * Exit point from the plugin.
  */
 void *
-libgnunet_plugin_transport_http_done (void *cls)
+libgnunet_plugin_transport_https_done (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
@@ -2312,7 +2367,7 @@ libgnunet_plugin_transport_http_done (void *cls)
  * Entry point for the plugin.
  */
 void *
-libgnunet_plugin_transport_http_init (void *cls)
+libgnunet_plugin_transport_https_init (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct Plugin *plugin;
@@ -2322,7 +2377,7 @@ libgnunet_plugin_transport_http_init (void *cls)
 
   GNUNET_assert(cls !=NULL);
 #if DEBUG_HTTP
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting http plugin...\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting https plugin...\n");
 #endif
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
@@ -2346,24 +2401,24 @@ libgnunet_plugin_transport_http_init (void *cls)
 
   /* Reading port number from config file */
   if (GNUNET_CONFIGURATION_have_value (env->cfg,
-          	  	  	  	  	  	  	   "transport-http", "USE_IPv6"))
+          	  	  	  	  	  	  	   "transport-https", "USE_IPv6"))
     {
 	  plugin->use_ipv6 = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
-													   "transport-http",
+													   "transport-https",
 													   "USE_IPv6");
     }
   /* Reading port number from config file */
   if (GNUNET_CONFIGURATION_have_value (env->cfg,
-          	  	  	  	  	  	  	   "transport-http", "USE_IPv4"))
+          	  	  	  	  	  	  	   "transport-https", "USE_IPv4"))
     {
 	  plugin->use_ipv4 = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
-													   "transport-http",
+													   "transport-https",
 													   "USE_IPv4");
     }
   /* Reading port number from config file */
   if ((GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_number (env->cfg,
-                                              "transport-http",
+                                              "transport-https",
                                               "PORT",
                                               &port)) ||
       (port > 65535) )
@@ -2371,18 +2426,18 @@ libgnunet_plugin_transport_http_init (void *cls)
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
                        "http",
                        _("Require valid port number for transport plugin `%s' in configuration!\n"),
-                       "transport-http");
-      libgnunet_plugin_transport_http_done (api);
+                       "transport-https");
+      libgnunet_plugin_transport_https_done (api);
       return NULL;
     }
 
   /* Reading ipv4 addresse to bind to from config file */
   if ((plugin->use_ipv4==GNUNET_YES) && (GNUNET_CONFIGURATION_have_value (env->cfg,
-          	  	  	  	  	  	  	   "transport-http", "BINDTO4")))
+          	  	  	  	  	  	  	   "transport-https", "BINDTO4")))
   {
 	  GNUNET_break (GNUNET_OK ==
 					GNUNET_CONFIGURATION_get_value_string (env->cfg,
-														   "transport-http",
+														   "transport-https",
 														   "BINDTO4",
 														   &plugin->bind_hostname));
 	  plugin->bind4_address = GNUNET_malloc(sizeof(struct sockaddr_in));
@@ -2394,7 +2449,7 @@ libgnunet_plugin_transport_http_init (void *cls)
 		  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
 						   "http",
 						   _("Misconfigured address to bind to in configuration!\n"),
-						   "transport-http");
+						   "transport-https");
 		  GNUNET_free(plugin->bind4_address);
 		  GNUNET_free(plugin->bind_hostname);
 		  plugin->bind_hostname = NULL;
@@ -2404,11 +2459,11 @@ libgnunet_plugin_transport_http_init (void *cls)
 
   /* Reading ipv4 addresse to bind to from config file */
   if ((plugin->use_ipv6==GNUNET_YES) && (GNUNET_CONFIGURATION_have_value (env->cfg,
-          	  	  	  	  	  	  	   "transport-http", "BINDTO6")))
+          	  	  	  	  	  	  	   "transport-https", "BINDTO6")))
   {
 	  GNUNET_break (GNUNET_OK ==
 					GNUNET_CONFIGURATION_get_value_string (env->cfg,
-														   "transport-http",
+														   "transport-https",
 														   "BINDTO6",
 														   &plugin->bind_hostname));
 
@@ -2421,7 +2476,7 @@ libgnunet_plugin_transport_http_init (void *cls)
 		  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
 						   "http",
 						   _("Misconfigured address to bind to in configuration!\n"),
-						   "transport-http");
+						   "transport-https");
 		  GNUNET_free(plugin->bind6_address);
 		  GNUNET_free(plugin->bind_hostname);
 		  plugin->bind_hostname = NULL;
@@ -2440,10 +2495,12 @@ libgnunet_plugin_transport_http_init (void *cls)
 #if DEBUG_CONNECTIONS
     								   MHD_USE_DEBUG |
 #endif
-    								   MHD_USE_IPv6,
+    								   MHD_USE_IPv6 | MHD_USE_SSL,
                                        port,
                                        &mhd_accept_cb,
                                        plugin , &mdh_access_cb, plugin,
+                                       MHD_OPTION_HTTPS_MEM_KEY, key_pem,
+                                       MHD_OPTION_HTTPS_MEM_CERT, cert_pem,
                                        MHD_OPTION_SOCK_ADDR, tmp,
                                        MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 32,
                                        //MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 6,
@@ -2458,10 +2515,12 @@ libgnunet_plugin_transport_http_init (void *cls)
 #if DEBUG_CONNECTIONS
     								   MHD_USE_DEBUG |
 #endif
-    								   MHD_NO_FLAG,
+    								   MHD_NO_FLAG | MHD_USE_SSL,
                                        port,
                                        &mhd_accept_cb,
                                        plugin , &mdh_access_cb, plugin,
+                                       MHD_OPTION_HTTPS_MEM_KEY, key_pem,
+                                       MHD_OPTION_HTTPS_MEM_CERT, cert_pem,
                                        MHD_OPTION_SOCK_ADDR, (struct sockaddr_in *)plugin->bind4_address,
                                        MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 32,
                                        //MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 6,
@@ -2499,7 +2558,7 @@ libgnunet_plugin_transport_http_init (void *cls)
 #if DEBUG_HTTP
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No MHD was started, transport plugin not functional!\n");
 #endif
-    libgnunet_plugin_transport_http_done (api);
+    libgnunet_plugin_transport_https_done (api);
     return NULL;
   }
 
@@ -2512,8 +2571,8 @@ libgnunet_plugin_transport_http_init (void *cls)
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
 				   "http",
 				   _("Could not initialize curl multi handle, failed to start http plugin!\n"),
-				   "transport-http");
-    libgnunet_plugin_transport_http_done (api);
+				   "transport-https");
+    libgnunet_plugin_transport_https_done (api);
     return NULL;
   }
 

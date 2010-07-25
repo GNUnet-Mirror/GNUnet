@@ -12,6 +12,9 @@ if HAVE_MHD
  HTTP_PLUGIN_CHECK = test_plugin_transport_http \
                      test_transport_api_http \
                      test_transport_api_reliability_http
+                     
+ HTTPS_PLUGIN_LA = libgnunet_plugin_transport_https.la
+ HTTPS_PLUGIN_CHECK = test_plugin_transport_https                     
 endif
 
 if USE_COVERAGE
@@ -76,6 +79,7 @@ plugin_LTLIBRARIES = \
   libgnunet_plugin_transport_tcp.la \
   libgnunet_plugin_transport_udp.la \
   $(HTTP_PLUGIN_LA) \
+  $(HTTPS_PLUGIN_LA) \
   libgnunet_plugin_transport_template.la
 # TODO: add nat, etc.
 
@@ -128,6 +132,18 @@ libgnunet_plugin_transport_http_la_LIBADD = \
 libgnunet_plugin_transport_http_la_LDFLAGS = \
  $(GN_LIBMHD) \
  $(GN_PLUGIN_LDFLAGS)
+ 
+libgnunet_plugin_transport_https_la_SOURCES = \
+  plugin_transport_https.c
+libgnunet_plugin_transport_https_la_LIBADD = \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+  @LIBCURL@ \
+  $(top_builddir)/src/util/libgnunetutil.la 
+libgnunet_plugin_transport_https_la_LDFLAGS = \
+ $(GN_LIBMHD) \
+ $(GN_PLUGIN_LDFLAGS) 
 endif
 
 check_PROGRAMS = \
@@ -135,6 +151,7 @@ check_PROGRAMS = \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
  $(HTTP_PLUGIN_CHECK) \
+ $(HTTPS_PLUGIN_CHECK) \ 
  test_transport_api_udp_nat \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
@@ -147,6 +164,7 @@ TESTS = \
  test_transport_api_udp \
  test_transport_api_udp_nat \
  $(HTTP_PLUGIN_CHECK) \
+ $(HTTPS_PLUGIN_CHECK) \ 
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat
 
@@ -211,7 +229,16 @@ test_transport_api_reliability_http_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_http_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/util/libgnunetutil.la   
+ $(top_builddir)/src/util/libgnunetutil.la
+ 
+test_plugin_transport_https_SOURCES = \
+ test_plugin_transport_https.c
+test_plugin_transport_https_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ @LIBCURL@ \
+ $(top_builddir)/src/util/libgnunetutil.la  
+    
 endif
 
 EXTRA_DIST = \
