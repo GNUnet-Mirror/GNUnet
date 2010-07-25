@@ -82,6 +82,8 @@ static int is_udp_nat;
 
 static int is_http;
 
+static int is_https;
+
 static  GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 #if VERBOSE
@@ -308,7 +310,11 @@ run (void *cls,
       setup_peer (&p1, "test_transport_api_http_peer1.conf");
       setup_peer (&p2, "test_transport_api_http_peer2.conf");
     }
-
+  else if (is_https)
+    {
+      setup_peer (&p1, "test_transport_api_https_peer1.conf");
+      setup_peer (&p2, "test_transport_api_https_peer2.conf");
+    }
   GNUNET_assert(p1.th != NULL);
   GNUNET_assert(p2.th != NULL);
 
@@ -441,7 +447,10 @@ main (int argc, char *argv[])
     {
       is_http = GNUNET_YES;
     }
-
+  else if (strstr(argv[0], "https") != NULL)
+    {
+      is_https = GNUNET_YES;
+    }
   GNUNET_log_setup ("test-transport-api",
 #if VERBOSE
                     "DEBUG",

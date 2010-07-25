@@ -14,7 +14,9 @@ if HAVE_MHD
                      test_transport_api_reliability_http
                      
  HTTPS_PLUGIN_LA = libgnunet_plugin_transport_https.la
- HTTPS_PLUGIN_CHECK = test_plugin_transport_https                     
+ HTTPS_PLUGIN_CHECK = test_plugin_transport_https \
+                      test_transport_api_https \
+                     test_transport_api_reliability_https                     
 endif
 
 if USE_COVERAGE
@@ -238,7 +240,18 @@ test_plugin_transport_https_LDADD = \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  @LIBCURL@ \
  $(top_builddir)/src/util/libgnunetutil.la  
-    
+
+test_transport_api_https_SOURCES = \
+ test_transport_api.c
+test_transport_api_https_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
+ 
+test_transport_api_reliability_https_SOURCES = \
+ test_transport_api_reliability.c
+test_transport_api_reliability_https_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la    
 endif
 
 EXTRA_DIST = \

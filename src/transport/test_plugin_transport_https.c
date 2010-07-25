@@ -548,7 +548,7 @@ receive (void *cls,
   if ((ntohs(message->type)==32) && (ntohs(message->size) == GNUNET_SERVER_MAX_MESSAGE_SIZE-1))
   {
     fail_msg_transmited_max_size = GNUNET_NO;
-    //shutdown_clean();
+    shutdown_clean();
   }
 
   return GNUNET_TIME_UNIT_ZERO;
@@ -963,7 +963,7 @@ static void run_connection_tests( int phase , void * cls)
     {
       /* Connecting to peer without identification */
       char * ident = "";
-      GNUNET_asprintf (&host_str, "http://%s/%s",test_addr,ident);
+      GNUNET_asprintf (&host_str, "https://%s/%s",test_addr,ident);
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer without any peer identification.\n"));
       test_no_ident.test_executed = GNUNET_YES;
       send_data ( &test_no_ident, host_str);
@@ -974,7 +974,7 @@ static void run_connection_tests( int phase , void * cls)
     {
       char * ident = "AAAAAAAAAA";
       /* Connecting to peer with too short identification */
-      GNUNET_asprintf (&host_str, "http://%s/%s",test_addr,ident);
+      GNUNET_asprintf (&host_str, "https://%s/%s",test_addr,ident);
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with too short peer identification.\n"));
       test_too_short_ident.test_executed = GNUNET_YES;
       send_data ( &test_too_short_ident, host_str);
@@ -987,7 +987,7 @@ static void run_connection_tests( int phase , void * cls)
       char * ident = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
       /* Connecting to peer with too long identification */
-      GNUNET_asprintf (&host_str, "http://%s/%s",test_addr,ident);
+      GNUNET_asprintf (&host_str, "https://%s/%s",test_addr,ident);
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with too long peer identification.\n"));
       test_too_long_ident.test_executed = GNUNET_YES;
       send_data ( &test_too_long_ident, host_str);
@@ -998,7 +998,7 @@ static void run_connection_tests( int phase , void * cls)
     {
       struct GNUNET_CRYPTO_HashAsciiEncoded ident;
       GNUNET_CRYPTO_hash_to_enc(&my_identity.hashPubKey,&ident);
-      GNUNET_asprintf (&host_str, "http://%s/%s%s",test_addr,(char *) &ident,";0");
+      GNUNET_asprintf (&host_str, "https://%s/%s%s",test_addr,(char *) &ident,";0");
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with valid peer identification.\n"));
       test_valid_ident.test_executed = GNUNET_YES;
       send_data ( &test_valid_ident, host_str);
