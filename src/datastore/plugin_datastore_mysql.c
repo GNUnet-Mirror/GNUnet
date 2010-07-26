@@ -809,8 +809,6 @@ prepared_statement_run (struct Plugin *plugin,
 }
 
 
-
-
 /**
  * Delete an value from the gn072 table.
  *
