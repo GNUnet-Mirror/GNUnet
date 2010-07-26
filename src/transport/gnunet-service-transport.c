@@ -43,7 +43,7 @@
 
 #define DEBUG_PING_PONG GNUNET_NO
 
-#define DEBUG_TRANSPORT_HELLO GNUNET_YES
+#define DEBUG_TRANSPORT_HELLO GNUNET_NO
 
 /**
  * Should we do some additional checks (to validate behavior

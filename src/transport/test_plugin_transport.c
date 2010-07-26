@@ -90,7 +90,6 @@ struct GNUNET_TRANSPORT_PluginFunctions *api;
 static int ok;
 
 /**
- * Initialize Environment for this plugin
  */
 static void
 receive (void *cls,

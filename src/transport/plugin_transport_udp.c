@@ -762,6 +762,8 @@ udp_plugin_send (void *cls,
   int other_peer_natd;
   const struct IPv4UdpAddress *t4;
 
+  if (force_address == GNUNET_SYSERR)
+    return GNUNET_SYSERR;
   GNUNET_assert (NULL == session);
 
   other_peer_natd = GNUNET_NO;
@@ -1439,8 +1441,10 @@ udp_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
       break;
     default:
 #if DEBUG_UDP
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                       _("Sending message type %d to transport!\n"), ntohs(currhdr->type));
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		       "udp",
+                       "Sending message type %d to transport!\n", 
+		       ntohs(currhdr->type));
 #endif
       plugin->env->receive (plugin->env->cls, sender, currhdr, UDP_DIRECT_DISTANCE, 
 			    NULL, sender_addr, fromlen);
