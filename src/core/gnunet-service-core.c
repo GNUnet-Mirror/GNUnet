@@ -845,7 +845,7 @@ handle_peer_status_change (struct Neighbour *n)
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer `%4s' changed status\n",
-	      GNUNET_i2s (peer));
+	      GNUNET_i2s (&n->peer));
 #endif
   psnm.header.size = htons (sizeof (struct PeerStatusNotifyMessage));
   psnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_STATUS_CHANGE);
