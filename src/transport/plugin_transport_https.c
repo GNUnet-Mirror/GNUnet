@@ -1134,8 +1134,7 @@ static void http_server_daemon_v6_run (void *cls,
 static size_t curl_get_header_cb( void *ptr, size_t size, size_t nmemb, void *stream)
 {
   struct Session * ps = stream;
-  char * tmp;
-  size_t len = size * nmemb;
+
   long http_result = 0;
   int res;
   /* Getting last http result code */
@@ -1158,6 +1157,10 @@ static size_t curl_get_header_cb( void *ptr, size_t size, size_t nmemb, void *st
     }
   }
 
+#if DEBUG_CURL
+  char * tmp;
+  size_t len = size * nmemb;
+
   tmp = NULL;
   if ((size * nmemb) < SIZE_MAX)
     tmp = GNUNET_malloc (len+1);
@@ -1176,6 +1179,7 @@ static size_t curl_get_header_cb( void *ptr, size_t size, size_t nmemb, void *st
   }
   if (NULL != tmp)
     GNUNET_free (tmp);
+#endif
 
   return size * nmemb;
 }
