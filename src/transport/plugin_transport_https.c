@@ -2133,7 +2133,7 @@ http_plugin_address_pretty_printer (void *cls,
     asc (asc_cls, NULL);
     return;
   }
-  res = GNUNET_asprintf(&ret,"http://%s:%u/",address,port);
+  res = GNUNET_asprintf(&ret,"https://%s:%u/",address,port);
   GNUNET_free (address);
   GNUNET_assert(res != 0);
   asc (asc_cls, ret);
