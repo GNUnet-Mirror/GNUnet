@@ -1579,8 +1579,6 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
     	int fresh = GNUNET_NO;
         if (ps->recv_endpoint == NULL)
         {
-            GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-            			"created handle\n");
             fresh = GNUNET_YES;
         	ps->recv_endpoint = curl_easy_init();
         }
