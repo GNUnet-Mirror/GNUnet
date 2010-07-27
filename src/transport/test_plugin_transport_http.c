@@ -44,8 +44,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#define VERBOSE GNUNET_YES
-#define DEBUG GNUNET_YES
+#define VERBOSE GNUNET_NO
+#define DEBUG GNUNET_NO
 #define DEBUG_CURL GNUNET_NO
 #define HTTP_BUFFER_SIZE 2048
 

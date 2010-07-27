@@ -53,7 +53,7 @@
 #include "plugin_transport.h"
 #include "transport.h"
 
-#define DEBUG_UDP GNUNET_YES
+#define DEBUG_UDP GNUNET_NO
 
 #define MAX_PROBES 20
 

@@ -40,8 +40,8 @@
 #include "microhttpd.h"
 #include <curl/curl.h>
 
-#define DEBUG_HTTP GNUNET_YES
-#define DEBUG_CURL GNUNET_YES
+#define DEBUG_HTTP GNUNET_NO
+#define DEBUG_CURL GNUNET_NO
 #define DEBUG_CONNECTIONS GNUNET_NO
 #define DEBUG_SESSION_SELECTION GNUNET_NO
 
