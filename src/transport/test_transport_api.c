@@ -443,14 +443,16 @@ main (int argc, char *argv[])
     {
       is_udp = GNUNET_YES;
     }
+  else if (strstr(argv[0], "https") != NULL)
+    {
+      is_https = GNUNET_YES;
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTPS!!!!");
+    }
   else if (strstr(argv[0], "http") != NULL)
     {
       is_http = GNUNET_YES;
     }
-  else if (strstr(argv[0], "https") != NULL)
-    {
-      is_https = GNUNET_YES;
-    }
+
   GNUNET_log_setup ("test-transport-api",
 #if VERBOSE
                     "DEBUG",

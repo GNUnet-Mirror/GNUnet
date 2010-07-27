@@ -80,6 +80,8 @@ static int is_tcp_nat;
 
 static int is_http;
 
+static int is_https;
+
 static int is_udp;
 
 static int connected;
@@ -119,6 +121,7 @@ end ()
 	   total_bytes * 1000 / 1024 / delta);
   ok = 0;
 }
+
 
 
 static void
@@ -449,6 +452,11 @@ run (void *cls,
       setup_peer (&p1, "test_transport_api_rel_http_peer1.conf");
       setup_peer (&p2, "test_transport_api_rel_http_peer2.conf");
     }
+  else if (is_https)
+    {
+      setup_peer (&p1, "test_transport_api_rel_https_peer1.conf");
+      setup_peer (&p2, "test_transport_api_rel_https_peer2.conf");
+    }
   else if (is_udp)
     {
       setup_peer (&p1, "test_transport_api_udp_peer1.conf");
@@ -509,6 +517,10 @@ main (int argc, char *argv[])
   else if (strstr(argv[0], "tcp") != NULL)
     {
       is_tcp = GNUNET_YES;
+    }
+  else if (strstr(argv[0], "https") != NULL)
+    {
+      is_https = GNUNET_YES;
     }
   else if (strstr(argv[0], "http") != NULL)
     {

@@ -30,6 +30,7 @@ install-exec-hook:
 	chmod u+s $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client || true
 else
 install-exec-hook:
+	gnunet-transport-plugin-certificate-creation
 endif
 
 
@@ -52,7 +53,9 @@ libgnunettransport_la_LDFLAGS = \
 bin_PROGRAMS = \
  gnunet-transport \
  gnunet-service-transport $(NATBIN)
-
+ 
+bin_SCRIPTS = \
+ gnunet-transport-certificate-creation
 
 gnunet_nat_server_SOURCES = \
  gnunet-nat-server.c         
@@ -153,7 +156,7 @@ check_PROGRAMS = \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
  $(HTTP_PLUGIN_CHECK) \
- $(HTTPS_PLUGIN_CHECK) \ 
+ $(HTTPS_PLUGIN_CHECK) \
  test_transport_api_udp_nat \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
@@ -166,7 +169,7 @@ TESTS = \
  test_transport_api_udp \
  test_transport_api_udp_nat \
  $(HTTP_PLUGIN_CHECK) \
- $(HTTPS_PLUGIN_CHECK) \ 
+ $(HTTPS_PLUGIN_CHECK) \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat
 
@@ -213,11 +216,6 @@ test_transport_api_udp_nat_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 if HAVE_MHD
-test_transport_api_http_SOURCES = \
- test_transport_api.c
-test_transport_api_http_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/util/libgnunetutil.la  
 
 test_plugin_transport_http_SOURCES = \
  test_plugin_transport_http.c
@@ -225,6 +223,12 @@ test_plugin_transport_http_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  @LIBCURL@ \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+test_transport_api_http_SOURCES = \
+ test_transport_api.c
+test_transport_api_http_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_transport_api_reliability_http_SOURCES = \
@@ -268,7 +272,9 @@ EXTRA_DIST = \
   test_transport_api_http_peer1.conf \
   test_transport_api_http_peer2.conf \
   test_transport_api_https_peer1.conf \
-  test_transport_api_https_peer2.conf \  
+  test_transport_api_https_peer2.conf \
   test_transport_api_rel_http_peer1.conf \
   test_transport_api_rel_http_peer2.conf \
+  test_transport_api_rel_https_peer1.conf \
+  test_transport_api_rel_https_peer2.conf \
   test_plugin_transport_data_http.conf
