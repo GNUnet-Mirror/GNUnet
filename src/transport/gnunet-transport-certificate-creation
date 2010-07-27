@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# GNUnet TLS certificate shell scricpt
+# Creates a TSL certificate to use with HTTPS transport plugin
+
+rm -f $1 $2
+
+# Create RSA Private Key
+openssl genrsa -out $1 1024 > /dev/null
+# Create a self-signed certificate in batch mode using rsa key
+openssl req -batch -days 365 -out $2 -new -x509 -key $1 > /dev/null
+chmod 0400 $1 $2
