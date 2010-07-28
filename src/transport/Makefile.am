@@ -31,7 +31,6 @@ install-exec-hook:
 	chmod u+s $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client $(bindir)/gnunet-wlan || true
 else
 install-exec-hook:
-	gnunet-transport-certificate-creation
 endif
 
 
