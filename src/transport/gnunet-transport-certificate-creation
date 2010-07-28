@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # GNUnet TLS certificate shell scricpt
 # Creates a TSL certificate to use with HTTPS transport plugin
