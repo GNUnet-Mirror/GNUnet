@@ -23,15 +23,6 @@
  * @brief get paths used by the program
  * @author Milan
  */
-
-#ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
-}
-#endif
-#endif
-
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <string.h>
@@ -435,10 +426,4 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
   return tmp;
 }
 
-#if 0                           /* keep Emacsens' auto-indent happy */
-{
-#endif
-#ifdef __cplusplus
-}
-#endif
 /* end of os_installation.c */

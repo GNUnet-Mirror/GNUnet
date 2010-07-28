@@ -83,7 +83,12 @@
 #include <netdb.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#if HAVE_NETINET_IN_H
 #include <netinet/in.h>
+#endif
+#if HAVE_NETINET_IN_SYSTM_H
+#include <netinet/in_systm.h>
+#endif
 #include <netinet/ip.h> /* superset of previous */
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
