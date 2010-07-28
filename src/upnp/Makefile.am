@@ -44,10 +44,12 @@ gnunet_service_upnp_LDADD = \
   $(GN_LIBINTL)
 
 
-check_PROGRAMS = \ 
+check_PROGRAMS = \
  test_upnp
 
+if !DISABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
+endif
 
 test_upnp_SOURCES = \
  test_upnp.c

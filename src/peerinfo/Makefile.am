@@ -37,7 +37,9 @@ gnunet_service_peerinfo_LDADD = \
 check_PROGRAMS = \
  test_peerinfo_api
 
-TESTS = $(check_PROGRAMS) # $(check_SCRIPTS)
+if !DISABLE_TEST_RUN
+TESTS = $(check_PROGRAMS)
+endif
 
 test_peerinfo_api_SOURCES = \
  test_peerinfo_api.c

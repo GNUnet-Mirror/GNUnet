@@ -28,7 +28,9 @@ gnunet_service_template_LDADD = \
 check_PROGRAMS = \
  test_template_api
 
+if !DISABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
+endif
 
 test_template_api_SOURCES = \
  test_template_api.c

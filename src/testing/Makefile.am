@@ -40,7 +40,8 @@ check_PROGRAMS = \
  test_testing_topology_internat \
  test_testing_topology_none \
  test_testing_topology_scale_free
- 
+
+if !DISABLE_TEST_RUN 
 TESTS = \
  test_testing \
  test_testing_connect \
@@ -60,6 +61,7 @@ TESTS = \
 # test_testing_topology_erdos_renyi \
 # test_testing_topology_internat \
 # test_testing_topology_scale_free
+endif
 
 test_testing_SOURCES = \
  test_testing.c

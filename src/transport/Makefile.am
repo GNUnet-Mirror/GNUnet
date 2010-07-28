@@ -176,6 +176,7 @@ check_PROGRAMS = \
  $(HTTPS_REL_TEST)
 # TODO: add tests for nat, etc.
 
+if !DISABLE_TEST_RUN
 TESTS = \
  test_transport_api_tcp \
  test_transport_api_tcp_nat \
@@ -189,6 +190,7 @@ TESTS = \
  test_transport_api_reliability_tcp_nat \
  $(HTTP_REL_TEST) \
  $(HTTPS_REL_TEST)
+endif
 
 test_transport_api_tcp_SOURCES = \
  test_transport_api.c

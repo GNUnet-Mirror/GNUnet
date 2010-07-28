@@ -44,7 +44,9 @@ check_PROGRAMS = \
  test_core_api \
  test_core_api_reliability
 
+if !DISABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
+endif
 
 test_core_api_SOURCES = \
  test_core_api.c

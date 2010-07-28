@@ -52,7 +52,9 @@ check_PROGRAMS = \
  test_datacache_quota \
  perf_datacache 
 
+if !DISABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
+endif
 
 test_datacache_SOURCES = \
  test_datacache.c

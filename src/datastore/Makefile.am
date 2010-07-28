@@ -63,7 +63,9 @@ check_PROGRAMS = \
  perf_datastore_api \
  perf_plugin_datastore
 
+if !DISABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
+endif
 
 test_datastore_api_SOURCES = \
  test_datastore_api.c

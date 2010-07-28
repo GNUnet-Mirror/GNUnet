@@ -144,9 +144,9 @@ check_PROGRAMS = \
  perf_crypto_hash \
  test_os_start_process 
 
-
+if !DISABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
-
+endif
 
 test_bio_SOURCES = \
  test_bio.c

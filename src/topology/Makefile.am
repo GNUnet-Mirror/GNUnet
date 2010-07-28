@@ -23,7 +23,9 @@ gnunet_daemon_topology_LDADD = \
 check_PROGRAMS = \
  test_gnunet_daemon_topology
 
+if !DISABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
+endif
 
 test_gnunet_daemon_topology_SOURCES = \
  test_gnunet_daemon_topology.c

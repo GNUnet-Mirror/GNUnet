@@ -706,6 +706,27 @@ AC_SUBST(DLLDIR)
 AC_SUBST(EXT_LIB_PATH)
 
 
+# should 'make check' run tests?
+AC_MSG_CHECKING(whether to disable running tests)
+AC_ARG_ENABLE(testruns,
+   [AS_HELP_STRING([--enable-test-suppression],
+               [disable running tests on make check])],
+   [disable_tests_run=$enableval],
+   [disable_tests_run="no"])
+AC_MSG_RESULT($disable_test_run)
+AM_CONDITIONAL([DISABLE_TEST_RUN], [test "x$disable_tests_run" = "xyes"])
+
+# should experimental code be compiled (code that may not yet compile)?
+disable_experimental=yes
+AC_MSG_CHECKING(whether to compile experimental code)
+AC_ARG_ENABLE(experimental,
+   [AS_HELP_STRING([--enable-experimental],
+               [enable compiling experimental code])],
+   [enable_experimental=$enableval],
+   [enable_experimental="no"])
+AC_MSG_RESULT($enable_experimental)
+AM_CONDITIONAL([HAVE_EXPERIMENTAL], [test "x$enable_experimental" = "xyes"])
+
 # gcov compilation
 use_gcov=no
 AC_ARG_ENABLE([coverage], AS_HELP_STRING([--enable-coverage],
@@ -770,6 +791,11 @@ fi
 if test "x$esmtp" != "x1"
 then
  AC_MSG_NOTICE([NOTICE: libesmtp not found, monkey will not be installed.])
+fi
+
+if test "x$pcap" != "x1"
+then
+ AC_MSG_NOTICE([NOTICE: libpcap not found, WiFi support will not be installed.])
 fi
 
 if test "x$openssl" != "x1"

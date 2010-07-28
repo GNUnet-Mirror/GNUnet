@@ -55,7 +55,9 @@ check_PROGRAMS = \
 check_SCRIPTS = \
  test_gnunet_arm.sh
 
+if !DISABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)  $(check_SCRIPTS)
+endif
 
 test_arm_api_SOURCES = \
  test_arm_api.c

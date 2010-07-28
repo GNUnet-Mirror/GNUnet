@@ -35,7 +35,9 @@ libgnunetnat_la_LDFLAGS = \
 check_PROGRAMS = \
   test-nat
 
+if !DISABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
+endif
 
 test_nat_SOURCES = \
   test_nat.c

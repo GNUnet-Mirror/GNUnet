@@ -47,13 +47,15 @@ libgnunet_plugin_transport_dv_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
 libgnunet_plugin_transport_dv_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
- 
- 
+
+
 check_PROGRAMS = \
  test_transport_api_dv
 # test_dv_topology
- 
+
+if !DISABLE_TEST_RUN
 TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
+endif
 
 test_transport_api_dv_SOURCES = \
  test_transport_api_dv.c

@@ -80,3 +80,18 @@ Coding style:
   instead of
 
   int i,j;
+
+
+
+Build-system:
+
+If you have code that is likely not to compile or build rules you might want to not
+trigger for most developers, use "if HAVE_EXPERIMENTAL" in your Makefile.am.  Then
+it is OK to (temporarily) add non-compiling (or known-to-not-port) code.
+
+If you want to compile all testcases but NOT run them, run configure with the
+--enable-test-suppression option.
+
+If you want to obtain code coverage results, run configure with the
+--enable-coverage option and run the coverage.sh script in contrib/.
+

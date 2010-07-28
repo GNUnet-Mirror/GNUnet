@@ -4,7 +4,7 @@ if MINGW
 endif
 
 plugindir = $(libdir)/gnunet
-HAVE_MYSQL = 0
+HAVE_MYSQL=0
 if HAVE_MYSQL
  MYSQL_PLUGIN = libgnunet_plugin_dhtlog_mysql.la
 endif
@@ -61,7 +61,7 @@ libgnunetdht_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:0:0
 
-if HAVE_MYSQL
+if HAVE_EXPERIMENTAL
 STUD_PROGS =  gnunet-service-dht-can \
  gnunet-service-dht-freenet \
  gnunet-service-dht-kademlia \
@@ -179,9 +179,11 @@ check_PROGRAMS = \
  test_dht_multipeer \
  test_dhtlog
 
+if !DISABLE_TEST_RUN
 TESTS = test_dht_api $(check_SCRIPTS) \
  test_dht_twopeer \
  test_dht_twopeer_put_get
+endif
 
 test_dht_api_SOURCES = \
  test_dht_api.c

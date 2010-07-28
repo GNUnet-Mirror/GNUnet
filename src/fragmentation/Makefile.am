@@ -18,7 +18,9 @@ libgnunetfragmentation_la_LIBADD = \
 check_PROGRAMS = \
  test_fragmentation
 
+if !DISABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
+endif
 
 test_fragmentation_SOURCES = \
  test_frag_ji.c

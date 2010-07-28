@@ -45,7 +45,9 @@ check_PROGRAMS = \
  test_statistics_api \
  test_statistics_api_loop
 
+if !DISABLE_TEST_RUN
 TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
+endif
 
 test_statistics_api_SOURCES = \
  test_statistics_api.c

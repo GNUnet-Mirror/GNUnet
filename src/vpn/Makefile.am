@@ -47,9 +47,10 @@ gnunet_daemon_vpn_LDADD = \
 #check_PROGRAMS = \
 # test_XXX
 
+if !DISABLE_TEST_RUN
 #TESTS = \
 # test_transport_api_tcp 
-
+endif
 
 #test_transport_api_tcp_SOURCES = \
 # test_transport_api.c

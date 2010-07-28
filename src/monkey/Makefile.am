@@ -66,8 +66,9 @@ bug_null_pointer_exception_LDADD = \
 	$(top_builddir)/src/util/libgnunetutil.la \
 	$(GN_LIBINTL)
 
-
+if !DISABLE_TEST_RUN
 #TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
+endif
 
 check_SCRIPTS = \
   test_gnunet_monkey.sh
