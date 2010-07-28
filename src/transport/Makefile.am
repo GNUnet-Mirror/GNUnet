@@ -9,14 +9,14 @@ endif
 if HAVE_MHD
  GN_LIBMHD = -lmicrohttpd
  HTTP_PLUGIN_LA = libgnunet_plugin_transport_http.la
- HTTP_PLUGIN_CHECK = test_plugin_transport_http \
-                     test_transport_api_http \
-                     test_transport_api_reliability_http
+ HTTP_PLUGIN_TEST = test_plugin_transport_http
+ HTTP_API_TEST = test_transport_api_http
+ HTTP_REL_TEST = test_transport_api_reliability_http
                      
  HTTPS_PLUGIN_LA = libgnunet_plugin_transport_https.la
- HTTPS_PLUGIN_CHECK = test_plugin_transport_https \
-                      test_transport_api_https \
-                      test_transport_api_reliability_https                     
+ HTTPS_PLUGIN_TEST = test_plugin_transport_https
+ HTTPS_API_TEST = test_transport_api_https
+ HTTPS_REL_TEST = test_transport_api_reliability_https                     
 endif
 
 if USE_COVERAGE
@@ -155,12 +155,16 @@ check_PROGRAMS = \
  test_transport_api_tcp \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
- $(HTTP_PLUGIN_CHECK) \
- $(HTTPS_PLUGIN_CHECK) \
  test_transport_api_udp_nat \
+ $(HTTP_PLUGIN_TEST) \
+ $(HTTP_API_TEST) \
+ $(HTTPS_PLUGIN_TEST) \
+ $(HTTPS_API_TEST) \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
- test_transport_api_reliability_udp
+ test_transport_api_reliability_udp \
+ $(HTTP_REL_TEST) \
+ $(HTTPS_REL_TEST)
 # TODO: add tests for nat, etc.
 
 TESTS = \
@@ -168,10 +172,14 @@ TESTS = \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
  test_transport_api_udp_nat \
- $(HTTP_PLUGIN_CHECK) \
- $(HTTPS_PLUGIN_CHECK) \
+ $(HTTP_PLUGIN_TEST) \
+ $(HTTP_API_TEST) \
+ $(HTTPS_PLUGIN_TEST) \
+ $(HTTPS_API_TEST) \
  test_transport_api_reliability_tcp \
- test_transport_api_reliability_tcp_nat
+ test_transport_api_reliability_tcp_nat \
+ $(HTTP_REL_TEST) \
+ $(HTTPS_REL_TEST)
 
 test_transport_api_tcp_SOURCES = \
  test_transport_api.c
