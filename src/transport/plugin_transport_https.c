@@ -2515,9 +2515,24 @@ libgnunet_plugin_transport_https_init (void *cls)
   if ((plugin->key==NULL) || (plugin->cert==NULL))
   {
 	  char * cmd;
+	  int ret = 0;
 	  GNUNET_asprintf(&cmd,"gnunet-transport-certificate-creation %s %s", key_file, cert_file);
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No usable TLS certificate found, creating certificate \n");
-	  system(cmd);
+	  ret = system(cmd);
+
+	  if (ret != 0)
+	  {
+		  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+			        	   "https",
+						   _("Could not create a new TLS certificate, shell script `%s' failed!\n"),cmd,
+						   "transport-https");
+		  GNUNET_free (key_file);
+		  GNUNET_free (cert_file);
+		  libgnunet_plugin_transport_https_done(api);
+		  GNUNET_free (cmd);
+		  return NULL;
+	  }
+
 	  GNUNET_free (cmd);
 
 	  plugin->key = load_certificate( key_file );
@@ -2525,7 +2540,10 @@ libgnunet_plugin_transport_https_init (void *cls)
 
 	  if ((plugin->key==NULL) || (plugin->cert==NULL))
 	  {
-		  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No usable TLS certificate found and creating one failed! \n");
+		  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+			        	   "https",
+						   _("No usable TLS certificate found and creating one failed! \n"),
+						   "transport-https");
 		  GNUNET_free (key_file);
 		  GNUNET_free (cert_file);
 		  libgnunet_plugin_transport_https_done(api);
