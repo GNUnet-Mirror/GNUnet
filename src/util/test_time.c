@@ -133,6 +133,9 @@ check ()
   future = GNUNET_TIME_absolute_add (now, GNUNET_TIME_UNIT_ZERO);
   GNUNET_assert (future.value == now.value);
 
+  GNUNET_assert (forever.value ==
+		 GNUNET_TIME_absolute_subtract (forever,
+						GNUNET_TIME_UNIT_MINUTES).value);
   return 0;
 }
 
