@@ -25,9 +25,10 @@ endif
 
 if LINUX
 NATBIN = gnunet-nat-server gnunet-nat-client
+WANBIN = gnunet-wlan
 install-exec-hook:
-	chown root $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client || true
-	chmod u+s $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client || true
+	chown root $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client $(bindir)/gnunet-wlan || true
+	chmod u+s $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client $(bindir)/gnunet-wlan || true
 else
 install-exec-hook:
 	gnunet-transport-certificate-creation
@@ -52,6 +53,7 @@ libgnunettransport_la_LDFLAGS = \
 
 bin_PROGRAMS = \
  gnunet-transport \
+ $(WANBIN) \
  gnunet-service-transport $(NATBIN)
  
 bin_SCRIPTS = \
@@ -59,6 +61,11 @@ bin_SCRIPTS = \
 
 gnunet_nat_server_SOURCES = \
  gnunet-nat-server.c         
+
+gnunet_wlan_SOURCES = \
+ gnunet-wlan.c         
+gnunet_wlan_LDADD = \
+ -lpcap
 
 gnunet_nat_client_SOURCES = \
  gnunet-nat-client.c         
