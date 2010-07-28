@@ -28,7 +28,7 @@
  * gnunet 
  */
  
-#include "gnunet_wlan.h"
+#include "gnunet-transport-wlan-helper.h"
 #include <pcap/pcap.h>
 
 //#include "radiotap.h"

@@ -314,6 +314,7 @@ enum ieee80211_radiotap_type {
 	(((x) == 14) ? 2484 : ((x) * 5) + 2407) : \
 	((x) + 1000) * 5)
 
+#if BROKEN
 /* helpers */
 static inline int ieee80211_get_radiotap_len(unsigned char *data)
 {
@@ -322,7 +323,7 @@ static inline int ieee80211_get_radiotap_len(unsigned char *data)
 
 	return get_unaligned_le16(&hdr->it_len);
 }
-
+#endif
 #endif				/* IEEE80211_RADIOTAP_H */
 
 

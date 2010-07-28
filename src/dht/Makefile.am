@@ -20,7 +20,7 @@ endif
 
 lib_LTLIBRARIES = libgnunetdht.la \
  libgnunetdhtlog.la
- 
+
 plugin_LTLIBRARIES = \
  libgnunet_plugin_dhtlog_dummy.la $(MYSQL_PLUGIN)
 
@@ -61,7 +61,12 @@ libgnunetdht_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:0:0
 
-bin_PROGRAMS = \
+STUD_PROGS =  gnunet-service-dht-can \
+ gnunet-service-dht-freenet \
+ gnunet-service-dht-kademlia \
+ gnunet-service-dht-koorde 
+
+bin_PROGRAMS = $(STUD_PROGS) \
  gnunet-service-dht \
  gnunet-dht-get \
  gnunet-dht-get-peer \
@@ -80,6 +85,58 @@ gnunet_service_dht_LDADD = \
   $(top_builddir)/src/datacache/libgnunetdatacache.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/dht/libgnunetdhtlog.la
+
+gnunet_service_dht_can_SOURCES = \
+ dht_can.c dht_can_helper.c dht_can_helper.h
+gnunet_service_dht_can_LDADD = \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/transport/libgnunettransport.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/datacache/libgnunetdatacache.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
+
+gnunet_service_dht_freenet_SOURCES = \
+ dht_freenet.c 
+gnunet_service_dht_freenet_LDADD = \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/transport/libgnunettransport.la \
+  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/datacache/libgnunetdatacache.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
+
+gnunet_service_dht_kademlia_SOURCES = \
+ dht_kademlia.c dht_kademlia.h
+gnunet_service_dht_kademlia_LDADD = \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/transport/libgnunettransport.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/datacache/libgnunetdatacache.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
+
+gnunet_service_dht_koorde_SOURCES = \
+ dht_koorde.c dht_koorde.h
+gnunet_service_dht_koorde_LDADD = \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/transport/libgnunettransport.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/datacache/libgnunetdatacache.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
+
+#gnunet_service_dht_new_SOURCES = \
+# gnunet-service-dht-new.c         
+#gnunet_service_dht_new_LDADD = \
+#  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+#  $(top_builddir)/src/core/libgnunetcore.la \
+#  $(top_builddir)/src/transport/libgnunettransport.la \
+#  $(top_builddir)/src/hello/libgnunethello.la \
+#  $(top_builddir)/src/datacache/libgnunetdatacache.la \
+#  $(top_builddir)/src/util/libgnunetutil.la \
+#  $(top_builddir)/src/dht/libgnunetdhtlog.la
 
 gnunet_dht_get_SOURCES = \
  gnunet-dht-get.c         
@@ -121,7 +178,6 @@ check_PROGRAMS = \
  test_dhtlog
 
 TESTS = test_dht_api $(check_SCRIPTS) \
- test_dhtlog \
  test_dht_twopeer \
  test_dht_twopeer_put_get
 

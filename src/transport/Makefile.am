@@ -12,7 +12,7 @@ if HAVE_MHD
  HTTP_PLUGIN_TEST = test_plugin_transport_http
  HTTP_API_TEST = test_transport_api_http
  HTTP_REL_TEST = test_transport_api_reliability_http
-                     
+
  HTTPS_PLUGIN_LA = libgnunet_plugin_transport_https.la
  HTTPS_PLUGIN_TEST = test_plugin_transport_https
  HTTPS_API_TEST = test_transport_api_https
@@ -23,9 +23,12 @@ if USE_COVERAGE
   AM_CFLAGS = --coverage -O0
 endif
 
+if HAVE_PCAP
+WANBIN = gnunet-transport-wlan-helper
+endif
+
 if LINUX
 NATBIN = gnunet-nat-server gnunet-nat-client
-WANBIN = gnunet-wlan
 install-exec-hook:
 	chown root $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client $(bindir)/gnunet-wlan || true
 	chmod u+s $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client $(bindir)/gnunet-wlan || true
@@ -54,16 +57,16 @@ bin_PROGRAMS = \
  gnunet-transport \
  $(WANBIN) \
  gnunet-service-transport $(NATBIN)
- 
+
 bin_SCRIPTS = \
  gnunet-transport-certificate-creation
 
 gnunet_nat_server_SOURCES = \
  gnunet-nat-server.c         
 
-gnunet_wlan_SOURCES = \
+gnunet_transport_wlan_helper_SOURCES = \
  gnunet-transport-wlan-helper.c         
-gnunet_wlan_LDADD = \
+gnunet_transport_wlan_helper_LDADD = \
  -lpcap
 
 gnunet_nat_client_SOURCES = \

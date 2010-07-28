@@ -346,6 +346,38 @@ AM_CONDITIONAL(HAVE_POSTGRES, test x$postgres = xtrue)
 AC_SUBST(POSTGRES_CPPFLAGS)
 AC_SUBST(POSTGRES_LDFLAGS)
 
+# test for pcap
+pcap=false
+AC_MSG_CHECKING(for libpcap)
+AC_ARG_WITH(pcap,
+  [  --with-pcap=PFX       base of pcap installation],
+  [AC_MSG_RESULT("$with_pcap")
+   case $with_pcap in
+   no)
+     ;;
+   yes)
+    AC_CHECK_HEADERS(pcap.h,
+     pcap=true)
+     ;;
+   *)
+    LDFLAGS="-L$with_pcap/lib $LDFLAGS"
+    CPPFLAGS="-I$with_pcap/include $CPPFLAGS"
+    AC_CHECK_HEADERS(pcap.h,
+     EXT_LIB_PATH="-L$with_pcap/lib $EXT_LIB_PATH"
+     PCAP_LDFLAGS="-L$with_pcap/lib"
+     PCAP_CPPFLAGS="-I$with_pcap/include"
+     pcap=true)
+    LDFLAGS=$SAVE_LDFLAGS
+    CPPFLAGS=$SAVE_CPPFLAGS
+    ;;
+   esac
+  ],
+  [AC_MSG_RESULT([--with-pcap not specified])
+    AC_CHECK_HEADERS(pcap.h, pcap=true)])
+AM_CONDITIONAL(HAVE_PCAP, test x$pcap = xtrue)
+AC_SUBST(PCAP_CPPFLAGS)
+AC_SUBST(PCAP_LDFLAGS)
+
 
 # test for libz (maybe required for linking mysql)
 zlib=1
