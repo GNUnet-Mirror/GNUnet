@@ -37,7 +37,7 @@
 #include <getopt.h>
 #include <pcap.h>
 #include <endian.h>
-#include <pcap/pcap.h>
+#include <pcap.h>
 
 
 typedef unsigned int u32;
