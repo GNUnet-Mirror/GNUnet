@@ -23,11 +23,6 @@
   - implement DHT service 
   - implement performance tests
 * GNUNET-GTK: [CG]
-  - implement publish dialog details:
-    + open (import directory structure)
-    + normalize keywords (edit subdialog)
-    + set/view previews (edit subdialog)
-    + mark 'insert file' button inconsistent for directories (edit subdialog)
   - right-clicking on search result should open menu that allows:
     + starting recursive download 
     + aborting active download 
@@ -114,6 +109,11 @@
 * SETUP:
   - design & implement new setup tool
 * GNUNET-GTK:
+  - optimize meta-data for directories in 'add_dir_at_iter'
+  - add progress dialog for 'add_dir_at_iter' scan (can take a while...)
+  - finish publish dialog details:
+    + normalize keywords (edit subdialog)
+    + set/view previews (edit subdialog)
   - add tool bar
 * MONKEY: [Safey]
   - '-m EMAIL' option for alternative e-mail TO
