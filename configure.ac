@@ -811,16 +811,28 @@ then
 fi
 
 AC_MSG_NOTICE([********************************************
-You can build GNUnet with
-	make install
-now. After that, install gnunet-gtk or gnunet-qt and run 
-	gnunet-setup -d wizard-gtk
-(on graphical systems with GTK) or
-	gnunet-setup -d wizard-qt
-(on graphical systems with QT) or
-	gnunet-setup -d wizard-curses
-(on text-based systems with curses) in order to make important configuration
-settings. If neither works for you, you can find a template configuration
-file in the contrib/ subdirectory. Copy it to /etc/gnunetd.conf and modify it
-using your favourite text editor.
+You can compile GNUnet with
+	make
+now. After that, run (if necessary as 'root')
+        make install
+to install everything. You may want to create a new user account
+to run the GNUnet service:
+	adduser gnunet
+You also need to create an configuration file that should
+specify the path where GNUnet should store data.  For example,
+you could store in "/etc/gnunet.conf" the following lines:
+
+[PATHS]
+SERVICEHOME = /opt/gnunet/
+DEFAULTCONFIG = /etc/gnunet.conf
+
+Now, in order to start your peer, run as the 'gnunet' user
+	gnunet-arm -s
+
+Each GNUnet user should also create an (at least initially) empty
+configuration file:
+	mkdir $HOME/.gnunet/
+	touch $HOME/.gnunet/gnunet.conf
+	
+Optionally, download and compile gnunet-gtk to get a GUI.
 ********************************************])
