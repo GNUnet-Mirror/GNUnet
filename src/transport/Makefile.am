@@ -24,7 +24,9 @@ if USE_COVERAGE
 endif
 
 if HAVE_PCAP
+if LINUX
 WANBIN = gnunet-transport-wlan-helper
+endif
 endif
 
 if LINUX
