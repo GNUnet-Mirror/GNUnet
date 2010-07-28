@@ -64,8 +64,8 @@ gnunet_nat_server_SOURCES = \
 
 gnunet_wlan_SOURCES = \
  gnunet-wlan.c         
-gnunet_wlan_LDADD = \
- -lpcap
+#gnunet_wlan_LDADD = \
+# -lpcap
 
 gnunet_nat_client_SOURCES = \
  gnunet-nat-client.c         
