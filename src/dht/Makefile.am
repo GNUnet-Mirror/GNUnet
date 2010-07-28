@@ -61,10 +61,12 @@ libgnunetdht_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:0:0
 
+if HAVE_MYSQL
 STUD_PROGS =  gnunet-service-dht-can \
  gnunet-service-dht-freenet \
  gnunet-service-dht-kademlia \
  gnunet-service-dht-koorde 
+endif
 
 bin_PROGRAMS = $(STUD_PROGS) \
  gnunet-service-dht \
