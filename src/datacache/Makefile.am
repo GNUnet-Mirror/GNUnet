@@ -11,6 +11,9 @@ if USE_COVERAGE
   XLIBS = -lgcov
 endif
 
+if HAVE_SQLITE
+  SQLITE_PLUGIN = libgnunet_plugin_datacache_sqlite.la
+endif
 
 lib_LTLIBRARIES = \
   libgnunetdatacache.la
@@ -27,7 +30,7 @@ libgnunetdatacache_la_LDFLAGS = \
 
 
 plugin_LTLIBRARIES = \
-  libgnunet_plugin_datacache_sqlite.la \
+  $(SQLITE_PLUGIN) \
   libgnunet_plugin_datacache_template.la 
 
 
@@ -47,10 +50,14 @@ libgnunet_plugin_datacache_template_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 
-check_PROGRAMS = \
+if HAVE_SQLITE
+  SQLITE_TESTS = \
  test_datacache \
  test_datacache_quota \
  perf_datacache 
+endif
+
+check_PROGRAMS = $(SQLITE_TESTS) 
 
 if !DISABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)

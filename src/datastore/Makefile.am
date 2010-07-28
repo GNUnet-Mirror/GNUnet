@@ -35,9 +35,12 @@ gnunet_service_datastore_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 
+if HAVE_SQLITE
+  SQLITE_PLUGIN = libgnunet_plugin_datastore_sqlite.la
+endif
 
 plugin_LTLIBRARIES = \
-  libgnunet_plugin_datastore_sqlite.la \
+  $(SQLITE_PLUGIN) \
   libgnunet_plugin_datastore_template.la 
 
 
@@ -57,11 +60,17 @@ libgnunet_plugin_datastore_template_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 
-check_PROGRAMS = \
+if HAVE_SQLITE
+SQLITE_TESTS = \
  test_datastore_api \
  test_datastore_api_management \
  perf_datastore_api \
  perf_plugin_datastore
+
+endif
+
+check_PROGRAMS = \
+  $(SQLITE_TESTS)
 
 if !DISABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
