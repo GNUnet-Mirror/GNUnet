@@ -30,7 +30,7 @@ install-exec-hook:
 	chmod u+s $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client || true
 else
 install-exec-hook:
-	gnunet-transport-plugin-certificate-creation
+	gnunet-transport-certificate-creation
 endif
 
 
