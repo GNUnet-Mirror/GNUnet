@@ -49,6 +49,8 @@
 #define INBOUND GNUNET_NO
 #define OUTBOUND GNUNET_YES
 
+#define PROTOCOL_PREFIX "https"
+
 /**
  * Text of the response sent back after the last bytes of a PUT
  * request have been received (just to formally obey the HTTP
@@ -424,7 +426,7 @@ static char * create_url(void * cls, const void * addr, size_t addrlen, size_t i
 
   GNUNET_assert ((addr!=NULL) && (addrlen != 0));
   GNUNET_asprintf(&url,
-                  "https://%s/%s;%u",
+                  "%s://%s/%s;%u", PROTOCOL_PREFIX,
                   http_plugin_address_to_string(NULL, addr, addrlen),
                   (char *) (&plugin->my_ascii_hash_ident),id);
 
@@ -2133,7 +2135,7 @@ http_plugin_address_pretty_printer (void *cls,
     asc (asc_cls, NULL);
     return;
   }
-  res = GNUNET_asprintf(&ret,"https://%s:%u/",address,port);
+  res = GNUNET_asprintf(&ret,"%s://%s:%u/", PROTOCOL_PREFIX, address,port);
   GNUNET_free (address);
   GNUNET_assert(res != 0);
   asc (asc_cls, ret);
