@@ -36,7 +36,7 @@
     + download resume
     + publish resume
     + publish error
-  - implement new-pseudonym and advertise-pseudonym dialogs
+  - implement advertise-pseudonym dialog
   - namespace search
   - NS list in search dialog should use colors to offset our own namespaces from the others
   - double-clicking on NS list in search dialog should move 'root' to keyword line
