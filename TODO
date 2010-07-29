@@ -4,10 +4,6 @@
     [On W32, we need to select after calling socket before doing connect etc.]
 * TRANSPORT:
   - HTTP backend [MW]
-  - UDP fails non-deterministically on niko; suspect that it uses hostname-derived,
-    invalid 10.0.0.x address for test-message (which creates transmission failure) [CG]
-  - Jun 27 11:51:54 core-7670 ERROR Assertion failed at gnunet-service-core.c:3616.
-    (transport notified us that we connected to ourselves!!!)
 * CORE:
   - transport-level disconnect (i.e. TCP) does not cause core-level
     disconnect in a timely fashion (waits for connection timeout);
@@ -36,18 +32,19 @@
     + download resume
     + publish resume
     + publish error
-  - implement advertise-pseudonym dialog
-  - namespace search
-  - NS list in search dialog should use colors to offset our own namespaces from the others
-  - double-clicking on NS list in search dialog should move 'root' to keyword line
-  - right-clicking on NS list in search dialog should open menu that allows 
-    + viewing full meta data 
-    + deletion of namespace info
-  - do meaningful update to status line (starting up, peer running, #connections, shutdown, ...)
-  - implement unindex operation (use dialog with all indexed files for selection)
+  - namespaces:
+    + implement advertise-pseudonym dialog
+    + namespace search
+    + NS list in search dialog should use colors to offset our own namespaces from the others
+    + double-clicking on NS list in search dialog should move 'root' to keyword line
+    + right-clicking on NS list in search dialog should open menu that allows 
+      / viewing full meta data 
+      / deletion of namespace info
   - implement download by URI dialog; figure out where to display those downloads!
   - figure out where in the GUI we should show active uploads/unindex operations and allow aborts
-  - handle 'lost parent' case for recursive downloads (need to move children!)
+  - bugs:
+    + handle 'lost parent' case for recursive downloads (need to move children!)
+    + clean up TreeStores in main_window_file_publish on dialog close
 * MONKEY: [Safey]
   - better crash management (attach debugging support, capture and analyze
     debug output, detect random vs. deterministic crashes)
@@ -115,6 +112,8 @@
     + normalize keywords (edit subdialog)
     + set/view previews (edit subdialog)
   - add tool bar
+  - implement unindex operation (use dialog with all indexed files for selection)
+  - do meaningful update to status line (starting up, peer running, #connections, shutdown, ...)
 * MONKEY: [Safey]
   - '-m EMAIL' option for alternative e-mail TO
   - '-f FILENAME' option to write  report to file instead of e-mail (for testing!)
