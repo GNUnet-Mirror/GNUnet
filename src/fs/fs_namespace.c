@@ -505,5 +505,25 @@ GNUNET_FS_namespace_list (struct GNUNET_FS_Handle *h,
   GNUNET_free (dn);
 }
 
+
+
+/**
+ * List all of the identifiers in the namespace for 
+ * which we could produce an update.
+ *
+ * @param namespace namespace to inspect for updateable content
+ * @param ip function to call on each updateable identifier
+ * @param ip_cls closure for ip
+ */
+void
+GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
+				     GNUNET_FS_IdentifierProcessor ip, 
+				     void *ip_cls)
+{
+  GNUNET_break (0);
+}
+
+
+
 /* end of fs_namespace.c */
 
