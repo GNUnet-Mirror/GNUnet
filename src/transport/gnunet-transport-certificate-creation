@@ -16,7 +16,7 @@ if [ $? -ne 0 ]; then
  exit 1
 fi 
 # Create a self-signed certificate in batch mode using rsa key
-openssl req -batch -days 365 -out $2 -new -x509 -key $1 > /dev/null
+   openssl req -batch -days 365 -out $2 -new -x509 -key $1 > /dev/null
 if [ $? -ne 0 ]; then
  rm -f $1 $2
  exit 1

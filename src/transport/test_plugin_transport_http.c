@@ -45,9 +45,10 @@
 #include <arpa/inet.h>
 
 #define VERBOSE GNUNET_NO
-#define DEBUG GNUNET_NO
 #define DEBUG_CURL GNUNET_NO
 #define HTTP_BUFFER_SIZE 2048
+
+#define PROTOCOL_PREFIX "http"
 
 #define PLUGIN libgnunet_plugin_transport_template
 
@@ -396,22 +397,22 @@ shutdown_clean ()
   fail = 0;
   if ((fail_notify_address == GNUNET_YES) || (fail_pretty_printer == GNUNET_YES) || (fail_addr_to_str == GNUNET_YES))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Phase 0: Test plugin functions failed\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Phase 0: Test plugin functions failed\n");
     fail = 1;
   }
   if ((test_no_ident.test_failed == GNUNET_YES) || (test_too_short_ident.test_failed == GNUNET_YES) || (test_too_long_ident.test_failed == GNUNET_YES) || (test_valid_ident.test_failed == GNUNET_YES))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Phase 1: Test connect with wrong data failed\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Phase 1: Test connect with wrong data failed\n");
     fail = 1;
   }
   if ((fail_session_selection_any != GNUNET_NO) || (fail_session_selection_reliable != GNUNET_NO) || (fail_session_selection_session != GNUNET_NO) || (fail_session_selection_session_big != GNUNET_NO))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Phase 2: Test session selection failed\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Phase 2: Test session selection failed\n");
     fail = 1;
   }
   if ((fail_msgs_transmited_to_local_addrs != count_str_addr) || (fail_multiple_msgs_in_transmission != 2) || (fail_msg_transmited_max_size == GNUNET_YES))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Phase 3: Test sending with plugin failed\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Phase 3: Test sending with plugin failed\n");
     fail = 1;
   }
   if (fail != 1)
@@ -676,41 +677,41 @@ static void send_execute (void *cls,
                   {
                     if  ((res->http_result_code==404) && (buffer_in.len==208))
                     {
-                      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer without any peer identification: test passed\n"));
+                      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to peer without any peer identification: test passed\n");
                       res->test_failed = GNUNET_NO;
                     }
                     else
-                      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer without any peer identification: test failed\n"));
+                      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Connecting to peer without any peer identification: test failed\n"));
                   }
                   if (res == &test_too_short_ident)
                   {
                     if  ((res->http_result_code==404) && (buffer_in.len==208))
                     {
-                      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with too short peer identification: test passed\n"));
+                      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to peer with too short peer identification: test passed\n");
                       res->test_failed = GNUNET_NO;
                     }
                     else
-                      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with too short peer identification: test failed\n"));
+                      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Connecting to peer with too short peer identification: test failed\n"));
                   }
                   if (res == &test_too_long_ident)
                   {
                     if  ((res->http_result_code==404) && (buffer_in.len==208))
                       {
-                      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with too long peer identification: test passed\n"));
+                      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to peer with too long peer identification: test passed\n");
                       res->test_failed = GNUNET_NO;
                       }
                     else
-                      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with too long peer identification: test failed\n"));
+                      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Connecting to peer with too long peer identification: test failed\n"));
                   }
                   if (res == &test_valid_ident)
                   {
                     if  ((res->http_result_code==200))
                     {
-                      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with valid peer identification: test passed\n"));
+                      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to peer with valid peer identification: test passed\n");
                       res->test_failed = GNUNET_NO;
                     }
                     else
-                      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with valid peer identification: test failed\n"));
+                      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Connecting to peer with valid peer identification: test failed\n");
                   }
                   curl_easy_cleanup(curl_handle);
                   curl_handle=NULL;
@@ -960,8 +961,8 @@ static void run_connection_tests( int phase , void * cls)
     {
       /* Connecting to peer without identification */
       char * ident = "";
-      GNUNET_asprintf (&host_str, "http://%s/%s",test_addr,ident);
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer without any peer identification.\n"));
+      GNUNET_asprintf (&host_str, "%s://%s/%s",PROTOCOL_PREFIX, test_addr,ident);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Connecting to peer without any peer identification.\n"));
       test_no_ident.test_executed = GNUNET_YES;
       send_data ( &test_no_ident, host_str);
       GNUNET_free (host_str);
@@ -971,8 +972,8 @@ static void run_connection_tests( int phase , void * cls)
     {
       char * ident = "AAAAAAAAAA";
       /* Connecting to peer with too short identification */
-      GNUNET_asprintf (&host_str, "http://%s/%s",test_addr,ident);
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with too short peer identification.\n"));
+      GNUNET_asprintf (&host_str, "%s://%s/%s",PROTOCOL_PREFIX,test_addr,ident);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Connecting to peer with too short peer identification.\n"));
       test_too_short_ident.test_executed = GNUNET_YES;
       send_data ( &test_too_short_ident, host_str);
       GNUNET_free (host_str);
@@ -984,8 +985,8 @@ static void run_connection_tests( int phase , void * cls)
       char * ident = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
       /* Connecting to peer with too long identification */
-      GNUNET_asprintf (&host_str, "http://%s/%s",test_addr,ident);
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with too long peer identification.\n"));
+      GNUNET_asprintf (&host_str, "%s://%s/%s",PROTOCOL_PREFIX, test_addr,ident);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Connecting to peer with too long peer identification.\n"));
       test_too_long_ident.test_executed = GNUNET_YES;
       send_data ( &test_too_long_ident, host_str);
       GNUNET_free (host_str);
@@ -995,8 +996,8 @@ static void run_connection_tests( int phase , void * cls)
     {
       struct GNUNET_CRYPTO_HashAsciiEncoded ident;
       GNUNET_CRYPTO_hash_to_enc(&my_identity.hashPubKey,&ident);
-      GNUNET_asprintf (&host_str, "http://%s/%s%s",test_addr,(char *) &ident,";0");
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connecting to peer with valid peer identification.\n"));
+      GNUNET_asprintf (&host_str, "%s://%s/%s%s",PROTOCOL_PREFIX, test_addr,(char *) &ident,";0");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Connecting to peer with valid peer identification.\n"));
       test_valid_ident.test_executed = GNUNET_YES;
       send_data ( &test_valid_ident, host_str);
       GNUNET_free (host_str);
@@ -1005,7 +1006,7 @@ static void run_connection_tests( int phase , void * cls)
   }
   if (phase==1)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("\nPhase 1: transmit data to all suggested addresses\n\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\nPhase 1: transmit data to all suggested addresses\n\n");
     /* Using one of the addresses the plugin proposed */
     GNUNET_assert (addr_head->addr != NULL);
 
@@ -1052,7 +1053,7 @@ static void run_connection_tests( int phase , void * cls)
     struct Session * session = cls;
     msg = GNUNET_malloc (sizeof(struct GNUNET_MessageHeader));
 
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("\nPhase 2: session selection\n\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Phase 2: session selection\n\n");
     size = sizeof(struct GNUNET_MessageHeader);
     msg->size=htons(size);
     msg->type = htons(20);
@@ -1082,12 +1083,12 @@ static void run_connection_tests( int phase , void * cls)
   if (phase==3)
   {
 
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("\nPhase 3: send multiple or big messages after disconnect\n\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Phase 3: send multiple or big messages after disconnect\n\n");
     /* disconnect from peer, so new connections are created */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Disconnect from peer: `%s'\n", GNUNET_i2s(&my_identity));
     api->disconnect(api->cls, &my_identity);
 
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Phase 3: sending messages\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Phase 3: sending messages\n");
     /* send a multiple GNUNET_messages at a time*/
     size = 2 * sizeof(struct GNUNET_MessageHeader);
     msg = GNUNET_malloc( 2* size);
@@ -1160,8 +1161,7 @@ run (void *cls,
                                                 "HOSTKEY", &keyfile)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _
-                  ("Transport service is lacking key configuration settings.  Exiting.\n"));
+                  _("Transport service is lacking key configuration settings.  Exiting.\n"));
       GNUNET_SCHEDULER_shutdown (s);
       fail = 1;
       return;
@@ -1219,7 +1219,7 @@ run (void *cls,
 
   /* testing plugin functionality */
   GNUNET_assert (0!=fail_notify_address_count);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Transport plugin returned %u addresses to connect to\n"),  fail_notify_address_count);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transport plugin returned %u addresses to connect to\n",  fail_notify_address_count);
 
   /* testing pretty printer with all addresses obtained from the plugin*/
   cur = addr_head;
@@ -1293,7 +1293,7 @@ run (void *cls,
 
   test_addr = (char *) api->address_to_string (api->cls,addr_head->addr,addr_head->addrlen);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("\nPhase 0\n\n"));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Phase 0\n\n"));
   run_connection_tests(0, NULL);
 
   /* testing finished */
