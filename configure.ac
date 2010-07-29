@@ -189,7 +189,7 @@ fi
 
 
 # libcurl
-LIBCURL_CHECK_CONFIG(,7.18.0,,AC_MSG_ERROR([GNUnet requires libcurl >= 7.18.0]))
+LIBCURL_CHECK_CONFIG(,7.20.1,,AC_MSG_ERROR([GNUnet requires libcurl >= 7.20.1]))
 # restore LIBS
 LIBS=$SAVE_LIBS
 
