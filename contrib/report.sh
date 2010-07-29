@@ -81,8 +81,7 @@ else
   echo "libextractor   : Not Found"
 fi
 
-TEST=`$WHICH gnunetd 2>/dev/null`
-if test -n "$TEST"; then
+if test -x gnunetd; then
   gnunetd -v | sed -e "s/v//" 2>/dev/null |\
     awk '{print "GNUnet 0.8     : "$2 (may conflict!)}'
 else
