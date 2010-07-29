@@ -10,13 +10,13 @@ fi
 rm -f $1 $2
 
 # Create RSA Private Key
-openssl genrsa -out $1 1024 2> /dev/null
+openssl genrsa -out $1 1024 > /dev/null
 if [ $? -ne 0 ]; then
  rm -f $1 $2
  exit 1
 fi 
 # Create a self-signed certificate in batch mode using rsa key
-openssl req -batch -days 365 -out $2 -new -x509 -key $1 2> /dev/null
+openssl req -batch -days 365 -out $2 -new -x509 -key $1 > /dev/null
 if [ $? -ne 0 ]; then
  rm -f $1 $2
  exit 1
