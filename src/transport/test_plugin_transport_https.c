@@ -44,7 +44,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 #define DEBUG_CURL GNUNET_NO
 #define HTTP_BUFFER_SIZE 2048
 
@@ -1207,8 +1207,8 @@ run (void *cls,
 
   /* load plugins... */
   setup_plugin_environment ();
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading HTTPS transport plugin `%s'\n"),"libgnunet_plugin_transport_http");
   GNUNET_asprintf (&libname, "libgnunet_plugin_transport_https");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading HTTPS transport plugin `%s'\n"),libname);
   api = GNUNET_PLUGIN_load (libname, &env);
   GNUNET_free (libname);
   if (api == NULL)

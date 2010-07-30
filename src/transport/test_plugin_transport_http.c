@@ -1203,8 +1203,8 @@ run (void *cls,
 
   /* load plugins... */
   setup_plugin_environment ();
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading HTTP transport plugin `%s'\n"),"libgnunet_plugin_transport_http");
   GNUNET_asprintf (&libname, "libgnunet_plugin_transport_http");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading HTTP transport plugin `%s'\n"),libname);
   api = GNUNET_PLUGIN_load (libname, &env);
   GNUNET_free (libname);
   if (api == NULL)
@@ -1214,6 +1214,7 @@ run (void *cls,
     fail = 1;
     return;
   }
+
 
   ti_timeout = GNUNET_SCHEDULER_add_delayed (sched, TEST_TIMEOUT, &task_timeout, NULL);
 
