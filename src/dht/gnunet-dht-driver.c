@@ -22,12 +22,7 @@
  * @brief Driver for setting up a group of gnunet peers and
  *        then issuing GETS and PUTS on the DHT.  Coarse results
  *        are reported, fine grained results (if requested) are
- *        logged to a (mysql) database.
- *
- *  TODO: Add multiple database support; alternatively, dump
- *        sql readable (or easily transformed) logs to disk
- *        for reassembly later.  This could remove the mysql
- *        server as a bottleneck during testing.
+ *        logged to a (mysql) database, or to file.
  */
 #include "platform.h"
 #include "gnunet_testing_lib.h"
@@ -36,7 +31,7 @@
 #include "dhtlog.h"
 
 /* DEFINES */
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 /* Timeout for entire driver to run */
 #define DEFAULT_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5)
@@ -405,6 +400,7 @@ put_disconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 static void
 finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Ending test normally!\n", (char *)cls);
   GNUNET_assert (pg != NULL);
   struct TestPutContext *test_put = all_puts;
   struct TestGetContext *test_get = all_gets;
@@ -433,17 +429,20 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 
   /* FIXME: optionally get stats for dropped messages, etc. */
   if (dhtlog_handle != NULL)
-    dhtlog_handle->update_trial (trialuid, 0, 0, 0);
+    {
+      fprintf(stderr, "Update trial endtime\n");
+      dhtlog_handle->update_trial (trialuid, 0, 0, 0);
+    }
 
   if (hostkey_meter != NULL)
     free_meter(hostkey_meter);
-  if (hostkey_meter != NULL)
+  if (peer_start_meter != NULL)
     free_meter(peer_start_meter);
-  if (hostkey_meter != NULL)
+  if (peer_connect_meter != NULL)
     free_meter(peer_connect_meter);
-  if (hostkey_meter != NULL)
+  if (put_meter != NULL)
     free_meter(put_meter);
-  if (hostkey_meter != NULL)
+  if (get_meter != NULL)
     free_meter(get_meter);
 
   ok = 0;
@@ -458,7 +457,7 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failing test with error: `%s'!\n", (char *)cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Failing test with error: `%s'!\n", (char *)cls);
 
   struct TestPutContext *test_put = all_puts;
   struct TestGetContext *test_get = all_gets;
@@ -485,15 +484,22 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 
   GNUNET_TESTING_daemons_stop (pg, DEFAULT_TIMEOUT, &shutdown_callback, NULL);
 
+  /* FIXME: optionally get stats for dropped messages, etc. */
+  if (dhtlog_handle != NULL)
+    {
+      fprintf(stderr, "Update trial endtime\n");
+      dhtlog_handle->update_trial (trialuid, 0, 0, 0);
+    }
+
   if (hostkey_meter != NULL)
     free_meter(hostkey_meter);
-  if (hostkey_meter != NULL)
+  if (peer_start_meter != NULL)
     free_meter(peer_start_meter);
-  if (hostkey_meter != NULL)
+  if (peer_connect_meter != NULL)
     free_meter(peer_connect_meter);
-  if (hostkey_meter != NULL)
+  if (put_meter != NULL)
     free_meter(put_meter);
-  if (hostkey_meter != NULL)
+  if (get_meter != NULL)
     free_meter(get_meter);
 
   ok = 1;
@@ -613,6 +619,7 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
     }
   if (test_get == NULL)
     return; /* End of the list */
+
   memset(data, test_get->uid, sizeof(data));
   GNUNET_CRYPTO_hash(data, test_data_size, &key);
 
@@ -654,6 +661,9 @@ put_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   outstanding_puts--;
   puts_completed++;
 
+  if (tc->reason == GNUNET_SCHEDULER_REASON_TIMEOUT)
+    fprintf(stderr, "PUT Request failed!\n");
+
   GNUNET_SCHEDULER_cancel(sched, test_put->disconnect_task);
   test_put->disconnect_task = GNUNET_SCHEDULER_add_now(sched, &put_disconnect_task, test_put);
   if (GNUNET_YES == update_meter(put_meter))
@@ -662,7 +672,7 @@ put_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
       GNUNET_SCHEDULER_cancel (sched, die_task);
       die_task = GNUNET_SCHEDULER_add_delayed (sched, all_get_timeout,
                                                &end_badly, "from do gets");
-      GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 100), &do_get, all_gets);
+      GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time), &do_get, all_gets);
       return;
     }
 }
@@ -749,7 +759,7 @@ setup_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
       all_gets = test_get;
     }
 
-  GNUNET_SCHEDULER_cancel (sched, die_task);
+  /*GNUNET_SCHEDULER_cancel (sched, die_task);*/
   die_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, num_puts * 2),
                                            &end_badly, "from do puts");
   GNUNET_SCHEDULER_add_now (sched, &do_put, all_puts);
@@ -805,8 +815,8 @@ topology_callback (void *cls,
         dhtlog_handle->update_connections (trialuid, total_connections);
 
       GNUNET_SCHEDULER_cancel (sched, die_task);
-      die_task = GNUNET_SCHEDULER_add_delayed (sched, DEFAULT_TIMEOUT,
-                                               &end_badly, "from setup puts/gets");
+      /*die_task = GNUNET_SCHEDULER_add_delayed (sched, DEFAULT_TIMEOUT,
+                                               &end_badly, "from setup puts/gets");*/
 
       GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time), &setup_puts_and_gets, NULL);
     }
@@ -947,6 +957,8 @@ run (void *cls,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  struct GNUNET_TESTING_Host *hosts;
+  struct GNUNET_TESTING_Host *temphost;
   char * topology_str;
   char * connect_topology_str;
   char * blacklist_topology_str;
@@ -956,8 +968,14 @@ run (void *cls,
   char * topology_percentage_str;
   float topology_percentage;
   char * topology_probability_str;
+  char * hostfile;
   float topology_probability;
   unsigned long long temp_config_number;
+  char *buf;
+  char *data;
+
+  struct stat frstat;
+  int count;
 
   sched = s;
 
@@ -986,8 +1004,60 @@ run (void *cls,
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "dht_testing", "comment",
-                                                 &trialmessage))
+                                             &trialmessage))
     trialmessage = NULL;
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "hostfile",
+                                             &hostfile))
+    hostfile = NULL;
+
+  hosts = NULL;
+  if (hostfile != NULL)
+    {
+      if (GNUNET_OK != GNUNET_DISK_file_test (hostfile))
+          GNUNET_DISK_fn_write (hostfile, NULL, 0, GNUNET_DISK_PERM_USER_READ
+            | GNUNET_DISK_PERM_USER_WRITE);
+      if ((0 != STAT (hostfile, &frstat)) || (frstat.st_size == 0))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      "Could not open file specified for host list, ending test!");
+          ok = 1119;
+          GNUNET_free_non_null(trialmessage);
+          GNUNET_free(hostfile);
+          return;
+        }
+
+    data = GNUNET_malloc_large (frstat.st_size);
+    GNUNET_assert(data != NULL);
+    if (frstat.st_size !=
+        GNUNET_DISK_fn_read (hostfile, data, frstat.st_size))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Could not read file %s specified for host list, ending test!", hostfile);
+        GNUNET_free (hostfile);
+        GNUNET_free (data);
+        return;
+      }
+
+    buf = data;
+    count = 0;
+    while (count < frstat.st_size)
+      {
+        count++;
+        if (((data[count] == '\n') || (data[count] == '\0')) && (buf != &data[count]))
+          {
+            data[count] = '\0';
+            temphost = GNUNET_malloc(sizeof(struct GNUNET_TESTING_Host));
+            temphost->hostname = buf;
+            temphost->next = hosts;
+            hosts = temphost;
+            buf = &data[count + 1];
+          }
+        else if ((data[count] == '\n') || (data[count] == '\0'))
+          buf = &data[count + 1];
+      }
+    }
 
   if (GNUNET_OK !=
           GNUNET_CONFIGURATION_get_value_number (cfg, "dht_testing", "malicious_getters",
@@ -1199,7 +1269,7 @@ run (void *cls,
   hostkey_meter = create_meter(peers_left, "Hostkeys created ", GNUNET_YES);
   peer_start_meter = create_meter(peers_left, "Peers started ", GNUNET_YES);
 
-  put_meter = create_meter(num_gets, "Puts completed ", GNUNET_YES);
+  put_meter = create_meter(num_puts, "Puts completed ", GNUNET_YES);
   get_meter = create_meter(num_gets, "Gets completed ", GNUNET_YES);
   pg = GNUNET_TESTING_daemons_start (sched, cfg,
                                      peers_left,
@@ -1207,7 +1277,7 @@ run (void *cls,
                                      &hostkey_callback, NULL,
                                      &peers_started_callback, NULL,
                                      &topology_callback, NULL,
-                                     NULL);
+                                     hosts);
 
 }
 

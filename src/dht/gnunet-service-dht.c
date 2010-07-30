@@ -58,6 +58,12 @@
  */
 #define MINIMUM_PEER_THRESHOLD 20
 
+#define DHT_DEFAULT_FIND_PEER_REPLICATION 20
+
+#define DHT_DEFAULT_FIND_PEER_OPTIONS GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE
+
+#define DHT_DEFAULT_FIND_PEER_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5)
+
 /**
  * Real maximum number of hops, at which point we refuse
  * to forward the message.
@@ -1064,6 +1070,8 @@ add_pending_message (struct ClientList *client,
 }
 
 
+
+
 /**
  * Called when a reply needs to be sent to a client, as
  * a result it found to a GET or FIND PEER request.
@@ -1120,7 +1128,35 @@ static int route_result_message(void *cls,
   struct DHTQueryRecord *record;
   struct DHTRouteSource *pos;
   struct PeerInfo *peer_info;
+  struct GNUNET_MessageHeader *hello_msg;
 
+  /**
+   * If a find peer result message is received and contains a valid
+   * HELLO for another peer, offer it to the transport service.
+   *
+   * FIXME: Check whether we need this peer (based on routing table
+   * fullness) and only try to connect to it conditionally.  This should
+   * reduce trying to connect to say (500) peers when the bucket size will
+   * discard most of them.
+   */
+  if (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_RESULT)
+    {
+      if (ntohs(msg->size) <= sizeof(struct GNUNET_MessageHeader))
+        GNUNET_break_op(0);
+
+      hello_msg = &msg[1];
+      if (ntohs(hello_msg->type) != GNUNET_MESSAGE_TYPE_HELLO)
+      {
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s Received non-HELLO message type in find peer result message!\n", my_short_id, "DHT");
+        GNUNET_break_op(0);
+      }
+      else
+      {
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s Received HELLO message for another peer, offering to transport!\n", my_short_id, "DHT");
+        GNUNET_TRANSPORT_offer_hello(transport_handle, hello_msg);
+      }
+
+    }
   record = GNUNET_CONTAINER_multihashmap_get(forward_list.hashmap, message_context->key);
   if (record == NULL) /* No record of this message! */
     {
@@ -1130,13 +1166,6 @@ static int route_result_message(void *cls,
                 "DHT", GNUNET_h2s (message_context->key), message_context->unique_id);
 #endif
 #if DEBUG_DHT_ROUTING
-
-      /*if ((debug_routes) && (dhtlog_handle != NULL))
-        {
-          dhtlog_handle->insert_query (NULL, message_context->unique_id, DHTLOG_RESULT,
-                                       message_context->hop_count, GNUNET_SYSERR,
-                                       &my_identity, message_context->key);
-        }*/
 
       if ((debug_routes_extended) && (dhtlog_handle != NULL))
         {
@@ -1161,7 +1190,7 @@ static int route_result_message(void *cls,
   pos = record->head;
   while (pos != NULL)
     {
-      if (0 == memcmp(&pos->source, &my_identity, sizeof(struct GNUNET_PeerIdentity))) /* Local client initiated request! */
+      if (0 == memcmp(&pos->source, &my_identity, sizeof(struct GNUNET_PeerIdentity))) /* Local client (or DHT) initiated request! */
         {
 #if DEBUG_DHT
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1169,14 +1198,6 @@ static int route_result_message(void *cls,
                       "DHT", GNUNET_h2s (message_context->key), message_context->unique_id);
 #endif
 #if DEBUG_DHT_ROUTING
-          /*
-          if ((debug_routes) && (dhtlog_handle != NULL))
-            {
-              dhtlog_handle->insert_query (NULL, message_context->unique_id, DHTLOG_RESULT,
-                                           message_context->hop_count, GNUNET_YES,
-                                           &my_identity, message_context->key);
-            }*/
-
           if ((debug_routes_extended) && (dhtlog_handle != NULL))
             {
               dhtlog_handle->insert_route (NULL, message_context->unique_id, DHTLOG_RESULT,
@@ -1406,15 +1427,15 @@ handle_dht_find_peer (void *cls,
       GNUNET_break_op (0);
       return;
     }
+
   find_peer_result = GNUNET_malloc (tsize);
   find_peer_result->type = htons (GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_RESULT);
   find_peer_result->size = htons (tsize);
   memcpy (&find_peer_result[1], my_hello, hello_size);
-#if DEBUG_DHT_HELLO
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "`%s': Sending hello size %d to client.\n",
-                "DHT", hello_size);
-#endif
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "`%s': Sending hello size %d to requesting peer.\n",
+              "DHT", hello_size);
 
   new_msg_ctx = GNUNET_malloc(sizeof(struct DHT_MessageContext));
   memcpy(new_msg_ctx, message_context, sizeof(struct DHT_MessageContext));
@@ -1996,10 +2017,13 @@ static int route_message(void *cls,
           }
 #endif
       break;
-    case GNUNET_MESSAGE_TYPE_DHT_FIND_PEER: /* Check if closest, check options, add to requests seen */
-      cache_response (cls, message_context);
-      if ((message_context->closest == GNUNET_YES) || (message_context->msg_options == GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE))
-        handle_dht_find_peer (cls, msg, message_context);
+    case GNUNET_MESSAGE_TYPE_DHT_FIND_PEER: /* Check if closest and not started by us, check options, add to requests seen */
+      if (0 != memcmp(message_context->peer, &my_identity, sizeof(struct GNUNET_PeerIdentity)))
+      {
+        cache_response (cls, message_context);
+        if ((message_context->closest == GNUNET_YES) || (message_context->msg_options == GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE))
+          handle_dht_find_peer (cls, msg, message_context);
+      }
       break;
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -2079,6 +2103,45 @@ find_active_client (struct GNUNET_SERVER_Client *client)
   ret->next = client_list;
   client_list = ret;
   return ret;
+}
+
+/**
+ * Task to send a find peer message for our own peer identifier
+ * so that we can find the closest peers in the network to ourselves
+ * and attempt to connect to them.
+ *
+ * @param cls closure for this task
+ * @param tc the context under which the task is running
+ */
+static void
+send_find_peer_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_MessageHeader *find_peer_msg;
+  struct DHT_MessageContext message_context;
+  int ret;
+
+  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+    return;
+
+  find_peer_msg = GNUNET_malloc(sizeof(struct GNUNET_MessageHeader));
+  find_peer_msg->size = htons(sizeof(struct GNUNET_MessageHeader));
+  find_peer_msg->type = htons(GNUNET_MESSAGE_TYPE_DHT_FIND_PEER);
+  memset(&message_context, 0, sizeof(struct DHT_MessageContext));
+  message_context.key = &my_identity.hashPubKey;
+  message_context.unique_id = GNUNET_ntohll (GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_WEAK, (uint64_t)-1));
+  message_context.replication = ntohl (DHT_DEFAULT_FIND_PEER_REPLICATION);
+  message_context.msg_options = ntohl (DHT_DEFAULT_FIND_PEER_OPTIONS);
+  message_context.network_size = estimate_diameter();
+  message_context.peer = &my_identity;
+
+  ret = route_message(NULL, find_peer_msg, &message_context);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "`%s:%s': Sent `%s' request to %d peers\n", my_short_id, "DHT",
+              "FIND PEER", ret);
+  GNUNET_SCHEDULER_add_delayed (sched,
+                                DHT_DEFAULT_FIND_PEER_INTERVAL,
+                                &send_find_peer_message, NULL);
 }
 
 /**
@@ -2491,9 +2554,12 @@ run (void *cls,
         {
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                       "Could not connect to mysql logging server, logging will not happen!");
-          return;
         }
     }
+
+  GNUNET_SCHEDULER_add_delayed (sched,
+                                GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30),
+                                &send_find_peer_message, NULL);
 
   cleanup_task = GNUNET_SCHEDULER_add_delayed (sched,
                                                GNUNET_TIME_UNIT_FOREVER_REL,

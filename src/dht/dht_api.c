@@ -365,6 +365,7 @@ finish (struct GNUNET_DHT_Handle *handle, int code)
                                            GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     }
 
+  GNUNET_assert(handle->th == NULL);
   if (pos->unique_id == 0)
     GNUNET_free(pos->msg);
   GNUNET_free (pos);
@@ -570,6 +571,7 @@ service_message_handler (void *cls,
                                               handle->cfg);
       if (handle->current != NULL)
         {
+          handle->th = NULL;
           finish(handle, GNUNET_SYSERR); /* If there was a current message, kill it! */
         }
 #if RETRANSMIT
@@ -686,7 +688,7 @@ GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle)
               "`%s': Called GNUNET_DHT_disconnect\n", "DHT API");
 #endif
   GNUNET_assert (handle != NULL);
-  if (handle->th != NULL)       /* We have a live transmit request in the Aether */
+  if (handle->th != NULL)       /* We have a live transmit request */
     {
       GNUNET_CLIENT_notify_transmit_ready_cancel (handle->th);
       handle->th = NULL;
@@ -1176,6 +1178,7 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
 
   if ((handle->current != NULL) && (handle->retransmit_stage != DHT_RETRANSMITTING))
     {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "handle->current is not null!\n");
       if (cont != NULL)
         {
           GNUNET_SCHEDULER_add_continuation (handle->sched, cont, cont_cls,
@@ -1204,6 +1207,7 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
 
   if (put_route == NULL) /* Route start failed! */
     {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "route start for PUT failed!\n");
       if (cont != NULL)
         {
           GNUNET_SCHEDULER_add_continuation (handle->sched, cont, cont_cls,

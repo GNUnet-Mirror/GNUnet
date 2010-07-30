@@ -22,23 +22,8 @@ lib_LTLIBRARIES = libgnunetdht.la \
  libgnunetdhtlog.la
 
 plugin_LTLIBRARIES = \
- libgnunet_plugin_dhtlog_dummy.la $(MYSQL_PLUGIN)
-
-libgnunet_plugin_dhtlog_dummy_la_SOURCES = \
-  plugin_dhtlog_dummy.c
-libgnunet_plugin_dhtlog_dummy_la_LIBADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(XLIB)
-libgnunet_plugin_dhtlog_dummy_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
-
-libgnunetdhtlog_la_SOURCES = \
-  dhtlog.c dhtlog.h
-libgnunetdhtlog_la_LIBADD = \
-  $(top_builddir)/src/util/libgnunetutil.la
-libgnunetdhtlog_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
-  -version-info 0:0:0
+ libgnunet_plugin_dhtlog_dummy.la $(MYSQL_PLUGIN) \
+ libgnunet_plugin_dhtlog_mysql_dump.la 
 
 if HAVE_MYSQL
 libgnunet_plugin_dhtlog_mysql_la_SOURCES = \
@@ -48,9 +33,31 @@ libgnunet_plugin_dhtlog_mysql_la_LIBADD = \
   $(XLIB)
 libgnunet_plugin_dhtlog_mysql_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS) $(MYSQL_LDFLAGS) -lmysqlclient $(ZLIB_LNK)
-libgnunet_plugin_dhtlog_mysql_la_CPPFLAGS = \
- $(MYSQL_CPPFLAGS) 
 endif 
+
+libgnunet_plugin_dhtlog_dummy_la_SOURCES = \
+  plugin_dhtlog_dummy.c
+libgnunet_plugin_dhtlog_dummy_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(XLIB)
+libgnunet_plugin_dhtlog_dummy_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+ 
+libgnunet_plugin_dhtlog_mysql_dump_la_SOURCES = \
+  plugin_dhtlog_mysql_dump.c
+libgnunet_plugin_dhtlog_mysql_dump_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(XLIB)
+libgnunet_plugin_dhtlog_mysql_dump_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
+libgnunetdhtlog_la_SOURCES = \
+  dhtlog.c dhtlog.h
+libgnunetdhtlog_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la
+libgnunetdhtlog_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  -version-info 0:0:0
 
 libgnunetdht_la_SOURCES = \
   dht_api.c dht.h
@@ -75,7 +82,7 @@ bin_PROGRAMS = $(STUD_PROGS) \
  gnunet-dht-put 
 
 noinst_PROGRAMS = \
- gnunet-dht-driver
+ gnunet-dht-driver ${check_PROGRAMS}
 
 gnunet_service_dht_SOURCES = \
  gnunet-service-dht.c         

@@ -122,6 +122,7 @@ iopen ()
       return GNUNET_SYSERR;
     }
 #undef PINIT
+
   return GNUNET_OK;
 }
 
@@ -160,7 +161,8 @@ add_trial (unsigned long long *trialuid, int num_nodes, int topology,
            int malicious_droppers, char *message)
 {
   int ret;
-  *trialuid = 0;
+  if (trialuid != NULL)
+    *trialuid = 0;
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
@@ -180,11 +182,11 @@ add_trial (unsigned long long *trialuid, int num_nodes, int topology,
   if (ret < 0)
     return GNUNET_SYSERR;
   ret = fprintf(outfile, "execute insert_trial using "
-                         "@num, @topology, @bl, "
-                         "@connect, @c_t_o, @c_t_o_m, @t_p, "
-                         "@t_pr, @puts, @gets, "
-                         "@concurrent, @settle, @rounds, "
-                         "@m_gets, @m_puts, @m_drops, "
+                         "@num, @topology, @t_p, @t_pr,"
+                         " @bl, @connect, @c_t_o,"
+                         "@c_t_o_m, @puts, @gets,"
+                         "@concurrent, @settle, @rounds,"
+                         "@m_gets, @m_puts, @m_drops,"
                          "@message;\n");
 
   ret = fprintf(outfile, "execute select_trial;\n");
@@ -208,7 +210,8 @@ int
 add_dhtkey (unsigned long long *dhtkeyuid, const GNUNET_HashCode * dhtkey)
 {
   int ret;
-  *dhtkeyuid = 0;
+  if (dhtkeyuid != NULL)
+    *dhtkeyuid = 0;
 
   if (outfile == NULL)
     return GNUNET_SYSERR;
@@ -330,7 +333,7 @@ add_connections (unsigned long long trialuid, unsigned int totalConnections)
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "execute update_connections using @conns;\n");
+  ret = fprintf(outfile, "execute update_conn using @conns;\n");
 
   if (ret >= 0)
     return GNUNET_OK;
@@ -361,7 +364,8 @@ add_query (unsigned long long *sqlqueryuid, unsigned long long queryid,
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  *sqlqueryuid = 0;
+  if (sqlqueryuid != NULL)
+    *sqlqueryuid = 0;
 
   if (key != NULL)
     ret = fprintf(outfile, "select dhtkeyuid from dhtkeys where trialuid = @temp_trial and dhtkey = \"%s\" into @temp_dhtkey;\n", GNUNET_h2s_full(key));
@@ -413,7 +417,8 @@ add_route (unsigned long long *sqlqueryuid, unsigned long long queryid,
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  *sqlqueryuid = 0;
+  if (sqlqueryuid != NULL)
+    *sqlqueryuid = 0;
 
   if (key != NULL)
     ret = fprintf(outfile, "select dhtkeyuid from dhtkeys where trialuid = @temp_trial and dhtkey = \"%s\" into @temp_dhtkey;\n", GNUNET_h2s_full(key));

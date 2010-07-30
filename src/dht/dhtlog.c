@@ -65,6 +65,7 @@ GNUNET_DHTLOG_connect (const struct GNUNET_CONFIGURATION_Handle *c)
                   _("Failed to load dhtlog plugin for `%s'\n"), plugin_name);
       GNUNET_free (plugin_name);
       GNUNET_free (plugin);
+      return NULL;
     }
 
   api = plugin->dhtlog_api;
