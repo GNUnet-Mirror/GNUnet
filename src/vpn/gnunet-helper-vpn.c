@@ -122,6 +122,12 @@ int main(int argc, char** argv) {
 	signal(SIGTERM, &term);
 
 	int fd_tun = init_tun(dev);
+
+	if (fd_tun < 0) {
+		fprintf(stderr, "Could not initialize tun-interface: %m\n");
+		exit(1);
+	}
+
 	fprintf(stderr, "Initialized the interface %s as %d.\n", dev, fd_tun);
 
 	// TODO: get this out of argv

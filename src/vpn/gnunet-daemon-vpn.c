@@ -78,6 +78,7 @@ static void start_helper_and_schedule(struct vpn_cls* mycls) {
 
 
 static void restart_helper(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
+	// FIXME: Ratelimit this!
 	struct vpn_cls* mycls = (struct vpn_cls*) cls;
 
 	// Kill the helper
