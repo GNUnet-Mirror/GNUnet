@@ -44,8 +44,8 @@
 #define DEBUG_HTTPS GNUNET_YES
 #define VERBOSE GNUNET_YES
 #define DEBUG_CURL GNUNET_NO
-#define DEBUG_CONNECTIONS GNUNET_NO
-#define DEBUG_SESSION_SELECTION GNUNET_NO
+#define DEBUG_CONNECTIONS GNUNET_YES
+#define DEBUG_SESSION_SELECTION GNUNET_YES
 
 #define INBOUND GNUNET_NO
 #define OUTBOUND GNUNET_YES
@@ -504,7 +504,7 @@ static int remove_session (struct HTTP_PeerContext * pc, struct Session * ps,  i
   /* no sessions left remove peer */
   if (pc->head==NULL)
   {
-#if DEBUG_HTTP
+#if DEBUG_HTTPS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No sessions left for peer `%s', removing context\n",GNUNET_i2s(&pc->identity));
 #endif
 	remove_peer_context_Iterator(plugin, &pc->identity.hashPubKey, pc);
@@ -521,7 +521,7 @@ int remove_peer_context_Iterator (void *cls, const GNUNET_HashCode *key, void *v
   struct Session * tmp = NULL;
   struct HTTP_Message * msg = NULL;
   struct HTTP_Message * msg_tmp = NULL;
-#if DEBUG_HTTP
+#if DEBUG_HTTPS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Freeing context for peer `%s'\n",GNUNET_i2s(&pc->identity));
 #endif
   GNUNET_CONTAINER_multihashmap_remove (plugin->peers, &pc->identity.hashPubKey, pc);
@@ -696,7 +696,7 @@ static void mhd_write_mst_cb (void *cls,
   struct HTTP_PeerContext *pc = ps->peercontext;
   GNUNET_assert(ps != NULL);
   GNUNET_assert(pc != NULL);
-#if DEBUG_HTTP
+#if DEBUG_HTTPS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Connection %X: Forwarding message to transport service, type %u and size %u from `%s' (`%s')\n",
 	      ps,
@@ -930,7 +930,7 @@ mdh_access_cb (void *cls,
     *httpSessionCache = ps;
     if (ps->msgtok==NULL)
       ps->msgtok = GNUNET_SERVER_mst_create (&mhd_write_mst_cb, ps);
-#if DEBUG_HTTP
+#if DEBUG_HTTPS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: HTTPS Daemon has new an incoming `%s' request from peer `%s' (`%s')\n",
                 ps,
                 method,
@@ -1314,7 +1314,7 @@ static void curl_receive_mst_cb  (void *cls,
   struct HTTP_PeerContext *pc = ps->peercontext;
   GNUNET_assert(ps != NULL);
   GNUNET_assert(pc != NULL);
-#if DEBUG_HTTP
+#if DEBUG_HTTPS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Connection %X: Forwarding message to transport service, type %u and size %u from `%s' (`%s')\n",
               ps,
@@ -1955,7 +1955,7 @@ http_plugin_send (void *cls,
 
   GNUNET_assert(cls !=NULL);
 
-#if DEBUG_HTTP
+#if DEBUG_HTTPS
   char * force = GNUNET_malloc(40);
   if (force_address == GNUNET_YES)
     strcpy(force,"forced addr.");
@@ -2038,7 +2038,7 @@ http_plugin_send (void *cls,
     }
     else
     {
-#if DEBUG_HTTP
+#if DEBUG_HTTPS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing session found & and no address given: no way to send this message to peer `%s'!\n", GNUNET_i2s(target));
 #endif
       return GNUNET_SYSERR;
@@ -2331,7 +2331,7 @@ libgnunet_plugin_transport_https_done (void *cls)
   if (plugin->multi_handle!=NULL)
   {
 	  mret = curl_multi_cleanup(plugin->multi_handle);
-#if DEBUG_HTTP
+#if DEBUG_HTTPS
 	  if ( CURLM_OK != mret)
 		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"curl multihandle clean up failed\n");
 #endif
@@ -2350,7 +2350,7 @@ libgnunet_plugin_transport_https_done (void *cls)
   GNUNET_free_non_null(plugin->bind_hostname);
   GNUNET_free (plugin);
   GNUNET_free (api);
-#if DEBUG_HTTP
+#if DEBUG_HTTPS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Unload http plugin complete...\n");
 #endif
   return NULL;
@@ -2373,7 +2373,7 @@ libgnunet_plugin_transport_https_init (void *cls)
   char * cert_file;
 
   GNUNET_assert(cls !=NULL);
-#if DEBUG_HTTP
+#if DEBUG_HTTPS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting https plugin...\n");
 #endif
 
@@ -2614,19 +2614,19 @@ libgnunet_plugin_transport_https_init (void *cls)
 
   if (plugin->http_server_task_v4 != GNUNET_SCHEDULER_NO_TASK)
   {
-#if DEBUG_HTTP
+#if DEBUG_HTTPS
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD with IPv4 bound to %s with port %u\n",(plugin->bind_hostname!=NULL) ? plugin->bind_hostname : "every address",port);
 #endif
   }
   else if ((plugin->http_server_task_v6 != GNUNET_SCHEDULER_NO_TASK) && (plugin->http_server_task_v4 != GNUNET_SCHEDULER_NO_TASK))
   {
-#if DEBUG_HTTP
+#if DEBUG_HTTPS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD with IPv6 bound to %s with port %u\n",(plugin->bind_hostname!=NULL) ? plugin->bind_hostname : "every address", port);
 #endif
   }
   else if ((plugin->http_server_task_v6 != GNUNET_SCHEDULER_NO_TASK) && (plugin->http_server_task_v4 == GNUNET_SCHEDULER_NO_TASK))
   {
-#if DEBUG_HTTP
+#if DEBUG_HTTPS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD with IPv4 and IPv6 bound to %s with port %u\n",(plugin->bind_hostname!=NULL) ? plugin->bind_hostname : "every address", port);
 #endif
   }
