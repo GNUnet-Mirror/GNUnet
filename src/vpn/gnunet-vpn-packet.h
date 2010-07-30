@@ -6,64 +6,64 @@
 
 // Headers
 struct pkt_tun {
-	unsigned flags:16;
-	unsigned type:16;
+	unsigned flags:16 GNUNET_PACKED;
+	unsigned type:16 GNUNET_PACKED;
 };
 
 struct ip6_hdr {
-	unsigned version:4;
-	unsigned tclass:8;
-	unsigned flowlbl:20;
-	unsigned paylgth:16;
-	unsigned nxthdr:8;
-	unsigned hoplmt:8;
+	unsigned version:4 GNUNET_PACKED;
+	unsigned tclass:8 GNUNET_PACKED;
+	unsigned flowlbl:20 GNUNET_PACKED;
+	unsigned paylgth:16 GNUNET_PACKED;
+	unsigned nxthdr:8 GNUNET_PACKED;
+	unsigned hoplmt:8 GNUNET_PACKED;
 	unsigned char sadr[16];
 	unsigned char dadr[16];
 };
 
 struct tcp_pkt {
-	unsigned spt:16;
-	unsigned dpt:16;
-	unsigned seq:32;
-	unsigned ack:32;
-	unsigned off:4;
-	unsigned rsv:4;
-	unsigned flg:8;
-	unsigned wsz:16;
-	unsigned crc:16;
-	unsigned urg:16;
+	unsigned spt:16 GNUNET_PACKED;
+	unsigned dpt:16 GNUNET_PACKED;
+	unsigned seq:32 GNUNET_PACKED;
+	unsigned ack:32 GNUNET_PACKED;
+	unsigned off:4 GNUNET_PACKED;
+	unsigned rsv:4 GNUNET_PACKED;
+	unsigned flg:8 GNUNET_PACKED;
+	unsigned wsz:16 GNUNET_PACKED;
+	unsigned crc:16 GNUNET_PACKED;
+	unsigned urg:16 GNUNET_PACKED;
 };
 
 struct udp_pkt {
-	unsigned spt:16;
-	unsigned dpt:16;
-	unsigned len:16;
-	unsigned crc:16;
+	unsigned spt:16 GNUNET_PACKED;
+	unsigned dpt:16 GNUNET_PACKED;
+	unsigned len:16 GNUNET_PACKED;
+	unsigned crc:16 GNUNET_PACKED;
 };
 
 // DNS-Stuff
 struct dns_pkt {
-	unsigned short id;
+	unsigned short id GNUNET_PACKED;
 
-	unsigned rd:1; // recursion desired (client -> server)
-	unsigned tc:1; // message is truncated
-	unsigned aa:1; // authoritative answer
-	unsigned op:4; // query:0, inverse q.:1, status: 2
-	unsigned qr:1; // query:0, response:1
+	unsigned rd:1 GNUNET_PACKED; // recursion desired (client -> server)
+	unsigned tc:1 GNUNET_PACKED; // message is truncated
+	unsigned aa:1 GNUNET_PACKED; // authoritative answer
+	unsigned op:4 GNUNET_PACKED; // query:0, inverse q.:1, status: 2
+	unsigned qr:1 GNUNET_PACKED; // query:0, response:1
 
-	unsigned rcode:4; // 0 No error
+	unsigned rcode:4 GNUNET_PACKED; // 0 No error
 	                  // 1 Format error
 	                  // 2 Server failure
 	                  // 3 Name Error
 	                  // 4 Not Implemented
 	                  // 5 Refused
-	unsigned z:3;  // reserved
-	unsigned ra:1; // recursion available (server -> client)
+	unsigned z:3 GNUNET_PACKED;  // reserved
+	unsigned ra:1 GNUNET_PACKED; // recursion available (server -> client)
 
-	unsigned short qdcount; // number of questions
-	unsigned short ancount; // number of answers
-	unsigned short nscount; // number of authority-records
-	unsigned short arcount; // number of additional records
+	unsigned short qdcount GNUNET_PACKED; // number of questions
+	unsigned short ancount GNUNET_PACKED; // number of answers
+	unsigned short nscount GNUNET_PACKED; // number of authority-records
+	unsigned short arcount GNUNET_PACKED; // number of additional records
 	unsigned char data[1];
 };
 
