@@ -1588,6 +1588,7 @@ find_closest_peer (const GNUNET_HashCode *hc)
   if (k_buckets[lowest_bucket].peers_size == 0)
     return NULL;
 
+  current_closest = NULL;
   for (bucket = lowest_bucket; bucket < MAX_BUCKETS; bucket++)
     {
       pos = k_buckets[bucket].head;
