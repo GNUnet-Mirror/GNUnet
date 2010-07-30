@@ -43,7 +43,7 @@
 
 #define DEBUG_HTTPS GNUNET_YES
 #define VERBOSE GNUNET_YES
-#define DEBUG_CURL GNUNET_NO
+#define DEBUG_CURL GNUNET_YES
 #define DEBUG_CONNECTIONS GNUNET_YES
 #define DEBUG_SESSION_SELECTION GNUNET_YES
 
@@ -2615,19 +2615,19 @@ libgnunet_plugin_transport_https_init (void *cls)
   if (plugin->http_server_task_v4 != GNUNET_SCHEDULER_NO_TASK)
   {
 #if DEBUG_HTTPS
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD with IPv4 bound to %s with port %u\n",(plugin->bind_hostname!=NULL) ? plugin->bind_hostname : "every address",port);
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting HTTPS Server with IPv4 bound to %s with port %u\n",(plugin->bind_hostname!=NULL) ? plugin->bind_hostname : "every address",port);
 #endif
   }
   else if ((plugin->http_server_task_v6 != GNUNET_SCHEDULER_NO_TASK) && (plugin->http_server_task_v4 != GNUNET_SCHEDULER_NO_TASK))
   {
 #if DEBUG_HTTPS
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD with IPv6 bound to %s with port %u\n",(plugin->bind_hostname!=NULL) ? plugin->bind_hostname : "every address", port);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting HTTPS Server with IPv6 bound to %s with port %u\n",(plugin->bind_hostname!=NULL) ? plugin->bind_hostname : "every address", port);
 #endif
   }
   else if ((plugin->http_server_task_v6 != GNUNET_SCHEDULER_NO_TASK) && (plugin->http_server_task_v4 == GNUNET_SCHEDULER_NO_TASK))
   {
 #if DEBUG_HTTPS
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting MHD with IPv4 and IPv6 bound to %s with port %u\n",(plugin->bind_hostname!=NULL) ? plugin->bind_hostname : "every address", port);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting HTTPS Server with IPv4 and IPv6 bound to %s with port %u\n",(plugin->bind_hostname!=NULL) ? plugin->bind_hostname : "every address", port);
 #endif
   }
   else
