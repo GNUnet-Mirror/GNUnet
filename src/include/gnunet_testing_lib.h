@@ -50,6 +50,15 @@ extern "C"
 struct GNUNET_TESTING_Daemon;
 
 /**
+ * Linked list of hostnames to use for starting daemons.
+ */
+struct GNUNET_TESTING_Host
+{
+  struct GNUNET_TESTING_Host *next;
+  char *hostname;
+};
+
+/**
  * Prototype of a function that will be called whenever
  * a daemon was started by the testing library.
  *
@@ -505,8 +514,8 @@ void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
  * @param cb_cls closure for cb
  * @param connect_callback function to call each time two hosts are connected
  * @param connect_callback_cls closure for connect_callback
- * @param hostnames space-separated list of hostnames to use; can be NULL (to run
- *        everything on localhost).
+ * @param hostnames linked list of hosts to use to start peers on (NULL to run on localhost only)
+ *
  * @return NULL on error, otherwise handle to control peer group
  */
 struct GNUNET_TESTING_PeerGroup *
@@ -520,7 +529,7 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
                               void *cb_cls,
                               GNUNET_TESTING_NotifyConnection
                               connect_callback, void *connect_callback_cls,
-                              const char *hostnames);
+                              const struct GNUNET_TESTING_Host *hostnames);
 
 /**
  * Function which continues a peer group starting up
