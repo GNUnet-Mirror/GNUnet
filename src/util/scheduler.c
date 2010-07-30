@@ -623,6 +623,16 @@ run_ready (struct GNUNET_SCHEDULER_Handle *sched,
  */
 static struct GNUNET_DISK_PipeHandle *sigpipe;
 
+/**
+ * Signal handler called for sigpipe.
+ *
+ * FIXME: what should we do here?
+ */
+static void
+sighandler_pipe ()
+{
+  return;
+}
 
 /**
  * Signal handler called for signals that should cause us to shutdown.
@@ -664,6 +674,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
   struct GNUNET_SIGNAL_Context *shc_term;
   struct GNUNET_SIGNAL_Context *shc_quit;
   struct GNUNET_SIGNAL_Context *shc_hup;
+  struct GNUNET_SIGNAL_Context *shc_pipe;
   unsigned long long last_tr;
   unsigned int busy_wait_warning;
   const struct GNUNET_DISK_FileHandle *pr;
@@ -676,6 +687,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
   GNUNET_assert (sigpipe != NULL);
   pr = GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ);
   GNUNET_assert (pr != NULL);
+  shc_pipe = GNUNET_SIGNAL_handler_install (SIGPIPE, &sighandler_pipe);
   shc_int = GNUNET_SIGNAL_handler_install (SIGINT, &sighandler_shutdown);
   shc_term = GNUNET_SIGNAL_handler_install (SIGTERM, &sighandler_shutdown);
 #ifndef MINGW

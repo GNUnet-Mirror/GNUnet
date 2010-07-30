@@ -478,6 +478,22 @@ GNUNET_h2s (const GNUNET_HashCode * hc)
   return (const char *) ret.encoding;
 }
 
+/**
+ * Convert a hash to a string (for printing debug messages).
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant!
+ *
+ * @param hc the hash code
+ * @return string form; will be overwritten by next call to GNUNET_h2s_full.
+ */
+const char *
+GNUNET_h2s_full (const GNUNET_HashCode * hc)
+{
+  static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
+  GNUNET_CRYPTO_hash_to_enc (hc, &ret);
+  ret.encoding[104] = '\0';
+  return (const char *) ret.encoding;
+}
 
 /**
  * Convert a peer identity to a string (for printing debug messages).
