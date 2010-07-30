@@ -81,7 +81,7 @@ static void restart_helper(void* cls, const struct GNUNET_SCHEDULER_TaskContext*
 	struct vpn_cls* mycls = (struct vpn_cls*) cls;
 
 	// Kill the helper
-	PLIBC_KILL(mycls->helper_pid, SIGTERM);
+	PLIBC_KILL(mycls->helper_pid, SIGKILL);
 	GNUNET_OS_process_wait(mycls->helper_pid);
 
 	// Restart the helper
