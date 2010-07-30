@@ -389,13 +389,18 @@ main (int argc, char *const *argv)
      GNUNET_NO, &GNUNET_GETOPT_set_one, &quiet},
     GNUNET_GETOPT_OPTION_END
   };
-  return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc,
-                              argv,
-                              "gnunet-arm",
-                              gettext_noop
-                              ("Control services and the Automated Restart Manager (ARM)"),
-                              options, &run, NULL)) ? ret : 1;
+
+  if (GNUNET_OK == GNUNET_PROGRAM_run (argc,
+                      argv,
+                      "gnunet-arm",
+                      gettext_noop
+                      ("Control services and the Automated Restart Manager (ARM)"),
+                      options, &run, NULL))
+    {
+      return ret;
+    }
+
+    return 1;
 }
 
 /* end of gnunet-arm.c */

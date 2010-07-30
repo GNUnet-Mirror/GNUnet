@@ -439,7 +439,11 @@ arm_service_report (void *cls,
                                                       "WEAKRANDOM")) &&
       (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (pos->h->cfg,
                                                            "TESTING",
-                                                           "WEAKRANDOM")))
+                                                           "WEAKRANDOM")) &&
+      (GNUNET_NO == GNUNET_CONFIGURATION_have_value (pos->h->cfg,
+                                                     "TESTING",
+                                                     "HOSTFILE")) /* Means we are ONLY running locally */
+                                                           )
     {
       /* we're clearly running a test, don't daemonize */
       pid = do_start_process (NULL,
