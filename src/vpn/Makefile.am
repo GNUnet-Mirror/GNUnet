@@ -9,10 +9,10 @@ if USE_COVERAGE
 endif
 
 if LINUX
-VPNBIN = gnunet-vpn-helper
+VPNBIN = gnunet-helper-vpn
 install-exec-hook:
-	chown root $(bindir)/gnunet-vpn-helper || true
-	chmod u+s $(bindir)/gnunet-vpn-helper || true
+	chown root $(bindir)/gnunet-helper-vpn || true
+	chmod u+s $(bindir)/gnunet-helper-vpn || true
 else
 install-exec-hook:
 endif
@@ -22,8 +22,8 @@ bin_PROGRAMS = \
  gnunet-daemon-vpn $(VPNBIN)
 
 
-gnunet_vpn_helper_SOURCES = \
- gnunet-vpn-helper.c \
+gnunet_helper_vpn_SOURCES = \
+ gnunet-helper-vpn.c \
  gnunet-vpn-helper-p.h \
  gnunet-vpn-tun.h gnunet-vpn-tun.c
 
