@@ -467,7 +467,6 @@ shutdown_clean ()
   GNUNET_DISK_directory_remove ("/tmp/test_plugin_transport_http");
 
   struct stat sbuf;
-
   if (0 == stat (cert_file, &sbuf ))
   {
 	  if (0 == remove(cert_file))

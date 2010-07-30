@@ -36,7 +36,7 @@
 #include "gnunet_transport_service.h"
 #include "transport.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define VERBOSE_ARM GNUNET_NO
 
@@ -85,6 +85,12 @@ static int is_http;
 static int is_https;
 
 static  GNUNET_SCHEDULER_TaskIdentifier die_task;
+
+static char * key_file_p1;
+static char * cert_file_p1;
+
+static char * key_file_p2;
+static char * cert_file_p2;
 
 #if VERBOSE
 #define OKPP do { ok++; fprintf (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
@@ -221,6 +227,63 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
 
+  if (is_https)
+  {
+	  struct stat sbuf;
+	  if (p==&p1)
+	  {
+		  if (GNUNET_CONFIGURATION_have_value (p->cfg,
+				  	  	  	  	  	  	  	   "transport-https", "KEY_FILE"))
+				GNUNET_CONFIGURATION_get_value_string (p->cfg, "transport-https", "KEY_FILE", &key_file_p1);
+		  else
+			  GNUNET_asprintf(&key_file_p1,"https.key");
+		  if (0 == stat (key_file_p1, &sbuf ))
+		  {
+			  if (0 == remove(key_file_p1))
+			      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Successfully removed existing private key file `%s'\n",key_file_p1);
+			  else
+				  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to remove private key file `%s'\n",key_file_p1);
+		  }
+		  if (GNUNET_CONFIGURATION_have_value (p->cfg,"transport-https", "CERT_FILE"))
+			  GNUNET_CONFIGURATION_get_value_string (p->cfg, "transport-https", "CERT_FILE", &cert_file_p1);
+		  else
+			  GNUNET_asprintf(&cert_file_p1,"https.cert");
+		  if (0 == stat (cert_file_p1, &sbuf ))
+		  {
+			  if (0 == remove(cert_file_p1))
+			      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Successfully removed existing certificate file `%s'\n",cert_file_p1);
+			  else
+				  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to remove existing certificate file `%s'\n",cert_file_p1);
+		  }
+	  }
+	  else if (p==&p2)
+	  {
+		  if (GNUNET_CONFIGURATION_have_value (p->cfg,
+				  	  	  	  	  	  	  	   "transport-https", "KEY_FILE"))
+				GNUNET_CONFIGURATION_get_value_string (p->cfg, "transport-https", "KEY_FILE", &key_file_p2);
+		  else
+			  GNUNET_asprintf(&key_file_p2,"https.key");
+		  if (0 == stat (key_file_p2, &sbuf ))
+		  {
+			  if (0 == remove(key_file_p2))
+			      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Successfully removed existing private key file `%s'\n",key_file_p2);
+			  else
+				  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to remove private key file `%s'\n",key_file_p2);
+		  }
+		  if (GNUNET_CONFIGURATION_have_value (p->cfg,"transport-https", "CERT_FILE"))
+			  GNUNET_CONFIGURATION_get_value_string (p->cfg, "transport-https", "CERT_FILE", &cert_file_p2);
+		  else
+			  GNUNET_asprintf(&cert_file_p2,"https.cert");
+		  if (0 == stat (cert_file_p2, &sbuf ))
+		  {
+			  if (0 == remove(cert_file_p2))
+			      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Successfully removed existing certificate file `%s'\n",cert_file_p2);
+			  else
+				  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to remove existing certificate file `%s'\n",cert_file_p2);
+		  }
+	  }
+  }
+
   p->th = GNUNET_TRANSPORT_connect (sched, p->cfg,
                                     NULL, p,
                                     &notify_receive,
@@ -311,10 +374,10 @@ run (void *cls,
       setup_peer (&p2, "test_transport_api_http_peer2.conf");
     }
   else if (is_https)
-    {
-      setup_peer (&p1, "test_transport_api_https_peer1.conf");
-      setup_peer (&p2, "test_transport_api_https_peer2.conf");
-    }
+	{
+	  setup_peer (&p1, "test_transport_api_https_peer1.conf");
+	  setup_peer (&p2, "test_transport_api_https_peer2.conf");
+	}
   GNUNET_assert(p1.th != NULL);
   GNUNET_assert(p2.th != NULL);
 
@@ -345,6 +408,46 @@ check ()
                       options, &run, &ok);
   stop_arm (&p1);
   stop_arm (&p2);
+
+  if (is_https)
+  {
+	  struct stat sbuf;
+	  if (0 == stat (cert_file_p1, &sbuf ))
+	  {
+		  if (0 == remove(cert_file_p1))
+			  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Successfully removed existing certificate file `%s'\n",cert_file_p1);
+		  else
+			  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to remove certfile `%s'\n",cert_file_p1);
+	  }
+
+	  if (0 == stat (key_file_p1, &sbuf ))
+	  {
+		  if (0 == remove(key_file_p1))
+			  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Successfully removed private key file `%s'\n",key_file_p1);
+		  else
+			  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to private key file `%s'\n",key_file_p1);
+	  }
+
+	  if (0 == stat (cert_file_p2, &sbuf ))
+	  {
+		  if (0 == remove(cert_file_p2))
+			  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Successfully removed existing certificate file `%s'\n",cert_file_p2);
+		  else
+			  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to remove certfile `%s'\n",cert_file_p2);
+	  }
+
+	  if (0 == stat (key_file_p2, &sbuf ))
+	  {
+		  if (0 == remove(key_file_p2))
+			  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Successfully removed private key file `%s'\n",key_file_p2);
+		  else
+			  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to private key file `%s'\n",key_file_p2);
+	  }
+	  GNUNET_free(key_file_p1);
+	  GNUNET_free(key_file_p2);
+	  GNUNET_free(cert_file_p1);
+	  GNUNET_free(cert_file_p2);
+  }
   return ok;
 }
 
