@@ -174,7 +174,7 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
 
-  struct vpn_cls* cls = (struct vpn_cls*)malloc(sizeof(struct vpn_cls));
+  struct vpn_cls* cls = GNUNET_malloc(sizeof(struct vpn_cls));
 
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc,
@@ -183,7 +183,7 @@ main (int argc, char *const *argv)
                               gettext_noop ("help text"),
                               options, &run, cls)) ? ret : 1;
 
-  free(cls); // Make clang happy
+  GNUNET_free(cls); // Make clang happy
 }
 
 /* end of gnunet-daemon-vpn.c */

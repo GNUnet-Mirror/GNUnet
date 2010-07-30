@@ -109,7 +109,7 @@ void pp_write_header(char* dest, struct ip6_pkt* pkt) {{{
 }}}
 
 void pkt_printf(struct ip6_pkt* pkt) {{{
-	char* buf = (char*)malloc(strlen(pretty)+1);
+	char* buf = alloca(strlen(pretty)+1);
 	char tmp[9];
 
 	memcpy(buf, pretty, strlen(pretty)+1);
@@ -146,7 +146,6 @@ void pkt_printf(struct ip6_pkt* pkt) {{{
 	}
 
 	printf("%s", buf);
-	free(buf);
 }}}
 
 void pkt_printf_ip6tcp(struct ip6_tcp* pkt) {{{
@@ -267,13 +266,13 @@ void pkt_printf_ip6dns(struct ip6_udp_dns* pkt) {{{
 	printf("\t#ns: %d\n", ntohs(pkt->data.nscount));
 	printf("\t#ar: %d\n", ntohs(pkt->data.arcount));
 	
-	struct dns_query** queries = (struct dns_query**)malloc(qdcount*sizeof(struct dns_query*));
+	struct dns_query** queries = alloca(qdcount*sizeof(struct dns_query*));
 	unsigned int idx = 0;
 
 	int i;
 	for (i = 0; i < qdcount; i++) {
-		queries[i] = (struct dns_query*)malloc(sizeof(struct dns_query));
-		queries[i]->name = (unsigned char*)malloc(255); // see RFC1035
+		queries[i] = alloca(sizeof(struct dns_query));
+		queries[i]->name = alloca(255); // see RFC1035
 		unsigned char* name = queries[i]->name;
 		int len = pkt->data.data[idx++];
 		while (len != 0) {
