@@ -2975,8 +2975,8 @@ GNUNET_TESTING_daemons_continue_startup(struct GNUNET_TESTING_PeerGroup *pg)
  * @param cb_cls closure for cb
  * @param connect_callback function to call each time two hosts are connected
  * @param connect_callback_cls closure for connect_callback
- * @param hostnames space-separated list of hostnames to use; can be NULL (to run
- *        everything on localhost).
+ * @param hostnames linked list of hosts to use to start peers on (NULL to run on localhost only)
+ *
  * @return NULL on error, otherwise handle to control peer group
  */
 struct GNUNET_TESTING_PeerGroup *
@@ -2990,12 +2990,15 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
                               void *cb_cls,
                               GNUNET_TESTING_NotifyConnection
                               connect_callback, void *connect_callback_cls,
-                              const char *hostnames)
+                              const struct GNUNET_TESTING_Host *hostnames)
 {
   struct GNUNET_TESTING_PeerGroup *pg;
-  const char *rpos;
+  const struct GNUNET_TESTING_Host *hostpos;
+#if 0
   char *pos;
+  const char *rpos;
   char *start;
+#endif
   const char *hostname;
   char *baseservicehome;
   char *newservicehome;
@@ -3022,6 +3025,33 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
   pg->peers = GNUNET_malloc (total * sizeof (struct PeerData));
   if (NULL != hostnames)
     {
+      off = 2;
+      hostpos = hostnames;
+      while (hostpos != NULL)
+        {
+          hostpos = hostpos->next;
+          off++;
+        }
+      pg->hosts = GNUNET_malloc (off * sizeof (struct HostData));
+      off = 0;
+
+      hostpos = hostnames;
+      while (hostpos != NULL)
+        {
+          pg->hosts[off].minport = LOW_PORT;
+          pg->hosts[off++].hostname = GNUNET_strdup(hostpos->hostname);
+          hostpos = hostpos->next;
+        }
+
+      if (off == 0)
+        {
+          GNUNET_free (pg->hosts);
+          pg->hosts = NULL;
+        }
+      hostcnt = off;
+      minport = 0;
+
+#if NO_LL
       off = 2;
       /* skip leading spaces */
       while ((0 != *hostnames) && (isspace ( (unsigned char) *hostnames)))
@@ -3064,6 +3094,7 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
         }
       hostcnt = off;
       minport = 0;              /* make gcc happy */
+#endif
     }
   else
     {
