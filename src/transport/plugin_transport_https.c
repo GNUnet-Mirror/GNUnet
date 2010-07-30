@@ -41,7 +41,8 @@
 #include "microhttpd.h"
 #include <curl/curl.h>
 
-#define DEBUG_HTTPS GNUNET_NO
+#define DEBUG_HTTPS GNUNET_YES
+#define VERBOSE GNUNET_YES
 #define DEBUG_CURL GNUNET_NO
 #define DEBUG_CONNECTIONS GNUNET_NO
 #define DEBUG_SESSION_SELECTION GNUNET_NO
@@ -2558,6 +2559,8 @@ libgnunet_plugin_transport_https_init (void *cls)
 
 
   GNUNET_assert((plugin->key!=NULL) && (plugin->cert!=NULL));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "TLS certificate loaded\n", key_file, cert_file);
+
   GNUNET_assert ((port > 0) && (port <= 65535));
   plugin->port_inbound = port;
   gn_timeout = GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT;
@@ -2664,4 +2667,4 @@ libgnunet_plugin_transport_https_init (void *cls)
   return api;
 }
 
-/* end of plugin_transport_http.c */
+/* end of plugin_transport_https.c */
