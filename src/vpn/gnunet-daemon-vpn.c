@@ -182,6 +182,8 @@ main (int argc, char *const *argv)
                               "gnunet-daemon-vpn",
                               gettext_noop ("help text"),
                               options, &run, cls)) ? ret : 1;
+
+  free(cls); // Make clang happy
 }
 
 /* end of gnunet-daemon-vpn.c */
