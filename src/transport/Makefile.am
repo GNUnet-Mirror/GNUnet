@@ -276,7 +276,8 @@ test_transport_api_reliability_https_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_https_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/util/libgnunetutil.la    
+ $(top_builddir)/src/util/libgnunetutil.la
+     
 endif
 
 EXTRA_DIST = \

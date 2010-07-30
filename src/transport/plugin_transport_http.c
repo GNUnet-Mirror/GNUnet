@@ -2499,9 +2499,17 @@ libgnunet_plugin_transport_http_init (void *cls)
   }
   else
   {
-#if DEBUG_HTTP
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No MHD was started, transport plugin not functional!\n");
-#endif
+	char * tmp;
+	if ((plugin->use_ipv6 == GNUNET_YES) && (plugin->use_ipv4 == GNUNET_YES))
+		GNUNET_asprintf(&tmp,"with IPv4 and IPv6 enabled");
+	if ((plugin->use_ipv6 == GNUNET_NO) && (plugin->use_ipv4 == GNUNET_YES))
+		GNUNET_asprintf(&tmp,"with IPv4 enabled");
+	if ((plugin->use_ipv6 == GNUNET_YES) && (plugin->use_ipv4 == GNUNET_NO))
+		GNUNET_asprintf(&tmp,"with IPv6 enabled");
+	if ((plugin->use_ipv6 == GNUNET_NO) && (plugin->use_ipv4 == GNUNET_NO))
+		GNUNET_asprintf(&tmp,"with NO IP PROTOCOL enabled");
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"HTTP Server with %s could not be started on port %u! https plugin failed!\n",tmp, port);
+	GNUNET_free(tmp);
     libgnunet_plugin_transport_http_done (api);
     return NULL;
   }
@@ -2513,9 +2521,9 @@ libgnunet_plugin_transport_http_init (void *cls)
   if ( NULL == plugin->multi_handle )
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-				   "http",
+				   "https",
 				   _("Could not initialize curl multi handle, failed to start http plugin!\n"),
-				   "transport-http");
+				   "transport-https");
     libgnunet_plugin_transport_http_done (api);
     return NULL;
   }
