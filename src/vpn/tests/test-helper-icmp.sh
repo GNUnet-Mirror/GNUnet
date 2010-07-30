@@ -1,6 +1,6 @@
 #!/bin/bash
 
-/opt/gnunet/bin/gnunet-vpn-helper < ping > result 2>/dev/null &
+/opt/gnunet/bin/gnunet-helper-vpn < ping > result 2>/dev/null &
 
 PID=$!
 
