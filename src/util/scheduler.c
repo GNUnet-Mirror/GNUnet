@@ -621,12 +621,10 @@ run_ready (struct GNUNET_SCHEDULER_Handle *sched,
 /**
  * Pipe used to communicate shutdown via signal.
  */
-static struct GNUNET_DISK_PipeHandle *sigpipe;
+static struct GNUNET_DISK_PipeHandle *shutdown_pipe_handle;
 
 /**
- * Signal handler called for sigpipe.
- *
- * FIXME: what should we do here?
+ * Signal handler called for SIGPIPE.
  */
 static void
 sighandler_pipe ()
@@ -643,7 +641,7 @@ sighandler_shutdown ()
   static char c;
 
   GNUNET_DISK_file_write (GNUNET_DISK_pipe_handle
-                          (sigpipe, GNUNET_DISK_PIPE_END_WRITE), &c,
+                          (shutdown_pipe_handle, GNUNET_DISK_PIPE_END_WRITE), &c,
                           sizeof (c));
 }
 
@@ -682,10 +680,10 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
 
   rs = GNUNET_NETWORK_fdset_create ();
   ws = GNUNET_NETWORK_fdset_create ();
-  GNUNET_assert (sigpipe == NULL);
-  sigpipe = GNUNET_DISK_pipe (GNUNET_NO);
-  GNUNET_assert (sigpipe != NULL);
-  pr = GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ);
+  GNUNET_assert (shutdown_pipe_handle == NULL);
+  shutdown_pipe_handle = GNUNET_DISK_pipe (GNUNET_NO);
+  GNUNET_assert (shutdown_pipe_handle != NULL);
+  pr = GNUNET_DISK_pipe_handle (shutdown_pipe_handle, GNUNET_DISK_PIPE_END_READ);
   GNUNET_assert (pr != NULL);
   shc_pipe = GNUNET_SIGNAL_handler_install (SIGPIPE, &sighandler_pipe);
   shc_int = GNUNET_SIGNAL_handler_install (SIGINT, &sighandler_shutdown);
@@ -764,8 +762,8 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
   GNUNET_SIGNAL_handler_uninstall (shc_quit);
   GNUNET_SIGNAL_handler_uninstall (shc_hup);
 #endif
-  GNUNET_DISK_pipe_close (sigpipe);
-  sigpipe = NULL;
+  GNUNET_DISK_pipe_close (shutdown_pipe_handle);
+  shutdown_pipe_handle = NULL;
   GNUNET_NETWORK_fdset_destroy (rs);
   GNUNET_NETWORK_fdset_destroy (ws);
 }
