@@ -384,6 +384,10 @@ static CURLM *multi_handle;
  */
 static GNUNET_SCHEDULER_TaskIdentifier http_task_send;
 
+
+static char * key_file;
+static char * cert_file;
+
 /**
  * Shutdown testcase
  */
@@ -461,6 +465,27 @@ shutdown_clean ()
 
   GNUNET_SCHEDULER_shutdown(sched);
   GNUNET_DISK_directory_remove ("/tmp/test_plugin_transport_http");
+
+  struct stat sbuf;
+
+  if (0 == stat (cert_file, &sbuf ))
+  {
+	  if (0 == remove(cert_file))
+	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Successfully removed existing certificate file `%s'\n",cert_file);
+	  else
+		  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to remove certfile `%s'\n",cert_file);
+  }
+
+  if (0 == stat (key_file, &sbuf ))
+  {
+	  if (0 == remove(key_file))
+	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Successfully removed private key file `%s'\n",key_file);
+	  else
+		  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to private key file `%s'\n",key_file);
+  }
+
+  GNUNET_free (key_file);
+  GNUNET_free (cert_file);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Exiting testcase\n");
   exit(fail);
@@ -1135,8 +1160,7 @@ run (void *cls,
   unsigned long long tneigh;
   struct Plugin_Address * cur;
   const char * addr_str;
-
-
+  struct stat sbuf;
   unsigned int suggest_res;
 
   fail_pretty_printer = GNUNET_YES;
@@ -1183,6 +1207,50 @@ run (void *cls,
                      _
                      ("Require valid port number for transport plugin `%s' in configuration!\n"),
                      "transport-http");
+  }
+
+  /* Get private key file from config */
+  if (GNUNET_CONFIGURATION_have_value (cfg,
+		  	  	  	  	  	  	  	   "transport-https", "KEY_FILE"))
+  {
+		GNUNET_CONFIGURATION_get_value_string (cfg,
+											   "transport-https",
+											   "KEY_FILE",
+											   &key_file);
+  }
+  else
+  {
+	  GNUNET_asprintf(&key_file,"https.key");
+  }
+
+  if (0 == stat (key_file, &sbuf ))
+  {
+	  if (0 == remove(key_file))
+	      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Successfully removed existing private key file `%s'\n",key_file);
+	  else
+		  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to remove private key file `%s'\n",key_file);
+  }
+
+  /* Get private key file from config */
+  if (GNUNET_CONFIGURATION_have_value (cfg,
+		  	  	  	  	  	  	  	   "transport-https", "CERT_FILE"))
+  {
+	  GNUNET_CONFIGURATION_get_value_string (cfg,
+										   	 "transport-https",
+										     "CERT_FILE",
+										     &cert_file);
+  }
+  else
+  {
+	  GNUNET_asprintf(&cert_file,"https.cert");
+  }
+
+  if (0 == stat (cert_file, &sbuf ))
+  {
+	  if (0 == remove(cert_file))
+	      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Successfully removed existing certificate file `%s'\n",cert_file);
+	  else
+		  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to remove existing certificate file `%s'\n",cert_file);
   }
 
   max_connect_per_transport = (uint32_t) tneigh;
