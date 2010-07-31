@@ -26,7 +26,8 @@
 #define _GNU_SOURCE
 #include <arpa/inet.h>
 #include <linux/if.h>
-
+#include <unistd.h>
+#include <stdlib.h>
 #include <fcntl.h>
 
 #include <sys/types.h>
