@@ -13,51 +13,40 @@
     => "peers connected (transport)" now instantly goes to ZERO (core statistic),
        but "established sessions" stays up...
   - derived key generation [Nils]
-* DHT: [Nate]
-  - implement DHT service 
-  - implement performance tests
+* PWNAT: [Nate/MW/Nils]
+  - W32 port
+* FS: [CG]
+  - implement 'GNUNET_FS_namespace_list_updateable', reconsider API!
 * GNUNET-GTK: [CG]
-  - right-clicking on search result should open menu that allows:
-    + starting recursive download 
-    + aborting active download 
-    + copy URI to clipboard 
-    + save-as gnunet-directory
   - events:
     + implement clear button in search tabs (to stop downloads)
     + search resume
-    + search error
-    + download error
     + download resume
     + publish resume
-    + publish error
   - namespaces:
     + implement advertise-pseudonym dialog
+      / activate menu item if pseudonym is available
+      / select namespace dialog
+      / edit advertisement data (keywords, metadata)
+      / publish operation
+    + namespace publishing
+      / fill tree store with full implementation of 'list_updateable'
     + namespace search
-    + NS list in search dialog should use colors to offset our own namespaces from the others
-    + double-clicking on NS list in search dialog should move 'root' to keyword line
-    + right-clicking on NS list in search dialog should open menu that allows 
-      / viewing full meta data 
-      / deletion of namespace info
-  - implement download by URI dialog; figure out where to display those downloads!
-  - figure out where in the GUI we should show active uploads/unindex operations and allow aborts
+      / fill namespace list in dialog, use if selected
+      / NS list in search dialog should use colors to offset our own namespaces from the others
+      / double-clicking on NS list in search dialog should move 'root' to keyword line
+      / right-clicking on NS list in search dialog should open menu that allows 
+        \ viewing full meta data 
+        \ deletion of namespace info
   - bugs:
     + handle 'lost parent' case for recursive downloads (need to move children!)
     + clean up TreeStores in main_window_file_publish on dialog close
-* MONKEY: [Safey]
-  - better crash management (attach debugging support, capture and analyze
-    debug output, detect random vs. deterministic crashes)
-* TBENCH: [MW]
-  - good to have for transport/DV evaluation! 
-* DV: [Nate]
-  - implement performance tests (needs tbench)
 
 
 0.9.0pre3:
 * Determine RC bugs and fix those!
-* TRACEKIT: [MW]
-  - good to have for DV/DHT evaluation!
 * DATASTORE: [NN]
-  - GNUNET_DATASTORE_cancel method not tested
+  - GNUNET_DATASTORE_cancel method not tested [LT]
 * TESTING: [Nate]
   - test basic peer re-configure 
   - consider changing API for peer-group termination to 
@@ -94,15 +83,6 @@
   - better tracking of which config changes actually need to cause process restarts by ARM.
   - handle gnunet-arm -k in combination with auto-start magic (what is the right thing here?)
   - discover dependencies between services
-* STATISTICS: [NN]
-  - test notification-based statistics API
-  - implement statistics GUI
-* PEERINFO: [NN]
-  - move peerinfo to new GUI?
-  - extend peer dialog with green-yellow-red connectivity status lights
-  - extend peer dialog with country flags and names
-* SETUP:
-  - design & implement new setup tool
 * GNUNET-GTK:
   - optimize meta-data for directories in 'add_dir_at_iter'
   - add progress dialog for 'add_dir_at_iter' scan (can take a while...)
@@ -110,9 +90,18 @@
     + normalize keywords (edit subdialog)
     + set/view previews (edit subdialog)
   - add tool bar
+  - implement download by URI dialog; figure out where to display those downloads!
+  - figure out where in the GUI we should show active uploads/unindex operations and allow aborts
   - implement unindex operation (use dialog with all indexed files for selection)
   - do meaningful update to status line (starting up, peer running, #connections, shutdown, ...)
+  - events:
+    + search error
+    + download error
+    + publish error
+    + unindex error
 * MONKEY: [Safey]
+  - better crash management (attach debugging support, capture and analyze
+    debug output, detect random vs. deterministic crashes)
   - '-m EMAIL' option for alternative e-mail TO
   - '-f FILENAME' option to write  report to file instead of e-mail (for testing!)
 
@@ -120,7 +109,6 @@
 * new webpage:
   - convert documentation pages to books
   - update books (especially for developers)
-  - create good Drupal theme for GNUnet
   - make a NICE download page and figure out how to enable developers to publish TGZs nicely
   - port "contact" page
   - add content type for "todo" items?
@@ -128,13 +116,28 @@
   - datacache
   - datastore
 * Determine RC bugs and fix those!
+* SETUP:
+  - design & implement new setup tool
+* TBENCH: [MW]
+  - good to have for transport/DV evaluation! 
+* TRACEKIT: [MW]
+  - good to have for DV/DHT evaluation!
+* DV:
+  - performance tests
+* DHT: [Nate]
+  - performance tests
+* STATISTICS:
+  - test notification-based statistics API [LT]
+  - implement statistics GUI
+* PEERINFO: [NN]
+  - move peerinfo to new GUI?
+  - extend peer dialog with green-yellow-red connectivity status lights
+  - extend peer dialog with country flags and names
 
 0.9.x:
 * TRANSPORT: [MW]
+  - WiFi transport backend [DB]
   - SMTP transport backend
-  - HTTPS transport backend
-    + improved HTTPS support in MHD
-    + actual plugin
   - Implement method of learning our external addresses from
     other peers; need some kind of threshold-based
     scheme, limiting both the total number of addresses that we accept 
@@ -153,6 +156,8 @@
   - implement gnunet-transport (transport configurator / tester)
   - UPnP-based IP detection
     (Note: build library always, build service when libxml2/etc. are available)
+* DV:
+  - proper bandwidth allocation
 * FS: [CG]
   - Remove KBlocks in gnunet-unindex (see discussion with Kenneth Almquist on gnunet-devs in 9/2009)
 * PEERINFO: [NN]
@@ -160,7 +165,7 @@
     we have not 'used' (for their public keys) in a while; need a way
     to track actual 'use')
   - make sue we also trigger notifications whenever HELLOs expire
-* VPN
+* VPN [PT]
 * UTIL: [CG]
   - allow limiting UNIX socket access by UID/GID
 
@@ -181,9 +186,6 @@ Optimizations:
     (theoretically reduces overhead; bounds messgae queue size)
 * FS:
   - use different queue prioritization for probe-downloads vs. normal downloads (!?)
-* CORE:
-  - encrypted P2P transmission (loopback) tops at 2 MB/s on my quad-core;
-    why is it so slow? Fix! (see core_api_reliability test)
 
 Minor features:
 * TCP:
