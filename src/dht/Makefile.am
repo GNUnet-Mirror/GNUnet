@@ -82,7 +82,7 @@ bin_PROGRAMS = $(STUD_PROGS) \
  gnunet-dht-put 
 
 noinst_PROGRAMS = \
- gnunet-dht-driver ${check_PROGRAMS}
+ gnunet-dht-driver 
 
 gnunet_service_dht_SOURCES = \
  gnunet-service-dht.c         
