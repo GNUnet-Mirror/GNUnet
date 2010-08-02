@@ -1112,6 +1112,32 @@ send_reply_to_client (struct ClientList *client,
   add_pending_message (client, pending_message);
 }
 
+/**
+ * Consider whether or not we would like to have this peer added to
+ * our routing table.  Check whether bucket for this peer is full,
+ * if so return negative; if not return positive.  Since peers are
+ * only added on CORE level connect, this doesn't actually add the
+ * peer to the routing table.
+ *
+ * @param peer the peer we are considering adding
+ *
+ * @return GNUNET_YES if we want this peer, GNUNET_NO if not (bucket
+ *         already full)
+ *
+ * FIXME: Think about making a context for this call so that we can
+ *        ping the oldest peer in the current bucket and consider
+ *        removing it in lieu of the new peer.
+ */
+static int consider_peer (struct GNUNET_PeerIdentity *peer)
+{
+  int bucket;
+
+  bucket = find_current_bucket(&peer->hashPubKey);
+  if ((k_buckets[bucket].peers_size < bucket_size) || ((bucket == lowest_bucket) && (lowest_bucket > 0)))
+    return GNUNET_YES;
+
+  return GNUNET_NO;
+}
 
 /**
  * Main function that handles whether or not to route a result
@@ -1125,6 +1151,7 @@ static int route_result_message(void *cls,
                                 struct GNUNET_MessageHeader *msg,
                                 struct DHT_MessageContext *message_context)
 {
+  struct GNUNET_PeerIdentity new_peer;
   struct DHTQueryRecord *record;
   struct DHTRouteSource *pos;
   struct PeerInfo *peer_info;
@@ -1145,15 +1172,19 @@ static int route_result_message(void *cls,
         GNUNET_break_op(0);
 
       hello_msg = &msg[1];
-      if (ntohs(hello_msg->type) != GNUNET_MESSAGE_TYPE_HELLO)
+      if ((ntohs(hello_msg->type) != GNUNET_MESSAGE_TYPE_HELLO) || (GNUNET_SYSERR == GNUNET_HELLO_get_id(hello_msg, &new_peer)))
       {
         GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s Received non-HELLO message type in find peer result message!\n", my_short_id, "DHT");
         GNUNET_break_op(0);
       }
-      else
+      else /* We have a valid hello, and peer id stored in new_peer */
       {
-        GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s Received HELLO message for another peer, offering to transport!\n", my_short_id, "DHT");
-        GNUNET_TRANSPORT_offer_hello(transport_handle, hello_msg);
+        if (GNUNET_YES == consider_peer(&new_peer))
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s Received HELLO message for another peer, offering to transport!\n", my_short_id, "DHT");
+          GNUNET_TRANSPORT_offer_hello(transport_handle, hello_msg);
+          GNUNET_CORE_peer_request_connect(sched, cfg, GNUNET_TIME_UNIT_FOREVER_REL, &new_peer, NULL, NULL); /* FIXME: Do we need this??? */
+        }
       }
 
     }

@@ -214,7 +214,7 @@ struct GNUNET_DHT_P2PRouteMessage
  *        route message, what should it do?  It can either drop the message
  *        or try to forward it towards the original peer...  However, for
  *        that to work we would need to include the original peer identity
- *        in the GET request, which adds even more data to the message.
+ *        in the GET request, which adds more data to the message.
  */
 struct GNUNET_DHT_P2PRouteResultMessage
 {
