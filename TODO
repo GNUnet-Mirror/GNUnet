@@ -18,11 +18,6 @@
 * FS: [CG]
   - implement 'GNUNET_FS_namespace_list_updateable', reconsider API!
 * GNUNET-GTK: [CG]
-  - events:
-    + implement clear button in search tabs (to stop downloads)
-    + search resume
-    + download resume
-    + publish resume
   - namespaces:
     + implement advertise-pseudonym dialog
       / activate menu item if pseudonym is available
@@ -96,7 +91,6 @@
   - do meaningful update to status line (starting up, peer running, #connections, shutdown, ...)
   - events:
     + search error
-    + download error
     + publish error
     + unindex error
 * MONKEY: [Safey]
