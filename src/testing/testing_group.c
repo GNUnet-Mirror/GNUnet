@@ -665,6 +665,7 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg,
     {
       GNUNET_asprintf(&allowed_hosts, "%s; 127.0.0.1;", control_host);
       GNUNET_CONFIGURATION_set_value_string(uc.ret, "core", "ACCEPT_FROM", allowed_hosts);
+      GNUNET_CONFIGURATION_set_value_string(uc.ret, "transport", "ACCEPT_FROM", allowed_hosts);
       GNUNET_free_non_null(control_host);
       GNUNET_free(allowed_hosts);
     }
