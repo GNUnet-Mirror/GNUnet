@@ -1183,7 +1183,7 @@ send_message (const struct GNUNET_PeerIdentity * recipient,
   memcpy (&toSend[1], message, message_size);
   if ((source != NULL) && (source->pkey == NULL)) /* Test our hypothesis about message failures! */
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s: Sending message, but anticipate recipient will not know sender!!!\n\n\n");
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s: Sending message, but anticipate recipient will not know sender!!!\n\n\n", my_short_id);
     }
   GNUNET_CONTAINER_DLL_insert_after (core_pending_head,
                                      core_pending_tail,
