@@ -254,7 +254,7 @@ static char* dns_classes(short class) {{{
 	return 0;
 }}}
 
-void pkt_printf_ip6dns(struct ip6_udp_dns* pkt) {{{
+void pkt_printf_dns(struct udp_dns* pkt) {{{
 	printf("DNS-Packet:\n");
 	printf("\tid: %d\n", ntohs(pkt->data.id));
 	printf("\t%d: %s\n", pkt->data.qr, pkt->data.qr == 0 ? "query" : "response");
@@ -291,4 +291,12 @@ void pkt_printf_ip6dns(struct ip6_udp_dns* pkt) {{{
 		idx += 2;
 		printf("query for %s type=%d (%s) class=%d (%s)\n", queries[i]->name, ntohs(queries[i]->qtype), dns_types(ntohs(queries[i]->qtype)), ntohs(queries[i]->qclass), dns_classes(ntohs(queries[i]->qclass)));
 	}
+}}}
+
+void pkt_printf_ip6dns(struct ip6_udp_dns* pkt) {{{
+	pkt_printf_dns(&pkt->udp_dns);
+}}}
+
+void pkt_printf_ipdns(struct ip_udp_dns* pkt) {{{
+	pkt_printf_dns(&pkt->udp_dns);
 }}}

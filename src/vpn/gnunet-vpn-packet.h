@@ -100,7 +100,17 @@ struct dns_record {
 	unsigned char* data;
 };
 
+struct udp_dns {
+	struct udp_pkt udp_hdr;
+	struct dns_pkt data;
+};
+
 // Complete Packets
+struct tun_pkt {
+	struct GNUNET_MessageHeader shdr;
+	struct pkt_tun tun;
+};
+
 struct ip6_pkt {
 	struct GNUNET_MessageHeader shdr;
 	struct pkt_tun tun;
@@ -128,8 +138,7 @@ struct ip6_udp_dns {
 	struct GNUNET_MessageHeader shdr;
 	struct pkt_tun tun;
 	struct ip6_hdr ip6_hdr;
-	struct udp_pkt udp_hdr;
-	struct dns_pkt data;
+	struct udp_dns udp_dns;
 };
 
 struct ip_pkt {
@@ -146,12 +155,11 @@ struct ip_udp {
 	struct udp_pkt udp_hdr;
 	unsigned char data[1];
 };
-
 struct ip_udp_dns {
 	struct GNUNET_MessageHeader shdr;
 	struct pkt_tun tun;
 	struct ip_hdr ip_hdr;
-	struct udp_pkt udp_hdr;
-	struct dns_pkt data;
+	struct udp_dns udp_dns;
 };
+
 #endif

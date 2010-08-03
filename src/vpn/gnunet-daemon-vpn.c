@@ -66,7 +66,7 @@ static void start_helper_and_schedule(struct vpn_cls* mycls) {
 	mycls->helper_in = GNUNET_DISK_pipe(1);
 	mycls->helper_out = GNUNET_DISK_pipe(1);
 
-	mycls->helper_pid = GNUNET_OS_start_process(mycls->helper_in, mycls->helper_out, "gnunet-vpn-helper", "gnunet-vpn-helper", NULL);
+	mycls->helper_pid = GNUNET_OS_start_process(mycls->helper_in, mycls->helper_out, "gnunet-helper-vpn", "gnunet-helper-vpn", NULL);
 
 	mycls->fh_from_helper = GNUNET_DISK_pipe_handle (mycls->helper_out, GNUNET_DISK_PIPE_END_READ);
 
@@ -112,23 +112,36 @@ static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* ts
 static void message_token(void *cls, void *client, const struct GNUNET_MessageHeader *message) {
 	if (ntohs(message->type) != GNUNET_MESSAGE_TYPE_VPN_HELPER) return;
 
-	struct ip6_pkt *pkt6 = (struct ip6_pkt*) message;
-	struct ip6_tcp *pkt6_tcp;
-	struct ip6_udp *pkt6_udp;
+	struct tun_pkt *pkt_tun = (struct tun_pkt*) message;
 
-	pkt_printf(pkt6);
-	switch(pkt6->ip6_hdr.nxthdr) {
-		case 0x06:
-			pkt6_tcp = (struct ip6_tcp*)pkt6;
-			pkt_printf_ip6tcp(pkt6_tcp);
-			break;
-		case 0x11:
-			pkt6_udp = (struct ip6_udp*)pkt6;
-			pkt_printf_ip6udp(pkt6_udp);
-			if (ntohs(pkt6_udp->udp_hdr.dpt) == 53) {
-				pkt_printf_ip6dns((struct ip6_udp_dns*)pkt6_udp);
-			}
-			break;
+	fprintf(stderr, "Packet, Type: %x\n", ntohs(pkt_tun->tun.type));
+
+	if (ntohs(pkt_tun->tun.type) == 0x86dd) {
+		struct ip6_pkt *pkt6 = (struct ip6_pkt*) message;
+		struct ip6_tcp *pkt6_tcp;
+		struct ip6_udp *pkt6_udp;
+
+		pkt_printf(pkt6);
+		switch(pkt6->ip6_hdr.nxthdr) {
+			case 0x06:
+				pkt6_tcp = (struct ip6_tcp*)pkt6;
+				pkt_printf_ip6tcp(pkt6_tcp);
+				break;
+			case 0x11:
+				pkt6_udp = (struct ip6_udp*)pkt6;
+				pkt_printf_ip6udp(pkt6_udp);
+				if (ntohs(pkt6_udp->udp_hdr.dpt) == 53) {
+					pkt_printf_ip6dns((struct ip6_udp_dns*)pkt6_udp);
+				}
+				break;
+		}
+	} else if (ntohs(pkt_tun->tun.type) == 0x0800) {
+		struct ip_pkt *pkt = (struct ip_pkt*) message;
+		struct ip_udp *udp = (struct ip_udp*) message;
+		fprintf(stderr, "IPv4\n");
+		if (pkt->ip_hdr.proto == 0x11 && ntohl(udp->ip_hdr.dadr) == 0x0a0a0a02 && ntohs(udp->udp_hdr.dpt) == 53 ) {
+			pkt_printf_ipdns((struct ip_udp_dns*)udp);
+		}
 	}
 
 }
