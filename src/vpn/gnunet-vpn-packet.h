@@ -21,6 +21,24 @@ struct ip6_hdr {
 	unsigned char dadr[16];
 };
 
+struct ip_hdr {
+	unsigned version:4 GNUNET_PACKED;
+	unsigned hdr_lngth:4 GNUNET_PACKED;
+	unsigned diff_serv:8 GNUNET_PACKED;
+	unsigned tot_lngth:16 GNUNET_PACKED;
+
+	unsigned ident:16 GNUNET_PACKED;
+	unsigned flags:3 GNUNET_PACKED;
+	unsigned frag_off:13 GNUNET_PACKED;
+
+	unsigned ttl:8 GNUNET_PACKED;
+	unsigned proto:8 GNUNET_PACKED;
+	unsigned chks:16 GNUNET_PACKED;
+
+	unsigned sadr:32 GNUNET_PACKED;
+	unsigned dadr:32 GNUNET_PACKED;
+};
+
 struct tcp_pkt {
 	unsigned spt:16 GNUNET_PACKED;
 	unsigned dpt:16 GNUNET_PACKED;
@@ -114,4 +132,26 @@ struct ip6_udp_dns {
 	struct dns_pkt data;
 };
 
+struct ip_pkt {
+	struct GNUNET_MessageHeader shdr;
+	struct pkt_tun tun;
+	struct ip_hdr ip_hdr;
+	unsigned char data[1];
+};
+
+struct ip_udp {
+	struct GNUNET_MessageHeader shdr;
+	struct pkt_tun tun;
+	struct ip_hdr ip_hdr;
+	struct udp_pkt udp_hdr;
+	unsigned char data[1];
+};
+
+struct ip_udp_dns {
+	struct GNUNET_MessageHeader shdr;
+	struct pkt_tun tun;
+	struct ip_hdr ip_hdr;
+	struct udp_pkt udp_hdr;
+	struct dns_pkt data;
+};
 #endif
