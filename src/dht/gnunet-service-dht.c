@@ -1155,7 +1155,7 @@ static int route_result_message(void *cls,
   struct DHTQueryRecord *record;
   struct DHTRouteSource *pos;
   struct PeerInfo *peer_info;
-  struct GNUNET_MessageHeader *hello_msg;
+  const struct GNUNET_MessageHeader *hello_msg;
 
   /**
    * If a find peer result message is received and contains a valid
@@ -1172,7 +1172,7 @@ static int route_result_message(void *cls,
         GNUNET_break_op(0);
 
       hello_msg = &msg[1];
-      if ((ntohs(hello_msg->type) != GNUNET_MESSAGE_TYPE_HELLO) || (GNUNET_SYSERR == GNUNET_HELLO_get_id(hello_msg, &new_peer)))
+      if ((ntohs(hello_msg->type) != GNUNET_MESSAGE_TYPE_HELLO) || (GNUNET_SYSERR == GNUNET_HELLO_get_id((const struct GNUNET_HELLO_Message *)hello_msg, &new_peer)))
       {
         GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s Received non-HELLO message type in find peer result message!\n", my_short_id, "DHT");
         GNUNET_break_op(0);
