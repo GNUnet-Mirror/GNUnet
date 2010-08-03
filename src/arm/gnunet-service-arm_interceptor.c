@@ -949,9 +949,6 @@ acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       accept_and_forward (sli);
       return;
     }
-  fprintf (stderr, "forwarding sockets for `%s' (%d)\n",
-	   sli->serviceName,
-	   use_lsocks);
   lsocks = NULL;
   ls = 0;
   next = serviceListeningInfoList_head;
