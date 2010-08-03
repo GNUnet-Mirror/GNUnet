@@ -28,6 +28,7 @@
 #include "platform.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_testing_lib.h"
+#include "gnunet_core_service.h"
 
 #define VERBOSE_TESTING GNUNET_NO
 
@@ -304,6 +305,39 @@ struct HostData
   uint16_t minport;
 };
 
+struct TopologyIterateContext
+{
+  /**
+   * Callback for notifying of two connected peers.
+   */
+  GNUNET_TESTING_NotifyTopology topology_cb;
+
+  /**
+   * Closure for topology_cb
+   */
+  void *cls;
+
+  /**
+   * Number of peers currently connected to.
+   */
+  unsigned int connected;
+
+  /**
+   * Number of peers we have finished iterating.
+   */
+  unsigned int completed;
+
+  /**
+   * Number of peers total.
+   */
+  unsigned int total;
+};
+
+struct TopologyCoreContext
+{
+  struct TopologyIterateContext *topology_context;
+  struct GNUNET_TESTING_Daemon *daemon;
+};
 
 /**
  * Handle to a group of GNUnet peers.
@@ -1946,6 +1980,13 @@ static void internal_connect_notify (void *cls,
 }
 
 
+/**
+ * Either delay a connection (because there are too many outstanding)
+ * or schedule it for right now.
+ *
+ * @param cls a connection context
+ * @param tc the task runtime context
+ */
 static void schedule_connect(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ConnectContext *connect_context = cls;
@@ -2704,6 +2745,100 @@ perform_dfs (struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
       /* And replace with the working set */
       pg->peers[pg_iter].connect_peers = pg->peers[pg_iter].connect_peers_working_set;
     }
+}
+
+/**
+ * Internal callback for topology information for a particular peer.
+ */
+static void
+internal_topology_callback(void *cls,
+                           const struct GNUNET_PeerIdentity *peer,
+                           struct GNUNET_TIME_Relative latency, uint32_t distance)
+{
+  struct TopologyCoreContext *core_ctx = cls;
+  struct TopologyIterateContext *iter_ctx = core_ctx->topology_context;
+
+  if (peer == NULL) /* Either finished, or something went wrongo */
+    {
+      iter_ctx->completed++;
+      iter_ctx->connected--;
+    }
+  else
+    {
+      iter_ctx->topology_cb(iter_ctx->cls, &core_ctx->daemon->id, peer, latency, distance, NULL);
+    }
+
+  if (iter_ctx->completed == iter_ctx->total)
+    {
+      iter_ctx->topology_cb(iter_ctx->cls, NULL, NULL, GNUNET_TIME_relative_get_zero(), 0, NULL);
+      GNUNET_free(iter_ctx);
+      GNUNET_free(core_ctx);
+    }
+}
+
+
+/**
+ * Check running topology iteration tasks, if below max start a new one, otherwise
+ * schedule for some time in the future.
+ */
+static void
+schedule_get_topology(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct TopologyCoreContext *core_context = cls;
+
+  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+    return;
+
+  if (core_context->topology_context->connected > MAX_OUTSTANDING_CONNECTIONS)
+    {
+#if VERBOSE_TESTING > 2
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      _("Delaying connect, we have too many outstanding connections!\n"));
+#endif
+      GNUNET_SCHEDULER_add_delayed(core_context->daemon->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &schedule_connect, core_context);
+    }
+  else
+    {
+#if VERBOSE_TESTING > 2
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      _("Creating connection, outstanding_connections is %d\n"), outstanding_connects);
+#endif
+      core_context->topology_context->connected++;
+      if (GNUNET_OK != GNUNET_CORE_iterate_peers (core_context->daemon->sched, core_context->daemon->cfg, &internal_topology_callback, core_context))
+        internal_topology_callback(core_context, NULL, GNUNET_TIME_relative_get_zero(), 0);
+
+    }
+}
+
+/**
+ * Iterate over all (running) peers in the peer group, retrieve
+ * all connections that each currently has.
+ */
+void
+GNUNET_TESTING_get_topology (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_NotifyTopology cb, void *cls)
+{
+  struct TopologyIterateContext *topology_context;
+  struct TopologyCoreContext *core_ctx;
+  unsigned int i;
+  unsigned int total_count;
+
+  topology_context = GNUNET_malloc(sizeof(struct TopologyIterateContext));
+  topology_context->topology_cb = cb;
+  topology_context->cls = cls;
+  total_count = 0;
+  for (i = 0; i < pg->total; i++)
+    {
+      if (pg->peers[i].daemon->running == GNUNET_YES)
+        {
+          core_ctx = GNUNET_malloc(sizeof(struct TopologyCoreContext));
+          core_ctx->daemon = pg->peers[i].daemon;
+          core_ctx->topology_context = topology_context;
+          GNUNET_SCHEDULER_add_now(pg->sched, &schedule_get_topology, core_ctx);
+          total_count++;
+        }
+    }
+  topology_context->total = total_count;
+  return;
 }
 
 /**
