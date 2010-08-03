@@ -865,6 +865,48 @@ handle_peer_status_change (struct Neighbour *n)
 			    GNUNET_NO);
 }
 
+/**
+ * Handle CORE_ITERATE_PEERS request.
+ */
+static void
+handle_client_iterate_peers (void *cls,
+                    struct GNUNET_SERVER_Client *client,
+                    const struct GNUNET_MessageHeader *message)
+{
+  struct Neighbour *n;
+  struct ConnectNotifyMessage cnm;
+  struct GNUNET_MessageHeader done_msg;
+  struct GNUNET_SERVER_TransmitContext *tc;
+
+  /* notify new client about existing neighbours */
+  cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
+  cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
+  done_msg.size = htons (sizeof (struct GNUNET_MessageHeader));
+  done_msg.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
+  tc = GNUNET_SERVER_transmit_context_create (client);
+  n = neighbours;
+  while (n != NULL)
+    {
+      if (n->status == PEER_STATE_KEY_CONFIRMED)
+        {
+#if DEBUG_CORE_CLIENT
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Sending `%s' message to client.\n", "NOTIFY_CONNECT");
+#endif
+          cnm.distance = htonl (n->last_distance);
+          cnm.latency = GNUNET_TIME_relative_hton (n->last_latency);
+          cnm.peer = n->peer;
+          GNUNET_SERVER_transmit_context_append_message (tc, &cnm.header);
+          /*send_to_client (c, &cnm.header, GNUNET_NO);*/
+        }
+      n = n->next;
+    }
+
+  GNUNET_SERVER_transmit_context_append_message (tc, &done_msg);
+  GNUNET_SERVER_transmit_context_run (tc,
+                                      GNUNET_TIME_UNIT_FOREVER_REL);
+}
+
 
 /**
  * Handle CORE_INIT request.
@@ -2201,6 +2243,7 @@ handle_client_send (void *cls,
   if (msize <
       sizeof (struct SendMessage) + sizeof (struct GNUNET_MessageHeader))
     {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "about to assert fail, msize is %d, should be less than %d\n", msize, sizeof (struct SendMessage) + sizeof (struct GNUNET_MessageHeader));
       GNUNET_break (0);
       if (client != NULL)
         GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -2730,7 +2773,7 @@ process_hello_retry_handle_set_key (void *cls,
 	}
       else
 	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      _("Ignoring `%s' message due to lack of public key for peer `%4s' (failed to obtain one).\n"),
 		      "SET_KEY",
 		      GNUNET_i2s (&n->peer));
@@ -3815,6 +3858,9 @@ run (void *cls,
     {&handle_client_request_info, NULL,
      GNUNET_MESSAGE_TYPE_CORE_REQUEST_INFO,
      sizeof (struct RequestInfoMessage)},
+    {&handle_client_iterate_peers, NULL,
+     GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS,
+     sizeof (struct GNUNET_MessageHeader)},
     {&handle_client_send, NULL,
      GNUNET_MESSAGE_TYPE_CORE_SEND, 0},
     {&handle_client_request_connect, NULL,
