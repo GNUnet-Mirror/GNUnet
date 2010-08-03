@@ -67,7 +67,7 @@ void term(int sig) {
 		running = 0;
 }
 
-static void set_address(char* dev, char* address, unsigned long prefix_len) { /* {{{ */
+static void set_address6(char* dev, char* address, unsigned long prefix_len) { /* {{{ */
 	int fd = socket(AF_INET6, SOCK_DGRAM, 0);
 
 	struct ifreq ifr;
@@ -93,6 +93,47 @@ static void set_address(char* dev, char* address, unsigned long prefix_len) { /*
 
 	if (ioctl(fd, SIOCSIFADDR, &ifr6) < 0) {
 		perror("SIOCSIFADDR");
+	}
+
+	/* FIXME */ ioctl(fd, SIOCGIFFLAGS, &ifr);
+	ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
+	/* FIXME */ ioctl(fd, SIOCSIFFLAGS, &ifr);
+} /* }}} */
+
+static void set_address4(char* dev, char* address, char* mask) { /* {{{ */
+	int fd=0;
+	struct sockaddr_in* addr;
+	struct ifreq ifr;
+
+	memset(&ifr, 0, sizeof(struct ifreq));
+	addr = (struct sockaddr_in *)&(ifr.ifr_addr);
+	memset(addr, 0, sizeof(struct sockaddr_in));
+	addr->sin_family = AF_INET;
+	addr->sin_addr.s_addr = inet_addr(address);
+
+	/* FIXME */ inet_pton(AF_INET, address, &addr->sin_addr.s_addr);
+
+	fd = socket(PF_INET, SOCK_DGRAM, 0);
+	if(fd < 0) {
+		perror("socket()");
+		return;
+	}
+
+	strncpy(ifr.ifr_name, dev, IFNAMSIZ);
+
+	if(ioctl(fd, SIOCSIFADDR, &ifr) != 0 ) {
+		perror("SIOCSIFADDR");
+		close(fd);
+		return;
+	}
+
+	addr = (struct sockaddr_in*)&(ifr.ifr_netmask);
+	/* FIXME */ inet_pton(AF_INET, mask, &addr->sin_addr.s_addr);
+
+	if(ioctl(fd, SIOCSIFNETMASK, &ifr) != 0 ) {
+		perror("SIOCSIFNETMASK");
+		close(fd);
+		return;
 	}
 
 	/* FIXME */ ioctl(fd, SIOCGIFFLAGS, &ifr);
@@ -131,11 +172,20 @@ int main(int argc, char** argv) {
 
 	fprintf(stderr, "Initialized the interface %s as %d.\n", dev, fd_tun);
 
+	{
 	// TODO: get this out of argv
 	char address[] = "1234::1";
 	unsigned long prefix_len = 16;
 
-	set_address(dev, address, prefix_len);
+	set_address6(dev, address, prefix_len);
+	}
+
+	{
+	char address[] = "10.10.10.1";
+	char mask[] = "255.255.255.252";
+
+	set_address4(dev, address, mask);
+	}
 
 	uid_t uid = getuid ();
 	if (setresuid (uid, uid, uid) != 0 )
