@@ -359,6 +359,20 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_SCHEDULER_Handle *sched,
 void
 GNUNET_CORE_peer_change_preference_cancel (struct GNUNET_CORE_InformationRequestContext *irc);
 
+/**
+ * Obtain statistics and/or change preferences for the given peer.
+ *
+ * @param sched scheduler to use
+ * @param cfg configuration to use
+ * @param peer_cb function to call with the peer information
+ * @param cb_cls closure for peer_cb
+ * @return GNUNET_OK if iterating, GNUNET_SYSERR on error
+ */
+int
+GNUNET_CORE_iterate_peers (struct GNUNET_SCHEDULER_Handle *sched,
+                           const struct GNUNET_CONFIGURATION_Handle *cfg,
+                           GNUNET_CORE_ConnectEventHandler peer_cb,
+                           void *cb_cls);
 
 /**
  * Handle for a transmission request.

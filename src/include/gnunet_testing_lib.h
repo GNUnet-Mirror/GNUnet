@@ -364,6 +364,23 @@ typedef void (*GNUNET_TESTING_NotifyConnection)(void *cls,
                                                 const char *emsg);
 
 /**
+ * Prototype of a callback function indicating that two peers
+ * are currently connected.
+ *
+ * @param cls closure
+ * @param first peer id for first daemon
+ * @param second peer id for the second daemon
+ * @param distance distance between the connected peers
+ * @param emsg error message (NULL on success)
+ */
+typedef void (*GNUNET_TESTING_NotifyTopology)(void *cls,
+                                              const struct GNUNET_PeerIdentity *first,
+                                              const struct GNUNET_PeerIdentity *second,
+                                              struct GNUNET_TIME_Relative latency,
+                                              uint32_t distance,
+                                              const char *emsg);
+
+/**
  * Starts a GNUnet daemon.  GNUnet must be installed on the target
  * system and available in the PATH.  The machine must furthermore be
  * reachable via "ssh" (unless the hostname is "NULL") without the
@@ -741,6 +758,17 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
                                 enum GNUNET_TESTING_Topology topology,
                                 enum GNUNET_TESTING_Topology restrict_topology,
                                 char *restrict_transports);
+
+/**
+ * Iterate over all (running) peers in the peer group, retrieve
+ * all connections that each currently has.
+ *
+ * @param pg the peer group we are concerned with
+ * @param cb callback for topology information
+ * @param cls closure for callback
+ */
+void
+GNUNET_TESTING_get_topology (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_NotifyTopology cb, void *cls);
 
 /**
  * There are many ways to connect peers that are supported by this function.

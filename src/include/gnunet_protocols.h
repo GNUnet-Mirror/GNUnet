@@ -360,6 +360,10 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_CORE_REQUEST_CONNECT 75
 
+/**
+ * Request from client asking to call back with all connected peers.
+ */
+#define GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS 76
 
 /**
  * Session key exchange between peers.
