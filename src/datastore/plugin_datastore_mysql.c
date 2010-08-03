@@ -49,9 +49,8 @@
  *
  * 1) in /etc/gnunet.conf, set
  *    <pre>
- *
- *     sqstore = "sqstore_mysql"
- *
+ *     [datastore]
+ *     DATABASE = "mysql"
  *    </pre>
  * 2) Then access mysql as root,
  *    <pre>
