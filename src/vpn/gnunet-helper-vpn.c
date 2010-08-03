@@ -23,23 +23,7 @@
  * @brief
  * @author Philipp Tölke
  */
-#define _GNU_SOURCE
-#include <arpa/inet.h>
-#include <linux/if.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <fcntl.h>
-
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-
-#include <string.h>
-
-#include <signal.h>
-
-#include <stdio.h>
-#include <unistd.h>
+#include <platform.h>
 
 #include "gnunet-vpn-tun.h"
 #include "gnunet_common.h"
@@ -53,7 +37,7 @@
 
 struct in6_ifreq {
     struct in6_addr ifr6_addr;
-    __u32 ifr6_prefixlen;
+    uint32_t ifr6_prefixlen;
     unsigned int ifr6_ifindex;
 };
 

@@ -33,7 +33,6 @@
 #include "gnunet_common.h"
 #include "gnunet_protocols.h"
 #include "gnunet_server_lib.h"
-/* #include "gnunet_template_service.h" */
 
 /**
  * Final status code.
