@@ -46,6 +46,10 @@ static struct GNUNET_TIME_Absolute now;
 
 static int ok;
 
+/**
+ * Name of plugin under test.
+ */
+static const char *plugin_name;
 
 static size_t
 get_size (int i)
@@ -593,6 +597,7 @@ run (void *cls,
 static int
 check ()
 {
+  char cfg_name[128];
   pid_t pid;
   char *const argv[] = { "test-datastore-api",
     "-c",
@@ -605,12 +610,16 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
+  GNUNET_snprintf (cfg_name,
+		   sizeof (cfg_name),
+		   "test_datastore_api_data_%s.conf",
+		   plugin_name);
   pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
                                  "gnunet-service-arm",
 #if VERBOSE
                                  "-L", "DEBUG",
 #endif
-                                 "-c", "test_datastore_api_data.conf", NULL);
+                                 "-c", cfg_name, NULL);
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "test-datastore-api", "nohelp",
                       options, &run, NULL);
@@ -629,8 +638,19 @@ int
 main (int argc, char *argv[])
 {
   int ret;
-  
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-datastore");
+  const char *pos;
+  char dir_name[128];
+
+  /* determine name of plugin to use */
+  plugin_name = argv[0];
+  while (NULL != (pos = strstr(plugin_name, "_")))
+    plugin_name = pos+1;
+
+  GNUNET_snprintf (dir_name,
+		   sizeof (dir_name),
+		   "/tmp/test-gnunet-datastore-%s",
+		   plugin_name);
+  GNUNET_DISK_directory_remove (dir_name);
   GNUNET_log_setup ("test-datastore-api",
 #if VERBOSE
                     "DEBUG",
@@ -639,11 +659,8 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-datastore");
-
+  GNUNET_DISK_directory_remove (dir_name);
   return ret;
 }
-
-
 
 /* end of test_datastore_api.c */

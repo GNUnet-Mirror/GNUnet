@@ -51,6 +51,8 @@ static unsigned long long stored_entries;
 
 static unsigned long long stored_ops;
 
+static const char *plugin_name;
+
 static int ok;
 
 enum RunPhase
@@ -365,10 +367,11 @@ run (void *cls,
 static int
 check ()
 {
+  char cfg_name[128];
   char *const argv[] = { 
     "perf-plugin-datastore",
     "-c",
-    "perf_plugin_datastore_data.conf",
+    cfg_name,
 #if VERBOSE
     "-L", "DEBUG",
 #endif
@@ -377,6 +380,11 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
+
+  GNUNET_snprintf (cfg_name,
+		   sizeof (cfg_name),
+		   "perf_plugin_datastore_data_%s.conf",
+		   plugin_name);
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "perf-plugin-datastore", "nohelp",
                       options, &run, NULL);
@@ -390,8 +398,19 @@ int
 main (int argc, char *argv[])
 {
   int ret;
+  const char *pos;
+  char dir_name[128];
 
-  GNUNET_DISK_directory_remove ("/tmp/perf-gnunet-datastore");
+  /* determine name of plugin to use */
+  plugin_name = argv[0];
+  while (NULL != (pos = strstr(plugin_name, "_")))
+    plugin_name = pos+1;
+
+  GNUNET_snprintf (dir_name,
+		   sizeof (dir_name),
+		   "/tmp/perf-gnunet-datastore-%s",
+		   plugin_name);
+  GNUNET_DISK_directory_remove (dir_name);
   GNUNET_log_setup ("perf-plugin-datastore",
 #if VERBOSE
                     "DEBUG",
@@ -404,7 +423,6 @@ main (int argc, char *argv[])
 
   return ret;
 }
-
 
 /* end of perf_plugin_datastore.c */
 

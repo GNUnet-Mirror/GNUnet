@@ -3,6 +3,8 @@
   - only connect() sockets that are ready (select()) [Nils]
     [On W32, we need to select after calling socket before doing connect etc.]
 * CORE:
+  - Jun 27 11:51:54 core-7670 ERROR Assertion failed at gnunet-service-core.c:3616.
+    (transport notified us that we connected to ourselves!!!)
   - transport-level disconnect (i.e. TCP) does not cause core-level
     disconnect in a timely fashion (waits for connection timeout);
     need to figure a way to make it near-instant in those cases 
