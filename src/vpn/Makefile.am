@@ -10,16 +10,19 @@ endif
 
 if LINUX
 VPNBIN = gnunet-helper-vpn
+HIJACKBIN = gnunet-helper-hijack-dns
 install-exec-hook:
 	chown root $(bindir)/gnunet-helper-vpn || true
 	chmod u+s $(bindir)/gnunet-helper-vpn || true
+	chown root $(bindir)/gnunet-helper-hijack-dns || true
+	chmod u+s $(bindir)/gnunet-helper-hijack-dns || true
 else
 install-exec-hook:
 endif
 
 
 bin_PROGRAMS = \
- gnunet-daemon-vpn $(VPNBIN)
+ gnunet-daemon-vpn $(VPNBIN) $(HIJACKBIN)
 
 
 gnunet_helper_vpn_SOURCES = \
@@ -27,13 +30,8 @@ gnunet_helper_vpn_SOURCES = \
  gnunet-vpn-helper-p.h \
  gnunet-vpn-tun.h gnunet-vpn-tun.c
 
-# debug.c  debug.h \
-# packet.h packet.c \
-# pretty-print.c  pretty-print.h \
-# tcp.c  tcp.h \
-# test.c \
-# tun.c  tun.h \
-# udp.c udp.h
+gnunet_helper_hijack_dns_SOURCES = \
+ gnunet-helper-hijack-dns.c
 
 gnunet_daemon_vpn_SOURCES = \
  gnunet-daemon-vpn.c gnunet-vpn-pretty-print.c
