@@ -934,7 +934,7 @@ acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 			       serviceListeningInfoList_tail, 
 			       sli);  
 #ifndef MINGW
-  use_lsocks = GNUNET_YES;
+  use_lsocks = GNUNET_NO;
   if (GNUNET_YES == GNUNET_CONFIGURATION_have_value (cfg,
 						     sli->serviceName,
 						     "DISABLE_SOCKET_FORWARDING"))
@@ -942,13 +942,16 @@ acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 						       sli->serviceName,
 						       "DISABLE_SOCKET_FORWARDING");
 #else
-  use_lsocks = GNUNET_NO;
+  use_lsocks = GNUNET_YES;
 #endif
-  if (GNUNET_YES != use_lsocks)
+  if (GNUNET_NO != use_lsocks)
     {
       accept_and_forward (sli);
       return;
     }
+  fprintf (stderr, "forwarding sockets for `%s' (%d)\n",
+	   sli->serviceName,
+	   use_lsocks);
   lsocks = NULL;
   ls = 0;
   next = serviceListeningInfoList_head;
