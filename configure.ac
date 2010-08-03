@@ -355,7 +355,7 @@ AC_ARG_WITH(pcap,
      ;;
    yes)
     AC_CHECK_HEADERS(pcap.h,
-     pcap=true)
+     pcap=1)
      ;;
    *)
     LDFLAGS="-L$with_pcap/lib $LDFLAGS"
