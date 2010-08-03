@@ -130,7 +130,7 @@ struct GNUNET_PEERINFO_Handle
  * @param sched scheduler to use
  * @param cfg configuration to use
  * @return NULL on error (configuration related, actual connection
- *         etablishment may happen asynchronously).
+ *         establishment may happen asynchronously).
  */
 struct GNUNET_PEERINFO_Handle *
 GNUNET_PEERINFO_connect (struct GNUNET_SCHEDULER_Handle *sched,
