@@ -33,6 +33,8 @@
 
 #define VERBOSE GNUNET_NO
 
+#define START_DATASTORE GNUNET_NO
+
 /**
  * How long until we give up on transmitting the message?
  */
@@ -598,7 +600,9 @@ static int
 check ()
 {
   char cfg_name[128];
+#if START_DATASTORE
   pid_t pid;
+#endif
   char *const argv[] = {
     "test-datastore-api",
     "-c",
@@ -615,21 +619,25 @@ check ()
 		   sizeof (cfg_name),
 		   "test_datastore_api_data_%s.conf",
 		   plugin_name);
+#if START_DATASTORE
   pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
                                  "gnunet-service-arm",
 #if VERBOSE
                                  "-L", "DEBUG",
 #endif
                                  "-c", cfg_name, NULL);
+#endif
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "test-datastore-api", "nohelp",
                       options, &run, NULL);
+#if START_DATASTORE
   if (0 != PLIBC_KILL (pid, SIGTERM))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
       ok = 1;
     }
   GNUNET_OS_process_wait(pid);
+#endif
   if (ok != 0)
     fprintf (stderr, "Missed some testcases: %u\n", ok);
   return ok;

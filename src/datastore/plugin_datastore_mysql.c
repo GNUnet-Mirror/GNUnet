@@ -371,6 +371,7 @@ get_my_cnf_path (const struct GNUNET_CONFIGURATION_Handle *cfg)
 #ifndef WINDOWS
   struct passwd *pw;
 #endif
+  int configured;
 
 #ifndef WINDOWS
   pw = getpwuid (getuid ());
@@ -382,10 +383,12 @@ get_my_cnf_path (const struct GNUNET_CONFIGURATION_Handle *cfg)
     }
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_have_value (cfg,
-				       "MYSQL", "CONFIG"))
+				       "datastore-mysql", "CONFIG"))
     {
-      GNUNET_CONFIGURATION_get_value_filename (cfg,
-					       "MYSQL", "CONFIG", &cnffile);
+      GNUNET_assert (GNUNET_OK == 
+		     GNUNET_CONFIGURATION_get_value_filename (cfg,
+							      "datastore-mysql", "CONFIG", &cnffile));
+      configured = GNUNET_YES;
     }
   else
     {
@@ -396,6 +399,7 @@ get_my_cnf_path (const struct GNUNET_CONFIGURATION_Handle *cfg)
 #endif
       GNUNET_asprintf (&cnffile, "%s/.my.cnf", home_dir);
       GNUNET_free (home_dir);
+      configured = GNUNET_NO;
     }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("Trying to use file `%s' for MySQL configuration.\n"),
@@ -403,9 +407,10 @@ get_my_cnf_path (const struct GNUNET_CONFIGURATION_Handle *cfg)
   if ((0 != STAT (cnffile, &st)) ||
       (0 != ACCESS (cnffile, R_OK)) || (!S_ISREG (st.st_mode)))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Could not access file `%s': %s\n"), cnffile,
-		  STRERROR (errno));
+      if (configured == GNUNET_YES)
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    _("Could not access file `%s': %s\n"), cnffile,
+		    STRERROR (errno));
       GNUNET_free (cnffile);
       return NULL;
     }
@@ -481,57 +486,62 @@ iopen (struct Plugin *ret)
   mysql_options (ret->dbf, MYSQL_OPT_RECONNECT, &reconnect);
   mysql_options (ret->dbf,
                  MYSQL_OPT_CONNECT_TIMEOUT, (const void *) &timeout);
+  mysql_options(ret->dbf, MYSQL_SET_CHARSET_NAME, "UTF8");
   timeout = 60; /* in seconds */
   mysql_options (ret->dbf, MYSQL_OPT_READ_TIMEOUT, (const void *) &timeout);
   mysql_options (ret->dbf, MYSQL_OPT_WRITE_TIMEOUT, (const void *) &timeout);
   mysql_dbname = NULL;
   if (GNUNET_YES == GNUNET_CONFIGURATION_have_value (ret->env->cfg,
-						     "MYSQL", "DATABASE"))
+						     "datastore-mysql", "DATABASE"))
     GNUNET_assert (GNUNET_OK == 
 		   GNUNET_CONFIGURATION_get_value_string (ret->env->cfg,
-							  "MYSQL", "DATABASE", 
+							  "datastore-mysql", "DATABASE", 
 							  &mysql_dbname));
   else
     mysql_dbname = GNUNET_strdup ("gnunet");
   mysql_user = NULL;
   if (GNUNET_YES == GNUNET_CONFIGURATION_have_value (ret->env->cfg,
-						     "MYSQL", "USER"))
+						     "datastore-mysql", "USER"))
     {
-      GNUNET_break (GNUNET_OK == 
+      GNUNET_assert (GNUNET_OK == 
 		    GNUNET_CONFIGURATION_get_value_string (ret->env->cfg,
-							   "MYSQL", "USER", 
+							   "datastore-mysql", "USER", 
 							   &mysql_user));
     }
   mysql_password = NULL;
   if (GNUNET_YES == GNUNET_CONFIGURATION_have_value (ret->env->cfg,
-						     "MYSQL", "PASSWORD"))
+						     "datastore-mysql", "PASSWORD"))
     {
-      GNUNET_break (GNUNET_OK ==
+      GNUNET_assert (GNUNET_OK ==
 		    GNUNET_CONFIGURATION_get_value_string (ret->env->cfg,
-							   "MYSQL", "PASSWORD",
+							   "datastore-mysql", "PASSWORD",
 							   &mysql_password));
     }
   mysql_server = NULL;
   if (GNUNET_YES == GNUNET_CONFIGURATION_have_value (ret->env->cfg,
-						     "MYSQL", "HOST"))
+						     "datastore-mysql", "HOST"))
     {
-      GNUNET_break (GNUNET_OK == 
+      GNUNET_assert (GNUNET_OK == 
 		    GNUNET_CONFIGURATION_get_value_string (ret->env->cfg,
-							   "MYSQL", "HOST", 
+							   "datastore-mysql", "HOST", 
 							   &mysql_server));
     }
   mysql_port = 0;
   if (GNUNET_YES == GNUNET_CONFIGURATION_have_value (ret->env->cfg,
-						     "MYSQL", "PORT"))
+						     "datastore-mysql", "PORT"))
     {
-      GNUNET_break (GNUNET_OK ==
-		    GNUNET_CONFIGURATION_get_value_number (ret->env->cfg, "MYSQL",
+      GNUNET_assert (GNUNET_OK ==
+		    GNUNET_CONFIGURATION_get_value_number (ret->env->cfg, "datastore-mysql",
 							   "PORT", &mysql_port));
     }
 
   GNUNET_assert (mysql_dbname != NULL);
   mysql_real_connect (ret->dbf, mysql_server, mysql_user, mysql_password,
-                      mysql_dbname, (unsigned int) mysql_port, NULL, 0);
+                      mysql_dbname, (unsigned int) mysql_port, NULL,
+		      CLIENT_IGNORE_SIGPIPE);
+  GNUNET_free_non_null (mysql_server);
+  GNUNET_free_non_null (mysql_user);
+  GNUNET_free_non_null (mysql_password);
   GNUNET_free (mysql_dbname);
   if (mysql_error (ret->dbf)[0])
     {
@@ -1064,7 +1074,6 @@ sqlite_next_request_cont (void *next_cls,
   unsigned long hashSize;
   GNUNET_HashCode key;
   struct GNUNET_TIME_Absolute expiration;
-  unsigned int contentSize;
   unsigned long length;
   MYSQL_BIND *rbind; /* size 7 */
   MYSQL_BIND dbind[1];
@@ -1075,10 +1084,6 @@ sqlite_next_request_cont (void *next_cls,
   plugin->next_task_nc = NULL;
 
  AGAIN:
-  ret = nrc->prep (nrc->prep_cls,
-		   nrc);
-  if (ret != GNUNET_OK)
-    goto END_SET;
   nrc->now = GNUNET_TIME_absolute_get ();
   hashSize = sizeof (GNUNET_HashCode);
   memset (nrc->rbind, 0, sizeof (nrc->rbind));
@@ -1106,6 +1111,17 @@ sqlite_next_request_cont (void *next_cls,
   rbind[6].buffer = &vkey;
   rbind[6].is_unsigned = GNUNET_YES;
 
+  ret = nrc->prep (nrc->prep_cls,
+		   nrc);
+  if (ret != GNUNET_OK)
+    goto END_SET;
+  if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+    {
+      GNUNET_break (0); /* far too big */
+      goto END_SET;
+    }
+
+
   nrc->last_vkey = vkey;
   nrc->last_prio = priority;
   nrc->last_expire = exp;
@@ -1128,19 +1144,13 @@ sqlite_next_request_cont (void *next_cls,
       GNUNET_break (0);
       goto END_SET;
     }	  
-  contentSize = *(unsigned int *) rbind[0].buffer;
-  if (contentSize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
-    {
-      GNUNET_break (0); /* far too big */
-      goto END_SET;
-    }
   /* now do query on gn072 */
-  length = contentSize;
-  memset (rbind, 0, sizeof (rbind));
-  rbind[0].buffer_type = MYSQL_TYPE_BLOB;
-  rbind[0].buffer_length = contentSize;
-  rbind[0].length = &length;
-  rbind[0].buffer = datum;
+  length = size;
+  memset (dbind, 0, sizeof (dbind));
+  dbind[0].buffer_type = MYSQL_TYPE_BLOB;
+  dbind[0].buffer_length = size;
+  dbind[0].length = &length;
+  dbind[0].buffer = datum;
   ret = prepared_statement_run_select (plugin,
 				       plugin->select_value,
 				       1,
@@ -1153,22 +1163,22 @@ sqlite_next_request_cont (void *next_cls,
   if (ret > 0)
     ret = GNUNET_OK;
   if ((ret != GNUNET_OK) ||
-      (dbind[0].buffer_length != contentSize) || (length != contentSize))
+      (dbind[0].buffer_length != size) || (length != size))
     {
       GNUNET_break (ret != 0); /* should have one rbind! */
-      GNUNET_break (length == contentSize);    /* length should match! */
-      GNUNET_break (dbind[0].buffer_length == contentSize);    /* length should be internally consistent! */
+      GNUNET_break (length == size);    /* length should match! */
+      GNUNET_break (dbind[0].buffer_length == size);    /* length should be internally consistent! */
       do_delete_value (plugin, vkey);
       if (ret != 0)
 	do_delete_entry_by_vkey (plugin, vkey);
-      plugin->content_size -= contentSize;
+      plugin->content_size -= size;
       goto AGAIN;
     }
   expiration.value = exp;
   ret = nrc->dviter (nrc->dviter_cls,
 		     nrc,
 		     &key,
-		     contentSize,
+		     size,
 		     datum,
 		     type,
 		     priority,
@@ -1184,7 +1194,7 @@ sqlite_next_request_cont (void *next_cls,
     {
       do_delete_value (plugin, vkey);
       do_delete_entry_by_vkey (plugin, vkey);
-      plugin->content_size -= contentSize;
+      plugin->content_size -= size;
     }
   return;
  END_SET:
