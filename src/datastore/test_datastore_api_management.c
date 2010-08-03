@@ -321,9 +321,10 @@ check ()
 {
   pid_t pid;
   char cfg_name[128];
-  char *const argv[] = { "test-datastore-api-management",
+  char *const argv[] = { 
+    "test-datastore-api-management",
     "-c",
-    "test_datastore_api_data.conf",
+    cfg_name,
 #if VERBOSE
     "-L", "DEBUG",
 #endif

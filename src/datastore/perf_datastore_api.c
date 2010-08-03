@@ -363,7 +363,7 @@ check ()
 #if VERBOSE
                                  "-L", "DEBUG",
 #endif
-                                 "-c", "test_datastore_api_data.conf", NULL);
+                                 "-c", cfg_name, NULL);
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "perf-datastore-api", "nohelp",
                       options, &run, NULL);
