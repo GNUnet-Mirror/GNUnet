@@ -49,7 +49,7 @@
  */
 #define HIGH_PORT 56000
 
-#define MAX_OUTSTANDING_CONNECTIONS 50
+#define MAX_OUTSTANDING_CONNECTIONS 10
 
 #define MAX_CONCURRENT_HOSTKEYS 16
 
@@ -2795,7 +2795,7 @@ schedule_get_topology(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Delaying connect, we have too many outstanding connections!\n"));
 #endif
-      GNUNET_SCHEDULER_add_delayed(core_context->daemon->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &schedule_connect, core_context);
+      GNUNET_SCHEDULER_add_delayed(core_context->daemon->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &schedule_get_topology, core_context);
     }
   else
     {
