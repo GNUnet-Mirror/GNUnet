@@ -59,11 +59,22 @@ check ()
     rel = GNUNET_TIME_relative_multiply (rel, 2);
   GNUNET_log_skip (0, GNUNET_NO);
   GNUNET_assert (rel.value == GNUNET_TIME_UNIT_FOREVER_REL.value);
+  /*check zero*/
+  rel.value = (UINT64_MAX) - 1024;
+  GNUNET_assert (GNUNET_TIME_relative_get_zero ().value == GNUNET_TIME_relative_multiply (rel,0).value);
 
   /* test infinity-check for relative to absolute */
   last = GNUNET_TIME_relative_to_absolute (rel);
   GNUNET_assert (last.value == GNUNET_TIME_UNIT_FOREVER_ABS.value);
 
+  /*check relative to absolute*/
+  rel.value = 0;
+  GNUNET_assert (GNUNET_TIME_absolute_get ().value ==
+		 GNUNET_TIME_relative_to_absolute(rel).value);
+  /*check forever*/
+  rel.value = UINT64_MAX;
+  GNUNET_assert (GNUNET_TIME_absolute_get_forever ().value ==
+		 GNUNET_TIME_relative_to_absolute(rel).value);
   /* check overflow for r2a */
   rel.value = (UINT64_MAX) - 1024;
   GNUNET_log_skip (1, GNUNET_NO);
@@ -110,6 +121,9 @@ check ()
   rel = GNUNET_TIME_absolute_get_remaining (future);
   GNUNET_assert (rel.value > 0);
   GNUNET_assert (rel.value <= 1000000);
+  forever = GNUNET_TIME_absolute_get_forever ();
+  GNUNET_assert (GNUNET_TIME_relative_get_forever ().value ==
+		 GNUNET_TIME_absolute_get_remaining (forever).value);
 
   /* check endianess */
   reln = GNUNET_TIME_relative_hton (rel);
@@ -136,6 +150,74 @@ check ()
   GNUNET_assert (forever.value ==
 		 GNUNET_TIME_absolute_subtract (forever,
 						GNUNET_TIME_UNIT_MINUTES).value);
+  /*check absolute subtract*/
+  now.value= 50000;
+  rel.value = 100000;
+  GNUNET_assert (GNUNET_TIME_UNIT_ZERO_ABS.value == 
+		 (GNUNET_TIME_absolute_subtract(now,rel)).value);
+  rel.value = 10000;
+  GNUNET_assert (40000 == 
+		 (GNUNET_TIME_absolute_subtract(now,rel)).value);
+
+  /*check relative divide*/
+  GNUNET_assert(GNUNET_TIME_UNIT_FOREVER_REL.value == 
+		(GNUNET_TIME_relative_divide (rel,0)).value);
+  
+  rel = GNUNET_TIME_UNIT_FOREVER_REL;
+  GNUNET_assert(GNUNET_TIME_UNIT_FOREVER_REL.value == 
+		(GNUNET_TIME_relative_divide (rel,2)).value);
+  
+  rel = GNUNET_TIME_relative_divide (relUnit,2);
+  GNUNET_assert(rel.value == relUnit.value / 2);
+  
+
+  /* check Return absolute time of 0ms*/
+  zero = GNUNET_TIME_absolute_get_zero ();
+
+  /* check GNUNET_TIME_calculate_eta */
+  last.value = GNUNET_TIME_absolute_get ().value - 1024;
+  forever = GNUNET_TIME_absolute_get_forever ();
+  forever.value = forever.value - 1024;
+  GNUNET_assert(GNUNET_TIME_absolute_get_zero ().value == 
+		GNUNET_TIME_calculate_eta (forever,50000,100000).value);
+  /*check zero*/
+  GNUNET_assert(GNUNET_TIME_UNIT_ZERO.value ==
+		(GNUNET_TIME_calculate_eta (last,60000,50000)).value);
+  /*check forever*/
+  GNUNET_assert(GNUNET_TIME_UNIT_FOREVER_REL.value ==
+		(GNUNET_TIME_calculate_eta (last,0,50000)).value);
+
+  /*check relative subtract*/
+  now = GNUNET_TIME_absolute_get ();
+  rel.value = now.value;
+  relForever.value = rel.value + 1024;
+  GNUNET_assert(1024  ==
+		GNUNET_TIME_relative_subtract(relForever,rel).value);
+  /*check zero*/
+  GNUNET_assert(GNUNET_TIME_relative_get_zero ().value  ==
+		GNUNET_TIME_relative_subtract(rel,relForever).value);
+  /*check forever*/
+  rel.value = UINT64_MAX;
+  GNUNET_assert(GNUNET_TIME_relative_get_forever ().value  ==
+		GNUNET_TIME_relative_subtract(rel,relForever).value);
+
+  /*check GNUNET_TIME_relative_min*/
+  now = GNUNET_TIME_absolute_get ();
+  rel.value = now.value;
+  relForever.value = rel.value - 1024;
+  GNUNET_assert(relForever.value == GNUNET_TIME_relative_min(rel,relForever).value);
+
+  /*check GNUNET_TIME_relative_max */
+  GNUNET_assert(rel.value == GNUNET_TIME_relative_max(rel,relForever).value);
+  
+  /*check GNUNET_TIME_absolute_min*/
+  now = GNUNET_TIME_absolute_get ();
+  last.value = now.value - 1024;
+  GNUNET_assert(last.value == GNUNET_TIME_absolute_min(now,last).value);
+
+  /*check  GNUNET_TIME_absolute_max*/
+  GNUNET_assert(now.value == GNUNET_TIME_absolute_max(now,last).value);
+
   return 0;
 }
 
@@ -146,6 +228,7 @@ main (int argc, char *argv[])
 
   GNUNET_log_setup ("test-time", "WARNING", NULL);
   ret = check ();
+  printf("test_0309");
 
   return ret;
 }
