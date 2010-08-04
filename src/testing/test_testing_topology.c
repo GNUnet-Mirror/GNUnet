@@ -26,7 +26,7 @@
 #include "gnunet_core_service.h"
 #include "gnunet_os_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define DELAY_FOR_LOGGING GNUNET_NO
 
@@ -44,7 +44,7 @@
 
 #define DEFAULT_NUM_PEERS 4
 
-#define MAX_OUTSTANDING_CONNECTIONS 300
+#define MAX_OUTSTANDING_CONNECTIONS 100
 
 static float fail_percentage = 0.05;
 
@@ -265,6 +265,37 @@ disconnect_cores (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   total_server_connections -= 2;
 }
 
+void topology_cb (void *cls,
+             const struct GNUNET_PeerIdentity *first,
+             const struct GNUNET_PeerIdentity *second,
+             struct GNUNET_TIME_Relative latency,
+             uint32_t distance,
+             const char *emsg)
+{
+  FILE *outfile;
+  outfile = cls;
+  if (first != NULL)
+  {
+    if (outfile == NULL)
+      fprintf(stderr, "Peer %s connected to %s\n", GNUNET_i2s(first), GNUNET_h2s(&second->hashPubKey));
+    else
+    {
+      fprintf(outfile, "\t\"%s\" -- ", GNUNET_i2s(first));
+      fprintf(outfile, "\"%s\";\n", GNUNET_i2s(second));
+    }
+  }
+  else
+    {
+      fprintf(stderr, "Finished iterating over topology!\n");
+      if (outfile != NULL)
+      {
+        fprintf(outfile, "}\n");
+        fclose(outfile);
+      }
+      GNUNET_SCHEDULER_add_now (sched, &finish_testing, NULL);
+    }
+}
+
 static int
 process_mtype (void *cls,
                const struct GNUNET_PeerIdentity *peer,
@@ -272,6 +303,8 @@ process_mtype (void *cls,
                struct GNUNET_TIME_Relative latency,
                uint32_t distance)
 {
+  char *dotOutFileNameFinished;
+  FILE *dotOutFileFinished;
   struct TestMessageContext *pos = cls;
   struct GNUNET_TestMessage *msg = (struct GNUNET_TestMessage *)message;
   if (pos->uid != ntohl(msg->uid))
@@ -309,7 +342,14 @@ process_mtype (void *cls,
       fprintf(stdout, "100%%]\n");
 #endif
       GNUNET_SCHEDULER_cancel (sched, die_task);
-      GNUNET_SCHEDULER_add_now (sched, &finish_testing, NULL);
+      GNUNET_asprintf(&dotOutFileNameFinished, "%s.dot", "final_topology");
+      dotOutFileFinished = fopen (dotOutFileNameFinished, "w");
+      if (dotOutFileFinished != NULL)
+      {
+        fprintf(dotOutFileFinished, "strict graph G {\n");
+      }
+      GNUNET_TESTING_get_topology (pg, &topology_cb, dotOutFileFinished);
+      //GNUNET_SCHEDULER_add_now (sched, &finish_testing, NULL);
     }
   else
     {
