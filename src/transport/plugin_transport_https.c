@@ -370,6 +370,8 @@ struct Plugin
 
   /* The private key MHD uses as an \0 terminated string */
   char * key;
+  
+  char * crypto_init;
 };
 
 
@@ -2347,7 +2349,8 @@ libgnunet_plugin_transport_https_done (void *cls)
 
   GNUNET_free_non_null (plugin->bind4_address);
   GNUNET_free_non_null (plugin->bind6_address);
-  GNUNET_free_non_null(plugin->bind_hostname);
+  GNUNET_free_non_null (plugin->bind_hostname);
+  GNUNET_free_non_null (plugin->crypto_init);
   GNUNET_free (plugin);
   GNUNET_free (api);
 #if DEBUG_HTTPS
@@ -2452,6 +2455,34 @@ libgnunet_plugin_transport_https_init (void *cls)
 		  plugin->bind_hostname = NULL;
 		  plugin->bind4_address = NULL;
 	  }
+  }
+  
+    /* Get crypto init string from config */
+  if (GNUNET_CONFIGURATION_have_value (env->cfg,
+		  	  	  	  	  	  	  	   "transport-https", "CRYPTO_INIT"))
+  {
+		GNUNET_CONFIGURATION_get_value_string (env->cfg,
+											   "transport-https",
+											   "CRYPTO_INIT",
+											   &plugin->crypto_init);
+  }
+  else
+  {
+	  GNUNET_asprintf(&plugin->crypto_init,"NORMAL");
+  }
+
+  /* Get private key file from config */
+  if (GNUNET_CONFIGURATION_have_value (env->cfg,
+		  	  	  	  	  	  	  	   "transport-https", "CERT_FILE"))
+  {
+	  GNUNET_CONFIGURATION_get_value_string (env->cfg,
+										   	 "transport-https",
+										     "CERT_FILE",
+										     &cert_file);
+  }
+  else
+  {
+	  GNUNET_asprintf(&cert_file,"https.cert");
   }
 
   /* Get private key file from config */
@@ -2576,6 +2607,11 @@ libgnunet_plugin_transport_https_init (void *cls)
                                        port,
                                        &mhd_accept_cb,
                                        plugin , &mdh_access_cb, plugin,
+                                       /*MHD_OPTION_HTTPS_PRIORITIES,  "NORMAL:",*/
+                                       /*MHD_OPTION_HTTPS_PRIORITIES,  "PERFORMANCE:",*/
+                                       /* MHD_OPTION_HTTPS_PRIORITIES, "NONE:+VERS-TLS1.0:+ARCFOUR-128:+SHA1:+RSA:+COMP-NULL", */
+                                       /*MHD_OPTION_HTTPS_PRIORITIES,  "NONE:+VERS-TLS1.0:+ARCFOUR-128:+MD5:+RSA:+COMP-NULL",*/
+				       MHD_OPTION_HTTPS_PRIORITIES,  plugin->crypto_init,
                                        MHD_OPTION_HTTPS_MEM_KEY, plugin->key,
                                        MHD_OPTION_HTTPS_MEM_CERT, plugin->cert,
                                        MHD_OPTION_SOCK_ADDR, tmp,
@@ -2596,6 +2632,11 @@ libgnunet_plugin_transport_https_init (void *cls)
                                        port,
                                        &mhd_accept_cb,
                                        plugin , &mdh_access_cb, plugin,
+                                       /*MHD_OPTION_HTTPS_PRIORITIES,  "NORMAL:",*/
+                                       /*MHD_OPTION_HTTPS_PRIORITIES,  "PERFORMANCE:",*/
+                                       /* MHD_OPTION_HTTPS_PRIORITIES, "NONE:+VERS-TLS1.0:+ARCFOUR-128:+SHA1:+RSA:+COMP-NULL", */
+                                       /*MHD_OPTION_HTTPS_PRIORITIES,  "NONE:+VERS-TLS1.0:+ARCFOUR-128:+MD5:+RSA:+COMP-NULL",*/
+				       MHD_OPTION_HTTPS_PRIORITIES,  plugin->crypto_init,
                                        MHD_OPTION_HTTPS_MEM_KEY, plugin->key,
                                        MHD_OPTION_HTTPS_MEM_CERT, plugin->cert,
                                        MHD_OPTION_SOCK_ADDR, (struct sockaddr_in *)plugin->bind4_address,
